@@ -475,8 +475,13 @@ HeapTupleSatisfiesTimeQual(tuple, qual)
 	HeapTuple	tuple;
 	TimeQual	qual;
 {
+	extern TransactionId AmiTransactionId;
+
 	Assert(HeapTupleIsValid(tuple));
 	Assert(TimeQualIsValid(qual));
+
+	if (TransactionIdEquals(tuple->t_xmax, AmiTransactionId))
+	    return(false);
 
 	if (qual == SelfTimeQual || heapisoverride()
 #ifndef	GOODAMI
