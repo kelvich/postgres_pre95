@@ -1,0 +1,57 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP CREATEDB UNIX 6/14/90
+.XA 1 Createuser
+.uh NAME
+.lp
+destroyuser \*- destroy a \*(PP user
+.uh SYNOPSIS
+.lp
+.b destroyuser 
+[-p port -h host]
+.b username
+.uh DESCRIPTION
+.lp
+.b Destroyuser
+destroys an existing \*(PP user.
+Only users with ``usesuper'' set in the pg_user class can destroy
+\*(PP users.  As shipped, the user ``postgres'' can destroy users.
+.sp
+.i Username
+is the name of the POSTGRES user
+to be destroyed.
+.sp
+The argument 
+.i port
+and
+.i hostname
+are the same as in the terminal monitor - they are used to connect to the
+postmaster using the TCP/IP port
+.i port
+running on the database server
+.i hostname.
+The defaults are to the local machine (localhost) and to the default port
+(4321).
+.uh "INTERACTIVE QUESTIONS"
+Once invoked with the above options
+.b destroyuser
+will warn the person destroying the \*(PP user about the databases that will
+be destroyed in the process.  If the databases should not be destroyed, 
+.b destroyuser
+can be aborted.
+.uh "SEE ALSO"
+.lp
+adduser(unix),
+.uh DIAGNOSTICS
+.lp
+You are not a valid \*(PP user
+.pp
+You do not have a users file entry, and can
+not do anything with \*(PP at all.
+.sp
+.lp
+<user> does not exist
+.pp
+The user does not exist.
+.lp
+You don't have permission to destroy users.

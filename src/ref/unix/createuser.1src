@@ -1,0 +1,57 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP CREATEDB UNIX 6/14/90
+.XA 1 Createuser
+.uh NAME
+.lp
+createuser \*- create a \*(PP user
+.uh SYNOPSIS
+.lp
+.b createuser 
+[-p port -h host]
+.b username
+.uh DESCRIPTION
+.lp
+.b Createuser
+creates a new \*(PP user.
+Only users with ``usesuper'' set in the pg_user class can create
+new \*(PP users.  As shipped, the user ``postgres'' can create users.
+.sp
+.i Username
+is the name of the POSTGRES user
+to be created.
+The name must be unique
+among all \*(PP users.
+.sp
+The argument 
+.i port
+and
+.i hostname
+are the same as in the terminal monitor - they are used to connect to the
+postmaster using the TCP/IP port
+.i port
+running on the database server
+.i hostname.
+The defaults are to the local machine (localhost) and to the default port
+(4321).
+.uh "INTERACTIVE QUESTIONS"
+Once invoked with the above options
+.b createuser
+will guide the person adding the new \*(PP user through a series of questions.
+These questions describe the security capabilities of the \*(PP user.
+.uh "SEE ALSO"
+.lp
+destroyuser(unix),
+.uh DIAGNOSTICS
+.lp
+You are not a valid \*(PP user
+.pp
+You do not have a users file entry, and can
+not do anything with \*(PP at all.
+.sp
+.lp
+<user> already exists
+.pp
+The user already exists.
+.lp
+You don't have permission to add users.
