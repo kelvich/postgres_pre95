@@ -76,7 +76,7 @@ Datum ExecEvalParam ARGS((Param expression , ExprContext econtext, Boolean *isDo
 /*Datum GetAttribute ARGS((char *attname ));*/
 Datum ExecMakeFunctionResult ARGS((Node node, List arguments , ExprContext econtext, Boolean *isNull, Boolean *isDone ));
 Datum ExecEvalOper ARGS((List opClause , ExprContext econtext , Boolean *isNull ));
-Datum ExecEvalFunc ARGS((Func funcClause , ExprContext econtext , Boolean *isNull, Boolean *isDone ));
+Datum ExecEvalFunc ARGS((LispValue funcClause , ExprContext econtext , Boolean *isNull, Boolean *isDone ));
 Datum ExecEvalNot ARGS((List notclause , ExprContext econtext , Boolean *isNull ));
 Datum ExecEvalOr ARGS((List orExpr , ExprContext econtext , Boolean *isNull ));
 Datum ExecEvalExpr ARGS((Node expression , ExprContext econtext , Boolean *isNull, Boolean *isDone ));
