@@ -24,40 +24,11 @@
  *	$Header$
  * ----------------------------------------------------------------
  */
-  
-#include "tmp/postgres.h"
+
+#include "executor/executor.h"
+#include "storage/smgr.h"
 
  RcsId("$Header$");
-
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
-#include "utils/log.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
-
-#include "storage/smgr.h"
 
 /* ----------------------------------------------------------------
  *   	ExecOpenScanR
@@ -241,19 +212,19 @@ ExecCloseR(node)
 	
     case classTag(SeqScan):
     case classTag(IndexScan):
-	state =  (Pointer) get_scanstate(node);
+	state =  (Pointer) get_scanstate((Scan) node);
 	break;
 	
     case classTag(Material):
-	state =  (Pointer) get_matstate(node);
+	state =  (Pointer) get_matstate((Material) node);
 	break;
 	
     case classTag(Sort):
-	state =  (Pointer) get_sortstate(node);
+	state =  (Pointer) get_sortstate((Sort) node);
 	break;
 
     case classTag(Agg):
-	state = (Pointer) get_aggstate(node);
+	state = (Pointer) get_aggstate((Agg) node);
 	break;
 
     default:
@@ -261,8 +232,8 @@ ExecCloseR(node)
 	return;
     }
     
-    relation = get_css_currentRelation(state);
-    scanDesc = get_css_currentScanDesc(state);
+    relation = get_css_currentRelation((CommonScanState) state);
+    scanDesc = get_css_currentScanDesc((CommonScanState) state);
     
     if (scanDesc != NULL)
 	amendscan(scanDesc);
@@ -282,7 +253,7 @@ ExecCloseR(node)
 	IndexScanDescPtr indexScanDescs;
 	int		 i;
 	
-	indexstate = 	     get_indxstate(node);
+	indexstate = 	     get_indxstate((IndexScan) node);
 	numIndices =         get_iss_NumIndices(indexstate);
 	indexRelationDescs = get_iss_RelationDescs(indexstate);
 	indexScanDescs =     get_iss_ScanDescs(indexstate);
@@ -322,13 +293,21 @@ ExecReScan(node)
 {
     switch(NodeType(node)) {
     case classTag(SeqScan):
-	ExecSeqReScan((SeqScan) node);
+	ExecSeqReScan((Plan)  node);
 	return;
     
     case classTag(IndexScan):
 	ExecIndexReScan((IndexScan) node);
 	return;
 
+    case classTag(Material):
+	/* the first call to ExecReScan should have no effect because
+	 * everything is initialized properly already.  the following
+	 * calls will be handled by ExecSeqReScan() because the nodes
+	 * below the Material node have already been materialized into
+	 * a temp relation.
+	 */
+	return;
     default:
 	elog(DEBUG, "ExecReScan: not a seqscan or indexscan node.");
 	return;
@@ -383,13 +362,13 @@ ExecMarkPos(node)
 {
     switch(NodeType(node)) {
     case classTag(SeqScan):
-	return ExecSeqMarkPos((SeqScan) node);
+	return ExecSeqMarkPos((Plan) node);
     
     case classTag(IndexScan):
 	return ExecIndexMarkPos((IndexScan) node);
     
     case classTag(Sort):
-	return ExecSortMarkPos((Sort) node);
+	return ExecSortMarkPos((Plan) node);
 
     default:
 	/* elog(DEBUG, "ExecMarkPos: unsupported node type"); */
@@ -415,7 +394,7 @@ ExecRestrPos(node)
 {
     switch(NodeType(node)) {
     case classTag(SeqScan):
-	ExecSeqRestrPos((SeqScan) node);
+	ExecSeqRestrPos((Plan) node);
 	return;
     
     case classTag(IndexScan):
@@ -423,7 +402,7 @@ ExecRestrPos(node)
 	return;
     
     case classTag(Sort):
-	ExecSortRestrPos((Sort) node);
+	ExecSortRestrPos((Plan) node);
 	return;
 
     default:

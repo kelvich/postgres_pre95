@@ -213,7 +213,7 @@ ExecMaterial(node)
  ****/
 List	/* initialization status */
 ExecInitMaterial(node, estate, parent)
-    Material 	node;
+    Sort 	node;
     EState 	estate;
     Plan	parent;
 {
@@ -292,7 +292,6 @@ ExecInitMaterial(node, estate, parent)
      *	create the temporary relation
      * ----------------
      */
-    len = length(get_qptargetlist(node));
     tempDesc = 	ExecCreatR(len, tupType, -1);
     
     /* ----------------

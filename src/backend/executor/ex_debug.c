@@ -17,39 +17,9 @@
  *	$Header$
  * ----------------------------------------------------------------
  */
-
-#include "tmp/postgres.h"
+#include "executor/executor.h
 
  RcsId("$Header$");
-
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
-#include "parser/parsetree.h"
-#include "utils/mcxt.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
 
 /* ----------------
  *	planner cost variables
@@ -265,7 +235,6 @@ DebugVariableProcessCommand(buf)
 	
     } else if (sscanf(buf, "DEBUG X %s", s) == 1) {
 	MemoryContext oldContext;
-	extern void InitXHook();
 	
 	/* ----------------
 	 *	assign the X debugging hooks in the top memory context
@@ -333,12 +302,13 @@ struct paralleldebuginfo ParallelDebugInfo[] = {
 };
 #define NPARALLELDEBUGINFO      4
 
-PrintParallelDebugInfo()
+PrintParallelDebugInfo(statfp)
+FILE *statfp;
 {
     int i;
     for (i=0; i<NPARALLELDEBUGINFO; i++) {
 	if (ParallelDebugInfo[i].count > 0)
-	   fprintf(stderr, "!\t%sCount %d %sTime %.6f\n",
+	   fprintf(statfp, "!\t%sCount %d %sTime %.6f\n",
 		ParallelDebugInfo[i].name, ParallelDebugInfo[i].count,
 		ParallelDebugInfo[i].name, ParallelDebugInfo[i].time/1e6);
       }
@@ -552,10 +522,10 @@ AddMaterialNode(plan)
     List      tl;
     List      resdom;
     
-    material = MakeMaterial();
+    material = MakeMaterial(NULL);
     targetlist = get_qptargetlist(plan);
-    set_qptargetlist(material, targetlist);
-    set_lefttree(material, plan);
+    set_qptargetlist((Plan) material, targetlist);
+    set_lefttree((Plan)material, (Plan) plan);
     return (Plan) material;
 }
  
@@ -574,19 +544,19 @@ AddSortNode(plan, op)
     Sort      sort;
     List      targetlist;
     List      tl;
-    List      resdom;
+    Resdom      resdom;
     
-    sort = MakeSort();
+    sort = MakeSort(NULL);
     targetlist = get_qptargetlist(plan);
     foreach (tl, targetlist) {
-	resdom = (List) tl_resdom(CAR(tl));
+	resdom = (Resdom) tl_resdom(CAR(tl));
 	set_reskey(resdom, 1);
-	set_reskeyop(resdom, op);
+	set_reskeyop(resdom, (OperatorTupleForm) op);
     }
-    set_qptargetlist(sort, targetlist);
-    set_lefttree(sort, plan);
-    set_tempid(sort, -1);
-    set_keycount(sort, 1);
+    set_qptargetlist((Plan)sort, targetlist);
+    set_lefttree((Plan)sort, (Plan) plan);
+    set_tempid((Temp) sort, -1);
+    set_keycount((Temp) sort, 1);
     return (Plan) sort;
 }
  
@@ -606,9 +576,9 @@ AddUniqueNode(plan)
     List      tl;
     List      resdom;
     
-    unique = MakeUnique();
+    unique = MakeUnique(NULL);
     targetlist = get_qptargetlist(plan);
-    set_qptargetlist(unique, targetlist);
-    set_lefttree(unique, plan);
+    set_qptargetlist((Plan) unique, targetlist);
+    set_lefttree((Plan) unique, (Plan) plan);
     return (Plan) unique;
 }

@@ -10,21 +10,7 @@
  *=========================================================================
  */
 
-#include "tmp/postgres.h"
-#include "parser/parsetree.h"
-#include "utils/log.h"
-#include "nodes/pg_lisp.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-#include "access/ftup.h"
-#include "access/heapam.h"
-#include "executor/execdebug.h"
-
-#include "executor/externs.h"
+#include "executor/executor.h"
 
 extern Node CopyObject();
 extern List MakeTLE();
@@ -226,7 +212,7 @@ ExecGetJunkAttribute(junkfilter, slot, attrName, value, isNull)
      * Now extract the attribute value from the tuple.
      * ---------------------
      */
-    tuple = 	(HeapTuple) ExecFetchTuple(slot);
+    tuple = 	(HeapTuple) ExecFetchTuple((Pointer) slot);
     tupType = 	(TupleDescriptor) get_jf_tupType(junkfilter);
     
     *value = 	(Datum)
@@ -264,7 +250,7 @@ ExecRemoveJunk(junkfilter, slot)
      *	get info from the slot and the junk filter
      * ----------------
      */
-    tuple = (HeapTuple) ExecFetchTuple(slot);
+    tuple = (HeapTuple) ExecFetchTuple((Pointer) slot);
     
     tupType = 		(TupleDescriptor) get_jf_tupType(junkfilter);
     cleanTupType = 	(TupleDescriptor) get_jf_cleanTupType(junkfilter);

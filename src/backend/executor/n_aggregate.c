@@ -18,32 +18,9 @@
  * ------------------------------------------------
  */
 
-#include "tmp/postgres.h"
+#include "executor/executor.h"
 
  RcsId("Header: RCS/aggregate.c,v 1.1 91/07/28 15:02:49 caetta Exp $");
-
-#include "executor/execdebug.h"
-
-#include "parser/parsetree.h"
-#include "utils/log.h"
-#include "catalog/syscache.h"
-#include "catalog/pg_proc.h"
-#include "catalog/pg_aggregate.h"
-#include "access/tupmacs.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
-
 /* ---------------------------------------
  *    ExecAgg
  *
@@ -113,6 +90,7 @@ ExecAgg(node)
     HeapScanDesc	currentScanDesc;
     extern Datum 	fastgetattr();
     char		*running_comp[2];
+    char		*AggNameGetInitAggVal(),*AggNameGetInitAggVal();
     char 		*final_value;
     TupleDescriptor 	aggtupdesc;
     TupleTableSlot	slot;
@@ -126,112 +104,156 @@ ExecAgg(node)
     int			nargs[3];
     func_ptr		functionptrarray[3];
     char 		*args[2];
+
     /* ------------
-    *  get state info from node
-    * ------------
-    */
-    aggstate = 		get_aggstate(node);
-    estate = 		(EState) get_state(node);
+     *  get state info from node
+     * ------------
+     */
+    aggstate = 		get_aggstate((Agg) node);
+    estate = 		(EState) get_state((Plan) node);
     dir = 		get_es_direction(estate);
 
     /* the first time we call this we aggregate the tuples below.
      * subsequent calls return tuples from the temp relation
-      */
- if(get_agg_Flag(aggstate) == false) {
+     */
+    if(get_agg_Flag(aggstate) != false)
+	return (NULL); 
+
     SO1_printf("ExecAgg: %s\n", "aggstate == false -> aggregating subplan");
 
     set_es_direction(estate, EXEC_FRWD);
-    /* ---------------
+
+    /* ---------------------
      * if we couldn't create the temp or current relations then
      * we print a warning and return NULL.
      *----------------------
      */
-     tempRelation = get_agg_TempRelation(aggstate);
-     if (tempRelation == NULL) {
+    tempRelation = get_agg_TempRelation((AggState) aggstate);
+    if (tempRelation == NULL) 
+    {
 	elog(DEBUG, "ExecAggregate: temp relation is NULL! aborting...");
 	return NULL;
-     }
+    }
 
     /* ----------------------
      *  retrieve tuples from subplan
      * ----------------------
      */
 
-     outerNode = get_outerPlan(node);
+    outerNode = get_outerPlan((Plan) node);
 
-     aggtupdesc = (TupleDescriptor)&tempRelation->rd_att;
+    aggtupdesc = ExecGetResultType((CommonState) aggstate);
 
-     aggname = get_aggname(node);
-     Caggname = CString(aggname);
+    aggname = get_aggname(node);
+    Caggname = CString(aggname);
 
-     running_comp[0] = (char *)AggNameGetInitAggVal(Caggname);
-     running_comp[1] = (char *)AggNameGetInitSecVal(Caggname);
+    running_comp[0] = (char *)
+	AggNameGetInitVal(Caggname, Anum_pg_aggregate_initaggval, &isNull);
+    while (isNull)
+    {
+	outerslot = ExecProcNode(outerNode);
+	outerTuple = (HeapTuple) ExecFetchTuple((Pointer) outerslot);
+	if(outerTuple == NULL)
+	    elog(WARN, "No initial value *and* no values to aggregate");
+ 	outerTupDesc = (TupleDescriptor)SlotTupleDescriptor(outerslot);
+	/* 
+	 * find an initial value.
+	 */
+	running_comp[0] = (char *)
+	    fastgetattr(outerTuple, 1, outerTupDesc, &isNull);
+    }
+	
+    running_comp[1] = (char *)
+	AggNameGetInitVal(Caggname, Anum_pg_aggregate_initsecval, &isNull);
 
-     func1 = CInteger(SearchSysCacheGetAttribute(AGGNAME, 
-		   AggregateIntFunc1AttributeNumber, Caggname,0,0,0));
+    func1 = CInteger(SearchSysCacheGetAttribute(AGGNAME,
+						Anum_pg_aggregate_xitionfunc1,
+						Caggname,
+						0,0,0));
+    if (!func1)
+	elog(WARN, "Missing xition function 1 for aggregate %s", Caggname);
 
-     func2 = CInteger(SearchSysCacheGetAttribute(AGGNAME, 
-		   AggregateIntFunc2AttributeNumber, Caggname,0,0,0));
+    func2 = CInteger(SearchSysCacheGetAttribute(AGGNAME,
+						Anum_pg_aggregate_xitionfunc2,
+						Caggname,
+						0,0,0));
 
-     finalfunc = CInteger(SearchSysCacheGetAttribute(AGGNAME, 
-      			AggregateFinFuncAttributeNumber, Caggname,0,0,0));
+    finalfunc = CInteger(SearchSysCacheGetAttribute(AGGNAME, 
+						    Anum_pg_aggregate_finalfunc,
+						    Caggname,
+						    0,0,0));
 
-     fmgr_info(func1, &functionptrarray[0], &nargs[0]);
-     fmgr_info(func2, &functionptrarray[1], &nargs[1]);
-     fmgr_info(finalfunc, &functionptrarray[2], &nargs[2]);
+    fmgr_info(func1, &functionptrarray[0], &nargs[0]);
+    if (func2)
+	fmgr_info(func2, &functionptrarray[1], &nargs[1]);
+    if (finalfunc)
+	fmgr_info(finalfunc, &functionptrarray[2], &nargs[2]);
 
-     for(;;) {
+    for(;;) 
+    {
 	outerslot = ExecProcNode(outerNode);
 	
-	 outerTuple = (HeapTuple) ExecFetchTuple(outerslot);
-	 if(outerTuple == NULL)
+	outerTuple = (HeapTuple) ExecFetchTuple((Pointer) outerslot);
+	if(outerTuple == NULL)
 	    break;
  	outerTupDesc = (TupleDescriptor)SlotTupleDescriptor(outerslot);
-		/* continute to aggregate */
-	theNewVal = (char *)fastgetattr(outerTuple, 1,
-				outerTupDesc, &isNull);
+
+	/* 
+	 * continute to aggregate 
+	 */
+	theNewVal = (char *)fastgetattr(outerTuple, 1, outerTupDesc, &isNull);
 
 	args[0] = running_comp[0];
 	args[1] = theNewVal;
 	running_comp[0] = (char *) 
-			fmgr_by_ptr_array_args( functionptrarray[0],
-							nargs[0],
-							&args[0]);
-	running_comp[1] = (char *)
-			fmgr_by_ptr_array_args( functionptrarray[1],
-							nargs[1],
-							&running_comp[1]);
-
+	    fmgr_by_ptr_array_args( functionptrarray[0],
+				    nargs[0],
+				    &args[0] );
+	if (func2) 
+	{
+	    running_comp[1] = (char *)
+		fmgr_by_ptr_array_args( functionptrarray[1],
+					nargs[1],
+					&running_comp[1] );
 	}
-	/* finalize this final aggregate*/
+    }
 
+    /* 
+     * finalize the aggregate (if necessary), and get the resultant value
+     */
+
+    if (finalfunc)
+    {
 	final_value = (char *)
-			fmgr_by_ptr_array_args(functionptrarray[2],
-						nargs[2],
-						&running_comp[0]);
+	    fmgr_by_ptr_array_args( functionptrarray[2],
+				    nargs[2],
+				    &running_comp[0] );
+    }
+    else
+	final_value = running_comp[0];
 
-	heapTuple = heap_formtuple(1,
+    heapTuple = heap_formtuple( 1,
 				aggtupdesc,
 				&final_value,
-				&nulls);
+				&nulls );
 
-	slot = (TupleTableSlot) get_css_ScanTupleSlot(aggstate);
-	ExecSetSlotDescriptor(slot, &tempRelation->rd_att);
-		/* for now, */
-	set_agg_Flag(aggstate, true);
-	return (TupleTableSlot) 
-		ExecStoreTuple(heapTuple, slot, buffer, false);
-   }
-   else {
-	return (NULL); 
-   }
+    slot = (TupleTableSlot) get_cs_ResultTupleSlot((CommonState) aggstate);
+/*
+ * Unclear why this is being done -- mer 4 Nov. 1991
+ *
+ *  ExecSetSlotDescriptor(slot, &tempRelation->rd_att);
+ */
+    set_agg_Flag(aggstate, true);
+    return (TupleTableSlot)
+	ExecStoreTuple((Pointer) heapTuple, (Pointer) slot, buffer, false);
 }
 
-/*-----------------
+/* -----------------
  * ExecInitAgg
  *
  *  Creates the run-time information for the agg node produced by the
  *  planner and initializes its outer subtree
+ * -----------------
  */
 /* xxref
  * 	ExecInitNode
@@ -253,60 +275,79 @@ ExecInitAgg(node, estate, parent)
     int			baseid;
     int			len;
 
-       SO1_printf("ExecInitAgg: %s\n",
-		      "initializing agg node");
-   /* assign the node's execution state */
+    SO1_printf("ExecInitAgg: %s\n", "initializing agg node");
 
-   set_state(node, estate);
-
-   /* create state structure */
-
-   aggstate = MakeAggState();
-   set_aggstate(node, aggstate);
-
-   /* Should Aggregate nodes initialize their ExprContexts?  not for
-    * now until we can do quals */
-
-    ExecAssignNodeBaseInfo(estate, aggstate, parent);
-    ExecAssignDebugHooks(node, aggstate);
-
-    /* tuple table initialization
-     *
-     * agg nodes only return scan tuples from their sorted relation
+    /* 
+     * assign the node's execution state
      */
-     ExecInitScanTupleSlot(estate, aggstate);
 
-     /* initializes child nodes */
-     outerPlan = get_outerPlan(node);
-     ExecInitNode(outerPlan,estate,node);
+    set_state((Plan) node,  estate);
 
-     /* initialize aggstate information */
-     set_agg_Flag(aggstate, false);
+    /*
+     * create state structure
+     */
 
-     /* initialize tuple type.  this node does no projection */
+    aggstate = MakeAggState(false,NULL,NULL); /* values will be squished
+					  *  anyway
+					  */
+    set_aggstate(node, aggstate);
 
-     ExecAssignScanTypeFromOuterPlan(node, aggstate);
-     set_cs_ProjInfo(aggstate, NULL);
+    /*
+     * Should Aggregate nodes initialize their ExprContexts?
+     * not for now until we can do quals
+     */
 
-     /* get type information needed for ExecCreatR*/
+    ExecAssignNodeBaseInfo(estate, (BaseNode) aggstate, (Plan) parent);
+    ExecAssignDebugHooks((Plan) node, (BaseNode) aggstate);
 
-     tupType = ExecGetScanType(aggstate);
-     tempOid = get_tempid(node);
-     aggOid = -1;
+    /*
+     * tuple table initialization
+     */
+    ExecInitScanTupleSlot(estate, (CommonScanState) aggstate);
+    ExecInitResultTupleSlot(estate, (CommonState) aggstate);
 
-     /* create temporary relations */
+    /*
+     * initializes child nodes
+     */
+    outerPlan = get_outerPlan((Plan) node);
+    ExecInitNode( outerPlan,estate,(Plan)node);
 
-     len = 			length(get_qptargetlist(node));
-     tempDesc = 		ExecCreatR(len, tupType, tempOid);
+    /*
+     * initialize aggstate information
+     */
+    set_agg_Flag(aggstate, false);
 
-     /* save the relation descriptor in the sortstate */
+    /*
+     * Initialize tuple type for both result and scan.
+     * This node does no projection
+     */
+    ExecAssignResultTypeFromTL((Plan) node, (CommonState) aggstate);
+    ExecAssignScanTypeFromOuterPlan((Plan) node, (CommonState) aggstate);
+    set_cs_ProjInfo((CommonState) aggstate, (ProjectionInfo) NULL);
 
-     set_agg_TempRelation(aggstate, tempDesc);
-     SO1_printf("ExecInitSort: %s\n",
-		    "sort node initialized");
+    /*
+     * get type information needed for ExecCreatR
+     */
 
-     return
-	LispTrue;
+    tupType = ExecGetScanType((CommonScanState) aggstate);
+    tempOid = get_tempid((Temp)node);
+    aggOid = -1;
+
+    /*
+     * create temporary relations
+     */
+
+    len =		length(get_qptargetlist((Plan) node));
+    tempDesc =		ExecCreatR(len, tupType, tempOid);
+
+    /*
+     * save the relation descriptor in the sortstate
+     */
+
+    set_agg_TempRelation(aggstate, tempDesc);
+    SO1_printf("ExecInitSort: %s\n", "sort node initialized");
+
+    return LispTrue;
 }
 
 /* ------------------------
@@ -340,17 +381,19 @@ ExecEndAgg(node)
        for sort nodes */
 
     ReleaseTmpRelBuffers(tempRelation);
-    if (FileNameUnlink(relpath(&tempRelation->rd_rel->relname)) < 0)
+    if (FileNameUnlink((char *)
+		       relpath((char *) &tempRelation->rd_rel->relname)) < 0)
 	elog(WARN, "ExecEndSort: unlink: %m");
     amclose(tempRelation);
 
     ExecCloseR( (Plan)node);
     /* shut down subplan */
-    outerPlan = get_outerPlan(node);
+    outerPlan = get_outerPlan((Plan) node);
     ExecEndNode(outerPlan);
 
     /* clean up tuple table */
-    ExecClearTuple(get_css_ScanTupleSlot(aggstate));
+    ExecClearTuple((Pointer)
+		   get_css_ScanTupleSlot((CommonScanState) aggstate));
 
     SO1_printf("ExecEndSort: %s\n",
 		   "sort node shutdown");

@@ -672,12 +672,7 @@ ExecMakeFunctionResult(fcache, arguments, econtext)
      *   passing the function the evaluated parameter values. 
      * ----------------
      */
-/* temp fix */
-    if (fmgr_func_lang(fcache->foid) == POSTQUELlanguageId)
-	return (Datum) fmgr_array_args(fcache->foid, fcache->nargs, args);
-    else 
-	return (Datum)
-	    fmgr_by_ptr_array_args(fcache->func, fcache->nargs, args);
+    return (Datum) ExecCallFunction(fcache,args);
 }
 
 /* ----------------------------------------------------------------
