@@ -243,10 +243,10 @@ IndexScanGetIndexTuple ARGS((
  *  	p -->		parameter
  */
 #define RelationNameCreateIndexRelation(hRN, iRN, aMOI, n, a, cOI, pC, p) \
-    index_create(hRN, iRN, aMOI, n, a, cOI, pC, p)
+    index_create(hRN, iRN, NULL, aMOI, n, a, cOI, pC, p, LispNil)
 
 #define AMcreati(hRN, iRN, aMOI, n, a, cOI, pC, p) \
-    index_create(hRN, iRN, aMOI, n, a, cOI, pC, p)
+    index_create(hRN, iRN, NULL, aMOI, n, a, cOI, pC, p, LispNil)
 
 /*
  * DestroyIndexRelationById --

@@ -323,7 +323,8 @@ ProcessUtility(command, args, commandString, dest)
 			CString(CADR(args)),	/* index name */
 			CString(CADDR(args)),	/* am name */
 			CADDR(CDR(args)),	/* parameters */
-			CADDR(CDR(CDR(args))));	/* with */
+			CADDR(CDR(CDR(args))),	/* with */
+			CADDR(CDR(CDR(CDR(args)))));	/* where */
 	    break;
 	case OPERATOR:
 	    DefineOperator(

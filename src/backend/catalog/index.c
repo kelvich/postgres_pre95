@@ -55,6 +55,15 @@ RcsId("$Header$");
 
 #include "lib/heap.h"
 
+#include "nodes/execnodes.h"
+#include "nodes/execnodes.a.h"
+
+#include "executor/x_qual.h"
+#include "executor/x_tuples.h"
+#include "executor/tuptable.h"
+
+extern ExprContext RMakeExprContext();
+
 void	 index_build();
 
 /* ----------------------------------------------------------------
@@ -865,7 +874,7 @@ InitIndexStrategy(numatts, indexRelation, accessMethodObjectId)
 void
 index_create(heapRelationName, indexRelationName, funcInfo,
 	     accessMethodObjectId, numatts, attNums,
-	     classObjectId, parameterCount, parameter)
+	     classObjectId, parameterCount, parameter, predicate)
     Name		heapRelationName;
     Name		indexRelationName;
     FuncIndexInfo	*funcInfo;
@@ -875,6 +884,7 @@ index_create(heapRelationName, indexRelationName, funcInfo,
     ObjectId		classObjectId[];
     uint16		parameterCount;
     Datum		parameter[];
+    LispValue		predicate;
 {
     Relation		 heapRelation;
     Relation		 indexRelation;
@@ -981,6 +991,9 @@ index_create(heapRelationName, indexRelationName, funcInfo,
     /* ----------------
      *    update pg_index
      *    (append INDEX tuple)
+     *
+     *    Should stow away a representation of "predicate" here(?)
+     *    (Or, could define a rule to maintain the predicate) --Nels, Feb '92
      * ----------------
      */
     UpdateIndexRelation(indexoid, heapoid, funcInfo,
@@ -1006,7 +1019,8 @@ index_create(heapRelationName, indexRelationName, funcInfo,
 		attNums,
 		parameterCount,
 		parameter,
-		funcInfo);
+		funcInfo,
+		predicate);
    
    heap_close(heapRelation);
    heap_close(indexRelation);
@@ -1235,13 +1249,37 @@ UpdateStats(whichRel, reltuples)
 }
 
 
+/* -------------------------
+ *	FillDummyExprContext
+ *	    Sets up dummy ExprContext and TupleTableSlot objects for use
+ *	    with ExecQual.
+ * -------------------------
+ */
+void
+FillDummyExprContext(econtext, slot, tupdesc, buffer)
+    ExprContext econtext;
+    TupleTableSlot slot;
+    TupleDescriptor tupdesc;
+    Buffer buffer;
+{
+    set_ecxt_scantuple(econtext, slot);
+    set_ecxt_innertuple(econtext, NULL);
+    set_ecxt_outertuple(econtext, NULL);
+    set_ecxt_param_list_info(econtext, NULL);
+
+    SetSlotTupleDescriptor(slot, tupdesc);
+    SetSlotBuffer(slot, buffer);
+    SetSlotShouldFree(slot, false);
+}
+
+
 /* ----------------
  *	DefaultBuild
  * ----------------
  */
 void
 DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
-		indexStrategy, parameterCount, parameter, funcInfo)
+		indexStrategy, parameterCount, parameter, funcInfo, predicate)
     Relation		heapRelation;
     Relation		indexRelation;
     AttributeNumber	numberOfAttributes;
@@ -1250,6 +1288,7 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
     uint16		parameterCount;		/* not used */
     Datum		parameter[]; 		/* not used */
     FuncIndexInfoPtr       funcInfo;
+    LispValue		predicate;
 {
     HeapScanDesc		scan;
     HeapTuple			heapTuple;
@@ -1260,7 +1299,10 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
     TupleDescriptor		indexDescriptor;
     Datum			*datum;
     char			*nullv;
-    long			reltuples;
+    long			reltuples, indtuples;
+    ExprContext			econtext;
+    TupleTable			tupleTable;
+    TupleTableSlot		slot;
 
     GeneralInsertIndexResult	insertResult;
 
@@ -1286,6 +1328,21 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
     datum = (Datum *) palloc(numberOfAttributes * sizeof *datum);
     nullv =  (char *)  palloc(numberOfAttributes * sizeof *nullv);
 
+    /*
+     * If this is a predicate (partial) index, we will need to evaluate the
+     * predicate using ExecQual, which requires the current tuple to be in a
+     * slot of a TupleTable.  In addition, ExecQual must have an ExprContext
+     * referring to that slot.  Here, we initialize dummy TupleTable and
+     * ExprContext objects for this purpose. --Nels, Feb '92
+     */
+    if (predicate != LispNil) {
+	tupleTable = ExecCreateTupleTable(1);
+	slot = (TupleTableSlot)
+	    ExecGetTableSlot(tupleTable, ExecAllocTableSlot(tupleTable));
+	econtext = RMakeExprContext();
+	FillDummyExprContext(econtext, slot, heapDescriptor, buffer);
+    }
+
     /* ----------------
      *	Ok, begin our scan of the base relation.
      * ----------------
@@ -1295,6 +1352,8 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
 			  NowTimeQual,          /* time range */
 			  0,			/* number of keys */
 			  (ScanKey) NULL);	/* scan key */
+
+    reltuples = indtuples = 0;
 
     /* ----------------
      *	for each tuple in the base relation, we create an index
@@ -1307,6 +1366,15 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
 	   HeapTupleIsValid(heapTuple)) {
 
 	reltuples++;
+
+	/* Skip this tuple if it doesn't satisfy the partial-index predicate */
+	if (predicate != LispNil) {
+	    SetSlotContents(slot, heapTuple);
+	    if (ExecQual(predicate, econtext) == false)
+		continue;
+	}
+
+	indtuples++;
 
 	/* ----------------
 	 *  FormIndexDatum fills in its datum and null parameters
@@ -1339,6 +1407,10 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
 
     heap_endscan(scan);
 
+    if (predicate != LispNil) {
+	ExecDestroyTupleTable(tupleTable, false);
+    }
+
     pfree(nullv);
     pfree((Pointer)datum);
 
@@ -1350,6 +1422,7 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
      *  useful as soon as possible.
      */
     UpdateStats(heapRelation, reltuples);
+    UpdateStats(indexRelation, indtuples);
 }
 
 /* ----------------
@@ -1359,7 +1432,7 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
 void
 index_build(heapRelation, indexRelation,
 	    numberOfAttributes, attributeNumber,
-	    parameterCount, parameter, funcInfo)
+	    parameterCount, parameter, funcInfo, predicate)
     Relation		heapRelation;
     Relation		indexRelation;
     AttributeNumber	numberOfAttributes;
@@ -1367,6 +1440,7 @@ index_build(heapRelation, indexRelation,
     uint16		parameterCount;
     Datum		parameter[];
     FuncIndexInfo	*funcInfo;
+    LispValue		predicate;
 {
     RegProcedure	procedure;
 
@@ -1392,7 +1466,8 @@ index_build(heapRelation, indexRelation,
 		    RelationGetIndexStrategy(indexRelation),
 		    parameterCount,
 		    parameter,
-		    funcInfo);
+		    funcInfo,
+		    predicate);
     else
 	DefaultBuild(heapRelation,
 		     indexRelation,
@@ -1401,5 +1476,6 @@ index_build(heapRelation, indexRelation,
 		     RelationGetIndexStrategy(indexRelation),
 		     parameterCount,
 		     parameter,
-		     funcInfo);
+		     funcInfo,
+		     predicate);
 }

@@ -19,6 +19,17 @@
 #include "access/rtree.h"
 #include "access/funcindex.h"
 
+#include "nodes/execnodes.h"
+#include "nodes/execnodes.a.h"
+
+#include "executor/x_qual.h"
+#include "executor/x_tuples.h"
+#include "executor/tuptable.h"
+
+#include "lib/index.h"
+
+extern ExprContext RMakeExprContext();
+
 RcsId("$Header$");
 
 extern InsertIndexResult    rtdoinsert();
@@ -35,7 +46,7 @@ typedef struct SPLITVEC {
 } SPLITVEC;
 
 void
-rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
+rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     Relation heap;
     Relation index;
     AttributeNumber natts;
@@ -44,6 +55,7 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
     uint16 pcount;
     Datum *params;
     FuncIndexInfo *finfo;
+    LispValue pred;
 {
     HeapScanDesc scan;
     Buffer buffer;
@@ -53,8 +65,11 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
     TupleDescriptor hd, id;
     InsertIndexResult res;
     Datum *d;
-    Boolean *null;
-    int n;
+    Boolean *nulls;
+    int nb, nh, ni;
+    ExprContext econtext;
+    TupleTable tupleTable;
+    TupleTableSlot slot;
 
     /* rtrees only know how to do stupid locking now */
     RelationSetLockForWrite(index);
@@ -64,7 +79,7 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
      *  If that's not the case, big trouble's what we have.
      */
 
-    if ((n = RelationGetNumberOfBlocks(index)) != 0)
+    if ((nb = RelationGetNumberOfBlocks(index)) != 0)
 	elog(WARN, "%.16s already contains data", index->rd_rel->relname);
 
     /* initialize the root page */
@@ -76,17 +91,41 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
     hd = RelationGetTupleDescriptor(heap);
     id = RelationGetTupleDescriptor(index);
     d = LintCast(Datum *, palloc(natts * sizeof (*d)));
-    null = LintCast(Boolean *, palloc(natts * sizeof (*null)));
+    nulls = LintCast(Boolean *, palloc(natts * sizeof (*nulls)));
+
+    /*
+     * If this is a predicate (partial) index, we will need to evaluate the
+     * predicate using ExecQual, which requires the current tuple to be in a
+     * slot of a TupleTable.  In addition, ExecQual must have an ExprContext
+     * referring to that slot.  Here, we initialize dummy TupleTable and
+     * ExprContext objects for this purpose. --Nels, Feb '92
+     */
+    if (pred != LispNil) {
+	tupleTable = ExecCreateTupleTable(1);
+	slot = (TupleTableSlot)
+	    ExecGetTableSlot(tupleTable, ExecAllocTableSlot(tupleTable));
+	econtext = RMakeExprContext();
+	FillDummyExprContext(econtext, slot, hd, buffer);
+    }
 
     scan = heap_beginscan(heap, 0, NowTimeQual, 0, (ScanKey) NULL);
     htup = heap_getnext(scan, 0, &buffer);
 
     /* count the tuples as we insert them */
-    n = 0;
+    nh = ni = 0;
 
-    while (HeapTupleIsValid(htup)) {
+    for (; HeapTupleIsValid(htup); htup = heap_getnext(scan, 0, &buffer)) {
 
-	n++;
+	nh++;
+
+	/* Skip this tuple if it doesn't satisfy the partial-index predicate */
+	if (pred != LispNil) {
+	    SetSlotContents(slot, htup);
+	    if (ExecQual(pred, econtext) == false)
+		continue;
+	}
+
+	ni++;
 
 	/*
 	 *  For the current heap tuple, extract all the attributes
@@ -114,11 +153,11 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
 				      finfo, 
 				      &attnull,
 				      buffer);
-	    null[attoff] = (attnull ? 'n' : ' ');
+	    nulls[attoff] = (attnull ? 'n' : ' ');
 	}
 
 	/* form an index tuple and point it at the heap tuple */
-	itup = FormIndexTuple(natts, id, &d[0], null);
+	itup = FormIndexTuple(natts, id, &d[0], nulls);
 	itup->t_tid = htup->t_ctid;
 
 	/*
@@ -133,14 +172,15 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
 	res = rtdoinsert(index, itup);
 	pfree(itup);
 	pfree(res);
-
-	/* do the next tuple in the heap */
-	htup = heap_getnext(scan, 0, &buffer);
     }
 
     /* okay, all heap tuples are indexed */
     heap_endscan(scan);
     RelationUnsetLockForWrite(index);
+
+    if (pred != LispNil) {
+	ExecDestroyTupleTable(tupleTable, false);
+    }
 
     /*
      *  Since we just counted the tuples in the heap, we update its
@@ -148,11 +188,11 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
      *  advantage of the index we just created.
      */
 
-    UpdateStats(heap, n);
-    UpdateStats(index, n);
+    UpdateStats(heap, nh);
+    UpdateStats(index, ni);
 
     /* be tidy */
-    pfree(null);
+    pfree(nulls);
     pfree(d);
 }
 
@@ -783,7 +823,6 @@ _rtdump(r)
     OffsetNumber itoffno;
     char *datum;
     char *itkey;
-    Boolean null;
 
     nblocks = RelationGetNumberOfBlocks(r);
     for (blkno = 0; blkno < nblocks; blkno++) {

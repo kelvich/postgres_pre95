@@ -24,10 +24,21 @@
 #include "access/nbtree.h"
 #include "access/funcindex.h"
 
+#include "nodes/execnodes.h"
+#include "nodes/execnodes.a.h"
+
+#include "executor/x_qual.h"
+#include "executor/x_tuples.h"
+#include "executor/tuptable.h"
+
+#include "lib/index.h"
+
+extern ExprContext RMakeExprContext();
+
 RcsId("$Header$");
 
 void
-btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
+btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     Relation heap;
     Relation index;
     AttributeNumber natts;
@@ -36,6 +47,7 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
     uint16 pcount;
     Datum *params;
     FuncIndexInfo *finfo;
+    LispValue pred;
 {
     HeapScanDesc hscan;
     Buffer buffer;
@@ -43,12 +55,15 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
     IndexTuple itup;
     TupleDescriptor htupdesc, itupdesc;
     Datum *attdata;
-    Boolean *null;
+    Boolean *nulls;
     InsertIndexResult res;
-    int ntups;
+    int nhtups, nitups;
     int i;
     BTItem btitem;
     TransactionId currxid;
+    ExprContext econtext;
+    TupleTable tupleTable;
+    TupleTableSlot slot;
 
     /* first initialize the btree index metadata page */
     _bt_metapinit(index);
@@ -59,18 +74,42 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
 
     /* get space for data items that'll appear in the index tuple */
     attdata = (Datum *) palloc(natts * sizeof(Datum));
-    null = (Boolean *) palloc(natts * sizeof(Boolean));
+    nulls = (Boolean *) palloc(natts * sizeof(Boolean));
+
+    /*
+     * If this is a predicate (partial) index, we will need to evaluate the
+     * predicate using ExecQual, which requires the current tuple to be in a
+     * slot of a TupleTable.  In addition, ExecQual must have an ExprContext
+     * referring to that slot.  Here, we initialize dummy TupleTable and
+     * ExprContext objects for this purpose. --Nels, Feb '92
+     */
+    if (pred != LispNil) {
+	tupleTable = ExecCreateTupleTable(1);
+	slot = (TupleTableSlot)
+	    ExecGetTableSlot(tupleTable, ExecAllocTableSlot(tupleTable));
+	econtext = RMakeExprContext();
+	FillDummyExprContext(econtext, slot, htupdesc, buffer);
+    }
 
     /* start a heap scan */
     hscan = heap_beginscan(heap, 0, NowTimeQual, 0, (ScanKey) NULL);
     htup = heap_getnext(hscan, 0, &buffer);
 
     /* build the index */
-    ntups = 0;
+    nhtups = nitups = 0;
 
-    while (HeapTupleIsValid(htup)) {
+    for (; HeapTupleIsValid(htup); htup = heap_getnext(hscan, 0, &buffer)) {
 
-	ntups++;
+	nhtups++;
+
+	/* Skip this tuple if it doesn't satisfy the partial-index predicate */
+	if (pred != LispNil) {
+	    SetSlotContents(slot, htup);
+	    if (ExecQual(pred, econtext) == false)
+		continue;
+	}
+
+	nitups++;
 
 	/*
 	 *  For the current heap tuple, extract all the attributes
@@ -95,11 +134,11 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
 					    finfo, 
 					    &attnull,
 					    buffer);
-	    null[attoff] = (attnull ? 'n' : ' ');
+	    nulls[attoff] = (attnull ? 'n' : ' ');
 	}
 
 	/* form an index tuple and point it at the heap tuple */
-	itup = FormIndexTuple(natts, itupdesc, attdata, null);
+	itup = FormIndexTuple(natts, itupdesc, attdata, nulls);
 	itup->t_tid = htup->t_ctid;
 
 	btitem = _bt_formitem(itup);
@@ -107,13 +146,14 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
 	pfree(btitem);
 	pfree(itup);
 	pfree(res);
-
-	/* do the next tuple in the heap */
-	htup = heap_getnext(hscan, 0, &buffer);
     }
 
     /* okay, all heap tuples are indexed */
     heap_endscan(hscan);
+
+    if (pred != LispNil) {
+	ExecDestroyTupleTable(tupleTable, false);
+    }
 
     /*
      *  Since we just counted the tuples in the heap, we update its
@@ -121,11 +161,11 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
      *  of the index we just created.
      */
 
-    UpdateStats(heap, ntups);
-    UpdateStats(index, ntups);
+    UpdateStats(heap, nhtups);
+    UpdateStats(index, nitups);
 
     /* be tidy */
-    pfree(null);
+    pfree(nulls);
     pfree(attdata);
 }
 
