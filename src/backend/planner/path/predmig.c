@@ -56,7 +56,7 @@ extern Stream RMakeStream();
 **    return value says if any changes were ever made.
 */
 bool xfunc_do_predmig(root)
-Path root;
+     Path root;
 {
     bool progress, changed = false;
 
@@ -64,7 +64,11 @@ Path root;
       do
        {
 	   progress = false;
-	   progress = xfunc_predmig(root, (Stream)LispNil, (Stream)LispNil);
+	   Assert(IsA(root,JoinPath));
+	   xfunc_predmig((JoinPath)root, (Stream)NULL, (Stream)NULL,
+			 &progress);
+	   if (changed && progress)
+             elog(DEBUG, "Needed to do a second round of predmig!\n");
 	   if (progress) changed = true;
        } while (progress);
     return(changed);
@@ -78,15 +82,15 @@ Path root;
 ** "Stream", which it passes to xfunc_series_llel for optimization.
 ** Destructively modifies the join tree (via predicate pullup).
 */
-bool xfunc_predmig(pathnode, streamroot, laststream)
+void xfunc_predmig(pathnode, streamroot, laststream, progressp)
      JoinPath pathnode;    /* root of the join tree */
      Stream streamroot, laststream;  /* for recursive calls -- these are
 					the root of the stream under
 					construction, and the lowest node
 					created so far */
+     bool *progressp;
 {
-    static bool progress;  /* did we modify any stream in the tree? */
-    Stream newstream, tmpstream, tmp2stream, topnode;
+    Stream newstream;
 
     /* 
     ** traverse the join tree dfs-style, constructing a stream as you go.
@@ -99,80 +103,46 @@ bool xfunc_predmig(pathnode, streamroot, laststream)
       elog(WARN, "called xfunc_predmig with bad inputs");
     if (streamroot) Assert(xfunc_check_stream(streamroot));
 
-    /* add path node and any of its clauses to stream */
+    /* add path node to stream */
     newstream = RMakeStream();
+    if (!streamroot)
+      streamroot = newstream;
     set_upstream(newstream, (StreamPtr)laststream); 
     if (laststream)
       set_downstream(laststream, (StreamPtr)newstream);
-    set_downstream(newstream, (StreamPtr)LispNil);
+    set_downstream(newstream, (StreamPtr)NULL);
     set_pathptr(newstream, (pathPtr)pathnode);
-    set_cinfo(newstream, (CInfo)LispNil);
+    set_cinfo(newstream, (CInfo)NULL);
     set_clausetype(newstream, XFUNC_UNKNOWN);
-
-    /* add in any of the path's restriction clauses above the path node */
-    topnode = xfunc_add_clauses(newstream);
-
-    if (streamroot == (Stream)LispNil)
-     {
-	 /* this is the top-level call -- need to find streamroot */
-	 progress = false;
-	 streamroot = laststream = topnode;
-     }
 
     /* base case: we're at a leaf, call xfunc_series_llel */
     if (!is_join(pathnode))
      {
-	 if (xfunc_series_llel(streamroot))
-	   progress = true;
+	 /* form a fleshed-out copy of the stream */
+	 Stream fullstream = xfunc_complete_stream(streamroot);
+
+	 /* sort it via series-llel */
+	 if (xfunc_series_llel(fullstream))
+	   *progressp = true;
+	 
+	 /* free up the copy */
+	 xfunc_free_stream(fullstream);
      }
     else
      {
 	 /* visit left child */
 	 xfunc_predmig((JoinPath)get_outerjoinpath(pathnode), 
-		       streamroot, newstream);
+		       streamroot, newstream, progressp);
 
 	 /* visit right child */
 	 xfunc_predmig((JoinPath)get_innerjoinpath(pathnode), 
-		       streamroot, newstream);
+		       streamroot, newstream, progressp);
      }
 
-#ifdef DEBUG
-    /*
-    ** sanity check -- no node above laststream should point to any 
-    ** node below laststream.  This is a unlikely situation which came up
-    ** at one point during coding.  Probably not important to check any more.
-    */
-    for (tmpstream = streamroot; tmpstream != laststream; 
-	 tmpstream = (Stream)get_downstream(tmpstream))
-      for (tmp2stream = (Stream)get_downstream(laststream); 
-	   tmp2stream != (Stream)LispNil;
-	   tmp2stream = (Stream)get_downstream(tmp2stream))
-	Assert(tmpstream != tmp2stream);
-#endif  /* DEBUG */
-    
-#ifdef LOWMEM
-    /* 
-    ** Done with all nodes below laststream, so free them up. 
-    **   For some reason this code causes problems.  Unless memory is scarce,
-    ** we should just leave it #ifdef'ed away.
-    */
-    Assert(get_downstream(laststream));
-    for (tmpstream = (Stream)get_downstream((Stream)get_downstream(laststream)),
-	 tmp2stream = (Stream)get_downstream(laststream);
-	 tmpstream != (Stream)LispNil;
-	 tmpstream = (Stream)get_downstream(tmpstream))
-     {
-	 tmp2stream = tmpstream;
-	 pfree(get_upstream(tmpstream));
-     }
-    pfree(tmp2stream);
-    
-    if (laststream == streamroot)  /* All done! */
-      pfree(streamroot);
-    else set_downstream(laststream, (StreamPtr)LispNil);
-#endif  /* LOWMEM */
-    
-    return(progress);
+    /* remove this node */
+    if (get_upstream(newstream))
+      set_downstream((Stream)get_upstream(newstream), (StreamPtr)NULL);
+    pfree(newstream);
 }
 
 /*
@@ -187,7 +157,7 @@ bool xfunc_series_llel(stream)
     Stream temp, next;
     bool progress = false;
     
-    for (temp = stream; temp != (Stream)LispNil; temp = next)
+    for (temp = stream; temp != (Stream)NULL; temp = next)
      {
 	 next = (Stream)xfunc_get_downjoin(temp);
 	 /* 
@@ -215,7 +185,7 @@ bool xfunc_llel_chains(root, bottom)
 {
     bool progress = false;
     Stream origstream;
-    Stream laststream, tmpstream, pathstream;
+    Stream tmpstream, pathstream;
     Stream rootcopy = root;
     
     Assert(xfunc_check_stream(root));
@@ -237,7 +207,7 @@ bool xfunc_llel_chains(root, bottom)
     */
     for (tmpstream = rootcopy, 
 	 pathstream = (Stream)xfunc_get_downjoin(rootcopy);
-	 tmpstream != (Stream)LispNil && pathstream != (Stream)LispNil; 
+	 tmpstream != (Stream)NULL && pathstream != (Stream)NULL; 
 	 tmpstream = (Stream)get_downstream(tmpstream))
      {
 	 if (is_clause(tmpstream)
@@ -252,29 +222,51 @@ bool xfunc_llel_chains(root, bottom)
 	      ** one were moved down, it would violate "semantic correctness",
 	      ** i.e. it would be lower than the attributes it references.
 	      */
-	      if(xfunc_num_relids(pathstream) > xfunc_num_relids(tmpstream))
-		progress = 
-		  xfunc_prdmig_pullup(origstream, tmpstream, 
-				      (JoinPath)get_pathptr(pathstream));
+	      Assert(xfunc_num_relids(pathstream)>xfunc_num_relids(tmpstream));
+	      progress = 
+		xfunc_prdmig_pullup(origstream, tmpstream, 
+				    (JoinPath)get_pathptr(pathstream));
 	  }
 	 if (get_downstream(tmpstream))
-	     pathstream = 
+	   pathstream = 
 	     (Stream)xfunc_get_downjoin((Stream)get_downstream(tmpstream));
      }
 	      
     /* free up origstream */
-    for (tmpstream = (Stream)get_downstream(origstream), 
-	 laststream = origstream;
-	 tmpstream != (Stream)LispNil;
-	 tmpstream = (Stream)get_downstream(tmpstream))
-     {
-	 laststream = tmpstream;
-	 pfree(get_upstream(tmpstream));
-     }
-
-    pfree(laststream);
-
+    xfunc_free_stream(origstream);
     return(progress);
+}
+
+/*
+** xfunc_complete_stream --
+**   Given a stream composed of join nodes only, make a copy containing the
+** join nodes along with the associated restriction nodes.  
+*/
+Stream xfunc_complete_stream(stream)
+     Stream stream;
+{
+    Stream tmpstream, copystream, curstream = (Stream)NULL;
+
+    copystream = (Stream)CopyObject((Node)stream);
+    Assert(xfunc_check_stream(copystream));
+
+    curstream = copystream;
+    Assert(!is_clause(curstream));
+
+    /*      curstream = (Stream)xfunc_get_downjoin(curstream); */
+
+    while(curstream != (Stream)NULL)
+      {
+          xfunc_add_clauses(curstream);
+          curstream = (Stream)xfunc_get_downjoin(curstream);
+      }
+
+    /* find top of stream and return it */
+    for (tmpstream = copystream; get_upstream(tmpstream) != (StreamPtr)NULL;
+         tmpstream = (Stream)get_upstream(tmpstream))
+      /* no body in for loop */;
+
+    return(tmpstream);
 }
 
 /*
@@ -296,7 +288,7 @@ bool xfunc_prdmig_pullup(origstream, pullme, joinpath)
     
     /* find node in origstream that contains clause */
     for (orignode = origstream;  
-	 orignode != (Stream) LispNil
+	 orignode != (Stream) NULL
 	 && get_cinfo(orignode) != clauseinfo;
 	 orignode = (Stream)get_downstream(orignode))
       /* empty body in for loop */ ;
@@ -306,7 +298,7 @@ bool xfunc_prdmig_pullup(origstream, pullme, joinpath)
     
     /* pull up this node as far as it should go */
     for (upjoin = (Stream)xfunc_get_upjoin(orignode); 
-	 upjoin != (Stream)LispNil 
+	 upjoin != (Stream)NULL 
 	 && (JoinPath)get_pathptr((Stream)xfunc_get_downjoin(upjoin))
 	     != joinpath;
 	 upjoin = (Stream)xfunc_get_upjoin(upjoin))
@@ -325,6 +317,8 @@ bool xfunc_prdmig_pullup(origstream, pullme, joinpath)
 				   whichchild,
 				   get_clausetype(orignode));
 	 set_pathptr(pullme, get_pathptr(upjoin));
+	 /* pullme has been moved into locclauseinfo */
+	 set_clausetype(pullme, XFUNC_LOCPRD);
 
 	 /* 
 	 ** xfunc_pullup makes new path nodes for children of 
@@ -381,19 +375,25 @@ void xfunc_form_groups(root, bottom)
     int lowest = xfunc_num_relids((Stream)xfunc_get_upjoin(bottom));
     bool progress;
     LispValue primjoin;
+    int whichchild;
 
     if (!lowest) return;  /* no joins in stream, so no groups */
 
     /* initialize groups to be single nodes */
     for (temp = root; 
-	 temp != (Stream)LispNil 
-	 && (is_clause(temp) || is_join((Path)get_pathptr(temp)));
+	 temp != (Stream)NULL && temp != bottom;
 	 temp = (Stream)get_downstream(temp))
      {
 	 /* if a Join node */
 	 if (!is_clause(temp))
 	  {
-	      set_groupcost(temp,xfunc_join_expense((JoinPath)get_pathptr(temp)));
+	      if (get_pathptr((Stream)get_downstream(temp)) 
+		  == (pathPtr)get_outerjoinpath((JoinPath)get_pathptr(temp)))
+		whichchild = OUTER;
+	      else whichchild = INNER;
+	      set_groupcost(temp,
+			    xfunc_join_expense((JoinPath)get_pathptr(temp),
+					       whichchild));
 	      if (primjoin = xfunc_primary_join((JoinPath)get_pathptr(temp)))
 	       {
 		   set_groupsel(temp, compute_clause_selec(primjoin, LispNil));
@@ -413,18 +413,21 @@ void xfunc_form_groups(root, bottom)
 	 set_groupup(temp,false);
      }
 
-    /* make passes downwards, forming groups */
+    /* make passes upwards, forming groups */
     do
      {
 	 progress = false;
-	 for (temp = root; 
-	      is_join((Path)get_pathptr(temp))
-	      && xfunc_num_relids(temp) >= lowest;
-	      temp = (Stream)get_downstream(temp))
+	 for (temp = (Stream)get_upstream(bottom); 
+	      temp != (Stream)NULL;
+	      temp = (Stream)get_upstream(temp))
 	  {
 	      /* check for grouping with node upstream */
 	      if (!get_groupup(temp) &&          /* not already grouped */
-		  (parent = (Stream)get_upstream(temp)) != (Stream)LispNil &&
+		  (parent = (Stream)get_upstream(temp)) != (Stream)NULL &&
+		  /* temp is a join or temp is the top of a group */
+		  (is_join((Path)get_pathptr(temp)) ||
+		   get_downstream(temp) &&
+		   get_groupup((Stream)get_downstream(temp))) &&
 		  get_grouprank(parent) < get_grouprank(temp))
 	       {
 		   progress = true;          /* we formed a new group */
@@ -445,7 +448,25 @@ void xfunc_form_groups(root, bottom)
 /* -------------------   UTILITY FUNCTIONS     ------------------------- */
 
 /*
-** xfunc_add_clauses
+** xfunc_free_stream --
+**   walk down a stream and pfree it
+*/
+void xfunc_free_stream(Stream root)
+{
+    Stream cur, next;
+
+    Assert(xfunc_check_stream(root));
+
+    if (root != (Stream)NULL)
+      for (cur = root; cur != (Stream)NULL; cur = next)
+       {
+	   next = (Stream)get_downstream(cur);
+	   pfree(cur);
+       }
+}
+
+/*
+** xfunc_add<_clauses
 **    find any clauses above current, and insert them into stream as 
 ** appropriate.  Return uppermost clause inserted, or current if none.
 */
@@ -493,7 +514,7 @@ void xfunc_setup_group(node, bottom)
     if (node != bottom)
       /* traverse downwards */
       for (temp = (Stream)get_downstream(node); 
-	   is_join((Path)get_pathptr(temp)) && temp != bottom; 
+	   temp != (Stream)NULL && temp != bottom; 
 	   temp = (Stream)get_downstream(temp))
        {
 	   if (!get_groupup(temp)) break;
@@ -505,7 +526,7 @@ void xfunc_setup_group(node, bottom)
        }
 
     /* traverse upwards */
-    for (temp = (Stream)get_upstream(node); temp != (Stream)LispNil; 
+    for (temp = (Stream)get_upstream(node); temp != (Stream)NULL; 
 	 temp = (Stream)get_upstream(temp))
      {
 	 if (!get_groupup((Stream)get_downstream(temp))) break;
@@ -623,7 +644,7 @@ Stream xfunc_stream_qsort(root, bottom)
     
     /* paste together the array elements */
     output = nodearray[num - 1];
-    set_upstream(output, (StreamPtr)LispNil);
+    set_upstream(output, (StreamPtr)NULL);
     for (i = num - 2; i >= 0; i--)
      {
 	 set_downstream(nodearray[i+1], (StreamPtr)nodearray[i]);
@@ -673,15 +694,12 @@ int xfunc_stream_compare(arg1, arg2)
 		return(1);
 	      else return(-1);
 	  }
-	 else if (!is_clause(stream2) && is_clause(stream1))
+	 else if (!is_clause(stream1) && is_clause(stream2))
 	  {
-	      if (xfunc_num_relids(stream1) == xfunc_num_relids(stream2))
-		/* stream2 is a restriction over stream1 */
-		return(-1);
-	      else return(1);
+	      /* stream2 is a restriction over stream1: never push down */
+	      return(-1);
 	  }
      }
-	 
 }
 
 /* ------------------    DEBUGGING ROUTINES     ---------------------------- */
