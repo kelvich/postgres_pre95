@@ -50,3 +50,5 @@ local1_template1.bki: ${GENBKI} ${LOCALBKI_SRCS}
 	
 
 ${PROG}: ${BKIFILES}
+
+CLEANFILES+= ${BKIFILES}
