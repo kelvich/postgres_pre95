@@ -87,6 +87,10 @@ typedef HeapTupleData	*HeapTuple;
 #define FirstLowInvalidHeapAttributeNumber	(-13)
 #endif	/* !defined(RuleLockAttributeNumber) */
 
+/* ----------------
+ *	support macros
+ * ----------------
+ */
 #ifndef	GETSTRUCT
 #define GETSTRUCT(TUP)	(((char *)(TUP)) + ((HeapTuple)(TUP))->t_hoff)
 
@@ -117,10 +121,7 @@ typedef HeapTupleData	*HeapTuple;
  * HeapTupleGetForm
  *	Returns the formated user attribute values of a heap tuple.
  */
-extern
-Form
-HeapTupleGetForm ARGS((
-	HeapTuple	tuple
-));
+#define HeapTupleGetForm(tuple) \
+    ((Form) ((char *)(tuple) + (tuple)->t_hoff))
 
 #endif	/* !defined(HTupIncluded) */

@@ -53,9 +53,6 @@ typedef struct HeapAccessStatisticsData {
     int global_RelationIdGetRelation;
     int global_RelationIdGetRelation_Buf;
     int global_RelationNameGetRelation;
-    int global_ObjectIdOpenHeapRelation;
-    int global_RelationNameOpenHeapRelation;
-    int global_RelationCloseHeapRelation;
     int global_getreldesc;
     int global_heapgettup;
     int global_RelationPutHeapTuple;
@@ -78,9 +75,6 @@ typedef struct HeapAccessStatisticsData {
     int local_RelationIdGetRelation;
     int local_RelationIdGetRelation_Buf;
     int local_RelationNameGetRelation;
-    int local_ObjectIdOpenHeapRelation;
-    int local_RelationNameOpenHeapRelation;
-    int local_RelationCloseHeapRelation;
     int local_getreldesc;
     int local_heapgettup;
     int local_RelationPutHeapTuple;
@@ -95,7 +89,7 @@ typedef HeapAccessStatisticsData *HeapAccessStatistics;
 extern HeapAccessStatistics heap_access_stats;
 
 /* ----------------
- *	new prototypes
+ *	function prototypes for heap access method
  * ----------------
  */
 extern ObjectId 	heap_create();
@@ -116,197 +110,18 @@ extern void 		heap_markpos();
 extern void 		heap_restrpos();
 extern HeapTuple 	heap_getnext();
 
+extern int		heap_attisnull();
+extern int		heap_sysattrlen();
+extern bool		heap_sysattrbyval();
+extern HeapTuple	heap_addheader();
+extern HeapTuple	heap_copytuple();
+extern HeapTuple	heap_formtuple();
+extern HeapTuple	heap_modifytuple();
+
 /* ----------------
- *	old prototypes
+ *	misc
  * ----------------
  */
-
-/*
- * RelationNameCreateHeapRelation --
- *	Returns relation id of a newly created cataloged heap relation.
- */
-extern
-ObjectId
-RelationNameCreateHeapRelation ARGS((
-	Name		relationName,
-	ArchiveMode	archiveMode,
-	AttributeNumber	numberOfAttributes,
-	TupleDescriptor	tupleDescriptor
-));
-
-extern
-ObjectId /* of the newly created relation */
-amcreate ARGS((
-	char		relationName[16],
-	ArchiveMode	archiveMode,
-	u_int2		numberOfAttributes,
-	Attribute	attribute[]
-));
-
-/*
- * RelationNameCreateTemporaryRelation --
- *	Creates a temporary heap relation.
- */
-extern
-Relation
-RelationNameCreateTemporaryRelation ARGS((
-	Name		relationName,
-	AttributeNumber	numberOfAttributes,
-	TupleDescriptor	tupleDescriptor
-));
-
-extern
-Relation
-amcreatr ARGS((
-	char		relationName[16],
-	u_int2		numberOfAttributes,
-	Attribute	attribute[]
-));
-
-/*
- * RelationNameCreateVersionRelation --
- *	Creates a version relation.
- */
-extern
-void
-RelationNameCreateVersionRelation ARGS((
-	Name	originalRelationName,
-	Name	versionRelationName,
-	long	time			/* AbsoluteTime XXX */
-));
-
-extern
-void
-amcreatv ARGS((
-	char	originalRelationName[16],
-	char	versionRelationName[16],
-	long	time			/* AbsoluteTime XXX */
-));
-
-/*
- * RelationNameDestroyHeapRelation --
- *	Destroys a heap relation.
- */
-extern
-void
-RelationNameDestroyHeapRelation ARGS((
-	Name	relationName
-));
-
-extern
-void
-amdestroy ARGS((
-	char	relationName[16]
-));
-
-/*
- * RelationNameMergeRelations --
- *	Merges two version relations.
- */
-extern
-void
-RelationNameMergeRelations ARGS((
-	Name	oldRelationName,
-	Name	newRelationName
-));
-
-extern
-void
-ammergev ARGS((
-	char	oldRelationName[16],
-	char	newRelationName[16]
-));
-
-/*
- * ObjectIdOpenHeapRelation --
- *	Opens a heap relation by its object identifier.
- */
-extern
-Relation
-ObjectIdOpenHeapRelation ARGS((
-	ObjectId	relationObjectId
-));
-
-extern
-Relation
-amopen ARGS((
-	ObjectId	relationObjectId
-));
-
-/*
- * RelationNameOpenHeapRelation --
- *	Opens a heap relation by name.
- */
-extern
-Relation
-RelationNameOpenHeapRelation ARGS((
-	Name	relationName
-));
-
-extern
-Relation
-amopenr ARGS((
-	char	relationName[16]
-));
-
-/*
- * RelationCloseHeapRelation --
- *	Closes a heap relation.
- */
-extern
-void
-RelationCloseHeapRelation ARGS((
-	Relation	relation
-));
-
-extern
-void
-amclose ARGS((
-	Relation	relation
-));
-
-/*
- * RelationGetHeapTupleByItemPointer --
- *	Retrieves a heap tuple by its item pointer.
- */
-extern
-HeapTuple
-RelationGetHeapTupleByItemPointer ARGS((
-	Relation	relation,
-	TimeQual	timeQual,
-	ItemPointer	heapItem,
-	Buffer		*bufferOutP
-));
-
-extern
-HeapTuple
-amgetunique ARGS((
-	Relation	relation,
-	TimeQual	timeQual,
-	ItemPointer	tid,
-	Buffer		*bufferOutP
-));
-
-/*
- * RelationInsertHeapTuple --
- *	Inserts a heap tuple.
- */
-extern
-RuleLock
-RelationInsertHeapTuple ARGS((
-	Relation	relation,
-	HeapTuple	heapTuple,
-	double		*offsetOutP
-));
-
-extern
-RuleLock
-aminsert ARGS((
-	Relation	relation,
-	HeapTuple	heapTuple,
-	double		*offsetOutP
-));
-
 extern
 RuleLock
 doinsert ARGS((
@@ -314,201 +129,200 @@ doinsert ARGS((
 	HeapTuple	heapTuple
 ));
 
+/* ----------------------------------------------------------------
+ *	       obsolete heap access method interfaces
+ * ----------------------------------------------------------------
+ */
+
+/*
+ * RelationNameCreateHeapRelation --
+ *	Returns relation id of a newly created cataloged heap relation.
+ */
+#define RelationNameCreateHeapRelation(relname, arch, natts, tupdesc) \
+    heap_create(relname, arch, natts, tupdesc)
+
+#define amcreate(relname, arch, natts, tupdesc) \
+    heap_create(relname, arch, natts, tupdesc)
+
+/*
+ * RelationNameCreateTemporaryRelation --
+ *	Creates a temporary heap relation.
+ */
+#define RelationNameCreateTemporaryRelation(relname, natts, att) \
+    heap_creatr(relname, natts, att)
+
+#define amcreatr(relname, natts, att) \
+    heap_creatr(relname, natts, att)
+
+/*
+ * RelationNameDestroyHeapRelation --
+ *	Destroys a heap relation.
+ */
+#define RelationNameDestroyHeapRelation(relationName) \
+    heap_destroy(relationName)
+
+#define amdestroy(relationName) \
+    heap_destroy(relationName)
+
+/*
+ * ObjectIdOpenHeapRelation --
+ *	Opens a heap relation by its object identifier.
+ */
+#define ObjectIdOpenHeapRelation(relationId) \
+    heap_open(relationId)
+
+#define amopen(relid) \
+    heap_open(relid)
+
+/*
+ * RelationNameOpenHeapRelation --
+ *	Opens a heap relation by name.
+ */
+#define RelationNameOpenHeapRelation(relationName) \
+    heap_openr(relationName)
+
+#define amopenr(relationName) \
+    heap_openr(relationName)
+
+/*
+ * RelationCloseHeapRelation --
+ *	Closes a heap relation.
+ */
+#define RelationCloseHeapRelation(relation) \
+    heap_close(relation)
+
+#define amclose(relation) \
+    heap_close(relation)
+
+/*
+ * RelationGetHeapTupleByItemPointer --
+ *	Retrieves a heap tuple by its item pointer.
+ */
+#define RelationGetHeapTupleByItemPointer(relation, timeQual, tid, b) \
+    heap_fetch(relation, timeQual, tid, b)
+
+#define amgetunique(relation, timeQual, tid, b) \
+    heap_fetch(relation, timeQual, tid, b)
+
+/*
+ * RelationInsertHeapTuple --
+ *	Inserts a heap tuple.
+ */
+#define RelationInsertHeapTuple(relation, heapTuple, offsetOutP) \
+    heap_insert(relation, heapTuple, offsetOutP)
+
+#define aminsert(relation, heapTuple, offsetOutP) \
+    heap_insert(relation, heapTuple, offsetOutP)
+
 /*
  * RelationDeleteHeapTuple --
  *	Deletes a heap tuple.
  */
-extern
-RuleLock
-RelationDeleteHeapTuple ARGS((
-	Relation	relation,
-	ItemPointer	heapItem
-));
+#define RelationDeleteHeapTuple(relation, heapItem) \
+    heap_delete(relation, heapItem)
 
-extern
-RuleLock
-amdelete ARGS((
-	Relation	relation,
-	ItemPointer	tid
-));
-
-/*
- * RelationPhysicallyDeleteHeapTuple --
- *	Physically deletes a heap tuple.
- */
-extern
-void
-RelationPhysicallyDeleteHeapTuple ARGS((
-	Relation	relation,
-	ItemPointer	heapItem
-));
+#define amdelete(relation, heapItem) \
+    heap_delete(relation, heapItem)
 
 /*
  * RelationReplaceHeapTuple --
- *	Replaces a heap tuple.
+ *	Replaces a heap tuple.  OffsetOutP is obsolete.
  */
-extern
-RuleLock
-RelationReplaceHeapTuple ARGS((
-	Relation	relation,
-	ItemPointer	heapItem,
-	HeapTuple	tuple,
-	double		*offsetOutP
-));
+#define RelationReplaceHeapTuple(relation, heapItem, tuple, offsetOutP) \
+    heap_replace(relation, heapItem, tuple)
 
-extern
-RuleLock
-amreplace ARGS((
-	Relation	relation,
-	ItemPointer	tid,
-	HeapTuple	tuple,
-	double		*offsetOutP
-));
+#define amreplace(relation, heapItem, tuple) \
+    heap_replace(relation, heapItem, tuple)
 
 /*
  * HeapTupleGetAttributeValue --
  *	Returns an attribute of a heap tuple.
  */
-extern
-Datum
-HeapTupleGetAttributeValue ARGS((
-	HeapTuple	tuple,
-	Buffer		buffer,
-	AttributeNumber	attributeNumber,
-	TupleDescriptor	tupleDescriptor,
-	Boolean		*attributeIsNullOutP
-));
-
-extern
-char *
-amgetattr ARGS((
-	HeapTuple	tuple,
-	Buffer		buffer,
-	AttributeNumber	attributeNumber,
-	Attribute	attribute[],
-	Boolean		*attributeIsNullOutP
-));
+#define HeapTupleGetAttributeValue(tup, b, attnum, att, isnull) \
+    PointerGetDatum(heap_getattr(tup, b, attnum, att, isnull))
 
 /*
- * RelationGetHeapScan --
+ * RelationBeginHeapScan --
  *	General access method initialize heap scan routine.
  */
-extern
-HeapScanDesc
-RelationBeginHeapScan ARGS((
-	Relation	relation,
-	Boolean		startScanAtEnd,
-	TimeQual	timeQual,
-	uint16		numberOfKeys,
-	ScanKey		key
-));
+#define RelationBeginHeapScan(relation, atend, timeQual, nkeys, key) \
+    heap_beginscan(relation, atend, timeQual, nkeys, key)
 
-extern
-HeapScanDesc
-ambeginscan ARGS((
-	Relation	relation,
-	Boolean		startScanAtEnd,
-	TimeQual	timeQual,
-	uint16		numberOfKeys,
-	ScanKey		key
-));
+#define ambeginscan(relation, atend, timeQual, nkeys, key) \
+    heap_beginscan(relation, atend, timeQual, nkeys, key)
 
 /*
  * HeapScanRestart --
  *	General access method restart heap scan routine.
  */
-extern
-void
-HeapScanRestart ARGS((
-	HeapScanDesc	scan,
-	bool		restartScanAtEnd,
-	ScanKey		key
-));
+#define HeapScanRestart(scan, restartScanAtEnd, key) \
+    heap_rescan(scan, restartScanAtEnd, key)
 
-extern
-void
-amrescan ARGS((
-	HeapScanDesc	scan,
-	bool		restartScanAtEnd,
-	ScanKey		key
-));
+#define amrescan(scan, restartScanAtEnd, key) \
+    heap_rescan(scan, restartScanAtEnd, key)
 
 /*
  * HeapScanEnd --
  *	General access method end heap scan routine.
  */
-extern
-void
-HeapScanEnd ARGS((
-	HeapScanDesc	scan
-));
+#define HeapScanEnd(scan) \
+    heap_endscan(scan)
 
-extern
-void
-amendscan ARGS((
-	HeapScanDesc	scan
-));
+#define amendscan(scan) \
+    heap_endscan(scan)
 
 /*
  * HeapScanMarkPosition --
  *	General access method mark heap scan position routine.
  */
-extern
-void
-HeapScanMarkPosition ARGS((
-	HeapScanDesc	scan
-));
+#define HeapScanMarkPosition(scan) \
+    heap_markpos(scan)
 
-extern
-void
-ammarkpos ARGS((
-	HeapScanDesc	scan
-));
+#define ammarkpos(scan) \
+    heap_markpos(scan)
 
 /*
  * HeapScanRestorePosition --
  *	General access method restore heap scan position routine.
  */
-extern
-void
-HeapScanRestorePosition ARGS((
-	HeapScanDesc	scan
-));
+#define HeapScanRestorePosition(scan) \
+    heap_restrpos(scan)
 
-extern
-void
-amrestrpos ARGS((
-	HeapScanDesc	scan
-));
+#define amrestrpos(scan) \
+    heap_restrpos(scan)
 
 /*
  * HeapScanGetNextTuple --
  *	General access method get heap tuple routine.
  */
-extern
-HeapTuple
-HeapScanGetNextTuple ARGS((
-	HeapScanDesc	scan,
-	Boolean		backwards,
-	Buffer		*bufferOutP
-));
+#define HeapScanGetNextTuple(scan, backwards, bufferOutP) \
+    heap_getnext(scan, backwards, bufferOutP)
 
-extern
-HeapTuple
-amgetnext ARGS((
-	HeapScanDesc	scan,
-	Boolean		backwards,
-	Buffer		*bufferOutP
-));
+#define amgetnext(scan, backwards, bufferOutP) \
+    heap_getnext(scan, backwards, bufferOutP)
 
 /*
- * amfreetuple --
- *	General access method free tuple routine.
+ * sysattrlen
  */
-extern
-amfreetuple ARGS((
-	void
-	/* this needs more thought */
-));
+#define sysattrlen(attno) \
+    heap_sysattrlen(attno)
+
+/*
+ * sysattrbyval
+ */
+#define sysattrbyval(attno) \
+    heap_sysattrbyval(attno)
+
+/*
+ * amgetattr
+ */
+#define amgetattr(tup, b, attnum, att, isnull) \
+    heap_getattr(tup, b, attnum, att, isnull)
+
+/*
+ * palloctup
+ */
+#define palloctup(tuple, buffer, relation) \
+    heap_copytuple(tuple, buffer, relation)
 
 #endif	/* !defined(HeapAMIncluded) */

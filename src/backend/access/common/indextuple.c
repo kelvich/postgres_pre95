@@ -11,13 +11,13 @@
  *	index_getsysattr
  *	index_getattr
  *
- *   OLD INTERFACE FUNCTIONS
- *	formituple, FormIndexTuple
- *	AMgetattr
- *	
  *   NOTES
  *	All the stupid ``GeneralResultXXX'' routines should be
  *	eliminated and replaced with something simple and clean.
+ *	
+ *	old routines formituple, FormIndexTuple, AMgetattr have been
+ *	turned into macros in itup.h.  IsValid predicates have been
+ *	macroized too. -cim 4/30/91
  *	
  *   IDENTIFICATION
  *	$Header$
@@ -37,199 +37,6 @@
 #include "utils/palloc.h"
 
 RcsId("$Header$");
-
-/* ----------------------------------------------------------------
- *			index tuple predicates
- * ----------------------------------------------------------------
- */
-
-/* 
- *	IndexTupleIsValid(tuple) is now a macro in itup.h -cim 4/27/91
- */
-
-
-ItemPointer
-IndexTupleGetRuleLockItemPointer(tuple)
-    IndexTuple	tuple;
-{
-    Assert(IndexTupleIsValid(tuple));
-    return (&tuple->t_lock.l_ltid);
-}
-
-RuleLock
-IndexTupleGetRuleLock(tuple)
-    IndexTuple	tuple;
-{
-    Assert(IndexTupleIsValid(tuple));
-    return (tuple->t_lock.l_lock);
-}
-
-
-/* 
- *  IndexAttributeBitMapIsValid(bits) is now a macro in ibit.h -cim 4/27/91
- */
-
-IndexAttributeBitMap
-IndexTupleGetIndexAttributeBitMap(tuple)
-    IndexTuple	tuple;
-{
-    Assert(IndexTupleIsValid(tuple));
-    return (&tuple->bits);
-}
-
-Form
-IndexTupleGetForm(tuple)
-    IndexTuple	tuple;
-{
-    Assert(IndexTupleIsValid(tuple));
-    return ((Form) &tuple[1]);
-}
-
-
-/* ----------------------------------------------------------------
- *	      misc index result stuff (XXX OBSOLETE ME!)
- * ----------------------------------------------------------------
- */
-
-/* 
- *	GeneralInsertIndexResultIsValid(result)
- *	InsertIndexResultIsValid(result)
- *	GeneralRetrieveIndexResultIsValid(result)
- *	RetrieveIndexResultIsValid(result)
- *
- *		.. are all macros in itup.h -cim 4/27/91
- */
-
-ItemPointer
-GeneralInsertIndexResultGetItemPointer(result)
-    GeneralInsertIndexResult	result;
-{
-    Assert(GeneralInsertIndexResultIsValid(result));
-    return (&result->pointerData);
-}
-
-RuleLock
-GeneralInsertIndexResultGetRuleLock(result)
-    GeneralInsertIndexResult	result;
-{
-    Assert(GeneralInsertIndexResultIsValid(result));
-    return (result->lock);
-}
-
-GeneralInsertIndexResult
-ItemPointerFormGeneralInsertIndexResult(pointer, lock)
-    ItemPointer	pointer;
-    RuleLock	lock;
-{
-    GeneralInsertIndexResult	result;
-
-    Assert(ItemPointerIsValid(pointer));
-    /* XXX Assert(RuleLockIsValid(lock)); locks don't work yet */
-
-    result = (GeneralInsertIndexResult) palloc(sizeof *result);
-
-    result->pointerData = *pointer;
-    result->lock = lock;
-    return (result);
-}
-
-ItemPointer
-InsertIndexResultGetItemPointer(result)
-    InsertIndexResult	result;
-{
-    Assert(InsertIndexResultIsValid(result));
-    return (&result->pointerData);
-}
-
-RuleLock
-InsertIndexResultGetRuleLock(result)
-    InsertIndexResult	result;
-{
-    Assert(InsertIndexResultIsValid(result));
-    return (result->lock);
-}
-
-double
-InsertIndexResultGetInsertOffset(result)
-    InsertIndexResult	result;
-{
-    Assert(InsertIndexResultIsValid(result));
-    return (result->offset);
-}
-
-InsertIndexResult
-ItemPointerFormInsertIndexResult(pointer, lock, offset)
-    ItemPointer	pointer;
-    RuleLock	lock;
-    double		offset;
-{
-    InsertIndexResult	result;
-
-    Assert(ItemPointerIsValid(pointer));
-    /* XXX Assert(RuleLockIsValid(lock)); locks don't work yet */
-    /* Assert(InsertOffsetIsValid(offset)); */
-
-    result = (InsertIndexResult) palloc(sizeof *result);
-
-    result->pointerData = *pointer;
-    result->lock = lock;
-    result->offset = offset;
-    return (result);
-}
-
-ItemPointer
-GeneralRetrieveIndexResultGetHeapItemPointer(result)
-    GeneralRetrieveIndexResult	result;
-{
-    Assert(GeneralRetrieveIndexResultIsValid(result));
-    return (&result->heapItemData);
-}
-
-GeneralRetrieveIndexResult
-ItemPointerFormGeneralRetrieveIndexResult(heapItemPointer)
-    ItemPointer	heapItemPointer;
-{
-    GeneralRetrieveIndexResult	result;
-    Assert(ItemPointerIsValid(heapItemPointer));
-
-    result = (GeneralRetrieveIndexResult) palloc(sizeof *result);
-    result->heapItemData = *heapItemPointer;
-    return (result);
-}
-
-ItemPointer
-RetrieveIndexResultGetIndexItemPointer(result)
-    RetrieveIndexResult	result;
-{
-    Assert(RetrieveIndexResultIsValid(result));
-    return (&result->indexItemData);
-}
-
-ItemPointer
-RetrieveIndexResultGetHeapItemPointer(result)
-    RetrieveIndexResult	result;
-{
-    Assert(RetrieveIndexResultIsValid(result));
-    return (&result->heapItemData);
-}
-
-RetrieveIndexResult
-ItemPointerFormRetrieveIndexResult(indexItemPointer, heapItemPointer)
-    ItemPointer	indexItemPointer;
-    ItemPointer	heapItemPointer;
-{
-    RetrieveIndexResult	result;
-
-    Assert(ItemPointerIsValid(indexItemPointer));
-    Assert(ItemPointerIsValid(heapItemPointer));
-
-    result = (RetrieveIndexResult) palloc(sizeof *result);
-
-    result->indexItemData = *indexItemPointer;
-    result->heapItemData = *heapItemPointer;
-
-    return (result);
-}
 
 /* ----------------------------------------------------------------
  *		  index_ tuple interface routines
@@ -253,7 +60,7 @@ index_formtuple(numberOfAttributes, tupleDescriptor, value, null)
     
     size = sizeof *tuple;
     if (numberOfAttributes > MaxIndexAttributeNumber)
-	elog(WARN, "FormIndexTuple: numberOfAttributes of %d > %d",
+	elog(WARN, "index_formtuple: numberOfAttributes of %d > %d",
 	     numberOfAttributes, MaxIndexAttributeNumber);
     
     size += ComputeDataSize(numberOfAttributes, tupleDescriptor, value, null);
@@ -461,37 +268,74 @@ index_getattr(tuple, attNum, tupDesc, isNullOutP)
 }
 
 /* ----------------------------------------------------------------
- *			old interface routines
+ *	      misc index result stuff (XXX OBSOLETE ME!)
  * ----------------------------------------------------------------
  */
-IndexTuple
-FormIndexTuple(numberOfAttributes, tupleDescriptor, value, null)
-    AttributeNumber	numberOfAttributes;
-    TupleDescriptor	tupleDescriptor;
-    Datum		value[];
-    char		null[];
+
+GeneralInsertIndexResult
+ItemPointerFormGeneralInsertIndexResult(pointer, lock)
+    ItemPointer	pointer;
+    RuleLock	lock;
 {
-    return
-	index_formtuple(numberOfAttributes, tupleDescriptor, value, null);
+    GeneralInsertIndexResult	result;
+
+    Assert(ItemPointerIsValid(pointer));
+    /* XXX Assert(RuleLockIsValid(lock)); locks don't work yet */
+
+    result = (GeneralInsertIndexResult) palloc(sizeof *result);
+
+    result->pointerData = *pointer;
+    result->lock = lock;
+    return (result);
 }
 
-IndexTuple
-formituple(numberOfAttributes, tupleDescriptor, value, null)
-    AttributeNumber	numberOfAttributes;
-    TupleDescriptor	tupleDescriptor;
-    Datum		value[];
-    char		null[];
+InsertIndexResult
+ItemPointerFormInsertIndexResult(pointer, lock, offset)
+    ItemPointer	pointer;
+    RuleLock	lock;
+    double		offset;
 {
-    return
-	index_formtuple(numberOfAttributes, tupleDescriptor, value, null);
+    InsertIndexResult	result;
+
+    Assert(ItemPointerIsValid(pointer));
+    /* XXX Assert(RuleLockIsValid(lock)); locks don't work yet */
+    /* Assert(InsertOffsetIsValid(offset)); */
+
+    result = (InsertIndexResult) palloc(sizeof *result);
+
+    result->pointerData = *pointer;
+    result->lock = lock;
+    result->offset = offset;
+    return (result);
 }
 
-Pointer
-AMgetattr(tuple, attNum, tupleDescriptor, isNullOutP)
-    IndexTuple		tuple;
-    AttributeNumber	attNum;
-    TupleDescriptor	tupleDescriptor;
-    Boolean		*isNullOutP;
+GeneralRetrieveIndexResult
+ItemPointerFormGeneralRetrieveIndexResult(heapItemPointer)
+    ItemPointer	heapItemPointer;
 {
-    return index_getattr(tuple, attNum, tupleDescriptor, isNullOutP);
+    GeneralRetrieveIndexResult	result;
+    Assert(ItemPointerIsValid(heapItemPointer));
+
+    result = (GeneralRetrieveIndexResult) palloc(sizeof *result);
+    result->heapItemData = *heapItemPointer;
+    return (result);
+}
+
+
+RetrieveIndexResult
+ItemPointerFormRetrieveIndexResult(indexItemPointer, heapItemPointer)
+    ItemPointer	indexItemPointer;
+    ItemPointer	heapItemPointer;
+{
+    RetrieveIndexResult	result;
+
+    Assert(ItemPointerIsValid(indexItemPointer));
+    Assert(ItemPointerIsValid(heapItemPointer));
+
+    result = (RetrieveIndexResult) palloc(sizeof *result);
+
+    result->indexItemData = *indexItemPointer;
+    result->heapItemData = *heapItemPointer;
+
+    return (result);
 }

@@ -1,11 +1,14 @@
-/*
- * itup.h --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	itup.h
+ *
+ *   DESCRIPTION
  *	POSTGRES index tuple definitions.
  *
- * Identification:
+ *   IDENTIFICATION
  *	$Header$
+ * ----------------------------------------------------------------
  */
-
 #ifndef ITUP_H
 #define ITUP_H
 
@@ -17,7 +20,7 @@
 
 #define MaxIndexAttributeNumber	7
 
-/*-----------------------------------------------------------
+/* ----------------
  * NOTE:
  * A rule lock has 2 different representations:
  *    The disk representation (t_lock.l_ltid) is an ItemPointer
@@ -26,6 +29,7 @@
  *    The main memory representation (t_lock.l_lock) is a pointer
  * (RuleLock) to a (palloced) structure. In this case `t_locktype'
  * has the value MEM_INDX_RULE_LOCK.
+ * ----------------
  */
 
 #define DISK_INDX_RULE_LOCK	'd'
@@ -46,22 +50,19 @@ typedef struct IndexTupleData {
  *  Warning: T_* defined also in tuple.h
  */
 
-/*----
+/* ----------------
  * "Special" attributes of index tuples...
  * NOTE: I used these big values so that there is no overlapping
  * with the HeapTuple system attributes.
+ * ----------------
  */
 #define IndxBaseTupleIdAttributeNumber	 	(-101)
 #define IndxRuleLockAttributeNumber		(-102)
 
-#ifdef OBSOLETE
-#ifndef	T_CTID
-#define T_CTID	(-1)	/* remove me */
-#define T_LOCK	(-2)	/* -1 */
-#define T_TID	(-3)	/* -2 */
-#endif	/* !defined(T_CTID) */
-#endif OBSOLETE
-
+/* ----------------
+ *	{,general,general retrieve} index insert result crap
+ * ----------------
+ */
 typedef IndexTupleData	*IndexTuple;
 
 typedef struct GeneralInsertIndexResultData {
@@ -96,13 +97,64 @@ typedef struct RetrieveIndexResultData {
 typedef RetrieveIndexResultData	*RetrieveIndexResult;
 				/* from newgettuple() */
 
-
+/* ----------------
+ *	support macros
+ * ----------------
+ */
 /*
  * IndexTupleIsValid --
  *	True iff index tuple is valid.
  */
 #define	IndexTupleIsValid(tuple)			PointerIsValid(tuple)
 
+/*
+ * IndexTupleGetRuleLockItemPointer --
+ *	Returns rule lock item pointer for an index tuple.
+ *
+ * Note:
+ *	Assumes index tuple is a valid internal index tuple.
+ */
+#define IndexTupleGetRuleLockItemPointer(tuple) \
+    (AssertMacro(IndexTupleIsValid(tuple)) ? \
+     ((ItemPointer) (&(tuple)->t_lock.l_ltid)) : (ItemPointer) 0)
+
+/*
+ * IndexTupleGetRuleLock --
+ *	Returns rule lock for an index tuple.
+ *
+ * Note:
+ *	Assumes index tuple is a valid external index tuple.
+ */
+#define IndexTupleGetRuleLock(tuple) \
+    (AssertMacro(IndexTupleIsValid(tuple)) ? \
+     ((RuleLock) ((tuple)->t_lock.l_lock)) : (RuleLock) 0)
+
+/*
+ * IndexTupleGetIndexAttributeBitMap --
+ *	Returns attribute bit map for an index tuple.
+ *
+ * Note:
+ *	Assumes index tuple is valid.
+ */
+#define IndexTupleGetIndexAttributeBitMap(tuple) \
+    (AssertMacro(IndexTupleIsValid(tuple)) ? \
+     ((IndexAttributeBitMap) (&(tuple)->bits)) : (IndexAttributeBitMap) 0)
+
+/*
+ * IndexTupleGetForm --
+ *	Returns formated data for an index tuple.
+ *
+ * Note:
+ *	Assumes index tuple is valid.
+ */
+#define IndexTupleGetForm(tuple) \
+    (AssertMacro(IndexTupleIsValid(tuple)) ? \
+     ((Form) &(tuple)[1]) : (Form) 0)
+
+/* ----------------
+ *	soon to be obsolete index result stuff
+ * ----------------
+ */
 /*
  * GeneralInsertIndexResultIsValid --
  *	True iff general index insertion result is valid.
@@ -128,30 +180,99 @@ typedef RetrieveIndexResultData	*RetrieveIndexResult;
 #define	RetrieveIndexResultIsValid(result)		PointerIsValid(result)
 
 /*
- * IndexTupleGetRuleLockItemPointer --
- *	Returns rule lock item pointer for an index tuple.
+ * GeneralInsertIndexResultGetItemPointer --
+ *	Returns heap tuple item pointer associated with a general index
+ *	insertion result.
  *
  * Note:
- *	Assumes index tuple is a valid internal index tuple.
+ *	Assumes general index insertion result is valid.
  */
-extern
-ItemPointer
-IndexTupleGetRuleLockItemPointer ARGS((
-	IndexTuple	tuple
-));
+#define GeneralInsertIndexResultGetItemPointer(result) \
+    (AssertMacro(GeneralInsertIndexResultIsValid(result)) ? \
+     ((ItemPointer) (&(result)->pointerData)) : (ItemPointer) 0)
 
 /*
- * IndexTupleGetRuleLock --
- *	Returns rule lock for an index tuple.
+ * GeneralInsertIndexResultGetRuleLock --
+ *	Returns rule lock associated with a general index insertion result.
  *
  * Note:
- *	Assumes index tuple is a valid external index tuple.
+ *	Assumes general index insertion result is valid.
  */
-extern
-RuleLock
-IndexTupleGetRuleLock ARGS((
-	IndexTuple	tuple
-));
+#define GeneralInsertIndexResultGetRuleLock(result) \
+    (AssertMacro(GeneralInsertIndexResultIsValid(result)) ? \
+     ((RuleLock) ((result)->lock)) : (RuleLock) 0)
+
+/*
+ * InsertIndexResultGetItemPointer --
+ *	Returns heap tuple item pointer associated with a (specific) index
+ *	insertion result.
+ *
+ * Note:
+ *	Assumes (specific) index insertion result is valid.
+ */
+#define InsertIndexResultGetItemPointer(result) \
+    (AssertMacro(InsertIndexResultIsValid(result)) ? \
+     ((ItemPointer) (&(result)->pointerData)) | (ItemPointer) 0)
+
+/*
+ * InsertIndexResultGetRuleLock --
+ *	Returns rule lock associated with a (specific) index insertion result.
+ *
+ * Note:
+ *	Assumes (specific) index insertion result is valid.
+ */
+#define InsertIndexResultGetRuleLock(result) \
+    (AssertMacro(InsertIndexResultIsValid(result)) ? \
+     ((RuleLock) ((result)->lock)) : (RuleLock) 0)
+
+/*
+ * InsertIndexResultGetInsertOffset --
+ *	Returns insertion offset for a (specific) index insertion result.
+ *
+ * Note:
+ *	Assumes (specific) index insertion result is valid.
+ */
+#define InsertIndexResultGetInsertOffset(result) \
+    (AssertMacro(InsertIndexResultIsValid(result)) ? \
+     ((double) ((result)->offset)) : (double) 0)
+
+/*
+ * GeneralRetrieveIndexResultGetHeapItemPointer --
+ *	Returns heap item pointer associated with a general index retrieval.
+ *
+ * Note:
+ *	Assumes general index retrieval result is valid.
+ */
+#define GeneralRetrieveIndexResultGetHeapItemPointer(result) \
+    (AssertMacro(GeneralRetrieveIndexResultIsValid(result)) ? \
+     ((ItemPointer) (&(result)->heapItemData)) : (ItemPointer) 0)
+
+/*
+ * RetrieveIndexResultGetIndexItemPointer --
+ *	Returns index item pointer associated with a (specific) index retrieval
+ *
+ * Note:
+ *	Assumes (specific) index retrieval result is valid.
+ */
+#define RetrieveIndexResultGetIndexItemPointer(result) \
+    (AssertMacro(RetrieveIndexResultIsValid(result)) ? \
+     ((ItemPointer) (&(result)->indexItemData)) : (ItemPointer) 0)
+
+/*
+ * RetrieveIndexResultGetHeapItemPointer --
+ *	Returns heap item pointer associated with a (specific) index retrieval.
+ *
+ * Note:
+ *	Assumes (specific) index retrieval result is valid.
+ */
+#define RetrieveIndexResultGetHeapItemPointer(result) \
+    (AssertMacro(RetrieveIndexResultIsValid(result)) ? \
+     ((ItemPointer) (&(result)->heapItemData)) : (ItemPointer) 0)
+
+/* ----------------
+ *	externs 
+ * ----------------
+ */
 
 /*
  * IndexTupleGetHeapTupleItemPointer --
@@ -167,59 +288,6 @@ IndexTupleGetHeapTupleItemPointer ARGS((
 ));
 
 /*
- * IndexTupleGetIndexAttributeBitMap --
- *	Returns attribute bit map for an index tuple.
- *
- * Note:
- *	Assumes index tuple is valid.
- */
-extern
-IndexAttributeBitMap
-IndexTupleGetIndexAttributeBitMap ARGS((
-	IndexTuple	tuple
-));
-
-/*
- * IndexTupleGetForm --
- *	Returns formated data for an index tuple.
- *
- * Note:
- *	Assumes index tuple is valid.
- */
-extern
-Form
-IndexTupleGetForm ARGS((
-	IndexTuple	tuple
-));
-
-/*
- * GeneralInsertIndexResultGetItemPointer --
- *	Returns heap tuple item pointer associated with a general index
- *	insertion result.
- *
- * Note:
- *	Assumes general index insertion result is valid.
- */
-extern
-ItemPointer
-GeneralInsertIndexResultGetItemPointer ARGS((
-	GeneralInsertIndexResult	result
-));
-
-/*
- * GeneralInsertIndexResultGetRuleLock --
- *	Returns rule lock associated with a general index insertion result.
- *
- * Note:
- *	Assumes general index insertion result is valid.
- */
-extern
-RuleLock
-GeneralInsertIndexResultGetRuleLock ARGS((
-	GeneralInsertIndexResult	result
-));
-
-/*
  * ItemPointerFormGeneralInsertIndexResult --
  *	Returns a general index insertion result.
  *
@@ -232,46 +300,6 @@ GeneralInsertIndexResult
 ItemPointerFormGeneralInsertIndexResult ARGS((
 	ItemPointer	itemPointer,
 	RuleLock	lock,
-));
-
-/*
- * InsertIndexResultGetItemPointer --
- *	Returns heap tuple item pointer associated with a (specific) index
- *	insertion result.
- *
- * Note:
- *	Assumes (specific) index insertion result is valid.
- */
-extern
-ItemPointer
-InsertIndexResultGetItemPointer ARGS((
-	InsertIndexResult	result
-));
-
-/*
- * InsertIndexResultGetItemPointer --
- *	Returns rule lock associated with a (specific) index insertion result.
- *
- * Note:
- *	Assumes (specific) index insertion result is valid.
- */
-extern
-RuleLock
-InsertIndexResultGetRuleLock ARGS((
-	InsertIndexResult	result
-));
-
-/*
- * InsertIndexResultGetInsertOffset --
- *	Returns insertion offset for a (specific) index insertion result.
- *
- * Note:
- *	Assumes (specific) index insertion result is valid.
- */
-extern
-double	/* XXX invalid POSTGRES ADT type */
-InsertIndexResultGetInsertOffset ARGS((
-	InsertIndexResult	result
 ));
 
 /*
@@ -292,19 +320,6 @@ ItemPointerFormInsertIndexResult ARGS((
 ));
 
 /*
- * GeneralRetrieveIndexResultGetHeapItemPointer --
- *	Returns heap item pointer associated with a general index retrieval.
- *
- * Note:
- *	Assumes general index retrieval result is valid.
- */
-extern
-ItemPointer
-GeneralRetrieveIndexResultGetHeapItemPointer ARGS((
-	GeneralRetrieveIndexResult	result
-));
-
-/*
  * ItemPointerFormGeneralRetrieveIndexResult --
  *	Returns a (specific) index retrieval result.
  *
@@ -315,32 +330,6 @@ extern
 GeneralRetrieveIndexResult
 ItemPointerFormGeneralRetrieveIndexResult ARGS((
 	ItemPointer	heapItemPointer
-));
-
-/*
- * RetrieveIndexResultGetIndexItemPointer --
- *	Returns index item pointer associated with a (specific) index retrieval.
- *
- * Note:
- *	Assumes (specific) index retrieval result is valid.
- */
-extern
-ItemPointer
-RetrieveIndexResultGetIndexItemPointer ARGS((
-	RetrieveIndexResult	result
-));
-
-/*
- * RetrieveIndexResultGetHeapItemPointer --
- *	Returns heap item pointer associated with a (specific) index retrieval.
- *
- * Note:
- *	Assumes (specific) index retrieval result is valid.
- */
-extern
-ItemPointer
-RetrieveIndexResultGetHeapItemPointer ARGS((
-	RetrieveIndexResult	result
 ));
 
 /*
@@ -356,5 +345,6 @@ ItemPointerFormRetrieveIndexResult ARGS((
 	ItemPointer	indexItemPointer,
 	ItemPointer	heapItemPointer
 ));
+
 
 #endif	/* !defined(ITUP_H) */

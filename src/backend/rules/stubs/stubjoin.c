@@ -14,10 +14,9 @@
 #include "nodes/primnodes.a.h"
 #include "nodes/plannodes.h"
 #include "nodes/plannodes.a.h"
+#include "access/heapam.h"
 #include "utils/log.h"
 #include "tmp/datum.h"
-
-extern HeapTuple palloctup();
 
 /*----------------------------------------------------------------
  *

@@ -41,7 +41,6 @@
 #include "catalog/pg_prs2rule.h"
 #include "catalog/pg_prs2plans.h"
 
-extern HeapTuple palloctup();
 Prs2Stub prs2FindStubsThatDependOnAttribute();
 
 /*-----------------------------------------------------------------------

@@ -17,20 +17,9 @@
  *	heap_formtuple 
  *	heap_modifytuple
  *	
- *	HeapTupleGetForm
- *
- *   OLD INTERFACE FUNCTIONS
- *	isnull
- *	sysattrlen
- *	sysattrbyval
- *	amgetattr
- *	addtupleheader
- *	palloctup
- *	formtuple, FormHeapTuple
- *	modifytuple, ModifyHeapTuple
- *	getstruct
- *	
  *   NOTES
+ *	The old interface functions have been converted to macros
+ *	and moved to heapam.h
  *	
  *   IDENTIFICATION
  *	$Header$
@@ -84,18 +73,6 @@ RcsId("$Header$");
  *			misc support routines
  * ----------------------------------------------------------------
  */
-
-/* ----------------
- *	HeapTupleGetForm
- * ----------------
- */
-Form
-HeapTupleGetForm(tuple)
-    HeapTuple	tuple;
-{
-    return (Form)
-	((char *)tuple + tuple->t_hoff);
-}
 
 /* ----------------
  *	ComputeDataSize
@@ -1024,110 +1001,6 @@ heap_modifytuple(tuple, buffer, relation, replValue, replNull, repl)
     return
 	newTuple;
 }
-
-
-/* ----------------------------------------------------------------
- *		      old am interface routines
- * ----------------------------------------------------------------
- */
-int
-isnull(tup, attnum)
-    HeapTuple	tup;
-    int		attnum;
-{
-    return heap_attisnull(tup, attnum);
-}
-
-int
-sysattrlen(attno)
-    AttributeNumber	attno;
-{
-    return heap_sysattrlen(attno);
-}
-
-bool
-sysattrbyval(attno)
-    AttributeNumber	attno;
-{
-    return heap_sysattrbyval(attno);
-}
-
-char *
-amgetattr(tup, b, attnum, att, isnull)
-    HeapTuple	tup;
-    Buffer	b;
-    int		attnum;
-    struct	attribute *att[];
-    Boolean	*isnull;
-{
-    return (char *)
-	heap_getattr(tup, b, attnum, att, isnull);
-}
-
-HeapTuple
-addtupleheader(natts, structlen, structure)
-    uint32	natts;			/* max domain index */
-    int		structlen;		/* its length */
-    char	*structure;		/* pointer to the struct */
-{
-    return heap_addheader(natts, structlen, structure);
-}
-
-HeapTuple
-palloctup(tuple, buffer, relation)
-    HeapTuple	tuple;
-    Buffer	buffer;
-    Relation	relation;    
-{
-    return heap_copytuple(tuple, buffer, relation);
-}
-
-HeapTuple
-formtuple(numberOfAttributes, tupleDescriptor, value, nulls)
-    AttributeNumber	numberOfAttributes;	/* max domain index + 1 */
-    TupleDescriptor	tupleDescriptor;	/* descriptions */
-    Datum		value[];		/* pointers to data */
-    char		nulls[];			/* null domain value */
-{
-    return heap_formtuple(numberOfAttributes, tupleDescriptor, value, nulls);
-}
-
-HeapTuple
-FormHeapTuple(numberOfAttributes, tupleDescriptor, value, nulls)
-	AttributeNumber	numberOfAttributes;
-	TupleDescriptor	tupleDescriptor;
-	Datum		value[];
-	char		nulls[];
-{
-    return heap_formtuple(numberOfAttributes, tupleDescriptor, value, nulls);
-}
-
-HeapTuple
-modifytuple(tuple, buffer, relation, replValue, replNull, repl)
-    HeapTuple	tuple;
-    Buffer	buffer;
-    Relation	relation;
-    Datum	replValue[];
-    char	replNull[];
-    char	repl[];
-{
-    return
-	heap_modifytuple(tuple, buffer, relation, replValue, replNull, repl);
-}
-
-HeapTuple
-ModifyHeapTuple(tuple, buffer, relation, replValue, replNull, repl)
-    HeapTuple	tuple;
-    Buffer	buffer;
-    Relation	relation;
-    Datum	replValue[];
-    char	replNull[];
-    char	repl[];
-{
-    return
-	heap_modifytuple(tuple, buffer, relation, replValue, replNull, repl);
-}
-
 
 /* ----------------------------------------------------------------
  *			other misc functions

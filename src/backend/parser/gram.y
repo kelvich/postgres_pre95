@@ -32,6 +32,7 @@
 
 #include "tmp/c.h"
 #include "catalog_utils.h"
+#include "access/heapam.h"
 #include "utils/log.h"
 #include "utils/palloc.h"
 #include "nodes/pg_lisp.h"
@@ -45,7 +46,6 @@
 extern LispValue new_filestr();
 extern LispValue parser_typecast();
 extern LispValue make_targetlist_expr();
-extern Relation amopenr();
 extern List MakeList();
 extern List FlattenRelationList();
 
@@ -1046,7 +1046,7 @@ AppendStmt:
 						    CString($5)));
                   if (x==0)
                     x = RangeTablePosn(CString($5),LispNil);
-                  parser_current_rel = amopenr(VarnoGetRelname(x));
+                  parser_current_rel = heap_openr(VarnoGetRelname(x));
                   if (parser_current_rel == NULL)
                         elog(WARN,"invalid relation name");
                   ResdomNoIsAttrNo = true;
@@ -1100,7 +1100,7 @@ DeleteStmt:
 		    if (x==0)
 		      x = RangeTablePosn(CString($5),LispNil);
 		    
-		    parser_current_rel = amopenr(VarnoGetRelname(x));
+		    parser_current_rel = heap_openr(VarnoGetRelname(x));
 		    if (parser_current_rel == NULL)
 		      elog(WARN,"invalid relation name");
 		    /* ResdomNoIsAttrNo = true;  */
@@ -1172,7 +1172,7 @@ ReplaceStmt:
 						     CString($5)));
                   if (x==0)
                     x = RangeTablePosn(CString($5),LispNil);
-                  parser_current_rel = amopenr(VarnoGetRelname(x));
+                  parser_current_rel = heap_openr(VarnoGetRelname(x));
                   if (parser_current_rel == NULL)
                         elog(WARN,"invalid relation name");
                   ResdomNoIsAttrNo = true; }

@@ -484,7 +484,6 @@ AddNewAttributeTuples(new_rel_oid, new_type_oid, natts, tupdesc)
     Relation	rdesc;
     int		i;
 
-    HeapTuple	addtupleheader();
     extern	fillatt();
 
     /* ----------------
@@ -575,7 +574,6 @@ AddPgRelationTuple(pg_relation_desc, new_rel_desc, new_rel_oid, arch, natts)
     HeapTuple		tup;
     bool		isBootstrap;
     
-    HeapTuple		addtupleheader();
     extern		fillatt();
     
     /* ----------------

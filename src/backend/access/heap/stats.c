@@ -79,9 +79,6 @@ InitHeapAccessStatistics()
     stats->global_BufferGetRelation = 0;
     stats->global_RelationIdGetRelation = 0;
     stats->global_RelationIdGetRelation_Buf = 0;
-    stats->global_ObjectIdOpenHeapRelation = 0;
-    stats->global_RelationNameOpenHeapRelation = 0;
-    stats->global_RelationCloseHeapRelation = 0;
     stats->global_getreldesc = 0;
     stats->global_heapgettup = 0;
     stats->global_RelationPutHeapTuple = 0;
@@ -103,9 +100,6 @@ InitHeapAccessStatistics()
     stats->local_BufferGetRelation = 0;
     stats->local_RelationIdGetRelation = 0;
     stats->local_RelationIdGetRelation_Buf = 0;
-    stats->local_ObjectIdOpenHeapRelation = 0;
-    stats->local_RelationNameOpenHeapRelation = 0;
-    stats->local_RelationCloseHeapRelation = 0;
     stats->local_getreldesc = 0;
     stats->local_heapgettup = 0;
     stats->local_RelationPutHeapTuple = 0;
@@ -166,9 +160,6 @@ ResetHeapAccessStatistics()
     stats->local_BufferGetRelation = 0;
     stats->local_RelationIdGetRelation = 0;
     stats->local_RelationIdGetRelation_Buf = 0;
-    stats->local_ObjectIdOpenHeapRelation = 0;
-    stats->local_RelationNameOpenHeapRelation = 0;
-    stats->local_RelationCloseHeapRelation = 0;
     stats->local_getreldesc = 0;
     stats->local_heapgettup = 0;
     stats->local_RelationPutHeapTuple = 0;
@@ -293,18 +284,6 @@ PrintHeapAccessStatistics(stats)
     printf("local/global_RelationIdGetRelation_Buf:     %6d/%6d\n",
            stats->local_RelationIdGetRelation_Buf,
            stats->global_RelationIdGetRelation_Buf);
-
-    printf("local/global_ObjectIdOpenHeapRelation:      %6d/%6d\n",
-           stats->local_ObjectIdOpenHeapRelation,
-           stats->global_ObjectIdOpenHeapRelation);
-
-    printf("local/global_RelationNameOpenHeapRelation:  %6d/%6d\n",
-           stats->local_RelationNameOpenHeapRelation,
-           stats->global_RelationNameOpenHeapRelation);
-
-    printf("local/global_RelationCloseHeapRelation:     %6d/%6d\n",
-           stats->local_RelationCloseHeapRelation,
-           stats->global_RelationCloseHeapRelation);
 
     printf("local/global_getreldesc:                    %6d/%6d\n",
            stats->local_getreldesc, stats->global_getreldesc);

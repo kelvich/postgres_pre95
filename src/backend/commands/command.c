@@ -352,19 +352,19 @@ PerformAddAttribute(relationName, schema)
     Buffer		buf;
     AttributeNumber	newAttributes;
     
-    Relation			relrdesc, attrdesc;
-    HeapScanDesc			relsdesc, attsdesc;
-    HeapTuple			reltup;
+    Relation		relrdesc, attrdesc;
+    HeapScanDesc	relsdesc, attsdesc;
+    HeapTuple		reltup;
     HeapTuple		attributeTuple;
     AttributeTupleForm	attribute;
     AttributeTupleFormD	attributeD;
-    struct attribute		*ap, *attp, **app;
-    int				i;
-    int				minattnum, maxatts;
-    HeapTuple			tup;
-    struct	skey			key[2];	/* static better? [?] */
-    ItemPointerData			oldTID;
-    HeapTuple		palloctup();
+    struct attribute	*ap, *attp, **app;
+    int			i;
+    int			minattnum, maxatts;
+    HeapTuple		tup;
+    struct	skey	key[2];	/* static better? [?] */
+    ItemPointerData	oldTID;
+
     
     if (issystem(relationName)) {
 	elog(WARN, "Add: system relation \"%s\" unchanged",
@@ -388,14 +388,14 @@ PerformAddAttribute(relationName, schema)
     
     newAttributes = length(schema);
     
-    relrdesc = amopenr(RelationRelationName);
+    relrdesc = heap_openr(RelationRelationName);
 	ScanKeyEntryInitialize(&key[0], NULL, RelationNameAttributeNumber,
                            Character16EqualRegProcedure, (DATUM)relationName);
-    relsdesc = ambeginscan(relrdesc, 0, NowTimeQual, 1, key);
-    reltup = amgetnext(relsdesc, 0, &buf);
+    relsdesc = heap_beginscan(relrdesc, 0, NowTimeQual, 1, key);
+    reltup = heap_getnext(relsdesc, 0, &buf);
     if (!PointerIsValid(reltup)) {
-	amendscan(relsdesc);
-	amclose(relrdesc);
+	heap_endscan(relsdesc);
+	heap_close(relrdesc);
 	elog(WARN, "addattribute: relation \"%s\" not found",
 	     relationName);
 	return;
@@ -409,22 +409,24 @@ PerformAddAttribute(relationName, schema)
 	return;
     }
     reltup = palloctup(reltup, buf, relrdesc);
-    amendscan(relsdesc);
+    heap_endscan(relsdesc);
     
     minattnum = ((struct relation *) GETSTRUCT(reltup))->relnatts;
     maxatts = minattnum + newAttributes;
     if (maxatts > MaxHeapAttributeNumber) {
 	pfree((char *) reltup);			/* XXX temp */
-	amclose(relrdesc);			/* XXX temp */
+	heap_close(relrdesc);			/* XXX temp */
 	elog(WARN, "addattribute: relations limited to %d attributes",
 	     MaxHeapAttributeNumber);
 	return;
     }
     
-    attrdesc = amopenr(AttributeRelationName);
-	ScanKeyEntryInitialize(&key[0], NULL, AttributeRelationIdAttributeNumber,
-						   ObjectIdEqualRegProcedure, (DATUM) reltup->t_oid);
-	ScanKeyEntryInitialize(&key[1], NULL, AttributeNameAttributeNumber,
+    attrdesc = heap_openr(AttributeRelationName);
+    
+    ScanKeyEntryInitialize(&key[0], NULL, AttributeRelationIdAttributeNumber,
+			   ObjectIdEqualRegProcedure, (DATUM) reltup->t_oid);
+    
+    ScanKeyEntryInitialize(&key[1], NULL, AttributeNameAttributeNumber,
                            Character16EqualRegProcedure, (DATUM) NULL);
     
     attributeD.attrelid = reltup->t_oid;
@@ -449,18 +451,18 @@ PerformAddAttribute(relationName, schema)
 	 * XXX use syscache here as an optimization
 	 */
 	key[1].sk_data = (DATUM)CString(CAR(CAR(element)));
-	attsdesc = ambeginscan(attrdesc, 0, NowTimeQual, 2, key);
-	tup = amgetnext(attsdesc, 0, (Buffer *) NULL);
+	attsdesc = heap_beginscan(attrdesc, 0, NowTimeQual, 2, key);
+	tup = heap_getnext(attsdesc, 0, (Buffer *) NULL);
 	if (HeapTupleIsValid(tup)) {
 	    pfree((char *) reltup);		/* XXX temp */
-	    amendscan(attsdesc);		/* XXX temp */
-	    amclose(attrdesc);		/* XXX temp */
-	    amclose(relrdesc);		/* XXX temp */
+	    heap_endscan(attsdesc);		/* XXX temp */
+	    heap_close(attrdesc);		/* XXX temp */
+	    heap_close(relrdesc);		/* XXX temp */
 	    elog(WARN, "addattribute: attribute \"%s\" exists",
 		 key[1].sk_data);
 	    return;
 	}
-	amendscan(attsdesc);
+	heap_endscan(attsdesc);
 	
 	typeTuple = SearchSysCacheTuple(TYPNAME,
 					CString(CADR(CAR(element))));
@@ -484,12 +486,12 @@ PerformAddAttribute(relationName, schema)
 	i += 1;
     }
     
-    amclose(attrdesc);
+    heap_close(attrdesc);
     ((struct relation *) GETSTRUCT(reltup))->relnatts = maxatts;
     oldTID = reltup->t_ctid;
-    amreplace(relrdesc, &oldTID, reltup);
+    heap_replace(relrdesc, &oldTID, reltup);
     pfree((char *) reltup);
-    amclose(relrdesc);
+    heap_close(relrdesc);
 }
 
 

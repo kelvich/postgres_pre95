@@ -10,8 +10,6 @@
 #include "storage/off.h"
 #include "storage/part.h"
 
-#include "internal.h"
-
 RcsId("$Header$");
 
 /*

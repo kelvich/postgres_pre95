@@ -1,16 +1,19 @@
-/*
- * itemptr.h --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	itemptr.h
+ *
+ *   DESCRIPTION
  *	POSTGRES disk item pointer definitions.
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef	ItemPtrIncluded		/* Include this file only once */
 #define ItemPtrIncluded	1
 
-/*
- * Identification:
- */
 #define ITEMPTR_H	"$Header$"
-
 
 #include "tmp/c.h"
 
@@ -28,6 +31,10 @@ typedef struct ItemPointerData {
 
 typedef ItemPointerData	*ItemPointer;
 
+/* ----------------
+ *	support macros
+ * ----------------
+ */
 /*
  * ItemPointerIsUserDefined --
  *	True iff the disk item pointer is in a user defined format.
@@ -54,11 +61,9 @@ typedef ItemPointerData	*ItemPointer;
  * Note:
  *	Assumes that the disk item pointer is not in a user defined format.
  */
-extern
-BlockNumber
-ItemPointerGetBlockNumber ARGS((
-	ItemPointer	pointer
-));
+#define ItemPointerGetBlockNumber(pointer) \
+    (AssertMacro(ItemPointerIsValid(pointer)) ? \
+     BlockIdGetBlockNumber(&(pointer)->blockData) : (BlockNumber) 0)
 
 /*
  * ItemPointerGetPageNumber --
@@ -67,12 +72,10 @@ ItemPointerGetBlockNumber ARGS((
  * Note:
  *	Assumes that the disk item pointer is not in a user defined format.
  */
-extern
-PageNumber
-ItemPointerGetPageNumber ARGS((
-	ItemPointer	pointer,
-	PagePartition	partition
-));
+#define ItemPointerGetPageNumber(pointer, partition) \
+    (AssertMacro(ItemPointerIsValid(pointer)) ? \
+     PositionIdGetPageNumber(&(pointer)->positionData, partition) : \
+     (PageNumber) 0)
 
 /*
  * ItemPointerGetOffsetNumber --
@@ -81,12 +84,10 @@ ItemPointerGetPageNumber ARGS((
  * Note:
  *	Assumes that the disk item pointer is not in a user defined format.
  */
-extern
-OffsetNumber
-ItemPointerGetOffsetNumber ARGS((
-	ItemPointer	pointer,
-	PagePartition	partition
-));
+#define ItemPointerGetOffsetNumber(pointer, partition) \
+    (AssertMacro(ItemPointerIsValid(pointer)) ? \
+     PositionIdGetOffsetNumber(&(pointer)->positionData, partition) : \
+     (OffsetNumber) 0)
 
 /*
  * ItemPointerGetOffsetIndex --
@@ -95,12 +96,10 @@ ItemPointerGetOffsetNumber ARGS((
  * Note:
  *	Assumes that the disk item pointer is not in a user defined format.
  */
-extern
-OffsetIndex
-ItemPointerGetOffsetIndex ARGS((
-	ItemPointer	pointer,
-	PagePartition	partition
-));
+#define ItemPointerGetOffsetIndex(pointer, partition) \
+    (AssertMacro(ItemPointerIsValid(pointer)) ? \
+     ItemPointerGetOffsetNumber(pointer, partition) - 1 : \
+     (OffsetIndex) 0)
 
 /*
  * ItemPointerSet --
@@ -109,15 +108,10 @@ ItemPointerGetOffsetIndex ARGS((
  * Note:
  *	Assumes that the disk item pointer is not NULL.
  */
-extern
-void
-ItemPointerSet ARGS((
-	ItemPointer	pointer,
-	PagePartition	partition,
-	BlockNumber	blockNumber,
-	PageNumber	pageNumber,
-	OffsetNumber	offsetNumber
-));
+#define ItemPointerSet(pointer, partition, blockNumber, pageNumber, offNum) \
+    Assert(PointerIsValid(pointer)); \
+    BlockIdSet(&(pointer)->blockData, blockNumber); \
+    PositionIdSet(&(pointer)->positionData, partition, pageNumber, offNum)
 
 /*
  * ItemPointerCopy --
@@ -126,12 +120,10 @@ ItemPointerSet ARGS((
  * Note:
  *	Assumes that the disk item pointer is not NULL.
  */
-extern
-void
-ItemPointerCopy ARGS((
-	ItemPointer	fromPointer,
-	ItemPointer	toPointer
-));
+#define ItemPointerCopy(fromPointer, toPointer) \
+    Assert(PointerIsValid(toPointer)); \
+    Assert(PointerIsValid(fromPointer)); \
+    *(toPointer) = *(fromPointer)
 
 /*
  * ItemPointerSetInvalid --
@@ -139,12 +131,13 @@ ItemPointerCopy ARGS((
  *
  * Note:
  *	Assumes that the disk item pointer is not NULL.
+ *
+ * XXX byte ordering 
  */
-extern
-void
-ItemPointerSetInvalid ARGS((
-	ItemPointer	pointer
-));
+#define ItemPointerSetInvalid(pointer) \
+    Assert(PointerIsValid(pointer)); \
+    (pointer)->blockData.data[0] &= 0x7fff; \
+    (pointer)->positionData = 0
 
 /*
  * ItemPointerSimpleGetPageNumber --
@@ -153,11 +146,8 @@ ItemPointerSetInvalid ARGS((
  * Note:
  *	Assumes that the disk item pointer is not in a user defined format.
  */
-extern
-PageNumber
-ItemPointerSimpleGetPageNumber ARGS((
-	ItemPointer	pointer
-));
+#define ItemPointerSimpleGetPageNumber(pointer) \
+    ItemPointerGetPageNumber(pointer, SinglePagePartition)
 
 /*
  * ItemPointerSimpleGetOffsetNumber --
@@ -166,11 +156,8 @@ ItemPointerSimpleGetPageNumber ARGS((
  * Note:
  *	Assumes that the disk item pointer is not in a user defined format.
  */
-extern
-OffsetNumber
-ItemPointerSimpleGetOffsetNumber ARGS((
-	ItemPointer	pointer
-));
+#define ItemPointerSimpleGetOffsetNumber(pointer) \
+    ItemPointerGetOffsetNumber(pointer, SinglePagePartition)
 
 /*
  * ItemPointerSimpleGetOffsetIndex --
@@ -179,11 +166,8 @@ ItemPointerSimpleGetOffsetNumber ARGS((
  * Note:
  *	Assumes that the disk item pointer is not in a user defined format.
  */
-extern
-OffsetIndex
-ItemPointerSimpleGetOffsetIndex ARGS((
-	ItemPointer	pointer
-));
+#define ItemPointerSimpleGetOffsetIndex(pointer) \
+    ItemPointerGetOffsetIndex(pointer, SinglePagePartition)
 
 /*
  * ItemPointerSimpleSet --
@@ -192,14 +176,14 @@ ItemPointerSimpleGetOffsetIndex ARGS((
  * Note:
  *	Assumes that the disk item pointer is not NULL.
  */
-extern
-void
-ItemPointerSimpleSet ARGS((
-	ItemPointer	pointer,
-	BlockNumber	blockNumber,
-	OffsetNumber	offsetNumber
-));
+#define ItemPointerSimpleSet(pointer, blockNumber, offsetNumber) \
+    ItemPointerSet(pointer, SinglePagePartition, blockNumber, \
+		   FirstPageNumber, offsetNumber)
 
+/* ----------------
+ *	externs
+ * ----------------
+ */
 /*
  * ItemPointerEquals --
  *  Returns true if both item pointers point to the same item, 

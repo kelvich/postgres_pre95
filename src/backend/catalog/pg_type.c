@@ -55,20 +55,20 @@ TypeGetWithOpenRelation(pg_type_desc, typeName, defined)
      *	initialize the scan key and begin a scan of pg_type
      * ----------------
      */
-	fmgr_info(NameEqualRegProcedure, &typeKey[0].func, &typeKey[0].nargs);
+    fmgr_info(NameEqualRegProcedure, &typeKey[0].func, &typeKey[0].nargs);
     typeKey[0].argument = NameGetDatum(typeName);
     
-    scan = RelationBeginHeapScan(pg_type_desc,
-				 0,
-				 SelfTimeQual,
-				 1,
-				 (ScanKey) typeKey);
+    scan = heap_beginscan(pg_type_desc,
+			  0,
+			  SelfTimeQual,
+			  1,
+			  (ScanKey) typeKey);
     
     /* ----------------
      *	get the type tuple, if it exists.
      * ----------------
      */
-    tup = HeapScanGetNextTuple(scan, 0, (Buffer *) 0);
+    tup = heap_getnext(scan, 0, (Buffer *) 0);
 
     /* ----------------
      *	if no type tuple exists for the given type name, then
@@ -76,7 +76,7 @@ TypeGetWithOpenRelation(pg_type_desc, typeName, defined)
      * ----------------
      */
     if (! HeapTupleIsValid(tup)) {
-	HeapScanEnd(scan);
+	heap_endscan(scan);
 	*defined = false;
 	return
 	    InvalidObjectId;
@@ -88,7 +88,7 @@ TypeGetWithOpenRelation(pg_type_desc, typeName, defined)
      *  oid, which is the oid of the type.
      * ----------------
      */
-    HeapScanEnd(scan);
+    heap_endscan(scan);
     *defined = (bool) ((TypeTupleForm) GETSTRUCT(tup))->typisdefined;
     
     return
@@ -127,7 +127,7 @@ TypeGet(typeName, defined)
      *	open the pg_type relation
      * ----------------
      */
-    pg_type_desc = RelationNameOpenHeapRelation(TypeRelationName);
+    pg_type_desc = heap_openr(TypeRelationName);
 
     /* ----------------
      *	scan the type relation for the information we want
@@ -141,7 +141,7 @@ TypeGet(typeName, defined)
      *	close the type relation and return the type oid.
      * ----------------
      */
-    RelationCloseHeapRelation(pg_type_desc);
+    heap_close(pg_type_desc);
     
     return
 	typeoid;
@@ -210,7 +210,7 @@ TypeShellMakeWithOpenRelation(pg_type_desc, typeName)
      *	insert the tuple in the relation and get the tuple's oid.
      * ----------------
      */
-    RelationInsertHeapTuple(pg_type_desc, tup, (double *) NULL);
+    heap_insert(pg_type_desc, tup, (double *) NULL);
     typoid = tup->t_oid;
 
     /* ----------------
@@ -249,7 +249,7 @@ TypeShellMake(typeName)
      *	open pg_type
      * ----------------
      */
-    pg_type_desc = RelationNameOpenHeapRelation(TypeRelationName);
+    pg_type_desc = heap_openr(TypeRelationName);
 
     /* ----------------
      *	insert the shell tuple
@@ -262,7 +262,7 @@ TypeShellMake(typeName)
      *	close pg_type and return the tuple's oid.
      * ----------------
      */
-    RelationCloseHeapRelation(pg_type_desc);
+    heap_close(pg_type_desc);
 
     return
 	typoid;
@@ -321,7 +321,7 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
     Assert(NameIsValid(typeName));
     Assert(NameIsValid(inputProcedure) && NameIsValid(outputProcedure));
 
-	fmgr_info(NameEqualRegProcedure, &typeKey[0].func, &typeKey[0].nargs);
+    fmgr_info(NameEqualRegProcedure, &typeKey[0].func, &typeKey[0].nargs);
 
     /* ----------------
      *	check that the type is not already defined.
@@ -432,14 +432,14 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
      *	open pg_type and begin a scan for the type name.
      * ----------------
      */
-    pg_type_desc = RelationNameOpenHeapRelation(TypeRelationName);
+    pg_type_desc = heap_openr(TypeRelationName);
     
     typeKey[0].argument = NameGetDatum(typeName);
-    pg_type_scan = RelationBeginHeapScan(pg_type_desc,
-					 0,
-					 SelfTimeQual,
-					 1,
-					 (ScanKey) typeKey);
+    pg_type_scan = heap_beginscan(pg_type_desc,
+				  0,
+				  SelfTimeQual,
+				  1,
+				  (ScanKey) typeKey);
     
     /* ----------------
      *  define the type either by adding a tuple to the type
@@ -447,29 +447,30 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
      *  already there.
      * ----------------
      */
-    tup = HeapScanGetNextTuple(pg_type_scan, 0, &buffer);
+    tup = heap_getnext(pg_type_scan, 0, &buffer);
     if (HeapTupleIsValid(tup)) {
-	tup = ModifyHeapTuple(tup,
-			      buffer,
-			      pg_type_desc,
-			      values,
-			      nulls,
-			      replaces);
+	tup = heap_modifytuple(tup,
+			       buffer,
+			       pg_type_desc,
+			       values,
+			       nulls,
+			       replaces);
 	
 	/* XXX may not be necessary */
 	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
+	
 	setheapoverride(true);
-	RelationReplaceHeapTuple(pg_type_desc, &itemPointerData, tup);
+	heap_replace(pg_type_desc, &itemPointerData, tup);
 	setheapoverride(false);
 
 	typeObjectId = tup->t_oid;
     } else {
-	tup = FormHeapTuple(TypeRelationNumberOfAttributes,
-			    &pg_type_desc->rd_att,
-			    values,
-			    nulls);
+	tup = heap_formtuple(TypeRelationNumberOfAttributes,
+			     &pg_type_desc->rd_att,
+			     values,
+			     nulls);
 	
-	RelationInsertHeapTuple(pg_type_desc, tup, (double *) NULL);
+	heap_insert(pg_type_desc, tup, (double *) NULL);
 	
 	typeObjectId = tup->t_oid;
     }
@@ -478,8 +479,8 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
      *	finish up
      * ----------------
      */
-    HeapScanEnd(pg_type_scan);
-    RelationCloseHeapRelation(pg_type_desc);
+    heap_endscan(pg_type_scan);
+    heap_close(pg_type_desc);
 
     return
 	typeObjectId;
@@ -520,7 +521,7 @@ TypeRename(oldTypeName, newTypeName)
     Assert(NameIsValid(oldTypeName));
     Assert(NameIsValid(newTypeName));
 
-	fmgr_info(NameEqualRegProcedure, &typeKey[0].func, &typeKey[0].nargs);
+    fmgr_info(NameEqualRegProcedure, &typeKey[0].func, &typeKey[0].nargs);
 
     /* ----------------
      *	check that that the new type is not already defined
@@ -535,20 +536,20 @@ TypeRename(oldTypeName, newTypeName)
      *	open pg_type and begin a scan for the type name.
      * ----------------
      */
-    pg_type_desc = RelationNameOpenHeapRelation(TypeRelationName);
+    pg_type_desc = heap_openr(TypeRelationName);
     
     typeKey[0].argument = NameGetDatum(oldTypeName);
-    pg_type_scan = RelationBeginHeapScan(pg_type_desc,
-					 0,
-					 SelfTimeQual,
-					 1,
-					 (ScanKey) typeKey);
+    pg_type_scan = heap_beginscan(pg_type_desc,
+				  0,
+				  SelfTimeQual,
+				  1,
+				  (ScanKey) typeKey);
     
     /* ----------------
      *  update the name of the tuple in the type relation
      * ----------------
      */
-    tup = HeapScanGetNextTuple(pg_type_scan, 0, &buffer);
+    tup = heap_getnext(pg_type_scan, 0, &buffer);
     if (HeapTupleIsValid(tup)) {
 	
 	newtup = (HeapTuple) palloctup(tup, InvalidBuffer, pg_type_desc);
@@ -557,8 +558,9 @@ TypeRename(oldTypeName, newTypeName)
 	      sizeof(NameData));
 	
 	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
+	
 	setheapoverride(true);
-	RelationReplaceHeapTuple(pg_type_desc, &itemPointerData, newtup);
+	heap_replace(pg_type_desc, &itemPointerData, newtup);
 	setheapoverride(false);
 	
     } else {
@@ -569,6 +571,6 @@ TypeRename(oldTypeName, newTypeName)
      *	finish up
      * ----------------
      */
-    HeapScanEnd(pg_type_scan);
-    RelationCloseHeapRelation(pg_type_desc);
+    heap_endscan(pg_type_scan);
+    heap_close(pg_type_desc);
 }

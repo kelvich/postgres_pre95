@@ -25,7 +25,6 @@
 #include "utils/lsyscache.h"
 #include "utils/palloc.h"
 
-extern HeapTuple palloctup();
 extern LispValue cnfify();
 extern bool IsPlanUsingCurrentAttr();
 extern LispValue FindVarNodes();

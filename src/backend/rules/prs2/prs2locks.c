@@ -248,11 +248,7 @@ Buffer      buffer;
 Relation    relation;
 RuleLock   newLocks;
 {
-    HeapTuple	palloctup();
-    void	HeapTupleSetRuleLock();
-
     HeapTupleSetRuleLock(tuple, InvalidBuffer, newLocks);
-
 }
 
 /*------------------------------------------------------------------

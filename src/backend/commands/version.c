@@ -173,25 +173,27 @@ LispValue
 GetAttrList(bname)
     Name bname;
 {
-  Relation rdesc;
-  int i = 0;
-  int maxattrs = 0;
-  int type_id, type_len,vnum;
-  LispValue attr_list = LispNil;
-  rdesc = amopenr(bname);
-  if (rdesc == NULL ) {
-    elog(WARN,"Unable to expand all -- amopenr failed ");
-    return(NULL);
-  }
-  maxattrs = RelationGetNumberOfAttributes(rdesc);
+    Relation rdesc;
+    int i = 0;
+    int maxattrs = 0;
+    int type_id, type_len,vnum;
+    LispValue attr_list = LispNil;
+    
+    rdesc = heap_openr(bname);
+    if (rdesc == NULL ) {
+	elog(WARN,"Unable to expand all -- amopenr failed ");
+	return(NULL);
+    }
+    maxattrs = RelationGetNumberOfAttributes(rdesc);
 
-  for ( i = maxattrs-1 ; i > -1 ; --i ) {
-    attr_list = lispCons(lispString((char *)(&rdesc->rd_att.data[i]->attname)),
-			 attr_list);
-/*    printf("%s\n",attrname); */
-  }
+    for ( i = maxattrs-1 ; i > -1 ; --i ) {
+	attr_list = lispCons(lispString((char *)(&rdesc->rd_att.data[i]->attname)),
+			     attr_list);
+    }
 
-  return(attr_list);
+    heap_close(bname);
+
+    return(attr_list);
 }
 
 /*

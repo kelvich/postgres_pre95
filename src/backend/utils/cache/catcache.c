@@ -16,6 +16,7 @@ RcsId("$Header$");
 #include "access/htup.h"
 #include "access/skey.h"
 #include "access/tqual.h"
+#include "access/valid.h"
 #include "tmp/miscadmin.h"
 #include "tmp/portal.h"
 #include "utils/catcache.h"
@@ -747,7 +748,6 @@ SearchSysCache(cache, v1, v2, v3, v4)
     register CatCTup	*ct;
     HeapTuple		ntp;
     Buffer		buffer;
-    HeapTuple		palloctup();
     struct catctup	*nct;
     HeapScanDesc	sd;
     Relation		relation;

@@ -85,25 +85,25 @@ OperatorGetWithOpenRelation(pg_operator_desc, operatorName,
      *	begin the scan
      * ----------------
      */
-    pg_operator_scan = RelationBeginHeapScan(pg_operator_desc,
-					     0,
-					     SelfTimeQual,
-					     3,
-					     (ScanKey) opKey);
+    pg_operator_scan = heap_beginscan(pg_operator_desc,
+				      0,
+				      SelfTimeQual,
+				      3,
+				      (ScanKey) opKey);
 
     /* ----------------
      *	fetch the operator tuple, if it exists, and determine
      *  the proper return oid value.
      * ----------------
      */
-    tup = HeapScanGetNextTuple(pg_operator_scan, 0, (Buffer *) 0);
+    tup = heap_getnext(pg_operator_scan, 0, (Buffer *) 0);
     operatorObjectId = HeapTupleIsValid(tup) ? tup->t_oid : InvalidObjectId;
 
     /* ----------------
      *	close the scan and return the oid.
      * ----------------
      */
-    HeapScanEnd(pg_operator_scan);
+    heap_endscan(pg_operator_scan);
 
     return
 	operatorObjectId;
@@ -169,7 +169,7 @@ OperatorGet(operatorName, leftTypeName, rightTypeName)
      *	open the pg_operator relation
      * ----------------
      */
-    pg_operator_desc = RelationNameOpenHeapRelation(OperatorRelationName);
+    pg_operator_desc = heap_openr(OperatorRelationName);
 
     /* ----------------
      *	get the oid for the operator with the appropriate name
@@ -185,7 +185,7 @@ OperatorGet(operatorName, leftTypeName, rightTypeName)
      *	close the relation and return the operator oid.
      * ----------------
      */
-    RelationCloseHeapRelation(pg_operator_desc);
+    heap_close(pg_operator_desc);
 
     return
 	operatorObjectId;
@@ -247,7 +247,7 @@ OperatorShellMakeWithOpenRelation(pg_operator_desc, operatorName,
      *	create a new operator tuple
      * ----------------
      */
-    tup = FormHeapTuple(OperatorRelationNumberOfAttributes,
+    tup = heap_formtuple(OperatorRelationNumberOfAttributes,
 			&pg_operator_desc->rd_att,
 			values,
 			nulls);
@@ -257,7 +257,7 @@ OperatorShellMakeWithOpenRelation(pg_operator_desc, operatorName,
      *  close the relation
      * ----------------
      */
-    RelationInsertHeapTuple(pg_operator_desc, tup, (double *) NULL);
+    heap_insert(pg_operator_desc, tup, (double *) NULL);
     operatorObjectId = tup->t_oid;
 
     /* ----------------
@@ -275,7 +275,7 @@ OperatorShellMakeWithOpenRelation(pg_operator_desc, operatorName,
  *
  * 	Specify operator name and left and right type names,
  *	fill an operator struct with this info and NULL's,
- *	call RelationInsertHeapTuple and return the ObjectId
+ *	call heap_insert and return the ObjectId
  *	to the caller.
  * ----------------------------------------------------------------
  */
@@ -316,7 +316,7 @@ OperatorShellMake(operatorName, leftTypeName, rightTypeName)
      *	open pg_operator
      * ----------------
      */
-    pg_operator_desc = RelationNameOpenHeapRelation(OperatorRelationName);
+    pg_operator_desc = heap_openr(OperatorRelationName);
 
     /* ----------------
      *	add a "shell" operator tuple to the operator relation
@@ -332,7 +332,7 @@ OperatorShellMake(operatorName, leftTypeName, rightTypeName)
      *	close the operator relation and return the oid.
      * ----------------
      */
-    RelationCloseHeapRelation(pg_operator_desc);
+    heap_close(pg_operator_desc);
     
     return
 	operatorObjectId;
@@ -400,8 +400,8 @@ OperatorShellMake(operatorName, leftTypeName, rightTypeName)
  *   create a tuple using ModifyHeapTuple
  *   get the t_ctid from the modified tuple and call RelationReplaceHeapTuple
  * else if a new operator is being created
- *   create a tuple using FormHeapTuple
- *   call RelationInsertHeapTuple
+ *   create a tuple using heap_formtuple
+ *   call heap_insert
  * --------------------------------
  */
 
@@ -627,22 +627,22 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
      * If we are adding to an operator shell, get its t_ctid and a
      * buffer.
      */
-    pg_operator_desc = RelationNameOpenHeapRelation(OperatorRelationName);
+    pg_operator_desc = heap_openr(OperatorRelationName);
 
     if (operatorObjectId) {
 	opKey[0].argument = NameGetDatum(operatorName);
 	opKey[1].argument = ObjectIdGetDatum(leftTypeId);
 	opKey[2].argument = ObjectIdGetDatum(rightTypeId);
 
-	pg_operator_scan = RelationBeginHeapScan(pg_operator_desc,
+	pg_operator_scan = heap_beginscan(pg_operator_desc,
 						 0,
 						 SelfTimeQual,
 						 3,
 						 (ScanKey) opKey);
 	
-	tup = HeapScanGetNextTuple(pg_operator_scan, 0, &buffer);
+	tup = heap_getnext(pg_operator_scan, 0, &buffer);
 	if (HeapTupleIsValid(tup)) {
-	    tup = ModifyHeapTuple(tup,
+	    tup = heap_modifytuple(tup,
 				  buffer,
 				  pg_operator_desc,
 				  values,
@@ -651,24 +651,24 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
 	    
 	    ItemPointerCopy(&tup->t_ctid, &itemPointerData);
 	    setheapoverride(true);
-	    RelationReplaceHeapTuple(pg_operator_desc, &itemPointerData, tup);
+	    heap_replace(pg_operator_desc, &itemPointerData, tup);
 	    setheapoverride(false);
 	} else
 	    elog(WARN, "OperatorDef: no operator %d", other_oid);
 	
-	HeapScanEnd(pg_operator_scan);
+	heap_endscan(pg_operator_scan);
 	
     } else {
-	tup = FormHeapTuple(OperatorRelationNumberOfAttributes,
+	tup = heap_formtuple(OperatorRelationNumberOfAttributes,
 			    &pg_operator_desc->rd_att,
 			    values,
 			    nulls);
 
-	RelationInsertHeapTuple(pg_operator_desc, tup, (double *) NULL);
+	heap_insert(pg_operator_desc, tup, (double *) NULL);
 	operatorObjectId = tup->t_oid;
     }
 
-    RelationCloseHeapRelation(pg_operator_desc);
+    heap_close(pg_operator_desc);
 
     /*
      *  It's possible that we're creating a skeleton operator here for
@@ -727,18 +727,18 @@ OperatorUpd(baseId, commId, negId)
 	nulls[i] = ' ';
     }
 
-    pg_operator_desc = RelationNameOpenHeapRelation(OperatorRelationName);
+    pg_operator_desc = heap_openr(OperatorRelationName);
 
     /* check and update the commutator, if necessary */
     opKey[0].argument = ObjectIdGetDatum(commId);
 
-    pg_operator_scan = RelationBeginHeapScan(pg_operator_desc,
+    pg_operator_scan = heap_beginscan(pg_operator_desc,
 					     0,
 					     SelfTimeQual,
 					     1,
 					     (ScanKey) opKey);
     
-    tup = HeapScanGetNextTuple(pg_operator_scan, 0, &buffer);
+    tup = heap_getnext(pg_operator_scan, 0, &buffer);
 
     /* if the commutator and negator are the same operator, do one update */
     if (commId == negId) {
@@ -761,7 +761,7 @@ OperatorUpd(baseId, commId, negId)
 		    replaces[ Anum_pg_operator_oprcom ] = 'r';
 		}
 
-		tup = ModifyHeapTuple(tup,
+		tup = heap_modifytuple(tup,
 				      buffer,
 				      pg_operator_desc,
 				      values,
@@ -769,16 +769,17 @@ OperatorUpd(baseId, commId, negId)
 				      replaces);
 
 		ItemPointerCopy(&tup->t_ctid, &itemPointerData);
+		
 		setheapoverride(true);
-		RelationReplaceHeapTuple(pg_operator_desc,
-					 &itemPointerData,
-					 tup);
+		heap_replace(pg_operator_desc,
+			     &itemPointerData,
+			     tup);
 		setheapoverride(false);
 	    }
 	}
-	HeapScanEnd(pg_operator_scan);
+	heap_endscan(pg_operator_scan);
 
-	RelationCloseHeapRelation(pg_operator_desc);
+	heap_close(pg_operator_desc);
 
 	return;
     }
@@ -788,7 +789,7 @@ OperatorUpd(baseId, commId, negId)
        !(ObjectIdIsValid(((struct operator *) GETSTRUCT(tup))->oprcom))) {
 	values[ Anum_pg_operator_oprcom ] = (char *) ObjectIdGetDatum(baseId);
 	replaces[ Anum_pg_operator_oprcom ] = 'r';
-	tup = ModifyHeapTuple(tup,
+	tup = heap_modifytuple(tup,
 			      buffer,
 			      pg_operator_desc,
 			      values,
@@ -797,7 +798,7 @@ OperatorUpd(baseId, commId, negId)
 
 	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
 	setheapoverride(true);
-	RelationReplaceHeapTuple(pg_operator_desc, &itemPointerData, tup);
+	heap_replace(pg_operator_desc, &itemPointerData, tup);
 	setheapoverride(false);
 
 	values[ Anum_pg_operator_oprcom ] = (char *) NULL;
@@ -807,18 +808,18 @@ OperatorUpd(baseId, commId, negId)
     /* check and update the negator, if necessary */
     opKey[0].argument = ObjectIdGetDatum(negId);
 
-    pg_operator_scan = RelationBeginHeapScan(pg_operator_desc,
-					     0,
-					     SelfTimeQual,
-					     1,
-					     (ScanKey) opKey);
+    pg_operator_scan = heap_beginscan(pg_operator_desc,
+				      0,
+				      SelfTimeQual,
+				      1,
+				      (ScanKey) opKey);
     
-    tup = HeapScanGetNextTuple(pg_operator_scan, 0, &buffer);
+    tup = heap_getnext(pg_operator_scan, 0, &buffer);
     if (HeapTupleIsValid(tup) &&
        !(ObjectIdIsValid(((struct operator *) GETSTRUCT(tup))->oprnegate))) {
 	values[Anum_pg_operator_oprnegate] = (char *) ObjectIdGetDatum(baseId);
 	replaces[ Anum_pg_operator_oprnegate ] = 'r';
-	tup = ModifyHeapTuple(tup,
+	tup = heap_modifytuple(tup,
 			      buffer,
 			      pg_operator_desc,
 			      values,
@@ -826,13 +827,14 @@ OperatorUpd(baseId, commId, negId)
 			      replaces);
 
 	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
+	
 	setheapoverride(true);
-	RelationReplaceHeapTuple(pg_operator_desc, &itemPointerData, tup);
+	heap_replace(pg_operator_desc, &itemPointerData, tup);
 	setheapoverride(false);
     }
-    HeapScanEnd(pg_operator_scan);
+    heap_endscan(pg_operator_scan);
 
-    RelationCloseHeapRelation(pg_operator_desc);
+    heap_close(pg_operator_desc);
 }
 
 
@@ -1042,27 +1044,27 @@ int leftTypeId;
 	fmgr_info(ObjectIdEqualRegProcedure, &opKey[1].func, &opKey[1].nargs);
 	fmgr_info(ObjectIdEqualRegProcedure, &opKey[2].func, &opKey[2].nargs);
 
-    pg_operator_desc = RelationNameOpenHeapRelation(OperatorRelationName);
+    pg_operator_desc = heap_openr(OperatorRelationName);
 
         opKey[0].argument = NameGetDatum(operatorName);
         opKey[1].argument = ObjectIdGetDatum(leftTypeId);
 
-        pg_operator_scan = RelationBeginHeapScan(pg_operator_desc,
+        pg_operator_scan = heap_beginscan(pg_operator_desc,
                                                  0,
                                                  SelfTimeQual,
                                                  2,
                                                  (ScanKey) opKey);
 
-        tup1 = HeapScanGetNextTuple(pg_operator_scan, 0, &buffer);
+        tup1 = heap_getnext(pg_operator_scan, 0, &buffer);
         if (!HeapTupleIsValid(tup1)) {
             elog(WARN, "OperatorDef: no operator %s", operatorName);
             return ((HeapTuple)NULL);
         }
-        tup2 = HeapScanGetNextTuple(pg_operator_scan, 0, &buffer);
+        tup2 = heap_getnext(pg_operator_scan, 0, &buffer);
 
-        HeapScanEnd(pg_operator_scan);
+        heap_endscan(pg_operator_scan);
 
-        RelationCloseHeapRelation(pg_operator_desc);
+        heap_close(pg_operator_desc);
 
         if (HeapTupleIsValid(tup2)) {
             return ((HeapTuple)NULL); /* failed to find default type, since 

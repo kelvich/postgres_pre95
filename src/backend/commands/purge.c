@@ -79,14 +79,13 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	/*
 	 * Find the RELATION relation tuple for the given relation.
 	 */
-	relation = RelationNameOpenHeapRelation(RelationRelationName->data);
+	relation = heap_openr(RelationRelationName->data);
 	key[0].argument = NameGetDatum(relationName);
-	scan = RelationBeginHeapScan(relation, 0, NowTimeQual, 1, 
-				     (ScanKey) key);
-	oldTuple = HeapScanGetNextTuple(scan, 0, &buffer);
+	scan = heap_beginscan(relation, 0, NowTimeQual, 1, (ScanKey) key);
+	oldTuple = heap_getnext(scan, 0, &buffer);
 	if (!HeapTupleIsValid(oldTuple)) {
-		HeapScanEnd(scan);
-		RelationCloseHeapRelation(relation);
+		heap_endscan(scan);
+		heap_close(relation);
 		elog(WARN, "%s: no such relation: %s", cmdname, relationName);
 		return(0);
 	}
@@ -105,8 +104,8 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 		dateTag = ABSOLUTE & RELATIVE;
 	if (!assertConsistentTimes(absoluteTime, relativeTime, currentTime,
 				   dateTag, oldTuple)) {
-		HeapScanEnd(scan);
-		RelationCloseHeapRelation(relation);
+		heap_endscan(scan);
+		heap_close(relation);
 		elog(WARN, "%s: inconsistent times: abs=%d rel=%d time=%d",
 		     cmdname, absoluteTime, relativeTime, currentTime);
 		return(0);
@@ -130,14 +129,16 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	/*
 	 * Change the RELATION relation tuple for the given relation.
 	 */
-	newTuple = ModifyHeapTuple(oldTuple, buffer, relation, values,
-				   nulls, replace);
+	newTuple = heap_modifytuple(oldTuple, buffer, relation, values,
+				    nulls, replace);
+	
 	/* XXX What do you do with a RuleLock?? */
 	/* XXX How do you detect an insertion error?? */
-	RelationReplaceHeapTuple(relation, &newTuple->t_ctid, newTuple, NULL);
+	heap_replace(relation, &newTuple->t_ctid, newTuple);
 	pfree(newTuple);
-	HeapScanEnd(scan);
-	RelationCloseHeapRelation(relation);
+	
+	heap_endscan(scan);
+	heap_close(relation);
 	return(1);
 }
 

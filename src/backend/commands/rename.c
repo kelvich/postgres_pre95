@@ -72,7 +72,6 @@ renameatt(relname, oldattname, newattname)
 	struct skey	key[2];
 	ItemPointerData	oldTID;
 	int		issystem();
-	HeapTuple	palloctup();
 	
 	if (issystem(relname)) {
 		elog(WARN, "renameatt: system relation \"%s\" not modified",
@@ -81,29 +80,29 @@ renameatt(relname, oldattname, newattname)
 	}
 	ScanKeyEntryInitialize(&key[0], NULL, RelationNameAttributeNumber,
 						   Character16EqualRegProcedure, (DATUM) relname);
-	relrdesc = amopenr(RelationRelationName);
-	relsdesc = ambeginscan(relrdesc, 0, NowTimeQual, 1, key);
-	reltup = amgetnext(relsdesc, 0, (Buffer *) NULL);
+	relrdesc = heap_openr(RelationRelationName);
+	relsdesc = heap_beginscan(relrdesc, 0, NowTimeQual, 1, key);
+	reltup = heap_getnext(relsdesc, 0, (Buffer *) NULL);
 	if (!PointerIsValid(reltup)) {
-		amendscan(relsdesc);
-		amclose(relrdesc);
+		heap_endscan(relsdesc);
+		heap_close(relrdesc);
 		elog(WARN, "renameatt: relation \"%s\" nonexistent",
 		     relname);
 		return;
 	}
-	amendscan(relsdesc);
-	amclose(relrdesc);
+	heap_endscan(relsdesc);
+	heap_close(relrdesc);
 
 	ScanKeyEntryInitialize(&key[0], NULL, AttributeRelationIdAttributeNumber,
 	                       Integer32EqualRegProcedure, reltup->t_oid);
 	ScanKeyEntryInitialize(&key[1], NULL, AttributeNameAttributeNumber,
 	                       Character16EqualRegProcedure, oldattname);
-	attrdesc = amopenr(AttributeRelationName);
-	attsdesc = ambeginscan(attrdesc, 0, NowTimeQual, 2, key);
-	oldatttup = amgetnext(attsdesc, 0, (Buffer *) NULL);
+	attrdesc = heap_openr(AttributeRelationName);
+	attsdesc = heap_beginscan(attrdesc, 0, NowTimeQual, 2, key);
+	oldatttup = heap_getnext(attsdesc, 0, (Buffer *) NULL);
 	if (!PointerIsValid(oldatttup)) {
-		amendscan(attsdesc);
-		amclose(attrdesc);	/* XXX should be unneeded eventually */
+		heap_endscan(attsdesc);
+		heap_close(attrdesc);	/* XXX should be unneeded eventually */
 		elog(WARN, "renameatt: attribute \"%s\" nonexistent",
 		     oldattname);
 		return;
@@ -114,27 +113,27 @@ renameatt(relname, oldattname, newattname)
 		return;
 	}
 	oldatttup = palloctup(oldatttup, InvalidBuffer, attrdesc);
-	amendscan(attsdesc);
+	heap_endscan(attsdesc);
 
 	key[1].sk_data = (DATUM) newattname;
-	attsdesc = ambeginscan(attrdesc, 0, NowTimeQual, 2, key);
-	newatttup = amgetnext(attsdesc, 0, (Buffer *) NULL);
+	attsdesc = heap_beginscan(attrdesc, 0, NowTimeQual, 2, key);
+	newatttup = heap_getnext(attsdesc, 0, (Buffer *) NULL);
 	if (PointerIsValid(newatttup)) {
 		pfree((char *) oldatttup);
-		amendscan(attsdesc);
-		amclose(attrdesc);	/* XXX should be unneeded eventually */
+		heap_endscan(attsdesc);
+		heap_close(attrdesc);	/* XXX should be unneeded eventually */
 		elog(WARN, "renameatt: attribute \"%s\" exists",
 		     newattname);
 		return;
 	}
-	amendscan(attsdesc);
+	heap_endscan(attsdesc);
 
 	bcopy(newattname,
 	      (char *) (((struct attribute *) GETSTRUCT(oldatttup))->attname),
 	      sizeof(NameData));
 	oldTID = oldatttup->t_ctid;
-	amreplace(attrdesc, &oldTID, oldatttup); /* insert "fixed" tuple */
-	amclose(attrdesc);
+	heap_replace(attrdesc, &oldTID, oldatttup); /* insert "fixed" tuple */
+	heap_close(attrdesc);
 	pfree((char *) oldatttup);
 }
 
@@ -166,7 +165,6 @@ renamerel(oldrelname, newrelname)
 	char		oldpath[MAXPGPATH], newpath[MAXPGPATH];
 	int		issystem();
 	char		*relpath();
-	HeapTuple	palloctup();
 	extern		rename();
 	
 	if (issystem(oldrelname)) {
@@ -174,41 +172,41 @@ renamerel(oldrelname, newrelname)
 		     oldrelname);
 		return;
 	}
-	relrdesc = amopenr(RelationRelationName);
+	relrdesc = heap_openr(RelationRelationName);
 
 	ScanKeyEntryInitialize(&key, NULL, RelationNameAttributeNumber,
 	                       Character16EqualRegProcedure, (DATUM) oldrelname);
 
-	oldsdesc = ambeginscan(relrdesc, 0, NowTimeQual, 1, &key);
-	oldreltup = amgetnext(oldsdesc, 0, (Buffer *) NULL);
+	oldsdesc = heap_beginscan(relrdesc, 0, NowTimeQual, 1, &key);
+	oldreltup = heap_getnext(oldsdesc, 0, (Buffer *) NULL);
 	if (!PointerIsValid(oldreltup)) {
-		amendscan(oldsdesc);
-		amclose(relrdesc);	/* XXX should be unneeded eventually */
+		heap_endscan(oldsdesc);
+		heap_close(relrdesc);	/* XXX should be unneeded eventually */
 		elog(WARN, "renamerel: relation \"%s\" does not exist",
 		     oldrelname);
 	}
 	oldreltup = palloctup(oldreltup, InvalidBuffer, relrdesc);
 
 	key.sk_data = (DATUM) newrelname;
-	newsdesc = ambeginscan(relrdesc, 0, NowTimeQual, 1, &key);
-	newreltup = amgetnext(newsdesc, 0, (Buffer *) NULL);
+	newsdesc = heap_beginscan(relrdesc, 0, NowTimeQual, 1, &key);
+	newreltup = heap_getnext(newsdesc, 0, (Buffer *) NULL);
 	if (PointerIsValid(newreltup)) {
 		pfree((char *) oldreltup);
-		amendscan(newsdesc);
-		amendscan(oldsdesc);
-		amclose(relrdesc);	/* XXX should be unneeded eventually */
+		heap_endscan(newsdesc);
+		heap_endscan(oldsdesc);
+		heap_close(relrdesc);	/* XXX should be unneeded eventually */
 		elog(WARN, "renamerel: relation \"%s\" exists",
 		     newrelname);
 	}
-	amendscan(newsdesc);
+	heap_endscan(newsdesc);
 	bcopy(newrelname,
 	      (char *) (((struct relation *) GETSTRUCT(oldreltup))->relname),
 	      sizeof(NameData));
 	oldTID = oldreltup->t_ctid;
-	amreplace(relrdesc, &oldTID, oldreltup); /* insert "fixed" tuple */
+	heap_replace(relrdesc, &oldTID, oldreltup); /* insert "fixed" tuple */
 	pfree((char *) oldreltup);
-	amendscan(oldsdesc);
-	amclose(relrdesc);
+	heap_endscan(oldsdesc);
+	heap_close(relrdesc);
 	(void) strcpy(oldpath, relpath(oldrelname));
 	(void) strcpy(newpath, relpath(newrelname));
 	if (rename(oldpath, newpath) < 0)

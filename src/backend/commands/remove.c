@@ -105,18 +105,18 @@ SingleOpOperatorRemove(typeOid)
 	register	i;
 	
 	ScanKeyEntryInitialize(&key[0], 0, 0, ObjectIdEqualRegProcedure, typeOid);
-	rdesc = amopenr(OperatorRelationName->data);
+	rdesc = heap_openr(OperatorRelationName->data);
 	for (i = 0; i < 3; ++i) {
 		key[0].sk_attnum = attnums[i];
-		sdesc = ambeginscan(rdesc, 0, NowTimeQual, 1, key);
-		while (PointerIsValid(tup = amgetnext(sdesc, 0, &buffer))) {
+		sdesc = heap_beginscan(rdesc, 0, NowTimeQual, 1, key);
+		while (PointerIsValid(tup = heap_getnext(sdesc, 0, &buffer))) {
 			ItemPointerCopy(&tup->t_ctid, &itemPointerData);   
 			/* XXX LOCK not being passed */
-			amdelete(rdesc, &itemPointerData);
+			heap_delete(rdesc, &itemPointerData);
 		}
-		amendscan(sdesc);
+		heap_endscan(sdesc);
 	}
-	amclose(rdesc);
+	heap_close(rdesc);
 }
 
 /*
@@ -155,27 +155,27 @@ AttributeAndRelationRemove(typeOid)
 	oidptr = (struct oidlist *) palloc(sizeof(*oidptr));
 	oidptr->next = NULL;
 	optr = oidptr; 
-	rdesc = amopenr(AttributeRelationName->data);
-	sdesc = ambeginscan(rdesc, 0, NowTimeQual, 1, key);
-	while (PointerIsValid(tup = amgetnext(sdesc, 0, &buffer))) {
+	rdesc = heap_openr(AttributeRelationName->data);
+	sdesc = heap_beginscan(rdesc, 0, NowTimeQual, 1, key);
+	while (PointerIsValid(tup = heap_getnext(sdesc, 0, &buffer))) {
 		ItemPointerCopy(&tup->t_ctid, &itemPointerData);   
 		optr->reloid = ((AttributeTupleForm)GETSTRUCT(tup))->attrelid;
 		optr->next = (struct oidlist *) palloc(sizeof(*oidptr));     
 		optr = optr->next;
         }
 	optr->next = NULL;
-	amendscan(sdesc);
-	amclose(rdesc);
+	heap_endscan(sdesc);
+	heap_close(rdesc);
 	
 
 	ScanKeyEntryInitialize(&key[0], ObjectIdAttributeNumber,
 						   ObjectIdEqualRegProcedure, 0);
 	optr = oidptr;
-	rdesc = amopenr(RelationRelationName->data);
+	rdesc = heap_openr(RelationRelationName->data);
 	while (PointerIsValid((char *) optr->next)) {
 		key[0].sk_data = (DATUM) (optr++)->reloid;
-		sdesc = ambeginscan(rdesc, 0, NowTimeQual, 1, key);
-		tup = amgetnext(sdesc, 0, &buffer);
+		sdesc = heap_beginscan(rdesc, 0, NowTimeQual, 1, key);
+		tup = heap_getnext(sdesc, 0, &buffer);
 		if (PointerIsValid(tup)) {
 			Name	name;
 
@@ -183,8 +183,8 @@ AttributeAndRelationRemove(typeOid)
 			RelationNameDestroyHeapRelation(name);
 		}
 	}
-	amendscan(sdesc);
-	amclose(rdesc);
+	heap_endscan(sdesc);
+	heap_close(rdesc);
 }
 
 

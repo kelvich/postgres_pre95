@@ -39,6 +39,8 @@ RcsId("$Header$");
  *		  index scan key qualification code
  * ----------------------------------------------------------------
  */
+int	NIndexTupleProcessed;
+
 /* ----------------
  *	index_keytest
  *
@@ -58,6 +60,8 @@ index_keytest(tuple, tupdesc, scanKeySize, key)
     Datum	    datum;
     int		    test;
 
+    IncrIndexProcessed();
+    
     while (scanKeySize > 0) {
 	datum = IndexTupleGetAttributeValue(tuple,
 					    1,
@@ -120,58 +124,4 @@ index_satisifies(itemId, page, relation, scanKeySize, key)
 	return (false);
     
     return (true);
-}
-
-/* ----------------------------------------------------------------
- *		      old interface routines
- * ----------------------------------------------------------------
- */
-
-/* ----------------
- *	ikeytest_tupdesc
- *	ikeytest
- * ----------------
- */
-bool
-ikeytest_tupdesc(tuple, tupdesc, scanKeySize, key)
-    IndexTuple	    tuple;
-    TupleDescriptor tupdesc;
-    ScanKeySize	    scanKeySize;
-    ScanKey	    key;
-{
-    return
-	index_keytest(tuple, tupdesc, scanKeySize, key);
-}
-
-int	NIndexTupleProcessed;
-
-bool
-ikeytest(tuple, relation, scanKeySize, key)
-    IndexTuple	tuple;
-    Relation	relation;
-    ScanKeySize	scanKeySize;
-    ScanKey	key;
-{
-    TupleDescriptor tupdesc;
-    tupdesc = RelationGetTupleDescriptor(relation);
-    
-    IncrIndexProcessed();
-    return
-	index_keytest(tuple, tupdesc, scanKeySize, key);
-}
-
-/* ----------------
- *	ItemIdSatisfiesScanKey
- * ----------------
- */
-bool
-ItemIdSatisfiesScanKey(itemId, page, relation, scanKeySize, key)
-    ItemId	itemId;
-    Page	page;
-    Relation	relation;
-    ScanKeySize	scanKeySize;
-    ScanKey	key;
-{
-    return
-	index_satisifies(itemId, page, relation, scanKeySize, key);
 }

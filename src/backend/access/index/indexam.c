@@ -84,11 +84,20 @@
 RcsId("$Header$");
 
 /* ----------------
- *   delete is used as the argument to a macro in this file so
- *   we don't use the "delete" macro defined in c.h
+ *   undefine macros we aren't going to use that would otherwise
+ *   get in our way..  delete is defined in c.h and the am's are
+ *   defined in heapam.h
  * ----------------
  */
 #undef delete
+#undef aminsert
+#undef amdelete
+#undef ambeginscan
+#undef amrescan
+#undef amendscan
+#undef ammarkpos
+#undef amrestrpos
+#undef amgettuple
 
 /* ----------------------------------------------------------------
  *		    macros used in index_ routines

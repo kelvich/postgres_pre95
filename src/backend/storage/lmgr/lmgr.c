@@ -35,6 +35,7 @@
 #include "storage/buf.h"
 #include "storage/ipci.h"	/* PageLockTableId and MultiLevelLockTableId */
 #include "storage/itemptr.h"
+#include "storage/bufpage.h"
 #include "utils/lmgr.h"
 #include "storage/pagenum.h"
 #include "storage/part.h"

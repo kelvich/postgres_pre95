@@ -1,9 +1,13 @@
-/*
- * iqual.h --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	iqual.h
+ *
+ *   DESCRIPTION
  *	Index scan key qualification definitions.
  *
- * Identification:
+ *   IDENTIFICATION
  *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef	IQualDefined	/* Include this file only once. */
@@ -14,6 +18,49 @@
 #include "storage/itemid.h"
 #include "utils/rel.h"
 #include "access/skey.h"
+
+/* ----------------
+ *	index tuple qualification support
+ * ----------------
+ */
+
+/* 
+ *	index_keytest
+ *	index_satisifies
+ */
+extern
+bool
+index_keytest ARGS((
+    IndexTuple	    tuple,
+    TupleDescriptor tupdesc,
+    ScanKeySize	    scanKeySize,
+    ScanKey	    key
+));		    
+
+extern
+bool
+index_satisifies ARGS((
+    ItemId	itemId,
+    Page	page,
+    Relation	relation,
+    ScanKeySize	scanKeySize,
+    ScanKey	key
+));
+
+/* ----------------
+ *	old interface macros
+ * ----------------
+ */
+/*
+ * ikeytest_tupdesc
+ * ikeytest
+ */
+#define ikeytest_tupdesc(tuple, tupdesc, scanKeySize, key) \
+    index_keytest(tuple, tupdesc, scanKeySize, key)
+
+#define ikeytest(tuple, relation, scanKeySize, key) \
+    index_keytest(tuple, \
+		  RelationGetTupleDescriptor(relation), scanKeySize, key)
 
 /*
  * ItemIdSatisfiesScanKey --
@@ -26,13 +73,7 @@
  *	Assumes relation is valid.
  *	Assumes scan key is valid.
  */
-extern
-bool
-ItemIdSatisfiesScanKey ARGS((
-	ItemId		itemId,
-	Page		page,
-	Relation	relation,
-	ScanKey		key
-));
+#define ItemIdSatisfiesScanKey(itemId, page, relation, scanKeySize, key) \
+    index_satisifies(itemId, page, relation, scanKeySize, key)
 
 #endif	/* !defined(IQualDefined) */

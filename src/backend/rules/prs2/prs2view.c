@@ -28,7 +28,6 @@
 
 extern EState CreateExecutorState();
 extern LispValue ExecMain();
-extern HeapTuple palloctup();
 
 /*-----------------------------------------------------------------------
  * prs2MakeRelationRuleInfo(relation)

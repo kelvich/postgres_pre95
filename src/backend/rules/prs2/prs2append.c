@@ -13,6 +13,7 @@
  */
 
 #include "tmp/c.h"
+#include "access/heapam.h"
 #include "access/htup.h"
 #include "storage/buf.h"
 #include "utils/rel.h"
@@ -22,9 +23,6 @@
 #include "rules/prs2stub.h"
 #include "nodes/execnodes.h"		/* which includes access/rulescan.h */
 #include "parser/parse.h"		/* for the APPEND */
-
-extern HeapTuple palloctup();
-
 
 /*-------------------------------------------------------------------
  *

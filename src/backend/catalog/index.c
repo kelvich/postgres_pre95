@@ -397,9 +397,9 @@ AccessMethodObjectIdGetAccessMethodTupleForm(accessMethodObjectId)
      *	form a scan key for the pg_am relation
      * ----------------
      */
-	ScanKeyEntryInitialize(&key[0].data[0], 0, ObjectIdAttributeNumber,
-						   ObjectIdEqualRegProcedure,
-						   ObjectIdGetDatum(accessMethodObjectId));
+    ScanKeyEntryInitialize(&key[0].data[0], 0, ObjectIdAttributeNumber,
+			   ObjectIdEqualRegProcedure,
+			   ObjectIdGetDatum(accessMethodObjectId));
 
     /* ----------------
      *	fetch the desired access method tuple
@@ -1289,46 +1289,4 @@ index_build(heapRelation, indexRelation,
 		     RelationGetIndexStrategy(indexRelation),
 		     parameterCount,
 		     parameter);
-}
-
-
-/* ----------------------------------------------------------------
- *    	old index am interface routines
- * ----------------------------------------------------------------
- */
-
-void
-RelationNameCreateIndexRelation(heapRelationName, indexRelationName,
-				accessMethodObjectId, numatts, attNums,
-				classObjectId, parameterCount, parameter)
-    Name		heapRelationName;
-    Name		indexRelationName;
-    ObjectId		accessMethodObjectId;
-    AttributeNumber	numatts;
-    AttributeNumber	attNums[];
-    ObjectId		classObjectId[];
-    uint16		parameterCount;
-    Datum		parameter[];
-{
-    index_create(heapRelationName, indexRelationName,
-		 accessMethodObjectId, numatts, attNums,
-		 classObjectId, parameterCount, parameter);
-}
-
-void
-AMcreati(heapRelationName, indexRelationName, accessMethodObjectId,
-		numberOfAttributes, attributeNumber, classObjectId,
-		parameterCount, parameter)
-    Name		heapRelationName;
-    Name		indexRelationName;
-    ObjectId		accessMethodObjectId;
-    AttributeNumber	numberOfAttributes;
-    AttributeNumber	attributeNumber[];
-    ObjectId		classObjectId[];
-    uint16		parameterCount;
-    Datum		parameter[];
-{
-    index_create(heapRelationName, indexRelationName,
-		 accessMethodObjectId, numberOfAttributes, attributeNumber,
-		 classObjectId, parameterCount, parameter);
 }

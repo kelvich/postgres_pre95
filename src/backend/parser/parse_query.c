@@ -17,6 +17,7 @@
 
 RcsId("$Header$");
 
+#include "access/heapam.h"
 #include "access/tqual.h"
 #include "parser/parse.h"
 #include "utils/log.h"
@@ -207,15 +208,12 @@ MakeRangeTableEntry( relname , options , refname)
     TRange	= LispNil,
     RelOID	= LispNil;
     Relation relation;
-    extern Relation amopenr();
     
-    relation = amopenr( relname );
-    if ( relation == NULL ) {
-	elog(WARN,"amopenr on %s failed\n",relname);
-	/*p_raise (CatalogFailure,
-	  form("amopenr on %s failed\n",relname));
-	  */
+    relation = heap_openr(relname);
+    if (relation == NULL) {
+	elog(WARN,"heap_openr on %s failed\n",relname);
     }
+    
     /* RuleLocks - for now, always empty, since preplanner fixes */
     
     /* Flags - zero or more from archive,inheritance,union,version
@@ -278,11 +276,11 @@ ExpandAll(relname,this_resno)
 	physical_relname = VarnoGetRelname(vnum);
 
 
-	rdesc = amopenr(physical_relname);
+	rdesc = heap_openr(physical_relname);
 	
 	if (rdesc == NULL ) {
-		elog(WARN,"Unable to expand all -- amopenr failed ");
-		return( LispNil );
+	    elog(WARN,"Unable to expand all -- heap_openr failed ");
+	    return( LispNil );
 	}
 	maxattrs = RelationGetNumberOfAttributes(rdesc);
 
@@ -839,7 +837,7 @@ char *attrName;
     /*
      * open the relation
      */
-    relation = amopenr(relationName);
+    relation = heap_openr(relationName);
     if (relation == NULL) {
 	elog(WARN,"make_param: can not open relation '%s'",relationName);
     }

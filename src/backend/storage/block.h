@@ -1,19 +1,24 @@
-/*
- * block.h --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	block.h
+ *
+ *   DESCRIPTION
  *	POSTGRES disk block definitions.
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef	BlockIncluded		/* Include this file only once */
 #define BlockIncluded	1
 
-/*
- * Identification:
- */
 #define BLOCK_H	"$Header$"
 
 #include "tmp/c.h"
 
 /* XXX this should be called BlockIndex -hirohama */
+
 typedef uint32	BlockNumber;	/* page number */
 typedef uint16	BlockSize;
 
@@ -25,55 +30,53 @@ typedef struct BlockIdData {
 
 typedef BlockIdData	*BlockId;	/* block identifier */
 
+/* ----------------
+ *	support macros
+ * ----------------
+ */
 /*
  * BlockSizeIsValid --
  *	True iff size is valid.
+ *	should check that this is a power of 2
+ *
+ * XXX currently any block size is valid
  */
-extern
-bool
-BlockSizeIsValid ARGS((
-	BlockSize	size
-));
+#define BlockSizeIsValid(blockSize) \
+    (true)
 
 /*
  * BlockNumberIsValid --
  *	True iff blockNumber is valid.
  */
-extern
-bool
-BlockNumberIsValid ARGS((
-	BlockNumber	blockNumber
-));
+#define BlockNumberIsValid(blockNumber) \
+    ((bool) \
+     (((blockNumber) >= 0) && ((int32) (blockNumber) != InvalidBlockNumber)))
 
 /*
  * BlockIdIsValid --
  *	True iff the block identifier is valid.
  */
-extern
-bool
-BlockIdIsValid ARGS((
-	BlockId		pageId
-));
+#define BlockIdIsValid(blockId) \
+    ((bool) \
+     (PointerIsValid(blockId) && ((blockId)->data[0] >= 0)))
 
 /*
  * BlockIdSet --
  *	Sets a block identifier to the specified value.
  */
-extern
-void
-BlockIdSet ARGS((
-	BlockId		blockId,
-	BlockNumber	blockNumber
-));
+#define BlockIdSet(blockId, blockNumber) \
+    Assert(PointerIsValid(blockId)); \
+    (blockId)->data[0] = (blockNumber) >> 16; \
+    (blockId)->data[1] = (blockNumber) & 0xffff
 
 /*
  * BlockIdGetBlockNumber --
  *	Retrieve the block number from a block identifier.
  */
-extern
-BlockNumber
-BlockIdGetBlockNumber ARGS((
-	PageId		pageId
-));
+#define BlockIdGetBlockNumber(blockId) \
+    (AssertMacro(BlockIdIsValid(blockId)) ? \
+     (BlockNumber) \
+     (((blockId)->data[0] << 16) + ((uint16) (blockId)->data[1])) : \
+     (BlockNumber) InvalidBlockNumber)
 
 #endif	/* !defined(BlockIncluded) */

@@ -45,7 +45,17 @@ RcsId("$Header$");
 #include "catalog/pg_index.h"
 #include "catalog/pg_proc.h"
 
-#include "internal.h"
+/*
+ * OperatorRelationFillScanKeyEntry --
+ *	Fills the scan key entry for an OPERATOR object.
+ */
+extern
+void
+OperatorRelationFillScanKeyEntry ARGS((
+	Relation	operatorRelation,
+	ObjectId	operatorObjectId,
+	ScanKeyEntry	entry
+));
 
 /* ----------------------------------------------------------------
  *	           misc strategy support routines

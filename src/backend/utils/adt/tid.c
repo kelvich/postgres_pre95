@@ -22,6 +22,7 @@ RcsId("$Header$");
 #include "storage/page.h"
 #include "storage/part.h"
 #include "storage/itemptr.h"
+#include "storage/bufpage.h"
 
 #include "utils/palloc.h"
 

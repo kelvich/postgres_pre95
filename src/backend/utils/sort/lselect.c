@@ -12,6 +12,7 @@ static	char	lselect_c[] = "$Header$";
 
 #include "storage/buf.h"
 #include "access/skey.h"
+#include "access/heapam.h"
 #include "access/htup.h"
 #include "utils/rel.h"
 
@@ -239,18 +240,17 @@ struct	tuple	*rtup;
 	extern	struct	skey	*Key;
 	int		result = 0;
 	Boolean		isnull;
-	char		*amgetattr();
 
 	if (ltup == (struct tuple *)NULL)
 		return(0);
 	if (rtup == (struct tuple *)NULL)
 		return(1);
 	while (nkey < Nkeys && !result) {
-		lattr = amgetattr(ltup, InvalidBuffer,
+		lattr = heap_getattr(ltup, InvalidBuffer,
 			Key[nkey].sk_attnum, &SortRdesc->rd_att, &isnull);
 		if (isnull)
 			return(0);
-		rattr = amgetattr(rtup, InvalidBuffer,
+		rattr = heap_getattr(rtup, InvalidBuffer,
 			Key[nkey].sk_attnum, &SortRdesc->rd_att, &isnull);
 		if (isnull)
 			return(1);

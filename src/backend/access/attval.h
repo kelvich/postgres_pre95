@@ -18,15 +18,21 @@ typedef Datum	AttributeValue;
 #include "access/itup.h"
 #include "access/tupdesc.h"
 
-/*
- * AttributeValueIsValid --
- *	True iff the value is valid.
+/* ----------------
+ *	support macros
+ * ----------------
  */
-extern
-bool
-AttributeValueIsValid ARGS((
-	AttributeValue	attributeValue
-));
+
+/*
+ * AMgetattr --
+ */
+#define AMgetattr(tuple, attNum, tupleDescriptor, isNullOutP) \
+    index_getattr(tuple, attNum, tupleDescriptor, isNullOutP)
+
+/* ----------------
+ *	extern decls
+ * ----------------
+ */
 
 /*
  * IndexTupleGetAttributeValue
@@ -35,18 +41,6 @@ AttributeValueIsValid ARGS((
 extern
 AttributeValue
 IndexTupleGetAttributeValue ARGS((
-	IndexTuple	tuple,
-	AttributeNumber	attributeNumber,
-	TupleDescriptor	tupleDescriptor,
-	Boolean		isNullOutP
-));
-
-/*
- * AMgetattr --
- */
-extern
-Pointer
-AMgetattr ARGS((
 	IndexTuple	tuple,
 	AttributeNumber	attributeNumber,
 	TupleDescriptor	tupleDescriptor,

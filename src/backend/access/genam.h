@@ -1,11 +1,14 @@
-/*
- * genam.h --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	genam.h
+ *
+ *   DESCRIPTION
  *	POSTGRES general access method definitions.
  *
- * Identification:
+ *   IDENTIFICATION
  *	$Header$
+ * ----------------------------------------------------------------
  */
-
 #ifndef	GenAMIncluded
 #define GenAMIncluded	1
 
@@ -17,347 +20,10 @@
 #include "access/relscan.h"
 #include "access/skey.h"
 
-/*
- * RelationNameCreateIndexRelation --
- *	General access method create index routine.
+/* ----------------
+ *	generalized index_ interface routines
+ * ----------------
  */
-extern
-void
-RelationNameCreateIndexRelation ARGS((
-	Name		heapRelationName,
-	Name		indexRelationName,
-	ObjectId	accessMethodObjectId,
-	AttributeNumber	numberOfAttributes,
-	AttributeNumber	attributeNumber[],
-	ObjectId	classObjectId[],
-	uint16		parameterCount,
-	Datum		parameter[]
-));
-
-extern
-void
-AMcreati ARGS((
-	Name		heapRelationName,
-	Name		indexRelationName,
-	ObjectId	accessMethodObjectId,
-	AttributeNumber	numberOfAttributes,
-	AttributeNumber	attributeNumber[],
-	ObjectId	classObjectId[],
-	uint16		parameterCount,
-	Datum		parameter[]
-));
-
-/*
- * DestroyIndexRelationById --
- *	General access method destroy index relation routine.
- */
-extern
-void
-DestroyIndexRelationById ARGS((
-	ObjectId	indexId
-));
-
-extern
-void
-AMdestroy ARGS((
-	ObjectId	indexId
-));
-
-/*
- * ObjectIdOpenIndexRelation --
- *	General access method open index routine by object identifier routine.
- */
-extern
-Relation
-ObjectIdOpenIndexRelation ARGS((
-	ObjectId	relationObjectId
-));
-
-extern
-Relation
-AMopen ARGS((
-	ObjectId	relationObjectId
-));
-
-/*
- * RelationCloseIndexRelation --
- *	General access method close index relation routine.
- */
-extern
-void
-RelationCloseIndexRelation ARGS((
-	Relation	relation
-));
-
-extern
-void
-AMclose ARGS((
-	Relation	relation
-));
-
-/*
- * RelationInsertIndexTuple --
- *	General access method index tuple insertion routine.
- */
-extern
-GeneralInsertIndexResult
-RelationInsertIndexTuple ARGS((
-	Relation	relation,
-	IndexTuple	indexTuple,
-	Pointer		scan,
-	double		*offsetOutP
-));
-
-extern
-GeneralInsertIndexResult
-AMinsert ARGS((
-	Relation	relation,
-	IndexTuple	indexTuple,
-	Pointer		scan,
-	double		*offsetOutP
-));
-
-/*
- * RelationDeleteIndexTuple --
- *	General access method index tuple deletion routine.
- */
-extern
-void
-RelationDeleteIndexTuple ARGS((
-	Relation	relation,
-	ItemPointer	indexItem
-));
-
-extern
-void
-AMdelete ARGS((
-	Relation	relation,
-	ItemPointer	indexItem
-));
-
-/*
- * RelationSetIndexRuleLock --
- *	General access method lock setting routine.
- */
-extern
-void
-RelationSetIndexRuleLock ARGS((
-	Relation	relation,
-	ItemPointer	indexItem,
-	RuleLock	lock
-));
-
-extern
-void
-AMsetlock ARGS((
-	Relation	relation,
-	ItemPointer	indexItem,
-	RuleLock	lock
-));
-
-/*
- * RelationSetIndexItemPointer --
- *	General access method base "tid" setting routine.
- */
-extern
-void
-RelationSetIndexItemPointer ARGS((
-	Relation	relation,
-	ItemPointer	indexItem,
-	ItemPointer	heapItem
-));
-
-extern
-void
-AMsettid ARGS((
-	Relation	relation,
-	ItemPointer	indexItem,
-	ItemPointer	heapItem
-));
-
-/*
- * IndexTupleGetAttributeValue --
- *	General access method get attribute routine.
- *
- * Note:
- *	This is unneeded, there will/may be a similar call for
- *	use by access method code.
- */
-/*
-extern
-IndexTupleGetAttributeValue ARGS((
-	InsertIndexResult	indexObject,
-	AttributeNumber		attributeNumber,
-	struct	attribute	*att[],
-	Boolean			*attributeIsNullOutP
-));
-*/
-/*
-extern
-AMgetattr ARGS((
-	InsertIndexResult	indexObject,
-	AttributeNumber		attributeNumber,
-	struct	attribute	*att[],
-	Boolean			*attributeIsNullOutP
-));
-*/
-
-/*
- * RelationGetIndexScan --
- *	General access method initialize index scan routine.
- */
-extern
-IndexScanDesc
-RelationGetIndexScan ARGS((
-	Relation	relation,
-	Boolean		scanFromEnd,
-	uint16		numberOfKeys,
-	ScanKey		key
-));
-
-extern
-IndexScanDesc
-AMbeginscan ARGS((
-	Relation	relation,
-	Boolean		scanFromEnd,
-	uint16		numberOfKeys,
-	ScanKey		key
-));
-
-/*
- * IndexScanRestart --
- *	General access method restart index scan routine.
- */
-extern
-void
-IndexScanRestart ARGS((
-	IndexScanDesc	scan,
-	bool		scanFromEnd,
-	ScanKey		key
-));
-
-extern
-void
-AMrescan ARGS((
-	IndexScanDesc	scan,
-	bool		scanFromEnd,
-	ScanKey		key
-));
-
-/*
- * IndexScanEnd --
- *	General access method end index scan routine.
- */
-extern
-void
-IndexScanEnd ARGS((
-	IndexScanDesc	scan
-));
-
-extern
-void
-AMendscan ARGS((
-	IndexScanDesc	scan
-));
-
-/*
- * IndexScanMarkPosition --
- *	General access method mark index scan position routine.
- */
-extern
-void
-IndexScanMarkPosition ARGS((
-	IndexScanDesc	scan
-));
-
-extern
-void
-AMmarkpos ARGS((
-	IndexScanDesc	scan
-));
-
-/*
- * IndexScanRestorePosition --
- *	General access method restore index scan position routine.
- */
-extern
-void
-IndexScanRestorePosition ARGS((
-	IndexScanDesc	scan
-));
-
-extern
-void
-AMrestrpos ARGS((
-	IndexScanDesc	scan
-));
-
-/*
- * IndexScanGetRetrieveIndexResult --
- *	General access method low-level get index tuple routine.
- *
- * Note:
- *	Assumes scan is valid.
- *	This routine is likely to be useful only to the vacuum demon.
- */
-extern
-RetrieveIndexResult
-IndexScanGetRetrieveIndexResult ARGS((
-	IndexScanDesc	scan,
-	Boolean		backward
-));
-
-/*
- * IndexScanGetGeneralRetrieveIndexResult --
- *	General access method general get index tuple routine.
- *
- * Note:
- *	Assumes scan is valid.
- */
-extern
-GeneralRetrieveIndexResult
-IndexScanGetGeneralRetrieveIndexResult ARGS((
-	IndexScanDesc	scan,
-	Boolean		backward
-));
-
-/* OBSOLETE
- * IndexScanGetIndexTuple --
- *	General access method get index tuple routine.
- */
-extern
-GeneralRetrieveIndexResult
-IndexScanGetIndexTuple ARGS((
-	IndexScanDesc	scan,
-	Boolean		backward
-));
-
-extern
-GeneralRetrieveIndexResult
-AMgettuple ARGS((
-	Relation	relation,
-	ItemPointer	indexItem,
-	int		direction,	/* -1 backwd, 1 fwd, 0 no move XXX */
-	uint16		numberOfKeys,
-	ScanKey		key
-));
-
-/*
- * IndexTupleFree --
- *	General access method free tuple routine.
- */
-extern
-IndexTupleFree ARGS((
-	void
-	/* this needs more thought */
-));
-
-extern
-AMfreetuple ARGS((
-	void
-	/* this needs more thought */
-));
-
 extern
 Relation
 index_open ARGS((
@@ -440,5 +106,257 @@ index_getrprocid ARGS((
 	AttributeNumber	attnum,
 	uint16		procnum
 ));
+
+extern
+IndexTuple
+index_formtuple ARGS((
+    AttributeNumber	numberOfAttributes,
+    TupleDescriptor	tupleDescriptor,
+    Datum		value[],
+    char		nulls[]
+));		      
+		      
+/* ----------------
+ *	Predefined routines.  Comment from genam.c:
+ *
+ * All indexed access methods use an identical scan structure.
+ * We don't know how the various AMs do locking, however, so we don't
+ * do anything about that here.
+ *
+ * The intent is that an AM implementor will define a front-end routine
+ * that calls this one, to fill in the scan, and then does whatever kind
+ * of locking he wants.
+ * ----------------
+ */
+/*
+ * RelationGetIndexScan --
+ *	General access method initialize index scan routine.
+ */
+extern
+IndexScanDesc
+RelationGetIndexScan ARGS((
+	Relation	relation,
+	Boolean		scanFromEnd,
+	uint16		numberOfKeys,
+	ScanKey		key
+));
+/*
+ * IndexScanRestart --
+ *	General access method restart index scan routine.
+ */
+extern
+void
+IndexScanRestart ARGS((
+	IndexScanDesc	scan,
+	bool		scanFromEnd,
+	ScanKey		key
+));
+
+/*
+ * IndexScanEnd --
+ *	General access method end index scan routine.
+ */
+extern
+void
+IndexScanEnd ARGS((
+	IndexScanDesc	scan
+));
+
+/*
+ * IndexScanMarkPosition --
+ *	General access method mark index scan position routine.
+ */
+extern
+void
+IndexScanMarkPosition ARGS((
+	IndexScanDesc	scan
+));
+
+/*
+ * IndexScanRestorePosition --
+ *	General access method restore index scan position routine.
+ */
+extern
+void
+IndexScanRestorePosition ARGS((
+	IndexScanDesc	scan
+));
+
+/*
+ * IndexScanGetRetrieveIndexResult --
+ *	General access method low-level get index tuple routine.
+ *
+ * Note:
+ *	Assumes scan is valid.
+ *	This routine is likely to be useful only to the vacuum demon.
+ */
+extern
+RetrieveIndexResult
+IndexScanGetRetrieveIndexResult ARGS((
+	IndexScanDesc	scan,
+	Boolean		backward
+));
+
+/*
+ * IndexScanGetGeneralRetrieveIndexResult --
+ *	General access method general get index tuple routine.
+ *
+ * Note:
+ *	Assumes scan is valid.
+ */
+extern
+GeneralRetrieveIndexResult
+IndexScanGetGeneralRetrieveIndexResult ARGS((
+	IndexScanDesc	scan,
+	Boolean		backward
+));
+
+/* OBSOLETE
+ * IndexScanGetIndexTuple --
+ *	General access method get index tuple routine.
+ */
+extern
+GeneralRetrieveIndexResult
+IndexScanGetIndexTuple ARGS((
+	IndexScanDesc	scan,
+	Boolean		backward
+));
+
+/* ----------------
+ *	support macros for old index access method interface
+ * ----------------
+ */
+
+/*
+ * RelationNameCreateIndexRelation --
+ *	General access method create index routine.
+ *
+ * paramter names abbreviated:
+ *	hRN --> 	heapRelationName
+ *  	iRN --> 	indexRelationName
+ *  	aMOI --> 	accessMethodObjectId
+ *  	n --> 		numatts
+ *  	a -->		attNums
+ *  	cOI -->		classObjectId
+ *  	pC -->		parameterCount
+ *  	p -->		parameter
+ */
+#define RelationNameCreateIndexRelation(hRN, iRN, aMOI, n, a, cOI, pC, p) \
+    index_create(hRN, iRN, aMOI, n, a, cOI, pC, p)
+
+#define AMcreati(hRN, iRN, aMOI, n, a, cOI, pC, p) \
+    index_create(hRN, iRN, aMOI, n, a, cOI, pC, p)
+
+/*
+ * DestroyIndexRelationById --
+ *	General access method destroy index relation routine.
+ */
+#define DestroyIndexRelationById(indexId) \
+    index_destroy(indexId)
+
+#define AMdestroy(indexId) \
+    index_destroy(indexId)
+
+/*
+ * ObjectIdOpenIndexRelation --
+ *	General access method open index routine by object identifier routine.
+ */
+#define ObjectIdOpenIndexRelation(relationObjectId) \
+    index_open(relationObjectId)
+
+#define AMopen(relationObjectId) \
+    index_open(relationObjectId)
+
+/*
+ * AMopenr
+ */
+#define AMopenr(relationName) \
+    index_openr(relationName)
+
+/*
+ * RelationCloseIndexRelation --
+ *	General access method close index relation routine.
+ */
+#define RelationCloseIndexRelation(relation) \
+    (void) index_close(relation)
+
+#define AMclose(relation) \
+    (void) index_close(relation)
+
+/*
+ * RelationInsertIndexTuple --
+ *	General access method index tuple insertion routine.
+ */
+#define RelationInsertIndexTuple(relation, indexTuple, scan, offsetOutP) \
+    ((GeneralInsertIndexResult)	index_insert(relation, indexTuple, offsetOutP))
+
+#define AMinsert(relation, indexTuple, scan, offsetOutP) \
+    ((GeneralInsertIndexResult)	index_insert(relation, indexTuple, offsetOutP))
+
+/*
+ * RelationDeleteIndexTuple --
+ *	General access method index tuple deletion routine.
+ */
+#define RelationDeleteIndexTuple(relation, indexItem) \
+    (void) index_delete(relation, indexItem)
+
+#define AMdelete(relation, indexItem) \
+    (void) index_delete(relation, indexItem)
+
+/*
+ * RelationSetIndexRuleLock --
+ *	General access method lock setting routine.
+ *
+ * XXX unimplemented
+ */
+#define RelationSetIndexRuleLock(relation, indexItem, lock) \
+    elog(DEBUG, "RelationSetIndexRuleLock; unimplemented")
+
+#define AMsetlock(relation, indexItem, lock) \
+    elog(DEBUG, "AMsetlock; unimplemented")
+
+/*
+ * RelationSetIndexItemPointer --
+ *	General access method base "tid" setting routine.
+ *
+ * XXX unimplemented
+ */
+#define RelationSetIndexItemPointer(relation, indexItem, heapItem) \
+    elog(DEBUG, "RelationSetIndexItemPointer: unimplemented")
+
+#define AMsettid(relation, indexItem, heapItem) \
+    elog(DEBUG, "AMsettid: unimplemented")
+
+/*
+ * AMbeginscan
+ */
+#define AMbeginscan(relation, scanFromEnd, numberOfKeys, key) \
+    ((IndexScanDesc) index_beginscan(relation, scanFromEnd, numberOfKeys, key))
+/*
+ * AMrescan
+ */
+#define AMrescan(scan, scanFromEnd, key) \
+    (void) index_rescan(scan, scanFromEnd, key)
+/*
+ * AMendscan
+ */
+#define AMendscan(scan) \
+    (void) index_endscan(scan)
+/*
+ * AMmarkpos
+ */
+#define AMmarkpos(scan) \
+    (void) index_markpos(scan)
+/*
+ * AMrestrpos
+ */
+#define AMrestrpos(scan) \
+    (void) index_restrpos(scan)
+/*
+ * AMgettuple
+ */
+#define AMgettuple(scan, direction) \
+    ((GeneralRetrieveIndexResult) \
+     IndexScanGetGeneralRetrieveIndexResult(scan, direction))
 
 #endif	/* !defined(GenAMIncluded) */

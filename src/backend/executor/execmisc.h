@@ -152,21 +152,6 @@ typedef DebugVariable *DebugVariablePtr;
 /* 
  *	miscellany
  */
-
-extern Relation		amopen();
-extern Relation		AMopen();
-extern Relation		amopenr();
-extern HeapScanDesc 	ambeginscan();
-extern HeapTuple 	amgetnext();
-extern char *		amgetattr();
-extern RuleLock		aminsert();
-extern RuleLock		amdelete();
-extern RuleLock		amreplace();
-
-extern GeneralInsertIndexResult   AMinsert();
-extern GeneralRetrieveIndexResult AMgettuple();
-extern HeapTuple		  RelationGetHeapTupleByItemPointer();
-
 extern bool		ExecIsInitialized;
 extern Const		ConstTrue;
 extern Const		ConstFalse;

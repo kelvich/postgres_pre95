@@ -1,14 +1,18 @@
-/*
- * itemid.h --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	itemid.h
+ *
+ *   DESCRIPTION
  *	Standard POSTGRES buffer page item identifier definitions.
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef	ItemIdIncluded		/* Include this file only once */
 #define ItemIdIncluded	1
 
-/*
- * Identification:
- */
 #define ITEMID_H	"$Header$"
 
 #include "tmp/c.h"
@@ -36,24 +40,25 @@ typedef struct ItemIdData	*ItemId;
 #define LP_ISINDEX	0x20	/* this is an internal index tuple */
 #endif
 
+/* ----------------
+ *	support macros
+ * ----------------
+ */
 /* 
  *	ItemIdGetLength
  */
-
 #define ItemIdGetLength(itemId) \
    ((itemId)->lp_len)
 
 /* 
  *	ItemIdGetOffset
  */
-
 #define ItemIdGetOffset(itemId) \
    ((itemId)->lp_off)
 
 /* 
  *	ItemIdGetFlags
  */
-
 #define ItemIdGetFlags(itemId) \
    ((itemId)->lp_flags)
 
@@ -63,11 +68,6 @@ typedef struct ItemIdData	*ItemId;
  */
 #define	ItemIdIsValid(itemId)	PointerIsValid(itemId)
 
-/* ----------------------------------------------------------------
- *	entern declarations
- * ----------------------------------------------------------------
- */
-
 /*
  * ItemIdIsUsed --
  *	True iff disk item identifier is in use.
@@ -75,39 +75,9 @@ typedef struct ItemIdData	*ItemId;
  * Note:
  *	Assumes disk item identifier is valid.
  */
-extern
-bool
-ItemIdIsUsed ARGS((
-	ItemId	itemId;
-));
-
-#if 0
-/*
- * ItemIdIsInsertValid --
- *	True iff disk item identifier is inserted validly.
- *
- * Note:
- *	Assumes disk item identifier is valid.
- */
-extern
-bool
-ItemIdIsInsertValid ARGS((
-	ItemId	itemId;
-));
-#endif
-
-/*
- * ItemIdIsContinuing --
- *	True iff disk item identifier continues.
- *
- * Note:
- *	Assumes disk item identifier is valid.
- */
-extern
-bool
-ItemIdIsContinuing ARGS((
-	ItemId	itemId;
-));
+#define ItemIdIsUsed(itemId) \
+    (AssertMacro(ItemIdIsValid(itemId)) ? \
+     (bool) (((itemId)->lp_flags & LP_USED) != 0) : false)
 
 /*
  * ItemIdIsContinuation --
@@ -116,11 +86,20 @@ ItemIdIsContinuing ARGS((
  * Note:
  *	Assumes disk item identifier is valid.
  */
-extern
-bool
-ItemIdIsContinuation ARGS((
-	ItemId	itemId;
-));
+#define ItemIdIsContinuation(itemId) \
+    (AssertMacro(ItemIdIsValid(itemId)) ? \
+     ((bool) (((itemId)->lp_flags & LP_CTUP) != 0)) : false)
+
+/*
+ * ItemIdIsContinuing --
+ *	True iff disk item identifier continues.
+ *
+ * Note:
+ *	Assumes disk item identifier is valid.
+ */
+#define ItemIdIsContinuing(itemId) \
+    (AssertMacro(ItemIdIsValid(itemId)) ? \
+     ((bool) (((itemId)->lp_flags & LP_DOCNT) != 0)) : false)
 
 /*
  * ItemIdIsLock --
@@ -129,11 +108,9 @@ ItemIdIsContinuation ARGS((
  * Note:
  *	Assumes disk item identifier is valid.
  */
-extern
-bool
-ItemIdIsLock ARGS((
-	ItemId	itemId;
-));
+#define ItemIdIsLock(itemId) \
+    (AssertMacro(ItemIdIsValid(itemId)) ? \
+     ((bool) (((itemId)->lp_flags & LP_LOCK) != 0)) : false)
 
 /*
  * ItemIdIsInternal --
@@ -142,10 +119,9 @@ ItemIdIsLock ARGS((
  * Note:
  *	Assumes disk item identifier is valid.
  */
-extern
-bool
-ItemIdIsInternal ARGS((
-	ItemId	itemId;
-));
+#define ItemIdIsInternal(itemId) \
+    (AssertMacro(ItemIdIsValid(itemId)) ? \
+     ((bool) (((itemId)->lp_flags & LP_ISINDEX) != 0)) : false)
+
 
 #endif	/* !defined(ItemIdIncluded) */

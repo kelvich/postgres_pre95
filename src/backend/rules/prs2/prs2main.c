@@ -17,6 +17,7 @@
 #include "parser/parse.h"	/* RETRIEVE et all are defined here */
 #include "utils/log.h"
 #include "utils/rel.h"
+#include "access/heapam.h"
 #include "access/htup.h"
 #include "storage/buf.h"
 #include "rules/prs2.h"
@@ -27,7 +28,6 @@
 #include "utils/mcxt.h"
 
 extern GlobalMemory CreateGlobalMemory();
-extern HeapTuple palloctup();
 
 /*------------------------------------------------------------------
  *

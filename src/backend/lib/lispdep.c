@@ -581,7 +581,7 @@ remove_duplicates(foo,test)
 	return(foo);
     
     foreach (i,foo) {
-	if (listp(i)) {
+	if (listp(i) && !null(i)) {
 	    foreach (j,CDR(i)) {
 		if ( (* test)(CAR(i),CAR(j)) )
 		  there_exists_duplicate = true;

@@ -1,9 +1,16 @@
-/*
- * ftup.h --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	ftup.h
+ *
+ *   XXX these macros are obsolete -- use the index_ routines
+ *	 directly.  This file is going away..  -cim 4/30/91
+ *
+ *   DESCRIPTION
  *	POSTGRES definitions for tuple formation and modification.
  *
- * Identification:
+ *   IDENTIFICATION
  *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef	FTupIncluded	/* Include this file only once. */
@@ -17,31 +24,29 @@
 #include "access/htup.h"
 #include "access/tupdesc.h"
 
+/* ----------------
+ *	old macros
+ * ----------------
+ */
 /*
  * FormHeapTuple --
  *	Returns a palloc'd heap tuple.
  */
-extern
-HeapTuple
-FormHeapTuple ARGS((
-	AttributeNumber	numberOfAttributes,
-	TupleDescriptor	tupleDescriptor,
-	Datum		datum[],
-	char		null[]
-));
+#define FormHeapTuple(numberOfAttributes, tupleDescriptor, value, nulls) \
+    heap_formtuple(numberOfAttributes, tupleDescriptor, value, nulls)
+
+#define formtuple(numberOfAttributes, tupleDescriptor, value, nulls) \
+    heap_formtuple(numberOfAttributes, tupleDescriptor, value, nulls)
 
 /*
  * FormIndexTuple --
  *	Returns a palloc'd heap tuple.
  */
-extern
-IndexTuple
-FormIndexTuple ARGS((
-	AttributeNumber	numberOfAttributes,
-	TupleDescriptor	tupleDescriptor,
-	Datum		datum[],
-	char		null[]
-));
+#define FormIndexTuple(numberOfAttributes, tupleDescriptor, value, nulls) \
+    index_formtuple(numberOfAttributes, tupleDescriptor, value, nulls)
+
+#define formituple(numberOfAttributes, tupleDescriptor, value, nulls) \
+    index_formtuple(numberOfAttributes, tupleDescriptor, value, nulls)
 
 /*
  * ModifyHeapTuple --
@@ -53,20 +58,16 @@ FormIndexTuple ARGS((
  *	For now, assumes replaceValue, replaceNull, and replace are
  *	fully specified.
  */
-extern
-HeapTuple
-ModifyHeapTuple ARGS((
-	HeapTuple	tuple,
-	Buffer		buffer,
-	Relation	relation,
-	Datum		replaceValue[],
-	char		replaceNull[],
-	char		replace[]
-));
+#define ModifyHeapTuple(tuple, buffer, relation, replValue, replNull, repl) \
+    heap_modifytuple(tuple, buffer, relation, replValue, replNull, repl)
 
-extern
-HeapTuple
-addtupleheader ARGS((
-));
+#define modifytuple(tuple, buffer, relation, replValue, replNull, repl) \
+    heap_modifytuple(tuple, buffer, relation, replValue, replNull, repl)
+
+/* 
+ * addtupleheader
+ */
+#define addtupleheader(natts, structlen, structure) \
+    heap_addheader(natts, structlen, structure)
 
 #endif	/* !defined(FTupIncluded) */
