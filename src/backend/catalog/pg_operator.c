@@ -577,7 +577,7 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
     values[i++] = (char *) (ObjectId) GetUserId();
     values[i++] = (char *) precedence;
     values[i++] = (char *) (NameIsValid(leftTypeName) ?
-			    (NameIsValid(rightTypeName) ? 'b' : 'l') : 'r');
+			    (NameIsValid(rightTypeName) ? 'b' : 'r') : 'l');
     values[i++] = (char *) isLeftAssociative;
     values[i++] = (char *) canHash;
     values[i++] = (char *) leftTypeId;
@@ -922,8 +922,10 @@ OperatorDefine(operatorName, leftTypeName, rightTypeName, procedureName,
      * ----------------
      */
     Assert(NameIsValid(operatorName));
-    Assert(PointerIsValid(leftTypeName) || PointerIsValid(rightTypeName));
     Assert(NameIsValid(procedureName));
+
+    if (!PointerIsValid(leftTypeName) && !PointerIsValid(rightTypeName))
+	elog(WARN, "OperatorDefine : at least one of arg1 and arg2 must be defined");
 
     /* ----------------
      *	get the oid's of the operator's associated operators, if possible.
