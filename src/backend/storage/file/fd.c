@@ -37,6 +37,7 @@ extern errno;
 #define	MAXFILES	(NOFILE-RESERVEFORLISP)
 
 #include "tmp/c.h"
+#include "machine.h"	/* for BLCKSZ */
 
 RcsId("$Header$");
 
@@ -70,6 +71,22 @@ typedef struct vfd {
 	int	fileFlags;
 	int	fileMode;
 } Vfd;
+
+/*
+ *
+ * Striped file descriptor struct
+ *
+ *
+ */
+int NStriping = 1;		/* degree of striping, default as 1 */
+typedef struct sfd {
+        FileNumber vfd[NDISKS];
+        int curStripe;
+        long seekPos;
+        FileNumber nextFree;
+} Sfd;
+
+private Sfd *SfdCache;
 
 /*
  *
@@ -437,7 +454,7 @@ FreeVfd(file)
 
 /* VARARGS2 */
 FileNumber
-FileNameOpenFile(fileName, fileFlags, fileMode) 
+fileNameOpenFile(fileName, fileFlags, fileMode) 
 	FileName	fileName;
 	int		fileFlags;
 	int		fileMode;
@@ -533,7 +550,7 @@ ReOpenFiles()
 #endif /* _xprs_ */
 
 void
-FileClose(file)
+fileClose(file)
 	FileNumber	file;
 {
 	int	returnValue;
@@ -607,7 +624,7 @@ FileUnlink(file)
 }
 
 Amount
-FileRead (file, buffer, amount)
+fileRead (file, buffer, amount)
 	FileNumber	file;
 	String	buffer;
 	Amount	amount;
@@ -623,7 +640,7 @@ FileRead (file, buffer, amount)
 
 
 Amount
-FileWrite (file, buffer, amount)
+fileWrite (file, buffer, amount)
 	FileNumber	file;
 	String	buffer;
 	Amount	amount;
@@ -638,7 +655,7 @@ FileWrite (file, buffer, amount)
 }
 
 long
-FileSeek (file, offset, whence)
+fileSeek (file, offset, whence)
 	FileNumber	file;
 	long	offset;
 	int	whence;
@@ -673,7 +690,7 @@ FileSeek (file, offset, whence)
 }
 
 long
-FileTell (file)
+fileTell (file)
 	FileNumber	file;
 {
 	DO_DB(printf("DEBUG: FileTell %d (%s)\n",file,VfdCache[file].fileName));
@@ -681,7 +698,7 @@ FileTell (file)
 }
 
 int
-FileSync (file)
+fileSync (file)
 	FileNumber	file;
 {
 	int	returnCode;
@@ -789,4 +806,205 @@ FreeFiles(fileCount)
 	Assert(allocatedFiles >= fileCount);
 	allocatedFiles -= fileCount;
 	DO_DB(printf("DEBUG: FreeFiles %d, FreeFd now %d\n",fileCount,FreeFd));
+}
+
+File
+FileNameOpenFile(fileName, fileFlags, fileMode)
+FileName fileName;
+int fileFlags;
+int fileMode;
+{
+    int i;
+    File sfd;
+    Sfd *sfdP;
+    char *fname, *filepath();
+    if (SfdCache == NULL) {
+       SfdCache = (Sfd*)malloc(MAXNOFILES * sizeof(Sfd));
+       for (i=0; i<MAXNOFILES-1; i++)
+	 SfdCache[i].nextFree = i + 1;
+       SfdCache[MAXNOFILES - 1].nextFree = 0;
+    }
+    sfd = SfdCache[0].nextFree;
+    if (sfd == 0)  {
+       elog(WARN, "out of striped file descriptors");
+    } else {
+    SfdCache[0].nextFree = SfdCache[sfd].nextFree;
+    sfdP = &(SfdCache[sfd]);
+    for (i=0; i<NStriping; i++) {
+	fname = filepath(fileName, i);
+	sfdP->vfd[i] = fileNameOpenFile(fname, fileFlags, fileMode);
+    }
+    sfdP->curStripe = 0;
+    return(sfd);
+    }
+}
+
+void
+FileClose(file)
+File file;
+{
+    int i;
+    Sfd *sfdP;
+
+    sfdP = &(SfdCache[file]);
+    for (i=0; i<NStriping; i++)
+	fileClose(sfdP->vfd[i]);
+    sfdP->nextFree = SfdCache[0].nextFree;
+    SfdCache[0].nextFree = file;
+}
+
+Amount
+FileRead(file, buffer, amount)
+File file;
+String buffer;
+Amount amount;
+{
+   Sfd *sfdP;
+   Amount ret;
+   sfdP = &(SfdCache[file]);
+   ret = fileRead(sfdP->vfd[sfdP->curStripe], buffer, amount);
+   sfdP->curStripe = (sfdP->curStripe + 1) % NStriping;
+   return(ret);
+}
+
+Amount
+FileWrite(file, buffer, amount)
+File file;
+String buffer;
+Amount amount;
+{
+    Sfd *sfdP;
+    Amount ret;
+    sfdP = &(SfdCache[file]);
+    ret = fileWrite(sfdP->vfd[sfdP->curStripe], buffer, amount);
+    sfdP->curStripe = (sfdP->curStripe + 1) % NStriping;
+    return(ret);
+}
+
+long
+FileSeek(file, offset, whence)
+File file;
+long offset;
+int whence;
+{
+    int blknum;
+    long blkoff;
+    BlockNumber bnum;
+    int nf;
+    Sfd *sfdP;
+
+    sfdP = &(SfdCache[file]);
+
+    switch(whence) {
+    case L_SET:
+	sfdP->seekPos = offset;
+        blknum = offset / BLCKSZ;
+        blkoff = offset % BLCKSZ;
+        bnum = blknum / NStriping;
+        sfdP->curStripe = nf = blknum % NStriping;
+	fileSeek(sfdP->vfd[nf], bnum * BLCKSZ + blkoff, whence);
+	return offset;
+    case L_INCR:
+	sfdP->seekPos += offset;
+        blknum = sfdP->seekPos / BLCKSZ;
+        blkoff = sfdP->seekPos % BLCKSZ;
+        bnum = blknum / NStriping;
+        sfdP->curStripe = nf = blknum % NStriping;
+	fileSeek(sfdP->vfd[nf], bnum * BLCKSZ + blkoff, whence);
+	return sfdP->seekPos;
+    case L_XTND:
+	{   int l=0, h=NStriping-1, m;
+            long lsize, hsize, msize;
+	    if (h == 0) {
+	        sfdP->curStripe = 0;
+                sfdP->seekPos = fileSeek(sfdP->vfd[0], offset, whence);
+	        return sfdP->seekPos;
+	      }
+            if ((lsize = fileSeek(sfdP->vfd[l], 0l, L_XTND)) < 0) {
+                BM_debug(FATAL, "lseek:%m");
+            }
+            if ((hsize = fileSeek(sfdP->vfd[h], 0l, L_XTND)) < 0) {
+                BM_debug(FATAL, "lseek:%m");
+            }
+            if (lsize == hsize)
+               nf = 0;
+            else {
+                while (l + 1 != h) {
+                    m = (l + h) / 2;
+                if ((msize = fileSeek(sfdP->vfd[m], 0l, L_XTND)) < 0) {
+                    BM_debug(FATAL, "lseek:%m");
+                }
+                    if (msize > hsize)
+                       l = m;
+                    else
+                       h = m;
+                  }
+                nf = h;
+              }
+	    sfdP->curStripe = nf;
+            sfdP->seekPos = hsize * NStriping + nf * BLCKSZ + offset;
+	    fileSeek(sfdP->vfd[nf], offset, whence);
+	    return sfdP->seekPos;
+	}
+    }
+}
+
+long
+FileTell(file)
+File file;
+{
+   return SfdCache[file].seekPos;
+}
+
+int
+FileSync(file)
+File file;
+{
+    int i, returnCode;
+    Sfd *sfdP;
+    sfdP = &(SfdCache[file]);
+    for (i=0; i<NStriping; i++)
+       returnCode = fileSync(sfdP->vfd[i]);
+    return returnCode;
+}
+
+char *PostgresHomes[NDISKS];
+char *DBName;
+
+char *
+filepath(filename, stripe)
+char *filename;
+int stripe;
+{
+    char *buf;
+    int len;
+    Pointer palloc();
+
+    len = strlen(PostgresHomes[stripe]) + strlen("/data/base/") 
+	  + strlen(DBName) + strlen(filename) + 2;
+    buf = (char*)palloc(len);
+    sprintf(buf, "%s/data/base/%s/%s", PostgresHomes[stripe], DBName, filename);
+    return(buf);
+}
+
+int
+FileNameUnlink(filename)
+char *filename;
+{
+    int i, returnCode = 0;
+    for (i=0; i<NStriping; i++)
+       if (unlink(filepath(filename, i)) < 0)
+	  returnCode = -1;
+    return returnCode;
+}
+
+BlockNumber
+FileGetNumberOfBlocks(file)
+File file;
+{
+    long len;
+    BlockNumber nblks;
+
+    len = FileSeek(file, 0L, L_XTND) - 1;
+    return((BlockNumber)((len < 0) ? 0 : 1 + len / BLCKSZ));
 }
