@@ -1,49 +1,60 @@
 #!./pgperl
-# An example of how to use Postgres 2.0 from perl.
+#
+# $Header$
+#
+# An example of how to use Postgres from perl.
 # This example is modelled after the example in the libpq reference manual.
-# $Id$
-# $Log$
-# Revision 1.3  1992/02/15 20:33:20  mer
-# updated by George Hartzell of the Stanford Genome project
-#
-#% Revision 1.2  92/02/07  16:33:47  hartzell
-#% *** empty log message ***
-#% 
-#% Revision 1.1  92/01/29  15:10:42  hartzell
-#% Initial revision
-#% 
-#% Revision 1.2  91/03/08  13:22:41  kemnitz
-#% added RCS header.
-#% 
-#
-# $Header: /genome/src/postgres/src/contrib/pgperl/RCS/testlibpq.pl,v 1.2 92/0
-2/07 16:33:47 hartzell Exp $
-#
-#% Revision 1.1  90/10/24  20:31:22  cimarron
-#% Initial revision
-#% 
+
+# Be certain you execute this from the contrib/pgperl directory of your
+# Postgres distribution, and that the postgres ``bin'' directory
+# is in your path.  Also, you *must* have the postmaster running!
+
+$dbname = "pgperltest";
 
 &init_handler();
 
-# specify the database to access
-&PQsetdb ("cimarron");
+# Destroy then create the database
 
-printf("creating relation person:\n\n");
+printf("Recreating database $dbname\n");
+system("destroydb $dbname") if -e "../../../data/base/$dbname";
+system("createdb $dbname");
+
+# specify the database to access
+&PQsetdb ($dbname);
+$thedb = &PQdb();
+printf("Accessing database $thedb\n");
+
+printf("\nCreating relation person:\n");
 &test_create();
 
-printf("Relation person before appends:\n\n");
+printf("\nRelation person before appends:\n");
 &test_functions();
+
+printf("\nAppending to relation person:\n");
 &test_append();
 
-printf("Relation person after appends:\n\n");
+printf("\nRelation person after appends:\n");
 &test_functions();
-&PQreset (); # why do I have to reset the line ?? :-(
+
+printf("\nTesting copy:\n");
+&test_copy();
+
+printf("\nRelation person after copy:\n");
+&test_functions();
+
+printf("\nTesting other things:\n");
+&test_rest();
+
+printf("\nRemoving from relation person:\n");
 &test_remove();
 
-printf("Relation person after removes:\n\n");
+printf("\nRelation person after removes:\n");
 &test_functions();
+
+printf("\nPrinting values of global variables:\n");
 &test_vars();
 
+printf("\nTests complete!\n");
 # finish execution
 &PQfinish ();
 
@@ -62,8 +73,7 @@ sub test_append {
 
     &PQexec("begin"); # transaction
     for ($i=50; $i <= 150; $i = $i + 10) {
-	$query = "append person (name = \"fred\", age = $i, location = \"($i,10
-)\"::point)";
+	$query = "append person (name = \"fred\", age = $i, location = \"($i,10)\"::point)";
 	printf("query = %s\n", $query);
 	&PQexec($query);
     }
@@ -93,7 +103,7 @@ sub test_functions {
     $t = 0;
 
     for ($k=0; $k < $g; $k++) {
-	printf("\nNew tuple group:\n");
+	printf("New tuple group:\n");
 	$n = &PQntuplesGroup($p, $k);
 	$m = &PQnfieldsGroup($p, $k);
 	
@@ -112,13 +122,11 @@ sub test_functions {
 	}
 	$t = $t + $n;
     }
-    
+
     # close the portal
     &PQexec ("close eportal");
     &PQexec ("end");
-
-    # try some other functions
-    printf("\nNumber of portals open: %d\n", &PQnportals(0));
+    &PQclear("eportal");
 }
 
 sub test_vars {
@@ -129,8 +137,51 @@ sub test_vars {
     printf("PQdatabase = %s\n", $PQdatabase);
     printf("PQportset = %d\n", 	$PQportset);
     printf("PQxactid = %d\n",  	$PQxactid);
-    printf("PQinitstr = %s\n", 	$PQinitstr);
     printf("PQtracep = %d\n",  	$PQtracep);
+}
+
+sub test_copy {
+    &PQexec("copy person from stdin");
+    &PQputline("bill	21	(1,2)\n");
+    &PQputline("bob	61	(3,4)\n");
+    &PQputline("sally	39	(5,6)\n");
+    &PQputline(".\n");
+    &PQendcopy();
+}
+
+sub test_rest {
+    printf("Opening 2 portals:\n");
+    &PQexec ("begin");
+    &PQexec ("retrieve portal eportal (person.all)");
+    &PQexec ("fetch all in eportal");
+    &PQexec ("retrieve portal fportal (person.all)");
+    &PQexec ("fetch all in fportal");
+    printf("Number of portals open: %d\n", &PQnportals(0));
+    @names = &PQpnames (0);
+    print "Portal names: ", join(', ',@names), ".\n";
+    $p = &PQparray ("eportal");
+    printf("Portal eportal %s asynchronous.\n",&PQrulep($p) ? "is" : "is not");
+    printf("Portal eportal has %d tuples.\n",&PQntuples($p));
+    printf("Portal eportal has %d instances.\n",&PQninstances($p));
+    printf("Portal eportal has %d groups.\n",&PQngroups($p));
+    printf("Portal eportal group 0 has %d instances.\n",&PQninstancesGroup($p,0));
+    printf("Portal eportal tuple 0 has %d fields.\n",&PQnfields($p, 0));
+    printf("Portal eportal tuple 0 field 2 is %d bytes long.\n",&PQgetlength($p, 0, 2));
+    printf("Portal eportal tuple 0 field 2 is type %d.\n",&PQftype($p, 0, 2));
+    printf("Portal eportal tuple 0 is in group %d.\n",&PQgetgroup($p, 0));
+    printf("Portal eportal tuple 0 field \"location\" is index %d.\n",&PQfnumber($p, 0, "location"));
+    printf("Portal eportal tuple 0 field 1 is name \"%s\".\n",&PQfname($p, 0, 1));
+    printf("Portal eportal tuples 0 and 1 %s the same type.\n",&PQsametype($p, 0, 1) ? "are" : "are not");
+    printf("Portal eportal group 0 field \"location\" is index %d.\n",&PQfnumberGroup($p, 0, "location"));
+    printf("Closing 2 portals:\n");
+    &PQexec ("close eportal");
+    &PQexec ("close fportal");
+    &PQexec ("end");
+    &PQclear("eportal");
+    &PQclear("fportal");
+    printf("Number of portals open: %d\n", &PQnportals(0));
+    @names = &PQpnames (0);
+    print "Portal names: ", join(', ',@names), ".\n";
 }
 
 sub init_handler {

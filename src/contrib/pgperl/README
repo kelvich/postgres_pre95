@@ -1,5 +1,15 @@
 $Header$
 
+There are three sections to this file:
+	- Igor Metz's original README file, which contains distribution
+	  conditions.
+	- Robert Withrow's README file, which also contains distribution
+	  conditions.
+	- Comments added by people in the POSTGRES group.
+
+----------------------------------------------------------------------------
+Igor Metz's original README file
+----------------------------------------------------------------------------
 This is version 1.0 beta of pgperl.
 
 Copyright 1990 Igor Metz
@@ -44,3 +54,69 @@ Igor Metz
 Institut fuer Informatik und angew. Mathematik, Universitaet Bern, Switzerland.
 domainNet: metz@iam.unibe.ch               Phone: (0041) 31 65 49 90
 ARPA:      metz%iam.unibe.ch@relay.cs.net  Fax:   (0041) 31 65 39 65
+
+----------------------------------------------------------------------------
+Robert Withrow's original README file
+----------------------------------------------------------------------------
+This is a modified version of pgperl.  It was modified from what was
+distributed with Postgres 4.0.1.  See pg-libpq.mus for info on what
+I modified.  I also enhanced testlibpq.pl to call most of the functions.
+
+Copyright 1993 Robert Withrow all rights reserved.
+I don't care what you do with this just as long as you don't blame me.
+You may distribute it under the terms of Igor Metz's README file.  Please
+see that file for more information.
+
+WHAT TO DO WITH THIS
+--------------------
+
+This stuff *replaces* the contents of the src/contrib/pgperl directory in
+the Postgres 4.0.1 distribution.  Thus you want to do something like:
+
+  cd /usr/postgres/src/contrib/pgperl
+  rm *
+  unshar <thisfile>
+
+CHANGES FROM INSTRUCTIONS IN IGOR METZ'S README
+-----------------------------------------------
+This was tested and worked with:
+
+  - Perl 4 PL 19
+  - Postgres V4.0.1
+  - Interactive SVR4.0.3.0 on a 386 using the standard CCS
+
+You *must* have both Perl and Postgres running *and installed* to make
+this work.
+
+Once you have them running *and installed*, edit ``Makefile'' and try
+to build it.
+
+If you have problems, fix them youself.  I *may* be able to help if
+you have problems, but probably not since I am generally as busy as a
+one-eyed cat watching three mouseholes.  If you fix something, please
+let me know.
+
+The file testlibpq.out contains the results of running testlibpq.pl, so
+your results should look something like this...
+
+Robert Withrow, Tel: +1 617 598 4480, Fax: +1 617 598 4430, Net: witr@rwwa.COM
+R.W. Withrow Associates, 21 Railroad Ave, Swampscott MA 01907-1821 USA
+
+----------------------------------------------------------------------------
+POSTGRES group comments
+----------------------------------------------------------------------------
+RWW's changes have been successfully tested on DEC MIPS machines running 
+Ultrix 4.2, using PERL 4 pl 35 and POSTGRES 4.1.  Thanks, Robert.
+
+Under Ultrix, expect to see the following warnings:
+	cpp: warning /usr/include/sys/param.h:389: MIN redefined
+	cpp: warning /usr/include/sys/param.h:390: MAX redefined
+since these are also defined in tmp/c.h.
+
+The default MIPS Ultrix compilers are not standard C, nor does the
+Ultrix library conform to what perl thinks a non-STDC library should
+look like (e.g., char *memcpy() and char *memset()) so expect to have
+to hack on perl/perl.h to make perl applications (like this one) compile.
+I just changed perl.h so that memcpy and memset returned void *.
+
+		-- Paul M. Aoki (aoki@postgres.Berkeley.EDU), 02/16/93

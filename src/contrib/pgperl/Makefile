@@ -1,37 +1,45 @@
-# Makefile for pgperl.
 # $Header$
-# Thu Aug 23 15:00:05 1990  Igor Metz <metz@iam.unibe.ch>
-# touched up to work with my configuration under postgres3.1 and perl4.x
+#
+# RWW's Makefile modified for use with bmake.
+#
+# RWW's comments:
+# Makefile for pgperl (Postgres 4.0.1 and Perl 4.19).
+# 
+# My guess is that this will work for any perl => 4.19 and < 5.x
+#
+# This makefile assumes that you are in the subdirectory src/contrib/pgperl of
+# your Postgres distribution.  You must select the port you are building
+# against and the location of your perl distribution and your compiler.
+#
 
-# PERLDIR is the directory, where your uperl.o and all perl header file live
-PERLDIR = ..
+# PERLDIR is the perl distribution directory
+PERLDIR=/usr/local/devel/perl
 
-# GLOBINCS defines include paths, where your Postgres header files live
-GLOBINCS = -I../../pg -I/usr/postgres/src/lib/H
-
-# LIBS defines, where your libpq.a lives
-LIBS = -L/usr/postgres/obj.sparc -lpq -lm
-
-DISTFILES = README Makefile pg-mus usersub.c pg-libpq.mus testlibpq.pl
-
-CC=cc
-CFLAGS = -g -I$(PERLDIR) $(GLOBINCS)
+# Select your compiler and compilation flags
 #CC=gcc
-#CFLAGS = -traditional -fpcc-struct-return -g -I$(PERLDIR) $(GLOBINCS)
+#CCFLAGS = -traditional -fpcc-struct-return -g 
+CCFLAGS= -O
+
+MUS= $(PERLDIR)/usub/mus
+LIBS= -L../../libpq/obj -lpq -lm
+PGINCS= -I../../backend
+CFLAGS= $(CCFLAGS) -I$(PERLDIR) $(PGINCS)
 
 all: pgperl
 
 pgperl: $(PERLDIR)/uperl.o usersub.o pg-libpq.o
-	$(CC) -g $(PERLDIR)/uperl.o usersub.o pg-libpq.o $(LIBS) -o pgperl 
+	$(CC) $(CCFLAGS) $(.ALLSRC) $(LIBS) $(PERLLIBS) -o $(.TARGET)
+	@echo
+	@echo Remember to start the postmaster before running the test script.
+	@echo
 
 pg-libpq.c: pg-libpq.mus
-	pg-mus pg-libpq.mus > pg-libpq.c
+	$(MUS) pg-libpq.mus > pg-libpq.c
 
-usersub.o: usersub.c
-pg-libpq.o: pg-libpq.c
+testlibpq.out: pgperl testlibpq.pl
+	./pgperl testlibpq.pl > $(.TARGET)
+
+runtest: testlibpq.out
 
 clean:
-	rm usersub.o pg-libpq.o pg-libpq.c
-
-dist:
-	shar $(DISTFILES) > dist.shar
+	rm -f usersub.o pg-libpq.o pg-libpq.c pgperl testlibpq.out
