@@ -271,6 +271,7 @@ class (Param) public (Expr) {
  *			  (set during query optimization)
  *	funcsize 	- size of return result (cached by executor)
  *	func_fcache 	- XXX comment me.
+ *      func_tlist      - projection of functions returning tuples
  * ----------------
  */
 class (Func) public (Expr) {
@@ -281,6 +282,7 @@ class (Func) public (Expr) {
 	bool			funcisindex;
 	int			funcsize;
 	FunctionCachePtr	func_fcache;
+	List                    func_tlist;
  /* public: */
 };
 
