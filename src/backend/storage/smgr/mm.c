@@ -566,6 +566,9 @@ MMShmemSize()
      *  first compute space occupied by the (dbid,relid,blkno) hash table
      */
 
+    nbuckets = 1 << (int)my_log2((MMNBUFFERS - 1) / DEF_FFACTOR + 1);
+    nsegs = 1 << (int)my_log2((nbuckets - 1) / DEF_SEGSIZE + 1);
+
     size = my_log2(MMNBUFFERS) + sizeof(HHDR);
     size += nsegs * DEF_SEGSIZE * sizeof(SEGMENT);
     tmp = (int)ceil((double)MMNBUFFERS/BUCKET_ALLOC_INCR);
