@@ -26,7 +26,6 @@ letter_or_digit	[_A-Za-z0-9]
 
 identifier	{letter}{letter_or_digit}*
 
-param		\${digit}
 self		[,()\[\].;$\:\+\-\*\/\<\>\=\|]
 op_and_self	[\~\!\@\#\%\^\&\|\`\?\$\:\+\-\*\/\<\>\=]
 op_only		[\~\!\@\#\%\^\&\`\?]
@@ -36,8 +35,10 @@ string		\"
 specialstr	\`
 character	"'"
 
-integer		[-+]?{digit}+
-real		[-+]?{digit}+\.{digit}+([Ee][-+]?{digit}+)?
+integer		{digit}+
+real		{digit}+\.{digit}+([Ee][-+]?{digit}+)?
+
+param		\${integer}
 
 comment		"/*"
 
@@ -98,38 +99,3 @@ other		.
 {other}		{ return (yytext[0]);	}
 
 %%
-
-/**************************************************
-  MakeUpper 
-  - destructively changes the inputstr, converting
-  any lower-case characters to their corresponding
-  upper case equivalents
- **************************************************/
-/*
-	XXX - unused code, remove sometime in the future
-
-MakeUpper(mixedstr)
-	char *mixedstr;
-{
-	while(*mixedstr != NULL )  {
-		if(islower(*mixedstr)) 
-			*mixedstr = toupper(*mixedstr);
-		mixedstr++;
-	}
-}
-*/
-
-/*
-	XXX - unused code, remove sometime in the future
-
-MakeLower(mixedstr)
-	char *mixedstr;
-{
-	while(*mixedstr != NULL )  {
-		if(isupper(*mixedstr)) 
-			*mixedstr = tolower(*mixedstr);
-		mixedstr++;
-	}
-}
-*/
-
