@@ -180,7 +180,7 @@ SlaveBackendsAbort()
 	V_Abort();
 
 	SLAVE_elog(DEBUG, "Master Backend waiting for slave aborts");
-	P_Finished();
+	P_Finished(nslaves);
 
 	SLAVE_elog(DEBUG, "Master Backend reinitializing abort semaphore");
 	I_Abort();
