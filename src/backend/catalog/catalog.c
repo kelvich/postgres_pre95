@@ -12,6 +12,7 @@ static	char	catalog_c[] = "$Header$";
 #include "c.h"
 
 #include "buf.h"
+#include "cat.h"
 #include "oid.h"
 #include "trange.h"
 
