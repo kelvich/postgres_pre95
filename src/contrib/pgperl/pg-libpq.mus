@@ -64,6 +64,7 @@ extern char *PQport;
 extern char *PQtty;
 extern char *PQoption;
 extern char PQdatabase[17];	/* From fe-pqexec.c */
+extern char PQerrormsg[];
 extern int PQportset;
 extern int PQxactid;
 extern int PQtracep;
@@ -74,6 +75,7 @@ static enum uservars {
   UV_PQtty,
   UV_PQoption,
   UV_PQdatabase,
+  UV_PQerrormsg,
   UV_PQportset,
   UV_PQxactid,
   UV_PQtracep
@@ -153,6 +155,7 @@ init_postgres_stuff()
   MAGICVAR("PQtty",		UV_PQtty);
   MAGICVAR("PQoption",		UV_PQoption);
   MAGICVAR("PQdatabase",	UV_PQdatabase);
+  MAGICVAR("PQerrormsg",	UV_PQerrormsg);
   MAGICVAR("PQportset",		UV_PQportset);
   MAGICVAR("PQxactid",		UV_PQxactid);
   MAGICVAR("PQtracep",		UV_PQtracep);
@@ -505,14 +508,17 @@ userval(ix, str)
   case UV_PQdatabase:
     str_set(str, &PQdatabase[0]);
     break;
+  case UV_PQerrormsg:
+    str_set(str, &PQerrormsg[0]);
+    break;
   case UV_PQportset:
-    str_numset(str, PQportset);
+    str_numset(str, (double) PQportset);
     break;
   case UV_PQxactid:
-    str_numset(str, PQxactid);
+    str_numset(str, (double) PQxactid);
     break;
   case UV_PQtracep:
-    str_numset(str, PQtracep);
+    str_numset(str, (double) PQtracep);
     break;
   }
   return 0;

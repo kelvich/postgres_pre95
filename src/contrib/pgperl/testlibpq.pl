@@ -10,14 +10,18 @@
 # is in your path.  Also, you *must* have the postmaster running!
 
 $dbname = "pgperltest";
+$pgdata = $ENV{'PGDATA'};
 
 &init_handler();
 
 # Destroy then create the database
-
-printf("Recreating database $dbname\n");
-system("destroydb $dbname") if -e "../../../data/base/$dbname";
-system("createdb $dbname");
+# an error is ok in destroydb, since the database may not exist.
+printf("Destroying database $dbname\n");
+system("destroydb $dbname");
+printf("Creating database $dbname\n");
+if (system("createdb $dbname") / 256) {
+    die("$0: createdb failed on $pgdata/$dbname\n");
+}
 
 # specify the database to access
 &PQsetdb ($dbname);
@@ -60,24 +64,34 @@ printf("\nTests complete!\n");
 
 exit(0);
 
+sub doPQexec {
+    local($query) = @_;
+    local($result);
+
+    $result = &PQexec($query);
+    if ($result eq "R" || $result eq "E") {
+	die("$0: doPQexec: the query\n\t$query\nproduced the error\n\t$PQerrormsg");
+    }
+}
+
 sub test_create {
-    local($query);
+    local($query, $result);
 
     $query = "create person (name = char16, age = int4, location = point)";
     printf("query = %s\n", $query);
-    &PQexec($query);
+    &doPQexec($query);
 }
 
 sub test_append {
     local($i, $query);
 
-    &PQexec("begin"); # transaction
+    &doPQexec("begin"); # transaction
     for ($i=50; $i <= 150; $i = $i + 10) {
 	$query = "append person (name = \"fred\", age = $i, location = \"($i,10)\"::point)";
 	printf("query = %s\n", $query);
-	&PQexec($query);
+	&doPQexec($query);
     }
-    &PQexec("end"); # transaction
+    &doPQexec("end"); # transaction
 }
 
 sub test_remove {
@@ -85,7 +99,7 @@ sub test_remove {
     for ($i=50; $i <= 150; $i = $i + 10) {
 	$query = "delete person where person.age = $i ";
 	printf("query = %s\n", $query);
-	&PQexec($query);
+	&doPQexec($query);
     }
 }
 
@@ -93,9 +107,9 @@ sub test_functions {
     local($p, $g, $t, $n, $m, $k, $i, $j);
 
     # fetch tuples from the person table
-    &PQexec ("begin");
-    &PQexec ("retrieve portal eportal (person.all)");
-    &PQexec ("fetch all in eportal");
+    &doPQexec ("begin");
+    &doPQexec ("retrieve portal eportal (person.all)");
+    &doPQexec ("fetch all in eportal");
     
     # examine all the tuples fetched
     $p = &PQparray ("eportal");	# remember: $p is a pointer !
@@ -124,24 +138,25 @@ sub test_functions {
     }
 
     # close the portal
-    &PQexec ("close eportal");
-    &PQexec ("end");
+    &doPQexec ("close eportal");
+    &doPQexec ("end");
     &PQclear("eportal");
 }
 
 sub test_vars {
-    printf("PQhost = %s\n", 	$PQhost);
-    printf("PQport = %s\n",  	$PQport);
-    printf("PQtty = %s\n",  	$PQtty);
-    printf("PQoption = %s\n",  	$PQoption);
-    printf("PQdatabase = %s\n", $PQdatabase);
-    printf("PQportset = %d\n", 	$PQportset);
-    printf("PQxactid = %d\n",  	$PQxactid);
-    printf("PQtracep = %d\n",  	$PQtracep);
+    printf("PQhost = \"%s\"\n",		$PQhost);
+    printf("PQport = \"%s\"\n",		$PQport);
+    printf("PQtty = \"%s\"\n", 		$PQtty);
+    printf("PQoption = \"%s\"\n",  	$PQoption);
+    printf("PQdatabase = \"%s\"\n", 	$PQdatabase);
+    printf("PQportset = %d\n", 		$PQportset);
+    printf("PQxactid = %d\n",  		$PQxactid);
+    printf("PQtracep = %d\n",  		$PQtracep);
+    printf("PQerrormsg = \"%s\"\n",	$PQerrormsg);
 }
 
 sub test_copy {
-    &PQexec("copy person from stdin");
+    &doPQexec("copy person from stdin");
     &PQputline("bill	21	(1,2)\n");
     &PQputline("bob	61	(3,4)\n");
     &PQputline("sally	39	(5,6)\n");
@@ -151,11 +166,11 @@ sub test_copy {
 
 sub test_rest {
     printf("Opening 2 portals:\n");
-    &PQexec ("begin");
-    &PQexec ("retrieve portal eportal (person.all)");
-    &PQexec ("fetch all in eportal");
-    &PQexec ("retrieve portal fportal (person.all)");
-    &PQexec ("fetch all in fportal");
+    &doPQexec ("begin");
+    &doPQexec ("retrieve portal eportal (person.all)");
+    &doPQexec ("fetch all in eportal");
+    &doPQexec ("retrieve portal fportal (person.all)");
+    &doPQexec ("fetch all in fportal");
     printf("Number of portals open: %d\n", &PQnportals(0));
     @names = &PQpnames (0);
     print "Portal names: ", join(', ',@names), ".\n";
@@ -174,9 +189,9 @@ sub test_rest {
     printf("Portal eportal tuples 0 and 1 %s the same type.\n",&PQsametype($p, 0, 1) ? "are" : "are not");
     printf("Portal eportal group 0 field \"location\" is index %d.\n",&PQfnumberGroup($p, 0, "location"));
     printf("Closing 2 portals:\n");
-    &PQexec ("close eportal");
-    &PQexec ("close fportal");
-    &PQexec ("end");
+    &doPQexec ("close eportal");
+    &doPQexec ("close fportal");
+    &doPQexec ("end");
     &PQclear("eportal");
     &PQclear("fportal");
     printf("Number of portals open: %d\n", &PQnportals(0));

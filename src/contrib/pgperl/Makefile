@@ -1,45 +1,43 @@
+#
 # $Header$
 #
-# RWW's Makefile modified for use with bmake.
-#
-# RWW's comments:
-# Makefile for pgperl (Postgres 4.0.1 and Perl 4.19).
-# 
-# My guess is that this will work for any perl => 4.19 and < 5.x
-#
-# This makefile assumes that you are in the subdirectory src/contrib/pgperl of
-# your Postgres distribution.  You must select the port you are building
-# against and the location of your perl distribution and your compiler.
-#
+.include <postgres.global.mk>
 
-# PERLDIR is the perl distribution directory
+#
+# PERLDIR is the perl distribution directory.
+#	you must have already built all of perl (including mus) in order
+#	to start building pgperl.
+#
 PERLDIR=/usr/local/devel/perl
+MUS= ${PERLDIR}/usub/mus
 
-# Select your compiler and compilation flags
-#CC=gcc
-#CCFLAGS = -traditional -fpcc-struct-return -g 
-CCFLAGS= -O
+CFLAGS= -g
 
-MUS= $(PERLDIR)/usub/mus
-LIBS= -L../../libpq/obj -lpq -lm
-PGINCS= -I../../backend
-CFLAGS= $(CCFLAGS) -I$(PERLDIR) $(PGINCS)
+# 
+# Don't add uperl.o to OBJS or it will be removed when you do 
+# "bmake clean"... :-(
+#
+LDADD+= ${PERLDIR}/uperl.o
+LDADD+= -L${LIBDIR} -lpq -lm
 
-all: pgperl
+CFLAGS+= -I${HEADERDIR} -I${PERLDIR}
 
-pgperl: $(PERLDIR)/uperl.o usersub.o pg-libpq.o
-	$(CC) $(CCFLAGS) ${.ALLSRC} $(LIBS) $(PERLLIBS) -o ${.TARGET}
-	@echo
-	@echo Remember to start the postmaster before running the test script.
-	@echo
+.SUFFIXES: .mus
 
-pg-libpq.c: pg-libpq.mus
-	$(MUS) pg-libpq.mus > pg-libpq.c
+.mus.c:
+	${MUS} $< > ${.TARGET}
 
-testlibpq.out: pgperl testlibpq.pl
-	./pgperl testlibpq.pl > ${.TARGET}
+SRCS= pg-libpq.mus usersub.c
+
+PROG= pgperl
+
+.MAIN: ${PROG}
+
+${PROG}: ${PERLDIR}/uperl.o
+
+testlibpq.out: ${PROG} testlibpq.pl
+	./${PROG} testlibpq.pl 2>&1 | tee ${.TARGET}
 
 runtest: testlibpq.out
 
-clean:
-	rm -f usersub.o pg-libpq.o pg-libpq.c pgperl testlibpq.out
+.include <postgres.prog.mk>

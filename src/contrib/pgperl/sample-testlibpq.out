@@ -1,4 +1,5 @@
-Recreating database pgperltest
+Destroying database pgperltest
+Creating database pgperltest
 Accessing database pgperltest
 
 Creating relation person:
@@ -98,13 +99,14 @@ bob            61             (3,4)
 sally          39             (5,6)          
 
 Printing values of global variables:
-PQhost = localhost
-PQport = 4321
-PQtty = /dev/null
-PQoption = 
-PQdatabase = pgperltest
-PQportset = 0
+PQhost = "localhost"
+PQport = "4321"
+PQtty = "/dev/null"
+PQoption = ""
+PQdatabase = "pgperltest"
+PQportset = 1
 PQxactid = 0
 PQtracep = 0
+PQerrormsg = ""
 
 Tests complete!
