@@ -25,9 +25,7 @@ typedef int	Buffer;
  */
 extern
 BlockNumber
-RelationGetNumberOfBlocks ARGS((
-	const Relation	relation,
-));
+RelationGetNumberOfBlocks(); /* BAD PROTOTYPE DELETED -- glass */
 
 /*
  * BufferIsValid --
