@@ -339,6 +339,8 @@ void
 V_Finished(groupid)
 int groupid;
 {
+    bool is_lastone;
+
     if (ProcGroupInfoP[groupid].countdown <= 0) {
 	elog(WARN, "Process group countdown to negative. \n");
       }
@@ -349,10 +351,11 @@ int groupid;
 		  running on sequent */
 #endif
     ProcGroupInfoP[groupid].countdown--;
+    is_lastone = (bool)(ProcGroupInfoP[groupid].countdown == 0);
 #ifdef sequent
     S_UNLOCK(&(ProcGroupInfoP[groupid].lock));
 #endif
-    if (ProcGroupInfoP[groupid].countdown == 0) {
+    if (is_lastone) {
 	/* ----------------
 	 *  the last slave wakes up the master
 	 * ----------------
