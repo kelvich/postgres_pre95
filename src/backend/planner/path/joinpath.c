@@ -123,6 +123,7 @@ find_all_join_paths (joinrels,previous_level_rels,nest_level)
  *       sorted. 
  */
 
+	  if (!testFlag)
 	  pathlist = sort_inner_and_outer (joinrel,outerrel,
 					   innerrel,mergeinfo_list);
 	  
