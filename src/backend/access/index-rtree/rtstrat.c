@@ -189,7 +189,7 @@ static StrategyNumber RTOperMap[RTNStrategies] = {
 	RTOverRightStrategyNumber,
 	RTContainsStrategyNumber,
 	RTContainsStrategyNumber,
-	RTContainedByStrategyNumber
+	RTOverlapStrategyNumber
 };
 
 StrategyNumber
