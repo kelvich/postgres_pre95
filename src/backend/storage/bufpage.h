@@ -67,8 +67,22 @@ typedef enum {
 #define MaxInternalFragmentation	((1 << 12) - 1)
 
 typedef struct OpaqueData {
+#ifdef PORTNAME_aix
+	/*
+	 * the AIX compiler doesn't permit bitfields in anything but an
+	 * unsigned int.  well, ok, K&R says they can do that.  on the 
+	 * other hand, if this is so, then we had better store the bits
+	 * in the most significant 16 bits so that the 'uint16' opaque
+	 * field in PageHeaderData still works!
+	 * (the argument against just making the internal page opaque 
+	 *  data 32 bits is backward-compatibility, of course.)
+	 */
+	unsigned	pageSize:4,		/* page size */
+			fragmentation:12;	/* internal fragmentation */
+#else /* PORTNAME_aix */
 	bits16	pageSize:4,		/* page size */
 		fragmentation:12;	/* internal fragmentation */
+#endif /* PORTNAME_aix */
 } OpaqueData;
 
 typedef OpaqueData	*Opaque;
