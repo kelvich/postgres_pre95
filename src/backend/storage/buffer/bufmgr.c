@@ -793,7 +793,7 @@ BufferSync()
 	      }
 
 	      bufHdr->flags &= ~BM_DIRTY;
-	      heap_close(reln);
+	      RelationDecrementReferenceCount(reln);
 	  }
       }
   }
