@@ -22,8 +22,8 @@
 #include "relation.a.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
-#include "planner/tags.h"
-#include "planner/parse.h"
+#include "tags.h"
+#include "parse.h"
 
 extern LispValue number_list();  /* XXX should #include temp.h in l-lisp */
 

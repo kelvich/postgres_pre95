@@ -20,7 +20,7 @@
 #include "relation.a.h"
 #include "planner/clauses.h"
 #include "planner/orindxpath.h"
-#include "planner/nodeFuncs.h"
+#include "nodeFuncs.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
 

@@ -21,7 +21,7 @@
 #include "planner/internal.h";
 #include "planner/indxpath.h"
 #include "planner/clauses.h"
-#include "planner/lsyscache.h"
+#include "lsyscache.h"
 #include "planner/clauseinfo.h"
 #include "planner/cfi.h"
 
