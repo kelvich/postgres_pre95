@@ -210,4 +210,9 @@ RelationGetRelationName ARGS((
 	Relation	relation
 ));
 
+extern
+AttributeNumber
+RelationGetNumberOfAttributes ARGS((
+	Relation relation
+));				  
 #endif	/* !defined(RelIncluded) */
