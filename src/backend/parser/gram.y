@@ -122,10 +122,11 @@ stmt :
 	| DefineStmt
 	| DestroyStmt
 	| FetchStmt
-	| IndexStmt			
+	| IndexStmt
 	| MergeStmt
 	| MoveStmt
 	| PurgeStmt			
+	| RemoveOperatorStmt
 	| RemoveStmt
 	| RenameStmt
 	| OptimizableStmt		
@@ -407,9 +408,6 @@ def_list:
 	| def_list ',' def_elem		{ INC_LIST ;  }
 	;
 
-
-
-
  /**********************************************************************
 	
 	destroy <relname1> [, <relname2> .. <relnameN> ]
@@ -574,7 +572,24 @@ RemoveStmt:
 	;
 
 remove_type:
-	  Function | Rule | Operator | Type | Index ;
+	  Function | Rule | Type | Index ;
+
+RemoveOperatorStmt:
+	Remove Operator name '(' remove_operator ')'
+		{
+		    $3  = lispCons($3, $5);
+		    $2  = lispCons($2, lispCons($3, LispNil));
+		    $$  = lispCons($1, $2);
+		}
+	;
+
+remove_operator:
+	  Id
+		{ $$ = lispCons($1, LispNil); }
+	| Id ',' Id
+		{ $$ = lispCons($1, lispCons($2, LispNil)); }
+	;
+
  /**********************************************************************
 	 
 	rename <attrname1> in <relname> to <attrname2>
