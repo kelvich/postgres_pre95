@@ -42,12 +42,13 @@ heap_keytest ARGS((
 ));		   
 
 /* 
- *  heap_satisfies
- *    -- test if item on page satisifies scan key
+ *  heap_tuple_satisfies
+ *    -- returns a tuple satisfying the timequal and scankey.
  */
+
 extern
-bool
-heap_satisfies ARGS((
+HeapTuple
+heap_tuple_satisfies ARGS((
     ItemId	itemId,
 	Relation relation,
     Buffer	buffer,

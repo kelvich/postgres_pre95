@@ -382,7 +382,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
     lineoff = (dir < 0) ? lineoff : lines - lineoff - 1;
 
     /* ----------------
-     *	advance the scan until we find a qualificating tuple or
+     *	advance the scan until we find a qualifying tuple or
      *  run out of stuff to scan
      * ----------------
      */
@@ -392,8 +392,8 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
 	     *	if current tuple qualifies, return it.
 	     * ----------------
 	     */
-	    if (heap_satisfies(lpp, relation, *b, timeQual, nkeys, key)) {
-		rtup = (HeapTuple) PageGetItem(dp, lpp);
+	    if ((rtup = heap_tuple_satisfies(lpp, relation, *b,
+					     timeQual, nkeys, key)) != NULL) {
 		if (BufferPut(*b, L_PIN) < 0)
 		    elog(WARN, "heap_fetch: failed BufferPut");
 
@@ -1059,7 +1059,7 @@ heap_fetch(relation, timeQual, tid, b)
     /*
      * Note: This is collosally expensive - does two system calls per
      * indexscan tuple fetch.  Not good, and since we should be doing
-	 * page level locking by the scanner anyway, it is commented out.
+     * page level locking by the scanner anyway, it is commented out.
      */
 
     /* RelationSetLockForTupleRead(relation, tid); */
@@ -1093,26 +1093,22 @@ heap_fetch(relation, timeQual, tid, b)
      *	more sanity checks
      * ----------------
      */
-    if (!ItemIdIsUsed(lp)) {
-	elog(WARN, "heap_fetch: %s relation: unused tid (%ld,%d)",
-	     &relation->rd_rel->relname,
-	     ItemPointerGetBlockNumber(tid),
-	     ItemPointerSimpleGetOffsetNumber(tid));
-    }
 
-    if (ItemIdIsContinuation(lp) || ItemIdIsInternal(lp)) {
-	elog(WARN, "heap_fetch: %s relation--bad item pointer",
-	     &relation->rd_rel->relname);
-    }
+    Assert(ItemIdIsUsed(lp)); 
+    Assert(!(ItemIdIsContinuation(lp) || ItemIdIsInternal(lp)));
 
     /* ----------------
      *	check time qualification of tid
      * ----------------
      */
-    if (! heap_satisfies(lp, relation, buffer, timeQual, 0,(ScanKey)NULL)) {
+
+    tuple = heap_tuple_satisfies(lp, relation, buffer,
+				 timeQual, 0,(ScanKey)NULL);
+
+    if (tuple == NULL)
+    {
 	if (BufferPut(buffer, L_UNPIN) < 0)
 	    elog(WARN, "heap_fetch: BufferPut failed");
-	
 	return (NULL);
     }
 
@@ -1122,7 +1118,6 @@ heap_fetch(relation, timeQual, tid, b)
      *  whether caller gave us a valid b.
      * ----------------
      */
-    tuple = (HeapTuple) PageGetItem(dp, lp);
 
     if (PointerIsValid(b)) {
 	*b = buffer;
@@ -1252,7 +1247,8 @@ heap_delete(relation, tid)
      *	check that we're deleteing a valid item
      * ----------------
      */
-    if (! heap_satisfies(lp, relation, b, NowTimeQual, 0, (ScanKey) NULL)) {
+    if (!(tp = heap_tuple_satisfies(lp, relation, b,
+				    NowTimeQual, 0, (ScanKey) NULL))) {
 	
 	/* XXX call something else */
 	if (BufferPut(b, L_UN | L_UP) < 0)
@@ -1266,7 +1262,7 @@ heap_delete(relation, tid)
      *  exclusive access to the page
      * ----------------
      */
-    tp = (HeapTuple) PageGetItem(dp, lp);
+
     /* XXX order problems if not atomic assignment ??? */
     if (BufferPut(b, L_EX) < 0)
 	elog(WARN, "heap_delete: failed BufferPut(L_EX)");
@@ -1353,8 +1349,8 @@ heap_replace(relation, otid, tup)
      *	check that we're replacing a valid item
      * ----------------
      */
-    if (! heap_satisfies(lp, relation, buffer, NowTimeQual, 0,
-	 (ScanKey) NULL)) {
+    if (!(tp = heap_tuple_satisfies(lp, relation, buffer, NowTimeQual, 0,
+	 (ScanKey) NULL))) {
 
 	/* XXX call something else */
 	if (BufferPut(buffer, L_UN | L_UP) < 0)
@@ -1367,7 +1363,7 @@ heap_replace(relation, otid, tup)
      *	logically delete old item
      * ----------------
      */
-    tp = (HeapTuple) PageGetItem(dp, lp);
+
     /* -----------------
      *  the following test should be able to catch all non-functional
      *  update attempts and shut out all ghost tuples.
@@ -1377,6 +1373,7 @@ heap_replace(relation, otid, tup)
      *  -- Wei
      * -----------------
      */
+
     if (TupleUpdatedByCurXactAndCmd(tp)) {
 	elog(NOTICE, "Non-functional update, only first update is performed");
         return (RuleLock)NULL;

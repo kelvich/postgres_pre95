@@ -79,15 +79,21 @@ heap_keytest(t, tupdesc, nkeys, keys)
 }
 
 /* ----------------
- *	heap_satisifies
+ *	heap_tuple_satisfies
+ *
+ *  Returns a valid HeapTuple if it satisfies the timequal and keytest.
+ *  Returns NULL otherwise.  Used to be heap_satisifies which returned a
+ *  boolean.  It now returns a tuple so that we can avoid doing two
+ *  PageGetItem's per tuple.
  *
  *	Complete check of validity including LP_CTUP and keytest.
  *	This should perhaps be combined with valid somehow in the
  *	future.  (Also, additional rule tests/time range tests.)
  * ----------------
  */
-bool
-heap_satisfies(itemId, relation, buffer, qual, nKeys, key)
+
+HeapTuple
+heap_tuple_satisfies(itemId, relation, buffer, qual, nKeys, key)
     ItemId	itemId;
     Relation relation;
     Buffer	buffer;
@@ -106,12 +112,14 @@ heap_satisfies(itemId, relation, buffer, qual, nKeys, key)
 
     if (relation->rd_rel->relkind == 'u'
      || HeapTupleSatisfiesTimeQual(tuple,qual))
-        if (key == NULL) return true;
-	else
-	    return (bool)
-	        keytest(tuple, relation, nKeys, key);
+    {
+        if (key == NULL)
+	    return tuple;
+	else if (keytest(tuple, relation, nKeys, key))
+	    return tuple;
+    }
 
-    return false;
+    return NULL;
 }
 
 /* ----------------
