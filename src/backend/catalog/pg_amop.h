@@ -330,6 +330,17 @@ DATA(insert OID = 0 (  403 432 560 3 btreesel btreenpage ));
 DATA(insert OID = 0 (  403 432 565 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  403 432 563 5 btreesel btreenpage ));
 
+/*
+ *  nbtree oidseq_ops
+ */
+
+DATA(insert OID = 0 (  403 435 930 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 435 931 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 435 932 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 435 933 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 435 934 5 btreesel btreenpage ));
+
+
 BKI_BEGIN
 #ifdef NOBTREE
 BKI_END

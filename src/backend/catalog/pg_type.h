@@ -124,6 +124,7 @@ DATA(insert OID = 702 (  abstime   6  4  20 t b t \054 0   0 abstimein abstimeou
 DATA(insert OID = 703 (  reltime   6  4  20 t b t \054 0   0 reltimein reltimeout reltimein reltimeout - ));
 DATA(insert OID = 704 (  tinterval 6 12  47 f b t \054 0   0 tintervalin tintervalout tintervalin tintervalout - ));
 DATA(insert OID = 705 (  unknown 6 -1  -1 f b t \054 0   18 textin textout textin textout - ));
+DATA(insert OID = 910 (  oidseq    6  8  20 f b t \054 0   0 oidseqin oidseqout oidseqin oidseqout - ));
 DATA(insert OID = 1000 (  _bool      6 -1  -1 f b t \054 0  16 array_in array_out array_in array_out - ));
 DATA(insert OID = 1001 (  _bytea     6 -1  -1 f b t \054 0  17 array_in array_out array_in array_out - ));
 DATA(insert OID = 1002 (  _char      6 -1  -1 f b t \054 0  18 textin textout textin textout - ));

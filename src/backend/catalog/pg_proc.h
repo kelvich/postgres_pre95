@@ -449,6 +449,22 @@ BKI_BEGIN
 #endif /* NOBTREE */
 BKI_END
 
+DATA(insert OID = 900 (  fimport             6 11 f t f 1  26 "25" foo bar ));
+DATA(insert OID = 901 (  fexport             6 11 f t f 2  23 "25 26" foo bar ));
+DATA(insert OID = 902 (  fabstract           6 11 f t f 5  23 "25 26 23 23 23" foo bar ));
+
+DATA(insert OID = 920 (  oidseqin	     6 11 f t f 1 910 "23" foo bar));
+DATA(insert OID = 921 (  oidseqout	     6 11 f t f 1  19 "910" foo bar));
+DATA(insert OID = 922 (  oidseqlt	     6 11 f t f 2  16 "0" foo bar));
+DATA(insert OID = 923 (  oidseqle	     6 11 f t f 2  16 "0" foo bar));
+DATA(insert OID = 924 (  oidseqeq	     6 11 f t f 2  16 "0" foo bar));
+DATA(insert OID = 925 (  oidseqge	     6 11 f t f 2  16 "0" foo bar));
+DATA(insert OID = 926 (  oidseqgt	     6 11 f t f 2  16 "0" foo bar));
+DATA(insert OID = 927 (  oidseqne	     6 11 f t f 2  16 "0" foo bar));
+DATA(insert OID = 928 (  oidseqcmp	     6 11 f t f 2  23 "0" foo bar));
+DATA(insert OID = 929 (  mkoidseq	     6 11 f t f 2 910 "26 23" foo bar));
+
+
 /* ----------------
  *	old definition of struct proc
  * ----------------

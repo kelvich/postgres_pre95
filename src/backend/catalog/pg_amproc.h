@@ -82,6 +82,7 @@ DATA(insert OID = 0 (403 429 358 1));
 DATA(insert OID = 0 (403 430 359 1));
 DATA(insert OID = 0 (403 431 360 1));
 DATA(insert OID = 0 (403 432 357 1));
+DATA(insert OID = 0 (403 435 928 1));
 
 BKI_BEGIN
 #ifdef NOBTREE

@@ -259,6 +259,13 @@ DATA(insert OID = 673 (  "<="       6 0 b t f  701  701  16 675 674  0 0 float8l
 DATA(insert OID = 674 (  ">"      6 0 b t f  701  701  16 672 673  0 0 float8gt intltsel intltjoinsel ));
 DATA(insert OID = 675 (  ">="      6 0 b t f  701  701  16 673 672  0 0 float8ge intltsel intltjoinsel ));
 
+DATA(insert OID = 930 (  "<"       6 0 b t f  910  910  16 934 933  0 0 oidseqlt intltsel intltjoinsel ));
+DATA(insert OID = 931 (  "<="      6 0 b t f  910  910  16 933 934  0 0 oidseqle intltsel intltjoinsel ));
+DATA(insert OID = 932 (  "="       6 0 b t f  910  910  16 932 935  0 0 oidseqeq intltsel intltjoinsel ));
+DATA(insert OID = 933 (  ">="      6 0 b t f  910  910  16 931 930  0 0 oidseqge intltsel intltjoinsel ));
+DATA(insert OID = 934 (  ">"       6 0 b t f  910  910  16 930 931  0 0 oidseqgt intltsel intltjoinsel ));
+DATA(insert OID = 935 (  "!="      6 0 b t f  910  910  16 935 932  0 0 oidseqne intltsel intltjoinsel ));
+
 /* ----------------
  *	old definition of OperatorTupleForm
  * ----------------
