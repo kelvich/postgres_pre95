@@ -141,11 +141,17 @@ char *buf;
 int len;
 {
 	register char *cp = buf;
-	register int c, c2, dc, cspec;
+	register int c, c2, dc, cspec, 
+		     counter;  /* counts matching '{' and '}'.  */
+			       /* stop scanning when unmatched '}' */
+			       /* is encounterd. */
 
 	cspec = 0;
+	counter = 0;
 
-	while ((c = input()) != delimiter) {
+	while (!(((c = input()) == delimiter) && (counter  == 0))) {
+		if ( c == '\{' ) counter++;
+		if ( c == '\}' ) counter--;
 		if (cp - buf > len - 1) {
 			serror("String/char constant too large");
 			cp = buf;
