@@ -1365,11 +1365,11 @@ relation_expr:
 time_range:
 	  '[' opt_range_start ',' opt_range_end ']'
         	{ 
-		    $$ = MakeTimeRange($2,$4,1); 
+		    $$ = MakeList ( $2, $4, lispInteger(1), -1 );
 		}
 	| '[' date ']'
 		{ 
-		    $$ = MakeTimeRange($2,LispNil,0); 
+		    $$ = MakeList ( $2 , LispNil, lispInteger(0), -1 );
 		}
         ;
 
