@@ -36,9 +36,9 @@ RcsId("$Header$");
 
 #define	NCCBUCK	50	/* CatCache buckets 			*/
 #define MAXTUP 30	/* Maximum # of tuples cached per cache */
-#define LIST	SimpleList
-#define NODE	SimpleNode
-#define CCSIZE	(sizeof(struct catcache) + NCCBUCK * sizeof(SimpleList))
+#define LIST	SLList
+#define NODE	SLNode
+#define CCSIZE	(sizeof(struct catcache) + NCCBUCK * sizeof(SLList))
 
 struct catcache	*Caches = NULL;
 struct context	*CacheCxt = NULL;
@@ -100,9 +100,10 @@ int	key[];
     cp = LintCast(struct catcache *, palloc(CCSIZE));
     bzero((char *)cp, CCSIZE);
     for (i = 0; i <= NCCBUCK; ++i)	/* each bucket is a list header */
-	SListNewList(&cp->cc_cache[i]);
+	SLNewList(&cp->cc_cache[i], offsetof(catctup, ct_node));
 
-    SListNewList(&cp->cc_lrulist);	/* list of tuples for LRU alg.	*/
+    					/* list of tuples for LRU alg.	*/
+    SLNewList(&cp->cc_lrulist, offsetof(catctup, ct_lrunode));
     cp->cc_next = Caches;		/* list of caches (single link) */
     Caches = cp;
 
@@ -196,8 +197,8 @@ ResetSystemCache()
 	    LIST *list = &cache->cc_cache[hash];
 	    register CatCTup *ct, *nextct;
 
-	    for (ct = (CatCTup *)SListGetHead(list); ct; ct = nextct) {
-		nextct = (CatCTup *)SListGetSucc(&ct->ct_node);
+	    for (ct = (CatCTup *)SLGetHead(list); ct; ct = nextct) {
+		nextct = (CatCTup *)SLGetSucc(&ct->ct_node);
 
 		CatCacheRemoveCTup(cache, ct);
 	        if (cache->cc_ntup == -1) 
@@ -255,9 +256,9 @@ DATUM				v1, v2, v3, v4;
     hash = CatalogCacheComputeHashIndex(cache);
 
     /* XXX keytest arguments */
-    for (ct = (CatCTup *)SListGetHead(&cache->cc_cache[hash]); 
+    for (ct = (CatCTup *)SLGetHead(&cache->cc_cache[hash]); 
 	 ct;
-	 ct = (CatCTup *)SListGetSucc(&ct->ct_node)
+	 ct = (CatCTup *)SLGetSucc(&ct->ct_node)
     ) {
 	/* HeapTupleSatisfiesTimeRange(ct->ct_tup, NowTimeRange) */
 	if (keytest(ct->ct_tup, relation, cache->cc_nkeys, cache->cc_skey))
@@ -284,8 +285,8 @@ DATUM				v1, v2, v3, v4;
 #endif
     }
     if (ct) {		/* Tuple found in cache!   */
-	SListRemove(&ct->ct_lrunode);		/* most recently used */
-	SListAddHead(&cache->cc_lrulist, &ct->ct_lrunode);
+	SLRemove(&ct->ct_lrunode);		/* most recently used */
+	SLAddHead(&cache->cc_lrulist, &ct->ct_lrunode);
 
 #ifdef	CACHEDEBUG
 	elog(DEBUG, "SearchSysCache(%s): found in bucket %d",
@@ -339,14 +340,14 @@ DATUM				v1, v2, v3, v4;
     if (HeapTupleIsValid(ntp)) {
 	nct = LintCast(struct catctup *, palloc(sizeof(struct catctup)));
 	nct->ct_tup = ntp;
-	SListNewNode(nct, &nct->ct_node);
-	SListNewNode(nct, &nct->ct_lrunode);
-	SListAddHead(&cache->cc_lrulist, &nct->ct_lrunode);
-	SListAddHead(&cache->cc_cache[hash], &nct->ct_node);
+	SLNewNode(&nct->ct_node);
+	SLNewNode(&nct->ct_lrunode);
+	SLAddHead(&cache->cc_lrulist, &nct->ct_lrunode);
+	SLAddHead(&cache->cc_cache[hash], &nct->ct_node);
 	if (++cache->cc_ntup > cache->cc_maxtup) {
 	    register CatCTup *ct;
 
-	    ct = (CatCTup *)SListGetTail(&cache->cc_lrulist);
+	    ct = (CatCTup *)SLGetTail(&cache->cc_lrulist);
 	    if (ct != nct) {
 #ifdef CACHEDEBUG
  		elog(DEBUG, "SearchSysCache(%s): Overflow, LRU removal",
@@ -533,9 +534,9 @@ ItemPointer	pointer;
     for (ccp = Caches; ccp; ccp = ccp->cc_next) {
 	if (cacheId != ccp->id) 
     	    continue;
-	for (ct = (CatCTup *)SListGetHead(&ccp->cc_cache[hashIndex]);
+	for (ct = (CatCTup *)SLGetHead(&ccp->cc_cache[hashIndex]);
 	     ct;
-	     ct = (CatCTup *)SListGetSucc(&ct->ct_node)
+	     ct = (CatCTup *)SLGetSucc(&ct->ct_node)
 	) {
 	    /* HeapTupleSatisfiesTimeRange(ct->ct_tup, NowTQual) */
 	    if (ItemPointerEquals(pointer, &ct->ct_tup->t_ctid)) 
@@ -668,8 +669,8 @@ CatCacheRemoveCTup(cache, ct)
 CatCache *cache;
 CatCTup  *ct;
 {
-    SListRemove(&ct->ct_node);
-    SListRemove(&ct->ct_lrunode);
+    SLRemove(&ct->ct_node);
+    SLRemove(&ct->ct_lrunode);
     if (RuleLockIsValid(ct->ct_tup->t_lock.l_lock)) 
         pfree((char *)ct->ct_tup->t_lock.l_lock);
     pfree((char *) ct->ct_tup);
