@@ -11,11 +11,14 @@ RcsId("$Header$");
 
 #include "enbl.h"
 #include "excid.h"	/* for Unimplemented */
+#include "execnodes.h"	/* for EState */
 #include "hasht.h"
 #include "log.h"
 #include "mcxt.h"
 #include "mnodes.h"
 #include "nodes.h"
+#include "pg_lisp.h"
+#include "plannodes.h"	/* for Plan */
 
 #include "portal.h"
 
@@ -420,6 +423,54 @@ BlankPortalAssignName(name)
 	HashTableInsert(PortalHashTable, (Pointer)portal);
 
 	return (portal);
+}
+
+void
+PortalSetQuery(portal, parse, plan, state)
+	Portal		portal;
+	LispValue	parse;
+	Plan		plan;
+	EState		state;
+{
+	AssertState(PortalManagerEnabled);
+	AssertArg(PortalIsValid(portal));
+	AssertArg(NodeIsType((Node)parse, classTag(LispValue)));
+	AssertArg(NodeIsType((Node)plan, classTag(Plan)));
+	AssertArg(NodeIsType((Node)state, classTag(EState)));
+
+	portal->parse = parse;
+	portal->plan = plan;
+	portal->state = state;
+}
+
+LispValue	/* Parse */
+PortalGetParse(portal)
+	Portal		portal;
+{
+	AssertState(PortalManagerEnabled);
+	AssertArg(PortalIsValid(portal));
+
+	return (portal->parse);
+}
+
+Plan
+PortalGetPlan(portal)
+	Portal		portal;
+{
+	AssertState(PortalManagerEnabled);
+	AssertArg(PortalIsValid(portal));
+
+	return (portal->plan);
+}
+
+EState
+PortalGetState(portal)
+	Portal		portal;
+{
+	AssertState(PortalManagerEnabled);
+	AssertArg(PortalIsValid(portal));
+
+	return (portal->state);
 }
 
 Portal

@@ -19,8 +19,10 @@
 #include "c.h"
 #endif
 
+#include "execnodes.h"		/* for EState */
 #include "mnodes.h"
 #include "nodes.h"
+#include "plannodes.h"		/* for Plan */
 
 typedef struct PortalBlockData {
 	AllocSetData	setData;
@@ -33,7 +35,9 @@ typedef struct PortalData {
 	String				name;	/* XXX PortalName */
 	classObj(PortalVariableMemory)	variable;
 	classObj(PortalHeapMemory)	heap;
-	/* ... */
+	LispValue			parse;
+	Plan				plan;
+	EState				state;
 } PortalData;
 
 typedef PortalData	*Portal;
@@ -95,6 +99,68 @@ extern
 Portal
 BlankPortalAssignName ARGS((
 	String	name	/* XXX PortalName */
+));
+
+/*
+ * PortalSetQuery --
+ *	Attaches a "query" to portal.
+ *
+ * Exceptions:
+ *	BadState if called when disabled.
+ *	BadArg if portal is invalid.
+ *	BadArg if parse is "invalid."
+ *	BadArg if plan is "invalid."
+ *	BadArg if state is "invalid."
+ */
+extern
+void
+PortalSetQuery ARGS((
+	Portal		portal,
+	LispValue	parse,
+	Plan		plan,
+	EState		state
+));
+
+/*
+ * PortalGetParse --
+ *	Returns parse attached to portal.
+ *
+ * Exceptions:
+ *	BadState if called when disabled.
+ *	BadArg if portal is invalid.
+ */
+extern
+LispValue	/* Parse */
+PortalGetParse ARGS((
+	Portal		portal
+));
+
+/*
+ * PortalGetPlan --
+ *	Returns plan attached to portal.
+ *
+ * Exceptions:
+ *	BadState if called when disabled.
+ *	BadArg if portal is invalid.
+ */
+extern
+Plan
+PortalGetPlan ARGS((
+	Portal		portal
+));
+
+/*
+ * PortalGetState --
+ *	Returns state attached to portal.
+ *
+ * Exceptions:
+ *	BadState if called when disabled.
+ *	BadArg if portal is invalid.
+ */
+extern
+EState
+PortalGetState ARGS((
+	Portal		portal
 ));
 
 /*
