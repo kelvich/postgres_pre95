@@ -236,7 +236,7 @@ varattno ( rd , a)
 		}
 	}
 
-	elog(WARN,"Relation %s does not have attribute %s\n", 
+	elog(NOTICE,"Relation %s does not have attribute %s\n", 
 	     RelationGetRelationName(rd), a );
 	return(-1);
 }
@@ -283,25 +283,26 @@ RangeTablePosn ( rangevar , options )
 
 	/*printf("Looking for relation : %s\n",rangevar);
 	fflush(stdout);*/
-	/* search thru aliases
-	  while ( ! lispNullp (temp )) {
-		if ( ! strcmp ( CString ( CAR( CAR (temp ))),
-			        rangevar ))
-		  return (index );
-		temp = CDR(temp);
-		index++;
-	} */
 	index = 1;
 	temp = p_rtable;
 	while ( ! lispNullp (temp )) {
-		/* car(cdr(car(temp)) = actual relname 
-		  printf("%s\n",CString ( CAR(CDR(CAR (temp )))));
-		fflush (stdout );*/
-		if ( (! strcmp ( CString ( CAR( CAR (temp ))),
+	    LispValue refvalue = ( CAR ( CAR (temp )));
+	    if ( IsA (refvalue,LispStr)) {
+		if ( (! strcmp ( CString ( refvalue ),
 				rangevar ) ) &&
 		    (inherit == inherit) &&
 		    (timerange == timerange))
 		  return (index );
+	    } else {
+		List i;
+		foreach ( i , refvalue ) {
+		    Name actual_ref = (Name)CString(CAR(i));
+		    if ( !strcmp ( actual_ref , rangevar ) &&
+			 inherit == inherit &&
+			 timerange == timerange )
+		      return ( index );
+		}
+	    }
 		temp = CDR(temp);
 		index++;
 	}
@@ -325,14 +326,28 @@ RangeTablePositions ( rangevar , options )
     temp = p_rtable;
 
     while ( ! lispNullp (temp )) {
-
-	if ( (! strcmp ( CString ( CAR( CAR (temp ))),
-			rangevar ) ) &&
-	    (inherit == inherit) &&
-	    (timerange == timerange)) {
-	    
-	    list_of_positions = lispCons ( lispInteger ( index ),
-					  list_of_positions );
+	LispValue refvalue = CAR ( CAR ( temp ));
+	if ( IsA (refvalue,LispStr)) {
+	    if ( (! strcmp ( CString ( refvalue ),
+			    rangevar ) ) &&
+		(inherit == inherit) &&
+		(timerange == timerange)) {
+		
+		list_of_positions = lispCons ( lispInteger ( index ),
+					      list_of_positions );
+	    } 
+	} else {
+	    List i;
+	    foreach ( i , refvalue ) {
+		Name actual_ref = (Name)CString(CAR(i));
+		if ( !strcmp ( actual_ref , rangevar ) &&
+		    inherit == inherit &&
+		    timerange == timerange ) {
+		    
+		list_of_positions = lispCons ( lispInteger ( index ),
+					      list_of_positions );
+		}
+	    }
 	}
 	temp = CDR(temp);
 	index++;
