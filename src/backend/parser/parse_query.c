@@ -592,6 +592,11 @@ make_array_ref_var( relname, attrname, indirect_list)
      * ----------------
      */
     type_struct_array = (TypeTupleForm) GETSTRUCT(type_tuple);
+
+    if (type_struct_array->typelem == InvalidObjectId)
+    {
+	elog(WARN, "make_array_ref_var: %s is not an array", attrname);
+    }
    
     while (!done) {
     	type_tuple = SearchSysCacheTuple(TYPOID,
@@ -608,8 +613,8 @@ make_array_ref_var( relname, attrname, indirect_list)
     	}
     	type_struct_element = (TypeTupleForm) GETSTRUCT(type_tuple);
 
-		indirect_num = CInteger(CAR(indirect_list));
-		indirect_list = CDR(indirect_list);
+	indirect_num = CInteger(CAR(indirect_list));
+	indirect_list = CDR(indirect_list);
 
 	vararraylist = nappend1(vararraylist,
 				MakeArray((type_struct_array)->typelem,
@@ -622,7 +627,8 @@ make_array_ref_var( relname, attrname, indirect_list)
 	if (indirect_list != NULL &&
 	    type_struct_element->typelem == InvalidObjectId)
 	{
-		elog(WARN, "array does not have that many elements");
+		elog(WARN, "make_array_ref_var: too many levels of []'s for %s",
+		     attrname);
 	}
 	else if (indirect_list == NULL ||
 		 type_struct_element->typelem == InvalidObjectId)
