@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH "EXTEND INDEX" COMMANDS 06/13/93
+.TH "EXTEND INDEX" COMMANDS 02/13/94
 .XA 2 "Extend Index"
 .SH NAME
 extend index \(em extend a partial secondary index
@@ -24,7 +24,7 @@ is given, the index will be extended to be a complete index.
 Note that the predicate may only refer to attributes
 of the class on which the specified partial index was defined
 (see 
-.BR "define index" (commands)).
+.IR "define index" (commands)).
 .SH EXAMPLE
 .(C
 /*

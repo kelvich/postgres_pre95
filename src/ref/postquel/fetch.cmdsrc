@@ -18,7 +18,7 @@ The number of instances retrieved is specified by
 If the number of instances remaining in the portal is less than
 .IR number ,
 then only those available are fetched.  Substituting the keyword
-.BR all
+.IR all
 in place of a number will cause all remaining instances in the portal
 to be retrieved.  Instances may be fetched in both
 .IR forward
@@ -32,10 +32,11 @@ portal updates back to base classes is impossible in general as with
 view updates.  Consequently, users must issue explicit replace
 commands to update data.
 .PP
-Portals may only be used inside of
-.BR begin / end
-transaction blocks, since the data that they store spans multiple user
-queries.
+Portals may only be used inside of transaction blocks marked by 
+.IR begin (commands)
+and
+.IR end (commands)
+because the data that they store spans multiple user queries.
 .SH EXAMPLE
 .(C
 /*
@@ -61,6 +62,8 @@ fetch all in FOO
 fetch backward 5 in FOO
 .)C
 .SH "SEE ALSO"
+begin(commands),
+end(commands),
 close(commands),
 move(commands),
 retrieve(commands).
