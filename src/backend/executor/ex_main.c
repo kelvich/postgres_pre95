@@ -1173,7 +1173,7 @@ ExecReplace(slot, tupleid, estate, parseTree, newlocks)
     RuleLock	 	indexLocks;
     int		 	numIndices;
     HeapTuple	 	rawTuple;
-    Buffer		rawTupleBuffer;
+    Buffer		rawTupleBuffer = InvalidBuffer;
     HeapTuple 		oldTuple;
     Buffer 		oldTupleBuffer;
     HeapTuple 		changedTuple;
