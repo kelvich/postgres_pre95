@@ -36,8 +36,8 @@ pull_var_clause (clause)
 {
 	LispValue retval = LispNil;
 
-	if (var_p(clause) && get_varattno(clause))
-	  retval = list (clause);
+	if (IsA(clause,Var) && get_varattno(clause))
+	  retval = lispCons (clause,LispNil);
 	else if (single_node (clause)) 
 	  retval = LispNil;
 	else if (or_clause (clause)) {
@@ -45,7 +45,7 @@ pull_var_clause (clause)
 		LispValue result = LispNil;
 		/* mapcan */
 		foreach (temp,get_orclauseargs(clause) )
-		  retval = nconc(retval, pull_varclause(temp));
+		  retval = nconc(retval, pull_var_clause(temp));
 	} else if (is_funcclause (clause)) {
 		LispValue temp;
 		/* mapcan */
@@ -74,29 +74,35 @@ var_equal (var1,var2,dots)
      LispValue var1,var2;
      bool dots;
 {
-	if (var_p (var1) && var_p (var2) &&
-	    equal (get_varno (var1), get_varno (var2)) &&
-	    equal (get_varattno (var1),get_varattno (var2))) {
-		    if(dots) {
-			    /*    Check for nested-dot equality. */
-			    if (equal (get_vardotfields (var1),
-				       get_vardotfields (var2)) &&
-				equal (get_vararrayindex (var1),
-				       get_vararrayindex (var2)));
-			    return(true);
-		    } else {
+    if (IsA (var1,Var) && IsA (var2,Var) &&
+	(get_varno (var1) == get_varno (var2)) &&
+	(get_varattno (var1) == get_varattno (var2))) {
+
+/*   comment out for now since vararrayindex is always
+	     nil until we get procedures working.
+
+	if(dots != LispNil) {
+	    *    Check for nested-dot equality. *
+	    if (equal (get_vardotfields (var1),
+			   get_vardotfields (var2)) &&
+		equal (get_vararrayindex (var1),
+		       get_vararrayindex (var2)));
+	    return(true);
+	} else {
 			    
-			    /*    The vararrayindex field should be 
-				  ignored unless 'var1' no 
-				  longer has any nestings. */
-			    if (var_is_nested (var1) ||
-				equal (get_vararrayindex (var1),
-				       get_vararrayindex (var2)));
-			    return(true);
-		    }
-	    } else 
-	      return(false);
-	    
+	     *    The vararrayindex field should be 
+		  ignored unless 'var1' no 
+		  longer has any nestings. *
+	    if (var_is_nested (var1) ||
+		equal (get_vararrayindex (var1),
+			   get_vararrayindex (var2)));
+	    return(true);
+	}
+*/
+
+    } else 
+      return(false);
+    
 } /* var_equal */
 
 
@@ -115,8 +121,8 @@ numlevels (var)
      Var var;
 {
 	if(varid_indexes_into_array (var)) {
-		return ( length (cdr (get_varid (var))) - 1);
+		return ( length (CDR (get_varid (var))) - 1);
 	} else {
-		return(length (cdr ( get_varid (var))));
+		return(length (CDR ( get_varid (var))));
 	}
 }

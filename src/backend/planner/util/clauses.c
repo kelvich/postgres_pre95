@@ -67,28 +67,42 @@ LispValue
 clause_type (clause)
      LispValue clause ;
 {
-     if ( consp (clause) ) {
-	  LispValue type = clause_head (clause);
-	  if ( member (type,list(AND,OR,NOT)) ||
-	      func_p (type) || oper_p (type)) 
-	    return(type);
-     } else
-       return(LispNil);
-} 
+    LispValue clauseand = lispInteger(AND);
+    LispValue clauseor = lispInteger(OR);
+    LispValue clausenot = lispInteger(NOT);
+     
+    if ( consp (clause) ) {
+	LispValue type = clause_head (clause);
+	if ( member (type,lispCons(clauseand,
+				   lispCons(clauseor,
+					    lispCons(clausenot,
+						     LispNil)))) ||
+		     IsA (type,Func) || IsA (type,Oper)) 
+	  return(type);
+    } else
+      return(LispNil);
 
+}
 /*  .. clause-subclauses
  */
 LispValue
 clause_args (clause)
      LispValue clause ;
 {
-     if ( consp (clause) ) {
-	  LispValue type = clause_type (clause);
-	  if ( member (type,list(AND,OR,NOT)) ||
-	      func_p (type) || oper_p (type) ) 
-	    return(CDR (clause));
-     } else 
-       return(LispNil);
+    LispValue clauseand = lispInteger(AND);
+    LispValue clauseor = lispInteger(OR);
+    LispValue clausenot = lispInteger(NOT);
+
+    if ( consp (clause) ) {
+	LispValue type = clause_type (clause);
+	if ( member (type,lispCons(clauseand,
+				   lispCons(clauseor,
+					    lispCons(clausenot,
+						     LispNil)))) ||
+	    IsA (type,Func) || IsA(type,Oper) ) 
+	  return(CDR (clause));
+    } else 
+      return(LispNil);
 }
 
 /*
@@ -96,11 +110,18 @@ LispValue
 make_clause (type,rest,args)
      LispValue type,rest,args ;
 {
-     if ( member (type,list(AND,OR,NOT)) ||
-	 func_p (type) || oper_p (type))  {
-	  return(lispCons (type,args));
-     } else 
-       return(args);
+    LispValue clauseand = lispInteger(AND);
+    LispValue clauseor = lispInteger(OR);
+    LispValue clausenot = lispInteger(NOT);
+
+    if ( member (type,lispCons(clauseand,
+			       lispCons(clauseor,
+					lispCons(clausenot,
+						 LispNil)))) ||
+	IsA (type,Func) || IsA (type,Oper))  {
+	return(lispCons (type,args));
+    } else 
+      return(args);
 } 
 */
 
@@ -136,7 +157,7 @@ bool
 is_opclause (clause)
      LispValue clause ;
 {
-     return((bool)oper_p (clause_head (clause)));
+     return((bool)IsA (clause_head (clause),Oper));
 }
 
 /*    
@@ -154,9 +175,13 @@ make_opclause (op,leftop,rightop)
      LispValue op,leftop,rightop ;
 {
      if(rightop) {
-	  return(list (op,leftop,rightop));
+	  return(lispCons (op,
+			   lispCons(leftop,
+				    lispCons(rightop,
+					     LispNil))));
      } else {
-	  return(list (op,leftop));
+	  return(lispCons (op,
+			   lispCons(leftop,LispNil)));
      }
 }
 
@@ -238,7 +263,7 @@ bool
 is_funcclause (clause)
      LispValue clause ;
 {
-     return((bool)func_p (clause_head (clause)));
+     return((bool)IsA (clause_head (clause),Func));
 }
 
 /*    
@@ -400,7 +425,8 @@ LispValue
 make_notclause (notclause)
 LispValue notclause ;
 {
-     return(list ("NOT",notclause)); 
+     return(lispCons (lispString("NOT"),
+		      lispCons(notclause,LispNil))); 
 }
 
 /*    
@@ -476,3 +502,18 @@ get_andclauseargs (andclause)
 {
      return(CDR (andclause));
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -66,7 +66,7 @@ bool
 match_indexkey_operand (indexkey,operand,rel)
      LispValue indexkey,operand,rel ;
 {
-     if (var_p (operand) &&
+     if (IsA (operand,Var) &&
 	 equal (get_relid (rel),get_varno (operand)) &&
 	 equal_indexkey_var (indexkey,operand))
        return(true);
@@ -90,8 +90,8 @@ equal_indexkey_var (index_key,var)
 LispValue index_key,var ;
 {
      if ((consp (index_key) &&
-	  equal (orderkey_attribute_number (index_key), get_varattno (var)) &&
-	  equal (orderkey_array_index (index_key),get_vararrayindex (var))) ||
+	  equal (get_attribute_number (index_key), get_varattno (var)) &&
+	  equal (get_array_index (index_key),get_vararrayindex (var))) ||
 	 (equal (index_key,get_varattno (var)) &&
 	  null (get_vararrayindex (var))))
        return(true);
@@ -111,7 +111,8 @@ LispValue index_key,var ;
  */
 LispValue
 extract_subkey (joinkey,which_subkey)
-LispValue joinkey,which_subkey ;
+     LispValue joinkey;
+     int which_subkey ;
 {
      LispValue retval;
 
@@ -187,10 +188,11 @@ collect_index_pathkeys (index_keys,tlist)
      LispValue index_key,retval = LispNil;
 
      foreach(index_key,index_keys) {
-	  LispValue mvar;
+	  Expr mvar;
 	  mvar = matching_tlvar (index_key,tlist,equal_indexkey_var);
 	  if ( mvar ) 
-	    retval = nconc(retval,list (list (mvar)));
+	    retval = nconc(retval,lispCons (lispCons (mvar,LispNil),
+					    LispNil));
      }
      return(retval);
 }
@@ -267,7 +269,10 @@ bool
 valid_sortkeys (node)
      LispValue node ;
 {
-     return (NodeIsType(node, T_SortKey));
+    if (node)
+      return ((bool)NodeIsType(node, T_SortKey));
+    else
+      return(false);   /* if sortkeys is nil  */
 }
 
 /*    

@@ -31,14 +31,14 @@ static char *rcsid = "$Header$";
 #include "internal.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
+#include "pg_lisp.h"
 #include "var.h"
 #include "tlist.h"
 #include "clauses.h"
 
 /* XXX - find these references */
 extern LispValue copy_seq_tree();
-extern LispValue tlist_varsnreverse();
-extern Var make_var();
+
 
 static TLE flatten_tlistentry();
 
@@ -59,14 +59,14 @@ static TLE flatten_tlistentry();
  */
 
 LispValue
-tlistentry_member (var,targetlist,test)
+tlistentry_member (var,targetlist,var_equal)
      Var var;
      List targetlist;
-     bool (*test)();
+     bool (*var_equal)();
 {
     extern LispValue lambda1();
-	if ( var)
-	  return ( find (var,targetlist,lambda1,test));
+	if ( var) 
+	  return ( find(var,targetlist,var_equal,lambda1));
 }
 
 /* called by tlistentry-member */
@@ -74,7 +74,7 @@ static
 LispValue lambda1 (x)
      LispValue x ;
 {
-	tl_expr (get_tlelement (x));
+	get_expr (get_entry (x));
 }
 
 
@@ -102,7 +102,7 @@ matching_tlvar (var,targetlist,test)
 
 	tlentry = tlistentry_member (var,targetlist,test);
 	if ( tlentry ) 
-		return((Expr)get_expr (get_tlelement (tlentry)) );
+		return((Expr)get_expr (get_entry (tlentry)) );
 }
 
 /*    
@@ -126,14 +126,14 @@ add_tl_element (rel,var,joinlist)
 {
     Expr oldvar;
     
-    oldvar = matching_tlvar (var,get_tlist (rel));
+    oldvar = matching_tlvar (var,get_targetlist (rel));
     
     /* If 'var' is not already in 'rel's target list, add a new node. 
      * Otherwise, put the var with fewer nestings into the target list. 
      */
     
     if ( null( oldvar ) ) {
-	Var newvar = make_var (get_varno (var),
+	Var newvar = MakeVar (get_varno (var),
 			       get_varattno (var),
 			       get_vartype (var),LispNil,
 			       (consider_vararrayindex(var) ?
@@ -141,9 +141,9 @@ add_tl_element (rel,var,joinlist)
 				0 ),
 			       get_varid (var));
 
-	set_tlist (rel,append1 (get_tlist (rel),
+	set_targetlist (rel,nappend1 (get_targetlist (rel),
 				create_tl_element (newvar,
-						   tlist_size(rel) -1,
+						   get_size(rel) -1,
 						   joinlist)));
 
     } else if (length (get_varid (oldvar)) > length (get_varid (var))) {
@@ -175,14 +175,15 @@ create_tl_element (var,resdomno,joinlist)
      List joinlist;
 {
 	TL tlelement;
-	tlelement = CreateNode(TL);
-
+	tlelement = lispList();
+/*
 	set_entry (tlelement,
-		       list (make_resdom (resdomno, get_vartype (var),
-					  get_typlen (get_vartype (var)),
-					  LispNil,0,LispNil),var));
+		   MakeTLE (MakeResdom (resdomno, get_vartype (var),
+					get_typlen (get_vartype (var)),
+					  LispNil,0,LispNil),
+			    var));
 	set_joinlist (tlelement,joinlist);
-
+*/
 	return(tlelement);
 }
 
@@ -203,7 +204,7 @@ get_actual_tlist (tlist)
 	LispValue result;
 
 	for (element = tlist; element != LispNil; element = CDR(element) )
-	  result = nappend1 (result, get_tlelement (element));
+	  result = nappend1 (result, get_entry (element));
 
 	return(result);
 }
@@ -236,16 +237,17 @@ tlist_member (var,tlist,dots,key,test)
      bool (*test)();
 {
     /* declare (special (dots)); */
-    
+/*    
     if ( var) {
 	TLE tl_elt = (TLE)find (var,tlist,
-				key , tl_expr /* func */,
-				test, var_equal /* func */);
+				key , get_expr ,
+				test, var_equal );
 	if ( consp (tl_elt) ) 
 	  return(get_resdom (tl_elt));
 	else 
 	  return((Resdom)NULL);
     }
+*/
 }
 
 /*    
@@ -266,7 +268,7 @@ static
 LispValue lambda2(x)
      LispValue x ;
 {
-	get_varid (tl_expr (x));
+	get_varid (get_expr (x));
 }
 
 LispValue
@@ -299,8 +301,8 @@ new_unsorted_tlist (targetlist)
 	List x = NULL;
 
 	foreach (x, new_targetlist) {
-		set_reskey (tl_resdom (x),0);
-		set_reskeyop (tl_resdom (x),LispNil);
+		set_reskey (get_resdom (x),0);
+		set_reskeyop (get_resdom (x),LispNil);
 	}
 }
 
@@ -321,7 +323,8 @@ targetlist_resdom_numbers (targetlist)
 	LispValue result;
 	
 	for(element = targetlist; element != LispNil; element = CDR(element)) 
-	  result = nappend1 (result, get_resno (tl_Resdom (element)));
+	  result = nappend1 (result, 
+			     lispInteger(get_resno (get_resdom (element))));
 
 	return (result);
 }
@@ -346,13 +349,15 @@ LispValue
 copy_vars (target,source)
      LispValue target,source ;
 {
-	LispValue result, src, dest;
-	
-	for ( src = source, dest = target; src != LispNil &&
-	     dest != LispNil; src = CDR(src), dest = CDR(dest)) 
-	  result = nappend1(result,list(tl_resdom(dest),tl_expr(src)));
-
-	return(result);
+    LispValue result, src, dest;
+    
+    for ( src = source, dest = target; src != LispNil &&
+	 dest != LispNil; src = CDR(src), dest = CDR(dest)) {
+	LispValue temp = MakeTLE(get_resdom(dest),
+				 get_expr(src));
+	result = nappend1(result,temp);
+    }
+    return(result);
 }
 
 /*    
@@ -380,18 +385,25 @@ flatten_tlist (tlist)
     LispValue tlist_vars = LispNil;
     LispValue temp;
     LispValue var;
+
+    return(tlist);
+/*
+    foreach(temp,tlist) 
+      tlist_vars = nconc(tlist_vars,
+			 pull_var_clause (get_expr(CAR(temp))));
     
-    foreach(temp,tlist)
-      pull_var_clause (tl_expr(temp));
-    
-    foreach (var,tlist_varsnreverse (new_tlist)) {
-	if ( !(tlist_member (var,new_tlist,1 /* XXX - true */))) {
-	    push (new_tl (make_resdom(last_resdomno++ ,
-				      get_vartype (var),
-				      get_typlen (get_vartype (var)),
-				      LispNil,0,LispNil),var),new_tlist);
+    foreach (var,tlist_vars ) {
+	if ( !(tlist_member (CAR(var),new_tlist,1 ))) {
+	    push (MakeTLE ( MakeResdom(last_resdomno++ ,
+				       get_vartype (var),
+				       get_typlen (get_vartype (var)),
+				       LispNil,0,LispNil),var),
+		  new_tlist);
 	}
     }
+    return(nreverse(new_tlist));
+*/
+
 }
     
 /*    
@@ -419,8 +431,8 @@ flatten_tlist_vars (full_tlist,flat_tlist)
 
 	foreach(x,full_tlist)
 		result = nappend1(result,
-				  new_tl (tl_resdom (x),
-					  flatten_tlistentry (tl_expr (x),
+				  MakeTLE (get_resdom (x),
+					  flatten_tlistentry (get_expr (x),
 							      flat_tlist)));
 }
 
@@ -447,7 +459,7 @@ flatten_tlistentry (tlistentry,flat_tlist)
 	if(null (tlistentry)) {
 		return((TLE)NULL);
 	} 
-	else if (var_p (tlistentry)) {
+	else if (IsA (tlistentry,Var)) {
 		return((TLE)get_expr (match_varid (get_varid (tlistentry),
 					     flat_tlist)));
 	} 

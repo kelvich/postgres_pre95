@@ -65,11 +65,11 @@ find_joininfo_node (this_rel,join_relids)
      LispValue this_rel,join_relids ;
 {
     JInfo joininfo = joininfo_member (join_relids,
-				     get_join_info (this_rel));
+				     get_joininfo (this_rel));
     if ( joininfo == NULL ) {
 	joininfo = CreateNode (JInfo);
-	set_join_info (this_rel,cons (joininfo,get_join_info (this_rel)));
-	set_other_rels (joininfo,join_relids);
+	set_joininfo (this_rel, lispCons (joininfo,get_joininfo (this_rel)));
+	set_otherrels (joininfo,join_relids);
     }
     return(joininfo);
 }

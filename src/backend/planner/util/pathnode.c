@@ -158,13 +158,13 @@ LispValue parent_rel,unique_paths,new_paths ;
  *    
  */
 
-/*  .. add_pathlist
- */
-bool
+/*  .. add_pathlist    */
+
+static bool
 lambda1(path,new_path)
      Path path,new_path;
 {
-     return (bool)(qual_path_path_ordering (get_ordering (new_path),
+     return (bool)(equal_path_path_ordering (get_ordering (new_path),
 				      get_ordering(path)) &&
 	     samekeys (get_keys (new_path),get_keys (path)));
 }
@@ -257,7 +257,7 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
      
      if /*when */ ( get_ordering (pathnode)) {
 	 set_keys (pathnode,collect_index_pathkeys (get_indexkeys (index),
-						    get_tlist (rel)));
+						    get_targetlist (rel)));
 	   /*    Check that the keys haven't 'disappeared', since they may 
 		 no longer be in the target list (i.e.,
 		 index keys that are not 
@@ -284,7 +284,7 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 	  LispValue relattvals = get_relattvals (restriction_clauses);
 	  /* pagesel is '(Cost Cost) */
 	  List pagesel = index_selectivity (nth (0,get_indexid (index)),
-						 get_class (index),
+						 get_classlist (index),
 					   get_opnos (restriction_clauses),
 						 getrelid (get_relid (rel),
 						       _query_range_table_),
@@ -294,7 +294,8 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 						 length (restriction_clauses));
 	  /*   each clause gets an equal selectivity */
 	  Cost clausesel = 
-	    expt (nth (1,pagesel),div (0.000000,length (restriction_clauses)));
+	    expt (nth (1,pagesel),
+		  (1 / length (restriction_clauses)));
 
 	  set_indexqual (pathnode,restriction_clauses);
 	  set_cost (pathnode,cost_index (nth (0,get_indexid (index)),
@@ -340,9 +341,9 @@ create_nestloop_path (joinrel,outer_rel,outer_path,inner_path,keys)
      
      /* set_pathtype(pathnode,NEST_LOOP); */
      set_parent (pathnode,joinrel);
-     set_outerpath (pathnode,outer_path);
-     set_innerpath (pathnode,inner_path);
-     set_clause_info (pathnode,get_clause_info (joinrel));
+     set_outerjoinpath (pathnode,outer_path);
+     set_innerjoinpath (pathnode,inner_path);
+     set_clauseinfo (pathnode,get_clauseinfo (joinrel));
      set_keys (pathnode,keys);
      if /*when */ ( keys) {
 	  set_ordering (pathnode,get_ordering (outer_path));
@@ -388,9 +389,9 @@ create_mergesort_path (joinrel,outersize,innersize,outerwidth,
      MergePath pathnode = CreateNode(MergePath);
 
      set_parent (pathnode,joinrel);
-     set_outerpath (pathnode,outer_path);
-		set_innerpath (pathnode,inner_path);
-     set_clause_info (pathnode,get_clause_info (joinrel));
+     set_outerjoinpath (pathnode,outer_path);
+		set_innerjoinpath (pathnode,inner_path);
+     set_clauseinfo (pathnode,get_clauseinfo (joinrel));
      set_keys (pathnode,keys);
      set_ordering (pathnode,order);
      set_mergeclauses (pathnode,mergeclauses);
@@ -440,9 +441,9 @@ create_hashjoin_path (joinrel,outersize,innersize,outerwidth,
 
      /* set_pathtype (pathnode,T_HashJoin); */
      set_parent (pathnode,joinrel);
-     set_outerpath (pathnode,outer_path);
-     set_innerpath (pathnode,inner_path);
-     set_clause_info (pathnode,get_clause_info (joinrel));
+     set_outerjoinpath (pathnode,outer_path);
+     set_innerjoinpath (pathnode,inner_path);
+     set_clauseinfo (pathnode,get_clauseinfo (joinrel));
      set_keys (pathnode,keys);
      set_hashjoinoperator (pathnode,operator);
      set_hashclauses (pathnode,hashclauses);

@@ -14,8 +14,10 @@
 #include "internal.h"
 #include "relnode.h"
 #include "relation.h"
+#include "plancat.h"
 
-extern List relation_info(); /* XXX - should become #include "cfi.h" */
+extern void PrintRel();
+
 /*    
  *    	get_rel
  *    
@@ -31,25 +33,30 @@ extern List relation_info(); /* XXX - should become #include "cfi.h" */
 
 Rel
 get_rel (relid)
-     OID relid ;
+     LispValue relid ;
 {
-    Rel rel = rel_member (list (relid),_query_relation_list_);
+    Rel rel = rel_member (lispCons(relid,LispNil),
+			  _query_relation_list_);
+
     if /*when */ ( null (rel)) {
 	rel = CreateNode(Rel);
-	set_relids (rel,list (relid));
-	_query_relation_list_ = cons (rel,_query_relation_list_);
+	rel->printFunc = PrintRel;
+	set_relids (rel,lispCons (relid,LispNil));
+
+	_query_relation_list_ = lispCons (rel,_query_relation_list_);
+
 	if(listp (relid)) {
 	    /*    If the relation is a materialized relation, assume 
 		  constants for sizes. */
 	    set_pages (rel,_TEMP_RELATION_PAGES_);
 	    set_tuples (rel,_TEMP_RELATION_TUPLES_);
-	} 
-	else {
+
+	} else {
 	    /*    Otherwise, retrieve relation characteristics from the */
 	    /*    system catalogs. */
 	    
-	    LispValue relinfo = relation_info (relid);
-	    set_indexed (rel,not (zerop (nth (0,relinfo))));
+	    LispValue relinfo = relation_info((ObjectId)CInteger(relid));
+	    set_indexed (rel, !zerop (nth (0,relinfo)));
 	    set_pages (rel,nth (1,relinfo));
 	    set_tuples (rel,nth (2,relinfo));
 	} 
@@ -72,7 +79,7 @@ get_rel (relid)
 
 Rel
 rel_member (relid,rels)
-     OID relid;
+     LispValue relid;
      List rels;
 {
      Rel retval;

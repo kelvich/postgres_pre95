@@ -119,9 +119,11 @@ get_relattvals (clauseinfo_list)
 	  result2 = nappend1(result2,CADDR(temp));
      }
      foreach(temp,relattvals) {
-	  result3 = nappend1(result3,CADDDR(temp));
+	  result3 = nappend1(result3,CADDR(CDR(temp)));
      }
-     return(list (result1,result2,result3));
+     return(lispCons(result1,
+		     lispCons(result2,
+			      lispCons(result3, LispNil))));
 }
 
 /*    
@@ -163,9 +165,11 @@ get_joinvars (relid,clauseinfo_list)
 	  result2 = nappend1(result2,CADDR(temp));
      }
      foreach(temp,relattvals) {
-	  result3 = nappend1(result3,CADDDR(temp));
+	  result3 = nappend1(result3,CADDR(CDR(temp)));
      }
-     return(list (result1,result2,result3));
+     return(lispCons (result1,
+		      lispCons(result2,
+			       lispCons(result3,LispNil))));
 }
 
 /*    
@@ -192,11 +196,17 @@ get_joinvar (relid,clauseinfo)
      LispValue relid,clauseinfo ;
 {
      Expr clause = get_clause (clauseinfo);
-     if( var_p (get_leftop (clause)) &&
+     if( IsA (get_leftop (clause),Var) &&
 	 equal (relid,get_varno (get_leftop (clause)))) {
-	  list (get_varattno (get_leftop (clause)),"",_SELEC_CONSTANT_RIGHT_);
+	 lispCons (get_varattno (get_leftop (clause)),
+		   lispCons(lispString(""),
+			    lispCons(lispInteger(_SELEC_CONSTANT_RIGHT_),
+				     LispNil)));
      } else {
-	  list (get_varattno (get_rightop (clause)),"",_SELEC_CONSTANT_LEFT_);
+	 lispCons (get_varattno (get_rightop (clause)),
+		   lispCons(lispString(""),
+			    lispCons(lispInteger(_SELEC_CONSTANT_LEFT_),
+				     LispNil)));
      } 
 }
 
