@@ -595,6 +595,7 @@ _bt_first(scan, dir)
     BlockNumber blkno;
     StrategyNumber strat;
     RetrieveIndexResult res;
+    RegProcedure proc;
     int result;
     ScanKeyData skdata;
 
@@ -613,18 +614,15 @@ _bt_first(scan, dir)
      *  at the right place in the scan.
      */
 
-    skdata.data[0].flags = 0x0;
     /*
      *  XXX -- The attribute number stored in the scan key is the attno
      *	       in the heap relation.  We need to transmogrify this into
-     *         the index relation attno here.  For the nonce, however...
-     *  skdata.data[0].attributeNumber = scan->keyData.data[0].attributeNumber;
+     *         the index relation attno here.  For the moment, we have
+     *	       hardwired attno == 1.
      */
-    skdata.data[0].attributeNumber = 1;
-    skdata.data[0].argument = scan->keyData.data[0].argument;
-    skdata.data[0].procedure = index_getprocid(rel,
-					       skdata.data[0].attributeNumber,
-					       BTORDER_PROC);
+    proc = index_getprocid(rel, 1, BTORDER_PROC);
+    ScanKeyEntryInitialize(&skdata, 0x0, 1, proc,
+			   scan->keyData.data[0].argument);
 
     stack = _bt_search(rel, 1, &skdata, &buf);
     _bt_freestack(stack);
