@@ -5,6 +5,7 @@
 
 #include <sys/types.h>
 #include <time.h>
+#include <sys/timeb.h>
 
 /* ----------------------------------------------------------------
  *		time types + support macros
