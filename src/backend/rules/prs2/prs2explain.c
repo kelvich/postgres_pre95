@@ -1,20 +1,22 @@
-#include <stdio.h>
-#include <strings.h>
-#include "log.h"
-#include "oid.h"
-#include "name.h"
-#include "datum.h"
-#include "heapam.h"
-#include "tupdesc.h"
-#include "syscache.h"
-#include "ftup.h"
-
 /*---------------------------------------------------------------------
  *
  * IDENTIFICATION:
  * $Header$
  *
  */
+
+#include <stdio.h>
+#include <strings.h>
+
+#include "tmp/postgres.h"
+
+RcsId("$Header$");
+
+#include "access/heapam.h"
+#include "access/tupdesc.h"
+#include "access/ftup.h"
+#include "utils/log.h"
+#include "catalog/syscache.h"
 
 /*---------------------------------------------------------------------
  *

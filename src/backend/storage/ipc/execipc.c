@@ -58,15 +58,15 @@
  *	be condensed.
  * ----------------
  */
-#include "c.h"
+#include "tmp/c.h"
 
-#include "ipc.h"
-#include "log.h"
-#include "pladt.h"
-#include "sinval.h"
+#include "storage/ipc.h"
+#include "storage/ipci.h"
+#include "storage/pladt.h"
+#include "storage/sinval.h"
 
-#include "ipci.h"
-#include "mcxt.h"
+#include "utils/mcxt.h"
+#include "utils/log.h"
 
  RcsId("$Header$");
 
@@ -304,11 +304,10 @@ I_Finished()
 }
 
 void
-P_Finished()
+P_Finished(nprocs)
+int nprocs;
 {
-    int nslaves;
-    nslaves = GetNumberSlaveBackends();
-    Exec_P(ExecutorMasterSemaphore, nslaves);
+    Exec_P(ExecutorMasterSemaphore, nprocs);
 }
 
 void
