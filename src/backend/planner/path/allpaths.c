@@ -31,6 +31,8 @@
 #include "planner/pathnode.h"
 #include "planner/clauses.h"
 #include "planner/xfunc.h"
+#include "tcop/creatinh.h"
+#include "lib/copyfuncs.h"
 
 /*    
  *    	find-paths
@@ -59,12 +61,6 @@ find_paths(rels,nest_level,sortkeys)
 	/* Find the base relation paths. */
 	find_rel_paths(rels,nest_level,sortkeys);
 	
-	/* sort the clauses in the base relations by expense
-	**   -- JMH 2/24/92
-	*/
-	if (XfuncMode != XFUNC_OFF)
-	  xfunc_rellist_sortprds(rels);
-
 	if( !sortkeys && (levels_left <= 1)) {
 	    /* Unsorted single relation, no more processing is required. */
 	    return(rels);   
@@ -113,6 +109,7 @@ find_rel_paths(rels,level,sortkeys)
 {
      LispValue temp;
      Rel rel;
+     LispValue tmppath;
      
      foreach(temp,rels) {
 	  LispValue sequential_scan_list;
@@ -145,6 +142,11 @@ find_rel_paths(rels,level,sortkeys)
 	   */
 	  prune_rel_path(rel, (Path)last_element(get_pathlist(rel))); 
 
+	  /* copy clauseinfo list into each path for expensive function 
+	     processing */
+	  foreach(tmppath, get_pathlist(rel))
+	    set_locclauseinfo((Path)CAR(tmppath),
+			      CopyObject(get_clauseinfo(rel)));
        }
      foreach(temp, rels) {
 	 rel = (Rel)CAR(temp);
@@ -184,8 +186,10 @@ find_join_paths(outer_rels,levels_left,nest_level)
      LispValue outer_rels;
      int levels_left, nest_level;
 {
-    LispValue x;
+    LispValue x, y;
     Rel rel;
+    Path curpath;
+    LispValue tmp_rels;
 
     /*
     * Determine all possible pairs of relations to be joined at this level.
@@ -196,6 +200,12 @@ find_join_paths(outer_rels,levels_left,nest_level)
     LispValue new_rels = find_join_rels(outer_rels);
 
     find_all_join_paths(new_rels, outer_rels, nest_level);
+
+    /* for each expensive predicate in each path in each rel, consider 
+       doing pullup  -- JMH */
+    if (XfuncMode != XFUNC_OFF)
+      foreach(x, new_rels)
+	xfunc_trypullup((Rel)CAR(x));
 
     new_rels = prune_joinrels(new_rels);
     prune_rel_paths(new_rels);
