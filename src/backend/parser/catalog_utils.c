@@ -26,12 +26,16 @@ RcsId("$Header$");
 #include "catalog_utils.h"
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_type.h"
+#include "catalog/indexing.h"
+#include "catalog/catname.h"
 
 #include "access/skey.h"
 #include "access/relscan.h"
 #include "access/tupdesc.h"
 #include "access/htup.h"
 #include "access/heapam.h"
+#include "access/genam.h"
+#include "access/itup.h"
 
 #include "storage/buf.h"
 
@@ -211,6 +215,17 @@ Type t;
     return(typ->typbyval);
 }
 
+/* given a type, return its typetype ('c' for 'c'atalog types) */
+char
+typetypetype(t)
+Type t;
+{
+    TypeTupleForm typ;
+    
+    typ = (TypeTupleForm) GETSTRUCT(t);
+    return(typ->typtype);
+}
+
 /* given operator, return the operator OID */
 OID
 oprid(op)
@@ -315,8 +330,8 @@ CandidateList *candidates;
  */
 CandidateList
 binary_oper_select_candidate(arg1, arg2, candidates)
-int arg1, arg2;
-CandidateList candidates;
+     int arg1, arg2;
+     CandidateList candidates;
 {
     /*
      * if both are "unknown", there is no way to select a candidate
@@ -341,8 +356,8 @@ CandidateList candidates;
 /* Given operator, types of arg1, and arg2, return oper struct */
 Operator
 oper(op, arg1, arg2)
-char *op;
-int arg1, arg2;	/* typeids */
+     char *op;
+     int arg1, arg2;	/* typeids */
 {
     HeapTuple tup;
     CandidateList candidates;
@@ -398,10 +413,10 @@ int arg1, arg2;	/* typeids */
  */
 int
 unary_oper_get_candidates(op, typeId, candidates, rightleft)
-char *op;
-int typeId;
-CandidateList *candidates;
-char rightleft;
+     char *op;
+     int typeId;
+     CandidateList *candidates;
+     char rightleft;
 {
     CandidateList 	current_candidate;
     Relation            pg_operator_desc;
@@ -792,37 +807,246 @@ funcid_get_rettype ( funcid)
     return (funcrettype);
 }
 
+/*
+ * get a list of all argument type vectors for which a function named
+ * funcname taking nargs arguments exists
+ */
+CandidateList
+func_get_candidates(funcname, nargs)
+     char *funcname;
+     int nargs;
+{
+    Relation heapRelation;
+    Relation idesc;
+    ScanKeyEntryData skey;
+    HeapTuple tuple;
+    IndexScanDesc sd;
+    GeneralRetrieveIndexResult indexRes;
+    Buffer buffer;
+    Form_pg_proc pgProcP;
+    bool bufferUsed = FALSE;
+    CandidateList candidates = NULL;
+    CandidateList current_candidate;
+    int i;
+
+    heapRelation = heap_openr(ProcedureRelationName);
+    ScanKeyEntryInitialize(&skey,
+                           (bits16)0x0,
+                           (AttributeNumber)1,
+                           (RegProcedure)NameEqualRegProcedure,
+                           (Datum)funcname);
+
+    idesc = index_openr((Name)ProcedureNameIndex);
+
+    sd = index_beginscan(idesc, false, 1, (ScanKey)&skey);
+
+    do {  
+        tuple = (HeapTuple)NULL;
+        if (bufferUsed) {
+            ReleaseBuffer(buffer);
+            bufferUsed = FALSE;
+        }
+
+        indexRes = AMgettuple(sd, ForwardScanDirection);
+        if (GeneralRetrieveIndexResultIsValid(indexRes)) {
+            ItemPointer iptr;
+
+            iptr = GeneralRetrieveIndexResultGetHeapItemPointer(indexRes);
+            tuple = heap_fetch(heapRelation, NowTimeQual, iptr, &buffer);
+            pfree(indexRes);
+            if (HeapTupleIsValid(tuple)) {
+                pgProcP = (Form_pg_proc)GETSTRUCT(tuple);
+                bufferUsed = TRUE;
+		if (pgProcP->pronargs == nargs) {
+		    current_candidate = (CandidateList)
+			palloc(sizeof(struct _CandidateList));
+
+		    current_candidate->args = (ObjectId *)
+			palloc(8 * sizeof(ObjectId));
+		    bzero(current_candidate->args, 8 * sizeof(ObjectId));
+		    for (i=0; i<nargs; i++) {
+			current_candidate->args[i] = 
+			    pgProcP->proargtypes.data[i];
+		    }
+
+		    current_candidate->next = candidates;
+		    candidates = current_candidate;
+		}
+            }
+	}
+    } while (GeneralRetrieveIndexResultIsValid(indexRes));
+
+    index_endscan(sd);
+    index_close(idesc);
+    heap_close(heapRelation);		 
+
+    return candidates;
+}
+
+/*
+ * can input_typeids be coerced to func_typeids?
+ */
+bool can_coerce(nargs, input_typeids, func_typeids)
+     int nargs;
+     ObjectId *input_typeids;
+     ObjectId *func_typeids;
+{
+    int i;
+    Type tp;
+
+    /*
+     * right now, we only coerce "unknown", and we cannot coerce it to a
+     * relation type
+     */
+    for (i=0; i<nargs; i++) {
+	if (input_typeids[i] != func_typeids[i]) {
+	    if (input_typeids[i] != UNKNOWNOID)
+		return false;
+	    
+	    tp = get_id_type(input_typeids[i]);
+	    if (typetypetype(tp) == 'c')
+		return false;
+	}
+    }
+
+    return true;
+}
+
+/*
+ * given a list of possible typeid arrays to a function and an array of
+ * input typeids, produce a shortlist of those function typeid arrays
+ * that match the input typeids (either exactly or by coercion), and
+ * return the number of such arrays
+ */
+int
+match_argtypes(nargs, input_typeids, function_typeids, candidates)
+     int nargs;
+     ObjectId *input_typeids;
+     CandidateList function_typeids;
+     CandidateList *candidates;		/* return value */
+{
+    CandidateList current_candidate;
+    CandidateList matching_candidate;
+    ObjectId *current_typeids;
+    int ncandidates = 0;
+
+    *candidates = NULL;
+
+    for (current_candidate = function_typeids;
+	 current_candidate != NULL;
+	 current_candidate = current_candidate->next) {
+	current_typeids = current_candidate->args;
+	if (can_coerce(nargs, input_typeids, current_typeids)) {
+	    matching_candidate = (CandidateList)
+		palloc(sizeof(struct _CandidateList));
+	    matching_candidate->args = current_typeids;
+	    matching_candidate->next = *candidates;
+	    *candidates = matching_candidate;
+	    ncandidates++;
+	}
+    }
+
+    return ncandidates;
+}
+
+/*
+ * given the input argtype array and more than one candidate for the
+ * for the function argtype array, attempt to resolve the conflict.
+ * returns the selected argtype array if the conflict can be resolved,
+ * otherwise returns NULL
+ */
+ObjectId *
+func_select_candidate(nargs, input_typeids, candidates)
+     int nargs;
+     ObjectId *input_typeids;
+     CandidateList candidates;
+{
+    /* XXX no conflict resolution implemeneted yet */
+    return (NULL);
+}
+
 bool
-func_get_detail(funcname, nargs, oid_array, funcid, rettype, retset)
+func_get_detail(funcname, nargs, oid_array, funcid, rettype,
+		retset, true_typeids)
     char *funcname;
     int nargs;
     ObjectId *oid_array;
     ObjectId *funcid;			/* return value */
     ObjectId *rettype;			/* return value */
     bool *retset;			/* return value */
+    ObjectId **true_typeids;		/* return value */
 {
     ObjectId *fargs;
-    ObjectId **oid_vector;
-    ObjectId *current_oids;
+    ObjectId **input_typeid_vector;
+    ObjectId *current_input_typeids;
+    CandidateList function_typeids;
+    CandidateList current_function_typeids;
     HeapTuple ftup;
     Form_pg_proc pform;
 
-    /* attempt to find named function in the system catalogs
-     * with arguments exactly as specified
+    /*
+     * attempt to find named function in the system catalogs
+     * with arguments exactly as specified - so that the normal
+     * case is just as quick as before
      */
     ftup = SearchSysCacheTuple(PRONAME, funcname, nargs, oid_array, 0);
+    *true_typeids = oid_array;
 
-    /* if an exact match isn't found, get a vector of all possible
-     * arg type lists constructed from the superclasses of the
-     * original arg types (might it be better to inherit one by one?)
+    /*
+     * If an exact match isn't found :
+     * 1) get a vector of all possible input arg type arrays constructed
+     *    from the superclasses of the original input arg types
+     * 2) get a list of all possible argument type arrays to the
+     *	  function with given name and number of arguments
+     * 3) for each input arg type array from vector #1 :
+     *	  a) find how many of the function arg type arrays from list #2
+     *	     it can be coerced to
+     *	  b) - if the answer is one, we have our function
+     *	     - if the answer is more than one, attempt to resolve the
+     *	       conflict
+     *	     - if the answer is zero, try the next array from vector #1
      */
     if (!HeapTupleIsValid(ftup)) {
-	oid_vector = argtype_inherit(nargs, oid_array);
-	while ((**oid_vector != InvalidObjectId) &&
-	       (!HeapTupleIsValid(ftup))) {
-	      current_oids = *oid_vector++;
-	      ftup = SearchSysCacheTuple(PRONAME,
-					 funcname, nargs, current_oids, 0);
+	function_typeids = func_get_candidates(funcname, nargs);
+
+	if (function_typeids != NULL) {
+	    int ncandidates = 0;
+
+	    input_typeid_vector = argtype_inherit(nargs, oid_array);
+	    current_input_typeids = oid_array;
+
+	    do {
+		ncandidates = match_argtypes(nargs, current_input_typeids,
+					     function_typeids,
+					     &current_function_typeids);
+		if (ncandidates == 1) {
+		    *true_typeids = current_function_typeids->args;
+		    ftup = SearchSysCacheTuple(PRONAME, funcname, nargs,
+					       *true_typeids, 0);
+		    Assert(HeapTupleIsValid(ftup));
+		}
+		else if (ncandidates > 1) {
+		    *true_typeids =
+			func_select_candidate(nargs,
+					      current_input_typeids,
+					      current_function_typeids);
+		    if (*true_typeids == NULL) {
+			elog(NOTICE, "there is more than one function named \"%s\"",
+			     funcname);
+			elog(NOTICE, "that satisfies the given argument types. you will have to");
+			elog(NOTICE, "retype your query using explicit typecasts.");
+			func_error("func_get_detail", funcname, nargs, oid_array);
+		    }
+		    else {
+			ftup = SearchSysCacheTuple(PRONAME, funcname, nargs,
+						   *true_typeids, 0);
+			Assert(HeapTupleIsValid(ftup));
+		    }
+		}
+		current_input_typeids = *input_typeid_vector++;
+	    } 
+	    while (current_input_typeids !=
+		   InvalidObjectId && ncandidates == 0);
 	}
     }
 
@@ -890,7 +1114,7 @@ argtype_inherit(nargs, oid_array)
     }
 
     /* return an ordered cross-product of the classes involved */
-    return (genxprod(arginh));
+    return (genxprod(arginh, nargs));
 }
 
 typedef struct _SuperQE {
@@ -1004,8 +1228,9 @@ findsupers(relid, supervec)
 }
 
 ObjectId **
-genxprod(arginh)
+genxprod(arginh, nargs)
     InhPaths *arginh;
+    int nargs;
 {
     int nanswers;
     ObjectId **result, **iter;
@@ -1014,8 +1239,8 @@ genxprod(arginh)
     int cur[MAXFARGS];
 
     nanswers = 1;
-    for (i = 0; i < MAXFARGS; i++) {
-	nanswers *= (arginh[i].nsupers + 1);
+    for (i = 0; i < nargs; i++) {
+	nanswers *= (arginh[i].nsupers + 2);
 	cur[i] = 0;
     }
 
@@ -1024,25 +1249,27 @@ genxprod(arginh)
     /* compute the cross product from right to left */
     for (;;) {
 	oneres = (ObjectId *) palloc(MAXFARGS * sizeof(ObjectId));
+	bzero(oneres, MAXFARGS * sizeof(ObjectId));
 
-	for (i = MAXFARGS - 1; i >= 0 && cur[i] == arginh[i].nsupers; i--)
+	for (i = nargs - 1; i >= 0 && cur[i] > arginh[i].nsupers; i--)
 	    continue;
 
-	/* if we're done, do wildcard vector and return */
+	/* if we're done, terminate with NULL pointer */
 	if (i < 0) {
-	    bzero(oneres, MAXFARGS * sizeof(ObjectId));
-	    *iter = oneres;
+	    *iter = NULL;
 	    return (result);
 	}
 
 	/* no, increment this column and zero the ones after it */
 	cur[i] = cur[i] + 1;
-	for (j = MAXFARGS - 1; j > i; j--)
+	for (j = nargs - 1; j > i; j--)
 	    cur[j] = 0;
 
-	for (i = 0; i < MAXFARGS; i++) {
+	for (i = 0; i < nargs; i++) {
 	    if (cur[i] == 0)
 		oneres[i] = arginh[i].self;
+	    else if (cur[i] > arginh[i].nsupers)
+		oneres[i] = 0;	/* wild card */
 	    else
 		oneres[i] = arginh[i].supervec[cur[i] - 1];
 	}
@@ -1206,7 +1433,7 @@ int *argtypes;
 		    *(ptr + 16) = '\0';
 	      }
 	      else
-		    strcpy(ptr, "**TYPE 0**");
+		    strcpy(ptr, "wildcard");
 	      ptr += strlen(ptr);
 	}
 
