@@ -1,6 +1,10 @@
 /*
  * exc.c --
  *	POSTGRES exception handling code.
+ *
+ * Note:
+ *	XXX this code needs improvement--check for state violations and
+ *	XXX reset after handling an exception.
  */
 
 #include <stdio.h>	/* XXX use own I/O routines */
@@ -16,6 +20,7 @@ RcsId("$Header$");
 /*
  * Global Variables
  */
+static bool ExceptionHandlingEnabled = false;
 
 String			ExcFileName = NULL;
 Index			ExcLineNumber = 0;
@@ -29,28 +34,24 @@ static	ExcProc		*ExcUnCaughtP = NULL;
  */
 
 void
-InitExceptionHandling(firstTime)
-	bool	firstTime;
+EnableExceptionHandling(on)
+	bool	on;
 {
-	static bool	called = false;
-
-	if (firstTime == called) {
+	if (on == ExceptionHandlingEnabled) {
+		/* XXX add logging of failed state */
 		ExitPostgres(FatalExitStatus);
 	}
 
-	called = true;
-
-	if (firstTime) {
-		/* initialize */
+	if (on) {	/* initialize */
 		;
-	} else {
-		/* do deallocations and cleanup */
-		/* reinitialize */
+	} else {	/* cleanup */
 		ExcFileName = NULL;
 		ExcLineNumber = 0;
 		ExcCurFrameP = NULL;
 		ExcUnCaughtP = NULL;
 	}
+
+	ExceptionHandlingEnabled = on;
 }
 
 void
