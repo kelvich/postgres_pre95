@@ -11,6 +11,7 @@ define type \*- define a new base data type
 \fBdefine type\fP typename (internallength = (number | variable),
 	[ externallength = (number | variable), ]
 	input = function, output = function
+	[ , element = typename]
 	[ , default = \*(lqstring\*(rq ]
 	[ , send = procedure ] [ , receive = procedure ]
 	[ , passedbyvalue])
@@ -54,8 +55,22 @@ or variable length,
 in which case \*(PP assumes that the new type has the same format
 as the \*(PP-supplied data type, 
 .b "text".
+To indicate that a type is variable length, set
+.i "internal length"
+to
+.b "-1"
+.
 Moreover, the external representation is similarly specified using
 .i "external length."
+.lp
+To indicate that a type is an array and to indicate that a type has
+array elements, indicate the type of the array element using 
+the 
+.i "element"
+attribute.  For example, to define an array of 4 byte integers (int4), set the
+.i "element"
+attribute equal to
+.b "int4".
 .lp
 A
 .i "default"
