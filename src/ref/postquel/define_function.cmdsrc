@@ -348,7 +348,7 @@ which might be used to debit a bank account:
 define function TP1
         (language = "postquel", returntype = int4)
         arg is (int4, float8)
-        as "replace BANK (balance = balance - $2)
+        as "replace BANK (balance = BANK.balance - $2)
               where BANK.accountno = $1
             retrieve(x = 1)"
 .ft
@@ -384,7 +384,7 @@ their children:
 .lp
 .(l
 .ft C
-retrieve (name(EMP), hobby=name(hobbies(EMP)),
+retrieve (name=name(EMP), hobby=name(hobbies(EMP)),
 	kid=name(children(EMP)))
     where overpaid_2(EMP)
 .ft
