@@ -374,6 +374,10 @@ _bt_formitem(itup)
     Size tuplen;
     extern OID newoid();
 
+    /* disallow nulls in btree keys */
+    if (itup->t_info & INDEX_NULL_MASK)
+	elog(WARN, "btree indices cannot include null keys");
+
     /* make a copy of the index tuple with room for the sequence number */
     tuplen = IndexTupleSize(itup);
     nbytes_btitem = tuplen +
