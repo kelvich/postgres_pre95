@@ -663,6 +663,27 @@ match_unsorted_inner(joinrel,outerrel,innerrel,innerpath_list,mergeinfo_list)
 	
 }  /* function end  */
     
+bool
+EnoughMemoryForHashjoin(hashrel)
+Rel hashrel;
+{
+    int ntuples;
+    int tupsize;
+    int pages;
+
+    ntuples = get_size(hashrel);
+    if (ntuples == 0) ntuples = 1000;
+    tupsize = get_width(hashrel) + sizeof(HeapTupleData);
+    pages = page_size(ntuples, tupsize);
+    /*
+     * if amount of buffer space below hashjoin threshold,
+     * return false
+     */
+    if (ceil(sqrt((double)pages)) > NBuffers)
+       return false;
+    return true;
+}
+
 /*    
  *    	hash-inner-and-outer		XXX HASH
  *    
@@ -728,7 +749,7 @@ hash_inner_and_outer(joinrel,outerrel,innerrel,hashinfo_list)
 		  }
 		}
 	    }
-	else {
+	else if (EnoughMemoryForHashjoin(innerrel)) {
 	temp_node = create_hashjoin_path(joinrel,
 					 get_size(outerrel),
 					 get_size(innerrel),

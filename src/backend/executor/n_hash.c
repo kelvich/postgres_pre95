@@ -345,7 +345,7 @@ ExecHashTableCreate(node)
     outerNode = get_outerPlan(node);
     ntuples = get_plan_size(outerNode);
     if (ntuples <= 0)
-	ntuples = 100;  /* XXX just a hack */
+	ntuples = 1000;  /* XXX just a hack */
     tupsize = get_plan_width(outerNode) + sizeof(HeapTupleData);
 
     /*
@@ -936,6 +936,7 @@ Hash node;
      */
     outerNode = get_outerPlan((Plan) node);
     ntuples = get_plan_size(outerNode);
+    if (ntuples == 0) ntuples = 1000;
     tupsize = get_plan_width(outerNode) + sizeof(HeapTupleData);
     pages = ceil((double)ntuples * tupsize * FUDGE_FAC / BLCKSZ);
 
