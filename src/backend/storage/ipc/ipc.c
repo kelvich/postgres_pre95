@@ -705,7 +705,7 @@ IpcMemoryKill(memKey)
     }
 } 
 
-#ifdef sequent
+#ifdef HAS_TEST_AND_SET
 /* ------------------
  *  use hardware locks to replace semaphores for sequent machines
  *  to avoid costs of swapping processes and to provide unlimited
@@ -973,4 +973,4 @@ SemId lockid;
     return(SLockArray[lockid].flag == NOLOCK);
 }
 
-#endif /* sequent */
+#endif /* HAS_TEST_AND_SET */

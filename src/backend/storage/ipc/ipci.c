@@ -53,7 +53,7 @@ CreateSharedMemoryAndSemaphores(key)
     LtSynchKill(IPCKeyGetLockTableMemoryKey(key));
     LtTransactionSemaphoreKill(IPCKeyGetLockTableSemaphoreKey(key));
 
-#ifdef sequent
+#ifdef HAS_TEST_AND_SET
     /* ---------------
      *  create shared memory for slocks
      * --------------
@@ -120,7 +120,7 @@ AttachSharedMemoryAndSemaphores(key)
 	return;
     }
 
-#ifdef sequent
+#ifdef HAS_TEST_AND_SET
     /* ----------------
      *  attach the slock shared memory
      * ----------------

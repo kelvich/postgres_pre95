@@ -11,7 +11,8 @@
 /* 
  * two implementations of spin locks
  *
- * sequent: real spin locks. uses a TAS instruction.
+ * sequent, sparc, sun3: real spin locks. uses a TAS instruction; see
+ * src/storage/ipc/s_lock.c for details.
  *
  * default: fake spin locks using semaphores.  see spin.c
  *

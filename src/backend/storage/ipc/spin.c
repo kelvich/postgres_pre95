@@ -26,7 +26,7 @@
 #include "storage/spin.h"
 #include "utils/log.h"
 
-#ifdef sequent
+#ifdef HAS_TEST_AND_SET
 /* real spin lock implementations */
 
 CreateSpinlocks(key)
@@ -75,7 +75,7 @@ SPINLOCK lock;
 {
     return(!LockIsFree(lock));
 }
-#else /* sequent */
+#else /* HAS_TEST_AND_SET */
 /* Spinlocks are implemented using SysV semaphores */
 
 
@@ -201,4 +201,4 @@ IPCKey key;
   
   return(TRUE);
 }
-#endif /* sequent */
+#endif /* HAS_TEST_AND_SET */

@@ -215,7 +215,7 @@ bool		bufferLockHeld;
   }
 
   /* If anyone was waiting for IO to complete, wake them up now */
-#ifdef sequent
+#ifdef HAS_TEST_AND_SET
   S_UNLOCK(&(bufHdr->io_in_progress_lock));
 #else
   if (bufHdr->refcount > 1)
@@ -369,7 +369,7 @@ bool		bufferLockHeld;
    * io will be attempted, so the flag isnt set.
    */
   buf->flags |= BM_IO_IN_PROGRESS; 
-#ifdef sequent
+#ifdef HAS_TEST_AND_SET
   /* lock the io_in_progress_lock before the read so that
    * other process will wait on it
    */
@@ -653,7 +653,7 @@ BufferSync()
  *	the queue structure.  That way signal can figure
  *	out which proc to wake up.
  */
-#ifdef sequent
+#ifdef HAS_TEST_AND_SET
 WaitIO(buf, spinlock)
 BufferDesc *buf;
 SPINLOCK spinlock;
@@ -664,7 +664,7 @@ SPINLOCK spinlock;
     SpinAcquire(spinlock);
 }
 
-#else /* sequent */
+#else /* HAS_TEST_AND_SET */
 static IpcSemaphoreId	WaitIOSemId;
 
 WaitIO(buf,spinlock)
@@ -696,7 +696,7 @@ BufferDesc *buf;
   semncnt = IpcSemaphoreGetValue(WaitIOSemId, 0);
   IpcSemaphoreUnlock(WaitIOSemId, 0, semncnt);
 }
-#endif /* sequent */
+#endif /* HAS_TEST_AND_SET */
 
 /*
  * Initialize module:
@@ -756,7 +756,7 @@ IPCKey key;
       buf->flags = (BM_DELETED | BM_FREE | BM_VALID);
       buf->refcount = 0;
       buf->id = i;
-#ifdef sequent
+#ifdef HAS_TEST_AND_SET
       S_INIT_LOCK(&(buf->io_in_progress_lock));
 #endif
     }
@@ -772,7 +772,7 @@ IPCKey key;
 
   SpinRelease(BufMgrLock);
 
-#ifndef sequent
+#ifndef HAS_TEST_AND_SET
   WaitIOSemId = IpcSemaphoreCreate(IPCKeyGetWaitIOSemaphoreKey(key),
 				   1, IPCProtection, 0, &status);
 #endif

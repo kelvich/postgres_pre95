@@ -53,7 +53,7 @@
  * 		lock table holding buffer locks
  * ----------------
  */
-#ifdef sequent
+#ifdef HAS_TEST_AND_SET
 LockId SharedInvalidationLockId;
 #else
 IpcSemaphoreId	SharedInvalidationSemaphore;
@@ -948,9 +948,9 @@ void
 SISyncInit(key)
     IPCKey	key;
 {
-#ifdef sequent
+#ifdef HAS_TEST_AND_SET
     SharedInvalidationLockId = SINVALLOCKID;  /* a fixed lock */
-#else /* sequent */
+#else /* HAS_TEST_AND_SET */
     int status;
     SharedInvalidationSemaphore =
     	IpcSemaphoreCreate(key, 1, IPCProtection, SI_LockStartValue,
@@ -958,14 +958,14 @@ SISyncInit(key)
     if(0) { /* XXX use validity function and check status */
     	elog(FATAL, "SISynchInit: %m");
     }
-#endif /* sequent */
+#endif /* HAS_TEST_AND_SET */
 }
 
 void
 SISyncKill(key)
     IPCKey	key;
 {
-#ifndef sequent
+#ifndef HAS_TEST_AND_SET
     IpcSemaphoreKill(key);
 #endif
 }
@@ -974,52 +974,52 @@ SISyncKill(key)
 void
 SIReadLock()
 {
-#ifdef sequent
+#ifdef HAS_TEST_AND_SET
     SharedLock(SharedInvalidationLockId);
-#else /* sequent */
+#else /* HAS_TEST_AND_SET */
     IpcSemaphoreLock ( SharedInvalidationSemaphore ,
 		       0 , 
 		       SI_SharedLock );
-#endif /* sequent */
+#endif /* HAS_TEST_AND_SET */
 }
 
 
 void
 SIWriteLock()
 {
-#ifdef sequent
+#ifdef HAS_TEST_AND_SET
     ExclusiveLock(SharedInvalidationLockId);
-#else /* sequent */
+#else /* HAS_TEST_AND_SET */
     IpcSemaphoreLock ( SharedInvalidationSemaphore,
 		       0 ,
 		      SI_ExclusiveLock );
-#endif /* sequent */
+#endif /* HAS_TEST_AND_SET */
 }
 
 
 void
 SIReadUnlock()
 {
-#ifdef sequent
+#ifdef HAS_TEST_AND_SET
     SharedUnlock(SharedInvalidationLockId);
-#else /* sequent */
+#else /* HAS_TEST_AND_SET */
     IpcSemaphoreLock ( SharedInvalidationSemaphore,
 		       0,
 		       (- SI_SharedLock) );
-#endif /* sequent */
+#endif /* HAS_TEST_AND_SET */
 }
 
 
 void
 SIWriteUnlock()
 {
-#ifdef sequent
+#ifdef HAS_TEST_AND_SET
     ExclusiveUnlock(SharedInvalidationLockId);
-#else /* sequent */
+#else /* HAS_TEST_AND_SET */
     IpcSemaphoreLock ( SharedInvalidationSemaphore,
 		       0,
 		       ( - SI_ExclusiveLock ) );
-#endif /* sequent */
+#endif /* HAS_TEST_AND_SET */
 }
 
 
