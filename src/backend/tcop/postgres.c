@@ -37,11 +37,6 @@ extern void handle_warn();
 RcsId("$Header$");
 
 
-/* ----------------------------------------------------------------
- *	misc routines
- * ----------------------------------------------------------------
- */
-
 /*
  * AllocateAttribute --
  *	Returns space for an attribute.
@@ -67,6 +62,12 @@ static	time_t	tim;
 
 bool override = false;
 
+
+/* ----------------------------------------------------------------
+ *	misc routines
+ * ----------------------------------------------------------------
+ */
+
 void
 handle_warn()
 {
@@ -80,8 +81,279 @@ die()
 }
 
 /* ----------------
- *	main
+ * XXX - BeginCommand belongs wherever EndCommand is, but where
+ *       EndCommand is seems like the wrong place - jeff
  * ----------------
+ */
+
+BeginCommand(pname,attinfo)
+    char *pname;
+    LispValue attinfo;
+{
+    struct attribute **attrs;
+    int nattrs;
+
+    nattrs = CInteger(CAR(attinfo));
+    attrs = (struct attribute **)CADR(attinfo);
+
+    if (IsUnderPostmaster == true) {
+	pflush();
+	initport(pname,nattrs,attrs);
+	pflush();
+    } else {
+	showatts(pname,nattrs,attrs);
+    }
+}
+
+/* ----------------------------------------------------------------
+ *	routines to obtain user input
+ * ----------------------------------------------------------------
+ */
+
+/* ----------------
+ *  InteractiveBackend() is called for user interactive connections
+ *  the string entered by the user is placed in its parameter inBuf.
+ * ----------------
+ */
+
+char InteractiveBackend(inBuf)
+    char *inBuf;
+{
+    String stuff;
+
+    /* ----------------
+     *	display a prompt and obtain input from the user
+     * ----------------
+     */
+
+    for (;;) {
+	printf("> ");
+	stuff = gets(inBuf);
+    
+	/* ----------------
+	 *  if the string is NULL then we aren't going to
+	 *  get anything more from the user so abort this transaction
+	 *  and exit.
+	 * ----------------
+	 */
+	if (! StringIsValid(stuff)) {
+	    if (!Quiet) {
+		puts("EOF");
+	    }
+	    AbortCurrentTransaction();
+	    exit(0);
+	}
+
+	/* ----------------
+	 *  now see if it's a debugging command...
+	 * ----------------
+	 */
+	if (strncmp("DEBUG", inBuf, strlen(inBuf)) == 0) {
+	    char s[128];
+	    int v;
+	    
+	    if (sscanf(inBuf+5, "%s%d", s, &v) == 2)
+		DebugVariableSet(s, v);
+	    continue;
+	}
+
+	/* ----------------
+	 *  otherwise we have a user query so process it.
+	 * ----------------
+	 */
+	break;
+    }
+    
+    return('Q');
+}
+
+/* ----------------
+ *  SocketBackend()	Is called for frontend-backend connections
+ *
+ *  If the input is a query (case 'Q') then the string entered by
+ *  the user is placed in its parameter inBuf.
+ *
+ *  If the input is a fastpath function call (case 'F') then
+ *  the function call is processed in HandleFunctionRequest().
+ *  (now called from main())
+ * ----------------
+ */
+
+char SocketBackend(inBuf, parseList)
+    char *inBuf;
+    LispValue parseList;
+{
+    char *qtype = "?";
+    int pq_qid;
+
+    /* ----------------
+     *	get input from the frontend
+     * ----------------
+     */
+    getpchar(qtype,0,1);
+    
+    switch(*qtype) {
+    /* ----------------
+     *  'Q': user entered a query
+     * ----------------
+     */
+    case 'Q':
+	pq_qid = getpint(4);
+	getpstr(inBuf, MAX_PARSE_BUFFER);
+
+	if (!Quiet)
+	    printf("Received Query: %s\n", inBuf);
+	if (inBuf == NULL) {
+	    if (! Quiet)
+		puts("EOF");
+	    AbortCurrentTransaction();
+	    exit(0);
+	}
+	return('Q');
+	break;
+	
+    /* ----------------
+     *  'F':  calling user/system functions
+     * ----------------
+     */
+    case 'F':	
+        return('F');
+        break;
+
+    /* ----------------
+     *  otherwise we got garbage from the frontend.
+     *
+     *  XXX are we certain that we want to do an elog(FATAL) here?
+     *      -cim 1/24/90
+     * ----------------
+     */
+    default:
+        /* elog(FATAL, "Socket command type $%02x unknown\n", *qtype); */
+	elog(FATAL, "Socket command type %c unknown\n", *qtype);
+	break;
+    }
+}
+
+/* ----------------
+ *	ReadCommand reads a command from either the frontend or
+ *	standard input, places it in inBuf, and returns a char
+ *	representing whether the string is a 'Q'uery or a 'F'astpath
+ *	call.
+ * ----------------
+ */
+char ReadCommand(inBuf)
+    char *inBuf;
+{
+    if (IsUnderPostmaster == true)
+	return SocketBackend(inBuf);
+    else
+	return InteractiveBackend(inBuf);
+}
+
+/* ----------------------------------------------------------------
+ *	pg_eval()
+ *	
+ *	Takes a querystring, runs the parser/utilities or
+ *	parser/planner/executor over it as necessary
+ *	Begin Transaction Should have been called before this
+ *	and CommitTransaction After this is called
+ *	This is strictly because we do not allow for nested xactions.
+ *
+ *
+ *	NON-OBVIOUS-RESTRICTIONS
+ * 	this function _MUST_ allocate a new "parsetree" each time, 
+ * 	since it may be stored in a named portal and should not 
+ * 	change its value.
+ * ----------------------------------------------------------------
+ */
+
+pg_eval( query_string )
+    String	query_string;
+{
+    LispValue parsetree = lispList();
+
+    /* ----------------
+     *	(1) parse the request string
+     * ----------------
+     */
+    parser(query_string,parsetree);
+    
+    ValidateParse(parsetree);
+    
+    /* ----------------
+     *	display parse strings
+     * ----------------
+     */
+    if (! Quiet) {
+	printf("\ninput string is %s\n",query_string);
+	printf("\n---- \tparser outputs :\n");
+	lispDisplay(parsetree,0);
+	printf("\n");
+    }
+	
+    /* ----------------
+     *   (2) process the request
+     * ----------------
+     */
+    if (atom(CAR(parsetree))) {
+	/* ----------------
+	 *   process utility functions (create, destroy, etc..)
+	 * ----------------
+	 */
+	if (! Quiet) {
+	    time(&tim);
+	    printf("\tProcessUtility() at %s\n", ctime(&tim));
+	}
+	ProcessUtility(LISPVALUE_INTEGER(CAR(parsetree)),
+		       CDR(parsetree));
+	
+    } else {
+	/* ----------------
+	 *   process optimisable queries (retrieve, append, delete, replace)
+	 * ----------------
+	 */
+	Node plan;
+	extern Node planner();
+	extern void init_planner();
+
+	/* ----------------
+	 *   initialize the planner
+	 * ----------------
+	 */
+	if (! Quiet)
+	    puts("\tinit_planner()..");
+	
+	init_planner();
+	
+	/* ----------------
+	 *   generate the plan
+	 * ----------------
+	 */
+	plan = planner(parsetree);
+
+	if (! Quiet) {
+	    printf("\nPlan is :\n");
+	    (*(plan->printFunc))(stdout, plan);
+	    printf("\n");
+	}
+	    
+	/* ----------------
+	 *   execute the plan
+	 * ----------------
+	 */
+	if (! Quiet) {
+	    time(&tim);
+	    printf("\tProcessQuery() at %s\n", ctime(&tim));
+	}
+	ProcessQuery(parsetree, plan);
+    }
+}
+
+
+
+/* ----------------------------------------------------------------
+ *	main
+ * ----------------------------------------------------------------
  */
 
 main(argc, argv)
@@ -176,10 +448,13 @@ main(argc, argv)
 	fprintf(stderr,"Postmaster flag set, but no port number specified\n");
 	exit(1);
     }
-    if (IsUnderPostmaster == true) {
-	pinit();
-    }
 
+    /* ----------------
+     *	initialize portals
+     * ----------------
+     */
+    if (IsUnderPostmaster == true)
+	pinit();
 
     /* ----------------
      * 	various initalization stuff
@@ -191,9 +466,9 @@ main(argc, argv)
 	
     /* XXX the -C version flag should be removed and combined with -O */
     SetProcessingMode((override) ? BootstrapProcessing : InitProcessing);
-    /*
-     * allow functions to be dynamically loaded
-     */
+
+    if (! Quiet)
+	puts("\tEnableDynamicFunctionManager()..");
     EnableDynamicFunctionManager(fmgr_dynamic);
 
     if (! Quiet)
@@ -212,17 +487,17 @@ main(argc, argv)
     }
 
     /* ----------------
-     *   new code for handling input
+     *	POSTGRES main processing loop begins here
      * ----------------
      */
-    if (! IsUnderPostmaster ) {
+    if (IsUnderPostmaster == false) {
 	puts("\nPOSTGRES backend interactive interface");
 	puts("$Revision$ $Date$");
     }
 
     for (;;) {
 	/* ----------------
-	 *   start the current transaction
+	 *   (1) start the current transaction
 	 * ----------------
 	 */
 	if (! Quiet) {
@@ -231,23 +506,30 @@ main(argc, argv)
 	}
 	StartTransactionCommand();
 
-	if (IsUnderPostmaster == true) {
-	    if ( SocketBackend(parser_input ) == 'F') {
-		if (! Quiet) {
-		    time(&tim);
-		    printf("\tCommitTransactionCommand() at %s\n", 
-			   ctime(&tim));
-		}
-		CommitTransactionCommand();
-		continue;
-	    }
-	} else
-	  InteractiveBackend(parser_input);
-    
-	pg_eval ( parser_input );
+	/* ----------------
+	 *   (2) read and process a command. 
+	 * ----------------
+	 */
+	switch (ReadCommand(parser_input)) {
+	    /* ----------------
+	     *	'F' incicates a fastpath call.
+	     *      XXX HandleFunctionRequest
+	     * ----------------
+	     */
+	case 'F':
+	    HandleFunctionRequest();
+	    break;
+	    /* ----------------
+	     *	'Q' indicates a user query
+	     * ----------------
+	     */
+	case 'Q':
+	    pg_eval(parser_input);
+	    break;
+	}
 
 	/* ----------------
-	 *   commit the current transaction
+	 *   (3) commit the current transaction
 	 * ----------------
 	 */
 	if (! Quiet) {
@@ -257,173 +539,3 @@ main(argc, argv)
 	CommitTransactionCommand();
     }
 }
-
-/* XXX - begicommand belongs wherever endcommand is, but where
-   endcommand is seems like the wrong place - jeff */
-
-BeginCommand(pname,attinfo)
-     char *pname;
-     LispValue attinfo;
-{
-    struct attribute **attrs;
-    int nattrs;
-
-    nattrs = CInteger(CAR(attinfo));
-    attrs = (struct attribute **)CADR(attinfo);
-
-    if (IsUnderPostmaster == true) {
-	pflush();
-	initport(pname,nattrs,attrs);
-	pflush();
-    } else {
-	showatts(pname,nattrs,attrs);
-    }
-}
-
-/*
- *  SocketBackend()	Is called for frontend-backend connections
- */
-
-SocketBackend(inBuf, parseList)
-     char *inBuf;
-     LispValue parseList;
-{
-    char *qtype = "?";
-    int pq_qid;
-
-    getpchar(qtype,0,1);
-
-    switch(*qtype) {
-    case 'Q':
-	pq_qid = getpint(4);
-	getpstr(inBuf, MAX_PARSE_BUFFER);
-	if (!Quiet)
-	    printf("Received Query: %s\n", inBuf);
-	if (inBuf == NULL) {
-	    if (! Quiet)
-		puts("EOF");
-	    AbortCurrentTransaction();
-	    exit(0);
-	}
-	break;
-    case 'F':	/* calling user/system functions */
-        HandleFunctionRequest();
-        return('F');
-        break;
-    default:
-	/* elog(FATAL, "Socket command type $%02x unknown\n", *qtype); */
-	elog(FATAL, "Socket command type %c unknown\n", *qtype);
-	break;
-    }
-}
-
-/*
- *  InteractiveBackend() Is called for user interactive connections
- *  MODIFIES:	inBuf
- */
-
-InteractiveBackend(inBuf)
-     char *inBuf;
-{
-    String	stuff;
-    
-    printf("> ");
-    stuff = gets(inBuf);
-    if (!StringIsValid(stuff)) {
-	if (!Quiet) {
-	    puts("EOF");
-	}
-	AbortCurrentTransaction();
-	exit(0);
-    }
-}
-
-/*	QueryEvaluate
- *	
- *	Takes a querystring, runs the parser/utilities or
- *	parser/planner/executor over it as necessary
- *	Begin Transaction Should have been called before this
- *	and CommitTransaction After this is called
- *	This is strictly because we do not allow for nested xactions.
- *
- *
- *	NON-OBVIOUS-RESTRICTIONS
- * 	this function _MUST_ allocate a new "parsetree" each time, 
- * 	since it may be stored in a named portal and should not 
- * 	change its value.
- */
-
-pg_eval ( query_string )
-     String	query_string;
-{
-    LispValue parsetree = lispList();
-    
-    parser(query_string,parsetree);
-    
-    ValidateParse(parsetree);
-    
-    /* ----------------
-     *	display parse strings
-     * ----------------
-     */
-    if (! Quiet) {
-	printf("\ninput string is %s\n",query_string);
-	printf("\n---- \tparser outputs :\n");
-	lispDisplay(parsetree,0);
-	printf("\n");
-    }
-	
-    /* ----------------
-     *   process the request
-     * ----------------
-     */
-    if (atom (CAR(parsetree))) {
-	/* ----------------
-	 *   process utility functions (create, destroy, etc..)
-	 * ----------------
-	 */
-	if (! Quiet) {
-	    time(&tim);
-	    printf("\tProcessUtility() at %s\n", ctime(&tim));
-	}
-	
-	ProcessUtility(LISPVALUE_INTEGER(CAR(parsetree)),
-		       CDR(parsetree));
-    } else {
-	/* ----------------
-	 *   process queries (retrieve, append, delete, replace)
-	 * ----------------
-	 */
-	Node plan;
-	extern Node planner();
-	extern void init_planner();
-
-	if (! Quiet)
-	  puts("\tinit_planner()..");
-	init_planner();
-	
-	    /* ----------------
-	     *   generate the plan
-	     * ----------------
-	     */
-	plan = planner(parsetree);
-	    if (! Quiet) {
-		printf("\nPlan is :\n");
-		(*(plan->printFunc))(stdout, plan);
-		printf("\n");
-	    }
-	    
-	/* ----------------
-	 *   call the executor
-	 * ----------------
-	 */
-	if (! Quiet) {
-	    time(&tim);
-	    printf("\tProcessQuery() at %s\n", ctime(&tim));
-	}
-	
-	ProcessQuery(parsetree, plan);
-	}
-    
-}
-
