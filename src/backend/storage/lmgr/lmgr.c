@@ -48,6 +48,7 @@
 #include "catalog/catname.h"
 #include "catalog/pg_relation.h"
 
+#include "nodes/mnodes.h"
 /* ----------------
  *	
  * ----------------
@@ -184,6 +185,7 @@ RelationInitLockInfo(relation)
     ObjectId		relationid;
     bool		processingVariable;
     extern ObjectId	MyDatabaseId;		/* XXX use include */
+    extern GlobalMemory CacheCxt;
     
     /* ----------------
      *	sanity checks
@@ -206,7 +208,13 @@ RelationInitLockInfo(relation)
      * ----------------
      */
     if (! PointerIsValid(info)) 
-	info = new(LockInfoData);
+    {
+	MemoryContext oldcxt;
+
+	oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
+	info = (LockInfo)palloc(sizeof(LockInfoData));
+	MemoryContextSwitchTo(oldcxt);
+    }
     else if (processingVariable) {
 	if (IsTransactionState()) {
 	    TransactionIdStore(GetCurrentTransactionId(),
