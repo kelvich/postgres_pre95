@@ -57,6 +57,7 @@
 #include "utils/mcxt.h"		/* for EnableMemoryContext, etc. */
 
 #include "catalog/catname.h"
+#include "catalog/pg_database.h"
 
 #include "tmp/miscadmin.h"
 
@@ -135,9 +136,9 @@ InitMyDatabaseId()
     int		nbytes;
     int		max, i;
     HeapTuple	tup;
-    char	*tup_db;
     Page	pg;
     PageHeader	ph;
+    Form_pg_database	tup_db;
 
     /* ----------------
      *  If we're unable to open pg_database, we're not running in the
@@ -206,11 +207,21 @@ InitMyDatabaseId()
 	     *  Okay, see if this is the one we want.
 	     *	XXX 1 july 91:  mao and mer discover that tuples now squash
 	     *			t_bits.  Why is this?
+	     *
+	     *     24 july 92:  mer realizes that the t_bits field is only
+	     *                  used in the event of null values.  If no
+	     *                  fields are null we reduce the header size
+	     *                  by doing the squash.  t_hoff tells you exactly
+	     *                  how big the header actually is. use the PC
+	     *                  means of getting at sys cat attrs.
 	     */
-	    tup_db = ((char *) tup) + sizeof (*tup) - sizeof(tup->t_bits);
+	    tup_db = (Form_pg_database)GETSTRUCT(tup);
 
 	    /* note: MyDatabaseName set by call to SetDatabaseName() */
-	    if (strncmp(MyDatabaseName, tup_db, 16) == 0) {
+	    if (strncmp(&(MyDatabaseName->data[0]),
+			&(tup_db->datname.data[0]),
+			16) == 0)
+	    {
 		MyDatabaseId = tup->t_oid;
 		goto done;
 	    }
