@@ -105,6 +105,38 @@ private	nfile = 0;
  *
  */
 
+void
+EnableFDCache(enable)
+int enable;
+{
+    static int numEnabled;
+#ifdef DOUBLECHECK
+    static int fault; 
+
+    Assert(!fault);
+#endif
+
+    if (!enable && --numEnabled)
+	return;
+    if (enable && numEnabled++)
+	return;
+
+#ifdef DOUBLECHECK
+    ++fault;
+#endif
+    if (enable) {
+	EnableELog(1);
+	/* XXX */
+    } else {
+	EnableELog(0);
+	/* XXX */
+    }
+#ifdef DOUBLECHECK
+    --fault;
+#endif
+}
+
+
  /* 
   * Private Routines
   *
