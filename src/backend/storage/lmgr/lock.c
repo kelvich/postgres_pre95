@@ -656,6 +656,7 @@ LOCKT	lockt;
   int		status;
   XIDLookupEnt	*result,item;
   HTAB 		*xidTable;
+  bool		wakeupNeeded = true;
 
   Assert (tableId < NumTables);
   ltable = AllTables[tableId];
@@ -678,7 +679,7 @@ LOCKT	lockt;
 
   Assert( ltable->lockHash->hash == tag_hash);
   lock = (LOCK *)
-    hash_search(ltable->lockHash,(Pointer)lockName,HASH_FIND,&found);
+    hash_search(ltable->lockHash,(Pointer)lockName,HASH_FIND_SAVE,&found);
 
   /* let the caller print its own error message, too.
    * Do not elog(WARN).
@@ -709,6 +710,23 @@ LOCKT	lockt;
 
   Assert(lock->nActive >= 0);
 
+  if (! lock->nHolding)
+  {
+    /* ------------------
+     * if there's no one waiting in the queue,
+     * we just released the last lock.
+     * Delete it from the lock table.
+     * ------------------
+     */
+    Assert( ltable->lockHash->hash == tag_hash);
+    lock = (LOCK *) hash_search(ltable->lockHash,
+				(Pointer) &(lock->tag),
+				HASH_REMOVE_SAVED,
+				&found);
+    Assert(lock && found);
+    wakeupNeeded = false;
+  }
+
   /* ------------------
    * Zero out all of the tag bytes (this clears the padding bytes for long
    * word alignment and ensures hashing consistency).
@@ -720,8 +738,11 @@ LOCKT	lockt;
   item.tag.lock = MAKE_OFFSET(lock);
   item.tag.pid = MyPid;
 
-  if (! (result = (XIDLookupEnt *)
-	 hash_search(xidTable, (Pointer)&item, HASH_FIND, &found))|| !found)
+  if (! ( result = (XIDLookupEnt *) hash_search(xidTable,
+						(Pointer)&item,
+						HASH_FIND_SAVE,
+						&found) )
+	 || !found)
   {
     SpinRelease(masterLock);
     elog(NOTICE,"LockReplace: xid table corrupted");
@@ -742,35 +763,13 @@ LOCKT	lockt;
   {
     SHMQueueDelete(&result->queue);
     if (! (result = (XIDLookupEnt *)
-	   hash_search(xidTable, (Pointer)&item, HASH_REMOVE, &found)) ||
+	   hash_search(xidTable, (Pointer)&item, HASH_REMOVE_SAVED, &found)) ||
 	! found)
     {
       SpinRelease(masterLock);
       elog(NOTICE,"LockReplace: xid table corrupted");
       return(FALSE);
     }
-  }
-
-
-  if (! lock->nHolding)
-  {
-    /* ------------------
-     * if there's no one waiting in the queue,
-     * we just released the last lock.
-     * Delete it from the lock table.
-     * ------------------
-     */
-    Assert( ltable->lockHash->hash == tag_hash);
-    lock = (LOCK *)
-      hash_search(ltable->lockHash,(Pointer)&(lock->tag),HASH_REMOVE, &found);
-    SpinRelease(masterLock);
-
-    if ((! lock) || (!found))
-    {
-      elog(NOTICE,"LockReplace: cannot remove lock from HTAB");
-      return(FALSE);
-    }
-    return(TRUE);
   }
 
   /* --------------------------
@@ -785,13 +784,16 @@ LOCKT	lockt;
     lock->mask &= BITS_OFF[lockt];
   }
 
-  /* --------------------------
-   * Wake the first waiting process and grant him the lock if it
-   * doesn't conflict.  The woken process must record the lock
-   * himself.
-   * --------------------------
-   */
-  (void) ProcLockWakeup(&(lock->waitProcs), (char *) ltable, (char *) lock);
+  if (wakeupNeeded)
+  {
+    /* --------------------------
+     * Wake the first waiting process and grant him the lock if it
+     * doesn't conflict.  The woken process must record the lock
+     * himself.
+     * --------------------------
+     */
+    (void) ProcLockWakeup(&(lock->waitProcs), (char *) ltable, (char *) lock);
+  }
 
   SpinRelease(masterLock);
   return(TRUE);
