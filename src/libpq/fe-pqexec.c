@@ -446,6 +446,23 @@ process_portal(rule_p)
 	        sprintf(retbuf, "C%s", command);
 	    }
 	    return(retbuf);
+	case 'A':
+	    /* I have no reason to believe that this will ever happen
+	     * But just in case...
+	     *   -- jw, 1/7/94
+	     */	    
+	    {
+		char relname[16];
+		extern int PQAsyncNotifyWaiting;
+		
+		PQAsyncNotifyWaiting = 1;
+		pq_getstr(relname,16);
+		pqdebug("%s notification encountered. (%s, %d)",
+			"Asynchronized",
+			relname, PQxactid);
+		PQappendNotify(relname, PQxactid);
+	    }
+	    break;
         default:
 	    sprintf(PQerrormsg,
 		    "FATAL: process_portal: protocol error: id=%x\n",
@@ -941,31 +958,17 @@ PQexec(query)
 	    }
 	    break;
     	case 'A':
-	    (void) strcpy(PQerrormsg, 
-			  "FATAL: PQexec: asynchronous portals not supported\n");
-	    fputs(PQerrormsg, stderr);
-	    pqdebug("%s", PQerrormsg);
-	    PQreset();
-	    (void) strcpy(retbuf, "E");
-	    return(retbuf);
-#if 0
 	    {
 		char relname[16];
 		extern int PQAsyncNotifyWaiting;
-		int pid;
-		PQAsyncNotifyWaiting = 0;
 		
-		/* Asynchronized portal. */
-		/* No tuple transfer at this stage. */
-		pqdebug("%s portal encountered.", "Asynchronized");
-		/* Processed the same way as synchronized portal. */
-		/*	    return
-			    process_portal(1);*/
+		PQAsyncNotifyWaiting = 1;
 		pq_getstr(relname,16);
-		pid =pq_getint(4);
-		PQappendNotify(relname, pid);
+		pqdebug("%s notification encountered. (%s, %d)",
+			"Asynchronized",
+			relname, PQxactid);
+		PQappendNotify(relname, PQxactid);
 	    }
-#endif
 	    break;
     	case 'P':
 	    /* Synchronized (normal) portal. */
