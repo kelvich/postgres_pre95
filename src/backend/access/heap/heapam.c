@@ -392,7 +392,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
 	     *	if current tuple qualifies, return it.
 	     * ----------------
 	     */
-	    if ((rtup = heap_tuple_satisfies(lpp, relation, *b,
+	    if ((rtup = heap_tuple_satisfies(lpp, relation, dp,
 					     timeQual, nkeys, key)) != NULL) {
 		if (BufferPut(*b, L_PIN) < 0)
 		    elog(WARN, "heap_fetch: failed BufferPut");
@@ -1102,7 +1102,7 @@ heap_fetch(relation, timeQual, tid, b)
      * ----------------
      */
 
-    tuple = heap_tuple_satisfies(lp, relation, buffer,
+    tuple = heap_tuple_satisfies(lp, relation, dp,
 				 timeQual, 0,(ScanKey)NULL);
 
     if (tuple == NULL)
@@ -1247,7 +1247,7 @@ heap_delete(relation, tid)
      *	check that we're deleteing a valid item
      * ----------------
      */
-    if (!(tp = heap_tuple_satisfies(lp, relation, b,
+    if (!(tp = heap_tuple_satisfies(lp, relation, dp,
 				    NowTimeQual, 0, (ScanKey) NULL))) {
 	
 	/* XXX call something else */
@@ -1349,7 +1349,7 @@ heap_replace(relation, otid, tup)
      *	check that we're replacing a valid item
      * ----------------
      */
-    if (!(tp = heap_tuple_satisfies(lp, relation, buffer, NowTimeQual, 0,
+    if (!(tp = heap_tuple_satisfies(lp, relation, dp, NowTimeQual, 0,
 	 (ScanKey) NULL))) {
 
 	/* XXX call something else */
