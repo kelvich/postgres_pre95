@@ -97,7 +97,7 @@ static struct typinfo Procid[] = {
 	{ "bytea",      17,    0, -1, F_BYTEAIN,    F_BYTEAOUT },
 	{ "char",       18,    0,  1, F_CHARIN,     F_CHAROUT },
 	{ "char16",     19,    0, 16, F_CHAR16IN,   F_CHAR16OUT },
-	{ "dt",         20,    0,  4, F_DATETIMEIN, F_DATETIMEOUT },
+	{ "dt",         20,    0,  4, F_DTIN,	    F_DTOUT},
 	{ "int2",       21,    0,  2, F_INT2IN,     F_INT2OUT },
 	{ "int28",      22,    0, 16, F_INT28IN,    F_INT28OUT },
 	{ "int4",       23,    0,  4, F_INT4IN,     F_INT4OUT },
