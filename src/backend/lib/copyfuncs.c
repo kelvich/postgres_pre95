@@ -237,7 +237,9 @@ CopyObjectUsing(from, alloc)
 
 /* ----------------
  *	COPY_CHECKARGS, COPY_CHECKNULL and COPY_NEW are macros used
- *	to simplify all the _copy functions.
+ *	to simplify all the _copy functions.  COPY_NEW_TYPE is exactly
+ *	like COPY_NEW, except that instead of returning 'false' on
+ *	failure, it returns the appropriate type of NULL.
  * ----------------
  */
 #define COPY_CHECKARGS() \
@@ -256,6 +258,12 @@ CopyObjectUsing(from, alloc)
     if (newnode == NULL) { \
 	return false; \
     } 
+
+#define COPY_NEW_TYPE(c) \
+    newnode = (c) (*alloc)(classSize(c)); \
+    if (newnode == NULL) { \
+	return (c) NULL; \
+    }
 
 /* ****************************************************************
  *		       nodes.h copy functions
@@ -2090,7 +2098,7 @@ char *  (*alloc)();
 {
     ReturnState newnode;
 
-    COPY_NEW(ReturnState);
+    COPY_NEW_TYPE(ReturnState);
     /* ----------------
      *  copy node superclass fields
      * ----------------
