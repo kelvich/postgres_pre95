@@ -28,7 +28,7 @@ functions that use a deleted type.
 .fi
 .uh "SEE ALSO"
 .lp
-introduction(postquel),
+introduction(commands),
 definetype(commands),
 removeoperator(commands).
 .uh "BUGS"
