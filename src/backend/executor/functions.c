@@ -187,14 +187,14 @@ postquel_end(es)
 }
 
 void
-postquel_sub_params(es, nargs, args)
+postquel_sub_params(es, nargs, args, nullV)
     execution_state  *es;
     int              nargs;
     char             *args[];
+    bool             *nullV;
 {
     ParamListInfo paramLI;
     EState estate;
-    int i;
 
     estate = es->estate;
     paramLI = get_es_param_list_info(estate);
@@ -205,8 +205,9 @@ postquel_sub_params(es, nargs, args)
 	{
 	    Assert(paramLI->id <= nargs);
 	    paramLI->value = (Datum)args[(paramLI->id - 1)];
-	    paramLI++;
+	    paramLI->isnull = nullV[(paramLI->id - 1)];
 	}
+	paramLI++;
     }
 }
 
@@ -276,7 +277,7 @@ postquel_execute(es, fcache, fTlist, args, isNull)
     }
 
     if (fcache->nargs > 0)
-        postquel_sub_params(es, fcache->nargs, args);
+        postquel_sub_params(es, fcache->nargs, args, fcache->nullVect);
 
     slot = postquel_getnext(es);
 
