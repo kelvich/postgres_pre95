@@ -53,14 +53,24 @@
  *   We cannot simply remove CClauses and EClauses from the qualification
  *   because then any boolean operations done on the qualification may
  *   result in the wrong answer.
+ *   
+ *   HOWEVER, I have included a very simplistic heuristic to remove
+ *   queries with only "and" clauses which have a CClause in them.
+ *   The routine will punt if it sees any "not" or "or" clauses.
+ *   In the future, it should also handle those two clauses.
+ *   I'm going to integrate this is semantop.
+ *   
  *
  *  Returns the optimized qual.
  */
 
 List
-SemantOpt(varlist,rangetable, qual)
+SemantOpt(varlist,rangetable, qual, is_redundent,is_first)
      List varlist,rangetable, qual;
+     List *is_redundent;
+     int is_first;
 {
+  static int punt;
   List retqual = LispNil;
   Index leftvarno = 0;
   Index rightvarno = 0;
@@ -71,6 +81,9 @@ SemantOpt(varlist,rangetable, qual)
   /*
    *   NOTE:  Routine doesn't handle func clauses.
    */
+
+  if (is_first)
+    punt = 0;  /* to initialize the static variable */
 
   retqual = qual;
 
@@ -93,8 +106,10 @@ SemantOpt(varlist,rangetable, qual)
 	      !member(lispInteger(rightvarno),varlist))
 	    retqual = MakeTClause();
 	  else 
-	    if (leftvarno == rightvarno)
+	    if (leftvarno == rightvarno) {
 	      retqual = MakeFClause();
+	      *is_redundent = LispTrue;
+	    }
 	} else 
 	  if (op == 558) {  /* oid = */
 	    AttributeNumber leftattno;
@@ -120,8 +135,10 @@ SemantOpt(varlist,rangetable, qual)
 		  rte2 = nth (rightvarno -1, rangetable);
 		  
 		  if (strcmp(CString(CADR(rte1)),
-			     CString(CADR(rte2))) != 0)
+			     CString(CADR(rte2))) != 0) {
 		    retqual = MakeFClause();
+		    *is_redundent = LispTrue;
+		  }
 		}
 	      }
 	    }
@@ -144,47 +161,45 @@ SemantOpt(varlist,rangetable, qual)
 	foreach(i,get_andclauseargs(qual)) {
 	  tmp_list = nappend1(tmp_list,SemantOpt(varlist,
 						 rangetable, 
-						 CAR(i)));
+						 CAR(i),
+						 is_redundent,
+						 0));
 	}
 	retqual = make_andclause(tmp_list);
       }
       else
 	if (or_clause (qual)) {
+	  punt = 1;
 	  foreach(i,get_orclauseargs(qual)) {
 	    tmp_list = nappend1(tmp_list,SemantOpt(varlist,
 						   rangetable, 
-						   CAR(i)));
+						   CAR(i),
+						   is_redundent,
+						   0));
 	  }
 	  retqual = make_orclause(tmp_list);
 	}
 	else
-	  if (not_clause (qual))
+	  if (not_clause (qual)) {
+	    punt = 1;
 	    retqual = make_notclause(SemantOpt(varlist, 
 					       rangetable, 
-					       get_notclausearg(qual)));
-  
+					       get_notclausearg(qual),
+					       is_redundent,
+					       0));
+	  }
+  if (punt)
+    *is_redundent = LispNil;
+
   return (retqual);
   
 }
 
 /*
- * routine is no longer needed.
+ *  Routine that runs through the tlist and qual pair
+ *  and collect all varnos that are not existential.
+ *  returns a list of those varnos.
  */
-List
-add_varlist(leftvarno, rightvarno, varlist,qual)
-     List varlist,qual;
-     Index leftvarno,rightvarno;
-{
-  if (!member(lispInteger(leftvarno), varlist))
-    varlist = nappend1(varlist, lispInteger(leftvarno));  
-  if ((rightvarno != 0) && 
-      !member(lispInteger(rightvarno),varlist)) 
-    varlist = nappend1(varlist, lispInteger(rightvarno));
-
-  return(varlist);
-}
-	  
-
 
 List
 find_allvars (root,rangetable,tlist,qual)
