@@ -34,5 +34,6 @@ XYZZY:
 	cc ${CFLAGS} ${OFILES} ${LSTOFILES} -o bootmake
 	rm -f ${OFILES} ${LSTOFILES}
 	-if test ! -d obj; then mkdir obj; fi || true
+	-rm -f obj/*
 	./bootmake all install
 	rm -f bootmake
