@@ -246,7 +246,7 @@ icopy_in(srcfname, destfname, smgrno)
 
     if (!dest_is_dir) {
 	/* the directory containing the destination must exist */
-	tail = rindex(destfname, '/');
+	tail = strrchr(destfname, '/');
 	if (tail == (char *) NULL) {
 	    fprintf(stderr, "%s: '%s' is not a fully-qualified pathname\n",
 		    ProgName, destfname);
@@ -272,7 +272,7 @@ icopy_in(srcfname, destfname, smgrno)
 
     /* set up destination file name correctly if supplied name is a dir */
     if (dest_is_dir) {
-	tail = rindex(srcfname, '/');
+	tail = strrchr(srcfname, '/');
 	if (tail == (char *) NULL)
 	    tail = srcfname;
 	else
@@ -384,7 +384,7 @@ icopy_out(srcfname, destfname, smgrno)
 
     if (!dest_is_dir) {
 	/* the directory containing the destination must exist */
-	tail = rindex(destfname, '/');
+	tail = strrchr(destfname, '/');
 	if (tail != (char *) NULL) {
 
 	    /* if the target isn't /, stat it */
@@ -406,7 +406,7 @@ icopy_out(srcfname, destfname, smgrno)
 
     /* set up destination file name correctly if supplied name is a dir */
     if (dest_is_dir) {
-	tail = rindex(srcfname, '/');
+	tail = strrchr(srcfname, '/');
 	if (tail == (char *) NULL)
 	    tail = srcfname;
 	else
