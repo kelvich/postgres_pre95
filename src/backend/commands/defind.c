@@ -1,168 +1,166 @@
 /*
  * defind.c --
- *	POSTGRES define index utility code.
- *
- * Note:
- *	XXX Generally lacks argument checking....
+ *	POSTGRES define and remove index code.
  */
 
 #include "c.h"
 
-#include "anum.h"
-#include "attnum.h"
-#include "catname.h"
-#include "genam.h"
-#include "heapam.h"
-#include "log.h"
-#include "name.h"
-#include "oid.h"
-#include "rel.h"
-#include "relscan.h"
-#include "rproc.h"
-#include "skey.h"
-#include "trange.h"
-
-#include "defind.h"
-
 RcsId("$Header$");
 
-/*
- * AccessMethodNameGetObjectId --
- *	Returns the object identifier for an access method given its name.
- *
- * Note:
- *	Assumes name is valid.
- *
- *	Aborts if access method does not exist.
- */
-extern
-ObjectId
-AccessMethodNameGetObjectId ARGS((
-	Name		accessMethodName;
-));
+#include "attnum.h"
+#include "genam.h"
+#include "heapam.h"
+#include "htup.h"
+#include "log.h"
+#include "name.h"
+#include "pg_lisp.h"
+#include "oid.h"
+#include "palloc.h"
+#include "syscache.h"
 
-/*
- * OperatorClassNameGetObjectId --
- *	Returns the object identifier for an operator class given its name.
- *
- * Note:
- *	Assumes name is valid.
- *	Assumes relation descriptor is valid.
- *
- *	Aborts if operator class does not exist.
- */
-extern
-ObjectId
-OperatorClassNameGetObjectId ARGS((
-	Name		operatorClassName;
-	Relation	operatorClassRelation;
-));
+#include "defrem.h"
+
 
 void
 DefineIndex(heapRelationName, indexRelationName, accessMethodName,
-		numberOfAttributes, attributeNumber, className, parameterCount,
-		parameter)
+		attributeList, parameterList)
+
 	Name		heapRelationName;
 	Name		indexRelationName;
 	Name		accessMethodName;
-	AttributeNumber	numberOfAttributes;
-	AttributeNumber	attributeNumber[];
-	Name		className[];
-	uint16		parameterCount;
-	Datum		parameter[];
+	LispValue	attributeList;
+	LispValue	parameterList;
 {
-	AttributeOffset	attributeOffset;
 	ObjectId	*classObjectId;
-	Relation	relation;
+	ObjectId	accessMethodId;
+	ObjectId	relationId;
+	AttributeNumber	attributeNumber;
+	AttributeNumber	numberOfAttributes;
+	AttributeNumber	*attributeNumberA;
+	HeapTuple	tuple;
+	uint16		parameterCount;
+	String		*parameterA;
+	String		*nextP;
+	LispValue	rest;
+
+	AssertArg(NameIsValid(heapRelationName));
+	AssertArg(NameIsValid(indexRelationName));
+	AssertArg(NameIsValid(accessMethodName));
+	AssertArg(listp(attributeList));
+	AssertArg(listp(parameterList));
+
+	/*
+	 * Handle attributes
+	 */
+	numberOfAttributes = length(attributeList);
+	if (numberOfAttributes <= 0) {
+		elog(WARN, "DefineIndex: must specify at least one attribute");
+	}
+
+	attributeNumberA = LintCast(AttributeNumber *,
+		palloc(numberOfAttributes * sizeof attributeNumberA[0]));
 
 	classObjectId = LintCast(ObjectId *,
 		palloc(numberOfAttributes * sizeof classObjectId[0]));
 
-	relation = amopenr(OperatorClassRelationName);
-	for (attributeOffset = 0; attributeOffset < numberOfAttributes;
-			attributeOffset += 1) {
-		classObjectId[attributeOffset] =
-			OperatorClassNameGetObjectId(className[attributeOffset],
-				relation);
-	}
-	amclose(relation);
-
-	AMcreati(heapRelationName, indexRelationName,
-		AccessMethodNameGetObjectId(accessMethodName),
-		numberOfAttributes, attributeNumber, classObjectId,
-		parameterCount, parameter);
-}
-
-static
-ObjectId
-AccessMethodNameGetObjectId(accessMethodName)
-	Name		accessMethodName;
-{
-	HeapTuple	tuple;
-	Relation	relation;
-	HeapScanDesc	scan;
-	ObjectId	accessMethodObjectId;
-	Buffer		buffer;
-	ScanKeyData	key[1];
-
-	Assert(NameIsValid(accessMethodName));
-
-	key[0].data[0].flags = 0;
-	key[0].data[0].attributeNumber = AccessMethodNameAttributeNumber;
-	key[0].data[0].procedure = Character16EqualRegProcedure;
-	key[0].data[0].argument.name.value = accessMethodName;
-
-	relation = amopenr(AccessMethodRelationName);
-	scan = ambeginscan(relation, 0, DefaultTimeRange, 1, &key[0]);
-
-	tuple = amgetnext(scan, 0, &buffer);
-
+	/*
+	 * compute heap relation id
+	 */
+	tuple = SearchSysCacheTuple(RELNAME, heapRelationName);
 	if (!HeapTupleIsValid(tuple)) {
-		amendscan(scan);
-		elog(WARN, "AccessMethodNameGetObjectId: unknown AM %s",
+		elog(WARN, "DefineIndex: %s relation not found",
+			heapRelationName);
+	}
+	relationId = tuple->t_oid;
+
+	/*
+	 * compute access method id
+	 */
+	tuple = SearchSysCacheTuple(AMNAME, accessMethodName);
+	if (!HeapTupleIsValid(tuple)) {
+		elog(WARN, "DefineIndex: %s access method not found",
 			accessMethodName);
 	}
-	accessMethodObjectId = tuple->t_oid;
+	accessMethodId = tuple->t_oid;
 
-	amendscan(scan);
-	amclose(relation);
+	/*
+	 * process X
+	 */
+	rest = attributeList;
+	for (attributeNumber = 1; attributeNumber <= numberOfAttributes;
+			attributeNumber += 1) {
 
-	return (accessMethodObjectId);
+		LispValue	attribute;
+
+		attribute = CAR(rest);
+#ifndef	PERFECTPARSER
+		rest = CDR(rest);
+		AssertArg(listp(rest));
+		AssertArg(listp(attribute));
+#endif
+		if (length(attribute) != 2) {
+			if (length(attribute) != 1) {
+				elog(WARN, "DefineIndex: malformed att");
+			}
+			elog(WARN,
+				"DefineIndex: default index class unsupported");
+		}
+#ifndef	PERFECTPARSER
+		AssertArg(lispStringp(CAR(attribute)));
+		AssertArg(lispStringp(CADR(attribute)));
+#endif
+		tuple = SearchSysCacheTuple(ATTNAME, relationId,
+			CString(CAR(attribute)));
+		if (!HeapTupleIsValid(tuple)) {
+			elog(WARN, "DefineIndex: %s attribute not found");
+		}
+		attributeNumberA[attributeNumber - 1] =
+			((Attribute)GETSTRUCT(tuple))->attnum;
+
+		tuple = SearchSysCacheTuple(CLANAME, CString(CADR(attribute)));
+		if (!HeapTupleIsValid(tuple)) {
+			elog(WARN, "DefineIndex: %s class not found");
+		}
+		classObjectId[attributeNumber - 1] = tuple->t_oid;
+	}
+
+	/*
+	 * Handle parameters
+	 */
+	parameterCount = length(parameterList) / 2;
+#ifndef	PERFECTPARSER
+	AssertArg(length(parameterList) == 2 * parameterCount);
+#endif
+	if (parameterCount >= 1) {
+		parameterA = LintCast(String *,
+			palloc(2 * parameterCount * sizeof *parameterA));
+
+		nextP = &parameterA[0];
+		while (!lispNullp(parameterList)) {
+#ifndef	PERFECTPARSER
+			AssertArg(lispStringp(CAR(parameterList)));
+#endif
+			*nextP = (String)CString(CAR(parameterList));
+			parameterList = CDR(parameterList);
+			nextP += 1;
+		}
+	}
+
+	RelationNameCreateIndexRelation(heapRelationName, indexRelationName,
+		accessMethodId, numberOfAttributes, attributeNumberA,
+		classObjectId, parameterCount, parameterA);
+#if 0
+	EndUtility("DEFINE");
+#endif
 }
 
-static
-ObjectId
-OperatorClassNameGetObjectId(operatorClassName, operatorClassRelation)
-	Name		operatorClassName;
-	Relation	operatorClassRelation;
+void
+RemoveIndex(name)
+	Name	name;
 {
-	HeapTuple	tuple;
-	HeapScanDesc	scan;
-	ObjectId	classObjectId;
-	Buffer		buffer;
-	ScanKeyData	key[1];
+	/* delete-index(name); */
+	/* am-destroy(name); */
+	/* utility-end("REMOVE"); */
 
-	Assert(NameIsValid(operatorClassName));
-	Assert(RelationIsValid(operatorClassRelation));
-
-	key[0].data[0].flags = 0;
-	key[0].data[0].attributeNumber = OperatorClassNameAttributeNumber;
-	key[0].data[0].procedure = Character16EqualRegProcedure;
-	key[0].data[0].argument.name.value = operatorClassName;
-
-	scan = ambeginscan(operatorClassRelation, 0, DefaultTimeRange, 1,
-		&key[0]);
-
-	tuple = amgetnext(scan, 0, &buffer);
-
-	if (!HeapTupleIsValid(tuple)) {
-		amendscan(scan);
-		elog(WARN, "OperatorClassNameGetObjectId: unknown class %s",
-			operatorClassName);
-	}
-	classObjectId = tuple->t_oid;
-
-	amendscan(scan);
-
-	return (classObjectId);
+	RelationNameDestroyIndexRelation(name);
 }
