@@ -11,6 +11,7 @@
 
 #include "rules/prs2.h"
 #include "rules/prs2locks.h"
+#include "catalog/pg_rewrite.h"
 
 #include "utils/rel.h"			/* Relation, RelationData ... */
 #include "catalog/syscache.h"		/* for SearchSysCache */
@@ -61,22 +62,29 @@ RelationHasLocks ( relation )
  */
 
 List
-RuleIdGetRuleParsetrees ( ruleoid )
+RuleIdGetActionInfo ( ruleoid )
      OID ruleoid;
 {
     HeapTuple 		ruletuple;
     char 		*ruleaction = NULL;
     bool		action_is_null = false;
+    bool		instead_is_null = false;
     Relation 		ruleRelation = NULL;
     TupleDescriptor	ruleTupdesc = NULL;
     List    		ruleparse = NULL;
     List		i = NULL;
+    bool		is_instead = false;
 
-    ruleRelation = amopenr ("pg_prs2rule");
+    ruleRelation = amopenr ("pg_rewrite");
     ruleTupdesc = RelationGetTupleDescriptor(ruleRelation);
     ruletuple = SearchSysCacheTuple ( RULOID,  ruleoid );
-    ruleaction = amgetattr ( ruletuple, InvalidBuffer , 7 , 
+
+    ruleaction = amgetattr ( ruletuple, InvalidBuffer , Anum_pg_rewrite_action, 
 			    ruleTupdesc , &action_is_null ) ;
+
+    is_instead = (bool)amgetattr ( ruletuple, InvalidBuffer , 
+				  Anum_pg_rewrite_is_instead, ruleTupdesc,
+				  &instead_is_null );
     
     ruleaction = textout (ruleaction );
     ruleparse = (List)StringToPlan(ruleaction);
@@ -94,7 +102,7 @@ RuleIdGetRuleParsetrees ( ruleoid )
     fflush(stdout);
 
     amclose ( ruleRelation );
-    return (ruleparse);
+    return (lispCons(is_instead,ruleparse));
 }
 
 char *
