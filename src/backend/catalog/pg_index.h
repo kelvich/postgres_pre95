@@ -40,6 +40,7 @@ CATALOG(pg_index) {
     oid8 	indclass;
     bool 	indisclustered;
     bool 	indisarchived;
+    text	indpred;	/* query plan for partial index predicate */
 } FormData_pg_index;
 
 #define INDEX_MAX_KEYS 8  /* maximum number of keys in an index definition */
@@ -56,7 +57,7 @@ typedef FormData_pg_index	*Form_pg_index;
  * ----------------
  */
 #define Name_pg_index			"pg_index"
-#define Natts_pg_index			6
+#define Natts_pg_index			8
 #define Anum_pg_index_indexrelid	1
 #define Anum_pg_index_indrelid		2
 #define Anum_pg_index_indproc		3
@@ -64,6 +65,7 @@ typedef FormData_pg_index	*Form_pg_index;
 #define Anum_pg_index_indclass		5
 #define Anum_pg_index_indisclustered	6
 #define Anum_pg_index_indisarchived	7
+#define Anum_pg_index_indpred		8
 
 /* ----------------
  *	old definition of IndexTupleForm
@@ -80,6 +82,7 @@ typedef struct IndexTupleFormD {
 	ObjectId	indclass[8];
 	Boolean		indisclustered;
 	Boolean		indisarchived;
+	struct varlena	indpred;
 /*	SPQUEL	inddesc; */
 } IndexTupleFormD;
 
