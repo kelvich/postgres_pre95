@@ -116,6 +116,9 @@ DATA(insert OID = 16 (  bool       PGUID  1   1 t b t \054 0   0 boolin boolout 
 
 DATA(insert OID = 17 (  bytea      PGUID -1  -1 f b t \054 0  18 byteain byteaout byteain byteaout _null_ ));
 DATA(insert OID = 18 (  char       PGUID  1   1 t b t \054 0   0 charin charout charin charout _null_ ));
+DATA(insert OID = 409 (  char2     PGUID 2  2 t b t \054 0  18 char2in char2out char2in char2out _null_ ));
+DATA(insert OID = 410 (  char4     PGUID 4  4 t b t \054 0  18 char4in char4out char4in char4out _null_ ));
+DATA(insert OID = 411 (  char8     PGUID 8  8 f b t \054 0  18 char8in char8out char8in char8out _null_ ));
 DATA(insert OID = 19 (  char16     PGUID 16  16 f b t \054 0  18 char16in char16out char16in char16out _null_ ));
 DATA(insert OID = 20 (  dt         PGUID  4  10 t b t \054 0   0 dtin dtout dtin dtout _null_ ));
 DATA(insert OID = 21 (  int2       PGUID  2   5 t b t \054 0   0 int2in int2out int2in int2out _null_ ));
