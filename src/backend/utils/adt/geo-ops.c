@@ -891,12 +891,12 @@ point_in(str)
 	POINT	*result;
 
 	if (str == NULL)
-		return(NULL);
+		elog(WARN, "Bad point constant");
 	for (i = 0, p = str; *p && i < POINTNARGS && *p != RDELIM; p++)
 		if (*p == DELIM || (*p == LDELIM && !i))
 			coord[i++] = p + 1;
 	if (i < POINTNARGS - 1)
-		return(NULL);
+		elog(WARN, "Bad point constant");
 	result = PALLOCTYPE(POINT);
 	result->x = atof(coord[0]);
 	result->y = atof(coord[1]);
@@ -1740,7 +1740,7 @@ inter_lb(line, box)
  *------------------------------------------------------------------*/
 
 	/* Maximum number of output digits printed */
-#define P_MAXDIG 8
+#define P_MAXDIG 12
 
 /*---------------------------------------------------------------------
  * Make the smallest bounding box for the given polygon.
