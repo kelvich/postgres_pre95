@@ -123,14 +123,12 @@ exec_append_initialize_next(node)
          * ----------------
          */
 	if (get_unionrelid(node) > 0) {
-	    /* was: rt_store(unionrelid, rangeTable, rtentry); */
-	  
 	    rtentry = nth(whichplan, rtentries);
 	    if (lispNullp(rtentry))
 		elog(DEBUG, "exec_append_initialize_next: rtentry is nil");
 	  
 	    unionrelid = get_unionrelid(node);
-	    nth(unionrelid-1, rangeTable) = rtentry;
+	    rt_store(unionrelid, rangeTable, rtentry);
 	}
       
 	return LispTrue;
