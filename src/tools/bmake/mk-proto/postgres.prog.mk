@@ -104,8 +104,8 @@ clean: _PROGSUBDIR
 
 .if !target(cleandir)
 cleandir: _PROGSUBDIR
-	rm -f a.out [Ee]rrs mklog core.${PROG} ${PROG} ${OBJS} ${CLEANFILES}
-	rm -f .depend ${MANALL}
+	rm -f a.out [Ee]rrs mklog core core.${PROG} ${PROG} \
+		 ${OBJS} ${CLEANFILES} .depend ${MANALL} *.d
 .endif
 
 # some of the rules involve .h sources, so remove them from mkdep line
