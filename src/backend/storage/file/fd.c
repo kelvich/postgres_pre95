@@ -53,6 +53,19 @@ extern errno;
 
 RcsId("$Header$");
 
+#ifdef PORTNAME_sparc
+/*
+ * the SunOS 4 NOFILE is a lie, because the default limit is *not* the
+ * maximum number of file descriptors you can have open.
+ *
+ * we have to either use this number (the default dtablesize) or explicitly
+ * call setrlimit(RLIMIT_NOFILE, NOFILE).
+ */
+#include <sys/user.h>
+#undef NOFILE
+#define NOFILE NOFILE_IN_U
+#endif /* PORTNAME_sparc */
+
 #ifdef sequent
 #define RESERVE_FOR_LD	5
 #else
