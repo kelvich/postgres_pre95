@@ -597,7 +597,7 @@ IndexNext(node)
     HeapTuple	   		tuple;
     TupleTableSlot		returnTuple;
     TupleTableSlot		slot;
-    Buffer			buffer;
+    Buffer			buffer = InvalidBuffer;
     
     /* ----------------
      *	extract necessary information from index scan node
