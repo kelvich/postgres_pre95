@@ -18,6 +18,16 @@
 #include "rules/rlock.h"
 
 /*
+ * HeapTupleFreeRuleLock
+ *	Free a rule lock but only if it is a main memory pointer.
+ */
+extern
+void
+HeapTupleFreeRuleLock ARGS((
+	HeapTuple	tuple
+));
+
+/*
  * HeapTupleGetRuleLock --
  *	Returns the rule lock for a heap tuple or InvalidRuleLock if
  *	the rule lock is NULL.
