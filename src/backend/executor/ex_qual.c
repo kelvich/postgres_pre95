@@ -58,64 +58,16 @@ int 	execConstLen;
  * ----------------
  */
 
-/* --------------------------------
- *	array_cast
- * --------------------------------
- */
-Datum
-array_cast(value, byval, len)
-    char *value;
-    bool byval;
-    int len;
-{
-    if (byval) {
-        switch (len) {
-	case 1:
-	    return((Datum) * value);
-	case 2:
-	    return((Datum) * (int16 *) value);
-	case 3:
-	case 4:
-	    return((Datum) * (int32 *) value);
-	default:
-	    elog(WARN, "ExecEvalArrayRef: byval and elt len > 4!");
-	    return(NULL);
-            break;
-        }
-    } else
-        return (Datum) value;
-}
 
 /* --------------------------------
  *    ExecEvalArrayRef
  *
- *     This function takes an ArrayRef and returns a Const Node which
- *     is the actual array reference. It is used to de-reference an array.
+ *     This function takes an ArrayRef and returns a Const Node if it
+ *     is an array reference or returns the changed Array Node if it is
+ *	   an array assignment.
  *
- *  This code knows about the internal storage scheme for both fixed-length
- *  arrays (like char16, int28, etc) and for variable length arrays.  It
- *  currently assumes that fixed-length arrays are contiguous blobs of memory
- *  where the first element is in the starting position.  Variable length
- *  arrays are presumed to have the following format:
- *
- *  <length_in_bytes><elem_1><elem_2>...<elem_n>
- *
- *  It checks to see if <length_in_bytes> / <number_of_elements> = typlen
- *  as a sanity check for variable length arrays.
- *
- *     -Greg
- *
- *  old comments:
- *
- *    XXX this code should someday handle the case where there is
- *        an expression of the form:  a.b[ expression ] rather then
- *        just a.b[ constant ] as it does now.  99% of this can be
- *        done by using ExecEvalExpr() but it would mean some more
- *        work in the parser. -cim 6/20/90
  * --------------------------------
  */
-
-#define MinArrayIndirection 1
 
 Datum
 ExecEvalArrayRef(arrayRef, econtext, isNull, isDone)
@@ -124,95 +76,71 @@ ExecEvalArrayRef(arrayRef, econtext, isNull, isDone)
     Boolean     *isNull;
     Boolean     *isDone;
 {
-    int32	array_len;
-    int32	element_len;
-    int32	indirection;
-    bool	byval;
     bool	dummy;
-    int 	i;
+    int 	i = 0, j = 0;
     char 	*array_scanner;
-    int 	nelems;
-    int		bytes;
-    int		nbytes;
-    int		offset;
-    bool 	done = false;
     char 	*retval;
+	LispValue elt, upperIndexpr, 
+		lowerIndexpr, assgnexpr;
+	IntArray 	upper, lower;
+	int *lIndex;
+	struct varlena *dataPtr;
+	extern char * array_set(), * array_assgn();
+	extern char * array_ref(), * array_clip();
     
-    *isNull       =	false;
+	execConstByVal = get_refelembyval(arrayRef);
+    *isNull       =	false; 
     array_scanner =	(char *)ExecEvalExpr((Node)get_refexpr(arrayRef),
 					     econtext,
 					     isNull,
 					     isDone);
-    if (*isNull)
-	return (Datum)NULL;
-    /*
-     * Array indices *cannot* be sets and are 1 based (convert to 0 based).
-     */
-    indirection = (int32)ExecEvalExpr((Node)get_refindexpr(arrayRef),
+    if (*isNull) return (Datum)NULL;
+
+	upperIndexpr = get_refupperindexpr(arrayRef);
+	foreach (elt, upperIndexpr) {
+    	upper.indx[i++] = (int32)ExecEvalExpr((Node)CAR(elt),
 				      econtext,
 				      isNull,
 				      &dummy);
-    if (*isNull)
-	return (Datum)NULL;
+    	if (*isNull) return (Datum)NULL;
+	}
 
-    if (indirection < MinArrayIndirection)
-    {
-	*isNull = true;
-	return (Datum)NULL;
-    }
-    indirection--;
+	lowerIndexpr = get_reflowerindexpr(arrayRef);
+	lIndex = NULL;
+	if (lowerIndexpr != LispNil) {
+	foreach (elt, lowerIndexpr) {
+    	lower.indx[j++] = (int32)ExecEvalExpr((Node)CAR(elt),
+				      econtext,
+				      isNull,
+				      &dummy);
+    	if (*isNull) return (Datum)NULL;
+		}
+		if (i != j) elog(WARN, 
+		"ExecEvalArrayRef: upper and lower indices mismatch");
+		lIndex = lower.indx;
+	}
 
-    byval = execConstByVal = get_refelembyval(arrayRef);
-    element_len    = get_refelemlength(arrayRef);
-    
-    if (get_refattrlength(arrayRef) < 0)
-    {
-	nbytes = (* (int32 *) array_scanner) - sizeof(int32);
-	array_scanner += sizeof(int32);
-    }
-    else
-	nbytes = get_refattrlength(arrayRef);
-	
-    if (element_len < 0) {
-	bytes = nbytes;
-	i = 0;
-	while (bytes > 0 && !done) {
-	    if (i == indirection) {
-		retval = array_scanner;
-		done = true;
-	    }
-	    bytes -= LONGALIGN(* (int32 *) array_scanner);
-	    array_scanner += LONGALIGN(* (int32 *) array_scanner);
-	    i++;
+	assgnexpr    = get_refassgnexpr(arrayRef);
+	if (assgnexpr != LispNil) {
+   		dataPtr = (struct varlena *)ExecEvalExpr((Node)
+					  assgnexpr, econtext,
+				      isNull, &dummy);
+   		if (*isNull) return (Datum)NULL;
+		if (lIndex == NULL)
+		return (Datum) array_set(array_scanner, i, upper.indx,
+					dataPtr, get_refelembyval(arrayRef), 
+					get_refelemlength(arrayRef), isNull);
+		return (Datum) array_assgn(array_scanner, i, upper.indx,
+					lower.indx, dataPtr, get_refelembyval(arrayRef), 
+					get_refelemlength(arrayRef), isNull);
 	}
-	    
-	if (! done) {
-	    if (bytes == 0) { /* array[i] does not exist */
-		*isNull = true;
-		return(NULL);
-	    } else { /* bytes < 0 - error */
-		elog(WARN, "ExecEvalArrayRef: improperly formatted array");
-	    }
-	}
-	return (Datum) retval;
-	    
-    } else {
-	/* array of fixed length elements */
-	    
-	offset = indirection * element_len;
-	    
-	/*
-	 * off the end of the array
-	 */
-	if (nbytes - offset < 1) {
-	    *isNull = true;
-	    return(NULL);
-	}
-	    
-	retval = array_scanner + offset;
-	    
-	return array_cast(retval, byval, element_len);
-    }
+	if (lIndex == NULL) 
+	return (Datum) array_ref(array_scanner, i, upper.indx,
+						get_refelembyval(arrayRef),
+						get_refelemlength(arrayRef), isNull);
+	return (Datum) array_clip(array_scanner, i, upper.indx, lower.indx,
+                        get_refelembyval(arrayRef),
+                        get_refelemlength(arrayRef), isNull);
 }
 
 Datum
