@@ -219,8 +219,10 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	    rule_rangetable = root_rangetable(parse_root
 					      (ruleparse));
 
+#ifdef REWRITE_DEBUG
 	    if ( this_lock->attributeNumber == -1 )
 	      elog(NOTICE, "firing a multi-attribute rule");
+#endif REWRITE_DEBUG
 
 	    /****************************************
 
@@ -244,8 +246,10 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	      case DoReplaceCurrentOrNew:
 		/* ON RETRIEVE DO REPLACE CURRENT */
 		
+#ifdef REWRITE_DEBUG
 		elog ( NOTICE, "replace current action");
 		Print_parse ( ruleparse );
+#endif REWRITE_DEBUG
 		
 		result_rtindex =
 		  CInteger(root_result_relation(parse_root(ruleparse )));
@@ -264,7 +268,9 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		      get_resname ( tlist_resdom );
 		    int attno;
 		
+#ifdef REWRITE_DEBUG
 		    elog ( NOTICE, "replacing %s", attname );
+#endif REWRITE_DEBUG
 		    attno =
 		      varattno ( to_be_rewritten, attname );
 		
@@ -288,25 +294,33 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		 *  in vardotfields
 		 * NOTE: used only by procedures ???
 		 */
+#ifdef REWRITE_DEBUG
 		elog(NOTICE,"Possibly retrieving procedure result fields");
+#endif REWRITE_DEBUG
 		ReplaceVarWithMulti ( current_varno,
 				     this_lock->attributeNumber,
 				     user_tl,
 				     rule_tlist ,
 				     &modified );
 		if ( modified ) {
+#ifdef REWRITE_DEBUG
 		    printf ("after replacing tlist entry :\n");
 		    lispDisplay ( user_tl, 0 );
 		    fflush(stdout);
+#endif REWRITE_DEBUG
 		    result_relname = "";
 		    FixResdom ( user_tl );
 		} else {
+#ifdef REWRITE_DEBUG
 		    elog(NOTICE,"no actual modification");
+#endif REWRITE_DEBUG
 		}
 		break;
 	      case DoOther:
+#ifdef REWRITE_DEBUG
 		elog(NOTICE,"retrieve triggering other actions");
 		elog(NOTICE,"does not modify existing parsetree");
+#endif REWRITE_DEBUG
 		break;
 	      default:
 		elog(WARN,"on retrieve do <action>, action unknown");
@@ -337,13 +351,17 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 						   additional_queries );
 
 		}
+#ifdef REWRITE_DEBUG
 		printf ("\n");
 		printf ("*************************\n");
 		printf (" Modified User Parsetree\n");
 		printf ("*************************\n");
 		Print_parse ( user_parsetree );
+#endif REWRITE_DEBUG
 	    } else {
+#ifdef REWRITE_DEBUG
 		elog(NOTICE,"parsetree not modified");
+#endif REWRITE_DEBUG
 	    }
 	} /* foreach of the ruletrees */
     } /* foreach of the locks */
@@ -388,9 +406,11 @@ ModifyUpdateNodes( update_locks , user_parsetree,
     foreach ( i , update_locks ) {
 	Prs2OneLock this_lock 	= (Prs2OneLock)CAR(i);
 	
+#ifdef REWRITE_DEBUG
 	printf ("\nNow processing :");
 	PrintRuleLock ( this_lock );
 	printf ("\n");
+#endif REWRITE_DEBUG
 
 	action_info = RuleIdGetActionInfo ( this_lock->ruleId );
 	ruletrees = CDR(action_info);
@@ -401,9 +421,11 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 	 */
 
 	if (*drop_user_query) {
+#ifdef REWRITE_DEBUG
 	    elog ( NOTICE,
 		  "drop_user_query is set ; punting on rule with id %d",
 		  this_lock->ruleId );
+#endif REWRITE_DEBUG
 	  return ( new_queries );
 	}
 
@@ -474,9 +496,11 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 	    new_queries = nappend1 ( new_queries, rule_action );
 	}
 
+#ifdef REWRITE_DEBUG
     printf("\n Done processing :\n");
     PrintRuleLock ( this_lock );
     printf("\n");
+#endif REWRITE_DEBUG
 	
     } /* foreach update_lock */
 
@@ -538,8 +562,10 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
 	      (Name)CString(rt_relname ( nth(result_relation_index- 1 ,
 			       root_rangetable(parse_root(user_parsetree)))));
 
+#ifdef REWRITE_DEBUG
 	    printf ( "\nDelete triggered the following locks:\n");
 	    PrintRuleLockList ( delete_locks );
+#endif REWRITE_DEBUG
 
 	    fake_tlist = ExpandAll(result_relation_name, &fake_resno);
 	    parse_targetlist ( user_parsetree ) = fake_tlist;
@@ -566,8 +592,10 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
 					 user_parsetree );
 	if ( append_locks ) {
 	    List new_queries = NULL;
+#ifdef REWRITE_DEBUG
 	    printf ( "\nAppend triggered the following locks:\n");
 	    PrintRuleLockList ( append_locks );
+#endif REWRITE_DEBUG
 	
 	    new_queries =
 	      ModifyUpdateNodes( append_locks,
@@ -583,8 +611,10 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
 					    user_parsetree );
 	if ( replace_locks ) {
 	    List new_queries = NULL;
+#ifdef REWRITE_DEBUG
 	    printf ( "\nReplace triggered the following locks:\n");
 	    PrintRuleLockList ( replace_locks );
+#endif REWRITE_DEBUG
 	
 	    new_queries =
 	      ModifyUpdateNodes( replace_locks,
@@ -610,8 +640,10 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
 	retrieve_locks = MatchRetrieveLocks ( rlocks , current_varno ,
 					     user_parsetree );
 	if ( retrieve_locks ) {
+#ifdef REWRITE_DEBUG
 	    printf ( "\nThese retrieve rules were triggered: \n");
 	    PrintRuleLockList ( retrieve_locks );
+#endif REWRITE_DEBUG
 	
 	    /*
 	     * testing for event qualifications go here
@@ -687,12 +719,10 @@ QRS ( parsetree , already_handled )
     else
         user_command = (int) CAtom(command_type);
 
-#ifdef VERBOSE
-
+#ifdef REWRITE_DEBUG
     printf("\nQueryRewrite being called with :\n");
     Print_parse ( parsetree );
-
-#endif
+#endif REWRITE_DEBUG
 
     /*
      * only for a delete may the targetlist be NULL
@@ -714,7 +744,8 @@ QRS ( parsetree , already_handled )
         this_relation = amopenr ( this_rtname );
 	Assert ( this_relation != NULL );
 
-	this_entry_locks = RelationGetRelationLocks ( this_relation );
+	this_entry_locks = prs2GetLocksFromRelation(
+				RelationGetRelationName(this_relation));
 	this_relid = RelationGetRelationId ( this_relation );
 
 	if ( member ( lispInteger( this_relid ), already_handled ) )
