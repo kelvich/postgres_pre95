@@ -1,9 +1,10 @@
 #include <stdio.h>
-#include "log.h"
-#include "execdefs.h"
-#include "prs2locks.h"
-#include "prs2.h"
-#include "execnodes.h"
+#include "utils/log.h"
+#include "executor/execdefs.h"
+#include "rules/prs2locks.h"
+#include "rules/prs2.h"
+#include "rules/prs2stub.h"
+#include "nodes/execnodes.h"
 
 extern EState CreateExecutorState();
 extern LispValue ExecMain();
@@ -60,7 +61,7 @@ Relation relation;
 
     /*
      * create a linked list of all the rule ids that hold a
-     * 'LockTypeRetrieveRelation'
+     * 'LockTypeTupleRetrieveRelation'
      */
     ruleList = NULL;
     nlocks = prs2GetNumberOfLocks(locks);
@@ -69,7 +70,7 @@ Relation relation;
         lockType = prs2OneLockGetLockType(oneLock);
         ruleId = prs2OneLockGetRuleId(oneLock);
 	planNo = prs2OneLockGetPlanNumber(oneLock);
-        if (lockType==LockTypeRetrieveRelation) {
+        if (lockType==LockTypeTupleRetrieveRelation) {
 	    ruleListItem = (Prs2RuleList) palloc(sizeof(Prs2RuleListItem));
 	    if (ruleListItem == NULL) {
 		elog(WARN,"prs2MakeRuleList: Out of memory");
@@ -96,6 +97,9 @@ Relation relation;
     scanStateRuleInfo->ruleList = ruleList;
     scanStateRuleInfo->insteadRuleFound = false;
     scanStateRuleInfo->relationLocks = locks;
+    scanStateRuleInfo->relationStubs =
+	prs2GetRelationStubs(RelationGetRelationId(relation));
+    scanStateRuleInfo->relationStubsHaveChanged = true;
 
     return(scanStateRuleInfo);
 
