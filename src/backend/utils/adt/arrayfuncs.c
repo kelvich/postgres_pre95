@@ -136,6 +136,7 @@ ObjectId element_type;
     {
         int nest_level = 0;
         bool done = false;
+	bool eoArray = false;
 
         while (!done)
         {
@@ -164,7 +165,10 @@ ObjectId element_type;
                     break;
                 case '}':
                     if (nest_level == 0 && !scanning_string)
+		    {
                         done = true;
+			eoArray = true;
+		    }
                     else if (!scanning_string) nest_level--;
                     break;
                 default:
@@ -175,7 +179,13 @@ ObjectId element_type;
         }
         *q = '\0';                    /* Put a null at the end of it */
         values[i] = (*inputproc) (p, typelem);
-        p = q + 1; q++;               /* p goes past q */
+	p = ++q;	/* p goes past q */
+	if (!eoArray)	/* if not at the end of the array skip white space */
+	    while (isspace(*q))
+	    {
+		p++;
+		q++;
+	    }
     }
 
     if (typlen > 0)
@@ -272,7 +282,7 @@ ObjectId element_type;
      */
 
     {
-        nbytes = * (int32 *) items - sizeof(int32);
+        nbytes = (* (int32 *) items) - sizeof(int32);
         nitems = 0;
         p = items + sizeof(int32);
 
