@@ -39,7 +39,7 @@ index_openr ARGS((
 extern
 void
 index_close ARGS((
-	Relation	relation;
+	Relation	relation
 ));
 
 extern
