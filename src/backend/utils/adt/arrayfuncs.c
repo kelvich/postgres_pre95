@@ -96,6 +96,7 @@ char *string;
 ObjectId element_type;
 
 {
+    static ObjectId charTypid = InvalidObjectId;
     int typlen;
     bool typbyval;
     char typdelim;
@@ -109,6 +110,15 @@ ObjectId element_type;
     char *retval;
     bool scanning_string = false;
 
+    if (charTypid == InvalidObjectId)
+    {
+	HeapTuple tup;
+
+	tup = (HeapTuple)type("char");
+	if ((charTypid = tup->t_oid) == InvalidObjectId)
+	    elog(WARN, "type lookup on char failed");
+    }
+
     system_cache_lookup(element_type, true, &typlen, &typbyval,
                         &typdelim, &typelem, &typinput);
 
@@ -118,7 +128,10 @@ ObjectId element_type;
 
     if (string[0] != '{')
     {
-		elog(WARN, "array_in: malformatted array constant");
+	if (element_type == charTypid)
+	    return (char *)textin(string);
+	else
+	    elog(WARN, "array_in:  malformed array constant");
     }
     else
     {
