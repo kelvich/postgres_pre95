@@ -29,23 +29,31 @@
  */
 #include <stdio.h>
 
-#include "c.h"
-#include "datum.h"
-#include "pg_lisp.h"
-#include "nodes.h"
-#include "primnodes.h"
-#include "plannodes.h"
-#include "execnodes.h"
-#include "relation.h"
-#include "recursion.h"
-#include "recurplanner.h"
+/* ----------------
+ *	this list of header files taken from other node file headers.
+ * ----------------
+ */
+#include <stdio.h>
 
-#include "fmgr.h"
-#include "heapam.h"
-#include "log.h"
-#include "oid.h"
-#include "syscache.h"
-#include "htup.h"
+#include "tmp/postgres.h"
+
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "executor/recursion.h"
+#include "planner/recurplanner.h"
+#include "utils/fmgr.h"
+#include "utils/log.h"
+#include "utils/lmgr.h"
+
+#include "nodes/execnodes.h"
+#include "nodes/nodes.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/plannodes.h"
+#include "nodes/primnodes.h"
+#include "nodes/relation.h"
+
+#include "catalog/syscache.h"
+#include "catalog/pg_type.h"
 
 /* ----------------------------------------------------------------
  *	lispCopy
@@ -317,8 +325,11 @@ bool CopyPlanFields(from, newnode, alloc)
     Plan 	newnode;
     char *	(*alloc)();
 {
-    newnode->cost = 	from->cost;
-    newnode->fragment = 	from->fragment;
+    newnode->cost = from->cost;
+    newnode->plan_size = from->plan_size;
+    newnode->plan_width = from->plan_width;
+    newnode->fragment =	from->fragment;
+    newnode->parallel = from->parallel;
     
     Node_Copy(from, newnode, alloc, state);
     Node_Copy(from, newnode, alloc, qptargetlist);
@@ -552,8 +563,86 @@ bool CopyScanFields(from, newnode, alloc)
     Node_Copy(from, newnode, alloc, scanstate);
     return true;
 }
-    
 
+/* ----------------
+ *	CopyRelDescUsing is a function used by CopyScanTempFields.
+ * ----------------
+ */
+
+Relation
+CopyRelDescUsing(reldesc, alloc)
+Relation	reldesc;
+char *		(*alloc)();
+{
+    int len;
+    int natts;
+    int i;
+    Relation newreldesc;
+
+    natts = reldesc->rd_rel->relnatts;
+    len = sizeof *reldesc + (int)(natts - 1) * sizeof reldesc->rd_att;
+    newreldesc = (Relation)(*alloc)(len);
+    newreldesc->rd_fd = reldesc->rd_fd;
+    newreldesc->rd_refcnt = reldesc->rd_refcnt;
+    newreldesc->rd_ismem = reldesc->rd_ismem;
+    newreldesc->rd_am = reldesc->rd_am;  /* YYY */
+    newreldesc->rd_rel = (RelationTupleForm)
+                         (*alloc)(sizeof (RuleLock) + sizeof *reldesc->rd_rel);
+    *newreldesc->rd_rel = *reldesc->rd_rel;
+    newreldesc->rd_id = reldesc->rd_id;
+    if (reldesc->lockInfo != NULL) {
+	newreldesc->lockInfo = (Pointer)(*alloc)(sizeof(LockInfoData));
+        *(LockInfo)(newreldesc->lockInfo) = *(LockInfo)(reldesc->lockInfo); 
+      }
+
+    len = sizeof *reldesc->rd_att.data[0];
+    for (i = 0; i < natts; i++) {
+        newreldesc->rd_att.data[i] = (AttributeTupleForm)
+            (*alloc)(len + sizeof (RuleLock));
+
+        bcopy((char *)reldesc->rd_att.data[i],
+	      (char *)newreldesc->rd_att.data[i],
+	      len);
+        bzero((char *)(newreldesc->rd_att.data[i] + 1), sizeof (RuleLock));
+        newreldesc->rd_att.data[i]->attrelid=reldesc->rd_att.data[i]->attrelid;
+    }
+    return newreldesc;
+}
+
+List
+copyRelDescsUsing(relDescs, alloc)
+List	relDescs;
+char *	(*alloc)();
+{
+    List newlist;
+
+    if (lispNullp(relDescs))
+	return LispNil;
+    newlist = (List)(*alloc)(classSize(LispValue));
+    CopyNodeFields(relDescs, newlist, alloc);
+    newlist->val.car = (LispValue)CopyRelDescUsing(CAR(relDescs), alloc);
+    newlist->cdr = copyRelDescsUsing(CDR(relDescs), alloc);
+    return newlist;
+}
+
+    
+/* ----------------
+ *	CopyScanTempFields
+ *
+ *	This function copies the fields of the ScanTemps node.  It is used by
+ *	all the copy functions for classes which inherit from Scan.
+ * ----------------
+ */
+bool CopyScanTempFields(from, newnode, alloc)
+    ScanTemps 	from;
+    ScanTemps 	newnode;
+    char *	(*alloc)();
+{
+    newnode->temprelDescs = copyRelDescsUsing(from->temprelDescs, alloc);
+    Node_Copy(from, newnode, alloc, scantempState);
+    return true;
+}
+    
 /* ----------------
  *	_copyScan
  * ----------------
@@ -582,7 +671,34 @@ _copyScan(from, to, alloc)
     return true;
 }
     
+/* ----------------
+ *	_copyScanTemp
+ * ----------------
+ */
+bool
+_copyScanTemps(from, to, alloc)
+    ScanTemps	from;
+    ScanTemps	*to;
+    char *	(*alloc)();
+{
+    ScanTemps	newnode;
 
+    COPY_CHECKARGS();
+    COPY_CHECKNULL();
+    COPY_NEW(ScanTemps);
+    
+    /* ----------------
+     *	copy node superclass fields
+     * ----------------
+     */
+    CopyNodeFields(from, newnode, alloc);
+    CopyPlanFields(from, newnode, alloc);
+    CopyScanTempFields(from, newnode, alloc);
+
+    (*to) = newnode;
+    return true;
+}
+    
 /* ----------------
  *	_copySeqScan
  * ----------------
@@ -646,6 +762,34 @@ _copyIndexScan(from, to, alloc)
     (*to) = newnode;
     return true;
 }
+
+/* ----------------
+ *      -copyJoinRuleInfo
+ * ----------------
+ */
+bool
+_copyJoinRuleInfo(from, to, alloc)
+    JoinRuleInfo        from;
+    JoinRuleInfo        *to;
+    char *              (*alloc)();
+{
+    JoinRuleInfo newnode;
+
+    COPY_CHECKARGS();
+    COPY_CHECKNULL();
+    COPY_NEW(JoinRuleInfo);
+
+    newnode->jri_operator = from->jri_operator;
+    newnode->jri_inattrno = from->jri_inattrno;
+    newnode->jri_outattrno = from->jri_outattrno;
+    newnode->jri_lock = from->jri_lock;
+    newnode->jri_ruleid = from->jri_ruleid;
+    newnode->jri_stubid = from->jri_stubid;
+    newnode->jri_stub = from->jri_stub;
+
+    (*to) = newnode;
+    return(true);
+}
     
 /* ----------------
  *	CopyJoinFields
@@ -659,6 +803,7 @@ bool CopyJoinFields(from, newnode, alloc)
     Join 	newnode;
     char *	(*alloc)();
 {
+    Node_Copy(from, newnode, alloc, ruleinfo);
     return true;
 }
     
@@ -1938,6 +2083,21 @@ _copyJInfo(from, to, alloc)
  *	     execnodes.h routines have no copy functions
  * ****************
  */
+ReturnState
+CopyReturnStateUsing(retstate, alloc)
+ReturnState     retstate;
+char *  (*alloc)();
+{
+    ReturnState newnode;
+
+    COPY_NEW(ReturnState);
+    /* ----------------
+     *  copy node superclass fields
+     * ----------------
+     */
+    CopyNodeFields(retstate, newnode, alloc);
+    return newnode;
+}
 
 /* ****************
  *	      mnodes.h routines have no copy functions
