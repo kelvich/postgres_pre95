@@ -20,6 +20,9 @@
  */
 #include "tmp/libpq.h"
 #include "access/htup.h"
+
+#include "catalog/pg_attribute.h"	/* for prototypes */
+
 /* ----------------
  *	declarations for backend libpq support routines
  * ----------------
