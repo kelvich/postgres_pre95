@@ -1409,7 +1409,7 @@ a_expr:
 				       CString(CDR($1)) );
 		     
 		     $$ = lispCons ( lispInteger ( 23 ),
-		     		MakeArrayRef( temp , $3 );
+		     		MakeArrayRef( temp , $3 ));
 		}
 	| AexprConst		
 	| spec 
