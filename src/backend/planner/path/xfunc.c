@@ -249,7 +249,7 @@ int xfunc_width(clause)
      }
     else if (IsA(clause,Param))
      {
-	 if (complexType(get_paramtype((Param)clause)))
+	 if (typeid_get_relid(get_paramtype((Param)clause)))
 	  {
 	      rd = heap_open(typeid_get_relid(get_paramtype((Param)clause)));
 	      retval = xfunc_tuple_width(rd);
@@ -279,7 +279,7 @@ int xfunc_width(clause)
 	      proc = (Form_pg_proc) GETSTRUCT(tupl);
 	      
 	      /* if function returns a tuple, get the width of that */
-	      if (complexType(proc->prorettype))
+	      if (typeid_get_relid(proc->prorettype))
 	       {
 		   rd = heap_open(typeid_get_relid(proc->prorettype));
 		   retval = xfunc_tuple_width(rd);
