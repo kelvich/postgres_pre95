@@ -1321,6 +1321,12 @@ sortby_list:
 sortby:
 	  Id OptUseOp
 		{ $$ = lispCons ( $1, lispCons ($2, LispNil )) ; }
+	| attr OptUseOp
+                { /* i had to do this since a bug in yacc wouldn't catch */
+                  /* this syntax error - ron choi 4/11/91 */
+                  yyerror("syntax error: use \"sort by attribute_name\"");
+                }
+
 	;
 
 
