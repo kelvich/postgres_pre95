@@ -467,11 +467,11 @@ _nobt_setpagelock(rel, blkno, access)
     switch (access) {
 
       case NOBT_WRITE:
-	RelationSetLockForWritePage(rel, 0, &iptr);
+	RelationSetSingleWLockPage(rel, 0, &iptr);
 	break;
 
       case NOBT_READ:
-	RelationSetLockForReadPage(rel, 0, &iptr);
+	RelationSetSingleRLockPage(rel, 0, &iptr);
 	break;
 
       default:
@@ -491,11 +491,11 @@ _nobt_unsetpagelock(rel, blkno, access)
     switch (access) {
 
       case NOBT_WRITE:
-	RelationUnsetLockForWritePage(rel, 0, &iptr);
+	RelationUnsetSingleWLockPage(rel, 0, &iptr);
 	break;
 
       case NOBT_READ:
-	RelationUnsetLockForReadPage(rel, 0, &iptr);
+	RelationUnsetSingleRLockPage(rel, 0, &iptr);
 	break;
 
       default:
