@@ -42,6 +42,8 @@ CATALOG(pg_index) {
     bool 	indisarchived;
 } FormData_pg_index;
 
+#define INDEX_MAX_KEYS 8  /* maximum number of keys in an index definition */
+
 /* ----------------
  *	Form_pg_index corresponds to a pointer to a tuple with
  *	the format of pg_index relation.
