@@ -55,16 +55,15 @@ TOOLSLIBDIR= /usr/local/lib
 #	hpux	-	HP PA-RISC on HP-UX 8.07
 #	alpha	-	DEC ALPHA AXP on OSF/1 1.3
 #  Partial, untested support is provided for
-#	linux	-	Intel 386/486 on Linux 0.99
-#	next	-	NeXT MC680x0 on NeXTSTEP
+#	linux	-	Intel 386/486 on Linux 0.99pl11
 #  but you're really taking your life into your own hands on these.
 #
-#  XXX	Note that you MUST set PORTNAME here so that port-dependent 
-#	variables are correctly set within this file.  ./obj/Makefile.global 
-#	does not take effect (for .if purposes) until after this file is
-#	processed!
+#  XXX	Note that you MUST set PORTNAME here (or on the command line) so 
+#	that port-dependent variables are correctly set within this file.
+#	./obj/Makefile.global does not take effect (for .if purposes) 
+#	until after this file is processed!
 #
-PORTNAME?=	alpha
+PORTNAME?=	ultrix4
 
 #
 # POSTGRESLOGIN is the login name of the user who gets special
@@ -125,6 +124,7 @@ HEADERDIR=	${POSTGRESDIR}/include
 
 #
 # MACHINE is needed for machine-dependent part of the system mk files.
+# (We don't really use this feature.)
 #
 .if (${PORTNAME} == "alpha" || ${PORTNAME} == "ultrix4")
 MACHINE!=machine
@@ -135,6 +135,7 @@ MACHINE=hppa
 .elif (${PORTNAME} == "linux" || ${PORTNAME} == "svr4")
 MACHINE=i386
 .endif
+
 #
 # FEATURES: 
 # To disable a feature, comment out the entire definition
@@ -144,6 +145,9 @@ MACHINE=i386
 #
 # Comment out ENFORCE_ALIGNMENT if you do NOT want unaligned access to
 # multi-byte types to generate a bus error.
+#
+# Don't turn this on on HP-UX or Alpha unless you want lots of bus errors.
+# On other machines it won't make a difference.
 #
 .if (${PORTNAME} == "ultrix4")
 ENFORCE_ALIGNMENT=
@@ -264,13 +268,20 @@ CFLAGS+= -DPOSTPORT='"4321"'
 CFLAGS+= -DSEQUOIA
 
 #
-# SysV signal(2) semantics require reinstallation of signal handlers
-# after being called.  These systems are SysV-like.
+# SVID and POSIX signal(2) semantics differ from BSD signal(2) semantics.
+# These systems are SVID or POSIX based by default.
 #
 .if (${PORTNAME} == "hpux" || ${PORTNAME} == "svr4")
+# These systems are SVID-based so we do handler-reinstallation.
+# (HP-UX could use the sigset() interface..)
 CFLAGS+= -DSYSV_SIGNAL
 .elif (${PORTNAME} == "linux")
+# gnulib #defines the problem away for you and calls the BSD routines
+# if you give it these flags.
 CFLAGS+= -D__USE_BSD -D__USE_BSD_SIGNAL
+.elif (${PORTNAME} == "alpha")
+# OSF/1 has you link in BSD or SVID libraries as desired.  We desire BSD.
+LDADD+= -lbsd
 .endif
 
 #
@@ -291,11 +302,7 @@ CFLAGS+= -DNOFIXADE
 .  if (${PORTNAME} == "hpux")
 CFLAGS+= +u
 LDFLAGS+= +u
-.  endif
-.endif
-
-.if  (${PORTNAME} == "alpha")
-.undef USE_DLD
-LDADD+= -lbsd
+.  elif (${PORTNAME} == "alpha")
 CFLAGS+= -DNOPRINTADE
+.  endif
 .endif
