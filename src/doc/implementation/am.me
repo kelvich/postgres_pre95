@@ -39,11 +39,9 @@ the relation descriptor and its contents,
 the differences between heap and index relations,
 .BU
 scan keys, scan descriptors, and the scan interface,
-.BU
-the \*(PG access method interface routines,
 and
 .BU
-the layout of a \*(PG page.
+the \*(PG access method interface routines.
 .pp
 These topics are covered in detail in the subsections below.
 .sh 2 "The Relation Descriptor"
@@ -496,7 +494,7 @@ are used by the planner to estimate plan costs during query optimization.
 The
 .SE relexpires
 entry is the amount of history that should be saved for this relation.
-.\" XXX bullshit -- check this out when you get back.
+This is not used in the current system.
 .pp
 The
 .SE relpreserved
@@ -696,17 +694,26 @@ In this case,
 the
 .SE attdefrel
 entry is the object ID of the relation from which this attribute is inherited.
-.\" XXX check this
 .pp
 The
 .SE attnvals
-entry is for something I don't understand.
-.\" XXX
+entry is intended to support query optimization.
+It should store the number of distinct values for this attribute
+that appear in the relation.
+This value should be computed at vacuum time,
+and stored in
+.RN pg_attribute
+by the vacuum cleaner.
+However,
+the current vacuum cleaner does not compute statistics,
+so
+.SE attnvals
+is always zero.
 .pp
-The
+The purpose of the
 .SE atttyparg
-entry is for something I don't understand.
-.\" XXX
+entry is not known;
+it is not currently used.
 .pp
 The
 .SE attlen
@@ -717,8 +724,8 @@ for variable-length attributes.
 .pp
 The
 .SE attbound
-entry is for something I don't understand.
-.\" XXX
+entry was intended to support array-valued attributes,
+but is not used by the existing \*(PG array implementation.
 .pp
 The
 .SE attbyval
@@ -742,9 +749,10 @@ if this entry can be indexed,
 and false otherwise.
 Array attributes cannot be indexed.
 .pp
-The
+The purpose of the
 .SE attproc
-entry is for something I don't understand.
+entry is unknown.
+It is not used in the current system.
 .pp
 The
 .SE attnelems
@@ -943,9 +951,6 @@ the relation that the block stores,
 and the number may vary for a given relation
 (for example,
 if the relation includes variable-length attributes).
-.pp
-The physical layout of a \*(PG page appears in a later section.
-.\" XXX fix this section ref
 .pp
 A tid uniquely identifies a single tuple in a relation.
 In the current version of the system,
@@ -1936,6 +1941,175 @@ The routines that operate on index relations use the
 tuple to dispatch the request to the appropriate indexed access
 method for the relation.
 This happens transparently to the user.
+.sh 3 "Managing the System Catalogs"
+.pp
+Because backend code frequently scans and updates the system catalogs,
+and because these catalogs often have special indices defined on them,
+\*(PG includes special interfaces for dealing with some system catalogs.
+This section describes those interfaces.
+.sh 4 "The System Cache"
+.pp
+Each \*(PG backend maintains,
+in private memory,
+a cache of system catalog tuples that are frequently required
+during query processing.
+Cache consistency is provided by some extremely complicated
+invalidation code that runs at transaction boundaries.
+This cache,
+called the
+.i "sys cache" ,
+actually consists of a number of different caches
+that support fast lookup of catalog tuples by various attributes.
+The cache management code appears in the source files
+.FI utils/cache/syscache.c
+and
+.FI utils/cache/catcache.c ,
+and the cache invalidation code is in
+.FI storage/ipc/sinval.c
+and
+.FI utils/cache/inval.c .
+.pp
+The primary interface for using the sys cache is
+.(E
+HeapTuple
+SearchSysCacheTuple(int cacheid, char *key1, char *key2,
+		    char *key3, char *key4)
+.)E
+The
+.SE cacheid
+argument is the sys cache of interest.
+The system currently supports the following caches:
+.TS
+center allbox;
+cfI cfI cfI
+l l l.
+Cache ID	Relation	Cache Key Attributes
+AMOPOPID	pg_amop	amopclaid, amopopr
+AMOPSTRATEGY	pg_amop	amopid, amopclaid, amopstrategy
+ATTNAME	pg_attribute	attrelid, attname
+ATTNUM	pg_attribute	attrelid, attnum
+INDEXRELID	pg_index	indexrelid
+LANNAME	pg_language	lanname
+OPRNAME	pg_operator	oprname, oprleft, oprright, oprkind
+OPROID	pg_operator	OID
+PRONAME	pg_proc	proname, pronargs, proargtypes
+PROOID	pg_proc	OID
+RELNAME	pg_class	relname
+RELOID	pg_class	OID
+TYPNAME	pg_type	typname
+TYPOID	pg_type	OID
+AMNAME	pg_am	amname
+CLANAME	pg_opclass	opcname
+INDRELIDKEY	pg_index	indrelid, indkey
+INHRELID	pg_inherits	inhrelid, inhseqno
+PRS2PLANCODE	pg_prs2	prs2ruleid, prs2planno
+RULOID	pg_rewrite	OID
+PRS2STUB	pg_prs2	prs2relid, prs2no
+PRS2RULEID	pg_prs2	prs2name
+PRS2EVENTREL	pg_prs2	OID
+AGGNAME	pg_aggregate	aggname
+NAMEREL	pg_naming	parent_oid, filename
+LOBJREL	pg_large_object	object_oid
+LISTENREL	pg_listener	relname, pid
+USENAME	pg_user	usename
+USESYSID	pg_user	usesysid
+GRONAME	pg_group	groname
+GROSYSID	pg_group	grosysid
+REWRITENAME	pg_rewrite	rulename
+.TE
+The
+.SE USESYSID
+cache,
+for example,
+allows fast lookup of users in
+.RN pg_user
+by the
+.RN usesysid
+attribute.
+To do such a lookup,
+.(E
+HeapTuple pg_user_tup;
+
+pg_user_tup = SearchSysCacheTuple(USESYSID, 1806, 0, 0, 0);
+.)E
+If any tuple with
+.RN usesysid
+equal to 1806 exists in
+.RN pg_user ,
+it is loaded into the cache if necessary,
+and a pointer to it is returned.
+.sh 4 "Maintaining System Catalog Indices"
+.pp
+Since system catalog indices are critical to the fast and correct
+functioning of \*(PG,
+several support routines have been defined to open,
+update,
+and close indices on a given catalog when it is updated.
+An example of the use of these routines appears in the file
+.FI catalog/heap.c ,
+in the routine
+.SE AddNewAttributeTuples .
+The routines are defined in
+.FI catalog/indexing.c .
+The interfaces are
+.(E
+void
+CatalogOpenIndices(int nIndices, char **names, Relation *ind_relns)
+
+void
+CatalogIndexInsert(Relation *ind_relns, int nIndices,
+		   Relation heap_reln, HeapTuple htup)
+
+void
+CatalogCloseIndices(int nIndices, Relation *ind_relns)
+.)E
+For
+.SE CatalogOpenIndices,
+the
+.SE nIndices
+argument is the number of indices on the catalog;
+constants for all catalogs are defined in
+.FI catalog/indexing.h .
+The
+.SE names
+vector is an array of names of indices on the catalog;
+constants for these arrays are provided in the same header file.
+Finally,
+.SE ind_relns
+is a vector of index reldesc pointers that is large enough to hold
+.SE nIndices
+reldesc pointers.
+This is filled in by
+.SE CatalogOpenIndices .
+.pp
+For
+.SE CatalogIndexInsert ,
+the
+.SE ind_relns
+argument is the reldesc vector returned by
+.SE CatalogOpenIndices .
+.SE NIndices
+is the number of indices on the catalog.
+The
+.SE heap_reln
+argument is the catalog relation being updated,
+and
+.SE htup
+is the new tuple inserted into the catalog.
+When
+.SE CatalogIndexInsert
+returns,
+all of the indices on the system catalog will have been updated
+with index tuples pointing at the new heap tuple.
+.pp
+For
+.SE CatalogCloseIndices ,
+.SE nIndices
+is the number of indices to close,
+and
+.SE ind_relns
+is the reldesc vector from
+.SE CatalogOpenIndices .
 .sh 3 "Opening and Closing Relations"
 .pp
 Relations may be opened by relid (object ID of the corresponding
@@ -2186,13 +2360,780 @@ the tuple before returning.
 Allocated memory is automatically freed at transaction boundaries,
 but relying on this feature causes memory leaks that make
 \*(PG run slowly and consume large amounts of system memory.
+.sh 4 "Using an Index Scan"
+.pp
+Buffer management is not required for index scans.
+Data of interest are copied to a special structure,
+called a
+.SE RetrieveIndexResult .
+A
+.SE RetrieveIndexResult
+includes the tid of the index tuple
+and the tid of the heap tuple that it references.
+To use these,
+.(E
+RetrieveIndexResult res;
+Relation heap_reln, index_reln;
+HeapTuple htup;
+ItemPointer heap_tid;
+Buffer b;
+
+\&...
+indscan = index_beginscan(index_reln, ...);
+res = index_getnext(indscan, ForwardScanDirection);
+if (res) {
+	heap_tid = RetrieveIndexResultGetHeapItemPointer(res);
+	htup = heap_fetch(heap_reln, NowTimeQual, heap_tid, &b);
+	if (HeapTupleIsValid(htup)) {
+
+		/* ... process the heap tuple ... */
+
+		/* all done */
+		ReleaseBuffer(b);
+	}
+}
+.)E
+The index relation requires no explicit buffer management.
+The heap tid of interest is extracted from the
+.SE RetrieveIndexResult ,
+and is used to fetch the heap tuple itself.
+The
+.SE heap_fetch
+interface fetches a heap tuple by tid;
+its declaration is
+.(E
+HeapTuple
+heap_fetch(Relation relation, TimeQual timeQual,
+           ItemPointer tid, Buffer *b)
+.)E
+The description of buffer management for heap scans applies to the
+.SE heap_fetch
+interface, as well.
+.pp
+If the resulting heap tuple does not satisfy the time qualification,
+then
+.SE heap_fetch
+will return NULL.
+Since the index may contain old data until the vacuum cleaner is run,
+this is possible,
+so the user must check the return value from
+.SE heap_fetch .
+.pp
+If there are no more index tuples that match the qualification,
+.SE index_getnext
+will return NULL.
+At that point,
+the scan must be ended using
+.SE index_endscan .
+Subsequent calls to
+.SE index_getnext
+on the scan will reset it to the beginning of the qualifying
+index tuples,
+and they will all be returned again.
+This is not intended as a feature,
+so should not be used.
 .sh 3 "Fetching Attributes"
+.pp
+Once a tuple of interest has been fetched from the heap,
+attributes of interest may be extracted from it and used.
+The interfaces are
+.(E
+char *
+heap_getattr(HeapTuple tup, Buffer b, int attnum,
+             TupleDescriptor tupdesc, bool *isnull)
+
+Pointer
+index_getattr(IndexTuple tup, int attnum,
+             TupleDescriptor tupdesc, bool *isnull)
+.)E
+In general,
+users (and even \*(PG implementors) need not extract index tuple
+values;
+only access method implementors need to do that.
+The rest of this section concentrates on the
+.SE heap_getattr
+interface.
+.pp
+The
+.SE tup
+argument points at the tuple of interest.
+If
+.SE b
+is non-null,
+then it is the buffer on which the tuple resides.
+If the user is doing explicit buffer management via
+.SE heap_fetch
+or
+.SE heap_getnext ,
+then the returned buffer may be passed along to
+.SE heap_getattr .
+.pp
+The tuple descriptor is actually the
+.SE rd_att
+entry from the reldesc for the relation that stores the tuple.
+To extract the tuple descriptor,
+.(E
+Relation reln;
+TupleDescriptor tupdesc;
+
+\&...
+tupdesc = RelationGetTupleDescriptor(reln);
+.)E
+.pp
+The
+.SE isnull
+argument is a pointer to a value of type
+.SE bool .
+If the corresponding attribute has the database value null,
+then
+.SE isnull
+will be
+.i true
+and the return value should be ignored.
+.pp
+Although it is declared to return type
+.SE "char *" ,
+.SE heap_getattr
+actually returns type
+.SE Datum ,
+so the return value should always be coerced to that type.
+This is an implementation mistake.
+In order to extract the actual value,
+one of the \fCDatumGet\fP\fIType\fP macros described in
+a previous section.
+.\" XXX fix this section ref
 .sh 3 "Inserting New Tuples"
+.pp
+When a user submits a \*(PQ query to insert new tuples into a heap relation,
+the \*(PG executor automatically updates all associated indices with
+pointers to the new tuple after it has been inserted.
+There is no simple interface for doing this in general on user relations
+inside the \*(PG backend.
+A later section
+.\" XXX fix this section ref
+describes a simple way for doing this on system catalogs,
+but the user must explicitly code updates to indices on user relations
+when new values are inserted into the heap.
+.pp
+The code for the routine
+.SE CopyFrom
+in the source file
+.FI commands/copy.c
+contains the sample code that was used to produce this system.
+That file is a reasonable reference for how to manage tuple
+insertions correctly.
+.sh 4 "Forming a Heap Tuple"
+.pp
+The routine
+.(E
+HeapTuple
+heap_formtuple(AttributeNumber natts, TupleDescriptor tupdesc,
+               Datum *values, char *nulls)
+.)E
+creates a heap tuple from the supplied vector of
+.SE Datum
+values.
+The
+.SE natts
+argument is the number of attributes in the relation
+(the
+.SE rd_rel->relnatts
+entry of the reldesc).
+The
+.SE tupdesc
+is the
+.SE rd_att
+entry of the reldesc,
+which may be fetched via
+.SE RelationGetTupleDescriptor .
+.pp
+Both
+.SE values
+and
+.SE nulls
+are arrays of length
+.SE natts .
+.SE Values
+contains a datum for every non-null attribute in the tuple.
+The
+\fIType\fP\fCGetDatum\fP macros can be used to initialize the
+entries in this array.
+If an attribute is null,
+its space is ignored in the array.
+For example,
+if the third attribute is null,
+then the value stored in the third location of the
+.SE values
+array will be ignored by
+.SE heap_formtuple .
+.pp
+The
+.SE nulls
+array is a vector of characters,
+one per attribute in the tuple.
+If the corresponding attribute has the database value null,
+then the array entry is the character
+.i n .
+If the corresponding attribute is non-null,
+then the array entry is the ASCII blank character.
+.pp
+The heap tuple returned by
+.SE heap_formtuple
+consumes
+.SE palloc ed
+memory,
+and should be
+.SE pfree d
+when the heap and index relations have all been updated.
+.sh 4 "Inserting the Heap Tuple"
+.pp
+To insert the tuple returned by
+.SE heap_formtuple ,
+.(E
+ObjectId
+heap_insert(Relation reln, HeapTuple tup, double *off)
+.)E
+On return,
+the
+.SE tup->t_ctid
+entry is the tid of the tuple in the heap.
+The
+.SE off
+argument is unnecessary and should never be used.
+Its purpose is unclear.
+This argument may safely be C-language NULL.
+.SE heap_insert
+returns the object ID of the new tuple in the heap
+(the
+.SE t_oid
+entry of
+.SE tup
+is also correctly set).
+.sh 4 "Finding the Indices"
+.pp
+The procedure
+.SE GetIndexRelations
+finds all of the indices defined on a heap relation
+and initializes an array with the reldescs for all of the indices.
+The interface is
+.(E
+GetIndexRelations(ObjectId heap_relid, int *n_indices,
+                  Relation **index_reldescs);
+.)E
+The
+.SE heap_relid
+argument is the
+.SE rd_id
+entry of the reldesc for the heap.
+.SE N_indices
+is set,
+on return,
+to the number of indices for the heap relation.
+On return,
+.SE index_reldescs
+is a pointer to an array of reldescs,
+one for each index defined on the heap.
+.sh 4 "Updating the Indices"
+.pp
+A \*(PG index may be
+.BU
+.i functional ,
+meaning that the index is on the return value of some function of
+the heap tuple's attributes,
+rather than on the attributes themselves;
+.BU
+.i partial ,
+meaning that a predicate controls whether or not particular heap
+tuples should appear in the index;
+or
+.BU
+.i regular ,
+meaning that the index is on
+one or more attributes of all tuples in the heap.
+.pp
+Functional indices are used for some system catalogs,
+since the current version of \*(PG does not support multi-column
+btree indices.
+Partial indices are very seldom used.
+Normal indices are by far the most common.
+The rest of this section ignores functional and partial indices,
+and concentrates on normal ones.
+For sample code that updates these two kinds of indices,
+see the routine
+.SE CopyFrom
+in
+.SE commands/copy.c .
+Special interfaces,
+described below,
+.\" XXX fix this section ref
+have been defined to update the functional and normal indices
+on system catalogs,
+so the user need not manage these by hand.
+.pp
+After calling
+.SE GetIndexRelations ,
+the user has the number of indices and all of the index reldescs
+for the indices defined on the heap.
+Updating the indices requires forming an index tuple for each
+index and inserting it.
+The following code fragment gives an example.
+.(E
+Relation heap_reln;
+Relation *index_relns;
+int n_indices;
+Datum idatum;
+HeapTuple htup;
+IndexTuple itup;
+HeapTuple pg_indextup;
+Form_pg_index pgiform;
+TupleDescriptor tupdesc;
+TupleDescriptor itupdesc;
+char *nulls;
+int i;
+
+\&...
+tupdesc = RelationGetTupleDescriptor(heap_reln);
+
+/* get space for null flags -- this is more than we need */
+nulls = palloc(heap_reln->rd_rel->relnatts);
+for (i = 0; i < heap_reln->rd_rel->relnatts; i++)
+	nulls[i] = ' ';
+
+/* ... insert the heap tuple, which sets htup->t_ctid ... */
+
+/* update each index */
+for (i = 0; i < n_indices; i++) {
+	/* get the pg_index tuple for this index */
+	pg_indextup = SearchSysCacheTuple(INDEXRELID,
+	                                  index_relns[i]->rd_id,
+	                                  NULL, NULL, NULL);
+	pgiform = (Form_pg_index) GETSTRUCT(pg_indextup);
+
+	/* form a datum to use for the index tuple */
+	FormIndexDatum(index_relns[i]->rd_rel->relnatts,
+		       (AttributeNumber *) &pgiform->indkey.data[0],
+		       htup, tupdesc, InvalidBuffer,
+		       &idatum, nulls, NULL);
+
+	/* form the index tuple */
+	itupdesc = RelationGetTupleDescriptor(index_relns[i]);
+	itup = index_formtuple(1, itupdesc, &idatum, nulls);
+
+	/* make it point at the heap tuple */
+	itup->t_tid = htup->t_ctid;
+
+	/* insert it */
+	(void) index_insert(index_relns[i], itup, NULL, NULL);
+
+	pfree(itup);
+}
+
+pfree(nulls);
+.)E
+The loop iterates over all the indices defined on the heap,
+updating each in turn.
+For each index,
+it fetches the corresponding
+.RN pg_index
+tuple in the cache of system tuples,
+extracts the
+.SE Form_pg_index
+structure from each,
+and then forms a
+.SE Datum
+with the appropriate value for the index tuple.
+Finally,
+an index tuple is formed and inserted into the index.
 .sh 3 "Deleting Tuples"
-.sh 3 "Creating Relations"
-.sh 3 "Destroying Relations"
-.sh 3 "Building Indices"
+.pp
+Compared to inserting tuples,
+deleting tuples is simple.
+Users never delete tuples from indices;
+this is done only by the vacuum cleaner.
+Deleting a heap tuple requires the tid of the tuple to be deleted.
+The tid may be extracted from the heap tuple itself,
+which can be found,
+for example,
+by a scan of the heap relation.
+Given the tid,
+the interface for deleting heap tuples is
+.(E
+RuleLock
+heap_delete(Relation reln, ItemPointer tid)
+.)E
+The
+.SE RuleLock
+return value from
+.SE heap_delete
+was originally intended to support the \*(PG rule system,
+but the design of the rule system changed,
+so this value is not used.
+.SE Heap_delete
+always returns NULL.
+.sh 3 "Replacing Existing Tuples"
+.pp
+When a heap tuple in \*(PG is replaced,
+it is marked as deleted and a new tuple is inserted in the relation
+with new values.
+The new tuple has the same object ID as the original tuple,
+but will be stored at a new location
+and so will have a new tid.
+.pp
+Index tuples are never replaced.
+If the heap tuples to which they point have been replaced,
+the vacuum cleaner deletes them from the index.
+No user action is required.
+However,
+if a heap tuple is replaced,
+all the indices defined on it must have new index tuples inserted.
+These index tuples must point at the new heap tuple.
+The code for doing this is identical to the code for
+inserting index tuples that point at new heap tuples,
+and will not be repeated here.
+.pp
+Replacing a tuple consists of two steps.
+First,
+a new tuple is formed,
+based on the old one,
+but with some values changed.
+Second,
+the old tuple is replaced by the new one.
+.pp
+Replacing a tuple requires knowledge of the schema of the
+relation storing the tuple,
+since new values for particular attributes must be supplied.
+The sample code fragment below assumes the existence of a relation
+.RN emp
+with the schema
+.(E
+emp(name = char16, salary = int4)
+.)E
+The code sample replaces a particular
+.RN emp
+tuple,
+assigning the employee a salary of 50,000.
+Note that the code fragment does not update any indices defined on
+.RN emp ;
+that code must be added if any such indices exist.
+.(E
+Relation empreln;
+HeapTuple emptup;
+HeapTuple newtup;
+Buffer empbuf;
+Datum value[2];
+char nulls[2];
+char repl[2];
+
+\&...
+/* by here, we have the emp tuple to replace */
+value[0] = (Datum) 0;
+value[1] = Int32GetDatum(50000);	/* new salary */
+
+/* no null attributes in this tuple */
+nulls[0] = nulls[1] = ' ';
+
+/* replace the second att, not the first */
+repl[0] = ' ';
+repl[1] = 'r';
+
+/* get a new tuple based on the old one, with the new salary */
+newtup = heap_modifytuple(emptup, empbuf, empreln, value, nulls, repl);
+
+/* replace the old tuple with the new one */
+(void) heap_replace(empreln, &emptup->t_ctid, newtup);
+.)E
+The interface for
+.SE heap_modifytuple
+is
+.(E
+HeapTuple
+heap_modifytuple(HeapTuple tuple, Buffer buffer, Relation relation,
+		 Datum *replValue, char *replNull, char *repl)
+.)E
+The
+.SE tuple
+argument is the tuple to replace.
+The
+.SE buffer
+argument is the buffer in the buffer cache on which it appears,
+as returned by
+.SE heap_getnext
+or
+.SE heap_fetch .
+The
+.SE relation
+argument is the relation containing the tuple.
+.pp
+The next three arguments control what values are stored in the new
+tuple.
+The first,
+.SE replValue ,
+is a vector of values of type
+.SE Datum
+containing one entry for each attribute in the relation.
+If an attribute is not to be replaced,
+but rather should be copied from the old tuple,
+then the corresponding entry in
+.SE replValue
+will be ignored.
+.pp
+The
+.SE replNull
+argument contains one entry per attribute in the relation.
+If the corresponding attribute is to be replaced,
+and if the
+.SE replNull
+entry is the character
+.i n ,
+then the new value for that attribute is null.
+If the value is to be replaced and the
+.SE replNull
+entry is an ASCII blank,
+then the value stored in
+.SE replValue
+is consulted to get the new value for the attribute.
+.pp
+Finally,
+the
+.SE repl
+argument contains one entry per attribute in the relation.
+If the
+.SE repl
+entry for a particular attribute is the character
+.i r ,
+then the value should be replaced,
+and the
+.SE replValue
+and
+.SE replNull
+entries for the attribute are used to assign a new value.
+If the
+.SE repl
+entry is an ASCII blank,
+then the value is copied from the original tuple.
+.sh 3 "Creating and Destroying Relations"
+.pp
+Creating a heap relation requires the user to supply a schema
+for the new relation.
+Creating an index relation is easier,
+because the schema of the index is defined in terms of the heap.
+The two cases are treated separately below.
+.sh 4 "Heap Relations"
+.pp
+Creating a heap relation requires a schema for the new relation.
+The schema should be a
+.SE TupleDescriptor ,
+which is the same as the
+.SE rd_att
+entry of the reldesc for the relation about to be created.
+Creating the tuple descriptor is straightforward;
+a vector is allocated with one
+.SE FormData_pg_attribute
+structure for each attribute.
+The
+.SE FormData_pg_attribute
+structures are filled in with the names, types,
+and other appropriate information for the new attributes.
+The
+.SE attrelid
+and
+.SE attdefrel
+entries may be left as
+.SE InvalidObjectId ;
+these will be filled in by the code to create the heap relation.
+.pp
+Once the tuple descriptor has been constructed,
+creating the relation is straightforward.
+The interface is
+.(E
+ObjectId
+heap_create(char *relname, int archive, unsigned natts,
+	    unsigned smgr, TupleDescriptor tupdesc)
+.)E
+The
+.SE relname
+argument is the name of the new relation;
+it must be unique,
+or
+.SE heap_create
+will abort the transaction.
+.pp
+The
+.SE archive
+argument,
+although declared to be of type
+.SE int
+in the prototype,
+is actually a character;
+this should be one of
+.i n
+(no archiving),
+.i l
+(light archiving),
+or
+.i h
+(heavy archiving).
+Light and heavy archiving behave identically in the current system,
+and cause deleted and replaced tuples to be copied to a special
+archive by the vacuum cleaner.
+No archiving causes the vacuum cleaner to discard deleted and replaced
+tuples.
+.pp
+The
+.SE natts
+argument is the number of attributes for the new relation.
+This should be the same as the length of the
+.SE tupdesc
+vector.
+.pp
+The
+.SE smgr
+argument is the storage manager on which the relation should be created.
+The set of supported storage managers varies from installed system
+to installed system.
+Storage manager number zero is always magnetic disk.
+Other numbers are installation-dependent.
+.pp
+Finally,
+the
+.SE tupdesc
+argument is the tuple descriptor for the new relation.
+.pp
+.SE Heap_create
+returns the object ID of the new relation's
+.RN pg_class
+tuple,
+which is the same as the relid of the new relation.
+.pp
+Destroying a heap relation is even simpler:
+.(E
+void
+heap_destroy(char *relname)
+.)E
+If the named relation does not exist,
+.SE heap_destroy
+aborts the transaction.
+Otherwise,
+the relation is destroyed and all indices defined on it are removed.
+In addition,
+if the relation inherited attributes from other relations,
+its inheritance information is deleted from the system catalogs.
+.sh 4 "Index Relations"
+.pp
+Creating an index relation is straightforward.
+The interface is
+.(E
+void
+index_create(Name heap_name, Name index_name,
+	     FuncIndexInfo fInfo, ObjectId am_id,
+	     AttributeNumber natts, AttributeNumber *attnos,
+	     ObjectId *opclasses, uint16 paramCount,
+	     Datum *params, LispValue predicate)
+.)E
+The
+.SE fInfo ,
+.SE paramCount ,
+.SE params ,
+and
+.SE predicate
+arguments are for defining functional or partial indices,
+and will not be covered here.
+.pp
+The
+.SE heap_name
+argument is the name of the heap relation on which the index
+is to be defined.
+The
+.SE index_name
+argument is the name of the new index relation.
+.pp
+The
+.SE am_id
+argument is the object ID of the access method tuple for this index,
+from
+.RN pg_am .
+.pp
+The
+.SE natts
+argument is the number of attributes (keys) for this index.
+The current system supports only single-key indices,
+but this may change in a subsequent release.
+The
+.SE attnos
+argument is a vector of attribute numbers in the heap.
+If the index is to be defined on the third attribute in the heap,
+then this vector would consist of a single entry,
+which would be three.
+.pp
+The
+.SE opclasses
+argument is the object ID of the operator class tuple from
+.SE pg_amop
+to use for each attribute.
+The operator classes map types and operators for the index to
+particular functions in
+.RN pg_proc .
+.pp
+Sample code that defines regular,
+functional,
+and partial indices may be found in the source file
+.FI commands/defind.c .
+.pp
+When
+.SE index_create
+returns,
+the new index has been created and tuples have been inserted into it
+for each tuple in the heap relation.
 .sh 3 "Scan Position Management"
-.sh 3 "Managing the System Catalogs"
-.\" indices
-.sh 2 "Page Layout"
+.pp
+Scans on index or heap relations support
+.i marking
+and
+.i restoring
+of the scan's position.
+A mark records the current scan location,
+and a restore restores the previously marked location.
+Only one mark may be defined on an open scan.
+.pp
+Marking and restoring are of limited use outside the executor,
+but the interfaces are included here for completeness.
+They are
+.(E
+void
+heap_markpos(HeapScanDesc hscan)
+
+void
+heap_restrpos(HeapScanDesc hscan)
+
+void
+index_markpos(IndexScanDesc iscan)
+
+void
+index_restrpos(IndexScanDesc iscan)
+.)E
+.sh 3 "Locking"
+.pp
+Users of the access method interface routines need not worry about
+locking.
+The access method routines acquire (and, when appropriate, release)
+locks on relations in response to scans and updates.
+Heap relations are protected by two-phase relation level locks.
+Btree indices use Lehman-Yao\**
+.(f
+\**
+Lehman, P., Yao, S., ``Efficient Locking for Concurrent Operations
+on B-trees'', \fIACM Transactions on Database Systems\fR, 6(4),
+December 1981.
+.)f
+short-term locking for high concurrency,
+but since the underlying tables are locked at the relation level,
+index updates are serialized.
+Rtree indices use two-phase table-level locking.
+.pp
+System catalogs in \*(PG are not subject to two-phase locking
+in order to improve concurrency.
+This means that under some circumstances concurrent transactions
+that operate on the system catalogs are not serializable.
+This flaw is common in commercial relational systems,
+as well,
+and occurs infrequently enough that it does not matter in practice.
