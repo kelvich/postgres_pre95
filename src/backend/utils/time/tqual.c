@@ -51,8 +51,6 @@ TimeQual		SelfTimeQual = (Pointer)&SelfTimeQualData;
  */
 #ifndef	GOODAMI
 
-static TransactionIdData	HeapSpecialTransactionIdData;
-
 static TransactionId	HeapSpecialTransactionId = InvalidTransactionId;
 static CommandId	HeapSpecialCommandId = FirstCommandId;
 
@@ -61,9 +59,8 @@ setheapoverride(on)
 	bool	on;
 {
 	if (on) {
-		HeapSpecialTransactionId = &HeapSpecialTransactionIdData;
 		TransactionIdStore(GetCurrentTransactionId(),
-			(Pointer)HeapSpecialTransactionId);
+				   &HeapSpecialTransactionId);
 		HeapSpecialCommandId = GetCurrentCommandId();
 	} else {
 		HeapSpecialTransactionId = InvalidTransactionId;
