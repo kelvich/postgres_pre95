@@ -43,6 +43,7 @@ char	PARG_R[16] = 		"pg_parg";
 char	PROC_R[16] = 		"pg_proc";
 char	PRS2PLANS_R[16] = 	"pg_prs2plans";
 char 	PRS2RULE_R[16] = 	"pg_prs2rule";
+char 	PRS2STUB_R[16] = 	"pg_prs2stub";
 char	RELATION_R[16] = 	"pg_relation";
 char	RULE_R[16] = 		"pg_rule";
 char	RULEPLANS_R[16] = 	"pg_ruleplans";
@@ -84,6 +85,7 @@ static char *SystemRelname[] = {
     PROC_R, 
     PRS2PLANS_R,
     PRS2RULE_R,
+    PRS2STUB_R,
     RELATION_R,
     RULE_R,
     RULEPLANS_R,
@@ -123,6 +125,7 @@ static	char	IsDbdb[] = {
     '\0',	    /* PROC_R,          */
     '\0',	    /* PRS2PLANS_R,     */
     '\0',	    /* PRS2RULE_R,      */
+    '\0',	    /* PRS2STUB_R,      */
     '\0',	    /* RELATION_R,      */
     '\0',	    /* RULE_R,          */
     '\0',	    /* RULEPLANS_R,     */
