@@ -49,5 +49,6 @@ extern void	_vc_free();
 extern void	_vc_setpagelock();
 extern Relation	_vc_getarchrel();
 extern void	_vc_archive();
+extern bool	_vc_isarchrel();
 
 #endif /* ndef _VACUUM_H_ */
