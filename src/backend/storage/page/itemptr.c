@@ -159,7 +159,7 @@ ItemPointerEquals(pointer1, pointer2)
         return(false);
 }
 
-#ifndef	POSTMASTER
+/* #ifndef	POSTMASTER */
 
 LogicalPageNumber
 ItemPointerGetLogicalPageNumber(pointer, partition)
@@ -202,4 +202,4 @@ ItemPointerSetLogicalPageNumber(pointer, partition, pageNumber)
 			InvalidOffsetNumber);
 	}
 }
-#endif	/* !defined(POSTMASTER) */
+/* #endif	/* !defined(POSTMASTER) */
