@@ -143,7 +143,7 @@
     nth((rangetable_index)-1, rangetable)
 
 #define rt_store(rangetable_index, rangetable, rt) \
-    setf(nth((rangetable_index)-1, rangetable), rt)
+    nth((rangetable_index)-1, rangetable) =  rt
 
 /*
  *	getrelid
