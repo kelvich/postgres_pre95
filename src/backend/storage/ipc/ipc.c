@@ -7,30 +7,34 @@
  * ----------------------------------------------------------------
  */
 
+
 #include <sys/types.h>
 #include <sys/file.h>
+#include <stdio.h>
+#include <errno.h>
 
+/* XXX - the following  dependency should be moved into the defaults.mk file */
 #ifndef	_IPC_
 #define _IPC_
-#ifndef sequent
-#include <sys/ipc.h>
-#else
-#include "/usr/att/usr/include/sys/ipc.h"
-#endif
-#endif
+#ifndef sequent 
 
-#ifndef sequent
+#include <sys/ipc.h>
 #include <sys/sem.h>
 #include <sys/shm.h>
+
 #else
+
+#include "/usr/att/usr/include/sys/ipc.h"
 #include "/usr/att/usr/include/sys/sem.h"
 #include "/usr/att/usr/include/sys/shm.h"
-#endif
 
-#include <errno.h>
+#endif /* defined(sequent) */
+#endif
 
 #include "storage/ipci.h"		/* for PrivateIPCKey XXX */
 #include "storage/ipc.h"
+
+int UsePrivateMemory = 0;
 
 /* ----------------------------------------------------------------
  *			exit() handling stuff
@@ -45,6 +49,37 @@ static struct ONEXIT {
 } onexit_list[ MAX_ON_EXITS ];
 
 static int onexit_index;
+
+typedef struct _PrivateMemStruct {
+    int id;
+    char *memptr;
+} PrivateMem;
+
+PrivateMem IpcPrivateMem[16];
+
+int
+PrivateMemoryCreate ( memKey , size , permission )
+     IpcMemoryKey memKey;
+     uint32 size;
+{
+    static int memid = 0;
+    
+    UsePrivateMemory = 1;
+
+    IpcPrivateMem[memid].id = memid;
+    IpcPrivateMem[memid].memptr = malloc(size);
+    
+    return (memid++);
+}
+
+char *
+PrivateMemoryAttach ( memid , ignored1 , ignored2 )
+     IpcMemoryId memid;
+     int ignored1;
+     int ignored2;
+{
+    return ( IpcPrivateMem[memid].memptr );
+}
 
 
 /* ----------------------------------------------------------------
@@ -131,7 +166,11 @@ IPCPrivateMemoryKill(status, shmId)
     int	status;
     int	shmId;		/* caddr_t */
 {
-    shmctl(shmId, IPC_RMID, (struct shmid_ds *)NULL);
+    if ( UsePrivateMemory ) {
+	/* free ( IpcPrivateMem[shmId].memptr ); */
+    } else {
+	shmctl(shmId, IPC_RMID, (struct shmid_ds *)NULL);
+    } 
 }
 
 
@@ -181,7 +220,14 @@ IpcSemaphoreCreate(semKey, semNum, permission, semStartValue, status)
     semId = semget(semKey, 0, 0);
     if (semId == -1) {
 	*status = IpcSemIdNotExist;	/* there doesn't exist a semaphore */
+#ifdef DEBUG_IPC
+	fprintf(stderr,"calling semget with %d, %d , %d\n",
+		semKey,
+		semNum,
+		IPC_CREAT|permission );
+#endif
 	semId = semget(semKey, semNum, IPC_CREAT|permission);
+
 	if (semId < 0) {
 	    perror("semget");
 	    exitpg(3);
@@ -202,7 +248,14 @@ IpcSemaphoreCreate(semKey, semNum, permission, semStartValue, status)
 	/* there is a semaphore id for this key */
 	*status = IpcSemIdExist;
     }
-    
+
+#ifdef DEBUG_IPC
+    fprintf(stderr,"\nIpcSemaphoreCreate, status %d, returns %d\n",
+	    *status,
+	    semId );
+    fflush(stdout);
+    fflush(stderr);
+#endif
     return(semId);
 }
 
@@ -460,6 +513,7 @@ IpcSemaphoreSilentUnlock(semId, sem, lock)
 	semop(semId, (struct sembuf **)&sops, 1);
 }
 
+
 /****************************************************************************/
 /*   IpcMemoryCreate(memKey)						    */
 /*									    */
@@ -475,9 +529,17 @@ IpcMemoryCreate(memKey, size, permission)
 {
     IpcMemoryId	 shmid;
     int		 errStatus; 
-    
-    shmid = shmget(memKey, size, IPC_CREAT|permission); 
+
+    if ( memKey == PrivateIPCKey ) {
+	/* private */
+	shmid = PrivateMemoryCreate ( memKey, size , IPC_CREAT|permission);
+    } else {
+	shmid = shmget(memKey, size, IPC_CREAT|permission); 
+    }
+
     if (shmid < 0) {
+	fprintf(stderr,"IpcMemoryCreate: memKey=%d , size=%d , permission=%d", 
+	     memKey, size , permission );
 	perror("IpcMemoryCreate: shmget(..., create, ...) failed");
 	return(IpcMemCreationFailed);
     }
@@ -507,6 +569,8 @@ IpcMemoryCreateWithoutOnExit(memKey, size, permission)
     
     shmid = shmget(memKey, size, IPC_CREAT|permission); 
     if (shmid < 0) {
+	fprintf(stderr,"IpcMemoryCreate: memKey=%d , size=%d , permission=%d", 
+	     memKey, size , permission );
 	perror("IpcMemoryCreateWithoutOnExit: shmget(, IPC_CREAT,) failed");
 	return(IpcMemCreationFailed);
     }
@@ -527,7 +591,10 @@ IpcMemoryIdGet(memKey, size)
     IpcMemoryId	shmid;
     
     shmid = shmget(memKey, size, 0);
+
     if (shmid < 0) {
+	fprintf(stderr,"IpcMemoryIdGet: memKey=%d , size=%d , permission=%d", 
+	     memKey, size , 0 );
 	perror("IpcMemoryIdGet:  shmget() failed");
 	return(IpcMemIdGetFailed);
     }
@@ -550,24 +617,17 @@ IpcMemoryAttach(memId)
     char	*memAddress;
     int		errStatus;
     
-    /*	memAddress = (char *) malloc(sizeof(int)); XXX ??? */
-    memAddress = (char *) shmat(memId, 0, 0);
-    
+    if ( UsePrivateMemory ) {
+	memAddress = (char *)PrivateMemoryAttach ( memId , 0 , 0 );
+    } else {
+	memAddress = (char *) shmat(memId, 0, 0);
+    }
+
     /*	if ( *memAddress == -1) { XXX ??? */
     if ( memAddress == (char *)-1) {
 	perror("IpcMemoryAttach: shmat() failed");
 	return(IpcMemAttachFailed);
     }
-
-    /* XXX huh?
-       switch (errno) {
-       case EINVAL:
-       case EACCES:
-       case ENOMEM:
-       case EMFILE: perror("IpcMemoryAttach: shmat() failed:");
-       return(IpcMemAttachFailed);
-       }
-       */
     
     return((char *) memAddress);
 }
@@ -583,7 +643,7 @@ IpcMemoryKill(memKey)
 {	
     IpcMemoryId		shmid;
     
-    if ((shmid = shmget(memKey, 0, 0)) >= 0) {
+    if (!UsePrivateMemory && (shmid = shmget(memKey, 0, 0)) >= 0) {
 	shmctl(shmid, IPC_RMID, (struct shmid_ds *) 0);
     }
 } 
