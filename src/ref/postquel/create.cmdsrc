@@ -83,7 +83,7 @@ and
 .BR arch_store
 keywords may be used to specify a storage manager to use for the new
 class.  The released version of \*(PG supports only \*(lqmagnetic
-disk\*rq as a storage manager name; the research system at Berkeley
+disk\*(rq as a storage manager name; the research system at Berkeley
 provides additional storage managers.
 .BR Store
 controls the location of current data,
@@ -153,10 +153,11 @@ create tictactoe (game = int4, board = char[][])
 .)C
 .(C
 /*
- * Create a class newemp with a set attribute "manager".  A set (complex)
- * attribute may be of the same type as the relation being defined
- * (as here) or of a different complex type.  The type must exist in
- * the pg_type catalog or be the one currently being defined.
+ * Create a class newemp with a set attribute "manager".  A
+ * set (complex) attribute may be of the same type as the
+ * relation being defined (as here) or of a different complex
+ * type.  The type must exist in the "pg_type" catalog or be
+ * the one currently being defined.
  */
 create newemp (name = text, manager = newemp)
 .)C
