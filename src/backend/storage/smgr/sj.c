@@ -579,15 +579,7 @@ int
 sjcreate(reln)
     Relation reln;
 {
-    SJCacheItem *item;
-    SJGroupDesc *group;
     SJCacheTag tag;
-    ObjectId dbid;
-    ObjectId relid;
-    File vfd;
-    int grpno;
-    int i;
-    char *path;
 
     /*
      *  If the cache is in the process of being initialized, then we need
@@ -624,20 +616,8 @@ sjcreate(reln)
 
     _sjregnblocks(&tag);
 
-    /* last thing to do is to create the mag-disk file to hold last page */
-    if (reln->rd_rel->relisshared) {
-	path = (char *) palloc(strlen(DataDir) + sizeof(NameData) + 2);
-	sprintf(path, "%s/%.16s", DataDir, &(reln->rd_rel->relname.data[0]));
-    } else {
-	path = (char *) palloc(sizeof(NameData) + 1);
-	sprintf(path, "%.16s", &(reln->rd_rel->relname.data[0]));
-    }
-
-    vfd = FileNameOpenFile(path, O_CREAT|O_RDWR|O_EXCL, 0600);
-
-    pfree(path);
-
-    return (vfd);
+    /* return a fake file descriptor */
+    return (0);
 }
 
 /*
@@ -1467,7 +1447,13 @@ int
 sjunlink(reln)
     Relation reln;
 {
-    return (SM_FAIL);
+    /*
+     *  Even though we can't really unlink the relation, we return
+     *  success here, so that users can destroy tables (remove the
+     *  pg_class pointers to them).
+     */
+
+    return (SM_SUCCESS);
 }
 
 /*
@@ -1607,23 +1593,14 @@ int
 sjopen(reln)
     Relation reln;
 {
-    char *path;
-    int fd;
-    extern char *relpath();
-
-    path = relpath(&(reln->rd_rel->relname.data[0]));
-
-    fd = FileNameOpenFile(path, O_RDWR, 0600);
-
-    return (fd);
+    /* return a fake fd */
+    return (0);
 }
 
 int
 sjclose(reln)
     Relation reln;
 {
-    FileClose(reln->rd_fd);
-
     return (SM_SUCCESS);
 }
 
