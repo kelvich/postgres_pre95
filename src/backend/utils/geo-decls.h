@@ -163,6 +163,7 @@ double point_dt ARGS((POINT *pt1 , POINT *pt2 ));
 double *point_slope ARGS((POINT *pt1 , POINT *pt2 ));
 double point_sl ARGS((POINT *pt1 , POINT *pt2 ));
 LSEG *lseg_construct ARGS((POINT *pt1 , POINT *pt2 ));
+void statlseg_construct ARGS((LSEG *lseg , POINT *pt1 , POINT *pt2 ));
 long lseg_intersect ARGS((LSEG *l1 , LSEG *l2 ));
 long lseg_parallel ARGS((LSEG *l1 , LSEG *l2 ));
 long lseg_perp ARGS((LSEG *l1 , LSEG *l2 ));
