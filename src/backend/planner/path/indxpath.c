@@ -491,14 +491,15 @@ match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
      bool join;
 {
     LispValue clause	= get_clause (clauseInfo);
-    Var leftop	= get_leftop (clause);
-    Var rightop	= get_rightop (clause);
+    Var leftop, rightop;
     ObjectId join_op = InvalidObjectId;
     bool isIndexable = false;
 
-    if ( or_clause (clause) || not_clause(clause))
+    if (or_clause(clause) || not_clause(clause) || single_node(clause))
 	return ((CInfo)NULL);
 
+    leftop = get_leftop (clause);
+    rightop = get_rightop (clause);
      /*
       * If this is not a join clause, check for clauses of the form:
       * (operator var/func constant) and (operator constant var/func)
