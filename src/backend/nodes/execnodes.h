@@ -384,17 +384,6 @@ class (EState) public (Node) {
 };
 
 /* ----------------
- *	ReturnState
- *
- *	XXX comment me
- * ----------------
- */
-class (ReturnState) public (Node) {
-      inherits(Node);
-      Relation resultTmpRelDesc;
-};
-
-/* ----------------
  *      Executor Type information needed by plannodes.h
  *
  *|     Note: the bogus classes CommonState and CommonScanState exist only
@@ -638,8 +627,8 @@ class (CommonScanState) public (CommonState) {
       Relation          css_currentRelation; \
       HeapScanDesc      css_currentScanDesc; \
       RelationRuleInfo	css_ruleInfo; \
-      Pointer           css_ScanTupleSlot; \
-      Pointer           css_RawTupleSlot
+      TupleTableSlot    css_ScanTupleSlot; \
+      TupleTableSlot    css_RawTupleSlot
   /* private: */
       CommonScanStateDefs;
   /* public: */

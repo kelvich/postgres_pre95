@@ -24,7 +24,7 @@
  *	
  *	ExecGetExecutorSharedMemory()	- get the start of shared mem
  *	ExecGetExecutorSharedMemorySize()- get the size of shared segment
- *	ParallelExecutorEnabled()	- return parallel status
+ *	ParallelExecutorEnabled()	- has become a macro defined in slaves.h
  *	SetParallelExecutorEnabled()	- assign parallel status
  *	GetNumberSlaveBackends()	- return parallel information
  *	SetNumberSlaveBackends()	- assign parallel information
@@ -66,6 +66,7 @@
 #include "storage/sinval.h"
 #include "storage/plparam.h"
 
+#include "tcop/slaves.h"
 #include "utils/mcxt.h"
 #include "utils/log.h"
 
@@ -126,12 +127,6 @@ int
 ExecGetExecutorSharedMemorySize()
 {
     return ExecutorSharedMemorySize;
-}
-
-int
-ParallelExecutorEnabled()
-{    
-    return ParallelExecutorEnableState;
 }
 
 void
@@ -349,17 +344,45 @@ I_Finished()
 }
 
 void
-P_Finished(nprocs)
-int nprocs;
+P_Finished()
 {
-    Exec_P(ExecutorMasterSemaphore, nprocs);
+    int value = 1;
+    Exec_P(ExecutorMasterSemaphore, value);
 }
 
 void
-V_Finished()
+P_FinishedAbort()
+{
+    int value = GetNumberSlaveBackends();
+    Exec_P(ExecutorMasterSemaphore, value);
+}
+
+void
+V_FinishedAbort()
 {
     int value = 1;
     Exec_V(ExecutorMasterSemaphore, value);
+}
+
+void
+V_Finished(groupid)
+int groupid;
+{
+    if (ProcGroupInfoP[groupid].countdown <= 0) {
+	elog(WARN, "Process group countdown to negative. \n");
+      }
+    S_LOCK(&(ProcGroupInfoP[groupid].lock));
+    ProcGroupInfoP[groupid].countdown--;
+    S_UNLOCK(&(ProcGroupInfoP[groupid].lock));
+    if (ProcGroupInfoP[groupid].countdown == 0) {
+	/* ----------------
+	 *  the last slave wakes up the master
+	 * ----------------
+	 */
+        int value = 1;
+	ProcGroupInfoP[groupid].status = FINISHED;
+        Exec_V(ExecutorMasterSemaphore, value);
+      }
 }
 
 /* ----------------

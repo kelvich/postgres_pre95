@@ -204,7 +204,6 @@ extern bool     CopyScanTemps();
  * 'struct Blah *blah'.		- ron 'blah blah' choi
  */
 typedef	struct EState *EStatePtr;
-typedef	struct ReturnState *ReturnStatePtr;
 typedef	struct Plan *PlanPtr;
 
 class (Plan) public (Node) {
@@ -243,7 +242,8 @@ class (Fragment) public (Node) {
         Plan                    frag_parent_op; \
         int                     frag_parallel; \
         List                    frag_subtrees; \
-        FragmentPtr         	frag_parent_frag
+        FragmentPtr         	frag_parent_frag; \
+	List			frag_parsetree
  /* private: */
         FragmentDefs;
  /* public: */
