@@ -47,7 +47,6 @@ DatabaseMetaGunkIsConsistent(database, path)
 	char	database[], path[];
 {
 	int		isValid;
-	extern char	*GetDataHome();
 	struct stat	statbuf;
 
 	isValid = ValidPgVersion(DataDir);
