@@ -19,22 +19,39 @@
 #include "tmp/postgres.h"
 #include "nodes/primnodes.h"
 #include "nodes/relation.h"
+#include "nodes/execnodes.h"
 #include "parser/parsetree.h"
 #include "executor/flatten.h"
 
+
 Datum
-ExecEvalIter(iterNode, funcIsDone, resultIsNull)
-    Iter iterNode;
-    bool *funcIsDone;
-    bool *resultIsNull;
+ExecEvalIter(iterNode, econtext, resultIsNull, iterIsDone)
+    Iter		iterNode;
+    ExprContext	 	econtext;
+    bool		*iterIsDone;
+    bool		*resultIsNull;
 {
+    Expr expression;
+
+    /*
+     * Do we need a CAR() here ????
+     */
+    expression = (Expr)get_iterexpr(iterNode);
+
+    /*
+     * Really Iter nodes are only needed for C functions, postquel function
+     * by their nature return 1 result at a time.  For now we are only worrying
+     * about postquel functions, c functions will come later.
+     */
+    return ExecEvalExpr(expression, econtext, resultIsNull, iterIsDone);
 }
 
 void
-ExecEvalFjoin(tlist, isNullVect, fj_isDone)
-    List tlist;
-    bool *isNullVect;
-    bool *fj_isDone;
+ExecEvalFjoin(tlist, econtext, isNullVect, fj_isDone)
+    List		tlist;
+    ExprContext	 	econtext;
+    bool		*isNullVect;
+    bool		*fj_isDone;
 {
     bool     isDone;
     int      curNode;
@@ -58,8 +75,9 @@ ExecEvalFjoin(tlist, isNullVect, fj_isDone)
 	    List tle = CAR(tlistP);
 
 	    resVect[curNode] = ExecEvalIter(tl_expr(tle),
-					    &isDone,
-					    &isNullVect[curNode]);
+					    econtext,
+					    &isNullVect[curNode],
+					    &isDone);
 	    if (isDone)
 		isNullVect[curNode] = alwaysDone[curNode] = true;
 	    else
@@ -72,8 +90,9 @@ ExecEvalFjoin(tlist, isNullVect, fj_isDone)
 	 * Initialize the inner node
 	 */
 	resVect[0] = ExecEvalIter(tl_expr(get_fj_innerNode(fjNode)),
-				  &isDone,
-				  &isNullVect[0]);
+				  econtext,
+				  &isNullVect[0],
+				  &isDone);
 	if (isDone)
 	    isNullVect[0] = alwaysDone[0] = true;
 	else
@@ -108,8 +127,9 @@ ExecEvalFjoin(tlist, isNullVect, fj_isDone)
 	}
 	else
 	    resVect[0] = ExecEvalIter(tl_expr(get_fj_innerNode(fjNode)),
-				      &isDone,
-				      &isNullVect[0]);
+				      econtext,
+				      &isNullVect[0],
+				      &isDone);
     }
 
     /*
@@ -124,18 +144,20 @@ ExecEvalFjoin(tlist, isNullVect, fj_isDone)
 	    return;
 
 	resVect[0] = ExecEvalIter(tl_expr(get_fj_innerNode(fjNode)),
-				  &isDone,
-				  &isNullVect[0]);
+				  econtext,
+				  &isNullVect[0],
+				  &isDone);
 
     }
     return;
 }
 
 bool
-FjoinBumpOuterNodes(tlist, results, nulls)
-    List     tlist;
-    DatumPtr results;
-    String   nulls;
+FjoinBumpOuterNodes(tlist, econtext, results, nulls)
+    List		tlist;
+    ExprContext	 	econtext;
+    DatumPtr		results;
+    String		nulls;
 {
     bool   funcIsDone = true;
     Fjoin  fjNode     = (Fjoin)CAR(tlist);
@@ -158,8 +180,9 @@ FjoinBumpOuterNodes(tlist, results, nulls)
 	}
 	else
 	    results[curNode] = ExecEvalIter(tl_expr(CAR(outerList)),
-					    &funcIsDone,
-					    &nulls[curNode]);
+					    econtext,
+					    &nulls[curNode],
+					    &funcIsDone);
     }
 
     /*
@@ -187,8 +210,9 @@ FjoinBumpOuterNodes(tlist, results, nulls)
 	}
 	else
 	    results[curNode] = ExecEvalIter(tl_expr(CAR(outerList)),
-					    &funcIsDone,
-					    &nulls[curNode]);
+					    econtext,
+					    &nulls[curNode],
+					    &funcIsDone);
 	    
 
     }
