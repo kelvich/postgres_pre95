@@ -39,12 +39,9 @@
 #define	EXPBUFSZ	256
 #define	PCHARLEN	16
 
-#if defined(PORTNAME_alpha) || defined(PORTNAME_aix)
-/*
- * XOPEN NLS support breaks this stuff horribly.
- */
+#if defined(DISABLE_XOPEN_NLS)
 #undef _XOPEN_SOURCE
-#endif /* PORTNAME_alpha || PORTNAME_aix */
+#endif /* DISABLE_XOPEN_NLS */
 #include <regexp.h>
 
 /*
