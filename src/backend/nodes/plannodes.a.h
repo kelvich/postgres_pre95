@@ -219,6 +219,7 @@ extern bool CopyTemp ARGS((Temp from, Temp *to, int alloc));
 extern Temp IMakeTemp ARGS((Cost cost, Count plan_size, Count plan_width, int fragment, int parallel, EStatePtr state, List qptargetlist, List qpqual, PlanPtr lefttree, PlanPtr righttree, ObjectId tempid, Count keycount));
 extern void RInitMaterial ARGS((Pointer p));
 extern Material MakeMaterial ARGS((MaterialState matstate));
+extern Material RMakeMaterial ARGS(());
 extern void OutMaterial ARGS((StringInfo str, Material node));
 extern bool EqualMaterial ARGS((Material a, Material b));
 extern bool CopyMaterial ARGS((Material from, Material *to, int alloc));
