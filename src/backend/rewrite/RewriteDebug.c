@@ -5,7 +5,10 @@
  *   NOTES
  *
  *   IDENTIFICATION
- * $Header$
+ * 	$Source$
+ * 	$Revision$
+ * 	$State$
+ * 	$Author$
  * ----------------------------------------------------------------
  */
 

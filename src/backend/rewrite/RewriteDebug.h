@@ -1,3 +1,10 @@
+/* 
+ * $Source$
+ * $Revision$
+ * $State$
+ * $Author$
+ */
+
 
 /* module: /users/goh/postgres/src/parser/RewriteDebug.c */
 
