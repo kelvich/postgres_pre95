@@ -406,7 +406,11 @@ IpcSemaphoreLock(semId, sem, lock)
      * ----------------
      */
     do {
+#ifndef SINGLE_USER
 	errStatus = semop(semId, (struct sembuf **)&sops, 1);
+#else
+    errStatus = 0;
+#endif
     } while (errStatus == -1 && errno == EINTR);
     
     IpcSemaphoreLock_return = errStatus;
@@ -448,7 +452,11 @@ IpcSemaphoreSilentLock(semId, sem, lock)
     sops.sem_num = sem;
     
     IpcSemaphoreSilentLock_return =
+#ifndef SINGLE_USER
 	semop(semId, (struct sembuf **)&sops, 1);
+#else
+	0;
+#endif
 }
 
 /****************************************************************************/
@@ -485,7 +493,11 @@ IpcSemaphoreUnlock(semId, sem, lock)
      * ----------------
      */
     do {
+#ifndef SINGLE_USER
 	errStatus = semop(semId, (struct sembuf **)&sops, 1);
+#else
+	errStatus = 0;
+#endif
     } while (errStatus == -1 && errno == EINTR);
     
     IpcSemaphoreUnlock_return = errStatus;
@@ -524,7 +536,11 @@ IpcSemaphoreSilentUnlock(semId, sem, lock)
     sops.sem_num = sem;
     
     IpcSemaphoreSilentUnlock_return =
+#ifndef SINGLE_USER
 	semop(semId, (struct sembuf **)&sops, 1);
+#else
+	0;
+#endif
 }
 
 int
