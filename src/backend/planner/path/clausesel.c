@@ -29,10 +29,6 @@
 #include "planner/plancat.h"
 #include "parser/parsetree.h"
 
-#define TOLERANCE 0.0001
-
-#define FLOAT_EQUAL(X,Y) (((X) - (Y)) < TOLERANCE)
-
 /*     		----  ROUTINES TO SET CLAUSE SELECTIVITIES  ----   */
 
 
@@ -60,7 +56,7 @@ set_clause_selectivities (clauseinfo_list,new_selectivity)
     foreach (temp,clauseinfo_list) {
 	clausenode = CAR(temp);
 	cost_clause = get_selectivity(clausenode);
-	if ( FLOAT_EQUAL(cost_clause, 0.0) || new_selectivity < cost_clause) {
+	if ( FLOAT_IS_ZERO(cost_clause) || new_selectivity < cost_clause) {
 	    set_selectivity (clausenode,new_selectivity);
 	}
     }
@@ -144,7 +140,7 @@ LispValue clauseinfo_list ;
 	/*    Check to see if the selectivity of this clause or any 'or' */
 	/*    subclauses (if any) haven't been set yet. */
 
-	if (valid_or_clause(clausenode) || FLOAT_EQUAL(cost_clause, 0.0)) {
+	if (valid_or_clause(clausenode) || FLOAT_IS_ZERO(cost_clause)) {
 	    set_selectivity (clausenode,
 			     compute_clause_selec (get_clause (clausenode),
 						   cost_clause));
