@@ -656,8 +656,8 @@ showtup(tuple, buffer, relation)
 			  &reldesc->rd_att.data[0], &isnull);
 	if (isnull) {
 	    printf("{*NULL*} ");
-	} else if (TimeIsValid((Time)value)) {
-	    showtime((Time)value);
+	} else if (AbsoluteTimeIsValid((AbsoluteTime)value)) {
+	    showtime((AbsoluteTime)value);
 	}
 
 	value = heap_getattr(tuple, buffer, MinCommandIdAttributeNumber,
@@ -685,10 +685,10 @@ showtup(tuple, buffer, relation)
 		}
 	    }
 	    value = (char *)TransactionIdGetCommitTime((TransactionId)value);
-	    if (!TimeIsValid((Time)value)) {
+	    if (!AbsoluteTimeIsValid((AbsoluteTime)value)) {
 		printf("{-},");
 	    } else {
-		showtime((Time)value);
+		showtime((AbsoluteTime)value);
 		printf(",");
 	    }
 	}
@@ -698,8 +698,8 @@ showtup(tuple, buffer, relation)
 	
 	if (isnull) {
 	    printf("{*NULL*} ");
-	} else if (TimeIsValid((Time)value)) {
-	    showtime((Time)value);
+	} else if (AbsoluteTimeIsValid((AbsoluteTime)value)) {
+	    showtime((AbsoluteTime)value);
 	}
 
 	value = heap_getattr(tuple, buffer, MaxCommandIdAttributeNumber,
@@ -721,10 +721,10 @@ showtup(tuple, buffer, relation)
 	} else {
 	    printf("%s)", TransactionIdFormString((TransactionId)value));
 	    value = (char *)TransactionIdGetCommitTime((TransactionId)value);
-	    if (!TimeIsValid((Time)value)) {
+	    if (!AbsoluteTimeIsValid((AbsoluteTime)value)) {
 		printf("{-}]\n");
 	    } else {
-		showtime((Time)value);
+		showtime((AbsoluteTime)value);
 		printf("]\n");
 	    }
 	}
@@ -737,9 +737,9 @@ showtup(tuple, buffer, relation)
  */
 void
 showtime(time)
-    Time time;
+    AbsoluteTime time;
 {
-    Assert(TimeIsValid(time));
+    Assert(AbsoluteTimeIsValid(time));
     printf("{%d=%s}", time, nabstimeout(time));
 }
 
@@ -978,87 +978,6 @@ BootstrapAlreadySeen(id)
 	nseen++;
     }
     return (seenthis);
-}
-
-
-/* ----------------
- *	handletime
- * ----------------
- */
-void
-handletime()
-{
-    int     numberOfTimes;
-    char    firstTime[80];
-    char    secondTime[80];
-    Time    time1;
-    Time    time2;
-
-    if (scanf("%d", &numberOfTimes) != 1) {
-	fputs("Error: failed to read number of time fields\n", stderr);
-	err();
-    }
-    if (numberOfTimes < -1 || numberOfTimes > 2) {
-	elog(
-	    WARN, 
-	    "number of time fields (%d) is not -1, 0, 1, or 2\n",
-	    numberOfTimes
-	);
-    } else if (numberOfTimes == -1) {
-	ShowTime = !ShowTime;
-	return;
-    } else if (numberOfTimes == 0) {
-	StandardTimeQual = NowTimeQual;
-	puts("Time range reset to \"now\"");
-    } else if (numberOfTimes == 1) {
-	if (scanf("%[^\n]", firstTime) != 1) {
-	    fputs("Error: failed to read time\n", stderr);
-	    err();
-	}
-	time1 = nabstimein(firstTime);
-	if (!Quiet) printf("*** You entered \"%s\"", firstTime);
-	if (time1 == INVALID_ABSTIME) {
-	    if (!Quiet) 
-			printf(" which is INVALID (time range unchanged).\n");
-	} else {
-	    if (!Quiet) 
-	    	printf(" with representation %d.\n", time1);
-	    bcopy(
-		(char *)TimeFormSnapshotTimeQual(time1),
-		(char *)&StandardTimeQualSpace,
-		sizeof StandardTimeQualSpace
-	    );
-	    StandardTimeQual = (TimeQual)&StandardTimeQualSpace;
-	}
-    } else {	/* numberOfTimes == 2 */
-	if (scanf("%[^,],%[^\n]", firstTime, secondTime) != 2) {
-	    fputs("Error: failed to read both times\n", stderr);
-	    err();
-	}
-	if (!Quiet) 
-		printf("*** You entered \"%s\" and \"%s\"\n", firstTime, secondTime);
-	time1 = nabstimein(firstTime);
-	time2 = nabstimein(secondTime);
-	if (time1 == INVALID_ABSTIME) {
-	    if (time2 == INVALID_ABSTIME) {
-		if (!Quiet) printf("*** range is [,].\n");
-	    } else {
-		if (!Quiet) printf("*** range is [,%d].\n", time2);
-	    }
-	} else {
-	    if (time2 == INVALID_ABSTIME) {
-		if (!Quiet) printf("*** range is [%d,].\n", time1);
-	    } else {
-		if (!Quiet) printf("*** range is [%d,%d].\n", time1, time2);
-	    }
-	}
-	bcopy(
-	    (char *)TimeFormRangedTimeQual(time1, time2),
-	    (char *)&StandardTimeQualSpace,
-	    sizeof StandardTimeQualSpace
-	);
-	StandardTimeQual = (TimeQual)&StandardTimeQualSpace;
-    }
 }
 
 /* ----------------
