@@ -159,6 +159,7 @@ EstablishComm()
 		getenv("USER"), 
 		PQoption, 
 		PQhost, 
+		PQtty,
 		(short)atoi(PQport) ) == -1 ) {
 	    libpq_raise(ProtocolError,
 	      form("Failed to connect to backend (host=%s, port=%s)",

@@ -297,11 +297,12 @@ pq_getinserv(sin, host, serv)
  * ----------------------------------------
  */
 int
-pq_connect(dbname,user,args,hostName,portName)
+pq_connect(dbname,user,args,hostName,debugTty,portName)
 char	*dbname;
 char	*user;
 char	*args;
 char	*hostName;
+char	*debugTty;
 short	portName;
 {
 /*
@@ -321,6 +322,7 @@ short	portName;
   strncpy(startup.database,dbname,sizeof(startup.database));
   strncpy(startup.user,user,sizeof(startup.user));
   strncpy(startup.options,args,sizeof(startup.options));
+  strncpy(startup.tty,debugTty,sizeof(startup.tty));
 
   startup.execFile[0] = NULL;	/* Don't allow front end to choose backends */
 
