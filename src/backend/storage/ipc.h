@@ -22,14 +22,10 @@
  * Many architectures have support for user-level spinlocks (i.e., an
  * atomic test-and-set instruction).  However, we have only written
  * spinlock code for the architectures listed.
- *
- * This should also be done for:
- *	H-P PA-RISC
- * since these also have atomic test-and-set instructions or the 
- * moral equivalent.
  */
 #if defined(PORTNAME_aix) || \
     defined(PORTNAME_alpha) || \
+    defined(PORTNAME_hpux) || \
     defined(PORTNAME_sparc) || \
     defined(PORTNAME_sparc_solaris) || \
     defined(sequent) || \
@@ -57,10 +53,6 @@
 #include <mach/cthreads.h>
 
 typedef struct mutex	slock_t;
-
-#define S_LOCK(lock)		mutex_lock(lock)
-#define S_UNLOCK(lock)		mutex_unlock(lock)
-#define S_INIT_LOCK(lock)	mutex_init(lock)
 #else /* next */
 #if defined(PORTNAME_aix)
 /*
@@ -75,14 +67,36 @@ typedef unsigned int	slock_t;
  */
 typedef long		slock_t;
 #else /* alpha */
+#if defined(PORTNAME_hpux)
+/*
+ * The PA-RISC "semaphore" for the LDWCX instruction is 4 bytes aligned
+ * to a 16-byte boundary.
+ */
+typedef struct { int sem[4]; } slock_t;
+#else /* hpux */
 /*
  * On all other architectures spinlocks are a single byte.
  */
 typedef unsigned char   slock_t;
+#endif /* hpux */
 #endif /* alpha */
 #endif /* aix */
 #endif /* next */
 #endif /* sequent */
+
+#if !defined(sequent)
+extern int S_LOCK ARGS((slock_t *lock));
+#endif /* sequent */
+
+extern int S_UNLOCK ARGS((slock_t *lock));
+extern int S_INIT_LOCK ARGS((slock_t *lock));
+
+#if defined(PORTNAME_hpux)
+extern int S_LOCK_FREE ARGS((slock_t *lock));
+#else /* PORTNAME_hpux */
+#define S_LOCK_FREE(lock)	((*lock) == 0)
+#endif /* PORTNAME_hpux */
+
 #endif /* HAS_TEST_AND_SET */
 
 /*

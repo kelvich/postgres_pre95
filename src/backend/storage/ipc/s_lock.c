@@ -15,7 +15,7 @@
  *		;
  *	}
  *
- *	If this is not done, Postgres will default to using System V
+ *	If this is not done, POSTGRES will default to using System V
  *	semaphores (and take a large performance hit -- around 40% of
  *	its time on a DS5000/240 is spent in semop(3)...).
  *
@@ -24,11 +24,8 @@
  *	system call.  This provides an 8-instruction (plus system call 
  *	overhead) uninterruptible compare-and-set operation.  True 
  *	spinlocks might be faster but using cs(3) still speeds up the 
- *	regression test suite by about 25%.
- *
- *	Some of the TAS code we've written is unlikely to work on shared-
- *	memory multiprocessors (at least, those that require explicit
- *	memory barriers, like the Alpha).
+ *	regression test suite by about 25%.  I don't have an assembler
+ *	manual for POWER in any case.
  *
  *   IDENTIFICATION
  *	$Header$
@@ -106,6 +103,53 @@ S_INIT_LOCK(lock)
 }
 
 #endif /* PORTNAME_aix */
+
+/*
+ * HP-UX (PA-RISC)
+ *
+ * Note that slock_t on PA-RISC is a structure instead of char
+ * (see storage/ipc.h).
+ */
+
+#if defined(PORTNAME_hpux)
+
+/* defined in port/.../tas.s */
+extern int tas ARGS((slock_t *lock));
+
+/*
+* a "set" slock_t has a single word cleared.  a "clear" slock_t has 
+* all words set to non-zero.
+*/
+static slock_t clear_lock = { -1, -1, -1, -1 };
+
+S_LOCK(lock)
+    slock_t *lock;
+{
+    while (tas(lock))
+	;
+}
+
+S_UNLOCK(lock)
+    slock_t *lock;
+{
+    *lock = clear_lock;	/* struct assignment */
+}
+
+S_INIT_LOCK(lock)
+    slock_t *lock;
+{
+    S_UNLOCK(lock);
+}
+
+S_LOCK_FREE(lock)
+    slock_t *lock;
+{
+    register int *lock_word = (int *) (((long) lock + 15) & ~15);
+
+    return(*lock_word != 0);
+}
+
+#endif /* PORTNAME_hpux */
 
 /*
  * sun3
