@@ -210,7 +210,7 @@ oid LOcreatOID(fname,mode)
 {
     char *tailname;
     oid basedirOID;
-    void to_basename(char*,char*,char*);
+    void to_basename ARGS((char*,char*,char*));
     char *root = "/";
 
 /*    to_basename(fname,basename,tailname);*/
