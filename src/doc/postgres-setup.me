@@ -594,7 +594,7 @@ will ask you for the port you wish to use.  Use the same port as
 in Step 2.  You will also be asked for the name of the object tree directory;
 the default is ~postgres/obj.<port>.  (throughout the rest of this document
 obj.<port> refers to the object tree directory).  This step will take at least
-an hour and may take several hours on diskless Sun 3's.
+an hour and may take several hours on Sun 3's.
 .pp
 .i Make
 is a C shell script that runs
@@ -632,7 +632,9 @@ the database
 .q postgres
 will be generated.  The
 .i postmaster
-program will be discussed later.
+program will be discussed later - however, you must have it running in order
+to run 
+.i createdb.
 If several users wish to use \*(PG,
 we advise you to create additional databases,
 one for each user.
@@ -795,11 +797,6 @@ talking to the backend, so let's send a simple test
 query:  list the names and user ids of the postgres users.
 We terminate the query with a \eg \*- the ``go'' command
 to the terminal monitor.
-
-NOTE: On DECstation 3100 Ultrix, there is a bug in fork() which causes the
-monitor to hang on its first invocation.  To get around this problem, start the
-monitor, type "\g <CR>" from the monitor prompt, wait a few seconds, kill the
-monitor with <CRTL>C, and start it again.  It will work after this.
 \fR
 
 *\fBretrieve (u.usename, u.usesysid) from u in pg_user
@@ -883,8 +880,10 @@ Included in \*(PG are a handful of support programs.
 Most of these are used internally by the system but here is a list of
 them for your information.
 .(l
-backend		\- used by createdb to create system relations
+backend		\- used by initdb to create system classes
+initdb		\- creates the initial template database
 createdb		\- creates new postgres databases
+createdb.sh		\- creates new postgres databases - old version
 destroydb	\- destroys postgres databases
 ipcclean		\- frees up garbage shared memory from failed backends
 vacuumd	\- vacuum cleaner daemon
