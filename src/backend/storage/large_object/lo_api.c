@@ -102,6 +102,7 @@ LOOpen(object, open_mode)
     return(retval);
 }
 
+extern int CheckPathAccess();
 /*
  * These functions deal with ``External'' large objexts,
  * i.e. unix files who file names are interpreted in the name
@@ -120,10 +121,14 @@ int open_mode;
     oid oidf;
 
 
+#ifdef EXTERNAL_LO
     /* Log this instance of large object into directory table. */
     if ((oidf = FilenameToOID(path)) == InvalidObjectId) {
 
-	fd = (int) PathNameOpenFile(path, O_CREAT | O_RDWR, 0666);
+	open_mode = CheckPathAccess(path, (char *) 0, O_CREAT | O_RDWR);
+	if (open_mode == -1) return(NULL);
+
+	fd = (int) PathNameOpenFile(path, open_mode, 0666);
 	if (fd == -1) {
 		/* Try once more so that we can incorpate read_only
 		   objects.  p_write() to this file descriptor will
@@ -152,7 +157,7 @@ int open_mode;
 	(void) LOputOIDandLargeObjDesc(oidf, External,
 				(struct varlena *) newobj);
     }
-
+#endif
     return(retval);
 }
 
@@ -161,20 +166,24 @@ XOOpen(object, open_mode)
     LargeObject *object;
     int open_mode;
 {
-    LargeObjectDesc *retval;
+    LargeObjectDesc *retval = NULL;
     int fd;
 
+#ifdef EXTERNAL_LO
     Assert(PointerIsValid(object));
     Assert(object->lo_storage_type == EXTERNAL_FILE);
 
-    fd = PathNameOpenFile(object->lo_ptr.filename, open_mode, 0666);
+    open_mode = CheckPathAccess(object->lo_ptr.filename, (char *)0, open_mode);
+    if (open_mode == -1) return(NULL);
 
+    fd = PathNameOpenFile(object->lo_ptr.filename, open_mode, 0666);
     if (fd == -1) return(NULL);
 
     retval = (LargeObjectDesc *) palloc(sizeof(LargeObjectDesc));
 
     retval->ofs.u_fs.fd = fd;
     retval->object = object;
+#endif
     return(retval);
 }
 
