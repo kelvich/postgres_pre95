@@ -68,7 +68,7 @@ Exception PostquelError = {"Postquel Error"};
 Exception ProtocolError = {"Protocol Error"};
 
 int	PQtracep = 0;		/* 1 to print out debugging message */
-FILE    *debug_port;
+FILE    *debug_port = (FILE *)NULL;
 
 /* ----------------------------------------------------------------
  *			PQ utility routines
@@ -79,6 +79,11 @@ pqdebug (target, msg)
 char *target, *msg;
 {
     if (PQtracep) {
+	/*
+	 * if nothing else was suggested default to stdout
+	 */
+	if (!debug_port)
+	    debug_port = stdout;
 	fprintf(debug_port, target, msg);
 	fprintf(debug_port, "\n");
     }
