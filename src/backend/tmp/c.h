@@ -979,8 +979,8 @@ form ARGS(( int, ... ));
  * source file that performs unaligned access must contain the #pragma.
  */
 #if defined(PORTNAME_hpux) && !defined(NOFIXADE)
-/* permit unaligned access (down to 16-bit shortword boundaries). */
-#pragma HP_ALIGN HPUX_WORD
+/* permit unaligned access */
+#pragma HP_ALIGN HPUX_NATURAL_S500
 #endif /* PORTNAME_hpux && !NOFIXADE */
 
 /* ----------------
