@@ -24,7 +24,7 @@
 
 #include <ctype.h>
 #include <stdio.h>
-#include <sys/time.h>
+#include <time.h>
 #include <sys/types.h>
 #include <strings.h>
 #include <time.h>
@@ -78,8 +78,11 @@ RcsId("$Header$");
  * ['Mon May 10 23:59:12 1943 PST' 'Sun Jan 14 03:14:21 1973 PST']
  * 0        1         2         3         4         5         6
  * 1234567890123456789012345678901234567890123456789012345678901234
+ *
+ * we allocate some extra -- timezones are usually 3 characters but
+ * this is not in the POSIX standard...
  */
-#define	T_INTERVAL_LEN     		64
+#define	T_INTERVAL_LEN     		80
 #define	INVALID_INTERVAL_STR		"Undefined Range"
 #define	INVALID_INTERVAL_STR_LEN	(sizeof(INVALID_INTERVAL_STR)-1)
 
@@ -126,7 +129,6 @@ int isreltime ARGS((char *timestring , int *sign , long *quantity , int *unitnr 
 int correct_unit ARGS((char unit [], int *unptr ));
 int correct_dir ARGS((char direction [], int *signptr ));
 int istinterval ARGS((char *i_string , AbsoluteTime *i_start , AbsoluteTime *i_end ));
-char *timenowout ARGS((void ));
 AbsoluteTime timenow ARGS((void ));
 RelativeTime intervalrel ARGS((TimeInterval interval ));
 int ininterval ARGS((int32 t , TimeInterval interval ));
@@ -202,10 +204,11 @@ reltimeout(timevalue)
 	int		unitnr;
 
 	timestring = (char *) palloc(Max(strlen(INVALID_RELTIME_STR),
-					 UNITMAXLEN));
-	(void) strcpy(timestring,INVALID_RELTIME_STR);
-	if (timevalue == INVALID_RELTIME)
+					 UNITMAXLEN) + 1);
+	if (timevalue == INVALID_RELTIME) {
+		(void) strcpy(timestring,INVALID_RELTIME_STR);
 		return(timestring);
+	}
 	if (timevalue == 0)
 		i = 1; /* unit = 'seconds' */
 	else
@@ -216,8 +219,6 @@ reltimeout(timevalue)
 	quantity = (timevalue / sec_tab[unitnr]);
 	if (quantity > 1 || quantity < -1)
 		unitnr++;  /* adjust index for PLURAL of unit */
-	timestring = (char *) palloc(Max(strlen(INVALID_RELTIME_STR),
-					 UNITMAXLEN));
 	if (quantity >= 0)
 		(void) sprintf( timestring, "%c %u %s", RELTIME_LABEL,
 			       quantity, unit_tab[unitnr]);
@@ -267,16 +268,17 @@ tintervalout(interval)
 	char	*i_str, *p;
 
 	i_str = (char	*) palloc( T_INTERVAL_LEN );  /* ['...' '...'] */
-	p = (char *) palloc(T_INTERVAL_LEN);
 	(void) strcpy(i_str,"[\'");
 	if (interval->status == T_INTERVAL_INVAL)
 		(void) strcat(i_str,INVALID_INTERVAL_STR);
 	else {
 		p = nabstimeout(interval->data[0]);
 		(void) strcat(i_str,p);
+		pfree(p);
 		(void) strcat(i_str,"\' \'");
 		p = nabstimeout(interval->data[1]);
-		(void) strcat(i_str,nabstimeout(interval->data[1]));
+		(void) strcat(i_str,p);
+		pfree(p);
 	}
 	(void) strcat(i_str,"\']\0");
 	return(i_str);
@@ -416,41 +418,11 @@ intervalrel(interval)
 AbsoluteTime	
 timenow()
 {
-	struct timeval tp;
-	struct timezone tzp;
-
-	(void) gettimeofday(&tp, &tzp);
-	return((AbsoluteTime)tp.tv_sec);
+	time_t sec;
+	if (time(&sec) < 0)
+		return(INVALID_ABSTIME);
+	return((AbsoluteTime) sec);
 }
-
-
-/*
- *	timenowout	- returns a pointer to "<current_date_and_time>"
- */
-char	*
-timenowout()
-{
-	extern			gettimeofday();
-
-	struct timeval	*tp;
-	struct timezone *tzp;
-	struct tm	*brokentime;
-	long		sec;
-	int		i;
-	char		*datestring;
-
-	tp = (struct timeval *) palloc(sizeof(struct timeval));
-	tzp= (struct timezone *) palloc(sizeof(struct timezone));
-	(void) gettimeofday(tp, tzp);
-	sec = tp->tv_sec;
-	brokentime = (struct tm *) palloc(sizeof(struct tm));
-	brokentime = localtime(&sec);
-	datestring = asctime(brokentime);
-	for (i=0; i<=3; i++)
-		datestring=datestring++;
-	return(datestring);
-}
-
 
 /*
  *	reltimeeq	- returns 1, iff arguments are equal
