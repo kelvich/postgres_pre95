@@ -61,22 +61,21 @@ Buffer *returnedBufferP;
      * the tuple. So, this routine must put the right locks
      * back to the tuple returned.
      */
-    locksInTuple = prs2GetLocksFromTuple(tuple, buffer,
-				RelationGetTupleDescriptor(relation));
+    locksInTuple = prs2GetLocksFromTuple(tuple, buffer);
     if (scanStateRuleInfo == NULL) {
 	/*
 	 * this should not happen!
 	 */
-	elog(WARN,"prs2Retrieve: scanStateRuleInfop==NULL!");
+	elog(WARN,"prs2Retrieve: scanStateRuleInfo==NULL!");
     }
     locksInRelation = scanStateRuleInfo->relationLocks;
     locks = prs2LockUnion(locksInRelation, locksInTuple);
+    prs2FreeLocks(locksInTuple);
 
     /*
      * If there are no rules, then return immediatelly...
      */
-    if (locks == NULL || prs2GetNumberOfLocks(locks)==0) {
-	prs2FreeLocks(locksInTuple);
+    if (prs2GetNumberOfLocks(locks)==0) {
 	prs2FreeLocks(locks);
 	return(PRS2_STATUS_TUPLE_UNCHANGED);
     }
@@ -160,15 +159,10 @@ Buffer *returnedBufferP;
 	 * The new tuple must have the same locks as the old
 	 * tuple (in case we are retrieving the "lock" attribute.
 	 */
+	locksInTuple = prs2GetLocksFromTuple(tuple, buffer);
 	HeapTupleSetRuleLock(*returnedTupleP, InvalidBuffer, locksInTuple);
 	return(PRS2_STATUS_TUPLE_CHANGED);
     } else {
-
-	/*
-	 * This is a copy - don't need if we didn't form tuple.
-	 */
-
-	prs2FreeLocks(locksInTuple);
 	return(PRS2_STATUS_TUPLE_UNCHANGED);
     }
 }
