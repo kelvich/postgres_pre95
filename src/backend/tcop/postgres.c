@@ -439,10 +439,10 @@ main(argc, argv)
     numslaves = 0;
     flagC = flagQ = flagM = 0;
     
-    while ((flag = getopt(argc, argv, "CQOM:dpP:B:b:")) != EOF)
+    while ((flag = getopt(argc, argv, "CQOM:dnpP:B:b:")) != EOF)
       switch (flag) {
 	case 'd':	/* -debug mode */
-	  /* DebugMode = true; */
+	  /* DebugMode = true;  */
 	  flagQ = 0;
 	  break;
 	case 'C':
@@ -467,11 +467,14 @@ main(argc, argv)
 	  IsUnderPostmaster = true;
 	  break;
 	case 'P':
-          /* Portfd = atoi(optarg); */
+          Portfd = atoi(optarg);
 	  break;
 	case 'b':
 	case 'B':
 	  NBuffers = atoi(optarg);
+	  break;
+	case 'n': /* do nothing for now - no debug mode */
+	  /* DebugMode = false; */
 	  break;
 	default:
 	  errs += 1;
