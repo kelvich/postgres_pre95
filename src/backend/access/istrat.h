@@ -123,7 +123,7 @@ IndexSupportInitialize ARGS((
 	RegProcedure	*indexSupport,
 	ObjectId	indexObjectId,
 	ObjectId	accessMethodObjectId,
-	StrategyNumber	maxStrategyNumber
+	StrategyNumber	maxStrategyNumber,
 	StrategyNumber	maxSupportNumber
 ));
 

@@ -41,7 +41,7 @@ typedef TupleDescD		*TupleDesc;
 extern
 TupleDesc
 CreateTemplateTupleDesc ARGS((
-	AttributeNumber	numberOfAttributes;
+	AttributeNumber	numberOfAttributes
 ));
 
 /*

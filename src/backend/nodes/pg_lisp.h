@@ -345,7 +345,7 @@ extern LispValue mapcar();
 extern 
 void
 lispDisplayFp ARGS((
-	FILE		*fp;
+	FILE		*fp,
 	LispValue	lispObject
 ));
 
