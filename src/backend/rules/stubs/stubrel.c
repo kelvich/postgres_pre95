@@ -18,6 +18,8 @@
 #include "tupdesc.h"
 #include "ftup.h"
 #include "log.h"
+#include "pg_lisp.h"
+#include "lsyscache.h"
 #include "prs2.h"
 #include "prs2stub.h"
 
@@ -126,9 +128,11 @@ bool addFlag;
 		    currentStubs);
     
 #ifdef STUB_DEBUG
-    printf("prs2ChangeRelationStub (op=%s) NEW TUPLE=\n",
-	    addFlag ? "add" : "delete");
-    debugtup(newTuple, RelationGetTupleDescriptor(relationRelation));
+    if (STUB_DEBUG > 3) {
+	printf("prs2ChangeRelationStub (op=%s) NEW TUPLE=\n",
+		addFlag ? "add" : "delete");
+	debugtup(newTuple, RelationGetTupleDescriptor(relationRelation));
+    }
 #endif STUB_DEBUG
 
     RelationReplaceHeapTuple(relationRelation, &(tuple->t_ctid),
@@ -136,6 +140,46 @@ bool addFlag;
     
     RelationCloseHeapRelation(relationRelation);
 
+}
+
+/*======================================================================
+ *
+ * prs2GetRelationStubs
+ *
+ * given a relation OID, find all the associated rule stubs.
+ *
+ */
+Prs2Stub
+prs2GetRelationStubs(relOid)
+ObjectId relOid;
+{
+
+    Prs2RawStub rawStubs;
+    Prs2Stub stub;
+
+    /*
+     * find the Prs2RawStub of the relation
+     */
+    rawStubs = get_relstub(relOid);
+    if (rawStubs == NULL) {
+	elog(WARN,
+	    "prs2GetRelationStubs: cache lookup failed for relId = %ld",
+	    relOid);
+    }
+
+    /*
+     * now transform the Prs2RawStub to a Prs2Stub
+     */
+    stub = prs2RawStubToStub(rawStubs);
+
+    /*
+     * free the Prs2RawStub
+     * NOTE: we do that because get_relstub creates a COPY of
+     * the raw relation stubs found in the tuple.
+     */
+    pfree(rawStubs);
+
+    return(stub);
 }
 
 /*======================================================================
