@@ -115,7 +115,7 @@ bool Typecast_ok = true;
 
 %token   	INHERITANCE VERSION CURRENT NEW THEN DO INSTEAD VIEW
 		REWRITE P_TUPLE TYPECAST P_FUNCTION C_FUNCTION C_FN
-		POSTQUEL RELATION RETURNS
+		POSTQUEL RELATION RETURNS INTOTEMP LOAD
 
 /* precedence */
 %nonassoc Op
@@ -168,6 +168,7 @@ stmt :
 	| RuleStmt			
 	| TransactionStmt
   	| ViewStmt
+	| LoadStmt
 	;
 
 
@@ -923,6 +924,18 @@ ViewStmt:
 		    $$ = lispCons ( KW(define) , $2 );
 		}
 	;
+
+ /**************************************************
+
+        Load Stmt
+        load "filename"
+
+   **************************************************/
+
+LoadStmt:
+        LOAD file_name
+                {  $$ = MakeList ( KW(load), $2, -1 ); }
+        ;
 
  /**********************************************************************
   **********************************************************************
