@@ -470,6 +470,7 @@ ParallelProcessQueries(parsetree_list, plan_list, dest)
     foreach (x, parsetree_list) {
 	parsetree = CAR(x);
 	plan = (Plan)CAR(plist);
+	plist = CDR(plist);
 	rootFragment = InitialPlanFragments(parsetree, plan);
 	fragmentList = nappend1(fragmentList, rootFragment);
       }
