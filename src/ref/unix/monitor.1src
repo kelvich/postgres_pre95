@@ -154,4 +154,4 @@ returns 0 to the shell on successful query completion, 1 otherwise.
 .uh "SEE ALSO"
 .lp
 backend(unix), postmaster(unix), createdb(unix), destroydb(unix),
-createuser(unix), destroyuser(unix)
+createuser(unix), destroyuser(unix).

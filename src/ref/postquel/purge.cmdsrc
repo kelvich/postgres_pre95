@@ -6,12 +6,9 @@
 purge \*- discard historical data
 .uh SYNOPSIS
 .lp
-.b purge
-classname [
-.b before
-abstime ] [
-.b after
-reltime ]
+.(l
+\fBpurge\fR classname [ \fBbefore\fR abstime ] [ \fBafter\fR reltime ]
+.)l
 .uh DESCRIPTION
 .lp
 .b Purge
@@ -33,14 +30,17 @@ as the purge date never decreases.
 \*(PP will enforce this restriction, silently.
 .uh EXAMPLE
 .lp
-/* Always discard data in the EMP class prior to January 1, 1989 */
-.lp
+.nf
+.ft C
+/* Always discard data in the EMP class */
+/* prior to January 1, 1989             */
+
 purge EMP before "Jan 1 1989"
-.lp
+
 /* Retain only the current data in EMP */
-.lp
+
 purge EMP
-.lp
+.ft
 .uh BUGS
 .lp
 Error messages are quite unhelpful.  A complaint about "inconsistent times"

@@ -7,7 +7,9 @@
 vacuum \*- vacuum a database
 .uh SYNOPSIS
 .lp
-.b vacuum
+.(l
+\fBvacuum\fP
+.)l
 .uh DESCRIPTION
 .lp
 .b Vacuum

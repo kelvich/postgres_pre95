@@ -61,7 +61,9 @@ passed correct initialization values.  The final calculation
 then divides the sum by the count to produce the final
 answer.
 .lp
+.ft C
 /* Define an aggregate for int4average */
+.ft
 .lp
 .ft C
 define aggregate avg (sfunc1 = int4add, sfunc2 = int4inc

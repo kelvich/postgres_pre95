@@ -8,7 +8,7 @@ copy \*- copy data to or from a class from or to a \*(UU file.
 .uh SYNOPSIS
 .lp
 .(l
-\fBcopy\fR [\fBbinary\fR] classname direction { "filename" | stdin | stdout }
+\fBcopy\fR [\fBbinary\fR] classname direction ( "filename" | \fBstdin\fR | \fBstdout\fR )
 .)l
 .uh DESCRIPTION
 .lp
@@ -126,10 +126,7 @@ contiguous streams of the array element type.
 .lp
 .uh "SEE ALSO"
 .lp
-append(postquel),
-create(postquel),
-vacuum(postquel),
-libpq(commands).
+append(commands), create(commands), vacuum(commands), libpq.
 .uh BUGS
 .lp
 .A Files 

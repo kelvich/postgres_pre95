@@ -234,7 +234,9 @@ or
 .CW Unix ,
 which are symbolic constants defined in
 .(b
+.ft C
 ~postgres/src/lib/H/catalog/pg_lobj.h
+.ft
 .)b
 The interpretation of the
 .CW mode
@@ -254,7 +256,9 @@ is a bitmask describing several different attributes
 of the new object.
 The symbolic constants listed here are defined in
 .(b
+.ft C
 ~postgres/src/lib/H/tmp/libpq-fs.h
+.ft
 .)b
 The access type (read, write, or both) is controlled by
 OR'ing together the bits INV_READ and INV_WRITE.
@@ -288,8 +292,11 @@ and is located on magnetic disk:
 .(b
 .ft C
 unix_fd = LOcreat("/my_unix_obj", 0600, Unix);
+.ft
 .sp 0.5v
-inv_fd = LOcreat("/my_inv_obj", INV_READ|INV_WRITE, Inversion);
+.ft C
+inv_fd = LOcreat("/my_inv_obj",
+                 INV_READ|INV_WRITE, Inversion);
 .ft
 .)b
 .uh "Opening Large Objects"
@@ -327,9 +334,13 @@ INV_READ and INV_WRITE have any meaning.
 To open the two large objects created in the last example,
 a programmer would issue the commands
 .(b
+.ft C
 unix_fd = LOopen("/my_unix_obj", O_RDWR);
+.ft
 .sp 0.5v
+.ft C
 inv_fd = LOopen("/my_inv_obj", INV_READ|INV_WRITE);
+.ft
 .)b
 .lp
 If a large object is opened before it has been created,
@@ -377,8 +388,11 @@ seeks to byte location 100000 of the example large objects:
 .(b
 .ft C
 unix_status = LOlseek(unix_fd, 100000, L_SET);
+.ft
 .sp 0.5v
+.ft C
 inv_status = LOlseek(inv_fd, 100000, L_SET);
+.ft
 .)b
 On error,
 .CW LOlseek
@@ -440,7 +454,9 @@ The VARSIZE()
 and VARDATA()
 macros are declared in the file
 .(b
+.ft C
 ~postgres/src/lib/H/tmp/postgres.h
+.ft
 .)b
 .uh "Reading from Large Objects"
 .lp
@@ -555,7 +571,9 @@ or
 .CW Unix ,
 which are symbolic constants defined in
 .(b
+.ft C
 ~postgres/src/lib/H/catalog/pg_lobj.h
+.ft
 .)b
 The interpretation of the
 .CW mode
@@ -575,7 +593,9 @@ is a bitmask describing several different attributes
 of the new object.
 The symbolic constants listed here are defined in
 .(b
+.ft C
 ~postgres/src/lib/H/tmp/libpq-fs.h
+.ft
 .)b
 The access type (read, write, or both) is controlled by
 OR'ing together the bits INV_READ and INV_WRITE.
@@ -603,7 +623,8 @@ and is located on magnetic disk:
 .ft C
 unix_fd = p_creat("/my_unix_obj", 0600, Unix);
 .sp 0.5v
-inv_fd = p_creat("/my_inv_obj", INV_READ|INV_WRITE, Inversion);
+inv_fd = p_creat("/my_inv_obj",
+                 INV_READ|INV_WRITE, Inversion);
 .ft
 .)b
 .uh "Opening an Existing Large Object"
@@ -748,8 +769,10 @@ The programs that comprise the Inversion file system are
 included in the \*(PP source distribution,
 in directories
 .(b
+.ft C
 $POSTGRESHOME/test/postfs
 $POSTGRESHOME/test/postfs.usr.bin
+.ft
 .)b
 These directories contain a set of programs for manipulating
 files and directories.
@@ -787,17 +810,20 @@ main()
 	char *qry_result;
 	char buf[MYBUFSIZ];
 	int nbytes;
+	int tmp;
 
 	PQsetdb("mydatabase");
 
-	/* large object accesses must be transaction-protected */
+	/* large object accesses must be */
+        /* transaction-protected         */
 	qry_result = PQexec("begin");
 
 	if (*qry_result == 'E')	/* error */
 		exit (1);
 
 	/* open the unix file */
-	if ((fd = open("/my_unix_file", O_RDONLY, 0666)) < 0)	/* error */
+	fd = open("/my_unix_file", O_RDONLY, 0666);
+	if (fd < 0)	/* error */
 		exit (1);
 
 	/* open the inversion file */
@@ -805,10 +831,14 @@ main()
 	if (inv_fd < 0)	/* error */
 		exit (1);
 
-	/* copy the unix file to the inversion large object */
+	/* copy the unix file to the inversion */
+        /* large object                        */
 	while ((nbytes = read(fd, buf, MYBUFSIZ)) > 0)
-		if (p_write(inv_fd, buf, nbytes) < nbytes)	/* error */
+	{
+		tmp = p_write(inv_fd, buf, nbytes);
+		if (tmp < nbytes)	/* error */
 			exit (1);
+	}
 
 	(void) close(fd);
 	(void) close(inv_fd);
@@ -832,8 +862,6 @@ The system knows which implementation was used.
 The flags argument should be the same in these two cases.
 .uh "SEE ALSO"
 .lp
-define type (commands)
-.lp
-define function (commands)
-.lp
-load (commands)
+define type(commands),
+define function(commands),
+load (commands).

@@ -43,8 +43,8 @@ then this command will have no effect.
 .nf
 .ft C
 /* cluster employees in salary order */
-.sp
-   cluster emp on salary
+
+cluster emp on salary
 .ft
 .fi
 .uh BUGS

@@ -20,8 +20,7 @@ causes new attributes to be added to an existing class,
 .i classname .
 The new attributes and their types are specified
 in the same style and with the the same restrictions as in
-.b "create" 
-(commands).
+\fBcreate\fR(commands).
 .lp
 The new attributes will not be added to
 any classes which inherit attributes from
@@ -38,17 +37,17 @@ default values for added attributes
 are not placed in existing instances of a class.
 If default values are desired,
 a subsequent
-.b "replace"
-(commands) query should be run.
+\fBreplace\fR(commands) query should be run.
 .uh EXAMPLE
 .lp
+.ft C
 /* add the date of hire to the emp class */
-.br
+
 addattr (hiredate = abstime) to emp
+.ft
 .uh "SEE ALSO"
 .lp
 create(commands).
 .uh "BUGS"
 .lp
-.q *
-is not supported in Version \*(PV.
+"*" is not supported in Version \*(PV.

@@ -7,8 +7,9 @@
 notify \(em Signal all frontends and backends listening on a relation
 .uh SYNOPSIS
 .lp
-.b "notify"
-relation_name
+.(l
+\fBnotify\fR relation_name
+.)l
 .uh DESCRIPTION
 .lp
 .b notify
@@ -23,7 +24,5 @@ this can be thought of as the alerter mechanism.
 
 .uh "SEE ALSO"
 .lp
-definerule(postquel).
-listen(postquel).
-libpq.
+definerule(commands), listen(commands), libpq.
 .uh BUGS

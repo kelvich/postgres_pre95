@@ -144,27 +144,31 @@ propagates Joe's salary on to Sam.
 .(l
 .ft C
 define rule example_2 is
-    on retrieve to EMP.salary where current.name = "Bill"
+    on retrieve to EMP.salary
+        where current.name = "Bill"
     do instead
 	retrieve (EMP.salary) where EMP.name = "Joe"
 .ft
 .)l
 .lp
 .ft C
-/* Deny Joe access to the salary of employees in the shoe department */
-/* Note: ``pg_username'' returns the name of the current user */
+/* Deny Joe access to the salary of employees in */
+/* the shoe department.  Note: pg_username()     */
+/* returns the name of the current user          */
 .ft
 .(l
 .ft C
 define rule example_3 is
     on retrieve to EMP.salary
-	where current.dept = "shoe"and pg_username() = "Joe"
+	where current.dept = "shoe"
+              and pg_username() = "Joe"
     do instead nothing
 .ft
 .)l
 .lp
 .ft C
-/* create a view of the employees working in the toy department */
+/* Create a view of the employees working in */
+/* the toy department.                       */
 .ft
 .(l
 .ft C
@@ -178,7 +182,7 @@ define rule example_4 is
 .)l
 .lp
 .ft C
-/* all new employees must make 5,000 or less */
+/* All new employees must make 5,000 or less */
 .ft
 .(l
 .ft C

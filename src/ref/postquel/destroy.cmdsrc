@@ -7,11 +7,9 @@
 destroy \*- destroy existing classes
 .uh SYNOPSIS
 .lp
-.b destroy
-classname1 { ,
-.r classname \c
-.i i
-}
+.(l
+\fBdestroy\fR classname-1 { \fB,\fR classname-i }
+.)l
 .uh DESCRIPTION
 .lp
 .b Destroy
@@ -46,13 +44,15 @@ In addition,
 historical access to instances in a destroyed class is not possible.
 .uh EXAMPLE
 .lp
+.ft C
 /* Destroy the emp class */
 
 destroy emp
-.lp
+
 /* Destroy the emp and parts classes */
 
 destroy emp, parts
+.ft
 .uh "SEE ALSO"
 .lp
 delete(commands),

@@ -42,19 +42,19 @@ These questions describe the security capabilities of the \*(PP user.
 The new user's \*(PP userid must be the user's Unix userid.
 .uh "SEE ALSO"
 .lp
-destroyuser(unix),
+destroyuser(unix).
 .uh DIAGNOSTICS
 .lp
-You are not a valid \*(PP user
+\fBYou are not a valid POSTGRES user\fR
 .lp
 You do not have a users file entry, and can
 not do anything with \*(PP at all.
 .sp
 .lp
-<user> already exists
+\fI<user>\fR \fBalready exists\fR
 .lp
 The user already exists.
 .uh BUGS
 .lp
 \*(PP userid's and usernames should not have anything to do with the
-constraints of Unix.
+constraints of UNIX.

@@ -108,16 +108,11 @@ surrounding them by single
 quotes, e.g., `n'.
 .uh "String Constants"
 .lp
-.i Strings
-in \*(PQ
-are arbitrary sequences of 
-ASCII characters bounded by
-double quotes (\*(lq \*(rq)
-Upper case alphabetics within strings
-are accepted literally.
+\fIStrings\fP in \*(PQ are arbitrary sequences of ASCII characters bounded by
+double quotes (" "). Upper case alphabetics within strings are
+accepted literally.
 Non-printing characters may be embedded within strings by prepending them
-with a backslash, e.g., `\en'.
-Also, in order to embed quotes
+with a backslash, e.g., `\en'. Also, in order to embed quotes
 within strings, it is necessary to prefix them with `\e' .
 The same convention applies to `\e' itself.
 Because of the limitations on instance sizes, string constants
@@ -164,7 +159,7 @@ A constant of an
 type can be entered using the notation:
 .(l
 .ft C
-\*(lqstring\*(rq::type-name
+"string"::type-name
 .ft
 .)l
 In this case the value inside the string is passed to the input conversion
@@ -178,7 +173,7 @@ are arrays of any \*(PP type, including other arrays, string constants,
 etc.  The general format of an array constant is the following:
 .(l
 .ft C
-"{<val1><delim><val2<delim>}"
+"{<val1><delim><val2><delim>}"
 .ft
 .)l
 .lp
@@ -256,11 +251,10 @@ clause, or the keyword
 or 
 .b current.
 New and current can only appear in the action portion of a rule, while other instance
-variables can be used in any POSTQUEL command. 
+variables can be used in any \*(PQ command. 
 .i Composite_field
 is a field of of one of the \*(PP composite types indicated in the 
-.b information
-(POSTQUEL) section,
+\fBinformation\fR(commands) section,
 while successive
 composite fields address attributes
 in the class(s) to which the composite field evaluates.
@@ -280,9 +274,9 @@ may be used in \*(PQ.  For the
 list of built-in and system operators consult
 .b built-in
 types 
-(postquel) and
+(commands) and
 b. system types
-(postquel).
+(commands).
 For a list of user defined
 operators consult your system administrator or run a query on the
 pg_operator class.
@@ -392,7 +386,7 @@ write:
 .(l
 .ft C
 retrieve (total = sum {e.salary from e in emp
-	    where e.age > 30} )
+                                where e.age > 30} )
 .ft
 .)l
 or
@@ -570,10 +564,10 @@ The
 .i from
 .i expression
 defines one or more instance variables to range over the class indicated
-in class_reference.  
-Adding
-a time_expression will indicate that
-a historical class is desired.  Additionally, one can request the instance variable to range over all
+in \fIclass_reference\fR.  
+Adding a \fItime_expression\fR will indicate that a historical class
+is desired.
+One can also request the instance variable to range over all
 classes that are beneath the indicated class in the inheritance
 hierarchy by postpending the designator `*'.
 .uh "Time Expressions"

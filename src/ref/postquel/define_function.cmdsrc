@@ -11,8 +11,8 @@ define function \*- define a new function
 \fBdefine function\fP function_name \fB(\fP
           \fBlanguage =\fP {"c" | "postquel"}\fB,\fP
           \fBreturntype =\fP type-r
-          [ \fB, percall_cpu =\fP "costly{!*}" ]
-          [ \fB, perbyte_cpu =\fP "costly{!*}" ]
+          [ \fB, percall_cpu =\fP \fB"costly\fR{\fB!\fR*}\fB"\fR ]
+          [ \fB, perbyte_cpu =\fP \fB"costly\fR{\fB!\fR*}\fB"\fR ]
           [ \fB, outin_ratio = \fP percentage]
           [ \fB, byte_pct = \fP percentage]
         \fB)\fP
@@ -151,9 +151,9 @@ cc -I$POSTGRESHOME/src/lib/H \\
 .)l
 The directory
 .ft C
-$POSTGRESHOME/O/lib/H contains
+$POSTGRESHOME/O/lib/H
 .ft
-"tags.h", which is generated in the
+contains "tags.h", which is generated in the
 build process.  The directory
 .ft C
 $POSTGRESHOME/src/port/$PORTNAME
@@ -229,6 +229,7 @@ field is null.  The result of this function should be cast
 appropriately as shown in the examples below.
 .lp
 .uh "POSTQUEL FUNCTIONS"
+.lp
 \*(PQ functions execute an arbitrary list of \*(PQ queries,
 returning the results of the last query in the list.  \*(PQ
 functions in general return sets.  If their returntype is not
@@ -409,7 +410,8 @@ the schema:
 .(l
 .ft C
 create BANK (accountno = int4, balance = float8) 
-append BANK (accountno = 17, balance = "10000.00"::float8) 
+append BANK (accountno = 17,
+             balance = "10000.00"::float8)
 create EMP (name = char16, salary = float8,
             dept = char16, age = int4)
 create HOBBIES (name = char16, person = char16) 
@@ -427,28 +429,30 @@ append HOBBIES (name = "jamming", person = "joey" )
 append HOBBIES (name = "basketball", person = "wei") 
 append HOBBIES (name = "swimming", person = "mike") 
 append HOBBIES (name = "philately", person = "mike") 
-append KIDS (name = "matthew", dad = "mike", mom = "teresa") 
-append KIDS (name = "calvin", dad = "mike", mom = "teresa") 
+append KIDS (name = "matthew", dad = "mike",
+             mom = "teresa")
+append KIDS (name = "calvin", dad = "mike",
+             mom = "teresa")
 .ft
 .)l
 .sp
 the query above returns
 .lp
+.ft C
 .TS
 center;
 l l l
 l l l.
-\fBname\fP	\fBhobby\fP	\fBkid\fP
+name	hobby	kid
 _
-.ft C
 jeff	biking	(null)
 joey	jamming	(null)
 mike	swimming	matthew
 mike	philately	matthew
 mike	swimming	calvin
 mike	philately	calvin
-.ft
 .TE
+.ft
 .lp
 Note that flattening preserves the name and hobby fields even when the kid
 field is null.

@@ -7,19 +7,11 @@
 move \*- move the pointer in a portal
 .uh SYNOPSIS
 .lp
-.b move
-[ (
-.b forward
-|
-.b backward
-] [ ( number |
-.b all
-|
-.b to
-( number | record_qual ) ] [
-.b in
-portal_name
-]
+.(l
+\fBmove\fR [ ( \fBforward\fR | \fBbackward\fR ) ]
+    [ ( number | \fBall\fR | \fBto\fR ( number | record_qual ) ) ]
+    [ \fBin\fR portal_name ]
+.)l
 .uh DESCRIPTION
 .lp
 .b Move
@@ -47,11 +39,15 @@ which can be evaluated completely on a single instance in the portal.
 .uh EXAMPLE
 .lp
 .nf
+.ft C
 /* Move backwards 5 instances in the portal FOO */
-   move backward 5 in FOO
+
+move backward 5 in FOO
 	
 /* Move to the 6th instance in the portal FOO */
-   move to 6 in FOO
+
+move to 6 in FOO
+.ft
 .fi
 .uh "SEE ALSO"
 .lp
@@ -60,7 +56,6 @@ fetch(commands),
 close(commands).
 .uh BUGS
 .lp
-This command is unavailable in Version 3.  The pointer may be moved using
-the
+This command is not yet available.  The pointer may be moved using the
 .b fetch
 command, and ignoring its return values.

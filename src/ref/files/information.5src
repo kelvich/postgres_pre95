@@ -20,21 +20,21 @@ at the front of file names represents the path
 to the postgres user's home directory.
 Anything in square brackets
 .r ( \c
-.b [
+.b \*(lq[\*(rq
 and
-.b ] )
+.b \*(lq]\*(rq )
 is optional.
 Anything in braces
 .r ( \c
-.b {
+.b \*(lq{\*(rq
 and
-.b } )
+.b \*(lq}\*(rq )
 can be repeated 0 or more times.
 Parentheses
 .r ( \c
-.b (
+.b \*(lq(\*(rq
 and
-.b ) )
+.b \*(lq)\*(rq )
 are used to group boolean expressions.
 .b |
 is the boolean
@@ -42,10 +42,12 @@ operator
 .A OR .
 .uh BUGS
 .lp
-The descriptions of
-.b .../.postgresrc ,
-.b .../data/PG_VERSION,
-.b .../data/*/PG_VERSION ,
+The descriptions of \c
+.ft C
+ .../.postgresrc, \c
+ .../data/PG_VERSION, \c
+ .../data/*/PG_VERSION,
+.ft
 the temporary sort files,
 and the database debugging trace
 files are absent.

@@ -26,7 +26,7 @@ User-defined types are not described in this section.
 center;
 l l l
 l l c.
-\fBBuilt-In Type\fP	\fBMeaning\fP	\fBRequired\fP
+\fBPOSTGRES Type\fP	\fBMeaning\fP	\fBRequired\fP
 _
 abstime	absolute date and time	*
 bool	boolean	*
@@ -56,7 +56,7 @@ xid	transaction identifier type	*
 .TE
 .lp
 These types all have obvious formats except for the three time types,
-explained below.
+explained in the following.
 .XA 1 "Syntax of date and time types"
 .SP "DATE AND TIME" BUILT-INS 7/11/92
 .uh "ABSOLUTE TIME"
@@ -183,7 +183,7 @@ are \fBnot equivalent\fP to C function prototypes.)
 center expand;
 l l c l
 c l l lw(2i).
-\fBType\fP	\fBOperator\fP	\fB\*(PP Function Prototype\fP	\fBOperation\fP
+\fBType\fP	\fBOperator\fP	\fB\POSTGRES Function Prototype\fP	\fBOperation\fP
 _
 abstime	!\(eq	bool abstimene(abstime, abstime)	inequality
 	+	abstime timepl(abstime, reltime)	addition
@@ -429,7 +429,7 @@ Right Unary Operators
 center expand;
 l l c l
 c l l lw(2i).
-\fBType\fP	\fBOperator\fP	\fB\*(PP Function Prototype\fP	\fBOperation\fP
+\fBType\fP	\fBOperator\fP	\fB\POSTGRES Function Prototype\fP	\fBOperation\fP
 _
 float8	%	float8 dround(float8)	round to nearest integer
 .TE
@@ -442,7 +442,7 @@ Left Unary Operators
 center expand;
 l l c l
 c l l lw(2i).
-\fBType\fP	\fBOperator\fP	\fB\*(PP Function Prototype\fP	\fBOperation\fP
+\fBType\fP	\fBOperator\fP	\fB\POSTGRES Function Prototype\fP	\fBOperation\fP
 _
 box	@@	point box_center(box)	center of box
 _

@@ -27,5 +27,5 @@ destroydb(unix).
 .lp
 .uh BUGS
 .lp
-This command should NOT be executed by humans.  The createdb(unix) script
+This command should NOT be executed by humans.  The \fBcreatedb\fR(unix) script
 should be used instead.

@@ -82,6 +82,4 @@ semaphores as described in the installation notes.
 .sp
 .uh "SEE ALSO"
 .lp
-monitor (unix),
-postmaster (unix),
-ipcclean (unix)
+monitor(unix), postmaster(unix), ipcclean(unix).

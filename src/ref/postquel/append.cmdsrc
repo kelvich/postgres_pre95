@@ -38,25 +38,27 @@ to append all domains of a class to another class.
 .uh EXAMPLE
 .lp
 .nf
+.ft C
 /* Make a new employee Jones work for Smith */
 
-   append emp (newemp.name, newemp.salary, mgr = \*(lqSmith\*(rq, bdate = 1990 - newemp.age)
-   where newemp.name = \*(lqJones\*(rq
-.sp
+append emp (newemp.name, newemp.salary, mgr = "Smith",
+            bdate = 1990 - newemp.age)
+    where newemp.name = "Jones"
+
 /* same command using the from list clause */
 
-   append emp (n.name, n.salary, mgr = \*(lqSmith\*(rq, bdate = 1990 - n.age)
-   from n in newemp
-   where n.name = \*(lqJones\*(rq
-.sp
+append emp (n.name, n.salary, mgr = "Smith",
+            bdate = 1990 - n.age)
+    from n in newemp
+    where n.name = "Jones"
+
 /* Append the newemp1 class to newemp */
 
-   append newemp (newemp1.all)
+append newemp (newemp1.all)
+.ft
 .fi
 .uh "SEE ALSO"
 .sp
 .in .5i
-postquel(commands),
-retrieve(commands),
-define type(commands).
+postquel(commands), retrieve(commands), define type(commands).
 

@@ -45,9 +45,7 @@ The defaults are to the local machine (localhost) and to the default port
 .lp
 .uh "SEE ALSO"
 .lp
-destroydb(unix),
-initdb(unix),
-createdb(postquel).
+destroydb(unix), initdb(unix), createdb(commands).
 .uh DIAGNOSTICS
 .sp
 .lp
@@ -58,12 +56,12 @@ port.  If you see this message, check that the postmaster is running on
 the proper host and that the proper port is specified.
 .sp
 .lp
-You are not a valid \*(PP user
+\fBYou are not a valid POSTGRES user\fR
 .lp
 You do not have a users file entry, and can
 not do anything with \*(PP at all.
 .sp
 .lp
-<dbname> already exists
+\fI<dbname>\fR \fBalready exists\fR
 .lp
 The database already exists.

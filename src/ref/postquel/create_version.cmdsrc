@@ -7,13 +7,9 @@
 create version \*- construct a version class 
 .uh SYNOPSIS
 .lp
-.b "create version"
-.r classname1
-.b from
-.r classname2 [\c
-.b [
-abstime
-.b ] ]
+.(l
+\fBcreate version\fR classname1 \fBfrom\fR classname2 [ \fB[\fR abstime \fB]\fR ]
+.)l
 .uh DESCRIPTION
 .lp
 This command creates a version class
@@ -66,17 +62,16 @@ The algorithms that control versions are explained in [ONG90].
 .uh EXAMPLE
 .lp
 .ft C
-/* create a version foobar from a snapshot of barfoo as of January 17, 1990 */
+/* create a version foobar from a snapshot of */
+/* barfoo as of January 17, 1990              */
 
 create version foobar from barfoo [ "Jan 17 1990" ]
 .ft
 .uh "SEE ALSO"
 .lp
-.ft C
-merge(commands), define view(commands), postquel(commands) 
-.ft
+merge(commands), define view(commands), postquel(commands).
 .lp
 .uh "BUGS"
 .lp
-Snapshots (i.e. the optional abstime specifications) are not yet
+Snapshots (i.e. the optional abstime specifications) have not yet been
 implemented.

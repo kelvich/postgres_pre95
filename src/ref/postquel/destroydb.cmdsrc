@@ -7,17 +7,16 @@
 destroydb \*- destroy an existing database
 .uh SYNOPSIS
 .lp
-.b destroydb
-dbname
+.(l
+\fBdestroydb\fR dbname
+.)l
 .uh DESCRIPTION
 .lp
 .b Destroydb
 removes the catalog entries for an existing database
 and deletes the directory containing the data.
 It can only be executed by the database administrator
-(see
-.b createdb (commands)
-for details).
+(see \fBcreatedb\fR(commands) for details).
 .uh "SEE ALSO"
 .lp
 createdb(commands),
@@ -25,5 +24,5 @@ destroydb(unix).
 .lp
 .uh BUGS
 .lp
-This query should NOT be executed by humans.  The destroydb (unix) script,
+This query should NOT be executed by humans.  The destroydb(unix) script,
 should be used instead.

@@ -7,10 +7,9 @@
 merge \*- merge two classes
 .uh SYNOPSIS
 .lp
-.b merge
-classname1
-.b into
-classname2
+.(l
+\fBmerge\fR classname1 \fBinto\fR classname2
+.)l
 .uh DESCRIPTION
 .lp
 .b Merge
@@ -51,14 +50,15 @@ will be destroyed if is not the parent of
 some other version class.
 .uh EXAMPLE
 .lp
+.ft C
 /* Combine office class and employee class */
 
 merge office into employee
+.ft
 .uh "SEE ALSO"
 .lp
 destroy(commands),
 create version(commands).
 .uh BUGS
 .lp
-Merge
-will not work until Version 4.
+Merge has not yet been implemented.

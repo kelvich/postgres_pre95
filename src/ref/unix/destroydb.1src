@@ -39,14 +39,22 @@ postmaster running on the specified host machine.
 .sp
 .uh EXAMPLE
 .lp
+.ft C
 /* destroy the demo database */
+.ft
 .nf
+.ft C
 destroydb demo
+.ft
 .fi
 .lp
+.ft C
 /* destroy the demo database using the postmaster on host eden, port 1234 */
+.ft
 .nf
+.ft C
 destroydb -p 1234 -h eden demo
+.ft
 .fi
 .uh DIAGNOSTICS
 .sp
@@ -59,9 +67,11 @@ the proper host and that the proper port is specified.
 .sp
 .uh FILES
 .lp
+.ft C
 \&.../data/base/*
+.ft
 .uh "SEE ALSO"
 .lp
 createdb(unix),
 postmaster(unix),
-destroydb(postquel).
+destroydb(commands).

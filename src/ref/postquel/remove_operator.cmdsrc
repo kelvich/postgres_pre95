@@ -7,8 +7,9 @@
 remove operator \*- remove an operator from the system
 .uh SYNOPSIS
 .lp
-.b "remove operator"
-opr_desc
+.(l
+\fBremove operator\fR opr_desc
+.)l
 .uh DESCRIPTION
 .lp
 This command drops an existing operator from the database.
@@ -19,9 +20,11 @@ is the name of the operator to be removed followed by a
 parenthesized list of the operand types for the operator.
 .uh EXAMPLE
 .nf
-/* Remove the power operator, a^n, for 4 byte integers */
+.ft C
+/* Remove power operator a^n for 4 byte integers */
 
-   remove operator ^ (int4, int4)
+remove operator ^ (int4, int4)
+.ft
 .fi
 .uh "SEE ALSO"
 .lp

@@ -7,7 +7,9 @@
 end \*- commit the current transaction 
 .uh SYNOPSIS
 .lp
-.b end
+.(l
+\fBend\fR
+.)l
 .uh DESCRIPTION
 .lp
 This commands commits the current transaction.

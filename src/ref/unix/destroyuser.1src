@@ -42,15 +42,15 @@ be destroyed in the process.  If the databases should not be destroyed,
 can be aborted.
 .uh "SEE ALSO"
 .lp
-createuser(unix),
+createuser(unix).
 .uh DIAGNOSTICS
 .lp
-You are not a valid \*(PP user
+\fBYou are not a valid POSTGRES user\fR
 .lp
 You do not have a users file entry, and can
 not do anything with \*(PP at all.
 .sp
 .lp
-<user> does not exist
+\fI<user>\fR \fBdoes not exist\fR
 .lp
 The user does not exist.

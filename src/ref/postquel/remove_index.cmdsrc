@@ -7,8 +7,9 @@
 remove index \*- removes an index from \*(PP
 .uh SYNOPSIS
 .lp
-.b "remove index"
-index_name
+.(l
+\fBremove index\fR index_name
+.)l
 .uh DESCRIPTION
 .lp
 This command drops an existing index from the \*(PP system.
@@ -16,6 +17,8 @@ To execute this command you must be the owner of the index.
 .uh EXAMPLE
 .lp
 .nf
-/* The following command will remove the EMP-INDEX index */
-.sp
+.ft C
+/* this command will remove the EMP-INDEX index */
+
 remove index emp_index
+.ft

@@ -74,13 +74,17 @@ Lists of general commands and macro commands
 follow.
 .uh "GENERAL COMMANDS"
 .lp
+.ft C
 open classname
+.ft
 .sp
 Open the class called
 .i classname
 for further manipulation.
 .sp
+.ft C
 close [classname]
+.ft
 .sp
 Close the open class called
 .i classname.
@@ -91,11 +95,15 @@ is not already opened.   If no
 is given, then the 
 currently open class is closed.
 .sp
+.ft C
 print
+.ft
 .sp
 Print the currently open class.
 .sp
+.ft C
 insert [ oid= oid_value ] '(' value1 value2 ...')'
+.ft
 .sp
 Insert a new instance to the open
 class using
@@ -116,15 +124,20 @@ To let the system generate a unique object identifier (as opposed to the
 insert '(' value1, value2, ... valuen ')' .
 
 .sp
-\&create classname '(' name1 = type1, name2 = type2,...name n = type n ')'
+.ft C
+create classname '(' name1 = type1,
+                     name2 = type2, ...name n = type n ')'
+.ft
 .sp
 Create a class named
 .ul
 classname
 with the attributes given in parentheses.
 .sp
+.ft C
 open '('name1 = type1, name2 = type2,...name n = type n ')'
-as classname
+    as classname
+.ft
 .sp
 Open a class named
 .ul
@@ -133,14 +146,18 @@ for writing
 but do not record its existence
 in the system catalogs.  (This is primarily to aid in bootstrapping.)
 .sp
-\&destroy classname
+.ft C
+destroy classname
+.ft
 .sp
 Destroy the class named
 .ul
 classname.
 .sp
+.ft C
 define index <index-name> on <class-name> using <amname>
-( <opclass> <attr> | function({attr}) )
+    ( <opclass> <attr> | function({attr}) )
+.ft
 .sp
 Create an index named
 .ul
@@ -166,7 +183,10 @@ collection_2,
 etc., respectively.
 .uh "MACRO COMMANDS"
 .lp
-define function macro_name as rettype function_name ( args )
+.ft C
+define function macro_name
+       as rettype function_name ( args )
+.ft
 .sp
 Define a function prototype for a function named
 .ul
@@ -186,7 +206,9 @@ args
 declared in a C-like manner
 etc.
 .sp
+.ft C
 define macro macro_name from file filename
+.ft
 .sp
 Define a macro named
 .ul
@@ -271,16 +293,18 @@ collection as object
 print out the class, and then close it.
 .sp
 .nf
+.ft C
 create pg_opclass (opcname=char16)
 open pg_opclass
 insert oid=421 (int_ops)
 print
 close pg_opclass
+.ft
 
 .fi
 .uh "SEE ALSO"
 .lp
 initdb(unix),
 createdb(unix),
-createdb(postquel),
+createdb(commands),
 template(files).

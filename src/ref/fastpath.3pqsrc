@@ -21,8 +21,7 @@ fast path \*- trap door into system internals
 implementations of 
 .b fast
 .b path
-allowed user functions to be called directly; this feature will reappear in
-Version 4 in an improved way.  For now, the above syntax should
+allowed user functions to be called directly.  For now, the above syntax should
 be used, with arguments cast into the appropriate types.  By executing the
 above type of query, control transfers completely to the user function; any
 user function can access any \*(PP function or any global variable in the

@@ -251,8 +251,8 @@ while operators are restricted to one or two.
 .lp
 .nf
 .ft C
-/* The following command defines a new operator, area-equality,
-   for the BOX data type. */
+/* The following command defines a new operator, */
+/* area-equality, for the BOX data type.         */
 
 define operator === (
 	arg1 = box,

@@ -7,8 +7,9 @@
 remove rule \- removes a current rule from \*(PP 
 .uh SYNOPSIS
 .lp
-.b "remove [instance | rewrite] rule"
-rule_name
+.(l
+\fBremove\fR [ \fBinstance\fR | \fBrewrite\fR ] \fBrule\fR rule_name
+.)l
 .uh DESCRIPTION
 .lp
 This command drops the rule named rule_name
@@ -19,10 +20,11 @@ it and will purge its definition from the system catalogs.
 .sp
 .in .5i
 .nf
+.ft C
 /* This example drops the rewrite rule example_1 */
-.sp
-   remove rewrite rule example_1
-	
+
+remove rewrite rule example_1
+.ft	
 .fi
 .uh "SEE ALSO"
 .lp

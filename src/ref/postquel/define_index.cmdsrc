@@ -138,7 +138,7 @@ define index cityrect
 .)b
 .uh BUGS
 .lp
-Archive indices are not supported in Version 3.0.
+Archive indices are not supported in Version \*(PV.
 .lp
 There should be an access method designers guide.
 .lp

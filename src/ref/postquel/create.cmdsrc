@@ -126,6 +126,7 @@ Once the archive status is set, there is no way to change it.
 .ft C
 .sp
 /* Create class emp with attributes name, sal and bdate */
+
 create emp (name = char16, salary = float4, bdate = abstime)
 .ft
 .lp
@@ -133,7 +134,8 @@ create emp (name = char16, salary = float4, bdate = abstime)
 .ft C
 .sp
 /* Create class permemp with pension information
-   inheriting all fields of emp */
+ * inheriting all fields of emp */
+
 create permemp (plan = char16) inherits (emp)
 .ft
 .lp
@@ -141,14 +143,15 @@ create permemp (plan = char16) inherits (emp)
 .ft C
 .sp
 /* Create a class foo on mag disk,
-   and archive historical data */
+ * and archive historical data */
+
 create foo (bar = int4) archive = heavy
     store = "magnetic disk"
 .ft
 .fi
 .uh "SEE ALSO"
 .lp
-destroy(commands)
+destroy(commands).
 .uh BUGS
 .lp
 Key is not implemented in Version \*(PV.

@@ -7,17 +7,10 @@
 rename \*- rename a class or an attribute in a class
 .uh SYNOPSIS
 .lp
-.b rename
-classname1
-.b to
-classname2
-.br
-.b rename
-attname1
-.b in
-classname
-.b to
-attname2
+.(l
+\fBrename\fR classname1 \fBto\fR classname2
+\fBrename\fR attname1 \fBin\fR classname \fBto\fR attname2
+.)l
 .uh DESCRIPTION
 .lp
 The
@@ -31,13 +24,15 @@ and size after this command is executed.
 .lp
 .uh EXAMPLE
 .lp
+.ft C
 /* change the emp class to personnel */
 
 rename emp to personnel
-.lp
+
 /* change the sports attribute to hobbies */
 
 rename sports in emp to hobbies
+.ft
 .uh BUGS
 .lp
 Execution of historical queries
@@ -45,4 +40,4 @@ using classes and attributes
 whose names have changed will
 produce incorrect results in many situations.
 .lp
-Renaming of types, operators, rules, etc. should be supported also.
+Renaming of types, operators, rules, etc. should also be supported.

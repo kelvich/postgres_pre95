@@ -7,17 +7,9 @@
 fetch \*- fetch instance(s) from a portal 
 .uh SYNOPSIS
 .lp
-.b fetch
-[ (
-.b forward
-|
-.b backward
-) ] [ ( number |
-.b all
-) ] [
-.b in
-portal_name
-]
+.(l
+\fBfetch\fR [ (\fBforward\fR | \fBbackward\fR) ] [ ( number | \fBall\fR) ] [\fBin\fR portal_name]
+.)l
 .uh DESCRIPTION
 .lp
 .b Fetch
@@ -52,6 +44,7 @@ since the data that they store spans multiple user queries.
 .uh EXAMPLE
 .lp
 .nf
+.ft C
 /* set up and use a portal */
    begin \eg
    retrieve portal myportal (pg_user.all) \eg
@@ -65,6 +58,7 @@ since the data that they store spans multiple user queries.
 	
 /* Fetch 5 instances backward in the portal FOO */
    fetch backward 5 in FOO
+.ft
 .fi
 .uh "SEE ALSO"
 .lp

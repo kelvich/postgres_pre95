@@ -8,8 +8,9 @@ define view \*- construct a virtual class
 .uh SYNOPSIS
 .lp
 .(l
-\fBdefine view\fR view_name \fB(\fR [ dom_name_1 \fB=\fR] expression_1
-	{\fB,\fR [dom_name_i \fB=\fR] expression_i} \fB)\fR
+\fBdefine view\fR view_name
+        \fB(\fR [ dom_name_1 \fB=\fR] expression_1
+	    {\fB,\fR [dom_name_i \fB=\fR] expression_i} \fB)\fR
     [ \fBfrom\fR from_list ]
     [ \fBwhere\fR qual ]
 .)l
@@ -30,18 +31,19 @@ See [STON90] for a detailed discussion of this point.
 .uh EXAMPLE
 .lp
 .nf
+.ft C
 /* define a view consisting of toy department employees */
 
-   define view toyemp (e.name)
+define view toyemp (e.name)
    from e in emp
    where e.dept = "toy"
 
-
 /* Specify deletion semantics for toyemp */
 
-   define rewrite rule example1 is
+define rewrite rule example1 is
    on delete to toyemp
    then do instead delete emp where emp.OID = current.OID
+.ft
 
 .uh "SEE ALSO"
 .lp

@@ -7,8 +7,9 @@
 remove type \*- remove a user-defined type from the system catalogs
 .uh SYNOPSIS
 .lp
-.b "remove type"
-typename
+.(l
+\fBremove type\fR typename
+.)l
 .uh DESCRIPTION
 .lp
 This command removes a user type
@@ -22,9 +23,11 @@ functions that use a deleted type.
 .uh EXAMPLE
 .lp
 .nf
+.ft C
 /* remove the box type */
 
-   remove type box
+remove type box
+.ft
 .fi
 .uh "SEE ALSO"
 .lp

@@ -5,60 +5,17 @@
 .uh NAME
 .lp
 retrieve \*- retrieve instances from a class
-.uh SYNTAX
+.uh SYNOPSIS
 .lp
-.b retrieve \c
-[ (
-.b into
-classname [ archive_mode ]
-|
-.b portal
-portal_name )
-|
-.b iportal
-portal_name ) ]
-.br
-[
-.b unique
-]
-.b (
-[ attr_name1
-.b =
-] expression1 {
-.b ,
-[
-.r attr_name \c
-.i i
-.b =
-]
-.r expression \c
-.i i
-}
-.b )
-.br
-[
-.b from
-from_list ] 
-.br
-[
-.b where
-qual ] 
-.br
-[
-.b "sort"
-.b by
-attr_name\-1
-[
-.b using
-operator
-] {
-.b ,
-.r attr_name\- \c
-.i j
-[
-.b using
-operator ] }
-]
+.(l
+\fBretrieve\fR
+[ (\fBinto\fR classname [ archive_mode ] | \fBportal\fR portal_name ) | \fBiportal\fR portal_name ]
+    [\fBunique\fR]
+    \fB(\fR [ attr_name1 \fB=\fR] expression1 {\fB,\fR [attr_name-i \fB=\fR] expression-i} \fB)\fR
+    [ \fBfrom\fR from_list ] 
+    [ \fBwhere\fR qual ] 
+    [ \fBsort\fR \fBby\fR attr_name\-1 [\fBusing\fR operator] { \fB,\fR attr_name-j [\fBusing\fR operator] } ]
+.)l
 .uh DESCRIPTION
 .lp
 .b Retrieve 
@@ -143,48 +100,50 @@ Multiple sort fields are allowed and are applied from left to right.
 .uh EXAMPLE
 .lp
 .nf
+.ft C
 /* Find all employees who make more than their manager */
 
-   retrieve (e.name)
+retrieve (e.name)
    from e, m in emp
    where e.mgr = m.name
    and e.sal > m.sal
 
 /*
- * Retrieve all fields for those employees who make more than
- * the average salary
+ * Retrieve all fields for those employees who make
+ * more than the average salary
  */
 
-   retrieve into avgsal(ave = float8ave {emp.sal}) \eg
+retrieve into avgsal(ave = float8ave {emp.sal}) \eg
 
-   retrieve (e.all)
+retrieve (e.all)
    from e in emp
    where e.sal > avgsal.ave \eg
 
 /* retrieve employees's names sorted */
 
-   retrieve unique (emp.name)
+retrieve unique (emp.name)
    sort by name using <
 
 /* retrieve all employees's names that were valid on 1/7/85 
    in sorted order */
 
-   retrieve (e.name)
-   from e in emp[\*(lqJanuary 7 1985\*(rq]
+retrieve (e.name)
+   from e in emp["January 7 1985"]
    sort by name using <
 
-/* construct a new class, raise, containing 1.1 times all employee's salaries */
+/* construct a new class, raise, containing 1.1 */
+/* times all employee's salaries                */
 
-   retrieve into raise (salary = 1.1 * emp.salary)
+retrieve into raise (salary = 1.1 * emp.salary)
 
-   /* do a retrieve into a portal */
-   begin \eg
+/* do a retrieve into a portal */
+begin \eg
    retrieve portal myportal (pg_user.all) \eg
    fetch 2 from myportal \eg
    fetch all from myportal \eg
    close myportal \eg
-   end \eg
-
+end \eg
+.ft
 .uh "SEE ALSO"
 .lp
 postquel(commands),
@@ -207,7 +166,7 @@ database DBA, but a subsequent
 .b into
 to the same name will fail with a cryptic error message about "BlockExtend".
 A solution to this problem is being investigated and will be released in
-Version 4.1.
+later version.
 .lp
 .q "Retrieve iportal"
 returns data in an architecture dependent format, namely that of the

@@ -78,6 +78,4 @@ the port.
 .lp
 .uh "SEE ALSO"
 .lp
-postgres (unix),
-monitor (unix),
-ipcclean (unix)
+postgres(unix), monitor(unix), ipcclean(unix).

@@ -7,26 +7,11 @@
 replace \*- replace values of attributes in a class
 .uh SYNOPSIS
 .lp
-.b replace 
-instance_variable
-.b (
-att_name1
-.b =
-expression1 {
-.b ,
-.r att_name \c
-.i i
-.b =
-.r expression \c
-.i i
-}
-.b )
-[
-.b from
-from_list
-] [
-.b where
-qual ]
+.(l
+\fBreplace\fR instance_variable \fB(\fR att_name1 \fB=\fR expression1 {\fB,\fR att_name-i \fB=\fR expression-i } \fB)\fR
+    [ \fBfrom\fR from_list ]
+    [ \fBwhere\fR qual ]
+.)l
 .uh DESCRIPTION
 .lp
 .b Replace
@@ -41,6 +26,9 @@ target_list.
 .uh EXAMPLE
 .lp
 .nf
+.ft C
 /* Give all employees who work for Smith a 10% raise */
-.sp
-   replace emp(sal = 1.1 * emp.sal) where emp.mgr = \*(lqSmith\*(rq
+
+replace emp(sal = 1.1 * emp.sal)
+    where emp.mgr = "Smith"
+.ft

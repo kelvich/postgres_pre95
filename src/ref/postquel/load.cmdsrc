@@ -7,8 +7,9 @@
 load \*- dynamically load an object file
 .uh SYNOPSIS
 .lp
-.b load 
-"filename"
+.(l
+\fBload \fR "filename"
+.)l
 .uh DESCRIPTION
 .lp
 .b Load
@@ -26,9 +27,11 @@ Only objects created from C language files are supported at this time.
 .uh EXAMPLE
 .lp
 .nf
+.ft C
 /* Load the file /usr/postgres/demo/circle.o */
 
-   load "/usr/postgres/demo/circle.o"
+load "/usr/postgres/demo/circle.o"
+.ft
 .fi
 .sp
 .uh CAVEATS

@@ -29,14 +29,18 @@ The result is a valid, but empty class.
 .uh EXAMPLE
 .lp
 .nf
+.ft C
 /* Remove all employees who make over $30,000 */
 
-   delete emp where emp.sal > 30000
+delete emp where emp.sal > 30000
+.ft
 .fi
 .sp
+.ft C
 /* Clear the hobbies class */
 
-   delete hobbies
+delete hobbies
+.ft
 .uh "SEE ALSO"
 .lp
-Destroy(commands).
+destroy(commands).

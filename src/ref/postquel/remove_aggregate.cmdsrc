@@ -7,8 +7,9 @@
 remove aggregate \*- remove the definition of an aggregate
 .uh SYNOPSIS
 .lp
-.b "remove aggregate"
-aggname
+.(l
+\fBremove aggregate\fR aggname
+.)l
 .uh DESCRIPTION
 .lp
 .b "Remove aggregate"
@@ -18,9 +19,11 @@ the owner of the aggregate.
 .uh EXAMPLE
 .lp
 .nf
+.ft C
 /* Remove the average aggregate */
 
-   remove aggregate avg
+remove aggregate avg
+.ft
 .fi
 .uh "SEE ALSO"
 .lp
