@@ -95,6 +95,13 @@ int RecoveryCheckingEnableState = 0;
  * -----------------
  */
 extern int OidGenLockId;
+
+/* ----------------
+ *	globals that must be reset at abort
+ * ----------------
+ */
+extern bool	BuildingBtree;
+
 /* ----------------
  *	recovery checking accessors
  * ----------------
@@ -631,6 +638,8 @@ void
 TransactionIdAbort(transactionId)
     TransactionId transactionId;
 {
+    BuildingBtree = false;
+
     if (AMI_OVERRIDE)
 	return;
     
