@@ -33,11 +33,16 @@ CFLAGS+= -DNEED_RINT -DNEED_CBRT
 
 #
 # The YACC grammar is too big..
-# (HP-UX 9.01 added basic block limits for +O2.)
+# (HP-UX 9.0x, x<2, added basic block limits for +O2; 9.0x, x>=2, changed
+# the syntax to something else.)
 #
 .if (${HPUX_MAJOR} == "09")
 .  if !defined(CDEBUG)
+.    if (${HPUX_MINOR} == "00" || ${HPUX_MINOR} == "01")
 CFLAGS+= +Obb600
+.    else
+CFLAGS+= +Onolimit
+.    endif
 .  endif
 .endif
 
