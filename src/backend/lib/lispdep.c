@@ -67,11 +67,9 @@ CAtom(lv)
      LispValue lv;
 {
     if (atom(lv))
-	return ((int)(LISPVALUE_SYMBOL(lv)));
-    else {
-	elog(WARN,"CAtom called on non-atom\n");
-	return (NULL);
-    }
+	return((int)PointerGetDatum(LISPVALUE_SYMBOL(lv)));
+    elog(WARN,"CAtom called on non-atom\n");
+    return(0);
 }
 
 double
@@ -116,7 +114,7 @@ lispAtom(atomName)
     newobj->equalFunc = 	_equalLispValue;
     newobj->outFunc = 		_outLispValue;
     newobj->copyFunc = 		_copyLispSymbol;
-    LISPVALUE_SYMBOL(newobj) = 	(char *) keyword;
+    LISPVALUE_SYMBOL(newobj) = 	(char *) Int32GetDatum(keyword);
     CDR(newobj) = 		LispNil;
     
     return(newobj);
@@ -1011,7 +1009,8 @@ LispValue	lispObject;
 
     switch(lispObject->type) {
 	case PGLISP_ATOM:
-	    buf2 = AtomValueGetString((int)(LISPVALUE_SYMBOL(lispObject)));
+	    buf2 = AtomValueGetString((int)
+				      PointerGetDatum(LISPVALUE_SYMBOL(lispObject)));
 	    sprintf(buf, "%s ", buf2);
 	    appendStringInfo(str, buf);
 	    break;
