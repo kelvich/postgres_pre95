@@ -855,11 +855,12 @@ LispValue HandleNestedDots(dots)
     LispValue retval = LispNil;
 
     if (IsA(CAR(dots),Param))
-      retval = ParseFunc(CString(CADR(dots)),
-			 lispCons(lispCons(lispInteger
-					   (get_paramtype((Param)CAR(dots))),
-					   CAR(dots)),
-				  LispNil));
+      retval = 
+	ParseFunc(CString(CADR(dots)),
+		  lispCons(MakeList
+			   (lispInteger(get_paramtype((Param)CAR(dots))),
+			    CAR(dots), -1),
+			   LispNil));
     else
       retval = ParseFunc(CString(CADR(dots)), 
 			 lispCons(lispCons(lispAtom("relation"), 
@@ -869,31 +870,6 @@ LispValue HandleNestedDots(dots)
     foreach (mutator_iter, CDR(CDR(dots)))
       retval = ParseFunc(CString(CAR(mutator_iter)), lispCons(retval, LispNil));
     return(retval);
-}
-
-/*
-** HandleParam --
-**    Put tlist into the Param and set up a (type Param) list 
-*/
-LispValue HandleParam(param, attrname)
-Param param;
-Name attrname;
-{
-    ObjectId relid;
-    Relation rd;
-    int attnum;
-
-    relid = typeid_get_relid(get_paramtype(param));
-    rd = heap_openr(tname(get_id_type(get_paramtype(param))));
-    Assert(RelationIsValid(rd));
-    heap_close(rd);
-    if ((attnum = get_attnum(relid, attrname)) != InvalidAttributeNumber)
-     {
-	 set_param_tlist(param,	 setup_tlist(attrname, get_paramtype(param)));
-	 return(lispCons(lispInteger(att_typeid(rd, attnum)), param));
-     }
-    else elog(WARN, "Attribute %s of Param is invalid", attrname);
-    return(LispNil);
 }
 
 /*
