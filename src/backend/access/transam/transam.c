@@ -103,7 +103,7 @@ TransactionLogTest(transactionId, status)
 {
     BlockNumber		blockNumber;
     XidStatus		xidstatus;	/* recorded status of xid */
-    bool		fail;      	/* success/failure */
+    bool		fail = false;      	/* success/failure */
     
     /* ----------------
      * 	during initialization consider all transactions
@@ -160,7 +160,7 @@ TransactionLogUpdate(transactionId, status)
     XidStatus 		status;		/* new trans status */
 {
     BlockNumber		blockNumber;
-    bool		fail;      	/* success/failure */
+    bool		fail = false;      	/* success/failure */
     Time 		currentTime;	/* time of this transaction */
 
     /* ----------------
@@ -234,7 +234,7 @@ TransactionIdGetCommitTime(transactionId)
 {
     BlockNumber		blockNumber;
     Time		commitTime;     /* commit time */
-    bool		fail;      	/* success/failure */
+    bool		fail = false;      	/* success/failure */
     
     /* ----------------
      *   return invalid if we aren't running yet...
@@ -437,7 +437,7 @@ InitializeTransactionLog()
     Relation	  varRelation;
     MemoryContext oldContext;
     BlockNumber	  n;
-    bool	  fail;
+    bool	  fail = false;
     
     /* ----------------
      *    don't do anything during bootstrapping
