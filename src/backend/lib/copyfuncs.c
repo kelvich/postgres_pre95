@@ -1284,7 +1284,7 @@ _copyVar(from, to, alloc)
     
     Node_Copy(from, newnode, alloc, vardotfields);
     
-    newnode->vararraylist = from->vararraylist;
+	Node_Copy(from, newnode, alloc, vararraylist);
     
     Node_Copy(from, newnode, alloc, varid);    
 
@@ -1294,6 +1294,32 @@ _copyVar(from, to, alloc)
     return true;
 }
 
+bool
+_copyArray(from, to, alloc)
+    Array	from;
+    Array	*to;
+    char *	(*alloc)();
+
+{
+    Array	newnode;
+
+    COPY_CHECKARGS();
+    COPY_CHECKNULL();
+    COPY_NEW(Array);
+
+    CopyNodeFields(from, newnode, alloc);
+    CopyExprFields(from, newnode, alloc);
+
+	newnode->arrayelemtype = from->arrayelemtype;
+	newnode->arrayelemlength = from->arrayelemlength;
+	newnode->arrayelembyval = from->arrayelembyval;
+	newnode->arraylow = from->arraylow;
+	newnode->arrayhigh = from->arrayhigh;
+	newnode->arraylen = from->arraylen;
+
+    (*to) = newnode;
+    return true;
+}
 
 /* ----------------
  *	_copyOper
