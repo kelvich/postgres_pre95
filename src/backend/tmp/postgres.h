@@ -939,6 +939,7 @@ typedef	union {
 #define STATUS_INVALID          (-3)
 #define STATUS_UNCATALOGUED     (-4)
 #define STATUS_REPLACED         (-5)
+#define STATUS_NOT_DONE		(-6)
 #define STATUS_FOUND            (1)
 /* ----------------
  *	end of postgres.h
