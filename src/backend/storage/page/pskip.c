@@ -45,20 +45,16 @@ startpskip(db, relation, tid)
 			elog(DEBUG, "startpskip: db->db_lock is 0%o",
 				db->db_lock);
 */
-		if (BufferPut(db, L_DUP) < 0)
-			elog(WARN, "startpskip: failed BufferPut(L_DUP)");
+		IncrBufferRefCount(db);
 	} else if (RelationIsValid(relation) == false) {
 		elog(FATAL, "startpskip: NULL rdesc and db");
 	} else {
-		db = RelationGetBuffer(relation,
-			ItemPointerGetBlockNumber(tid), L_PIN);
+		db = ReadBuffer(relation, ItemPointerGetBlockNumber(tid));
 		if (db < 0) {
-			elog(WARN, "startpskip: failed RelationGetBuffer()");
+			elog(WARN, "startpskip: failed ReadBuffer()");
 		}
 	}
 	objp = (ItemSubposition)palloc(sizeof *objp);
-	if (BufferPut(db, L_SH) < 0)
-		elog(WARN, "startpskip: failed BufferPut(L_SH)");
 	dp = (PageHeader)BufferGetBlock(db);
 	objp->op_db = db;
 	objp->op_lpp = PageGetItemId(dp, ItemPointerSimpleGetOffsetIndex(tid));
@@ -83,8 +79,6 @@ startpskip(db, relation, tid)
 	if (objp->op_cp != (char *)LONGALIGN(objp->op_cp))
 		elog(FATAL, "startpskip: malformed heap tuple");
 	objp->op_len = (*objp->op_lpp).lp_len - off;
-	if (BufferPut(db, L_PIN) < 0)
-		elog(WARN, "startpskip: failed BufferPut(L_PIN)");
 	return (objp);
 }
 
@@ -92,8 +86,7 @@ endpskip(objp)
 ItemSubposition	objp;
 {
   	Assert(BufferIsValid(objp->op_db));
-	if (BufferPut(objp->op_db, L_UNPIN) < 0)
-		elog(WARN, "endpskip: failed BufferPut");
+	ReleaseBuffer(objp->op_db);
 	pfree(objp);
 }
 
@@ -115,8 +108,6 @@ unsigned long	skip;
 
 	lock = objp->op_len <= skip;
 	Assert(BufferIsValid(objp->op_db));
-	if (lock && BufferPut(objp->op_db, L_SH) < 0)
-		elog(WARN, "pskip: failed BufferPut(L_SH)");
 	while (objp->op_len <= skip) {
 		if (!ItemIdIsContinuing(objp->op_lpp)) {
 			if (objp->op_len != skip)
@@ -135,11 +126,10 @@ unsigned long	skip;
 			(*objp->op_lpp).lp_off));
 */
 		relation = BufferGetRelation(objp->op_db);
-		if (BufferPut(objp->op_db, L_UN | L_SH) < 0)
-			elog(WARN, "pskip: failed BufferPut");
-		objp->op_db = RelationGetBuffer(relation, pagenum, L_SH);
+		ReleaseBuffer(objp->op_db);
+		objp->op_db = ReadBuffer(relation, pagenum);
 		if (RelationIsValid(objp->op_db) == false) {
-			elog(WARN, "pskip: failed RelationGetBuffer");
+			elog(WARN, "pskip: failed ReadBuffer");
 		}
 		dpp = (PageHeader)BufferGetBlock(objp->op_db);
 		objp->op_lpp = dpp->pd_linp;	/* always first line number */
@@ -152,8 +142,6 @@ unsigned long	skip;
 			objp->op_len = (*objp->op_lpp).lp_len;
 		}
 	}
-	if (lock && BufferPut(objp->op_db, L_PIN) < 0)
-		elog(WARN, "pskip: failed BufferPut(L_PIN)");
 	objp->op_len -= (unsigned)skip;
 	objp->op_cp += skip;
 	return (0);
@@ -179,8 +167,6 @@ char		*fillp;
 
 	cp = fillp;
 	skip = PSIZE(fillp);
-	if (BufferPut(objp->op_db, L_SH) < 0)
-		elog(WARN, "pfill: failed BufferPut(L_SH)");
 	while (objp->op_len <= skip) {
 		if (!ItemIdIsContinuing(objp->op_lpp)) {
 			if (objp->op_len != skip)
@@ -201,11 +187,10 @@ char		*fillp;
 			(*objp->op_lpp).lp_off));
 */
 		relation = BufferGetRelation(objp->op_db);
-		if (BufferPut(objp->op_db, L_UN | L_SH) < 0)
-			elog(WARN, "pfill: failed BufferPut");
-		objp->op_db = RelationGetBuffer(relation, pagenum, L_SH);
+		ReleaseBuffer(objp->op_db);
+		objp->op_db = ReadBuffer(relation, pagenum);
 		if (RelationIsValid(objp->op_db) == false) {
-			elog(WARN, "pfill: failed RelationGetBuffer");
+			elog(WARN, "pfill: failed ReadBuffer");
 		}
 		dpp = (PageHeader)BufferGetBlock(objp->op_db);
 		objp->op_lpp = dpp->pd_linp;	/* always first line number */
@@ -221,7 +206,5 @@ char		*fillp;
 	bcopy(objp->op_cp, cp, (int)skip);
 	objp->op_len -= (unsigned)skip;
 	objp->op_cp += skip;
-	if (BufferPut(objp->op_db, L_PIN) < 0)
-		elog(WARN, "pfill: failed BufferPut(L_PIN)");
 	return (0);
 }
