@@ -69,6 +69,16 @@ CreateSharedMemoryAndSemaphores(key)
     ShmemCreate(IPCKeyGetBufferMemoryKey(key), size);
     InitShmem(key, size);
     InitBufferPool(key);
+
+    /* ----------------
+     *	create and initialize the executor shared segment (and semaphore)
+     * ----------------
+     */
+    if (key == PrivateIPCKey && ParallelExecutorEnabled()) {
+	ExecInitExecutorSemaphore(PrivateIPCKey);
+	ExecCreateExecutorSharedMemory(PrivateIPCKey);
+	ExecAttachExecutorSharedMemory();
+    }
     
     /* ----------------
      *	do the lock table stuff
