@@ -593,7 +593,8 @@ pg_plan(query_string, typev, nargs, parsetreeP, dest)
 		elog(NOTICE, "(transaction aborted): %s",
 		     "queries ignored until END");
 	    
-		return;
+		*parsetreeP = (List)NULL;
+		return (List)NULL;
 	    }
 
 	    if (! Quiet)
