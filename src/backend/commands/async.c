@@ -142,6 +142,7 @@ void Async_NotifyAtCommit ARGS((void));
 void Async_NotifyAtAbort ARGS((void));
 void Async_Listen ARGS((char *, int));
 void Async_Unlisten ARGS((char *, int));
+void Async_UnlistenOnExit ARGS((int, char *));
 void Async_NotifyFrontEnd ARGS((void));
 static int AsyncExistsPendingNotify ARGS((char *));
 static void ClearPendingNotify ARGS((void));
@@ -466,7 +467,15 @@ void Async_Listen(relname, pid)
 	elog(NOTICE,"Async_Listen: already one listener on %s (possibly dead)",relname);
     }*/
     heap_close(lDesc);
-   
+
+    /*
+     * now that we are listening, we should make a note to ourselves 
+     * to unlisten prior to dying.
+     */
+    relnamei = malloc(sizeof(NameData)); /* persists to process exit */
+    bzero(relnamei, sizeof(NameData));
+    (void) namestrcpy((Name) relnamei, relname);
+    on_exitpg(Async_UnlistenOnExit, (caddr_t) relnamei);
 }
 
 /*
@@ -502,6 +511,13 @@ void Async_Unlisten(relname,pid)
 	heap_delete(lDesc,&lTuple->t_ctid);
     }
     heap_close(lDesc);
+}
+
+void Async_UnlistenOnExit(code, relname)
+    int code; /* from exitpg */
+    char *relname;
+{
+    Async_Unlisten((char *) relname, getpid());
 }
 
 /*
