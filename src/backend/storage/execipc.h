@@ -21,6 +21,18 @@ struct m1lock {
 };
 typedef struct m1lock M1Lock;
 
+/* ----------------------------
+ * struct for shared counter: need mutual exclusion
+ * ----------------------------
+ */
+struct sharedcounter {
+    int		count;
+#ifdef HAS_TEST_AND_SET
+    slock_t	exlock;
+#endif
+};
+typedef struct sharedcounter SharedCounter;
+
 void SetParallelExecutorEnabled();
 void SetNumberSlaveBackends();
 void ExecImmediateReleaseSemaphore();
