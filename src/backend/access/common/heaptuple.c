@@ -474,7 +474,6 @@ heap_getsysattr(tup, b, attnum)
 	return ((char *)&tup->t_ctid);
     case RuleLockAttributeNumber:
 	/*---------------
-	 * XXX:
 	 * A rule lock is ALWAYS non-null.
 	 * 'HeapTupleGetRuleLock' will always return a valid
 	 * rule lock.
@@ -825,13 +824,11 @@ heap_copytuple(tuple, buffer, relation)
      * is a pointer to a "disk memory representation" of a rule
      * lock, convert it to the main memory representation (routine
      * HeapTupleGetRuleLock does that).
-     *
-     * XXX: shall we make a copy of the pointer, or a
-     * copy of the pointed data ????
+     * NOTE: HeapTupleGetRuleLock returns a COPY of the lock
+     * (which is exactly what we want...)
      * ----------------
      */
     ruleLock = HeapTupleGetRuleLock(tuple, buffer);
-    ruleLock = prs2CopyLocks(ruleLock);
 
     /* ----------------
      *	allocate a new tuple
