@@ -50,14 +50,13 @@ RcsId("$Header$");
 #include "storage/buf.h"
 #include "storage/lmgr.h"
  
-#include "tmp/miscadmin.h"
-#include "tmp/hashlib.h"
 #include "tmp/hasht.h"
  
 #include "utils/memutils.h"
 #include "utils/log.h"
 #include "utils/mcxt.h"
 #include "utils/rel.h"
+#include "utils/hsearch.h"
  
 #include "catalog/catname.h"
 #include "catalog/syscache.h"
@@ -112,13 +111,101 @@ SCHEMA_DEF(pg_time);
  *	thus there are two hash tables for referencing them. 
  * ----------------
  */
-HashTable 	RelationCacheHashByName;
-HashTable 	GlobalNameCache;
-HashTable	RelationCacheHashById;
-HashTable 	GlobalIdCache;
-HashTable 	PrivateRelationCacheHashByName;
-HashTable	PrivateRelationCacheHashById;
+HTAB 	*RelationNameCache;
+HTAB	*RelationIdCache;
+
+extern int	tag_hash();
+
+typedef struct relidcacheent {
+    ObjectId reloid;
+    Relation reldesc;
+} RelIdCacheEnt;
+typedef struct relnamecacheent {
+    NameData relname;
+    Relation reldesc;
+} RelNameCacheEnt;
  
+/* -----------------
+ *	macros to manipulate name cache and id cache
+ * -----------------
+ */
+#define RelationCacheInsert(RELATION)	\
+    {   RelIdCacheEnt *idhentry; RelNameCacheEnt *namehentry; \
+	Name relname; ObjectId reloid; Boolean found; \
+	relname = &(RELATION->rd_rel->relname); \
+	namehentry = (RelNameCacheEnt*)hash_search(RelationNameCache, \
+					           relname, HASH_ENTER, \
+						   &found); \
+	if (namehentry == NULL) { \
+	    elog(FATAL, "can't insert into relation descriptor cache"); \
+	  } \
+	if (found) { \
+	    elog(NOTICE, "trying to insert a reldesc that already exists."); \
+	  } \
+	namehentry->reldesc = RELATION; \
+	reloid = RELATION->rd_id; \
+	idhentry = (RelIdCacheEnt*)hash_search(RelationIdCache, \
+					       &reloid, HASH_ENTER, &found); \
+	if (idhentry == NULL) { \
+	    elog(FATAL, "can't insert into relation descriptor cache"); \
+	  } \
+	if (found) { \
+	    elog(NOTICE, "trying to insert a reldesc that already exists."); \
+	  } \
+	idhentry->reldesc = RELATION; \
+    }
+#define RelationNameCacheLookup(NAME, RELATION)	\
+    {   RelNameCacheEnt *hentry; Boolean found; \
+	hentry = (RelNameCacheEnt*)hash_search(RelationNameCache, \
+					       NAME, HASH_FIND, &found); \
+	if (hentry == NULL) { \
+	    elog(FATAL, "error in CACHE"); \
+	  } \
+	if (found) { \
+	    RELATION = hentry->reldesc; \
+	  } \
+	else { \
+	    RELATION = NULL; \
+	  } \
+    }
+#define RelationIdCacheLookup(ID, RELATION)	\
+    {   RelIdCacheEnt *hentry; Boolean found; \
+	hentry = (RelIdCacheEnt*)hash_search(RelationIdCache, \
+					     &(ID), HASH_FIND, &found); \
+	if (hentry == NULL) { \
+	    elog(FATAL, "error in CACHE"); \
+	  } \
+	if (found) { \
+	    RELATION = hentry->reldesc; \
+	  } \
+	else { \
+	    RELATION = NULL; \
+	  } \
+    }
+#define RelationCacheDelete(RELATION)	\
+    {   RelNameCacheEnt *namehentry; RelIdCacheEnt *idhentry; \
+	Name relname; ObjectId reloid; Boolean found; \
+	relname = &(RELATION->rd_rel->relname); \
+	namehentry = (RelNameCacheEnt*)hash_search(RelationNameCache, \
+					           relname, HASH_REMOVE, \
+						   &found); \
+	if (namehentry == NULL) { \
+	    elog(FATAL, "can't delete from relation descriptor cache"); \
+	  } \
+	if (!found) { \
+	    elog(NOTICE, "trying to delete a reldesc that does not exist."); \
+	  } \
+	reloid = RELATION->rd_id; \
+	idhentry = (RelIdCacheEnt*)hash_search(RelationIdCache, \
+					       &reloid, HASH_REMOVE, &found); \
+	if (idhentry == NULL) { \
+	    elog(FATAL, "can't delete from relation descriptor cache"); \
+	  } \
+	if (!found) { \
+	    elog(NOTICE, "trying to delete a reldesc that does not exist."); \
+	  } \
+    }
+
 /* ----------------------------------------------------------------
  *	RelationIdGetRelation() and RelationNameGetRelation()
  *			support functions
@@ -410,17 +497,6 @@ RelationBuildDesc(buildinfo)
     MemoryContext	oldcxt;
     
     HeapTuple		pg_relation_tuple;
-    HashTable		NameCacheSave;
-    HashTable		IdCacheSave;
-    
-    /* ----------------
-     *	hold onto our caches
-     * ----------------
-     */
-    NameCacheSave = 		RelationCacheHashByName;
-    IdCacheSave = 		RelationCacheHashById;
-    RelationCacheHashByName =	PrivateRelationCacheHashByName;
-    RelationCacheHashById = 	PrivateRelationCacheHashById;
     
     oldcxt = MemoryContextSwitchTo(CacheCxt);
 
@@ -438,8 +514,6 @@ RelationBuildDesc(buildinfo)
 	elog(NOTICE, "RelationBuildDesc: %s nonexistent",
 	     BuildDescInfoError(buildinfo));
 	
-	RelationCacheHashByName = NameCacheSave;
-	RelationCacheHashById = IdCacheSave;
 	MemoryContextSwitchTo(oldcxt); 
 	 
 	return NULL;
@@ -473,6 +547,12 @@ RelationBuildDesc(buildinfo)
      */
     RelationSetReferenceCount(relation, 1);
     
+    /* ----------------
+     *   normal relations are not nailed into the cache
+     * ----------------
+     */
+    relation->rd_isnailed = false;
+
     /* ----------------
      *	initialize the access method information (relation->rd_am)
      * ----------------
@@ -524,12 +604,9 @@ RelationBuildDesc(buildinfo)
      *  restore memory context and return the new reldesc.
      * ----------------
      */
-    RelationCacheHashByName = NameCacheSave;
-    RelationCacheHashById = IdCacheSave;
     
-    HashTableInsert(RelationCacheHashByName, relation);
-    HashTableInsert(RelationCacheHashById, relation);
-    
+    RelationCacheInsert(relation);
+
     MemoryContextSwitchTo(oldcxt);
     
     return relation;
@@ -572,16 +649,16 @@ IndexedAccessMethodInitialize(relation)
  *
  *	This is a special version of RelationBuildDesc()
  *	used by RelationInitialize() in initializing the
- *	relcache.
+ *	relcache.  The system relation descriptors built
+ *	here are all nailed in the descriptor caches, for
+ *	bootstraping.
  * --------------------------------
  */
 private void
-formrdesc(relationName, reloid, natts, att, initialReferenceCount)
-    char		relationName[];
-    OID			reloid;			/* XXX unused */
+formrdesc(relationName, natts, att)
+    char		*relationName;
     u_int		natts;
     AttributeTupleFormData att[];
-    int			initialReferenceCount;
 {
     Relation	relation;
     int		fd;
@@ -617,7 +694,7 @@ formrdesc(relationName, reloid, natts, att, initialReferenceCount)
     relation->rd_rel = (RelationTupleForm)
 	palloc(sizeof (RuleLock) + sizeof *relation->rd_rel);
     
-    strncpy(&relation->rd_rel->relname, relationName, 16);
+    strncpy(&relation->rd_rel->relname, relationName, sizeof(NameData));
     relation->rd_rel->relowner = InvalidObjectId;	/* XXX incorrect */
     relation->rd_rel->relpages = 1;			/* XXX */
     relation->rd_rel->reltuples = 1;			/* XXX */
@@ -625,6 +702,7 @@ formrdesc(relationName, reloid, natts, att, initialReferenceCount)
     relation->rd_rel->relkind = 'r';
     relation->rd_rel->relarch = 'n';
     relation->rd_rel->relnatts = (uint16) natts;
+    relation->rd_isnailed = true;
     
     /* ----------------
      *	initialize tuple desc info
@@ -641,32 +719,16 @@ formrdesc(relationName, reloid, natts, att, initialReferenceCount)
     }
     
     /* ----------------
-     *	initialize relation id (??? should use reloid parameter instead ???)
+     *	initialize relation id
      * ----------------
      */
     relation->rd_id = relation->rd_att.data[0]->attrelid;
     
     /* ----------------
-     *	add new reldesc to the private relcache
+     *	add new reldesc to relcache
      * ----------------
      */
-    HashTableInsert(PrivateRelationCacheHashByName, relation);
-    HashTableInsert(PrivateRelationCacheHashById, relation);
-    
-    /* ----------------
-     *	add new reldesc to the public relcache
-     * ----------------
-     */
-    if (initialReferenceCount != 0) {
-	publicCopy = (Relation)palloc(len);
-	bcopy(relation, publicCopy, len);
-	
-	RelationSetReferenceCount(publicCopy, initialReferenceCount);
-	HashTableInsert(RelationCacheHashByName, publicCopy);
-	HashTableInsert(RelationCacheHashById, publicCopy);
-	
-	RelationInitLockInfo(relation);	/* XXX unuseful here ??? */
-    }
+    RelationCacheInsert(relation);
 }
  
 
@@ -689,12 +751,8 @@ RelationIdCacheGetRelation(relationId)
 {
     Relation	rd;
 
-    rd = (Relation)
-	KeyHashTableLookup(RelationCacheHashById, relationId);
+    RelationIdCacheLookup(relationId, rd);
     
-    if (!RelationIsValid(rd))
-	rd = (Relation) KeyHashTableLookup(GlobalIdCache, relationId);
-
     if (RelationIsValid(rd)) {
 	if (rd->rd_fd == -1) {
 	    rd->rd_fd = smgropen(rd->rd_rel->relsmgr, rd);
@@ -718,13 +776,13 @@ RelationNameCacheGetRelation(relationName)
     Name	relationName;
 {
     Relation	rd;
+    NameData	name;
 
-    rd = (Relation)
-	KeyHashTableLookup(RelationCacheHashByName, relationName);
+    /* make sure that the name key used for hash lookup is properly
+       null-padded */
+    strncpy(&name, relationName, sizeof(NameData));
+    RelationNameCacheLookup(&name, rd);
     
-    if (!RelationIsValid(rd))
-	rd = (Relation) KeyHashTableLookup(GlobalNameCache, relationName);
-
     if (RelationIsValid(rd)) {
 	if (rd->rd_fd == -1) {
 	    rd->rd_fd = smgropen(rd->rd_rel->relsmgr, rd);
@@ -876,18 +934,17 @@ RelationFlushRelation(relation, onlyFlushReferenceCountZero)
     Attribute		*p;
     MemoryContext	oldcxt;
     
-    if (relation->rd_refcnt > 0x1000) {	/* XXX */
-	/* this is a non-regeneratable special relation */
+    if (relation->rd_isnailed) {
+	/* this is a nailed special relation for bootstraping */
 	return;
     }
     
-    if (onlyFlushReferenceCountZero == false 
-	|| RelationHasReferenceCountZero(relation)) {
+    if (!onlyFlushReferenceCountZero || 
+	RelationHasReferenceCountZero(relation)) {
 	
 	oldcxt = MemoryContextSwitchTo(CacheCxt);
 	
-	HashTableDelete(RelationCacheHashByName,relation);
-	HashTableDelete(RelationCacheHashById,relation);
+	RelationCacheDelete(relation);
 	
 	FileClose(RelationGetSystemPort(relation));
 	
@@ -917,8 +974,7 @@ RelationIdInvalidateRelationCacheByRelationId(relationId)
 {
     Relation	relation;
     
-    relation = (Relation)
-	KeyHashTableLookup(RelationCacheHashById, relationId);
+    RelationIdCacheLookup(relationId, relation);
     
     if (PointerIsValid(relation)) {
 	/* Assert(RelationIsValid(relation)); */
@@ -952,7 +1008,7 @@ void
 RelationIdInvalidateRelationCacheByAccessMethodId(accessMethodId)
     ObjectId	accessMethodId;
 {
-    HashTableWalk(RelationCacheHashByName, RelationFlushIndexes,
+    HashTableWalk(RelationNameCache, RelationFlushIndexes,
 		  accessMethodId);
 }
  
@@ -967,7 +1023,7 @@ void
 RelationCacheInvalidate(onlyFlushReferenceCountZero)
     bool onlyFlushReferenceCountZero;
 {
-    HashTableWalk(RelationCacheHashByName, RelationFlushRelation, 
+    HashTableWalk(RelationNameCache, RelationFlushRelation, 
 		  onlyFlushReferenceCountZero);
 }
  
@@ -990,8 +1046,7 @@ RelationRegisterRelation(relation)
     if (oldcxt != (MemoryContext)CacheCxt) 
 	elog(NOIND,"RelationRegisterRelation: WARNING: Context != CacheCxt");
     
-    HashTableInsert(RelationCacheHashByName,relation);
-    HashTableInsert(RelationCacheHashById,relation);
+    RelationCacheInsert(relation);
     
     RelationInitLockInfo(relation);
     
@@ -1021,10 +1076,7 @@ RelationRegisterTempRel(temprel)
      *  and therefore is already in the hast table
      * ----------------------------------------
      */
-    rd = (Relation) KeyHashTableLookup(RelationCacheHashById,temprel->rd_id);
-    
-    if (!RelationIsValid(rd))
-        rd = (Relation) KeyHashTableLookup(GlobalIdCache, temprel->rd_id);
+    RelationIdCacheLookup(temprel->rd_id, rd);
     
     if (RelationIsValid(rd))
 	return;
@@ -1041,108 +1093,21 @@ RelationRegisterTempRel(temprel)
     MemoryContextSwitchTo(oldcxt);
 }
  
-/* ----------------------------------------------------------------
- *	    catalog cache initialization support functions
- * ----------------------------------------------------------------
- */
- 
-/* --------------------------------
- *	CompareNameInArgumentWithRelationNameInRelation()
- *	CompareIdInArgumentWithIdInRelation()
- *
- *	these are needed for use with CreateHashTable() in
- *	RelationInitialize() below.
- * --------------------------------
- */
-private int
-CompareNameInArgumentWithRelationNameInRelation(relation, relationName)
-    Relation	relation;
-    String	relationName;
-{
-    return
-	strncmp(relationName, &relation->rd_rel->relname, 16);
-}
-private int
-CompareIdInArgumentWithIdInRelation(relation, relationId)
-    Relation	relation;
-    ObjectId	relationId;
-{
-    return
-	relation->rd_id - relationId;
-}
- 
-/* --------------------------------
- *	RelationInitialize hash function support
- * --------------------------------
- */
-/* ----------------
- *	HashByNameAsArgument
- * ----------------
- */
-private Index
-HashByNameAsArgument(collisions, hashTableSize, relationName)
-    uint16	collisions;
-    Size	hashTableSize;
-    Name	relationName;
-{
-    return
-      NameHashFunction(collisions, hashTableSize, relationName);
-}
-
-/* ----------------
- *	HashByNameInRelation
- * ----------------
- */
-private Index
-HashByNameInRelation(collisions, hashTableSize, relation)
-    uint16	collisions;
-    Size	hashTableSize;
-    Relation	relation;
-{
-    return
-      NameHashFunction(collisions, hashTableSize, &relation->rd_rel->relname);
-}
- 
-/* ----------------
- *	HashByIdAsArgument
- * ----------------
- */
-private Index
-HashByIdAsArgument(collisions, hashTableSize, relationId)
-    uint16	collisions;
-    Size	hashTableSize;
-    uint32	relationId; 
-{
-    return
-	IntegerHashFunction(collisions, hashTableSize, relationId);
-}
- 
-/* ----------------
- *	HashByIdInRelation
- * ----------------
- */
-private Index
-HashByIdInRelation(collisions, hashTableSize, relation)
-    uint16	collisions;
-    Size	hashTableSize;
-    Relation	relation;
-{
-    return
-	IntegerHashFunction(collisions, hashTableSize, relation->rd_id);
-}
- 
 /* --------------------------------
  *	RelationInitialize
  *
  *	This initializes the relation descriptor cache.
  * --------------------------------
  */
+
+#define INITRELCACHESIZE	400
+
 void 
 RelationInitialize()
 {
     extern GlobalMemory		CacheCxt;
     MemoryContext		oldcxt;
-    int				initialReferences;
+    HASHCTL			ctl;
 
     /* ----------------
      *	switch to cache memory context
@@ -1157,61 +1122,15 @@ RelationInitialize()
      *	create global caches
      * ----------------
      */
-    RelationCacheHashByName =
-	CreateHashTable(HashByNameAsArgument, 
-			HashByNameInRelation, 
-			CompareNameInArgumentWithRelationNameInRelation, 
-			NULL,
-			300);
+    bzero(&ctl, sizeof(ctl));
+    ctl.keysize = sizeof(NameData);
+    ctl.datasize = sizeof(Relation);
+    RelationNameCache = hash_create(INITRELCACHESIZE, &ctl, HASH_ELEM);
     
-    GlobalNameCache = RelationCacheHashByName;
-    
-    RelationCacheHashById =
-	CreateHashTable(HashByIdAsArgument, 
-			HashByIdInRelation, 
-			CompareIdInArgumentWithIdInRelation,
-			NULL,
-			300);
-    
-    GlobalIdCache = RelationCacheHashById;
-    
-    /* ----------------
-     *  create private caches
-     *
-     *  these should use a hash function that is perfect on them
-     *  and the hash table code should have a way of telling it not
-     *  to bother trying to resize 'cauase they all fit and there
-     *  arn't any collisions.  Also, the hash table code could have
-     *  a HashTableDisableModification call.
-     *
-     *  ??? What are the private caches used for? my guess is that
-     *      system catalog relations use them but I'm not sure
-     *      -cim 2/5/91
-     * ----------------
-     */
-    PrivateRelationCacheHashByName =
-	CreateHashTable(HashByNameAsArgument, 
-			HashByNameInRelation, 
-			CompareNameInArgumentWithRelationNameInRelation, 
-			NULL,
-			30);
-    
-    PrivateRelationCacheHashById =
-	CreateHashTable(HashByIdAsArgument, 
-			HashByIdInRelation, 
-			CompareIdInArgumentWithIdInRelation,
-			NULL,
-			30);
-    
-    /* ----------------
-     * using a large positive initial reference count is a hack
-     * to prevent generation of the special descriptors
-     * ----------------
-     */
-    initialReferences = 0;
-    if (AMI_OVERRIDE) {
-	initialReferences = 0x2000;
-    }
+    ctl.keysize = sizeof(ObjectId);
+    ctl.hash = tag_hash;
+    RelationIdCache = hash_create(INITRELCACHESIZE, &ctl, 
+				  HASH_ELEM | HASH_FUNCTION);
     
     /* ----------------
      *	initialize the cache with pre-made relation descriptors
@@ -1221,18 +1140,13 @@ RelationInitialize()
      */
 #define INIT_RELDESC(x) \
     formrdesc(SCHEMA_NAME(x), \
-	      SCHEMA_DESC(x)[0].attrelid, \
 	      SCHEMA_NATTS(x), \
-	      SCHEMA_DESC(x), \
-	      initialReferences);
+	      SCHEMA_DESC(x))
     
     INIT_RELDESC(pg_relation);
     INIT_RELDESC(pg_attribute);
     INIT_RELDESC(pg_proc);
     INIT_RELDESC(pg_type);
-    
-    initialReferences = 0x2000;
-    
     INIT_RELDESC(pg_variable);
     INIT_RELDESC(pg_log);
     INIT_RELDESC(pg_time);
