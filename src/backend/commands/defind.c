@@ -94,11 +94,11 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 		LispValue	attribute;
 
 		attribute = CAR(rest);
-#ifndef	PERFECTPARSER
+
 		rest = CDR(rest);
 		AssertArg(listp(rest));
 		AssertArg(listp(attribute));
-#endif
+
 		if (length(attribute) != 2) {
 			if (length(attribute) != 1) {
 				elog(WARN, "DefineIndex: malformed att");
@@ -106,10 +106,12 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 			elog(WARN,
 				"DefineIndex: default index class unsupported");
 		}
-#ifndef	PERFECTPARSER
-		AssertArg(lispStringp(CAR(attribute)));
-		AssertArg(lispStringp(CADR(attribute)));
-#endif
+
+		if (CAR(attribute) == LispNil || !lispStringp(CAR(attribute)))
+			elog(WARN, "missing attribute name for define index");
+		if (CADR(attribute) == LispNil || !lispStringp(CADR(attribute)))
+			elog(WARN, "missing opclass for define index");
+
 		tuple = SearchSysCacheTuple(ATTNAME, relationId,
 			CString(CAR(attribute)));
 		if (!HeapTupleIsValid(tuple)) {
