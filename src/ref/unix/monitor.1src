@@ -8,7 +8,7 @@ monitor \*- run the interactive terminal monitor
 .uh SYNOPSIS
 .lp
 .b monitor
-[-h hostname] [-p port] [-t path] [-N] [-A] [-c query] [-d path] [-q]
+[-h hostname] [-p port] [-t tty_device] [-N] [-A] [-c query] [-d path] [-q]
 [-o options] 
 dbname
 .uh DESCRIPTION
@@ -42,8 +42,9 @@ is running; default is your local machine (localhost).
 \fI-p port\fR specifies the well known TCP/IP port used for network 
 communication between the terminal monitor and the postmaster.
 .sp
-\fI-t path\fR specifies the path name of the file or tty which you 
-want the backend debugging messages to be sent to; default is /dev/null. 
+\fI-t tty_device\fR specifies the path name to the tty device (or regular
+UNIX file) tty which you want the backend debugging messages to be sent to;
+default is /dev/null. 
 \fI-N\fR specifies that query results will be dumped to the screen without
 any attempt at formatting.  This is useful in conjunction with the
 .b -c
@@ -90,17 +91,11 @@ usually followed by the information in the
 .b dayfile
 (files).
 .sp
-The terminal monitor displays three kinds of messages:
+The terminal monitor displays two kinds of messages:
 .nf
 
 go		The query buffer is empty and the terminal monitor is ready
 		for input.  Anything typed will be added to the buffer.
-
-continue	The terminal monitor is ready for input and the query buffer
-		is not empty.  Typing input will cause the query buffer
-		to be silently cleared.  Typing a terminal monitor command
-		will cause the contents of any query buffer to be preserved.
-		Further input will then be appended to the buffer.
 
 *		This prompt is typed at the beginning of each line when the
 		terminal monitor is waiting for input.
