@@ -57,7 +57,7 @@ ObjectId element_type;
 
     nitems++; /* account for last item in list */
 
-    values = (char **) palloc(nitems);
+    values = (char **) palloc(nitems * sizeof(char *));
 
     p = q = string_save;
 
@@ -76,43 +76,48 @@ ObjectId element_type;
 
     values[nitems - 1] = (*inputproc) (p);
 
-    if (typlen != 0)
+    if (typlen > 0)
     {
         nbytes = nitems * typlen + sizeof(int32);
     }
-	else
-	{
-		for (i = 0, nbytes = 0;
-			 i < nitems;
-			 i++, nbytes += * (int32 *)  values[i]);
-		nbytes += sizeof(int32);
-	}
+    else
+    {
+        for (i = 0, nbytes = 0;
+             i < nitems;
+             nbytes += * (int32 *) values[i++]);
+        nbytes += sizeof(int32);
+    }
 
-	retval = (char *) palloc(nbytes);
-	p = retval;
+    retval = (char *) palloc(nbytes);
+    p = retval + 4;
 
-	bcopy(retval, &nbytes, sizeof(int4));
+    bcopy(&nbytes, retval, sizeof(int4));
 
-	for (i = 0; i < nitems; i++)
-	{
-		if (typlen != 0)
-		{
-			bcopy(retval, p, typlen);
-			p += typlen;
-		}
-		else
-		{
-			int len;
+    for (i = 0; i < nitems; i++)
+    {
+        if (typlen > 0)
+        {
+            if (typbyval)
+            {
+                bcopy(&values[i], p, typlen);
+            }
+            else
+                bcopy(values[i], p, typlen);
+            p += typlen;
+        }
+        else
+        {
+            int len;
 
-			len = * (int32 *) p;
-			bcopy(retval, p, len);
-			p += len;
-		}
-		if (!typbyval) pfree(values[i]);
-	}
-	pfree(string_save);
-	pfree(values);
-	return(retval);
+            len = * (int32 *) values[i];
+            bcopy(values[i], p, len);
+            p += len;
+        }
+        if (!typbyval) pfree(values[i]);
+    }
+    pfree(string_save);
+    pfree(values);
+    return(retval);
 }
 
 char *
@@ -157,9 +162,9 @@ ObjectId element_type;
      * of each element.
      */
 
-    if (typlen != 0)
+    if (typlen > 0)
     {
-        nitems = * (int32 *) items / typlen;
+        nitems = (* (int32 *) items - 4)/ typlen;
     }
     else
 
@@ -188,17 +193,32 @@ ObjectId element_type;
 
     for (i = 0; i < nitems; i++)
     {
-        values[i] = (*outputproc) (items);
-        overall_length += strlen(values[i]);
-
-        if (typlen != 0)
+        if (typbyval)
         {
+            switch(typlen)
+            {
+                case 1:
+                    values[i] = (*outputproc) (*items);
+                    break;
+                case 2:
+                    values[i] = (*outputproc) (* (int16 *) items);
+                    break;
+                case 3:
+                case 4:
+                    values[i] = (*outputproc) (* (int32 *) items);
+                    break;
+            }
             items += typlen;
         }
         else
         {
-            items += * (int32 *) items;
+            values[i] = (*outputproc) (items);
+            if (typlen > 0)
+                items += typlen;
+            else
+                items += * (int32 *) items;
         }
+        overall_length += strlen(values[i]);
     }
 
     p = (char *) palloc(overall_length + 3);
