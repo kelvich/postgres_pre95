@@ -14,6 +14,10 @@
  *	CommitTransactionBlock
  *	AbortTransactionBlock
  *	
+ *	SlaveStartTransaction
+ *	SlaveCommitTransaction
+ *	SlaveAbortTransaction
+ *	
  *   NOTES
  *	This file is an attempt at a redesign of the upper layer
  *	of the V1 transaction system which was too poorly thought
@@ -106,6 +110,18 @@
  *	ignore all subsequent commands up to the "end".
  *	-cim 3/23/90
  *
+ *	The "slave" transction routines are used within the parallel
+ *	slave ackends.
+ *
+ *		SlaveStartTransaction
+ *		SlaveCommitTransaction
+ *		SlaveAbortTransaction
+ *	
+ *	Since slave backends do none of the log or transaction state
+ *	processing, these routines only preform cache, lock table
+ *	and memory initialization/cleanup duties needed by the rest
+ *	of the system.
+ *
  *   IDENTIFICATION
  *	$Header$
  * ----------------------------------------------------------------
@@ -115,7 +131,12 @@
  RcsId("$Header$");
 
 /* ----------------
- *	global variable holding the current transaction state
+ *	global variables holding the current transaction state.
+ *
+ *      Note: when we are running several slave processes, the
+ *            current transaction state data is copied into shared memory
+ *	      and the CurrentTransactionState pointer changed to
+ *	      point to the shared copy.  All this occurrs in slaves.c
  * ----------------
  */
 TransactionStateData CurrentTransactionStateData = {
@@ -125,6 +146,16 @@ TransactionStateData CurrentTransactionStateData = {
     TRANS_DEFAULT,		/* transaction state */
     TBLOCK_DEFAULT		/* transaction block state */
 };
+
+TransactionState CurrentTransactionState =
+    &CurrentTransactionStateData;
+
+/* ----------------
+ *	slave-local transaction state.  This is only used by
+ *	the parallel slave backend transaction code.
+ * ----------------
+ */
+bool inSlaveTransaction = false;
 
 /* ----------------
  *	info returned when the system is desabled
@@ -174,7 +205,7 @@ bool AMI_OVERRIDE = false;
 bool
 IsTransactionState()
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
 
     switch (s->state) {
     case TRANS_DEFAULT:		return false;
@@ -201,7 +232,7 @@ void
 OverrideTransactionSystem(flag)
     bool flag;
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
 
     if (flag == true) {
 	if (s->state == TRANS_DISABLED)
@@ -227,7 +258,7 @@ OverrideTransactionSystem(flag)
 TransactionId
 GetCurrentTransactionId()
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
 
     /* ----------------
      *	if the transaction system is disabled, we return
@@ -252,7 +283,7 @@ GetCurrentTransactionId()
 CommandId
 GetCurrentCommandId()
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
 
     /* ----------------
      *	if the transaction system is disabled, we return
@@ -273,7 +304,7 @@ GetCurrentCommandId()
 Time
 GetCurrentTransactionStartTime()
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
 
     /* ----------------
      *	if the transaction system is disabled, we return
@@ -295,7 +326,7 @@ bool
 TransactionIdIsCurrentTransactionId(xid)
     TransactionId	xid;
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
     
     if (AMI_OVERRIDE)
 	return false;
@@ -313,7 +344,7 @@ bool
 CommandIdIsCurrentCommandId(cid)
     CommandId cid;
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
     
     if (AMI_OVERRIDE)
 	return false;
@@ -599,7 +630,7 @@ AtAbort_Memory()
     /* ----------------
      *	after doing an abort transaction, make certain the
      *  system uses the top memory context rather then the
-     *  portal memory context (unitl the next transaction).
+     *  portal memory context (until the next transaction).
      * ----------------
      */
     (void) MemoryContextSwitchTo(TopMemoryContext);
@@ -618,7 +649,7 @@ AtAbort_Memory()
 void
 StartTransaction()
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
     extern bool	TransactionInitWasProcessed;	/* XXX style */
 
     /* ----------------
@@ -686,7 +717,7 @@ StartTransaction()
 void
 CommitTransaction()
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
 
     /* ----------------
      *	check the current transaction state
@@ -730,7 +761,7 @@ CommitTransaction()
 void
 AbortTransaction()
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
 
     /* ----------------
      *	check the current transaction state
@@ -767,6 +798,85 @@ AbortTransaction()
 }
 
 /* ----------------------------------------------------------------
+ *		slave backend transaction interface
+ *
+ *	These functions take care of doing the proper transaction
+ *      processing when we are running inside a slave backend.
+ *
+ *      Since the master backend calls StartTransactionCommand(),
+ *	CommitTransactionCommand() and AbortCurrentTransaction(),
+ *	it ends up doing all the real work.
+ *
+ *	The slaves only have to do cache, lock table and memory
+ *	cleanup to support the parts of the system which don't
+ *	understand parallel processing.  Slaves don't touch the
+ *	log or the transaction state because the master backend
+ *	does this.  The slave-local transaction state is updated.
+ * ----------------------------------------------------------------
+ */
+
+/* --------------------------------
+ *	SlaveStartTransaction
+ *
+ * --------------------------------
+ */
+void
+SlaveStartTransaction()
+{
+    AtStart_Cache();
+    AtStart_Locks();
+    AtStart_Memory();
+    
+    inSlaveTransaction = true;
+}
+
+/* --------------------------------
+ *	SlaveCommitTransaction
+ *
+ * --------------------------------
+ */
+void
+SlaveCommitTransaction()
+{
+    AtCommit_Cache();
+    AtCommit_Locks();
+    AtCommit_Memory();
+    
+    inSlaveTransaction = false;
+}
+
+/* --------------------------------
+ *	SlaveAbortTransaction
+ *
+ *	Note: Since AtAbort_Memory does no memory cleanup, we
+ *	      call AtCommit_Memory instead.
+ * --------------------------------
+ */
+void
+SlaveAbortTransaction()
+{
+    AtAbort_Cache();
+    AtAbort_Locks();
+    AtCommit_Memory();
+    
+    inSlaveTransaction = false;
+}
+
+/* --------------------------------
+ *	InSlaveTransaction
+ *
+ *	returns 1 if we are "in" a slave transaction.  This
+ *	is used by the slave abort code to determine if we don't
+ *	need to do abort cleanup in the slaves.
+ * --------------------------------
+ */
+int
+InSlaveTransaction()
+{
+    return (inSlaveTransaction == true);
+}
+
+/* ----------------------------------------------------------------
  *	transaction system interface functions.   these provide
  *	support for transaction blocks above the start / abort /
  *	commit transaction routines above.
@@ -780,7 +890,7 @@ AbortTransaction()
 void
 StartTransactionCommand()
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
 
     switch(s->blockState) {
 	/* ----------------
@@ -859,7 +969,7 @@ StartTransactionCommand()
 void
 CommitTransactionCommand()
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
 
     switch(s->blockState) {
 	/* ----------------
@@ -933,7 +1043,7 @@ CommitTransactionCommand()
 void
 AbortCurrentTransaction()
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
     
     switch(s->blockState) {
 	/* ----------------
@@ -1015,7 +1125,7 @@ AbortCurrentTransaction()
 void
 BeginTransactionBlock()
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
 
     /* ----------------
      *	check the current transaction state
@@ -1053,7 +1163,7 @@ BeginTransactionBlock()
 void
 EndTransactionBlock()
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
     
     /* ----------------
      *	check the current transaction state
@@ -1107,7 +1217,7 @@ EndTransactionBlock()
 void
 AbortTransactionBlock()
 {
-    TransactionState s = &CurrentTransactionStateData;
+    TransactionState s = CurrentTransactionState;
 
     /* ----------------
      *	check the current transaction state
