@@ -11,6 +11,8 @@
  *
  */
 
+#include <string.h>
+
 char *DataDir;
 extern char *GetPGData();
 
