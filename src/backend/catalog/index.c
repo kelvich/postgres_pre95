@@ -45,6 +45,7 @@ RcsId("$Header$");
 #include "utils/log.h"
 
 #include "catalog/catname.h"
+#include "catalog/syscache.h"
 #include "catalog/pg_attribute.h"
 #include "catalog/pg_index.h"
 #include "catalog/pg_proc.h"
@@ -641,14 +642,15 @@ AppendAttributeTuples(indexRelation, numatts)
  * ----------------------------------------------------------------
  */
 void
-UpdateIndexRelation(indexForm, indexoid, heapoid, natts, attNums, classOids)
-    IndexTupleFormData	indexForm;
+UpdateIndexRelation(indexoid, heapoid, indproc, natts, attNums, classOids)
     ObjectId		indexoid;
     ObjectId		heapoid;
+    ObjectId		indproc;
     AttributeNumber	natts;
     AttributeNumber	attNums[];
     ObjectId		classOids[];
 {
+    IndexTupleFormData	indexForm;
     Relation		pg_index;
     HeapTuple		tuple;
     AttributeOffset	i;
@@ -659,6 +661,7 @@ UpdateIndexRelation(indexForm, indexoid, heapoid, natts, attNums, classOids)
      */
     indexForm.indrelid =   heapoid;
     indexForm.indexrelid = indexoid;
+    indexForm.indproc = indproc;
    
     memset((char *)& indexForm.indkey[0], 0, sizeof indexForm.indkey);
     memset((char *)& indexForm.indclass[0], 0, sizeof indexForm.indclass);
@@ -785,11 +788,12 @@ InitIndexStrategy(numatts, indexRelation, accessMethodObjectId)
  * ----------------------------------------------------------------
  */
 void
-index_create(heapRelationName, indexRelationName,
+index_create(heapRelationName, indexRelationName, indexProcedureName,
 	     accessMethodObjectId, numatts, attNums,
 	     classObjectId, parameterCount, parameter)
     Name		heapRelationName;
     Name		indexRelationName;
+    Name		indexProcedureName;
     ObjectId		accessMethodObjectId;
     AttributeNumber	numatts;
     AttributeNumber	attNums[];
@@ -800,12 +804,12 @@ index_create(heapRelationName, indexRelationName,
     Relation		 heapRelation;
     Relation		 indexRelation;
     HeapTuple		 tuple;
-    IndexTupleFormData	 indexForm;
     TupleDescriptor	 indexTupDesc;
     IndexStrategy	 strategy;
     AttributeOffset	 attributeOffset;
     ObjectId		 heapoid;
     ObjectId		 indexoid;
+    ObjectId		 indproc;
 
     extern GlobalMemory  CacheCxt;
     MemoryContext   	 oldcxt;
@@ -825,6 +829,13 @@ index_create(heapRelationName, indexRelationName,
     heapoid = GetHeapRelationOid(heapRelationName, indexRelationName);
    
     heapRelation = heap_open(heapoid);
+
+    /* ----------------
+     * write lock heap to guarantee exclusive access
+     * ---------------- 
+     */
+
+    RelationSetLockForWrite(heapRelation);
 
     /* ----------------
      *    construct new tuple descriptor
@@ -860,6 +871,27 @@ index_create(heapRelationName, indexRelationName,
     indexoid = UpdateRelationRelation(indexRelation);
 
     /* ----------------
+     * Now get the index procedure (only relevant for functional indices).
+     * ----------------
+     */
+
+    if (NameIsValid(indexProcedureName))
+    {
+	HeapTuple proc_tup, SearchSysCacheTuple();
+	
+	proc_tup = SearchSysCacheTuple(PRONAME,indexProcedureName,0,0,0);
+
+	if (!HeapTupleIsValid(proc_tup))
+	     elog (WARN, "function named %s does not exist",
+		   indexProcedureName);
+	indproc = proc_tup->t_oid;
+    }
+    else
+    {
+	indproc = InvalidObjectId;
+    }
+
+    /* ----------------
      *	now update the object id's of all the attribute
      *  tuple forms in the index relation's tuple descriptor
      * ----------------
@@ -877,12 +909,8 @@ index_create(heapRelationName, indexRelationName,
      *    (append INDEX tuple)
      * ----------------
      */
-    UpdateIndexRelation(indexForm,
-			indexoid,
-			heapoid,
-			numatts,
-			attNums,
-			classObjectId);
+    UpdateIndexRelation(indexoid, heapoid, indproc,
+			numatts, attNums, classObjectId);
 
     /* ----------------
      *    initialize the index strategy
