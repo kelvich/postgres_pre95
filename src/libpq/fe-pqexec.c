@@ -570,10 +570,10 @@ PQexec(query)
 	    /* The backend violates the protocol. */
 	    if (id[0] == '?')
 	    	libpq_raise(ProtocolError, 
-			form("No response from the backend, exitting...\n"));
+			form("No response from the backend, exiting...\n"));
 	    else
 	    	libpq_raise(ProtocolError, 
-		   form("Unexpected response from the backend, exitting...\n"));
+		   form("Unexpected response from the backend, exiting...\n"));
 	    exit(1);
     	}
     }
