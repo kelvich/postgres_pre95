@@ -61,15 +61,8 @@
 #include "catalog/pg_ipl.h"
 
 #include "tcop/tcopdebug.h"
+#include "tcop/tcopprot.h"
 #include "executor/execdebug.h"
-
-/* ----------------
- *	externs
- * ----------------
- */
-
-extern void die();
-extern void handle_warn();
 
 #include "tcop/creatinh.h"
 
