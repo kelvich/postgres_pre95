@@ -4,7 +4,7 @@
 
 char *
 strdup(str)
-        char *str;
+        const char *str;
 {
         int len;
         char *copy;
