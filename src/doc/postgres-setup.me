@@ -93,8 +93,14 @@ C-Only Release 3.0
 	Performance Tuning
 	Demo Database
 	Minimal Installation
+    Documentation
+	Printing the Reference Manual
+	    If you do not have a Postscript printer
+	Printing the Technical Reports and Tutorials
+	    If the directory has a makefile
     Miscellaneous
 	Bug Reports
+	Known Bug List
 	Consulting
 	Postgres BBS
 .)l
@@ -359,7 +365,7 @@ postgres-v3r0.tar.Z
 .pp
 Uncompress the tar file.
 .pp
-% uncompres postgres-v3r0.tar.Z
+% uncompress postgres-v3r0.tar.Z
 .pp
 A larger file should now be in the \*(PG home directory, and the '.Z'
 ending should be gone, so it is now named
@@ -756,7 +762,7 @@ the backend.
 Users are expected to use the terminal monitor.
 The terminal monitor
 sends commands to the postmaster which forwards commands to a backend.
-If you just completed step 4,
+If you just completed step 3,
 then you have already been introduced to the \*(PG backend,
 so we'll talk about the other two processes now.
 .sh 2 "The \*(PG Postmaster"
@@ -965,65 +971,105 @@ These directories take up about 2 Mbytes, and can be reduced to about
 .pp
 We do not recommend deleting these unless absolutely necessary.
 .\" ----------------
-.tm    Miscellaneous
+.tm    Documentation
 .\" ----------------
-.sh 1 "Miscellaneous"
+.sh 1 "Documentation"
 .sh 2 "Printing the Reference Manual"
 .pp
-You can print the Postgres reference manual by changing directory to the
+If you have a Postscript printer, you can print the reference manual by
+changing directory to the 
 .(l
-\fBref\fR
+\fB~postgres/ref\fR
 .)l
-directory.  There you will find a /bin/sh script called "genref".  Set all the
-appropriate parameters for printing at your site in this script, and then
-run it by typing
+directory, where you will find a Postscript file called \fBref.t\fR.
+This file can be simply sent to the printer in whatever fashion your site
+uses to print Postscript files.
+.pp
+If you do not have a Postscript printer, or you have font problems, etc.,
+the \fBref\fR directory contains a /bin/sh script called "genref".  Edit
+this script and set the appropriate parameters for printing at your site
+in this script, and then execute it by typing
 .(l
 % \fBgenref\fR
 .)l
 This script will not actually try to send the job to the printer - rather
-it will create an output file called "ref.t".  You can then print the
-manual by sending this file directly to the printer with the "lpr" command.
-The manual is about 80 pages of single-sided text.  If you do not have the
-GRN preprocessor for troff, substitute the GRN command in the script
-with the name "eatgrn", which is a script which is in the same directory, or
-print the Postscript file "ref.t" which is provided in the "postscript"
-subdirectory.  The "grn" program allows pictures drawn in the GREMLIN graphics
-editor to be printed using a "troff" command, so if you use "eatgrn", the
-illustrations in the manual will not be printed.
+it will create the \fBref.t\fR output file.  You can then print the
+manual by sending this file directly to the printer with the regular printing
+commands used by your site.
+.pp
+If \fBgenref\fR fails, you may not have the \fBgrn\fR preprocessor.  This
+preprocessor for troff allows pictures drawn with the \fBgremlin\fR graphics
+editor to be printed using a "troff" command.  A script called \fBeatgrn\fR is
+provided, which will cause \fBgenref\fR to ignore \fBgrn\fR directives and
+print anyway - this will result in the reference manual being printed without
+illustrations.  There is only one illustration, so this should not be too
+much of a problem.
 .pp
 .sh 3 "If you do not have a Postscript printer"
-If you do not have a Postscript printer, change the "psroff" command to the
-nroff command you use at your site, typically "nroff", "troff", or "ditroff".
-As stated above, use the eatgrn script if you do not have GRN.  Output suitable
-for a line-printer can be created using "nroff".  
+.pp
+If you do not have a Postscript printer, change the \fBpsroff\fR command in
+the \fBgenref\fR script to the
+text formatting command you use at your site, typically \fBnroff\fR,
+\fBtroff\fR, or \fBditroff\fR.
+As stated above, use the \fBeatgrn\fR script if you do not have \fBgrn\fR.
+Output suitable
+for a line-printer can be created using \fBnroff\fR.  
 .pp
 .sh 2 "Printing the Technical Reports and Tutorials"
-You can print the Postgres technical reports and tutorials by changing
-directory to the
-.(l
-\fBdoc\fR
-.)l
-subdirectory.  There you will find a /bin/sh script called "print".  After
-you change the site-specific parameters in this script, you can print most
-of these files, with the exception of those requiring "make", by typing
+.pp
+Postscript versions of the Postgres technical reports and tutorials are 
+in the directory \fB~postgres/doc/postscript\fR.  Some files are not
+included in Postscript form and are simply regular files - read the file
+\fB~postgres/doc/README\fR for details.
+.pp
+The /bin/sh script
+\fB~postgres/doc/print\fR
+contains site-specific printing parameters, and understands the file extension
+protocol used
+in the \fBdoc\fR directory.  Once you set the site-specific parameters for
+printing in this script, you should be able to print all the files in the
+\fBdoc\fR easily, by executing
 .(l
 % \fBprint <filename>\fR
 .)l
-from this directory.  Unlike the "genref" script described above, this
+from the \fB~postgres/doc\fR directory.
+.pp
+Unlike the \fBgenref\fR script described above, this
 script will send the job directly to the printer.  If you do not have the
-"grn" utility described above, you should use the "eatgrn" script here
-as well.  For technical reports which require "make", go to the following
-section.
+\fBgrn\fR utility described above, you should use the \fBeatgrn\fR script here
+as well.  For technical reports which require \fBmake\fR, continue to
+the following section.
+.pp
 .sh 3 "If the directory has a makefile"
-A couple of the technical reports use makefiles rather than the "print"
-script.  If the subdirectory has a makefile, you will have
+.pp
+A couple of the technical reports use makefiles to generate their printable
+versions rather than the \fBprint\fR script.  If the subdirectory has
+a makefile, you will have
 to change the site-specific parameters in the
 makefile, run 
 .(l
 % \fBmake\fR
 .)l
 and then it will either print or create a printable file.  Note that if the
-makefile uses GRN, you can use the eatgrn script here as well.
+makefile uses \fBgrn\fR and you do not have access to this utility, you can
+use the \fBeatgrn\fR script here as well.
+.sh 2 "The 3.0 Release Notes"
+.pp
+The Postgres 3.0 Release Notes are in the file
+\fB~postgres/doc/release3.0.me\fR.
+Before working extensively with Postgres, you should read this file to
+find new features, known bugs, and other useful information about this
+release.
+.pp
+As described above, you can print this file by typing
+.pp
+.(l
+% \fBprint ~postgres/doc/release3.0.me\fR
+.)l
+.\" ----------------
+.tm    Miscellaneous
+.\" ----------------
+.sh 1 "Miscellaneous"
 .sh 2 "Bug reports"
 .pp
 If you find a bug with \*(PG,
@@ -1037,6 +1083,12 @@ describing as precisely as possible the command that caused
 the problem,
 instructions on how to repeat the bug,
 and a script showing the bug. 
+.sh 2 "Known Bugs List"
+.pp
+A Known Bugs List with suggested workarounds is maintained on the machine
+\fBpostgres.berkeley.edu\fR in the file \fBpub/postgres-v3r0.bugs\fR.  The
+Internet address of this machine is \fB128.32.149.1\fR, and if you cannot
+access Postgres, this file can be sent to you via e-mail.
 .sh 2 "Consulting"
 .pp
 This software is unsupported,
