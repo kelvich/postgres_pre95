@@ -23,13 +23,15 @@ to its parent relation,
 .i relname2 .
 Initially,
 .i relname1
-has the same contents as relname2.
+has the same contents as
+.i relname2.
 As updates to 
 .i relname1 
 occur, however,
 the contents of
 .i relname1
-diverges from relname2.
+diverges from
+.i relname2.
 On the other hand, any updates to
 .i relname2
 show transparently through
@@ -70,7 +72,7 @@ create version foobar from
 .q "January 17, 1990" ]
 .uh "SEE ALSO"
 .lp
-merge(postquel).
+merge(commands).
 .uh "BUGS"
 .lp
 Create version
