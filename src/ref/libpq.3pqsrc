@@ -811,12 +811,12 @@ void main()
     PQexec("begin");
     res = (char *) PQexec("retrieve iportal junk (test1.all)");
     if (*res == 'E') {
-	fprintf(stderr,"\nError: %s\n",++res);
+	fprintf(stderr,"\enError: %s\en",++res);
 	goto exit_error;
     }
     res = (char *) PQexec("fetch all in junk");
     if (*res != 'P') {
-	fprintf(stderr,"\nError: no portal\n");
+	fprintf(stderr,"\enError: no portal\en");
 	goto exit_error;
     }
     /* get tuples in relation */
@@ -825,7 +825,7 @@ void main()
     for (grpno = 0; grpno < ngroups; grpno++) {
 	ntups = PQntuplesGroup(portalbuf, grpno);
 	if ((nflds = PQnfieldsGroup(portalbuf, grpno)) != 3) {
-	    fprintf(stderr, "\nError: expected 3 attributes, got %d\n", nflds);
+	    fprintf(stderr, "\enError: expected 3 attributes, got %d\en", nflds);
 	    goto exit_error;
 	}
 	for (tupno = 0; tupno < ntups; tupno++) {
@@ -838,16 +838,16 @@ void main()
 	    fval = (float *) PQgetvalue(portalbuf, tupno, 1);
 	    plen = PQgetlength(portalbuf, tupno, 2);
 	    if (!(pval = (POLYGON *) palloc(plen + sizeof(long)))) {
-		fprintf(stderr, "\nError: palloc returned zero bytes\n");
+		fprintf(stderr, "\enError: palloc returned zero bytes\en");
 		goto exit_error;
 	    }
 	    pval->size = plen + sizeof(long);
 	    bcopy(PQgetvalue(portalbuf, tupno, 2), (char *) &pval->npts, plen);
-	    printf ("tuple %d: got\n\e
-\t i=(%d bytes) %d,\n\e
-\t d=(%d bytes) %f,\n\e
-\t p=(%d bytes) %d points,\n\e
-\t\t boundbox=(hi=%f,%f / lo=%f,%f)\n",
+	    printf ("tuple %d: got\en\e
+\et i=(%d bytes) %d,\en\e
+\et d=(%d bytes) %f,\en\e
+\et p=(%d bytes) %d points,\en\e
+\et\et boundbox=(hi=%f,%f / lo=%f,%f)\en",
 		    tupno,
 		    PQgetlength(portalbuf, tupno, 0),
 		    *ival,
