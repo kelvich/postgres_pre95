@@ -90,13 +90,15 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
 	elog(WARN, "AggregateDefine: aggregate must have at least one transition function");
 
     if (NameIsValid(aggtransfn1Name)) {
-	tup = SearchSysCacheTuple(TYPNAME, aggbasetypeName);
+	tup = SearchSysCacheTuple(TYPNAME, (char *) aggbasetypeName,
+				  (char *) NULL, (char *) NULL, (char *) NULL);
 	if(!HeapTupleIsValid(tup))
 	    elog(WARN, "AggregateDefine: Type \"%-.*s\" undefined",
 		 sizeof(NameData), aggbasetypeName);
 	xbase = tup->t_oid;
 
-	tup = SearchSysCacheTuple(TYPNAME, aggtransfn1typeName);
+	tup = SearchSysCacheTuple(TYPNAME, (char *) aggtransfn1typeName,
+				  (char *) NULL, (char *) NULL, (char *) NULL);
 	if(!HeapTupleIsValid(tup))
 	    elog(WARN, "AggregateDefine: Type \"%-.*s\" undefined",
 		 sizeof(NameData), aggtransfn1typeName);
@@ -104,9 +106,10 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
 
 	fnArgs[0] = xret1;
 	fnArgs[1] = xbase;
-	tup = SearchSysCacheTuple(PRONAME, aggtransfn1Name->data,
-				  2,
-				  fnArgs,
+	tup = SearchSysCacheTuple(PRONAME,
+				  (char *) aggtransfn1Name->data,
+				  (char *) Int32GetDatum(2),
+				  (char *) fnArgs,
 				  (char *) NULL);
 	if(!HeapTupleIsValid(tup))
 	    elog(WARN, "AggregateDefine: \"%-.*s\"(\"%-.*s\", \"%-.*s\",) does not exist",
@@ -125,7 +128,8 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
     }
 
     if (NameIsValid(aggtransfn2Name)) {
-	tup = SearchSysCacheTuple(TYPNAME, aggtransfn2typeName);
+	tup = SearchSysCacheTuple(TYPNAME, (char *) aggtransfn2typeName,
+				  (char *) NULL, (char *) NULL, (char *) NULL);
 	if(!HeapTupleIsValid(tup))
 	    elog(WARN, "AggregateDefine: Type \"%-.*s\" undefined",
 		 sizeof(NameData), aggtransfn2typeName);
@@ -133,9 +137,9 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
 
 	fnArgs[0] = xret2;
 	fnArgs[1] = 0;
-	tup = SearchSysCacheTuple(PRONAME, aggtransfn2Name->data,
-				  1,
-				  fnArgs,
+	tup = SearchSysCacheTuple(PRONAME, (char *) aggtransfn2Name->data,
+				  (char *) Int32GetDatum(1),
+				  (char *) fnArgs,
 				  (char *) NULL);
 	if(!HeapTupleIsValid(tup))
 	    elog(WARN, "AggregateDefine: \"%-.*s\"(\"%-.*s\") does not exist",
@@ -163,9 +167,10 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
     if (NameIsValid(aggfinalfnName)) {
         fnArgs[0] = xret1;
 	fnArgs[1] = xret2;
-	tup = SearchSysCacheTuple(PRONAME, aggfinalfnName->data,
-				  2,
-				  fnArgs,
+	tup = SearchSysCacheTuple(PRONAME,
+				  (char *) aggfinalfnName->data,
+				  (char *) Int32GetDatum(2),
+				  (char *) fnArgs,
 				  (char *) NULL);
 	if(!HeapTupleIsValid(tup))
 	    elog(WARN, "AggregateDefine: \"%-.*s\"(\"%-.*s\", \"%-.*s\") does not exist",
@@ -194,28 +199,44 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
 	values[i] = (char *) NULL;
     }
     values[Anum_pg_aggregate_aggname-1] = (char *) aggName;
-    values[Anum_pg_aggregate_aggowner-1] = (char *) GetUserId();
-    values[Anum_pg_aggregate_aggtransfn1-1] = (char *) xfn1;
-    values[Anum_pg_aggregate_aggtransfn2-1] = (char *) xfn2;
-    values[Anum_pg_aggregate_aggfinalfn-1] = (char *) ffn;
+    values[Anum_pg_aggregate_aggowner-1] =
+	(char *) Int32GetDatum(GetUserId());
+    values[Anum_pg_aggregate_aggtransfn1-1] =
+	(char *) ObjectIdGetDatum(xfn1);
+    values[Anum_pg_aggregate_aggtransfn2-1] =
+	(char *) ObjectIdGetDatum(xfn2);
+    values[Anum_pg_aggregate_aggfinalfn-1] =
+	(char *) ObjectIdGetDatum(ffn);
 
     if (!ObjectIdIsValid(xfn1)) {
-	values[Anum_pg_aggregate_aggbasetype-1] = (char *)InvalidObjectId;
-	values[Anum_pg_aggregate_aggtranstype1-1] = (char *)InvalidObjectId;
-	values[Anum_pg_aggregate_aggtranstype2-1] = (char *) xret2;
-	values[Anum_pg_aggregate_aggfinaltype-1] = (char *) xret2;
+	values[Anum_pg_aggregate_aggbasetype-1] =
+	    (char *) ObjectIdGetDatum(InvalidObjectId);
+	values[Anum_pg_aggregate_aggtranstype1-1] =
+	    (char *) ObjectIdGetDatum(InvalidObjectId);
+	values[Anum_pg_aggregate_aggtranstype2-1] =
+	    (char *) ObjectIdGetDatum(xret2);
+	values[Anum_pg_aggregate_aggfinaltype-1] =
+	    (char *) ObjectIdGetDatum(xret2);
     }
     else if (!ObjectIdIsValid(xfn2)) {
-	values[Anum_pg_aggregate_aggbasetype-1] = (char *) xbase;
-	values[Anum_pg_aggregate_aggtranstype1-1] = (char *) xret1;
-	values[Anum_pg_aggregate_aggtranstype2-1] = (char *)InvalidObjectId;
-	values[Anum_pg_aggregate_aggfinaltype-1] = (char *) xret1;
+	values[Anum_pg_aggregate_aggbasetype-1] =
+	    (char *) ObjectIdGetDatum(xbase);
+	values[Anum_pg_aggregate_aggtranstype1-1] =
+	    (char *) ObjectIdGetDatum(xret1);
+	values[Anum_pg_aggregate_aggtranstype2-1] =
+	    (char *) ObjectIdGetDatum(InvalidObjectId);
+	values[Anum_pg_aggregate_aggfinaltype-1] =
+	    (char *) ObjectIdGetDatum(xret1);
     }
     else {
-	values[Anum_pg_aggregate_aggbasetype-1] = (char *) xbase;
-	values[Anum_pg_aggregate_aggtranstype1-1] = (char *) xret1;
-	values[Anum_pg_aggregate_aggtranstype2-1] = (char *) xret2;
-	values[Anum_pg_aggregate_aggfinaltype-1] = (char *) fret;
+	values[Anum_pg_aggregate_aggbasetype-1] =
+	    (char *) ObjectIdGetDatum(xbase);
+	values[Anum_pg_aggregate_aggtranstype1-1] =
+	    (char *) ObjectIdGetDatum(xret1);
+	values[Anum_pg_aggregate_aggtranstype2-1] =
+	    (char *) ObjectIdGetDatum(xret2);
+	values[Anum_pg_aggregate_aggfinaltype-1] =
+	    (char *) ObjectIdGetDatum(fret);
     }
 
     if (ObjectIdIsValid(agginitval1))
@@ -290,8 +311,8 @@ AggNameGetInitVal(aggName, xfuncno, isNull)
     strInitVal = textout(textInitVal);
     heap_close(aggRel);
     
-    tup = SearchSysCacheTuple(TYPOID, (char *) transtype, (char *) NULL,
-			      (char *) NULL, (char *) NULL);
+    tup = SearchSysCacheTuple(TYPOID, (char *) ObjectIdGetDatum(transtype),
+			      (char *) NULL, (char *) NULL, (char *) NULL);
     if (!HeapTupleIsValid(tup)) {
 	pfree(strInitVal);
 	elog(WARN, "AggNameGetInitVal: cache lookup failed on aggregate transition function return type");

@@ -72,7 +72,9 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 	/*
 	 * compute heap relation id
 	 */
-	tuple = SearchSysCacheTuple(RELNAME, heapRelationName);
+	tuple = SearchSysCacheTuple(RELNAME, (char *) heapRelationName,
+				    (char *) NULL, (char *) NULL,
+				    (char *) NULL);
 	if (!HeapTupleIsValid(tuple)) {
 		elog(WARN, "DefineIndex: %s relation not found",
 			&(heapRelationName->data[0]));
@@ -82,7 +84,9 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 	/*
 	 * compute access method id
 	 */
-	tuple = SearchSysCacheTuple(AMNAME, accessMethodName);
+	tuple = SearchSysCacheTuple(AMNAME, (char *) accessMethodName,
+				    (char *) NULL, (char *) NULL,
+				    (char *) NULL);
 	if (!HeapTupleIsValid(tuple)) {
 		elog(WARN, "DefineIndex: %s access method not found",
 			&(accessMethodName->data[0]));
@@ -199,7 +203,9 @@ ExtendIndex(indexRelationName, predicate)
 	/*
 	 * compute index relation id and access method id
 	 */
-	tuple = SearchSysCacheTuple(RELNAME, indexRelationName);
+	tuple = SearchSysCacheTuple(RELNAME, (char *) indexRelationName,
+				    (char *) NULL, (char *) NULL,
+				    (char *) NULL);
 	if (!HeapTupleIsValid(tuple)) {
 		elog(WARN, "ExtendIndex: %s index not found",
 			&(indexRelationName->data[0]));
@@ -210,7 +216,10 @@ ExtendIndex(indexRelationName, predicate)
 	/*
 	 * find pg_index tuple
 	 */
-	tuple = SearchSysCacheTuple(INDEXRELID, indexId);
+	tuple = SearchSysCacheTuple(INDEXRELID, 
+				    (char *) ObjectIdGetDatum(indexId),
+				    (char *) NULL, (char *) NULL,
+				    (char *) NULL);
 	if (!HeapTupleIsValid(tuple)) {
 		elog(WARN, "ExtendIndex: %s is not an index",
 			&(indexRelationName->data[0]));
@@ -269,7 +278,10 @@ ExtendIndex(indexRelationName, predicate)
 		funcInfo = &fInfo;
 		FIgetnArgs(funcInfo) = numberOfAttributes;
 
-		tuple = SearchSysCacheTuple(PROOID, indproc);
+		tuple = SearchSysCacheTuple(PROOID,
+					    (char *) ObjectIdGetDatum(indproc),
+					    (char *) NULL, (char *) NULL,
+					    (char *) NULL);
 		if (!HeapTupleIsValid(tuple))
 			elog(WARN, "ExtendIndex: index procedure not found");
 		strncpy(FIgetname(funcInfo), 
@@ -367,7 +379,10 @@ FuncIndexArgs(attList, attNumP, argTypes, opOidP, relId)
 	HeapTuple	tuple;
 	Attribute	att;
 
-	tuple = SearchSysCacheTuple(CLANAME, CString(CADR(CAR(attList))));
+	tuple = SearchSysCacheTuple(CLANAME,
+				    (char *) CString(CADR(CAR(attList))),
+				    (char *) NULL, (char *) NULL,
+				    (char *) NULL);
 
 	if (!HeapTupleIsValid(tuple)) 
 	{
@@ -389,7 +404,10 @@ FuncIndexArgs(attList, attNumP, argTypes, opOidP, relId)
 		arg = CAR(rest);
 		AssertArg(lispStringp(arg));
 
-		tuple = SearchSysCacheTuple(ATTNAME, relId, CString(arg));
+		tuple = SearchSysCacheTuple(ATTNAME,
+					    (char *) ObjectIdGetDatum(relId),
+					    (char *) CString(arg),
+					    (char *) NULL, (char *) NULL);
 
 		if (!HeapTupleIsValid(tuple)) 
 		{
@@ -438,8 +456,10 @@ NormIndexAttrs(attList, attNumP, opOidP, relId)
 		if (CAR(attribute) == LispNil)
 			elog(WARN, "missing attribute for define index");
 
-		tuple = SearchSysCacheTuple(ATTNAME, relId,
-			CString(CAR(attribute)));
+		tuple = SearchSysCacheTuple(ATTNAME,
+					    (char *) ObjectIdGetDatum(relId),
+					    (char *) CString(CAR(attribute)),
+					    (char *) NULL, (char *) NULL);
 		if (!HeapTupleIsValid(tuple)) {
 			elog(WARN, 
 			     "DefineIndex: attribute \"%s\" not found",
@@ -447,7 +467,10 @@ NormIndexAttrs(attList, attNumP, opOidP, relId)
 		}
 		*attNumP++ = ((Attribute)GETSTRUCT(tuple))->attnum;
 
-		tuple = SearchSysCacheTuple(CLANAME, CString(CADR(attribute)));
+		tuple = SearchSysCacheTuple(CLANAME,
+					    (char *) CString(CADR(attribute)),
+					    (char *) NULL, (char *) NULL,
+					    (char *) NULL);
 
 		if (!HeapTupleIsValid(tuple)) {
 			elog(WARN, "DefineIndex: %s class not found",
@@ -464,7 +487,8 @@ RemoveIndex(name)
 	ObjectId	id;
 	HeapTuple	tuple;
 
-	tuple = SearchSysCacheTuple(RELNAME, name);
+	tuple = SearchSysCacheTuple(RELNAME, (char *) name, (char *) NULL,
+				    (char *) NULL, (char *) NULL);
 
 	if (!HeapTupleIsValid(tuple)) {
 		elog(WARN, "index \"%s\" nonexistant", &(name->data[0]));

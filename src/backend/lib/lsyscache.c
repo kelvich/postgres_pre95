@@ -1,4 +1,3 @@
-
 /*    
  *    	lsyscache
  *    
@@ -41,6 +40,7 @@
 #include "access/att.h"
 #include "access/tupmacs.h"
 #include "utils/rel.h"
+#include "utils/palloc.h"
 #include "utils/log.h"
 #include "access/attnum.h"
 
@@ -101,7 +101,10 @@ op_class (opno,opclass)
 {
     AccessMethodOperatorTupleFormD amoptup;
 
-    if (SearchSysCacheStruct (AMOPOPID,&amoptup,opclass,opno,0,0))
+    if (SearchSysCacheStruct(AMOPOPID, (char *) &amoptup,
+			     (char *) ObjectIdGetDatum(opclass),
+			     (char *) ObjectIdGetDatum(opno),
+			     (char *) NULL, (char *) NULL))
       return(true);
     else
       return(false);
@@ -130,7 +133,10 @@ get_attname (relid,attnum)
     AttributeTupleFormD att_tup;
     Name retval = (Name)NULL;
 
-    if( SearchSysCacheStruct (ATTNUM,&att_tup,relid,attnum,0,0)) {
+    if (SearchSysCacheStruct(ATTNUM, (char *) &att_tup,
+			     (char *) ObjectIdGetDatum(relid),
+			     (char *) UInt16GetDatum(attnum),
+			     (char *) NULL, (char *) NULL)) {
 	retval = (Name)palloc(sizeof(att_tup.attname));
 	bcopy(&(att_tup.attname),retval,sizeof(att_tup.attname));
 	return(retval);
@@ -157,7 +163,10 @@ get_attnum (relid,attname)
 {
 	AttributeTupleFormD att_tup;
 
-	if(SearchSysCacheStruct (ATTNAME,&att_tup,relid,attname,0,0) ) 
+	if (SearchSysCacheStruct(ATTNAME, (char *) &att_tup,
+				 (char *) ObjectIdGetDatum(relid),
+				 (char *) attname,
+				 (char *) NULL, (char *) NULL))
 	  return(att_tup.attnum);
 	else
 	  return(InvalidAttributeNumber);
@@ -181,7 +190,10 @@ get_atttype (relid,attnum)
 {
     Attribute att_tup = (Attribute)palloc(sizeof(*att_tup));
 
-    if( SearchSysCacheStruct (ATTNUM,att_tup,relid,attnum,0,0) ) 
+    if (SearchSysCacheStruct(ATTNUM, (char *) att_tup,
+			     (char *) ObjectIdGetDatum(relid),
+			     (char *) UInt16GetDatum(attnum),
+			     (char *) NULL, (char *) NULL))
       return(att_tup->atttypid);
     else
       return((ObjectId)NULL);
@@ -202,7 +214,9 @@ Name attname;
 
      attno = get_attnum(relid, attname);
      
-     htup = SearchSysCacheTuple (ATTNAME, relid, attname, 0, 0);
+     htup = SearchSysCacheTuple(ATTNAME, (char *) ObjectIdGetDatum(relid),
+				(char *) attname, (char *) NULL,
+				(char *) NULL);
      if (!HeapTupleIsValid(htup))
 	  elog(WARN, "get_attisset: no attribute %.16s in relation %d",
 	       attname->data, relid);
@@ -242,7 +256,9 @@ get_opcode (opno)
 {
     OperatorTupleFormD optup;
 
-    if( SearchSysCacheStruct (OPROID,&optup,opno,0,0,0) ) 
+    if (SearchSysCacheStruct(OPROID, (char *) &optup,
+			     (char *) ObjectIdGetDatum(opno),
+			     (char *) NULL, (char *) NULL, (char *) NULL))
       return(optup.oprcode);
     else
       return((RegProcedure)NULL);
@@ -254,7 +270,9 @@ ObjectId opno;
 {
     OperatorTupleFormD optup;
 
-    if (SearchSysCacheStruct(OPROID,&optup,opno,0,0,0))
+    if (SearchSysCacheStruct(OPROID, (char *) &optup,
+			     (char *) ObjectIdGetDatum(opno),
+			     (char *) NULL, (char *) NULL, (char *) NULL))
        return(optup.oprname);
     else
        elog(WARN, "can't look up operator %d\n", opno);
@@ -278,13 +296,16 @@ op_mergesortable (opno,ltype,rtype)
 {
     OperatorTupleFormD optup;
 
-    if(SearchSysCacheStruct (OPROID,&optup,opno,0,0,0) &&
+    if (SearchSysCacheStruct(OPROID, (char *) &optup,
+			     (char *) ObjectIdGetDatum(opno),
+			     (char *) NULL, (char *) NULL, (char *) NULL) &&
        optup.oprlsortop &&
        optup.oprrsortop && 
        optup.oprleft == ltype &&
        optup.oprright == rtype) 
-      return (lispCons ((LispValue)(optup.oprlsortop),
-	               lispCons ((LispValue)(optup.oprrsortop),LispNil)));
+       return(lispCons((LispValue) ObjectIdGetDatum(optup.oprlsortop),
+	               lispCons((LispValue) ObjectIdGetDatum(optup.oprrsortop),
+				LispNil)));
     else
       return(LispNil);
 }
@@ -305,7 +326,9 @@ op_hashjoinable (opno,ltype,rtype)
 {
     OperatorTupleFormD optup;
 
-    if (SearchSysCacheStruct (OPROID,&optup,opno,0,0,0) && 
+    if (SearchSysCacheStruct(OPROID, (char *) &optup,
+			     (char *) ObjectIdGetDatum(opno),
+			     (char *) NULL, (char *) NULL, (char *) NULL) &&
 	optup.oprcanhash  &&
 	optup.oprleft == ltype &&
 	optup.oprright == rtype) 
@@ -329,7 +352,9 @@ get_commutator (opno)
 {
     OperatorTupleFormD optup;
 
-    if(SearchSysCacheStruct (OPROID,&optup,opno,0,0,0))
+    if (SearchSysCacheStruct(OPROID, (char *) &optup,
+			     (char *) ObjectIdGetDatum(opno),
+			     (char *) NULL, (char *) NULL, (char *) NULL))
       return(optup.oprcom);
     else
       return((ObjectId)NULL);
@@ -343,7 +368,9 @@ get_operator_tuple (opno)
 {
     HeapTuple optup;
 
-    if((optup = SearchSysCacheTuple (OPROID,opno,0,0,0)))
+    if ((optup = SearchSysCacheTuple(OPROID, (char *) ObjectIdGetDatum(opno),
+				     (char *) NULL, (char *) NULL,
+				     (char *) NULL)))
       return(optup);
     else
       return((HeapTuple)NULL);
@@ -365,7 +392,9 @@ get_negator (opno)
 {
     OperatorTupleFormD optup;
 
-    if(SearchSysCacheStruct (OPROID,&optup,opno,0,0,0))
+    if (SearchSysCacheStruct(OPROID, (char *) &optup,
+			     (char *) ObjectIdGetDatum(opno),
+			     (char *) NULL, (char *) NULL, (char *) NULL))
       return(optup.oprnegate);
     else
       return((ObjectId)NULL);
@@ -386,7 +415,9 @@ get_oprrest (opno)
 {
     OperatorTupleFormD optup;
 
-    if(SearchSysCacheStruct (OPROID,&optup,opno,0,0,0))
+    if (SearchSysCacheStruct(OPROID, (char *) &optup,
+			     (char *) ObjectIdGetDatum(opno),
+			     (char *) NULL, (char *) NULL, (char *) NULL))
       return(optup.oprrest );
     else
       return((RegProcedure) NULL);
@@ -408,7 +439,9 @@ get_oprjoin (opno)
 {
     OperatorTupleFormD optup;
 
-    if(SearchSysCacheStruct (OPROID,&optup,opno,0,0,0))
+    if (SearchSysCacheStruct(OPROID, (char *) &optup,
+			     (char *) ObjectIdGetDatum(opno),
+			     (char *) NULL, (char *) NULL, (char *) NULL))
       return(optup.oprjoin);
     else
       return((RegProcedure)NULL);
@@ -433,7 +466,9 @@ get_relnatts (relid)
 {
     RelationTupleFormD reltup;
 
-    if(SearchSysCacheStruct (RELOID,&reltup,relid,0,0,0))
+    if (SearchSysCacheStruct(RELOID, (char *) &reltup,
+			     (char *) ObjectIdGetDatum(relid),
+			     (char *) NULL, (char *) NULL, (char *) NULL))
 	return(reltup.relnatts);
     else
     	return(InvalidAttributeNumber);
@@ -456,7 +491,9 @@ get_rel_name (relid)
     RelationTupleFormD reltup;
     Name retval = (Name)NULL;
 
-    if((SearchSysCacheStruct (RELOID,&reltup,relid,0,0,0))) {
+    if ((SearchSysCacheStruct(RELOID, (char *) &reltup,
+			      (char *) ObjectIdGetDatum(relid),
+			      (char *) NULL, (char *) NULL, (char *) NULL))) {
 	retval = (Name)palloc(sizeof(reltup.relname));
 	bcopy(&(reltup.relname),retval,sizeof(reltup.relname));
 	return (retval);
@@ -481,7 +518,10 @@ get_relstub (relid, no, islastP)
     struct varlena * retval;
     struct varlena * relstub;
 
-    tuple = SearchSysCacheTuple(PRS2STUB,relid,no,0,0);
+    tuple = SearchSysCacheTuple(PRS2STUB,
+				(char *) ObjectIdGetDatum(relid),
+				(char *) Int32GetDatum(no),
+				(char *) NULL, (char *) NULL);
 
     if (HeapTupleIsValid(tuple)) {
 	prs2stubStruct = (Form_pg_prs2stub) GETSTRUCT(tuple);
@@ -518,7 +558,8 @@ Name ruleName;
 {
     HeapTuple tuple;
 
-    tuple = SearchSysCacheTuple(PRS2RULEID,ruleName,0,0,0);
+    tuple = SearchSysCacheTuple(PRS2RULEID, (char *) ruleName,
+				(char *) NULL, (char *) NULL, (char *) NULL);
     if (HeapTupleIsValid(tuple)) {
 	return(tuple->t_oid);
     } else {
@@ -538,7 +579,9 @@ ObjectId ruleId;
     HeapTuple tuple;
     Form_pg_prs2rule prs2ruleStruct;
 
-    tuple = SearchSysCacheTuple(PRS2EVENTREL,ruleId,0,0,0);
+    tuple = SearchSysCacheTuple(PRS2EVENTREL,
+				(char *) ObjectIdGetDatum(ruleId),
+				(char *) NULL, (char *) NULL, (char *) NULL);
     if (HeapTupleIsValid(tuple)) {
 	prs2ruleStruct = (Form_pg_prs2rule) GETSTRUCT(tuple);
 	return(prs2ruleStruct->prs2eventrel);
@@ -568,7 +611,9 @@ get_typlen (typid)
 {
     TypeTupleFormD typtup;
 
-    if (SearchSysCacheStruct (TYPOID,&typtup,typid,0,0,0))
+    if (SearchSysCacheStruct(TYPOID, (char *) &typtup,
+			     (char *) ObjectIdGetDatum(typid),
+			     (char *) NULL, (char *) NULL, (char *) NULL))
       return(typtup.typlen);
     else
       return((int16)NULL);
@@ -591,7 +636,9 @@ get_typbyval (typid)
 {
     TypeTupleFormD typtup;
 
-    if(SearchSysCacheStruct (TYPOID,&typtup,typid,0,0,0))
+    if (SearchSysCacheStruct(TYPOID, (char *) &typtup,
+			     (char *) ObjectIdGetDatum(typid),
+			     (char *) NULL, (char *) NULL, (char *) NULL))
       return((bool)typtup.typbyval);
     else
       return(false);
@@ -631,7 +678,9 @@ get_typtype (typid)
 {
     TypeTupleFormD typtup;
 
-    if(SearchSysCacheStruct (TYPOID,&typtup,typid,0,0,0)) {
+    if (SearchSysCacheStruct(TYPOID, (char *) &typtup,
+			     (char *) ObjectIdGetDatum(typid),
+			     (char *) NULL, (char *) NULL, (char *) NULL)) {
       return(typtup.typtype);
     } else {
       return('\0');

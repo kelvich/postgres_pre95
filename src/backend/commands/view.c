@@ -29,7 +29,10 @@ attname ( relname , attnum )
     relptr = amopenr (relname );
     reloid = RelationGetRelationId ( relptr );
    
-    atp = SearchSysCacheTuple ( ATTNUM, reloid, attnum , NULL, NULL );
+    atp = SearchSysCacheTuple(ATTNUM,
+			      (char *) ObjectIdGetDatum(reloid),
+			      (char *) Int32GetDatum(attnum),
+			      (char *) NULL, (char *) NULL);
     if (!HeapTupleIsValid(atp)) {
 	elog(WARN, "getattnvals: no attribute tuple %d %d",
 	     reloid, attnum);

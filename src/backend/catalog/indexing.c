@@ -9,6 +9,7 @@
 #include "utils/rel.h"
 #include "utils/log.h"
 #include "utils/oidcompos.h"
+#include "utils/palloc.h"
 #include "access/htup.h"
 #include "access/heapam.h"
 #include "access/genam.h"
@@ -154,11 +155,12 @@ CatalogIndexInsert(idescs, nIndices, heapRelation, heapTuple)
 	TupleDescriptor     indexDescriptor;
 
 	indexDescriptor = RelationGetTupleDescriptor(idescs[i]);
-	pgIndexTup = (HeapTuple)SearchSysCacheTuple(INDEXRELID,
-						    idescs[i]->rd_id,
-						    NULL,
-						    NULL,
-						    NULL);
+	pgIndexTup = SearchSysCacheTuple(INDEXRELID,
+					 (char *) 
+					 Int32GetDatum(idescs[i]->rd_id),
+					 (char *) NULL,
+					 (char *) NULL,
+					 (char *) NULL);
 	Assert(pgIndexTup);
 	pgIndexP = (Form_pg_index)GETSTRUCT(pgIndexTup);
 
