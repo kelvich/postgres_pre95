@@ -178,6 +178,31 @@ default port then all frontend application users must specify the same
 port (using command-line options or
 .SM PGPORT )
 when starting any libpq application, including the terminal monitor.
+.SH "WARNINGS"
+If at all possible,
+.BR "do not"
+use
+.SM SIGKILL
+when killing the
+.IR "postmaster" "."
+.SM SIGHUP,
+.SM SIGINT,
+or
+.SM SIGTERM
+(the default signal for 
+.IR "kill" "(1))"
+should be used instead.  Hence, avoid
+.(C
+kill -KILL
+.)C
+or its alternative form
+.(C
+kill -9
+.)C
+as this will prevent the
+.IR postmaster
+from freeing the system resources (e.g., shared memory and semaphores)
+that it holds before dying.
 .SH "EXAMPLES"
 .(C
 # start postmaster using default values
@@ -194,9 +219,11 @@ simplest and most common way to start the
 # start with specific port and executable name
 postmaster -p 1234 -b /usr/postgres/bin/postgres &
 .)C
-This command will start up a postmaster communicating through the port
-1234, and will attempt to use the backend located at
-\*(lq/usr/postgres/bin/postgres\*(rq.  In order to connect to this
+This command will start up a 
+.IR "postmaster"
+communicating through the port 1234, and will attempt to use the
+backend located at \*(lq/usr/postgres/bin/postgres\*(rq.  In order to
+connect to this
 .IR "postmaster"
 using the terminal monitor, you would need to either
 specify
@@ -207,6 +234,8 @@ command-line or set the environment variable
 .SM PGPORT
 to 1234.
 .SH "SEE ALSO"
+ipcs(1),
+ipcrm(1),
 ipcclean(unix),
 monitor(unix), 
 postgres(unix), 
@@ -240,3 +269,13 @@ option.  You may also get this error if you terminate the
 and immediately restart it using the same port; in this case, you must
 simply wait a few seconds until the operating system closes the port
 before trying again.
+.TP
+.BR "IpcMemoryAttach: shmat() failed: Permission denied"
+A likely explanation is that a
+.IR "postmaster"
+process owned by another user has acquired all of the shared resources
+on the machine.  If there are no other
+.IR "postmaster"
+processes running (see above), run
+.IR "ipcclean"
+and try again.
