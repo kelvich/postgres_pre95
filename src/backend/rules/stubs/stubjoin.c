@@ -83,7 +83,7 @@ TupleDescriptor innerTupleDesc;
     }
     /*
      * NOTE: make a "copy" of the datum (i.e. of the data pointed
-     * by, if any)... Beter be safe (and slow) then sorry...
+     * by, if any)... Better be safe (and slow) then sorry...
      */
     type = outerTupleDesc->data[outerAttrNo-1]->atttypid;
     len = get_typlen(type);
@@ -94,7 +94,8 @@ TupleDescriptor innerTupleDesc;
 	    len,	/* constlen */
 	    cpvalue,	/* constvalue */
 	    false,	/* constisnull */
-	    byval);	/* constbyval */
+	    byval,	/* constbyval */
+	    false);     /* constisset */
 
     type = innerTupleDesc->data[innerAttrNo-1]->atttypid;
     len = get_typlen(type);
