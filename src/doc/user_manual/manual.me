@@ -100,14 +100,14 @@
 \s+3The \*(PP User Manual\s0
 .sp 2
 .i
-Edited by Jon Rhein, Greg Kemnitz and The \*(PP Group
+Edited by Paul M. Aoki, Jim Frew and The \*(PP Group
 Computer Science Div., Dept. of EECS
 University of California at Berkeley
 .r
 .)l
 .sp 3
 .\"---------------------------------------------------------------------------
-.sh 1 "OVERVIEW"
+.sh 1 "INTRODUCTION"
 .lp
 This document is the user manual for the \*(PP database system under
 development at the University of California at Berkeley.  This
@@ -115,7 +115,47 @@ project, led by Professor Michael Stonebraker, is sponsored by the
 Defense Advanced Research Projects Agency (DARPA), the Army Research
 Office (ARO), the National Science Foundation (NSF), and ESL, Inc.
 .\"------------------------------------
-.sh 2 "DISTRIBUTION"
+.sh 2 "An Overview of \*(PP"
+.lp
+Traditional relational database management systems (DBMSs) support a
+data model consisting of a collection of named relations, each
+attribute of which has a specific type.  In current commercial
+systems, possible types including floating point numbers, integers,
+character strings, money, and dates.  It is commonly recognized that
+this model is inadequate for future data processing applications.
+.lp
+The relational model succeeded in replacing previous models in part
+because of its simplicity.  However, as mentioned, the 
+.q "Spartan simplicity"
+of the relational model often makes the implementation of certain
+applications very difficult.  The \*(PP data model offers
+substantial additional power by incorporating the following four
+additional basic constructs:
+.(l
+classes
+inheritance
+types
+functions
+.)l
+in such a way that users can easily extend the system.  In addition,
+\*(PP supports a powerful production rule system.
+.\"------------------------------------
+.sh 2 "Status of the \*(PP Project"
+.lp
+The \*(PP DBMS has been under construction since 1986.  The initial
+concepts for the system were presented in [STON86] and the definition
+of the initial data model appeared in [ROWE87].  The first rule system
+that was implemented is discussed in [STON87a] and the storage manager
+concepts are detailed in [STON87b].  The first
+.q demo-ware
+was operational in 1987, and we released Version 1 of \*(PP to a few
+external users in June 1989.  A critique of the first rule system
+followed in [STON89].  A detailed description of Version 1 of \*(PP
+appeared in [STON90a].  Version 2 was released in June 1990 and
+included the new rule system documented in [STON90b].  Version \*(PV,
+the current version of \*(PP, is about 200,000 lines of code in the C
+programming language.  \*(PP is available free of charge, and is being
+used by approximately 500 sites around the world.
 .lp
 This manual describes Version \*(PV of \*(PP.  The \*(PP Group has
 compiled and tested Version \*(PV on the following platforms:
@@ -129,28 +169,26 @@ DECstation 3000 (Alpha AXP)|OSF/1 1.3
 DECstation 3100 and 5000 (MIPS)|ULTRIX 4.2, 4.3a
 Sun4 (SPARC)|SunOS 4.1.2, 4.1.3
 H-P 9000/700 (PA-RISC)|HP-UX 9.01
-IBM RS/6000 (POWER1)|AIX 3.2.3
+IBM RS/6000 (POWER)|AIX 3.2.3
 .TE
-Previous versions of \*(PP ran on Sun Microsystems Sun3 and Sequent
-Symmetry systems.  \*(PP no longer runs on these systems.  In
-addition, \*(PP does not run on Sun Microsystems computers running the
-Solaris (SunOS 5) operating system.
 .(f
-\*(UU is a trademark of Unix Systems Laboratories.  SPARC, SunOS and
-Solaris are trademarks of Sun Microsystems, Inc.  DECstation, Alpha
-AXP and ULTRIX are trademarks of Digital Equipment Corp.  PA-RISC and
-HP-UX are trademarks of Hewlett-Packard Corp.  RS/6000, POWER and AIX
-are trademarks of International Business Machines.
+\*(UU is a trademark of Unix Systems Laboratories, Inc..  SPARC, SunOS
+and Solaris are trademarks of Sun Microsystems, Inc.  DECstation,
+Alpha AXP and ULTRIX are trademarks of Digital Equipment Corp.
+PA-RISC and HP-UX are trademarks of Hewlett-Packard Co.  RS/6000,
+POWER and AIX are trademarks of International Business Machines.
 .)f
-.\"------------------------------------
-.sh 2 "PERFORMANCE"
+Previous versions of \*(PP ran on Sun Microsystems Sun3 and Sequent
+Symmetry machines.  \*(PP no longer runs on these systems, nor does it
+run on Sun Microsystems computers running the Solaris 2 (SunOS 5)
+operating system.
 .lp
 Version \*(PV has been tuned modestly.  On the Wisconsin benchmark,
 one should expect performance about twice that of the public domain,
 University of California version of \*(II, a relational prototype from
 the late 1970s.
 .\"------------------------------------
-.sh 2 "ACKNOWLEDGEMENTS"
+.sh 2 "Acknowledgements"
 .lp
 \*(PP has been constructed by a team of undergraduate,
 graduate, and staff programmers.
@@ -177,6 +215,7 @@ Wei Hong,
 Anant Jhingran,
 Greg Kemnitz,
 Case Larsen,
+Boris Livshitz,
 Jeff Meredith,
 Michael Olson,
 Nels Olson,
@@ -200,59 +239,54 @@ Gamboa (ITESM Campus Morelos, Cuernavaca).
 For version \*(PV, Marc Teitelbaum served as chief programmer and was
 responsible for overall coordination of the project.
 .lp
-The above implementation team contributed significantly to this
-manual, as did Michael Stonebraker, Chandra Ghosh, Claire Mosher and
-Jim Frew.
+This manual is a substantial rewrite of a previous version edited by
+Jon Rhein and Greg Kemnitz.  The above implementation team contributed
+significantly to this manual and its predecessor, as did Michael
+Stonebraker, Chandra Ghosh and Claire Mosher.
 .\"---------------------------------------------------------------------------
-.sh 1 "INTRODUCTION"
+.sh 1 "WHAT YOU SHOULD READ"
 .lp
-Traditional relational DBMSs support a data model consisting
-of a collection of named relations, each attribute of which has a
-specific type.
-In current commercial systems, possible types are
-floating point numbers, integers, character strings, money, and
-dates.
-It is commonly recognized that this model is inadequate
-for future data processing applications.
+This manual is primarily intended to provide a broad overview of the
+system, as well as to illustrate how programmers would use functions
+to interact with the \*(PP database server (commonly referred to as
+the
+.q backend ).
 .lp
-The relational model succeeded in
-replacing previous models in part because of its simplicity.
-The \*(PP data model offers substantial
-additional power by incorporating the following four additional basic
-constructs:
-.(l
-classes
-inheritance
-types
-functions
-.)l
-The \*(PP DBMS has been under construction since 1986.  The initial
-concepts for the system were presented in [STON86] and the definition
-of the initial data model appeared in [ROWE87].  The first rule system
-that was implemented is discussed in [STON87a] and the storage manager
-concepts are detailed in [STON87b].  The first
-.q demo-ware
-was operational in 1987, and we released Version 1 of \*(PP to a few
-external users in June 1989.  A critique of version 1 of \*(PP appears
-in [STON90a].  Version 2 followed in June 1990, and it included the
-new rule system documented in [STON90b].  Version \*(PV, the current
-version of \*(PP, is about 200,000 lines of code in the C programming
-language.  \*(PP is available free of charge, and is being used by
-approximately 500 sites around the world.
+In addition to this manual, there is another document, the \*(PP
+Reference Manual.  The Reference Manual fully describes the syntax and
+options for each command in a format similar to that used in \*(UU
+.q "man pages."
+The Reference Manual is designed as a complete reference for the
+experienced \*(PP user and contains few tutorial examples.  This
+manual does not attempt to provide all of the information that the
+Reference Manual provides.  Instead, this manual describes the major
+.i concepts
+of the system, gives
+.i examples
+of the use of the major constructs, and then provides
+.i pointers
+to the appropriate place in the Reference Manual in which you can find
+more information if you so desire.
+.lp
+If you are new to \*(PP, you should probably read this manual first,
+followed by the parts of the \*(PP Reference Manual necessary to build
+your application.  In particular, you should read the Reference Manual
+section on \*(LP if you intend to build a client application around
+\*(PP, as this is not discussed at all in this manual.
 .\"---------------------------------------------------------------------------
 .sh 1 "ORGANIZATION"
 .lp
-This manual discusses the \*(PQ query language, including extensions
-such as user-defined types, operators, and both query language and
-programming language functions.  Arrays of types and functions of an
-instance are discussed, as well as the \*(PP rule system.  This manual
-concludes with a discussion on adding an operator class to \*(PP for
-use in access methods.
-.lp
-This manual describes the major concepts of the system and attempts to
-provide an accessible path into using the system.  As such, it tries
-to give examples of the use of the major constructs, so a beginning
-user does not need to delve immediately into the Reference Manual.
+The first part of this manual goes over some basic system concepts and
+procedures for starting the \*(PP system.  We then turn to an overview
+of the \*(PQ query language.  Next, we describe user extensions such
+as user-defined types, operators, aggregates, and both query language
+and programming language functions.  This is followed by an extremely
+brief overview of the \*(PP rule system.  The manual concludes with a
+series of detailed appendices that discuss some of the more involved
+procedures involved in extending the system, such as adding an
+operator class to \*(PP for use in access methods.
+.\"---------------------------------------------------------------------------
+.sh 1 "GETTING STARTED WITH \*(PP"
 .lp
 In the discussion that follows, examples that begin with the character
 .cW "%" '' ``
@@ -260,44 +294,34 @@ are commands that should be typed at the \*(UU shell prompt.  Examples
 that begin with the character
 .cW "*" '' ``
 are commands in the \*(PP query language, \*(PQ.
-.\"---------------------------------------------------------------------------
-.sh 1 "WHAT YOU SHOULD READ"
+.\"------------------------------------
+.sh 2 "Installing \*(PP"
 .lp
-This manual is primarily intended to provide a broad overview of the
-system, as well as to illustrate how programmers would use functions
-to interact with the \*(PP database server, or
-.q backend.
-The \*(PP Reference Manual discusses additional aspects of the system,
-and provides full syntactic descriptions of every \*(PP and \*(PQ
-command in a format similar to that used in \*(UU
-.q "man pages."
-.lp
-If you are new to \*(PP, you should probably read this manual first,
-followed by the parts of the \*(PP Reference Manual necessary to build
-your application.  In particular, you should read the section on \*(LP
-if you intend to build a client application around \*(PP, as this is
-not discussed at all in this manual.
-.\"---------------------------------------------------------------------------
-.sh 1 "INSTALLING AND RUNNING \*(PP"
-.sh 2 "Installation"
-.lp
-Installation instructions for \*(PP can be found in the top level of
-the source code distribution.  Those instructions vary from release to
-release and will not be duplicated here.
+Installation instructions can be found in the \*(PP source code
+distribution.  The 
+.cW troff
+source is located in the file
+.cW src/doc/postgres-setup.me .
+Those instructions vary from release to release and will not be
+duplicated here.  However, if you are installing \*(PP now, you 
+.i must
+read these instructions and carry them out before going any further.
+.\"------------------------------------
 .sh 2 "Setting Up Your Environment"
 .lp
 In the examples that follow, we will assume that \*(PP has been
 installed in the directory
 .cW /usr/local/postgres
-with the default settings.  In practice, however, \*(PP can be installed
-anywhere you like.  Throughout this document, wherever you see  
+with the default settings.  In practice, \*(PP can be installed
+anywhere you like.  Throughout this document, wherever you see
 .cW /usr/local/postgres
 you should substitute the name of the directory where \*(PP is
 actually installed.
 .lp
 All \*(PP commands are installed in the directory
 .cW /usr/local/postgres/bin .
-Therefore, you should add this directory to your shell command path.
+Therefore, you should add this directory to your shell 
+.i "command path" .
 If you use a variant of the Berkeley C shell, such as
 .cW csh
 or
@@ -333,14 +357,15 @@ or
 throughout this document.  If you did not fully understand the last
 paragraph on modifying your search path, you should consult the \*(UU
 manual pages that describe your user shell before going any further.
+.\"------------------------------------
 .sh 2 "Starting the Postmaster"
 .lp
-Before we continue, you should understand the basic system
+Before we continue, you should understand the basic \*(PP system
 architecture.  A \*(PP session consists of three cooperating \*(UU
 processes:
 .bu
 the postmaster
-.cW postmaster ) (
+.cW postmaster ), (
 .bu
 the frontend application, such as the terminal monitor
 .cW monitor ), (
@@ -349,10 +374,17 @@ and
 the backend database server
 .cW postgres ). (
 .lp
-Frontend applications send requests over the network to the 
+A single
+.cW postmaster
+process manages a given collection of 
+.i databases .
+Such a collection of databases is called an
+.i installation .
+Frontend applications that wish to access a given database within an
+installation send their requests over the network to the 
 .cW postmaster ,
 which in turn connects each frontend application to a backend server
-that responds to its queries.  This means that the
+that responds to its queries.  Hence, the
 .cW postmaster
 runs all the time, waiting for requests, while the frontend and
 backend processes come and go.  Another implication of this
@@ -360,16 +392,16 @@ architecture is that the
 .cW postmaster
 and the backend always run on the same machine (the database server),
 while the frontend application may or may not be running on a
-different machine (e.g., a client workstation).
+separate machine (e.g., a client workstation).
 .lp
 It should be clear from the preceding paragraph that nothing can
-happen unless the
+happen to a database unless the
 .cW postmaster
-process is running.
-If you get the following error message from a \*(PP command (such as 
+process is running.  If you get the following error message from a
+\*(PP command (such as
 .cW monitor
 or
-.cW createdb ),
+.cW createdb ):
 .(C
 FATAL: StreamOpen: connect() failed: errno=61
 FATAL: Failed to connect to postmaster (host=xxx, port=4321)
@@ -377,70 +409,33 @@ FATAL: Failed to connect to postmaster (host=xxx, port=4321)
 .)C
 it is usually because the
 .cW postmaster
-is not running.  Therefore, your local \*(PP database administrator
-(DBA) should ensure that the
+is not running.  Therefore, your local \*(PP site administrator should
+ensure that the
 .cW postmaster
 is running at all times.
 .lp
-If you are the DBA, there are a number of things you should remember
-before starting the 
+If you are the site administrator, there are a number of things you
+should remember before starting the
 .cW postmaster .
-.bu
-Even if you were not the person who installed \*(PP, you should
-understand the installation instructions.  The installation
-instructions explain some important issues with respect to where \*(PP
-places some important files, proper settings for environment
-variables, etc. that may vary from one version of \*(PP to another.
-.bu
-You should look at the Reference Manual under the heading
-.b postmaster
-if you wish to use non-default options (e.g., increased security
-options, a non-standard installation directory, etc.).
-.bu
-You 
-.i must
-start the
-.cW postmaster
-process with the user-id that owns the installed database files.  In
-most cases, if you have followed the installation instructions, this
-will be the user
-.q postgres .
-If you do not start the 
-.cW postmaster
-with the right user-id, the backend servers that are started by the
-.cW postmaster
-will not be able to read the data.
-.bu
-Make sure that 
-.cW /usr/local/postgres/bin
-is in your shell command path, because the
-.cW postmaster
-will use your 
-.cW PATH
-to locate \*(PP commands.
-.bu
-Remember to set the environment variable
-.cW PGDATA
-to the directory where the \*(PP databases are installed.  (This
-variable is more fully explained in the \*(PP installation
-instructions and the Reference Manual.)
-.lp
-Once you have checked all of the items just mentioned, the following
-simple command starts the
-.cW postmaster 
-process:
+These are discussed in the section of this manual titled,
+.q "Administering \*(PP."
+However, if \*(PP has been installed by following the installation
+instructions exactly as written, the following simple command is all
+you should need to start the
+.cW postmaster :
 .(C
 % postmaster &
 .)C
 If the 
 .cW postmaster
-does not start and instead prints cryptic error messages, you should
-consult the Reference Manual under the heading
+does not start, but instead prints a series of cryptic error messages,
+you should consult the Reference Manual under the heading
 .b postmaster .
 This manual page contains troubleshooting tips.
+.\"------------------------------------
 .sh 2 "Starting Applications"
 .lp
-Assuming that your DBA has properly started the 
+Assuming that your site administrator has properly started the 
 .cW postmaster
 process, you (as a user) may begin to start up applications.  As
 previously mentioned, you should add 
@@ -448,37 +443,36 @@ previously mentioned, you should add
 to your shell search path.  In most cases, this is all you should have
 to do in terms of preparation.\**
 .(f
-\** If your DBA has not set things up in the default way, you may have
-some more work to do.  For example, if the database server machine is
-a remote machine, you will need to set the
+\** If your site administrator has not set things up in the default
+way, you may have some more work to do.  For example, if the database
+server machine is a remote machine, you will need to set the
 .cW PGHOST 
 environment variable to the name of the database server machine.
 The environment variable
 .cW PGPORT
-may also have to be set.  If you try to start an application program
-and it complains that it cannot connect to the 
+may also have to be set.  The bottom line is this: if you try to start
+an application program and it complains that it cannot connect to the
 .cW postmaster ,
-you should immediately consult your DBA to make sure that your
-environment is properly set up.
+you should immediately consult your site administrator to make sure
+that your environment is properly set up.
 .)f
 .\"---------------------------------------------------------------------------
-.sh 1 "THE \*(PQ QUERY LANGUAGE"
+.sh 1 "USING THE \*(PQ QUERY LANGUAGE"
 .lp
-\*(PQ is the query language used for interacting with \*(PP.  Here, we
-give an overview of how to use \*(PQ to access data.  The next section
-will discuss ways in which ordinary users can extend \*(PQ.
+\*(PQ is the query language used for interacting with \*(PP.  In this
+section, we give an overview of how to use \*(PQ to access data.  The
+next section will discuss ways in which ordinary users can extend
+\*(PQ.
 .\"------------------------------------
 .sh 2 "Managing a Database"
 .lp
-In this section we describe a few basic commands for managing a
-database.
+Here, we describe a few basic commands for managing a database.
 .\"------------------------------------
 .sh 3 "Creating a Database"
 .lp
-Once \*(PP has been installed at your site, you can create a database
-named
-.cW foo
-using the following command:
+Let's say you want to create a database named
+.cW foo .
+You can do this with the following command:
 .(C
 % createdb foo
 .)C
@@ -487,9 +481,9 @@ you automatically become the database administrator of the database
 just created.  Database names must have an alphabetic first character
 and are limited to 16 characters in length.
 .lp
-If \*(PP refuses to create databases for you, then the DBA needs to
-grant you permission to create databases.  Consult your DBA if this
-occurs.
+If \*(PP refuses to create databases for you, then the site
+administrator needs to grant you permission to create databases.
+Consult your site administrator if this occurs.
 .\"------------------------------------
 .sh 3 "Accessing a Database"
 .lp
@@ -521,7 +515,7 @@ database by typing the command:
 .(C
 % monitor foo
 .)C
-You will be greeted by the following message:
+You will be greeted with the following message:
 .(C
 Welcome to the POSTGRES terminal monitor
 
@@ -577,23 +571,11 @@ you can destroy it using the following \*(UU command:
 .)C
 This action physically removes all of the \*(UU files associated with
 the database and cannot be undone, so this should only be done with a
-great deal of care and forethought.
+great deal of forethought.
 .\"------------------------------------
-.sh 3 "Other Administrative Tasks"
-.lp
-Other DBA commands include
-.cW createuser ,
-.cW destroyuser ,
-.cW ipcclean
-and
-.cW vacuum ,
-all of which are discussed further in the \*(UU section of the
-Reference Manual.  See also the section in this manual on
-.q "Administering \*(PP."
-.\"------------------------------------
-.sh 2 "Classes and the \*(PQ Query Language"
+.sh 2 "Basic Use of the \*(PQ Query Language"
 .\"-----------------
-.sh 3 "Basic Capabilities"
+.sh 3 "Concepts"
 .lp
 The fundamental notion in \*(PP is that of a
 .i class,
@@ -601,12 +583,16 @@ which is a named collection of object
 .i instances .
 Each instance has the same collection of named
 .i attributes ,
-and each attribute is of
-a specific 
+and each attribute is of a specific
 .i type .
 Furthermore, each instance has an installation-wide unique, permanent
 .i "object identifier"
 (OID).
+.lp
+As previously discussed, classes are grouped into databases, and a
+collection of databases managed by a single
+.cW postmaster
+process constitutes an installation.
 .\"-----------------
 .sh 3 "Creating a New Class"
 .lp
@@ -630,13 +616,7 @@ printable characters
 a 4-byte signed integer
 .cW int4 ), (
 and a fixed-length array of 16 characters
-.cW char16 .)\** (
-.(f
-\** For additional information on these types, or information on
-additional types that are pre-installed in \*(PP, see the Reference
-Manual under the heading
-.b "Built-In Types" .
-.)f
+.cW char16 .) (
 .lp
 So far, the \*(PP
 .b create
@@ -702,7 +682,7 @@ as long as they are given a name (e.g.,
       where EMP.name = "Bill" \\g
 .)C
 .\"-----------------
-.sh 3 "Redirecting retrieve queries"
+.sh 3 "Redirecting Retrieve Queries"
 .lp
 Any 
 .b retrieve
@@ -718,10 +698,30 @@ are allowed in the qualification of any query:
       where EMP.age < 35 and EMP.salary > 1000 \\g
 .)C
 .\"-----------------
-.sh 3 "Joins"
+.sh 3 "Joins Between Classes"
 .lp
-To find the names of employees which are the same age, one could
-write:
+Thus far, our queries have only accessed one class at a time.  Queries
+can access multiple classes at once, or access the same class in such
+a way that multiple instances of the class are being processed at the
+same time.  A query that accesses multiple instances of the same or
+different classes at one time is called a 
+.i "join query" .
+.lp
+As an example, say we wish to find the names of employees which are
+the same age.  In effect, we need to compare the 
+.cW age
+attribute of each 
+.cW EMP
+instance to the 
+.cW age
+attribute of all other 
+.cW EMP
+instances.\**
+.(f
+\** This is only a conceptual model.  The actual join may be performed
+in a more efficient manner, but this is invisible to the user.
+.)f
+We can do this with the following query:
 .(C
 * retrieve (E1.name, E2.name)
       from E1 in EMP, E2 in EMP
@@ -740,7 +740,7 @@ of most database systems,
 .cW E1
 and
 .cW E2
-would be called 
+are known as
 .q "range variables." )
 A \*(PQ query can contain an arbitrary number of class names and
 surrogates.\**
@@ -751,10 +751,10 @@ in the query.  For those instances in the Cartesian product for which
 the qualification is true, \*(PP computes and returns the values
 specified in the target list.
 .sp
-In point of fact, \*(PQ does not assign any meaning to duplicate
-values in such expressions.  This means that \*(PP sometimes
-recomputes the same target list several times \(em this frequently
-happens when Boolean expressions are connected with an
+\*(PQ does not assign any meaning to duplicate values in such
+expressions.  This means that \*(PP sometimes recomputes the same
+target list several times \(em this frequently happens when Boolean
+expressions are connected with an
 .b or .
 To remove such duplicates, you must use the
 .b "retrieve unique"
@@ -774,6 +774,14 @@ command:
       where EMP.name = "Joe" and E.name = "Sam" \\g
 .)C
 This command replaces the salary of Joe by that of Sam.
+.lp
+Notice that this example is actually another join query.  Here, we are
+using the actual class name
+.cW EMP '') (``
+as one range variable and a surrogate name for 
+.cW EMP
+.cW E '') (``
+as another range variable.
 .\"-----------------
 .sh 3 "Deletions"
 .lp
@@ -787,6 +795,15 @@ Since all employees have positive salaries, this command will leave
 the
 .cW EMP
 class empty.
+.lp
+One should be wary of queries of the form
+.(C
+* delete \fIclassname\fP \\g
+.)C
+Without a qualification, the 
+.b delete
+command will simply delete all instances of the given class, leaving
+it empty.  The system will not request confirmation before doing this.
 .\"-----------------
 .sh 3 "Arrays"
 .lp
@@ -798,20 +815,20 @@ flags
 other new behavior
 .hl
 .)l
-\*(PP supports both fixed-length and variable-length one-dimensional
-arrays.  To illustrate their use, we first create a class with an
-array type.
+\*(PP allows attributes of an instance to be defined as fixed-length or
+variable-length multi-dimensional arrays.  To illustrate their use, we
+first create a class with an array type.
 .(C
 * create SAL_EMP (name = char[],
                   pay_by_quarter = int4[4]) \\g
 .)C
 The above query will create a class named
 .cW SAL_EMP
-with a variable-length array of
+with a variable-length one-dimensional array of
 .cW text
 strings
 .cW name ), (
-and an array of 4
+and a one-dimensional array of 4
 .cW int4
 integers
 .cW pay_by_quarter ), (
@@ -829,8 +846,11 @@ values within braces and separate them by commas.
 * append SAL_EMP (name = "joe",
       pay_by_quarter = "{20000, 25000, 25000, 25000}") \\g
 .)C
-\*(PP uses the FORTRAN numbering convention for arrays\(emthat is,
-\*(PP arrays start with array[1] and end with array[n].
+By default, \*(PP uses the 
+.q one-based
+numbering convention for arrays \(em that is, \*(PP arrays start with
+array[1] and end with array[n].  (This is the same convention used in
+Pascal and FORTRAN.)
 .lp
 Now, we can run some queries on
 .cW SAL_EMP .
@@ -888,11 +908,56 @@ and provides a list of employees.
 .\"-----------------
 .sh 3 "Aggregate Functions"
 .lp
-.(l C
-.hl
-FIX ME
-.hl
-.)l
+Like relational query languages such as SQL, \*(PP supports aggregate
+functions.  However, the current implementation of \*(PP aggregate
+functions is very limited.  Specifically, while there are aggregates
+to compute such functions as the count, sum, average, maximum and
+minimum over a set of instances, aggregates can only appear in the
+target list of a query and not in the qualification (also known as the
+.cW where
+clause).  As an example, 
+.(C
+* retrieve (how_many = count{EMP.name}) \\g
+.)C
+counts all employees, and 
+.(C
+* retrieve (avg_salary = 
+      int4ave{EMP.salary
+              where EMP.dept = "toy"}) \\g
+.)C
+computes the average salary of all employees in the toy department.
+However, the following query (to find out who makes more money than
+any of the toy department employees) will
+.i not
+work:
+.(C
+* retrieve (EMP.name) where
+      EMP.salary > int4max{EMP.salary 
+                           where EMP.dept = "toy"} \\g
+.)C
+because the aggregate is not in the target list.  In addition, if the
+qualification of the aggregate expression contains any join clauses
+(references to other classes), the aggregate may or may not return the
+right result.  (In other words, aggregates with join clauses are
+neither disallowed nor are they supported.)
+.\"-----------------
+.sh 3 "Help!  What Are the Valid Types, Operators, Etc.??"
+.lp
+So far, we have been rather cavalier in our use of types (such as 
+.cW char16 ),
+operators (such as
+.cW < ),
+and aggregate functions (such as 
+.cW count ).
+A large number of pre-defined types, operators and aggregates are
+available by default in \*(PP, and these are listed in Section 3 of
+the Reference Manual.  This would be a good time to go ahead and take
+a peek at that section.
+.lp
+In a later section of this manual, we will describe how to query the
+system to find out the current list of
+.i all
+valid types, operators, functions, etc. known to the system.
 .\"------------------------------------
 .sh 2 "Advanced \*(PQ"
 .lp
@@ -998,11 +1063,13 @@ For example to see all the salaries that Sam has ever earned, one
 would query:
 .(C
 * retrieve (E.salary)
-      from E in EMP["Jan 1 00:00:00 1970 GMT", "now"]
+      from E in EMP["epoch", "now"]
       where E.name = "Sam" \\g
 .)C
-If you have executed all of the examples so far, then the above query
-returns:
+where 
+.q epoch
+indicates the beginning of the \*(UU system clock.  If you have
+executed all of the examples so far, then the above query returns:
 .(T
 .TS
 allbox;
@@ -1012,24 +1079,21 @@ salary
 1200
 .TE
 .)T
-There are two salaries for Sam, since he was deleted from and then
-re-appended to the
+Notice that there are two salaries for Sam because he was deleted from
+and then re-appended to the
 .cW EMP
 class.
 .lp
-The default beginning of a time range is the origin of the system
-clock (which just happens to be
-.cW "Jan 1 00:00:00 1970 GMT" '' ``
-on \*(UU systems),
-.(l C
-.hl
-FIX ME
-new abstime
-.hl
-.)l
-and the default end is the current time; thus, the above time range
-can be abbreviated as
+The default beginning of a time range is the earliest time
+representable by the system and the default end is the current time;
+thus, the above time range can be abbreviated as
 .cW [,] .'' ``
+See Section 3 of the Reference Manual,
+.b Built-Ins ,
+and the introduction to Section 4,
+.b \*(PQ ,
+for a full description of the time types (absolute time, relative time
+and time ranges).
 .\"---------------------------------------------------------------------------
 .sh 1 "USER EXTENSIONS TO \*(PQ"
 .lp
@@ -1216,7 +1280,7 @@ manner described below.  There is no intrinsic performance difference
 between using a system type or user-defined type, other than the
 overhead due to the complexity of the type itself.
 .\"------------------------------------
-.sh 3 "Internal storage of types"
+.sh 3 "Internal Storage of Types"
 .lp
 .(l C
 .hl
@@ -1231,7 +1295,7 @@ upon which user-defined functions impose structure and meaning.  \*(PP
 will store and retrieve the data from disk and use user-defined
 functions to input, process, and output the data.
 .\"------------------------------------
-.sh 3 "Functions needed for a user-defined type"
+.sh 3 "Functions Needed for a User-Defined Type"
 .lp
 A completely defined user type requires the following user-defined
 functions:
@@ -1257,7 +1321,7 @@ In this discussion, we will be defining a
 .cW circle
 type, using functions written in the C programming language.
 .\"-----------------
-.sh 4 "Data structures for our type"
+.sh 4 "Data Structures for Our Type"
 .lp
 Before we do anything, we have to decide on what a circle looks like,
 both in string format and internally in memory.  Circles have a center
@@ -1314,7 +1378,7 @@ structure to which
 presumably points.  \*(PP cannot detect this kind of coding error; you
 must guard against it yourself.
 .\"-----------------
-.sh 4 "Defining the input and output functions for our type"
+.sh 4 "Defining the Input and Output Functions for Our Type"
 .lp
 Suppose in defining our type
 .q circle,
@@ -1589,6 +1653,11 @@ type added to the list of types it works on.  Any string of
 .q "punctuation characters"
 other than brackets, braces, or parentheses can be used in defining an
 operator.
+.lp
+If you wish to place indices on attributes that are of the new type,
+you must first tell the index access method the properties of the new
+type.  This is a relatively complicated process and is described in a
+separate section of this manual \(em see Appendix A.
 .\"------------------------------------
 .sh 3 "Additional Information on Creating a User-Defined Function"
 .\"-----------------
@@ -1732,7 +1801,7 @@ overpaid2(emp, dept, name, number)
     long number;
 .)C
 .\"------------------------------------
-.sh 3 "Arrays of types"
+.sh 3 "Arrays of Types"
 .lp
 As discussed above, \*(PP fully supports arrays of base types.
 Additionally, \*(PP supports arrays of user-defined types as well.
@@ -1740,7 +1809,7 @@ When you define a type, \*(PP
 .i automatically
 provides support for arrays of that type.
 .\"-----------------
-.sh 4 "Arrays of user-defined types"
+.sh 4 "Arrays of User-Defined Types"
 .lp
 Using the
 .q circle
@@ -1793,7 +1862,7 @@ Note the
 .cW {} s,
 indicating that an array has been retrieved, as opposed to a single element.
 .\"-----------------
-.sh 4 "Defining a new array type"
+.sh 4 "Defining a New Array Type"
 .lp
 .(l C
 .hl
@@ -1860,7 +1929,7 @@ arrays:
 We can also define operators for equality, less than, greater than,
 etc., which operate on our new array type as necessary.
 .\"-----------------
-.sh 4 "Creating an array type from scratch"
+.sh 4 "Creating an Array Type from Scratch"
 .lp
 .(l C
 .hl
@@ -2029,7 +2098,7 @@ and is
 .i not
 part of the formal \*(PQ definition.
 .\"------------------------------------
-.sh 3 "Large Object types"
+.sh 3 "Large Object Types"
 .lp
 .(l C
 .hl
@@ -2056,7 +2125,7 @@ interface.  The interface to large objects is quite similar to the
 7 of the \*(PP Reference Manual, which you should have available to
 consult as you read the following.
 .\"-----------------
-.sh 4 "Defining a large object"
+.sh 4 "Defining a Large Object"
 .lp
 Just like any other type, a large object type requires input and
 output functions.  For the purposes of this discussion, we assume that
@@ -2129,7 +2198,7 @@ aspect of \*(PP is available for use with them, including index access
 methods, if the appropriate operator classes have been defined.
 Operator classes for index access methods are discussed in Appendix A.
 .\"---------------------------------------------------------------------------
-.sh 3 "User-defined Aggregates"
+.sh 3 "User-Defined Aggregates"
 .lp
 .(l C
 .hl
@@ -2139,19 +2208,26 @@ FIX ME
 .\"---------------------------------------------------------------------------
 .sh 1 "THE \*(PP RULE SYSTEM"
 .lp
-The discussion in this section is intended to provide an overview of
-the \*(PP rule system and point the user at helpful references and
-examples.  \*(PP actually has two rule systems, the
-.i instance-level
+Production rule systems are conceptually simple, but there are many
+subtle points involved in actually using them.  Consequently, we will
+not attempt to explain the actual syntax and operation of the \*(PP
+rule system here.  Instead, you should read [STON90b] to understand
+some of these points and the theoretical foundations of the \*(PP rule
+system before trying to use rules.  The discussion in this section is
+intended to provide an overview of the \*(PP rule system and point the
+user at helpful references and examples.
+.lp
+The main point you should understand is that \*(PP actually has two
+rule systems, the
+.i "instance-level"
 rule system and the
 .i "query rewrite"
-rule system.
-.\"------------------------------------
-.sh 2 "The Instance-Level Rule System"
+rule system, and that there are tradeoffs in the employment of each.
 .lp
-The instance-level rule system uses markers placed in each instance in
-a class to
-.q trigger
+The 
+.i "instance-level"
+rule system uses markers placed in each instance in a class to
+.q "trigger"
 rules.  Examples of the instance-level rule system are explained and
 illustrated in
 .cW /usr/local/postgres/src/regress/demo ,
@@ -2159,36 +2235,110 @@ which is included with the \*(PP distribution.  Additional discussion
 of the instance-level rule system can be found in the Reference Manual
 under
 .b "define rule" .
-The theoretical foundations of the \*(PP rule system can be found in
-[STON90b].
-.\"------------------------------------
-.sh 2 "The Query Rewrite Rule System"
 .lp
-The query rewrite rule system modifies queries to take rules into
-consideration, and then passes the modified query to the query
-optimizer for execution.  It is very powerful, and can be used for
-many things such as query language procedures, views, and versions.
-Examples and discussion can be found in the demo in
+The 
+.q "query rewrite"
+rule system modifies queries to take rules into consideration, and
+then passes the modified query to the query optimizer for execution.
+It is very powerful, and can be used for many things such as query
+language procedures, views, and versions.  Examples can be found in
 .cW /usr/local/postgres/src/regress/video ,
 and further discussion is in the Reference Manual under
 .b "define rule" .
-The power of this rule system is discussed in [ONG90] and [STON90b].
-.\"------------------------------------
-.sh 2 "Which Rule System Should You Use?"
+The power of this rule system is discussed in [ONG90] as well as
+[STON90b].
 .lp
 Since each rule system is implemented quite differently, they work
 best in different situations.  The query rewrite system is best when
-rules affect most of the instances in a class, while the
-instance-level system is best when a rule affects only a few
+rules affect 
+.i most
+of the instances in a class, while the instance-level system is best
+when a rule affects only a
+.i few
 instances.
 .\"---------------------------------------------------------------------------
 .sh 1 "ADMINISTERING \*(PP"
 .lp
-In this section, we will discuss aspects of \*(PP of interest to those
-making extensive use of \*(PP, or who are the database administrator
-for a group of \*(PP users.
+In this section, we will discuss aspects of \*(PP that are of interest
+to those who make extensive use of \*(PP, or who are the site
+administrator for a group of \*(PP users.
 .\"------------------------------------
-.sh 2 "User Administration"
+.sh 2 "Frequent Tasks"
+.lp
+Here we will briefly discuss some procedures that you should be
+familiar with in managing any \*(PP installation.
+.\"------------------------------------
+.sh 3 "Starting the Postmaster"
+.lp
+If you did not install \*(PP exactly as described in the installation
+instructions, you may have to perform some additional steps before
+starting the 
+.cW postmaster
+process.
+.bu
+Even if you were not the person who installed \*(PP, you should
+understand the installation instructions.  The installation
+instructions explain some important issues with respect to where \*(PP
+places some important files, proper settings for environment
+variables, etc. that may vary from one version of \*(PP to another.
+.bu
+You should look at the Reference Manual under the heading
+.b postmaster
+if you wish to use non-default options (e.g., increased security
+options, a non-standard installation directory, etc.).
+.bu
+You 
+.i must
+start the
+.cW postmaster
+process with the user-id that owns the installed database files.  In
+most cases, if you have followed the installation instructions, this
+will be the user
+.q postgres .
+If you do not start the 
+.cW postmaster
+with the right user-id, the backend servers that are started by the
+.cW postmaster
+will not be able to read the data.
+.bu
+Make sure that 
+.cW /usr/local/postgres/bin
+is in your shell command path, because the
+.cW postmaster
+will use your 
+.cW PATH
+to locate \*(PP commands.
+.bu
+Remember to set the environment variable
+.cW PGDATA
+to the directory where the \*(PP databases are installed.  (This
+variable is more fully explained in the \*(PP installation
+instructions and the Reference Manual.)
+.bu
+If you do start the 
+.cW postmaster
+using non-standard options, such as a different TCP port number,
+remember to tell all users so that they can set their 
+.cW PGPORT
+environment variable correctly.
+.\"------------------------------------
+.sh 3 "Shutting Down the Postmaster"
+.lp
+If you need to halt the
+.cW postmaster
+process, you can use the \*(UU
+.cW kill (1)
+command.  Some people habitually use the 
+.cW -9
+or
+.cW -KILL
+option; this should never be necessary and we do not recommend that
+you do this, as the
+.cW postmaster
+will be unable to free its various shared resources, its child
+processes will be unable to exit gracefully, etc.
+.\"------------------------------------
+.sh 3 "Adding and Removing Users"
 .lp
 The
 .cW createuser
@@ -2196,46 +2346,223 @@ and
 .cW destroyuser
 commands enable and disable access to \*(PP by specific users on the 
 host system.  Please read the descriptions of these commands in the
-Reference Manual for specifics on their use.
+Reference Manual for specific instructions on their use.
 .\"------------------------------------
-.sh 2 "Moving Database Directories Out of /usr/local/postgres/data/base"
+.sh 3 "Periodic Upkeep"
 .lp
-.(l C
-.hl
-FIX ME
-PGDATA!!!
-.hl
-.)l
+The
+.cW vacuum
+command should be run on each database periodically.  This command
+processes deleted instances\**
+.(f
+\** This may mean different things depending on the 
+.i "archive mode"
+with which each class has been created.  See the Reference Manual
+under the heading
+.b "create"
+for more details.  However, the current implementation of the 
+.cW vacuum
+command does
+.i not
+perform any compaction or clustering of data.  Therefore, the \*(UU
+files which store each \*(PP class never shrink and the space
+.q reclaimed 
+by 
+.cW vacuum
+is never actually reused.
+.)f
+and, more importantly, updates the system
+.i statistics
+concerning the size of each class.  If these statistics are permitted
+to become out-of-date and inaccurate, the \*(PP query optimizer may
+make extremely poor decisions with respect to query evaluation
+strategies.  Therefore, we recommend running
+.cW vacuum
+every night or so (perhaps in a script that is executed by the \*(UU
+.cW cron (1)
+or
+.cW at (1) 
+commands).
+.\"------------------------------------
+.sh 2 "Infrequent Tasks"
+.lp
+At some time or another, every \*(PP site administrator has to perform
+all of the following actions.
+.\"------------------------------------
+.sh 3 "Cleaning Up After Crashes"
+.lp
+You may have occasion to run the
+.cW ipcclean
+command if system errors cause the
+.cW postmaster
+to crash.
+If this happens, you may find (using the \*(UU
+.cW ipcs (1)
+command) that the
+.q postgres
+user has shared memory and/or semaphores allocated even though no
+.cW postmaster
+process is running.  In this case, you should run
+.cW ipcclean
+as the
+.q postgres
+user in order to deallocate these resources.  Be warned that 
+.i all
+such resources owned by the
+.q postgres
+user will be deallocated.  If you have multiple
+.cW postmaster
+processes running on the same machine, you should kill all of them
+before running
+.cW ipcclean 
+(otherwise, they will crash on their own when their shared resources
+are suddenly deallocated).
+.\"------------------------------------
+.sh 3 "Moving Database Directories"
+.lp
 By default,
 all \*(PP databases are stored in separate subdirectories under
-.cW /usr/local/postgres/data/base/ .\**
+.cW /usr/local/postgres/data/base .\**
 .(f
 \** Data for certain classes may stored elsewhere if a non-standard
 storage manager was specified when they were created.  Use of
 non-standard storage managers is an experimental feature that is not
 supported outside of Berkeley.
 .)f
-To move a particular data base to an alternate directory (e.g., on a
-filesystem with more free space), do the following:
+At some point, you may find that you wish to move one or more
+databases to another location (e.g., to a filesystem with more free
+space).
+.lp
+If you wish to move 
+.i all
+of your databases to the new location, you can simply:
+.bu
+Kill the 
+.cW postmaster .
+.bu
+Copy the entire
+.cW data
+directory to the new location (making sure that the new files are
+owned by user
+.q postgres ).
+.(C
+% cp -r /usr/local/postgres/data /new/place/data
+.)C
+.bu
+Reset your
+.cW PGDATA
+environment variable (as described earlier in this manual and in the
+installation instructions).
+.(C
+# using csh or tcsh...
+% setenv PGDATA /new/place/data
+
+# using sh, ksh or bash...
+% PGDATA=/new/place/data; export PGDATA
+.)C
+.bu
+Restart the 
+.cW postmaster .
+.(C
+% postmaster &
+.)C
+.bu
+Remove the old 
+.cW data
+directory.
+.(C
+% rm -rf /usr/local/postgres/data
+.)C
+.lp
+To install a 
+.i single
+database in an alternate directory while leaving all other databases
+in place, do the following:
 .bu
 Create the database (if it doesn't already exist) using the
 .b createdb
 command.  In the following steps we will assume the database is named
 .cW foo .
 .bu
+Kill the 
+.cW postmaster .
+.bu
 Copy the directory
 .cW /usr/local/postgres/data/base/foo
-and it contents to its ultimate destination.  It should still be owned
-by the
-.cW postgres
+and its contents to its ultimate destination.  It should still be
+owned by the
+.q postgres
 user.
+.(C
+% cp -r /usr/local/postgres/data/base/foo /new/place/foo
+.)C
 .bu
 Remove the directory
-.cW /usr/local/postgres/data/base/foo .
+.cW /usr/local/postgres/data/base/foo :
+.(C
+% rm -rf /usr/local/postgres/data/base/foo
+.)C
 .bu
-Make a symbolic link in
+Make a symbolic link from
 .cW /usr/local/postgres/data/base
-to the new directory.
+to the new directory:
+.(C
+% ln -s /new/place/foo /usr/local/postgres/data/base/foo
+.)C
+.bu
+Restart the 
+.cW postmaster .
+.\"------------------------------------
+.sh 3 "Updating Databases"
+.lp
+\*(PP is a research system.  In general, \*(PP may not retain the same
+binary format for the storage of databases from release to release.
+Therefore, when you update your \*(PP software, you will probably have
+to modify your databases as well.  This is a common occurrence with
+commercial database systems as well; unfortunately, unlike commercial
+systems, \*(PP does not come with user-friendly utilities to make your
+life easier when these updates occur.
+.lp
+In general, you must do the following to update your databases to a
+new software release:
+.bu
+.i Extensions
+(such as user-defined types, functions, aggregates, etc.) must be
+reloaded by re-executing the \*(PQ
+.b define
+commands.  Notice that as of Version 4.2, the method by which you
+generate object code for user-defined functions has changed, so you
+may have to modify your old
+.cW .o
+files.  See Appendix B for more details.
+.bu
+.i Data
+must be dumped from the old classes into ASCII files (using the \*(PQ 
+.b copy
+command), the new classes created in the new database (using the \*(PQ
+.b create
+command), and the data reloaded from the ASCII files.
+.bu
+.i Rules
+and
+.i views
+must also be reloaded by re-executing the various \*(PQ
+.b define
+commands.
+.lp
+You should give any new release a 
+.q "trial period" ;
+in particular, do not delete the old database until you are satisfied
+that there are no compatibility problems with the new software.  For
+example, you do not want to discover that a bug in a type's
+.q input
+(conversion from ASCII)
+and
+.q output
+(conversion to ASCII) routines prevents you from reloading your data
+after you have destroyed your old databases!  (This should be standard
+procedure when updating any software package, but some people try to
+economize on disk space without applying enough foresight.)
 .\"------------------------------------
 .sh 2 "Troubleshooting \*(PP"
 .lp
@@ -2289,6 +2616,213 @@ If you see this error message, you should see if a
 .cW postmaster
 is truly running.  If one is running, the problem is likely related to
 your network.
+.\"------------------------------------
+.sh 2 "Database Security"
+.lp
+Most sites that use \*(PP are educational or research institutions and
+do not pay much attention to security in their \*(PP installations.
+If desired, one can install \*(PP with additional security features.
+Naturally, such features come with additional administrative overhead
+that must be dealt with.
+.\"------------------------------------
+.sh 3 "Kerberos"
+.lp
+\*(PP can be configured to use the MIT Kerberos network authentication
+system.  This prevents outside users from connecting to your databases
+over the network without the correct authentication information.  For
+more information on Kerberos, see the file
+.cW src/doc/kerberos.faq
+and the 
+.b \*(UU
+section of the Reference Manual.
+.\"------------------------------------
+.sh 3 "Access Control"
+.lp
+.i "Access control lists"
+(ACLs) can be defined on a per-class basis.  These work rather like a
+more flexible version of the \*(UU
+.cW chmod (1)
+command.  See the Reference Manual under the heading
+.b "change acl"
+for more details.
+.\"------------------------------------
+.sh 2 "How to Find Out What's in a Database"
+.lp
+This section explains how you can answer questions such as,
+.q "What tables do I have in this database?"
+and
+.q "What extensions have been added to my database?"
+.\"------------------------------------
+.sh 3 "About the \*(PP System Catalogs"
+.lp
+If you are familiar with standard relational systems, you know that
+they store information about databases, tables, etc., in what are
+commonly known as
+.i "system catalogs" .
+(Some systems call this the
+.i "data dictionary" ).
+The catalogs appear to the user as tables, like any other, but the
+DBMS stores its internal bookkeeping in them.  One key difference
+between \*(PP and standard relational systems is that \*(PP stores
+much more information in its catalogs \(em not only information about
+tables and attributes, but also information about the types,
+procedures, access methods, and so on.  These tables can be modified
+by the user, and since \*(PP bases its internal operation on these
+tables, this means that \*(PP can be extended by users.  By
+comparison, standard relational systems can only be extended by
+changing hard-coded procedures within the DBMS.
+.lp
+The following classes contain information that may be useful to the
+end user.  There are many other system catalogs, but there should
+never be a reason to query them.
+.TS
+center tab(|);
+cf(C)|c
+lf(C)|l.
+catalog name|description
+=
+pg_database|databases
+pg_class|class
+pg_attribute|attributes
+pg_index|indexes
+
+pg_proc|procedures
+pg_type|types
+pg_operator|operators
+pg_aggregate|aggregates
+
+pg_am|access methods
+pg_amop|access method operators
+pg_amproc|access method support functions
+pg_opclass|access method operator classes
+
+pg_user|users
+pg_group|user groups
+.TE
+.\"------------------------------------
+.sh 3 "Querying the System Catalogs"
+.lp
+Before executing any of the queries below, be sure to execute the \*(PP
+.cW vacuum
+command.  (The queries will run much more quickly that way.)
+.lp
+This query prints the names of all database adminstrators and the name
+of their database(s).
+.(C
+* retrieve (user_name = u.usename,
+            database = d.datname)
+      from u in pg_user,
+           d in pg_database
+      where u.usesysid = int2in(int4out(d.datdba))
+      sort by user_name, database
+ \\g
+.)C
+The following query lists all user-defined classes in the database.
+.(C
+* retrieve (class_name = c.relname)
+      from c in pg_class
+      where c.relkind = 'r'     /* exclude indexes */
+        and c.relname !~ "^pg_"  /* exclude catalogs */
+      sort by class_name
+ \\g
+.)C
+The following query prints a report of the user-defined attributes and
+their types for all user-defined classes in the database.
+.(C
+* retrieve (class_name = c.relname, 
+            attr_name = a.attname, 
+            attr_type = t.typname)
+      from c in pg_class,
+           a in pg_attribute,
+           t in pg_type
+      where c.relkind = 'r'    /* no indexes */
+        and c.relname !~ "^pg_" /* no catalogs */
+        and a.attnum > 0       /* no system att's */
+        and a.attrelid = c.oid
+        and a.atttypid = t.oid
+      sort by class_name, attr_name
+ \\g
+.)C
+This query lists all left-associative (post-fix) operators.
+.(C
+* retrieve (left_assoc = o.oprname,
+            operand = right.typname,
+            return_type = result.typname)
+      from o in pg_operator,
+           right in pg_type,
+           result in pg_type
+      where o.oprkind = 'l'
+        and o.oprright = right.oid
+        and o.oprresult = result.oid
+      sort by operand
+ \\g
+.)C
+This query lists all right-associative (pre-fix) operators.
+.(C
+* retrieve (right_assoc = o.oprname,
+            operand = left.typname,
+            return_type = result.typname)
+      from o in pg_operator,
+           left in pg_type,
+           result in pg_type
+      where o.oprkind = 'r'
+        and o.oprleft = left.oid
+        and o.oprresult = result.oid
+      sort by operand
+ \\g
+.)C
+This query lists all binary operators.
+.(C
+* retrieve (binary_op = o.oprname,
+            left_opr = left.typname,
+            right_opr = right.typname, 
+            return_type = result.typname)
+      from o in pg_operator,
+           left in pg_type,
+           right in pg_type,
+           result in pg_type
+      where o.oprkind = 'b'
+        and o.oprleft = left.oid
+        and o.oprright = right.oid
+        and o.oprresult = result.oid
+      sort by left_opr, right_opr
+ \\g
+.)C
+This query returns the name, number of arguments (parameters) and
+return type of all user-defined C functions.  The same query can be
+used to find all built-in C functions if you change the
+.q C
+to 
+.q internal ,
+or all \*(PQ functions if you change the
+.q C
+to 
+.q postquel .
+.(C
+* retrieve (p.proname, 
+            arguments = p.pronargs,
+            returntype = t.typname)
+      from p in pg_proc,
+           l in pg_language,
+           t in pg_type
+      where p.prolang = l.oid
+        and p.prorettype = t.oid
+        and l.lanname = "C"
+      sort by proname
+ \\g
+.)C
+This query lists all of the aggregate functions that have been
+installed, except for 
+.cW count
+(which can take any type as its argument).
+.(C
+* retrieve (a.aggname, t.typname)
+      from a in pg_aggregate,
+           t in pg_type
+      where a.aggbasetype = t.oid
+      sort by aggname
+ \\g
+.)C
 .\"---------------------------------------------------------------------------
 .sh 1 "REFERENCES"
 .\"------------------------------------
@@ -2299,7 +2833,7 @@ Database System,"
 Electronics Research Laboratory,
 University of California,
 ERL Technical Memorandum M90/33,
-Berkeley, CA
+Berkeley, CA,
 April 1990.
 .\"------------------------------------
 .xP [ROWE87]
@@ -2330,11 +2864,17 @@ Proc. 1987 VLDB Conference,
 Brighton, England,
 Sept. 1987.
 .\"------------------------------------
+.xP [STON89]
+Stonebraker, M., Hearst, M., and Potamianos, S.,
+``A Commentary on the POSTGRES Rules System,''
+SIGMOD Record \fI18\fP(3),
+Sept. 1989.
+.\"------------------------------------
 .xP [STON90a]
 Stonebraker, M., Rowe, L. A., and Hirohama, M.,
 ``The Implementation of POSTGRES,''
 IEEE Transactions on Knowledge and Data Engineering \fI2\fP(1),
-Mar. 1990.
+March 1990.
 .\"------------------------------------
 .xP [STON90b]
 Stonebraker, M. et al.,
@@ -2345,7 +2885,7 @@ June 1990.
 .\"---------------------------------------------------------------------------
 .bp
 .lp
-.uh "APPENDIX A: User-Defined Types and Indices"
+.sh 0 "APPENDIX A: User-Defined Types and Indices"
 .lp
 In this section, we will discuss how to extend \*(PP to use a
 user-defined type and associated functions with existing access
@@ -3002,7 +3542,7 @@ doesn't appear, because \(mi10000 >=& 9000.
 .\"---------------------------------------------------------------------------
 .bp
 .lp
-.uh "Appendix B: Linking Dynamically-Loaded Functions"
+.sh 0 "Appendix B: Linking Dynamically-Loaded Functions"
 .lp
 After you have created and registered a user-defined function, your
 work is essentially done.  \*(PP, however, must load the 
