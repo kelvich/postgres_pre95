@@ -23,6 +23,7 @@
 #include "primnodes.h"
 #include "primnodes.a.h"
 #include "palloc.h"
+#include "datum.h"
 
 extern LispValue parser_ppreserve();
 
@@ -478,7 +479,7 @@ make_const( value )
 		
 	  case PGLISP_ATOM:
 	    tp = type("char");
-	    val = (int)(value->val.name);
+	    val = PointerGetDatum(value->val.name);
 	    break;
 	    
 	  case PGLISP_FLOAT:
