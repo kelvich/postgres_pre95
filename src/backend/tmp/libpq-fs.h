@@ -19,7 +19,14 @@
 #include <sys/file.h>
 #include <sys/stat.h>
 
-/* UNIX compatibility junk.  This should be in all system''s include files,
+#include <fcntl.h>		/* for O_ on some */
+
+#include <unistd.h>		/* for SEEK_ on most */
+#ifndef SEEK_SET
+#include <stdio.h>		/* for SEEK_ on others */
+#endif /* SEEK_SET */
+
+/* UNIX compatibility junk.  This should be in all systems' include files,
    but this is not always the case. */
 
 #ifndef MAXNAMLEN
@@ -32,13 +39,18 @@ struct pgdirent {
 	char d_name[MAXNAMLEN+1];
 };
 
-/* for lseek(2) */
-#ifndef SEEK_SET
-/* these normally come from <stdio.h> or <unistd.h> */
-#define SEEK_SET 0
-#define SEEK_CUR 1
-#define SEEK_END 2
-#endif /* SEEK_SET */
+/*
+ * SysV struct dirent doesn't have d_namlen.
+ * This counts on d_name being last, which is moderately safe (ha) since 
+ * it's the variable-length part of the structure.
+ */
+#ifdef SYSV_DIRENT
+#define	D_NAMLEN(dp) \
+	((dp)->d_reclen - offsetof(struct dirent, d_name[0]))
+#else /* SYSV_DIRENT */
+#define	D_NAMLEN(dp) \
+	((dp)->d_namlen)
+#endif /* SYSV_DIRENT */
 
 /* for stat(2) */
 #ifndef S_IRUSR
@@ -100,9 +112,9 @@ struct pgstat { /* just the fields we need from stat structure */
     unsigned int st_sizehigh;	/* high order bits */
 /* 2^64 == 1.8 x 10^20 bytes */
     int st_uid;
-    int st_atime;
-    int st_mtime;
-    int st_ctime;
+    int st_atime_s;	/* just the seconds */
+    int st_mtime_s;	/* since SysV and the new BSD both have */
+    int st_ctime_s;	/* usec fields.. */
 };
 
 typedef struct Direntry_ {
