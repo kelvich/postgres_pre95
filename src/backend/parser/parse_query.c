@@ -22,6 +22,7 @@
 #include "parse_query.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
+#include "palloc.h"
 
 extern LispValue parser_ppreserve();
 
@@ -367,77 +368,36 @@ make_var ( relname, attrname )
 
 static char tlist_buf[1024];
 static int end_tlist_buf = 0;
+static char *target_list_place;
+static char *from_list_place;
 
 LispValue
 SkipForwardToFromList()
 {
-    extern LispValue yylval;
-    extern char yytext[];
-    extern int yyleng;
-    LispValue next_token;
-    int i;
-    char *temp;
-    
-    for(i=0;i<1024;i++)
-      tlist_buf[i]=0;
-    
-    end_tlist_buf = 0;
-    while ((next_token=(LispValue)yylex()) > 0 && 
-	   next_token != (LispValue)FROM ) {
-		tlist_buf[end_tlist_buf++] = ' ';
-		/* fputc(' ',stdout); */
-		switch( (int) next_token ) {
-		  case SCONST:
-		    temp = (char *)CString(yylval);
-		    tlist_buf[end_tlist_buf++] = '\"';
-			for (i = 0; i < strlen(temp) ; i ++) {
-			    if (temp[i] == '\"' )
-			      tlist_buf[end_tlist_buf++] =
-				'\\';
-			    tlist_buf[end_tlist_buf++] = 
-			      temp[i];
-			}
-		    tlist_buf[end_tlist_buf++] = '\"';
-		    break;
-		  case CCONST:
-		    temp = (char *)CString(yylval);
-		    tlist_buf[end_tlist_buf++] = '\'';
-		    tlist_buf[end_tlist_buf++] = 
-		      temp[0];
-		    tlist_buf[end_tlist_buf++] = '\'';
-		    break;
-		  default:
-		    for (i = 0; i < yyleng; i ++) {
-			tlist_buf[end_tlist_buf++] =
-			  yytext[i];
-			/* fputc(yytext[i],stdout); */
-		    }
-		    break;
-		}
-		
-	    } /* while */
-    fflush(stdout);
-	if (next_token <= 0 ) {
-	    /*		printf("%d\n",(LispValue)0);
-			printf("EOS, no from found\n");
-			fflush(stdout);*/
-	    for (i = end_tlist_buf; i > -1 ;--i ) {
-		unput(tlist_buf[i] );
-		/* fputc(tlist_buf[i],stdout); */
-		}
-	    end_tlist_buf = 0;
-	    fflush(stdout);
-	}
-	if (next_token == (LispValue) FROM ) {
-/*		printf("FROM found\n");
-		fflush(stdout);
+        LispValue next_token;
+        int i;
+        extern char *Ch;
+        char *temp = Ch;
+
+        while ((next_token=(LispValue)yylex()) > 0 &&
+                next_token != (LispValue)FROM )
+          ; /* empty while */
+
+        if (next_token <= 0 ) {
+/*
+                printf("EOS, no from found\n");
+                fflush(stdout);
 */
-		for (i = yyleng ; i > -1; --i ) {
-			unput(yytext[i] );
-			/* fputc(yytext[i],stdout); */
-		}
-		fflush(stdout);
-	}
+                Ch = temp;
+        }
+        if (next_token == (LispValue) FROM ) {
+        /*      printf("FROM found\n");*/
+                fflush(stdout);
+                Ch -= 4;
+                from_list_place = Ch;
+                target_list_place = temp;
+        }
+
 } /* Skip */
 
 
@@ -459,17 +419,11 @@ SkipBackToTlist()
 			/* fputc (yytext[i],stdout); */
 		}
 	}
-	fflush(stdout);
-	
-	if(end_tlist_buf == 0 )
-	  return(LispNil);
-	/* printf("Moving back to target list\n");*/
-	while( end_tlist_buf > 0 ) {
-		unput(tlist_buf[--end_tlist_buf] );
-		/* fputc(tlist_buf[end_tlist_buf],stdout); */
-	}
-	fflush(stdout);
-	return(LispNil);
+
+        bcopy(Ch,from_list_place,strlen(Ch) + 1 );
+	Ch = target_list_place;
+        return(LispNil);
+
 }
 
 LispValue

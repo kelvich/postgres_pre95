@@ -8,23 +8,12 @@ static char *ylib_c = "$Header$";
 #include "exc.h"
 #include "excid.h"
 #include "io.h"
+#include "palloc.h"
+
+LispValue parsetree;
 
 #define DB_PARSE(foo) 
 
-/* Passed a string, result list, calls yacc, and fills
-   in l with the proper lisp list.
-   */
-LispValue parsetree;
-#ifdef ALLEGRO
-
-lvparser(str, index)
-     char *str;
-     int index;
-{
-	extern long lisp_value();
-	return(parser(str,(char *)lisp_value(index)));
-}  
-#endif     
 parser(str, l)
      char *str;
      LispValue l;
