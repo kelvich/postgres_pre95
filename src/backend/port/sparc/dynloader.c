@@ -43,7 +43,7 @@ void *pg_dlopen( filename, err )
 	DynamicFunctionList *func_list= NULL, *load_symbols();
 	int fd;
 	char foo[10];
-	dlHandle *handle= NULL;
+	dfHandle *handle= NULL;
 
 	fd = open(filename, O_RDONLY);
 
