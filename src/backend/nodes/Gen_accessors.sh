@@ -19,7 +19,7 @@ else
 	CB=$CAT
 fi
 CPP=cpp
-PATH=/usr/lib:/lib:$PATH	# to find cpp if not in /usr/bin
+PATH=/usr/lib:/lib:/usr/ccs/lib:$PATH	# to find cpp if not in /usr/bin
 EGREP=egrep
 RM=rm
 SED=sed
