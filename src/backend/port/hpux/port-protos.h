@@ -29,8 +29,8 @@ void      	    free_dyna ARGS(( DynamicFunctionList **dyna_list ));
 
 typedef struct dfHandle {
     DynamicFunctionList *func_list;
-    char		*libname;
-    shl_t		handle;
+    shl_t handle;			/* Handle for shared library */
+    char shlib[MAXPATHLEN];		/* File of dynamic loader */
 } dfHandle;
 
 /* port.c */
