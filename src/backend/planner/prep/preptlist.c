@@ -90,6 +90,7 @@ preprocess_targetlist (tlist,command_type,result_relation,range_table)
      */
     if (command_type == REPLACE || command_type == DELETE) {
        LispValue ctid;
+
        ctid = lispCons(MakeResdom(length(t_list) + 1,
                                   27,
                                   6,
@@ -106,9 +107,9 @@ preprocess_targetlist (tlist,command_type,result_relation,range_table)
                                                    lispCons(lispInteger(-1),
                                                             LispNil)),
                                          0), LispNil));
-        t_list = nappend1(t_list, ctid);
-      }
-     return(t_list);
+       t_list = nappend1(t_list, ctid);
+    }
+    return(t_list);
 }  /* function end  */
 
 /*     	====================
@@ -206,6 +207,33 @@ replace_matching_resname (new_tlist,old_tlist)
 	     t_list = nappend1(t_list,new_tl);
 	 } 
      }
+
+     /*
+      * It is possible that 'old_tlist' has some negative
+      * attributes (i.e. negative resnos). This only happens
+      * if this is a replace/append command and we explicitly
+      * specify a system attribute. Of course this is not a very good
+      * idea if this is a user query, but on the other hand the rule
+      * manager uses this mechanism to replace rule locks.
+      *
+      * So, copy all these entries to the end of the target list
+      * and set their 'resjunk' value to 1 to show that these are
+      * special attributes and have to be treated specially by the
+      * executor!
+      */
+    foreach (temp,old_tlist) {
+	Resdom newresno;
+
+	old_tl = CAR(temp);
+	if (get_resno(tl_resdom(old_tl)) < 0 ) {
+	    newresno = (Resdom) CopyObject(tl_resdom(old_tl));
+	    set_resno(newresno, length(t_list) +1);
+	    set_resjunk(newresno, 1);
+	    new_tl = MakeTLE(newresno, tl_expr(old_tl));
+	    t_list = nappend1(t_list, new_tl);
+	}
+    }
+
      return (t_list);
  }  /* function end   */
 
