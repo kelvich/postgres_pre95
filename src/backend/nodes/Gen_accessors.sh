@@ -52,7 +52,7 @@ $CAT > $CTMP1 << 'EOF'
 #define CppIdentity(a)a
 #define CppConcat(a,b)CppIdentity(a)b
 
-#define	SETACCESSOR(_nodetype_,_fieldname_,_fieldtype_) \
+#define	SETACCESSOR(_nodetype_,_fieldname_,_fieldtype_)\
 _SHARP_ define \
 CppConcat(set_,_fieldname_)(node, value) \
     { \
@@ -60,7 +60,7 @@ CppConcat(set_,_fieldname_)(node, value) \
 	(node)->_fieldname_ = (value); \
     }
 
-#define	GETACCESSOR(_nodetype_,_fieldname_,_fieldtype_) \
+#define	GETACCESSOR(_nodetype_,_fieldname_,_fieldtype_)\
 _SHARP_ define CppConcat(get_,_fieldname_)(node) ((node)->_fieldname_)
 EOF
 
