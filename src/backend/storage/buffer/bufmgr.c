@@ -1,320 +1,736 @@
 /*
- *      POSTGRES buffer manager code.
+ * buf.c -- buffer manager interface routines
  *
- * Note:
- *      The Sbuf, Sfreebuf<, and Buffer will be shared.  Each process will have
- *      its own Buf and Freebuf.  Order info will be local to the process and
- *      will be completely general.  (unimplemented.)
+ * Identification:
+ *	$Header$
  *
- *      Problems to fix when shared memory implemented:
+ * BufferAlloc() -- lookup a buffer in the buffer table.  If
+ *	it isn't there add it, but do not read it into memory.
+ *	This is used when we are about to reinitialize the
+ *	buffer so don't care what the current disk contents are.
+ *	BufferAlloc() pins the new buffer in memory.
  *
- *      1)      There may be no need to keep track of the lock held by
- *              a postgres process in struct dbufc, since all locks
- *              should only be very temporary.
+ * ReadBuffer() -- same as BufferAlloc() but reads the data
+ *	on a buffer cache miss.
  *
- *      2)      Page ordering information is not used/maintained yet.
+ * ReleaseBuffer() -- unpin the buffer
  *
- *      3)      Concurrent locking using L_UP or L_EX has problems now.
+ * WriteNoReleaseBuffer() -- mark the buffer contents as "dirty"
+ *	but don't unpin.  The disk IO is delayed until buffer
+ *	replacement if LateWrite flag is set.
  *
- *      4)      The reclaiming of fd's contained in the cashed struct reldesc
- *              should be handled by the cashe system (not by bflush).
+ * WriteBuffer() -- WriteNoReleaseBuffer() + ReleaseBuffer() 
  *
- *      5)      lseek in 4.3 returns off_t.
+ * FlushBuffer() -- as above but never delayed write.
  *
- *      6)      There may be a problem with direct modification of the
- *              shared bp->db_sb->sb_flag fields.  Also, verify that the
- *              separation of the bufc structure into two parts is correct.
+ * BufferSync() -- flush all dirty buffers in the buffer pool.
+ * 
+ * InitBufferPool() -- Init the buffer module.
  *
- * NOTES:
-         It is expected that the caller explicitly use the lock manager
-         to lock with appropriate locks each buffer it needs to reference.
-         The buffer manager only handles conflicts that may arise
-         from two backends needing control over the free_list at
-         the same time.
- **********************************************************************/
-
-#ifndef lint
-static char
-        bufmgr_c[] = "$Header$";
-#endif  /* !defined(lint) */
-
-/*
-#include <sys/types.h>
-#include <sys/stat.h>
-*/
+ * See other files:  
+ * 	freelist.c -- chooses victim for buffer replacement 
+ *	buf_table.c -- manages the buffer lookup table
+ */
 #include <sys/file.h>
-
-#include "tmp/postgres.h"
-
-#include "access/skey.h"
-#include "storage/buf.h"
-#include "tmp/miscadmin.h"
-#include "utils/lmgr.h"
-#include "utils/log.h"
-#include "utils/mcxt.h"
-
 #include "internal.h"
-
-#ifdef sprite
-#include "sprite_file.h"
-#else
 #include "storage/fd.h"
-#endif /* sprite */
+#include "storage/ipc.h"
+#include "storage/ipci.h"
+#include "storage/shmem.h"
+#include "storage/spin.h"
+#include "storage/proc.h"
+#include "utils/log.h"
 
-/*#undef        LATEWRITE       /* LATEWRITE requires reldesc caching */
-
-static Lbufdesc         Local[NDBUFS];
-static Lbufdesc         FreeLocal;
+BufferDesc 	*BufferDescriptors;
+BufferBlock 	BufferBlocks;
 
 static Buffer           BufferDescriptorGetBuffer();
 
-#define BufferGetBufferDescriptor(buffer) ((Lbufdesc *)&Local[buffer-1])
-  
-/* ----------------------------------------------------------------
- *      InitBufferStatistics
- * ----------------------------------------------------------------
- */
-int _show_stats_after_query_ = 0;
-int _reset_stats_after_query_ = 0;
+#define BufferGetBufferDescriptor(buffer) ((BufferDesc *)&BufferDescriptors[buffer-1])
 
-BufferStatistics buffer_stats = (BufferStatistics) NULL;
-
-void
-InitBufferStatistics()    
-{
-    MemoryContext    oldContext;
-    BufferStatistics stats;
-
-    /* ----------------
-     *  make sure we don't initialize things twice
-     * ----------------
-     */
-    if (buffer_stats != NULL)
-        return;
-
-    /* ----------------
-     *  allocate statistics structure from the top memory context
-     * ----------------
-     */
-    oldContext = MemoryContextSwitchTo(TopMemoryContext);
-
-    stats = (BufferStatistics)
-        palloc(sizeof(BufferStatisticsData));
-
-    /* ----------------
-     *  initialize fields to default values
-     * ----------------
-     */
-    stats->global_read_requests = 0;
-    stats->global_write_requests = 0;
-    stats->global_physical_reads = 0;
-    stats->global_physical_writes = 0;
-    stats->global_clean_replacements = 0;
-    stats->global_dirty_replacements = 0;
-    
-    stats->local_read_requests = 0;
-    stats->local_write_requests = 0;
-    stats->local_physical_reads = 0;
-    stats->local_physical_writes = 0;
-    stats->local_clean_replacements = 0;
-    stats->local_dirty_replacements = 0;
-    
-    /* ----------------
-     *  record init times
-     * ----------------
-     */
-    time(&stats->init_global_timestamp);
-    time(&stats->local_reset_timestamp);
-    time(&stats->last_request_timestamp);
-    
-    /* ----------------
-     *  return to old memory context
-     * ----------------
-     */
-    (void) MemoryContextSwitchTo(oldContext);
-    
-    buffer_stats = stats;
-}
-
-/* ----------------------------------------------------------------
- *      ResetBufferStatistics
- * ----------------------------------------------------------------
- */
-void
-ResetBufferStatistics()    
-{
-    BufferStatistics stats;
-
-    /* ----------------
-     *  do nothing if stats aren't initialized
-     * ----------------
-     */
-    if (buffer_stats == NULL)
-        return;
-
-    stats = buffer_stats;
-    
-    /* ----------------
-     *  reset local counts
-     * ----------------
-     */
-    stats->local_read_requests = 0;
-    stats->local_write_requests = 0;
-    stats->local_physical_reads = 0;
-    stats->local_physical_writes = 0;
-    stats->local_clean_replacements = 0;
-    stats->local_dirty_replacements = 0;
-
-    /* ----------------
-     *  reset local timestamps
-     * ----------------
-     */
-    time(&stats->local_reset_timestamp);
-    time(&stats->last_request_timestamp);
-}
-
-/* ----------------------------------------------------------------
- *      GetBufferStatistics
- * ----------------------------------------------------------------
- */
-BufferStatistics
-GetBufferStatistics()    
-{
-    BufferStatistics stats;
-
-    /* ----------------
-     *  return nothing if stats aren't initialized
-     * ----------------
-     */
-    if (buffer_stats == NULL)
-        return NULL;
-
-    /* ----------------
-     *  record the current request time
-     * ----------------
-     */
-    time(&buffer_stats->last_request_timestamp);
-    
-    /* ----------------
-     *  allocate a copy of the stats and return it to the caller.
-     * ----------------
-     */
-    stats = (BufferStatistics)
-        palloc(sizeof(BufferStatisticsData));
-
-    bcopy(buffer_stats, stats, sizeof(BufferStatisticsData));
-
-    return stats;
-}
-
-/* ----------------------------------------------------------------
- *      PrintBufferStatistics
- * ----------------------------------------------------------------
- */
-void
-PrintBufferStatistics(stats)    
-    BufferStatistics stats;
-{
-    /* ----------------
-     *  return nothing if stats aren't valid
-     * ----------------
-     */
-    if (stats == NULL)
-        return;
-
-    printf("======== buffer statistics ========\n");
-    printf("init_global_timestamp:      %s",
-           ctime(&(stats->init_global_timestamp)));
-    
-    printf("local_reset_timestamp:      %s",
-           ctime(&(stats->local_reset_timestamp)));
-    
-    printf("last_request_timestamp:     %s",
-           ctime(&(stats->last_request_timestamp)));
-
-    printf("local/global_read_requests:       %6d/%6d\n",
-           stats->local_read_requests, stats->global_read_requests);
-    
-    printf("local/global_write_requests:      %6d/%6d\n",
-           stats->local_write_requests, stats->global_write_requests);
-    
-    printf("local/global_physical_reads:      %6d/%6d\n",
-           stats->local_physical_reads, stats->global_physical_reads);
-    
-    printf("local/global_physical_writes:     %6d/%6d\n",
-           stats->local_physical_writes, stats->global_physical_writes);
-    
-    printf("local/global_clean_replacements:  %6d/%6d\n",
-           stats->local_clean_replacements, stats->global_clean_replacements);
-    
-    printf("local/global_dirty_replacements:  %6d/%6d\n",
-           stats->local_dirty_replacements, stats->global_dirty_replacements);
-
-    printf("===================================\n");
-    
-    printf("\n");
-}
-
-/* ----------------------------------------------------------------
- *      PrintAndFreeBufferStatistics
- * ----------------------------------------------------------------
- */
-void
-PrintAndFreeBufferStatistics(stats)    
-    BufferStatistics stats;
-{
-    PrintBufferStatistics(stats);
-    if (stats != NULL)
-	pfree(stats);
-}
-
-
-/**************************************************
- * BufferManagerInit --
- *      Builds free list of buffers and files.
+/*
+ * Data Structures:
+ *      buffers live in a freelist and a lookup data structure.
+ *	
  *
- *      Will change when get shared memory.
- **************************************************
+ * Buffer Lookup:
+ *	Two important notes.  First, the buffer has to be
+ *	available for lookup BEFORE an IO begins.  Otherwise
+ *	a second process trying to read the buffer will 
+ *	allocate its own copy and the buffeer pool will 
+ *	become inconsistent.
+ *
+ * Buffer Replacement:
+ *	see freelist.c.  A buffer cannot be replaced while in
+ *	use either by data manager or during IO.
+ *
+ * WriteBufferBack:
+ *	currently, a buffer is only written back at the time
+ *	it is selected for replacement.  It should 
+ *	be done sooner if possible to reduce latency of 
+ *	BufferAlloc().  Maybe there should be a daemon process.
+ *
+ * Synchronization/Locking:
+ *
+ * BufMgrLock lock -- must be acquired before manipulating the 
+ * 	buffer queues (lookup/freelist).  Must be released 
+ * 	before exit and before doing any IO.  
+ *
+ * IO_IN_PROGRESS -- this is a flag in the buffer descriptor.
+ *      It must be set when an IO is initiated and cleared at
+ *      the end of  the IO.  It is there to make sure that one
+ *	process doesn't start to use a buffer while another is
+ *	faulting it in.  see IOWait/IOSignal.
+ *
+ * refcount --  A buffer is pinned during IO and immediately
+ *	after a BufferAlloc().  A buffer is always either pinned
+ *	or on the freelist but never both.  The buffer must be
+ *	released, written, or flushed before the end of 
+ * 	transaction.
+ *
+ *
  */
 
-void
-BufferManagerInit()
-{
-    register int        i;
-    
-    for (i = 0; i < NDBUFS; i++) {
-        Local[i].next = &Local[i + 1];
-        Local[i].prev = &Local[i - 1];
-        Local[i].sh_buf = (Sbufdesc *)NULL;
-        Local[i].data = (Block)NULL;
-        Local[i].reln = (Relation)NULL;
-        Local[i].flags= BM_INIT;
-        Local[i].refcount = 0;
-    }
-    
-    FreeLocal.next = &Local[0];
-    FreeLocal.prev = &Local[NDBUFS - 1];
-    Local[0].prev = Local[NDBUFS - 1].next = &FreeLocal;
+SPINLOCK *BufMgrLock = NULL;
 
-    InitBufferStatistics();
+/* delayed write: TRUE on, FALSE off */
+int LateWrite = TRUE;
+
+/*
+ * ReadBuffer -- returns a buffer containing the requested
+ *	block of the requested relation.  If the blknum
+ *	requested is NEW_BLOCK, extend the relation file and
+ *	allocate a new block.
+ *
+ * Returns: the buffer descriptor for the buffer containing
+ *	the block read or NULL on an error.
+ *
+ * Assume when this function is called, that reln has been
+ *	opened already.
+ */
+Buffer
+ReadBuffer(reln,blockNum)
+Relation 	reln;
+BlockNumber 	blockNum;
+{
+  File		virtFile; /* descriptor for reln file */
+  BufferDesc *	bufHdr;	  
+  int		extend;   /* extending the file by one block */
+  int		status;
+  Boolean	found;
+
+
+  extend = (blockNum == NEW_BLOCK);
+  /* lookup the buffer.  IO_IN_PROGRESS is set if the requested
+   * block is not currently in memory.
+   */
+  bufHdr = BufferAlloc(reln, blockNum, BM_IO_IN_PROGRESS, &found);
+  if (! bufHdr) {
+    return(InvalidBuffer);
+  }
+
+  /* if its already in the buffer pool, we're done */
+  if (found) {
+    if (extend) {
+      /* I don't think this is an error, but should be careful */
+      elog(NOTICE,"BufferAlloc: found new block in buf table");
+    }
+    return(BufferDescriptorGetBuffer(bufHdr));
+  }
+
+  /* 
+   * if we have gotten to this point, the reln pointer must be ok
+   * and the relation file must be open.
+   */
+  virtFile = RelationGetFile(reln);
+
+  if (extend) {
+    status = BlockExtend(virtFile,bufHdr);
+  } else {
+    status = BlockRead(virtFile,bufHdr);
+  }
+
+  /* lock buffer manager again to update IO IN PROGRESS */
+  SpinAcquire(BufMgrLock);
+
+  if (! status) {
+    /* IO Failed.  cleanup the data structures and go home */
+
+    if (! BufTableDelete(bufHdr)) {
+      elog(FATAL,"BufRead: buffer table broken after IO error\n");
+    }
+    /* remember that BufferAlloc() pinned the buffer */
+    UnpinBuffer(bufHdr);
+
+    /* 
+     * Have to reset the flag so that anyone waiting for
+     * the buffer can tell that the contents are invalid.
+     */
+    bufHdr->flags |= BM_IO_ERROR;
+
+  } else {
+    /* IO Succeeded.  clear the flags, finish buffer update */
+
+    bufHdr->flags &= ~(BM_IO_ERROR | BM_IO_IN_PROGRESS);
+  }
+
+  /* If anyone was waiting for IO to complete, wake them up now */
+  if (bufHdr->refcount > 1)
+    SignalIO(bufHdr);
+  SpinRelease(BufMgrLock);
+    
+  return(BufferDescriptorGetBuffer(bufHdr));
+} 
+
+/*
+ * BufferAlloc -- Get a buffer from the buffer pool but dont
+ *	read it.
+ *
+ * Returns: descriptor for buffer
+ */
+BufferDesc *
+BufferAlloc(reln, blockNum, ioToFollow, foundPtr)
+Relation	reln;
+BlockNumber	blockNum;
+int		ioToFollow;
+Boolean		*foundPtr;
+{
+  BufferDesc 		*buf;	  
+  BufferTag 		newTag;	 /* identity of requested block */
+  Boolean		inProgress; /* buffer undergoing IO */
+  File			virtFile; /* descriptor for reln file */
+  int			status;
+  Boolean		newblock = FALSE;
+
+  /*
+   * If this routine is called within the buffer manager,
+   * it will allocate a buffer which is then to be read.
+   * If the routine is called from outside the buffer manager,
+   * no read will follow.  ioToFollow should be equal to this
+   * flag if we are making an internal call and NULL otherwise.
+   */
+  Assert ((ioToFollow == BM_IO_IN_PROGRESS) || (! ioToFollow));
+
+
+    /* create a new tag so we can lookup the buffer */
+    /* assume that the relation is already open */
+  virtFile = RelationGetFile(reln);
+  if (blockNum == NEW_BLOCK) {
+      newblock = TRUE;
+      /*
+       * have to get the block number in order to insert the buffer page
+       * into the hash table.
+       */
+      blockNum = FileSeek(virtFile, 0L, L_XTND)/BLCKSZ;
+    }
+
+  INIT_BUFFERTAG(&newTag,reln,blockNum);
+
+  SpinAcquire(BufMgrLock);
+
+
+      /* see if the block is in the buffer pool already */
+      buf = BufTableLookup(&newTag);
+  if (buf != NULL) {
+    /* Found it.  Now, (a) pin the buffer so no
+     * one steals it from the buffer pool, 
+     * (b) check IO_IN_PROGRESS, someone may be
+     * faulting the buffer into the buffer pool.
+     */
+
+    PinBuffer(buf);
+    inProgress = (buf->flags & BM_IO_IN_PROGRESS);
+    
+    *foundPtr = TRUE;
+    if (inProgress) {
+      WaitIO(buf, BufMgrLock);
+      if (buf->flags & BM_IO_ERROR) {
+	/* wierd race condition: 
+	 *
+	 * We were waiting for someone else to read the buffer.  
+	 * While we were waiting, the reader boof'd in some
+	 *  way, so the contents of the buffer are still
+	 * invalid.  By saying that we didn't find it, we can
+	 * make the caller reinitialize the buffer.  If two
+	 * processes are waiting for this block, both will
+	 * read the block.  The second one to finish may overwrite 
+	 * any updates made by the first.  (Assume higher level
+	 * synchronization prevents this from happening).
+	 *
+	 * This is never going to happen, don't worry about it.
+	 */
+	*foundPtr = FALSE;
+      }
+    }
+    SpinRelease(BufMgrLock);
+  
+    return(buf);
+  }
+
+
+  *foundPtr = FALSE;
+
+  /* Didn't find it in the buffer pool.  We'll have
+   * to initialize a new buffer.  First, grab one from
+   * the free list.  If it's dirty, flush it to disk.
+   * Remember to unlock BufMgr spinloc while doing the IOs.
+   */
+  for (;;) {
+    buf = GetFreeBuffer();
+    if (! buf) {
+      /* out of free buffers.  In trouble now. */
+      SpinRelease(BufMgrLock);
+      return(NULL);
+    }
+
+    /* There should be exactly one pin on the buffer
+     * after it is allocated.  It isnt in the buffer
+     * table yet so no one but us should have a pin.
+     */
+
+    Assert(buf->refcount == 0);
+    buf->refcount = 1;	       
+  
+    if (buf->flags & BM_DIRTY) {
+
+      /* must clear flag first because of wierd race 
+       * condition described below.  
+       */
+      buf->flags &= ~BM_DIRTY;
+      SpinRelease(BufMgrLock);
+
+      (void) BlockReplace(buf);
+
+      SpinAcquire(BufMgrLock);
+      /* 
+       * wierd race condition: someone else has requested 
+       * the 'victim' buf while we were flushing it to
+       * disk.  Let them have it and loop around to get
+       * another one.  Assume this is pretty rare event.
+       */
+      if (buf->refcount > 1) {
+	UnpinBuffer(buf);
+	continue;
+      }
+    } 
+    /* break out of loop unless wierd race condition above */
+    break;
+  }
+
+  Assert(! (buf->flags & BM_DIRTY) );
+
+  /*
+   *  record the database name and relation name for this buffer.
+   */
+
+  strcpy((char *)&(buf->sb_relname),
+         (char *)&(reln->rd_rel->relname),
+	 sizeof (NameData));
+  /* 
+   * Change the name of the buffer in the lookup table:
+   *  
+   * Need to update the lookup table before the read starts.
+   * If someone comes along looking for the buffer while
+   * we are reading it in, we don't want them to allocate
+   * a new buffer.  For the same reason, we didn't want
+   * to erase the buf table entry for the buffer we were
+   * writing back until now, either.
+   */
+
+  if (! BufTableDelete(buf)) {
+    elog(FATAL,"buffer wasn't in the buffer table\n");
+  }
+  INIT_BUFFERTAG(&(buf->tag),reln,blockNum);
+  if (! BufTableInsert(buf)) {
+    elog(FATAL,"Buffer in lookup table twice \n");
+  } 
+
+  /* Buffer contents are currently invalid.  Have
+   * to mark IO IN PROGRESS so no one fiddles with
+   * them until the read completes.  If this routine
+   * has been called simply to allocate a buffer, no
+   * io will be attempted, so the flag isnt set.
+   */
+  if (ioToFollow) {
+    buf->flags |= BM_IO_IN_PROGRESS; 
+  }
+
+  /* In theory, POSTGRES buffer blocks have variable sizes.
+   * In practice, BLKSZ is used in the code all over the place.
+   */
+/*  buf->blockSize = BLOCK_SIZE ;  */
+
+  SpinRelease(BufMgrLock);
+  return (buf);
 }
 
-/**************************************************
-  IsPrivate
-  - returns true if buffer is in malloc space
-    rather than in SHM.
-  XXX - for now, always false until pvt buffers
-        implemented.
- **************************************************/
-
-bool
-IsPrivate(bufnum)
-     Buffer bufnum;
+/*
+ * WriteBuffer--
+ *
+ *	Pushes buffer contents to disk if LateWrite is
+ * not set.  Otherwise, marks contents as dirty.  
+ *
+ * Assume that buffer is pinned.  Assume that reln is
+ *	valid.
+ *
+ * Side Effects:
+ *    	Pin count is decremented.
+ */
+WriteBuffer(buffer)
+Buffer	buffer;
 {
-    /* for now, always false since only shared buffers exist */
-    
-    return (false); 
-} /* IsPrivate */
+  BufferDesc	*bufHdr;
+  
+  if (! LateWrite) {
+    return(FlushBuffer(buffer));
+  } else {
+
+    if (BAD_BUFFER_ID(buffer)) {
+      return(FALSE);
+    }
+    bufHdr = BufferGetBufferDescriptor(buffer);
+
+    Assert(bufHdr->refcount > 0);
+    SpinAcquire(BufMgrLock);
+    bufHdr->flags |= BM_DIRTY; 
+    UnpinBuffer(bufHdr);
+    SpinRelease(BufMgrLock);
+  }
+  return(TRUE);
+} 
+
+/*
+ * BufferRewrite -- special version of WriteBuffer for
+ *	BufCopyCommit().  We want to write without
+ *	looking up the relation if possible.
+ */
+Boolean
+BufferRewrite(buffer)
+Buffer	buffer;
+{
+  BufferDesc	*bufHdr;
+  
+  if (BAD_BUFFER_ID(buffer)) {
+    return(STATUS_ERROR);
+  }
+  bufHdr = BufferGetBufferDescriptor(buffer);
+  Assert(bufHdr->refcount > 0);
+
+  if (LateWrite) {
+    SpinAcquire(BufMgrLock); 
+    bufHdr->flags |= BM_DIRTY; 
+    UnpinBuffer(bufHdr);
+    SpinRelease(BufMgrLock); 
+  } else {
+    BlockReplace(bufHdr);
+  }
+
+
+  return(STATUS_OK);
+} 
+
+
+/*
+ * FlushBuffer -- like WriteBuffer, but force the page
+ * 	to disk.
+ */
+FlushBuffer(buffer)
+Buffer	buffer;
+{
+  BufferDesc	*bufHdr;
+  Relation	reln;
+  File		file;
+  Boolean	found;
+
+
+  if (BAD_BUFFER_ID(buffer)) {
+    return(STATUS_ERROR);
+  }
+  bufHdr = BufferGetBufferDescriptor(buffer);
+
+  file = BlockPrepareFile(bufHdr, &found);
+  if (! BlockWrite(file,bufHdr)) {
+    elog(WARN,"WriteBuffer/FlushBuffer: cannot write file \n");
+    return(FALSE);
+  } 
+  SpinAcquire(BufMgrLock);
+  bufHdr->flags &= ~BM_DIRTY; 
+  UnpinBuffer(bufHdr);
+  SpinRelease(BufMgrLock);
+
+  if (!found) {
+      FileClose(file);
+    }
+  return(STATUS_OK);
+}
+
+/*
+ * WriteNoReleaseBuffer -- like WriteBuffer, but do not
+ * 	unpin when the operation is complete.
+ */
+WriteNoReleaseBuffer(buffer)
+Buffer	buffer;
+{
+  BufferDesc	*bufHdr;
+
+  if (! LateWrite) {
+    return(FlushBuffer(buffer));
+  } else {
+
+    if (BAD_BUFFER_ID(buffer)){
+      return(STATUS_ERROR);
+    }
+    bufHdr = BufferGetBufferDescriptor(buffer);
+
+    SpinAcquire(BufMgrLock);
+    bufHdr->flags |= BM_DIRTY; 
+    SpinRelease(BufMgrLock);
+  }
+  return(STATUS_OK);
+}
+
+
+/*
+ * ReleaseBuffer -- remove the pin on a buffer without
+ * 	marking it dirty.
+ *
+ */
+ReleaseBuffer(buffer)
+Buffer	buffer;
+{
+  BufferDesc	*bufHdr;
+
+  if (BAD_BUFFER_ID(buffer)) {
+    return(STATUS_ERROR);
+  }
+  bufHdr = BufferGetBufferDescriptor(buffer);
+
+  SpinAcquire(BufMgrLock);
+  UnpinBuffer(bufHdr);
+  SpinRelease(BufMgrLock);
+
+  return(STATUS_OK);
+}
+
+/*
+ * AcquireBuffer -- Pin a buffer that we know is valid.
+ *
+ * ---There is a race condition.  This routine doesnt make
+ * any sense.  We never really know the buffer is valid.
+ */
+BufferAcquire(bufHdr)
+BufferDesc	*bufHdr;
+{
+
+  SpinAcquire(BufMgrLock);
+  PinBuffer(bufHdr);
+  SpinRelease(BufMgrLock);
+  return (TRUE);
+}
+
+/*
+ * BufferRepin -- get a second pin on an already pinned buffer
+ */
+BufferRepin(buffer)
+Buffer	buffer;
+{
+  BufferDesc	*bufHdr;
+
+  if (BAD_BUFFER_ID(buffer)) {
+    return(FALSE);
+  }
+  bufHdr = BufferGetBufferDescriptor(buffer);
+
+  /* like we said -- already pinned */
+  Assert(bufHdr->refcount);
+
+  SpinAcquire(BufMgrLock);
+  PinBuffer(bufHdr);
+  SpinRelease(BufMgrLock);
+  return (TRUE);
+}
+
+/*
+ * CleanupBuffers -- sync everything.  This is an error
+ * 	handling function.  I currently don't use it.
+ */
+void
+BufferSync()
+{ 
+  int i;
+  BufferDesc *bufHdr;
+
+  for(i=0,bufHdr = BufferDescriptors;
+      i<NUM_DATA_BUFS;
+      i++,bufHdr++) { if (bufHdr->flags & BM_VALID) {
+      if(bufHdr->flags & BM_DIRTY) {
+	bufHdr->flags &= ~BM_DIRTY;
+	(void) BlockReplace(bufHdr);
+      }
+    }
+  }
+}
+
+
+/*
+ * WaitIO -- Block until the IO_IN_PROGRESS flag on 'buf'
+ * 	is cleared.  Because IO_IN_PROGRESS conflicts are
+ *	expected to be rare, there is only one BufferIO
+ *	lock in the entire system.  All processes block
+ *	on this semaphore when they try to use a buffer
+ *	that someone else is faulting in.  Whenever a
+ *	process finishes an IO and someone is waiting for
+ *	the buffer, BufferIO is signaled (SignalIO).  All
+ *	waiting processes then wake up and check to see
+ *	if their buffer is now ready.  This implementation
+ *	is simple, but efficient enough if WaitIO is
+ *	rarely called by multiple processes simultaneously.
+ *
+ *  ProcSleep atomically releases the spinlock and goes to
+ *	sleep.
+ *
+ *  Note: there is an easy fix if the queue becomes long.
+ *	save the id of the buffer we are waiting for in
+ *	the queue structure.  That way signal can figure
+ *	out which proc to wake up.
+ */
+static IpcSemaphoreId	WaitIOSemId;
+
+WaitIO(buf,spinlock)
+BufferDesc *buf;
+SPINLOCK *spinlock;
+{
+  Boolean 	inProgress;
+
+  for (;;) {
+
+    /* wait until someone releases IO lock */
+    SpinRelease(spinlock);
+    IpcSemaphoreLock(WaitIOSemId, 1, 1);
+    SpinAcquire(spinlock);
+    inProgress = (buf->flags & BM_IO_IN_PROGRESS);
+    if (!inProgress) break;
+  }
+}
+
+/*
+ * SignalIO --
+ */
+SignalIO(buf)
+BufferDesc *buf;
+{
+  int semncnt;
+  /* somebody better be waiting. */
+  Assert( buf->refcount > 1);
+  semncnt = IpcSemaphoreGetCount(WaitIOSemId, 1);
+  IpcSemaphoreUnlock(WaitIOSemId, 1, semncnt);
+}
+
+/*
+ * Initialize module:
+ *
+ * should calculate size of pool dynamically based on the
+ * amount of available memory.
+ */
+InitBufferPool(key)
+IPCKey key;
+{
+  Boolean foundBufs,foundDescs;
+  int i;
+  int status;
+
+  /* initialize pointers into shared area.  */
+
+  /* find and acquire the bufmgr spinlock */
+  BufMgrLock = SpinAlloc("BufferLock");
+  if (! BufMgrLock) {
+    elog(FATAL,"InitBufferPool: cannot initialize buffer lock");
+    exit(1);
+  }
+
+  BufferDescriptors = (BufferDesc *)
+    ShmemInitStruct("Buffer Descriptors",
+		    NUM_DESCRIPTORS*sizeof(BufferDesc),&foundDescs);
+
+  BufferBlocks = (BufferBlock)
+    ShmemInitStruct("Buffer Blocks",
+		    NUM_DATA_BUFS*BLOCK_SIZE,&foundBufs);
+
+
+  if (foundDescs || foundBufs) {
+
+    /* both should be present or neither */
+    Assert(foundDescs && foundBufs);
+
+  } else {
+    BufferDesc *buf;
+    unsigned int block;
+
+    buf = BufferDescriptors;
+    block = (unsigned int) BufferBlocks;
+
+    /*
+     * link the buffers into a circular, doubly-linked list to
+     * initialize free list.  Still don't know anything about
+     * replacement strategy in this file.
+     */
+    for (i = 0; i < DATA_DESCRIPTORS; block+=BLOCK_SIZE,buf++,i++) {
+      Assert(ShmemIsValid((unsigned int)block));
+
+      buf->freeNext = i+1;
+      buf->freePrev = i-1;
+
+      CLEAR_BUFFERTAG(&(buf->tag));
+      buf->data = (BufferBlock) block;
+      buf->flags = (BM_DELETED | BM_FREE | BM_VALID);
+      buf->refcount = 0;
+      buf->id = i;
+    }
+
+    /* close the circular queue */
+    BufferDescriptors[0].freePrev = DATA_DESCRIPTORS-1;
+    BufferDescriptors[DATA_DESCRIPTORS-1].freeNext = 0;
+  }
+
+  /* Init the rest of the module */
+  InitBufTable();
+  InitFreeList(!foundDescs);
+
+  SpinRelease(BufMgrLock);
+
+  WaitIOSemId = IpcSemaphoreCreate(IPCKeyGetWaitIOSemaphoreKey(key),
+				   1, IPCProtection, 0, &status);
+}
+
+/* 
+ * BufPrintUsage -- for debugging, print statistics on
+ * 	shared memory usage.
+ *
+ * Shows how much shared memory has been allocated at time
+ * called.  Assumes that the buffer pool has been allocated
+ * already.
+ */
+BufPrintUsage()
+{
+  extern SHMEM_OFFSET *ShmemFreeStart;
+
+  /* for debugging: print out shared memory usage */
+
+  elog(NOTICE,"Total: %x, buf pool %x, desc %x, remainder %x\n",
+	 *ShmemFreeStart,
+	 NUM_DATA_BUFS*BLOCK_SIZE,
+	 NUM_DATA_BUFS*sizeof(BufferDesc),
+	 *ShmemFreeStart - 
+      (NUM_DATA_BUFS*BLOCK_SIZE+NUM_DATA_BUFS*sizeof(BufferDesc)));
+}
+
+
+BufferManagerFlush(StableMainMemoryFlag)
+int StableMainMemoryFlag;
+{
+  if (!StableMainMemoryFlag)
+     BufferSync();
+}
 
 /**************************************************
   BufferDescriptorIsValid
@@ -323,71 +739,19 @@ IsPrivate(bufnum)
 
 bool
 BufferDescriptorIsValid(bufdesc)
-     Lbufdesc *bufdesc;
+     BufferDesc *bufdesc;
 {
     int temp;
     
     Assert(PointerIsValid(bufdesc));
     
-    temp = (bufdesc-Local)/sizeof(Lbufdesc);
+    temp = (bufdesc-BufferDescriptors)/sizeof(BufferDesc);
     if (temp >= 0 && temp<NDBUFS)
         return(true);
     else
         return(false);
     
 } /*BufferDescriptorIsValid*/
-
-/**************************************************
-
-  1) remove local descriptor from free_list
-
- **************************************************/
-
-Lbufdesc *
-GetFreeLocalBuffer()
-{
-    Lbufdesc *bp = NULL;
-    
-    if (FreeLocal.next == &FreeLocal)
-        BM_debug(WARN, "bget: no free buffers");
-    
-    bp = FreeLocal.next;
-    
-    /* remove from free list */
-    bp->next->prev = bp->prev;
-    bp->prev->next = bp->next;
-    bp->next = NULL;
-    bp->prev = NULL;
-    
-    return(bp);
-}
-
-/**************************************************
-  PutOnLocalFree
-  takes a local-bufdesc
-  1) puts it on the local-free-list
-  2) removes any reference to shared buffers
-  3) changes the flags on the local-bufdesc
-     to reflect change in status
- **************************************************/
-
-PutOnLocalFree(local)
-    Lbufdesc *local;
-{
-    local->next = &FreeLocal;
-    local->prev = FreeLocal.prev;
-
-    FreeLocal.prev =    local;
-    local->prev->next = local;
-
-    local->reln = NULL; /* since caller may have freed it */
-    local->sh_buf = NULL; /* since other buffer managers
-                             may have changed the contents ? */
-    local->flags = BM_INIT; /* will change once pvt buffers
-                               become a reality */
-
-    /* we don't change local->sh_buf or local->flags*/
-}
 
 /**************************************************
   BufferIsValid
@@ -399,30 +763,9 @@ BufferIsValid(bufnum)
     Buffer bufnum;
 {
     if (bufnum <= 0 || bufnum > NDBUFS) {
-#ifdef BUFMGR_DEBUG
-        BM_debug(BUFDEB,"buffer not even in range");
-#endif
         return(false);
     }
-    
-    if (IsPrivate(bufnum)){
-        return((bool)(BufferGetBufferDescriptor(bufnum)->refcount > 0));
-    } else {
-        /* no need to P(sem), since no update by this
-           or any other backend will affect the result */
-#if 0   
-        if (Local[bufnum-1].refcount <= 0)
-            BM_debug(BUFDEB,"buffer: local refcount not > 0");
-        if (Local[bufnum-1].sh_buf == NULL)
-            BM_debug(BUFDEB,"shared buffer pointer is NULL");
-        if (Local[bufnum-1].sh_buf->refcount <= 0)
-            BM_debug(BUFDEB,"shared refcount <=0");
-#endif  
-
-        return((bool)(Local[bufnum - 1].refcount > 0 &&
-                      Local[bufnum - 1].sh_buf != NULL &&
-                      Local[bufnum - 1].sh_buf->refcount > 0));
-    }
+    return((bool)(BufferDescriptors[bufnum - 1].refcount > 0));
 } /* BufferIsValid */
 
 BlockSize
@@ -430,7 +773,12 @@ BufferGetBlockSize(buffer)
     Buffer      buffer;
 {
     Assert(BufferIsValid(buffer));
-    return (BufferGetBufferDescriptor(buffer)->sh_buf->blksz);
+  /* Apparently, POSTGRES was supposed to have variable
+   * sized buffer blocks.  Current buffer manager will need
+   * extensive redesign if that is ever to come to pass, so
+   * for now hardwire it to BLCKSZ
+   */
+    return (BLCKSZ);
 }
 
 BlockNumber
@@ -438,7 +786,7 @@ BufferGetBlockNumber(buffer)
     Buffer      buffer;
 {
     Assert(BufferIsValid(buffer));
-    return (BufferGetBufferDescriptor(buffer)->sh_buf->blknum);
+    return (BufferGetBufferDescriptor(buffer)->tag.blockNum);
 }
 
 Relation
@@ -450,7 +798,7 @@ BufferGetRelation(buffer)
     Assert(BufferIsValid(buffer));
 
     relation = RelationIdGetRelation(LRelIdGetRelationId
-                (BufferGetBufferDescriptor(buffer)->sh_buf->reln_oid));
+                (BufferGetBufferDescriptor(buffer)->tag.relId));
 
     RelationDecrementReferenceCount(relation);
 
@@ -464,161 +812,6 @@ BufferGetRelation(buffer)
 }
 
 /**************************************************
-  FindLocalBuffer
-  - takes a relation/blknum pair
-  and returns the local buffer corresponding
-  to that description if one exists.
-  otherwise return NULL;
-  Basically, such a buffer would exist iff
-  it was already pinned by a previous read.
-  SideEffect:
-     increases the refcount for both shared/local control structs
- **************************************************/
-
-static Lbufdesc *
-FindLocalBuffer(relation,blknum)
-    Relation relation;
-    BlockNumber blknum;
-{
-    /* for now, linear */
-    register int i;
-
-    for(i = 1 ;i <= NDBUFS ; i++) {
-        if (IsPrivate(i)) {
-        } else {
-            if (BufferIsValid((Buffer)i) &&
-                (LtEqualsRelId(RelationGetLRelId(relation),
-                        BufferGetBufferDescriptor(i)->sh_buf->reln_oid)) &&
-                BufferGetBufferDescriptor(i)->sh_buf->blknum == blknum) {
-
-                Lbufdesc *local = BufferGetBufferDescriptor(i);
-
-                /* unlink from local free_list,
-                   unlink from global free_list,
-                   return pointer */
-
-                if (local->prev && local->next) {
-                    local->prev->next = local->next;
-                    local->next->prev = local->prev;
-                    local->next = NULL;
-                    local->prev = NULL;
-                }
-                if (!IsPrivate(i)) {
-                    if (local->sh_buf == NULL) 
-                        BM_debug(WARN,"bufmgr: corrupted data structure");
-                    else
-                        IncrSharedRefCount(local->sh_buf);
-                    local->refcount ++;
-                }
-#if 0
-                if (!BufferIsValid(i))
-                    elog(WARN,"something mighty strange");
-#endif
-
-                return(BufferGetBufferDescriptor(i));
-                
-            } /*if(buffer matches specs)*/
-        }/*if(Private)*/
-    }/*for*/
-
-    return((Lbufdesc *)NULL);
-}
-
-/**************************************************
-  ReadBuffer
-
- **************************************************/
-
-Buffer
-ReadBuffer(relation,blknum,flags)
-    Relation relation;
-    BlockNumber blknum;
-    BufFlags flags;
-{
-    Lbufdesc    *bp = NULL;
-    bool        IsShared;
-    Sbufdesc    *sb = NULL;
-
-    /* ----------------
-     *  increment read statistics
-     * ----------------
-     */
-    IncrStat(global_read_requests);
-    IncrStat(local_read_requests);
-    
-    if (flags&BM_SHARED) 
-        IsShared=true;
-    else
-        IsShared= false;
-
-    if (!(RelationIsValid(relation)))
-        elog(WARN,"ReadBuffer called with null relation");
-    
-    if (blknum != P_NEW) {
-#ifdef BUFMGR_DEBUG
-        BM_debug(BUFDEB,"read:reln/blnum = %.16s/%d\n",
-                 RelationGetRelationName(relation),blknum);
-#endif
-
-        bp = FindLocalBuffer(relation,blknum);
-
-        if (bp == NULL) {
-#ifdef BUFMGR_DEBUG
-            BM_debug(BUFDEB,"read : Buffer not in local memory\n");
-#endif
-            bp = GetFreeLocalBuffer();
-            Assert(PointerIsValid(bp));
-            sb = ReadSharedBuffer(relation,blknum);
-            Assert(PointerIsValid(sb));
-
-            if (sb != NULL) {
-                bp->sh_buf = sb;
-                bp->refcount = 1;
-                bp->reln = relation;
-                bp->flags |= BM_PINNED;
-            }
-        }
-        
-#ifdef BUFMGR_DEBUG
-        BM_debug(BUFDEB,"read:bufdesc is %d\n",bp);
-#endif
-        /* 
-         * At this pt, bp MUST be a valid buffer 
-         * descriptor
-         */
-    } else { 
-        /* caller wants P_NEW */
-        
-#ifdef BUFMGR_DEBUG
-        BM_debug(BUFDEB,"Someone actually wants P_NEW ?\n");
-#endif
-        bp = GetFreeLocalBuffer();
-        sb = ReadSharedBuffer(relation,blknum);
-        Assert(PointerIsValid(sb));
-        if (sb != NULL)
-            bp->sh_buf = sb;
-        else
-            ; /* XXX BM_debug ? */
-        
-        bp->reln = relation;
-        bp->refcount = 1;
-        bp->flags = flags;
-    }
-
-#ifdef BUFMGR_DEBUG
-    BM_debug(BUFDEB,"read:buffer number is %d\n",
-             BufferDescriptorGetBuffer(bp));
-#endif
-
-    /* XXX - only if server model is reached
-             otherwise, only 1 xaction per backend, so no need 
-    bp->xid = GetCurrentTransactionId(); */
-    
-    Assert(BufferIsValid(BufferDescriptorGetBuffer(bp)));
-    return (BufferDescriptorGetBuffer(bp));
-}
-
-/**************************************************
   BufferDescriptorGetBuffer
 
  **************************************************/
@@ -627,174 +820,23 @@ ReadBuffer(relation,blknum,flags)
 
 static Buffer
 BufferDescriptorGetBuffer(descriptor)
-    Lbufdesc *descriptor;
+    BufferDesc *descriptor;
 {
-#if 0    
-    BM_debug(BUFDEB,"descriptor = %d,local = %d",descriptor,Local);
-    BM_debug(BUFDEB," size = %d\n",sizeof(Lbufdesc));
-#endif
     
-#ifdef BUFMGR_DEBUG
-    BM_debug(BUFDEB,"buffer - %d",descriptor-Local);
-#endif
     if (BufferDescriptorIsValid(descriptor))
-        return(1+descriptor - Local);
+        return(1+descriptor - BufferDescriptors);
 
-    BM_debug(WARN,"Invalid bufferDescriptor\n");
+    elog(WARN,"Invalid bufferDescriptor\n");
     return (-1);
 }
 
-/**************************************************
-  WriteBuffer
-  - assumes that a corresponding call to ReadBuffer
-    has been made, pinning the buffer in memory.
-
-  - decrement the refcount locally and globally,
-    putting to the free_list (locally and globally)
-    where necessary.
-
- **************************************************/
-
-ReturnStatus
-WriteBuffer(bufnum)
-    Buffer bufnum;
+void
+IncrBufferRefCount(buffer)
+Buffer buffer;
 {
-    Lbufdesc *buf;
-
-    /* ----------------
-     *  increment write statistics
-     * ----------------
-     */
-    IncrStat(global_write_requests);
-    IncrStat(local_write_requests);
-
-    buf = BufferGetBufferDescriptor(bufnum);
-    
-#ifdef BUFMGR_DEBUG
-    BM_debug(BUFDEB,"write: buffer number is %d\n",bufnum);
-#endif
-    if (buf->refcount == 0)
-        BM_debug(WARN,"Write: Inconsistent Buffer refcount (< 0)");
-    if (IsPrivate(bufnum)) {
-        /* private buffers */
-    } else {
-        WriteSharedBuffer(buf->sh_buf);
-    }
-    buf->refcount -= 1;
-    
-#ifdef LATEWRITE
-    buf->flags |= BM_DIRTY;
-#else
-    buf->flags = BM_INIT;  /* flushed */
-#endif
-    
-    if (buf->refcount == 0)
-        PutOnLocalFree(buf);
-    
-    return(0);
-} /*WriteBuffer*/
-
-/**************************************************
-  FlushBuffer
-
- **************************************************/
-
-ReturnStatus
-FlushBuffer(bufnum)
-    Buffer bufnum;
-{
-    Lbufdesc *buf;
-
-    buf = BufferGetBufferDescriptor(bufnum); 
-    
-#ifdef BUFMGR_DEBUG
-    BM_debug(BUFDEB,"write: buffer number is %d\n",bufnum);
-#endif
-    if (buf->refcount == 0)
-        BM_debug(WARN,"Write: Inconsistent Buffer refcount (< 0)");
-    if (IsPrivate(bufnum)) {
-        /* private buffers */
-    } else {
-        FlushSharedBuffer(buf->sh_buf);
-    }
-    
-    buf->refcount -= 1;
-    buf->flags = BM_INIT;  /* flushed */
-
-    if (buf->refcount == 0)
-        PutOnLocalFree(buf);
-    
-    return(0);
-} /*WriteBuffer*/
-
-
-/**************************************************
-  WriteNoRelease
-  - writes but does not affect pins (refcounts)
-
- **************************************************/
-
-ReturnStatus
-WriteNoReleaseBuffer(bufnum)
-    Buffer bufnum;
-{
-    Lbufdesc *buf;
-
-    buf = BufferGetBufferDescriptor(bufnum); 
-    
-#ifdef BUFMGR_DEBUG
-    BM_debug(BUFDEB,"write: buffer number is %d\n",bufnum);
-#endif
-
-    if (buf->refcount == 0)
-        BM_debug(WARN,"Write: Inconsistent Buffer refcount (< 0)");
-    if (IsPrivate(bufnum)) {
-        /* private buffers */
-    } else {
-        IncrSharedRefCount(BufferGetBufferDescriptor(bufnum)->sh_buf);
-        WriteSharedBuffer(buf->sh_buf); /* WriteShared . . . decrements */
-    }
-    
-#ifdef LATEWRITE
-    buf->flags |= BM_DIRTY;
-#else
-    buf->flags = BM_INIT;  /* flushed */
-#endif
-    
-    return(0);
-} /*WriteNoReleaseBuffer*/
-
-
-/**************************************************
-  ReleaseBuffer
-
- **************************************************/
-
-ReturnStatus
-ReleaseBuffer(bufnum)
-    Buffer bufnum;
-{
-    Lbufdesc *buf;
-
-    buf = BufferGetBufferDescriptor(bufnum);
-    
-#ifdef BUFMGR_DEBUG
-    BM_debug(BUFDEB,"release: buffer number is %d\n",bufnum);
-#endif
-    
-    if (buf->refcount == 0)
-        BM_debug(WARN,"ReleaseBuffer :Inconsistent Buffer refcount (<0)");
-    if (IsPrivate(bufnum)) {
-        /* private buffers */
-    } else {
-        ReleaseSharedBuffer(buf->sh_buf);
-    }
-    
-    buf->refcount--;
-    if (buf->refcount == 0)
-        PutOnLocalFree(buf);
-    
-    return(0);
+    SpinAcquire(BufMgrLock);
+    BufferDescriptors[buffer - 1].refcount++;
+    SpinRelease(BufMgrLock);
 }
 
 /**************************************************
@@ -819,21 +861,17 @@ BufferPut(buffer,lockLevel)
         case L_PIN:
 #ifndef NO_BUFFERISVALID
             if (!BufferIsValid(buffer))
-                BM_debug(WARN,"BufferPut called with invalid buffer");
+                elog(WARN,"BufferPut called with invalid buffer");
 #endif
             ReleaseBuffer(buffer);
             return(0);
             
         case L_LOCKS:
-#ifdef BUFMGR_DEBUG
-            BM_debug(BUFDEB,"BufferPut called with UN_LOCKS, unsupported");
-#endif
 #ifndef NO_BUFFERISVALID
             if (!BufferIsValid(buffer))
-                BM_debug(WARN,"BufferPut called with invalid buffer");
+                elog(WARN,"BufferPut called with invalid buffer");
 #endif
-            IncrSharedRefCount(BufferGetBufferDescriptor(buffer)->sh_buf);
-            BufferGetBufferDescriptor(buffer)->refcount ++;
+            IncrBufferRefCount(buffer);
             WriteBuffer(buffer);
             return(0);
             
@@ -848,70 +886,49 @@ BufferPut(buffer,lockLevel)
     
     switch(lockLevel & L_LOCKS) {
     case L_SH:
-#ifdef BUFMGR_DEBUG
-        BM_debug(BUFDEB,"BufferPut: unsupported flag L_SH");
-#endif
         if (lockLevel & L_WRITE) {
-            IncrSharedRefCount(BufferGetBufferDescriptor(buffer)->sh_buf);
-            BufferGetBufferDescriptor(buffer)->refcount++;
+            IncrBufferRefCount(buffer);
             WriteBuffer(buffer);
         }
         break;
     case L_EX:
-#ifdef BUFMGR_DEBUG
-        BM_debug(BUFDEB,"BufferPut: unsupported flag L_EX");
-#endif
         if (lockLevel & L_WRITE) {
-            IncrSharedRefCount(BufferGetBufferDescriptor(buffer)->sh_buf);
-            BufferGetBufferDescriptor(buffer)->refcount++;
+            IncrBufferRefCount(buffer);
             WriteBuffer(buffer);
         }
         break;
     case L_UP:
-#ifdef BUFMGR_DEBUG
-        BM_debug(BUFDEB,"BufferPut: unsupported flag L_UP");
-#endif
         if (lockLevel & L_WRITE) {
-            IncrSharedRefCount(BufferGetBufferDescriptor(buffer)->sh_buf);
-            BufferGetBufferDescriptor(buffer)->refcount++;
+            IncrBufferRefCount(buffer);
             WriteBuffer(buffer);
         }
         break;
     case L_PIN:
-#ifdef BUFMGR_DEBUG
-        BM_debug(BUFDEB,"BufferPut: repinning buffer? bad flag L_PIN");
-#endif
 #ifndef NO_BUFFERISVALID
         if (!BufferIsValid(buffer))
           elog(WARN,"BufferPut: trying to pin invalid buffer");
 #endif
         if (lockLevel & L_WRITE) {
-            IncrSharedRefCount(BufferGetBufferDescriptor(buffer)->sh_buf);
-            BufferGetBufferDescriptor(buffer)->refcount++;
+            IncrBufferRefCount(buffer);
             WriteBuffer(buffer);
         }
         break;
     case L_DUP:
         Assert(BufferIsValid(buffer));
-        Assert(BufferGetBufferDescriptor(buffer)->sh_buf != 0);
-        IncrSharedRefCount(BufferGetBufferDescriptor(buffer)->sh_buf);
-        BufferGetBufferDescriptor(buffer)->refcount ++;
+        IncrBufferRefCount(buffer);
         break;
     default:
-#ifdef BUFMGR_DEBUG
-        BM_debug(BUFDEB,"BufferPut(%x, 0%o)",
-                 BufferGetBufferDescriptor(buffer),lockLevel);
-#endif
         break;
     }
 
     return(0);
 }
+
 /**************************************************
  * RelationGetBuffer --
  *      Gets the buffer number of a given disk block.
  *
- *      Returns InvalidBuffer on error.  Currently calls BM_debug() instead.
+ *      Returns InvalidBuffer on error.  Currently calls elog() instead.
  **************************************************
  */
 
@@ -922,19 +939,7 @@ RelationGetBuffer(relation, blockNumber, lockLevel)
      BufferLock  lockLevel;             /* lock level */
 
 {
-#ifdef BUFMGR_DEBUG
-    flag_print(lockLevel);
-#endif
-
-    return(ReadBuffer(relation,blockNumber,BM_PINNED|BM_SHARED));
-
-#if 0
-    if (lockLevel == L_PIN)
-        return(ReadBuffer(relation,blockNumber,BM_PINNED|BM_SHARED));
-    else 
-        BM_debug(BUFDEB,"dying in RelationGetBuffer");
-    return(InvalidBuffer);
-#endif    
+    return(ReadBuffer(relation,blockNumber));
 }
 
 
@@ -948,7 +953,7 @@ BufferIsDirty(buffer)
     Buffer buffer;
 {
     return (bool)
-        (BufferGetBufferDescriptor(buffer)->sh_buf->flags == BM_DIRTY);
+        (BufferGetBufferDescriptor(buffer)->flags & BM_DIRTY);
 }
 
 
@@ -977,35 +982,6 @@ BufferIsUnknown(buffer)
         (buffer == UnknownBuffer);
 }
 
-/* **************************************************
- * BufferManagerFlush   - flush buffers
- *
- * Ordering info is currently ignored.  Should also free the
- * reldescs's and fd's too in conjunction with the reldesc caching.
- * **************************************************
- */
-
-void
-BufferManagerFlush(StableMainMemoryFlag)
-int StableMainMemoryFlag;
-{
-    register int i;
-    
-    for (i=1; i<=NDBUFS; i++) {
-        if (BufferIsValid(i)) {
-            WriteBuffer(i); /* XXX should be WriteBuffer? */
-            while(BufferIsValid(i))
-                ReleaseBuffer(i);
-        }
-    }
-    
-    /* flush dirty shared memory only when main memory is not stable */
-    /* plai 8/7/90                                                   */
- 
-    if (!StableMainMemoryFlag)
-        FlushDirtyShared(); /* XXX should be at exit time ? */
-}
-
 /***************************************************
  * RelationGetNumberOfPages --
  *      Returns number of pages in an open relation.
@@ -1025,48 +1001,6 @@ Relation        relation;
 }
 
 /**************************************************
-  flag_print
-
- **************************************************/
-
-flag_print(flags)
-     bits16 flags;
-{
-    BM_debug(BUFDEB,"called with 0x%x",flags);
-
-    if (flags == L_UNLOCK) {
-        BM_debug(BUFDEB,"UNLOCKING");
-        return;
-    }
-    
-    if (flags & L_UN)
-        BM_debug(BUFDEB,"L_UN ");
-    if (flags & L_SH)
-        BM_debug(BUFDEB,"L_SH ");
-    if (flags & L_PIN)
-        BM_debug(BUFDEB,"L_PIN");
-    if (flags & L_UP)
-        BM_debug(BUFDEB,"L_UP");
-    if (flags & L_WRITE)
-        BM_debug(BUFDEB,"L_WRITE");
-    if (flags & L_NB)
-        BM_debug(BUFDEB,"L_NB: unimplemented No Blocking ");
-    if (flags & L_COPY)
-        BM_debug(BUFDEB,"L_COPY : get a version ???? ");
-    if (flags == L_DUP)
-        BM_debug(BUFDEB,"duplicate a buffer");
-
-#if 0    
-    if (flags & L_UNPIN)
-        BM_debug(BUFDEB,"L_UNPIN ");
-#endif
-    
-    BM_debug(BUFDEB,"\n");
-    BM_debug(BUFDEB,"***");
-}
-
-
-/**************************************************
   BufferGetBlock
 
  **************************************************/
@@ -1075,20 +1009,32 @@ Block
 BufferGetBlock(buffer)
         Buffer  buffer;
 {
-    extern Block shared_bufdata;
     Assert(BufferIsValid(buffer));
 
-#if 0    
-    BM_debug(BUFDEB,"Bgetblock : buffer number is %d\n",buffer);
-#endif
-    
-    if(IsPrivate(buffer)) {
-    } else {
-        if(BufferGetBufferDescriptor(buffer)->sh_buf)
-            return(&shared_bufdata
-                     [BufferGetBufferDescriptor(buffer)->sh_buf->data]);
-        else
-            BM_debug(WARN,"bufmgr/BufferGetBlock :internal data struct corrupt");
-    }
-    return ((Block)NULL);
+    return((Block)(BufferDescriptors[buffer-1].data));
+}
+
+/* ---------------------------------------------------------------------
+ *      ReleaseTmpRelBuffers
+ *
+ *      this function unmarks all the dirty pages of a temporary
+ *      relation in the buffer pool so that at the end of transaction
+ *      these pages will not be flushed.
+ *      XXX currently it sequentially searches the buffer pool, will be
+ *      changed to hashing.
+ * --------------------------------------------------------------------
+ */
+void
+ReleaseTmpRelBuffers(tempreldesc)
+Relation tempreldesc;
+{
+    register int i;
+
+    for (i=0; i<NDBUFS; i++)
+        if (BufferIsDirty(i) &&
+            BufferDescriptors[i].tag.relId.relId == tempreldesc->rd_id) {
+            BufferDescriptors[i].flags &= ~BM_DIRTY;
+            if (!(BufferDescriptors[i].flags & BM_FREE))
+               ReleaseBuffer(i);
+        }
 }
