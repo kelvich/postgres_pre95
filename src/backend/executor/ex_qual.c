@@ -683,6 +683,7 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
     FunctionCachePtr fcache;
     Func	funcNode = NULL;
     Oper	operNode = NULL;
+    bool        funcisset = false;
 
     /*
      * This is kind of ugly, Func nodes now have targetlists so that
@@ -736,6 +737,36 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
 	}
     }
 
+    /* If this function is really a set, we have to diddle with things.
+     * If the function has already been called at least once, then the 
+     * setArg field of the fcache holds
+     * the OID of this set in pg_proc.  (This is not quite legit, since
+     * the setArg field is really for functions which take sets of tuples
+     * as input - set functions take no inputs at all.  But it's a nice
+     * place to stash this value, for now.)
+     *
+     * If this is the first call of the set's function, then
+     * the call to ExecEvalFuncArgs above just returned the OID of 
+     * the pg_proc tuple which defines this set.  So replace the existing
+     * funcid in the funcnode with the set's OID.  Also, we want a new
+     * fcache which points to the right function, so get that, now that
+     * we have the right OID.  Also zero out the argv, since the real
+     * set doesn't take any arguments.
+     */
+    if (get_funcid((Func)node) == SetEvalRegProcedure) {
+	 funcisset = true;
+	 if (fcache->setArg) {
+	      argv[0] = 0;
+	      set_funcid((Func)node, (ObjectId)fcache->setArg);
+	 } else {
+	      set_funcid((Func)node, argv[0]);
+	      set_fcache(node, argv[0], LispNil,econtext);
+	      fcache = get_func_fcache((Func)node);
+	      fcache->setArg = (char*)argv[0];
+	      argv[0] = (Datum)0;
+	 }
+    }
+
     /* ----------------
      *   now return the value gotten by calling the function manager, 
      *   passing the function the evaluated parameter values. 
@@ -769,6 +800,21 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
 					   isNull,
 					   isDone,
 					   &argDone);
+	}
+	if (funcisset) {
+	     /* reset the funcid so that next call to this routine will
+	      * still recognize this func as a set.
+	      * Note that for now we assume that the set function in
+	      * pg_proc must be a Postquel function - the funcid is
+	      * not reset below for C functions.
+	      */
+	     set_funcid((Func)node, SetEvalRegProcedure);
+	     /* If we're done with the results of this function, get rid
+	      * of its func cache.
+	      */
+	     if (*isDone) {
+		  set_func_fcache((Func)node, NULL);
+	     }
 	}
 	return result;
     }
@@ -1354,7 +1400,7 @@ ExecFormComplexResult(tlist, natts, tdesc, values, nulls)
 	 * are not at the top of the plan tree and therefore we know
 	 * that we have only resdoms and expressions (i.e. no Fjoins)
 	 */
-	if ( get_rescomplex((Resdom)tl_resdom(tle)) )
+/*	if ( get_rescomplex((Resdom)tl_resdom(tle)) )
 	{
 	    HeapTuple      tuple;
 
@@ -1363,6 +1409,7 @@ ExecFormComplexResult(tlist, natts, tdesc, values, nulls)
 	    flatNatts += tuple->t_natts;
 	}
 	else
+*/
 	    flatNatts++;
 
 	complexInd++;
@@ -1444,7 +1491,6 @@ ExecFormComplexResult(tlist, natts, tdesc, values, nulls)
  
 int
 ExecTargetListLength(targetlist)
-    List targetlist;
 {
     int len;
     List tl, curTle;
@@ -1651,13 +1697,14 @@ ExecTargetList(targetlist, nodomains, targettype, values, econtext, isDone)
      * 	form the new result tuple (in the "normal" context)
      * ----------------
      */
-    if (complexResult)
+/*    if (complexResult)
 	newTuple = (HeapTuple) ExecFormComplexResult(targetlist,
 						     nodomains,
 						     targettype,
 						     values,
 						     null_head);
     else
+*/
 	newTuple = (HeapTuple)
 	    heap_formtuple(nodomains, targettype, values, null_head);
 
@@ -1743,3 +1790,11 @@ ExecProject(projInfo, isDone)
 					   /* ok to pfree this tuple */
 		       get_pi_targetlist(projInfo) ? true : false);
 }
+
+
+
+
+
+
+
+
