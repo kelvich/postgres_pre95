@@ -567,7 +567,13 @@ IpcMemoryCreateWithoutOnExit(memKey, size, permission)
     IpcMemoryId	 shmid;
     int		 errStatus; 
     
-    shmid = shmget(memKey, size, IPC_CREAT|permission); 
+    if ( memKey == PrivateIPCKey ) {
+	/* private */
+	shmid = PrivateMemoryCreate ( memKey, size , IPC_CREAT|permission);
+    } else {
+	shmid = shmget(memKey, size, IPC_CREAT|permission); 
+    }
+
     if (shmid < 0) {
 	fprintf(stderr,"IpcMemoryCreate: memKey=%d , size=%d , permission=%d", 
 	     memKey, size , permission );
