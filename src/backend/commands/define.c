@@ -90,7 +90,7 @@ DefineFunction(nameargsexe)
 
     if (!strcmp(languageName, "POSTQUEL"))
       {
-	  DefinePFunction(name, parameters, CADR((nameargsexe)));
+	  DefinePFunction((char *)name, parameters, CADR((nameargsexe)));
       }
 
     else if (!strcmp(languageName, "C"))
@@ -492,12 +492,10 @@ DefineAggregate(name, parameters)
     Name name;
     LispValue parameters;
 {
+    Name   stepfunc1Name, stepfunc2Name, finalfuncName;
+    String primStr, secStr;
+    struct varlena *primVal, *secVal;
     LispValue entry;
-    Name  stepfunc1Name;
-    Name  stepfunc2Name;
-    Name  finalfuncName;
-    int32 InitPrimValue;
-    int32 InitSecValue;
 
   /* sanity checks...name validity */
 
@@ -516,13 +514,19 @@ DefineAggregate(name, parameters)
   entry = DefineListRemoveRequiredAssignment(&parameters, "finalfunc");
   finalfuncName = DefineEntryGetName(entry);
 
-  /* handle InitStepCond = number */
+  /* -----------------
+   * handle first initial condition
+   */
   entry = DefineListRemoveRequiredAssignment(&parameters, "initcond1");
-  InitPrimValue = DefineEntryGetInteger(entry);
+  primStr = DefineEntryGetString(entry);
+  primVal = textin(primStr);
 
-  /* handle InitSecCond = number */
+  /* -------------------
+   * handle second initial condition
+   */
   entry = DefineListRemoveRequiredAssignment(&parameters, "initcond2");
-  InitSecValue = DefineEntryGetInteger(entry);
+  secStr = DefineEntryGetString(entry);
+  secVal = textin(secStr);
 
   DefineListAssertEmpty(parameters);
 
@@ -530,8 +534,8 @@ DefineAggregate(name, parameters)
 		  stepfunc1Name,	/* first step function name */
 		  stepfunc2Name,	/* second step function name */
 		  finalfuncName,	/* final function name */
-		  InitPrimValue,	/* first initial condition */
-		  InitSecValue);	/* second initial condition */
+		  primVal,	/* first initial condition */
+		  secVal);	/* second initial condition */
 }
 
 /* --------------------------------
