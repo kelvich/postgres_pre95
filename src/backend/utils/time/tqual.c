@@ -418,7 +418,7 @@ TimeFormSnapshotTimeQual(time)
 	qual = LintCast(InternalTimeQual, palloc(sizeof *qual));
 
 	qual->start = time;
-	qual->end = InvalidAbsoluteTime;
+	qual->end = INVALID_ABSTIME;
 	qual->mode = TimeQualAt;
 
 	return ((TimeQual)qual);

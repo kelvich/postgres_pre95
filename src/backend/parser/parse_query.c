@@ -346,7 +346,7 @@ MakeTimeRange( datestring1 , datestring2 , timecode )
 			break;
 		case 1:
 			if (datestring1 == LispNil) {
-				t1 = InvalidAbsoluteTime;
+				t1 = INVALID_ABSTIME;
 			} else {
 				t1 = nabstimein(CString(datestring1));
 				if (!AbsoluteTimeIsValid(t1)) {
@@ -356,7 +356,7 @@ MakeTimeRange( datestring1 , datestring2 , timecode )
 				}
 			}
 			if (datestring2 == LispNil) {
-				t2 = InvalidAbsoluteTime;
+				t2 = INVALID_ABSTIME;
 			} else {
 				t2 = nabstimein(CString(datestring2));
 				if (!AbsoluteTimeIsValid(t2)) {
