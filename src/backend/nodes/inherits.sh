@@ -191,7 +191,9 @@ END {
 			print "\n";
 		}
 	}
-	print "\n";
+        ORS="\n"
+        print
+
 }
 ' > $SLOTFILE
 
