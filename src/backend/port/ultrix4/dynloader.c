@@ -267,23 +267,31 @@ long  vtbase, vdbase, vbbase;
     short n_type;
 
     fflush(stdout);
+#ifdef DYNAMIC_LOADER_DEBUG
     printf("relocate (tdb) %08lx %08lx %08lx addr %08lx\n",
 	tbase, dbase, bbase, address
     );
+#endif
 
     if (reloc->r_extern == 0) {
 	symname = "<internal>";
 	switch(reloc->r_symndx) {
 	case R_SN_TEXT:
+#ifdef DYNAMIC_LOADER_DEBUG
 	    puts("local text");
+#endif
 	    value = (long)tbase - vtbase;
 	    break;
 	case R_SN_DATA:
+#ifdef DYNAMIC_LOADER_DEBUG
 	    puts("local data");
+#endif
 	    value = (long)dbase - vdbase;
 	    break;
 	case R_SN_SDATA:
+#ifdef DYNAMIC_LOADER_DEBUG
 	    puts("local sdata ???");
+#endif
 	    value = (long)bbase - vbbase;
 	    break;
 	default:
@@ -297,25 +305,35 @@ long  vtbase, vdbase, vbbase;
 	symname = strs + sym->asym.iss;
 	switch(sym->asym.sc) {
 	case scText:
+#ifdef DYNAMIC_LOADER_DEBUG
 	    puts("text symb");
+#endif
 	    value = (long)tbase - vtbase;
 	    break;
 	case scData:
+#ifdef DYNAMIC_LOADER_DEBUG
 	    puts("data symb");
+#endif
 	    value = (long)dbase - vdbase;
 	    break;
 	case scBss:
+#ifdef DYNAMIC_LOADER_DEBUG
 	    puts("bss symb");
 	    puts("????");
+#endif
 	    value = (long)dbase - vbbase;
 	    break;
 	case scUndefined:
+#ifdef DYNAMIC_LOADER_DEBUG
 	    puts("undef symb");
+#endif
 	    {
 		FList *fl = ExtSyms;
 		char *str = strs + sym->asym.iss;
 		AJMP *aj;
+#ifdef DYNAMIC_LOADER_DEBUG
 		puts(str);
+#endif
 
 		while (fl->name) {
 	    	    if (strcmp(fl->name, str) == 0)
@@ -327,7 +345,9 @@ long  vtbase, vdbase, vbbase;
 		if (fl->name == NULL)
 		    elog(WARN, "dynamic_loader: Illegal ext. symbol %s", str);
 		value = (long)fl->func;
+#ifdef DYNAMIC_LOADER_DEBUG
 		printf("func addr %08lx\n", value);
+#endif
 
 		aj =  AJmp + reloc->r_symndx;	/* index into jump table */
 						/* create jt entry	 */
@@ -336,7 +356,9 @@ long  vtbase, vdbase, vbbase;
 		aj->ary[2] = AJMP2;
 		aj->ary[3] = AJMP3;
 		value = (long)aj;
+#ifdef DYNAMIC_LOADER_DEBUG
 		printf("Jmp Tab Addr %08lx\n", value);
+#endif
 	    }
 	    break;
 	default:
@@ -356,16 +378,24 @@ long  vtbase, vdbase, vbbase;
 	break;
     case R_JMPADDR:	/* 3 26 bit jump ref (rel?)  */
 	value &= 0x0FFFFFFF;
+#ifdef DYNAMIC_LOADER_DEBUG
 	printf("ja %08lx %08lx (%08lx)\n", address, value, *(long *)address);
+#endif
 	*(long *)address += (value >> 2);	/* long words */
+#ifdef DYNAMIC_LOADER_DEBUG
 	printf("ja address is: %08lx\n", (*(long *)address & 0x03FFFFFF) << 2);
+#endif
 	break;
     case R_REFHI:	/* 4 high 16 bits	    */
+#ifdef DYNAMIC_LOADER_DEBUG
 	printf("rhi %08lx %08lx (%s)\n", address, value, value);
+#endif
 	*(short *)(address) += (value >> 16) & 0xFFFF;
 	break;
     case R_REFLO:	/* 5 low 16 bits	    */
+#ifdef DYNAMIC_LOADER_DEBUG
 	printf("rlo %08lx %08lx\n", address, value);
+#endif
 	*(short *)(address) += value & 0xFFFF;
 	break;
     case R_GPREL:	/* 6 global pointer relative data item */
