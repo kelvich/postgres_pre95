@@ -372,5 +372,7 @@ extern bool smgreq();
 extern bool smgrne();
 
 extern int32 pqtest();
+extern int32 int2inc();
+extern int32 int4inc();
 
 #endif !BuiltinsIncluded
