@@ -55,6 +55,7 @@
 #include "tmp/miscadmin.h"
 #include "utils/hsearch.h"
 #include "utils/log.h"
+#include "utils/memutils.h"
 
 /*
  *  if BMTRACE is defined, we trace the last 200 buffer allocations and
@@ -453,11 +454,19 @@ bool		bufferLockHeld;
 	  /*
 	   * Write the buffer out, being careful to release BufMgrLock
 	   * before starting the I/O.
+	   *
+	   * This #ifndef is here because a few extra semops REALLY kill
+	   * you on machines that don't have spinlocks.  If you don't
+	   * operate with much concurrency, well...
 	   */
+#ifndef OPTIMIZE_SINGLE
 	  SpinRelease(BufMgrLock);
+#endif /* OPTIMIZE_SINGLE */
 	  (void) BufferReplace(buf);
 	  BufferFlushCount++;
+#ifndef OPTIMIZE_SINGLE
 	  SpinAcquire(BufMgrLock);
+#endif /* OPTIMIZE_SINGLE */
 
 	  /*
 	   * Somebody could have pinned the buffer while we were
@@ -476,14 +485,12 @@ bool		bufferLockHeld;
 #ifdef HAS_TEST_AND_SET
 	      S_UNLOCK(&(buf->io_in_progress_lock));
 #else /* !HAS_TEST_AND_SET */
-	      SignalIO(buf);
+	      if (buf->refcount > 1)
+		  SignalIO(buf);
 #endif /* !HAS_TEST_AND_SET */
 	      PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1] = 0;
 	      buf->refcount--;
 	      buf = (BufferDesc *) NULL;
-
-	      SpinRelease(BufMgrLock);
-	      SpinAcquire(BufMgrLock);
 	  }
       }
   }
@@ -1490,29 +1497,43 @@ blockNum=%d, flags=0x%x, refcount=%d %d)\n",
 int
 BufferShmemSize()
 {
-    int size;
+    int size = 0;
     int nbuckets;
     int nsegs;
     int tmp;
 
     nbuckets = 1 << (int)my_log2((NBuffers - 1) / DEF_FFACTOR + 1);
     nsegs = 1 << (int)my_log2((nbuckets - 1) / DEF_SEGSIZE + 1);
-    size =  /* size of shmem binding table */
-	    my_log2(BTABLE_SIZE) + sizeof(HHDR);
-    size += DEF_SEGSIZE * sizeof(SEGMENT) + BUCKET_ALLOC_INCR * 
-	    (sizeof(BUCKET_INDEX) + BTABLE_KEYSIZE + BTABLE_DATASIZE);
- 	    /* size of buffer descriptors */
-    size += (NBuffers + 1) * sizeof(BufferDesc);
-	    /* size of data pages */
-    size += NBuffers * BLOCK_SIZE;
-	    /* size of buffer hash table */
-    size += my_log2(NBuffers) + sizeof(HHDR);
-    size += nsegs * DEF_SEGSIZE * sizeof(SEGMENT);
+
+    /* size of shmem binding table */
+    size += MAXALIGN(my_log2(BTABLE_SIZE) * sizeof(void *)); /* HTAB->dir */
+    size += MAXALIGN(sizeof(HHDR));			     /* HTAB->hctl */
+    size += MAXALIGN(DEF_SEGSIZE * sizeof(SEGMENT));
+    size += BUCKET_ALLOC_INCR * 
+	(MAXALIGN(sizeof(BUCKET_INDEX)) +
+	 MAXALIGN(BTABLE_KEYSIZE) +
+	 MAXALIGN(BTABLE_DATASIZE));
+    
+    /* size of buffer descriptors */
+    size += MAXALIGN((NBuffers + 1) * sizeof(BufferDesc));
+
+    /* size of data pages */
+    size += NBuffers * MAXALIGN(BLOCK_SIZE);
+
+    /* size of buffer hash table */
+    size += MAXALIGN(my_log2(NBuffers) * sizeof(void *)); /* HTAB->dir */
+    size += MAXALIGN(sizeof(HHDR));			  /* HTAB->hctl */
+    size += nsegs * MAXALIGN(DEF_SEGSIZE * sizeof(SEGMENT));
     tmp = (int)ceil((double)NBuffers/BUCKET_ALLOC_INCR);
     size += tmp * BUCKET_ALLOC_INCR * 
-	    (sizeof(BUCKET_INDEX) + sizeof(BufferTag) + sizeof(Buffer));
-	    /* extra space, just to make sure there is enough  */
+	(MAXALIGN(sizeof(BUCKET_INDEX)) +
+	 MAXALIGN(sizeof(BufferTag)) +
+	 MAXALIGN(sizeof(Buffer)));
+    
+#if 0
+    /* extra space, just to make sure there is enough */
     size += NBuffers * 4 + 4096;
+#endif
 
 #ifdef BMTRACE
     size += (BMT_LIMIT * sizeof(bmtrace)) + sizeof(long);
