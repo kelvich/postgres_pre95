@@ -4,54 +4,54 @@
 .XA 2 Merge
 .uh NAME
 .lp
-merge \*- merge two relations
+merge \*- merge two classes
 .uh SYNOPSIS
 .lp
 .b merge
-relname1
+classname1
 .b into
-relname2
+classname2
 .uh DESCRIPTION
 .lp
 .b Merge
-will combine a version relation, 
-.i relname1 ,
+will combine a version class, 
+.i classname1 ,
 with its parent,
-.i relname2 .
+.i classname2 .
 If 
-.i relname2 
-is a base relation, then
+.i classname2 
+is a base class, then
 this operation merges a differently encoded offset,
-.i relname1 ,
+.i classname1 ,
 into its parent.  On the other hand, if 
-.i relname2 
+.i classname2 
 is also a version,
 then this operation combines two differentially
 encoded offsets together into a single one.
 In either case any children of 
-.i relname1
+.i classname1
 becomes children of
-.i relname2 .
+.i classname2 .
 .lp
-It is disallowed for a version relation to
-be merged into its parent relation when the parent relation
-is also the parent of another version relation.
+It is disallowed for a version class to
+be merged into its parent class when the parent class
+is also the parent of another version class.
 .lp
 Moreover, merging in the reverse direction is also allowed.
 Specifically, merging the parent,
-.i relname1 ,
+.i classname1 ,
 with a version,
-.i relname2 ,
+.i classname2 ,
 causes
-.i relname2
+.i classname2
 to become disassociated from its parent.
 As a side effect,
-.i relname1
+.i classname1
 will be destroyed if is not the parent of
-some other version relation.
+some other version class.
 .uh EXAMPLE
 .lp
-/* Combine office relation and employee relation */
+/* Combine office class and employee class */
 
 merge office into employee
 .uh "SEE ALSO"
@@ -61,4 +61,4 @@ create version(commands).
 .uh BUGS
 .lp
 Merge
-will not work until Version 2.1
+will not work until Version 3.
