@@ -226,11 +226,13 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
 				       LispNil);
 		break;
 
-	      case UNION :
+	      case UNION : {
+		Index rt_index = 0;
 		  union_plans = handleunion(root,rangetable,tlist,qual);
 		  return (make_append (union_plans,
-				       -1, rangetable,
+				       rt_index, rangetable,
 				       get_qptargetlist (CAR(union_plans))));
+	      }
 		break;
 		
 	      case VERSION :
