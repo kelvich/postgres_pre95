@@ -455,14 +455,14 @@ print_var(var)
 	 * };
 	 */
 
-	if (get_vararraylist(var) != NULL) {
-	/* 	printf ("(%d)", get_vararraylist(var)); */
+	/* XXX - is this what we want? */
+/* 	if (get_vararraylist(var) != NULL) {
+		List elem;
 	 	foreach (elem, get_vararraylist (var)) { 
-			/* XXX - is this what we want? */
-	 		printf ("(%d)", elem->low); 
+	 		printf ("(%d)", elem->arraylow); 
 	 	};
 	};
-
+*/
 	printf (")");
 }
 
