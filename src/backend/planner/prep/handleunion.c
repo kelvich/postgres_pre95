@@ -17,6 +17,8 @@
 #include "nodes/execnodes.h"
 #include "nodes/plannodes.h"
 #include "nodes/plannodes.a.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
 #include "nodes/relation.h"
 #include "nodes/relation.a.h"
 
@@ -50,6 +52,9 @@ handleunion (root,rangetable, tlist, qual)
   List new_parsetree = LispNil;
   List union_plans = LispNil;
   int planno = 0;
+  List tmp_uplans = LispNil;
+  List firstplan = LispNil;
+  List secondplan = LispNil;
 
   /*
    * SplitTlistQual returns a list of the form:
@@ -72,8 +77,21 @@ handleunion (root,rangetable, tlist, qual)
    * testing:
    */
   
-/*  union_plans = CDR(union_plans); */
+/*  union_plans = CDR(union_plans);  */
 
+#ifdef SWAP_PLANS
+  firstplan = CAR(union_plans);
+  secondplan = CADR(union_plans);
+
+  CAR(union_plans) = secondplan;
+  CADR(union_plans) = firstplan;
+#endif
+/*
+  foreach(i, union_plans) {
+    planno += 1;
+    tmp_uplans = nappend1(tmp_uplans, CAR(i));
+  }
+*/
 
 return(union_plans);  
 
@@ -219,7 +237,7 @@ SplitTlist (unionlist,tlists)
  *  find_union_sets
  *  runs through the rangetable, and forms a list of all union
  *  sets.  Routine removes the union flag from the rte after
- *  it is done processing .
+ *  it is done processing .  
  */
 
 List
@@ -239,14 +257,14 @@ find_union_sets(rangetable)
   List varname = LispNil;
   int In_List;
   int position;
-  
 
   foreach(i,rangetable) {
     rt_entry = CAR(i);
     varno += 1;
-    if (member(lispAtom("union"),rt_flags(rt_entry))) 
+    if (member(lispAtom("union"),rt_flags(rt_entry))) {
       rt_flags(rt_entry) = remove(lispAtom("union"),
 				  rt_flags(rt_entry));
+    }
     rt_vars = CAR(rt_entry);
     if (consp(rt_vars)) {
       foreach(x,rt_vars) {
@@ -265,10 +283,10 @@ find_union_sets(rangetable)
 	      u_set = nth(position,vlist);
 	      if (!member(lispInteger(varno), u_set))
 		u_set = nappend1(u_set,lispInteger(varno));
-	      position += 1;
 	      In_List = 1;
 	      break;
 	    }
+	    position += 1;
 	  }
 	if (!In_List) {
 	  ulist = nappend1(ulist, lispCons(varname, LispNil));
@@ -308,10 +326,74 @@ find_union_sets(rangetable)
       retlist = nappend1 (retlist, CAR(i));
     }
   }
+  retlist = remove_subsets(retlist);
   return(retlist);
 }
 
 /*
+ *  remove_subsets
+ *  Routine finds and removes any subsets in the given list.
+ *  Returns the modified list.
+ *  Thus given ( (A B C) (B C) (D E F) (D F) ), routine returns:
+ *  ( (A B C) (D E F) )
+ */
+
+List 
+remove_subsets(usets)
+     List usets;
+{
+  List retlist = LispNil;
+  List i = LispNil;
+  List j = LispNil;
+  List k = LispNil;
+  List uset1 = LispNil;
+  List uset2 = LispNil;
+  int is_subset = 1;
+
+  foreach(i, usets) {
+    uset1 = CAR(i);
+    foreach(j, CDR(usets)) {
+      uset2 = CAR(j);
+      if (uset2 == LispNil)
+	break;
+
+      /*  Here, assume that there are no duplicate sets. */
+
+      if (length (uset1) > length(uset2) &&
+	  length(uset2) != 1) {
+	foreach(k, uset2) 
+	  if (!member(CAR(k),uset1)) {
+	    is_subset = 0;
+	    break;
+	  }
+	if (is_subset) 
+	  CAR(j) = lispCons(lispInteger(1), LispNil);
+      } /* uset1 > uset2 */
+      else 
+	if (length(uset1) < length(uset2) &&
+	    length(uset1) != 1) {
+	  foreach(k,uset1) 
+	    if (!member(CAR(k), uset2)) {
+	      is_subset = 0;
+	      break;
+	    }
+
+	  if (is_subset) 
+	    CAR(i)= lispCons(lispInteger(1),LispNil);
+	}
+    } /* inner loop usets */
+  } /* outer loop usets */
+  
+  foreach (i, usets) 
+    if (length (CAR(i)) > 1)
+      retlist = nappend1(retlist, CAR(i) );
+
+  return(retlist);
+
+}
+
+/*
+ *  Routine is not used.
  *  find_union_vars
  *  runs through the rangetable, and forms a list of all the 
  *  relations that are unioned. It will also remove the union
