@@ -71,6 +71,7 @@ SemantOpt(varlist,rangetable, qual, is_redundent,is_first)
      int is_first;
 {
   static int punt;
+  char *attname;
   List retqual = LispNil;
   Index leftvarno = 0;
   Index rightvarno = 0;
@@ -98,7 +99,7 @@ SemantOpt(varlist,rangetable, qual, is_redundent,is_first)
 	op = get_opno(get_op(qual));
 	if (op == 627) {
 	  leftvarno = get_varno(get_leftop(qual));
-	  rightvarno = ConstVarno(rangetable, get_rightop(qual));
+	  rightvarno = ConstVarno(rangetable, get_rightop(qual),&attname);
 	  /*
 	   *  test for existential clauses first 
 	   */
@@ -109,7 +110,19 @@ SemantOpt(varlist,rangetable, qual, is_redundent,is_first)
 	    if (leftvarno == rightvarno) {
 	      retqual = MakeFClause();
 	      *is_redundent = LispTrue;
-	    }
+	    } 
+	    else
+	      if (rightvarno > 0 && 
+		  strcmp(attname,"oid") == 0) {
+		List rte1 = LispNil;
+		List rte2 = LispNil;
+		
+		rte1 = nth(leftvarno -1, rangetable);
+		rte2 = nth(rightvarno -1, rangetable);
+
+		if (CInteger(CADR(CDR(rte1))) != CInteger(CADR(CDR(rte2))))
+		  retqual = MakeTClause();
+	      }
 	} else 
 	  if (op == 558) {  /* oid = */
 	    AttributeNumber leftattno;
@@ -196,6 +209,142 @@ SemantOpt(varlist,rangetable, qual, is_redundent,is_first)
 }
 
 /*
+ * SemantOpt2 optimizes redundent joins.
+ *
+ *  The theory behind this is that given to primary keys, eg OIDs
+ *  a qual. of the form : 
+ *   ... from e in emp where e.oid = emp.oid
+ *   can be optimized into scan on emp, instead of a join.
+ */
+List 
+SemantOpt2(rangetable,qual,modqual,tlist)
+     List rangetable,qual,modqual,tlist;
+{
+  AttributeNumber leftattno = 0;
+  AttributeNumber rightattno = 0;
+  List rte1 = LispNil;
+  List rte2 = LispNil;
+  Index leftvarno = 0;
+  Index rightvarno = 0;
+  List i = LispNil;
+
+  if (null(qual))
+    return(LispNil);
+  else
+    if (is_clause(qual) && get_opno(get_op(qual)) == 558) {
+      /*
+       *  Now to test if they are the same relation.
+       */
+
+      leftvarno = get_varno(get_leftop(qual));
+      rightvarno = get_varno(get_rightop(qual));
+      leftattno = get_varattno(get_leftop(qual));
+      rightattno = get_varattno(get_rightop(qual));
+
+      if (leftattno < 0 && rightattno < 0) {
+	/* Comparing the oid field of 2 rels */
+	
+	rte1 = nth(leftvarno - 1, rangetable);
+	rte2 = nth(rightvarno - 1, rangetable);
+
+	if (strcmp(CString(CADR(rte1)),
+		   CString(CADR(rte2))) == 0 &&
+	    leftvarno != rightvarno) {	
+	  /*  Remove the redundent join */
+	  List temp = MakeTClause();
+	  CAR(qual) = CAR(temp);
+	  CDR(qual) = CDR(temp);
+	  replace_tlist(rightvarno,leftvarno,tlist);
+	  replace_varnodes(rightvarno,leftvarno,modqual);
+	}
+      }
+    }
+    else
+      if (and_clause(qual)) 
+	foreach(i,get_andclauseargs(qual)) 
+	  modqual = SemantOpt2(rangetable,CAR(i),modqual);
+      else
+	if (or_clause(qual))
+	  foreach(i,get_orclauseargs(qual))
+	    modqual = SemantOpt2(rangetable,CAR(i),modqual);
+	else
+	  if (not_clause(qual))
+	    modqual = SemantOpt2(rangetable,CDR(qual), modqual);
+
+return(modqual);
+}
+
+void
+replace_tlist(left,right,tlist)
+     Index left,right;
+     List tlist;
+{
+  List i = LispNil;
+  List tle = LispNil;
+  List leftop = LispNil;
+  List rightop = LispNil;
+
+  foreach(i,tlist) {
+    tle = tl_expr(CAR(i));
+
+    if (IsA(tle,Var)) {
+      if (get_varno(tle) == right) {
+	set_varno(tle,left);
+	set_varid(tle, lispCons(lispInteger(left),
+				lispCons(CADR(get_varid(tle)),
+					 LispNil)) );
+      }
+    } else
+      if (is_clause(tle))
+	replace_tlist(left,right,CDR(tlist) );
+
+  }
+  
+}
+
+void
+replace_varnodes(left,right,qual)
+     Index left,right;
+     List qual;
+{
+  List leftop = LispNil;
+  List rightop = LispNil;
+  List i = LispNil;
+
+  if (null(qual));
+  if (is_clause(qual)) {
+    leftop = (List)get_leftop(qual);
+    rightop = (List)get_rightop(qual);
+
+    if (IsA(leftop,Var))
+      if (get_varno(leftop) == right) {
+	set_varno(leftop,left);
+	set_varid(leftop, lispCons(lispInteger(left),
+				   lispCons(CADR(get_varid(leftop)),
+					    LispNil)) );
+      } else
+	if (IsA(rightop,Var))
+	  if (get_varno(rightop) == right) {
+	    set_varno(rightop,left);
+	    set_varid(rightop, lispCons(lispInteger(left),
+				       lispCons(CADR(get_varid(rightop)),
+						LispNil)) );	    
+	  }
+  }
+  else
+    if (and_clause(qual))
+      foreach(i,get_andclauseargs(qual)) 
+	replace_varnodes(left,right,CAR(i));
+    else 
+      if (or_clause(qual))
+	foreach(i,get_orclauseargs(qual))
+	  replace_varnodes(left,right,CAR(i));
+      else
+	if (not_clause(qual))
+	  replace_varnodes(left,right,CDR(qual));	  
+	  
+}
+/*
  *  Routine that runs through the tlist and qual pair
  *  and collect all varnos that are not existential.
  *  returns a list of those varnos.
@@ -250,6 +399,7 @@ update_vars(rangetable,varlist,qual)
 {
   List leftop;
   List rightop;
+  char *attname;
   ObjectId op = 0;
   Index leftvarno = 0;
   Index rightvarno = 0;
@@ -263,7 +413,7 @@ update_vars(rangetable,varlist,qual)
       if (!consp(get_leftop(qual))) { /* ignore union vars at this point */
 	if (op == 627) {  /* Greg's horrendous not-in op */
 	  leftvarno = get_varno(get_leftop(qual));
-	  rightvarno = ConstVarno(rangetable,get_rightop(qual));
+	  rightvarno = ConstVarno(rangetable,get_rightop(qual),&attname);
 
 	  if (member(lispInteger(leftvarno),varlist)) {
 	    if (rightvarno != 0 && !member(lispInteger(rightvarno),varlist))
@@ -320,9 +470,10 @@ update_vars(rangetable,varlist,qual)
  */
 
 Index
-ConstVarno(rangetable,constnode)  
+ConstVarno(rangetable,constnode,attname)  
      List rangetable;
      Const constnode;
+     char **attname;
 {
   static char tmpstring[32];
   char *ptr;
@@ -336,6 +487,7 @@ ConstVarno(rangetable,constnode)
     ptr = DatumGetPointer(get_constvalue(constnode));
     strcpy (tmpstring, ptr);
     relname = (char *)strtok(tmpstring, ".");
+    *attname = (char *)strtok(NULL,"."); 
     
     foreach (i, rangetable) {
       position += 1;
@@ -360,7 +512,7 @@ MakeTClause()
   ObjectId rettype = 16;
   int opsize = 0;
   
-  newop = MakeOper(objid, 0,rettype,opsize, NULL);
+  newop = MakeOper(objid, 0,rettype,opsize,NULL);
   leftconst = MakeConst(23, 4, Int32GetDatum(1), 0, 1);
   rightconst = MakeConst(23, 4, Int32GetDatum(1), 0, 1);
 
@@ -381,7 +533,7 @@ MakeFClause()
   ObjectId rettype = 16;
   int opsize = 0;
   
-  newop = MakeOper(objid, 0,rettype,opsize, NULL);
+  newop = MakeOper(objid, 0,rettype,opsize,NULL);
   leftconst = MakeConst(23, 4, Int32GetDatum(1), 0);
   rightconst = MakeConst(23, 4,Int32GetDatum(2), 0);
 
