@@ -464,6 +464,7 @@ CommandCounterIncrement()
 
     /* make cache changes visible to me */
     AtCommit_Cache();
+    AtStart_Cache();
 }
 
 /* ----------------------------------------------------------------
