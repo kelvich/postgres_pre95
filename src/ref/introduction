@@ -73,7 +73,7 @@ The remainder of this manual is structured as follows.
 In Section 2,
 we discuss the \*(PP capabilities that are available directly
 from the operating system.
-Section 3 describes *(PP internal data types, functions, and
+Section 3 describes \*(PP internal data types, functions, and
 operators.
 Section 4 then describes \*(PQ,
 the language by which a user interacts with a

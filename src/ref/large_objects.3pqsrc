@@ -271,6 +271,16 @@ semantics or crash recovery.
 carelessness.  DBA's may need to occasionally purge dead large objects to
 avoid disk wastage.
 .lp
-Users should be aware of this and 
+.uh "SEE ALSO"
 .lp
-
+define type (commands)
+.lp
+define C function (commands)
+.lp
+load (commands)
+.lp
+The tutorial
+.b "Defining User Defined Types, Operators, and Functions"
+in
+.lp
+~postgres/doc/tutorials/advanced/adt.me
