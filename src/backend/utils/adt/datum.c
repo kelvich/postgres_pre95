@@ -50,10 +50,17 @@ Size *sizeP;
 bool *byValP;
 {
 
-    Size typeLength;
+    long int typeLength;
     HeapTuple typeTuple;
     int i;
     struct varlena *s;
+
+    /*---
+     * NOTE: XXX!
+     * 'typeLength' must be an 'int' and NOT 'Size' which is an unsigned
+     * quantity! Otherwise if we compare it with -1 (for variable length
+     * types) then .... you guess what happens.....
+     */
 
     /*
      * find the type's "length" and "byVal"
