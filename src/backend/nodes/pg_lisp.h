@@ -211,7 +211,7 @@ class (LispStr) public (Node) {
 #define consp(x) \
     ((x) ? (bool)(LISP_TYPE(x) == PGLISP_DTPR) : false)
 
-#define listp(x) (lispNullP(x) || consp(x))
+#define listp(x) (lispNullp(x) || consp(x))
 
 #define lispStringp(x) \
     ((x) ? (bool)(LISP_TYPE(x) == PGLISP_STR) : false)
