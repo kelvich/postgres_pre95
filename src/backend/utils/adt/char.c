@@ -50,6 +50,50 @@ charout(ch)
 }
 
 /*
+ *	cidin	- converts "..." to internal representation.
+ *
+ * 	NOTE: we must no use 'charin' because cid might be a non
+ *	printable character...
+ */
+int32
+cidin(s)
+char *s;
+{
+    unsigned char c;
+
+    if (s==NULL)
+	c = 0;
+    else
+	c = atoi(s);
+
+    return((int32)c);
+}
+
+/*
+ *	cidout	- converts a cid to "..."
+ *
+ * 	NOTE: we must no use 'charout' because cid might be a non
+ *	printable character...
+ */
+char *
+cidout(c)
+int32 c;
+{
+    char *result;
+    unsigned char c2;
+
+    /*
+     * cid is a number between 0 .. 255, therefore we need at most
+     * 4 chars for the string (3 digits + '\0')
+     * NOTE: print it as an UNSIGNED int!
+     */
+    result = palloc(4);
+    c2 = c;
+    sprintf(result, "%d", (int)(c2));
+    return(result);
+}
+
+/*
  *	char16in	- converts "..." to internal reprsentation
  *
  *	Note:
