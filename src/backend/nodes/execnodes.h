@@ -214,6 +214,12 @@ class (EState) public (Node) {
       TupleTable        es_tupleTable;
 };
 
+/* ----------------
+ *	ReturnState
+ *
+ *	XXX comment me
+ * ----------------
+ */
 class (ReturnState) public (Node) {
       inherits(Node);
       Relation resultTmpRelDesc;
@@ -819,6 +825,7 @@ typedef File    *FileP;
 typedef char    **charPP;
 typedef char    *charP;
 typedef int     *intP;
+
 class (HashJoinState) public (JoinState) {
       inherits(JoinState);
   /* private: */
