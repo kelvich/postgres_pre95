@@ -29,6 +29,9 @@
 #include "log.h"
 #include "execdebug.h"
 
+extern int _reset_stats_after_query_;
+extern int _show_stats_after_query_;
+
 extern void die();
 extern void handle_warn();
 
@@ -146,7 +149,7 @@ InteractiveBackend(inBuf)
 		puts("EOF");
 	    }
 	    AbortCurrentTransaction();
-	    exit(0);
+	    exitpg(0);
 	}
 
 #ifdef EXEC_DEBUGINTERACTIVE
@@ -212,7 +215,7 @@ char SocketBackend(inBuf, parseList)
 	    if (! Quiet)
 		puts("EOF");
 	    AbortCurrentTransaction();
-	    exit(0);
+	    exitpg(0);
 	}
 	return('Q');
 	break;
@@ -424,12 +427,12 @@ main(argc, argv)
 	fputs("	-C  =  ??? \n", stderr);
 	fputs(" -O  =  Override Transaction System\n", stderr);
 	fputs(" -Q  =  Quiet mode (less debugging output)\n", stderr);
-	exit(1);
+	exitpg(1);
     } else if (argc - optind == 1) {
 	DatabaseName = argv[optind];
     } else if ((DatabaseName = getenv("USER")) == NULL) {
 	fputs("amiint: failed getenv(\"USER\") and no database specified\n");
-	exit(1);
+	exitpg(1);
     }
     Noversion = flagC;
     Quiet = flagQ;
@@ -452,7 +455,7 @@ main(argc, argv)
 
     if (IsUnderPostmaster == true && Portfd < 0) {
 	fprintf(stderr,"Postmaster flag set, but no port number specified\n");
-	exit(1);
+	exitpg(1);
     }
 
     /* ----------------
@@ -543,5 +546,13 @@ main(argc, argv)
 	    printf("\tCommitTransactionCommand() at %s\n", ctime(&tim));
 	}
 	CommitTransactionCommand();
+
+#ifdef EXEC_SHOWBUFSTATS
+	if (_show_stats_after_query_ > 0) {
+	    PrintAndFreeBufferStatistics(GetBufferStatistics());
+	    if (_reset_stats_after_query_ > 0)
+		ResetBufferStatistics();
+	}
+#endif EXEC_SHOWBUFSTATS
     }
 }
