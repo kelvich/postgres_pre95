@@ -417,7 +417,6 @@ int	l;
 register char	*v;
 {
     register int  i;
-    extern etext;		/* XXX hack here */
 
 #ifdef CACHEDEBUG3 
     elog(DEBUG,"comphash (%d,%x)", l, v);
@@ -429,8 +428,13 @@ register char	*v;
 	return((int) v);
     }
     if (l == 16) {
-		if (v < (char *)&etext) {
-			/* XXX int2, v, is first element of int16[8] key */
+		if (v < etext) {
+			/*
+			 * XXX int2, v, is first element of int16[8] key
+			 * XXX this is a non-portable hack for built-in arrays
+			 * XXX even I don't understand this well and I wrote
+			 * XXX this -hirohama
+			 */
 			return((int16)v);
 		} else {		/* XXX char16 special handling */
 			l = NameComputeLength((Name)v);
