@@ -92,7 +92,7 @@ RemoveOperator(operatorName, typeName1, typeName2)
 		RelationDeleteHeapTuple(relation, &itemPointerData);
 	} else {
 		if (ObjectIdIsValid(typeId2)) {
-			elog(WARN, "RemoveOperator: operator \"%-*s\" taking \"-*%s\" and \"%-*s\" does not exist",
+			elog(WARN, "RemoveOperator: operator \"%-*s\" taking \"%-*s\" and \"%-*s\" does not exist",
 			     sizeof(NameData), operatorName,
 			     sizeof(NameData), typeName1,
 			     sizeof(NameData), typeName2);
