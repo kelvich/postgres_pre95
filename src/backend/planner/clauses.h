@@ -1,3 +1,4 @@
+/* $Header$ */
 #include "c.h"
 #include "pg_lisp.h"
 #include "relation.h"

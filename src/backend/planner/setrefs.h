@@ -1,3 +1,5 @@
+/* $Header$ */
+
 extern LispValue new_level_tlist ARGS((LispValue tlist, LispValue prevtlist, LispValue prevlevel));
 extern LispValue new_level_qual ARGS((LispValue quals, LispValue prevtlist, LispValue prevlevel));
 extern LispValue replace_clause_nestvar_refs ARGS((LispValue clause, LispValue prevtlist, LispValue prevlevel));

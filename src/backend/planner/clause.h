@@ -1,3 +1,5 @@
+/*$Header$*/
+
 extern LispValue pull_constant_clauses ARGS((LispValue quals));
 extern LispValue pull_relation_level_clauses ARGS((LispValue quals));
 extern LispValue clause_relids_vars ARGS((LispValue clause));
@@ -12,3 +14,4 @@ extern void fix_opid ARGS((LispValue clause));
 extern LispValue fix_opids ARGS((LispValue clauses));
 extern LispValue get_relattval ARGS((LispValue clause));
 extern LispValue get_relsatts ARGS((LispValue clause));
+extern bool is_clause ARGS((LispValue clause));

@@ -1,3 +1,5 @@
+/* $Header$ */
+
 #include "c.h"
 #include "pg_lisp.h"
 extern bool path_is_cheaper ARGS((Path path1, Path path2));

@@ -1,3 +1,5 @@
+/* $Header$ */
+
 #define INNER 1
 #define OUTER 0
 

@@ -1,3 +1,5 @@
+/* $Header$ */
+
 extern LispValue preprocess_qualification ARGS((LispValue qual, LispValue tlist));
 extern LispValue cnfify ARGS((LispValue qual));
 extern LispValue pull_args ARGS((LispValue qual));

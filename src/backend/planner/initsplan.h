@@ -1,3 +1,5 @@
+/* $Header$ */
+
 extern void initialize_targetlist ARGS((LispValue tlist));
 extern void initialize_qualification ARGS((LispValue clauses));
 extern void add_clause_to_rels ARGS((LispValue clause));

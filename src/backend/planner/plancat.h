@@ -1,3 +1,5 @@
+/* $Header$ */
+
 extern List relation_info ARGS((ObjectId relationObjectId));
 extern int32 IndexCatalogInformation ARGS((int32 notFirst, ObjectId indrelid, Boolean isarchival, int32 indexCatalogInfo[]));
 extern int32 execIndexCatalogInformation ARGS((int32 notFirst, ObjectId indrelid, Boolean isarchival, AttributeNumber indexkeys[]));

@@ -1,3 +1,4 @@
+/*$Header$*/
 extern LispValue intermediate_rule_lock_data ARGS((LispValue type, LispValue attribute, LispValue plan));
 extern LispValue intermediate_rule_lock ARGS((LispValue rule_id, LispValue priority, LispValue type, LispValue is_early, LispValue rule_lock_intermediate_data_list));
 extern LispValue print_rule_lock_intermediate ARGS((LispValue rule_lock_intermediate));

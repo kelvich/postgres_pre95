@@ -1,3 +1,5 @@
+/* $Header$ */
+
 #include "pg_lisp.h"
 #include "c.h"
 
