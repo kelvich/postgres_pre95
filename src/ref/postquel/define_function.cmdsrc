@@ -135,7 +135,7 @@ that actually need to be examined in order to compute the function.
 This flag is particularly useful for functions which generally take a
 large object as an argument, but only examine a small fixed portion of
 the object.  The default value is 100.
-.PP
+.SH "Writing C Functions"
 The body of a C function following 
 .BR as
 should be the
@@ -246,6 +246,78 @@ which the function sets to
 .IR true
 if the field is null.  The result of this function should be cast
 appropriately as shown in the examples below.
+.SH "Compiling Dynamically-Loaded C Functions"
+.PP
+Different operating systems require different procedures for compiling
+C source files so that \*(PG can load them dynamically.  This section
+discusses the required compiler and loader options on each system.
+.PP
+Under Ultrix, all object files that \*(PG is expected to load
+dynamically must be compiled using
+.IR /bin/cc
+with the \*(lq-G 0\*(rq option turned on.  The object file name in the
+.IR as
+clause should end in \*(lq.o\*(rq.
+.PP
+Under HP-UX, Alpha OSF/1 and SunOS 4, all object files must be turned
+into
+.IR "shared libraries"
+using the operating system's native object file loader,
+.IR ld (1).
+.PP
+Under HP-UX, an object file must be compiled using the native HP-UX C
+compiler,
+.IR /bin/cc ,
+with both the \*(lq+z\*(rq and \*(lq+u\*(rq flags turned on.  The
+first flag turns the object file into \*(lqposition-independent
+code\*(rq (PIC); the second flag removes some alignment restrictions
+that the PA-RISC architecture normally enforces.  The object file must
+then be turned into a shared library using the HP-UX loader,
+.IR /bin/ld .
+The command lines to compile a C source file, \*(lqfoo.c\*(rq, look
+like:
+.(C
+cc <other flags> +z +u -c foo.c
+ld <other flags> -b -o foo.sl foo.o
+.)C
+The object file name in the
+.BR as
+clause should end in \*(lq.sl\*(rq.
+.PP
+An extra step is required under versions of HP-UX prior to 9.01.  If
+the \*(PG header file
+.(C
+tmp/c.h
+.)C
+is not included in the source file, then the following line must also
+be added at the top of every source file:
+.(C
+#pragma HP_ALIGN HPUX_NATURAL_S500
+.)C
+.PP
+Under Alpha OSF/1, an object file must be compiled and then turned
+into a shared library using the OSF/1 loader,
+.IR /bin/ld .
+In this case, the command lines look like:
+.(C
+cc <other flags> -c foo.c
+ld <other flags> -shared -expect_unresolved '*' -o foo.so foo.o
+.)C
+The object file name in the
+.BR as
+clause should end in \*(lq.so\*(rq.
+.PP
+Under SunOS 4, an object file must be compiled and then turned into a
+shared library using the SunOS 4 loader,
+.IR /bin/ld .
+The command lines look like:
+.(C
+cc <other flags> -c foo.c
+ld <other flags> -Bdynamic -o foo.so foo.o
+.)C
+The object file name in the
+.BR as
+clause should end in \*(lq.so\*(rq.
 .SH "POSTQUEL FUNCTIONS"
 \*(PQ functions execute an arbitrary list of \*(PQ queries, returning
 the results of the last query in the list.  \*(PQ functions in general
@@ -440,6 +512,7 @@ Note that flattening preserves the name and hobby fields even when the
 .SH "SEE ALSO"
 information(unix), load(commands), remove function(commands).
 .SH "NOTES"
+.SH "Expensive Functions"
 The 
 .BR percall_cpu
 and
@@ -449,28 +522,7 @@ flags can take integers surrounded by quotes instead of the
 syntax described above.  This allows a finer grain of distinction
 between function costs, but is not encouraged since such distinctions
 are difficult to estimate accurately.
-.PP
-Under Ultrix, all object files that \*(PG is expected to load
-dynamically must be compiled under
-.IR /bin/cc
-with the \*(lq-G 0\*(rq option turned on.
-.PP
-Under HP-UX, all object files to be loaded dynamically must be compiled 
-using the native HP-UX C compiler,
-.IR /bin/cc ,
-with both the \*(lq+z\*(rq and \*(lq+u\*(rq flags turned on.  The first
-flag turns the object file into \*(lqposition-independent\*(rq code; the 
-second flag removes some alignment restrictions that the PA-RISC 
-architecture normally enforces.  If the \*(PG header file
-.(C
-tmp/c.h
-.)C
-is not included in the source file, then the following line must 
-also be added at the top of the file:
-.(C
-#pragma HP_ALIGN HPUX_NATURAL_S500
-.)C
-.PP
+.SH "Name Space Conflicts"
 More than one function may be defined with the same name, as long as
 the arguments they take are different.  A function may also have the
 same name as an attribute.  In the case
@@ -502,5 +554,3 @@ replace pg_proc (proistrusted = "f"::bool)
 Untrusted functions will become the default in a future release.
 .PP
 C functions cannot return a set of values.
-.PP
-The dynamic loader for DECstation Ultrix is very slow.
