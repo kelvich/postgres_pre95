@@ -9,6 +9,7 @@ export PGHOST
 #
 SMGR=d
 HERE=_CWD_
+THERE=_OBJWD_
 #
 
 #
@@ -32,10 +33,10 @@ icopy in -d $DATABASE -s $SMGR -R $HERE/../data /data1 \
 #
 # - recursive icopy "in" with dotfiles
 #
-rm -f $HERE/obj/.dept.data
-cp $HERE/../data/dept.data $HERE/obj/.dept.data \
+rm -f $THERE/.dept.data
+cp $HERE/../data/dept.data $THERE/.dept.data \
 	|| exit 1
-icopy in -d $DATABASE -s $SMGR -R -a $HERE/obj /data2 \
+icopy in -d $DATABASE -s $SMGR -R -a $THERE /data2 \
 	|| exit 1
 icopy in -d $DATABASE -s $SMGR -v $HERE/../data/dept.data /data2/dept.data \
 	|| exit 1
@@ -106,5 +107,5 @@ echo "foo" | pcat -H $PGHOST -D $DATABASE .dept.data - /data2/.dept.data
 #
 prm -rf / \
 	|| exit 1
-rm -f $HERE/obj/.dept.data
+rm -f $THERE/.dept.data
 exit 0
