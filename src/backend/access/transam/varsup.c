@@ -14,16 +14,33 @@
  *	UpdateLastCommittedXid
  *   	
  *   NOTES
- *	Read the notes on the transaction system in the comments
- *	above GetNewTransactionId.
+ *	presently debugging new routines for oid generation...
+ *
+ *	VariableRelationGetNextOid
+ *	VariableRelationPutNextOid
+ *	GetNewObjectIdBlock
+ *	GetNewObjectId
  *
  *   IDENTIFICATION
  *	$Header$
  * ----------------------------------------------------------------
  */
 
-#include "transam.h"
+#include <math.h>
+
+#include "tmp/postgres.h"
+
  RcsId("$Header$");
+
+#include "machine.h"		/* in port/ directory (needed for BLCKSZ) */
+
+#include "storage/buf.h"
+#include "storage/bufmgr.h"
+
+#include "utils/rel.h"
+#include "utils/log.h"
+
+#include "access/transam.h"
 
 /* ----------------------------------------------------------------
  *	      variable relation query/update routines
@@ -170,6 +187,95 @@ VariableRelationPutLastXid(xid)
     WriteBuffer(buf);
 }
 
+/* --------------------------------
+ *	VariableRelationGetNextOid
+ * --------------------------------
+ */
+void
+VariableRelationGetNextOid(oid_return)
+    oid *oid_return;
+{
+    Buffer buf;
+    VariableRelationContents var;
+    
+    /* ----------------
+     *	if the variable relation is not initialized, then we
+     *  assume we are running at bootstrap time and so we return
+     *  an invalid object id -- during this time GetNextBootstrapObjectId
+     *  should be called instead..
+     * ----------------
+     */
+    if (! RelationIsValid(VariableRelation)) {
+	if (PointerIsValid(oid_return))
+	    (*oid_return) = InvalidObjectId;
+	return;
+    }
+    
+    /* ----------------
+     *	read the variable page, get the the nextOid field and
+     *  release the buffer
+     * ----------------
+     */
+    buf = ReadBuffer(VariableRelation, 0, 0);
+
+    if (! BufferIsValid(buf))
+	elog(WARN, "VariableRelationGetNextXid: RelationGetBuffer failed");
+
+    var = (VariableRelationContents) BufferGetBlock(buf);
+
+    if (PointerIsValid(oid_return))
+	(*oid_return) = var->nextOid;
+
+    ReleaseBuffer(buf);
+}
+
+/* --------------------------------
+ *	VariableRelationPutNextOid
+ * --------------------------------
+ */
+void
+VariableRelationPutNextOid(oidP)
+    oid *oidP;
+{
+    Buffer buf;
+    VariableRelationContents var;
+    
+    /* ----------------
+     *	do nothing before things are initialized
+     * ----------------
+     */
+    if (! RelationIsValid(VariableRelation))
+	return;
+
+    /* ----------------
+     *	sanity check
+     * ----------------
+     */
+    if (! PointerIsValid(oidP))
+	elog(WARN, "VariableRelationPutNextOid: invalid oid pointer");
+    
+    /* ----------------
+     *	read the variable page, update the nextXid field and
+     *  write the page back out to disk.
+     * ----------------
+     */
+    buf = ReadBuffer(VariableRelation, 0, 0);
+
+    if (! BufferIsValid(buf))
+	elog(WARN, "VariableRelationPutNextXid: RelationGetBuffer failed");
+
+    var = (VariableRelationContents) BufferGetBlock(buf);
+
+    var->nextOid = (*oidP);
+
+    WriteBuffer(buf);
+}
+
+/* ----------------------------------------------------------------
+ *		transaction id generation support
+ * ----------------------------------------------------------------
+ */
+
 /* ----------------
  *	GetNewTransactionId
  *
@@ -211,10 +317,10 @@ VariableRelationPutLastXid(xid)
  * ----------------
  */
 
-#define VAR_PREFETCH	32
+#define VAR_XID_PREFETCH	32
 
 int prefetched_xid_count = 0;
-TransactionIdData next_prefetched_id;
+TransactionIdData next_prefetched_xid;
 
 void
 GetNewTransactionId(xid)
@@ -250,7 +356,7 @@ GetNewTransactionId(xid)
 	 * ----------------
 	 */
 	VariableRelationGetNextXid(&nextid);
-	TransactionIdStore(&nextid, &next_prefetched_id);
+	TransactionIdStore(&nextid, &next_prefetched_xid);
 	
 	/* ----------------
 	 *	now increment the variable relation's next xid
@@ -258,7 +364,7 @@ GetNewTransactionId(xid)
 	 *	the id by two because our xid's are always even.
 	 * ----------------
 	 */
-	prefetched_xid_count = VAR_PREFETCH;
+	prefetched_xid_count = VAR_XID_PREFETCH;
 	TransactionIdAdd(&nextid, prefetched_xid_count * 2);
 	VariableRelationPutNextXid(&nextid);
 	
@@ -275,8 +381,8 @@ GetNewTransactionId(xid)
      *	transaction ids are always even.
      * ----------------
      */
-    TransactionIdStore(&next_prefetched_id, xid);
-    TransactionIdAdd(&next_prefetched_id, 2);
+    TransactionIdStore(&next_prefetched_xid, xid);
+    TransactionIdAdd(&next_prefetched_xid, 2);
     prefetched_xid_count--;
 }
 
@@ -292,7 +398,7 @@ UpdateLastCommittedXid(xid)
     TransactionIdData lastid;
 
     /* ----------------
-     *	obtain exclusive access to the variable relation page
+     *	SOMEDAY obtain exclusive access to the variable relation page
      * ----------------
      */
 
@@ -310,11 +416,141 @@ UpdateLastCommittedXid(xid)
      * ----------------
      */
     if (TransactionIdIsLessThan(&lastid, xid))
-	VariableRelationPutNextXid(xid);
+	VariableRelationPutLastXid(xid);
 
     /* ----------------
-     *	relinquish our lock on the variable relation page
+     *	SOMEDAY relinquish our lock on the variable relation page
      * ----------------
      */
 }
 
+/* ----------------------------------------------------------------
+ *		    object id generation support
+ * ----------------------------------------------------------------
+ */
+
+/* ----------------
+ *	GetNewObjectIdBlock
+ *
+ *	This support function is used to allocate a block of object ids
+ *	of the given size.  applications wishing to do their own object
+ *	id assignments should use this 
+ * ----------------
+ */
+void
+GetNewObjectIdBlock(oid_return, oid_block_size)
+    oid *oid_return;		/* place to return the new object id */
+    int oid_block_size;		/* number of oids desired */
+{
+    oid nextoid;		
+
+    /* ----------------
+     *	if we are running during bootstrap time, then don't go to the
+     *  disk.. instead allocate the block from the set of special oids
+     *  reserved for this time..
+     * ----------------
+     */
+    if (! RelationIsValid(VariableRelation)) {
+	if (PointerIsValid(oid_return))
+	    GetNextBootstrapObjectIdBlock(oid_return, oid_block_size);
+	return;
+    }
+
+    /* ----------------
+     *	SOMEDAY obtain exclusive access to the variable relation page
+     * ----------------
+     */
+	
+    /* ----------------
+     *	get the "next" oid from the variable relation
+     *	and give it to the caller.
+     * ----------------
+     */
+    VariableRelationGetNextOid(&nextoid);
+    if (PointerIsValid(oid_return))
+	(*oid_return) = nextoid;
+    
+    /* ----------------
+     *	now increment the variable relation's next oid
+     *	field by the size of the oid block requested.
+     * ----------------
+     */
+    nextoid += oid_block_size;
+    VariableRelationPutNextOid(&nextoid);
+	
+    /* ----------------
+     *	SOMEDAY relinquish our lock on the variable relation page
+     * ----------------
+     */
+}
+
+/* ----------------
+ *	GetNewObjectId
+ *
+ *	This function allocates and parses out object ids.  Like
+ *	GetNewTransactionId(), it "prefetches" 32 object ids by
+ *	incrementing the nextOid stored in the var relation by 32 and then
+ *	returning these id's one at a time until they are exhausted.
+ *  	This means we reduce the number of accesses to the variable
+ *	relation by 32 for each backend.
+ *
+ *  	Note:  32 has no special significance.  We don't want the
+ *	       number to be too large because if when the backend
+ *	       terminates, we lose the oids we cached.
+ *
+ * ----------------
+ */
+
+#define VAR_OID_PREFETCH	32
+
+int prefetched_oid_count = 0;
+oid next_prefetched_oid;
+
+void
+GetNewObjectId(oid_return)
+    oid *oid_return;		/* place to return the new object id */
+{
+    /* ----------------
+     *  if we run out of prefetched oids, then we get some
+     *  more before handing them out to the caller.
+     * ----------------
+     */
+    
+    if (prefetched_oid_count == 0) {
+	int oid_block_size = VAR_OID_PREFETCH;
+
+	/* ----------------
+	 *	during bootstrap time, we want to allocate oids
+	 *	one at a time.  Otherwise there might be some
+	 *      bootstrap oid's left in the block we prefetch which
+	 *	would be passed out after the variable relation was
+	 *	initialized.  This would be bad.
+	 * ----------------
+	 */
+	if (! RelationIsValid(VariableRelation))
+	    oid_block_size = 1;
+	
+	/* ----------------
+	 *	get a new block of prefetched object ids.
+	 * ----------------
+	 */
+	GetNewObjectIdBlock(&next_prefetched_oid, oid_block_size);
+	
+	/* ----------------
+	 *	now reset the prefetched_oid_count.
+	 * ----------------
+	 */
+	prefetched_oid_count = oid_block_size;
+    }
+    
+    /* ----------------
+     *	return the next prefetched oid in the pointer passed by
+     *  the user and decrement the prefetch count.
+     * ----------------
+     */
+    if (PointerIsValid(oid_return))
+	(*oid_return) = next_prefetched_oid;
+    
+    next_prefetched_oid++;
+    prefetched_oid_count--;
+}
