@@ -24,7 +24,7 @@ the database administrator, or DBA, for this database and is the only
 person, other than the \*(PG super-user, who can destroy it.
 .PP
 .IR Createdb
-is a shell script that invokes
+is a shell script that invokes the \*(PG
 .IR monitor .
 Hence, a
 .IR postmaster
@@ -76,16 +76,12 @@ is listening for connections.  Defaults to 4321, or the value of the
 environment variable (if set).
 .SH EXAMPLES
 .(C
-/*
- * create the demo database
- */
+# create the demo database
 createdb demo
 .)C
 .(C
-/*
- * create the demo database using the postmaster on host eden,
- * port 1234, using the Kerberos authentication system.
- */
+# create the demo database using the postmaster on host eden,
+# port 1234, using the Kerberos authentication system.
 createdb -a kerberos -p 1234 -h eden demo
 .)C
 .SH FILES
