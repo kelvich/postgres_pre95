@@ -353,7 +353,6 @@ RelationSetLockForRead(relation)
     if (LockingIsDisabled) 
 	return;
     
-    elog(NOTICE, "Setting read lock on %s", relation->rd_rel->relname);
     linfo = (LockInfo) relation->lockInfo;
     LOCKDEBUG_40;
 
@@ -436,7 +435,6 @@ RelationSetLockForWrite(relation)
     if (LockingIsDisabled)
 	return;
     
-    elog(NOTICE, "Setting write lock on %s", relation->rd_rel->relname);
     linfo = (LockInfo) relation->lockInfo;
     LOCKDEBUG_60;
     
