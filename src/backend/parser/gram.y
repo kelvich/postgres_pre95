@@ -1979,7 +1979,7 @@ make_targetlist_expr ( name , expr )
                 val = get_constvalue(CDR(expr));
               }
               CDR(expr) = (LispValue) MakeConst(attrtype, attrlen,
-                fmgr(typeid_get_retinfunc(attrtype), val),
+                fmgr(typeid_get_retinfunc(attrtype),val,get_typelem(attrtype)),
                 0);
 	} else if((Typecast_ok) && (attrtype != type_id)){
               CDR(expr) = (LispValue) 
