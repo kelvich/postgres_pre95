@@ -299,6 +299,7 @@ inv_seek(obj_desc, offset, whence)
     int whence;
 {
     int ret;
+    Datum d;
     ScanKeyEntryData skey[1];
 
     Assert(PointerIsValid(obj_desc));
@@ -326,17 +327,21 @@ inv_seek(obj_desc, offset, whence)
      *  an index on this.
      */
 
-    /* end any active index scan */
-    if (obj_desc->ofs.i_fs.iscan != (IndexScanDesc) NULL)
-	index_endscan(obj_desc->ofs.i_fs.iscan);
 
     /* right now, just assume that the operation is L_SET */
-    ScanKeyEntryInitialize(&skey[0], 0x0, 1, Int4GEProcedure,
-			   Int32GetDatum(offset));
+    if (obj_desc->ofs.i_fs.iscan != (IndexScanDesc) NULL) {
+	d = Int32GetDatum(offset);
+	btmovescan(obj_desc->ofs.i_fs.iscan, d);
+    } else {
 
-    obj_desc->ofs.i_fs.iscan = index_beginscan(obj_desc->ofs.i_fs.index_r,
-					   (Boolean) 0, (uint16) 1,
-					   (ScanKey) &skey[0]);
+	ScanKeyEntryInitialize(&skey[0], 0x0, 1, Int4GEProcedure,
+			       Int32GetDatum(offset));
+
+	obj_desc->ofs.i_fs.iscan = index_beginscan(obj_desc->ofs.i_fs.index_r,
+					       (Boolean) 0, (uint16) 1,
+					       (ScanKey) &skey[0]);
+    }
+
     return (offset);
 }
 
