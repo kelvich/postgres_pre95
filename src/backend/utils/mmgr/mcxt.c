@@ -18,8 +18,16 @@ RcsId("$Header$");
 #include "tags.h"	/* for classTag */
 
 #include "utils/mcxt.h"
+#include "utils/log.h"
+
+#include "utils/palloc.h"
 
 extern void bcopy();	/* XXX use header */
+
+#undef MemoryContextAlloc
+#undef MemoryContextFree
+#undef malloc
+#undef free
 
 /*
  * Global State
@@ -275,7 +283,98 @@ MemoryContextFree(context, pointer)
 	AssertArg(MemoryContextIsValid(context));
 	AssertArg(PointerIsValid(pointer));
 
-	context->method->free(context, pointer);
+	context->method->free_p(context, pointer);
+}
+
+extern SLList PallocDebugList;
+extern SLList *PallocList;
+extern SLList *PfreeList;
+extern int PallocDiffTag;
+extern bool PallocRecord;
+extern bool PallocNoisy;
+
+Pointer
+MemoryContextAlloc_Debug(file, line, context, size)
+String file;
+int line;
+MemoryContext context;
+Size size;
+{
+	Pointer p;
+	PallocDebugData *d, *d1;
+
+	AssertState(MemoryContextEnabled);
+	AssertArg(MemoryContextIsValid(context));
+	AssertArg(SizeIsValid(size));
+
+	LogTrap(!AllocSizeIsValid(size), BadAllocSize,
+		("size=%d [0x%x]", size, size));
+
+	p = context->method->alloc(context, size);
+	if (PallocRecord) {
+	    d = (PallocDebugData*)malloc(sizeof(PallocDebugData));
+	    d->pointer = p;
+	    d->size = size;
+	    d->line = line;
+	    d->file = file;
+	    d->context = MemoryContextGetName(context);
+
+	    SLNewNode(&(d->Link));
+	    SLAddTail(&PallocDebugList, &(d->Link));
+	    if (PallocDiffTag) {
+		d1 = (PallocDebugData*)malloc(sizeof(PallocDebugData));
+		d1->pointer = p;
+		d1->size = size;
+		d1->line = line;
+		d1->file = file;
+		d1->context = d->context;
+		SLNewNode(&(d1->Link));
+		SLAddTail(PallocList, &(d1->Link));
+	      }
+	}
+	if (PallocNoisy)
+	    printf("!+ f: %s l: %d p: 0x%x s: %d %s\n",
+		   file, line, p, size, MemoryContextGetName(context));
+	return (p);
+}
+
+void
+MemoryContextFree_Debug(file, line, context, pointer)
+String file;
+int line;
+MemoryContext	context;
+Pointer		pointer;
+{
+	PallocDebugData *d;
+
+	AssertState(MemoryContextEnabled);
+	AssertArg(MemoryContextIsValid(context));
+	AssertArg(PointerIsValid(pointer));
+
+	if (PallocRecord) {
+	    d = (PallocDebugData*)SLGetHead(&PallocDebugList);
+	    while (d != NULL) {
+		if (d->pointer == pointer) {
+		    SLRemove(&(d->Link));
+		    break;
+		  }
+		d = (PallocDebugData*)SLGetSucc(&(d->Link));
+	      }
+	    if (d != NULL) {
+		if (PallocDiffTag)
+		    SLAddTail(PfreeList, &(d->Link));
+		else
+		    free(d);
+	      }
+	    else
+		elog(NOTICE, "pfree_remove l:%d f:%s p:0x%x %s",
+		     line, file, pointer, "** not on list **");
+	   }
+	if (PallocNoisy)
+	    printf("!- f: %s l: %d p: 0x%x %s\n",
+		   file, line, pointer, context);
+
+	context->method->free_p(context, pointer);
 }
 
 Pointer
@@ -396,7 +495,12 @@ GlobalMemoryDestroy(context)
 
 	/* unlink and delete the context */
 	OrderedElemPop(&context->elemData);
+#ifdef PALLOC_DEBUG
+	MemoryContextFree_Debug(__FILE__, __LINE__, 
+				TopMemoryContext, (Pointer)context);
+#else
 	MemoryContextFree(TopMemoryContext, (Pointer)context);
+#endif
 }
 
 /*
