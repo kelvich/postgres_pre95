@@ -4,7 +4,7 @@
 main()
 
 {
-	extern int geteuid();
+	extern int getuid();
 
-	printf("%d", geteuid());
+	printf("%d", getuid());
 }
