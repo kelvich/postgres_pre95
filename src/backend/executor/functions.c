@@ -30,6 +30,11 @@
 #include "access/heapam.h"
 #include "executor/executor.h"
 
+#include "rules/prs2locks.h"	/*
+				 * this because we have to worry about
+				 * copying rule locks when we copy tuples
+				 * d*mn you sp!! -mer 7 July 1992
+				 */
 #undef new
 
 typedef enum {F_EXEC_START, F_EXEC_RUN, F_EXEC_DONE} ExecStatus;
@@ -202,12 +207,77 @@ postquel_sub_params(es, nargs, args)
 }
 
 TupleTableSlot
-postquel_execute(es, fcache, args)
-    execution_state *es;
+copy_function_result(fcache, resultSlot)
     FunctionCachePtr fcache;
-    char **args;
+    TupleTableSlot   resultSlot;
+{
+    TupleTableSlot  funcSlot;
+    TupleDescriptor resultTd;
+    HeapTuple newTuple;
+    HeapTuple oldTuple;
+
+    Assert(! TupIsNull(resultSlot));
+    oldTuple = (HeapTuple)ExecFetchTuple(resultSlot);
+
+    funcSlot = (TupleTableSlot)fcache->funcSlot;
+    
+    if (funcSlot == (TupleTableSlot)NULL)
+	return resultSlot;
+
+    resultTd = ExecSlotDescriptor(resultSlot);
+    /*
+     * When the funcSlot is NULL we have to initialize the funcSlot's
+     * tuple descriptor.
+     */
+    if (TupIsNull(funcSlot))
+    {
+	int             i      = 0;
+	TupleDescriptor funcTd = ExecSlotDescriptor(funcSlot);
+
+	while (i < oldTuple->t_natts)
+	{
+	    funcTd->data[i] =
+		    (AttributeTupleForm)palloc(sizeof(FormData_pg_attribute));
+	    bcopy(resultTd->data[i],
+		  funcTd->data[i],
+		  sizeof(FormData_pg_attribute));
+	    i++;
+	}
+    }
+
+    newTuple = (HeapTuple)palloc(oldTuple->t_len);
+    bcopy(oldTuple, newTuple, oldTuple->t_len);
+
+    /* XXX^3  (i.e. triple X cubed)
+     * AAAAAAAAAAAAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaahhhhhhhhhhhhhhhhhhh!
+     * We have to copy to copy the RuleLock pointer too if it is in
+     * memory!!!!!!!!! May the Gods forgive me for the hack that is about
+     * to follow...  -mer 21:10:00 7 July 1992
+     */
+    if (oldTuple->t_locktype == MEM_RULE_LOCK &&
+	RuleLockIsValid(oldTuple->t_lock.l_lock))
+    {
+	newTuple->t_lock.l_lock = prs2CopyLocks(oldTuple->t_lock.l_lock);
+    }
+    else
+	newTuple->t_lock.l_lock = InvalidRuleLock;
+
+    ExecStoreTuple((Pointer)newTuple,
+		   (Pointer)funcSlot,
+		   InvalidBuffer,
+		   true);
+}
+
+Datum
+postquel_execute(es, fcache, fTlist, args, isNull)
+    execution_state  *es;
+    FunctionCachePtr fcache;
+    LispValue        fTlist;
+    char             **args;
+    bool             *isNull;
 {
     TupleTableSlot slot;
+    Datum          value;
 
     if (es->status == F_EXEC_START)
     {
@@ -220,13 +290,54 @@ postquel_execute(es, fcache, args)
 
     slot = postquel_getnext(es);
 
-    if (slot == (TupleTableSlot)NULL || (fcache->oneResult))
+    if (TupIsNull(slot))
     {
 	postquel_end(es);
 	es->status = F_EXEC_DONE;
+	*isNull = true;
+	return (Datum)NULL;
     }
 
-    return slot;
+    if (LAST_POSTQUEL_COMMAND(es))
+    {
+	TupleTableSlot resSlot;
+
+	/*
+	 * Copy the result.  copy_function_result is smart enough
+	 * to do nothing when no action is called for.  This helps
+	 * reduce the logic and code redundancy here.
+	 */
+	resSlot = copy_function_result(fcache, slot);
+	if (fTlist != (LispValue)NULL)
+	{
+	    HeapTuple tup;
+	    List      tle = CAR(fTlist);
+
+	    tup = (HeapTuple)ExecFetchTuple((Pointer)resSlot);
+	    value = ProjectAttribute(ExecSlotDescriptor(resSlot),
+				     tle,
+				     tup,
+				     isNull);
+	}
+	else
+	{
+	    value = (Datum)resSlot;
+	    *isNull = false;
+	}
+
+	/*
+	 * If this is a single valued function we have to end the
+	 * function execution now.
+	 */
+	if (fcache->oneResult)
+	{
+	    (void)postquel_end(es);
+	    es->status = F_EXEC_DONE;
+	}
+
+	return value;
+    }
+    return (Datum)NULL;
 }
 
 Datum
@@ -237,10 +348,9 @@ postquel_function(funcNode, args, isNull, isDone)
      bool *isDone;
 {
     HeapTuple        tup;
-    Datum            value;
     execution_state  *es;
     LispValue	     tlist;
-    TupleTableSlot   slot = (TupleTableSlot)NULL;
+    Datum            result;
     FunctionCachePtr fcache = get_func_fcache(funcNode);
 
     es = (execution_state *) fcache->func_state;
@@ -255,17 +365,20 @@ postquel_function(funcNode, args, isNull, isDone)
 
     Assert(es);
     /*
-     * Execute each command in the function one after another until we
-     * either get a tuple back from one of them or we run out of commands.
+     * Execute each command in the function one after another until we're
+     * executing the final command and get a result or we run out of
+     * commands.
      */
-    while (slot == (TupleTableSlot)NULL && es != (execution_state *)NULL)
+    while (es != (execution_state *)NULL)
     {
-	slot = postquel_execute(es, fcache, args);
-	/*
-	 * If the current command is done move to the next command.
-	 */
-	if (slot == (TupleTableSlot)NULL)
-	    es = es->next;
+	result = postquel_execute(es,
+				  fcache,
+				  get_func_tlist(funcNode),
+				  args,
+				  isNull);
+	if (es->status != F_EXEC_DONE)
+	    break;
+	es = es->next;
     }
 
     /*
@@ -286,27 +399,15 @@ postquel_function(funcNode, args, isNull, isDone)
 	 * Let caller know we're finished.
 	 */
 	*isDone = true;
-	return NULL;
+	return (fcache->oneResult) ? result : (Datum)NULL;
     }
+    /*
+     * If we got a result from a command within the function it has
+     * to be the final command.  All others shouldn't be returing
+     * anything.
+     */
+    Assert ( LAST_POSTQUEL_COMMAND(es) );
     *isDone = false;
 
-    /*
-     * We only return results when this is the final command in the
-     * function.  Currently all functions must return something.
-     */
-    if (LAST_POSTQUEL_COMMAND(es))
-    {
-	tup = (HeapTuple)ExecFetchTuple((Pointer)slot);
-	if ((tlist = get_func_tlist(funcNode)) != (List)NULL)
-	{
-	    List tle = CAR(tlist);
-
-	    value = ProjectAttribute(ExecSlotDescriptor(slot),tle,tup,isNull);
-	}
-	else
-	    value = (Datum) slot;
-	return value;
-    }
-    *isNull = true;
-    return NULL;
+    return result;
 }
