@@ -31,6 +31,7 @@
 
 extern bool _enable_hashjoin_;
 extern bool _enable_mergesort_;
+extern int testFlag;
 
 
 
@@ -208,9 +209,9 @@ best_innerjoin (join_paths,outer_relid)
     LispValue join_path = LispNil;
     
     foreach (join_path, join_paths) {
-	if ( same(get_joinid(CAR(join_path)),outer_relid)
+	if ( member(CAR(get_joinid(CAR(join_path))),outer_relid)
 	    && ((null (cheapest) 
-		 || path_is_cheaper(CAR(join_path),cheapest)))) {
+		 || path_is_cheaper(CAR(join_path),cheapest)) || testFlag)) {
 	    cheapest = (Path)CAR(join_path);
 	}
     }
@@ -265,7 +266,28 @@ sort_inner_and_outer (joinrel,outerrel,innerrel,mergeinfo_list)
 	   new_join_pathkeys (outerkeys,get_targetlist(joinrel),
 			      joinmethod_clauses (xmergeinfo));
 	 
-	  temp_node = create_mergesort_path(joinrel,
+	 if (testFlag) {
+	     LispValue x, y;
+	     foreach (x, get_pathlist(outerrel)) {
+		 foreach (y, get_pathlist(innerrel)) {
+		 temp_node = create_mergesort_path(joinrel,
+						 get_size (outerrel),
+						 get_size (innerrel),
+						 get_width (outerrel),
+						 get_width (innerrel),
+						 CAR(x),
+						 CAR(y),
+						 merge_pathkeys,
+						 get_m_ordering(xmergeinfo),
+						 joinmethod_clauses(xmergeinfo),
+						 outerkeys,innerkeys);
+
+		  ms_list = nappend1(ms_list,temp_node);
+	       }
+	    }
+	 }
+	else {
+	 temp_node = create_mergesort_path(joinrel,
 					    get_size (outerrel),
 					    get_size (innerrel),
 					    get_width (outerrel),
@@ -278,6 +300,7 @@ sort_inner_and_outer (joinrel,outerrel,innerrel,mergeinfo_list)
 					    outerkeys,innerkeys);
 
 	  ms_list = nappend1(ms_list,temp_node);
+	}
      }
      return(ms_list);
 
@@ -372,12 +395,14 @@ match_unsorted_outer (joinrel,outerrel,innerrel,outerpath_list,
 	    nestinnerpath = cheapest_inner;
 	} 
 	
+	if (testFlag && best_innerjoin)
+	    nestinnerpath = best_innerjoin;
+
 	paths = 
 	  lispCons (create_nestloop_path (joinrel,outerrel,
 					  outerpath,nestinnerpath,
 					  merge_pathkeys),
 		    LispNil);
-	    
 	
 	if ( clauses && keyquals) {
 	    bool path_is_cheaper_than_sort;
@@ -396,7 +421,7 @@ match_unsorted_outer (joinrel,outerrel,innerrel,outerpath_list,
 				   ,get_size(innerrel),
 				   get_width(innerrel),
 				   LispNil))));
-	    if (!path_is_cheaper_than_sort)  {
+	    if (!path_is_cheaper_than_sort || testFlag)  {
 		varkeys = 
 		  extract_path_keys (nth (0,keyquals),
 				     get_targetlist (innerrel),
@@ -410,7 +435,7 @@ match_unsorted_outer (joinrel,outerrel,innerrel,outerpath_list,
 	     *    thus wouldn't otherwise be considered. 
 	     */
 	    
-	    if(path_is_cheaper_than_sort) {
+	    if(path_is_cheaper_than_sort || testFlag) {
 		set_outerjoincost (mergeinnerpath,
 				   get_path_cost (outerpath));
 	    } 
@@ -418,6 +443,37 @@ match_unsorted_outer (joinrel,outerrel,innerrel,outerpath_list,
 		mergeinnerpath = cheapest_inner;
 	    } 
 	    
+	    if (testFlag) {
+		LispValue x;
+		if (mergeinnerpath)
+		    temp_node = lispCons(create_mergesort_path(joinrel,
+						   get_size (outerrel),
+						   get_size (innerrel),
+						   get_width (outerrel),
+						   get_width (innerrel),
+						   outerpath,
+						   mergeinnerpath,
+						   merge_pathkeys,
+						   get_m_ordering(xmergeinfo),
+						   nth (1,keyquals),
+						       LispNil,LispNil),
+				     paths);
+		foreach (x, get_pathlist(innerrel)) { 
+		    temp_node = lispCons(create_mergesort_path(joinrel,
+						     get_size (outerrel),
+						     get_size (innerrel),
+						     get_width (outerrel),
+						     get_width (innerrel),
+						     outerpath,
+						     CAR(x),
+						     merge_pathkeys,
+						     get_m_ordering(xmergeinfo),
+						     nth (1,keyquals),
+							  LispNil,varkeys),
+				     temp_node);
+		   }
+	       }
+	    else {
 	    temp_node = lispCons(create_mergesort_path(joinrel,
 						       get_size (outerrel),
 						       get_size (innerrel),
@@ -430,6 +486,7 @@ match_unsorted_outer (joinrel,outerrel,innerrel,outerpath_list,
 						       nth (1,keyquals),
 							   LispNil,varkeys),
 				 paths);
+	      }
 	    
 	} 
 	else {
@@ -517,7 +574,7 @@ match_unsorted_inner (joinrel,outerrel,innerrel,innerpath_list,mergeinfo_list)
 	    temp2 = (bool) (FLOAT_IS_ZERO(get_outerjoincost(innerpath))
 			    || (get_outerjoincost(innerpath) > temp1));
 	
-	    if (temp2) {
+	    if (temp2 || testFlag) {
 		
 		LispValue outerkeys = 
 		  extract_path_keys(nth (0,keyquals),
@@ -526,6 +583,25 @@ match_unsorted_inner (joinrel,outerrel,innerrel,innerpath_list,mergeinfo_list)
 		LispValue merge_pathkeys = 
 		  new_join_pathkeys (outerkeys,get_targetlist (joinrel),clauses);
 		
+		if (testFlag) {
+		    LispValue x;
+		    foreach (x, get_pathlist(outerrel)) {
+			temp_node = lispCons(create_mergesort_path(joinrel,
+						   get_size (outerrel),
+						   get_size (innerrel),
+						   get_width (outerrel),
+						   get_width (innerrel),
+						   CAR(x),
+						   innerpath,merge_pathkeys,
+					           get_m_ordering(xmergeinfo),
+						   nth (1,keyquals),
+						   outerkeys,LispNil),
+					     LispNil);
+			
+			mp_list = nconc(mp_list,temp_node);
+		      }
+		   }
+		else {
 		temp_node = lispCons(create_mergesort_path(joinrel,
 							   get_size (outerrel),
 							   get_size (innerrel),
@@ -540,6 +616,7 @@ match_unsorted_inner (joinrel,outerrel,innerrel,innerpath_list,mergeinfo_list)
 				     LispNil);
 		
 		mp_list = nconc(mp_list,temp_node);
+		}
 
 	    } /* if temp2 */
 	} /* if clauses */
@@ -580,7 +657,6 @@ hash_inner_and_outer (joinrel,outerrel,innerrel,hashinfo_list)
     LispValue outerkeys = LispNil;
     LispValue innerkeys = LispNil;
     LispValue hash_pathkeys = LispNil;
-    int outerpages, innerpages;
     
     foreach(i,hashinfo_list) {
 	xhashinfo = (HInfo)CAR(i);
@@ -595,22 +671,39 @@ hash_inner_and_outer (joinrel,outerrel,innerrel,hashinfo_list)
 			    get_targetlist(joinrel),
 			    get_clauses (xhashinfo));
 	
-	outerpages = page_size(get_size(outerrel), get_width(outerrel));
-	innerpages = page_size(get_size(innerrel), get_width(innerrel));
-	if (length(get_relids(innerrel)) > 1 || outerpages >= innerpages) {
-	    temp_node = create_hashjoin_path(joinrel,
-					     get_size (outerrel),
-					     get_size (innerrel),
-					     get_width (outerrel),
-					     get_width (innerrel),
-					     get_cheapestpath (outerrel),
-					     get_cheapestpath (innerrel),
-					     hash_pathkeys,
-					     get_hashop (xhashinfo),
-					     get_clauses (xhashinfo),
-					     outerkeys,innerkeys);
-	    hjoin_list = nappend1(hjoin_list,temp_node);
-	  }
+	if (testFlag) {
+	    LispValue x, y;
+	    foreach (x, get_pathlist(outerrel)) {
+		foreach (y, get_pathlist(innerrel)) {
+		    temp_node = create_hashjoin_path(joinrel,
+						     get_size (outerrel),
+						     get_size (innerrel),
+						     get_width (outerrel),
+						     get_width (innerrel),
+						     CAR(x),
+						     CAR(y),
+						     hash_pathkeys,
+						     get_hashop (xhashinfo),
+						     get_clauses (xhashinfo),
+						     outerkeys,innerkeys);
+		    hjoin_list = nappend1(hjoin_list,temp_node);
+		  }
+		}
+	    }
+	else {
+	temp_node = create_hashjoin_path(joinrel,
+					 get_size (outerrel),
+					 get_size (innerrel),
+					 get_width (outerrel),
+					 get_width (innerrel),
+					 get_cheapestpath (outerrel),
+					 get_cheapestpath (innerrel),
+					 hash_pathkeys,
+					 get_hashop (xhashinfo),
+					 get_clauses (xhashinfo),
+					 outerkeys,innerkeys);
+	hjoin_list = nappend1(hjoin_list,temp_node);
+	}
     }
     return(hjoin_list);
     
