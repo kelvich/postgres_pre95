@@ -166,12 +166,6 @@ ExecHashJoin(node)
 	     */
 	    set_hashtable(hashNode, hashtable);
 	    innerTupleSlot = ExecProcNode(hashNode);
-	    /* ----------------
-	     * Initialize the tuple descriptor for the saved
-	     * tuple slot in the hash join state
-	     */
-	    SetSlotTupleDescriptor(get_hj_SavedTupleSlot(hjstate),
-				SlotTupleDescriptor(innerTupleSlot));
 	}
 	bucket = NULL;
 	curtuple = NULL;
@@ -556,6 +550,8 @@ ExecInitHashJoin(node, estate, parent)
 	TupleTableSlot slot 	  = get_cs_ResultTupleSlot(hashstate);
 	set_hj_TemporaryTupleSlot(hjstate, slot);
     }
+    (void)ExecSetSlotDescriptor(get_hj_SavedTupleSlot(hjstate),
+				ExecGetTupType(outerNode));
 			      
     /* ----------------
      * 	initialize tuple type and projection info
