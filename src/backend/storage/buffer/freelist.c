@@ -24,7 +24,9 @@ static
 BufferDesc 	*SharedFreeList;
 extern int	*PrivateRefCount;
 extern int	*LastRefCount;
+#ifndef NO_ASSERT_CHECKING
 extern Buffer	BufferDescriptorGetBuffer();
+#endif
 
 /* only actually used in debugging.  The lock
  * should be acquired before calling the freelist manager.
