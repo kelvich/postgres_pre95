@@ -1,5 +1,5 @@
 =============== destroying old regression database... =================
-WARN:Feb 19 14:35:42:destroydb: database regression does not exist.
+WARN:Mar 11 20:00:08:destroydb: database regression does not exist.
 /private/aoki/postgres//bin/destroydb: database destroy failed on regression.
 =============== creating new regression database... =================
 Welcome to the C POSTGRES terminal monitor
@@ -7,7 +7,7 @@ Welcome to the C POSTGRES terminal monitor
 Go 
 * 
 Query sent to backend is "    define function circle_in ( language = "c", 			    returntype = circle )        arg is (char16)        as "/private/aoki/postgres/src/regress/regress/obj/../obj/regress.o" "
-NOTICE:Feb 19 14:35:51:ProcedureDefine: return type 'circle' not yet defined
+NOTICE:Mar 11 20:00:18:ProcedureDefine: return type 'circle' not yet defined
 DEFINE
 Go 
 * 
@@ -220,23 +220,23 @@ APPEND 0
 Go 
 * 
 Query sent to backend is "append hobbies_r (name = "skywalking") "
-APPEND 1090444
+APPEND 589996
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "advil", hobby = "posthacking") "
-APPEND 1090445
+APPEND 589997
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "peet's coffee", hobby = "posthacking") "
-APPEND 1090446
+APPEND 589998
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "hightops", hobby = "basketball") "
-APPEND 1090447
+APPEND 589999
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "guts", hobby = "skywalking") "
-APPEND 1090448
+APPEND 590000
 Go 
 * 
 Query sent to backend is "copy road from "/private/aoki/postgres/src/regress/regress/obj/../../data/streets.data" "
@@ -264,31 +264,31 @@ REPLACE
 Go 
 * 
 Query sent to backend is "append aggtest (a = 56, b = 7.8) "
-APPEND 1096623
+APPEND 596175
 Go 
 * 
 Query sent to backend is "append aggtest (a = 100, b = 99.097) "
-APPEND 1096624
+APPEND 596176
 Go 
 * 
 Query sent to backend is "append aggtest (a = 0, b = 0.09561) "
-APPEND 1096625
+APPEND 596177
 Go 
 * 
 Query sent to backend is "append aggtest (a = 42, b = 324.78) "
-APPEND 1096626
+APPEND 596178
 Go 
 * 
 Query sent to backend is "append arrtest (a = "{}", b = "{}", c = "{}", d = "{}") "
-APPEND 1096627
+APPEND 596179
 Go 
 * 
 Query sent to backend is "append arrtest (a = "{"1"}", b = "{"1"}", c = "{"foobar"}", d = "{"barfoo"}") "
-APPEND 1096628
+APPEND 596180
 Go 
 * 
 Query sent to backend is "append arrtest (a = "{1,2}", b = "{3,4}", c = "{foo,bar}", d = "{bar,foo}") "
-APPEND 1096629
+APPEND 596181
 Go 
 * 
 Query sent to backend is "create iportaltest (i = int4, d = float4, p = polygon) "
@@ -296,11 +296,11 @@ CREATE
 Go 
 * 
 Query sent to backend is "append iportaltest (i = 1, d = 3.567, p = "(3.0,4.0,1.0,2.0)"::polygon) "
-APPEND 1096697
+APPEND 596249
 Go 
 * 
 Query sent to backend is "append iportaltest (i = 2, d = 89.05, p = "(4.0,3.0,2.0,1.0)"::polygon) "
-APPEND 1096698
+APPEND 596250
 Go 
 * 
 Query sent to backend is " define index onek_unique1 on onek using btree(unique1 int4_ops) "
@@ -368,15 +368,15 @@ DEFINE
 Go 
 * 
 Query sent to backend is " define view street ( road.name, 		     road.thepath, 		     cname = real_city.cname )        where real_city.outline ## road.thepath "
-APPEND 1166921DEFINE
+APPEND 666473DEFINE
 Go 
 * 
 Query sent to backend is "define view iexit ( ihighway.name, 		    ihighway.thepath,  		    exit = interpt_pp(ihighway.thepath, ramp.thepath) )        where ihighway.thepath ## ramp.thepath "
-APPEND 1166990DEFINE
+APPEND 666542DEFINE
 Go 
 * 
 Query sent to backend is "define view toyemp ( emp.name, 		     emp.age, 		     emp.location, 		     annualsal = 12*emp.salary ) "
-APPEND 1167063DEFINE
+APPEND 666615DEFINE
 Go 
 * 
 Query sent to backend is "  define aggregate newavg (sfunc1 = int4pl, 			 sfunc2 = int4inc, 			 finalfunc = int4div, 			 initcond1 = "0", 			 initcond2 = "0") "
@@ -2437,8 +2437,8 @@ REPLACE
 Go 
 * 
 Query sent to backend is "replace temp (stringu1 = reverse_c16(o.stringu1))     from o in onek     where o.stringu1 = "JBAAAA" and 	  o.stringu1 = temp.stringu1 "
-NOTICE:Feb 19 14:53:25:Non-functional update, only first update is performed
-NOTICE:Feb 19 14:53:26:Non-functional update, only first update is performed
+NOTICE:Mar 11 20:17:14:Non-functional update, only first update is performed
+NOTICE:Mar 11 20:17:16:Non-functional update, only first update is performed
 REPLACE
 Go 
 * 
@@ -2511,7 +2511,7 @@ RETRIEVE
 Go 
 * 
 Query sent to backend is "append xacttest (a = 777, b = 777.777) "
-APPEND 1187586
+APPEND 687138
 Go 
 * 
 Query sent to backend is "end "
@@ -4066,14 +4066,14 @@ ADD
 Go 
 * 
 Query sent to backend is "append temp (a=4, 	     b="char16", 	     c="text", 	     d=4.1, 	     e=4.1, 	     f=2, 	     g="(4.1,4.1,3.1,3.1)", 	     h="now", 	     i='c', 	     j="{now, Monday Aug 24 14:43:07 1992 PDT, epoch}", 	     k=314159, 	     l="(1,0,1)", 	     m=512, 	     n="1 2 3 4 5 6 7 8", 	     p="magnetic disk", 	     q="(1.1,1.1)", 	     r="(4.1,4.1,3.1,3.1)", 	     s="(0,2,4.1,4.1,3.1,3.1)", 	     t="(4.1,4.1,3.1,3.1)", 	     u="['now' 'epoch']", 	     v="1/3", 	     w="1,char16", 	     x="{1.0,2.0,3.0,4.0}", 	     y="{1.0,2.0,3.0,4.0}", 	     z="{1,2,3,4}") "
-APPEND 1187788
+APPEND 687340
 Go 
 * 
 Query sent to backend is "retrieve (temp.all) "
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 | initial     | a           | b           | c           | d           | e           | f           | g           | h           | i           | j           | k           | l           | m           | n           | o           | p           | q           | r           | s           | t           | u           | v           | w           | x           | y           | z           |
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-| (null)      | 4           | char16      | text        | 4.1         | 4.1         | 2           | (         4.1,         4.1,         3.1,         3.1)| Fri Feb 19 14:55:05 1993 PST| c           | {Fri Feb 19 14:55:05 1993 PST,Mon Aug 24 14:43:07 1992 PDT,epoch}| 314159      | (1,0,1)     | 512         | 1 2 3 4 5 6 7 8| (null)      | magnetic disk| (1.1,1.1)   | (4.1,4.1,3.1,3.1)| (0,2,4.1,4.1,3.1,3.1)| (4.1,4.1,3.1,3.1)| ['Fri Feb 19 14:55:05 1993 PST' 'epoch']| 1/3         | 1,char16    | {"1","2","3","4"}| {"1","2","3","4"}| {1,2,3,4}   |
+| (null)      | 4           | char16      | text        | 4.1         | 4.1         | 2           | (         4.1,         4.1,         3.1,         3.1)| Thurs Mar 11 20:18:51 1993 PST| c           | {Thurs Mar 11 20:18:51 1993 PST,Mon Aug 24 14:43:07 1992 PDT,epoch}| 314159      | (1,0,1)     | 512         | 1 2 3 4 5 6 7 8| (null)      | magnetic disk| (1.1,1.1)   | (4.1,4.1,3.1,3.1)| (0,2,4.1,4.1,3.1,3.1)| (4.1,4.1,3.1,3.1)| ['Thurs Mar 11 20:18:51 1993 PST' 'epoch']| 1/3         | 1,char16    | {"1","2","3","4"}| {"1","2","3","4"}| {1,2,3,4}   |
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 Go 
@@ -5641,7 +5641,7 @@ Query sent to backend is "retrieve (arrtest.all) where arrtest.b[2] < 10 "
 Go 
 * 
 Query sent to backend is "    retrieve (forty_two = ufp0()) "
-NOTICE:Feb 19 14:55:53:ufp_start: forked UFP[13616]
+NOTICE:Mar 11 20:19:33:ufp_start: forked UFP[15338]
 ---------------
 | forty_two   |
 ---------------
@@ -5690,7 +5690,7 @@ CREATE
 Go 
 * 
 Query sent to backend is " append myclass0 (a=5) "
-APPEND 1187960
+APPEND 687512
 Go 
 * 
 Query sent to backend is "retrieve (myclass0.a) "
@@ -5707,11 +5707,11 @@ REPLACE
 Go 
 * 
 Query sent to backend is "append myclass0 (a=10) "
-APPEND 1187961
+APPEND 687513
 Go 
 * 
 Query sent to backend is "append myclass0 (a=20) "
-APPEND 1187962
+APPEND 687514
 Go 
 * 
 Query sent to backend is "replace myclass0 (a=10) where myclass0.a < 10 "
@@ -5743,7 +5743,7 @@ REPLACE
 Go 
 * 
 Query sent to backend is " append myclass0 (a=100) "
-APPEND 1187971
+APPEND 687523
 Go 
 * I live to serve you.
 tuple 0: got
@@ -5756,59 +5756,236 @@ tuple 1: got
 	 d=(4 bytes) 89.050003,
 	 p=(72 bytes) 2 points,
 		 boundbox=(hi=4.000000,3.000000 / lo=2.000000,1.000000)
+#!/bin/sh
+#
+# $Header$
+#
+[ -z "$DATABASE" ] && DATABASE=regression
+export DATABASE
+[ -z "$PGHOST" ] && PGHOST=localhost
+export PGHOST
+#
+SMGR=d
+HERE=/private/aoki/postgres/src/regress/regress/obj/..
+#
+
+#
+# initial cleanup
+#
+prm -rf / \
+	|| exit 1
+pls -dl / \
+	|| exit 1
+drwx------ 1 postgres  system   0 Dec 31  1969 /
+
+#
+# - simple icopy "in"
+#
+icopy in -d $DATABASE -s $SMGR -v $HERE/../data/dept.data /dept.data1 \
+	|| exit 1
+/private/aoki/postgres/src/regress/regress/obj/../../data/dept.data -> /dept.data1
+#
+# - recursive icopy "in"
+#
+icopy in -d $DATABASE -s $SMGR -R $HERE/../data /data1 \
+	|| exit 1
+#
+# - recursive icopy "in" with dotfiles
+#
+cp -f $HERE/../data/dept.data $HERE/obj/.dept.data \
+	|| exit 1
+icopy in -d $DATABASE -s $SMGR -R -a $HERE/obj /data2 \
+	|| exit 1
+icopy in -d $DATABASE -s $SMGR -v $HERE/../data/dept.data /data2/dept.data \
+	|| exit 1
+/private/aoki/postgres/src/regress/regress/obj/../../data/dept.data -> /data2/dept.data
+
+#
+# - absolute pls
+#
+pls -aR / \
+	|| exit 1
+data1
+data2
+dept.data1
+
+/data1:
+RCS
+dept.data
+emp.data
+onek.data
+person.data
+real_city.data
+rect.data
+streets.data
+stud_emp.data
+student.data
+tenk.data
+
+/data1/RCS:
+dept.data,v
+emp.data,v
+onek.data,v
+person.data,v
+real_city.data,v
+rect.data,v
+streets.data,v
+stud_emp.data,v
+student.data,v
+tenk.data,v
+#
+# - absolute pmkdir
+#
+pmkdir /data2/absolute_dir \
+	|| exit 1
+#
+# - absolute prmdir
+#
+prmdir /data2/absolute_dir \
+	|| exit 1
+#
+# - absolute pcat
+#
+pcat /data2/dept.data \
+	|| exit 1
+toy	sharon
+shoe	bob
+
+#
+# - pcd/ppwd
+#
+PFCWD=`pcd /data2 | sed -e 's/setenv PFCWD //'`; export PFCWD
+ppwd \
+	|| exit 1
+/data2
+
+#
+# - relative pls
+#
+pls \
+	|| exit 1
+create.pq
+dept.data
+destroy.pq
+errors.pq
+fstest.sh
+iportal
+onek.data
+queries.pq
+regress.o
+regress.out
+stud_emp.data
+ufp1.o
+ufp2.o
+ufp3.o
+#
+# - relative pmkdir
+#
+pmkdir relative_dir \
+	|| exit 1
+#
+# - relative prmdir
+#
+prmdir relative_dir \
+	|| exit 1
+#
+# - relative pcat
+#
+pcat dept.data \
+	|| exit 1
+toy	sharon
+shoe	bob
+#
+# - relative prm
+#
+prm dept.data \
+	|| exit 1
+pls \
+	|| exit 1
+create.pq
+destroy.pq
+errors.pq
+fstest.sh
+iportal
+onek.data
+queries.pq
+regress.o
+regress.out
+stud_emp.data
+ufp1.o
+ufp2.o
+ufp3.o
+
+#
+# - more complex pcat
+#
+echo "foo" | pcat -H $PGHOST -D $DATABASE .dept.data - /data2/.dept.data
+toy	sharon
+shoe	bob
+foo
+toy	sharon
+shoe	bob
+
+#
+# final cleanup
+#
+prm -rf / \
+	|| exit 1
+rm -f $HERE/obj/.dept.data
+exit 0
 =============== running error queries ... =================
 Welcome to the C POSTGRES terminal monitor
 
 Go 
 * 
 Query sent to backend is "  retrieve (1) "
-WARN:Feb 19 14:56:13:parser: syntax error at or near "1"
+WARN:Mar 11 20:21:55:parser: syntax error at or near "1"
 
 
 Go 
 * 
 Query sent to backend is "  define aggregate newavg1 (sfunc1 = int4pl, 			  sfunc2 = int4inc, 			  initcond1 = "0", 			  initcond2 = "0") "
-WARN:Feb 19 14:56:14:AggregateDefine: must have a final function with two transition functions!
+WARN:Mar 11 20:21:56:AggregateDefine: must have a final function with two transition functions!
 
 Go 
 * 
 Query sent to backend is " define aggregate newavg2 (sfunc1 = int4pl, 			  sfunc2 = int2inc, 			  finalfunc = int4div, 			  initcond1 = "0", 			  initcond2 = "0") "
-WARN:Feb 19 14:56:15:AggregateDefine: transition function 1 type (23) != transition function 2 type (21)
+WARN:Mar 11 20:21:56:AggregateDefine: transition function 1 type (23) != transition function 2 type (21)
 
 Go 
 * 
 Query sent to backend is " define aggregate newavg3 (sfunc1 = int4pl, 			  sfunc2 = int4inc, 			  finalfunc = int2div, 			  initcond1 = "0", 			  initcond2 = "0") "
-WARN:Feb 19 14:56:15:AggregateDefine: final function argument type (21) != transition function type (23)
+WARN:Mar 11 20:21:56:AggregateDefine: final function argument type (21) != transition function type (23)
 
 Go 
 * 
 Query sent to backend is " define aggregate newcnt1 (sfunc2 = int4inc) "
-WARN:Feb 19 14:56:15:AggregateDefine: transition function 2 MUST have an initial value
+WARN:Mar 11 20:21:56:AggregateDefine: transition function 2 MUST have an initial value
 
 Go 
 * 
 Query sent to backend is "  retrieve (myclass0.a) "
-WARN:Feb 19 14:56:15:read on "myclass0        ": permission denied
+WARN:Mar 11 20:21:57:read on "myclass0        ": permission denied
 
 Go 
 * 
 Query sent to backend is " replace myclass0 (a = 10) where myclass0.a < 15 "
-WARN:Feb 19 14:56:16:read on "myclass0        ": permission denied
+WARN:Mar 11 20:21:57:read on "myclass0        ": permission denied
 
 Go 
 * 
 Query sent to backend is " replace myclass0 (a = myclass0.a + 1) "
-WARN:Feb 19 14:56:16:read on "myclass0        ": permission denied
+WARN:Mar 11 20:21:57:read on "myclass0        ": permission denied
 
 Go 
 * 
 Query sent to backend is " delete myclass0 where myclass0.a >= 100 "
-WARN:Feb 19 14:56:16:read on "myclass0        ": permission denied
+WARN:Mar 11 20:21:58:read on "myclass0        ": permission denied
 
 Go 
 * 
 Query sent to backend is " define rule foo is on retrieve to myclass0 do instead nothing "
-WARN:Feb 19 14:56:16:define rule on "myclass0        ": permission denied
+WARN:Mar 11 20:21:58:define rule on "myclass0        ": permission denied
 
 Go 
 * I live to serve you.
