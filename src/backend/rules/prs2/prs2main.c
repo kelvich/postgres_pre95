@@ -402,11 +402,11 @@ ResetPrs2Stats()
  *------------------------------------------------------------------
  */
 void
-ShowPrs2Stats()
+ShowPrs2Stats(statfp)
+FILE *statfp;
 {
-    extern FILE *StatFp;
 
-    fprintf(StatFp, "!\t%d rules_tested %d rules_activated\n",
+    fprintf(statfp, "!\t%d rules_tested %d rules_activated\n",
 		Prs2Stats_rulesTested,
 		Prs2Stats_rulesActivated);
 }
