@@ -23,6 +23,7 @@
  */
 
 #include <ctype.h>
+#include <strings.h>
 
 #include "tmp/postgres.h"
 
@@ -159,7 +160,8 @@ TupleDescInitEntry(desc, attributeNumber, attributeName,
      *  -cim 6/14/90
      * ----------------
      */
-    tuple = SearchSysCacheTuple(TYPNAME, typeName);
+    tuple = SearchSysCacheTuple(TYPNAME, (char *) typeName, (char *) NULL,
+				(char *) NULL, (char *) NULL);
     if (! HeapTupleIsValid(tuple)) {
 	/* ----------------
 	 *   here type info does not exist yet so we just fill
