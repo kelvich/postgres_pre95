@@ -8,6 +8,9 @@
  *	
  * ----------------------------------------------------------------
  */
+
+#include <strings.h>
+
 #include "tmp/postgres.h"
 
 RcsId("$Header$");
@@ -72,7 +75,6 @@ static long   eqproc[] = {
 };
 
 #define	EQPROC(SYSTEMTYPEOID)	eqproc[(SYSTEMTYPEOID)-16]
-    ;
 
 /* ----------------------------------------------------------------
  *		    internal support functions
@@ -198,8 +200,8 @@ CatalogCacheInitializeCache(cache, relation)
 	        EQPROC(tupdesc->data[cache->cc_key[i]-1]->atttypid);
 
 		fmgr_info(cache->cc_skey[i].sk_opr, 
-				  &cache->cc_skey[i].func,
-				  &cache->cc_skey[i].nargs);
+				  (func_ptr *) &cache->cc_skey[i].func,
+				  (int *) &cache->cc_skey[i].nargs);
 
 	    CACHE5_elog(DEBUG, "CatalogCacheInit %16s %d %d %x",
 			&relation->rd_rel->relname,
