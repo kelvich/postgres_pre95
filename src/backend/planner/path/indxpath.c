@@ -848,6 +848,7 @@ SingleAttributeIndex(index)
      */
     return (false);
 
+#if 0
     if (index->indproc == InvalidObjectId)
     {
 	switch (length(get_indexkeys(index)))
@@ -869,4 +870,5 @@ SingleAttributeIndex(index)
      * We have a functional index which is a single attr index
      */
     return true;
+#endif
 }
