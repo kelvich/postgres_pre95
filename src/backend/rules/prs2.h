@@ -38,6 +38,75 @@
 #define PRS2_DEBUG 1
 
 /*==================================================================
+ * --Prs2RuleData--
+ *
+ * This is the structure where we keep all the information
+ * needed to define a rule.
+ *
+ * ruleText:
+ *     the text of the rule (i.e. a string)
+ * ruleName:
+ *     the name of the rule
+ * ruleId:
+ *     the oid of the rule.
+ *     NOTE: we do NOT know it until we add the rule in the system
+ *     catalogs!
+ * isInstead:
+ *     is this an "instead" rule ??
+ * eventType:
+ *     the event type that triggers the rule
+ * actionType:
+ *     the type of the action that will be executed if the rule istriggered.
+ * eventRelationOid:
+ * eventRelationName:
+ *     oid & name of the relation referenced in the "event" clause of the rule.
+ * eventAttributeNumber:
+ * eventAttributeName:
+ *     the number & name of the attribute referenced in the "event" clause
+ *     of the rule. If no such attribute exists (i.e. "on retrieve to EMP" -
+ *     a view rule) then this is an InvalidAttributeNumber & NULL
+ *     respectively.
+ * updatedAttributeNumber:
+ *     The attribute no of the attribute that is updated from the rule.
+ *     For instance "on retrieve ... then do replace CURRENT(attr = ...)"
+ *     or "on retrieve to ... then do retrieve (attr = ....)"
+ * parseTree:
+ *     the parse tree for the rule definition.
+ * ruleQual:
+ *     the qualification of the rule
+ * ruleAction:
+ *     a list of all the actions.
+ * paramParseTree:
+ * paramRuleQual:
+ * paramRuleAction:
+ *     same as the parseTree, ruleQual & ruleAction but with all the
+ *     Var nodes that reference the CURRENT and/or NEW relations changed
+ *     into the appropriate Param nodes...
+ * 
+ */
+typedef struct Prs2RuleDataData {
+    ObjectId		ruleId;
+    char		*ruleText;
+    Name		ruleName;
+    bool		isInstead;
+    EventType		eventType;
+    ActionType		actionType;
+    ObjectId		eventRelationOid;
+    Name		eventRelationName;
+    AttributeNumber	eventAttributeNumber;
+    Name		eventAttributeName;
+    AttributeNumber	updatedAttributeNumber;
+    List		parseTree;
+    List		ruleQual;
+    List		ruleAction;
+    List		paramParseTree;
+    List		paramRuleQual;
+    List		paramRuleAction;
+} Prs2RuleDataData;
+
+typedef Prs2RuleDataData *Prs2RuleData;
+
+/*==================================================================
  * PRS2 MAIN ROUTINES
  *
  * These are almost all the routines a non Prs2 person wants to know
@@ -45,26 +114,6 @@
  *==================================================================
  */
 
-/*------------------------------------------------------------------
- * prs2DefineTupleRule
- *    Define a PRS2 rule (tuple level proccessing)
- */
-extern
-void
-prs2DefineTupleRule ARGS((
-    LispValue	parseTree,
-    char	*ruleText
-));
-
-/*------------------------------------------------------------------
- * prs2RemoveTupleRule
- *    Remove a prs2 rule given its name.
- */
-extern
-void
-prs2RemoveTupleRule ARGS((
-    Name	ruleName
-));
 
 /*------------------------------------------------------------------
  * prs2Main
@@ -187,6 +236,32 @@ prs2PrintLocks ARGS((
 ));
 
 /*------------------------------------------------------------------
+ * prs2RemoveOneLockInPlace
+ *
+ * remove a rule lock in place (i.e. no copies)
+ */
+extern
+void
+prs2RemoveOneLockInPlace ARGS((
+    RuleLock	locks,
+    int		n
+));
+
+/*------------------------------------------------------------------
+ * prs2RemoveAllLocksOfRuleInPlace
+ *
+ * remove all locks of a given rule in place (i.e. no copies)
+ * returns true if the lcoks have changed, false otherwise (i.e.
+ * if no locks for this rule were found).
+ */
+extern
+bool
+prs2RemoveAllLocksOfRuleInPlace ARGS((
+    RuleLock	locks,
+    ObjectId	ruleId
+));
+
+/*------------------------------------------------------------------
  * prs2RemoveAllLocksOfRule
  *    remove all the locks that have a ruleId equal to the given.
  *    the old `RuleLock' is destroyed and should never be
@@ -232,6 +307,17 @@ prs2LockUnion ARGS((
 ));
 
 /*------------------------------------------------------------------
+ * prs2FindLocksOfType
+ *	return a copy of all the locks of a given type.
+ */
+extern
+RuleLock
+prs2FindLocksOfType ARGS((
+    RuleLock		locks,
+    Prs2LockType	locktype;
+));
+
+/*------------------------------------------------------------------
  * RuleLockToString
  *   greate a string containing a representation of the given
  *   lock, more suitable for the human brain & eyes than a
@@ -270,75 +356,88 @@ StringToRuleLock ARGS((
  *------------------------------------------------------------------
  */
 
-/*
- * prs2InsertRuleInfoInCatalog
- *    add information about the rule to the system catalogs.
- *    returns the OID of the rule.
+/*====================== FILE: prs2define.c ============================*/
+/*------------------------------------------------------------------
+ * prs2DefineTupleRule
+ *    Define a PRS2 rule (tuple level proccessing)
  */
 extern
-ObjectId
-prs2InsertRuleInfoInCatalog ARGS((
+void
+prs2DefineTupleRule ARGS((
+    LispValue	parseTree,
+    char	*ruleText
+));
+
+/*------------------------------------------------------------------
+ * prs2RemoveTupleRule
+ *    Remove a prs2 rule given its name.
+ */
+extern
+void
+prs2RemoveTupleRule ARGS((
     Name	ruleName
 ));
 
+extern Prs2RuleData prs2FindRuleData();
+extern ObjectId prs2InsertRuleInfoInCatalog();
+extern void prs2DeleteRuleInfoFromCatalog();
+extern void prs2InsertRulePlanInCatalog();
+extern void prs2DeleteRulePlanFromCatalog();
+extern LispValue prs2GenerateActionPlans();
+extern EventType prs2FindEventTypeFromParse();
+extern ActionType prs2FindActionTypeFromParse();
+extern void changeReplaceToRetrieve();
+extern bool prs2AttributeIsOfBasicType();
 
-/*
- * prs2GenerateActionPlans
- *    Generate the plans for the action part of the rule
- *    The input argument is a list with the parsetrees for all
- *    the commands specified in the action part of the rule + the
- *    rule qualification.
- *    The returned value is a list with one item per command.
- *    Each one of them is a list with a (possibly modified)
- *    parse tree and the corresponding plan.
- */
-extern
-LispValue
-prs2GenerateActionPlans ARGS((
-    int		isRuleInstead,
-    LispValue	ruleQual,
-    LispValue	ruleAction
-));
+/*====================== FILE: prs2putlocks.c ============================*/
 
-/*
- * prs2InsertRulePlanInCatalog
- *    Insert a rule plan into the appropriate system catalogs.
+/*------------------------
+ * prs2AddTheNewRule
+ * 	add a new rule. Decide what kind of lock to use (tuple-level or
+ * 	relation-level lock). Add locks and/or stubs and the appropriate
+ *	system catalog info.
+ *------------------------
  */
 extern
 void
-prs2InsertRulePlanInCatalog ARGS((
-    ObjectId		ruleId,		/* the OID of the rule */
-    Prs2PlanNumber	planNumber,	/* the PlanNumber for this plan*/
-    LispValue		rulePlan
+prs2AddTheNewRule ARGS((
+    Prs2RuleData	r
 ));
 
-/*
- * prs2PutRelationLevelLocks
- *    Put all the appropriate locks in the RelationRelation
- *    (relation level locking...).
+/*------------------------
+ * prs2DeleteTheOldRule
+ *	delete a rule given its rule oid. Find if it was a tuple-level
+ *	lock or a relation-level lock rule and do the right thing
+ *	(delete locks/stubs & system catalog info).
+ *------------------------
  */
 extern
 void
-prs2PutRelationLevelLocks ARGS((
-    ObjectId		ruleId,		/* the OID of the rule */
-    Prs2LockType	lockType	/* the type of lock */
-    ObjectId		eventRelationOid; /* the OID of the locked relation */
-    AttributeNumber	attrNo;		/* the attribute to be locked */
+prs2DeleteTheOldRule ARGS((
+	ObjectId	ruleId
 ));
 
-/*
- * prs2RemoveRelationLevelLocks
- *    Remove the lock put by 'prs2PutRelationLevelLocks'
- *    (relation level locks)
- */
-extern
-void
-prs2RemoveRelationLevelLocks ARGS((
-    ObjectId	ruleId,			/* the OID of the rule */
-    ObjectId	eventRelationOid	/* OID of the locked relation */
-));
+extern void prs2FindLockTypeAndAttrNo();
+extern LispValue prs2FindConstantQual();
+extern LispValue prs2FindConstantClause();
+extern bool prs2IsATupleLevelLockRule();
 
+/*====================== FILE: prs2tup.c ============================*/
+extern bool prs2DefTupleLevelLockRule();
+extern RuleLock prs2FindLocksThatWeMustPut();
+extern bool prs2DoesStubDependsOnAttribute();
+extern bool prs2LockWritesAttributes();
+extern void prs2FindAttributesOfQual();
+extern void prs2UndefTupleLeveLockRule();
+extern void prs2RemoveTupleLeveLocksAndStubsOfManyRules();
 
+/*====================== FILE: prs2rel.c ============================*/
+extern void prs2DefRelationLevelLockRule();
+extern void prs2UndefRelationLevelLockRule();
+extern void prs2RemoveRelationLevelLocksOfRule();
+extern void prs2SetRelationLevelLocks();
+extern void prs2AddRelationLevelLock();
+ 
 /*===================================================================
  * RULE PLANS
  *
@@ -633,8 +732,6 @@ extern Prs2Status prs2Retrieve();
 extern Prs2Status prs2Append();
 extern Prs2Status prs2Delete();
 extern Prs2Status prs2Replace();
-extern EventType prs2FindEventTypeFromParse();
-extern ActionType prs2FindActionTypeFromParse();
 
 /*
  * These are functions in prs2plans.c
