@@ -41,7 +41,7 @@ DefineIndex ARGS((
 extern
 void
 RemoveIndex ARGS((
-	Name	name;
+	Name	name
 ));
 
 /*

@@ -345,13 +345,9 @@ extern bool int4notin();
 extern bool oidnotin();
 
 /* rule locks */
-extern RuleLock		StringToRuleLock();
-extern char		*RuleLockToString();
 extern Datum GetAttribute();
 
 /* rule stub records */
-extern char * stubout();
-extern Prs2RawStub stubin();
 
 extern int32 byteaGetSize();
 extern int32 byteaGetByte();
