@@ -257,6 +257,7 @@ main(argc, argv)
 	      printf("\tCommitTransactionCommand() at %s\n", ctime(&tim));
 	    }
 	    CommitTransactionCommand();
+	    continue;
 	  }
 	} else
 	    InteractiveBackend(parser_input, parser_output);
