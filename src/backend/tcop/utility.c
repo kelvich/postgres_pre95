@@ -172,20 +172,12 @@ ProcessUtility(command, args)
 	}
 		break;
 
-		/* domain list */
-#if 0
 	case ADD_ATTR:
 		commandTag = "ADD";
-#ifndef	PERFECTPARSER
-		AssertArg(consp(args) && lispStringp(CAR(args)));
-		AssertArg(consp(CDR(args)) && lispStringp(CADR(args)));
-		AssertArg(null(CDR(CDR(args))));
-#endif
-		addattribute(CString(CAR(args)),
-		relation_add_attribute (CAR (args),	/* relation name */
-			CDR (args));
+
+		PerformAddAttribute(CString(CAR(args)), CDR(args));
 		break;
-#endif
+
 		/*
 		 * schema
 		 */
