@@ -11,7 +11,7 @@ define function \(em define a new function
 	\fBlanguage =\fP {"c" | "postquel"}\fB,\fP
 	\fBreturntype =\fP type-r
 	[ \fB, iscachable\fP ]
-.\"	[ \fB, trusted\fP ]
+	[ \fB, trusted =\fP {"t" | "f"} ]
 	[ \fB, percall_cpu =\fP \fB"costly\fR{\fB!\fR*}\fB"\fR ]
 	[ \fB, perbyte_cpu =\fP \fB"costly\fR{\fB!\fR*}\fB"\fR ]
 	[ \fB, outin_ratio = \fP percentage ]
