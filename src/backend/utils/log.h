@@ -42,6 +42,9 @@ extern int	ElogDebugIndentLevel;
 
 #define ALLOCV(i)	(long *)calloc(i, sizeof (long))
 
+void
+EnableELog ARGS ((int enable));
+
 /*
  * elog --
  *	Old error logging function.
@@ -49,5 +52,9 @@ extern int	ElogDebugIndentLevel;
 extern
 void
 elog ARGS(( int, ... ));
+
+extern
+int
+dlog ARGS ((long lvl, char *mess));
 
 #endif	/* !defined(LogIncluded) */

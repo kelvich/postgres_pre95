@@ -10,6 +10,7 @@
 #define InvalIncluded	1
 
 #include "tmp/postgres.h"
+#include "utils/linval.h"
 #include "access/htup.h"
 #include "utils/rel.h"
 

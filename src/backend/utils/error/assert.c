@@ -40,7 +40,10 @@ ExceptionalCondition(conditionName, exceptionP, detail, fileName, lineNumber)
 			|| !PointerIsValid(exceptionP)) {
 		fprintf(stderr, "ExceptionalCondition: bad arguments\n");
 
-		ExcAbort(exceptionP, detail, NULL, NULL);	/* ??? */
+		ExcAbort(exceptionP, 
+			 (ExcDetail)detail,
+			 (ExcData)NULL,
+			 (ExcMessage)NULL);
 	} else {
 		fprintf(stderr,
 			"%s(\"%s:%s\", File: \"%s\", Line: %d)\n",

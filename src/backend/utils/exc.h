@@ -94,14 +94,29 @@ extern	ExcFrame*	ExcCurFrameP;
 
 typedef	void	ExcProc(/* Exception*, ExcDetail, ExcData, ExcMessage */);
 
-extern	void	ExcRaise(/* Exception*, ExcDetail, ExcData, ExcMessage */);
+void ExcRaise ARGS((
+	Exception *excP,
+	ExcDetail detail,
+	ExcData data,
+	ExcMessage message
+));
 
-extern	ExcProc	*ExcGetUnCaught();
-extern	ExcProc	*ExcSetUnCaught(/* ExcProc * */);
+ExcProc *ExcGetUnCaught ARGS((void ));
+ExcProc *ExcSetUnCaught ARGS((ExcProc *newP ));
 
-extern	void	ExcUnCaught(/* Exception*, ExcDetail, ExcData, ExcMessage */);
+void ExcUnCaught ARGS((
+	Exception *excP,
+	ExcDetail detail,
+	ExcData data,
+	ExcMessage message
+));
 
-extern	void	ExcPrint(/* Exception*, ExcDetail, ExcData, ExcMessage */);
+void ExcPrint ARGS((
+	Exception *excP,
+	ExcDetail detail,
+	ExcData data,
+	ExcMessage message
+));
 extern	char*	ProgramName;
 
 /*
@@ -114,7 +129,7 @@ extern	char*	ProgramName;
 extern
 void
 ExcAbort ARGS((
-	Exception*	exceptionP,
+	Exception	*excP,
 	ExcDetail	detail,
 	ExcData		data,
 	ExcMessage	message

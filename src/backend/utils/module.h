@@ -211,6 +211,21 @@ TraceStack {
 #define TraceReset(tb, str)		_TraceReset(&TNAME(tb), __LINE__, str)
 #define TraceDump()			_TraceDump()
 
+void EnableTrace ARGS((int enable ));
+int _TraceMsg ARGS((TraceBlock *tb , int level , int nargs , Pointer arg0 ));
+void TraceInitialize ARGS((TraceBlock *tb ));
+int RemoveHeadTailSpaces ARGS((char **str ));
+int InitializeTheGlobalArray ARGS((void ));
+void SetTraceLevel ARGS((char *traceName , int level ));
+bool TraceFileName ARGS((char *fileName ));
+void _TracePush ARGS((TraceBlock *tb , int lineno , char *str ));
+void _TracePop ARGS((TraceBlock *tb , int lineno , char *str ));
+void _TraceReset ARGS((TraceBlock *tb , int lineno , char *str ));
+void _TraceDump ARGS((void ));
+char *TailName ARGS((char *str ));
+Pointer TraceAlloc ARGS((int bytes ));
+void TraceFree ARGS((Pointer ptr , int bytes ));
+
 #endif TRACE_H
 
 
