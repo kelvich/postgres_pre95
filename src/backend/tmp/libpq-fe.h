@@ -32,17 +32,16 @@ extern char *GetAttributeByName ARGS ((TUPLE tuple, char *attname, char *isnull 
 extern char *GetAttributeByNum ARGS ((TUPLE tuple, int attnum, char *isnull ));
 extern int dump_data ARGS((char *portal_name, int rule_p));
 extern void read_remark ARGS((char id[]));
-extern char *PQdb ARGS(());
+extern char *PQdb ARGS((void));
 extern void PQsetdb ARGS((char *dbname));
-extern void PQreset ARGS(());
-extern void PQfinish ARGS(());
+extern void PQreset ARGS((void));
+extern void PQfinish ARGS((void));
 extern int PQFlushI ARGS((int i_count));
 extern char *PQfn ARGS((int fnid, int *result_buf, int result_len, int *actual_result_len, int result_type, PQArgBlock *args, int nargs));
 extern char *PQexec ARGS((char *query));
 extern Pointer palloc ARGS((Size size));
 extern void pfree ARGS((Pointer pointer));
-extern void elog ARGS((...));
+extern void elog ARGS((int lev, ...));
 extern void AssertionFailed ARGS((const String assertionName, const String fileName, const int lineNumber));
 
 #endif LibpqFeIncluded
-
