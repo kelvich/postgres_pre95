@@ -2,6 +2,8 @@
 #include "executor.h"
 
 /*
+ * $Header$
+ *
  * Executes the "not_in" operator for any data type
  *
  * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
