@@ -357,7 +357,7 @@ class (ArrayRef) public (Expr) {
 	ObjectId		refelemtype;
 	int			refelemlength;
 	bool			refelembyval;
-	int			refindex;
+	LispValue		refindexpr;
 	LispValue		refexpr;
 };
 #endif /* PrimNodesIncluded */
