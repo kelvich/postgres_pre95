@@ -28,7 +28,7 @@ the \*(PP super-user may run scripts directly
 by running
 .b backend
 with commands that follow in the next section.)
-.b Bakcend
+.b Backend
 interprets the sequence
 of commands and macro definitions
 found in template files in the manner
@@ -74,12 +74,19 @@ follow.
 .lp
 open relname
 .sp
-Open the relation called relname for further manipulation.
+Open the relation called
+.i relname
+for further manipulation.
 .sp
 close [relname]
 .sp
-Close the open relation called relname.  It is an error if 
-relname is not already opened.   If no relname is given, then the 
+Close the open relation called
+.i relname.
+It is an error if 
+.i relname
+is not already opened.   If no
+.i relname
+is given, then the 
 currently open relation is closed.
 .sp
 print
