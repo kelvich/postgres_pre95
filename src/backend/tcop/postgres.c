@@ -36,9 +36,11 @@
  * ----------------
  */
 #include "executor/execdebug.h"
+#include "executor/x_execstats.h"
 #include "planner/costsize.h"
 #include "tcop/tcopdebug.h"
 
+#include "storage/bufmgr.h"
 #include "utils/fmgr.h"
 #include "utils/log.h"
 #include "utils/rel.h"
@@ -66,7 +68,7 @@ int		ShowLock = 0;
 
 /* User info  */
 
-int		PG_username;
+char		*PG_username;
 
 Relation	reldesc;		/* current relation descritor */
 char		relname[80];		/* current relation name */
@@ -1088,6 +1090,8 @@ ResetUsage()
         struct timezone tz;
 	getrusage(RUSAGE_SELF, &Save_r);
         gettimeofday(&Save_t, &tz);
+	ResetBufferUsage();
+	ResetTupleCount();
 }
 
 ShowUsage()
@@ -1123,7 +1127,7 @@ ShowUsage()
 	 *  and stack sizes.
 	 */
 
-	fprintf(stderr, "usage stats:\n");
+	fprintf(stderr, "system usage stats:\n");
         fprintf(stderr, 
 		"\t%ld.%06ld elapse %ld.%06ld user %ld.%06ld system sec\n",
                 elapse_t.tv_sec - Save_t.tv_sec,
@@ -1162,6 +1166,9 @@ ShowUsage()
 		r.ru_nvcsw - Save_r.ru_nvcsw,
 		r.ru_nivcsw - Save_r.ru_nivcsw,
 		r.ru_nvcsw, r.ru_nivcsw);
+	fprintf(stderr, "postgres usage stats:\n");
+	PrintBufferUsage();
+	DisplayTupleCount();
 }
 
 get_pathname(argv)
