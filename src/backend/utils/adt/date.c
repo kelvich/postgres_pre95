@@ -54,14 +54,14 @@ typedef TimeIntervalData *TimeInterval;
 	/*   Dec 31 23:59:59 1901       */
 #define	INVALID_ABSTIME_STR 	"Undefined AbsTime"
 #define	INVALID_ABSTIME_STR_LEN	(sizeof(INVALID_ABSTIME_STR)-1)
-#define	INVALID_MONTH		11
-#define	INVALID_DAY		31
-#define	INVALID_HOUR		23
-#define	INVALID_MIN		59
-#define	INVALID_SEC		59
-#define	INVALID_YEAR		1901
+
+/*
+ *  Unix epoch is Jan  1 00:00:00 1970.  Postgres knows about times
+ *  sixty-eight years on either side of that.
+ */ 
+
 #define	MAX_ABSTIME		2145916800	/* Jan  1 00:00:00 2038 */ 
-#define	MIN_ABSTIME		(-2145916800)	/* Jan  1 00:00:00 1970 */
+#define	MIN_ABSTIME		(-2145916800)	/* Jan  1 00:00:00 1902 */
 
 /* relative time definitions */
 #define	MAX_RELTIME		2144448000
@@ -178,13 +178,6 @@ abstimein(datetime)
 	case 0:							/* error */
 		time = INVALID_ABSTIME;
 		break;
-	}
-
-	if (!TimeIsValid((Time)time)) {
-		elog(WARN, "abstimein: cannot handle time of UNIX epoch, yet");
-		return(0);
-	} else if (time == INVALID_ABSTIME) {
-		time = InvalidTime;
 	}
 
 	return(time);
@@ -842,19 +835,10 @@ isabstime(datestring, brokentime)
 			break;
 		p++;
 	}
+
 	/* check whether invalid time representation or not */
-	if (strcmp(INVALID_ABSTIME_STR, datestring) == 0) {
-		brokentime->tm_sec = INVALID_SEC;
-		brokentime->tm_min = INVALID_MIN;
-		brokentime->tm_hour = INVALID_HOUR;
-		brokentime->tm_mday = INVALID_DAY;
-		brokentime->tm_mon = INVALID_MONTH;  	/* 0,...,11 */
-		brokentime->tm_year = INVALID_YEAR - TM_YEAR_BASE;
-		brokentime->tm_wday = 0;    /* not calculated! */
-		brokentime->tm_yday = 0;    /* not calculated! */
-		brokentime->tm_isdst = 0;   /* dst_in_effect not relevant! */
-		return(1);
-	}
+	if (strcmp(INVALID_ABSTIME_STR, datestring) == 0)
+		return (0);
 
 	/* check whether time NOW required or not */
 	if (strcmp(TIME_NOW_STR, datestring) == 0)
@@ -870,6 +854,7 @@ isabstime(datestring, brokentime)
 		p++;
 		c = *p;
 	}
+
 	/* syntax test month*/
 	if (c != ' ' || ! correct_month(month, &monthnum))
 		return(0);		/*syntax error */
