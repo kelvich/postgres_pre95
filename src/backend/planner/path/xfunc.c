@@ -99,7 +99,9 @@ void xfunc_trypullup(rel)
 /*
 ** xfunc_shouldpull --
 **    find clause with most expensive measure, and decide whether to pull it up
-** from child to parent.
+** from child to parent.  Currently we only pullup secondary join clauses
+** that are in the pathclauseinfo.  Secondary hash and sort clauses are
+** left where they are.
 **
 ** Returns:  0 if nothing left to pullup
 **           XFUNC_LOCPRD if a local predicate is to be pulled up
@@ -113,8 +115,8 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
 {
     LispValue clauselist, tmplist; /* lists of clauses */
     CInfo maxcinfo;		/* clause to pullup */
-    CInfo primjoinclause	/* primary join clause */
-      = xfunc_primary_join(get_pathclauseinfo(parentpath));
+    LispValue primjoinclause	/* primary join clause */
+      = xfunc_primary_join(parentpath);
     double tmpmeasure, maxmeasure = 0; /* measures of clauses */
     double joinselec = 0;	/* selectivity of the join predicate */
     double joincost = 0;	/* join cost + primjoinclause cost */
@@ -146,7 +148,7 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
     ** local predicate 
     */
     if (length((get_parent(childpath))->relids) > 1
-	&& length(get_pathclauseinfo((JoinPath)childpath)) > 1)
+	&& xfunc_num_join_clauses(childpath) > 1)
       for (tmplist = get_pathclauseinfo((JoinPath)childpath);
 	   tmplist != LispNil;
 	   tmplist = CDR(tmplist))
@@ -157,15 +159,6 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
 	     maxmeasure = tmpmeasure;
 	     retval = XFUNC_JOINPRD;
 	 }
-    /* sanity check: we better not be pulling up the only join clause */
-    if (retval == XFUNC_JOINPRD)
-     {
-	 okness = (primjoinclause != 
-		   (CInfo)CAR(get_pathclauseinfo((JoinPath)childpath))
-		   || CDR(get_pathclauseinfo((JoinPath)childpath)) != LispNil)
-	   ? 1 : 0;
-	 Assert(okness);
-     }
 
     if (maxmeasure == 0)	/* no expensive clauses */
       return(0);
@@ -178,11 +171,11 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
     ** The cost of the join clause is the cost of the primary join clause
     ** plus the cost_per_tuple of whichchild for the join method.
     */
-    if (primjoinclause != (CInfo) NULL)
+    if (primjoinclause != LispNil)
      {
-	 joinselec = compute_clause_selec(get_clause(primjoinclause), LispNil);
+	 joinselec = compute_clause_selec(primjoinclause, LispNil);
 	 joincost = xfunc_cost_per_tuple(parentpath, whichchild) 
-	   + xfunc_expense(get_clause(primjoinclause));
+	   + xfunc_expense(primjoinclause);
 	 if (joinselec != 1.0 &&
 	     xfunc_measure(get_clause(maxcinfo)) > 
 	     (joincost / (1.0 - joinselec)))
@@ -193,7 +186,7 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
 	 else			/* drop through */;
      }
 
-    return(FALSE);
+    return(0);
 
 }
 
@@ -222,13 +215,13 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
     if (clausetype == XFUNC_LOCPRD)
      {
 	 set_locclauseinfo(((Path)newkid = (Path)CopyObject(childpath)), 
-			   LispRemove(cinfo, get_locclauseinfo(newkid)));
+			   xfunc_LispRemove(cinfo, get_locclauseinfo(newkid)));
      }
     else
      {
 	 set_pathclauseinfo
 	   (((JoinPath)(newkid = (Path)CopyObject(childpath))),
-	    LispRemove(cinfo, get_pathclauseinfo((JoinPath)newkid)));
+	    xfunc_LispRemove(cinfo, get_pathclauseinfo((JoinPath)newkid)));
      }
 
     /*
@@ -253,8 +246,10 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
     set_path_cost(newkid, get_path_cost(newkid)
 		  + xfunc_get_path_cost(newkid));
 
-    /* Fix all vars in the clause 
-       to point to the right varno and varattno in parentpath */
+    /* 
+    ** Fix all vars in the clause 
+    ** to point to the right varno and varattno in parentpath 
+    */
     xfunc_fixvars(get_clause(cinfo), newrel, whichchild);
 
     /*  add clause to parentpath, and fix up its cost. */
@@ -296,8 +291,8 @@ double xfunc_measure(clause)
 }
 
 /*
-** Recursively find expense of a clause.  See comment below for how we
-** calculate the expense of a function.
+** Recursively find the per-tuple expense of a clause.  See
+** xfunc_func_expense for more discussion.
 */
 double xfunc_expense(clause)
     LispValue clause;
@@ -313,100 +308,18 @@ double xfunc_expense(clause)
       return(0);
     /* now other stuff */
     else if (IsA(clause,Iter))
+      /* Too low. Should multiply by the expected number of iterations. */
       return(xfunc_expense(get_iterexpr((Iter)clause)));
     else if (IsA(clause,ArrayRef))
       return(xfunc_expense(get_refexpr((ArrayRef)clause)));
-    else if (fast_is_clause(clause)) /* cost is sum of operands' costs */
-      return(xfunc_expense(CAR(CDR(clause))) + 
-	     xfunc_expense(CAR(CDR(CDR(clause)))));
+    else if (fast_is_clause(clause)) 
+      return(xfunc_func_expense((LispValue)get_op(clause), 
+				get_opargs(clause)));
     else if (fast_is_funcclause(clause))
-     {
-	 /* look up tuple in cache */
-	 tupl = SearchSysCacheTuple(PROOID, 
-				    get_funcid((Func)get_function(clause)),
-				    NULL, NULL, NULL);
-	 proc = (Form_pg_proc) GETSTRUCT(tupl);
-
-	 /* 
-	 ** if it's a Postquel function, its cost is stored in the
-	 ** associated plan.
-	 */
-	 if (proc->prolang == POSTQUELlanguageId)
-	  {
-	      LispValue tmpplan;
-
-	      if (get_func_planlist((Func)clause) == LispNil)
-	       {
-		   ObjectId *argOidVect;      /* vector of argtypes */
-		   char *pq_src;              /* text of PQ function */
-		   int nargs;                 /* num args to PQ function */
-		   LispValue parseTree_list;  /* dummy variable */
-		   ObjectId *funcname_get_funcargtypes();
-
-		   /* 
-		   ** plan the function, storing it in the Func node for later 
-		   ** use by the executor.  
-		   */
-		   pq_src = (char *) textout(&(proc->prosrc));
-		   nargs = proc->pronargs;
-		   if (nargs > 0)
-		     argOidVect = funcname_get_funcargtypes(&proc->proname.data[0]);
-		   set_func_planlist((Func)clause,
-				     (List)pg_plan(pq_src, argOidVect, nargs, 
-						   &parseTree_list, None));
-	       }
-	      /*
-	      ** Return the sum of the costs of the plans (the PQ function
-	      ** may have many queries in its body).
-	      */
-	      foreach(tmpplan, get_func_planlist((Func)clause))
-		cost += get_cost((Plan)CAR(tmpplan));
-	      return(cost);
-	  }
-	 else /* it's a C function */
-	  {
-	      /* find cost of evaluating the function's arguments */
-	      for (tmpclause = CDR(clause); tmpclause != LispNil; 
-		   tmpclause = CDR(tmpclause))
-		cost += xfunc_expense(CAR(tmpclause));
-
-	      /*
-	      ** expenses for uncomposed functions are calculated by the 
-	      ** following formula:
-	      **
-	      ** const = num_instances * field_len;  we reduce this to relative
-	      **          width
-	      ** cost  = percall_cpu + 
-	      **    perbyte_cpu * byte_pct(f)/100 * const (ie CPU time) +
-	      **    disk_pct * disk_pct(f)/100 * const (ie expected disk I/Os) +
-	      **    arch_pct * arch_pct(f)/100 * const
-	      **    (i.e. expected archive I/Os);
-	      **
-	      ** see mike's paper, ~mike/postgres/papers/sigmod91
-	      */
-
-	      /* find width of operands */
-	      for (tmpclause = CDR(clause); tmpclause != LispNil;
-		   tmpclause = CDR(tmpclause))
-		width += xfunc_width(CAR(tmpclause));
-
-	      return(cost +  
-		     proc->propercall_cpu + 
-		     proc->properbyte_cpu * proc->probyte_pct/100.00 * width
-		     /*
-		     ** The following terms removed until we can get better 
-                     ** statistics
-		     **
-		     **	+ disk_fraction * proc->prodisk_pct/100.00 * width +
-		     **   arch_fraction * proc->proarch_pct/100.00 * width
-		     */
-		     );
-	  }
-     }
-
-    else if (fast_not_clause(clause)) /* cost is cost of operand */
+      return(xfunc_func_expense((LispValue)get_function(clause),
+				get_funcargs(clause)));
+    else if (fast_not_clause(clause))
       return(xfunc_expense(CDR(clause)));
-
     else if (fast_or_clause(clause))
      {
 	 /* find cost of evaluating each disjunct */
@@ -422,6 +335,105 @@ double xfunc_expense(clause)
      }
 }
 
+/*
+** xfunc_func_expense --
+**    given a Func or Oper and its args, find its expense.
+** Note: in Stonebraker's SIGMOD '91 paper, he uses a more complicated metric
+** than the one here.  We can ignore the expected number of tuples for
+** our calculations; we just need the per-tuple expense.  But he also
+** propose components to take into account the costs of accessing disk and
+** archive.  We didn't adopt that scheme here; eventually the vacuum
+** cleaner should be able to tell us what percentage of bytes to find on
+** which storage level, and that should be multiplied in appropriately
+** in the cost function below.  Right now we don't model the cost of
+** accessing secondary or tertiary storage, since we don't have sufficient
+** stats to do it right.
+*/
+double xfunc_func_expense(node, args)
+LispValue node;
+LispValue args;
+{
+    HeapTuple tupl;    /* the pg_proc tuple for each function */
+    Form_pg_proc proc; /* a data structure to hold the pg_proc tuple */
+    int width = 0;     /* byte width of the field referenced by each clause */
+    regproc funcid;    /* ID of function associate with node */
+    double cost = 0;   /* running expense */
+    LispValue tmpclause;
+
+    if (IsA(node,Oper))
+     {
+	 /* don't trust the opid in the Oper node.  Use the opno. */
+	 if (!(funcid = get_opcode(get_opno((Oper)node))))
+	   elog(WARN, "Oper's function is undefined");
+     }
+    else funcid = get_funcid((Func)node);
+
+    /* look up tuple in cache */
+    tupl = SearchSysCacheTuple(PROOID, funcid, NULL, NULL, NULL);
+    proc = (Form_pg_proc) GETSTRUCT(tupl);
+
+    /* 
+    ** if it's a Postquel function, its cost is stored in the
+    ** associated plan.
+    */
+    if (proc->prolang == POSTQUELlanguageId)
+     {
+	 LispValue tmpplan;
+	 List planlist;
+	 
+	 if (IsA(node,Oper) || get_func_planlist((Func)node) == LispNil)
+	  {
+	      ObjectId *argOidVect; /* vector of argtypes */
+	      char *pq_src;	/* text of PQ function */
+	      int nargs;	/* num args to PQ function */
+	      LispValue parseTree_list;	/* dummy variable */
+	      ObjectId *funcname_get_funcargtypes();
+
+	      /* 
+	      ** plan the function, storing it in the Func node for later 
+	      ** use by the executor.  
+	      */
+	      pq_src = (char *) textout(&(proc->prosrc));
+	      nargs = proc->pronargs;
+	      if (nargs > 0)
+		argOidVect = funcname_get_funcargtypes(&proc->proname.data[0]);
+	      planlist = (List)pg_plan(pq_src, argOidVect, nargs, 
+				       &parseTree_list, None);
+	      if (IsA(node,Func))
+		set_func_planlist((Func)node, planlist);
+	  }
+	 else /* plan has been cached inside the Func node already */
+	   planlist = get_func_planlist((Func)node);
+
+	 /*
+	 ** Return the sum of the costs of the plans (the PQ function
+	 ** may have many queries in its body).
+	 */
+	 foreach(tmpplan, planlist)
+	   cost += get_cost((Plan)CAR(tmpplan));
+	 return(cost);
+     }
+    else			/* it's a C function */
+     {
+	 /* find cost of evaluating the function's arguments */
+	 for (tmpclause = args; tmpclause != LispNil; 
+	      tmpclause = CDR(tmpclause))
+	   cost += xfunc_expense(CAR(tmpclause));
+
+	 /* find width of operands */
+	 for (tmpclause = args; tmpclause != LispNil;
+	      tmpclause = CDR(tmpclause))
+	   width += xfunc_width(CAR(tmpclause));
+
+	 /* 
+	 ** when stats become available, add in cost of accessing secondary
+	 ** and tertiary storage here.
+	 */
+	 return(cost +  
+		proc->propercall_cpu + 
+		proc->properbyte_cpu * proc->probyte_pct/100.00 * width);
+     }
+}
 
 /* 
 ** xfunc_width --
@@ -433,19 +445,16 @@ int xfunc_width(clause)
 {
     Relation relptr;     /* a structure to hold the open pg_attribute table */
     ObjectId reloid;     /* oid of pg_attribute */
-    HeapTuple tupl;      /* structure to hold a cached tuple */
-    Form_pg_proc proc;   /* structure to hold the pg_proc tuple */
-    Form_pg_type type;   /* structure to hold the pg_type tuple */
-    LispValue tmpclause; 
     int vnum;            /* range table entry for rel in a var */
     Name relname;        /* name of a rel */
     Relation rd;         /* Relation Descriptor */
+    HeapTuple tupl;      /* structure to hold a cached tuple */
     int retval = 0;
 
     if (IsA(clause,Const))
      {
 	 /* base case: width is the width of this constant */
-	 retval = ((Const) clause)->constlen;
+	 retval = get_constlen((Const) clause);
 	 goto exit;
      }
     else if (IsA(clause,ArrayRef))
@@ -512,56 +521,35 @@ int xfunc_width(clause)
 	 retval = xfunc_width(get_iterexpr((Iter)clause));
 	 goto exit;
      }
+    else if (fast_is_clause(clause))
+     {
+	 /*
+	 ** get function associated with this Oper, and treat this as 
+	 ** a Func 
+	 */
+	 tupl = SearchSysCacheTuple(OPROID, get_opno((Oper)get_op(clause)),
+				    NULL, NULL, NULL);
+	 Assert(tupl);
+	 return(xfunc_func_width
+		((regproc)(((Form_pg_operator)(GETSTRUCT(tupl)))->oprcode), 
+		 get_opargs(clause)));
+     }
     else if (fast_is_funcclause(clause))
      {
-	 if (get_func_tlist((Func)clause) != LispNil)
+	 Func func = (Func)get_function(clause);
+	 if (get_func_tlist(func) != LispNil)
 	  {
 	      /* this function has a projection on it.  Get the length
 		 of the projected attribute */
-	      Assert(length(get_func_tlist((Func)clause)) == 1);   /* sanity */
+	      Assert(length(get_func_tlist(func)) == 1);   /* sanity */
 	      retval = 
-		xfunc_width(get_expr((TLE)CAR(get_func_tlist((Func)clause))));
+		xfunc_width(get_expr((TLE)CAR(get_func_tlist(func))));
 	      goto exit;
 	  }
 	 else
 	  {
-	      /* lookup function and find its return type */
-	      tupl = SearchSysCacheTuple(PROOID, 
-					 get_funcid((Func)get_function(clause)),
-					 NULL, NULL, NULL);
-	      proc = (Form_pg_proc) GETSTRUCT(tupl);
-	      
-	      /* if function returns a tuple, get the width of that */
-	      if (typeid_get_relid(proc->prorettype))
-	       {
-		   rd = heap_open(typeid_get_relid(proc->prorettype));
-		   retval = xfunc_tuple_width(rd);
-		   heap_close(rd);
-		   goto exit;
-	       }
-	      else /* function returns a base type */
-	       {
-		   tupl = SearchSysCacheTuple(TYPOID,
-					      proc->prorettype,
-					      NULL, NULL, NULL);
-		   type = (Form_pg_type) GETSTRUCT(tupl);
-		   /* if the type length is known, return that */
-		   if (type->typlen != -1)
-		    {
-			retval = type->typlen;
-			goto exit;
-		    }
-		   else /* estimate the return size */
-		    {
-			/* find width of the function's arguments */
-			for (tmpclause = CDR(clause); tmpclause != LispNil; 
-			     tmpclause = CDR(tmpclause))
-			  retval += xfunc_width(CAR(tmpclause));
-			/* multiply by outin_ratio */
-			retval = proc->prooutin_ratio/100.0 * retval;
-			goto exit;
-		    }
-	       }
+	      return(xfunc_func_width(get_funcid(func)),
+				      get_funcargs(clause));
 	  }
      }
     else
@@ -578,40 +566,54 @@ int xfunc_width(clause)
 
 
 /*
-** xfunc_tuple_width --
-**     Return the sum of the lengths of all the attributes of a given relation
-*/
-int xfunc_tuple_width(rd)
-     Relation rd;
-{
-    int i;
-    int retval = 0;
-    TupleDescriptor tdesc = RelationGetTupleDescriptor(rd);
-    Assert(TupleDescIsValid(tdesc));
-
-    for (i = 0; i < RelationGetNumberOfAttributes(rd); i++)
-     {
-	 if (tdesc->data[i]->attlen != -1)
-	   retval += tdesc->data[i]->attlen;
-	 else retval += VARLEN_DEFAULT;
-     }
-
-    return(retval);
-}
-
-/*
 ** xfunc_primary_join:
-**   Find a join clause of minimal measure.
+**   Find the primary join clause: for Hash and Merge Joins, this is the
+** min measure Hash or Merge clause, while for Nested Loop it's the
+** min measure pathclause
 */
-CInfo xfunc_primary_join(joinclauselist)
-     LispValue joinclauselist;
+LispValue xfunc_primary_join(pathnode)
+     JoinPath pathnode;
 {
+    LispValue joinclauselist = get_pathclauseinfo(pathnode);
     CInfo mincinfo;
     LispValue tmplist;
+    LispValue minclause;
     double minmeasure, tmpmeasure;
 
+    if (IsA(pathnode,MergePath)) 
+     {
+	 for(tmplist = get_path_mergeclauses((MergePath)pathnode),
+	     minclause = CAR(tmplist),
+	     minmeasure = xfunc_measure(minclause);
+	     tmplist != LispNil;
+	     tmplist = CDR(tmplist))
+	   if ((tmpmeasure = xfunc_measure(CAR(tmplist)))
+	       < minmeasure)
+	    {
+		minmeasure = tmpmeasure;
+		minclause = CAR(tmplist);
+	    }
+	 return(minclause);
+     }
+    else if (IsA(pathnode,HashPath)) 
+     {
+	 for(tmplist = get_path_hashclauses((HashPath)pathnode),
+	     minclause = CAR(tmplist),
+	     minmeasure = xfunc_measure(minclause);
+	     tmplist != LispNil;
+	     tmplist = CDR(tmplist))
+	   if ((tmpmeasure = xfunc_measure(CAR(tmplist)))
+	       < minmeasure)
+	    {
+		minmeasure = tmpmeasure;
+		minclause = CAR(tmplist);
+	    }
+	 return(minclause);
+     }
+
+    /* if we drop through, it's nested loop join */
     if (joinclauselist == LispNil)
-      return((CInfo) NULL);
+      return(LispNil);
 
     for(tmplist = joinclauselist, mincinfo = (CInfo) CAR(joinclauselist),
 	minmeasure = xfunc_measure(get_clause((CInfo) CAR(tmplist)));
@@ -623,7 +625,7 @@ CInfo xfunc_primary_join(joinclauselist)
 	   minmeasure = tmpmeasure;
 	   mincinfo = (CInfo) CAR(tmplist);
        }
-    return(mincinfo);
+    return((LispValue)get_clause(mincinfo));
 }
 
 /*
@@ -676,15 +678,33 @@ Path pathnode;
      }
     if (IsA(pathnode,HashPath))
      {
-	 Assert(length(get_path_hashclauses((HashPath) pathnode)) == 1);
-	 cost += xfunc_expense(CAR(get_path_hashclauses((HashPath) pathnode)))
-	         * get_tuples(get_parent(pathnode));
+	 set_path_hashclauses
+	   ((HashPath)pathnode, 
+	    lisp_qsort(get_path_hashclauses((HashPath)pathnode),
+		       xfunc_clause_compare));
+	 for(tmplist = get_path_hashclauses((HashPath)pathnode), selec = 1.0;
+	     tmplist != LispNil;
+	     tmplist = CDR(tmplist))
+	  {
+	      cost += xfunc_expense(CAR(tmplist))
+		      * get_tuples(get_parent(pathnode)) * selec;
+	      selec *= compute_clause_selec(CAR(tmplist), LispNil);
+	  }
      }
     if (IsA(pathnode,MergePath))
      {
-	 Assert(length(get_path_mergeclauses((MergePath) pathnode)) == 1);
-	 cost += xfunc_expense(CAR(get_path_mergeclauses((MergePath) pathnode)))
-	           * get_tuples(get_parent(pathnode));
+	 set_path_mergeclauses
+	   ((MergePath)pathnode, 
+	    lisp_qsort(get_path_mergeclauses((MergePath)pathnode),
+		       xfunc_clause_compare));
+	 for(tmplist = get_path_mergeclauses((MergePath)pathnode), selec = 1.0;
+	     tmplist != LispNil;
+	     tmplist = CDR(tmplist))
+	  {
+	      cost += xfunc_expense(CAR(tmplist))
+		      * get_tuples(get_parent(pathnode)) * selec;
+	      selec *= compute_clause_selec(CAR(tmplist), LispNil);
+	  }
      }
     return(cost);
 }
@@ -768,7 +788,7 @@ int whichrel;       /* INNER or OUTER of joinnode */
      }
     /* 
     ** For hash join, figure out the number of chunks of the outer we process
-    ** at a time.  The the cost for a tuple of the outer is the CPU cost
+    ** at a time.  The cost for a tuple of the outer is the CPU cost
     ** times the size of the inner relation, and for a tuple of the inner
     ** it's the CPU cost times the number of chunks of the outer 
     */
@@ -950,6 +970,124 @@ int xfunc_disjunct_compare(arg1, arg2)
     else if (measure1 == measure2)
       return(0);
     else return(1);
+}
+
+/* ------------------------ UTILITY FUNCTIONS ------------------------------- */
+/*
+** xfunc_func_width --
+**    Given a function OID and operands, find the width of the return value.
+*/
+int xfunc_func_width(funcid, args)
+regproc funcid;
+LispValue args;
+{
+    Relation rd;         /* Relation Descriptor */
+    HeapTuple tupl;      /* structure to hold a cached tuple */
+    Form_pg_proc proc;   /* structure to hold the pg_proc tuple */
+    Form_pg_type type;   /* structure to hold the pg_type tuple */
+    LispValue tmpclause; 
+    int retval;
+
+    /* lookup function and find its return type */
+    Assert(RegProcedureIsValid(funcid));
+    tupl = SearchSysCacheTuple(PROOID, funcid, NULL, NULL, NULL);
+    proc = (Form_pg_proc) GETSTRUCT(tupl);
+    
+    /* if function returns a tuple, get the width of that */
+    if (typeid_get_relid(proc->prorettype))
+     {
+	 rd = heap_open(typeid_get_relid(proc->prorettype));
+	 retval = xfunc_tuple_width(rd);
+	 heap_close(rd);
+	 goto exit;
+     }
+    else /* function returns a base type */
+     {
+	 tupl = SearchSysCacheTuple(TYPOID,
+				    proc->prorettype,
+				    NULL, NULL, NULL);
+	 type = (Form_pg_type) GETSTRUCT(tupl);
+	 /* if the type length is known, return that */
+	 if (type->typlen != -1)
+	  {
+	      retval = type->typlen;
+	      goto exit;
+	  }
+	 else /* estimate the return size */
+	  {
+	      /* find width of the function's arguments */
+	      for (tmpclause = args; tmpclause != LispNil; 
+		   tmpclause = CDR(tmpclause))
+		retval += xfunc_width(CAR(tmpclause));
+	      /* multiply by outin_ratio */
+	      retval = proc->prooutin_ratio/100.0 * retval;
+	      goto exit;
+	  }
+     }
+  exit:
+    return(retval);
+}
+
+/*
+** xfunc_tuple_width --
+**     Return the sum of the lengths of all the attributes of a given relation
+*/
+int xfunc_tuple_width(rd)
+     Relation rd;
+{
+    int i;
+    int retval = 0;
+    TupleDescriptor tdesc = RelationGetTupleDescriptor(rd);
+    Assert(TupleDescIsValid(tdesc));
+
+    for (i = 0; i < RelationGetNumberOfAttributes(rd); i++)
+     {
+	 if (tdesc->data[i]->attlen != -1)
+	   retval += tdesc->data[i]->attlen;
+	 else retval += VARLEN_DEFAULT;
+     }
+
+    return(retval);
+}
+
+/*
+** xfunc_num_join_clauses --
+**   Find the number of join clauses associated with this join path
+*/
+int xfunc_num_join_clauses(path)
+JoinPath path;
+{
+    int num = length(get_pathclauseinfo(path));
+    if (IsA(path,MergePath))
+      return(num + length(get_path_mergeclauses((MergePath)path)));
+    else if (IsA(path,HashPath))
+      return(num + length(get_path_hashclauses((HashPath)path)));
+    else return(num);
+}
+
+/*
+** xfunc_LispRemove --
+**   Just like LispRemove, but it whines if the item to be removed ain't there
+*/
+LispValue xfunc_LispRemove(foo, bar)
+     LispValue foo;
+     List bar;
+{
+    LispValue temp = LispNil;
+    LispValue result = LispNil;
+    int sanity = false;
+
+    for (temp = bar; !null(temp); temp = CDR(temp))
+      if (! equal((Node)(foo),(Node)(CAR(temp))) ) 
+       {
+	   result = append1(result,CAR(temp));
+       }
+      else sanity = true; /* found a matching item to remove! */
+
+    if (!sanity)
+      elog(WARN, "xfunc_LispRemove: didn't find a match!");
+
+    return(result);
 }
 
 #define Node_Copy(a, b, c, d) \
