@@ -1,11 +1,22 @@
-/*
- * getabsdate - parse almost any absolute date getdate(3) can (& some it can't)
+/* ----------------------------------------------------------------
+ *   FILE
+ *	nabstime.c
  *
- * NOTE:  In porting this to postgres I condensed 6 files to 3.  So the abstime
- *	  adt is made up of the files nabstime.c dateconv.c and datetok.c
- *	  -mer 6 Feb 1992
+ *   DESCRIPTION
+ *	parse almost any absolute date getdate(3) can (& some it can't)
  *
- * $Header$
+ *   NOTES
+ *	In porting this to postgres I condensed 6 files to 3.  So the 
+ *	abstime adt is made up of the files nabstime.c dateconv.c and
+ *	datetok.c  -mer 6 Feb 1992
+ *
+ *	These three files were then squashed into one by someone who
+ *	wasn't very careful about conflicting extern/static declarations,
+ *	etc., so beware weird behavior... -- pma 09/27/93
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #include <stdio.h>
@@ -626,7 +637,7 @@ nabstimeout(time)
     AbsoluteTime time;
 {
     char *outStr;
-    char *tzoneStr;
+    char *tzoneStr = "";
     struct tm timeVals;
     struct tm *timeValp;
     char month[16];
@@ -665,19 +676,12 @@ nabstimeout(time)
     MonthNumToStr(timeValp->tm_mon, month);
     WeekdayToStr(timeValp->tm_wday, weekday);
 
-    /*
-     *  Dynix 3.0.17.10 and Ultrix WS 2 don't provide tm_zone.
-     */
-#if defined(sequent) || defined(OLD_DEC)
-    tzoneStr = "";
-#else
-#if defined(PORTNAME_hpux) || defined(PORTNAME_aix) /* POSIX */
+#if defined(USE_POSIX_TIME)
     tzset();
     tzoneStr = tzname[daylight ? 1 : 0];
-#else /* BSD-style (ANSI) */
+#else /* assume we have BSD struct tm, which has tm_zone */
     tzoneStr = timeValp->tm_zone;
-#endif /* BSD-style (ANSI) */
-#endif /* sequent || OLD_DEC */
+#endif /* USE_POSIX_TIME */
 
     sprintf(outStr,
 	    "%s %s %d %2.2d:%2.2d:%2.2d %d %s",

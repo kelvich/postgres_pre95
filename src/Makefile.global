@@ -337,7 +337,5 @@ MAKE_EXPORTS=
 # everything to compile.  :-/
 #
 .if (${PORTNAME} == "aix")
-CFLAGS+= -qchars=signed -DHAVE_ANSI_CPP -DHAVE_TZFILE
-.elif (${PORTNAME} == "hpux")
-CFLAGS+= -DHAVE_TZFILE
+CFLAGS+= -qchars=signed -DHAVE_ANSI_CPP
 .endif

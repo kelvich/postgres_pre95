@@ -141,28 +141,6 @@ int32 intervalov ARGS((TimeInterval i1 , TimeInterval i2 ));
 AbsoluteTime intervalstart ARGS((TimeInterval i ));
 AbsoluteTime intervalend ARGS((TimeInterval i ));
 
-#if defined(PORTNAME_alpha) || \
-    defined(PORTNAME_hpux)
-char *
-bsdtimezone(tz, dst)
-    short tz;
-    short dst;
-{
-    static char tzbuf[40];
-    time_t	t = 0;
-
-    if (!strftime(tzbuf, sizeof(tzbuf), "%Z", localtime(&t)))
-	return((char *) NULL);
-    return(tzbuf);
-}
-#else /* bsd */
-#define	bsdtimezone	timezone
-#endif /* bsd */
-
-#ifdef PORTNAME_sparc
-extern char *timezone ARGS((short tz, short dst));
-#endif /* PORTNAME_sparc */
-
 	    /* ========== USER I/O ROUTINES ========== */
 
 /*
