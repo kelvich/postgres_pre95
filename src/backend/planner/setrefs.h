@@ -20,3 +20,5 @@ extern LispValue replace_clause_joinvar_refs ARGS((LispValue clause, LispValue o
 extern LispValue replace_subclause_joinvar_refs ARGS((LispValue clauses, LispValue outer_tlist, LispValue inner_tlist));
 extern Var replace_joinvar_refs ARGS((Var var, List outer_tlist, List inner_tlist));
 extern List tlist_temp_references ARGS((ObjectId tempid, List tlist));
+extern void replace_result_clause ARGS((List clause, List subplanTargetList));
+extern void set_result_tlist_references ARGS((Result resultNode));
