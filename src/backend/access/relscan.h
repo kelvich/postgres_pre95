@@ -1,24 +1,37 @@
 /*
  * relscan.h --
  *	POSTGRES internal relation scan descriptor definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	RelScanIncluded	/* Include this file only once. */
+#ifndef	RelScanIncluded		/* Include this file only once */
 #define RelScanIncluded	1
+
+/*
+ * Identification:
+ */
+#define RELSCAN_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
 #endif
 
-#include "buf.h"
-#include "htup.h"
-#include "itemptr.h"
 #include "skey.h"
-#include "trange.h"
-#include "rel.h"
+
+#ifndef	BUF_H
+# include "buf.h"
+#endif
+#ifndef	HTUP_H
+# include "htup.h"
+#endif
+#ifndef	ITEMPTR_H
+# include "itemptr.h"
+#endif
+#ifndef	TQUAL_H
+# include "tqual.h"
+#endif
+#ifndef	REL_H
+# include "rel.h"
+#endif
 
 typedef ItemPointerData	MarkData;
 
@@ -36,7 +49,7 @@ typedef struct HeapScanDescData {
 	ItemPointerData	rs_mntid;	/* marked next tid */
 	ItemPointerData	rs_mcd;		/* marked current delta XXX ??? */
 	Boolean		rs_atend;	/* restart scan at end? */
-	TimeRange	rs_tr;		/* time range */
+	TimeQual	rs_tr;		/* time qualification */
 	uint16		rs_cdelta;	/* current delta in chain */
 	uint16		rs_nkeys;	/* number of attributes in keys */
 	ScanKeyData	rs_key;		/* key descriptors */

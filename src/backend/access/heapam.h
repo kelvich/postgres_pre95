@@ -1,27 +1,53 @@
 /*
  * heapam.h --
  *	POSTGRES heap access method definitions.
- *
- * Identification:
- *	$Header$
  */
 
 #ifndef	HeapAMIncluded		/* Include this file only once */
 #define HeapAMIncluded	1
 
-#include "att.h"	/* XXX */
+/*
+ * Identification:
+ */
+#define HEAPAM_H	"$Header$"
 
-#include "attnum.h"
-#include "datum.h"
-#include "htup.h"
-#include "name.h"
-#include "oid.h"
-#include "rel.h"
-#include "relscan.h"
-#include "rlock.h"
+#ifndef	C_H
+#include "c.h"
+#endif
+
+#include "att.h"	/* XXX */
 #include "skey.h"
-#include "trange.h"
-#include "tupdesc.h"
+
+#ifndef	ATTNUM_H
+# include "attnum.h"
+#endif
+#ifndef	DATUM_H
+# include "datum.h"
+#endif
+#ifndef	HTUP_H
+# include "htup.h"
+#endif
+#ifndef	NAME_H
+# include "name.h"
+#endif
+#ifndef	OID_H
+# include "oid.h"
+#endif
+#ifndef	REL_H
+# include "rel.h"
+#endif
+#ifndef	RELSCAN_H
+# include "relscan.h"
+#endif
+#ifndef	RLOCK_H
+# include "rlock.h"
+#endif
+#ifndef	TQUAL_H
+# include "tqual.h"
+#endif
+#ifndef	TUPDESC_H
+# include "tupdesc.h"
+#endif
 
 /*
  * RelationNameCreateHeapRelation --
@@ -132,7 +158,7 @@ ObjectIdOpenHeapRelation ARGS((
 extern
 Relation
 amopen ARGS((
-	OID	relationObjectId
+	ObjectId	relationObjectId
 ));
 
 /*
@@ -175,7 +201,7 @@ extern
 HeapTuple
 RelationGetHeapTupleByItemPointer ARGS((
 	Relation	relation,
-	TimeRange	range,
+	TimeQual	timeQual,
 	ItemPointer	heapItem,
 	Buffer		*bufferOutP
 ));
@@ -184,7 +210,7 @@ extern
 HeapTuple
 amgetunique ARGS((
 	Relation	relation,
-	TimeRange	range,
+	TimeQual	timeQual,
 	ItemPointer	tid,
 	Buffer		*bufferOutP
 ));
@@ -293,7 +319,7 @@ HeapScanDesc
 RelationBeginHeapScan ARGS((
 	Relation	relation,
 	Boolean		startScanAtEnd,
-	TimeRange	timer,
+	TimeQual	timeQual,
 	uint16		numberOfKeys,
 	ScanKey		key
 ));
@@ -303,7 +329,7 @@ HeapScanDesc
 ambeginscan ARGS((
 	Relation	relation,
 	Boolean		startScanAtEnd,
-	TimeRange	timer,
+	TimeQual	timeQual,
 	uint16		numberOfKeys,
 	ScanKey		key
 ));
