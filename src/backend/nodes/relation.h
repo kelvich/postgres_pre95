@@ -178,9 +178,8 @@ class (OrderKey) public (Node) {
 
 class (JoinKey) public (Node) {
     inherits(Node);
-    inherits(Node);
-    Node outer;
-    Node inner;
+    LispValue outer;
+    LispValue  inner;
 };
 
 class (MergeOrder) public (Node) {
