@@ -1,0 +1,100 @@
+/*
+ * This is a comment.
+ *
+ * $Header$
+ */
+
+create EMP (name = text, salary = int4,
+            age = int4, dept = char16)
+\g
+
+create DEPT (dname = char16, floor = int4,
+             manager = text)
+\g
+
+append EMP (name = "Claire", salary = 2000,
+              age = 40, dept = "shoe")
+\g
+
+append EMP (name = "Joe", salary = 1400,
+              age = 40, dept = "shoe")
+\g
+
+append EMP (name = "Sam", salary = 1200,
+              age = 29, dept = "toy")
+\g
+
+append EMP (name = "Bill", salary = 1600,
+              age = 36, dept = "candy")
+\g
+
+append DEPT (dname = "shoe", floor = 5, 
+               manager = "Claire")
+\g
+
+append DEPT (dname = "toy", floor = 3, 
+               manager = "Sam")
+\g
+
+append DEPT (dname = "candy", floor = 4, 
+               manager = "(None)")
+\g
+
+retrieve (EMP.name) where EMP.age < 35
+\g
+
+retrieve (result = EMP.salary / EMP.age)
+      where EMP.name = "Bill"
+\g
+
+retrieve (EMP.all) 
+      where EMP.age < 30
+         or not EMP.name = "Joe"
+\g
+
+retrieve into temp (EMP.name)
+      where EMP.age < 35 and EMP.salary > 1000
+\g
+
+retrieve (temp.all)
+\g
+
+retrieve (E1.name, E2.name)
+      from E1 in EMP, E2 in EMP
+      where E1.age = E2.age and E1.name != E2.name
+\g
+
+replace EMP (salary = E.salary)
+      from E in EMP
+      where EMP.name = "Joe" and E.name = "Sam"
+\g
+
+delete EMP where EMP.salary > 0
+\g
+
+append EMP (name = "Claire", salary = 2000,
+              age = 40, dept = "shoe")
+\g
+
+append EMP (name = "Joe", salary = 1400,
+              age = 40, dept = "shoe")
+\g
+
+append EMP (name = "Sam", salary = 1200,
+              age = 29, dept = "toy")
+\g
+
+append EMP (name = "Bill", salary = 1600,
+              age = 36, dept = "candy")
+\g
+
+retrieve (EMP.name) where int4lt(EMP.age, 35)
+\g
+
+retrieve (how_many = count{EMP.name})
+\g
+
+retrieve (avg_salary = 
+      int4ave{EMP.salary
+              where EMP.dept = "toy"})
+\g

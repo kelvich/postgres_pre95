@@ -1,0 +1,29 @@
+/*
+ * This is a comment.
+ *
+ * $Header$
+ */
+
+define function manager
+      (language = "postquel", returntype = EMP)
+      arg is (EMP)
+      as "retrieve (E.all) from E in EMP
+              where E.name = DEPT.manager
+              and DEPT.dname = $1.dept" 
+\g
+
+retrieve (EMP.name)
+      where name(manager(EMP)) = "Claire"
+\g
+
+
+retrieve (EMP.name)
+      where EMP.manager.name = "Claire" 
+\g
+
+define function same_dept
+      (language = "postquel", returntype = setof EMP)
+      arg is (EMP)
+      as "retrieve (E.all) from E in EMP
+              where $1.dept = E.dept" 
+\g

@@ -1,0 +1,98 @@
+/*
+ * This is a comment.
+ *
+ * $Header$
+ */
+
+create STUD_EMP (location = point) inherits (EMP)
+\g
+
+append STUD_EMP (name = "Sunita", salary = 4000,
+                   age = 23, dept = "electronics",
+                   location = "(3, 5)")
+\g
+
+retrieve (E.name) from E in EMP where E.age > 20
+\g
+
+retrieve (E.name) from E in EMP* where E.age > 20
+\g
+
+retrieve (E.salary) from E in EMP["now"]
+      where E.name = "Sam"
+\g
+
+retrieve (E.salary)
+      from E in EMP["epoch", "now"]
+      where E.name = "Sam"
+\g
+
+create SAL_EMP (name = text,
+                  pay_by_quarter = int4[],
+                  schedule = char16[][])
+\g
+
+append SAL_EMP (name = "Bill", 
+     pay_by_quarter[4] = "{10000, 10000, 10000, 10000}", 
+     schedule[7][2]    = "{{"meeting", "lunch"}, {}}")
+\g
+
+append SAL_EMP (name = "Carol",
+        pay_by_quarter = "{20000, 25000, 25000, 25000}", 
+        schedule[5][2] = "{{"talk", "consult"}, {"meeting"}}")
+\g
+
+retrieve (SAL_EMP.name)
+      where SAL_EMP.pay_by_quarter[1] !=
+            SAL_EMP.pay_by_quarter[2]
+\g
+
+retrieve (SAL_EMP.pay_by_quarter[3])
+\g
+
+retrieve (SAL_EMP.schedule[1:3][1:1]) 
+      where SAL_EMP.name = "Bill"
+\g
+
+replace SAL_EMP (schedule[2:3][1:2] = 
+		"{{"debugging", "shopping"}, {"meeting", "present"}}") 
+		where SAL_EMP.name = "Carol"
+\g
+
+replace SAL_EMP (pay_by_quarter[1] = 
+                   SAL_EMP.pay_by_quarter[1] + 1000)
+      where SAL_EMP.schedule[1][1] = "debugging"
+\g
+
+create NEW_DEPT (deptname = char16,
+                   members = setof EMP)
+\g
+
+append NEW_DEPT (deptname = "shoe",
+                   members = "retrieve (EMP.all)
+                              where EMP.age >= 40")
+\g
+
+append NEW_DEPT (deptname = "toy",
+                   members = "retrieve (EMP.all)
+                              where EMP.name = \\"Sam\\"")
+\g
+
+
+append NEW_DEPT (deptname = "candy",
+                   members = "retrieve (EMP.all)
+                              where EMP.name != \\"Sam\\"
+                              and EMP.age < 40")
+\g
+
+retrieve (NEW_DEPT.deptname,
+            NEW_DEPT.members.name)
+\g
+
+append EMP (name = "Ginger", salary = 2000,
+              age = 34)
+\g
+
+retrieve (NEW_DEPT.deptname,
+            NEW_DEPT.members.name)
+\g

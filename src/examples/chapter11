@@ -1,0 +1,35 @@
+/*
+ * This is a comment.
+ *
+ * $Header$
+ */
+
+define aggregate my_sum (sfunc1 = int4pl, /* addition */
+                           basetype = int4, 
+                           stype1 = int4,
+                           initcond1 = "0")
+\g
+
+retrieve (salary_sum = my_sum{EMP.salary})
+\g
+
+define aggregate my_count (sfunc2 = int4inc, /* add one */
+                             stype2 = int4,
+                             initcond2 = "0")
+\g
+
+retrieve (emp_count = my_count{EMP.oid})
+\g
+
+define aggregate my_average (sfunc1 = int4pl, /* sum */
+                               basetype = int4,
+                               stype1 = int4,
+                               sfunc2 = int4inc, /* count */
+                               stype2 = int4,
+                               finalfunc = int4div, /* division */
+                               initcond1 = "0",
+                               initcond2 = "0")
+\g
+
+retrieve (emp_average = my_average{EMP.salary})
+\g

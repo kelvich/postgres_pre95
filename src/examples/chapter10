@@ -1,0 +1,27 @@
+/*
+ * This is a comment.
+ *
+ * $Header$
+ */
+
+define operator ## (arg2 = int4,
+                      associativity = right,
+                      procedure = int4fac)
+\g
+
+define operator ## (arg1 = int4,
+                      associativity = left,
+                      procedure = int4um)
+\g
+
+define operator ## (arg1 = int4,
+                      arg2 = int4,
+                      procedure = int4pl,
+                      commutator = ## )
+\g
+
+retrieve (four_factorial = ## 4,
+            minus_five = ## 5::int2,
+            minus_four = 4 ##,
+            four_plus_four = 4 ## 4)
+\g

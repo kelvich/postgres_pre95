@@ -1,0 +1,47 @@
+/*
+ * This is a comment.
+ *
+ * $Header$
+ */
+
+define function double_salary
+      (language = "postquel", returntype = int4)
+      arg is (EMP)
+      as "retrieve (salary = $1.salary * 2)"
+\g
+
+retrieve (EMP.name, dream = double_salary(EMP))
+      where EMP.dept = "toy"
+\g
+
+retrieve (youngster = name(EMP)) 
+      where age(EMP) < 30 
+\g
+
+define function new_emp
+      (language = "postquel", returntype = EMP)
+      as "retrieve (name = \\"None\\"::text,
+                    salary = 1000,
+                    age = 25,
+                    dept = \\"none\\"::char16)
+\g
+
+retrieve (nobody = name(new_emp()))
+\g
+
+define function clean_EMP (language = "postquel",
+                             returntype = int4)
+      as "delete EMP where EMP.salary <= 0
+          retrieve (ignore_this = 1)"
+\g
+
+define function high_pay
+      (language = "postquel", returntype = setof EMP)
+      as "retrieve (EMP.all) where EMP.salary > 1500"
+\g
+
+/*
+ * the "define function" commmands for the C functions are
+ * operating-system dependent, so you'll have to type them
+ * yourself.  sorry.
+ */

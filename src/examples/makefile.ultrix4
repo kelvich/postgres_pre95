@@ -1,0 +1,9 @@
+PG_INCLUDE=../backend
+
+all: int4_abs.o circle.o
+
+int4_abs.o: int4_abs.c
+	cc -c -g -G 0 -I$(PG_INCLUDE) int4_abs.c
+
+circle.o: circle.c
+	cc -c -g -G 0 -I$(PG_INCLUDE) circle.c

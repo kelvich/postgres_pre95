@@ -1,0 +1,15 @@
+PG_INCLUDE=../backend
+
+all: int4_abs.so circle.so
+
+int4_abs.o: int4_abs.c
+	cc -c -g -I$(PG_INCLUDE) int4_abs.c
+
+circle.o: circle.c
+	cc -c -g -I$(PG_INCLUDE) circle.c
+
+int4_abs.so: int4_abs.c
+	ld -shared -expect_unresolved '*' -o int4_abs.so int4_abs.o
+
+circle.so: circle.o
+	ld -shared -expect_unresolved '*' -o circle.so circle.o

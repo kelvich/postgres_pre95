@@ -1,0 +1,134 @@
+/*
+ * This is a comment.
+ *
+ * $Header$
+ */
+
+retrieve (user_name = u.usename,
+            database = d.datname)
+      from u in pg_user,
+           d in pg_database
+      where u.usesysid = int2in(int4out(d.datdba))
+      sort by user_name, database
+\g
+
+retrieve (class_name = c.relname)
+      from c in pg_class
+      where c.relkind = 'r'      /* no indices */
+        and c.relname !~ "^pg_"  /* no catalogs */
+      sort by class_name
+\g
+
+retrieve (class_name = bc.relname,
+            index_name = ic.relname,
+            attr_name = a.attname)
+      from bc in pg_class,         /* base class */
+           ic in pg_class,         /* index class */
+           i in pg_index,
+           a in pg_attribute       /* att in base */
+      where i.indrelid = bc.oid
+        and i.indexrelid = ic.oid
+        and i.indkey[0] = a.attnum
+        and a.attrelid = bc.oid
+        and i.indproc = "0"::oid   /* no functional indices */
+      sort by class_name, index_name, 
+              attr_name
+\g
+
+retrieve (class_name = c.relname, 
+            attr_name = a.attname, 
+            attr_type = t.typname)
+      from c in pg_class,
+           a in pg_attribute,
+           t in pg_type
+      where c.relkind = 'r'     /* no indices */
+        and c.relname !~ "^pg_" /* no catalogs */
+        and a.attnum > 0        /* no system att's */
+        and a.attrelid = c.oid
+        and a.atttypid = t.oid
+      sort by class_name, attr_name
+\g
+
+retrieve (owner_name = u.usename,
+            type_name = t.typname)
+      from t in pg_type,
+           u in pg_user
+      where u.usesysid = int2in(int4out(t.typowner))
+        and t.typrelid = "0"::oid   /* no complex types */
+        and t.typelem = "0"::oid    /* no arrays */
+        and u.usename != "postgres"
+      sort by owner_name, type_name
+\g
+
+retrieve (left_unary = o.oprname,
+            operand = right.typname,
+            return_type = result.typname)
+      from o in pg_operator,
+           right in pg_type,
+           result in pg_type
+      where o.oprkind = 'l'           /* left unary */
+        and o.oprright = right.oid
+        and o.oprresult = result.oid
+      sort by operand
+\g
+
+retrieve (right_unary = o.oprname,
+            operand = left.typname,
+            return_type = result.typname)
+      from o in pg_operator,
+           left in pg_type,
+           result in pg_type
+      where o.oprkind = 'r'          /* right unary */
+        and o.oprleft = left.oid
+        and o.oprresult = result.oid
+      sort by operand
+\g
+
+retrieve (binary_op = o.oprname,
+            left_opr = left.typname,
+            right_opr = right.typname, 
+            return_type = result.typname)
+      from o in pg_operator,
+           left in pg_type,
+           right in pg_type,
+           result in pg_type
+      where o.oprkind = 'b'         /* binary */
+        and o.oprleft = left.oid
+        and o.oprright = right.oid
+        and o.oprresult = result.oid
+      sort by left_opr, right_opr
+\g
+
+retrieve (p.proname, 
+            arguments = p.pronargs,
+            returntype = t.typname)
+      from p in pg_proc,
+           l in pg_language,
+           t in pg_type
+      where p.prolang = l.oid
+        and p.prorettype = t.oid
+        and l.lanname = "C"
+      sort by proname
+\g
+
+retrieve (aggregate_name = a.aggname,
+            type_name = t.typname)
+      from a in pg_aggregate,
+           t in pg_type
+      where a.aggbasetype = t.oid
+      sort by aggregate_name, type_name
+\g
+
+retrieve (access_method = am.amname,
+            operator_class = opc.opcname,
+            operator_name = opr.oprname)
+      from am in pg_am,
+           amop in pg_amop,
+           opc in pg_opclass,
+           opr in pg_operator
+      where amop.amopid = am.oid
+        and amop.amopclaid = opc.oid
+        and amop.amopopr = opr.oid
+      sort by access_method, operator_class, 
+              operator_name
+\g

@@ -1,0 +1,239 @@
+/*
+ * This is a comment.
+ *
+ * $Header$
+ */
+
+retrieve (pg_am.oid) where pg_am.amname = "btree"
+\g
+
+append pg_opclass (opcname = "int4_abs_ops") 
+\g
+
+retrieve (cl.oid, cl.opcname) from cl in pg_opclass
+      where cl.opcname = "int4_abs_ops"
+\g
+
+define function int4_abs_lt
+      (language = "c", returntype = bool)
+      arg is (int4, int4)
+      as "/usr/local/postgres/src/examples/int4_abs.o"
+\g
+
+define function int4_abs_le
+      (language = "c", returntype = bool)
+      arg is (int4, int4)
+      as "/usr/local/postgres/src/examples/int4_abs.o"
+\g
+
+define function int4_abs_eq
+      (language = "c", returntype = bool)
+      arg is (int4, int4)
+      as "/usr/local/postgres/src/examples/int4_abs.o"
+\g
+
+define function int4_abs_ge
+      (language = "c", returntype = bool)
+      arg is (int4, int4)
+      as "/usr/local/postgres/src/examples/int4_abs.o"
+\g
+
+define function int4_abs_gt
+      (language = "c", returntype = bool)
+      arg is (int4, int4)
+      as "/usr/local/postgres/src/examples/int4_abs.o"
+\g
+
+retrieve (o.all)
+    from o in pg_operator
+    where o.oprname ~ "^..&$"::text
+\g
+
+define operator <<&
+      (arg1 = int4, arg2 = int4, procedure=int4_abs_lt,
+       associativity = left, restrict = intltsel,
+       join = intltjoinsel)
+\g
+
+define operator <=&
+      (arg1 = int4, arg2 = int4, procedure = int4_abs_le,
+       associativity = left, restrict = intltsel,
+       join = intltjoinsel)
+\g
+
+define operator ==&
+      (arg1 = int4, arg2 = int4, procedure = int4_abs_eq,
+       associativity = left, restrict = eqsel,
+       join = eqjoinsel)
+\g
+
+define operator >=&
+      (arg1 = int4, arg2 = int4, procedure = int4_abs_ge,
+       associativity = left, restrict = intgtsel,
+       join = intgtjoinsel)
+\g
+
+define operator >>&
+      (arg1 = int4, arg2 = int4, procedure = int4_abs_gt,
+       associativity = left, restrict = intgtsel,
+       join = intgtjoinsel)
+\g
+
+retrieve (o.oid, o.oprname)
+      from o in pg_operator, t in pg_type
+      where o.oprleft = t.oid and o.oprright = t.oid
+          and t.typname = "int4"
+\g
+
+append pg_amop
+      (amopid = am.oid,
+       amopclaid = opc.oid,
+       amopopr = opr.oid,
+       amopstrategy = "1"::int2,
+       amopselect = "btreesel"::regproc,
+       amopnpages = "btreenpage"::regproc)
+      from am in pg_am,
+           opc in pg_opclass,
+           opr in pg_operator,
+           t in pg_type
+      where am.amname = "btree"
+        and opc.opcname = "int4_abs_ops"
+        and opr.oprname = "<<&"
+        and opr.oprleft = t.oid
+        and opr.oprright = t.oid
+        and t.typname = "int4"
+\g
+
+append pg_amop
+      (amopid = am.oid,
+       amopclaid = opc.oid,
+       amopopr = opr.oid,
+       amopstrategy = "2"::int2,
+       amopselect = "btreesel"::regproc,
+       amopnpages = "btreenpage"::regproc)
+      from am in pg_am,
+           opc in pg_opclass,
+           opr in pg_operator,
+           t in pg_type
+      where am.amname = "btree"
+        and opc.opcname = "int4_abs_ops"
+        and opr.oprname = "<=&"
+        and opr.oprleft = t.oid
+        and opr.oprright = t.oid
+        and t.typname = "int4"
+\g
+
+append pg_amop
+      (amopid = am.oid,
+       amopclaid = opc.oid,
+       amopopr = opr.oid,
+       amopstrategy = "3"::int2,
+       amopselect = "btreesel"::regproc,
+       amopnpages = "btreenpage"::regproc)
+      from am in pg_am,
+           opc in pg_opclass,
+           opr in pg_operator,
+           t in pg_type
+      where am.amname = "btree"
+        and opc.opcname = "int4_abs_ops"
+        and opr.oprname = "==&"
+        and opr.oprleft = t.oid
+        and opr.oprright = t.oid
+        and t.typname = "int4"
+\g
+
+append pg_amop
+      (amopid = am.oid,
+       amopclaid = opc.oid,
+       amopopr = opr.oid,
+       amopstrategy = "4"::int2,
+       amopselect = "btreesel"::regproc,
+       amopnpages = "btreenpage"::regproc)
+      from am in pg_am,
+           opc in pg_opclass,
+           opr in pg_operator,
+           t in pg_type
+      where am.amname = "btree"
+        and opc.opcname = "int4_abs_ops"
+        and opr.oprname = ">=&"
+        and opr.oprleft = t.oid
+        and opr.oprright = t.oid
+        and t.typname = "int4"
+\g
+
+append pg_amop
+      (amopid = am.oid,
+       amopclaid = opc.oid,
+       amopopr = opr.oid,
+       amopstrategy = "5"::int2,
+       amopselect = "btreesel"::regproc,
+       amopnpages = "btreenpage"::regproc)
+      from am in pg_am,
+           opc in pg_opclass,
+           opr in pg_operator,
+           t in pg_type
+      where am.amname = "btree"
+        and opc.opcname = "int4_abs_ops"
+        and opr.oprname = ">>&"
+        and opr.oprleft = t.oid
+        and opr.oprright = t.oid
+        and t.typname = "int4"
+\g
+
+define function int4_abs_cmp
+      (language = "c", returntype = int4)
+      arg is (int4, int4)
+      as "/usr/local/postgres/src/examples/int4_abs.o"
+\g
+
+retrieve (p.oid, p.proname)
+      from p in pg_proc
+      where p.proname = "int4_abs_cmp" 
+\g
+
+append pg_amproc
+	(amid = am.oid,
+	 amopclaid = opc.oid,
+	 amproc = p.oid,
+	 amprocnum = "1"::int2)
+      from am in pg_am,
+           opc in pg_opclass,
+           p in pg_proc
+      where am.amname = "btree"
+        and opc.opcname = "int4_abs_ops"
+        and p.proname = "int4_abs_cmp"
+\g
+
+create pairs (name = char16, number = int4)
+\g
+
+append pairs (name = "mike", number = -10000)
+\g
+
+append pairs (name = "greg", number = 3000)
+\g
+
+append pairs (name = "lay peng", number = 5000)
+\g
+
+append pairs (name = "jeff", number = -2000)
+\g
+
+append pairs (name = "mao", number = 7000)
+\g
+
+append pairs (name = "cimarron", number = -3000)
+\g
+
+retrieve (pairs.all)
+\g
+
+define index pairsind on pairs
+      using btree (number int4_abs_ops)
+\g
+
+retrieve (pairs.all) where pairs.number < 9000
+\g
+
+retrieve (pairs.all) where pairs.number <<& 9000
+\g
