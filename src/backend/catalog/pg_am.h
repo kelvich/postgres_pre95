@@ -10,6 +10,9 @@
  *	the genbki.sh script reads this file and generates .bki
  *	information from the DATA() statements.
  *
+ *	XXX do NOT break up DATA() statements into multiple lines!
+ *	    the scripts are not as smart as you might think...
+ *
  *   IDENTIFICATION
  *	$Header$
  * ----------------------------------------------------------------
@@ -96,8 +99,6 @@ typedef FormData_pg_am	*Form_pg_am;
  * ----------------
  */
 
-DATA(insert OID = 400 (  oldbtree PGUID "o" 5 0 btreegettuple btreeinsert btreedelete - - - - btreebeginscan btreerescan btreeendscan btreemarkpos btreerestrpos - - btreebuild - - ));
-DATA(insert OID = 401 (  fbtree PGUID "o" 5 0 fbtreegettuple fbtreeinsert fbtreedelete - - - - - - - - - - - fbtreebuild - - ));
 DATA(insert OID = 402 (  rtree PGUID "o" 8 3 rtgettuple rtinsert rtdelete - - - - rtbeginscan rtrescan rtendscan rtmarkpos rtrestrpos - - rtbuild - - ));
 DATA(insert OID = 403 (  btree PGUID "o" 5 1 btgettuple btinsert btdelete - - - - btbeginscan btrescan btendscan btmarkpos btrestrpos - - btbuild - - ));
 
