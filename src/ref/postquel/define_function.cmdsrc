@@ -40,14 +40,14 @@ or
 clause may be left out if the function has no arguments, or
 alternatively the argument list may be left empty.)
 The input types may be base or complex types, or 
-.IR "\*(lqany\*(rq" .
-.IR "\*(lqany\*(rq"
+.IR any .
+.IR Any
 indicates that the function accepts arguments of any type, or takes an
 invalid \*(PQ type such as (char *).
 The output type may be specified as a base type, complex type, 
 .IR "setof <type>",
 or 
-.IR "\*(lqany\*(rq" .
+.IR any .
 The 
 .IR setof
 modifier indicates that the function will return a set of items,
@@ -466,7 +466,7 @@ name of the function in C code must be exactly the same as the name
 used in
 .BR "define function" .
 .PP
-.IR "\*(lqany\*(rq"
+.IR any
 cannot be given as an argument to a \*(PQ function.
 .SH "BUGS"
 The
