@@ -39,6 +39,12 @@ typedef PositionIdData	*PositionId;	/* position identifier */
 	     (*(positionId) & OffsetNumberMask(partition))))
 
 /*
+ * PositionIdSetInValid --
+ *      Make an invalid postion.
+ */
+#define PositionIdSetInvalid(positionId) *(positionId) & 0x0
+
+/*
  * PositionIdSet --
  *	Sets a position identifier to the specified value.
  */
