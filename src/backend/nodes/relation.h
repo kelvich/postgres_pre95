@@ -60,7 +60,9 @@ extern void     PrintJoinMethod();
 #define EqualMergeOrderExists 1
 #define EqualJoinPathExists 1
 #define EqualPathExists 1
+#define EqualIndexPathExists 1
 #define EqualJoinKeyExists 1
+#define EqualMergePathExists 1
 
 extern bool     EqualRel();
 extern bool	EqualSortKey();
