@@ -296,12 +296,13 @@ AllocateRelationDesc(natts, relp)
     
     /* ----------------
      *	allocate space for new relation descriptor, including
-     *  the tuple descriptor and the index strategy
+     *  the tuple descriptor and the index strategy and support pointers
      * ----------------
      */
     len = sizeof(RelationData) + 
 	((int)natts - 1) * sizeof(relation->rd_att) + /* var len struct */
-	    sizeof(IndexStrategy);
+	    sizeof(IndexStrategy)
+	    + sizeof(RegProcedure *);
     
     relation = (Relation) palloc(len);
     
@@ -540,30 +541,11 @@ RelationBuildDesc(buildinfo)
     RelationBuildTupleDesc(buildinfo, relation, attp, natts);
 
     /* ----------------
-     *	initialize index strategy information for this relation
-     *  remember, the index strategy lives in the memory right after
-     *  the tuple descriptor.
+     *	initialize index strategy and support information for this relation
      * ----------------
      */
     if (ObjectIdIsValid(relam)) {
-	IndexStrategy 	strategy;
-	int 		stratSize;
-	uint16 		relamstrategies;
-
-	relamstrategies = relation->rd_am->amstrategies;
-	    
-	stratSize =
-	    AttributeNumberGetIndexStrategySize(natts, relamstrategies);
-	    
-	strategy = (IndexStrategy)
-	    palloc(stratSize);
-	    
-	IndexStrategyInitialize(strategy,
-				relation->rd_att.data[0]->attrelid,
-				relam,
-				AMStrategies(relamstrategies));
-
-	RelationSetIndexStrategy(relation, strategy);
+	IndexedAccessMethodInitialize(relation);
     }
 
     /* ----------------
@@ -586,6 +568,38 @@ RelationBuildDesc(buildinfo)
     MemoryContextSwitchTo(oldcxt);
     
     return relation;
+}
+
+IndexedAccessMethodInitialize(relation)
+    Relation relation;
+{
+    IndexStrategy 	strategy;
+    RegProcedure	*support;
+    int			natts;
+    int 		stratSize;
+    int			supportSize;
+    uint16 		relamstrategies;
+    uint16		relamsupport;
+    
+    natts = relation->rd_rel->relnatts;
+    relamstrategies = relation->rd_am->amstrategies;
+    stratSize = AttributeNumberGetIndexStrategySize(natts, relamstrategies);
+    strategy = (IndexStrategy) palloc(stratSize);
+
+    if (relamsupport > 0) {
+	relamsupport = relation->rd_am->amsupport;
+	supportSize = natts * (relamsupport * sizeof (RegProcedure));
+	support = (RegProcedure *) palloc(supportSize);
+    } else {
+	support = (RegProcedure *) NULL;
+    }
+
+    IndexSupportInitialize(strategy, support,
+    			    relation->rd_att.data[0]->attrelid,
+    			    relation->rd_rel->relam,
+			    relamstrategies, relamsupport);
+
+    RelationSetIndexSupport(relation, strategy, support);
 }
 
 /* --------------------------------

@@ -21,7 +21,7 @@
  *	StrategyEvaluationIsValid
  *	RelationGetStrategy
  *	RelationInvokeStrategy
- *	IndexStrategyInitialize
+ *	IndexSupportInitialize
  *	
  *   IDENTIFICATION
  *	$Header$
@@ -46,6 +46,7 @@ RcsId("$Header$");
 
 #include "catalog/catname.h"
 #include "catalog/pg_amop.h"
+#include "catalog/pg_amproc.h"
 #include "catalog/pg_index.h"
 #include "catalog/pg_proc.h"
 
@@ -553,17 +554,20 @@ OperatorRelationFillScanKeyEntry(operatorRelation, operatorObjectId, entry)
 
 
 /* ----------------
- *	IndexStrategyInitialize
+ *	IndexSupportInitialize
  * ----------------
  */
 void
-IndexStrategyInitialize(indexStrategy, indexObjectId,
-			accessMethodObjectId, maxStrategyNumber)
-    
+IndexSupportInitialize(indexStrategy, indexSupport,
+			indexObjectId, accessMethodObjectId,
+			maxStrategyNumber, maxSupportNumber)
+
     IndexStrategy	indexStrategy;
+    RegProcedure	*indexSupport;
     ObjectId		indexObjectId;
     ObjectId		accessMethodObjectId;
     StrategyNumber	maxStrategyNumber;
+    StrategyNumber	maxSupportNumber;
 {
     Relation		relation;
     Relation		operatorRelation;
@@ -587,7 +591,7 @@ IndexStrategyInitialize(indexStrategy, indexObjectId,
     scan = heap_beginscan(relation, false, NowTimeQual, 1, (ScanKey)entry);
     tuple = heap_getnext(scan, false, (Buffer *)NULL);
     if (! HeapTupleIsValid(tuple))
-	elog(WARN, "IndexStrategyInitialize: corrupted catalogs");
+	elog(WARN, "IndexSupportInitialize: corrupted catalogs");
 
     /*
      * XXX note that the following assumes the INDEX tuple is well formed and
@@ -596,30 +600,71 @@ IndexStrategyInitialize(indexStrategy, indexObjectId,
     attributeIndex = 0;
     for (;;) {
 	IndexTupleForm	iform;
-	ObjectId	objectId;
 
 	iform = (IndexTupleForm) HeapTupleGetForm(tuple);
-	objectId = iform->indkey[attributeIndex];
 
-	if (! ObjectIdIsValid(objectId)) {
+	if (!ObjectIdIsValid(iform->indkey[attributeIndex])) {
 	    if (attributeIndex == 0) {
-		elog(WARN, "InitializeIndexStrategy: invalid IDEX");
+		elog(WARN, "IndexSupportInitialize: no pg_index tuple");
 	    }
 	    break;
 	}
 
-	objectId = iform->indclass[attributeIndex];
-	if (!ObjectIdIsValid(objectId))
-	    elog(WARN, "InitializeIndexStrategy: corrupted INDEX tuple");
+	operatorClassObjectId[attributeIndex]
+		= iform->indclass[attributeIndex];
 
-	operatorClassObjectId[attributeIndex] = objectId;
-	attributeIndex += 1;
+	attributeIndex++;
     }
-    
+
     maxAttributeNumber = attributeIndex;
 
     heap_endscan(scan);
     heap_close(relation);
+
+    /* if support routines exist for this access method, load them */
+    if (maxSupportNumber > 0) {
+
+	entry[0].flags = 0;
+	entry[0].attributeNumber = Anum_pg_amproc_amid;
+	entry[0].procedure = ObjectIdEqualRegProcedure;
+	entry[0].argument =  ObjectIdGetDatum(accessMethodObjectId);
+
+	entry[1].flags = 0;
+	entry[1].attributeNumber = Anum_pg_amproc_amopclaid;
+	entry[1].procedure = ObjectIdEqualRegProcedure;
+
+	relation = heap_openr(Name_pg_amproc);
+
+	for (attributeNumber = maxAttributeNumber; attributeNumber > 0;
+	     attributeNumber--) {
+
+	    int16		support;
+	    Form_pg_amproc	form;
+	    RegProcedure	*loc;
+
+	    loc = &indexSupport[((attributeNumber - 1) * maxSupportNumber)];
+
+	    for (support = maxSupportNumber; --support >= 0; ) {
+		loc[support] = InvalidObjectId;
+	    }
+
+	    entry[1].argument =
+		ObjectIdGetDatum(operatorClassObjectId[attributeNumber - 1]);
+
+	    scan = heap_beginscan(relation, false, NowTimeQual, 3,
+				  (ScanKey)entry);
+
+	    while (tuple = heap_getnext(scan, false, (Buffer *)NULL),
+		   HeapTupleIsValid(tuple)) {
+
+		form = (Form_pg_amproc) HeapTupleGetForm(tuple);
+		loc[form->amprocnum] = form->amproc;
+	    }
+
+	    heap_endscan(scan);
+	}
+	heap_close(relation);
+    }
 
     entry[0].flags = 0;
     entry[0].attributeNumber =
@@ -636,7 +681,7 @@ IndexStrategyInitialize(indexStrategy, indexObjectId,
     operatorRelation = heap_openr(OperatorRelationName);
 
     for (attributeNumber = maxAttributeNumber; attributeNumber > 0;
-	 attributeNumber -= 1) {
+	 attributeNumber--) {
 
 	StrategyNumber	strategy;
 
@@ -647,7 +692,7 @@ IndexStrategyInitialize(indexStrategy, indexObjectId,
 					  maxStrategyNumber,
 					  attributeNumber);
 
-	for (strategy = 1; strategy <= maxStrategyNumber; strategy += 1)
+	for (strategy = 1; strategy <= maxStrategyNumber; strategy++)
 	    ScanKeyEntrySetIllegal(StrategyMapGetScanKeyEntry(map, strategy));
 
 	scan = heap_beginscan(relation, false, NowTimeQual, 2, (ScanKey)entry);

@@ -146,13 +146,19 @@ RelationGetIndexStrategy(relation)
 }
 
 /* ----------------
- *	RelationSetIndexStrategy
+ *	RelationSetIndexSupport
+ *
+ *	This routine saves two pointers -- one to the IndexStrategy, and
+ *	one to the RegProcs that support the indexed access method.  These
+ *	pointers are stored in the space following the attribute data in the
+ *	reldesc.
  * ----------------
  */
 void
-RelationSetIndexStrategy(relation, strategy)
+RelationSetIndexSupport(relation, strategy, support)
     Relation	relation;
     IndexStrategy	strategy;
+    RegProcedure	*support;
 {
     IndexStrategy	*relationIndexStrategyP;
 
@@ -163,6 +169,9 @@ RelationSetIndexStrategy(relation, strategy)
 	&relation->rd_att.data[relation->rd_rel->relnatts];
 
     *relationIndexStrategyP = strategy;
+    relationIndexStrategyP = (IndexStrategy *)
+	(((char *) relationIndexStrategyP) + sizeof(relationIndexStrategyP));
+    *relationIndexStrategyP = (IndexStrategy) support;
 }
 
 /* ----------------

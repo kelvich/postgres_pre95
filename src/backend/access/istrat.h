@@ -127,16 +127,18 @@ AttributeNumberGetIndexStrategySize ARGS((
 ));
 
 /*
- * IndexStrategyInitialize --
- *	Initializes an index strategy.
+ * IndexSupportInitialize --
+ *	Initializes an index strategy and associated support procedures.
  */
 extern
 void
-IndexStrategyInitialize ARGS((
+IndexSupportInitialize ARGS((
 	IndexStrategy	indexStrategy,
+	RegProcedure	*indexSupport,
 	ObjectId	indexObjectId,
 	ObjectId	accessMethodObjectId,
 	StrategyNumber	maxStrategyNumber
+	StrategyNumber	maxSupportNumber
 ));
 
 #endif	/* !defined(IStratIncluded) */

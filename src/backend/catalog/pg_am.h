@@ -35,6 +35,7 @@ CATALOG(pg_am) {
     oid 	amowner;
     char	amkind;
     int2 	amstrategies;
+    int2 	amsupport;
     regproc 	amgettuple;
     regproc	aminsert;
     regproc 	amdelete;
@@ -66,37 +67,38 @@ typedef FormData_pg_am	*Form_pg_am;
  * ----------------
  */
 #define Name_pg_am			"pg_am"
-#define Natts_pg_am			21
+#define Natts_pg_am			22
 #define Anum_pg_am_amname		1
 #define Anum_pg_am_amowner		2
 #define Anum_pg_am_amkind		3
 #define Anum_pg_am_amstrategies		4
-#define Anum_pg_am_amgettuple		5
-#define Anum_pg_am_aminsert		6
-#define Anum_pg_am_amdelete		7
-#define Anum_pg_am_amgetattr		8
-#define Anum_pg_am_amsetlock		9
-#define Anum_pg_am_amsettid		10
-#define Anum_pg_am_amfreetuple		11
-#define Anum_pg_am_ambeginscan		12
-#define Anum_pg_am_amrescan		13
-#define Anum_pg_am_amendscan		14
-#define Anum_pg_am_ammarkpos		15
-#define Anum_pg_am_amrestrpos		16
-#define Anum_pg_am_amopen		17
-#define Anum_pg_am_amclose		18
-#define Anum_pg_am_ambuild		19
-#define Anum_pg_am_amcreate		20
-#define Anum_pg_am_amdestroy		21
+#define Anum_pg_am_amsupport		5
+#define Anum_pg_am_amgettuple		6
+#define Anum_pg_am_aminsert		7
+#define Anum_pg_am_amdelete		8
+#define Anum_pg_am_amgetattr		9
+#define Anum_pg_am_amsetlock		10
+#define Anum_pg_am_amsettid		11
+#define Anum_pg_am_amfreetuple		12
+#define Anum_pg_am_ambeginscan		13
+#define Anum_pg_am_amrescan		14
+#define Anum_pg_am_amendscan		15
+#define Anum_pg_am_ammarkpos		16
+#define Anum_pg_am_amrestrpos		17
+#define Anum_pg_am_amopen		18
+#define Anum_pg_am_amclose		19
+#define Anum_pg_am_ambuild		20
+#define Anum_pg_am_amcreate		21
+#define Anum_pg_am_amdestroy		22
 
 /* ----------------
  *	initial contents of pg_am
  * ----------------
  */
 
-DATA(insert OID = 400 (  btree 6 "o" 5 btreegettuple btreeinsert btreedelete - - - - btbeginscan btreerescan btreeendscan btreemarkpos btreerestrpos - - btreebuild - - ));
-DATA(insert OID = 401 (  fbtree 6 "o" 5 fbtreegettuple fbtreeinsert fbtreedelete - - - - - - - - - - - fbtreebuild - - ));
-DATA(insert OID = 402 (  rtree 6 "o" 5 rtreegettuple rtreeinsert rtreedelete - - - - rtbeginscan btrescan rtendscan rtmarkpos rtrestrpos - - rtreebuild - - ));
+DATA(insert OID = 400 (  btree 6 "o" 5 0 btreegettuple btreeinsert btreedelete - - - - btbeginscan btreerescan btreeendscan btreemarkpos btreerestrpos - - btreebuild - - ));
+DATA(insert OID = 401 (  fbtree 6 "o" 5 0 fbtreegettuple fbtreeinsert fbtreedelete - - - - - - - - - - - fbtreebuild - - ));
+DATA(insert OID = 402 (  rtree 6 "o" 5 0 rtgettuple rtinsert rtdelete - - - - rtbeginscan btrescan rtendscan rtmarkpos rtrestrpos - - rtbuild - - ));
 
 /* ----------------
  *	old definition of AccessMethodTupleForm
@@ -111,6 +113,7 @@ typedef struct AccessMethodTupleFormD {
 	char		amkind;		/* XXX */
 /*	typedef uint16	StrategyNumber; */
 	uint16		amstrategies;
+	uint16		amsupport;
 	RegProcedure	amgettuple;
 	RegProcedure	aminsert;
 	RegProcedure	amdelete;
@@ -146,6 +149,7 @@ struct	am {
 	OID	amowner;
 	char	amkind;
 	uint16  amstrategies;
+	uint16  amsupport;
 	REGPROC	amgettuple;
 	REGPROC	aminsert;
 	REGPROC	amdelete;
@@ -167,7 +171,6 @@ struct	am {
 
 #endif struct_am_Defined
 
-    
 /* ----------------
  *	old style compiler constants.  these are obsolete and
  *	should not be used -cim 6/17/90

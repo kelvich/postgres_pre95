@@ -20,6 +20,7 @@
  * **	index_fetch	- retrieve tuple with tid
  * **	index_replace	- replace a tuple
  * **	index_getattr	- get an attribute from an index tuple
+ *	index_getprocid - get a support procedure id from the rel tuple
  *	
  *	IndexScanIsValid - check index scan
  *
@@ -351,6 +352,41 @@ index_getnext(scan, direction)
 	return NULL;
     
     return result;
+}
+/* ----------------
+ *	index_getprocid
+ *
+ *	Some indexed access methods may require support routines that are
+ *	not in the operator class/operator model imposed by pg_am.  These
+ *	access methods may store the OIDs of registered procedures they
+ *	need in pg_amproc.  These registered procedure OIDs are ordered in
+ *	a way that makes sense to the access method, and used only by the
+ *	access method.  The general index code doesn't know anything about
+ *	the routines involved; it just builds an ordered list of them for
+ *	each attribute on which an index is defined.
+ *
+ *	This routine returns the requested procedure OID for a particular
+ *	indexed attribute.
+ * ----------------
+ */
+
+RegProcedure
+index_getprocid(irel, attnum, procnum)
+    Relation irel;
+    AttributeNumber attnum;
+    uint16 procnum;
+{
+    RegProcedure *loc;
+    AttributeNumber natts;
+
+    natts = irel->rd_rel->relnatts;
+
+    loc = (RegProcedure *)
+       (((char *) &(irel->rd_att.data[natts])) + sizeof(IndexStrategy));
+
+    Assert(loc != NULL);
+
+    return (loc[(natts * (attnum - 1)) + (procnum - 1)]);
 }
 
 /* ----------------
