@@ -72,31 +72,31 @@ Lists of general commands and macro commands
 follow.
 .uh "GENERAL COMMANDS"
 .lp
-open relname
+open classname
 .sp
-Open the relation called
-.i relname
+Open the class called
+.i classname
 for further manipulation.
 .sp
-close [relname]
+close [classname]
 .sp
-Close the open relation called
-.i relname.
+Close the open class called
+.i classname.
 It is an error if 
-.i relname
+.i classname
 is not already opened.   If no
-.i relname
+.i classname
 is given, then the 
-currently open relation is closed.
+currently open class is closed.
 .sp
 print
 .sp
-Print the currently open relation.
+Print the currently open class.
 .sp
 insert [ oid= oid_value ] '(' value1 value2 ...')'
 .sp
-Insert a new tuple to the open
-relation using
+Insert a new instance to the open
+class using
 .ul
 value1,
 .ul
@@ -106,7 +106,7 @@ If
 .ul
 oid
 is not \*(lq0\*(rq, then this value
-will be used as the tuple's
+will be used as the instance's
 object identifier.
 Otherwise, it is an error.
 To let the system generate a unique object identifier (as opposed to the
@@ -114,39 +114,39 @@ To let the system generate a unique object identifier (as opposed to the
 insert '(' value1, value2, ... valuen ')' .
 
 .sp
-\&create relname '(' name1 = type1, name2 = type2,...name n = type n ')'
+\&create classname '(' name1 = type1, name2 = type2,...name n = type n ')'
 .sp
-Create a relation named
+Create a class named
 .ul
-relname
+classname
 with the attributes given in parentheses.
 .sp
 open '('name1 = type1, name2 = type2,...name n = type n ')'
-as relname
+as classname
 .sp
-Open a relation named
+Open a class named
 .ul
-relname
+classname
 for writing 
 but do not record its existence
 in the system catalogs.  (This is primarily to aid in bootstrapping.)
 .sp
-\&destroy relname
+\&destroy classname
 .sp
-Destroy the relation named
+Destroy the class named
 .ul
-relname.
+classname.
 .sp
-\&define index <index-name> on <relation-name> using <amname>
+\&define index <index-name> on <class-name> using <amname>
 .br
-\0\0\0with ( name_1 class_1 { , name_2 class_2 ,  ... } )
+\0\0\0with ( name_1 collection_1 { , name_2 collection_2 ,  ... } )
 .sp
 Create an index named
 .ul
 index_name
-on the relation named
+on the class named
 .ul
-relname
+classname
 using the
 .ul
 amname
@@ -157,11 +157,11 @@ name1,
 .ul
 name2,
 etc. and the operator
-classes to use are
+collections to use are
 .ul
-class1,
+collection_1,
 .ul
-class2,
+collection_2,
 etc., respectively.
 .uh "MACRO COMMANDS"
 .lp
@@ -201,7 +201,7 @@ filename.
 .\" .in .5i
 .\" r
 .\" .br
-.\" Randomly print the open relation.
+.\" Randomly print the open class.
 .\" .sp
 .\" m	-1
 .\" .br
@@ -221,7 +221,7 @@ filename.
 .\" Either time may be replaced with space
 .\" if an unbounded time range is desired.
 .\" .sp
-.\" \&.A	relname natts name1 type1 name2 type2 ...
+.\" \&.A	classname natts name1 type1 name2 type2 ...
 .\" .br
 .\" Add attributes named
 .\" .ul
@@ -236,38 +236,38 @@ filename.
 .\" type2,
 .\" etc. to the
 .\" .ul
-.\" relname
-.\" relation.
+.\" class
+.\" classname.
 .\" .sp
-.\" \&.RR	oldrelname newrelname
+.\" \&.RR	oldclassname newclassname
 .\" .br
 .\" Rename the
 .\" .ul
-.\" oldrelname
-.\" relation to
+.\" oldclassname
+.\" class to
 .\" .ul
-.\" newrelname.
+.\" newclassname.
 .\" .sp
-.\" \&.RA	relname oldattname newattname
+.\" \&.RA	classname oldattname newattname
 .\" .br
 .\" Rename the
 .\" .ul
 .\" oldattname
-.\" attribute in the relation named
+.\" attribute in the class named
 .\" .ul
-.\" relname
+.\" classname
 .\" to
 .\" .ul
 .\" newattname.
 .uh EXAMPLE
 .lp
 The following set of commands will create the
-OPCLASS relation containing
+OPCLASS class containing
 the
 .i int_ops
-class as object
+collection as object
 .i 421,
-print out the relation, and then close it.
+print out the class, and then close it.
 .sp
 .nf
 create pg_opclass (opcname=char16)
