@@ -342,9 +342,3 @@ pq_accept()
     
     return(0);
 }
-
-/* ----------------
- *	pqtest
- * ----------------
- */
-int pqtest() { return 1; }
