@@ -330,6 +330,11 @@ ProcessUtility(command, args, commandString, dest)
 			   CString(CADR(args)),	/* operator name */
 			   CDR(CDR(args)));	/* rest */
 	    break;
+	case AGGREGATE:
+	    DefineAggregate(
+			    CString(CADR(args)),/*aggregate name */
+			    CDR(CDR(args)));   /* rest */
+	    break;
 	case C_FUNCTION:
 	    DefineFunction(
 			   CString(CADR(args)),	/* function name */
@@ -370,6 +375,9 @@ ProcessUtility(command, args, commandString, dest)
 	switch(CInteger(CAR(args))) {
 	case FUNCTION:
 	    RemoveFunction(CString(CADR(args)));
+	    break;
+	case AGGREGATE:
+	    RemoveAggregate(CString(CADR(args)));
 	    break;
 	case INDEX:
 	    RemoveIndex(CString(CADR(args)));
