@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# $Header$
+#
+
+if test $# -ne 1; then
+    echo "usage: $0 PORTNAME"
+    exit 1
+fi
+PORTNAME=$1
+ 
+find . obj/. port/$PORTNAME \( -name obj -o -name port \) -prune -o \( -name '*.[ch]' -o -name '*.gen' \) -type f -print | mkid -S.gen=c - 2>&1 | grep -v 'No scanner for language'
