@@ -140,6 +140,14 @@ register NODE *node;
     node->sn_List = list;
 }
 
+SetList *
+SetGetList(node)
+register NODE *node;
+{
+    Assert(node->sn_Magic == NODE_MAGIC);
+    return(node->sn_List);
+}
+
 void
 SetInsertAfter(node, newnode)
 register NODE *node, *newnode;

@@ -47,6 +47,7 @@ extern void *SetRemHead();
 extern void *SetRemTail();
 extern void SetInsertAfter();
 extern void SetInsertBefore();
+extern SetList *SetGetList();
 
 #endif
 
