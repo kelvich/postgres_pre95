@@ -20,6 +20,7 @@
 #include <sys/param.h>		/* for MAXPATHLEN */
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 
 #include "tmp/postgres.h"
 
@@ -201,7 +202,7 @@ SetDatabaseName(name)
  *	is done there.
  * ----------------
  */
-static NameData UserName = { "" };
+static struct UserNameStruct { char data[NAMEDATALEN + 1]; } UserName = { "" };
 
 void
 GetUserName(namebuf)
@@ -210,7 +211,7 @@ GetUserName(namebuf)
 	Assert(UserName.data[0]);
 	Assert(PointerIsValid((Pointer) namebuf));
 	
-	(void) strncpy(namebuf->data, UserName.data, sizeof(NameData));
+	(void) strncpy(namebuf->data, UserName.data, sizeof(*namebuf));
 }
 
 void
@@ -231,7 +232,8 @@ SetUserName()
 			elog(FATAL, "SetUserName: no entry in passwd file");
 		p = pw->pw_name;
 	}
-	(void) strncpy(UserName.data, p, sizeof(NameData));
+	(void) strncpy(UserName.data, p, sizeof(UserName));
+	UserName.data[sizeof(UserName)-1] = 0;
 	
 	Assert(UserName.data[0]);
 }
@@ -521,4 +523,155 @@ FindBackend(backend, argv0)
     
     fprintf(stderr, "FindBackend: could not find a backend to execute...\n");
     return(-1);
+}
+
+static struct groupInfo {
+	gid_t	*list;
+	int	glim;
+	int	ngroups;
+	char	*name;
+	int	namelen;
+	uid_t	uid;
+	gid_t	list_initial[32];
+};
+
+static struct groupInfo groupInfo = {
+	groupInfo.list_initial,
+	sizeof(groupInfo.list_initial)/sizeof(groupInfo.list_initial[0]),
+};
+
+static void
+putGroup(gid)
+	gid_t	gid;
+{
+	if (groupInfo.ngroups == (groupInfo.glim - 1)) {
+		int	oldsize = groupInfo.glim * sizeof(gid_t);
+		gid_t	*newlist = malloc(2 * oldsize);
+
+		if (newlist == 0)
+			return;
+		bcopy((char *)groupInfo.list, (char *)newlist, oldsize);
+		if (groupInfo.list != groupInfo.list_initial)
+			free(groupInfo.list);
+		groupInfo.list = newlist;
+		groupInfo.glim *= 2;
+	}
+	groupInfo.list[groupInfo.ngroups] = gid;
+	groupInfo.ngroups++;
+}
+
+static int
+putGroups(name)
+	char	*name;
+{
+	struct passwd *pw;
+	struct group *gr;
+	char **gr_mem;
+
+	if (groupInfo.ngroups != 0 || (pw = getpwnam(name)) == 0)
+		return 0;
+	groupInfo.uid = pw->pw_uid;
+	putGroup(pw->pw_gid);
+	setgrent();
+	while (gr = getgrent()) {
+		if (gr->gr_gid == pw->pw_gid)
+			continue;
+		for (gr_mem = gr->gr_mem; *gr_mem; gr_mem++)
+			if (strcmp(*gr_mem, name) == 0) {
+				putGroup(gr->gr_gid);
+				break; /* out of "for", but not "while" */
+			}
+	}
+	endgrent();
+	endpwent();
+	return 1;
+}
+
+#define SearchPerm S_IXUSR
+#define WritePerm S_IWUSR
+#define ReadPerm S_IRUSR
+#define UserPerm (SearchPerm|WritePerm|ReadPerm)
+#define CreatePerm S_IFDIR
+
+static int
+pathPerm(path, isDir)
+	char	*path;
+	int	isDir;
+{
+	struct stat st_buf;
+	int i;
+
+	if ((stat(path, &st_buf) < 0) ||
+	    (isDir && ((st_buf.st_mode & S_IFMT) != S_IFDIR)) ||
+	    (isDir == 0  && ((st_buf.st_mode & S_IFMT) == S_IFDIR)))
+		return 0;
+	if (groupInfo.uid == st_buf.st_uid)
+		return (UserPerm & st_buf.st_mode);
+	for (i = 0; i < groupInfo.ngroups; i++)
+		if (st_buf.st_gid == groupInfo.list[i])
+			return (UserPerm & (st_buf.st_mode << 3));
+	return (UserPerm & ((st_buf.st_mode) << 6));
+}
+
+int
+CheckPathAccess(path, name, open_mode)
+	char	*path, *name;
+	int	open_mode;
+{
+	char	*cp, *last, *next;
+	int	dirmode, filemode, namelen;
+	struct	stat st_buf;
+
+	if (name == 0)
+		name = UserName.data;
+	namelen = strlen(name) + 1;
+	if (groupInfo.name && strcmp(groupInfo.name, name)) {
+		groupInfo.ngroups = 0;
+		if (groupInfo.namelen < namelen) {
+			free(groupInfo.name);
+			groupInfo.name = 0;
+		} else
+			strcpy(groupInfo.name, name);
+	}
+	if (groupInfo.name == 0) {
+		groupInfo.namelen = namelen;
+		groupInfo.name = (char *)malloc(namelen);
+		strcpy(groupInfo.name, name);
+	}
+	if (path[0] != '/' || (groupInfo.ngroups == 0 && putGroups(name) == 0))
+		return -1;
+	dirmode = pathPerm("/", 1);
+	for (last = cp = path;;) {
+		if ((dirmode & SearchPerm) == 0)
+			return -1;
+		*cp = '/';
+		cp = strchr(cp + 1, '/');
+		if (cp == 0)
+			break;
+		*cp = 0;
+		dirmode = pathPerm(path, 1);
+		last = cp;
+	}
+	*last = '/';
+	if (stat(path, &st_buf) < 0)
+		return ((dirmode & WritePerm) ? open_mode : -1);
+	filemode = pathPerm(path, 0);
+	switch (filemode & (S_IWUSR|S_IRUSR)) {
+	case 0:	
+		return (-1); /* permission has been revoked */
+
+	case S_IRUSR:
+		open_mode &= ~(O_ACCMODE|O_APPEND|O_CREAT|O_TRUNC);
+		open_mode |= O_RDONLY;
+		break;
+
+	case S_IWUSR:
+		open_mode &= ~O_ACCMODE;
+		open_mode |= O_WRONLY;
+		break;
+
+	case (S_IWUSR|S_IRUSR):
+		break; /* usr can do what s/he will */
+	}
+	return open_mode;
 }
