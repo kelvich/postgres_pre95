@@ -9,6 +9,7 @@
 #include "tmp/align.h"
 #include "catalog/syscache.h"
 #include "catalog/pg_type.h"
+#include "catalog/pg_index.h"
 
 #include "access/heapam.h"
 #include "access/htup.h"
@@ -407,7 +408,7 @@ FILE *fp;
                     }
                     j++;
                 }
-                ituple = index_formtuple(j, & index_rels[i]->rd_att, 
+                ituple = index_formtuple(j, &(index_rels[i]->rd_att.data[0]), 
                                          index_values, index_nulls);
                 ituple->t_tid = tuple->t_ctid;
                 (void) index_insert(index_rels[i], ituple, NULL, NULL);
@@ -573,9 +574,17 @@ int28 **index_atts;
         if (index_relation_oid == main_relation_oid)
         {
             scan->index_rel_oid = (ObjectId) 
-                heap_getattr(tuple, InvalidBuffer, 1, attr, &isnull);
+                heap_getattr(tuple,
+			     InvalidBuffer,
+			     Anum_pg_index_indexrelid,
+			     attr,
+			     &isnull);
             datum = (int28 *)
-                heap_getattr(tuple, InvalidBuffer, 3, attr, &isnull);
+                heap_getattr(tuple,
+			     InvalidBuffer,
+			     Anum_pg_index_indkey,
+			     attr,
+			     &isnull);
             bcopy(datum, &scan->intlist, sizeof(int28));
             (*n_indices)++;
             scan->next = (RelationList *) palloc(sizeof(RelationList));
@@ -591,8 +600,8 @@ int28 **index_atts;
 
     for (i = 0, scan = head; i < *n_indices; i++, scan = scan->next)
     {
-        *index_rels[i] = index_open(scan->index_rel_oid);
-        bcopy(&scan->intlist, &(*index_atts[i]), sizeof(int28));
+        (*index_rels)[i] = index_open(scan->index_rel_oid);
+        bcopy(&scan->intlist, &((*index_atts)[i]), sizeof(int28));
     }
 
     for (i = 0, scan = head; i < *n_indices + 1; i++)
