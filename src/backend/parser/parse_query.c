@@ -402,9 +402,7 @@ make_op(op,ltree,rtree)
                                    val),
                               0);
                      } else 
-	                elog ( WARN , 
-			     "Can't find binary op: %s for types %d and %d",
-                 	      CString(op), typeid(ltype), typeid(ltype));
+					 op_error(CString(op), typeid(ltype), typeid(rtype));
                 }
                 else
                    temp = oper(CString(op),typeid(ltype), typeid ( rtype ));
