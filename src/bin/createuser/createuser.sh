@@ -6,8 +6,6 @@
 # Note - this should NOT be setuid.
 #
 
-progname=$0
-
 # ----------------
 #       Set paths from environment or default values.
 #       The _fUnKy_..._sTuFf_ gets set when the script is installed
@@ -24,14 +22,18 @@ PATH=$BINDIR:$PATH
 while [ -n "$1" ]
 do
     case $1 in 
-        -p) PGPORT=$2; shift;;
+	-a) AUTHSYS=$2; shift;;
         -h) PGHOST=$2; shift;;
+        -p) PGPORT=$2; shift;;
          *) NEWUSER=$1;;
     esac
     shift;
 done
 
-MARGS="-TN -h $PGHOST -p $PGPORT"
+AUTHOPT="-a $AUTHSYS"
+[ -z "$AUTHSYS" ] && AUTHOPT=""
+
+MARGS="-TN $AUTHOPT -h $PGHOST -p $PGPORT"
 
 #
 # generate the first part of the actual monitor command
@@ -91,7 +93,7 @@ done=0
 # get the system id of the new user.  Make sure it is unique.
 #
 
-while (test $done -ne 1)
+while [ $done -ne 1 ]
 do
     SYSID=
     DEFSYSID=`pg_id $NEWUSER 2>/dev/null`
@@ -105,9 +107,7 @@ do
     do
 	echo -n "Enter user's postgres ID$DEFMSG -> "
 	read SYSID
-	case $SYSID in "")
-		SYSID=$DEFSYSID
-	esac
+	[ -z "$SYSID" ] && SYSID=$DEFSYSID;
 	QUERY='retrieve (pg_user.usename) where pg_user.usesysid = '"\"$SYSID\""
 	RES=`$MONITOR -TN -c "$QUERY" template1`
 	if [ $? -ne 0 ]
@@ -120,7 +120,10 @@ do
 		echo 
 		echo "$0: $SYSID already belongs to $RES, pick another"
 		DEFMSG= DEFSYSID= SYSID=
+	else
+		done=1
 	fi
+    done
 done
 
 #

@@ -5,8 +5,6 @@
 # Note - this should NOT be setuid.
 #
 
-progname=$0
-
 # ----------------
 #       Set paths from environment or default values.
 #       The _fUnKy_..._sTuFf_ gets set when the script is installed
@@ -23,6 +21,7 @@ PATH=$BINDIR:$PATH
 while (test -n "$1")
 do
     case $1 in 
+	-a) AUTHSYS=$2; shift;;
         -h) PGHOST=$2; shift;;
         -p) PGPORT=$2; shift;;
          *) DELUSER=$1;;
@@ -30,7 +29,10 @@ do
     shift;
 done
 
-MARGS="-TN -p $PGPORT -h $PGHOST"
+AUTHOPT="-a $AUTHSYS"
+[ -z "$AUTHSYS" ] && AUTHOPT=""
+
+MARGS="-TN $AUTHOPT -p $PGPORT -h $PGHOST"
 
 #
 # generate the first part of the actual monitor command
