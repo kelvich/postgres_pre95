@@ -34,9 +34,15 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.16  1994/02/07 11:49:13  aoki
-    proto fixes
+    Revision 1.17  1994/02/11 21:35:44  aoki
+    hash_seq never, ever could have possibly worked for the case
+    where you were traversing the table and removing the current
+    element at the same time.  no wonder mao couldn't get
+    RelationFlushIndexes to work (see relcache.c)
 
+ * Revision 1.16  1994/02/07  11:49:13  aoki
+ * proto fixes
+ *
  * Revision 1.15  1993/08/14  11:37:37  aoki
  * conditionalize mem cxt stuff so that we can use this in the frontend
  *
@@ -699,14 +705,12 @@ hash_seq(hashp)
 HTAB		*hashp;
 {
     static uint32 curBucket = 0;
-    static ELEMENT *curElem = NULL;
+    static BUCKET_INDEX curIndex;
+    ELEMENT *curElem;
     long segment_num;
     long segment_ndx;
     SEGMENT segp;
     HHDR *hctl;
-    BUCKET_INDEX currIndex;
-    BUCKET_INDEX *prevIndexPtr;
-    char *destAddr;
 
     if (hashp == NULL)
     {
@@ -714,32 +718,50 @@ HTAB		*hashp;
 	 * reset static state
 	 */
 	curBucket = 0;
-	curElem = NULL;
-	return NULL;
+	curIndex = INVALID_INDEX;
+	return((long *) NULL);
     }
 
     hctl = hashp->hctl;
-    for (; curBucket <= hctl->max_bucket; curBucket++) {
+    while (curBucket <= hctl->max_bucket) {
+	if (curIndex != INVALID_INDEX) {
+	    curElem = GET_BUCKET(hashp, curIndex);
+	    curIndex = curElem->next;
+	    if (curIndex == INVALID_INDEX)	/* end of this bucket */
+		++curBucket;
+	    return(&(curElem->key));
+	}
+
+	/*
+	 * initialize the search within this bucket.
+	 */
 	segment_num = curBucket >> hctl->sshift;
 	segment_ndx = curBucket & ( hctl->ssize - 1 );
-
+	
+	/*
+	 * first find the right segment in the table directory.
+	 */
 	segp = GET_SEG(hashp, segment_num);
-
 	if (segp == NULL)
-	    return NULL;
-	if (curElem == NULL)
-	    prevIndexPtr = &segp[segment_ndx];
-	else
-	    prevIndexPtr = &(curElem->next);
-	currIndex = *prevIndexPtr;
-	if (currIndex == INVALID_INDEX) {
-	    curElem = NULL;
-	    continue;
-	  }
-	curElem = GET_BUCKET(hashp, currIndex);
-	return(&(curElem->key));
-      }
-    return (long *)TRUE;
+	    /* this is probably an error */
+	    return((long *) NULL);
+	
+	/*
+	 * now find the right index into the segment for the first
+	 * item in this bucket's chain.  if the bucket is not empty
+	 * (its entry in the dir is valid), we know this must
+	 * correspond to a valid element and not a freed element
+	 * because it came out of the directory of valid stuff.  if
+	 * there are elements in the bucket chains that point to the
+	 * freelist we're in big trouble.
+	 */
+	curIndex = segp[segment_ndx];
+
+	if (curIndex == INVALID_INDEX)		/* empty bucket */
+	    ++curBucket;
+    }
+
+    return((long *) TRUE);			/* out of buckets */
 }
 
 
