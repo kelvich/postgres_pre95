@@ -160,6 +160,13 @@ then no relation
 (including
 .RN pg_class )
 can ever be instantiated in the cache.
+The reldescs for
+.RN pg_class ,
+.RN pg_type ,
+and
+.RN pg_attribute
+all fall into this category,
+and are initialized specially when the system starts up.
 .pp
 To keep track of which relations may not be evicted from the
 private reldesc cache,
@@ -228,22 +235,20 @@ and not the system attributes,
 from the
 .RN pg_class
 tuple.
+Note that the
+.RN pg_class
+tuple has system attributes,
+as it is stored in the relation.
+These attributes simply are not copied into memory
+when the reldesc is initialized.
 .pp
 The structure entry
 .SE lockInfo
-points to an in-memory representation of the lock data associated
+points to an in-memory representation of the rule lock data associated
 with this relation.
-When the PRS-II rule system is used to declare a rule that operates
-on a relation,
-the
-.RN pg_class
-tuple for the relation is modified to include a
-.i "rule lock"
-describing the rule to fire.
-When a rule on a given relation is fired,
-the on-disk rule lock is converted into an in-memory format,
-and a pointer to the rule lock is included in the reldesc.
-The data stored in the rule lock are beyond the scope of this section.
+This entry is not used by the access methods.
+The rule system and the data stored in a rule lock
+are beyond the scope of this section.
 .pp
 The final entry in the reldesc is
 .SE rd_att ,
@@ -335,6 +340,12 @@ tuple for the owner of this access method.
 For all existing access methods,
 this is the OID for the user
 .i postgres .
+This entry is intended to support access protection,
+so that,
+for example,
+only the owner of an access method could change its
+interface routines.
+Such protection is not implemented in the current system.
 .pp
 The
 .SE amkind
@@ -357,13 +368,21 @@ contains, and contained-by.
 When hash tables are supported,
 the number of operators will be 1, for equality searches.
 .pp
-There is one such set of operators for each operator class defined
-on an index.
-Roughly speaking,
-an operator class corresponds to the set of operators for a particular type
-(for example, floats or char strings) that can be stored in an index.
-Operator class information is stored in the relation
+Operators that are supported by an access method
+are listed in
 .RN pg_amop .
+This relation contains one group of operators for each
+operator class,
+or
+.i opclass .
+An opclass is an access method/type pair.
+For example,
+an opclass
+.SE int4_ops
+is defined for btrees,
+so that
+.SE int4
+values may be indexed using btrees.
 .pp
 The structure entry
 .SE amsupport
@@ -475,12 +494,12 @@ The notation
 CATALOG(pg_relation) BOOTSTRAP {
 .)E
 is turned into a structure declaration by cpp macros at compile time.
-A separate set of cpp macros produces initialization statements
-in the
-.i bki
-files for this relation to allow bootstrapping of the
+This declaration is also used to produce setup files,
+called
+.i "bki files" ,
+that create and populate the
 .i template1
-database .
+database.
 .pp
 The structure entry
 .SE relname
@@ -491,6 +510,7 @@ The
 entry is the object ID of the
 .RN pg_user
 tuple describing the relation's owner.
+A relation is owned by the user that created it.
 .pp
 The
 .SE relam
@@ -572,9 +592,9 @@ entry is
 .i true
 for some shared system catalogs.
 Most relations for database
-.i relname
+.i dbname
 reside in the directory
-\fC$PGDATA/base/\fP\fIrelname\fP.
+\fC$PGDATA/base/\fP\fIdbname\fP.
 However,
 some relations,
 such as
@@ -661,6 +681,8 @@ information,
 stored in the
 .SE relacl
 entry.
+The access control list is used to grant or deny
+read or write access on the relation to particular users.
 .sh 3 "The Tuple Descriptor Data (rd_att)"
 .pp
 The reldesc ends with a vector of attribute data that describe the
@@ -670,14 +692,22 @@ different relations have different numbers of attributes,
 and so their
 .SE rd_att
 vectors are of different length.
-The data structures of interest are
-.SE "struct TupleDescriptorData" ,
+.pp
+There are two data structures of interest.
+The
+.SE "TupleDescriptorData"
+structure,
 defined in
 .FI access/tupdesc.h ,
-and
-.SE "struct AttributeTupleFormData" ,
+is a variable-length array of
+.SE AttributeTupleFormData
+entries.
+The
+.SE "AttributeTupleFormData"
+structure,
 defined in
-.FI catalog/pg_attribute.h .
+.FI catalog/pg_attribute.h ,
+contains detailed information on a single attribute.
 .pp
 The data structure for
 .SE AttributeTupleFormData
@@ -752,6 +782,10 @@ the current vacuum cleaner does not compute statistics,
 so
 .SE attnvals
 is always zero.
+If the correct value were maintained,
+the optimizer could use it to produce better query plans.
+The optimizer currently ignores
+.SE attnvals .
 .pp
 The
 .SE atttyparg
@@ -888,18 +922,14 @@ The strategy map is a vector of scan key entries.
 Scan keys are described in sections
 \n($1.3.1 and \n($1.3.2.
 .\" XXX maintainable section ref
-There is one entry in the vector for every operator that is supported by
-the access method.
+The strategy map stores information on what procedure to call
+for a particular operator on this index.
 For example,
-btrees have a vector composed of five entries:
-one each for <, \(<=, =, \(>=, and >.
-Each of these entries includes
-the procedure ID, which is the object ID of the
-.RN pg_proc
-tuple,
-for the procedure that should be called to execute this operator.
-All of the other entries in the scan key entry data structure are
-ignored.
+a btree storing
+.SE int4
+values would have the procedure ID of the
+.SE int4lt
+procedure at the location corresponding to '<' in the strategy vector.
 The strategy map is constructed automatically by the system when
 the index relation is opened.
 The contents are read from the
@@ -917,6 +947,9 @@ This vector is initialized when the index relation is opened by scanning
 the
 .RN pg_amsupport
 relation.
+The tuples in
+.RN pg_amsupport
+are keyed by access method and operator class.
 \*(PG assigns no meaning to the entries in this vector;
 they are intended for use by the access method.
 The btree access method uses a single support routine,
@@ -1011,8 +1044,9 @@ Note that other tuples on the same page as a deleted tuple do not
 change their tids when the tuple is deleted;
 the available slot is reserved for subsequent reuse.
 In fact,
-the available slot is never subsequently reused,
-but that may change sometime in the future.
+slots are never reused in the current system.
+The vacuum cleaner and the tuple allocation code may be changed to
+fix this problem in the future.
 .sh 3 "Data Stored in Heap Relations"
 .pp
 Every heap tuple begins with a
@@ -1061,9 +1095,10 @@ for the tuple.
 The
 .SE t_ctid
 entry is the tid of this tuple.
-This must be stored in the tuple so that when copies of it are passed
-around in memory,
-the page and offset from which the tuple came are recoverable.
+Storing the tid in the tuple is easier than computing it
+when it is needed
+(for example,
+when an index tuple is constructed to point at the heap tuple).
 .pp
 When a tuple is replaced,
 \*(PG maintains a pointer from the old version of the tuple
@@ -1078,21 +1113,36 @@ and the original tuple's
 entry is set to the
 .SE t_ctid
 entry of the new version.
-This was originally intended to support tuple differencing,
+This strategy,
+called
+.i "forward chaining" ,
+leaves older records pointing at newer records.
+The advantage if forward chaining is that it allows
+records to be updated without changing indices that point at them
+if the indexed attribute has not chained.
+.pp
+The
+.SE t_chain
+entry was originally intended to support tuple differencing,
 which would allow \*(PG to store only the changed values for the
 new version in most cases,
 rather than the entire new tuple.
 Tuple differencing is not supported in the current system.
+In addition,
+the system always inserts a new index record when a heap tuple
+is modified,
+regardless of whether the indexed attribute has changed.
+This may be fixed in the future.
 .pp
 The
 .SE t_lock
 entry stores a rule lock for the tuple.
-A rule lock is a tag that identifies a rule that should be
+A rule lock is a tag that identifies a set of rules that should be
 run whenever this tuple is manipulated.
 The mechanism is beyond the scope of this section.
 The value stored in
 .SE t_lock
-is a tid when the tuple is on disk,
+is a list of tids when the tuple is on disk,
 and is swizzled to an in-memory pointer when the tuple is
 copied into memory.
 .pp
@@ -1189,7 +1239,7 @@ the special database value NULL
 .pp
 The
 .SE t_vtype
-entry is for something called the version type,
+entry is for the version type,
 whose purpose has been lost to history.
 This is unused by the current system.
 The value stored here is typically zero,
@@ -1215,7 +1265,7 @@ entry indicates whether the value stored in the
 .SE t_lock
 union is an on-disk (tid) or in-memory (pointer) lock representation.
 This is stored far from the union in order to keep the data structure
-tightly packed.
+tightly packed in memory.
 .pp
 The
 .SE t_hoff
@@ -1545,7 +1595,7 @@ if necessary.
 .pp
 The
 .SE func
-entry is a pointer to a function that returns type \fCbool\fP.
+entry is a pointer to a function that must return type \fCbool\fP.
 This function pointer is initialized by the scan key from the
 .RN pg_proc
 tuple for the desired
@@ -2005,13 +2055,33 @@ The header files in the directory
 .FI access
 are where the prototypes appear.
 .pp
-The routines that operate on heap relations all do the work
-themselves.
-The routines that operate on index relations use the
+The basic operations covered here are
+.BU
+opening and closing relations,
+.BU
+using scans to fetch tuples,
+.BU
+fetching particular attributes of a tuple,
+and
+.BU
+inserting,
+deleting,
+and replacing tuples.
+.pp
+There are two classes of interfaces.
+The routines whose names begin with
+.SE heap_
+operate on heap relations.
+The routines whose names begin with
+.SE index_
+work on index relations.
+The
+.SE index_
+routines use the
 .RN pg_am
-tuple to dispatch the request to the appropriate indexed access
-method for the relation.
-This happens transparently to the user.
+tuple for the access method to call the routine that does the
+work for a particular access method.
+This dispatch happens transparently to the user.
 .sh 3 "Managing the System Catalogs"
 .pp
 Because backend code frequently scans and updates the system catalogs,
@@ -2122,6 +2192,9 @@ in the routine
 .SE AddNewAttributeTuples .
 The routines are defined in
 .FI catalog/indexing.c .
+These rouintes open all the indices on some catalog relation,
+insert index tuples into all the indices,
+and close the indices.
 The interfaces are
 .(E
 void
@@ -2581,11 +2654,13 @@ actually returns type
 .SE Datum ,
 so the return value should always be coerced to that type.
 This is an implementation mistake.
-In order to extract the actual value,
-one of the \fCDatumGet\fP\fIType\fP macros described in
+The \fCDatumGet\fP\fIType\fP macros described in
 section
-\n($1.3.2.
+\n($1.3.2
 .\" XXX maintainable section ref
+convert values from
+.SE Datum
+to the type required by the user.
 .sh 3 "Inserting New Tuples"
 .pp
 When a user submits a \*(PQ query to insert new tuples into a heap relation,
