@@ -65,7 +65,7 @@ any_ordering_op( varnode )
 
 }
 
-Var
+Resdom
 find_tl_elt ( varname ,tlist )
      char *varname;
 {
@@ -77,10 +77,10 @@ find_tl_elt ( varname ,tlist )
 	Name resname = get_resname(resnode );
 
 	if ( ! strcmp ( resname, varname ) ) {
-	    return ( tvarnode );
+	    return ( resnode );
 	} 
     }
-    return ( (Var) NULL );
+    return ( (Resdom) NULL );
 }
 
 /**************************************************
@@ -114,7 +114,7 @@ MakeRoot(NumLevels,query_name,result,rtable,priority,ruleinfo,unique_flag,
     foreach (i, sort_clause) {
 
 	LispValue 	one_sort_clause = CAR(i);
-	Var  		one_sort_elt = NULL;
+	Resdom 		one_sort_elt = NULL;
 	String	 	one_sort_op = NULL;
 	int 		sort_elt_type = 0;
 
@@ -132,7 +132,7 @@ MakeRoot(NumLevels,query_name,result,rtable,priority,ruleinfo,unique_flag,
 	/* Assert ( tlelementP (one_sort_elt) ); */
 
 	sort_clause_elts = nappend1( sort_clause_elts, one_sort_elt );
-	sort_elt_type = get_vartype(one_sort_elt);
+	sort_elt_type = get_restype(one_sort_elt);
 
 	sort_clause_ops = nappend1( sort_clause_ops,
 				   lispInteger(oprid( oper(one_sort_op,
