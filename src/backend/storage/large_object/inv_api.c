@@ -94,7 +94,8 @@ int flags;
     if ((file_oid = FilenameToOID(path)) == InvalidObjectId) {
 
 	/* enter it in system relation */
-        file_oid = LOcreatOID(path,0);
+        if ((file_oid = LOcreatOID(path,0)) == InvalidObjectId)
+	    elog(WARN, "%s: no such file or directory", path);
 
 	/* come up with some table names */
 	sprintf(&(objname.data[0]), "Xinv%d", file_oid);

@@ -53,23 +53,25 @@ int open_mode;
     int obj_len, filename_len;
     oid oidf;
 
-    file_oid = newoid();
-    sprintf(filename, "LO%d", file_oid);
-
-    fd = (int) FileNameOpenFile(filename, O_CREAT | O_RDWR, 0666);
-    if (fd == -1) return(NULL);
-
-    retval = (LargeObjectDesc *) palloc(sizeof(LargeObjectDesc));
     newobj = (LargeObject *) NewLargeObject(filename, PURE_FILE);
-
-    retval->object = newobj;
-    retval->ofs.u_fs.fd = fd;
 
     /* Log this instance of large object into directory table. */
     if ((oidf = FilenameToOID(path)) == InvalidObjectId) {
 
 	/* enter it in system relation */
-	oidf = LOcreatOID(path,0);
+	if ((oidf = LOcreatOID(path,0)) == InvalidObjectId)
+	    elog(WARN, "%s: no such file or directory", path);
+
+	file_oid = newoid();
+	sprintf(filename, "LO%d", file_oid);
+
+	fd = (int) FileNameOpenFile(filename, O_CREAT | O_RDWR, 0666);
+	if (fd == -1) return(NULL);
+
+	retval = (LargeObjectDesc *) palloc(sizeof(LargeObjectDesc));
+
+	retval->object = newobj;
+	retval->ofs.u_fs.fd = fd;
 
 	/* enter cookie into table */
 	(void) LOputOIDandLargeObjDesc(oidf, Unix, (struct varlena *) newobj);
