@@ -1,3 +1,6 @@
+#
+# $Header$
+#
 CFLAGS+= -I${.CURDIR}/../../../backend
 
 #
@@ -10,8 +13,8 @@ LIBPQ= ${.CURDIR}/../../../libpq/obj/libpq.a
 LIBPQ= ${.CURDIR}/../../../libpq/libpq.a
 .endif
 
-LDADD= ${LIBPQ}
-DPADD= ${LIBPQ}
+LDADD+= ${LIBPQ}
+DPADD+= ${LIBPQ}
 
 #
 # And all the shell scripts here get stuffed with the default
