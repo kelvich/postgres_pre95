@@ -19,6 +19,7 @@ RcsId("$Header$");
 #include "itemptr.h"
 #include "heapam.h"
 #include "htup.h"
+#include "mcxt.h"
 #include "name.h"	/* for NameIsEqual */
 #include "portal.h"
 #include "rel.h"
@@ -55,6 +56,30 @@ PortalMakeQueryDesc(portal, feature)
 			lispCons(PortalGetPlan(portal),
 				lispCons(PortalGetState(portal),
 					lispCons(feature, LispNil))))));
+}
+
+void
+PortalCleanup(portal)
+	Portal	portal;
+{
+	LispValue	queryDesc;
+	LispValue	feature;
+	MemoryContext	context;
+
+	AssertArg(PortalIsValid(portal));
+	AssertArg((Pointer)portal->cleanup == (Pointer)PortalCleanup);
+	/*
+	 * switch into the portal context
+	 */
+	context = MemoryContextSwitchTo(
+		(MemoryContext)PortalGetHeapMemory(portal));
+	feature = lispCons(lispInteger(EXEC_END), LispNil);
+	queryDesc = PortalMakeQueryDesc(portal, feature);
+	ExecMain(queryDesc);
+	/*
+	 * switch back to previous context
+	 */
+	(void)MemoryContextSwitchTo(context);
 }
 
 void
