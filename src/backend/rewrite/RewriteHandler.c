@@ -65,8 +65,52 @@ ChangeTheseVars ( varno, varattno, parser_subtree, replacement , modified )
     }
 }
 
-/*
- * used only by procedures,
+/*-------------------------------------------------------------------------
+ * ReplaceVarWithMulti
+ *
+ * Find all the Var nodes of the `parser_subtree' that have
+ * a varno and varattno equal to the given `varno' and `attno'>.
+ * These are Var nodes corresponding to attributes where a "procedure"
+ * rule has been defined (i.e. something like EMP.hobbies).
+ * Replace all these Var nodes with the right stuff.
+ * We distinguish 3 cases:
+
+ * a) the "vardotfields" of the Var node are null, i.e. we have
+ * something like "EMP.hobbies". In this case, retrieve the rule text,
+ * i.e. substitute the Var node with a Const node containing some
+ * information about the rule (ruleId, procedure text, etc).
+ *
+ * b) the "vardotfields" are not null and they contain one attribute
+ * for example "EMP.hobbies.score". In this case search in the
+ * 'replacement' to find trhe equivalen exrpession for that field, 
+ * and substitute it in the place of the Var node.
+ *
+ * c) same as before, but we do not find any equivalent expression
+ * in `replacement' (i.e. in our example, the rule does not provide
+ * any value for the attribute "score" of "EMP.hobbies")
+ * In this case substitute teh Var node with a NULL Const node.
+ *
+ * The output variable `modified' becomes true in the cases (b) and (c)
+ * above, but NOT in case (a) (even if the parse tree is actually
+ * modified). The reason for that is that in case (a) we do not want
+ * to append the range_table and rule_qualification in the original
+ * parse_tree (the calling routine 'ModifyVarNodes' does that), because
+ * the rule will not be actually invoked anyway.
+ * So while "retrieve (EMP.name, EMP.hobbies.score)" will retrieve
+ * only the tuples that satisfy the rule qualification, i.e. more or less
+ * employees who have a hobby, "retrieve (EMP.name, EMP.hobbies)" or
+ * "retrieve (EMP.all)" will retrieve ALL the employees (even if they
+ * don't have hobbies).
+ * 
+ * NOTE 1: we can not handle "vardotfields" more than on attribute
+ * deep (i.e. "EMP.hobbies.score.average")
+ * NOTE 2: we do not handle (yet) "EMP.hobbies.all".
+ *
+ * NOTE 3:
+ * When replacing the Var nodes in a target list we must
+ * also change the `restype' & `reslen' info of
+ * the equivalent Resdom node.
+ *-------------------------------------------------------------------------
  */
 
 ReplaceVarWithMulti(varno, attno, parser_subtree, replacement, modified, ruleId)
@@ -105,6 +149,13 @@ ReplaceVarWithMulti(varno, attno, parser_subtree, replacement, modified, ruleId)
 		Resdom this_rule_resdom;
 		Name this_rule_resdom_name;
 
+		/*
+		 * mark 'modified' as true
+		 */
+		*modified = true;
+		/*
+		 * find the replacement for this Var node
+		 */
 		var_dotfields_firstname = CString ( CAR ( vardotfields ) );
 		rule_resdom = (Resdom) LispNil;
 		foreach ( j , replacement ) {
@@ -181,7 +232,6 @@ ReplaceVarWithMulti(varno, attno, parser_subtree, replacement, modified, ruleId)
 	    /*
 	     * OK, do the substitution...
 	     */
-	    *modified = true;
 	    if ( saved && saved->type == PGLISP_DTPR  &&
 		   IsA(CAR(saved),Resdom) &&
 		   get_restype (CAR(saved)) !=
@@ -539,11 +589,15 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 	action_info = RuleIdGetActionInfo ( this_lock->ruleId );
 	ruletrees = CDR(action_info);
 
+#ifdef BULLSHIT
+ --------------------------------------------------
+ * NO NO NO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ * we must drop the user query, yes, but NOT the other rules!!!!!!!!
+ --------------------------------------------------
 	/*
 	 * if drop_user_query has been set, we have hit an "instead" rule
 	 * which deactivates any rules that may have been activated
 	 */
-
 	if (*drop_user_query) {
 #ifdef REWRITE_DEBUG
 	    elog ( DEBUG,
@@ -552,6 +606,7 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 #endif REWRITE_DEBUG
 	  return ( new_queries );
 	}
+#endif BULLSHIT
 
 	if ( IsInstead(this_lock) ) {
 	    *drop_user_query = true;
