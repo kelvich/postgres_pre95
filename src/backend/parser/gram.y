@@ -1646,6 +1646,7 @@ a_expr:
 		    $$ = temp;
 		else
 		    $$ = make_array_ref(temp, $2);
+		Typecast_ok = false;
 	   }
 	| AexprConst		
 	| '-' a_expr %prec UMINUS
