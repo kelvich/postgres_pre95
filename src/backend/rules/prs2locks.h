@@ -112,6 +112,12 @@ typedef uint16 Prs2PlanNumber;
  * retrieve, append, delete or replace) and the forward chinign rules
  * get locks of the form `LockTypeXXXAction'
  *
+ * There is also the LockTypeRetrieveRelation, put by 'view' rules, 
+ * i.e. rules of the form
+ *	ON retrieve to relation
+ *      DO [ instead ] retrieve .... <some other tuples> ...
+ * These rules are used to implement views.
+ *
  *------------------------------------------------------------------
  */
 typedef char Prs2LockType;
@@ -125,6 +131,7 @@ typedef char Prs2LockType;
 #define LockTypeAppendWrite		((Prs2LockType) 'A')
 #define LockTypeDeleteWrite		((Prs2LockType) 'D')
 #define LockTypeReplaceWrite		((Prs2LockType) 'U')
+#define LockTypeRetrieveRelation	((Prs2LockType) 'V')
 
 /*------------------------------------------------------------------
  * Every single lock (`Prs2OneLock') has the following fields:
