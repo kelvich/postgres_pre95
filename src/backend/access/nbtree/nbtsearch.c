@@ -158,7 +158,7 @@ _bt_moveright(rel, buf, keysz, scankey, access)
     hikey = PageGetItemId(page, 0);
 
     /* figure out if we need to move right */
-    if (_bt_skeyless(rel, keysz, scankey, page, hikey)) {
+    if (_bt_skeycmp(rel, keysz, scankey, page, hikey, BTLessStrategyNumber)) {
 
 	/* move right as long as we need to */
 	do {
@@ -171,27 +171,32 @@ _bt_moveright(rel, buf, keysz, scankey, access)
 	    hikey = PageGetItemId(page, 0);
 
 	} while (opaque->btpo_next != P_NONE
-		 && _bt_skeyless(rel, keysz, scankey, page, hikey));
+		 && _bt_skeycmp(rel, keysz, scankey, page, hikey,
+				 BTLessStrategyNumber));
     }
     return (buf);
 }
 
 /*
- *  _bt_skeyless() -- is a given scan key strictly less than a particular
- *		      item on a page?
+ *  _bt_skeycmp() -- compare a scan key to a particular item on a page using
+ *		     a requested strategy (<, <=, =, >=, >).
  *
  *	We ignore the sequence numbers stored in the btree item here.  Those
  *	numbers are intended for use internally only, in repositioning a
  *	scan after a page split.  They do not impose any meaningful ordering.
+ *
+ *	The comparison is A <op> B, where A is the scan key and B is the
+ *	tuple pointed at by itemid on page.
  */
 
 bool
-_bt_skeyless(rel, keysz, scankey, page, itemid)
+_bt_skeycmp(rel, keysz, scankey, page, itemid, strat)
     Relation rel;
     Size keysz;
     ScanKey scankey;
     Page page;
     ItemId itemid;
+    StrategyNumber strat;
 {
     BTItem item;
     IndexTuple indexTuple;
@@ -200,15 +205,15 @@ _bt_skeyless(rel, keysz, scankey, page, itemid)
     int i;
     Datum attrDatum;
     Datum keyDatum;
+    bool compare;
     bool isNull;
-    bool isLessThan;
 
     item = (BTItem) PageGetItem(page, itemid);
     indexTuple = &(item->bti_itup);
 
     tupDes = RelationGetTupleDescriptor(rel);
 
-    /* see if it's less for than of the key attributes */
+    /* see if the comparison is true for all of the key attributes */
     for (i=1; i <= keysz; i++) {
 
 	entry = &scankey->data[i-1];
@@ -217,10 +222,8 @@ _bt_skeyless(rel, keysz, scankey, page, itemid)
 						tupDes, &isNull);
 	keyDatum  = entry->argument;
 
-	isLessThan = RelationInvokeBTreeStrategy(rel, i,
-					         BTLessStrategyNumber,
-					         attrDatum, keyDatum);
-	if (!isLessThan)
+	compare = _bt_invokestrat(rel, i, strat, keyDatum, attrDatum);
+	if (!compare)
 	    return (false);
     }
 
@@ -296,14 +299,7 @@ _bt_binsrch(rel, buf, keysz, scankey, srchtype)
 
     /* if we found a match, we want to find the first one on the page */
     if (match) {
-	while (mid > 0
-	       && _bt_compare(rel, itupdesc, page, keysz, scankey, mid) == 0)
-	    mid--;
-
-        if (_bt_compare(rel, itupdesc, page, keysz, scankey, mid) != 0)
-	    mid++;
-
-	return (mid);
+	return (_bt_firsteq(rel, itupdesc, page, keysz, scankey, mid));
     } else {
 
 	/*
@@ -322,15 +318,14 @@ _bt_binsrch(rel, buf, keysz, scankey, srchtype)
 	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 	if (!(opaque->btpo_flags & BTP_LEAF) && srchtype == BT_DESCENT) {
 
-	    /* we want the last key <= the scankey */
+	    /*
+	     *  We want the last key <, or first key ==, the scan key.
+	     */
+
 	    result = _bt_compare(rel, itupdesc, page, keysz, scankey, high);
 
 	    if (result == 0) {
-		result = _bt_compare(rel, itupdesc, page,
-				     keysz, scankey, low);
-		if (result < 0)
-		    return (high);
-		return (low);
+		return (_bt_firsteq(rel, itupdesc, page, keysz, scankey, high));
 	    } else if (result > 0) {
 		return (low);
 	    } else {
@@ -341,7 +336,9 @@ _bt_binsrch(rel, buf, keysz, scankey, srchtype)
 
 	    /* we want the first key >= the scan key */
 	    result = _bt_compare(rel, itupdesc, page, keysz, scankey, low);
-	    if (result <= 0) {
+	    if (result == 0) {
+		return (_bt_firsteq(rel, itupdesc, page, keysz, scankey, low));
+	    } else if (result < 0) {
 		return (low);
 	    } else {
 		if (low == high)
@@ -356,6 +353,36 @@ _bt_binsrch(rel, buf, keysz, scankey, srchtype)
 	}
 	/* NOTREACHED */
     }
+}
+
+OffsetIndex
+_bt_firsteq(rel, itupdesc, page, keysz, scankey, offind)
+    Relation rel;
+    TupleDescriptor itupdesc;
+    Page page;
+    Size keysz;
+    ScanKey scankey;
+    OffsetIndex offind;
+{
+    BTPageOpaque opaque;
+    OffsetIndex limit;
+
+    opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+
+    /* skip the high key, if any */
+    if (opaque->btpo_next != P_NONE)
+	limit = 1;
+    else
+	limit = 0;
+
+    /* walk backwards looking for the first key in the chain of duplicates */
+    while (offind > limit
+	   && _bt_compare(rel, itupdesc, page,
+			  keysz, scankey, offind - 1) == 0) {
+	offind--;
+    }
+
+    return (offind);
 }
 
 /*
