@@ -5,7 +5,7 @@
 #
 #   DESCRIPTION
 #       shell script which generates the Make, IMake and RMake
-#	node creator functions, as well as the Print, Copy and
+#	node creator functions, as well as the Out, Copy and
 #	Equal functions.
 #
 #   NOTES
@@ -96,12 +96,12 @@ FILENAME != "-" && /{/, /}/ {
 	print "\nvoid \n", "RInit", class, "(p)";
 	print "\nPointer p;";
 	print "\n{";
-	print "\n\textern void Print", class, "();";
+	print "\n\textern void Out", class, "();";
 	print "\n\textern bool Equal", class, "();";
 	print "\n\textern bool Copy", class, "();";
 	print "\n\n\t", class, " node = (", class, ") p;\n";
 	print "\n\tnode->type = classTag(", class, ");";
-	print "\n\tnode->printFunc = Print", class, ";";
+	print "\n\tnode->outFunc = Out", class, ";";
 	print "\n\tnode->equalFunc = Equal", class, ";";
 	print "\n\tnode->copyFunc =  Copy", class, ";";
 	print "\n\n\treturn;\n}\n";
@@ -145,7 +145,7 @@ FILENAME != "-" && /{/, /}/ {
 }
 
 # ----------------
-#	Now generate the Make creator function, the Print, Equal
+#	Now generate the Make creator function, the Out, Equal
 #	and Copy functions, and the IMake and RMake creators.
 # ----------------
 /}/ {
@@ -166,24 +166,26 @@ FILENAME != "-" && /{/, /}/ {
 	print "\n\n\treturn(node);\n}\n";
 
 # ----
-#   generate Print function
+#   generate Out function
 # ----
 	print "\n/* ----------------";
-	print "\n *    Print function for ", class;
+	print "\n *    Out function for ", class;
 	print "\n * ----------------";
 	print "\n */";
-	print "\nextern void Print", class, "();";
+	print "\nextern void Out", class, "();";
 	print "\n;";
-	print "\nvoid \nPrint", class, "(fp, node)"
-	print "\n\tFILE *fp;\n\t", class, "\tnode;"
-	print "\n{"
-	print "\n#ifdef\tPrint", class, "Exists"
-	print "\n\n\tfprintf(fp, \"#S(\");"
-	print "\n\t_print", class, "(fp, node);"
-	print "\n\tfprintf(fp, \")\");"
-	print "\n\n#else\t/* Print", class, "Exists */"
-	print "\n\tfprintf(fp, \"#S(", class, " node at 0x%lx)\", node);\n"
-	print "\n#endif\t/* Print", class, "Exists */"
+	print "\nvoid \nOut", class, "(str, node)"
+	print "\n\tStringInfo str;"
+	print "\n\t", class, "\tnode;"
+	print "\n{\n\tchar buf[100];"
+	print "\n#ifdef\tOut", class, "Exists"
+	print "\n\n\tappendStringInfo(str, \"#S(\");"
+	print "\n\t_out", class, "(str, node);"
+	print "\n\tappendStringInfo(str, \")\");"
+	print "\n\n#else\t/* Out", class, "Exists */"
+	print "\n\tsprintf(buf, \"#S(", class, " node at 0x%lx)\", node);\n"
+	print "\n\tappendStringInfo(str, buf);"
+	print "\n#endif\t/* Out", class, "Exists */"
 	print "\n}\n"
 
 # ----
