@@ -38,8 +38,8 @@ RcsId("$Header$");
 
 /* globals used in this file */
 SPINLOCK		SJCacheLock;	/* lock for cache metadata */
-static ObjectId		MyDatabaseId;	/* OID of database we have open */
-static Name		MyDatabaseName;	/* name of database we have open */
+extern ObjectId		MyDatabaseId;	/* OID of database we have open */
+extern Name		MyDatabaseName;	/* name of database we have open */
 
 static File		SJCacheVfd;	/* vfd for cache data file */
 static File		SJMetaVfd;	/* vfd for cache metadata file */
