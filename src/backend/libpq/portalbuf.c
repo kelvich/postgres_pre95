@@ -50,6 +50,7 @@
 
 RcsId ("$Header$");
 
+#include "tmp/simplelists.h"
 #include "tmp/libpq.h"
 #include "utils/exc.h"
 

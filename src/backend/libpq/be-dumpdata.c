@@ -30,12 +30,12 @@
 
 RcsId("$Header$");
 
+#include "tmp/simplelists.h"
 #include "tmp/libpq-be.h"
 
 #include "access/heapam.h"
 #include "access/htup.h"
 #include "storage/buf.h"
-#include "tmp/simplelists.h"
 #include "utils/memutils.h"
 #include "utils/fmgr.h"
 #include "utils/mcxt.h"
