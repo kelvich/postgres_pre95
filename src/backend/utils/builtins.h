@@ -280,6 +280,9 @@ extern BOX		*rt_box_union();
 extern BOX		*rt_box_inter();
 extern int		rt_box_size();
 extern int		rt_bigbox_size();
+extern int		rt_poly_size();
+extern POLYGON	*rt_poly_union();
+extern POLYGON	*rt_poly_inter();
 #endif /* FMGR_ADT */
 
 /*

@@ -115,14 +115,14 @@ typedef struct {
 
 /*---------------------------------------------------------------------
  *  POLYGON - Specified by an array of doubles defining the points, 
-			  keeping the number of points and the bounding box for 
-			  speed purposes.
+ *			  keeping the number of points and the bounding box for 
+ *			  speed purposes.
  *-------------------------------------------------------------------*/
 typedef struct {
-	int npts;
-	double *xpts;
-	double *ypts;
-	BOX *boundbox;
+	long size;
+	long npts;
+	BOX boundbox;
+	char pts[1];
 } POLYGON;
 
 #endif !GeoDeclsIncluded
