@@ -741,7 +741,7 @@ ExecInitScanTupleSlot(estate, commonscanstate)
 {
     INIT_SLOT_DEFS;
     INIT_SLOT_ALLOC;
-    set_css_ScanTupleSlot(commonscanstate, slot);
+    set_css_ScanTupleSlot(commonscanstate, (TupleTableSlot)slot);
 }
 
 /* ----------------
@@ -755,7 +755,7 @@ ExecInitRawTupleSlot(estate, commonscanstate)
 {
     INIT_SLOT_DEFS;
     INIT_SLOT_ALLOC;
-    set_css_RawTupleSlot(commonscanstate, slot);
+    set_css_RawTupleSlot(commonscanstate, (TupleTableSlot)slot);
 }
 
 /* ----------------

@@ -176,7 +176,7 @@ ExecInitAppend(node, estate, parent)
      *  for append state
      * ----------------
      */
-    set_state((Plan) node,  estate);
+    set_state((Plan) node,  (EStatePtr)estate);
     
     unionplans =        get_unionplans(node);
     nplans =            length(unionplans);
@@ -331,9 +331,13 @@ ExecProcAppend(node)
         whichplan = get_as_whichplan(unionstate);
         
         if (direction == EXEC_FRWD)
+	{
             set_as_whichplan(unionstate, whichplan + 1);
+	}
         else
+	{
             set_as_whichplan(unionstate, whichplan - 1);
+	}
 
 	/* ----------------
 	 *  return something from next node or an empty slot

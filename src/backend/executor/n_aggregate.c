@@ -304,7 +304,7 @@ ExecInitAgg(node, estate, parent)
      * assign the node's execution state
      */
 
-    set_state((Plan) node,  estate);
+    set_state((Plan) node,  (EStatePtr)estate);
 
     /*
      * create state structure
