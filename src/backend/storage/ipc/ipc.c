@@ -53,7 +53,7 @@ exitpg(code)
     int i;
 
     for (i = onexit_index - 1; i >= 0; --i)
-	(*onexit_list[i].function)(onexit_list[i].arg);
+	(*onexit_list[i].function)(code, onexit_list[i].arg);
 
     exit(code);
 }
