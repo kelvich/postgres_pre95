@@ -220,7 +220,7 @@ planner (parse)
      *  Since we can only make use of user-specified sorts in
      *  special cases, we can do the optimization step later.
      *   
-     *  sortkeys:    a list of var nodes corresponding to the var. nodes in
+     *  sortkeys:    a list of resdom nodes corresponding to the attributes in
      *               the tlist that are to be sorted.
      *  sortops:     a corresponding list of sort operators.               
      */
@@ -265,6 +265,9 @@ planner (parse)
  *      Returns a sortplan which is basically a SORT node attached to the
  *      top of the plan returned from the planner.  It also adds the 
  *      cost of sorting into the plan.
+ *      
+ *      sortkeys: ( resdom1 resdom2 resdom3 ...)
+ *      sortops:  (sortop1 sortop2 sortop3 ...)
  */
 
 Plan
@@ -277,10 +280,33 @@ make_sortplan(tlist,sortkeys,sortops,plannode)
 {
   Plan sortplan = (Plan)NULL;
   List temp_tlist = LispNil;
+  LispValue i = LispNil;
+  Resdom resnode = (Resdom)NULL;
+  Resdom resdom = (Resdom)NULL;
+  int keyno =1;
 
-  temp_tlist = set_temp_tlist_operators(new_unsorted_tlist(tlist),
-					     lispCons(sortkeys,LispNil),
-					     sortops);
+  /*  First make a copy of the tlist so that we don't corrupt the 
+   *  the original .
+   */
+  
+  temp_tlist = new_unsorted_tlist(tlist);
+  
+  foreach (i, sortkeys) {
+      
+      resnode = (Resdom)CAR(i);
+      resdom = tlist_resdom(temp_tlist,resnode);
+
+      /*    Order the resdom keys and replace the operator OID for each 
+       *    key with the regproc OID. 
+       */
+      
+      set_reskey (resdom,keyno);
+      set_reskeyop (resdom,get_opcode (CInteger(CAR(sortops))));      
+
+      keyno += 1;
+      sortops = CDR(sortops);
+  }
+
   sortplan = (Plan) make_sort(temp_tlist,
 			      _TEMP_RELATION_ID_,
 			      (Plan)plannode,

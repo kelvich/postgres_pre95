@@ -818,7 +818,7 @@ set_temp_tlist_operators (tlist,pathkeys,operators)
 	      *    key with the regproc OID. 
 	      */
 	     set_reskey (resdom,keyno);
-	     set_reskeyop (resdom,get_opcode (CInteger(CAR(ops))));
+	     set_reskeyop (resdom,get_opcode (CAR(ops)));
 	 }
 	 keyno += 1;
 	 ops = CDR (ops);
