@@ -71,7 +71,7 @@ ExecEvalFjoin(tlist, econtext, isNullVect, fj_isDone)
 	{
 	    List tle = CAR(tlistP);
 
-	    resVect[curNode] = ExecEvalIter(tl_expr(tle),
+	    resVect[curNode] = ExecEvalIter((Iter)tl_expr(tle),
 					    econtext,
 					    &isNullVect[curNode],
 					    &isDone);
@@ -86,7 +86,7 @@ ExecEvalFjoin(tlist, econtext, isNullVect, fj_isDone)
 	/*
 	 * Initialize the inner node
 	 */
-	resVect[0] = ExecEvalIter(tl_expr(get_fj_innerNode(fjNode)),
+	resVect[0] = ExecEvalIter((Iter)tl_expr(get_fj_innerNode(fjNode)),
 				  econtext,
 				  &isNullVect[0],
 				  &isDone);
@@ -130,7 +130,7 @@ ExecEvalFjoin(tlist, econtext, isNullVect, fj_isDone)
 	    return;
 	}
 	else
-	    resVect[0] = ExecEvalIter(tl_expr(get_fj_innerNode(fjNode)),
+	    resVect[0] = ExecEvalIter((Iter)tl_expr(get_fj_innerNode(fjNode)),
 				      econtext,
 				      &isNullVect[0],
 				      &isDone);
@@ -148,7 +148,7 @@ ExecEvalFjoin(tlist, econtext, isNullVect, fj_isDone)
 	if (*fj_isDone)
 	    return;
 
-	resVect[0] = ExecEvalIter(tl_expr(get_fj_innerNode(fjNode)),
+	resVect[0] = ExecEvalIter((Iter)tl_expr(get_fj_innerNode(fjNode)),
 				  econtext,
 				  &isNullVect[0],
 				  &isDone);
@@ -181,7 +181,7 @@ FjoinBumpOuterNodes(tlist, econtext, results, nulls)
 	if (alwaysDone[curNode] == true)
 	    nulls[curNode] = 'n';
 	else
-	    results[curNode] = ExecEvalIter(tl_expr(CAR(outerList)),
+	    results[curNode] = ExecEvalIter((Iter)tl_expr(CAR(outerList)),
 					    econtext,
 					    &nulls[curNode],
 					    &funcIsDone);
@@ -208,7 +208,7 @@ FjoinBumpOuterNodes(tlist, econtext, results, nulls)
     while (trailNode != curNode-1)
     {
 	if (alwaysDone[trailNode] != true)
-	    results[trailNode] = ExecEvalIter(tl_expr(CAR(trailers)),
+	    results[trailNode] = ExecEvalIter((Iter)tl_expr(CAR(trailers)),
 					    econtext,
 					    &nulls[trailNode],
 					    &funcIsDone);
