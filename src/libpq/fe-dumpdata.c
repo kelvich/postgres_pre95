@@ -6,9 +6,6 @@
  *	Dump the returned tuples into a frontend buffer
  *
  *   INTERFACE ROUTINES
- *	dump_type 	- Dump the attributes
- *	dump_tuple 	- Dump a tuple
- *	finish_dump 	- End of a command (data stream)
  *	dump_data 	- Read and process the data stream from backend
  *
  *   NOTES
@@ -36,6 +33,7 @@ RcsId("$Header$");
  *	dump_type - Dump the attributes
  * --------------------------------
  */
+static
 void
 dump_type(types, nfields)
     TypeBlock *types;
@@ -58,10 +56,11 @@ dump_type(types, nfields)
  *	dump_tuple - Dump a tuple
  * --------------------------------
  */
+static
 void
 dump_tuple(values,lengths, nfields)
     char **values;
-     int *lengths;
+    int *lengths;
     int nfields;
 {
     char 	bitmap[MAXFIELDS];
@@ -71,14 +70,14 @@ dump_tuple(values,lengths, nfields)
     char 	bmap;		/* One byte of the bitmap */
     int 	bitcnt = 0; 	/* number of bits examined in current byte */
     int 	vlen;		/* length of the current field value */
-    
+
     nbytes = nfields / BYTELEN;
     if ((nfields % BYTELEN) > 0) 
 	nbytes++;
 
     pq_getnchar(bitmap, 0, nbytes);
     bmap = bitmap[bitmap_index];
-    
+
     /* Read in all the attribute values. */
     for (i = 0; i < nfields; i++) {
 	/* If the field value is absent, do nothing. */
@@ -111,10 +110,11 @@ dump_tuple(values,lengths, nfields)
  *	dump_tuple_internal - Dump a tuple in internal format
  * --------------------------------
  */
+static
 void
 dump_tuple_internal(values, lengths, nfields)
     char **values;
-     int *lengths;
+    int *lengths;
     int nfields;
 {
     char 	bitmap[MAXFIELDS];
@@ -124,14 +124,14 @@ dump_tuple_internal(values, lengths, nfields)
     char 	bmap;		/* One byte of the bitmap */
     int 	bitcnt = 0; 	/* number of bits examined in current byte */
     int 	vlen;		/* length of the current field value */
-    
+
     nbytes = nfields / BYTELEN;
     if ((nfields % BYTELEN) > 0) 
 	nbytes++;
 
     pq_getnchar(bitmap, 0, nbytes);
     bmap = bitmap[bitmap_index];
-    
+
     /* Read in all the attribute values. */
     for (i = 0; i < nfields; i++) {
 	/* If the field value is absent, do nothing. */
@@ -142,7 +142,7 @@ dump_tuple_internal(values, lengths, nfields)
 	       Length (4 bytes),
 	       Data (n bytes)
 	       */
-	    
+
 	    vlen = pq_getint(4);
 	    /* Allocate storage for the value. */
 	    values[i] = pbuf_addValues(vlen + 1);
@@ -169,15 +169,16 @@ dump_tuple_internal(values, lengths, nfields)
  *	finish_dump - End of a command (data stream)
  * --------------------------------
  */
+static
 void
 finish_dump()
 {
     char command[command_length];
     int temp;
-    
+
     temp = pq_getint(4);
     pq_getstr(command, command_length);
-    
+
     pqdebug("return code is %d",(char *)temp);
     pqdebug("command is %s",command);
 }
@@ -202,26 +203,25 @@ dump_data(portal_name, rule_p)
     int ntuples = 0;	/* the number of tuples in current group */
     int nfields = 0;	/* the number of fields in current group */
 
-    strcpy(pname, portal_name);
+    (void) strncpy(pname, portal_name, portal_name_length);
 
     /* If portal buffer is not allocated, do it now. */
     /* if ((portal = PQparray(pname)) == NULL) */
     entry = pbuf_setup(pname);
     portal = entry->portal;
-    
+
     /* If an asynchronized portal, set the flag. */
     if (rule_p)
 	portal->rule_p = 1;
 
-    /* Dump_data is called only when id[0] = 'T'. */
+    /* dump_data is called only when id[0] = 'T'. */
     id[0] = 'T';
-    
+
     /* Process the data stream. */
     while (1) {
 	switch (id[0]) {
 	case 'T':
 	    /* A new tuple group. */
-	    
 	    /* If this is not the first group, record the number of 
 	       tuples in the previous group. */
 	    if (group != NULL) {
@@ -229,11 +229,11 @@ dump_data(portal_name, rule_p)
 		/* Add the number of tuples in last group to the total. */
 		portal->no_tuples += ntuples;
 	    }
-	    
+
 	    /* Increment the number of tuple groups. */
 	    portal->no_groups++;
 	    group = pbuf_addGroup(portal);
-	    
+
 	    /* Read in the number of fields (attributes) for this group. */
 	    nfields = group->no_fields = pq_getint(2);
 	    if (nfields > 0) {
@@ -241,10 +241,9 @@ dump_data(portal_name, rule_p)
 	        dump_type(types, nfields);
 	    }
 	    break;
-
 	case 'B':
 	    /* A tuple in internal (binary) format. */
-	    
+
 	    /* If no tuple block yet, allocate one. */
 	    /* If the current block is full, allocate another one. */
 	    if (group->tuples == NULL) {
@@ -255,7 +254,7 @@ dump_data(portal_name, rule_p)
 		tuples = tuples->next;
 		tuples->tuple_index = 0;
 	    }
-		
+
 	    /* Allocate space for a tuple. */
 	    tuples->values[tuples->tuple_index] =pbuf_addTuple(nfields);
 	    tuples->lengths[tuples->tuple_index] = pbuf_addTupleValueLengths(nfields);
@@ -267,10 +266,9 @@ dump_data(portal_name, rule_p)
 	    ntuples++;
 	    tuples->tuple_index++;
 	    break;
-
 	case 'D':
 	    /* A tuple. */
-	    
+
 	    /* If no tuple block yet, allocate one. */
 	    /* If the current block is full, allocate another one. */
 	    if (group->tuples == NULL) {
@@ -281,11 +279,11 @@ dump_data(portal_name, rule_p)
 		tuples = tuples->next;
 		tuples->tuple_index = 0;
 	    }
-		
+
 	    /* Allocate space for a tuple. */
 	    tuples->values[tuples->tuple_index] =pbuf_addTuple(nfields);
 	    tuples->lengths[tuples->tuple_index] = pbuf_addTupleValueLengths(nfields);
-	    
+
 	    /* Dump a tuple. */
 	    dump_tuple(tuples->values[tuples->tuple_index],
 		       tuples->lengths[tuples->tuple_index],
@@ -293,8 +291,14 @@ dump_data(portal_name, rule_p)
 	    ntuples++;
 	    tuples->tuple_index++;
 	    break;
-#if 0
 	case 'A':
+	    strcpy(PQerrormsg, 
+		   "FATAL: dump_data: asynchronous portals not supported\n");
+	    fputs(PQerrormsg, stderr);
+	    pqdebug("%s", PQerrormsg);
+	    PQreset();
+	    return(-1);
+#if 0
 	    /* Tuples returned by alerters. */
 	    /* Finish up with the current portal. */
 	    group->no_tuples = ntuples;
@@ -305,7 +309,7 @@ dump_data(portal_name, rule_p)
 	    pq_getint(4);
 	    pq_getstr(pname, portal_name_length);
 	    pqdebug("Asynchronized portal: %s", pname);
-	    
+
 	    entry = pbuf_setup(pname);
 	    portal = entry->portal;
 	    portal->rule_p = 1;
@@ -315,7 +319,6 @@ dump_data(portal_name, rule_p)
 	    tuples = NULL;
 	    break;
 #endif
-
 	case 'C':
 	    /* Command, end of the data stream. */
 	    /* Record the number of tuples in the last group. */
@@ -323,43 +326,30 @@ dump_data(portal_name, rule_p)
 	    portal->no_tuples += ntuples;
 	    finish_dump();
 	    return(1);
-	    
 	case 'E':
-		/* YES - THIS CAN HAPPEN - for instance when dynamic loading fails!!! */
-
-	    pq_getstr(PQerrormsg, error_msg_length);
-	    pqdebug("%s error encountered.", PQerrormsg);
-
-		/*
-		 * use PQerrormsg[4] because there is garbage in the first four bytes..
-		 */
-	    bcopy(&PQerrormsg[4],PQerrormsg,strlen(PQerrormsg)-4);
-	    fprintf(stderr,"%s\n", PQerrormsg);
-	    fflush(stderr);
-		return(-1);
+	    (void) pq_print_elog(NULL, false);
+	    return(-1);
 	case 'N':
-	    pq_getstr(PQerrormsg, error_msg_length);
-	    pqdebug("%s error encountered.", PQerrormsg);
-
-		/*
-		 * use errormsg[4] because there is garbage in the first four bytes..
-		 */
-	    bcopy(&PQerrormsg[4],PQerrormsg,strlen(PQerrormsg)-4);
-	    fprintf(stderr,"%s\n", PQerrormsg);
-	    fflush(stderr);
-		break;
+	    if (pq_print_elog(NULL, false) < 0)
+		return(-1);
+	    break;
 	default:
-	    {
-		char s[40];
-
-		/* This should never happen. */
-		sprintf(s, "Unexpected identfier in dump_data: %c", id[0]);
-		libpq_raise(&ProtocolError, form((int)s));
-	    }
+	    /*
+	     * This should never happen, but frequently does (usually 
+	     * when the backend dumps core).
+	     */
+	    sprintf(PQerrormsg, "FATAL: dump_data: Unexpected identifier: %c",
+		    id[0]);
+	    fputs(PQerrormsg, stderr);
+	    pqdebug("%s", PQerrormsg);
+	    PQreset();
+	    return(-1);
 	}
+
+	if (pq_read_id(id, "dump_data") > 0)
+	    return(-1);
 	
-    	pq_getnchar(id,0,1); 
     	read_remark(id);
-	pqdebug("The identifier is: %c", (char *)id[0]);
+	pqdebug("The identifier is: %c", (char *) id[0]);
     }
 }
