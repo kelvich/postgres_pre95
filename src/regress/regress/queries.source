@@ -2,6 +2,9 @@
  * queries.source
  *
  * $Header$
+ *
+ * The comments that contain sequences of UNIX commands generate the 
+ * desired output for the POSTQUEL statement(s).
  */
 
 /*
@@ -310,42 +313,80 @@ retrieve (false = "this is a text string"::text = "this is a text strin"::text)
 \g
 /*
  * box logic
+ *
+ * 3	  o---o 
+ *	  |   |
+ * 2	+-+-+ |
+ *	| | | |
+ * 1	| o-+-o
+ *	|   |
+ * 0	+---+
+ *
+ *	0 1 2 3
  */
+/* left of */
 retrieve (false = "(2.0,2.0,0.0,0.0)"::box << "(3.0,3.0,1.0,1.0)"::box)
 \g
+/* left overlap */
 retrieve (true = "(2.0,2.0,0.0,0.0)"::box &< "(3.0,3.0,1.0,1.0)"::box)
 \g
+/* right overlap */
 retrieve (true = "(2.0,2.0,0.0,0.0)"::box &> "(3.0,3.0,1.0,1.0)"::box)
 \g
+/* right of */
 retrieve (false = "(2.0,2.0,0.0,0.0)"::box >> "(3.0,3.0,1.0,1.0)"::box)
 \g
+/* contained in */
 retrieve (false = "(2.0,2.0,0.0,0.0)"::box @ "(3.0,3.0,1.0,1.0)"::box)
 \g
+/* contains */
 retrieve (false = "(2.0,2.0,0.0,0.0)"::box ~ "(3.0,3.0,1.0,1.0)"::box)
 \g
+/* same */
 retrieve (false = "(2.0,2.0,0.0,0.0)"::box ~= "(3.0,3.0,1.0,1.0)"::box)
 \g
+/* overlap */
 retrieve (true = "(2.0,2.0,0.0,0.0)"::box && "(3.0,3.0,1.0,1.0)"::box)
 \g
+
 /*
- * polygon logic -  (anemic tests)
+ * polygon logic
+ *
+ * 3	      o
+ *	      |
+ * 2	    + |
+ *	   /  |
+ * 1	  / o +
+ *       /    |
+ * 0	+-----o-+
+ *
+ *	0 1 2 3 4
  */
+/* left of */
 retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon << "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
 \g
+/* left overlap */
 retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon &< "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
 \g
+/* right overlap */
 retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon &> "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
 \g
+/* right of */
 retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon >> "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
 \g
+/* contained in */
 retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon @ "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
 \g
+/* contains */
 retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon ~ "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
 \g
+/* same */
 retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon ~= "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
 \g
+/* overlap */
 retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon && "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
 \g
+
 /*
  * abstime logic
  */
@@ -366,42 +407,93 @@ retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon && "(3.0,3.0,1.0,1.0,3.0,0
 /*
  * retrieve
  */
+
+/*
+ * btree index
+ * awk '{if($1<10){print;}else{next;}}' onek.data | sort +0n -1
+ */
 retrieve (onek.all) where onek.unique1 < 10
 \g
+/*
+ * awk '{if($1<20){print $1,$14;}else{next;}}' onek.data | sort +0nr -1
+ */
 retrieve (onek.unique1, onek.stringu1)
     where onek.unique1 < 20 sort by unique1 using >
 \g
+/*
+ * awk '{if($1>980){print $1,$14;}else{next;}}' onek.data | sort +1d -2
+ */
 retrieve (onek.unique1, onek.stringu1)
     where onek.unique1 > 980 sort by stringu1 using <
 \g	
+/*
+ * awk '{if($1>980){print $1,$16;}else{next;}}' onek.data |
+   sort +1d -2 +0nr -1
+ */
 retrieve (onek.unique1, onek.string4)
     where onek.unique1 > 980 sort by string4 using <, unique1 using >
 \g	
+/*
+ * awk '{if($1>980){print $1,$16;}else{next;}}' onek.data |
+   sort +1dr -2 +0n -1
+ */
 retrieve (onek.unique1, onek.string4)
     where onek.unique1 > 980 sort by string4 using >, unique1 using <
 \g	
+/*
+ * awk '{if($1<20){print $1,$16;}else{next;}}' onek.data |
+   sort +0nr -1 +1d -2
+ */
 retrieve (onek.unique1, onek.string4)
     where onek.unique1 < 20 sort by unique1 using >, string4 using <
 \g
+/*
+ * awk '{if($1<20){print $1,$16;}else{next;}}' onek.data |
+   sort +0n -1 +1dr -2
+ */
 retrieve (onek.unique1, onek.string4)
     where onek.unique1 < 20 sort by unique1 using <, string4 using >
 \g
+/*
+ * partial btree index
+ * awk '{if($1<10){print $0;}else{next;}}' onek.data | sort +0n -1
+ */
 retrieve (onek2.all) where onek2.unique1 < 10
 \g
+/*
+ * partial btree index
+ * awk '{if($1<20){print $1,$14;}else{next;}}' onek.data | sort +0nr -1
+ */
 retrieve (onek2.unique1, onek2.stringu1)
     where onek2.unique1 < 20 sort by unique1 using >
 \g
+/*
+ * awk '{if($1>980){print $1,$14;}else{next;}}' onek.data | sort +1d -2
+ */
 retrieve (onek2.unique1, onek2.stringu1)
     where onek2.unique1 > 980 sort by stringu1 using <
 \g	
 retrieve into temp (onek.two, onek.stringu1, onek.ten, onek.string4)
 \g
+/*
+ * awk '{print $3;}' onek.data | sort -n | uniq
+ */
 retrieve unique (temp.two) 
 \g
+/*
+ * awk '{print $5;}' onek.data | sort -n | uniq
+ */
 retrieve unique (temp.ten) 
 \g
+/*
+ * awk '{print $16;}' onek.data | sort -d | uniq
+ */
 retrieve unique (temp.string4) 
 \g
+/*
+ * awk '{print $3,$16,$5;}' onek.data | sort -d | uniq |
+   sort +0n -1 +1d -2 +2n -3
+ */
 retrieve unique (temp.two, temp.string4, temp.ten)
     sort by two using <, string4 using <, ten using <
 \g
@@ -413,10 +505,30 @@ retrieve into temp1 (temp.all) where onek2.unique1 < 2
 \g
 destroy temp1
 \g
+/*
+ * awk '{print $1,$2;}' person.data |
+   awk '{if(NF!=2){print $3,$2;}else{print;}}' - emp.data |
+   awk '{if(NF!=2){print $3,$2;}else{print;}}' - student.data |
+   awk 'BEGIN{FS="	";}{if(NF!=2){print $4,$5;}else{print;}}' - stud_emp.data
+ */
 retrieve (p.name, p.age) from p in person*
 \g
+/*
+ * awk '{print $1,$2;}' person.data |
+   awk '{if(NF!=2){print $3,$2;}else{print;}}' - emp.data |
+   awk '{if(NF!=2){print $3,$2;}else{print;}}' - student.data |
+   awk 'BEGIN{FS="	";}{if(NF!=1){print $4,$5;}else{print;}}' - stud_emp.data |
+   sort +1nr -2
+ */
 retrieve (p.name, p.age) from p in person* sort by age using >
 \g
+/*
+ * awk '{print $2;}' person.data |
+   awk '{if(NF!=1){print $2;}else{print;}}' - emp.data |
+   awk '{if(NF!=1){print $2;}else{print;}}' - student.data |
+   awk 'BEGIN{FS="	";}{if(NF!=1){print $5;}else{print;}}' - stud_emp.data |
+   sort -n -r | uniq
+ */
 retrieve unique (p.age) from p in person* sort by age using >
 \g
 
@@ -489,6 +601,15 @@ delete stud_emp
 copy binary stud_emp from "_OBJWD_/stud_emp.data"
 \g
 retrieve (stud_emp.all)
+\g
+copy aggtest from stdin
+\g
+56	7.8
+100	99.097
+0	0.09561
+42	324.78
+.
+copy aggtest to stdout
 \g
 
 /*
@@ -854,14 +975,18 @@ destroy temp
  */
 rename tenk1 to ten_k
 \g
+/* 20 values, sorted */
 retrieve (ten_k.unique1) where ten_k.unique1 < 20
 \g
+/* 20 values, sorted */
 retrieve (ten_k.unique2) where ten_k.unique2 < 20
 \g
+/* 100 values, sorted */
 retrieve (ten_k.hundred) where ten_k.hundred = 50
 \g
 rename ten_k to tenk1
 \g
+/* 5 values, sorted */
 retrieve (tenk1.unique1) where tenk1.unique1 < 5
 \g
 
@@ -918,18 +1043,42 @@ retrieve (cnt_1000 = newcnt{onek.four})
 /*
  * postquel functions
  */
+/*
+ * mike does post_hacking,
+ * joe and sally play basketball, and
+ * everyone else does nothing.
+ */
 retrieve (p.name, p.hobbies.name) from p in person
 \g
+/*
+ * as above, but jeff also does post_hacking.
+ */
 retrieve (p.name, p.hobbies.name) from p in person*
 \g
+/*
+ * the next two queries demonstrate how functions generate bogus duplicates.
+ * this is a "feature" ..
+ */
 retrieve unique (hobbies_r.name, hobbies_r.equipment.name)
 \g
 retrieve (hobbies_r.name, hobbies_r.equipment.name)
 \g
+/*
+ * mike needs advil and peet's coffee,
+ * joe and sally need hightops, and
+ * everyone else is fine.
+ */
 retrieve (p.name, p.hobbies.name, p.hobbies.equipment.name) from p in person
 \g
+/*
+ * as above, but jeff needs advil and peet's coffee as well.
+ */
 retrieve (p.name, p.hobbies.name, p.hobbies.equipment.name) from p in person*
 \g
+/*
+ * just like the last two, but make sure that the target list fixup and
+ * unflattening is being done correctly.
+ */
 retrieve (p.hobbies.equipment.name, p.name, p.hobbies.name) from p in person
 \g
 retrieve (p.hobbies.equipment.name, p.name, p.hobbies.name) from p in person*
@@ -961,22 +1110,33 @@ retrieve (equip_name =
  */
 retrieve (arrtest.all)
 \g
-retrieve (arrtest.a[1], arrtest.b[1][1][1], arrtest.c[1], arrtest.d[1][1], 
-			arrtest.e[0])
+retrieve (arrtest.a[1],
+          arrtest.b[1][1][1],
+          arrtest.c[1],
+          arrtest.d[1][1], 
+          arrtest.e[0])
 \g
-retrieve (arrtest.a[1:3], arrtest.b[1:1][1:2][1:2], arrtest.c[1:2], 
-			arrtest.d[1:1][1:2])
+retrieve (arrtest.a[1:3],
+          arrtest.b[1:1][1:2][1:2],
+          arrtest.c[1:2], 
+          arrtest.d[1:1][1:2])
 \g
+/* returns three different results */
 retrieve (x = array_dims(arrtest.b))
 \g
-retrieve (arrtest.all) where arrtest.a[1] < 5 and 
-					arrtest.c = "{"foobar"}"::_char16
+/* returns nothing */
+retrieve (arrtest.all)
+         where arrtest.a[1] < 5 and 
+               arrtest.c = "{"foobar"}"::_char16
 \g
-replace arrtest (a[1:2] = "{16,25}", b[1:1][1:1][1:2] = "{113, 117}", 
-				c[1:1] = "{"new_word"}")
+replace arrtest (a[1:2] = "{16,25}",
+                 b[1:1][1:1][1:2] = "{113, 117}", 
+                 c[1:1] = "{"new_word"}")
 \g
-retrieve (arrtest.a[1:3], arrtest.b[1:1][1:2][1:2], arrtest.c[1:2], 
-			arrtest.d[1:1][1:2])
+retrieve (arrtest.a[1:3],
+          arrtest.b[1:1][1:2][1:2],
+          arrtest.c[1:2], 
+          arrtest.d[1:1][1:2])
 \g
 
 /*

@@ -277,15 +277,14 @@ append shighway (road.all) where road.name ~ "State Hwy.*"
 replace shighway (surface = "asphalt")
 \g
 
-append aggtest (a = 56, b = 7.8)
-\g
-append aggtest (a = 100, b = 99.097)
-\g
-append aggtest (a = 0, b = 0.09561)
-\g
-append aggtest (a = 42, b = 324.78)
-\g
+/*
+ * ARRAYS
+ */
 
+/*
+ * only this array as a 0-based 'e', the others are 1-based.
+ * 'e' is also a large object.
+ */
 append arrtest (a[5] = "{1,2,3,4,5}", b[2][1][2] = "{{{},{1,2}}}", c = "{}", 
 					d = "{}", e[0:4] = "/floatarr")
 \g

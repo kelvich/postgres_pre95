@@ -1,17 +1,18 @@
 =============== destroying old regression database... =================
-WARN:Mar 11 20:00:08:destroydb: database regression does not exist.
-/private/aoki/postgres//bin/destroydb: database destroy failed on regression.
+WARN:Aug 13 12:16:20:destroydb: database regression does not exist.
+destroydb: database destroy failed on regression.
 =============== creating new regression database... =================
-Welcome to the C POSTGRES terminal monitor
+Welcome to the POSTGRES terminal monitor
 
 Go 
 * 
-Query sent to backend is "    define function circle_in ( language = "c", 			    returntype = circle )        arg is (char16)        as "/private/aoki/postgres/src/regress/regress/obj/../obj/regress.o" "
-NOTICE:Mar 11 20:00:18:ProcedureDefine: return type 'circle' not yet defined
+Query sent to backend is "    define function circle_in ( language = "c", 			    returntype = circle )        arg is (any)        as "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
+NOTICE:Aug 13 12:16:27:ProcedureDefine: type 'circle' is not yet defined
+NOTICE:Aug 13 12:16:27:ProcedureDefine: creating a shell for type 'circle'
 DEFINE
 Go 
 * 
-Query sent to backend is "define function circle_out ( language = "c",  			     returntype = char16 )        arg is (circle)        as "/private/aoki/postgres/src/regress/regress/obj/../obj/regress.o" "
+Query sent to backend is "define function circle_out ( language = "c",  			     returntype = any )        arg is (any)        as "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
 DEFINE
 Go 
 * 
@@ -95,7 +96,7 @@ Query sent to backend is "create aggtest (a = int2, b = float4) "
 CREATE
 Go 
 * 
-Query sent to backend is "create arrtest (a = int2[], b = int4[], c = char16[], d = text[]) "
+Query sent to backend is "create arrtest (a = int2[], b = int4[][][], c = char16[], d = text[][], e = float8[]) "
 CREATE
 Go 
 * 
@@ -115,27 +116,27 @@ Query sent to backend is "define function user_relns ( language = "postquel", 		
 DEFINE
 Go 
 * 
-Query sent to backend is "define function pt_in_circle ( language = "c", 			       returntype = int4 )        arg is (point, circle)        as "/private/aoki/postgres/src/regress/regress/obj/../obj/regress.o" "
+Query sent to backend is "define function pt_in_circle ( language = "c", 			       returntype = int4 )        arg is (point, circle)        as "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
 DEFINE
 Go 
 * 
-Query sent to backend is "define function overpaid ( language = "c", 			   returntype = bool )         arg is (emp)        as "/private/aoki/postgres/src/regress/regress/obj/../obj/regress.o" "
+Query sent to backend is "define function overpaid ( language = "c", 			   returntype = bool )         arg is (emp)        as "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
 DEFINE
 Go 
 * 
-Query sent to backend is "define function boxarea ( language = "c",  			  returntype = int4 )        arg is (box)        as "/private/aoki/postgres/src/regress/regress/obj/../obj/regress.o" "
+Query sent to backend is "define function boxarea ( language = "c",  			  returntype = int4 )        arg is (box)        as "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
 DEFINE
 Go 
 * 
-Query sent to backend is "define function interpt_pp ( language = "c", 			     returntype = point )        arg is (path, path)        as "/private/aoki/postgres/src/regress/regress/obj/../obj/regress.o" "
+Query sent to backend is "define function interpt_pp ( language = "c", 			     returntype = point )        arg is (path, path)        as "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
 DEFINE
 Go 
 * 
-Query sent to backend is "define function reverse_c16 ( language = "c", 			      returntype = char16 )        arg is (char16)        as "/private/aoki/postgres/src/regress/regress/obj/../obj/regress.o" "
+Query sent to backend is "define function reverse_c16 ( language = "c", 			      returntype = char16 )        arg is (char16)        as "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
 DEFINE
 Go 
 * 
-Query sent to backend is " define function ufp0 ( language = "c", 		       returntype = int4 )        arg is (int4)        as "/private/aoki/postgres/src/regress/regress/obj/../obj/ufp1.o" "
+Query sent to backend is " define function ufp0 ( language = "c", 		       returntype = int4 )        arg is ( )        as "/faerie/aoki/postgres/src/regress/regress/obj/ufp1.o" "
 DEFINE
 Go 
 * 
@@ -143,7 +144,7 @@ Query sent to backend is "replace pg_proc ( proistrusted = "f"::bool, 		  pronar
 REPLACE
 Go 
 * 
-Query sent to backend is "define function ufp1 ( language = "c", 		       returntype = int4 )        arg is (int4)        as "/private/aoki/postgres/src/regress/regress/obj/../obj/ufp1.o" "
+Query sent to backend is "define function ufp1 ( language = "c", 		       returntype = int4 )        arg is (int4)        as "/faerie/aoki/postgres/src/regress/regress/obj/ufp1.o" "
 DEFINE
 Go 
 * 
@@ -151,7 +152,7 @@ Query sent to backend is "replace pg_proc ( proistrusted = "f"::bool ) 	where pg
 REPLACE
 Go 
 * 
-Query sent to backend is "define function ufp2 ( language = "c", 		       returntype = char16 )        arg is (char16, char16)        as "/private/aoki/postgres/src/regress/regress/obj/../obj/ufp2.o" "
+Query sent to backend is "define function ufp2 ( language = "c", 		       returntype = char16 )        arg is (char16, char16)        as "/faerie/aoki/postgres/src/regress/regress/obj/ufp2.o" "
 DEFINE
 Go 
 * 
@@ -159,7 +160,7 @@ Query sent to backend is "replace pg_proc ( proistrusted = "f"::bool ) 	where pg
 REPLACE
 Go 
 * 
-Query sent to backend is "define function ufp3 ( language = "c", 		       returntype = text )        arg is (text, char)        as "/private/aoki/postgres/src/regress/regress/obj/../obj/ufp3.o" "
+Query sent to backend is "define function ufp3 ( language = "c", 		       returntype = text )        arg is (text, char)        as "/faerie/aoki/postgres/src/regress/regress/obj/ufp3.o" "
 DEFINE
 Go 
 * 
@@ -167,15 +168,15 @@ Query sent to backend is "replace pg_proc ( proistrusted = "f"::bool ) 	where pg
 REPLACE
 Go 
 * 
-Query sent to backend is " load "/private/aoki/postgres/src/regress/regress/obj/../obj/regress.o" "
+Query sent to backend is " load "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
 LOAD
 Go 
 * 
-Query sent to backend is " copy onek from "/private/aoki/postgres/src/regress/regress/obj/../../data/onek.data" "
+Query sent to backend is " copy onek from "/faerie/aoki/postgres/src/regress/regress/../data/onek.data" "
 COPY
 Go 
 * 
-Query sent to backend is "copy tenk1 from "/private/aoki/postgres/src/regress/regress/obj/../../data/tenk.data" "
+Query sent to backend is "copy tenk1 from "/faerie/aoki/postgres/src/regress/regress/../data/tenk.data" "
 COPY
 Go 
 * 
@@ -183,7 +184,11 @@ Query sent to backend is "append tenk2 (tenk1.all) "
 APPEND 0
 Go 
 * 
-Query sent to backend is "copy slow_emp4000 from "/private/aoki/postgres/src/regress/regress/obj/../../data/rect.data" "
+Query sent to backend is "retrieve into onek2 (onek.all) "
+RETRIEVE
+Go 
+* 
+Query sent to backend is "copy slow_emp4000 from "/faerie/aoki/postgres/src/regress/regress/../data/rect.data" "
 COPY
 Go 
 * 
@@ -191,19 +196,19 @@ Query sent to backend is "append fast_emp4000 (slow_emp4000.all) "
 APPEND 0
 Go 
 * 
-Query sent to backend is "copy person from "/private/aoki/postgres/src/regress/regress/obj/../../data/person.data" "
+Query sent to backend is "copy person from "/faerie/aoki/postgres/src/regress/regress/../data/person.data" "
 COPY
 Go 
 * 
-Query sent to backend is "copy emp from "/private/aoki/postgres/src/regress/regress/obj/../../data/emp.data" "
+Query sent to backend is "copy emp from "/faerie/aoki/postgres/src/regress/regress/../data/emp.data" "
 COPY
 Go 
 * 
-Query sent to backend is "copy student from "/private/aoki/postgres/src/regress/regress/obj/../../data/student.data" "
+Query sent to backend is "copy student from "/faerie/aoki/postgres/src/regress/regress/../data/student.data" "
 COPY
 Go 
 * 
-Query sent to backend is "copy stud_emp from "/private/aoki/postgres/src/regress/regress/obj/../../data/stud_emp.data" "
+Query sent to backend is "copy stud_emp from "/faerie/aoki/postgres/src/regress/regress/../data/stud_emp.data" "
 COPY
 Go 
 * 
@@ -220,30 +225,30 @@ APPEND 0
 Go 
 * 
 Query sent to backend is "append hobbies_r (name = "skywalking") "
-APPEND 589996
+APPEND 200111
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "advil", hobby = "posthacking") "
-APPEND 589997
+APPEND 200112
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "peet's coffee", hobby = "posthacking") "
-APPEND 589998
+APPEND 200113
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "hightops", hobby = "basketball") "
-APPEND 589999
+APPEND 200114
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "guts", hobby = "skywalking") "
-APPEND 590000
+APPEND 200115
 Go 
 * 
-Query sent to backend is "copy road from "/private/aoki/postgres/src/regress/regress/obj/../../data/streets.data" "
+Query sent to backend is "copy road from "/faerie/aoki/postgres/src/regress/regress/../data/streets.data" "
 COPY
 Go 
 * 
-Query sent to backend is "copy real_city from "/private/aoki/postgres/src/regress/regress/obj/../../data/real_city.data" "
+Query sent to backend is "copy real_city from "/faerie/aoki/postgres/src/regress/regress/../data/real_city.data" "
 COPY
 Go 
 * 
@@ -263,32 +268,24 @@ Query sent to backend is "replace shighway (surface = "asphalt") "
 REPLACE
 Go 
 * 
-Query sent to backend is "append aggtest (a = 56, b = 7.8) "
-APPEND 596175
+Query sent to backend is "   append arrtest (a[5] = "{1,2,3,4,5}", b[2][1][2] = "{{{},{1,2}}}", c = "{}",  					d = "{}", e[0:4] = "/floatarr") "
+APPEND 206296
 Go 
 * 
-Query sent to backend is "append aggtest (a = 100, b = 99.097) "
-APPEND 596176
+Query sent to backend is "replace arrtest (e[0] = "1.1") "
+REPLACE
 Go 
 * 
-Query sent to backend is "append aggtest (a = 0, b = 0.09561) "
-APPEND 596177
+Query sent to backend is "replace arrtest (e[1] = "2.2") "
+REPLACE
 Go 
 * 
-Query sent to backend is "append aggtest (a = 42, b = 324.78) "
-APPEND 596178
+Query sent to backend is "append arrtest (a = "{11,12,23}", b[2][2][1] = "{{3,4},{4,5}}", c = "{"foobar"}",  				d = "{{"elt1", "elt2"}}", e = "{"3.4", "6.7"}") "
+APPEND 206297
 Go 
 * 
-Query sent to backend is "append arrtest (a = "{}", b = "{}", c = "{}", d = "{}") "
-APPEND 596179
-Go 
-* 
-Query sent to backend is "append arrtest (a = "{"1"}", b = "{"1"}", c = "{"foobar"}", d = "{"barfoo"}") "
-APPEND 596180
-Go 
-* 
-Query sent to backend is "append arrtest (a = "{1,2}", b = "{3,4}", c = "{foo,bar}", d = "{bar,foo}") "
-APPEND 596181
+Query sent to backend is "append arrtest (a = "{}", b[1][2][2] = "{3,4}", c = "{foo,bar}",  				d[2][1] = "{bar,foo}") "
+APPEND 206298
 Go 
 * 
 Query sent to backend is "create iportaltest (i = int4, d = float4, p = polygon) "
@@ -296,11 +293,11 @@ CREATE
 Go 
 * 
 Query sent to backend is "append iportaltest (i = 1, d = 3.567, p = "(3.0,4.0,1.0,2.0)"::polygon) "
-APPEND 596249
+APPEND 206365
 Go 
 * 
 Query sent to backend is "append iportaltest (i = 2, d = 89.05, p = "(4.0,3.0,2.0,1.0)"::polygon) "
-APPEND 596250
+APPEND 206366
 Go 
 * 
 Query sent to backend is " define index onek_unique1 on onek using btree(unique1 int4_ops) "
@@ -343,6 +340,26 @@ Query sent to backend is "define index tenk2_hundred on tenk2 using btree(hundre
 DEFINE
 Go 
 * 
+Query sent to backend is "define index onek2_u1_prtl on onek2 using btree(unique1 int4_ops) 	where onek2.unique1 < 20 or onek2.unique1 > 980 "
+DEFINE
+Go 
+* 
+Query sent to backend is "define index onek2_u2_prtl on onek2 using btree(unique2 int4_ops) 	where onek2.stringu1 < "B" "
+DEFINE
+Go 
+* 
+Query sent to backend is "extend index onek2_u2_prtl where onek2.stringu1 < "C" "
+EXTEND
+Go 
+* 
+Query sent to backend is "extend index onek2_u2_prtl "
+EXTEND
+Go 
+* 
+Query sent to backend is "define index onek2_stu1_prtl on onek2 using btree(stringu1 char16_ops) 	where onek2.stringu1 >= "J" and onek2.stringu1 < "K" "
+DEFINE
+Go 
+* 
 Query sent to backend is "define index rect2ind on fast_emp4000 using rtree (home_base bigbox_ops) "
 DEFINE
 Go 
@@ -363,31 +380,31 @@ Query sent to backend is " define operator ## ( arg1 = path, 		     arg2 = path,
 DEFINE
 Go 
 * 
-Query sent to backend is "define operator <% ( arg1 = point, 		     arg2 = circle, 		     procedure = pt_in_circle, 		     associativity = left, 		     commutator = >=%, 		     restrict = int4eq ) "
+Query sent to backend is "define operator <% ( arg1 = point, 		     arg2 = circle, 		     procedure = pt_in_circle, 		     associativity = left, 		     commutator = >=% ) "
 DEFINE
 Go 
 * 
 Query sent to backend is " define view street ( road.name, 		     road.thepath, 		     cname = real_city.cname )        where real_city.outline ## road.thepath "
-APPEND 666473DEFINE
+APPEND 277713DEFINE
 Go 
 * 
 Query sent to backend is "define view iexit ( ihighway.name, 		    ihighway.thepath,  		    exit = interpt_pp(ihighway.thepath, ramp.thepath) )        where ihighway.thepath ## ramp.thepath "
-APPEND 666542DEFINE
+APPEND 277782DEFINE
 Go 
 * 
 Query sent to backend is "define view toyemp ( emp.name, 		     emp.age, 		     emp.location, 		     annualsal = 12*emp.salary ) "
-APPEND 666615DEFINE
+APPEND 277855DEFINE
 Go 
 * 
-Query sent to backend is "  define aggregate newavg (sfunc1 = int4pl, 			 sfunc2 = int4inc, 			 finalfunc = int4div, 			 initcond1 = "0", 			 initcond2 = "0") "
+Query sent to backend is "  define aggregate newavg (sfunc1 = int4pl, 			 basetype = int4, 			 stype1 = int4, 			 sfunc2 = int4inc, 			 stype2 = int4, 			 finalfunc = int4div, 			 initcond1 = "0", 			 initcond2 = "0") "
 DEFINE
 Go 
 * 
-Query sent to backend is " define aggregate newsum (sfunc1 = int4pl, initcond1 = "0") "
+Query sent to backend is " define aggregate newsum (sfunc1 = int4pl, basetype = int4,  			 stype1 = int4, initcond1 = "0") "
 DEFINE
 Go 
 * 
-Query sent to backend is " define aggregate newcnt (sfunc2 = int4inc, initcond2 = "0") "
+Query sent to backend is " define aggregate newcnt (sfunc2 = int4inc, stype2 = int4, initcond2 = "0") "
 DEFINE
 Go 
 * 
@@ -413,6 +430,8 @@ Query sent to backend is " retrieve ( pg_class.relname, pg_class.relhasindex ) 	
 -----------------------------
 | tenk2       | t           |
 -----------------------------
+| onek2       | t           |
+-----------------------------
 | fast_emp4000| t           |
 -----------------------------
 | road        | t           |
@@ -423,9 +442,8 @@ Query sent to backend is " retrieve ( pg_class.relname, pg_class.relhasindex ) 	
 -----------------------------
 
 Go 
-* I live to serve you.
-=============== running regression queries ... =================
-Welcome to the C POSTGRES terminal monitor
+* =============== running regression queries ... =================
+Welcome to the POSTGRES terminal monitor
 
 Go 
 * 
@@ -712,7 +730,7 @@ Query sent to backend is "retrieve (true = "3"::int4 > "2"::int2) "
 ---------------
 | true        |
 ---------------
-| f           |
+| t           |
 ---------------
 
 Go 
@@ -1500,7 +1518,7 @@ Query sent to backend is "retrieve (three = ||/"27"::float8) "
 
 Go 
 * 
-Query sent to backend is " retrieve (false = "char 16 string"::char16 = "char 16 string "::char16) "
+Query sent to backend is "  retrieve (false = "char 16 string"::char16 = "char 16 string "::char16) "
 ---------------
 | false       |
 ---------------
@@ -1509,7 +1527,7 @@ Query sent to backend is " retrieve (false = "char 16 string"::char16 = "char 16
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "c"::char = "c"::char) "
+Query sent to backend is " retrieve (true = "c"::char = "c"::char) "
 ---------------
 | true        |
 ---------------
@@ -1518,7 +1536,7 @@ Query sent to backend is "retrieve (true = "c"::char = "c"::char) "
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "this is a text string"::char16 = "this is a text string"::char16) "
+Query sent to backend is " retrieve (true = "this is a text string"::text = "this is a text string"::text) "
 ---------------
 | true        |
 ---------------
@@ -1527,43 +1545,7 @@ Query sent to backend is "retrieve (true = "this is a text string"::char16 = "th
 
 Go 
 * 
-Query sent to backend is "retrieve (false = "this is a text string"::char16 = "this is a text strin"::char16) "
----------------
-| false       |
----------------
-| t           |
----------------
-
-Go 
-* 
-Query sent to backend is " retrieve (true = "(2.0,2.0,0.0,0.0)"::box << "(3.0,3.0,1.0,1.0)"::box) "
----------------
-| true        |
----------------
-| f           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "(2.0,2.0,0.0,0.0)"::box &< "(3.0,3.0,1.0,1.0)"::box) "
----------------
-| true        |
----------------
-| t           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "(2.0,2.0,0.0,0.0)"::box &> "(3.0,3.0,1.0,1.0)"::box) "
----------------
-| true        |
----------------
-| f           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (false = "(2.0,2.0,0.0,0.0)"::box >> "(3.0,3.0,1.0,1.0)"::box) "
+Query sent to backend is "retrieve (false = "this is a text string"::text = "this is a text strin"::text) "
 ---------------
 | false       |
 ---------------
@@ -1572,7 +1554,7 @@ Query sent to backend is "retrieve (false = "(2.0,2.0,0.0,0.0)"::box >> "(3.0,3.
 
 Go 
 * 
-Query sent to backend is "retrieve (false = "(2.0,2.0,0.0,0.0)"::box @ "(3.0,3.0,1.0,1.0)"::box) "
+Query sent to backend is "  retrieve (false = "(2.0,2.0,0.0,0.0)"::box << "(3.0,3.0,1.0,1.0)"::box) "
 ---------------
 | false       |
 ---------------
@@ -1581,25 +1563,7 @@ Query sent to backend is "retrieve (false = "(2.0,2.0,0.0,0.0)"::box @ "(3.0,3.0
 
 Go 
 * 
-Query sent to backend is "retrieve (false = "(2.0,2.0,0.0,0.0)"::box ~ "(3.0,3.0,1.0,1.0)"::box) "
----------------
-| false       |
----------------
-| f           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (false = "(2.0,2.0,0.0,0.0)"::box ~= "(3.0,3.0,1.0,1.0)"::box) "
----------------
-| false       |
----------------
-| f           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "(2.0,2.0,0.0,0.0)"::box && "(3.0,3.0,1.0,1.0)"::box) "
+Query sent to backend is " retrieve (true = "(2.0,2.0,0.0,0.0)"::box &< "(3.0,3.0,1.0,1.0)"::box) "
 ---------------
 | true        |
 ---------------
@@ -1608,7 +1572,16 @@ Query sent to backend is "retrieve (true = "(2.0,2.0,0.0,0.0)"::box && "(3.0,3.0
 
 Go 
 * 
-Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon << "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+Query sent to backend is " retrieve (true = "(2.0,2.0,0.0,0.0)"::box &> "(3.0,3.0,1.0,1.0)"::box) "
+---------------
+| true        |
+---------------
+| f           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0)"::box >> "(3.0,3.0,1.0,1.0)"::box) "
 ---------------
 | false       |
 ---------------
@@ -1617,7 +1590,34 @@ Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygo
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon &< "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0)"::box @ "(3.0,3.0,1.0,1.0)"::box) "
+---------------
+| false       |
+---------------
+| f           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0)"::box ~ "(3.0,3.0,1.0,1.0)"::box) "
+---------------
+| false       |
+---------------
+| f           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0)"::box ~= "(3.0,3.0,1.0,1.0)"::box) "
+---------------
+| false       |
+---------------
+| f           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (true = "(2.0,2.0,0.0,0.0)"::box && "(3.0,3.0,1.0,1.0)"::box) "
 ---------------
 | true        |
 ---------------
@@ -1626,7 +1626,16 @@ Query sent to backend is "retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon 
 
 Go 
 * 
-Query sent to backend is "retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon &> "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+Query sent to backend is "  retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon << "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+---------------
+| false       |
+---------------
+| f           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon &< "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
 ---------------
 | true        |
 ---------------
@@ -1635,43 +1644,7 @@ Query sent to backend is "retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon 
 
 Go 
 * 
-Query sent to backend is "retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon >> "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
----------------
-| false       |
----------------
-| f           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon @ "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
----------------
-| false       |
----------------
-| f           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon ~ "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
----------------
-| false       |
----------------
-| f           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon ~= "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
----------------
-| false       |
----------------
-| f           |
----------------
-
-Go 
-* 
-Query sent to backend is "retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon && "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+Query sent to backend is " retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon &> "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
 ---------------
 | true        |
 ---------------
@@ -1680,7 +1653,52 @@ Query sent to backend is "retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon 
 
 Go 
 * 
-Query sent to backend is "          retrieve (onek.all) where onek.unique1 < 10 "
+Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon >> "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+---------------
+| false       |
+---------------
+| f           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon @ "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+---------------
+| false       |
+---------------
+| f           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon ~ "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+---------------
+| false       |
+---------------
+| f           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon ~= "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+---------------
+| false       |
+---------------
+| f           |
+---------------
+
+Go 
+* 
+Query sent to backend is " retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon && "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon) "
+---------------
+| true        |
+---------------
+| t           |
+---------------
+
+Go 
+* 
+Query sent to backend is "            retrieve (onek.all) where onek.unique1 < 10 "
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 | unique1     | unique2     | two         | four        | ten         | twenty      | hundred     | thousand    | twothousand | fivethous   | tenthous    | odd         | even        | stringu1    | stringu2    | string4     |
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1707,7 +1725,7 @@ Query sent to backend is "          retrieve (onek.all) where onek.unique1 < 10 
 
 Go 
 * 
-Query sent to backend is "retrieve (onek.unique1, onek.stringu1)     where onek.unique1 < 20 sort by unique1 using > "
+Query sent to backend is " retrieve (onek.unique1, onek.stringu1)     where onek.unique1 < 20 sort by unique1 using > "
 -----------------------------
 | unique1     | stringu1    |
 -----------------------------
@@ -1754,7 +1772,7 @@ Query sent to backend is "retrieve (onek.unique1, onek.stringu1)     where onek.
 
 Go 
 * 
-Query sent to backend is "retrieve (onek.unique1, onek.stringu1)     where onek.unique1 > 980 sort by stringu1 using < "
+Query sent to backend is " retrieve (onek.unique1, onek.stringu1)     where onek.unique1 > 980 sort by stringu1 using < "
 -----------------------------
 | unique1     | stringu1    |
 -----------------------------
@@ -1799,7 +1817,7 @@ Query sent to backend is "retrieve (onek.unique1, onek.stringu1)     where onek.
 
 Go 
 * 
-Query sent to backend is "retrieve (onek.unique1, onek.string4)     where onek.unique1 > 980 sort by string4 using <, unique1 using > "
+Query sent to backend is " retrieve (onek.unique1, onek.string4)     where onek.unique1 > 980 sort by string4 using <, unique1 using > "
 -----------------------------
 | unique1     | string4     |
 -----------------------------
@@ -1844,7 +1862,7 @@ Query sent to backend is "retrieve (onek.unique1, onek.string4)     where onek.u
 
 Go 
 * 
-Query sent to backend is "retrieve (onek.unique1, onek.string4)     where onek.unique1 > 980 sort by string4 using >, unique1 using < "
+Query sent to backend is " retrieve (onek.unique1, onek.string4)     where onek.unique1 > 980 sort by string4 using >, unique1 using < "
 -----------------------------
 | unique1     | string4     |
 -----------------------------
@@ -1889,7 +1907,7 @@ Query sent to backend is "retrieve (onek.unique1, onek.string4)     where onek.u
 
 Go 
 * 
-Query sent to backend is "retrieve (onek.unique1, onek.string4)     where onek.unique1 < 20 sort by unique1 using >, string4 using < "
+Query sent to backend is " retrieve (onek.unique1, onek.string4)     where onek.unique1 < 20 sort by unique1 using >, string4 using < "
 -----------------------------
 | unique1     | string4     |
 -----------------------------
@@ -1936,7 +1954,7 @@ Query sent to backend is "retrieve (onek.unique1, onek.string4)     where onek.u
 
 Go 
 * 
-Query sent to backend is "retrieve (onek.unique1, onek.string4)     where onek.unique1 < 20 sort by unique1 using <, string4 using > "
+Query sent to backend is " retrieve (onek.unique1, onek.string4)     where onek.unique1 < 20 sort by unique1 using <, string4 using > "
 -----------------------------
 | unique1     | string4     |
 -----------------------------
@@ -1979,6 +1997,125 @@ Query sent to backend is "retrieve (onek.unique1, onek.string4)     where onek.u
 | 18          | VVVVxx      |
 -----------------------------
 | 19          | OOOOxx      |
+-----------------------------
+
+Go 
+* 
+Query sent to backend is " retrieve (onek2.all) where onek2.unique1 < 10 "
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| unique1     | unique2     | two         | four        | ten         | twenty      | hundred     | thousand    | twothousand | fivethous   | tenthous    | odd         | even        | stringu1    | stringu2    | string4     |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| 0           | 998         | 0           | 0           | 0           | 0           | 0           | 0           | 0           | 0           | 0           | 0           | 1           | AAAAAA      | KMBAAA      | OOOOxx      |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| 1           | 214         | 1           | 1           | 1           | 1           | 1           | 1           | 1           | 1           | 1           | 2           | 3           | BAAAAA      | GIAAAA      | OOOOxx      |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| 2           | 326         | 0           | 2           | 2           | 2           | 2           | 2           | 2           | 2           | 2           | 4           | 5           | CAAAAA      | OMAAAA      | OOOOxx      |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| 3           | 431         | 1           | 3           | 3           | 3           | 3           | 3           | 3           | 3           | 3           | 6           | 7           | DAAAAA      | PQAAAA      | VVVVxx      |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| 4           | 833         | 0           | 0           | 4           | 4           | 4           | 4           | 4           | 4           | 4           | 8           | 9           | EAAAAA      | BGBAAA      | HHHHxx      |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| 5           | 541         | 1           | 1           | 5           | 5           | 5           | 5           | 5           | 5           | 5           | 10          | 11          | FAAAAA      | VUAAAA      | HHHHxx      |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| 6           | 978         | 0           | 2           | 6           | 6           | 6           | 6           | 6           | 6           | 6           | 12          | 13          | GAAAAA      | QLBAAA      | OOOOxx      |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| 7           | 647         | 1           | 3           | 7           | 7           | 7           | 7           | 7           | 7           | 7           | 14          | 15          | HAAAAA      | XYAAAA      | VVVVxx      |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| 8           | 653         | 0           | 0           | 8           | 8           | 8           | 8           | 8           | 8           | 8           | 16          | 17          | IAAAAA      | DZAAAA      | HHHHxx      |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| 9           | 49          | 1           | 1           | 9           | 9           | 9           | 9           | 9           | 9           | 9           | 18          | 19          | JAAAAA      | XBAAAA      | HHHHxx      |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Go 
+* 
+Query sent to backend is " retrieve (onek2.unique1, onek2.stringu1)     where onek2.unique1 < 20 sort by unique1 using > "
+-----------------------------
+| unique1     | stringu1    |
+-----------------------------
+| 19          | TAAAAA      |
+-----------------------------
+| 18          | SAAAAA      |
+-----------------------------
+| 17          | RAAAAA      |
+-----------------------------
+| 16          | QAAAAA      |
+-----------------------------
+| 15          | PAAAAA      |
+-----------------------------
+| 14          | OAAAAA      |
+-----------------------------
+| 13          | NAAAAA      |
+-----------------------------
+| 12          | MAAAAA      |
+-----------------------------
+| 11          | LAAAAA      |
+-----------------------------
+| 10          | KAAAAA      |
+-----------------------------
+| 9           | JAAAAA      |
+-----------------------------
+| 8           | IAAAAA      |
+-----------------------------
+| 7           | HAAAAA      |
+-----------------------------
+| 6           | GAAAAA      |
+-----------------------------
+| 5           | FAAAAA      |
+-----------------------------
+| 4           | EAAAAA      |
+-----------------------------
+| 3           | DAAAAA      |
+-----------------------------
+| 2           | CAAAAA      |
+-----------------------------
+| 1           | BAAAAA      |
+-----------------------------
+| 0           | AAAAAA      |
+-----------------------------
+
+Go 
+* 
+Query sent to backend is " retrieve (onek2.unique1, onek2.stringu1)     where onek2.unique1 > 980 sort by stringu1 using < "
+-----------------------------
+| unique1     | stringu1    |
+-----------------------------
+| 988         | AMAAAA      |
+-----------------------------
+| 989         | BMAAAA      |
+-----------------------------
+| 990         | CMAAAA      |
+-----------------------------
+| 991         | DMAAAA      |
+-----------------------------
+| 992         | EMAAAA      |
+-----------------------------
+| 993         | FMAAAA      |
+-----------------------------
+| 994         | GMAAAA      |
+-----------------------------
+| 995         | HMAAAA      |
+-----------------------------
+| 996         | IMAAAA      |
+-----------------------------
+| 997         | JMAAAA      |
+-----------------------------
+| 998         | KMAAAA      |
+-----------------------------
+| 999         | LMAAAA      |
+-----------------------------
+| 981         | TLAAAA      |
+-----------------------------
+| 982         | ULAAAA      |
+-----------------------------
+| 983         | VLAAAA      |
+-----------------------------
+| 984         | WLAAAA      |
+-----------------------------
+| 985         | XLAAAA      |
+-----------------------------
+| 986         | YLAAAA      |
+-----------------------------
+| 987         | ZLAAAA      |
 -----------------------------
 
 Go 
@@ -1987,7 +2124,7 @@ Query sent to backend is "retrieve into temp (onek.two, onek.stringu1, onek.ten,
 RETRIEVE
 Go 
 * 
-Query sent to backend is "retrieve unique (temp.two)  "
+Query sent to backend is " retrieve unique (temp.two)  "
 ---------------
 | two         |
 ---------------
@@ -1998,7 +2135,7 @@ Query sent to backend is "retrieve unique (temp.two)  "
 
 Go 
 * 
-Query sent to backend is "retrieve unique (temp.ten)  "
+Query sent to backend is " retrieve unique (temp.ten)  "
 ---------------
 | ten         |
 ---------------
@@ -2025,7 +2162,7 @@ Query sent to backend is "retrieve unique (temp.ten)  "
 
 Go 
 * 
-Query sent to backend is "retrieve unique (temp.string4)  "
+Query sent to backend is " retrieve unique (temp.string4)  "
 ---------------
 | string4     |
 ---------------
@@ -2040,7 +2177,7 @@ Query sent to backend is "retrieve unique (temp.string4)  "
 
 Go 
 * 
-Query sent to backend is "retrieve unique (temp.two, temp.string4, temp.ten)     sort by two using <, string4 using <, ten using < "
+Query sent to backend is " retrieve unique (temp.two, temp.string4, temp.ten)     sort by two using <, string4 using <, ten using < "
 -------------------------------------------
 | two         | string4     | ten         |
 -------------------------------------------
@@ -2135,7 +2272,15 @@ Query sent to backend is "destroy temp1 "
 DESTROY
 Go 
 * 
-Query sent to backend is "retrieve (p.name, p.age) from p in person* "
+Query sent to backend is "retrieve into temp1 (temp.all) where onek2.unique1 < 2 "
+RETRIEVE
+Go 
+* 
+Query sent to backend is "destroy temp1 "
+DESTROY
+Go 
+* 
+Query sent to backend is " retrieve (p.name, p.age) from p in person* "
 -----------------------------
 | name        | age         |
 -----------------------------
@@ -2258,7 +2403,7 @@ Query sent to backend is "retrieve (p.name, p.age) from p in person* "
 
 Go 
 * 
-Query sent to backend is "retrieve (p.name, p.age) from p in person* sort by age using > "
+Query sent to backend is " retrieve (p.name, p.age) from p in person* sort by age using > "
 -----------------------------
 | name        | age         |
 -----------------------------
@@ -2381,7 +2526,7 @@ Query sent to backend is "retrieve (p.name, p.age) from p in person* sort by age
 
 Go 
 * 
-Query sent to backend is "retrieve unique (p.age) from p in person* sort by age using > "
+Query sent to backend is " retrieve unique (p.age) from p in person* sort by age using > "
 ---------------
 | age         |
 ---------------
@@ -2436,9 +2581,23 @@ Query sent to backend is "replace onek (unique1 = onek.unique1 - 1) "
 REPLACE
 Go 
 * 
+Query sent to backend is "replace onek2 (unique1 = onek2.unique1 + 1) "
+REPLACE
+Go 
+* 
+Query sent to backend is "replace onek2 (unique1 = onek2.unique1 - 1) "
+REPLACE
+Go 
+* 
 Query sent to backend is "replace temp (stringu1 = reverse_c16(o.stringu1))     from o in onek     where o.stringu1 = "JBAAAA" and 	  o.stringu1 = temp.stringu1 "
-NOTICE:Mar 11 20:17:14:Non-functional update, only first update is performed
-NOTICE:Mar 11 20:17:16:Non-functional update, only first update is performed
+NOTICE:Aug 13 12:35:49:Non-functional update, only first update is performed
+NOTICE:Aug 13 12:35:51:Non-functional update, only first update is performed
+REPLACE
+Go 
+* 
+Query sent to backend is "replace temp (stringu1 = reverse_c16(o.stringu1))     from o in onek2     where o.stringu1 = "JCAAAA" and 	  o.stringu1 = temp.stringu1 "
+NOTICE:Aug 13 12:36:14:Non-functional update, only first update is performed
+NOTICE:Aug 13 12:36:25:Non-functional update, only first update is performed
 REPLACE
 Go 
 * 
@@ -2454,7 +2613,7 @@ Query sent to backend is "replace p (age = p.age + 3) from p in person* where p.
 REPLACE
 Go 
 * 
-Query sent to backend is "         copy onek to "/private/aoki/postgres/src/regress/regress/obj/../obj/onek.data" "
+Query sent to backend is "         copy onek to "/faerie/aoki/postgres/src/regress/regress/obj/onek.data" "
 COPY
 Go 
 * 
@@ -2462,7 +2621,7 @@ Query sent to backend is "delete onek "
 DELETE
 Go 
 * 
-Query sent to backend is "copy onek from "/private/aoki/postgres/src/regress/regress/obj/../obj/onek.data" "
+Query sent to backend is "copy onek from "/faerie/aoki/postgres/src/regress/regress/obj/onek.data" "
 COPY
 Go 
 * 
@@ -2477,7 +2636,26 @@ Query sent to backend is "retrieve (onek.unique1) where onek.unique1 < 2 "
 
 Go 
 * 
-Query sent to backend is "copy binary stud_emp to "/private/aoki/postgres/src/regress/regress/obj/../obj/stud_emp.data" "
+Query sent to backend is "delete onek2 "
+DELETE
+Go 
+* 
+Query sent to backend is "copy onek2 from "/faerie/aoki/postgres/src/regress/regress/obj/onek.data" "
+COPY
+Go 
+* 
+Query sent to backend is "retrieve (onek2.unique1) where onek2.unique1 < 2 "
+---------------
+| unique1     |
+---------------
+| 0           |
+---------------
+| 1           |
+---------------
+
+Go 
+* 
+Query sent to backend is "copy binary stud_emp to "/faerie/aoki/postgres/src/regress/regress/obj/stud_emp.data" "
 COPY
 Go 
 * 
@@ -2485,7 +2663,7 @@ Query sent to backend is "delete stud_emp "
 DELETE
 Go 
 * 
-Query sent to backend is "copy binary stud_emp from "/private/aoki/postgres/src/regress/regress/obj/../obj/stud_emp.data" "
+Query sent to backend is "copy binary stud_emp from "/faerie/aoki/postgres/src/regress/regress/obj/stud_emp.data" "
 COPY
 Go 
 * 
@@ -2502,6 +2680,21 @@ Query sent to backend is "retrieve (stud_emp.all) "
 
 Go 
 * 
+Query sent to backend is "copy aggtest from stdin "
+Enter info followed by a newline
+End with a dot on a line by itself.
+>> >> >> >> >> 
+Go 
+* 
+Query sent to backend is "copy aggtest to stdout "
+Copy command returns...
+56	7.8
+100	99.097
+0	0.09561
+42	324.78
+
+Go 
+* 
 Query sent to backend is " begin "
 BEGIN
 Go 
@@ -2511,7 +2704,7 @@ RETRIEVE
 Go 
 * 
 Query sent to backend is "append xacttest (a = 777, b = 777.777) "
-APPEND 687138
+APPEND 304768
 Go 
 * 
 Query sent to backend is "end "
@@ -3858,6 +4051,10 @@ Query sent to backend is "end "
 END
 Go 
 * 
+Query sent to backend is "extend index onek2_u1_prtl where onek2.unique1 <= 60 "
+EXTEND
+Go 
+* 
 Query sent to backend is "begin "
 BEGIN
 Go 
@@ -3903,6 +4100,14 @@ RETRIEVE
 Go 
 * 
 Query sent to backend is "retrieve portal foo23 (onek.all) where onek.unique1 = 60 "
+RETRIEVE
+Go 
+* 
+Query sent to backend is "retrieve portal foo24 (onek2.all) where onek2.unique1 = 50 "
+RETRIEVE
+Go 
+* 
+Query sent to backend is "retrieve portal foo25 (onek2.all) where onek2.unique1 = 60 "
 RETRIEVE
 Go 
 * 
@@ -4005,6 +4210,24 @@ Query sent to backend is "fetch all in foo23 "
 
 Go 
 * 
+Query sent to backend is "fetch all in foo24 "
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| unique1     | unique2     | two         | four        | ten         | twenty      | hundred     | thousand    | twothousand | fivethous   | tenthous    | odd         | even        | stringu1    | stringu2    | string4     |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| 50          | 253         | 0           | 2           | 0           | 10          | 0           | 50          | 50          | 50          | 50          | 0           | 1           | YBAAAA      | TJAAAA      | HHHHxx      |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Go 
+* 
+Query sent to backend is "fetch all in foo25 "
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| unique1     | unique2     | two         | four        | ten         | twenty      | hundred     | thousand    | twothousand | fivethous   | tenthous    | odd         | even        | stringu1    | stringu2    | string4     |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| 60          | 483         | 0           | 0           | 0           | 0           | 0           | 60          | 60          | 60          | 60          | 0           | 1           | ICAAAA      | PSAAAA      | VVVVxx      |
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Go 
+* 
 Query sent to backend is "close foo13 "
 CLOSE
 Go 
@@ -4049,6 +4272,14 @@ Query sent to backend is "close foo23 "
 CLOSE
 Go 
 * 
+Query sent to backend is "close foo24 "
+CLOSE
+Go 
+* 
+Query sent to backend is "close foo25 "
+CLOSE
+Go 
+* 
 Query sent to backend is "end "
 END
 Go 
@@ -4065,15 +4296,15 @@ Query sent to backend is "addattr     (b = char16,      c = text,      d = float
 ADD
 Go 
 * 
-Query sent to backend is "append temp (a=4, 	     b="char16", 	     c="text", 	     d=4.1, 	     e=4.1, 	     f=2, 	     g="(4.1,4.1,3.1,3.1)", 	     h="now", 	     i='c', 	     j="{now, Monday Aug 24 14:43:07 1992 PDT, epoch}", 	     k=314159, 	     l="(1,0,1)", 	     m=512, 	     n="1 2 3 4 5 6 7 8", 	     p="magnetic disk", 	     q="(1.1,1.1)", 	     r="(4.1,4.1,3.1,3.1)", 	     s="(0,2,4.1,4.1,3.1,3.1)", 	     t="(4.1,4.1,3.1,3.1)", 	     u="['now' 'epoch']", 	     v="1/3", 	     w="1,char16", 	     x="{1.0,2.0,3.0,4.0}", 	     y="{1.0,2.0,3.0,4.0}", 	     z="{1,2,3,4}") "
-APPEND 687340
+Query sent to backend is "append temp (a=4, 	     b="char16", 	     c="text", 	     d=4.1, 	     e=4.1, 	     f=2, 	     g="(4.1,4.1,3.1,3.1)", 	     h="now", 	     i='c', 	     j="{now, Monday Aug 24 14:43:07 1992 PDT, epoch}", 	     k=314159, 	     l="(1,0,1)", 	     m=512, 	     n="1 2 3 4 5 6 7 8", 	     p="magnetic disk", 	     q="(1.1,1.1)", 	     r="(4.1,4.1,3.1,3.1)", 	     s="(0,2,4.1,4.1,3.1,3.1)", 	     t="(4.1,4.1,3.1,3.1)", 	     u="['current' 'infinity']", 	     v="1/3", 	     w="1,char16", 	     x="{1.0,2.0,3.0,4.0}", 	     y="{1.0,2.0,3.0,4.0}", 	     z="{1,2,3,4}") "
+APPEND 305016
 Go 
 * 
 Query sent to backend is "retrieve (temp.all) "
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 | initial     | a           | b           | c           | d           | e           | f           | g           | h           | i           | j           | k           | l           | m           | n           | o           | p           | q           | r           | s           | t           | u           | v           | w           | x           | y           | z           |
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-| (null)      | 4           | char16      | text        | 4.1         | 4.1         | 2           | (         4.1,         4.1,         3.1,         3.1)| Thurs Mar 11 20:18:51 1993 PST| c           | {Thurs Mar 11 20:18:51 1993 PST,Mon Aug 24 14:43:07 1992 PDT,epoch}| 314159      | (1,0,1)     | 512         | 1 2 3 4 5 6 7 8| (null)      | magnetic disk| (1.1,1.1)   | (4.1,4.1,3.1,3.1)| (0,2,4.1,4.1,3.1,3.1)| (4.1,4.1,3.1,3.1)| ['Thurs Mar 11 20:18:51 1993 PST' 'epoch']| 1/3         | 1,char16    | {"1","2","3","4"}| {"1","2","3","4"}| {1,2,3,4}   |
+| (null)      | 4           | char16      | text        | 4.1         | 4.1         | 2           | (         4.1,         4.1,         3.1,         3.1)| Fri Aug 13 12:38:11 1993 PDT| c           | {Fri Aug 13 12:38:11 1993 PDT,Mon Aug 24 14:43:07 1992 PDT,epoch}| 314159      | (1,0,1)     | 512         | 1 2 3 4 5 6 7 8| (null)      | magnetic disk| (1.1,1.1)   | (4.1,4.1,3.1,3.1)| (0,2,4.1,4.1,3.1,3.1)| (4.1,4.1,3.1,3.1)| ['current' 'infinity']| 1/3         | 1,char16    | {"1","2","3","4"}| {"1","2","3","4"}| {1,2,3,4}   |
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 Go 
@@ -4086,7 +4317,7 @@ Query sent to backend is " rename tenk1 to ten_k "
 RENAME
 Go 
 * 
-Query sent to backend is "retrieve (ten_k.unique1) where ten_k.unique1 < 20 "
+Query sent to backend is " retrieve (ten_k.unique1) where ten_k.unique1 < 20 "
 ---------------
 | unique1     |
 ---------------
@@ -4133,7 +4364,7 @@ Query sent to backend is "retrieve (ten_k.unique1) where ten_k.unique1 < 20 "
 
 Go 
 * 
-Query sent to backend is "retrieve (ten_k.unique2) where ten_k.unique2 < 20 "
+Query sent to backend is " retrieve (ten_k.unique2) where ten_k.unique2 < 20 "
 ---------------
 | unique2     |
 ---------------
@@ -4180,7 +4411,7 @@ Query sent to backend is "retrieve (ten_k.unique2) where ten_k.unique2 < 20 "
 
 Go 
 * 
-Query sent to backend is "retrieve (ten_k.hundred) where ten_k.hundred = 50 "
+Query sent to backend is " retrieve (ten_k.hundred) where ten_k.hundred = 50 "
 ---------------
 | hundred     |
 ---------------
@@ -4391,7 +4622,7 @@ Query sent to backend is "rename ten_k to tenk1 "
 RENAME
 Go 
 * 
-Query sent to backend is "retrieve (tenk1.unique1) where tenk1.unique1 < 5 "
+Query sent to backend is " retrieve (tenk1.unique1) where tenk1.unique1 < 5 "
 ---------------
 | unique1     |
 ---------------
@@ -4552,7 +4783,7 @@ Query sent to backend is "retrieve (cnt_1000 = newcnt{onek.four}) "
 
 Go 
 * 
-Query sent to backend is "     retrieve (p.name, p.hobbies.name) from p in person "
+Query sent to backend is "      retrieve (p.name, p.hobbies.name) from p in person "
 -----------------------------
 | name        | name        |
 -----------------------------
@@ -4659,7 +4890,7 @@ Query sent to backend is "     retrieve (p.name, p.hobbies.name) from p in perso
 
 Go 
 * 
-Query sent to backend is "retrieve (p.name, p.hobbies.name) from p in person* "
+Query sent to backend is " retrieve (p.name, p.hobbies.name) from p in person* "
 -----------------------------
 | name        | name        |
 -----------------------------
@@ -4782,7 +5013,7 @@ Query sent to backend is "retrieve (p.name, p.hobbies.name) from p in person* "
 
 Go 
 * 
-Query sent to backend is "retrieve unique (hobbies_r.name, hobbies_r.equipment.name) "
+Query sent to backend is " retrieve unique (hobbies_r.name, hobbies_r.equipment.name) "
 -----------------------------
 | name        | name        |
 -----------------------------
@@ -4818,7 +5049,7 @@ Query sent to backend is "retrieve (hobbies_r.name, hobbies_r.equipment.name) "
 
 Go 
 * 
-Query sent to backend is "retrieve (p.name, p.hobbies.name, p.hobbies.equipment.name) from p in person "
+Query sent to backend is " retrieve (p.name, p.hobbies.name, p.hobbies.equipment.name) from p in person "
 -------------------------------------------
 | name        | name        | name        |
 -------------------------------------------
@@ -4927,7 +5158,7 @@ Query sent to backend is "retrieve (p.name, p.hobbies.name, p.hobbies.equipment.
 
 Go 
 * 
-Query sent to backend is "retrieve (p.name, p.hobbies.name, p.hobbies.equipment.name) from p in person* "
+Query sent to backend is " retrieve (p.name, p.hobbies.name, p.hobbies.equipment.name) from p in person* "
 -------------------------------------------
 | name        | name        | name        |
 -------------------------------------------
@@ -5054,7 +5285,7 @@ Query sent to backend is "retrieve (p.name, p.hobbies.name, p.hobbies.equipment.
 
 Go 
 * 
-Query sent to backend is "retrieve (p.hobbies.equipment.name, p.name, p.hobbies.name) from p in person "
+Query sent to backend is " retrieve (p.hobbies.equipment.name, p.name, p.hobbies.name) from p in person "
 -------------------------------------------
 | name        | name        | name        |
 -------------------------------------------
@@ -5566,13 +5797,15 @@ Query sent to backend is "retrieve (user_relns = user_relns()) "
 ---------------
 | tenk2       |
 ---------------
+| xacttest    |
+---------------
+| onek2       |
+---------------
 | fast_emp4000|
 ---------------
 | road        |
 ---------------
 | ihighway    |
----------------
-| xacttest    |
 ---------------
 | shighway    |
 ---------------
@@ -5595,53 +5828,83 @@ Query sent to backend is "retrieve (equip_name = 	    name(equipment(hobby_const
 Go 
 * 
 Query sent to backend is "       retrieve (arrtest.all) "
+-----------------------------------------------------------------------
+| a           | b           | c           | d           | e           |
+-----------------------------------------------------------------------
+| {1,2,3,4,5} | {{{0,0}},{{1,2}}}| {}          | {}          | [0:4]=/floatarr|
+-----------------------------------------------------------------------
+| {11,12,23}  | {{{3},{4}},{{4},{5}}}| {"foobar"}  | {{"elt1","elt2"}}| {"3.4","6.7"}|
+-----------------------------------------------------------------------
+| {}          | {{{3,4},{0,0}}}| {"foo","bar"}| {{"bar"},{"foo"}}| (null)      |
+-----------------------------------------------------------------------
+
+Go 
+* 
+Query sent to backend is "retrieve (arrtest.a[1],           arrtest.b[1][1][1],           arrtest.c[1],           arrtest.d[1][1],            arrtest.e[0]) "
+-----------------------------------------------------------------------
+| a           | b           | c           | d           | e           |
+-----------------------------------------------------------------------
+| 1           | 0           | (null)      | (null)      | 1.1         |
+-----------------------------------------------------------------------
+| 11          | 3           | foobar      | elt1        | (null)      |
+-----------------------------------------------------------------------
+| (null)      | 3           | foo         | bar         | (null)      |
+-----------------------------------------------------------------------
+
+Go 
+* 
+Query sent to backend is "retrieve (arrtest.a[1:3],           arrtest.b[1:1][1:2][1:2],           arrtest.c[1:2],            arrtest.d[1:1][1:2]) "
 ---------------------------------------------------------
 | a           | b           | c           | d           |
 ---------------------------------------------------------
-| {}          | {}          | {}          | {}          |
+| {1,2,3}     | (null)      | (null)      | (null)      |
 ---------------------------------------------------------
-| {1}         | {1}         | {"foobar"}  | {"barfoo"}  |
+| {11,12,23}  | (null)      | (null)      | {{"elt1","elt2"}}|
 ---------------------------------------------------------
-| {1,2}       | {3,4}       | {"foo","bar"}| {"bar","foo"}|
+| (null)      | {{{3,4},{0,0}}}| {"foo","bar"}| (null)      |
 ---------------------------------------------------------
 
 Go 
 * 
-Query sent to backend is "retrieve (arrtest.a[1], arrtest.b[1], arrtest.c[1], arrtest.d[1]) "
----------------------------------------------------------
-| a           | b           | c           | d           |
----------------------------------------------------------
-| (null)      | (null)      | (null)      | (null)      |
----------------------------------------------------------
-| 1           | 1           | foobar      | barfoo      |
----------------------------------------------------------
-| 1           | 3           | foo         | bar         |
----------------------------------------------------------
+Query sent to backend is " retrieve (x = array_dims(arrtest.b)) "
+---------------
+| x           |
+---------------
+| [1:2][1:1][1:2]|
+---------------
+| [1:2][1:2][1:1]|
+---------------
+| [1:1][1:2][1:2]|
+---------------
 
 Go 
 * 
-Query sent to backend is "retrieve (arrtest.all) where arrtest.a[1] < 5 "
----------------------------------------------------------
-| a           | b           | c           | d           |
----------------------------------------------------------
-| {1}         | {1}         | {"foobar"}  | {"barfoo"}  |
----------------------------------------------------------
-| {1,2}       | {3,4}       | {"foo","bar"}| {"bar","foo"}|
----------------------------------------------------------
+Query sent to backend is " retrieve (arrtest.all)          where arrtest.a[1] < 5 and                 arrtest.c = "{"foobar"}"::_char16 "
+-----------------------------------------------------------------------
+| a           | b           | c           | d           | e           |
+-----------------------------------------------------------------------
 
 Go 
 * 
-Query sent to backend is "retrieve (arrtest.all) where arrtest.b[2] < 10 "
+Query sent to backend is "replace arrtest (a[1:2] = "{16,25}",                  b[1:1][1:1][1:2] = "{113, 117}",                   c[1:1] = "{"new_word"}") "
+REPLACE
+Go 
+* 
+Query sent to backend is "retrieve (arrtest.a[1:3],           arrtest.b[1:1][1:2][1:2],           arrtest.c[1:2],            arrtest.d[1:1][1:2]) "
 ---------------------------------------------------------
 | a           | b           | c           | d           |
 ---------------------------------------------------------
-| {1,2}       | {3,4}       | {"foo","bar"}| {"bar","foo"}|
+| {16,25,3}   | (null)      | (null)      | (null)      |
+---------------------------------------------------------
+| {16,25,23}  | (null)      | (null)      | {{"elt1","elt2"}}|
+---------------------------------------------------------
+| (null)      | {{{113,117},{0,0}}}| {"new_word","bar"}| (null)      |
 ---------------------------------------------------------
 
 Go 
 * 
 Query sent to backend is "    retrieve (forty_two = ufp0()) "
-NOTICE:Mar 11 20:19:33:ufp_start: forked UFP[15338]
+NOTICE:Aug 13 12:39:24:ufp_start: forked UFP[18507]
 ---------------
 | forty_two   |
 ---------------
@@ -5690,7 +5953,7 @@ CREATE
 Go 
 * 
 Query sent to backend is " append myclass0 (a=5) "
-APPEND 687512
+APPEND 305196
 Go 
 * 
 Query sent to backend is "retrieve (myclass0.a) "
@@ -5707,11 +5970,11 @@ REPLACE
 Go 
 * 
 Query sent to backend is "append myclass0 (a=10) "
-APPEND 687513
+APPEND 305197
 Go 
 * 
 Query sent to backend is "append myclass0 (a=20) "
-APPEND 687514
+APPEND 305198
 Go 
 * 
 Query sent to backend is "replace myclass0 (a=10) where myclass0.a < 10 "
@@ -5743,18 +6006,17 @@ REPLACE
 Go 
 * 
 Query sent to backend is " append myclass0 (a=100) "
-APPEND 687523
+APPEND 305207
 Go 
-* I live to serve you.
-tuple 0: got
+* tuple 0: got
 	 i=(4 bytes) 1,
 	 d=(4 bytes) 3.567000,
-	 p=(72 bytes) 2 points,
+	 p=(68 bytes) 2 points,
 		 boundbox=(hi=3.000000,4.000000 / lo=1.000000,2.000000)
 tuple 1: got
 	 i=(4 bytes) 2,
 	 d=(4 bytes) 89.050003,
-	 p=(72 bytes) 2 points,
+	 p=(68 bytes) 2 points,
 		 boundbox=(hi=4.000000,3.000000 / lo=2.000000,1.000000)
 #!/bin/sh
 #
@@ -5766,7 +6028,8 @@ export DATABASE
 export PGHOST
 #
 SMGR=d
-HERE=/private/aoki/postgres/src/regress/regress/obj/..
+HERE=/faerie/aoki/postgres/src/regress/regress
+THERE=/faerie/aoki/postgres/src/regress/regress/obj
 #
 
 #
@@ -5783,7 +6046,7 @@ drwx------ 1 postgres  system   0 Dec 31  1969 /
 #
 icopy in -d $DATABASE -s $SMGR -v $HERE/../data/dept.data /dept.data1 \
 	|| exit 1
-/private/aoki/postgres/src/regress/regress/obj/../../data/dept.data -> /dept.data1
+/faerie/aoki/postgres/src/regress/regress/../data/dept.data -> /dept.data1
 #
 # - recursive icopy "in"
 #
@@ -5792,13 +6055,14 @@ icopy in -d $DATABASE -s $SMGR -R $HERE/../data /data1 \
 #
 # - recursive icopy "in" with dotfiles
 #
-cp -f $HERE/../data/dept.data $HERE/obj/.dept.data \
+rm -f $THERE/.dept.data
+cp $HERE/../data/dept.data $THERE/.dept.data \
 	|| exit 1
-icopy in -d $DATABASE -s $SMGR -R -a $HERE/obj /data2 \
+icopy in -d $DATABASE -s $SMGR -R -a $THERE /data2 \
 	|| exit 1
 icopy in -d $DATABASE -s $SMGR -v $HERE/../data/dept.data /data2/dept.data \
 	|| exit 1
-/private/aoki/postgres/src/regress/regress/obj/../../data/dept.data -> /data2/dept.data
+/faerie/aoki/postgres/src/regress/regress/../data/dept.data -> /data2/dept.data
 
 #
 # - absolute pls
@@ -5870,6 +6134,7 @@ destroy.pq
 errors.pq
 fstest.sh
 iportal
+iportal.o
 onek.data
 queries.pq
 regress.o
@@ -5907,6 +6172,7 @@ destroy.pq
 errors.pq
 fstest.sh
 iportal
+iportal.o
 onek.data
 queries.pq
 regress.o
@@ -5931,125 +6197,404 @@ shoe	bob
 #
 prm -rf / \
 	|| exit 1
-rm -f $HERE/obj/.dept.data
+rm -f $THERE/.dept.data
 exit 0
 =============== running error queries ... =================
-Welcome to the C POSTGRES terminal monitor
+Welcome to the POSTGRES terminal monitor
 
 Go 
 * 
 Query sent to backend is "  retrieve (1) "
-WARN:Mar 11 20:21:55:parser: syntax error at or near "1"
+WARN:Aug 13 12:43:18:parser: syntax error at or near "1"
 
 
 Go 
 * 
-Query sent to backend is "  define aggregate newavg1 (sfunc1 = int4pl, 			  sfunc2 = int4inc, 			  initcond1 = "0", 			  initcond2 = "0") "
-WARN:Mar 11 20:21:56:AggregateDefine: must have a final function with two transition functions!
+Query sent to backend is "  attachas nonesuch "
+WARN:Aug 13 12:43:18:parser: syntax error at or near "nonesuch"
+
 
 Go 
 * 
-Query sent to backend is " define aggregate newavg2 (sfunc1 = int4pl, 			  sfunc2 = int2inc, 			  finalfunc = int4div, 			  initcond1 = "0", 			  initcond2 = "0") "
-WARN:Mar 11 20:21:56:AggregateDefine: transition function 1 type (23) != transition function 2 type (21)
+Query sent to backend is " notify pg_class "
+WARN:Aug 13 12:43:18:notify is turned off for 4.0.1 - see the release notes
 
 Go 
 * 
-Query sent to backend is " define aggregate newavg3 (sfunc1 = int4pl, 			  sfunc2 = int4inc, 			  finalfunc = int2div, 			  initcond1 = "0", 			  initcond2 = "0") "
-WARN:Mar 11 20:21:56:AggregateDefine: final function argument type (21) != transition function type (23)
+Query sent to backend is "  retrieve "
+WARN:Aug 13 12:43:18:parser: syntax error at or near ""
+
 
 Go 
 * 
-Query sent to backend is " define aggregate newcnt1 (sfunc2 = int4inc) "
-WARN:Mar 11 20:21:56:AggregateDefine: transition function 2 MUST have an initial value
+Query sent to backend is " retrieve (nonesuch.all) "
+WARN:Aug 13 12:43:18:nonesuch: no such class
+
+
+Go 
+* 
+Query sent to backend is "  delete "
+WARN:Aug 13 12:43:19:parser: syntax error at or near ""
+
+
+Go 
+* 
+Query sent to backend is " delete nonesuch "
+WARN:Aug 13 12:43:19:nonesuch: no such class
+
+
+Go 
+* 
+Query sent to backend is "  destroy "
+WARN:Aug 13 12:43:19:parser: syntax error at or near ""
+
+
+Go 
+* 
+Query sent to backend is " destroy nonesuch "
+WARN:Aug 13 12:43:19:pg_ownercheck: class "nonesuch" not found
+
+Go 
+* 
+Query sent to backend is "     rename "
+WARN:Aug 13 12:43:19:parser: syntax error at or near ""
+
+
+Go 
+* 
+Query sent to backend is " rename nonesuch to newnonesuch "
+WARN:Aug 13 12:43:19:pg_ownercheck: class "nonesuch" not found
+
+Go 
+* 
+Query sent to backend is " rename nonesuch to stud_emp "
+WARN:Aug 13 12:43:19:pg_ownercheck: class "nonesuch" not found
+
+Go 
+* 
+Query sent to backend is " rename stud_emp to pg_stud_emp "
+WARN:Aug 13 12:43:19:renamerel: Illegal class name: "pg_stud_emp" -- pg_ is reserved for system catalogs
+
+Go 
+* 
+Query sent to backend is " rename stud_emp to aggtest "
+WARN:Aug 13 12:43:20:renamerel: relation "aggtest" exists
+
+Go 
+* 
+Query sent to backend is " rename stud_emp to stud_emp "
+WARN:Aug 13 12:43:20:renamerel: relation "stud_emp" exists
+
+Go 
+* 
+Query sent to backend is "   rename nonesuchatt in nonesuchrel to newnonesuchatt "
+WARN:Aug 13 12:43:20:pg_ownercheck: class "nonesuchrel" not found
+
+Go 
+* 
+Query sent to backend is " rename nonesuchatt in emp to newnonesuchatt "
+WARN:Aug 13 12:43:21:renameatt: attribute "nonesuchatt" nonexistent
+
+Go 
+* 
+Query sent to backend is " rename salary in emp to manager "
+WARN:Aug 13 12:43:21:renameatt: attribute "manager" exists
+
+Go 
+* 
+Query sent to backend is " rename salary in emp to oid "
+WARN:Aug 13 12:43:21:renameatt: attribute "oid" exists
+
+Go 
+* 
+Query sent to backend is "  abort "
+NOTICE:Aug 13 12:43:21:UserAbortTransactionBlock and not inprogress state
+ABORT
+Go 
+* 
+Query sent to backend is " end "
+NOTICE:Aug 13 12:43:22:EndTransactionBlock and not inprogress/abort state 
+END
+Go 
+* 
+Query sent to backend is "  define aggregate newavg1 (sfunc1 = int4pl, 			  basetype = int4, 			  stype1 = int4, 			  sfunc2 = int4inc, 			  stype2 = int4,  			  initcond1 = "0", 			  initcond2 = "0") "
+WARN:Aug 13 12:43:22:AggregateDefine: Aggregate must have final function with both transition functions
+
+Go 
+* 
+Query sent to backend is " define aggregate newavg2 (sfunc1 = int4pl, 			  basetype = int4, 			  stype1 = int4, 			  sfunc2 = int2inc, 			  stype2 = int2, 			  finalfunc = int4div, 			  initcond1 = "0", 			  initcond2 = "0") "
+WARN:Aug 13 12:43:23:AggregateDefine: "int4div"("int4", "int2") does not exist
+
+Go 
+* 
+Query sent to backend is " define aggregate newavg3 (sfunc1 = int4pl, 			  basetype = int4, 			  stype1 = int4, 			  sfunc2 = int4inc, 			  stype2 = int4, 			  finalfunc = int2div, 			  initcond1 = "0", 			  initcond2 = "0") "
+WARN:Aug 13 12:43:23:AggregateDefine: "int2div"("int4", "int4") does not exist
+
+Go 
+* 
+Query sent to backend is " define aggregate newcnt1 (sfunc2 = int4inc, 			  stype2 = int4) "
+WARN:Aug 13 12:43:23:AggregateDefine: transition function 2 MUST have an initial value
+
+Go 
+* 
+Query sent to backend is "  remove index "
+WARN:Aug 13 12:43:23:parser: syntax error at or near ""
+
+
+Go 
+* 
+Query sent to backend is " remove index 314159 "
+WARN:Aug 13 12:43:23:parser: syntax error at or near "314159"
+
+
+Go 
+* 
+Query sent to backend is " remove index nonesuch "
+WARN:Aug 13 12:43:23:pg_ownercheck: class "nonesuch" not found
+
+Go 
+* 
+Query sent to backend is "  remove aggregate "
+WARN:Aug 13 12:43:23:parser: syntax error at or near ""
+
+
+Go 
+* 
+Query sent to backend is " remove aggregate 314159 "
+WARN:Aug 13 12:43:23:parser: syntax error at or near "314159"
+
+
+Go 
+* 
+Query sent to backend is " remove aggregate nonesuch "
+WARN:Aug 13 12:43:23:RemoveAggregate: aggregate "nonesuch" does not exist
+
+Go 
+* 
+Query sent to backend is "  remove function () "
+WARN:Aug 13 12:43:23:parser: syntax error at or near "("
+
+
+Go 
+* 
+Query sent to backend is " remove function 314159() "
+WARN:Aug 13 12:43:23:parser: syntax error at or near "314159"
+
+
+Go 
+* 
+Query sent to backend is " remove function nonesuch() "
+WARN:Aug 13 12:43:23:RemoveFunction: function nonesuch() does not exist
+
+Go 
+* 
+Query sent to backend is "  remove type "
+WARN:Aug 13 12:43:23:parser: syntax error at or near ""
+
+
+Go 
+* 
+Query sent to backend is " remove type 314159 "
+WARN:Aug 13 12:43:23:parser: syntax error at or near "314159"
+
+
+Go 
+* 
+Query sent to backend is " remove type nonesuch "
+WARN:Aug 13 12:43:23:pg_ownercheck: type "nonesuch" not found
+
+Go 
+* 
+Query sent to backend is "  remove operator "
+WARN:Aug 13 12:43:24:parser: syntax error at or near ""
+
+
+Go 
+* 
+Query sent to backend is " remove operator equals "
+WARN:Aug 13 12:43:24:parser: syntax error at or near "equals"
+
+
+Go 
+* 
+Query sent to backend is " remove operator === "
+WARN:Aug 13 12:43:24:parser: syntax error at or near ""
+
+
+Go 
+* 
+Query sent to backend is " remove operator int4, int4 "
+WARN:Aug 13 12:43:24:parser: syntax error at or near "int4"
+
+
+Go 
+* 
+Query sent to backend is " remove operator (int4, int4) "
+WARN:Aug 13 12:43:24:RemoveOperator: operator "===" taking "int4" and "int4" does not exist
+
+Go 
+* 
+Query sent to backend is " remove operator === () "
+WARN:Aug 13 12:43:24:parser: syntax error at or near ")"
+
+
+Go 
+* 
+Query sent to backend is " remove operator === (int4) "
+WARN:Aug 13 12:43:24:RemoveOperator: operator "===" taking "int4" does not exist
+
+Go 
+* 
+Query sent to backend is " remove operator === (int4, int4) "
+WARN:Aug 13 12:43:24:RemoveOperator: operator "===" taking "int4" and "int4" does not exist
+
+Go 
+* 
+Query sent to backend is " remove operator = (nonesuch) "
+WARN:Aug 13 12:43:24:RemoveOperator: type "nonesuch" does not exist
+
+Go 
+* 
+Query sent to backend is " remove operator = ( , int4) "
+WARN:Aug 13 12:43:24:parser: syntax error at or near ","
+
+
+Go 
+* 
+Query sent to backend is " remove operator = (nonesuch, int4) "
+WARN:Aug 13 12:43:24:RemoveOperator: type "nonesuch" does not exist
+
+Go 
+* 
+Query sent to backend is " remove operator = (int4, nonesuch) "
+WARN:Aug 13 12:43:24:RemoveOperator: type "nonesuch" does not exist
+
+Go 
+* 
+Query sent to backend is " remove operator = (int4, ) "
+WARN:Aug 13 12:43:24:parser: syntax error at or near ")"
+
+
+Go 
+* 
+Query sent to backend is "  remove rule "
+WARN:Aug 13 12:43:24:parser: syntax error at or near ""
+
+
+Go 
+* 
+Query sent to backend is " remove rule 314159 "
+WARN:Aug 13 12:43:24:parser: syntax error at or near "314159"
+
+
+Go 
+* 
+Query sent to backend is " remove rule nonesuch "
+WARN:Aug 13 12:43:25:prs2GetRuleEventRel: rule "nonesuch" not found
+
+Go 
+* 
+Query sent to backend is " remove tuple rule nonesuch "
+WARN:Aug 13 12:43:25:parser: syntax error at or near "tuple"
+
+
+Go 
+* 
+Query sent to backend is " remove instance rule nonesuch "
+WARN:Aug 13 12:43:25:prs2GetRuleEventRel: rule "nonesuch" not found
+
+Go 
+* 
+Query sent to backend is " remove rewrite rule nonesuch "
+WARN:Aug 13 12:43:25:RewriteGetRuleEventRel: rule "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is "  retrieve (myclass0.a) "
-WARN:Mar 11 20:21:57:read on "myclass0        ": permission denied
+WARN:Aug 13 12:43:26:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " replace myclass0 (a = 10) where myclass0.a < 15 "
-WARN:Mar 11 20:21:57:read on "myclass0        ": permission denied
+WARN:Aug 13 12:43:26:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " replace myclass0 (a = myclass0.a + 1) "
-WARN:Mar 11 20:21:57:read on "myclass0        ": permission denied
+WARN:Aug 13 12:43:26:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " delete myclass0 where myclass0.a >= 100 "
-WARN:Mar 11 20:21:58:read on "myclass0        ": permission denied
+WARN:Aug 13 12:43:27:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " define rule foo is on retrieve to myclass0 do instead nothing "
-WARN:Mar 11 20:21:58:define rule on "myclass0        ": permission denied
+WARN:Aug 13 12:43:27:define rule on "myclass0": permission denied
 
 Go 
-* I live to serve you.
-Welcome to the C POSTGRES terminal monitor
+* Welcome to the POSTGRES terminal monitor
 
 Go 
 * 
-Query sent to backend is "   remove function hobbies "
+Query sent to backend is "   remove function hobbies(person) "
 REMOVE
 Go 
 * 
-Query sent to backend is "remove function hobby_construct "
+Query sent to backend is "remove function hobby_construct(text,text) "
 REMOVE
 Go 
 * 
-Query sent to backend is "remove function equipment "
+Query sent to backend is "remove function equipment(hobbies_r) "
 REMOVE
 Go 
 * 
-Query sent to backend is "remove function user_relns "
+Query sent to backend is "remove function user_relns() "
 REMOVE
 Go 
 * 
-Query sent to backend is "remove function circle_in "
+Query sent to backend is "remove function circle_in(any) "
 REMOVE
 Go 
 * 
-Query sent to backend is "remove function circle_out "
+Query sent to backend is "remove function circle_out(any) "
 REMOVE
 Go 
 * 
-Query sent to backend is "remove function pt_in_circle "
+Query sent to backend is "remove function pt_in_circle(point,circle) "
 REMOVE
 Go 
 * 
-Query sent to backend is "remove function overpaid "
+Query sent to backend is "remove function overpaid(emp) "
 REMOVE
 Go 
 * 
-Query sent to backend is "remove function boxarea "
+Query sent to backend is "remove function boxarea(box) "
 REMOVE
 Go 
 * 
-Query sent to backend is "remove function interpt_pp "
+Query sent to backend is "remove function interpt_pp(path,path) "
 REMOVE
 Go 
 * 
-Query sent to backend is "remove function reverse_c16 "
+Query sent to backend is "remove function reverse_c16(char16) "
 REMOVE
 Go 
 * 
-Query sent to backend is "remove function ufp0 "
+Query sent to backend is "remove function ufp0() "
 REMOVE
 Go 
 * 
-Query sent to backend is "remove function ufp1 "
+Query sent to backend is "remove function ufp1(int4) "
 REMOVE
 Go 
 * 
-Query sent to backend is "remove function ufp2 "
+Query sent to backend is "remove function ufp2(char16,char16) "
 REMOVE
 Go 
 * 
-Query sent to backend is "remove function ufp3 "
+Query sent to backend is "remove function ufp3(text,char) "
 REMOVE
 Go 
 * 
@@ -6232,5 +6777,4 @@ Go
 Query sent to backend is "remove view toyemp "
 REMOVE
 Go 
-* I live to serve you.
-=============== destroying regression database... =================
+* =============== destroying regression database... =================
