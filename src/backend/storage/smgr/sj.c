@@ -50,8 +50,6 @@ static SJCacheHeader	*SJHeader;	/* pointer to cache header in shmem */
 static HTAB		*SJCacheHT;	/* pointer to hash table in shmem */
 static SJCacheItem	*SJCache;	/* pointer to cache metadata in shmem */
 static SJCacheTag	*SJNBlockCache;	/* pointer to nblock cache */
-static SJCacheTag	*DebugBlockEnd;	/* pointer to nblock cache */
-int			*MaoDebugInt = 0x10072000;
 
 #ifndef	HAS_TEST_AND_SET
 
@@ -194,7 +192,6 @@ sjinit()
     cacheblk += SJNBLKSIZE * sizeof(SJCacheTag);
 
     SJCache = (SJCacheItem *) cacheblk;
-    DebugBlockEnd = (SJCacheTag *) cacheblk;
 
     /*
      *  Now initialize the pointer to the shared memory hash table.
@@ -1806,7 +1803,6 @@ _sjfindnblocks(tag)
 	    }
 
 	    /* save cache tag */
-	    if (cachetag >= DebugBlockEnd) _punt();
 	    cachetag->sjct_dbid = mytag.sjct_dbid;
 	    cachetag->sjct_relid = mytag.sjct_relid;
 	    cachetag->sjct_base = mytag.sjct_base;
@@ -1848,7 +1844,6 @@ _sjregnblocks(tag)
 	cachetag = &(SJNBlockCache[i]);
     }
 
-    if (cachetag >= DebugBlockEnd) _punt();
     cachetag->sjct_dbid = tag->sjct_dbid;
     cachetag->sjct_relid = tag->sjct_relid;
     cachetag->sjct_base = tag->sjct_base;
@@ -2086,8 +2081,3 @@ SJInitSemaphore(key)
 }
 
 #endif /* SONY_JUKEBOX */
-
-_punt()
-{
-	elog(NOTICE, "found it");
-}
