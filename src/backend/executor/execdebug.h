@@ -175,6 +175,26 @@
  */
 
 /* ----------------
+ *	tuple count debugging defines
+ * ----------------
+ */
+#ifdef EXEC_TUPLECOUNT
+#define IncrRetrieved(x)	ExecIncrementRetrieved(x)
+#define	IncrAppended(x)		ExecIncrementAppended(x)
+#define	IncrDeleted(x)		ExecIncrementDeleted(x)
+#define	IncrReplaced(x)		ExecIncrementReplaced(x)
+#define	IncrInserted(x)		ExecIncrementInserted(x)
+#define IncrProcessed(x)	ExecIncrementProcessed(x)
+#else
+#define IncrRetrieved(x)
+#define	IncrAppended(x)
+#define	IncrDeleted(x)
+#define	IncrReplaced(x)
+#define	IncrInserted(x)
+#define IncrProcessed(x)
+#endif EXEC_TUPLECOUNT
+
+/* ----------------
  *	memory context debugging defines
  * ----------------
  */
