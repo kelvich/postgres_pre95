@@ -8,6 +8,96 @@ retrieve (1)
 \g
 
 /*
+ * UNSUPPORTED STUFF
+ */
+/* doesn't work */
+attachas nonesuch
+\g
+/* doesn't work */
+notify pg_class
+\g
+
+/*
+ * RETRIEVE
+ */
+/* missing relation name */
+retrieve
+\g
+/* no such relation */
+retrieve (nonesuch.all)
+\g
+
+/*
+ * DELETE
+ */
+/* missing relation name (this had better not wildcard!) */
+delete
+\g
+/* no such relation */
+delete nonesuch
+\g
+
+/*
+ * DESTROY
+ */
+/* missing relation name (this had better not wildcard!) */
+destroy
+\g
+/* no such relation */
+destroy nonesuch
+\g
+
+/*
+ * RENAME
+ */
+
+/* relation renaming */
+
+/* missing relation name */
+rename
+\g
+/* no such relation */
+rename nonesuch to newnonesuch
+\g
+/* no such relation */
+rename nonesuch to stud_emp
+\g
+/* system relation */
+rename stud_emp to pg_stud_emp
+\g
+/* conflict */
+rename stud_emp to aggtest
+\g
+/* self-conflict */
+rename stud_emp to stud_emp
+\g
+
+/* attribute renaming */
+
+/* no such relation */
+rename nonesuchatt in nonesuchrel to newnonesuchatt
+\g
+/* no such attribute */
+rename nonesuchatt in emp to newnonesuchatt
+\g
+/* conflict */
+rename salary in emp to manager
+\g
+/* conflict */
+rename salary in emp to oid
+\g
+
+/*
+ * TRANSACTION STUFF
+ */
+/* not in a xact */
+abort
+\g
+/* not in a xact */
+end
+\g
+
+/*
  * DEFINE AGGREGATE
  */
 /* left out finalfunc */
@@ -32,6 +122,123 @@ define aggregate newavg3 (sfunc1 = int4pl,
 \g
 /* left out initcond2 (for sfunc2) */
 define aggregate newcnt1 (sfunc2 = int4inc)
+\g
+
+/*
+ * REMOVE INDEX
+ */
+/* missing index name */
+remove index
+\g
+/* bad index name */
+remove index 314159
+\g
+/* no such index */
+remove index nonesuch
+\g
+
+/*
+ * REMOVE AGGREGATE
+ */
+/* missing aggregate name */
+remove aggregate
+\g
+/* bad aggregate name */
+remove aggregate 314159
+\g
+/* no such aggregate */
+remove aggregate nonesuch
+\g
+
+/*
+ * REMOVE FUNCTION
+ */
+/* missing function name */
+remove function
+\g
+/* bad function name */
+remove function 314159
+\g
+/* no such function */
+remove function nonesuch
+\g
+
+/*
+ * REMOVE TYPE
+ */
+/* missing type name */
+remove type
+\g
+/* bad type name */
+remove type 314159
+\g
+/* no such type */
+remove type nonesuch
+\g
+
+/*
+ * REMOVE OPERATOR
+ */
+/* missing everything */
+remove operator
+\g
+/* bad operator name */
+remove operator equals
+\g
+/* missing type list */
+remove operator ===
+\g
+/* missing parentheses */
+remove operator int4, int4
+\g
+/* missing operator name */
+remove operator (int4, int4)
+\g
+/* missing type list contents */
+remove operator === ()
+\g
+/* no such operator */
+remove operator === (int4)
+\g
+/* no such operator by that name */
+remove operator === (int4, int4)
+\g
+/* no such type1 */
+remove operator = (nonesuch)
+\g
+/* no such type1 */
+remove operator = ( , int4)
+\g
+/* no such type1 */
+remove operator = (nonesuch, int4)
+\g
+/* no such type2 */
+remove operator = (int4, nonesuch)
+\g
+/* no such type2 */
+remove operator = (int4, )
+\g
+
+/*
+ * REMOVE RULE
+ */
+/* missing rule name */
+remove rule
+\g
+/* bad rule name */
+remove rule 314159
+\g
+/* no such rule */
+remove rule nonesuch
+\g
+/* bad keyword */
+remove tuple rule nonesuch
+\g
+/* no such rule */
+remove instance rule nonesuch
+\g
+/* no such rule */
+remove rewrite rule nonesuch
 \g
 
 /*
