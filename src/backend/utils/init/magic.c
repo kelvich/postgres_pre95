@@ -1,63 +1,103 @@
-static	char	magic_c[] = "$Header$";
+/*
+ *	magic.c		- magic number management routines
+ *
+ *	XXX eventually, should be able to handle version identifiers
+ *	of length != 4.
+ */
 
 #include <sys/file.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <ctype.h>
 #include <strings.h>
 #include "magic.h"
 #include "postgres.h"
 #include "context.h"
 #include "log.h"
 
+RcsId("$Header$");
+
+static char	Pg_verfile[] = PG_VERFILE;
+
+/* Noversion is used as a global variable to disable checking. */
+int		Noversion = 0;
+
 /*
- *	magic.c		- magic number management routines
+ * DatabaseMetaGunkIsConsistent
  *
- *	Currently, only POSTGRES versioning is handled.  Eventually,
- *	routines to load the magic numbers should go here.
+ * Returns 1 iff all version numbers and ownerships are consistent.
  *
- *	XXX eventually, should be able to handle version identifiers
- *	of length != 4.
- *
- *	Noversion is used as a global variable to disable checking.
+ * Note that we have to go through the whole rigmarole of generating the path
+ * and checking the existence of the database whether Noversion is set or not.
  */
 
-static	char	Pg_verfile[] = PG_VERFILE;
-int	Noversion = 0;
+int
+DatabaseMetaGunkIsConsistent(database, path)
+	char	database[], path[];
+{
+	int		isValid;
+	extern char	*GetDataHome();
+	char		*home = GetDataHome();
+	struct stat	statbuf;
+
+	sprintf(path, "%s/data\0", home);
+	isValid = ValidPgVersion(path);
+	sprintf(path, "%s/data/base/%s\0", home, database);
+	isValid = ValidPgVersion(path) || isValid;
+	
+	if (stat(path, &statbuf) < 0)
+		elog(FATAL, "database %s does not exist, bailing out...",
+		     database);
+	
+	return(isValid);
+}
+
 
 /*
  *	ValidPgVersion	- verifies the consistency of the database
  *
- *	Currently, only checks for the existence.  Eventually,
- *	should check that the version numbers are proper.
- *
- *	Returns 1 iff the catalog version is consistent.
+ *	Returns 1 iff the catalog version number (from the version number file
+ *	in the directory specified in "path") is consistent with the backend
+ *	version number.
  */
 
 int
 ValidPgVersion(path)
-char	path[];
+	char	path[];
 {
-	int	fd, len, retval;
-	char	*cp, version[4], buf[MAXPGPATH];
-	int	open(), read();
-	extern	close(), bcopy();
-
-	if ((len = strlen(path)) > MAXPGPATH - sizeof Pg_verfile - 1)
-		elog(FATAL, "ValidPgVersion(%s): path too long");
-	retval = 0;
-	bcopy(path, buf, len);
-	cp = buf + len;
-	*cp++ = '/';
-	bcopy(Pg_verfile, cp, sizeof Pg_verfile);
+	int		fd;
+	char		version[4], buf[MAXPGPATH+1];
+	struct stat	statbuf;
+	u_short		my_uid = getuid();
+	
+	PathSetVersionFilePath(path, buf);
+	
+	if (stat(buf, &statbuf) >= 0) {
+		if (statbuf.st_uid != my_uid)
+			elog(FATAL,
+			     "process userid (%d) != database owner (%d)",
+			     statbuf.st_uid, my_uid);
+	} else
+		return(0);
+	
 	if ((fd = open(buf, O_RDONLY, 0)) < 0) {
 		if (!Noversion)
 			elog(DEBUG, "ValidPgVersion: %s: %m", buf);
 		return(0);
 	}
-	if (read(fd, version, 4) < 4 || version[1] != '.' || version[3] != '\n')
+
+	if (read(fd, version, 4) < 4 ||
+	    !isascii(version[0]) || !isdigit(version[0]) ||
+	    version[1] != '.' ||
+	    !isascii(version[2]) || !isdigit(version[2]) ||
+	    version[3] != '\n')
 		elog(FATAL, "ValidPgVersion: %s: bad format", buf);
-	if (version[2] != '0' + PG_VERSION || version[0] != '0' + PG_RELEASE) {
+	if (version[2] != '0' + PG_VERSION ||
+	    version[0] != '0' + PG_RELEASE) {
 		if (!Noversion)
-			elog(DEBUG, "ValidPgVersion: should be %d.%d not %c.%c",
-				PG_RELEASE, PG_VERSION, version[0], version[2]);
+			elog(DEBUG,
+			     "ValidPgVersion: should be %d.%d not %c.%c",
+			     PG_RELEASE, PG_VERSION, version[0], version[2]);
 		close(fd);
 		return(0);
 	}
@@ -65,30 +105,45 @@ char	path[];
 	return(1);
 }
 
+
 /*
  *	SetPgVersion	- writes the version to a database directory
  */
 
 SetPgVersion(path)
-char	path[];
+	char	path[];
 {
-	int	fd, len;
-	char	*cp, version[4], buf[MAXPGPATH];
-	int	open(), write();
+	int	fd;
+	char	version[4], buf[MAXPGPATH+1];
 
-	if ((len = strlen(path)) > MAXPGPATH - sizeof Pg_verfile - 1)
-		elog(FATAL, "ValidPgVersion(%s): path too long");
-	bcopy(path, buf, len);
-	cp = buf + len;
-	*cp++ = '/';
-	bcopy(Pg_verfile, cp, sizeof Pg_verfile);
+	PathSetVersionFilePath(path, buf);
+	
 	if ((fd = open(buf, O_WRONLY|O_CREAT|O_EXCL, 0666)) < 0)
 		elog(FATAL, "SetPgVersion: %s: %m", buf);
+
 	version[0] = '0' + PG_RELEASE;
 	version[1] = '.';
 	version[2] = '0' + PG_VERSION;
 	version[3] = '\n';
 	if (write(fd, version, 4) != 4)
 		elog(WARN, "SetPgVersion: %s: %m", buf);
+
 	close(fd);
+}
+
+
+/*
+ * PathSetVersionFilePath
+ *
+ * Destructively change "filepathbuf" to contain the concatenation of "path"
+ * and the name of the version file name.
+ */
+
+static
+PathSetVersionFilePath(path, filepathbuf)
+	char	path[], filepathbuf[];
+{
+	if (strlen(path) > (MAXPGPATH - sizeof(Pg_verfile) - 1))
+		elog(FATAL, "PathSetVersionFilePath: %s: path too long");
+	(void) sprintf(filepathbuf, "%s/%s\0", path, Pg_verfile);
 }
