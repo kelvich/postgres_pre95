@@ -315,13 +315,22 @@ match_varid (var_to_test,tlist)
 {
     LispValue i;
     TLE entry = (TLE)NULL;
-	List var1;
+    oid type_var, type_entry;
+    List test_varid;
 
-    foreach (i,tlist) {
+    test_varid = (List) get_varid(var_to_test);
+    type_var = (oid) get_vartype(var_to_test);
+
+    foreach (i,tlist)
+    {
 	entry = CAR(i);
-	if (equal(get_varid(get_expr(entry)),get_varid(var_to_test))
-	 && equal(get_vararraylist(get_expr(entry)), get_vararraylist(var_to_test)))
-	  return(entry);
+	if (equal(get_varid(get_expr(entry)), test_varid))
+	{
+	    if (get_vartype(get_expr(entry)) == type_var)
+	    {
+	    	return(entry);
+	    }
+	}
     }
     return (LispNil);
 }
