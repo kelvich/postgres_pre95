@@ -150,12 +150,16 @@ Multiple sort fields are allowed and are applied from left to right.
    where e.mgr = m.name
    and e.sal > m.sal
 
-/* Retrieve all fields for those employees who make more than
-   the average salary */
+/*
+ * Retrieve all fields for those employees who make more than
+ * the average salary
+ */
 
-   retrieve into temp (e.all)
+   retrieve into avgsal(ave = float8ave {emp.sal}) \eg
+
+   retrieve (e.all)
    from e in emp
-   where e.sal > avg {emp.salary}
+   where e.sal > avgsal.ave \eg
 
 /* retrieve employees's names sorted */
 
@@ -169,17 +173,17 @@ Multiple sort fields are allowed and are applied from left to right.
    from e in emp[\*(lqJanuary 7 1985\*(rq]
    sort by name using <
 
-/* construct a new class, raise, containing 1.1 times all employee's salaries  */
+/* construct a new class, raise, containing 1.1 times all employee's salaries */
 
    retrieve into raise (salary = 1.1 * emp.salary)
 
    /* do a retrieve into a portal */
-   begin
-   retrieve portal myportal (pg_user.all)
-   fetch 2 from myportal
-   fetch all from myportal
-   close myportal
-   end
+   begin \eg
+   retrieve portal myportal (pg_user.all) \eg
+   fetch 2 from myportal \eg
+   fetch all from myportal \eg
+   close myportal \eg
+   end \eg
 
 .uh "SEE ALSO"
 .lp
@@ -203,10 +207,12 @@ database DBA, but a subsequent
 .b into
 to the same name will fail with a cryptic error message about "BlockExtend".
 A solution to this problem is being investigated and will be released in
-Version 4.
+Version 4.1.
 .lp
 .q "Retrieve iportal"
 returns data in an architecture dependent format, namely that of the
 server on which the backend is running.  A standard data format should
 be adopted, most likely XDR.  At that point, there will be no need to
 distinguish among external and internal data.
+.lp
+Aggregate functions must appear in the target list.
