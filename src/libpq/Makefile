@@ -8,6 +8,7 @@ LIB= pq
 
 .PATH:	${.CURDIR}/../backend/libpq \
 	${.CURDIR}/../backend/utils/error \
+	${.CURDIR}/../backend/utils/hash \
 	${.CURDIR}/../backend/lib
 
 CFLAGS+= -DFRONTEND \
@@ -20,7 +21,7 @@ CFLAGS+= ${KRBFLAGS}
 
 SRCS=	fe-dumpdata.c fe-pqexec.c fe-pqstubs.c fe-pqufs.c \
 	auth.c portal.c portalbuf.c pqcomm.c pqpacket.c \
-	format.c simplelists.c
+	dynahash.c format.c hashfn.c simplelists.c
 
 .if (${PORTNAME} == "sparc")
 NOPROFILE=1
