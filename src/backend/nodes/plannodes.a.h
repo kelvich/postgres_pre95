@@ -89,6 +89,8 @@ extern void set_jri_stubid ARGS((JoinRuleInfo node, Prs2StubId value));
 extern Prs2StubId get_jri_stubid ARGS((JoinRuleInfo node));
 extern void set_jri_stub ARGS((JoinRuleInfo node, Prs2OneStub value));
 extern Prs2OneStub get_jri_stub ARGS((JoinRuleInfo node));
+extern void set_jri_stats ARGS((JoinRuleInfo node, Prs2StubStats value));
+extern Prs2StubStats get_jri_stats ARGS((JoinRuleInfo node));
 extern void set_nlstate ARGS((NestLoop node, NestLoopState value));
 extern NestLoopState get_nlstate ARGS((NestLoop node));
 extern void set_mergeclauses ARGS((MergeJoin node, List value));

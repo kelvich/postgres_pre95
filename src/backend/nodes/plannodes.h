@@ -392,6 +392,7 @@ class (JoinRuleInfo) public (Node) {
 	ObjectId	jri_ruleid;
 	Prs2StubId	jri_stubid;
 	Prs2OneStub	jri_stub;
+	Prs2StubStats	jri_stats;
  /* public: */
 };
 
