@@ -1,8 +1,36 @@
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.GS C
-pointscale on
-width 5.5i
-height 10i
-file ./files/page.g
-.GE
+.PS
+.in +0.5i
+.ps 11
+box with .sw at (0.99,6.01) width 5.50 height 3.50
+line from 0.988,9.012 to 6.487,9.012
+line from 3.737,9.512 to 3.737,9.012
+line from 5.112,9.512 to 5.112,9.012
+dashwid = 0.050i
+line dashed from 2.362,9.512 to 2.362,9.012
+line dashed from 3.050,9.512 to 3.050,9.012
+line dashed from 1.675,9.512 to 1.675,9.012
+line from 3.737,6.013 to 3.737,6.513 to 6.487,6.513
+line from 0.988,7.763 to 2.362,7.763 to 2.362,8.262 to 6.487,8.262
+line from 0.988,7.263 to 5.112,7.263 to 5.112,7.763 to 6.487,7.763
+line dashed from 2.362,7.763 to 5.112,7.763
+line dashed from 5.112,8.262 to 5.112,7.763
+line dashed from 4.300,8.262 to 4.300,7.763
+dashwid = 0.037i
+line dotted <-> from 2.425,8.325 to 6.425,8.325
+line dotted <-> from 1.050,9.575 to 3.675,9.575
+line dotted <-> from 3.800,9.575 to 5.050,9.575
+line dotted <-> from 5.175,9.575 to 6.425,9.575
+"\s10\fRitemPointerData\fP" at 2.925,7.978 ljust
+"\s10\fRfiller\fP" at 4.562,7.978 ljust
+"\s10\fRitemData...\fP" at 5.513,7.978 ljust
+"\s10\fIUnallocated Space\fP" at 3.237,8.753 ljust
+"\s10\fBItemContinuationData\fP" at 3.663,8.415 ljust
+"\s10\fISpecial Space\fP" at 4.688,6.240 ljust
+"\s10\fI``ItemData 2''\fP" at 2.587,7.478 ljust
+"\s10\fI``ItemData 1''\fP" at 3.413,6.865 ljust
+"\s10\fBItemIdData\fP" at 4.775,9.715 ljust
+"\s10\fBPageHeaderData\fP" at 1.875,9.715 ljust
+.in -0.5i
+.PE
