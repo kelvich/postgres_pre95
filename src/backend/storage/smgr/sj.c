@@ -1529,16 +1529,8 @@ SJShmemSize()
     int nbuckets;
     int nsegs;
 
-    nbuckets = 1 << my_log2((SJCACHESIZE - 1) / DEF_FFACTOR + 1);
-    nsegs = 1 << my_log2((nbuckets - 1) / DEF_SEGSIZE + 1);
-
-    /* size of shared memory binding table */
-    size = my_log2(BTABLE_SIZE) + sizeof(HHDR)
-            + DEF_SEGSIZE * sizeof(SEGMENT) + BUCKET_ALLOC_INCR *
-            (sizeof(BUCKET_INDEX) + BTABLE_KEYSIZE + BTABLE_DATASIZE);
-
     /* size of cache metadata */
-    size += ((SJCACHESIZE + 1) * sizeof(SJCacheItem)) + sizeof(SJCacheHeader);
+    size = ((SJCACHESIZE + 1) * sizeof(SJCacheItem)) + sizeof(SJCacheHeader);
 #ifndef HAS_TEST_AND_SET
     size += sizeof(*SJNWaiting);
 #endif /* ndef HAS_TEST_AND_SET */

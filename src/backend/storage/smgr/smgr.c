@@ -45,6 +45,11 @@ extern int	sjextend(), sjopen(), sjclose(), sjread();
 extern int	sjwrite(), sjflush(), sjblindwrt(), sjnblocks();
 extern int	sjcommit(), sjabort();
 
+extern int	mminit(), mmshutdown(), mmcreate(), mmunlink();
+extern int	mmextend(), mmopen(), mmclose(), mmread();
+extern int	mmwrite(), mmflush(), mmblindwrt(), mmnblocks();
+extern int	mmcommit(), mmabort();
+
 static f_smgr smgrsw[] = {
 
     /* magnetic disk */
@@ -53,7 +58,11 @@ static f_smgr smgrsw[] = {
 
     /* sony jukebox */
     { sjinit, sjshutdown, sjcreate, sjunlink, sjextend, sjopen, sjclose,
-      sjread, sjwrite, sjflush, sjblindwrt, sjnblocks, sjcommit, sjabort }
+      sjread, sjwrite, sjflush, sjblindwrt, sjnblocks, sjcommit, sjabort },
+
+    /* main memory */
+    { mminit, mmshutdown, mmcreate, mmunlink, mmextend, mmopen, mmclose,
+      mmread, mmwrite, mmflush, mmblindwrt, mmnblocks, mmcommit, mmabort }
 };
 
 static int NSmgr = lengthof(smgrsw);

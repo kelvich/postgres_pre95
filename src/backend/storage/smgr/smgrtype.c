@@ -12,12 +12,23 @@ RcsId("$Header$");
 
 typedef struct smgrid {
 	char *smgr_name;
-	int2 smgr_id;
 } smgrid;
 
+/*
+ *  StorageManager[] -- List of defined storage managers.
+ *
+ *	The weird comma placement is to keep compilers happy no matter
+ *	which of these is (or is not) defined.
+ */
+
 static smgrid StorageManager[] = {
-	"magnetic disk",	0,
-	"sony jukebox", 	1
+	"magnetic disk"
+#ifdef SONY_JUKEBOX
+	, "sony jukebox"
+#endif /* SONY_JUKEBOX */
+#ifdef MAIN_MEMORY
+	, "main memory"
+#endif /* MAIN_MEMORY */
 };
 
 static int NStorageManagers = lengthof(StorageManager);
@@ -30,7 +41,7 @@ smgrin(s)
 
     for (i = 0; i < NStorageManagers; i++) {
 	if (strcmp(s, StorageManager[i].smgr_name) == 0)
-	    return(StorageManager[i].smgr_id);
+	    return((int2) i);
     }
     elog(WARN, "smgrin: illegal storage manager name %s", s);
 }
