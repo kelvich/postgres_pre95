@@ -139,69 +139,82 @@ my_find ( string, list )
     }
     return(retval);
 }
-static char *retrieve_rule_template =
-"(\"_r%s\" retrieve (\"%s\") nil 1 (((1 replace 1 ((\"*CURRENT*\" \"%s\" %d 0 nil nil)(\"*NEW*\" \"%s\" %d 0 nil nil) \"rtable\") 0 nil nil nil ) \"tlist\" \"qual\" )) (1.0 . 0.0 ))";
 
 List
-FormViewRetrieveRule ( view_name,  view_tlist, view_rt, view_qual )
-     Name view_name;
-     List view_tlist;
-     List view_rt;
-     List view_qual;
+FormViewRetrieveRule (view_name, view_parse)
+Name view_name;
+List view_parse;
 {
-    static char retrieve_rule_string[8192];
-    List retrieve_rule 		= NULL;
-    oid view_reloid 		= (oid)33376;
-    List retrieve_rule_rtable	;
-    List retrieve_rule_tlist	;
-    List retrieve_rule_qual	;
-
-    sprintf ( retrieve_rule_string ,
-	     retrieve_rule_template,
-	     view_name,
-	     view_name,
-	     view_name,
-	     view_reloid,
-	     view_name,
-	     view_reloid
-	     );
-
-    retrieve_rule = (List)StringToPlan ( retrieve_rule_string );
-
-    retrieve_rule_rtable = my_find ( "rtable", retrieve_rule );
-    CAR(retrieve_rule_rtable) = CAR(view_rt);
-    CDR(retrieve_rule_rtable) = CDR(view_rt);
-
-    retrieve_rule_tlist = my_find ( "tlist", retrieve_rule );
-    CAR(retrieve_rule_tlist) = view_tlist;
-
-    retrieve_rule_qual = my_find ( "qual", retrieve_rule );
-    CAR(retrieve_rule_qual) = view_qual;
-
-    return (retrieve_rule);
     
+    char rname[100];
+    List p, q, target, rt;
+    List lispCopy();
+
+    /*
+     * Create a parse tree that corresponds to the suitable
+     * tuple level rule...
+     */
+    p = LispNil;
+    /*
+     * this is an instance-level rule... (or tuple-level
+     * for the traditionalists)
+     */
+    p = nappend1(p, lispAtom("instance"));
+    /*
+     * the second item in the list is the so called 'hint' : "(rule nil)"
+     */
+    p = nappend1(p, lispCons(lispAtom("rule"), lispCons(LispNil, LispNil)));
+    /*
+     * rule name now...
+     * Note that we handle the cases where the rule name is more
+     * than 16 chars long... I feel really proud of my defensive
+     * programming style !!!!!
+     */
+    sprintf(rname, "ret_%s", view_name);
+    rname[15] = 0;
+    p = nappend1(p, lispString(rname));
+    /*
+     * The next item is a big one...
+     * First the 'event type' (retrieve), then the 'target' (the
+     * view relation), then the 'rule qual' (no qualification in this
+     * case), then the 'instead' information (yes, this is an instead
+     * rule!) and finally the 'rule actions', whish is nothing else from
+     * a list containing the view parse!
+     */
+    q = LispNil;
+    q = nappend1(q, lispAtom("retrieve"));
+    target = lispCons(lispString(view_name), LispNil);
+    q = nappend1(q, target);
+    q = nappend1(q, LispNil);
+    q = nappend1(q, lispInteger(1));
+    q = nappend1(q, lispCons(lispCopy(view_parse), LispNil));
+    p = nappend1(p, q);
+    /*
+     * now our final item, the range table...
+     */
+    rt = lispCopy(root_rangetable(parse_root(view_parse)));
+    p = nappend1(p, rt);
+
+    return(p);
+
 }
 
 
 static void
-DefineViewRules ( view_name,  view_tlist, view_rt, view_qual )
-     Name view_name;
-     List view_tlist;
-     List view_rt;
-     List view_qual;
+DefineViewRules (view_name, view_parse)
+Name view_name;
+List view_parse;
 {
     List retrieve_rule		= NULL;
+    char ruleText[1000];
 #ifdef NOTYET
     List replace_rule		= NULL;
     List append_rule		= NULL;
     List delete_rule		= NULL;
 #endif
 
-    OffsetVarNodes ( view_tlist, 2 );
-    OffsetVarNodes ( view_qual, 2 );
-
     retrieve_rule = 
-      FormViewRetrieveRule ( view_name, view_tlist , view_rt, view_qual );
+      FormViewRetrieveRule (view_name, view_parse);
 
 #ifdef NOTYET
     
@@ -214,7 +227,9 @@ DefineViewRules ( view_name,  view_tlist, view_rt, view_qual )
 
 #endif
 
-    DefineQueryRewrite ( retrieve_rule );
+    sprintf(ruleText, "retrieve rule for view %s", view_name);
+    prs2DefineTupleRule(retrieve_rule, ruleText);
+
 #ifdef NOTYET
     DefineQueryRewrite ( replace_rule );
     DefineQueryRewrite ( append_rule );
@@ -232,18 +247,101 @@ DefineViewRules ( view_name,  view_tlist, view_rt, view_qual )
  *		over the "virtual" relation
  */
 
-DefineView ( view_name, view_parse )
-     Name view_name;
-     List view_parse;
+DefineView(view_name, view_parse)
+Name view_name;
+List view_parse;
 {
-    List view_tlist 	= parse_targetlist( view_parse );
-    List view_rt 	= root_rangetable ( parse_root ( view_parse ));
-    List view_qual 	= parse_qualification( view_parse );
 
-    if ( getreldesc (view_name) == NULL ) 
-      DefineVirtualRelation ( view_name , view_tlist );
+    List view_tlist;
 
-    DefineViewRules ( view_name, view_tlist, view_rt, view_qual );
+    view_tlist = parse_targetlist( view_parse );
+
+    /*
+     * Create the "view" (if it does not already exist).
+     * XXX: should we complain if it alrready exists ?
+     */
+    if ( getreldesc (view_name) == NULL ) {
+	DefineVirtualRelation (view_name ,view_tlist);
+	/*
+	 * The relation we have just created is not visible
+	 * to any other commands running with the same transaction &
+	 * command id.
+	 * So, increment the command id counter (but do NOT pfree any
+	 * memory!!!!)
+	 */
+	CommandCounterIncrement();
+    }
+
+    /*
+     * The range table of 'view_parse' does not contain entries
+     * for the "CURRENT" and "NEW" relations.
+     * So... add them!
+     * NOTE: we make the update in place! After this call 'view_parse' 
+     * will never be what it used to be...
+     */
+    UpdateRangeTableOfViewParse(view_name, view_parse);
+    DefineViewRules(view_name, view_parse);
+
 
 }
 
+/*---------------------------------------------------------------
+ * UpdateRangeTableOfViewParse
+ *
+ * Update the range table of the given parsetree.
+ * This update consists of adding two new entries IN THE BEGINNING
+ * of the range table (otherwise the rule system will die a slow,
+ * horrible and painful death, and we do not want that now, do we?)
+ * one for the CURRENT relation and one for the NEW one (both of
+ * them refer in fact to the "view" relation).
+ *
+ * Of course we must also increase the 'varnos' of all the Var nodes
+ * by 2...
+ *
+ * NOTE: these are destructive changes. It would be difficult to
+ * make a complete copy of the parse tree and make the changes
+ * in the copy. 'lispCopy' is not enough because it onyl does a high
+ * level copy (i.e. the Var nodes remain the same, so the varno offset
+ * will update both parsetrees) and I am not confident that
+ * 'copyfuncs.c' are bug free...
+ *---------------------------------------------------------------
+ */
+void
+UpdateRangeTableOfViewParse(view_name, view_parse)
+Name view_name;
+List view_parse;
+{
+    List old_rt;
+    List new_rt;
+    List root;
+    List rt_entry1, rt_entry2;
+    List MakeRangeTableEntry();
+
+    /*
+     * first offset all var nodes by 2
+     */
+    OffsetVarNodes(view_parse, 2);
+
+    /*
+     * find the old range table...
+     */
+    root = parse_root(view_parse);
+    old_rt = root_rangetable(root);
+
+    /*
+     * create the 2 new range table entries and form the new
+     * range table...
+     * CURRENT first, then NEW....
+     */
+    rt_entry1 = MakeRangeTableEntry(view_name, LispNil, "*CURRENT*");
+    rt_entry2 = MakeRangeTableEntry(view_name, LispNil, "*NEW*");
+    new_rt = lispCons(rt_entry2, old_rt);
+    new_rt = lispCons(rt_entry1, new_rt);
+
+    /*
+     * Now the tricky part....
+     * Update the range table in place... Be careful here, or
+     * hell breaks loooooooooooooOOOOOOOOOOOOOOOOOOSE!
+     */
+    root_rangetable(root) = new_rt;
+}
