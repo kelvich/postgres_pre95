@@ -210,6 +210,7 @@ bool		bufferLockHeld;
     /* IO Failed.  cleanup the data structures and go home */
 
     if (! BufTableDelete(bufHdr)) {
+      SpinRelease(BufMgrLock);
       elog(FATAL,"BufRead: buffer table broken after IO error\n");
     }
     /* remember that BufferAlloc() pinned the buffer */
@@ -346,6 +347,7 @@ bool		bufferLockHeld;
    */
 
   if (! BufTableDelete(buf)) {
+    SpinRelease(BufMgrLock);
     elog(FATAL,"buffer wasn't in the buffer table\n");
   }
 
@@ -369,6 +371,7 @@ bool		bufferLockHeld;
 
   INIT_BUFFERTAG(&(buf->tag),reln,blockNum);
   if (! BufTableInsert(buf)) {
+    SpinRelease(BufMgrLock);
     elog(FATAL,"Buffer in lookup table twice \n");
   } 
 
@@ -391,7 +394,7 @@ bool		bufferLockHeld;
   if (oldbufdesc.flags & BM_DIRTY) {
      (void) BlockReplace(&oldbufdesc);
      BufferFlushCount++;
-    } 
+  } 
   return (buf);
 }
 
@@ -578,9 +581,9 @@ Buffer	buffer;
       if (bufHdr->refcount == 0) {
 	  AddBufferToFreelist(bufHdr);
 	  bufHdr->flags |= BM_FREE;
-	}
+      }
       SpinRelease(BufMgrLock);
-    }
+  }
 
   return(STATUS_OK);
 }
