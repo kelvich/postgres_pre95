@@ -1570,10 +1570,11 @@ _bm_trace(relId, blkNo, bufNo, allocType)
 		break;
 	    } else {
 
+		if (tb->bmt_op == BMT_DEALLOC)
+		    break;
+
 		/* die holding the buffer lock */
-		if (tb->bmt_op != BMT_DEALLOC) {
-		    _bm_die(relId, blkNo, bufNo, allocType, start, cur);
-		}
+		_bm_die(relId, blkNo, bufNo, allocType, start, cur);
 	    }
 	}
 
@@ -1625,11 +1626,11 @@ _bm_die(relId, blkNo, bufNo, allocType, start, cur)
     for (;;) {
 	tb = &TraceBuf[i];
 	if (tb->bmt_op != BMT_NOTUSED) {
-	    fprintf(fp, "\tpid %d buf %d for <%d,%d,%d> %s%s\n",
+	    fprintf(fp, "    [%2d]%spid %d buf %d for <%d,%d,%d> %s%s\n",
+		    i, (i == cur ? "   ---> " : "\t"),
 		    tb->bmt_pid, tb->bmt_buf,
 		    tb->bmt_dbid, tb->bmt_relid, tb->bmt_blkno,
-		    (tb->bmt_op == BMT_ALLOC ? "allocate" : "deallocate"),
-		    (i == cur ? " *****" : ""));
+		    (tb->bmt_op == BMT_ALLOC ? "allocate" : "deallocate"));
 	}
 
 	i = (i + 1) % BMT_LIMIT;
