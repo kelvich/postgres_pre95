@@ -211,8 +211,7 @@ new_relation_targetlist (relid,rt_index,node_type)
 	       
 	   case T_Const:
 	     { 
-		 struct varlena *typedefault = get_typdefault (lispInteger
-							       (atttype));
+		 struct varlena *typedefault = get_typdefault (atttype);
 		 int temp = 0;
 		 Const temp2 = (Const)NULL;
 		 TLE temp3 = (TLE)NULL;
