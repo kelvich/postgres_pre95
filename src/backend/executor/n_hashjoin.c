@@ -619,6 +619,15 @@ ExecEndHashJoin(node)
     hjstate = get_hashjoinstate(node);
 
     /* ----------------
+     * free hash table in case we end plan before all tuples are retrieved
+     * ---------------
+     */
+    if (get_hj_HashTable(hjstate)) {
+	ExecHashTableDestroy(get_hj_HashTable(hjstate));
+	set_hj_HashTable(hjstate, NULL);
+      }
+
+    /* ----------------
      *	Free the projection info and the scan attribute info
      *
      *  Note: we don't ExecFreeResultType(hjstate) 

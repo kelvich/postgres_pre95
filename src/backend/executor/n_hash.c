@@ -383,10 +383,10 @@ ExecHashTableCreate(node)
 #else /* sequent */
     /* ----------------
      *  in non-parallel machines, we don't need to put the hash table
-     *  in the shared memory.  We just malloc it.
+     *  in the shared memory.  We just palloc it.
      * ----------------
      */
-    hashtable = (HashJoinTable)malloc((HashTBSize+1)*BLCKSZ);
+    hashtable = (HashJoinTable)palloc((HashTBSize+1)*BLCKSZ);
 #endif /* sequent */
 
     if (hashtable == NULL) {
@@ -623,7 +623,7 @@ ExecHashTableDestroy(hashtable)
 #ifdef sequent
     IPCPrivateMemoryKill(0, hashtable->shmid);
 #else /* sequent */
-    free((char *)hashtable);
+    pfree((Pointer)hashtable);
 #endif /* sequent */
 }
 
@@ -722,9 +722,9 @@ ExecHashOverflowInsert(hashtable, bucket, heapTuple)
 	 * ------------------
 	 */
 	hashtable->readbuf = hashtable->bottom = 2 * hashtable->bottom;
-	hashtable = (HashJoinTable)realloc(hashtable, hashtable->bottom+BLCKSZ);
+	hashtable = (HashJoinTable)repalloc(hashtable, hashtable->bottom+BLCKSZ);
 	if (hashtable == NULL) {
-	    perror("realloc");
+	    perror("repalloc");
 	    elog(WARN, "can't expand hashtable.");
 	  }
 #endif
