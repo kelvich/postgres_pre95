@@ -35,6 +35,7 @@
 #include "planner/clausesel.h"
 #include "planner/relnode.h"
 #include "planner/internal.h"
+#include "planner/costsize.h"
 #include "parser/parse.h"
 #include "planner/keys.h"
 #include "planner/tlist.h"
@@ -114,9 +115,9 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
     CInfo maxcinfo;		/* clause to pullup */
     LispValue primjoinclause	/* primary join clause */
       = xfunc_primary_join(parentpath);
-    double tmpmeasure, maxmeasure = 0; /* measures of clauses */
-    double joinselec = 0;	/* selectivity of the join predicate */
-    double joincost = 0;	/* join cost + primjoinclause cost */
+    Cost tmpmeasure, maxmeasure = 0; /* measures of clauses */
+    Cost joinselec = 0;	/* selectivity of the join predicate */
+    Cost joincost = 0;	/* join cost + primjoinclause cost */
     int retval = XFUNC_LOCPRD;
 
     clauselist = get_locclauseinfo(childpath);
@@ -165,12 +166,12 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
     ** calculated by xfunc_expense(), since the actual joining 
     ** (i.e. the usual path_cost) is paid for by the primary join clause.
     ** The cost of the join clause is the cost of the primary join clause
-    ** plus the cost_per_tuple of whichchild for the join method.
+    ** plus the expense_per_tuple of whichchild for the join method.
     */
     if (primjoinclause != LispNil)
      {
 	 joinselec = compute_clause_selec(primjoinclause, LispNil);
-	 joincost = xfunc_cost_per_tuple(parentpath, whichchild) 
+	 joincost = xfunc_expense_per_tuple(parentpath, whichchild) 
 	   + xfunc_expense(primjoinclause);
 	 if (joinselec != 1.0 &&
 	     xfunc_measure(get_clause(maxcinfo)) > 
@@ -205,7 +206,8 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
 {
     Path newkid;
     Rel newrel;
-    double pulled_selec;
+    Cost pulled_selec;
+    Cost cost;
 
     /* remove clause from childpath */
     if (clausetype == XFUNC_LOCPRD)
@@ -234,17 +236,19 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
     set_pathlist(newrel, lispCons((LispValue)newkid, LispNil));
     set_unorderedpath(newrel, (PathPtr)newkid);
     set_cheapestpath(newrel, (PathPtr)newkid);
-    set_tuples(newrel, get_tuples(get_parent(childpath)) / pulled_selec);
-    set_pages(newrel, get_pages(get_parent(childpath)) / pulled_selec);
+    set_tuples(newrel, 
+	       (Count)((Cost)get_tuples(get_parent(childpath)) / pulled_selec));
+    set_pages(newrel, 
+	      (Count)((Cost)get_pages(get_parent(childpath)) / pulled_selec));
     
     /* 
     ** fix up path cost of newkid.  To do this we subtract away all the
     ** xfunc_costs of childpath, then recompute the xfunc_costs of newkid
     */
-    set_path_cost(newkid, get_path_cost(newkid) 
-		  - xfunc_get_path_cost(childpath));
-    set_path_cost(newkid, get_path_cost(newkid)
-		  + xfunc_get_path_cost(newkid));
+    cost = get_path_cost(newkid) - xfunc_get_path_cost(childpath);
+    set_path_cost(newkid, cost);
+    cost = get_path_cost(newkid) + xfunc_get_path_cost(newkid);
+    set_path_cost(newkid, cost);
 
     /* 
     ** Fix all vars in the clause 
@@ -270,7 +274,8 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
     ** recompute parentpath cost from scratch -- the cost
     ** of the join method has changed
     */
-    set_path_cost(parentpath, xfunc_total_path_cost(parentpath));
+    cost = xfunc_total_path_cost(parentpath);
+    set_path_cost(parentpath, cost);
 }
 
 /*
@@ -278,11 +283,11 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
 ** (note that expense >= 0, and selectivity <=1 by definition, so this will 
 ** never calculate a negative number except -1.)
 */
-double xfunc_measure(clause)
+Cost xfunc_measure(clause)
      LispValue clause;
 {
-    double selec;  /* selectivity of clause */
-    double denom;  /* denominator of expression (i.e. 1 - selec) */
+    Cost selec;  /* selectivity of clause */
+    Cost denom;  /* denominator of expression (i.e. 1 - selec) */
 
     selec = compute_clause_selec(clause, LispNil);
     denom = 1.0 - selec;
@@ -295,10 +300,10 @@ double xfunc_measure(clause)
 ** Recursively find the per-tuple expense of a clause.  See
 ** xfunc_func_expense for more discussion.
 */
-double xfunc_expense(clause)
+Cost xfunc_expense(clause)
     LispValue clause;
 {
-    double cost = 0;   /* running expense */
+    Cost cost = 0;   /* running expense */
     LispValue tmpclause;
 
     /* First handle the base case */
@@ -347,7 +352,7 @@ double xfunc_expense(clause)
 ** accessing secondary or tertiary storage, since we don't have sufficient
 ** stats to do it right.
 */
-double xfunc_func_expense(node, args)
+Cost xfunc_func_expense(node, args)
 LispValue node;
 LispValue args;
 {
@@ -355,7 +360,7 @@ LispValue args;
     Form_pg_proc proc; /* a data structure to hold the pg_proc tuple */
     int width = 0;     /* byte width of the field referenced by each clause */
     regproc funcid;    /* ID of function associate with node */
-    double cost = 0;   /* running expense */
+    Cost cost = 0;   /* running expense */
     LispValue tmpclause;
 
     if (IsA(node,Oper))
@@ -430,8 +435,9 @@ LispValue args;
 	 ** and tertiary storage here.
 	 */
 	 return(cost +  
-		proc->propercall_cpu + 
-		proc->properbyte_cpu * proc->probyte_pct/100.00 * width
+		(Cost)proc->propercall_cpu + 
+		(Cost)proc->properbyte_cpu * (Cost)proc->probyte_pct/100.00 * 
+		(Cost)width
 	     /* 
                    * Pct_of_obj_in_mem
 		DISK_COST * proc->probyte_pct/100.00 * width
@@ -596,7 +602,7 @@ LispValue xfunc_primary_join(pathnode)
     CInfo mincinfo;
     LispValue tmplist;
     LispValue minclause;
-    double minmeasure, tmpmeasure;
+    Cost minmeasure, tmpmeasure;
 
     if (IsA(pathnode,MergePath)) 
      {
@@ -650,12 +656,12 @@ LispValue xfunc_primary_join(pathnode)
 ** xfunc_get_path_cost
 **   get the expensive function costs of the path
 */
-int xfunc_get_path_cost(pathnode)
+Cost xfunc_get_path_cost(pathnode)
 Path pathnode;
 {
-    int cost = 0;
+    Cost cost = 0;
     LispValue tmplist;
-    double selec = 1.0;
+    Cost selec = 1.0;
     
     /* 
     ** first add in the expensive local function costs.
@@ -669,8 +675,8 @@ Path pathnode;
 	tmplist != LispNil;
 	tmplist = CDR(tmplist))
      {
-	 cost += xfunc_expense(get_clause((CInfo)CAR(tmplist)))
-	         * get_tuples(get_parent(pathnode)) * selec;
+	 cost += (Cost)(xfunc_expense(get_clause((CInfo)CAR(tmplist)))
+			* (Cost)get_tuples(get_parent(pathnode)) * selec);
 	 selec *= compute_clause_selec(get_clause((CInfo)CAR(tmplist)), 
 				       LispNil);
      }
@@ -688,8 +694,8 @@ Path pathnode;
 	     tmplist != LispNil;
 	     tmplist = CDR(tmplist))
 	  {
-	      cost += xfunc_expense(get_clause((CInfo)CAR(tmplist)))
-		      * get_tuples(get_parent(pathnode)) * selec;
+	      cost += (Cost)(xfunc_expense(get_clause((CInfo)CAR(tmplist)))
+			     * (Cost)get_tuples(get_parent(pathnode)) * selec);
 	      selec *= compute_clause_selec(get_clause((CInfo)CAR(tmplist)),
 					    LispNil);
 	  }
@@ -704,8 +710,8 @@ Path pathnode;
 	     tmplist != LispNil;
 	     tmplist = CDR(tmplist))
 	  {
-	      cost += xfunc_expense(CAR(tmplist))
-		      * get_tuples(get_parent(pathnode)) * selec;
+	      cost += (Cost)(xfunc_expense(CAR(tmplist))
+			     * (Cost)get_tuples(get_parent(pathnode)) * selec);
 	      selec *= compute_clause_selec(CAR(tmplist), LispNil);
 	  }
      }
@@ -719,8 +725,8 @@ Path pathnode;
 	     tmplist != LispNil;
 	     tmplist = CDR(tmplist))
 	  {
-	      cost += xfunc_expense(CAR(tmplist))
-		      * get_tuples(get_parent(pathnode)) * selec;
+	      cost += (Cost)(xfunc_expense(CAR(tmplist))
+			     * (Cost)get_tuples(get_parent(pathnode)) * selec);
 	      selec *= compute_clause_selec(CAR(tmplist), LispNil);
 	  }
      }
@@ -733,66 +739,68 @@ Path pathnode;
 ** We need to do this to the parent after pulling a clause from a child into a
 ** parent.  Thus we should only be calling this function on JoinPaths.
 */
-int xfunc_total_path_cost(pathnode)
+Cost xfunc_total_path_cost(pathnode)
 JoinPath pathnode;
 {
-    int cost = xfunc_get_path_cost((Path)pathnode);
+    Cost cost = xfunc_get_path_cost((Path)pathnode);
 
     Assert(IsA(pathnode,JoinPath));
     if (IsA(pathnode,MergePath))
      {
 	 MergePath mrgnode = (MergePath)pathnode;
-	 return(cost + 
-		cost_mergesort(get_path_cost((Path)get_outerjoinpath(mrgnode)),
-			       get_path_cost((Path)get_innerjoinpath(mrgnode)),
-			       get_outersortkeys(mrgnode),
-			       get_innersortkeys(mrgnode),
-			       get_tuples(get_parent((Path)get_outerjoinpath
+	 cost += cost_mergesort(get_path_cost((Path)get_outerjoinpath(mrgnode)),
+				get_path_cost((Path)get_innerjoinpath(mrgnode)),
+				get_outersortkeys(mrgnode),
+				get_innersortkeys(mrgnode),
+				get_tuples(get_parent((Path)get_outerjoinpath
+						      (mrgnode))),
+				get_tuples(get_parent((Path)get_innerjoinpath
+						      (mrgnode))),
+				get_width(get_parent((Path)get_outerjoinpath
 						     (mrgnode))),
-			       get_tuples(get_parent((Path)get_innerjoinpath
-						     (mrgnode))),
-			       get_width(get_parent((Path)get_outerjoinpath
-						    (mrgnode))),
-			       get_width(get_parent((Path)get_innerjoinpath
-						    (mrgnode)))));
+				get_width(get_parent((Path)get_innerjoinpath
+						     (mrgnode))));
+	 return(cost);
      }
     else if (IsA(pathnode,HashPath))
      {
 	 HashPath hashnode = (HashPath)pathnode;
-	 return(cost +
-		cost_hashjoin(get_path_cost((Path)get_outerjoinpath(hashnode)),
-			      get_path_cost((Path)get_innerjoinpath(hashnode)),
-			      get_outerhashkeys(hashnode),
-			      get_innerhashkeys(hashnode),
-			      get_tuples(get_parent((Path)get_outerjoinpath
+	 cost += cost_hashjoin(get_path_cost((Path)get_outerjoinpath(hashnode)),
+			       get_path_cost((Path)get_innerjoinpath(hashnode)),
+			       get_outerhashkeys(hashnode),
+			       get_innerhashkeys(hashnode),
+			       get_tuples(get_parent((Path)get_outerjoinpath
+						     (hashnode))),
+			       get_tuples(get_parent((Path)get_innerjoinpath
+						     (hashnode))),
+			       get_width(get_parent((Path)get_outerjoinpath
 						    (hashnode))),
-			      get_tuples(get_parent((Path)get_innerjoinpath
-						    (hashnode))),
-			      get_width(get_parent((Path)get_outerjoinpath
-						   (hashnode))),
-			      get_width(get_parent((Path)get_innerjoinpath
-						   (hashnode)))));
+			       get_width(get_parent((Path)get_innerjoinpath
+						    (hashnode))));
+	 return(cost);
      }
     else /* Nested Loop Join */
-      return(cost +
-	     cost_nestloop(get_path_cost((Path)get_outerjoinpath(pathnode)),
-			   get_path_cost((Path)get_innerjoinpath(pathnode)),
-			   get_tuples(get_parent((Path)get_outerjoinpath
-						 (pathnode))),
-			   get_tuples(get_parent((Path)get_innerjoinpath
-						 (pathnode))),
-			   get_pages(get_parent((Path)get_outerjoinpath
-						(pathnode))),
-			   IsA(get_innerjoinpath(pathnode),IndexPath)));
+     {
+	 cost += cost_nestloop(get_path_cost((Path)get_outerjoinpath(pathnode)),
+			       get_path_cost((Path)get_innerjoinpath(pathnode)),
+			       get_tuples(get_parent((Path)get_outerjoinpath
+						     (pathnode))),
+			       get_tuples(get_parent((Path)get_innerjoinpath
+						     (pathnode))),
+			       get_pages(get_parent((Path)get_outerjoinpath
+						    (pathnode))),
+			       IsA(get_innerjoinpath(pathnode),IndexPath));
+	 return(cost);
+     }
 }
 
 
 /*
-** xfunc_cost_per_tuple --
+** xfunc_expense_per_tuple --
 **    return the expense of the join *per-tuple* of the input relation.
 ** This will be different for tuples of INNER and OUTER
 */
-double xfunc_cost_per_tuple(joinnode, whichrel)
+Cost xfunc_expense_per_tuple(joinnode, whichrel)
 JoinPath joinnode;
 int whichrel;       /* INNER or OUTER of joinnode */
 {
@@ -815,11 +823,11 @@ int whichrel;       /* INNER or OUTER of joinnode */
 	 int outerpages = 
 	   get_pages(get_parent((Path)get_outerjoinpath(joinnode)));
 
-	 int nrun = ceil((double)outerpages/(double)NBuffers);
+	 int nrun = ceil((Cost)outerpages/(Cost)NBuffers);
 	 if (whichrel == INNER)
-	   return(_CPU_PAGE_WEIGHT_ * nrun);
+	   return((Cost)(_CPU_PAGE_WEIGHT_ * nrun));
 	 else
-	   return(_CPU_PAGE_WEIGHT_ * innersize);
+	   return((Cost)(_CPU_PAGE_WEIGHT_ * innersize));
      }
     /*
     ** For nested loop, the cost for tuples is the size of the outer relation
@@ -828,10 +836,11 @@ int whichrel;       /* INNER or OUTER of joinnode */
     */
     else /* nested loop join */
       if (whichrel == INNER)
-	return(outersize * get_path_cost((Path)get_innerjoinpath(joinnode)) /
-	       innersize);
+	return((Cost)
+	       (outersize * get_path_cost((Path)get_innerjoinpath(joinnode)) /
+	       innersize));
       else
-	return(get_path_cost((Path)get_innerjoinpath(joinnode)));
+	return((Cost)(get_path_cost((Path)get_innerjoinpath(joinnode))));
 }
 
 /*
@@ -924,7 +933,7 @@ int xfunc_clause_compare(arg1, arg2)
 {
     LispValue clause1 = *(LispValue *) arg1;
     LispValue clause2 = *(LispValue *) arg2;
-    double measure1,             /* total xfunc measure of clause1 */ 
+    Cost measure1,             /* total xfunc measure of clause1 */ 
            measure2;             /* total xfunc measure of clause2 */
     int infty1 = 0, infty2 = 0;  /* divide by zero is like infinity */
 
@@ -975,7 +984,7 @@ int xfunc_disjunct_compare(arg1, arg2)
 {
     LispValue disjunct1 = *(LispValue *) arg1;
     LispValue disjunct2 = *(LispValue *) arg2;
-    double measure1,  /* total cost of disjunct1 */ 
+    Cost measure1,  /* total cost of disjunct1 */ 
            measure2;  /* total cost of disjunct2 */
 
     measure1 = xfunc_expense(disjunct1);
@@ -1040,7 +1049,7 @@ LispValue args;
 		   tmpclause = CDR(tmpclause))
 		retval += xfunc_width(CAR(tmpclause));
 	      /* multiply by outin_ratio */
-	      retval = proc->prooutin_ratio/100.0 * retval;
+	      retval = (int)(proc->prooutin_ratio/100.0 * retval);
 	      goto exit;
 	  }
      }
