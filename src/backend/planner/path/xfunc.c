@@ -30,6 +30,7 @@
 #include "planner/clausesel.h"
 #include "parser/parse.h"
 #include "lib/lispsort.h"
+#include "access/heapam.h"
 
 /*
 ** xfunc_rellist_sortprds
@@ -119,11 +120,8 @@ double xfunc_expense(clause)
 {
     HeapTuple tupl; /* the pg_proc tuple for each function */
     Form_pg_proc proc; /* a data structure to hold the pg_proc tuple */
-    int width;  /* byte width of the field referenced by each clause */
-    /* !!! THE FOLLOWING LINE SHOULD BE FIXED!! */
-    double disk_fraction = DISK_FRACTION, 
-           arch_fraction = ARCH_FRACTION; /* fraction of objects on disk
-					    and in archive respectively*/
+    int width = 0;  /* byte width of the field referenced by each clause */
+
     double cost = 0;
     LispValue tmpclause;
 
@@ -159,14 +157,21 @@ double xfunc_expense(clause)
 				    NULL, NULL, NULL);
 	 proc = (Form_pg_proc) GETSTRUCT(tupl);
 
-	 /* !!! FIX THIS -- find width of tuple */
-	 width = DEFAULT_WIDTH;
+	 /* find width of operands */
+	 for (tmpclause = CDR(clause); tmpclause != LispNil;
+	      tmpclause = CDR(tmpclause))
+	   width += xfunc_width(CAR(tmpclause));
 
 	 return(cost +  
 		proc->propercall_cpu + 
-		proc->properbyte_cpu * proc->probyte_pct/100.00 * width +
-		disk_fraction * proc->prodisk_pct/100.00 * width +
-		arch_fraction * proc->proarch_pct/100.00 * width);
+		proc->properbyte_cpu * proc->probyte_pct/100.00 * width
+/*
+**   The following terms removed until we can get better statistics
+**
+**		+ disk_fraction * proc->prodisk_pct/100.00 * width +
+**		arch_fraction * proc->proarch_pct/100.00 * width
+*/
+		);
      }
 
     else if (fast_not_clause(clause))
@@ -185,6 +190,66 @@ double xfunc_expense(clause)
 	 elog(WARN, "Clause node of undetermined type");
 	 return(-1);
      }
+}
+
+
+/* 
+** xfunc_width --
+**    recursively find the width of a clause
+*/
+
+int xfunc_width(clause)
+     LispValue clause;
+{
+    Relation relptr;
+    ObjectId reloid;
+    HeapTuple tupl;
+    Form_pg_proc proc; /* a data structure to hold the pg_proc tuple */
+    int retval = 0;
+    LispValue tmpclause;
+
+    if (IsA(clause,Const))
+     {
+	 retval = ((Const) clause)->constlen;
+	 goto exit;
+     }
+    else if (IsA(clause,Var))
+     {
+	 /* find width of the attribute */
+	 relptr = amopenr ((Name) "pg_attribute");
+	 reloid = RelationGetRelationId ( relptr );
+	 
+	 tupl = SearchSysCacheTuple(ATTNUM, reloid, ((Var) clause)->varattno, 
+				    NULL, NULL );
+	 if (!HeapTupleIsValid(tupl)) {
+	     elog(WARN, "getattnvals: no attribute tuple %d %d",
+		  reloid, ((Var) clause)->varattno);
+	     return(-1);
+	 }
+	 retval = (int)((AttributeTupleForm) GETSTRUCT(tupl))->attlen;
+	 goto exit;
+     }
+    else if (fast_is_funcclause(clause))
+     {
+	 tupl = SearchSysCacheTuple(PROOID, 
+				    get_funcid((Func)get_function(clause)),
+				    NULL, NULL, NULL);
+	 proc = (Form_pg_proc) GETSTRUCT(tupl);
+	 /* find width of the function's arguments */
+	 for (tmpclause = CDR(clause); tmpclause != LispNil; 
+	      tmpclause = CDR(tmpclause))
+	   retval += xfunc_width(CAR(tmpclause));
+	 /* multiply by outin_ratio */
+	 retval = proc->prooutin_ratio/100.0 * retval;
+	 goto exit;
+     }
+    else
+     {
+	 elog(WARN, "Clause node of undetermined type");
+	 return(-1);
+     }
+  exit:
+    return(retval);
 }
 
 
