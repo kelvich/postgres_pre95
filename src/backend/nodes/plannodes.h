@@ -469,6 +469,8 @@ class (HashJoin) public (Join) {
 	ObjectId		hashjoinop;
 	HashJoinState		hashjoinstate;
 	HashJoinTable		hashjointable;
+	IpcMemoryKey		hashjointablekey;
+	int			hashjointablesize;
 	bool			hashdone;
  /* public: */
 };
@@ -538,7 +540,9 @@ class (Hash) public (Plan) {
 	inherits(Plan); \
 	Var			hashkey; \
 	HashState		hashstate; \
-	HashJoinTable		hashtable
+	HashJoinTable		hashtable; \
+	IpcMemoryKey		hashtablekey; \
+	int			hashtablesize
  /* private: */
 	HashDefs;
  /* public: */

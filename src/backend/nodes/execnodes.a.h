@@ -225,6 +225,8 @@ extern void set_mj_MarkedTupleSlot ARGS((MergeJoinState node, TupleTableSlot val
 extern TupleTableSlot get_mj_MarkedTupleSlot ARGS((MergeJoinState node));
 extern void set_hj_HashTable ARGS((HashJoinState node, HashJoinTable value));
 extern HashJoinTable get_hj_HashTable ARGS((HashJoinState node));
+extern void set_hj_HashTableShmId ARGS((HashJoinState node, IpcMemoryId value));
+extern IpcMemoryId get_hj_HashTableShmId ARGS((HashJoinState node));
 extern void set_hj_CurBucket ARGS((HashJoinState node, HashBucket value));
 extern HashBucket get_hj_CurBucket ARGS((HashJoinState node));
 extern void set_hj_CurTuple ARGS((HashJoinState node, HeapTuple value));

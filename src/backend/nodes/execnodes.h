@@ -870,6 +870,7 @@ typedef char	*charP;
  *   HashJoinState information
  *
  *      hj_HashTable           	address of the hash table for the hashjoin
+ *	hj_HashTableShmId	shared memory id of hash table
  *      hj_CurBucket           	the current hash bucket that we are searching
  *				for matches of the current outer tuple
  *      hj_CurTuple            	the current matching inner tuple in the
@@ -904,6 +905,7 @@ class (HashJoinState) public (JoinState) {
       inherits(JoinState);
   /* private: */
       HashJoinTable     hj_HashTable;
+      IpcMemoryId	hj_HashTableShmId;
       HashBucket        hj_CurBucket;
       HeapTuple         hj_CurTuple;
       OverflowTuple	hj_CurOTuple;
