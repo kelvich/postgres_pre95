@@ -10,7 +10,7 @@ RcsId("$Header$");
 #include "postgres.h"
 #include <strings.h>
 
-#include "access.h"
+#include "skey.h"
 #include "fmgr.h"
 #include "log.h"
 

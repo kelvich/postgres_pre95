@@ -11,7 +11,7 @@ RcsId("$Header$");
 #include <stdio.h>
 #include "pg_lisp.h"
 #include "postgres.h"
-#include "tuple.h"		/* for MAXIATTS */
+#include "htup.h"
 #include "anum.h"
 #include "cat.h"
 #include "catname.h"

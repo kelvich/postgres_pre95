@@ -11,7 +11,7 @@ static char	pskip_c[] = "$Header$";
 #include "c.h"
 #include "clib.h"
 
-#include "access.h"
+#include "skey.h"
 #include "align.h"
 #include "buf.h"
 #include "bufmgr.h"

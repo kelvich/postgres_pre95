@@ -11,8 +11,8 @@
 
 RcsId("$Header$");
 
-#include "access.h"
-#include "catalog.h"
+#include "skey.h"
+#include "cat.h"
 #include "fmgr.h"	/* for F_BOOLEQ, etc.  DANGER */
 #include "lmgr.h"
 #include "log.h"

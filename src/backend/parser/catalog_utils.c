@@ -7,7 +7,7 @@ static char *catalog_utils_c = "$Header$";
 #include "fmgr.h"
 #include "syscache.h"
 #include "exceptions.h"
-#include "catalog.h"
+#include "cat.h"
 
 struct {
     char *field;

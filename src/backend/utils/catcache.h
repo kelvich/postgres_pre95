@@ -11,7 +11,7 @@
 
 /* #define	CACHEDEBUG 	/* turns DEBUG elogs on */
 
-#include "access.h"	/* XXX struct skey */
+#include "skey.h"
 #include "htup.h"
 #include "oid.h"
 #include "rel.h"

@@ -30,7 +30,7 @@
 #include "rproc.h"
 #include "skey.h"
 #include "tqual.h"
-#include "tuple.h"
+#include "htup.h"
 #include "xid.h"
 #include "xact.h"
 

@@ -16,7 +16,6 @@
 #include "log.h"
 #include "oid.h"
 #include "rel.h"
-#include "tuple.h"	/* XXX for GETSTRUCT */
 #include "sinval.h"
 #include "syscache.h"	/* XXX to support the hacks below */
 

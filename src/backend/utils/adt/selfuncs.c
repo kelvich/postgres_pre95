@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <strings.h>
 #include "anum.h"
-#include "catalog.h"
+#include "cat.h"
 #include "catname.h"
 #include "fmgr.h"
 #include "heapam.h"

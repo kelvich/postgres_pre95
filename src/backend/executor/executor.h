@@ -22,11 +22,11 @@
 #include "c.h"
 #include "pg_lisp.h"
 
-#include "access.h"
+#include "skey.h"
 #include "anum.h"
 #include "align.h"
 #include "buf.h"
-#include "catalog.h"
+#include "cat.h"
 #include "catname.h"
 #include "clib.h"
 #include "execdefs.h"
@@ -47,7 +47,6 @@
 #include "strings.h"
 #include "syscache.h"
 #include "tqual.h"
-#include "tuple.h"
 
 #include "printtup.h"
 #include "primnodes.h"
@@ -141,11 +140,11 @@ typedef struct FragmentInfo {
 #define	REVERSESHORTALIGN(LEN)\
     (((long)(LEN)) & ~01)
 
-#if defined(sun) && ! defined(sparc)
-#define	REVERSELONGALIGN(LEN)	REVERSESHORTALIGN(LEN)
-#else
+#ifndef	sun
 #define	REVERSELONGALIGN(LEN)\
     (((long)(LEN)) & ~03)
+#else
+#define	REVERSELONGALIGN(LEN)	REVERSESHORTALIGN(LEN)
 #endif
 
 /* ----------------

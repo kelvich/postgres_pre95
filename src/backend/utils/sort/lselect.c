@@ -6,8 +6,8 @@ static	char	lselect_c[] = "$Header$";
  */
 
 #include <strings.h>
-#include <access.h>
 #include <stdio.h>
+#include <skey.h>
 #include "psort.h"
 #include "lselect.h"
 

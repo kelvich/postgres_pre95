@@ -14,7 +14,7 @@
 RcsId("$Header$");
 
 #include <strings.h>	/* XXX style */
-#include "catalog.h"	/* XXX obsolete file, needed for (struct proc), etc. */
+#include "cat.h"
 
 #include "anum.h"
 #include "catname.h"

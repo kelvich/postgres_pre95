@@ -5,8 +5,6 @@
  *	rselect.h	- definitions for the replacement selection algorithm.
  */
 
-#include <tuple.h>
-
 #ifndef C_H
 #include "c.h"
 #endif

@@ -7,7 +7,7 @@
 
 RcsId("$Header$");
 
-#include "access.h"		/* XXX for "struct skey" */
+#include "skey.h"
 #include "anum.h"
 #include "attnum.h"
 #include "cat.h"

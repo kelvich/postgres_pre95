@@ -35,7 +35,7 @@
 #include "log.h"
 #include "oid.h"
 #include "syscache.h"
-#include "tuple.h"
+#include "htup.h"
 
 
 RcsId("$Header$");

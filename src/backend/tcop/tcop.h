@@ -35,7 +35,6 @@
 #include "attnum.h"
 #include "buf.h"
 #include "cat.h"
-#include "catalog.h"
 #include "catname.h"
 #include "command.h"
 #include "defrem.h"

@@ -19,7 +19,7 @@ RcsId("$Header$");
 
 #include <stdio.h>
 
-#include "access.h"
+#include "skey.h"
 #include "log.h"
 #include "psort.h"
 #include "lselect.h"

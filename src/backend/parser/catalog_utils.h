@@ -2,8 +2,6 @@
 #define _P_CATALOG_UTILS_H \
   "$Header$"
 
-/*#include "access.h"	/* XXX obsolete */
-#include "tuple.h"
 #include "c.h"
 #include "cat.h"
 

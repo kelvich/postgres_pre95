@@ -14,10 +14,9 @@
  */
 #define SKEY_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
+#ifndef POSTGRES_H
+#include "postgres.h"
 #endif
-
 #ifndef	ATTNUM_H
 # include "attnum.h"
 #endif
@@ -120,5 +119,21 @@ ScanKeyEntryInitialize ARGS((
 	RegProcedure	procedure,
 	Datum		argument
 ));
+
+/* ----------------------------------------------------------------
+ *		    old access.h definitions
+ * ----------------------------------------------------------------
+ */
+struct	skey {
+	int16	sk_flags;	/* flags */
+	int16	sk_attnum;	/* domain number */
+	OID	sk_opr;		/* procedure OID */
+	DATUM	sk_data;	/* data to compare */
+};
+
+#define	SK_ISNULL	01
+#define	SK_UNARY	02
+#define	SK_NEGATE	04
+#define	SK_COMMUTE	010
 
 #endif	/* !defined(SKeyIncluded) */

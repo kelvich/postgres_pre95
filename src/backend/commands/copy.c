@@ -18,7 +18,6 @@ RcsId("$Header$");
 #include <sys/param.h>
 
 #include "cat.h"
-#include "catalog.h"	/* for struct type */
 #include "fd.h"
 #include "fmgr.h"
 #include "heapam.h"

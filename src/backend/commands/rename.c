@@ -8,7 +8,7 @@
 RcsId("$Header$");
 
 #include <strings.h>
-#include "access.h"
+#include "skey.h"
 #include "log.h"
 
 #include "anum.h"
