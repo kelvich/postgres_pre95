@@ -62,6 +62,14 @@ StringFormTransactionId(representation)
 	return (atol(representation));
 }
 
+/* XXX char16 name for catalogs */
+TransactionId
+xidin(representation)
+	String	representation;
+{
+	return (StringFormTransactionId(representation));
+}
+
 /* ----------------------------------------------------------------
  *	TransactionIdFormString
  * ----------------------------------------------------------------
@@ -79,6 +87,14 @@ TransactionIdFormString(transactionId)
 	(void)sprintf(representation, "%lu", transactionId);
 
 	return (representation);
+}
+
+/* XXX char16 name for catalogs */
+String
+xidout(transactionId)
+	TransactionId	transactionId;
+{
+	return(TransactionIdFormString(transactionId));
 }
 
 /* ----------------------------------------------------------------
