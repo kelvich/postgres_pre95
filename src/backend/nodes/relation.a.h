@@ -63,6 +63,10 @@ extern void set_outerjoincost ARGS((JoinPath node, Cost value));
 extern Cost get_outerjoincost ARGS((JoinPath node));
 extern void set_joinid ARGS((JoinPath node, Relid value));
 extern Relid get_joinid ARGS((JoinPath node));
+
+extern void set_cinfojoinid ARGS((CInfo node, Relid value));
+extern Relid get_cinfojoinid ARGS((CInfo node));
+
 extern void set_mergeclauses ARGS((MergePath node, List value));
 extern List get_mergeclauses ARGS((MergePath node));
 extern void set_outersortkeys ARGS((MergePath node, List value));
@@ -114,6 +118,12 @@ extern bool get_mergesortable ARGS((JInfo node));
 extern void set_hashjoinable ARGS((JInfo node, bool value));
 extern bool get_hashjoinable ARGS((JInfo node));
 extern Rel MakeRel ARGS(());
+
+extern List get_superrels ARGS((Rel node));
+extern void set_superrels ARGS((Rel node, List value));
+extern bool get_inactive ARGS((JInfo node));
+extern void set_inactive ARGS((JInfo node, bool value));
+
 extern SortKey MakeSortKey ARGS((List varkeys, List sortkeys, Relid relid, List sortorder));
 extern Path MakePath ARGS((SortKey sort pathtype, int parent, int cost, int ordering, int keys, int sortpath));
 extern IndexPath MakeIndexPath ARGS((ObjectId indexid, List indexqual));
