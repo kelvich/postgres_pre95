@@ -32,6 +32,8 @@ extern void set_ecxt_relation ARGS((ExprContext node, Relation value));
 extern Relation get_ecxt_relation ARGS((ExprContext node));
 extern void set_ecxt_relid ARGS((ExprContext node, Index value));
 extern Index get_ecxt_relid ARGS((ExprContext node));
+extern ParamListInfo get_ecxt_param_list_info ARGS((ExprContext node));
+extern void set_ecxt_param_list_info ARGS((ExprContext node, ParamListInfo value));
 extern void set_varno ARGS((Var node, Index value));
 extern Index get_varno ARGS((Var node));
 extern void set_varattno ARGS((Var node, AttributeNumber value));
