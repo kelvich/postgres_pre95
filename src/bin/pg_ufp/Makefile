@@ -20,11 +20,11 @@ CFLAGS+= -DUFP
 #CFLAGS+= -DUFPDEBUG -DUFPDEBUG_PROTO
 
 #
-# this is basically copied from the port/<foo>/Makefile.inc
-# and, unfortunately, must be sync'd by hand.
+# This is basically copied from the port/<foo>/Makefile.inc
+# (minus the lex/yacc libraries).
+# Unfortunately, it must be sync'd by hand.
 #
 .if (${PORTNAME} == "ultrix4")
-LDFLAGS+= -N
 LDADD+= -ldl
 .elif (${PORTNAME} == "hpux")
 CFLAGS+= -W l,-E
@@ -34,6 +34,7 @@ LDADD+= -ldld
 LDADD+= -ldl
 .elif (${PORTNAME} == "alpha")
 .else
+# put the executable in OMAGIC format
 LDFLAGS+= -N
 .endif
 
