@@ -29,17 +29,26 @@
  *	pg_aggregate definition.
  *
  *	cpp turns this into typedef struct FormData_pg_aggregate
+ *
+ *  aggname		Name of the aggregate
+ *  xitionfunc1		transition function 1
+ *  xitionfunc2		transition function 2
+ *  finalfunc		final function - produces the aggregate value
+ *  inttype		output type for xition funcs
+ *  fintype		output type for final func
+ *  initaggval		initial aggregate value
+ *  initsecval		initial value for transition state 2
  * ----------------------------------------------------------------
  */ 
 CATALOG(pg_aggregate) {
     char16 		aggname;
-    regproc	 	xitionfunc1;	
+    regproc	 	xitionfunc1;
     regproc		xitionfunc2;
-    regproc 		finalfunc;	
+    regproc 		finalfunc;
     oid			inttype;
     oid			fintype;
-    int4		initaggval;
-    int4		initsecval;
+    text		initaggval;	/* VARIABLE LENGTH FIELD */
+    text		initsecval;	/* VARIABLE LENGTH FIELD */
 } FormData_pg_aggregate;
 
 /* ----------------
@@ -72,8 +81,27 @@ typedef FormData_pg_aggregate	*Form_pg_aggregate;
  * ---------------
  */
 
-DATA(insert OID = 1028 ( int4ave   int4pl  int4inc  int4div  23  23 0  0));
-DATA(insert OID = 1029 ( int2ave   int2pl  int2inc  int2div  21  21 0  0));
+DATA(insert OID = 0 ( int4ave   int4pl  int4inc  int4div  23  23 0  0 ));
+DATA(insert OID = 0 ( int2ave   int2pl  int2inc  int2div  21  21 0  0 ));
+DATA(insert OID = 0 ( float4ave float4pl float4inc float4div 700  700 0.0 0.0 ));
+DATA(insert OID = 0 ( float8ave float8pl float8inc float8div 701  701 0.0 0.0 ));
+
+DATA(insert OID = 0 ( int4sum   int4pl   - -  23  23  0   _null_ ));
+DATA(insert OID = 0 ( int2sum   int2pl   - -  21  21  0   _null_ ));
+DATA(insert OID = 0 ( float4sum float4pl - - 700  700 0.0 _null_ ));
+DATA(insert OID = 0 ( float8sum float8pl - - 701  701 0.0 _null_ ));
+
+DATA(insert OID = 0 ( int4max   int4larger   - -  23  23  _null_ _null_ ));
+DATA(insert OID = 0 ( int2max   int2larger   - -  21  21  _null_ _null_ ));
+DATA(insert OID = 0 ( float4max float4larger - - 700  700 _null_ _null_ ));
+DATA(insert OID = 0 ( float8max float8larger - - 701  701 _null_ _null_ ));
+
+DATA(insert OID = 0 ( int4min   int4smaller   - -  23  23  _null_ _null_ ));
+DATA(insert OID = 0 ( int2min   int2smaller   - -  21  21  _null_ _null_ ));
+DATA(insert OID = 0 ( float4min float4smaller - - 700  700 _null_ _null_ ));
+DATA(insert OID = 0 ( float8min float8smaller - - 701  701 _null_ _null_ ));
+
+DATA(insert OID = 0 ( count     int4inc  - -  23  23  0   _null_ ));
 
 /* ----------------
  *	old definition of struct aggregate
@@ -94,12 +122,6 @@ struct	aggregate {
 }
 ;
 #endif struct_aggregate_Defined
-
-#define AggNameGetInitAggVal(x) CInteger(SearchSysCacheGetAttribute(AGGNAME, \
-	Anum_pg_aggregate_initaggval, x, 0, 0, 0))
-
-#define AggNameGetInitSecVal(x) CInteger(SearchSysCacheGetAttribute(AGGNAME, \
-	Anum_pg_aggregate_initsecval, x, 0, 0, 0))
 
 #define AggregateNameAttributeNumber \
    Anum_pg_aggregate_aggname
