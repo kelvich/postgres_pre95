@@ -188,7 +188,7 @@ BEGIN {
 #
 # ----------------
 END {
-	decl[ class 0 ] = i;
+#	decl[ class 0 ] = i;
 	
 	for (j=0; j<nc; j++) {
 		class = classes[ j ];
