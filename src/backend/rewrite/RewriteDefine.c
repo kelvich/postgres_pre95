@@ -79,11 +79,15 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
 
 {
     static char	rulebuf[RULE_PLAN_SIZE];
-	static char actionbuf[RULE_PLAN_SIZE];
-	static char qualbuf[RULE_PLAN_SIZE];
+    static char actionbuf[RULE_PLAN_SIZE];
+    static char qualbuf[RULE_PLAN_SIZE];
     ObjectId eventrel_oid = InvalidObjectId;
     AttributeNumber evslot_index = InvalidAttributeNumber;
     Relation eventrel = NULL;
+    char *template = 
+"append pg_rewrite (rulename=\"%s\",ev_type=\"%d2\"::char,ev_class=%d::oid,\
+ev_attr= %d::int2,action= \"%s\"::text,ev_qual= \"%s\"::text,\
+is_instead=\"%s\"::bool)";
     char *is_instead = "f";
     extern void eval_as_new_xact();
 
@@ -111,19 +115,8 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
 	     rulname);
 	strcpyq(actionbuf,actiontree);	
 	strcpyq(qualbuf, evqual);
-    sprintf(rulebuf,
-	    "append pg_rewrite (rulename=\"%s\",ev_type=\"%d2\"::char,\
-	    ev_class=%d::oid,ev_attr= %d::int2,\
-	    action= \"%s\"::text , ev_qual= \"%s\"::text, \
-            fril_lb= %f , fril_ub= %f , is_instead=\"%s\"::bool )",
-	    rulname,
-	    AtomValueGetString(evtype),
-	    eventrel_oid,
-	    evslot_index,
-	    actionbuf,
-	    qualbuf,
-	    0.0, 0.0,		/* deprecated */
-	    is_instead );
+    sprintf(rulebuf, template, rulname, AtomValueGetString(evtype),
+	    eventrel_oid, evslot_index, actionbuf, qualbuf, is_instead );
 
     /* fprintf(stdout,"rule is \n%s\n", rulebuf ); */
 
