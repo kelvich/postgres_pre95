@@ -337,10 +337,18 @@ CreateStmt:
 		     CDR(temp) = $4;
 		     /* $$ = nappend1 ( $$, $4 ); */
 		}
-	| CREATE OptDeltaDirn NEWVERSION relation_name FROM relation_name
-		{
+	| CREATE OptDeltaDirn NEWVERSION relation_name FROM 
+          relation_name_version
+		{   
 		    $$ = MakeList ( $2, $4, $6,-1 );
 		}
+	;
+relation_name_version:
+	  relation_name
+	| relation_name '[' date ']'
+	  {
+             $$ = MakeList( $1, $3, -1);
+	  }
 	;
 
 OptDeltaDirn:
