@@ -7,14 +7,14 @@
 listen \(em listen for notification on a relation
 .SH SYNOPSIS
 .(l M
-\fBlisten\fR relation_name
+\fBlisten\fR class_name
 .)l
 .SH DESCRIPTION
 .BR listen
 is used to register the current backend as a listener on the relation
-.BR relation_name.
+.BR class_name.
 When the command 
-.BI notify " relation_name"
+.BI notify " class_name"
 is called either from within a rule or at the query level, the
 frontend applications corresponding to the listening backends 
 are notified.  When the backend process exits, this registration

@@ -13,13 +13,14 @@ notify \(em signal all frontends and backends listening on a class
 .BR notify
 is used to awaken all backends and consequently all frontends
 that have executed the
-.BR listen (postquel)
+.BR listen
 command on
 .IR class_name .
 This can be used either within an instance-level rule as part of the
 action body or from a normal query.  When used from within a normal
-query, this can be thought of as IPC.  When used from within a rule,
-this can be thought of as the alerter mechanism.
+query, this can be thought of as interprocess communication (IPC).
+When used from within a rule, this can be thought of as an alerter 
+mechanism.
 .PP
 Notice that the mere fact that a 
 .BR notify
