@@ -24,6 +24,7 @@
 #include "planner/internal.h"
 #include "relation.h"
 #include "plannodes.h"
+#include "primnodes.h"
 #include "log.h"
 
 /*    
@@ -206,7 +207,7 @@ get_joinlist(foo)
      TL foo;
 {
     /* Assert(IsA(foo,LispValue)); */
-    elog(WARN,"not sure about get_joinlist");
+
     return (CDR(foo));
 }
 
