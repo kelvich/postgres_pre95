@@ -36,7 +36,7 @@
 
 typedef String	FileName;
 
-#define NDISKS        5       /* no. of disks we have */
+#define NDISKS        7       /* no. of disks we have */
 #define MAXNOFILES      100
 
 typedef int	File;
