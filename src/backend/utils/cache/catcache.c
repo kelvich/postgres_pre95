@@ -1,4 +1,3 @@
-
 /*
  * catcache.c --
  *	System catalog cache for tuples matching a key.
@@ -8,8 +7,13 @@
  *		an abort occurs during DisableCache.
  */
 
+#include "c.h"
+
+RcsId("$Header$");
+
 #include "access.h"
 #include "catalog.h"
+#include "context.h"
 #include "fmgr.h"
 #include "lmgr.h"
 #include "log.h"
@@ -17,6 +21,7 @@
 #include "htup.h"
 #include "master.h"	/* XXX ? */
 #include "name.h"
+#include "portal.h"
 #include "tqual.h"
 #include "oid.h"
 #include "rel.h"
@@ -27,7 +32,6 @@
 /* #define CACHEDDEBUG2 */
 /* #define CACHEDEBUG3 */
 
-RcsId("$Header$");
 
 /*
  *  note CCSIZE allocates 51 buckets .. one was already allocated in
@@ -98,12 +102,10 @@ int	key[];
     }
 
     cp = LintCast(struct catcache *, palloc(CCSIZE));
-    bzero((char *)cp, CCSIZE);
-    for (i = 0; i <= NCCBUCK; ++i)	/* each bucket is a list header */
-	SLNewList(&cp->cc_cache[i], offsetof(catctup, ct_node));
+    bzero((char *)cp, CCSIZE); for (i = 0; i <= NCCBUCK; ++i)	/* each bucket is a list header */ SLNewList(&cp->cc_cache[i], offsetof(struct catctup, ct_node));
 
     					/* list of tuples for LRU alg.	*/
-    SLNewList(&cp->cc_lrulist, offsetof(catctup, ct_lrunode));
+    SLNewList(&cp->cc_lrulist, offsetof(struct catctup, ct_lrunode));
     cp->cc_next = Caches;		/* list of caches (single link) */
     Caches = cp;
 
@@ -309,7 +311,9 @@ DATUM				v1, v2, v3, v4;
     DisableCache = 1;
 
     oldcxt = switchcontext(CacheCxt);
-    startmmgr(M_STATIC);
+/*
+    StartPortalAllocMode(StaticAllocMode);
+*/
 
 #ifdef	CACHEDEBUG
     elog(DEBUG, "SearchSysCache: performing scan (override==%d)",
@@ -333,8 +337,9 @@ DATUM				v1, v2, v3, v4;
         }
     }
     amendscan(sd);
-    (void)endmmgr((char *)NULL);
-
+/*
+    EndPortalAllocMode();
+*/
     DisableCache = 0;
 
     if (HeapTupleIsValid(ntp)) {
