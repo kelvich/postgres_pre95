@@ -579,7 +579,7 @@ picksplit(r, page, v, itup)
     inter_proc = index_getprocid(r, 1, RT_INTER_PROC);
     maxoff = PageGetMaxOffsetIndex(page);
 
-    nbytes = (maxoff + 2) * sizeof(OffsetNumber);
+    nbytes = (maxoff + 3) * sizeof(OffsetNumber);
     v->spl_left = (OffsetNumber *) palloc(nbytes);
     v->spl_right = (OffsetNumber *) palloc(nbytes);
 
@@ -693,6 +693,8 @@ picksplit(r, page, v, itup)
 	    v->spl_nright++;
 	}
     }
+    *left = *right = (OffsetNumber)0;
+
     v->spl_ldatum = datum_l;
     v->spl_rdatum = datum_r;
 }
