@@ -207,12 +207,6 @@ class (ExprContext) public (Node) {
 /* ----------------
  *    JunkFilter
  *
- *	targetlist		used with ExecTargetList to disgard junk
- *	len			length of the target list
- *	tupType			tuple descriptor for use with ExecTargetList
- *	tupValues		array of value pointers for use with ...
- *	tupleSlot		slot used to store clean copy of tuple
- *
  *    this class is used to store information regarding junk attributes.
  *    A junk attribute is an attribute in a tuple that is needed only for
  *    storing intermediate information in the executor, and does not belong
@@ -225,17 +219,30 @@ class (ExprContext) public (Node) {
  *    all the junk in a tuple before calling amreplace().  Otherwise the
  *    inserted tuple will not have the correct schema.  This solves a
  *    problem with hash-join and merge-sort replace plans.  -cim 10/10/90
+ *
+ *    targetList:	the original target list (including junk attributes).
+ *    length:		the length of 'targetList'.
+ *    tupType:		the tuple descriptor for the "original" tuple
+ *			(including the junk attributes).
+ *    cleanTargetList:	the "clean" target list (junk attributes removed).
+ *    cleanLength:	the length of 'cleanTargetList'
+ *    cleanTupTyp:	the tuple descriptor of the "clean" tuple (with
+ *			junk attributes removed).
+ *    cleanMap:		A map with the correspondance between the non junk
+ *			attributes of the "original" tuple and the 
+ *			attributes of the "clean" tuple.
  * ----------------
  */
 class (JunkFilter) public (JunkFilter) {
       inherits(Node);
   /* private: */
-      List		jf_targetlist;
-      int		jf_len;
-      AttributePtr	jf_tupType;
-      Pointer		jf_tupValues;
-      TupleTableSlot	jf_tupleSlot;
-      ExprContext	jf_econtext;
+      List			jf_targetList;
+      int			jf_length;
+      AttributePtr		jf_tupType;
+      List			jf_cleanTargetList;
+      int			jf_cleanLength;
+      AttributePtr		jf_cleanTupType;
+      AttributeNumberPtr	jf_cleanMap;
   /* public: */
 };
 
