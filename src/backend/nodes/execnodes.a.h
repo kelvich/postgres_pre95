@@ -37,6 +37,8 @@ extern void set_es_into_relation_descriptor ARGS((EState node, Relation value));
 extern Relation get_es_into_relation_descriptor ARGS((EState node));
 extern void set_es_result_relation_info ARGS((EState node, RelationInfo value));
 extern RelationInfo get_es_result_relation_info ARGS((EState node));
+extern ParamListInfo get_es_param_list_info ARGS((EState  node));
+extern void set_es_param_list_info ARGS((EState  node,ParamListInfo value));
 extern void set_sn_OuterTuple ARGS((StateNode node, List value));
 extern List get_sn_OuterTuple ARGS((StateNode node));
 extern void set_sn_TupType ARGS((StateNode node, AttributePtr value));
