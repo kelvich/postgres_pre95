@@ -1011,7 +1011,8 @@ _readFunc()
 		local_node->funcisindex = false;
 	}
 	local_node->func_fcache = (FunctionCache *) NULL;
-	local_node->func_tlist = LispNil;
+	token = lsptok(NULL, &length);            /* get :func_tlist */
+	local_node->func_tlist = lispRead(true);  /* now read it */
 	
 	return(local_node);
 }
@@ -1104,7 +1105,8 @@ _readParam()
 	token = lsptok(NULL, &length);      /* now read it */
 
 	local_node->paramtype = atol(token);
-	local_node->param_tlist = LispNil;
+	token = lsptok(NULL, &length);             /* get :param_tlist */
+	local_node->param_tlist = lispRead(true);  /* now read it */
 	
 	return(local_node);
 }
