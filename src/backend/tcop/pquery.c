@@ -211,10 +211,15 @@ ProcessPortal(operation, portalName, parseTree, plan, state, attinfo)
     Portal		portal;
     MemoryContext 	portalContext;
 
-	AssertArg(operation == RETRIEVE);
-	/*
-	 * Note:  "BeginCommand" is not called since no tuples are returned.
-	 */
+    /* ----------------
+     *	sanity check
+     * ----------------
+     */
+    AssertArg(operation == RETRIEVE);
+    
+    /*
+     * Note:  "BeginCommand" is not called since no tuples are returned.
+     */
 
     /* ----------------
      *   initialize the portal
@@ -222,8 +227,10 @@ ProcessPortal(operation, portalName, parseTree, plan, state, attinfo)
      */
     portal = BlankPortalAssignName(portalName);
 
-	PortalSetQuery(portal, CreateQueryDesc(parseTree, plan), state,
-		PortalCleanup);
+    PortalSetQuery(portal,
+		   CreateQueryDesc(parseTree, plan),
+		   state,
+		   PortalCleanup);
 
     /* ----------------
      * Return blank portal for now.
@@ -235,7 +242,9 @@ ProcessPortal(operation, portalName, parseTree, plan, state, attinfo)
      * ----------------
      */
 
-    portalContext = (MemoryContext) PortalGetHeapMemory(GetPortalByName(NULL));
+    portalContext = (MemoryContext)
+	PortalGetHeapMemory(GetPortalByName(NULL));
+    
     MemoryContextSwitchTo(portalContext);
     
     StartPortalAllocMode(DefaultAllocMode, 0);
@@ -302,21 +311,15 @@ ProcessQueryDesc(queryDesc)
      * ----------------
      */
     state = CreateExecutorState();
-    
+
     /* ----------------
      *	call ExecMain with EXEC_START to
      *  prepare the plan for execution
      * ----------------
      */
     feature = lispCons(lispInteger(EXEC_START), LispNil);
-    {
-	/*
-	 * temporary hack till the executor-rule manager interface
-	 * allocation is fixed.
-	 */
-	extern MemoryContext XXXExecutionPortalHeapMemory;
-	XXXExecutionPortalHeapMemory = NULL;
-    }
+
+    
     attinfo = ExecMain(queryDesc, state, feature);
     
     /* ----------------
@@ -326,12 +329,23 @@ ProcessQueryDesc(queryDesc)
      * ----------------
      */
     if (isIntoPortal) {
-	ProcessPortal(operation,
+	/* ----------------
+	 * set executor portal memory context
+	 *
+	 * temporary hack till the executor-rule manager interface
+	 * allocation is fixed.
+	 * ----------------
+	 */
+	extern MemoryContext PortalExecutorHeapMemory;
+	PortalExecutorHeapMemory = NULL;
+
+   	ProcessPortal(operation,
 		      intoName,
 		      parseTree,
 		      plan,
 		      state,
 		      attinfo);
+	
 	EndCommand(tag);
 	return;
     }

@@ -86,12 +86,14 @@ die()
 }
 
 /* ----------------
- * XXX - BeginCommand belongs wherever EndCommand is, but where
- *       EndCommand is seems like the wrong place - jeff
+ * 	BeginCommand 
+ *
+ *	I don't know what this does, but I assume it has something
+ *	to do with frontend initialization of queries -cim 3/15/90
  * ----------------
  */
 
-BeginCommand(pname,attinfo)
+BeginCommand(pname, attinfo)
     char *pname;
     LispValue attinfo;
 {
@@ -99,14 +101,35 @@ BeginCommand(pname,attinfo)
     int nattrs;
 
     nattrs = CInteger(CAR(attinfo));
-    attrs = (struct attribute **)CADR(attinfo);
+    attrs = (struct attribute **) CADR(attinfo);
 
     if (IsUnderPostmaster == true) {
 	pflush();
-	initport(pname,nattrs,attrs);
+	initport(pname, nattrs, attrs);
 	pflush();
     } else {
-	showatts(pname,nattrs,attrs);
+	showatts(pname, nattrs, attrs);
+    }
+}
+
+/* ----------------
+ * 	EndCommand 
+ *
+ *	I don't know what this does, but I assume it has something
+ *	to do with frontend cleanup after a query is executed
+ *	-cim 3/15/90
+ * ----------------
+ */
+
+void
+EndCommand(commandTag)
+    String  commandTag;
+{
+    if (IsUnderPostmaster) {
+	putnchar("C", 1);
+	putint(0, 4);
+	putstr(commandTag);
+	pflush();
     }
 }
 
