@@ -140,6 +140,7 @@ CreateExecutorState()
     set_es_relation_relation_descriptor(state, NULL);
     set_es_into_relation_descriptor(state, NULL);
     set_es_result_relation_info(state, NULL);
+    set_es_result_relation_info_list(state, NULL);
 
     tuplecount = MakeTupleCount(0, 	/* retrieved */
 				0, 	/* appended */
@@ -158,9 +159,11 @@ CreateExecutorState()
     set_es_tupleTable(state, NULL);
 
     set_es_junkFilter(state, NULL);
+    set_es_junkFilter_list(state, NULL);
     set_es_result_rel_scanstate(state, NULL);
     set_es_result_rel_ruleinfo(state, NULL);
 
+    set_es_whichplan(state, -1);
     /* ----------------
      *	return the executor state structure
      * ----------------
