@@ -752,6 +752,7 @@ LispValue HandleNestedDots(dots)
     LispValue retval = LispNil;
     TLE tle;
     LispValue tlist;
+    Resdom resnode;
     ObjectId funcid;
     ObjectId functype;
     OID funcrettype;
@@ -843,16 +844,17 @@ LispValue HandleNestedDots(dots)
 		elog(WARN,
 		     "%s is a projection, cannot put a dot after it", mutator);
 
-	    /*
-	     *  At the end of the nested dot expression, we're left with
-	     *  a projection of the tuple resulting from the innermost
-	     *  function.  We need to construct a VarNode telling the
-	     *  executor what attribute to project.  The fact that varno
-	     *  is -1 here indicates that the VarNode refers to a result
-	     *  tuple, not to some tuple in the target list.
+	    /* 
+	     *  this is the hellerstein memorial target list strategy
+	     *  for indicating the attribute(s) over which to iterate.
 	     */
 
 	    producer_type = find_atttype(producer_relid, (Name)mutator);
+	    resnode = MakeResdom(1, producer_type,
+				 tlen(get_id_type(producer_type)),
+                                 NULL /* reskey   */,
+                                 NULL /* reskeyop */,
+                                 0    /* resjunk  */);
 	    varnode = MakeVar(-1, attnum, producer_type,
 			      LispNil /* vardotfields */,
 			      LispNil /* vararraylist */,
@@ -860,7 +862,10 @@ LispValue HandleNestedDots(dots)
 				       lispCons(lispInteger(attnum),LispNil)),
 			      0 /* varslot */);
 
-	    retval = (LispValue) MakeIter(MakeList(varnode, retval, -1));
+	    tle = MakeList(resnode, varnode, -1);
+	    tlist = MakeList(tle, -1);
+
+            set_func_tlist((Func)CAR(get_iterexpr((Iter)retval)), tlist);
 
 	    producer_relid = 0;
 
