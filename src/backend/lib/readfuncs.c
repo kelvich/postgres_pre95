@@ -730,6 +730,8 @@ _readResdom()
 
 	local_node->reskeyop = (OperatorTupleForm) atoi(token);
 
+	local_node->resjunk = 0;
+
 	return(local_node);
 }
 

@@ -1189,6 +1189,7 @@ _copyResdom(from, to, alloc)
     
     newnode->reskey  = from->reskey;
     newnode->reskeyop = from->reskeyop; /* USED AS AN INT (see above) */
+    newnode->resjunk = from->resjunk;
     
     (*to) = newnode;
     return true;
