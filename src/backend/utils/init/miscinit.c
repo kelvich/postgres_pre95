@@ -1,4 +1,3 @@
-
 /* ----------------------------------------------------------------
  *   FILE
  *	miscinit.c
@@ -17,7 +16,7 @@
 
 #include <grp.h>		/* for getgrgid */
 #include <pwd.h>		/* for getpwuid */
-#include <strings.h>
+#include <string.h>
 #include <sys/param.h>		/* for MAXPATHLEN */
 #include <sys/types.h>
 #include <sys/stat.h>
