@@ -290,13 +290,13 @@ ExpandAll(relname,this_resno)
 
 	for ( i = maxattrs-1 ; i > -1 ; --i ) {
 		char *attrname = (char *)(&rdesc->rd_att.data[i]->attname);
-		temp = make_var ( relname, attrname );
+		temp = make_var ( relname, (Name) attrname );
 		varnode = (Var)CDR(temp);
 		type_id = CInteger(CAR(temp));
 		type_len = (int)tlen(get_id_type(type_id));
 		
-		resnode = MakeResdom( i + first_resno, type_id, type_len,
-					 attrname, 0, 0, 0 );
+		resnode = MakeResdom((AttributeNumber) i + first_resno, (ObjectId)type_id, (Size)type_len,(Name)
+					 attrname, (Index)0, (OperatorTupleForm)0, 0 );
 /*
 		tall = lispCons(lispCons(resnode, lispCons(varnode, LispNil)),
 				tall);
@@ -396,13 +396,13 @@ make_op(op,ltree,rtree)
                     /* now, we have the default type, typecast */
                     if(temp){
                         Datum val;
-                        val = textout(get_constvalue(right));
+                        val = textout((struct varlena *)get_constvalue((Const)right));
                         optemp = (OperatorTupleForm) GETSTRUCT(temp);
                         right = (LispValue) MakeConst(optemp->oprright,
-                              tlen(get_id_type(optemp->oprright)),
-                              fmgr(typeid_get_retinfunc(optemp->oprright),
-                                   val),
-                              0);
+					tlen(get_id_type(optemp->oprright)),
+					fmgr(typeid_get_retinfunc(optemp->oprright),
+					     val),
+					0,1/*XXX was omitted */);
                      } else 
 					 op_error(CString(op), typeid(ltype), typeid(rtype));
                 }
@@ -788,8 +788,8 @@ make_const( value )
 	    elog(NOTICE,"unknown type : %d\n", value->type );
 	    /* null const */
 	    return ( lispCons (LispNil , 
-			       MakeConst ( 0 , 0 , 
-					  LispNil , 1 )) );
+			       MakeConst ( (ObjectId)0 , (Size)0 , 
+					  (Datum)LispNil , 1, 0/*ignored*/ )) );
 	}
 
 	temp = lispCons (lispInteger ( typeid (tp)) ,
@@ -1038,23 +1038,24 @@ SubstituteParamForNewOrCurrent ( parsetree, relid )
 	    Name attrname = NULL;
 	    AttributeNumber attrno;
 
-	    if ( get_varno(temp) == 1) {
+
+	    if ( get_varno((Var)temp) == 1) {
 		/* replace with make_param(old) */
-		attrname = get_attname(relid, get_varattno(temp));
-		attrno = get_varattno(temp);
+		attrname = get_attname(relid, get_varattno((Var)temp));
+		attrno = get_varattno((Var)temp);
 		CAR(i) = (List)MakeParam (PARAM_OLD,
 				    attrno,
 				    attrname,
-				    get_vartype(temp));
+				    get_vartype((Var)temp));
 	    } 
-	    if ( get_varno(temp) == 2) {
+	    if ( get_varno((Var)temp) == 2) {
 		/* replace with make_param(new) */
-		attrname = get_attname(relid, get_varattno(temp));
-		attrno = get_varattno(temp);
+		attrname = get_attname(relid, get_varattno((Var)temp));
+		attrno = get_varattno((Var)temp);
 		CAR(i) = (List)MakeParam(PARAM_NEW,
 				   attrno,
 				   attrname,
-				   get_vartype(temp) );
+				   get_vartype((Var)temp) );
 	    }
 	} 
 	if (  temp && temp->type == PGLISP_DTPR ) 

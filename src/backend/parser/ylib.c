@@ -135,37 +135,37 @@ parser_typecast ( expr, typename )
 	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%d",
-		get_constvalue(CDR(expr)));
+		get_constvalue((Const)CDR(expr)));
 	break;
       case 19: /* char16 */
 	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%s",
-		get_constvalue(CDR(expr)));
+		get_constvalue((Const)CDR(expr)));
 	break;
       case 18: /* char */
 	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%c",
-		get_constvalue(CDR(expr)));
+		get_constvalue((Const)CDR(expr)));
 	break;
       case 701:/* float8 */
 	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%f",
-		get_constvalue(CDR(expr)));
+		get_constvalue((Const)CDR(expr)));
 	break;
       case 25: /* text */
 	const_string = 
 	  DatumGetPointer(
-			  get_constvalue(CDR(expr)) );
-	  const_string = (char *) textout(const_string);
+			  get_constvalue((Const)CDR(expr)) );
+	  const_string = (char *) textout((struct varlena *)const_string);
 	break;
       case 705: /* unknown */
         const_string =
           DatumGetPointer(
-                          get_constvalue(CDR(expr)) );
-          const_string = (char *) textout(const_string);
+                          get_constvalue((Const)CDR(expr)) );
+          const_string = (char *) textout((struct varlena *)const_string);
         break;
       default:
 	elog(WARN,"unknown type%d ",
@@ -200,7 +200,7 @@ parser_typecast ( expr, typename )
 	}
     }
     
-    adt = MakeConst ( typeid(tp), len, lcp , 0 );
+    adt = MakeConst ( typeid(tp), len, (Datum)lcp , 0, 0/*was omitted*/ );
     /*
       printf("adt %s : %d %d %d\n",CString(expr),typeid(tp) ,
       len,cp);
@@ -228,37 +228,37 @@ parser_typecast2 ( expr, tp)
 	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%d",
-		get_constvalue(CDR(expr)));
+		get_constvalue((Const)CDR(expr)));
 	break;
       case 19: /* char16 */
 	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%s",
-		get_constvalue(CDR(expr)));
+		get_constvalue((Const)CDR(expr)));
 	break;
       case 18: /* char */
 	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%c",
-		get_constvalue(CDR(expr)));
+		get_constvalue((Const)CDR(expr)));
 	break;
       case 701:/* float8 */
 	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%f",
-		get_constvalue(CDR(expr)));
+		get_constvalue((Const)CDR(expr)));
 	break;
       case 25: /* text */
 	const_string = 
 	  DatumGetPointer(
-			  get_constvalue(CDR(expr)) );
-	  const_string = (char *) textout(const_string);
+			  get_constvalue((Const)CDR(expr)) );
+	  const_string = (char *) textout((struct varlena *)const_string);
 	break;
       case 705: /* unknown */
         const_string =
           DatumGetPointer(
-                          get_constvalue(CDR(expr)) );
-          const_string = (char *) textout(const_string);
+                          get_constvalue((Const)CDR(expr)) );
+          const_string = (char *) textout((struct varlena *)const_string);
         break;
       default:
 	elog(WARN,"unknown type%d ",
@@ -293,7 +293,7 @@ parser_typecast2 ( expr, tp)
 	}
     }
     
-    adt = MakeConst ( typeid(tp), len, lcp , 0 );
+    adt = MakeConst ( (ObjectId)typeid(tp), (Size)len, (Datum)lcp , 0 , 0/*was omitted*/);
     /*
       printf("adt %s : %d %d %d\n",CString(expr),typeid(tp) ,
       len,cp);
@@ -363,7 +363,6 @@ ParseFunc ( funcname , fargs )
      char *funcname;
      List fargs;
 {
-    extern Func MakeFunc();
     extern OID funcname_get_rettype();
     extern OID funcname_get_funcid();
     extern ObjectId *funcname_get_funcargtypes();
@@ -386,9 +385,9 @@ ParseFunc ( funcname , fargs )
 	/* this is really a method */
 
 	if( RangeTablePosn ( relname ,LispNil ) == 0 )
-	  ADD_TO_RT( MakeRangeTableEntry (relname,
+	  ADD_TO_RT( MakeRangeTableEntry ((Name)relname,
 					  LispNil, 
-					  relname ));
+					  (Name)relname ));
 
 	funcid = funcname_get_funcid ( funcname );
 	rettype = funcname_get_rettype ( funcname );
@@ -584,9 +583,9 @@ MakeFromClause ( from_list, base_rel )
 		/* if the base relation does not exist in the rangetable
 		 * as a virtual name, make a new rangetable entry
 		 */
-		entry = (List)MakeRangeTableEntry ( CString ( CAR(x)),
+		entry = (List)MakeRangeTableEntry ( (Name)CString ( CAR(x)),
 						   flags , 
-						   CString(temp));
+						   (Name)CString(temp));
 	        ADD_TO_RT(entry);
 	    } else {
 		/* XXX - temporary, should append the existing flags
@@ -637,18 +636,18 @@ char *relname;
     vnum = RangeTablePosn ( relname,0) ;
     if (vnum == 0) {
 	p_rtable = nappend1 (p_rtable ,
-			     MakeRangeTableEntry ( relname , 0 , relname) );
+			     MakeRangeTableEntry ( (Name)relname , 0 , (Name)relname) );
 		vnum = RangeTablePosn (relname,0);
     }
 
     vartype = RELATION;
     vardotfields = LispNil;                          /* XXX - fix this */
     
-    varnode = MakeVar (vnum , attid ,
-		       vartype , vardotfields , vararrayindex ,
-		       lispCons(lispInteger(vnum),
+    varnode = MakeVar ((Index)vnum , (AttributeNumber)attid ,
+		       (ObjectId)vartype , (List)vardotfields , (List)vararrayindex ,
+		       (List)lispCons(lispInteger(vnum),
 				lispCons(lispInteger(attid),LispNil)),
-		       0 );
+		       (Pointer)0 );
     
     return ( varnode );
 }

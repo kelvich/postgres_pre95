@@ -916,12 +916,12 @@ RuleBody:
 	    * NOTE: 'CURRENT' must always have a varno
 	    * equal to 1 and 'NEW' equal to 2.
 	    */
-	    ADD_TO_RT ( MakeRangeTableEntry ( CString(CAR($4)), 
+	    ADD_TO_RT ( MakeRangeTableEntry ( (Name)CString(CAR($4)), 
 					     LispNil,
-					     "*CURRENT*" ) );
-	    ADD_TO_RT ( MakeRangeTableEntry ( CString(CAR($4)), 
+					     (Name)"*CURRENT*" ) );
+	    ADD_TO_RT ( MakeRangeTableEntry ( (Name)CString(CAR($4)), 
 					     LispNil,
-					     "*NEW*" ));
+					     (Name)"*NEW*" ));
 	    QueryIsRule = true;
 	} 
 	where_clause
@@ -1079,9 +1079,9 @@ AppendStmt:
                 {
                    int x = 0;
                    if((x=RangeTablePosn(CString($5),LispNil)) == 0)
-		     ADD_TO_RT( MakeRangeTableEntry(CString($5),
+		     ADD_TO_RT( MakeRangeTableEntry((Name)CString($5),
 						    LispNil,
-						    CString($5)));
+						    (Name)CString($5)));
                   if (x==0)
                     x = RangeTablePosn(CString($5),LispNil);
                   parser_current_rel = heap_openr(VarnoGetRelname(x));
@@ -1131,9 +1131,9 @@ DeleteStmt:
 		    int x = 0;
 		    
 		    if((x=RangeTablePosn(CString($5),LispNil)) == 0 )
-                      ADD_TO_RT (MakeRangeTableEntry (CString($5),
+                      ADD_TO_RT (MakeRangeTableEntry ((Name)CString($5),
 						      LispNil,
-						      CString($5)));
+						      (Name)CString($5)));
 		    
 		    if (x==0)
 		      x = RangeTablePosn(CString($5),LispNil);
@@ -1151,9 +1151,9 @@ DeleteStmt:
 
 		    x= RangeTablePosn(CString($5),LispNil);
 		    if (x == 0)
-		      ADD_TO_RT(MakeRangeTableEntry (CString ($5),
+		      ADD_TO_RT(MakeRangeTableEntry ((Name)CString ($5),
 						     LispNil,
-						     CString($5)));
+						     (Name)CString($5)));
 		    if ( $4 == LispNil )
 		      command = KW(delete);
 		    else
@@ -1205,9 +1205,9 @@ ReplaceStmt:
                 {
                    int x = 0;
                    if((x=RangeTablePosn(CString($5),LispNil) ) == 0 )
-		     ADD_TO_RT( MakeRangeTableEntry (CString($5),
+		     ADD_TO_RT( MakeRangeTableEntry ((Name)CString($5),
 						     LispNil,
-						     CString($5)));
+						     (Name)CString($5)));
                   if (x==0)
                     x = RangeTablePosn(CString($5),LispNil);
                   parser_current_rel = heap_openr(VarnoGetRelname(x));
@@ -1633,15 +1633,15 @@ a_expr:
 	  attr
 		{
 		    Var temp = (Var)NULL;
-		    temp =  (Var)CDR ( make_var ( CString(CAR ($1)) , 
-					    CString(CADR($1)) ));
+		    temp =  (Var)CDR ( make_var ( (Name)CString(CAR ($1)) , 
+						 (Name)CString(CADR($1)) ));
 
 		    $$ = (LispValue)temp;
 
 		    if (CurrentWasUsed) {
 			$$ = (LispValue)MakeParam ( PARAM_OLD , 
 						   get_varattno((Var)temp), 
-						   CString(CDR($1)),
+						   (Name)CString(CDR($1)),
 						   get_vartype((Var)temp));
 			CurrentWasUsed = false;
 		    }
@@ -1649,7 +1649,7 @@ a_expr:
                     if (NewWasUsed) {
 			$$ = (LispValue)MakeParam ( PARAM_NEW , 
 						   get_varattno((Var)temp), 
-						   CString(CDR($1)),
+						   (Name)CString(CDR($1)),
 						   get_vartype((Var)temp));
 			NewWasUsed = false;
 		    }
@@ -1735,9 +1735,9 @@ attr:
 		{    
 		    INC_NUM_LEVELS(1);		
 		    if( RangeTablePosn ( CString ($1),LispNil ) == 0 )
-		      ADD_TO_RT( MakeRangeTableEntry (CString($1) ,
+		      ADD_TO_RT( MakeRangeTableEntry ((Name)CString($1) ,
 						      LispNil, 
-						      CString($1)));
+						      (Name)CString($1)));
 		    $$ = MakeList ( $1 , $3 , -1 );
 		}
 	| attr '.' attr_name
@@ -1753,17 +1753,18 @@ agg_res_target_el:
 		   Resdom resnode;
 		   int type_id, type_len;
 
-		   temp = make_var ( CString(CAR($1)) ,
-						 CString(CADR($1)));
+		   temp = make_var ( (Name)CString(CAR($1)) ,
+				    (Name)CString(CADR($1)));
 		   type_id = CInteger(CAR(temp));
 		   type_len = tlen(get_id_type(type_id));
-		   resnode = MakeResdom ( 1,
-			   type_id, type_len,
-			   CString(CAR(last ($1) ))
-			   , 0 , 0 , 0 );
+		   resnode = MakeResdom ( (AttributeNumber)1,
+					 (ObjectId)type_id, (Size)type_len,
+					 (Name)CString(CAR(last ($1) )),
+					 (Index)0 , (OperatorTupleForm)0 ,
+					 0 );
 		   varnode = CDR(temp);
 		   if ( IsA(varnode,Var))
-		   set_vardotfields ( varnode , CDR(CDR($1)));
+		   set_vardotfields ( (Var)varnode , CDR(CDR($1)));
 		   else if ( CDR(CDR($1)) != LispNil )
 		       elog(WARN,"cannot mix procedures with unions");
 
@@ -1805,11 +1806,11 @@ res_target_list:
 			LispValue temp = p_target;
 			INC_NUM_LEVELS(1);
 			if(temp == LispNil )
-			  p_target = ExpandAll(CString($1), &p_last_resno);
+			  p_target = ExpandAll((Name)CString($1), &p_last_resno);
 			else {
 			  while (temp != LispNil && CDR(temp) != LispNil)
 			    temp = CDR(temp);
-			  CDR(temp) = ExpandAll( CString($1), &p_last_resno);
+			  CDR(temp) = ExpandAll( (Name)CString($1), &p_last_resno);
 			}
 			$$ = p_target;
 		}
@@ -1822,11 +1823,11 @@ res_target_list:
 			}
 			INC_NUM_LEVELS(1);
 			if(temp == LispNil )
-			  p_target = ExpandAll(CString($3), &p_last_resno);
+			  p_target = ExpandAll((Name)CString($3), &p_last_resno);
 			else {
 			  while(temp != LispNil && CDR(temp) != LispNil )
 			    temp = CDR(temp);
-			  CDR(temp) = ExpandAll( CString($3), &p_last_resno);
+			  CDR(temp) = ExpandAll( (Name)CString($3), &p_last_resno);
 			}
 			$$ = p_target;
 		}
@@ -1841,11 +1842,12 @@ res_target_el:
 	     type_id = CInteger(CAR($3));
 	     type_len = tlen(get_id_type(type_id));
 	     resdomno = p_last_resno++;
-	     temp = lispCons (MakeResdom(resdomno,
-					type_id,
-					type_len,
-					CString($1), 0, 0, 0) 
-				, lispCons(CDR($3), LispNil) );
+	     temp = lispCons (MakeResdom((AttributeNumber)resdomno,
+					 (ObjectId)type_id,
+					 (Size)type_len,
+					 (Name)CString($1),
+					 (Index)0, (OperatorTupleForm)0, 0) 
+			      , lispCons(CDR($3), LispNil) );
 		$$ = temp;
 	}
 
@@ -1859,16 +1861,18 @@ res_target_el:
 		      Resdom resnode;
 		      int type_id, type_len;
 
-		      temp = make_var ( CString(CAR($1)) , CString(CADR($1)));
+		      temp = make_var ( (Name)CString(CAR($1)) ,
+				       (Name)CString(CADR($1)));
 		      type_id = CInteger(CAR(temp));
 		      type_len = tlen(get_id_type(type_id));
-		      resnode = MakeResdom ( p_last_resno++ ,
-						type_id, type_len, 
-						CString(CAR(last ($1) ))
-					    , 0 , 0 , 0 );
+		      resnode = MakeResdom ( (AttributeNumber)p_last_resno++ ,
+					    (ObjectId)type_id, (Size)type_len, 
+					    (Name)CString(CAR(last ($1) ))
+					    , (Index)0 , (OperatorTupleForm)0,
+					    0 );
 		      varnode = CDR(temp);
 		      if ( IsA(varnode,Var))
-			set_vardotfields ( varnode , CDR(CDR($1)));
+			set_vardotfields ( (Var)varnode , CDR(CDR($1)));
 		      else if ( CDR(CDR($1)) != LispNil )
 			elog(WARN,"cannot mix procedures with unions");
 
@@ -1887,11 +1891,11 @@ res_target_el:
 		      type_len = tlen(get_id_type(type_id));
 		      resnode = MakeResdom ( p_last_resno++ ,
 						type_id, type_len, 
-						CString(CAR(last ($1) ))
+						(Name)CString(CAR(last ($1) ))
 					    , 0 , 0 , 0 );
 		      varnode = CDR(temp);
 		      if ( IsA(varnode,Var))
-			set_vardotfields ( varnode , CDR(CDR($1)));
+			set_vardotfields ( (Var)varnode , CDR(CDR($1)));
 		      else if ( CDR(CDR($1)) != LispNil )
 			elog(WARN,"cannot mix procedures with unions");
 
@@ -1931,7 +1935,7 @@ attach_args:		Sconst		/*$$=$1*/;
 			/* XXX should be converted by fmgr? */
 spec:
 	  adt_name '[' '$' spec_tail ']'
-		{ $$ = (LispValue)MakeParam( $4 ) ; }
+		{ $$ = (LispValue)MakeParam( (int)$4,(AttributeNumber)0,(Name)0,(ObjectId)0 ) ; }
 	;
 
 spec_tail:
@@ -1958,7 +1962,8 @@ AexprConst:
 			 aid);
 		}
 		$$ = (List) lispCons(lispInteger(toid),
-				     MakeParam(PARAM_NUM, aid, "foop", toid));
+				     MakeParam(PARAM_NUM, (AttributeNumber)aid,
+					       (Name)"foop", (ObjectId)toid));
 	    }
 	    else {
 		Params_ok = false;
@@ -2057,7 +2062,7 @@ make_targetlist_expr ( name , expr )
        attrtype = att_typeid(rd,resdomno);
        attrlen = tlen(get_id_type(attrtype));
        expr = lispCons( lispInteger(attrtype),
-                MakeConst(attrtype, attrlen, LispNil, 1));
+                MakeConst((ObjectId) attrtype, (Size) attrlen, (Datum) LispNil, (bool)1, (bool) 0 /* ignored */));
        Input_is_string = false;
        Input_is_integer = false;
        Typecast_ok = true;
@@ -2068,10 +2073,12 @@ make_targetlist_expr ( name , expr )
            p_target_resnos = lispCons( lispInteger(resdomno),
                                      p_target_resnos);
        }
-       return  ( lispCons (MakeResdom (resdomno,
-                                         attrtype,
-                                        attrlen ,
-                                         CString(name), 0 , 0 , 0 ) ,
+       return  ( lispCons (MakeResdom ((AttributeNumber)resdomno,
+				       (ObjectId) attrtype,
+				       (Size)attrlen ,
+				       (Name)CString(name),
+				       (Index) 0 ,
+				       (OperatorTupleForm) 0 , 0 ) ,
                              lispCons((Var)CDR(expr),LispNil)) );
      }
  
@@ -2089,13 +2096,13 @@ make_targetlist_expr ( name , expr )
 	if(Input_is_string && Typecast_ok){
               Datum val;
               if (CInteger(CAR(expr)) == typeid(type("unknown"))){
-                val = textout(get_constvalue(CDR(expr)));
+                val = textout((struct varlena *)get_constvalue((Const)CDR(expr)));
               }else{
-                val = get_constvalue(CDR(expr));
+                val = get_constvalue((Const)CDR(expr));
               }
               CDR(expr) = (LispValue) MakeConst(attrtype, attrlen,
-                fmgr(typeid_get_retinfunc(attrtype),val,get_typelem(attrtype)),
-                0);
+		fmgr(typeid_get_retinfunc(attrtype),val,get_typelem(attrtype)),
+                0,1 /*??? Maybe correct-- 80% chance */);
 	} else if((Typecast_ok) && (attrtype != type_id)){
               CDR(expr) = (LispValue) 
 			parser_typecast2 ( expr, get_id_type((long)attrtype));
@@ -2118,10 +2125,11 @@ make_targetlist_expr ( name , expr )
 	attrtype = type_id;
 	attrlen = type_len;
     }
-    return  ( lispCons (MakeResdom (resdomno,
-					  attrtype,
-					  attrlen , 
-					  CString(name), 0 , 0 , 0 ) ,
+    return  ( lispCons (MakeResdom ((AttributeNumber)resdomno,
+				    (ObjectId)  attrtype,
+				    (Size)  attrlen , 
+				    (Name)  CString(name), (Index)0 ,
+				    (OperatorTupleForm)0 , 0 ) ,
 			      lispCons((Var)CDR(expr),LispNil)) );
     
 }

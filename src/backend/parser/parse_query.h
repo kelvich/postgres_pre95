@@ -1,8 +1,8 @@
 /* $Header$ */
 extern LispValue ModifyQueryTree ARGS((LispValue query, LispValue priority, LispValue ruletag));
 extern Name VarnoGetRelname ARGS((int vnum));
-extern LispValue MakeRoot ARGS((int NumLevels, LispValue query_name, LispValue result, LispValue rtable, LispValue priority, LispValue ruleinfo));
-extern LispValue MakeRangeTableEntry ARGS((LispValue relname, int options, LispValue refname));
+extern LispValue MakeRoot ARGS((int NumLevels , LispValue query_name , LispValue result, LispValue rtable , LispValue priority , LispValue ruleinfo , LispValue unique_flag , LispValue sort_clause , LispValue targetlist ));
+extern LispValue MakeRangeTableEntry ARGS((Name relname , List options , Name refname ));
 LispValue MakeTargetList ARGS((void));
 extern LispValue ExpandAll ARGS((Name relname, int *this_resno));
 extern LispValue MakeTimeRange ARGS((LispValue datestring1, LispValue datestring2, int timecode));
