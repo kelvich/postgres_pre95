@@ -18,6 +18,7 @@ RcsId("$Header$");
 
 #include "log.h"
 #include "mcxt.h"
+#include "pinit.h"	/* for BypassEnable */
 
 #include "hasht.h"
 
@@ -45,7 +46,8 @@ RcsId("$Header$");
 /*
  * Global State
  */
-static bool		HashTableEnabled = false;
+static Count		HashTableEnableCount = 0;
+#define HashTableEnabled	(HashTableEnableCount >= 1)
 static GlobalMemory	HashTableMemory = NULL;
 static char		HashTableMemoryName[] = "HashTable";
 
@@ -89,10 +91,20 @@ void
 EnableHashTable(on)
 	bool	on;
 {
+	static bool	processing = false;
+
+	AssertState(!processing);
 	AssertArg(BoolIsValid(on));
-	AssertState(on != HashTableEnabled);
+
+	if (BypassEnable(&HashTableEnableCount, on)) {
+		return;
+	}
+
+	processing = true;
 
 	if (on) {	/* initialize */
+		EnableMemoryContext(true);
+
 		HashTableMemory = CreateGlobalMemory(HashTableMemoryName);
 
 	} else {	/* cleanup */
@@ -105,9 +117,11 @@ EnableHashTable(on)
 		 */
 		GlobalMemoryDestroy(HashTableMemory);
 		HashTableMemory = NULL;
+
+		EnableMemoryContext(false);
 	}
 
-	HashTableEnabled = on;
+	processing = false;
 }
 
 HashTable

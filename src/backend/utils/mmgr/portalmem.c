@@ -13,6 +13,7 @@ RcsId("$Header$");
 #include "hasht.h"
 #include "mcxt.h"
 #include "mnodes.h"
+#include "pinit.h"	/* for BypassEnable */
 #include "tnodes.h"
 
 #include "portal.h"
@@ -21,7 +22,8 @@ RcsId("$Header$");
  * Global state
  */
 
-static bool PortalManagerEnabled = false;
+static Count PortalManagerEnableCount = 0;
+#define PortalManagerEnabled	(PortalManagerEnableCount >= 1)
 
 static HashTable	PortalHashTable = NULL;
 static GlobalMemory	PortalMemory = NULL;
@@ -298,10 +300,21 @@ void
 EnablePortalManager(on)
 	bool	on;
 {
+	static bool	processing = false;
+
+	AssertState(!processing);
 	AssertArg(BoolIsValid(on));
-	AssertState(on != PortalManagerEnabled);
+
+	if (BypassEnable(&PortalManagerEnableCount, on)) {
+		return;
+	}
+
+	processing = true;
 
 	if (on) {	/* initialize */
+		EnableMemoryContext(true);
+		EnableHashTable(true);
+
 		PortalMemory = CreateGlobalMemory(PortalMemoryName);
 		PortalHashTable = CreateHashTable(
 			ComputePortalNameHashIndex,
@@ -311,14 +324,21 @@ EnablePortalManager(on)
 			(Size)21 /* est:  7 open portals or less per user */);
 
 	} else {	/* cleanup */
+		/*
+		 * Each portal must free its non-memory resources specially.
+		 */
 		HashTableWalk(PortalHashTable, PortalDestroy);
 		HashTableDestroy(PortalHashTable);
+		PortalHashTable = NULL;
 
 		GlobalMemoryDestroy(PortalMemory);
 		PortalMemory = NULL;
+
+		EnableHashTable(true);
+		EnableMemoryContext(true);
 	}
 
-	PortalManagerEnabled = on;
+	processing = false;
 }
 
 bool
