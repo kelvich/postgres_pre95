@@ -3,19 +3,17 @@
  *	POSTGRES define and remove index code.
  */
 
-#include "c.h"
+#include "postgres.h"
 
 RcsId("$Header$");
 
 #include "attnum.h"
-#include "cat.h"
 #include "genam.h"
 #include "heapam.h"
 #include "htup.h"
 #include "log.h"
 #include "name.h"
 #include "pg_lisp.h"
-#include "oid.h"
 #include "palloc.h"
 #include "syscache.h"
 

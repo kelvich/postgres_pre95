@@ -25,9 +25,7 @@
 #include <stdio.h>
 
 #include "postgres.h"	/* for struct varlena, etc. */
-#include "c.h"
 
-#include "anum.h"
 #include "att.h"
 #include "attnum.h"
 #include "bit.h"
@@ -35,7 +33,6 @@
 #include "buf.h"
 #include "bufmgr.h"
 #include "bufpage.h"
-#include "cat.h"
 #include "catname.h"
 #include "datum.h"
 #include "heapam.h"
@@ -43,11 +40,9 @@
 #include "log.h"
 #include "mcxt.h"
 #include "name.h"
-#include "oid.h"
 #include "rel.h"
 #include "relscan.h"
 #include "rlock.h"
-#include "rproc.h"
 #include "skey.h"
 #include "tupdesc.h"
 #include "xid.h"

@@ -11,13 +11,14 @@
 
 RcsId("$Header$");
 
-#include "anum.h"
 #include "catname.h"
 #include "fmgr.h"
 #include "ftup.h"
 #include "heapam.h"
 #include "log.h"
 #include "tqual.h"	/* for NowTimeQual */
+
+#include "catalog/pg_relation.h"
 
 static char	cmdname[] = "RelationPurge";
 

@@ -22,18 +22,16 @@
  * ----------------------------------------------------------------
  */
 
-#include "c.h"
+#include <strings.h>
+#include "postgres.h"
 
 RcsId("$Header$");
 
-#include <strings.h>
 #include "log.h"
 #include "skey.h"
 
-#include "anum.h"
 #include "attnum.h"
 #include "buf.h"
-#include "cat.h"
 #include "catname.h"
 #include "copy.h"
 #include "excid.h"
@@ -44,15 +42,18 @@ RcsId("$Header$");
 #include "htup.h"
 #include "mcxt.h"
 #include "name.h"	/* for NameIsEqual */
-#include "oid.h"
 #include "pg_lisp.h"
 #include "palloc.h"
 #include "portal.h"
 #include "rel.h"
 #include "relscan.h"
-#include "rproc.h"
 #include "syscache.h"
 #include "tqual.h"
+
+#include "catalog/pg_attribute.h"
+#include "catalog/pg_proc.h"
+#include "catalog/pg_relation.h"
+#include "catalog/pg_type.h"
 
 #include "command.h"
 

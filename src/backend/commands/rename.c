@@ -3,7 +3,7 @@
  * renameatt() and renamerel() reside here.
  */
 
-#include "c.h"
+#include "postgres.h"
 
 RcsId("$Header$");
 
@@ -11,10 +11,8 @@ RcsId("$Header$");
 #include "skey.h"
 #include "log.h"
 
-#include "anum.h"
 #include "attnum.h"
 #include "buf.h"
-#include "cat.h"
 #include "catname.h"
 #include "copy.h"
 #include "excid.h"
@@ -25,18 +23,19 @@ RcsId("$Header$");
 #include "htup.h"
 #include "mcxt.h"
 #include "name.h"	/* for NameIsEqual */
-#include "oid.h"
 #include "pg_lisp.h"
 #include "portal.h"
 #include "rel.h"
 #include "relscan.h"
-#include "rproc.h"
 #include "syscache.h"
 #include "tqual.h"
 
 #include "command.h"
 #include "palloc.h"
 
+#include "catalog/pg_attribute.h"
+#include "catalog/pg_proc.h"
+#include "catalog/pg_relation.h"
 
 /*
  *	rename		- See renameatt, renamerel

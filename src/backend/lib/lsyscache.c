@@ -35,13 +35,16 @@
  *    
  */
 
+#include "c.h"
+
 #include "pg_lisp.h"
 #include "syscache.h"
-#include "c.h"
-#include "cat.h"
 #include "att.h"
 #include "rel.h"
 #include "attnum.h"
+
+#include "catalog/pg_amop.h"
+#include "catalog/pg_type.h"
 
 /* 
 require ("cstructs");
@@ -436,7 +439,7 @@ get_relstub (relid)
     HeapTuple tuple;
     RelationTupleForm relp;
     struct varlena * retval;
-    struct varlena *stub;
+    struct varlena * relstub;
 
     tuple = SearchSysCacheTuple(RELOID,relid,0,0,0);
     if (HeapTupleIsValid(tuple)) {
@@ -445,9 +448,9 @@ get_relstub (relid)
 	 * skip the 4 first bytes to get the actual
 	 * varlena struct
 	 */
-	stub = (struct varlena *) PSIZESKIP( & (relp->relstub) );
-	retval = (struct varlena *)palloc(VARSIZE( stub ));
-	bcopy(stub, retval, VARSIZE( stub ));
+	relstub = (struct varlena *) PSIZESKIP( & (relp->relstub) );
+	retval = (struct varlena *)palloc(VARSIZE( relstub ));
+	bcopy(relstub, retval, VARSIZE( relstub ));
 	return(retval);
     } else {
       return((struct varlena *)NULL);

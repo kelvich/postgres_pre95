@@ -8,18 +8,18 @@
 RcsId("$Header$");
 
 #include "skey.h"
-#include "anum.h"
 #include "attnum.h"
-#include "cat.h"
 #include "catname.h"
 #include "heapam.h"
 #include "htup.h"
 #include "log.h"
-#include "rproc.h"
 #include "tqual.h"	/* for NowTimeQual */
 
 #include "defrem.h"
 
+#include "catalog/pg_operator.h"
+#include "catalog/pg_proc.h"
+#include "catalog/pg_type.h"
 
 static String	Messages[] = {
 #define	NonexistantTypeMessage	(Messages[0])

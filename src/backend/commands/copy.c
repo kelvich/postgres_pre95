@@ -7,17 +7,16 @@
  *	efficiency - too many fread()s and fwrite()s
  */
 
-#include "c.h"
-
-RcsId("$Header$");
-
 #include <stdio.h>
 #include <pwd.h>
 #include <strings.h>
 #include <sys/file.h>
 #include <sys/param.h>
 
-#include "cat.h"
+#include "postgres.h"
+
+RcsId("$Header$");
+
 #include "fd.h"
 #include "fmgr.h"
 #include "heapam.h"
@@ -30,6 +29,8 @@ RcsId("$Header$");
 #include "tqual.h"
 
 #include "copy.h"
+
+#include "catalog/pg_type.h"
 
 #define	NON_NULL_ATT	(' ')
 #define	NULL_ATT	('n')
