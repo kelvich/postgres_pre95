@@ -1,20 +1,29 @@
 /* ----------------------------------------------------------------
  *   FILE
  *	RewriteSupport.c
- *	
+ *
+ *   DESCRIPTION
+ *
  *   NOTES
  *
  *   IDENTIFICATION
- * $Header$
+ *	$Header$
  * ----------------------------------------------------------------
  */
 
+#include "tmp/postgres.h"
+
+RcsId("$Header$");
+
 #include "catalog/catname.h"
 #include "catalog/pg_rewrite.h"
-#include "utils/rel.h"			/* Relation, RelationData ... */
 #include "catalog/syscache.h"		/* for SearchSysCache */
+#include "nodes/pg_lisp.h"		/* for LispValue ... */
 #include "utils/builtins.h"		/* for textout */
+#include "utils/rel.h"			/* for Relation, RelationData ... */
 #include "utils/log.h"		        /* for elog */
+#include "storage/buf.h"		/* for InvalidBuffer */
+
 /* 
  * RuleIdGetActionInfo
  *
