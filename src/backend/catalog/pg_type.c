@@ -525,79 +525,53 @@ TypeRename(oldTypeName, newTypeName)
     Name	newTypeName;
 {
     Relation 		pg_type_desc;
-    HeapScanDesc 	pg_type_scan;
-
-    ObjectId            oldTypeObjectId;
-    ObjectId            newTypeObjectId;
-    
+    Relation		idescs[Num_pg_type_indices];
+    ObjectId            type_oid;
     HeapTuple 		tup;
-    HeapTuple 		newtup;
-    
-    Buffer		buffer;
     bool 		defined;
     ItemPointerData	itemPointerData;
-    
-    static ScanKeyEntryData	typeKey[1] = {
-	{ 0, TypeNameAttributeNumber, NameEqualRegProcedure }
-    };
 
-    /* ----------------
-     *	sanity checks
-     * ----------------
-     */
     Assert(NameIsValid(oldTypeName));
     Assert(NameIsValid(newTypeName));
 
-    fmgr_info(NameEqualRegProcedure, &typeKey[0].func, &typeKey[0].nargs);
-
-    /* ----------------
-     *	check that that the new type is not already defined
-     * ----------------
-     */
-    newTypeObjectId = TypeGet(newTypeName, &defined);
-    if (ObjectIdIsValid(newTypeObjectId) && defined) {
+    /* check that that the new type is not already defined */
+    type_oid = TypeGet(newTypeName, &defined);
+    if (ObjectIdIsValid(type_oid) && defined) {
 	elog(WARN, "TypeRename: type %s already defined", newTypeName);	
     }
 
-    /* ----------------
-     *	open pg_type and begin a scan for the type name.
-     * ----------------
-     */
+    /* get the type tuple from the catalog index scan manager */
     pg_type_desc = heap_openr(TypeRelationName);
-    
-    typeKey[0].argument = NameGetDatum(oldTypeName);
-    pg_type_scan = heap_beginscan(pg_type_desc,
-				  0,
-				  SelfTimeQual,
-				  1,
-				  (ScanKey) typeKey);
-    
+    tup = TypeNameIndexScan(pg_type_desc, oldTypeName);
+
     /* ----------------
-     *  update the name of the tuple in the type relation
+     *  change the name of the type
      * ----------------
      */
-    tup = heap_getnext(pg_type_scan, 0, &buffer);
     if (HeapTupleIsValid(tup)) {
-	
-	newtup = (HeapTuple) palloctup(tup, InvalidBuffer, pg_type_desc);
+
 	bcopy(newTypeName,
-	      (char *) &(((Form_pg_type) GETSTRUCT(newtup))->typname),
+	      (char *) &(((Form_pg_type) GETSTRUCT(tup))->typname),
 	      sizeof(NameData));
-	
+
 	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
-	
+
 	setheapoverride(true);
-	heap_replace(pg_type_desc, &itemPointerData, newtup);
+	heap_replace(pg_type_desc, &itemPointerData, tup);
 	setheapoverride(false);
-	
+
+	/* update the system catalog indices */
+	CatalogOpenIndices(Num_pg_type_indices, Name_pg_type_indices, idescs);
+	CatalogIndexInsert(idescs, Num_pg_type_indices, pg_type_desc, tup);
+	CatalogCloseIndices(Num_pg_type_indices, idescs);
+
+	/* all done */
+	pfree(tup);
+
     } else {
 	elog(WARN, "TypeRename: type %s not defined", oldTypeName);	
     }
-    
-    /* ----------------
-     *	finish up
-     * ----------------
-     */
-    heap_endscan(pg_type_scan);
+
+    /* finish up */
     heap_close(pg_type_desc);
 }

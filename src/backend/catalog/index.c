@@ -52,6 +52,7 @@ RcsId("$Header$");
 #include "catalog/pg_proc.h"
 #include "catalog/pg_relation.h"
 #include "catalog/pg_type.h"
+#include "catalog/indexing.h"
 
 #include "lib/heap.h"
 
@@ -198,29 +199,45 @@ RelationNameGetObjectId(relationName, pg_relation, setHasIndexAttribute)
     Buffer		buffer;
     ScanKeyData		key[1];
 
+    /*
+     *  If this isn't bootstrap time, we can use the system catalogs to
+     *  speed this up.
+     */
+
+    if (!IsBootstrapProcessingMode()) {
+	pg_relation_tuple = ClassNameIndexScan(pg_relation, relationName);
+	if (HeapTupleIsValid(pg_relation_tuple)) {
+	    relationObjectId = pg_relation_tuple->t_oid;
+	    pfree(pg_relation_tuple);
+	} else
+	    relationObjectId = InvalidObjectId;
+
+	return (relationObjectId);
+    }
+
     /* ----------------
+     *  Bootstrap time, do this the hard way.
      *	begin a scan of pg_relation for the named relation
      * ----------------
      */
-	ScanKeyEntryInitialize(&key[0].data[0], 0, RelationNameAttributeNumber,
-						   Character16EqualRegProcedure,
-						   NameGetDatum(relationName));
+    ScanKeyEntryInitialize(&key[0].data[0], 0, RelationNameAttributeNumber,
+					       Character16EqualRegProcedure,
+					       NameGetDatum(relationName));
 
-    pg_relation_scan =
-	heap_beginscan(pg_relation, 0, NowTimeQual, 1, &key[0]);
+    pg_relation_scan = heap_beginscan(pg_relation, 0, NowTimeQual, 1, &key[0]);
 
     /* ----------------
      *	if we find the named relation, fetch its relation id
      *  (the oid of the tuple we found). 
      * ----------------
      */
-    pg_relation_tuple =
-	heap_getnext(pg_relation_scan, 0, &buffer);
+    pg_relation_tuple = heap_getnext(pg_relation_scan, 0, &buffer);
 
     if (! HeapTupleIsValid(pg_relation_tuple)) {
 	relationObjectId = InvalidObjectId;
     } else {
 	relationObjectId = pg_relation_tuple->t_oid;
+	ReleaseBuffer(buffer);
     }
 
     /* ----------------
@@ -574,6 +591,7 @@ UpdateRelationRelation(indexRelation)
     Relation	pg_relation;
     HeapTuple	tuple;
     ObjectId	tupleOid;
+    Relation	idescs[Num_pg_class_indices];
     
     pg_relation = heap_openr(RelationRelationName);
    
@@ -589,7 +607,20 @@ UpdateRelationRelation(indexRelation)
      */
     tuple->t_oid = indexRelation->rd_id;
     heap_insert(pg_relation, tuple, (double *)NULL);
-   
+    
+    /*
+     *  During normal processing, we need to make sure that the system
+     *  catalog indices are correct.  Bootstrap (initdb) time doesn't
+     *  require this, because we make sure that the indices are correct
+     *  just before exiting.
+     */
+
+    if (!IsBootstrapProcessingMode()) {
+	CatalogOpenIndices(Num_pg_class_indices, Name_pg_class_indices, idescs);
+	CatalogIndexInsert(idescs, Num_pg_class_indices, pg_relation, tuple);
+	CatalogCloseIndices(Num_pg_class_indices, idescs);
+    }
+
     tupleOid = tuple->t_oid;
     pfree((Pointer)tuple);
     heap_close(pg_relation);
@@ -628,9 +659,10 @@ AppendAttributeTuples(indexRelation, numatts)
     AttributeNumber	numatts;
 {
     Relation		pg_attribute;
-
     HeapTuple		tuple;
     HeapTuple		newtuple;
+    bool		hasind;
+    Relation		idescs[Num_pg_attr_indices];
     
     Datum		value[ AttributeRelationNumberOfAttributes ];
     char		nullv[ AttributeRelationNumberOfAttributes ];
@@ -666,6 +698,12 @@ AppendAttributeTuples(indexRelation, numatts)
 			   sizeof *indexRelation->rd_att.data[0],
 			   (char *)indexRelation->rd_att.data[0]);
 
+    hasind = false;
+    if (!IsBootstrapProcessingMode() && pg_attribute->rd_rel->relhasindex) {
+	hasind = true;
+	CatalogOpenIndices(Num_pg_attr_indices, Name_pg_attr_indices, idescs);
+    }
+
     /* ----------------
      *  insert the first attribute tuple.
      * ----------------
@@ -678,6 +716,8 @@ AppendAttributeTuples(indexRelation, numatts)
 			    replace);
     
     heap_insert(pg_attribute, tuple, (double *)NULL);
+    if (hasind)
+	CatalogIndexInsert(idescs, Num_pg_attr_indices, pg_attribute, tuple);
 
     /* ----------------
      *	now we use the information in the index tuple
@@ -705,6 +745,8 @@ AppendAttributeTuples(indexRelation, numatts)
 				   replace);
 	 
 	heap_insert(pg_attribute, newtuple, (double *)NULL);
+	if (hasind)
+	    CatalogIndexInsert(idescs, Num_pg_attr_indices, pg_attribute, newtuple);
 
 	/* ----------------
 	 *  ModifyHeapTuple returns a new copy of a tuple
@@ -720,6 +762,10 @@ AppendAttributeTuples(indexRelation, numatts)
      * ----------------
      */
     heap_close(pg_attribute);
+
+    if (hasind)
+	CatalogCloseIndices(Num_pg_attr_indices, idescs);
+
     pfree((Pointer)tuple);
 }
 
@@ -728,61 +774,38 @@ AppendAttributeTuples(indexRelation, numatts)
  * ----------------------------------------------------------------
  */
 void
-UpdateIndexRelation(indexoid, heapoid, funcInfo, natts, attNums, classOids,
-		    predicate)
+UpdateIndexRelation(indexoid, heapoid, funcInfo, natts, attNums, classOids)
     ObjectId		indexoid;
     ObjectId		heapoid;
     FuncIndexInfo	*funcInfo;
     AttributeNumber	natts;
     AttributeNumber	attNums[];
     ObjectId		classOids[];
-    LispValue		predicate;
 {
-    IndexTupleForm	indexForm;
-    char		*predString;
-    text		*predText;
-    int			predLen, itupLen;
+    IndexTupleFormData	indexForm;
     Relation		pg_index;
     HeapTuple		tuple;
     AttributeOffset	i;
     
     /* ----------------
-     *	allocate an IndexTupleForm big enough to hold the
-     *  index-predicate (if any) in string form
-     * ----------------
-     */
-    if (predicate != LispNil) {
-	predString = lispOut(predicate);
-	predText = (text *)fmgr(F_TEXTIN, predString);
-	pfree(predString);
-    } else {
-	predText = (text *)fmgr(F_TEXTIN, "");
-    }
-    predLen = VARSIZE(predText);
-    itupLen = predLen + sizeof(IndexTupleFormData);
-    indexForm = (IndexTupleForm) palloc(itupLen);
-
-    bcopy((char *)predText, (char *)& indexForm->indpred, predLen);
-
-    /* ----------------
      *	store the oid information into the index tuple form
      * ----------------
      */
-    indexForm->indrelid =   heapoid;
-    indexForm->indexrelid = indexoid;
-    indexForm->indproc = (PointerIsValid(funcInfo)) ?
+    indexForm.indrelid =   heapoid;
+    indexForm.indexrelid = indexoid;
+    indexForm.indproc = (PointerIsValid(funcInfo)) ?
 	FIgetProcOid(funcInfo) : InvalidObjectId;
    
-    memset((char *)& indexForm->indkey[0], 0, sizeof indexForm->indkey);
-    memset((char *)& indexForm->indclass[0], 0, sizeof indexForm->indclass);
+    memset((char *)& indexForm.indkey[0], 0, sizeof indexForm.indkey);
+    memset((char *)& indexForm.indclass[0], 0, sizeof indexForm.indclass);
 
     /* ----------------
      *	copy index key and op class information
      * ----------------
      */
     for (i = 0; i < natts; i += 1) {
-	indexForm->indkey[i] =   attNums[i];
-	indexForm->indclass[i] = classOids[i];
+	indexForm.indkey[i] =   attNums[i];
+	indexForm.indclass[i] = classOids[i];
     }
     /*
      * If we have a functional index, add all attribute arguments
@@ -790,11 +813,11 @@ UpdateIndexRelation(indexoid, heapoid, funcInfo, natts, attNums, classOids,
     if (PointerIsValid(funcInfo))
     {
 	for (i=1; i < FIgetnArgs(funcInfo); i++)
-	    indexForm->indkey[i] =   attNums[i];
+	    indexForm.indkey[i] =   attNums[i];
     }
    
-    indexForm->indisclustered = '\0';		/* XXX constant */
-    indexForm->indisarchived = '\0';		/* XXX constant */
+    indexForm.indisclustered = '\0';		/* XXX constant */
+    indexForm.indisarchived = '\0';		/* XXX constant */
 
     /* ----------------
      *	open the system catalog index relation
@@ -807,8 +830,8 @@ UpdateIndexRelation(indexoid, heapoid, funcInfo, natts, attNums, classOids,
      * ----------------
      */
     tuple = addtupleheader(IndexRelationNumberOfAttributes,
-			   itupLen,
-			   (char *)indexForm);
+			   sizeof(indexForm),
+			   (char *)&indexForm);
 
     /* ----------------
      *	insert the tuple into the pg_index
@@ -822,8 +845,6 @@ UpdateIndexRelation(indexoid, heapoid, funcInfo, natts, attNums, classOids,
      * ----------------
      */
     heap_close(pg_index);
-    pfree((Pointer)predText);
-    pfree((Pointer)indexForm);
     pfree((Pointer)tuple);
 }
  
@@ -874,7 +895,7 @@ InitIndexStrategy(numatts, indexRelation, accessMethodObjectId)
 	MemoryContextAlloc((MemoryContext)CacheCxt, strsize);
 
     if (amsupport > 0) {
-        strsize = numatts * (amstrategies * sizeof(RegProcedure));
+        strsize = numatts * (amsupport * sizeof(RegProcedure));
         support = (RegProcedure *) MemoryContextAlloc((MemoryContext)CacheCxt,
 						      strsize);
     } else {
@@ -1029,12 +1050,12 @@ index_create(heapRelationName, indexRelationName, funcInfo,
      *    update pg_index
      *    (append INDEX tuple)
      *
-     *    Should stow away a representation of "predicate" here.
+     *    Should stow away a representation of "predicate" here(?)
      *    (Or, could define a rule to maintain the predicate) --Nels, Feb '92
      * ----------------
      */
     UpdateIndexRelation(indexoid, heapoid, funcInfo,
-			numatts, attNums, classObjectId, predicate);
+			numatts, attNums, classObjectId);
 
     /* ----------------
      *    initialize the index strategy
@@ -1042,27 +1063,21 @@ index_create(heapRelationName, indexRelationName, funcInfo,
      */
     InitIndexStrategy(numatts, indexRelation, accessMethodObjectId);
 
-    /* XXX Do we eventually sort here sometimes? (doc/pcat3) */
-   
-    /* ----------------
-     *    build the index
-     * ----------------
-     */
-    heapRelation = heap_openr(heapRelationName);
-   
     /*
-     *  The routines that construct the indices for the various access
-     *  methods close the heap and index relations.
+     *  If this is bootstrap (initdb) time, then we don't actually
+     *  fill in the index yet.  We'll be creating more indices and classes
+     *  later, so we delay filling them in until just before we're done
+     *  with bootstrapping.  Otherwise, we call the routine that constructs
+     *  the index.  The heap and index relations are closed by index_build().
      */
-
-    index_build(heapRelation,
-		indexRelation,
-		numatts,
-		attNums,
-		parameterCount,
-		parameter,
-		funcInfo,
-		predicate);
+    if (IsBootstrapProcessingMode()) {
+	index_register(heapRelationName, indexRelationName, numatts, attNums,
+			parameterCount, parameter, funcInfo, predicate);
+    } else {
+	heapRelation = heap_openr(heapRelationName);
+	index_build(heapRelation, indexRelation, numatts, attNums,
+			parameterCount, parameter, funcInfo, predicate);
+    }
 }
 
 /* ----------------------------------------------------------------
@@ -1217,6 +1232,7 @@ UpdateStats(relid, reltuples, hasindex)
     Boolean 	isNull = '\0';
     Buffer 	buffer;
     int 	i;
+    Relation	idescs[Num_pg_class_indices];
     
     static ScanKeyEntryData key[1] = {
 	{ 0, ObjectIdAttributeNumber, ObjectIdEqualRegProcedure }
@@ -1311,7 +1327,15 @@ UpdateStats(relid, reltuples, hasindex)
     newtup = ModifyHeapTuple(htup, buffer, pg_relation, values,
 			     nulls, replace);
 
-    heap_replace(pg_relation, &(newtup->t_ctid), newtup);
+    if (IsBootstrapProcessingMode())
+	bcopy(newtup, htup, PSIZE(newtup));
+    else {
+	heap_replace(pg_relation, &(newtup->t_ctid), newtup);
+	CatalogOpenIndices(Num_pg_class_indices, Name_pg_class_indices, idescs);
+	CatalogIndexInsert(idescs, Num_pg_class_indices, pg_relation, newtup);
+	CatalogCloseIndices(Num_pg_class_indices, idescs);
+    }
+
     heap_close(pg_relation);
     heap_close(whichRel);
 }

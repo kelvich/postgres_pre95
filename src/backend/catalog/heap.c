@@ -189,6 +189,7 @@ heap_creatr(relname, natts, smgr, att)
     /* int			issystem(); */
     File		smgrcreate();		/* XXX */
     /* OID			newoid(); */
+    extern		bcopy(), bzero();
 
     /* ----------------
      *	sanity checks
@@ -430,8 +431,23 @@ RelationAlreadyExists(pg_relation_desc, relname)
     HeapScanDesc	pg_relation_scan;
     HeapTuple		tup;
 
+    /*
+     *  If this is not bootstrap (initdb) time, use the catalog index
+     *  on pg_class.
+     */
+
+    if (!IsBootstrapProcessingMode()) {
+	tup = ClassNameIndexScan(pg_relation_desc, relname);
+	if (HeapTupleIsValid(tup)) {
+	    pfree (tup);
+	    return ((int) true);
+	} else
+	    return ((int) false);
+    }
+
     /* ----------------
-     *	form the scan key
+     *  At bootstrap time, we have to do this the hard way.  Form the
+     *	scan key.
      * ----------------
      */
 	ScanKeyEntryInitialize(&key,
@@ -595,6 +611,7 @@ AddPgRelationTuple(pg_relation_desc, new_rel_desc, new_rel_oid, arch, natts)
 {
     RelationTupleForm	new_rel_reltup;
     HeapTuple		tup;
+    Relation		idescs[Num_pg_class_indices];
     bool		isBootstrap;
 
     /* ----------------
@@ -635,8 +652,19 @@ AddPgRelationTuple(pg_relation_desc, new_rel_desc, new_rel_oid, arch, natts)
 
     aminsert(pg_relation_desc, tup, (double *)NULL);
 
-    if (! isBootstrap)
+    if (! isBootstrap) {
+	/*
+	 *  First, open the catalog indices and insert index tuples for
+	 *  the new relation.
+	 */
+
+	CatalogOpenIndices(Num_pg_class_indices, Name_pg_class_indices, idescs);
+	CatalogIndexInsert(idescs, Num_pg_class_indices, pg_relation_desc, tup);
+	CatalogCloseIndices(Num_pg_class_indices, idescs);
+
+	/* now restore processing mode */
 	SetProcessingMode(NormalProcessing);
+    }
 
     pfree((char *)tup);
 }
