@@ -143,14 +143,6 @@
  * ----------------------------------------------------------------
  */
 
-/* ----------------
- * BTREEISUNORDERED --
- *	Set iff the B-tree should be treated as an unordered index.
- * ----------------
- */
-
-#define	BTREEISUNORDERED	0
-
 #define BTreeRootBlockNumber	((BlockNumber) 0)
 #define BTreeRootPageNumber	((PageNumber) 0)
 #define FirstOffsetNumber	1
@@ -170,6 +162,17 @@ extern	PagePartition		BTreeDefaultPagePartition;
 #define BTreeGreaterThanStrategyNumber		((StrategyNumber) 5)
 
 #define EmptyPageOffsetIndex	((OffsetIndex) -1)
+
+/*
+ *  During insertion, we need to know whether we should search for the
+ *  first (last) tuple matching a given key, or whether it's okay just
+ *  to find any tuple.  We need to find the bounding tuple when we are
+ *  inserting rule locks.
+ */
+
+#define NO_BOUND	((int8) 0)
+#define LEFT_BOUND	((int8) 1)
+#define RIGHT_BOUND	((int8) 2)
 
 /* ----------------------------------------------------------------
  *	BTreeHeaders form the "link" information in the btree
@@ -194,8 +197,9 @@ extern	PagePartition		BTreeDefaultPagePartition;
 typedef bits8 BTreeHeaderTypeData;
 
 #define BTREE_PAGE_IS_FREE	((BTreeHeaderTypeData) 0)
-#define BTREE_INTERNAL_HEADER	((BTreeHeaderTypeData) 1)
-#define BTREE_LEAF_HEADER	((BTreeHeaderTypeData) 2)
+#define BTREE_INTERNAL_HEADER	((BTreeHeaderTypeData) 1<<0)
+#define BTREE_LEAF_HEADER	((BTreeHeaderTypeData) 1<<1)
+#define BTREE_PAGE_HAS_RULES	((BTreeHeaderTypeData) 1<<2)
 
 typedef struct BTreeHeaderData {
    BTreeHeaderTypeData	type;
@@ -259,6 +263,11 @@ typedef struct BTreeItemPointerData *BTreeItemPointer;
 
 /* ----------------
  *	BTreeItemFlags are used to classify btree items
+ *
+ *	RLOCK_L and RLOCK_R are used to identify rule lock marker tuples
+ *	in the index.  L is the left-hand delimiter (left to right ordering
+ *	in the index), and R is the right-hand.  L and R locks ALWAYS come
+ *	in pairs.  No other type of rule lock appears in the index.
  * ----------------
  */
 
@@ -266,6 +275,8 @@ typedef bits16 BTreeItemFlags;
 
 #define	BTREE_ITEM_IS_LEAF	((BTreeItemFlags) (1 << 0))
 #define	BTREE_ITEM_IS_HIGHKEY	((BTreeItemFlags) (1 << 1))
+#define	BTREE_ITEM_IS_RLOCK_L	((BTreeItemFlags) (1 << 2))
+#define	BTREE_ITEM_IS_RLOCK_R	((BTreeItemFlags) (1 << 3))
 
 /* ----------------
  * BTreeItem --
@@ -286,37 +297,49 @@ typedef struct BTreeItemData {
 
 typedef BTreeItemData *BTreeItem;
 
+/* ----------------
+ * BTreeRuleLock --
+ *	A marker tuple in the btree index for starting or ending a
+ *	rule lock.
+ *
+ *	Rule locks that use the index always have some qual.  This qual
+ *	is a simple (func_oid, key) pair.  When the access method is
+ *	inserting new tuples, or placing rule lock tuples, it uses the
+ *	func_oid to call a function comparing the "current" key (whatever
+ *	that is, at the time) with the key stored in the rule qual.  It
+ *	then places the new tuple appropriately based on the result.
+ *
+ *	Since the key value to use in calling the function manager is
+ *	already stored in the BTreeItemData, we don't bother with it here.
+ * ----------------
+ */
 
+typedef struct BTreeRuleLockData {
+   BTreeItemHeaderData		header;
+   ObjectId			func;
+   FormData			form;
+	/* VARIABLE LENGTH STRUCTURE */
+} BTreeRuleLockData;
 
-
-
+typedef BTreeRuleLockData *BTreeRuleLock;
 
 /* ----------------------------------------------------------------
- *	BTreeData, BTreeInsertData, BTreeSearchKeys and
+ *	BTreeInsertData, BTreeSearchKeys and
  *	ItemPointerElements are internal structures used during
  *	searching for and insertion of btree items.
  * ----------------------------------------------------------------
  */
 
 /* ----------------
- *	BTreeData definition
- * ----------------
- */
-
-typedef struct BTreeDataData {
-   ItemPointer	pointer;
-   RuleLock	lock;
-} BTreeDataData;
-
-typedef BTreeDataData	*BTreeData;
-
-/* ----------------
  *	BTreeInsertData definition
  * ----------------
  */
 
-#define BTREE_INTERNAL_INSERT_DATA 1
-#define BTREE_LEAF_INSERT_DATA 2
+#define BTREE_NO_FLAGS			((int8) 0)
+#define BTREE_INTERNAL_INSERT_DATA	((int8) 1<<0)
+#define BTREE_LEAF_INSERT_DATA		((int8) 1<<1)
+#define BTREE_RLOCK_L_INSERT_DATA	((int8) 1<<2)
+#define BTREE_RLOCK_R_INSERT_DATA	((int8) 1<<3)
 
 typedef struct BTreeInsertDataData {
    int8			type;			/* internal or leaf */
@@ -327,7 +350,6 @@ typedef struct BTreeInsertDataData {
 
    /* data specific to leaf insertions */
    ItemPointerData	leafPointerData; 	/* return */
-   RuleLock		leafLock;		/* return */ /* unused */
    double		leafOffset;		/* return */
 } BTreeInsertDataData;
 
@@ -387,4 +409,3 @@ typedef ItemPointerElement	*ItemPointerStack;
 #include "btree-externs.h"
 
 #endif	BTreeIncluded
-
