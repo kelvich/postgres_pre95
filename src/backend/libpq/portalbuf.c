@@ -185,8 +185,19 @@ pbuf_addTuples()
 char **
 pbuf_addTuple(n)
 {
-    return (char **)
+   return (char **)
 	pbuf_alloc(n * sizeof (char *));
+}
+
+/* --------------------------------
+ *	pbuf_addTupleValueLengths - Allocate a tuple of n lengths (attributes)
+ * --------------------------------
+ */
+int *
+pbuf_addTupleValueLengths(n)
+{
+    return (int *)
+	pbuf_alloc(n * sizeof (int));
 }
 
 /* --------------------------------
@@ -258,8 +269,9 @@ pbuf_freeTuples(tuples, no_tuples, no_fields)
     /* For each tuple, free all its attribute values. */
     for (i = 0; i < no_tuples; i++) {
 	for (j = 0; j < no_fields; j++)
-	    if (tuples->values[i][j] != NULL)
-		pbuf_free((caddr_t)tuples->values[i][j]);
+	  if (tuples->values[i][j] != NULL)
+	    pbuf_free((caddr_t)tuples->values[i][j]);
+	pbuf_free((caddr_t)tuples->lengths[i]);
 	pbuf_free((caddr_t)tuples->values[i]);
     }
     
