@@ -139,7 +139,7 @@ typedef	List	Relid;
 typedef struct Path *PathPtr;
 
 class (Rel) public (Node) {
-	inherits(Node);
+	inherits0(Node);
   /* all relations: */
 	Relid	relids;
   /* catalog statistics information */
@@ -174,7 +174,7 @@ extern TLE get_entry  ARGS(( TL foo));
 extern List get_joinlist ARGS(( TL foo));
 
 class (SortKey) public (Node) {
-	inherits(Node);
+	inherits0(Node);
 	List		varkeys;
 	List		sortkeys;
 	Relid		relid;
@@ -185,7 +185,7 @@ class (SortKey) public (Node) {
 
 class (Path) public (Node) {
 #define	PathDefs \
-	inherits(Node); \
+	inherits0(Node); \
 	int32		pathtype; \
 	Rel		parent; \
 	Cost		path_cost; \
@@ -201,7 +201,7 @@ class (Path) public (Node) {
 
 
 class (IndexPath) public (Path) {
-	inherits(Path);
+	inherits1(Path);
  /* private: */
 	List		indexid;
 	List		indexqual;
@@ -217,7 +217,7 @@ typedef struct path *pathPtr;
 
 class (JoinPath) public (Path) {
 #define JoinPathDefs \
-	inherits(Path); \
+	inherits1(Path); \
 	List		pathclauseinfo; \
 	pathPtr	outerjoinpath; \
 	pathPtr	innerjoinpath
@@ -227,7 +227,7 @@ class (JoinPath) public (Path) {
 };
 
 class (MergePath) public (JoinPath) {
-	inherits(JoinPath);
+	inherits2(JoinPath);
  /* private: */
 	List		path_mergeclauses;
 	List		outersortkeys;
@@ -236,7 +236,7 @@ class (MergePath) public (JoinPath) {
 };
 
 class (HashPath) public (JoinPath) {
-	inherits(JoinPath);
+	inherits2(JoinPath);
  /* private: */
 	List		path_hashclauses;
 	List		outerhashkeys;
@@ -249,19 +249,19 @@ class (HashPath) public (JoinPath) {
  ******/
 
 class (OrderKey) public (Node) {
-	inherits(Node);
+	inherits0(Node);
 	int 	attribute_number;
 	Index	array_index;
 };
 
 class (JoinKey) public (Node) {
-	inherits(Node);
+	inherits0(Node);
 	LispValue outer;
 	LispValue  inner;
 };
 
 class (MergeOrder) public (Node) {
-	inherits(Node);
+	inherits0(Node);
 	ObjectId join_operator;
 	ObjectId left_operator;
 	ObjectId right_operator;
@@ -274,7 +274,7 @@ class (MergeOrder) public (Node) {
  *******/
 
 class (CInfo) public (Node) {
-	inherits(Node);
+	inherits0(Node);
 	Expr		clause;
 	Cost		selectivity;
 	bool		notclause;
@@ -288,7 +288,7 @@ class (CInfo) public (Node) {
 
 class (JoinMethod) public (Node) {
 #define JoinMethodDefs \
-	inherits(Node); \
+	inherits0(Node); \
 	List            jmkeys; \
 	List            clauses
  /* private: */
@@ -297,17 +297,17 @@ class (JoinMethod) public (Node) {
 };
 
 class (HInfo) public (JoinMethod) {
-	inherits(JoinMethod);
+	inherits1(JoinMethod);
 	ObjectId        hashop;
 };
 
 class (MInfo) public (JoinMethod) {
-	inherits(JoinMethod);
+	inherits1(JoinMethod);
 	MergeOrder         m_ordering;
 };
 
 class (JInfo) public (Node) {
-	inherits(Node);
+	inherits0(Node);
 	List		otherrels;
 	List		jinfoclauseinfo;
 	bool		mergesortable;
