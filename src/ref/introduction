@@ -1,0 +1,132 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SS INTRODUCTION 5/02/90
+.XA 0 "Section 1 \*- Introduction"
+.uh OVERVIEW
+.lp
+This document is the reference manual for the \*(PP database system
+under development at the University of California, Berkeley.
+This project,
+led by Professors Michael Stonebraker and Lawrence A. Rowe,
+is sponsored by the Defense Advanced Research Projects Agency
+.r ( \c
+.A DARPA ),
+the
+Army Research Office (ARO), the National Science Foundation (NSF),
+.A 3M 
+Corp, and
+.A ESL ,
+Inc.
+.lp
+\*(PP is distributed in source code format and is
+the property of the Regents of the University of California.
+However, the University will grant unlimited commercialization
+rights for any derived work on the condition that it obtain an
+educational license to the derived work.
+For further information, consult the Berkeley Campus Software Office,
+295 Evans Hall, University of California, Berkeley, CA 94720.
+Moreover, there is no organization who can help you
+with any bugs you may encounter or with any other problems.
+In other words,
+this is
+.b unsupported
+software.
+.uh "POSTGRES DISTRIBUTION"
+.sp
+This manual describes Version 2 of POSTGRES.  The POSTGRES software is
+about 170,000 lines of C code, and is available for SUN 3 and
+SUN 4 class machines, for DECstation 3100 machines and for
+the SEQUENT Symetry machine.
+Information on obtaining the source code for these computers is
+available from:
+.(l
+Claire Mosher
+Computer Science Division
+521 Evans Hall
+University of Califiornia
+Berkeley, Ca. 94720
+(415) 642-4662
+.)l
+.sp
+No
+attempt has been made to optimize Version 2;
+consequently, one
+should expect
+performance comparable to the public domain,
+University of
+California Version of \*(II, a relational prototype
+from the late 1970s.
+.sp
+This manual contains the description of a few capabilities
+which are not implemented in Version 2.  We expect to support
+additional functionality in Version 2.1, currently scheduled for December 1990 and
+complete functionality of this manual in Version 3, which
+we expect to make available by mid-year 1991.  Moreover, Version 3
+will be tuned to run as fast as possible.
+
+.uh "POSTGRES DOCUMENTATION"
+.lp
+This
+reference manual describes the functionality of Versions 2, 2.1, and 3
+and contains
+notations where appropriate to indicate which features are not implemented in
+Version 2.
+Application developers should note that
+this reference manual contains only the specification for
+the low-level call-oriented application program interface,
+.b libpq .
+In addition, a companion project directed by Professor Rowe is
+building a collection of powerful development tools called
+.b \*(OF ,
+which will be the subject of a separate reference manual.
+.lp
+The remainder of this manual is structured as follows.
+In Section 2,
+we discuss the \*(PP capabilities that are available directly
+from the operating system.
+Section 3 then describes \*(PQ,
+the language by which a user interacts with a
+\*(PP database.
+Then,
+Section 4 describes
+a library of low level routines through which a user can
+formulate \*(PQ queries from a
+C program and get appropriate
+return information back to his program.
+Next,
+Section 5 continues with a description of
+a method by which applications may execute functions in \*(PP
+with very high performance.
+The manual concludes with Section 6,
+a collection of
+file format descriptions
+for files used by \*(PP.
+.uh ACKNOWLEDGEMENTS
+.lp
+\*(PP has been constructed by a team of undergraduate, graduate, and
+staff programmers.
+The Version 2 contributors (in alphabetical order) consisted of 
+James Bell,
+Ron Choi,
+Jeffrey Goh,
+Wei Hong,
+Anant Jhingran,
+Greg Kemnitz,
+Michael Olson,
+Lay-Peng Ong,
+Spyros Potamianos,
+and Cimarron Taylor.
+.sp
+.lp
+Greg Kemnitz served as chief programmer and was responsible for
+overall coordination of the project and for individually implementing the
+.q "everything else"
+portion of the system.
+.lp
+This manual was collectively written by
+the above implementation team,
+assisted by Michael Stonebraker and Claire Mosher.
+.uh FOOTNOTES
+.lp
+\*(UU is a trademark of
+.A AT&T .

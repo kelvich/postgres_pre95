@@ -1,0 +1,169 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.XA 0 "Section 2 \*- \*(UU Commands (\*(UU)" _
+.SP INFORMATION UNIX 6/14/90
+.XA 1 "General Information"
+.uh OVERVIEW
+.lp
+This section contains
+information on the interaction between \*(PP and
+the operating system.
+In particular, the pages of this section describe
+the \*(PP support programs which are
+executable as \*(UU commands.
+.uh TERMINOLOGY
+.lp
+In the following documentation,
+the term
+.i site
+may be interpreted as
+the host machine on which \*(PP is installed.
+But since it is possible to install more than
+one set of \*(PP databases on a single host,
+this term more precisely denotes any
+particular set of installed \*(PP binaries and databases.
+.lp
+The
+.i "\*(PP super user"
+is the user named
+.i postgres
+(usually),
+who is the owner of the \*(PP binaries and
+database files.
+As the super user,
+all protection mechanisms may be bypassed
+and any data accessed arbitrarily.
+In addition,
+the \*(PP super user is allowed to
+execute some support programs which are generally not available to all users.
+Note that the postgres super user is
+.i not
+the same as root,
+and should have a non-zero userid.
+.lp
+The
+.i "database base administrator"
+or
+.A DBA
+is the person who
+is responsible for installing \*(PP
+to enforce a security policy for a site.
+The
+.A DBA
+will
+add new users by the method described below,
+change the status of user-defined functions
+from
+.b untrusted
+to
+.b trusted
+as explained in
+.b "define C function"
+(commands),
+and
+maintain a set of template databases
+for use by
+.b createdb
+(unix).
+.lp
+The
+.ul
+postmaster
+is a process which acts as a clearing house
+for requests to the POSTGRES system.
+Basically,
+frontend applications connect
+with the postmaster
+which keeps tracks of any system
+errors and communication between the backend processes.
+The postmaster takes from zero to seven arguments
+to tune its behavior.
+Supplying arguments is necessary only if you intend to run multiple sites
+or a non-default site.
+Please refer to the file
+.q .../help/geninfo
+if this may be of interest.
+.lp
+The
+.ul
+POSTGRES backend
+(.../bin/postgres) may
+be executed directly from the shell by
+the postgres super user (with the database name as an argument).
+However, doing this bypasses the shared buffer pool and lock table
+associated with a postmaster/site,
+so this is not recommended in a multiuser, active, site
+unless the guidelines in
+.q .../help/multi
+are followed.
+(To help prevent this from occuring,
+we suggest that the files
+.q .../bin/postgres
+and
+.q .../src/tcop/postgres
+be
+.b chmod (1)'d
+to mode 751.
+The makefiles produce a setuid
+.q postgres
+binary by default.)
+.lp
+.uh NOTATION
+.lp
+.q .../
+at the front of file names is used to represent the path
+to the postgres user's home directory.
+.\" SYNOPSIS section
+.\" .br
+.\" This section indicates the form of the command (statement).
+.\" The conventions which are used are as follows:
+.\" .lp
+.\" Bold face names are
+.\" used to indicate reserved keywords.
+.\" .lp
+.\" Lower case words indicate generic types of information which must
+.\" be supplied by the user;
+.\" legal values for these names are described in the DESCRIPTION section.
+.\" .lp
+.\" Square brakets ( [] ) indicate that the enclosed item is optional.
+.\" .lp
+.\" Braces ( {} ) indicate an optional item which may be repeated.
+.\" In some cases they indicate simple (non-repeated) grouping;
+.\" the usage should be clear from context.
+.\" .lp
+.\" When these conventions are insufficient to fully specify
+.\" the legal format of a command a more general form is given
+.\" and the allowable subsets are specified in the DESCRIPTION section.
+.\" .lp
+.\" To start using \*(II you must be entered as an
+.\" \*(II user; this is done by the
+.\" \*(II administrator who will enter
+.\" you in the ``users'' file (see users(files)).
+.\" To start using ingres
+.\" see the section on ingres(unix),
+.\" quel(quel), and monitor(quel).
+Anything in brackets ([ and ]) is optional.
+Anything in braces ({ and }) can be repeated 0 or more times.
+Parentheses are used to group boolean expressions.
+| is the boolean operator
+.A OR .
+.uh "USING POSTGRES FROM UNIX"
+.lp
+All \*(PP commands which are executed directly from a UNIX shell
+are found in the directory
+.q \&.../bin.
+Including this directory in your search path will make
+executing the commands easier.
+.lp
+There is a collection of system catalogs that exist at each site.
+These include a
+.A USER
+relation 
+which contains a record for each valid \*(PP user.
+In the record is a collection of \*(PP privileges,
+the most relevant of which
+is whether or not creation of \*(PP databases is allowed.
+A \*(UU user can do nothing at all with \*(PP
+until an appropriate record is installed in this system catalog relation.
+Further information on the system catalogs is available
+by running queries on the appropraiate relations.

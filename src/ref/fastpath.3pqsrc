@@ -1,0 +1,81 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SS "FAST PATH" 6/14/90
+.XA 0 "Section 5 \*- Fast Path"
+.uh NAME
+.lp
+fast path \*- trap door into system internals
+.uh SYNOPSIS
+.lp
+.q "function_name ( [ arg { , arg } ] )"
+.uh DESCRIPTION
+.lp
+\*(PP allows any valid \*(PP function to be specified as a query.
+On fast path commands, \*(PP simply loads the appropriate function
+(if it is not already loaded) and then calls it with the indicated
+arguments.  No type checking is done by \*(PP, so the overhead
+to use fast path is exceedingly low.
+.lp
+For example, the following query provides complete \*(PP servicing
+for a function call to overpaid.
+.(l
+retrieve (result = overpaid (17))
+.)l
+On the other hand, fast path allows the formulation
+.(l
+\*(lqoverpaid (17)\*(rq
+.)l
+There is type checking in the first expression, but not in the second.
+Any function called using fast path or invoked within a normal command
+will be run in
+.b trusted
+or
+.b untrusted
+mode, depending on whether the
+.A DBA
+has marked the trusted bit in the
+appropriate system catalog.
+Trusted routines are run in the \*(PP address space and may freely
+call \*(PP internal routines.
+.sp
+There are six levels at which calls can be performed:
+.sp
+.nf
+1)	Traffic cop level
+	If a function wants to execute a \*(PP command and pass a string
+	representation, this level is appropriate.
+.sp
+2)	Parser
+	A function can access the \*(PP parser, passing a string and
+	getting a parse tree in return.
+.sp
+3)	Query optimizer
+	A function can call the query optimizer, passing it a parse tree
+	and obtaining a query plan in return.
+.sp
+4)	Executor
+	A function can call the executor and pass it a query plan to be executed.
+.sp
+5)	Access methods
+	A function can directly call the access methods if it wishes.
+.sp
+6)	Function manager
+	A function can call other functions using this level.
+.fi
+.sp
+Documentation of layers 1-6 will appear
+at some future time.
+Meanwhile, fast path users must consult the source code
+for function names and arguments at each level.
+.lp
+It should be noted that users who are concerned with ultimate performance
+can bypass the query language completely and directly call functions that
+in turn interact with the access methods.
+On the other hand, a user can implement a new query language by coding
+a function with an internal parser that then calls the \*(PP
+optimizer and executor.
+Complete flexibility to use the pieces of \*(PP as a tool kit is
+thereby provided.
+.uh BUGS
+.lp
+Untrusted execution of functions is not implemented in Version 2.

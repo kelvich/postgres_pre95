@@ -1,0 +1,353 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SS "LIBPQ" 6/14/90
+.XA 0 "Section 5 \*- Libpq"
+.uh NAME
+.lp
+libpq \*- programmer's interface to \*(PP
+.uh DESCRIPTION
+.lp
+LIBPQ is the programmer's interface to Postgres.  LIBPQ is a set of
+library routines which allow queries to pass to the Postgres back-end
+and tuples returned through an IPC channel.
+.sp
+This version of the documentation is based on the C library.  A similar
+package exists for Common Lisp.
+.sh 1 "CONTROL AND INITIALIZATION"
+.sh 2 "VARIABLES"
+.sp
+The following five environment variables can be used to set
+up default values for an environment and to avoid hard-coding
+database names into an application program:
+.sp 1
+.(l
+.bu
+\fBPGHOST\fR sets the default server name.
+.bu
+\fBPGDATABASE\fR sets the default Postgres database name.
+.bu
+\fBPGPORT\fR sets the default communication port with the POSTGRES back-end.
+.bu
+\fBPGTTY\fR sets the tty on the PQhost back-end on which debugging messages are displayed.
+.bu
+\fBPGOPTION\fR contains optional arguements to the POSTGRES back-end.
+.)l
+.sp
+The following internal variables of libpq can be accessed by
+the programmer:
+.sp 1
+.nf
+char	*PQhost ;	/* the server on which POSTGRES back-end
+			   is running. */
+
+char	*PQport = NULL ;	/* The communication port with the
+				   POSTGRES back-end. */
+
+char	*PQtty;		/* The tty on the PQhost back-end on which
+			   back-end messages are displayed. */
+
+char	*PQoption ;	/* Optional arguements to the back-end */
+
+char	*PQdatabase ;	/* Back-end database to access */
+
+int	PQportset = 0;	/* 1 if communication with back-end is established */
+
+int	PQxactid = 0 ;	/* Transaction ID of the current transaction */
+
+char	*PQinitstr = NULL; 	/* Initialization string passed to back-end */
+
+int	PQtracep = 0 ;	/* 1 to print out front-end debugging messages */
+.fi
+.sp 1
+.sh 1  "QUERY EXECUTION FUNCTIONS"
+.sp
+The following routines control the execution of queries
+from a C program.
+
+PQsetdb \*- Make the specified database the current database.
+
+PQsetdb ( dbname )
+	char	*dbname;
+
+PQdb \*- Return the current database being accessed.
+
+	char*	PQdb ()
+
+Returns the name of the POSTGRES database
+being accessed, or NIL if no database is open.
+Only one database can be accessed at a time.  The database
+name is a string limited to 16 characters.
+
+PQreset \*- Reset the communication port with the back-end.
+
+PQreset ()
+
+Resets communication in case of errors.
+
+PQfinish \*- Close communication ports with the back-end.
+
+PQfinish ()
+
+Terminates communications and frees up the memory taken up
+by the libpq buffer.
+
+PQexec \*- Submit a query to POSTGRES.  
+
+PQexec (query)
+	char	* query;
+
+This function returns a status indicator or an error message.
+.sh 1 "PORTAL FUNCTIONS"
+.sp
+A portal is a POSTGRES buffer from which tuples can be fetched.
+Each portal has a string name (currently limited to 16 bytes).
+A portal is initialized by submitting a retrieve statement
+using the PQexec function, for example:
+.(l
+\fBretrieve portal\fR foo ( EMP.all )
+.)l
+.sp
+The programmer can then move data from the portal into LIBPQ
+by executing a \fIfetch\fR statement, e.g:
+.(l
+\fBfetch 10 in \fIfoo\fR
+
+\fBfetch all in \fIfoo\fR
+.)l
+.sp
+If no portal name is specified in a query, the default
+portal name is the empty string, known as the "blank portal."
+All qualifying tuples in a blank portal are fetched
+immediately, without the need for the programmer to issue a
+seperate fetch command.
+.sp
+Data fetched from a portal into LIBPQ is moved into a portal
+buffer.  Portal names are mapped to portal buffers through
+an internal table.  Each tuple in a portal buffer has
+an index number locating its position in the buffer.  In addition,
+each field in a tuple has a name and a field number.
+.sp
+A single retrieve command can return multiple types
+of tuples.
+This can happen if a \*(PP function is executed
+in the evaluation of a query or if the query
+returns multiple record types from an inheritance
+hierarchy.
+Consequently, the tuples in a portal are set up
+in groups.
+Tuples in the same group are guaranteed to have the
+same record format.
+.sp
+Portals that are associated with normal user commands
+are called synchronous.
+In this case, the application program is expected
+to issue a retrievel followed by one or more
+fetch commands.
+The functions that follow can now be used to
+manipulate data in the portal.
+.nf
+.na
+PQnportals \*- Return the number of open portals.
+
+int PQnportals ( rule_p )
+	int	rule_p ;
+
+If rule_p is not O, then only return the number of asynchronous portals.
+
+PQnames \*- Return all portal names.
+
+void PQnames  ( pnames, rule_p)
+	char	*pnames [MAXPORTALS];
+	int	rule_p ;
+
+If rule_p is not 0, then only return the names of asynchronous
+portals.
+
+PQparray \*- Return the portal buffer given a portal name.
+
+PortalBuffer * PQparray (pname )
+	char	*pname;
+
+PQrulep \*- Return 1 if an asynchronous portal.
+
+int PQrulep	(portal)
+	PortalBuffer	*portal;
+
+PQntuples \*- Return the number of tuples in a portal buffer.
+
+int PQntuples (portal)
+	PortalBuffer	*portal;
+
+PQngroups \*- Return the number of tuple groups in a portal buffer.
+
+int PQngroups (portal)
+	PortalBuffer *portal
+
+PQntuplesGroup \*- Return the number of tuples in a tuple group.
+int PQntuplesGroup (portal, group_index)
+	PortalBuffer	*portal;
+	int	group_index;
+
+PQnfieldsGroup \*- Return the number of fields in a tuple group.
+
+int PQnfieldsGroup ( portal, group_index)
+	PortalBuffer	*portal;
+	int	group_index;
+
+PQfnameGroup \*- Return the field name given the group and field index.
+
+char * PQfnameGroup (portal, group_index, field_number )
+	PortalBuffer	*portal;
+	int	group_index;
+	int	field_number;
+
+PQfnumberGroup \*- Return the field number (index) given the group index and field name.
+
+int PQfnumberGroup (portal, group_index, field_name)
+	PortalBuffer	*portal;
+	int	group_index;
+	char	*field_name;
+
+PQgetgroup \*- Returns the index of the group that a particular tuple is in.
+
+int PQgetgroup ( portal, tuple_index )
+	PortalBuffer	*portal;
+	int	tuple_index;
+
+PQnfields \*- Return the number of fields in a tuple.
+
+int PQnfields (portal, tuple_index )
+	PortalBuffer	*portal;
+	int	tuple_index;
+
+PQfnumber \*- Return the field index of a given field name within a tuple.
+
+int PQfnumber ( portal, tuple_index, field_name)
+	PortalBuffer	*portal;
+	int	tuple_index;
+	char	*field_name;
+
+PQfname \*- Return the name of a field.
+
+char * PQfname ( portal, tuple_index, field_number )
+	PortalBuffer	*portal;
+	int	tuple_index;
+	int	field_number;
+
+PQftype \*- Return the type of a field.  
+
+int PQftype ( portal, tuple_index, field_number )
+	PortalBuffer	*portal;
+	int	tuple_index;
+	int	field_number;
+
+The type returned is an internal coding of a type.
+
+PQsametype \*- Return 1 if two tuples have the same attributes.
+
+int PQsametype ( portal, tuple_index1, tuple_index2 )
+	PortalBuffer	*portal;
+	int	tuple_index1, tuple_index2;
+
+PQgetvalue \*- Return an attribute (field) value.  
+char * PQgetvalue ( portal, tuple_index, field_number )
+	PortalBuffer	*portal;
+	int	tuple_index;
+	int	field_number;
+
+All values are returned
+as string.  It is the programmer's responsibility to
+convert them to the correct type.
+.sh 1 "TRACING FUNCTIONS"
+
+PQtrace \*- Enable tracing.
+
+void PQtrace ()
+
+PQuntrace \*- Disable tracing.
+
+void PQuntrace ()
+.fi
+.ad
+.sh 1 "BUGS"
+.lp
+Only 3 portals can be open at a time.
+.lp
+IPC glitches between the front-end and the back-end may cause
+a query to hang.  When this happens try killing the query with
+a keyboard interrupt (^C).  If this does not work, you may have
+to kill the process.
+.lp
+The query buffer is only 8192 bytes long, and queries over that
+length will be silently truncated.
+
+.sh 1 "SAMPLE PROGRAM"
+
+.nf
+/*
+/*
+ * testlibpq.c \*-
+ * 	Test the C version of Libpq, the POSTGRES frontend library.
+ */
+#include <stdio.h>
+#include "libpq.h"
+
+main ()
+{
+    int i, j, k, g, n, m, t;
+    PortalBuffer *p;
+    char pnames[MAXPORTALS][portal_name_length];
+
+    /* Specify the database to access. */
+    PQsetdb ("Pic-Demo");
+
+    /* Fetch tuples from the EMP table. */
+    PQexec ("retrieve portal eportal (EMP.all)");
+    PQexec ("fetch all in eportal");
+
+    /* Examine all the tuples fetched. */
+    p = PQparray ("eportal");
+    g = PQngroups (p);
+    t = 0;
+    
+    for (k = 0; k < g; k++) {
+	printf ("\nA new tuple group:\en");
+	n = PQntuplesGroup (p, k);
+	m = PQnfieldsGroup (p, k);
+
+	/* Print out the attribute names. */
+	for (i = 0; i < m; i++)
+	    printf ("%-15s", PQfnameGroup (p, k, i));
+	printf ("\en");
+    
+	/* Print out the tuples. */
+	for (i = 0; i < n; i++) {
+	    for (j = 0; j < m; j++)
+		printf ("%-15s", PQgetvalue (p, t+i, j));
+	    printf ("\en");
+	}
+	t += n;
+    }
+
+    /* Close the portal. */
+    PQexec ("close eportal");
+
+    /* Try out some other functions. */
+    
+    /* Print out the nubmer of portals. */
+    printf ("\nNumber of portals open: %d.\en", PQnportals ());
+
+    /* If any tuples are returned by rules, print out the portal name. */
+    if (PQnportals (1)) {
+	printf ("Tuples are returned by rules. \en");
+	PQpnames (pnames, 1);
+	for (i = 0; i < MAXPORTALS; i++)
+	    if (pnames[i] != NULL)
+		printf ("portal used by rules: %s\en", pnames[i]);
+    }
+
+    /* finish execution. */
+    PQfinish ();
+}
+
+.)1

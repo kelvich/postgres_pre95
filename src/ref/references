@@ -1,0 +1,28 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SS REFERENCES 6/18/90
+.XA 0 References
+.SE
+.lp
+The following technical reports are referred to in this document.
+For information on ordering technical reports,
+see the installation notes that accompany the \*(PP
+distribution.
+.sp
+.ip [ONG90]
+Ong, L. and Goh, J., "A Unified Framework for Version Modeling Using
+Production Rules in a Database System," Electronics Research Laboratory,
+University of California, Memo M90/33, April 1990.
+.ip [ROWE87]
+Rowe, L. and Stonebraker, M.,
+.q "The POSTGRES Data Model,"
+Proc. 1987 VLDB Conference, Brighton, England, Sept. 1987.
+.ip [STON87]
+Stonebraker, M.,
+.q "The POSTGRES Storage System,"
+Proc. 1987 VLDB Conference, Brighton, England, Sept. 1987.
+.ip [STON90]
+Stonebraker, M. et. al., "On Rules, Procedures, Caching and Views in Database
+Systems," Proc. 1990 ACM-SIGMOD Conference on Management of Data, Atlantic City, N.J.,
+June 1990.
+.SB

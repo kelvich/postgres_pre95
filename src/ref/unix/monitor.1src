@@ -1,0 +1,111 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP MONITOR UNIX 6/14/90
+.XA 1 "Terminal Monitor"
+.uh NAME
+.lp
+monitor \*- run the interactive terminal monitor
+.uh SYNOPSIS
+.lp
+.b monitor
+[-h hostname] [-p port] [-t tty] [-d filename] [-o options]
+dbname
+.uh DESCRIPTION
+.lp
+The interactive terminal monitor is a simple frontend to \*(PP.
+It enables one to formulate and review queries before
+issuing them to \*(PP.
+If changes must be made,
+a \*(UU editor may be called
+called to edit the
+.b "query buffer" ,
+which the terminal monitor manages.
+The editor used is determined by the value of
+the
+.A EDITOR
+environment variable.
+If
+.A EDITOR
+is not set, then
+.b vi
+is used by default.
+
+.b "Messages and Prompts"
+.br
+The terminal monitor gives a variety of messages to keep the user informed
+of the status of the monitor and the query buffer.
+
+When the terminal monitor is executed,
+it gives the current date and time,
+usually followed by the information in the
+.b dayfile
+(files).
+
+The terminal monitor displays three kinds of messages:
+.nf
+
+go		The query buffer is empty and the terminal monitor is ready
+		for input.  Anything typed will be added to the buffer.
+
+continue	The terminal monitor is ready for input and the query buffer
+		is not empty.  Typing input will cause the query buffer
+		to be silently cleared.  Typing a terminal monitor command
+		will cause the contents of any query buffer to be preserved.
+		Further input will then be appended to the buffer.
+
+*		This prompt is typed at the beginning of each line when the
+		terminal monitor is waiting for input.
+.sp
+.nf
+\fBTerminal Monitor Commands\fR
+ \\e
+ \\edit			Enter the editor to edit the query buffer
+
+ \\g
+ \\go			Submit query buffer to POSTGRES for execution
+
+ \\i \fIfilename\fR
+ \\include \fIfilename\fR\ 		Include the file filename into the query buffer
+.bp
+ \\p
+ \\print			Print contents of the query buffer 
+
+ \\q
+ \\quit			Exit from the terminal monitor
+
+ \\r
+ \\reset			Reset (clear) the query buffer
+
+ \\s
+ \\shell			Escape to a \*(UU subshell.  To return to the
+			terminal monitor, type \*(lqexit\*(rq at the shell prompt.
+
+ \\t
+ \\time			Print current time
+
+ \\w \fIfilename\fR
+ \\write \fIfilename\fR		Store the query buffer to an external file
+
+ \\\\			Produce a single backslash at the current location in query buffer
+
+\fBCommand options:\fR
+
+-h:	The host on which the POSTGRES backend is running; default is your local machine.
+-p:	The port used for network communication between the terminal monitor
+	and the backend.
+-t:	The tty which you want the backend debugging message to be sent to;
+	default is /dev/null. 
+-d:     	The file which you want the frontend debugging messages to be
+        	written to.  The file can be an ordinary file or a tty such as /dev/ttyp1.
+        	Default is not to generate any debugging messages. 
+
+You may set environment variables to avoid typing the above options. 
+The corresponding environment variables are:
+
+.(l
+hostname:		PGHOST
+port:			PGPORT
+tty:			PGTTY
+options:			PGOPTION
+.)l
+

@@ -1,0 +1,162 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP CREATEDB UNIX 6/14/90
+.XA 1 Createdb
+.uh NAME
+.lp
+createdb \*- create a database
+.uh SYNOPSIS
+.lp
+.b createdb
+[
+.b \-e
+] [
+.b \-v
+(on|off)
+] [
+.b \-t
+template-name
+] [
+.b \-h
+host
+] [
+.b \-p
+port
+]
+dbname
+.uh DESCRIPTION
+.lp
+.b Createdb
+creates a new database.
+The person who executes this command
+becomes the database administrator
+.r ( \c
+.A DBA )
+for this database.
+The
+.A DBA
+has special powers
+not granted to ordinary users.
+.sp
+.i Dbname
+is the name of the database
+to be created.
+The name must be unique
+among all \*(PP databases.
+.sp
+After issuing this command, the program will usually respond
+with a diagnostic message in the following format:
+.nf
+.(l
+.q "created directory .../data/base/dbname"
+.q "creating database dbname"
+.)l
+.fi
+Then the \*(UU shell prompt will reappear.
+.lp
+Unless otherwise instructed, \*(PP will place
+all new databases in a directory named \&.../data/base/dbname.
+To place a database elsewhere,
+the \*(PP superuser
+must first create a file in \&.../data/base/dbname
+containing a single line which is the full pathname
+of the desired location of the database.
+(The file must be owned by
+.b postgres
+and be in mode 600.)  Then
+when the new database is created,
+it will be created in the file named,
+rather than in the directory \&.../data/base.
+For example, if the file \&.../data/base/userdb
+contained the line
+.(l
+/mnt/user/database
+.)l
+then the database called 
+.q "userdb"
+would be physically stored in the directory
+/mnt/user/database
+rather than in the directory
+\&.../data/base/userdb.
+.lp
+The
+.b \-v on or \-v off
+turns the vacuum daemon for a new database on or off (default is off).
+We suggest that you run a vacuum demon on each active
+database.  That way expired tuples will be purged 
+according to the criteria set in the
+.b purge 
+(commands) command for each relation.  Also,
+this will ensure that the statistics kept in the RELATION
+relation are updated periodically.
+.lp
+The vacuum demon is associated with some postmaster process.
+Specifying the port and host using [-p port] and [-h host]
+will cause the vacuum demon to be started on the specified
+host using the postmaster associated with the specified
+host and port.  
+.lp
+A database option
+for an existing database
+may be modified
+by stating the
+.b \-e
+flag.
+The database is adjusted
+to conform to the specified option.
+.lp
+The optional
+.i template-name
+specifies a file,
+\&.../files/local1_\c
+.i template-name .ami,
+whose contents control the inclusion of system data types.
+See
+.b introduction
+(postquel) and
+.b template
+(files) for information
+on the use of templates.
+.uh EXAMPLE
+.lp
+.nf
+/* create a database named demo (with no vacuum daemon) */
+createdb demo
+.fi
+.lp
+.nf
+/* enable the vacuum daemon for the production database */
+createdb \-e \-v on production
+.fi
+.uh "ENVIRONMENT VARIABLES"
+.ip PGPORT
+The port on which the postmaster is running.
+This value is overridden by the
+.b -p
+option.
+.ip PGHOST
+The host on which the postmaster is running.
+This value is overridden by the
+.b -h
+option.
+.uh FILES
+.lp
+\&.../files/data/base/*
+.uh "SEE ALSO"
+.lp
+destroydb(unix).
+.uh DIAGNOSTICS
+.lp
+.in +4
+.ti -4
+
+.ti -4
+You are not a valid \*(PP user
+.br
+You do not have a users file entry, and can
+not do anything with \*(PP at all.
+.ti -4
+<name> already exists
+.br
+The database already exists.
+.ti -4
