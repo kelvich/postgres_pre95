@@ -38,7 +38,6 @@
 #include "storage/ipci.h"
 #include "storage/shmem.h"
 #include "storage/spin.h"
-#include "storage/proc.h"
 #include "utils/log.h"
 
 BufferDesc 	*BufferDescriptors;
