@@ -8,7 +8,7 @@ postgres \*- run the Postgres backend directly
 .uh SYNOPSIS
 .lp
 .b postgres
-[-Q] [databasename]
+[-Q] [databasename] [-d debug_level]
 .uh DESCRIPTION
 .lp
 This command executes the Postgres backend directly.  
