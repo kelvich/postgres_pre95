@@ -850,7 +850,9 @@ BufferGetRelation(buffer)
     RelationDecrementReferenceCount(relation);
 
     if (RelationHasReferenceCountZero(relation)) {
+       /*
         elog(NOTICE, "BufferGetRelation: 0->1");
+	*/
 
         RelationIncrementReferenceCount(relation);
     }
