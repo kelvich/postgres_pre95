@@ -31,7 +31,6 @@
 #include "planner/keys.h"
 #include "planner/clausesel.h"
 #include <math.h>
-#define _cost_weirdness_ 0
 
 /*
  * CostAddCount --
@@ -52,29 +51,36 @@
 #define	CostMultiplyCount(_cost_, _count_) \
 	{ Cost cost = _count_; _cost_ *= cost; }
 
-#if (!_cost_weirdness_)    /* global variable */
+/* ----------------
+ *	defining _xprs_ to 1 enables the entire planner,
+ *	otherwise it should be defined to 0
+ *
+ *	(It is explicitly tested in various places so it had
+ *	 better be definied to 	one of these -cim 10/9/89)
+ * ----------------
+ */
 #define _xprs_ 0
-#endif
 
 int _disable_cost_ = 30000000;
-
-#ifndef _xprs_
-bool _enable_seqscan_ = true ;
-bool _enable_indexscan_ = false; 
-bool _enable_sort_ = false;
-bool _enable_hash_ = false;
-bool _enable_nestloop_ = true; /* XXX - true */
-bool _enable_mergesort_ = false;
-bool _enable_hashjoin_ = false;
-#endif
-#ifdef _xprs_
-bool _enable_seqscan_ = true;
-bool _enable_indexscan_ = true;
-bool _enable_sort_ = true;
-bool _enable_hash_ = true;
-bool _enable_nestloop_ = true;
-bool _enable_mergesort_ = true;
-bool _enable_hashjoin_ = true; 
+ 
+#if (! _xprs_)
+bool _cost_weirdness_ = false;
+bool _enable_seqscan_ =     true;
+bool _enable_indexscan_ =   true; 
+bool _enable_sort_ =        false;
+bool _enable_hash_ =        false;
+bool _enable_nestloop_ =    true; /* XXX - true */
+bool _enable_mergesort_ =   false;
+bool _enable_hashjoin_ =    false;
+#else
+bool _cost_weirdness_ = true;
+bool _enable_seqscan_ =     true;
+bool _enable_indexscan_ =   true;
+bool _enable_sort_ =        true;
+bool _enable_hash_ =        true;
+bool _enable_nestloop_ =    true;
+bool _enable_mergesort_ =   true;
+bool _enable_hashjoin_ =    true; 
 #endif
 
 /*    
