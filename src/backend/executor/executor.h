@@ -372,11 +372,18 @@ extern HookNode		_debug_hooks_[];
 /* 
  *	public executor functions
  */
-
 #include "executor/append.h"
+#include "executor/debug.h"
 #include "executor/endnode.h"
 #include "executor/eutils.h"
+#include "executor/execam.h"
+#include "executor/execfmgr.h"
+#include "executor/execinit.h"
+#include "executor/execmain.h"
+#include "executor/execmmgr.h"
+#include "executor/execstats.h"
 #include "executor/exist.h"
+#include "executor/hashjoin.h"
 #include "executor/indexscan.h"
 #include "executor/initnode.h"
 #include "executor/main.h"
@@ -393,6 +400,7 @@ extern HookNode		_debug_hooks_[];
 #include "executor/sort.h"
 #include "executor/tuples.h"
 #include "executor/unique.h"
+#include "executor/xdebug.h"
 
 /* ----------------------------------------------------------------
  *	the end
