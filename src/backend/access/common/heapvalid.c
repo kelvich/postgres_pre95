@@ -119,7 +119,7 @@ heap_tuple_satisfies(itemId, relation, buffer, qual, nKeys, key)
 	    return tuple;
     }
 
-    return NULL;
+    return (HeapTuple) NULL;
 }
 
 /* ----------------
