@@ -302,6 +302,7 @@ class (ExprContext) public (Node) {
  *      to the node with which they are associated when they are
  *      called.
  *
+ *      at_initnode	function called in ExecInitNode when hook is assigned
  *      pre_procnode    function called just before ExecProcNode
  *      pre_endnode     function called just before ExecEndNode
  *      post_initnode   function called just after ExecInitNode
@@ -316,6 +317,7 @@ class (ExprContext) public (Node) {
 class (HookNode) public (Node) {
 #define HookNodeDefs \
       inherits(Node); \
+      HookFunction      hook_at_initnode; \
       HookFunction      hook_pre_procnode; \
       HookFunction      hook_pre_endnode; \
       HookFunction      hook_post_initnode; \
@@ -336,11 +338,16 @@ class (HookNode) public (Node) {
  *      BaseNode information
  *
  *      BaseNodes are the fundamental superclass for all the
- *      remaining executor state nodes.  They contain two important
+ *      remaining executor state nodes.  They contain the important
  *      fields:
  *
  *      id              integer used to keep track of other information
  *                      associated with a specific executor state node.
+ *
+ *	parent		backward pointer to this node's parent node.
+ *
+ *	parent_state	backward pointer to this node's parent node's
+ *			private state.
  *
  *      hook            pointer to this node's hook node, if it exists.  
  *
@@ -353,6 +360,8 @@ class (BaseNode) public (Node) {
 #define BaseNodeDefs \
       inherits(Node); \
       int               base_id; \
+      Pointer		base_parent; \
+      Pointer		base_parent_state; \
       HookNode          base_hook
   /* private: */
       BaseNodeDefs;
