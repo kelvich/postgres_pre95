@@ -525,6 +525,12 @@ RecordTransactionCommit()
      * ----------------
      */
     TransactionIdCommit(xid);
+    
+    /* ----------------
+     *	Now write the log/time info to the disk too.
+     * ----------------
+     */
+    BufferManagerFlush(!TransactionFlushEnabled());
 }
 
 
