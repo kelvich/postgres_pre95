@@ -92,7 +92,7 @@ struct vectori {
 typedef union { 
     char			*name;	/* symbol */
     char   			*str;	/* string */ 
-    int    			fixnum; 
+    long    			fixnum; 
     double 			flonum; 
     struct _LispValue		*car;	/* dotted pair */ 
     struct vectori		*veci; 
@@ -261,7 +261,7 @@ _elt_!=LispNil;_elt_=CDR(_elt_))
 extern LispValue lispAtom ARGS((char *atomName ));
 extern LispValue lispDottedPair ARGS((void ));
 extern LispValue lispFloat ARGS((double floatValue ));
-extern LispValue lispInteger ARGS((int integerValue ));
+extern LispValue lispInteger ARGS((long integerValue ));
 extern LispValue lispName ARGS((char *string ));
 extern LispValue lispString ARGS((char *string ));
 extern LispValue lispVectori ARGS((int nBytes ));
@@ -316,7 +316,7 @@ extern LispValue last_element ARGS((LispValue list ));
 extern char *CString ARGS((LispValue lstr ));
 extern int CAtom ARGS((LispValue lv ));
 extern double CDouble ARGS((LispValue lval ));
-extern int CInteger ARGS((LispValue lval ));
+extern long CInteger ARGS((LispValue lval ));
 
 extern LispValue ppreserve ARGS((char *pallocObject ));
 extern LispValue lppreserve ARGS((LispValue pallocObject ));

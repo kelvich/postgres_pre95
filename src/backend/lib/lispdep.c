@@ -84,7 +84,7 @@ CDouble(lval)
     elog(WARN,"error : bougs float");
     return((double)0);
 }
-int
+long
 CInteger(lval)
      LispValue lval;
 {
@@ -167,7 +167,7 @@ lispFloat(floatValue)
  */
 LispValue
 lispInteger(integerValue)
-    int	integerValue;
+    long integerValue;
 {
     LispValue	newobj = lispAlloc();
 
