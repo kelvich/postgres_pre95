@@ -216,22 +216,32 @@ ProcessUtility(command, args, commandString, dest)
 	    isFrom = (bool)(CAtom(CAAR(args)) == FROM);
 	    fileName = CString(CADR(CAR(args)));
 
+
 		/* Free up file descriptors - going to do a read... */
 
 		closeAllVfds();
 
             if (isFrom && !strcmp(fileName, "stdin"))
             {
-                 pipe = true;
+                pipe = true;
             }
             else if (!isFrom && !strcmp(fileName, "stdout"))
             {
-                 pipe = true;
+                pipe = true;
             }
-            else
+
+            /*
+		     * Insist on a full pathname
+		     */
+
+            else if (*fileName == '/')
             {
-                 pipe = false;
+                pipe = false;
             }
+			else
+			{
+				elog(WARN, "COPY: full pathname required for filename");
+			}
 
 	    /*
 	     * discard '(FROM/TO "filename")
