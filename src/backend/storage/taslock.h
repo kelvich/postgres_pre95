@@ -13,13 +13,7 @@
 
 #define NUMPROCS	64
 
-#ifndef sequent
-CauseCompilerError();
-#endif
-
-#ifdef sequent
-#include <parallel/parallel.h>
-#endif
+#include "port_taslock.h"	/* from port* directory */
 
 typedef unsigned char ubyte;
 
