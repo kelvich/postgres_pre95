@@ -715,10 +715,56 @@ MatchUpdateLocks ( command , rulelocks )
 }
 
 List
-ModifyUpdateNodes( drop_user_query )
+ProduceOneAction( original_action )
+     List original_action;
+{
+    printf("\nNow modifying this rule-action : \n");
+    Print_parse ( original_action );
+    return ( NULL );
+}
+/*
+ * ModifyUpdateNodes
+ * RETURNS:	list of additional parsetrees
+ * MODIFIES:	original parsetree, drop_user_query
+ * STRATEGY:
+ *	foreach rule-action {
+ *		action = copy(rule-action);
+ *		foreach ( resdom in user_tlist ) {
+ *			
+ */
+List
+ModifyUpdateNodes( update_locks , user_parsetree, drop_user_query )
+     List update_locks;
+     List user_parsetree;
      bool *drop_user_query;
 {
-    return(NULL);
+    List i		= NULL;
+    List j		= NULL;
+    List new_queries	= NULL;
+    List ruletrees	= NULL;
+
+    Assert ( update_locks != NULL ); /* otherwise we won't have been called */
+
+    /* XXX - for now, instead is always true */
+    *drop_user_query = true;
+
+    foreach ( i , update_locks ) {
+	Prs2OneLock this_lock 	= (Prs2OneLock)CAR(i);
+
+	printf ("\nNow processing :");
+	PrintRuleLock ( this_lock );
+
+	ruletrees = RuleIdGetRuleParsetrees ( this_lock->ruleId );
+	foreach ( j , ruletrees ) {
+	    List rule_action = CAR(j);
+	    List final_action = NULL;
+
+	    final_action = ProduceOneAction ( rule_action );
+	    new_queries = nappend1 ( new_queries, final_action );
+	}
+	
+    }
+    return(new_queries);
 }
 /*
  * ProcessOneLock
@@ -773,16 +819,16 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
     if ( retrieve_locks ) {
 	printf ( "\nThese retrieve rules were triggered: \n");
 	PrintRuleLockList ( retrieve_locks );
+	additional_queries = ModifyVarNodes ( retrieve_locks,
+					     length ( user_rangetable ),
+					     current_varno,
+					     reldesc,
+					     user_tlist,
+					     user_rangetable,
+					     user_parsetree
+					     );
     }
 
-    additional_queries = ModifyVarNodes ( retrieve_locks,
-					  length ( user_rangetable ),
-					  current_varno,
-					  reldesc,
-					  user_tlist,
-					  user_rangetable,
-					  user_parsetree
-					 );
     /*
      * drop_user_query IS NOT SET in this routine
      * because "retrieve" rules when operating on qualifications
@@ -813,8 +859,18 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
       case APPEND:
       case REPLACE:
 	update_locks = MatchUpdateLocks ( command , rlocks );
-        additional_queries = append ( additional_queries,
-				     ModifyUpdateNodes( drop_user_query ) );
+	if ( update_locks ) {
+	    List new_queries = NULL;
+	    printf ( "\nUpdate triggered the following locks:\n");
+	    PrintRuleLockList ( update_locks );
+
+	    new_queries = 
+	      ModifyUpdateNodes( update_locks,
+				 user_parsetree,
+				 drop_user_query );
+
+	    additional_queries = append (additional_queries, new_queries );
+	}
 	break;
     }
 
