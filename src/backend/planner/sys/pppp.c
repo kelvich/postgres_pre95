@@ -7,7 +7,6 @@
  *
  */
 
-#ifdef NOT_FOR_DEMO
 
 #include "c.h"
 #include "postgres.h"
@@ -26,10 +25,15 @@ RcsId("$Header$");
 
 #include "nodes.h"
 #include "plannodes.h"
+#include "plannodes.a.h"
 #include "primnodes.h"
+#include "primnodes.a.h"
 #include "execnodes.h"
-#include "planner/internal.h";
+#include "planner/internal.h"
+#include "planner/clauses.h"
+#include "planner/keys.h"
 #include "pg_lisp.h"
+#include "tags.h"
 
 extern	void	print_root();
 extern	void	print_clauses();
@@ -74,13 +78,14 @@ void
 print_root (root)
 	LispValue root;
 {
-	printf ("NumLevels: %s\nCommandType: %s\nResultRelation: %s\n Rangetable:\n",
-		root_numlevels(root), root_command_type(root),
-		root_result_relation (root),
-	      "RangeTable:\n");
+	printf ("NumLevels: %d\nCommandType: %d\nResultRelation: ",
+		root_numlevels(root), root_command_type(root));
+	lispDisplay(root_result_relation (root), 0);
+	printf("\nRangetable:\n");
 	print_rtentries (root_rangetable (root), 0);
-	printf ("Priority: %s\n RuleInfo: %s\n", root_priority(root),
-		root_ruleinfo(root));
+	printf ("Priority: %d\nRuleInfo: ", CInteger(root_priority(root)));
+	lispDisplay(root_ruleinfo(root), 0);
+	printf("\n");
 }
 
 /*  .. print_plan, print_subplan
@@ -108,7 +113,7 @@ print_plan(plan, levelnum)
 			_query_range_table_ =
 				fix_rangetable(_query_range_table_,
 						get_unionrelid (plan),
-						nth(i, get_rtentries(plan)));
+						nth(i, get_unionrtentries(plan)));
 			print_plan(nth (i, get_unionplans(plan)), levelnum + 1);
 		};
 
@@ -117,7 +122,7 @@ print_plan(plan, levelnum)
 
 		INDENT(levelnum);
 		printf("Inheritance Range Table :\n");
-		print_rtentries (get_rtentries (plan), levelnum);
+		print_rtentries (get_unionrtentries (plan), levelnum);
 
 	} else if (IsA(plan,Existential)) {
 		INDENT(levelnum);
@@ -171,6 +176,26 @@ print_plan(plan, levelnum)
 	}
 }
 
+char*
+subplan_type(type)
+int type;
+{
+	switch (type) {
+	case T_NestLoop:  return("NestLoop");
+	case T_MergeJoin: return("MergeJoin");
+	case T_HashJoin:  return("HashJoin");
+	case T_SeqScan:	return("SeqScan");
+	case T_IndexScan:	return("IndexScan");
+	case T_Sort:	return("Sort");
+	case T_Hash:	return("Hash");
+	case T_Temp:	return("Temp");
+	case T_Append:	return("Append");
+	case T_Result:	return("Result");
+	case T_Existential: return("Existential");
+	default: return("???");
+	}
+}
+
 /*  .. print_plan, print_subplan
  */
 void
@@ -179,9 +204,9 @@ print_subplan (subplan, levels)
 	int levels;
 {
 	INDENT(levels);
-	printf("Type : %d\n", ((Node)subplan)->type);
+	printf("Type : %s\n", subplan_type(((Node)subplan)->type));
 	INDENT (levels);
-	printf("Cost : %g\n", get_state(subplan));
+	printf("Cost : %f\n", get_cost(subplan));
 	if (IsA(subplan,Scan)) {
 		INDENT (levels);
 		printf("Relid: ");
@@ -192,8 +217,8 @@ print_subplan (subplan, levels)
 		 *     (_TEMP_RELATION_ID_ != get_scanrelid (subplan)))
 		 */
 		if (_TEMP_RELATION_ID_ != get_scanrelid(subplan)) {
-			printf( "%s", getrelname(get_scanrelid(subplan),
-						 _query_range_table_));
+			printf( "%s", CString(getrelname(get_scanrelid(subplan),
+						 _query_range_table_)));
 		} else {
 			printf("%ld", get_scanrelid (subplan));
 		};
@@ -245,7 +270,7 @@ print_subplan (subplan, levels)
 		INDENT(levels);
 		printf("Outer Path:\n");
 		print_subplan(get_lefttree(subplan), (levels + 1));
-
+		printf("\n");
 		INDENT(levels);
 		printf("Inner Path:\n");
 		print_subplan(get_righttree(subplan), (levels + 1));
@@ -275,11 +300,7 @@ print_rtentries (rt, levels)
 		rtentry = CAR(i);
 
 		INDENT (levels + 1);
-		printf("(%s %ld :time %ld :flags 0x%lx :rulelocks",
-			rt_relname(rtentry),
-		        rt_relid(rtentry),
-		        rt_time(rtentry),
-		        rt_flags(rtentry));
+		lispDisplay(rtentry,0);
 
 #ifdef NOTYET
 		/* XXX integerp becomes what? */
@@ -295,7 +316,7 @@ print_rtentries (rt, levels)
 			 */
 		}
 #endif /* NOTYET */
-		printf (")\n");
+		printf ("\n");
 	}
 }
 
@@ -377,8 +398,9 @@ print_qual(qual, levels)
 	LispValue clause;
 	LispValue i;
 
+	INDENT (levels);
 	foreach (i, qual) {
-		qual = CAR(i);
+		clause = CAR(i);
 		print_clause(clause, levels);
 		printf ("\n");
 	};
@@ -390,14 +412,22 @@ void
 print_var(var)
 	LispValue var;
 {
+	Index varno;
+	AttributeNumber attnum;
 	printf ("(");
 	if(_query_range_table_ && (_TEMP_RELATION_ID_ != get_varno(var)))
 	{
+		varno = get_varno(var);
+		attnum = get_varattno (var);
+		if (varno == INNER || varno == OUTER) {
+		   List varid = get_varid(var);
+		   varno = CInteger(CAR(varid));
+		   attnum = CInteger(CADR(varid));
+		  }
 		printf("%s %s",
-			getrelname(get_varno(var),_query_range_table_),
-			get_attname(getrelid(get_varno(var),
-				    _query_range_table_),
-				    get_varattno (var)));
+			CString(getrelname(varno, _query_range_table_)),
+		        get_attname(CInteger(getrelid(varno,
+				 _query_range_table_)), attnum));
 
 	} else {
 		printf ("%d %d", get_varno(var), get_varattno(var));
@@ -512,7 +542,6 @@ void
 print_param (param)
 	LispValue param;
 {
-	extern char *get_paramname();
 
 	printf (" $%ld", get_paramid(param));
 
@@ -524,8 +553,7 @@ print_param (param)
 	 * }
 	 */
 
-	 if (get_paramname(param) != (char *) NULL)
+	 if (get_paramname(param) != (Name) NULL)
 		printf("(\"%s\")", get_paramname(param));
 }
 
-#endif /* NOT_FOR_DEMO */
