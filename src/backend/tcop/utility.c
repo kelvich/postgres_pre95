@@ -339,8 +339,11 @@ ProcessUtility(command, args, commandString)
 			       type2);
 	    }
 	    break;
-	  case RULE:
+	  case P_TUPLE:
 	    prs2RemoveTupleRule(CString(CADR(args)));
+	    break;
+	  case REWRITE:
+	    RemoveRewriteRule(CString(CADR(args)));
 	    break;
 	  case P_TYPE:
 	    RemoveType(CString(CADR(args)));
