@@ -11,13 +11,13 @@
 define function circle_in ( language = "c",
 			    returntype = circle )
        arg is (any)
-       as "_OBJWD_/regress.o"
+       as "_OBJWD_/regress_SLSUFF_"
 \g
 
 define function circle_out ( language = "c", 
 			     returntype = any )
        arg is (any)
-       as "_OBJWD_/regress.o"
+       as "_OBJWD_/regress_SLSUFF_"
 \g
 
 define type circle ( internallength = 24, 
@@ -150,38 +150,38 @@ define function user_relns ( language = "postquel",
 define function pt_in_circle ( language = "c",
 			       returntype = int4 )
        arg is (point, circle)
-       as "_OBJWD_/regress.o"
+       as "_OBJWD_/regress_SLSUFF_"
 \g
 
 define function overpaid ( language = "c",
 			   returntype = bool ) 
        arg is (emp)
-       as "_OBJWD_/regress.o"
+       as "_OBJWD_/regress_SLSUFF_"
 \g
 
 define function boxarea ( language = "c", 
 			  returntype = int4 )
        arg is (box)
-       as "_OBJWD_/regress.o"
+       as "_OBJWD_/regress_SLSUFF_"
 \g
 
 define function interpt_pp ( language = "c",
 			     returntype = point )
        arg is (path, path)
-       as "_OBJWD_/regress.o"
+       as "_OBJWD_/regress_SLSUFF_"
 \g
 
 define function reverse_c16 ( language = "c",
 			      returntype = char16 )
        arg is (char16)
-       as "_OBJWD_/regress.o"
+       as "_OBJWD_/regress_SLSUFF_"
 \g
 
 /* untrusted functions */
 define function ufp0 ( language = "c",
 		       returntype = int4 )
        arg is ( )
-       as "_OBJWD_/ufp1.o"
+       as "_OBJWD_/ufp1_SLSUFF_"
 \g
 replace pg_proc ( proistrusted = "f"::bool,
 		  pronargs = 0 )
@@ -190,7 +190,7 @@ replace pg_proc ( proistrusted = "f"::bool,
 define function ufp1 ( language = "c",
 		       returntype = int4 )
        arg is (int4)
-       as "_OBJWD_/ufp1.o"
+       as "_OBJWD_/ufp1_SLSUFF_"
 \g
 replace pg_proc ( proistrusted = "f"::bool )
 	where pg_proc.proname = "ufp1"
@@ -198,7 +198,7 @@ replace pg_proc ( proistrusted = "f"::bool )
 define function ufp2 ( language = "c",
 		       returntype = char16 )
        arg is (char16, char16)
-       as "_OBJWD_/ufp2.o"
+       as "_OBJWD_/ufp2_SLSUFF_"
 \g
 replace pg_proc ( proistrusted = "f"::bool )
 	where pg_proc.proname = "ufp2"
@@ -206,7 +206,7 @@ replace pg_proc ( proistrusted = "f"::bool )
 define function ufp3 ( language = "c",
 		       returntype = text )
        arg is (text, char)
-       as "_OBJWD_/ufp3.o"
+       as "_OBJWD_/ufp3_SLSUFF_"
 \g
 replace pg_proc ( proistrusted = "f"::bool )
 	where pg_proc.proname = "ufp3"
@@ -215,7 +215,7 @@ replace pg_proc ( proistrusted = "f"::bool )
 /*
  * FUNCTION DYNAMIC LOADING
  */
-load "_OBJWD_/regress.o"
+load "_OBJWD_/regress_SLSUFF_"
 \g
 
 /*
