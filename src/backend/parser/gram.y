@@ -767,7 +767,7 @@ newruleTag: P_TUPLE
 	| REWRITE 
 		{ $$ = KW(rewrite); }
 	| /* EMPTY */
-		{ $$ = KW(rewrite); }
+		{ $$ = KW(tuple); }
 	;
 
 OptStmtList:
