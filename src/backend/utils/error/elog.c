@@ -26,7 +26,7 @@ char	*fmt;
 	char		buf[256], line[256];
 	register char	*bp, *cp;
 	extern	int	errno, sys_nerr;
-	extern	char	*sys_errlist[], *ctime(), sprintf();
+	extern	char	*sys_errlist[], *ctime(), *sprintf();
 #ifndef PG_STANDALONE
 	extern	FILE	*Pfout;
 #endif /* !PG_STANDALONE */
