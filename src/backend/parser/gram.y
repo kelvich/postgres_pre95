@@ -88,7 +88,6 @@ Relation parser_current_rel = NULL;
 static bool QueryIsRule = false;
 
 bool Input_is_string = false;
-/* ron */
 bool Input_is_integer = false;
 bool Typecast_ok = true;
 
@@ -1901,7 +1900,6 @@ make_targetlist_expr ( name , expr )
                 fmgr(typeid_get_retinfunc(attrtype), val),
                 0);
 	} else if((Input_is_integer && Typecast_ok) && (attrtype != type_id)){
-/* ron */
               CDR(expr) = (LispValue) 
 			parser_typecast2 ( expr, get_id_type((long)attrtype));
 	} else 
