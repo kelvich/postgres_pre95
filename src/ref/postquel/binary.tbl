@@ -286,7 +286,7 @@ T}
 interval length less than reltime
 T}
 	#\(eq	bool intervalleneq(tinterval, reltime)	T{
-interval length not equal to reltime
+interval length equal to reltime
 T}
 	#>\(eq	bool intervallenge(tinterval, reltime)	T{
 interval length greater or equal reltime
