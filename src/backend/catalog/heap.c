@@ -175,24 +175,24 @@ heap_creatr(relname, natts, att)
     ObjectId		relid;
     Relation		rdesc;
     int			len;
-    
+
     File		fd;
-    
+
     extern GlobalMemory	CacheCxt;
     MemoryContext	oldcxt;
-    
+
     int			issystem();
     File		relopen();		/* XXX */
     OID			newoid();
     extern		bcopy(), bzero();
-    
+
     /* ----------------
      *	sanity check
      * ----------------
      */
     if (!natts)
 	elog(WARN, "amcreatr(%s): called with 0 natts", relname);
-    
+
     /* ----------------
      *	switch to the cache context so that we don't lose
      *  allocations at the end of this transaction, I guess.
@@ -222,7 +222,7 @@ heap_creatr(relname, natts, att)
 	if (! strncmp(relname, "temp_", 5))
 	    sprintf(relname, "temp_%d", relid);
 	  };
-    
+
     /* ----------------
      *	try and create the relation.
      * ----------------
@@ -231,6 +231,11 @@ heap_creatr(relname, natts, att)
 
     /* ----------------
      *	I don't understand this. -cim 6/14/90
+     *  What's happening here is that if the file exists, but is empty,
+     *  then we assume that life is okay.  If it's not empty, we abort.
+     *  The reason for this is that during bootstrap processing, it is
+     *  possible for the pg_log and pg_time files to get created before
+     *  we come across their create entries in the bki files.  --mao 2 july 91
      * ----------------
      */
     if (fd < 0) {
@@ -254,11 +259,11 @@ heap_creatr(relname, natts, att)
 	n = FileRead(fd, buf, 4);
 	if (n != 0) {
 	    FileClose(fd);
-	    
+
 	    elog(WARN, "amcreatr: %s not zero size",relname);
 	}
     }
-	
+
     /* ----------------
      *	allocate a new relation descriptor.
      *
@@ -281,7 +286,7 @@ heap_creatr(relname, natts, att)
 
     rdesc->rd_rel = (RelationTupleForm)
 	palloc(sizeof (RuleLock) + sizeof *rdesc->rd_rel);
-    
+
     bzero((char *)rdesc->rd_rel, sizeof *rdesc->rd_rel + sizeof (RuleLock));
     strncpy((char *)&rdesc->rd_rel->relname, relname, 16);
     rdesc->rd_rel->relkind = 'u';
@@ -305,7 +310,7 @@ heap_creatr(relname, natts, att)
     rdesc->rd_id = relid;
 
     RelationRegisterRelation(rdesc);
-   
+
     MemoryContextSwitchTo(oldcxt);
 
     return (rdesc);
@@ -459,7 +464,7 @@ RelationAlreadyExists(pg_relation_desc, relname)
      * ----------------
      */
     amendscan(pg_relation_scan);
-    
+
     return
 	(PointerIsValid(tup) == true);
 }
@@ -479,7 +484,7 @@ AddNewAttributeTuples(new_rel_oid, new_type_oid, natts, tupdesc)
     struct attribute 	*tupdesc[];
 {
     register struct attribute **dpp;		/* XXX */
-    
+
     HeapTuple	tup;
     Relation	rdesc;
     int		i;
@@ -501,13 +506,13 @@ AddNewAttributeTuples(new_rel_oid, new_type_oid, natts, tupdesc)
     setheapoverride(true);
     fillatt(natts, tupdesc);
     setheapoverride(false);
-    
+
     /* ----------------
      *	make sure all the tuples are added together.
      * ----------------
      */
     setclusteredappend(true);
-    
+
     /* ----------------
      *  first we add the user attributes..
      * ----------------
@@ -573,16 +578,16 @@ AddPgRelationTuple(pg_relation_desc, new_rel_desc, new_rel_oid, arch, natts)
     RelationTupleForm	new_rel_reltup;
     HeapTuple		tup;
     bool		isBootstrap;
-    
+
     extern		fillatt();
-    
+
     /* ----------------
      *	first we munge some of the information in our
      *  uncataloged relation's relation descriptor.
      * ----------------
-     */    
+     */
     new_rel_reltup = new_rel_desc->rd_rel;
-    
+
 /* CHECK should get new_rel_oid first via an insert then use XXX */
 /*   new_rel_reltup->reltuples = 1; */ /* XXX */
 
@@ -609,14 +614,14 @@ AddPgRelationTuple(pg_relation_desc, new_rel_desc, new_rel_oid, arch, natts)
      * ----------------
      */
     isBootstrap = IsBootstrapProcessingMode() ? true : false;
-    
+
     SetProcessingMode(BootstrapProcessing);
-    
+
     aminsert(pg_relation_desc, tup, (double *)NULL);
-    
+
     if (! isBootstrap)
 	SetProcessingMode(NormalProcessing);
-    
+
     pfree((char *)tup);
 }
 
@@ -639,7 +644,7 @@ heap_create(relname, arch, natts, tupdesc)
     ObjectId		new_rel_oid;
     ObjectId 		new_type_oid;
     int			i;
-    
+
     /* ----------------
      *	sanity checks
      * ----------------
@@ -662,7 +667,7 @@ heap_create(relname, arch, natts, tupdesc)
 	amclose(pg_relation_desc);
 	elog(WARN, "amcreate: %s relation already exists", relname);
     }
-    
+
     /* ----------------
      *  ok, relation does not already exist so now we
      *	create an uncataloged relation and pull its relation oid
@@ -674,7 +679,7 @@ heap_create(relname, arch, natts, tupdesc)
      */
     new_rel_desc = amcreatr(relname, natts, tupdesc);
     new_rel_oid  = new_rel_desc->rd_att.data[0]->attrelid;
-    
+
     /* ----------------
      *  since defining a relation also defines a complex type,
      *	we add a new system type corresponding to the new relation.
@@ -717,7 +722,7 @@ heap_create(relname, arch, natts, tupdesc)
     /* ----------------
      *	ok, the relation has been cataloged, so close our relations
      *  and return the oid of the newly created relation.
-     *  
+     *
      *	SOMEDAY: fill the STATISTIC relation properly.
      * ----------------
      */
@@ -791,7 +796,7 @@ RelationRemoveInheritance(relation)
 	ScanKeyEntryInitialize(&entry[0], 0x0, InheritsParentAttributeNumber,
 						   ObjectIdEqualRegProcedure,
 						   ObjectIdGetDatum(RelationGetRelationId(relation)));
-    
+
     scan = RelationBeginHeapScan(catalogRelation,
 				 false,
 				 NowTimeQual,
@@ -884,7 +889,7 @@ RelationRemoveIndexes(relation)
 	ScanKeyEntryInitialize(&entry[0], 0x0, IndexHeapRelationIdAttributeNumber,
 						   ObjectIdEqualRegProcedure,
 						   ObjectIdGetDatum(RelationGetRelationId(relation)));
-    
+
     scan = RelationBeginHeapScan(indexRelation,
 				 false,
 				 NowTimeQual,
@@ -900,7 +905,7 @@ RelationRemoveIndexes(relation)
 	DestroyIndexRelationById(
 		((IndexTupleForm)GETSTRUCT(tuple))->indexrelid);
     }
-    
+
     HeapScanEnd(scan);
     RelationCloseHeapRelation(indexRelation);
 }
@@ -918,13 +923,13 @@ DeletePgRelationTuple(rdesc)
     HeapScanDesc	pg_relation_scan;
     struct	skey	key;
     HeapTuple		tup;
-    
+
     /* ----------------
      *	open pg_relation
      * ----------------
      */
     pg_relation_desc = amopenr(RelationRelationName);
-    
+
     /* ----------------
      *	create a scan key to locate the relation oid of the
      *  relation to delete
@@ -932,13 +937,13 @@ DeletePgRelationTuple(rdesc)
      */
 	ScanKeyEntryInitialize(&key, NULL, ObjectIdAttributeNumber,
 						   F_INT4EQ, rdesc->rd_att.data[0]->attrelid);
-    
+
     pg_relation_scan =  ambeginscan(pg_relation_desc,
 				    0,
 				    NowTimeQual,
 				    1,
 				    &key);
-    
+
     /* ----------------
      *	use amgetnext() to fetch the pg_relation tuple.  If this
      *  tuple is not valid then something's wrong.
@@ -958,7 +963,7 @@ DeletePgRelationTuple(rdesc)
      * ----------------
      */
     amdelete(pg_relation_desc, &tup->t_ctid);
-    
+
     amendscan(pg_relation_scan);
     amclose(pg_relation_desc);
 }
@@ -990,13 +995,13 @@ DeletePgAttributeTuples(rdesc)
      */
     ScanKeyEntryInitialize(&key, NULL, Anum_pg_attribute_attrelid,
 						   F_INT4EQ, rdesc->rd_att.data[0]->attrelid);
-    
+
     pg_attribute_scan = ambeginscan(pg_attribute_desc,
 				    0,
 				    NowTimeQual,
 				    1,
 				    &key);
-    
+
     /* ----------------
      *	use amgetnext() / amdelete() until all attribute tuples
      *  have been deleted.
@@ -1039,13 +1044,13 @@ DeletePgTypeTuple(rdesc)
     HeapTuple		tup;
     HeapTuple		atttup;
     ObjectId		typoid;
-    
+
     /* ----------------
      *	open pg_type
      * ----------------
      */
     pg_type_desc = amopenr(TypeRelationName);
-    
+
     /* ----------------
      *	create a scan key to locate the type tuple corresponding
      *  to this relation.
@@ -1053,13 +1058,13 @@ DeletePgTypeTuple(rdesc)
      */
 	ScanKeyEntryInitialize(&key, NULL, Anum_pg_type_typrelid, F_INT4EQ,
 						   rdesc->rd_att.data[0]->attrelid);
-    
+
     pg_type_scan =  ambeginscan(pg_type_desc,
 				0,
 				NowTimeQual,
 				1,
 				&key);
-    
+
     /* ----------------
      *	use amgetnext() to fetch the pg_type tuple.  If this
      *  tuple is not valid then something's wrong.
@@ -1084,16 +1089,16 @@ DeletePgTypeTuple(rdesc)
     typoid = tup->t_oid;
 
     pg_attribute_desc = amopenr(AttributeRelationName);
-    
+
 	ScanKeyEntryInitialize(&attkey, NULL, Anum_pg_attribute_atttypid, F_INT4EQ,
 						   typoid);
-    
+
     pg_attribute_scan = ambeginscan(pg_attribute_desc,
 				    0,
 				    NowTimeQual,
 				    1,
 				    &attkey);
-    
+
     /* ----------------
      *	try and get a pg_attribute tuple.  if we succeed it means
      *  we cant delete the relation because something depends on
@@ -1115,14 +1120,14 @@ DeletePgTypeTuple(rdesc)
     }
     amendscan(pg_attribute_scan);
     amclose(pg_attribute_desc);
-    
+
     /* ----------------
      *  Ok, it's safe so we delete the relation tuple
      *  from pg_type and finish up.
      * ----------------
      */
     amdelete(pg_type_desc, &tup->t_ctid);
-    
+
     amendscan(pg_type_scan);
     amclose(pg_type_desc);
 }
@@ -1146,7 +1151,7 @@ UnlinkRelationFile(rdesc)
      */
     if (FileNameUnlink(relpath(&rdesc->rd_rel->relname)) < 0)
 	elog(WARN, "amdestroyr: unlink: %m");
-    
+
 }
 
 /* --------------------------------

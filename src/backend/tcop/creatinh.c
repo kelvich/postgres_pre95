@@ -163,6 +163,8 @@ DefineRelation(relname, parameters, schema)
     Name		archiveName 	= NULL;
     Name		relationName 	= NULL;
     TupleDesc		descriptor;
+    LispValue		locargs;
+    int			heaploc, archloc;
 
     /* ----------------
      *	minimal argument checking follows
@@ -221,6 +223,32 @@ DefineRelation(relname, parameters, schema)
 	    archChar = 'n';
 	    break;
 	}
+    }
+
+    /* figure out where to put the relation (take me to your cdr) */
+    locargs = CDR(CDR(CDR(CDR(parameters))));
+
+    if (lispNullp(CAR(locargs)))
+	heaploc = 0;
+    else
+	heaploc = LISPVALUE_INTEGER(CDR(CAR(locargs)));
+
+    /*
+     *  For now, any user-defined relation is hardwired to use the magnetic
+     *  disk storgage manager.  --mao 2 july 91
+     */
+
+    if (heaploc != 0)
+	elog(WARN, "User relations must reside on magnetic disk.");
+
+    if (lispNullp(CADR(locargs))) {
+	archloc = 0;
+    } else {
+	if (archChar == 'n') {
+	    elog(WARN, "Set archive location, but not mode, for %s",
+		 relationName);
+	}
+	archloc = LISPVALUE_INTEGER(CDR(CADR(locargs)));
     }
 
     /* ----------------
