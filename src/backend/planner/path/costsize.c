@@ -136,14 +136,17 @@ cost_seqscan (relid,relpages,reltuples)
 Cost
 cost_index (indexid,expected_indexpages,selec,relpages,
 	    reltuples,indexpages,indextuples, is_injoin)
-     ObjectId indexid;
-     Count expected_indexpages;
-     Cost selec;
-     Count relpages,indexpages,indextuples,reltuples;
-     bool is_injoin;
+	ObjectId indexid;
+	Count expected_indexpages;
+	Cost selec;
+	Count relpages,indexpages,indextuples,reltuples;
+	bool is_injoin;
 {
-    Cost temp = 0;
-    Cost temp2 = 0;
+	Cost temp;
+	Cost temp2;
+
+	temp = temp2 = (Cost) 0;
+
 	if (!_enable_indexscan_ && !is_injoin)
 	    temp += _disable_cost_;
 
@@ -157,9 +160,10 @@ cost_index (indexid,expected_indexpages,selec,relpages,
 	 */
 	CostAddCostTimesCount(temp2, selec, indextuples);
 	CostAddCostTimesCount(temp2, selec, reltuples);
-    temp =  temp + (_CPU_PAGE_WEIGHT_ * temp2);
-    Assert(temp >= 0);
-    return(temp);
+
+	temp =  temp + (_CPU_PAGE_WEIGHT_ * temp2);
+	Assert(temp >= 0);
+	return(temp);
 } /* end cost_index */
 
 /*    
