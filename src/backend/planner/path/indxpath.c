@@ -488,7 +488,7 @@ match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
     ObjectId join_op = InvalidObjectId;
     bool isIndexable = false;
 
-    if ( or_clause (clause))
+    if ( or_clause (clause) || not_clause(clause))
 	return ((CInfo)NULL);
 
      /*
