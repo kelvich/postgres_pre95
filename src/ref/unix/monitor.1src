@@ -65,9 +65,12 @@ continue	The terminal monitor is ready for input and the query buffer
  \\g
  \\go			Submit query buffer to POSTGRES for execution
 
+ \\h
+ \\?			Get on-line help
+
  \\i \fIfilename\fR
  \\include \fIfilename\fR\ 		Include the file filename into the query buffer
-.bp
+
  \\p
  \\print			Print contents of the query buffer 
 
@@ -91,14 +94,22 @@ continue	The terminal monitor is ready for input and the query buffer
 
 \fBCommand options:\fR
 
--h:	The host on which the POSTGRES backend is running; default is your local machine.
--p:	The port used for network communication between the terminal monitor
-	and the backend.
--t:	The tty which you want the backend debugging message to be sent to;
-	default is /dev/null. 
--d:     	The file which you want the frontend debugging messages to be
-        	written to.  The file can be an ordinary file or a tty such as /dev/ttyp1.
-        	Default is not to generate any debugging messages. 
+.uh "-h"
+The host on which the POSTGRES backend is running; default is your local
+machine (localhost).
+.pp
+.uh "-p"
+The port used for network communication between the terminal monitor
+and the postmaster.  If you use this option, you will have to use 
+-p [port + 1] as well, as the communication protocol uses two ports.
+.pp
+.uh "-t"
+The tty which you want the backend debugging message to be sent to;
+default is /dev/null. 
+.uh "-d"
+The file which you want the frontend debugging messages to be
+written to.  The file can be an ordinary file or a tty such as /dev/ttyp1.
+Default is not to generate any debugging messages. 
 
 You may set environment variables to avoid typing the above options. 
 The corresponding environment variables are:
@@ -107,6 +118,13 @@ The corresponding environment variables are:
 hostname:		PGHOST
 port:			PGPORT
 tty:			PGTTY
-options:			PGOPTION
+options:		PGOPTION
 .)l
 
+The terminal monitor requires that the Postmaster be running, and the ports
+specified with the "-p" option must be identical to those specified to the
+Postmaster.  The terminal monitor requires that the POSTGRESHOME variable
+be set to the POSTGRES home directory.
+.uh "SEE ALSO"
+.lp
+postmaster (unix)

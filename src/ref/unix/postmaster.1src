@@ -25,7 +25,7 @@ The port used for network communication between the terminal monitor
 and the backend.  You must also use "port + 1" if you use this option.
 .pp
 .uh "backendname"
-the name of the \*PP backend you wish to use.
+the pathname of the Postgres backend you wish to use.
 .pp
 
 You may set environment variables to avoid typing the above options. 
@@ -34,9 +34,20 @@ The corresponding environment variables are:
 .(l
 hostname:		PGHOST
 port:			PGPORT
-options:			PGOPTION
+options:		PGOPTION
 .)l
 
 The postmaster requires that the environment variable
 .uh "POSTGRESHOME"
 be set.
+
+.uh "DIAGNOSTICS"
+.lp
+"semget: No space left on device".  Run the ipcclean command.  If this still
+doesn't work, you will need to configure your kernel for shared memory and
+semaphores as described in the installation notes.
+.pp
+.uh "SEE ALSO"
+.lp
+monitor (unix),
+ipcclean (unix)
