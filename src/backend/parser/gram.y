@@ -745,17 +745,16 @@ RuleStmt:
 		}
 	RuleBody
 		{
-		    $$ = nappend1 ( $8, $5 ); 
-	 	    $$ = lispCons ( $4, $$ );
-		    $$ = lispCons ( $3, $$ );
-
 		    if ( CAtom($2) == P_TUPLE ) {
 			/* XXX - do the bogus fix to get param nodes
 			         to replace varnodes that have current 
 				 in them */
-		    } else {
+			SubstituteParamForNewOrCurrent ( $8 );
 		    }
 
+		    $$ = nappend1 ( $8, $5 ); 
+	 	    $$ = lispCons ( $4, $$ );
+		    $$ = lispCons ( $3, $$ );
 		    $$ = lispCons ( $2, $$ );	
 		    $$ = lispCons ( KW(define), $$ );	
 		    
@@ -1561,11 +1560,9 @@ a_expr:
 	| AexprConst		
 	| attr '[' Iconst ']'
 		{ 
-		     Var temp = (Var)NULL;
-		     temp = (Var) 
-		     $$ = make_array_ref_var ( CString(CAR($1)),
-		                          CString(CADR($1)),
-					  CInteger($3));
+		     $$ = (List)make_array_ref_var ( CString(CAR($1)),
+						    CString(CADR($1)),
+						    CInteger($3));
 		}
 	| spec 
 	| '-' a_expr %prec UMINUS
@@ -1870,4 +1867,24 @@ MakeFromClause ( from_list, base_rel )
 	temp2 = CDR(temp2);
     }
     
+}
+
+SubstituteParamForNewOrCurrent ( parsetree )
+     List parsetree;
+{
+    List i = NULL;
+
+    foreach ( i , parsetree ) {
+	List temp = CAR(i);
+	if ( IsA (temp,Var) ) {
+	    if ( get_varno(temp) == 1 ) {
+		/* replace with make_param(old) */
+				} 
+	    if ( get_varno(temp) == 2 ) {
+		/* replace with make_param(new) */
+	    }
+	} 
+	if (  temp->type == PGLISP_DTPR ) 
+	  SubstituteParamForNewOrCurrent ( temp );
+    }
 }
