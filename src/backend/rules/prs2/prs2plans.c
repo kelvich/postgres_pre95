@@ -59,7 +59,7 @@ ParamListInfo *paramListP;
 	/*
 	 * No such rule exist! Complain!
 	 */
-	elog(NOTICE,
+	elog(DEBUG,
 	"prs2GetRulePlanFromCatalog: plan NOT found (rulid=%ld,planno=%d)\n",
 	ruleId, planNumber);
 	return(LispNil);
@@ -146,8 +146,8 @@ Name relationName;
 	scanKey.data[0].attributeNumber = Anum_pg_relation_relname;
 	scanKey.data[0].procedure = F_CHAR16EQ;
 	scanKey.data[0].argument = NameGetDatum(relationName);
-	scanDesc = RelationBeginHeapScan(rel, 0, NowTimeQual, 1, &scanKey);
-	tuple = HeapScanGetNextTuple(scanDesc, 0, &buffer);
+	scanDesc = RelationBeginHeapScan(rel, false, NowTimeQual, 1, &scanKey);
+	tuple = HeapScanGetNextTuple(scanDesc, false, &buffer);
 	locks = prs2GetLocksFromTuple( tuple, buffer, (TupleDescriptor) NULL);
 	printf("------- pg_relation tuple = \n");
 	debugtup(tuple, tdesc);
