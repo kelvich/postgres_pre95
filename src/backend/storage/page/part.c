@@ -3,13 +3,13 @@
  *	POSTGRES "partition" code.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
-#include "block.h"
-#include "bufpage.h"	/* XXX for PageSize */
-#include "off.h"
+#include "storage/block.h"
+#include "storage/bufpage.h"	/* XXX for PageSize */
+#include "storage/off.h"
+#include "storage/part.h"
 
-#include "part.h"
 #include "internal.h"
 
 RcsId("$Header$");

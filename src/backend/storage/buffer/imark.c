@@ -8,14 +8,13 @@
  *	called as necessary.
  */
 
-#include "c.h"
-
-#include "buf.h"
-#include "itemptr.h"
-
-#include "imark.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
+
+#include "access/imark.h"
+#include "storage/buf.h"
+#include "storage/itemptr.h"
 
 bool
 ItemMarkIsValid(mark)
