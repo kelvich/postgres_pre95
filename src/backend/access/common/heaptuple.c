@@ -635,7 +635,7 @@ fastgetattr(tup, attnum, att, isnull)
 	        case -1:
 	            usecache = false;
 		    off = LONGALIGN(off) + sizeof(long);
-	    	    off += PSIZE(tp + off);
+	    	    off += LONGALIGN(PSIZE(tp + off));
 		    break;
 		default:
 		    off = LONGALIGN(off + att[i]->attlen);
