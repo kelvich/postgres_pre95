@@ -257,21 +257,21 @@ char *
 reverse_c16(string)
     char *string;
 {
-    int  len;
-    char *tail;
-    char *head;
-    char *reversed;
+    register i;
+    int len;
+    char *new_string;
 
-    reversed = (char *)palloc(17);
-    bzero(reversed, 17);
-
-    len = 0;
-    while (len < 16 && string[len] != '\0')
-	len++;
-
-    tail = &string[len - 1];
-    head = reversed;
-    while (tail != string)
-	*head++ = *tail--;
-    return reversed;
+    if (!(new_string = palloc(16))) {
+	fprintf(stderr, "reverse_c16: palloc failed\n");
+	return(NULL);
+    }
+    bzero(new_string, 16);
+    for (i = 0; i < 16 && string[i]; ++i)
+	;
+    if (i == 16 || !string[i])
+	--i;
+    len = i;
+    for (; i >= 0; --i)
+	new_string[len-i] = string[i];
+    return(new_string);
 }
