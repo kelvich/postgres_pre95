@@ -1093,10 +1093,38 @@ Relation tempreldesc;
     for (i=1; i<=NBuffers; i++) {
 	buf = BufferGetBufferDescriptor(i);
         if (BufferIsDirty(i) &&
+            (buf->tag.relId.dbId == MyDatabaseId) &&
             (buf->tag.relId.relId == tempreldesc->rd_id)) {
             buf->flags &= ~BM_DIRTY;
             if (!(buf->flags & BM_FREE))
                ReleaseBuffer(i);
+        }
+     }
+}
+
+/* ---------------------------------------------------------------------
+ *      DropBuffers
+ *
+ *	This function marks all the buffers in the buffer cache for a
+ *	particular database as clean.  This is used when we destroy a
+ *	database, to avoid trying to flush data to disk when the directory
+ *	tree no longer exists.
+ *
+ *	This is an exceedingly non-public interface.
+ * --------------------------------------------------------------------
+ */
+
+void
+DropBuffers(dbid)
+ObjectId dbid;
+{
+    register int i;
+    BufferDesc *buf;
+
+    for (i=1; i<=NBuffers; i++) {
+	buf = BufferGetBufferDescriptor(i);
+        if ((buf->tag.relId.dbId == dbid) && (buf->flags & BM_DIRTY)) {
+            buf->flags &= ~BM_DIRTY;
         }
      }
 }
