@@ -41,7 +41,7 @@ and the other based on
 processing.  In general, the instance-level system is more efficient
 if there are many rules on a single class, each covering a small
 subset of the instances.  The rewrite system is more
-efficient if large scope rules are being defined.  In version 2.1, the user
+efficient if large scope rules are being defined. The user
 can optionally choose which rule system to use by specifying 
 .i rewrite
 or
@@ -127,7 +127,7 @@ In this later case, the action can be the keyword
 .(l
 define rule example_1 is
 on replace to EMP.salary where current.name = ``Joe''
-replace EMP (salary = new.salary) where EMP.name = ``Sam''
+do replace EMP (salary = new.salary) where EMP.name = ``Sam''
 .)l
 At the time Joe receives a salary adjustment, the event will become
 true and Joe's current instance and proposed new instance are available
@@ -138,15 +138,8 @@ propagates Joe's salary on to Sam.
 /* Make Bill get Joe's salary when it is accessed */
 .(l
 define rule example_2 is
-on retrieve to EMP.salary where current.name = ``Joe''
-replace EMP (salary = current.salary) where EMP.name = ``Bill''
-.)l
-.lp
-/* Deny Joe access to the salary of employees in the shoe department */
-.(l
-define rule example_3 is
-on retrieve to EMP.salary where current.dept = ``shoe'' and user() = ``Joe''
-do instead nothing
+on retrieve to EMP.salary where current.name = ``Bill''
+do instead retrieve (EMP.salary) where EMP.name = ``Joe''
 .)l
 .lp
 /* create a view of the employees working in the toy department */
@@ -155,7 +148,7 @@ create TOYEMP(name = char16, salary = int4)
 
 define rule example_4 is
 on retrieve to TOYEMP
-do instead retrieve (EMP.name, EMP.salary) where EMP.dname = ``toy''
+do instead retrieve (EMP.name, EMP.salary) where EMP.dept = ``toy''
 .)l
 .lp
 /* all new employees must make 5,000 or less */
@@ -169,7 +162,7 @@ do replace new(salary = 5000)
 postquel(postquel).
 .uh BUGS
 .lp
-Exceptions are not implemented in Version 2.1.
+Exceptions are not implemented in Version 3.0.
 .lp
 The object in a POSTQUEL rule cannot be an array reference and cannot have parameters.
 .lp
