@@ -192,9 +192,11 @@ ProcessQuery(parser_output, plan)
 	    BeginCommand("blank",attinfo);
 	    break;
 	  default:
-	    putnchar("P",1);
-	    putint(0,4);
-	    putstr("blank");
+	    if (IsUnderPostmaster) {
+		putnchar("P",1);
+		putint(0,4);
+		putstr("blank");
+	    }
 	}
 
 	/* ----------------
