@@ -261,7 +261,8 @@ MakeRangeTableEntry( relname , options , refname)
 	/*printf("relname is : %s\n",(char *)relname); 
 	fflush(stdout);*/
 
-	index = RangeTablePosn (CString(relname)); 
+	index = RangeTablePosn (CString(relname),(options & 0x01),
+				(CInteger(p_trange) != 0 )); 
 	
 	relation = amopenr( CString( relname ) );
 	if ( relation == NULL ) {
@@ -326,7 +327,7 @@ ExpandAll(relname,this_resno)
 
 	/* printf("\nExpanding %s.all\n",CString(relname)); */
 
-	if ((vnum= RangeTablePosn (CString(relname))) == 0 ) {
+	if ((vnum= RangeTablePosn (CString(relname),0,0)) == 0 ) {
 		p_rtable = nappend1 ( p_rtable,
 				     MakeRangeTableEntry (relname, 
 							  0 ,  relname));
@@ -466,12 +467,12 @@ make_var ( relname, attrname )
 		CString(attrname)); 
 	fflush(stdout);
 	*/
-	vnum = RangeTablePosn ( CString (relname)) ;
+	vnum = RangeTablePosn ( CString (relname),0,0) ;
 	/* printf("vnum = %d\n",vnum); */
 	if (vnum == 0) {
 		p_rtable = nappend1 (p_rtable ,
 			  MakeRangeTableEntry ( relname , 0 , relname) );
-		vnum = RangeTablePosn (CString (relname));
+		vnum = RangeTablePosn (CString (relname),0,0);
 		/* printf("vnum = %d\n",vnum); */
 		relname = VarnoGetRelname(vnum);
 	} else {

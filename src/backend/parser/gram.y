@@ -691,10 +691,15 @@ AppendStmt:
 	  where_clause
 		{
 			LispValue root;
-		    	root = MakeRoot(NumLevels, $1, $5, p_rtable,
+			if(RangeTablePosn(CString($5),0,0) == 0)
+			  p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
+					       ($5,0,$5));
+			StripRangeTable();
+		    	root = MakeRoot(1, KW(append), lispInteger(1), 
+					p_rtable,
 					p_priority, p_ruleinfo);
 			$$ = lispCons ( root , LispNil );
-			$$ = nappend1 ( $$ , $6 ); /* (eq p_target $5) */
+			$$ = nappend1 ( $$ , $7 ); /* (eq p_target $5) */
 			$$ = nappend1 ( $$ , $9 ); /* (eq p_qual $8 */
 		}
 	;
@@ -715,15 +720,16 @@ DeleteStmt:
 	  opt_star var_name  where_clause
 		{ 
 			LispValue root;
-/*
-		    	root = MakeRoot(NumLevels, $1, $3, p_rtable,
-					p_priority, p_ruleinfo);
-*/
-			root = MakeRoot(NumLevels,$1,lispInteger ( 1 ) ,
+			if(RangeTablePosn(CString($5),0,0) == 0)
+			  p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
+					       ($5,0,$5));
+			StripRangeTable();
+			root = MakeRoot(NumLevels,KW(delete),
+					lispInteger ( 1 ) ,
 					p_rtable, p_priority, p_ruleinfo);
 			$$ = lispCons ( root , LispNil );
 			/* check that var_name is in the relation */
-			$$ = nappend1 ( $$ , $5 ); /* (eq p_target $5) */
+			$$ = nappend1 ( $$ , LispNil ); /* (eq p_target $5) */
 			$$ = nappend1 ( $$ , $6 ); /* (eq p_qual $5 */
 		}
 	;
@@ -761,8 +767,13 @@ ReplaceStmt:
 	'(' res_target_list ')' where_clause
   		{
 		    LispValue root;
+		    if(RangeTablePosn(CString($6),0,0) == 0)
+		      p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
+					   ($6,0,$6));
 	
-		    root = MakeRoot(NumLevels, $1, $6, p_rtable,
+		    StripRangeTable();
+		    root = MakeRoot(NumLevels, KW(replace), lispInteger(1),
+				    p_rtable,
 				    p_priority, p_ruleinfo);
 
 		    $$ = lispCons( root , LispNil );
@@ -1146,7 +1157,7 @@ attr:
 	  relation_name '.' att_name
 		{    
 		    INC_NUM_LEVELS(1);		
-		    if( RangeTablePosn ( CString ($1) ) == 0 ) 
+		    if( RangeTablePosn ( CString ($1),0,0 ) == 0 ) 
 		      p_rtable = nappend1 (p_rtable ,
 					   MakeRangeTableEntry( $1 , 0, $1));
 		    $$ = lispCons ( $1 , $3 );
