@@ -128,6 +128,17 @@ Type t;
     return(typ->typlen);
 }
 
+/* given type (as type struct), return the value of its 'byval' attribute.*/
+bool
+tbyval(t)
+Type t;
+{
+    TypeTupleForm    typ;
+
+    typ = (TypeTupleForm)GETSTRUCT(t);
+    return(typ->typbyval);
+}
+
 /* given type (as type struct), return the name of type */
 Name
 tname(t)

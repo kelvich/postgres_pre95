@@ -14,6 +14,8 @@ typedef HeapTuple	Operator;
 
 extern Type type(), get_id_type();
 extern OID att_typeid(), typeid();
+extern int16 tlen();
+extern bool tbyval();
 extern Relation get_rdesc(), get_rgdesc();
 extern char *outstr(), *instr(), *instr1(), *instr2();
 extern Operator oper(), right_oper(), left_oper();
