@@ -184,20 +184,27 @@ fillatt(natts, att)
 	attributeP = &att[0];
 	
 	for (i = 0; i < natts;) {
-		tuple = SearchSysCacheTuple(TYPOID,
-					    (*attributeP)->atttypid,
-					    (char *) NULL,
-					    (char *) NULL,
-					    (char *) NULL);
-		if (!HeapTupleIsValid(tuple)) {
-			elog(WARN, "fillatt: unknown atttypid %ld",
-			     (*attributeP)->atttypid);
-		} else {
-			typp = (TypeTupleForm) GETSTRUCT(tuple);  /* XXX */
-			(*attributeP)->attlen = typp->typlen;
-			(*attributeP)->attnum = (int16) ++i;
-			(*attributeP)->attbyval = typp->typbyval;
-		}
-		attributeP += 1;
+	     tuple = SearchSysCacheTuple(TYPOID,
+					 (*attributeP)->atttypid,
+					 (char *) NULL,
+					 (char *) NULL,
+					 (char *) NULL);
+	     if (!HeapTupleIsValid(tuple)) {
+		  elog(WARN, "fillatt: unknown atttypid %ld",
+		       (*attributeP)->atttypid);
+	     } else {
+		  (*attributeP)->attnum = (int16) ++i;
+		  /* Check if the attr is a set before messing with the length
+		     and byval, since those were already set in 
+		     TupleDescInitEntry.  In fact, this seems redundant 
+		     here, but who knows what I'll break if I take it out...
+		     */
+		  if (! (*attributeP)->attisset) {
+		       typp = (TypeTupleForm) GETSTRUCT(tuple);  /* XXX */
+		       (*attributeP)->attlen = typp->typlen;
+		       (*attributeP)->attbyval = typp->typbyval;
+		  }
+	     }
+	     attributeP += 1;
 	}
 }
