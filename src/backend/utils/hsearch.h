@@ -110,5 +110,5 @@ void hash_destroy();
 void hash_stats();
 
 /* hash_search operations */
-typedef enum { FIND, ENTER, REMOVE } ACTION;
+typedef enum { HASH_FIND, HASH_ENTER, HASH_REMOVE } ACTION;
 #endif
