@@ -1,0 +1,189 @@
+
+                 Frequently Asked Questions about Postgres
+
+Q:  What Is Postgres?
+
+    Postgres is a database research project under Prof. Michael Stonebraker
+    at U. C. Berkeley.  To facilitate research efforts, a software test-bed was
+    created; this is the "Postgres" DBMS software.  The Postgres DBMS
+    is extended relational or object oriented, depending on the buzzword du
+    jour.
+
+    The major purpose of this software is to provide a platform and a basis
+    for the testing of implementations of new ideas in database research.
+    Several graduate students, staff members, as well as undergraduate
+    programmers have been working on the implementation of the Postgres
+    software.  After this paragraph, all references to "Postgres" refer to the
+    software itself.
+
+Postgres Is:
+
+o  Relational.  One of the major goals of Postgres is to show that
+   an essentially relational DBMS can be extended to handle complex objects,
+   rules, and be highly extensible.
+
+o  Highly extensible.  Postgres allows user-defined operators, user-defined
+   objects, and user-defined functions.
+
+o  While Postgres is relational, object oriented ideas have been implemented
+   in Postgres (inheritance, etc).
+
+o  Numerous other features, such as query language procedures, rules, etc.
+   which are beyond the scope of this discussion.
+
+   For more info on the Postgres research itself, you can get the
+   Postgres technical documentation described below.
+
+Q.  What is the connection between Postgres and Ingres?
+
+A.  There is none, aside from Prof. Stonebraker.  There is no compatibility
+    between the two software packages, and the research projects have
+    differing objectives.  We do not support University Ingres at all;
+    questions about it should be sent to the USENET group "comp.databases".
+
+Q.  How do I get the Postgres software package?
+
+A.  In one of two ways:
+
+    1.  Via anonymous FTP from postgres.berkeley.edu (Internet 128.32.149.1);
+        the directory that contains relevent files is
+
+        pub/postgres/postgres-v4r1
+	(Note: transmit .Z  files in BINARY mode.)
+
+    2.  If you don't have Internet access, you can get Postgres by sending
+        a check for US $150 payable to
+
+        Regents of the University of California
+
+        This should be addressed to
+
+        The Postgres Project
+        557 Evans Hall
+        University of California
+        Berkeley, CA 94720
+
+        Indicate in your accompanying letter whether you want the system on a
+        9-track tape at 1600 BPI, at 6250 BPI, on a Sun cartridge tape (QIC 24
+        format), or on a TK50 DEC cartridge tape.
+
+    Sorry - we cannot deliver Postgres via e-mail, netnews, or in a finger .plan
+    file.
+
+Q.  What is the Postgres query language?
+
+A.  Postquel, which is an incompatible superset of Quel.
+
+Q.  What about SQL support?
+
+A.  We do not support SQL at this time.
+
+Q.  What does Postgres run on?
+
+A.  Postgres 4.1 is supported on Sparc, and DECstations running Ultrix
+    4.2 or higher.  
+
+    The experience of outside developers indicates that Postgres is relatively
+    easy to port to any system that supports:
+
+    1.  Berkeley-style sockets
+    2.  System V shared memory and semaphores
+    3.  A K & R compatible C compiler
+    4.  Other "normal" Unix system calls 
+
+    Some header file problems may be encountered; these are easily fixed by
+    a programmer knowledgable with the local OS.  The most difficult part
+    of the port is porting the dynamic object code loader, which requires
+    interpreting object file headers.
+
+Q.  How do I get papers about Postgres?
+
+A.  The documents and manpages are available directly in the POSTGRES source.
+    At the top level there are pre-formatted manual pages and a reference
+    manual.  There a re a number of other documents in the src/old_doc directory
+    and there is a directory in there that has pre-formatted postscript files.
+    To order hard-copies of technical reports individually; for more details,
+    send e-mail or call Sarah Burke at (510) 642-3417; her e-mail address
+    is 
+    
+        elisa@postgres.berkeley.edu
+
+Q.  What is the status of the Postgres implementation?
+
+A.  It is not up to commercial levels of reliability.  I would not want
+    _my_ payroll records in it :-)  However, it is quite adaquate for
+    managing scientific and experimental datasets and as an instructional
+    system.  Its speed on applications which stress transaction processing
+    is not particularly good, but it is within about 50% of commercial systems
+    on the more "report-oriented" Wisconsin benchmark, and is twice as fast
+    as University Ingres on the Wisconsin.
+
+Q.  Does Postgres have a user interface?  A report generator?
+
+A.  No and no, not as shipped.
+
+Q.  What about a C-callable interface for writing applications?
+
+A.  There most definitiely is one, called libpq.  There is also an interface
+    for referencing Postgres data from shell scripts.  Get the Postgres
+    reference manual for details.
+
+Q.  Is there a BBS/discussion group about Postgres?
+
+A.  Yes - the mailing list
+
+        postgres@postgres.berkeley.edu
+
+    has over two hundred readers and gateways; you can subscribe to the mailing
+    list by sending mail to 
+
+        postgres-request@postgres.berkeley.edu
+
+    with "ADD" as the Subject.
+
+    You UNsubscribe from the mailing list by sending mail to
+
+        postgres-request@postgres.berkeley.edu
+
+    with "DEL" as the Subject.
+
+Q.  How do I make a bug report?
+
+A.  If you find a bug, send a description of your database schema, queries,
+    and a stack dump (type "where" in DBX) if possible to 
+
+        bug-postgres@postgres.berkeley.edu
+
+Q.  How do I find out about known bugs?
+
+A.  The known bug list for version 4.1 does not exist yet, but will
+    be placed in the file
+
+        pub/postgres/postgres-v4r1/postgres.bugs
+    as soon as we start getting feedback on the release.
+
+Q.  Please summarize the important files on postgres.berkeley.edu
+
+A.  Please see pub/postgres/postgres-v4r1/README
+
+Q.  Please summarize the important Postgres mailing aliases
+
+A.  Mailing Address              Purpose
+
+    postgres@postgres            Postgres general discussion and announcements
+    postgres-request@postgres    Administrative requests (ADD/DEL)
+    bug-postgres@postgres        Postgres bug reports
+    postgres-questions@postgres  Questions to the developers of Postgres
+
+Q.  Please summarize the main contacts at the Postgres group
+
+A.  Address/Phone                 Role
+
+    Marc Teitelbaum		  Postgres Chief Programmer 
+    marc@postgres.berkeley.edu    
+    (510) 643-6448
+
+    Michelle Mattera 		  Assistant to the Postgres group
+    michelle@postgres.berkeley.edu
+    (510) 642-3417
+
