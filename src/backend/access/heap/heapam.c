@@ -459,7 +459,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
  * ----------------
  */
 RuleLock
-doinsert(relation, tup)
+doinsert_old(relation, tup)
     Relation	relation;
     HeapTuple	tup;
 {
@@ -588,6 +588,17 @@ doinsert(relation, tup)
 	}
     }
     return ((RuleLock)NULL);
+}
+
+RuleLock
+doinsert(relation, tup)
+
+Relation relation;
+HeapTuple tup;
+
+{
+    RelationPutHeapTupleAtEnd(relation, tup);
+	return(NULL);
 }
 
 /* 
@@ -1044,13 +1055,21 @@ heap_fetch(relation, timeQual, tid, b)
     Assert(relation->rd_rel->relkind == 'r');
 
     /* Note: set tuple level read lock */
-    /* Pray that this cannot cause a deadlock */
-    RelationSetLockForTupleRead(relation, tid);
+
+    /*
+     * Note: This is collosally expensive - does two system calls per
+     * indexscan tuple fetch.  Not good, and since we are doing page
+     * level locking with the buffer pool, it is commented out.
+     */
+
+    /* RelationSetLockForTupleRead(relation, tid); */
 
     /* ----------------
      *	get the buffer from the relation descriptor
+     *  Note that this does a buffer pin.
      * ----------------
      */
+
     buffer = RelationGetBuffer(relation,
 			       ItemPointerGetBlockNumber(tid),
 			       L_SH);
@@ -1091,7 +1110,7 @@ heap_fetch(relation, timeQual, tid, b)
      * ----------------
      */
     if (! heap_satisifies(lp, buffer, timeQual, 0,(ScanKey)NULL)) {
-	if (BufferPut(buffer, L_UNLOCK) < 0)
+	if (BufferPut(buffer, L_UNPIN) < 0)
 	    elog(WARN, "heap_fetch: BufferPut failed");
 	
 	return (NULL);
@@ -1104,8 +1123,6 @@ heap_fetch(relation, timeQual, tid, b)
      * ----------------
      */
     tuple = (HeapTuple) PageGetItem(dp, lp);
-    if (BufferPut(buffer, L_PIN) < 0)
-	elog(WARN, "heap_fetch: BufferPut failed");
 
     if (PointerIsValid(b)) {
 	*b = buffer;
@@ -1152,6 +1169,7 @@ heap_insert(relation, tup, off)
      *	set relation level read lock
      * ----------------
      */
+
     RelationSetLockForWrite(relation);
 
     if (off != NULL)
@@ -1628,4 +1646,3 @@ heap_restrpos(sdesc)
 		       initskip);
 	}
 }
-
