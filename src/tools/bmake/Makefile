@@ -20,7 +20,7 @@ LDADD+= -lbsd
 .endif
 
 .if ( ${PORTNAME} == "hpux" )
-CFLAGS+= -Dconst= -DUSE_RANLIB -D_BSD
+CFLAGS+= -Dconst= -DUSE_RANLIB
 SRCS+= setenv.c
 .endif
 
