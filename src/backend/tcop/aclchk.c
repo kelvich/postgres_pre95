@@ -59,7 +59,7 @@ dumpacl(acl)
 	AclItem *aip;
 	
 	elog(DEBUG, "acl size = %d, # acls = %d",
-	     VARSIZE(acl), ACL_NUM(acl));
+	     ACL_SIZE(acl), ACL_NUM(acl));
 	aip = (AclItem *) ACL_DAT(acl);
 	for (i = 0; i < ACL_NUM(acl); ++i)
 		elog(DEBUG, "	acl[%d]: %s", i, aclitemout(aip + i));
@@ -89,7 +89,8 @@ ChangeAcl(relname, mod_aip, modechg)
 	ItemPointerData tmp_ipd;
 	Relation idescs[Num_pg_class_indices];
 
-	/* Find the pg_class tuple matching 'relname' and extract the ACL.
+	/*
+	 * Find the pg_class tuple matching 'relname' and extract the ACL.
 	 * If there's no ACL, create a default using the pg_class.relowner
 	 * field.
 	 *
@@ -254,7 +255,8 @@ aclcheck(acl, id, idtype, mode)
 	register AclItem *aip, *aidat;
 	unsigned num, found_group;
 
-	/* For backward-compatibility with old catalogs, a null 'acl'
+	/*
+	 * For backward-compatibility with old catalogs, a null 'acl'
 	 * is assumed to mean "=arwR", which always succeeds.
 	 */
 	if (!acl) {
@@ -267,7 +269,8 @@ aclcheck(acl, id, idtype, mode)
 	num = ACL_NUM(acl);
 	aidat = ACL_DAT(acl);
 
-	/* We'll treat the empty ACL like that, too, although this is more
+	/*
+	 * We'll treat the empty ACL like that, too, although this is more
 	 * like an error (i.e., you manually blew away your ACL array) --
 	 * the system never creates an empty ACL.
 	 */
@@ -360,7 +363,8 @@ pg_aclcheck(relname, usename, mode)
 		     sizeof(NameData), usename);
 	id = (AclId) ((Form_pg_user) GETSTRUCT(htp))->usesysid;
 
-	/* Deny anyone permission to update a system catalog unless
+	/*
+	 * Deny anyone permission to update a system catalog unless
 	 * pg_user.usecatupd is set.  (This is to let superusers protect
 	 * themselves from themselves.)
 	 */
@@ -372,7 +376,8 @@ pg_aclcheck(relname, usename, mode)
 		return(0);
 	}
 	
-	/* Otherwise, superusers bypass all permission-checking.
+	/*
+	 * Otherwise, superusers bypass all permission-checking.
 	 */
 	if (((Form_pg_user) GETSTRUCT(htp))->usesuper) {
 #ifdef ACLDEBUG_TRACE
@@ -394,8 +399,8 @@ pg_aclcheck(relname, usename, mode)
 		tmp = (Acl *) heap_getattr(htp, InvalidBuffer,
 					   Anum_pg_relation_relacl,
 					   &relation->rd_att, (bool *) NULL);
-		acl = (Acl *) palloc(VARSIZE(tmp));
-		bcopy(tmp, acl, VARSIZE(tmp));
+		acl = makeacl(ACL_NUM(tmp));
+		bcopy((char *) tmp, (char *) acl, ACL_SIZE(tmp));
 		heap_close(relation);
 	}
 #else
@@ -424,8 +429,8 @@ pg_aclcheck(relname, usename, mode)
 						   Anum_pg_relation_relacl,
 						   &relation->rd_att,
 						   (bool *) NULL);
-			acl = (Acl *) palloc(VARSIZE(tmp));
-			bcopy(tmp, acl, VARSIZE(tmp));
+			acl = makeacl(ACL_NUM(tmp));
+			bcopy((char *) tmp, (char *) acl, ACL_SIZE(tmp));
 		}
 		heap_endscan(hsdp);
 		heap_close(relation);
@@ -452,7 +457,8 @@ pg_ownercheck(usename, value, cacheid)
 		     sizeof(NameData), usename);
 	user_id = (AclId) ((Form_pg_user) GETSTRUCT(htp))->usesysid;
 
-	/* Superusers bypass all permission-checking.
+	/*
+	 * Superusers bypass all permission-checking.
 	 */
 	if (((Form_pg_user) GETSTRUCT(htp))->usesuper) {
 #ifdef ACLDEBUG_TRACE
@@ -513,7 +519,8 @@ pg_func_ownercheck(usename, funcname, nargs, arglist)
 		     sizeof(NameData), usename);
 	user_id = (AclId) ((Form_pg_user) GETSTRUCT(htp))->usesysid;
 
-	/* Superusers bypass all permission-checking.
+	/*
+	 * Superusers bypass all permission-checking.
 	 */
 	if (((Form_pg_user) GETSTRUCT(htp))->usesuper) {
 #ifdef ACLDEBUG_TRACE

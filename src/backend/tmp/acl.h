@@ -23,7 +23,8 @@
 #ifndef AclHIncluded			/* include only once */
 #define AclHIncluded 1
 
-#include "tmp/postgres.h"	/* for struct varlena */
+#include "tmp/postgres.h"
+#include "utils/adt/array.h"
 
 /*
  * AclId	system identifier for the user, group, etc.
@@ -70,34 +71,32 @@ typedef struct _AclItem {
 	AclMode		ai_mode;
 } AclItem;
 
-/*
- * Acl		a POSTGRES array of AclItem
- *		XXX having structures follow immediately after the int4 vl_len
- *		    may cause a problem on machines with weird alignment
- *		    requirements.  this will have to be fixed in the struct
- *		    varlena definition (with padding) since it's a general
- *		    problem for the POSTGRES array construct.
- */
-typedef struct varlena Acl;
-#define	ACL_NUM(ACL) ((VARSIZE(ACL) - sizeof(VARSIZE(ACL))) / sizeof(AclItem))
-#define	ACL_DAT(ACL) ((AclItem *) VARDATA(ACL))
+#define	ARR_DIM0(a) (((unsigned *) (((char *) a) + sizeof(ArrayType)))[0])
 
 /*
- * IdList	a POSTGRES array of AclId
- *		XXX having structures follow immediately after the int4 vl_len
- *		    may cause a problem on machines with weird alignment
- *		    requirements.  this will have to be fixed in the struct
- *		    varlena definition (with padding) since it's a general
- *		    problem for the POSTGRES array construct.
+ * Acl		a one-dimensional POSTGRES array of AclItem
  */
-typedef struct varlena IdList;
-#define	IDLIST_NUM(IDL)	((VARSIZE(IDL) - sizeof(VARSIZE(IDL))) / sizeof(AclId))
-#define	IDLIST_DAT(IDL)	((AclId *) VARDATA(IDL))
+typedef ArrayType Acl;
+#define	ACL_NUM(ACL) ARR_DIM0(ACL)
+#define	ACL_DAT(ACL) ((AclItem *) ARR_DATA_PTR(ACL))
+#define	ACL_N_SIZE(N) \
+((unsigned) (ARR_OVERHEAD(N) + ((N) * sizeof(AclItem))))
+#define	ACL_SIZE(ACL) (((Acl *) ACL)->size)
+
+/*
+ * IdList	a one-dimensional POSTGRES array of AclId
+ */
+typedef ArrayType IdList;
+#define	IDLIST_NUM(IDL)	ARR_DIM0(IDL)
+#define	IDLIST_DAT(IDL)	((AclId *) ARR_DATA_PTR(IDL))
+#define	IDLIST_N_SIZE(N) \
+((unsigned) (ARR_OVERHEAD(N) + ((N) * sizeof(AclId))))
+#define	IDLIST_SIZE(IDL) (((IdList *) IDL)->size)
 
 /*
  * Enable ACL execution tracing and table dumps
  */
-/*#define ACLDEBUG_TRACE*/
+#define ACLDEBUG_TRACE
 
 /*
  * routines used internally (parser, etc.) 
@@ -114,6 +113,7 @@ extern int32 pg_ownercheck ARGS((char *relname, char *usename));
  */
 extern AclItem *aclitemin ARGS((char *s));
 extern char *aclitemout ARGS((AclItem *acl));
+extern Acl *makeacl ARGS((int n));
 extern Acl *aclinsert ARGS((Acl *acl, AclItem *aip));
 extern Acl *aclremove ARGS((Acl *acl, AclItem *aip));
 extern int32 aclcontains ARGS((Acl *acl, AclItem *aip));
