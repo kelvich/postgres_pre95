@@ -15,52 +15,12 @@
  * ----------------------------------------------------------------
  */
 
-#include "tmp/postgres.h"
+#define EXEC_RULEMANAGER 1
+
+#include "tcop/slaves.h"
+#include "executor/executor.h"
 
  RcsId("$Header$");
-
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-#include "tcop/dest.h"
-#include "tcop/slaves.h"
-
-#define EXEC_RULEMANAGER 1
-#include "executor/execdebug.h"
-
-#include "tmp/align.h"
-#include "access/printtup.h"
-#include "parser/parse.h"
-#include "parser/parsetree.h"
-#include "utils/log.h"
-#include "utils/mcxt.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-#include "nodes/mnodes.h"
-
-#include "catalog/catname.h"
-
-#include "storage/smgr.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
 
 /* ----------------------------------------------------------------
  *	random junk
@@ -104,8 +64,8 @@ InitializeExecutor()
     datumTrue  = Int32GetDatum((int32) true);
     datumFalse = Int32GetDatum((int32) false);
     
-    ConstTrue =  MakeConst(boolType, boolLen, datumTrue,  false);
-    ConstFalse = MakeConst(boolType, boolLen, datumFalse, false);
+    ConstTrue =  MakeConst(boolType, boolLen, datumTrue,  false, true);
+    ConstFalse = MakeConst(boolType, boolLen, datumFalse, false, true);
     
 #ifdef EXEC_DEBUGVARIABLEFILE
     /* ----------------
@@ -319,7 +279,7 @@ InitPlan(operation, parseTree, plan, estate)
      * ----------------
      */
     set_es_range_table(estate, rangeTable);
-    set_es_error_message(estate, "Foo bar and grill");
+    set_es_error_message(estate, (Name) "Foo bar and grill");
     
     /* ----------------
      *	initialize the BaseId counter so node base_id's
@@ -402,7 +362,7 @@ InitPlan(operation, parseTree, plan, estate)
      *     to start processing tuples..
      * ----------------
      */
-    ExecInitNode(plan, estate, 0, NULL);
+    ExecInitNode(plan, estate, NULL);
     
     /* ----------------
      *     get the tuple descriptor describing the type
@@ -539,7 +499,7 @@ EndPlan(plan, estate)
      */
     {
 	TupleTable tupleTable = (TupleTable) get_es_tupleTable(estate);
-	ExecDestroyTupleTable(tupleTable);
+	ExecDestroyTupleTable(tupleTable,true);	/* was missing last arg */
 	set_es_tupleTable(estate, NULL);
     }
         
@@ -657,7 +617,7 @@ ExecutePlan(estate, plan, parseTree, operation, numberTuples,
 	 *	we just return null...
 	 * ----------------
 	 */
-	if (TupIsNull(slot)) {
+	if (TupIsNull((Pointer) slot)) {
 	    result = NULL;
 	    break;
 	}
@@ -743,8 +703,8 @@ ExecutePlan(estate, plan, parseTree, operation, numberTuples,
 	    newTuple = ExecRemoveJunk(junkfilter, slot);
 	    
 	    slot = (TupleTableSlot)
-		ExecStoreTuple(newTuple, 	/* tuple to store */
-			       slot, 		/* destination slot */
+		ExecStoreTuple((Pointer) newTuple, /* tuple to store */
+			       (Pointer) slot,     /* destination slot */
 			       InvalidBuffer, 	/* this tuple has no buffer */
 			       true); 		/* tuple should be pfreed */
 	} else {
@@ -841,8 +801,8 @@ ExecRetrieve(slot, printfunc, intoRelationDesc)
      *	get the heap tuple out of the tuple table slot
      * ----------------
      */
-    tuple = (HeapTuple) ExecFetchTuple(slot);
-    attrtype =		ExecSlotDescriptor(slot);
+    tuple = (HeapTuple) ExecFetchTuple((Pointer) slot);
+    attrtype =		ExecSlotDescriptor((Pointer) slot);
     
     /* ----------------
      *	insert the tuple into the "into relation"
@@ -906,7 +866,7 @@ ExecAppend(slot, tupleid, estate, newlocks)
      *	get the heap tuple out of the tuple table slot
      * ----------------
      */
-    tuple = (HeapTuple) ExecFetchTuple(slot);
+    tuple = (HeapTuple) ExecFetchTuple((Pointer) slot);
     
     /* ----------------
      *	get information on the result relation
@@ -959,8 +919,8 @@ ExecAppend(slot, tupleid, estate, newlocks)
 	     *  copy of the tuple.
 	     * ----------------
 	     */
-	    ExecStoreTuple(returnedTuple,	/* tuple to store */
-			   slot,		/* destination slot */
+	    ExecStoreTuple((Pointer) returnedTuple, /* tuple to store */
+			   (Pointer) slot,           /* destination slot */
 			   returnedBuffer,
 			   true);		/* tuple should be pfreed */
 	    
@@ -1050,7 +1010,7 @@ ExecDelete(slot, tupleid, estate)
      *	get the heap tuple out of the tuple table slot
      * ----------------
      */
-    tuple = (HeapTuple) ExecFetchTuple(slot);
+    tuple = (HeapTuple) ExecFetchTuple((Pointer) slot);
 
     /* ----------------
      *	get the result relation information
@@ -1203,7 +1163,7 @@ ExecReplace(slot, tupleid, estate, parseTree, newlocks)
      *	get the heap tuple out of the tuple table slot
      * ----------------
      */
-    tuple = (HeapTuple) ExecFetchTuple(slot);
+    tuple = (HeapTuple) ExecFetchTuple((Pointer) slot);
 
     /* ----------------
      *	get the result relation information
@@ -1283,8 +1243,8 @@ ExecReplace(slot, tupleid, estate, parseTree, newlocks)
 	
 
 	if (status == PRS2_STATUS_TUPLE_CHANGED) {
-	    ExecStoreTuple(changedTuple,	/* tuple to store */
-			   slot,		/* destination slot */
+	    ExecStoreTuple((Pointer) changedTuple, /* tuple to store */
+			   (Pointer) slot,	/* destination slot */
 			   InvalidBuffer, 	/* this tuple has no buffer */
 			   true);		/* tuple should be pfreed */
 	    

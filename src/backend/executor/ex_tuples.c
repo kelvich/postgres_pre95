@@ -114,41 +114,11 @@
  *	$Header$
  * ----------------------------------------------------------------
  */
- 
-#include "tmp/postgres.h"
+
+#include "executor/executor.h"
+#undef ExecStoreTuple
 
  RcsId("$Header$");
-
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
-#include "parser/parsetree.h"
-#include "utils/log.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
-
-#undef ExecStoreTuple
 
 /* ----------------------------------------------------------------
  *		  tuple table create/delete functions
@@ -258,7 +228,7 @@ ExecDestroyTupleTable(table, shouldFree)
 	
 	    if (tuple != NULL) {
 		SetSlotContents(slot, NULL);
-		if (SlotShouldFree(slot)) {
+		if (SlotShouldFree((TupleTableSlot) slot)) {
 		    /* ----------------
 		     *	since a tuple may contain a pointer to
 		     *  lock information allocated along with the
@@ -409,7 +379,7 @@ ExecStoreTuple(tuple, slot, buffer, shouldFree)
      *	free the old contents of the specified slot if necessary.
      * ----------------
      */
-    if (SlotShouldFree(slot) && oldtuple != NULL) {
+    if (SlotShouldFree((TupleTableSlot) slot) && oldtuple != NULL) {
 	/* ----------------
 	 *  since a tuple may contain a pointer to
 	 *  lock information allocated along with the
@@ -425,17 +395,17 @@ ExecStoreTuple(tuple, slot, buffer, shouldFree)
      *  if we have a buffer pinned, release it before stomping on it.
      * ----------------
      */
-    if (BufferIsValid(SlotBuffer(slot)))
-	ReleaseBuffer(SlotBuffer(slot));
+    if (BufferIsValid(SlotBuffer((TupleTableSlot) slot)))
+	ReleaseBuffer(SlotBuffer((TupleTableSlot) slot));
 
     /* ----------------
      *	store the new tuple into the specified slot and
      *  return the slot into which we stored the tuple.
      * ----------------
      */
-    SetSlotContents(slot, tuple);
-    SetSlotBuffer(slot, buffer);
-    SetSlotShouldFree(slot, shouldFree);
+    SetSlotContents((TupleTableSlot) slot, tuple);
+    SetSlotBuffer((TupleTableSlot) slot, buffer);
+    SetSlotShouldFree((TupleTableSlot) slot, shouldFree);
 
     return slot;
 }
@@ -514,7 +484,7 @@ ExecClearTuple(slot)
      *	free the old contents of the specified slot if necessary.
      * ----------------
      */
-    if (SlotShouldFree(slot) && oldtuple != NULL) {
+    if (SlotShouldFree((TupleTableSlot) slot) && oldtuple != NULL) {
 	/* ----------------
 	 *  since a tuple may contain a pointer to
 	 *  lock information allocated along with the
@@ -533,11 +503,11 @@ ExecClearTuple(slot)
      */
     SetSlotContents(slot, NULL);
 
-    if (BufferIsValid(SlotBuffer(slot)))
-	ReleaseBuffer(SlotBuffer(slot));
+    if (BufferIsValid(SlotBuffer((TupleTableSlot) slot)))
+	ReleaseBuffer(SlotBuffer((TupleTableSlot) slot));
     
-    SetSlotBuffer(slot, InvalidBuffer);
-    SetSlotShouldFree(slot, true);
+    SetSlotBuffer((TupleTableSlot) slot, InvalidBuffer);
+    SetSlotShouldFree((TupleTableSlot) slot, true);
 
     return slot;
 }
@@ -556,7 +526,7 @@ bool				/* return: slot policy */
 ExecSlotPolicy(slot)
     Pointer	slot;		/* slot to inspect */
 {
-    bool shouldFree = SlotShouldFree(slot);
+    bool shouldFree = SlotShouldFree((TupleTableSlot) slot);
     return shouldFree;
 }
 
@@ -574,8 +544,8 @@ ExecSetSlotPolicy(slot, shouldFree)
     Pointer	slot;		/* slot to change */
     bool	shouldFree;	/* true if we call pfree() when we gc. */
 {
-    bool old_shouldFree = SlotShouldFree(slot);
-    SetSlotShouldFree(slot, shouldFree);
+    bool old_shouldFree = SlotShouldFree((TupleTableSlot) slot);
+    SetSlotShouldFree((TupleTableSlot) slot, shouldFree);
 
     return old_shouldFree;
 }
@@ -591,7 +561,7 @@ TupleDescriptor			/* return: tuple descriptor */
 ExecSlotDescriptor(slot)
     Pointer	slot;		/* slot to inspect */
 {
-    TupleDescriptor tupdesc = SlotTupleDescriptor(slot);
+    TupleDescriptor tupdesc = SlotTupleDescriptor((TupleTableSlot) slot);
     return tupdesc;
 }
 
@@ -607,8 +577,8 @@ ExecSetSlotDescriptor(slot, tupdesc)
     Pointer	     slot;	/* slot to change */
     TupleDescriptor  tupdesc;	/* tuple descriptor */
 {
-    TupleDescriptor  old_tupdesc = SlotTupleDescriptor(slot);
-    SetSlotTupleDescriptor(slot, tupdesc);
+    TupleDescriptor  old_tupdesc = SlotTupleDescriptor((TupleTableSlot) slot);
+    SetSlotTupleDescriptor((TupleTableSlot) slot, tupdesc);
     
     return old_tupdesc;
 }
@@ -624,7 +594,7 @@ ExecSetSlotDescriptorIsNew(slot, isNew)
     Pointer	slot;		/* slot to change */
     bool	isNew;		/* "isNew" setting */
 {
-    SetSlotTupleDescriptorIsNew(slot, isNew);
+    SetSlotTupleDescriptorIsNew((TupleTableSlot) slot, isNew);
 }
 
 /* --------------------------------
@@ -639,9 +609,9 @@ ExecSetNewSlotDescriptor(slot, tupdesc)
     Pointer	     slot;	/* slot to change */
     TupleDescriptor  tupdesc;	/* tuple descriptor */
 {
-    TupleDescriptor old_tupdesc = SlotTupleDescriptor(slot);
-    SetSlotTupleDescriptor(slot, tupdesc);
-    SetSlotTupleDescriptorIsNew(slot, true);
+    TupleDescriptor old_tupdesc = SlotTupleDescriptor((TupleTableSlot) slot);
+    SetSlotTupleDescriptor((TupleTableSlot) slot, tupdesc);
+    SetSlotTupleDescriptorIsNew((TupleTableSlot) slot, true);
     
     return old_tupdesc;
 }
@@ -659,7 +629,7 @@ Buffer				/* return: tuple descriptor */
 ExecSlotBuffer(slot)
     Pointer	slot;		/* slot to inspect */
 {
-    Buffer b = SlotBuffer(slot);
+    Buffer b = SlotBuffer((TupleTableSlot) slot);
     return b;
 }
 
@@ -677,8 +647,8 @@ ExecSetSlotBuffer(slot, b)
     Pointer slot;		/* slot to change */
     Buffer  b;			/* tuple descriptor */
 {
-    Buffer oldb = SlotBuffer(slot);
-    SetSlotBuffer(slot, b);
+    Buffer oldb = SlotBuffer((TupleTableSlot) slot);
+    SetSlotBuffer((TupleTableSlot) slot, b);
     
     return oldb;
 }
@@ -695,7 +665,7 @@ void
 ExecIncrSlotBufferRefcnt(slot)    
     Pointer slot;		/* slot to bump refcnt */
 {
-    Buffer b = SlotBuffer(slot);
+    Buffer b = SlotBuffer((TupleTableSlot) slot);
     if (BufferIsValid(b))
 	IncrBufferRefCount(b);
 }
@@ -748,7 +718,7 @@ bool				/* return: descriptor "is new" */
 ExecSlotDescriptorIsNew(slot)
     Pointer	slot;		/* slot to inspect */
 {
-    bool isNew = SlotTupleDescriptorIsNew(slot);
+    bool isNew = SlotTupleDescriptorIsNew((TupleTableSlot) slot);
     return isNew;
 }
 
@@ -772,10 +742,10 @@ ExecSlotDescriptorIsNew(slot)
     tupleTable = (TupleTable) get_es_tupleTable(estate); \
     slotnum =    ExecAllocTableSlot(tupleTable); \
     slot =       ExecGetTableSlot(tupleTable, slotnum); \
-    SetSlotContents(slot, NULL); \
-    SetSlotShouldFree(slot, true); \
-    SetSlotTupleDescriptor(slot, (TupleDescriptor) NULL); \
-    SetSlotTupleDescriptorIsNew(slot, true)
+    SetSlotContents((TupleTableSlot) slot, NULL); \
+    SetSlotShouldFree((TupleTableSlot) slot, true); \
+    SetSlotTupleDescriptor((TupleTableSlot) slot, (TupleDescriptor) NULL); \
+    SetSlotTupleDescriptorIsNew((TupleTableSlot) slot, true)
     
 /* ----------------
  *	ExecInitResultTupleSlot
@@ -788,7 +758,7 @@ ExecInitResultTupleSlot(estate, commonstate)
 {
     INIT_SLOT_DEFS;
     INIT_SLOT_ALLOC;
-    set_cs_ResultTupleSlot(commonstate, slot);
+    set_cs_ResultTupleSlot(commonstate, (TupleTableSlot) slot);
 }
 
 /* ----------------
@@ -830,7 +800,7 @@ ExecInitMarkedTupleSlot(estate, mergestate)
 {
     INIT_SLOT_DEFS;
     INIT_SLOT_ALLOC;
-    set_mj_MarkedTupleSlot(mergestate, slot);
+    set_mj_MarkedTupleSlot(mergestate, (TupleTableSlot) slot);
 }
 
 /* ----------------
@@ -844,7 +814,7 @@ ExecInitOuterTupleSlot(estate, hashstate)
 {
     INIT_SLOT_DEFS;
     INIT_SLOT_ALLOC;
-    set_hj_OuterTupleSlot(hashstate, slot);
+    set_hj_OuterTupleSlot(hashstate,  slot);
 }
 
 /* ----------------
@@ -917,27 +887,32 @@ ExecGetTupType(node)
     switch(NodeType(node)) {
 	
     case classTag(Result):
-	s.resstate = 		get_resstate(node);
-	slot = 			get_cs_ResultTupleSlot(s.resstate);
-	tupType =		ExecSlotDescriptor(slot);
+	s.resstate = 		get_resstate((Result) node);
+	slot = 			get_cs_ResultTupleSlot(
+						       (CommonState)
+						       s.resstate);
+	tupType =		ExecSlotDescriptor((Pointer) slot);
 	return tupType;
     
     case classTag(SeqScan):
-	s.scanstate = 		get_scanstate(node);
-	slot = 			get_cs_ResultTupleSlot(s.scanstate);
-	tupType =  		ExecSlotDescriptor(slot);
+	s.scanstate = 		get_scanstate((Scan) node);
+	slot = 			get_cs_ResultTupleSlot((CommonState)
+						       s.scanstate);
+	tupType =  		ExecSlotDescriptor((Pointer) slot);
 	return tupType;
     
     case classTag(ScanTemps):
-	s.scantempstate = 	get_scantempState(node);
-	slot = 			get_cs_ResultTupleSlot(s.scantempstate);
-	tupType = 		ExecSlotDescriptor(slot);
+	s.scantempstate = 	get_scantempState((ScanTemps) node);
+	slot = 			get_cs_ResultTupleSlot((CommonState)
+						       s.scantempstate);
+	tupType = 		ExecSlotDescriptor((Pointer) slot);
 	return tupType;
 
     case classTag(NestLoop):
-	s.nlstate =  		get_nlstate(node);
-	slot = 			get_cs_ResultTupleSlot(s.nlstate);
-	tupType =  		ExecSlotDescriptor(slot);
+	s.nlstate =  		get_nlstate((NestLoop) node);
+	slot = 			get_cs_ResultTupleSlot((CommonState)
+						       s.nlstate);
+	tupType =  		ExecSlotDescriptor((Pointer) slot);
 	return tupType;
        
     case classTag(Append):
@@ -947,8 +922,8 @@ ExecGetTupType(node)
 	    int  		whichplan;
 	    Plan 		subplan;
 	    
-	    unionstate = 	get_unionstate(node);
-	    unionplans = 	get_unionplans(node);
+	    unionstate = 	get_unionstate((Append) node);
+	    unionplans = 	get_unionplans((Append) node);
 	    whichplan = 	get_as_whichplan(unionstate);
       
 	    subplan = (Plan) nth(whichplan, unionplans);
@@ -957,51 +932,59 @@ ExecGetTupType(node)
 	}
     
     case classTag(IndexScan):
-	s.scanstate = 		get_scanstate(node);
-	slot =  		get_cs_ResultTupleSlot(s.scanstate);
-	tupType  =  		ExecSlotDescriptor(slot);
+	s.scanstate = 		get_scanstate((Scan) node);
+	slot =  		get_cs_ResultTupleSlot((CommonState)
+						       s.scanstate);
+	tupType  =  		ExecSlotDescriptor( (Pointer) slot);
 	return tupType;
     
     case classTag(Material):
-	s.matstate = 		get_matstate(node);
-	slot = 			get_css_ScanTupleSlot(s.matstate);
-	tupType =  		ExecSlotDescriptor(slot);
+	s.matstate = 		get_matstate((Material) node);
+	slot = 			get_css_ScanTupleSlot((CommonScanState)
+						      s.matstate);
+	tupType =  		ExecSlotDescriptor( (Pointer) slot);
 	return tupType;
 	
     case classTag(Sort):
-	s.sortstate = 		get_sortstate(node);
-	slot = 			get_css_ScanTupleSlot(s.sortstate);
-	tupType =  		ExecSlotDescriptor(slot);
+	s.sortstate = 		get_sortstate((Sort) node);
+	slot = 			get_css_ScanTupleSlot((CommonScanState)
+						      s.sortstate);
+	tupType =  		ExecSlotDescriptor( (Pointer) slot);
 	return tupType;
         
     case classTag(Agg):
-	s.aggstate = 		get_aggstate(node);
-	slot = 			get_css_ScanTupleSlot(s.aggstate);
-	tupType = 		ExecSlotDescriptor(slot);
+	s.aggstate = 		get_aggstate((Agg) node);
+	slot = 			get_cs_ResultTupleSlot((CommonState)
+						       s.aggstate);
+	tupType = 		ExecSlotDescriptor( (Pointer) slot);
 	return tupType;
 
     case classTag(Hash):
-	s.hashstate = 		get_hashstate(node);
-	slot =			get_cs_ResultTupleSlot(s.hashstate);
-	tupType =  		ExecSlotDescriptor(slot);
+	s.hashstate = 		get_hashstate((Hash) node);
+	slot =			get_cs_ResultTupleSlot((CommonState)
+						       s.hashstate);
+	tupType =  		ExecSlotDescriptor( (Pointer) slot);
 	return tupType;
         
     case classTag(Unique):
-	s.uniquestate = 	get_uniquestate(node);
-	slot =			get_cs_ResultTupleSlot(s.uniquestate);
-	tupType =  		ExecSlotDescriptor(slot);
+	s.uniquestate = 	get_uniquestate((Unique) node);
+	slot =			get_cs_ResultTupleSlot((CommonState)
+						       s.uniquestate);
+	tupType =  		ExecSlotDescriptor( (Pointer) slot);
 	return tupType;
     
     case classTag(MergeJoin):
-	s.mergestate = 		get_mergestate(node);
-	slot =			get_cs_ResultTupleSlot(s.mergestate);
-	tupType =    		ExecSlotDescriptor(slot);
+	s.mergestate = 		get_mergestate((MergeJoin) node);
+	slot =			get_cs_ResultTupleSlot((CommonState)
+						       s.mergestate);
+	tupType =    		ExecSlotDescriptor( (Pointer) slot);
 	return tupType;
     
     case classTag(HashJoin):
-	s.hashjoinstate = 	get_hashjoinstate(node);
-	slot =			get_cs_ResultTupleSlot(s.hashjoinstate);
-	tupType =    		ExecSlotDescriptor(slot);
+	s.hashjoinstate = 	get_hashjoinstate((HashJoin) node);
+	slot =			get_cs_ResultTupleSlot((CommonState)
+						       s.hashjoinstate);
+	tupType =    		ExecSlotDescriptor( (Pointer) slot);
 	return tupType;
 
     default:
@@ -1077,12 +1060,12 @@ ExecTypeFromTL(targetList)
 	resdom =  (Resdom) tl_resdom(CAR(tlcdr));
 	restype = get_restype(resdom);
       
-	ExecSetTypeInfo(get_resno(resdom) - 1,	/* index */
-			typeInfo,		/* addr of type info */
-			restype,		/* type id */
-			get_resno(resdom),	/* att num */
-			get_reslen(resdom),	/* att len */
-			get_resname(resdom),	/* att name */
+	ExecSetTypeInfo((int) get_resno(resdom) - 1,	/* index */
+/*bug ??? - glass */	(struct attribute **) typeInfo, /* addr of type info */
+			(ObjectId) restype,		/* type id */
+			(int) get_resno(resdom),	/* att num */
+			(int) get_reslen(resdom),	/* att len */
+			(Name) get_resname(resdom), /* att name */
 			get_typbyval(restype));	/* att by val */
 
 	tlcdr = CDR(tlcdr);

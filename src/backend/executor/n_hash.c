@@ -16,44 +16,16 @@
  *	$Header$
  * ----------------------------------------------------------------
  */
+
 #include <math.h>
 #include <sys/file.h>
-
-#include "tmp/postgres.h"
-
- RcsId("$Header$");
-
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
-#include "utils/log.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
-
 #include "storage/ipci.h"
 #include "storage/bufmgr.h"	/* for BLCKSZ */
 #include "tcop/slaves.h"
+#include "executor/executor.h"
+
+ RcsId("$Header$");
+
 
 extern int NBuffers;
 
@@ -94,8 +66,8 @@ Hash node;
      */
     
     hashstate =   get_hashstate(node);
-    estate =      (EState) get_state(node);
-    outerNode =   get_outerPlan(node);
+    estate =      (EState) get_state((Plan) node);
+    outerNode =   get_outerPlan((Plan) node);
 
     if (!IsMaster && ParallelExecutorEnabled()) {
 	IpcMemoryId  shmid;
@@ -149,7 +121,7 @@ Hash node;
      * ----------------
      */
     hashkey = get_hashkey(node);
-    econtext = get_cs_ExprContext(hashstate);
+    econtext = get_cs_ExprContext((CommonState) hashstate);
 
     /* ----------------
      *	get tuple and insert into the hash table
@@ -157,14 +129,14 @@ Hash node;
      */
     for (;;) {
 	slot = ExecProcNode(outerNode);
-	if (TupIsNull(slot))
+	if (TupIsNull((Pointer)slot))
 	    break;
 	
 	set_ecxt_innertuple(econtext, slot);
 	ExecHashTableInsert(hashtable, econtext, hashkey, 
 			    get_hashBatches(hashstate));
 
-	ExecClearTuple(slot);
+	ExecClearTuple((Pointer) slot);
     }
     
     /*
@@ -211,13 +183,13 @@ ExecInitHash(node, estate, parent)
      *  assign the node's execution state
      * ----------------
      */
-    set_state(node, estate);
+    set_state((Plan) node,  estate);
     
     /* ----------------
      * create state structure
      * ----------------
      */
-    hashstate = MakeHashState();
+    hashstate = MakeHashState(NULL);
     set_hashstate(node, hashstate);
     set_hashBatches(hashstate, NULL);
     
@@ -229,30 +201,30 @@ ExecInitHash(node, estate, parent)
      *       +	create expression context for node
      * ----------------
      */
-    ExecAssignNodeBaseInfo(estate, hashstate, parent);
-    ExecAssignDebugHooks(node, hashstate);
-    ExecAssignExprContext(estate, hashstate);
+    ExecAssignNodeBaseInfo(estate, (BaseNode) hashstate, parent);
+    ExecAssignDebugHooks((Plan) node, (BaseNode) hashstate);
+    ExecAssignExprContext(estate, (CommonState) hashstate);
     
     /* ----------------
      * initialize our result slot
      * ----------------
      */
-    ExecInitResultTupleSlot(estate, hashstate);
+    ExecInitResultTupleSlot(estate, (CommonState) hashstate);
     
     /* ----------------
      * initializes child nodes
      * ----------------
      */
-    outerPlan = get_outerPlan(node);
-    ExecInitNode(outerPlan, estate, node);
+    outerPlan = get_outerPlan((Plan) node);
+    ExecInitNode(outerPlan, estate, (Plan) node);
     
     /* ----------------
      * 	initialize tuple type. no need to initialize projection
      *  info because this node doesn't do projections
      * ----------------
      */
-    ExecAssignResultTypeFromOuterPlan(node, hashstate);
-    set_cs_ProjInfo(hashstate, NULL);
+    ExecAssignResultTypeFromOuterPlan((Plan) node, (CommonState) hashstate);
+    set_cs_ProjInfo((CommonState) hashstate, NULL);
 
     return
 	LispTrue;
@@ -290,13 +262,13 @@ ExecEndHash(node)
      *  because that came from the outer plan...
      * ----------------
      */
-    ExecFreeProjectionInfo(hashstate);
+    ExecFreeProjectionInfo((CommonState) hashstate);
     
     /* ----------------
      *	shut down the subplan
      * ----------------
      */
-    outerPlan = get_outerPlan(node);
+    outerPlan = get_outerPlan((Plan) node);
     ExecEndNode(outerPlan);
 } 
 
@@ -345,12 +317,11 @@ ExecHashTableCreate(node)
     RelativeAddr  *innerbatchPos;
     int		  *innerbatchSizes;
     RelativeAddr  tempname;
-    void	  mk_hj_temp();
 
     /*
      * determine number of batches for the hashjoin
      */
-    nbatch = ExecHashPartition(node);
+    nbatch = ExecHashPartition((Hash) node);
     if (nbatch < 0)
        elog(WARN, "not enough memory for hashjoin.");
     /* ----------------
@@ -414,6 +385,9 @@ ExecHashTableCreate(node)
     hashtable = (HashJoinTable)malloc((NBuffers+1)*BLCKSZ);
 #endif /* sequent */
 
+    if (hashtable == NULL) {
+	elog(WARN, "not enough memory for hashjoin.");
+      }
     /* ----------------
      *	initialize the hash table header
      * ----------------
@@ -674,9 +648,11 @@ ExecHashGetBucket(hashtable, econtext, hashkey)
      * ------------------
      */
     if (execConstByVal)
-        bucketno = hashFunc(&keyval, execConstLen) % hashtable->totalbuckets;
+        bucketno =
+	    hashFunc((char *) &keyval, execConstLen) % hashtable->totalbuckets;
     else
-        bucketno = hashFunc(keyval, execConstLen) % hashtable->totalbuckets;
+        bucketno =
+	    hashFunc((char *) keyval, execConstLen) % hashtable->totalbuckets;
 #ifdef HJDEBUG
     if (bucketno >= hashtable->nbuckets)
        printf("hash(%d) = %d SAVED\n", keyval, bucketno);
@@ -815,8 +791,9 @@ ExecScanHashBucket(hjstate, bucket, curtuple, hjclauses, econtext)
         while (heapTuple < (HeapTuple)ABSADDR(bucket->bottom)) {
 	
 	    inntuple = (TupleTableSlot)
-		ExecStoreTuple(heapTuple,	/* tuple to store */
-			       get_hj_HashTupleSlot(hjstate), /* slot */
+		ExecStoreTuple((Pointer) heapTuple,	/* tuple to store */
+			       (Pointer) get_hj_HashTupleSlot(hjstate),
+			       /* slot */
 			       InvalidBuffer,	/* tuple has no buffer */
 			       false);		/* do not pfree this tuple */
 	    
@@ -848,8 +825,8 @@ ExecScanHashBucket(hjstate, bucket, curtuple, hjclauses, econtext)
 	heapTuple = (HeapTuple)ABSADDR(otuple->tuple);
 	
 	inntuple = (TupleTableSlot)
-	    ExecStoreTuple(heapTuple,	  /* tuple to store */
-			   get_hj_HashTupleSlot(hjstate), /* slot */
+	    ExecStoreTuple((Pointer) heapTuple,	  /* tuple to store */
+			   (Pointer) get_hj_HashTupleSlot(hjstate), /* slot */
 			   InvalidBuffer, /* SP?? this tuple has no buffer */
 			   false);	  /* do not pfree this tuple */
 
@@ -938,7 +915,7 @@ Hash node;
     /*
      * get size information for plan node
      */
-    outerNode = get_outerPlan(node);
+    outerNode = get_outerPlan((Plan) node);
     ntuples = get_plan_size(outerNode);
     tupsize = get_plan_width(outerNode) + sizeof(HeapTupleData);
     pages = ceil((double)ntuples * tupsize * FUDGE_FAC / BLCKSZ);

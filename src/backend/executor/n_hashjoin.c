@@ -14,45 +14,14 @@
  *	$Header$
  * ----------------------------------------------------------------
  */
-#include <sys/file.h>
-
-#include "tmp/postgres.h"
 
  RcsId("$Header$");
 
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
-#include "planner/clauses.h"
-#include "utils/log.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
-#include "executor/x_hashjoin.h"
-
+#include <sys/file.h>
 #include "storage/bufmgr.h"	/* for BLCKSZ */
 #include "tcop/slaves.h"
-
+#include "executor/executor.h"
+#include "planner/clauses.h"
 /* ----------------------------------------------------------------
  *   	ExecHashJoin
  *
@@ -123,10 +92,10 @@ ExecHashJoin(node)
     hjstate =   	get_hashjoinstate(node);
     hjclauses = 	get_hashclauses(node);
     clause =		CAR(hjclauses);
-    estate = 		(EState)get_state(node);
-    qual = 		get_qpqual(node);
-    hashNode = 		get_innerPlan(node);
-    outerNode = 	get_outerPlan(node);
+    estate = 		(EState)get_state((Plan)node);
+    qual = 		get_qpqual((Plan) node);
+    hashNode = 		get_innerPlan((Plan) node);
+    outerNode = 	get_outerPlan((Plan) node);
     hashPhaseDone = 	get_hashdone(node);
 
     dir =   	  	get_es_direction(estate);
@@ -143,7 +112,7 @@ ExecHashJoin(node)
      * initialize expression context
      * --------------------
      */
-    econtext = 		get_cs_ExprContext(hjstate);
+    econtext = 		get_cs_ExprContext((CommonState) hjstate);
 
     /* ----------------
      *	if this is the first call, build the hash table for inner relation
@@ -158,14 +127,14 @@ ExecHashJoin(node)
 	     */
 	    hashtable = ExecHashTableCreate(hashNode);
 	    set_hj_HashTable(hjstate, hashtable);
-	    innerhashkey = get_hashkey(hashNode);
+	    innerhashkey = get_hashkey((Hash) hashNode);
 	    set_hj_InnerHashKey(hjstate, innerhashkey);
 
 	    /* ----------------
 	     * execute the Hash node, to build the hash table 
 	     * ----------------
 	     */
-	    set_hashtable(hashNode, hashtable);
+	    set_hashtable((Hash) hashNode, hashtable);
 	    innerTupleSlot = ExecProcNode(hashNode);
 	}
 	bucket = NULL;
@@ -203,7 +172,7 @@ ExecHashJoin(node)
 	 *  then open the batch files in the current process
 	 * -----------------
 	 */
-	innerhashkey = get_hashkey(hashNode);
+	innerhashkey = get_hashkey((Hash) hashNode);
 	set_hj_InnerHashKey(hjstate, innerhashkey);
         outerbatchNames = (RelativeAddr*)
 	    ABSADDR(hashtable->outerbatchNames);
@@ -233,7 +202,8 @@ ExecHashJoin(node)
 	     * ------------------
 	     */
 	    set_hj_InnerBatches(hjstate, 
-				get_hashBatches(get_hashstate(hashNode)));
+				get_hashBatches(get_hashstate((Hash)
+							      hashNode)));
 	}
     }
     outerbatchPos = (RelativeAddr*)ABSADDR(hashtable->outerbatchPos);
@@ -247,18 +217,18 @@ ExecHashJoin(node)
      *	Now get an outer tuple and probe into the hash table for matches
      * ----------------
      */
-    outerTupleSlot = 	get_cs_OuterTupleSlot(hjstate);
+    outerTupleSlot = 	get_cs_OuterTupleSlot((CommonState) hjstate);
     outerVar =   	get_leftop(clause);
     
     bucketno = -1;  /* if bucketno remains -1, means use old outer tuple */
-    if (TupIsNull(outerTupleSlot)) {
+    if (TupIsNull((Pointer) outerTupleSlot)) {
 	/*
 	 * if the current outer tuple is nil, get a new one
 	 */
 	outerTupleSlot = (TupleTableSlot)
 	    ExecHashJoinOuterGetTuple(outerNode, hjstate);
 	
-	while (curbatch <= nbatch && TupIsNull(outerTupleSlot)) {
+	while (curbatch <= nbatch && TupIsNull((Pointer) outerTupleSlot)) {
 	/*
 	 * if the current batch runs out, switch to new batch
 	 */
@@ -337,10 +307,11 @@ ExecHashJoin(node)
 	     if (ParallelExecutorEnabled())
 		 S_LOCK(&(batchLock[batchno]));
 #endif
-	     pos  = ExecHashJoinSaveTuple(SlotContents(outerTupleSlot), 
+	     pos  = ExecHashJoinSaveTuple((HeapTuple)
+					  SlotContents(outerTupleSlot), 
 					  buffer,
 				     	  outerbatches[batchno],
-				     	  ABSADDR(outerbatchPos[batchno]));
+					  ABSADDR(outerbatchPos[batchno]));
 	     
 	     outerbatchPos[batchno] = RELADDR(pos);
 #ifdef sequent
@@ -368,8 +339,8 @@ ExecHashJoin(node)
 		     * we've got a match, but still need to test qpqual
 		     */
                     inntuple = (TupleTableSlot)
-			ExecStoreTuple(curtuple, 
-                                       get_hj_HashTupleSlot(hjstate),
+			ExecStoreTuple((Pointer)curtuple, 
+                                       (Pointer) get_hj_HashTupleSlot(hjstate),
 				       InvalidBuffer,
                                        false); /* don't pfree this tuple */
 		    
@@ -393,9 +364,10 @@ ExecHashJoin(node)
 			set_hj_CurBucket(hjstate, bucket);
 			set_hj_CurTuple(hjstate, curtuple);
 			hashtable->curbatch = curbatch;
-			set_cs_OuterTupleSlot(hjstate, outerTupleSlot);
+			set_cs_OuterTupleSlot((CommonState)
+					      hjstate, outerTupleSlot);
 			
-			projInfo = get_cs_ProjInfo(hjstate);
+			projInfo = get_cs_ProjInfo((CommonState) hjstate);
 			return
 			    ExecProject(projInfo);
 		    }
@@ -412,7 +384,7 @@ ExecHashJoin(node)
 	outerTupleSlot = (TupleTableSlot)
 	    ExecHashJoinOuterGetTuple(outerNode, hjstate);
 	
-	while (curbatch <= nbatch && TupIsNull(outerTupleSlot)) {
+	while (curbatch <= nbatch && TupIsNull((Pointer) outerTupleSlot)) {
 	/*
 	 * if the current batch runs out, switch to new batch
 	 */
@@ -499,13 +471,15 @@ ExecInitHashJoin(node, estate, parent)
      *  assign the node's execution state
      * ----------------
      */
-    set_state(node, estate);
+    set_state((Plan)node, (EState) estate);
     
     /* ----------------
      * create state structure
      * ----------------
      */
-    hjstate = MakeHashJoinState();
+    hjstate =
+	MakeHashJoinState(NULL,0, NULL, NULL, NULL, LispNil, /*this is stupid*/
+			  NULL, NULL, NULL, 0, NULL, NULL);
     set_hashjoinstate(node, hjstate);
         
     /* ----------------
@@ -516,26 +490,26 @@ ExecInitHashJoin(node, estate, parent)
      *       +	create expression context for node
      * ----------------
      */
-    ExecAssignNodeBaseInfo(estate, hjstate, parent);
-    ExecAssignDebugHooks(node, hjstate);
-    ExecAssignExprContext(estate, hjstate);
+    ExecAssignNodeBaseInfo(estate, (BaseNode) hjstate, parent);
+    ExecAssignDebugHooks((Plan) node, (BaseNode) hjstate);
+    ExecAssignExprContext(estate, (CommonState) hjstate);
 
     /* ----------------
      *	tuple table initialization
      * ----------------
      */
-    ExecInitResultTupleSlot(estate, hjstate);    
-    ExecInitOuterTupleSlot(estate, hjstate);    
+    ExecInitResultTupleSlot(estate, (CommonState) hjstate);    
+    ExecInitOuterTupleSlot(estate,  hjstate);    
     
     /* ----------------
      * initializes child nodes
      * ----------------
      */
-    outerNode = get_outerPlan(node);
-    hashNode  = get_innerPlan(node);
+    outerNode = get_outerPlan((Plan) node);
+    hashNode  = get_innerPlan((Plan) node);
     
-    ExecInitNode(outerNode, estate, node);
-    ExecInitNode(hashNode,  estate, node);
+    ExecInitNode(outerNode, estate, (Plan) node);
+    ExecInitNode(hashNode,  estate, (Plan) node);
     
     /* ----------------
      *	now for some voodoo.  our temporary tuple slot
@@ -547,9 +521,10 @@ ExecInitHashJoin(node, estate, parent)
      * ----------------
      */
     {
-	HashState      hashstate  = get_hashstate(hashNode);
-	TupleTableSlot slot 	  = get_cs_ResultTupleSlot(hashstate);
-	set_hj_HashTupleSlot(hjstate, slot);
+	HashState      hashstate  = get_hashstate((Hash) hashNode);
+	TupleTableSlot slot 	  =
+	    get_cs_ResultTupleSlot((CommonState)hashstate);
+	set_hj_HashTupleSlot(hjstate, (Pointer) slot);
     }
     (void)ExecSetSlotDescriptor(get_hj_OuterTupleSlot(hjstate),
 				ExecGetTupType(outerNode));
@@ -558,8 +533,8 @@ ExecInitHashJoin(node, estate, parent)
      * 	initialize tuple type and projection info
      * ----------------
      */
-    ExecAssignResultTypeFromTL(node, hjstate);
-    ExecAssignProjectionInfo(node, hjstate);
+    ExecAssignResultTypeFromTL((Plan) node, (CommonState) hjstate);
+    ExecAssignProjectionInfo((Plan) node, (CommonState) hjstate);
 
     /* ----------------
      *	XXX comment me
@@ -581,7 +556,7 @@ ExecInitHashJoin(node, estate, parent)
     set_hj_OuterReadPos(hjstate, NULL);
     set_hj_OuterReadBlk(hjstate, 0);
     
-    set_cs_OuterTupleSlot(hjstate, LispNil);
+    set_cs_OuterTupleSlot((CommonState) hjstate, (TupleTableSlot) NULL);
 
     /* ----------------
      *  return true
@@ -622,20 +597,20 @@ ExecEndHashJoin(node)
      *	      is freed at end-transaction time.  -cim 6/2/91     
      * ----------------
      */    
-    ExecFreeProjectionInfo(hjstate);
+    ExecFreeProjectionInfo((CommonState) hjstate);
 
     /* ----------------
      * clean up subtrees 
      * ----------------
      */
-    ExecEndNode(get_outerPlan(node));
-    ExecEndNode(get_innerPlan(node));
+    ExecEndNode(get_outerPlan((Plan) node));
+    ExecEndNode(get_innerPlan((Plan) node));
 
     /* ----------------
      *  clean out the tuple table
      * ----------------
      */
-    ExecClearTuple(get_cs_ResultTupleSlot(hjstate));
+    ExecClearTuple((Pointer) get_cs_ResultTupleSlot((CommonState) hjstate));
     ExecClearTuple(get_hj_OuterTupleSlot(hjstate));
     ExecClearTuple(get_hj_HashTupleSlot(hjstate));
 
@@ -748,7 +723,7 @@ ExecHashJoinGetSavedTuple(hjstate, buffer, file, tupleSlot, block, position)
     (*position) = (char*)LONGALIGN(*position + heapTuple->t_len);
 
     return (TupleTableSlot)
-	ExecStoreTuple(heapTuple,
+	ExecStoreTuple((Pointer) heapTuple,
 		       tupleSlot,
 		       InvalidBuffer,
 		       false);
@@ -874,7 +849,7 @@ ExecHashJoinNewBatch(hjstate)
 	  }
 #endif
     }
-    econtext = get_cs_ExprContext(hjstate);
+    econtext = get_cs_ExprContext((CommonState) hjstate);
     innerhashkey = get_hj_InnerHashKey(hjstate);
     readPos = NULL;
     readBlk = 0;
@@ -894,10 +869,12 @@ ExecHashJoinNewBatch(hjstate)
 					    get_hj_HashTupleSlot(hjstate),
 					    &readBlk,
 					    &readPos))
-	   && ! TupIsNull(slot)) {
+	   && ! TupIsNull((Pointer) slot)) {
 	set_ecxt_innertuple(econtext, slot);
-	ExecHashTableInsert(hashtable, econtext, innerhashkey);
+	ExecHashTableInsert(hashtable, econtext, innerhashkey,NULL);
+				/* possible bug - glass */
     }
+    
     
 #ifdef sequent
     /* ---------------

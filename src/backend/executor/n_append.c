@@ -51,38 +51,10 @@
  *      $Header$
  * ----------------------------------------------------------------
  */
-#include "tmp/postgres.h"
+
+#include "executor/executor.h"
 
  RcsId("$Header$");
-
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
-#include "utils/log.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
-
 /* ----------------------------------------------------------------
  *      exec-append-initialize-next
  *    
@@ -115,7 +87,7 @@ exec_append_initialize_next(node)
      *  get information from the append node
      * ----------------
      */
-    estate =    (EState) get_state(node);
+    estate =    (EState) get_state((Plan) node);
     unionstate =         get_unionstate(node);
     rangeTable =         get_es_range_table(estate);
     
@@ -206,7 +178,7 @@ ExecInitAppend(node, estate, parent)
      *  for append state
      * ----------------
      */
-    set_state(node, estate);
+    set_state((Plan) node,  estate);
     
     unionplans =        get_unionplans(node);
     nplans =            length(unionplans);
@@ -233,15 +205,15 @@ ExecInitAppend(node, estate, parent)
      *  never call ExecQual or ExecTargetList.
      * ----------------
      */
-    ExecAssignNodeBaseInfo(estate, unionstate, parent);
-    ExecAssignDebugHooks(node, unionstate);
+    ExecAssignNodeBaseInfo(estate, (BaseNode) unionstate, parent);
+    ExecAssignDebugHooks((Plan) node, (BaseNode) unionstate);
 
     /* ----------------
      *	append nodes still have Result slots, which hold pointers
      *  to tuples, so we have to initialize them..
      * ----------------
      */
-    ExecInitResultTupleSlot(estate, unionstate);
+    ExecInitResultTupleSlot(estate, (CommonState) unionstate);
     
     /* ----------------
      *  call ExecInitNode on each of the plans in our list
@@ -257,10 +229,10 @@ ExecInitAppend(node, estate, parent)
          * ----------------
          */
         set_as_whichplan(unionstate, i);
-        exec_append_initialize_next(node, 0);
+        exec_append_initialize_next(node);
 	
         initNode = (Plan) nth(i, unionplans);
-        result =          ExecInitNode(initNode, estate, node);
+        result =          ExecInitNode(initNode, estate, (Plan) node);
 	
         initialized[i] = result;
 	
@@ -272,15 +244,15 @@ ExecInitAppend(node, estate, parent)
      * ----------------
      */
     initNode = (Plan) nth(0, unionplans);
-    ExecAssignResultType(unionstate, ExecGetTupType(initNode));
-    set_cs_ProjInfo(unionstate, NULL);
+    ExecAssignResultType((CommonState) unionstate, ExecGetTupType(initNode));
+    set_cs_ProjInfo((CommonState) unionstate, NULL);
     
     /* ----------------
      *  return the result from the first subplan's initialization
      * ----------------
      */       
     set_as_whichplan(unionstate, 0);
-    exec_append_initialize_next(node, 0);
+    exec_append_initialize_next(node);
     result = (List) initialized[0];
     
     return
@@ -318,12 +290,12 @@ ExecProcAppend(node)
      * ----------------
      */
     unionstate =      get_unionstate(node);
-    estate = (EState) get_state(node);
+    estate = (EState) get_state((Plan) node);
     direction =       get_es_direction(estate);
     
     unionplans =      get_unionplans(node);
     whichplan =       get_as_whichplan(unionstate);
-    result_slot =     get_cs_ResultTupleSlot(unionstate);
+    result_slot =     get_cs_ResultTupleSlot((CommonState) unionstate);
 	
     /* ----------------
      *  figure out which subplan we are currently processing
@@ -340,16 +312,16 @@ ExecProcAppend(node)
      */
     result = ExecProcNode(subnode);
     
-    if (! TupIsNull(result)) {
+    if (! TupIsNull((Pointer) result)) {
         /* ----------------
          *  if the subplan gave us something then place a copy of
 	 *  whatever we get into our result slot and return it, else..
          * ----------------
          */
 	return
-	    (TupleTableSlot)ExecStoreTuple(ExecFetchTuple(result),
-			   		    result_slot,
-			   		    ExecSlotBuffer(result),
+	    (TupleTableSlot)ExecStoreTuple(ExecFetchTuple((Pointer) result),
+					   (Pointer) result_slot,
+			   		    ExecSlotBuffer((Pointer) result),
 			   		    false);
     
     } else {
@@ -370,13 +342,13 @@ ExecProcAppend(node)
 	 *  all of our subplans have been exhausted.
 	 * ----------------
 	 */
-        if (exec_append_initialize_next(node,0)) {
-	    ExecSetSlotDescriptorIsNew(result_slot, true);
+        if (exec_append_initialize_next(node)) {
+	    ExecSetSlotDescriptorIsNew((Pointer) result_slot, true);
             return
 		ExecProcAppend(node);
         } else
 	    return
-		(TupleTableSlot)ExecClearTuple(result_slot);
+		(TupleTableSlot)ExecClearTuple((Pointer) result_slot);
     }
 }
  

@@ -37,13 +37,14 @@
  * ----------------------------------------------------------------
  */
  
-#include "tmp/postgres.h"
+#include "tmp/align.h"
+#include "utils/log.h"
+#include "executor/execshmem.h"
 
  RcsId("$Header$");
 
-#include "tmp/align.h"
-#include "utils/log.h"
-#include "executor/x_shmem.h"
+
+
 
 static MemoryHeader FreeSMQueue;  /* queue of free SM */
 extern char *ExecutorSharedMemory;

@@ -49,45 +49,10 @@
  * ----------------------------------------------------------------
  */
  
-#include "tmp/postgres.h"
-
- RcsId("$Header$");
-
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
-#include "parser/parsetree.h"
-#include "utils/palloc.h"
-#include "utils/mcxt.h"
-#include "utils/log.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-#include "nodes/mnodes.h"
-
+#include "executor/executor.h"
 #include "planner/keys.h"	/* needed for definition of INNER */
 
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
-
-
+ RcsId("$Header$");
 /* ----------------------------------------------------------------
  *      global counters for number of tuples processed, retrieved,
  *      appended, replaced, deleted.
@@ -128,34 +93,35 @@ ResetTupleCount()
  * ----------------------------------------------------------------
  */
 void
-DisplayTupleCount()
+DisplayTupleCount(statfp)
+FILE *statfp;
 {
     if (NTupleProcessed > 0)
-	fprintf(stderr, "!\t%d tuple%s processed, ", NTupleProcessed,
+	fprintf(statfp, "!\t%d tuple%s processed, ", NTupleProcessed,
 	       (NTupleProcessed == 1) ? "" : "s");
     else {
-	fprintf(stderr, "!\tno tuples processed.\n");
+	fprintf(statfp, "!\tno tuples processed.\n");
 	return;
       }
     if (NIndexTupleProcessed > 0)
-	fprintf(stderr, "%d indextuple%s processed, ", NIndexTupleProcessed,
+	fprintf(statfp, "%d indextuple%s processed, ", NIndexTupleProcessed,
 	       (NIndexTupleProcessed == 1) ? "" : "s");
     if (NIndexTupleInserted > 0)
-	fprintf(stderr, "%d indextuple%s inserted, ", NIndexTupleInserted,
+	fprintf(statfp, "%d indextuple%s inserted, ", NIndexTupleInserted,
 	       (NIndexTupleInserted == 1) ? "" : "s");
     if (NTupleRetrieved > 0)
-	fprintf(stderr, "%d tuple%s retrieved. ", NTupleRetrieved,
+	fprintf(statfp, "%d tuple%s retrieved. ", NTupleRetrieved,
 	       (NTupleRetrieved == 1) ? "" : "s");
     if (NTupleAppended > 0)
-	fprintf(stderr, "%d tuple%s appended. ", NTupleAppended,
+	fprintf(statfp, "%d tuple%s appended. ", NTupleAppended,
 	       (NTupleAppended == 1) ? "" : "s");
     if (NTupleDeleted > 0)
-	fprintf(stderr, "%d tuple%s deleted. ", NTupleDeleted,
+	fprintf(statfp, "%d tuple%s deleted. ", NTupleDeleted,
 	       (NTupleDeleted == 1) ? "" : "s");
     if (NTupleReplaced > 0)
-	fprintf(stderr, "%d tuple%s replaced. ", NTupleReplaced,
+	fprintf(statfp, "%d tuple%s replaced. ", NTupleReplaced,
 	       (NTupleReplaced == 1) ? "" : "s");
-    fprintf(stderr, "\n");
+    fprintf(statfp, "\n");
 }
 
 /* ----------------------------------------------------------------
@@ -179,37 +145,37 @@ ExecGetPrivateState(node)
 {
     switch(NodeType(node)) {
     case classTag(Result):
-	return (BaseNode) get_resstate(node);
+	return (BaseNode) get_resstate((Result) node);
     
     case classTag(Append):
-	return (BaseNode) get_unionstate(node);
+	return (BaseNode) get_unionstate((Append) node);
     
     case classTag(NestLoop):
-	return (BaseNode) get_nlstate(node);
+	return (BaseNode) get_nlstate((NestLoop) node);
     
     case classTag(MergeJoin):
-	return (BaseNode) get_mergestate(node);
+	return (BaseNode) get_mergestate((MergeJoin) node);
     
     case classTag(HashJoin):
-	return (BaseNode) get_hashjoinstate(node);
+	return (BaseNode) get_hashjoinstate((HashJoin) node);
     
     case classTag(SeqScan):
-	return (BaseNode) get_scanstate(node);
+	return (BaseNode) get_scanstate((Scan) node);
     
     case classTag(IndexScan):
-	return (BaseNode) get_indxstate(node);
+	return (BaseNode) get_indxstate((IndexScan) node);
     
     case classTag(Material):
-	return (BaseNode) get_matstate(node);
+	return (BaseNode) get_matstate((Material) node);
     
     case classTag(Sort):
-	return (BaseNode) get_sortstate(node);
+	return (BaseNode) get_sortstate((Sort) node);
     
     case classTag(Unique):
-	return (BaseNode) get_uniquestate(node);
+	return (BaseNode) get_uniquestate((Unique) node);
     
     case classTag(Hash):
-	return (BaseNode) get_hashstate(node);
+	return (BaseNode) get_hashstate((Hash) node);
 
     default:
 	return NULL;
@@ -238,14 +204,14 @@ ExecAssignNodeBaseInfo(estate, basenode, parent)
     baseid++;
     set_es_BaseId(estate, baseid);
     
-    set_base_parent(basenode, parent);
+    set_base_parent(basenode, (Pointer) parent);
 
     if (parent != NULL) 
 	parentstate = ExecGetPrivateState(parent);
     else
 	parentstate = (BaseNode) NULL;
     
-    set_base_parent_state(basenode, parentstate);
+    set_base_parent_state(basenode, (Pointer) parentstate);
 }
 
 /* ----------------
@@ -319,7 +285,7 @@ ExecAssignResultType(commonstate, tupType)
     TupleTableSlot	slot;
     
     slot = get_cs_ResultTupleSlot(commonstate);
-    (void) ExecSetSlotDescriptor(slot, tupType);
+    (void) ExecSetSlotDescriptor((Pointer) slot, tupType);
 }
 
 /* ----------------
@@ -369,7 +335,7 @@ ExecGetResultType(commonstate)
     TupleTableSlot	slot = get_cs_ResultTupleSlot(commonstate);
     
     return 
-	ExecSlotDescriptor(slot);
+	ExecSlotDescriptor((Pointer) slot);
 }
 
 /* ----------------
@@ -384,9 +350,9 @@ ExecFreeResultType(commonstate)
     TupleDescriptor	tupType;
     
     slot = 	  get_cs_ResultTupleSlot(commonstate);
-    tupType = 	  ExecSlotDescriptor(slot);
+    tupType = 	  ExecSlotDescriptor((Pointer) slot);
     
-    ExecFreeTypeInfo(tupType);
+    ExecFreeTypeInfo((struct attribute **) tupType);	/* BUG -- glass */
 }
 
 
@@ -404,18 +370,21 @@ ExecAssignProjectionInfo(node, commonstate)
     int      		len;
     Pointer	 	tupValue;
 	
-    projInfo = 	MakeProjectionInfo();
-    set_cs_ProjInfo(commonstate, projInfo);
-
     targetList =  get_qptargetlist(node);
     len = 	  length(targetList);
     tupValue =    (Pointer) ExecMakeTLValues(len);
-	
+
+    projInfo = 	MakeProjectionInfo(targetList, len, tupValue,
+				   get_cs_ExprContext(commonstate),
+				   get_cs_ResultTupleSlot(commonstate));
+    set_cs_ProjInfo(commonstate, projInfo);
+/*
     set_pi_targetlist(projInfo, targetList);
     set_pi_len(projInfo, len);
     set_pi_tupValue(projInfo, tupValue);
     set_pi_exprContext(projInfo, get_cs_ExprContext(commonstate));
     set_pi_slot(projInfo, get_cs_ResultTupleSlot(commonstate));
+*/
 }
 
 
@@ -470,7 +439,7 @@ ExecGetScanType(csstate)
 {
     TupleTableSlot slot = (TupleTableSlot)
 	get_css_ScanTupleSlot(csstate);
-    return ExecSlotDescriptor(slot);
+    return ExecSlotDescriptor((Pointer) slot);
 }
 
 /* ----------------
@@ -485,9 +454,9 @@ ExecFreeScanType(csstate)
     TupleDescriptor	tupType;
     
     slot = 	  (TupleTableSlot) get_css_ScanTupleSlot(csstate);
-    tupType = 	  ExecSlotDescriptor(slot);
+    tupType = 	  ExecSlotDescriptor((Pointer) slot);
     
-    ExecFreeTypeInfo(tupType);
+    ExecFreeTypeInfo((struct attribute **) tupType); /* bug -- glass */
 }
 
 /* ----------------
@@ -502,7 +471,7 @@ ExecAssignScanType(csstate, tupType)
     TupleTableSlot	slot;
     
     slot = (TupleTableSlot) get_css_ScanTupleSlot(csstate);
-    (void) ExecSetSlotDescriptor(slot, tupType);
+    (void) ExecSetSlotDescriptor((Pointer) slot, tupType);
 }
 
 /* ----------------
@@ -520,7 +489,7 @@ ExecAssignScanTypeFromOuterPlan(node, commonstate)
     outerPlan =   get_outerPlan(node);
     tupType = 	  ExecGetTupType(outerPlan);
     
-    ExecAssignScanType(commonstate, tupType);
+    ExecAssignScanType((CommonScanState) commonstate, tupType);
 }
 
 
@@ -645,7 +614,7 @@ void
 ExecSetTypeInfo(index, typeInfo, typeID, attNum, attLen, attName, attbyVal)
     int 		index;
     struct attribute 	**typeInfo;
-    int			typeID;
+    ObjectId			typeID;
     int			attNum;
     int			attLen;
     char		*attName;
@@ -928,8 +897,8 @@ ExecGetVarAttlistFromExpr(expr, relationNum)
 	AttributeNumber attno;
     
 	relno = CInteger(CAR(relationNum));
-	varno = get_varno(expr);
-	attno = get_varattno(expr);
+	varno = get_varno((Var)expr);
+	attno = get_varattno((Var) expr);
 	
 	if (varno == relno)
 	    return lispCons(lispInteger(attno), LispNil);
@@ -985,7 +954,7 @@ ExecGetVarAttlistFromExpr(expr, relationNum)
 	List notclausearg;
 	notclausearg = (List) get_notclausearg(expr);
 	return
-	    ExecGetVarAttlistFromExpr(notclausearg, relationNum);
+	    ExecGetVarAttlistFromExpr((Node) notclausearg, relationNum);
     }
     
     /* ----------------
@@ -1133,7 +1102,7 @@ ExecInitScanAttributes(node)
      *  indexscans inherit from seqscans.
      * ----------------
      */
-    scanstate =  get_scanstate(node);
+    scanstate =  get_scanstate((Scan) node);
     
 #ifdef PERHAPSNEVER
     /* ----------------
@@ -1182,8 +1151,8 @@ ExecInitScanAttributes(node)
      *	set the node's attribute information
      * ----------------
      */
-    set_cs_ScanAttributes(scanstate, scanAtts);
-    set_cs_NumScanAttributes(scanstate, numScanAtts);
+    set_cs_ScanAttributes((CommonState) scanstate, scanAtts);
+    set_cs_NumScanAttributes((CommonState) scanstate, numScanAtts);
 }
 
 /* --------------------------------
@@ -1269,7 +1238,7 @@ ExecFreeScanAttributes(ptr)
      * ----------------
      */
     if (PortalExecutorHeapMemory != NULL)
-	MemoryContextFree(PortalExecutorHeapMemory, ptr);
+	MemoryContextFree(PortalExecutorHeapMemory, (Pointer) ptr);
     else
 	pfree(ptr);
 }

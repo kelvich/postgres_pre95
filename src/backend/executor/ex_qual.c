@@ -26,56 +26,19 @@
  * ----------------------------------------------------------------
  */
 
-#include "tmp/postgres.h"
-
- RcsId("$Header$");
-
-/* ----------------
- *	FILE INCLUDE ORDER GUIDELINES
- *
- *	1) execdebug.h
- *	2) various support files ("everything else")
- *	3) node files
- *	4) catalog/ files
- *	5) execdefs.h and execmisc.h
- *	6) externs.h comes last
- * ----------------
- */
-#include "executor/execdebug.h"
-
 #include "tmp/align.h"
 #include "parser/parsetree.h"
 #include "parser/parse.h" /* for NOT used in macros in ExecEvalExpr */
 #include "planner/keys.h"
-#include "utils/log.h"
-#include "utils/mcxt.h"
-
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
 #include "nodes/mnodes.h"
-
-#include "catalog/syscache.h"
-#include "catalog/pg_type.h"
-#include "catalog/pg_proc.h"
-#include "catalog/pg_language.h" /* temp */
-
-#include "utils/fmgr.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
-
+#include "catalog/pg_language.h"
+#include "executor/executor.h"
+ RcsId("$Header$");
 /* ----------------
  *	externs and constants
  * ----------------
  */
-extern GlobalMemory CreateGlobalMemory();
+
 
 /*
  * XXX Used so we can get rid of use of Const nodes in the executor.
@@ -300,9 +263,9 @@ ExecEvalVar(variable, econtext, isNull)
      *   extract tuple information from the slot
      * ----------------
      */
-    heapTuple = (HeapTuple) ExecFetchTuple(slot);
-    tuple_type = 	    ExecSlotDescriptor(slot);
-    buffer =		    ExecSlotBuffer(slot);
+    heapTuple = (HeapTuple) ExecFetchTuple((Pointer) slot);
+    tuple_type = 	    ExecSlotDescriptor((Pointer)slot);
+    buffer =		    ExecSlotBuffer((Pointer)slot);
     
     attnum =  	get_varattno(variable);
 	    
@@ -368,14 +331,14 @@ ExecEvalVar(variable, econtext, isNull)
     array_info = get_vararraylist(variable);
     if (array_info != NULL) {
 	List ind_cons;
-	List indirection;
+	Array indirection;
 	
         /* -----------------
          * note: ExecEvalArrayRef sets execConstByVal and execConstLen.
          * -----------------
          */
         foreach (ind_cons, array_info) {
-	    indirection = CAR(ind_cons);
+	    indirection = (Array) CAR(ind_cons);
             result = ExecEvalArrayRef(result,
                                       get_arraylow(indirection),
                                       get_arraylen(indirection),
@@ -568,9 +531,9 @@ SetCurrentTuple(econtext)
      * ----------------
      */
     if (slot != NULL) {
-	currentExecutorDesc =   ExecSlotDescriptor(slot);
-	currentBuffer = 	ExecSlotBuffer(slot);
-	currentTuple =          (HeapTuple) ExecFetchTuple(slot);
+	currentExecutorDesc =   ExecSlotDescriptor((Pointer)slot);
+	currentBuffer = 	ExecSlotBuffer((Pointer)slot);
+	currentTuple =          (HeapTuple) ExecFetchTuple((Pointer) slot);
     } else {
 	currentExecutorDesc =   NULL;
 	currentBuffer = 	InvalidBuffer;
@@ -663,7 +626,7 @@ ExecMakeFunctionResult(fcache, arguments, econtext)
 	     * ----------------
 	     */
 	    args[i++] = (Datum)
-		ExecEvalExpr(CAR(arg), econtext, &isNull); 
+		ExecEvalExpr((Node) CAR(arg), econtext, &isNull); 
 	}
     }
 
@@ -672,7 +635,12 @@ ExecMakeFunctionResult(fcache, arguments, econtext)
      *   passing the function the evaluated parameter values. 
      * ----------------
      */
-    return (Datum) ExecCallFunction(fcache,args);
+/* temp fix */
+    if (fmgr_func_lang(fcache->foid) == POSTQUELlanguageId)
+	return (Datum) fmgr_array_args(fcache->foid, fcache->nargs, args);
+    else 
+	return (Datum)
+	    fmgr_by_ptr_array_args(fcache->func, fcache->nargs, args);
 }
 
 /* ----------------------------------------------------------------
@@ -804,7 +772,7 @@ ExecEvalNot(notclause, econtext, isNull)
     List  clause;
 
     clause = 	 (List) get_notclausearg(notclause);
-    expr_value = ExecEvalExpr(clause, econtext, isNull);
+    expr_value = ExecEvalExpr((Node) clause, econtext, isNull);
  
     /* ----------------
      *	if the expression evaluates to null, then we just
@@ -854,7 +822,7 @@ ExecEvalOr(orExpr, econtext, isNull)
      * ----------------
      */
     foreach (clause, clauses) {
-	const_value = ExecEvalExpr(CAR(clause), econtext, isNull);
+	const_value = ExecEvalExpr((Node) CAR(clause), econtext, isNull);
 	
 	/* ----------------
 	 *  if the expression evaluates to null, then we just
@@ -914,29 +882,29 @@ ExecEvalExpr(expression, econtext, isNull)
 	*isNull = true;
 	retDatum = (Datum) true;
     } else if (ExactNodeType(expression,Var))
-	retDatum = (Datum) ExecEvalVar(expression, econtext, isNull);
+	retDatum = (Datum) ExecEvalVar((Var) expression, econtext, isNull);
    
     else if (ExactNodeType(expression,Const)) {
-	if (get_constisnull(expression))
+	if (get_constisnull((Const) expression))
 	    *isNull = true;
 
-    	retDatum = get_constvalue(expression);
+    	retDatum = get_constvalue((Const) expression);
     }
 	
     else if (ExactNodeType(expression,Param))
-	retDatum = (Datum)  ExecEvalParam(expression, econtext);
+	retDatum = (Datum)  ExecEvalParam((Param) expression, econtext);
    
     else if (fast_is_clause(expression))	/* car is a Oper node */
-	retDatum = (Datum) ExecEvalOper(expression, econtext, isNull);
+	retDatum = (Datum) ExecEvalOper((List) expression, econtext, isNull);
     
     else if (fast_is_funcclause(expression)) 	/* car is a Func node */
-	retDatum = (Datum) ExecEvalFunc(expression, econtext, isNull);
+	retDatum = (Datum) ExecEvalFunc((Func) expression, econtext, isNull);
       
     else if (fast_or_clause(expression))
-	retDatum = (Datum) ExecEvalOr(expression, econtext, isNull);
+	retDatum = (Datum) ExecEvalOr((List) expression, econtext, isNull);
    
     else if (fast_not_clause(expression))
-	retDatum = (Datum)  ExecEvalNot(expression, econtext, isNull);
+	retDatum = (Datum)  ExecEvalNot((List) expression, econtext, isNull);
 	
     else
 	elog(WARN, "ExecEvalExpr: unknown expression type");
@@ -973,7 +941,7 @@ ExecQualClause(clause, econtext)
     Boolean isNull;
 
     expr_value = (Datum)
-	ExecEvalExpr(clause, econtext, &isNull);
+	ExecEvalExpr((Node) clause, econtext, &isNull);
     
     /* ----------------
      *	this is interesting behaviour here.  When a clause evaluates
@@ -1048,7 +1016,7 @@ ExecQual(qual, econtext)
      */
     result = false;
     foreach (clause, qual) {
-	result = ExecQualClause((Expr) CAR(clause), econtext);
+	result = ExecQualClause( CAR(clause), econtext);
 	if (result == true)
 	    break;
     }
@@ -1169,7 +1137,7 @@ ExecTargetList(targetlist, nodomains, targettype, values, econtext)
 	expr = 		(Expr)   tl_expr(tle);
 	resdom = 	(Resdom) tl_resdom(tle);
 	resno = 	get_resno(resdom);
-	constvalue = 	(Datum) ExecEvalExpr(expr, econtext, &isNull);
+	constvalue = 	(Datum) ExecEvalExpr((Node)expr, econtext, &isNull);
 
 	ExecSetTLValues(resno - 1, values, constvalue);
 	
@@ -1236,7 +1204,7 @@ ExecProject(projInfo)
     slot = 		get_pi_slot(projInfo);
     targetlist = 	get_pi_targetlist(projInfo);
     len = 		get_pi_len(projInfo);
-    tupType = 		ExecSlotDescriptor(slot);
+    tupType = 		ExecSlotDescriptor((Pointer) slot);
     
     tupValue = 		get_pi_tupValue(projInfo);
     econtext = 		get_pi_exprContext(projInfo);
@@ -1256,8 +1224,8 @@ ExecProject(projInfo)
      * ----------------
      */
     return (TupleTableSlot)
-	ExecStoreTuple(newTuple,      	/* tuple to store */
-		       slot,    	/* slot to store in */
-		       InvalidBuffer, 	/* tuple has no buffer */
-		       true);         	/* ok to pfree this tuple */
+	ExecStoreTuple((Pointer) newTuple, /* tuple to store */
+		       (Pointer) slot,     /* slot to store in */
+		       InvalidBuffer, 	   /* tuple has no buffer */
+		       true);         	   /* ok to pfree this tuple */
 }

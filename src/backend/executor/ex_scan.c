@@ -19,11 +19,6 @@
  * ----------------------------------------------------------------
  */
 
-#include <sys/file.h>
-#include "tmp/postgres.h"
-
- RcsId("$Header$");
-
 /* ----------------
  *	FILE INCLUDE ORDER GUIDELINES
  *
@@ -35,25 +30,11 @@
  *	6) externs.h comes last
  * ----------------
  */
-#include "executor/execdebug.h"
 
-#include "parser/parse.h"
-#include "utils/log.h"
-#include "rules/prs2.h"
+#include <sys/file.h>
+#include "executor/executor.h"
 
-#include "nodes/pg_lisp.h"
-#include "nodes/primnodes.h"
-#include "nodes/primnodes.a.h"
-#include "nodes/plannodes.h"
-#include "nodes/plannodes.a.h"
-#include "nodes/execnodes.h"
-#include "nodes/execnodes.a.h"
-
-#include "executor/execdefs.h"
-#include "executor/execmisc.h"
-
-#include "executor/externs.h"
-
+ RcsId("$Header$");
 /* ----------------------------------------------------------------
  *   	ExecScan
  *   
@@ -91,7 +72,7 @@
  ****/
 TupleTableSlot
 ExecScan(node, accessMtd)
-    Plan    node;
+    Scan    node;
     Pointer (*accessMtd)();	/* function returning a tuple */
 {
     ScanState		scanstate;
@@ -134,23 +115,23 @@ ExecScan(node, accessMtd)
     newTuple = 	NULL;
     slot =	NULL;
     
-    estate = 	(EState) get_state(node);
+    estate = 	(EState) get_state((Plan) node);
     
     /* ----------------
      *	get the expression context
      * ----------------
      */
-    econtext = 		get_cs_ExprContext(scanstate);
+    econtext = 		get_cs_ExprContext((CommonState) scanstate);
     prs2EStateInfo = 	get_es_prs2_info(estate);
-    relRuleInfo = 	get_css_ruleInfo(scanstate);
+    relRuleInfo = 	get_css_ruleInfo((CommonScanState) scanstate);
     
     /* ----------------
      *	initialize fields in ExprContext which don't change
      *	in the course of the scan..
      * ----------------
      */
-    qual = 		get_qpqual(node);
-    scanRelation =	get_css_currentRelation(scanstate);
+    qual = 		get_qpqual((Plan) node);
+    scanRelation =	get_css_currentRelation((CommonScanState) scanstate);
     scanRelid =		get_scanrelid(node);
 
     set_ecxt_relation(econtext, scanRelation);
@@ -195,8 +176,10 @@ ExecScan(node, accessMtd)
 		 * We've found a 'view' tuple
 		 * ----------------
 		 */
-		ExecStoreTuple(viewTuple,
-			       get_css_ScanTupleSlot(scanstate),
+		ExecStoreTuple((Pointer)viewTuple,
+			       (Pointer)
+			       get_css_ScanTupleSlot((CommonScanState)
+						     scanstate),
 			       InvalidBuffer,
 			       true);
 		
@@ -209,7 +192,9 @@ ExecScan(node, accessMtd)
 		 * ----------------
 		 */
 		return (TupleTableSlot)
-		    ExecClearTuple(get_css_ScanTupleSlot(scanstate));
+		    ExecClearTuple((Pointer) 
+				   get_css_ScanTupleSlot((CommonScanState)
+							 scanstate));
 		
 	    } else {
 		/* ----------------
@@ -217,16 +202,20 @@ ExecScan(node, accessMtd)
 		 * Put clear the ScanTupleSlot to show that...
 		 * ----------------
 		 */
-		ExecClearTuple(get_css_ScanTupleSlot(scanstate));
+		ExecClearTuple((Pointer)
+			       get_css_ScanTupleSlot((CommonScanState)
+						     scanstate));
 	    }
 	} else {
 	    /*
 	     * RelationRuleInfo == NULL, so there are no rules...
 	     */
-	    ExecClearTuple(get_css_ScanTupleSlot(scanstate));
+	    ExecClearTuple((Pointer)
+			   get_css_ScanTupleSlot((CommonScanState)scanstate));
 	}
 
-	if (TupIsNull(get_css_ScanTupleSlot(scanstate))) {
+	if (TupIsNull((Pointer)
+		      get_css_ScanTupleSlot((CommonScanState)scanstate))) {
 	    /* ----------------
 	     * No (more) rules and no "instead" rules....
 	     * Call the access method for more tuples...
@@ -240,7 +229,7 @@ ExecScan(node, accessMtd)
 	     *  so we just return the empty slot.
 	     * ----------------
 	     */
-	    if (TupIsNull(slot))
+	    if (TupIsNull((Pointer) slot))
 		return slot;
 	    
 	} else {
@@ -248,7 +237,8 @@ ExecScan(node, accessMtd)
 	     * use the "view" tuple
 	     * ----------------
 	     */
-	    slot = (TupleTableSlot) get_css_ScanTupleSlot(scanstate);
+	    slot = (TupleTableSlot) get_css_ScanTupleSlot((CommonScanState)
+							  scanstate);
 	}
 	
 	/*
@@ -256,8 +246,8 @@ ExecScan(node, accessMtd)
 	 */
 	if (relRuleInfo != NULL &&
 	    prs2MustCallRuleManager(relRuleInfo,
-				    (HeapTuple) ExecFetchTuple(slot),
-				    ExecSlotBuffer(slot),
+				    (HeapTuple) ExecFetchTuple((Pointer) slot),
+				    ExecSlotBuffer((Pointer) slot),
 				    RETRIEVE))
 	{
 
@@ -265,8 +255,8 @@ ExecScan(node, accessMtd)
 	     *  get the attribute information about the tuple
 	     * ----------------
 	     */
-	    scanNumAtts =	get_cs_NumScanAttributes(scanstate);
-	    scanAtts =	get_cs_ScanAttributes(scanstate);
+	    scanNumAtts =	get_cs_NumScanAttributes((CommonState) scanstate);
+	    scanAtts =	get_cs_ScanAttributes((CommonState) scanstate);
 
 	    /* ----------------
 	     *  if the system didn't precalculate the scan attribute
@@ -277,7 +267,8 @@ ExecScan(node, accessMtd)
 	     * ----------------
 	     */
 	    if (scanAtts == NULL) {
-		scanNumAtts = ((HeapTuple) ExecFetchTuple(slot))->t_natts;
+		scanNumAtts = ((HeapTuple)
+			       ExecFetchTuple((Pointer) slot))->t_natts;
 		scanAtts = ExecMakeBogusScanAttributes(scanNumAtts);
 		madeBogusScanAtts = true;
 	    }
@@ -300,8 +291,9 @@ ExecScan(node, accessMtd)
 			      RETRIEVE, 			/* operation */
 			      0, 				/* userid */
 			      scanRelation,			/* base rel */
-			      (HeapTuple) ExecFetchTuple(slot), /* tuple */
-			      ExecSlotBuffer(slot), 	/* tuple's buffer */
+			      (HeapTuple) ExecFetchTuple((Pointer) slot)
+			      , /* tuple */
+			      ExecSlotBuffer((Pointer) slot), 	/* tuple's buffer */
 			      NULL,			/* update tuple */
 			      InvalidBuffer,	/* update tuple buffer */
 			      (HeapTuple) NULL,	/* 'raw' tuple */
@@ -324,8 +316,8 @@ ExecScan(node, accessMtd)
 		 *  should change the variable names.
 		 * ----------------
 		 */
-		ExecStoreTuple(changedTuple,
-			       slot,
+		ExecStoreTuple((Pointer)changedTuple,
+			       (Pointer) slot,
 			       InvalidBuffer,
 			       true);
 	    }
@@ -360,14 +352,14 @@ ExecScan(node, accessMtd)
     resultRelationInfo =  get_es_result_relation_info(estate);
     
     tuple_tid = (ItemPointer)
-	&(((HeapTuple) ExecFetchTuple(slot))->t_ctid);
+	&(((HeapTuple) ExecFetchTuple((Pointer) slot))->t_ctid);
 
     /* ----------------
      *	form a projection tuple, store it in the result tuple
      *  slot and return it.
      * ----------------
      */
-    projInfo = get_cs_ProjInfo(scanstate);
+    projInfo = get_cs_ProjInfo((CommonState) scanstate);
     
     return (TupleTableSlot)
 	ExecProject(projInfo);
