@@ -70,8 +70,17 @@ DefineFunction(nameargsexe)
     Name	name = (Name) CString(CAR(CAR(nameargsexe)));
     LispValue   parameters = CDR(CAR(nameargsexe));
     LispValue	entry;
-    String	languageName;
+    String	languageName, fileName, sourceCode;
     char        *c;
+    String	returnTypeName;
+    char        blankstring[2];
+    bool	canCache;
+    LispValue	argList;
+    int32       byte_pct, perbyte_cpu, percall_cpu, outin_ratio;
+    String      perbyte_str, percall_str;
+    int         count;
+    char        *ptr;
+
 
     /* ----------------
      * Note:
@@ -80,68 +89,37 @@ DefineFunction(nameargsexe)
      */
     AssertArg(NameIsValid(name));
 
-    
-    /*
-    ** Figure out language and call routine for that language.
-    */
-
+    /* figure out the language */
     entry = DefineListRemoveRequiredAssignment(&parameters, "language");
     languageName = DefineEntryGetString(entry);
-    /* Uppercase-ise the language */
+    /* lowercase-ise the language */
     for (c = languageName; *c != '\0'; c++)
-      *c = (islower(*c) ? toupper(*c) : *c);
+      *c = (isupper(*c) ? tolower(*c) : *c);
 
-    if (!strcmp(languageName, "POSTQUEL"))
-      {
-	  DefinePFunction((char *)name, parameters, CADR((nameargsexe)));
-      }
+    if (!strcmp(languageName, "postquel") && !strcmp(languageName, "c"))
+      elog(WARN, "DefineFunction: Specified language not supported");	
 
-    else if (!strcmp(languageName, "C"))
-     {
-	 DefineCFunction(name, parameters, CString(CADR(nameargsexe)), 
-			 languageName);
-     }
-
-    else elog(WARN, "DefineFunction: Specified language not supported");	
-}
-
-
-/* --------------------------------
-**	DefineFunction
-** --------------------------------
-*/
-void
-DefineCFunction(name, parameters, fileName, languageName)
-     Name       name;
-     LispValue  parameters;
-     String	fileName;
-     String     languageName;
-{
-    String	returnTypeName;
-    bool	canCache;
-    LispValue	argList;
-    LispValue	entry;
-    int32 byte_pct, perbyte_cpu, percall_cpu, outin_ratio;
-    String perbyte_str, percall_str;
-    int count;
-    char *ptr;
-
-    /* ----------------
-     * handle "[ iscachable ]"
-     * ----------------
-     */
-    entry = DefineListRemoveOptionalIndicator(&parameters, "iscachable");
-    canCache = (bool)!null(entry);
-	 
     /* ----------------
      * handle "returntype = X"
      * ----------------
      */
     entry = DefineListRemoveRequiredAssignment(&parameters, "returntype");
     returnTypeName = DefineEntryGetString(entry);
-	 
+    
+    /* ----------------
+     * handle "[ iscachable ]": figure out if Postquel functions are
+     * cacheable automagically?
+     * ----------------
+     */
+    if (!strcmp(languageName, "c"))
+     {
+	 entry = DefineListRemoveOptionalIndicator(&parameters, "iscachable");
+	 canCache = (bool)!null(entry);
+     }
+
+
     /*
-    ** Handle new parameters for expensive functions.  To be done by Joey.
+    ** handle expensive function parameters
     */
     entry = DefineListRemoveOptionalAssignment(&parameters, "byte_pct");
     if (null(entry)) byte_pct = BYTE_PCT;
@@ -150,33 +128,34 @@ DefineCFunction(name, parameters, fileName, languageName)
     entry = DefineListRemoveOptionalAssignment(&parameters, "perbyte_cpu");
     if (null(entry)) perbyte_cpu = PERBYTE_CPU;
     else 
-      {
-	  perbyte_str = DefineEntryGetString(entry);
-	  if (!sscanf(perbyte_str, "%d", &perbyte_cpu))
-	   {
-	       for (count = 0, ptr = perbyte_str; *ptr != '\0'; ptr++)
-		 if (*ptr == '!') count++;
-	       perbyte_cpu = (int) pow(10.0, (double)count);
-	   }
-      }
+     {
+	 perbyte_str = DefineEntryGetString(entry);
+	 if (!sscanf(perbyte_str, "%d", &perbyte_cpu))
+	  {
+	      for (count = 0, ptr = perbyte_str; *ptr != '\0'; ptr++)
+		if (*ptr == '!') count++;
+	      perbyte_cpu = (int) pow(10.0, (double)count);
+	  }
+     }
 
     entry = DefineListRemoveOptionalAssignment(&parameters, "percall_cpu");
     if (null(entry)) percall_cpu = PERCALL_CPU;
     else 
-      {
-	  percall_str = DefineEntryGetString(entry);
-	  if (!sscanf(percall_str, "%d", &percall_cpu))
-	   {
-	       for (count = 0, ptr = percall_str; *ptr != '\0'; ptr++)
-		 if (*ptr == '!') count++;
-	       percall_cpu = (int) pow(10.0, (double)count);
-	   }
-      }
+     {
+	 percall_str = DefineEntryGetString(entry);
+	 if (!sscanf(percall_str, "%d", &percall_cpu))
+	  {
+	      for (count = 0, ptr = percall_str; *ptr != '\0'; ptr++)
+		if (*ptr == '!') count++;
+	      percall_cpu = (int) pow(10.0, (double)count);
+	  }
+     }
 
 
     entry = DefineListRemoveOptionalAssignment(&parameters, "outin_ratio");
     if (null(entry)) outin_ratio = OUTIN_RATIO;
     else outin_ratio = DefineEntryGetInteger(entry);
+
 
     /* ----------------
      * handle "[ arg is (...) ]"
@@ -207,6 +186,25 @@ DefineCFunction(name, parameters, fileName, languageName)
      */
     DefineListAssertEmpty(parameters);
 	 
+
+    /* set up the sourcecode and filename strings */
+    blankstring[0] = '-';
+    blankstring[1] = '\0';
+    if (!strcmp(languageName, "c"))
+     {
+	 sourceCode = blankstring;
+	 fileName = CString(CADR(nameargsexe));
+     }
+    else
+     {
+	 sourceCode = CString(CADR(nameargsexe));
+	 fileName = blankstring;
+     }
+
+    /* C is stored uppercase in pg_language */
+    if (!strcmp(languageName, "c"))
+      *languageName = 'C';
+
     /* ----------------
      *	now have ProcedureDefine do all the work..
      * ----------------
@@ -214,7 +212,7 @@ DefineCFunction(name, parameters, fileName, languageName)
     ProcedureDefine(name,
 		    returnTypeName,
 		    languageName,
-		    "-",
+		    sourceCode,
 		    fileName,
 		    canCache,
 		    byte_pct, perbyte_cpu, percall_cpu, 
@@ -224,6 +222,7 @@ DefineCFunction(name, parameters, fileName, languageName)
 
 /*
  *  Utility to handle definition of postquel procedures.
+ *   NO LONGER USED.  -- JMH, 6/25/92
  */
 
 void
@@ -293,6 +292,7 @@ DefinePFunction(pname,parameters, query_tree)
 }
 
 
+/*   NO LONGER USED.  -- JMH, 6/25/92 */
 void DefineRealPFunction(args)
      List args;
 {
