@@ -277,6 +277,10 @@ ExecSort(node)
 	 */
 	set_sort_Flag(sortstate, true);
     }
+    else {
+	slot = (TupleTableSlot)
+	    get_css_ScanTupleSlot(sortstate);
+    }
     
     SO1_printf("ExecSort: %s\n",
 	       "retrieveing tuple from sorted relation");
@@ -412,6 +416,7 @@ ExecInitSort(node, estate, parent)
      *	create the temporary relations
      * ----------------
      */
+    len = 		length(get_qptargetlist(node));
     tempDesc = 		ExecCreatR(len, tupType, tempOid);
     sortedDesc = 	ExecCreatR(len, tupType, sortOid);
     
