@@ -820,6 +820,14 @@ heap_endscan(sdesc)
      * ----------------
      */
     RelationDecrementReferenceCount(sdesc->rs_rd);
+
+    /* ----------------
+     * Non 2-phase read locks on pg_type
+     * ----------------
+     */
+    if ( RelationGetRelationId(sdesc->rs_rd) == RelOid_pg_type )
+	RelationUnsetLockForRead(sdesc->rs_rd);
+
     pfree((char *)sdesc);	/* XXX */
 }
 
