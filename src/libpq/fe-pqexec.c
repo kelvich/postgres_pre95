@@ -170,7 +170,7 @@ EstablishComm()
 /* ----------------
  *	process_portal
  *	
- * 	Process protal queries. 
+ * 	Process portal queries. 
  * 	Return values are the same as PQexec().
  * ----------------
  */
@@ -181,66 +181,92 @@ process_portal(rule_p)
 {
     char pname[portal_name_length];
     char id[2];
-    char *errormsg;
+    char errormsg[error_msg_length];
     char command[command_length];
     char PQcommand[portal_name_length+1];
     static char retbuf[portal_name_length + 1];
-    
+ 
     /* Read in the portal name. */
     pq_getstr(pname, portal_name_length);
     pqdebug("Portal name = %s", pname);
 
-    /* Read in the identifier following the portal name. */
-    pq_getnchar(id, 0, 1);
-    read_remark(id);
-    pqdebug("Identifier is: %c", id[0]);
+    /*
+     * This for loop is necessary so that NOTICES out of portal processing
+     * stuff are handled properly.
+     */
 
-    switch (id[0]) {
-    case 'T':
-	/* Tuples are returned, dump data into a portal buffer. */
-	if (dump_data(pname, rule_p) == -1)
-	{
-		return("R");
-	}
-	sprintf(PQcommand, "P%s", pname);
-	strcpy(retbuf, PQcommand);
-	return(retbuf);
+    for (;;) {
+        /* Read in the identifier following the portal name. */
+        pq_getnchar(id, 0, 1);
+        read_remark(id);
+        pqdebug("Identifier is: %c", id[0]);
+
+        switch (id[0]) {
+        case 'E':
+	    /* An error, return 0. */
+	    pq_getstr(errormsg, error_msg_length);
+	    pqdebug("%s error encountered.", errormsg);
+	    /* get past gunk at front of errmsg */
+	    fprintf(stdout,"%s \n", &errormsg[0] + 4);
+	    strcpy(retbuf, "R");
+	    return(retbuf);
+
+        case 'N': /* print notice and go back to processing return values */
+	    pq_getstr(errormsg, error_msg_length);
+	    pqdebug("%s notice encountered.", errormsg);
+	    /* get past gunk at front of errmsg */
+	    fprintf(stdout,"%s \n", &errormsg[0] + 4);
+	    break;
+	    
+        case 'T':
+	    /* Tuples are returned, dump data into a portal buffer. */
+	    if (dump_data(pname, rule_p) == -1)
+	    {
+		    return("R");
+	    }
+	    sprintf(PQcommand, "P%s", pname);
+	    strcpy(retbuf, PQcommand);
+	    return(retbuf);
 	
-	/* Pending data inquiry - return nothing */
-    case 'C':
-	/* Portal query command (e.g., retrieve, close), no tuple returned. */
-	PQxactid = pq_getint (4);
-	pqdebug("Transaction Id is: %d", PQxactid);
-	pq_getstr(command, command_length);
-	pqdebug("Query command: %s", command);
+	    /* Pending data inquiry - return nothing */
+        case 'C':
+	    /*
+	     * Portal query command (e.g., retrieve, close),
+	     * no tuple returned.
+	     */
+	    PQxactid = pq_getint (4);
+	    pqdebug("Transaction Id is: %d", PQxactid);
+	    pq_getstr(command, command_length);
+	    pqdebug("Query command: %s", command);
 	
-	/* Process the portal commands. */
-	if (strcmp(command, "retrieve") == 0) {
-	    /* Allocate a portal buffer, if portal table is full, error. */
-	    pbuf_setup(pname);
-	    return
-		"Cretrieve";
-	} 
-	else if (strcmp (command, "close") == 0) 
-	    return
-		"Cclose";
-	else {
-	    sprintf(retbuf, "C%s", command);
-	    return
-		retbuf;
-	}
+	    /* Process the portal commands. */
+	    if (strcmp(command, "retrieve") == 0) {
+	        /* Allocate a portal buffer, if portal table is full, error. */
+	        pbuf_setup(pname);
+	        return
+		    "Cretrieve";
+	    } 
+	    else if (strcmp (command, "close") == 0) 
+	        return
+		    "Cclose";
+	    else {
+	        sprintf(retbuf, "C%s", command);
+	        return
+		    retbuf;
+	    }
 
-    default:
-	{
-	    char s[45];
+        default:
+	    {
+	        char s[45];
 
-	    PQreset();
-	    sprintf(s, "Unexpected identifier in process_portal: %c", id[0]);
-	    libpq_raise(ProtocolError, form (s));
+	        PQreset();
+	        sprintf(s, "Unexpected identifier in process_portal: %c", id[0]);
+	        libpq_raise(ProtocolError, form (s));
+	    }
 	}
     }
 }
-	
+
 /* ----------------
  *	StringPointerSet
  * ----------------
