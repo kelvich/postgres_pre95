@@ -94,6 +94,6 @@ fi
 
 rm -f $TMPFILE
 
-echo "$CMDNAME: Done."
+echo "$CMDNAME: Done.  You may restart the postmaster daemon."
 
 exit 0
