@@ -58,6 +58,17 @@
  * ----------------------------------------------------------------
  */
 
+/* ----------------
+ *	TUPLECOUNT is a #define which, if set, will have the
+ *	executor keep track of tuple counts.  This might be
+ *	causing some problems with the decstation stuff so
+ *	you might want to undefine this if you are doing work
+ *	on the decs  - cim 10/20/89
+ * ----------------
+ */
+
+#define TUPLECOUNT 1
+
 /*
  *     memory management defines
  */
