@@ -17,7 +17,11 @@ static	char	amiint_c[] = "$Header$";
 #include <signal.h>
 #include <ctype.h>
 
+#include "atoms.h"		/* for ScanKeywordLookup */
+#include "command.h"		/* for EndCommand */
 #include "executor.h"
+#include "globals.h"		/* for IsUnderPostmaster */
+#include "relation.h"
 
 #include "pg_lisp.h"
 #include "parse.h"
@@ -118,15 +122,42 @@ MakeQueryDesc(command, parsetree, plantree, state, feature)
  */
 
 void
-DoRetBlank(parser_output, plan)
+ProcessQuery(parser_output, plan)
      LispValue parser_output;
      Plan      plan;
 {
+	bool		isPortal = false;
+	bool		isInto = false;
+	Relation	intoRelation;
+	LispValue	parseRoot;
+	LispValue	resultDesc;
    LispValue queryDesc;
    EState state;
    LispValue feature;
    LispValue attinfo;		/* returned by ExecMain */
 
+	parseRoot = parse_root(parser_output);
+	if (root_command_type(parseRoot) == RETRIEVE) {
+
+		resultDesc = root_result_relation(parseRoot);
+		if (!null(resultDesc)) {
+			int	destination;
+
+			destination = CAtom(CAR(resultDesc));
+
+			switch (destination) {
+			case INTO:
+				isInto = true;
+				break;
+			case PORTAL:
+				isPortal = true;
+				break;
+			default:
+				elog(WARN, "ProcessQuery: bad result %d",
+					destination);
+			}
+		}
+	}
    {
       /* ----------------
        *	create the Executor State structure
@@ -202,7 +233,27 @@ DoRetBlank(parser_output, plan)
     */
 
    showatts("blank", CInteger(CAR(attinfo)), CADR(attinfo));
-   
+
+	if (isPortal) {
+		BlankPortalAssignName(CString(CADR(resultDesc)));
+		return;
+	}
+	if (isInto) {
+		ObjectId	relationId;
+		/*
+		 * Archive mode must be set at create time.  Unless this
+		 * mode information is made specifiable in POSTQUEL, users
+		 * will have to COPY, rename, etc. to change archive mode.
+		 */
+		relationId = RelationNameCreateHeapRelation(
+			CString(CADR(resultDesc)),
+			'n',	/* XXX */
+			CInteger(CAR(attinfo)), CADR(attinfo));
+
+		setheapoverride(true);	/* XXX change "amopen" args instead */
+		intoRelation = ObjectIdOpenHeapRelation(relationId);
+		setheapoverride(false);	/* XXX change "amopen" args instead */
+	}
    /* (showatts "blank" (car attinfo) (cadr attinfo)) */
 
    /* ----------------
@@ -216,7 +267,14 @@ DoRetBlank(parser_output, plan)
     * ----------------
     */
 
-   feature = lispCons(lispInteger(EXEC_DEBUG), LispNil);
+	if (isInto) {
+		feature = lispCons(lispInteger(EXEC_RESULT),
+			lispCons(lispInteger(intoRelation)));	/* XXX hack */
+	} else if (IsUnderPostmaster) {
+		feature = lispCons(lispInteger(EXEC_DUMP), LispNil);
+	} else {
+		feature = lispCons(lispInteger(EXEC_DEBUG), LispNil);
+	}
    queryDesc = MakeQueryDesc(CAR(CDR(CAR(parser_output))),
 			     parser_output,
 			     plan,
@@ -242,6 +300,36 @@ DoRetBlank(parser_output, plan)
 			     feature);
 
    (void) ExecMain(queryDesc);
+	if (isInto) {
+		RelationCloseHeapRelation(intoRelation);
+	}
+	if (IsUnderPostmaster) {
+		int	commandType;
+		String	tag;
+
+		commandType = root_command_type(parseRoot);
+		switch (commandType) {
+		case RETRIEVE:
+			tag = "RETRIEVE";
+			break;
+		case APPEND:
+			tag = "APPEND";
+			break;
+		case DELETE:
+			tag = "DELETE";
+			break;
+		case EXECUTE:
+			tag = "EXECUTE";
+			break;
+		case REPLACE:
+			tag = "REPLACE";
+			break;
+		default:
+			elog(WARN, "ProcessQuery: unknown command type %d",
+				commandType);
+		}
+		EndCommand(tag);
+	}
 }
 
 /* ----------------
@@ -339,8 +427,8 @@ main(argc, argv)
 	  printf("\n");
 
 	  if (lispIntegerp(CAR(parser_output))) {
-		utility_invoke(LISPVALUE_INTEGER(CAR(parser_output)),
-			CDR(parser_output));
+		  ProcessUtility(LISPVALUE_INTEGER(CAR(parser_output)),
+			  CDR(parser_output));
 	  } else {
 	      Node plan;
 	      extern Node planner();
@@ -362,7 +450,7 @@ main(argc, argv)
 	       *   call the executor
 	       * ----------------
 	       */
-	      DoRetBlank(parser_output, plan);
+	      ProcessQuery(parser_output, plan);
 	  }
 	  CommitTransactionCommand();
      }
@@ -383,8 +471,3 @@ die()
 {
 	ExitPostgres(0);
 }
-
-
-
-
-
