@@ -165,7 +165,7 @@ TransactionIdIsLessThan(id1, id2)
  */
 bool
 xidgt(xid1, xid2)
-XID 	xid1, xid2;
+PG_XID 	xid1, xid2;
 {
 
 	return( (bool) (xid1 > xid2) );
@@ -182,7 +182,7 @@ XID 	xid1, xid2;
  */
 bool
 xidge(xid1, xid2)
-XID 	xid1, xid2;
+PG_XID 	xid1, xid2;
 {
 	return( (bool) (xid1 >= xid2) );
 }
@@ -199,7 +199,7 @@ XID 	xid1, xid2;
  */
 bool
 xidle(xid1, xid2)
-XID 	xid1, xid2;
+PG_XID 	xid1, xid2;
 {
 	return((bool) (xid1 <= xid2) );
 }
@@ -216,7 +216,7 @@ XID 	xid1, xid2;
  */
 bool
 xideq(xid1, xid2)
-XID 	xid1, xid2;
+PG_XID 	xid1, xid2;
 {
 	return( (bool) (xid1 == xid2) );
 }
@@ -233,7 +233,7 @@ XID 	xid1, xid2;
  */
 int
 xidmi(xid1, xid2)
-XID	xid1, xid2;
+PG_XID	xid1, xid2;
 {	/* computes the 'distance' between xid1 and xid2:
 	 * if there was no xidj generated between the generation of
 	 * xid1 and xid2, then the distance (xid1 - xid2) has to be 1 (!!!) */

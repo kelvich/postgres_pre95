@@ -98,7 +98,7 @@ static	struct	attribute a3 = {
     };
 
 static	struct	attribute a4 = {
-    -1l, "xmin", 28l, 0l, 0l, 0l, sizeof (XID),
+    -1l, "xmin", 28l, 0l, 0l, 0l, sizeof (PG_XID),
     MinTransactionIdAttributeNumber, 0, '\0', '\001', 0l
     };
 
@@ -108,7 +108,7 @@ static	struct	attribute a5 = {
     };
 
 static	struct	attribute a6 = {
-    -1l, "xmax", 28l, 0l, 0l, 0l, sizeof (XID),
+    -1l, "xmax", 28l, 0l, 0l, 0l, sizeof (PG_XID),
     MaxTransactionIdAttributeNumber, 0, '\0', '\001', 0l
     };
 
