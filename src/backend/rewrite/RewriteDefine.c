@@ -97,7 +97,7 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
 	    sufficient,
 	    is_instead );
 
-    fprintf(stdout,"rule is \n%s\n", rulebuf ); 
+    /* fprintf(stdout,"rule is \n%s\n", rulebuf ); */
 
     eval_as_new_xact(rulebuf);
 
