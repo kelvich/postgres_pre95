@@ -97,18 +97,21 @@ int32 c;
  *	char16in	- converts "..." to internal reprsentation
  *
  *	Note:
- *		Currently if strlen(s) < 14, the extra chars are garbage.
+ *		Currently if strlen(s) < 14, the extra chars are nulls
  */
 char *
 char16in(s)
 	char	*s;
 {
 	char	*result;
-
+	int      i;
 	if (s == NULL)
 		return(NULL);
 	result = (char *) palloc(16);
 	strncpy(result, s, 16);
+	/* null out the extra chars */
+	for (i = strlen(s) + 1; i < 16; i++)
+	  result[i] = '\0';
 	return(result);
 }
 
