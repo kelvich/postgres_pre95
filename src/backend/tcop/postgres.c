@@ -67,7 +67,6 @@ jmp_buf		Warn_restart;
 int		NBuffers = 16;
 time_t		tim;
 bool 		override = false;
-int		NStriping = 1;  	/* default no striping */
 int		EchoQuery = 0;		/* default don't echo */
 
 /* ----------------
@@ -579,6 +578,7 @@ PostgresMain(argc, argv)
     int			numslaves;
     int			errs = 0;
     char		*DatabaseName;
+    extern char		*DBName;	/* a global name for current database */
     
     extern	int	Noversion;		/* util/version.c */
     extern	int	Quiet;
@@ -605,7 +605,7 @@ PostgresMain(argc, argv)
     numslaves = 0;
     flagC = flagQ = flagM = flagS = flagE = 0;
     
-    while ((flag = getopt(argc, argv, "CQONM:dnpP:B:b:D:SE")) != EOF)
+    while ((flag = getopt(argc, argv, "CQONM:dnpP:B:b:SE")) != EOF)
       switch (flag) {
 	  
       case 'd':
@@ -659,10 +659,6 @@ PostgresMain(argc, argv)
 	  flagM = 1;
 	  break;
 	  
-      case 'D':  /* degree of striping */
-	  NStriping = atoi(optarg);
-	  break;
-
       case 'p':	/* started by postmaster */
 	  /* ----------------
 	   *	p - special flag passed if backend was forked
@@ -740,8 +736,8 @@ PostgresMain(argc, argv)
 	fputs(" -E   =  echo the query entered\n", stderr);
 	exitpg(1);
     } else if (argc - optind == 1) {
-	DatabaseName = argv[optind];
-    } else if ((DatabaseName = getenv("USER")) == NULL) {
+	DBName = DatabaseName = argv[optind];
+    } else if ((DBName = DatabaseName = getenv("USER")) == NULL) {
 	fputs("amiint: failed getenv(\"USER\") and no database specified\n");
 	exitpg(1);
     }
