@@ -40,11 +40,7 @@ RemoveOperator(operatorName, typeName1, typeName2)
 	int 		defined;
 	ItemPointerData	itemPointerData;
 	Buffer          buffer;
-	static ScanKeyEntryData	operatorKey[3] = {
-		{ 0, OperatorNameAttributeNumber, NameEqualRegProcedure },
-		{ 0, OperatorLeftAttributeNumber, ObjectIdEqualRegProcedure },
-		{ 0, OperatorRightAttributeNumber, ObjectIdEqualRegProcedure }
-	};
+	ScanKeyEntryData	operatorKey[3];
 
 	Assert(NameIsValid(operatorName));
 	Assert(NameIsValid(typeName1));
@@ -63,9 +59,21 @@ RemoveOperator(operatorName, typeName1, typeName2)
 			return;
 		}
 	}
-	operatorKey[0].argument = NameGetDatum(operatorName);
-	operatorKey[1].argument = ObjectIdGetDatum(typeId1);
-	operatorKey[2].argument = ObjectIdGetDatum(typeId2);
+
+	ScanKeyEntryInitialize(&operatorKey[0], 0x0,
+			       OperatorNameAttributeNumber,
+			       NameEqualRegProcedure,
+			       NameGetDatum(operatorName));
+
+	ScanKeyEntryInitialize(&operatorKey[1], 0x0,
+			       OperatorLeftAttributeNumber,
+			       ObjectIdEqualRegProcedure,
+			       ObjectIdGetDatum(typeId1));
+
+	ScanKeyEntryInitialize(&operatorKey[2], 0x0,
+			       OperatorRightAttributeNumber,
+			       ObjectIdEqualRegProcedure,
+			       ObjectIdGetDatum(typeId2));
 
 	relation = RelationNameOpenHeapRelation(OperatorRelationName);
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual, 3,
