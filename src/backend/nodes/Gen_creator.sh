@@ -37,6 +37,7 @@ awk 'BEGIN 		{ ORS = " "; OFS = "" }
 			decl[i++] = substr($3,2,length($3)-1);
 		  }
 		}
+
 /}/ 		{ for (x=0;x<i-1;x++)
 			print decl[x],","
 		  print decl[x]")\n"
@@ -45,13 +46,16 @@ awk 'BEGIN 		{ ORS = " "; OFS = "" }
 		  print "\n{"
 		  print "\n\textern void Print",class,"();"
 		  print "\n\textern bool Equal",class,"();"
+		  print "\n\textern bool Copy",class,"();"
 		  print "\n\n\t",class," node = New_Node(",class,");\n"
 		  for (x=0;x<i;x++)
 			print "\n\tset_",decl[x],"( node ,",decl[x],");"
-		  print"\n\tnode->printFunc = Print",class,";"
+		  print"\n\n\tnode->printFunc = Print",class,";"
 		  print"\n\tnode->equalFunc = Equal",class,";"
-		  print "\n\treturn(node);\n}"
-		  print "\nvoid \nPrint",class,"(fp, node)\n\tFILE *fp;\n\t",class,"\tnode;"
+		  print"\n\tnode->copyFunc =  Copy",class,";"
+		  print "\n\n\treturn(node);\n}\n"
+		  print "\nvoid \nPrint",class,"(fp, node)"
+		  print "\n\tFILE *fp;\n\t",class,"\tnode;"
 		  print "\n{"
 		  print "\n#ifdef\tPrint",class,"Exists"
 		  print "\n\n\tfprintf(fp, \"#S(\");"
@@ -60,8 +64,9 @@ awk 'BEGIN 		{ ORS = " "; OFS = "" }
 		  print "\n\n#else\t/* Print",class,"Exists */"
 		  print "\n\tfprintf(fp, \"#S(",class," node at 0x%lx)\", node);\n"
 		  print "\n#endif\t/* Print",class,"Exists */"
-		  print "\n}"
-		  print "\nbool\nEqual",class,"(a, b)\n\t",class,"\ta, b;"
+		  print "\n}\n"
+		  print "\nbool\nEqual",class,"(a, b)"
+		  print "\n\t",class,"\ta, b;"
 		  print "\n{"
 		  print "\n#ifdef\tEqual",class,"Exists"
 		  print "\n\treturn ((bool) _equal",class,"(a, b));"
@@ -69,7 +74,19 @@ awk 'BEGIN 		{ ORS = " "; OFS = "" }
 		  print "\n\tprintf(\"Equal",class," does not exist!\");\n"
 		  print "\n\treturn (false);"
 		  print "\n#endif\t/* Equal",class,"Exists */"
-		  print "\n}"
+		  print "\n}\n"
+		  print "\nbool\nCopy",class,"(from, to, alloc)"
+		  print "\n\t",class,"\tfrom;"
+		  print "\n\t",class,"\t*to;\t/* return */"
+		  print "\n\tchar *\t(*alloc)();"
+		  print "\n{"
+		  print "\n#ifdef\tCopy",class,"Exists"
+		  print "\n\treturn ((bool) _copy",class,"(from, to, alloc));"
+		  print "\n\n#else\t/* Copy",class,"Exists */"
+		  print "\n\tprintf(\"Copy",class," does not exist!\");\n"
+		  print "\n\treturn (false);"
+		  print "\n#endif\t/* Copy",class,"Exists */"
+		  print "\n}\n"
 		}
 
 END { print "\n/* end-of-file */\n" }' 
