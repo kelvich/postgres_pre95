@@ -24,18 +24,29 @@ main(argc,argv)
 	int errors = 0;
 
 	PQsetdb(getenv("USER"));
+	(void) PQexec("begin");
+
 	if (argc < 2) {
 		fprintf(stderr, "usage: %s directory ...\n", argv[0]);
 		PQfinish();
 		exit(1);
 	}
-	while (--argc)
+
+	while (--argc) {
 		if (p_rmdir(*++argv) < 0) {
 			fprintf(stderr, "p_rmdir: ");
 			perror(*argv);;
 			errors++;
 		}
+	}
+
+	if (errors == 0)
+		(void) PQexec("end");
+	else
+		(void) PQexec("abort");
+
 	PQfinish();
+
 	exit(errors != 0);
 	/* NOTREACHED */
 }
