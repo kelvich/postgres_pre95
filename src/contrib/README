@@ -1,0 +1,13 @@
+$Header$
+
+The software contained in the directories below was contributed to the
+project by people outside of UC Berkeley.  We do not make any
+guarantees that they will compile on any given operating system, let
+alone work correctly.  (In fact, some of these programs are
+*extremely* OS-dependent.)  We will also not provide any help with
+this software should you have difficulties with it.  It is provided
+here solely in the hope that you may find it useful in some way.  You
+are totally on your own.
+
+Read the README file in each subdirectory to see what software we have
+succeeded in building on our own systems.
