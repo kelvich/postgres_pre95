@@ -204,7 +204,7 @@ TimeQualIsValid(qual)
 			return (false);
 		}
 		if (hasStartTime) {
-			return ((bool)!TimeIsBefore(
+			return ((bool)!AbsoluteTimeIsBefore(
 				((InternalTimeQual)qual)->end,
 				((InternalTimeQual)qual)->start));
 		}
@@ -680,7 +680,7 @@ HeapTupleSatisfiesSnapshotInternalTimeQual(tuple, qual)
 	tuple->t_tmin = TransactionIdGetCommitTime(tuple->t_xmin);
     }
 
-    if (TimeIsBefore(TimeQualGetSnapshotTime((TimeQual)qual), tuple->t_tmin)) {
+    if (AbsoluteTimeIsBefore(TimeQualGetSnapshotTime((TimeQual)qual), tuple->t_tmin)) {
 	return (false);
     }
     /* the tuple was inserted validly before the snapshot time */
@@ -728,7 +728,7 @@ HeapTupleSatisfiesUpperBoundedInternalTimeQual(tuple, qual)
 	tuple->t_tmin = TransactionIdGetCommitTime(tuple->t_xmin);
     }
 
-    if (TimeIsBefore(TimeQualGetEndTime((TimeQual)qual), tuple->t_tmin)) {
+    if (AbsoluteTimeIsBefore(TimeQualGetEndTime((TimeQual)qual), tuple->t_tmin)) {
 	return (false);
     }
     /* the tuple was inserted validly before the range end */
