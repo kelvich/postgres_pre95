@@ -236,6 +236,13 @@ AttributeNumber numberOfAttributes;
 				ruleId,
 				prs2OneLockGetPlanNumber(oneLock),
 				&paramList);
+	    if (null(plan)) {
+		/*
+		 * No such plan has been found (an obsolete rule?)
+		 * Continue with the next lock...
+		 */
+		continue;
+	    }
 	    ruleInfo = prs2GetRuleInfoFromRulePlan(plan);
 	    planQual = prs2GetQualFromRulePlan(plan);
 	    planAction = prs2GetActionsFromRulePlan(plan);
@@ -439,12 +446,7 @@ AttributeNumber numberOfAttributes;
     i = 0;
     while (paramList[i].kind != PARAM_INVALID) {
 	attributeName = paramList[i].name;
-	attributeNumber = get_attnum(relation->rd_id, attributeName);
-	if (attributeNumber == InvalidAttributeNumber) {
-	    elog(WARN,
-	    "prs2CalculateAttributesOfParamNodes:Illegal attrname:%s,rel=%ld",
-	    attributeName, relation->rd_id);
-	}
+	attributeNumber = paramList[i].id;
 	if (paramList[i].kind == PARAM_OLD) {
 	    /*
 	     * make sure that the value stored in the old tuple
@@ -467,11 +469,8 @@ AttributeNumber numberOfAttributes;
 			attributeArray,
 			numberOfAttributes);
 	    /*
-	     * store information about this attribute (type, value etc)
-	     * in the paramList
+	     * Find and store the value for this parameter.
 	     */
-	    paramList[i].type = get_atttype(relation->rd_id, attributeNumber);
-	    paramList[i].length = (Size) get_typlen(paramList[i].type);
 	    if (attributeNumber > 0 ) {
 		paramList[i].value =
 			    oldTupleAttributeValues[attributeNumber-1].value;
@@ -634,6 +633,13 @@ AttributeNumber numberOfAttributes;
 				ruleId,
 				prs2OneLockGetPlanNumber(oneLock),
 				&paramList);
+	    if (null(plan)) {
+		/*
+		 * No such plan has been found (an obsolete rule?)
+		 * Continue with the next lock...
+		 */
+		continue;
+	    }
 	    ruleInfo = prs2GetRuleInfoFromRulePlan(plan);
 	    planQual = prs2GetQualFromRulePlan(plan);
 	    planActions = prs2GetActionsFromRulePlan(plan);
