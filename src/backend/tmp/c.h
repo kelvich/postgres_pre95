@@ -654,7 +654,7 @@ form ARGS((
  *	RcsId and SccsId macros..
  * ----------------
  */
-#ifdef LINT
+#if (defined(lint) || defined(SABER))
 #define SccsId(id)	
 #define RcsId(id)	
 #else
