@@ -1,0 +1,24 @@
+.\" This is -*-nroff-*-
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.TH "REMOVE VIEW" COMMANDS 04/25/94
+.XA 2 "Remove View"
+.SH NAME
+remove view \(em removes a view from \*(PG
+.SH SYNOPSIS
+.(l M
+\fBremove view\fR view_name
+.)l
+.SH DESCRIPTION
+This command drops an existing view from the \*(PG system.  To
+execute this command you must be the owner of the view.
+.SH EXAMPLE
+.(C
+/*
+ * this command will remove the "myview" view
+ */
+remove view myview
+.)C
+.SH "SEE ALSO"
+define view(commands),
+remove rule(commands),
