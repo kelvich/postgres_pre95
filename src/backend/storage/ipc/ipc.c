@@ -81,9 +81,17 @@ int					*status;				/* output parameter */
 		return(2);		/* returns the number of the invalid argument	*/
 	}	
 	semId = semget(semKey, 0, 0);
+	/*
+	printf("%d = semget(%d,%d,0%od)\n", semId, semKey, semNum, permission);
+	*/
 	if (semId == -1) {
-		*status = IpcSemIdNotExist;	/* there doesn't exist a semaphore 	*/
+		*status = IpcSemIdNotExist;/* there doesn't exist a semaphore*/
 		semId = semget(semKey, semNum, IPC_CREAT|permission);
+		/*
+		printf("%d = semget(%d,%d,0%od)\n", 
+			semId, semKey, semNum, IPC_CREAT|permission
+		);
+		*/
 		if (semId < 0) {
 			perror("semget");
 			exit(3);
