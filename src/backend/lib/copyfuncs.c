@@ -951,6 +951,8 @@ _copyHashJoin(from, to, alloc)
     newnode->hashjoinop = from->hashjoinop;
     Node_Copy(from, newnode, alloc, hashjoinstate);
     newnode->hashjointable = from->hashjointable;
+    newnode->hashjointablekey = from->hashjointablekey;
+    newnode->hashjointablesize = from->hashjointablesize;
     newnode->hashdone = from->hashdone;
     
     (*to) = newnode;
@@ -1138,6 +1140,8 @@ _copyHash(from, to, alloc)
     Node_Copy(from, newnode, alloc, hashkey);
     Node_Copy(from, newnode, alloc, hashstate);
     newnode->hashtable = from->hashtable;
+    newnode->hashtablekey = from->hashtablekey;
+    newnode->hashtablesize = from->hashtablesize;
     
     (*to) = newnode;
     return true;
