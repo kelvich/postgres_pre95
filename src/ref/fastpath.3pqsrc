@@ -1,7 +1,7 @@
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
 .SS "FAST PATH" 6/14/90
-.XA 0 "Section 5 \*- Fast Path"
+.XA 0 "Section 6 \*- Fast Path"
 .uh NAME
 .lp
 fast path \*- trap door into system internals
@@ -15,7 +15,7 @@ implementations of
 .b fast
 .b path
 allowed user functions to be called directly; this feature will reappear in
-Version 2.02 in an improved way.  For now, the above syntax should
+Version 4 in an improved way.  For now, the above syntax should
 be used, with arguments cast into the appropriate types.  By executing the
 above type of query, control transfers completely to the user function; any
 user function can access any \*(PP function or any global variable in the
