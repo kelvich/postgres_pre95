@@ -255,14 +255,6 @@ _elt_!=LispNil;_elt_=CDR(_elt_))
 #define cons(x,y) lispCons(x,y)
 
 /* ----------------
- *	obsolete garbage.  this should go away -cim 4/23/90
- * ----------------
- */
-#define	LISP_GC_OFF		/* yow! */
-#define	LISP_GC_ON		/* yow! */
-#define	LISP_GC_PROTECT(X)	/* yow! */
-
-/* ----------------
  *	extern definitions
  * ----------------
  */

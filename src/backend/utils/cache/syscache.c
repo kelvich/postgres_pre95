@@ -582,8 +582,6 @@ SearchSysCacheGetAttribute(cacheId, attributeNumber, key1, key2, key3, key4)
 	return(LispNil);
     }
     
-    LISP_GC_OFF;
-    
     if (attributeByValue) {
 	returnValue = lispInteger((int) attributeValue);
     } else {
@@ -596,9 +594,6 @@ SearchSysCacheGetAttribute(cacheId, attributeNumber, key1, key2, key3, key4)
 	bcopy(attributeValue, tmp, size);
 	returnValue = (LispValue)tmp;
     }
-    
-    LISP_GC_PROTECT(returnValue);
-    LISP_GC_ON;
     
     heap_close(relation);
     return(returnValue);
@@ -680,7 +675,6 @@ TypeDefaultRetrieve(typId)
      *     to specify and maintain that way.  But nooooo...catalogs have
      *     to contain internal form attributes....
      */
-    LISP_GC_OFF;
     
     if (typByVal) {
 	int32	aligned = 0;
@@ -722,8 +716,6 @@ TypeDefaultRetrieve(typId)
 	}
     }
     
-    LISP_GC_PROTECT(returnValue);
-    LISP_GC_ON;
     return(returnValue);
 }
  

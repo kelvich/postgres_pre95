@@ -22,10 +22,7 @@ ppreserve(pallocObject)
 	int		length;
 
 	length = PSIZEALL(pallocObject);
-	LISP_GC_OFF;
 	vectori = lispVectori(length);
-	LISP_GC_PROTECT(vectori);
-	LISP_GC_ON;
 	bcopy(PSIZEFIND(pallocObject),
 	      (char *) LISPVALUE_BYTEVECTOR(vectori),
 	      length);
@@ -59,10 +56,7 @@ lprestore(ppreservedObject)
 {
 	LispValue	newPointer;
 
-	LISP_GC_OFF;
 	newPointer = lispInteger((int)
 				 prestore(LISPVALUE_BYTEVECTOR(ppreservedObject)));
-	LISP_GC_PROTECT(newPointer);
-	LISP_GC_ON;
 	return(newPointer);
 }
