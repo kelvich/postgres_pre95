@@ -29,7 +29,8 @@ PROG= iportal
 
 CREATEFILES+= \
 	regress.o ufp1.o ufp2.o ufp3.o \
-	create.pq queries.pq errors.pq destroy.pq
+	create.pq queries.pq errors.pq destroy.pq \
+	fstest.sh
 OUTFILES= stud_emp.data onek.data regress.out
 CLEANFILES+= ${CREATEFILES} ${OUTFILES}
 
