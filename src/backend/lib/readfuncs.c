@@ -746,6 +746,11 @@ Param _readParam()
 
 	local_node = (Param) palloc(sizeof(struct _Param));
 
+	token = lsptok(NULL, &length);      /* get :paramkind */
+	token = lsptok(NULL, &length);      /* now read it */
+
+	local_node->paramkind = atoi(token);
+
 	token = lsptok(NULL, &length);      /* get :paramid */
 	token = lsptok(NULL, &length);      /* now read it */
 
@@ -753,12 +758,12 @@ Param _readParam()
 
 	token = lsptok(NULL, &length);      /* get :paramname */
 	token = lsptok(NULL, &length);      /* now read it */
-	token++;
-	token[length - 2] = '\0';
+	token++;			    /* skip the first `"' */
+	token[length - 2] = '\0';	    /* this is the 2nd `"' */
 
 	local_node->paramname = (Name) palloc(sizeof(Char16Data));
 	strcpy(local_node->paramname, token);
-	token[length - 2] = '\"';
+	token[length - 2] = '\"';	/* restore the 2nd `"' */
 
 	token = lsptok(NULL, &length);      /* get :paramtype */
 	token = lsptok(NULL, &length);      /* now read it */

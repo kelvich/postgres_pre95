@@ -400,8 +400,8 @@ char *string;
  * 'paramList' (thsi is a global variable).
  *
  * 'paramList' points to a place in memory where 'ParamListInfoData'
- * structs are contiguously stored. A struct with its field 'name'
- * equal to 'Invalidname' is always the last entry.
+ * structs are contiguously stored. A struct with its field 'kind'
+ * equal to PARAM_INVALID is always the last entry.
  */
 
 static
@@ -424,7 +424,7 @@ Param paramNode;
 	size = sizeof(ParamListInfoData) * maxParamListEntries;
 	paramList = (ParamListInfo) palloc(size);
 	Assert(PointerIsValid(paramList));
-	paramList[0].name = InvalidName;
+	paramList[0].kind = PARAM_INVALID;
     }
 
     /*
@@ -432,12 +432,12 @@ Param paramNode;
      * the same name is found or till we reach the end of the array.
      */
     i = 0;
-    while(NameIsValid(paramList[i].name) &&
+    while(paramList[i].kind != PARAM_INVALID &&
 	    ! NameIsEqual(paramList[i].name, get_paramname(paramNode))) {
 	i += 1;
     }
 
-    if (NameIsValid(paramList[i].name)) {
+    if (paramList[i].kind != PARAM_INVALID) {
 	/*
 	 * we have found a duplicate entry
 	 */
@@ -469,8 +469,17 @@ Param paramNode;
     /*
      * Ok, there is enough room for a new entry.
      */
+    paramList[i].kind = get_paramkind(paramNode);
     paramList[i].name = get_paramname(paramNode); /* Note: no copy! */
-    paramList[i+1].name = InvalidName;
+    /* XXX NOTE: I think that currently the planner does not
+     * fill the 'paramtype' field...
+     */
+    paramList[i].type = get_paramtype(paramNode);
+    
+    /*
+     * mark the next entry in paramList as invalid...
+     */
+    paramList[i+1].kind = PARAM_INVALID;
 
 }
 

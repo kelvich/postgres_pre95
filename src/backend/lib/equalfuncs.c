@@ -215,12 +215,33 @@ _equalParam(a, b)
 	if (!_equalExpr((Expr) a, (Expr) b))
 		return (false);
 
-	if (a->paramid != b->paramid)
-		return (false);
-	if (strcmp(a->paramname, b->paramname) != 0)
+	if (a->paramkind != b->paramkind)
 		return (false);
 	if (a->paramtype != b->paramtype)
 		return (false);
+
+	switch (a->paramkind) {
+	    case PARAM_NAMED:
+	    case PARAM_NEW:
+	    case PARAM_OLD:
+		if (strcmp(a->paramname, b->paramname) != 0)
+			return (false);
+		break;
+	    case PARAM_NUM:
+		if (a->paramid != b->paramid)
+			return (false);
+		break;
+	    case PARAM_INVALID:
+		/*
+		 * XXX: Hmmm... What are we supposed to return
+		 * in this case ??
+		 */
+		return(true);
+		break;
+	    default:
+		elog(WARN, "_equalParam: Invalid paramkind value: %d",
+		a->paramkind);
+	}
 
 	return (true);
 }
