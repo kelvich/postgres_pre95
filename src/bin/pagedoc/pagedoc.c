@@ -195,7 +195,7 @@ main(argc, argv)
     pagedoc(fd, level, reltype);
 
     if (close(fd) < 0) {
-	fprintf("close: ");
+	fprintf(stderr, "close: ");
 	perror(relname);
 	fflush(stderr);
 	exit (1);
