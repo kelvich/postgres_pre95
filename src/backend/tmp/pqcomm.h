@@ -1,6 +1,8 @@
 /*
  * comm.h -- parameters for the communication module
  *
+ * $Header$
+ *
  * Some of this should move to pqlib.h
  */
 
