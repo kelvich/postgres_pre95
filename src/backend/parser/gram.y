@@ -717,7 +717,7 @@ AppendStmt:
 					p_rtable,
 					p_priority, p_ruleinfo);
 			$$ = lispCons ( root , LispNil );
-			$$ = nappend1 ( $$ , $8 ); /* (eq p_target $5) */
+			$$ = nappend1 ( $$ , $7 ); /* (eq p_target $5) */
 			$$ = nappend1 ( $$ , $9 ); /* (eq p_qual $8 */
 			ResdomNoIsAttrNo = 0;
 		}
