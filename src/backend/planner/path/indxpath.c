@@ -112,7 +112,7 @@ find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
 	scanclausegroups =
 	  group_clauses_by_indexkey (rel,index,get_indexkeys (index),
 				     get_classlist (index),clauseinfo_list,
-					      LispNil,LispNil);
+				     false);
 
 
 	scanpaths = LispNil;
@@ -241,6 +241,31 @@ LispValue rel,index,indexkey,xclass,clauseinfo_list ;
      }
 }  /* function end */
 
+/*
+ *	match_index_operand()
+ *
+ *	Generalize test for a match between an existing index's key
+ *	and the operand on the rhs of a restriction clause.  Now check
+ *	for functional indices as well.
+ */
+bool
+match_index_to_operand(indexkey, operand, rel, index)
+    LispValue indexkey;
+    LispValue operand;
+    Rel rel;
+    Rel index;
+{
+    /*
+     * Normal index.
+     */
+    if (index->indproc == InvalidObjectId)
+	return match_indexkey_operand(indexkey, operand, rel);
+
+    /*
+     * functional index check
+     */
+    return (function_index_operand(operand, rel, index));
+}
 /*    
  *    	match-index-orclause
  *    
@@ -284,9 +309,10 @@ match_index_orclause (rel,index,indexkey,xclass,
 	clause = CAR(i);
 	if (is_clause (clause) && 
 	    op_class(get_opno(get_op (clause)),CInteger(xclass)) && 
-	    match_indexkey_operand (indexkey,
-				    get_leftop (clause),
-				    rel) &&
+	    match_index_to_operand (indexkey,
+				    get_leftop(clause),
+				    rel,
+				    index) &&
 	    IsA(get_rightop (clause),Const)) {
 	  
 	  matched_indices =  lispCons(index, matched_indices);
@@ -305,6 +331,20 @@ match_index_orclause (rel,index,indexkey,xclass,
 
 /*    		----  ROUTINES TO CHECK RESTRICTIONS  ---- 	 */
 
+
+/*
+ * DoneMatchingIndexKeys() - MACRO
+ *
+ * Determine whether we should continue matching index keys in a clause.
+ * Depends on if there are more to match or if this is a functional index.
+ * In the latter case we stop after the first match since the there can
+ * be only key (i.e. the function's return value) and the attributes in
+ * keys list represent the arguments to the function.  -mer 3 Oct. 1991
+ */
+#define DoneMatchingIndexKeys(indexkeys, index) \
+	((CDR (indexkeys) == LispNil) || \
+	 (CInteger(CADR(indexkeys)) == 0) || \
+	 (get_indproc(index) != InvalidObjectId))
 
 /*    
  *    	group-clauses-by-indexkey
@@ -336,64 +376,64 @@ match_index_orclause (rel,index,indexkey,xclass,
 /*  .. find-index-paths, group-clauses-by-indexkey, indexable-joinclauses  */
 
 LispValue
-group_clauses_by_indexkey (rel,index,indexkeys,classes,clauseinfo_list,
-			   matched_clauseinfo_list,join)
-     Rel rel,index;
-     LispValue indexkeys,classes,clauseinfo_list,
-     matched_clauseinfo_list,join ;
+group_clauses_by_indexkey (rel,index,indexkeys,classes,clauseinfo_list,join)
+    Rel rel,index;
+    LispValue indexkeys,classes,clauseinfo_list;
+    bool join;
 {
-     LispValue i = LispNil;
-     CInfo temp = (CInfo)NULL;
-     CInfo matched_clause = (CInfo)NULL;
-     LispValue clausegroup = LispNil;
-     LispValue retlist = LispNil;
+    LispValue curCinfo		= LispNil;
+    CInfo matched_clause	= (CInfo)NULL;
+    LispValue retlist		= LispNil;
+    LispValue clausegroup	= LispNil;
 
-    if ( consp (clauseinfo_list) ) {
 
-      foreach (i,clauseinfo_list) {
-	clausegroup = LispNil;
-	temp = (CInfo)CAR(i);
+    if ( !consp (clauseinfo_list) )
+	return LispNil;
 
-	/*    If we can't find any matching clauses for the first of 
-	 *    the remaining keys, give up now. 
-	 */
-	
-	  matched_clause = 
-	  match_clauses_to_indexkey (rel,index,
-				     CAR(indexkeys),
-				     CAR(classes),
-				     lispCons(temp,LispNil),
-				     join);
-	if ( matched_clause ) {
-	    LispValue new_matched_clauseinfo_list =
-	      cons (matched_clause,matched_clauseinfo_list);
-	    if ( CDR (indexkeys) && 
-		CInteger(CADR(indexkeys)) != 0) {
-		clausegroup = 
-		  group_clauses_by_indexkey (rel,index,
-					     CDR (indexkeys),
-					     CDR (classes),
-					     lispCons(temp,LispNil),
-					     new_matched_clauseinfo_list,
-					     join);
-	    } 
-	    else {
-		clausegroup = new_matched_clauseinfo_list;
-/*		  lispCons (new_matched_clauseinfo_list,LispNil); */
-	    } 
-	  }
-	if(consp(clausegroup))
-	  retlist = nappend1(retlist,CAR(clausegroup));
-      }
-      if (null(retlist))
-	return (LispNil);
-      return(lispCons(retlist,LispNil));
+    foreach (curCinfo,clauseinfo_list) {
+	CInfo temp		= (CInfo)CAR(curCinfo);
+	LispValue curIndxKey	= indexkeys;
+	LispValue curClass	= classes;
+
+	do {
+	    /*
+	     * If we can't find any matching clauses for the first of 
+	     * the remaining keys, give up.
+	     */
+	    matched_clause = match_clause_to_indexkey (rel, 
+						       index, 
+						       CAR(curIndxKey),
+						       CAR(curClass),
+						       temp,
+						       join);
+	    if ( !matched_clause )
+		break;
+
+	    clausegroup = cons (matched_clause,clausegroup);
+	    curIndxKey = CDR(curIndxKey);
+	    curClass = CDR(curClass);
+
+	} while ( !DoneMatchingIndexKeys(indexkeys, index) );
     }
-     return(LispNil);
-}  /* function end */
+
+    if (consp(clausegroup))
+	return(lispCons(clausegroup,LispNil));
+    return LispNil;
+}
+
+/*
+ * IndexScanableClause ()  MACRO
+ *
+ * Generalize condition on which we match a clause with an index.
+ * Now we can match with functional indices.
+ */
+#define IndexScanableOperand(opnd, indkeys, rel, index) \
+    ((index->indproc == InvalidObjectId) ? \
+	equal_indexkey_var(indkeys,opnd) : \
+	function_index_operand(opnd,rel,index))
 
 /*    
- *    	match-clauses-to-indexkey
+ *    	match_clause_to-indexkey
  *    
  *    	Finds the first of a relation's available restriction clauses that
  *    	matches a key of an index.
@@ -416,57 +456,92 @@ group_clauses_by_indexkey (rel,index,indexkeys,classes,clauseinfo_list,
 /*  .. group-clauses-by-indexkey  */
  
 CInfo
-match_clauses_to_indexkey (rel,index,indexkey,xclass,clauses,join)
+match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
      Rel rel,index;
-     LispValue indexkey,xclass,clauses,join ;
+     LispValue indexkey,xclass;
+     CInfo clauseInfo;
+     bool join;
 {
-    /* XXX lisp find-if function  --- may be wrong */
-    CInfo clauseinfo = (CInfo)NULL;
-    LispValue i = LispNil;
-    Expr clause = (Expr)NULL;
-    Var leftop = (Var)NULL;
-    Var rightop = (Var)NULL;
-    LispValue clist = LispNil;
+    Expr clause	= get_clause (clauseInfo);
+    Var leftop	= get_leftop (clause);
+    Var rightop	= get_rightop (clause);
+    ObjectId join_op = InvalidObjectId;
+    bool isIndexable = false;
 
-    foreach(i,clauses) {
-	ObjectId join_op = 0;
-	bool temp1 = false ;
-	bool temp2  =false;
+    if ( or_clause (clause))
+	return ((CInfo)NULL);
 
-	clauseinfo = (CInfo)CAR(i);
-	clause = get_clause (clauseinfo);
-	leftop = get_leftop (clause);
-	rightop = get_rightop (clause);
+     /*
+      * If this is not a join clause, check for clauses of the form:
+      * (operator var/func constant) and (operator constant var/func)
+      */
+    if(!join) 
+    {
+	ObjectId restrict_op = InvalidObjectId;
 
-	if ( or_clause (clause))
-	  return ((CInfo)NULL);
+	/*
+	 * Check for standard s-argable clause
+	 */
+	if (IsA(rightop,Const))
+	{
+	    restrict_op = get_opno(get_op(clause));
+	    isIndexable =
+		( op_class(restrict_op, CInteger(xclass)) &&
+		  IndexScanableOperand(leftop,indexkey,rel,index) );
+	}
 
-	if(null (join)) {
-	    ;
-	} 
-	else if (match_indexkey_operand (indexkey,rightop,rel)) {
+	/*
+	 * Must try to commute the clause to standard s-arg format.
+	 */
+	else if (IsA(leftop,Const))
+	{
+	    restrict_op = get_commutator(get_opno(get_op(clause)));
+
+	    if ( (restrict_op != InvalidObjectId) &&
+		  op_class(restrict_op, CInteger(xclass)) &&
+		  IndexScanableOperand(rightop,indexkey,rel,index) )
+	    {
+		isIndexable = true;
+		/*
+		 * In place list modification.
+		 * (op const var/func) -> (op var/func const)
+		 */
+		CommuteClause(clause, restrict_op);
+	    }
+	}
+    } 
+
+    /*
+     * Check for an indexable scan on one of the join relations.
+     * clause is of the form (operator var/func var/func)
+     */
+    else
+    {
+	if (match_index_to_operand (indexkey,rightop,rel,index))
 	    join_op = get_commutator (get_opno (get_op (clause)));
-	} 
-	else if (match_indexkey_operand (indexkey,leftop,rel)) {
+
+	else if (match_index_to_operand (indexkey,leftop,rel,index))
 	    join_op = get_opno (get_op (clause));
-	} 
-	
-	temp1 = (bool) (join_op == 0    /*   (op var const) */
-			&& op_class(get_opno(get_op(clause)),CInteger(xclass))
-			&& ( (qual_clause_p(clause)
-			      && equal_indexkey_var(indexkey,leftop))
-			    || function_index_clause_p(clause,rel,index)));
-		
-	temp2 = (bool) (join_op && op_class(join_op,CInteger(xclass)) &&
-			join_clause_p(clause));
-	  
-	if (temp1 || temp2) 
-	  return(clauseinfo);
-/*	  clist = lispCons(clauseinfo,clist); */
-      }
-      return(NULL);
-/*    return(clist); */
-} /* function end */
+
+	if ( join_op && op_class(join_op,CInteger(xclass)) &&
+	     join_clause_p(clause))
+	{
+	    isIndexable = true;
+
+	    /*
+	     * If we're using the operand's commutator we must
+	     * commute the clause.
+	     */
+	    if ( join_op != get_opno(get_op(clause)) )
+		CommuteClause(clause);
+	}
+    }
+
+    if (isIndexable)
+	return(clauseInfo);
+
+    return(NULL);
+}
 
 
 			  
@@ -502,13 +577,13 @@ indexable_joinclauses (rel,index,joininfo_list)
     foreach(i,joininfo_list) { 
 	joininfo = (JInfo)CAR(i);
 	clausegroups = 
-	  group_clauses_by_indexkey (rel,index,
+	  group_clauses_by_indexkey (rel,
+				     index,
 				     get_indexkeys(index),
 				     get_classlist (index),
 				     get_jinfoclauseinfo(joininfo),
-				     LispNil,
-				     LispTrue);
-		
+				     true);
+
 	if ( consp (clausegroups)) {
 	    set_cinfojoinid (CAAR(clausegroups),
 			get_otherrels(joininfo));
@@ -695,4 +770,64 @@ List indexpaths, new_indexpaths;
 	    retlist = nappend1(retlist, path);
       }
     return retlist;
+}
+
+bool
+function_index_operand(funcOpnd, rel, index)
+    LispValue funcOpnd;
+    Rel rel;
+    Rel index;
+{
+    ObjectId heapRelid	= CInteger(CAR(get_relids(rel)));
+    Func function 	= (Func)get_function(funcOpnd);
+    LispValue funcargs	= get_funcargs(funcOpnd);
+    LispValue indexKeys	= get_indexkeys(index);
+    LispValue arg;
+
+    /*
+     * sanity check, make sure we know what we're dealing with here.
+     */
+    if ( !((consp(funcOpnd) && function) && IsA(function,Func)) )
+	return false;
+
+    if (get_funcid(function) != get_indproc(index))
+	return false;
+
+    /*
+     * Check that the arguments correspond to the same arguments used
+     * to create the functional index.  To do this we must check that
+     * 1. refer to the right relatiion. 
+     * 2. the args have the right attr. numbers in the right order.
+     *
+     *
+     * Check all args refer to the correct relation (i.e. the one with
+     * the functional index defined on it (rel).  To do this we can
+     * simply compare range table entry numbers, they must be the same.
+     */
+    foreach (arg, funcargs) 
+    {
+	if (heapRelid != get_varno(CAR(arg)))
+	    return false;
+    }
+
+    /*
+     * check attr numbers and order.
+     */
+    foreach (arg, funcargs) 
+    {
+	int curKey;
+
+	if (indexKeys == LispNil)
+	    return (false);
+
+	curKey = CInteger(CAR(indexKeys));
+	indexKeys = CDR (indexKeys);
+	if (get_varattno(CAR(arg)) != curKey)
+	    return (false);
+    }
+
+    /*
+     * We have passed all the tests.
+     */
+    return true;
 }
