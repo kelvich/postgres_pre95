@@ -794,6 +794,16 @@ StartTransaction()
     s->state = TRANS_INPROGRESS;      
 }
 
+/* ---------------
+ * Tell me if we are currently in progress
+ * ---------------
+ */
+bool
+CurrentXactInProgress()
+{
+    return (CurrentTransactionState->state == TRANS_INPROGRESS);
+}
+
 /* --------------------------------
  *	CommitTransaction
  *
