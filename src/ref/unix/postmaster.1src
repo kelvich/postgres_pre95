@@ -62,15 +62,16 @@ starts.  This value defaults to 64.
 .TP
 .BR "-D" " data_dir"
 Specifies the directory to use as the root of the tree of database
-directories.  This directory defaults to the value of the environment
+directories.  This directory uses the value of the environment
 variable 
-.SM PGDATA ;
-if 
+.SM PGDATA.
+If 
 .SM PGDATA
-is not set, then the default is
+is not set, then the directory used is
 .SM $POSTGRESHOME\c
 /data.  If neither environment variable is set and this command-line
-option is not specified, a default set at compile-time is used.
+option is not specified, the default directory that was
+set at compile-time is used.
 .TP
 .BR "-a" " system"
 Specifies whether or not to use the authentication system 
@@ -104,7 +105,7 @@ tries to find this executable file in the directory in which its own
 executable is located (this is done by looking at the pathname under
 which the
 .IR "postmaster"
-was invoked; if no pathname was specified, then the
+was invoked.  If no pathname was specified, then the
 .SM PATH
 environment variable is searched for an executable named
 \*(lqpostgres\*(rq).
@@ -179,6 +180,7 @@ port (using command-line options or
 when starting any libpq application, including the terminal monitor.
 .SH "EXAMPLES"
 .(C
+# start postmaster using default values
 postmaster &
 .)C
 This command will start up 
@@ -189,6 +191,7 @@ to find an executable file called \*(lqpostgres\*rq.  This is the
 simplest and most common way to start the
 .IR "postmaster" .
 .(C
+# start with specific port and executable name
 postmaster -p 1234 -b /usr/postgres/bin/postgres &
 .)C
 This command will start up a postmaster communicating through the port
