@@ -77,16 +77,7 @@ Query :
 	| DestroyStmt
 	| InsertStmt 
 	| QuitStmt
-	  /*
-	   * Process all indices as one transaction block to avoid
-	   * non-functional update error which occurs as a result of
-	   * xactid's not being incremented during bootstrap processing.
-	   * What a pain.
-	   */
-	| DefineIndices
-		{
-		    DO_END;
-		}
+	| DefineIndexStmt
 	| RenameRelnStmt
 	| RenameAttrStmt
 	| DisplayStmt
@@ -215,11 +206,6 @@ QuitStmt:
 		  StartPortalAllocMode(DefaultAllocMode, 0);
 		  cleanup();
 		}
-	;
-
-DefineIndices:
-	  DefineIndexStmt
-	| DefineIndices DefineIndexStmt
 	;
 
 DefineIndexStmt:
