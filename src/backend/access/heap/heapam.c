@@ -673,13 +673,9 @@ heap_open(relationId)
     
     r = (Relation) RelationIdGetRelation(relationId);
 
-    if (RelationIsValid(r) && r->rd_rel->relkind != 'r') {
-	if (r->rd_rel->relkind == 'i')
-	    elog(WARN, "%.16s is an index relation",
-		 &(r->rd_rel->relname.data[0]));
-	else
-	    elog(WARN, "%.16s is not a heap relation",
-		 &(r->rd_rel->relname.data[0]));
+    if (RelationIsValid(r) && r->rd_rel->relkind == 'i') {
+	elog(WARN, "%.16s is an index relation",
+	     &(r->rd_rel->relname.data[0]));
     }
 
     return (r);
@@ -707,13 +703,9 @@ heap_openr(relationName)
     
     r = (Relation) RelationNameGetRelation(relationName);
 
-    if (RelationIsValid(r) && r->rd_rel->relkind != 'r') {
-	if (r->rd_rel->relkind == 'i')
-	    elog(WARN, "%.16s is an index relation",
-		 &(r->rd_rel->relname.data[0]));
-	else
-	    elog(WARN, "%.16s is not a heap relation",
-		 &(r->rd_rel->relname.data[0]));
+    if (RelationIsValid(r) && r->rd_rel->relkind == 'i') {
+	elog(WARN, "%.16s is an index relation",
+	     &(r->rd_rel->relname.data[0]));
     }
 
     return (r);
