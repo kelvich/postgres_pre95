@@ -388,7 +388,7 @@ AllocateRelationDesc(natts, relp)
     len = sizeof(RelationData) + 
 	((int)natts - 1) * sizeof(relation->rd_att) + /* var len struct */
 	    sizeof(IndexStrategy)
-	    + sizeof(RegProcedure *);
+	    + sizeof(RegProcedure *) + 10;	/* + 10 is voodoo XXX mao */
     
     relation = (Relation) palloc(len);
     
