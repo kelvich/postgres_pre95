@@ -55,8 +55,9 @@ TOOLSLIBDIR= /usr/local/lib
 #
 #PORTNAME=	sparc
 PORTNAME=	ultrix4
+
 #
-# POSTGRESUSER is the login name of the user who gets special
+# POSTGRESLOGIN is the login name of the user who gets special
 # privilige over the databases.  By default it is "postgres", but
 # you can change it to any existing login name (such as your own 
 # login if you are compiling a private version or don't have root
@@ -65,15 +66,17 @@ POSTGRESLOGIN= postgres
 
 POSTGRESDIR=	/private/devel/postgres
 #
-# where the database lives (changeable at run time by setting PGDATA
-# in your environment
+# Where the database lives (changeable at run time by setting PGDATA
+# in your environment)
 #
 DATADIR=	${POSTGRESDIR}/data
+
 #
-# where the postgres executables live (changeable by just putting them
-# else and putting that directory in your shell PATH
+# Where the postgres executables live (changeable by just putting them
+# somewhere else and putting that directory in your shell PATH)
 #
 BINDIR=		${POSTGRESDIR}/bin
+
 #
 # where libpq.a gets installed.  You must put it where your loader will
 # look for it if you wish to use the -lpq.a convention.  Otherwise you
