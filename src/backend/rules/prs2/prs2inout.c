@@ -84,7 +84,7 @@ RuleLock locks;
 	 */
 	oneLock = prs2GetOneLockFromLocks(locks, i);
 	sprintf(s1,
-    " (ruleId: %ld lockType: %c attrNo: %d planNo: %d partindx: %d npart %d)",
+    " (ruleId: %ld lockType: %c attrNo: %d planNo: %d partindx: %d npart: %d)",
 	    prs2OneLockGetRuleId(oneLock),
 	    prs2OneLockGetLockType(oneLock),
 	    prs2OneLockGetAttributeNumber(oneLock),
