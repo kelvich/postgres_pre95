@@ -14,12 +14,16 @@
  *      EXPORTS
  *     		create-or-index-paths
  */
-
-#include "internal.h"
 #include "pg_lisp.h"
+#include "internal.h"
+#include "relation.h"
+#include "relation.a.h"
+#include "orindxpath.h"
+#include "nodeFuncs.h"
+#include "primnodes.h"
+#include "primnodes.a.h"
 
-extern LispValue best_or_subclause_indices();
-extern LispValue best_or_subclause_index();
+extern List index_selectivity(); /* #include "cfi.h" */
 
 #define INDEX_SCAN 1
 
@@ -46,7 +50,7 @@ create_or_index_paths (rel,clauses)
 
      if ( consp (clauses) ) {
 	  /* XXX - let form, maybe incorrect */
-	  LispValue clausenode = CAR (clauses);
+	  CInfo clausenode = (CInfo) (CAR (clauses));
 
 	  /* Check to see if this clause is an 'or' clause, and, if so, */
 	  /* whether or not each of the subclauses within the 'or' clause has */
@@ -58,15 +62,15 @@ create_or_index_paths (rel,clauses)
 	     get_index (clausenode)) {
 	       LispValue temp = LispNil;
 	       LispValue index_list = LispNil;
-	       LispValue index_flag = LispTrue;
-	       index_list = get_index(clausenode);
+	       bool index_flag = true;
+
+	       index_list = get_indexids(clausenode);
 	       foreach(temp,index_list) {
-		    if (identity(temp) == LispNil) 
-		      index_flag = LispNil;
+		    if (!identity(temp)) 
+		      index_flag = false;
 	       }
 	       if (index_flag) {   /* used to be a lisp every function */
-		    /* XXX - let form, maybe incorrect */
-		    LispValue pathnode = create_node ("Path");
+		    Path pathnode = CreateNode (Path);
 		    LispValue indexinfo = 
 		      best_or_subclause_indices (rel,
 						 get_orclauseargs
@@ -133,7 +137,6 @@ best_or_subclause_indices (rel,subclauses,indices,
 		  nreverse (selectivities));
      } 
      else {
-	  /* XXX - let form, maybe incorrect */
 	  LispValue indexinfo = 
 	    best_or_subclause_index (rel,CAR (subclauses),CAR (indices));
 
@@ -174,26 +177,27 @@ best_or_subclause_index (rel,subclause,indices)
      LispValue t_list = LispNil;
 
      if ( consp (indices) ) {
-	  LispValue value = LispNil;
-	  LispValue flag = LispNil;
+	  Datum 	value;
+	  bool 		flag = false;
 	  LispValue pagesel = LispNil;
-	  LispValue subcost = LispNil;
-	  LispValue bestrest = LispNil;
-	  LispValue index = CAR (indices);
-	  LispValue attno = get_varattno (get_leftop (subclause));
-	  LispValue opno = get_opno (subclause);
-	  LispValue constant_on_right = non_null (get_rightop (subclause));
+	  Cost 		subcost;
+	  LispValue 	bestrest = LispNil;
+	  LispValue 	index = CAR (indices);
+	  AttributeNumber attno = get_varattno (get_leftop (subclause));
+	  ObjectId 	opno = get_opno (subclause);
+	  bool 		constant_on_right = non_null (get_rightop (subclause));
+
 	  if(constant_on_right) {
 	       value = get_constvalue (get_rightop (subclause));
 	  } 
 	  else {
-	       value = "";
+	       value = NameGetDatum("");
 	  } 
 	  if(constant_on_right) {
-	       flag = logior (_SELEC_IS_CONSTANT_,_SELEC_CONSTANT_RIGHT_);
+	       flag = (bool)(_SELEC_IS_CONSTANT_ ||_SELEC_CONSTANT_RIGHT_);
 	  } 
 	  else {
-	       flag = _SELEC_CONSTANT_RIGHT_;
+	       flag = (bool)_SELEC_CONSTANT_RIGHT_;
 	  } 
 	  pagesel = index_selectivity (nth (0,get_indexid (rel)),
 				       get_class (index),
@@ -212,10 +216,10 @@ best_or_subclause_index (rel,subclause,indices)
 				get_tuples (index));
 	  bestrest = best_or_subclause_index (rel,subclause,CDR (indices));
 		
-	  if(null (bestrest) || 
-	     subcost < nth (1,bestrest)) {
-	       t_list = list (nth (0,get_indexid (index)),
-			      subcost,nth (1,pagesel));
+	  if(null (bestrest) || (subcost < CInteger(CAR(bestrest)) )) {
+	       /* XXX - this used to be "list "(CAR(get....index),.." */
+	       t_list = list (get_indexid (index),
+			      subcost,CADR(pagesel));
 	  } 
 	  else {
 	       t_list = bestrest;
