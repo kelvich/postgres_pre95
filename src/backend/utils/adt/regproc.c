@@ -3,25 +3,20 @@
  * 	Functions for the built-in type "RegProcedure".
  */
 
-#include "c.h"
+#include <strings.h>
+
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 
-#include "postgres.h"
-#include <strings.h>
+#include "access/heapam.h"
+#include "access/relscan.h"
+#include "access/skey.h"
+#include "access/tqual.h"	/* for NowTimeQual */
+#include "utils/fmgr.h"
+#include "utils/log.h"
 
-#include "skey.h"
-#include "fmgr.h"
-#include "log.h"
-
-#include "catname.h"
-#include "heapam.h"
-#include "relscan.h"
-#include "tqual.h"	/* for NowTimeQual */
-
-#include "regproc.h"
-
-
+#include "catalog/catname.h"
 
 	    /* ========== USER I/O ROUTINES ========== */
 

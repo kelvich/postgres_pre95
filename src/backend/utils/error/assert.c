@@ -8,12 +8,12 @@
 
 #include <stdio.h>
 
-#include "c.h"
-#include "trace.h"
+#include "tmp/c.h"
+#include "utils/module.h"
 
 RcsId("$Header$");
 
-#include "exc.h"
+#include "utils/exc.h"
 
 /*
  * There might be a need to specially handle FailedAssertion, below.

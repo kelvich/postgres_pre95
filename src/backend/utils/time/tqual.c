@@ -5,16 +5,14 @@
 
 /* #define TQUALDEBUG	1 */
 
-#include "c.h"
+#include "tmp/postgres.h"
 
-#include "htup.h"
-#include "log.h"
-#include "tim.h"
-#include "xcxt.h"
-#include "xid.h"
-#include "xlog.h"
+#include "access/htup.h"
+#include "access/xcxt.h"
+#include "access/xlog.h"
+#include "utils/log.h"
 
-#include "tqual.h"
+#include "access/tqual.h"
 
 RcsId("$Header$");
 

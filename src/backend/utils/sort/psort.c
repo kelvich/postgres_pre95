@@ -13,26 +13,32 @@
  *		MAXMERGE, MAXTAPES
  */
 
-#include "c.h"
+#include <stdio.h>
+
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include <stdio.h>
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "access/relscan.h"
+#include "access/skey.h"
+#include "access/tqual.h"	/* for NowTimeQual */
 
-#include "skey.h"
-#include "log.h"
-#include "psort.h"
-#include "lselect.h"
+#include "storage/buf.h"
+#include "storage/bufmgr.h"	/* for BLCKSZ */
+#include "tmp/portal.h"		/* for {Start,End}PortalAllocMode */
+#include "utils/log.h"
+#include "utils/rel.h"
 
-#include "bufmgr.h"	/* for BLCKSZ */
-#include "buf.h"
-#include "fd.h"
-#include "heapam.h"
-#include "htup.h"
-#include "rel.h"
-#include "relscan.h"
-#include "portal.h"	/* for {Start,End}PortalAllocMode */
-#include "tqual.h"	/* for NowTimeQual */
+#include "utils/psort.h"
+#include "utils/lselect.h"
+
+#ifdef sprite
+#include "sprite_file.h"
+#else
+#include "storage/fd.h"
+#endif /* sprite */
 
 struct	tape {
 	int		tp_dummy;		/* (D) */
