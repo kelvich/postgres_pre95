@@ -167,7 +167,7 @@ relopen(relationName, flags, mode)
     
     file = FileNameOpenFile(relpath(relationName), flags, mode);
     if (file == -1) 
-	elog(NOTICE, "Unable too open %s (%d)", relpath(relationName), errno);
+	elog(NOTICE, "cannot open %s (%d)", relpath(relationName), errno);
     
     umask(oumask);
     
