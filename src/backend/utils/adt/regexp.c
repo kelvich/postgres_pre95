@@ -1,8 +1,28 @@
-/*
- *  regexp.c -- regular expression handling code.
+/* ----------------------------------------------------------------
+ *   FILE
+ *	regexp.c
  *
+ *   DESCRIPTION
+ *	regular expression handling code.
+ *
+ *   INTERFACE ROUTINES
+ *	char16regexeq
+ *	char16regexne
+ *	textregexeq
+ *	textregexne
+ *
+ *   NOTES
+ *	Uses the old AT&T compile/step code.  While this is not very
+ *	politically-correct (it has been removed from 4.x BSD) it is
+ *	the most portable C library solution since everyone names their
+ *	own regular expression routines something different (applying
+ *	different standards)...
+ *
+ *   IDENTIFICATION
  *	$Header$
+ * ----------------------------------------------------------------
  */
+
 #include "tmp/postgres.h"	/* postgres system include file */
 #include "utils/log.h"		/* for logging postgres errors */
 
@@ -19,9 +39,12 @@
 #define	EXPBUFSZ	256
 #define	PCHARLEN	16
 
-#if defined(PORTNAME_alpha)
+#if defined(PORTNAME_alpha) || defined(PORTNAME_aix)
+/*
+ * XOPEN NLS support breaks this stuff horribly.
+ */
 #undef _XOPEN_SOURCE
-#endif /* PORTNAME_alpha */
+#endif /* PORTNAME_alpha || PORTNAME_aix */
 #include <regexp.h>
 
 /*
