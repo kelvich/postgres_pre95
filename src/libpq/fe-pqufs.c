@@ -404,7 +404,7 @@ PDIR *p_opendir(path)
     argv[0].len = VAR_LENGTH_ARG;
     argv[0].u.ptr = (int *)resolve_path(path);
 
-    pqret = PQfn(F_FILETOOID,(int *)&pathOID,sizeof(int32),NULL,1,argv,1);
+    pqret = PQfn(F_FILENAMETOOID,(int *)&pathOID,sizeof(int32),NULL,1,argv,1);
     if (pqret == NULL)
       return NULL;
     else if (*pqret == 'V')
