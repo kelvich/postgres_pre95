@@ -1,5 +1,4 @@
 /* $Header$ */
-extern List donothing ARGS((List tuple, List attrdesc));
 extern List ExecMain ARGS((List queryDesc, EState estate, List feature));
 extern List InitPlan ARGS((int operation, List parseTree, Plan plan, EState estate));
 extern List EndPlan ARGS((Plan plan, EState estate));

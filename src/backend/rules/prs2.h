@@ -829,7 +829,6 @@ PlanToString ARGS((
 extern LispValue StringToPlan();
 extern LispValue StringToPlanWithParams();
 
-extern LispValue MakeQueryDesc();
 /* XXX this causes circular dependency!
 extern EState CreateExecutorState();
 */

@@ -11,110 +11,6 @@
  */
 #define COMMAND_H	"$Header$"
 
-#include "tmp/c.h"
-#include "nodes/pg_lisp.h"
-#include "nodes/plannodes.h"
-
-/*
- * CreateQueryDesc --
- *	Returns a query descriptor created from a parse and plan.
- *
- * Note:
- *	This definition belongs closer to the executor code.
- */
-extern
-List
-CreateQueryDesc ARGS((
-	List	parse,
-	List	plan
-));
-
-/*
- * ValidateParse --
- *	Returns normally iff parser output is *syntatically* valid.
- *
- * Exceptions:
- *	.
- */
-extern
-void
-ValidateParse ARGS((
-	List	parse
-));
-
-/*
- * ValidateParsedQuery --
- *	Returns normally iff parsed query command is *syntatically* valid.
- *
- * Exceptions:
- *	.
- */
-extern
-void
-ValidateParsedQuery ARGS((
-	List	parse
-));
-
-/*
- * ProcessQuery --
- *	.
- *
- * Exceptions:
- *	.
- */
-extern
-void
-ProcessQuery ARGS((
-	LispValue	parse,
-	Plan		plan
-));
-
-/*
- * ValidateUtility --
- *	Returns normally iff parsed utility command is *syntatically* valid.
- *
- * Exceptions:
- *	.
- */
-extern
-void
-ValidateUtility ARGS((
-	int		commandTag,
-	LispValue	args
-));
-
-/*
- * ProcessUtility --
- *	.
- *
- * Exceptions:
- *	.
- */
-extern
-void
-ProcessUtility ARGS((
-	int		commandTag,
-	LispValue	args
-));
-
-/*
- * EndCommand --
- *	Informs the frontend that command has finished.
- *
- * Exceptions:
- *	BadArg if invalid commandId.
- *
- * Note:
- *	The commandId is a free-format identification string which some
- * frontends (e.g, terminal monitors) may be interested in seeing.  There
- * should be a standard described in the protocol documentation.
- */
-extern
-void
-EndCommand ARGS((
-	String	commandId
-));
-
 /*
  * PortalCleanup --
  *	Cleans up the query state of the portal.
@@ -167,22 +63,6 @@ void
 PerformAddAttribute ARGS((
 	Name	relationName,
 	List	schema
-));
-
-/*
- * PerformRelationFilter --
- *	Performs the POSTQUEL function COPY.
- */
-extern
-void
-PerformRelationFilter ARGS((
-	Name	relationName,
-	bool	isBinary,
-	bool	noNulls,
-	bool	isFrom,
-	String	fileName,
-	Name	mapName,
-	List	domains
 ));
 
 #endif	/* !defined(CommandIncluded) */
