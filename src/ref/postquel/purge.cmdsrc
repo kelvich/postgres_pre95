@@ -31,13 +31,16 @@ as the purge date never decreases.
 \*(PP will enforce this restriction, silently.
 .uh EXAMPLE
 .lp
-.nf
-\* Always discard data in the EMP class prior to January 1, 1989 \*
-
-   purge EMP before "January 1, 1989"
-	
-\* Retain only the current data in EMP \*
-
-   purge EMP
-.fi
-
+/* Always discard data in the EMP class prior to January 1, 1989 */
+.lp
+purge EMP before "Jan 1 1989"
+.lp
+/* Retain only the current data in EMP */
+.lp
+purge EMP
+.lp
+.uh BUGS
+.lp
+Error messages are quite unhelpful.  A complaint about "inconsistent times"
+followed by several nine-digit numbers indicates an attempt to "back up"
+a purge date on a relation.
