@@ -29,6 +29,8 @@ static char *rcsid = "$Header$";
 #include "relation.h"
 #include "relation.a.h"
 #include "internal.h"
+#include "primnodes.h"
+#include "primnodes.a.h"
 #include "var.h"
 #include "tlist.h"
 #include "clauses.h"
@@ -38,7 +40,7 @@ extern LispValue copy_seq_tree();
 extern LispValue tlist_varsnreverse();
 extern Var make_var();
 
-static LispValue flatten_tlistentry();
+static TLE flatten_tlistentry();
 
 /*    	---------- RELATION node target list routines ----------
  */
@@ -58,12 +60,13 @@ static LispValue flatten_tlistentry();
 
 LispValue
 tlistentry_member (var,targetlist,test)
-     LispValue var,targetlist;
+     Var var;
+     List targetlist;
      bool (*test)();
 {
-	extern LispValue lambda1();
-	if ( var != LispNil )
-		return ( find (var,targetlist,lambda1,test) );
+    extern LispValue lambda1();
+	if ( var)
+	  return ( find (var,targetlist,lambda1,test));
 }
 
 /* called by tlistentry-member */
@@ -88,16 +91,18 @@ LispValue lambda1 (x)
 /*  .. add_tl_element, collect-index-pathkeys, extract-path-keys
  *  .. new-join-pathkey, new-matching-subkeys
  */
-LispValue
+
+Expr
 matching_tlvar (var,targetlist,test)
-     LispValue var,targetlist;
+     Var var;
+     List targetlist;
      bool (*test)();
 {
 	LispValue tlentry;
 
 	tlentry = tlistentry_member (var,targetlist,test);
 	if ( tlentry ) 
-		return(tl_expr (get_tlelement (tlentry)) );
+		return((Expr)get_expr (get_tlelement (tlentry)) );
 }
 
 /*    
@@ -119,7 +124,7 @@ LispValue
 add_tl_element (rel,var,joinlist)
      LispValue rel,var,joinlist ;
 {
-    LispValue oldvar;
+    Expr oldvar;
     
     oldvar = matching_tlvar (var,get_tlist (rel));
     
@@ -224,22 +229,23 @@ get_actual_tlist (tlist)
  *  .. set-temp-tlist-operators
  */
 
-LispValue
+Resdom
 tlist_member (var,tlist,dots,key,test)
-     LispValue var,tlist,dots,key;
+     Var var;
+     List tlist,dots,key;
      bool (*test)();
 {
-	/* declare (special (dots)); */
-
-	if ( var != LispNil ) {
-		LispValue tl_elt = find (var,tlist,
-				     key , tl_expr /* func */,
-				     test, var_equal /* func */);
-		if ( consp (tl_elt) ) 
-		  return(tl_resdom (tl_elt));
-		else 
-		  return(LispNil);
-	}
+    /* declare (special (dots)); */
+    
+    if ( var) {
+	TLE tl_elt = (TLE)find (var,tlist,
+				key , tl_expr /* func */,
+				test, var_equal /* func */);
+	if ( consp (tl_elt) ) 
+	  return(get_resdom (tl_elt));
+	else 
+	  return((Resdom)NULL);
+    }
 }
 
 /*    
@@ -427,21 +433,22 @@ flatten_tlist_vars (full_tlist,flat_tlist)
  *    	'tlistentry' is the target list entry to be modified
  *    	'flat-tlist' is the flattened target list
  *    
- *    	Returns the (modified) node from the target list.
+ *    	Returns the (modified) target_list entry from the target list.
  *    
  */
 
 /*  .. flatten-tlist-vars, flatten-tlistentry
  */
-static LispValue
+
+static TLE
 flatten_tlistentry (tlistentry,flat_tlist)
-     LispValue tlistentry,flat_tlist ;
+     TLE tlistentry,flat_tlist ;
 {
 	if(null (tlistentry)) {
-		return(LispNil);
+		return((TLE)NULL);
 	} 
 	else if (var_p (tlistentry)) {
-		return(tl_expr (match_varid (get_varid (tlistentry),
+		return((TLE)get_expr (match_varid (get_varid (tlistentry),
 					     flat_tlist)));
 	} 
 	else if (single_node (tlistentry)) {
@@ -455,10 +462,10 @@ flatten_tlistentry (tlistentry,flat_tlist)
 		  temp_result = nappend1(temp_result,
 				    flatten_tlistentry(elt,flat_tlist));
 
-		return(make_funcclause (get_function (tlistentry),
+		return((TLE)make_funcclause (get_function (tlistentry),
 					temp_result));
 	} else {
-		return(make_clause (get_op (tlistentry),
+		return((TLE)make_clause (get_op (tlistentry),
 			     flatten_tlistentry (get_leftop (tlistentry),
 						 flat_tlist),
 			     flatten_tlistentry (get_rightop (tlistentry),
