@@ -57,7 +57,10 @@ ParamListInfo *paramListP;
     /*
      * get the tuple form the system cache
      */
-    planTuple = SearchSysCacheTuple(PRS2PLANCODE, ruleId, planNumber);
+    planTuple = SearchSysCacheTuple(PRS2PLANCODE,
+				    (char *) ObjectIdGetDatum(ruleId),
+				    (char *) Int32GetDatum(planNumber),
+				    (char *) NULL, (char *) NULL);
     if (planTuple == NULL) {
 	/*
 	 * No such rule exist! Complain!
@@ -113,10 +116,10 @@ Name relationName;
      * Search the system cache for the relation tuple
      */
     relationTuple = SearchSysCacheTuple(RELNAME,
-			    relationName,
-			    (char *) NULL,
-			    (char *) NULL,
-			    (char *) NULL);
+					(char *) relationName,
+					(char *) NULL,
+					(char *) NULL,
+					(char *) NULL);
     if (!HeapTupleIsValid(relationTuple)) {
 	elog(WARN, "prs2GetLocksFromRelation: no rel with name '%s'\n",
 	relationName);
@@ -186,12 +189,8 @@ Prs2EStateInfo prs2EStateInfo;
     if (planQual == LispNil)
 	return(1);
 
-    status = prs2RunOnePlanAndGetValue(
-		    planQual,
-		    paramList,
-		    prs2EStateInfo,
-		    NULL, NULL, NULL);
-    
+    status = prs2RunOnePlanAndGetValue(planQual, paramList, prs2EStateInfo,
+				       (Datum *) NULL, (Boolean *) NULL);
     return(status);
 }
 
