@@ -270,12 +270,23 @@ new_relation_targetlist (relid,rt_index,node_type)
      Name attname = (Name)NULL;
      ObjectId atttype = 0;
      int16 typlen = 0;
+     bool attisset = false, iscomplex = false;
 
      foreach(i, number_list(1,(get_relnatts(relid)))) {
 	 attno = CAR(i);
 	 attname = get_attname (relid,CInteger(attno));
 	 atttype = get_atttype (relid,CInteger(attno));
-	 typlen = get_typlen (atttype);
+	 /* Since this is an append or replace, the size of any set
+	  * attribute is the size of the OID used to represent it.
+	  */
+	 attisset = get_attisset (relid, attname);
+	 if (attisset) {
+	      typlen = tlen(type("oid"));
+	      iscomplex = false;
+	 } else {
+	      typlen = get_typlen (atttype);
+	      iscomplex = ISCOMPLEX(atttype);
+	 }
 
 	 switch (node_type) {
 	       
@@ -296,10 +307,11 @@ new_relation_targetlist (relid,rt_index,node_type)
 				    (Datum)typedefault,
 				    (typedefault == (struct varlena *)NULL),
 				    /* XXX this is bullshit */
-				    false);
+				    false,
+                                    false /* not a set */);
 		 
 		 temp3 = MakeTLE (MakeResdom (CInteger(attno),atttype,
-					      ISCOMPLEX(atttype),
+					      iscomplex,
 					      typlen,
 					      attname,
 					      0,
@@ -322,7 +334,7 @@ new_relation_targetlist (relid,rt_index,node_type)
 						    LispNil)), 0);
 		 temp_list = MakeTLE (MakeResdom( CInteger(attno),
 						  atttype,
-						  ISCOMPLEX(atttype),
+						  iscomplex,
 						  typlen,
 						  attname,
 						  0,
