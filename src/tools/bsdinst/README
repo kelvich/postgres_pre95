@@ -1,0 +1,5 @@
+$Header$
+
+This is just a copy of the bsdinst script from the MIT X11R5
+distribution.  It works acceptably as a substitute for the BSD 
+install(1) program.
