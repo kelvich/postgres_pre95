@@ -201,8 +201,17 @@ char *ruleText;
 		elog(WARN,
 		"Can not define tuple rules in non-base type attributes");
 	}
+	/*
+	 * "on delete" and "on append" rules must not have an attribute
+	 * specified in the event clause.
+	 */
+	if (r->eventType == EventTypeDelete)
+	    elog(WARN,
+	    "On Delete rules must not have an attribute in their event clause");
+	if (r->eventType == EventTypeAppend)
+	    elog(WARN,
+	    "On Append rules must not have an attribute in their event clause");
     }
-
 
     /*
      * check if we use CURRENT on a 'on append' rule, or NEW
