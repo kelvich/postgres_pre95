@@ -927,17 +927,29 @@ SISegmentInit(killExistingSegment, key)
             perror("SISegmentGet: failed");
             return(-1);                                     /* an error */
         }
-     
-        status = shmctl(shmId, IPC_STAT, &shbuf);       /* XXX unneeded? */
+
+	/*************************************
+	  
+	  XXX - the following 10 lines just copy buffer info 
+	  into shbuf, and then copy it back.
+	  shbuf is then never used again, so these
+	  lines are theoretically unecessary.
+	  If things don't break, we should probably
+	  permanently remove them
+
+        status = shmctl(shmId, IPC_STAT, &shbuf);       
         if (status < 0) {
             perror("shmctl:stat");
             return(-1);
         }
-        status = shmctl(shmId, IPC_SET, &shbuf);        /* XXX unneeded? */
+        status = shmctl(shmId, IPC_SET, &shbuf);        
         if (status < 0) {
             perror("shmctl:set");
             return(-1);
         }
+	
+	***************************************/
+
         /* Attach the shared cache invalidation  segment */
         /* sets the global variable shmInvalBuffer */
         SISegmentAttach(shmId);
