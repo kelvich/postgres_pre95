@@ -465,7 +465,7 @@ TransBlockNumberGetXidStatus(relation, blockNumber, xid, failP)
      *	get the page containing the transaction information
      * ----------------
      */
-    buffer = 	   ReadBuffer(relation, blockNumber, 0);
+    buffer = 	   ReadBuffer(relation, blockNumber);
     block =   	   BufferGetBlock(buffer);
 
     /* ----------------
@@ -518,7 +518,7 @@ TransBlockNumberSetXidStatus(relation, blockNumber, xid, xstatus, failP)
      *	get the block containing the transaction status
      * ----------------
      */
-    buffer = 	ReadBuffer(relation, blockNumber, 0);
+    buffer = 	ReadBuffer(relation, blockNumber);
     block =   	BufferGetBlock(buffer);
     
     /* ----------------
@@ -569,7 +569,7 @@ TransBlockNumberGetCommitTime(relation, blockNumber, xid, failP)
      *	get the block containing the transaction information
      * ----------------
      */
-    buffer = 		ReadBuffer(relation, blockNumber, 0);
+    buffer = 		ReadBuffer(relation, blockNumber);
     block =   		BufferGetBlock(buffer);
 
     /* ----------------
@@ -625,7 +625,7 @@ TransBlockNumberSetCommitTime(relation, blockNumber, xid, xtime, failP)
      *	get the block containing our commit time
      * ----------------
      */
-    buffer = 	   ReadBuffer(relation, blockNumber, 0);
+    buffer = 	   ReadBuffer(relation, blockNumber);
     block =   	   BufferGetBlock(buffer);
 
     /* ----------------
@@ -691,7 +691,7 @@ TransGetLastRecordedTransaction(relation, xid, failP)
      * ----------------
      */
     blockNumber =  n-1;
-    buffer = 	ReadBuffer(relation, blockNumber, 0);
+    buffer = 	ReadBuffer(relation, blockNumber);
     block =   	BufferGetBlock(buffer);
 
     /* ----------------

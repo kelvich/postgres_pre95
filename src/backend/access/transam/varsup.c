@@ -85,7 +85,7 @@ VariableRelationGetNextXid(xid)
      *  release the buffer
      * ----------------
      */
-    buf = ReadBuffer(VariableRelation, 0, 0);
+    buf = ReadBuffer(VariableRelation, 0);
 
     if (! BufferIsValid(buf))
 	elog(WARN, "VariableRelationGetNextXid: RelationGetBuffer failed");
@@ -120,7 +120,7 @@ VariableRelationGetLastXid(xid)
      *  release the buffer
      * ----------------
      */
-    buf = ReadBuffer(VariableRelation, 0, 0);
+    buf = ReadBuffer(VariableRelation, 0);
 
     if (! BufferIsValid(buf))
 	elog(WARN, "VariableRelationGetNextXid: RelationGetBuffer failed");
@@ -155,7 +155,7 @@ VariableRelationPutNextXid(xid)
      *  write the page back out to disk.
      * ----------------
      */
-    buf = ReadBuffer(VariableRelation, 0, 0);
+    buf = ReadBuffer(VariableRelation, 0);
 
     if (! BufferIsValid(buf))
 	elog(WARN, "VariableRelationPutNextXid: RelationGetBuffer failed");
@@ -190,7 +190,7 @@ VariableRelationPutLastXid(xid)
      *  force the page back out to disk.
      * ----------------
      */
-    buf = ReadBuffer(VariableRelation, 0, 0);
+    buf = ReadBuffer(VariableRelation, 0);
 
     if (! BufferIsValid(buf))
 	elog(WARN, "VariableRelationPutLastXid: RelationGetBuffer failed");
@@ -231,7 +231,7 @@ VariableRelationGetNextOid(oid_return)
      *  release the buffer
      * ----------------
      */
-    buf = ReadBuffer(VariableRelation, 0, 0);
+    buf = ReadBuffer(VariableRelation, 0);
 
     if (! BufferIsValid(buf))
 	elog(WARN, "VariableRelationGetNextXid: RelationGetBuffer failed");
@@ -288,7 +288,7 @@ VariableRelationPutNextOid(oidP)
      *  write the page back out to disk.
      * ----------------
      */
-    buf = ReadBuffer(VariableRelation, 0, 0);
+    buf = ReadBuffer(VariableRelation, 0);
 
     if (! BufferIsValid(buf))
 	elog(WARN, "VariableRelationPutNextXid: RelationGetBuffer failed");
