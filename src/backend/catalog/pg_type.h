@@ -75,6 +75,16 @@ typedef FormData_pg_type	*Form_pg_type;
 #define Anum_pg_type_typsend		13
 #define Anum_pg_type_typdefault		14
 
+/*
+ * XXX -- the implementation of int28's in postgres is a hack, and will
+ *	  go away someday.  until that happens, there is a case (in the
+ *	  catalog cache management code) where we need to step gingerly
+ *	  over piles of int28's on the sidewalk.  in order to do so, we
+ *	  need the OID of the int28 tuple from pg_type.
+ */
+
+#define INT28OID	22
+
 /* ----------------
  *	initial contents of pg_type
  * ----------------
