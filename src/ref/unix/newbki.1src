@@ -1,0 +1,64 @@
+.\" This is -*-nroff-*-
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.TH NEWBKI UNIX 02/14/94
+.XA 1 Newbki
+.SH NAME
+newbki \(em change the \*(PG superuser in the database template files
+.SH SYNOPSIS
+.BR newbki
+username
+.SH DESCRIPTION
+.IR Newbki
+is a script that changes the \*(UU user name and user ID of the \*(PG
+superuser in the database template files.
+.PP
+As packaged, \*(PG assumes that there exists a user named 
+\*(lqpostgres\*(rq on your system with the same user ID as on our 
+systems.  This will not (in general) be the case.  Before trying to
+create any databases, you should run
+.IR newbki
+to update the template files.
+.PP
+Note that this only updates the files from which the template
+database will be built if you run the 
+.IR initdb (unix)
+command.  This in turn implies that you will have to run
+.IR cleardbdir (unix)
+to destroy the existing template database and any existing user 
+databases \(em
+.IR initdb
+will not run unless this has been done.
+.SH FILES
+.TP
+\&$PGDATA/base
+The location of global (shared) classes.
+.TP
+\&$PGDATA/base/template1
+The location of the template database.
+.TP
+\&$PGDATA/files/{global1,local1_template1}.bki
+Command files used to generate the global and template databases,
+generated and installed by the initial compilation process.  These
+are the only files modified by 
+.IR newbki .
+.SH "SEE ALSO"
+initdb(cleardbdir),
+createdb(unix),
+initdb(unix),
+bki(files),
+template(files).
+.SH CAVEATS
+There is no good way to change the \*(PG user ID after you have
+started creating new databases.
+.IR newbki
+is definitely 
+.BR not 
+the recommended way to try to do this.  You might think that
+you can save your databases in flat files using 
+.IR copy (commands)
+and then restore them after 
+.IR initdb 
+has been executed.  However, there is the additional problem 
+that the \*(PG user ID is embedded in the system catalog data 
+itself.
