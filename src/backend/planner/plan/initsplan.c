@@ -35,6 +35,7 @@
 #include "pg_lisp.h"
 #include "lsyscache.h"
 #include "planner/tlist.h"
+#include "planner/clausesel.h"
 
 extern bool _enable_mergesort_;
 extern bool _enable_hashjoin_;

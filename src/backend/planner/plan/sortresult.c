@@ -25,7 +25,7 @@
 #include "pg_lisp.h"
 #include "planner/tlist.h"
 #include "planner/sortresult.h"
-
+#include "planner/costsize.h"
 
 /*    
  *    	relation-sortkeys

@@ -23,8 +23,10 @@
 #include "nodeFuncs.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
+#include "planner/costsize.h"
+#include "planner/cfi.h"
 
-extern List index_selectivity(); /* #include "cfi.h" */
+/*extern List index_selectivity(); #include "cfi.h" */ 
 
 #define INDEX_SCAN 1
 

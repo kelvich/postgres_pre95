@@ -27,7 +27,7 @@
 #include "planner/clauseinfo.h"
 #include "planner/cfi.h"
 #include <math.h>
-
+#include "planner/costsize.h"
 
 
 /*    	====================
