@@ -186,3 +186,8 @@ extern LispValue TypeDefaultRetrieve();
 */
 extern TLE MakeTLE();
 extern void set_joinlist();
+
+#define TOLERANCE 0.000001
+
+#define FLOAT_EQUAL(X,Y) ((X) - (Y) < TOLERANCE)
+#define FLOAT_IS_ZERO(X) (FLOAT_EQUAL(X,0.0))
