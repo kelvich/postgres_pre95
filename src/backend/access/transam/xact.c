@@ -561,7 +561,8 @@ RecordTransactionCommit()
      *  plai 8/7/90
      * ----------------
      */
-    BufferManagerFlush(!TransactionFlushEnabled());
+    BufferPoolCheckLeak();
+    FlushBufferPool(!TransactionFlushEnabled());
     
     /* ----------------
      *	have the transaction access methods record the status
@@ -574,7 +575,8 @@ RecordTransactionCommit()
      *	Now write the log/time info to the disk too.
      * ----------------
      */
-    BufferManagerFlush(!TransactionFlushEnabled());
+    BufferPoolCheckLeak();
+    FlushBufferPool(!TransactionFlushEnabled());
 }
 
 
@@ -667,7 +669,7 @@ RecordTransactionAbort()
      *  plai 8/7/90
      * ----------------
      */
-    BufferManagerFlush(!TransactionFlushEnabled());
+    ResetBufferPool(!TransactionFlushEnabled());
 }
 
 /* --------------------------------
