@@ -46,7 +46,11 @@ LargeObjectDataPtr;
 /*
  * Other large object schemes can be thought of - their numbering
  * should go here.
- *
+ */
+#define EXTERNAL_FILE	3
+#define JAQUITH_FILE	4
+
+/*
  * !! VARIABLE LENGTH STRUCTURE !!
  */
 
