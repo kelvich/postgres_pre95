@@ -662,6 +662,9 @@ make_const( value )
 /*	printf("in make_const\n");*/
 	fflush(stdout);
 
+        if(value == LispNil){
+          return (LispNil);
+        }
 	switch( value->type ) {
 	  case PGLISP_INT:
 	    tp = type("int4");
