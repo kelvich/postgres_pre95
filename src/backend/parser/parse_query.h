@@ -13,3 +13,4 @@ LispValue SkipBackToTlist ARGS((void));
 LispValue SkipForwardPastFromList ARGS((void));
 StripRangeTable ARGS((void));
 extern LispValue make_const ARGS((LispValue value));
+extern LispValue make_param ARGS((int paramKind, char * relationName, char *attrName));
