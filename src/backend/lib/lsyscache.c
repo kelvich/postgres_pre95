@@ -35,6 +35,7 @@
  *    
  */
 
+#include "pg_lisp.h"
 #include "syscache.h"
 #include "c.h"
 #include "cat.h"

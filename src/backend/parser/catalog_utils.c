@@ -2,7 +2,7 @@ static char *catalog_utils_c = "$Header$";
 
 
 #include "catalog_utils.h"
-#include "lispdep.h"
+#include "pg_lisp.h"
 #include "log.h"
 #include "fmgr.h"
 #include "syscache.h"

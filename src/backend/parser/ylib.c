@@ -4,7 +4,7 @@ static char *ylib_c = "$Header$";
 
 #include "log.h"
 /*#include "catalog_utils.h"*/
-#include "lispdep.h"
+#include "pg_lisp.h"
 #include "exc.h"
 #include "excid.h"
 #include "io.h"
