@@ -688,8 +688,18 @@ _sjregister(item, group)
 /*
  *  _sjchoose() -- Choose a platter to receive a new extent.
  *
- *	For now, this makes a really stupid choice.  Need to think about
- *	the right way to go about this.
+ *	Allocation strategy is:
+ *
+ *	  + For the first extent of a new relation, put it on the first
+ *	    platter <= 2/3 full.
+ *
+ *	  + For second and subsequent extents of an existing relation:
+ *
+ *	    -  If there's a platter holding another extent for this
+ *	       relation, and that platter has room for this extent,
+ *	       allocate it there.
+ *
+ *	    -  Otherwise, allocate the extent on any platter <= 2/3 full.
  */
 
 static Form_pg_plmap
