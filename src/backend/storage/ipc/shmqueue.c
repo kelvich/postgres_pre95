@@ -15,6 +15,7 @@
  */
 #include "tmp/postgres.h"
 #include "storage/shmem.h"
+#include "utils/log.h"
 
 /*
  * ShmemQueueInit -- make the head of a new queue point
@@ -59,21 +60,67 @@ SHM_QUEUE	*queue;
   SHM_QUEUE *prevElem = (SHM_QUEUE *) MAKE_PTR((queue)->prev);
 
 /*
-  printf("curr: %x next %x prev %x: prev.next %x next.prev %x\n",
-	 MAKE_OFFSET(queue),queue->next,queue->prev,
-	 nextElem->prev,prevElem->next);
+  dumpQ(queue);
 */
+
   Assert(SHM_PTR_VALID(queue));
   Assert(SHM_PTR_VALID(nextElem));
   Assert(SHM_PTR_VALID(prevElem));
   prevElem->next =  (queue)->next;
   nextElem->prev =  (queue)->prev;
+
 /*
-  printf("curr: %x next %x prev %x: prev.next %x next.prev %x\n",
-	 MAKE_OFFSET(queue),queue->next,queue->prev,
-	 nextElem->prev,prevElem->next);
+  dumpQ((SHM_QUEUE *)MAKE_PTR(queue->prev));
 */
 
+}
+
+dumpQ(q)
+SHM_QUEUE	*q;
+{
+    char elem[16];
+    char buf[512];
+    SHM_QUEUE	*start = q;
+    int count = 0;
+
+    sprintf(buf, "q prevs: %x", MAKE_OFFSET(q));
+    q = (SHM_QUEUE *)MAKE_PTR(q->prev);
+    while (q != start)
+    {
+	sprintf(elem, "--->%x", MAKE_OFFSET(q));
+	strcat(buf, elem);
+	q = (SHM_QUEUE *)MAKE_PTR(q->prev);
+	if (q->prev == MAKE_OFFSET(q))
+	    break;
+	if (count++ > 40)
+	{
+	    strcat(buf, "BAD PREV QUEUE!!");
+	    break;
+	}
+    }
+    sprintf(elem, "--->%x", MAKE_OFFSET(q));
+    strcat(buf, elem);
+    elog(DEBUG, buf);
+
+    sprintf(buf, "q nexts: %x", MAKE_OFFSET(q));
+    count = 0;
+    q = (SHM_QUEUE *)MAKE_PTR(q->next);
+    while (q != start)
+    {
+	sprintf(elem, "--->%x", MAKE_OFFSET(q));
+	strcat(buf, elem);
+	q = (SHM_QUEUE *)MAKE_PTR(q->next);
+	if (q->next == MAKE_OFFSET(q))
+	    break;
+	if (count++ > 10)
+	{
+	    strcat(buf, "BAD NEXT QUEUE!!");
+	    break;
+	}
+    }
+    sprintf(elem, "--->%x", MAKE_OFFSET(q));
+    strcat(buf, elem);
+    elog(DEBUG, buf);
 }
 
 /*
@@ -104,10 +151,18 @@ SHM_QUEUE *queue,*elem;
   Assert(SHM_PTR_VALID(queue));
   Assert(SHM_PTR_VALID(elem));
 
+/*
+  dumpQ(queue);
+*/
+
   (elem)->prev = nextPtr->prev;
   (elem)->next = queue->next;
   (queue)->next = elemOffset;
   nextPtr->prev = elemOffset;
+
+/*
+  dumpQ(queue);
+*/
 }
 
 /*
