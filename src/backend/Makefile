@@ -17,7 +17,7 @@ BIGOBJS= true
 #
 # these systems have fast linkers and don't need the BIGOBJ stuff.
 #
-.if (${PORTNAME} == "aix" && ${PORTNAME} == "linux")
+.if (${PORTNAME} == "aix" || ${PORTNAME} == "linux")
 .undef BIGOBJS
 .endif
 
