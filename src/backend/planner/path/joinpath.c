@@ -13,12 +13,13 @@
  *     		find-all-join-paths
  */
 
-#include "pg_lisp.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
+
 #include "planner/internal.h"
-#include "relation.h"
-#include "relation.a.h"
-#include "plannodes.h"
-#include "plannodes.a.h"
 #include "planner/joinpath.h"
 #include "planner/relnode.h"
 #include "planner/mergeutils.h"
