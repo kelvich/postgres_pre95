@@ -186,15 +186,6 @@ cost_index (indexid,expected_indexpages,selec,relpages,
 	} 
     }
 
-#ifdef _xprs_
-    if (clustered(indexid) || 
-	((expected_indexpages + selec * reltuples) <= NBuffers))
-       temp += (expected_indexpages + selec * relpages) +
-	      _CPU_PAGE_WEIGHT_  * selec * (indextuples + reltuples);
-    else
-      temp +=  (expected_indexpages + selec * reltuples) +
-	     _CPU_PAGE_WEIGHT_ * selec * (indextuples + reltuples);
-#else /* _xprs_ */
 	CostAddCount(temp, expected_indexpages);
 				/*   expected index relation pages */
 
@@ -206,7 +197,6 @@ cost_index (indexid,expected_indexpages,selec,relpages,
 	CostAddCostTimesCount(temp2, selec, indextuples);
 	CostAddCostTimesCount(temp2, selec, reltuples);
     temp =  temp + (_CPU_PAGE_WEIGHT_ * temp2);
-#endif /* _xprs_ */
     return(temp);
 } /* end cost_index */
 
