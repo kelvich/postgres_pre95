@@ -122,6 +122,7 @@ DefineQueryRewrite ( args )
 
 	 prs2PutLocks ( ruleId, RelationGetRelationId (event_relation),
 		       event_attno,
+		       event_attno,
 		       this_event,
 		       prs2actiontype  );
     }
