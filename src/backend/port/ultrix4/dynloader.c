@@ -59,7 +59,7 @@
 
 #include "tmp/c.h"
 #include "fmgr.h"
-#include "utils/dynamic_loader.h"
+#include "port-protos.h"
 
 extern char pg_pathname[];
 
@@ -69,12 +69,8 @@ static char *path = "/usr/tmp/postgresXXXXXX";
 
 #define PAGE_ROUND(X) ((X) % 512 == 0 ? (X) : (X) - (X) % 512 + 512)
 
-DynamicFunctionList *
-dynamic_file_load(err, filename, start_addr, size)
-
-char **err, *filename, **start_addr;
-long *size;
-
+void *pg_dlopen( filename, err )
+     char *filename; char **err;
 {
 	extern etext, edata, end;
 	extern char *mktemp();
@@ -83,12 +79,13 @@ long *size;
 	char command[256];
 	unsigned long image_size, true_image_size;
 	FILE *temp_file = NULL;
-	DynamicFunctionList *retval = NULL, *load_symbols();
+	DynamicFunctionList *func_list = NULL, *load_symbols();
 	struct filehdr obj_file_struct, ld_file_struct;
 	AOUTHDR obj_aout_hdr, ld_aout_hdr;
 	struct scnhdr scn_struct;
 	int size_text, size_data = 0, size_bss = 0, bss_offset;
 	int i, fd;
+	dfHandle *handle= NULL;
 
 	fd = open(filename, O_RDONLY);
 
@@ -199,15 +196,19 @@ long *size;
 	}
 	else
 	{
-		retval = load_symbols(temp_file_name, load_address);
+		func_list = load_symbols(temp_file_name, load_address);
 	}
+
+	handle= (dfHandle*)malloc(sizeof(dfHandle));
+	handle->func_list= func_list;
+	handle->load_address= load_address;
+	handle->size= true_image_size;
 
 finish_up:
 	fclose(temp_file);
 	unlink(temp_file_name);
-	*start_addr = load_address;
-	*size = true_image_size;
-	return retval;
+
+	return (void *)handle;
 }
 
 /*
@@ -267,4 +268,49 @@ int entry_addr;
 	unlink(tmp_file);
 	pfree(tmp_file);
 	return(head);
+}
+
+func_ptr pg_dlsym( handle, funcname )
+     void *handle; char *funcname;
+{
+    dfHandle *dfhandle= (dfHandle *)handle;
+    DynamicFunctionList *func_scanner;
+
+    if (funcname==NULL)
+	return (func_ptr)NULL;
+    func_scanner= dfhandle->func_list;
+    while(func_scanner) {
+	if (!strcmp(func_scanner->funcname, funcname)) 
+	    return func_scanner->func;
+	func_scanner= func_scanner->next;
+    }
+    return (func_ptr)NULL;
+}
+
+void pg_dlclose( handle )
+     void *handle;
+{
+    dfHandle *dfhandle= (dfHandle *)handle;
+    DynamicFunctionList *func_scanner, *throw_away;
+    
+    bzero(dfhandle->load_address, dfhandle->size);
+
+#if !defined(OLD_DEC) 
+    /*
+     * Some dynamic loaders use brk/sbrk - DON'T TRY TO FREE THIS SPACE.
+     */
+    free((char *) dfhandle->load_address);
+#endif /* !OLD_DEC */
+
+    func_scanner = dfhandle->func_list;
+    for (throw_away = func_scanner->next;
+	 throw_away != (DynamicFunctionList *) NULL;) {
+        throw_away = func_scanner->next;
+	free((char *) func_scanner->funcname);
+        free((char *) func_scanner);
+        func_scanner = throw_away;
+    }
+    free((char *) dfhandle->func_list);
+
+    return;
 }
