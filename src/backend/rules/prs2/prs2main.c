@@ -173,6 +173,8 @@ Buffer *returnedBufferP;
 				explainRelation,
 				oldTuple,
 				oldBuffer,
+				rawTuple,
+				rawBuffer,
 				relation);
 	    break;
 	case APPEND:
