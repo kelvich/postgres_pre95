@@ -56,6 +56,15 @@ for preformance compairsons for stable vs. non-stable storage.  Do not
 use this in other cases, as recovery after a system crash may be impossible
 when -S is specified in the absence of stable main memory.
 .sp
+.uh "DIAGNOSTICS"
+.lp
+\fBsemget: No space left on device\fR
+.pp
+If you see this message, you should run the \fIipcclean\fR command.
+After doing this, try running postgres again.  If this still doesn't
+work, you will need to configure your kernel for shared memory and
+semaphores as described in the installation notes.
+.sp
 .uh "SEE ALSO"
 .lp
 monitor (unix),
