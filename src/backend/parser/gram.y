@@ -43,7 +43,6 @@ extern LispValue new_filestr();
 extern LispValue parser_typecast();
 extern LispValue make_targetlist_expr();
 extern Relation amopenr();
-
 bool CurrentWasUsed = false;
 bool NewWasUsed = false;
 
@@ -162,7 +161,6 @@ stmt :
 	| TransactionStmt
   	| ViewStmt
 	;
-
 
  /**********************************************************************
 
@@ -703,21 +701,21 @@ newruleTag: P_TUPLE
 	| REWRITE 
 		{ $$ = KW(rewrite); }
 	| /* EMPTY */
-		{ $$ = KW(rewrite); }
+		{ $$ = KW(tuple); }
 	;
 
 RuleBody: 
-	ON event TO event_object opt_qual
-	DO opt_instead 
+	ON event TO event_object
 	{ 
 	    NewOrCurrentIsReally = $4;
 	    QueryIsRule = true;
 	} 
+	opt_qual DO opt_instead 
 	OptimizableStmt
 	{
 	    $$ = lispCons($9,LispNil);		/* action */
-	    $$ = lispCons($7,$$);		/* instead */
-	    $$ = lispCons($5,$$);		/* event-qual */
+	    $$ = lispCons($8,$$);		/* instead */
+	    $$ = lispCons($6,$$);		/* event-qual */
 	    $$ = lispCons($4,$$);		/* event-object */
 	    $$ = lispCons($2,$$);		/* event-type */
 	}
@@ -733,8 +731,72 @@ event:
   	RETRIEVE | REPLACE | DELETE | APPEND ;
 
 opt_qual:
-	where_clause
+	{ 
+	    LispValue temp;
+	    /*
+	     * Save the parser state so that this qualification
+	     * creates its own range table etc.
+	     * But as it is a rule query, we allow 'current' or 'new'
+	     */
+	    SaveParserState();
+	    QueryIsRule = true;
+	    
+	}
+	opt_from_clause where_clause
+		{
+		    /*
+		     * create a parse tree correpsonding to the
+		     * query :
+		     *		retrieve (x=1)
+		     *		from <from_clause>
+		     *		where <qual>
+		     */
+		    LispValue root;
+		    LispValue targetList;
+		    LispValue targetListExpr;
+		    LispValue qual;
+
+		    StripRangeTable();
+
+		    /*
+		     * create the dummy target list "(x=1)"
+		     */
+		    targetListExpr = make_targetlist_expr(
+					    lispString("x"),
+					    make_const(lispInteger(1)));
+		    targetList = lispCons(targetListExpr, LispNil);
+
+		    /*
+		     * create the parse tree for this fake retrieve
+		     * statement
+		     */
+		    root = MakeRoot(NumLevels,
+			    KW(retrieve),
+			    LispNil,	/* result */
+			    p_rtable,
+			    p_priority,
+			    p_ruleinfo,
+			    LispNil,	/* unique */
+			    LispNil,	/* sort by */
+			    targetList);
+		    qual = $3;
+		    $$ = lispCons(root, LispNil);
+		    $$ = nappend1($$, targetList);
+		    $$ = nappend1($$, qual);
+		    /*
+		     * Now restore the parser state
+		     */
+		    RestoreParserState();
+		}
+	| /* empty */	{ NULLTREE ; }
 	;
+
+opt_from_clause:
+	FROM from_list
+		{
+		    $$ = $2;
+		}
+	| /* empty */	{ NULLTREE ; }
 
 opt_instead:
   	INSTEAD				{ $$ = lispInteger((int)true); }
@@ -1392,14 +1454,13 @@ b_expr:	a_expr { $$ = CDR($1) ; } /* necessary to strip the addnl type info
 array_attribute:
 	  attr
 		{
-		$$ = make_var ( CString(CAR ($1)) , CString(CDR($1)));
+		$$ = make_var ( CString(CAR ($1)) , CString(CDR($1)), 0);
 		}
 	| attr '[' Iconst ']'
 		{ 
 		     Var temp = (Var)NULL;
-		     temp = (Var)make_var ( CString(CAR($1)),
-				       CString(CADR($1)) );
-		     $$ = (LispValue)MakeArrayRef( temp , $3 );
+		     $$ = (LispValue) make_var ( CString(CAR($1), CString(CDR($1)),
+								   CInteger($3)));
 		}
 a_expr:
 	  attr
@@ -1408,7 +1469,8 @@ a_expr:
 		    temp =  (Var)CDR ( make_var ( CString(CAR ($1)) , 
 					    CString(CDR($1)) ));
 
-		    $$ = temp;
+		    $$ = (LispValue) temp;
+
 		    /*
 		    if (CurrentWasUsed) {
 			$$ = (LispValue)MakeParam ( PARAM_OLD , 
@@ -1431,16 +1493,16 @@ a_expr:
 		}
 	| attr '[' Iconst ']'
 		{ 
-		     Var temp = (Var)NULL;
 		     /* XXX - fix me after video demo */
-		     temp = (Var)make_var ( CString(CAR($1)),
-				       CString(CDR($1)) );
-		     
-		     $$ = lispCons ( lispInteger ( 23 ),
-		     		MakeArrayRef( temp , $3 ));
+			 LispValue tmp = (LispValue) make_array_ref_var(CString(CAR($1)),
+                                                            CString(CDR($1)),
+                                                            CInteger($3));
+
+		     $$ = (LispValue) lispCons ( lispInteger ( 23 ), CDR(tmp));
 		}
 	| AexprConst		
 	| spec 
+	| AexprNewOrCurrent
 	| '-' a_expr %prec UMINUS
   		{ $$ = make_op(lispString("-"),$2, LispNil); }
 	| a_expr '+' a_expr
@@ -1560,7 +1622,7 @@ res_target_el:
 		      Resdom resnode;
 		      int type_id, type_len;
 
-		      temp = make_var ( CString(CAR($1)) , CString(CDR($1)));
+		      temp = make_var ( CString(CAR($1)) , CString(CDR($1)), 0);
 		      type_id = CInteger(CAR(temp));
 		      type_len = tlen(get_id_type(type_id));
 		      resnode = MakeResdom ( p_last_resno++ ,
@@ -1577,8 +1639,7 @@ opt_id:
 	;
 
 relation_name:
-	SpecialRuleRelation
-	| Id		/*$$=$1*/
+	Id		/*$$=$1*/
 	;
 
 access_method: 		Id 		/*$$=$1*/;
@@ -1607,6 +1668,40 @@ spec_tail:
 	| '.' Id			{ $$ = $2 ; }
 	;
 
+AexprNewOrCurrent:
+	  NEW '.' attribute
+		{
+		    /*
+		     * We have to check if this is
+		     * a rule. If not then this is a syntax error!
+		     */
+		    if(!QueryIsRule) {
+			yyerror("\"new\" used in non-rule query");
+		    }
+		    /*
+		     * create the param node.
+		     */
+		    $$ = make_param(PARAM_NEW,
+				CString(CAR(NewOrCurrentIsReally)),
+				CString($3));
+		}
+	| CURRENT '.' attribute
+		{
+		    /*
+		     * We have to check if this is
+		     * a rule. If not then this is a syntax error!
+		     */
+		    if(!QueryIsRule) {
+			yyerror("\"current\" used in non-rule query");
+		    }
+		    /*
+		     * create the param node.
+		     */
+		    $$ = make_param(PARAM_OLD,
+				CString(CAR(NewOrCurrentIsReally)),
+				CString($3));
+		}
+
 AexprConst:
 	  Iconst			{ $$ = make_const ( $1 ) ; }
 	| FCONST			{ $$ = make_const ( $1 ) ; }
@@ -1626,24 +1721,6 @@ Sconst:		SCONST			{ $$ = yylval; }
 Id:
 	  IDENT					
 		{ $$ = yylval; }
-SpecialRuleRelation:
-	CURRENT
-		{ 
-		    if (QueryIsRule) {
-		      $$ = CAR ( NewOrCurrentIsReally );
-		      CurrentWasUsed = true;
-		    } else 
-		      yyerror("\"current\" used in non-rule query");
-		}
-	| NEW
-		{ 
-		    if (QueryIsRule) {
-		      $$ = CAR ( NewOrCurrentIsReally );
-		      NewWasUsed = true;
-		    } else 
-		      elog(WARN,"NEW used in non-rule query"); 
-		    
-		}
 	;
 
 Addattr:		ADD_ATTR	{ $$ = yylval ; } ;
@@ -1737,4 +1814,63 @@ make_targetlist_expr ( name , expr )
 					  CString(name), 0 , 0 ) ,
 			      lispCons((Var)CDR(expr),LispNil)) );
     
+}
+
+/********************************************************************
+
+    SaveParserState:
+	save the current parser state
+    RestoreParserState:
+	restore the previous parser state
+    
+********************************************************************/
+
+static int previous_NumLevels;
+static LispValue previous_p_target;
+static LispValue previous_p_qual;
+static LispValue previous_p_root;
+static LispValue previous_p_priority;
+static LispValue previous_p_ruleinfo;
+static LispValue previous_p_rtable;
+static LispValue previous_p_trange;
+static int previous_p_last_resno;
+static int previous_p_numlevels;
+static LispValue previous_p_target_resnos;
+static bool previous_ResdomNoIsAttrNo;
+static bool previous_QueryIsRule;
+
+SaveParserState()
+{
+    previous_NumLevels = NumLevels;
+    previous_p_target = p_target;
+    previous_p_qual = p_qual;
+    previous_p_root = p_root;
+    previous_p_priority = p_priority;
+    previous_p_ruleinfo = p_ruleinfo;
+    previous_p_rtable = p_rtable;
+    previous_p_trange = p_trange;
+    previous_p_last_resno = p_last_resno;
+    previous_p_numlevels = p_numlevels;
+    previous_p_target_resnos = p_target_resnos;
+    previous_ResdomNoIsAttrNo = ResdomNoIsAttrNo;
+    previous_QueryIsRule = QueryIsRule;
+
+    parser_init;
+}
+
+RestoreParserState()
+{
+    NumLevels = previous_NumLevels;
+    p_target = previous_p_target;
+    p_qual = previous_p_qual;
+    p_root = previous_p_root;
+    p_priority = previous_p_priority;
+    p_ruleinfo = previous_p_ruleinfo;
+    p_rtable = previous_p_rtable;
+    p_trange = previous_p_trange;
+    p_last_resno = previous_p_last_resno;
+    p_numlevels = previous_p_numlevels;
+    p_target_resnos = previous_p_target_resnos;
+    ResdomNoIsAttrNo = previous_ResdomNoIsAttrNo;
+    QueryIsRule = previous_QueryIsRule;
 }
