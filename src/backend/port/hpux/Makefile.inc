@@ -17,10 +17,9 @@ LDFLAGS+= -W l,-E
 LDADD+= -ll -ldld
 
 #
-# cbrt(3m) and rint(3m) are missing from the 8.07 math library.
-# rint(3m) and cbrt(3m) are broken in the 9.01 math library.
-# 9.00 on the 800s seems to be missing cbrt(3m) even though
-# it is documented.
+# cbrt(3m) and rint(3m) are missing from 8.07.
+# cbrt(3m) and rint(3m) are broken in 9.01.
+# cbrt(3m) seems to be missing on 9.00 even though it is documented.
 #
 CFLAGS+= -DNEED_RINT -DNEED_CBRT
 
@@ -32,14 +31,17 @@ CFLAGS+= -DNEED_RINT -DNEED_CBRT
 #
 
 #
-# The YACC grammar is too big..
+# (1) The YACC grammar is too big..
 # (HP-UX 9.0x, x<2, added basic block limits for +O2; 9.0x, x>=2, changed
 # the syntax to something else.)
+#
+# (2) The 9.00 optimizer chokes on some of our source.
 #
 .if (${HPUX_MAJOR} == "09")
 .  if !defined(CDEBUG)
 .    if (${HPUX_MINOR} == "00" || ${HPUX_MINOR} == "01")
 CFLAGS+= +Obb600
+CFLAGS+= -DWEAK_C_OPTIMIZER
 .    else
 CFLAGS+= +Onolimit
 .    endif
@@ -48,4 +50,4 @@ CFLAGS+= +Onolimit
 
 HEADERS+= fixade.h machine.h port-protos.h
 
-SRCS+= dynloader.c port.c
+SRCS+= dynloader.c port.c tas.s
