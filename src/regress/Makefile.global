@@ -38,7 +38,14 @@ SLSUFF=.so
 	${LD} -H512 -T512 -o ${.TARGET} -e _nostart \
 		-bI:${LIBDIR}/postgres.exp -bE:$*${EXPSUFF} $*.o \
 		-lm -lc 2>/dev/null
+.elif (${PORTNAME} == "svr4")
+CFLAGS+= -K pic
+SLSUFF=.so
+.SUFFIXES: ${SLSUFF}
+.o${SLSUFF}:
+	${LD} -G ${LDFLAGS} -o ${.TARGET} ${.IMPSRC}
 .endif
+
 SLSUFF?=.o
 
 .SUFFIXES: .source .pq .sh
