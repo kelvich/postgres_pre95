@@ -10,7 +10,7 @@ static char rcs_id[] =
 
 #include <math.h>
 #include <float.h>	/* faked on sunos */
-#include <stdio.h>
+#include <stdio.h>	/* for sprintf proto, etc. */
 #include <strings.h>
 
 #include "utils/geo-decls.h"
