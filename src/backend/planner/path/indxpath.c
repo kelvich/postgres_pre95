@@ -149,8 +149,7 @@ find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
 	     
 	sortpath = LispNil;
 	if ( valid_sortkeys(sortkeys) && null(scanclausegroups) && 
-	    null(joinclausegroups) && equal(get_relid(sortkeys),
-					    get_relid (rel)) && 
+	    null(joinclausegroups) && (get_relid(sortkeys) == get_relid(rel)) && 
 	    equal_path_path_ordering(get_sortorder (sortkeys),
 				     get_ordering (index)) && 
 	    equal (get_sortkeys(sortkeys),get_indexkeys (index))) {
