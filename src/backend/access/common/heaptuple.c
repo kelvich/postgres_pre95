@@ -639,7 +639,17 @@ fastgetattr(tup, attnum, att, isnull)
 	        case -1:
 	            usecache = false;
 		    off = LONGALIGN(off) + sizeof(long);
-	    	    off += LONGALIGN(PSIZE(tp + off));
+		    /* 
+		     * The alignment after a varlena must correspond to 
+		     * the type of the attribute we're fetching, otherwise 
+		     * we might not get the right n bytes.
+		     */
+		    if (att[attnum]->attlen == sizeof(short))
+			off = SHORTALIGN(off + PSIZE(tp + off));
+		    else if (att[attnum]->attlen == sizeof(char))
+			off += PSIZE(tp + off);
+		    else
+			off += LONGALIGN(PSIZE(tp + off));
 		    break;
 		default:
 		    off = LONGALIGN(off + att[i]->attlen);
