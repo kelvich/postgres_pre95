@@ -156,19 +156,19 @@ T}
 	>\(eq	bool oidge(oid, oid)	greater or equal
 	>	bool oidgt(oid, oid)	greater than
 _
-oidchar16	!\(eq	bool	oidchar16ne(oidchar16, oidchar16)	inequality
-	<	bool	oidchar16lt(oidchar16, oidchar16)	less than
-	<\(eq	bool	oidchar16le(oidchar16, oidchar16)	less or equal
-	\(eq	bool	oidchar16eq(oidchar16, oidchar16)	equality
-	>	bool	oidchar16gt(oidchar16, oidchar16)	greater than
-	>\(eq	bool	oidchar16ge(oidchar16, oidchar16)	greater or equal
+oidchar16	!\(eq	bool oidchar16ne(oidchar16, oidchar16)	inequality
+	<	bool oidchar16lt(oidchar16, oidchar16)	less than
+	<\(eq	bool oidchar16le(oidchar16, oidchar16)	less or equal
+	\(eq	bool oidchar16eq(oidchar16, oidchar16)	equality
+	>	bool oidchar16gt(oidchar16, oidchar16)	greater than
+	>\(eq	bool oidchar16ge(oidchar16, oidchar16)	greater or equal
 _
-oidint4	!\(eq	bool	oidint4ne(oidint4, oidint4)	inequality
-	<	bool	oidint4lt(oidint4, oidint4)	less than
-	<\(eq	bool	oidint4le(oidint4, oidint4)	less or equal
-	\(eq	bool	oidint4eq(oidint4, oidint4)	equality
-	>	bool	oidint4gt(oidint4, oidint4)	greater than
-	>\(eq	bool	oidint4ge(oidint4, oidint4)	greater or equal
+oidint4	!\(eq	bool oidint4ne(oidint4, oidint4)	inequality
+	<	bool oidint4lt(oidint4, oidint4)	less than
+	<\(eq	bool oidint4le(oidint4, oidint4)	less or equal
+	\(eq	bool oidint4eq(oidint4, oidint4)	equality
+	>	bool oidint4gt(oidint4, oidint4)	greater than
+	>\(eq	bool oidint4ge(oidint4, oidint4)	greater or equal
 _
 point	!<	bool point_left(point, point)	A is left of B
 	!>	bool point_right(point, point)	A is right of B
