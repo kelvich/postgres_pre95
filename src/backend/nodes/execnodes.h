@@ -179,6 +179,7 @@ class (TupleTableSlot) public (LispValue) {
       bool		ttc_descIsNew;
       TupleDescriptor	ttc_tupleDescriptor;
       Buffer		ttc_buffer;
+      int		ttc_whichplan;
   /* public: */
 };
 
@@ -381,6 +382,9 @@ class (EState) public (Node) {
       TupleTable        es_tupleTable;
       JunkFilter	es_junkFilter;
       Pointer		es_result_rel_scanstate;
+      int		es_whichplan;
+      List		es_result_relation_info_list;
+      List		es_junkFilter_list;
       RelationRuleInfo  es_result_rel_ruleinfo;
 };
 
