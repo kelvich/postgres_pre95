@@ -874,6 +874,7 @@ ExecAppend(slot, tupleid, estate, newlocks)
     Prs2Stub	 ruleStubs;
     RuleLock 	 stubLocks;
     HeapTuple	 tempTuple;
+    ObjectId	 newId;
 
     /* ----------------
      *	get the heap tuple out of the tuple table slot
@@ -964,10 +965,11 @@ ExecAppend(slot, tupleid, estate, newlocks)
      *	insert the tuple
      * ----------------
      */
-    locks = heap_insert(resultRelationDesc, /* relation desc */
+    newId = heap_insert(resultRelationDesc, /* relation desc */
 			tuple,		    /* heap tuple */
 			0);		    /* return: offset */
     IncrAppended();
+    UpdateLastOid(newId);
     
     /* ----------------
      *	process indices
