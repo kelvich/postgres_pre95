@@ -19,6 +19,8 @@
 
 static
 BufferDesc 	*SharedFreeList;
+extern int	*PrivateRefCount;
+extern Buffer	BufferDescriptorGetBuffer();
 
 /* only actually used in debugging.  The lock
  * should be acquired before calling the freelist manager.
@@ -83,7 +85,7 @@ PinBuffer(buf)
   }
 
   buf->refcount++;
-
+  PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1]++;
 }
 
 /*
@@ -95,7 +97,9 @@ UnpinBuffer(buf)
   is_LOCKED(BufMgrLock);
 
   Assert (buf->refcount);
+  Assert (PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1]);
   buf->refcount--;
+  PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1]--;
   NotInQueue(buf);
 
   if (buf->refcount == 0) {
@@ -104,7 +108,6 @@ UnpinBuffer(buf)
   } else {
     /* do nothing */
   }
-
 }
 
 
