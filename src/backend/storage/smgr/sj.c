@@ -112,6 +112,7 @@ static void		_sjdirtylast();
 static int		_sjfindnblocks();
 static int		_sjwritegrp();
 static int		_sjreadgrp();
+static int		_sjgroupvrfy();
 static Form_pg_plmap	_sjchoose();
 static SJCacheItem	*_sjallocgrp();
 static SJCacheItem	*_sjfetchgrp();
@@ -1208,6 +1209,7 @@ sjextend(reln, buffer)
     int offset;
     bool found;
     int grpoffset;
+    long seekpos;
 
     RelationSetLockForExtend(reln);
     nblocks = sjnblocks(reln);
@@ -1264,32 +1266,51 @@ sjextend(reln, buffer)
 
     SET_IO_LOCK(item);
 
-    if (_sjreadgrp(item, grpno) == SM_FAIL) {
+    /* page is allocated */
+    item->sjc_flags[grpoffset] = SJC_CLEAR;
+
+    /* verify group descriptor data in the cache file */
+    if (_sjgroupvrfy(item, grpno) == SM_FAIL) {
+	_sjunpin(item);
 	_sjunwait_io(item);
 	return (SM_FAIL);
     }
 
-    offset = (grpoffset * BLCKSZ) + JBBLOCKSZ;
-    bcopy(buffer, &(SJCacheBuf[offset]), BLCKSZ);
-
-    /*
-     *  It's the highest-numbered block in this relation, and it's not on
-     *  the platter yet.
-     *
-     *  NOTE:  by doing this, we've just changed the number of blocks in the
-     *  relation.  We need to hold the extend lock on this reln until end
-     *  of transaction, since no one will be able to see the new block until
-     *  then.
-     */
-
-    item->sjc_flags[grpoffset] |= SJC_CLEAR;
-
-    /* finally, write out the extent with the new block in it */
-    if (_sjwritegrp(item, grpno) == SM_FAIL) {
+    /* write the page */
+    seekpos = (grpno * SJBUFSIZE) + ((nblocks % SJGRPSIZE) * BLCKSZ)
+	      + JBBLOCKSZ;
+    if (FileSeek(SJCacheVfd, seekpos, L_SET) != seekpos) {
+	elog(NOTICE, "sjextend: failed to seek to buffer lock (%d)", seekpos);
+	_sjunpin(item);
 	_sjunwait_io(item);
 	return (SM_FAIL);
     }
 
+    if (FileWrite(SJCacheVfd, buffer, BLCKSZ) != BLCKSZ) {
+	elog(NOTICE, "sjextend: can't write page %d", nblocks);
+	_sjunwait_io(item);
+	_sjunpin(item);
+	return (SM_FAIL);
+    }
+
+    /* write the updated cache metadata entry */
+    seekpos = grpno * sizeof(*item);
+
+    if (FileSeek(SJMetaVfd, seekpos, L_SET) != seekpos) {
+	elog(NOTICE, "sjextend: seek to %d on metadata file failed", seekpos);
+	_sjunwait_io(item);
+	_sjunpin(item);
+	return (SM_FAIL);
+    }
+
+    if (FileWrite(SJMetaVfd, (char *) item, sizeof(*item)) < 0) {
+	elog(NOTICE, "sjextend: write of metadata file failed");
+	_sjunwait_io(item);
+	_sjunpin(item);
+	return (SM_FAIL);
+    }
+
+    /* success */
     _sjunwait_io(item);
     _sjunpin(item);
 
@@ -1517,6 +1538,7 @@ sjread(reln, blocknum, buffer)
     BlockNumber base;
     int offset;
     int grpno;
+    long seekpos;
 
     /* fake successful read on non-existent data */
     if (sjnblocks(reln) <= blocknum) {
@@ -1538,16 +1560,63 @@ sjread(reln, blocknum, buffer)
 
     SET_IO_LOCK(item);
 
-    if (_sjreadgrp(item, grpno) == SM_FAIL) {
+    /* First read and verify the group descriptor metadata */
+    if (_sjgroupvrfy(item, grpno) == SM_FAIL) {
+	_sjunpin(item);
 	_sjunwait_io(item);
 	return (SM_FAIL);
     }
 
-    offset = ((blocknum % SJGRPSIZE) * BLCKSZ) + JBBLOCKSZ;
-    bcopy(&(SJCacheBuf[offset]), buffer, BLCKSZ);
+    /* By here, group descriptor metadata is okay */
+    seekpos = (grpno * SJBUFSIZE) + ((blocknum % SJGRPSIZE) * BLCKSZ)
+	      + JBBLOCKSZ;
+    if (FileSeek(SJCacheVfd, seekpos, L_SET) != seekpos) {
+	elog(NOTICE, "sjread: failed to seek to buffer lock (%d)", seekpos);
+	_sjunpin(item);
+	_sjunwait_io(item);
+	return (SM_FAIL);
+    }
+
+    /* read the requested page */
+    if (FileRead(SJCacheVfd, buffer, BLCKSZ) != BLCKSZ) {
+	elog(NOTICE, "sjread: can't read page %d", blocknum);
+	_sjunwait_io(item);
+	return (SM_FAIL);
+    }
 
     _sjunwait_io(item);
     _sjunpin(item);
+
+    return (SM_SUCCESS);
+}
+
+static int
+_sjgroupvrfy(item, grpno)
+    SJCacheItem *item;
+    int grpno;
+{
+    long seekpos;
+    SJGroupDesc gdesc;
+
+    seekpos = SJBUFSIZE * grpno;
+    if (FileSeek(SJCacheVfd, seekpos, L_SET) != seekpos) {
+	elog(NOTICE, "sjgroupvrfy: Cannot seek to %d on sj cache file",
+		     seekpos);
+	return (SM_FAIL);
+    }
+
+    if (FileRead(SJCacheVfd, &gdesc, sizeof(gdesc)) < 0) {
+	elog(NOTICE, "sjgroupvrfy: Cannot read group desc from sj cache file");
+	return (SM_FAIL);
+    }
+
+    if (gdesc.sjgd_magic != SJGDMAGIC
+	|| gdesc.sjgd_version != SJGDVERSION
+	|| gdesc.sjgd_groupoid != item->sjc_oid) {
+
+	elog(NOTICE, "sjgroupvrfy: trashed cache");
+	return (SM_FAIL);
+    }
 
     return (SM_SUCCESS);
 }
@@ -1564,6 +1633,7 @@ sjwrite(reln, blocknum, buffer)
     int offset;
     int grpno;
     int which;
+    long seekpos;
 
     if (reln->rd_rel->relisshared)
 	reldbid = (ObjectId) 0;
@@ -1585,20 +1655,46 @@ sjwrite(reln, blocknum, buffer)
 	elog(WARN, "sjwrite: optical platters are write-once, cannot rewrite");
     }
 
-    item->sjc_flags[which] &= ~SJC_MISSING;
-
     SET_IO_LOCK(item);
 
-    if (_sjreadgrp(item, grpno) == SM_FAIL) {
+    item->sjc_flags[which] &= ~SJC_MISSING;
+
+    /* verify group descriptor data in the cache file */
+    if (_sjgroupvrfy(item, grpno) == SM_FAIL) {
+	_sjunpin(item);
+	_sjunwait_io(item);
+	return (SM_FAIL);
+    }
+
+    /* write the page */
+    seekpos = (grpno * SJBUFSIZE) + ((blocknum % SJGRPSIZE) * BLCKSZ)
+	      + JBBLOCKSZ;
+    if (FileSeek(SJCacheVfd, seekpos, L_SET) != seekpos) {
+	elog(NOTICE, "sjwrite: failed to seek to buffer lock (%d)", seekpos);
+	_sjunpin(item);
+	_sjunwait_io(item);
+	return (SM_FAIL);
+    }
+
+    if (FileWrite(SJCacheVfd, buffer, BLCKSZ) != BLCKSZ) {
+	elog(NOTICE, "sjwrite: can't read page %d", blocknum);
 	_sjunwait_io(item);
 	_sjunpin(item);
 	return (SM_FAIL);
     }
 
-    offset = (which * BLCKSZ) + JBBLOCKSZ;
-    bcopy(buffer, &(SJCacheBuf[offset]), BLCKSZ);
+    /* write the updated cache metadata entry */
+    seekpos = grpno * sizeof(*item);
 
-    if (_sjwritegrp(item, grpno) == SM_FAIL) {
+    if (FileSeek(SJMetaVfd, seekpos, L_SET) != seekpos) {
+	elog(NOTICE, "sjwrite: seek to %d on metadata file failed", seekpos);
+	_sjunwait_io(item);
+	_sjunpin(item);
+	return (SM_FAIL);
+    }
+
+    if (FileWrite(SJMetaVfd, (char *) item, sizeof(*item)) < 0) {
+	elog(NOTICE, "sjwrite: write of metadata file failed");
 	_sjunwait_io(item);
 	_sjunpin(item);
 	return (SM_FAIL);
