@@ -1,3 +1,9 @@
+/* 
+ * $Source$
+ * $Revision$
+ * $State$
+ * $Author$
+ */
 
 #define EventIsRetrieve		0x0 		/* %00000000 */
 #define EventIsAppend		0x1		/* %00000001 */

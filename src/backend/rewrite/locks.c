@@ -1,3 +1,10 @@
+/* 
+ * $Source$
+ * $Revision$
+ * $State$
+ * $Author$
+ */
+
 #include "utils/log.h"			/* for elog */
 #include "tmp/oid.h"			/* for oid defs */
 #include "./locks.h"			/* for rewrite specific lock defns */
