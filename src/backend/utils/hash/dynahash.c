@@ -34,15 +34,18 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.2  1991/01/19 14:31:31  cimarron
-    made some corrections to memory allocation routines --
-    added a DynaHashCxt so that allocations not associated with
-    the caches clutter up the cache context and changed MEM_ALLOC
-    and MEM_FREE macros appropriately.  Note: the old code explicitly
-    allocated things in the CacheCxt but then used pfree() -- this
-    is an error unless you are in the CacheCxt when you call pfree()
-    because it uses the current memory context..  
+    Revision 1.3  1991/03/07 21:56:57  kemnitz
+    Fixed log2() problem.
 
+ * Revision 1.2  91/01/19  14:31:31  cimarron
+ * made some corrections to memory allocation routines --
+ * added a DynaHashCxt so that allocations not associated with
+ * the caches clutter up the cache context and changed MEM_ALLOC
+ * and MEM_FREE macros appropriately.  Note: the old code explicitly
+ * allocated things in the CacheCxt but then used pfree() -- this
+ * is an error unless you are in the CacheCxt when you call pfree()
+ * because it uses the current memory context..  
+ * 
  * Revision 1.1  91/01/18  22:32:39  hong
  * Initial revision
  * 
@@ -213,11 +216,11 @@ int	flags;
 
 	if ( flags & HASH_BUCKET )   {
 	  hctl->bsize   = info->bsize;
-	  hctl->bshift  = log2(info->bsize);
+	  hctl->bshift  = my_log2(info->bsize);
 	}
 	if ( flags & HASH_SEGMENT )  {
 	  hctl->ssize   = info->ssize;
-	  hctl->sshift  = log2(info->ssize);
+	  hctl->sshift  = my_log2(info->ssize);
 	}
 	if ( flags & HASH_FFACTOR )  {
 	  hctl->ffactor = info->ffactor;
@@ -228,8 +231,8 @@ int	flags;
 	 * a maximal sized directory).
 	 */
 	if ( flags & HASH_DIRSIZE )  {
-	  hctl->max_dsize = log2(info->max_size);
-	  hctl->dsize     = log2(info->dsize);
+	  hctl->max_dsize = my_log2(info->max_size);
+	  hctl->dsize     = my_log2(info->dsize);
 	}
 	/* hash table now allocates space for key and data
 	 * but you have to say how much space to allocate 
@@ -305,14 +308,14 @@ int	nelem;
   */
   nelem = (nelem - 1) / hctl->ffactor + 1;
 
-  l2 = log2(nelem);
+  l2 = my_log2(nelem);
   nbuckets = 1 << l2;
 
   hctl->max_bucket = hctl->low_mask = nbuckets - 1;
   hctl->high_mask = (nbuckets << 1) - 1;
 
   nsegs = (nbuckets - 1) / hctl->ssize + 1;
-  nsegs = 1 << log2(nsegs);
+  nsegs = 1 << my_log2(nsegs);
 
   if ( nsegs > hctl->dsize ) {
     hctl->dsize  = nsegs;
@@ -760,8 +763,8 @@ HTAB *hashp;
   return(1);
 }
 
-/* calculate the natural log of num */
-log2( num )
+/* calculate the log base 2 of num */
+my_log2( num )
 int	num;
 {
     int		i = 1;
