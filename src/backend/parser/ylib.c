@@ -189,7 +189,7 @@ parser_typecast ( expr, typename )
 	}
     }
     
-    adt = MakeConst ( typeid(tp), len, (Datum)lcp , 0, 0/*was omitted*/ );
+    adt = MakeConst ( typeid(tp), len, (Datum)lcp , 0, tbyvalue(tp));
 
     if (string_palloced)
 	pfree(const_string);
