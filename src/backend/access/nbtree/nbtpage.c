@@ -94,12 +94,13 @@ _bt_checkmeta(rel)
 
     if (metad->btm_magic != BTREE_MAGIC) {
 	elog(WARN, "What are you trying to pull?  %s is not a btree",
-		   rel->rd_rel->relname);
+		   RelationGetRelationName(rel));
     }
 
     if (metad->btm_version != BTREE_VERSION) {
 	elog(WARN, "Version mismatch on %s:  version %d file, version %d code",
-		   rel->rd_rel->relname, metad->btm_version, BTREE_VERSION);
+		   RelationGetRelationName(rel),
+		   metad->btm_version, BTREE_VERSION);
     }
 
     _bt_relbuf(rel, metabuf, BT_READ);
