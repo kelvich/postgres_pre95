@@ -98,8 +98,6 @@ cat > $HFILE <<FuNkYfMgRsTuFf
 
 typedef char *	((*func_ptr)());	/* ptr to func returning (char *) */
 
-#include "utils/dynamic_loader.h"
-
 /*
  *	Maximum number of arguments for a built-in function.
  *

@@ -48,6 +48,7 @@
 #include "tmp/postgres.h"
 
 #include "fmgr.h"
+#include "utils/dynamic_loader.h"
 #include "utils/log.h"
 #include "utils/palloc.h"
 
