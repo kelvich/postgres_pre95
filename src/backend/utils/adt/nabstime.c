@@ -396,6 +396,7 @@ nabstimeout(time)
     AbsoluteTime time;
 {
     char *outStr;
+    char *tzoneStr;
     struct tm timeVals;
     struct tm *timeValp;
     char month[16];
@@ -417,6 +418,16 @@ nabstimeout(time)
     timeValp = localtime((time_t *)&time);
     MonthNumToStr(timeValp->tm_mon, month);
     WeekdayToStr(timeValp->tm_wday, weekday);
+
+    /*
+     * our sequent os doesn't support the time zone string
+     */
+#ifdef sequent
+    tzoneStr = "";
+#else
+    tzoneStr = timeValp->tm_zone;
+#endif
+
     sprintf(outStr,
 	    "%s %s %d %2.2d:%2.2d:%2.2d %d %s",
 	    weekday,
@@ -427,7 +438,7 @@ nabstimeout(time)
 	    timeValp->tm_sec,
 	    (timeValp->tm_year >= 69) ? timeValp->tm_year+1900 :
 					timeValp->tm_year+2000,
-	    timeValp->tm_zone);
+	    tzoneStr);
     return(outStr);
 }
 
