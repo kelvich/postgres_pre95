@@ -105,7 +105,7 @@ so the order of the fields in the \*(UU file need not be the
 same as the order of the fields in the source/target relation.
 .sp
 There are four types of objects in \*(UU files which 
-.i copy
+.b copy
 can work with:
 internal form fields (stored as binary objects),
 external form fields (stored as text strings),
