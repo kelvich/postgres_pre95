@@ -29,8 +29,9 @@
  *	H-P PA-RISC
  * since these also have atomic test-and-set instructions.
  */
-#if defined(sequent) || \
-    defined(sparc) || \
+#if defined(PORTNAME_aix) || \
+    defined(PORTNAME_sparc) || \
+    defined(sequent) || \
     defined(m68k) || \
     defined(mc68020) || \
     defined(mc68030) || \
@@ -60,17 +61,25 @@ typedef struct mutex	slock_t;
 #define S_UNLOCK(lock)		mutex_unlock(lock)
 #define S_INIT_LOCK(lock)	mutex_init(lock)
 #else /* next */
+#if defined(PORTNAME_aix)
+/*
+ * The AIX C library has the cs(3) builtin for compare-and-set that 
+ * operates on ints.
+ */
+typedef unsigned int	slock_t;
+#else /* aix */
 /*
  * On all other architectures spinlocks are a single byte.
  */
 typedef unsigned char   slock_t;
+#endif /* aix */
 #endif /* next */
 #endif /* sequent */
 #endif /* HAS_TEST_AND_SET */
 
 /*
- * On architectures for which we have not (or cannot) implement 
- * spinlocks, we use System V semaphores.  For some reason union
+ * On architectures for which we have not implemented spinlocks (or
+ * cannot do so), we use System V semaphores.  For some reason union
  * semun is never defined in the System V header files so we must
  * do it ourselves.
  */
@@ -140,6 +149,7 @@ extern IpcMemoryId IpcMemoryCreate ARGS((IpcMemoryKey memKey,
 					 int permission));
 extern IpcMemoryId IpcMemoryIdGet ARGS((IpcMemoryKey memKey,
 					uint32 size));
+extern void IpcMemoryDetach ARGS((int status, char *shmaddr));
 extern char *IpcMemoryAttach ARGS((IpcMemoryId memId));
 extern void IpcMemoryKill ARGS((IpcMemoryKey memKey));
 
