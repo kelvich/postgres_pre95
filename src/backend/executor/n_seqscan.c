@@ -48,13 +48,11 @@
 #include "nodes/plannodes.a.h"
 #include "nodes/execnodes.h"
 #include "nodes/execnodes.a.h"
-
 #include "executor/execdefs.h"
 #include "executor/execmisc.h"
-
 #include "executor/externs.h"
-
 #include "parser/parse.h"	/* for RETRIEVE */
+#include "tcop/slaves.h"
 
 /* ----------------------------------------------------------------
  *   			Scan Support
@@ -79,7 +77,6 @@ SeqNext(node)
     EState	 	estate;
     ScanDirection	direction;
     int			parallel;
-    extern int		MyPid;
     TupleTableSlot	slot;
     Buffer		buffer;
     
@@ -94,7 +91,7 @@ SeqNext(node)
     parallel =      get_parallel(node);
 
     scandesc->pageskip = parallel;
-    scandesc->initskip = MyPid;
+    scandesc->initskip = SlaveInfoP[MyPid].groupPid;
 
     /* ----------------
      *	get the next tuple from the access methods

@@ -31,12 +31,10 @@
 #include "nodes/plannodes.a.h"
 #include "nodes/execnodes.a.h"
 #include "nodes/primnodes.h"
-
 #include "executor/execdefs.h"
-
 #include "executor/externs.h"
+#include "tcop/slaves.h"
 
-extern int MyPid;
 
 /* ----------------------------------------------------------------
  *	ExecScanTemps(node)
@@ -117,7 +115,7 @@ ScanTemps node;
                                       NULL);
 	
 	currentScanDesc->pageskip = get_parallel(node);
-	currentScanDesc->initskip = MyPid;
+	currentScanDesc->initskip = SlaveInfoP[MyPid].groupPid;
         set_css_currentRelation(scantempState, tempreldesc);
         set_css_currentScanDesc(scantempState, currentScanDesc);
 	set_st_whichplan(scantempState, whichplan);
@@ -218,7 +216,7 @@ ExecInitScanTemps(node, estate, parent)
 				  NULL);
     
     currentScanDesc->pageskip = get_parallel(node);
-    currentScanDesc->initskip = MyPid;
+    currentScanDesc->initskip = SlaveInfoP[MyPid].groupPid;
     
     /* ----------------
      *	XXX comment me

@@ -52,8 +52,6 @@
 #include "storage/bufmgr.h"	/* for BLCKSZ */
 #include "tcop/slaves.h"
 
-extern int MyPid;
-
 /* ----------------------------------------------------------------
  *   	ExecHashJoin
  *
@@ -684,7 +682,8 @@ ExecHashJoinOuterGetTuple(node, hjstate)
     outerreadPos = get_hj_OuterReadPos(hjstate);
     outerreadBlk = get_hj_OuterReadBlk(hjstate);
     if (ParallelExecutorEnabled())
-       outerreadBuf = ABSADDR(hashtable->readbuf) + MyPid * BLCKSZ; 
+       outerreadBuf = ABSADDR(hashtable->readbuf) + 
+		      SlaveInfoP[MyPid].groupPid * BLCKSZ; 
     else
        outerreadBuf = ABSADDR(hashtable->readbuf); 
     batchno = curbatch - 1;
@@ -728,7 +727,7 @@ ExecHashJoinGetSavedTuple(hjstate, buffer, file, block, position)
     if ((*position == NULL) || (*position >= bufend)) {
 	if (*position == NULL)
 	    if (ParallelExecutorEnabled())
-		(*block) = MyPid;
+		(*block) = SlaveInfoP[MyPid].groupPid;
 	    else
 	        (*block) = 0;
 	else
@@ -885,7 +884,8 @@ ExecHashJoinNewBatch(hjstate)
 	*  build the hash table of the new batch in parallel
 	* ----------------------
 	*/
-       readBuf = ABSADDR(hashtable->readbuf) + MyPid * BLCKSZ;
+       readBuf = ABSADDR(hashtable->readbuf) + 
+		 SlaveInfoP[MyPid].groupPid * BLCKSZ;
     else
        readBuf = ABSADDR(hashtable->readbuf);
 
