@@ -144,6 +144,59 @@ hashchar(key)
 }
 
 uint32
+hashchar2(intkey)
+    uint16 intkey;
+{
+    uint32 h;
+    int len;
+    char *key = (char *) &intkey;
+ 
+    h = 0;
+    len = sizeof(uint16);
+    /* Convert string to integer */
+    while (len--)
+	h = h * PRIME1 ^ (*key++ - ' ');
+    h %= PRIME2;
+	
+    return (h);
+}
+
+uint32
+hashchar4(intkey)
+    uint32 intkey;
+{
+    uint32 h;
+    int len;
+    char *key = (char *) &intkey;
+ 
+    h = 0;
+    len = sizeof(uint32);
+    /* Convert string to integer */
+    while (len--)
+	h = h * PRIME1 ^ (*key++ - ' ');
+    h %= PRIME2;
+	
+    return (h);
+}
+
+uint32
+hashchar8(key)
+    char *key;
+{
+    uint32 h;
+    int len;
+ 
+    h = 0;
+    len = sizeof(char8);
+    /* Convert string to integer */
+    while (len--)
+	h = h * PRIME1 ^ (*key++ - ' ');
+    h %= PRIME2;
+	
+    return (h);
+}
+
+uint32
 hashchar16(key)
     char *key;
 {
@@ -216,7 +269,6 @@ hashtext(key)
     }
     return (n);
 }	
-
 
 
 
