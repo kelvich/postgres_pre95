@@ -60,7 +60,7 @@ int _disable_cost_ = 30000000;
  
 #ifdef _xprs_
 #define _xprs_	1
-bool _cost_weirdness_ = true;
+bool _cost_weirdness_ = false;
 bool _enable_seqscan_ =     true;
 bool _enable_indexscan_ =   true;
 bool _enable_sort_ =        true;
@@ -131,6 +131,17 @@ cost_seqscan (relid,relpages,reltuples)
     return(temp);
 } /* end cost_seqscan */
 
+#ifdef _xprs_
+bool
+clustered(indexid)
+ObjectId indexid;
+{
+    if (random()/2.147483e+09 < 0.3)
+       return(true);
+    else return(false);
+}
+#endif /* _xprs_ */
+
 /*    
  *    	cost_index
  *    
@@ -172,6 +183,15 @@ cost_index (indexid,expected_indexpages,selec,relpages,
 	} 
     }
 
+#ifdef _xprs_
+    if (clustered(indexid) || 
+	((expected_indexpages + selec * reltuples) <= NBuffers))
+       temp += (expected_indexpages + selec * relpages) +
+	      _CPU_PAGE_WEIGHT_  * selec * (indextuples + reltuples);
+    else
+      temp +=  (expected_indexpages + selec * reltuples) +
+	     _CPU_PAGE_WEIGHT_ * selec * (indextuples + reltuples);
+#else /* _xprs_ */
 	CostAddCount(temp, expected_indexpages);
 				/*   expected index relation pages */
 
@@ -183,6 +203,7 @@ cost_index (indexid,expected_indexpages,selec,relpages,
 	CostAddCostTimesCount(temp2, selec, indextuples);
 	CostAddCostTimesCount(temp2, selec, reltuples);
     temp =  temp + (_CPU_PAGE_WEIGHT_ * temp2);
+#endif /* _xprs_ */
     return(temp);
 } /* end cost_index */
 
@@ -215,6 +236,9 @@ cost_sort (keys,tuples,width,noread)
      int tuples;
 {
     Cost temp = 0;
+    int npages = page_size (tuples,width);
+    double pages = npages;
+    double numTuples = tuples;
     
     if ( _cost_weirdness_ ) {
 	if ( _enable_sort_ ) 
@@ -223,20 +247,16 @@ cost_sort (keys,tuples,width,noread)
 	  temp += _disable_cost_ ;
 	}
     if (tuples == 0 || null(keys) )
-      temp += 0;
-    else {
-	int npages = page_size (tuples,width);
-	double pages = npages;
-	double numTuples = tuples;
-	double log_pages = base_log(pages, 2.0);
-	double log_tuples = base_log (numTuples, 2.0);
-
-	temp += pages * log_pages;
-	temp += _CPU_PAGE_WEIGHT_ * numTuples * log_tuples;
-
+      return(temp);
+#ifdef _xprs_
+    temp += pages * base_log(pages, NBuffers);
+    temp += _CPU_PAGE_WEIGHT_ * numTuples * base_log(pages, 2.0);
+#else /* _xprs_ */
+	temp += pages * base_log(pages, 2.0);
+	temp += _CPU_PAGE_WEIGHT_ * numTuples * base_log (numTuples, 2.0);
+#endif /* _xprs_ */
 	if( !noread )
 	  temp = temp + cost_seqscan(lispInteger(_TEMP_RELATION_ID_),npages,tuples);
-    }
     return(temp);
 }
 
@@ -288,7 +308,7 @@ cost_hash (keys,tuples,width,which_rel)
 		temp += pages;	    /*   read in */
 		temp += _CPU_PAGE_WEIGHT_ * tuples;
 		if (_xprs_ && (OUTER == which_rel)) {	/*   write out */
-		    temp += max (0,pages - _MAX_BUFFERS_);
+		    temp += max (0,pages - NBuffers);
 		} 
 		else 
 		  temp +=pages;
@@ -336,11 +356,14 @@ cost_result (tuples,width)
 /*  .. create_nestloop_path  */
 
 Cost
-cost_nestloop (outercost,innercost,outertuples)
+cost_nestloop (outercost,innercost,outertuples,innertuples,outerpages,is_indexjoin)
      Cost outercost,innercost;
-     Count outertuples ;
+     Count outertuples, innertuples ;
+     Count outerpages;
+     bool is_indexjoin;
 {
     Cost temp =0;
+
     if ( _cost_weirdness_ ) {
 	if ( _enable_nestloop_ ) 
 	  temp += 1000;
@@ -349,9 +372,19 @@ cost_nestloop (outercost,innercost,outertuples)
     } 
     else 
       temp += 0;
+#ifdef _xprs_
+    if (is_indexjoin)
+       temp +=  outercost + outertuples * innercost;
+    else {
+       temp += outercost;
+       temp += ceil((double)outerpages/(double)NBuffers) * innercost;
+       temp += _CPU_PAGE_WEIGHT_ * outertuples * innertuples;
+    }
+#else /* _xprs_ */
     temp += outercost;
     /*    XXX this is only valid for left-only trees, of course! */
     temp += outertuples * innercost;
+#endif /* _xprs_ */
     return(temp);
 }
 
@@ -427,22 +460,29 @@ cost_hashjoin (outercost,innercost,outerkeys,innerkeys,outersize,
     /* XXX - let form, maybe incorrect */
     int outerpages = page_size (outersize,outerwidth);
     int innerpages = page_size (innersize,innerwidth);
+    int nrun = ceil((double)outerpages/(double)NBuffers);
+
     if ( _cost_weirdness_ ) {
 	if ( _enable_hashjoin_ ) 
 	  temp += 3000;
 	else 
 	  temp += _disable_cost_;
     } 
+#ifdef _xprs_
+    temp += outercost + nrun * innercost;
+    temp += _CPU_PAGE_WEIGHT_ * (outersize + nrun * innersize);
+#else /* _xprs_ */
     temp += outercost;
     temp += innercost;
     temp += cost_hash(outerkeys,outersize,outerwidth,OUTER);
     temp += cost_hash(innerkeys,innersize,innerwidth,INNER);
     if (_xprs_ == 1)  /* read outer block */
-      temp += max(0, outerpages - _MAX_BUFFERS_);
+      temp += max(0, outerpages - NBuffers);
     else
 	  temp += outerpages;
     
     temp += outerpages;     /* write join result */
+#endif /* _xprs_ */
     return(temp);
     
 } /* end cost_hashjoin */
