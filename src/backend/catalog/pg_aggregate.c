@@ -187,13 +187,13 @@ AggregateGet(aggName, int1funcName, int2funcName, finfuncName)
  * ---------------
  */
 int /* return status */
-AggregateDef(aggName, xitionfunc1Name, xitionfunc2Name, finalfuncName, 
+AggregateDefine(aggName, xitionfunc1Name, xitionfunc2Name, finalfuncName, 
 				initaggval, initsecval)
     Name 	aggName;
     Name	xitionfunc1Name, xitionfunc2Name, finalfuncName; 
 				/* step and final functions,resp.*/
-    char *initaggval;
-    char *initsecval;	/* initial conditions */
+    int initaggval;
+    int initsecval;	/* initial conditions */
 {
     register		i;
     Relation		pg_aggregate_desc;
@@ -266,9 +266,8 @@ AggregateDef(aggName, xitionfunc1Name, xitionfunc2Name, finalfuncName,
 
     /* set up values for aggregate tuples */
     values[0] = (char *) aggName;
-    values[1] = (char *) (ObjectId) getuid();
-    values[7] = (char *) initaggval;
-    values[8] = (char *) initsecval;
+    values[6] = (char *) initaggval;
+    values[7] = (char *) initsecval;
     /* the others were taken care of earlier*/
 
     /* form tuple and insert in aggregate relation */
