@@ -431,30 +431,9 @@ ExecStoreTupleDebug(file, line, tuple, slot, buffer, shouldFree)
  *	This function is used to get the heap tuple out of
  *	a slot in the tuple table.
  * --------------------------------
+ *
+ * Now a macro in tuptable.h  -mer 5 March 1992
  */
-Pointer				/* return: address of tuple */
-ExecFetchTuple(slot)
-    Pointer	slot;		/* slot from which fetch store tuple */
-{
-    Pointer 	tuple;		/* contents of slot (returned) */
-
-    /* ----------------
-     *	if the slot itself is null then we return NULL.  we do not
-     *  differentiate between a NULL slot pointer and a pointer to
-     *  a slot containing NULL.
-     * ----------------
-     */
-    if (slot == NULL)
-	return NULL;
-    
-    /* ----------------
-     *	get information from the slot and return it
-     * ----------------
-     */
-    tuple = 	SlotContents(slot);
-
-    return tuple;
-}
 
 /* --------------------------------
  *	ExecClearTuple
@@ -555,15 +534,10 @@ ExecSetSlotPolicy(slot, shouldFree)
  *
  *	This function is used to get the tuple descriptor associated
  *	with the slot's tuple.
+ *
+ * Now a macro in tuptable.h  -mer 5 March 1992
  * --------------------------------
  */
-TupleDescriptor			/* return: tuple descriptor */
-ExecSlotDescriptor(slot)
-    Pointer	slot;		/* slot to inspect */
-{
-    TupleDescriptor tupdesc = SlotTupleDescriptor((TupleTableSlot) slot);
-    return tupdesc;
-}
 
 /* --------------------------------
  *	ExecSetSlotDescriptor
@@ -623,15 +597,10 @@ ExecSetNewSlotDescriptor(slot, tupdesc)
  *	with the slot's tuple.  Be very careful with this as it does not
  *	balance the reference counts.  If the buffer returned is stored
  *	someplace else, then also use ExecIncrSlotBufferRefcnt().
+ *
+ * Now a macro in tuptable.h
  * --------------------------------
  */
-Buffer				/* return: tuple descriptor */
-ExecSlotBuffer(slot)
-    Pointer	slot;		/* slot to inspect */
-{
-    Buffer b = SlotBuffer((TupleTableSlot) slot);
-    return b;
-}
 
 /* --------------------------------
  *	ExecSetSlotBuffer
