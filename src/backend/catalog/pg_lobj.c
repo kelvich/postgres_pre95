@@ -92,7 +92,9 @@ int LOputOIDandLargeObjDesc(objOID, objtype, desc)
 #if LOBJASSOCDB
     elog(NOTICE,"LOputOIDandLargeObjDesc(%d,%d,%d)",objOID,objtype,desc);
 #endif
-    objTuple = SearchSysCacheTuple(LOBJREL,objOID);
+    objTuple = SearchSysCacheTuple(LOBJREL, (char *) ObjectIdGetDatum(objOID),
+				   (char *) NULL, (char *) NULL, 
+				   (char *) NULL);
     if (objTuple != NULL) { /* return error for now */
 	return -1;
     } else {
@@ -141,7 +143,9 @@ struct varlena *LOassocOIDandLargeObjDesc(objtype, objOID)
 #if LOBJASSOCDB
     elog(NOTICE,"LOassocOIDandLargeObjDesc(%d)",objOID);
 #endif
-    objTuple = SearchSysCacheTuple(LOBJREL,objOID);
+    objTuple = SearchSysCacheTuple(LOBJREL, (char *) ObjectIdGetDatum(objOID),
+				   (char *) NULL, (char *) NULL, 
+				   (char *) NULL);
     if (objTuple != NULL) {
 	struct large_object *objStruct;
 	objStruct = (struct large_object *)GETSTRUCT(objTuple);
@@ -161,7 +165,9 @@ int LOunassocOID(objOID)
 {
     HeapTuple objTuple;
     Relation lobjDesc;
-    objTuple = SearchSysCacheTuple(LOBJREL,objOID);
+    objTuple = SearchSysCacheTuple(LOBJREL, (char *) ObjectIdGetDatum(objOID),
+				   (char *) NULL, (char *) NULL, 
+				   (char *) NULL);
     if (objTuple != NULL) {
 	struct large_object *objStruct;
 
@@ -174,7 +180,7 @@ int LOunassocOID(objOID)
 	/* object dependent cleanup */
         switch (LOprocs[objStruct->objtype].bigcookie) {
           case SMALL_INT:
-            LOprocs[objStruct->objtype].LOdestroy((void *) *((int *)VARDATA(&objStruct->object_descriptor)));
+            LOprocs[objStruct->objtype].LOdestroy((void *) Int32GetDatum(*((int *)VARDATA(&objStruct->object_descriptor))));
             break;
           case BIG:
             LOprocs[objStruct->objtype].LOdestroy(&objStruct->object_descriptor);
