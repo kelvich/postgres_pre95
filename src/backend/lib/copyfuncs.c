@@ -898,6 +898,8 @@ _copyMergeJoin(from, to, alloc)
     char *	(*alloc)();
 {
     MergeJoin	newnode;
+    LispValue	x, y;
+    List	newlist;
 
     COPY_CHECKARGS();
     COPY_CHECKNULL();
@@ -917,8 +919,16 @@ _copyMergeJoin(from, to, alloc)
      */
     Node_Copy(from, newnode, alloc, mergeclauses);
     newnode->mergesortop = from->mergesortop;
-    Node_Copy(from, newnode, alloc, mergerightorder);
-    Node_Copy(from, newnode, alloc, mergeleftorder);
+    newlist = LispNil;
+    foreach (x, from->mergerightorder) {
+	newlist = nappend1(newlist, CAR(x));
+      }
+    newnode->mergerightorder = newlist;
+    newlist = LispNil;
+    foreach (x, from->mergeleftorder) {
+	newlist = nappend1(newlist, CAR(x));
+      }
+    newnode->mergeleftorder = newlist;
     Node_Copy(from, newnode, alloc, mergestate);
     
     (*to) = newnode;
