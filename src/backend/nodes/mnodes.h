@@ -72,9 +72,9 @@ class (MemoryContext) public (Node) {
 
 class (GlobalMemory) public (MemoryContext) {
 	inherits1(MemoryContext);
-	AllocSetData	setData;	/* set of allocated items */
+	AllocSetData	setData;
 	String		name;
-	OrderedElemData	elemData;	/* member of set of GlobalMemory */
+	OrderedElemData	elemData;
 };
 
 class (PortalMemoryContext) public (MemoryContext) {
