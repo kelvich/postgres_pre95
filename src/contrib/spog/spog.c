@@ -3,15 +3,7 @@
  *
  * $Id$
  *
- * $Log$
- * Revision 1.3  1993/03/05 04:35:22  aoki
- * shut up the sunos compiler
- *
- * Revision 1.2  1993/03/05  04:03:07  aoki
- * fixed my dumb strdup (how embarrassing).
- *
- * Revision 1.1  1993/02/18  23:29:29  aoki
- * Initial revision
+ * $Log: spog.c,v
  *
  * Revision 2.3  1992/08/13  11:44:48  schoenw
  * options -x and -n added, postgres v4r0 support
@@ -59,13 +51,6 @@ char *database;        /* name of the current database */
 
 #ifdef NEED_XMALLOC
 
-#if defined(PORTNAME_ultrix4)
-extern char *malloc();
-#endif
-#if defined(PORTNAME_ultrix4) || defined(PORTNAME_sparc)
-extern char *realloc();
-#endif
-
 char *xmalloc (n)
 int n;
 {
@@ -82,7 +67,8 @@ int n;
 
 #ifdef NEED_STRDUP
 /*
- * SunOS has strdup, other UNIXes (like Ultrix) don't.
+ * SunOS [45], OSF/1, HP-UX all have strdup.
+ * Some other UNIXes (namely Ultrix) don't.
  */
 char *strdup(s)
 char *s;
