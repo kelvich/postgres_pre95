@@ -17,6 +17,55 @@
 #include "utils/log.h"
 
 /*
+ *    array_count - counts the number of elements in an array.
+ */
+
+int
+array_count(string, delimiter)
+
+char *string;
+char delimiter;
+
+{
+    int i = 0, nelems = 0;
+    bool end_on_bracket = false;
+    bool scanning_string = false;
+
+    if (string[0] == '{')
+    {
+        end_on_bracket = true;
+        i++;
+    }
+
+    while (string[i] != (end_on_bracket ? '}' : '\0'))
+    {
+        if (string[i] == '\\')
+        {
+            i++;
+        }
+        else if (string[i] == delimiter && !scanning_string)
+        {
+            nelems++;
+        }
+        else if (scanning_string && string[i] == '\"')
+        {
+            scanning_string = false;
+        }
+        else if (!scanning_string && string[i] == '\"')
+        {
+            scanning_string = true;
+        }
+        i++;
+    }
+
+    /*
+     * account for last element in list.
+     */
+
+    return(nelems + 1);
+}
+
+/*
  *    array_in - takes an array surrounded by {...} and returns it in
  *    VARLENA format:
  */
@@ -35,22 +84,13 @@ ObjectId element_type;
     static ObjectId typinput;
     static ObjectId typelem;
 
-    char *string_save, *p, *q;
+    char *string_save, *p, *q, *r;
     char **values;
     FmgrFunction inputproc;
     int i, nitems, dummy;
     int32 nbytes;
     char *retval;
-
-    string_save = (char *) palloc(strlen(string) + 3);
-    if (*string != '{')
-    {
-        sprintf(string_save, "{%s}", string);
-    }
-    else
-    {
-        strcpy(string_save, string);
-    }
+    bool scanning_string = false;
 
     if (element_type_save != element_type)
     {
@@ -61,31 +101,51 @@ ObjectId element_type;
 
     fmgr_info(typinput, & inputproc, &dummy);
 
-    for (i = 0, nitems = 0; string_save[i] != '}'; i++) 
+    nitems = array_count(string, typdelim);
+
+    string_save = (char *) palloc(strlen(string) + 3);
+
+    if (string[0] != '{')
     {
-        if (string_save[i] == typdelim) nitems++; 
+        sprintf(string_save, "{%s}", string);
+    }
+    else
+    {
+        strcpy(string_save, string);
     }
 
-    nitems++; /* account for last item in list */
-
-    values = (char **) palloc(nitems * sizeof(char *));
+    values        = (char **) palloc(nitems * sizeof(char *));
 
     p = q = string_save;
 
     p++; q++; /* get past leading '{' */
 
-    for (i = 0; i < nitems - 1; i++)
+    for (i = 0; i < nitems; i++)
     {
-        while (*q != typdelim) q++;   /* Get to end of next string */
+        while (*q != typdelim && !scanning_string && *q != '}')
+        {
+            if (*q == '\\')
+            {
+                /* Crunch the string on top of the backslash. */
+                for (r = q; *r != '}'; r++) *r = *(r+1);
+            }
+            else if (*q == '\"' && !scanning_string)
+            {
+                scanning_string = true;
+                while (*p != '\"') p++;
+                p++; /* get p past first doublequote */
+            }
+            else if (*q == '\"' && scanning_string)
+            {
+                scanning_string = false;
+                *q = '\0';
+            }
+            q++;
+        }
         *q = '\0';                    /* Put a null at the end of it */
         values[i] = (*inputproc) (p, typelem);
         p = q + 1; q++;               /* p goes past q */
     }
-
-    while (*q != '}') q++;
-    *q = '\0';
-
-    values[nitems - 1] = (*inputproc) (p, typelem);
 
     if (typlen > 0)
     {
@@ -231,6 +291,16 @@ ObjectId element_type;
                 items += LONGALIGN(* (int32 *) items);
         }
         overall_length += strlen(values[i]);
+
+        /*
+         * So that the mapping between input and output functions is preserved
+         * in the case of array_out(array_in(string)), we have to put double
+         * quotes around strings that look like text strings.  To be sure, and
+         * since it will not break anything, we will put double quotes around
+         * anything that is not passed by value.
+         */
+
+        if (!typbyval) overall_length += 2;
     }
 
     p = (char *) palloc(overall_length + 3);
@@ -238,27 +308,32 @@ ObjectId element_type;
 
     strcpy(p, "{");
 
-    for (i = 0; i < nitems - 1; i++)
+    for (i = 0; i < nitems; i++)
     {
-        strcat(p, values[i]);
-        strcat(p, delim);
+        /*
+         * Surround anything that is not passed by value in double quotes.
+         * See above for more details.
+         */
+
+        if (!typbyval)
+        {
+            strcat(p, "\"");
+            strcat(p, values[i]);
+            strcat(p, "\"");
+        }
+        else
+        {
+            strcat(p, values[i]);
+        }
+
+        if (i != nitems - 1) strcat(p, delim); else strcat(p, "}");
         pfree(values[i]);
     }
 
-    strcat(p, values[nitems - 1]);
-    strcat(p, "}");
-
-    pfree(values[nitems - 1]);
     pfree(values);
 
     return(retval);
 }
-
-char *
-string_in(a1, a2) {}
-
-char *
-string_out(a1, a2) {}
 
 system_cache_lookup(element_type, input, typlen, typbyval, typdelim,
                     typelem, proc)
