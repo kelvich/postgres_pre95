@@ -10,7 +10,7 @@ static	char	ami_lexer_l[] = "$Header$";
 
  **********************************************************************/
 
-#include "support/bkint.h"
+#include "bootstrap/bkint.h"
 #include "tmp/portal.h" 
 
 #undef BOOTSTRAP
