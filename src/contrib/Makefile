@@ -7,15 +7,10 @@
 #
 # C programs
 #
-SUBDIR=  pgperl spog tkmonitor
+SUBDIR=  pgperl spog
 .if (${PORTNAME} == "sparc")
 SUBDIR+= xposthelp
 .endif
-
-#
-# Shell scripts
-#
-SUBDIR+= pgbrowse
 
 #
 # Subsystems
