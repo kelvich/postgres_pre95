@@ -1,419 +1,214 @@
-/*
- *   DYNAMIC_LOADER.C
- *
- *   Dynamically load specified object module
- *
- *   TODO!
- *	-remember loaded object's symbols so objects are not loaded more
- *	 than once (which means they use a different set of static and
- *	 glboal variables
- *
- *	-BSS space variables do not work (i.e., static or global
- *	 declarations which are not assigned
- *
- *	 int a;		// doesn't work
- *	 int b = 1; 	// works
- */
-
-#include <stdio.h>
-#include <fcntl.h>
-
-#include "tmp/c.h"
-#include "utils/log.h"
-#include "utils/dynamic_loader.h"
-
-#include <a.out.h>
-#include <alloca.h>
 
 /*
-#ifdef sun
-#define N_DATAOFF(hdr)	(N_TXTOFF(hdr) + (hdr).a_text)
-#define N_TROFF(hdr)	(N_DATAOFF(hdr) + (hdr).a_data)
-#define N_DROFF(hdr)	(N_TROFF(hdr) + (hdr).a_trsize)
-#endif
+
+(Message inbox:4)
+Return-Path: jsmith@king.mcs.drexel.edu
+Received: from king.mcs.drexel.edu by postgres.Berkeley.EDU (5.61/1.29)
+	id AA08681; Wed, 29 Aug 90 13:54:19 -0700
+Received: by king.mcs.drexel.edu (4.0/SMI-4.0)
+	id AA13668; Wed, 29 Aug 90 16:54:44 EDT
+Date: Wed, 29 Aug 90 16:54:44 EDT
+From: jsmith@king.mcs.drexel.edu (Justin Smith)
+Message-Id: <9008292054.AA13668@king.mcs.drexel.edu>
+To: post_questions@postgres.berkeley.edu
+Subject: Dynamic loader for Sparc systems
+Status: O
+
+
+
+I recently sent a message to postgres_bugs suggesting a way to do
+dynamic loading on a Sparc system -- one that should be fairly
+system-independant.  Here is a sample program that uses this:
+there is a main program 'loader.c' that calls 'dynamic_load' and
+loads a subprogram called 'tst.o'.  The program 'loader.c' must be
+compiled with the 'static' option, i.e. the command to compile it
+must be 
+
+cc -Bstatic loader.c
+
+when this is executed by typing a.out it loads tst.o and calls it.
+
+
+Here is 'loader.c':
+
 */
 
-RcsId("$Header$");
-
-#ifdef NOTDEF
-typedef struct reloc_info_sparc	Reloc;
-typedef struct nlist		NList;
-
-char *sbrk();
-char *Align();
-
-#define MASK(n) ((1<<(n))-1)
-#define	IN_RANGE(v,n)   ((-(1<<((n)-1))) <=(v) && (v) < (1<<((n)-1)))
-
-static struct exec hdr;
+#include <pwd.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/stat.h>
+#ifndef MAXPATHLEN
+# define MAXPATHLEN 1024
 #endif
+
+extern char pg_pathname[];
+
+#include <a.out.h>
+
+#include "utils/dynamic_loader.h"
+
+static char partial_symbol_table[50] = "";
+
+/* 
+ *
+ *   ld -N -x -A SYMBOL_TABLE -o TEMPFILE FUNC -lc
+ *
+ *   ld -N -x -A SYMBOL_TABLE -T ADDR -o TEMPFILE FUNC -lc
+ *
+ */
 
 func_ptr
 dynamic_load(err, filename, funcname)
-char **err;
-char *filename;
-char *funcname;
+char *filename, *funcname;
+int err;
 {
-	err = "Dynamic loading not supported on Sparcs";
-	return(NULL);
-}
+	extern end;
+	extern char *mktemp();
+	extern char *valloc();
 
-#ifdef NOTDEF
-    int fd;
-    int n;
-    int a_strsize;
-    char *p_start;
-    char *p_text;
-    char *p_data;
-    char *p_bss;
-    char *p_syms;
-    char *p_treloc;
-    char *p_dreloc;
-    char *p_strs;
-    char *p_end;
-    func_ptr entryadr = NULL;	/* entry address of function */
+	char *path;
+	int nread;
+	struct exec header;
+	unsigned long image_size, zz;
+	char *load_address = NULL;
+	char *temp_file_name = NULL;
+	FILE *temp_file = NULL;
+	char command[5000];
 
-    elog(DEBUG, "dynamic_load %s %s\n", filename, funcname);
+	if (!strlen(partial_symbol_table))
+		strcpy(partial_symbol_table,pg_pathname);
+	path = "/usr/tmp/postgresXXXXXX";
+	temp_file_name = (char *)malloc(strlen(path) + 1);
+	strcpy(temp_file_name,path);
+	mktemp(temp_file_name);
 
-    AllocateFile();	/* ensure a file descriptor is free for use */
-    fd = open(filename, O_RDONLY, 0);
-    if (fd < 0) {
-	*err = "unable to open file";
-	return(NULL);
-    }
-    n = read(fd, &hdr, sizeof(hdr));
-    if (n != sizeof(hdr) /*|| N_BADMAG(hdr)*/) {
-	*err = "bad object header";
-	close(fd);
-	return(NULL);
-    }
-    /*
-     *  BRK enough for:
-     *		a_text
-     *		a_data
-     *		a_bss
-     *		a_syms
-     *		a_trsize
-     *		a_drsize
-     *
-     *  When through relocating, BRK to remove a_syms, a_trsize, a_drsize
-     *  NOTE THAT NO CALLS THAT USE MALLOC() MAY BE MADE AFTER THE SBRK!
-     */
+/* commented out -lc */
 
-    a_strsize = lseek(fd, 0, 2) - N_STROFF(hdr);
+	sprintf(command,"ld -N  -A %s -o  %s %s ",
+	    partial_symbol_table,
+	    temp_file_name, filename);
 
-    p_start = sbrk(0);
-    p_text = Align(p_start);
-    p_data = p_text + hdr.a_text;
-    p_bss  = p_data + hdr.a_data;
-    p_syms = Align(p_bss  + hdr.a_bss);
-    p_treloc = Align(p_syms + hdr.a_syms);
-    p_dreloc = Align(p_treloc + hdr.a_trsize);
-    p_strs   = Align(p_dreloc + hdr.a_drsize);
-    p_end    = Align(p_strs + a_strsize);
+	printf("command=%s\n",command);
 
-    if (p_end < p_strs) {
-	*err = "format error";
-	close(fd);
-	return(NULL);
-    }
-    if (brk(p_end) == -1) {
-	*err = "brk() failed";
-	close(fd);
-	return(NULL);
-    }
-    n = seekread("text", fd, N_TXTOFF(hdr), p_text, hdr.a_text);
-    n += seekread("data", fd, N_DATOFF(hdr), p_data, hdr.a_data);
-    n += seekread("syms", fd, N_SYMOFF(hdr), p_syms, hdr.a_syms);
-    n += seekread("trel", fd, N_TRELOFF(hdr), p_treloc, hdr.a_trsize);
-    n += seekread("drel", fd, N_DRELOFF(hdr), p_dreloc, hdr.a_drsize);
-    n += seekread("strs", fd, N_STROFF(hdr), p_strs, a_strsize);
-    close(fd);
-    if (n) {
-	*err = "format-read error";
-        if (sbrk(0) != p_end) 
-	    elog(WARN, "dynamic_load: unexpected malloc");
-	else
-	    brk(p_start);	/* restore allocated memory */
-	return(NULL);
-    }
-
-    /*
-     *  Find entry symbol
-     */
-
-    {
-	NList *s;
-	NList *syme = (NList *)(p_syms + hdr.a_syms);
-
-	for (s = (NList *)p_syms; s < syme; ++s) {
-	    char *str = p_strs + s->n_un.n_strx;
-	    if ((s->n_type & N_EXT) == 0 || (s->n_type & N_TYPE) != N_TEXT)
-		continue;
-	    if (strcmp(str, funcname) == 0) {
-		entryadr = (func_ptr)(p_text + s->n_value);
-		break;
-	    }
-	    if (*str == '_' && strcmp(str + 1, funcname) == 0) {
-		entryadr = (func_ptr)(p_text + s->n_value);
-		break;
-	    }
-	}
-    }
-
-    /*
-     *  relocate
-     *
-     *  n holds cumulative error
-     */
-
-    {
-	NList *syms = (NList *)p_syms;
-	Reloc *reloc;
-	Reloc *relend;
-
-	n = 0;
-	reloc = (Reloc *)p_treloc;
-	relend= (Reloc *)(p_treloc + hdr.a_trsize);
-	while (reloc < relend) {
-	    n += relocate(p_text,reloc, p_syms, p_strs, p_text, p_data, p_bss);
-	    ++reloc;
-	}
-	
-	reloc = (Reloc *)p_dreloc;
-	relend= (Reloc *)(p_dreloc + hdr.a_drsize);
-	while (reloc < relend) {
-	    n += relocate(p_data,reloc, p_syms, p_strs, p_text, p_data, p_bss);
-	    ++reloc;
-	}
-    }
-    if (n)
-	*err = "relocate error";
-    if (entryadr == NULL)
-	*err = "entry pt. not found";
-
-    if (sbrk(0) != p_end) {
-	elog(WARN, "unexpected malloc %08lx %08lx", sbrk(0), p_end);
-    } else {
-        brk(p_syms);	/* destroy non essential data */
-    }
-    return(entryadr);
-}
-
-relocate(base, reloc, sym, strs, tbase, dbase, bbase)
-char *base;
-Reloc *reloc;
-NList *sym;
-char  *strs;
-char  *tbase, *dbase, *bbase;
-{
-    NList *symbase = sym;
-    unsigned long value;
-    char *addr;
-    short n_type;
-
-#ifndef	sparc
-    sym += reloc->r_symbolnum;		/* only valid if r_extern */
-#else
-    sym += reloc->r_index;
-#endif
-
-#ifndef	sparc
-    switch(reloc->r_length) {
-    case 0:
-	value = *(unsigned char *)(base + reloc->r_address);
-	break;
-    case 1:
-	value = *(unsigned short *)(base + reloc->r_address);
-	break;
-    case 2:
-	value = *(unsigned long *)(base + reloc->r_address);
-	break;
-    default:
-	return(-1);
-    }
-#else
-    value = reloc->r_addend;
-#endif
-
-#ifdef sequent
-    if (reloc->r_bsr)
-	value = -value;
-#endif
-
-    /*
-    printf("reloc %08lx sym %d %d%d%d%d%d vadr %08lx (symbol %02x %08lx %s)\n",
-	reloc->r_address,
-	reloc->r_symbolnum,
-	reloc->r_pcrel,
-	1 << reloc->r_length,
-	reloc->r_extern,
-#ifdef sequent
-	reloc->r_bsr,
-	reloc->r_disp,
-#else
-	0,0,
-#endif
-	value,
-	sym->n_type,
-	sym->n_value,
-	(reloc->r_extern) ? strs + sym->n_un.n_strx : "null"
-    );
-    */
-
-#ifndef	sparc
-    if (reloc->r_extern)
-	n_type = sym->n_type & N_TYPE;
-    else
-	n_type = reloc->r_symbolnum & N_TYPE;
-#else
-    n_type = sym->n_type & N_TYPE;
-#endif
-
-    switch(n_type) {
-    case N_UNDF:
+	if(system(command))
 	{
-	    FList *fl = ExtSyms;
-	    while (fl->name) {
-		if (strcmp(fl->name, strs + sym->n_un.n_strx) == 0)
-		    break;
-		++fl;
-	    }
-	    if (fl->name == NULL) {
-		elog(WARN, "dynamic_loader: Illegal ext. symbol %s",
-		    strs + sym->n_un.n_strx
-		);
-		return(-1);
-	    }
-	    value += (long)fl->func;
-	    /*
-	    printf("func %08lx value %08lx\n", fl->func, value);
-	    */
+		fprintf(stderr,"{ERROR: link failed: %s}\n", command);
+		goto finish_up;
 	}
-	break;
-    case N_ABS:
-	value += sym->n_value;
-	break;
-    case N_TEXT:
-	value += (long)tbase;
-	break;
-    case N_DATA:
-	value += (long)tbase;
-	break;
-    case N_BSS:
-	value += (long)bbase;
-	break;
-    default:
-	return(-1);
-	/*
-	printf("Unknown type %02x\n", sym->n_type);
-	*/
-	break;
-    }
+	printf("command 1 executed\n");
 
-#ifdef sequent
-    if (reloc->r_bsr)
-	value = value - (long)tbase;
-#endif
+	if(!(temp_file = fopen(temp_file_name,"r")))
+	{
+		fprintf(stderr,"{ERROR: unable to open %s}\n", temp_file_name);
+		goto finish_up;
+	}
+	nread = fread(&header, sizeof(header), 1, temp_file);
+	if (nread != 1)
+	{
+		fprintf(stderr,"{ERROR: cant read header}\n");
+		goto finish_up;
+	}
+		
+	image_size = header.a_text + header.a_data + header.a_bss;
+	fclose(temp_file);
+	temp_file = NULL;
 
-#ifndef	sparc
-    if (reloc->r_pcrel)
-	value = value - (long)base;
-#else
-    if ( reloc->r_type == RELOC_PC10 || reloc->r_type == RELOC_PC22 )
-	value = value - (long)base;
-#endif
+	if (!(load_address = valloc(zz=image_size))
+	    )
+	{
+		fprintf(stderr,"{ERROR: unable to allocate memory}\n");
+		goto finish_up;
+	}
 
-#ifndef	sparc
-    switch(reloc->r_length) {
-    case 0:
-	*(unsigned char *)(base + reloc->r_address) = value;
-	break;
-    case 1:
-	*(unsigned short *)(base + reloc->r_address) = value;
-	break;
-    case 2:
-	*(unsigned long *)(base + reloc->r_address) = value;
-	break;
-    }
-#else
-    addr = base + reloc->r_address;
-    switch ( reloc->r_type ){
+/* commented out -lc */
 
-    case RELOC_8:
-    case RELOC_DISP8:
-	if ( IN_RANGE ( value, 8 ))
-		*(unsigned char *) addr = value;
-	break;
-    case RELOC_LO10:
-    case RELOC_PC10:
-    case RELOC_BASE10:
-	*(unsigned long *)addr = (*(long *)addr & ~MASK(10))|(value & MASK(10));
-	break;
-    case RELOC_BASE13:
-    case RELOC_13:
-	*(unsigned long *)addr = (*(long *)addr & ~MASK(13))|(value & MASK(13));
-	break;
-    case RELOC_DISP16:
-    case RELOC_16:
-	if ( IN_RANGE ( value, 16 ))
-		*(unsigned short *)addr = value;
-	break;
-    case RELOC_22:
-	if ( IN_RANGE ( value, 22 ))
-		*(unsigned long *)addr = (*(long *)addr & ~MASK(22)) |
-						(value & MASK(22));
-	break;
-    case RELOC_HI22:
-    case RELOC_BASE22:
-    case RELOC_PC22:
-	*(unsigned long *)addr = (*(long *)addr & ~MASK(22)) |
-						((value>>(32-22)) & MASK(22));
-	break;
-    case RELOC_WDISP22:
-	value >> = 2;
-	if ( IN_RANGE ( value, 22 ))
-		*(unsigned long *)addr = (*(long *)addr & ~MASK(22)) |
-						(value & MASK(22));
-	break;
-    case RELOC_JMP_TBL:
-    case RELOC_WDISP30:
-	value >> = 2;
-	*(unsigned long *)addr = (*(long *)addr & ~MASK(30)) |
-						(value & MASK(30));
-	break;
-    case RELOC_32:
-    case RELOC_DISP32:
-	*(unsigned long *)addr = value;
-	break;
-    }
-#endif
+	sprintf(command,"ld -N  -A %s -T %lx -o %s  %s ",
+	    partial_symbol_table,
+	    load_address,
+	    temp_file_name,  filename);
 
-    return(0);
+	printf("command 2=%s\n",command);
+	if(system(command))
+	{
+		fprintf(stderr,"{ERROR: link failed: %s}\n", command);
+		goto finish_up;
+	}
+	printf("command2 executed\n");
+	if(!(temp_file = fopen(temp_file_name,"r")))
+	{
+		fprintf(stderr,"{ERROR: unable to open %s}\n", temp_file_name);
+		goto finish_up;
+	}
+	nread = fread(&header, sizeof(header), 1, temp_file);
+	if (nread != 1) 
+	{
+		fprintf(stderr,"{ERROR: cant read header}\n");
+		goto finish_up;
+	}
+	image_size = header.a_text + header.a_data + header.a_bss;
+	if (zz<image_size)
+	{
+		fprintf(stderr,"{ERROR}\n");
+		goto finish_up;
+	}
+
+	fseek(temp_file, N_TXTOFF(header), 0);
+	nread = fread(load_address, zz=(header.a_text + header.a_data),1,temp_file);
+	if (nread != 1)
+	{
+		fprintf(stderr,"{ERROR: cant read file}\n");
+		goto finish_up;
+	}
+	/* zero the BSS segment */
+	while (zz<image_size)
+		load_address[zz++] = 0;
+
+	fclose(temp_file);
+	temp_file = NULL;
+	load_address = NULL;
+
+	/* Prepare for future loads wrt. this one. */
+	strcpy(partial_symbol_table,temp_file_name);
+
+finish_up:
+	if (temp_file != NULL) fclose(temp_file);
+	if (load_address != NULL) free(load_address);
+	return (func_ptr)header.a_entry;
 }
 
-seekread(seg, fd, offset, ptr, bytes)
-char *seg;
-int fd;
-int offset, bytes;
-unsigned char *ptr;
+
+
+
+
+/*
+Here is tst.c (note that it has initialized and uninitialized variables,
+and even prints something out):
+ */
+
+/*
+#include <stdio.h>
+int tst(x)
+int x;
 {
-    int n;
-
-    n = lseek(fd, offset, 0);
-    if (n != offset)
-	return(-1);
-    n = read(fd, ptr, bytes);
-    if (n != bytes)
-	return(-1);
-    return(0);
+int u,v;
+int z=1;
+printf("This was printed in the routine. par=%d\n",x);
+return 2*x;
 }
+ */
 
-char *
-Align(padr)
-char *padr;
+/*
+
+
+You probably won't have any trouble converting this into a dynamic
+loader program for postgres (I will work on that myself if I can find
+the time).
+
+*/
+
+foob()
+
 {
-    long adr = ((long)padr + 3) & ~3;
-    return((char *)adr);
+	printf("foob: got here!!!!!!!!!\n");
 }
-#endif
