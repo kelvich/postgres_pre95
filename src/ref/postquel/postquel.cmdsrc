@@ -43,47 +43,42 @@ and may not be used otherwise:
 .lp
 .s3
 .ft B
-.if n .ta 5 25 45
-.if t .ta 0.5i 2.5i 4.5i
+.if n .ta 5 18 31 44
+.if t .ta 0.5i 1.8i 3.1i 4.4i
 .de xx
-\t\\$1\t\\$2\t\\$3
+\t\\$1\t\\$2\t\\$3\t\\$4
 .br
 ..
-.xx abort addattr after
-.xx all always and
-.xx append archive arg
-.xx ascending attachas backward
-.xx before begin binary
-.xx by c cfunction
-.xx close cluster copy
-.xx create current define
-.xx delete demand descending
-.xx destroy do empty
-.xx end execute fetch
-.xx forward from function
-.xx heavy in index
-.xx indexable inherits input_proc
-.xx instead intersect into
-.xx is key leftouter
-.xx light merge move
-.xx never new none
-.xx nonulls not null
-.xx on once operator
-.xx or output_proc pfunction
-.xx portal postquel priority
-.xx purge quel relation
-.xx remove rename replace
-.xx retrieve returns rewrite
-.xx rightouter rule sort
-.xx to transaction tuple
-.xx type union unique
-.xx using version view
-.xx where with
+.xx abort define is relation 
+.xx addattr delete key remove 
+.xx after demand leftouter rename 
+.xx all descending light replace 
+.xx always destroy load retrieve 
+.xx and destroydb merge returns 
+.xx append do move rewrite 
+.xx arch_store empty never rightouter 
+.xx archive end new rule 
+.xx arg execute none sort 
+.xx ascending fetch nonulls stdin 
+.xx attachas forward not stdout 
+.xx backward from NULL store 
+.xx before function on to 
+.xx begin heavy once transaction 
+.xx binary in operator type 
+.xx by index or union 
+.xx c indexable output_proc unique 
+.xx cfunction inherits parallel using 
+.xx close input_proc pfunction vacuum 
+.xx cluster instance portal version 
+.xx copy instead postquel view 
+.xx create intersect priority where 
+.xx createdb into purge with 
+.xx current intotemp quel
 .ft
 .dt
 .lp
 In addition,
-\*(PP all classes have several predefined attributes used
+all \*(PP classes have several predefined attributes used
 by the system.
 For a list of these,
 see the section
@@ -270,8 +265,8 @@ left_unary_operator a_expr
 
 parameter
 functional expressions 
-aggregate expression  (not in Version 2.1)
-class expression (not in Version 2.1)
+aggregate expression  (not in Version 3.0)
+class expression (not in Version 3.0)
 .)l
 We have already discussed constants and attributes.
 The two kinds
@@ -312,7 +307,7 @@ sqrt(emp.salary)
 .uh "Aggregate Expression"
 .lp
 .b
-Aggregate expressions are not supported in Version 2.1.
+Aggregate expressions are not supported in Version 3.0.
 .r
 .lp
 An
@@ -374,7 +369,7 @@ retrieve (e.age, avg {emp.salary where emp.age = e.age})
 .uh "Set Expressions"
 .lp
 .b
-Set expressions are not supported in Version 2.1.
+Set expressions are not supported in Version 3.0.
 .r
 .lp
 A
@@ -403,7 +398,7 @@ are defined below.
 .uh "Class Expression"
 .lp
 .b
-Class expressions are not supported in Version 2.1.
+Class expressions are not supported in Version 3.0.
 .r
 .lp
 A 
@@ -456,7 +451,7 @@ already existing attribute name in the case of update statements.)
 If result_attname is not present, then a_expr must 
 contain only one attribute name
 which is assumed to be the name of the result field.
-In Version 2.1 default naming is only used if the a_expr is an attribute.
+In Version 3.0 default naming is only used if the a_expr is an attribute.
 .uh "Qualification"
 .lp
 A 
@@ -553,7 +548,7 @@ retrieve(commands),
 monitor(unix).
 .uh BUGS
 .lp
-The following constructs are not available in Version 2.1:
+The following constructs are not available in Version 3.0:
 .(l
 aggregates and aggregate expressions
 class expressions
