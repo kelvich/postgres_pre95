@@ -35,6 +35,9 @@ extern void	isetup();
 extern void	ishutdown();
 extern void	usage();
 
+/* routines declared elsewhere */
+extern char	*getenv();
+
 char *SmgrList[] = {
     "magnetic disk",
 #ifdef SONY_JUKEBOX
@@ -60,6 +63,7 @@ main(argc, argv)
 
     host = port = dbname = smgr = srcfname = destfname = (char *) NULL;
     ProgName = *argv;
+    smgrno = 0;
 
     if (--argc == 0)
 	usage();
@@ -100,7 +104,7 @@ main(argc, argv)
 	      case '\0':
 		if (srcfname == (char *) NULL)
 		    srcfname = curarg;
-		else if (destfname = (char *) NULL)
+		else if (destfname == (char *) NULL)
 		    destfname = curarg;
 		else
 		    usage();
@@ -120,8 +124,19 @@ main(argc, argv)
     if (srcfname == (char *) NULL || destfname == (char *) NULL)
 	usage();
 
-    if (host == (char *) NULL || port == (char *) NULL)
-	usage();
+    if (host == (char *) NULL) {
+	if ((host = getenv("PGHOST")) == (char *) NULL) {
+	    fprintf(stderr, "no host specified and PGHOST undefined.\n");
+	    usage();
+	}
+    }
+
+    if (port == (char *) NULL) {
+	if ((port = getenv("PGPORT")) == (char *) NULL) {
+	    fprintf(stderr, "no port specified and PGPORT undefined.\n");
+	    usage();
+	}
+    }
 
     if (dbname == (char *) NULL)
 	usage();
