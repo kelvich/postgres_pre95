@@ -474,15 +474,11 @@ A
 consists of any number of clauses connected
 by the logical operators:
 .(l
+not
 and
-and not
 or
-or not
 .)l
 A clause is an a_expr that evaluates to a Boolean over a set of instances.
-.ul
-Not
-followed by a qualification is a legal qualification.
 .uh "From List"
 .lp
 The 
