@@ -77,6 +77,7 @@ Buffer *returnedBufferP;
      */
     if (locks == NULL || prs2GetNumberOfLocks(locks)==0) {
 	prs2FreeLocks(locksInTuple);
+	prs2FreeLocks(locks);
 	return(PRS2_STATUS_TUPLE_UNCHANGED);
     }
 
