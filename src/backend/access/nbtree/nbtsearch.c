@@ -13,6 +13,8 @@
 #include "utils/rel.h"
 #include "utils/excid.h"
 
+#include "fmgr.h"
+
 #include "access/heapam.h"
 #include "access/genam.h"
 #include "access/ftup.h"
@@ -487,7 +489,9 @@ _bt_compare(rel, itupdesc, page, keysz, scankey, offind)
 	attno = entry->attributeNumber;
 	datum = (Datum) IndexTupleGetAttributeValue(itup, attno,
 						    itupdesc, &null);
-	result = (int) (*(entry->func))(entry->argument, datum);
+	result = (int) FMGR_PTR2(entry->func, entry->procedure,
+				 entry->argument, datum);
+
 
 	/* if the keys are unequal, return the difference */
 	if (result != 0)
@@ -718,8 +722,8 @@ _bt_first(scan, dir)
 		if (!_bt_twostep(scan, &buf, BackwardScanDirection))
 		    break;
 
-		offind = ItemPointerGetOffsetNumber(current, 0) - 1;
 		page = BufferGetPage(buf, 0);
+		offind = ItemPointerGetOffsetNumber(current, 0) - 1;
 		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
 	    } while (result < 0);
 
@@ -967,7 +971,7 @@ _bt_twostep(scan, bufP, dir)
     if (ScanDirectionIsForward(dir) && offind < maxoff) {
 	ItemPointerSet(current, 0, blkno, 0, offind + 2);
 	return (true);
-    } else if (ScanDirectionIsBackward(dir) && offind >= start) {
+    } else if (ScanDirectionIsBackward(dir) && offind > start) {
 	ItemPointerSet(current, 0, blkno, 0, offind);
 	return (true);
     }
