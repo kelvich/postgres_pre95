@@ -2,6 +2,6 @@
 
 PROG= prm
 
-SRCS= rm.c
+SRCS= prm.c
 
 .include <postgres.prog.mk>
