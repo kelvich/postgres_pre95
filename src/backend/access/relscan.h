@@ -38,6 +38,8 @@ typedef struct HeapScanDescData {
 	Boolean		rs_atend;	/* restart scan at end? */
 	TimeQual	rs_tr;		/* time qualification */
 	uint16		rs_cdelta;	/* current delta in chain */
+	int		pageskip;	/* page skip when parallel scan */
+	int		initskip;	/* init page skip when parallel scan */
 	uint16		rs_nkeys;	/* number of attributes in keys */
 	ScanKeyData	rs_key;		/* key descriptors */
 	/* VARIABLE LENGTH ARRAY AT END OF STRUCT */
