@@ -147,10 +147,8 @@ Name relationName;
     /*----
      * Scan pg_relation
      */
-    scanKey.data[0].flags = 0;
-    scanKey.data[0].attributeNumber = Anum_pg_relation_relname;
-    scanKey.data[0].procedure = F_CHAR16EQ;
-    scanKey.data[0].argument = NameGetDatum(relationName);
+	ScanKeyEntryInitialize(&scanKey.data[0], 0, Anum_pg_relation_relname,
+						   F_CHAR16EQ, NameGetDatum(relationName));
     scanDesc = RelationBeginHeapScan(rel, false, NowTimeQual, 1, &scanKey);
     tuple = HeapScanGetNextTuple(scanDesc, false, &buffer);
     locks = prs2GetLocksFromTuple(tuple, buffer);

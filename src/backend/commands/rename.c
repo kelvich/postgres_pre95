@@ -79,10 +79,8 @@ renameatt(relname, oldattname, newattname)
 		     relname);
 		return;
 	}
-	key[0].sk_flags = NULL;
-	key[0].sk_attnum = RelationNameAttributeNumber;
-	key[0].sk_opr = Character16EqualRegProcedure;	/* XXX name= */
-	key[0].sk_data = (DATUM) relname;
+	ScanKeyEntryInitialize(&key[0], NULL, RelationNameAttributeNumber,
+						   Character16EqualRegProcedure, (DATUM) relname);
 	relrdesc = amopenr(RelationRelationName);
 	relsdesc = ambeginscan(relrdesc, 0, NowTimeQual, 1, key);
 	reltup = amgetnext(relsdesc, 0, (Buffer *) NULL);
@@ -96,14 +94,10 @@ renameatt(relname, oldattname, newattname)
 	amendscan(relsdesc);
 	amclose(relrdesc);
 
-	key[0].sk_flags = NULL;
-	key[0].sk_attnum = AttributeRelationIdAttributeNumber;
-	key[0].sk_opr = Integer32EqualRegProcedure;	/* XXX int4= */
-	key[0].sk_data = (DATUM) reltup->t_oid;
-	key[1].sk_flags = NULL;
-	key[1].sk_attnum = AttributeNameAttributeNumber;
-	key[1].sk_opr = Character16EqualRegProcedure;	/* XXX name= */
-	key[1].sk_data = (DATUM) oldattname;
+	ScanKeyEntryInitialize(&key[0], NULL, AttributeRelationIdAttributeNumber,
+	                       Integer32EqualRegProcedure, reltup->t_oid);
+	ScanKeyEntryInitialize(&key[1], NULL, AttributeNameAttributeNumber,
+	                       Character16EqualRegProcedure, oldattname);
 	attrdesc = amopenr(AttributeRelationName);
 	attsdesc = ambeginscan(attrdesc, 0, NowTimeQual, 2, key);
 	oldatttup = amgetnext(attsdesc, 0, (Buffer *) NULL);
@@ -181,10 +175,10 @@ renamerel(oldrelname, newrelname)
 		return;
 	}
 	relrdesc = amopenr(RelationRelationName);
-	key.sk_flags = NULL;
-	key.sk_attnum = RelationNameAttributeNumber;
-	key.sk_opr = Character16EqualRegProcedure;	/* XXX name= */
-	key.sk_data = (DATUM) oldrelname;
+
+	ScanKeyEntryInitialize(&key, NULL, RelationNameAttributeNumber,
+	                       Character16EqualRegProcedure, (DATUM) oldrelname);
+
 	oldsdesc = ambeginscan(relrdesc, 0, NowTimeQual, 1, &key);
 	oldreltup = amgetnext(oldsdesc, 0, (Buffer *) NULL);
 	if (!PointerIsValid(oldreltup)) {

@@ -224,17 +224,17 @@ ScanPgRelation(buildinfo)
      */
     switch (buildinfo.infotype) {
     case INFO_RELID:
-	key.data[0].flags = 	      0;
-	key.data[0].attributeNumber = ObjectIdAttributeNumber;
-	key.data[0].procedure =       ObjectIdEqualRegProcedure;
-	key.data[0].argument = 	      ObjectIdGetDatum(buildinfo.i.info_id);
+	ScanKeyEntryInitialize(&key.data[0], 0,
+						   ObjectIdAttributeNumber,
+						   ObjectIdEqualRegProcedure,
+						   ObjectIdGetDatum(buildinfo.i.info_id));
 	break;
 
     case INFO_RELNAME:
-	key.data[0].flags = 	  	0;
-	key.data[0].attributeNumber =   RelationNameAttributeNumber;
-	key.data[0].procedure = 	Character16EqualRegProcedure;
-	key.data[0].argument = 	  	NameGetDatum(buildinfo.i.info_name);
+	ScanKeyEntryInitialize(&key.data[0], 0,
+	                       RelationNameAttributeNumber,
+	                       Character16EqualRegProcedure,
+	                       NameGetDatum(buildinfo.i.info_name));
 	break;
 
     default:
@@ -342,10 +342,10 @@ RelationBuildTupleDesc(buildinfo, relation, attp, natts)
      *	form a scan key
      * ----------------
      */
-    key.data[0].flags = 	  0;
-    key.data[0].attributeNumber = AttributeRelationIdAttributeNumber;
-    key.data[0].procedure = 	  ObjectIdEqualRegProcedure;
-    key.data[0].argument = 	  ObjectIdGetDatum(relation->rd_id);
+	ScanKeyEntryInitialize(&key.data[0], 0, 
+                           AttributeRelationIdAttributeNumber,
+                           ObjectIdEqualRegProcedure,
+                           ObjectIdGetDatum(relation->rd_id));
     
     /* ----------------
      *	open pg_relation and begin a scan

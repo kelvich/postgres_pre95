@@ -113,7 +113,9 @@ FindIndexNAtt(first, indrelid, isarchival)
     static ScanKeyEntryData indexKey[1] = {
 	{ 0, IndexHeapRelationIdAttributeNumber, ObjectIdEqualRegProcedure }
     };
-	
+
+	fmgr_info(ObjectIdEqualRegProcedure, &indexKey[0].func, &indexKey[0].nargs);
+
     /* Find an index on the given relation */
     if (first == 0) {
 	if (RelationIsValid(pg_index))
@@ -177,10 +179,9 @@ RelationNameGetObjectId(relationName, pg_relation, setHasIndexAttribute)
      *	begin a scan of pg_relation for the named relation
      * ----------------
      */
-    key[0].data[0].flags = 	     0;
-    key[0].data[0].attributeNumber = RelationNameAttributeNumber;
-    key[0].data[0].procedure =       Character16EqualRegProcedure;
-    key[0].data[0].argument =        NameGetDatum(relationName);
+	ScanKeyEntryInitialize(&key[0].data[0], 0, RelationNameAttributeNumber,
+						   Character16EqualRegProcedure,
+						   NameGetDatum(relationName));
 
     pg_relation_scan =
 	heap_beginscan(pg_relation, 0, NowTimeQual, 1, &key[0]);
@@ -396,10 +397,9 @@ AccessMethodObjectIdGetAccessMethodTupleForm(accessMethodObjectId)
      *	form a scan key for the pg_am relation
      * ----------------
      */
-    key[0].data[0].flags = 0x0;
-    key[0].data[0].attributeNumber = ObjectIdAttributeNumber;
-    key[0].data[0].procedure = ObjectIdEqualRegProcedure;
-    key[0].data[0].argument = ObjectIdGetDatum(accessMethodObjectId);
+	ScanKeyEntryInitialize(&key[0].data[0], 0, ObjectIdAttributeNumber,
+						   ObjectIdEqualRegProcedure,
+						   ObjectIdGetDatum(accessMethodObjectId));
 
     /* ----------------
      *	fetch the desired access method tuple
@@ -928,17 +928,15 @@ index_destroy(indexId)
 
     indexRelation = ObjectIdOpenIndexRelation(indexId);
 
-    entry[0].flags = 0x0;
-    entry[0].procedure = ObjectIdEqualRegProcedure;
-    entry[0].argument = ObjectIdGetDatum(indexId);
-
     /* ----------------
      * fix RELATION relation
      * ----------------
      */
     catalogRelation = heap_openr(RelationRelationName);
 
-    entry[0].attributeNumber = ObjectIdAttributeNumber;
+	ScanKeyEntryInitialize(&entry[0], 0x0, ObjectIdAttributeNumber, 
+						   ObjectIdEqualRegProcedure, 
+						   ObjectIdGetDatum(indexId));;
 
     scan = heap_beginscan(catalogRelation, 0, NowTimeQual, 1, entry);
     tuple = heap_getnext(scan, 0, (Buffer *)NULL);
@@ -1063,6 +1061,8 @@ UpdateStats(whichRel, reltuples)
     Datum 	values[Natts_pg_relation];
     char 	nulls[Natts_pg_relation];
     char 	replace[Natts_pg_relation];
+
+	fmgr_info(ObjectIdEqualRegProcedure, &key[0].func, &key[0].nargs);
 
     /* ----------------
      * This routine handles updates for both the heap and index relation

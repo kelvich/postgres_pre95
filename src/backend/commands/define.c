@@ -542,7 +542,7 @@ DefineType(name, parameters)
 	 */
     sprintf(shadow_type, "_%s", name);
 
-    (void) TypeDefine(name,		/* type name */
+    (void) TypeDefine(shadow_type,		/* type name */
 		      InvalidObjectId,  /* relation oid (n/a here) */
 		      -1,		/* internal size */
 		      -1,		/* external size */

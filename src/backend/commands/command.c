@@ -389,10 +389,8 @@ PerformAddAttribute(relationName, schema)
     newAttributes = length(schema);
     
     relrdesc = amopenr(RelationRelationName);
-    key[0].sk_flags = NULL;
-    key[0].sk_attnum = RelationNameAttributeNumber;
-    key[0].sk_opr = Character16EqualRegProcedure;	/* XXX name= */
-    key[0].sk_data = (DATUM)relationName;
+	ScanKeyEntryInitialize(&key[0], NULL, RelationNameAttributeNumber,
+                           Character16EqualRegProcedure, (DATUM)relationName);
     relsdesc = ambeginscan(relrdesc, 0, NowTimeQual, 1, key);
     reltup = amgetnext(relsdesc, 0, &buf);
     if (!PointerIsValid(reltup)) {
@@ -424,14 +422,10 @@ PerformAddAttribute(relationName, schema)
     }
     
     attrdesc = amopenr(AttributeRelationName);
-    key[0].sk_flags = NULL;
-    key[0].sk_attnum = AttributeRelationIdAttributeNumber;
-    key[0].sk_opr = ObjectIdEqualRegProcedure;
-    key[0].sk_data = (DATUM) reltup->t_oid;
-    key[1].sk_flags = NULL;
-    key[1].sk_attnum = AttributeNameAttributeNumber;
-    key[1].sk_opr = Character16EqualRegProcedure;	/* XXX name= */
-    key[1].sk_data = (DATUM) NULL;	/* set in each iteration below */
+	ScanKeyEntryInitialize(&key[0], NULL, AttributeRelationIdAttributeNumber,
+						   ObjectIdEqualRegProcedure, (DATUM) reltup->t_oid);
+	ScanKeyEntryInitialize(&key[1], NULL, AttributeNameAttributeNumber,
+                           Character16EqualRegProcedure, (DATUM) NULL);
     
     attributeD.attrelid = reltup->t_oid;
     attributeD.attdefrel = InvalidObjectId;	/* XXX temporary */

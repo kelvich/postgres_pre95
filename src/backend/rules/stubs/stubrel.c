@@ -100,10 +100,10 @@ bool addFlag;
 
     prs2stubRelation = RelationNameOpenHeapRelation(&relname);
 
-    scanKey.data[0].flags = 0;
-    scanKey.data[0].attributeNumber = Anum_pg_prs2stub_prs2relid;
-    scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
-    scanKey.data[0].argument = ObjectIdGetDatum(relation->rd_id);
+	ScanKeyEntryInitialize(&scanKey.data[0], 0, Anum_pg_prs2stub_prs2relid, 
+						   ObjectIdEqualRegProcedure,
+						   ObjectIdGetDatum(relation->rd_id));
+
     scanDesc = RelationBeginHeapScan(prs2stubRelation,
 					0, NowTimeQual,
 					1, &scanKey);
@@ -225,10 +225,10 @@ Prs2Stub newStubs;
 
     prs2stubRelation = RelationNameOpenHeapRelation(&relname);
 
-    scanKey.data[0].flags = 0;
-    scanKey.data[0].attributeNumber = Anum_pg_prs2stub_prs2relid;
-    scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
-    scanKey.data[0].argument = ObjectIdGetDatum(relationOid);
+	ScanKeyEntryInitialize(&scanKey.data[0], 0, Anum_pg_prs2stub_prs2relid,
+						   ObjectIdEqualRegProcedure,
+						   ObjectIdGetDatum(relationOid));
+
     scanDesc = RelationBeginHeapScan(prs2stubRelation,
 					0, NowTimeQual,
 					1, &scanKey);
@@ -381,10 +381,10 @@ ObjectId relationOid;
 
     prs2stubRelation = RelationNameOpenHeapRelation(&relname);
 
-    scanKey.data[0].flags = 0;
-    scanKey.data[0].attributeNumber = Anum_pg_prs2stub_prs2relid;
-    scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
-    scanKey.data[0].argument = ObjectIdGetDatum(relationOid);
+	ScanKeyEntryInitialize(&scanKey.data[0], 0, Anum_pg_prs2stub_prs2relid,
+						   ObjectIdEqualRegProcedure, 
+						   ObjectIdGetDatum(relationOid));
+
     scanDesc = RelationBeginHeapScan(prs2stubRelation,
 					0, NowTimeQual,
 					1, &scanKey);

@@ -117,6 +117,8 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 		{ 0, IndexHeapRelationIdAttributeNumber, F_OIDEQ }
 	};
 
+	fmgr_info(F_OIDEQ, &indexKey[0].func, &indexKey[0].nargs);
+
 	bzero((char *) indexCatalogInfo, (unsigned) (27 * sizeof(int32)));
 
 	/* Find an index on the given relation */
@@ -403,6 +405,7 @@ find_inheritance_children (inhparent)
 	LispValue		lp = LispNil;
 	LispValue		list = LispNil;
 
+	fmgr_info(F_OIDEQ, &key[0].func, &key[0].nargs);
 
 	key[0].argument = ObjectIdGetDatum((ObjectId) LISPVALUE_INTEGER(inhparent));
 	relation = RelationNameOpenHeapRelation(InheritsRelationName);
@@ -439,6 +442,7 @@ VersionGetParents(verrelid, list)
 	LispValue		lp;
 	ObjectId		verbaseid;
 
+	fmgr_info(F_OIDEQ, &key[0].func, &key[0].nargs);
 	relation = RelationNameOpenHeapRelation(VersionRelationName);
 	key[0].argument = ObjectIdGetDatum((ObjectId) LISPVALUE_INTEGER(verrelid));
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual,

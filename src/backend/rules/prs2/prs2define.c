@@ -356,10 +356,8 @@ Prs2RuleData r;
     /*
      * First make sure that no other rule with the same name exists!
      */
-    ruleNameKey[0].flags = 0;
-    ruleNameKey[0].attributeNumber= Prs2RuleNameAttributeNumber;
-    ruleNameKey[0].procedure = F_CHAR16EQ;
-    ruleNameKey[0].argument = NameGetDatum(r->ruleName);
+	ScanKeyEntryInitialize(&ruleNameKey[0], 0, Prs2RuleNameAttributeNumber,
+						   F_CHAR16EQ, NameGetDatum(r->ruleName));
 
     heapScan = RelationBeginHeapScan(prs2RuleRelation, false, NowTimeQual,
 				     1, (ScanKey) ruleNameKey);
@@ -439,10 +437,10 @@ ObjectId ruleId;
      /*
       * Scan the RuleRelation ('pg_prs2rule') until we find a tuple
       */
-    scanKey.data[0].flags = 0;
-    scanKey.data[0].attributeNumber = ObjectIdAttributeNumber;
-    scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
-    scanKey.data[0].argument = ObjectIdGetDatum(ruleId);
+	ScanKeyEntryInitialize(&scanKey.data[0], 0, ObjectIdAttributeNumber,
+						   ObjectIdEqualRegProcedure,
+						   ObjectIdGetDatum(ruleId));
+
     scanDesc = RelationBeginHeapScan(prs2RuleRelation,
 				    false, NowTimeQual, 1, &scanKey);
 
@@ -550,10 +548,10 @@ ObjectId ruleId;
      */
     prs2PlansRelation = RelationNameOpenHeapRelation(Prs2PlansRelationName);
 
-    scanKey.data[0].flags = 0;
-    scanKey.data[0].attributeNumber = Prs2PlansRuleIdAttributeNumber;
-    scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
-    scanKey.data[0].argument = ObjectIdGetDatum(ruleId);
+	ScanKeyEntryInitialize(&scanKey.data[0], 0, Prs2PlansRuleIdAttributeNumber,
+						   ObjectIdEqualRegProcedure,
+						   ObjectIdGetDatum(ruleId));
+
     scanDesc = RelationBeginHeapScan(prs2PlansRelation,
 				    false, NowTimeQual, 1, &scanKey);
 

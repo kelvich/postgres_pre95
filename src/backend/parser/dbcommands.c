@@ -116,15 +116,17 @@ get_pg_usertup(command, username)
     HeapTuple tup;
     Buffer buf;
     HeapScanDesc scan;
-    static ScanKeyEntryData scanKey[1] =
-	{ 0, Anum_pg_user_usename, NameEqualRegProcedure };
+	ScanKeyData scanKey;
 
     urel = heap_openr(Name_pg_user);
     if (!RelationIsValid(urel))
 	elog(FATAL, "%s: cannot open %s.", command, Name_pg_user);
 
-    scanKey[0].argument = NameGetDatum(username);
-    scan = heap_beginscan(urel, 0, NowTimeQual, 1, (ScanKey) scanKey);
+	ScanKeyEntryInitialize(&scanKey.data[0], 0,
+						   Anum_pg_user_usename,
+						   NameEqualRegProcedure, NameGetDatum(username));
+
+    scan = heap_beginscan(urel, 0, NowTimeQual, 1, &scanKey);
     if (!HeapScanIsValid(scan))
 	elog(WARN, "%s: cannot begin scan of pg_user.", command);
 
@@ -156,15 +158,16 @@ get_pg_dbtup(command, dbname)
     HeapTuple tup;
     Buffer buf;
     HeapScanDesc scan;
-    static ScanKeyEntryData scanKey[1] =
-	{ 0, Anum_pg_database_datname, NameEqualRegProcedure };
+	ScanKeyData scanKey;
 
     dbrel = heap_openr("pg_database");
     if (!RelationIsValid(dbrel))
 	elog(FATAL, "%s: cannot open %s.", command, Name_pg_database);
 
-    scanKey[0].argument = NameGetDatum(dbname);
-    scan = heap_beginscan(dbrel, 0, NowTimeQual, 1, (ScanKey) scanKey);
+	ScanKeyEntryInitialize(&scanKey.data[0], 0, Anum_pg_database_datname,
+						   NameEqualRegProcedure, NameGetDatum(dbname));
+
+    scan = heap_beginscan(dbrel, 0, NowTimeQual, 1, &scanKey);
     if (!HeapScanIsValid(scan))
 	elog(WARN, "%s: cannot begin scan of pg_database.", command);
 

@@ -434,10 +434,8 @@ RelationAlreadyExists(pg_relation_desc, relname)
      *	form the scan key
      * ----------------
      */
-    key.sk_flags = 	0;
-    key.sk_attnum = 	Anum_pg_relation_relname;
-    key.sk_opr = 	F_CHAR16EQ;
-    key.sk_data = 	(DATUM) relname;
+	ScanKeyEntryInitialize(&key, 0, Anum_pg_relation_relname,
+						   F_CHAR16EQ, (DATUM) relname);
 
     /* ----------------
      *	begin the scan
@@ -792,10 +790,9 @@ RelationRemoveInheritance(relation)
      *  and begin scanning
      * ----------------
      */
-    entry[0].flags 		= 0x0;
-    entry[0].attributeNumber 	= InheritsParentAttributeNumber;
-    entry[0].procedure 		= ObjectIdEqualRegProcedure;
-    entry[0].argument = ObjectIdGetDatum(RelationGetRelationId(relation));
+	ScanKeyEntryInitialize(&entry[0], 0x0, InheritsParentAttributeNumber,
+						   ObjectIdEqualRegProcedure,
+						   ObjectIdGetDatum(RelationGetRelationId(relation)));
     
     scan = RelationBeginHeapScan(catalogRelation,
 				 false,
@@ -886,10 +883,9 @@ RelationRemoveIndexes(relation)
 
     indexRelation = RelationNameOpenHeapRelation(IndexRelationName);
 
-    entry[0].flags 		= 0x0;
-    entry[0].attributeNumber 	= IndexHeapRelationIdAttributeNumber;
-    entry[0].procedure 		= ObjectIdEqualRegProcedure;
-    entry[0].argument = ObjectIdGetDatum(RelationGetRelationId(relation));
+	ScanKeyEntryInitialize(&entry[0], 0x0, IndexHeapRelationIdAttributeNumber,
+						   ObjectIdEqualRegProcedure,
+						   ObjectIdGetDatum(RelationGetRelationId(relation)));
     
     scan = RelationBeginHeapScan(indexRelation,
 				 false,
@@ -936,10 +932,8 @@ DeletePgRelationTuple(rdesc)
      *  relation to delete
      * ----------------
      */
-    key.sk_flags = 	NULL;
-    key.sk_attnum = 	ObjectIdAttributeNumber;
-    key.sk_opr = 	F_INT4EQ;
-    key.sk_data = 	(DATUM) rdesc->rd_att.data[0]->attrelid;
+	ScanKeyEntryInitialize(&key, NULL, ObjectIdAttributeNumber,
+						   F_INT4EQ, rdesc->rd_att.data[0]->attrelid);
     
     pg_relation_scan =  ambeginscan(pg_relation_desc,
 				    0,
@@ -996,10 +990,8 @@ DeletePgAttributeTuples(rdesc)
      *  and begin the scan.
      * ----------------
      */
-    key.sk_flags = 	NULL;
-    key.sk_attnum = 	Anum_pg_attribute_attrelid;
-    key.sk_opr = 	F_INT4EQ;
-    key.sk_data = 	(DATUM) rdesc->rd_att.data[0]->attrelid;
+    ScanKeyEntryInitialize(&key, NULL, Anum_pg_attribute_attrelid,
+						   F_INT4EQ, rdesc->rd_att.data[0]->attrelid);
     
     pg_attribute_scan = ambeginscan(pg_attribute_desc,
 				    0,
@@ -1061,10 +1053,8 @@ DeletePgTypeTuple(rdesc)
      *  to this relation.
      * ----------------
      */
-    key.sk_flags = 	NULL;
-    key.sk_attnum = 	Anum_pg_type_typrelid;
-    key.sk_opr = 	F_INT4EQ;
-    key.sk_data = 	(DATUM) rdesc->rd_att.data[0]->attrelid;
+	ScanKeyEntryInitialize(&key, NULL, Anum_pg_type_typrelid, F_INT4EQ,
+						   rdesc->rd_att.data[0]->attrelid);
     
     pg_type_scan =  ambeginscan(pg_type_desc,
 				0,
@@ -1097,10 +1087,8 @@ DeletePgTypeTuple(rdesc)
 
     pg_attribute_desc = amopenr(AttributeRelationName);
     
-    attkey.sk_flags = 	NULL;
-    attkey.sk_attnum = 	Anum_pg_attribute_atttypid;
-    attkey.sk_opr = 	F_INT4EQ;
-    attkey.sk_data = 	(DATUM) typoid;
+	ScanKeyEntryInitialize(&attkey, NULL, Anum_pg_attribute_atttypid, F_INT4EQ,
+						   typoid);
     
     pg_attribute_scan = ambeginscan(pg_attribute_desc,
 				    0,

@@ -63,19 +63,23 @@ OperatorGetWithOpenRelation(pg_operator_desc, operatorName,
     ObjectId		operatorObjectId;
     HeapTuple 		tup;
 
-    static ScanKeyEntryData	operatorKey[3] = {
+    static ScanKeyEntryData	opKey[3] = {
 	{ 0, OperatorNameAttributeNumber,  NameEqualRegProcedure },
 	{ 0, OperatorLeftAttributeNumber,  ObjectIdEqualRegProcedure },
 	{ 0, OperatorRightAttributeNumber, ObjectIdEqualRegProcedure },
     };
 
+	fmgr_info(NameEqualRegProcedure,     &opKey[0].func, &opKey[0].nargs);
+	fmgr_info(ObjectIdEqualRegProcedure, &opKey[1].func, &opKey[1].nargs);
+	fmgr_info(ObjectIdEqualRegProcedure, &opKey[2].func, &opKey[2].nargs);
+
     /* ----------------
      *	form scan key
      * ----------------
      */
-    operatorKey[0].argument = NameGetDatum(operatorName);
-    operatorKey[1].argument = ObjectIdGetDatum(leftObjectId);
-    operatorKey[2].argument = ObjectIdGetDatum(rightObjectId);
+    opKey[0].argument = NameGetDatum(operatorName);
+    opKey[1].argument = ObjectIdGetDatum(leftObjectId);
+    opKey[2].argument = ObjectIdGetDatum(rightObjectId);
 
     /* ----------------
      *	begin the scan
@@ -85,7 +89,7 @@ OperatorGetWithOpenRelation(pg_operator_desc, operatorName,
 					     0,
 					     SelfTimeQual,
 					     3,
-					     (ScanKey) operatorKey);
+					     (ScanKey) opKey);
 
     /* ----------------
      *	fetch the operator tuple, if it exists, and determine
@@ -443,11 +447,15 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
     bool		rightDefined = false;
     Name		name[4];
     
-    static ScanKeyEntryData	operatorKey[3] = {
+    static ScanKeyEntryData	opKey[3] = {
 	{ 0, OperatorNameAttributeNumber, NameEqualRegProcedure },
 	{ 0, OperatorLeftAttributeNumber, ObjectIdEqualRegProcedure },
 	{ 0, OperatorRightAttributeNumber, ObjectIdEqualRegProcedure },
     };
+
+	fmgr_info(NameEqualRegProcedure,     &opKey[0].func, &opKey[0].nargs);
+	fmgr_info(ObjectIdEqualRegProcedure, &opKey[1].func, &opKey[1].nargs);
+	fmgr_info(ObjectIdEqualRegProcedure, &opKey[2].func, &opKey[2].nargs);
 
     /* ----------------
      *	sanity checks
@@ -622,15 +630,15 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
     pg_operator_desc = RelationNameOpenHeapRelation(OperatorRelationName);
 
     if (operatorObjectId) {
-	operatorKey[0].argument = NameGetDatum(operatorName);
-	operatorKey[1].argument = ObjectIdGetDatum(leftTypeId);
-	operatorKey[2].argument = ObjectIdGetDatum(rightTypeId);
+	opKey[0].argument = NameGetDatum(operatorName);
+	opKey[1].argument = ObjectIdGetDatum(leftTypeId);
+	opKey[2].argument = ObjectIdGetDatum(rightTypeId);
 
 	pg_operator_scan = RelationBeginHeapScan(pg_operator_desc,
 						 0,
 						 SelfTimeQual,
 						 3,
-						 (ScanKey) operatorKey);
+						 (ScanKey) opKey);
 	
 	tup = HeapScanGetNextTuple(pg_operator_scan, 0, &buffer);
 	if (HeapTupleIsValid(tup)) {
@@ -707,9 +715,11 @@ OperatorUpd(baseId, commId, negId)
     char	 	replaces[ Natts_pg_operator ];
     char 		*values[ Natts_pg_operator ];
     
-    static ScanKeyEntryData	operatorKey[1] = {
+    static ScanKeyEntryData	opKey[1] = {
 	{ 0, ObjectIdAttributeNumber, ObjectIdEqualRegProcedure },
     };
+
+	fmgr_info(ObjectIdEqualRegProcedure, &opKey[0].func, &opKey[0].nargs);
 
     for (i = 0; i < Natts_pg_operator; ++i) {
 	values[i] = (char *) NULL;
@@ -720,13 +730,13 @@ OperatorUpd(baseId, commId, negId)
     pg_operator_desc = RelationNameOpenHeapRelation(OperatorRelationName);
 
     /* check and update the commutator, if necessary */
-    operatorKey[0].argument = ObjectIdGetDatum(commId);
+    opKey[0].argument = ObjectIdGetDatum(commId);
 
     pg_operator_scan = RelationBeginHeapScan(pg_operator_desc,
 					     0,
 					     SelfTimeQual,
 					     1,
-					     (ScanKey) operatorKey);
+					     (ScanKey) opKey);
     
     tup = HeapScanGetNextTuple(pg_operator_scan, 0, &buffer);
 
@@ -795,13 +805,13 @@ OperatorUpd(baseId, commId, negId)
     }
 
     /* check and update the negator, if necessary */
-    operatorKey[0].argument = ObjectIdGetDatum(negId);
+    opKey[0].argument = ObjectIdGetDatum(negId);
 
     pg_operator_scan = RelationBeginHeapScan(pg_operator_desc,
 					     0,
 					     SelfTimeQual,
 					     1,
-					     (ScanKey) operatorKey);
+					     (ScanKey) opKey);
     
     tup = HeapScanGetNextTuple(pg_operator_scan, 0, &buffer);
     if (HeapTupleIsValid(tup) &&
@@ -1022,22 +1032,26 @@ int leftTypeId;
     HeapTuple           tup1, tup2;  /* returned tuples */
     Buffer              buffer;
 
-    static ScanKeyEntryData     operatorKey[3] = {
+    static ScanKeyEntryData     opKey[3] = {
         { 0, OperatorNameAttributeNumber, NameEqualRegProcedure },
         { 0, OperatorLeftAttributeNumber, ObjectIdEqualRegProcedure },
         { 0, OperatorRightAttributeNumber, ObjectIdEqualRegProcedure },
     };
 
+	fmgr_info(NameEqualRegProcedure,     &opKey[0].func, &opKey[0].nargs);
+	fmgr_info(ObjectIdEqualRegProcedure, &opKey[1].func, &opKey[1].nargs);
+	fmgr_info(ObjectIdEqualRegProcedure, &opKey[2].func, &opKey[2].nargs);
+
     pg_operator_desc = RelationNameOpenHeapRelation(OperatorRelationName);
 
-        operatorKey[0].argument = NameGetDatum(operatorName);
-        operatorKey[1].argument = ObjectIdGetDatum(leftTypeId);
+        opKey[0].argument = NameGetDatum(operatorName);
+        opKey[1].argument = ObjectIdGetDatum(leftTypeId);
 
         pg_operator_scan = RelationBeginHeapScan(pg_operator_desc,
                                                  0,
                                                  SelfTimeQual,
                                                  2,
-                                                 (ScanKey) operatorKey);
+                                                 (ScanKey) opKey);
 
         tup1 = HeapScanGetNextTuple(pg_operator_scan, 0, &buffer);
         if (!HeapTupleIsValid(tup1)) {

@@ -55,6 +55,7 @@ TypeGetWithOpenRelation(pg_type_desc, typeName, defined)
      *	initialize the scan key and begin a scan of pg_type
      * ----------------
      */
+	fmgr_info(NameEqualRegProcedure, &typeKey[0].func, &typeKey[0].nargs);
     typeKey[0].argument = NameGetDatum(typeName);
     
     scan = RelationBeginHeapScan(pg_type_desc,
@@ -320,6 +321,8 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
     Assert(NameIsValid(typeName));
     Assert(NameIsValid(inputProcedure) && NameIsValid(outputProcedure));
 
+	fmgr_info(NameEqualRegProcedure, &typeKey[0].func, &typeKey[0].nargs);
+
     /* ----------------
      *	check that the type is not already defined.
      * ----------------
@@ -516,6 +519,8 @@ TypeRename(oldTypeName, newTypeName)
      */
     Assert(NameIsValid(oldTypeName));
     Assert(NameIsValid(newTypeName));
+
+	fmgr_info(NameEqualRegProcedure, &typeKey[0].func, &typeKey[0].nargs);
 
     /* ----------------
      *	check that that the new type is not already defined

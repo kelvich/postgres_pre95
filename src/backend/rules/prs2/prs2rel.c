@@ -287,10 +287,10 @@ RuleLock newLocks;
      */
     relationRelation = RelationNameOpenHeapRelation(RelationRelationName);
 
-    scanKey.data[0].flags = 0;
-    scanKey.data[0].attributeNumber = ObjectIdAttributeNumber;
-    scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
-    scanKey.data[0].argument = ObjectIdGetDatum(relationId);
+	ScanKeyEntryInitialize(&scanKey.data[0], 0, ObjectIdAttributeNumber,
+						   ObjectIdEqualRegProcedure, 
+						   ObjectIdGetDatum(relationId));
+
     scanDesc = RelationBeginHeapScan(relationRelation,
 					false, NowTimeQual,
 					1, &scanKey);

@@ -196,7 +196,11 @@ CatalogCacheInitializeCache(cache, relation)
 
 	    cache->cc_skey[i].sk_opr =
 	        EQPROC(tupdesc->data[cache->cc_key[i]-1]->atttypid);
-	    
+
+		fmgr_info(cache->cc_skey[i].sk_opr, 
+				  &cache->cc_skey[i].func,
+				  &cache->cc_skey[i].nargs);
+
 	    CACHE5_elog(DEBUG, "CatalogCacheInit %16s %d %d %x",
 			&relation->rd_rel->relname,
 			i,
@@ -690,8 +694,7 @@ InitIndexedSysCache(relname, indname, nkeys, key)
 		elog(FATAL, "InitSysCache: called with %d key[%d]", key[i], i);
 	    } else {
 		cp->cc_klen[i] = sizeof(OID);
-		cp->cc_skey[i].sk_attnum = key[i];
-		cp->cc_skey[i].sk_opr = F_OIDEQ;
+		ScanKeyEntryInitialize(&cp->cc_skey[i], 0, key[i], F_OIDEQ, 0);
 		continue;
 	    }
 	}

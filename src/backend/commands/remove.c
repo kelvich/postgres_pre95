@@ -104,9 +104,7 @@ SingleOpOperatorRemove(typeOid)
 	static 		attnums[3] = { 7, 8, 9 }; /* left, right, return */
 	register	i;
 	
-	key[0].sk_flags  = 0;
-	key[0].sk_opr    = ObjectIdEqualRegProcedure;
-	key[0].sk_data   = (char *) typeOid;
+	ScanKeyEntryInitialize(&key[0], 0, 0, ObjectIdEqualRegProcedure, typeOid);
 	rdesc = amopenr(OperatorRelationName->data);
 	for (i = 0; i < 3; ++i) {
 		key[0].sk_attnum = attnums[i];
@@ -151,10 +149,9 @@ AttributeAndRelationRemove(typeOid)
 	 * because amdestroy will remove all attributes of the relation.
 	 * XXX should check for duplicate relations
 	 */
-	key[0].sk_flags  = 0;
-	key[0].sk_attnum = 3;
-	key[0].sk_opr    = ObjectIdEqualRegProcedure;
-	key[0].sk_data   = (DATUM) typeOid;
+
+	ScanKeyEntryInitialize(&key[0], 0, 3, ObjectIdEqualRegProcedure, typeOid);
+
 	oidptr = (struct oidlist *) palloc(sizeof(*oidptr));
 	oidptr->next = NULL;
 	optr = oidptr; 
@@ -170,9 +167,9 @@ AttributeAndRelationRemove(typeOid)
 	amendscan(sdesc);
 	amclose(rdesc);
 	
-	key[0].sk_flags  = NULL;
-	key[0].sk_attnum = ObjectIdAttributeNumber;
-	key[0].sk_opr    = ObjectIdEqualRegProcedure;
+
+	ScanKeyEntryInitialize(&key[0], ObjectIdAttributeNumber,
+						   ObjectIdEqualRegProcedure, 0);
 	optr = oidptr;
 	rdesc = amopenr(RelationRelationName->data);
 	while (PointerIsValid((char *) optr->next)) {
@@ -293,10 +290,8 @@ RemoveFunction(functionName)
 	 * XXX NOT CURRENTLY DONE
 	 */
 #ifdef USEPARGS
-	typeKey[0].flags = 0;
-	typeKey[0].attributeNumber = 1; /* place an entry in anum.h if ever used */
-	typeKey[0].procedure = ObjectIdEqualRegProcedure;
-	typeKey[0].argument = ObjectIdGetDatum(oid);
+	ScanKeyEntryInitialize(&typeKey, 0, 1, ObjectIdEqualRegProcedure,
+						   ObjectIdGetDatum(oid));
 	functionKey[0].argument = NameGetDatum(functionName);
 	relation = RelationNameOpenHeapRelation(ProcedureArgumentRelationName);
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual,

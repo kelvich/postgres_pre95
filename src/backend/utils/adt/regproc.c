@@ -45,10 +45,8 @@ regprocin(proname)
 		     ProcedureRelationName->data);
 		return(0);
 	}
-	key.sk_attnum = 1;		/* proname */
-	key.sk_flags = 0;
-	key.sk_opr = F_CHAR16EQ;
-	key.sk_data = (DATUM) proname;
+	ScanKeyEntryInitialize(&key, 0, 1, F_CHAR16EQ, proname);
+
 	procscan = ambeginscan(proc, 0, NowTimeQual, 1, &key);
 	if (!HeapScanIsValid(procscan)) {
 		amclose(proc);
@@ -100,10 +98,8 @@ regprocout(proid)
 		     ProcedureRelationName->data);
 		return(0);
 	}
-	key.sk_attnum = ObjectIdAttributeNumber;		/* proid */
-	key.sk_flags = 0;
-	key.sk_opr = F_INT4EQ;
-	key.sk_data = (DATUM) proid;
+	ScanKeyEntryInitialize(&key, 0, ObjectIdAttributeNumber, F_INT4EQ, proid);
+
 	procscan = ambeginscan(proc, 0, NowTimeQual, 1, &key);
 	if (!HeapScanIsValid(procscan)) {
 		amclose(proc);
