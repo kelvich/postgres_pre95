@@ -83,24 +83,6 @@ SPINLOCK      *BindingLock;
 /* forward */
 HTAB *ShmemInitHash();
 
-/* size constants for the binding table */
-	/* max size of data structure string name */
-#define BTABLE_KEYSIZE 	(50)
-	/* data in binding table hash bucket */
-#define BTABLE_DATASIZE (sizeof(BindingEnt) - BTABLE_KEYSIZE)
-	/* maximum size of the binding table */
-#define BTABLE_SIZE 	(100)
-
-/* this is a hash bucket in the binding table */
-typedef struct {
-	/* string name */
-  char 		key[BTABLE_KEYSIZE];
-	/* location in shared mem */
-  unsigned int 	location;
-	/* numbytes allocated for the structure */
-  unsigned int 	size;
-} BindingEnt;
-
 HTAB *BindingTable = NULL;
 
 /*
