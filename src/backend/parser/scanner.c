@@ -78,29 +78,28 @@ int len;
 	cspec = 0;
 	while ((c = input()) != delimiter) {
 
-		/*
-		 * Right curly brace indicates array constant.
-		 */
-
-		if (entering && delimiter == '\"')
-		{
-			if (c == '{') 
-			{
-				scanarr(buf, len);
-				cp += strlen(buf);
-			}
-			entering = 0;
-		}
-		
 		if (cp - buf > len - 1) {
 			serror("String/char constant too large");
 			cp = buf;
 		}
+
 		switch (c) {
 		default:
 			*cp++ = c;
 			break;
-
+		case '{':
+			/*
+			 * Right curly brace indicates array constant.
+			 */
+			if (entering && delimiter == '\"')
+			{
+				scanarr(buf, len);
+				cp += strlen(buf);
+				cspec = cp - buf - 1;
+			}
+			else
+			    *cp++ = c;
+			break;
 		case 0:
 		case '\n':
 			serror("Unterminated char/string constant");
@@ -133,6 +132,7 @@ int len;
 			}
 			break;
 		}
+		entering = 0;
 		cspec++;
 	}
 
