@@ -1380,6 +1380,12 @@ heap_delete(relation, tid)
  *	Must decide how to handle errors.
  *
  *	Fix arguments, work with indexes.
+ * 
+ *      12/30/93 - modified the return value to be 1 when
+ *	           a non-functional update is detected. This
+ *		   prevents the calling routine from updating
+ *		   indices unnecessarily. -kw
+ *
  * ----------------
  */
 
@@ -1451,7 +1457,7 @@ heap_replace(relation, otid, tup)
 	if ( issystem(RelationGetRelationName(relation)) )
 	    RelationUnsetLockForWrite(relation);
 	ReleaseBuffer(buffer);
-        return (RuleLock)NULL;
+        return (RuleLock) 1;
     }
 
     /* ----------------
