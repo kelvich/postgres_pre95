@@ -60,6 +60,7 @@ static void noaction() { }
    properly. */
 
 extern void LODestroyRef ARGS((void *)); /*hackproto*/
+extern void XODestroyRef ARGS((void *)); /*hackproto*/
 
 static struct {
 #define SMALL_INT 0
@@ -70,7 +71,11 @@ static struct {
     /* Inversion */
     { BIG, noaction }, /* not defined yet, probably destroy class */
     /* Unix */
-    { BIG, LODestroyRef }
+    { BIG, LODestroyRef },
+    /* External */
+    { BIG, XODestroyRef },
+    /* Jaquith */
+    { BIG, XODestroyRef }
 };
 
 /* %1

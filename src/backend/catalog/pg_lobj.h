@@ -46,6 +46,8 @@ CATALOG(pg_large_object) {
 /* possible values for objtype */
 #define Inversion   0
 #define Unix        1
+#define External    2
+#define Jaquith     3
 
 #ifndef struct_large_object_Defined
 #define struct_large_object_Defined 1
