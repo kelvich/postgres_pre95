@@ -56,6 +56,11 @@ struct PortalD {
 #define	PortalIsValid(p) PointerIsValid(p)
 
 /*
+ * Special portals (well, their names anyway)
+ */
+#define	VACPNAME	"<vacuum>"
+
+/*
  * EnablePortalManager --
  *	Enables/disables the portal management module.
  */

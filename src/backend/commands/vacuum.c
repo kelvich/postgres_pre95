@@ -30,7 +30,6 @@
 
 RcsId("$Header$");
 
-#define	VACPNAME	"<vacuum>"
 bool	VacuumRunning =	false;
 
 vacuum()
