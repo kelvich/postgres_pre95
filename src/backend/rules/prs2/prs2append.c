@@ -12,12 +12,12 @@
  *===================================================================
  */
 
-#include "c.h"
-#include "htup.h"
-#include "buf.h"
-#include "rel.h"
-#include "log.h"
-#include "prs2.h"
+#include "tmp/c.h"
+#include "access/htup.h"
+#include "storage/buf.h"
+#include "utils/rel.h"
+#include "utils/log.h"
+#include "rules/prs2.h"
 
 
 /*-------------------------------------------------------------------
@@ -84,14 +84,14 @@ Buffer *returnedBufferP;
 		tuple->t_oid,
 		attrValues,
 		locks,
-		LockTypeAppendWrite,
+		LockTypeTupleAppendWrite,
 		(AttributeNumberPtr) NULL,
 		(AttributeNumber) 0);
     }
 
     /*
      * now, try to activate all other 'on append' rules.
-     * (these ones will have a LockTypeAppendAction lock ....)
+     * (these ones will have a LockTypeTupleAppendAction lock ....)
      * NOTE: the attribute number storde in the locks for these
      * rules must be `InvalidAttributeNumber' because they
      * do not refer to any attribute in particular.
@@ -101,7 +101,7 @@ Buffer *returnedBufferP;
 	    explainRelation,
 	    relation,
 	    InvalidAttributeNumber,
-	    LockTypeAppendAction,
+	    LockTypeTupleAppendAction,
 	    PRS2_NEW_TUPLE,
 	    InvalidObjectId,
 	    InvalidAttributeValues,
@@ -110,7 +110,7 @@ Buffer *returnedBufferP;
 	    tuple->t_oid,
 	    attrValues,
 	    locks,
-	    LockTypeAppendWrite,
+	    LockTypeTupleAppendWrite,
 	    &insteadRuleFound,
 	    (AttributeNumberPtr) NULL,
 	    (AttributeNumber) 0);
@@ -118,13 +118,13 @@ Buffer *returnedBufferP;
     /*
      * Now all the correct values for the new tuple
      * (the ones proposed by the user + the ones calculated
-     * by rule with 'LockTypeAppendWrite' locks,
+     * by rule with 'LockTypeTupleAppendWrite' locks,
      * are in the attrValues array.
      * Create a new tuple with the correct values.
      */
     newTupleMade = attributeValuesMakeNewTuple(
 				tuple, buffer,
-				attrValues, locks, LockTypeRetrieveWrite,
+				attrValues, locks, LockTypeTupleRetrieveWrite,
 				relation, returnedTupleP);
 
     prs2FreeLocks(locks);

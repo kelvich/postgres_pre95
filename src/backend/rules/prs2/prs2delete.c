@@ -13,11 +13,11 @@
 
 
 
-#include "c.h"
-#include "htup.h"
-#include "buf.h"
-#include "rel.h"
-#include "prs2.h"
+#include "tmp/c.h"
+#include "access/htup.h"
+#include "storage/buf.h"
+#include "utils/rel.h"
+#include "rules/prs2.h"
 
 
 /*------------------------------------------------------------------
@@ -82,12 +82,12 @@ Relation relation;
 	    explainRelation,
 	    relation,
 	    InvalidAttributeNumber,
-	    LockTypeDeleteAction,
+	    LockTypeTupleDeleteAction,
 	    PRS2_OLD_TUPLE,
 	    tuple->t_oid,
 	    attrValues,
 	    locks,
-	    LockTypeRetrieveWrite,
+	    LockTypeTupleRetrieveWrite,
 	    InvalidObjectId,
 	    InvalidAttributeValues,
 	    InvalidRuleLock,
