@@ -76,7 +76,7 @@ lispCopy(lispObject)
      
      newnode = (LispValue) lispAlloc();
      newnode->type = lispObject->type;
-     newnode->printFunc = lispObject->printFunc;
+     newnode->outFunc = lispObject->outFunc;
      newnode->equalFunc = lispObject->equalFunc;
      newnode->copyFunc = lispObject->copyFunc;
      
@@ -283,7 +283,7 @@ bool CopyNodeFields(from, newnode, alloc)
     char *	(*alloc)();
 {
     newnode->type = from->type;
-    newnode->printFunc = from->printFunc;
+    newnode->outFunc = from->outFunc;
     newnode->equalFunc = from->equalFunc;
     newnode->copyFunc = from->copyFunc;
     return true;
