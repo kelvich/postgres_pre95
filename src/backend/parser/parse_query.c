@@ -194,8 +194,8 @@ ExpandAll(relname,this_resno)
 		char *attrname = (char *)(&rdesc->rd_att.data[i]->attname);
 		/* printf("%s\n",attrname);
 		fflush(stdout);*/
-		temp = make_var ( CString(relname),
-				  CString(attrname) );
+		temp = make_var ( relname,
+				  attrname );
 		varnode = (Var)CDR(temp);
 		type_id = CInteger(CAR(temp));
 		type_len = tlen(get_id_type(type_id));
@@ -301,7 +301,7 @@ make_op(op,ltree,rtree)
 	t1 = lispCons ( newop , lispCons (left ,
 					     lispCons (right,LispNil)));
 	return ( lispCons (lispInteger ( opform->oprresult ) ,
-			   newop ));
+			   t1 ));
 			   
 } /* make_op */
 
