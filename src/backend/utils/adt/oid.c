@@ -8,6 +8,7 @@
 RcsId("$Header$");
 
 #include "utils/palloc.h"
+#include "utils/builtins.h"
 
 #include "utils/log.h"
 
@@ -56,7 +57,6 @@ oid8out(oidArray)
 	register ObjectId	*sp;
 	register char		*rp;
 	char			*result;
-	extern int		ltoa();
 
 	if (oidArray == NULL) {
 		result = (char *) palloc(2);
