@@ -16,6 +16,7 @@
 #include "./RewriteManip.h"
 
 extern Name tname();
+void makeRetrieveViewRuleName();
 
 Name
 attname ( relname , attnum )
@@ -140,13 +141,53 @@ my_find ( string, list )
     return(retval);
 }
 
+/*------------------------------------------------------------------
+ * makeViewRetrieveRuleName
+ *
+ * Given a view name, create the name for the 'on retrieve to "view"'
+ * rule.
+ * This routine is called when defining/removing a view.
+ *
+ * NOTE: it quarantees that the name is at most 15 chars long
+ *------------------------------------------------------------------
+ */
+void
+makeRetrieveViewRuleName(rule_name, view_name)
+Name rule_name;
+Name view_name;
+{
+    char buf[100];
+
+    /*
+     * make sure that no non-null characters follow the
+     * '\0' at the end of the string...
+     */
+    bzero(buf, sizeof(buf));
+    sprintf(buf, "_RET%s", view_name);
+    buf[15] = '\0';
+    bcopy(buf, &(rule_name->data[0]), 16);
+}
+
+/*-----------------------------------------------------------------------
+ * FormViewRetrieveRule
+ *
+ * Form the "on retrieve to view" rule...
+ * If the view definition is:
+ *	define mikeolson (...target_list...) where ...qual....
+ * the rule will be:
+ *      define rule ret_mileolson is
+ *	on retrieve to mike_olson do instead
+ *	retrieve (...target_list...) where ...qual....
+ *
+ *-----------------------------------------------------------------------
+ */
 List
 FormViewRetrieveRule (view_name, view_parse)
 Name view_name;
 List view_parse;
 {
     
-    char rname[100];
+    NameData rname;
     List p, q, target, rt;
     List lispCopy();
 
@@ -166,13 +207,9 @@ List view_parse;
     p = nappend1(p, lispCons(lispAtom("rule"), lispCons(LispNil, LispNil)));
     /*
      * rule name now...
-     * Note that we handle the cases where the rule name is more
-     * than 16 chars long... I feel really proud of my defensive
-     * programming style !!!!!
      */
-    sprintf(rname, "ret_%s", view_name);
-    rname[15] = 0;
-    p = nappend1(p, lispString(rname));
+    makeRetrieveViewRuleName(&rname, view_name);
+    p = nappend1(p, lispString(&(rname.data[0])));
     /*
      * The next item is a big one...
      * First the 'event type' (retrieve), then the 'target' (the
@@ -237,53 +274,6 @@ List view_parse;
 #endif
 
 }     
-       
-/*	HandleView
- *	- takes a "viewname", "parsetree" pair and then
- *	1)	construct the "virtual" relation 
- *	2)	commit the command, so that the relation exists
- *		before the rules are defined.
- *	2)	define the "n" rules specified in the PRS2 paper
- *		over the "virtual" relation
- */
-
-DefineView(view_name, view_parse)
-Name view_name;
-List view_parse;
-{
-
-    List view_tlist;
-
-    view_tlist = parse_targetlist( view_parse );
-
-    /*
-     * Create the "view" (if it does not already exist).
-     * XXX: should we complain if it alrready exists ?
-     */
-    if ( getreldesc (view_name) == NULL ) {
-	DefineVirtualRelation (view_name ,view_tlist);
-	/*
-	 * The relation we have just created is not visible
-	 * to any other commands running with the same transaction &
-	 * command id.
-	 * So, increment the command id counter (but do NOT pfree any
-	 * memory!!!!)
-	 */
-	CommandCounterIncrement();
-    }
-
-    /*
-     * The range table of 'view_parse' does not contain entries
-     * for the "CURRENT" and "NEW" relations.
-     * So... add them!
-     * NOTE: we make the update in place! After this call 'view_parse' 
-     * will never be what it used to be...
-     */
-    UpdateRangeTableOfViewParse(view_name, view_parse);
-    DefineViewRules(view_name, view_parse);
-
-
-}
 
 /*---------------------------------------------------------------
  * UpdateRangeTableOfViewParse
@@ -344,4 +334,85 @@ List view_parse;
      * hell breaks loooooooooooooOOOOOOOOOOOOOOOOOOSE!
      */
     root_rangetable(root) = new_rt;
+}
+       
+/*-------------------------------------------------------------------
+ * DefineView
+ *
+ *	- takes a "viewname", "parsetree" pair and then
+ *	1)	construct the "virtual" relation 
+ *	2)	commit the command but NOT the transaction,
+ *		so that the relation exists
+ *		before the rules are defined.
+ *	2)	define the "n" rules specified in the PRS2 paper
+ *		over the "virtual" relation
+ *-------------------------------------------------------------------
+ */
+
+void
+DefineView(view_name, view_parse)
+Name view_name;
+List view_parse;
+{
+
+    List view_tlist;
+
+    view_tlist = parse_targetlist( view_parse );
+
+    /*
+     * Create the "view" relation (if it does not already exist).
+     */
+    if ( getreldesc (view_name) == NULL ) {
+	DefineVirtualRelation (view_name ,view_tlist);
+	/*
+	 * The relation we have just created is not visible
+	 * to any other commands running with the same transaction &
+	 * command id.
+	 * So, increment the command id counter (but do NOT pfree any
+	 * memory!!!!)
+	 */
+	CommandCounterIncrement();
+    } else {
+	elog(WARN, "relation '%s' already exists!", view_name);
+    }
+
+    /*
+     * The range table of 'view_parse' does not contain entries
+     * for the "CURRENT" and "NEW" relations.
+     * So... add them!
+     * NOTE: we make the update in place! After this call 'view_parse' 
+     * will never be what it used to be...
+     */
+    UpdateRangeTableOfViewParse(view_name, view_parse);
+    DefineViewRules(view_name, view_parse);
+}
+
+/*------------------------------------------------------------------
+ * RemoveView
+ *
+ * Remove a view given its name
+ *------------------------------------------------------------------
+ */
+void
+RemoveView(view_name)
+Name view_name;
+{
+    NameData rname;
+
+    /*
+     * first remove all the "view" rules...
+     * Currently we only have one!
+     */
+    makeRetrieveViewRuleName(&rname, view_name);
+    prs2RemoveTupleRule(&rname);
+
+    /*
+     * we don't really need that, but just in case...
+     */
+    CommandCounterIncrement();
+
+    /*
+     * now remove the relation.
+     */
+    RelationNameDestroyHeapRelation(view_name);
 }
