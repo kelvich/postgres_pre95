@@ -105,7 +105,7 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 	uint16			amstrategy;	/* XXX not used YET */
 	ObjectId		relam;
 	static Relation		relation = (Relation) NULL;
-	static HeapScan		scan = (HeapScan) NULL;
+	static HeapScanDesc	scan = (HeapScanDesc) NULL;
 	static ScanKeyEntryData	indexKey[1] = {
 		{ 0, IndexHeapRelationIdAttributeNumber, F_OIDEQ }
 	};
@@ -129,7 +129,7 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 	if (!HeapTupleIsValid(indexTuple)) {
 		HeapScanEnd(scan);
 		RelationCloseHeapRelation(relation);
-		scan = (HeapScan) NULL;
+		scan = (HeapScanDesc) NULL;
 		relation = (Relation) NULL;
 		return(0);
 	}
@@ -392,7 +392,7 @@ find_inheritance_children (inhparent)
 		{ 0, InheritsParentAttributeNumber, F_OIDEQ }
 	};
 	Relation		relation;
-	HeapScan		scan;
+	HeapScanDesc		scan;
 	LispValue		lp = LispNil;
 	LispValue		list = LispNil;
 
@@ -429,7 +429,7 @@ VersionGetParents(verrelid, list)
 		{ 0, VersionRelationIdAttributeNumber, F_OIDEQ }
 	};
 	Relation		relation;
-	HeapScan		scan;
+	HeapScanDesc		scan;
 	LispValue		lp;
 	ObjectId		verbaseid;
 
