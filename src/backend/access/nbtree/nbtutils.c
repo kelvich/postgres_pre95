@@ -90,7 +90,7 @@ _bt_orderkeys(relation, numberOfKeys, key)
     int nbytes;
     int test;
     int i, j;
-    int init[BTMaxStrategyNumber];
+    int init[BTMaxStrategyNumber+1];
 
     /* haven't looked at any strategies yet */
     for (i = 0; i <= BTMaxStrategyNumber; i++)
