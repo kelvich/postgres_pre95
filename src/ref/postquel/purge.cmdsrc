@@ -37,7 +37,15 @@ purge EMP before "Jan 1 1989"
  */
 purge EMP
 .)C
-.SH BUGS
+.SH "BUGS AND CAVEATS"
 Error messages are quite unhelpful.  A complaint about
 \*(lqinconsistent times\*(rq followed by several nine-digit numbers
 indicates an attempt to \*(lqback up\*(rq a purge date on a relation.
+.PP
+You cannot purge certain system catalogs (namely,
+.q pg_class ,
+.q pg_attribute ,
+.q pg_am
+and
+.q pg_amop )
+due to circularities in the system catalog code.
