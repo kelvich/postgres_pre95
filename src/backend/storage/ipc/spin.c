@@ -133,7 +133,7 @@ IPCKey key;
     IpcSemaphoreKill(key);
     elog(NOTICE,"Destroying old spinlock semaphore");
     semid = IpcSemaphoreCreate(key, MAX_SPINS, IPCProtection, 
-			       0, &status);
+			       IpcSemaphoreDefaultStartValue, &status);
     }
 
   if (semid >= 0) {
