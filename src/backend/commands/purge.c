@@ -121,6 +121,9 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 		dateTag = RELATIVE;
 	else
 		dateTag = ABSOLUTE | RELATIVE;
+
+/* This check is unneccesary - see comment on assertConsistentTimes */
+#ifdef 0
 	if (!assertConsistentTimes(absoluteTime, relativeTime, currentTime,
 				   dateTag, oldTuple)) {
 		heap_endscan(scan);
@@ -128,6 +131,8 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 		elog(WARN, "%s: inconsistent times", cmdname);
 		return(0);
 	}
+#endif
+
 	for (i = 0; i < Natts_pg_relation; ++i) {
 		nulls[i] = heap_attisnull(oldTuple, i+1) ? 'n' : ' ';
 		values[i] = NULL;
@@ -166,7 +171,14 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	return(1);
 }
 
-
+/*
+ * This routine doesn't make any sense, as purge only sets variables 
+ * referenced by vacuum.  After vacuuming the relation will contain tuples 
+ * that existed from a specific point in time onwards.  It is entirely 
+ * possible that any tuples that are being discarded were already discarded
+ * during a previous vacuum, but that has no ill effects and we do not need
+ * to check for it.
+ */
 assertConsistentTimes(absoluteTime, relativeTime, currentTime, dateTag, tuple)
 	AbsoluteTime    absoluteTime, currentTime;
         RelativeTime	relativeTime;
