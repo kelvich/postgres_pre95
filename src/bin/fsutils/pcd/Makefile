@@ -1,11 +1,7 @@
 .include <postgres.global.mk>
+
 PROG= pcd
 
-SRCS= cd.c simplelists.c
-
-#
-# should simplelists.o just be in libpq?
-#
-.PATH: ${.CURDIR}/../../../backend/lib
+SRCS= cd.c
 
 .include <postgres.prog.mk>
