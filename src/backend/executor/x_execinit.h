@@ -1,2 +1,2 @@
 /* $Header$ */
-extern void InitializeExecutor ARGS(());
+extern void InitializeExecutor ARGS((void));

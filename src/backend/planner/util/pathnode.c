@@ -39,6 +39,7 @@ RcsId("$Header$");
 #include "planner/costsize.h"
 #include "planner/keys.h"
 #include "planner/xfunc.h"
+#include "planner/clausesel.h"
 
 #include "lib/copyfuncs.h"
 

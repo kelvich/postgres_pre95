@@ -17,13 +17,12 @@
 #include <sys/param.h>		/* for MAXPATHLEN */
 
 #include "utils/log.h"
-#include "catalog_utils.h"
+#include "parser/catalog_utils.h"
 #include "nodes/pg_lisp.h"
 #include "utils/exc.h"
 #include "utils/excid.h"
-#include "io.h"
+#include "parser/io.h"
 #include "utils/palloc.h"
-#include "parse_query.h"
 #include "catalog/pg_aggregate.h"
 #include "catalog/pg_type.h"
 #include "nodes/primnodes.h"
@@ -36,6 +35,7 @@
 #include "nodes/relation.a.h"
 #include "parse.h"
 #include "parser/parsetree.h"
+#include "parser/parse_query.h"
 #include "utils/builtins.h"
 #include "lib/lisplist.h"
  

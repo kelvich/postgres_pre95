@@ -28,20 +28,14 @@
 #include "utils/palloc.h"
 #include "nodes/pg_lisp.h"
 /* XXX ORDER DEPENDENCY */
-#include "parser/parse_query.h"
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
+#include "parser/parse_query.h"
 #include "rules/params.h"
 #include "utils/lsyscache.h"
 #include "utils/sets.h"             /* for SetDefine() prototype */
 #include "tmp/acl.h"
-extern LispValue new_filestr();
-extern LispValue parser_typecast();
-extern LispValue make_targetlist_expr();
-extern List MakeList();
-extern List FlattenRelationList();
-extern List ParseAgg();
-extern LispValue make_array_ref();
+#include "lib/lisplist.h"
 
 #define ELEMENT 	yyval = nappend1( LispNil , yypvt[-0] )
 

@@ -32,7 +32,7 @@ RcsId("$Header$");
 #include "catalog/syscache.h"
 #include "catalog/pg_type.h"
 #include "catalog_utils.h"
-#include "parse_query.h"
+#include "parser/parse_query.h"
 #include "utils/lsyscache.h"
 
 extern LispValue parser_ppreserve();
@@ -40,6 +40,8 @@ extern LispValue p_rtable;
 extern int Quiet;
 
 static ObjectId param_type_relid;
+ObjectId *param_type_info;
+int pfunc_num_args;
 
 LispValue
 ModifyQueryTree(query,priority,ruletag)
