@@ -97,6 +97,25 @@
 #define free(ptr)	    free_debug(_FLD_ ptr)
 #endif /* PALLOC_DEBUG */
 
+/* -------------------
+ *	buffer pool pin count debugging stuff
+ * -------------------
+ */
+#undef BUFMGR_DEBUG
+
+#ifdef BUFMGR_DEBUG
+#define IncrBufferRefCount(buffer)	IncrBufferRefCount_Debug(_FLD_ buffer)
+#define ReleaseBuffer(buffer)		ReleaseBuffer_Debug(_FLD_ buffer)
+#define ReleaseAndReadBuffer(buffer, relation, blockNum) \
+		ReleaseAndReadBuffer_Debug(_FLD_ buffer, relation, blockNum)
+#define ReadBuffer(reln, blockNum)	ReadBuffer_Debug(_FLD_ reln, blockNum)
+#define WriteBuffer(buffer)		WriteBuffer_Debug(_FLD_ buffer)
+/*
+#define PinBuffer(buf)			PinBuffer_Debug(_FLD_ buf)
+#define UnpinBuffer(buf)		UnpinBuffer_Debug(_FLD_ buf)
+*/
+#endif /* BUFMGR_DEBUG */
+
 /*
  * Begin COMPILER DEPENDENT section
  */
