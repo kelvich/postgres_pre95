@@ -7,7 +7,7 @@
 define rule \*(- Define a new rule
 .uh SYNOPSIS
 .lp
-.b "define [tuple | rewrite] rule"
+.b "define [instance | rewrite] rule"
 rule_name
 [as exception to rule_name_2]
 .b is
@@ -37,17 +37,17 @@ based on
 .b query
 .b rewrite
 and the other based on 
-.b tuple-level
-processing.  In general, the tuple system is more efficient
-if there are many rules on a single table, each covering a small
-subset of the tuples.  The rewrite system is more
-efficient if large scope rules are being defined.  In version 2, the user
+.b instance-level
+processing.  In general, the instance-level system is more efficient
+if there are many rules on a single class, each covering a small
+subset of the instances.  The rewrite system is more
+efficient if large scope rules are being defined.  In version 2.1, the user
 can optionally choose which rule system to use by specifying 
 .i rewrite
 or
-.i tuple
+.i instance
 in the command.  If the user does not specify which system to use, POSTGRES
-defaults to using the tuple level system.  In the long run
+defaults to using the instance-level system.  In the long run
 POSTGRES will automatically decide which rules system to use and the possibility
 of user selection will be removed.
 .lp
@@ -60,9 +60,9 @@ append
 .)l
 Moreover, object is either:
 .(l
-a relation name
+a class name
 or
-relation.column
+class.column
 .)l
 The FROM clause, the WHERE clause, and the
 action are respectively normal POSTQUEL 
@@ -76,30 +76,30 @@ with the following change:
 or
 .b current
 can appear instead of 
-a tuple variable whenever a tuple
+an instance variable whenever an instance 
 variable is permissible in POSTQUEL.
 .in-6
 .ll+6
 .lp
-The semantics of a rule is that at the time an individual tuple is
-accessed, updated, inserted or deleted, there is a current tuple (for
-retrieves, replaces and deletes) and a new tuple (for replaces and appends).
+The semantics of a rule is that at the time an individual instance is
+accessed, updated, inserted or deleted, there is a current instance (for
+retrieves, replaces and deletes) and a new instance (for replaces and appends).
 If the event specified in the ON clause and the condition specified
 in the WHERE clause are true 
-for the current tuple,
+for the current instance,
 then the action part of the rule is executed.  First, however, values
-from fields in the current tuple and/or the new tuple are substituted 
+from fields in the current instance and/or the new instance are substituted 
 for:
 .(l
-current.column-name
-new.column-name
+current.attribute-name
+new.attribute-name
 .)l
 The action part of the rule executes with same command and
 transaction identifier
 as the user command that caused activation.  
 .lp
-A note of caution about POSTQUEL rules is in order.  If the same relation
-name or tuple variable appears in the event, where clause 
+A note of caution about POSTQUEL rules is in order.  If the same class
+name or instance variable appears in the event, where clause 
 and the action parts of a rule, they are 
 all considered different tuple variables.  
 More accurately, new and current are the only
@@ -130,7 +130,7 @@ on replace to EMP.salary where current.name = ``Joe''
 replace EMP (salary = new.salary) where EMP.name = ``Sam''
 .)l
 At the time Joe receives a salary adjustment, the event will become
-true and Joe's current tuple and proposed new tuple are available
+true and Joe's current instance and proposed new instance are available
 to the execution routines.  Hence, his new salary is substituted into the 
 action part of the rule which is subsequently executed.  This 
 propagates Joe's salary on to Sam.
@@ -152,6 +152,7 @@ do instead nothing
 /* create a view of the employees working in the toy department */
 .(l
 create TOYEMP(name = char16, salary = int4)
+
 define rule example_4 is
 on retrieve to TOYEMP
 do instead retrieve (EMP.name, EMP.salary) where EMP.dname = ``toy''
@@ -168,7 +169,7 @@ do replace new(salary = 5000)
 postquel(postquel).
 .uh BUGS
 .lp
-Exceptions are not implemented in Version 2
+Exceptions are not implemented in Version 2.1.
 .lp
 The object in a POSTQUEL rule cannot be an array reference and cannot have parameters.
 .lp
@@ -177,9 +178,6 @@ The WHERE clause can not have a FROM clause.
 Only one POSTQUEL command can be specified in the action part,
 and it can only be a
 replace, append, retrieve or delete command.
-.lp
-In 2.0, the tuple level rule system (the default) cannot handle rules
-operating on objects of type RELATION.
 .lp
 The rewrite system currently processes only a subset of the rule set.  Specifically, it
 can only accept rules of the form:

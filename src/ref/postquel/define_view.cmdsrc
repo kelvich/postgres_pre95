@@ -4,7 +4,7 @@
 .XA 2 "Define View"
 .uh NAME
 .lp
-retrieve \*- retrieve tuples from a relation
+retrieve \*- retrieve instances from a class
 .uh SYNTAX
 .lp
 .b "define view"
@@ -31,7 +31,7 @@ qual ]
 .uh DESCRIPTION
 .lp
 .b "Define view"
-will define a relational view to \*(PP.
+will define a view to \*(PP.
 This view is not physically materialized;
 instead the rule system is used to support view processing as in [STON90].
 Specifically,
