@@ -8,7 +8,7 @@ define operator \(em define a new user operator
 .SH SYNOPSIS
 .(l M
 \fBdefine operator\fR operator_name
-	\fB(\fR \fBarg1\fR \fB=\fR type-1
+	\fB(\fR[ \fBarg1\fR \fB=\fR type-1 ]
 	 [ \fB,\fR \fBarg2\fR \fB=\fR type-2 ]
 	 , \fBprocedure =\fR func_name
 	 [\fB, precedence =\fR number ]
@@ -30,6 +30,17 @@ define operator \(em define a new user operator
 This command defines a new user operator,
 .IR "operator_name" .
 The user who defines an operator becomes its owner.
+.PP
+At least one of
+.IR arg1
+and
+.IR arg2
+must be defined.  For binary operators, both should be defined. For
+right unary operators, only
+.IR arg1
+should be defined, while for left unary operators only
+.IR arg2
+should be defined.
 .PP
 The name of the operator,
 .IR operator_name ,
