@@ -117,7 +117,7 @@ ObjectId element_type;
     {
 	HeapTuple tup;
 
-	tup = (HeapTuple)type("char");
+	tup = (HeapTuple)SearchSysCacheTuple(TYPNAME, "char");
 	if ((charTypid = tup->t_oid) == InvalidObjectId)
 	    elog(WARN, "type lookup on char failed");
     }
