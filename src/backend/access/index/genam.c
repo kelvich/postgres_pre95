@@ -338,10 +338,10 @@ IndexScanGetGeneralRetrieveIndexResult(scan, direction)
      * ----------------
      */
     heapItemPointer = RetrieveIndexResultGetHeapItemPointer(result);
-    pfree(result);
 
     generalResult = (GeneralRetrieveIndexResult) palloc(sizeof *result);
     generalResult->heapItemData = *heapItemPointer;
 
+    pfree(result);
     return generalResult;
 }
