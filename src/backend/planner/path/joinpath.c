@@ -26,6 +26,7 @@
 #include "planner/pathnode.h"
 #include "planner/joinutils.h"
 #include "planner/keys.h"
+#include "planner/costsize.h"
 
 extern bool _enable_hashjoin_;
 extern bool _enable_mergesort_;
