@@ -118,7 +118,7 @@ bool Typecast_ok = true;
 %token   	INHERITANCE VERSION CURRENT NEW THEN DO INSTEAD VIEW
 		REWRITE P_TUPLE TYPECAST P_FUNCTION C_FUNCTION C_FN
 		POSTQUEL RELATION RETURNS INTOTEMP LOAD CREATEDB DESTROYDB
-		INPUT OUTPUT
+		STDIN STDOUT
 
 /* precedence */
 %nonassoc Op
@@ -1795,8 +1795,8 @@ date:			Sconst		/*$$=$1*/;
 file_name:		SCONST		{$$ = new_filestr($1); };
 copy_file_name:
           SCONST		{$$ = new_filestr($1); };
-	| INPUT				{ $$ = lispString(CppAsString(input)); }
-	| OUTPUT			{ $$ = lispString(CppAsString(output)); }
+	| STDIN				{ $$ = lispString(CppAsString(stdin)); }
+	| STDOUT			{ $$ = lispString(CppAsString(stdout)); }
  /* adt_const:		Sconst		/*$$=$1*/;
 attach_args:		Sconst		/*$$=$1*/;
 			/* XXX should be converted by fmgr? */
