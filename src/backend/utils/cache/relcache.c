@@ -104,7 +104,9 @@ extern HeapTuple	GetHeapTuple();	/* XXX use include file */
  */
 
 HashTable 	RelationCacheHashByName;
+HashTable 	GlobalNameCache;
 HashTable	RelationCacheHashById;
+HashTable 	GlobalIdCache;
 
 HashTable 	PrivateRelationCacheHashByName;
 HashTable	PrivateRelationCacheHashById;
@@ -259,7 +261,10 @@ RelationIdGetRelation(relationId)
 
 	IN();
 
+	/* if not in the current cache, check the global cache */
 	rd = (Relation)KeyHashTableLookup(RelationCacheHashById,relationId);
+	if (!RelationIsValid(rd))
+	    rd = (Relation) KeyHashTableLookup(GlobalIdCache, relationId);
 	if (RelationIsValid(rd)) {
 #ifdef _xprs_
         if (rd -> rd_fd.fd[0] == -1) {
@@ -338,7 +343,10 @@ getreldesc(relationName)
 	IN();
 	NO_DO_DB(elog(NOIND,"getreldesc: %s", relationName));
 
+	/* if not in the current cache, check the global cache */
 	rd = (Relation)KeyHashTableLookup(RelationCacheHashByName,relationName);
+	if (!RelationIsValid(rd))
+	    rd = (Relation) KeyHashTableLookup(GlobalNameCache, relationName);
 	NO_DO_DB(if (rd != NULL) {
 		elog(NOIND,"rd = (%x) %s",rd,&rd->rd_rel->relname);
 	} else
@@ -1096,10 +1104,13 @@ RelationInitialize()
 			HashByNameInRelation, 
 			CompareNameInArgumentWithRelationNameInRelation, 
 			NULL, 300);
+	GlobalNameCache = RelationCacheHashByName;
+
 	RelationCacheHashById = CreateHashTable(
 			HashByIdAsArgument, 
 			HashByIdInRelation, 
 			CompareIdInArgumentWithIdInRelation, NULL, 300);
+	GlobalIdCache = RelationCacheHashById;
 
 	/* 
 	 * these should use a hash function that is perfect on them
