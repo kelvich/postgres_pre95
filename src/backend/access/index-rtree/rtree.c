@@ -133,7 +133,6 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params)
 
     /* okay, all heap tuples are indexed */
     heap_endscan(scan);
-    _rtdump(index);
     RelationUnsetLockForWrite(index);
 
     /*
@@ -224,7 +223,12 @@ rtdoinsert(r, itup)
     }
 
     /* add the item and write the buffer */
-    PageAddItem(page, itup, itup->t_size, PageGetMaxOffsetIndex(page), LP_USED);
+    if (PageIsEmpty(page))
+	PageAddItem(page, itup, itup->t_size, 1, LP_USED);
+    else
+	PageAddItem(page, itup, itup->t_size,
+		    PageGetMaxOffsetIndex(page) + 2, LP_USED);
+
     WriteBuffer(buffer);
 
     datum = (((char *) itup) + sizeof(IndexTupleData));
@@ -307,6 +311,7 @@ dosplit(r, buffer, stack, itup)
     OffsetIndex i;
     OffsetIndex leftoff, rightoff;
     BlockNumber lbknum, rbknum;
+    BlockNumber bufblock;
     RTreePageOpaque opaque;
     int blank;
     InsertIndexResult res;
@@ -374,7 +379,7 @@ dosplit(r, buffer, stack, itup)
 	ItemPointerSet(&(res->pointerData), 0, rbknum, 0, rightoff);
     }
 
-    if (BufferGetBlockNumber(buffer) != P_ROOT) {
+    if ((bufblock = BufferGetBlockNumber(buffer)) != P_ROOT) {
 	PageRestoreTempPage(left, p);
     }
     WriteBuffer(leftbuf);
@@ -398,7 +403,7 @@ dosplit(r, buffer, stack, itup)
      */
 
     /* adjust active scans */
-    rtadjscans(r, RTOP_SPLIT, BufferGetBlockNumber(buffer), 0);
+    rtadjscans(r, RTOP_SPLIT, bufblock, 0);
 
     ltup = (IndexTuple) formituple(r->rd_rel->relnatts, &r->rd_att.data[0],
 			           &(v.spl_ldatum), isnull);
@@ -788,7 +793,7 @@ _rtdump(r)
 	    datum = ((char *) itup);
 	    datum += sizeof(IndexTupleData);
 	    itkey = (char *) box_out(datum);
-	    printf("\t[%d] size %d heap <%d,%d,%d> key:%s",
+	    printf("\t[%d] size %d heap <%d,%d,%d> key:%s\n",
 		   offind + 1, itup->t_size, itblkno, itpgno, itoffno, itkey);
 	    pfree(itkey);
 	}
