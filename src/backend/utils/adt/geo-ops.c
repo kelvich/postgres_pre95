@@ -71,6 +71,13 @@ box_in(str)
 	return(result);
 }
 
+void
+box_maodebug(box)
+	BOX *box;
+{
+	if (box != NULL)
+		printf("(%g,%g,%g,%g)\n", box->xh, box->yh, box->xl, box->yl);
+}
 
 /*	box_out	-	convert a box to external form.
  */
