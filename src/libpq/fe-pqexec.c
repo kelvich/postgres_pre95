@@ -49,7 +49,6 @@ RcsId ("$Header$");
  *	PQdatabase:	PGDATABASE
  *	PQport:		PGPORT
  *	PQtty:		PGTTY
- *	PQoption:	PGOPTION
  * ----------------------------------------------------------------
  */
 
@@ -121,7 +120,17 @@ read_initstr()
     if ((PQtty == NULL) && ((PQtty = getenv("PGTTY")) == NULL))
 	PQtty = DefaultTty;
     
-    if ((PQoption == NULL) && ((PQoption = getenv("PGOPTION")) == NULL))
+    /*
+     *  As of release 4, PQoption is no longer taken from the environment
+     *  var PGOPTION if it's not already defined.  This change was made
+     *  in order to be consistent with the documentation and to make frew
+     *  happy.
+     *
+     *  In general, users shouldn't be screwing around with PQoption, in
+     *  any case.
+     */
+
+    if (PQoption == NULL)
 	PQoption = DefaultOption;
     
     if (PQport == NULL) {
@@ -129,7 +138,7 @@ read_initstr()
 	   PQport = DefaultPort;
 	else PQport = getenv("PGPORT");
     }
-    
+
 /* The function of PQinitstr is now done via a message to the postmaster
  *
  *  PQinitstr = addValues(initstr_length);
