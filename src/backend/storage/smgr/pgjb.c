@@ -244,7 +244,15 @@ pgjb_offset(plname, plid, extentsz)
      */
 
     if (entry->jbhe_nblocks == InvalidBlockNumber) {
-	offset = _pgjb_findoffset(plname, plid, extentsz);
+
+	/*
+	 *  Pass the actual size of an extent to findoffset, since
+	 *  it uses that to compute probable locations for extents
+	 *  to start.  Since the user may have passed zero in to this
+	 *  routine, we don't want to propogate the user's value.
+	 */
+
+	offset = _pgjb_findoffset(plname, plid, SJEXTENTSZ);
 
 	if (offset == InvalidBlockNumber) {
 	    SpinRelease(JBSpinLock);
