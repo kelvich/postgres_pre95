@@ -8,8 +8,6 @@
 #ifndef Dynamic_loaderHIncluded
 #define Dynamic_loaderHIncluded 1 /* include once only */
 
-#include "tmp/c.h"
-
 typedef char *	((*func_ptr)());
 
 func_ptr	dynamic_load();
@@ -47,6 +45,8 @@ typedef struct df_files
 {
     char filename[256];				/* Full pathname of file */
     DynamicFunctionList *func_list;	/* List of functions */
+	char *address;					/* Memory allocated for file */
+	long size;						/* Size of memory allocated for file */
     struct df_files *next;
 }
 DynamicFileList;
