@@ -118,6 +118,22 @@ long id;
     return((Type) tup);
 }
 
+/* return a type name, given a typeid */
+Name
+get_id_typname(id)
+long id;
+{
+   HeapTuple tup;
+   Form_pg_type typetuple;
+
+    if (!(tup = SearchSysCacheTuple(TYPOID, id))) {
+	elog ( WARN, "type id lookup of %d failed", id);
+	return(NULL);
+    }
+   typetuple = (Form_pg_type)GETSTRUCT(tup);
+    return((Name)&(typetuple->typname));
+}
+
 /* return a Type structure, given type name */
 Type
 type(s)
@@ -355,7 +371,6 @@ binary_oper_select_candidate(arg1, arg2, candidates)
 	    return result;
     }
 */
-
     return (NULL);
 }
 
@@ -577,8 +592,36 @@ varattno ( rd , a)
 	     RelationGetRelationName(rd), a );
 	return(-1);
 }
+
+/* Given range variable, return whether attribute of this name
+ * is a set.
+ * NOTE the ASSUMPTION here that no system attributes are, or ever
+ * will be, sets.
+ */
+bool
+varisset( rd, name)
+Relation rd;
+char *name;
+{
+     int i;
+     
+     for (i = 0; i < rd->rd_rel->relnatts; i++) {
+	  if (! strcmp(&rd->rd_att.data[i]->attname, name)) {
+	       return(rd->rd_att.data[i]->attisset);
+	  }
+     }
+     for (i = 0; i < SPECIALS; i++) {
+	  if (! strcmp(special_attr[i].field, name)) {
+	       return(false);   /* no sys attr is a set */
+	  }
+     }
+
+     elog(WARN, "Relation %s does not have attribute %s\n",
+	  RelationGetRelationName(rd), name);
+     return false;
+}
+
 /* given range variable, return id of variable */
-   
 int
 nf_varattno ( rd , a)
      Relation rd;
@@ -956,7 +999,7 @@ match_argtypes(nargs, input_typeids, function_typeids, candidates)
 }
 
 /*
- * given the input argtype array and more than one candidate for the
+ * given the input argtype array and more than one candidate
  * for the function argtype array, attempt to resolve the conflict.
  * returns the selected argtype array if the conflict can be resolved,
  * otherwise returns NULL
@@ -1357,15 +1400,13 @@ get_typrelid(typ)
 
 OID
 get_typelem(type_id)
-
 OID type_id;
-
 {
     HeapTuple     typeTuple;
     TypeTupleForm   type;
 
 	if (!(typeTuple = SearchSysCacheTuple(TYPOID, type_id, NULL, NULL, NULL))) {
-		elog (WARN , "type name lookup of %d failed", type_id);
+		elog (WARN , "type id lookup of %d failed", type_id);
 	}
     type = (TypeTupleForm) GETSTRUCT(typeTuple);
 
