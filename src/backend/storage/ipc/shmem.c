@@ -76,9 +76,9 @@ unsigned int *ShmemBindingTabOffset = NULL;
 	/* flag becomes true when shared mem is created by POSTMASTER*/
 int	      ShmemBootstrap = FALSE;
 	/* lock for shared memory allocation */
-SPINLOCK      *ShmemLock;
+SPINLOCK      ShmemLock;
 	/* lock for binding table access */
-SPINLOCK      *BindingLock;
+SPINLOCK      BindingLock;
 
 /* forward */
 HTAB *ShmemInitHash();

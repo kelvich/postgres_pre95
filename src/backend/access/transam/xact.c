@@ -130,7 +130,7 @@
 #include "access/xact.h"
 #include "storage/spin.h"
 
-extern SPINLOCK *BufMgrLock;
+extern SPINLOCK BufMgrLock;
  RcsId("$Header$");
 
 /* ----------------

@@ -12,6 +12,11 @@
  * a good idea to think about (and allocate) short term and long
  * term semaphores separately anyway.
  *
+ * NOTE: These routines are not supposed to be widely used in Postgres.
+ *	 They are preserved solely for the purpose of porting Mark Sullivan's
+ *	 buffer manager to Postgres.  In fact we are only using three such
+ *	 spin locks: ShmemLock, BindingLock, and BufMgrLock.
+ *	 -- Wei
  */
 #include <errno.h>
 #include "tmp/postgres.h"
@@ -21,47 +26,62 @@
 #include "storage/spin.h"
 #include "utils/log.h"
 
-/* this spin lock guards the data structures for allocating and
- * deallocating spinlocks and semaphores
- */
-SPINLOCK *SpinMaster = NULL;
+#ifdef sequent
+/* real spin lock implementations */
 
-/* This is configured in the kernel.  maximum number of
- * spin locks can be no more than the max size of a SysV
- * semaphore array (if spinlocks are implemented as SysV 
- * semaphores.  SpinLockId is the identifier for the semaphore
- * array.
- */
-#define MAX_SPINS 5
-IpcSemaphoreId  SpinLockId = -1;
+CreateSpinlocks(key)
+IPCKey key;
+{ 
+   /* the spin lock shared memory must have been created by now */
+   return(TRUE); 
+}
 
-	/* count of allocated spinlocks */
-int *	NumSpinLocksP = NULL;
+AttachSpinLocks(key)
+{
+    /* the spin lock shared memory must have been attached by now */
+    return(TRUE);
+}
 
+InitSpinLocks(init, key)
+int init;
+IPCKey key;
+{
+  extern SPINLOCK ShmemLock;
+  extern SPINLOCK BindingLock;
+  extern SPINLOCK BufMgrLock;
 
+  /* These three spinlocks have fixed location is shmem */
+  ShmemLock = SHMEMLOCKID;
+  BindingLock = BINDINGLOCKID;
+  BufMgrLock = BUFMGRLOCKID;
 
-/* if debugging, spinlocks are simply integers */
-#ifdef SPIN_DBG
+  return(TRUE);
+}
 
-CreateSpinlocks()
-{ return(TRUE); }
+SpinAcquire(lock)
+SPINLOCK lock;
+{
+    ExclusiveLock(lock);
+}
 
-AttachSpinLocks()
-{ return(TRUE); }
+SpinRelease(lock)
+SPINLOCK lock;
+{
+    ExclusiveUnlock(lock);
+}
 
-#else 
-#ifdef SPIN_OK
-
-/* SPIN_OK means spinlocks are implemented with TAS */
-CreateSpinlocks()
-{ return(TRUE); }
-
-AttachSpinLocks()
-{ return(TRUE); }
-
-#else
+SpinIsLocked(lock)
+SPINLOCK lock;
+{
+    return(!LockIsFree(lock));
+}
+#else /* sequent */
 /* Spinlocks are implemented using SysV semaphores */
 
+
+#define MAX_SPINS 3	/* only for ShmemLock, BindingLock, and
+			   BufMgrLock */
+IpcSemaphoreId  SpinLockId = -1;
 
 /*
  * SpinAcquire -- try to grab a spinlock
@@ -69,9 +89,9 @@ AttachSpinLocks()
  * FAILS if the semaphore is corrupted.
  */
 SpinAcquire(lock) 
-SPINLOCK	*lock;
+SPINLOCK	lock;
 {
-  IpcSemaphoreLock(SpinLockId, lock->tas, IpcExclusiveLock);
+  IpcSemaphoreLock(SpinLockId, lock, IpcExclusiveLock);
 }
 
 /*
@@ -80,37 +100,20 @@ SPINLOCK	*lock;
  * FAILS if the semaphore is corrupted
  */
 SpinRelease(lock) 
-SPINLOCK	*lock;
+SPINLOCK	lock;
 {
   if (SpinIsLocked(lock))
-      IpcSemaphoreUnlock(SpinLockId, lock->tas, IpcExclusiveLock);
+      IpcSemaphoreUnlock(SpinLockId, lock, IpcExclusiveLock);
 }
 
 int
 SpinIsLocked(lock)
-SPINLOCK	*lock;
+SPINLOCK	lock;
 {
    int semval;
 
-   semval = IpcSemaphoreGetValue(SpinLockId, lock->tas);
+   semval = IpcSemaphoreGetValue(SpinLockId, lock);
    return(semval < IpcSemaphoreDefaultStartValue);
-}
-
-/*
- * SpinCreate -- initialize a spin lock 
- *
- * There are a finite number of spinlocks available.  Check
- * that the number has not been exceeded.  The semaphore is
- * locked when it is created.  
- */
-SpinCreate(lock)
-SPINLOCK	*lock;
-{
-  lock->tas = *NumSpinLocksP;
-
-  if (*NumSpinLocksP >= MAX_SPINS) {
-    elog(WARN,"SpinCreate: too many spinlocks ");
-  }
 }
 
 /*
@@ -163,24 +166,23 @@ IPCKey key;
   SpinLockId = id;
   return(TRUE);
 }
-#endif
-#endif
 
 /*
  * InitSpinLocks -- Spinlock bootstrapping
  * 
- * We need three spinlocks for bootstrapping SpinMaster (this
- * module), BindingLock (for the shmem binding table) and
- * ShmemLock (for the shmem allocator).
+ * We need three spinlocks for bootstrapping,
+ * BindingLock (for the shmem binding table) and
+ * ShmemLock (for the shmem allocator), BufMgrLock (for buffer
+ * pool exclusive access).
  *
  */
-InitSpinLocks(init, freeSpaceP, key)
+InitSpinLocks(init, key)
 int init;
-unsigned int *freeSpaceP;
 IPCKey key;
 {
-  extern SPINLOCK *ShmemLock;
-  extern SPINLOCK *BindingLock;
+  extern SPINLOCK ShmemLock;
+  extern SPINLOCK BindingLock;
+  extern SPINLOCK BufMgrLock;
 
   if (!init || key != IPC_PRIVATE) {
       /* if bootstrap and key is IPC_PRIVATE, it means that we are running
@@ -192,69 +194,11 @@ IPCKey key;
       }
     }
 
-  NumSpinLocksP = (int *) MAKE_PTR(*freeSpaceP);
-
-  /* These three spinlocks have fixed location is shmem */
-  ShmemLock = (SPINLOCK *) (NumSpinLocksP+1);
-  BindingLock = ShmemLock+1;
-  SpinMaster = BindingLock+1;
+  /* These four spinlocks have fixed location is shmem */
+  ShmemLock = SHMEMLOCKID;
+  BindingLock = BINDINGLOCKID;
+  BufMgrLock = BUFMGRLOCKID;
   
-  *freeSpaceP = (int ) MAKE_OFFSET(SpinMaster+1);
-
-  /* if ! init, just not the location of these.  Someone
-   * else has initialized them.
-   */
-  if (init) {
-    *NumSpinLocksP = 0;
-
-    SpinCreate(ShmemLock);
-    *NumSpinLocksP = 1;
-    SpinRelease(ShmemLock);
-
-    SpinCreate(BindingLock);
-    *NumSpinLocksP = 2;
-    SpinRelease(BindingLock);
-
-    SpinCreate(SpinMaster);
-    *NumSpinLocksP = 3;
-    SpinRelease(SpinMaster);
-  }
-
   return(TRUE);
 }
-
-
-/*
- * SpinAlloc -- allocate a new spinlock or attach to an
- *	old one.
- *
- * Before any shared memory data structure is initialized,
- * This routine should be called to initialize the spinlock
- * for that data structure.
- *
- * Side Effects: The spinlock is already locked when it
- * 	is allocated.
- */
-SPINLOCK *
-SpinAlloc(name)
-char *name;
-{
-  SPINLOCK *	spinlock;
-  Boolean	found = FALSE;
-
-  SpinAcquire(SpinMaster);
-
-  spinlock = (SPINLOCK *) 
-    ShmemInitStruct(name,sizeof(SPINLOCK),&found);
-
-  if (! found) {
-    SpinCreate(spinlock);
-    ++(*NumSpinLocksP);
-  } 
-
-  SpinRelease(SpinMaster);
-
-  SpinAcquire(spinlock);
-
-  return(spinlock);
-}
+#endif /* sequent */

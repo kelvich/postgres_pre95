@@ -23,7 +23,7 @@ BufferDesc 	*SharedFreeList;
 /* only actually used in debugging.  The lock
  * should be acquired before calling the freelist manager.
  */
-extern SPINLOCK *BufMgrLock;
+extern SPINLOCK BufMgrLock;
 
 #define IsInQueue(bf) \
   Assert((bf->freeNext != INVALID_DESCRIPTOR));\

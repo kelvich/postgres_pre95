@@ -29,7 +29,7 @@ extern int NBuffers;
 /* 
  * declared for debugging only.  
  */
-extern SPINLOCK *BufMgrLock;
+extern SPINLOCK BufMgrLock;
 
 typedef struct lookup { 
   BufferTag	key; 

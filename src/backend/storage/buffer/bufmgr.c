@@ -98,7 +98,7 @@ static Buffer           BufferDescriptorGetBuffer();
  *
  */
 
-SPINLOCK *BufMgrLock = NULL;
+SPINLOCK BufMgrLock;
 
 /* delayed write: TRUE on, FALSE off */
 int LateWrite = TRUE;
@@ -605,7 +605,7 @@ static IpcSemaphoreId	WaitIOSemId;
 
 WaitIO(buf,spinlock)
 BufferDesc *buf;
-SPINLOCK *spinlock;
+SPINLOCK spinlock;
 {
   Boolean 	inProgress;
 
@@ -652,12 +652,7 @@ IPCKey key;
   Lookup_List_Descriptor = Data_Descriptors + 1;
   Num_Descriptors = Data_Descriptors + 1;
 
-  /* find and acquire the bufmgr spinlock */
-  BufMgrLock = SpinAlloc("BufferLock");
-  if (! BufMgrLock) {
-    elog(FATAL,"InitBufferPool: cannot initialize buffer lock");
-    exit(1);
-  }
+  SpinAcquire(BufMgrLock);
 
   BufferDescriptors = (BufferDesc *)
     ShmemInitStruct("Buffer Descriptors",
