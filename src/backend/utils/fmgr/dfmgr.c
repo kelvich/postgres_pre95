@@ -185,13 +185,15 @@ handle_load(filename, funcname)
 
     if (file_scanner == (DynamicFileList *) NULL) {
         if (file_list == (DynamicFileList *) NULL) {
-            file_list = (DynamicFileList *) malloc(sizeof(DynamicFileList));
+            file_list = (DynamicFileList *)
+		malloc(sizeof(DynamicFileList));
             file_scanner = file_list;
         } else {
             file_tail->next = (DynamicFileList *)
 		malloc(sizeof(DynamicFileList));
             file_scanner = file_tail->next;
         }
+	bzero((char *) file_scanner, sizeof(DynamicFileList));
 
         (void) strcpy(file_scanner->filename, filename);
         file_scanner->device = stat_buf.st_dev;
@@ -346,6 +348,7 @@ zero_loaded_file(file_data)
     for (throw_away = func_scanner->next;
 	 throw_away != (DynamicFunctionList *) NULL;) {
         throw_away = func_scanner->next;
+	free((char *) func_scanner->funcname);
         free((char *) func_scanner);
         func_scanner = throw_away;
     }
