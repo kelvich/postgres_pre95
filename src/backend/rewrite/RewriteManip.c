@@ -190,6 +190,14 @@ AddEventQualifications ( parsetree, qual )
 {
 
 
+    if (null(qual)) {
+	/*
+	 * a null qual is always true
+	 * Do nothing...
+	 */
+	return;
+    }
+
     if ( parse_qualification(parsetree) == NULL )
       parse_qualification(parsetree) = qual;
     else
@@ -212,8 +220,24 @@ AddNotEventQualifications ( parsetree, qual )
      List parsetree;
      List qual;
 {
-    Assert ( qual != NULL );
     
+    if (null(qual)) {
+	/* 
+	 * A null qual is always true, so its inverse
+	 * is always false.
+	 * Create a dummy qual which is always false:
+	 */
+	Const c1;
+	Const RMakeConst();
+
+	c1 = RMakeConst();
+	set_consttype(c1, (ObjectId) 16);	/* bool */
+	set_constlen(c1, (Size) 1);
+	set_constvalue(c1, Int8GetDatum((int8) 0));	/* false */
+	set_constisnull(c1, false);
+	set_constbyval(c1, true);
+	qual = (List) c1;
+    }
     AddEventQualifications ( parsetree, 
 			     lispCons ( lispInteger(NOT), 
 				       lispCons ( copy_seq_tree (qual),
