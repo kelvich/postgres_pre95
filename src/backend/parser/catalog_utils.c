@@ -339,7 +339,12 @@ binary_oper_select_candidate(arg1, arg2, candidates)
      * current wisdom holds that the default operator should be one
      * in which both operands have the same type (there will only
      * be one such operator)
+     *
+     * 7.27.93 - I have decided not to do this; it's too hard to
+     * justify, and it's easy enough to typecast explicitly
      */
+
+/*
     CandidateList result;
 
     if (arg1 == UNKNOWNOID && arg2 == UNKNOWNOID)
@@ -349,6 +354,7 @@ binary_oper_select_candidate(arg1, arg2, candidates)
 	if (result->args[0] == result->args[1])
 	    return result;
     }
+*/
 
     return (NULL);
 }
