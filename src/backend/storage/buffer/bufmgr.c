@@ -32,6 +32,7 @@
  *	buf_table.c -- manages the buffer lookup table
  */
 #include <sys/file.h>
+#include <stdio.h>
 #include "internal.h"
 #include "storage/fd.h"
 #include "storage/ipc.h"
@@ -104,6 +105,10 @@ SPINLOCK BufMgrLock;
 /* delayed write: TRUE on, FALSE off */
 int LateWrite = TRUE;
 
+static int ReadBufferCount;
+static int BufferHitCount;
+static int BufferFlushCount;
+
 /*
  * ReadBuffer -- returns a buffer containing the requested
  *	block of the requested relation.  If the blknum
@@ -128,6 +133,7 @@ BlockNumber 	blockNum;
   Boolean	found;
 
 
+  ReadBufferCount++;
   extend = (blockNum == NEW_BLOCK);
   /* lookup the buffer.  IO_IN_PROGRESS is set if the requested
    * block is not currently in memory.
@@ -143,6 +149,7 @@ BlockNumber 	blockNum;
       /* I don't think this is an error, but should be careful */
       elog(NOTICE,"BufferAlloc: found new block in buf table");
     }
+    BufferHitCount++;
     return(BufferDescriptorGetBuffer(bufHdr));
   }
 
@@ -345,6 +352,7 @@ Boolean		*foundPtr;
 
   if (oldbufdesc.flags & BM_DIRTY) {
      (void) BlockReplace(&oldbufdesc);
+     BufferFlushCount++;
     } 
   return (buf);
 }
@@ -704,28 +712,22 @@ IPCKey key;
 #endif
 }
 
-/* 
- * BufPrintUsage -- for debugging, print statistics on
- * 	shared memory usage.
- *
- * Shows how much shared memory has been allocated at time
- * called.  Assumes that the buffer pool has been allocated
- * already.
- */
-BufPrintUsage()
+void
+PrintBufferUsage()
 {
-  extern SHMEM_OFFSET *ShmemFreeStart;
-
-  /* for debugging: print out shared memory usage */
-
-  elog(NOTICE,"Total: %x, buf pool %x, desc %x, remainder %x\n",
-	 *ShmemFreeStart,
-	 NBuffers*BLOCK_SIZE,
-	 NBuffers*sizeof(BufferDesc),
-	 *ShmemFreeStart - 
-      (NBuffers*BLOCK_SIZE+NBuffers*sizeof(BufferDesc)));
+	fprintf(stderr, "\t%d Disk Read, %d Disk Write, Buffer Hit Rate = %.2f%%\n", 
+		ReadBufferCount - BufferHitCount,
+		BufferFlushCount,
+	       (float)BufferHitCount * 100.0/ReadBufferCount);
 }
 
+void
+ResetBufferUsage()
+{
+	BufferHitCount = 0;
+	ReadBufferCount = 0;
+	BufferFlushCount = 0;
+}
 
 void
 BufferManagerFlush(StableMainMemoryFlag)
@@ -1091,6 +1093,8 @@ PrintBufferDescs()
      }
 }
 
+#define MAX(X,Y)	((X) > (Y) ? (X) : (Y))
+
 /* -----------------------------------------------------
  * BufferShmemSize
  *
@@ -1118,10 +1122,33 @@ BufferShmemSize()
             + NBuffers * BLOCK_SIZE
 	    /* size of buffer hash table */
             + log2(NBuffers) + sizeof(HHDR)
-	    + nsegs * DEF_SEGSIZE * sizeof(SEGMENT) + BUCKET_ALLOC_INCR * 
+	    + nsegs * DEF_SEGSIZE * sizeof(SEGMENT) 
+	    + (int)ceil((double)NBuffers/BUCKET_ALLOC_INCR)*BUCKET_ALLOC_INCR * 
 	    (sizeof(BUCKET_INDEX) + sizeof(BufferTag) + sizeof(Buffer))
 	    /* extra space, just to make sure there is enough  */
-            + 4096;
+            + NBuffers * 4 + 4096;
     return size;
 }
 
+/*
+ * BufferPoolBlowaway
+ *
+ * this routine is solely for the purpose of experiments -- sometimes
+ * you may want to blowaway whatever is left from the past in buffer
+ * pool and start measuring some performance with a clean empty buffer
+ * pool.
+ */
+void
+BufferPoolBlowaway()
+{
+    register int i;
+    
+    BufferSync();
+    for (i=1; i<=NBuffers; i++) {
+        if (BufferIsValid(i)) {
+            while(BufferIsValid(i))
+                ReleaseBuffer(i);
+	    BufTableDelete(BufferGetBufferDescriptor(i));
+        }
+    }
+}
