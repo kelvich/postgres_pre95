@@ -1,7 +1,3 @@
-#ifndef lint
-static	char sccsid[] = "@(#)rm.c 1.1 90/03/23 SMI"; /* from UCB 4.18 1/6/86 */
-#endif
-
 /*
  * rm - for ReMoving files, directories & trees.
  */
@@ -11,6 +7,7 @@ static	char sccsid[] = "@(#)rm.c 1.1 90/03/23 SMI"; /* from UCB 4.18 1/6/86 */
 #include <sys/stat.h>
 #include <sys/dir.h>
 #include <sys/file.h>
+#include "tmp/libpq-fs.h"
 
 int	fflg;		/* -f force - supress error messages */
 int	iflg;		/* -i interrogate user on each file */
@@ -25,6 +22,7 @@ main(argc, argv)
 {
 	register char *arg;
 
+	PQsetdb(getenv("USER"));
 	fflg = !isatty(0);
 	iflg = 0;
 	rflg = 0;
@@ -55,18 +53,20 @@ main(argc, argv)
 
 			default:
 				fprintf(stderr, "usage: rm [-rif] file ...\n");
+				PQfinish();
 				exit(1);
 			}
 	}
 
 	if (argc < 2 && !fflg) {
 		fprintf(stderr, "usage: rm [-rif] file ...\n");
+		PQfinish();
 		exit(1);
 	}
 
 	while (--argc > 0)
 		(void) rm(*++argv, 0);
-
+	PQfinish();
 	exit(errcode != 0);
 	/* NOTREACHED */
 }
@@ -82,9 +82,9 @@ rm(arg, level)
 	char arg[];
 {
 	int ok;				/* true if recursive rm succeeded */
-	struct stat buf;		/* for finding out what a file is */
-	struct direct *dp;		/* for reading a directory */
-	DIR *dirp;			/* for reading a directory */
+	struct pgstat buf;		/* for finding out what a file is */
+	struct pgdirent *dp;		/* for reading a directory */
+	PDIR *dirp;			/* for reading a directory */
 	char prevname[MAXNAMLEN + 1];	/* previous name for -r */
 	char *cp;
 
@@ -92,7 +92,7 @@ rm(arg, level)
 		fprintf(stderr, "rm: cannot remove `.' or `..'\n");
 		return (0);
 	}
-	if (lstat(arg, &buf)) {
+	if (p_stat(arg, &buf)) {
 		if (!fflg) {
 			fprintf(stderr, "rm: ");
 			perror(arg);
@@ -113,8 +113,8 @@ rm(arg, level)
 			if (!yes())
 				return (0);	/* didn't remove everything */
 		}
-		if (access(arg, R_OK|W_OK|X_OK) != 0) {
-			if (rmdir(arg) == 0)
+		if (/*access(arg, R_OK|W_OK|X_OK)*/ 0 != 0) {
+			if (p_rmdir(arg) == 0)
 				return (1);	/* salvaged: removed empty dir */
 			if (!fflg) {
 				fprintf(stderr, "rm: %s not changed\n", arg);
@@ -122,7 +122,7 @@ rm(arg, level)
 			}
 			return (0);		/* error */
 		}
-		if ((dirp = opendir(arg)) == NULL) {
+		if ((dirp = p_opendir(arg)) == NULL) {
 			if (!fflg) {
 				fprintf(stderr, "rm: cannot read ");
 				perror(arg);
@@ -133,19 +133,19 @@ rm(arg, level)
 		if (level == 0)
 			append(arg);
 		prevname[0] = '\0';
-		while ((dp = readdir(dirp)) != NULL) {
+		while ((dp = p_readdir(dirp)) != NULL) {
 			if (dotname(dp->d_name)) {
 				strcpy(prevname, dp->d_name);
 				continue;
 			}
 			append(dp->d_name);
-			closedir(dirp);
+			p_closedir(dirp);
 			ok = rm(path, level + 1);
 			for (cp = pathp; *--cp != '/' && cp > path; )
 				;
 			pathp = cp;
 			*cp++ = '\0';
-			if ((dirp = opendir(arg)) == NULL) {
+			if ((dirp = p_opendir(arg)) == NULL) {
 				if (!fflg) {
 					fprintf(stderr, "rm: cannot read %s?\n", arg);
 					errcode++;
@@ -154,13 +154,13 @@ rm(arg, level)
 			}
 			/* pick up where we left off */
 			if (prevname[0] != '\0') {
-				while ((dp = readdir(dirp)) != NULL &&
+				while ((dp = p_readdir(dirp)) != NULL &&
 				    strcmp(prevname, dp->d_name) != 0)
 					;
 			}
 			/* skip the one we just failed to delete */
 			if (!ok) {
-				dp = readdir(dirp);
+				dp = p_readdir(dirp);
 				if (dp != NULL && strcmp(cp, dp->d_name)) {
 					fprintf(stderr,
 			"rm: internal synchronization error: %s, %s, %s\n",
@@ -169,7 +169,7 @@ rm(arg, level)
 				strcpy(prevname, dp->d_name);
 			}
 		}
-		closedir(dirp);
+		p_closedir(dirp);
 		if (level == 0) {
 			pathp = path;
 			*pathp = '\0';
@@ -179,7 +179,7 @@ rm(arg, level)
 			if (!yes())
 				return (0);
 		}
-		if (rmdir(arg) < 0) {
+		if (p_rmdir(arg) < 0) {
 			if (!fflg || iflg) {
 				fprintf(stderr, "rm: %s not removed\n", arg);
 				errcode++;
@@ -194,14 +194,14 @@ rm(arg, level)
 		if (!yes())
 			return (0);
 	} else if (!fflg) {
-		if ((buf.st_mode&S_IFMT) != S_IFLNK && access(arg, W_OK) < 0) {
+		if ((buf.st_mode&S_IFMT) != S_IFLNK && /*access(arg, W_OK)*/0 < 0) {
 			printf("rm: override protection %o for %s? ",
 				buf.st_mode&0777, arg);
 			if (!yes())
 				return (0);
 		}
 	}
-	if (unlink(arg) < 0) {
+	if (p_unlink(arg) < 0) {
 		if (!fflg || iflg) {
 			fprintf(stderr, "rm: %s not removed: ", arg);
 			perror("");
