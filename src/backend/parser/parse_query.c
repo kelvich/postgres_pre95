@@ -514,7 +514,7 @@ make_var ( relname, attrname)
     varnode = MakeVar (vnum , attid ,
                        vartype , vardotfields , vararraylist ,
                        lispCons(lispInteger(vnum),
-                                lispCons(lispInteger(attid),LispNil)));
+                                lispCons(lispInteger(attid),LispNil)), 0);
 
     /*
      * for now at least, attributes of concatenated relations will not have
@@ -647,8 +647,7 @@ make_array_ref_var( relname, attrname, indirect_list)
     varnode = MakeVar (vnum , attid ,
 		       typearray , vardotfields , vararraylist ,
 		       lispCons(lispInteger(vnum),
-				lispCons(lispInteger(attid),LispNil))
-		       );
+				lispCons(lispInteger(attid),LispNil)), 0);
     
     rtype = get_id_type((type_struct_array)->typelem);
     return ( lispCons ( lispInteger ( typeid (rtype ) ), varnode ));
