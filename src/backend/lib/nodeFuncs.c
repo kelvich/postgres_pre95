@@ -49,6 +49,7 @@ single_node (node)
  *    	var_is_inner
  *    	var_is_mat
  *    	var_is_rel
+ *      var_is_array
  *    
  *    	Returns t iff the var node corresponds to (respectively):
  *    	the outer relation in a join
@@ -56,6 +57,7 @@ single_node (node)
  *    	a materialized relation
  *    	a base relation (i.e., not an attribute reference, a variable from
  *    		some lower join level, or a sort result)
+ *      var node is an array reference
  *    
  */
 
@@ -98,6 +100,14 @@ var_is_rel (var)
 {
     return (bool)
 	! (var_is_inner (var) ||  var_is_outer (var));
+}
+
+bool
+var_is_array (var)
+	Var var;
+
+{
+	return((bool) (var->vararrayindex != (Index) 0));
 }
 
 /*  .. consider_vararrayindex, nested-clause-p, new-level-tlist
