@@ -39,7 +39,7 @@ typedef	char	XID[5];
 #define	ABSTIME	long
 #define	RELTIME	long
 
-#if defined(sun) || defined(sequent)
+#if defined(sun) || defined(sequent) || defined(mips)
 typedef	char	*DATUM;
 #else
 typedef	union {

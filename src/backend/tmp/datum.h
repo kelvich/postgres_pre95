@@ -79,7 +79,7 @@ typedef union Datum {
 	} objectId;
 } Datum;
 #endif	/* defined(sun) */
-#ifdef sequent
+#if defined(sequent) || defined(mips)
 typedef union Datum {
 	struct character {
 		char	filler[3];	
