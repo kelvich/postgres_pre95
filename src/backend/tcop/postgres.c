@@ -295,7 +295,7 @@ main(argc, argv)
 	    plan = planner(parser_output);
 	    if (! Quiet) {
 		printf("\nPlan is :\n");
-		(*(plan->printFunc))(plan);
+		(*(plan->printFunc))(stdout, plan);
 		printf("\n");
 	    }
 	    

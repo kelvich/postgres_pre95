@@ -269,7 +269,7 @@ lispDisplay(lispObject,iscdr)
 		printf(" >");
 		break;
 	default:
-		(* ((Node)lispObject)->printFunc)(lispObject);
+		(* ((Node)lispObject)->printFunc)(stdout, lispObject);
 		/*printf("\nUnknown LISP type : internal error\n");*/
 		break;
 	}
