@@ -44,5 +44,6 @@ bool		TransactionInitWasProcessed = false;
 
 bool		IsUnderPostmaster = false;
 
+/*struct        bcommon Ident;   moved to dlog (Obsolete 2/22/91 mer) */
 short		DebugLvl;
 
