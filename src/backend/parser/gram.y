@@ -795,7 +795,7 @@ RemoveOperatorStmt:
                 }
         ;
 MathOp:
-	| '+'   { $$ = lispString("+"); }
+	  '+'   { $$ = lispString("+"); }
 	| '-'   { $$ = lispString("-"); }
 	| '*'   { $$ = lispString("*"); }
 	| '/'   { $$ = lispString("/"); }
