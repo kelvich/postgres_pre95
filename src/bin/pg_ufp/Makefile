@@ -62,8 +62,8 @@ installexp: ${PROG}.exp
 	@-if test ! -d ${DESTDIR}${LIBDIR}; \
 	then mkdir ${DESTDIR}${LIBDIR}; fi
 .  endif
-	${INSTALL} -o ${BINOWN} -g ${BINGRP} -m 444 \
+	${INSTALL} -c -o ${BINOWN} -g ${BINGRP} -m 444 \
 	${PROG}.exp ${DESTDIR}${LIBDIR}/${PROG}.exp
 
-afterinstall: installexp
+all: installexp
 .endif

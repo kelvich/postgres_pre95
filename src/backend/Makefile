@@ -324,11 +324,11 @@ ${PROG}: ${EXPORTS}
 
 installexp: ${EXPORTS}
 	for i in ${EXPORTS}; do \
-		${INSTALL} -o ${BINOWN} -g ${BINGRP} -m 444 \
+		${INSTALL} -c -o ${BINOWN} -g ${BINGRP} -m 444 \
 			$$i ${DESTDIR}${LIBDIR}/$$i; \
 	done
 
-afterinstall: installexp
+all: installexp
 .endif
 
 
