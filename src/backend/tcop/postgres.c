@@ -18,6 +18,7 @@
 #include "libpq/pqsignal.h"	/* substitute for <signal.h> */
 #include <setjmp.h>
 #include <stdio.h>
+#include <strings.h>
 #include <sys/time.h>
 
 #include "tmp/postgres.h"
@@ -275,13 +276,14 @@ InteractiveBackend(inBuf)
 char SocketBackend(inBuf)
     char *inBuf;
 {
-    char qtype[2] = { '?', '\0' };
+    char qtype[2];
     int pq_qid;
 
     /* ----------------
      *	get input from the frontend
      * ----------------
      */
+    (void) strcpy(qtype, "?");
     if (pq_getnchar(qtype,0,1) == EOF) {
 	/* ------------
 	 *  when front-end applications quits/dies
