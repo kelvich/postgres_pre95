@@ -607,7 +607,7 @@ HeapTupleSatisfiesNow(tuple)
 	}
 
 	if (TransactionIdIsCurrentTransactionId(tuple->t_xmax)) {
-		return (CommandIdIsCurrentCommandId(tuple->t_cmin));
+		return (CommandIdIsCurrentCommandId(tuple->t_cmax));
 	}
 
 	return ((bool)!TransactionIdDidCommit(tuple->t_xmax));
