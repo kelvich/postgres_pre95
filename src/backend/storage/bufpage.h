@@ -5,6 +5,8 @@
  *   DESCRIPTION
  *	Standard POSTGRES buffer page definitions.
  *
+ *   NOTES
+ *
  *   IDENTIFICATION
  *	$Header$
  * ----------------------------------------------------------------
@@ -117,8 +119,7 @@ typedef OpaqueData	*Opaque;
  * XXX currently all page sizes are "valid" but we only actually
  *     use BLCKSZ.
  */
-#define PageSizeIsValid(pageSize) \
-    (true)
+#define PageSizeIsValid(pageSize) 1
 
 /*
  * PageIsUsed --

@@ -5,6 +5,8 @@
  *   DESCRIPTION
  *	POSTGRES disk block definitions.
  *
+ *   NOTES
+ *
  *   IDENTIFICATION
  *	$Header$
  * ----------------------------------------------------------------
@@ -41,8 +43,7 @@ typedef BlockIdData	*BlockId;	/* block identifier */
  *
  * XXX currently any block size is valid
  */
-#define BlockSizeIsValid(blockSize) \
-    (true)
+#define BlockSizeIsValid(blockSize) 1
 
 /*
  * BlockNumberIsValid --

@@ -18,7 +18,7 @@
 
 #include "tmp/postgres.h"
 
- RcsId("$Header$");
+RcsId("$Header$");
 
 /* ----------------
  *	FILE INCLUDE ORDER GUIDELINES
@@ -202,7 +202,7 @@ ValidateUtility(command, args)
 			AssertArg(lispStringp(CADR(CADR(tags))));
 			break;
 		default:
-			AssertArg(false);
+			AssertArg(0);
 		}
 	}
 		break;
@@ -349,7 +349,7 @@ ValidateUtility(command, args)
 			AssertArg(listp(CDR(args)));
 			break;
 		default:
-			AssertArg(false);
+			AssertArg(0);
 			break;
 		}
 		break;
@@ -388,7 +388,7 @@ ValidateUtility(command, args)
 		}
 			break;
 		default:
-			AssertArg(false);
+			AssertArg(0);
 		}
 		break;
 			
