@@ -123,6 +123,17 @@ int operation;
     relationRuleInfo->relationStubs = stubs;
     relationRuleInfo->relationStubsHaveChanged = false;
 
+    /*
+     * if this is the "pg_class" then ignore all tuple level locks
+     * found in tuples, because these locks are not "real" tuple level
+     * locks of rules defined in "pg_class", but they are relation level
+     * locks defined on various other relations.
+     */
+    if (!strcmp(relationName, Name_pg_relation))
+	relationRuleInfo->ignoreTupleLocks = true;
+    else
+	relationRuleInfo->ignoreTupleLocks = false;
+
     return(relationRuleInfo);
 
 }

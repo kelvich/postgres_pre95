@@ -79,7 +79,10 @@ Buffer *returnedBufferP;
 
     relLocks = relationRuleInfo->relationLocks;
     stubs = relationRuleInfo->relationStubs;
-    oldTupleLocks = prs2GetLocksFromTuple(rawTuple, rawBuffer,
+    if (relationRuleInfo->ignoreTupleLocks)
+	oldTupleLocks = prs2MakeLocks();
+    else
+	oldTupleLocks = prs2GetLocksFromTuple(rawTuple, rawBuffer,
 			    RelationGetTupleDescriptor(relation));
     oldLocks = prs2LockUnion(oldTupleLocks, relLocks);
 

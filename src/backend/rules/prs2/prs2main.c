@@ -315,7 +315,12 @@ int operation;
     else
 	relLocksFlag = true;
     
-    if (oldTuple != NULL)
+    /*
+     * check for locks in 'old' tuple.
+     * However, if this is a tuple of the "pg_class" relation,
+     * ignore these locks.
+     */
+    if (oldTuple != NULL && !relationRuleInfo->ignoreTupleLocks) 
 	oldTupLocksFlag = !(HeapTupleHasEmptyRuleLock(oldTuple, oldBuffer));
     else
 	oldTupLocksFlag = false;

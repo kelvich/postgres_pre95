@@ -56,13 +56,16 @@ Buffer *returnedBufferP;
      * have also copied them (for efficiency) in 'relationRuleInfo'
      * when initializing the plan.
      *
-     * XXX: note this only happens in a retrieve operation.
-     * in delete/replce/append we only use the locks stored in
-     * the tuple. So, this routine must put the right locks
-     * back to the tuple returned.
+     * BTW, ignore the tuple locks if the appropriate flag
+     * is set in 'relationRuleInfo'. This happens when we scan
+     * "pg_class".
      */
-    locksInTuple = prs2GetLocksFromTuple(tuple, buffer);
     locksInRelation = relationRuleInfo->relationLocks;
+    if (relationRuleInfo->ignoreTupleLocks) {
+	locksInTuple = prs2MakeLocks();
+    } else {
+	locksInTuple = prs2GetLocksFromTuple(tuple, buffer);
+    }
     locks = prs2LockUnion(locksInRelation, locksInTuple);
     prs2FreeLocks(locksInTuple);
 

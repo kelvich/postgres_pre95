@@ -72,7 +72,10 @@ Relation relation;
      */
     tupDesc = RelationGetTupleDescriptor(relation);
 
-    l1 = prs2GetLocksFromTuple (rawTuple, rawBuffer);
+    if (relationRuleInfo->ignoreTupleLocks)
+	l1 = prs2MakeLocks();
+    else
+	l1 = prs2GetLocksFromTuple (rawTuple, rawBuffer);
     l2 = relationRuleInfo->relationLocks;
     locks = prs2LockUnion(l1, l2);
     prs2FreeLocks(l1);
