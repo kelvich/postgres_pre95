@@ -38,7 +38,6 @@ RcsId("$Header$");
  */
 #include "tcop/tcopdebug.h"
 
-#include "tcop/dest.h"
 #include "tcop/slaves.h"
 #include "parser/parsetree.h"
 #include "executor/execdebug.h"
@@ -54,8 +53,13 @@ RcsId("$Header$");
 #include "tmp/miscadmin.h"
 
 #include "nodes/pg_lisp.h"
+#include "tcop/dest.h"
 #include "nodes/mnodes.h"
 #include "utils/mcxt.h"
+#include "tcop/pquery.h"
+#include "tcop/utility.h"
+#include "tcop/fastpath.h"
+#include "tcop/parsev.h"
 
 #ifdef PARALLELDEBUG
 #include <usclkc.h>
@@ -453,7 +457,7 @@ pg_eval_dest(query_string, dest)
 
     if (testFlag) {
 	ParserPlannerContext = CreateGlobalMemory("ParserPlannerContext");
-	oldcontext = MemoryContextSwitchTo(ParserPlannerContext);
+	oldcontext = MemoryContextSwitchTo((MemoryContext)ParserPlannerContext);
       }
 
     /* ----------------
@@ -696,7 +700,7 @@ pg_eval_dest(query_string, dest)
 	 */
 	if ( DebugPrintPlan == true ) {
 	    printf("\nPlan is :\n");
-	    lispDisplay(plan);
+	    lispDisplay((LispValue)plan);
 	    printf("\n");
 	}
 
@@ -733,7 +737,7 @@ pg_eval_dest(query_string, dest)
 	    List 	  setRealPlanStats();
 	    List 	  pruneHashJoinPlans();
 
-	    planlist = get_chooseplanlist(plan);
+	    planlist = get_chooseplanlist((Choose)plan);
 	    planlist = setRealPlanStats(parsetree, planlist);
 	    planlist = pruneHashJoinPlans(planlist);
 	    

@@ -282,6 +282,7 @@ pq_putstr(s)
 void
 pq_putnchar(s, n)
     char *s;
+    int n;
 {
     if (Pfout) {
 	while (n--)
