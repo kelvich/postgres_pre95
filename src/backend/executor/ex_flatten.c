@@ -60,6 +60,7 @@ ExecEvalFjoin(tlist, econtext, isNullVect, fj_isDone)
     DatumPtr resVect    = get_fj_results(fjNode);
     BoolPtr  alwaysDone = get_fj_alwaysDone(fjNode);
 
+    if (fj_isDone) *fj_isDone = false;
     /*
      * For the next tuple produced by the plan, we need to re-initialize
      * the Fjoin node.
@@ -81,7 +82,7 @@ ExecEvalFjoin(tlist, econtext, isNullVect, fj_isDone)
 	    if (isDone)
 		isNullVect[curNode] = alwaysDone[curNode] = true;
 	    else
-		isNullVect[curNode] = alwaysDone[curNode] = false;
+		alwaysDone[curNode] = false;
 
 	    curNode++;
 	}
@@ -96,7 +97,7 @@ ExecEvalFjoin(tlist, econtext, isNullVect, fj_isDone)
 	if (isDone)
 	    isNullVect[0] = alwaysDone[0] = true;
 	else
-	    isNullVect[0] = alwaysDone[0] = false;
+	    alwaysDone[0] = false;
 
 	/*
 	 * Mark the Fjoin as initialized now.
@@ -121,8 +122,9 @@ ExecEvalFjoin(tlist, econtext, isNullVect, fj_isDone)
 	if (alwaysDone[0] == true)
 	{
 	    *fj_isDone = FjoinBumpOuterNodes(tlist,
-					     &resVect[1],
-					     &isNullVect[1]);
+					     econtext,
+					     resVect,
+					     isNullVect);
 	    return;
 	}
 	else
@@ -138,8 +140,9 @@ ExecEvalFjoin(tlist, econtext, isNullVect, fj_isDone)
     if (isDone)
     {
 	*fj_isDone = FjoinBumpOuterNodes(tlist,
-					 &resVect[1],
-					 &isNullVect[1]);
+					 econtext,
+					 resVect,
+					 isNullVect);
 	if (*fj_isDone)
 	    return;
 
@@ -164,6 +167,7 @@ FjoinBumpOuterNodes(tlist, econtext, results, nulls)
     String alwaysDone = get_fj_alwaysDone(fjNode);
     List   outerList  = CDR(tlist);
     List   trailers   = CDR(tlist);
+    int    trailNode  = 1;
     int    curNode    = 1;
 
     /*
@@ -176,13 +180,13 @@ FjoinBumpOuterNodes(tlist, econtext, results, nulls)
 	{
 	    nulls[curNode] = 'n';
 	    curNode++;
-	    outerList = CDR(outerList);
 	}
 	else
 	    results[curNode] = ExecEvalIter(tl_expr(CAR(outerList)),
 					    econtext,
 					    &nulls[curNode],
 					    &funcIsDone);
+	outerList = CDR(outerList);
     }
 
     /*
@@ -190,7 +194,7 @@ FjoinBumpOuterNodes(tlist, econtext, results, nulls)
      * Mark the Fjoin node unitialized, it is time to get the
      * next tuple from the plan and redo all of the flattening.
      */
-    if (outerList == LispNil)
+    if (funcIsDone)
     {
 	set_fj_initialized(fjNode, false);
 	return (true);
@@ -200,21 +204,17 @@ FjoinBumpOuterNodes(tlist, econtext, results, nulls)
      * We found a function that wasn't done.  Now re-run every function
      * before it.  As usual watch out for functions that are always done.
      */
-    curNode = 1;
-    while (trailers != outerList)
+    trailNode = 1;
+    while (trailNode != curNode)
     {
 	if (alwaysDone[curNode] == true)
-	{
-	    trailers = CDR(trailers);
-	    curNode++;
-	}
+	    trailNode++;
 	else
-	    results[curNode] = ExecEvalIter(tl_expr(CAR(outerList)),
+	    results[curNode] = ExecEvalIter(tl_expr(CAR(trailers)),
 					    econtext,
 					    &nulls[curNode],
 					    &funcIsDone);
-	    
-
+	trailers = CDR(trailers);
     }
     return false;
 }
