@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH POSTMASTER UNIX 01/23/93
+.TH POSTMASTER UNIX 02/12/94
 .XA 1 "The \*(PG Postmaster"
 .SH "NAME"
 postmaster \(em run the \*(PG postmaster
@@ -282,7 +282,7 @@ ps -ax | grep postmaster
 .)C
 on BSD-based systems (the equivalent syntax is
 .(C
-ps -e | grep postmaster
+ps -e | grep postmast
 .)C
 on System V-like or POSIX-compliant systems such as HP-UX).  If you 
 are sure that no other
