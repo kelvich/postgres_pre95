@@ -22,22 +22,6 @@
  */
 
 #include "storage/ipci.h"
-
-/*******************************************
-
- XXX These should *not* be used directly; fix the interface in ipc*.h. 
- XXX Taken out, but still testing
-
-#ifndef sequent
-#include <sys/shm.h>
-#include <sys/sem.h>
-#else
-#include "/usr/att/usr/include/sys/shm.h"
-#include "/usr/att/usr/include/sys/sem.h"
-#endif
-
-*********************************************/
-
 #include "storage/ipc.h"
 #include "storage/pladt.h"
 #include "storage/pldebug.h"
@@ -980,109 +964,36 @@ SISyncKill(key)
 void
 SIReadLock()
 {
-    
     IpcSemaphoreLock ( SharedInvalidationSemaphore ,
 		       0 , 
 		       SI_SharedLock );
-		       
-    /**************
-    int	    status;
-    struct sembuf   sops;
-
-    sops.sem_op = SI_SharedLock;
-    sops.sem_flg = 0;
-    sops.sem_num = 0;
-
-      XXX - remove next time round
-
-    status = semop(SharedInvalidationSemaphore, (struct sembuf **)&sops, 1);
-    if (status == -1) {
-    	perror("semop");
-    	exit(255);
-    }
-
-    ***************/
 }
 
 
 void
 SIWriteLock()
 {
-
     IpcSemaphoreLock ( SharedInvalidationSemaphore,
 		       0 ,
 		      SI_ExclusiveLock );
-    
-    /*************
-
-      XXX - remove next time round
-
-    int	    status;
-    struct sembuf   sops;
-
-    sops.sem_op = SI_ExclusiveLock;
-    sops.sem_flg = 0;
-    sops.sem_num = 0;
-    
-    status = semop(SharedInvalidationSemaphore, (struct sembuf **)&sops, 1);
-    if (status == -1) {
-    	perror("semop");
-    	exitpg(255);
-    }
-
-    ************/
 }
 
 
 void
 SIReadUnlock()
 {
-
     IpcSemaphoreLock ( SharedInvalidationSemaphore,
 		       0,
 		       (- SI_SharedLock) );
-    /*************
-
-      XXX - remove next time around
-
-    int	    status;
-    struct sembuf   sops;
-
-    sops.sem_op = -SI_SharedLock;
-    sops.sem_flg = 0;
-    sops.sem_num = 0;
-
-    status = semop(SharedInvalidationSemaphore, (struct sembuf **)&sops, 1);
-    if (status == -1) {
-    	perror("semop");
-    	exitpg(255);
-    }
-
-    ***************/
 }
 
 
 void
 SIWriteUnlock()
 {
-
     IpcSemaphoreLock ( SharedInvalidationSemaphore,
 		       0,
 		       ( - SI_ExclusiveLock ) );
-    /**********
-    int	    status;
-    struct sembuf   sops;
-
-    sops.sem_op = -SI_ExclusiveLock;
-    sops.sem_flg = 0;
-    sops.sem_num = 0;
-
-    status = semop(SharedInvalidationSemaphore, (struct sembuf **)&sops, 1);
-    if (status == -1) {
-    	perror("semop");
-    	exitpg(255);
-    }
-    ************/
 }
 
 
