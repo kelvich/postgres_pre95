@@ -366,6 +366,8 @@ BuildDescForRelation(schema, relname)
 	    sprintf(buf, "_%s", typename);
 	    strcpy(typename, buf);
 	}
+	else
+	    attdim = 0;
 
 	if (! TupleDescInitEntry(desc, attnum, attname, typename, attdim)) {
 	    /* ----------------
