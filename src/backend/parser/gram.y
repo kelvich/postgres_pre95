@@ -1087,15 +1087,15 @@ opt_date:
 
 boolexpr:
 	  b_expr And boolexpr
-		{ $$ = lispCons ( lispString ("AND") , lispCons($1 , 
+		{ $$ = lispCons ( lispInteger(AND) , lispCons($1 , 
 		  lispCons($3 ,LispNil ))) ; }
 	| b_expr Or boolexpr
-		{ $$ = lispCons ( lispString ("OR") , lispCons($1 , 
+		{ $$ = lispCons ( lispInteger(OR) , lispCons($1 , 
 		  lispCons ( $3 , LispNil))); }
 	| b_expr
 		{ $$ = $1;}
 	| Not b_expr
-		{ $$ = lispCons ( lispString ("NOT") , 
+		{ $$ = lispCons ( lispInteger(NOT) , 
 		       lispCons ($2, LispNil  )); }
 	;
 
@@ -1213,11 +1213,11 @@ res_target_list:
 			LispValue temp = p_target;
 			INC_NUM_LEVELS(1);
 			if(temp == LispNil )
-			  p_target = ExpandAll($1, &p_last_resno);
+			  p_target = ExpandAll(CString($1), &p_last_resno);
 			else {
 			  while (temp != LispNil && CDR(temp) != LispNil)
 			    temp = CDR(temp);
-			  CDR(temp) = ExpandAll( $1, &p_last_resno);
+			  CDR(temp) = ExpandAll( CString($1), &p_last_resno);
 			}
 			$$ = p_target;
 		}
@@ -1230,11 +1230,11 @@ res_target_list:
 			}
 			INC_NUM_LEVELS(1);
 			if(temp == LispNil )
-			  p_target = ExpandAll($3, &p_last_resno);
+			  p_target = ExpandAll(CString($3), &p_last_resno);
 			else {
 			  while(temp != LispNil && CDR(temp) != LispNil )
 			    temp = CDR(temp);
-			  CDR(temp) = ExpandAll( $3, &p_last_resno);
+			  CDR(temp) = ExpandAll( CString($3), &p_last_resno);
 			}
 			$$ = p_target;
 		}
