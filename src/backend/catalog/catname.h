@@ -44,6 +44,7 @@ extern Name	Prs2RuleRelationName;
 extern Name	Prs2PlansRelationName;
 extern Name	Prs2StubRelationName;
 
+#define NameIsTypeRelationName(name) (!strcmp(name, TypeRelationName))
 /*
  * NameIsSystemRelationName --
  *	True iff name is the name of a system catalog relation.
