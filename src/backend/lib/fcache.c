@@ -65,8 +65,6 @@ GetDynamicFuncArgType(arg, econtext)
     int rtid;
     List rte;
     HeapTuple tup;
-    Form_pg_relation pgc;
-    Form_pg_type  pgt;
 
     Assert(ExactNodeType(arg,Var));
 
@@ -75,9 +73,8 @@ GetDynamicFuncArgType(arg, econtext)
 
     tup = SearchSysCacheTuple(TYPNAME, relname, NULL, NULL, NULL);
     if (!tup)
-	elog(WARN,
-	     "Lookup failed on type tuple for class %s",
-	     &(pgc->relname.data[0]));
+	elog(WARN, "Lookup failed on type tuple for class %s",
+	     relname);
 
     return tup->t_oid;
 }
