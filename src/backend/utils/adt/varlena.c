@@ -215,7 +215,12 @@ texteq(arg1, arg2)
 		return((int32) 0);
 	a1p = arg1->vl_dat;
 	a2p = arg2->vl_dat;
-	len -= sizeof(int32);					/* varlena? */
+	/*
+	 * Varlenas are stored as the total size (data + size variable)
+	 * followed by the data.  The size variable is an int32 so the
+	 * length of the data is the total length less sizeof(int32)
+	 */
+	len -= sizeof(int32);
 	while (len-- != 0)
 		if (*a1p++ != *a2p++)
 			return((int32) 0);
@@ -234,18 +239,28 @@ text_lt(arg1, arg2)
 	struct varlena *arg1, *arg2;
 {
 	int len;
+	char *a1p, *a2p;
 
-	if (arg1 == NULL && arg2 != NULL)
-		return((int32) 1);
-	if (arg2 == NULL)
+	if (arg1 == NULL || arg2 == NULL)
 		return((int32) 0);
-	if ((len = arg1->vl_len) < arg2->vl_len)
-		len = arg2->vl_len;
-	len -= sizeof(int32);					/* varlena? */
 
-	if (strncmp(arg1->vl_dat, arg2->vl_dat, len) < 0)
-		return ((int32) 1);
-	return ((int32) 0);
+	a1p = VARDATA(arg1);
+	a2p = VARDATA(arg2);
+
+	if ((len = arg1->vl_len) > arg2->vl_len)
+		len = arg2->vl_len;
+	len -= sizeof(int32);
+
+	while (*a1p == *a2p && len != 0)
+	{
+		a1p++;
+		a2p++;
+		len--;
+	}
+	if (len)
+		return (int32) (*a1p < *a2p);
+	else
+		return (int32) (arg1->vl_len < arg2->vl_len);
 }
 
 int32
@@ -253,64 +268,42 @@ text_le(arg1, arg2)
 	struct varlena *arg1, *arg2;
 {
 	int len;
+	char *a1p, *a2p;
 
-	if (arg1 == NULL && arg2 != NULL)
-		return((int32) 1);
-	if (arg2 == NULL)
+	if (arg1 == NULL || arg2 == NULL)
 		return((int32) 0);
-	if ((len = arg1->vl_len) < arg2->vl_len)
-		len = arg2->vl_len;
-	len -= sizeof(int32);					/* varlena? */
 
-	if (strncmp(arg1->vl_dat, arg2->vl_dat, len) <= 0)
-		return ((int32) 1);
-	return ((int32) 0);
+	a1p = VARDATA(arg1);
+	a2p = VARDATA(arg2);
+
+	if ((len = arg1->vl_len) > arg2->vl_len)
+		len = arg2->vl_len;
+	len -= sizeof(int32);					/* varlena! */
+
+	while (*a1p == *a2p && len != 0)
+	{
+		a1p++;
+		a2p++;
+		len--;
+	}
+	if (len)
+		return (int32) (*a1p < *a2p);
+	else
+		return ((int32) VARSIZE(arg1) == VARSIZE(arg2));
 }
 
 int32
 text_gt(arg1, arg2)
 	struct varlena *arg1, *arg2;
 {
-	int len;
-
-	if (arg1 == NULL && arg2 != NULL)
-		return((int32) 0);
-	if (arg2 == NULL)
-		return((int32) 1);
-	if ((len = arg1->vl_len) < arg2->vl_len)
-		len = arg2->vl_len;
-	len -= sizeof(int32);					/* varlena? */
-
-	if (strncmp(arg1->vl_dat, arg2->vl_dat, len) > 0)
-		return ((int32) 1);
-	return ((int32) 0);
+	return ((int32) !text_le(arg1, arg2));
 }
 
 int32
 text_ge(arg1, arg2)
 	struct varlena *arg1, *arg2;
 {
-	int alen, blen;
-	int res;
-	int len;
-	char *ap, *bp;
-
-	if (arg1 == NULL && arg2 != NULL)
-		return((int32) 0);
-	if (arg2 == NULL)
-		return((int32) 1);
-	if ((alen = len = arg1->vl_len) < (blen = arg2->vl_len))
-		len = blen;
-	len -= sizeof(int32);					/* varlena? */
-
-	ap = (char *) VARDATA(arg1);
-	bp = (char *) VARDATA(arg2);
-	res = strncmp(ap, bp, len);
-
-	if (res < 0 || (res == 0 && alen <= blen))
-		return ((int32) 1);
-
-	return ((int32) 0);
+	return ((int32) !text_lt(arg1, arg2));
 }
 
 /*-------------------------------------------------------------
