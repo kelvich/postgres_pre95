@@ -9,7 +9,6 @@
 #include "storage/bufpage.h"
 #include "storage/page.h"
 
-#include "fmgr.h"
 #include "utils/log.h"
 #include "utils/rel.h"
 #include "utils/excid.h"
@@ -488,8 +487,7 @@ _bt_compare(rel, itupdesc, page, keysz, scankey, offind)
 	attno = entry->attributeNumber;
 	datum = (Datum) IndexTupleGetAttributeValue(itup, attno,
 						    itupdesc, &null);
-	result = (int) FMGR_PTR2(entry->func, entry->procedure,
-				 entry->argument, datum);
+	result = (int) (*(entry->func))(entry->argument, datum);
 
 	/* if the keys are unequal, return the difference */
 	if (result != 0)
@@ -639,6 +637,21 @@ _bt_first(scan, dir)
     /* find the nearest match to the manufactured scan key on the page */
     offind = _bt_binsrch(rel, buf, 1, &skdata, BT_DESCENT);
     page = BufferGetPage(buf, 0);
+
+    /*
+     *  This will happen if the tree we're searching is entirely empty,
+     *  or if we're doing a search for a key that would appear on an
+     *  entirely empty internal page.  In either case, there are no
+     *  matching tuples in the index.
+     */
+
+    if (PageIsEmpty(page)) {
+	ItemPointerSetInvalid(current);
+	so->btso_curbuf = InvalidBuffer;
+	_bt_relbuf(rel, buf, BT_READ);
+	return ((RetrieveIndexResult) NULL);
+    }
+
     maxoff = PageGetMaxOffsetIndex(page);
 
     if (offind > maxoff)
