@@ -1,6 +1,6 @@
 #!/usr/sww/bin/perl
 #
-# pgcook [-d database] [-m #-monitors] [-n n-iterations] [-D] [-S]
+# pgcook [-d database] [-m #-monitors] [-n n-iterations] [-D]
 #
 # a summary of all queries is dumped into pgcook$$.out
 # a summary of queries and output per-monitor is dumped into pgcook$$.i
@@ -47,15 +47,20 @@ print "\tdeadlock handling\n" if ($use_deadlock == 1);
 
 $n_mon = $n_mon - 1;		# now the high monitor number
 
+$tmpnam = `hostname`;
+chop($tmpnam);
+$tmpnam =~ s/\..*//;
+$tmpnam .= ".$$.pgcook";
+
 srand;
-$outfile = "pgcook$$.out";
+$outfile = "$tmpnam.out";
 open(STDOUT, ">$outfile") || die "Can't redirect stdout";
 open(STDERR, ">&STDOUT") || die "Can't dup stdout";
 select(STDERR); $| = 1;
 select(STDOUT); $| = 1;
 foreach $i (0..$n_mon) {
     $mon_fh[$i] = "mon" . $i;
-    $outfile = "pgcook$$.$i";
+    $outfile = "$tmpnam.$i";
     open($mon_fh[$i], "| monitor $dbname > $outfile 2>&1") ||
 	die("$program: monitor startup failed\n");
     select($mon_fh[$i]);
