@@ -485,8 +485,9 @@ InitPlan(operation, parseTree, plan, estate)
 
 		intoRelationDesc = ExecCreatR(len, tupType, -1);
 		if (! IsMaster) {
+		    SlaveTmpRelDescInit();
 		    SlaveInfoP[MyPid].resultTmpRelDesc = (Relation)
-			CopyRelDescUsing(intoRelationDesc, ExecSMAlloc);
+		       CopyRelDescUsing(intoRelationDesc, SlaveTmpRelDescAlloc);
 		}
 	    }
 	}
