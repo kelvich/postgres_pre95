@@ -352,7 +352,7 @@ PageGetTempPage(page, specialSize)
 	pageSize = PageGetPageSize(page);
 
 	if ((temp = (Page) palloc(pageSize)) == (Page) NULL)
-		elog(FATAL, "Cannot allocate %d bytes for temp page.", size);
+		elog(FATAL, "Cannot allocate %d bytes for temp page.", pageSize);
 	thdr = (PageHeader) temp;
 
 	/* copy old page in */
