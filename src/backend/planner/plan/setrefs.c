@@ -184,15 +184,15 @@ replace_clause_nestvar_refs (clause,prevtlist,prevlevel)
 				       (get_notclausearg (clause),
 					prevtlist,prevlevel)));
 		else
-		  return(make_clause (get_op (clause),
-				      replace_clause_nestvar_refs 
-				      (get_leftop (clause),
-				       prevtlist,
-				       prevlevel),
-				      replace_clause_nestvar_refs 
-				      (get_rightop (clause),
-				       prevtlist,
-				       prevlevel)));
+		  return(make_opclause (get_op (clause),
+					replace_clause_nestvar_refs 
+					(get_leftop (clause),
+					 prevtlist,
+					 prevlevel),
+					replace_clause_nestvar_refs 
+					(get_rightop (clause),
+					 prevtlist,
+					 prevlevel)));
 }  /* function end  */
 
 
