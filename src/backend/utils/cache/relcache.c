@@ -400,7 +400,8 @@ RelationBuildTupleDesc(buildinfo, relation, attp, natts)
     for(i = --natts; i>=0; i--) {
 	if (! AttributeIsValid(relation->rd_att.data[i]))
 	    elog(WARN,
-		 "RelationBuildTupleDesc: %s attribute %d invalid", i);
+		 "RelationBuildTupleDesc: %s attribute %d invalid",
+		    RelationGetRelationName(relation), i);
     }
 }
 
