@@ -203,7 +203,7 @@ extern int pq_getport ARGS(());
 extern void pq_close ARGS(());
 extern void pq_flush ARGS(());
 extern void pq_getstr ARGS((char *s, int maxlen));
-extern void pq_getnchar ARGS((char *s, int off, int maxlen));
+extern int pq_getnchar ARGS((char *s, int off, int maxlen));
 extern int pq_getint ARGS((int b));
 extern void pq_putstr ARGS((char *s));
 extern void pq_putnchar ARGS((char *s, int n));
