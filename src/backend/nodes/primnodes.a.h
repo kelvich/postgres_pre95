@@ -1,3 +1,6 @@
+/* $Header$ */
+
+#include "primnodes.h"
 extern void set_resno ARGS((Resdom node, AttributeNumber value));
 extern AttributeNumber get_resno ARGS((Resdom node));
 extern void set_restype ARGS((Resdom node, ObjectId value));
@@ -11,7 +14,7 @@ extern Index get_reskey ARGS((Resdom node));
 extern void set_reskeyop ARGS((Resdom node, OperatorTupleForm value));
 extern OperatorTupleForm get_reskeyop ARGS((Resdom node));
 extern void set_varno ARGS((Var node, Index value));
-extern Index get_varno ARGS((Var node));
+extern LispValue get_varno ARGS((Var node));
 extern void set_varattno ARGS((Var node, AttributeNumber value));
 extern AttributeNumber get_varattno ARGS((Var node));
 extern void set_vartype ARGS((Var node, ObjectId value));
@@ -49,8 +52,14 @@ extern ObjectId get_functype ARGS((Func node));
 extern void set_funcisindex ARGS((Func node, bool value));
 extern bool get_funcisindex ARGS((Func node));
 extern Resdom MakeResdom ARGS((AttributeNumber resno, ObjectId restype, Size reslen, Name resname, Index reskey, OperatorTupleForm reskeyop));
-extern Expr MakeExpr ARGS((int resno));
-extern Var MakeVar ARGS((Index varno, AttributeNumber varattno, ObjectId vartype, List vardotfields, Index vararrayindex, List varid));
+
+extern Expr 
+MakeExpr ARGS((int resno));
+extern Var 
+MakeVar ARGS((Index varno, AttributeNumber varattno,
+	      ObjectId vartype, List vardotfields,
+	      Index vararrayindex, List varid));
+
 extern Oper MakeOper ARGS((ObjectId opno, bool oprelationlevel, ObjectId opresulttype));
 extern Const MakeConst ARGS((ObjectId consttype, Size constlen, Datum constvalue, bool constisnull));
 extern Param MakeParam ARGS((int32 paramid, Name paramname, ObjectId paramtype));

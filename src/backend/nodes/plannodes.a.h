@@ -1,3 +1,5 @@
+/* $Header$ */
+
 extern void set_cost ARGS((Plan node, Cost value));
 extern Cost get_cost ARGS((Plan node));
 extern void set_fragment ARGS((Plan node, Index value));

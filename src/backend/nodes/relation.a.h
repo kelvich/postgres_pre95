@@ -1,3 +1,5 @@
+/* $Header$ */
+
 #include "pg_lisp.h"
 extern void set_relids ARGS((Rel node, Relid value));
 extern Relid get_relids ARGS((Rel node));
@@ -39,8 +41,8 @@ extern void set_pathtype ARGS((Path node, int32 value));
 extern int32 get_pathtype ARGS((Path node));
 extern void set_parent ARGS((Path node, Rel value));
 extern Rel get_parent ARGS((Path node));
-extern void set_cost ARGS((Path node, Cost value));
-extern Cost get_cost ARGS((Path node));
+extern void set_path_cost ARGS((Path node, Cost value));
+extern Cost get_path_cost ARGS((Path node));
 extern void set_p_ordering ARGS((Path node, List value));
 extern List get_p_ordering ARGS((Path node));
 extern void set_keys ARGS((Path node, List value));
@@ -105,8 +107,8 @@ extern void set_hashjoinoperator ARGS((CInfo node, ObjectId value));
 extern ObjectId get_hashjoinoperator ARGS((CInfo node));
 extern void set_otherrels ARGS((JInfo node, List value));
 extern List get_otherrels ARGS((JInfo node));
-extern void set_clauseinfo ARGS((JInfo node, List value));
-extern List get_clauseinfo ARGS((JInfo node));
+extern void set_jinfoclauseinfo ARGS((JInfo node, List value));
+extern List get_jinfoclauseinfo ARGS((JInfo node));
 extern void set_mergesortable ARGS((JInfo node, bool value));
 extern bool get_mergesortable ARGS((JInfo node));
 extern void set_hashjoinable ARGS((JInfo node, bool value));
