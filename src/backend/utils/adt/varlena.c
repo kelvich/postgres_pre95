@@ -3,16 +3,14 @@
  * 	Functions for the variable-length built-in types.
  */
 
-#include "c.h"
-
-RcsId("$Header$");
-
 #include <ctype.h>
 #include <strings.h>
 
-#include "palloc.h"
-#include "postgres.h"	/* XXX for varlena */
+#include "tmp/postgres.h"
 
+RcsId("$Header$");
+
+#include "utils/palloc.h"
 
 	    /* ========== USER I/O ROUTINES ========== */
 
@@ -32,17 +30,17 @@ RcsId("$Header$");
  *		The error checking of input is minimal.
  */
 struct varlena *
-byteain(text)
-	char	*text;
+byteain(inputText)
+	char	*inputText;
 {
 	register char	*tp;
 	register char	*rp;
 	register int	byte;
 	struct varlena	*result;
 
-	if (text == NULL)
+	if (inputText == NULL)
 		return(NULL);
-	for (byte = 0, tp = text; *tp != '\0'; byte++)
+	for (byte = 0, tp = inputText; *tp != '\0'; byte++)
 		if (*tp++ == '\\')
 			if (*tp == '\\')
 				tp++;
@@ -50,7 +48,7 @@ byteain(text)
 				 !isdigit(*tp++) ||
 				 !isdigit(*tp++))
 				return(NULL);
-	tp = text;
+	tp = inputText;
 	byte += sizeof(int32);					/* varlena? */
 	result = (struct varlena *) palloc(byte);
 	result->vl_len = byte;					/* varlena? */
@@ -75,9 +73,9 @@ byteain(text)
  */
 
 struct varlena *
-shove_bytes(text, len)
+shove_bytes(stuff, len)
 
-unsigned char *text;
+unsigned char *stuff;
 int len;
 
 {
@@ -85,7 +83,7 @@ int len;
 
 	result = (struct varlena *) palloc(len + sizeof(int32));
 	result->vl_len = len;
-	bcopy(text + sizeof(int32), result->vl_dat, len - sizeof(int32));
+	bcopy(stuff + sizeof(int32), result->vl_dat, len - sizeof(int32));
 	return(result);
 }
 
@@ -153,19 +151,19 @@ byteaout(vlena)
  *	textin		- converts "..." to internal representation
  */
 struct varlena *
-textin(text)
-	char 	*text;
+textin(inputText)
+	char 	*inputText;
 {
 	register struct varlena	*result;
 	register int		len;
 	extern			bcopy();
 
-	if (text == NULL)
+	if (inputText == NULL)
 		return(NULL);
-	len = strlen(text) + sizeof(int32);			/* varlena? */
+	len = strlen(inputText) + sizeof(int32);		/* varlena? */
 	result = (struct varlena *) palloc(len);
 	result->vl_len = len;
-	bcopy(text, result->vl_dat, len - sizeof(int32));	/* varlena? */
+	bcopy(inputText, result->vl_dat, len - sizeof(int32));	/* varlena? */
 	return(result);
 }
 
