@@ -69,7 +69,7 @@ oid8out(oidArray)
 	rp = result = (char *) palloc(8 * 12);
 	sp = *oidArray;
 	for (num = 8; num != 0; num--) {
-		ltoa((long) *sp++, rp);
+		ltoa(*sp++, rp);
 		while (*++rp != '\0')
 			;
 		*rp++ = ' ';

@@ -40,7 +40,7 @@ dtout(datetime)
 
 	result = (char *) palloc(12);
 	Assert(result);
-	ltoa((long) datetime, result);
+	ltoa(datetime, result);
 	return(result);
 }
 
