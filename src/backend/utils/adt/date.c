@@ -142,7 +142,7 @@ abstimein(datetime)
 	    TimeDifferenceFromGMT = (struct timeb *)
 	      malloc( sizeof(struct timeb));
 	    ftime(TimeDifferenceFromGMT);
-	    timezonename = timezone ( TimeDifferenceFromGMT->timezone,
+	    timezonename = (char *) timezone ( TimeDifferenceFromGMT->timezone,
 			        TimeDifferenceFromGMT->dstflag ) ;
 	    TimeDiffIsInited = true;
 	}
@@ -210,7 +210,7 @@ abstimeout(datetime)
 	    TimeDifferenceFromGMT = (struct timeb *)
 	      malloc( sizeof(struct timeb));
 	    ftime(TimeDifferenceFromGMT);
-	    timezonename = timezone ( TimeDifferenceFromGMT->timezone,
+	    timezonename = (char *) timezone ( TimeDifferenceFromGMT->timezone,
 			        TimeDifferenceFromGMT->dstflag ) ;
 	    TimeDiffIsInited = true;
 	}
