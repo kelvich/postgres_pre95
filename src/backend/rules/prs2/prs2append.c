@@ -44,7 +44,9 @@ Buffer *returnedBufferP;
 
     /*
      * Find the locks of the tuple.
-     * Use both the locks stored in the tuple
+     * Use both the locks stored in the tuple (these are the ones
+     * put there by the executor after examining all the appropriate
+     * rule stubs..).
      * and the locks found in the RelationRelation
      */
     locksInTuple = prs2GetLocksFromTuple (tuple, buffer, 
@@ -127,17 +129,19 @@ Buffer *returnedBufferP;
 				attrValues, locks, LockTypeTupleRetrieveWrite,
 				relation, returnedTupleP);
 
-    prs2FreeLocks(locks);
     attributeValuesFree(attrValues, relation);
 
     if (insteadRuleFound) {
+	prs2FreeLocks(locks);
 	return(PRS2_STATUS_INSTEAD);
     }
 
     if (newTupleMade) {
 	*returnedBufferP = InvalidBuffer;
+	HeapTupleSetRuleLock(*returnedBufferP, InvalidBuffer, locksInTuple);
 	return(PRS2_STATUS_TUPLE_CHANGED);
     } else {
+	prs2FreeLocks(locks);
 	return(PRS2_STATUS_TUPLE_UNCHANGED);
     }
 }
