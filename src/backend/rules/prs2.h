@@ -644,7 +644,7 @@ extern LispValue prs2GetRulePlanFromCatalog();
 extern int prs2CheckQual();
 extern void prs2RunActionPlans();
 extern int prs2RunOnePlanAndGetValue();
-extern LispValue prs2RunOnePlan();
+extern void prs2RunOnePlan();
 extern LispValue prs2MakeQueryDescriptorFromPlan();
 
 /*
