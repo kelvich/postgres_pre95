@@ -86,8 +86,6 @@ jmp_buf		Warn_restart;
 
 bool override = false;
 
-Portal	BlankPortal = NULL;
-
 /* ----------------
  *	MakeQueryDesc
  * ----------------
@@ -308,20 +306,12 @@ main(argc, argv)
 	/* XXX the -C version flag should be removed and combined with -O */
 	SetProcessingMode((override) ? BootstrapProcessing : InitProcessing);
 	InitPostgres(NULL, dat);
-	BlankPortal = CreatePortal("<blank>");
-/*
-	(void)MemoryContextSwitchTo(
-		(MemoryContext)PortalGetHeapMemory(BlankPortal));
-*/
-/*
-	  dat = Blanks;
-*/
+
 	signal(SIGHUP, handle_warn);
 
 	if (setjmp(Warn_restart) != 0) {
 		Warnings++;
 		AbortCurrentTransaction();
-/*		reldesc = NULL;		/* relations are freed after aborts */
 	}
 
 	/*** new code for handling input */
@@ -336,7 +326,7 @@ main(argc, argv)
 */
 	  /* OverrideTransactionSystem(true); */
 
-	  StartTransactionCommand(BlankPortal);
+	  StartTransactionCommand();
 	  printf("> ");
 	  parser_input = gets(parser_input);
 	  printf("input string is %s\n",parser_input);
