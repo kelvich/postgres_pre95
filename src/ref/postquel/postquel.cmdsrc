@@ -83,7 +83,7 @@ and may not be used otherwise:
 .dt
 .lp
 In addition,
-\*(PP all relations have several predefined attributes used
+\*(PP all classes have several predefined attributes used
 by the system.
 For a list of these,
 see the section
@@ -120,7 +120,7 @@ The same convention applies to `\e' itself.
 Because of the current limitations on tuple sizes, string constants
 are currently limited to a length of a little less than 8K bytes.
 These size constraints will be removed when large-object support
-becomes stable (this is one of the goals of POSTGRES version 2.1).
+becomes stable (this is one of the goals of POSTGRES version 3).
 .uh "Integer Constants"
 .lp
 .i "Integer constants"
@@ -171,7 +171,7 @@ A
 .i field
 is one of the following:
 .(l
-column name in a given relation
+attribute name in a given class
 all
 oid
 tmin
@@ -184,17 +184,17 @@ vtype
 .)l
 As in \*(II, 
 .i all
-is a shorthand for all normal fields in a relation, and may be used
+is a shorthand for all normal attributes in a class, and may be used
 profitably in the target list of a retrieve statement.  
 .i Oid
-stands for the unique identifier of a tuple which is added by \*(PP to
-all records automatically. Oids are not reused and are 32 bit quantities.
+stands for the unique identifier of an instance which is added by \*(PP to
+all instances automatically. Oids are not reused and are 32 bit quantities.
 .lp
 .i "Tmin, tmax, xmin, cmin, xmax"
 and
 .i cmax
-stand respectively for the time that the record was inserted, the time
-the record was deleted, the identity of the inserting transaction, 
+stand respectively for the time that the instance was inserted, the time
+the instance was deleted, the identity of the inserting transaction, 
 the command identifier within the transaction,
 the identity of the deleting transaction and
 its associated deleting command.  For further information
@@ -212,30 +212,30 @@ An
 .i attribute
 is a construct of the form:
 .(l
-Tuple-variable{.composite_field}.field `['number`]'
+Instance-variable{.composite_field}.field `['number`]'
 .)l
-.i Tuple-variable 
-identifies a particular relation and can be thought of
-as standing for the rows or tuples of that relation.
-A tuple variable is either a relation name, a
-surrogate for a relation defined by means of a
+.i Instance-variable 
+identifies a particular class and can be thought of
+as standing for the instances of that class.
+An instance variable is either a class name, a
+surrogate for a class defined by means of a
 .i from
 clause, or the keyword 
 .b new
 or 
 .b current.
-New and current can only appear in the action portion of a rule, while other tuple
+New and current can only appear in the action portion of a rule, while other instance
 variables can be used in any POSTQUEL command. 
 .i Composite_field
 is a field of of one of the POSTGRES composite types indicated in the 
 .b information
 (POSTQUEL) section,
 while successive
-composite fields address columns
-in the relation(s) to which the composite field evaluates.
+composite fields address attributes
+in the class(s) to which the composite field evaluates.
 Lastly, 
 .i field
-is a normal (base type) field in the relation(s) last addressed.
+is a normal (base type) field in the class(s) last addressed.
 If
 .i field 
 is of type array, then the optional
@@ -253,7 +253,7 @@ b. system types
 (postquel).
 For a list of user defined
 operators consult your system administrator or run a query on the
-OPERATOR relation.
+OPERATOR class.
 Parentheses may be used for arbitrary grouping of operators.
 .uh "Expressions (a_expr)"
 .lp
@@ -270,8 +270,8 @@ left_unary_operator a_expr
 
 parameter
 functional expressions 
-aggregate expression  (not in Version 2)
-relational expression (not in Version 2)
+aggregate expression  (not in Version 2.1)
+class expression (not in Version 2.1)
 .)l
 We have already discussed constants and attributes.
 The two kinds
@@ -292,7 +292,7 @@ The form of a parameter is:
 .lp
 For example, consider the definition of a function, DEPT, as
 .(l
-define \*(PQ function DEPT (char16) returning (setof dept) as
+define \*(PQ function DEPT (char16) returning (dept) as
    retrieve (dept.all) where dept.dname = $1
 .)l
 .uh "Functional Expressions"
@@ -312,7 +312,7 @@ sqrt(emp.salary)
 .uh "Aggregate Expression"
 .lp
 .b
-Aggregate expressions are not supported in Version 2.
+Aggregate expressions are not supported in Version 2.1.
 .r
 .lp
 An
@@ -331,9 +331,9 @@ Here,
 .i aggregate_name 
 must be a previously defined aggregate.  The 
 .i from_list 
-indicates the relation to be aggregated over while
+indicates the class to be aggregated over while
 .i qualification
-gives restrictions which must be satisfied by the tuples to be aggregated.
+gives restrictions which must be satisfied by the instances to be aggregated.
 Next, the a_expr gives the expression to be aggregated while
 the 
 .i unique
@@ -342,7 +342,7 @@ unique values of a_expr.
 Two expressions, a_expr1 and a_expr2 are the same if
 a_expr1 opr a_expr2 evaluates to true.
 .lp
-In the case that all tuple variables used in the aggregate expression
+In the case that all instance variables used in the aggregate expression
 are defined in the from list, a simple aggregate has been defined.  For
 example, to sum employee salaries whose age is greater than 30, one would
 write:
@@ -354,7 +354,7 @@ or
 sum {emp.salary where emp.age > 30}
 .)l
 In either case, \*(PP is instructed to find 
-the tuples in the from_list which
+the instances in the from_list which
 satisfy the qualification and then compute the aggregate of the a_expr
 indicated.  
 .lp
@@ -374,13 +374,13 @@ retrieve (e.age, avg {emp.salary where emp.age = e.age})
 .uh "Set Expressions"
 .lp
 .b
-Set expressions are not supported in Version 2.
+Set expressions are not supported in Version 2.1.
 .r
 .lp
 A
 .i set
 .i expression
-defines a collection of tuples from some relation
+defines a collection of instances from some class
 and uses the following syntax:
 .(l
  {target_list from from_list where qualification}
@@ -391,50 +391,50 @@ For example, the set of all employee names over 40 is:
 .)l
 .fi
 In addition, it is legal to construct set expressions which
-have a tuple variable which is defined outside the scope of
+have an instance variable which is defined outside the scope of
 the expression.  For example, the following expression is the
 set of employees in each department:
 .(l
 {emp.name where emp.dept = dept.dname}
 .)l
 .in .5i
-Set expressions can be used in relational expressions which
+Set expressions can be used in class expressions which
 are defined below.
-.uh "Relational Expression"
+.uh "Class Expression"
 .lp
 .b
-Relational expressions are not supported in Version 2.
+Class expressions are not supported in Version 2.1.
 .r
 .lp
 A 
-.i relational
+.i class
 .i expression 
 is an expression of the form:
 .(l
-relation_constructor binary_relation_operator relation_constructor
-unary_relation_operator relation_constructor
+class_constructor binary_class_operator class_constructor
+unary_class_operator class_constructor
 .)l
-where binary_relation_operator is one of the following:
+where binary_class_operator is one of the following:
 .(l
-union		union of two relations
-intersect	intersection of two relations
-\-		difference of two relations
->>		left relation contains right relation
-<<		right relation contains left relation
-==		right relation equals left relation 
+union		union of two classes
+intersect	intersection of two classes
+\-		difference of two classes
+>>		left class contains right class
+<<		right class contains left class
+==		right class equals left class 
 .)l
-and unary_relation_operator can be:
+and unary_class_operator can be:
 .in .5i
 .(l
-empty		right relation is empty
+empty		right class is empty
 .)l
 .fi
 A 
-.i relation_constructor 
-is either a tuple variable, 
-a relation name, the value of a procedural field or a set expression.
+.i class_constructor 
+is either an instance variable, 
+a class name, the value of a composite field or a set expression.
 .lp
-An example of a query with a relational expression is
+An example of a query with a class expression is
 one to find all the departments with no employees:
 .in .5i
 .(l
@@ -456,7 +456,7 @@ already existing attribute name in the case of update statements.)
 If result_attname is not present, then a_expr must 
 contain only one attribute name
 which is assumed to be the name of the result field.
-In Version 2 default naming is only used if the a_expr is an attribute.
+In Version 2.1 default naming is only used if the a_expr is an attribute.
 .uh "Qualification"
 .lp
 A 
@@ -469,7 +469,7 @@ and not
 or
 or not
 .)l
-A clause is an a_expr that evaluates to a Boolean over a set of tuples.
+A clause is an a_expr that evaluates to a Boolean over a set of instances.
 .ul
 Not
 followed by a qualification is a legal qualification.
@@ -487,23 +487,23 @@ Each
 .i expression
 is of the form:
 .(l
-tuple_variable-1 {, tuple_variable-2} in rel_reference
+instance_variable-1 {, instance_variable-2} in class_reference
 .)l
 where 
-.i rel_reference
+.i class_reference
 is of the form
 .(l
-rel_name [time_expression] [*]
+class_name [time_expression] [*]
 .)l
 The 
 .i from
 .i expression
-defines one or more tuple variables to range over the relation indicated
-in rel_reference.  
+defines one or more instance variables to range over the class indicated
+in class_reference.  
 Adding
 a time_expression will indicate that
-a historical relation is desired.  Additionally, one can request the tuple variable to range over all
-relations that are beneath the indicated relation in the inheritance
+a historical class is desired.  Additionally, one can request the instance variable to range over all
+classes that are beneath the indicated class in the inheritance
 hierarchy by postpending the designator `*'.
 .uh "Time Expressions"
 .lp
@@ -515,9 +515,9 @@ is in one of two forms:
  [date]
  [date-1, date-2]
 .)l
-The first case requires tuples that are valid
+The first case requires instances that are valid
 at the indicated time.
-The second case requires tuples that are valid at some time within
+The second case requires instances that are valid at some time within
 the date range specified.
 If no time expression is indicated, the
 default is \*(lqnow\*(rq.  
@@ -553,9 +553,9 @@ retrieve(commands),
 monitor(unix).
 .uh BUGS
 .lp
-The following constructs are not available in Version 2:
+The following constructs are not available in Version 2.1:
 .(l
 aggregates and aggregate expressions
-relational expressions
+class expressions
 set expressions
 .)l
