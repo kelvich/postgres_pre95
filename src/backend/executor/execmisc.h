@@ -103,6 +103,9 @@ typedef ExecSMHeaderData *ExecSMHeader;
 #define QdSetFeature(queryDesc, f) \
     (CAR(CDR(CDR(CDR(CDR(queryDesc))))) = (List) f)
 
+#define QdSetDest(queryDesc, d) \
+    (((List) CAR(CDR(CDR(CDR(CDR(CDR(queryDesc)))))))->val.fixnum = d)
+
 /* ----------------
  *	query feature accessors
  * ----------------
