@@ -117,5 +117,7 @@ extern LispValue  LispUnion();
 extern LispValue set_difference();
 extern LispValue append();
 extern LispValue LispDelete();
+extern LispValue push();
+extern bool null();
 
 #endif /* !LispDepIncluded */
