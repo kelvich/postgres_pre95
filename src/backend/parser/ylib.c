@@ -392,6 +392,7 @@ ParseFunc ( funcname , fargs )
     Iter iter;
     Param f;
     int vnum;
+    Func func;
 
     if (fargs)
      {
@@ -438,8 +439,8 @@ ParseFunc ( funcname , fargs )
 		** func node, and return the Iter.
 		*/
 		iter = (Iter)MakeIter((LispValue)CDR(CAR(fargs)));
-		setup_func_tlist((Func)CAR(get_iterexpr(iter)), 
-				 funcname, argrelid);
+		func = (Func)CAR(get_iterexpr(iter));
+		set_func_tlist(func, setup_tlist(funcname, argrelid));
 		return(lispCons(lispInteger(argtype),iter));
 	    }
 	   else /* drop through */;
@@ -849,7 +850,7 @@ LispValue HandleNestedDots(dots)
     List fargs;
     ObjectId *oid_array,input_type;
     int nargs;
-
+    Func func;
 
     /*
      *  If this nested dot expression is hanging off a param node,
@@ -931,8 +932,8 @@ LispValue HandleNestedDots(dots)
 	    if (CDR(mutator_iter) != LispNil)
 		elog(WARN,
 		     "%s is a projection, cannot put a dot after it", mutator);
-	    setup_func_tlist((Func)CAR(get_iterexpr((Iter)retval)), 
-			     mutator, producer_relid);
+	    func = (Func)CAR(get_iterexpr((Iter)retval));
+	    set_func_tlist(func, setup_tlist(mutator, producer_relid));
 	    producer_relid = 0;
 
 	} else {
@@ -994,11 +995,10 @@ LispValue HandleNestedDots(dots)
 
 
 /*
-** setup_func_tlist --
-**     Add a tlist to a Func node that says which attribute to project to.
+** setup_tlist --
+**     Build a tlist that says which attribute to project to.
 */
-void setup_func_tlist(func, attname, relid)
-     Func func;
+LispValue setup_tlist(attname, relid)
      Name attname;
      ObjectId relid;
 {
@@ -1025,6 +1025,5 @@ void setup_func_tlist(func, attname, relid)
 		      0		/* varslot */);
 
     tle = (LispValue)MakeList(resnode, varnode, -1);
-    tlist = MakeList(tle, -1);
-    set_func_tlist(func, tlist);
+    return(MakeList(tle, -1));
 }
