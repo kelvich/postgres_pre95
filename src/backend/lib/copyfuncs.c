@@ -1169,6 +1169,9 @@ _copyConst(from, to, alloc)
     Const	*to;
     char *	(*alloc)();
 {
+    static ObjectId 	cached_type;
+    static bool		cached_typbyval;
+
     Const	newnode;
 
     COPY_CHECKARGS();
@@ -1189,6 +1192,41 @@ _copyConst(from, to, alloc)
     newnode->consttype = 	from->consttype;
     newnode->constlen = 	from->constlen;
 
+    /* ----------------
+     *	XXX super cheesy hack until parser/planner
+     *  puts in the right values here.
+     * ----------------
+     */
+    if (cached_type != from->consttype) {
+	HeapTuple	typeTuple;
+	TypeTupleForm	typeStruct;
+	
+	/* ----------------
+	 *   get the type tuple corresponding to the paramList->type,
+	 *   If this fails, returnValue has been pre-initialized
+	 *   to "null" so we just return it.
+	 * ----------------
+	 */
+	typeTuple = SearchSysCacheTuple(TYPOID,
+					from->consttype,
+					NULL,
+					NULL,
+					NULL);
+
+	/* ----------------
+	 *   get the type length and by-value from the type tuple and
+	 *   save the information in our one element cache.
+	 * ----------------
+	 */
+	Assert(PointerIsValid(typeTuple));
+	
+	typeStruct = (TypeTupleForm) GETSTRUCT(typeTuple);
+	cached_typbyval = (typeStruct)->typbyval ? true : false ;
+	cached_type = from->consttype;
+    }
+    
+    from->constbyval = cached_typbyval;
+    
     /* ----------------
      *	copying the Datum in a const node is a bit trickier
      *  because it might be a pointer and it might also be of
