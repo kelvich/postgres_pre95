@@ -408,9 +408,10 @@ fix_parsetree_attnums (rt_index,old_relid,new_relid,parsetree)
       foreach(i,parsetree) {
 	  foo = (Node)CAR(i);
 	  if (!null(foo) && IsA(foo,Var) && 
-	       (get_varno ((Var)foo) == rt_index)) {
+	       (get_varno ((Var)foo) == rt_index) &&
+	       (get_varattno((Var)foo) != 0)) {
 	      set_varattno ((Var)foo, get_attnum (new_relid, get_attname(old_relid, get_varattno((Var)foo))));
-	  } 
+	  }
 	  if (!null(foo) && IsA(foo,LispList)) {
 	      foo = (Node)fix_parsetree_attnums(rt_index,old_relid,
 						new_relid,(LispValue)foo);
