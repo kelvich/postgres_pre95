@@ -491,12 +491,24 @@ get_typdefault (typid)
     return(typdefault);
 }
 
+/*    
+ *    	get_typtype
+ *    
+ *    	Given the type OID, find if it is a basic type, a named relation
+ *	or the generic type 'relation'.
+ *	It returns the null char if the cache lookup fails...
+ *    
+ */
 
-
-
-
-
-
-
-
+char
+get_typtype (typid)
+     ObjectId typid ;
+{
+    TypeTupleForm typtup = new(TypeTupleFormD);
+    if(SearchSysCacheStruct (TYPOID,typtup,typid,0,0,0)) {
+      return(typtup->typtype);
+    } else {
+      return('\0');
+    }
+}
 
