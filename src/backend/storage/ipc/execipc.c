@@ -94,6 +94,12 @@ int    	ExecutorAbortSemaphore;
 int    	ExecutorMasterSemaphore;
 int    	ExecutorSlaveSemStart;
 
+ProcGroupInfo ProcGroupInfoP;  /* have to define it here for postmaster to
+				  be happy to link, dumb!  */
+SlaveInfo SlaveInfoP;
+int MyPid = -1;
+SlaveLocalInfoData SlaveLocalInfoD;
+
 /* ----------------------------------------------------------------
  *			accessor functions
  *
@@ -330,9 +336,6 @@ P_Finished()
     int value = 1;
     Exec_P(ExecutorMasterSemaphore, value);
 }
-
-ProcGroupInfo ProcGroupInfoP;  /* have to define it here for postmaster to
-				  be happy to link, dumb!  */
 
 void
 V_Finished(groupid)
