@@ -72,7 +72,7 @@ create_or_index_paths (rel,clauses)
 		      index_flag = false;
 	       }
 	       if (index_flag) {   /* used to be a lisp every function */
-		    Path pathnode = CreateNode (Path);
+		    IndexPath pathnode = CreateNode (IndexPath);
 		    LispValue indexinfo = 
 		      best_or_subclause_indices (rel,
 						 get_orclauseargs
@@ -85,7 +85,7 @@ create_or_index_paths (rel,clauses)
 		    set_parent (pathnode,rel);
 		    set_indexqual (pathnode,lispCons(clausenode,LispNil));
 		    set_indexid (pathnode,nth (0,indexinfo));
-		    set_cost (pathnode,nth (1,indexinfo));
+		    set_path_cost (pathnode,nth (1,indexinfo));
 		    set_selectivity (clausenode,nth (2,indexinfo));
 		    t_list = 
 		      lispCons (pathnode,

@@ -71,7 +71,7 @@ match_indexkey_operand (indexkey,operand,rel)
 
 {
     if (IsA (operand,Var) &&
-	equal (CAR(get_relids (rel)),get_varno (operand)) &&
+	(CInteger(CAR(get_relids (rel))) == get_varno (operand))&&
 	equal_indexkey_var (indexkey,operand))
       return(true);
     else
