@@ -517,6 +517,7 @@ int p_chdir(path)
     } else {
 	strcpy(cwdir,resolve_path(path));
     }
+    setenv("PFCWD",cwdir,1);
     return 0;
 }
 
