@@ -14,8 +14,8 @@
 #include <setjmp.h>
 
 /*
- * InitExceptionHandling --
- *	Initializes the exception handling system.
+ * EnableExceptionHandling --
+ *	Enables/disables the exception handling system.
  *
  * Note:
  *	This must be called before any exceptions occur.  I.e., call this first!
@@ -26,8 +26,8 @@
  */
 extern
 void
-InitExceptionHandling ARGS((
-	bool	firstTime
+EnableExceptionHandling ARGS((
+	bool	on
 ));
 
 /* START HERE */
