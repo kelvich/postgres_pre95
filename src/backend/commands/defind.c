@@ -11,6 +11,7 @@ RcsId("$Header$");
 #include "access/genam.h"
 #include "access/heapam.h"
 #include "access/htup.h"
+#include "access/funcindex.h"
 #include "catalog/syscache.h"
 #include "nodes/pg_lisp.h"
 #include "utils/log.h"
@@ -18,6 +19,7 @@ RcsId("$Header$");
 
 #include "commands/defrem.h"
 
+#define IsFuncIndex(ATTR_LIST) (listp(CAAR(ATTR_LIST)))
 
 void
 DefineIndex(heapRelationName, indexRelationName, accessMethodName,
@@ -32,14 +34,13 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 	ObjectId	*classObjectId;
 	ObjectId	accessMethodId;
 	ObjectId	relationId;
-	AttributeNumber	attributeNumber;
 	AttributeNumber	numberOfAttributes;
 	AttributeNumber	*attributeNumberA;
 	HeapTuple	tuple;
 	uint16		parameterCount;
 	String		*parameterA;
 	String		*nextP;
-	LispValue	rest;
+	FuncIndexInfo	fInfo;
 
 	AssertArg(NameIsValid(heapRelationName));
 	AssertArg(NameIsValid(indexRelationName));
@@ -55,11 +56,7 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 		elog(WARN, "DefineIndex: must specify at least one attribute");
 	}
 
-	attributeNumberA = LintCast(AttributeNumber *,
-		palloc(numberOfAttributes * sizeof attributeNumberA[0]));
 
-	classObjectId = LintCast(ObjectId *,
-		palloc(numberOfAttributes * sizeof classObjectId[0]));
 
 	/*
 	 * compute heap relation id
@@ -81,50 +78,6 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 	}
 	accessMethodId = tuple->t_oid;
 
-	/*
-	 * process attributeList
-	 */
-	rest = attributeList;
-	for (attributeNumber = 1; attributeNumber <= numberOfAttributes;
-			attributeNumber += 1) {
-
-		LispValue	attribute;
-
-		attribute = CAR(rest);
-
-		rest = CDR(rest);
-		AssertArg(listp(rest));
-		AssertArg(listp(attribute));
-
-		if (length(attribute) != 2) {
-			if (length(attribute) != 1) {
-				elog(WARN, "DefineIndex: malformed att");
-			}
-			elog(WARN,
-				"DefineIndex: default index class unsupported");
-		}
-
-		if (CAR(attribute) == LispNil || !lispStringp(CAR(attribute)))
-			elog(WARN, "missing attribute name for define index");
-		if (CADR(attribute) == LispNil || !lispStringp(CADR(attribute)))
-			elog(WARN, "missing opclass for define index");
-
-		tuple = SearchSysCacheTuple(ATTNAME, relationId,
-			CString(CAR(attribute)));
-		if (!HeapTupleIsValid(tuple)) {
-			elog(WARN, "DefineIndex: attribute \"%s\" not found",
-				CString(CAR(attribute)));
-		}
-		attributeNumberA[attributeNumber - 1] =
-			((Attribute)GETSTRUCT(tuple))->attnum;
-
-		tuple = SearchSysCacheTuple(CLANAME, CString(CADR(attribute)));
-		if (!HeapTupleIsValid(tuple)) {
-			elog(WARN, "DefineIndex: %s class not found",
-				CString(CADR(attribute)));
-		}
-		classObjectId[attributeNumber - 1] = tuple->t_oid;
-	}
 
 	/*
 	 * Handle parameters
@@ -148,9 +101,139 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 		}
 	}
 
-	index_create(heapRelationName, indexRelationName, NULL,
-		accessMethodId, numberOfAttributes, attributeNumberA,
-		classObjectId, parameterCount, parameterA);
+	if (IsFuncIndex(attributeList))
+	{
+		int nargs;
+
+		nargs = length(CDR(CAAR(attributeList)));
+		FIgetnArgs(&fInfo) = nargs;
+		strncpy(FIgetname(&fInfo), 
+			CString(CAAR(CAR(attributeList))), 
+			sizeof(NameData));
+
+		attributeNumberA = LintCast(AttributeNumber *,
+			palloc(nargs * sizeof attributeNumberA[0]));
+		classObjectId = LintCast(ObjectId *,
+			palloc(sizeof classObjectId[0]));
+
+		FuncIndexArgs(attributeList, attributeNumberA, 
+			classObjectId, relationId);
+
+		index_create(heapRelationName, indexRelationName,
+			&fInfo, accessMethodId, 
+			numberOfAttributes, attributeNumberA,
+			classObjectId, parameterCount, parameterA);
+	}
+	else
+	{
+		attributeNumberA = LintCast(AttributeNumber *,
+			palloc(numberOfAttributes*sizeof attributeNumberA[0]));
+		classObjectId = LintCast(ObjectId *,
+			palloc(numberOfAttributes * sizeof classObjectId[0]));
+
+		NormIndexAttrs(attributeList, attributeNumberA, 
+			classObjectId, relationId);
+
+		index_create(heapRelationName, indexRelationName, NULL,
+			accessMethodId, numberOfAttributes, attributeNumberA,
+			classObjectId, parameterCount, parameterA);
+	}
+}
+
+FuncIndexArgs(attList, attNumP, opOidP, relId)
+	LispValue	attList;
+	AttributeNumber *attNumP;
+	ObjectId	*opOidP;
+	ObjectId	relId;
+{
+	LispValue	rest;
+	HeapTuple	tuple;
+
+	tuple = SearchSysCacheTuple(CLANAME, CString(CADR(CAR(attList))));
+
+	if (!HeapTupleIsValid(tuple)) 
+	{
+		elog(WARN, "DefineIndex: %s class not found",
+			CString(CADR(CAR(attList))));
+	}
+	*opOidP = tuple->t_oid;
+
+	/*
+	 * process the function arguments 
+	 */
+	for (rest=CDR(CAAR(attList)); rest != LispNil; rest = CDR(rest)) 
+	{
+		LispValue	arg;
+
+		AssertArg(listp(rest));
+
+		arg = CAR(rest);
+		AssertArg(lispStringp(arg));
+
+		tuple = SearchSysCacheTuple(ATTNAME, relId, CString(arg));
+
+		if (!HeapTupleIsValid(tuple)) 
+		{
+			elog(WARN, 
+			     "DefineIndex: attribute \"%s\" not found",
+			     CString(arg));
+		}
+		*attNumP++ = ((Attribute)GETSTRUCT(tuple))->attnum;
+	}
+}
+
+NormIndexAttrs(attList, attNumP, opOidP, relId)
+	LispValue	attList;
+	AttributeNumber *attNumP;
+	ObjectId	*opOidP;
+	ObjectId	relId;
+{
+	LispValue	rest;
+	HeapTuple	tuple;
+
+	/*
+	 * process attributeList
+	 */
+	
+	for (rest=attList; rest != LispNil; rest = CDR(rest)) {
+
+		LispValue	attribute;
+
+		AssertArg(listp(rest));
+
+		attribute = CAR(rest);
+		AssertArg(listp(attribute));
+
+		if (length(attribute) != 2) {
+			if (length(attribute) != 1) {
+				elog(WARN, "DefineIndex: malformed att");
+			}
+			elog(WARN,
+			     "DefineIndex: default index class unsupported");
+		}
+
+		if (CADR(attribute) == LispNil || !lispStringp(CADR(attribute)))
+			elog(WARN, "missing opclass for define index");
+		if (CAR(attribute) == LispNil)
+			elog(WARN, "missing attribute for define index");
+
+		tuple = SearchSysCacheTuple(ATTNAME, relId,
+			CString(CAR(attribute)));
+		if (!HeapTupleIsValid(tuple)) {
+			elog(WARN, 
+			     "DefineIndex: attribute \"%s\" not found",
+			     CString(CAR(attribute)));
+		}
+		*attNumP++ = ((Attribute)GETSTRUCT(tuple))->attnum;
+
+		tuple = SearchSysCacheTuple(CLANAME, CString(CADR(attribute)));
+
+		if (!HeapTupleIsValid(tuple)) {
+			elog(WARN, "DefineIndex: %s class not found",
+				CString(CADR(attribute)));
+		}
+		*opOidP++ = tuple->t_oid;
+	}
 }
 
 void
