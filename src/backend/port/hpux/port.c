@@ -22,10 +22,9 @@ double
 rint(x)
 	double x;
 {
-	if (x<0.0) 
+	if (x < 0.0) 
 		return((double)((long)(x-0.5)));
-	else 
-		return((double)((long)(x+0.5)));
+	return((double)((long)(x+0.5)));
 }
 
 double
@@ -38,14 +37,14 @@ cbrt(x)
 long
 random()
 {
-	return((long) rand());
+	return(lrand48());
 }
 
 void
 srandom(seed)
 	int seed;
 {
-	srand((unsigned) seed);
+	srand48((long int) seed);
 }
 
 getrusage(who, ru)
