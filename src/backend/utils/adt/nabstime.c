@@ -13,7 +13,6 @@
 #include <string.h>
 #include <time.h>
 #include <sys/types.h>
-#include <sys/timeb.h>
 #include "tmp/postgres.h"
 #include "utils/nabstime.h"
 
