@@ -153,6 +153,7 @@ DATA(insert OID =  79 (  char16regexeq     6 11 f t f 2 f 16 "0" 100 0 0 100  fo
 DATA(insert OID =  80 (  char16regexne     6 11 f t f 2 f 16 "0" 100 0 0 100  foo bar ));
 DATA(insert OID =  81 (  textregexeq       6 11 f t f 2 f 16 "0" 100 0 1 0  foo bar ));
 DATA(insert OID =  82 (  textregexne       6 11 f t f 2 f 16 "0" 100 0 1 0  foo bar ));
+DATA(insert OID =  84 (  boolne            6 11 f t f 2 f 16 "16 16" 100 0 0 100  foo bar ));
 
 DATA(insert OID =  97 (  rtsel             6 11 f t f 7 f 109 "0" 100 0 0 100  foo bar ));
 DATA(insert OID =  98 (  rtnpage           6 11 f t f 7 f 109 "0" 100 0 0 100  foo bar ));

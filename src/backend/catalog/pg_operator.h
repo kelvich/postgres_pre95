@@ -84,7 +84,8 @@ typedef FormData_pg_operator	*Form_pg_operator;
  * ----------------
  */
 
-DATA(insert OID = 91 (  "="        6 0 b t t  16  16  16  91   0  0  0 booleq eqsel eqjoinsel ));
+DATA(insert OID = 85 (  "!="        6 0 b t t  16  16  16  85   91  0  0 boolne neqsel neqjoinsel ));
+DATA(insert OID = 91 (  "="        6 0 b t t  16  16  16  91   85  0  0 booleq eqsel eqjoinsel ));
 DATA(insert OID = 92 (  "="        6 0 b t t  18  18  16  92 630  0  0 chareq eqsel eqjoinsel ));
 DATA(insert OID = 93 (  "="        6 0 b t t  19  19  16  93   0  0  0 char16eq eqsel eqjoinsel ));
 DATA(insert OID = 94 (  "="        6 0 b t t  21  21  16  94 519 95 95 int2eq eqsel eqjoinsel ));
