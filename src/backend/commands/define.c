@@ -204,7 +204,6 @@ DefineFunction(nameargsexe, dest)
 	 * first discard symbol 'arg from list
 	 */
 	argList = CDR(argList);
-	AssertArg(length(argList) > 0);
 	     
 	foreach (rest, argList) {
 	    if (!lispStringp(CAR(rest))) {
@@ -464,6 +463,8 @@ DefineAggregate(name, parameters)
     LispValue parameters;
 {
     Name   stepfunc1Name, stepfunc2Name, finalfuncName;
+    Name   baseType, stepfunc1Type, stepfunc2Type;
+
     String primStr, secStr;
     struct varlena *primVal, *secVal;
     LispValue entry;
@@ -475,11 +476,25 @@ DefineAggregate(name, parameters)
     
     /* handle "stepfunc = proname" */
     entry = DefineListRemoveOptionalAssignment(&parameters, "sfunc1");
-    stepfunc1Name = entry ? DefineEntryGetName(entry) : (Name) NULL;
+    if (entry) {
+	  stepfunc1Name = DefineEntryGetName(entry);
+	  entry = DefineListRemoveRequiredAssignment(&parameters, "basetype");
+	  baseType = DefineEntryGetName(entry);
+	  entry = DefineListRemoveRequiredAssignment(&parameters, "stype1");
+	  stepfunc1Type = DefineEntryGetName(entry);
+    }
+    else
+	  stepfunc1Name = (Name) NULL;
     
     /* handle "countfunc = proname " */
     entry = DefineListRemoveOptionalAssignment(&parameters, "sfunc2");
-    stepfunc2Name = entry ? DefineEntryGetName(entry) : (Name) NULL;
+    if (entry) {
+	  stepfunc2Name = DefineEntryGetName(entry);
+	  entry = DefineListRemoveRequiredAssignment(&parameters, "stype2");
+	  stepfunc2Type = DefineEntryGetName(entry);
+    }
+    else
+	  stepfunc2Name = (Name) NULL;
     
     /* handle "finalfunc = proname" */
     entry = DefineListRemoveOptionalAssignment(&parameters, "finalfunc");
@@ -510,6 +525,9 @@ DefineAggregate(name, parameters)
 		    stepfunc1Name,	/* first step function name */
 		    stepfunc2Name,	/* second step function name */
 		    finalfuncName,	/* final function name */
+		    baseType,		/* type of object being aggregated */
+		    stepfunc1Type,	/* return type of first function */
+		    stepfunc2Type,	/* return type of second function */
 		    primVal,		/* first initial condition */
 		    secVal);		/* second initial condition */
 }
