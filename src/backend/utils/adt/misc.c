@@ -650,3 +650,49 @@ mao_flush()
     return (0);
 }
 #endif /* ndef MAO_VLDB */
+
+
+/*===================================================================
+ *
+ * FILE:
+ * Null.c
+ *
+*------------------------------------------------------------------*/
+
+#include "tmp/postgres.h"
+#include "tmp/datum.h"
+#include "catalog/pg_type.h"
+
+/* Null.c */
+/*-------------------------------------------------------------------------
+ * Check if data is Null 
+ */
+
+
+bool NullValue(value, isNull)
+Datum value;
+Boolean *isNull;
+{
+	if (*isNull) {
+		*isNull = false;
+		return(true);
+	}
+	return(false);
+	
+}
+
+/*----------------------------------------------------------------------*
+ *     check if data is not Null                                        *
+ *--------------------------------------------------------------------- */
+
+bool NonNullValue(value, isNull)
+Datum value;
+Boolean *isNull;
+{
+	if (*isNull) {
+		*isNull = false;
+		return(false);
+	}
+	return(true);
+		
+}
