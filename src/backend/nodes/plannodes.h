@@ -198,6 +198,7 @@ class (IndexScan) public (Scan) {
  /* private: */
 	List			indxid;
 	List			indxqual;
+	IndexScanState		indxstate;
  /* public: */
 };
 

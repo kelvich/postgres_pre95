@@ -46,6 +46,15 @@ typedef struct ScanKeyData {
 
 typedef ScanKeyData	*ScanKey;
 
+/* ----------------
+ *	ScanKeyPtr is used in the executor to keep track of
+ *	an array of ScanKey's.  This is needed because a single
+ *	scan may use several indices and each index has its own
+ *	ScanKey. -cim 9/11/89
+ * ----------------
+ */
+typedef ScanKey		*ScanKeyPtr;
+
 /*
  * ScanKeyIsValid --
  *	True iff the scan key is valid.

@@ -606,8 +606,17 @@ form ARGS((
 # endif	/* !defined(XSTR) */
 #endif	/* !defined(lint) */
 
+/* ----------------
+ *	RcsId and SccsId macros..
+ * ----------------
+ */
+#ifdef LINT
+#define SccsId(id)	
+#define RcsId(id)	
+#else
 #define SccsId(id)	RevisionId(_SccsId_, id)
 #define RcsId(id)	RevisionId(_RcsId_, id)
+#endif
 
 #define ALLOCATE(foo) (foo)palloc(sizeof(struct CppConcat(_,foo)))
 

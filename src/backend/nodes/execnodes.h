@@ -35,6 +35,26 @@ extern bool	EqualEState();
 
 #define abstime AbsoluteTime
 
+typedef int	*IntPtr;
+
+/* ----------------------------------------------------------------
+ *    RelationInfo information
+ *
+ *	RangeTableIndex		result relation's range table index
+ *	RelationDesc		relation descriptor for result relation
+ *	NumIndices		number indices existing on result relation
+ *	IndexRelationDescs	array of relation descriptors for indices
+ * ----------------------------------------------------------------
+ */
+
+class (RelationInfo) public (Node) {
+    inherits(Node);
+    Index		ri_RangeTableIndex;
+    Relation		ri_RelationDesc;
+    int			ri_NumIndices;
+    RelationPtr		ri_IndexRelationDescs;
+};
+
 /* ----------------------------------------------------------------
  *    EState information
  *
@@ -48,26 +68,23 @@ extern bool	EqualEState();
  *	qualification_tuple		tuple satisifying qualification
  *	qualification_tuple_id		tid of qualification_tuple
  *	relation_relation_descriptor	as it says
- *	result_relation_index		for update queries
- *	result_relation_descriptor	for update queries
- *
+ *	result_relation_information	for update queries
  * ----------------------------------------------------------------
  */
 
 class (EState) public (Node) {
-	inherits(Node);
-	ScanDirection	direction;
-	abstime		time;
-	ObjectId	owner;
-	List		locks;
-	List		subplan_info;
-	Name		error_message;
-	List		range_table;
-	HeapTuple	qualification_tuple;
-	ItemPointer	qualification_tuple_id;
-	Relation	relation_relation_descriptor;
-	Index		result_relation_index;
-	Relation	result_relation_descriptor;
+      inherits(Node);
+      ScanDirection	es_direction;
+      abstime		es_time;
+      ObjectId		es_owner;
+      List		es_locks;
+      List		es_subplan_info;
+      Name		es_error_message;
+      List		es_range_table;
+      HeapTuple		es_qualification_tuple;
+      ItemPointer	es_qualification_tuple_id;
+      Relation		es_relation_relation_descriptor;
+      RelationInfo	es_result_relation_info;
 };
 
 /* ----------------
@@ -89,11 +106,11 @@ class (EState) public (Node) {
 class (StateNode) public (Node) {
 #define StateNodeDefs \
       inherits(Node); \
-      List 	   OuterTuple; \
-      AttributePtr TupType; \
-      Pointer 	   TupValue; \
-      int	   Level; \
-      AttributePtr ScanType      
+      List 	   sn_OuterTuple; \
+      AttributePtr sn_TupType; \
+      Pointer 	   sn_TupValue; \
+      int	   sn_Level; \
+      AttributePtr sn_ScanType      
   /* private: */
       StateNodeDefs;
   /* public: */
@@ -116,7 +133,7 @@ class (StateNode) public (Node) {
 
 class (ResultState) public (StateNode) {
    inherits(StateNode);
-   int	 	Loop;
+   int	 	rs_Loop;
 };
 
 /* ----------------------------------------------------------------
@@ -130,19 +147,15 @@ class (ResultState) public (StateNode) {
  *   	nplans		how many plans are in the list
  *   	initialized	array of ExecInitNode() results
  *   	rtentries	range table for the current plan
- *
- *	note: I don't fully comprehend what initialized is used
- *	      for so don't expect code that uses it to be too
- *	      correct -cim 8/29/89
  * ----------------------------------------------------------------
  */
 
 class (AppendState) public (Node) {
     inherits(Node);
-    int 	whichplan;
-    int 	nplans;
-    ListPtr 	initialized;
-    List 	rtentries;
+    int 	as_whichplan;
+    int 	as_nplans;
+    ListPtr 	as_initialized;
+    List 	as_rtentries;
 };
 
 /* ----------------------------------------------------------------
@@ -165,9 +178,9 @@ class (AppendState) public (Node) {
 class (CommonState) public (StateNode) {
 #define CommonStateDefs \
       inherits(StateNode); \
-      bool 	   PortalFlag; \
-      Relation     currentRelation; \
-      HeapScanDesc currentScanDesc
+      bool 	   cs_PortalFlag; \
+      Relation     cs_currentRelation; \
+      HeapScanDesc cs_currentScanDesc
   /* private: */
       CommonStateDefs;
   /* public: */
@@ -180,9 +193,6 @@ class (CommonState) public (StateNode) {
  *   	RuleDesc	rule desc returned by Tuple Rule Mgr
  *   	ProcOuterFlag	need to process outer subtree
  *   	OldRelId	need for compare for joins if result relid.
- *   	LispIndexPtr	point to index used in list of indices, if any
- *   	Skeys		Skey structures to scan index rels, if any
- *   	SkeysCount	no of keys in each of the Skey structures
  *
  *   CommonState information
  *
@@ -204,14 +214,32 @@ class (CommonState) public (StateNode) {
 class (ScanState) public (CommonState) {
       inherits(CommonState);
   /* private: */
-      bool 	RuleFlag;
-      List 	RuleDesc;
-      bool 	ProcLeftFlag;
-      Index 	OldRelId;
-      int	IndexPtr;
-      ScanKey	Skeys;
-      int	SkeysCount;
+      bool 		ss_RuleFlag;
+      List 		ss_RuleDesc;
+      bool 		ss_ProcLeftFlag;
+      Index 		ss_OldRelId;
   /* public: */
+};
+
+/* ----------------------------------------------------------------
+ *    IndexScanState information
+ *
+ *   	IndexPtr		current index in use
+ *	NumIndices		number of indices in this scan
+ *   	ScanKeys		Skey structures to scan index rels
+ *   	NumScanKeys		array of no of keys in each Skey struct
+ *	RelationDescs		ptr to array of relation descriptors
+ *	ScanDescs		ptr to array of scan descriptors
+ * ----------------------------------------------------------------
+ */
+class (IndexScanState) public (Node) {
+    inherits(Node);
+    int		     	iss_NumIndices;
+    int			iss_IndexPtr;
+    ScanKeyPtr		iss_ScanKeys;
+    IntPtr		iss_NumScanKeys;
+    RelationPtr	     	iss_RelationDescs;
+    IndexScanDescPtr 	iss_ScanDescs;
 };
 
 /* ----------------------------------------------------------------
@@ -267,11 +295,11 @@ class (NestLoopState) public (CommonState) {
 class (MergeJoinState) public (CommonState) {
       inherits(CommonState);
   /* private: */
-      List 	OSortopI;
-      List 	ISortopO;
-      bool	arkFlag;
-      List 	FrwdMarkPos;
-      List 	BkwdMarkPos;
+      List 	mj_OSortopI;
+      List 	mj_ISortopO;
+      bool	mj_MarkFlag;
+      List 	mj_FrwdMarkPos;
+      List 	mj_BkwdMarkPos;
   /* public: */
 };
 
@@ -287,8 +315,8 @@ class (MergeJoinState) public (CommonState) {
 class (SortState) public (Node) {
       inherits(Node);
   /* private: */
-      bool	Flag;
-      List 	Keys;
+      bool	sort_Flag;
+      List 	sort_Keys;
   /* public: */
 };
 
@@ -308,7 +336,7 @@ class (SortState) public (Node) {
  */
 class (ExistentialState) public (StateNode) {
    inherits(StateNode);
-   List 	SatState;
+   List 	ex_SatState;
 };
 
 
