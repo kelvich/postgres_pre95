@@ -975,7 +975,12 @@ paradj_handler()
     else {
         curtuple = SlaveLocalInfoD.heapscandesc->rs_ctup;
         tid = &(curtuple->t_ctid);
-        curpage = ItemPointerGetBlockNumber(tid);
+	if (ItemPointerIsValid(tid)) {
+            curpage = ItemPointerGetBlockNumber(tid);
+	  }
+	else {
+	    curpage = NULLPAGE;
+	  }
         SlaveInfoP[MyPid].curpage = curpage;
       }
 #ifdef HAS_TEST_AND_SET

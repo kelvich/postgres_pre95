@@ -16,6 +16,7 @@
  */
 
 #include <signal.h>
+#include <math.h>
 #include "tmp/postgres.h"
 #include "tcop/tcopdebug.h"
 #include "tcop/slaves.h"
@@ -44,6 +45,9 @@
  RcsId("$Header$");
 
 int AdjustParallelismEnabled = 1;
+extern int NStriping;
+static MasterSchedulingInfoData MasterSchedulingInfoD = {-1, NULL, -1, NULL};
+extern ParallelismModes ParallelismMode;
 
 /* ------------------------------------
  *	FingFragments
@@ -78,6 +82,7 @@ int fragmentNo;
           set_frag_subtrees(fragment, LispNil);
 	  set_frag_parsetree(fragment, parsetree);
 	  set_frag_is_inprocess(fragment, false);
+	  set_frag_iorate(fragment, 0.0);
           subFragments = nappend1(subFragments, (LispValue)fragment);
         }
        else {
@@ -96,6 +101,7 @@ int fragmentNo;
           set_frag_subtrees(fragment, LispNil);
 	  set_frag_parsetree(fragment, parsetree);
 	  set_frag_is_inprocess(fragment, false);
+	  set_frag_iorate(fragment, 0.0);
           subFragments = nappend1(subFragments, (LispValue)fragment);
          }
        else {
@@ -104,6 +110,78 @@ int fragmentNo;
         }
     
     return subFragments;
+}
+
+#define SEQPERTUPTIME	2e-3 	/* second */
+#define INDPERTUPTIME	0.1
+#define DEFPERTUPTIME	4e-3
+
+static float
+get_pertuptime(plan)
+Plan plan;
+{
+    switch (NodeType(plan)) {
+    case classTag(SeqScan):
+	return SEQPERTUPTIME;
+    case classTag(IndexScan):
+	return INDPERTUPTIME;
+    default:
+	return DEFPERTUPTIME;
+      }
+    return 0.0;
+}
+
+#define AVGINDTUPS	5
+
+static float
+compute_frag_iorate(fragment)
+Fragment fragment;
+{
+    Plan plan;
+    int fragmentno;
+    float pertupletime;
+    Plan p;
+    float iorate;
+    int tupsize;
+
+    plan = get_frag_root(fragment);
+    fragmentno = get_fragment(plan);
+    pertupletime = 0.0;
+    for (;;) {
+	pertupletime += get_pertuptime(plan);
+	p = get_outerPlan(plan); /* walk down the outer path only for now */
+	if (p == NULL || get_fragment(p) != fragmentno)
+	    break;
+	else
+	    plan = p;
+      }
+    if (ExecIsSeqScan(plan) || ExecIsScanTemps(plan)) {
+	iorate = 1.0/(pertupletime * get_plan_tupperpage(plan));
+      }
+    else if (ExecIsIndexScan(plan)) {
+	iorate = 1.0/(pertupletime * AVGINDTUPS);
+      }
+    return iorate;
+}
+
+/* -------------------------------
+ *	SetIoRate
+ *
+ *	compute and set the io rate of each fragment
+ * -------------------------------
+ */
+static void
+SetIoRate(fragment)
+Fragment fragment;
+{
+    LispValue x;
+    Fragment f;
+
+    set_frag_iorate(fragment, compute_frag_iorate(fragment));
+    foreach (x, get_frag_subtrees(fragment)) {
+	f = (Fragment)CAR(x);
+	SetIoRate(f);
+      }
 }
 
 /* --------------------------------
@@ -136,6 +214,7 @@ List parsetree;
     set_frag_parent_frag(rootFragment, NULL);
     set_frag_parsetree(rootFragment, parsetree);
     set_frag_is_inprocess(rootFragment, false);
+    set_frag_iorate(rootFragment, 0.0);
 
     fragmentlist = lispCons((LispValue)rootFragment, LispNil);
 
@@ -154,6 +233,7 @@ List parsetree;
 	  }
 	fragmentlist = newFragmentList;
       }
+    SetIoRate(rootFragment);
     return rootFragment;
 }
 
@@ -312,7 +392,13 @@ int nfreeslaves;
      }
 }
 
-bool
+/* ---------------------------------
+ *	plan_is_parallelizable
+ *
+ *	returns true if plan is parallelizable, false otherwise
+ * ---------------------------------
+ */
+static bool
 plan_is_parallelizable(plan)
 Plan plan;
 {
@@ -342,12 +428,267 @@ Plan plan;
     return false;
 }
 
+/* ----------------------------------------
+ *	nappend1iobound
+ *
+ *	insert an io-bound fragment into a list in 
+ *	descending io rate order.
+ * ----------------------------------------
+ */
+static List
+nappend1iobound(ioboundlist, frag)
+List ioboundlist;
+Fragment frag;
+{
+    LispValue x;
+    Fragment f;
+
+    if (lispNullp(ioboundlist))
+	return lispCons(frag, LispNil);
+    f = (Fragment)CAR(ioboundlist);
+    if (get_frag_iorate(frag) > get_frag_iorate(f)) {
+	return(nconc(lispCons(frag, LispNil), ioboundlist));
+      }
+    else {
+	return(nconc(lispCons(f, LispNil), 
+		     nappend1iobound(CDR(ioboundlist), frag)));
+      }
+}
+
+/* ----------------------------------------
+ *	nappend1cpubound
+ *
+ *	insert a cpu-bound fragment into a list in 
+ *	ascending io rate order.
+ * ----------------------------------------
+ */
+static List
+nappend1cpubound(cpuboundlist, frag)
+List cpuboundlist;
+Fragment frag;
+{
+    LispValue x;
+    Fragment f;
+
+    if (lispNullp(cpuboundlist))
+	return lispCons(frag, LispNil);
+    f = (Fragment)CAR(cpuboundlist);
+    if (get_frag_iorate(frag) < get_frag_iorate(f)) {
+	return(nconc(lispCons(frag, LispNil), cpuboundlist));
+      }
+    else {
+	return(nconc(lispCons(f, LispNil), 
+		     nappend1cpubound(CDR(cpuboundlist), frag)));
+      }
+}
+
+#define DISKBANDWIDTH	60 	/* IO per second */
+
+/* -------------------------------------
+ *	ClassifyFragments
+ *
+ *	classify fragments into io-bound, cpu-bound, unparallelizable or
+ *	parallelism-preset.
+ * -------------------------------------
+ */
+static void
+ClassifyFragments(fraglist, ioboundlist, cpuboundlist, unparallelizablelist, presetlist)
+List fraglist;
+List *ioboundlist, *cpuboundlist, *unparallelizablelist, *presetlist;
+{
+    LispValue x;
+    Fragment f;
+    Plan p;
+    float iorate;
+    float diagonal;
+
+    *ioboundlist = LispNil;
+    *cpuboundlist = LispNil;
+    *unparallelizablelist = LispNil;
+    *presetlist = LispNil;
+    diagonal = (float)NStriping * DISKBANDWIDTH/(float)GetNumberSlaveBackends();
+    foreach (x, fraglist) {
+	f = (Fragment)CAR(x);
+	p = get_frag_root(f);
+	if (!plan_is_parallelizable(p)) {
+	    *unparallelizablelist = nappend1(*unparallelizablelist, f);
+	  }
+	else if (!lispNullp(parse_parallel(get_frag_parsetree(f)))) {
+	    *presetlist = nappend1(*presetlist, f);
+	  }
+	else {
+	    iorate = get_frag_iorate(f);
+	    if (iorate > diagonal) {
+	        *ioboundlist = nappend1iobound(*ioboundlist, f);
+	      }
+	    else {
+		*cpuboundlist = nappend1cpubound(*cpuboundlist, f);
+	      }
+	  }
+      }
+}
+
+/* ---------------------------------
+ *	ComputeIoCpuBalancePoint
+ *
+ *	compute io/cpu balance point of two fragments:
+ *	f1, io-bound
+ *	f2, cpu-bound
+ * ---------------------------------
+ */
+static void
+ComputeIoCpuBalancePoint(f1, f2, x1, x2)
+Fragment f1, f2;
+int *x1, *x2;
+{
+    float bandwidth;
+    float iorate1, iorate2;
+    int nfreeslaves;
+
+    nfreeslaves = GetNumberSlaveBackends();
+    bandwidth = NStriping * DISKBANDWIDTH;
+    iorate1 = get_frag_iorate(f1);
+    iorate2 = get_frag_iorate(f2);
+    *x1=(int)floor((double)((bandwidth-iorate2*nfreeslaves)/(iorate1-iorate2)));
+    *x2=(int)ceil((double)((iorate1*nfreeslaves-bandwidth)/(iorate1-iorate2)));
+}
+
+/* --------------------------------------
+ *	MaxFragParallelism
+ *
+ *	return the maximum parallelism for a fragment
+ *	within the limit of number of free processors and disk bandwidth
+ * -------------------------------------
+ */
+static int
+MaxFragParallelism(frag)
+Fragment frag;
+{
+    float ioRate;
+    int par;
+
+    if (!plan_is_parallelizable(get_frag_root(frag)))
+	return 1;
+    if (!lispNullp(parse_parallel(get_frag_parsetree(frag))))
+	return CInteger(parse_parallel(get_frag_parsetree(frag)));
+    ioRate = (float)get_frag_iorate(frag);
+    par = MIN((int)floor((double)NStriping*DISKBANDWIDTH/ioRate),
+	      NumberOfFreeSlaves);
+    return par;
+}
+
+/* --------------------------------------
+ *	CurMaxFragParallelism
+ *
+ *	return the maximum parallelism for a fragment
+ *	within the limit of current number of free processors and 
+ *	available disk bandwidth
+ * -------------------------------------
+ */
+static int
+CurMaxFragParallelism(frag, curbandwidth, nfreeslaves)
+Fragment frag;
+float curbandwidth;
+int nfreeslaves;
+{
+    float ioRate;
+    int par;
+
+    if (!plan_is_parallelizable(get_frag_root(frag)))
+	return 1;
+    if (!lispNullp(parse_parallel(get_frag_parsetree(frag))))
+	return CInteger(parse_parallel(get_frag_parsetree(frag)));
+    ioRate = (float)get_frag_iorate(frag);
+    par = MIN((int)floor((double)curbandwidth/ioRate),
+	      nfreeslaves);
+    return par;
+}
+
+/* ------------------------
+ *	AdjustParallelism
+ *
+ *	dynamically adjust degrees of parallelism of the fragments that
+ *	are already in process to take advantage of the extra processors
+ * ------------------------
+ */
+static void
+AdjustParallelism(pardelta, groupid)
+int pardelta;
+int groupid;
+{
+    int j;
+    int slave;
+    int max_curpage;
+    int size;
+    int oldnproc;
+
+    Assert(pardelta != 0);
+    SLAVE_elog(DEBUG, "master trying to adjust degrees of parallelism");
+    SLAVE1_elog(DEBUG, "master sending signal to process group %d", groupid);
+    signalProcGroup(groupid, SIGPARADJ);
+    max_curpage = getProcGroupMaxPage(groupid);
+    SLAVE1_elog(DEBUG, "master gets maxpage = %d", max_curpage);
+    oldnproc = ProcGroupInfoP[groupid].nprocess;
+    if (max_curpage == NOPARADJ) {
+	/* --------------------------
+	 *  forget about adjustment to parallelism
+	 *  in this case -- the fragment is almost finished
+	 * ---------------------------
+	 */
+	SLAVE_elog(DEBUG, "master changes mind on adjusting parallelism");
+	ProcGroupInfoP[groupid].paradjpage = NOPARADJ;
+        OneSignalM(&(ProcGroupInfoP[groupid].m1lock), oldnproc);
+	return;
+      }
+    ProcGroupInfoP[groupid].paradjpage = max_curpage + 1; 
+				   /* page on which to adjust par. */
+    if (pardelta > 0) {
+        ProcGroupInfoP[groupid].nprocess += pardelta;
+        ProcGroupInfoP[groupid].scounter.count = 
+					      ProcGroupInfoP[groupid].nprocess;
+        ProcGroupInfoP[groupid].newparallel = ProcGroupInfoP[groupid].nprocess;
+        SLAVE2_elog(DEBUG,
+		    "master signals waiting slaves with adjpage=%d,newpar=%d",
+	            ProcGroupInfoP[groupid].paradjpage,
+		    ProcGroupInfoP[groupid].newparallel);
+        OneSignalM(&(ProcGroupInfoP[groupid].m1lock), oldnproc);
+        set_frag_parallel(ProcGroupLocalInfoP[groupid].fragment,
+		      get_frag_parallel(ProcGroupLocalInfoP[groupid].fragment)+
+		      pardelta);
+        ProcGroupSMBeginAlloc(groupid);
+        size = sizeofTmpRelDesc(QdGetPlan(ProcGroupInfoP[groupid].queryDesc));
+        for (j=0; j<pardelta; j++) {
+	    if (NumberOfFreeSlaves == 0) {
+		elog(WARN, 
+		     "trying to adjust to too much parallelism: out of slaves");
+	      }
+	    slave = getFreeSlave();
+	    SLAVE2_elog(DEBUG, "master adding slave %d to procgroup %d", 
+			slave, groupid);
+            SlaveInfoP[slave].resultTmpRelDesc = 
+					(Relation)ProcGroupSMAlloc(size);
+            addSlaveToProcGroup(slave, groupid, oldnproc+j);
+	    V_Start(slave);
+          }
+        ProcGroupSMEndAlloc();
+      }
+    else {
+        ProcGroupInfoP[groupid].newparallel = 
+				 ProcGroupInfoP[groupid].nprocess + pardelta;
+        SLAVE2_elog(DEBUG,
+		    "master signals waiting slaves with adjpage=%d,newpar=%d",
+	            ProcGroupInfoP[groupid].paradjpage,
+		    ProcGroupInfoP[groupid].newparallel);
+	ProcGroupInfoP[groupid].dropoutcounter.count = -pardelta;
+        OneSignalM(&(ProcGroupInfoP[groupid].m1lock), oldnproc);
+      }
+}
+
 /* ----------------------------------------------------------------
  *	ParallelOptimize
  *	
- *	this analyzes the plan in the query descriptor and determines
- *	which fragments to execute based on available virtual
- *	memory resources...
+ *	analyzes plan fragments and determines what fragments to execute
+ *	and with how much parallelism
  *	
  * ----------------------------------------------------------------
  */
@@ -355,51 +696,200 @@ static List
 ParallelOptimize(fragmentlist)
 List fragmentlist;
 {
-    LispValue x;
+    LispValue y;
     Fragment fragment;
     int memAvail;
     float loadAvg;
-    List fireFragments;
+    List readyFragmentList;
+    List flist;
+    List ioBoundFragList, cpuBoundFragList, unparallelizableFragList;
+    List presetFraglist;
+    List newIoBoundFragList, newCpuBoundFragList;
+    Fragment f1, f2, f;
+    int x1, x2;
     List fireFragmentList;
     int nfreeslaves;
-    List parsetree;
-    LispValue k;
+    LispValue k, x;
     int parallel;
     Plan plan;
+    bool io_running, cpu_running;
+    int curpar;
+    int pardelta;
 
     fireFragmentList = LispNil;
     nfreeslaves = NumberOfFreeSlaves;
-    foreach (x, fragmentlist) {
-	fragment = (Fragment)CAR(x);
-	plan = get_frag_root(fragment);
-	if (!plan_is_parallelizable(plan)) {
-	    parallel = 1;
-	    elog(NOTICE, "nonparallelizable fragment, running sequentially\n");
+
+    /* ------------------------------
+     *  find those plan fragments that are ready to run, i.e.,
+     *  those with all input data ready.
+     * ------------------------------
+     */
+    readyFragmentList = LispNil;
+    foreach (y, fragmentlist) {
+	fragment = (Fragment)CAR(y);
+	flist = GetReadyFragments(fragment);
+	readyFragmentList = nconc(readyFragmentList, flist);
+      }
+    if (ParallelismMode == INTRA_ONLY) {
+	f = (Fragment)CAR(readyFragmentList);
+	fireFragmentList = lispCons(f, LispNil);
+	SetParallelDegree(fireFragmentList, MaxFragParallelism(f));
+	return fireFragmentList;
+      }
+    /* -------------------------------
+     *  classify the ready fragments into io-bound, cpu-bound and
+     *  unparallelizable
+     * -------------------------------
+     */
+    ClassifyFragments(readyFragmentList, &ioBoundFragList, &cpuBoundFragList, 
+		      &unparallelizableFragList, &presetFraglist);
+    fireFragmentList = LispNil;
+    /* -------------------------------
+     *  take care of the unparallelizable fragments first
+     * -------------------------------
+     */
+    if (!lispNullp(unparallelizableFragList)) {
+	fireFragmentList = lispCons(CAR(unparallelizableFragList), LispNil);
+        SetParallelDegree(fireFragmentList, 1);
+	elog(NOTICE, "nonparallelizable fragment, running sequentially\n");
+	return fireFragmentList;
+      }
+    /* --------------------------------
+     * deal with those fragments with parallelism preset
+     * --------------------------------
+     */
+    if (!lispNullp(presetFraglist)) {
+	foreach (x, presetFraglist) {
+	    f = (Fragment)CAR(x);
+	    k = parse_parallel(get_frag_parsetree(f));
+	    parallel = CInteger(k);
+	    SetParallelDegree((y=lispCons(f, LispNil)), parallel);
+	    fireFragmentList = nconc(fireFragmentList, y);
 	  }
-	else {
-	    parsetree = get_frag_parsetree(fragment);
-	    k = parse_parallel(parsetree);
-	    if (lispNullp(k)) {
-		if (lispNullp(CDR(x)))
-		    parallel = nfreeslaves;
-		else
-		    parallel = 1;
+	SLAVE_elog(DEBUG, "executing fragments with preset parallelism.");
+	return fireFragmentList;
+      }
+    /* ---------------------------------
+     *  now we deal with the parallelizable plan fragments
+     * ---------------------------------
+     */
+    if (MasterSchedulingInfoD.ioBoundFrag != NULL) {
+	f1 = MasterSchedulingInfoD.ioBoundFrag;
+	io_running = true;
+      }
+    else {
+	io_running = false;
+	if (lispNullp(ioBoundFragList))
+	    f1 = NULL;
+	else
+	    f1 = (Fragment)CAR(ioBoundFragList);
+      }
+    if (MasterSchedulingInfoD.cpuBoundFrag != NULL) {
+	f2 = MasterSchedulingInfoD.cpuBoundFrag;
+	cpu_running = true;
+      }
+    else {
+	cpu_running = false;
+	if (lispNullp(cpuBoundFragList))
+	    f2 = NULL;
+	else
+	    f2 = (Fragment)CAR(cpuBoundFragList);
+      }
+    if (f1 != NULL && f2 != NULL) {
+	if (ParallelismMode != INTER_WO_ADJ || (!io_running && !cpu_running)) {
+	    ComputeIoCpuBalancePoint(f1, f2, &x1, &x2);
+	    SLAVE2_elog(DEBUG, "executing two fragments at balance point (%d, %d).",
+		    x1, x2);
+	  }
+	if (io_running) {
+	    curpar = get_frag_parallel(f1);
+	    if (ParallelismMode == INTER_WO_ADJ) {
+		int newpar;
+		float curband;
+		curband = NStriping*DISKBANDWIDTH - curpar*get_frag_iorate(f1);
+		newpar = CurMaxFragParallelism(f2, curband, NumberOfFreeSlaves);
+		if (newpar == 0) return LispNil;
+		fireFragmentList = lispCons(f2, LispNil);
+		SetParallelDegree(fireFragmentList, newpar);
 	      }
 	    else {
-		parallel = CInteger(k);
-		if (parallel > nfreeslaves || parallel == 0)
-		    parallel = nfreeslaves;
+		pardelta = x1 - curpar;
+		if (pardelta != 0) {
+		   SLAVE_elog(DEBUG, "adjusting parallelism of io-bound task.");
+		   AdjustParallelism(pardelta,
+				     MasterSchedulingInfoD.ioBoundGroupId);
+		  }
+		fireFragmentList = lispCons(f2, LispNil);
+		if (pardelta >= 0) {
+		    SetParallelDegree(fireFragmentList, x2);
+		  }
+		else {
+		    SetParallelDegree(fireFragmentList, NumberOfFreeSlaves);
+		  }
 	      }
+	    MasterSchedulingInfoD.cpuBoundFrag = f2;
 	  }
-        memAvail = GetCurrentMemSize();
-        loadAvg = GetCurrentLoadAverage();
-        fireFragments = ChooseFragments(fragment, memAvail);
-        SetParallelDegree(fireFragments, parallel);
-	nfreeslaves -= parallel;
-	if (parallel > 0)
-	    fireFragmentList = nconc(fireFragmentList, fireFragments);
+	else if (cpu_running) {
+	    curpar = get_frag_parallel(f2);
+	    if (ParallelismMode == INTER_WO_ADJ) {
+		int newpar;
+		float curband;
+		curband = NStriping*DISKBANDWIDTH - curpar*get_frag_iorate(f2);
+		newpar = CurMaxFragParallelism(f1, curband, NumberOfFreeSlaves);
+		if (newpar == 0) return LispNil;
+		fireFragmentList = lispCons(f1, LispNil);
+		SetParallelDegree(fireFragmentList, newpar);
+	      }
+	    else {
+		pardelta = x2 - curpar;
+		if (pardelta != 0) {
+		  SLAVE_elog(DEBUG, "adjusting parallelism of cpu-bound task.");
+		  AdjustParallelism(pardelta,
+				    MasterSchedulingInfoD.cpuBoundGroupId);
+		  }
+		fireFragmentList = lispCons(f1, LispNil);
+		if (pardelta >= 0) {
+		    SetParallelDegree(fireFragmentList, x1);
+		  }
+		else {
+		    SetParallelDegree(fireFragmentList, NumberOfFreeSlaves);
+		  }
+	      }
+	    MasterSchedulingInfoD.ioBoundFrag = f1;
+	  }
+	else {
+	    SetParallelDegree((y=lispCons(f1, LispNil)), x1);
+	    fireFragmentList = nconc(fireFragmentList, y);
+	    SetParallelDegree((y=lispCons(f2, LispNil)), x2);
+	    fireFragmentList = nconc(fireFragmentList, y);
+	    MasterSchedulingInfoD.ioBoundFrag = f1;
+	    MasterSchedulingInfoD.cpuBoundFrag = f2;
+	  }
       }
-    return fireFragmentList;
+    else if (f1 == NULL && f2 != NULL) {
+	/* -----------------------------
+	 *  out of io-bound fragments, use intra-operation parallelism only
+	 *  for cpu-bound fragments.
+	 * ------------------------------
+	 */
+	fireFragmentList = lispCons(f2, LispNil);
+	SetParallelDegree(fireFragmentList, nfreeslaves);
+	MasterSchedulingInfoD.cpuBoundFrag = f2;
+	SLAVE1_elog(DEBUG, 
+            "out of io-bound tasks, running cpu-bound task with parallelism %d",
+            nfreeslaves);
+      }
+    else if (f1 != NULL && f2 == NULL) {
+	nfreeslaves = MaxFragParallelism(f1);
+	fireFragmentList = lispCons(f1, LispNil);
+	SetParallelDegree(fireFragmentList, nfreeslaves);
+	fireFragmentList = nconc(fireFragmentList, y);
+	MasterSchedulingInfoD.ioBoundFrag = f1;
+	SLAVE1_elog(DEBUG, 
+           "out of cpu-bound tasks, running io-bound task with parallelism %d",
+            nfreeslaves);
+       }
+     return fireFragmentList;
 }
 
 #define MINHASHTABLEMEMORYKEY	1000
@@ -445,98 +935,6 @@ Plan plan;
 	   natts * (sizeof(AttributeTupleFormData) + sizeof(RuleLock)) +
 	   48; /* some extra for possible LONGALIGN() */
     return size;
-}
-
-/* ------------------------
- *	AdjustParallelism
- *
- *	dynamically adjust degrees of parallelism of the fragments that
- *	are already in process to take advantage of the extra processors
- * ------------------------
- */
-static void
-AdjustParallelism(pardelta, notgroupid)
-int pardelta;
-int notgroupid; /* do not adjust this proc group */
-{
-    int i, j;
-    int slave;
-    int max_curpage;
-    int size;
-    int oldnproc;
-
-    Assert(pardelta != 0);
-    SLAVE_elog(DEBUG, "master trying to adjust degrees of parallelism");
-    for (i=0; i<GetNumberSlaveBackends(); i++) {
-	/* ---------------
-	 * for now we only adjust the parallelism of the
-	 * first fragment in process, will become
-	 * more elaborate later.
-	 * ---------------
-	 */
-	if (i != notgroupid &&
-	    ProcGroupInfoP[i].status == WORKING &&
-	    get_fragment(QdGetPlan(ProcGroupInfoP[i].queryDesc)) >= 0)
-	    break;
-      };
-    if (i == GetNumberSlaveBackends()) {
-	SLAVE_elog(DEBUG, "master finds no fragment to adjust parallelism to");
-	return;
-      }
-    SLAVE1_elog(DEBUG, "master sending signal to process group %d", i);
-    signalProcGroup(i, SIGPARADJ);
-    max_curpage = getProcGroupMaxPage(i);
-    SLAVE1_elog(DEBUG, "master gets maxpage = %d", max_curpage);
-    oldnproc = ProcGroupInfoP[i].nprocess;
-    if (max_curpage == NOPARADJ) {
-	/* --------------------------
-	 *  forget about adjustment to parallelism
-	 *  in this case -- the fragment is almost finished
-	 * ---------------------------
-	 */
-	SLAVE_elog(DEBUG, "master changes mind on adjusting parallelism");
-	ProcGroupInfoP[i].paradjpage = NOPARADJ;
-        OneSignalM(&(ProcGroupInfoP[i].m1lock), oldnproc);
-	return;
-      }
-    ProcGroupInfoP[i].paradjpage = max_curpage + 1; 
-				   /* page on which to adjust par. */
-    if (pardelta > 0) {
-        ProcGroupInfoP[i].nprocess += pardelta;
-        ProcGroupInfoP[i].scounter.count = ProcGroupInfoP[i].nprocess;
-        ProcGroupInfoP[i].newparallel = ProcGroupInfoP[i].nprocess;
-        SLAVE2_elog(DEBUG,
-		    "master signals waiting slaves with adjpage=%d,newpar=%d",
-	            ProcGroupInfoP[i].paradjpage,ProcGroupInfoP[i].newparallel);
-        OneSignalM(&(ProcGroupInfoP[i].m1lock), oldnproc);
-        set_frag_parallel(ProcGroupLocalInfoP[i].fragment,
-		          get_frag_parallel(ProcGroupLocalInfoP[i].fragment)+
-		          pardelta);
-        ProcGroupSMBeginAlloc(i);
-        size = sizeofTmpRelDesc(QdGetPlan(ProcGroupInfoP[i].queryDesc));
-        for (j=0; j<pardelta; j++) {
-	    if (NumberOfFreeSlaves == 0) {
-		elog(WARN, 
-		     "trying to adjust to too much parallelism: out of slaves");
-	      }
-	    slave = getFreeSlave();
-	    SLAVE2_elog(DEBUG, "master adding slave %d to procgroup %d", 
-			slave, i);
-            SlaveInfoP[slave].resultTmpRelDesc = 
-					(Relation)ProcGroupSMAlloc(size);
-            addSlaveToProcGroup(slave, i, oldnproc+j);
-	    V_Start(slave);
-          }
-        ProcGroupSMEndAlloc();
-      }
-    else {
-        ProcGroupInfoP[i].newparallel = ProcGroupInfoP[i].nprocess + pardelta;
-        SLAVE2_elog(DEBUG,
-		    "master signals waiting slaves with adjpage=%d,newpar=%d",
-	            ProcGroupInfoP[i].paradjpage,ProcGroupInfoP[i].newparallel);
-	ProcGroupInfoP[i].dropoutcounter.count = -pardelta;
-        OneSignalM(&(ProcGroupInfoP[i].m1lock), oldnproc);
-      }
 }
 
 /* ----------------------------------------------------------------
@@ -595,6 +993,7 @@ CommandDest	destination;
 	   parentFragment = get_frag_parent_frag(fragment);
 	   finalResultRelation = parse_tree_result_relation(parsetree);
 	   dest = destination;
+	   dest = None; /* WWW */
 	   if (ExecIsHash(plan))  {
 	      /* ------------
 	       *  if it is hashjoin, create the hash table
@@ -614,8 +1013,10 @@ CommandDest	destination;
 	       *  the result should be kept in some temporary relation
 	       * ------------
 	       */
+	      /* WWW
 	      parse_tree_result_relation(parsetree) =
 		  lispCons(lispAtom("intotemp"), LispNil);
+	       */
 	      dest = None;
 	     }
 	   /* ---------------
@@ -629,6 +1030,10 @@ CommandDest	destination;
 	    * ---------------
 	    */
 	   groupid = getFreeProcGroup(nparallel);
+	   if (fragment == MasterSchedulingInfoD.ioBoundFrag)
+	       MasterSchedulingInfoD.ioBoundGroupId = groupid;
+	   else if (fragment == MasterSchedulingInfoD.cpuBoundFrag)
+	       MasterSchedulingInfoD.cpuBoundGroupId = groupid;
 	   ProcGroupLocalInfoP[groupid].fragment = fragment;
 	   ProcGroupInfoP[groupid].status = WORKING;
 	   ProcGroupSMBeginAlloc(groupid);
@@ -671,11 +1076,11 @@ CommandDest	destination;
 	* if there are extra processors lying around,
 	* dynamically adjust degrees of parallelism of
 	* fragments that are already in process.
-	* ------------
-	*/
        if (NumberOfFreeSlaves > 0 && AdjustParallelismEnabled) {
 	    AdjustParallelism(NumberOfFreeSlaves, -1);
 	 }
+	* ------------
+	*/
 
        /* ----------------
 	* wait for some process group to complete execution
@@ -705,6 +1110,7 @@ MasterWait:
 
          SLAVE1_elog(DEBUG, "master woken up by paradjpending process group %d",
 		       groupid);
+	   ProcGroupInfoP[groupid].status = WORKING;
 	   tempRelationDescList = 
 			     ProcGroupLocalInfoP[groupid].resultTmpRelDescList;
 	   prev = NULL;
@@ -752,7 +1158,12 @@ MasterWait:
 		 * adjust parallelism with the freed slaves
 		 * ---------------------------
 		 */
-		AdjustParallelism(nfreeslave, groupid);
+		if (MasterSchedulingInfoD.ioBoundGroupId == groupid)
+		    AdjustParallelism(nfreeslave, 
+				      MasterSchedulingInfoD.cpuBoundGroupId);
+		else
+		    AdjustParallelism(nfreeslave,
+				      MasterSchedulingInfoD.ioBoundGroupId);
 		if (ProcGroupInfoP[groupid].countdown == 0) {
 		    /* -----------------------
 		     * this means that this group has actually finished
@@ -771,6 +1182,14 @@ MasterWait:
        SLAVE1_elog(DEBUG, "master woken up by finished process group %d", 
 		   groupid);
        fragment = ProcGroupLocalInfoP[groupid].fragment;
+       if (fragment == MasterSchedulingInfoD.ioBoundFrag) {
+	   MasterSchedulingInfoD.ioBoundFrag = NULL;
+	   MasterSchedulingInfoD.ioBoundGroupId = -1;
+	 }
+       else if (fragment == MasterSchedulingInfoD.cpuBoundFrag) {
+	   MasterSchedulingInfoD.cpuBoundFrag = NULL;
+	   MasterSchedulingInfoD.cpuBoundGroupId = -1;
+	 }
        nparallel = get_frag_parallel(fragment);
        plan = get_frag_root(fragment);
        parentPlan = get_frag_parent_op(fragment);
@@ -822,7 +1241,7 @@ MasterWait:
 		       elog(WARN, "ExecEndScanTemp: unlink: %m");
 		}
 	     }
-	   if (parentPlan == NULL && nparallel == 1)
+	   if (parentPlan == NULL /* WWW && nparallel == 1 */)
 	      /* in this case the whole plan has been finished */
 	      fraglist = nLispRemove(fraglist, (LispValue)fragment);
 	   else {
@@ -857,6 +1276,7 @@ MasterWait:
 		 set_fragment((Plan)scantempNode,-1);
 					    /*means end of parallelism */
 		 set_frag_is_inprocess(fragment, false);
+		 set_frag_iorate(fragment, 0.0);
 		}
 	      else {
 	      if (plan == get_lefttree(parentPlan)) {

@@ -147,6 +147,7 @@ extern int Quiet;
  * ----------------
  */
 int BushyPlanFlag = 0; /* default to false -- consider only left-deep trees */
+ParallelismModes ParallelismMode = INTER_W_ADJ;
 
 /* ----------------------------------------------------------------
  *			support functions
@@ -904,7 +905,7 @@ PostgresMain(argc, argv)
     ShowParserStats = ShowPlannerStats = ShowExecutorStats = 0;
     MasterPid = getpid();
     
-    while ((flag = getopt(argc, argv, "aA:B:bCd:EGM:NnOP:pQSsLit:Tf:")) != EOF)
+    while ((flag = getopt(argc, argv, "aA:B:bCd:EGM:NnOP:pQSsLit:Tf:F:")) != EOF)
       switch (flag) {
 	  	  
       case 'A':
@@ -1161,6 +1162,18 @@ PostgresMain(argc, argv)
           errs++;
 #endif
           break;
+      case 'F':
+	  if (strcmp(optarg, "intra_only") == 0)
+	      ParallelismMode = INTRA_ONLY;
+	  else if (strcmp(optarg, "inter_w_adj") == 0)
+	      ParallelismMode = INTER_W_ADJ;
+	  else if (strcmp(optarg, "inter_wo_adj") == 0)
+	      ParallelismMode = INTER_WO_ADJ;
+	  else {
+	      fprintf(stderr, "use -F {intra_only,inter_w_adj,inter_wo_adj}\n");
+	      errs++;
+	    }
+	  break;
       default:
 	  /* ----------------
 	   *	default: bad command line option
