@@ -48,7 +48,7 @@ typedef struct proc {
 
   LOCK *            waitLock;	/* Lock we're sleeping on */
   int               token;	/* info for proc wakeup routines */	
-  int		    backendId;	/* This procs backend id */
+  int		    pid;	/* This procs process id */
   short		    sLocks[MAX_SPINS];	/* Spin lock stats */
   SHM_QUEUE	    lockQueue;	/* locks associated with current transaction */
 } PROC;

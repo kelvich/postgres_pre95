@@ -44,6 +44,8 @@
 #include "storage/buf.h"	
 #include "utils/log.h"
 
+extern int MyPid;	/* for parallel backends w/same xid */
+
 /* --------------------
  * Spin lock for manipulating the shared process data structure:
  * ProcGlobal.... Adding an extra spin lock seemed like the smallest
@@ -160,7 +162,7 @@ IPCKey key;
   SpinRelease(ProcStructLock);
 
   MyProc->sem.semNum = 0;
-  MyProc->backendId = MyBackendId;
+  MyProc->pid = MyPid;
 
   /* ----------------
    * Start keeping spin lock stats from here on.  Any botch before
@@ -477,7 +479,7 @@ Address		lock;
 				lock,
 				proc->token,
 				&proc->xid,
-				proc->backendId) == STATUS_OK))
+				proc->pid) == STATUS_OK))
   {
     /* there was a waiting process, grant it the lock before waking it
      * up.  This will prevent another process from seizing the lock

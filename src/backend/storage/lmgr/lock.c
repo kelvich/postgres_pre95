@@ -30,10 +30,9 @@
 #include "utils/log.h"
 #include "access/xact.h"
 
-SPINLOCK LockMgrLock;		/* in Shmem or created in CreateSpinlocks() */
+extern int MyPid;		/* For parallel backends w/same xid */
 
-static
-TransactionIdData InvalidXid;	/* Since no such beast is defined in xact.c */
+SPINLOCK LockMgrLock;		/* in Shmem or created in CreateSpinlocks() */
 
 typedef int MASK;
 
@@ -80,12 +79,6 @@ InitLocks()
 {
   int i;
   int bit;
-
-  /* -------------------
-   * set up the invalid transaction id.
-   * -------------------
-   */
-  PointerStoreInvalidTransactionId(&InvalidXid);
 
   bit = 1;
   /* -------------------
@@ -408,7 +401,7 @@ LOCKT		lockt;
   bzero(&item, XID_TAGSIZE);
   TransactionIdStore(myXid, &item.tag.xid);
   item.tag.lock = MAKE_OFFSET(lock);
-  item.tag.backendId = MyBackendId;
+  item.tag.pid = MyPid;
 
   result = (XIDLookupEnt *)hash_search(xidTable, (Pointer)&item, HASH_ENTER, &found);
   if (!result)
@@ -450,7 +443,7 @@ LOCKT		lockt;
 
   Assert(result->nHolding <= lock->nActive);
 
-  status = LockResolveConflicts(ltable, lock, lockt, myXid, MyBackendId);
+  status = LockResolveConflicts(ltable, lock, lockt, myXid, MyPid);
 
   if (status == STATUS_OK)
   {
@@ -486,12 +479,12 @@ LOCKT		lockt;
  *  I find no conflict.
  * ----------------------------
  */
-LockResolveConflicts(ltable,lock,lockt,xid,backendId)
+LockResolveConflicts(ltable,lock,lockt,xid,pid)
 LOCKTAB	*ltable;
 LOCK	*lock;
 LOCKT	lockt;
 TransactionId	xid;
-int backendId;
+int pid;
 {
   XIDLookupEnt	*result,item;
   int		*myHolders;
@@ -515,7 +508,7 @@ int backendId;
   bzero(&item, XID_TAGSIZE);
   TransactionIdStore(xid, &item.tag.xid);
   item.tag.lock = MAKE_OFFSET(lock);
-  item.tag.backendId = backendId;
+  item.tag.pid = pid;
 
   if (! (result = (XIDLookupEnt *)
 	 hash_search(xidTable, (Pointer)&item, HASH_ENTER, &found)))
@@ -721,7 +714,7 @@ LOCKT	lockt;
 
   TransactionIdStore(GetCurrentTransactionId(), &item.tag.xid);
   item.tag.lock = MAKE_OFFSET(lock);
-  item.tag.backendId = MyBackendId;
+  item.tag.pid = MyPid;
 
   if (! (result = (XIDLookupEnt *)
 	 hash_search(xidTable, (Pointer)&item, HASH_FIND, &found))|| !found)
