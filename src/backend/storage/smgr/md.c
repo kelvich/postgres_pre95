@@ -8,6 +8,7 @@
 
 #include "tmp/c.h"
 #include "tmp/postgres.h"
+#include "tmp/miscadmin.h"
 
 #include "machine.h"
 #include "storage/smgr.h"
@@ -74,14 +75,15 @@ mdcreate(reln)
 
     /*
      *  If the file already exists and is empty, we pretend that the
-     *  create succeeded.  This only happens during bootstrap processing,
-     *  when pg_time, pg_variable, and pg_log get created before their
+     *  create succeeded.  During bootstrap processing, we skip that check,
+     *  because pg_time, pg_variable, and pg_log get created before their
      *  .bki file entries are processed.
      */
 
     if (fd < 0) {
 	if ((fd = FileNameOpenFile(path, O_RDWR, 0666)) >= 0) {
-	    if (FileRead(fd, &tmp, sizeof(tmp)) != 0) {
+	    if (!IsBootstrapProcessingMode() &&
+		FileRead(fd, &tmp, sizeof(tmp)) != 0) {
 		FileClose(fd);
 		return (-1);
 	    }
