@@ -28,6 +28,7 @@
 #include "access/heapam.h"
 #include "access/relscan.h"
 #include "access/skey.h"
+#include "access/htup.h"
 #include "utils/rel.h"
 #include "utils/log.h"
 
@@ -397,19 +398,6 @@ OperatorShellMake(operatorName, leftTypeName, rightTypeName)
  * else if a new operator is being created
  *   create a tuple using FormHeapTuple
  *   call RelationInsertHeapTuple
- *
- * **************** NOTE NOTE NOTE ****************
- * 
- * Currently the system doesn't do anything with negators, commutators, etc.
- * Eventually it will be necessary to add a field to the operator catalog
- * indicating whether the operator is a negator and/or a commutator of a
- * real operator.  Furthermore, depending on how the commutation is
- * implemented, it may be necessary to switch the order of the type fields
- * given to the commutator.  Must be careful when doing this, because
- * don't want to also switch the order of the negator.
- * Should be considered whether it makes sense to have the same negator
- * for both the operator and its commutator.
- *
  * --------------------------------
  */
 
@@ -449,6 +437,8 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
     ObjectId		operatorObjectId;
     ObjectId		leftTypeId = InvalidObjectId;
     ObjectId		rightTypeId = InvalidObjectId;
+    ObjectId		commutatorId = InvalidObjectId;
+    ObjectId		negatorId = InvalidObjectId;
     bool 		leftDefined = false;
     bool		rightDefined = false;
     Name		name[4];
@@ -551,7 +541,7 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
 	values[OperatorJoinAttributeNumber-1] =	(char *) InvalidObjectId;
 
     /* ----------------
-     *	
+     * set up values in the operator tuple
      * ----------------
      */
     i = 0;
@@ -579,20 +569,37 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
 
     for (j = 0; j < 4; ++j) {
 	if (NameIsValid(name[j])) {
-	    other_oid = OperatorGet(name[j],
-			      leftTypeName,
-			      rightTypeName);
-	    
+
+	    /* for the commutator, switch order of arguments */
+	    if (j == 0) {
+	        other_oid = OperatorGet(name[j],
+			          rightTypeName,
+			          leftTypeName);
+		commutatorId = other_oid;
+	    } else {
+	        other_oid = OperatorGet(name[j],
+			          leftTypeName,
+			          rightTypeName);
+		if (j == 1)
+		    negatorId = other_oid;
+	    }
+
 	    if (ObjectIdIsValid(other_oid)) /* already in catalogs */
 		values[i++] = (char *) other_oid;
 	    else if (!NameIsEqual(operatorName, name[j])) {
 		/* not in catalogs, different from operator */
-		/* NOTE -- eventually should switch order   */
-		/* for commutator's types                   */
 
-		other_oid = OperatorShellMake(name[j],
-					leftTypeName,
-					rightTypeName);
+		/* for the commutator, switch order of arguments */
+		if (j == 0) {
+		    other_oid = OperatorShellMake(name[j],
+					    rightTypeName,
+					    leftTypeName);
+		} else {
+		    other_oid = OperatorShellMake(name[j],
+					    leftTypeName,
+					    rightTypeName);
+		}
+
 		if (!ObjectIdIsValid(other_oid))
 		    elog(WARN,
 			 "OperatorDef: can't create %s",
@@ -648,12 +655,176 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
 			    &pg_operator_desc->rd_att,
 			    values,
 			    nulls);
-	
+
 	RelationInsertHeapTuple(pg_operator_desc, tup, (double *) NULL);
+	operatorObjectId = tup->t_oid;
     }
 
     RelationCloseHeapRelation(pg_operator_desc);
-}  
+
+    /*
+     *  It's possible that we're creating a skeleton operator here for
+     *  the commute or negate attributes of a real operator.  If we are,
+     *  then we're done.  If not, we may need to update the negator and
+     *  commutator for this attribute.  The reason for this is that the
+     *  user may want to create two operators (say < and >=).  When he
+     *  defines <, if he uses >= as the negator or commutator, he won't
+     *  be able to insert it later, since (for some reason) define operator
+     *  defines it for him.  So what he does is to define > without a
+     *  negator or commutator.  Then he defines >= with < as the negator
+     *  and commutator.  As a side effect, this will update the > tuple
+     *  if it has no commutator or negator defined.
+     *
+     *  Alstublieft, Tom Vijlbrief.
+     */
+    if (!definedOK)
+	OperatorUpd(operatorObjectId, commutatorId, negatorId);
+}
+
+/* ----------------------------------------------------------------
+ * OperatorUpd
+ *
+ *  For a given operator, look up its negator and commutator operators.
+ *  If they are defined, but their negator and commutator operators
+ *  (respectively) are not, then use the new operator for neg and comm.
+ *  This solves a problem for users who need to insert two new operators
+ *  which are the negator or commutator of each other.
+ * ---------------------------------------------------------------- 
+ */
+OperatorUpd(baseId, commId, negId)
+    ObjectId baseId;
+    ObjectId commId;
+    ObjectId negId;
+{
+    register		i, j;
+    Relation 		pg_operator_desc;
+
+    HeapScanDesc 	pg_operator_scan;
+    HeapTuple 		tup;
+    Buffer 		buffer;
+    ItemPointerData	itemPointerData;
+    char	 	nulls[ Natts_pg_operator ];
+    char	 	replaces[ Natts_pg_operator ];
+    char 		*values[ Natts_pg_operator ];
+    
+    static ScanKeyEntryData	operatorKey[1] = {
+	{ 0, ObjectIdAttributeNumber, ObjectIdEqualRegProcedure },
+    };
+
+    for (i = 0; i < Natts_pg_operator; ++i) {
+	values[i] = (char *) NULL;
+	replaces[i] = ' ';
+	nulls[i] = ' ';
+    }
+
+    pg_operator_desc = RelationNameOpenHeapRelation(OperatorRelationName);
+
+    /* check and update the commutator, if necessary */
+    operatorKey[0].argument = ObjectIdGetDatum(commId);
+
+    pg_operator_scan = RelationBeginHeapScan(pg_operator_desc,
+					     0,
+					     SelfTimeQual,
+					     1,
+					     (ScanKey) operatorKey);
+    
+    tup = HeapScanGetNextTuple(pg_operator_scan, 0, &buffer);
+
+    /* if the commutator and negator are the same operator, do one update */
+    if (commId == negId) {
+	if (HeapTupleIsValid(tup)) {
+	   struct operator *t;
+
+	   t = (struct operator *) GETSTRUCT(tup);
+	   if (!ObjectIdIsValid(t->oprcom)
+	       || !ObjectIdIsValid(t->oprnegate)) {
+
+		if (!ObjectIdIsValid(t->oprnegate)) {
+		    values[Anum_pg_operator_oprnegate] =
+				    (char *)ObjectIdGetDatum(baseId);
+		    replaces[ Anum_pg_operator_oprnegate ] = 'r';
+		}
+
+		if (!ObjectIdIsValid(t->oprcom)) {
+		    values[Anum_pg_operator_oprcom] =
+				    (char *)ObjectIdGetDatum(baseId);
+		    replaces[ Anum_pg_operator_oprcom ] = 'r';
+		}
+
+		tup = ModifyHeapTuple(tup,
+				      buffer,
+				      pg_operator_desc,
+				      values,
+				      nulls,
+				      replaces);
+
+		ItemPointerCopy(&tup->t_ctid, &itemPointerData);
+		setheapoverride(true);
+		RelationReplaceHeapTuple(pg_operator_desc,
+					 &itemPointerData,
+					 tup);
+		setheapoverride(false);
+	    }
+	}
+	HeapScanEnd(pg_operator_scan);
+
+	RelationCloseHeapRelation(pg_operator_desc);
+
+	return;
+    }
+
+    /* if commutator and negator are different, do two updates */
+    if (HeapTupleIsValid(tup) &&
+       !(ObjectIdIsValid(((struct operator *) GETSTRUCT(tup))->oprcom))) {
+	values[ Anum_pg_operator_oprcom ] = (char *) ObjectIdGetDatum(baseId);
+	replaces[ Anum_pg_operator_oprcom ] = 'r';
+	tup = ModifyHeapTuple(tup,
+			      buffer,
+			      pg_operator_desc,
+			      values,
+			      nulls,
+			      replaces);
+
+	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
+	setheapoverride(true);
+	RelationReplaceHeapTuple(pg_operator_desc, &itemPointerData, tup);
+	setheapoverride(false);
+
+	values[ Anum_pg_operator_oprcom ] = (char *) NULL;
+	replaces[ Anum_pg_operator_oprcom ] = ' ';
+    }
+
+    /* check and update the negator, if necessary */
+    operatorKey[0].argument = ObjectIdGetDatum(negId);
+
+    pg_operator_scan = RelationBeginHeapScan(pg_operator_desc,
+					     0,
+					     SelfTimeQual,
+					     1,
+					     (ScanKey) operatorKey);
+    
+    tup = HeapScanGetNextTuple(pg_operator_scan, 0, &buffer);
+    if (HeapTupleIsValid(tup) &&
+       !(ObjectIdIsValid(((struct operator *) GETSTRUCT(tup))->oprnegate))) {
+	values[Anum_pg_operator_oprnegate] = (char *) ObjectIdGetDatum(baseId);
+	replaces[ Anum_pg_operator_oprnegate ] = 'r';
+	tup = ModifyHeapTuple(tup,
+			      buffer,
+			      pg_operator_desc,
+			      values,
+			      nulls,
+			      replaces);
+
+	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
+	setheapoverride(true);
+	RelationReplaceHeapTuple(pg_operator_desc, &itemPointerData, tup);
+	setheapoverride(false);
+    }
+    HeapScanEnd(pg_operator_scan);
+
+    RelationCloseHeapRelation(pg_operator_desc);
+}
+
 
 /* ----------------------------------------------------------------
  * OperatorDefine
