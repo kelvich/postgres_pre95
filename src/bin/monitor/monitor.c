@@ -130,7 +130,7 @@ main(argc,argv)
     char *command;
     int exit_status = 0;
     char hostbuf[MAXHOSTNAMELEN];
-    char *username, usernamebuf[USER_NAMESIZE+1];
+    char *username, usernamebuf[NAMEDATALEN + 1];
 
     /* 
      * Processing command line arguments.
@@ -239,7 +239,7 @@ main(argc,argv)
 	    exit(2);
     }
     bzero(usernamebuf, sizeof(usernamebuf));
-    (void) strncpy(usernamebuf, username, USER_NAMESIZE);
+    (void) strncpy(usernamebuf, username, NAMEDATALEN);
     username = usernamebuf;
     
     /*
