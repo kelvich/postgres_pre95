@@ -762,7 +762,7 @@ StartTransaction()
      * ----------------
      */
     s->commandId = 		FirstCommandId;
-    s->startTime = 		GetCurrentTime();
+    s->startTime = 		GetCurrentAbsoluteTime();
 
     /* ----------------
      *	initialize the various transaction subsystems
