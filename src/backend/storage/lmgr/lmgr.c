@@ -956,7 +956,7 @@ RelationUnsetLockForReadPage(relation, partition, itemPointer)
 	    elog(WARN,
 		 "RelationUnsetLockForReadPage: locking error");
 	}
-	elog(FATAL, "RelationUnsetLockForReadPage: failed");
+	elog(NOTICE, "RelationUnsetLockForReadPage: failed");
     }
 }
 
