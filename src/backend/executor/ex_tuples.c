@@ -976,7 +976,7 @@ ExecGetTupType(node)
         
     case classTag(Agg):
 	s.aggstate = 		get_aggstate(node);
-	slot = 			get_css_ScanTupleSlot(s.aggstate);
+	slot = 			get_cs_ResultTupleSlot(s.aggstate);
 	tupType = 		ExecSlotDescriptor(slot);
 	return tupType;
 
