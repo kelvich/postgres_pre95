@@ -43,14 +43,6 @@
 #define	PFREE(P)		pfree((char *) (P))
 #define	PALLOCTYPE(TYPE)	(TYPE *) PALLOC(sizeof(TYPE))
 
-/*--------------------------------------------------------------------
- *	Handy things...
- *-------------------------------------------------------------------*/
-
-#ifdef sun
-extern char *sprintf();
-#endif sun
-
 #endif !FmgrIncluded
 
 /*---------------------------------------------------------------------
