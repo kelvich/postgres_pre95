@@ -682,10 +682,15 @@ make_const( value )
 	    
 	  case PGLISP_STR:
 	    if( strlen ( CString (value)) > 16 )
+		{
 	      tp = type("text");
+	      val = PointerGetDatum(textin(value->val.str));
+		}
 	    else 
+		{
 	      tp = type("char16");
-	    val = PointerGetDatum(value->val.str);
+	      val = PointerGetDatum(value->val.str);
+		}
 	    break;
 	    
 	  default: 
