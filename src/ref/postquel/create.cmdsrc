@@ -4,34 +4,34 @@
 .XA 2 Create
 .uh NAME
 .lp
-create \*- create a new relation
+create \*- create a new class
 .uh SYNOPSIS
 .lp
 .b create
-relname (domname = type
-{ , domname = type})
-[key (domname [[using] operator] { , domname [[using] operator])]
-[inherits (relname { , relname}]
+classname (attributename = type
+{ , attributename = type})
+[key (attributename [[using] operator] { , attributename [[using] operator])]
+[inherits (classname { , classname}]
 [archive_mode]
 .uh DESCRIPTION
 .lp
 .b Create
-will enter a new relation into the current data base.
-The relation will be 
+will enter a new class into the current data base.
+The class will be 
 .q "owned"
 by the user issueing the command.
-The name of the relation is
-\fIrelname\fR
-and the domains are as specified in the list of
-\fIdomnames:\fR
-\fIdomname, domname,\fR
+The name of the class is
+\fIclassname\fR
+and the attributes are as specified in the list of
+\fIattributenames:\fR
+\fIattributename, attributename,\fR
 etc.
-The domains are created with the type specified by
+The attributes are created with the type specified by
 \fItype.\fR
 .lp
 The \fIkey\fR clause is used to specify that a field or a collection
 of fields is unique.
-If no key clause is specified, \*(PP will still give every tuple
+If no key clause is specified, \*(PP will still give every instance
 a unique object-id
 .r ( \c
 .A OID ).
@@ -50,36 +50,33 @@ rather than performing an exhaustive search on each key update.
 .lp
 The
 \fIinherits\fR
-clause specifies a collection of relation names
-from which this relation automatically inherits all fields.
+clause specifies a collection of class names
+from which this class automatically inherits all fields.
 If any inherited field name appears more than once,
 \*(PP reports an error.
 Moreover,
-\*(PP automatically allows the created relation to inherit
-functions on relations above it in the
+\*(PP automatically allows the created class to inherit
+functions on classes above it in the
 inheritance hierarchy.
 Inheritance of functions is done according to the conventions of the
 Common Lisp Object System (CLOS).
 .lp
 In addition,
-.i relname ,
-and
-.i setof
-.i relname, 
-are automatically created as a type.  Therefore, a tuple 
-and a set of tuples from the relation are automatically a type and can be used in other create statements. 
+.i classname 
+is automatically created as a type.  Therefore, one or more instances 
+from the class are automatically a type and can be used in other create statements. 
 See 
 .b introduction
 (commands) for a further discussion of this point.
 .lp
-The relation is created as a heap with
+The class is created as a heap with
 no initial data.
-A relation can have no more than 1600 domains,
+A class can have no more than 1600 domains,
 but this limit may be configured lower at some sites.
-A relation cannot have the same name as
-a system catalog relation.
+A class cannot have the same name as
+a system catalog class.
 .lp
-The archive specification for each relation can be one of:
+The archive specification for each class can be one of:
 .(l
 none:	no historical access is supported
 light:	historical access is allowed and optimized for light update activity
@@ -95,12 +92,12 @@ is kept.
 .uh EXAMPLE
 .lp
 .nf
-/* Create relation emp with domains name, sal and bdate */
+/* Create class emp with attributes name, sal and bdate */
 
    create emp (name = char16, salary = float4, bdate = abstime)
 .lp
 .nf
-/* Create relation permemp with pension information inheriting
+/* Create class permemp with pension information inheriting
    all fields of emp */
 
    create permemp (plan = char16)
@@ -111,4 +108,4 @@ is kept.
 destroy(commands)
 .uh BUGS
 .lp
-Key and archive_mode are not implemented in Version 2.
+Key and archive_mode are not implemented in Version 2.1.
