@@ -119,5 +119,6 @@ extern LispValue append();
 extern LispValue LispDelete();
 extern LispValue push();
 extern bool null();
+extern LispValue collect();
 
 #endif /* !LispDepIncluded */
