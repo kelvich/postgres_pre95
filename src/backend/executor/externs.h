@@ -216,7 +216,7 @@ void ExecGetIndexKeyInfo ARGS((IndexTupleForm indexTuple , int *numAttsOutP , At
 void ExecOpenIndices ARGS((ObjectId resultRelationOid , RelationInfo resultRelationInfo ));
 void ExecCloseIndices ARGS((RelationInfo resultRelationInfo ));
 IndexTuple ExecFormIndexTuple ARGS((HeapTuple heapTuple , Relation heapRelation , Relation indexRelation , IndexInfo indexInfo ));
-RuleLock ExecInsertIndexTuples ARGS((HeapTuple heapTuple , ItemPointer tupleid , EState estate ));
+RuleLock ExecInsertIndexTuples ARGS((TupleTableSlot slot , ItemPointer tupleid , EState estate ));
 TupleTableSlot IndexNext ARGS((IndexScan node ));
 TupleTableSlot ExecIndexScan ARGS((IndexScan node ));
 List ExecIndexReScan ARGS((IndexScan node ));

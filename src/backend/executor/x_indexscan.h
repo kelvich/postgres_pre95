@@ -3,7 +3,7 @@ extern void ExecGetIndexKeyInfo ARGS((IndexTupleForm indexTuple, int *numAttsOut
 extern void ExecOpenIndices ARGS((ObjectId resultRelationOid, RelationInfo resultRelationInfo));
 extern void ExecCloseIndices ARGS((RelationInfo resultRelationInfo));
 extern IndexTuple ExecFormIndexTuple ARGS((HeapTuple heapTuple, Relation heapRelation, Relation indexRelation, IndexInfo indexInfo));
-extern RuleLock ExecInsertIndexTuples ARGS((HeapTuple heapTuple, ItemPointer tupleid, EState estate));
+extern RuleLock ExecInsertIndexTuples ARGS((TupleTableSlot slot, ItemPointer tupleid, EState estate));
 extern TupleTableSlot IndexNext ARGS((IndexScan node));
 extern TupleTableSlot ExecIndexScan ARGS((IndexScan node));
 extern List ExecIndexReScan ARGS((IndexScan node));

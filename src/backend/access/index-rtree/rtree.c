@@ -180,7 +180,8 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     RelationUnsetLockForWrite(index);
 
     if (pred != LispNil) {
-	ExecDestroyTupleTable(tupleTable, false);
+	ExecDestroyTupleTable(tupleTable, true);
+	pfree(econtext);
     }
 
     /*

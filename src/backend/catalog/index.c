@@ -728,38 +728,61 @@ AppendAttributeTuples(indexRelation, numatts)
  * ----------------------------------------------------------------
  */
 void
-UpdateIndexRelation(indexoid, heapoid, funcInfo, natts, attNums, classOids)
+UpdateIndexRelation(indexoid, heapoid, funcInfo, natts, attNums, classOids,
+		    predicate)
     ObjectId		indexoid;
     ObjectId		heapoid;
     FuncIndexInfo	*funcInfo;
     AttributeNumber	natts;
     AttributeNumber	attNums[];
     ObjectId		classOids[];
+    LispValue		predicate;
 {
-    IndexTupleFormData	indexForm;
+    IndexTupleForm	indexForm;
+    char		*predString;
+    text		*predText;
+    int			predLen, itupLen;
     Relation		pg_index;
     HeapTuple		tuple;
     AttributeOffset	i;
     
     /* ----------------
+     *	allocate an IndexTupleForm big enough to hold the
+     *  index-predicate (if any) in string form
+     * ----------------
+     */
+    if (predicate != LispNil) {
+	predString = lispOut(predicate);
+	predText = (text *)fmgr(F_TEXTIN, predString);
+	pfree(predString);
+    } else {
+	predText = (text *)fmgr(F_TEXTIN, "");
+    }
+    predLen = VARSIZE(predText);
+    itupLen = predLen + sizeof(IndexTupleFormData);
+    indexForm = (IndexTupleForm) palloc(itupLen);
+
+    bcopy((char *)predText, (char *)& indexForm->indpred, predLen);
+
+    /* ----------------
      *	store the oid information into the index tuple form
      * ----------------
      */
-    indexForm.indrelid =   heapoid;
-    indexForm.indexrelid = indexoid;
-    indexForm.indproc = (PointerIsValid(funcInfo)) ?
+    indexForm->indrelid =   heapoid;
+    indexForm->indexrelid = indexoid;
+    indexForm->indproc = (PointerIsValid(funcInfo)) ?
 	FIgetProcOid(funcInfo) : InvalidObjectId;
    
-    memset((char *)& indexForm.indkey[0], 0, sizeof indexForm.indkey);
-    memset((char *)& indexForm.indclass[0], 0, sizeof indexForm.indclass);
+    memset((char *)& indexForm->indkey[0], 0, sizeof indexForm->indkey);
+    memset((char *)& indexForm->indclass[0], 0, sizeof indexForm->indclass);
 
     /* ----------------
      *	copy index key and op class information
      * ----------------
      */
     for (i = 0; i < natts; i += 1) {
-	indexForm.indkey[i] =   attNums[i];
-	indexForm.indclass[i] = classOids[i];
+	indexForm->indkey[i] =   attNums[i];
+	indexForm->indclass[i] = classOids[i];
     }
     /*
      * If we have a functional index, add all attribute arguments
@@ -767,11 +790,11 @@ UpdateIndexRelation(indexoid, heapoid, funcInfo, natts, attNums, classOids)
     if (PointerIsValid(funcInfo))
     {
 	for (i=1; i < FIgetnArgs(funcInfo); i++)
-	    indexForm.indkey[i] =   attNums[i];
+	    indexForm->indkey[i] =   attNums[i];
     }
    
-    indexForm.indisclustered = '\0';		/* XXX constant */
-    indexForm.indisarchived = '\0';		/* XXX constant */
+    indexForm->indisclustered = '\0';		/* XXX constant */
+    indexForm->indisarchived = '\0';		/* XXX constant */
 
     /* ----------------
      *	open the system catalog index relation
@@ -784,8 +807,8 @@ UpdateIndexRelation(indexoid, heapoid, funcInfo, natts, attNums, classOids)
      * ----------------
      */
     tuple = addtupleheader(IndexRelationNumberOfAttributes,
-			   sizeof(indexForm),
-			   (char *)&indexForm);
+			   itupLen,
+			   (char *)indexForm);
 
     /* ----------------
      *	insert the tuple into the pg_index
@@ -799,6 +822,8 @@ UpdateIndexRelation(indexoid, heapoid, funcInfo, natts, attNums, classOids)
      * ----------------
      */
     heap_close(pg_index);
+    pfree((Pointer)predText);
+    pfree((Pointer)indexForm);
     pfree((Pointer)tuple);
 }
  
@@ -1004,12 +1029,12 @@ index_create(heapRelationName, indexRelationName, funcInfo,
      *    update pg_index
      *    (append INDEX tuple)
      *
-     *    Should stow away a representation of "predicate" here(?)
+     *    Should stow away a representation of "predicate" here.
      *    (Or, could define a rule to maintain the predicate) --Nels, Feb '92
      * ----------------
      */
     UpdateIndexRelation(indexoid, heapoid, funcInfo,
-			numatts, attNums, classObjectId);
+			numatts, attNums, classObjectId, predicate);
 
     /* ----------------
      *    initialize the index strategy

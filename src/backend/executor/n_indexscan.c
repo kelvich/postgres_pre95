@@ -38,6 +38,8 @@
 #define LEFT_OP		1
 #define RIGHT_OP	2
 
+extern ExprContext RMakeExprContext();
+
 /* ----------------------------------------------------------------
  *		  ExecInsertIndexTuples support
  * ----------------------------------------------------------------
@@ -170,10 +172,13 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
     List		nkeyList;
     List		keyList;
     List		fiList;
+    char		*predString;
+    List		predList;
     List		indexoid;
     List		numkeys;
     List		indexkeys;
     List		indexfuncs;
+    List		indexpreds;
     int			len;
     
     RelationPtr		relationDescs;
@@ -181,6 +186,7 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
     FuncIndexInfoPtr	fInfoP;
     int		   	numKeyAtts;
     AttributeNumberPtr 	indexKeyAtts;
+    LispValue		predicate;
     int			i;
     
     /* ----------------
@@ -212,6 +218,7 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
     nkeyList = LispNil;
     keyList =  LispNil;
     fiList =   LispNil;
+    predList = LispNil;
     
     while(tuple = amgetnext(indexSd, 		/* scan desc */
 			    false,		/* scan backward flag */
@@ -244,6 +251,19 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
 			    fInfoP);
 	
 	/* ----------------
+	 *  next get the index predicate from the tuple
+	 * ----------------
+	 */
+	if (VARSIZE(&indexStruct->indpred) != 0) {
+	    LispValue lispReadString();
+	    predString = fmgr(F_TEXTOUT, &indexStruct->indpred);
+	    predicate = lispReadString(predString);
+	    pfree(predString);
+	} else {
+	    predicate = LispNil;
+	}
+
+	/* ----------------
 	 *  save the index information into lists
 	 * ----------------
 	 */
@@ -251,6 +271,7 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
 	nkeyList = lispCons(lispInteger(numKeyAtts), nkeyList);
 	keyList =  lispCons((LispValue)indexKeyAtts, keyList);
 	fiList =   lispCons((LispValue)fInfoP, fiList);
+	predList = lispCons(predicate, predList);
     }
     
     /* ----------------
@@ -332,6 +353,11 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
 	foreach (indexfuncs, fiList) {
 	    FuncIndexInfoPtr fiP = (FuncIndexInfoPtr)CAR(indexfuncs);
 	    set_ii_FuncIndexInfo(indexInfoArray[i++], fiP);
+	}
+	
+	i = 0;
+	foreach (indexpreds, predList) {
+	    set_ii_Predicate(indexInfoArray[i++], CAR(indexpreds));
 	}
 	/* ----------------
 	 *   store the index info array into relation info
@@ -484,20 +510,26 @@ ExecFormIndexTuple(heapTuple, heapRelation, indexRelation, indexInfo)
  *           ExecReplace
  ****/
 RuleLock
-ExecInsertIndexTuples(heapTuple, tupleid, estate)
-    HeapTuple		heapTuple;
+ExecInsertIndexTuples(slot, tupleid, estate)
+    TupleTableSlot	slot;
     ItemPointer 	tupleid;
     EState		estate;
 {
+    HeapTuple			heapTuple;
     RelationInfo	        resultRelationInfo;
     int 			i;
     int 			numIndices;
     RelationPtr		    	relationDescs;
     Relation			heapRelation;
     IndexInfoPtr		indexInfoArray;
+    LispValue			predicate;
+    bool			satisfied;
+    ExprContext			econtext;
     IndexTuple		     	indexTuple;
     GeneralInsertIndexResult 	result;
     
+    heapTuple = (HeapTuple) ExecFetchTuple((Pointer) slot);
+
     /* ----------------
      *	get information from the result relation info structure.
      * ----------------
@@ -512,36 +544,50 @@ ExecInsertIndexTuples(heapTuple, tupleid, estate)
      *	for each index, form and insert the index tuple
      * ----------------
      */
+    econtext = NULL;
     for (i=0; i<numIndices; i++) {
-	if (relationDescs[i] != NULL) {
-	    
-	    indexTuple = ExecFormIndexTuple(heapTuple,
-					    heapRelation,
-					    relationDescs[i],
-					    indexInfoArray[i]);
-	    
-	    indexTuple->t_tid = (*tupleid);     /* structure assignment */
-	    
-	    result = AMinsert(relationDescs[i], /* index relation */
-			      indexTuple, 	/* index tuple */
-			      0,		/* scan (not used) */
-			      0);		/* return: offset */
-	    
-	    /* XXX should inspect result for locks */
-	    
-	    /* ----------------
-	     *	keep track of index inserts for debugging
-	     * ----------------
-	     */
-	    IncrIndexInserted();
-	    
-	    /* ----------------
-	     *	free index tuple after insertion
-	     * ----------------
-	     */
-	    pfree(indexTuple);
+	if (relationDescs[i] == NULL) continue;
+
+	predicate = get_ii_Predicate(indexInfoArray[i]);
+	if (predicate != LispNil) {
+	    if (econtext == NULL) {
+		econtext = RMakeExprContext();
+	    }
+	    set_ecxt_scantuple(econtext, slot);
+
+	    /* Skip this index-update if the predicate isn't satisfied */
+	    satisfied = ExecQual(predicate, econtext);
+	    if (satisfied == false)
+		continue;
 	}
+
+	indexTuple = ExecFormIndexTuple(heapTuple,
+					heapRelation,
+					relationDescs[i],
+					indexInfoArray[i]);
+	
+	indexTuple->t_tid = (*tupleid);     /* structure assignment */
+	
+	result = AMinsert(relationDescs[i], /* index relation */
+			  indexTuple, 	/* index tuple */
+			  0,		/* scan (not used) */
+			  0);		/* return: offset */
+	
+	/* XXX should inspect result for locks */
+	
+	/* ----------------
+	 *	keep track of index inserts for debugging
+	 * ----------------
+	 */
+	IncrIndexInserted();
+	
+	/* ----------------
+	 *	free index tuple after insertion
+	 * ----------------
+	 */
+	pfree(indexTuple);
     }
+    if (econtext != NULL) pfree(econtext);
     
     /* ----------------
      *	return rule locks from insertion.. (someday)

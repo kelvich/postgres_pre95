@@ -1004,7 +1004,7 @@ ExecAppend(slot, tupleid, estate, newlocks)
      */
     numIndices = get_ri_NumIndices(resultRelationInfo);
     if (numIndices > 0) {
-	indexLocks = ExecInsertIndexTuples(tuple,
+	indexLocks = ExecInsertIndexTuples(slot,
 					   &(tuple->t_ctid),
 					   estate);
     }
@@ -1346,7 +1346,7 @@ ExecReplace(slot, tupleid, estate, parseTree, newlocks)
      */
     numIndices = get_ri_NumIndices(resultRelationInfo);
     if (numIndices > 0) {
-	indexLocks = ExecInsertIndexTuples(tuple,
+	indexLocks = ExecInsertIndexTuples(slot,
 					   &(tuple->t_ctid),
 					   estate);
     }

@@ -167,7 +167,8 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     heap_endscan(hscan);
 
     if (pred != LispNil) {
-	ExecDestroyTupleTable(tupleTable, false);
+	ExecDestroyTupleTable(tupleTable, true);
+	pfree(econtext);
     }
 
     /*

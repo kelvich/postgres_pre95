@@ -82,6 +82,7 @@ typedef void    (*HookFunction)();
  *
  *      NumKeyAttributes        number of key attributes for this index
  *      KeyAttributeNumbers     array of attribute numbers used as keys
+ *      Predicate               partial-index predicate for this index
  * ----------------
  */
 
@@ -90,6 +91,7 @@ class (IndexInfo) public (Node) {
     int                 ii_NumKeyAttributes;
     AttributeNumberPtr  ii_KeyAttributeNumbers;
     FuncIndexInfoPtr	ii_FuncIndexInfo;
+    List		ii_Predicate;
 };
 
 typedef IndexInfo       *IndexInfoPtr;
@@ -106,7 +108,7 @@ typedef IndexInfo       *IndexInfoPtr;
  *      RelationDesc            relation descriptor for result relation
  *      NumIndices              number indices existing on result relation
  *      IndexRelationDescs      array of relation descriptors for indices
- *      IndexInfoPtr            array of key/attr info for indices
+ *      IndexRelationInfo       array of key/attr info for indices
  * ----------------
  */
 

@@ -16,6 +16,11 @@
 #include "access/itup.h"
 #include "access/relscan.h"
 #include "access/funcindex.h"
+#include "nodes/execnodes.h"
+#include "nodes/pg_lisp.h"
+#include "executor/tuptable.h"
+#include "executor/x_qual.h"
+#include "executor/x_tuples.h"
 #include "utils/rel.h"
 #include "utils/log.h"
 #include "tmp/daemon.h"
@@ -256,6 +261,12 @@ FILE *fp;
     HeapTuple pgIndexTup;
     Form_pg_index *pgIndexP;
     int *indexNatts;
+    char *predString;
+    List *indexPred;
+    TupleDescriptor rtupdesc;
+    ExprContext econtext;
+    TupleTable tupleTable;
+    TupleTableSlot slot;
     int natts;
     AttributeNumber *attnumP;
     Datum idatum;
@@ -282,6 +293,8 @@ FILE *fp;
 	    indexNatts = (int *) palloc(n_indices * sizeof(int));
 	    finfo = (FuncIndexInfo *) palloc(n_indices * sizeof(FuncIndexInfo));
 	    finfoP = (FuncIndexInfo **) palloc(n_indices * sizeof(FuncIndexInfo *));
+	    indexPred = (List *) palloc(n_indices * sizeof(List));
+	    econtext = NULL;
 	    for (i = 0; i < n_indices; i++) {
 		itupdesc[i] = RelationGetTupleDescriptor(index_rels[i]);
 		pgIndexTup = (HeapTuple)SearchSysCacheTuple(INDEXRELID,
@@ -301,6 +314,40 @@ FILE *fp;
 		} else
 		    finfoP[i] = (FuncIndexInfo *) NULL;
 		indexNatts[i] = natts;
+		if (VARSIZE(&pgIndexP[i]->indpred) != 0) {
+		    LispValue lispReadString();
+		    predString = fmgr(F_TEXTOUT, &pgIndexP[i]->indpred);
+		    indexPred[i] = lispReadString(predString);
+		    pfree(predString);
+		    /* make dummy ExprContext for use by ExecQual */
+		    if (econtext == NULL) {
+			extern ExprContext RMakeExprContext();
+
+			tupleTable = ExecCreateTupleTable(1); 
+			slot = (TupleTableSlot) ExecGetTableSlot(tupleTable,
+				    ExecAllocTableSlot(tupleTable));
+			econtext = RMakeExprContext();
+			set_ecxt_scantuple(econtext, slot);
+			rtupdesc = RelationGetTupleDescriptor(rel);
+			SetSlotTupleDescriptor(slot, rtupdesc);
+			/*
+			 * There's no buffer associated with heap tuples here,
+			 * so I set the slot's buffer to NULL.  Currently, it
+			 * appears that the only way a buffer could be needed
+			 * would be if the partial index predicate referred to
+			 * the "lock" system attribute.  If it did, then
+			 * heap_getattr would call HeapTupleGetRuleLock, which
+			 * uses the buffer's descriptor to get the relation id.
+			 * Rather than try to fix this, I'll just disallow
+			 * partial indexes on "lock", which wouldn't be useful
+			 * anyway. --Nels, Nov '92
+			 */
+			SetSlotBuffer(slot, NULL);
+			SetSlotShouldFree(slot, false);
+		    }
+		} else {
+		    indexPred[i] = LispNil;
+		}
 	    }
 	}
     }
@@ -442,6 +489,12 @@ FILE *fp;
         if (has_index)
         {
             for (i = 0; i < n_indices; i++) {
+		if (indexPred[i] != LispNil) {
+		    /* if tuple doesn't satisfy predicate, don't update index */
+		    SetSlotContents(slot, tuple);
+		    if (ExecQual(indexPred[i], econtext) == false)
+			continue;
+		}
 		FormIndexDatum(indexNatts[i],
 			    (AttributeNumber *)&(pgIndexP[i]->indkey.data[0]),
 			    tuple,
