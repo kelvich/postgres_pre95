@@ -46,7 +46,9 @@ typedef enum {
     Local,		/* results go in local portal buffer */
     Remote,		/* results sent to frontend process */
 	CopyBegin,	/* results sent to frontend process but are strings */
-	CopyEnd		/* results sent to frontend process but are strings */
+        CopyEnd	        /* results sent to frontend process but are strings */
+   ,RemoteInternal      /* results sent to frontend process in internal
+			   (binary) form */
 } CommandDest;
 
 /* dest.c */

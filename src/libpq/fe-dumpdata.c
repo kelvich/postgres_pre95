@@ -105,6 +105,61 @@ dump_tuple(values, nfields)
 	    bmap <<= 1;
     }
 }
+/* --------------------------------
+ *	dump_tuple_internal - Dump a tuple in internal format
+ * --------------------------------
+ */
+void
+dump_tuple_internal(values, nfields)
+    char **values;
+    int nfields;
+{
+    char 	bitmap[MAXFIELDS];
+    int 	bitmap_index = 0;
+    int 	i;
+    unsigned 	nbytes;		/* the number of bytes in bitmap */
+    char 	bmap;		/* One byte of the bitmap */
+    int 	bitcnt = 0; 	/* number of bits examined in current byte */
+    int 	vlen;		/* length of the current field value */
+    
+    nbytes = nfields / BYTELEN;
+    if ((nfields % BYTELEN) > 0) 
+	nbytes++;
+
+    pq_getnchar(bitmap, 0, nbytes);
+    bmap = bitmap[bitmap_index];
+    
+    /* Read in all the attribute values. */
+    for (i = 0; i < nfields; i++) {
+	/* If the field value is absent, do nothing. */
+	if (!(bmap & 0200))
+	    values[i] = NULL;
+	else {
+	    /* For each attribute, we get:
+	       Length (4 bytes),
+	       Data (n bytes)
+	       */
+	    
+	    vlen = pq_getint(4);
+	    /* Allocate storage for the value. */
+	    values[i] = pbuf_addValues(vlen + 1);
+	    /* Read in the value. */
+	    pq_getnchar(values[i], 0, vlen);
+	    /* Put an end of string there to make life easier. */
+	    values[i][vlen] = '\0';
+	    pqdebug("%s", values[i]);
+	}
+
+	/* Get the approriate bitmap. */
+	bitcnt++;
+	if (bitcnt == BYTELEN) {
+	    bitmap_index++;
+	    bmap = bitmap[bitmap_index];
+	    bitcnt = 0;
+	} else 
+	    bmap <<= 1;
+    }
+}
 
 /* --------------------------------
  *	finish_dump - End of a command (data stream)
@@ -182,6 +237,29 @@ dump_data(portal_name, rule_p)
 	        types = group->types = pbuf_addTypes(nfields);
 	        dump_type(types, nfields);
 	    }
+	    break;
+
+	case 'B':
+	    /* A tuple in internal (binary) format. */
+	    
+	    /* If no tuple block yet, allocate one. */
+	    /* If the current block is full, allocate another one. */
+	    if (group->tuples == NULL) {
+		tuples = group->tuples = pbuf_addTuples();
+		tuples->tuple_index = 0;
+	    } else if (tuples->tuple_index == TupleBlockSize) {
+		tuples->next = pbuf_addTuples();
+		tuples = tuples->next;
+		tuples->tuple_index = 0;
+	    }
+		
+	    /* Allocate space for a tuple. */
+	    tuples->values[tuples->tuple_index] =pbuf_addTuple(nfields);
+	    
+	    /* Dump a tuple internal format. */
+	    dump_tuple_internal(tuples->values[tuples->tuple_index], nfields);
+	    ntuples++;
+	    tuples->tuple_index++;
 	    break;
 
 	case 'D':

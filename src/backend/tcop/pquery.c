@@ -213,8 +213,9 @@ CreateOperationTag(operationType)
  */
  
 void
-ProcessPortal(portalName, parseTree, plan, state, attinfo, dest)
+ProcessPortal(portalName, portalType, parseTree, plan, state, attinfo, dest)
     String 	portalName;
+    int         portalType;
     List	parseTree;
     Plan	plan;
     EState	state;
@@ -229,6 +230,8 @@ ProcessPortal(portalName, parseTree, plan, state, attinfo, dest)
      *   portal and initialize the state and query descriptor.
      * ----------------
      */
+    
+
     portal = BlankPortalAssignName(portalName);
 
     PortalSetQuery(portal,
@@ -279,6 +282,7 @@ ProcessQueryDesc(queryDesc)
     bool	isRetrieveIntoRelation;
     bool	isRetrieveIntoTemp;
     String	intoName;
+    int         intoType;
     CommandDest dest;
 
     /* ----------------
@@ -311,6 +315,18 @@ ProcessQueryDesc(queryDesc)
 	    if (resultDest == PORTAL) {
 		isRetrieveIntoPortal = true;
 		intoName = CString(CADR(resultDesc));
+	    } else if (resultDest == IPORTAL) {
+		isRetrieveIntoPortal = true;
+		intoName = CString(CADR(resultDesc));
+		/*
+		 * For internal format portals, we change Remote
+		 * (externalized form) to RemoteInternal (internalized
+		 * form)
+		 */
+		Assert(dest == Remote);
+		QdSetDest(queryDesc,RemoteInternal);
+    		dest = 	QdGetDest(queryDesc);
+		Assert(dest == RemoteInternal);
 	    } else if (resultDest == INTO || resultDest == INTOTEMP) {
 		isRetrieveIntoRelation = true;
 		if (resultDest == INTOTEMP)
@@ -381,6 +397,7 @@ ProcessQueryDesc(queryDesc)
 	PortalExecutorHeapMemory = NULL;
 	
 	ProcessPortal(intoName,
+		      intoType,
 		      parseTree,
 		      plan,
 		      state,

@@ -10,6 +10,7 @@
 #define PrintTupIncluded	1
 
 extern void printtup ARGS((HeapTuple tuple, struct attribute *typeinfo[]));
+extern void printtup_internal ARGS((HeapTuple tuple, struct attribute *typeinfo[]));
 extern void debugtup ARGS((HeapTuple tuple, struct attribute *typeinfo[]));
 
 #endif	/* !defined(PrintTupIncluded) */

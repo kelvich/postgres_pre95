@@ -77,6 +77,7 @@ ScanKeyword	ScanKeywords[] = {
 	{ "intersect",		INTERSECT	},
 	{ "into",		INTO		},
 	{ "intotemp",           INTOTEMP        },
+	{ "iportal",            IPORTAL         },
 	{ "is",			IS		},
 	{ "key",		KEY		},
 	{ "leftouter",		LEFTOUTER	},

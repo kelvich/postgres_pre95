@@ -121,7 +121,8 @@ bool is_postquel_function = false;
 %token   	INHERITANCE VERSION CURRENT NEW THEN DO INSTEAD VIEW
 		REWRITE P_TUPLE TYPECAST P_FUNCTION C_FUNCTION C_FN
 		POSTQUEL RELATION RETURNS INTOTEMP LOAD CREATEDB DESTROYDB
-		STDIN STDOUT VACUUM PARALLEL AGGREGATE NOTIFY LISTEN
+		STDIN STDOUT VACUUM PARALLEL AGGREGATE NOTIFY LISTEN 
+                IPORTAL
                 
 
 /* precedence */
@@ -1520,6 +1521,20 @@ opt_portal:
   	/* common to retrieve, execute */
 	/*EMPTY*/
 		{ NULLTREE }
+        | IPORTAL name 
+		{
+		    /*
+		     *  15 august 1991 -- since 3.0 postgres does locking
+		     *  right, we discovered that portals were violating
+		     *  locking protocol.  portal locks cannot span xacts.
+		     *  as a short-term fix, we installed the check here. 
+		     *				-- mao
+		     */
+		    if (!IsTransactionBlock())
+			elog(WARN, "Named portals may only be used in begin/end transaction blocks.");
+
+		    $$ = MakeList ( KW(iportal), $2, -1 ); 
+		}
 	| PORTAL name 
 		{
 		    /*

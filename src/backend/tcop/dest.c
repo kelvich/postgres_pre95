@@ -54,6 +54,10 @@ void
     CommandDest	dest;
 {
     switch (dest) {
+    case RemoteInternal:
+	return printtup_internal;
+	break;
+
     case Remote:
 	return printtup;
 	break;
@@ -89,6 +93,7 @@ EndCommand(commandTag, dest)
     CommandDest	dest;
 {
     switch (dest) {
+    case RemoteInternal:
     case Remote:
 	/* ----------------
 	 *	tell the fe that the query is over
@@ -151,6 +156,7 @@ NullCommand(dest)
     CommandDest	dest;
 {
     switch (dest) {
+    case RemoteInternal:
     case Remote: {
 	/* Do any asynchronous notification.  If front end wants to poll,
 	   it can send null queries to call this function.
@@ -219,6 +225,7 @@ BeginCommand(pname, operation, attinfo, isIntoRel, isIntoPortal, tag, dest)
     attrs  = (struct attribute **) CADR(attinfo);
 
     switch (dest) {
+    case RemoteInternal:
     case Remote:
 	/* ----------------
 	 *	if this is a "retrieve portal" query, just return
