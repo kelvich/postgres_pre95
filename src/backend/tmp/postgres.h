@@ -933,6 +933,13 @@ typedef	union {
  */
 #define	MAXPGPATH	128
 
+#define STATUS_OK               (0)
+#define STATUS_ERROR            (-1)
+#define STATUS_NOT_FOUND        (-2)
+#define STATUS_INVALID          (-3)
+#define STATUS_UNCATALOGUED     (-4)
+#define STATUS_REPLACED         (-5)
+#define STATUS_FOUND            (1)
 /* ----------------
  *	end of postgres.h
  * ----------------

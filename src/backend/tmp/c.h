@@ -35,6 +35,8 @@
 #define false	((char) 0)
 #define true	((char) 1)
 
+#define TRUE	1
+#define FALSE	0
 /*
  * CppIdentity --
  *	C preprocessor identity macro, returns the argument.
