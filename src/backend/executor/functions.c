@@ -251,7 +251,8 @@ copy_function_result(fcache, resultSlot)
 
     newTuple = (HeapTuple)heap_copysimple(oldTuple);
 
-    ExecStoreTuple((Pointer)newTuple,
+    return (TupleTableSlot)
+	ExecStoreTuple((Pointer)newTuple,
 		   (Pointer)funcSlot,
 		   InvalidBuffer,
 		   true);
