@@ -374,7 +374,6 @@ LOCKT		lockt;
     elog(FATAL,"LockAcquire: lock table %d is corrupted",tableId);
     return(FALSE);
   }
-  myXid = GetCurrentTransactionId();
 
   /* --------------------
    * if there was nothing else there, complete initialization
@@ -399,6 +398,8 @@ LOCKT		lockt;
    * ------------------
    */
   xidTable = ltable->xidHash;
+  myXid = GetCurrentTransactionId();
+
   /* ------------------
    * Zero out all of the tag bytes (this clears the padding bytes for long
    * word alignment and ensures hashing consistency).
@@ -422,6 +423,15 @@ LOCKT		lockt;
     bzero((char *)result->holders,sizeof(int)*MAX_LOCKTYPES);
   }
 
+  /* ----------------
+   * lock->nholding tells us how many processes have _tried_ to
+   * acquire this lock,  Regardless of whether they succeeded or
+   * failed in doing so.
+   * ----------------
+   */
+  lock->nHolding++;
+  lock->holders[lockt]++;
+
   /* --------------------
    * If I'm the only one holding a lock, then there
    * cannot be a conflict.  Need to subtract one from the
@@ -429,7 +439,7 @@ LOCKT		lockt;
    * above.
    * --------------------
    */
-  if (result->nHolding == lock->nHolding)
+  if (result->nHolding == lock->nActive)
   {
     result->holders[lockt]++;
     result->nHolding++;
@@ -438,8 +448,8 @@ LOCKT		lockt;
     return(TRUE);
   }
 
-  Assert(result->nHolding <= lock->nHolding);
-  status = LockResolveConflicts(ltable, lock, lockt, myXid);
+  Assert(result->nHolding <= lock->nActive);
+  status = LockResolveConflicts(ltable, lock, lockt, myXid, MyBackendId);
   if (status == STATUS_OK)
   {
     GrantLock(lock, lockt);
@@ -450,8 +460,6 @@ LOCKT		lockt;
      * nHolding tells how many have tried to acquire the lock.
      *------------------
      */
-    lock->nHolding++;
-    lock->holders[lockt]++;
     status = WaitOnLock(ltable, tableId, lock, lockt);
   }
 
@@ -474,18 +482,14 @@ LOCKT		lockt;
  *  there will not be a conflict with my own READ_LOCK.  If I
  *  don't consider the intent lock when checking for conflicts,
  *  I find no conflict.
- *
- * The current scheme is this.  Each lock has an (xid) field containing
- * the xid of the current owner.  As soon as there are multiple owners,
- * the xid field is changed to "ProcTxIdInvalid" to indicate that
- * it belongs to no one person.
  * ----------------------------
  */
-LockResolveConflicts(ltable,lock,lockt,xid)
+LockResolveConflicts(ltable,lock,lockt,xid,backendId)
 LOCKTAB	*ltable;
 LOCK	*lock;
 LOCKT	lockt;
 TransactionId	xid;
+int backendId;
 {
   XIDLookupEnt	*result,item;
   int		*myHolders;
@@ -509,7 +513,7 @@ TransactionId	xid;
   bzero(&item, XID_TAGSIZE);
   TransactionIdStore(xid, &item.tag.xid);
   item.tag.lock = MAKE_OFFSET(lock);
-  item.tag.backendId = MyBackendId;
+  item.tag.backendId = backendId;
 
   if (! (result = (XIDLookupEnt *)
 	 hash_search(xidTable, (Pointer)&item, HASH_ENTER, &found)))
@@ -559,7 +563,7 @@ TransactionId	xid;
   tmpMask = 2;
   for (i=1;i<=nLockTypes;i++, tmpMask <<= 1)
   {
-    if (lock->holders[i] - myHolders[i])
+    if (lock->activeHolders[i] - myHolders[i])
     {
       bitmask |= tmpMask;
     }
@@ -604,6 +608,7 @@ LOCKT		lockt;
    * will not be true if/when people can be deleted from
    * the queue by a SIGINT or something.
    */
+  LOCK_PRINT("WaitOnLock: sleeping on lock", (&lock->tag), lockt);
   if (ProcSleep(waitQueue,
 		ltable->ctl->masterLock,
                 lockt,
@@ -651,13 +656,17 @@ LOCKT	lockt;
 
   Assert (tableId < NumTables);
   ltable = AllTables[tableId];
-  if (!ltable)
+  if (!ltable) {
+    elog(NOTICE, "ltable is null in LockRelease");
     return (NULL);
+  }
 
   if (LockingIsDisabled)
   {
     return(TRUE);
   }
+
+  LOCK_PRINT("Release",lockName,lockt);
 
   masterLock = ltable->ctl->masterLock;
   xidTable = ltable->xidHash;
@@ -703,9 +712,8 @@ LOCKT	lockt;
    * ------------------
    */
   bzero(&item, XID_TAGSIZE);
-  TransactionIdStore(GetCurrentTransactionId(), &item.tag.xid);
-  Assert (! TransactionIdEquals(&item.tag.xid, &InvalidXid));
 
+  TransactionIdStore(GetCurrentTransactionId(), &item.tag.xid);
   item.tag.lock = MAKE_OFFSET(lock);
   item.tag.backendId = MyBackendId;
 
@@ -729,7 +737,7 @@ LOCKT	lockt;
    */
   if (! result->nHolding)
   {
-    LOCK_PRINT("Deleting now",(&lock->tag),lockt);
+    LOCK_PRINT("Deleting xid",(&lock->tag),lockt);
     SHMQueueDelete(&result->queue);
     if (! (result = (XIDLookupEnt *)
 	   hash_search(xidTable, (Pointer)&item, HASH_REMOVE, &found)) ||
@@ -750,6 +758,7 @@ LOCKT	lockt;
      * Delete it from the lock table.
      * ------------------
      */
+    LOCK_PRINT("Release: deleting lock", (&lock->tag), lockt);
     Assert( ltable->lockHash->hash == tag_hash);
     lock = (LOCK *)
       hash_search(ltable->lockHash,(Pointer)&(lock->tag),HASH_REMOVE, &found);
@@ -764,12 +773,12 @@ LOCKT	lockt;
   }
 
   /* --------------------------
-   * If there are still locks of the type I just released, no one
+   * If there are still active locks of the type I just released, no one
    * should be woken up.  Whoever is asleep will still conflict
    * with the remaining locks.
    * --------------------------
    */
-  if (! (lock->holders[lockt]))
+  if (! (lock->activeHolders[lockt]))
   {
     /* change the conflict mask.  No more of this lock type. */
     lock->mask &= BITS_OFF[lockt];
@@ -795,142 +804,12 @@ GrantLock(lock, lockt)
 LOCK 	*lock;
 LOCKT	lockt;
 {
-  lock->nHolding++;
-  lock->holders[lockt]++;
   lock->nActive++;
   lock->activeHolders[lockt]++;
   lock->mask |= BITS_ON[lockt];
 }
 
-/*
- * LockReplace -- remove a lock from a lock table.
- *
- * This module can be called from outside hence 'tableId' param
- * instead of 'ltable'.
- *
- * NOTE: that we are holding the lock already.  We have looked it
- *	up already by the time we get here.
- */
-LockReplace(tableId, lock, lockt)
-TableId	tableId;
-LOCK 	*lock;
-LOCKT 	lockt;
-{
-  PROC_QUEUE 	*waitQueue;
-  XIDLookupEnt	*result,item;
-  SPINLOCK 	masterLock;
-  Boolean	found;
-  LOCKTAB 	*ltable;
-  HTAB 		*xidTable;
-
-  Assert (tableId < NumTables);
-  ltable = AllTables[tableId];
-  if (!ltable)
-    return (FALSE);
-
-  LOCK_PRINT("Release",(&lock->tag),lockt);
-  masterLock = ltable->ctl->masterLock;
-  xidTable = ltable->xidHash;
-  SpinAcquire(masterLock);
-  /*
-   * fix the general lock stats
-   */
-  lock->nHolding--;
-  lock->holders[lockt]--;
-  lock->nActive--;
-  lock->activeHolders[lockt]--;
-
-  Assert(lock->nActive >= 0);
-
-  /* ------------------
-   * Zero out all of the tag bytes (this clears the padding bytes for long
-   * word alignment and ensures hashing consistency).
-   * ------------------
-   */
-  bzero(&item, XID_TAGSIZE);
-  TransactionIdStore(GetCurrentTransactionId(), &item.tag.xid);
-  Assert (! TransactionIdEquals(&item.tag.xid, &InvalidXid));
-
-  item.tag.lock = MAKE_OFFSET(lock);
-  item.tag.backendId = MyBackendId;
-
-  if (! (result = (XIDLookupEnt *)
-	 hash_search(xidTable, (Pointer)&item, HASH_FIND, &found))|| !found)
-  {
-    SpinRelease(masterLock);
-    elog(NOTICE,"LockReplace: xid table corrupted");
-    return(FALSE);
-  }
-  /*
-   * now check to see if I have any private locks.  If I do,
-   * decrement the counts associated with them.
-   */
-  result->holders[lockt]--;
-  result->nHolding--;
-
-  /*
-   * If this was my last hold on this lock, delete my entry
-   * in the XID table.
-   */
-  if (! result->nHolding)
-  {
-    LOCK_PRINT("Deleting now",(&lock->tag),lockt);
-    SHMQueueDelete(&result->queue);
-    if (! (result = (XIDLookupEnt *)
-	   hash_search(xidTable, (Pointer)&item, HASH_REMOVE, &found)) ||
-	! found)
-    {
-      SpinRelease(masterLock);
-      elog(NOTICE,"LockReplace: xid table corrupted");
-      return(FALSE);
-    }
-  }
-
-
-  if (! lock->nHolding)
-  {
-    /* if there's no one waiting in the queue,
-     * we just released the last lock.
-     * Delete it from the lock table.
-     */
-
-    Assert( ltable->lockHash->hash == tag_hash);
-    lock = (LOCK *)
-      hash_search(ltable->lockHash,(Pointer)&(lock->tag),HASH_REMOVE, &found);
-    SpinRelease(masterLock);
-
-    if ((! lock) || (!found))
-    {
-      elog(NOTICE,"LockReplace: cannot remove lock from HTAB");
-      return(FALSE);
-    }
-    return(TRUE);
-  }
-
-  /*
-   * If there are still locks of the type I just released, no one
-   * should be woken up.  Whoever is asleep will still conflict
-   * with the remaining locks.
-   */
-  if (! (lock->holders[lockt]))
-  {
-    /* change the conflict mask.  No more of this lock type. */
-    lock->mask &= BITS_OFF[lockt];
-  }
-
-  /*
-   * Wake the first waiting process and grant him the lock if it
-   * doesn't conflict.  The woken process must record the lock
-   * himself.
-   */
-  waitQueue = &(lock->waitProcs);
-  (void) ProcLockWakeup(waitQueue, ltable, lock);
-
-  SpinRelease(masterLock);
-  return(TRUE);
-}
-
-
+#ifdef NOTUSED
 LockCompare( l1, l2)
 LOCKTAG	*l1,*l2;
 {
@@ -951,6 +830,7 @@ LOCKTAG	*l1,*l2;
   }
   printf("\n");
 }
+#endif NOTUSED
 
 LockReleaseAll(tableId,lockQueue)
 TableId		tableId;

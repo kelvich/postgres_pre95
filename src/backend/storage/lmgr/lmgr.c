@@ -298,8 +298,6 @@ void
 RelationSetLockForDescriptorOpen(relation)
     Relation	relation;
 {
-    LRelId	lRelId;
-    
     /* ----------------
      *	sanity checks
      * ----------------
@@ -308,7 +306,6 @@ RelationSetLockForDescriptorOpen(relation)
     if (LockingDisabled())
 	return;
 
-    lRelId = RelationGetLRelId(relation);
     LOCKDEBUGALL_30;
 
     /* ----------------
@@ -345,7 +342,6 @@ RelationSetLockForRead(relation)
     if (LockingDisabled())
 	return;
     
-    linfo = (LockInfo) relation->lockInfo;
     LOCKDEBUG_40;
 
     /* ----------------
@@ -353,11 +349,16 @@ RelationSetLockForRead(relation)
      * lock it without trying to short circuit the lock manager.
      * ----------------
      */
-    if (!LockInfoIsValid(linfo))
+    if (!LockInfoIsValid(relation->lockInfo))
     {
-        MultiLockReln(relation, READ_LOCK);
+	RelationInitLockInfo(relation);
+	linfo = (LockInfo) relation->lockInfo;
+	linfo->flags |= ReadRelationLock;
+        MultiLockReln(linfo, READ_LOCK);
 	return;
     }
+    else
+        linfo = (LockInfo) relation->lockInfo;
 
     /* ----------------
      *	return if lock already set, otherwise set lock.
@@ -382,7 +383,7 @@ RelationSetLockForRead(relation)
         linfo->flags &= ReadRelationLock;
     }
     
-    MultiLockReln(relation, READ_LOCK);
+    MultiLockReln(linfo, READ_LOCK);
 }
 
 /* ----------------
@@ -417,8 +418,9 @@ RelationUnsetLockForRead(relation)
      */
     if (!LockInfoIsValid(linfo))
     {
-        MultiReleaseReln(relation, READ_LOCK);
-	return;
+        elog(WARN, 
+            "Releasing a lock on %s with invalid lock information",
+            RelationGetRelationName(relation));
     }
 
     /* -----------------
@@ -427,7 +429,7 @@ RelationUnsetLockForRead(relation)
      */
     linfo->flags &= ~ReadRelationLock;
 
-    MultiReleaseReln(relation, READ_LOCK);
+    MultiReleaseReln(linfo, READ_LOCK);
 }
 
 /* ----------------
@@ -457,7 +459,6 @@ RelationSetLockForWrite(relation)
     if (LockingDisabled())
 	return;
     
-    linfo = (LockInfo) relation->lockInfo;
     LOCKDEBUG_60;
     
     /* ----------------
@@ -465,11 +466,16 @@ RelationSetLockForWrite(relation)
      * lock it without trying to short circuit the lock manager.
      * ----------------
      */
-    if (!LockInfoIsValid(linfo))
+    if (!LockInfoIsValid(relation->lockInfo))
     {
-        MultiLockReln(relation, WRITE_LOCK);
+	RelationInitLockInfo(relation);
+        linfo = (LockInfo) relation->lockInfo;
+	linfo->flags |= WriteRelationLock;
+        MultiLockReln(linfo, WRITE_LOCK);
 	return;
     }
+    else
+        linfo = (LockInfo) relation->lockInfo;
 
     /* ----------------
      *	return if lock already set, otherwise set lock.
@@ -490,7 +496,7 @@ RelationSetLockForWrite(relation)
         linfo->flags &= WriteRelationLock;
     }
 
-    MultiLockReln(relation, WRITE_LOCK);
+    MultiLockReln(linfo, WRITE_LOCK);
 }
 
 /* ----------------
@@ -516,20 +522,17 @@ RelationUnsetLockForWrite(relation)
      * ----------------
      */
     Assert(RelationIsValid(relation));
-    if (LockingDisabled())
+    if (LockingDisabled()) {
 	return;
+    }
 
     linfo = (LockInfo) relation->lockInfo;
 
-    /* ----------------
-     * If we don't have lock info on the reln just go ahead and
-     * release it without updating linfo masks.
-     * ----------------
-     */
     if (!LockInfoIsValid(linfo))
     {
-        MultiReleaseReln(relation, WRITE_LOCK);
-	return;
+        elog(WARN, 
+            "Releasing a lock on %s with invalid lock information",
+            RelationGetRelationName(relation));
     }
 
     /* -----------------
@@ -538,7 +541,7 @@ RelationUnsetLockForWrite(relation)
      */
     linfo->flags &= ~WriteRelationLock;
 
-    MultiReleaseReln(relation, WRITE_LOCK);
+    MultiReleaseReln(linfo, WRITE_LOCK);
 }
 
 /* ----------------
@@ -573,15 +576,33 @@ RelationSetLockForTupleRead(relation, itemPointer)
     if (LockingDisabled())
 	return;
 
-    linfo = (LockInfo) relation->lockInfo;
     LOCKDEBUG_80;
     
+    /* ---------------------
+     * If our lock info is invalid don't bother trying to short circuit
+     * the lock manager.
+     * ---------------------
+     */
+    if (!LockInfoIsValid(relation->lockInfo))
+    {
+	RelationInitLockInfo(relation);
+	linfo = (LockInfo) relation->lockInfo;
+	linfo->flags |=
+                IntentReadRelationLock |
+		IntentReadPageLock |
+		ReadTupleLock;
+        MultiLockTuple(linfo, itemPointer, READ_LOCK);
+	return;
+    }
+    else
+        linfo = (LockInfo) relation->lockInfo;
+
     /* ----------------
      *	no need to set a lower granularity lock
      * ----------------
      */
     curXact = GetCurrentTransactionId();
-    if (linfo->flags & ReadRelationLock &&
+    if ((linfo->flags & ReadRelationLock) &&
 	TransactionIdEquals(curXact, &linfo->transactionIdData))
     {
 	return;
@@ -608,7 +629,7 @@ RelationSetLockForTupleRead(relation, itemPointer)
 	    LOCKDEBUG_81;
 	    
 	    /* escalate */
-	    MultiLockReln(relation, READ_LOCK);
+	    MultiLockReln(linfo, READ_LOCK);
 	    
 	    /* clear count */
 	    linfo->flags &= ~TupleLevelLockCountMask;
@@ -627,7 +648,7 @@ RelationSetLockForTupleRead(relation, itemPointer)
      * Lock the tuple.
      * ----------------
      */
-    MultiLockTuple(relation, itemPointer, READ_LOCK);
+    MultiLockTuple(linfo, itemPointer, READ_LOCK);
 }
 
 /* ----------------
@@ -657,11 +678,18 @@ RelationSetLockForReadPage(relation, partition, itemPointer)
     if (LockingDisabled())
 	return;
     
+    /* ---------------
+     * Make sure linfo is initialized
+     * ---------------
+     */
+    if (!LockInfoIsValid(relation->lockInfo))
+	RelationInitLockInfo(relation);
+
     /* ----------------
      *	attempt to set lock
      * ----------------
      */
-    MultiLockPage(relation, itemPointer, READ_LOCK);
+    MultiLockPage(relation->lockInfo, itemPointer, READ_LOCK);
 }
 
 /* ----------------
@@ -691,11 +719,18 @@ RelationSetLockForWritePage(relation, partition, itemPointer)
     if (LockingDisabled())
 	return;
 
+    /* ---------------
+     * Make sure linfo is initialized
+     * ---------------
+     */
+    if (!LockInfoIsValid(relation->lockInfo))
+	RelationInitLockInfo(relation);
+
     /* ----------------
      *	attempt to set lock
      * ----------------
      */
-    MultiLockPage(relation, itemPointer, WRITE_LOCK);
+    MultiLockPage(relation->lockInfo, itemPointer, WRITE_LOCK);
 }
 
 /* ----------------
@@ -725,7 +760,12 @@ RelationUnsetLockForReadPage(relation, partition, itemPointer)
     if (LockingDisabled())
 	return;
 
-    MultiReleasePage(relation, itemPointer, READ_LOCK);
+    if (!LockInfoIsValid(relation->lockInfo))
+        elog(WARN, 
+            "Releasing a lock on %s with invalid lock information",
+            RelationGetRelationName(relation));
+
+    MultiReleasePage(relation->lockInfo, itemPointer, READ_LOCK);
 }
 
 /* ----------------
@@ -755,7 +795,12 @@ RelationUnsetLockForWritePage(relation, partition, itemPointer)
     if (LockingDisabled())
 	return;
     
-    MultiReleasePage(relation, itemPointer, WRITE_LOCK);
+    if (!LockInfoIsValid(relation->lockInfo))
+        elog(WARN, 
+            "Releasing a lock on %s with invalid lock information",
+            RelationGetRelationName(relation));
+
+    MultiReleasePage(relation->lockInfo, itemPointer, WRITE_LOCK);
 }
 
 RelationSetLockForExtend(relation)
@@ -769,7 +814,10 @@ RelationSetLockForExtend(relation)
     if (LockingDisabled())
 	return;
 
-    MultiLockReln(relation, EXTEND_LOCK);
+    if (!LockInfoIsValid(relation->lockInfo))
+	RelationInitLockInfo(relation);
+
+    MultiLockReln(relation->lockInfo, EXTEND_LOCK);
 }
 
 RelationUnsetLockForExtend(relation)
@@ -783,5 +831,8 @@ RelationUnsetLockForExtend(relation)
     if (LockingDisabled())
 	return;
 
-    MultiReleaseReln(relation, EXTEND_LOCK);
+    if (!LockInfoIsValid(relation->lockInfo))
+	RelationInitLockInfo(relation);
+
+    MultiReleaseReln(relation->lockInfo, EXTEND_LOCK);
 }

@@ -2,11 +2,9 @@
  * multi.c  -- multi level lock table manager
  *
  *  Standard multi-level lock manager as per the Gray paper
- * (at least, that is what it is supposed to be).  I implement
+ * (at least, that is what it is supposed to be).  We implement
  * three levels -- RELN, PAGE, TUPLE.  Tuple is actually TID
- * a physical record pointer.  It isn't an object id.  I need
- * that in order to reserve space for a  TupleInsert() and,
- * hopefully, it is what the rest of POSTGRES needs as well.
+ * a physical record pointer.  It isn't an object id.
  *
  * NOTES:
  *   (1) The lock.c module assumes that the caller here is doing
@@ -16,17 +14,16 @@
  * Interface:
  *	MultiLockReln(), MultiLockTuple(), InitMultiLockm();
  *
- * MultiLockRelease() is not currently used but will be when we
- * implement short term locking.
  *
  * $Header$
  */
-#include "storage/shmem.h"
+#include <stdio.h>
+#include "storage/multilev.h"
 #include "storage/lock.h"
+#include "storage/lmgr.h
 #include "utils/rel.h"
 #include "utils/log.h"
 #include "tmp/miscadmin.h"		/* MyDatabaseId */
-#include "storage/multilev.h"
 
 
 /*
@@ -110,8 +107,8 @@ InitMultiLevelLockm()
  *
  * Returns: TRUE if the lock can be set, FALSE otherwise.
  */
-MultiLockReln(reln, lockt)
-Relation *	reln;
+MultiLockReln(linfo, lockt)
+LockInfo	linfo;
 LOCKT		lockt;
 {
   LOCKTAG	tag;
@@ -121,8 +118,8 @@ LOCKT		lockt;
    * zero'd.
    */
   bzero(&tag,sizeof(tag));
-  tag.relId = RelationGetRelationId(reln);
-  tag.dbId = MyDatabaseId;
+  tag.relId = linfo->lRelId.relId;
+  tag.dbId = linfo->lRelId.dbId;
   return(MultiAcquire(MultiTableId, &tag, lockt, RELN_LEVEL));
 }
 
@@ -134,8 +131,8 @@ LOCKT		lockt;
  * Side Effects: causes intention level locks to be set
  * 	at the page and relation level.
  */
-MultiLockTuple(reln, tidPtr, lockt)
-Relation *	reln;
+MultiLockTuple(linfo, tidPtr, lockt)
+LockInfo	linfo;
 ItemPointer	tidPtr;
 LOCKT		lockt;		
 {
@@ -147,8 +144,8 @@ LOCKT		lockt;
    */
   bzero(&tag,sizeof(tag));
 
-  tag.relId = RelationGetRelationId(reln);
-  tag.dbId = MyDatabaseId;
+  tag.relId = linfo->lRelId.relId;
+  tag.dbId = linfo->lRelId.dbId;
 
   /* not locking any valid Tuple, just the page */
   tag.tupleId = *tidPtr;
@@ -158,8 +155,8 @@ LOCKT		lockt;
 /*
  * same as above at page level
  */
-MultiLockPage(reln, tidPtr, lockt)
-Relation	*reln;
+MultiLockPage(linfo, tidPtr, lockt)
+LockInfo	linfo;
 ItemPointer	tidPtr;
 LOCKT		lockt;		
 {
@@ -181,8 +178,8 @@ LOCKT		lockt;
    * when we say lock the page we mean the 8k block. -Jeff 16 July 1991
    * ----------------------------
    */
-  tag.relId = RelationGetRelationId(reln);
-  tag.dbId = MyDatabaseId;
+  tag.relId = linfo->lRelId.relId;
+  tag.dbId = linfo->lRelId.dbId;
   BlockIdCopy( ItemPointerBlockId(&tag.tupleId), ItemPointerBlockId(tidPtr) );
   return(MultiAcquire(MultiTableId, &tag, lockt, PAGE_LEVEL));
 }
@@ -295,8 +292,8 @@ LOCKT		lockt;
  * Release a page in the multi-level lock table
  * ------------------
  */
-MultiReleasePage(reln, tidPtr, lockt)
-Relation	*reln;
+MultiReleasePage(linfo, tidPtr, lockt)
+LockInfo	linfo;
 ItemPointer	tidPtr;
 LOCKT		lockt;		
 {
@@ -310,8 +307,8 @@ LOCKT		lockt;
    */
   bzero(&tag, sizeof(LOCKTAG));
 
-  tag.relId = RelationGetRelationId(reln);
-  tag.dbId = MyDatabaseId;
+  tag.relId = linfo->lRelId.relId;
+  tag.dbId = linfo->lRelId.dbId;
   BlockIdCopy( ItemPointerBlockId(&tag.tupleId), ItemPointerBlockId(tidPtr) );
 
   return (MultiRelease(MultiTableId, &tag, lockt, PAGE_LEVEL));
@@ -321,8 +318,8 @@ LOCKT		lockt;
  * Release a relation in the multi-level lock table
  * ------------------
  */
-MultiReleaseReln(reln, lockt)
-Relation	*reln;
+MultiReleaseReln(linfo, lockt)
+LockInfo	linfo;
 LOCKT		lockt;		
 {
   LOCKTAG tag;
@@ -334,8 +331,8 @@ LOCKT		lockt;
    * ------------------
    */
   bzero(&tag, sizeof(LOCKTAG));
-  tag.relId = RelationGetRelationId(reln);
-  tag.dbId = MyDatabaseId;
+  tag.relId = linfo->lRelId.relId;
+  tag.dbId = linfo->lRelId.dbId;
 
   return (MultiRelease(MultiTableId, &tag, lockt, RELN_LEVEL));
 }

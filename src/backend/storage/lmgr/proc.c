@@ -76,6 +76,7 @@ IPCKey key;
   int semstat;
   unsigned int location, myOffset;
   int HandleDeadLock();
+  int ProcKill();
 
   /* ------------------
    * Routine called if deadlock timer goes off. See ProcSleep()
@@ -83,13 +84,14 @@ IPCKey key;
    */
   signal(SIGALRM, HandleDeadLock);
 
+  SpinAcquire(ProcStructLock);
+
   /* attach to the free list */
   ProcGlobal = (PROC_HDR *)
     ShmemInitStruct("Proc Header",(unsigned)sizeof(PROC_HDR),&found);
 
   /* --------------------
-   * We're the first - initialize. Postmaster will always be 1st
-   * so there's no worry about locking here.
+   * We're the first - initialize.
    * --------------------
    */
   if (! found)
@@ -101,22 +103,10 @@ IPCKey key;
 
   if (MyProc != NULL)
   {
+    SpinRelease(ProcStructLock);
     elog(WARN,"ProcInit: you already exist");
     return;
   }
-
-  /* -----------------
-   * Critical section ... want to read and update ProcGlobal
-   *
-   * Acquiring the spin lock here bothers me as we go off and do a bunch
-   * of stuff including allocating shared memory which fiddles with another
-   * spin lock.  This just seemed like an invitation for deadlock, so in
-   * the else clause of this if I release and re-acquire the lock to try
-   * to avoid these problems, at the expense of some extra overhead.
-   * mer 18 July 1991
-   * -----------------
-   */
-  SpinAcquire(ProcStructLock);
 
   /* try to get a proc from the free list first */
 
@@ -126,22 +116,9 @@ IPCKey key;
   {
     MyProc = (PROC *) MAKE_PTR(myOffset);
     ProcGlobal->freeProcs = MyProc->links.next;
-
-    MyProc->sem.semId = IpcSemaphoreCreate(ProcGlobal->currKey,
-                                           1,
-                                           IPCProtection,
-                                           IpcSemaphoreDefaultStartValue,
-                                           &semstat);
-    IpcSemaphoreLock(MyProc->sem.semId, 0, IpcExclusiveLock);
   }
   else
   {
-    /* ----------------
-     * release the lock before going and getting shared memory
-     * ----------------
-     */
-    SpinRelease(ProcStructLock);
-
     /* have to allocate one.  We can't use the normal binding
      * table mechanism because the proc structure is stored
      * by PID instead of by a global name (need to look it
@@ -151,50 +128,46 @@ IPCKey key;
     MyProc = (PROC *) ShmemAlloc((unsigned)sizeof(PROC));
     if (! MyProc)
     {
+      SpinRelease(ProcStructLock);
       elog (FATAL,"cannot create new proc: out of memory");
     }
 
     /* this cannot be initialized until after the buffer pool */
     SHMQueueInit(&(MyProc->lockQueue));
 
-    /* ------------------
-     * Reacquire the lock before modifying ProcGlobal
-     * ------------------
-     */
-    SpinAcquire(ProcStructLock);
-
     MyProc->procId = ProcGlobal->numProcs;
     ProcGlobal->numProcs++;
-    MyProc->sem.semId = IpcSemaphoreCreate(ProcGlobal->currKey,
-                                           1,
-                                           IPCProtection,
-                                           IpcSemaphoreDefaultStartValue,
-                                           &semstat);
-    IpcSemaphoreLock(MyProc->sem.semId, 0, IpcExclusiveLock);
-
-    /* -------------
-     * Bump key val for next process
-     * -------------
-     */
-    ProcGlobal->currKey++;
-
   }
 
+  MyProc->sem.semId = IpcSemaphoreCreate(ProcGlobal->currKey,
+                                         1,
+                                         IPCProtection,
+                                         IpcSemaphoreDefaultStartValue,
+                                         &semstat);
+  IpcSemaphoreLock(MyProc->sem.semId, 0, IpcExclusiveLock);
+
+  /* -------------
+   * Bump key val for next process
+   * -------------
+   */
+  ProcGlobal->currKey++;
+
   /* ----------------------
-   * Release the lock once and for all
+   * Release the lock.
    * ----------------------
    */
   SpinRelease(ProcStructLock);
 
   MyProc->sem.semNum = 0;
   MyProc->sem.semKey = key;
+  MyProc->backendId = MyBackendId;
 
-  /* ------------------
-   * Bump the current key up by one.  The next process then creates
-   * a semaphore with a unique key.
-   * ------------------
+  /* ----------------
+   * Start keeping spin lock stats from here on.  Any botch before
+   * this initialization is forever botched
+   * ----------------
    */
-  ProcGlobal->currKey++;
+  bzero(MyProc->sLocks, MAX_SPINS*sizeof(*MyProc->sLocks));
 
   /* -------------------------
    * Install ourselves in the binding table.  The name to
@@ -204,14 +177,16 @@ IPCKey key;
    * -------------------------
    */
   pid = getpid();
-  location = myOffset;
-  if ((! ShmemPIDLookup(pid,&location)) || (location != myOffset))
+  location = MAKE_OFFSET(MyProc);
+  if ((! ShmemPIDLookup(pid,&location)) || (location != MAKE_OFFSET(MyProc)))
   {
     elog(FATAL,"InitProc: ShmemPID table broken");
   }
 
   MyProc->errType = NO_ERROR;
   SHMQueueElemInit(&(MyProc->links));
+
+  on_exitpg(ProcKill, pid);
 
   ProcInitialized = TRUE;
 }
@@ -234,9 +209,7 @@ int pid;
 {
   PROC 		*proc;
   SHMEM_OFFSET	location,ShmemPIDDestroy();
-
-  if (! ProcInitialized)
-    return;
+  void ProcReleaseSpins();
 
   if (! pid)
   {
@@ -258,7 +231,8 @@ int pid;
    * assume one lock table
    * ---------------
    */
-  LockReleaseAll(1,&MyProc->lockQueue);
+  ProcReleaseSpins(proc);
+  LockReleaseAll(1,&proc->lockQueue);
 
   /* ----------------
    * toss the wait queue
@@ -267,9 +241,29 @@ int pid;
   IpcSemaphoreKill((proc->sem.semKey));
   if (proc->links.next != INVALID_OFFSET)
     SHMQueueDelete(&(proc->links));
+
+  SpinAcquire(ProcStructLock);
+
+  /* ----------------------
+   * If ProcGlobal hasn't been initialized (i.e. in the postmaster)
+   * attach to it.
+   * ----------------------
+   */
+  if (!ProcGlobal)
+  {
+    bool found = false;
+
+    ProcGlobal = (PROC_HDR *)
+      ShmemInitStruct("Proc Header",(unsigned)sizeof(PROC_HDR),&found);
+    if (!found)
+      elog(NOTICE, "ProcKill: Couldn't find ProcGlobal in the binding table");
+    ProcGlobal = (PROC_HDR *)NULL;
+    return(FALSE);
+  }
   proc->links.next =  ProcGlobal->freeProcs;
   ProcGlobal->freeProcs = MAKE_OFFSET(proc);
 
+  SpinRelease(ProcStructLock);
   return(TRUE);
 }
 
@@ -378,7 +372,7 @@ LOCK *		lock;
    * --------------
    */
   bzero(&timeval, sizeof(struct itimerval));
-  timeval.it_value.tv_sec = 60;
+  timeval.it_value.tv_sec = 15;
 
   if (setitimer(ITIMER_REAL, &timeval, &dummy))
 	elog(FATAL, "ProcSleep: Unable to set timer for process wakeup");
@@ -390,6 +384,15 @@ LOCK *		lock;
    * --------------
    */
   IpcSemaphoreLock(MyProc->sem.semId, MyProc->sem.semNum, IpcExclusiveLock);
+
+  /* ---------------
+   * We were awoken before a timeout - now disable the timer
+   * ---------------
+   */
+  timeval.it_value.tv_sec = 0;
+
+  if (setitimer(ITIMER_REAL, &timeval, &dummy))
+	elog(FATAL, "ProcSleep: Unable to diable timer for process wakeup");
 
   /* ----------------
    * We were assumed to be in a critical section when we went
@@ -444,8 +447,11 @@ Address		lock;
 
   proc = (PROC *) MAKE_PTR(queue->links.prev);
   count = 0;
-  while ((LockResolveConflicts ( ltable, lock, proc->token, &proc->xid )
-	  == STATUS_OK))
+  while ((LockResolveConflicts (ltable,
+				lock,
+				proc->token,
+				&proc->xid,
+				proc->backendId) == STATUS_OK))
   {
     /* there was a waiting process, grant it the lock before waking it
      * up.  This will prevent another process from seizing the lock
@@ -547,4 +553,25 @@ HandleDeadLock()
    * -------------
    */
   MyProc->errType = STATUS_ERROR;
+}
+
+void
+ProcReleaseSpins(proc)
+    PROC *proc;
+{
+    int i;
+
+    if (!proc)
+	proc = MyProc;
+
+    if (!proc)
+	return;
+    for (i=0; i < (int)MAX_SPINS; i++)
+    {
+	if (proc->sLocks[i])
+	{
+	    Assert(proc->sLocks[i] == 1);
+	    SpinRelease(i);
+	}
+    }
 }
