@@ -50,10 +50,13 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 
 	if (PointerIsValid(absoluteTimeString)) {
 		if (!isabstime(absoluteTimeString, NULL)) {
-			elog(WARN, "%s: bad absolute time string \"%s\"",
+			elog(NOTICE, "%s: bad absolute time string \"%s\"",
 			     cmdname, absoluteTimeString);
+			absoluteTimeString[0] = '\0';
+			elog(WARN, "purge not executed");
 		}
 		absoluteTime = (int32) abstimein(absoluteTimeString);
+		absoluteTimeString[0] = '\0';
 
 #ifdef	PURGEDEBUG
 		elog(DEBUG, "RelationPurge: absolute time `%s' is %d.",
