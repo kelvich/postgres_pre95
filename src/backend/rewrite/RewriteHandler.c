@@ -35,7 +35,7 @@ extern List lispCopyList();
 extern List lispCopy();
 
 
-extern int DebugLvl;
+extern short DebugLvl;
 RewriteInfo *GatherRewriteMeta(parsetree, rule_action, rule_qual, rt_index, event, instead_flag)
      List parsetree,rule_action, rule_qual;
      int rt_index, event, *instead_flag;
