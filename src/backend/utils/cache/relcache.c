@@ -63,6 +63,7 @@ RcsId("$Header$");
 #include "catalog/syscache.h"
 
 #include "catalog/pg_attribute.h"
+#include "catalog/pg_aggregate.h"
 #include "catalog/pg_index.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_relation.h"
