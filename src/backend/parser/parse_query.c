@@ -607,16 +607,7 @@ make_array_ref_var( relname, attrname, indirect_list)
 		return LispNil;
     	}
     	type_struct_element = (TypeTupleForm) GETSTRUCT(type_tuple);
-#ifdef FOOFOO
-	if (entering)
-	{
-		indirect_num = vararrayindex;
-		entering = false;
-	}
-	else
-	{
-	}
-#endif
+
 		indirect_num = CInteger(CAR(indirect_list));
 		indirect_list = CDR(indirect_list);
 
@@ -645,7 +636,8 @@ make_array_ref_var( relname, attrname, indirect_list)
     }
 
     varnode = MakeVar (vnum , attid ,
-		       typearray , vardotfields , vararraylist ,
+		       type_struct_array->typelem , vardotfields ,
+		       vararraylist ,
 		       lispCons(lispInteger(vnum),
 				lispCons(lispInteger(attid),LispNil)), 0);
     
