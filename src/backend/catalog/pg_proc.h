@@ -338,6 +338,12 @@ DATA(insert OID = 658 (  char16ge          6 11 f t f 2  16 foo bar ));
 
 DATA(insert OID = 700 (  lockadd           6 11 f t f 2  31 foo bar ));
 DATA(insert OID = 701 (  lockrm            6 11 f t f 2  31 foo bar ));
+
+DATA(insert OID = 720 (  byteasize	   6 11 f t f 1  23 foo bar ));
+DATA(insert OID = 721 (  byteagetbyte	   6 11 f t f 2  23 foo bar ));
+DATA(insert OID = 722 (  byteasetbyte	   6 11 f t f 3  17 foo bar ));
+DATA(insert OID = 723 (  byteagetbit	   6 11 f t f 2  23 foo bar ));
+DATA(insert OID = 724 (  byteasetbit	   6 11 f t f 3  17 foo bar ));
     
 /* ----------------
  *	old definition of struct proc
