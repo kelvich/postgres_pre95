@@ -104,10 +104,10 @@ DATA(insert OID =  42 (  int4in            6 11 f t f 1 f 23 "0" 100 0 0 100  fo
 DATA(insert OID =  43 (  int4out           6 11 f t f 1 f 19 "23" 100 0 0 100  foo bar ));
 DATA(insert OID =  44 (  regprocin         6 11 f t f 1 f 24 "0" 100 0 0 100  foo bar ));
 DATA(insert OID =  45 (  regprocout        6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
-DATA(insert OID =  46 (  textin            6 11 f t f 1 f 25 "0" 100 0 1 100  foo bar ));
+DATA(insert OID =  46 (  textin            6 11 f t f 1 f 25 "0" 100 0 0 100  foo bar ));
 #define TextInRegProcedure 46
 
-DATA(insert OID =  47 (  textout           6 11 f t f 1 f 23 "0" 100 0 1 100  foo bar ));
+DATA(insert OID =  47 (  textout           6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID =  48 (  tidin             6 11 f t f 1 f 27 "0" 100 0 0 100  foo bar ));
 DATA(insert OID =  49 (  tidout            6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID =  50 (  xidin             6 11 f t f 1 f 28 "0" 100 0 0 100  foo bar ));
@@ -136,7 +136,7 @@ DATA(insert OID =  65 (  int4eq            6 11 f t f 2 f 16 "23 23" 100 0 0 100
 #define Integer32EqualRegProcedure	65
     
 DATA(insert OID =  66 (  int4lt            6 11 f t f 2 f 16 "23 23" 100 0 0 100  foo bar ));
-DATA(insert OID =  67 (  texteq            6 11 f t f 2 f 16 "25 25" 100 0 1 0  foo bar ));
+DATA(insert OID =  67 (  texteq            6 11 f t f 2 f 16 "25 25" 100 0 0 0  foo bar ));
 DATA(insert OID =  68 (  xideq             6 11 f t f 2 f 16 "0" 100 0 0 100  foo bar ));
 DATA(insert OID =  69 (  cideq             6 11 f t f 2 f 16 "0" 100 0 0 100  foo bar ));
 DATA(insert OID =  70 (  charne            6 11 f t f 2 f 16 "18 18" 100 0 0 100  foo bar ));
@@ -149,37 +149,37 @@ DATA(insert OID =  76 (  charmi            6 11 f t f 2 f 16 "18 18" 100 0 0 100
 DATA(insert OID =  77 (  charmul           6 11 f t f 2 f 16 "18 18" 100 0 0 100  foo bar ));
 DATA(insert OID =  78 (  chardiv           6 11 f t f 2 f 16 "18 18" 100 0 0 100  foo bar ));
 
-DATA(insert OID =  79 (  char16regexeq     6 11 f t f 2 f 16 "0" 100 1 1 100  foo bar ));
-DATA(insert OID =  80 (  char16regexne     6 11 f t f 2 f 16 "0" 100 1 1 100  foo bar ));
-DATA(insert OID =  81 (  textregexeq       6 11 f t f 2 f 16 "0" 100 1 1 0  foo bar ));
-DATA(insert OID =  82 (  textregexne       6 11 f t f 2 f 16 "0" 100 1 1 0  foo bar ));
+DATA(insert OID =  79 (  char16regexeq     6 11 f t f 2 f 16 "0" 100 0 0 100  foo bar ));
+DATA(insert OID =  80 (  char16regexne     6 11 f t f 2 f 16 "0" 100 0 0 100  foo bar ));
+DATA(insert OID =  81 (  textregexeq       6 11 f t f 2 f 16 "0" 100 0 1 0  foo bar ));
+DATA(insert OID =  82 (  textregexne       6 11 f t f 2 f 16 "0" 100 0 1 0  foo bar ));
 
-DATA(insert OID =  97 (  rtsel             6 11 f t f 7 f 109 "0" 100 1 0 100  foo bar ));
-DATA(insert OID =  98 (  rtnpage           6 11 f t f 7 f 109 "0" 100 1 0 100  foo bar ));
-DATA(insert OID =  99 (  btreesel          6 11 f t f 7 f 109 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 100 (  btreenpage        6 11 f t f 7 f 109 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 101 (  eqsel             6 11 f t f 5 f 109 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 102 (  neqsel            6 11 f t f 5 f 109 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 103 (  intltsel          6 11 f t f 5 f 109 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 104 (  intgtsel          6 11 f t f 5 f 109 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 105 (  eqjoinsel         6 11 f t f 5 f 109 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 106 (  neqjoinsel        6 11 f t f 5 f 109 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 107 (  intltjoinsel      6 11 f t f 5 f 109 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 108 (  intgtjoinsel      6 11 f t f 5 f 109 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 109 (  btreeendscan      6 11 f t f 1 f 23 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 110 (  btreemarkpos      6 11 f t f 1 f 23 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 111 (  btreerestrpos     6 11 f t f 1 f 23 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 112 (  btreeinsert       6 11 f t f 3 f 23 "0" 100 10 0 100  foo bar ));
-DATA(insert OID = 113 (  btreedelete       6 11 f t f 2 f 23 "0" 100 10 0 100  foo bar ));
-DATA(insert OID = 114 (  btreegettuple     6 11 f t f 6 f 23 "0" 100 10 0 100  foo bar ));
-DATA(insert OID = 115 (  btreebuild        6 11 f t f 7 f 23 "0" 100 10 0 100  foo bar ));
-DATA(insert OID = 116 (  btreerescan       6 11 f t f 3 f 23 "0" 100 10 0 100  foo bar ));
+DATA(insert OID =  97 (  rtsel             6 11 f t f 7 f 109 "0" 100 0 0 100  foo bar ));
+DATA(insert OID =  98 (  rtnpage           6 11 f t f 7 f 109 "0" 100 0 0 100  foo bar ));
+DATA(insert OID =  99 (  btreesel          6 11 f t f 7 f 109 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 100 (  btreenpage        6 11 f t f 7 f 109 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 101 (  eqsel             6 11 f t f 5 f 109 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 102 (  neqsel            6 11 f t f 5 f 109 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 103 (  intltsel          6 11 f t f 5 f 109 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 104 (  intgtsel          6 11 f t f 5 f 109 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 105 (  eqjoinsel         6 11 f t f 5 f 109 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 106 (  neqjoinsel        6 11 f t f 5 f 109 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 107 (  intltjoinsel      6 11 f t f 5 f 109 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 108 (  intgtjoinsel      6 11 f t f 5 f 109 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 109 (  btreeendscan      6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 110 (  btreemarkpos      6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 111 (  btreerestrpos     6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 112 (  btreeinsert       6 11 f t f 3 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 113 (  btreedelete       6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 114 (  btreegettuple     6 11 f t f 6 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 115 (  btreebuild        6 11 f t f 7 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 116 (  btreerescan       6 11 f t f 3 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 117 (  point_in          6 11 f t f 1 f 600 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 118 (  point_out         6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 119 (  lseg_in           6 11 f t f 1 f 601 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 120 (  lseg_out          6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
-DATA(insert OID = 121 (  path_in           6 11 f t f 1 f 602 "0" 100 0 1 100  foo bar ));
-DATA(insert OID = 122 (  path_out          6 11 f t f 1 f 23 "0" 100 0 1 100  foo bar ));
+DATA(insert OID = 121 (  path_in           6 11 f t f 1 f 602 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 122 (  path_out          6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 123 (  box_in            6 11 f t f 1 f 603 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 124 (  box_out           6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 125 (  box_overlap       6 11 f t f 2 f 16 "0" 100 1 0 100  foo bar ));
@@ -196,10 +196,10 @@ DATA(insert OID = 135 (  point_eq          6 11 f t f 2 f 16 "0" 100 0 0 100  fo
 DATA(insert OID = 136 (  on_pb             6 11 f t f 2 f 16 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 137 (  on_ppath          6 11 f t f 2 f 16 "0" 100 0 1 0  foo bar ));
 DATA(insert OID = 138 (  box_center        6 11 f t f 1 f 600 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 139 (  areasel           6 11 f t f 5 f 109 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 140 (  areajoinsel       6 11 f t f 5 f 109 "0" 100 1 0 100  foo bar ));
+DATA(insert OID = 139 (  areasel           6 11 f t f 5 f 109 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 140 (  areajoinsel       6 11 f t f 5 f 109 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 141 (  int4mul           6 11 f t f 2 f 23 "23 23" 100 0 0 100  foo bar ));
-DATA(insert OID = 142 (  int4fac           6 11 f t f 1 f 23 "23" 100 10 0 100  foo bar ));
+DATA(insert OID = 142 (  int4fac           6 11 f t f 1 f 23 "23" 100 0 0 100  foo bar ));
 DATA(insert OID = 143 (  pointdist         6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 144 (  int4ne            6 11 f t f 2 f 16 "23 23" 100 0 0 100  foo bar ));
 DATA(insert OID = 145 (  int2ne            6 11 f t f 2 f 16 "21 21" 100 0 0 100  foo bar ));
@@ -214,7 +214,7 @@ DATA(insert OID = 153 (  int2div           6 11 f t f 2 f 21 "21 21" 100 0 0 100
 DATA(insert OID = 154 (  int4div           6 11 f t f 2 f 23 "23 23" 100 0 0 100  foo bar ));
 DATA(insert OID = 155 (  int2mod           6 11 f t f 2 f 21 "21 21" 100 0 0 100  foo bar ));
 DATA(insert OID = 156 (  int4mod           6 11 f t f 2 f 23 "23 23" 100 0 0 100  foo bar ));
-DATA(insert OID = 157 (  textne            6 11 f t f 2 f 16 "25 25" 100 0 1 0  foo bar ));
+DATA(insert OID = 157 (  textne            6 11 f t f 2 f 16 "25 25" 100 0 0 0  foo bar ));
 DATA(insert OID = 158 (  int24eq           6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 159 (  int42eq           6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 160 (  int24lt           6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
@@ -343,25 +343,25 @@ DATA(insert OID = 297 (  float8gt          6 11 f t f 2 f 16 "701 701" 100 0 0 1
 DATA(insert OID = 298 (  float8ge          6 11 f t f 2 f 16 "701 701" 100 0 0 100  foo bar ));
 
 DATA(insert OID = 319 (  btreebeginscan    6 11 f t f 3 f 23 "0" 100 0 0 100  foo bar ));
-DATA(insert OID = 320 (  rtinsert          6 11 f t f 2 f 23 "0" 100 10 0 100  foo bar ));
-DATA(insert OID = 321 (  rtdelete          6 11 f t f 2 f 23 "0" 100 10 0 100  foo bar ));
-DATA(insert OID = 322 (  rtgettuple        6 11 f t f 2 f 23 "0" 100 10 0 100  foo bar ));
-DATA(insert OID = 323 (  rtbuild           6 11 f t f 9 f 23 "0" 100 10 0 100  foo bar ));
+DATA(insert OID = 320 (  rtinsert          6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 321 (  rtdelete          6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 322 (  rtgettuple        6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 323 (  rtbuild           6 11 f t f 9 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 324 (  rtbeginscan       6 11 f t f 4 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 325 (  rtendscan         6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 326 (  rtmarkpos         6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 327 (  rtrestrpos        6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 328 (  rtrescan          6 11 f t f 3 f 23 "0" 100 0 0 100  foo bar ));
 
-DATA(insert OID = 330 (  btgettuple        6 11 f t f 2 f 23 "0" 100 10 0 100  foo bar ));
-DATA(insert OID = 331 (  btinsert          6 11 f t f 3 f 23 "0" 100 10 0 100  foo bar ));
-DATA(insert OID = 332 (  btdelete          6 11 f t f 2 f 23 "0" 100 10 0 100  foo bar ));
+DATA(insert OID = 330 (  btgettuple        6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 331 (  btinsert          6 11 f t f 3 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 332 (  btdelete          6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 333 (  btbeginscan       6 11 f t f 4 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 334 (  btrescan          6 11 f t f 3 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 335 (  btendscan         6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 336 (  btmarkpos         6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 337 (  btrestrpos        6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
-DATA(insert OID = 338 (  btbuild           6 11 f t f 7 f 23 "0" 100 10 0 100  foo bar ));
+DATA(insert OID = 338 (  btbuild           6 11 f t f 7 f 23 "0" 100 0 0 100  foo bar ));
 
 DATA(insert OID = 339 (  poly_same         6 11 f t f 2 f 16 "0" 100 0 1 0  foo bar ));
 DATA(insert OID = 340 (  poly_contain      6 11 f t f 2 f 16 "0" 100 0 1 0  foo bar ));
@@ -385,24 +385,24 @@ DATA(insert OID = 357 (  btabstimecmp      6 11 f t f 2 f 23 "0" 100 0 0 100  fo
 DATA(insert OID = 358 (  btcharcmp         6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 359 (  btchar16cmp       6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 360 (  bttextcmp         6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
-DATA(insert OID = 361 (  lseg_distance     6 11 f t t 2 f 701 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 362 (  lseg_interpt      6 11 f t t 2 f 600 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 363 (  dist_ps           6 11 f t t 2 f 701 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 364 (  dist_pb           6 11 f t t 2 f 701 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 365 (  dist_sb           6 11 f t t 2 f 701 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 366 (  close_ps          6 11 f t t 2 f 600 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 367 (  close_pb          6 11 f t t 2 f 600 "0" 100 1 0 100  foo bar ));
-DATA(insert OID = 368 (  close_sb          6 11 f t t 2 f 600 "0" 100 1 0 100  foo bar ));
+DATA(insert OID = 361 (  lseg_distance     6 11 f t t 2 f 701 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 362 (  lseg_interpt      6 11 f t t 2 f 600 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 363 (  dist_ps           6 11 f t t 2 f 701 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 364 (  dist_pb           6 11 f t t 2 f 701 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 365 (  dist_sb           6 11 f t t 2 f 701 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 366 (  close_ps          6 11 f t t 2 f 600 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 367 (  close_pb          6 11 f t t 2 f 600 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 368 (  close_sb          6 11 f t t 2 f 600 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 369 (  on_ps             6 11 f t t 2 f 16 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 370 (  path_distance     6 11 f t t 2 f 701 "602 602" 100 0 1 0 foo bar ));
 DATA(insert OID = 371 (  dist_ppth         6 11 f t t 2 f 701 "600 602" 100 0 1 0 foo bar ));
 DATA(insert OID = 372 (  on_sb             6 11 f t t 2 f 701 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 373 (  inter_sb          6 11 f t t 2 f 16 "0" 100 0 0 100  foo bar ));
 
-DATA(insert OID = 612 (  fbtreeinsert      6 11 f t f 4 f 23 "0" 100 10 0 100  foo bar ));
-DATA(insert OID = 613 (  fbtreedelete      6 11 f t f 2 f 23 "0" 100 10 0 100  foo bar ));
-DATA(insert OID = 614 (  fbtreegettuple    6 11 f t f 7 f 23 "0" 100 10 0 100  foo bar ));
-DATA(insert OID = 615 (  fbtreebuild       6 11 f t f 7 f 23 "0" 100 10 0 100  foo bar ));
+DATA(insert OID = 612 (  fbtreeinsert      6 11 f t f 4 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 613 (  fbtreedelete      6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 614 (  fbtreegettuple    6 11 f t f 7 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 615 (  fbtreebuild       6 11 f t f 7 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 632 ( Negation           6 11 f t f 1 f 701 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 633 ( Conjunction        6 11 f t f 2 f 701 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 634 ( Disjunction        6 11 f t f 2 f 701 "0" 100 0 0 100  foo bar ));
@@ -438,13 +438,13 @@ DATA(insert OID = 724 (  byteasetbit	   6 11 f t f 3 f 17 "0" 100 0 0 100  foo b
 
 DATA(insert OID = 730 (  pqtest            6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 
-DATA(insert OID = 740 (  text_lt           6 11 f t f 2 f 16 "25 25" 100 0 1 0  foo bar ));
-DATA(insert OID = 741 (  text_le           6 11 f t f 2 f 16 "25 25" 100 0 1 0  foo bar ));
-DATA(insert OID = 742 (  text_gt           6 11 f t f 2 f 16 "25 25" 100 0 1 0  foo bar ));
-DATA(insert OID = 743 (  text_ge           6 11 f t f 2 f 16 "25 25" 100 0 1 0  foo bar ));
+DATA(insert OID = 740 (  text_lt           6 11 f t f 2 f 16 "25 25" 100 0 0 0  foo bar ));
+DATA(insert OID = 741 (  text_le           6 11 f t f 2 f 16 "25 25" 100 0 0 0  foo bar ));
+DATA(insert OID = 742 (  text_gt           6 11 f t f 2 f 16 "25 25" 100 0 0 0  foo bar ));
+DATA(insert OID = 743 (  text_ge           6 11 f t f 2 f 16 "25 25" 100 0 0 0  foo bar ));
 
-DATA(insert OID = 750 (  array_in          6 11 f t f 2 f 23 "0" 100 0 1 100  foo bar ));
-DATA(insert OID = 751 (  array_out         6 11 f t f 2 f 23 "0" 100 0 1 100  foo bar ));
+DATA(insert OID = 750 (  array_in          6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 751 (  array_out         6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 752 (  filename_in       6 11 f t f 2 f 605 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 753 (  filename_out      6 11 f t f 2 f 19 "0" 100 0 0 100  foo bar ));
 
@@ -465,15 +465,15 @@ DATA(insert OID = 771 (  int2smaller       6 11 f t f 2 f 23 "21 21" 100 0 0 100
 BKI_BEGIN
 #ifdef NOBTREE
 BKI_END
-DATA(insert OID = 800 (  nobtgettuple      6 11 f t f 6 f 23 "0" 100 10 1 100  foo bar ));
-DATA(insert OID = 801 (  nobtinsert        6 11 f t f 3 f 23 "0" 100 10 1 100  foo bar ));
-DATA(insert OID = 802 (  nobtdelete        6 11 f t f 2 f 23 "0" 100 10 1 100  foo bar ));
+DATA(insert OID = 800 (  nobtgettuple      6 11 f t f 6 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 801 (  nobtinsert        6 11 f t f 3 f 23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 802 (  nobtdelete        6 11 f t f 2 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 803 (  nobtbeginscan     6 11 f t f 4 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 804 (  nobtrescan        6 11 f t f 3 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 805 (  nobtendscan       6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 806 (  nobtmarkpos       6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 807 (  nobtrestrpos      6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
-DATA(insert OID = 808 (  nobtbuild         6 11 f t f 7 f 23 "0" 100 10 1 100  foo bar ));
+DATA(insert OID = 808 (  nobtbuild         6 11 f t f 7 f 23 "0" 100 0 0 100  foo bar ));
 BKI_BEGIN
 #endif /* NOBTREE */
 BKI_END
@@ -526,8 +526,8 @@ DATA(insert OID = 962 (  lomkdir           6 11 f t f 2 f 23 "0 0" 100 0 0 100  
 DATA(insert OID = 963 (  lormdir           6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 964 (  lounlink          6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 
-DATA(insert OID = 970 (  pftp_read         6 11 f t f 3 f 23 "25 23 26" 100 10 1 0  foo bar ));
-DATA(insert OID = 971 (  pftp_write        6 11 f t f 2 f 26 "25 23" 100 10 1 0  foo bar ));
+DATA(insert OID = 970 (  pftp_read         6 11 f t f 3 f 23 "25 23 26" 100 0 1 0  foo bar ));
+DATA(insert OID = 971 (  pftp_write        6 11 f t f 2 f 26 "25 23" 100 0 1 0  foo bar ));
 
 DATA(insert OID = 972 (  RegprocToOid      6 11 f t t 1 f 26 "24" 100 0 0 100  foo bar ));
 
