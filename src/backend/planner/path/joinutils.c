@@ -185,7 +185,7 @@ every_func (joinkeys, pathkey, which_subkey)
 	 xjoinkey = CAR(i);
 	 found = false;
 	 foreach(j,pathkey) {
-	     temp = CAR(j);
+	     temp = CAR(CAR(j));
 	     if (temp == LispNil) continue;
 	     tempkey = extract_subkey(xjoinkey,which_subkey);
 	     if (var_equal(tempkey,temp)) {
