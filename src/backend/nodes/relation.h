@@ -349,4 +349,8 @@ class (JInfo) public (Node) {
 	bool		inactive;
 };
 
+class (Iter) public (Node) {
+        inherits0(Node);
+	LispValue            iterexpr;
+};
 #endif /* RelationIncluded */
