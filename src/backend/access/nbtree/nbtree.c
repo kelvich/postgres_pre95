@@ -19,6 +19,7 @@
 #include "access/heapam.h"
 #include "access/genam.h"
 #include "access/ftup.h"
+#include "access/sdir.h"
 
 #include "/n/eden/users/mao/postgres/src/access/nbtree/nbtree.h"
 
@@ -112,6 +113,8 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params)
     UpdateStats(heap, ntups);
     UpdateStats(index, ntups);
 
+    _bt_dump(index);
+
     /* be tidy */
     pfree(null);
     pfree(attdata);
@@ -183,11 +186,82 @@ btinsert(rel, itup)
     return (res);
 }
 
+/*
+ *  btgettuple() -- Get the next tuple in the scan.
+ */
+
+char *
+btgettuple(scan, dir)
+    IndexScanDesc scan;
+    ScanDirection dir;
+{
+    InsertIndexResult res;
+
+    /*
+     *  If we've already initialized this scan, we can just advance it
+     *  in the appropriate direction.  If we haven't done so yet, we
+     *  call a routine to get the first item in the scan.
+     */
+
+#ifdef notdef
+    if (ItemPointerIsValid(&(scan->currentItemData)))
+	res = _bt_next(scan, dir);
+    else
+	res = _bt_first(scan, dir);
+#else /* notdef */
+    res = (InsertIndexResult) NULL;
+#endif /* notdef */
+
+    return ((char *) res);
+}
+
+char *
+btbeginscan(rel, fromEnd, keysz, scankey)
+    Relation rel;
+    Boolean fromEnd;
+    uint16 keysz;
+    ScanKey scankey;
+{
+    return ((char *) RelationGetIndexScan(rel, fromEnd, keysz, scankey));
+}
+
+/*
+ *  btrescan() -- rescan an index relation
+ */
+
+void
+btrescan(scan, fromEnd, scankey)
+    IndexScanDesc scan;
+    Boolean fromEnd;
+    ScanKey scankey;
+{
+    /* we hold a read lock on the current page in the scan */
+    if (ItemPointerIsValid(&(scan->currentItemData))) {
+	_bt_unsetpagelock(scan->relation,
+			  ItemPointerGetBlockNumber(&(scan->currentItemData)),
+			  BT_READ);
+	ItemPointerSetInvalid(&scan->currentItemData);
+    }
+
+    /* and we hold a read lock on the last marked item in the scan */
+    if (ItemPointerIsValid(&(scan->currentMarkData))) {
+	_bt_unsetpagelock(scan->relation,
+			  ItemPointerGetBlockNumber(&(scan->currentMarkData)),
+			  BT_READ);
+	ItemPointerSetInvalid(&scan->currentMarkData);
+    }
+
+    /* reset the scan key */
+    if (scan->numberOfKeys > 0) {
+	bcopy( (Pointer)&scankey->data[0],
+	       (Pointer)&scan->keyData.data[0],
+	       scan->numberOfKeys * sizeof(scankey->data[0])
+	     );
+    }
+}
+
 /* stubs */
-char *btgettuple() { ; }
 void btdelete() { ; }
-char *btbeginscan() { ; }
 void btendscan() { ; }
-void btrescan() { ; }
 void btmarkpos() { ; }
 void btrestrpos() { ; }
