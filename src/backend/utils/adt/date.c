@@ -27,12 +27,6 @@
 
 RcsId("$Header$");
 
-typedef struct { 
-	int32	status;
-	Time	data[2];
-} TimeIntervalData;
-typedef TimeIntervalData *TimeInterval;
-
 #define	TM_YEAR_BASE	1900		/* compatible to UNIX time */
 #define	EPOCH_YEAR	1970		/* compatible to UNIX time */
 #define	YEAR_MAX	2038		/* otherwise overflow */

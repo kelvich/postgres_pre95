@@ -14,6 +14,12 @@
  */
 typedef uint32	AbsoluteTime;
 
+typedef struct { 
+	int32	status;
+	Time	data[2];
+} TimeIntervalData;
+typedef TimeIntervalData *TimeInterval;
+
 #define EPOCH_ABSTIME 4294967294
 #define INVALID_ABSTIME 4294967295
 #define InvalidAbsoluteTime	INVALID_ABSTIME

@@ -205,6 +205,23 @@ int32 abstimelt ARGS((int32 t1 , int32 t2 ));
 int32 abstimegt ARGS((int32 t1 , int32 t2 ));
 int32 abstimele ARGS((int32 t1 , int32 t2 ));
 int32 abstimege ARGS((int32 t1 , int32 t2 ));
+TimeInterval tintervalin ARGS((char *intervalstr ));
+char *tintervalout ARGS((TimeInterval interval ));
+int ininterval ARGS((int32 t , TimeInterval interval ));
+RelativeTime intervalrel ARGS((TimeInterval interval ));
+int32 intervaleq ARGS((TimeInterval i1 , TimeInterval i2 ));
+int32 intervalct ARGS((TimeInterval i1 , TimeInterval i2 ));
+int32 intervalov ARGS((TimeInterval i1 , TimeInterval i2 ));
+int32 intervalleneq ARGS((TimeInterval i , RelativeTime t ));
+int32 intervallenne ARGS((TimeInterval i , RelativeTime t ));
+int32 intervallenlt ARGS((TimeInterval i , RelativeTime t ));
+int32 intervallengt ARGS((TimeInterval i , RelativeTime t ));
+int32 intervallenle ARGS((TimeInterval i , RelativeTime t ));
+int32 intervallenge ARGS((TimeInterval i , RelativeTime t ));
+AbsoluteTime intervalstart ARGS((TimeInterval i ));
+AbsoluteTime intervalend ARGS((TimeInterval i ));
+AbsoluteTime timemi ARGS((AbsoluteTime AbsTime_t1 , RelativeTime RelTime_t2 ));
+AbsoluteTime timenow ARGS((void ));
 
 
 /* dt.c */
