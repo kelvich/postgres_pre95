@@ -1047,6 +1047,8 @@ ExecTypeFromTL(targetList)
 	    Fjoin fjNode = (Fjoin)tl_node(fjList);
 
 	    fjRes = (Resdom)tl_resdom(get_fj_innerNode(fjNode));
+	    restype = get_restype(fjRes);
+
 	    ExecSetTypeInfo(
 		    (int) get_resno(fjRes) - 1,        /* index */
 		    (struct attribute **) typeInfo,    /* addr of type info */
@@ -1054,7 +1056,7 @@ ExecTypeFromTL(targetList)
 		    (int) get_resno(fjRes),	       /* att num */
 		    (int) get_reslen(fjRes),	       /* att len */
 		    (char *) get_resname(fjRes),       /* att name */
-		    get_typbyval(get_restype(fjRes))); /* att by val */
+		    get_typbyval(restype));            /* att by val */
 
 	    foreach(fjTlistP, CDR(fjList)) {
 		List fjTle = CAR(fjTlistP);
