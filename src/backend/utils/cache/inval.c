@@ -587,7 +587,9 @@ RelationInvalidateHeapTuple(relation, tuple)
      */
     Assert(RelationIsValid(relation));
     Assert(HeapTupleIsValid(tuple));
-     
+
+    if (IsBootstrapProcessingMode())
+	return;
     /* ----------------
      *	this only works for system relations now
      * ----------------
