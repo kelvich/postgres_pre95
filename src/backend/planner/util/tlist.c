@@ -551,14 +551,22 @@ flatten_tlistentry (tlistentry,flat_tlist)
 {
     if(null (tlistentry)) {
 	return((TLE)NULL);
-    } 
-    else if (IsA (tlistentry,Var)) {
+
+    } else if (IsA (tlistentry,Var)) {
 	return((TLE)get_expr (match_varid ((Var)tlistentry, flat_tlist)));
-    } 
-    else if (single_node (tlistentry)) {
+
+    } else if (IsA (tlistentry,Iter)) {
+	LispValue temp;
+
+	temp = (LispValue)
+	    flatten_tlistentry (get_iterexpr((Iter)tlistentry), flat_tlist);
+	set_iterexpr((Iter)tlistentry, temp);
 	return(tlistentry);
-    } 
-    else if (is_funcclause (tlistentry)) {
+
+    } else if (single_node (tlistentry)) {
+	return(tlistentry);
+
+    } else if (is_funcclause (tlistentry)) {
 	LispValue temp_result = LispNil;
 	LispValue elt = LispNil;
 	
@@ -568,6 +576,7 @@ flatten_tlistentry (tlistentry,flat_tlist)
 	
 	return((TLE)make_funcclause (get_function (tlistentry),
 					temp_result));
+
     } else {
 	return((TLE)
 	    make_opclause( (Oper)get_op (tlistentry),
