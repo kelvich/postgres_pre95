@@ -425,7 +425,7 @@ create_nestloop_path (joinrel,outer_rel,outer_path,inner_path,keys)
      set_keys ((Path)pathnode,keys);
      set_pathsortkey ((Path)pathnode,(SortKey)NULL);
      set_joinid((Path)pathnode,LispNil);
-     set_outerjoincost((Path)pathnode,(Cost)NULL);
+     set_outerjoincost((Path)pathnode,(Cost)0);
      set_p_ordering((Path)pathnode,LispNil);
      set_locclauseinfo((Path)pathnode,LispNil);
 
