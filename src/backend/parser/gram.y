@@ -1503,7 +1503,7 @@ a_expr:
 				       $$ );
 		    } else if (IsA(temp,LispList) ) {
 			$$ = lispCons ( lispInteger 
-				          (get_vartype((Var)CADR(temp))),
+				          (get_vartype((Var)CADR((List)temp))),
 				       $$ );
 		    } else {
 			elog(WARN, "Var or union expected, not found");
