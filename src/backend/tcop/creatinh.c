@@ -15,6 +15,7 @@
  */
 
 #include "tcop.h"
+#include "parse.h"		/* for NONE, LIGHT, HEAVY archive modes */
  RcsId("$Header$");
 
 #define private
@@ -109,6 +110,8 @@ DefineRelation(relationName, parameters, schema)
 	AttributeNumber	attributeNumber;
 	LispValue	rest;
 	ObjectId	relationId;
+	List		arch;
+	char		archChar;
 	List		inheritList = LispNil;
 
 	/*
@@ -131,8 +134,30 @@ DefineRelation(relationName, parameters, schema)
 	if (!lispNullp(CADDR(parameters))) {
 		elog(WARN, "RelationCreate: INDEXABLE not yet supported");
 	}
-	if (!lispNullp(CADDR(CDR(parameters)))) {
-		elog(WARN, "RelationCreate: ARCHIVE not yet supported");
+	/* XXX use symbolic constants... */
+	archChar = 'n';
+
+	if (!lispNullp(arch = CADDR(CDR(parameters)))) {
+
+		switch (LISPVALUE_INTEGER(CDR(arch))) {
+		case NONE:
+			archChar = 'n';
+			break;
+
+		case LIGHT:
+			archChar = 'l';
+			break;
+
+		case HEAVY:
+			archChar = 'h';
+			break;
+
+		default:
+			elog(NOTICE, "Botched archive mode %d, ignoring",
+				LISPVALUE_INTEGER(CDR(arch)));
+			archChar = 'n';
+			break;
+		}
 	}
 
 	schema = MergeAttributes(schema, inheritList);
@@ -144,11 +169,7 @@ DefineRelation(relationName, parameters, schema)
 	}
 
 	relationId = RelationNameCreateHeapRelation(relationName,
-		/*
-		 * Default archive mode should be looked up from the VARIABLE
-		 * relation the first time.  Note that it is set to none, now.
-		 */
-		'n',	/* XXX use symbolic constant ... */
+		archChar,
 		numberOfAttributes, BuildDesc(schema));
 
 	StoreCatalogInheritance(relationId, inheritList);
