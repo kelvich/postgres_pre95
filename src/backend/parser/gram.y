@@ -1918,8 +1918,7 @@ res_target_el:
 
 	| Id '=' a_expr
 	  {
-		if ($3 != LispNil)		/* If a_expr is NULL, CAR($3) gives a core dump*/
-		if (ISCOMPLEX(CInteger(CAR($3))))
+		if ($3 != LispNil && ISCOMPLEX(CInteger(CAR($3))))
 		    elog(WARN, "Cannot assign complex type to variable %s in target list", CString($1));
 		$$ = make_targetlist_expr ($1,$3);
 	   } 
