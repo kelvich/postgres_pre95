@@ -37,7 +37,15 @@
  *	things a bit slower but makes debugging easier..
  * ----------------
  */
-#undef NO_NODE_CHECKING
+
+/* #undef NO_NODE_CHECKING */
+
+/*
+ * We define NO_NODE_CHECKING for now because we are trying to get speed
+ * out of this thing...
+ */
+
+#define NO_NODE_CHECKING
 
 /* ----------------
  *	I don't know why this is here.  Most likely a hack..
@@ -97,6 +105,17 @@ class (Node) {
 #define	IsA(_node_,_tag_)	NodeIsType((Node)(_node_), classTag(_tag_))
 #define	New_Node(_x_)		((_x_)NewNode(classSize(_x_),classTag(_x_)))
 #define CreateNode(_x_)		((_x_)NewNode(classSize(_x_),classTag(_x_)))
+
+#define ExactNodeType(_node_,_tag_) (NodeType(_node_) == classTag(_tag_))
+
+/*
+ * "Clause" macros for finding various nodes follow
+ */
+
+#define fast_is_clause(_clause_) (ExactNodeType(CAR((LispValue) _clause_),Oper))
+#define fast_is_funcclause(_clause_) (ExactNodeType(CAR((LispValue) _clause_),Func))
+#define fast_not_clause(_clause_) (CInteger(CAR(_clause_)) == NOT)
+#define fast_or_clause(_clause_) (CInteger(CAR(_clause_)) == OR)
 
 /* ----------------------------------------------------------------
  *		      extern declarations follow
