@@ -265,9 +265,19 @@ agg_clause(clause)
 	LispValue clause;
 {
 	char *keyword = "aggregate";
-	LispValue temp;
-	temp = CAR(clause);
-  	return !(strcmp(keyword, CString(temp)));
+	LispValue temp, tempstring;
+	if(listp(clause){
+	     temp = CAR(clause);
+	     if(stringp(temp)) {
+  	         tempstring = (strcmp(keyword, CString(temp)));
+		 if(!tempstring)
+			return(true);
+	     }
+         }
+	 /* if it is not a list, we're not dealing with aggregates
+	  * anyway.
+	  */
+	  else return(false);
 }
 
 
