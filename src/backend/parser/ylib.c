@@ -114,72 +114,64 @@ parser_typecast ( expr, typename )
     Const adt;
     Datum lcp;
     Type tp;
-	char *type_string, *p, type_string_2[16];
+    char *type_string, *p, type_string_2[16];
     int32 len;
     char *cp = NULL;
-
     char *const_string; 
-	bool string_palloced = false;
+    bool string_palloced = false;
 
-	type_string = CString(typename);
-	if ((p = (char *) index(type_string, '[')) != NULL)
-	{
-		*p = 0;
-		sprintf(type_string_2,"_%s", type_string);
-		tp = (Type) type(type_string_2);
-	}
-	else
-	{
-		tp = (Type) type(type_string);
-	}
+    type_string = CString(CAR(typename));
+    if (CDR(typename) != LispNil) {
+	    *p = 0;
+	    sprintf(type_string_2,"_%s", type_string);
+	    tp = (Type) type(type_string_2);
+    } else {
+	    tp = (Type) type(type_string);
+    }
 
-	len = tlen(tp);
+    len = tlen(tp);
 
     switch ( CInteger(CAR(expr)) ) {
       case 23: /* int4 */
-	  const_string = (char *) palloc(256);
-	  string_palloced = true;
-	sprintf(const_string,"%d",
-		get_constvalue((Const)CDR(expr)));
+	const_string = (char *) palloc(256);
+	string_palloced = true;
+	sprintf(const_string,"%d", get_constvalue((Const)CDR(expr)));
 	break;
+
       case 19: /* char16 */
-	  const_string = (char *) palloc(256);
-	  string_palloced = true;
-	sprintf(const_string,"%s",
-		get_constvalue((Const)CDR(expr)));
+	const_string = (char *) palloc(256);
+	string_palloced = true;
+	sprintf(const_string,"%s", get_constvalue((Const)CDR(expr)));
 	break;
+
       case 18: /* char */
-	  const_string = (char *) palloc(256);
-	  string_palloced = true;
-	sprintf(const_string,"%c",
-		get_constvalue((Const)CDR(expr)));
+	const_string = (char *) palloc(256);
+	string_palloced = true;
+	sprintf(const_string,"%c", get_constvalue((Const)CDR(expr)));
 	break;
+
       case 701:/* float8 */
-	  const_string = (char *) palloc(256);
-	  string_palloced = true;
-	sprintf(const_string,"%f",
-		get_constvalue((Const)CDR(expr)));
+	const_string = (char *) palloc(256);
+	string_palloced = true;
+	sprintf(const_string,"%f", get_constvalue((Const)CDR(expr)));
 	break;
+
       case 25: /* text */
-	const_string = 
-	  DatumGetPointer(
-			  get_constvalue((Const)CDR(expr)) );
-	  const_string = (char *) textout((struct varlena *)const_string);
+	const_string = DatumGetPointer(get_constvalue((Const)CDR(expr)));
+	const_string = (char *) textout((struct varlena *)const_string);
 	break;
+
       case 705: /* unknown */
-        const_string =
-          DatumGetPointer(
-                          get_constvalue((Const)CDR(expr)) );
-          const_string = (char *) textout((struct varlena *)const_string);
+        const_string = DatumGetPointer(get_constvalue((Const)CDR(expr)));
+        const_string = (char *) textout((struct varlena *)const_string);
         break;
+
       default:
-	elog(WARN,"unknown type%d ",
-	     CInteger(CAR(expr)) );
+	elog(WARN,"unknown type %d", CInteger(CAR(expr)));
     }
-    
+
     cp = instr2 (tp, const_string);
-    
-    
+
     if (!tbyvalue(tp)) {
 	if (len >= 0 && len != PSIZE(cp)) {
 	    char *pp;
@@ -206,12 +198,11 @@ parser_typecast ( expr, typename )
     }
     
     adt = MakeConst ( typeid(tp), len, (Datum)lcp , 0, 0/*was omitted*/ );
-    /*
-      printf("adt %s : %d %d %d\n",CString(expr),typeid(tp) ,
-      len,cp);
-      */
-	if (string_palloced) pfree(const_string);
-    return (lispCons  ( lispInteger (typeid(tp)) , (LispValue)adt ));
+
+    if (string_palloced)
+	pfree(const_string);
+
+    return (lispCons(lispInteger(typeid(tp)), (LispValue)adt));
 }
 
 LispValue
@@ -371,13 +362,9 @@ ParseFunc ( funcname , fargs )
      char *funcname;
      List fargs;
 {
-    extern OID funcname_get_rettype();
-    extern OID funcname_get_funcid();
-    extern ObjectId *funcname_get_funcargtypes();
     OID rettype = (OID)0;
     OID funcid = (OID)0;
     OID argrelid;
-    Func funcnode = (Func)NULL;
     LispValue i = LispNil;
     List first_arg_type = NULL;
     Name relname, oldname;
@@ -385,13 +372,15 @@ ParseFunc ( funcname , fargs )
     Relation rd;
     ObjectId relid;
     int attnum;
-    int nargs,x;
-    ObjectId *oid_array;
-    OID argtype;
+    int nargs;
     Iter iter;
+    Func funcnode;
+    ObjectId oid_array[8];
+    OID argtype;
     Param f;
     int vnum;
     LispValue retval;
+    bool retset;
 
     if (fargs)
      {
@@ -436,10 +425,7 @@ ParseFunc ( funcname , fargs )
 	      if ((attnum = get_attnum(argrelid, (Name) funcname)) 
 		  != InvalidAttributeNumber)
 	       {
-		   /* 
-		    ** build an Iter containing this func node, add a tlist
-		    ** to the func node, and return the Iter.
-		    */
+		   /* add a tlist to the func node and return the Iter */
 		   rd = heap_openr(tname(get_id_type(argtype)));
 		   if (RelationIsValid(rd))
 		    {
@@ -455,6 +441,39 @@ ParseFunc ( funcname , fargs )
 			return(lispCons(lispInteger(att_typeid(rd,attnum)),iter));
 		    }
 		   else elog(WARN, 
+			     "Function %s has bad returntype %d", 
+			     funcname, argtype);
+	       }
+	      else		/* drop through */;
+	  }
+	 else if (complexType(first_arg_type) &&
+		  IsA(CDR(CAR(fargs)),Func) && 
+		  (argrelid = typeid_get_relid
+		   ((int)(argtype=funcid_get_rettype
+			  (get_funcid((Func)CDR(CAR(fargs))))))))
+	  {
+	      /* the argument is a function returning a tuple, so funcname
+		 may be a projection */
+	      if ((attnum = get_attnum(argrelid, (Name) funcname)) 
+		  != InvalidAttributeNumber)
+	       {
+		   /* add a tlist to the func node */
+		   rd = heap_openr(tname(get_id_type(argtype)));
+		   if (RelationIsValid(rd))
+		    {
+			relid = RelationGetRelationId(rd);
+			relname = RelationGetRelationName(rd);
+			heap_close(rd);
+		    }
+		   if (RelationIsValid(rd))
+		    {
+			funcnode = (Func)CDR(CAR(fargs));
+			set_func_tlist(funcnode,
+				       setup_tlist(funcname, argrelid));
+			return(lispCons(lispInteger(att_typeid(rd,attnum)),
+					funcnode));
+		    }
+		   else elog(WARN,
 			     "Function %s has bad returntype %d", 
 			     funcname, argtype);
 	       }
@@ -482,28 +501,17 @@ ParseFunc ( funcname , fargs )
 	      else		/* drop through */;
 	  }
      }
-	   
 
-    /* If we dropped through to here it's really a function */
-    funcid = funcname_get_funcid ( funcname );
-    rettype = funcname_get_rettype ( funcname );
-	
-    if ( funcid != (OID)0 && rettype != (OID)0 ) 
-     {
-	 funcnode = MakeFunc ( funcid , rettype , false, 0,LispNil,0, NULL );
-     } 
-    else elog (WARN,"function %s does not exist",funcname);
-    nargs = funcname_get_funcnargs(funcname);
-    if (nargs != length(fargs))
-      elog(WARN, "function '%s' takes %d arguments not %d",
-	   funcname, nargs, length(fargs));
-    oid_array = funcname_get_funcargtypes(funcname);
 
-    /* 
-    ** type checking and resolution -- if an argument is a relation name we 
-    ** turn it into a Var.  
+    /*
+    ** If we dropped through to here it's really a function.
+    ** extract arg type info and transform relation name arguments into
+    ** varnodes of the appropriate form.
     */
-    x=0;
+
+    bzero(&oid_array[0], 8 * sizeof(ObjectId));
+    nargs=0;
+
     foreach ( i , fargs ) 
      {
 	 List pair = CAR(i);
@@ -511,9 +519,9 @@ ParseFunc ( funcname , fargs )
 	 
 	 if (lispAtomp(CAR(pair)) && CAtom(CAR(pair)) == RELATION)
 	  {
-	      toid = typeid(type(CString(CDR(pair))));
-
 	      relname = (Name)CString(CDR(pair));
+	      toid = typeid(type(relname));
+
 	      rd = heap_openr(relname);
 	      relid = RelationGetRelationId(rd);
 	      heap_close(rd);
@@ -546,17 +554,36 @@ ParseFunc ( funcname , fargs )
 	      CAR(i) = CDR(pair);
 	  }
 
-	 if (oid_array[x] != 0 && toid != oid_array[x]) 
-	   elog(WARN, "Argument type mismatch in function '%s': arg %d is not of type %s",
-		funcname, x+1, tname(get_id_type(oid_array[x])));
-
-	 x++;
+	 oid_array[nargs++] = toid;
      }
 
-    iter = (Iter)MakeIter(lispCons((LispValue)funcnode , fargs ));
-    retval = lispCons (lispInteger(rettype) , (LispValue)iter);
+    /*
+     *  func_get_detail looks up the function in the catalogs, does
+     *  disambiguation for polymorphic functions, handles inheritance,
+     *  and returns the funcid and type and set or singleton status of
+     *  the function's return value.  if func_get_detail returns, the
+     *  function exists.
+     */
 
-    return(retval);	
+    func_get_detail(funcname, nargs, oid_array, &funcid, &rettype, &retset);
+    retval = lispCons((LispValue) MakeFunc(funcid, rettype, false,
+					   0, LispNil, 0, NULL),
+		      fargs);
+
+    /*
+     *  if the function returns a set of values, then we need to iterate
+     *  over all the returned values in the executor, so we stick an
+     *  iter node here.  if it returns a singleton, then we don't need
+     *  the iter node.
+     */
+
+    if (retset)
+	retval = (LispValue) MakeIter(retval);
+
+    /* store type info in the return value for use by the type checker */
+    retval = lispCons (lispInteger(rettype), retval);
+
+    return(retval);
 }
 
 List
@@ -738,76 +765,6 @@ MakeFromClause ( from_list, base_rel )
 
     return ( entry );
 }
-
-int is_postquel_func(parameters)
-     List parameters;
-{
-    List assoc_list;
-    List rest;
-    assoc_list = CDR(parameters);
-    foreach (rest, assoc_list) {
-	List item = CAR(CAR(rest));
-	List value;
-	
-	/*
-	 * if this parameter does not have an associated value.
-	 */
-	if ( !CDR(CAR(rest)) )
-	    continue;
-	else
-	    value = CAR(CDR(CAR(rest)));
-
- 	if (!stringp(item)) continue;
-	if (!strcmp(CString(item), "language")) {
-	    char *name;
-	    char *c;
-
-	    name = CString(value);
-	    for (c = name; *c != '\0'; c++)
-		*c = (islower(*c) ? toupper(*c) : *c);
-	    if (!strcmp(name, "POSTQUEL")) 
-		return true;
-	    else
-		return false;
-	}
-    }
-    return false;
-}
-char *postquel_func_arg(parameters)
-     List parameters;
-{
-    List assoc_list;
-    List rest;
-    assoc_list = CDR(parameters);
-    foreach (rest, assoc_list) {
-	List item = CAR(CAR(rest));
-	List value = CAR(CDR(CAR(rest)));
-
-	if (atom(item) && (CAtom(item) == ARG)) {
-	    if (stringp(value)) {
-		char *name = CString(value);
-		return name;
-	    }
-	}
-
-    }
-    elog(WARN, "no zero argument postquel functions");
-}
-List func_arg_list(parameters)
-     List parameters;
-{
-    List assoc_list;
-    List rest;
-    assoc_list = CDR(parameters);
-    foreach (rest, assoc_list) {
-	List item = CAR(CAR(rest));
-	List value = CAR(CDR(CAR(rest)));
-
-	if (atom(item) && (CAtom(item) == ARG)) return CDR(CAR(rest));
-    }
-    return LispNil;
-}
-
 
 /*
 ** HandleNestedDots --

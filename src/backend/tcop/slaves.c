@@ -429,20 +429,20 @@ SlaveBackendsInit()
      */
     SearchSysCacheTuple(AMOPOPID, NULL, NULL, NULL, NULL);
     SearchSysCacheTuple(AMOPSTRATEGY, NULL, NULL, NULL, NULL);
-    SearchSysCacheTuple(ATTNAME, "");
+    SearchSysCacheTuple(ATTNAME, "", NULL, NULL, NULL);
     SearchSysCacheTuple(ATTNUM, NULL, NULL, NULL, NULL);
     SearchSysCacheTuple(INDEXRELID, NULL, NULL, NULL, NULL);
-    SearchSysCacheTuple(LANNAME, "");
-    SearchSysCacheTuple(OPRNAME, "");
+    SearchSysCacheTuple(LANNAME, "", NULL, NULL, NULL);
+    SearchSysCacheTuple(OPRNAME, "", NULL, NULL, NULL);
     SearchSysCacheTuple(OPROID, NULL, NULL, NULL, NULL);
-    SearchSysCacheTuple(PRONAME, "");
+    SearchSysCacheTuple(PRONAME, "", NULL, NULL, NULL);
     SearchSysCacheTuple(PROOID, NULL, NULL, NULL, NULL);
-    SearchSysCacheTuple(RELNAME, "");
+    SearchSysCacheTuple(RELNAME, "", NULL, NULL, NULL);
     SearchSysCacheTuple(RELOID, NULL, NULL, NULL, NULL);
-    SearchSysCacheTuple(TYPNAME, "");
+    SearchSysCacheTuple(TYPNAME, "", NULL, NULL, NULL);
     SearchSysCacheTuple(TYPOID, NULL, NULL, NULL, NULL);
-    SearchSysCacheTuple(AMNAME, "");
-    SearchSysCacheTuple(CLANAME, "");
+    SearchSysCacheTuple(AMNAME, "", NULL, NULL, NULL);
+    SearchSysCacheTuple(CLANAME, "", NULL, NULL, NULL);
     SearchSysCacheTuple(INDRELIDKEY, NULL, NULL, NULL, NULL);
     SearchSysCacheTuple(INHRELID, NULL, NULL, NULL, NULL);
     SearchSysCacheTuple(PRS2PLANCODE, NULL, NULL, NULL, NULL);

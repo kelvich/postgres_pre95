@@ -12,6 +12,9 @@
 
 RcsId("$Header$");
 
+#include "tmp/simplelists.h"
+#include "tmp/datum.h"
+
 #include "utils/log.h"
 #include "utils/fmgr.h"
 
@@ -20,6 +23,15 @@ RcsId("$Header$");
 
 #include "exceptions.h"
 #include "catalog_utils.h"
+#include "catalog/pg_inherits.h"
+
+#include "access/skey.h"
+#include "access/relscan.h"
+#include "access/tupdesc.h"
+#include "access/htup.h"
+#include "access/heapam.h"
+
+#include "storage/buf.h"
 
 struct {
     char *field;
@@ -58,6 +70,24 @@ static String attnum_type[SPECIALS] = {
   };
 
 struct tuple *SearchSysCache();
+
+#define	MAXFARGS 8		/* max # args to a c or postquel function */
+
+extern	ObjectId	**argtype_inherit();
+extern	ObjectId	**genxprod();
+extern	OID		typeid_get_relid();
+
+/*
+ *  This structure is used to explore the inheritance hierarchy above
+ *  nodes in the type tree in order to disambiguate among polymorphic
+ *  functions.
+ */
+
+typedef struct _InhPaths {
+    int		nsupers;	/* number of superclasses */
+    ObjectId	self;		/* this class */
+    ObjectId	*supervec;	/* vector of superclasses */
+} InhPaths;
 
 /* return a Type structure, given an typid */
 Type
@@ -480,56 +510,6 @@ funcid_get_rettype ( funcid)
     return (funcrettype);
 }
 
-OID
-funcname_get_rettype ( function_name )
-     char *function_name;
-{
-    HeapTuple func_tuple = NULL;
-    OID funcrettype = (OID)0;
-
-    func_tuple = SearchSysCacheTuple(PRONAME,function_name,0,0,0);
-
-    if ( !HeapTupleIsValid ( func_tuple )) 
-	elog (WARN, "function named %s does not exist", function_name);
-    
-    funcrettype = (OID)
-      ((struct proc *)GETSTRUCT(func_tuple))->prorettype ;
-
-    return (funcrettype);
-}
-int 
-funcname_get_funcnargs ( function_name )
-     char *function_name;
-{
-    HeapTuple func_tuple = NULL;
-    int2 nargs = -1;
-
-    func_tuple = SearchSysCacheTuple(PRONAME,function_name,0,0,0);
-
-    if ( !HeapTupleIsValid ( func_tuple )) 
-	elog (WARN, "function named %s does not exist", function_name);
-    
-    nargs = (int2) 
-      ((struct proc *)GETSTRUCT(func_tuple))->pronargs ;
-
-    return (nargs);
-}
-ObjectId *
-funcid_get_funcargtypes ( funcid )
-     ObjectId funcid;
-{
-    HeapTuple func_tuple = NULL;
-    ObjectId *oid_array = NULL;
-    struct proc *foo;
-    func_tuple = SearchSysCacheTuple(PROOID,funcid,0,0,0);
-
-    if ( !HeapTupleIsValid ( func_tuple )) 
-	elog (WARN, "function %d does not exist", funcid);
-    
-    foo = (struct proc *)GETSTRUCT(func_tuple);
-    oid_array = foo->proargtypes.data;
-    return (oid_array);
-}
 ObjectId *
 funcname_get_funcargtypes ( function_name )
      char *function_name;
@@ -547,18 +527,277 @@ funcname_get_funcargtypes ( function_name )
     return (oid_array);
 }
 
-OID
-funcname_get_funcid ( function_name )
-     char *function_name;
+void
+func_get_detail(funcname, nargs, oid_array, funcid, rettype, retset)
+    char *funcname;
+    int nargs;
+    ObjectId *oid_array;
+    ObjectId *funcid;			/* return value */
+    ObjectId *rettype;			/* return value */
+    bool *retset;			/* return value */
+{
+    ObjectId *fargs;
+    ObjectId **oid_vector;
+    HeapTuple ftup;
+    Form_pg_proc pform;
+
+    /* find the named function in the system catalogs */
+    ftup = SearchSysCacheTuple(PRONAME, funcname, 0, 0, 0);
+
+    if (!HeapTupleIsValid(ftup))
+	elog(WARN, "function %s is not defined", funcname);
+
+    /*
+     *  If the function exists, we need to check the argument types
+     *  passed in by the user.  If they don't match, then we need to
+     *  check the user's arg types against superclasses of the arguments
+     *  to this function.
+     */
+
+    pform = (Form_pg_proc)GETSTRUCT(ftup);
+    if (pform->pronargs != nargs) {
+	elog(WARN, "argument count mismatch: %s takes %d, %d supplied",
+		   funcname, pform->pronargs, nargs);
+    }
+
+    /* typecheck arguments */
+    fargs = pform->proargtypes.data;
+    if (*fargs != InvalidObjectId && *oid_array != InvalidObjectId) {
+	if (bcmp(fargs, oid_array, 8 * sizeof(ObjectId)) != 0) {
+	    oid_vector = argtype_inherit(nargs, oid_array);
+	    while (**oid_vector != InvalidObjectId) {
+		oid_array = *oid_vector++;
+		if (bcmp(fargs, oid_array, 8 * sizeof(ObjectId)) == 0)
+		    break;
+	    }
+	    if (**oid_vector == InvalidObjectId)
+		elog(WARN, "type mismatch in invocation of function %s",
+			   funcname);
+	}
+    }
+
+    /* by here, we have a match */
+    *funcid = ftup->t_oid;
+    *rettype = (ObjectId) pform->prorettype;
+    *retset = (ObjectId) pform->proretset;
+}
+
+/*
+ *  argtype_inherit() -- Construct an argtype vector reflecting the
+ *			 inheritance properties of the supplied argv.
+ *
+ *	This function is used to disambiguate among functions with the
+ *	same name but different signatures.  It takes an array of eight
+ *	type ids.  For each type id in the array that's a complex type
+ *	(a class), it walks up the inheritance tree, finding all
+ *	superclasses of that type.  A vector of new ObjectId type arrays
+ *	is returned to the caller, reflecting the structure of the
+ *	inheritance tree above the supplied arguments.
+ *
+ *	The order of this vector is as follows:  all superclasses of the
+ *	rightmost complex class are explored first.  The exploration
+ *	continues from right to left.  This policy means that we favor
+ *	keeping the leftmost argument type as low in the inheritance tree
+ *	as possible.  This is intentional; it is exactly what we need to
+ *	do for method dispatch.  The last type array we return is all
+ *	zeroes.  This will match any functions for which return types are
+ *	not defined.  There are lots of these (mostly builtins) in the
+ *	catalogs.
+ */
+
+ObjectId **
+argtype_inherit(nargs, oid_array)
+    int nargs;
+    ObjectId *oid_array;
+{
+    ObjectId relid;
+    int i;
+    InhPaths arginh[MAXFARGS];
+
+    for (i = 0; i < MAXFARGS; i++) {
+	if (i < nargs) {
+	    arginh[i].self = oid_array[i];
+	    if ((relid = typeid_get_relid(oid_array[i])) != InvalidObjectId) {
+		arginh[i].nsupers = findsupers(relid, &(arginh[i].supervec));
+	    } else {
+		arginh[i].nsupers = 0;
+		arginh[i].supervec = (ObjectId *) NULL;
+	    }
+	} else {
+	    arginh[i].self = InvalidObjectId;
+	    arginh[i].nsupers = 0;
+	    arginh[i].supervec = (ObjectId *) NULL;
+	}
+    }
+
+    /* return an ordered cross-product of the classes involved */
+    return (genxprod(arginh));
+}
+
+typedef struct _SuperQE {
+    SLNode	sqe_node;
+    ObjectId	sqe_relid;
+} SuperQE;
+
+int
+findsupers(relid, supervec)
+    ObjectId relid;
+    ObjectId **supervec;
+{
+    ObjectId *relidvec;
+    Relation inhrel;
+    HeapScanDesc inhscan;
+    ScanKeyData skey;
+    HeapTuple inhtup;
+    TupleDescriptor inhtupdesc;
+    int nvisited;
+    SuperQE *qentry, *vnode;
+    SLList visited, queue;
+    Buffer buf;
+    Datum d;
+    bool newrelid;
+    char isNull;
+
+    nvisited = 0;
+    SLNewList(&queue, 0);
+    SLNewList(&visited, 0);
+
+    inhrel = heap_openr(Name_pg_inherits);
+    RelationSetLockForRead(inhrel);
+    inhtupdesc = RelationGetTupleDescriptor(inhrel);
+
+    /*
+     *  Use queue to do a breadth-first traversal of the inheritance
+     *  graph from the relid supplied up to the root.
+     */
+    do {
+	ScanKeyEntryInitialize(&skey.data[0], 0x0, Anum_pg_inherits_inhrel,
+			       ObjectIdEqualRegProcedure,
+			       ObjectIdGetDatum(relid));
+
+	inhscan = heap_beginscan(inhrel, 0, NowTimeQual, 1, &skey);
+
+	while (HeapTupleIsValid(inhtup = heap_getnext(inhscan, 0, &buf))) {
+	    qentry = (SuperQE *) palloc(sizeof(SuperQE));
+
+	    d = (Datum) fastgetattr(inhtup, Anum_pg_inherits_inhparent,
+				    inhtupdesc, &isNull);
+	    qentry->sqe_relid = DatumGetObjectId(d);
+
+	    /* put this one on the queue */
+	    SLNewNode(&(qentry->sqe_node));
+	    SLAddTail(&queue, &(qentry->sqe_node));
+
+	    ReleaseBuffer(buf);
+	}
+
+	heap_endscan(inhscan);
+
+	/* pull next unvisited relid off the queue */
+	do {
+	    qentry = (SuperQE *) SLRemHead(&queue);
+	    if (qentry == (SuperQE *) NULL)
+		break;
+
+	    relid = qentry->sqe_relid;
+	    newrelid = true;
+
+	    for (vnode = (SuperQE *) SLGetHead(&visited);
+		 vnode != (SuperQE *) NULL;
+		 vnode = (SuperQE *) SLGetSucc(&(vnode->sqe_node))) {
+		if (qentry->sqe_relid == vnode->sqe_relid) {
+		    newrelid = false;
+		    break;
+		}
+	    }
+	} while (!newrelid);
+
+	if (qentry != (SuperQE *) NULL) {
+	    SLAddTail(&visited, &(qentry->sqe_node));
+	    nvisited++;
+	}
+    } while (qentry != (SuperQE *) NULL);
+
+    RelationUnsetLockForRead(inhrel);
+    heap_close(inhrel);
+
+    if (nvisited > 0) {
+	relidvec = (ObjectId *) palloc(nvisited * sizeof(ObjectId));
+	*supervec = relidvec;
+	for (vnode = (SuperQE *) SLGetHead(&visited);
+	     vnode != (SuperQE *) NULL;
+	     vnode = (SuperQE *) SLGetSucc(&(vnode->sqe_node))) {
+	    *relidvec++ = vnode->sqe_relid;
+	}
+    } else {
+	*supervec = (ObjectId *) NULL;
+    }
+
+    return (nvisited);
+}
+
+ObjectId **
+genxprod(arginh)
+    InhPaths *arginh;
+{
+    int nanswers;
+    ObjectId **result, **iter;
+    ObjectId *oneres;
+    int i, j;
+    int cur[MAXFARGS];
+
+    nanswers = 1;
+    for (i = 0; i < MAXFARGS; i++) {
+	nanswers *= (arginh[i].nsupers + 1);
+	cur[i] = 0;
+    }
+
+    iter = result = (ObjectId **) palloc(sizeof(ObjectId *) * nanswers);
+
+    /* compute the cross product from right to left */
+    for (;;) {
+	oneres = (ObjectId *) palloc(MAXFARGS * sizeof(ObjectId));
+
+	for (i = MAXFARGS - 1; i >= 0 && cur[i] == arginh[i].nsupers; i--)
+	    continue;
+
+	/* if we're done, do wildcard vector and return */
+	if (i < 0) {
+	    bzero(oneres, MAXFARGS * sizeof(ObjectId));
+	    *iter = oneres;
+	    return (result);
+	}
+
+	for (j = MAXFARGS - 1; j > i; j--)
+	    cur[j] = 0;
+
+	for (i = 0; i < MAXFARGS; i++) {
+	    if (cur[i] == 0)
+		oneres[i] = arginh[i].self;
+	    else
+		oneres[i] = arginh[i].supervec[cur[i]];
+	}
+
+	*iter++ = oneres;
+    }
+    /* NOTREACHED */
+}
+
+ObjectId *
+funcid_get_funcargtypes ( funcid )
+     ObjectId funcid;
 {
     HeapTuple func_tuple = NULL;
+    ObjectId *oid_array = NULL;
+    struct proc *foo;
+    func_tuple = SearchSysCacheTuple(PROOID,funcid,0,0,0);
 
-    func_tuple = SearchSysCacheTuple(PRONAME,function_name,0,0,0);
-
-    if ( func_tuple != NULL )
-      return ( func_tuple->t_oid );
-    else
-      return ( (OID) 0 );
+    if ( !HeapTupleIsValid ( func_tuple )) 
+	elog (WARN, "function %d does not exist", funcid);
+    
+    foo = (struct proc *)GETSTRUCT(func_tuple);
+    oid_array = foo->proargtypes.data;
+    return (oid_array);
 }
 
 /* Given a type id, returns the in-conversion function of the type */
@@ -575,6 +814,7 @@ typeid_get_retinfunc(type_id)
         infunc = type->typinput;
         return(infunc);
 }
+
 OID
 typeid_get_relid(type_id)
         int type_id;

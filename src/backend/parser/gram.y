@@ -5,26 +5,11 @@
   $Header$
 
   POSTGRES YACC rules/actions
-  the result returned by parser is the undecorated parsetree.
   
-  Conventions used in coding this YACC file
-  (apart from C code):
+  Conventions used in coding this YACC file:
+
   CAPITALS are used to represent terminal symbols.
   non-capitals are used to represent non-terminals.
-
-  the format of a YACC statement is :
-  <non-terminal>:
-	  <rule 1>
-		<action 1>
-	| <rule 2>
-		<action 2>
-		...
-	| <rule n>
-		<action n>
-	;
-
-  except when the action is < 30 chars long in which case it is
-  	  <rule x>			<action x>
 
  **********************************************************************/
 
@@ -96,7 +81,6 @@ static bool QueryIsRule = false;
 bool Input_is_string = false;
 bool Input_is_integer = false;
 bool Typecast_ok = true;
-bool is_postquel_function = false;
 %}
 
 /* Commands */
@@ -109,9 +93,9 @@ bool is_postquel_function = false;
 
 %token  ALL ALWAYS AFTER AND ARCHIVE ARCH_STORE ARG ASCENDING BACKWARD BEFORE
 	BINARY BY DEMAND DESCENDING EMPTY FORWARD FROM HEAVY INTERSECT INTO
-        IN INDEX INDEXABLE INHERITS INPUTPROC IS KEY LEFTOUTER LIGHT STORE
+	IN INDEX INDEXABLE INHERITS INPUTPROC IS KEY LEFTOUTER LIGHT STORE
 	MERGE NEVER NEWVERSION NONE NONULLS NOT PNULL ON ONCE OR OUTPUTPROC
-        PORTAL PRIORITY QUEL RIGHTOUTER RULE SCONST SORT TO TRANSACTION
+        PORTAL PRIORITY QUEL RIGHTOUTER RULE SCONST SETOF SORT TO TRANSACTION
         UNION UNIQUE USING WHERE WITH FUNCTION OPERATOR P_TYPE
 
 
@@ -464,6 +448,7 @@ def_arg:
 	| Op
 	| NumConst
       	| Sconst
+	| SETOF Id		{ $$ = lispCons(KW(setof), $2); }
 	;
 
 definition:
@@ -607,32 +592,16 @@ MergeStmt:
                         [, perbyte_cpu = <int | pre-defined>]
                         [, percall_cpu = <int | pre-defined>]
                         [, iscachable])
-                        arg is (<type-1> { , <type-n>})
+                        [arg is (<type-1> { , <type-n>})]
                         as <filename or code in language as appropriate>
 
   ************************************************************/
 
 ProcedureStmt:
 
-      DEFINE FUNCTION def_rest AS 
+      DEFINE FUNCTION def_rest AS SCONST
                 {
-		    List args;
-		    char *pfa = "not_a_relation";
-		    /* so current and new can be used in definition of 
-		       postquel functions */
-		    QueryIsRule = true;
-
-		    is_postquel_function = false;
-		    if(is_postquel_func($3)) {
-			is_postquel_function = true;
-			args = func_arg_list($3);
-		    }
-		}
-
-        SCONST
-                {
-		    QueryIsRule = false;
-		    $$ = lispCons($6, LispNil);
+		    $$ = lispCons($5, LispNil);
 		    $$ = lispCons($3, $$);
 		    $$ = lispCons(KW(function), $$);
 		    $$ = lispCons(KW(define), $$);
@@ -2142,59 +2111,3 @@ make_targetlist_expr ( name , expr )
 			      lispCons(CDR(expr),LispNil)) );
     
 }
-#ifdef foo
-static int is_postquel_func(parameters)
-     List parameters;
-{
-    List assoc_list;
-    List rest;
-    assoc_list = CDR(parameters);
-    foreach (rest, assoc_list) {
-	List item = CAR(CAR(rest));
-	List value;
-	
-	/*
-	 * if this parameter does not have an associated value.
-	 */
-	if ( !CDR(CAR(rest)) )
-	    continue;
-	else
-	    value = CAR(CDR(CAR(rest)));
-
- 	if (!stringp(item)) continue;
-	if (!strcmp(CString(item), "language")) {
-	    char *name;
-	    char *c;
-
-	    name = CString(value);
-	    for (c = name; *c != '\0'; c++)
-		*c = (islower(*c) ? toupper(*c) : *c);
-	    if (!strcmp(name, "POSTQUEL")) 
-		return true;
-	    else
-		return false;
-	}
-    }
-    return false;
-}
-static char *postquel_func_arg(parameters)
-     List parameters;
-{
-    List assoc_list;
-    List rest;
-    assoc_list = CDR(parameters);
-    foreach (rest, assoc_list) {
-	List item = CAR(CAR(rest));
-	List value = CAR(CDR(CAR(rest)));
-
-	if (atom(item) && (CAtom(item) == ARG)) {
-	    if (stringp(value)) {
-		char *name = CString(value);
-		return name;
-	    }
-	}
-
-    }
-    elog(WARN, "no zero argument postquel functions");
-}
-#endif foo

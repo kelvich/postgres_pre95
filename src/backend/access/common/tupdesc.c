@@ -339,8 +339,14 @@ BuildDescForRelation(schema, relname)
 	
 	entry = 	CAR(p);
 	attname = 	(Name) CString(CAR(entry));
-	typename = 	(Name) CString(CAR(CADR(entry)));
-	arry =		(Array) CDR(CADR(entry));
+
+	if (IsA(CADR(entry),LispList)) {
+	    typename = (Name) CString(CAR(CADR(entry)));
+	    arry = (Array) NULL;
+	} else {
+	    typename = (Name) CString(CADR(entry));
+	    arry = (Array) CDR(CADR(entry));
+	}
 
 	/*
 	 *  Support for arrays is extremely limited in the current

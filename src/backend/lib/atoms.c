@@ -1,8 +1,6 @@
 /* 
  * atoms.c
- * - string,atom lookup thingy, reduces strcmp traffic greatly
- * in the bowels of the system
- *
+ *	- lexical token lookup for reserved words in postquel
  */
 
 /*
@@ -114,6 +112,7 @@ ScanKeyword	ScanKeywords[] = {
 	{ "rewrite",		REWRITE		},
 	{ "rightouter",		RIGHTOUTER	},
 	{ "rule",		RULE		},
+	{ "setof",		SETOF		},
 	{ "sort",		SORT		},
 	{ "stdin",		STDIN		},
 	{ "stdout",		STDOUT		},

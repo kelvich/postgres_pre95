@@ -83,7 +83,7 @@ DefineFunction(nameargsexe, dest)
     String      perbyte_str, percall_str;
     int         count;
     char        *ptr;
-
+    bool	returnsSet;
 
     /* ----------------
      * Note:
@@ -103,12 +103,19 @@ DefineFunction(nameargsexe, dest)
       elog(WARN, "DefineFunction: Specified language not supported");	
 
     /* ----------------
-     * handle "returntype = X"
+     * handle "returntype = X".  The function could return a singleton
+     * value or a set of values.  Figure out which.
      * ----------------
      */
     entry = DefineListRemoveRequiredAssignment(&parameters, "returntype");
-    returnTypeName = DefineEntryGetString(entry);
-    
+    if (IsA(CDR(entry),LispList)) {
+	returnTypeName = LISPVALUE_STRING(CDR(CADR(entry)));
+	returnsSet = true;
+    } else {
+	returnTypeName = DefineEntryGetString(entry);
+	returnsSet = false;
+    }
+
     /* Next attributes only definable for C functions */
     if (!strcmp(languageName, "c"))
      {
@@ -214,6 +221,7 @@ DefineFunction(nameargsexe, dest)
      * ----------------
      */
     ProcedureDefine(name,
+		    returnsSet,
 		    returnTypeName,
 		    languageName,
 		    sourceCode,

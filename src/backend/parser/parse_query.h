@@ -14,7 +14,6 @@ LispValue SkipForwardPastFromList ARGS((void));
 StripRangeTable ARGS((void));
 extern LispValue make_const ARGS((LispValue value));
 extern LispValue make_param ARGS((int paramKind, char * relationName, char *attrName));
-extern List func_arg_list ARGS((List parameters));
 extern LispValue HandleNestedDots ARGS((List dots));
 extern LispValue setup_tlist ARGS((Func func, int attno, ObjectID typeid));
 extern bool complexType ARGS((LispValue typenode));

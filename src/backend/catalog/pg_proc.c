@@ -44,10 +44,11 @@
 
 /*ARGSUSED*/
 void
-ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
-		canCache, byte_pct, perbyte_cpu, 
+ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
+		prosrc, probin, canCache, byte_pct, perbyte_cpu, 
 		percall_cpu, outin_ratio, argList, dest)
      Name 		procedureName;
+     bool		returnsSet;
      Name 		returnTypeName;	
      Name 		languageName;
      char 		*prosrc;
@@ -71,9 +72,6 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
     ObjectId		typev[8];
     static char oid_string[64];
     static char temp[8];
-#ifdef USEPARGS
-    ObjectId		procedureObjectId;
-#endif
     ObjectId relid;
     List t;
     ObjectId toid;
@@ -141,10 +139,7 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
 	if (parameterCount == 8)
 	    elog(WARN, "Procedures cannot take more than 8 arguments");
 
-	if (strcmp(CString(t), "RELATION") == 0)
-	    toid = RELATION;
-	else
-	    toid = TypeGet((Name)(CString(t)), &defined);
+	toid = TypeGet((Name)(CString(t)), &defined);
 
 	if (!ObjectIdIsValid(toid)) {
 	    elog(WARN, "ProcedureDefine: arg type '%s' is not defined",
@@ -187,6 +182,7 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
     values[i++] = (char *) (Boolean) 0;
     values[i++] = (char *) canCache;
     values[i++] = (char *) parameterCount;
+    values[i++] = (char *) returnsSet;
     values[i++] = (char *) typeObjectId;
 
     values[i++] = fmgr(F_OID8IN, oid_string);
@@ -207,7 +203,7 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
 			&rdesc->rd_att,
 			values,
 			nulls);
-    
+
     RelationInsertHeapTuple(rdesc, (HeapTuple) tup, (double *) NULL);
 
     if (RelationGetRelationTupleForm(rdesc)->relhasindex)
@@ -218,46 +214,5 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
 	CatalogIndexInsert(idescs, Num_pg_proc_indices, rdesc, tup);
 	CatalogCloseIndices(Num_pg_proc_indices, idescs);
     }
-#ifdef USEPARGS
-    procedureObjectId = tup->t_oid;
-#endif
     RelationCloseHeapRelation(rdesc);
-
-    /* XXX Test to see if tuple inserted ?? */
-
-    /* XXX don't fill in PARG for now (not used for anything) */
-
-#ifdef USEPARGS
-    rdesc = RelationNameOpenHeapRelation(ProcedureArgumentRelationName);
-    for (i = 0; i < parameterCount; ++i) {
-	HeapTuple	typeTuple;
-
-	typeTuple = SearchSysCacheTuple(TYPNAME,
-					CString(CAR(argList))
-					(char *) NULL,
-					(char *) NULL,
-					(char *) NULL);
-	
-	if (!HeapTupleIsValid(typeTuple)) {
-	    elog(WARN, "DEFINE FUNCTION: arg type \"%s\" unknown",
-		 CString(CAR(argList)));
-	}
-
-	j = 0;
-	values[j++] = (char *) procedureObjectId;
-	values[j++] = (char *)(1 + i);
-	/* XXX ignore array bound for now */
-	values[j++] = (char *) '\0';
-	values[j++] = (char *)typeTuple->t_oid;
-	tup = FormHeapTuple(ProcedureArgumentRelationNumberOfAttributes,
-			    &rdesc->rd_att,
-			    values,
-			    nulls);
-
-	RelationInsertHeapTuple(rdesc, (HeapTuple) tup, (double *) NULL);
-    }
-    
-    RelationCloseHeapRelation(rdesc);
-#endif /* USEPARGS */
-    
 }

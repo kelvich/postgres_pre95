@@ -231,19 +231,20 @@ DATA(insert OID = 0 (  76 vtype            18 0 0 0  1 -12 0 t t 0 0 -1));
 { 81l, "proistrusted",  16l, 81l, 0l, 0l,  1,  5, 0, '\001', '\001', 0l, 0l, -1l }, \
 { 81l, "proiscachable", 16l, 81l, 0l, 0l,  1,  6, 0, '\001', '\001', 0l, 0l, -1l }, \
 { 81l, "pronargs",      21l, 81l, 0l, 0l,  2,  7, 0, '\001', '\001', 0l, 0l, -1l }, \
-{ 81l, "prorettype",    26l, 81l, 0l, 0l,  4,  8, 0, '\001', '\001', 0l, 0l, -1l }, \
-{ 81l, "proargtypes",   30l, 81l, 0l, 0l,  32, 9, 0,   '\0', '\001', 0l, 0l, \
+{ 81l, "proretset",     16l, 81l, 0l, 0l,  1,  8, 0, '\001', '\001', 0l, 0l, -1l }, \
+{ 81l, "prorettype",    26l, 81l, 0l, 0l,  4,  9, 0, '\001', '\001', 0l, 0l, -1l }, \
+{ 81l, "proargtypes",   30l, 81l, 0l, 0l, 32, 10, 0,   '\0', '\001', 0l, 0l, \
       -1l }, \
-{ 81l, "probyte_pct",   23l, 81l, 0l, 0l,  4, 10, 0, '\001', '\001', 0l, 0l, \
+{ 81l, "probyte_pct",   23l, 81l, 0l, 0l,  4, 11, 0, '\001', '\001', 0l, 0l, \
       -1l }, \
-{ 81l, "properbyte_cpu",   23l, 81l, 0l, 0l,  4, 11, 0, '\001', '\001', 0l, 0l, \
+{ 81l, "properbyte_cpu",   23l, 81l, 0l, 0l,  4, 12, 0, '\001', '\001', 0l, 0l, \
       -1l }, \
-{ 81l, "propercall_cpu",   23l, 81l, 0l, 0l,  4, 12, 0, '\001', '\001', 0l, 0l, \
+{ 81l, "propercall_cpu",   23l, 81l, 0l, 0l,  4, 13, 0, '\001', '\001', 0l, 0l, \
       -1l }, \
-{ 81l, "prooutin_ratio",   23l, 81l, 0l, 0l,  4, 13, 0, '\001', '\001', 0l, 0l, \
+{ 81l, "prooutin_ratio",   23l, 81l, 0l, 0l,  4, 14, 0, '\001', '\001', 0l, 0l, \
       -1l }, \
-{ 81l, "prosrc",        25l, 81l, 0l, 0l, -1,  14, 0,   '\0', '\001', 0l, 0l, -1l }, \
-{ 81l, "probin",        17l, 81l, 0l, 0l, -1,  15, 0,   '\0', '\001', 0l, 0l, -1l }
+{ 81l, "prosrc",        25l, 81l, 0l, 0l, -1,  15, 0,   '\0', '\001', 0l, 0l, -1l }, \
+{ 81l, "probin",        17l, 81l, 0l, 0l, -1,  16, 0,   '\0', '\001', 0l, 0l, -1l }
 
 DATA(insert OID = 0 (  81 proname          19 0 0 0 16   1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  81 proowner         26 0 0 0  4   2 0 t t 0 0 -1));
@@ -252,10 +253,15 @@ DATA(insert OID = 0 (  81 proisinh         16 0 0 0  1   4 0 t t 0 0 -1));
 DATA(insert OID = 0 (  81 proistrusted     16 0 0 0  1   5 0 t t 0 0 -1));
 DATA(insert OID = 0 (  81 proiscachable    16 0 0 0  1   6 0 t t 0 0 -1));
 DATA(insert OID = 0 (  81 pronargs         21 0 0 0  2   7 0 t t 0 0 -1));
-DATA(insert OID = 0 (  81 prorettype       26 0 0 0  4   8 0 t t 0 0 -1));
-DATA(insert OID = 0 (  81 proargtypes      30 0 0 0 32   9 0 f t 0 0 -1));
-DATA(insert OID = 0 (  81 prosrc           25 0 0 0 -1  10 0 f t 0 0 -1));
-DATA(insert OID = 0 (  81 probin           17 0 0 0 -1  11 0 f t 0 0 -1));
+DATA(insert OID = 0 (  81 proretset        16 0 0 0  1   8 0 t t 0 0 -1));
+DATA(insert OID = 0 (  81 prorettype       26 0 0 0  4   9 0 t t 0 0 -1));
+DATA(insert OID = 0 (  81 proargtypes      30 0 0 0 32  10 0 f t 0 0 -1));
+DATA(insert OID = 0 (  81 probyte_pct      23 0 0 0  4  11 0 t t 0 0 -1));
+DATA(insert OID = 0 (  81 properbyte_cpu   23 0 0 0  4  12 0 t t 0 0 -1));
+DATA(insert OID = 0 (  81 propercall_cpu   23 0 0 0  4  13 0 t t 0 0 -1));
+DATA(insert OID = 0 (  81 prooutin_ratio   23 0 0 0  4  14 0 t t 0 0 -1));
+DATA(insert OID = 0 (  81 prosrc           25 0 0 0 -1  15 0 f t 0 0 -1));
+DATA(insert OID = 0 (  81 probin           17 0 0 0 -1  16 0 f t 0 0 -1));
 DATA(insert OID = 0 (  81 ctid             27 0 0 0  6  -1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  81 lock             31 0 0 0 -1  -2 0 f t 0 0 -1));
 DATA(insert OID = 0 (  81 oid              26 0 0 0  4  -3 0 t t 0 0 -1));

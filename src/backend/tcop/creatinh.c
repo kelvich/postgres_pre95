@@ -434,7 +434,7 @@ MergeAttributes(schema, supers)
 	 */
 	heap_close(relation);
 	
-	schema = nconc(schema, partialResult);
+	schema = nconc(partialResult, schema);
     }
     
     return (schema);
