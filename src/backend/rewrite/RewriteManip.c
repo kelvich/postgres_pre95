@@ -236,7 +236,7 @@ List parsetree;
 RewriteInfo *info;
 {
     
-    if ((info->action == DELETE) || (info->action == RETRIEVE))	return;
+/*    if ((info->action == DELETE) || (info->action == RETRIEVE))	return;*/
     ResolveNew(info,parse_targetlist(parsetree),info->rule_action);
 }
 /* 
