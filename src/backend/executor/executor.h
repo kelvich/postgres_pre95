@@ -36,6 +36,8 @@
 #include "mcxt.h"
 #include "parse.h"
 #include "pmod.h"
+#include "recursion_a.h"
+#include "recursion.h"
 #include "rel.h"
 #include "rproc.h"
 #include "rulemgr.h"
@@ -227,6 +229,7 @@
 #define ExecIsResult(node)	IsA(node,Result)
 #define ExecIsExistential(node)	IsA(node,Existential)
 #define ExecIsAppend(node)	IsA(node,Append)
+#define ExecIsRecursive(node)	IsA(node,Recursive)
 #define ExecIsNestLoop(node)	IsA(node,NestLoop)
 #define ExecIsMergeJoin(node)	IsA(node,MergeJoin)
 #define ExecIsHashJoin(node)	IsA(node,HashJoin)
@@ -277,6 +280,7 @@ extern Const		ConstFalse;
 #include "executor/nestloop.h"
 #include "executor/procnode.h"
 #include "executor/qual.h"
+#include "executor/recursive.h"
 #include "executor/result.h"
 #include "executor/rulelocks.h"
 #include "executor/rulemgr.h"
