@@ -45,7 +45,7 @@ FILE_MAN_DIR=${PG_MAN_DIR}/man5
 
 MANPAGE: .USE
 	HERE=`pwd`; cd ${.CURDIR}; \
-	${SOELIM} ${.ALLSRC} > $$HERE/${.TARGET}
+	${SOELIM} ${.ALLSRC:S,^${.CURDIR}/,,g} > $$HERE/${.TARGET}
 
 ${PROG_SRC_EXT}${PROG_MAN_EXT}: MANPAGE
 ${CMD_SRC_EXT}${CMD_MAN_EXT}: MANPAGE
@@ -155,7 +155,7 @@ TR_SOURCES= \
 
 OPTAB: .USE
 	HERE=`pwd`; cd ${.CURDIR}; \
-	sh ${SHOPTS} ${.CURDIR}/make_optab ${.ALLSRC} > $$HERE/${.TARGET}
+	sh ${SHOPTS} ./make_optab ${.ALLSRC:S,^${.CURDIR}/,,g} > $$HERE/${.TARGET}
 
 binary.nr:	${.CURDIR}/postquel/binary.tbl OPTAB
 left_unary.nr:	${.CURDIR}/postquel/left_unary.tbl OPTAB
@@ -163,7 +163,7 @@ right_unary.nr:	${.CURDIR}/postquel/right_unary.tbl OPTAB
 
 ${KW_OBJS}:	${C_SOURCES}
 	HERE=`pwd`; cd ${.CURDIR}; \
-	sh ${SHOPTS} ${.CURDIR}/make_kwtab ${.ALLSRC} > $$HERE/${.TARGET}
+	sh ${SHOPTS} ./make_kwtab ${.ALLSRC:S,^${.CURDIR}/,,g} > $$HERE/${.TARGET}
 
 NR_MAC_SOURCES= ${.CURDIR}/tmac.an.nr
 
@@ -250,12 +250,12 @@ ${OBJS}: ${NR_MAC_SOURCES}
 
 ref.cat: ${SOURCES} ${NR_OBJS} ${KW_OBJS} ${NR_MAC_SOURCES}
 	HERE=`pwd`; cd ${.CURDIR}; \
-	${NROFF} ${NROFFOPTS} ${NR_MAC_SOURCES} ${SOURCES} > $$HERE/${.TARGET}
+	${NROFF} ${NROFFOPTS} ${NR_MAC_SOURCES:S,^${.CURDIR}/,,g} ${SOURCES:S,^${.CURDIR}/,,g} > $$HERE/${.TARGET}
 
 
 ref.ps: ${SOURCES} ${NR_OBJS} ${KW_OBJS} ${TR_MAC_SOURCES}
 	HERE=`pwd`; cd ${.CURDIR}; \
-	${GROFF} ${GROFFOPTS} ${TR_MAC_SOURCES} ${SOURCES} > $$HERE/${.TARGET}
+	${GROFF} ${GROFFOPTS} ${TR_MAC_SOURCES:S,^${.CURDIR}/,,g} ${SOURCES:S,^${.CURDIR}/,,g} > $$HERE/${.TARGET}
 
 
 CLEANFILES+= ${NR_OBJS} ${KW_OBJS} ref.cat ref.ps
