@@ -16,12 +16,15 @@
 #define SlavesIncluded
 #include "utils/rel.h"
 #include "nodes/plannodes.h"
+#include "executor/x_shmem.h"
 
 extern int MyPid;
 #define IsMaster	(MyPid == -1)
 
 extern int ParallelExecutorEnableState;
 #define ParallelExecutorEnabled()	ParallelExecutorEnableState
+extern int NumberSlaveBackends;
+#define GetNumberSlaveBackends()	NumberSlaveBackends
 
 /* slave info will stay in shared memory */
 struct slaveinfo {
@@ -66,6 +69,7 @@ struct lpgroupinfo {
     Fragment		fragment;
     ProcessNode		*memberProc;
     int			nmembers;
+    MemoryHeader	groupSMQueue;
     struct lpgroupinfo	*nextfree;
 };
 typedef struct lpgroupinfo ProcGroupLocalInfoData;
@@ -75,5 +79,11 @@ extern int getFreeProcGroup();
 extern int getFinishedProcGroup();
 extern void freeProcGroup();
 extern void wakeupProcGroup();
+extern void ProcGroupSMBeginAlloc();
+extern void ProcGroupSMEndAlloc();
+extern char *ProcGroupSMAlloc();
+extern void ProcGroupSMClean();
+extern void SlaveTmpRelDescInit();
+extern char *SlaveTmpRelDescAlloc();
 
 #endif  TcopIncluded
