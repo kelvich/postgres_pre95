@@ -26,13 +26,10 @@ RcsId("$Header$");
 /* #include "var-access.h"	/* XXX for AMI_OVERRIDE */
 extern bool	AMI_OVERRIDE;	/* XXX style */
 
-#ifdef	USE_UNUSED
 #ifndef PG_STANDALONE
 #define BIGENDIAN		/* e.g.: 68000, MIPS, Tahoe */
 /*#define LITTLEENDIAN		/* e.g.: VAX, i386 */
 #endif /* !PG_STANDALONE */
-
-#endif /* !defined(USE_UNUSED) */
 
 #include "syscache.h"
 
@@ -414,7 +411,6 @@ SearchSysCacheGetAttribute(cacheId, attributeNumber,
 	return(returnValue);
 }
 
-#ifdef	USE_UNUSED
 /*
  * DANGER!!!  Bizarre byte-ordering hacks follow.  -hirohama
  */
@@ -531,6 +527,5 @@ lvTypeDefaultRetrieve(index)
 }
 
 #endif
-#endif	/* defined(USE_UNUSED) */
 
 #endif /* !PG_STANDALONE */
