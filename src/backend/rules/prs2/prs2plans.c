@@ -477,7 +477,8 @@ LispValue actionPlan;
 
     command = root_command_type_atom(parse_root(parseTree));
 
-    queryDescriptor = MakeQueryDesc(
+    queryDescriptor = (LispValue)
+			MakeQueryDesc(
 			    command,
 			    parseTree,
 			    plan,
