@@ -133,6 +133,7 @@ Prs2EStateInfo prs2EStateInfo;
     status = prs2RunOnePlanAndGetValue(
 		    planQual,
 		    paramList,
+		    prs2EStateInfo,
 		    &dummyDatum,
 		    &dummyIsNull);
     
@@ -151,10 +152,16 @@ LispValue plans;
 ParamListInfo paramList;
 Prs2EStateInfo prs2EStateInfo;
 {
+    int feature;
     LispValue onePlan;
 
     foreach(onePlan, plans) {
-	prs2RunOnePlan(CAR(onePlan), paramList, prs2EStateInfo);
+	/*
+	 * XXX SOS XXX
+	 * What kind of 'feature' should we use ??
+	 */
+	feature = EXEC_RESULT;
+	prs2RunOnePlan(CAR(onePlan), paramList, prs2EStateInfo, feature);
     }
 	
 }
@@ -186,7 +193,7 @@ Boolean *isNullP;
     TupleDescriptor resultTupleDescriptor;
     HeapTuple resultTuple;
 
-    result = prs2RunOnePlan(actionPlan, paramList, prs2EStateInfo, EXEC_START);
+    result = prs2RunOnePlan(actionPlan,paramList,prs2EStateInfo,EXEC_RETONE);
 
     res1 = nth(0, result);
     res2 = nth(1, result);
