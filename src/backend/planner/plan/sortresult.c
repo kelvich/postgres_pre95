@@ -210,19 +210,19 @@ LispValue pathlist,sortkeys,rel,width ;
                          	    (1 == _query_max_level_);
 	  int newcost = 0;
 
-	  if(!equal_path_path_ordering (get_ordering(sortkeys),
-					get_ordering (path)) ||
+	  if(!equal_path_path_ordering (get_sortorder(sortkeys),
+					get_p_ordering (path)) ||
 	     !(match_sortkeys_pathkeys (get_relid (sortkeys),
 					get_sortkeys (sortkeys),
 					get_keys (path)))) {
 	       set_sortpath (path,sortkeys);
-	       newcost = get_cost (path) + 
+	       newcost = get_path_cost (path) + 
 		 cost_sort (lispCons(lispInteger(1),LispNil),
 			    get_size (rel),width,final_result);
 	  } 
 	  else 
 	    if (final_result) {
-		 newcost = get_cost (path) + 
+		 newcost = get_path_cost (path) + 
 		   cost_result (get_size (rel),width);
 	    }
 
@@ -232,12 +232,12 @@ LispValue pathlist,sortkeys,rel,width ;
 	  /* cheapest path, change the cheapest path field. */
 		
 	  if (newcost) {
-	       set_cost (path,newcost);
+	       set_path_cost (path,newcost);
 	       if(equal (path,get_cheapestpath (rel))) {
 		    set_cheapest (rel,get_pathlist (rel));
 	       } 
 	       else 
-		 if (newcost < get_cost (get_cheapestpath (rel))) {
+		 if (newcost < get_path_cost (get_cheapestpath (rel))) {
 		      set_cheapestpath (rel,path);
 		 } 
 	  }
