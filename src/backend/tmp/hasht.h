@@ -13,6 +13,8 @@
 
 #include "utils/hsearch.h"
 
-void HashTableWalk ARGS((HTAB *hashtable, void (*func)(), int arg));
+typedef void (*hasht_func)();
+
+void HashTableWalk ARGS((HTAB *hashtable, hasht_func func, int arg));
 
 #endif	/* !defined(HashTIncluded) */
