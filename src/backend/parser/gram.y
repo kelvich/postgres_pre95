@@ -88,6 +88,8 @@ Relation parser_current_rel = NULL;
 static bool QueryIsRule = false;
 
 bool Input_is_string = false;
+/* ron */
+bool Input_is_integer = false;
 bool Typecast_ok = true;
 
 %}
@@ -1763,7 +1765,8 @@ spec_tail:
 	;
 
 AexprConst:
-	  Iconst			{ $$ = make_const ( $1 ) ; }
+	  Iconst			{ $$ = make_const ( $1 ) ; 
+					  Input_is_integer = true; }
 	| FCONST			{ $$ = make_const ( $1 ) ; }
 	| CCONST			{ $$ = make_const ( $1 ) ; }
 	| Sconst 			{ $$ = make_const ( $1 ) ; 
@@ -1832,6 +1835,7 @@ parser_init()
 	ResdomNoIsAttrNo = false;
 	QueryIsRule = false;
 	Input_is_string = false;
+	Input_is_integer = false;
 	Typecast_ok = true;
 }
 
@@ -1859,6 +1863,7 @@ make_targetlist_expr ( name , expr )
        expr = lispCons( lispInteger(attrtype),
                 MakeConst(attrtype, attrlen, LispNil, 1));
        Input_is_string = false;
+       Input_is_integer = false;
        Typecast_ok = true;
        if( lispAssoc( lispInteger(resdomno),p_target_resnos)
           != -1 ) {
@@ -1895,9 +1900,15 @@ make_targetlist_expr ( name , expr )
               CDR(expr) = (LispValue) MakeConst(attrtype, attrlen,
                 fmgr(typeid_get_retinfunc(attrtype), val),
                 0);
-	} else if (attrtype != type_id)
+	} else if((Input_is_integer && Typecast_ok) && (attrtype != type_id)){
+/* ron */
+              CDR(expr) = (LispValue) 
+			parser_typecast2 ( expr, get_id_type((long)attrtype));
+	} else 
+	     if (attrtype != type_id)
 		elog(WARN, "unequal type in tlist : %s \n", CString(name));
 	Input_is_string = false;
+	Input_is_integer = false;
         Typecast_ok = true;
 
 	if( lispAssoc( lispInteger(resdomno),p_target_resnos) 
