@@ -44,7 +44,7 @@ POSTGRES INSTALLATION INSTRUCTIONS
 .r
 .ps 14
 .sp 0.25v
-C-Only Release 2.03
+C-Only Release 2.1
 .sp 0.25v
 .ce 0
 .sp
@@ -343,7 +343,7 @@ Login as postgres.
 where <tape-device> is the name for your tape device, i.e.,
 /dev/rmt0, /dev/rst8, etc.
 .pp
-The file "postgres-v2r03.tar.Z" will appear in your \*(PG home directory.
+The file "postgres-v2r1.tar.Z" will appear in your \*(PG home directory.
 You may need to re-wind your tape to get it out of your tape
 drive - see your system administrator for instructions.
 .pp
@@ -356,21 +356,21 @@ Make sure your current working directory is the \*(PG home
 directory, and that the \*(PG tar file is there.
 For the purpose of this discussion, the \*(PG tar file will be called
 .pp
-postgres-v2r03.tar.Z
+postgres-v2r1.tar.Z
 .pp
 Uncompress the tar file.
 .pp
-% uncompres postgres-v2r03.tar.Z
+% uncompres postgres-v2r1.tar.Z
 .pp
 A larger file should now be in the \*(PG home directory, and the '.Z'
 ending should be gone, so it is now named
 .pp
-postgres-v2r03.tar
+postgres-v2r1.tar
 .pp
 Extract \*(PG from the tar file, using the "extract, verbose, file"
 options:
 .pp
-% tar xvf postgres-v2r03.tar
+% tar xvf postgres-v2r1.tar
 .pp
 Lots of file names and such should appear on the screen.
 This step may take several minutes.
@@ -623,12 +623,16 @@ To do this,
 type 
 .(l
 % \fBsetenv POSTGRESHOME ~postgres
+% ~postgres/bin/postmaster &
 % ~postgres/bin/createdb postgres\fR
+% kill %~postgres/bin/postmaster
 .)l
 This will create the bootstrap template database, from which
 the database 
 .q postgres
-will be generated.
+will be generated.  The
+.i postmaster
+program will be discussed later.
 If several users wish to use \*(PG,
 we advise you to create additional databases,
 one for each user.
