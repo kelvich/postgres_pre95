@@ -4,6 +4,7 @@
  *
  *	integer:		itoa, ltoa
  *	floating point:		ftoa, atof1
+ *
  */
 
 #include "tmp/postgres.h"
@@ -15,56 +16,28 @@ RcsId("$Header$");
  *	itoa		- converts a short int to its string represention
  *
  *	Note:
- *		Based on ~ingres/source/gutil/atoi.c
+ *		previously based on ~ingres/source/gutil/atoi.c
+ *		now uses vendor's sprintf conversion
  */
 itoa(i, a)
 	register int	i;
 	register char	*a;
 {
-	register char	*t;
-	char		temp[6];
-
-	if (i < 0) {
-		i = -i;
-		*a++ = '-';
-	}
-	t = temp + 5;
-	*t-- = '\0';
-	do {
-		*t-- = i % 10 + '0';
-		i /= 10;
-	} while (i != 0);
-	do {
-		*a++ = *++t;
-	} while (*t != '\0');
+        sprintf(a, "%hd", (short)i);
 }
 
 /*
  *	ltoa		- converts a long int to its string represention
  *
  *	Note:
- *		Based on ~ingres/source/gutil/atoi.c
+ *		previously based on ~ingres/source/gutil/atoi.c
+ *		now uses vendor's sprintf conversion
  */
 ltoa(l, a)
 	register long	l;
 	register char	*a;
 {
-	register	char	*t;
-	char			temp[11];
-
-	if (l < 0) {
-		l = -l;
-		*a++ = '-';
-	}
-	t = temp + 10;
-	*t-- = '\0';
-	do {
-		*t-- = l % 10 + '0';
-		l /= 10;
-	} while (l != 0);
-	do {
-		*a++ = *++t;
-	} while (*t != '\0');
+        sprintf(a, "%ld", l);
 }
 
 /*
