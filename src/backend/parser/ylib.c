@@ -430,9 +430,8 @@ ParseFunc ( funcname , fargs )
 	    ObjectId toid;
 	    
 	    toid = CInteger(CAR(pair));
-	    if (toid != oid_array[x]) 
-		elog(WARN,
-	"Argument type mismatch in function '%s' at arg %d",
+	    if (oid_array[x] != 0 && toid != oid_array[x]) 
+		elog(WARN, "Argument type mismatch in function '%s' at arg %d",
 		     funcname, x+1);
 	    CAR(i) = CDR(pair);
 	    x++;
