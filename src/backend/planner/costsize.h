@@ -1,4 +1,11 @@
 /*$Header$*/
+extern bool _enable_seqscan_;
+extern bool _enable_indexscan_;
+extern bool _enable_sort_;
+extern bool _enable_hash_;
+extern bool _enable_nestloop_;
+extern bool _enable_mergesort_;
+extern bool _enable_hashjoin_;
 extern Cost cost_seqscan ARGS((LispValue relid, int relpages, int reltuples));
 extern Cost cost_index ARGS((ObjectId indexid, int expected_indexpages, int selec, int relpages, int reltuples, int indexpages, int indextuples));
 extern Cost cost_sort ARGS((LispValue keys, int tuples, LispValue width, LispValue noread));
