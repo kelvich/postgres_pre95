@@ -8,7 +8,7 @@ monitor \*- run the interactive terminal monitor
 .uh SYNOPSIS
 .lp
 .b monitor
-[-h hostname] [-p port] [-t tty_device] [-N] [-A] [-c query] [-d path] [-q]
+[-h hostname] [-p port] [-t tty_device] [-N] [-T] [-c query] [-d path] [-q]
 [-o options] 
 dbname
 .uh DESCRIPTION
@@ -50,7 +50,7 @@ any attempt at formatting.  This is useful in conjunction with the
 .b -c
 option in shell scripts.
 .sp
-\fI-A\fR specifies that attribute names will not be printed - only the
+\fI-T\fR specifies that attribute names will not be printed - only the
 data itself.  This is useful in conjunction with the 
 .b -c
 option in shell scripts.
@@ -59,7 +59,7 @@ option in shell scripts.
 This is useful for shell scripts, typically in conjunction with the
 .b -N
 and
-.b -A
+.b -T
 options.  Examples of shell scripts in the POSTGRES distribution using 
 .b monitor -c
 are createdb, destroydb, createuser, and destroyuser.
