@@ -76,6 +76,11 @@ struct	skey	key[];
 /*	FILE		*outfile;	/* file of ordered tuples */
 
 	TRACE(X, PDEBUG4(psort, "entering with relid", oldrel->rd_att.data[0]->attrelid, "and relid", newrel->rd_att.data[0]->attrelid));
+
+	AssertArg(nkeys >= 1);
+	AssertArg(key[0].sk_attnum != 0);
+	AssertArg(key[0].sk_opr != 0);
+
 	Nkeys = nkeys;
 	Key = key;
 	SortMemory = 0;
@@ -538,9 +543,13 @@ gettape()
 	if (!tapeinit) {
 		Tempfile[sizeof (TEMPDIR) - 1] = '/';
 		bcopy(TAPEEXT, Tempfile + sizeof (TEMPDIR), sizeof (TAPEEXT));
+		tapeinit = 1;
 	}
 	tp->tl_name = malloc((unsigned)sizeof(Tempfile));
-	bcopy(Tempfile, tp->tl_name, sizeof (TEMPDIR) + sizeof (TAPEEXT) - 1);
+	/*
+	 * now, copy template with final null into malloc'd space
+	 */
+	bcopy(Tempfile, tp->tl_name, sizeof (TEMPDIR) + sizeof (TAPEEXT));
 	mktemp(tp->tl_name);
 
 	AllocateFile();
