@@ -1,4 +1,6 @@
 #
+# $Header$
+#
 # This part of the makefile is kinda weird.
 #
 # I did what worked -- if you can do better, by all means...
@@ -47,7 +49,7 @@ execnodes.c: execnodes.h GENCREATOR
 
 .depend: ${GENFILES} ${INHERITSFILES} ${GENCREATORFILES}
 
-${PROG}: tags.h ${GENFILES}
+${PROG}: ${INHERITSFILES} ${GENFILES}
 
 CLEANFILES+= ${GENFILES} ${INHERITSFILES} ${GENCREATORFILES}
 
