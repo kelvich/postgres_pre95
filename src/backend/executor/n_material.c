@@ -132,7 +132,8 @@ ExecMaterial(node)
 	 * ----------------
 	 */
 	currentScanDesc = ambeginscan(currentRelation,    /* relation */
-				      (dir == EXEC_BKWD), /* bkwd flag */
+				      ScanDirectionIsBackward(dir),
+							  /* bkwd flag */
 				      NowTimeQual,        /* time qual */
 				      0, 		  /* num scan keys */
 				      NULL); 		  /* scan keys */
@@ -159,7 +160,8 @@ ExecMaterial(node)
     currentScanDesc = get_css_currentScanDesc((CommonScanState)matstate);
     
     heapTuple = amgetnext(currentScanDesc, 	/* scan desc */
-			  (dir == EXEC_BKWD), 	/* bkwd flag */
+			  ScanDirectionIsBackward(dir),
+						/* bkwd flag */
 			  &buffer); 		/* return: buffer */
 
     /* ----------------

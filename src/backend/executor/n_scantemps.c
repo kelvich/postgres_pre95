@@ -65,7 +65,7 @@ ScanTemps node;
     
     currentScanDesc = get_css_currentScanDesc((CommonScanState) scantempState);
     heapTuple = amgetnext(currentScanDesc,
-			  (dir == EXEC_BKWD),
+			  ScanDirectionIsBackward(dir),
 			  NULL);
     
     while (heapTuple == NULL) {
@@ -98,7 +98,7 @@ ScanTemps node;
         dir = get_es_direction(estate);
 	
         currentScanDesc = ambeginscan(tempreldesc,
-                                      (dir == EXEC_BKWD),
+                                      ScanDirectionIsBackward(dir),
                                       NowTimeQual,
                                       0,
                                       NULL);
@@ -111,7 +111,7 @@ ScanTemps node;
 	set_st_whichplan(scantempState, whichplan);
 	
         heapTuple = amgetnext(currentScanDesc,
-                              (dir == EXEC_BKWD),
+                              ScanDirectionIsBackward(dir),
                               &buffer);
       }
 
@@ -201,7 +201,7 @@ ExecInitScanTemps(node, estate, parent)
      */
     dir = get_es_direction(estate);
     currentScanDesc = ambeginscan(tempreldesc,
-				  (dir == EXEC_BKWD),
+				  ScanDirectionIsBackward(dir),
 				  NowTimeQual,
 				  0,
 				  NULL);

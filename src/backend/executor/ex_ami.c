@@ -165,7 +165,7 @@ ExecBeginScan(relation, nkeys, skeys, isindex, dir, time_range)
 					 skeys);
     } else {
 	scanDesc = (Pointer) ambeginscan(relation,
-					 (dir == EXEC_BKWD),
+					 ScanDirectionIsBackward(dir),
 					 time_range,
 					 nkeys,
 					 skeys);
@@ -335,7 +335,8 @@ ExecReScanR(relDesc, scanDesc, direction, nkeys, skeys)
 {
     if (scanDesc != NULL)
 	amrescan(scanDesc,			/* scan desc */
-		 (direction == EXEC_BKWD),      /* backward flag */
+		 ScanDirectionIsBackward(direction),
+						/* backward flag */
 		 skeys);			/* scan keys */
     
     return scanDesc;

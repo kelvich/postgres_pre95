@@ -65,7 +65,8 @@ SeqNext(node)
      * ----------------
      */
     tuple = heap_getnext(scandesc, 		   /* scan desc */
-			 (direction == EXEC_BKWD), /* backward flag */
+			 ScanDirectionIsBackward(direction),
+						   /* backward flag */
 			 &buffer); 	           /* return: buffer */
 
     /* ----------------

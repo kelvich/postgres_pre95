@@ -237,7 +237,8 @@ ExecSort(node)
 	 * ----------------
 	 */
 	currentScanDesc = ambeginscan(currentRelation,    /* relation */
-				      (dir == EXEC_BKWD), /* bkwd flag */
+				      ScanDirectionIsBackward(dir),
+							  /* bkwd flag */
 				      NowTimeQual,        /* time qual */
 				      0, 		  /* num scan keys */
 				      NULL); 		  /* scan keys */
@@ -279,7 +280,8 @@ ExecSort(node)
     currentScanDesc = get_css_currentScanDesc((CommonScanState) sortstate);
     
     heapTuple = amgetnext(currentScanDesc, 	/* scan desc */
-			  (dir == EXEC_BKWD), 	/* bkwd flag */
+			  ScanDirectionIsBackward(dir),
+						/* bkwd flag */
 			  &buffer); 		/* return: buffer */
 
     return (TupleTableSlot)

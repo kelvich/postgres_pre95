@@ -494,7 +494,7 @@ ExecMergeJoin(node)
     mergeclauses = get_mergeclauses(node);
     qual = 	   get_qpqual((Plan) node);
     
-    if (direction == EXEC_FRWD) {
+    if (ScanDirectionIsForward(direction)) {
 	outerSkipQual = get_mj_OSortopI(mergestate);
 	innerSkipQual = get_mj_ISortopO(mergestate);
     } else {

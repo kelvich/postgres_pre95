@@ -411,7 +411,7 @@ ExecProcAppend(node)
          */
         whichplan = get_as_whichplan(unionstate);
         
-        if (direction == EXEC_FRWD)
+        if (ScanDirectionIsForward(direction))
 	{
             set_as_whichplan(unionstate, whichplan + 1);
 	}
