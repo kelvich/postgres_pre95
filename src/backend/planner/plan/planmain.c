@@ -80,6 +80,9 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
      LispValue sortkeys = LispNil;
      LispValue flattened_tlist = LispNil;
      List 	level_tlist = LispNil;
+     List	result_of_flatten_tlist = LispNil;
+     List	agg_tlist = LispNil;
+     int	aggidnum = -17; /* okay, a hack on uniquness */
      Plan	subplan = (Plan)NULL;
      List	subtlist = LispNil;
      Plan 	restplan = (Plan)NULL;
@@ -125,11 +128,19 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	 qual = nset_difference (qual,constant_qual);
 	 fix_opids (constant_qual);
 	 sortkeys = relation_sortkeys (tlist);
-	 flattened_tlist = flatten_tlist (tlist);
+	 /* flatten_tlist will now return (var, aggs, rest) */
+
+	 result_of_flatten_tlist = flatten_tlist(tlist);
+
+	 flattened_tlist = CAR(result_of_flatten_tlist);
+	 agg_tlist = CADR(result_of_flatten_tlist);
+
+	 result_of_flatten_tlist = CDR(result_of_flatten_tlist);
 	 if (flattened_tlist)
 	   level_tlist = flattened_tlist;
 	 else if (tlist)
-	   level_tlist = tlist;
+	   level_tlist = CADR(result_of_flatten_tlist);
+	   /* orig_tlist minus the aggregates */
 	 else
 	   level_tlist = (List)NULL;
      }
@@ -140,7 +151,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
      /*   - the query is a replace (a scan must still be done in this case). */
 
      if ((0 == maxlevel || 
-	  (1 == currentlevel && null (flattened_tlist))) &&
+	  (1 == currentlevel && null (result_of_flatten_tlist))) &&
 	 null (qual)) {
 	  switch (command_type) {
 	       
@@ -183,11 +194,28 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 /*    and destructively modify the target list of the newly created */
 /*    subplan to contain the appropriate join references. */
 	  
-     subplan = subplanner (level_tlist,
-			   tlist,
-			   qual,
-			   currentlevel,
-			   sortkeys);
+     if(level_tlist != NULL) {
+	 subplan = subplanner (level_tlist,
+				tlist,
+				qual,
+				currentlevel,
+				sortkeys);
+     }
+     else if(agg_tlist != NULL) {
+     /* level_tlist was null in this case so our base plan is the aggnode */
+
+        subplan = (Plan)make_agg(CAR(agg_tlist), --aggidnum);
+
+	/* this calls the planner on the inner query, builds the Agg node,
+	 * sets the appropriate fields, and returns the Agg node.
+	 */
+        agg_tlist = CDR(agg_tlist);
+     }
+     /* we're assuming we Have a targetlist at this point */
+     if(agg_tlist != NULL) {
+	/* are there any aggs left...*/
+	subplan = (Plan)make_aggplan(subplan, agg_tlist, aggidnum);
+     }
      subtlist = get_qptargetlist (subplan);
      set_tlist_references (subplan);
 
@@ -279,6 +307,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
  *    	transparent (i.e., essentially ignored) from here on.
  *    
  *    	'flat-tlist' is the flattened target list
+ *	--which now is of the form (vars, aggs)--, jc
  *    	'original-tlist' is the unflattened target list
  *    	'qual' is the qualification to be satisfied
  *    	'level' is the current nesting level
@@ -384,6 +413,48 @@ make_result( tlist,resrellevelqual,resconstantqual,left,right)
     
     return(node);
 } 
+
+/* for modifying in case of aggregates.
+ * we know that there are aggregates in the tlist*/
+Plan
+make_aggplan(subplan, agg_tlist, aggidnum)
+    LispValue agg_tlist;
+    Plan subplan;
+    int aggidnum;
+{
+     List agg_tl_entry = LispNil;
+     List add_to_tl = LispNil;
+     NestLoop joinnode = (NestLoop)NULL;
+     LispValue entry = LispNil;
+     List level_tlist = LispNil;
+     Agg aggnode;
+/*    extern search_quals(); */
+
+	/* we're assuming that subplan is not null from the caller*/
+	agg_tl_entry = CAR(agg_tlist);
+	aggnode = make_agg(agg_tl_entry, --aggidnum);
+
+	level_tlist = nconc(get_qptargetlist(subplan),
+					    get_qptargetlist(aggnode));
+	joinnode = make_nestloop(level_tlist, LispNil, subplan,
+							  aggnode);
+	/* inner tree is the aggregate, outer tree is the rest of
+	 * the plan.  quals are nil here since we don't have aggregate
+	 * functions yet.
+	 */
+
+	if(CDR(agg_tlist)) {  /* is this the last agg_tlist entry? */
+	   /* if not */
+	   return make_aggplan(joinnode, CDR(agg_tlist), aggidnum);
+            /* XXX jc.  type problem with joinnode and Plan subplan? */
+         }
+	 else { /* if so */
+	      return((Plan) joinnode);
+	 }
+}
+
+
+	
 
 bool
 plan_isomorphic(p1, p2)
