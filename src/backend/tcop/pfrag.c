@@ -125,17 +125,19 @@ Fragment rootFragment;
 	 *	signal slave execution start
 	 * ----------------
 	 */
-	for (i=0; i<nproc; i++) {
+	for (i=1; i<nproc; i++) {
 	    SLAVE1_elog(DEBUG, "Master Backend: signaling slave %d", i);
 	    V_Start(i);
 	}
+
+	ProcessQueryDesc((List)SlaveQueryDescsP[0]);
 
 	/* ----------------
 	 *	wait for slaves to complete execution
 	 * ----------------
 	 */
 	SLAVE_elog(DEBUG, "Master Backend: waiting for slaves...");
-	P_Finished(nproc);
+	P_Finished(nproc - 1);
 	SLAVE_elog(DEBUG, "Master Backend: slaves execution complete!");
 
 	nproc = 0;
