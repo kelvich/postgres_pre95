@@ -5,21 +5,21 @@
 
 #include <sys/types.h>
 #include <sys/file.h>
-#include "align.h"
+#include "tmp/align.h"
 
-#include "c.h"
-#include "clib.h"
+#include "tmp/c.h"
+#include "tmp/clib.h"
 
-#include "item.h"
+#include "storage/item.h"
 
-#include "buf.h"
-#include "bufmgr.h"
-#include "log.h"
-#include "page.h"
-#include "pagenum.h"
-#include "part.h"
+#include "storage/buf.h"
+#include "storage/bufmgr.h"
+#include "utils/log.h"
+#include "storage/page.h"
+#include "storage/pagenum.h"
+#include "storage/part.h"
 
-#include "bufpage.h"
+#include "storage/bufpage.h"
 #include "internal_page.h"
 
 RcsId("$Header$");
