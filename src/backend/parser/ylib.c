@@ -17,6 +17,7 @@
 #include "parser/parse.h"
 #include "parser/parsetree.h"
 #include "utils/builtins.h"
+#include "catalog/syscache.h"
 
 RcsId("$Header$");
 
@@ -412,22 +413,30 @@ List typename;
 {
         Type tp;
         LispValue temp, list;
-        Datum val;
 	char delim; /* array delimiter */
+ 	TypeTupleForm type_struct; 
+        HeapTuple type_tuple;
+	oid typelem;
+        char *s;
 
-        tp = type("unknown"); /* unknown for now, will be type coerced */
-        val = PointerGetDatum(textin(arraylist->val.str));
-/*	delim = FindDelimiter(CString(CAR(typename))); */
-/*	temp = GetNextArrayElem(val, delim); 
-	while ( temp ){
-		list = lispCons(list, temp); 
-		temp = GetNextArrayElem(val, delim);
-	}
-*/
-	list = (LispValue) array_in((char *) val, typename);
+
+/*        tp = type("unknown"); /* unknown for now, will be type coerced */
+	type_tuple =  SearchSysCacheTuple(TYPNAME,
+					CString(typename),
+					NULL,
+					NULL,
+					NULL);
+	type_struct = (TypeTupleForm) GETSTRUCT(type_tuple);
+
+	typelem = type_struct->typelem;
+	s = (char *) palloc(strlen(arraylist->val.str) + 3);
+        sprintf(s, "{%s}", arraylist->val.str);
+
+	list = (LispValue) array_in(s, typelem);
+	pfree(s);
 
 /* make a list and return */
-    return ( lispCons (typename, list));
+    return ( lispCons (lispInteger(typelem), list));
 }
  
 #define ADD_TO_RT(rt_entry)     p_rtable = nappend1(p_rtable,rt_entry) 
