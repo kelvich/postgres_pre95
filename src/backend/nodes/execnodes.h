@@ -1,8 +1,16 @@
 /* ----------------------------------------------------------------
- * ExecNodes.h --
- *	Definitions for executor nodes.
+ *   FILE
+ *	execnodes.h
+ *	
+ *   DESCRIPTION
+ *	definitions for executor state nodes
  *
- * Identification:
+ *   NOTES
+ *	this file is listed in lib/Gen/inherits.sh and in the
+ *	INH_SRC list in conf/inh.mk and is used to generate the
+ *	obj/lib/C/plannodes.c file
+ *
+ *   IDENTIFICATION
  *	$Header$
  * ----------------------------------------------------------------
  */
@@ -16,26 +24,39 @@
 #include "params.h"	/* parameterized plan stuff... */
 #include "prs2.h"	/* for the prs2_info field of EState */
 
-/*
- *  This #define means that we have supplied a print function for EState
- *  nodes.  The routine that does the printing is in lib/C/printfuncs.c;
- *  it's called by an automatically-generated routine in execnodes.c.  This
- *  print support is intended for use in getting the C->lisp port done
- *  quickly, and should be replaced by something better designed when time
- *  permits.
- */
-
-#define	PrintEStateExists
-
-extern void	PrintEState();
-extern bool	EqualEState();
-
 #include "item.h"
 #include "sdir.h"
 #include "htup.h"
 #include "tim.h"
 #include "rel.h"
 #include "relscan.h"
+
+/* ----------------------------------------------------------------
+ *	Node Function Declarations
+ *
+ *  All of these #defines indicate that we have written print/equal/copy
+ *  support for the classes named.  The print routines are in
+ *  lib/C/printfuncs.c, the equal functions are in lib/C/equalfincs.c and
+ *  the copy functions can be found in lib/C/copyfuncs.c
+ *
+ *  An interface routine is generated automatically by Gen_creator.sh for
+ *  each node type.  This routine will call either do nothing or call
+ *  an _print, _equal or _copy function defined in one of the above
+ *  files, depending on whether or not the appropriate #define is specified.
+ *
+ *  Thus, when adding a new node type, you have to add a set of
+ *  _print, _equal and _copy functions to the above files and then
+ *  add some #defines below.
+ *
+ *  This is pretty complicated, and a better-designed system needs to be
+ *  implemented.
+ * ----------------------------------------------------------------
+ */
+
+#define	PrintEStateExists
+
+extern void	PrintEState();
+extern bool	EqualEState();
 
 /* ----------------------------------------------------------------
  *			Executor Support Types
@@ -489,11 +510,12 @@ class (ParallelState) public (BaseNode) {
  * ----------------------------------------------------------------
  */
 
-/*----------
+/* ----------
  * NOTE:
  * This file (rulescan.h) must be included here because it uses
  * the EState defined previously in this file.
  * See comments in rulescan.h for more details....
+ * ----------
  */
 #include "rulescan.h"
 

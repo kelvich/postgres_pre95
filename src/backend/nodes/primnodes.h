@@ -1,25 +1,64 @@
-/*
- * primnodes.h --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	primnodes.h
+ *	
+ *   DESCRIPTION
  *	Definitions for parse tree/query tree ("primitive") nodes.
  *
- * Identification:
- *	$Header$
+ *   NOTES
+ *	this file is listed in lib/Gen/inherits.sh and in the
+ *	INH_SRC list in conf/inh.mk and is used to generate the
+ *	obj/lib/C/primnodes.c file
  *
- * NOTES:
- *	For exhaustive explanations of what the structure members mean,
+ *	For explanations of what the structure members mean,
  *	see ~postgres/doc/query-tree.t.
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef PrimNodesIncluded
 #define	PrimNodesIncluded
 
-/*
- *  These #defines indicate that we've written print support routines for
- *  the named classes.  The print routines are in lib/C/printfuncs.c.  The
- *  automatic inheritance generator builds interface and default routines
- *  that call those in printfuncs.c.
+#include "nodes.h"	/* bogus inheritance system */
+#include "pg_lisp.h"
+
+#include "att.h"
+#include "attnum.h"
+#include "buf.h"
+#include "rel.h"
+#include "oid.h"
+#include "name.h"
+#include "cat.h"
+#include "params.h"
+
+/* ----------------------------------------------------------------
+ *	Node Function Declarations
+ *	
+ *  All of these #defines indicate that we have written print/equal/copy
+ *  support for the classes named.  The print routines are in
+ *  lib/C/printfuncs.c, the equal functions are in lib/C/equalfincs.c and
+ *  the copy functions can be found in lib/C/copyfuncs.c
+ *
+ *  An interface routine is generated automatically by Gen_creator.sh for
+ *  each node type.  This routine will call either do nothing or call
+ *  an _print, _equal or _copy function defined in one of the above
+ *  files, depending on whether or not the appropriate #define is specified.
+ *
+ *  Thus, when adding a new node type, you have to add a set of
+ *  _print, _equal and _copy functions to the above files and then
+ *  add some #defines below.
+ *
+ *  This is pretty complicated, and a better-designed system needs to be
+ *  implemented.
+ * ----------------------------------------------------------------
  */
 
+/* ----------------
+ *	Node Print Function declarations
+ * ----------------
+ */
 #define	PrintResdomExists
 #define	PrintExprExists
 #define	PrintParamExists
@@ -36,10 +75,10 @@ extern void	PrintOper();
 extern void	PrintConst();
 extern void	PrintVar();
 
-/*
- *  Same for functions that test nodes for equality.
+/* ----------------
+ *	Node Equal Function declarations
+ * ----------------
  */
-
 #define	EqualResdomExists
 #define	EqualExprExists
 #define	EqualParamExists
@@ -48,22 +87,40 @@ extern void	PrintVar();
 #define EqualConstExists
 #define EqualVarExists
 
-#include "nodes.h"	/* bogus inheritance system */
-#include "pg_lisp.h"
+/* ----------------
+ *	Node Copy Function declarations
+ * ----------------
+ */
+#define	CopyResdomExists
+#define	CopyExprExists
+#define	CopyParamExists
+#define	CopyFuncExists
+#define	CopyOperExists
+#define CopyConstExists
+#define CopyVarExists
 
-#include "att.h"
-#include "attnum.h"
-#include "buf.h"
-#include "rel.h"
-#include "oid.h"
-#include "name.h"
-#include "cat.h"
-#include "params.h"
+extern bool	CopyResdom();
+extern bool	CopyExpr();
+extern bool	CopyParam();
+extern bool	CopyFunc();
+extern bool	CopyOper();
+extern bool	CopyConst();
+extern bool	CopyVar();
+
+/* ----------------------------------------------------------------
+ *			node definitions
+ * ----------------------------------------------------------------
+ */
 
 /*
  * ============
  * Resdom nodes
  * ============
+ *
+ *	XXX reskeyop is USED as an int within the print functions
+ *	    so that's what the copy function uses so if its
+ *	    in fact an int, then the OperatorTupleForm declaration
+ *	    below is incorrect.  -cim 5/1/90
  */
 
 class (Resdom) public (Node) {

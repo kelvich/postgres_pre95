@@ -172,13 +172,14 @@ extern void PrintGlobalMemory();
 /* extern bool EqualGlobalMemory(); */
 
 static classObj(GlobalMemory)	TopGlobalMemoryData   = {
-	classTag(GlobalMemory),		/* NodeTag		tag */
-	PrintGlobalMemory,
-	NULL,
-	&GlobalContextMethodsData,	/* ContextMethods	method */
+	classTag(GlobalMemory),		/* NodeTag		tag 	  */
+	PrintGlobalMemory,		/* (print function) 		  */
+	NULL,				/* (equal function) 		  */
+	NULL,				/* copy function 		  */
+	&GlobalContextMethodsData,	/* ContextMethods	method    */
 	{ 0 },	/* uninitialized */	/* OrderedSetData	allocSetD */
-	"TopGlobal",			/* String		name */
-	{ 0 }	/* uninitialized */	/* OrderedElemData	elemD */
+	"TopGlobal",			/* String		name      */
+	{ 0 }	/* uninitialized */	/* OrderedElemData	elemD     */
 };
 
 
