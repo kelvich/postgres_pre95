@@ -343,6 +343,8 @@ long poly_same ARGS((POLYGON *polya , POLYGON *polyb ));
 long poly_overlap ARGS((POLYGON *polya , POLYGON *polyb ));
 long poly_contain ARGS((POLYGON *polya , POLYGON *polyb ));
 long poly_contained ARGS((POLYGON *polya , POLYGON *polyb ));
+double *path_distance ARGS((PATH *p1, PATH *p2));
+double *dist_ppth ARGS((POINT *pt, PATH *path));
 
 /* geo-selfuncs.c */
 float64 areasel ARGS((ObjectId opid , ObjectId relid , AttributeNumber attno , char *value , int32 flag ));

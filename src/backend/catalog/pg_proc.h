@@ -391,7 +391,9 @@ DATA(insert OID = 366 (  close_ps 6 11 f t t 2 600 "0" 0 100 100 10 100 100  foo
 DATA(insert OID = 367 (  close_pb 6 11 f t t 2 600 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 368 (  close_sb 6 11 f t t 2 600 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 369 (  on_ps 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
-DATA(insert OID = 372 (  on_sb 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 370 (  path_distance 6 11 f t t 2 701 "602 602" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 371 (  dist_ppth 6 11 f t t 2 701 "600 602" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 372 (  on_sb 6 11 f t t 2 701 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 373 (  inter_sb 6 11 f t t 2 16 "0" 0 100 100 10 100 100  foo bar ));
 
 DATA(insert OID = 612 (  fbtreeinsert      6 11 f t f 4  23 "0" 0 100 100 10 100 100  foo bar ));
