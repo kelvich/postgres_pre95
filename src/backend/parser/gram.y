@@ -726,7 +726,11 @@ remove_type:
 RuleType:
 	 newruleTag RULE
 		{ 
-			$$ = $1;
+			/*
+			 * the rule type can be either
+			 * P_TYPE or REWRITE
+			 */
+			$$ = CAR($1);
 		}
 	;  
 RemoveOperatorStmt:
@@ -806,7 +810,7 @@ RuleStmt:
 		}
 	RuleBody
 		{
-		    if ( CAtom($2) == P_TUPLE ) {
+		    if ( CAtom(CAR($2))==P_TUPLE) {
 			/* XXX - do the bogus fix to get param nodes
 			         to replace varnodes that have current 
 				 in them */
@@ -817,23 +821,59 @@ RuleStmt:
 			 *====
 			 */
 			$$ = lispCons ( $8, lispCons ( p_rtable, NULL ));
+			$$ = lispCons ( $4, $$ );
+			if (null(CDR($2))) {
+			    List t;
+			    t = lispCons(LispNil, LispNil);
+			    t = lispCons(KW(rule), t);
+			    $$ = lispCons(t, $$);
+			} else {
+			    List t;
+			    t = lispCons(CADR($2), LispNil);
+			    t = lispCons(KW(rule), t);
+			    $$ = lispCons(t, $$);
+			}
+			$$ = lispCons ( CAR($2), $$ );	
+			$$ = lispCons ( KW(define), $$ );	
 		    } else {
 			$$ = nappend1 ( $8, $5 ); 
+			$$ = lispCons ( $4, $$ );
+			$$ = lispCons ( KW(rule), $$ );
+			$$ = lispCons ( CAR($2), $$ );	
+			$$ = lispCons ( KW(define), $$ );	
 		    }
-	 	    $$ = lispCons ( $4, $$ );
-		    $$ = lispCons ( KW(rule), $$ );
-		    $$ = lispCons ( $2, $$ );	
-		    $$ = lispCons ( KW(define), $$ );	
-		    
 		}
 	;
 
+/*-------------------------
+ * We currently support the following rule tags:
+ *
+ * 'tuple' i.e. a rule implemented with the tuple level rule system
+ * 'rewrite' i.e. a rule implemented with the rewrite system
+ * 'relation tuple' a rule implemented with the tuple level rule
+ *		system, but which is forced to use a relation
+ *		level lock (even if we could have used the
+ *		more efficient tuple-level rule lock).
+ *		This option is used for debugging...
+ * 'tuple tuple' i.e. it must be implemented with a tuple level
+ *		lock.
+ */
 newruleTag: P_TUPLE 
-		{ $$ = KW(tuple); }
+		{ $$ = lispCons(KW(tuple), LispNil); }
 	| REWRITE 
-		{ $$ = KW(rewrite); }
+		{ $$ = lispCons(KW(rewrite), LispNil); }
+	| RELATION P_TUPLE
+		{
+		    $$ = lispCons(KW(relation), LispNil);
+		    $$ = lispCons(KW(tuple), $$);
+		}
+	| P_TUPLE P_TUPLE
+		{
+		    $$ = lispCons(KW(tuple), LispNil);
+		    $$ = lispCons(KW(tuple), $$);
+		}
 	| /* EMPTY */
-		{ $$ = KW(tuple); }
+		{ $$ = lispCons(KW(tuple), LispNil); }
 	;
 
 OptStmtList:
@@ -1927,64 +1967,5 @@ make_targetlist_expr ( name , expr )
 					  CString(name), 0 , 0 , 0 ) ,
 			      lispCons((Var)CDR(expr),LispNil)) );
     
-}
-
-
-/*--------------------------------------------------------------------
- *
- * SubstituteParamForNewOrCurrent
- *
- * Change all the "Var" nodes corresponding to the NEW & CURRENT relation
- * to the equivalent "Param" nodes.
- *
- * NOTE: this routine used to be called from the parser, but now it is
- * called from the tuple-level rule system (when defining a rule),
- * and it takes an extra argument (the relation oid for the
- * NEW/CURRENT relation.
- * 
- *--------------------------------------------------------------------
- */
-SubstituteParamForNewOrCurrent ( parsetree, relid )
-     List parsetree;
-     ObjectId relid;
-{
-    List i = NULL;
-    Name getAttrName();
-
-    /*
-     * sanity check...
-     */
-    if (relid==NULL) {
-	elog(WARN, "SubstituteParamForNewOrCurrent: wrong argument rel");
-    }
-
-    foreach ( i , parsetree ) {
-	List temp = CAR(i);
-	if ( temp && IsA (temp,Var) ) {
-	    Name attrname = NULL;
-	    AttributeNumber attrno;
-
-	    if ( get_varno(temp) == 1) {
-		/* replace with make_param(old) */
-		attrname = get_attname(relid, get_varattno(temp));
-		attrno = get_attnum(relid, attrname);
-		CAR(i) = (List)MakeParam (PARAM_OLD,
-				    attrno,
-				    attrname,
-				    get_vartype(temp));
-	    } 
-	    if ( get_varno(temp) == 2) {
-		/* replace with make_param(new) */
-		attrname = get_attname(relid, get_varattno(temp));
-		attrno = get_attnum(relid, attrname);
-		CAR(i) = (List)MakeParam(PARAM_NEW,
-				   attrno,
-				   attrname,
-				   get_vartype(temp) );
-	    }
-	} 
-	if (  temp && temp->type == PGLISP_DTPR ) 
-	  SubstituteParamForNewOrCurrent ( temp , relid );
-    }
 }
 
