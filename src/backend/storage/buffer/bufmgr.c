@@ -131,10 +131,28 @@ int BufferFlushCount;
  * Assume when this function is called, that reln has been
  *	opened already.
  */
+
 Buffer
-ReadBuffer(reln,blockNum)
+ReadBuffer(reln, blockNum)
+Relation	reln;
+BlockNumber	blockNum;
+{
+    return ReadBufferWithBufferLock(reln, blockNum, false);
+}
+
+/*
+ * ReadBufferWithBufferLock -- does the work of 
+ *	ReadBuffer() but with the possibility that
+ *	the buffer lock has already been held. this
+ *	is yet another effort to reduce the number of
+ *	semops in the system.
+ *
+ */
+Buffer
+ReadBufferWithBufferLock(reln,blockNum, bufferLockHeld)
 Relation 	reln;
 BlockNumber 	blockNum;
+bool		bufferLockHeld;
 {
   File		virtFile; /* descriptor for reln file */
   BufferDesc *	bufHdr;	  
@@ -147,7 +165,7 @@ BlockNumber 	blockNum;
   /* lookup the buffer.  IO_IN_PROGRESS is set if the requested
    * block is not currently in memory.
    */
-  bufHdr = BufferAlloc(reln, blockNum, &found);
+  bufHdr = BufferAlloc(reln, blockNum, &found, bufferLockHeld);
   if (! bufHdr) {
     return(InvalidBuffer);
   }
@@ -175,7 +193,8 @@ BlockNumber 	blockNum;
   }
 
   /* lock buffer manager again to update IO IN PROGRESS */
-  SpinAcquire(BufMgrLock);
+  if (!bufferLockHeld)
+      SpinAcquire(BufMgrLock);
 
   if (! status) {
     /* IO Failed.  cleanup the data structures and go home */
@@ -205,7 +224,8 @@ BlockNumber 	blockNum;
   if (bufHdr->refcount > 1)
     SignalIO(bufHdr);
 #endif
-  SpinRelease(BufMgrLock);
+  if (!bufferLockHeld)
+      SpinRelease(BufMgrLock);
     
   return(BufferDescriptorGetBuffer(bufHdr));
 } 
@@ -217,10 +237,11 @@ BlockNumber 	blockNum;
  * Returns: descriptor for buffer
  */
 BufferDesc *
-BufferAlloc(reln, blockNum, foundPtr)
+BufferAlloc(reln, blockNum, foundPtr, bufferLockHeld)
 Relation	reln;
 BlockNumber	blockNum;
 Boolean		*foundPtr;
+bool		bufferLockHeld;
 {
   BufferDesc 		*buf;	  
   BufferTag 		newTag;	 /* identity of requested block */
@@ -245,7 +266,8 @@ Boolean		*foundPtr;
 
   INIT_BUFFERTAG(&newTag,reln,blockNum);
 
-  SpinAcquire(BufMgrLock);
+  if (!bufferLockHeld)
+      SpinAcquire(BufMgrLock);
 
   /* see if the block is in the buffer pool already */
   buf = BufTableLookup(&newTag);
@@ -280,7 +302,8 @@ Boolean		*foundPtr;
 	*foundPtr = FALSE;
       }
     }
-    SpinRelease(BufMgrLock);
+    if (!bufferLockHeld)
+        SpinRelease(BufMgrLock);
   
     return(buf);
   }
@@ -358,7 +381,8 @@ Boolean		*foundPtr;
   Assert(!buf->io_in_progress_lock);
   S_LOCK(&(buf->io_in_progress_lock));
 #endif
-  SpinRelease(BufMgrLock);
+  if (!bufferLockHeld)
+      SpinRelease(BufMgrLock);
 
   if (oldbufdesc.flags & BM_DIRTY) {
      (void) BlockReplace(&oldbufdesc);
@@ -520,6 +544,37 @@ Buffer	buffer;
     }
 
   return(STATUS_OK);
+}
+
+/*
+ * ReleaseAndReadBuffer -- combine ReleaseBuffer() and ReadBuffer()
+ * 	so that only one semop needs to be called.
+ *
+ */
+Buffer
+ReleaseAndReadBuffer(buffer, relation, blockNum)
+Buffer buffer;
+Relation relation;
+BlockNumber blockNum;
+{
+    BufferDesc	*bufHdr;
+    Buffer retbuf;
+    if (BufferIsValid(buffer)) {
+	bufHdr = BufferGetBufferDescriptor(buffer);
+	PrivateRefCount[buffer - 1]--;
+	if (PrivateRefCount[buffer - 1] == 0) {
+	    SpinAcquire(BufMgrLock);
+	    bufHdr->refcount--;
+	    if (bufHdr->refcount == 0) {
+		AddBufferToFreelist(bufHdr);
+		bufHdr->flags |= BM_FREE;
+	      }
+	    retbuf = ReadBufferWithBufferLock(relation, blockNum, true);
+	    SpinRelease(BufMgrLock);
+	    return retbuf;
+	 }
+      }
+    return(ReadBuffer(relation, blockNum));
 }
 
 /*
