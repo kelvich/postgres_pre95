@@ -15,8 +15,6 @@ RcsId("$Header$");
 #include "utils/memutils.h"
 #include "utils/log.h"
 
-extern void bcopy();	/* XXX use header */
-
 #undef AllocSetReset
 #undef malloc
 #undef free
