@@ -29,6 +29,7 @@
 
 #include "access/htup.h"
 #include "access/itup.h"
+#include "access/tupmacs.h"
 #include "access/skey.h"
 #include "rules/rac.h"
 #include "storage/buf.h"
@@ -84,8 +85,6 @@ set_use_cacheoffgetattr(x)
 {
     use_cacheoffgetattr = x;
 }
-
-#define att_isnull(ATT, BITS) (!((BITS)[(ATT) >> 3] & ((ATT) & 0x07)))
 
 /* ----------------------------------------------------------------
  *			misc support routines
@@ -504,15 +503,8 @@ heap_getsysattr(tup, b, attnum)
     }
 }
 
-#define fetchatt(A, T) \
-((*(A))->attlen < 0 ? (char *) (LONGALIGN((T) + sizeof(long))) : \
- ((*(A))->attbyval ? \
-  ((*(A))->attlen > sizeof(short) ? (char *) *(long *) (T) : \
-   ((*(A))->attlen < sizeof(short) ? (char *) *(T) : \
-	(char *) * (short *) (T))) : (char *) (T)))
-	
 /* ----------------
- *	fetchatt
+ *	fetchatt2
  *
  *	returns the attribute referenced by tp and ap.  This is used
  *	by cacheoffgetattr() and the soon to be obsolete fastgetattr().
@@ -632,12 +624,12 @@ cacheoffgetattr(tup, attnum, att, isnull)
 	attnum--;
 	if (att[attnum]->attcacheoff > 0)
 	{
-	    return(fetchatt(att + attnum, (Pointer) tup
+	    return((char *) fetchatt(att + attnum, (Pointer) tup
 				+ tup->t_hoff + att[attnum]->attcacheoff));
 	}
 	else if (attnum == 0)
 	{
- 	    return(fetchatt(att, (Pointer) tup + tup->t_hoff));
+ 	    return((char *) fetchatt(att, (Pointer) tup + tup->t_hoff));
 	}
 
 	tp = (Pointer) tup + tup->t_hoff;
@@ -698,7 +690,7 @@ cacheoffgetattr(tup, attnum, att, isnull)
     {
 	if (att[attnum]->attcacheoff > 0)
 	{
-	    return(fetchatt(att + attnum, tp + att[attnum]->attcacheoff));
+	    return((char *) fetchatt(att + attnum, tp + att[attnum]->attcacheoff));
 	}
 	else if (!HeapTupleAllFixed(tup))
 	{
@@ -748,7 +740,7 @@ cacheoffgetattr(tup, attnum, att, isnull)
 	    off += att[j]->attlen;
 	}
 
-	return(fetchatt(att + attnum, tp + att[attnum]->attcacheoff));
+	return((char *) fetchatt(att + attnum, tp + att[attnum]->attcacheoff));
     }
     else
     {
@@ -802,7 +794,7 @@ cacheoffgetattr(tup, attnum, att, isnull)
 	    }
 	}
 
-	return(fetchatt(att + attnum, tp + off));
+	return((char *) fetchatt(att + attnum, tp + off));
     }
 }
 
