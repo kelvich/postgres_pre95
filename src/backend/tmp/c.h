@@ -28,7 +28,7 @@
  *	8)	exception handling definitions, Assert, Trap, etc macros
  *	9)	Min, Max, Abs macros
  *	10)	LintCast, RevisionId, RcsId, SccsId macros
- *	11)	SymbolDecl, ExternDecl macros
+ *	11)	<dead>
  *	12)	externs
  *	13)	system-specific hacks
  *
@@ -182,22 +182,8 @@ typedef void	*Pointer;
 #define NULL	((void *) 0)
 #endif	/* !defined(NULL) */
 
-/*
- * CppAsString --
- *	Convert the argument to a string, using the C preprocessor.
- */
-#define CppAsString(identifier)	#identifier
-
-/*
- * CppConcat --
- *	Concatenate two arguments together, using the C preprocessor.
- */
-#define CppConcat(x, y)		x##y
-#define CppConcat0(x, y)	x##y
-#define CppConcat1(x, y)	x##y
-#define CppConcat2(x, y)	x##y
-#define CppConcat3(x, y)	x##y
-#define CppConcat4(x, y)	x##y
+#define	HAVE_ANSI_CPP	/* all ANSI C compilers must have this! */
+#define	HAVE_STD_HDRS	/* all ANSI systems must have stddef/stdlib */
 
 #else	/* !defined(__STDC__) */ /* NOT ANSI C */
 
@@ -214,33 +200,6 @@ typedef char	*Pointer;
  */
 #define NULL	0
 #endif	/* !defined(NULL) */
-
-/*
- * CppIdentity -- On Reiser based cpp's this is used to concatenate
- *	two tokens.  That is
- *		CppIdentity(A)B	==> AB
- *	We renamed it to _private_CppIdentity because it should not
- *	be referenced outside this file.  On other cpp's it
- *	produces  A  B.
- */
-#define _priv_CppIdentity(x)x
-
-/*
- * CppAsString --
- *	Convert the argument to a string, using the C preprocessor.
- */
-#define CppAsString(identifier)	"identifier"
-
-/*
- * CppConcat --
- *	Concatenate two arguments together, using the C preprocessor.
- */
-#define CppConcat(x, y)		_priv_CppIdentity(x)y
-#define CppConcat0(x, y)	_priv_CppIdentity(x)y
-#define CppConcat1(x, y)	_priv_CppIdentity(x)y
-#define CppConcat2(x, y)	_priv_CppIdentity(x)y
-#define CppConcat3(x, y)	_priv_CppIdentity(x)y
-#define CppConcat4(x, y)	_priv_CppIdentity(x)y
 
 /*
  * const --
@@ -267,20 +226,67 @@ typedef char	*Pointer;
  */
 #define volatile	/* volatile */
 
-
 #endif	/* !defined(__STDC__) */ /* NOT ANSI C */
 
+/*
+ * CppAsString --
+ *	Convert the argument to a string, using the C preprocessor.
+ * CppConcat --
+ *	Concatenate two arguments together, using the C preprocessor.
+ */
+#if defined(HAVE_ANSI_CPP)
+
+#define CppAsString(identifier)	#identifier
+#define CppConcat(x, y)		x##y
+#define CppConcat0(x, y)	x##y
+#define CppConcat1(x, y)	x##y
+#define CppConcat2(x, y)	x##y
+#define CppConcat3(x, y)	x##y
+#define CppConcat4(x, y)	x##y
+
+#else /* !HAVE_ANSI_CPP */
+
+#define CppAsString(identifier)	"identifier"
+
+/*
+ * CppIdentity -- On Reiser based cpp's this is used to concatenate
+ *	two tokens.  That is
+ *		CppIdentity(A)B	==> AB
+ *	We renamed it to _private_CppIdentity because it should not
+ *	be referenced outside this file.  On other cpp's it
+ *	produces  A  B.
+ */
+#define _priv_CppIdentity(x)x
+#define CppConcat(x, y)		_priv_CppIdentity(x)y
+#define CppConcat0(x, y)	_priv_CppIdentity(x)y
+#define CppConcat1(x, y)	_priv_CppIdentity(x)y
+#define CppConcat2(x, y)	_priv_CppIdentity(x)y
+#define CppConcat3(x, y)	_priv_CppIdentity(x)y
+#define CppConcat4(x, y)	_priv_CppIdentity(x)y
+
+#endif /* !HAVE_ANSI_CPP */
 
 #ifndef __GNUC__	/* GNU cc */
 # define inline
 #endif
 
-#ifdef	PROTOTYPES
+#ifdef PROTOTYPES
 #define ARGS(args)	args
 #else
 #define ARGS(args)	(/*args*/)
-#endif
+#endif /* PROTOTYPES */
 
+#ifdef HAVE_STD_HDRS
+#include <stddef.h>
+#include <stdlib.h>
+#else /* HAVE_STD_HDRS */
+/*
+ * You're doomed.  We've removed almost all of our own C library 
+ * extern declarations because they conflict on the different
+ * systems.  You'll have to write your own stdlib.h.
+ */
+#include "stdlib.h"
+#endif /* HAVE_STD_HDRS */
 
 /* ----------------------------------------------------------------
  *		Section 4:  standard system types
@@ -417,7 +423,8 @@ typedef unsigned int	Index;
 #define MAXDIM 6
 typedef struct {
 	int indx[MAXDIM];
-	} IntArray;
+} IntArray;
+
 /*
  * Count --
  *	Generic counter type.
@@ -473,32 +480,6 @@ free_debug ARGS((
 	int	line,
         char    *p
 ));
-#else /* PALLOC_DEBUG */
-
-#if defined(PORTNAME_ultrix4) || \
-    defined(PORTNAME_hpux) || \
-    defined(PORTNAME_sparc) || \
-    defined(PORTNAME_bsd44) || \
-    defined(PORTNAME_alpha) || \
-    defined(__STDC__)
-/*
- * All of our target machines have <stdlib.h>
- * (mind you, they sometimes aren't very "std"...)
- */
-#include <stdlib.h>
-#else /* stdlib */
-extern
-char *	/* as defined in /usr/lib/lint/llib-lc */
-malloc ARGS((
-	Size	nBytes
-));
-extern
-/* void */      /* as defined in /usr/lib/lint/llib-lc */
-free ARGS((
-        char    *p
-));
-#endif /* stdlib */
-
 #endif /* PALLOC_DEBUG */
 
 /*
@@ -672,11 +653,13 @@ free ARGS((
 /*
  * offsetof --
  *	Offset of a structure/union field within that structure/union.
+ *
+ *	XXX This is supposed to be part of stddef.h, but isn't on
+ *	some systems (like SunOS 4).
  */
-#ifdef offsetof
-#undef offsetof
-#endif /* offsetof */
+#ifndef offsetof
 #define offsetof(type, field)	((long) &((type *)0)->field)
+#endif /* offsetof */
 
 /*
  * lengthof --
@@ -914,43 +897,6 @@ ExceptionalCondition ARGS((
 #endif
 
 /* ----------------------------------------------------------------
- *		Section 11:  SymbolDecl, ExternDecl macros
- * ----------------------------------------------------------------
- */
-/*
- * SymbolDecl --
- * ExternDecl --
- *	Dynamic function and data symbol declaration macros.
- *
- * Sample usage:
- *
- *	extern int fooValue;
- *	extern void foo ARGS((void));
- *	// more declarations ...
- *
- *	#define yourfilename_SYMBOLS \
- *		ExternDecl(fooValue), \
- *		SymbolDecl(foo)
- *
- *	// DO *NOT* INCLUDE A TRAILING ^ COMMA
- */
-#ifndef SABER
-#define constantquote(x)"
-#define prefixquote(x)constantquote(x)x
-#define prefixquoteunder(x)prefixquote(_)x
-#define symstring(x)prefixquoteunder(x)"
-
-#define SymbolDecl(_symbol_) \
-	{ (func_ptr)_symbol_, symstring(_symbol_) }
-
-#define ExternDecl(_external_) \
-	{ (data_ptr)&(_external_), symstring(_external_) }
-#else
-#define SymbolDecl(_symbol_) 
-#define ExternDecl(_external_)
-#endif
-
-/* ----------------------------------------------------------------
  *		Section 12: externs
  * ----------------------------------------------------------------
  */
@@ -965,13 +911,16 @@ form ARGS(( int, ... ));
 
 /* ----------------------------------------------------------------
  *		Section 13: system-specific hacks
+ *
+ *	This should be limited to things that absolutely have to be
+ *	included in every source file.  The changes should be factored
+ *	into a separate file so that changes to one port don't require
+ *	changes to c.h (and everyone recompiling their whole system).
  * ----------------------------------------------------------------
  */
 
-/* HP-UX */
-
 #if defined(PORTNAME_hpux) 
-#include "port/hpux/fixade.h"
+#include "port/hpux/fixade.h"	/* for 8.07 unaligned access fixup */
 #endif /* PORTNAME_hpux */
 
 /* ----------------
