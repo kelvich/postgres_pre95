@@ -28,7 +28,7 @@ oidchar16in(inStr)
 
     if (*inptr)
     {
-	oc->id = atoi(inStr);
+	oc->id = (ObjectId) pg_atoi(inStr, sizeof(ObjectId), ',');
 	(void) strncpy(oc->name.data, ++inptr, sizeof(char16));
     }
     else

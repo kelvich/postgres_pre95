@@ -35,7 +35,7 @@ int32
 int2in(num)
 	char	*num;
 {
-	return((int32) atoi(num));
+	return((int32) pg_atoi(num, sizeof(int16), '\0'));
 }
 
 /*
@@ -177,7 +177,7 @@ int32
 int4in(num)
 	char	*num;
 {
-	return((int32) atol(num));
+	return(pg_atoi(num, sizeof(int32), '\0'));
 }
 
 /*
@@ -190,7 +190,7 @@ int4out(l)
 	char		*result;
 
 	result = (char *)palloc(12);	/* assumes sign, 10 digits, '\0' */
-	ltoa((long) l, result);
+	ltoa(l, result);
 	return(result);
 }
 
@@ -201,8 +201,24 @@ int4out(l)
  *	===================
  */
 
-int32	i2toi4(arg1)	int16	arg1;	{ return((int32) arg1); }
-int16	i4toi2(arg1)	int32	arg1;	{ return((int16) arg1); }
+int32
+i2toi4(arg1)
+	int16	arg1;
+{
+	return((int32) arg1);
+}
+
+int16
+i4toi2(arg1)
+	int32	arg1;
+{
+	if (arg1< -0x8000)
+		elog(NOTICE, "i4toi2: \"%d\" causes int2 underflow", arg1);
+	if (arg1 > 0x7FFF)
+		elog(NOTICE, "i4toi2: \"%d\" causes int2 overflow", arg1);
+							 
+	return((int16) arg1);
+}
 
 
 /*
