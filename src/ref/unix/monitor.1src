@@ -43,7 +43,7 @@ is running; default is your local machine (localhost).
 communication between the terminal monitor and the postmaster.
 .sp
 \fI-t tty_device\fR specifies the path name to the tty device (or regular
-UNIX file) tty which you want the backend debugging messages to be sent to;
+UNIX file) which you want the backend debugging messages to be sent to;
 default is /dev/null. 
 \fI-N\fR specifies that query results will be dumped to the screen without
 any attempt at formatting.  This is useful in conjunction with the
