@@ -279,8 +279,8 @@ BuildDesc(schema)
     List		p;
     List		entry;
     TupleDesc		desc;
-    char 		*attname;
-    char 		*typename;
+    Name 		attname;
+    Name 		typename;
     int			attdim;
     
     /* ----------------
@@ -302,8 +302,8 @@ BuildDesc(schema)
 	attnum++;
 	
 	entry = 	CAR(p);
-	attname = 	CString(CAR(entry));
-	typename = 	CString(CADR(entry));
+	attname = 	(Name) CString(CAR(entry));
+	typename = 	(Name) CString(CADR(entry));
 
 	TupleDescHandleArray(&attdim, typename);
 
@@ -347,8 +347,8 @@ BuildDescForRelation(schema, relname)
     List		p;
     List		entry;
     TupleDesc		desc;
-    char 		*attname;
-    char 		*typename;
+    Name 		attname;
+    Name 		typename;
     char		typename2[16];
     char		*pp, *pp2;
     int			attdim;
@@ -372,8 +372,8 @@ BuildDescForRelation(schema, relname)
 	attnum++;
 	
 	entry = 	CAR(p);
-	attname = 	CString(CAR(entry));
-	typename = 	CString(CADR(entry));
+	attname = 	(Name) CString(CAR(entry));
+	typename = 	(Name) CString(CADR(entry));
 
 	TupleDescHandleArray(&attdim, typename);
 

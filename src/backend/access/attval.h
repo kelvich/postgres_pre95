@@ -44,7 +44,7 @@ IndexTupleGetAttributeValue ARGS((
 	IndexTuple	tuple,
 	AttributeNumber	attributeNumber,
 	TupleDescriptor	tupleDescriptor,
-	Boolean		isNullOutP
+	Boolean		*isNullOutP
 ));
 
 #endif	/* !defined(AttValIncluded) */

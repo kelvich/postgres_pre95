@@ -630,7 +630,7 @@ _bt_first(scan, dir)
      *	       hardwired attno == 1.
      */
     proc = index_getprocid(rel, 1, BTORDER_PROC);
-    ScanKeyEntryInitialize(&skdata, 0x0, 1, proc,
+    ScanKeyEntryInitialize((ScanKeyEntry) &skdata, 0x0, 1, proc,
 			   scan->keyData.data[0].argument);
 
     stack = _bt_search(rel, 1, &skdata, &buf);
@@ -1089,7 +1089,7 @@ _bt_endpoint(scan, dir)
 		return ((RetrieveIndexResult) NULL);
 
 	    start = ItemPointerGetOffsetNumber(current, 0);
-	    page = BufferGetPage(buf);
+	    page = BufferGetPage(buf,0);
 	} else {
 	    ItemPointerSet(current, 0, blkno, 0, start + 1);
 	}
@@ -1101,7 +1101,7 @@ _bt_endpoint(scan, dir)
 		return ((RetrieveIndexResult) NULL);
 
 	    start = ItemPointerGetOffsetNumber(current, 0);
-	    page = BufferGetPage(buf);
+	    page = BufferGetPage(buf,0);
 	} else {
 	    ItemPointerSet(current, 0, blkno, 0, start + 1);
 	}

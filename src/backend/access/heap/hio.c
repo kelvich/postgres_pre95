@@ -42,7 +42,7 @@ RelationPutHeapTuple(relation, blockIndex, tuple)
 	HeapTuple	tuple;
 {
 	Buffer		buffer;
-	PageHeader	pageHeader;
+	Page		pageHeader;
 	BlockNumber	numberOfBlocks;
 	OffsetIndex	offsetIndex;
 	unsigned	len;
@@ -70,7 +70,7 @@ RelationPutHeapTuple(relation, blockIndex, tuple)
 	}
 #endif
 
-	pageHeader = LintCast(PageHeader, BufferSimpleGetPage(buffer));
+	pageHeader = LintCast(Page, BufferSimpleGetPage(buffer));
 	len = (unsigned)LONGALIGN(tuple->t_len);
 	Assert((int)len <= PageGetFreeSpace(pageHeader));
 
@@ -322,7 +322,7 @@ HeapTuple tuple;
 
 {
 	Buffer		buffer;
-	PageHeader	pageHeader;
+	Page		pageHeader;
 	BlockNumber	lastblock;
 	OffsetIndex	offsetIndex;
 	unsigned	len;
@@ -344,18 +344,18 @@ HeapTuple tuple;
 	if (lastblock == 0)
 	{
 		buffer = ReadBuffer(relation, lastblock);
-		pageHeader = LintCast(PageHeader, BufferSimpleGetPage(buffer));
-		if (PageIsNew(pageHeader))
+		pageHeader = LintCast(Page, BufferSimpleGetPage(buffer));
+		if (PageIsNew((PageHeader) pageHeader))
 		{
 			buffer = ReleaseAndReadBuffer(buffer, relation, P_NEW);
-			pageHeader = LintCast(PageHeader, BufferSimpleGetPage(buffer));
+			pageHeader = LintCast(Page, BufferSimpleGetPage(buffer));
 			BufferSimpleInitPage(buffer);
 		}
 	}
 	else
 		buffer = ReadBuffer(relation, lastblock - 1);
 
-	pageHeader = LintCast(PageHeader, BufferSimpleGetPage(buffer));
+	pageHeader = LintCast(Page, BufferSimpleGetPage(buffer));
 	len = (unsigned)LONGALIGN(tuple->t_len);
 
 	/*
@@ -366,7 +366,7 @@ HeapTuple tuple;
 	if (len > PageGetFreeSpace(pageHeader))
 	{
 		buffer = ReleaseAndReadBuffer(buffer, relation, P_NEW);
-		pageHeader = LintCast(PageHeader, BufferSimpleGetPage(buffer));
+		pageHeader = LintCast(Page, BufferSimpleGetPage(buffer));
 		BufferSimpleInitPage(buffer);
 
 		if (len > PageGetFreeSpace(pageHeader))

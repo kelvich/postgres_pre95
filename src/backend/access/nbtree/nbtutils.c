@@ -30,7 +30,7 @@ _bt_mkscankey(rel, itup)
     TupleDescriptor itupdesc;
     int natts;
     int i;
-    Pointer arg;
+    Datum arg;
     RegProcedure proc;
     Boolean null;
 
@@ -40,9 +40,10 @@ _bt_mkscankey(rel, itup)
     skey = (ScanKey) palloc(natts * sizeof(ScanKeyEntryData));
 
     for (i = 0; i < natts; i++) {
-	arg = (Pointer) index_getattr(itup, i + 1, itupdesc, &null);
+	arg = (Datum) index_getattr(itup, i + 1, itupdesc, &null);
 	proc = index_getprocid(rel, i + 1, BTORDER_PROC);
-	ScanKeyEntryInitialize(&(skey->data[i]), 0x0, i + 1, proc, arg);
+	ScanKeyEntryInitialize((ScanKeyEntry) &(skey->data[i]),
+						   0x0, (AttributeNumber) (i + 1), proc, arg);
     }
 
     return (skey);

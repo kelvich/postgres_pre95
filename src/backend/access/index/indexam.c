@@ -463,10 +463,7 @@ InsertIndexTuple(heapRelation, indexRelation, numberOfAttributes,
 
     indexTuple->t_tid = heapTuple->t_ctid;
 
-    insertResult = index_insert(indexRelation,
-				indexTuple, 
-				(Pointer)NULL,
-				(double *)NULL);
+    insertResult = index_insert(indexRelation, indexTuple, (double *) 0);
 	
     pfree(indexTuple);
     pfree(null);

@@ -94,7 +94,7 @@ VariableRelationGetNextXid(xid)
 
     RelationUnsetLockForRead(VariableRelation);
 
-    TransactionIdStore(&(var->nextXidData), xid);
+    TransactionIdStore(&(var->nextXidData), (Pointer) xid);
     ReleaseBuffer(buf);
 }
 
@@ -128,7 +128,7 @@ VariableRelationGetLastXid(xid)
 
     var = (VariableRelationContents) BufferGetBlock(buf);
 
-    TransactionIdStore(&(var->lastXidData), xid);
+    TransactionIdStore(&(var->lastXidData), (Pointer) xid);
 
     ReleaseBuffer(buf);
 }
@@ -165,7 +165,7 @@ VariableRelationPutNextXid(xid)
 
     var = (VariableRelationContents) BufferGetBlock(buf);
 
-    TransactionIdStore(xid, &(var->nextXidData));
+    TransactionIdStore(xid, (Pointer) &(var->nextXidData));
 
     WriteBuffer(buf);
 
@@ -202,7 +202,7 @@ VariableRelationPutLastXid(xid)
 
     var = (VariableRelationContents) BufferGetBlock(buf);
 
-    TransactionIdStore(xid, &(var->lastXidData));
+    TransactionIdStore(xid, (Pointer) &(var->lastXidData));
 
     WriteBuffer(buf);
 }
@@ -372,7 +372,7 @@ GetNewTransactionId(xid)
      * ----------------
      */
     if (AMI_OVERRIDE) {	
-	TransactionIdStore(AmiTransactionId, xid);
+	TransactionIdStore(AmiTransactionId, (Pointer) xid);
 	return;
     }
  
@@ -394,7 +394,7 @@ GetNewTransactionId(xid)
 	 * ----------------
 	 */
 	VariableRelationGetNextXid(&nextid);
-	TransactionIdStore(&nextid, &next_prefetched_xid);
+	TransactionIdStore(&nextid, (Pointer) &next_prefetched_xid);
 	
 	/* ----------------
 	 *	now increment the variable relation's next xid
@@ -419,7 +419,7 @@ GetNewTransactionId(xid)
      *	transaction ids are always even.
      * ----------------
      */
-    TransactionIdStore(&next_prefetched_xid, xid);
+    TransactionIdStore(&next_prefetched_xid, (Pointer) xid);
     TransactionIdAdd(&next_prefetched_xid, 2);
     prefetched_xid_count--;
 }

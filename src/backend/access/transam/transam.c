@@ -44,6 +44,7 @@
 #include "catalog/catname.h"
 
 #include "access/transam.h"
+#include "access/xact.h"
 
 /* ----------------
  *    global variables holding pointers to relations used
@@ -167,7 +168,7 @@ TransactionLogTest(transactionId, status)
 					     &fail);
 
     if (! fail) {
-	TransactionIdStore(transactionId, &cachedTestXid);
+	TransactionIdStore(transactionId, (Pointer) &cachedTestXid);
 	cachedTestXidStatus = xidstatus;
 	return (bool)
 	    (status == xidstatus);
@@ -226,7 +227,7 @@ TransactionLogUpdate(transactionId, status)
      *	 update (invalidate) our single item TransactionLogTest cache.
      * ----------------
      */
-    TransactionIdStore(transactionId, &cachedTestXid);
+    TransactionIdStore(transactionId, (Pointer) &cachedTestXid);
     cachedTestXidStatus = status;
     
     /* ----------------
@@ -245,7 +246,7 @@ TransactionLogUpdate(transactionId, status)
 	 *   update (invalidate) our single item GetCommitTime cache.
 	 * ----------------
 	 */
-	TransactionIdStore(transactionId, &cachedGetCommitTimeXid);
+	TransactionIdStore(transactionId, (Pointer) &cachedGetCommitTimeXid);
 	cachedGetCommitTime = currentTime;
     }
 
@@ -303,7 +304,7 @@ TransactionIdGetCommitTime(transactionId)
      * ----------------
      */
     if (! fail) {
-	TransactionIdStore(transactionId, &cachedGetCommitTimeXid);
+	TransactionIdStore(transactionId, (Pointer) &cachedGetCommitTimeXid);
 	cachedGetCommitTime = commitTime;
 	return commitTime;
     } else

@@ -1007,7 +1007,7 @@ heap_modifytuple(tuple, buffer, relation, replValue, replNull, repl)
      * ----------------
      */
     if (madecopy)
-	pfree(tuple);
+	pfree((char *) tuple);
     
     return
 	newTuple;

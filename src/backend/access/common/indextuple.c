@@ -390,7 +390,7 @@ index_getsysattr(tuple, attributeNumber)
 AttributeValue
 IndexTupleGetAttributeValue(tuple, attNum, tupleDescriptor, isNullOutP)
     IndexTuple		tuple;
-    int			attNum;
+    AttributeNumber		attNum;
     TupleDescriptor	tupleDescriptor;
     Boolean		*isNullOutP;
 {

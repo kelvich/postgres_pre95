@@ -182,7 +182,7 @@ rtdoinsert(r, itup)
     Relation r;
     IndexTuple itup;
 {
-    PageHeader page;
+    Page page;
     Buffer buffer;
     BlockNumber blk;
     IndexTuple which;
@@ -203,7 +203,7 @@ rtdoinsert(r, itup)
 
 	/* get next buffer */
 	buffer = ReadBuffer(r, blk);
-	page = (PageHeader) BufferGetPage(buffer, 0);
+	page = (Page) BufferGetPage(buffer, 0);
 
 	opaque = (RTreePageOpaque) PageGetSpecialPointer(page);
 	if (!(opaque->flags & F_LEAF)) {
@@ -231,9 +231,9 @@ rtdoinsert(r, itup)
 
     /* add the item and write the buffer */
     if (PageIsEmpty(page))
-	PageAddItem(page, itup, IndexTupleSize(itup), 1, LP_USED);
+	PageAddItem(page, (Item) itup, IndexTupleSize(itup), 1, LP_USED);
     else
-	PageAddItem(page, itup, IndexTupleSize(itup),
+	PageAddItem(page, (Item) itup, IndexTupleSize(itup),
 		    PageGetMaxOffsetIndex(page) + 2, LP_USED);
 
     WriteBuffer(buffer);
@@ -308,9 +308,9 @@ dosplit(r, buffer, stack, itup)
     RTSTACK *stack;
     IndexTuple itup;
 {
-    PageHeader p;
+    Page p;
     Buffer leftbuf, rightbuf;
-    PageHeader left, right;
+    Page left, right;
     ItemId itemid;
     IndexTuple item;
     IndexTuple ltup, rtup;
@@ -328,7 +328,7 @@ dosplit(r, buffer, stack, itup)
     isnull = (char *) palloc(r->rd_rel->relnatts);
     for (blank = 0; blank < r->rd_rel->relnatts; blank++)
 	isnull[blank] = ' ';
-    p = (PageHeader) BufferGetPage(buffer, 0);
+    p = (Page) BufferGetPage(buffer, 0);
     opaque = (RTreePageOpaque) PageGetSpecialPointer(p);
 
     /*
@@ -341,17 +341,17 @@ dosplit(r, buffer, stack, itup)
 	leftbuf = ReadBuffer(r, P_NEW);
 	RTInitBuffer(leftbuf, opaque->flags);
 	lbknum = BufferGetBlockNumber(leftbuf);
-	left = (PageHeader) BufferGetPage(leftbuf, 0);
+	left = (Page) BufferGetPage(leftbuf, 0);
     } else {
 	leftbuf = buffer;
 	lbknum = BufferGetBlockNumber(buffer);
-	left = (PageHeader) PageGetTempPage(p, sizeof(RTreePageOpaqueData));
+	left = (Page) PageGetTempPage(p, sizeof(RTreePageOpaqueData));
     }
 
     rightbuf = ReadBuffer(r, P_NEW);
     RTInitBuffer(rightbuf, opaque->flags);
     rbknum = BufferGetBlockNumber(rightbuf);
-    right = (PageHeader) BufferGetPage(rightbuf, 0);
+    right = (Page) BufferGetPage(rightbuf, 0);
 
     picksplit(r, p, &v, itup);
 
@@ -364,11 +364,11 @@ dosplit(r, buffer, stack, itup)
 	item = (IndexTuple) PageGetItem(p, itemid);
 
 	if (i == *(v.spl_left)) {
-	    (void) PageAddItem(left, item, IndexTupleSize(item),
+	    (void) PageAddItem(left, (Item) item, IndexTupleSize(item),
 			       leftoff++, LP_USED);
 	    v.spl_left++;
 	} else {
-	    (void) PageAddItem(right, item, IndexTupleSize(item),
+	    (void) PageAddItem(right, (Item) item, IndexTupleSize(item),
 			       rightoff++, LP_USED);
 	    v.spl_right++;
 	}
@@ -381,11 +381,11 @@ dosplit(r, buffer, stack, itup)
 
     /* now insert the new index tuple */
     if (*(v.spl_left) != (OffsetNumber) 0) {
-	(void) PageAddItem(left, itup, IndexTupleSize(itup),
+	(void) PageAddItem(left, (Item) itup, IndexTupleSize(itup),
 			   leftoff++, LP_USED);
 	ItemPointerSet(&(res->pointerData), 0, lbknum, 0, leftoff);
     } else {
-	(void) PageAddItem(right, itup, IndexTupleSize(itup),
+	(void) PageAddItem(right, (Item) itup, IndexTupleSize(itup),
 			   rightoff++, LP_USED);
 	ItemPointerSet(&(res->pointerData), 0, rbknum, 0, rightoff);
     }
@@ -416,10 +416,12 @@ dosplit(r, buffer, stack, itup)
     /* adjust active scans */
     rtadjscans(r, RTOP_SPLIT, bufblock, 0);
 
-    ltup = (IndexTuple) formituple(r->rd_rel->relnatts, &r->rd_att.data[0],
-			           &(v.spl_ldatum), isnull);
-    rtup = (IndexTuple) formituple(r->rd_rel->relnatts, &r->rd_att.data[0],
-				   &(v.spl_rdatum), isnull);
+    ltup = (IndexTuple) index_formtuple(r->rd_rel->relnatts,
+				   (TupleDescriptor) (&r->rd_att.data[0]),
+			           (Datum *) &(v.spl_ldatum), isnull);
+    rtup = (IndexTuple) index_formtuple(r->rd_rel->relnatts,
+				   (TupleDescriptor) &r->rd_att.data[0],
+				   (Datum *) &(v.spl_rdatum), isnull);
     pfree (isnull);
 
     /* set pointers to new child pages in the internal index tuples */
@@ -478,7 +480,7 @@ rtintinsert(r, stk, ltup, rtup)
 	res = dosplit(r, b, stk->rts_parent, rtup);
 	pfree (res);
     } else {
-	PageAddItem(p, rtup, IndexTupleSize(rtup),
+	PageAddItem(p, (Item) rtup, IndexTupleSize(rtup),
 		    PageGetMaxOffsetIndex(p), LP_USED);
 	WriteBuffer(b);
 	ldatum = (((char *) ltup) + sizeof(IndexTupleData));
@@ -503,14 +505,14 @@ rtnewroot(r, lt, rt)
     b = ReadBuffer(r, P_ROOT);
     RTInitBuffer(b, 0);
     p = BufferGetPage(b, 0);
-    PageAddItem(p, lt, IndexTupleSize(lt), 0, LP_USED);
-    PageAddItem(p, rt, IndexTupleSize(rt), 1, LP_USED);
+    PageAddItem(p, (Item) lt, IndexTupleSize(lt), 0, LP_USED);
+    PageAddItem(p, (Item) rt, IndexTupleSize(rt), 1, LP_USED);
     WriteBuffer(b);
 }
 
 picksplit(r, page, v, itup)
     Relation r;
-    PageHeader page;
+    Page page;
     SPLITVEC *v;
     IndexTuple itup;
 {
@@ -785,7 +787,7 @@ _rtdump(r)
 
     nblocks = RelationGetNumberOfBlocks(r);
     for (blkno = 0; blkno < nblocks; blkno++) {
-	buf = RelationGetBuffer(r, blkno);
+	buf = ReadBuffer(r, blkno);
 	page = BufferGetPage(buf, 0);
 	po = (RTreePageOpaque) PageGetSpecialPointer(page);
 	maxoff = PageGetMaxOffsetIndex(page);

@@ -443,7 +443,7 @@ _bt_getstackbuf(rel, stack, access)
 	/* see if it's on this page */
 	for (offind = start; offind <= maxoff; offind++) {
 	    itemid = PageGetItemId(page, offind);
-	    item = (BTItem) PageGetItem(itemid);
+	    item = (BTItem) PageGetItem(page, itemid);
 	    if (item->bti_oid == stack->bts_btitem->bti_oid)
 		return (buf);
 	}
