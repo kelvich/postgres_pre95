@@ -67,7 +67,8 @@
  * ----------------
  */
 
-#define TUPLECOUNT 1
+/* #define TUPLECOUNT 1 */
+#undef	TUPLECOUNT
 
 /*
  *     memory management defines
