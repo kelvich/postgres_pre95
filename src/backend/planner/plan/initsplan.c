@@ -81,12 +81,11 @@ initialize_targetlist(tlist)
 #endif NO_PLEASE
 
     foreach (xtl,tlist) {
-	TLE entry;
-	(LispValue)entry = CAR(xtl);
+	TLE entry = (TLE) CAR(xtl);
 
 #ifdef NO_PLEASE
         if(!Quiet) {
-	lispDisplay(entry,0);
+	lispDisplay((LispValue) entry,0);
 	fflush(stdout);
 	}
 #endif NO_PLEASE
