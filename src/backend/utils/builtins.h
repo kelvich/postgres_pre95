@@ -184,6 +184,12 @@ extern void		btreerestrpos();
 extern void		btreerescan();
 
 /*
+ *  Selectivity functions for btrees in utils/adt/selfuncs.c
+ */
+extern float64		btreesel();
+extern float64		btreenpage();
+
+/*
  *	RTree code.
  *	Defined in access/index-rtree/
  */
