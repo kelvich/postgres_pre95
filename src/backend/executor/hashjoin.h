@@ -37,6 +37,7 @@ typedef struct HashTableData {
 	char		*bottom;
 	char		*overflownext;
 	char		*batch;
+	char		*readbuf;
 } HashTableData;  /* real hash table follows here */
 
 typedef HashTableData	*HashJoinTable;
