@@ -6,7 +6,7 @@ static char *io_c = "$Header$";
 
 int StringInput;
 char *TheString;
-static char *Ch;
+char *Ch;
 
 void
 init_io()
