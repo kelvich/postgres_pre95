@@ -299,6 +299,11 @@ _bt_binsrch(rel, buf, keysz, scankey, srchtype)
 	while (mid > 0
 	       && _bt_compare(rel, itupdesc, page, keysz, scankey, mid) == 0)
 	    mid--;
+
+        if (_bt_compare(rel, itupdesc, page, keysz, scankey, mid) != 0)
+	    mid++;
+
+	return (mid);
     } else {
 
 	/*
@@ -450,9 +455,9 @@ _bt_next(scan, dir)
     RetrieveIndexResult res;
     BlockNumber blkno;
     ItemPointer current;
+    ItemPointer iptr;
     BTItem btitem;
     IndexTuple itup;
-    ItemPointer iptr;
 
     rel = scan->relation;
     current = &(scan->currentItemData);
@@ -472,7 +477,9 @@ _bt_next(scan, dir)
     itup = &btitem->bti_itup;
 
     if (_bt_checkqual(scan, itup)) {
-	res = ItemPointerFormRetrieveIndexResult(current, &(itup->t_tid));
+	iptr = (ItemPointer) palloc(sizeof(ItemPointerData));
+	bcopy((char *) &(itup->t_tid), (char *) iptr, sizeof(ItemPointerData));
+	res = ItemPointerFormRetrieveIndexResult(current, iptr);
 
 	/* unpin, but don't unlock, the buffer */
 	_bt_relbuf(rel, buf, BT_NONE);
@@ -569,7 +576,7 @@ _bt_first(scan, dir)
       case BTLessStrategyNumber:
 	if (result <= 0) {
 	    do {
-		if (!_bt_step(scan, &buf, ForwardScanDirection))
+		if (!_bt_step(scan, &buf, BackwardScanDirection))
 		    return ((RetrieveIndexResult) NULL);
 
 		offind = ItemPointerGetOffsetNumber(current, 0) - 1;
@@ -577,13 +584,13 @@ _bt_first(scan, dir)
 		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
 	    } while (result <= 0);
 
-	    if (!_bt_step(scan, &buf, BackwardScanDirection))
+	    if (!_bt_step(scan, &buf, ForwardScanDirection))
 		return((RetrieveIndexResult) NULL);
 	}
 	break;
 
       case BTLessEqualStrategyNumber:
-	if (result < 0) {
+	if (result >= 0) {
 	    do {
 		if (!_bt_step(scan, &buf, ForwardScanDirection))
 		    return ((RetrieveIndexResult) NULL);
@@ -591,7 +598,7 @@ _bt_first(scan, dir)
 		offind = ItemPointerGetOffsetNumber(current, 0) - 1;
 		page = BufferGetPage(buf, 0);
 		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
-	    } while (result < 0);
+	    } while (result >= 0);
 
 	    if (!_bt_step(scan, &buf, BackwardScanDirection))
 		return((RetrieveIndexResult) NULL);
@@ -603,7 +610,7 @@ _bt_first(scan, dir)
 	  return ((RetrieveIndexResult) NULL);
 
       case BTGreaterEqualStrategyNumber:
-	if (result > 0) {
+	if (result <= 0) {
 	    do {
 		if (!_bt_step(scan, &buf, BackwardScanDirection))
 		    return ((RetrieveIndexResult) NULL);
@@ -611,7 +618,7 @@ _bt_first(scan, dir)
 		offind = ItemPointerGetOffsetNumber(current, 0) - 1;
 		page = BufferGetPage(buf, 0);
 		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
-	    } while (result > 0);
+	    } while (result <= 0);
 
 	    if (!_bt_step(scan, &buf, ForwardScanDirection))
 		return((RetrieveIndexResult) NULL);
@@ -621,16 +628,13 @@ _bt_first(scan, dir)
       case BTGreaterStrategyNumber:
 	if (result >= 0) {
 	    do {
-		if (!_bt_step(scan, &buf, BackwardScanDirection))
+		if (!_bt_step(scan, &buf, ForwardScanDirection))
 		    return ((RetrieveIndexResult) NULL);
 
 		offind = ItemPointerGetOffsetNumber(current, 0) - 1;
 		page = BufferGetPage(buf, 0);
 		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
 	    } while (result >= 0);
-
-	    if (!_bt_step(scan, &buf, ForwardScanDirection))
-		return((RetrieveIndexResult) NULL);
 	}
 	break;
     }
@@ -642,7 +646,9 @@ _bt_first(scan, dir)
     itup = &btitem->bti_itup;
 
     if (_bt_checkqual(scan, itup)) {
-	res = ItemPointerFormRetrieveIndexResult(current, &(itup->t_tid));
+	iptr = (ItemPointer) palloc(sizeof(ItemPointerData));
+	bcopy((char *) &(itup->t_tid), (char *) iptr, sizeof(ItemPointerData));
+	res = ItemPointerFormRetrieveIndexResult(current, iptr);
 
 	/* unpin, but don't unlock, the buffer */
 	_bt_relbuf(rel, buf, BT_NONE);
@@ -778,6 +784,7 @@ _bt_endpoint(scan, dir)
     Page page;
     BTPageOpaque opaque;
     ItemPointer current;
+    ItemPointer iptr;
     OffsetIndex offind, maxoff;
     OffsetIndex start;
     BlockNumber blkno;
@@ -879,7 +886,9 @@ _bt_endpoint(scan, dir)
 
     btitem = (BTItem) PageGetItem(page, PageGetItemId(page, start));
     itup = &(btitem->bti_itup);
-    res = ItemPointerFormRetrieveIndexResult(current, &(itup->t_tid));
+    iptr = (ItemPointer) palloc(sizeof(ItemPointerData));
+    bcopy((char *) &(itup->t_tid), (char *) iptr, sizeof(ItemPointerData));
+    res = ItemPointerFormRetrieveIndexResult(current, iptr);
 
     /* unpin, but don't unlock, the buffer */
     _bt_relbuf(rel, buf, BT_NONE);
