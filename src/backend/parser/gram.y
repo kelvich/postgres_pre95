@@ -575,7 +575,7 @@ remove_type:
 	  Function | Rule | Type | Index ;
 
 RemoveOperatorStmt:
-	Remove Operator name '(' remove_operator ')'
+	Remove Operator Op '(' remove_operator ')'
 		{
 		    $3  = lispCons($3, $5);
 		    $2  = lispCons($2, lispCons($3, LispNil));
@@ -584,10 +584,10 @@ RemoveOperatorStmt:
 	;
 
 remove_operator:
-	  Id
+	  name
 		{ $$ = lispCons($1, LispNil); }
-	| Id ',' Id
-		{ $$ = lispCons($1, lispCons($2, LispNil)); }
+	| name ',' name
+		{ $$ = lispCons($1, lispCons($3, LispNil)); }
 	;
 
  /**********************************************************************
