@@ -109,7 +109,7 @@ long *size;
  * the linking process (yes, there are such beasts!).
  */
 
-	image_size = size_text + size_data + 10000;
+	image_size = size_text + size_data + 20000;
 
 	if (temp_file_name == NULL)
 	{
