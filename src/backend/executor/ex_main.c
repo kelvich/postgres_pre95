@@ -566,7 +566,7 @@ ExecutePlan(estate, plan, parseTree, operation, numberTuples,
     JunkFilter		junkfilter;
     
     TupleTableSlot	slot;
-    ItemPointer		tupleid;
+    ItemPointer		tupleid = NULL;
     ItemPointerData	tuple_ctid;
     int	 		current_tuple_count;
     TupleTableSlot	result;	/* result to return to ExecMain */
