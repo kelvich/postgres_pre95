@@ -214,11 +214,11 @@ ProcessUtility(command, args, commandString, dest)
 	    isFrom = (bool)(CAtom(CAAR(args)) == FROM);
 	    fileName = CString(CADR(CAR(args)));
 
-            if (isFrom && !strcmp(fileName, "input"))
+            if (isFrom && !strcmp(fileName, "stdin"))
             {
                  pipe = true;
             }
-            else if (!isFrom && !strcmp(fileName, "output"))
+            else if (!isFrom && !strcmp(fileName, "stdout"))
             {
                  pipe = true;
             }
