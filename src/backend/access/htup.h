@@ -37,9 +37,6 @@
 #ifndef	OID_H
 # include "oid.h"
 #endif
-#ifndef	TUPSIZ_H
-# include "tupsiz.h"
-#endif
 #ifndef	RLOCK_H
 # include "rlock.h"
 #endif
