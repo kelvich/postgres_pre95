@@ -82,6 +82,7 @@ init_fcache(foid, use_syscache, argList, econtext)
 ObjectId foid;
 Boolean use_syscache;
 LispValue argList;
+ExprContext econtext;
 {
     HeapTuple        procedureTuple;
     HeapTuple        typeTuple;
