@@ -43,7 +43,7 @@ slock_t *lock;
 S_INIT_LOCK(lock)
 slock_t *lock;
 {
-    s_unlock(lock);
+    S_UNLOCK(lock);
 }
 
 S_CLOCK(lock)
