@@ -1,4 +1,3 @@
-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
 .SP INITDB UNIX 6/14/90
@@ -15,7 +14,9 @@ initdb \*- initdb a database
 .b initdb
 sets up the initial template databases.  It is normally executed as part
 of the installation process.
+The
 .i -v
+option
 specifies that
 .b initdb
 should be run in "verbose mode", meaning that it will print messages

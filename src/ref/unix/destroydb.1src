@@ -31,9 +31,16 @@ for this database.
 After the database is destroyed, a \*(UU shell prompt will reappear;
 no confirmation message will be displayed.
 .lp
-destroydb needs to connect to a running postmaster to accomplish
+.b Destroydb
+needs to connect to a running postmaster to accomplish
 its tasks.  If no postmaster is running then one must be started
 before destroydb is run.
+.lp
+As of release 3.0 of POSTGRES,
+this is a shell script that executes the Postquel query
+.i destroydb
+from inside the template database.
+See the Postquel reference manual for details.
 .uh "COMMAND OPTIONS"
 .lp
 \fI-p port\fR indicates that destroydb should attempt to connect to a
@@ -67,4 +74,6 @@ the proper host and that the proper port is specified.
 \&.../data/base/*
 .uh "SEE ALSO"
 .lp
-createdb(unix), postmaster(unix).
+createdb(unix),
+postmaster(unix),
+destroydb(postquel).
