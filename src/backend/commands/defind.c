@@ -120,7 +120,8 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 
 		tuple = SearchSysCacheTuple(CLANAME, CString(CADR(attribute)));
 		if (!HeapTupleIsValid(tuple)) {
-			elog(WARN, "DefineIndex: %s class not found");
+			elog(WARN, "DefineIndex: %s class not found",
+				CString(CADR(attribute)));
 		}
 		classObjectId[attributeNumber - 1] = tuple->t_oid;
 	}
