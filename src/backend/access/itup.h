@@ -6,10 +6,12 @@
  *	$Header$
  */
 
-#ifndef	ITupIncluded	/* Include this file only once. */
-#define ITupIncluded	1
+#ifndef ITUP_H
+#define ITUP_H
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "form.h"
 #include "ibit.h"
@@ -351,4 +353,4 @@ ItemPointerFormRetrieveIndexResult ARGS((
 	ItemPointer	heapItemPointer
 ));
 
-#endif	/* !defined(ITupIncluded) */
+#endif	/* !defined(ITUP_H) */
