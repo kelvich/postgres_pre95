@@ -43,6 +43,14 @@
 #include "utils/rel.h"
 #include "rules/prs2.h"
 
+/* this is so the sparcstation debugger works */
+
+#ifndef NO_ASSERT_CHECKING
+#ifdef sparc
+#define register
+#endif /* sparc */
+#endif /* NO_ASSERT_CHECKING */
+
 RcsId("$Header$");
 
 /* ----------------
@@ -76,6 +84,8 @@ set_use_cacheoffgetattr(x)
 {
     use_cacheoffgetattr = x;
 }
+
+#define att_isnull(ATT, BITS) (!((BITS)[(ATT) >> 3] & ((ATT) & 0x07)))
 
 /* ----------------------------------------------------------------
  *			misc support routines
@@ -135,15 +145,20 @@ ComputeDataSize(numberOfAttributes, tupleDescriptor, value, nulls)
 
 /* ----------------
  *	DataFill
+ *
+ *  Changed to take the whole HeapTuple (including the header) rather than
+ *  just the "data" field so that header information could be set here.
  * ----------------
  */
+
 void
-DataFill(data, numberOfAttributes, tupleDescriptor, value, nulls, bit)
-    Pointer		data;
+DataFill(data, numberOfAttributes, tupleDescriptor, value, nulls, infomask, bit)
+    Pointer data;
     AttributeNumber	numberOfAttributes;
     TupleDescriptor	tupleDescriptor;
     Datum		value[];
     char		nulls[];
+	char		*infomask;
     bits8		bit[];
 {
     Attribute	*attributeP;
@@ -156,6 +171,8 @@ DataFill(data, numberOfAttributes, tupleDescriptor, value, nulls, bit)
 
     bitP = &bit[-1];
     bitmask = CSIGNBIT;
+
+	*infomask = 0;
 
     attributeP = &tupleDescriptor->data[0];
     valueP = value;
@@ -176,8 +193,12 @@ DataFill(data, numberOfAttributes, tupleDescriptor, value, nulls, bit)
 	 *  skip null attributes
 	 * ----------------
 	 */
+
 	if (*nullP == 'n') 
+	{
+	    *infomask |= 0x1;
 	    continue;
+	}
 
 	*bitP |= bitmask;
 	
@@ -186,6 +207,8 @@ DataFill(data, numberOfAttributes, tupleDescriptor, value, nulls, bit)
 	     *	variable length attribute
 	     * ----------------
 	     */
+	    *infomask |= 0x2;
+
 	    data = (Pointer) LONGALIGN((char *)data);
 	    *(long *)data = length = PSIZE(DatumGetPointer(*valueP));
 
@@ -262,6 +285,8 @@ heap_attisnull(tup, attnum)
 
     if (attnum > (int)tup->t_natts)
 	return (1);
+
+	if (HeapTupleNoNulls(tup)) return(0);
 
     if (attnum > 0) {
 	byte = --attnum >> 3;
@@ -571,280 +596,206 @@ cacheoffgetattr(tup, attnum, att, isnull)
     bool	*isnull;
 {
     register char		*tp;		/* ptr to att in tuple */
-    register struct attribute	**ap;		/* attribute pointer */
-    register struct attribute	*attp;		/* used as (*ap) */
-    register char		*bp;		/* tup->t_bits pointer */
-    register int		al;		/* attribute length */
-    
-    char			*starttp;	/* original tuple pointer */
-    int				byte;		/* byte index in t_bits */
-    int				finalbit;
-    
-    int				startbyte; 	/* starting place in t_bits */
-    int				startatt; 	/* starting att of our walk */
-    int 			startmask;      /* starting mask for walk */
-    int				attoff;		/* attribute offset */
-    int 			cancache;	/* can we cache offsets? */
+    register char		*bp;		/* ptr to att in tuple */
     int 			slow;		/* do we have to walk nulls? */
-    
+
     /* ----------------
      *	sanity checks
      * ----------------
      */
+
     Assert(PointerIsValid(isnull));
     Assert(attnum > 0);
 
     /* ----------------
-     *	check for null attributes
-     * ----------------
-     */
-    bp = tup->t_bits;
-    {
-	register int n = attnum - 1;
-	
-	byte =     n >> 3;	    /* this byte in t_bits holds bit we want */
-	finalbit = 1 << (n & 07);   /* this is the bitmask for that bit */
-    
-	/* if bit is zero, we have a null attribute */
-	if (! (bp[byte] & finalbit)) { 
-	    *isnull = true;
-	    return NULL;
-	}
-    }
+	 *   Three cases:
+	 * 
+	 *   1: No nulls and no variable length attributes.
+	 *   2: Has a null or a varlena AFTER att.
+	 *   3: Has nulls or varlenas BEFORE att.
+	 * ----------------
+	 */
+
     *isnull =  false;
-    
-    ap = att;
-    Assert(PointerIsValid(ap));
-    attp = *ap;			/* initialize attp to ap[0] */
-    
-    /* ----------------
-     *  initialize tp to start of user attributes.
-     *
-     * old comments:
-     *  Assumes < 700 attributes--else use (tp->t_hoff & I1MASK)
-     *  check this and the #define MaxIndexAttributeNumber in ../h/htup.h
-     * ----------------
-     */
-    tp = (char *)tup + (int)tup->t_hoff;
-    Assert((long)tp == LONGALIGN(tp));
-    
-    starttp = tp;
-    attp->attcacheoff = 0; /* first attribute is always at offset 0 */
 
-    /* ----------------
-     *	minor optimization when user wants first attribute.  this
-     *  is safe b/c we already tested for null.
-     * ----------------
-     */
-    if (attnum == 1) 
-	return fetchatt(ap, tp);
-    
-    /* ----------------
-     *	do a quick check for nulls before the attribute we want.  if
-     *  there are none (which should be most of the time) then we can
-     *  use the attcacheoff info directly.
-     * ----------------
-     */
-    slow = 0;
+    if (HeapTupleNoNulls(tup))
     {
-	register int  i = 0; 	/* current offset in bp */
-	register int  mask;	/* bit in byte we're looking at */
-	register char n;	/* current byte in bp */
-	
-	for (; i <= byte; i++) {
-	    n = bp[i];
-	    if (i < byte) {
-		/* check for nulls in any "earlier" bytes */
-		if ((~n) != 0) {
-		    slow++;
-		    break;
-		}
-	    } else {
-		/* check for nulls "before" final bit of last byte*/
-		mask = (finalbit << 1) - 1;
-		if ((~n) & mask)
-		    slow++;
+	/* first attribute is always at position zero */
+
+	attnum--;
+	if (att[attnum]->attcacheoff > 0)
+	{
+	    return(fetchatt(att + attnum, (Pointer) tup
+				+ tup->t_hoff + att[attnum]->attcacheoff));
+	}
+	else if (attnum == 0)
+	{
+ 	    return(fetchatt(att, (Pointer) tup + tup->t_hoff));
+	}
+
+	tp = (Pointer) tup + tup->t_hoff;
+
+	slow = 0;
+    }
+    else /* there's a null somewhere in the tuple */
+    {
+	bp = tup->t_bits;
+	slow = 0;
+        /* ----------------
+         *	check to see if desired att is null
+         * ----------------
+         */
+
+	attnum--;
+	{
+	    if (att_isnull(attnum, bp)) 
+	    {
+		*isnull = true;
+		return NULL;
 	    }
 	}
-    }
-
-    /* ----------------
-     *	if no nulls ahead of the attribute we want, then we can go
-     *  directly to attcacheoff if it's available.
-     * ----------------
-     */
-    if (! slow) {
-	register int off;
-	register int j = attnum - 1;
-	
-	off = ap[ j ]->attcacheoff;
-	if (off > 0) {		   /* we've cached the offset for this att! */
-	    ap += j;		   /* move ap to attribute struct */
-	    tp += off;		   /* move tp to attribute data */
-	    return
-		fetchatt(ap, tp);
-	}
-    }
-
-    /* ----------------
-     *	well, we have no cached offset info for the att we want or we
-     *  found some nulls.  now we determine starting point of tuple
-     *  walk based on the tuple's null bitmap and the attributes we've
-     *  previously cached. 
-     *
-     *  (we can only use the cached offset if none of the attributes before
-     *   the one we want are null or variable length.  we take care of the
-     *   null part of this condition here -- variable length attributes are
-     *   dealt with during the attribute walk.)
-     * ----------------
-     */
-    {
-	register int  i = 0; 		   /* current offset in bp */
-	register int  off;		   /* cached attribute offset info */
-	register int  mask;		   /* bit in byte we're looking at */
-	unsigned      n;		   /* byte in bp being inspected */
-	int 	      done = 0;		   /* flag: starting att found */
-	int 	      bitrange = CSIGNBIT; /* upper bound of bits to test */
-	
-	cancache = 1;		/* assume ok to cache offset to next att */
-	attoff = 0;
-	for (; i <= byte; i++) {
-	    /* on last byte, stop at finalbit */
-	    if (i == byte) bitrange = finalbit;
-	    
-	    n = bp[i];
-	    for (mask = 1; mask <= bitrange; mask <<= 1) {
-		off = attp->attcacheoff;
-		if (off <= 0 && ap != att) {
-		    /* ----------------
-		     *	found att w no cached offset.
-		     *
-		     *  XXX Note the test above was originally just
-		     *  (off < 0) but somewhere in the system we are
-		     *  creating tuple descriptors with attcacheoff
-		     *  initialized to 0 instead of -1!  The test above
-		     *  works because it's impossible to have a zero
-		     *  offset attribute for any attribute past the first.
-		     *  The tuple desc routines should be fixed.  -cim 5/5/91
-		     * ----------------
-		     */
-		    done++; 		
-		    break;
-		} else if (!(n & mask)) {
-		    /* ----------------
-		     *	found a null attribtute
-		     * ----------------
-		     */
-		    cancache = 0;	/* can't cache atts after a null */
-		    done++; 		
-		    break;
-		} else {
-		    /* ----------------
-		     *  current attribute offset is cached, get the offset
-		     *  and move on to the next offset.
-		     * ----------------
-		     */
-		    attoff = off;	/* save offset */
-		    ap++;		/* move to next att */
-		    attp = *ap;		/* keep attp current */
-		}
-	    }
-	    if (done) break;
-	}
-
-	/* ----------------
-	 *  if we found att w no cached offset, when we begin our walk
-	 *  at the attribute before this one and adjust startmask
-	 *  appropriately.   
-	 *
-	 *  otherwise if we found a null attribtute, we begin our walk
-	 *  at the attribute at this offset.
-	 * ----------------
+        /* ----------------
+	 *      Now check to see if any preceeding bits are null...
+         * ----------------
 	 */
-	if (cancache) {
-	    ap--;		/* move ap to attribute struct */
-	    attp = *ap;		/* keep attp current */
-	    tp += attoff;	/* move tp to attribute data */
-	    startmask= mask>>1; /* set mask to prev attribute */
-	} else {
-	    tp += off;		/* move tp to null attribute */
-	    startmask= mask;    /* set mask to null attribute */
-	}
+	{
+	    register int  i = 0; /* current offset in bp */
+	    register int  mask;	 /* bit in byte we're looking at */
+	    register char n;	 /* current byte in bp */
+	    register int byte, finalbit;
 	
-	/* ----------------
-	 *  now we're done determining where to start our walk.
-	 *  if we were able to get all the way up to the att we want,
-	 *  then it means the cached offset value is good and we can
-	 *  go straight to the attribute.
-	 * ----------------
-	 */
-	if (!done && attnum == attp->attnum)
-	    return fetchatt(ap, tp);
-		    
-	byte -= i;		/* adjust #bytes to walk */
-    }
+	    byte = attnum >> 3;
+	    finalbit = attnum & 0x07;
 
-    /* ----------------
-     *  if we get here, then either we haven't cached the offset yet,
-     *  or this attribute is not cachable, so we now walk the tuple
-     *  descriptor until we get to the attribute we want.
-     *
-     *  we advance tp the length of each attribute we step over so tp
-     *  points to our attribute when we're done. 
-     * ----------------
-     */
-    { 
-	register int mask; 		/* used to test bit of *bp */
-	int bitrange = CSIGNBIT;	/* upper bound of bits to test */
-	
-	for (; byte >= 0; startmask = 1) {
-	    
-	    /* stop at finalbit when we get to the last byte */
-	    /* (this code never walks over the last attribute in a tuple) */
-	    if (! byte--)
-		bitrange = finalbit >> 1;
-
-	    for (mask = startmask; mask <= bitrange; mask <<= 1) {
-		if (*bp & mask) {
-		    /* attribute we're walking over is not null */
-		    al = attp->attlen;
-		    if (al < 0) {
-			/* steping over a variable length attribute */
-			cancache = 0;
-			tp = ((char *) LONGALIGN(tp)) + sizeof (long);
-			tp += PSIZE(tp);
-		    } else if (al >= 3) {
-			tp = ((char *) LONGALIGN(tp)) + al;
-		    } else if (al == 2) {
-			tp = (char *) SHORTALIGN(tp + 2);
-		    } else if (!al) {
-			elog(WARN, "fastgetattr: 0 attlen");
-		    } else {
-			tp++;
+	    for (; i <= byte; i++) {
+	        n = bp[i];
+	        if (i < byte) {
+		    /* check for nulls in any "earlier" bytes */
+		    if ((~n) != 0) {
+		        slow++;
+		        break;
 		    }
-		} else {
-		    /* walking over a null-attribute, can't cache anymore */
-		    cancache = 0;
-		}
-
-		ap++;		/* advance to next att in tupdesc */
-		attp = *ap;	/* keep attp current */
-		
-		/* try and cache offset to next attribute */
-		if (cancache) 
-		    attp->attcacheoff = tp - starttp;
+	        } else {
+		    /* check for nulls "before" final bit of last byte*/
+		    mask = (finalbit << 1) - 1;
+		    if ((~n) & mask)
+		        slow++;
+	        }
 	    }
-	    
-	    /* advance to next byte in null bitmap (t_bits) */
-	    bp++;
+        }
+    }
+
+    /* now check for any non-fixed length attrs before our attribute */
+
+    if (!slow)
+    {
+	if (att[attnum]->attcacheoff > 0)
+	{
+	    return(fetchatt(att + attnum, tp + att[attnum]->attcacheoff));
 	}
-    
-	/* ----------------
-	 *  tp is now at the attribute we want, so have fetchatt return it
-	 * ----------------
+	else if (!HeapTupleAllFixed(tup))
+	{
+	    register int j = 0;
+
+	    for (j = 0; j < attnum && !slow; j++)
+		if (att[j]->attlen < 1) slow = 1;
+	}
+    }
+
+    /*
+     * if slow is zero, and we got here, we know that we have a tuple with
+     * no nulls.  We also know that we have to initialize the remainder of
+     * the attribute cached offset values.
+     */
+
+    if (!slow)
+    {
+	register int j = 1;
+	register long off;
+
+	/*
+	 * need to set cache for some atts
 	 */
-	return
-	    fetchatt(ap, tp);
+
+	att[0]->attcacheoff = 0;
+
+	while (att[j]->attcacheoff > 0) j++;
+
+	off = att[j-1]->attcacheoff + att[j-1]->attlen;
+
+	for (; j < attnum + 1; j++)
+	{
+	    /*
+	     * Fix me when going to a machine with more than a four-byte
+	     * word!
+	     */
+
+	    switch(att[j]->attlen)
+	    {
+		case sizeof(char) : break;
+		case sizeof(short): off = SHORTALIGN(off); break;
+		default           : off = LONGALIGN(off); break;
+	    }
+
+	    att[j]->attcacheoff = off;
+	    off += att[j]->attlen;
+	}
+
+	return(fetchatt(att + attnum, tp + att[attnum]->attcacheoff));
+    }
+    else
+    {
+	register bool usecache = true;
+	register int off = 0;
+	register int savelen;
+	register int i;
+
+	/*
+	 * Now we know that we have to walk the tuple CAREFULLY.
+	 */
+	
+	for (i = 0; i < attnum; i++)
+	{
+	    if (!HeapTupleNoNulls(tup))
+	    {
+		if (att_isnull(i, bp))
+		{
+		    usecache = false;
+		    continue;
+		}
+	    }
+
+	    if (usecache && att[i]->attcacheoff > 0)
+	    {
+		off = att[i]->attcacheoff;
+		if (att[i]->attlen == -1)
+		{
+		    usecache = false;
+		}
+		else continue;
+	    }
+
+	    if (usecache) att[i]->attcacheoff = off;
+	    switch(att[i]->attlen)
+	    {
+	        case sizeof(char):
+	            off++;
+	            break;
+	        case sizeof(short):
+	            off = SHORTALIGN(off + sizeof(short));
+	            break;
+	        case -1:
+	            usecache = false;
+		    off = LONGALIGN(off) + sizeof(long);
+	    	    off += PSIZE(tp + off);
+		    break;
+		default:
+		    off = LONGALIGN(off + att[i]->attlen);
+		    break;
+	    }
+	}
+
+	return(fetchatt(att + attnum, tp + off));
     }
 }
 
@@ -1220,16 +1171,16 @@ heap_formtuple(numberOfAttributes, tupleDescriptor, value, nulls)
     
     bzero(tp, (int)len);
     
-    tuple->t_len = 	(short) len;			/* XXX */
+    tuple->t_len = 	len;
     tuple->t_natts = 	numberOfAttributes;
+	tuple->t_hoff = hoff;
     
-    tp += tuple->t_hoff = hoff;
-    
-    DataFill((Pointer) tp,
+    DataFill((Pointer) tuple + tuple->t_hoff,
 	     numberOfAttributes,
 	     tupleDescriptor,
 	     value,
 	     nulls,
+		 &tuple->t_infomask,
 	     tuple->t_bits);
     
     /*
