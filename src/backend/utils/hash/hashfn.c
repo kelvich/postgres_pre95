@@ -37,18 +37,35 @@ int *	key;
 int	keysize;
 {
 	int h;
-	
+
 	/*
-	 * Convert tag to integer;
+	 * Convert tag to integer;  Use four byte chunks so we can
+	 * go a little faster.
 	 */
 	for(h = 0;keysize > (sizeof(int)-1);keysize -= sizeof(int),key++) {
 	  h = h * PRIME1 ^ (*key);
 	}
-	while (keysize) {
-	  h = h * PRIME1 ^ (*((char *)key));
-	  key = (int *) ( ((char *)key)+1 );
-	  keysize--;
-	}
+        /*
+         * now let's grab the last few bytes of the tag if the tag
+         * has (size % 4) != 0 (which it sometimes will on a sun3).
+         */
+        if (keysize) {
+          char *keytmp = (char *)key;
+
+          switch (keysize) {
+          case 3:
+            h = h * PRIME1 ^ (*keytmp);
+            keytmp++;
+            /* fall through */
+          case 2:
+            h = h * PRIME1 ^ (*keytmp);
+            keytmp++;
+            /* fall through */
+          case 1:
+            h = h * PRIME1 ^ (*keytmp);
+            break;
+          }
+        }
 	h %= PRIME2;
 	return (h);
 }
