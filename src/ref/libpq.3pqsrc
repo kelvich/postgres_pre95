@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH INTRODUCTION LIBPQ 01/23/93
+.TH INTRODUCTION LIBPQ 05/29/93
 .XA 0 "Section 5 \(em Libpq"
 .BH "SECTION 5 \(em LIBPQ"
 .SH DESCRIPTION
@@ -77,6 +77,11 @@ int  PQtracep = 0;      /* 1 to print out front-end
 int  PQAsyncNotifyWaiting = 0; /* 1 if one or more asynchronous
                                   notifications have been
                                   triggered */
+
+char *PQerrormsg;       /* null-delimited string containing the
+                           error message (usually from the backend)
+                           when the execution of a query or function 
+                           fails */
 .)C
 .XA 1 "Query Execution Functions"
 .SH "QUERY EXECUTION FUNCTIONS"
@@ -131,13 +136,49 @@ Send a function call to the \*(PG backend.  Provides access to the
 facility, a trapdoor into the system internals.  See the
 .IR "FAST PATH"
 section of the manual.
+.IP
+The
+.IR fnid
+argument is the object identifier of the function to be executed.
+.IR result_len
+and
+.IR result_buf
+specify the expected size (in bytes) of the function return value and
+a buffer in which to load the return value.  (Variable-length sizes
+are specified as -1.)  The actual size of the return value will be
+loaded into
+.IR actual_result_len .
+.IR result_type
+should be set to 1 if the return type is a 4-byte integer and 2 in all
+other cases.
+.IR args
+and
+.IR nargs
+specify a pointer to a PQArgBlock structure (see
+.(C
+\&.../src/backend/tmp/libpq.h
+.)C
+for more details) and the number of arguments, respectively.
+.IP
+.IR PQfn
+returns a string containing the character \*(lqG\*(rq when a
+return-value has been loaded into 
+.IR result_buf ,
+or \*(lqV\*(rq if the function returned nothing.
+.IR PQfn returns
+.SM NULL
+pointer and loads
+.IR PQerrormsg
+is any error occurs.
 .(C
 char *PQfn(fnid, result_buf, result_len,
-           result_is_int, args, nargs)
+	   actual_result_len,
+           result_type, args, nargs)
 	int fnid;
 	int *result_buf;
 	int result_len;
-	int result_is_int;
+	int *actual_result_len;
+	int result_type;
 	PQArgBlock *args;
 	int nargs;
 .)C
@@ -152,10 +193,12 @@ the name of the portal buffer.  When the query does not return
 instances,
 .IR PQexec
 will return a string consisting of the character \*(lqC\*(rq followed
-by the command tag (e.g., \*(lqCREPLACE\*(rq).  If an error occured
-during the execution of the query
+by the command tag (e.g., \*(lqCREPLACE\*(rq).  If an error occurred
+during the execution of the query,
 .IR PQexec
-will return (for historical reasons) the character \*(lqR\*(rq.
+will return (for historical reasons) the character \*(lqR\*(rq and
+load an error message into
+.IR PQerrormsg .
 .(C
 char *PQexec(query)
 	char *query;
@@ -221,7 +264,7 @@ Return the number of open portals.  If
 is not 0, then only return the number of asynchronous portals.
 .(C
 int PQnportals(rule_p)
-	int rule_p ;
+	int rule_p;
 .)C
 .TP 15n
 .BR PQpnames
