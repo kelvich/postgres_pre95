@@ -1259,6 +1259,7 @@ a_expr:
 			      default:
 				lcp = PointerGetDatum(cp);
 				break;
+			    }
 			}
 
 			adt = MakeConst ( typeid(tp), len, lcp , 0 );
