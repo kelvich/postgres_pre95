@@ -10,13 +10,13 @@
 
 define function circle_in ( language = "c",
 			    returntype = circle )
-       arg is (char16)
+       arg is (wildcard)
        as "_CWD_/obj/regress.o"
 \g
 
 define function circle_out ( language = "c", 
-			     returntype = char16 )
-       arg is (circle)
+			     returntype = wildcard )
+       arg is (wildcard)
        as "_CWD_/obj/regress.o"
 \g
 

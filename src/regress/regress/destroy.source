@@ -15,9 +15,9 @@ remove function equipment(hobbies_r)
 \g
 remove function user_relns()
 \g
-remove function circle_in(char16)
+remove function circle_in(wildcard)
 \g
-remove function circle_out(circle)
+remove function circle_out(wildcard)
 \g
 remove function pt_in_circle(point,circle)
 \g
