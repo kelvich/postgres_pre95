@@ -146,7 +146,7 @@ meaning the internallength for large objects is always -1.
  */
  
    define type int4array
-   (input = array_in, output = array_out, internallength = -1, element = int4)
+   (input = array_in, output = array_out, internallength = variable, element = int4)
 
    create MYARRAYS (id = int4, numbers = int4array)
 
@@ -156,7 +156,7 @@ meaning the internallength for large objects is always -1.
  */
 
    define type bigobj
-   (input = lo_filein, output = lo_fileout, internallength = -1)
+   (input = lo_filein, output = lo_fileout, internallength = variable)
 
    create BIG_OBJS (id = int4, obj = bigobj)
 
