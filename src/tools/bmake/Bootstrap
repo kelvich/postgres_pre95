@@ -71,5 +71,5 @@ EOF
 		;;
 esac
 sed -f $SEDFILE < Makefile.boot > $CONFFILE
-rm -f $SEDFILE
 make -f $CONFFILE
+rm -f $SEDFILE $CONFFILE
