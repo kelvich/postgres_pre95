@@ -27,11 +27,7 @@
 
 #include "c.h"
 #include "internal.h"
-
-extern bool relation_level_clause_p();
-extern LispValue nested_clause_p();
-extern bool function_index_clause_p();
-extern LispValue fix_opids();
+#include "clause.h"
 
 /* XXX - remove these phoney defns once we find the appropriate defn */
 extern get_varno();
