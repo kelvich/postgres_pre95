@@ -22,8 +22,6 @@
  * ----------------------------------------------------------------
  */
 
-#include <math.h>
-
 #include "tmp/postgres.h"
 
  RcsId("$Header$");
@@ -89,8 +87,7 @@ TransComputeBlockNumber(relation, transactionId, blockNumberOutP)
     TransactionId 		transactionId; 	/* transaction id to test */
     BlockNumber			*blockNumberOutP;
 {
-    TransactionIdValueData	xidv;
-    TransactionIdValueData	itemsPerBlock;
+    long	itemsPerBlock;
     
     /* ----------------
      *  we calculate the block number of our transaction
@@ -112,10 +109,12 @@ TransComputeBlockNumber(relation, transactionId, blockNumberOutP)
      *
      *	XXX  this will all vanish soon when we implement an improved
      *       transaction id schema -cim 3/23/90
+     *
+     *  This has vanished now that xid's are 4 bytes (no longer 5).
+     *  -mer 5/24/92
      * ----------------
      */
-    TransactionIdSetTransactionIdValue(transactionId, &xidv);
-    (*blockNumberOutP) = xidv / itemsPerBlock;
+    (*blockNumberOutP) = transactionId / itemsPerBlock;
 }
 
 
@@ -133,10 +132,10 @@ TransComputeBlockNumber(relation, transactionId, blockNumberOutP)
  */
 
 XidStatus
-TransBlockGetLastTransactionIdStatus(tblock, baseXid, returnXid)
+TransBlockGetLastTransactionIdStatus(tblock, baseXid, returnXidP)
     Pointer		tblock;
     TransactionId	baseXid;
-    TransactionId	returnXid;  /* RETURN */
+    TransactionId	*returnXidP;  /* RETURN */
 {
     Index         index;
     Index         maxIndex;
@@ -174,9 +173,9 @@ TransBlockGetLastTransactionIdStatus(tblock, baseXid, returnXid)
 	 * ----------------
 	 */
 	if (xstatus != XID_INPROGRESS) {
-	    if (returnXid != NULL) {
-		TransactionIdStore(baseXid, (Pointer) returnXid);
-		TransactionIdAdd(returnXid, index);
+	    if (returnXidP != NULL) {
+		TransactionIdStore(baseXid, returnXidP);
+		TransactionIdAdd(returnXidP, index);
 	    }
 	    break;
 	}
@@ -190,8 +189,8 @@ TransBlockGetLastTransactionIdStatus(tblock, baseXid, returnXid)
      * ----------------
      */
     if (index == 0) {
-	if (returnXid != NULL)
-	    TransactionIdStore(baseXid, (Pointer) returnXid);
+	if (returnXidP != NULL)
+	    TransactionIdStore(baseXid, (Pointer) returnXidP);
     }
 
     /* ----------------
@@ -235,17 +234,12 @@ TransBlockGetXidStatus(tblock, transactionId)
      *
      *  XXX this will be replaced soon when we move to the
      *      new transaction id scheme -cim 3/23/90
+     *
+     *  The old system has now been replaced. -mer 5/24/92
      * ----------------
      */
-    TransactionIdSetTransactionIdValue(transactionId, &xidv);
-    itemsPerBlock = TP_NumXidStatusPerBlock;
-    result = xidv - floor(xidv / itemsPerBlock) * itemsPerBlock;
-    index = result;
+    index = transactionId % TP_NumXidStatusPerBlock;
    
-    if (index >= TP_NumXidStatusPerBlock) {
-	return XID_INVALID;
-    }
-    
     /* ----------------
      *	get the data at the specified index
      * ----------------
@@ -294,16 +288,12 @@ TransBlockSetXidStatus(tblock, transactionId, xstatus)
      *
      *  XXX this will be replaced soon when we move to the
      *      new transaction id scheme -cim 3/23/90
+     *
+     *  The new scheme is here -mer 5/24/92
      * ----------------
      */
-    TransactionIdSetTransactionIdValue(transactionId, &xidv);
-    itemsPerBlock = TP_NumXidStatusPerBlock;
-    result = xidv - floor(xidv / itemsPerBlock) * itemsPerBlock;
-    index = result;
+    index = transactionId % TP_NumXidStatusPerBlock;
     
-    if (index >= TP_NumXidStatusPerBlock) 
-	return;
-       
     offset =    BitIndexOf(index);
     
     /* ----------------
@@ -344,11 +334,8 @@ TransBlockGetCommitTime(tblock, transactionId)
     Pointer		tblock;
     TransactionId	transactionId;
 {
-    TransactionIdValueData	xidv;
     Index			index;
     Time			*timeArray;
-    TransactionIdValueData 	itemsPerBlock;
-    TransactionIdValueData 	result;
     
     /* ----------------
      *	sanity check
@@ -363,15 +350,11 @@ TransBlockGetCommitTime(tblock, transactionId)
      *
      *  XXX this will be replaced soon when we move to the
      *      new transaction id scheme -cim 3/23/90
+     *
+     *  The new scheme is here. -mer 5/24/92
      * ----------------
      */
-    TransactionIdSetTransactionIdValue(transactionId, &xidv);
-    itemsPerBlock = TP_NumTimePerBlock;
-    result = xidv - floor(xidv / itemsPerBlock) * itemsPerBlock;
-    index = result;
-    
-    if (index >= TP_NumTimePerBlock)
-	return InvalidTime;
+    index = transactionId % TP_NumTimePerBlock;
     
     /* ----------------
      *	return the commit time to the caller
@@ -395,11 +378,8 @@ TransBlockSetCommitTime(tblock, transactionId, commitTime)
     TransactionId	transactionId;
     Time 		commitTime;
 {
-    TransactionIdValueData	xidv;
     Index			index;
     Time			*timeArray;
-    TransactionIdValueData 	itemsPerBlock;
-    TransactionIdValueData 	result;
     
     /* ----------------
      *	sanity check
@@ -415,15 +395,11 @@ TransBlockSetCommitTime(tblock, transactionId, commitTime)
      *
      *  XXX this will be replaced soon when we move to the
      *      new transaction id scheme -cim 3/23/90
+     *
+     *  The new scheme is here.  -mer 5/24/92
      * ----------------
      */
-    TransactionIdSetTransactionIdValue(transactionId, &xidv);
-    itemsPerBlock = TP_NumTimePerBlock;
-    result = xidv - floor(xidv / itemsPerBlock) * itemsPerBlock;
-    index = result;
-
-    if (index >= TP_NumTimePerBlock)
-	return;
+    index = transactionId % TP_NumTimePerBlock;
 
     /* ----------------
      *	store the transaction commit time at the specified index
@@ -681,8 +657,7 @@ TransGetLastRecordedTransaction(relation, xid, failP)
     Buffer	   	buffer;		/* buffer associated with block */
     Block		block;		/* block containing xid status */
     BlockNumber		n;		/* number of blocks in the relation */
-    TransactionIdValueData xidv;	/* arithmetic representation of xid */
-    TransactionIdData	baseXid;
+    TransactionId	baseXid;
     
     (*failP) = false;
 
@@ -721,10 +696,9 @@ TransGetLastRecordedTransaction(relation, xid, failP)
      *	get the last xid on the block
      * ----------------
      */
-    xidv = blockNumber * TP_NumXidStatusPerBlock;
-    TransactionIdValueSetTransactionId(&xidv, &baseXid);
+    baseXid = blockNumber * TP_NumXidStatusPerBlock;
     
-    (void) TransBlockGetLastTransactionIdStatus(block, &baseXid, xid);
+    (void) TransBlockGetLastTransactionIdStatus(block, baseXid, &xid);
     
     ReleaseBuffer(buffer);
 
@@ -734,4 +708,3 @@ TransGetLastRecordedTransaction(relation, xid, failP)
      */
     RelationUnsetLockForRead(relation);
 }
-

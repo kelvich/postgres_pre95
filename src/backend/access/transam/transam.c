@@ -61,23 +61,20 @@ Relation VariableRelation = (Relation) NULL;
  *    	global variables holding cached transaction id's and statuses.
  * ----------------
  */
-TransactionIdData cachedGetCommitTimeXid;
-Time 		  cachedGetCommitTime;
-TransactionIdData cachedTestXid;
-XidStatus	  cachedTestXidStatus;
+TransactionId	cachedGetCommitTimeXid;
+Time 		cachedGetCommitTime;
+TransactionId	cachedTestXid;
+XidStatus	cachedTestXidStatus;
 
 /* ----------------
  *	transaction system constants
  * ----------------
  */
-static TransactionIdData NullTransactionIdData = { { 0, 0, 0, 0, 0 } };
-TransactionId NullTransactionId = &NullTransactionIdData;
+TransactionId NullTransactionId = (TransactionId) 0;
 
-static TransactionIdData TransactionIdOneData = { { 0, 0, 0, 2, 0 } };
-TransactionId AmiTransactionId = &TransactionIdOneData;
+TransactionId AmiTransactionId = (TransactionId) 512;
 
-static TransactionIdData FirstTransactionIdData = { { 0, 0, 0, 2, 2 } };
-TransactionId FirstTransactionId = &FirstTransactionIdData;
+TransactionId FirstTransactionId = (TransactionId) 514;
 
 /* ----------------
  *	transaction recovery state variables
@@ -155,7 +152,7 @@ TransactionLogTest(transactionId, status)
      *   status a moment ago.
      * ----------------
      */
-    if (TransactionIdEquals(transactionId, &cachedTestXid))
+    if (TransactionIdEquals(transactionId, cachedTestXid))
 	return (bool)
 	    (status == cachedTestXidStatus);
         
@@ -173,7 +170,7 @@ TransactionLogTest(transactionId, status)
 					     &fail);
 
     if (! fail) {
-	TransactionIdStore(transactionId, (Pointer) &cachedTestXid);
+	TransactionIdStore(transactionId, &cachedTestXid);
 	cachedTestXidStatus = xidstatus;
 	return (bool)
 	    (status == xidstatus);
@@ -232,7 +229,7 @@ TransactionLogUpdate(transactionId, status)
      *	 update (invalidate) our single item TransactionLogTest cache.
      * ----------------
      */
-    TransactionIdStore(transactionId, (Pointer) &cachedTestXid);
+    TransactionIdStore(transactionId, &cachedTestXid);
     cachedTestXidStatus = status;
     
     /* ----------------
@@ -251,7 +248,7 @@ TransactionLogUpdate(transactionId, status)
 	 *   update (invalidate) our single item GetCommitTime cache.
 	 * ----------------
 	 */
-	TransactionIdStore(transactionId, (Pointer) &cachedGetCommitTimeXid);
+	TransactionIdStore(transactionId, &cachedGetCommitTimeXid);
 	cachedGetCommitTime = currentTime;
     }
 
@@ -290,7 +287,7 @@ TransactionIdGetCommitTime(transactionId)
      *   a moment ago.
      * ----------------
      */
-    if (TransactionIdEquals(transactionId, &cachedGetCommitTimeXid))
+    if (TransactionIdEquals(transactionId, cachedGetCommitTimeXid))
 	return cachedGetCommitTime;
     
     /* ----------------
@@ -309,7 +306,7 @@ TransactionIdGetCommitTime(transactionId)
      * ----------------
      */
     if (! fail) {
-	TransactionIdStore(transactionId, (Pointer) &cachedGetCommitTimeXid);
+	TransactionIdStore(transactionId, &cachedGetCommitTimeXid);
 	cachedGetCommitTime = commitTime;
 	return commitTime;
     } else
@@ -404,8 +401,8 @@ TransRecover(logRelation)
      *    next get the "last" and "next" variables
      * ----------------
      */
-    VariableRelationGetLastXid(varLastXid);
-    VariableRelationGetNextXid(varNextXid);
+    VariableRelationGetLastXid(&varLastXid);
+    VariableRelationGetNextXid(&varNextXid);
 
     /* ----------------
      *    intregity test (1)
@@ -431,7 +428,7 @@ TransRecover(logRelation)
      * ----------------
      */
     varNextXid = TransactionIdDup(varLastXid);
-    TransactionIdIncrement(varNextXid);
+    TransactionIdIncrement(&varNextXid);
 
     VarPut(var, VAR_PUT_LASTXID, varLastXid);
     VarPut(var, VAR_PUT_NEXTXID, varNextXid);

@@ -176,7 +176,7 @@
  * ----------------
  */
 TransactionStateData CurrentTransactionStateData = {
-    { 0 },			/* transaction id data */
+    0,				/* transaction id */
     FirstCommandId,		/* command id */
     0x0,			/* start time */
     TRANS_DEFAULT,		/* transaction state */
@@ -202,12 +202,10 @@ bool inSlaveTransaction = false;
  *	       V1 transaction system.  -cim 3/18/90
  * ----------------
  */
-TransactionIdData DisabledTransactionIdData = {
-    '\177', '\177', '\177', '\177', '\177'
-};
+TransactionId DisabledTransactionId = (TransactionId)-1;
 
 CommandId DisabledCommandId =
-    (CommandId) '\177';
+    (CommandId) -1;
 
 Time DisabledStartTime =
     (Time) 1073741823;
@@ -351,13 +349,13 @@ GetCurrentTransactionId()
      * ----------------
      */
     if (s->state == TRANS_DISABLED)
-	return (TransactionId) &DisabledTransactionIdData;
+	return (TransactionId) DisabledTransactionId;
 
     /* ----------------
      *	otherwise return the current transaction id.
      * ----------------
      */
-    return (TransactionId) &(s->transactionIdData);
+    return (TransactionId) s->transactionIdData;
 }
 
 
@@ -417,7 +415,7 @@ TransactionIdIsCurrentTransactionId(xid)
 	return false;
 
     return (bool)
-	TransactionIdEquals(xid, &(s->transactionIdData));
+	TransactionIdEquals(xid, s->transactionIdData);
 }
 
 
@@ -435,7 +433,7 @@ CommandIdIsCurrentCommandId(cid)
 	return false;
 
     return 	
-	(AsUint8(cid) == AsUint8(s->commandId)) ? true : false;
+	(cid == s->commandId) ? true : false;
 }
 
 
@@ -500,7 +498,12 @@ AtStart_Cache()
 void
 AtStart_Locks()    
 {
-    /* at present, it is unknown to me what belongs here -cim 3/18/90 */
+    /*
+     * at present, it is unknown to me what belongs here -cim 3/18/90
+     *
+     * There isn't anything to do at the start of a xact for locks.
+     *  -mer 5/24/92
+     */
 }
 
 /* --------------------------------
@@ -607,16 +610,10 @@ AtCommit_Cache()
 void
 AtCommit_Locks()  
 {
-    TransactionId xid;
-
-    /* ----------------
-     *	get the current transaction id
-     * ----------------
-     */
-    xid = GetCurrentTransactionId();
-
     /* ----------------
      *	XXX What if ProcReleaseLocks fails?  (race condition?) 
+     *
+     *  Then you're up a creek! -mer 5/24/92
      * ----------------
      */
     ProcReleaseLocks();
@@ -692,16 +689,10 @@ AtAbort_Cache()
 void
 AtAbort_Locks()    
 {
-    TransactionId xid;
-
-    /* ----------------
-     *	get the current transaction id
-     * ----------------
-     */
-    xid = GetCurrentTransactionId();
-        
     /* ----------------
      *	XXX What if ProcReleaseLocks() fails?  (race condition?)
+     *
+     *  Then you're up a creek without a paddle! -mer
      * ----------------
      */
     ProcReleaseLocks();

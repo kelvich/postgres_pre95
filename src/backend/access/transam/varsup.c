@@ -70,8 +70,8 @@ int OidGenLockId;
  * --------------------------------
  */
 void
-VariableRelationGetNextXid(xid)
-    TransactionId xid;
+VariableRelationGetNextXid(xidP)
+    TransactionId *xidP;
 {
     Buffer buf;
     VariableRelationContents var;
@@ -104,7 +104,7 @@ VariableRelationGetNextXid(xid)
 
     var = (VariableRelationContents) BufferGetBlock(buf);
 
-    TransactionIdStore(&(var->nextXidData), (Pointer) xid);
+    TransactionIdStore(var->nextXidData, xidP);
     ReleaseBuffer(buf);
 }
 
@@ -113,8 +113,8 @@ VariableRelationGetNextXid(xid)
  * --------------------------------
  */
 void
-VariableRelationGetLastXid(xid)
-    TransactionId xid;
+VariableRelationGetLastXid(xidP)
+    TransactionId *xidP;
 {
     Buffer buf;
     VariableRelationContents var;
@@ -147,7 +147,7 @@ VariableRelationGetLastXid(xid)
 
     var = (VariableRelationContents) BufferGetBlock(buf);
 
-    TransactionIdStore(&(var->lastXidData), (Pointer) xid);
+    TransactionIdStore(var->lastXidData, xidP);
 
     ReleaseBuffer(buf);
 }
@@ -191,7 +191,7 @@ VariableRelationPutNextXid(xid)
 
     var = (VariableRelationContents) BufferGetBlock(buf);
 
-    TransactionIdStore(xid, (Pointer) &(var->nextXidData));
+    TransactionIdStore(xid, &(var->nextXidData));
 
     WriteBuffer(buf);
 }
@@ -235,7 +235,7 @@ VariableRelationPutLastXid(xid)
 
     var = (VariableRelationContents) BufferGetBlock(buf);
 
-    TransactionIdStore(xid, (Pointer) &(var->lastXidData));
+    TransactionIdStore(xid, &(var->lastXidData));
 
     WriteBuffer(buf);
 }
@@ -412,13 +412,13 @@ VariableRelationPutNextOid(oidP)
 #define VAR_XID_PREFETCH	32
 
 static int prefetched_xid_count = 0;
-TransactionIdData next_prefetched_xid;
+TransactionId next_prefetched_xid;
 
 void
 GetNewTransactionId(xid)
-    TransactionId xid;
+    TransactionId *xid;
 {
-    TransactionIdData nextid;
+    TransactionId nextid;
 
     /* ----------------
      *	during bootstrap initialization, we return the special
@@ -426,7 +426,7 @@ GetNewTransactionId(xid)
      * ----------------
      */
     if (AMI_OVERRIDE) {	
-	TransactionIdStore(AmiTransactionId, (Pointer) xid);
+	TransactionIdStore(AmiTransactionId, xid);
 	return;
     }
  
@@ -446,7 +446,7 @@ GetNewTransactionId(xid)
 	 */
 	SpinAcquire(OidGenLockId);
 	VariableRelationGetNextXid(&nextid);
-	TransactionIdStore(&nextid, (Pointer) &next_prefetched_xid);
+	TransactionIdStore(nextid, &next_prefetched_xid);
 	
 	/* ----------------
 	 *	now increment the variable relation's next xid
@@ -455,8 +455,8 @@ GetNewTransactionId(xid)
 	 * ----------------
 	 */
 	prefetched_xid_count = VAR_XID_PREFETCH;
-	TransactionIdAdd(&nextid, prefetched_xid_count * 2);
-	VariableRelationPutNextXid(&nextid);
+	TransactionIdAdd(&nextid, prefetched_xid_count);
+	VariableRelationPutNextXid(nextid);
 	SpinRelease(OidGenLockId);
     }
     
@@ -465,10 +465,14 @@ GetNewTransactionId(xid)
      *  the user and decrement the prefetch count.  We add two
      *  to id we return the next time this is called because our
      *	transaction ids are always even.
+     *
+     *  XXX Transaction Ids used to be even as the low order bit was
+     *      used to determine commit status.  This is no long true so
+     *      we now use even and odd transaction ids. -mer 5/26/92
      * ----------------
      */
-    TransactionIdStore(&next_prefetched_xid, (Pointer) xid);
-    TransactionIdAdd(&next_prefetched_xid, 2);
+    TransactionIdStore(next_prefetched_xid, xid);
+    TransactionIdAdd(&next_prefetched_xid, 1);
     prefetched_xid_count--;
 }
 
@@ -481,7 +485,7 @@ void
 UpdateLastCommittedXid(xid)
     TransactionId xid;
 {
-    TransactionIdData lastid;
+    TransactionId lastid;
 
 
     /* we assume that spinlock OidGenLockId has been acquired
@@ -501,7 +505,7 @@ UpdateLastCommittedXid(xid)
      *  in the variable relation.
      * ----------------
      */
-    if (TransactionIdIsLessThan(&lastid, xid))
+    if (TransactionIdIsLessThan(lastid, xid))
 	VariableRelationPutLastXid(xid);
 
 }
