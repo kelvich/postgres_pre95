@@ -54,9 +54,11 @@
 #ifdef TCOP_SLAVESYNCDEBUG
 #define SLAVE_elog(l, s)		elog(l, s)
 #define SLAVE1_elog(l, s, a)		elog(l, s, a)
+#define SLAVE2_elog(l, s, a, b)		elog(l, s, a, b)
 #else
 #define SLAVE_elog(l, s)	
 #define SLAVE1_elog(l, s, a)	
+#define SLAVE2_elog(l, s, a, b)
 #endif TCOP_SLAVESYNCDEBUG
 
 #endif  TcopDebugIncluded
