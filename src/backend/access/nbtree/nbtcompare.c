@@ -50,9 +50,9 @@ int32
 btfloat4cmp(a, b)
     float32 a, b;
 {
-    if (a > b)
+    if (*a > *b)
 	return (1);
-    else if (a == b)
+    else if (*a == *b)
 	return (0);
     else
 	return (-1);
@@ -62,9 +62,9 @@ int32
 btfloat8cmp(a, b)
     float64 a, b;
 {
-    if (a > b)
+    if (*a > *b)
 	return (1);
-    else if (a == b)
+    else if (*a == *b)
 	return (0);
     else
 	return (-1);
