@@ -400,7 +400,9 @@ BlankPortalAssignName(name)
 
 	portal = GetPortalByName(name);
 	if (PortalIsValid(portal)) {
-		elog(WARN, "BlankPortalAssignName: portal %s existant", name);
+		elog(NOTICE, "BlankPortalAssignName: portal %s already exists",
+		     name);
+		return (portal);
 	}
 
 	/*
@@ -474,7 +476,8 @@ CreatePortal(name)
 
 	portal = GetPortalByName(name);
 	if (PortalIsValid(portal)) {
-		elog(WARN, "CreatePortal: portal %s existant", name);
+		elog(NOTICE, "CreatePortal: portal %s already exists", name);
+		return (portal);
 	}
 
 	/* make new portal structure */
