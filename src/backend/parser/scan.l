@@ -23,8 +23,8 @@ letter_or_digit	[_A-Za-z0-9]
 
 identifier	{letter}{letter_or_digit}*
 
-self		[,()\[\].;$]
-operator	[\!\@\#\%\^\&\*\-\=\+\|\`\|\:\<\>\/\?]+
+self		[,()\[\].;$\:]
+operator	[\!\@\#\%\^\&\*\-\=\+\|\`\|\<\>\/\?]+
 
 string		\"
 character	"'"
@@ -69,7 +69,7 @@ other		.
 
 			keyword = ScanKeywordLookup(yytext);
 			if (keyword != NULL) {
-				yylval = lispInteger(keyword->value);
+				yylval = lispAtom(keyword->name);
 				return (keyword->value);
 			} else {
 				yylval = lispString(yytext);
