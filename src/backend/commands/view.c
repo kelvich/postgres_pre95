@@ -1,10 +1,13 @@
 /* $Header$ */
-
+#include "access/heapam.h"
+#include "catalog/syscache.h"
+#include "utils/log.h"
 #include "nodes/relation.h"
 #include "nodes/relation.a.h"
 #include "catalog_utils.h"
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
+#include "parser/parsetree.h"
 
 Name
 attname ( relname , attnum )
