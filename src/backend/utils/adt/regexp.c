@@ -3,8 +3,8 @@
  *
  *	$Header$
  */
-#include "c.h"			/* postgres system include file */
-#include "log.h"		/* for logging postgres errors */
+#include "tmp/c.h"		/* postgres system include file */
+#include "utils/log.h"		/* for logging postgres errors */
 
 /*
  *  macros to support the regexp(3) library calls

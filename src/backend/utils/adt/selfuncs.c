@@ -11,13 +11,13 @@
 #include <stdio.h>
 #include <strings.h>
 
-#include "catname.h"
-#include "fmgr.h"
-#include "heapam.h"
-#include "log.h"
-#include "syscache.h"
-#include "tqual.h"	/* for NowTimeQual */
+#include "access/heapam.h"
+#include "access/tqual.h"	/* for NowTimeQual */
+#include "utils/fmgr.h"
+#include "utils/log.h"
 
+#include "catalog/catname.h"
+#include "catalog/syscache.h"
 #include "catalog/pg_statistic.h"
 
 RcsId("$Header$");
