@@ -33,6 +33,7 @@
 #include "planner/sortresult.h"
 #include "planner/sortresult.h"
 #include "planner/tlist.h"
+#include "planner/xfunc.h"
 #include "tcop/dest.h"
 #include "utils/log.h"
 #include "nodes/mnodes.h"
@@ -345,6 +346,24 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
     else
       final_relation = (Rel)LispNil;
      
+/*
+** Perform Predicate Migration on each path, to optimize and correctly assess
+** the cost of each before choosing the cheapest one.  -- JMH, 11/16/92
+**
+** Needn't do so if the top rel is pruneable: that means there's no expensive
+** functions left to pull up.  -- JMH, 11/22/92
+*/
+    if (XfuncMode != XFUNC_OFF && XfuncMode != XFUNC_NOPM && 
+	XfuncMode != XFUNC_NOPULL && !get_pruneable(final_relation))
+     {
+	 LispValue pathnode;
+	 foreach(pathnode, get_pathlist(final_relation))
+	  {
+	      if (xfunc_do_predmig((Path)CAR(pathnode)))
+		set_cheapest(final_relation, get_pathlist(final_relation));
+	  }
+     }
+
 /*    If we want a sorted result and indices could have been used to do so, */
 /*    then explicitly sort those paths that weren't sorted by indices so we */
 /*  can determine whether using the implicit sort (index) is better than an */
@@ -356,8 +375,8 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 			      final_relation,
 			      compute_targetlist_width(original_tlist));
      }
+
 /*    Determine the cheapest path and create a subplan corresponding to it. */
-    
     if (final_relation) {
       if (testFlag) {
 	  List planlist = LispNil;
