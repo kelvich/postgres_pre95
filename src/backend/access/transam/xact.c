@@ -885,6 +885,16 @@ AbortTransaction()
      * ----------------
      */
     s->state = TRANS_DEFAULT;
+    {
+      /* We need to do this in case another process notified us while
+	 we are in the middle of an aborted transaction.  We need to
+	 notify our frontend after we finish the current transaction.
+	 -- jw, 1/3/94
+       */
+	extern void Async_NotifyAtAbort();
+	if (IsNormalProcessingMode())
+	  Async_NotifyAtAbort();
+    }    
 }
 
 /* ----------------------------------------------------------------
