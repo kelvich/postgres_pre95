@@ -34,42 +34,44 @@
  * Return value:
  *	PRS2MGR_INSTEAD: do not perform the delete
  *      PRS2MGR_TUPLE_UNCHANGED: Ok, go ahead & delete the tuple
+ *------------------------------------------------------------------
  */
 Prs2Status
-prs2Delete(prs2EStateInfo, explainRelation, tuple, buffer, relation)
+prs2Delete(prs2EStateInfo, explainRelation, tuple, buffer,
+			rawTuple, rawBuffer, relation)
 Prs2EStateInfo prs2EStateInfo;
 Relation explainRelation;
 HeapTuple tuple;
 Buffer buffer;
+HeapTuple rawTuple;
+Buffer rawBuffer;
 Relation relation;
 {
 
-    RuleLock locks;
+    RuleLock locks, l1, l2;
     AttributeValues attrValues;
     bool insteadRuleFound;
     Name relName;
 
     /*
      * Find the locks of the tuple.
-     * NOTE: Do not search the 'RelationRelation' for any
-     * locks! The reason is that the right locks have already
-     * been put to this tuple by the rule manager when it was
-     * called as part of a retrieve operation in the lower
-     * scan nodes opf the plan.
+     *
+     * NOTE: the 'rawTuple' is the tuple as retrieved
+     * from the disk, so it has all required lock information in
+     * it (as opposed to tuples formed when executing the target
+     * lists of the various executor nodes).
+     * On the other hand, 'tuple' is a result of projections,
+     * etc, identical to 'rawTuple' with only 2 differences:
+     * a) no rule locks
+     * b) all "on retrieve" backward chaining rules have been activated
      */
-#ifdef NO
-    locks = prs2GetLocksFromTuple (tuple, buffer,
+    relName = RelationGetRelationName(relation);
+    l1 = prs2GetLocksFromTuple (rawTuple, rawBuffer,
 			RelationGetTupleDescriptor(relation));
-#else
-    /*
-     * XXX
-     * in the current implementation, "tuple" has just been
-     * retrieved from disk and as all locks are currently "relation level"
-     * locks, no locks are actually stored in the tuple!
-     */
-    relName = & ((RelationGetRelationTupleForm(relation))->relname);
-    locks = prs2GetLocksFromRelation(relName);
-#endif
+    l2 = prs2GetLocksFromRelation(relName);
+    locks = prs2LockUnion(l1, l2);
+    prs2FreeLocks(l1);
+    prs2FreeLocks(l2);
 
     /*
      * if there are no rules, then return immediatelly
@@ -77,6 +79,15 @@ Relation relation;
     if (locks == NULL || prs2GetNumberOfLocks(locks) == 0) {
 	return(PRS2_STATUS_TUPLE_UNCHANGED);
     }
+
+    /*
+     * Ooops! There is a problem here... 'tuple' is set to 'nil'
+     * by the executor, so for the time being use the 'rawTuple'
+     * (the result is that we might have to re-evaluate some backward
+     * chaining rules...)
+     */
+    tuple = rawTuple;
+    buffer = rawBuffer;
 
     /*
      * now extract from the tuple the array of the attribute values.
