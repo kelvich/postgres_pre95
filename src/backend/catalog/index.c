@@ -332,9 +332,9 @@ BuildFuncTupleDesc(funcInfo)
     /*
      * Lookup the function for the return type and number of args.
      */
-    tuple = SearchSysCacheTuple(PROOID,FIgetProcOid(funcInfo),0,0,0);
+    tuple = SearchSysCacheTuple(PRONAME,FIgetname(funcInfo),0,0,0);
     if (!HeapTupleIsValid(tuple))
-	elog(WARN, "Function with OID %d does not exist", FIgetProcOid(funcInfo));
+	elog(WARN, "Function name %s does not exist", FIgetname(funcInfo));
 
     retType = ((Form_pg_proc)GETSTRUCT(tuple))->prorettype;
     nArgs = ((Form_pg_proc)GETSTRUCT(tuple))->pronargs;
@@ -1136,11 +1136,11 @@ index_create(heapRelationName, indexRelationName, funcInfo,
     {
 	HeapTuple proc_tup, SearchSysCacheTuple();
 	
-	proc_tup = SearchSysCacheTuple(PROOID,FIgetProcOid(funcInfo),0,0,0);
+	proc_tup = SearchSysCacheTuple(PRONAME,FIgetname(funcInfo),0,0,0);
 
 	if (!HeapTupleIsValid(proc_tup))
-	     elog (WARN, "function with OID % does not exist",
-		   FIgetProcOid(funcInfo));
+	     elog (WARN, "function named %s does not exist",
+		   FIgetname(funcInfo));
 	FIgetProcOid(funcInfo) = proc_tup->t_oid;
     }
 
@@ -1345,6 +1345,7 @@ UpdateStats(relid, reltuples, hasindex)
     Boolean 	isNull = '\0';
     Buffer 	buffer;
     int 	i;
+    Form_pg_relation rd_rel;
     Relation	idescs[Num_pg_class_indices];
     
     static ScanKeyEntryData key[1] = {
@@ -1423,26 +1424,34 @@ UpdateStats(relid, reltuples, hasindex)
 	values[i] = (Datum) NULL;
     }
 
-    replace[Anum_pg_relation_relpages - 1] = 'r';
-    values[Anum_pg_relation_relpages - 1] = (Datum)relpages;
-
     /*
      * If reltuples wasn't supplied take an educated guess.
      */
     if (reltuples == 0)
 	reltuples = relpages*NTUPLES_PER_PAGE(whichRel->rd_rel->relnatts);
 
-    replace[Anum_pg_relation_reltuples - 1] = 'r';
-    values[Anum_pg_relation_reltuples - 1] = (Datum)reltuples;
-    replace[Anum_pg_relation_relhasindex - 1] = 'r';
-    values[Anum_pg_relation_relhasindex - 1] = CharGetDatum(hasindex);
+    if (IsBootstrapProcessingMode()) {
 
-    newtup = ModifyHeapTuple(htup, buffer, pg_relation, values,
-			     nulls, replace);
+	/*
+	 *  At bootstrap time, we don't need to worry about concurrency
+	 *  or visibility of changes, so we cheat.
+	 */
 
-    if (IsBootstrapProcessingMode())
-	bcopy(newtup, htup, PSIZE(newtup));
-    else {
+	rd_rel = (Form_pg_relation) GETSTRUCT(htup);
+	rd_rel->relpages = relpages;
+	rd_rel->reltuples = reltuples;
+	rd_rel->relhasindex = hasindex;
+    } else {
+	/* during normal processing, work harder */
+	replace[Anum_pg_relation_relpages - 1] = 'r';
+	values[Anum_pg_relation_relpages - 1] = (Datum)relpages;
+	replace[Anum_pg_relation_reltuples - 1] = 'r';
+	values[Anum_pg_relation_reltuples - 1] = (Datum)reltuples;
+	replace[Anum_pg_relation_relhasindex - 1] = 'r';
+	values[Anum_pg_relation_relhasindex - 1] = CharGetDatum(hasindex);
+
+	newtup = ModifyHeapTuple(htup, buffer, pg_relation, values,
+				 nulls, replace);
 	heap_replace(pg_relation, &(newtup->t_ctid), newtup);
 	CatalogOpenIndices(Num_pg_class_indices, Name_pg_class_indices, idescs);
 	CatalogIndexInsert(idescs, Num_pg_class_indices, pg_relation, newtup);
