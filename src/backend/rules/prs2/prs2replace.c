@@ -148,6 +148,32 @@ Buffer *returnedBufferP;
 	    insteadRuleFound = true;
 	}
     }
+    /*
+     * Look also for 'on replace' rules with
+     * an 'InvalidAttributeNumber' locked attrno.
+     * (I.e. rules like: 'on replace to EMP where... do...'
+     */
+    prs2ActivateForwardChainingRules(
+		prs2EStateInfo,
+		explainRelation,
+		relation,
+		InvalidAttributeNumber,
+		LockTypeTupleReplaceAction,
+		PRS2_OLD_TUPLE,
+		oldTuple->t_oid,
+		oldAttrValues,
+		oldLocks,
+		LockTypeTupleRetrieveWrite,
+		newTuple->t_oid,
+		newAttrValues,
+		InvalidRuleLock,
+		LockTypeInvalid,
+		&insteadRuleFoundThisTime,
+		attributeArray,
+		numberOfAttributes);
+    if (insteadRuleFoundThisTime) {
+	insteadRuleFound = true;
+    }
 
     /*
      * Now all the correct values 
