@@ -10,7 +10,7 @@ define type \*- define a new base data type
 .nf
 \fBdefine type\fP typename (internallength = (number | variable),
 	[ externallength = (number | variable), ]
-	input = procedure, output = procedure
+	input = function, output = function
 	[ , default = \*(lqstring\*(rq ]
 	[ , send = procedure ] [ , receive = procedure ]
 	[ , passedbyvalue])
@@ -82,8 +82,8 @@ If these functions are not specified,
 then it is assumed that the internal format of the type is acceptable
 on all relevant machine architectures
 (for example,
-single characters do not have to be converted if passed from a Sun to a
-VAX).
+single characters do not have to be converted if passed from a Sun 3 to a
+DECstation).
 .lp
 The optional
 .i "passedbyvalue"
