@@ -123,7 +123,6 @@ ConnId		*connIdP;    /* sender's connection (seqpack) */
     }
   }
 
-  printf(" reading packet of size %d\n",packetLen);
   /*
    * Now that we know how big it is, read the packet.  We read
    * the entire packet, since the last call was just a peek.
