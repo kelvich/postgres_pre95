@@ -185,5 +185,5 @@ setf (nth (rangetable_index - 1,rangetable) ,rt)
 
 
 /* .. GetIDFromRangeTbl, print_subplan, print_var */
-#define getrelname(rangeindex,rangetable) rt_relname( nth( rangeindex -1, rangetable)
+#define getrelname(rangeindex,rangetable) rt_relname( nth( rangeindex -1, rangetable))
 
