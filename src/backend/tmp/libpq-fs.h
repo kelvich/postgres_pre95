@@ -54,6 +54,19 @@ struct pgdirent {
 
 #endif
 
+/*
+ *  Flags for inversion file system large objects.  Normally, creat()
+ *  takes mode arguments, but we don't use them in inversion, since
+ *  you get postgres protections.  Instead, we use the low sixteen bits
+ *  of the integer mode argument to store the number of the storage
+ *  manager to be used, and the high sixteen bits for flags.
+ */
+
+#define INV_SMGRMASK	0x0000ffff
+#define	INV_ARCHIVE	0x00010000
+#define	INV_WRITE	0x00020000
+#define	INV_READ	0x00040000
+
 struct pgstat { /* just the fields we need from stat structure */
     int st_ino;
     int st_mode;
