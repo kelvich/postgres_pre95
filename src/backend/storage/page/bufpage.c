@@ -504,8 +504,6 @@ PageIndexTupleDelete(page, offset)
     size = ItemIdGetLength(tup);
     size = LONGALIGN(size);
 
-    nbytes = phdr->pd_lower - sizeof (*phdr);
-
     /* location of deleted tuple data */
     locn = (char *) (page + ItemIdGetOffset(tup));
 
@@ -514,20 +512,27 @@ PageIndexTupleDelete(page, offset)
      * tuple.  We copy all subsequent linp's back one slot in the
      * array.
      */
+
+    nbytes = phdr->pd_lower -
+		((char *)&phdr->pd_linp[offset+1] - (char *) phdr);
     bcopy((char *) &(phdr->pd_linp[offset + 1]),
 	  (char *) &(phdr->pd_linp[offset]),
 	  nbytes);
 
     /*
-     * Now move everything between the old lower bound (end of linp
+     * Now move everything between the old upper bound (beginning of tuple
      * space) and the beginning of the deleted tuple forward, so that
-     * space in the middle of the page is left free.
+     * space in the middle of the page is left free.  If we've just deleted
+     * the tuple at the beginning of tuple space, then there's no need
+     * to do the copy (and bcopy on some architectures SEGV's if asked
+     * to move zero bytes).
      */
 
-    /* end of linp space */
-    addr = (char *) (page + phdr->pd_lower);
+    /* beginning of tuple space */
+    addr = (char *) (page + phdr->pd_upper);
 
-    bcopy(addr, addr + size, (int) (locn - addr));
+    if (locn != addr)
+	bcopy(addr, addr + size, (int) (locn - addr));
 
     /* adjust free space boundary pointers */
     phdr->pd_upper += size;
