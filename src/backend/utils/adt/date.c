@@ -338,7 +338,8 @@ timepl(t1, t2)
 
         if (AbsoluteTimeIsReal(t1) &&
 	    RelativeTimeIsValid(t2) &&
-	    t1 < NOEND_ABSTIME - t2) 	/* prevent overflow */
+	    ((t2 > 0) ? (t1 < NOEND_ABSTIME - t2)
+	            : (t1 > NOSTART_ABSTIME - t2))) 	/* prevent overflow */
 	        return (t1 + t2);
 
 	return(INVALID_ABSTIME);
@@ -358,7 +359,8 @@ timemi(t1, t2)
 
         if (AbsoluteTimeIsReal(t1) &&
 	    RelativeTimeIsValid(t2) &&
-	    t1 > NOSTART_ABSTIME + t2) 	/* prevent overflow */
+	    ((t2 > 0) ? (t1 > NOSTART_ABSTIME + t2)
+	              : (t1 < NOEND_ABSTIME + t2))) 	/* prevent overflow */
 	        return (t1 + t2);
 
 	return(INVALID_ABSTIME);
