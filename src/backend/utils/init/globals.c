@@ -25,7 +25,7 @@ RcsId("$Header$");
 #include "storage/sinval.h"
 #include "storage/sinvaladt.h"
 #include "storage/lmgr.h"
-#include "support/master.h"
+#include "tmp/master.h"
 #include "utils/log.h"
 
 #include "catalog/catname.h"

@@ -22,7 +22,7 @@
 #include "planner/keys.h"
 #include "catalog/pg_proc.h"
 #include "tcop/pquery.h"
-#include "utils/params.h"
+#include "rules/params.h"
 #include "utils/fmgr.h"
 #include "utils/fcache.h"
 #include "utils/log.h"
