@@ -217,6 +217,7 @@ IPCKey key;
   extern SPINLOCK LockMgrLock;
   extern SPINLOCK ProcStructLock;
   extern SPINLOCK SInvalLock;
+  extern SPINLOCK OidGenLockId;
 
 #ifdef SONY_JUKEBOX
   extern SPINLOCK SJCacheLock;
@@ -244,6 +245,7 @@ IPCKey key;
   LockMgrLock = (SPINLOCK) LOCKMGRLOCKID;
   ProcStructLock = (SPINLOCK) PROCSTRUCTLOCKID;
   SInvalLock = (SPINLOCK) SINVALLOCKID;
+  OidGenLockId = (SPINLOCK) OIDGENLOCKID;
 
 #ifdef SONY_JUKEBOX
   SJCacheLock = (SPINLOCK) SJCACHELOCKID;
