@@ -58,6 +58,7 @@ extern int32		int2pl();
 extern int32		int4pl();
 extern int32		int2mi();
 extern int32		int4mi();
+extern int32		keyfirsteq();
 extern Time		abstimein();
 extern char		*abstimeout();
 extern Time		reltimein();
