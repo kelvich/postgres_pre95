@@ -7,40 +7,19 @@
 fast path \*- trap door into system internals
 .uh SYNOPSIS
 .lp
-.q "function_name ( [ arg { , arg } ] )"
+.q "retrieve (retval = function([ arg { , arg } ] )"
 .uh DESCRIPTION
 .lp
-\*(PP allows any valid \*(PP function to be specified as a query.
-On
+\*(PP allows any valid \*(PP function to be called in this way.  Prior
+implementations of 
 .b fast
 .b path
-commands, \*(PP simply loads the appropriate function
-(if it is not already loaded) and then calls it with the indicated
-arguments.  No type checking is done by \*(PP, so the overhead
-to use fast path is exceedingly low.
-.lp
-For example, the following query provides complete \*(PP servicing
-for a function call to overpaid.
-.(l
-retrieve (result = overpaid (17))
-.)l
-On the other hand, fast path allows the formulation
-.(l
-\*(lqoverpaid (17)\*(rq
-.)l
-.lp
-There is type checking in the first expression, but not in the second.
-Any function called using fast path or invoked within a normal command
-will be run in
-.b trusted
-or
-.b untrusted
-mode, depending on whether the
-.A DBA
-has marked the trusted bit in the
-appropriate system catalog.
-Trusted routines are run in the \*(PP address space and may freely
-call \*(PP internal routines.
+allowed user functions to be called directly; this feature will reappear in
+Version 2.02 in an improved way.  For now, the above syntax should
+be used, with arguments cast into the appropriate types.  By executing the
+above type of query, control transfers completely to the user function; any
+user function can access any \*(PP function or any global variable in the
+\*(PP address space.
 .sp
 There are six levels at which calls can be performed:
 .sp
@@ -80,6 +59,3 @@ a function with an internal parser that then calls the \*(PP
 optimizer and executor.
 Complete flexibility to use the pieces of \*(PP as a tool kit is
 thereby provided.
-.uh BUGS
-.lp
-Untrusted execution of functions is not implemented in Version 2.
