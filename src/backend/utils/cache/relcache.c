@@ -541,12 +541,10 @@ RelationBuildDesc(buildinfo)
     pg_relation_tuple = ScanPgRelation(buildinfo);
 
     /* ----------------
-     *	if no such tuple exists, report an error and return NULL
+     *	if no such tuple exists, return NULL
      * ----------------
      */
     if (! HeapTupleIsValid(pg_relation_tuple)) {
-	elog(NOTICE, "RelationBuildDesc: %s nonexistent",
-	     BuildDescInfoError(buildinfo));
 	
 	MemoryContextSwitchTo(oldcxt); 
 	 
