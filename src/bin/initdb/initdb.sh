@@ -1,4 +1,5 @@
 #!/bin/sh
+
 # ----------------------------------------------------------------
 #   FILE
 #	initdb	create a postgres template database
@@ -13,6 +14,22 @@
 # ----------------------------------------------------------------
 
 CMDNAME=`basename $0`
+
+# ----------------
+#       Set paths from environment or default values.
+#       The _fUnKy_..._sTuFf_ gets set when the script is installed
+#       from the default value for this build.
+#       Currently the only thing wee look for from the environment is
+#       PGDATA, PGHOST, and PGPORT
+#
+# ----------------
+[ -z "$PGDATA" ] && PGDATA=_fUnKy_DATADIR_sTuFf_
+[ -z "$PGPORT" ] && PGPORT=4321
+[ -z "$PGHOST" ] && PGHOST=localhost
+POSTGRESDIR=_fUnKy_POSTGRESDIR_sTuFf_
+BINDIR=_fUnKy_BINDIR_sTuFf_
+FILESDIR=$PGDATA/files
+PATH=$BINDIR:$PATH
 
 # ----------------
 # 	check arguments:
@@ -35,114 +52,23 @@ done
 # ----------------
 # 	if the debug flag is set, then 
 # ----------------
-if (test "$debug" -eq 1)
+if test "$debug" -eq 1
 then
     BACKENDARGS="-boot -COd -ami"
 else
     BACKENDARGS="-boot -COQ -ami"
 fi
 
-# ----------------
-# 	check POSTGRESHOME
-# ----------------
-if (test -z "$POSTGRESHOME")
+
+TEMPLATE=$FILESDIR/local1_template1.bki
+GLOBAL=$FILESDIR/global1.bki
+if [ ! -f $TEMPLATE -o ! -f $GLOBAL ]
 then
-    echo "$CMDNAME: POSTGRESHOME not set."
-    exit 1
-else
-    PG=`echo $POSTGRESHOME | sed -e 's/\([^:]*\):.*/\1/'`
-    PGS=`echo $POSTGRESHOME | sed -e 's/:/ /g'`
+    echo "$CMDNAME: warning: $POSTGRESTEMP files missing"
+    echo "$CMDNAME: warning: bmake install has not been run"
 fi
 
-# ----------------
-# 	check POSTGRESTREE
-# ----------------
-if (test -z "$POSTGRESTREE")
-then
-    TREE=$PG
-else
-    TREE=$POSTGRESTREE
-fi
-
-# ----------------
-# 	check POSTGRESBIN
-# ----------------
-if (test -z "$POSTGRESBIN")
-then
-    PGBIN=$PG/bin
-else
-    PGBIN=$POSTGRESBIN
-fi
-
-# ----------------
-# 	check POSTGRESTEMP
-# ----------------
-if (test -z "$POSTGRESTEMP")
-then
-    PGTEMP=$PG/files
-else
-    PGTEMP=$POSTGRESTEMP
-fi
-
-# ----------------
-# 	find the paths to the postgres, pg_version, and pg_id programs
-# ----------------
-if (test "$verbose" -eq 1)
-then
-    echo "$CMDNAME: looking for postgres..."
-fi
-
-if (test -f $PGBIN/postgres)
-then
-    BACKEND=$PGBIN/postgres
-    PG_VERSION=$PGBIN/pg_version
-	PG_ID=$PGBIN/pg_id
-    if (test "$verbose" -eq 1)
-    then
-        echo "$CMDNAME: found $BACKEND"
-    fi
-elif (test -f $TREE/*/support/postgres)
-then
-    BACKEND=$TREE/*/support/postgres
-    PG_VERSION=$TREE/*/support/pg_version
-	PG_ID=$TREE/*/support/pg_id
-    if (test "$verbose" -eq 1)
-    then
-        echo "$CMDNAME: found $BACKEND"
-    fi
-else
-    echo "$CMDNAME: could not find postgres program"
-    echo "$CMDNAME: set POSTGRESHOME to the proper directory and rerun."
-    exit 1
-fi
-
-# ----------------
-# 	find the template files
-# ----------------
-
-if (test "$verbose" -eq 1)
-then
-    echo "$CMDNAME: looking for template files..."
-fi
-
-if (test -f $PGTEMP/local1_template1.bki)
-then
-    TEMPLATE=$PGTEMP/local1_template1.bki
-    GLOBAL=$PGTEMP/global1.bki
-else
-    echo "$CMDNAME: warning: Make install has not been run"
-    TEMPLATE=`echo $TREE/*/support/local.bki`
-    GLOBAL=`echo $TREE/*/support/dbdb.bki`
-
-    if (test ! -f $TEMPLATE)
-    then
-        echo "$CMDNAME: could not find template files"
-        echo "$CMDNAME: set POSTGRESTEMP to the proper directory and rerun."
-        exit 1
-    fi
-fi
-
-if (test "$verbose" -eq 1)
+if test "$verbose" -eq 1
 then
     echo "$CMDNAME: using $TEMPLATE"
     echo "$CMDNAME: using $GLOBAL"
@@ -152,48 +78,42 @@ fi
 # Figure out who I am...
 #
 
-UID=`$PG_ID`
+UID=`pg_id`
 
 # ----------------
 # 	create the template database if necessary
 # ----------------
 
-if (test -f "$pg/data")
+if test -f "$PGDATA"
 then
-	echo "$CMDNAME: $pg/data exists - delete it if necessary"
+	echo "$CMDNAME: $PGDATA exists - delete it if necessary"
 	exit 1
 fi
 
-for pg in $PGS
-do
-    mkdir $pg/data $pg/data/base $pg/data/base/template1
-done
+mkdir $PGDATA $PGDATA/base $PGDATA/base/template1
 
-if (test "$verbose" -eq 1)
+if test "$verbose" -eq 1
 then
     echo "$CMDNAME: creating SHARED relations in $PG/data"
     echo "$CMDNAME: creating template database in $PG/data/base/template1"
 fi
 
-$BACKEND $BACKENDARGS template1 < $TEMPLATE 
+postgres $BACKENDARGS template1 < $TEMPLATE 
 
-if (test $? -ne 0)
+if test $? -ne 0
 then
     echo "$CMDNAME: could not create template database"
     if (test $noclean -eq 0)
     then
 	    echo "$CMDNAME: cleaning up."
-	    for pg in $PGS
-	    do
-                rm -rf $pg/data
-	    done
+            rm -rf $PGDATA
         else
 	    echo "$CMDNAME: cleanup not done (noclean mode set)."
     fi
 	exit 1;
 fi
 
-$PG_VERSION $PG/data/base/template1
+pg_version $PGDATA/base/template1
 
 #
 # Add the template database to pg_database
@@ -204,7 +124,7 @@ echo "insert (template1 $UID template1)" >> /tmp/create.$$
 echo "show" >> /tmp/create.$$
 echo "close pg_database" >> /tmp/create.$$
 
-$BACKEND $BACKENDARGS template1 < $GLOBAL 
+postgres $BACKENDARGS template1 < $GLOBAL 
 
 if (test $? -ne 0)
 then
@@ -212,30 +132,24 @@ then
     if (test $noclean -eq 0)
     then
 	    echo "$CMDNAME: cleaning up."
-	    for pg in $PGS
-	    do
-            rm -rf $pg/data
-	    done
+            rm -rf $PGDATA
     else
 	    echo "$CMDNAME: cleanup not done (noclean mode set)."
     fi
 	exit 1;
 fi
 
-$PG_VERSION $PG/data
+pg_version $PGDATA
 
-$BACKEND $BACKENDARGS template1 < /tmp/create.$$ 
+postgres $BACKENDARGS template1 < /tmp/create.$$ 
 
-if (test $? -ne 0)
+if test $? -ne 0
 then
     echo "$CMDNAME: could not log template database"
     if (test $noclean -eq 0)
     then
 	    echo "$CMDNAME: cleaning up."
-	    for pg in $PGS
-	    do
-            rm -rf $pg/data
-	    done
+            rm -rf $PGDATA
     else
 	    echo "$CMDNAME: cleanup not done (noclean mode set)."
     fi
