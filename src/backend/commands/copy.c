@@ -102,7 +102,8 @@ FILE *fp;
     Attribute *attr;
     func_ptr *out_functions;
     int dummy;
-    oid out_func_oid;
+    ObjectId out_func_oid;
+    ObjectId *elements;
     Datum value;
     Boolean isnull = (Boolean) true;
     char *nulls;
@@ -121,9 +122,11 @@ FILE *fp;
     {
         out_functions = (func_ptr *)
                          palloc(attr_count * sizeof(func_ptr));
+        elements = (ObjectId *) palloc(attr_count * sizeof(ObjectId));
         for (i = 0; i < attr_count; i++) {
-            out_func_oid = (oid) GetOutputFunction(attr[i]->atttypid);
+            out_func_oid = (ObjectId) GetOutputFunction(attr[i]->atttypid);
             fmgr_info(out_func_oid, &out_functions[i], &dummy);
+            elements[i] = GetTypeElement(attr[i]->atttypid);
         }
     }
     else
@@ -149,7 +152,7 @@ FILE *fp;
             {
                 if (!isnull)
                 {
-                    string = (char *) (out_functions[i]) (value);
+                    string = (char *) (out_functions[i]) (value, elements[i]);
                     CopyAttributeOut(fp, string);
                     pfree(string);
                 }
@@ -210,6 +213,7 @@ FILE *fp;
     else
     {
         pfree(out_functions);
+        pfree(elements);
     }
 
     heap_close(rel);
@@ -241,6 +245,7 @@ FILE *fp;
     int32 len, null_ct, null_id;
     int32 ntuples, tuples_read = 0;
     bool reading_to_eof = true;
+    ObjectId *elements;
 
     Relation *index_relations;
     int28 *index_atts;
@@ -266,10 +271,12 @@ FILE *fp;
     if (!binary)
     {
         in_functions = (func_ptr *) palloc(attr_count * sizeof(func_ptr));
-           for (i = 0; i < attr_count; i++)
+        elements = (ObjectId *) palloc(attr_count * sizeof(ObjectId));
+        for (i = 0; i < attr_count; i++)
         {
-            in_func_oid = (oid) GetInputFunction(attr[i]->atttypid);
+            in_func_oid = (ObjectId) GetInputFunction(attr[i]->atttypid);
             fmgr_info(in_func_oid, &in_functions[i], &dummy);
+            elements[i] = GetTypeElement(attr[i]->atttypid);
         }
     }
     else
@@ -310,7 +317,7 @@ FILE *fp;
                 }
                 else
                 {
-                    values[i] = (Datum) (in_functions[i]) (string);
+                    values[i] = (Datum) (in_functions[i]) (string, elements[i]);
                 }
             }
         }
@@ -448,6 +455,24 @@ GetOutputFunction(type)
 
     if (HeapTupleIsValid(typeTuple))
     return((int) ((TypeTupleForm) GETSTRUCT(typeTuple))->typoutput);
+
+    elog(WARN, "GetOutputFunction: Cache lookup of type %d failed", type);
+    return(InvalidObjectId);
+}
+
+GetTypeElement(type)
+    ObjectId    type;
+{
+    HeapTuple    typeTuple;
+
+    typeTuple = SearchSysCacheTuple(TYPOID,
+                    (char *) type,
+                    (char *) NULL,
+                    (char *) NULL,
+                    (char *) NULL);
+
+    if (HeapTupleIsValid(typeTuple))
+    return((int) ((TypeTupleForm) GETSTRUCT(typeTuple))->typelem);
 
     elog(WARN, "GetOutputFunction: Cache lookup of type %d failed", type);
     return(InvalidObjectId);
