@@ -657,6 +657,7 @@ static Direntry *new_Direntry(name,OIDf)
     d = (Direntry *)palloc(sizeof(Direntry));
     SLNewNode(&d->Node);
     d->d.d_ino = OIDf;
+    d->d.d_namlen = strlen(name);
     strcpy(d->d.d_name,name);
     return d;
 }
