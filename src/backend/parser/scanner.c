@@ -61,14 +61,6 @@ int len;
 	scancon(buf, len);
 }
 
-scanarray(buf, len)
-char *buf;
-int len;
-{
-	delimiter = '\}';
-	scanarr(buf, len);
-}
-
 /*
  * Scan a string.  The leading delimiter (", ') has already been
  * read.  Be sure to gobble up the whole thing, including the
@@ -81,9 +73,22 @@ int len;
 {
 	register char *cp = buf;
 	register int c, dc, cspec;
+	int entering = 1;
 
 	cspec = 0;
 	while ((c = input()) != delimiter) {
+
+		/*
+		 * Right curly brace indicates array constant.
+		 */
+
+		if (entering && delimiter == '\"')
+		{
+			if (c == '{') scanarr(buf, len);
+			cp += strlen(buf);
+			entering = 0;
+		}
+		
 		if (cp - buf > len - 1) {
 			serror("String/char constant too large");
 			cp = buf;
