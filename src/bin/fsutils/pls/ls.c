@@ -67,7 +67,6 @@ static char sccsid[] = "@(#)ls.c	5.69 (Berkeley) 10/17/92";
 
 extern int p_errno;
 extern char *PQexec();
-extern char *getenv();
 
 
 char	*getbsize __P((char *, int *, long *));
