@@ -31,6 +31,7 @@
 #include "planner/sortresult.h"
 #include "planner/sortresult.h"
 #include "planner/tlist.h"
+#include "tcop/dest.h"
 
 extern int testFlag;
 /* ----------------
@@ -117,7 +118,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	       return((Plan)NULL);
 	 }
 	 constant_qual = pull_constant_clauses (qual);
-	 qual = set_difference (qual,constant_qual);
+	 qual = nset_difference (qual,constant_qual);
 	 fix_opids (constant_qual);
 	 sortkeys = relation_sortkeys (tlist);
 	 flattened_tlist = flatten_tlist (tlist);
@@ -422,7 +423,7 @@ List pathlist;
 	if (pathShouldPruned(path, false))
 	    path_prune_list = nappend1(path_prune_list, path);
       }
-    new_pathlist = set_difference(pathlist, path_prune_list);
+    new_pathlist = nset_difference(pathlist, path_prune_list);
     path_prune_list = LispNil;
     foreach (x, new_pathlist) {
 	path = (Path)CAR(x);
@@ -436,7 +437,196 @@ List pathlist;
 	      }
 	  }
        }
-    new_pathlist = set_difference(new_pathlist, path_prune_list);
+    new_pathlist = nset_difference(new_pathlist, path_prune_list);
 	    
     return new_pathlist;
+}
+
+bool
+plan_isomorphic(p1, p2)
+Plan p1, p2;
+{
+    if (p1 == NULL) return (p2 == NULL);
+    if (p2 == NULL) return (p1 == NULL);
+    if (IsA(p1,Join) && IsA(p2,Join)) {
+	return (plan_isomorphic(get_lefttree(p1), get_lefttree(p2)) &&
+	        plan_isomorphic(get_righttree(p1), get_righttree(p2))) ||
+	       (plan_isomorphic(get_lefttree(p1), get_righttree(p2)) &&
+		plan_isomorphic(get_righttree(p1), get_lefttree(p2)));
+      }
+    if (IsA(p1,Scan) && IsA(p2,Scan)) {
+	if (get_scanrelid(p1) == get_scanrelid(p2))
+	    if (get_scanrelid(p1) == _TEMP_RELATION_ID_)
+		return plan_isomorphic(get_lefttree(p1), get_lefttree(p2));
+	    else
+		return true;
+	else if (get_scanrelid(p1) == _TEMP_RELATION_ID_)
+	    return plan_isomorphic(get_lefttree(p1), p2);
+	else if (get_scanrelid(p2) == _TEMP_RELATION_ID_)
+	    return plan_isomorphic(p1, get_lefttree(p2));
+	return false;
+      }
+    if (IsA(p1,Temp) || IsA(p1,Hash))
+	return plan_isomorphic(get_lefttree(p1), p2);
+    if (IsA(p2,Temp) || IsA(p2,Hash))
+	return plan_isomorphic(p1, get_lefttree(p2));
+    return false;
+}
+
+List
+group_planlist(planlist)
+List	planlist;
+{
+    List plangroups = LispNil;
+    Plan p1, p2;
+    List plist;
+    List g, x;
+
+    plist = planlist;
+    while (!lispNullp(plist)) {
+	p1 = (Plan)CAR(plist);
+	g = lispCons(p1, LispNil);
+	foreach (x, CDR(plist)) {
+	    p2 = (Plan)CAR(x);
+	    if (plan_isomorphic(p1, p2)) {
+		g = nappend1(g, p2);
+	      }
+	  }
+	plist = nset_difference(plist, g);
+	plangroups = nappend1(plangroups, g);
+      }
+    return plangroups;
+}
+
+bool
+allNestLoop(plan)
+Plan	plan;
+{
+    if (plan == NULL) return true;
+    if (IsA(plan,NestLoop)) {
+	return allNestLoop(get_lefttree(plan)) &&
+	       allNestLoop(get_righttree(plan));
+      }
+    if (IsA(plan,Join))
+	return false;
+    return true;
+}
+
+Plan
+pickNestLoopPlan(plangroup)
+List	plangroup;
+{
+    LispValue x;
+    Plan p;
+
+    foreach (x, plangroup) {
+	p = (Plan)CAR(x);
+	if (allNestLoop(p))
+	    return p;
+      }
+    return NULL;
+}
+
+void
+setPlanStats(p1, p2)
+Plan p1, p2;
+{
+    if (p1 == NULL || p2 == NULL)
+	return;
+    if (IsA(p1,Join) && IsA(p2,Join)) {
+	set_plan_size(p2, get_plan_size(p1));
+	if (plan_isomorphic(get_lefttree(p1), get_lefttree(p2))) {
+	    setPlanStats(get_lefttree(p1), get_lefttree(p2));
+	    setPlanStats(get_righttree(p1), get_righttree(p2));
+	  }
+	else {
+	    setPlanStats(get_lefttree(p1), get_righttree(p2));
+	    setPlanStats(get_righttree(p1), get_lefttree(p2));
+	  }
+	return;
+      }
+    if (IsA(p1,Scan) && IsA(p2,Scan)) {
+	set_plan_size(p2, get_plan_size(p1));
+	if (get_scanrelid(p1) == _TEMP_RELATION_ID_)
+	    setPlanStats(get_lefttree(p1), get_lefttree(p2));
+	return;
+      }
+    if (IsA(p1,Temp)) {
+	setPlanStats(get_lefttree(p1), p2);
+	return;
+      }
+    if (IsA(p2,Temp)) {
+	set_plan_size(p2, get_plan_size(p1));
+	setPlanStats(p1, get_lefttree(p2));
+	return;
+      }
+    return;
+}
+
+void
+resetPlanStats(p)
+Plan p;
+{
+    if (p == NULL) return;
+    set_plan_size(p, 0);
+    if (IsA(p,Join)) {
+	resetPlanStats(get_lefttree(p));
+	resetPlanStats(get_righttree(p));
+	return;
+      }
+    if (IsA(p,Scan)) {
+	if (get_scanrelid(p) == _TEMP_RELATION_ID_)
+	   resetPlanStats(get_lefttree(p));
+	return;
+      }
+    resetPlanStats(get_lefttree(p));
+    return;
+}
+
+void
+setPlanGroupStats(plan, planlist)
+Plan	plan;
+List	planlist;
+{
+    List x;
+    Plan p;
+
+    foreach (x, planlist) {
+	p = (Plan)CAR(x);
+	setPlanStats(plan, p);
+     }
+}
+
+bool _exec_collect_stats_ = false;
+
+List
+setRealPlanStats(parsetree, planlist)
+List	parsetree;
+List	planlist;
+{
+    List plangroups;
+    List plangroup;
+    LispValue x;
+    List ordered_planlist;
+    Plan nlplan;
+
+    _exec_collect_stats_ = true;
+    plangroups = group_planlist(planlist);
+    foreach (x, plangroups) {
+	plangroup = CAR(x);
+	nlplan = pickNestLoopPlan(plangroup);
+	if (IsA(nlplan,Join)) {
+	    resetPlanStats(nlplan);
+	    ProcessQuery(parsetree, nlplan, None);
+	    setPlanGroupStats(nlplan, nLispRemove(plangroup, nlplan));
+	  }
+	else
+	    break;
+      }
+    _exec_collect_stats_ = false;
+    ordered_planlist = LispNil;
+    foreach (x, plangroups) {
+	ordered_planlist = nconc(ordered_planlist, CAR(x));
+      }
+    return ordered_planlist;
 }
