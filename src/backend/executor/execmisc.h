@@ -118,24 +118,28 @@
 
 /* ----------------
  * 	macros to determine node types
+ *
+ *	XXX if one of these types become a super-type (something inherits
+ *	    from it), its call may have to become IsA instead of 
+ *	    ExactNodeType.
  * ----------------
  */
 #define ExecIsRoot(node) 	LispNil
-#define ExecIsResult(node)	IsA(node,Result)
-#define ExecIsExistential(node)	IsA(node,Existential)
-#define ExecIsAppend(node)	IsA(node,Append)
-#define ExecIsParallel(node)	IsA(node,Parallel)
-#define ExecIsRecursive(node)	IsA(node,Recursive)
-#define ExecIsNestLoop(node)	IsA(node,NestLoop)
-#define ExecIsMergeJoin(node)	IsA(node,MergeJoin)
-#define ExecIsHashJoin(node)	IsA(node,HashJoin)
-#define ExecIsSeqScan(node)	IsA(node,SeqScan)
-#define ExecIsIndexScan(node)	IsA(node,IndexScan)
-#define ExecIsMaterial(node)	IsA(node,Material)
-#define ExecIsSort(node)	IsA(node,Sort)
-#define ExecIsUnique(node)	IsA(node,Unique)
-#define ExecIsHash(node)	IsA(node,Hash)
-#define ExecIsScanTemps(node)   IsA(node,ScanTemps)
+#define ExecIsResult(node)	ExactNodeType(node,Result)
+#define ExecIsExistential(node)	ExactNodeType(node,Existential)
+#define ExecIsAppend(node)	ExactNodeType(node,Append)
+#define ExecIsParallel(node)	ExactNodeType(node,Parallel)
+#define ExecIsRecursive(node)	ExactNodeType(node,Recursive)
+#define ExecIsNestLoop(node)	ExactNodeType(node,NestLoop)
+#define ExecIsMergeJoin(node)	ExactNodeType(node,MergeJoin)
+#define ExecIsHashJoin(node)	ExactNodeType(node,HashJoin)
+#define ExecIsSeqScan(node)	ExactNodeType(node,SeqScan)
+#define ExecIsIndexScan(node)	ExactNodeType(node,IndexScan)
+#define ExecIsMaterial(node)	ExactNodeType(node,Material)
+#define ExecIsSort(node)	ExactNodeType(node,Sort)
+#define ExecIsUnique(node)	ExactNodeType(node,Unique)
+#define ExecIsHash(node)	ExactNodeType(node,Hash)
+#define ExecIsScanTemps(node)   ExactNodeType(node,ScanTemps)
 
 /* ----------------------------------------------------------------
  *	debugging structures
