@@ -190,29 +190,17 @@ void
 unpinsdesc(sdesc)
     HeapScanDesc	sdesc;
 {
-    /*-----------------------------
-     * NOTE: Currently we only pin the "current" buffer
-     * (i.e the sdesc->rs_cbuf).
-     * Both the "previous" (sdesc->rs_pbuf) and "next"
-     * (sdesc->rs_nbuf) are NOT pinned!
-     * Therefore, we must not unpin them.
-     * See comments in 'heap_getnext'.
-     *-----------------------------
-     *
-     * if (BufferIsValid(sdesc->rs_pbuf)) {
-     *     BufferPut(sdesc->rs_pbuf, L_UNPIN);
-     * }
-     */
+    if (BufferIsValid(sdesc->rs_pbuf)) {
+        BufferPut(sdesc->rs_pbuf, L_UNPIN);
+    }
 
     if (BufferIsValid(sdesc->rs_cbuf)) {
 	BufferPut(sdesc->rs_cbuf, L_UNPIN);
     }
 
-    /*-----------------------------
-     * if (BufferIsValid(sdesc->rs_nbuf)) {
-     *    BufferPut(sdesc->rs_nbuf, L_UNPIN);
-     * }
-     */
+    if (BufferIsValid(sdesc->rs_nbuf)) {
+       BufferPut(sdesc->rs_nbuf, L_UNPIN);
+    }
 }
 /* ----------------
  *	heapgettup - fetch next heap tuple
@@ -839,22 +827,6 @@ heap_endscan(sdesc)
  *	heap_getnext	- retrieve next tuple in scan
  *
  *	Fix to work with index relations.
- *
- * XXX: NOTE:   -- sp 6/Aug/91
- * Buffers are correctly pinned/unpinned for the 'current' tuple.
- * I.e. 'heapgettup' makes sure that 'scandesc.rs_cbuf' is
- * pinned, and if we cross page boundaries the previous buffer
- * is unpinned.
- * So, at any time we only have ONE buffer pinned (the current one).
- * The "previous" (scandesc.rs_pbuf) is NOT necessarily pinned!!!!
- * (but luckily enough to the best of my knowledge nobody uses it)
- *
- * Therefore, when we call heap_endscan we must only unpin the
- * "current" buffer and not the "previous" (or "next") one.
- *
- * If at a later time someone is going to use the "previous" tuple/buffer
- * we must change the code, so that the previous buffer is correctly
- * pinned and unpinned.
  * ----------------
  */
 
@@ -948,10 +920,27 @@ heap_getnext(scandesc, backw, b)
 	    BufferPut(sdesc->rs_nbuf, L_UNPIN);
 	*/
 
+	/*
+	 * Copy the "current" tuple/buffer
+	 * to "next". Pin/unpin the buffers
+	 * accordingly
+	 */
+	if (sdesc->rs_nbuf != sdesc->rs_cbuf) {
+	    if (BufferIsValid(sdesc->rs_nbuf))
+		ReleaseBuffer(sdesc->rs_nbuf);
+	    if (BufferIsValid(sdesc->rs_cbuf))
+		IncrBufferRefCount(sdesc->rs_cbuf);
+	}
 	sdesc->rs_ntup = sdesc->rs_ctup;
 	sdesc->rs_nbuf = sdesc->rs_cbuf;
 
 	if (sdesc->rs_ptup != NULL) {
+	    if (sdesc->rs_cbuf != sdesc->rs_pbuf) {
+		if (BufferIsValid(sdesc->rs_cbuf))
+		    ReleaseBuffer(sdesc->rs_cbuf);
+		if (BufferIsValid(sdesc->rs_pbuf))
+		    IncrBufferRefCount(sdesc->rs_pbuf);
+	    }
 	    sdesc->rs_ctup = sdesc->rs_ptup;
 	    sdesc->rs_cbuf = sdesc->rs_pbuf;
 	} else { /* NONTUP */
@@ -972,14 +961,17 @@ heap_getnext(scandesc, backw, b)
 			   initskip);
 	}
 
-	if (sdesc->rs_ctup == NULL &&
-	    ! BufferIsValid(sdesc->rs_cbuf))
+	if (sdesc->rs_ctup == NULL && !BufferIsValid(sdesc->rs_cbuf))
 	    {
+		if (BufferIsValid(sdesc->rs_pbuf))
+		    ReleaseBuffer(sdesc->rs_pbuf);
 		sdesc->rs_ptup = NULL;
 		sdesc->rs_pbuf = InvalidBuffer;
 		return (NULL);
 	    }
 
+	if (BufferIsValid(sdesc->rs_pbuf))
+	    ReleaseBuffer(sdesc->rs_pbuf);
 	sdesc->rs_ptup = NULL;
 	sdesc->rs_pbuf = UnknownBuffer;
 
@@ -1001,10 +993,28 @@ heap_getnext(scandesc, backw, b)
 	}
 	*/
 
+
+	/*
+	 * Copy the "current" tuple/buffer
+	 * to "previous". Pin/unpin the buffers
+	 * accordingly
+	 */
+	if (sdesc->rs_pbuf != sdesc->rs_cbuf) {
+	    if (BufferIsValid(sdesc->rs_pbuf))
+		ReleaseBuffer(sdesc->rs_pbuf);
+	    if (BufferIsValid(sdesc->rs_cbuf))
+		IncrBufferRefCount(sdesc->rs_cbuf);
+	}
 	sdesc->rs_ptup = sdesc->rs_ctup;
 	sdesc->rs_pbuf = sdesc->rs_cbuf;
 	
 	if (sdesc->rs_ntup != NULL) {
+	    if (sdesc->rs_cbuf != sdesc->rs_nbuf) {
+		if (BufferIsValid(sdesc->rs_cbuf))
+		    ReleaseBuffer(sdesc->rs_cbuf);
+		if (BufferIsValid(sdesc->rs_nbuf))
+		    IncrBufferRefCount(sdesc->rs_nbuf);
+	    }
 	    sdesc->rs_ctup = sdesc->rs_ntup;
 	    sdesc->rs_cbuf = sdesc->rs_nbuf;
 	    HEAPDEBUG_5; /* heap_getnext next tuple was cached */
@@ -1026,14 +1036,17 @@ heap_getnext(scandesc, backw, b)
 			   initskip);
 	}
 
-	if (sdesc->rs_ctup == NULL &&
-	    !BufferIsValid(sdesc->rs_cbuf)) {
+	if (sdesc->rs_ctup == NULL && !BufferIsValid(sdesc->rs_cbuf)) {
+	    if (BufferIsValid(sdesc->rs_nbuf))
+		ReleaseBuffer(sdesc->rs_nbuf);
 	    sdesc->rs_ntup = NULL;
 	    sdesc->rs_nbuf = InvalidBuffer;
 	    HEAPDEBUG_6; /* heap_getnext returning EOS */
 	    return (NULL);
 	}
 	
+	if (BufferIsValid(sdesc->rs_nbuf))
+	    ReleaseBuffer(sdesc->rs_nbuf);
 	sdesc->rs_ntup = NULL;
 	sdesc->rs_nbuf = UnknownBuffer;
     }
