@@ -35,13 +35,12 @@
 #define	RELOID		11
 #define	TYPNAME		12
 #define	TYPOID 		13
-#define	RULEPLANCODE	14
-#define	AMNAME		15
-#define	CLANAME		16
-#define INDRELIDKEY	17
-#define INHRELID	18
-#define PRS2PLANCODE	19
-#define	RULOID		20
+#define	AMNAME		14
+#define	CLANAME		15
+#define INDRELIDKEY	16
+#define INHRELID	17
+#define PRS2PLANCODE	18
+#define	RULOID		19
 
 /*
  *	struct cachedesc:	information needed for a call to InitSysCache()
