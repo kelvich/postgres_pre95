@@ -21,7 +21,7 @@ SLOTFILE=slots
 EGREP=egrep
 RM=rm
 SED=sed
-if [ -x /usr/ucb/gawk ]
+if [ -f /usr/ucb/gawk ]
 then
 	AWK=/usr/ucb/gawk
 else
