@@ -320,6 +320,7 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
     Name		procs[4];
     bool 		defined;
     ItemPointerData	itemPointerData;
+    ObjectId argList[8];
 
     static ScanKeyEntryData	typeKey[1] = {
 	{ 0, TypeNameAttributeNumber, NameEqualRegProcedure }
@@ -404,63 +405,53 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
      *	initialize the various procedure id's in value[]
      * ----------------
      */
-
-    if (typeType != 'c') {
-	  ObjectId argList[8];
     
-	  procname[sizeof(NameData)] = '\0';	/* XXX feh */
-
-	  /*
-	   * arguments to type input and output functions must be 0
-	   */
-	  bzero(argList, 8 * sizeof(ObjectId));
-
-	  procs[0] = inputProcedure;
-	  procs[1] = outputProcedure;
-	  procs[2] = NameIsValid(receiveProcedure)
-		? receiveProcedure : inputProcedure;
-	  procs[3] = NameIsValid(sendProcedure)
-		? sendProcedure : outputProcedure;
-
-	  for (j = 0; j < 4; ++j) {
-		(void) strncpy(procname,
-			       (char *) procs[j],
-			       sizeof(NameData));
-
-		tup = SearchSysCacheTuple(PRONAME,
-					  procname,
-					  1,
-					  argList,
-					  (char *) NULL);
-
-		if (!HeapTupleIsValid(tup)) {
-		      /*
-		       * it is possible for the input/output procedure
-		       * to take two arguments, where the second argument
-		       * is the element type (eg array_in/array_out)
-		       */
-		      if (ObjectIdIsValid(elementObjectId)) {
-			    tup = SearchSysCacheTuple(PRONAME,
-						      procname,
-						      2,
-						      argList, 
-						      (char *) NULL);
-		      }
-		      if (!HeapTupleIsValid(tup)) {
-			    func_error("TypeDefine", procname, 1, argList);
-		      }
-		}
-
-		values[i++] = (char *)tup->t_oid;
-	  }
+    procname[sizeof(NameData)] = '\0';	/* XXX feh */
+    
+    /*
+     * arguments to type input and output functions must be 0
+     */
+    bzero(argList, 8 * sizeof(ObjectId));
+    
+    procs[0] = inputProcedure;
+    procs[1] = outputProcedure;
+    procs[2] = NameIsValid(receiveProcedure)
+	 ? receiveProcedure : inputProcedure;
+    procs[3] = NameIsValid(sendProcedure)
+	 ? sendProcedure : outputProcedure;
+    
+    for (j = 0; j < 4; ++j) {
+	 (void) strncpy(procname,
+			(char *) procs[j],
+			sizeof(NameData));
+	 
+	 tup = SearchSysCacheTuple(PRONAME,
+				   procname,
+				   1,
+				   argList,
+				   (char *) NULL);
+	 
+	 if (!HeapTupleIsValid(tup)) {
+	      /*
+	       * it is possible for the input/output procedure
+	       * to take two arguments, where the second argument
+	       * is the element type (eg array_in/array_out)
+	       */
+	      if (ObjectIdIsValid(elementObjectId)) {
+		   tup = SearchSysCacheTuple(PRONAME,
+					     procname,
+					     2,
+					     argList, 
+					     (char *) NULL);
+	      }
+	      if (!HeapTupleIsValid(tup)) {
+		   func_error("TypeDefine", procname, 1, argList);
+	      }
+	 }
+	 
+	 values[i++] = (char *)tup->t_oid;
     }
-    else {
-	/* relation type - no input or output procedures */
-	for (j = 0; j < 4; ++j) {
-	    values[i++] = InvalidObjectId;
-	}
-    }
-
+    
 
     /* ----------------
      *	initialize the default value for this type.
