@@ -231,22 +231,6 @@ DebugVariableProcessCommand(buf)
 	}
 	return true;
 	
-    } else if (sscanf(buf, "DEBUG X %s", s) == 1) {
-	MemoryContext oldContext;
-	
-	/* ----------------
-	 *	assign the X debugging hooks in the top memory context
-	 *	so that they aren't wiped out at end-transaction time.
-	 * ----------------
-	 */
-	oldContext = MemoryContextSwitchTo(TopMemoryContext);
-    
-	_debug_hook_id_ = 1;
-	_debug_hooks_[ _debug_hook_id_ ] = (HookNode) RMakeHookNode();
-	InitXHook( _debug_hooks_[ _debug_hook_id_ ] );
-
-	(void) MemoryContextSwitchTo(oldContext);
-	return true;
     }
     
     return false;
@@ -549,7 +533,7 @@ AddSortNode(plan, op)
     foreach (tl, targetlist) {
 	resdom = (Resdom) tl_resdom(CAR(tl));
 	set_reskey(resdom, 1);
-	set_reskeyop(resdom, (OperatorTupleForm) op);
+	set_reskeyop(resdom, (OperatorTupleForm) Int32GetDatum(op));
     }
     set_qptargetlist((Plan)sort, targetlist);
     set_lefttree((Plan)sort, (PlanPtr) plan);
