@@ -16,10 +16,12 @@ LIBPQ= ${L2}
 LIBPQ= ${L3}
 .elif exists(${L4})
 LIBPQ= ${L4}
-.elif target(all) || target(runtest)
+.elifmake all || runtest
 .BEGIN:
-	echo 'Error: can't find where you installed libpq.a,'
-	echo 'try running "bmake all install" again.'
+        @echo "regress: Makefile error: can't find where you installed libpq.a,"
+        @echo 'try running "bmake all install" again.'
+${PROG}: STOP_THE_MAKEFILE
+        false
 .endif
 
 LDADD+= ${LIBPQ}
