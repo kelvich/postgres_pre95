@@ -57,6 +57,7 @@ extern List ParseAgg();
 
 bool CurrentWasUsed = false;
 bool NewWasUsed = false;
+bool attr_is_nested_dots = false;
 
 #define ELEMENT 	yyval = nappend1( LispNil , yypvt[-0] )
 			/* yypvt [-1] = $1 */
@@ -1730,6 +1731,12 @@ agg_where_clause:
 
 a_expr:
 	  attr
+           {
+	       if (attr_is_nested_dots)
+		{
+		    $$ = HandleNestedDots($1);
+		}
+	       else
 		{
 		    List temp = NULL;
  		    temp =  CDR ( make_var ((Name)CString(CAR ($1)) , 
@@ -1771,6 +1778,7 @@ a_expr:
   				       $$ );
   		    }
   		}
+	   }
 	| AexprConst		
 	| attr optional_indirection
 		{ 
@@ -1817,6 +1825,7 @@ a_expr:
 		  Typecast_ok = false; }
 	| relation_name
 		{ $$ = lispCons ( KW(relation), $1 );
+                  INC_NUM_LEVELS(1);
 		  Typecast_ok = false; }
 	| name '(' ')'
 		{
@@ -1842,24 +1851,50 @@ expr_list:
 	|  expr_list ',' a_expr		{ INC_LIST ; }
 	;
 attr:
-	  relation_name '.' attr_name
-		{    
+          relation_name '.' nested_func '.' nested_dots
+                {
+		    attr_is_nested_dots = true;
+		    $$ = MakeList($1, $3);
+		    $$ = nconc($$, $5);
+		}
+        | relation_name '.' attr_name
+		{
+                    attr_is_nested_dots = false;
 		    INC_NUM_LEVELS(1);		
 		    if( RangeTablePosn ( CString ($1),LispNil ) == 0 )
 		      ADD_TO_RT( MakeRangeTableEntry ((Name)CString($1) ,
 						      LispNil, 
 						      (Name)CString($1)));
-		    $$ = MakeList ( $1 , $3 , -1 );
-		}
-	| attr '.' attr_name
-		{
-		    $$ = nappend1 ( $1, $3 ); 
+		    $$ = MakeList ( $1, $3, -1 );
 		}
 	;
 
+nested_func:
+        name
+                {
+		    $$ = $1;
+		}
+nested_dots:
+        attr_name
+                {
+		    $$ = $1;
+		}
+      | name '.' nested_dots
+                {
+		    /* check that first nested dot is valid */
+		    $$ = MakeList($1, $3, -1);
+		}
+      ;
+
 agg_res_target_el:
-	   attr
-	   {
+       attr
+	  {
+	      if (attr_is_nested_dots)
+	       {
+		   $$ = HandleNestedDots($1);
+	       }
+	      else
+	       {
 		   LispValue varnode, temp;
 		   Resdom resnode;
 		   int type_id, type_len;
@@ -1883,6 +1918,7 @@ agg_res_target_el:
 		       elog(WARN,"cannot mix procedures with unions");
 
 		   $$ = lispCons((LispValue)resnode,lispCons(varnode,LispNil));
+	       }
 	 }
 
 agg:
@@ -1970,7 +2006,13 @@ res_target_el:
 		$$ = make_targetlist_expr ($1,$3);
 	   } 
 	| attr
-		{
+             {
+		 if (attr_is_nested_dots)
+		  {
+		      $$ = HandleNestedDots($1);
+		  }
+		 else
+		  {
 		      LispValue varnode, temp;
 		      Resdom resnode;
 		      int type_id, type_len;
@@ -1994,6 +2036,7 @@ res_target_el:
 			elog(WARN,"cannot mix procedures with unions");
 
 		      $$=lispCons((LispValue)resnode,lispCons(varnode,LispNil));
+		  }
 		}
 	| attr optional_indirection
 		{
