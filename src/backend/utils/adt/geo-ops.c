@@ -9,6 +9,7 @@ static char rcs_id[] =
 #endif
 
 #include <math.h>
+#include <float.h>	/* faked on sunos */
 #include <stdio.h>
 #include <strings.h>
 
@@ -21,10 +22,6 @@ static char rcs_id[] =
 #define BOXNARGS	4
 #define	LSEGNARGS	4
 #define	POINTNARGS	2
-
-#ifdef sequent
-#define HUGE_VAL	1.8e+308
-#endif
 
 /***********************************************************************
  **
@@ -808,8 +805,8 @@ path_inter(p1, p2)
     int	i, j;
     LSEG seg1, seg2;
 	
-    b1.xh = b1.yh = b2.xh = b2.yh = HUGE;
-    b1.xl = b1.yl = b2.xl = b2.yl = -HUGE;
+    b1.xh = b1.yh = b2.xh = b2.yh = MAX_DBL;
+    b1.xl = b1.yl = b2.xl = b2.yl = -MAX_DBL;
     for (i = 0; i < p1->npts; ++i) {
 	b1.xh = MAX(p1->p[i].x, b1.xh);
 	b1.yh = MAX(p1->p[i].y, b1.yh);
@@ -1068,7 +1065,7 @@ point_slope(pt1, pt2)
 
 	result = PALLOCTYPE(double);
 	if (point_vert(pt1, pt2))
-		*result = HUGE;
+		*result = MAX_DBL;
 	else
 		*result = (pt1->y - pt2->y) / (pt1->x - pt1->x);
 	return(result);
@@ -1080,7 +1077,7 @@ point_sl(pt1, pt2)
 	POINT	*pt1, *pt2;
 {
 	return(	point_vert(pt1, pt2)
-	       ? HUGE
+	       ? MAX_DBL
 	       : (pt1->y - pt2->y) / (pt1->x - pt2->x) );
 }
 
@@ -1262,7 +1259,7 @@ lseg_distance(l1, l2)
 		*result = 0.0;
 		return(result);
 	}
-	*result = HUGE;
+	*result = MAX_DBL;
 	d = dist_ps(&l1->p[0], l2);
 	*result = MIN(*result, *d);
 	PFREE(d);
@@ -1288,7 +1285,7 @@ lseg_dt(l1, l2)			/* distance between l1, l2 */
 
 	if (lseg_intersect(l1, l2))
 		return(0.0);
-	result = HUGE;
+	result = MAX_DBL;
 	d = dist_ps(&l1->p[0], l2);
 	result = MIN(result, *d);
 	PFREE(d);
@@ -1378,7 +1375,7 @@ dist_ps(pt, lseg)
     if (lseg->p[1].x == lseg->p[0].x)
       m = 0;
     else if (lseg->p[1].y == lseg->p[0].y) /* slope is infinite */
-      m = HUGE;
+      m = MAX_DBL;
     else m = (-1) * (lseg->p[1].y - lseg->p[0].y) / 
                     (lseg->p[1].x - lseg->p[0].x);
     ln = line_construct_pm(pt, m);
@@ -1415,7 +1412,7 @@ double *dist_ppth(pt, path)
     switch (path->npts) {
     case 0:
 	result = PALLOCTYPE(double);
-	*result = Abs((double) HUGE_VAL);	/* +infinity */
+	*result = Abs((double) MAX_DBL);	/* +infinity */
 	break;
     case 1:
 	result = point_distance(pt, &path->p[0]);
