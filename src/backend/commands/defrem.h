@@ -11,6 +11,7 @@
 
 #include "tmp/postgres.h"
 #include "nodes/pg_lisp.h"
+#include "tcop/dest.h"
 
 /*
  * DefineIndex --
@@ -55,7 +56,8 @@ RemoveIndex ARGS((
 extern
 void
 DefineFunction ARGS((
-	LispValue	nameargsexe
+	LispValue	nameargsexe,
+	CommandDest	dest
 ));
 
 extern

@@ -235,7 +235,7 @@ ExecInitAppend(node, estate, parent)
 				   0,		/* num indices */
 				   NULL,	/* index descs */
 				   NULL);	/* index key info */
-	    resultList = nappend1(resultList, rri);
+	    resultList = nappend1(resultList, (LispValue)rri);
 	    ExecOpenIndices(reloid, rri);
 	}
 	set_es_result_relation_info_list(estate, resultList);
@@ -270,7 +270,7 @@ ExecInitAppend(node, estate, parent)
 	 */
 	targetList = get_qptargetlist(initNode);
 	j = (JunkFilter) ExecInitJunkFilter(targetList);
-	junkList = nappend1(junkList, j);
+	junkList = nappend1(junkList, (LispValue)j);
 
     }
     set_es_junkFilter_list(estate, junkList);

@@ -70,20 +70,20 @@ void ExecEndNode ARGS((Plan node ));
 
 /* ex_qual.c */
 Datum array_cast ARGS((char *value , bool byval , int len ));
-Datum ExecEvalArrayRef ARGS((Datum object , int32 indirection , int32 array_len , int32 element_len , bool byval , Boolean *isNull ));
+Datum ExecEvalArrayRef ARGS((ArrayRef arrayRef, ExprContext econtext, Boolean *isNull, Boolean *isDone));
 Datum ExecEvalVar ARGS((Var variable , ExprContext econtext , Boolean *isNull ));
-Datum ExecEvalParam ARGS((Param expression , ExprContext econtext ));
+Datum ExecEvalParam ARGS((Param expression , ExprContext econtext, Boolean *isDone ));
 /*Datum GetAttribute ARGS((char *attname ));*/
-Datum ExecMakeFunctionResult ARGS((FunctionCachePtr fcache , List arguments , ExprContext econtext ));
+Datum ExecMakeFunctionResult ARGS((Node node, List arguments , ExprContext econtext, Boolean *isNull, Boolean *isDone ));
 Datum ExecEvalOper ARGS((List opClause , ExprContext econtext , Boolean *isNull ));
-Datum ExecEvalFunc ARGS((Func funcClause , ExprContext econtext , Boolean *isNull ));
+Datum ExecEvalFunc ARGS((Func funcClause , ExprContext econtext , Boolean *isNull, Boolean *isDone ));
 Datum ExecEvalNot ARGS((List notclause , ExprContext econtext , Boolean *isNull ));
 Datum ExecEvalOr ARGS((List orExpr , ExprContext econtext , Boolean *isNull ));
-Datum ExecEvalExpr ARGS((Node expression , ExprContext econtext , Boolean *isNull ));
+Datum ExecEvalExpr ARGS((Node expression , ExprContext econtext , Boolean *isNull, Boolean *isDone ));
 bool ExecQualClause ARGS((List clause , ExprContext econtext ));
 bool ExecQual ARGS((List qual , ExprContext econtext ));
-HeapTuple ExecTargetList ARGS((List targetlist , int nodomains , TupleDescriptor targettype , Pointer values , ExprContext econtext ));
-TupleTableSlot ExecProject ARGS((ProjectionInfo projInfo ));
+HeapTuple ExecTargetList ARGS((List targetlist , int nodomains , TupleDescriptor targettype , Pointer values , ExprContext econtext, Boolean *isDone ));
+TupleTableSlot ExecProject ARGS((ProjectionInfo projInfo, Boolean *isDone ));
 
 /* ex_scan.c */
 TupleTableSlot ExecScan ARGS((Scan node , Pointer (*accessMtd )()));
@@ -117,6 +117,7 @@ TupleTableSlot NodeGetResultTupleSlot ARGS((Plan node));
 ExecTupDescriptor ExecGetExecTupDesc ARGS((Plan node));
 TupleDescriptor ExecTupDescToTupDesc ARGS((ExecTupDescriptor execTupDesc, int len));
 ExecTupDescriptor TupDescToExecTupDesc ARGS((TupleDescriptor tupDesc, int len));
+TupleDescriptor  ExecCopyTupType ARGS((TupleDescriptor td, int natts));
 
 /* ex_utils.c */
 void ResetTupleCount ARGS((void ));
@@ -149,11 +150,11 @@ AttributeNumberPtr ExecMakeAttsFromList ARGS((List attlist , int *numAttsPtr ));
 void ExecInitScanAttributes ARGS((Plan node ));
 AttributeNumberPtr ExecMakeBogusScanAttributes ARGS((int natts ));
 void ExecFreeScanAttributes ARGS((AttributeNumberPtr ptr ));
-int ExecGetVarLen ARGS((Plan node, Var var));
-TupleDescriptor ExecGetVarTupDesc ARGS((Plan node, Var var));
+int ExecGetVarLen ARGS((Plan node, CommonState commonstate, Var var));
+TupleDescriptor ExecGetVarTupDesc ARGS((Plan node, CommonState commonstate, Var var));
 ExecTupDescriptor ExecMakeExecTupDesc ARGS((int len));
 ExecAttDesc ExecMakeExecAttDesc ARGS((AttributeTag tag, int len));
-ExecAttDesc MakeExecAttDesc ARGS((AttributeTag tag, int len, tupdesc));
+ExecAttDesc MakeExecAttDesc ARGS((AttributeTag tag, int len, TupleDescriptor tupdesc));
 
 /* ex_xdebug.c */
 void ExecXInitialize ARGS((void ));
