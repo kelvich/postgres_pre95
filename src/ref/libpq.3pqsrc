@@ -618,7 +618,7 @@ Asynchronous portals are not fully implemented in Version \*(PV.
  * 	Test the C version of \*(LI, the \*(PG frontend library.
  */
 #include <stdio.h>
-#include "libpq.h"
+#include "tmp/libpq.h"
 
 main ()
 {
