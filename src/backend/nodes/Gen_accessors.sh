@@ -9,10 +9,10 @@
 # 	initial definitions
 # ----------------
 CAT=cat
-if [ -x /usr/bin/cb ]
+if [ -f /usr/bin/cb ]
 then
 	CB=cb
-elif [ -x /usr/bin/indent -a -r /dev/stdin -a -w /dev/stdout ]
+elif [ -f /usr/bin/indent -a -r /dev/stdin -a -w /dev/stdout ]
 then
 	CB="indent /dev/stdin /dev/stdout"
 else
