@@ -8,6 +8,9 @@
 #include <sys/file.h>
 #include <strings.h>
 #include "tmp/c.h"
+
+#ifdef JAQUITH
+
 #include "tmp/libpq-fs.h"
 #include "access/relscan.h"
 #include "access/tupdesc.h"
@@ -95,3 +98,4 @@ int JO_clean(char *path) {
 }
 
 
+#endif   /*  JAQUITH  */
