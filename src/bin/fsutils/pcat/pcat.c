@@ -1,8 +1,12 @@
+#include <stdio.h>
+#include <sys/file.h>
+
 #include "tmp/libpq-fs.h"
-#include  <sys/file.h>
 
 int errs;
 void copy();
+extern char	*getenv();
+extern char	*PQexec();
 
 void main(argc,argv)
      int argc;       
@@ -13,8 +17,16 @@ void main(argc,argv)
     int blen;
     int i;
     char *res;
+    char *dbname;
 
-    PQsetdb(getenv("USER"));
+    if ((dbname = getenv("DATABASE")) == (char *) NULL) {
+	fprintf(stderr, "no database specified in env var DATABASE\n");
+	fflush(stderr);
+	exit (1);
+    }
+
+    PQsetdb(dbname);
+
     if (argc == 1)	{
 	copy(0,1);
 	exit(0);
@@ -34,6 +46,7 @@ void main(argc,argv)
 	 if (pgcopy(infd,1) < 0) errs = 1;
          p_close(infd);
     }
+
     res = PQexec("end");
     PQfinish();
 }

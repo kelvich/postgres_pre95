@@ -23,6 +23,7 @@ static	char sccsid[] = "@(#)mkdir.c 1.1 90/03/23 SMI"; /* from UCB 5.1 4/30/85 *
 
 int mkdir();
 int mkdirp();
+extern char *getenv();
 
 main(argc, argv)
 	char *argv[];
@@ -30,8 +31,16 @@ main(argc, argv)
 	int errors = 0;
 	int pflag = 0;
 	char *cmd = argv[0];
+	char *dbname;
 
-	PQsetdb(getenv("USER"));
+	if ((dbname = getenv("DATABASE")) == (char *) NULL) {
+	    fprintf(stderr, "no database specified in env var DATABASE\n");
+	    fflush(stderr);
+	    exit (1);
+	}
+
+	PQsetdb(dbname);
+
 	argc--, argv++;
 	while (argc > 0 && **argv == '-') {
 		(*argv)++;

@@ -16,13 +16,22 @@ int	rflg;		/* -r recurse */
 int	errcode;	/* true if errors occured */
 
 char	*strcpy(), *malloc(), *realloc();
+extern char *getenv();
 
 main(argc, argv)
 	char *argv[];
 {
 	register char *arg;
+	char *dbname;
 
-	PQsetdb(getenv("USER"));
+	if ((dbname = getenv("DATABASE")) == (char *) NULL) {
+	    fprintf(stderr, "no database specified in env var DATABASE\n");
+	    fflush(stderr);
+	    exit (1);
+	}
+
+	PQsetdb(dbname);
+
 	fflg = !isatty(0);
 	iflg = 0;
 	rflg = 0;

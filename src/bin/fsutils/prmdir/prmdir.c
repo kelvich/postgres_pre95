@@ -17,13 +17,23 @@ char copyright[] =
 #include <stdio.h>
 #include "tmp/libpq-fs.h"
 
+extern char *getenv();
+
 main(argc,argv)
 	int argc;
 	char **argv;
 {
 	int errors = 0;
+	char *dbname;
 
-	PQsetdb(getenv("USER"));
+	if ((dbname = getenv("DATABASE")) == (char *) NULL) {
+	    fprintf(stderr, "no database specified in env var DATABASE\n");
+	    fflush(stderr);
+	    exit (1);
+	}
+
+	PQsetdb(dbname);
+
 	(void) PQexec("begin");
 
 	if (argc < 2) {

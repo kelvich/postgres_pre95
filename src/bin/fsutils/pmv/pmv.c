@@ -40,6 +40,7 @@ struct	pgstat s1, s2;
 int	iflag = 0;	/* interactive mode */
 int	fflag = 0;	/* force overwriting */
 extern	int p_errno;
+extern char *getenv();
 
 main(argc, argv)
 	register char *argv[];
@@ -47,10 +48,19 @@ main(argc, argv)
 	register i, r;
 	register char *arg;
 	char *dest;
+	char *dbname;
 
 	if (argc < 2)
 		goto usage;
-	PQsetdb(getenv("USER"));
+
+	if ((dbname = getenv("DATABASE")) == (char *) NULL) {
+	    fprintf(stderr, "no database specified in env var DATABASE\n");
+	    fflush(stderr);
+	    exit (1);
+	}
+
+	PQsetdb(dbname);
+
 	while (argc > 1 && *argv[1] == '-') {
 		argc--;
 		arg = *++argv;
