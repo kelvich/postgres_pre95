@@ -107,17 +107,19 @@ int LORead ARGS((void *obj_desc , char *buf , int n ));
 int LOWrite ARGS((void *obj_desc , char *buf , int n ));
 
 /* ftype.c */
-void  *f262open ARGS((ObjectId foid ));
-int f262seek ARGS((void *f , int loc ));
-int f262read ARGS((void *f , char *dbuf , int nbytes ));
-void f262close ARGS((void *f ));
+void *inv_create ARGS((char *name, int mode ));
+void  *inv_open ARGS((ObjectId foid ));
+int inv_read ARGS((void *f , char *dbuf , int nbytes ));
+int inv_write ARGS((void *f , char *dbuf , int nbytes ));
+void inv_close ARGS((void *f ));
+int inv_seek ARGS((void *f , int loc ));
 
 static int noaction() { return  -1; } /* error */
 static void *noactionnull() { return (void *) NULL; } /* error */
 /* These should be easy to code */
-static int f262seekwhence() {return -1;}
-static int f262tell() {return -1;}
-static int f262unixstat() {return -1;}
+static int inv_seekwhence() {return -1;}
+static int inv_tell() {return -1;}
+static int inv_unixstat() {return -1;}
 
 /* This is ordered upon objtype values.  Make sure that entries are sorted
    properly. */
@@ -136,8 +138,8 @@ static struct {
     int (*LOunixstat) ARGS((void *,struct pgstat *)); /* rt-cookie,stat ->errorcode*/
 } LOprocs[] = {
     /* Inversion */
-    { SMALL_INT,noactionnull, f262open, f262close, f262read, noaction,
-	f262seekwhence, f262tell, f262unixstat},
+    { SMALL_INT,noactionnull, inv_open, inv_close, inv_read, noaction,
+	inv_seekwhence, inv_tell, inv_unixstat},
     /* Unix */
     { BIG, LOCreate, LOOpen, LOClose, LORead, LOWrite,
 	LOSeek, LOTell, LOUnixStat}
@@ -263,171 +265,41 @@ int LOclose(fd)
     return 0;
 }
 
-/* XXX Messy LOread. Fix later.
- *  The mere complexity of the read/write functions dictate that they
- *  shouldn't work, or be entirely understandable.
- */
 /*
  *  We assume the large object supports byte oriented reads and seeks so
  *  that our work is easier.
  */
-struct varlena * LOread(fd,len)
+struct varlena *
+LOread(fd,len)
      int fd;
      int len;
 {
-#if 0
-    char buf[LARGE_OBJECT_BLOCK];
-#endif
     struct varlena *retval;
     int bytestoread;
     int totalread = 0;
-#define min(x,y)  ( (x) < (y) ? (x) : (y) )
 
     retval = (struct varlena *)palloc(sizeof(int32) + len);
     totalread = LOprocs[lotype[fd]].LOread(cookies[fd],VARDATA(retval),len);
-#if deadcode
-    bytestoread = len;
-#if 0
-    elog(NOTICE,"LORead: bytestoread %d current_offset %d current_block %d",
-	 bytestoread,current_objoffset[fd],
-	 current_objaddr[fd]);
-#endif
-    /* read leading partial block */
-    if (current_objoffset[fd] > 0) {
-	int bytesread = LOBlockRead((LargeObjectDesc *)cookies[fd],buf,1);
-	int remainder;
-	int actuallyused;
-	if (bytesread > 0) {
-#if 0
-	    elog(NOTICE,"LORead: partial bytesread %d bytestoread %d current_offset %d current_block %d",
-		 bytesread,bytestoread,current_objoffset[fd],
-		 current_objaddr[fd]);
-#endif
-	    remainder = bytesread - current_objoffset[fd];
-	    actuallyused = min(remainder,bytestoread);
-	    bcopy(buf+current_objoffset[fd],VARDATA(retval),
-		  actuallyused);
-	    current_objoffset[fd] += actuallyused;
-	    bytestoread -= actuallyused;
-	    totalread += actuallyused;
-	    if (current_objoffset[fd] == LARGE_OBJECT_BLOCK) {
-		current_objaddr[fd] ++ ;
-		current_objoffset[fd] = 0;
-	    }
-	} else { /* read failed */
-#if 0
-	    elog(NOTICE,"LORead: partial bytesread %d bytestoread %d current_offset %d current_block %d",
-		 bytesread,bytestoread,current_objoffset[fd],
-		 current_objaddr[fd]);
-#endif
-
-	}
-    }
-    /* read full blocks + trailing partial block */
-    if (bytestoread > 0) {
-	int blockstoread = bytestoread / LARGE_OBJECT_BLOCK;
-	int remaindertoread = bytestoread % LARGE_OBJECT_BLOCK;
-	int bytesread =
-	  LOBlockRead((LargeObjectDesc *)cookies[fd],VARDATA(retval)+totalread,blockstoread);
-	bytestoread -= bytesread;
-	totalread += bytesread;
-	current_objoffset[fd] = bytesread % LARGE_OBJECT_BLOCK;
-	current_objaddr[fd] += bytesread/LARGE_OBJECT_BLOCK;
-
-	/* need to read trailing partial?
-	   bytestoread < LARGE_OBJECT_BLOCK at this point*/
-	if ((bytestoread > 0) && (bytestoread < LARGE_OBJECT_BLOCK)) {
-	    int bytesread = LOBlockRead((LargeObjectDesc *)cookies[fd],buf,1);
-	    int actuallyused;
-	    actuallyused = min(bytesread,bytestoread);
-	    bcopy(buf,VARDATA(retval)+totalread,actuallyused);
-	    totalread += actuallyused;
-	    bytestoread -= actuallyused;
-	    current_objoffset[fd] = actuallyused;
-	    LOBlockSeek((LargeObjectDesc *)cookies[fd],current_objaddr[fd],SEEK_SET);
-	}
-    }
-#endif
     VARSIZE(retval) = totalread;
+
     return retval;
 }
 
-/* XXX see LOread comment */
 int LOwrite(fd,wbuf)
      int fd;
      struct varlena *wbuf;
 {
-    int totalwritten = 0;
+    int totalwritten;
     int bytestowrite;
-#if 0
-    char buf[LARGE_OBJECT_BLOCK];
-#endif
 
-#if FSDB
-    elog(NOTICE,"LOwrite(%d,%x) bytes %d",fd,wbuf,VARSIZE(wbuf));
-#endif
     bytestowrite = VARSIZE(wbuf);
     totalwritten = LOprocs[lotype[fd]].LOwrite(cookies[fd],VARDATA(wbuf),
 					       bytestowrite);
     return totalwritten;
-
-#if deadcode
-
-    /*
-     * Logically, we can write on byte boundaries, but we actually write
-     * complete blocks at a time.
-     *  Portion written consists of a remainder partial block, full block and 
-     * initial last block.  The current block and current offset pointer are 
-     * updated.
-     *   <------>
-     * [  ][  ][  ][  ]
-     *  Cb,Co NCb,NCo
-     */
-    /* write leading partial block */
-    if (current_objoffset[fd] > 0) {
-	int remainder = LARGE_OBJECT_BLOCK - current_objoffset[fd];
-	int actuallywritten;
-	LOBlockRead((LargeObjectDesc *)cookies[fd],buf,1);
-	/* back to previous block */
-	LOBlockSeek((LargeObjectDesc *)cookies[fd],current_objaddr[fd],SEEK_SET);
-	bcopy(VARDATA(wbuf),buf+current_objoffset[fd],
-	      min(remainder,bytestowrite));
-	actuallywritten = min(remainder,bytestowrite);
-	LOBlockWrite((LargeObjectDesc *)cookies[fd],buf,0,
-		     current_objoffset[fd]+actuallywritten);
-	
-	current_objoffset[fd] += actuallywritten;
-	if (current_objoffset[fd] == LARGE_OBJECT_BLOCK) {
-	    current_objoffset[fd] = 0;
-	    current_objaddr[fd] ++;
-	} else { /* seek back to previous block */
-	    LOBlockSeek((LargeObjectDesc *)cookies[fd],current_objaddr[fd],SEEK_SET);
-	}
-
-	bytestowrite -= actuallywritten;
-	totalwritten += actuallywritten;
-    }
-
-    /* write full blocks and trailing partial */
-    if (bytestowrite > 0) {
-	int blockstowrite =  bytestowrite / LARGE_OBJECT_BLOCK;
-	int remaindertowrite = bytestowrite % LARGE_OBJECT_BLOCK;
-	int byteswritten;
-	byteswritten = LOBlockWrite((LargeObjectDesc *)cookies[fd],VARDATA(wbuf)+totalwritten,
-				    blockstowrite,
-				    remaindertowrite);
-	totalwritten += byteswritten;
-	/* incorrect for partial writes */
-	current_objaddr[fd] += byteswritten/LARGE_OBJECT_BLOCK;
-	current_objoffset[fd] = byteswritten % LARGE_OBJECT_BLOCK;
-	if (current_objoffset[fd] != 0) /* back up over incomplete blocks */
-	  LOBlockSeek((LargeObjectDesc *)cookies[fd],current_objaddr[fd],SEEK_SET);
-    }
-    return totalwritten;
-#endif
 }
 
-int LOlseek(fd,offset,whence)
+int
+LOlseek(fd,offset,whence)
      int fd,offset,whence;
 {
     int pos;
@@ -437,57 +309,40 @@ int LOlseek(fd,offset,whence)
 	return -2;
     }
     return LOprocs[lotype[fd]].LOseek(cookies[fd],offset,whence);
-
-#if deadcode
-    /* Kemnitz large objects */
-    current_objaddr[fd] =
-      LOBlockSeek((LargeObjectDesc *)cookies[fd],offset/LARGE_OBJECT_BLOCK,whence);
-    current_objoffset[fd] = offset % LARGE_OBJECT_BLOCK;
-#if 0
-    elog(NOTICE,"LOSeek(%d,%d,%d) curblock %d, curoffset %d",fd,offset,whence,
-	 current_objaddr[fd],current_objoffset[fd]);
-#endif
-    return current_objaddr[fd]*LARGE_OBJECT_BLOCK + current_objoffset[fd];
-#endif
 }
 
-int LOcreat(path,mode,objtype)
+int
+LOcreat(path,mode,objtype)
      char *path;
      int mode;
      int objtype;
 {
     char *lobjDesc;
     int fd;
+    MemoryContext currentContext;
+
     /* prevent garbage code */
-    if (objtype != Inversion && objtype != Unix) objtype = Unix;
-#if FSDB
-    elog(NOTICE,"LOCreat(%s,%d,%d)",path,mode,objtype);
-#endif
-    {
-	MemoryContext currentContext;
-	if (fscxt == NULL) {
-	    fscxt = CreateGlobalMemory("Filesystem");
-	}
-	currentContext = MemoryContextSwitchTo((MemoryContext)fscxt);
-#if 0
-	/* switch context to portal cxt */
-	{
-	    PortalEntry * curPort;
-	    curPort = be_currentportal();
-	    currentContext = MemoryContextSwitchTo(curPort->portalcxt);
-	}
-#endif
+    if (objtype != Inversion && objtype != Unix)
+	objtype = Unix;
 
-	lobjDesc = (char *) LOprocs[objtype].LOcreate(path,mode);
-
-	if (lobjDesc == NULL) {
-	    MemoryContextSwitchTo(currentContext);
-	    return -1;
-	}
-	fd = NewLOfd(lobjDesc,objtype);
-	/* switch context back to orig. */
-	MemoryContextSwitchTo(currentContext);
+    if (fscxt == NULL) {
+	fscxt = CreateGlobalMemory("Filesystem");
     }
+
+    currentContext = MemoryContextSwitchTo((MemoryContext)fscxt);
+
+    lobjDesc = (char *) LOprocs[objtype].LOcreate(path,mode);
+
+    if (lobjDesc == NULL) {
+	MemoryContextSwitchTo(currentContext);
+	return -1;
+    }
+
+    fd = NewLOfd(lobjDesc,objtype);
+
+    /* switch context back to original memory context */
+    MemoryContextSwitchTo(currentContext);
+
     return fd;
 }
 
@@ -503,16 +358,14 @@ int LOtell(fd)
 	return -3;
     }
     return LOprocs[lotype[fd]].LOtell(cookies[fd]);
-#if deadcode
-    return current_objaddr[fd]*LARGE_OBJECT_BLOCK + current_objoffset[fd];
-#endif 
 }
 
 int LOftruncate()
 {
 }
 
-struct varlena *LOstat(path)
+struct varlena *
+LOstat(path)
      char *path;
 {
     struct varlena *ret;
@@ -532,27 +385,13 @@ struct varlena *LOstat(path)
     if (!LOisdir(path) && pathOID != InvalidObjectId) {
 	int fd = LOopen(path,O_RDONLY);
 	LOprocs[lotype[fd]].LOunixstat(cookies[fd],st);
-#if FSDB
-	elog(NOTICE,"LOstat: fd %d file %s size %d",fd,
-	     path,st->st_size);
-#endif
-#if 0
-	LOStat((LargeObjectDesc *)cookies[fd],&nblocks,&byte_offset);
-#endif
 	LOclose(fd);
-/*	st->st_size = nblocks*LARGE_OBJECT_BLOCK + byte_offset;
-	st->st_mode = S_IFREG;
-	st->st_mode |= S_IRUSR|S_IWUSR|S_IXUSR|
-	  S_IRGRP|S_IWGRP|S_IXGRP|
-	  S_IROTH|S_IWOTH|S_IXOTH;*/
     } else if (pathOID != InvalidObjectId) { /* isdir */
 	st->st_mode = S_IFDIR;
 	/* our directoiries don't exist in the filesystem, so give them
 	   artificial permissions */
 	st->st_uid = getuid(); /* fake uid */
 	st->st_mode |= S_IRUSR|S_IWUSR|S_IXUSR;
-/*	  S_IRGRP|S_IWGRP|S_IXGRP|
-	    S_IROTH|S_IWOTH|S_IXOTH;*/
     } else {
 	VARSIZE(ret) = 5;
     }
@@ -561,8 +400,8 @@ struct varlena *LOstat(path)
 }
 
 /*
-  LOrename can be found in naming.c
-*/
+ * LOrename can be found in naming.c
+ */
 
 int LOmkdir(path,mode)
      char *path;
@@ -572,9 +411,6 @@ int LOmkdir(path,mode)
     /* enter new pathname */
     oidf = LOcreatOID(path,mode);
     if (oidf == InvalidObjectId) {
-#if FSDB
-	elog(NOTICE,"LOcreatOID failed");
-#endif
 	return -1;
     } else {
 	return 0;
@@ -599,7 +435,9 @@ int LOunlink(path)
 {
     /* remove large object descriptor */
     /* remove naming entry */
-    oid deloid = LOunlinkOID(path);
+    oid deloid;
+    
+    deloid = LOunlinkOID(path);
     if (deloid != InvalidObjectId) { /* remove associated file if any */
 	LOunassocOID(deloid);
     }
@@ -615,14 +453,13 @@ int NewLOfd(lobjCookie,objtype)
      int objtype;
 {
     int i;
+
     for (i = 0; i < MAX_LOBJ_FDS; i++) {
+
 	if (cookies[i] == NULL) {
 	    cookies[i] = lobjCookie;
 	    lotype[i] =  objtype;
-#if deadcode
-	    current_objaddr[i] = 0;
-	    current_objoffset[i] = 0;
-#endif
+
 	    return i;
 	}
     }
