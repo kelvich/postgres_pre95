@@ -38,6 +38,8 @@
 #include "utils/log.h"
 
 #include "nodes/pg_lisp.h"
+#include "catalog/pg_aggregate.h"
+#include "catalog/syscache.h"
 
 #include "planner/clauses.h"
 
@@ -256,6 +258,18 @@ get_rightop (clause)
 {
      return((Var)nth (2,clause));
 }
+/* ----Agg clause macros
+*/
+bool
+agg_clause(clause)
+	LispValue clause;
+{
+	char *keyword = "aggregate";
+	LispValue temp;
+	temp = CAR(clause);
+  	return !(strcmp(keyword, CString(temp)));
+}
+
 
 /*    	-------- FUNC clause macros
  */
