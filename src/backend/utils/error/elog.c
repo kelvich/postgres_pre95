@@ -29,9 +29,6 @@ int	ElogDebugIndentLevel;
  *  this operating system bug.
  */
 
-bool	IsEmptyQuery = false;
-
-
 void
 EnableELog(enable)
 int enable;
@@ -132,7 +129,7 @@ va_dcl
 
 #ifndef PG_STANDALONE
 	/* Send IPC message to the postmaster */
-	if (Pfout != NULL && lev > DEBUG && !IsEmptyQuery) {
+	if (Pfout != NULL && lev > DEBUG) {
 		/* notices are not exactly errors, handle it differently */
 		if (lev == NOTICE) 
 			pq_putnchar("N", 1);
