@@ -488,6 +488,12 @@ _outAgg(str, node)
 	appendStringInfo(str, buf);
 	sprintf(buf, " :keycount %d", node->keycount);
 	appendStringInfo(str,buf);
+
+	/* the actual Agg fields */
+	sprintf(buf, " :aggname %s", node->aggname);
+	appendStringInfo(str, buf);
+	sprintf(buf, " :aggstate @ 0x%x", node->aggstate);
+	appendStringInfo(str, buf);
 }
 
 
@@ -595,20 +601,21 @@ _outFjoin(str, node)
 	appendStringInfo(str,buf);
 	sprintf(buf, " :nNodes %d", node->fj_nNodes);
 	appendStringInfo(str,buf);
-	s = lispOut(node->fj_innerNode);
 	appendStringInfo(str," :innerNode ");
+	s = lispOut(node->fj_innerNode);
 	appendStringInfo(str,s);
 	pfree(s);
-	/* balance the extra ( */
-	appendStringInfo( str, ") :alwaysdone (" ); /* balance the extra ) */
-	for (i = 0; i++; i<node->fj_nNodes)
+	sprintf(buf, " :results @  0x%x ", node->fj_results);
+	appendStringInfo(str, buf);
+
+	appendStringInfo( str, " :alwaysdone ");
+	for (i = 0; i<node->fj_nNodes; i++)
 	{
 	    sprintf(buf, " %s ", ((node->fj_alwaysDone[i]) ? "true" : "nil"));
 	    appendStringInfo(str, buf);
 	}
-	/* balance the extra ( */
-	appendStringInfo(str,")");
 }
+
 /*
  *  Expr is a subclass of Node
  */
@@ -780,6 +787,10 @@ _outFunc(str, node)
 	sprintf(buf, " :funcisindex %s",
 		(node->funcisindex ? "true" : "nil"));
 	appendStringInfo(str,buf);
+	sprintf(buf, " :funcsize %d", node->funcsize);
+	appendStringInfo(str, buf);
+	sprintf(buf, " :func_fcache @ 0x%x", node->func_fcache);
+	appendStringInfo(str, buf);
 	appendStringInfo(str, " :func_tlist ");
 	s = lispOut(node->func_tlist);
 	appendStringInfo(str, s);
