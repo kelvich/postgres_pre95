@@ -223,18 +223,20 @@ int entry_addr;
 {
 	char command[256];
 	char line[128];
-	char *tmp_file = "/tmp/PG_DYNSTUFF";
+	char *tmp_file;
 	FILE *fp;
 	DynamicFunctionList *head, *scanner;
 	int entering = 1, func_addr;
 	char funcname[16];
 
+	/* create a temporary file name */
+	tmp_file = (char *) palloc(64);
+	sprintf(tmp_file, "/tmp/_pg_dyn%ld", getpid());
+
 	sprintf(command, "/usr/bin/nm %s | grep \' T \' > %s", filename, tmp_file);
 
 	if (system(command))
-	{
 		fprintf(stderr, "system() died\n");
-	}
 
 	fp = fopen(tmp_file, "r");
 
@@ -262,5 +264,6 @@ int entry_addr;
 
 	fclose(fp);
 	unlink(tmp_file);
+	pfree(tmp_file);
 	return(head);
 }
