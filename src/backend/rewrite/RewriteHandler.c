@@ -3,6 +3,7 @@
  *	- takes a parsetree, if there are no locks at all, return NULL
  *	  if there are locks, evaluate until no locks exist, then
  *	  return list of action-parsetrees, 
+ *	$Header$
  */
 #ifdef nowrk
 QueryRewrite ( parsetree )
