@@ -246,6 +246,7 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
     ** xfunc_costs of childpath, then recompute the xfunc_costs of newkid
     */
     cost = get_path_cost(newkid) - xfunc_get_path_cost(childpath);
+    Assert(cost >= 0);
     set_path_cost(newkid, cost);
     cost = get_path_cost(newkid) + xfunc_get_path_cost(newkid);
     set_path_cost(newkid, cost);
@@ -457,12 +458,12 @@ LispValue args;
 int xfunc_width(clause)
      LispValue clause;
 {
-    Relation relptr;     /* a structure to hold the open pg_attribute table */
-    ObjectId reloid;     /* oid of pg_attribute */
     int vnum;            /* range table entry for rel in a var */
     Name relname;        /* name of a rel */
     Relation rd;         /* Relation Descriptor */
     HeapTuple tupl;      /* structure to hold a cached tuple */
+    int attno;           /* number of attribute within relation */
+    Form_pg_type type;   /* structure to hold a type tuple */
     int retval = 0;
 
     if (IsA(clause,Const))
@@ -479,32 +480,22 @@ int xfunc_width(clause)
      }
     else if (IsA(clause,Var))  /* base case: width is width of this attribute */
      {
+	 tupl = SearchSysCacheTuple(TYPOID, get_vartype((Var)clause),
+				    NULL, NULL, NULL, NULL);
+	 if (!HeapTupleIsValid(tupl))
+	   elog(WARN, "Cache lookup failed for type %d", 
+		get_vartype((Var)clause));
+	 type = (Form_pg_type) GETSTRUCT(tupl);
 	 if (get_varattno((Var)clause) == 0)
 	  {
 	      /* clause is a tuple.  Get its width */
-	      vnum = CInteger(CAR(get_varid((Var)clause)));
-	      relname = (Name)planner_VarnoGetRelname(vnum);
-	      rd = heap_openr(relname);
+	      rd = heap_open(type->typrelid);
 	      retval = xfunc_tuple_width(rd);
 	      heap_close(rd);
 	  }
 	 else
-	  {
-	      /* attribute is a base type */
-	      relptr = amopenr ((Name) "pg_attribute");
-	      reloid = RelationGetRelationId ( relptr );
-	 
-	      tupl = SearchSysCacheTuple(ATTNUM, reloid, 
-					 get_varattno((Var)clause),
-					 NULL, NULL );
-	      if (!HeapTupleIsValid(tupl)) {
-		  elog(WARN, "xfunc_width: class %d has no attribute %d",
-		       reloid, get_varattno((Var)clause));
-		  return(-1);
-	      }
-	      retval = (int)((AttributeTupleForm) GETSTRUCT(tupl))->attlen;
-	      amclose(relptr);
-	  }
+	   /* attribute is a base type */
+	   retval = type->typlen;
 	 goto exit;
      }
     else if (IsA(clause,Param))
@@ -730,6 +721,7 @@ Path pathnode;
 	      selec *= compute_clause_selec(CAR(tmplist), LispNil);
 	  }
      }
+    Assert(cost >= 0);
     return(cost);
 }
 
@@ -760,6 +752,7 @@ JoinPath pathnode;
 						     (mrgnode))),
 				get_width(get_parent((Path)get_innerjoinpath
 						     (mrgnode))));
+	 Assert(cost >= 0);
 	 return(cost);
      }
     else if (IsA(pathnode,HashPath))
@@ -777,6 +770,7 @@ JoinPath pathnode;
 						    (hashnode))),
 			       get_width(get_parent((Path)get_innerjoinpath
 						    (hashnode))));
+	 Assert (cost >= 0);
 	 return(cost);
      }
     else /* Nested Loop Join */
@@ -790,6 +784,7 @@ JoinPath pathnode;
 			       get_pages(get_parent((Path)get_outerjoinpath
 						    (pathnode))),
 			       IsA(get_innerjoinpath(pathnode),IndexPath));
+	 Assert(cost >= 0);
 	 return(cost);
      }
 }
