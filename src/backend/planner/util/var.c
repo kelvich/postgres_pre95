@@ -16,8 +16,8 @@
 
 #include "planner/internal.h"
 #include "planner/var.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
 #include "planner/clauses.h"
 
 /*    
