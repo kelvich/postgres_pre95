@@ -22,7 +22,7 @@
  * bool --
  *	Boolean value, either true or false.
  */
-typedef enum {
+typedef enum bool {
 	false,	/* must be first, to be 0 */
 	true
 } bool;
