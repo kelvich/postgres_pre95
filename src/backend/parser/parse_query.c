@@ -76,7 +76,7 @@ find_tl_elt ( varname ,tlist )
 	Var tvarnode = (Var) CADR(CAR(i));
 	Name resname = get_resname(resnode );
 
-	if ( strcmp ( resname, varname ) ) {
+	if ( ! strcmp ( resname, varname ) ) {
 	    return ( tvarnode );
 	} 
     }
@@ -120,7 +120,7 @@ MakeRoot(NumLevels,query_name,result,rtable,priority,ruleinfo,unique_flag,
 
 	Assert ( consp (one_sort_clause) );
 
-	one_sort_elt = find_tl_elt(one_sort_clause,targetlist );
+	one_sort_elt = find_tl_elt(CString(CAR(one_sort_clause)),targetlist );
 
 	Assert(! null (one_sort_elt));
 
