@@ -775,9 +775,7 @@ RelationSetSingleWLockPage(relation, partition, itemPointer)
 	return;
     
     if (!LockInfoIsValid(relation->lockInfo))
-        elog(WARN, 
-            "Releasing a lock on %s with invalid lock information",
-            RelationGetRelationName(relation));
+	RelationInitLockInfo(relation);
 
     SingleLockPage(relation->lockInfo, itemPointer, WRITE_LOCK, !UNLOCK);
 }
@@ -826,9 +824,7 @@ RelationSetSingleRLockPage(relation, partition, itemPointer)
 	return;
     
     if (!LockInfoIsValid(relation->lockInfo))
-        elog(WARN, 
-            "Releasing a lock on %s with invalid lock information",
-            RelationGetRelationName(relation));
+	RelationInitLockInfo(relation);
 
     SingleLockPage(relation->lockInfo, itemPointer, READ_LOCK, !UNLOCK);
 }
