@@ -14,7 +14,7 @@
 RcsId("$Header$");
 
 #include <strings.h>	/* XXX style */
-#include "cat.h"
+#include "cat.h"		/* XXX obsolete file, needed for (struct proc), etc. */
 
 #include "anum.h"
 #include "catname.h"
@@ -69,7 +69,7 @@ TypeGet(typeName, defined)
 	Assert(NameIsValid(typeName));
 	Assert(PointerIsValid(defined));
 
-	typeKey[0].argument.name.value = typeName;
+	typeKey[0].argument = NameGetDatum(typeName);
 	relation = RelationNameOpenHeapRelation(TypeRelationName);
 	scan = RelationBeginHeapScan(relation, 0, SelfTimeQual,
 				     1, (ScanKey) typeKey);
@@ -129,9 +129,9 @@ OperatorGet(operatorName, leftTypeName, rightTypeName)
 	      (ObjectIdIsValid(rightObjectId) && rightDefined)))
 		elog(WARN, "OperatorGet: no argument types??");
 
-	operatorKey[0].argument.name.value = operatorName;
-	operatorKey[1].argument.objectId.value = leftObjectId;
-	operatorKey[2].argument.objectId.value = rightObjectId;
+	operatorKey[0].argument = NameGetDatum(operatorName);
+	operatorKey[1].argument = ObjectIdGetDatum(leftObjectId);
+	operatorKey[2].argument = ObjectIdGetDatum(rightObjectId);
 
 	relation = RelationNameOpenHeapRelation(OperatorRelationName);
 	scan = RelationBeginHeapScan(relation, 0, SelfTimeQual,
@@ -339,7 +339,7 @@ TypeDefine(typeName, internalSize, externalSize,
 			 : "-");	/* XXX default typdefault */
 	
 	rdesc = RelationNameOpenHeapRelation(TypeRelationName);
-	typeKey[0].argument.name.value = typeName;
+	typeKey[0].argument = NameGetDatum(typeName);
 	sdesc = RelationBeginHeapScan(rdesc, 0, SelfTimeQual, 1,
 				      (ScanKey) typeKey);
 	tup = HeapScanGetNextTuple(sdesc, 0, &buffer);
@@ -606,9 +606,9 @@ OperatorDef(operatorName, definedOK,
 	 */
 	rdesc = RelationNameOpenHeapRelation(OperatorRelationName);
 	if (operatorObjectId) {
-		operatorKey[0].argument.name.value = operatorName;
-		operatorKey[1].argument.objectId.value = leftTypeId;
-		operatorKey[2].argument.objectId.value = rightTypeId;
+		operatorKey[0].argument = NameGetDatum(operatorName);
+		operatorKey[1].argument = ObjectIdGetDatum(leftTypeId);
+		operatorKey[2].argument = ObjectIdGetDatum(rightTypeId);
 
 		sdesc = RelationBeginHeapScan(rdesc, 0, SelfTimeQual, 3,
 					      (ScanKey) operatorKey);
