@@ -172,24 +172,10 @@ class (Const) public (Expr) {
 class (ArrayRef) public (Expr) {
  /* private: */
 	inherits(Expr);
-	Var				arraydesc;
-	LispValue		dimension_expression;
+	Var			arraydesc;
+	List			dimension_expression;
  /* public: */
 };
-
-/*
- * Bool		Expression whose value is either True or False.
- *
- *	boolvalue - the Bool's value (true or false)
- */
-
-class (Bool) public (Expr) {
- /* private: */
-	inherits(Expr);
-	bool			boolvalue;
- /* public: */
-};
-
 
 /*
  * Param
