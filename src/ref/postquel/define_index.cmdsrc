@@ -77,6 +77,13 @@ Similarly,
 support indices on int4 data that is to be compared against int2
 data in queries.
 .lp
+The \*(PP query optimizer will consider using b-tree indices
+in a scan whenever an indexed attribute is involved in a comparison
+using one of
+.(b
+<    <=    =    >=    >
+.)b
+.lp
 The operator classes defined on rtrees are
 .(l
 box_ops	poly_ops
@@ -101,6 +108,13 @@ The
 operator class supports rtree indices on
 .q polygon
 data.
+.lp
+The \*(PP query optimizer will consider using an r-tree index
+whenever an indexed attribute is involved in a comparison using
+one of
+.(b
+<<    &<    &>    >>    @    ~=    &&
+.)b
 .uh EXAMPLES
 .lp
 Create a btree index on the emp class using the age attribute.
@@ -119,7 +133,7 @@ define index cityrect on city using rtree (boundbox box_ops)
 .)b
 .uh BUGS
 .lp
-Archive indices are not supported in Version 2.1.
+Archive indices are not supported in Version 3.0.
 .lp
 There should be an access method designers guide.
 .lp
