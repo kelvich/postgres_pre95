@@ -29,7 +29,7 @@ extern List lispCopy();
 
 /*
  * ChangeTheseVars
- * 
+ *
  * 	varno,varattno - varno and varattno of Var node must match this
  *			 to qualify for change
  *	parser_subtree - tree to iterate over
@@ -50,7 +50,7 @@ ChangeTheseVars ( varno, varattno, parser_subtree, replacement , modified )
 	if (temp ) {
 	    if (IsA(temp,Var) &&
 		((get_varattno((Var)temp) == varattno )||
-		 (varattno == -1)) && 
+		 (varattno == -1)) &&
 		(get_varno((Var)temp) == varno ) ) {
 
 		*modified = true;
@@ -58,14 +58,14 @@ ChangeTheseVars ( varno, varattno, parser_subtree, replacement , modified )
 
 	    }
 	    if (  temp->type == classTag(LispList))
-	      ChangeTheseVars ( varno, varattno, (List)temp, 
+	      ChangeTheseVars ( varno, varattno, (List)temp,
 			        replacement , modified );
 	}
     }
 }
 
 /*
- * used only by procedures, 
+ * used only by procedures,
  */
 
 ReplaceVarWithMulti ( varno, attno, parser_subtree, replacement , modified )
@@ -87,12 +87,11 @@ ReplaceVarWithMulti ( varno, attno, parser_subtree, replacement , modified )
 	    get_varno((Var)temp) == varno ) {
 	    vardotfields = get_vardotfields ( temp );
 
- 	    if ( vardotfields != NULL ) { 
+ 	    if ( vardotfields != NULL ) {
 		/* a real postquel procedure invocation */
 		List j = NULL;
 
 		*modified = true;
-		elog (NOTICE, "now replacing ( %d %d )",varno,attno);
 		foreach ( j , replacement ) {
 		    List  rule_tlentry = CAR(j);
 		    Resdom rule_resdom = (Resdom)CAR(rule_tlentry);
@@ -100,10 +99,10 @@ ReplaceVarWithMulti ( varno, attno, parser_subtree, replacement , modified )
 		    Name rule_resdom_name = get_resname ( rule_resdom );
 		    char *var_dotfields_firstname = NULL;
 
-		    var_dotfields_firstname = 
+		    var_dotfields_firstname =
 		      CString ( CAR ( vardotfields ) );
-		    
-		    if ( !strcmp ( rule_resdom_name, 
+		
+		    if ( !strcmp ( rule_resdom_name,
 				  var_dotfields_firstname ) ) {
 		      if ( saved && saved->type == PGLISP_DTPR  &&
 			   IsA(CAR(saved),Resdom) &&
@@ -115,7 +114,7 @@ ReplaceVarWithMulti ( varno, attno, parser_subtree, replacement , modified )
 		      CAR(i) = CAR(rule_tlexpr);
 		      CDR(i) = CDR(rule_tlexpr);
 		  }
-		    
+		
 		}
 
 	    } else {
@@ -127,7 +126,7 @@ ReplaceVarWithMulti ( varno, attno, parser_subtree, replacement , modified )
 
 	
 	if ( temp->type == PGLISP_DTPR )
-	  ReplaceVarWithMulti ( varno, attno, (List)temp, 
+	  ReplaceVarWithMulti ( varno, attno, (List)temp,
 			        (List)replacement ,
 			        modified );
 	
@@ -138,8 +137,8 @@ ReplaceVarWithMulti ( varno, attno, parser_subtree, replacement , modified )
 
 /*
  * FixResdom
- * - walk the targetlist, fixing the resnodes resnos 
- * as well as removing "extra" resdoms caused by the replacement 
+ * - walk the targetlist, fixing the resnodes resnos
+ * as well as removing "extra" resdoms caused by the replacement
  * of varnodes by entire "targetlists"
  *
  * XXX - should only be called on "retrieve" targetlists
@@ -171,7 +170,7 @@ FixResdom ( targetlist )
 }
 
 List
-ModifyVarNodes( retrieve_locks , user_rt_length , current_varno , 
+ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	        to_be_rewritten , user_tl , user_rt ,user_parsetree )
      List retrieve_locks;
      int user_rt_length;
@@ -227,12 +226,12 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 
 	      XXX - old version
 
-	    OffsetAllVarNodes ( current_varno, 
-			       ruleparse, 
+	    OffsetAllVarNodes ( current_varno,
+			       ruleparse,
 			       user_rt_length -2 );
 	     XXX - modified always = true here since rule
 	     was triggered ? maybe not if retrieving
-	     procedure text is accidentally 
+	     procedure text is accidentally
 	     triggered by actual procedure invocation
 
 	     *****************************************/
@@ -242,17 +241,17 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 			     user_rt_length - 2 );
 
 	    switch ( Action(this_lock)) {
-	      case DoReplaceCurrentOrNew: 
+	      case DoReplaceCurrentOrNew:
 		/* ON RETRIEVE DO REPLACE CURRENT */
 		
 		elog ( NOTICE, "replace current action");
 		Print_parse ( ruleparse );
 		
-		result_rtindex = 
+		result_rtindex =
 		  CInteger(root_result_relation(parse_root(ruleparse )));
 		result_rte = nth ( result_rtindex -1 , rule_rangetable );
 		result_relname = CString ( CAR ( result_rte ));
-		if ( strcmp ( result_relname,"*CURRENT*")) 
+		if ( strcmp ( result_relname,"*CURRENT*"))
 		  elog(WARN,"a on-retr-do-repl rulelock with bogus result");
 		saved_parsetree = lispCopy ( user_parsetree );
 		saved_qual = parse_qualification(saved_parsetree);
@@ -264,17 +263,17 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		    char *attname = (char *)
 		      get_resname ( tlist_resdom );
 		    int attno;
-		    
+		
 		    elog ( NOTICE, "replacing %s", attname );
-		    attno = 
+		    attno =
 		      varattno ( to_be_rewritten, attname );
-		    
-		    ChangeTheseVars ( current_varno, 
+		
+		    ChangeTheseVars ( current_varno,
 				     attno,
 				     saved_tl,
 				     tlist_expr,
 				     &modified );
-		    ChangeTheseVars ( current_varno, 
+		    ChangeTheseVars ( current_varno,
 				     attno,
 				     saved_qual,
 				     tlist_expr,
@@ -287,12 +286,12 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		 * into this one varnode, filtering
 		 *  out according to whatever is
 		 *  in vardotfields
-		 * NOTE: used only by procedures ??? 
+		 * NOTE: used only by procedures ???
 		 */
 		elog(NOTICE,"Possibly retrieving procedure result fields");
-		ReplaceVarWithMulti ( current_varno, 
-				     this_lock->attributeNumber, 
-				     user_tl, 
+		ReplaceVarWithMulti ( current_varno,
+				     this_lock->attributeNumber,
+				     user_tl,
 				     rule_tlist ,
 				     &modified );
 		if ( modified ) {
@@ -314,16 +313,16 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	    }
 
 	    if ( modified ) {
-		AddQualifications ( saved_parsetree , 
+		AddQualifications ( saved_parsetree ,
 				   rule_qual,
 				   0 );
-		CDR(last(user_rt)) = 
+		CDR(last(user_rt)) =
 		  CDR(CDR(rule_rangetable));
 
 		/* LP says : no need to clean up redundant rt_entries
 		 * because planner will ignore them
 		 */
-	    
+	
 		if ( ev_qual ) {
 		    /* XXX - offset varnodes so that current and new
 		     * point correctly here
@@ -332,7 +331,7 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 					     ev_qual);
 		    AddNotEventQualifications ( user_parsetree,
 					     ev_qual);
-					     
+					
 		    Print_parse ( saved_parsetree );
 		    additional_queries = lispCons ( saved_parsetree,
 						   additional_queries );
@@ -363,7 +362,7 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
  *			
  */
 List
-ModifyUpdateNodes( update_locks , user_parsetree, 
+ModifyUpdateNodes( update_locks , user_parsetree,
 		  drop_user_query ,current_varno )
      List update_locks;
      List user_parsetree;
@@ -402,7 +401,7 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 	 */
 
 	if (*drop_user_query) {
-	    elog ( NOTICE, 
+	    elog ( NOTICE,
 		  "drop_user_query is set ; punting on rule with id %d",
 		  this_lock->ruleId );
 	  return ( new_queries );
@@ -419,7 +418,7 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 	    List rule_root = parse_root(rule_action);
 	    List rule_rt = root_rangetable(rule_root);
 	    int rule_command = root_command_type(rule_root);
-	    
+	
 	    offset_trigger = length(rule_rt) - 2 + current_varno;
 	
 	    switch(rule_command) {
@@ -430,14 +429,14 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 		    root_result_relation(rule_root) =
 			lispInteger ( CInteger(root_result_relation(rule_root))
 				      - 2 );
-		    HandleVarNodes ( rule_qual, user_parsetree, 
+		    HandleVarNodes ( rule_qual, user_parsetree,
 				     offset_trigger,
 				     -2 );
 		    break;
 		case RETRIEVE:
 		    HandleVarNodes ( rule_tlist , user_parsetree,
 				     offset_trigger, -2 );
-		    /* 
+		    /*
 		     * reset the result relation
 		     * to point to the right one,
 		     * if there was a "result relation" in the
@@ -448,7 +447,7 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 			  lispInteger(CInteger(root_result_relation(rule_root))
 				      - 2 );
 		    }
-		    HandleVarNodes ( rule_qual, user_parsetree, 
+		    HandleVarNodes ( rule_qual, user_parsetree,
 				     offset_trigger,
 				     -2 );
 		    break;
@@ -458,7 +457,7 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 		    root_result_relation(rule_root) =
 			lispInteger ( CInteger(root_result_relation(rule_root))
 				      - 2 );
-		    HandleVarNodes ( rule_qual, user_parsetree, 
+		    HandleVarNodes ( rule_qual, user_parsetree,
 				     offset_trigger,
 				     -2 );
 		    break;
@@ -466,7 +465,7 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 		    elog(NOTICE,"unsupported action");
 	    }
 
-	    AddQualifications(rule_action, 
+	    AddQualifications(rule_action,
 			     parse_qualification(user_parsetree),
 			     length(rule_rt) -2 );
 
@@ -492,8 +491,8 @@ ModifyUpdateNodes( update_locks , user_parsetree,
  * MODIFIES: current qual or tlist
  *
  */
-List 
-ProcessEntry ( user_parsetree , reldesc , user_rangetable , 
+List
+ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
 		 current_varno , command , drop_user_query , rlocks )
      List user_parsetree;
      Relation reldesc;
@@ -532,10 +531,10 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
 	    extern List ExpandAll();
 	    List fake_tlist = NULL;
 	    int fake_resno = 1;
-	    
-	    int result_relation_index = 
+	
+	    int result_relation_index =
 	      CInteger(root_result_relation(parse_root(user_parsetree)));
-	    Name result_relation_name = 
+	    Name result_relation_name =
 	      (Name)CString(rt_relname ( nth(result_relation_index- 1 ,
 			       root_rangetable(parse_root(user_parsetree)))));
 
@@ -545,7 +544,7 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
 	    fake_tlist = ExpandAll(result_relation_name, &fake_resno);
 	    parse_targetlist ( user_parsetree ) = fake_tlist;
 
-	    new_queries = 
+	    new_queries =
 	      ModifyUpdateNodes( delete_locks,
 				user_parsetree,
 				drop_user_query,
@@ -569,8 +568,8 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
 	    List new_queries = NULL;
 	    printf ( "\nAppend triggered the following locks:\n");
 	    PrintRuleLockList ( append_locks );
-	    
-	    new_queries = 
+	
+	    new_queries =
 	      ModifyUpdateNodes( append_locks,
 				user_parsetree,
 				drop_user_query,
@@ -586,8 +585,8 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
 	    List new_queries = NULL;
 	    printf ( "\nReplace triggered the following locks:\n");
 	    PrintRuleLockList ( replace_locks );
-	    
-	    new_queries = 
+	
+	    new_queries =
 	      ModifyUpdateNodes( replace_locks,
 				user_parsetree,
 				drop_user_query,
@@ -608,18 +607,18 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
      */
 
     if ( *drop_user_query == false ) {
-	retrieve_locks = MatchRetrieveLocks ( rlocks , current_varno , 
+	retrieve_locks = MatchRetrieveLocks ( rlocks , current_varno ,
 					     user_parsetree );
 	if ( retrieve_locks ) {
 	    printf ( "\nThese retrieve rules were triggered: \n");
 	    PrintRuleLockList ( retrieve_locks );
-	    
+	
 	    /*
 	     * testing for event qualifications go here
 	     * n event quals generate sq(n) "user_parsetrees" ?
 	     * or n+1 parsetrees ?
 	     */
-	    
+	
 	    additional_queries = ModifyVarNodes ( retrieve_locks,
 						 length ( user_rangetable ),
 						 current_varno,
@@ -632,7 +631,7 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
 	
     } /* if user_query is still active */
 
-    /* when we get here, additional queries is either null 
+    /* when we get here, additional queries is either null
      * (no additional queries) OR additional queries is a list
      * of rule generated queries (in addition to the user query)
      * NOTE: at this point, the original user query
@@ -653,20 +652,21 @@ QueryRewrite ( parsetree )
     return ( QRS ( parsetree , NULL ) );
 }
 
-List 
+List
 QRS ( parsetree , already_handled )
      List parsetree;
      List already_handled;
 {
+    List user_root;
+    List user_rangetable;
+    List command_type;
+    List user_qual;
+    int  user_command;
     List new_parsetree 		= NULL;
     List new_rewritten 		= NULL;
-    List user_root		= NULL;
-    List user_rangetable    	= NULL;
-    int  user_command		;
     List output_parselist	= NULL;
     List user_rtentry_ptr	= NULL;
     List user_tl		= NULL;
-    List user_qual		= NULL;
     int  user_rt_length		= 0;
     int this_relation_varno	= 1;		/* varnos start with 1 */
     bool drop_user_query	= false;	/* unless ProcessEntry
@@ -676,10 +676,16 @@ QRS ( parsetree , already_handled )
 						 */
     Assert ( parsetree != NULL );
     Assert ( (user_root = parse_root(parsetree)) != NULL );
+    command_type = root_command_type_atom(user_root);
 
     user_rangetable 		= root_rangetable(user_root);
-    user_command 		= root_command_type ( user_root );
     user_rt_length 		= length ( user_rangetable );
+
+    /* if this is a recursive query, command_type node is funny */
+    if ((consp(command_type)) && (CInteger(CAR(command_type)) == '*'))
+	user_command = (int) CAtom(CDR(command_type));
+    else
+        user_command = (int) CAtom(command_type);
 
 #ifdef VERBOSE
 
@@ -691,9 +697,9 @@ QRS ( parsetree , already_handled )
     /*
      * only for a delete may the targetlist be NULL
      */
-    if ( user_command != DELETE ) 
+    if ( user_command != DELETE )
       Assert ( (user_tl = parse_targetlist(parsetree)) != NULL );
-    
+
     user_qual = parse_qualification(parsetree);		/* may be NULL */
 
     foreach ( user_rtentry_ptr , user_rangetable ) {
@@ -704,11 +710,10 @@ QRS ( parsetree , already_handled )
 	ObjectId this_relid = NULL;
 
 	this_rtname = (Name)CString( CADR ( user_rtentry ));
-	    
+	
         this_relation = amopenr ( this_rtname );
 	Assert ( this_relation != NULL );
 
-	elog(NOTICE,"checking for locks on %s", this_rtname );
 	this_entry_locks = RelationGetRelationLocks ( this_relation );
 	this_relid = RelationGetRelationId ( this_relation );
 
@@ -719,7 +724,7 @@ QRS ( parsetree , already_handled )
 				     NULL );
 
 	if ( this_entry_locks != NULL ) {
-	    /* 
+	    /*
 	     * this relation has a lock,
 	     */
 
@@ -734,7 +739,7 @@ QRS ( parsetree , already_handled )
 	     */
 
 	    additional_queries = ProcessEntry ( parsetree,
-						 this_relation, 
+						 this_relation,
 						 user_rangetable,
 						 this_relation_varno++ ,
 						 user_command ,
@@ -753,12 +758,12 @@ QRS ( parsetree , already_handled )
 		foreach ( i , additional_queries ) {
 		    new_parsetree = CAR(i);
 		    new_rewritten = NULL;
-		    
-		    if ( new_parsetree != NULL ) 
+		
+		    if ( new_parsetree != NULL )
 		      new_rewritten = QRS ( new_parsetree , already_handled );
 		    if ( new_rewritten == NULL ) {
 			/* if nothing in fact got changed */
-			output_parselist = 
+			output_parselist =
 			  nappend1 ( output_parselist , new_parsetree );
 		    } else {
 		        output_parselist = append ( output_parselist,
@@ -766,13 +771,8 @@ QRS ( parsetree , already_handled )
 		    }
 		} /* rewrite any new queries */
 	    } /* if there are new queries */
-	} 
+	}
 	
     }
-    
-    return ( output_parselist ); 
-
+    return ( output_parselist );
 }
-
-	
-    
