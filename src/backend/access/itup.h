@@ -27,6 +27,10 @@ typedef struct IndexTupleData {
 	IndexAttributeBitMapData	bits;	/* bitmap of domains */
 } IndexTupleData;	/* MORE DATA FOLLOWS AT END OF STRUCT */
 
+/*
+ *  Warning: T_* defined also in tuple.h
+ */
+
 #ifndef	T_CTID
 #define T_CTID	(-1)	/* remove me */
 #define T_LOCK	(-2)	/* -1 */
