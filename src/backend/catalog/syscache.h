@@ -54,11 +54,12 @@
  * ----------------
  */
 struct cachedesc {
-    Name  *name;	/* this is Name * so that we can initialize it...grr */
-    int	  nkeys;
-    int	  key[4];
-    int	  size;		/* sizeof(appropriate struct) */
-    Name  *indname;	/* name of index relation for this cache, if exists */
+    Name      *name;	       /* this is Name * so that we can initialize it */
+    int	      nkeys;
+    int	      key[4];
+    int	      size;            /* sizeof(appropriate struct) */
+    Name      *indname;	       /* index relation for this cache, if exists */
+    HeapTuple (*iScanFunc)();  /* function to handle index scans */
 };
 
 int zerocaches ARGS(( void ));
