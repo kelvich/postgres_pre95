@@ -94,7 +94,7 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
 	    necessary,
 	    sufficient);
 
-    elog(NOTICE,"rule is \n%s\n", rulebuf );
+    fprintf(stdout,"rule is \n%s\n", rulebuf );
 
     pg_eval(rulebuf);
 
