@@ -232,7 +232,11 @@ copy_list:
 
 copy_spec:
 	  col_name copy_eq copy_char
-		{ $$ = lispCons ( $1, lispCons ($2, LispNil ) ); }
+		{ if ($3 != LispNil )
+		    $3 = lispCons ($3,LispNil);
+		  $$ = lispCons ( $1, lispCons ($2, $3 ) ); 
+
+		}
 	| Sconst				/*$$=$1*/
 	;
 
@@ -243,7 +247,10 @@ copy_eq:
  
 copy_char:
 	  /*EMPTY*/				{ NULLTREE }
-	| CCONST				/* $$ = $1 */
+	| CCONST				
+		{ char *cconst = (char *)CString($1); 
+		  $$ = lispInteger(cconst[0]) ;
+		}
  	;
 
  /************************************************************
@@ -782,15 +789,20 @@ ExecuteStmt:
   **********************************************************************/
 
 ReplaceStmt:
- 	Replace opt_star opt_rep_duration relation_name
-		{ if(RangeTablePosn(CString($4),0,0) == 0)
+ 	Replace 
+		{ SkipForwardToFromList(); }
+	from_clause  
+	opt_star relation_name
+		{  
+		   int x = 0;
+		   if((x=RangeTablePosn(CString($5),0,0)) == 0)
 		      p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-					   ($4,0,$4));
-		  CurrentRelationPtr = amopenr(CString($4)); 
+					   ($5,0,$5));
+		  if (x==0) x = 1;
+		  CurrentRelationPtr = amopenr(VarnoGetRelname(x));
 		  if (CurrentRelationPtr == NULL) 
 			elog(WARN,"invalid relation name");
-		  SkipForwardToFromList(); ResdomNoIsAttrNo = 1; }
-	from_clause  
+		  ResdomNoIsAttrNo = 1; }
 	'(' res_target_list ')' where_clause
   		{
 		    LispValue root;
@@ -910,14 +922,13 @@ opt_class:
 	;
 
 star:
-	  Op
+	  Op			
 	;
 		
   
 opt_star:
-	/*EMPTY*/
-		{ NULLTREE }
-	| Op
+	/*EMPTY*/		{ NULLTREE }
+	| star
   	;
 
 relation_name_list:	name_list ;
@@ -1030,41 +1041,47 @@ from_rel_name:
 	;
 
 Relation:
-	  relation_name
-		{ if(RangeTablePosn(CString($1),0,0) == 0 )
-		    p_rtable = nappend1 (p_rtable, 
-		       MakeRangeTableEntry( $1 , 0 ,$1)); $$ = p_rtable ; }
-	| relation_name star
-		{ if(RangeTablePosn(CString($1),1,0) == 0 )
-		    p_rtable = nappend1 (p_rtable ,
-		       MakeRangeTableEntry( $1 , 1 ,$1)); $$ = p_rtable ;}
-	| relation_name '[' date_string ']'
-		{ 
-		  p_trange = MakeTimeRange( $3, LispNil ,0 ); /* snapshot */
-		  if(RangeTablePosn(CString($1),0,p_trange) == 0 )
-		    p_rtable = nappend1 (p_rtable ,
-			 MakeRangeTableEntry( $1, 2,$1 )); $$ = p_rtable ;
+	  relation_name opt_time_range opt_star
+		{
+			int inherit_flag = 0;
+			int trange_flag = 0;
+			 
+			if ($2 == LispNil ) {
+				/* no time range */
+				p_trange = LispNil;
+				trange_flag = 0;
+			} else if ( !strcmp ( CString($2), "snapshot") ) {
+				/* snapshot */
+				p_trange = MakeTimeRange( CDR($2), LispNil, 0);
+				trange_flag = 2;
+			} else {
+				/* time range */
+				p_trange = MakeTimeRange( CAR($2), CDR($2), 1);
+				trange_flag = 2;
+			}
+			if ($3 != LispNil )	/* inheritance query*/
+				inherit_flag = 1;
+			if( !RangeTablePosn(CString($1),inherit_flag,p_trange))
+				p_rtable = nappend1 (p_rtable, 
+					MakeRangeTableEntry ($1,
+						inherit_flag | trange_flag,
+						$1 ));
 		}
-	| relation_name '[' date ',' date ']'
-		{
-		    /* inherit & timerange */
-		    p_trange = MakeTimeRange( $3 , $5 , 1 );
-		  if(RangeTablePosn(CString($1),0,p_trange) == 0 )
-		    p_rtable = nappend1( p_rtable,
-					MakeRangeTableEntry ( $1 , 2,$1 ));
-	        }
-	| relation_name star '[' date ',' date ']'
-		{
-		  p_trange = MakeTimeRange( $3 , $5 , 1 );
-		  if(RangeTablePosn(CString($1),1,p_trange) == 0 )
-		    p_rtable = nappend1( p_rtable,
-					MakeRangeTableEntry ( $1 , 3 ,$1));
-	        }
 	;
-		  
-	
 
-
+opt_time_range:
+	  '[' opt_date ',' opt_date ']'
+		{ $$ = lispCons ($2,$4); }
+	| '[' date ']'
+		{ $$ = lispCons(lispString("snapshot"),$2); }
+	| /*EMPTY*/
+		{ NULLTREE }
+	;
+opt_date:
+	  /* no date, default to lispint 0 */
+		{ $$ = lispInteger(0); }
+	| date
+	;
  /**********************************************************************
 
    Boolean Expressions - qualification clause
@@ -1178,13 +1195,6 @@ gt_op:
 		 }
 		}
 
-date:
-	  date_string			{ $$ = $1; }
-	| /*EMPTY, default to NOW*/
-		{ $$ = lispInteger(0) ; }
-	;
-
-
 attr:
 	  relation_name '.' att_name
 		{    
@@ -1293,11 +1303,7 @@ opt_id:
 	| Id
 	;
 
-relation_name:
-	  Id		
-	;
-
-
+relation_name:		Id		/*$$=$1*/;
 access_method: 		Id 		/*$$=$1*/;
 adt_name:		Id		/*$$=$1*/;
 att_name: 		Id		/*$$=$1*/;
@@ -1312,7 +1318,7 @@ name:			Id		/*$$-$1*/;
 string: 		Id		/*$$=$1 Sconst ?*/;
 adt:			Id		/*$$=$1*/;
 
-date_string:		Sconst		/*$$=$1*/;
+date:			Sconst		/*$$=$1*/;
 file_name:		SCONST		{$$ = new_filestr($1); };
 adt_const:		Sconst		/*$$=$1*/;
 attach_args:		Sconst		/*$$=$1*/;
@@ -1510,7 +1516,7 @@ lispAssoc ( element, list)
     int i = 0;
     if (list == LispNil) 
       return -1; 
-    printf("Looking for %d", CInteger(element));
+    /* printf("Looking for %d", CInteger(element));*/
 
     while (temp != LispNil ) {
 	if(CInteger(CAR(temp)) == CInteger(element))
