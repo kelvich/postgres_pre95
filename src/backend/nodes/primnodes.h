@@ -279,6 +279,7 @@ class (Const) public (Expr) {
  *	paramid - numeric identifier for literal-constant parameters ("$1")
  *	paramname - attribute name for tuple-substitution parameters ("$.foo")
  *	paramtype - PG_TYPE OID of the parameter's value
+ *      param_tlist - allows for projection in a param node.
  * ----------------
  */
 class (Param) public (Expr) {
@@ -288,6 +289,7 @@ class (Param) public (Expr) {
 	AttributeNumber		paramid;
 	Name			paramname;
 	ObjectId		paramtype;
+	List                    param_tlist;
  /* public: */
 };
 
