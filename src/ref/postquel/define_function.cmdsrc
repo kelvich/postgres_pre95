@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH "DEFINE FUNCTION" COMMANDS 01/23/93
+.TH "DEFINE FUNCTION" COMMANDS 03/12/94
 .XA 2 "Define Function"
 .SH "NAME"
 define function \(em define a new function
@@ -259,8 +259,8 @@ with the \*(lq-G 0\*(rq option turned on.  The object file name in the
 .IR as
 clause should end in \*(lq.o\*(rq.
 .PP
-Under HP-UX, Alpha OSF/1 and SunOS 4, all object files must be turned
-into
+Under HP-UX, DEC OSF/1, AIX and SunOS 4, all object files must be
+turned into
 .IR "shared libraries"
 using the operating system's native object file loader,
 .IR ld (1).
@@ -284,7 +284,7 @@ The object file name in the
 .BR as
 clause should end in \*(lq.sl\*(rq.
 .PP
-An extra step is required under versions of HP-UX prior to 9.01.  If
+An extra step is required under versions of HP-UX prior to 9.00.  If
 the \*(PG header file
 .(C
 tmp/c.h
@@ -294,8 +294,10 @@ be added at the top of every source file:
 .(C
 #pragma HP_ALIGN HPUX_NATURAL_S500
 .)C
+However, this line must not appear in programs compiled under HP-UX
+9.00 or later.
 .PP
-Under Alpha OSF/1, an object file must be compiled and then turned
+Under DEC OSF/1, an object file must be compiled and then turned
 into a shared library using the OSF/1 loader,
 .IR /bin/ld .
 In this case, the command lines look like:
@@ -312,12 +314,31 @@ shared library using the SunOS 4 loader,
 .IR /bin/ld .
 The command lines look like:
 .(C
-cc <other flags> -c foo.c
-ld <other flags> -Bdynamic -o foo.so foo.o
+cc <other flags> -PIC -c foo.c
+ld <other flags> -dc -dp -Bdynamic -o foo.so foo.o
 .)C
 The object file name in the
 .BR as
 clause should end in \*(lq.so\*(rq.
+.PP
+Under AIX, object files are compiled normally but building the shared
+library requires a couple of steps.  First, create the object file:
+.(C
+cc <other flags> -c foo.c
+.)C
+You must then create a symbol \*(lqexports\*(rq file for the object
+file:
+.(C
+mkldexport foo.o `pwd` > foo.exp
+.)C
+Finally, you can create the shared library:
+.(C
+ld <other flags> -H512 -T512 -o foo.so -e _nostart \e
+   -bI:.../lib/postgres.exp -bE:foo.exp foo.o \e
+   -lm -lc 2>/dev/null
+.)C
+You should look at the \*(PG User Manual for an explanation of this
+procedure.
 .SH "POSTQUEL FUNCTIONS"
 \*(PQ functions execute an arbitrary list of \*(PQ queries, returning
 the results of the last query in the list.  \*(PQ functions in general
