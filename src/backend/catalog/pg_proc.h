@@ -506,7 +506,7 @@ BKI_BEGIN
 #if 0
 BKI_END
 DATA(insert OID = 700 (  lockadd           PGUID 11 f t f 2 f 31 "31 31" 100 0 0 100  foo bar ));
-DATA(insert OID = 701 (  lockrm            PGUID 11 f t f 2 f 31 "31 26" 100 0 0 100  foo bar ));
+DATA(insert OID = 966 (  lockrm            PGUID 11 f t f 2 f 31 "31 26" 100 0 0 100  foo bar ));
 BKI_BEGIN
 #endif
 BKI_END

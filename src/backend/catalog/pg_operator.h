@@ -246,7 +246,7 @@ DATA(insert OID = 596 (  "|/"      PGUID 0 l t f   0 701 701   0   0   0   0 dsq
 DATA(insert OID = 597 (  "||/"     PGUID 0 l t f   0 701 701   0   0   0   0 dcbrt - - ));
 DATA(insert OID = 598 (  "%"       PGUID 0 l t f   0 701 701   0   0   0   0 dtrunc - - ));
 DATA(insert OID = 599 (  "%"       PGUID 0 r t f 701   0 701   0   0   0   0 dround - - ));
-DATA(insert OID = 600 (  "^"       PGUID 0 b t f 701 701 701   0   0   0   0 dpow - - ));
+DATA(insert OID = 965 (  "^"       PGUID 0 b t f 701 701 701   0   0   0   0 dpow - - ));
 DATA(insert OID = 601 (  ":"       PGUID 0 l t f   0 701 701   0   0   0   0 dexp - - ));
 DATA(insert OID = 602 (  ";"       PGUID 0 l t f   0 701 701   0   0   0   0 dlog1 - - ));
 DATA(insert OID = 603 (  "|"       PGUID 0 l t f   0 704 702   0   0   0   0 intervalstart - - ));
@@ -299,8 +299,8 @@ DATA(insert OID = 419 (  "<"       PGUID 0 b t f  410  410  16 461 464  0 0 char
 DATA(insert OID = 420 (  "<"       PGUID 0 b t f  411  411  16 462 465  0 0 char8lt intltsel intltjoinsel ));
 DATA(insert OID = 660 (  "<"       PGUID 0 b t f  19  19  16 662 663  0 0 char16lt intltsel intltjoinsel ));
 DATA(insert OID = 457 (  "<="      PGUID 0 b t f  409  409  16 463 460  0 0 char2le intltsel intltjoinsel ));
-DATA(insert OID = 458 (  "<="      PGUID 0 b t f  410  410  16 464 461  0 0 char2le intltsel intltjoinsel ));
-DATA(insert OID = 459 (  "<="      PGUID 0 b t f  411  411  16 465 462  0 0 char2le intltsel intltjoinsel ));
+DATA(insert OID = 458 (  "<="      PGUID 0 b t f  410  410  16 464 461  0 0 char4le intltsel intltjoinsel ));
+DATA(insert OID = 459 (  "<="      PGUID 0 b t f  411  411  16 465 462  0 0 char8le intltsel intltjoinsel ));
 DATA(insert OID = 661 (  "<="      PGUID 0 b t f  19  19  16 663 662  0 0 char16le intltsel intltjoinsel ));
 DATA(insert OID = 460 (  ">"       PGUID 0 b t f  409  409  16 418 457  0 0 char2gt intltsel intltjoinsel ));
 DATA(insert OID = 461 (  ">"       PGUID 0 b t f  410  410  16 419 458  0 0 char4gt intltsel intltjoinsel ));
