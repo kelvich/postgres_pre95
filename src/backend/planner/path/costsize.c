@@ -34,6 +34,7 @@
 #include "planner/costsize.h"
 #include "planner/keys.h"
 #include "planner/clausesel.h"
+#include "storage/bufmgr.h"	/* for BLCKSZ */
 
 /*
  * CostAddCount --
@@ -517,6 +518,7 @@ page_size (tuples,width)
      int tuples,width ;
 {
 	int temp =0;
-	temp = max(1, (tuples * (width + _TID_SIZE_)) / _PAGE_SIZE_);
+	temp = ceil((double)(tuples * (width + sizeof(HeapTupleData))) 
+		    / BLCKSZ);
 	return(temp);
 }
