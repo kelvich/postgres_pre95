@@ -99,18 +99,37 @@ SemantOpt(root,rangetable,tlist, qual)
 	  if (leftvarno == rightvarno)
 	    retqual = MakeFClause();
       } else 
-	if (op == 558) {
+	if (op == 558) {  /* oid = */
+	  AttributeNumber leftattno;
+	  AttributeNumber rightattno;
+	  List rte1 = LispNil;
+	  List rte2 = LispNil;
+
 	  leftvarno = get_varno(get_leftop(qual));
 	  rightvarno = get_varno(get_rightop(qual));
+	  leftattno = get_varattno(get_leftop(qual));
+	  rightattno = get_varattno(get_rightop(qual));
 
 	  if (!member(lispInteger(leftvarno),varlist) &&
 	      !member(lispInteger(rightvarno),varlist))
 	    retqual = MakeTClause();	
-	  else 
-	    if (leftvarno != rightvarno)
-	      retqual = MakeFClause();
-	    else
-	      retqual = MakeTClause();
+	  else {
+	    if (leftattno < 0 && rightattno < 0) {
+	      /* Comparing the oid field of 2 rels */
+	      if (leftvarno == rightvarno)
+		retqual = MakeTClause();
+	      else {
+		rte1 = nth (leftvarno -1, rangetable);
+		rte2 = nth (rightvarno -1, rangetable);
+		
+		if (strcmp(CString(CADR(rte1)),
+			   CString(CADR(rte2))) == 0)
+		  retqual = MakeTClause();
+		else
+		  retqual = MakeFClause();
+	      }
+	    }
+	  }
 	} else 
 	  /* Just a normal op clause, check to see if it is existential */
 	  if (IsA(get_leftop(qual),Var)) {
