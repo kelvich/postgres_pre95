@@ -282,6 +282,7 @@ DefineOperator(name, parameters)
     Name 	joinName;	 	/* optional join sel. procedure name */
     Name 	sortName1;	 	/* optional first sort operator */
     Name 	sortName2;	 	/* optional second sort operator */
+    NameData	oprName;		/* operator name */
     
     /* ----------------
      *	sanity checks
@@ -293,6 +294,8 @@ DefineOperator(name, parameters)
     AssertArg(NameIsValid(name));
     AssertArg(listp(parameters));
 
+    bzero(&oprName, sizeof(NameData));
+    strncpy(&(oprName.data[0]), name, 16);
     /* ----------------
      * handle "arg1 = typname"
      *	
@@ -436,7 +439,7 @@ DefineOperator(name, parameters)
      *	now have OperatorDefine do all the work..
      * ----------------
      */
-    OperatorDefine(name,		/* operator name */
+    OperatorDefine(&oprName,		/* operator name */
 		   typeName1,		/* first type name */
 		   typeName2,		/* optional second type name */
 		   functionName,	/* function for operator */
