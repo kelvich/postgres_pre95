@@ -178,7 +178,9 @@ char *str;
     bool eoArray = false;
     char *q;
 
-    for (i = 0; i < MAXDIM; temp[i] = dim[i++] = 0);
+    for (i = 0; i < MAXDIM; ++i) {
+	temp[i] = dim[i] = 0;
+    }
 
     if (strncmp (str, "{}", 2) == 0) return(0); 
 
@@ -217,7 +219,10 @@ char *str;
         if (!eoArray) 
             while (isspace(*q)) q++;
     }
-    for (i = 0; i < ndim; dim[i] = temp[i++]);
+    for (i = 0; i < ndim; ++i) {
+	dim[i] = temp[i];
+    }
+    
     return(ndim);
 }
 
