@@ -35,7 +35,7 @@ A------------- Header info --------------
 a				tag (POSTID)
 B------------- Start entry section -------
     SISegEntry  --> entryData --> ... (see  SharedInvalidData!)
-                    free  (bool)
+                    isfree  (bool)
                     next  (offset to next entry in chain )
 b     .... (dynamically growing down)
 C----------------End shared segment -------  
@@ -82,7 +82,7 @@ typedef SharedInvalidData   *SharedInvalid;
 
 typedef struct SISegEntry {
     SharedInvalidData	entryData;  	    	    /* the message data */
-    bool                free;	    	    	    /* entry free? */
+    bool                isfree;	    	    	    /* entry free? */
     Offset  	    	next;	    	    	    /* offset to next entry*/
 } SISegEntry;
 

@@ -12,6 +12,7 @@
 #define PALLOC_H	"$Header$"
 
 #include "tmp/c.h"
+#include "tmp/simplelists.h"
 
 /*
  * palloc --
@@ -40,6 +41,15 @@ extern void    pfree  ARGS((Pointer pointer));
 extern Pointer palloc_debug ARGS((Size	size));
 extern void    pfree_debug  ARGS((Pointer pointer));
 #endif PALLOC_DEBUG
+
+typedef struct PallocDebugData {
+    Pointer     pointer;
+    Size        size;
+    String      file;
+    int         line;
+    String      context;
+    SLNode      Link;
+} PallocDebugData;
 
 /*
  * psize --
