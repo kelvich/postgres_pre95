@@ -55,6 +55,7 @@ char *dp;
 
 FILE *Pfout, *Pfin;
 int PQAsyncNotifyWaiting;	/* for async. notification */
+extern char PQerrormsg[];
 
 char *strcpy(), *ttyname();
 
@@ -301,12 +302,14 @@ pq_putstr(s)
 	status = fputs(s, Pfout);
 	if (status == EOF)
 	{
-	    fprintf(stderr, "pq_putstr: write to backend failed\n");
+	    strcpy(PQerrormsg,"pq_putstr: write to backend failed\n");
+	    fprintf(stderr, PQerrormsg);
 	}
 	status = fputc('\0', Pfout);
 	if (status == EOF)
 	{
-	    fprintf(stderr, "pq_putstr: write to backend failed\n");
+	    strcpy(PQerrormsg, "pq_putstr: write to backend failed\n");
+	    fprintf(stderr, PQerrormsg);
 	}
     }
 }
@@ -328,7 +331,8 @@ pq_putnchar(s, n)
 	    status = fputc(*s++, Pfout);
 	    if (status == EOF)
 	    {
-		fprintf(stderr, "pq_putnchar: write to backend failed\n");
+		strcpy(PQerrormsg, "pq_putnchar: write to backend failed\n");
+		fprintf(stderr, PQerrormsg);
 	    }
 	}
     }
@@ -353,7 +357,8 @@ pq_putint(i, b)
 	    i >>= 8;
 	    if (status == EOF)
 	    {
-		fprintf(stderr, "pq_putint: write to backend failed\n");
+		strcpy(PQerrormsg, "pq_putint: write to backend failed\n");
+		fprintf(stderr, PQerrormsg);
 	    }
 	}
     }
@@ -410,8 +415,8 @@ pq_getinaddr(sin, host, port)
 		return(1);
 	    }
 	    if (hs->h_addrtype != AF_INET) {
-		fputs(host, stderr);
-		fputs(": Not Internet\n", stderr);
+		sprintf(PQerrormsg,"%s: Not Internet\n",host);
+		fprintf(stderr,PQerrormsg);
 		return(1);
 	    }
 	    bcopy(hs->h_addr, (char *)&sin->sin_addr, hs->h_length);
@@ -442,6 +447,7 @@ pq_getinserv(sin, host, serv)
     if (!(ss = getservbyname(serv, NULL))) {
 	fputs(serv, stderr);
 	fputs(": Unknown service\n", stderr);
+	sprintf(PQerrormsg,"%s: Unknown service\n",serv);
 	return(1);
     }
     
@@ -538,7 +544,8 @@ short	portName;
   Pfin = fdopen(dup(sock), "r");
   if (!Pfout && !Pfin)
   {
-    fprintf(stderr, "Couldn't fdopen the socket descriptor\n");
+      strcpy(PQerrormsg, "Couldn't fdopen the socket descriptor\n");
+    fprintf(stderr,PQerrormsg);
     return(STATUS_ERROR);
   }
   
@@ -658,8 +665,8 @@ int	*fdP;
 #endif
 
   if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-    fprintf(stderr,
-	"StreamServerPort: cannot make socket descriptor for port\n");
+      strcpy(PQerrormsg,"StreamServerPort: cannot make socket descriptor for port\n");
+    fprintf(stderr,PQerrormsg);
     return(STATUS_ERROR);
   }
 
@@ -667,7 +674,8 @@ int	*fdP;
   sin.sin_port = htons(portName);
 
   if (bind(fd, (char *)&sin, sizeof sin) < 0) {
-    fprintf(stderr,"StreamServerPort: cannot bind to port\n");
+    strcpy(PQerrormsg,"StreamServerPort: cannot bind to port\n");
+    fprintf(stderr,PQerrormsg);
     return(STATUS_ERROR);
   }
 
@@ -705,7 +713,8 @@ struct sockaddr_in	*addrP;
   long 			len = sizeof (struct sockaddr_in);
 
   if ((*new_fdP = accept(server_fd, (char *)addrP, &len)) < 0) {
-    fprintf(stderr,"StreamConnection: accept failed\n");
+    strcpy(PQerrormsg,"StreamConnection: accept failed\n");
+    fprintf(stderr,PQerrormsg);
     return(STATUS_ERROR);
   }
   /* reset to non-blocking */
@@ -754,14 +763,16 @@ int	*sockP;
   if ((hp = gethostbyname(hostName)) && hp->h_addrtype == AF_INET)
     bcopy(hp->h_addr, (char *)&(addr.sin_addr), hp->h_length);
   else {
-    fprintf(stderr,
+    sprintf(PQerrormsg,
 	"StreamPort: cannot find hostname '%s' for stream port\n",
 	hostName);
+    fprintf(stderr,PQerrormsg);
     return(STATUS_ERROR);
   }
 
   if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-    fprintf(stderr,"StreamPort: cannot make socket descriptor for port\n");
+      strcpy(PQerrormsg,"StreamPort: cannot make socket descriptor for port\n");
+    fprintf(stderr,PQerrormsg);
     return(STATUS_ERROR);
   }
 

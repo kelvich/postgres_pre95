@@ -194,7 +194,6 @@ dump_data(portal_name, rule_p)
     GroupBuffer  *group = NULL;
     TypeBlock 	 *types = NULL;
     TupleBlock 	 *tuples = NULL;
-    char errormsg[error_msg_length];
 
     int ntuples = 0;	/* the number of tuples in current group */
     int nfields = 0;	/* the number of fields in current group */
@@ -318,25 +317,25 @@ dump_data(portal_name, rule_p)
 	case 'E':
 		/* YES - THIS CAN HAPPEN - for instance when dynamic loading fails!!! */
 
-	    pq_getstr(errormsg, error_msg_length);
-	    pqdebug("%s error encountered.", errormsg);
+	    pq_getstr(PQerrormsg, error_msg_length);
+	    pqdebug("%s error encountered.", PQerrormsg);
 
 		/*
-		 * use errormsg[4] because there is garbage in the first four bytes..
+		 * use PQerrormsg[4] because there is garbage in the first four bytes..
 		 */
-
-	    fprintf(stderr,"%s\n", & errormsg[4]);
+	    bcopy(&PQerrormsg[4],PQerrormsg,strlen(PQerrormsg)-4);
+	    fprintf(stderr,"%s\n", PQerrormsg);
 	    fflush(stderr);
 		return(-1);
 	case 'N':
-	    pq_getstr(errormsg, error_msg_length);
-	    pqdebug("%s error encountered.", errormsg);
+	    pq_getstr(PQerrormsg, error_msg_length);
+	    pqdebug("%s error encountered.", PQerrormsg);
 
 		/*
 		 * use errormsg[4] because there is garbage in the first four bytes..
 		 */
-
-	    fprintf(stderr,"%s\n", & errormsg[4]);
+	    bcopy(&PQerrormsg[4],PQerrormsg,strlen(PQerrormsg)-4);
+	    fprintf(stderr,"%s\n", PQerrormsg);
 	    fflush(stderr);
 		break;
 	default:

@@ -70,6 +70,7 @@ Exception MemoryError = {"Memory Allocation Error"};
 Exception PortalError = {"Invalid arguments to portal functions"};
 Exception PostquelError = {"Postquel Error"};
 Exception ProtocolError = {"Protocol Error"};
+char PQerrormsg[error_msg_length];
 
 int	PQtracep = 0;		/* 1 to print out debugging message */
 FILE    *debug_port = (FILE *)NULL;

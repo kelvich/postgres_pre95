@@ -43,6 +43,7 @@
 #include "storage/ipci.h"
 #include "tmp/pqcomm.h"
 
+extern char PQerrormsg[];
 
 /*
  * PacketRecieve -- receive a packet on a port.
@@ -192,7 +193,8 @@ Boolean		nonBlocking;
 	       &(port->addr), addrLen);
 
   if (len < totalLen) {
-    fprintf(stderr,"PacketSend: couldn't send complete packet\n");
+      strcpy(PQerrormsg,"PacketSend: couldn't send complete packet\n");
+    fprintf(stderr,PQerrormsg);
     return(STATUS_ERROR);
   }
 
@@ -251,7 +253,8 @@ Addr		addr;
 	       (struct sockaddr *)addr, addrLen);
 
   if (len < totalLen) {
-    fprintf(stderr,"PacketWrite: couldn't send complete packet\n");
+    strcpy(PQerrormsg,"PacketWrite: couldn't send complete packet\n");
+    fprintf(stderr,PQerrormsg);
     return(STATUS_ERROR);
   }
 
