@@ -363,7 +363,7 @@ pg_aclcheck(relname, usename, mode)
 	 * pg_user.usecatupd is set.  (This is to let superusers protect
 	 * themselves from themselves.)
 	 */
-	if (((mode | ACL_WR) || (mode | ACL_AP)) &&
+	if (((mode & ACL_WR) || (mode & ACL_AP)) &&
 	    NameIsSystemRelationName(relname) &&
 	    !((Form_pg_user) GETSTRUCT(htp))->usecatupd) {
 		elog(DEBUG, "pg_aclcheck: catalog update to \"%-*s\": permission denied",
