@@ -163,6 +163,13 @@ oidchar16	!\(eq	bool oidchar16ne(oidchar16, oidchar16)	inequality
 	>	bool oidchar16gt(oidchar16, oidchar16)	greater than
 	>\(eq	bool oidchar16ge(oidchar16, oidchar16)	greater or equal
 _
+oidint2	!\(eq	bool oidint2ne(oidint2, oidint2)	inequality
+	<	bool oidint2lt(oidint2, oidint2)	less than
+	<\(eq	bool oidint2le(oidint2, oidint2)	less or equal
+	\(eq	bool oidint2eq(oidint2, oidint2)	equality
+	>	bool oidint2gt(oidint2, oidint2)	greater than
+	>\(eq	bool oidint2ge(oidint2, oidint2)	greater or equal
+_
 oidint4	!\(eq	bool oidint4ne(oidint4, oidint4)	inequality
 	<	bool oidint4lt(oidint4, oidint4)	less than
 	<\(eq	bool oidint4le(oidint4, oidint4)	less or equal
@@ -239,4 +246,7 @@ T}
 	&&	bool intervalov(tinterval, tinterval)	intervals overlap
 	<<	bool intervalct(tinterval, tinterval)	A contains B
 	\(eq	bool intervaleq(tinterval, tinterval)	equality
+	<>	tinterval mktinterval(abstime, abstime)	T{
+interval bounded by two abstimes
+T}
 .TE
