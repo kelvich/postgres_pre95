@@ -102,10 +102,10 @@ textregexeq(s, p)
 	expbuf = (char *) palloc(EXPBUFSZ);
 	endbuf = expbuf + (EXPBUFSZ - 1);
 
-	bcopy(s->vl_dat, sbuf, s->vl_len);
-	bcopy(p->vl_dat, pbuf, p->vl_len);
-	*(sbuf + s->vl_len) = (char)NULL;
-	*(pbuf + p->vl_len) = (char)NULL;
+	bcopy(s->vl_dat, sbuf, s->vl_len - sizeof(int32));
+	bcopy(p->vl_dat, pbuf, p->vl_len - sizeof(int32));
+	*(sbuf + s->vl_len - sizeof(int32)) = (char)NULL;
+	*(pbuf + p->vl_len - sizeof(int32)) = (char)NULL;
 
 
 	/* compile the re */
