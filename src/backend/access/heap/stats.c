@@ -104,6 +104,8 @@ InitHeapAccessStatistics()
     stats->local_heapgettup = 0;
     stats->local_RelationPutHeapTuple = 0;
     stats->local_RelationPutLongHeapTuple = 0;
+    stats->local_RelationNameGetRelation = 0;
+    stats->global_RelationNameGetRelation = 0;
     
     /* ----------------
      *  record init times
