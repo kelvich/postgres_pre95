@@ -841,7 +841,7 @@ quickdie()
   elog(NOTICE, "corrupted shared memory.  The current transaction was");
   elog(NOTICE, "aborted, and I am going to exit.  Please resend the");
   elog(NOTICE, "last query. -- The postgres backend");
-  exit(0);
+  ExitPostgres(0);
 }
 
 void
