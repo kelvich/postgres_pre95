@@ -196,8 +196,13 @@ Fragment rootFragment;
 		     shmPlan = QdGetPlan((List)SlaveQueryDescsP[nproc+i]);
 		     shmTempRelationDesc=get_resultTmpRelDesc(
 					  get_retstate(shmPlan));
+#ifndef PALLOC_DEBUG		     
 		     tempRelationDesc = CopyRelDescUsing(shmTempRelationDesc,
 							 palloc);
+#else
+		     tempRelationDesc = CopyRelDescUsing(shmTempRelationDesc,
+							 palloc_debug);
+#endif PALLOC_DEBUG		     
 		     tempRelationDescList = nappend1(tempRelationDescList, 
 						     tempRelationDesc);
 		     }
