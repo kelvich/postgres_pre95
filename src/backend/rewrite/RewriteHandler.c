@@ -683,28 +683,6 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
     }
 
     /*
-     * MATCH RETRIEVE RULES HERE (regardless of current command type)
-     * a varnode that matches the current varno and the varattno matches
-     * "rlocks" attnum ( where match means = if attnum is > 0 or always true
-     * if attnum = -1 )
-     */
-
-    retrieve_locks = MatchRetrieveLocks ( rlocks , current_varno , 
-					  user_parsetree );
-    if ( retrieve_locks ) {
-	printf ( "\nThese retrieve rules were triggered: \n");
-	PrintRuleLockList ( retrieve_locks );
-	additional_queries = ModifyVarNodes ( retrieve_locks,
-					     length ( user_rangetable ),
-					     current_varno,
-					     reldesc,
-					     user_tlist,
-					     user_rangetable,
-					     user_parsetree
-					     );
-    }
-
-    /*
      * drop_user_query IS NOT SET in this routine
      * because "retrieve" rules when operating on qualifications
      * modify the user_parsetree, therefore, the "instead"ness 
@@ -812,6 +790,28 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
 	  elog(FATAL,"ProcessOneLock called on non query");
 	  /* NOTREACHED */
     }
+    /*
+     * MATCH RETRIEVE RULES HERE (regardless of current command type)
+     * a varnode that matches the current varno and the varattno matches
+     * "rlocks" attnum ( where match means = if attnum is > 0 or always true
+     * if attnum = -1 )
+     */
+
+    retrieve_locks = MatchRetrieveLocks ( rlocks , current_varno , 
+					  user_parsetree );
+    if ( retrieve_locks ) {
+	printf ( "\nThese retrieve rules were triggered: \n");
+	PrintRuleLockList ( retrieve_locks );
+	additional_queries = ModifyVarNodes ( retrieve_locks,
+					     length ( user_rangetable ),
+					     current_varno,
+					     reldesc,
+					     user_tlist,
+					     user_rangetable,
+					     user_parsetree
+					     );
+    }
+
 
     /* when we get here, additional queries is either null 
      * (no additional queries) OR additional queries is a list
