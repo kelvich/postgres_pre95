@@ -41,6 +41,19 @@ _bt_search(rel, keysz, scankey, bufP)
     return (_bt_searchr(rel, keysz, scankey, bufP, (BTStack) NULL));
 }
 
+/*
+ *  _bt_searchr() -- Search the tree recursively for a particular scankey.
+ *
+ *	This routine takes a pointer to a sequence number.  As we descend
+ *	the tree, any time we see a key exactly equal to the one being
+ *	inserted, we save its sequence number plus one.  If we are inserting
+ *	a tuple, then we can use this number to distinguish among duplicates
+ *	and to guarantee that we never store the same sequence number for the
+ *	same key at any level in the tree.  This is an important guarantee,
+ *	since the Lehman and Yao algorithm relies on being able to find
+ *	its place in parent pages by looking at keys in the parent.
+ */
+
 BTStack
 _bt_searchr(rel, keysz, scankey, bufP, stack_in)
     Relation rel;
@@ -146,6 +159,7 @@ _bt_moveright(rel, buf, keysz, scankey, access)
     PageNumber right;
     BTPageOpaque opaque;
     ItemId hikey;
+    ItemId itemid;
     BlockNumber rblkno;
 
     page = BufferGetPage(buf, 0);
@@ -169,6 +183,20 @@ _bt_moveright(rel, buf, keysz, scankey, access)
 
 	/* move right as long as we need to */
 	do {
+	    /*
+	     *  If this page consists of all duplicate keys (hikey and first
+	     *  key on the page have the same value), then we don't need to
+	     *  step right.
+	     */
+	    if (PageGetMaxOffsetIndex(page) > 0) {
+		itemid = PageGetItemId(page, 1);
+		if (_bt_skeycmp(rel, keysz, scankey, page, itemid,
+				BTEqualStrategyNumber)) {
+		    /* break is for the "move right" while loop */
+		    break;
+		}
+	    }
+
 	    /* step right one page */
 	    rblkno = opaque->btpo_next;
 	    _bt_relbuf(rel, buf, access);
@@ -414,6 +442,7 @@ _bt_compare(rel, itupdesc, page, keysz, scankey, offind)
 {
     Datum datum;
     BTItem btitem;
+    ItemId itemid;
     IndexTuple itup;
     BTPageOpaque opaque;
     ScanKeyEntry entry;
@@ -432,6 +461,18 @@ _bt_compare(rel, itupdesc, page, keysz, scankey, offind)
     if (!(opaque->btpo_flags & BTP_LEAF)
 	&& opaque->btpo_prev == P_NONE
 	&& offind == 0) {
+	    itemid = PageGetItemId(page, offind);
+
+	    /*
+	     *  If the item on the page is equal to the scankey, that's
+	     *  okay to admit.  We just can't claim that the first key on
+	     *  the page is greater than anything.
+	     */
+
+	    if (_bt_skeycmp(rel, keysz, scankey, page, itemid,
+			    BTEqualStrategyNumber)) {
+		return (0);
+	    }
 	    return (1);
     }
 

@@ -29,26 +29,39 @@ typedef struct BTPageOpaqueData {
 #define BTP_ROOT	(1 << 1)
 #define BTP_FREE	(1 << 2)
 
-	char		btpo_unused[7800];
 } BTPageOpaqueData;
 
 typedef BTPageOpaqueData	*BTPageOpaque;
 
 /*
  *  BTItems are what we store in the btree.  Each item has an index tuple,
- *  including key and pointer values.  In addition, BTItems have sequence
- *  numbers.  These sequence numbers are used to distinguish among multiple
- *  occurrences of a single key in the index.  Lehman and Yao disallow
- *  duplicate keys in their algorithm, so we use sequence numbers to guarantee
- *  that all tree entries are unique even when user data is not.
+ *  including key and pointer values.  In addition, we must guarantee that
+ *  all tuples in the index are unique, in order to satisfy some assumptions
+ *  in Lehman and Yao.  The way that we do this is by storing the XID of the
+ *  inserting transaction, and a sequence number, which tells us which index
+ *  tuple insertion in that transaction this is.  With alignment, this is
+ *  twelve bytes of space overhead in order to provide high concurrency and
+ *  short-duration locks.
  */
 
 typedef struct BTItemData {
-	uint32		bti_seqno;
-	IndexTupleData	bti_itup;
+	TransactionIdData	bti_xid;
+	uint32			bti_seqno;
+	IndexTupleData		bti_itup;
 } BTItemData;
 
 typedef BTItemData	*BTItem;
+
+/*
+ *  The following macros manage btitem sequence numbers for insertions.
+ *  The global variable is in private space, so we won't have contention
+ *  problems since we further disambiguate with XID.  However, this does
+ *  mean that this algorithm is not easy to parallelize.
+ */
+
+extern uint32 BTCurrSeqNo;
+#define	BTSEQ_INIT()	BTCurrSeqNo = 0
+#define BTSEQ_GET()	BTCurrSeqNo++
 
 /*
  *  BTStackData -- As we descend a tree, we push the (key, pointer) pairs
@@ -122,8 +135,9 @@ char			*btgettuple();
 InsertIndexResult	btinsert();
 
 /* private routines */
-OffsetIndex		_bt_pgaddtup();
+InsertIndexResult	_bt_doinsert();
 InsertIndexResult	_bt_insertonpg();
+OffsetIndex		_bt_pgaddtup();
 ScanKey			_bt_mkscankey();
 BTStack			_bt_search();
 BTStack			_bt_searchr();
@@ -141,3 +155,5 @@ RetrieveIndexResult	_bt_endpoint();
 bool			_bt_step();
 StrategyNumber		_bt_getstrat();
 bool			_bt_invokestrat();
+BTItem			_bt_formitem();
+bool			_bt_goesonpg();

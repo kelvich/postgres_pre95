@@ -290,3 +290,25 @@ _bt_checkqual(scan, itup)
     return (ikeytest(itup, scan->relation,
 		     scan->numberOfKeys, &(scan->keyData)));
 }
+
+BTItem
+_bt_formitem(itup, xid, seqno)
+    IndexTuple itup;
+    TransactionId xid;
+    uint32 seqno;
+{
+    int nbytes_btitem;
+    BTItem btitem;
+
+    /* make a copy of the index tuple with room for the sequence number */
+    nbytes_btitem = LONGALIGN(itup->t_size) +
+			(sizeof(BTItemData) - sizeof(IndexTupleData));
+
+    btitem = (BTItem) palloc(nbytes_btitem);
+    bcopy((char *) itup, (char *) &(btitem->bti_itup), itup->t_size);
+
+    bcopy((char *) xid, (char *) &(btitem->bti_xid), TransactionIdDataSize);
+    btitem->bti_seqno = seqno;
+
+    return (btitem);
+}

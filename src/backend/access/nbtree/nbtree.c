@@ -26,6 +26,9 @@
 
 RcsId("$Header$");
 
+/* the global sequence number for insertions is defined here */
+uint32	BTCurrSeqNo = 0;
+
 void
 btbuild(heap, index, natts, attnum, istrat, pcount, params)
     Relation heap;
@@ -46,6 +49,9 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params)
     InsertIndexResult res;
     int ntups;
     int i;
+    BTItem btitem;
+    TransactionId currxid;
+    extern TransactionId GetCurrentTransactionId();
 
     /* first initialize the btree index metadata page */
     _bt_metapinit(index);
@@ -53,6 +59,10 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params)
     /* get tuple descriptors for heap and index relations */
     htupdesc = RelationGetTupleDescriptor(heap);
     itupdesc = RelationGetTupleDescriptor(index);
+
+    /* record current transaction id for uniqueness */
+    currxid = GetCurrentTransactionId();
+    BTSEQ_INIT();
 
     /* get space for data items that'll appear in the index tuple */
     attdata = (Datum *) palloc(natts * sizeof(Datum));
@@ -94,7 +104,9 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params)
 	itup = FormIndexTuple(natts, itupdesc, attdata, null);
 	itup->t_tid = htup->t_ctid;
 
-	res = btinsert(index, itup);
+	btitem = _bt_formitem(itup, currxid, BTSEQ_GET());
+	res = _bt_doinsert(index, btitem);
+	pfree(btitem);
 	pfree(itup);
 	pfree(res);
 
@@ -134,53 +146,12 @@ btinsert(rel, itup)
 {
     BTItem btitem;
     int nbytes_btitem;
-    ScanKey itup_scankey;
-    BTStack stack;
-    Buffer buf;
-    BlockNumber blkno;
-    OffsetIndex itup_off;
-    Datum itup_datum;
-    Page page;
-    uint32 *seqno;
     InsertIndexResult res;
-    int natts;
 
-    /* make a copy of the index tuple with room for the sequence number */
-    nbytes_btitem = LONGALIGN(itup->t_size) +
-			(sizeof(BTItemData) - sizeof(IndexTupleData));
+    BTSEQ_INIT();
+    btitem = _bt_formitem(itup, GetCurrentTransactionId(), BTSEQ_GET());
 
-    btitem = (BTItem) palloc(nbytes_btitem);
-    bcopy((char *) itup, (char *) &(btitem->bti_itup), itup->t_size);
-    btitem->bti_seqno = 0;
-
-    /* we need a scan key to do our search, so build one */
-    itup_scankey = _bt_mkscankey(rel, itup);
-    natts = rel->rd_rel->relnatts;
-
-    /* find the page containing this key */
-    stack = _bt_search(rel, natts, itup_scankey, &buf);
-    blkno = BufferGetBlockNumber(buf);
-
-    /* trade in our read lock for a write lock */
-    _bt_relbuf(rel, buf, BT_READ);
-    buf = _bt_getbuf(rel, blkno, BT_WRITE);
-
-    /*
-     *  If the page was split between the time that we surrendered our
-     *  read lock and acquired our write lock, then this page may no
-     *  longer be the right place for the key we want to insert.  In this
-     *  case, we need to move right in the tree.  See Lehman and Yao for
-     *  an excruciatingly precise description.
-     */
-
-    buf = _bt_moveright(rel, buf, natts, itup_scankey, BT_WRITE);
-
-    /* do the insertion */
-    res = _bt_insertonpg(rel, buf, stack, natts, itup_scankey, btitem);
-
-    /* be tidy */
-    _bt_freestack(stack);
-    _bt_freeskey(itup_scankey);
+    res = _bt_doinsert(rel, btitem);
     pfree(btitem);
 
     return (res);
