@@ -60,8 +60,10 @@ Print_expr ( expr )
 {
     List i = NULL;
 
-    if ( expr == NULL )
-      printf("nil\n");
+    if (!expr) {
+      printf("nil ");
+      return;
+    }
 
     switch ( NodeType(expr)) {
       case classTag(LispList):
