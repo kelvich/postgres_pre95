@@ -93,7 +93,6 @@ regprocout(proid)
 	HeapTuple	proctup;
 	char		*result;
 	ScanKeyEntryData	key;
-	extern		bzero();
 
 	result = (char *)palloc(16);
 	proc = amopenr(ProcedureRelationName->data);
