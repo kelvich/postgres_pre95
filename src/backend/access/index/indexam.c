@@ -425,7 +425,8 @@ InsertIndexTuple(heapRelation, indexRelation, numberOfAttributes,
     Datum		parameter[];
 {
     HeapScanDesc	scan;
-    Buffer		buffer;
+    /* XXX 'buffer' previously uninit?  ignored in lower code anyway.. */
+    Buffer		buffer = InvalidBuffer;
     AttributeNumber	attributeIndex;
     IndexTuple		indexTuple;
     TupleDescriptor	heapDescriptor;
