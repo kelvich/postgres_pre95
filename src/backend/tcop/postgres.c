@@ -767,7 +767,8 @@ main(argc, argv)
 	 * ----------------
 	 */
 	if (_show_stats_after_query_ > 0) {
-	    PrintAndFreeBufferStatistics(GetBufferStatistics());
+	    if (! Quiet)
+		PrintAndFreeBufferStatistics(GetBufferStatistics());
 	    if (_reset_stats_after_query_ > 0)
 		ResetBufferStatistics();
 	}
@@ -777,7 +778,8 @@ main(argc, argv)
 	 * ----------------
 	 */
 	if (_show_stats_after_query_ > 0) {
-	    PrintAndFreeHeapAccessStatistics(GetHeapAccessStatistics());
+	    if (! Quiet)
+		PrintAndFreeHeapAccessStatistics(GetHeapAccessStatistics());
 	    if (_reset_stats_after_query_ > 0)
 		ResetHeapAccessStatistics();
 	}
