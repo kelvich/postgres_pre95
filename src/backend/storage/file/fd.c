@@ -547,7 +547,7 @@ fileClose(file)
 		if (VfdCache[file].fdstate & FD_DIRTY) {
 		    returnValue = fsync(VfdCache[file].fd);
 		    Assert(returnValue != -1);
-		    VfdCache[file].fd &= ~FD_DIRTY;
+		    VfdCache[file].fdstate &= ~FD_DIRTY;
 		}
 
 		/* close the file */
@@ -555,6 +555,7 @@ fileClose(file)
 		Assert(returnValue != -1);
 
 		--nfile;
+		VfdCache[file].fd = VFD_CLOSED;
 	}
 	/*
 	 * Add the Vfd slot to the free list
@@ -596,6 +597,7 @@ fileUnlink(file)
 		Assert(returnValue != -1);
 
 		--nfile;
+		VfdCache[file].fd = VFD_CLOSED;
 	}
 	/* add the Vfd slot to the free list */
 	FreeVfd(file);
