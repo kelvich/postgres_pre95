@@ -142,7 +142,7 @@ attributeValuesMakeNewTuple(tuple, buffer, attrValues,
 HeapTuple tuple;
 Buffer buffer;
 AttributeValues attrValues;
-Prs2Locks locks;
+RuleLock locks;
 Relation relation;
 HeapTuple *newTupleP;
 {
@@ -156,7 +156,7 @@ HeapTuple *newTupleP;
     bool locksHaveToChange;
     HeapTuple t;
     int nlocks;
-    Prs2Locks newLocks;
+    RuleLock newLocks;
     Prs2OneLock oneLock;
     AttributeNumber attrNo;
     Prs2LockType lockType;
@@ -246,7 +246,8 @@ HeapTuple *newTupleP;
 	oneLock = prs2GetOneLockFromLocks(locks, i);
 	attrNo = prs2OneLockGetAttributeNumber(oneLock);
 	lockType = prs2OneLockGetLockType(oneLock);
-	if (lockType != LockTypeWrite || !attrValues[attrNo-1].isCalculated){
+	if (lockType != LockTypeRetrieveWrite ||
+	    !attrValues[attrNo-1].isCalculated){
 	    /*
 	     * Copy this lock...
 	     */
