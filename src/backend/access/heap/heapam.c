@@ -1303,7 +1303,6 @@ heap_delete(relation, tid)
     HeapTuple		tp;
     PageHeader		dp;
     Buffer		b;
-    long		time();
     char		*fmgr();
 
     /* ----------------
@@ -1398,7 +1397,6 @@ heap_replace(relation, otid, tup)
     BlockIndexList	list;
     BlockNumber		blockIndex;
     Index		index;
-    long		time();		/* know C */
 
     /* ----------------
      *	increment access statistics
