@@ -321,8 +321,10 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 	      accordingly -- use a selectivity of 1.0. */
 	set_path_cost (pathnode,cost_index (CInteger(CAR(get_relids(index))),
 					    get_pages (index),1.0,
-					    get_pages (rel),get_tuples (rel),
-					    get_pages (index),get_tuples(index)));
+					    get_pages (rel),
+					    get_tuples (rel),
+					    get_pages (index),
+					    get_tuples(index), false));
     } 
     else  {
 	/*    Compute scan cost for the case when 'index' is used with a 
@@ -353,7 +355,7 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 					    temp2,
 					    get_pages (rel),
 					    get_tuples (rel),get_pages (index),
-					    get_tuples (index)));
+					    get_tuples (index), false));
 	/*    Set selectivities of clauses used with index to 
 	      the selectivity of this index, subdividing the 
 	      selectivity equally over each of 
