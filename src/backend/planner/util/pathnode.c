@@ -153,6 +153,8 @@ add_pathlist (parent_rel,unique_paths,new_paths)
      LispValue old_path;
      foreach (x, new_paths) {
 	 new_path = (Path)CAR(x);
+	 if (member(new_path, unique_paths)) 
+	     continue;
 	 old_path = better_path (new_path,unique_paths);
 	 if (old_path == LispTrue) {
 	     /*  Is a brand new path.  */
