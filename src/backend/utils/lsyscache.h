@@ -3,7 +3,7 @@
 extern Name AttributeGetAttName ARGS((Attribute attribute));
 extern bool op_class ARGS((LispValue opid, LispValue opclass));
 extern Name get_attname ARGS((ObjectId relid, AttributeNumber attnum));
-extern AttributeNumber get_attnum ARGS((ObjectId relid, NameData attname));
+extern AttributeNumber get_attnum ARGS((ObjectId relid, Name attname));
 extern ObjectId get_atttype ARGS((ObjectId relid, AttributeNumber attnum));
 extern RegProcedure get_opcode ARGS((ObjectId opid));
 extern LispValue op_mergesortable ARGS((ObjectId opid, ObjectId ltype, ObjectId rtype));
