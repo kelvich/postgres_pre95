@@ -97,3 +97,69 @@ rt_bigbox_size(a)
 
 	return (size);
 }
+
+POLYGON *
+rt_poly_union(a, b)
+	POLYGON *a;
+	POLYGON *b;
+{
+	POLYGON *p;
+
+	p = (POLYGON *)PALLOCTYPE(POLYGON);
+
+	if (!PointerIsValid(p))
+		elog(WARN, "Cannot allocate polygon for union");
+
+	p->size = sizeof(POLYGON);
+	p->boundbox.xh = MAX(a->boundbox.xh, b->boundbox.xh);
+	p->boundbox.yh = MAX(a->boundbox.yh, b->boundbox.yh);
+	p->boundbox.xl = MIN(a->boundbox.xl, b->boundbox.xl);
+	p->boundbox.yl = MIN(a->boundbox.yl, b->boundbox.yl);
+	return p;
+}
+
+int
+rt_poly_size(a)
+	POLYGON *a;
+{
+	int size;
+	double xdim, ydim;
+
+	if (a == (POLYGON *) NULL || 
+		a->boundbox.xh <= a->boundbox.xl || 
+		a->boundbox.yh <= a->boundbox.yl)
+		return (0);
+
+	xdim = fabs(a->boundbox.xh - a->boundbox.xl) / 100.0;
+	ydim = fabs(a->boundbox.yh - a->boundbox.yl) / 100.0;
+
+	size = (int) (xdim * ydim);
+
+	return (size);
+}
+
+POLYGON *
+rt_poly_inter(a, b)
+	POLYGON *a;
+	POLYGON *b;
+{
+	POLYGON *p;
+
+	p = (POLYGON *) PALLOCTYPE(POLYGON);
+
+	if (!PointerIsValid(p))
+		elog(WARN, "Cannot allocate polygon for intersection");
+
+	p->boundbox.xh = MIN(a->boundbox.xh, b->boundbox.xh);
+	p->boundbox.yh = MIN(a->boundbox.yh, b->boundbox.yh);
+	p->boundbox.xl = MAX(a->boundbox.xl, b->boundbox.xl);
+	p->boundbox.yl = MAX(a->boundbox.yl, b->boundbox.yl);
+
+	if (p->boundbox.xh < p->boundbox.xl || p->boundbox.yh < p->boundbox.yl)
+	{
+		pfree (p);
+		return ((POLYGON *) NULL);
+	}
+
+	return (p);
+}
