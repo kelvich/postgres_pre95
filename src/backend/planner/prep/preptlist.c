@@ -58,11 +58,11 @@ preprocess_targetlist (tlist,command_type,result_relation,range_table)
      List range_table ;
 {
      List expanded_tlist = NULL;
-     LispValue relid = LispNil;
+     ObjectId relid = LispNil;
      LispValue t_list = LispNil;
      LispValue temp = LispNil;
 
-     if ( integerp (result_relation) )
+     if ( result_relation )
 	  relid = getrelid (result_relation,range_table);
      
      if ( integerp (relid) ) {
@@ -215,9 +215,9 @@ new_relation_targetlist (relid,rt_index,node_type)
 			temp = typlen;
 
 		      temp2 = MakeConst (atttype,temp,
-					   typedefault,Lispnull(typedefault));
+					   typedefault,lispNullp(typedefault));
 
-		      temp3 = MakeTLE (make_resdom (attno,atttype,
+		      temp3 = MakeTLE (MakeResdom (attno,atttype,
 						    typlen,attname,0,LispNil),
 				       temp2);
 		      t_list = nappend1(t_list,temp3);
