@@ -434,18 +434,21 @@ ParseAgg(aggname, query, tlist)
     OID AggId = (OID)0;
     List list = LispNil;
     extern List MakeList();
-    char *keyword = "aggregate";
+    char *keyword = "agg";
     HeapTuple theAggTuple;
-
+    tlist = CADR(tlist);
     if(!query)
 	elog(WARN,"aggregate %s called without arguments", aggname);
     theAggTuple = SearchSysCacheTuple(AGGNAME, aggname, 0, 0, 0); 
     AggId = (theAggTuple ? theAggTuple->t_oid : (OID)0);
 
-    fintype = (ObjectId)SearchSysCacheGetAttribute(AGGNAME,
-		AggregateFinalTypeAttributeNumber, aggname, 0, 0, 0);
+    if(AggId == (OID)0) {
+       elog(WARN, "aggregate %s does not exist", aggname);
+    }
+    fintype = CInteger(SearchSysCacheGetAttribute(AGGNAME,
+		AggregateFinalTypeAttributeNumber, aggname, 0, 0, 0));
 
-    if(AggId != (OID)0 && fintype != 0 ) {
+    if(fintype != 0 ) {
        list = MakeList(lispInteger(fintype),lispName(keyword),lispName(aggname),
 							query,tlist,-1);
     } else
