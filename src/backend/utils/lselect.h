@@ -1,8 +1,15 @@
-#ifndef	_RSELECT_H_
-#define	_RSELECT_H_	"$Header$"
+#ifndef	_LSELECT_H_
+#define	_LSELECT_H_	"$Header$"
 
-/*
- *	rselect.h	- definitions for the replacement selection algorithm.
+/* ----------------------------------------------------------------
+ *	lselect.h	- definitions for the replacement selection algorithm.
+ *
+ *	This file is used by
+ *		utils/sort/lselect.c
+ *		utils/sort/psort.c
+ *
+ *	-cim 6/12/90
+ * ----------------------------------------------------------------
  */
 
 #ifndef C_H
@@ -25,4 +32,4 @@ extern	int		puttuple();
 extern	int		dumptuples();
 extern	int		tuplecmp();
 
-#endif
+#endif _LSELECT_H_
