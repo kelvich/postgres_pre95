@@ -25,8 +25,8 @@ letter_or_digit	[_A-Za-z0-9]
 identifier	{letter}{letter_or_digit}*
 
 self		[,()\[\].;$\:\+\-\*\/\<\>\=]
-op_and_self	[\!\@\#\%\^\&\|\`\|\?\$\:\+\-\*\/\<\>\=]
-op_only		[\!\@\#\%\^\&\|\`\|\?]
+op_and_self	[\~\!\@\#\%\^\&\|\`\|\?\$\:\+\-\*\/\<\>\=]
+op_only		[\~\!\@\#\%\^\&\|\`\|\?]
 
 operator	({op_and_self}{op_and_self}+)|{op_only}+
 string		\"
