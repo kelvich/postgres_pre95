@@ -860,7 +860,7 @@ define a \*(PQ function
       arg is (EMP)
       as "retrieve (E.all) from E in EMP
               where E.name = DEPT.manager
-              and DEPT.name = $1.dept" \\g
+              and DEPT.dname = $1.dept" \\g
 .)C
 The function
 .cW manager
