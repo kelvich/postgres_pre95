@@ -26,6 +26,7 @@ typedef struct RelationData {
 	int                     rd_nblocks;     /* number of blocks in rel */
 	uint16			rd_refcnt;	/* reference count */
 	bool			rd_ismem;	/* rel is in-memory only */
+	bool			rd_isnailed;	/* rel is nailed in cache */
 	AccessMethodTupleForm	rd_am;		/* AM tuple */
 	RelationTupleForm	rd_rel;		/* RELATION tuple */
 	ObjectId		rd_id;		/* relations's object id */
