@@ -114,6 +114,10 @@ HEADERDIR=	${POSTGRESDIR}/include
 #	XXX Edit the default Kerberos variables below!
 #KRBVERS=	5
 
+# Comment out USE_DLD if you do not use the GNU DLD package for
+# dynamic loading.
+USE_DLD=
+
 #
 # == END OF NORMAL CONFIGURATION SECTION ==
 #
