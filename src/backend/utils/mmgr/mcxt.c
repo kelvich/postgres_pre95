@@ -3,21 +3,21 @@
  *	POSTGRES memory context code.
  */
 
-#include "c.h"
+#include <stdio.h>	/* XXX for printf debugging */
+
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include <stdio.h>	/* XXX for printf debugging */
+#include "utils/memutils.h"
+#include "utils/module.h"
+#include "utils/excid.h"
 
-#include "aset.h"
-#include "enbl.h"
-#include "excid.h"
-#include "mnodes.h"
-#include "oset.h"
+#include "nodes/mnodes.h"
+#include "nodes/nodes.h"
 #include "tags.h"	/* for classTag */
-#include "nodes.h"
 
-#include "mcxt.h"
+#include "utils/mcxt.h"
 
 extern void bcopy();	/* XXX use header */
 
