@@ -95,7 +95,9 @@ rt_poly_union(a, b)
 	if (!PointerIsValid(p))
 		elog(WARN, "Cannot allocate polygon for union");
 
+	bzero((char *) p, sizeof(POLYGON));	/* zero any holes */
 	p->size = sizeof(POLYGON);
+	p->npts = 0;
 	p->boundbox.xh = MAX(a->boundbox.xh, b->boundbox.xh);
 	p->boundbox.yh = MAX(a->boundbox.yh, b->boundbox.yh);
 	p->boundbox.xl = MIN(a->boundbox.xl, b->boundbox.xl);
@@ -137,6 +139,9 @@ rt_poly_inter(a, b)
 	if (!PointerIsValid(p))
 		elog(WARN, "Cannot allocate polygon for intersection");
 
+	bzero((char *) p, sizeof(POLYGON));	/* zero any holes */
+	p->size = sizeof(POLYGON);
+	p->npts = 0;
 	p->boundbox.xh = MIN(a->boundbox.xh, b->boundbox.xh);
 	p->boundbox.yh = MIN(a->boundbox.yh, b->boundbox.yh);
 	p->boundbox.xl = MAX(a->boundbox.xl, b->boundbox.xl);
