@@ -30,6 +30,7 @@
 #include "catalog/syscache.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_proc.h"
+#include "catalog/pg_type.h"
 #include "catalog/pg_aggregate.h"
 
 /* --------------------
@@ -232,7 +233,7 @@ AggregateDefine(aggName, xitionfunc1Name, xitionfunc2Name, finalfuncName,
 			      (char *) NULL,
 			      (char *) NULL);
      if(!PointerIsValid(tup))
-	elog(WARN, "AggregateDefine: transition function % is nonexistent",
+	elog(WARN, "AggregateDefine: transition function %s is nonexistent",
 				xitionfunc1Name);
      
      values[ AggregateIntFunc1AttributeNumber-1] = (char *) tup->t_oid;
@@ -245,7 +246,7 @@ AggregateDefine(aggName, xitionfunc1Name, xitionfunc2Name, finalfuncName,
 			     (char *) NULL,
     			     (char *) NULL);
      if(!PointerIsValid(tup))
-	elog(WARN, "AggregateDefine: transition function % is nonexistent",
+	elog(WARN, "AggregateDefine: transition function %s is nonexistent",
 				xitionfunc2Name);
 
     values[ AggregateIntFunc2AttributeNumber-1] = (char *) tup->t_oid;
@@ -257,7 +258,7 @@ AggregateDefine(aggName, xitionfunc1Name, xitionfunc2Name, finalfuncName,
 				(char *) NULL);
 
      if(!PointerIsValid(tup))
-	elog(WARN, "AggregateDefine: final function % is nonexistent",
+	elog(WARN, "AggregateDefine: final function %s is nonexistent",
 					     finalfuncName);
 
      values[AggregateFinFuncAttributeNumber-1] = (char *)tup->t_oid;
@@ -281,7 +282,47 @@ AggregateDefine(aggName, xitionfunc1Name, xitionfunc2Name, finalfuncName,
      heap_close(pg_aggregate_desc);
 }
 
+char *
+AggNameGetInitVal(aggName, initValAttno, isNull)
+    char *aggName;
+    int  initValAttno;
+    bool *isNull;
+{
+    HeapTuple      aggTup;
+    HeapTuple      typTup;
+    Relation       aggRel;
+    oid            initType;
+    char           *strInitVal;
+    struct varlena *binInitVal;
+    int            initValLen;
 
+    aggRel = heap_openr(Name_pg_aggregate);
+    aggTup = SearchSysCacheTuple(AGGNAME, aggName, 0, 0, 0);
+    if (!aggTup)
+	elog(WARN, "Lookup failed for aggregate %s", aggName);
+    binInitVal = (struct varlena *)fastgetattr(aggTup,
+					       initValAttno,
+					       &aggRel->rd_att,
+					       isNull);
 
+    if (*isNull)
+	return (char *)NULL;
 
+    Assert(binInitVal);
+    initValLen = VARSIZE(binInitVal) - sizeof(int);
+    strInitVal = (char *)palloc(initValLen+1);
+    bcopy(VARDATA(binInitVal), strInitVal, initValLen);
+    strInitVal[initValLen] = (char)NULL;
 
+    initType = (oid)((Form_pg_aggregate)GETSTRUCT(aggTup))->inttype;
+
+    typTup = SearchSysCacheTuple(TYPOID, initType, 0, 0, 0);
+    if (!typTup)
+    {
+	elog(WARN,
+	     "Lookup on aggregate transition function return type failed");
+    }
+
+    return (char *)
+	fmgr(( (Form_pg_type)GETSTRUCT(typTup) )->typinput, strInitVal);
+}
