@@ -1,3 +1,6 @@
+#
+# $Header$
+#
 .PATH: ${.CURDIR}/executor
 
 SRCS+= aggregate.c ex_ami.c ex_debug.c ex_flatten.c ex_junk.c ex_main.c \
@@ -8,7 +11,7 @@ SRCS+= aggregate.c ex_ami.c ex_debug.c ex_flatten.c ex_junk.c ex_main.c \
 
 HEADERS+= aggregate.h execdebug.h execdefs.h execdesc.h execmisc.h \
 	execshmem.h executor.h externs.h flatten.h hashjoin.h \
-	paralleldebug.h recursion.h recursion_a.h recursive.h \
+	paralleldebug.h recursion.h recursion_a.h \
 	tuptable.h x_append.h x_debug.h x_endnode.h x_eutils.h \
 	x_execam.h x_execfmgr.h x_execinit.h x_execmain.h x_execmmgr.h \
 	x_execstats.h x_exist.h x_hash.h x_hashjoin.h x_indexscan.h \
