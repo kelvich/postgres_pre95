@@ -173,6 +173,14 @@ RelationGetBuffer ARGS((
 	const BufferLock	lockLevel
 ));
 
+extern
+Buffer
+RelationGetBufferWithBuffer ARGS((
+	Relation 	relation,
+	BlockNumber	blockNumber,
+	Buffer		buffer
+));
+
 /*
  * BufferPut --
  *	Performs operations on a buffer.
