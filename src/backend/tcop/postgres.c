@@ -84,6 +84,15 @@ int		testFlag = 0;
 int		MasterPid;
 
 /* ----------------
+ *	for memory leak debugging
+ * ----------------
+ */
+int query_tuple_count = 0;
+int xact_tuple_count = 0;
+int query_tuple_max = 0;
+int xact_tuple_max = 0;
+
+/* ----------------
  *	people who want to use EOF should #define DONTUSENEWLINE in
  *	tcop/tcopdebug.h
  * ----------------
@@ -639,14 +648,22 @@ PostgresMain(argc, argv)
       case 'A':
 	  /* ----------------
 	   *	tell postgres to turn on memory tracing
+	   *
+	   *	-An = print alloctions/deallocations when they occur
+	   *	-Ar = record activity silently in a list
+	   *	-Ab = record and print activity
+	   *	-AQ# = dump activity list every # tuples processed (per query)
+	   *	-AX# = dump activity list every # transactions processed
 	   * ----------------
 	   */
-          switch (optarg[0]) {
-          case 'n':  set_palloc_debug(true, false);  break;
-          case 'r':  set_palloc_debug(false, true);  break;
-          case 'b':  set_palloc_debug(true, true);   break;
+	  switch (optarg[0]) {
+	  case 'n':  set_palloc_debug(true, false);  break;
+	  case 'r':  set_palloc_debug(false, true);  break;
+	  case 'b':  set_palloc_debug(true, true);   break;
+	  case 'Q':  query_tuple_max = atoi(&optarg[1]); break;
+	  case 'X':  xact_tuple_max = atoi(&optarg[1]); break;
 	  default:   errs++; break;
-	  }
+	  } 
 	  break;
 	  
       case 'b':
@@ -1065,6 +1082,19 @@ PostgresMain(argc, argv)
 		printf("\tCommitTransactionCommand() at %s\n", ctime(&tim));
 	    }
 	    CommitTransactionCommand();
+
+#ifdef PALLOC_DEBUG	
+	    /* ----------------
+	     *	if debugging memory allocations, print memory dump
+	     *	every so often
+	     * ----------------
+	     */
+	    if (xact_tuple_max && xact_tuple_max == ++xact_tuple_count) {
+		xact_tuple_count = 0;
+		dump_palloc_list("PostgresMain", true);
+	    }
+#endif PALLOC_DEBUG
+	
 	} else {
 	    empty_buffer = 0;
 	    if (IsUnderPostmaster)
