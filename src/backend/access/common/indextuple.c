@@ -284,6 +284,7 @@ index_formtuple(numberOfAttributes, tupleDescriptor, value, null)
 	     numberOfAttributes, MaxIndexAttributeNumber);
     
     size += ComputeDataSize(numberOfAttributes, tupleDescriptor, value, null);
+    size = LONGALIGN(size);
     
     tp = (char *) palloc(size);
     tuple = (IndexTuple) tp;
