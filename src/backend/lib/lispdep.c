@@ -381,6 +381,12 @@ extern char		*malloc();
 #define	PGLISP_STR	4
 #define	PGLISP_VECI	5
 
+lispNullp ( lval)
+     LispValue lval;
+{
+	return ( lval == LispNil );
+}
+
 char *
 CString(lstr)
      LispValue lstr;
@@ -389,6 +395,19 @@ CString(lstr)
 	  return(lstr->val.str);
 	else
 	  return(NULL);
+}
+
+int
+CInteger(lval)
+     LispValue lval;
+{
+	if(lval != NULL)
+	  if(lval->type == PGLISP_INT)
+	    return(lstr->val.fixnum);
+	  else
+	    return(0);
+	else
+	  return(0);
 }
 LispValue
 lispAtom(atomName)
