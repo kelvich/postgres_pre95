@@ -11,6 +11,7 @@
 #include "access/xcxt.h"
 #include "access/xlog.h"
 #include "access/xact.h"
+#include "access/transam.h"
 #include "utils/log.h"
 #include "utils/nabstime.h"
 
@@ -575,6 +576,8 @@ HeapTupleSatisfiesNow(tuple)
 {
     AbsoluteTime curtime;
 
+    if (AMI_OVERRIDE)
+	return true;
     /*
      *  If the transaction system isn't yet initialized, then we assume
      *  that transactions committed.  We only look at system catalogs
