@@ -65,3 +65,35 @@ rt_box_size(a)
 
 	return (size);
 }
+
+/*
+ *  rt_bigbox_size() -- Compute a scaled size for big boxes.
+ *
+ *	If the field on which rectangles lie is large, or if the rectangles
+ *	themselves are large, then size computations on them can cause
+ *	arithmetic overflows.  On some architectures (eg, Sequent), the
+ *	overflow causes a core dump when we try to cast the double to an
+ *	int.  Rather than do non-portable arithmetic exception handling,
+ *	we declare an operator class "bigbox_ops" that's exactly like
+ *	"box_ops", except that sizes are scaled by four orders of decimal
+ *	magnitude.
+ */
+
+int
+rt_bigbox_size(a)
+	BOX *a;
+{
+	int size;
+	double xdim, ydim;
+
+	if (a == (BOX *) NULL || a->xh <= a->xl || a->yh <= a->yl)
+		return (0);
+
+	/* scale boxes by 100 in both dimensions */
+	xdim = fabs(a->xh - a->xl) / 100.0;
+	ydim = fabs(a->yh - a->yl) / 100.0;
+
+	size = (int) (xdim * ydim);
+
+	return (size);
+}
