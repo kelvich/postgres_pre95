@@ -14,6 +14,7 @@
  */
 
 #include "tmp/postgres.h"
+#include "tmp/datum.h"
 #include "catalog/syscache.h"
 #include "utils/log.h"
 #include "nodes/execnodes.h"		/* for EState */
@@ -121,6 +122,12 @@ Name relationName;
  *
  * prs2CheckQual
  *
+ * Return 1 if the given rule qualification is true
+ * (i.e. it returns at least one tuple).
+ * Otherwise return 0.
+ *
+ * NOTE: A null qualification always evaluates to true.
+ *
  */
 int
 prs2CheckQual(planQual, paramList, prs2EStateInfo)
@@ -128,8 +135,6 @@ LispValue planQual;
 ParamListInfo paramList;
 Prs2EStateInfo prs2EStateInfo;
 {
-    Datum dummyDatum;
-    Boolean dummyIsNull;
     int status;
 
     if (planQual == LispNil)
@@ -139,8 +144,7 @@ Prs2EStateInfo prs2EStateInfo;
 		    planQual,
 		    paramList,
 		    prs2EStateInfo,
-		    &dummyDatum,
-		    &dummyIsNull);
+		    NULL, NULL, NULL);
     
     return(status);
 }
@@ -177,15 +181,23 @@ Prs2EStateInfo prs2EStateInfo;
  *
  * Run a retrieve plan and return 1 if a tuple was found or 0 if there
  * was no tuple.
- * In the first case, the tuple must have only one attribute,
- * and output arguments *valueP and *isNullP, contain the value and the
- * isNull flag for this attribute.
+ * 
+ * Sometimes when we call this routine, we are only interested in
+ * whether there is a tuple returned or not, but we are *not*
+ * interested in the tuple itself (for instance, when we test
+ * a rule qualification).
+ * In this case, "valueP" and "isNullP" are NULL
  *
+ * On the other hand, sometimes (when we execute the action part of an 
+ * "on retrieve ... do instead retrieve ..." rule) we want the value of
+ * the tuple's attribute too. This tuple has always one attribute.
+ * NOTE: We make a copy of the attribute!
+ * 
  */
 
 int
 prs2RunOnePlanAndGetValue(actionPlan, paramList, prs2EStateInfo,
-                        valueP, isNullP)
+			    valueP, isNullP)
 LispValue actionPlan;
 ParamListInfo paramList;
 Prs2EStateInfo prs2EStateInfo;
@@ -193,16 +205,25 @@ Datum *valueP;
 Boolean *isNullP;
 {
     
-    LispValue res1, res2, res3, result;
     AttributeNumber numberOfAttributes;
     TupleDescriptor resultTupleDescriptor;
+    LispValue queryDescriptor;
+    LispValue res1, res2, res3;
+    EState executorState;
     HeapTuple resultTuple;
+    TupleTableSlot slot;
+    bool oldPolicy;
+    int status;
 
-    result = prs2RunOnePlan(actionPlan,paramList,prs2EStateInfo,EXEC_RETONE);
+    queryDescriptor = prs2MakeQueryDescriptorFromPlan(actionPlan);
 
-    res1 = nth(0, result);
-    res2 = nth(1, result);
-    res3 = nth(2, result);
+    executorState = CreateExecutorState();
+    set_es_param_list_info(executorState, paramList);
+    set_es_prs2_info(executorState, prs2EStateInfo);
+
+    res1 = ExecMain(queryDescriptor, executorState,
+		    lispCons(lispInteger(EXEC_START), LispNil));
+
 
     /*
      * When the executor is called with EXEC_START it returns
@@ -213,20 +234,36 @@ Boolean *isNullP;
      * are the same thing!
      */
 
-	/*
-	 * XXX - 
-	 * Unfortunately, by now the executor has freed (with pfree) the tuple
-	 * descriptor!!!  You will have to either copy it or work out something
-	 * with Cim - I hacked the executor to avoid freeing this for now, but it
-	 * *should* be freeing these things to prevent memory leaks.
-	 *
-	 * -- Greg
-	 */
-
+    /*
+     * XXX - 
+     * Unfortunately, by now the executor has freed (with pfree) the tuple
+     * descriptor!!!  You will have to either copy it or work out something
+     * with Cim - I hacked the executor to avoid freeing this for now,
+     * but it *should* be freeing these things to prevent memory leaks.
+     *
+     * -- Greg
+     */
     numberOfAttributes = (AttributeNumber) CInteger(CAR(res1));
     resultTupleDescriptor = (TupleDescriptor) CADR(res1);
 
-    if (res2 == LispNil) { 
+
+    /*
+     * now retrieve one tuple
+     */
+    res2 = ExecMain(queryDescriptor, executorState,
+		    lispCons(lispInteger(EXEC_RETONE), LispNil));
+    /*
+     * "res2" is a 'TupleTableSlot', containing a tuple that will
+     * might be freed by the next call to the executor (with operation
+     * EXEC_END). However, we might want to use the values of this
+     * tuple, in which case we must not free it.
+     * To do that, we copy the given slot to another one
+     * and change the "freeing policy" of the original slot
+     * to "false"
+     */
+    slot = (TupleTableSlot) res2;
+    resultTuple = (HeapTuple) ExecFetchTuple(slot);
+    if (resultTuple == NULL) { 
 	/*
 	 * No tuple was returned...
 	 * XXX What shall we do??
@@ -236,33 +273,47 @@ Boolean *isNullP;
 	 *    3) assume a nil value
 	 * Currently option (2) is implemented.
 	 */
-	return(0);	/* this means no value found */
+	status = 0;	/* this means no value found */
     } else {
 	/*
 	 * A tuple was found. Find the value of its attribute.
 	 * NOTE: for the time being we assume that this tuple
 	 * has only one attribute!
 	 */
-	resultTuple = (HeapTuple) CAR(res2);
-	*valueP = HeapTupleGetAttributeValue(
-		    resultTuple,
-		    InvalidBuffer,
-		    (AttributeNumber) 1,
-		    resultTupleDescriptor,
-		    isNullP);
-	return(1);
+	Datum val;
+	ObjectId type;
+
+	if (valueP != NULL && isNullP != NULL) {
+	    val = HeapTupleGetAttributeValue(
+			resultTuple,
+			InvalidBuffer,
+			(AttributeNumber) 1,
+			resultTupleDescriptor,
+			isNullP);
+	    type = resultTupleDescriptor->data[0]->atttypid;
+	    *valueP = copyDatum(val, type);
+	}
+	status = 1;
     }
+
+    /*
+     * let the executor do the cleaning up...
+     */
+    res3 = ExecMain(queryDescriptor, executorState,
+		    lispCons(lispInteger(EXEC_END), LispNil));
+    
+    return(status);
 }
 
 /*------------------------------------------------------------------
  *
  * prs2RunOnePlan
  *
- * Run one plan and return the executor's return values.
+ * Run one plan. Ignore the return values from the executor.
  *
  */
 
-LispValue
+void
 prs2RunOnePlan(actionPlan, paramList, prs2EStateInfo, operation)
 LispValue actionPlan;
 ParamListInfo paramList;
@@ -270,7 +321,7 @@ Prs2EStateInfo prs2EStateInfo;
 int operation;
 {
     LispValue queryDescriptor;
-    LispValue res1, res2, res3, result;
+    LispValue res1, res2, res3;
     EState executorState;
 	TupleDescriptor foo; /* XXX Hack for making copy of tuple descriptor */
 
@@ -285,16 +336,8 @@ int operation;
 
     res2 = ExecMain(queryDescriptor, executorState,
 		    lispCons(lispInteger(operation), LispNil));
-
     res3 = ExecMain(queryDescriptor, executorState,
 		    lispCons(lispInteger(EXEC_END), LispNil));
-
-    
-    result = lispCons(res3, LispNil);
-    result = lispCons(res2, result);
-    result = lispCons(res1, result);
-
-    return(result);
 }
 
 /*------------------------------------------------------------------
