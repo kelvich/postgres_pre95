@@ -1,0 +1,51 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP VACUUM UNIX 8/11/91
+.uh NAME
+.lp
+vacuum \*- Vacuum a POSTGRES database
+.uh SYNOPSIS
+.lp
+.b vacuum
+dbname
+.uh DESCRIPTION
+.lp
+.b Vacuum
+vacuums a POSTGRES database.
+Vacuuming a database moves deleted records to an archive
+for archived classes,
+cleans out records from aborted transactions,
+and updates statistics that are stored in the system catalogs.
+Databases should be vacuumed from time to time.
+We recommend adding an entry to
+.i "/usr/lib/crontab"
+to vacuum production databases nightly.
+.lp
+As of release 3.0 of POSTGRES,
+the
+.b vacuum
+command is a shell script that executes the
+Postquel query
+.i vacuum
+on the database of interest.
+See the Postquel reference manual for details.
+.uh "ENVIRONMENT VARIABLES"
+.ip PGPORT
+The port on which the postmaster is running.  This value is
+used if the
+.i -p
+option is not specified.  If 
+.i -p
+is not specified and PGPORT is not set, then the port defaults
+to 4321.
+.ip PGHOST
+The host on which the postmaster is running.  This value is
+used if the
+.b -h
+option is not specified.  If
+.b -h
+is not specified and PGHOST is not set, then the host defaults
+to "localhost".
+.uh "SEE ALSO"
+.lp
+vacuum(postquel).
