@@ -89,7 +89,7 @@ heap_keytest(t, tupdesc, nkeys, keys)
 bool
 heap_satisfies(itemId, relation, buffer, qual, nKeys, key)
     ItemId	itemId;
-	Relation relation;
+    Relation relation;
     Buffer	buffer;
     TimeQual	qual;
     ScanKeySize	nKeys;
@@ -104,15 +104,14 @@ heap_satisfies(itemId, relation, buffer, qual, nKeys, key)
     tuple = (HeapTuple)
 	PageGetItem(BufferGetBlock(buffer), itemId);
 
-    if (relation->rd_rel->relkind == 'u')
-	return (bool)
-	    keytest(tuple, relation, nKeys, key);
+    if (relation->rd_rel->relkind == 'u'
+     || HeapTupleSatisfiesTimeQual(tuple,qual))
+        if (key == NULL) return true;
+	else
+	    return (bool)
+	        keytest(tuple, relation, nKeys, key);
 
-    if (! (keytest(tuple, relation, nKeys, key)
-		&& HeapTupleSatisfiesTimeQual(tuple, qual)))
-	return false;
-    
-    return true;
+    return false;
 }
 
 /* ----------------
