@@ -415,7 +415,15 @@ def_rest:
 
 def_type:   Operator | Type	;
 
-def_name:  Id | Op ;
+def_name:  Id | Op
+      | '+'   { $$ = lispString("+"); }
+      | '-'   { $$ = lispString("-"); }
+      | '*'   { $$ = lispString("*"); }
+      | '/'   { $$ = lispString("/"); }
+      | '<'   { $$ = lispString("<"); }
+      | '>'   { $$ = lispString(">"); }
+      | '='   { $$ = lispString("="); }
+      ;
 
 opt_def_args:	/* Because "define procedure .." */
 	  ARG IS '(' def_name_list ')'
@@ -684,12 +692,27 @@ remove_type:
 	  Function | Rule | Type | Index ;
 
 RemoveOperatorStmt:
-	REMOVE Operator Op '(' remove_operator ')'
+	  REMOVE Operator Op '(' remove_operator ')'
 		{
 		    $$  = lispCons($3, $5);
 		    $$  = lispCons($2, lispCons($$, LispNil));
 		    $$  = lispCons( KW(remove) , $$);
 		}
+        | REMOVE Operator MathOp '(' remove_operator ')'
+                {
+                    $$  = lispCons($3, $5);
+                    $$  = lispCons($2, lispCons($$, LispNil));
+                    $$  = lispCons( KW(remove) , $$);
+                }
+        ;
+MathOp:
+	| '+'   { $$ = lispString("+"); }
+	| '-'   { $$ = lispString("-"); }
+	| '*'   { $$ = lispString("*"); }
+	| '/'   { $$ = lispString("/"); }
+	| '<'   { $$ = lispString("<"); }
+	| '>'   { $$ = lispString(">"); }
+	| '='   { $$ = lispString("="); }
 	;
 
 remove_operator:
