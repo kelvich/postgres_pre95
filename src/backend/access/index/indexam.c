@@ -509,7 +509,7 @@ GetIndexValue(tuple, hTupDesc, attOff, attrNums, fInfo, attNull, buffer)
 {
     Datum returnVal;
 
-    if (PointerIsValid(fInfo))
+    if (PointerIsValid(fInfo) && FIgetProcOid(fInfo) != InvalidObjectId)
     {
 	int i;
 	Datum *attData = (Datum *)palloc(FIgetnArgs(fInfo)*sizeof(Datum));
@@ -523,10 +523,7 @@ GetIndexValue(tuple, hTupDesc, attOff, attrNums, fInfo, attNull, buffer)
 					   FIgetnArgs(fInfo),
 					   attData);
 	pfree(attData);
-	if (returnVal == (Datum)NULL)
-	    *attNull = TRUE;
-	else
-	    *attNull = FALSE;
+	*attNull = FALSE;
     }
     else
     {
