@@ -95,7 +95,7 @@ class (Expr) public (Node) {
 
 class (ExprContext) public (Node) {
 #define ExprContextDefs \
-	inherits(Node) \
+	inherits(Node); \
 	List	      ecxt_scantuple; \
 	AttributePtr  ecxt_scantype; \
 	Buffer	      ecxt_scan_buffer; \
