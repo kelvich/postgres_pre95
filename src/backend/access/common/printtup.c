@@ -219,6 +219,7 @@ debugtup(tuple, typeinfo)
     printf("\t----\n");
 }
 
+/*#define IPORTAL_DEBUG*/
 
 /* ----------------
  *	printtup_internal
@@ -238,9 +239,6 @@ printtup_internal(tuple, typeinfo)
     char	*outputstr, *attr;
     Boolean	isnull;
     ObjectId	typoutput;
-#if 0
-    FILE *f = fopen("/dev/ttyp0","w");
-#endif
     
     /* ----------------
      *	tell the frontend to expect new tuple data
@@ -273,46 +271,58 @@ printtup_internal(tuple, typeinfo)
      * ----------------
      */
     for (i = 0; i < tuple->t_natts; ++i) {
-	int len;
+	int32 len = typeinfo[i]->attlen;
 
 	attr = heap_getattr(tuple, InvalidBuffer, i+1, typeinfo, &isnull);
-	len = typeinfo[i]->attlen;
 	if (!isnull) {
 	    /* # of bytes, and opaque data */
-	    switch (len) {
-	      case -1: {
-		  /* variable length, assume a varlena structure */
-		  int l = VARSIZE(PointerGetDatum(attr));
-		  pq_putint(l,4);
-		  pq_putnchar(VARDATA(PointerGetDatum(attr)),l);
-#if 0
-		  {
-		  char *d = VARDATA(PointerGetDatum(attr));
-		  fprintf(f,"length %d data %x%x%x%x\n",l,*d,*(d+1),*(d+2),*(d+3));
-		  }
-#endif
-	      }   
-		break;
+	    if (len == -1) {
+		/* variable length, assume a varlena structure */
+		len = VARSIZE(attr);
 
-	      default:		/* fixed size */
-	       if (typeinfo[i]->attbyval) {
-		  pq_putint(len,4);
-		  pq_putnchar(&attr,len);
-#if 0
-	          fprintf(f,"byval length %d data %d\n",len,attr);
+		pq_putint(len, sizeof(int32));
+		pq_putnchar(VARDATA(attr), len);
+#ifdef IPORTAL_DEBUG
+		{
+		    char *d = VARDATA(attr);
+
+		    fprintf(stderr, "length %d data %x%x%x%x\n",
+			    len, *d, *(d+1), *(d+2), *(d+3));
+		}
 #endif
-	       } else {
-		  pq_putint(len,4);
-		  pq_putnchar(attr,len);
-#if 0
-		  fprintf(f,"byref length %d data %x\n",len,attr);
+	    } else {
+		/* fixed size */
+		if (typeinfo[i]->attbyval) {
+		    int8 i8;
+		    int16 i16;
+		    int32 i32;
+
+		    pq_putint(len, sizeof(int32));
+		    switch (len) {
+		    case 1:
+			i8 = DatumGetChar(attr);
+			pq_putnchar((char *) &i8, len);
+			break;
+		    case 2:
+			i16 = DatumGetInt16(attr);
+			pq_putnchar((char *) &i16, len);
+			break;
+		    case 4:
+			i32 = DatumGetInt32(attr);
+			pq_putnchar((char *) &i32, len);
+			break;
+		    }
+#ifdef IPORTAL_DEBUG
+		    fprintf(stderr, "byval length %d data %d\n", len, attr);
 #endif
-	       }
-	        break;
+		} else {
+		    pq_putint(len, sizeof(int32));
+		    pq_putnchar(attr, len);
+#ifdef IPORTAL_DEBUG
+		    fprintf(stderr, "byref length %d data %x\n", len, attr);
+#endif
+		}
 	    }
 	}
     }
-#if 0
-    fclose(f);
-#endif
 }
