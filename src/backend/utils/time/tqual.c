@@ -230,20 +230,41 @@ TimeQualIsLegal(qual)
 
 	/* TimeQualAt */
 	if (((InternalTimeQual)qual)->mode & TimeQualAt) {
-		return (AbsoluteTimeIsBefore(((InternalTimeQual)qual)->start,
-			GetCurrentTransactionStartTime()));
+		AbsoluteTime a, b;
+
+		a = ((InternalTimeQual)qual)->start;
+		b = GetCurrentTransactionStartTime();
+
+		if (AbsoluteTimeIsAfter(a, b))
+			return (false);
+		else
+			return (true);
 	}
 
 	/* TimeQualOlder or TimeQualRange */
 	if (((InternalTimeQual)qual)->mode & TimeQualOlder) {
-		return (AbsoluteTimeIsBefore(((InternalTimeQual)qual)->end,
-			GetCurrentTransactionStartTime()));
+		AbsoluteTime a, b;
+
+		a = ((InternalTimeQual)qual)->end;
+		b = GetCurrentTransactionStartTime();
+
+		if (AbsoluteTimeIsAfter(a, b))
+			return (false);
+		else
+			return (true);
 	}
 
 	/* TimeQualNewer */
 	if (((InternalTimeQual)qual)->mode & TimeQualNewer) {
-		return (AbsoluteTimeIsBefore(((InternalTimeQual)qual)->start,
-			GetCurrentTransactionStartTime()));
+		AbsoluteTime a, b;
+
+		a = ((InternalTimeQual)qual)->start;
+		b = GetCurrentTransactionStartTime();
+
+		if (AbsoluteTimeIsAfter(a, b))
+			return (false);
+		else
+			return (true);
 	}
 
 	/* TimeQualEvery */
@@ -270,7 +291,7 @@ TimeQualIncludesNow(qual)
 		return (false);
 	}
 	if (((InternalTimeQual)qual)->mode & TimeQualOlder &&
-			AbsoluteTimeIsBefore(
+			!AbsoluteTimeIsAfter(
 				((InternalTimeQual)qual)->end,
 				GetCurrentTransactionStartTime())) {
 
@@ -633,7 +654,8 @@ HeapTupleSatisfiesSnapshotInternalTimeQual(tuple, qual)
 	}
 
 	return ((bool)
-		!TimeIsBefore(tuple->t_tmax, TimeQualGetSnapshotTime(qual)));
+		AbsoluteTimeIsAfter(tuple->t_tmax,
+				    TimeQualGetSnapshotTime(qual)));
 }
 
 /*
@@ -678,7 +700,8 @@ HeapTupleSatisfiesUpperBoundedInternalTimeQual(tuple, qual)
 		tuple->t_tmax = TransactionIdGetCommitTime(tuple->t_xmax);
 	}
 
-	return ((bool)!TimeIsBefore(tuple->t_tmax, TimeQualGetStartTime(qual)));
+	return ((bool)AbsoluteTimeIsAfter(tuple->t_tmax,
+					  TimeQualGetStartTime(qual)));
 }
 
 /*
@@ -752,5 +775,6 @@ HeapTupleSatisfiesUpperUnboundedInternalTimeQual(tuple, qual)
 		tuple->t_tmax = TransactionIdGetCommitTime(tuple->t_xmax);
 	}
 
-	return ((bool)!TimeIsBefore(tuple->t_tmax, TimeQualGetStartTime(qual)));
+	return ((bool)AbsoluteTimeIsAfter(tuple->t_tmax,
+					  TimeQualGetStartTime(qual)));
 }
