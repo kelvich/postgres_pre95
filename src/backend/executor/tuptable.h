@@ -97,4 +97,11 @@ typedef TupleTableData *TupleTable;
 
 #define TupIsNull(x)	ExecNullSlot(x)
 
+#define ExecFetchTuple(slot) ((Pointer)((slot) ? SlotContents(slot) : NULL))
+
+#define ExecSlotDescriptor(slot) \
+	((TupleDescriptor)SlotTupleDescriptor((TupleTableSlot) slot))
+
+#define ExecSlotBuffer(slot) ((Buffer)SlotBuffer((TupleTableSlot) slot))
+
 #endif ExecTupTableHIncluded
