@@ -41,13 +41,53 @@ Prs2RawStub
 prs2StubToRawStub(relstub)
 Prs2Stub relstub;
 {
-    Size size;
-    Prs2RawStub res;
+    Prs2RawStub *pieces, res;
+    int npieces;
+    int maxsize;
+    int i;
+
+    maxsize = 1000000000;
+    pieces = prs2StubToSmallRawStubs(relstub, maxsize, &npieces);
+    if (npieces != 1) {
+	elog(WARN, "Hey! this is a pretty hefty stub you've got there!");
+    }
+
+    res = pieces[0];
+    pfree(pieces);
+
+    return(res);
+}
+
+/*-----------------------------------------------------------------------
+ *
+ * prs2StubToSmallRawStubs
+ *
+ * Similar to 'prs2StubToRawStub' but if the resulting stub is too big,
+ * then it breaks it in many pieces, each one of them being
+ * less than 'maxSize' bytes long.
+ * It returns an array of 'Prs2RawStub'. This array has '*nStubPiecesP'
+ * entries.
+ *
+ * THE ECOLOGICAL MESSAGE OF THE WEEK:
+ * Do not waste memory, recycle it! So, don't forget to pfree the stubs
+ * and the array when you are done!
+ *-----------------------------------------------------------------------
+ */
+Prs2RawStub *
+prs2StubToSmallRawStubs(relstub, maxSize, nStubPiecesP)
+Prs2Stub relstub;
+int *nStubPiecesP;
+{
+    Size thisSize, headerSize, sumSizes, locksize;
+    int nPieces;
+    Prs2RawStub *res;
     Prs2OneStub oneStub;
     char **stubQual;
+    int *stubSizes;
     int i,j;
     int len;
     char *s;
+    int nstubs;
 
     /*
      * NOTE: this routine does a two pass "parsing" of 'relstub'.
@@ -66,29 +106,36 @@ Prs2Stub relstub;
 	if (stubQual == NULL) {
 	    elog(WARN, "prs2StubToRawStub: Out of memory!\n");
 	}
+	stubSizes = (int *)palloc(sizeof(int) * relstub->numOfStubs);
+	if (stubSizes == NULL) {
+	    elog(WARN, "prs2StubToRawStub: Out of memory!\n");
+	}
+    } else {
+	stubQual = NULL;
+	stubSizes = NULL;
     }
 
     /*
-     * calculate the number fo bytes needed to hold
+     * calculate the number of bytes needed to hold
      * the raw representation of this stub record.
+     * First we calculate the # of bytes needed for
+     * each individual `Prs2OneStub' and we store it
+     * in array 'stubSizes'
      */
-    size = sizeof(relstub->numOfStubs);
 
     for (i=0; i< relstub->numOfStubs; i++) {
 	/*
 	 * calculate the size of each individual `Prs2OneStub'
-	 * and add it ti the total size.
 	 * Start with the fixed size part of the struct.
 	 */
 	oneStub = relstub->stubRecords[i];
-	size = size +
-		sizeof(oneStub->ruleId) +
+	thisSize = sizeof(oneStub->ruleId) +
 		sizeof(oneStub->stubId) +
 		sizeof(oneStub->counter);
 	/*
 	 * now add the rule lock size
 	 */
-	size = size +
+	thisSize = thisSize +
 		prs2LockSize( prs2GetNumberOfLocks(oneStub->lock));
 	/*
 	 * finally add the size of the stub's qualification.
@@ -99,33 +146,100 @@ Prs2Stub relstub;
 	 */
 	s = lispOut(oneStub->qualification);
 	stubQual[i] = s;
-	size = size + (strlen(s) + sizeof(int));
+	thisSize = thisSize + (strlen(s) + sizeof(int));
+	/*
+	 * store the size to 'stubSizes' and also
+	 * add it to the total size
+	 */
+	stubSizes[i] = thisSize;
+
     }
 
     /*
-     * allocate a big enough `Prs2RawStubData' struct to hold the
-     * whole thing...
+     * calculate in how many pieces we have to break
+     * the stub so that each piece is less than 'maxSize'
+     * bytes long.
      *
      * NOTE: Just as like in the "varlena" structure, the "size" field
      * in the Prs2RawStubData is the sum of its own size + the (variable)
      * size of the data that is following.
      */
-    size = size + sizeof(res->vl_len);
-    res = (Prs2RawStub) palloc(size);
-    if (res == NULL) {
-	elog(WARN,"prs2StubToRawStub: Out of memory");
+    nPieces = 0;
+    headerSize = sizeof(res[0]->vl_len) + sizeof(relstub->numOfStubs);
+    sumSizes = headerSize;
+    for (i=0; i< relstub->numOfStubs; i++) {
+	if (sumSizes + stubSizes[i] > maxSize) {
+	    nPieces++;
+	    sumSizes = stubSizes[i] + headerSize;
+	} else {
+	    sumSizes = sumSizes + stubSizes[i];
+	}
     }
-    res->vl_len = size;
+    nPieces++;
 
     /*
-     * now copy the whole thing to the res->vl_dat;
+     * OK, allocate an array of that many raw stub pieces
      */
-    s = &(res->vl_dat[0]);
+    res = (Prs2RawStub *) palloc(sizeof(Prs2RawStub) * nPieces);
+    if (res==NULL) {
+	elog(WARN,"prs2StubToRawStub: Out of memory");
+    }
 
-    bcopy((char *) &(relstub->numOfStubs), s, sizeof(relstub->numOfStubs));
-    s += sizeof(relstub->numOfStubs);
+    /*
+     * Now allocate enough space for each 
+     * such piece
+     */
+    j=0;
+    sumSizes = headerSize;
+    for (i=0; i< relstub->numOfStubs; i++) {
+	if (sumSizes + stubSizes[i] > maxSize) {
+	    res[j] = (Prs2RawStub)palloc(sumSizes);
+	    if (res[j]==NULL) {
+		elog(WARN,"prs2StubToRawStub: Out of memory");
+	    }
+	    res[j]->vl_len = sumSizes;
+	    j++;
+	    sumSizes = stubSizes[i] + headerSize;
+	} else {
+	    sumSizes = sumSizes + stubSizes[i];
+	}
+    }
+    res[j] = (Prs2RawStub)palloc(sumSizes);
+    if (res[j]==NULL) {
+	elog(WARN,"prs2StubToRawStub: Out of memory");
+    }
+    res[j]->vl_len = sumSizes;
+
+    
+    /*
+     * now copy the stubs to the raw stub pieces.
+     */
+    j=0;
+    s = &(res[j]->vl_dat[0]) + sizeof(relstub->numOfStubs);
+    sumSizes = headerSize;
+    nstubs = 0;
+
 
     for (i=0; i< relstub->numOfStubs; i++) {
+	if (sumSizes + stubSizes[i] > maxSize) {
+	    /*
+	     * time to start a new piece...
+	     * first update the 'numOfStubs' field of the previous
+	     * piece
+	     */
+	    bcopy((char *) &nstubs, &(res[j]->vl_dat[0]), sizeof(nstubs));
+	    /*
+	     * now continue with the next stub
+	     */
+	    j++;
+	    s = &(res[j]->vl_dat[0]) + sizeof(relstub->numOfStubs);
+	    sumSizes = headerSize;
+	    nstubs = 0;
+	}
+	nstubs ++;
+	/*
+	 * copy this prs2OneStub to the raw stub piece
+	 */
 	oneStub = relstub->stubRecords[i];
 	/*
 	 * copy the fixed size part of the record
@@ -139,9 +253,9 @@ Prs2Stub relstub;
 	/*
 	 * now copy the rule lock
 	 */
-	size = prs2LockSize(prs2GetNumberOfLocks(oneStub->lock));
-	bcopy((char *) oneStub->lock, s, size);
-	s+=size;
+	locksize = prs2LockSize(prs2GetNumberOfLocks(oneStub->lock));
+	bcopy((char *) oneStub->lock, s, locksize);
+	s+=locksize;
 	/*
 	 * finally copy the qualification
 	 * First the length of the string and then the string itself.
@@ -152,6 +266,11 @@ Prs2Stub relstub;
 	bcopy(stubQual[i], s, len);
 	s += len;
     }
+    /*
+     * Don't forget to update the 'numOfStubs' field of the
+     * last piece!
+     */
+    bcopy((char *) &nstubs, &(res[j]->vl_dat[0]), sizeof(nstubs));
 
     /*
      * Keep POSTGRES memory clean!
@@ -159,12 +278,15 @@ Prs2Stub relstub;
     for (i=0; i< relstub->numOfStubs; i++) {
 	pfree(stubQual[i]);
     }
-    if (relstub->numOfStubs > 0)
+    if (relstub->numOfStubs > 0) {
 	pfree(stubQual);
+	pfree(stubSizes);
+    }
 
     /* 
      * OK we are done!
      */
+    *nStubPiecesP = nPieces;
     return(res);
 }
 
@@ -175,6 +297,7 @@ Prs2Stub relstub;
  * given a stream of bytes (like the one created by
  * 'prs2StubToRawStub') recreate the original stub record
  *
+ *----------------------------------------------------------------------
  */
 Prs2Stub
 prs2RawStubToStub(rawStub)
@@ -268,3 +391,94 @@ Prs2RawStub rawStub;
      */
     return(relstub);
 }
+
+/*----------------------------------------------------------------------
+ * prs2RawStubUnion
+ *
+ * Make and return the union of the two given raw stubs.
+ *----------------------------------------------------------------------
+ */
+Prs2RawStub
+prs2RawStubUnion(stub1, stub2)
+Prs2RawStub stub1;
+Prs2RawStub stub2;
+{
+    Prs2RawStub res;
+    int size, size1, size2;
+    int nstubs, nstubs1, nstubs2;
+    char *data1, *data2;
+    char *s;
+
+    /*
+     * the data of each stub consists of the 4 bytes used
+     * to store the number of the "small stub record" (i.e.
+     * the equivalent to 'Prs2OneStubData' structure) contained
+     * in this stub + the data for these "small stub records".
+     * All this data is stored in the "vl_dat" field.
+     *
+     * Note that the number stored in "vl_len" is the size of all
+     * this stuff + the size of the "vl_len" field itself.
+     *
+     * The size of data  of the union will be the sum of space needed
+     * for the "small stub records" for stub 1, the space
+     * needed for the "small stub records" of stub2 and
+     * finally the 4 bytes to store the total number of
+     * new "small stub records".
+     */
+
+    /*
+     * read the 'number of stubs' information into 'nstubs1'
+     * and make 'data1' point to the first "small stub record"
+     * 'size1' is the size of the information for the "small
+     * stub records" only.
+     */
+    s = &(stub1->vl_dat[0]);
+    bcopy(s, (char *) &nstubs1, sizeof(nstubs1));
+    data1 = s + sizeof(nstubs1);
+    size1 = stub1->vl_len - sizeof(stub1->vl_len) - sizeof(nstubs1);
+
+    /*
+     * same thing for stub 2
+     */
+    s = &(stub2->vl_dat[0]);
+    bcopy(s, (char *) &nstubs2, sizeof(nstubs2));
+    data2 = s + sizeof(nstubs2);
+    size2 = stub2->vl_len - sizeof(stub2->vl_len) - sizeof(nstubs2);
+
+    /*
+     * find the total number of stubs and calculate the
+     * total size of the their union (including the number of
+     * small stub records and the size of 'vl_len')
+     */
+    nstubs = nstubs1 + nstubs2;
+    size = size1 + size2 + sizeof(nstubs) + sizeof(res->vl_len);
+
+
+    /*
+     * allocate space for the new stub and copy there the
+     * information about the number of stubs
+     */
+    res = (Prs2RawStub) palloc(size);
+    if (res == NULL) {
+	elog(WARN,"prs2RawStubUnion: Out of memory");
+    }
+    res->vl_len = size;
+    s = &(res->vl_dat[0]);
+    bcopy((char *)&nstubs, s, sizeof(nstubs));
+
+    /*
+     * now concatenate the data for the small stub records of
+     * stub1 and stub2 and copy them in the new union stub
+     */
+    s += sizeof(nstubs);
+    bcopy(&(stub1->vl_dat[0]), s, size1);
+    s += size1;
+    bcopy(&(stub2->vl_dat[0]), s, size2);
+
+    /*
+     * OK, we are done...
+     */
+    return(res);
+}
+
+
