@@ -39,6 +39,7 @@
 #include "storage/ipci.h"
 #include "storage/shmem.h"
 #include "storage/spin.h"
+#include "storage/smgr.h"
 #include "tmp/miscadmin.h"
 #include "utils/hsearch.h"
 #include "utils/log.h"
@@ -156,7 +157,6 @@ Relation 	reln;
 BlockNumber 	blockNum;
 bool		bufferLockHeld;
 {
-  File		virtFile; /* descriptor for reln file */
   BufferDesc *	bufHdr;	  
   int		extend;   /* extending the file by one block */
   int		status;
@@ -180,8 +180,8 @@ bool		bufferLockHeld;
      * want this extended.
      */
     if (extend) {
-      virtFile = RelationGetFile(reln);
-      status = BlockExtend(virtFile,bufHdr);
+      (void) smgrextend(bufHdr->bufsmgr, reln,
+			(char *) MAKE_PTR(bufHdr->data));
     }
     BufferHitCount++;
     return(BufferDescriptorGetBuffer(bufHdr));
@@ -191,18 +191,19 @@ bool		bufferLockHeld;
    * if we have gotten to this point, the reln pointer must be ok
    * and the relation file must be open.
    */
-  virtFile = RelationGetFile(reln);
 
   if (extend) {
-    status = BlockExtend(virtFile,bufHdr);
+    status = smgrextend(bufHdr->bufsmgr, reln,
+			(char *) MAKE_PTR(bufHdr->data));
   } else {
-    status = BlockRead(virtFile,bufHdr);
+    status = smgrread(bufHdr->bufsmgr, reln, blockNum,
+		      (char *) MAKE_PTR(bufHdr->data));
   }
 
   /* lock buffer manager again to update IO IN PROGRESS */
   SpinAcquire(BufMgrLock);
 
-  if (! status) {
+  if (status == SM_FAIL) {
     /* IO Failed.  cleanup the data structures and go home */
 
     if (! BufTableDelete(bufHdr)) {
@@ -259,15 +260,10 @@ bool		bufferLockHeld;
 
     /* create a new tag so we can lookup the buffer */
     /* assume that the relation is already open */
-  virtFile = RelationGetFile(reln);
   if (blockNum == NEW_BLOCK) {
       newblock = TRUE;
-      /*
-       * have to get the block number in order to insert the buffer page
-       * into the hash table.
-       */
-      blockNum = FileSeek(virtFile, 0L, L_XTND)/BLCKSZ;
-    }
+      blockNum = smgrnblocks(reln->rd_rel->relsmgr, reln);
+  }
 
   INIT_BUFFERTAG(&newTag,reln,blockNum);
 
@@ -358,13 +354,15 @@ bool		bufferLockHeld;
        */
       buf->flags &= ~BM_DIRTY;
     }
-  /*
-   *  record the database name and relation name for this buffer.
-   */
 
-  strcpy((char *)&(buf->sb_relname),
-         (char *)&(reln->rd_rel->relname),
-	 sizeof (NameData));
+  /* record the database name and relation name for this buffer */
+  strncpy((char *)&(buf->sb_relname),
+          (char *)&(reln->rd_rel->relname),
+	  sizeof (NameData));
+  strncpy((char *)&(buf->sb_dbname), MyDatabaseName, sizeof (NameData));
+
+  /* remember which storage manager is responsible for it */
+  buf->bufsmgr = reln->rd_rel->relsmgr;
 
   INIT_BUFFERTAG(&(buf->tag),reln,blockNum);
   if (! BufTableInsert(buf)) {
@@ -461,47 +459,80 @@ Buffer	buffer;
 
 
 /*
- * FlushBuffer -- like WriteBuffer, but force the page
- * 	to disk.
+ * FlushBuffer -- like WriteBuffer, but force the page to disk.
  */
 FlushBuffer(buffer)
 Buffer	buffer;
 {
   BufferDesc	*bufHdr;
+  OID		bufdb;
+  OID		bufrel;
   Relation	reln;
-  File		file;
-  Boolean	found;
+  int		status;
 
 
   if (BAD_BUFFER_ID(buffer)) {
     return(STATUS_ERROR);
   }
+
   bufHdr = BufferGetBufferDescriptor(buffer);
 
-  file = BlockPrepareFile(bufHdr, &found);
-  if (! BlockWrite(file,bufHdr)) {
-    elog(WARN,"WriteBuffer/FlushBuffer: cannot write file \n");
-    return(FALSE);
-  } 
+  /*
+   *  If the relation is not in our private cache, we don't bother trying
+   *  to instantiate it.  Instead, we call the storage manager routine that
+   *  does a blind write.  If we can get the reldesc, then we use the standard
+   *  write routine interface.
+   */
+
+  bufdb = bufHdr->tag.relId.dbId;
+  bufrel = bufHdr->tag.relId.relId;
+
+  if (bufdb == MyDatabaseId || bufdb == (OID) NULL)
+      reln = RelationIdCacheGetRelation(bufrel);
+  else
+      reln = (Relation) NULL;
+
+  if (reln != (Relation) NULL) {
+      status = smgrflush(bufHdr->bufsmgr, reln, bufHdr->tag.blockNum,
+			 (char *) MAKE_PTR(bufHdr->data));
+  } else {
+
+      /* blind write always flushes */
+      status = smgrblindwrt(bufHdr->bufsmgr, bufdb, bufrel,
+			    bufHdr->sb_relname, bufHdr->sb_dbname,
+			    bufHdr->tag.blockNum,
+			    (char *) MAKE_PTR(bufHdr->data));
+  }
+
+  if (status == SM_FAIL) {
+      elog(WARN, "FlushBuffer: cannot flush %d for %16s", bufHdr->tag.blockNum,
+		 reln->rd_rel->relname);
+      /* NOTREACHED */
+      return (STATUS_ERROR);
+  }
+
   SpinAcquire(BufMgrLock);
   bufHdr->flags &= ~BM_DIRTY; 
   UnpinBuffer(bufHdr);
   SpinRelease(BufMgrLock);
 
-  if (!found) {
-      FileClose(file);
-    }
   return(STATUS_OK);
 }
 
 /*
- * WriteNoReleaseBuffer -- like WriteBuffer, but do not
- * 	unpin when the operation is complete.
+ * WriteNoReleaseBuffer -- like WriteBuffer, but do not unpin the buffer
+ * 			   when the operation is complete.
+ *
+ *	We know that the buffer is for a relation in our private cache,
+ *	because this routine is called only to write out buffers that
+ *	were changed by the executing backend.
  */
+
 WriteNoReleaseBuffer(buffer)
 Buffer	buffer;
 {
   BufferDesc	*bufHdr;
+  Relation	reln;
 
   if (! LateWrite) {
     return(FlushBuffer(buffer));
@@ -525,6 +556,7 @@ Buffer	buffer;
  * 	marking it dirty.
  *
  */
+
 ReleaseBuffer(buffer)
 Buffer	buffer;
 {
@@ -619,23 +651,64 @@ Buffer	buffer;
 }
 
 /*
- * CleanupBuffers -- sync everything.  This is an error
- * 	handling function.  I currently don't use it.
+ * BufferSync -- Flush all dirty buffers in the pool.
+ *
+ *	This is called at transaction commit time.  It does the wrong thing,
+ *	right now.  We should flush only our own changes to stable storage,
+ *	and we should obey the lock protocol on the buffer manager metadata
+ *	as we do it.  Also, we need to be sure that no other transaction is
+ *	modifying the page as we flush it.  This is only a problem for objects
+ *	that use a non-two-phase locking protocol, like btree indices.  For
+ *	those objects, we would like to set a write lock for the duration of
+ *	our IO.  Another possibility is to code updates to btree pages
+ *	carefully, so that writing them out out of order cannot cause
+ *	any unrecoverable errors.
+ *
+ *	I don't want to think hard about this right now, so I will try
+ *	to come back to it later.
  */
 void
 BufferSync()
 { 
   int i;
+  OID bufdb;
+  OID bufrel;
+  Relation reln;
   BufferDesc *bufHdr;
+  int status;
 
-  for(i=0,bufHdr = BufferDescriptors;
-      i<NBuffers;
-      i++,bufHdr++) { if (bufHdr->flags & BM_VALID) {
-      if(bufHdr->flags & BM_DIRTY) {
-	bufHdr->flags &= ~BM_DIRTY;
-	(void) BlockReplace(bufHdr);
+  for (i=0, bufHdr = BufferDescriptors; i < NBuffers; i++, bufHdr++) {
+      if ((bufHdr->flags & BM_VALID) && (bufHdr->flags & BM_DIRTY)) {
+	  bufdb = bufHdr->tag.relId.dbId;
+	  bufrel = bufHdr->tag.relId.relId;
+	  if (bufdb == MyDatabaseId || bufdb == (OID) 0) {
+	      reln = RelationIdCacheGetRelation(bufrel);
+
+	      /*
+	       *  If we didn't have the reldesc in our local cache, flush this
+	       *  page out using the 'blind write' storage manager routine.  If
+	       *  we did find it, use the standard interface.
+	       */
+
+	      if (reln == (Relation) NULL) {
+		  status = smgrblindwrt(bufHdr->bufsmgr, bufdb, bufrel,
+					bufHdr->sb_dbname, bufHdr->sb_relname,
+					bufHdr->tag.blockNum,
+					(char *) MAKE_PTR(bufHdr->data));
+	      } else {
+		  status = smgrwrite(bufHdr->bufsmgr, reln,
+				     bufHdr->tag.blockNum,
+				     (char *) MAKE_PTR(bufHdr->data));
+	      }
+
+	      if (status == SM_FAIL) {
+		  elog(WARN, "cannot write %d for %16s: %m",
+		       bufHdr->tag.blockNum, bufHdr->sb_relname);
+	      }
+
+	      bufHdr->flags &= ~BM_DIRTY;
+	  }
       }
-    }
   }
 }
 
@@ -1138,7 +1211,7 @@ BlockNumber
 RelationGetNumberOfBlocks(relation)
 Relation        relation;
 {
-     return(FileGetNumberOfBlocks(relation->rd_fd));
+     return (smgrnblocks(relation->rd_rel->relsmgr, relation));
 }
 
 /**************************************************
