@@ -335,6 +335,17 @@ DATA(insert OID = 336 (  btmarkpos         6 11 f t f 1  23 foo bar ));
 DATA(insert OID = 337 (  btrestrpos        6 11 f t f 1  23 foo bar ));
 DATA(insert OID = 338 (  btbuild           6 11 f t f 7  23 foo bar ));
 
+DATA(insert OID = 339 (  poly_same         6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 340 (  poly_contain      6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 341 (  poly_left         6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 342 (  poly_overleft     6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 343 (  poly_overright    6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 344 (  poly_right        6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 345 (  poly_contained    6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 346 (  poly_overlap      6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 347 (  poly_in           6 11 f t f 1 604 foo bar ));
+DATA(insert OID = 348 (  poly_out          6 11 f t f 1  23 foo bar ));
+
 DATA(insert OID = 350 (  btint2cmp         6 11 f t f 2  23 foo bar ));
 DATA(insert OID = 351 (  btint4cmp         6 11 f t f 2  23 foo bar ));
 DATA(insert OID = 352 (  btint42cmp        6 11 f t f 2  23 foo bar ));
