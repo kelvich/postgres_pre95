@@ -100,6 +100,10 @@ intltsel(opid, relid, attno, value, flag)
 		gethilokey(relid, (int) attno, opid, &highchar, &lowchar);
 		high = atol(highchar);
 		low = atol(lowchar);
+		if (high == 0 || low == 0) {
+			*result = 1.0/3.0;
+			return (result);
+		}
 		if ((flag & SEL_RIGHT && val < low) ||
 		    (!(flag & SEL_RIGHT) && val > high))
 			*result = 0.0;
@@ -264,8 +268,7 @@ getattnvals(relid, attnum)
 	   just for now, because number of distinctive values is
 	   not cached */
 	if (!HeapTupleIsValid(atp)) {
-		elog(WARN, "getattnvals: no attribute tuple %d %d",
-		     relid, attnum);
+		elog(WARN, "getattnvals: no relation tuple %d", relid);
 		return(0);
 	}
 	nvals = ((RelationTupleForm) GETSTRUCT(atp))->reltuples;
@@ -339,4 +342,61 @@ gethilokey(relid, attnum, opid, high, low)
 #endif /* !HAS_STAHIKEY */
 	HeapScanEnd(sdesc);
 	RelationCloseHeapRelation(rdesc);
+}
+
+float64
+btreesel(operatorObjectId, indrelid, attributeNumber,
+	 constValue, constFlag, nIndexKeys, indexrelid)
+ObjectId 	operatorObjectId, indrelid, indexrelid;
+AttributeNumber attributeNumber;
+char		*constValue;
+int32		constFlag;
+int32		nIndexKeys;
+{
+	float64 result;
+
+	result = (float64)fmgr(get_oprrest (operatorObjectId),
+				(char*)operatorObjectId,
+				(char*)indrelid,
+				(char*)attributeNumber,
+				(char*)constValue,
+				(char*)constFlag);
+
+	if (!PointerIsValid(result))
+		elog(WARN, "Btree Selectivity: bad pointer");
+	if (*result < 0.0 || *result > 1.0)
+		elog(WARN, "Btree Selectivity: bad value %lf", *result);
+
+	return(result);
+}
+
+float64
+btreenpage(operatorObjectId, indrelid, attributeNumber,
+	 constValue, constFlag, nIndexKeys, indexrelid)
+ObjectId 	operatorObjectId, indrelid, indexrelid;
+AttributeNumber attributeNumber;
+char		*constValue;
+int32		constFlag;
+int32		nIndexKeys;
+{
+	float64 temp, result;
+	HeapTuple atp;
+	int npage;
+
+	temp = (float64)fmgr(get_oprrest (operatorObjectId),
+				(char*)operatorObjectId,
+				(char*)indrelid,
+				(char*)attributeNumber,
+				(char*)constValue,
+				(char*)constFlag);
+        atp = SearchSysCacheTuple(RELOID, indexrelid, NULL, NULL, NULL);
+        if (!HeapTupleIsValid(atp)) {
+                elog(WARN, "btreenpage: no index tuple %d", indexrelid);
+                return(0);
+        }
+	
+	npage = ((RelationTupleForm) GETSTRUCT(atp))->relpages;
+	result = (float64)palloc(sizeof(float64data));
+	*result = *temp * npage;
+	return(result);
 }
