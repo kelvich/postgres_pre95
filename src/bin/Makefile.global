@@ -1,3 +1,7 @@
+#
+# $Header$
+#
+
 CFLAGS+= -I${.CURDIR}/../../backend
 
 #
