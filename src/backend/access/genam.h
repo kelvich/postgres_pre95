@@ -195,7 +195,7 @@ extern
 RetrieveIndexResult
 IndexScanGetRetrieveIndexResult ARGS((
 	IndexScanDesc	scan,
-	Boolean		backward
+	ScanDirection	direction
 ));
 
 /*
@@ -209,7 +209,7 @@ extern
 GeneralRetrieveIndexResult
 IndexScanGetGeneralRetrieveIndexResult ARGS((
 	IndexScanDesc	scan,
-	Boolean		backward
+	ScanDirection	direction
 ));
 
 /* OBSOLETE
