@@ -53,3 +53,11 @@ I decided against installing the scripts by default since Juergen
 recommends against their use (well, in the case of pg_edit, anyway).
 
 		-- Paul M. Aoki (aoki@postgres.Berkeley.EDU), 03/04/93
+
+It also appears to work on a
+	DEC 5000/240 (MIPS) running Ultrix 4.3a
+	DEC 3000/500X (Alpha AXP) running OSF/1 1.3
+	Sun SS10/31 running SunOS 4.1.3
+	H-P 9000/877 running HP-UX 9.00
+
+		-- Paul M. Aoki (aoki@postgres.Berkeley.EDU), 01/29/94
