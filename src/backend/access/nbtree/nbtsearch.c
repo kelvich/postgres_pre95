@@ -20,6 +20,11 @@
 #include "access/sdir.h"
 #include "access/nbtree.h"
 
+int16	*MaoBlock1;
+Buffer	*MaoBuffer1;
+int16	*MaoBlock2;
+Buffer	*MaoBuffer2;
+
 RcsId("$Header$");
 
 /*
@@ -534,10 +539,20 @@ _bt_next(scan, dir)
 
     rel = scan->relation;
     so = (BTScanOpaque) scan->opaque;
+    current = &(scan->currentItemData);
+
+    /*
+     *  XXX 10 may 91:  somewhere there's a bug in our management of the
+     *  cached buffer for this scan.  wei discovered it.  the following
+     *  is a workaround so he can work until i figure out what's going on.
+     */
+
+    if (!BufferIsValid(so->btso_curbuf))
+	so->btso_curbuf = _bt_getbuf(rel, ItemPointerGetBlockNumber(current),
+				     BT_READ);
 
     /* we still have the buffer pinned and locked */
     buf = so->btso_curbuf;
-    current = &(scan->currentItemData);
     blkno = BufferGetBlockNumber(buf);
 
     /* step one tuple in the appropriate direction */
