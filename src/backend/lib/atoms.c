@@ -92,6 +92,7 @@ ScanKeyword	ScanKeywords[] = {
 	{ "priority",		PRIORITY	},
 	{ "purge",		PURGE		},
 	{ "quel",		QUEL		},
+	{ "relation",		RELATION	},
 	{ "remove",		REMOVE		},
 	{ "rename",		RENAME		},
 	{ "replace",		REPLACE		},
