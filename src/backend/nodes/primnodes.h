@@ -149,6 +149,20 @@ class (Const) public (Expr) {
 
 
 /*
+ * Bool		Expression whose value is either True or False.
+ *
+ *	boolvalue - the Bool's value (true or false)
+ */
+
+class (Bool) public (Expr) {
+ /* private: */
+	inherits(Expr);
+	bool			boolvalue;
+ /* public: */
+};
+
+
+/*
  * Param
  *	paramid - numeric identifier for literal-constant parameters ("$1")
  *	paramtype - attribute name for tuple-substitution parameters ("$.foo")
