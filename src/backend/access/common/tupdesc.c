@@ -301,8 +301,8 @@ BuildDesc(schema)
 	    attdim = get_arrayndim(arry);
 
 	    /* array of XXX is _XXX (inherited from release 3) */
-	    sprintf(buf, "_%s", typename);
-	    strcpy(typename, buf);
+	    sprintf(buf, "_%.*s", NAMEDATALEN, typename);
+	    strncpy(typename, buf, NAMEDATALEN);
 	}
 
 	if (!TupleDescInitEntry(desc, attnum, attname, typename, attdim)) {
@@ -412,8 +412,8 @@ BuildDescForRelation(schema, relname)
 	    attdim = get_arrayndim(arry);
 
 	    /* array of XXX is _XXX (inherited from release 3) */
-	    sprintf(buf, "_%s", typename);
-	    strcpy(typename, buf);
+	    sprintf(buf, "_%.*s", NAMEDATALEN, typename);
+	    strncpy(typename, buf, NAMEDATALEN);
 	}
 	else
 	    attdim = 0;
@@ -427,10 +427,11 @@ BuildDescForRelation(schema, relname)
 	     *  have a self reference, otherwise it's an error.
 	     * ----------------
 	     */
-	    if (!strcmp(typename, relname)) {
+	    if (!strncmp(typename, relname, NAMEDATALEN)) {
 		TupleDescMakeSelfReference(desc, attnum, relname);
 	    } else
-		elog(WARN, "DefineRelation: no such type %s", typename);
+		elog(WARN, "DefineRelation: no such type %.*s", 
+			NAMEDATALEN, typename);
 	}
     }
     return desc;
