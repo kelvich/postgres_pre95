@@ -34,7 +34,7 @@
  * All other states cannot occur.
  *
  * Note:
- *	It would be possible to cache the status of the previous and
+ *It would be possible to cache the status of the previous and
  *	next item pointer using the flags.
  * ----------------------------------------------------------------
  */
