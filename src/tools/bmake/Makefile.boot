@@ -65,9 +65,9 @@ LSTOFILES= lst.lib/lstAppend.o lst.lib/lstAtEnd.o lst.lib/lstAtFront.o \
 
 XYZZY:
 	@echo 'make started.'
-	cc ${CFLAGS} -I. -c ${CFILES}
-	cd lst.lib; cc ${CFLAGS} -I.. -c ${LSTCFILES}
-	cc ${CFLAGS} ${OFILES} ${LSTOFILES} ${MORELIBS} -o bootmake
+	${CC} ${CFLAGS} -I. -c ${CFILES}
+	cd lst.lib; ${CC} ${CFLAGS} -I.. -c ${LSTCFILES}
+	${CC} ${CFLAGS} ${OFILES} ${LSTOFILES} ${MORELIBS} -o bootmake
 	rm -f ${OFILES} ${LSTOFILES}
 	-if test ! -d obj; \
 		then mkdir obj; fi
