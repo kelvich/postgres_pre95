@@ -9,6 +9,7 @@ RcsId("$Header$");
 
 #include "utils/palloc.h"
 
+#include "utils/log.h"
 
 	    /* ========== USER I/O ROUTINES ========== */
 
@@ -101,4 +102,26 @@ int32	oideq(arg1, arg2) ObjectId arg1, arg2;	{ return(arg1 == arg2); }
 
 int32	oidne(arg1, arg2) ObjectId arg1, arg2;	{ return(arg1 != arg2); }
 
+int32
+oid8eq(arg1, arg2)
+         ObjectId arg1[], arg2[];
+{
+        return (int32)(bcmp(arg1, arg2, 8 * sizeof(ObjectId)) == 0);
+}
+
 	     /* ========== PRIVATE ROUTINES ========== */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
