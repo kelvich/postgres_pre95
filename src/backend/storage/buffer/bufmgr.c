@@ -144,11 +144,14 @@ BlockNumber blockNumber;
 Buffer buffer;
 {
     BufferDesc *bufHdr;
+    LRelId lrelId;
 
     if (BufferIsValid(buffer)) {
         bufHdr = BufferGetBufferDescriptor(buffer);
+	lrelId = RelationGetLRelId(relation);
 	if (bufHdr->tag.blockNum == blockNumber &&
-	    bufHdr->tag.relId.relId == relation->rd_id)
+	    bufHdr->tag.relId.relId == lrelId.relId &&
+	    bufHdr->tag.relId.dbId == lrelId.dbId)
 	    return buffer;
       }
     return(ReadBuffer(relation,blockNumber));
