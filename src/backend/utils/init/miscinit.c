@@ -1,3 +1,4 @@
+
 /* ----------------------------------------------------------------
  *   FILE
  *	miscinit.c
@@ -32,7 +33,6 @@
  *	Enables system abort iff set to a non-empty string in environment.
  */
 #define EnableAbortEnvVarName	"POSTGRESABORT"
-#define DEFAULT_PGHOME		"/usr/postgres"
 
 typedef String	EnvVarName;
 extern String getenv ARGS((EnvVarName name));
@@ -287,10 +287,12 @@ GetPGHome()
 {
     char *h;
 
+#ifdef USE_ENVIRONMENT
     if ((h = getenv("POSTGRESHOME")) != (char *) NULL)
 	return (h);
+#endif
 
-    return (DEFAULT_PGHOME);
+    return (POSTGRESDIR);
 }
 
 char *
@@ -300,11 +302,9 @@ GetPGData()
     char *h;
     static char data[MAXPGPATH];
 
-    if ((p = getenv("PGDATA")) == (char *) NULL) {
-	h = GetPGHome();
-	sprintf(data, "%s/data", h);
-	p = &data[0];
+    if ((p = getenv("PGDATA")) != (char *) NULL) {
+        return (p);
     }
 
-    return (p);
+    return (DATADIR);
 }
