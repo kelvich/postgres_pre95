@@ -734,7 +734,7 @@ SIReadEntryData(segP, backendId, invalFunction, resetFunction)
     void    (*invalFunction)();
     void    (*resetFunction)();
 {
-    int i;
+    int i = 0;
     SISegEntry *data;
 
     Assert(segP->procState[backendId - 1].tag == MyBackendTag);
@@ -742,7 +742,6 @@ SIReadEntryData(segP, backendId, invalFunction, resetFunction)
     if (!segP->procState[backendId - 1].resetState) {
     	/* invalidate data, but only those, you have not seen yet !!*/
     	/* therefore skip read messages */
-    	i = 0;
     	data = SIGetNthDataEntry(segP, 
     	    	    	    	 SIGetProcStateLimit(segP, backendId - 1) + 1);
     	while (data != NULL) {
@@ -759,9 +758,9 @@ SIReadEntryData(segP, backendId, invalFunction, resetFunction)
     	elog(NOTICE, "SIMarkEntryData: cache state reset");
         resetFunction(); /* XXXX call it here, parameters? */
 
-		/* new valid state--mark all messages "read" */
-		segP->procState[backendId - 1].resetState = false;
-		segP->procState[backendId - 1].limit = SIGetNumEntries(segP);
+	/* new valid state--mark all messages "read" */
+	segP->procState[backendId - 1].resetState = false;
+	segP->procState[backendId - 1].limit = SIGetNumEntries(segP);
     }
     /* check whether we can remove dead messages    	    	    	    */
     if (i > MAXNUMMESSAGES) {
