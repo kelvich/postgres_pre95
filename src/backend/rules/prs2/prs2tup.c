@@ -248,9 +248,9 @@ bool hintFlag;
 
     while((tuple = HeapScanGetNextTuple(scanDesc, false, &buffer)) != NULL) {
 	/*
-	 * shall we put a lock to this tuple?
+	 * find the already existing locks of this tuple.
 	 */
-	tlocks = HeapTupleGetRuleLock(tuple, buffer);
+	tlocks = prs2GetLocksFromTuple(tuple, buffer);
 	/*
 	 * NOTE: the first test (planQual==lispNil) is not really
 	 * required, because 'prs2StubQualTestTuple' will succeed
@@ -272,18 +272,20 @@ bool hintFlag;
 	    RelationReplaceHeapTuple(rel, &(tuple->t_ctid),
 					newTuple, (double *)NULL);
 	    /*
-	     * Free all tuples/locks.
-	     * Do NOT free `tuple' because it is probably a pointer
-	     * to a buffer page and not to 'palloced' data.
-	     * But free 'newtlocks' and 'newTuple' because the are
-	     * guaranteed to be palloced.
-	     * We should also free 'tlocks' because 'HeapTupleGetRuleLock'
-	     * returns a palloced memory representation of locks...
+	     * Free all new tuples/locks.
 	     */
 	    prs2FreeLocks(newtlocks);
-	    prs2FreeLocks(tlocks);
 	    pfree(newTuple);
 	}
+	/*
+	 * free the `tlocks' to avoid memory leaks
+	 * (remember: 'prs2GetLocksFromTuple' always
+	 * return some new, freshly palloced memory)
+	 *
+	 * Do NOT free `tuple' because it is probably a pointer
+	 * to a buffer page and not to 'palloced' data.
+	 */
+	prs2FreeLocks(tlocks);
     }
 
     /*
@@ -703,7 +705,7 @@ int nrules;
     scanDesc = RelationBeginHeapScan(rel, false, NowTimeQual, 0, NULL);
 
     while((tuple = HeapScanGetNextTuple(scanDesc, false, &buffer)) != NULL) {
-	tlocks = HeapTupleGetRuleLock(tuple, buffer);
+	tlocks = prs2GetLocksFromTuple(tuple, buffer);
 	status = false;
 	for (i=0; i<nrules;  i++) {
 	    if (prs2RemoveAllLocksOfRuleInPlace(tlocks, ruleIds[i]))
@@ -719,13 +721,13 @@ int nrules;
 
 	    RelationReplaceHeapTuple(rel, &(tuple->t_ctid),
 					newTuple, (double *)NULL);
-	    /* 
-	     * NOTE: I tried to 'pfree(tuple)' and 
-	     * I got an error message...
-	     */
-	    prs2FreeLocks(tlocks);
 	    pfree(newTuple);
 	}
+	/*
+	 * free the `tlocks' (because `prs2GetLocksFromTuple'
+	 * always return a copy of the locks.
+	 */
+	prs2FreeLocks(tlocks);
     }
 
     RelationCloseHeapRelation(rel);
