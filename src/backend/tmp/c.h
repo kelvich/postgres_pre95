@@ -681,7 +681,7 @@ form ARGS((
  *
  *	// DO *NOT* INCLUDE A TRAILING ^ COMMA
  */
-
+#ifndef SABER
 #define constantquote(x)"
 #define prefixquote(x)constantquote(x)x
 #define prefixquoteunder(x)prefixquote(_)x
@@ -692,7 +692,10 @@ form ARGS((
 
 #define ExternDecl(_external_) \
 	{ (data_ptr)&(_external_), symstring(_external_) }
-
+#else
+#define SymbolDecl(_symbol_) 
+#define ExternDecl(_external_)
+#endif
 /* ----------------
  *	stuff added from status.h
  * ----------------
