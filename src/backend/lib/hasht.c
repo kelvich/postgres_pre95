@@ -12,15 +12,15 @@
  * pass through.  If you find what you want, switch it with the invalid.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "enbl.h"
-#include "log.h"
-#include "mcxt.h"
+#include "utils/module.h"
+#include "utils/log.h"
+#include "utils/mcxt.h"
 
-#include "hasht.h"
+#include "tmp/hasht.h"
 
 /* #define DEBUG_HASH		/* debug hash table inserts and deletes */
 
