@@ -20,9 +20,9 @@ port]
 .SH DESCRIPTION
 .IR Destroydb
 destroys an existing database.  To execute this command, the user must
-be the database administrator, or DBA, for this database.  After the
-database is destroyed, a \*(UU shell prompt will reappear; no
-confirmation message will be displayed.
+be the database administrator, or DBA, for this database.
+The program runs silently; no confirmation message will be displayed.
+After the database is destroyed, a \*(UU shell prompt will reappear.
 .PP
 .IR Destroydb
 is a shell script that invokes
@@ -79,14 +79,12 @@ is listening for connections.  Defaults to 4321, or the value of the
 environment variable (if set).
 .SH EXAMPLES
 .(C
-/* destroy the demo database */
+# destroy the demo database
 destroydb demo
 .)C
 .(C
-/*
- * destroy the demo database using the postmaster on host eden,
- * port 1234, using the Kerberos authentication system.
- */
+# destroy the demo database using the postmaster on host eden,
+# port 1234, using the Kerberos authentication system.
 destroydb -a kerberos -p 1234 -h eden demo
 .)C
 .SH FILES
