@@ -13,7 +13,6 @@ extern ObjectId get_commutator ARGS((ObjectId opid));
 extern ObjectId get_negator ARGS((ObjectId opid));
 extern RegProcedure get_oprrest ARGS((ObjectId opid));
 extern RegProcedure get_oprjoin ARGS((ObjectId opid));
-extern ObjectId get_regproc ARGS((Name funname));
 extern AttributeNumber get_relnatts ARGS((ObjectId relid));
 extern Name get_rel_name ARGS((ObjectId relid));
 extern struct varlena * get_relstub ARGS((ObjectId relid, int no, bool *islast));

@@ -20,7 +20,6 @@
  *    		get_negator
  *    		get_oprrest
  *    		get_oprjoin
- *    		get_regproc
  *    		get_relnatts
  *    		get_rel_name
  *    		get_typlen
@@ -385,24 +384,6 @@ get_oprjoin (opno)
       return(optup.oprjoin);
     else
       return((RegProcedure)NULL);
-}
-
-/*    		---------- PROCEDURE CACHE ----------
- */
-
-/*    
- *         get_regproc
- *    
- *         Given the function name
- *         return the "oid" field from the FUNCTION relation.
- *    
- */
-
-ObjectId
-get_regproc (funname)
-     Name funname ;
-{
-    return((ObjectId)SearchSysCacheGetAttribute( PRONAME,-3,funname,0,0,0));
 }
 
 /*    		---------- RELATION CACHE ----------
