@@ -137,6 +137,11 @@ create_plan(best_path,origtlist)
 	  plan_node = sorted_plan_node;
 	  
      }
+     /*
+      * Destructively modify the query plan's targetlist to add fjoin
+      * lists to flatten functions that return sets of base types
+      */
+     set_qptargetlist(plan_node, generate_fjoin(get_qptargetlist(plan_node)));
      return(plan_node);
 
 } /* function end */
@@ -1107,4 +1112,54 @@ make_unique(tlist,lefttree)
     set_keycount((Temp)node,0);
 
     return(node);
+}
+
+List
+generate_fjoin(tlist)
+    List tlist;
+{
+    List tlistP;
+    List newTlist = LispNil;
+    List fjoinList = LispNil;
+    int  nIters = 0;
+
+    /*
+     * Break the target list into elements with Iter nodes,
+     * and those without them.
+     */
+    foreach(tlistP, tlist)
+    {
+	List tlistElem;
+
+	tlistElem = CAR(tlistP);
+	if ( IsA(CADR(tlistElem),Iter) )
+	{
+	    nIters++;
+	    fjoinList = nappend1(fjoinList, tlistElem);
+	}
+	else
+	{
+	    newTlist = nappend1(newTlist, tlistElem);
+	}
+    }
+
+    /*
+     * if we have more than 1 Iter node then we need to flatten.
+     */
+    if (nIters > 1)
+    {
+	LispValue inner;
+	List      tempList;
+	Fjoin     fjoinNode;
+	Datum     *results = (Datum *)palloc(nIters*sizeof(Datum));
+
+	inner = CAR(fjoinList);
+	fjoinList = CDR(fjoinList);
+	CDR(inner) = LispNil;
+	fjoinNode = (Fjoin)MakeFjoin(nIters, inner, results);
+	tempList = nappend1(fjoinNode, LispNil);
+	tempList = nappend1(fjoinNode, fjoinList);
+	newTlist = nappend1(newTlist, tempList);
+    }
+    return newTlist;
 }
