@@ -89,7 +89,7 @@ collect (pred,list)
 
     foreach (temp,list) {
 	if ((* pred)(CAR(temp)))
-	  retval = nappend1(retval,temp);
+	  retval = nappend1(retval,CAR(temp));
     }
     return(retval);
 }
@@ -139,7 +139,6 @@ copy_seq_tree (seqtree)
 {
     LispValue new_seq = LispNil;
     LispValue new_elem = LispNil;
-    LispValue elem = LispNil;
     LispValue i = LispNil;
 
     if ( null(seqtree))
