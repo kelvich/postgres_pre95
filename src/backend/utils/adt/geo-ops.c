@@ -1755,8 +1755,8 @@ POLYGON *poly;
 	npts = poly->npts;
 	x1 = poly_min((double *)poly->pts, npts);
 	x2 = poly_max((double *)poly->pts, npts);
-	y1 = poly_min((double *)poly->pts+(npts*sizeof(double)), npts),
-	y2 = poly_max((double *)poly->pts+(npts*sizeof(double)), npts);
+	y1 = poly_min(((double *)poly->pts)+npts, npts),
+	y2 = poly_max(((double *)poly->pts)+npts, npts);
 	box_fill(&(poly->boundbox), x1, x2, y1, y2); 
 }
 	
