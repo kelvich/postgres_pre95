@@ -408,6 +408,7 @@ main(argc, argv)
     int			flagC;
     int			flagQ;
     int			flagM;
+    int			flagS;
     int			flag;
 
     int			numslaves;
@@ -437,24 +438,53 @@ main(argc, argv)
      * ----------------
      */
     numslaves = 0;
-    flagC = flagQ = flagM = 0;
+    flagC = flagQ = flagM = flagS = 0;
     
-    while ((flag = getopt(argc, argv, "CQOM:dnpP:B:b:")) != EOF)
+    while ((flag = getopt(argc, argv, "CQOM:dnpP:B:b:S")) != EOF)
       switch (flag) {
-	case 'd':	/* -debug mode */
+	  
+      case 'd':
+	  /* -debug mode */
 	  /* DebugMode = true;  */
 	  flagQ = 0;
 	  break;
-	case 'C':
+	  
+      case 'C':
+	  /* ----------------
+	   *	I don't know what this does -cim 5/12/90
+	   * ----------------
+	   */
 	  flagC = 1;
 	  break;
-	case 'Q':
+	  
+      case 'Q':
+	  /* ----------------
+	   *	Q - set Quiet mode (reduce debugging output)
+	   * ----------------
+	   */
 	  flagQ = 1;
 	  break;
-	case 'O':
+	  
+      case 'O':
+	  /* ----------------
+	   *	O - override transaction system.  This used
+	   *	    to be used to set the AMI_OVERRIDE flag for
+	   *	    creation of initial system relations at
+	   *	    bootstrap time.  I think MikeH changed its
+	   *	    meaning and am not sure it works now.. -cim 5/12/90
+	   * ----------------
+	   */
 	  override = true;
 	  break;
-	case 'M':
+	  
+      case 'M':
+	  /* ----------------
+	   *	M # - process queries in parallel.  The system
+	   *	      will initially fork several slave backends
+	   *	      and the initial backend will plan parallel
+	   *	      queries and pass them to the slaves. -cim 5/12/90
+	   * ----------------
+	   */
 	  numslaves = atoi(optarg);
 	  if (numslaves > 0) {
 	      SetParallelExecutorEnabled(true);
@@ -463,20 +493,52 @@ main(argc, argv)
 	      errs += 1;
 	  flagM = 1;
 	  break;
-	case 'p':	/* started by postmaster */
+	  
+      case 'p':	/* started by postmaster */
+	  /* ----------------
+	   *	p - special flag passed if backend was forked
+	   *	    by a postmaster.
+	   * ----------------
+	   */
 	  IsUnderPostmaster = true;
 	  break;
-	case 'P':
+	  
+      case 'P':
+	  /* ----------------
+	   *	??? -cim 5/12/90
+	   * ----------------
+	   */
           Portfd = atoi(optarg);
 	  break;
-	case 'b':
-	case 'B':
+	  
+      case 'b':
+      case 'B':
+	  /* ----------------
+	   *	??? -cim 5/12/90
+	   * ----------------
+	   */
 	  NBuffers = atoi(optarg);
 	  break;
-	case 'n': /* do nothing for now - no debug mode */
+	  
+      case 'n': /* do nothing for now - no debug mode */
+	  /* ----------------
+	   *	??? -cim 5/12/90
+	   * ----------------
+	   */
 	  /* DebugMode = false; */
 	  break;
-	default:
+	  
+      case 'S':
+	  /* ----------------
+	   *	S - assume stable main memory
+	   *	    (don't flush all pages at end transaction)
+	   * ----------------
+	   */
+	  flagS = 1;
+	  SetTransactionFlushEnabled(false);
+	  break;
+	  
+      default:
 	  errs += 1;
       }
 
@@ -486,6 +548,7 @@ main(argc, argv)
 	fputs(" -M # =  Enable Parallel Query Execution\n", stderr);
 	fputs("          (# is number of slave backends)\n", stderr);
 	fputs(" -O   =  Override Transaction System\n", stderr);
+	fputs(" -S   =  assume Stable Main Memory\n", stderr);
 	fputs(" -Q   =  Quiet mode (less debugging output)\n", stderr);
 	exitpg(1);
     } else if (argc - optind == 1) {
@@ -506,6 +569,7 @@ main(argc, argv)
 	printf("\tQuiet =        %c\n", Quiet 	  ? 't' : 'f');
 	printf("\tNoversion =    %c\n", Noversion ? 't' : 'f');
 	printf("\toverride  =    %c\n", override  ? 't' : 'f');
+	printf("\tstable    =    %c\n", flagS     ? 't' : 'f');
 	printf("\tparallel  =    %c\n", flagM     ? 't' : 'f');
 	if (flagM)
 	    printf("\t# slaves  =    %d\n", numslaves);

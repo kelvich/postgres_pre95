@@ -196,6 +196,33 @@ bool AMI_OVERRIDE = false;
  */
 
 /* --------------------------------
+ *	TranactionFlushEnabled()
+ *	SetTranactionFlushEnabled()
+ *
+ *	These are used to test and set the "TransactionFlushState"
+ *	varable.  If this variable is true (the default), then
+ *	the system will flush all dirty buffers to disk at the end
+ *	of each transaction.   If false then we are assuming the
+ *	buffer pool resides in stable main memory, in which case we
+ *	only do writes as necessary.
+ * --------------------------------
+ */
+int TransactionFlushState = 1;
+
+int
+TransactionFlushEnabled()
+{    
+    return TransactionFlushState;
+}
+
+void
+SetTransactionFlushEnabled(state)
+    bool state;
+{    
+    TransactionFlushState = (state == true);
+}
+
+/* --------------------------------
  *	IsTransactionState
  *
  *	This returns true if we are currently running a query
@@ -471,7 +498,8 @@ RecordTransactionCommit()
      *  main memory this should be a no-op.
      * ----------------
      */
-    BufferManagerFlush();
+    if (TransactionFlushEnabled())
+	BufferManagerFlush();
     
     /* ----------------
      *	have the transaction access methods record the status
@@ -577,7 +605,8 @@ RecordTransactionAbort()
      *  main memory this should be a no-op.
      * ----------------
      */
-    BufferManagerFlush();
+    if (TransactionFlushEnabled())
+	BufferManagerFlush();
 }
 
 /* --------------------------------
