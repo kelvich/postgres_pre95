@@ -736,10 +736,15 @@ StartTransaction()
     extern bool	TransactionInitWasProcessed;	/* XXX style */
 
     /* ----------------
-     *	check the current transaction state
+     *	Check the current transaction state.  If the transaction system
+     *  is switched off, or if we're already in a transaction, do nothing.
+     *  We're already in a transaction when the monitor sends a null
+     *  command to the backend to flush the comm channel.  This is a
+     *  hacky fix to a communications problem, and we keep having to
+     *  deal with it here.  We should fix the comm channel code.  mao 080891
      * ----------------
      */
-    if (s->state == TRANS_DISABLED)
+    if (s->state == TRANS_DISABLED || s->state == TRANS_INPROGRESS)
 	return;
     
 /*
