@@ -43,7 +43,7 @@ CFLAGS+=  -DPOSTGRESDIR='"${POSTGRESDIR}"' \
 	-I${.CURDIR}/. -I${.CURDIR}/obj \
 	-I${.CURDIR}/port/${PORTNAME}
 
-LDADD=	-lm -lln
+LDADD+=	-N -lm -lln
 
 #
 # XXX - grot: rename tmp to something sensible
