@@ -99,7 +99,7 @@ List
 CreateQueryDesc(parsetree, plantree, argv, typev, nargs, dest)
     List 	parsetree;
     Plan 	plantree;
-    char	*argv;
+    char	**argv;
     ObjectId	*typev;
     int		nargs;
     CommandDest dest;
@@ -111,7 +111,11 @@ CreateQueryDesc(parsetree, plantree, argv, typev, nargs, dest)
     arglist = typelist = LispNil;
 
     for (i = 0; i < nargs; i++) {
-	arglist = nappend1(arglist, *argv++);
+	/*
+	 * XXX argv is really a vector of Datum.  Using lispInteger works
+	 *     but semantically it is bs.   mer 30 Jun 1992
+	 */
+	arglist = nappend1(arglist, lispInteger(*argv++));
 	typelist = nappend1(typelist, lispInteger(*typev++));
     }
 
