@@ -4,7 +4,7 @@
 .XA 2 "Listen"
 .uh NAME
 .lp
-listen \*(- Listen for notification on a relation
+listen \(em Listen for notification on a relation
 .uh SYNOPSIS
 .lp
 .b "listen"

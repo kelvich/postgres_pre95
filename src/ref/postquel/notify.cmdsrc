@@ -4,7 +4,7 @@
 .XA 2 "Notify"
 .uh NAME
 .lp
-notify \*(- Signal all frontends and backends listening on a relation
+notify \(em Signal all frontends and backends listening on a relation
 .uh SYNOPSIS
 .lp
 .b "notify"
