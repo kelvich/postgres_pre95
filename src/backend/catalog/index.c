@@ -1104,7 +1104,7 @@ index_destroy(indexId)
  */
 void
 FormIndexDatum(numberOfAttributes, attributeNumber, heapTuple, heapDescriptor,
-	       buffer, datum, null)
+	       buffer, datum, null, fInfo)
     AttributeNumber	numberOfAttributes;
     AttributeNumber	attributeNumber[];
     HeapTuple		heapTuple;
@@ -1112,6 +1112,7 @@ FormIndexDatum(numberOfAttributes, attributeNumber, heapTuple, heapDescriptor,
     Buffer		buffer;
     Datum		*datum;
     char		*null;
+    FuncIndexInfoPtr	fInfo;
 {
     AttributeNumber	i;
     AttributeOffset	offset;
@@ -1128,12 +1129,14 @@ FormIndexDatum(numberOfAttributes, attributeNumber, heapTuple, heapDescriptor,
 	offset = AttributeNumberGetAttributeOffset(i);
 
 	datum[ offset ] =
-	    PointerGetDatum( heap_getattr(heapTuple,
-					  buffer,
-					  attributeNumber[ offset ],
-					  heapDescriptor,
-					  &isNull) );
-	
+	    PointerGetDatum( GetIndexValue(heapTuple,
+					   heapDescriptor,
+					   offset,
+					   attributeNumber,
+					   fInfo,
+					   &isNull,
+					   buffer) );
+
 	null[ offset ] = (isNull) ? 'n' : ' ';
     }
 }
