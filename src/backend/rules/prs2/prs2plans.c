@@ -23,6 +23,7 @@
 #include "executor/x_execmain.h"
 #include "parser/parsetree.h"
 #include "utils/fmgr.h"
+#include "tcop/dest.h"
 
 #include "catalog/pg_prs2rule.h"
 #include "catalog/pg_prs2plans.h"
@@ -488,7 +489,8 @@ LispValue actionPlan;
 			    parseTree,
 			    plan,
 			    LispNil,
-			    LispNil);
+			    LispNil,
+			    None);
 
     return(queryDescriptor);
 }
