@@ -415,7 +415,7 @@ replace_clause_resultvar_refs (clause,ltlist,rtlist,levelnum)
 					  levelnum)));
 	       else
 		    /*   operator clause */
-		    return((Expr)make_clause (replace_opid (get_op (clause)),
+		    return((Expr)make_opclause (replace_opid (get_op (clause)),
 					replace_clause_resultvar_refs 
 					(get_leftop (clause),
 					 ltlist,
@@ -685,7 +685,7 @@ index_outerjoin_references (inner_indxqual,outer_tlist,inner_relid)
 	clause = CAR(t_clause);
 	if(IsA (get_rightop (clause),Var) &&    /*   inner var on right */
 	   equal (inner_relid,get_varno (get_rightop (clause)))) {
-	       temp = make_clause (replace_opid (get_op (clause)),
+	       temp = make_opclause (replace_opid (get_op (clause)),
 				   replace_clause_joinvar_refs 
 				   (get_leftop (clause),
 				    outer_tlist,
@@ -694,17 +694,17 @@ index_outerjoin_references (inner_indxqual,outer_tlist,inner_relid)
 	       t_list = nappend1(t_list,temp);
 	   } 
 	else {   /*   inner var on left */
-	    temp = make_clause (replace_opid (get_op (clause)),
-				   get_leftop (clause),
+	    temp = make_opclause (replace_opid (get_op (clause)),
+				get_leftop (clause),
 				replace_clause_joinvar_refs (get_rightop 
 							     (clause),
 								outer_tlist,
 							     LispNil));
 	    t_list = nappend1(t_list,temp);
-	  } 
-		
+	} 
+	
      }
-     return(t_list);
+    return(t_list);
      
 }  /* function end  */
 
@@ -768,7 +768,7 @@ replace_clause_joinvar_refs (clause,outer_tlist,inner_tlist)
 				       inner_tlist)));
 	    else 
 	      if (is_clause (clause)) 
-		return (make_clause (replace_opid (get_op (clause)),
+		return (make_opclause (replace_opid (get_op (clause)),
 				     replace_clause_joinvar_refs 
 				     (get_leftop (clause),
 				       outer_tlist,
