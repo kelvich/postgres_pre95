@@ -159,15 +159,6 @@ find_all_join_paths(joinrels,previous_level_rels,nest_level)
 			  hash_inner_and_outer(joinrel,outerrel,
 					       innerrel,hashinfo_list));
 
-/* Add the following:
-**    If costing all pullups, the repeat the above 4 steps for 
-**       all permutations of one-step pullups.
-**    for each join on path do:
-**       try to pull clauses up through join;
-**       call function to order clauses in join restriction
-**                            -- JMH 1/8/92
-*/
-
 	  set_pathlist(joinrel,pathlist);
 
 /*    'OuterJoinCost is only valid when calling(match-unsorted-inner) 
