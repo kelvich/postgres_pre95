@@ -57,6 +57,14 @@ int len;
 	delimiter = '`';
 	scancon(buf, len);
 }
+/* ron */
+scanarray(buf, len)
+char *buf;
+int len;
+{
+	delimiter = '\}';
+	scancon(buf, len);
+}
 
 /*
  * Scan a string.  The leading delimiter (", ') has already been
