@@ -43,7 +43,12 @@ utility_end (name)
 LispValue name ;
 {
 	declare (special (PG_INTERACTIVE));
-	unless (PG_INTERACTIVE,endportal (name));
+	/* XXX unless interactive?  why not always? */
+#if 0
+	if (!PG_INTERACTIVE) {
+		endportal(name);
+	}
+#endif
 }
 
 /*    
@@ -51,11 +56,12 @@ LispValue name ;
  *    
  */
 LispValue
-utility_invoke (command,args)
-     LispValue command,args ;
+utility_invoke (command, args)
+	int		command;	/* "tag" */
+	LispValue	args;
 {
-     switch (command) {
-	  
+	switch (command) {
+#if 0
 	  /*    transactions */
 	case BEGIN_TRANS:
 	  if ( null (args) ) {
@@ -80,7 +86,8 @@ utility_invoke (command,args)
 	       cons (command,args);
 	  }
 	  break;
-
+#endif
+#if 0
 	  /*    portal manipulation */
 	case CLOSE:
 	  {
@@ -110,17 +117,19 @@ utility_invoke (command,args)
 		       CInteger(CADDR (args)));	/* ntups to scan 
 						   -1 means "ALL" */
 	  break;
-	  
-	  /*    relation and attribute manipulation */
+#endif
 
+	/*
+	 * relation and attribute manipulation
+	 */
 	case CREATE:
-	  relation_define (CAR (args),		/*  relation name */
-			   CADR (args),		/*  parameters */
-			   CDDR (args));
-	  break;
+		DefineRelation(CAR(args),	/*  relation name */
+			CADR(args),		/*  parameters */
+			CDR(CDR(args)));
+		break;
 	  
 	  /*  schema */
-	  
+#if 0	  
 	case DESTROY:
 	  {
 	       LispValue relation_name;
@@ -160,58 +169,50 @@ utility_invoke (command,args)
 	case RENAME:
 	  rename_utility_invoke (CAR (args),cdr (args));
 	  break;
-	  
+#endif
+#if 0
 	  /*    object creation */
-	  
+
 	case DEFINE:
-	  switch(CInteger(CAR(args))) {
-	     case INDEX:
-	       index_define (CString(CAR(args)),     /*  relation name */
-			     CADR (args)
-			     /*  index name */
-			     ,CADDR (args)
-			     /*  am name */
-			     ,cadddr (args)
-			     /*  parameters */
-			     ,caddddr (args));
-	       break;
-	       
-	case OPERATOR:
-	       operator_define (CAR (args)
+		switch(CInteger(CAR(args))) {
+		case INDEX:
+			index_define(CString(CAR(args)), /* relation name */
+				CADR(args),		/* index name */
+				CADDR (args),		/* am name */
+				cadddr (args),		/* parameters */
+				caddddr (args));
+			break;
+		case OPERATOR:
+			operator_define (CAR (args)
 				/*  operator name */
 				,cdr (args));
-	       break;
-	       
-	       /*  remaining arguments */
-	  
-	     case FUNCTION:
-	       function_define (CAR (args)
+			/*  remaining arguments */
+			break;
+		case FUNCTION:
+			function_define (CAR (args)
 				/*  function name */
 				,cdr (args));
-	       break;
-	       
-	       /*  remaining arguments */
-	  
-	     case RULE:
-	       rule_define (CAR(args),		    /*  rule name */
-			    CADR(args));
-	       break;
-	  
-	       /*  rule command parses */
-	       
-	     case P_TYPE:
-	       type_define (CAR (args),CDR (args));
-	       break;
-
-	  }
+			/*  remaining arguments */
+			break;
+		case RULE:
+			rule_define (CAR(args),		    /*  rule name */
+				CADR(args));
+			break;
+			/*  rule command parses */
+		case P_TYPE:
+			type_define (CAR (args),CDR (args));
+			break;
+		}
 	  break;
-
+#endif
+#if 0
 	  /*    object destruction */
 
 	case REMOVE:
 	  switch(CInteger(CAR(args))) {
 	     case FUNCTION:
 	       function_remove(CDR(args));
+	       break;
 	     case INDEX:
 	       index_remove(CDR(args));
 	     case OPERATOR:
@@ -224,11 +225,11 @@ utility_invoke (command,args)
 	       elog(WARN,"parser generates unknown remove request");
 	  }
 	  break;
-
+#endif
+#if 0
 	  /*    portal retrieve */
 	  /*    XXX Can this be generalized to more than a single retrieve? */
 	  /*        Should it? */
-
 	case PORTAL:
 	  /*    check validity */
 	  portal_retrieve (CAR (args),	       		/*  portal name */
@@ -237,6 +238,7 @@ utility_invoke (command,args)
 	  break;
      
 	  /*  default */
+#endif
 	default:
 	  cons (command,args);
 	  break;
@@ -248,7 +250,7 @@ utility_invoke (command,args)
  *     rename utility function invoker
  *    
  */
-
+#if 0
 int
 rename_utility_invoke (object_type_name,args)
      LispValue object_type_name,args ;
@@ -277,7 +279,7 @@ rename_utility_invoke (object_type_name,args)
 	  break;
      }
 }
-	
+#endif	
 /*
  *      POSTGRES utility commands follow
  *     
@@ -287,7 +289,7 @@ rename_utility_invoke (object_type_name,args)
  *     relation and attribute manipulation functions
  *    
  */
-
+#if 0
 relation_purge (relation_name,date_tags)
      LispValue relation_name,date_tags ;
 {
@@ -295,7 +297,8 @@ relation_purge (relation_name,date_tags)
 		    CDR (assoc (AFTER,date_tags)) || 0)*/
      utility_end ("PURGE");
 }
-
+#endif
+#if 0
 LispValue
 relation_transform (relation_name,format,nonulls,
 		    direction,file_name,map_relation,domain_list)
@@ -315,3 +318,4 @@ relation_transform (relation_name,format,nonulls,
 */
 
 }
+#endif
