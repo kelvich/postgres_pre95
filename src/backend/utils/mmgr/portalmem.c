@@ -110,6 +110,7 @@ RcsId("$Header$");
 #include "utils/excid.h"	/* for Unimplemented */
 #include "utils/log.h"
 #include "utils/mcxt.h"
+#include "utils/hsearch.h"
 
 #include "nodes/mnodes.h"
 #include "nodes/nodes.h"
@@ -133,9 +134,52 @@ RcsId("$Header$");
  */
 
 static Count PortalManagerEnableCount = 0;
+#define MAX_PORTALNAME_LEN	50
+typedef struct portalhashent {
+    char portalname[MAX_PORTALNAME_LEN];
+    Portal portal;
+} PortalHashEnt;
+
 #define PortalManagerEnabled	(PortalManagerEnableCount >= 1)
 
-static HashTable	PortalHashTable = NULL;
+static HTAB		*PortalHashTable = NULL;
+#define PortalHashTableLookup(NAME, PORTAL) \
+    {   PortalHashEnt *hentry; Boolean found; char key[MAX_PORTALNAME_LEN]; \
+	bzero(key, MAX_PORTALNAME_LEN); \
+	sprintf(key, "%s", NAME); \
+	hentry = (PortalHashEnt*)hash_search(PortalHashTable, \
+					     key, HASH_FIND, &found); \
+	if (hentry == NULL) \
+	    elog(FATAL, "error in PortalHashTable"); \
+	if (found) \
+	    PORTAL = hentry->portal; \
+	else \
+	    PORTAL = NULL; \
+    }
+#define PortalHashTableInsert(PORTAL) \
+    {   PortalHashEnt *hentry; Boolean found; char key[MAX_PORTALNAME_LEN]; \
+	bzero(key, MAX_PORTALNAME_LEN); \
+	sprintf(key, "%s", PORTAL->name); \
+	hentry = (PortalHashEnt*)hash_search(PortalHashTable, \
+					     key, HASH_ENTER, &found); \
+	if (hentry == NULL) \
+	    elog(FATAL, "error in PortalHashTable"); \
+	if (found) \
+	    elog(NOTICE, "trying to insert a portal name that exists."); \
+	hentry->portal = PORTAL; \
+    }
+#define PortalHashTableDelete(PORTAL) \
+    {   PortalHashEnt *hentry; Boolean found; char key[MAX_PORTALNAME_LEN]; \
+	bzero(key, MAX_PORTALNAME_LEN); \
+	sprintf(key, "%s", PORTAL->name); \
+	hentry = (PortalHashEnt*)hash_search(PortalHashTable, \
+					     key, HASH_REMOVE, &found); \
+	if (hentry == NULL) \
+	    elog(FATAL, "error in PortalHashTable"); \
+	if (!found) \
+	    elog(NOTICE, "trying to delete portal name that does not exist."); \
+    }
+
 static GlobalMemory	PortalMemory = NULL;
 static char		PortalMemoryName[] = "Portal";
 
@@ -392,44 +436,6 @@ CreateNewBlankPortal()
 }
 
 /* ----------------
- *	ComputePortalNameHashIndex
- * ----------------
- */
-static Index
-ComputePortalNameHashIndex(collisions, size, name)
-    uint32	collisions;
-    Size	size;
-    String	name;	/* XXX PortalName */
-{
-    return (StringHashFunction(collisions, size, name));
-}
-
-/* ----------------
- *	ComputePortalHashIndex
- * ----------------
- */
-static Index
-ComputePortalHashIndex(collisions, size, portal)
-    uint32	collisions;
-    Size	size;
-    Portal	portal;
-{
-    return (ComputePortalNameHashIndex(collisions, size, portal->name));
-}
-
-/* ----------------
- *	PortalHasPortalName
- * ----------------
- */
-static int		/* XXX should be bool, but expects -1, 0, 1 !!! */
-PortalHasPortalName(portal, name)
-    Portal	portal;
-    String	name;	/* XXX PortalName */
-{
-    return (strcmp(portal->name, name));
-}
-
-/* ----------------
  *	PortalDump
  * ----------------
  */
@@ -452,7 +458,7 @@ DumpPortals()
 {
     /* XXX state checking here */
     
-    HashTableWalk(PortalHashTable, PortalDump);
+    HashTableWalk(PortalHashTable, PortalDump, NULL);
 }
 
 /* ----------------------------------------------------------------
@@ -468,6 +474,7 @@ EnablePortalManager(on)
     bool	on;
 {
     static bool	processing = false;
+    HASHCTL ctl;
     
     AssertState(!processing);
     AssertArg(BoolIsValid(on));
@@ -479,16 +486,13 @@ EnablePortalManager(on)
     
     if (on) {	/* initialize */
 	EnableMemoryContext(true);
-	EnableHashTable(true);
 	
 	PortalMemory = CreateGlobalMemory(PortalMemoryName);
 	
+	ctl.keysize = MAX_PORTALNAME_LEN;
+	ctl.datasize = sizeof(Portal);
 	/* (Size) 21 est:  7 open portals or less per user */;
-	PortalHashTable = CreateHashTable(ComputePortalNameHashIndex,
-					  ComputePortalHashIndex,
-					  PortalHasPortalName,
-					  NULL,
-					  (Size) 21);
+	PortalHashTable = hash_create(21, &ctl, HASH_ELEM);
 	
 	CreateNewBlankPortal();
 	
@@ -502,14 +506,13 @@ EnablePortalManager(on)
 	/*
 	 * Each portal must free its non-memory resources specially.
 	 */
-	HashTableWalk(PortalHashTable, PortalDestroy);
-	HashTableDestroy(PortalHashTable);
+	HashTableWalk(PortalHashTable, PortalDestroy, NULL);
+	hash_destroy(PortalHashTable);
 	PortalHashTable = NULL;
 	
 	GlobalMemoryDestroy(PortalMemory);
 	PortalMemory = NULL;
 	
-	EnableHashTable(true);
 	EnableMemoryContext(true);
     }
     
@@ -522,14 +525,15 @@ EnablePortalManager(on)
  */
 Portal
 GetPortalByName(name)
-    String	name;	/* XXX PortalName */
+    String	name;
 {
     Portal	portal;
     
     AssertState(PortalManagerEnabled);
     
-    if (PointerIsValid(name))	/* XXX PortalNameIsValid */
-	portal = (Portal) KeyHashTableLookup(PortalHashTable, name);
+    if (PointerIsValid(name)) {
+	PortalHashTableLookup(name, portal);
+      }
     else {
 	if (!PortalIsValid(BlankPortal))
 	    CreateNewBlankPortal();
@@ -578,7 +582,7 @@ BlankPortalAssignName(name)
     /*
      * put portal in table
      */
-    HashTableInsert(PortalHashTable, (Pointer)portal);
+    PortalHashTableInsert(portal);
     
     return (portal);
 }
@@ -680,7 +684,7 @@ CreatePortal(name)
     portal->cleanup = NULL;
     
     /* put portal in table */
-    HashTableInsert(PortalHashTable, (Pointer)portal);
+    PortalHashTableInsert(portal);
     
     /* Trap(PointerIsValid(name), Unimplemented); */
     return (portal);
@@ -699,7 +703,7 @@ PortalDestroy(portal)
     
     /* remove portal from table if not blank portal */
     if (portal != BlankPortal)
-	HashTableDelete(PortalHashTable, (Pointer)portal);
+	PortalHashTableDelete(portal);
     
     /* reset portal */
     if (PointerIsValid(portal->cleanup))
