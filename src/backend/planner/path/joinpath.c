@@ -580,6 +580,7 @@ hash_inner_and_outer (joinrel,outerrel,innerrel,hashinfo_list)
     LispValue outerkeys = LispNil;
     LispValue innerkeys = LispNil;
     LispValue hash_pathkeys = LispNil;
+    int outerpages, innerpages;
     
     foreach(i,hashinfo_list) {
 	xhashinfo = (HInfo)CAR(i);
@@ -594,18 +595,22 @@ hash_inner_and_outer (joinrel,outerrel,innerrel,hashinfo_list)
 			    get_targetlist(joinrel),
 			    get_clauses (xhashinfo));
 	
-	temp_node = create_hashjoin_path(joinrel,
-					 get_size (outerrel),
-					 get_size (innerrel),
-					 get_width (outerrel),
-					 get_width (innerrel),
-					 get_cheapestpath (outerrel),
-					 get_cheapestpath (innerrel),
-					 hash_pathkeys,
-					 get_hashop (xhashinfo),
-					 get_clauses (xhashinfo),
-					 outerkeys,innerkeys);
-	hjoin_list = nappend1(hjoin_list,temp_node);
+	outerpages = page_size(get_size(outerrel), get_width(outerrel));
+	innerpages = page_size(get_size(innerrel), get_width(innerrel));
+	if (length(get_relids(innerrel)) > 1 || outerpages >= innerpages) {
+	    temp_node = create_hashjoin_path(joinrel,
+					     get_size (outerrel),
+					     get_size (innerrel),
+					     get_width (outerrel),
+					     get_width (innerrel),
+					     get_cheapestpath (outerrel),
+					     get_cheapestpath (innerrel),
+					     hash_pathkeys,
+					     get_hashop (xhashinfo),
+					     get_clauses (xhashinfo),
+					     outerkeys,innerkeys);
+	    hjoin_list = nappend1(hjoin_list,temp_node);
+	  }
     }
     return(hjoin_list);
     
