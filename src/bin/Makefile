@@ -10,7 +10,7 @@ SUBDIR+= createdb createuser destroydb destroyuser initdb vacuum ipcclean \
 #
 # Subsystems
 #
-SUBDIR += fsutils
+SUBDIR += fsutils s2kutils
 
 #
 # Removed: tree xexemon.
