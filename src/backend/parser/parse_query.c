@@ -267,12 +267,12 @@ ExpandAll(relname,this_resno)
 	first_resno = *this_resno;
 	
 	/* printf("\nExpanding %s.all\n",relname); */
-	vnum = RangeTablePosn (relname,0,0);
+	vnum = RangeTablePosn (relname,0);
 	if ( vnum == 0 ) {
 		p_rtable = nappend1 ( p_rtable,
 				     MakeRangeTableEntry (relname, 
 							  0 ,  relname));
-		vnum = RangeTablePosn (relname,0,0);
+		vnum = RangeTablePosn (relname,0);
 	}
 
 	physical_relname = VarnoGetRelname(vnum);
@@ -489,13 +489,13 @@ make_var ( relname, attrname)
     List vararraylist = LispNil;
     List multi_varnos = RangeTablePositions ( relname , 0 );
 
-    vnum = RangeTablePosn ( relname,0,0) ;
+    vnum = RangeTablePosn ( relname,0) ;
     /* if (!Quiet)
       printf("vnum = %d\n",vnum);  */
     if (vnum == 0) {
 	p_rtable = nappend1 (p_rtable ,
 			     MakeRangeTableEntry ( relname , 0 , relname) );
-		vnum = RangeTablePosn (relname,0,0);
+		vnum = RangeTablePosn (relname,0);
 	/* printf("vnum = %d\n",vnum); */
 	relname = VarnoGetRelname(vnum);
     } else {
@@ -559,11 +559,11 @@ make_array_ref_var( relname, attrname, indirect_list)
     bool entering = true;
     int indirect_num;
     
-    vnum = RangeTablePosn ( relname,0,0) ;
+    vnum = RangeTablePosn ( relname,0) ;
     if (vnum == 0) {
 	p_rtable = nappend1 (p_rtable ,
 			     MakeRangeTableEntry ( relname , 0 , relname) );
-		vnum = RangeTablePosn (relname,0,0);
+		vnum = RangeTablePosn (relname,0);
 	relname = VarnoGetRelname(vnum);
     } else {
 	relname = VarnoGetRelname( vnum );
@@ -697,7 +697,7 @@ SkipBackToTlist()
 
 	/* need to put the token after the target_list back first */
 	temp = yytext;
-	if(yychar == (LispValue)WHERE) {
+	if((yychar == (LispValue)WHERE) || (yychar == (LispValue)SORT)){ 
 		for (i = yyleng; i > -1 ; -- i ) {
 			unput (yytext[i]);
 		}
