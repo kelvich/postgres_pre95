@@ -200,7 +200,7 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
 	 if ((joincost != 0 &&
 	      xfunc_measure(get_clause(maxcinfo)) > 
 	      ((joinselec - 1.0) / joincost))
-	     || (joincost == 0 && joinselec < 0))
+	     || (joincost == 0 && joinselec < 1))
 	  {
 	      *maxcinfopt = maxcinfo;
 	      return(retval);
