@@ -851,8 +851,8 @@ _pgjb_mdblockwrt(item, relblocks, buf)
     offset = (which * BLCKSZ) + JBBLOCKSZ;
     group = (SJGroupDesc *) buf;
 
-    path = (char *) palloc(strlen(DataDir) + 2 * sizeof(NameData) + 3);
-    sprintf(path, "%s/%s/%s", DataDir,
+    path = (char *) palloc(strlen(DataDir) + strlen("/base/") + 2 * sizeof(NameData) + 2);
+    sprintf(path, "%s/base/%s/%s", DataDir,
 	    &(group->sjgd_dbname.data[0]), &(group->sjgd_relname.data[0]));
 
     if ((vfd = PathNameOpenFile(&(path[0]), O_RDWR, 0600)) < 0)

@@ -369,7 +369,8 @@ mdblindwrt(dbstr, relstr, dbid, relid, blkno, buffer)
 	sprintf(path, "%s/%s", DataDir, relstr);
     } else {
 	path = (char *) palloc(strlen(DataDir) + 2 * sizeof(NameData) + 3);
-	sprintf(path, "%s/%s/%s", DataDir, dbstr, relstr);
+	path = (char *) palloc(strlen(DataDir) + strlen("/base/") + 2 * sizeof(NameData) + 2);
+	sprintf(path, "%s/base/%s/%s", DataDir, dbstr, relstr);
     }
 
     if ((fd = open(path, O_RDWR, 0600)) < 0)
