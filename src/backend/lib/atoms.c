@@ -28,6 +28,7 @@ ScanKeyword	ScanKeywords[] = {
 	{ "abort",		ABORT_TRANS	},
 	{ "addattr",		ADD_ATTR	},
 	{ "after",		AFTER		},
+	{ "aggregate",          AGGREGATE       },
 	{ "all",		ALL		},
 	{ "always",		ALWAYS		},
 	{ "and",		AND		},
