@@ -310,6 +310,7 @@ FILENAME != "-" && /{/, /}/ {
 #	thats all folks
 # ----------------
 END {
+	ORS="\n"
 	print "\n/* end-of-file */\n"
 }
 ' $SLOTFILE -
