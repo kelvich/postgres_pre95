@@ -1716,6 +1716,9 @@ _sjregnblocks(tag)
     }
 
     /* new relation -- write at end of file */
+    mytag.sjct_dbid = tag->sjct_dbid;
+    mytag.sjct_relid = tag->sjct_relid;
+
     if (FileWrite(SJBlockVfd, (char *) &mytag, sizeof(mytag)) < 0)
 	elog(FATAL, "_sjregnblocks: cannot write nblocks for new reln");
 }

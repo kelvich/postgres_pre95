@@ -48,7 +48,7 @@ typedef struct JBHashEntry {
 #define VRFY_CONNECT()	if (!JBConnected) _pgjb_connect()
 
 #define JBCACHESIZE	100			/* one entry per platter */
-#define PGJBFORMAT	"Postgres_Format"	/* format string for jb_open */
+#define PGJBFORMAT	"POSTGRES_FMT"		/* format string for jb_open */
 
 /*
  *  JBPlatDesc -- Description of an open platter in the jukebox.
@@ -358,9 +358,9 @@ _pgjb_findoffset(plname, plid, extentsz)
 	blkno = jb_scanw(jbp->jbpd_platter, last, 1);
 
 	/* if so, skipt to next extent */
-	if (blkno > 0)
+	if (blkno >= 0)
 	    last += extentsz;
-    } while (blkno > 0);
+    } while (blkno >= 0);
 
     /* XXX should use symbolic constant */
     if (blkno != -2L) {
