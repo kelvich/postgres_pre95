@@ -27,6 +27,7 @@ then the blank portal is closed.
 .nf
 .ft C
 /* close the portal FOO */
+
 close FOO
 .ft
 .fi
