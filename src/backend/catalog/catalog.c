@@ -24,43 +24,77 @@ RcsId("$Header$");
  * XXX in lib/catalog/catname.c, someday.
  */
 
-char	AGGREGATE_R[16] = "pg_aggregate";
-char	AM_R[16] = "pg_am";
-char	AMOP_R[16] = "pg_amop";
-char	ATTRIBUTE_R[16] = "pg_attribute";
-char	DATABASE_R[16] = "pg_database";
-char	DEFAULTS_R[16] = "pg_defaults";
-char	DEMON_R[16] = "pg_demon";
-char	INDEX_R[16] = "pg_index";
-char	INHERITPROC_R[16] = "pg_inheritproc";
-char	INHERITS_R[16] = "pg_inherits";
-char	IPL_R[16] = "pg_ipl";
-char	LANGUAGE_R[16] = "pg_language";
-char	LOG_R[16] = "pg_log";
-char	MAGIC_R[16] = "pg_magic";
-char	OPCLASS_R[16] = "pg_opclass";
-char	OPERATOR_R[16] = "pg_operator";
-char	PARG_R[16] = "pg_parg";
-char	PROC_R[16] = "pg_proc";
-char 	PRS2RULE_R[16] = "pg_prs2rule";
-char	PRS2PLANS_R[16] = "pg_prs2plans";
-char	RELATION_R[16] = "pg_relation";
-char	RULE_R[16] = "pg_rule";
-char	RULEPLANS_R[16] = "pg_ruleplans";
-char	SERVER_R[16] = "pg_server";
-char	STATISTIC_R[16] = "pg_statistic";
-char	TIME_R[16] = "pg_time";
-char	TYPE_R[16] = "pg_type";
-char	USER_R[16] = "pg_user";
-char	VARIABLE_R[16] = "pg_variable";
-char	VERSION_R[16] = "pg_version";
+char	AGGREGATE_R[16] = 	"pg_aggregate";
+char	AM_R[16] = 		"pg_am";
+char	AMOP_R[16] = 		"pg_amop";
+char	ATTRIBUTE_R[16] = 	"pg_attribute";
+char	DATABASE_R[16] = 	"pg_database";
+char	DEFAULTS_R[16] = 	"pg_defaults";
+char	DEMON_R[16] = 		"pg_demon";
+char	INDEX_R[16] = 		"pg_index";
+char	INHERITPROC_R[16] = 	"pg_inheritproc";
+char	INHERITS_R[16] = 	"pg_inherits";
+char	IPL_R[16] = 		"pg_ipl";
+char	LANGUAGE_R[16] = 	"pg_language";
+char	LOG_R[16] = 		"pg_log";
+char	MAGIC_R[16] = 		"pg_magic";
+char	OPCLASS_R[16] = 	"pg_opclass";
+char	OPERATOR_R[16] = 	"pg_operator";
+char	PARG_R[16] = 		"pg_parg";
+char	PROC_R[16] = 		"pg_proc";
+char	PRS2PLANS_R[16] = 	"pg_prs2plans";
+char 	PRS2RULE_R[16] = 	"pg_prs2rule";
+char	RELATION_R[16] = 	"pg_relation";
+char	RULE_R[16] = 		"pg_rule";
+char	RULEPLANS_R[16] = 	"pg_ruleplans";
+char	SERVER_R[16] = 		"pg_server";
+char	STATISTIC_R[16] = 	"pg_statistic";
+char	TIME_R[16] = 		"pg_time";
+char	TYPE_R[16] = 		"pg_type";
+char	USER_R[16] = 		"pg_user";
+char	VARIABLE_R[16] = 	"pg_variable";
+char	VERSION_R[16] = 	"pg_version";
 
-static	char	*SystemRelname[] = {
-	AGGREGATE_R, AM_R, AMOP_R, ATTRIBUTE_R, DATABASE_R, DEFAULTS_R, DEMON_R,
-	INDEX_R, INHERITPROC_R, INHERITS_R, IPL_R, LANGUAGE_R, LOG_R, MAGIC_R,
-	OPCLASS_R, OPERATOR_R, PARG_R, PROC_R, PRS2RULE_R, PRS2PLANS_R,
-	RELATION_R, RULE_R, RULEPLANS_R, SERVER_R, STATISTIC_R, TIME_R,
-	TYPE_R, USER_R, VARIABLE_R, VERSION_R,
+/* ----------------
+ *	WARNING  WARNING  WARNING  WARNING  WARNING  WARNING
+ *
+ *	keep SystemRelname[] in SORTED order!  A binary search
+ *	is done on it!
+ *
+ *	XXX this is a serious hack which should be fixed -cim 1/26/90
+ * ----------------
+ */
+static char *SystemRelname[] = {
+    AGGREGATE_R,
+    AM_R,
+    AMOP_R,
+    ATTRIBUTE_R,
+    DATABASE_R,
+    DEFAULTS_R,
+    DEMON_R,
+    INDEX_R,
+    INHERITPROC_R,
+    INHERITS_R,
+    IPL_R,
+    LANGUAGE_R,
+    LOG_R,
+    MAGIC_R,
+    OPCLASS_R,
+    OPERATOR_R,
+    PARG_R,
+    PROC_R, 
+    PRS2PLANS_R,
+    PRS2RULE_R,
+    RELATION_R,
+    RULE_R,
+    RULEPLANS_R,
+    SERVER_R,
+    STATISTIC_R,
+    TIME_R,
+    TYPE_R,
+    USER_R,
+    VARIABLE_R,
+    VERSION_R,		
 };
 
 static	char	**Spp;			/* system relname pointer */
@@ -70,11 +104,36 @@ static	char	**Spp;			/* system relname pointer */
 #endif
 
 static	char	IsDbdb[] = {
-	'\0', '\0', '\0', '\0', '\001', '\001', '\001',
-	'\0', '\0', '\0', '\0', '\0', '\001', '\001',
-	'\0', '\0', '\0', '\0', '\0', '\0',
-	'\0', '\0', '\0', '\001', '\0', '\001',
-	'\0', '\001', '\001', '\0',
+    '\0',	    /* AGGREGATE_R, 	*/
+    '\0',	    /* AM_R,            */
+    '\0',	    /* AMOP_R,          */
+    '\0',	    /* ATTRIBUTE_R,     */
+    '\001',	    /* DATABASE_R,      */
+    '\001',	    /* DEFAULTS_R,      */
+    '\001',	    /* DEMON_R,         */
+    '\0',	    /* INDEX_R,         */
+    '\0',	    /* INHERITPROC_R,   */
+    '\0',	    /* INHERITS_R,      */
+    '\0',	    /* IPL_R,           */
+    '\0',	    /* LANGUAGE_R,      */
+    '\001',	    /* LOG_R,           */
+    '\001',	    /* MAGIC_R,         */
+    '\0',	    /* OPCLASS_R,       */
+    '\0',	    /* OPERATOR_R,      */
+    '\0',	    /* PARG_R,          */
+    '\0',	    /* PROC_R,          */
+    '\0',	    /* PRS2PLANS_R,     */
+    '\0',	    /* PRS2RULE_R,      */
+    '\0',	    /* RELATION_R,      */
+    '\0',	    /* RULE_R,          */
+    '\0',	    /* RULEPLANS_R,     */
+    '\001',	    /* SERVER_R,        */
+    '\0',	    /* STATISTIC_R,     */
+    '\001',	    /* TIME_R,          */
+    '\0',	    /* TYPE_R,          */
+    '\001',	    /* USER_R,          */
+    '\001',	    /* VARIABLE_R,      */
+    '\0',	    /* VERSION_R,       */
 };
 
 /*
