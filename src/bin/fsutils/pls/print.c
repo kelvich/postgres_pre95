@@ -59,7 +59,7 @@ static int	printaname __P((FTSENT *, u_long, u_long));
 static void	printlink __P((FTSENT *));
 static void	printtime __P((time_t));
 static int	printtype __P((u_int));
-char *strmode __P(int,char*);
+char *strmode __P((int,char*));
 
 #define	IS_NOPRINT(p)	((p)->fts_number == NO_PRINT)
 
@@ -96,7 +96,8 @@ printlong(dp)
 		if (f_inode)
 			(void)printf("%*lu ", dp->s_inode, sp->st_ino);
 		if (f_size)
-			(void)printf("%*qd ",
+/*			(void)printf("%*qd ",*/
+			(void)printf("%*d ",
 			    dp->s_block, howmany(ST_BLOCKS(sp), blocksize));
 		(void)strmode(sp->st_mode, buf);
 		np = p->fts_pointer;
@@ -109,10 +110,12 @@ printlong(dp)
 			(void)printf("%3d, %3d ",
 			    0/*major(sp->st_rdev)*/, 0 /*minor(sp->st_rdev)*/);
 		else if (dp->bcfile)
-			(void)printf("%*s%*qd ",
+/*			(void)printf("%*s%*qd ",*/
+			(void)printf("%*s%*d ",
 			    8 - dp->s_size, "", dp->s_size, sp->st_size);
 		else
-			(void)printf("%*qd ", dp->s_size, sp->st_size);
+/*			(void)printf("%*qd ", dp->s_size, sp->st_size);*/
+			(void)printf("%*d ", dp->s_size, sp->st_size);
 		if (f_accesstime)
 			printtime(sp->st_atime);
 		else if (f_statustime)
@@ -212,7 +215,7 @@ printaname(p, inodefield, sizefield)
 	if (f_inode)
 		chcnt += printf("%*lu ", inodefield, sp->st_ino);
 	if (f_size)
-		chcnt += printf("%*qd ",
+		chcnt += printf(/*"%*qd ",*/ "%*d ",
 		    sizefield, howmany(ST_BLOCKS(sp), blocksize));
 	chcnt += printf("%s", p->fts_name);
 	if (f_type)
@@ -293,6 +296,7 @@ printlink(p)
 #endif
 }
 
+/* XXX: ASSUME sequential allocation */
 int     m1[] = { 1, S_IREAD>>0, 'r', '-' };
 int     m2[] = { 1, S_IWRITE>>0, 'w', '-' };
 int     m3[] = { 3, S_ISUID|(S_IEXEC>>0), 's', S_IEXEC>>0, 'x', S_ISUID, 'S',
@@ -315,6 +319,12 @@ strmode(flags,lp)
 {
         int **mp;
 
+	bzero(lp,20); /* XXX */
+	if (S_ISDIR(flags)) {
+	    *lp++ = 'd';
+	} else {
+	    *lp++ = '-';
+	}
         for (mp = &m[0]; mp < &m[sizeof (m)/sizeof (m[0])]; ) {
                 register int *pairp = *mp++;
                 register int n = *pairp++;
