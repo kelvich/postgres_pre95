@@ -856,7 +856,7 @@ LispValue HandleNestedDots(dots)
 
     if (IsA(CAR(dots),Param))
       retval = ParseFunc(CString(CADR(dots)),
-			 lispCons(lispCons(typeid_get_relid
+			 lispCons(lispCons(lispInteger
 					   (get_paramtype((Param)CAR(dots))),
 					   CAR(dots)),
 				  LispNil));
