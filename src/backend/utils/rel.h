@@ -34,6 +34,7 @@
 typedef struct RelationData {
 	File			rd_fd;		/* open file descriptor */
 	uint16			rd_refcnt;	/* reference count */
+	bool			rd_ismem;	/* rel is in-memory only */
 	AccessMethodTupleForm	rd_am;		/* AM tuple */
 	RelationTupleForm	rd_rel;		/* RELATION tuple */
 	ObjectId		rd_id;		/* relations's object id */

@@ -41,63 +41,113 @@ SystemPortAddressCreateIPCKey(address)
 
 void
 CreateSharedMemoryAndSemaphores(key)
-	IPCKey	key;
+    IPCKey	key;
 {
-	int		status;
+    int		status;
 
-	LtSynchKill(IPCKeyGetLockTableMemoryKey(key));
-	LtTransactionSemaphoreKill(IPCKeyGetLockTableSemaphoreKey(key));
+    /* ----------------
+     *	kill the lock table stuff
+     * ----------------
+     */
+    LtSynchKill(IPCKeyGetLockTableMemoryKey(key));
+    LtTransactionSemaphoreKill(IPCKeyGetLockTableSemaphoreKey(key));
 
-	/* kill and create the buffer manager buffer pool (and semaphore) */
-	CreateBufferSemaphore(IPCKeyGetBufferSemaphoreKey(key));
-	CreateBufferPoolMemory(IPCKeyGetBufferMemoryKey(key));
+    /* ----------------
+     *	kill and create the buffer manager buffer pool (and semaphore)
+     * ----------------
+     */
+    CreateBufferSemaphore(IPCKeyGetBufferSemaphoreKey(key));
+    CreateBufferPoolMemory(IPCKeyGetBufferMemoryKey(key));
 
-	LtSynchInit(IPCKeyGetLockTableMemoryKey(key));
-	LtTransactionSemaphoreInit(IPCKeyGetLockTableSemaphoreKey(key));
+    /* ----------------
+     *	create and initialize the executor shared segment (and semaphore)
+     * ----------------
+     */
+    if (ParallelExecutorEnabled()) {
+	IpcSemaphoreKill(IPCKeyGetExecutorSemaphoreKey(key));
+	ExecInitExecutorSemaphore(IPCKeyGetExecutorSemaphoreKey(key));
+    
+	IpcMemoryKill(IPCKeyGetExecutorSharedMemoryKey(key));
+	ExecCreateExecutorSharedMemory(IPCKeyGetExecutorSharedMemoryKey(key));
+	ExecAttachExecutorSharedMemory();
+    }
+    
+    /* ----------------
+     *	do the lock table stuff
+     * ----------------
+     */
+    LtSynchInit(IPCKeyGetLockTableMemoryKey(key));
+    LtTransactionSemaphoreInit(IPCKeyGetLockTableSemaphoreKey(key));
 
-	status = LMSegmentInit(true, IPCKeyGetLockTableSemaphoreBlockKey(key));
+    status = LMSegmentInit(true, IPCKeyGetLockTableSemaphoreBlockKey(key));
 
-	if (status == -1) {
-		elog(FATAL, "CreateSharedMemory: failed segment init");
-	}
+    if (status == -1)
+	elog(FATAL, "CreateSharedMemoryAndSemaphores: failed LMSegmentInit");
 
-	PageLockTableId = LMLockTableCreate("page", PageLockTable,
-		LockTableNormal);
-	MultiLevelLockTableId = LMLockTableCreate("multiLevel",
-		MultiLevelLockTable, LockTableNormal);
+    PageLockTableId = LMLockTableCreate("page",
+					PageLockTable,
+					LockTableNormal);
+    
+    MultiLevelLockTableId = LMLockTableCreate("multiLevel",
+					      MultiLevelLockTable,
+					      LockTableNormal);
 
-	CreateSharedInvalidationState(key);
+    CreateSharedInvalidationState(key);
 }
+
 
 void
 AttachSharedMemoryAndSemaphores(key)
-	IPCKey	key;
+    IPCKey	key;
 {
-	int	status;
+    int	status;
 
-	if (key == PrivateIPCKey) {
-		CreateSharedMemoryAndSemaphores(key);
-		return;
-	}
+    /* ----------------
+     *	create rather than attach if using private key
+     * ----------------
+     */
+    if (key == PrivateIPCKey) {
+	CreateSharedMemoryAndSemaphores(key);
+	return;
+    }
 
-	/* attach the buffer manager buffer pool (and semaphore) */
-	InitBufferSemaphore(IPCKeyGetBufferSemaphoreKey(key));
-	InitBufferPoolMemory(IPCKeyGetBufferMemoryKey(key), false);
-	AttachSharedBuffers(IPCKeyGetBufferMemoryKey(key));
+    /* ----------------
+     *	attach the buffer manager buffer pool (and semaphore)
+     * ----------------
+     */
+    InitBufferSemaphore(IPCKeyGetBufferSemaphoreKey(key));
+    InitBufferPoolMemory(IPCKeyGetBufferMemoryKey(key), false);
+    AttachSharedBuffers(IPCKeyGetBufferMemoryKey(key));
 
-	LtSynchInit(IPCKeyGetLockTableMemoryKey(key));
-	LtTransactionSemaphoreInit(IPCKeyGetLockTableSemaphoreKey(key));
+    /* ----------------
+     *	attach the parallel executor memory (and semaphore)
+     * ----------------
+     */
+    if (ParallelExecutorEnabled()) {
+	ExecInitExecutorSemaphore(IPCKeyGetExecutorSemaphoreKey(key));
+	ExecLocateExecutorSharedMemory(IPCKeyGetExecutorSharedMemoryKey(key));
+	ExecAttachExecutorSharedMemory();
+    }
+    
+    /* ----------------
+     *	initialize lock table stuff
+     * ----------------
+     */
+    LtSynchInit(IPCKeyGetLockTableMemoryKey(key));
+    LtTransactionSemaphoreInit(IPCKeyGetLockTableSemaphoreKey(key));
 
-	status = LMSegmentInit(false, IPCKeyGetLockTableSemaphoreBlockKey(key));
+    status = LMSegmentInit(false, IPCKeyGetLockTableSemaphoreBlockKey(key));
 
-	if (status == -1) {
-		elog(FATAL, "AttachSharedMemory: failed segment init");
-	}
+    if (status == -1)
+	elog(FATAL, "AttachSharedMemoryAndSemaphores: failed LMSegmentInit");
 
-	PageLockTableId = LMLockTableCreate("page", PageLockTable,
-		LockTableNormal);
-	MultiLevelLockTableId = LMLockTableCreate("multiLevel",
-		MultiLevelLockTable, LockTableNormal);
+    PageLockTableId = LMLockTableCreate("page",
+					PageLockTable,
+					LockTableNormal);
+    
+    MultiLevelLockTableId = LMLockTableCreate("multiLevel",
+					      MultiLevelLockTable,
+					      LockTableNormal);
 
-	AttachSharedInvalidationState(key);
+    AttachSharedInvalidationState(key);
 }

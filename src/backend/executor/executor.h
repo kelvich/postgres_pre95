@@ -317,6 +317,7 @@ extern GeneralInsertIndexResult   AMinsert();
 extern GeneralRetrieveIndexResult AMgettuple();
 extern HeapTuple		  RelationGetHeapTupleByItemPointer();
 
+extern bool		ExecIsInitialized;
 extern Const		ConstTrue;
 extern Const		ConstFalse;
 

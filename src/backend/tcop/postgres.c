@@ -372,9 +372,13 @@ main(argc, argv)
     register 	int	i;
     int			flagC;
     int			flagQ;
+    int			flagM;
     int			flag;
+
+    int			numslaves;
     int			errs = 0;
     char		*DatabaseName;
+    
     extern	int	Noversion;		/* util/version.c */
     extern	int	Quiet;
 
@@ -392,8 +396,10 @@ main(argc, argv)
      *	process arguments
      * ----------------
      */
-    flagC = flagQ = 0;
-    while ((flag = getopt(argc, argv, "CQOdpP:B:b:")) != EOF)
+    numslaves = 0;
+    flagC = flagQ = flagM = 0;
+    
+    while ((flag = getopt(argc, argv, "CQOM:dpP:B:b:")) != EOF)
       switch (flag) {
 	case 'd':	/* -debug mode */
 	  /* DebugMode = true; */
@@ -407,6 +413,15 @@ main(argc, argv)
 	  break;
 	case 'O':
 	  override = true;
+	  break;
+	case 'M':
+	  numslaves = atoi(optarg);
+	  if (numslaves > 0) {
+	      SetParallelExecutorEnabled(true);
+	      SetNumberSlaveBackends(numslaves);
+	  } else
+	      errs += 1;
+	  flagM = 1;
 	  break;
 	case 'p':	/* started by postmaster */
 	  IsUnderPostmaster = true;
@@ -423,10 +438,12 @@ main(argc, argv)
       }
 
     if (errs || argc - optind > 1) {
-	fputs("Usage: amiint [-C] [-O] [-Q] [datname]\n", stderr);
-	fputs("	-C  =  ??? \n", stderr);
-	fputs(" -O  =  Override Transaction System\n", stderr);
-	fputs(" -Q  =  Quiet mode (less debugging output)\n", stderr);
+	fputs("Usage: postgres [-C] [-M #] [-O] [-Q] [datname]\n", stderr);
+	fputs("	-C   =  ??? \n", stderr);
+	fputs(" -M # =  Enable Parallel Query Execution\n", stderr);
+	fputs("          (# is number of slave backends)\n", stderr);
+	fputs(" -O   =  Override Transaction System\n", stderr);
+	fputs(" -Q   =  Quiet mode (less debugging output)\n", stderr);
 	exitpg(1);
     } else if (argc - optind == 1) {
 	DatabaseName = argv[optind];
@@ -443,9 +460,13 @@ main(argc, argv)
      */
     if (! Quiet) {
 	puts("\t---debug info---");
-	printf("\tQuiet =        %c\n", Quiet 	     ? 't' : 'f');
-	printf("\tNoversion =    %c\n", Noversion   ? 't' : 'f');
-	printf("\toverride  =    %c\n", override    ? 't' : 'f');
+	printf("\tQuiet =        %c\n", Quiet 	  ? 't' : 'f');
+	printf("\tNoversion =    %c\n", Noversion ? 't' : 'f');
+	printf("\toverride  =    %c\n", override  ? 't' : 'f');
+	printf("\tparallel  =    %c\n", flagM     ? 't' : 'f');
+	if (flagM)
+	    printf("\t# slaves  =    %d\n", numslaves);
+	
 	printf("\tDatabaseName = [%s]\n", DatabaseName);
 	puts("\t----------------\n");
     }
@@ -480,12 +501,21 @@ main(argc, argv)
 	puts("\tEnableDynamicFunctionManager()..");
     EnableDynamicFunctionManager(fmgr_dynamic);
 
+    /* ----------------
+     *	InitPostgres()
+     * ----------------
+     */
     if (! Quiet)
 	puts("\tInitPostgres()..");
     InitPostgres(NULL, DatabaseName);
 
     signal(SIGHUP, handle_warn);
 
+    /* ----------------
+     *	if an exception is encountered, processing resumes here
+     *  so we abort the current transaction and start a new one.
+     * ----------------
+     */
     if (setjmp(Warn_restart) != 0) {
 	Warnings++;
 	if (! Quiet) {
@@ -494,7 +524,17 @@ main(argc, argv)
 	}
 	AbortCurrentTransaction();
     }
-
+    
+    /* ----------------
+     *	now fork and initialize the parallel slave backends
+     * ----------------
+     */
+    if (ParallelExecutorEnabled()) {
+	if (! Quiet)
+	    puts("\tInitializing Slave Backends...");
+	InitSlaveBackends();
+    }
+    
     /* ----------------
      *	POSTGRES main processing loop begins here
      * ----------------

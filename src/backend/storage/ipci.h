@@ -33,10 +33,12 @@ typedef uint32	IPCKey;
  */
 #define SystemPortAddressGetIPCKey(address) \
 	(28597 * (address) + 17491)
+
 #define IPCKeyGetBufferMemoryKey(key) \
 	((key == PrivateIPCKey) ? key : 1 + (key))
 #define IPCKeyGetBufferSemaphoreKey(key) \
 	((key == PrivateIPCKey) ? key : 2 + (key))
+
 #define IPCKeyGetLockTableMemoryKey(key) \
 	((key == PrivateIPCKey) ? key : 3 + (key))
 #define IPCKeyGetLockTableSemaphoreKey(key) \
@@ -47,6 +49,11 @@ typedef uint32	IPCKey;
 	((key == PrivateIPCKey) ? key : 6 + (key))
 #define IPCKeyGetSIBufferMemoryBlock(key) \
 	((key == PrivateIPCKey) ? key : 7 + (key))
+
+#define IPCKeyGetExecutorSemaphoreKey(key) \
+	((key == PrivateIPCKey) ? key : 8 + (key))
+#define IPCKeyGetExecutorSharedMemoryKey(key) \
+	((key == PrivateIPCKey) ? key : 9 + (key))
 
 extern LockTableId	PageLockTableId;
 extern LockTableId	MultiLevelLockTableId;
