@@ -266,6 +266,7 @@ rtdoinsert(r, itup)
 	/* need to do a split */
 	res = dosplit(r, buffer, stack, itup);
 	freestack(stack);
+	WriteBuffer(buffer);  /* don't forget to release buffer! */
 	return (res);
     }
 
@@ -384,6 +385,7 @@ dosplit(r, buffer, stack, itup)
 	left = (Page) BufferGetPage(leftbuf, 0);
     } else {
 	leftbuf = buffer;
+	IncrBufferRefCount(buffer);
 	lbknum = BufferGetBlockNumber(buffer);
 	left = (Page) PageGetTempPage(p, sizeof(RTreePageOpaqueData));
     }

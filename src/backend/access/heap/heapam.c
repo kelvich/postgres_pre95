@@ -198,11 +198,18 @@ unpinsdesc(sdesc)
 	ReleaseBuffer(sdesc->rs_pbuf);
     }
 
-    if (BufferIsValid(sdesc->rs_cbuf)) {
+    /* ------------------------------------
+     *  each scan will only pin a buffer once, so make sure not to
+     *  unpin them multiple times.
+     * ------------------------------------
+     */
+    if (sdesc->rs_cbuf != sdesc->rs_pbuf && BufferIsValid(sdesc->rs_cbuf)) {
 	ReleaseBuffer(sdesc->rs_cbuf);
     }
 
-    if (BufferIsValid(sdesc->rs_nbuf)) {
+    if (sdesc->rs_nbuf != sdesc->rs_cbuf &&
+	sdesc->rs_nbuf != sdesc->rs_pbuf &&
+	BufferIsValid(sdesc->rs_nbuf)) {
        ReleaseBuffer(sdesc->rs_nbuf);
     }
 }
@@ -1441,6 +1448,7 @@ heap_replace(relation, otid, tup)
 	elog(NOTICE, "Non-functional update, only first update is performed");
 	if ( issystem(RelationGetRelationName(relation)) )
 	    RelationUnsetLockForWrite(relation);
+	ReleaseBuffer(buffer);
         return (RuleLock)NULL;
     }
     /* XXX order problems if not atomic assignment ??? */

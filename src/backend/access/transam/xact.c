@@ -548,6 +548,7 @@ void
 RecordTransactionCommit()    
 {
     TransactionId xid;
+    int leak;
 
     /* ----------------
      *	get the current transaction id
@@ -561,8 +562,9 @@ RecordTransactionCommit()
      *  plai 8/7/90
      * ----------------
      */
-    BufferPoolCheckLeak();
+    leak = BufferPoolCheckLeak();
     FlushBufferPool(!TransactionFlushEnabled());
+    if (leak) ResetBufferPool();
     
     /* ----------------
      *	have the transaction access methods record the status
@@ -575,8 +577,9 @@ RecordTransactionCommit()
      *	Now write the log/time info to the disk too.
      * ----------------
      */
-    BufferPoolCheckLeak();
+    leak = BufferPoolCheckLeak();
     FlushBufferPool(!TransactionFlushEnabled());
+    if (leak) ResetBufferPool();
 }
 
 

@@ -220,7 +220,7 @@ void
 ResetBufferPool ARGS(());
 
 extern
-void
+int
 BufferPoolCheckLeak ARGS(());
 
 extern
