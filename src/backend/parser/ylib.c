@@ -407,78 +407,81 @@ ParseFunc ( funcname , fargs )
     ** type, then the function could be a projection.
     */
     if (length(fargs) == 1)
-      if (lispAtomp(first_arg_type) && CAtom(first_arg_type) == RELATION)
-       {
-	   /* this is could be a projection */
-	   relname = (Name) CString(CDR(CAR(fargs)));
-	   if( RangeTablePosn ( relname ,LispNil ) == 0 )
-	     ADD_TO_RT( MakeRangeTableEntry ((Name)relname,
-					     LispNil, 
-					     (Name)relname ));
-	   rd = heap_openr(relname);
-	   relid = RelationGetRelationId(rd);
-	   heap_close(rd);
-	   if ((attnum = get_attnum(relid, (Name) funcname)) 
-	       != InvalidAttributeNumber)
-	     return((LispValue)(make_var(relname, funcname)));
-	   else	/* drop through */;
-       }
-      else if (IsA(CADR(CAR(fargs)),Func) && 
-	      (argrelid = typeid_get_relid
-	       ((int)(argtype=funcid_get_rettype
-		(get_funcid((Func)CADR(CAR(fargs))))))))
-       {
-	   /* the argument is a function returning a tuple, so funcname
-	      may be a projection */
-	   if ((attnum = get_attnum(argrelid, (Name) funcname)) 
-	       != InvalidAttributeNumber)
-	    {
-		/* 
-		** build an Iter containing this func node, add a tlist to the 
-		** func node, and return the Iter.
-		*/
-		rd = heap_openr(tname(get_id_type(argtype)));
-		if (RelationIsValid(rd)) 
-		 {
-		     relid = RelationGetRelationId(rd);
-		     relname = RelationGetRelationName(rd);
-		     heap_close(rd);
-		 }
-		if (RelationIsValid(rd))
-		 {
-		     iter = (Iter)MakeIter(lispCons((LispValue)CADR(CAR(fargs))
-						    ,LispNil));
-		     set_func_tlist((Func)CAR(get_iterexpr(iter)), 
-				    setup_tlist(funcname, argrelid));
-		     return(lispCons(lispInteger(att_typeid(rd,attnum)),iter));
-		 }
-		else elog(WARN, 
-			  "Function %s has bad returntype %d", 
-			  funcname, argtype);
-	    }
-	   else /* drop through */;
-       }
-      else  if (IsA(CADR(CAR(fargs)),Param))
-       {
-	   /* If the Param is a complex type, this could be a projection */
-	   f = (Param)CADR(CAR(fargs));
-	   rd = heap_openr(tname(get_id_type(get_paramtype(f))));
-	   if (RelationIsValid(rd)) 
-	    {
-		relid = RelationGetRelationId(rd);
-		relname = RelationGetRelationName(rd);
-		heap_close(rd);
-	    }
-	   if (RelationIsValid(rd) && 
-	       (attnum = get_attnum(relid, (Name) funcname))
+     {
+	 if (lispAtomp(first_arg_type) && CAtom(first_arg_type) == RELATION)
+	  {
+	      /* this is could be a projection */
+	      relname = (Name) CString(CDR(CAR(fargs)));
+	      if( RangeTablePosn ( relname ,LispNil ) == 0 )
+		ADD_TO_RT( MakeRangeTableEntry ((Name)relname,
+						LispNil, 
+						(Name)relname ));
+	      rd = heap_openr(relname);
+	      relid = RelationGetRelationId(rd);
+	      heap_close(rd);
+	      if ((attnum = get_attnum(relid, (Name) funcname)) 
+		  != InvalidAttributeNumber)
+		return((LispValue)(make_var(relname, funcname)));
+	      else		/* drop through */;
+	  }
+	 else if (complexType(first_arg_type) &&
+		  IsA(CADR(CAR(fargs)),Func) && 
+		  (argrelid = typeid_get_relid
+		   ((int)(argtype=funcid_get_rettype
+			  (get_funcid((Func)CADR(CAR(fargs))))))))
+	  {
+	      /* the argument is a function returning a tuple, so funcname
+		 may be a projection */
+	      if ((attnum = get_attnum(argrelid, (Name) funcname)) 
+		  != InvalidAttributeNumber)
+	       {
+		   /* 
+		    ** build an Iter containing this func node, add a tlist to the 
+		    ** func node, and return the Iter.
+		    */
+		   rd = heap_openr(tname(get_id_type(argtype)));
+		   if (RelationIsValid(rd)) 
+		    {
+			relid = RelationGetRelationId(rd);
+			relname = RelationGetRelationName(rd);
+			heap_close(rd);
+		    }
+		   if (RelationIsValid(rd))
+		    {
+			iter = (Iter)MakeIter(lispCons((LispValue)CADR(CAR(fargs))
+						       ,LispNil));
+			set_func_tlist((Func)CAR(get_iterexpr(iter)), 
+				       setup_tlist(funcname, argrelid));
+			return(lispCons(lispInteger(att_typeid(rd,attnum)),iter));
+		    }
+		   else elog(WARN, 
+			     "Function %s has bad returntype %d", 
+			     funcname, argtype);
+	       }
+	      else		/* drop through */;
+	  }
+	 else if (complexType(first_arg_type) &&
+		  IsA(CADR(CAR(fargs)),Param))
+	  {
+	      /* If the Param is a complex type, this could be a projection */
+	      f = (Param)CADR(CAR(fargs));
+	      rd = heap_openr(tname(get_id_type(get_paramtype(f))));
+	      if (RelationIsValid(rd)) 
+	       {
+		   relid = RelationGetRelationId(rd);
+		   relname = RelationGetRelationName(rd);
+		   heap_close(rd);
+	       }
+	      if (RelationIsValid(rd) && 
+		  (attnum = get_attnum(relid, (Name) funcname))
 	          != InvalidAttributeNumber)
-	    {
-		set_param_tlist(f, setup_tlist(funcname, relid));
-		return(lispCons(lispInteger(att_typeid(rd, attnum)), f));
-	    }
-	   else /* drop through */;
-       }
-
+	       {
+		   set_param_tlist(f, setup_tlist(funcname, relid));
+		   return(lispCons(lispInteger(att_typeid(rd, attnum)), f));
+	       }
+	      else		/* drop through */;
+	  }
+     }
 	   
 
     /* If we dropped through to here it's really a function */
@@ -891,4 +894,13 @@ LispValue setup_tlist(attname, relid)
 
     tle = (LispValue)MakeList(resnode, varnode, -1);
     return(MakeList(tle, -1));
+}
+
+
+bool complexType(typenode)
+LispValue typenode;
+{
+    if (typeid_get_relid(CInteger(typenode)) == 0)
+      return(false);
+    else return(true);
 }
