@@ -24,6 +24,7 @@
 #include "tmp/miscadmin.h"
 #include "utils/log.h"
 #include "utils/nabstime.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
@@ -441,6 +442,28 @@ tintervalout(interval)
 
 
 	     /* ========== PUBLIC ROUTINES ========== */
+/*
+ *	mktinterval	- creates a time interval with endpoints t1 and t2
+ */
+TimeInterval mktinterval(t1, t2)
+        AbsoluteTime	t1;
+        AbsoluteTime	t2;
+{
+        AbsoluteTime	tstart = MIN(t1, t2), tend = MAX(t1, t2);
+	TimeInterval interval;
+
+	interval = (TimeInterval) palloc(sizeof(TimeIntervalData));
+        if (InAbsTimeInterval(tstart) &&
+	    InAbsTimeInterval(tend) &&
+	    abstimemi(tend, tstart) != INVALID_RELTIME) {
+	        interval->status = T_INTERVAL_VALID;
+		interval->data[0] = tstart;
+		interval->data[1] = tend;
+	}
+	else
+	        interval->status = T_INTERVAL_INVAL;
+	return interval;
+}
 
 
 /*
