@@ -58,7 +58,7 @@
 
 int _disable_cost_ = 30000000;
 
-/* #ifndef _xprs_ */
+#ifndef _xprs_
 bool _enable_seqscan_ = true ;
 bool _enable_indexscan_ = false; 
 bool _enable_sort_ = false;
@@ -66,8 +66,7 @@ bool _enable_hash_ = false;
 bool _enable_nestloop_ = true; /* XXX - true */
 bool _enable_mergesort_ = false;
 bool _enable_hashjoin_ = false;
-/* #endif */
-/*
+#endif
 #ifdef _xprs_
 bool _enable_seqscan_ = true;
 bool _enable_indexscan_ = true;
@@ -77,7 +76,6 @@ bool _enable_nestloop_ = true;
 bool _enable_mergesort_ = true;
 bool _enable_hashjoin_ = true; 
 #endif
-*/
 
 /*    
  *    	cost_seqscan
@@ -225,10 +223,10 @@ cost_sort (keys,tuples,width,noread)
       temp += 0;
     else {
 	int pages = page_size (tuples,width);
-	temp += pages * base_log (pages,2);
-	temp += _CPU_PAGE_WEIGHT_ * tuples *base_log (tuples,2);
+	temp += pages * base_log ((double)pages,(double)2);
+	temp += _CPU_PAGE_WEIGHT_ * tuples *base_log ((double)tuples,(double)2);
 	if( !noread )
-	  temp = temp + cost_seqscan(_TEMP_RELATION_ID_,pages,tuples);
+	  temp = temp + cost_seqscan(lispInteger(_TEMP_RELATION_ID_),pages,tuples);
     }
     return(temp);
 }
