@@ -16,6 +16,7 @@
  */
 
 #include "tcop/tcop.h"
+#include "tcop/tcopdebug.h"
 /* XXX had to break up executor.h, otherwise symbol table full */
 #include "nodes/pg_lisp.h"
 #include "nodes/execnodes.h"
@@ -125,7 +126,7 @@ Fragment rootFragment;
 	 * ----------------
 	 */
 	for (i=0; i<nproc; i++) {
-	    elog(DEBUG, "Master Backend: signaling slave %d", i);
+	    SLAVE1_elog(DEBUG, "Master Backend: signaling slave %d", i);
 	    V_Start(i);
 	}
 
@@ -133,9 +134,9 @@ Fragment rootFragment;
 	 *	wait for slaves to complete execution
 	 * ----------------
 	 */
-	elog(DEBUG, "Master Backend: waiting for slaves...");
+	SLAVE_elog(DEBUG, "Master Backend: waiting for slaves...");
 	P_Finished(nproc);
-	elog(DEBUG, "Master Backend: slaves execution complete!");
+	SLAVE_elog(DEBUG, "Master Backend: slaves execution complete!");
 
 	nproc = 0;
 	foreach (x, fragmentlist) {
