@@ -141,7 +141,7 @@ _equalVar(a, b)
 		return (false);
 	if (!_equalLispValue(a->vardotfields, b->vardotfields))
 		return (false);
-	if (a->vararraylist != b->vararraylist)  /* XXX  - fix this. */
+	if (!_equalLispValue(a->vararraylist, b->vararraylist))
 		return (false);
 	if (!_equalLispValue(a->varid, b->varid))
 		return (false);
