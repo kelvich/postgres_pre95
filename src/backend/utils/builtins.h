@@ -48,6 +48,30 @@ int32 charpl ARGS((int8 arg1 , int8 arg2 ));
 int32 charmi ARGS((int8 arg1 , int8 arg2 ));
 int32 charmul ARGS((int8 arg1 , int8 arg2 ));
 int32 chardiv ARGS((int8 arg1 , int8 arg2 ));
+uint16 char2in ARGS((char *s ));
+char *char2out ARGS((uint16 arg1));
+int32 char2eq ARGS((uint16 arg1 , uint16 arg2 ));
+int32 char2ne ARGS((uint16 arg1 , uint16 arg2 ));
+int32 char2lt ARGS((uint16 arg1 , uint16 arg2 ));
+int32 char2le ARGS((uint16 arg1 , uint16 arg2 ));
+int32 char2gt ARGS((uint16 arg1 , uint16 arg2 ));
+int32 char2ge ARGS((uint16 arg1 , uint16 arg2 ));
+uint32 char4in ARGS((char *s ));
+char *char4out ARGS((uint32 arg1));
+int32 char4eq ARGS((uint32 arg1 , uint32 arg2 ));
+int32 char4ne ARGS((uint32 arg1 , uint32 arg2 ));
+int32 char4lt ARGS((uint32 arg1 , uint32 arg2 ));
+int32 char4le ARGS((uint32 arg1 , uint32 arg2 ));
+int32 char4gt ARGS((uint32 arg1 , uint32 arg2 ));
+int32 char4ge ARGS((uint32 arg1 , uint32 arg2 ));
+char *char8in ARGS((char *s ));
+char *char8out ARGS((char *s));
+int32 char8eq ARGS((char *arg1 , char *arg2 ));
+int32 char8ne ARGS((char *arg1 , char *arg2 ));
+int32 char8lt ARGS((char *arg1 , char *arg2 ));
+int32 char8le ARGS((char *arg1 , char *arg2 ));
+int32 char8gt ARGS((char *arg1 , char *arg2 ));
+int32 char8ge ARGS((char *arg1 , char *arg2 ));
 char *char16in ARGS((char *s ));
 char *char16out ARGS((char *s ));
 int32 char16eq ARGS((char *arg1 , char *arg2 ));
@@ -370,8 +394,14 @@ ObjectId *oid8in ARGS((char *oidString ));
 char *oid8out ARGS((ObjectId (*oidArray )[]));
 
 /* regexp.c */
-bool char16regexeq ARGS((char *s , char *p ));
-bool char16regexne ARGS((char *s , char *p ));
+bool char2regexeq ARGS((uint16 arg1 , struct varlena *p ));
+bool char2regexne ARGS((uint16 arg1 , struct varlena *p ));
+bool char4regexeq ARGS((uint32 arg1 , struct varlena *p ));
+bool char4regexne ARGS((uint32 arg1 , struct varlena *p ));
+bool char8regexeq ARGS((char *s , struct varlena *p ));
+bool char8regexne ARGS((char *s , struct varlena *p ));
+bool char16regexeq ARGS((char *s , struct varlena *p ));
+bool char16regexne ARGS((char *s , struct varlena *p ));
 bool textregexeq ARGS((struct varlena *s , struct varlena *p ));
 bool textregexne ARGS((char *s , char *p ));
 
@@ -399,9 +429,6 @@ float64 btreenpage ARGS((ObjectId operatorObjectId , ObjectId indrelid , Attribu
  */
 float64 rtsel ARGS((ObjectId operatorObjectId , ObjectId indrelid , AttributeNumber attributeNumber , char *constValue , int32 constFlag , int32 nIndexKeys , ObjectId indexrelid ));
 float64 rtnpage ARGS((ObjectId operatorObjectId , ObjectId indrelid , AttributeNumber attributeNumber , char *constValue , int32 constFlag , int32 nIndexKeys , ObjectId indexrelid ));
-
-/* sets.c */
-ObjectId SetDefine ARGS((char *querystr, Name typename));
 
 /* smgr.c */
 int2 smgrin ARGS((char *s ));
