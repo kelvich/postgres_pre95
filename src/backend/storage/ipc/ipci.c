@@ -11,6 +11,7 @@
 #include "storage/sinval.h"
 #include "storage/ipci.h"
 #include "storage/bufmgr.h"
+#include "storage/lock.h"
 #include "tcop/slaves.h"
 
 RcsId("$Header$");
@@ -89,7 +90,8 @@ CreateSharedMemoryAndSemaphores(key)
      */
     InitLocks();
     InitMultiLevelLockm();
-    InitProcess(key);
+    if (InitMultiLevelLockm() == INVALID_TABLEID)
+	elog(FATAL, "Couldn't create the lock table");
 
     CreateSharedInvalidationState(key);
 }
@@ -141,8 +143,8 @@ AttachSharedMemoryAndSemaphores(key)
      * ----------------
      */
     InitLocks();
-    InitMultiLevelLockm();
-    InitProcess(key);
+    if (InitMultiLevelLockm() == INVALID_TABLEID)
+	elog(FATAL, "Couldn't attach to the lock table");
 
     AttachSharedInvalidationState(key);
 }
