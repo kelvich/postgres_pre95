@@ -113,60 +113,8 @@ extern int NBuffers;
 #define _SELEC_CONSTANT_LEFT_  0
 #define _SELEC_CONSTANT_RIGHT_ 2
 
-/*     	=======================
- *     	Internal planner nodes.
- *     	=======================
- */
-
-/*    
- *    	"Keys" of various flavors.
- *    
- */
-
-typedef struct order_key {
-    int attribute_number;
-    LispValue  array_index ;
-} orderkey;        /* XXX lisp constructor name: create_orderkey () */
-
-
-typedef struct join_key {
-    LispValue outer ;
-    LispValue inner ;
-} joinkey;        /* XXX lisp constructor name: create_joinkey */
-
-
-typedef struct merge_order {
-    LispValue join_operator;
-    LispValue left_operator;
-    LispValue right_operator;
-    LispValue left_type;
-    LispValue right_type;
-} mergeorder;  /* XXX lisp constructor name: create_mergeorder. */
-
-
-/*    
- *    	Join method information nodes.
- *    
- */
-
-typedef struct join_method {
-     LispValue keys;
-     LispValue clauses;
-} *joinmethod;     
-
-/*
-typedef struct merge_info {
-     LispValue ordering;
-} mergeinfo;
-
-
-typedef struct hash_info {
-     LispValue op;
-} hashinfo;
-*/
-
-extern LispValue joinmethod_clauses ARGS((joinmethod node));
-extern LispValue joinmethod_keys ARGS((joinmethod node));
+extern LispValue joinmethod_clauses ARGS((JoinMethod node));
+extern LispValue joinmethod_keys ARGS((JoinMethod node));
 
 extern LispValue SearchSysCacheGetAttribute();
 extern LispValue TypeDefaultRetrieve();

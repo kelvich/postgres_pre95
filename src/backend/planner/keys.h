@@ -25,9 +25,9 @@
  *
  */
 
-extern bool match_indexkey_operand ARGS((LispValue indexkey, LispValue operand, LispValue rel));
-extern bool equal_indexkey_var ARGS((LispValue index_key, LispValue var));
-extern LispValue extract_subkey ARGS((LispValue joinkey, LispValue which_subkey));
+extern bool match_indexkey_operand ARGS((LispValue indexkey, Var operand, Rel rel));
+extern bool equal_indexkey_var ARGS((LispValue index_key, Var var));
+extern LispValue extract_subkey ARGS((JoinKey joinKey, int which_subkey));
 extern bool samekeys ARGS((LispValue keys1, LispValue keys2));
 extern LispValue collect_index_pathkeys ARGS((LispValue index_keys, LispValue tlist));
 extern bool match_sortkeys_pathkeys ARGS((LispValue relid, LispValue sortkeys, LispValue pathkeys));

@@ -9,7 +9,7 @@ extern LispValue clause_type ARGS((LispValue clause));
 extern LispValue clause_args ARGS((LispValue clause));
 extern LispValue clause_subclauses ARGS((LispValue type, LispValue clause));
 extern bool is_opclause ARGS((LispValue clause));
-extern LispValue make_opclause ARGS((LispValue op, LispValue leftop, LispValue rightop));
+extern LispValue make_opclause ARGS((Oper op, Var leftop, Var rightop));
 extern LispValue get_opargs ARGS((LispValue clause));
 extern LispValue get_op ARGS((LispValue clause));
 extern Var get_leftop ARGS((LispValue clause));

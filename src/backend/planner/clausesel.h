@@ -1,5 +1,5 @@
 /* $Header$ */
-extern void set_clause_selectivities ARGS((LispValue clauseinfo_list, LispValue new_selectivity));
+extern void set_clause_selectivities ARGS((LispValue clauseinfo_list, Cost new_selectivity));
 extern double product_selec ARGS((LispValue clauseinfo_list));
 extern void set_rest_relselec ARGS((LispValue rel_list));
 extern void set_rest_selec ARGS((LispValue clauseinfo_list));
