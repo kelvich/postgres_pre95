@@ -136,6 +136,7 @@ SOURCES= \
 	${.CURDIR}/libpq${LIB_SRC_EXT} \
 	${.CURDIR}/fastpath${LIB_SRC_EXT} \
 	${.CURDIR}/large_objects${LIB_SRC_EXT} \
+	${.CURDIR}/catalogs${LIB_SRC_EXT} \
 	${.CURDIR}/files/files${FILE_SRC_EXT} \
 	${.CURDIR}/files/bki${FILE_SRC_EXT} \
 	${.CURDIR}/files/page${FILE_SRC_EXT} \
@@ -251,6 +252,7 @@ LIB_MAN_OBJS= \
 	libpq${LIB_MAN_EXT} \
 	fastpath${LIB_MAN_EXT} \
 	large_objects${LIB_MAN_EXT} \
+	catalogs${LIB_MAN_EXT}
 
 FILE_MAN_OBJS= \
 	files${FILE_MAN_EXT} \
