@@ -1031,6 +1031,33 @@ _copySort(from, to, alloc)
     (*to) = newnode;
     return true;
 }
+/* ---------------
+ *  _copyAgg
+ * --------------
+ */
+/*bool
+_copyAgg(from, to, alloc)
+    Agg	  from;
+    Agg   *to;
+    char * (*alloc)();
+{
+    Agg newnode;
+    COPY_CHECKARGS();
+    COPY_CHECKNULL();
+    COPY_NEW(Agg);
+
+    CopyNodeFields(from, newnode, alloc);
+    CopyPlanFields(from, newnode, alloc);
+    CopyTempFields(from, newnode, alloc);
+
+    Node_Copy(from, newnode, alloc, aggstate);
+
+    (*to) = newnode;
+    return true;
+}
+-commented out for adam...
+*/
+
     
 /* ----------------
  *	_copyUnique
