@@ -172,7 +172,7 @@ or
 .IR Unix ,
 which are symbolic constants defined in
 .(C
-\&.../src/backend/catalog/pg_lobj.h
+\&.../include/catalog/pg_lobj.h
 .)C
 The interpretation of the
 .IR mode
@@ -190,7 +190,7 @@ For Inversion large objects,
 is a bitmask describing several different attributes of the new
 object.  The symbolic constants listed here are defined in
 .(C
-\&.../src/backend/tmp/libpq-fs.h
+\&.../include/tmp/libpq-fs.h
 .)C
 The access type (read, write, or both) is controlled by
 .SM OR\c
@@ -354,7 +354,7 @@ and
 .IR VARDATA ()
 macros are declared in the file
 .(C
-\&.../src/backend/tmp/postgres.h
+\&.../include/tmp/postgres.h
 .)C
 .SH "Reading from Large Objects"
 Data may be read from large objects by calling the routine
@@ -448,7 +448,7 @@ or
 .IR Unix ,
 which are symbolic constants defined in
 .(C
-\&.../src/backend/catalog/pg_lobj.h
+\&.../include/catalog/pg_lobj.h
 .)C
 The interpretation of the
 .IR mode
@@ -466,7 +466,7 @@ For Inversion large objects,
 is a bitmask describing several different attributes of the new
 object.  The symbolic constants listed here are defined in
 .(C
-\&.../src/backend/tmp/libpq-fs.h
+\&.../include/tmp/libpq-fs.h
 .)C
 The access type (read, write, or both) is controlled by
 .SM OR\c
