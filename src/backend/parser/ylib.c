@@ -392,7 +392,7 @@ ParseFunc ( funcname , fargs )
     Iter iter;
     Param f;
     int vnum;
-    Func func;
+    LispValue retval;
 
     if (fargs)
      {
@@ -402,15 +402,14 @@ ParseFunc ( funcname , fargs )
      }
 
     /*
-    ** check for methods: if function takes one argument, and that argument
-    ** is either a relation or a PQ function returning a complex type,
-    ** then the function could be a projection.
+    ** check for projection methods: if function takes one argument, and 
+    ** that argument is a relation, param, or PQ function returning a complex 
+    ** type, then the function could be a projection.
     */
-
     if (length(fargs) == 1)
       if (lispAtomp(first_arg_type) && CAtom(first_arg_type) == RELATION)
        {
-	   /* this is could be a method */
+	   /* this is could be a projection */
 	   relname = (Name) CString(CDR(CAR(fargs)));
 	   if( RangeTablePosn ( relname ,LispNil ) == 0 )
 	     ADD_TO_RT( MakeRangeTableEntry ((Name)relname,
@@ -421,12 +420,12 @@ ParseFunc ( funcname , fargs )
 	   heap_close(rd);
 	   if ((attnum = get_attnum(relid, (Name) funcname)) 
 	       != InvalidAttributeNumber)
-	     return(make_var(relname, funcname));
+	     return((LispValue)(make_var(relname, funcname)));
 	   else	/* drop through */;
        }
       else if (IsA(CADR(CAR(fargs)),Func) && 
 	      (argrelid = typeid_get_relid
-	       ((int)(argtype = funcid_get_rettype
+	       ((int)(argtype=funcid_get_rettype
 		(get_funcid((Func)CADR(CAR(fargs))))))))
        {
 	   /* the argument is a function returning a tuple, so funcname
@@ -438,13 +437,49 @@ ParseFunc ( funcname , fargs )
 		** build an Iter containing this func node, add a tlist to the 
 		** func node, and return the Iter.
 		*/
-		iter = (Iter)MakeIter((LispValue)CDR(CAR(fargs)));
-		func = (Func)CAR(get_iterexpr(iter));
-		set_func_tlist(func, setup_tlist(funcname, argrelid));
-		return(lispCons(lispInteger(argtype),iter));
+		rd = heap_openr(tname(get_id_type(argtype)));
+		if (RelationIsValid(rd)) 
+		 {
+		     relid = RelationGetRelationId(rd);
+		     relname = RelationGetRelationName(rd);
+		     heap_close(rd);
+		 }
+		if (RelationIsValid(rd))
+		 {
+		     iter = (Iter)MakeIter(lispCons((LispValue)CADR(CAR(fargs))
+						    ,LispNil));
+		     set_func_tlist((Func)CAR(get_iterexpr(iter)), 
+				    setup_tlist(funcname, argrelid));
+		     return(lispCons(lispInteger(att_typeid(rd,attnum)),iter));
+		 }
+		else elog(WARN, 
+			  "Function %s has bad returntype %d", 
+			  funcname, argtype);
 	    }
 	   else /* drop through */;
        }
+      else  if (IsA(CADR(CAR(fargs)),Param))
+       {
+	   /* If the Param is a complex type, this could be a projection */
+	   f = (Param)CADR(CAR(fargs));
+	   rd = heap_openr(tname(get_id_type(get_paramtype(f))));
+	   if (RelationIsValid(rd)) 
+	    {
+		relid = RelationGetRelationId(rd);
+		relname = RelationGetRelationName(rd);
+		heap_close(rd);
+	    }
+	   if (RelationIsValid(rd) && 
+	       (attnum = get_attnum(relid, (Name) funcname))
+	          != InvalidAttributeNumber)
+	    {
+		set_param_tlist(f, setup_tlist(funcname, relid));
+		return(lispCons(lispInteger(att_typeid(rd, attnum)), f));
+	    }
+	   else /* drop through */;
+       }
+
+	   
 
     /* If we dropped through to here it's really a function */
     funcid = funcname_get_funcid ( funcname );
@@ -462,8 +497,8 @@ ParseFunc ( funcname , fargs )
     oid_array = funcname_get_funcargtypes(funcname);
 
     /* 
-    ** type checking and resolution -- if an argument is a relation we turn it 
-    ** into a Var.  if it's a Param we resolve the type of the parameter.
+    ** type checking and resolution -- if an argument is a relation name we 
+    ** turn it into a Var.  
     */
     x=0;
     foreach ( i , fargs ) 
@@ -471,26 +506,7 @@ ParseFunc ( funcname , fargs )
 	 List pair = CAR(i);
 	 ObjectId toid;
 	 
-	 if (IsA(CDR(pair),Param)) 
-	  {
-	      f = (Param)CDR(pair);
-	      rd = heap_open(get_paramtype(f));
-	      if (!RelationIsValid(rd)) {
-		  elog(WARN,
-		       "$%d is not a complex type; illegal expression",
-		       get_paramid(f));
-	      }
-	      relname = RelationGetRelationName(rd);
-	      relid = RelationGetRelationId(rd);
-	     
-	      /* set up the function args list to point to the parameter */
-	      CAR(i) = (LispValue)MakeList
-		(MakeParam(get_paramkind(f),get_paramid(f),
-			   get_paramname(f),get_paramtype(f)),
-		 -1);
-	  }
-
-	 else if (lispAtomp(CAR(pair)) && CAtom(CAR(pair)) == RELATION)
+	 if (lispAtomp(CAR(pair)) && CAtom(CAR(pair)) == RELATION)
 	  {
 	      toid = typeid(type(CString(CDR(pair))));
 
@@ -507,7 +523,7 @@ ParseFunc ( funcname , fargs )
 	      }
 
 	      /*
-	       *  for func(func..(relname)..), the param to the first function
+	       *  for func(relname), the param to the function
 	       *  is the tuple under consideration.  we build a special
 	       *  VarNode to reflect this -- it has varno set to the correct
 	       *  range table entry, but has varattno == 0 to signal that the
@@ -523,7 +539,6 @@ ParseFunc ( funcname , fargs )
 				 0 /* varslot */),
 			 -1);
 	  }
-
 	 else
 	  {
 	      toid = CInteger(CAR(pair));
@@ -536,10 +551,10 @@ ParseFunc ( funcname , fargs )
 
 	 x++;
      }
-	
-    return ( lispCons (lispInteger(rettype) ,
-		       lispCons ( (LispValue)funcnode , fargs )));
-	    
+
+    retval = lispCons (lispInteger(rettype) ,
+		       lispCons ( (LispValue)funcnode , fargs ));
+    return(retval);	
 }
 
 List
@@ -831,168 +846,18 @@ List func_arg_list(parameters)
 LispValue HandleNestedDots(dots)
      List dots;
 {
-    int vnum;
-    ObjectId relid;
-    extern LispValue p_rtable;
-    Name attrname; 
-    ObjectId producer_relid, producer_type, first_func;
-    List mutator_lisp,mutator_iter,nest,newfunc;
-    int attnum;
-    Name relname;
-    Relation rd;
-    char *mutator;
-    LispValue retval = LispNil, oldval = LispNil;
-    ObjectId funcid;
-    ObjectId functype;
-    OID funcrettype;
-    LispValue first;
-    Param f;
-    List fargs;
-    ObjectId *oid_array,input_type;
-    int nargs;
-    Func func;
+    List mutator_iter;
+    LispValue retval = LispNil;
 
-    /*
-     *  If this nested dot expression is hanging off a param node,
-     *  then we need to resolve the type of the parameter before
-     *  we go any further.  Otherwise, it must be hanging off a
-     *  relation name.
-     */
+    retval = ParseFunc(CString(CADR(dots)), 
+		       lispCons(lispCons(lispAtom("relation"), 
+					 CAR(dots)),
+				LispNil));
 
-    first = CAR(dots);
-    if (IsA(first,Param)) {
-	f = (Param)first;
-	rd = heap_open(get_paramtype(f));
-	if (!RelationIsValid(rd)) {
-	    elog(WARN,
-		 "$%d is not a complex type; illegal nested dot expression",
-		 get_paramid(f));
-	}
-	relname = RelationGetRelationName(rd);
-	relid = RelationGetRelationId(rd);
-
-	/* set up the function args list to point to the parameter */
-	retval = (LispValue)MakeList(MakeParam(get_paramkind(f),get_paramid(f),
-					       get_paramname(f),get_paramtype(f)),
-			  -1);
-    } else {
-	relname = (Name)CString(first);
-	rd = heap_openr(relname);
-	relid = RelationGetRelationId(rd);
-
-	/* get the range table entry for the var node */
-	vnum = RangeTablePosn(relname, 0);
-	if (vnum == 0) {
-	     p_rtable = nappend1(p_rtable ,
-				  MakeRangeTableEntry(relname, 0, relname));
-	     vnum = RangeTablePosn (relname, 0);
-	}
-
-	/*
-	 *  for relname.func.func...., the param to the first function
-	 *  is the tuple under consideration.  we build a special
-	 *  VarNode to reflect this -- it has varno set to the correct
-	 *  range table entry, but has varattno == 0 to signal that the
-	 *  whole tuple is the argument.
-	 */
-
-	retval = (LispValue)
-	  MakeList(MakeVar(vnum, 0, relid,
-			   LispNil /* vardotfields */,
-			   LispNil /* vararraylist */,
-			   lispCons(lispInteger(vnum),
-				    lispCons(lispInteger(0),LispNil)),
-			   0 /* varslot */),
-		   -1);
-    }
-
-    /* 
-     * the producer is the relation associated with the last nesting we've 
-     * examined. At this point it's the relation at the head of the list
-     */
-
-    producer_relid = relid;
-    producer_type = typeid(type(relname));
-    nest = LispNil;
-    first_func = 0;
-
-    /* 
-     * walk through the dots after the relation, 
-     * and build the tree bottom up.
-     */
-
-    foreach (mutator_iter, CDR(dots)) {
-
-	mutator_lisp = CAR(mutator_iter);
-	mutator = CString(mutator_lisp);
-
-	attnum = get_attnum(producer_relid, (Name) mutator);
-	if (attnum) {
-	    /* this attribute is actually a field of the previous Rel */
-	    if (CDR(mutator_iter) != LispNil)
-		elog(WARN,
-		     "%s is a projection, cannot put a dot after it", mutator);
-	    func = (Func)CAR(get_iterexpr((Iter)retval));
-	    set_func_tlist(func, setup_tlist(mutator, producer_relid));
-	    producer_relid = 0;
-
-	} else {
-	
-	    /* this attribute is a PQfunction */
-	    funcid = funcname_get_funcid(mutator);
-
-	    if (!funcid)
-		elog(WARN,
-		     "Component of nested dot is not a function or final projection");
-	    /* do type checking */
-	    funcrettype = funcname_get_rettype(mutator);
-	    functype = funcname_get_rettype(mutator);
-
-	    if (first_func == 0)
-		first_func = funcid;
-
-	    input_type = producer_type;
-	    producer_type = functype;
-	    producer_relid = typeid_get_relid(functype);
-	    nargs = funcname_get_funcnargs(mutator);
-
-	    if (nargs != 1)
-		elog(WARN,
-		  "Functions in nested dot expressions take single arguments");
-
-	    oid_array = funcname_get_funcargtypes(mutator);
-	    if (oid_array[0] != input_type)
-		elog(WARN, "Type incompatibility in nested dot");
-
-	    /* put func and an iter onto the retval structure */
-	    oldval = retval;
-	    retval = (LispValue) MakeIter(lispDottedPair());
-	    CAR(get_iterexpr((Iter)retval)) = (LispValue)
-	      MakeFunc(funcid, functype, 0, 
-		       tlen(get_id_type(funcrettype)),
-		       LispNil /* func_fcache */,
-		       LispNil /* func_tlist */),
-	      CDR(get_iterexpr((Iter)retval)) = oldval;
-	
-	}
-    }
-
-    if (producer_relid != 0)
-      elog(WARN, "nested dot must return a base type [temporarily]");
-
-    /* be tidy */
-    heap_close(rd);
-
-    /*
-     *  Last thing to do is to declare the return type of the nested
-     *  dot expression for use by the typechecking code.
-     */
-
-    retval = lispCons(lispInteger(producer_type), retval);
-
+    foreach (mutator_iter, CDR(CDR(dots)))
+      retval = ParseFunc(CString(CAR(mutator_iter)), lispCons(retval, LispNil));
     return(retval);
 }
-
 
 /*
 ** setup_tlist --
