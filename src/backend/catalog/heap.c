@@ -186,10 +186,7 @@ heap_creatr(relname, natts, smgr, att)
     extern GlobalMemory	CacheCxt;
     MemoryContext	oldcxt;
 
-    /* int			issystem(); */
     File		smgrcreate();		/* XXX */
-    /* OID			newoid(); */
-    extern		bcopy(), bzero();
 
     /* ----------------
      *	sanity checks
