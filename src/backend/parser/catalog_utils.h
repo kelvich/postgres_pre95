@@ -8,6 +8,7 @@
 #include "utils/rel.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
+#include "catalog/syscache.h"
     
 typedef HeapTuple	Type;
 typedef HeapTuple	Operator;
@@ -20,5 +21,7 @@ extern Relation get_rdesc(), get_rgdesc();
 extern char *outstr(), *instr(), *instr1(), *instr2();
 extern Operator oper(), right_oper(), left_oper();
 extern Name tname();
+
+
 
 #endif
