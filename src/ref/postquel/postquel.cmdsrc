@@ -1,200 +1,110 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SS COMMANDS 6/14/90
-.XA 0 "Section 4 \*- \*(PQ Commands (COMMANDS)"
-.SP POSTQUEL COMMANDS 6/14/90
-.sp 2i
-.ps 14
-.ce
-.b "SECTION 4 \*- \*(PQ COMMANDS (COMMANDS)"
-.sp 3
+.TH INTRODUCTION COMMANDS 01/23/93
+.XA 0 "Section 4 \(em \*(PQ Commands (COMMANDS)"
+.BH "SECTION 4 \(em \*(PQ COMMANDS (COMMANDS)"
 .XA 1 "General Information"
-.uh DESCRIPTION
-.lp
-The following is a description of the general syntax
-of \*(PQ.
-Individual 
-\*(PQ
-statements and commands
-are treated separately in the document;
-this section describes the syntactic classes from which the constituent
-parts of 
-\*(PQ
-statements are drawn.
-.uh Comments
-.lp
+.SH DESCRIPTION
+The following is a description of the general syntax of \*(PQ.
+Individual \*(PQ statements and commands are treated separately in the
+document; this section describes the syntactic classes from which the
+constituent parts of \*(PQ statements are drawn.
+.SH Comments
 A
-.i comment
-is an arbitrary sequence of characters
-bounded on the left by
-``/*''
-and on the right by
-``*/'', e.g:
-.(l
-.ft C
+.IR comment
+is an arbitrary sequence of characters bounded on the left by
+\*(lq/*\*(rq and on the right by \*(lq*/\*(rq, e.g:
+.(C
 /* This is a comment */
-.ft
-.)l
-.uh "Names"
-.lp
-.i Names
-in \*(PQ
-are sequences of not more than 16 alphanumeric
-characters, starting with an alphabetic.
-Underscore (\^_\^) is considered
-an alphabetic.
-.uh "Keywords"
-.lp
+.)C
+.SH "Names"
+.IR Names
+in \*(PQ are sequences of not more than 16 alphanumeric characters,
+starting with an alphabetic.  The underscore character (\*(lq_\*(rq)
+is considered an alphabetic.
+.SH "Keywords"
 The following identifiers are reserved for use as
-.i keywords
+.IR keywords
 and may not be used otherwise:
-.lp
-.s3
-.ft B
-.if n .ta 5 18 31 44
-.if t .ta 0.5i 1.8i 3.1i 4.4i
-.de xx
-\t\\$1\t\\$2\t\\$3\t\\$4
-.br
-..
-.xx abort delete key remove 
-.xx addattr demand leftouter rename 
-.xx after descending light replace
-.xx all destroy load retrieve
-.xx always destroydb merge returns
-.xx and do move rewrite
-.xx append empty never rightouter 
-.xx arch_store end new rule
-.xx archive execute none sort
-.xx arg fetch nonulls stdin
-.xx ascending forward not stdout
-.xx attachas from NULL store
-.xx backward function on to
-.xx before heavy once transaction
-.xx begin in operator type
-.xx binary index or union
-.xx by indexable output_proc unique
-.xx cfunction inherits parallel using
-.xx close input_proc pfunction vacuum
-.xx cluster instance portal variable
-.xx copy instead postquel version
-.xx create intersect priority view
-.xx createdb into purge where
-.xx current intotemp quel with
-.xx define is relation
-.ft
-.lp
-In addition,
-all \*(PP
-classes have several predefined attributes used
-by the system.
-For a list of these,
-see the section
-.b Fields ,
+.PP
+.\" .s3
+.so ../obj/keyword.nr
+.PP
+In addition, all \*(PG classes have several predefined attributes used
+by the system.  For a list of these, see the section
+.BR Fields ,
 below.
-.lp
-.uh "Constants"
-.lp
+.XA 1 "Constants"
+.SH "Constants"
 There are six types of
-.i constants
-for use in \*(PQ.
-They are described below.
-.uh "Character Constants"
-.lp
+.IR constants
+for use in \*(PQ.  They are described below.
+.SH "Character Constants"
 Single
-.i "character constants"
-may be used in \*(PQ by 
-surrounding them by single
-quotes, e.g., `n'.
-.uh "String Constants"
-.lp
-\fIStrings\fP in \*(PQ are arbitrary sequences of ASCII characters bounded by
-double quotes (" "). Upper case alphabetics within strings are
-accepted literally.
-Non-printing characters may be embedded within strings by prepending them
-with a backslash, e.g., `\en'. Also, in order to embed quotes
-within strings, it is necessary to prefix them with `\e' .
-The same convention applies to `\e' itself.
-Because of the limitations on instance sizes, string constants
-are currently limited to a length of a little less than 8K bytes.
-Larger objects may be created using the \*(PP Large Object interface.
-.uh "Integer Constants"
-.lp
-.i "Integer constants"
-in \*(PQ are collection of ASCII digits with no decimal point.
-Legal
-values 
-range from \(mi2147483647
-to +2147483647.
-This will vary depending on the operating system and host machine.
-.uh "Floating Point Constants"
-.lp
-.i "Floating point constants"
-consist of an integer part, a decimal point, and
-a fraction part or scientific notation
-of the following format:
-.(l
-.ft C
+.IR "character constants"
+may be used in \*(PQ by surrounding them by single quotes, e.g., `n'.
+.SH "String Constants"
+.IR Strings
+in \*(PQ are arbitrary sequences of ASCII characters bounded by double
+quotes (" "). Upper case alphabetics within strings are accepted
+literally.  Non-printing characters may be embedded within strings by
+prepending them with a backslash, e.g., `\en'. Also, in order to embed
+quotes within strings, it is necessary to prefix them with `\e' .  The
+same convention applies to `\e' itself.  Because of the limitations on
+instance sizes, string constants are currently limited to a length of
+a little less than 8192 bytes.  Larger objects may be created using the
+\*(PG Large Object interface.
+.SH "Integer Constants"
+.IR "Integer constants"
+in \*(PQ are collection of ASCII digits with no decimal point.  Legal
+values range from \(mi2147483647 to +2147483647.  This will vary
+depending on the operating system and host machine.
+.SH "Floating Point Constants"
+.IR "Floating point constants"
+consist of an integer part, a decimal point, and a fraction part or
+scientific notation of the following format:
+.(C
 {<dig>} .{<dig>} [e [+-] {<dig>}]
-.ft
-.)l
-.lp
-Where <dig> is a digit.
-You must include at least one <dig> after the period and after the
-[+-] if you use those options.
-An exponent with a missing mantissa has a mantissa
-of 1 inserted.
-There may be no extra characters embedded in the string.
-Floating constants
-are taken to be double-precision quantities with a range of
-approximately
+.)C
+Where <dig> is a digit.  You must include at least one <dig> after the
+period and after the [+-] if you use those options.  An exponent with
+a missing mantissa has a mantissa of 1 inserted.  There may be no
+extra characters embedded in the string.  Floating constants are taken
+to be double-precision quantities with a range of approximately
 .if n -10**38 to +10**38
 .if t \(mi10\x'-0.2v'\u\s-3\&38\s0\d to 10\u\x'-0.2v'\s-3\&38\s0\d
-and a precision of 17 decimal digits.
-This will vary depending on the operating system and host machine.
-.uh "Constants of \*(PP User Defined Types"
-.lp
+and a precision of 17 decimal digits.  This will vary depending on the
+operating system and host machine.
+.SH "Constants of \*(PG User Defined Types"
 A constant of an
-.i arbitrary
+.IR arbitrary
 type can be entered using the notation:
-.(l
-.ft C
+.(C
 "string"::type-name
-.ft
-.)l
-In this case the value inside the string is passed to the input conversion
-routine for the type called type-name. The result is a constant of the
-indicated type.
-.lp
-.uh "Array constants"
-.lp
-.i "Array constants"
-are arrays of any \*(PP type, including other arrays, string constants,
-etc.  The general format of an array constant is the following:
-.(l
-.ft C
+.)C
+In this case the value inside the string is passed to the input
+conversion routine for the type called type-name. The result is a
+constant of the indicated type.
+.SH "Array constants"
+.IR "Array constants"
+are arrays of any \*(PG type, including other arrays, string
+constants, etc.  The general format of an array constant is the
+following:
+.(C
 "{<val1><delim><val2><delim>}"
-.ft
-.)l
-.lp
+.)C
 An example of an array constant is
-.lp
-.(l
-.ft C
+.(C
 "{{1,2,3},{4,5},{6,7,8,9}}"
-.ft
-.)l
-.lp
+.)C
 This constant is an array consisting of three sub-arrays of integers.
-.lp
-.uh "Fields"
-.lp
+.XA 1 "Fields and Attributes"
+.SH "Fields"
 A 
-.i field
-is one of the following:
-.(l
-\fIattribute name in a given class\fR
-.ft C
+.IR field
+is either an attribute of a given class or one of the following:
+.(C
 all
 oid
 tmin
@@ -204,428 +114,360 @@ xmax
 cmin
 cmax
 vtype
-.ft
-.)l
+.)C
 As in \*(II, 
-.i all
+.IR all
 is a shorthand for all normal attributes in a class, and may be used
-profitably in the target list of a retrieve statement.  
-.i Oid
-stands for the unique identifier of an instance which is added by \*(PP to
-all instances automatically. Oids are not reused and are 32 bit quantities.
-.lp
-.i "Tmin, tmax, xmin, cmin, xmax"
+profitably in the target list of a retrieve statement.
+.PP
+.IR Oid
+stands for the unique identifier of an instance which is added by
+\*(PG to all instances automatically. Oids are not reused and are 32
+bit quantities.
+.PP
+.IR "Tmin, tmax, xmin, cmin, xmax"
 and
-.i cmax
-stand respectively for the time that the instance was inserted, the time
-the instance was deleted, the identity of the inserting transaction, 
-the command identifier within the transaction,
-the identity of the deleting transaction and
-its associated deleting command.  For further information
-on these fields consult [STON87].  Times are represented internally
-as instances of the 
-.q "abstime"
-data type.  Transaction identifiers are
-32 bit quantities which are assigned sequentially
-starting at 512.  Command identifiers are 16 bit objects;
-hence, it is an error
-to have more than 65535 \*(PQ commands within one transaction.
-.uh "Attributes"
-.lp
+.IR cmax
+stand respectively for the time that the instance was inserted, the
+time the instance was deleted, the identity of the inserting
+transaction, the command identifier within the transaction, the
+identity of the deleting transaction and its associated deleting
+command.  For further information on these fields consult [STON87].
+Times are represented internally as instances of the \*(lqabstime\*(rq
+data type.  Transaction identifiers are 32 bit quantities which are
+assigned sequentially starting at 512.  Command identifiers are 16 bit
+objects; hence, it is an error to have more than 65535 \*(PQ commands
+within one transaction.
+.SH "Attributes"
 An
-.i attribute
+.IR attribute
 is a construct of the form:
-.(l
-.ft C
+.(C
 Instance-variable{.composite_field}.field `['number`]'
-.ft
-.)l
-.i Instance-variable 
-identifies a particular class and can be thought of
-as standing for the instances of that class.
-An instance variable is either a class name, a
-surrogate for a class defined by means of a
-.i from
+.)C
+.IR Instance-variable 
+identifies a particular class and can be thought of as standing for
+the instances of that class.  An instance variable is either a class
+name, a surrogate for a class defined by means of a
+.IR from
 clause, or the keyword 
-.b new
+.BR new
 or 
-.b current.
-New and current can only appear in the action portion of a rule, while other instance
-variables can be used in any \*(PQ command. 
-.i Composite_field
-is a field of of one of the \*(PP composite types indicated in the 
-\fBinformation\fR(commands) section,
-while successive
-composite fields address attributes
-in the class(s) to which the composite field evaluates.
-Lastly, 
-.i field
-is a normal (base type) field in the class(s) last addressed.
-If
-.i field 
+.BR current.
+New and current can only appear in the action portion of a rule, while
+other instance variables can be used in any \*(PQ command.
+.IR Composite_field
+is a field of of one of the \*(PG composite types indicated in the 
+.IR information (commands)
+section, while successive composite fields address attributes in the
+class(s) to which the composite field evaluates.  Lastly,
+.IR field
+is a normal (base type) field in the class(s) last addressed.  If
+.IR field 
 is of type array, then the optional
-.i number 
-designator indicates a specific element in the array.  If no
-number is indicated, then all array elements are returned.
-.uh "Operators"
-.lp
-Any built-in system, or user defined operator
-may be used in \*(PQ.  For the
-list of built-in and system operators consult
-.b built-in
-types 
-(commands) and
-b. system types
-(commands).
-For a list of user defined
-operators consult your system administrator or run a query on the
-pg_operator class.
-Parentheses may be used for arbitrary grouping of operators.
-.uh "Expressions (a_expr)"
-.lp
+.IR number 
+designator indicates a specific element in the array.  If no number is
+indicated, then all array elements are returned.
+.XA 1 "Operators"
+.SH "Operators"
+Any built-in system, or user defined operator may be used in \*(PQ.
+For the list of built-in and system operators consult
+.BR "built-in types" (commands)
+and
+.BR "system types" (commands).
+For a list of user defined operators consult your system administrator
+or run a query on the pg_operator class.  Parentheses may be used for
+arbitrary grouping of operators.
+.XA 1 "Expressions"
+.SH "Expressions (a_expr)"
 An
-.i expression
+.IR expression
 is one of the following:
-.(l
-.ft C
+.(C
 ( a_expr )
 constant
 attribute
-a_expr  binary_operator  a_expr
-.\" a_expr right_unary_operator
-left_unary_operator  a_expr
+a_expr binary_operator a_expr
+a_expr right_unary_operator
+left_unary_operator a_expr
 parameter
 functional expressions 
 aggregate expressions
-set expressions
-class expression \fP(not in Version \*(PV)\fR
-.ft
-.)l
-We have already discussed constants and attributes.
-The two kinds
-of operator expressions indicate respectively binary and
-left_unary expressions.
-The following sections discuss the remaining
-options.
-.uh "Parameters"
-.lp
+set expressions \fB(not in Version \*(PV)\fP
+class expression \fB(not in Version \*(PV)\fP
+.)C
+We have already discussed constants and attributes.  The two kinds of
+operator expressions indicate respectively binary and left_unary
+expressions.  The following sections discuss the remaining options.
+.SH "Parameters"
 A 
-.i parameter
+.IR parameter
 is used to indicate a parameter in a \*(PQ function.  Typically this
-is used in \*(PQ function definition statement.
-The form of a parameter is:
-.(l
-.ft C
+is used in \*(PQ function definition statement.  The form of a
+parameter is:
+.(C
 \'$' number
-.ft
-.)l
-.lp
+.)C
 For example, consider the definition of a function, DEPT, as
-.(l
-.ft C
+.(C
 define function DEPT 
 	(language="postquel", returntype = dept)
     arg is (char16) as 
     retrieve (dept.all) where dept.name = $1
-.ft
-.)l
-.uh "Functional Expressions"
-.lp
+.)C
+.SH "Functional Expressions"
 A
-.i functional
-.i expression
-is the name of a legal \*(PQ function,
-followed by its argument list enclosed in parentheses, e.g.:
-.(l 
-.ft C
+.IR "functional expression"
+is the name of a legal \*(PQ function, followed by its argument list
+enclosed in parentheses, e.g.:
+.(C
 fn-name (a_expr{ , a_expr})
-.ft
-.)l	
-For example, the following computes the square root of an employee salary.
-.(l
-.ft C
+.)C
+For example, the following computes the square root of an employee
+salary.
+.(C
 sqrt(emp.salary)
-.ft
-.)l
-.uh "Aggregate Expression"
-.lp
+.)C
+.SH "Aggregate Expression"
 An
-.i aggregate
-.i expression
-represents a simple aggregate (i.e one which
-computes a single value) or an aggregate function (i.e. one which 
-computes a set
-of values).
+.IR "aggregate expression"
+represents a simple aggregate (i.e., one that computes a single value)
+or an aggregate function (i.e., one that computes a set of values).
 The syntax is the following:
-.(l
-.ft C
+.(C
 aggregate_name `{' [unique [using] opr] a_expr
 		[from from_list]
 		[where qualification]`}'
-.ft
-.)l
+.)C
 Here, 
-.i aggregate_name 
+.IR aggregate_name 
 must be a previously defined aggregate.  The 
-.i from_list 
+.IR from_list 
 indicates the class to be aggregated over while
-.i qualification
-gives restrictions which must be satisfied by the instances to be aggregated.
-Next, the a_expr gives the expression to be aggregated while
-the 
-.i unique
+.IR qualification
+gives restrictions which must be satisfied by the instances to be
+aggregated.  Next, the
+.IR a_expr
+gives the expression to be aggregated, while the
+.IR unique
 tag indicates whether all values should be aggregated or just the
-unique values of a_expr.
-Two expressions, a_expr1 and a_expr2 are the same if
-a_expr1 opr a_expr2 evaluates to true.
-.lp
-In the case that all instance variables used in the aggregate expression
-are defined in the from list, a simple aggregate has been defined.  For
-example, to sum employee salaries whose age is greater than 30, one would
-write:
-.(l
-.ft C
+unique values of
+.IR a_expr .
+Two expressions, 
+.IR a_expr1
+and
+.IR a_expr2
+are the same if
+.IR "a_expr1 opr a_expr2"
+evaluates to true.
+.PP
+In the case that all instance variables used in the aggregate
+expression are defined in the from list, a simple aggregate has been
+defined.  For example, to sum employee salaries whose age is greater
+than 30, one would write:
+.(C
 retrieve (total = sum {e.salary from e in emp
                                 where e.age > 30} )
-.ft
-.)l
+.)C
 or
-.(l
-.ft C
+.(C
 retrieve (total = sum {EMP.salary where emp.age > 30})
-.ft
-.)l
-In either case, \*(PP is instructed to find 
-the instances in the from_list which
-satisfy the qualification and then compute the aggregate of the a_expr
+.)C
+In either case, \*(PG is instructed to find the instances in the
+.IR from_list
+which satisfy the qualification and then compute the aggregate of the
+.IR a_expr 
 indicated.  
-.lp
-On the other hand, if there are variables used in the aggregate expression that
-are not defined in the from list, e.g:
-.(l
-.ft C
+.PP
+On the other hand, if there are variables used in the aggregate
+expression that are not defined in the 
+.IR from
+list, e.g:
+.(C
 avg {emp.salary where emp.age = e.age}
-.ft
-.)l
-then this aggregate has a value for each possible value taken on by 
-e.age.  For example, the following complete query finds the
+.)C
+then this aggregate has a value for each possible value taken on by
+\*(lqe.age\*(rq.  For example, the following complete query finds the
 average salary of each possible employee age over 18:
-.(l
-.ft C
+.(C
 retrieve (e.age, avg {emp.salary where emp.age = e.age})
 	from e in emp 
 	where e.age > 18
-.ft
-.)l
+.)C
 Such aggregate functions are not supported in Version \*(PV. Furthermore,
-in this version, only the a_expr and the where-qualification clause 
-are supported.  Therefore, for the above simple sum aggregate, the 
-supported query would be the latter.  One other note:  the qualification
-will support inheritance, but the expression to be aggregated will not.
-
-.uh "Set Expressions"
-.lp
-.b
-Set expressions are not supported in Version \*(PV.
-.r
-.lp
+in this version, only 
+.IR a_expr
+and the 
+.IR where -qualification
+clause are supported.  Therefore, for the above simple sum aggregate,
+the supported query would be the latter.  One other note: the
+qualification will support inheritance, but the expression to be
+aggregated will not.
+.SH "Set Expressions"
+.BR "Set expressions are not supported in Version \*(PV."
+.PP
 A
-.i set
-.i expression
-defines a collection of instances from some class
-and uses the following syntax:
-.(l
-.ft C
+.IR "set expression"
+defines a collection of instances from some class and uses the
+following syntax:
+.(C
  {target_list from from_list where qualification}
-.ft
-.)l
+.)C
 For example, the set of all employee names over 40 is:
-.(l
-.ft C
+.(C
 {emp.name where emp.age > 40}
-.ft
-.)l
-.fi
-In addition, it is legal to construct set expressions which
-have an instance variable which is defined outside the scope of
-the expression.  For example, the following expression is the
-set of employees in each department:
-.(l
-.ft C
+.)C
+In addition, it is legal to construct set expressions which have an
+instance variable which is defined outside the scope of the
+expression.  For example, the following expression is the set of
+employees in each department:
+.(C
 {emp.name where emp.dept = dept.dname}
-.ft
-.)l
-.in .5i
-Set expressions can be used in class expressions which
-are defined below.
-.uh "Class Expression"
-.lp
-.b
-Class expressions are not supported in Version \*(PV.
-.r
-.lp
+.)C
+Set expressions can be used in class expressions which are defined
+below.
+.SH "Class Expression"
+.BR "Class expressions are not supported in Version \*(PV."
+.PP
 A 
-.i class
-.i expression 
+.IR "class expression"
 is an expression of the form:
+.PP
 .(l
 class_constructor binary_class_operator class_constructor
 unary_class_operator class_constructor
 .)l
+.PP
 where binary_class_operator is one of the following:
+.PP
+.if t .ta 0.5i +1.0i
+.if n .ta 5n +10n
 .(l
 union		union of two classes
-intersect	intersection of two classes
+intersect		intersection of two classes
 \-		difference of two classes
 >>		left class contains right class
 <<		right class contains left class
 ==		right class equals left class 
 .)l
+.PP
 and unary_class_operator can be:
-.in .5i
+.PP
 .(l
 empty		right class is empty
 .)l
-.fi
+.PP
 A 
-.i class_constructor 
-is either an instance variable, 
-a class name, the value of a composite field or a set expression.
-.lp
-An example of a query with a class expression is
-one to find all the departments with no employees:
-.in .5i
-.(l
-.ft C
+.IR class_constructor 
+is either an instance variable, a class name, the value of a composite
+field or a set expression.
+.PP
+An example of a query with a class expression is one to find all the
+departments with no employees:
+.(C
 retrieve (dept.dname)
     where empty {emp.name where emp.dept = dept.dname}
-.ft
-.)l  
-.uh "Target_list"
-.lp
+.)C
+.SH "Target_list"
 A
-.i "target list"
-is a parenthesized, comma-separated list of one
-or more elements, each of which must be of the form:
-.(l
-.ft C
-[result_attname  =] a_expr
-.ft
-.)l
-Here, result_attname 
-is the name of the attribute to be created (or an
-already existing attribute name in the case of update statements.)
-If result_attname is not present, then a_expr must 
-contain only one attribute name
-which is assumed to be the name of the result field.
-In Version \*(PV default naming is only used if the a_expr is an attribute.
-.uh "Qualification"
-.lp
+.IR "target list"
+is a parenthesized, comma-separated list of one or more elements, each
+of which must be of the form:
+.(C
+[result_attname =] a_expr
+.)C
+Here, result_attname is the name of the attribute to be created (or an
+already existing attribute name in the case of update statements.)  If
+.IR result_attname
+is not present, then 
+.IR a_expr
+must contain only one attribute name which is assumed to be the name
+of the result field.  In Version \*(PV default naming is only used if
+.IR a_expr
+is an attribute.
+.SH "Qualification"
 A 
-.i qualification 
-consists of any number of clauses connected
-by the logical operators:
-.(l
-.ft C
+.IR qualification 
+consists of any number of clauses connected by the logical operators:
+.(C
 not
 and
 or
-.ft
-.)l
-A clause is an a_expr that evaluates to a Boolean over a set of instances.
-.uh "From List"
-.lp
+.)C
+A clause is an 
+.IR a_expr
+that evaluates to a Boolean over a set of instances.
+.SH "From List"
 The 
-.i from
-.i list
+.IR "from list"
 is a comma-separated list of 
-.i from
-.i expressions.
-.lp
+.IR "from expressions" .
+.PP
 Each 
-.i from
-.i expression
+.IR "from expression"
 is of the form:
-.(l
-.ft C
+.(C
 instance_variable-1 {, instance_variable-2}
 	in class_reference
-.ft
-.)l
+.)C
 where 
-.i class_reference
+.IR class_reference
 is of the form
-.(l
-.ft C
+.(C
 class_name [time_expression] [*]
-.ft
-.)l
+.)C
 The 
-.i from
-.i expression
-defines one or more instance variables to range over the class indicated
-in \fIclass_reference\fR.  
-Adding a \fItime_expression\fR will indicate that a historical class
-is desired.
-One can also request the instance variable to range over all
-classes that are beneath the indicated class in the inheritance
-hierarchy by postpending the designator `*'.
-.uh "Time Expressions"
-.lp
+.IR "from expression"
+defines one or more instance variables to range over the class
+indicated in 
+.IR class_reference .
+Adding a 
+.IR time_expression
+will indicate that a historical class is desired.  One can also request 
+the instance variable to range over all classes that are beneath the
+indicated class in the inheritance hierarchy by postpending the
+designator \*(lq*\*(rq.
+.SH "Time Expressions"
 A
-.i time
-.i expression
+.IR "time expression"
 is in one of two forms:
-.(l
-.ft C
+.(C
  [date]
  [date-1, date-2]
-.ft
-.)l
-The first case requires instances that are valid
-at the indicated time.
-The second case requires instances that are valid at some time within
-the date range specified.
-If no time expression is indicated, the
-default is \*(lqnow\*(rq.  
-.lp
+.)C
+The first case requires instances that are valid at the indicated
+time.  The second case requires instances that are valid at some time
+within the date range specified.  If no time expression is indicated,
+the default is \*(lqnow\*(rq.
+.PP
 In each case, the date is a character string of the form
-.(b
-.ft C
+.(C
 [MON-FRI] "MMM DD [HH:MM:SS] YYYY" [Timezone]
-.fn
-.)b
-where MMM is the month (Jan \- Dec),
-DD is a legal day number in the specified month,
-HH:MM:SS is an optional time in that day (24-hour clock),
-and YYYY is the year.
-If the time of day HH:MM:SS is not specified,
-it defaults to midnight at the start of the specified day.
-In addition,
-all times are interpreted as GMT.
-.lp
+.)C
+where MMM is the month (Jan \- Dec), DD is a legal day number in the
+specified month, HH:MM:SS is an optional time in that day (24-hour
+clock), and YYYY is the year.  If the time of day HH:MM:SS is not
+specified, it defaults to midnight at the start of the specified day.
+As of Version 3.0, times are no longer read and written using
+Greenwich Mean Time; the input and output routines default to the
+local time zone.
+.PP
 For example,
-.(b
-.ft C
+.(C
 ["Jan 1 1990"]
 ["Mar 3 00:00:00 1980", "Mar 3 23:59:59 1981"]
-.fn
-.)b
+.)C
 are valid time specifications.
-.uh "SEE ALSO"
-.lp
+.SH "SEE ALSO"
 append(commands),
 delete(commands),
 execute(commands),
 replace(commands),
 retrieve(commands),
 monitor(unix).
-.uh BUGS
-.lp
+.SH BUGS
 The following constructs are not available in Version \*(PV:
 .(l
-.ft C
 class expressions
 set expressions
-.ft
 .)l

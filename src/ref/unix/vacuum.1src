@@ -1,51 +1,106 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP VACUUM UNIX 8/11/91
-.uh NAME
-.lp
-vacuum \*- Vacuum a POSTGRES database
-.uh SYNOPSIS
-.lp
-.b vacuum
-dbname
-.uh DESCRIPTION
-.lp
-.b Vacuum
+.TH VACUUM UNIX 01/23/93
+.XA 1 Vacuum
+.SH NAME
+vacuum \(em vacuum a database
+.SH SYNOPSIS
+.BR vacuum
+[\c
+.BR -a
+system]
+[\c
+.BR -h
+host]
+[\c
+.BR -p
+port]
+[dbname]
+.SH DESCRIPTION
+.BR Vacuum
 vacuums a POSTGRES database.
 Vacuuming a database moves deleted records to an archive
-for archived classes,
-cleans out records from aborted transactions,
-and updates statistics that are stored in the system catalogs.
-Databases should be vacuumed from time to time.
-We recommend adding an entry to
-.i "/usr/lib/crontab"
-to vacuum production databases nightly.
-.lp
-As of release 3.0 of POSTGRES,
+(for archived classes; see 
+.IR create (commands)),
+cleans out records from aborted transactions, and updates statistics
+that are stored in the system catalogs and used by the query
+optimizer.  Databases should be vacuumed periodically, if for no other
+reason than to update the statistics (which make the system run more
+efficiently).  We recommend using using a mechanism such as
+.IR "cron" (1)
+or 
+.IR "at" (1)
+to vacuum production databases on a nightly basis.
+.PP
+.IR Vacuum
+is a shell script that invokes
+.IR monitor .
+Hence, a
+.IR postmaster
+process must be running on the database server host before
+.IR vacuum 
+is executed.  In addition, the 
+.SM PGOPTION
+and
+.SM PGREALM
+environment variables will be passed on to
+.IR monitor
+and processed as described in 
+.IR monitor (unix).
+.PP
+The optional argument
+.IR dbname
+specifies the name of the database to be vacuumed.
+.IR Dbname
+defaults to the value of the 
+.SM USER
+environment variable.
+.PP
+.IR Vacuum
+understands the following command-line options:
+.TP 5n
+.BR "-a" " system"
+Specifies an authentication system 
+.IR "system"
+(see 
+.IR introduction (unix))
+to use in connecting to the 
+.IR postmaster
+process.  The default is site-specific.
+.TP
+.BR "-h" " host"
+Specifies the hostname of the machine on which the 
+.IR postmaster
+is running.  Defaults to the name of the local host, or the value of
 the
-.b vacuum
-command is a shell script that executes the
-Postquel query
-.i vacuum
-on the database of interest.
-See the Postquel reference manual for details.
-.uh "ENVIRONMENT VARIABLES"
-.ip PGPORT
-The port on which the postmaster is running.  This value is
-used if the
-.i -p
-option is not specified.  If 
-.i -p
-is not specified and PGPORT is not set, then the port defaults
-to 4321.
-.ip PGHOST
-The host on which the postmaster is running.  This value is
-used if the
-.b -h
-option is not specified.  If
-.b -h
-is not specified and PGHOST is not set, then the host defaults
-to "localhost".
-.uh "SEE ALSO"
-.lp
-vacuum(postquel).
+.SM PGHOST
+environment variable (if set).
+.TP
+.BR "-p" " port"
+Specifies the Internet TCP port on which the
+.IR postmaster
+is listening for connections.  Defaults to 4321, or the value of the
+.SM PGPORT
+environment variable (if set).
+.SH "SEE ALSO"
+monitor(unix),
+postmaster(unix),
+vacuum(commands).
+.SH DIAGNOSTICS
+.TP 5n
+.BI "Error: Failed to connect to backend (host=" "xxx" ", port=" "xxx" ")"
+.IR Vacuum
+could not attach to the 
+.IR postmaster 
+process on the specified host and port.  If you see this message,
+ensure that the
+.IR postmaster
+is running on the proper host and that you have specified the proper
+port.  If your site uses an authentication system, ensure that you
+have obtained the required authentication credentials.
+.TP
+.BI "user \*(lq" "username" "\*(rq is not in \*(lqpg_user\*(rq"
+You do not have a valid entry in the relation \*(lqpg_user\*(rq and
+cannot do anything with \*(PG at all; contact your \*(PG site
+administrator.

@@ -1,53 +1,49 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP ADDATTR COMMANDS 6/14/90
+.TH ADDATTR COMMANDS 01/23/93
 .XA 2 "Addattr"
-.uh NAME
-.lp
-addattr \*- add attributes to a class
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+addattr \(em add attributes to a class
+.SH SYNOPSIS
+.(l M
 \fBaddattr\fR \fB(\fR attname1 \fB=\fR type1 {\fB,\fR attname-i \fB=\fR type-i} \fB)\fR
-	\fBto\fR classname{*}
+	\fBto\fR classname{\fB*\fP}
 .)l
-.uh DESCRIPTION
-.lp
+.SH DESCRIPTION
 The
-.b addattr
+.BR addattr
 command
 causes new attributes to be added to an existing class,
-.i classname .
+.IR classname .
 The new attributes and their types are specified
 in the same style and with the the same restrictions as in
-\fBcreate\fR(commands).
-.lp
-The new attributes will not be added to
-any classes which inherit attributes from
-.i classname ,
-unless the
-.q *
-is present.
-.lp
+.IR create (commands).
+.PP
+The new attributes will not be added to any classes which inherit
+attributes from
+.IR classname ,
+unless the \*(lq*\*(rq is present.
+.PP
 The initial value of each added attribute for all instances is
-.q "null."
-.lp
-For efficiency reasons,
-default values for added attributes
-are not placed in existing instances of a class.
-If default values are desired,
-a subsequent
-\fBreplace\fR(commands) query should be run.
-.uh EXAMPLE
-.lp
-.ft C
-/* add the date of hire to the emp class */
-
+\*(lqnull\*(rq.
+.PP
+For efficiency reasons, default values for added attributes are not
+placed in existing instances of a class.  If default values are
+desired, a subsequent
+.IR replace (commands)
+query should be run.
+.PP
+You must own the class in order to change its schema.
+.SH EXAMPLE
+.(C
+/*
+ * add the date of hire to the emp class
+ */
 addattr (hiredate = abstime) to emp
-.ft
-.uh "SEE ALSO"
-.lp
-create(commands).
-.uh "BUGS"
-.lp
-"*" is not supported in Version \*(PV.
+.)C
+.SH "SEE ALSO"
+create(commands),
+replace(commands).
+.SH "BUGS"
+\*(lq*\*(rq is not supported in Version \*(PV.

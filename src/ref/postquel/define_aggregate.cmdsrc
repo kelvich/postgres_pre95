@@ -1,71 +1,86 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP "DEFINE AGGREGATE" COMMANDS 6/14/90
+.TH "DEFINE AGGREGATE" COMMANDS 01/23/93
 .XA 2 "Define Aggregate"
-.uh NAME
-.lp
-define aggregate \*- define a new aggregate
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+define aggregate \(em define a new aggregate
+.SH SYNOPSIS
+.(l M
 \fBdefine aggregate\fR agg-name [\fBas\fR]
-	\fB(\fR\fBsfunc1\fR \fB=\fR state-transition-function1,
-	 \fBsfunc2\fR \fB=\fR state-transition-func2,
-	 \fBfinalfunc\fR \fB=\fR final-function,
-	 \fBinitcond1\fR \fB=\fR initial-condition1,
-	 \fBinitcond2\fR \fB=\fR initial-condition2 \fB)\fR
+	\fB(\fP[\fBsfunc1\fR \fB=\fR state-transition-function-1]
+	 [\fB,\fP \fBsfunc2\fR \fB=\fR state-transition-function-2]
+	 [\fB,\fP \fBfinalfunc\fR \fB=\fR final-function]
+	 [\fB,\fP \fBinitcond1\fR \fB=\fR initial-condition-1]
+	 [\fB,\fP \fBinitcond2\fR \fB=\fR initial-condition-2]\fB)\fR
 .)l
-.uh DESCRIPTION
-.lp
-An aggregate requires three functions, two
-.i "state transition"
+.SH DESCRIPTION
+An aggregate function can use up to three functions, two
+.IR "state transition"
 functions, X1 and X2:
 .(l
 X1( internal-state1, next-data_item ) ---> next-internal-state1
 X2( internal-state2 ) ---> next-internal-state2
 .)l
-.lp
 and a
-.b "final calculation"
+.BR "final calculation"
 function, F:
 .(l
 F(internal-state1, internal-state2) ---> aggregate-value
 .)l
-.lp
 These functions are required to have the following three properties:
-.np
+.IP
 The return type of each state-transition-function and the arguments
 of the final-calculation-function must be the same type (\fIt\fP).
-.np
-The return type of the final-calculation-function must be a \*(PP base
+.IP
+The return type of the final-calculation-function must be a \*(PG base
 type.
-.np
+.IP
 The first argument to state-transition-function1 must be of type \fIt\fP,
 while the second argument must match the data type of the object
 being aggregated.
-.lp
-Aggregates also require two initial conditions, one for each transition 
-function.
-.uh EXAMPLE
-.lp
-The
-.i average
-aggregate would consist of two state
-transition functions, a summer and an incrementer.  These would
-hold the internal state of the aggregate through a 
-running sum and and the number of values seen so far.
-It might accept a new employee salary,
-increment the count, and add the new salary to
-produce the next state.  The state transition functions must be
-passed correct initialization values.  The final calculation 
-then divides the sum by the count to produce the final
-answer.
-.lp
-.ft C
-/* Define an aggregate for int4average */
-.ft
-.lp
-.ft C
-define aggregate avg (sfunc1 = int4add, sfunc2 = int4inc
+.PP
+Note that it is possible to specify aggregate functions that have
+varying combinations of state and final functions.  For example, the
+\*(lqcount\*(rq aggregate requires
+.BR sfunc2
+(an incrementing function) but not
+.BR sfunc1 " or " finalfunc ,
+whereas the \*(lqsum\*(rq aggregate requires
+.BR sfunc1
+(an addition function) but not
+.BR sfunc2 " or " finalfunc
+and the \*(lqaverage\*(rq aggregate requires both of the above state
+functions as well as a
+.BR finalfunc
+(a division function) to produce its answer.  In any case, at least
+one state function must be defined, and any
+.BR sfunc2
+must have a corresponding 
+.BR initcond2 .
+.PP
+Aggregates also require two initial conditions, one for each
+transition function.  These are specified and stored in the database
+as fields of type
+.IR text .
+.SH EXAMPLE
+This
+.IR avg
+aggregate consists of two state transition functions, a addition
+function and a incrementing function.  These modify the internal state
+of the aggregate through a running sum and and the number of values
+seen so far.  It accepts a new employee salary, increments the count,
+and adds the new salary to produce the next state.  The state
+transition functions must be passed correct initialization values.
+The final calculation then divides the sum by the count to produce the
+final answer.
+.(C
+/*
+ * Define an aggregate for int4 average
+ */
+define aggregate avg (sfunc1 = int4add, sfunc2 = int4inc,
      finalfunc = int4div, initcond1 = "0", initcond2 = "0")
-.fn
+.)C
+.SH "SEE ALSO"
+define function(commands),
+remove aggregate(commands).

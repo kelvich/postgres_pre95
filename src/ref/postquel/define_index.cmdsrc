@@ -1,145 +1,121 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP "DEFINE INDEX" COMMANDS 6/14/90
+.TH "DEFINE INDEX" COMMANDS 01/23/93
 .XA 2 "Define Index"
-.uh NAME
-.lp
-define index \*- construct a secondary index
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+define index \(em construct a secondary index
+.SH SYNOPSIS
+.(l M
 \fBdefine\fR [\fBarchive\fR] \fBindex\fR index-name
 	\fBon\fR classname \fBusing\fR am-name
 	\fB(\fR attname\-1 type_class\-1 { , attname\-i type_class\-i } \fB)\fR
 .)l
-.uh DESCRIPTION
-.lp
-This command constructs an index
-called
-.i index-name.
+.SH DESCRIPTION
+This command constructs an index called
+.IR index-name.
 If the
-.b archive
+.BR archive
 keyword is absent,
 the
-.i classname
-class is indexed.
-When
-.b archive
-is present,
-an index is created
-on the archive class associated with the
-.i classname
+.IR classname
+class is indexed.  When
+.BR archive
+is present, an index is created on the archive class associated with
+the
+.IR classname
 class.
-.lp
-.i Am-name
+.PP
+.IR Am-name
 is the name of the access method which is used for the index.
-.lp
+.PP
 The key fields for the index are specified as a collection of
 attribute names and associated
-.i "operator classes" .
-An operator class is used to specify the operators
-to be used for a particular index.
-For example,
-a btree index on four-byte integers would use the
-.i int4_ops
-class;
-this operator class includes comparison functions for
-four-byte integers.
-.lp
-\*(PP Version \*(PV provides btree and rtree access methods
-for secondary indices.
-The operator classes defined on btrees are
-.(l
-.ft C
+.IR "operator classes" .
+An operator class is used to specify the operators to be used for a
+particular index.  For example, a btree index on four-byte integers
+would use the
+.IR int4_ops
+class; this operator class includes comparison functions for four-byte
+integers.
+.PP
+\*(PG Version \*(PV provides btree and rtree access methods for
+secondary indices.  The operator classes defined on btrees are
+.(C
 int2_ops	char_ops
 int4_ops	char16_ops
 int24_ops	oid_ops
 int42_ops	text_ops
-floag4_ops	abstime_ops
+float4_ops	abstime_ops
 float8_ops
-.ft
-.)l
+.)C
 The
-.i int24_ops
-operator class is useful for constructing indices on int2 data,
-and doing comparisons against int4 data in query qualifications.
+.IR int24_ops
+operator class is useful for constructing indices on int2 data, and
+doing comparisons against int4 data in query qualifications.
 Similarly,
-.i int42_ops
-support indices on int4 data that is to be compared against int2
-data in queries.
-.lp
-The \*(PP query optimizer will consider using b-tree indices
-in a scan whenever an indexed attribute is involved in a comparison
-using one of
-.(b
-.ft C
+.IR int42_ops
+support indices on int4 data that is to be compared against int2 data
+in queries.
+.PP
+The \*(PG query optimizer will consider using btree indices in a scan
+whenever an indexed attribute is involved in a comparison using one of
+.(C
 <    <=    =    >=    >
-.ft
-.)b
-.lp
+.)C
+.PP
 The operator classes defined on rtrees are
-.(l
-.ft C
-box_ops	poly_ops
+.(C
+box_ops
 bigbox_ops
-.ft
-.)l
-Both of these support indices on the
+poly_ops
+.)C
+Both box classes support indices on the
 .q box
-datatype in \*(PP.
-The difference between them is that
-.i bigbox_ops
-scales box coordinates down,
-to avoid floating point exceptions from doing
-multiplication,
-addition,
-and subtraction on very large floating-point coordinates.
-If the field on which your rectangles lie is about 20,000
-units square or larger,
-you should use
-.i bigbox_ops .
+datatype in \*(PG.  The difference between them is that
+.IR bigbox_ops
+scales box coordinates down, to avoid floating point exceptions from
+doing multiplication, addition, and subtraction on very large
+floating-point coordinates.  If the field on which your rectangles lie
+is about 20,000 units square or larger, you should use
+.IR bigbox_ops .
 The
-.i poly_ops
+.IR poly_ops
 operator class supports rtree indices on
 .q polygon
 data.
-.lp
-The \*(PP query optimizer will consider using an r-tree index
-whenever an indexed attribute is involved in a comparison using
-one of
-.(b
-.ft C
+.PP
+The \*(PG query optimizer will consider using an rtree index whenever
+an indexed attribute is involved in a comparison using one of
+.(C
 <<    &<    &>    >>    @    ~=    &&
-.ft
-.)b
-.uh EXAMPLES
-.lp
-Create a btree index on the emp class using the age attribute.
-.(b
-.ft C
+.)C
+.SH EXAMPLES
+.(C
+/*
+ * Create a btree index on the emp class using the age attribute.
+ */
 define index empindex on emp using btree (age int4_ops)
-.ft
-.)b
-.lp
-Create a btree index on employee name.
-.(b
-.ft C
+.)C
+.(C
+/*
+ * Create a btree index on employee name.
+ */
 define index empname
 	on emp using btree (name char16_ops)
-.ft
-.)b
-.lp
-Create an rtree index on the bounding rectangle of cities.
-.(b
-.ft C
+.)C
+.(C
+/*
+ * Create an rtree index on the bounding rectangle of cities.
+ */
 define index cityrect
 	on city using rtree (boundbox box_ops)
-.ft
-.)b
-.uh BUGS
-.lp
+.)C
+.SH BUGS
 Archive indices are not supported in Version \*(PV.
-.lp
-There should be an access method designers guide.
-.lp
-Indices may only be defined on a single key.
+.PP
+There should be an access method designer's guide.
+.PP
+Indices may only be defined on a single key.  This can be hacked
+around by defining composite types and using the \*(PG support for
+indices on functional values of attributes.

@@ -1,64 +1,66 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP APPEND COMMANDS 6/14/90
+.TH APPEND COMMANDS 01/23/93
 .XA 2 Append
-.uh NAME
-.lp
-append \*- append tuples to a relation
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+append \(em append tuples to a relation
+.SH SYNOPSIS
+.(l M
 \fBappend\fR classname
 	\fB(\fR att_name1 \fB=\fR expression1 {\fB,\fR att_name-i \fB=\fR expression-i} \fB)\fR
     [ \fBfrom\fR from_list ] [ \fBwhere\fR qual ]
 .)l
-.uh DESCRIPTION
-.lp
-.b Append 
+.SH DESCRIPTION
+.BR Append 
 adds instances which satisfy the qualification,
-.i qual ,
+.IR qual ,
 to 
-.i classname .
-.i Classname 
-must be the name of an existing class.
-The target list 
-specifies
-the values of the fields to be appended to 
-.i classname .
-The fields may be listed in any order.
-Fields of the result class which do not appear in the 
-target list
-are default a null value.  If the expression for each field is not
-of the correct data type, automatic type coercion will be attempted.
-.sp
+.IR classname .
+.IR Classname 
+must be the name of an existing class.  The target list specifies the
+values of the fields to be appended to
+.IR classname .
+The fields may be listed in any order.  Fields of the result class
+which do not appear in the target list are default a null value.  If
+the expression for each field is not of the correct data type,
+automatic type coercion will be attempted.
+.PP
 The keyword
-.b all
+.BR all
 can be used when it is desired
 to append all domains of a class to another class.
-.uh EXAMPLE
-.lp
-.nf
-.ft C
-/* Make a new employee Jones work for Smith */
-
+.PP
+You must have write or append access to a class in order to append to
+it, as well as read access on any class whose values are read in the
+target list or qualification (see
+.IR "change acl" (commands)).
+.SH EXAMPLE
+.(C
+/*
+ * Make a new employee Jones work for Smith
+ */
 append emp (newemp.name, newemp.salary, mgr = "Smith",
             bdate = 1990 - newemp.age)
     where newemp.name = "Jones"
-
-/* same command using the from list clause */
-
+.)C
+.(C
+/*
+ * same command using the from list clause
+ */
 append emp (n.name, n.salary, mgr = "Smith",
             bdate = 1990 - n.age)
     from n in newemp
     where n.name = "Jones"
-
-/* Append the newemp1 class to newemp */
-
+.)C
+.(C
+/*
+ * Append the newemp1 class to newemp
+ */
 append newemp (newemp1.all)
-.ft
-.fi
-.uh "SEE ALSO"
-.sp
-.in .5i
-postquel(commands), retrieve(commands), define type(commands).
+.)C
+.SH "SEE ALSO"
+postquel(commands),
+define type(commands),
+retrieve(commands).
 

@@ -1,63 +1,72 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SS LIBPQ 6/14/90
-.XA 0 "Section 5 \*- Libpq"
-.sp 2i
-.ps 14
-.ce
-.b "SECTION 5 \*- LIBPQ"
-.sp 3
-.uh NAME
-.lp
-libpq \*- programmer's interface to \*(PP
-.uh DESCRIPTION
-.lp
-LIBPQ is the programmer's interface to \*(PP.  LIBPQ is a set of
-library routines which allow queries to pass to the \*(PP back-end
-and instances to return through an IPC channel.
-.lp
-This version of the documentation is based on the C library.
-.uh "CONTROL AND INITIALIZATION"
-.lp
-.uh VARIABLES
-.lp
-The following five environment variables can be used to set
-up default values for an environment and to avoid hard-coding
-database names into an application program:
-.lp
-.(l
-.bu
-\fBPGHOST\fR sets the default server name.
-.bu
-\fBPGDATABASE\fR sets the default \*(PP database name.
-.bu
-\fBPGPORT\fR sets the default communication port with the \*(PP back-end.
-.bu
-\fBPGTTY\fR sets the tty on the PQhost back-end on which debugging messages are displayed.
-.)l
-.lp
-The following internal variables of libpq can be accessed by
-the programmer:
-.lp
-.(1
-.nf
-.ft C
-char *PQhost;           /* the server on which \*(PP
-                           back-end is running. */
+.TH INTRODUCTION LIBPQ 01/23/93
+.XA 0 "Section 5 \(em Libpq"
+.BH "SECTION 5 \(em LIBPQ"
+.SH DESCRIPTION
+\*(LI is the programmer's interface to \*(PG.  \*(LI is a set of
+library routines which allow queries to pass to the \*(PG backend and
+instances to return through an IPC channel.
+.PP
+This version of the documentation is based on the C library.  Three
+short programs are listed at the end of this section as examples of
+\*(LI programming (though not necessarily of good programming).
+.XA 1 "Control and Initialization"
+.SH "CONTROL AND INITIALIZATION"
+.XA 2 "Environment Variables"
+.SS "Environment Variables"
+The following environment variables can be used to set up default
+values for an environment and to avoid hard-coding database names into
+an application program:
+.TP 15n
+.BR PGHOST
+sets the default server name.
+.TP 15n
+.BR PGDATABASE
+sets the default \*(PG database name.
+.TP 15n
+.BR PGPORT
+sets the default communication port with the \*(PG backend.
+.TP 15n
+.BR PGTTY
+sets the file or tty on which debugging messages from the backend
+server are displayed.
+.TP 15n
+.BR PGREALM
+sets the
+.IR Kerberos
+realm to use with \*(PG, if it is different from the local realm.  If 
+.SM PGREALM
+is set, \*(PG applications will attempt authentication with servers
+for this realm and use separate ticket files to avoid conflicts with
+local ticket files.  This environment variable is only used if 
+.IR Kerberos
+authentication is enabled; see
+.IR introduction (unix)
+for additional information on 
+.IR Kerberos .
+.XA 2 "Internal Variables"
+.SS "Internal Variables"
+The following internal variables of \*(LI can be accessed by the
+programmer:
+.(C
+char *PQhost;           /* the server on which \*(PG
+                           backend is running. */
 
 char *PQport = NULL;    /* The communication port with the
-                           \*(PP back-end. */
+                           \*(PG backend. */
 
-char *PQtty;            /* The tty on the PQhost back-end on
-                           which back-end messages are
+char *PQtty;            /* The tty on the PQhost backend on
+                           which backend messages are
                            displayed. */
 
-char *PQoption;         /* Optional arguements to the back-end */
+char *PQoption;         /* Optional arguements to the backend */
 
-char *PQdatabase;       /* Back-end database to access */
+char *PQdatabase;       /* backend database to access */
 
 int  PQportset = 0;     /* 1 if communication with
-                           back-end is established */
+                           backend is established */
 
 int  PQxactid = 0;      /* Transaction ID of the current
                            transaction */
@@ -68,458 +77,545 @@ int  PQtracep = 0;      /* 1 to print out front-end
 int  PQAsyncNotifyWaiting = 0; /* 1 if one or more asynchronous
                                   notifications have been
                                   triggered */
-.ft
-.)1
-.fi
-.uh "QUERY EXECUTION FUNCTIONS"
-.lp
+.)C
+.XA 1 "Query Execution Functions"
+.SH "QUERY EXECUTION FUNCTIONS"
 The following routines control the execution of queries
 from a C program.
-
-.(1
-PQsetdb \*- Make the specified database the current database, 
-
-.nf
-.ft C
-void PQsetdb ( dbname )
-	char	*dbname;
-.ft
-
-PQsetdb also resets communication via PQreset (see below).
-
-PQdb \*- Return the current database being accessed.
-
-.ft C
-char * PQdb ()
-.ft
-.)1
-.fi
-.lp
-Returns the name of the \*(PP database
-being accessed, or NIL if no database is open.
-Only one database can be accessed at a time.  The database
-name is a string limited to 16 characters.
-.lp
-.nf
-.(1
-PQreset \*- Reset the communication port with the back-end in case of errors.
-
-.ft C
+.TP 15n
+.BR PQsetdb
+Make the specified database the current database and reset
+communication using
+.IR PQreset
+(see below).
+.(C
+void PQsetdb(dbname)
+	char *dbname;
+.)C
+.TP 15n
+.BR PQdb
+Returns the name of the \*(PG database being accessed, or
+.SM NULL
+if no database is open.  Only one database can be accessed at a time.
+The database name is a string limited to 16 characters.
+.(C
+char *PQdb()
+.)C
+.TP 15n
+.BR PQreset
+Reset the communication port with the backend in case of errors.  This
+function will close the IPC socket connection to the backend thereby
+causing the next
+.IR PQexec
+call to ask for a new one from the
+.IR postmaster .
+When the backend notices the socket was closed it will exit, and when
+the
+.IR postmaster
+is asked for the new connection it will start a new backend.
+.(C
 void PQreset()
-.ft
-
-.fi
-This function will close the IPC socket connection to the backend thereby
-causing the next PQexec() call to ask for a new one from the postmaster.
-When the backend notices the socket was closed it will exit, and when the
-postmaster is asked for the new connection it will start a new back-end.
-.nf
-
-PQfinish \*- Close communication ports with the back-end.
-
-.ft C
-void PQfinish ()
-.ft
-.)1
-.fi
-.lp
-Terminates communications and frees up the memory taken up
-by the libpq buffer.
-.nf
-
-.(1
-PQfn \*- Send a function call to the \*(PP backend.
-
-.ft C
+.)C
+.TP 15n
+.BR PQfinish
+Close communication ports with the backend.  Terminates communications
+and frees up the memory taken up by the \*(LI buffer.
+.(C
+void PQfinish()
+.)C
+.TP 15n
+.BR PQfn
+Send a function call to the \*(PG backend.  Provides access to the
+\*(PG
+.BR "fast path"
+facility, a trapdoor into the system internals.  See the
+.IR "FAST PATH"
+section of the manual.
+.(C
 char *PQfn(fnid, result_buf, result_len,
            result_is_int, args, nargs)
 	int fnid;
-	int *result_buf;    /* can't use void, the */
-	int result_len;     /* compiler complains  */
+	int *result_buf;
+	int result_len;
 	int result_is_int;
 	PQArgBlock *args;
 	int nargs;
-.ft
-
-.fi
-PQfn provides access to the \*(PP fastpath facility, a trapdoor into
-the system internals.  See \fBFASTPATH\fR.
-.nf
-
-.(1
-PQexec \*- Submit a query to \*(PP.  
-
-.ft C
-char *	PQexec (query)
-	char	* query;
-.ft
-.)1
-.fi
-.lp
-This function returns a status indicator or an error message.  If the query
-returns data (e.g. fetch), PQexec returns a string consisting of 'P' followed
-by the name of the portal buffer.  
-When the query does not return instances, PQexec
-will return a string consisting of 'C' followed by the command tag (e.g.
-"CREPLACE").  If an error occured during the execution of the query 
-PQexec will return (for historical reasons) an "R".
-
-.uh "PORTAL FUNCTIONS"
-.lp
-A portal is a \*(PP buffer from which instances can be fetched.
+.)C
+.TP 15n
+.BR PQexec
+Submit a query to \*(PG.  Returns a status indicator or an error
+message.  If the query returns data (e.g.,
+.IR fetch ),
+.IR PQexec
+returns a string consisting of the character \*(lqP\*(rq followed by
+the name of the portal buffer.  When the query does not return
+instances,
+.IR PQexec
+will return a string consisting of the character \*(lqC\*(rq followed
+by the command tag (e.g., \*(lqCREPLACE\*(rq).  If an error occured
+during the execution of the query
+.IR PQexec
+will return (for historical reasons) the character \*(lqR\*(rq.
+.(C
+char *PQexec(query)
+	char *query;
+.)C
+.XA 1 "Portal Functions"
+.SH "PORTAL FUNCTIONS"
+A 
+.BR portal
+is a \*(PG buffer from which instances can be 
+.BR fetch ed.
 Each portal has a string name (currently limited to 16 bytes).
-A portal is initialized by submitting a retrieve statement
-using the PQexec function, for example:
-.(l
-.ft C
-retrieve portal foo ( EMP.all )
-.ft
-.)l
-.lp
-The programmer can then move data from the portal into LIBPQ
-by executing a \fIfetch\fR statement, e.g:
-.(l
-.ft C
-fetch 10 in \fIfoo\fR
-.ft
+A portal is initialized by submitting a 
+.IR retrieve
+statement using the
+.IR PQexec
+function, for example:
+.(C
+retrieve portal foo (EMP.all)
+.)C
+The programmer can then move data from the portal into \*(LI by
+executing a
+.IR fetch
+statement, e.g:
+.(C
+fetch 10 in foo
 
-.ft C
-fetch all in \fIfoo\fR
-.ft
-.)l
-.lp
-If no portal name is specified in a query, the default
-portal name is the string "blank", known as the "blank portal."
-All qualifying instances in a blank portal are fetched
-immediately, without the need for the programmer to issue a
-seperate fetch command.
-.lp
-Data fetched from a portal into LIBPQ is moved into a portal
-buffer.  Portal names are mapped to portal buffers through
-an internal table.  Each instance in a portal buffer has
-an index number locating its position in the buffer.  In addition,
-each field in an instance has a name and a field number.
-.lp
-A single retrieve command can return multiple types
-of instances.
-This can happen if a \*(PP function is executed
-in the evaluation of a query or if the query
-returns multiple instance types from an inheritance
-hierarchy.
-Consequently, the instances in a portal are set up
-in groups.
-Instances in the same group are guaranteed to have the
-same instance format.
-.lp
-Portals that are associated with normal user commands
-are called synchronous.
-In this case, the application program is expected
-to issue a retrieval followed by one or more
-fetch commands.
-The functions that follow can now be used to
-manipulate data in the portal.
-.(l
-PQnportals \*- Return the number of open portals.
-
-.ft C
-int PQnportals ( rule_p )
-	int	rule_p ;
-.ft
-
-If rule_p is not 0, then only return the number of asynchronous portals.
-
-PQpnames \*- Return all portal names.
-
-.ft C
-void PQpnames  ( pnames, rule_p)
-	char	*pnames [MAXPORTALS];
-	int	rule_p ;
-.ft
-
-If rule_p is not 0, then only return the names of asynchronous
-portals.
-
-PQparray \*- Return the portal buffer given a portal name.
-
-.ft C
-PortalBuffer * PQparray ( pname )
-	char	*pname;
-.ft
-
-PQclear \*- free storage claimed by named portal.
-
-.ft C
-void PQclear ( pname )
-	char	*pname;
-.ft
-
-PQntuples \*- Return the number of instances in a portal buffer.
-
-.ft C
-int PQntuples (portal)
-	PortalBuffer	*portal;
-.ft
-
-PQngroups \*- Return the number of instance groups in a portal buffer.
-
-.ft C
-int PQngroups (portal)
+fetch all in foo
+.)C
+If no portal name is specified in a query, the default portal name is
+the string \*(lqblank\*(rq, known as the
+.BR "blank portal" .
+All qualifying instances in a blank portal are fetched immediately,
+without the need for the programmer to issue a separate 
+.IR fetch
+command.
+.PP
+Data fetched from a portal into \*(LI is moved into a 
+.BR "portal buffer" .
+Portal names are mapped to portal buffers through an internal table.
+Each instance in a portal buffer has an index number locating its
+position in the buffer.  In addition, each field in an instance has a
+name (attribute name) and a field index (attribute number).
+.PP
+A single
+.IR retrieve
+command can return multiple types of instances.  This can happen if a
+\*(PG function is executed in the evaluation of a query or if the
+query returns multiple instance types from an inheritance hierarchy.
+Consequently, the instances in a portal are set up in 
+.BR groups .
+Instances in the same group are guaranteed to have the same instance
+format.
+.PP
+Portals that are associated with normal user commands are called
+.BR synchronous .
+In this case, the application program is expected to issue a retrieval
+followed by one or more fetch commands.  The functions that follow can
+now be used to manipulate data in the portal.
+.TP 15n
+.BR PQnportals
+Return the number of open portals.  If
+.IR rule_p
+is not 0, then only return the number of asynchronous portals.
+.(C
+int PQnportals(rule_p)
+	int rule_p ;
+.)C
+.TP 15n
+.BR PQpnames
+Return all portal names.  If 
+.IR rule_p
+is not 0, then only return the names of asynchronous portals.
+.(C
+void PQpnames(pnames, rule_p)
+	char *pnames[MAXPORTALS];
+	int rule_p;
+.)C
+.TP 15n
+.BR PQparray
+Return the portal buffer given a portal name,
+.IR pname .
+.(C
+PortalBuffer *PQparray(pname)
+	char *pname;
+.)C
+.TP 15n
+.BR PQclear
+Free storage claimed by portal
+.IR pname .
+.(C
+void PQclear(pname)
+	char *pname;
+.)C
+.TP 15n
+.BR PQntuples
+Return the number of instances (tuples) in a portal buffer
+.IR portal .
+.(C
+int PQntuples(portal)
+	PortalBuffer *portal;
+.)C
+.TP 15n
+.BR PQngroups
+Return the number of instance groups in a portal buffer
+.IR portal .
+.(C
+int PQngroups(portal)
 	PortalBuffer *portal
-.ft
-
-PQntuplesGroup \*- Return the number of instances in an instance group.
-
-.ft C
-int PQntuplesGroup (portal, group_index)
-	PortalBuffer	*portal;
-	int	group_index;
-.ft
-
-PQnfieldsGroup \*- Return the number of fields in an instance group.
-
-.ft C
-int PQnfieldsGroup ( portal, group_index)
-	PortalBuffer	*portal;
-	int	group_index;
-.ft
-
-PQfnameGroup \*- Return the field name given the group and field index.
-
-.ft C
-char * PQfnameGroup (portal, group_index, field_number )
-	PortalBuffer	*portal;
-	int	group_index;
-	int	field_number;
-.ft
-
-PQfnumberGroup \*- Return the field number (index) given the group index and field name.
-
-.ft C
-int PQfnumberGroup (portal, group_index, field_name)
-	PortalBuffer	*portal;
-	int	group_index;
-	char	*field_name;
-.ft
-
-PQgetgroup \*- Returns the index of the group that a particular instance is in.
-
-.ft C
-int PQgetgroup ( portal, tuple_index )
-	PortalBuffer	*portal;
-	int	tuple_index;
-.ft
-
-PQnfields \*- Return the number of fields in an instance.
-
-.ft C
-int PQnfields (portal, tuple_index )
-	PortalBuffer	*portal;
-	int	tuple_index;
-.ft
-
-PQfnumber \*- Return the field index of a given field name within an instance.
-
-.ft C
-int PQfnumber ( portal, tuple_index, field_name)
-	PortalBuffer	*portal;
-	int	tuple_index;
-	char	*field_name;
-.ft
-
-PQfname \*- Return the name of a field.
-
-.ft C
-char * PQfname ( portal, tuple_index, field_number )
-	PortalBuffer	*portal;
-	int	tuple_index;
-	int	field_number;
-.ft
-
-PQftype \*- Return the type of a field.  
-
-.ft C
-int PQftype ( portal, tuple_index, field_number )
-	PortalBuffer	*portal;
-	int	tuple_index;
-	int	field_number;
-.ft
-
+.)C
+.TP 15n
+.BR PQntuplesGroup
+Return the number of instances in an instance group
+.IR group_index 
+associated with a portal buffer
+.IR portal .
+.(C
+int PQntuplesGroup(portal, group_index)
+	PortalBuffer *portal;
+	int group_index;
+.)C
+.TP 15n
+.BR PQnfieldsGroup
+Return the number of fields (attributes) for the instances (tuples) in
+instance group
+.IR group_index
+associated with portal buffer
+.IR portal .
+.(C
+int PQnfieldsGroup(portal, group_index)
+	PortalBuffer *portal;
+	int group_index;
+.)C
+.TP 15n
+.BR PQfnameGroup
+Return the field (attribute) name for the instances (tuples) in
+instance group 
+.IR group_index
+(associated with portal buffer
+.IR portal )
+and the field index
+.IR field_number .
+.(C
+char *PQfnameGroup(portal, group_index, field_number)
+	PortalBuffer *portal;
+	int group_index;
+	int field_number;
+.)C
+.TP 15n
+.BR PQfnumberGroup
+Return the field index (attribute number) given the instance group
+.IR group_index
+(associated with portal buffer
+.IR portal )
+and the field (attribute) name
+.IR field_name .
+.(C
+int PQfnumberGroup(portal, group_index, field_name)
+	PortalBuffer *portal;
+	int group_index;
+	char *field_name;
+.)C
+.TP 15n
+.BR PQgetgroup
+Returns the index of the instance group (associated with portal buffer
+.IR portal )
+that contains a particular instance
+.IR tuple_index .
+.(C
+int PQgetgroup(portal, tuple_index)
+	PortalBuffer *portal;
+	int tuple_index;
+.)C
+.TP 15n
+.BR PQnfields
+Returns the number of fields (attributes) in an instance
+.IR tuple_index
+contained in portal buffer
+.IR portal .
+.(C
+int PQnfields(portal, tuple_index)
+	PortalBuffer *portal;
+	int tuple_index;
+.)C
+.TP 15n
+.BR PQfnumber
+Returns the field index (attribute number) of a given field name
+.IR field_name
+within an instance
+.IR tuple_index
+contained in portal buffer
+.IR portal .
+.(C
+int PQfnumber(portal, tuple_index, field_name)
+	PortalBuffer *portal;
+	int tuple_index;
+	char *field_name;
+.)C
+.TP 15n
+.BR PQfname
+Returns the name of a field (attribute)
+.IR field_number 
+of instance
+.IR tuple_index
+contained in portal buffer
+.IR portal .
+.(C
+char *PQfname(portal, tuple_index, field_number)
+	PortalBuffer *portal;
+	int tuple_index;
+	int field_number;
+.)C
+.TP 15n
+.BR PQftype
+Returns the type of a field (attribute)
+.IR field_number
+of instance
+.IR tuple_index
+contained in portal buffer
+.IR portal .
 The type returned is an internal coding of a type.
-
-PQsametype \*- Return 1 if two instances have the same attributes.
-
-.ft C
-int PQsametype ( portal, tuple_index1, tuple_index2 )
-	PortalBuffer	*portal;
-	int	tuple_index1, tuple_index2;
-.ft
-
-PQgetvalue \*- Return an attribute (field) value.  
-
-.ft C
-char * PQgetvalue ( portal, tuple_index, field_number )
-	PortalBuffer	*portal;
-	int	tuple_index;
-	int	field_number;
-.ft
-
-.ft
-
-PQgetlength \*- Return the length of an attribute (field) value in bytes.
-If the field is a varlena, the length of the attribute returned here
-does not include the longword size field of the varlena, e.g. it is 4
-bytes less.
-
-.ft C
-char * PQgetlength ( portal, tuple_index, field_number )
-	PortalBuffer	*portal;
-	int	tuple_index;
-	int	field_number;
-.ft
-
-PQNotifies \*- Return the list of relations on which notification has occurred.
-
-.ft C
+.(C
+int PQftype(portal, tuple_index, field_number)
+	PortalBuffer *portal;
+	int tuple_index;
+	int field_number;
+.)C
+.TP 15n
+.BR PQsametype
+Returns 1 if two instances
+.IR tuple_index1 
+and 
+.IR tuple_index2 ,
+both contained in portal buffer
+.IR portal ,
+have the same field (attribute) types.
+.(C
+int PQsametype(portal, tuple_index1, tuple_index2)
+	PortalBuffer *portal;
+	int tuple_index1;
+	int tuple_index2;
+.)C
+.TP 15n
+.BR PQgetvalue
+Returns a field (attribute) value.  
+.(C
+char *PQgetvalue(portal, tuple_index, field_number)
+	PortalBuffer *portal;
+	int tuple_index;
+	int field_number;
+.)C
+.TP 15n
+.BR PQgetlength
+Return the length of a field (attribute) value in bytes.  If the field
+is a
+.IR "struct varlena" ,
+the length returned here does 
+.BR not
+include the size field of the varlena, i.e., it is 4 bytes less.
+.(C
+char *PQgetlength(portal, tuple_index, field_number)
+	PortalBuffer *portal;
+	int tuple_index;
+	int field_number;
+.)C
+.PP
+If the portal is blank, or the portal was specified with the
+.BR portal 
+keyword, all values are returned as null-delimited strings.  It is the
+programmer's responsibility to convert them to the correct type.  If
+the portal is specified with the
+.BR iportal
+keyword, all values are returned in an architecture-dependent internal
+(binary) format, namely, the format generated by the
+.IR input
+function specified through
+.IR "define type" (commands).
+Again, it is the programmer's responsibility to convert the data to
+the correct type.
+.XA 1 "Asynchronous Portals and Notification"
+.SH "ASYNCHRONOUS PORTALS AND NOTIFICATION"
+Asynchronous portals \(em query results of rules \(em are implemented
+using two mechanisms: relations and notification.  The query result is
+transferred through a relation.  The notification is done with special
+\*(PQ commands and the frontend/backend protocol.
+.PP
+The first step in using asynchronous portals is to
+.IR listen (commands)
+on a given class name.  The fact that a process is listening on the
+class is shared with all backend servers running on a database; when
+one sets off the rule, it signals its peers.  The backend server
+associated with the listening frontend process then sends its client
+an IPC message, which the frontend process must explicitly catch by
+polling the variable
+.IR PQAsyncNotifyWaiting .
+When this variable is non-zero, the frontend process should execute a
+null (empty) query, i.e.,
+.(C
+PQexec(" ");
+.)C
+in order to retrieve the notification data held for it by the backend
+server.  The frontend must call 
+.IR PQNotifies
+in order to find out which classes the data corresponds to (i.e.,
+which notification events have been set off).  These events must then
+be individually cleared by calling
+.IR PQRemoveNotify
+on each element of the list returned by
+.IR PQNotifies .
+.PP
+The second sample program gives an example of the use of asynchronous
+portals.
+.TP 15n
+.BR PQNotifies
+Return the list of relations on which notification has occurred.
+.(C
 PQNotifyList *PQNotifies()
-.ft
-
-PQRemoveNotify \*- Remove the notification from the list of unhandled 
-		   notifications.
-
-.ft C
+.)C
+.TP 15n
+.BR PQRemoveNotify
+Remove the notification from the list of unhandled notifications.
+.(C
 PQNotifyList *PQRemoveNotify(pqNotify)
 	PQNotifyList *pqNotify;
-.ft
-.)l
-.lp
-If the portal is blank, or specified with the
-.b portal 
-keyword, all
-values are returned as strings.  It is the programmer's responsibility
-to convert them to the correct type.  If the portal is specified with the
-.b iportal
-keyword, all values are returned in internal format, namely in the format 
-generated by the
-.i input
-function specified through the 
-.b definetype
-command.  Again, it is the programmer's responsibility to convert the
-data to the correct type.
-
-.uh "ASYNCHRONOUS PORTALS/NOTIFICATION"
-.lp
-Asynchronous portals, query results of rules, are implemented using
-two mechanisms: relations and notification.  The query result is
-transferred through a relation.  The notification is done with special
-postquel commands and frontend/backend protocol.
-
-Referring to the second sample program, after executing "listen
-relation_name" in the frontend process, periodically check
-PQAsyncNotifyWaiting.  If it is non-zero, then the "notify
-relation_name" command has been executed by some backend.  Immediately
-clear PQAsyncNotifyWaiting, then do a NULL query, i.e.  PQexec(" "),
-to retrieve the actual notification data.  Then call PQNotifies() to
-get the list of relations on which notification has occurred.  After
-handling the notification, do PQRemoveNotify on each element of the
-list that has been handled to prevent further handling by you.
-
-.uh "FUNCTIONS ASSOCIATED WITH THE COPY COMMAND"
-.lp
+.)C
+.XA 1 "Miscellaneous Functions"
+.XA 2 "Functions Associated with the COPY Command"
+.SH "FUNCTIONS ASSOCIATED WITH THE COPY COMMAND"
 The
-.i copy
-command in \*(PP has options to read from or write to the network
-connection used by LIBPQ.  Therefore, functions are necessary to access
-this network connection directly so applications may take full advantage
-of this capability.
-.lp
+.IR copy
+command in \*(PG has options to read from or write to the network
+connection used by \*(LI.  Therefore, functions are necessary to
+access this network connection directly so applications may take full
+advantage of this capability.
+.PP
 For more information about the 
-.i copy
-command, see copy(commands).
-.lp
-
-.(1
-.ft C
+.IR copy
+command, see
+.IR copy (commands).
+.TP 15n
+.BR PQgetline
+Reads a null-terminated line into a buffer
+.IR string 
+of size
+.IR length .
+.(C
 PQgetline(string, length)
-.ft
-\*- Reads a null-terminated line into string.
-
-.ft C
-char *string;
-int length
-.ft
-
-.ft C
+	char *string;
+	int length
+.)C
+.TP 15n
+.BR PQputline
+Sends a null-terminated 
+.IR string .
+.(C
 PQputline(string)
-.ft
-\*- Sends a null-terminated string.
-
-.ft C
-char *string;
-.ft
-
-.ft C
-int
-PQendcopy()
-.ft
-\*- Syncs with the back-end.
-
-This function waits until the backend has finished processing the copy.
-It should either be issued when the last string has been sent to the
-backend using PQputline() or when the last string has been received from
-the backend using PGgetline().  It must be issued or the backend may get
-"out of sync" with the frontend.  Upon return from this function, the
-backend is ready to receive the next query.
-
+	char *string;
+.)C
+.TP 15n
+.BR PQendcopy
+Syncs with the backend.  This function waits until the backend has
+finished processing the copy.  It should either be issued when the
+last string has been sent to the backend using
+.IR PQputline
+or when the last string has been received from the backend using
+.IR PGgetline .
+It must be issued or the backend may get \*(lqout of sync\*(rq with
+the frontend.  Upon return from this function, the backend is ready to
+receive the next query.
+.IP
 The return value is 0 on successful completion, nonzero otherwise.
-
-\fBFor Example:\fR
-
-.nf
-.ft C
+.(C
+int PQendcopy()
+.)C
+As an example:
+.(C
 PQexec("create foo (a=int4, b=char16, d=float8)");
 PQexec("copy foo from stdin");
 PQputline("3<TAB>hello world<TAB>4.5\n");
 PQputline("4<TAB>goodbye world<TAB>7.11");
-...
+\&...
 PQputline(".\en");
 PQendcopy();
-.ft
-.fi
-.)1
-
-.uh "TRACING FUNCTIONS"
-.lp
-.(1
-PQtrace \*- Enable tracing.
-
-.ft C
-void PQtrace ()
-.ft
-
-The routine sets the PQtracep variable to 1 which causes debug messages to
-be printed.  You should note that the
-messages will be printed to stdout by default.  If you would like different
-behavior you must set the variable FILE *debug_port to the appropriate stream.
-
-PQuntrace \*- Disable tracing.
-
-.ft C
-void PQuntrace ()
-.ft
-.)1
-.uh BUGS
-.lp
-The query buffer is only 8192 bytes long, and queries over that
-length will be silently truncated.
-
-.uh "SAMPLE PROGRAM"
-.lp
-.(1
-.nf
-.ft C
+.)C
+.XA 2 "LIBPQ Tracing Functions"
+.SH "LIBPQ TRACING FUNCTIONS"
+.TP 15n
+.BR PQtrace
+Enable tracing.
+The routine sets the
+.IR PQtracep
+variable to 1 which causes debug messages to be printed.  You should
+note that the messages will be printed to stdout by default.  If you
+would like different behavior you must set the variable
+.(C
+FILE *debug_port
+.)C
+to the appropriate stream.
+.(C
+void PQtrace()
+.)C
+.TP 15n
+.BR PQuntrace 
+Disable tracing started by 
+.IR PQtrace .
+.(C
+void PQuntrace()
+.)C
+.XA 2 "User Authentication Functions"
+.SH "USER AUTHENTICATION FUNCTIONS"
+If the user has generated the appropriate authentication credentials
+(e.g., obtaining
+.IR Kerberos
+tickets), the frontend/backend authentication process is handled by
+.IR PQexec
+without any further intervention.  The following routines may be
+called by \*(LI programs to tailor the behavior of the authentication
+process.
+.TP 15n
+.BR fe_getauthname
+Returns a pointer to static space containing whatever name the user
+has authenticated.  Use of this routine in place of calls to
+.IR getenv (3)
+or 
+.IR getpwuid (3)
+by applications is highly recommended, as it is entirely possible that
+the authenticated user name is 
+.BR not
+the same as value of the
+.SM USER
+environment variable or the user's entry in
+.IR /etc/passwd .
+This becomes an important issue if the user name is being used as a
+value in a database interaction (e.g., using the user name as the
+default database name, as is done by
+.IR monitor (unix).
+.(C
+char *fe_getauthname()
+.)C
+.TP 15n
+.BR fe_setauthsvc
+Specifies that \*(LI should use authentication service
+.IR name
+rather than its compiled-in default.  This value is typically taken
+from a command-line switch.
+.(C
+void fe_setauthsvc(name)
+	char *name;
+.)C
+.SH BUGS
+The query buffer is 8192 bytes long, and queries over that length will
+be silently truncated.
+.PP
+Asynchronous portals are not fully implemented in Version \*(PV.
+.bp
+.XA 1 "Sample Programs"
+.SH "SAMPLE PROGRAM 1"
+.(C M
 /*
- * testlibpq.c \*-
- * 	Test the C version of Libpq, the \*(PP frontend library.
+ * testlibpq.c \(em
+ * 	Test the C version of \*(LI, the \*(PG frontend library.
  */
 #include <stdio.h>
 #include "libpq.h"
@@ -589,35 +685,28 @@ main ()
     /* finish execution. */
     PQfinish ();
 }
-.ft
-.)1
-
-.uh "SAMPLE PROGRAM 2"
-.lp
-.(1
-.nf
-.ft C
+.)C
+.bp
+.SH "SAMPLE PROGRAM 2"
+.(C M
 /*
  * Testing of asynchronous portal interface.
  * 
  * Do the following at the monitor:
  *
-
- create test1 (i = int4) \eg
- create test1a (i = int4) \eg
-
- define rule r1 is on append to test1 do
-    [append test1a (i = new.i)
-    notify test1a]
-
- \eg
+ *	* create test1 (i = int4) \eg
+ *	* create test1a (i = int4) \eg
+ *
+ *	* define rule r1 is on append to test1 do
+ *	  [append test1a (i = new.i) 
+ *	   notify test1a] \eg
+ *
  * Then start up this process.
-
- append test1 (i = 10) \eg
-
+ *
+ *	* append test1 (i = 10) \eg
+ *
  * The value i=10 should be printed by this process.
  */
-
 #include "tmp/simplelists.h"
 #include "tmp/libpq.h"
 
@@ -670,36 +759,31 @@ void main()
             }
         }
     }
-
     PQfinish();
     exit(0);
   exit_error:
     PQfinish();
     exit(1);
-
 }
-.ft
-.)1
-
-.uh "SAMPLE PROGRAM 3"
-.lp
-.(1
-.nf
-.ft C
+.)C
+.bp
+.SH "SAMPLE PROGRAM 3"
+.(C M
 /*
- * Testing of new binary portal interface.
+ * Testing of binary portal interface.
  * 
  * Do the following at the monitor:
  *
-
- create test1 (i = int4,d = float4,p = polygon) \eg
- append test1 (i = 7, d=3.567,p="(1.0,2.0,3.0,4.0)"::polygon) \eg
-
- -- Anything else you can think of. 
+ *	* create test1 (i = int4,d = float4,p = polygon) \eg
+ *	* append test1 (i = 7, d=3.567,
+ *	  p="(1.0,2.0,3.0,4.0)"::polygon) \eg
+ *
+ * adding as many tuples as desired.
+ *
  * Start up this program.
- * The correct contents of test1 should be printed
+ *
+ * The contents of test1 should be printed.
  */
-
 #include "tmp/simplelists.h"
 #include "tmp/libpq.h"
 #include "utils/geo-decls.h"
@@ -741,9 +825,9 @@ void main()
 	    bla2 = PQgetvalue(portalbuf,tupno,1);
 	    bla3 = PQgetvalue(portalbuf,tupno,2)-4;
 
-	    printf ("got i=%d(%d bytes), d=(%f)(%d bytes)|%x|%x|%x|%x\en\e
- Polygon(%d bytes)\e
-  %d points (%f,%f,%f,%f)\en",
+	    printf ("got i=%d(%d bytes),\e
+ d=(%f)(%d bytes)|%x|%x|%x|%x\en\e
+ Polygon(%d bytes) %d points (%f,%f,%f,%f)\en",
 		    *bla1,PQgetlength(portalbuf,tupno,0),
 		    *((float *)bla2),
 		    PQgetlength(portalbuf,tupno,1),
@@ -754,7 +838,6 @@ void main()
 		    bla3->boundbox.xl,bla3->boundbox.yl);
 	}
     }
-
     PQexec("end");
     PQfinish();
     exit(0);
@@ -762,7 +845,5 @@ void main()
     PQexec("end");
     PQfinish();
     exit(1);
-
 }
-.ft
-.)1
+.)C

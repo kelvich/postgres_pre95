@@ -1,28 +1,27 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP DESTROYDB COMMANDS 8/11/91
+.TH DESTROYDB COMMANDS 01/23/93
 .XA 2 Destroydb
-.uh NAME
-.lp
-destroydb \*- destroy an existing database
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+destroydb \(em destroy an existing database
+.SH SYNOPSIS
+.(l M
 \fBdestroydb\fR dbname
 .)l
-.uh DESCRIPTION
-.lp
-.b Destroydb
-removes the catalog entries for an existing database
-and deletes the directory containing the data.
-It can only be executed by the database administrator
-(see \fBcreatedb\fR(commands) for details).
-.uh "SEE ALSO"
-.lp
+.SH DESCRIPTION
+.BR Destroydb
+removes the catalog entries for an existing database and deletes the
+directory containing the data.  It can only be executed by the
+database administrator (see
+.IR createdb (commands)
+for details).
+.SH "SEE ALSO"
 createdb(commands),
 destroydb(unix).
-.lp
-.uh BUGS
-.lp
-This query should NOT be executed by humans.  The destroydb(unix) script,
-should be used instead.
+.SH BUGS
+This query should 
+.BR NOT
+be executed interactively.  The 
+.IR destroydb (unix)
+script should be used instead.

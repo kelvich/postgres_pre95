@@ -1,35 +1,28 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP "REMOVE RULE" COMMANDS 6/14/90
+.TH "REMOVE RULE" COMMANDS 01/23/93
 .XA 2 "Remove Rule"
-.uh NAME
-.lp
-remove rule \- removes a current rule from \*(PP 
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+remove rule \- removes a current rule from \*(PG 
+.SH SYNOPSIS
+.(l M
 \fBremove\fR [ \fBinstance\fR | \fBrewrite\fR ] \fBrule\fR rule_name
 .)l
-.uh DESCRIPTION
-.lp
-This command drops the rule named rule_name
-from the specified \*(PP rule system.
-\*(PP will immediately cease enforcing
-it and will purge its definition from the system catalogs.
-.uh EXAMPLE
-.sp
-.in .5i
-.nf
-.ft C
-/* This example drops the rewrite rule example_1 */
-
+.SH DESCRIPTION
+This command drops the rule named rule_name from the specified \*(PG
+rule system.  \*(PG will immediately cease enforcing it and will purge
+its definition from the system catalogs.
+.SH EXAMPLE
+.(C
+/*
+ * This example drops the rewrite rule example_1
+ */
 remove rewrite rule example_1
-.ft	
-.fi
-.uh "SEE ALSO"
-.lp
-define rule (commands).
-.uh BUGS
-.lp
-Once a rule is dropped, access to historical information
-the rule has written may disappear.
+.)C
+.SH "SEE ALSO"
+define rule(commands),
+remove view(commands).
+.SH BUGS
+Once a rule is dropped, access to historical information the rule has
+written may disappear.

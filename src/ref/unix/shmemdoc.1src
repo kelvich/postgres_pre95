@@ -1,157 +1,161 @@
+.\" This is -*-nroff-*-
 .\" $Header$
-.SP SHMEMDOC UNIX 8/11/92
-.uh NAME
-.lp
-shmemdoc \- \*(PP shared memory doctor
-.uh SYNOPSIS
-.ip
-.b shmemdoc
-[
-.i "\-p port"
-] [
-.i "\-B nbuffers"
-]
-.uh DESCRIPTION
-.lp
+.TH SHMEMDOC UNIX 01/23/93
+.XA 1 "Shmemdoc"
+.SH NAME
+shmemdoc \(em \*(PG shared memory editor
+.SH SYNOPSIS
+.BR shmemdoc
+[\c
+.BR -p
+port]
+[\c
+.BR -B
+nbuffers]
+.SH DESCRIPTION
 The
-.b shmemdoc
-program understands the layout of \*(PP data in shared memory,
-and can be used to examine shared structures.
-This program is intended only for debugging \*(PP,
-and should not be used in normal operation.
-.lp
-When some backend dies abnormally,
-the postmaster normally reinitializes shared memory and semaphores,
-and forces all peers of the dead backend to exit.
-If the postmaster is started with the \fI\-n\fP flag,
-then shared memory will not be reinitialized,
-and
-.b shmemdoc
+.BR shmemdoc
+program understands the layout of \*(PG data in shared memory and can
+be used to examine these shared structures.  This program is intended
+only for debugging \*(PG, and should not be used in normal operation.
+.PP
+When some backend server dies abnormally, the postmaster normally
+reinitializes shared memory and semaphores and forces all peers of the
+dead process to exit.  If
+.IR postmaster
+is started with the 
+.BR -n
+flag, then shared memory will not be reinitialized and
+.BR shmemdoc
 can be used to examine shared state after the crash.
-.lp
-A simple command interpreter reads user commands from standard
-input and prints results on standard output.
-The available commands,
-and their actions,
-are:
-.ip "\fBsemstat\fP"
-Show the status of system semaphores.
-Status includes semaphore names and values,
-the process id of the last process to change each semaphore,
-and a count of processes sleeping on each semaphore.
-.ip "\fBsemset\fP \fIn\fP \fIval\fP"
-Set the value of semaphore number \fIn\fP (with zero being the first semaphore
-named by
-.b semstat )
+.PP
+.IR Shmemdoc
+understands the following command-line options:
+.TP 5n
+.BR "-B" " nbuffers"
+The number of buffers used by the backend.  This value is ignored in
+the present implementation of
+.IR shmemdoc ,
+but is important if you choose to change the number allocated by
+\*(PG.  In that case, you're out of luck for now.
+.TP
+.BR "-p" " port"
+The port on which the postmaster was listening.
+This value is used to compute the shared memory key used by the
+postmaster when shared memory was initialized.
+.PP
+A simple command interpreter reads user commands from standard input
+and prints results on standard output.  The available commands are:
+.TP 5n
+.BR "semstat"
+Show the status of system semaphores.  Status includes semaphore names
+and values, the process id of the last process to change each
+semaphore, and a count of processes sleeping on each semaphore.
+.TP
+.BI "semset" " n val"
+Set the value of semaphore number
+.IR n
+(with zero being the first semaphore named by
+.BR semstat )
 to
-.i val .
-This is really only useful for resetting system state maually after a crash,
-and you don't want to do it.
-.ip "\fBbufdescs\fP"
+.IR val .
+This is really only useful for resetting system state manually after a
+crash, which is something you don't really want to do.
+.TP
+.BI "bufdescs"
 Print the contents of the shared buffer descriptor table.
-.ip "\fBbufdesc\fP \fIn\fP"
+.TP
+.BI "bufdesc" " n"
 Print the shared buffer descriptor table entry for buffer
-.i n .
-.ip "\fBbuffer\fP \fIn\fP \fItype\fP \fIlevel\fP"
+.IR n .
+.TP
+.BI "buffer" " n type level"
 Print the contents of buffer number
-.i n
-in the shared buffer table.
-The buffer is interpreted as a page from a
-.i type
+.IR n
+in the shared buffer table.  The buffer is interpreted as a page from
+a
+.IR type
 relation,
 where
-.i type
+.IR type
 may be
-.i heap ,
-.i btree ,
+.IR heap ,
+.IR btree ,
 or
-.i rtree .
+.IR rtree .
 The
-.i level
-argument controls the amount of detail presented.
-Level zero prints only page headers,
-level one prints page headers and line pointer tables,
-and level two (or higher) prints headers,
-line pointer tables,
+.IR level
+argument controls the amount of detail presented.  Level zero prints
+only page headers, level one prints page headers and line pointer
+tables, and level two (or higher) prints headers, line pointer tables,
 and tuples.
-.ip "\fBlinp\fP \fIn\fP \fIwhich\fP"
+.TP
+.BI "linp" " n which"
 Print line pointer table entry
-.i which
+.IR which
 of buffer
-.i n .
-.ip "\fBtuple\fP \fIn\fP \fItype\fP \fIwhich\fP"
+.IR n .
+.TP
+.BI "tuple" " n type which"
 Print tuple
-.i which
+.IR which
 of buffer
-.i n .
+.IR n .
 The buffer is interpreted as a page from a
-.i type
+.IR type
 relation,
 where
-.i type
+.IR type
 may be
-.i heap ,
-.i btree ,
+.IR heap ,
+.IR btree ,
 or
-.i rtree .
-.ip "\fBsetbase\fP \fIptr\fP"
+.IR rtree .
+.TP
+.BI "setbase" " ptr"
 Set the logical base address of shared memory for
-.i shmemdoc
+.IR shmemdoc
 to
-.i ptr .
+.IR ptr .
 Normally,
-.i shmemdoc
-uses the address of each structure in its own address space
-when interpreting commands and printing results.
-If
-.i setbase
-is used,
-then on input and output,
-addresses are translated so that the shared memory segment appears
-to start at address
-.i ptr .
-.ip
+.IR shmemdoc
+uses the address of each structure in its own address space when
+interpreting commands and printing results.  If
+.IR setbase
+is used, then on input and output, addresses are translated so that
+the shared memory segment appears to start at address
+.IR ptr .
 This is useful when a debugger is examining a core file produced by
-\*(PP and you want to use the shared memory addresses that appear
-in the core file.
-The base of shared memory in \*(PP is stored in the variable
-.i ShmemBase ,
+\*(PG and you want to use the shared memory addresses that appear in
+the core file.  The base of shared memory in \*(PG is stored in the
+variable
+.IR ShmemBase ,
 which may be examined by a debugger.
-.ip
-.i Ptr
+.IR Ptr
 may be expressed in octal (leading zero),
 decimal,
 or hexadecimal
 (leading 0x).
-.ip "\fBshmemstat\fP"
+.TP
+.BI "shmemstat"
 Print shared memory layout and allocation statistics.
-.ip "\fBwhatis\fP \fIptr\P"
+.TP
+.BI "whatis" " ptr"
 Identify the shared memory structure pointed at by
-.i ptr .
-.ip \fBhelp\fP
+.IR ptr .
+.TP
+.BI "help"
 Print a brief command summary.
-.ip \fBquit\fP
+.TP
+.BI "quit"
 Exit
-.i shmemdoc .
-.uh ARGUMENTS
-.ip "\fI\-B nbuffers\fP"
-The number of buffers used by the backend.
-This value is ignored in the present implementation of
-.i shmemdoc ,
-but is important if you choose to change the number
-allocated by \*(PP.
-In that case,
-you're out of luck for now.
-.ip "\fI\-p port\fP"
-The port on which the postmaster was listening.
-This value is used to compute the shared memory key used by the
-postmaster when shared memory was initialized.
-.uh BUGS
-.lp
+.IR shmemdoc .
+.SH "SEE ALSO"
+ipcclean(unix).
+.SH BUGS
 Probably doesn't work on anything but DECstations.
-.lp
+.PP
 All of the sizes, offsets, and values for shared data are hardwired
-into this program;
-it shares no code with the ordinary \*(PP system,
-so changes to shared memory layout will require changes to this program,
-as well.
+into this program; it shares no code with the ordinary \*(PG system,
+so changes to shared memory layout will require changes to this
+program, as well.

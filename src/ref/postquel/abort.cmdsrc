@@ -1,19 +1,20 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP ABORT COMMANDS 6/14/90
+.TH ABORT COMMANDS 01/23/93
+.\" XXX This .XA has to go after the .TH so that the index page number goes
+.\"	in the right place...
+.XA 1 Commands
 .XA 2 Abort
-.uh NAME
-.lp
-abort \*- abort the current transaction
-.uh SYNOPSIS
-.lp
-.(l
-\fBabort\fR
+.SH NAME
+abort \(em abort the current transaction
+.SH SYNOPSIS
+.(l M
+\fBabort\fP
 .)l
-.uh DESCRIPTION
-.lp
+.SH DESCRIPTION
 This command aborts the current transaction and causes all the
 updates made by the transaction to be discarded.   
-.uh "SEE ALSO"
-.lp
-begin(commands), end(commands).
+.SH "SEE ALSO"
+begin(commands),
+end(commands).

@@ -1,160 +1,145 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP CREATE COMMANDS 6/14/90
+.TH CREATE COMMANDS 01/23/93
 .XA 2 Create
-.uh NAME
-.lp
-create \*- create a new class
-.uh SYNOPSIS
-.lp
-.(l
-\fBcreate\fR classname (attributename = type { , attributename = type})
-	[\fBkey\fR (attributename [[\fBusing\fR] \fBoperator\fR]
-		 { , attributename [[\fBusing\fR] \fBoperator\fR] } )]
-	[\fBinherits\fR \fB(\fR classname {\fB,\fR classname} \fB)\fR]
+.SH NAME
+create \(em create a new class
+.SH SYNOPSIS
+.(l M
+\fBcreate\fR classname \fB(\fPattname-1 \fB=\fP type-1 {\fB,\fP attname-i \fB=\fP type-i}\fB)\fP
+	[\fBkey\fR \fB(\fPattname-1 [\fBusing\fR operator-1]
+	    {, attname-i [\fBusing\fR operator-i]}\fB)\fP]
+	[\fBinherits\fR \fB(\fR classname-1 {\fB,\fR classname-i} \fB)\fR]
 	[\fBarchive\fR \fB=\fR archive_mode]
-	[\fBstore\fR \fB=\fR ``smgr name'']
-	[\fBarch_store\fR \fB=\fR ``smgr name'']
+	[\fBstore\fR \fB=\fR \*(lqsmgr_name\*(rq]
+	[\fBarch_store\fR \fB=\fR \*(lqsmgr_name\*(rq]
 .)l
-.uh DESCRIPTION
-.lp
-.b Create
-will enter a new class into the current data base.
-The class will be 
-.q "owned"
-by the user issuing the command.
-The name of the class is
-\fIclassname\fR
+.SH DESCRIPTION
+.BR Create
+will enter a new class into the current data base.  The class will be
+\*(lqowned\*(rq by the user issuing the command.  The name of the
+class is
+.IR classname
 and the attributes are as specified in the list of
-\fIattributenames:\fR
-\fIattributename, attributename,\fR
-etc.
-The attributes are created with the type specified by
-\fItype.\fR
-.lp
-The \fIkey\fR clause is used to specify that a field or a collection
-of fields is unique.
-If no key clause is specified, \*(PP will still give every instance
-a unique object-id
-.r ( \c
-.A OID ).
-This clause allows other fields to be additional keys.
-Moreover, the
-.q "using operator"
-part of the clause allows the user to specify what operator should
-be used for the uniqueness test.
-For example, integers are all unique if = is used for
-the check, but not if < is used instead.
-If no operator is specified, = is used by default.
+.IR attname s.
+The 
+.IR i th
+attribute is created with the type specified by
+.IR type "-i."
+.PP
+The optional
+.BR key
+clause is used to specify that a field or a collection of fields is
+unique.  If no key clause is specified, \*(PG will still give every
+instance a unique object-id (\c
+.SM OID ).
+This clause allows other fields to be additional keys.  The
+.BR using
+part of the clause allows the user to specify what operator should be
+used for the uniqueness test.  For example, integers are all unique if
+\*(lq=\*(rq is used for the check, but not if \*(lq<\*(rq is used
+instead.  If no operator is specified, \*(lq=\*(rq is used by default.
 Any specified operator must be a binary operator returning a boolean.
-If there is no compatible index to allow the key clause to be
-rapidly checked, \*(PP defaults to not checking
-rather than performing an exhaustive search on each key update.
-.lp
-The
-\fIinherits\fR
-clause specifies a collection of class names
-from which this class automatically inherits all fields.
-If any inherited field name appears more than once,
-\*(PP reports an error.
-Moreover,
-\*(PP automatically allows the created class to inherit
-functions on classes above it in the
-inheritance hierarchy.
-Inheritance of functions is done according to the conventions of the
-Common Lisp Object System (CLOS).
-.lp
-In addition,
-.i classname 
-is automatically created as a type.  Therefore, one or more instances 
+If there is no compatible index to allow the key clause to be rapidly
+checked, \*(PG defaults to not checking rather than performing an
+exhaustive search on each key update.
+.PP
+The optional
+.BR inherits
+clause specifies a collection of class names from which this class
+automatically inherits all fields.  If any inherited field name
+appears more than once, \*(PG reports an error.  \*(PG automatically
+allows the created class to inherit functions on classes above it in
+the inheritance hierarchy.  Inheritance of functions is done according
+to the conventions of the Common Lisp Object System (CLOS).
+.PP
+Each new class
+.IR classname 
+is automatically created as a type.  Therefore, one or more instances
 from the class are automatically a type and can be used in 
-addattr or other create statements. 
-See 
-.b introduction
-(commands) for a further discussion of this point.
-.lp
-The
-.i store
-and
-.i arch_store
-keywords may be used to specify a storage manager to use
-for the new class.
-The released version of \*(PP supports only ``magnetic disk''
-as a storage manager name;
-the research system at Berkeley provides additional storage managers.
-.i Store
+.IR addattr (commands)
+or other 
+.BR create
+statements.  See 
+.IR introduction (commands)
+for a further discussion of this point.
+.PP
+The optional
+.BR store
+and 
+.BR arch_store
+keywords may be used to specify a storage manager to use for the new
+class.  The released version of \*(PG supports only \*(lqmagnetic
+disk\*rq as a storage manager name; the research system at Berkeley
+provides additional storage managers.
+.BR Store
 controls the location of current data,
 and
-.i arch_store
+.BR arch_store
 controls the location of historical data.
-.i Arch_store
+.BR Arch_store
 may only be specified if
-.i archive
-is also specified.
-If either
-.i store
+.BR archive
+is also specified.  If either
+.BR store
 or
-.i arch_store
-is not declared,
-it defaults to ``magnetic disk.''
-.lp
-The class is created as a heap with
-no initial data.
-A class can have no more than 1600 domains (realistically,
-this is limited by the fact that tuple sizes must be less
-than 8K),
-but this limit may be configured lower at some sites.
-A class cannot have the same name as
-a system catalog class.
-.lp
-.i Archive
-specifies whether historical data is to be saved or discarded.
-.i Arch_mode 
+.BR arch_store
+is not declared, it defaults to \*(lqmagnetic disk\*(rq.
+.PP
+The new class is created as a heap with no initial data.  A class can
+have no more than 1600 domains (realistically, this is limited by the
+fact that tuple sizes must be less than 8192 bytes), but this limit
+may be configured lower at some sites.  A class cannot have the same
+name as a system catalog class.
+.PP
+The
+.BR archive
+keyword specifies whether historical data is to be saved or discarded.
+.IR Arch_mode 
 may be one of:
-.(l
-none:	no historical access is supported
-light:	historical access is allowed and optimized for light update activity
-heavy:	historical access is allowed and optimized for heavy update activity
-.)l
-and defaults to none.
-For details of the optimization, see
-[STON87].
-Once the archive status is set, there is no way to change it.
-.uh EXAMPLE
-.lp
-.nf
-.ft C
-.sp
-/* Create class emp with attributes name, sal and bdate */
-
+.TP 10n
+.IR none
+No historical access is supported.
+.TP
+.IR light
+Historical access is allowed and optimized for light update activity.
+.TP
+.IR heavy
+Historical access is allowed and optimized for heavy update activity.
+.PP
+.IR Arch_mode
+defaults to \*(lqnone\*(rq.  Once the archive status is set, there is
+no way to change it.  For details of the optimization, see [STON87].
+.SH EXAMPLE
+.(C
+/*
+ * Create class emp with attributes name, sal and bdate
+ */
 create emp (name = char16, salary = float4, bdate = abstime)
-.ft
-.lp
-.nf
-.ft C
-.sp
-/* Create class permemp with pension information
- * inheriting all fields of emp */
-
+.)C
+.(C
+/*
+ * Create class permemp with pension information that
+ * inherits all fields of emp 
+ */
 create permemp (plan = char16) inherits (emp)
-.ft
-.lp
-.nf
-.ft C
-.sp
-/* Create a class foo on mag disk,
- * and archive historical data */
-
+.)C
+.(C
+/*
+ * Create a class foo on mag disk and archive historical data
+ */
 create foo (bar = int4) archive = heavy
     store = "magnetic disk"
-.ft
-.fi
-.uh "SEE ALSO"
-.lp
+.)C
+.SH "SEE ALSO"
 destroy(commands).
-.uh BUGS
-.lp
-Key is not implemented in Version \*(PV.
-.lp
-Optional specifications (inherits, archive, store)
-must be supplied in the order given above, if they are supplied at all.
+.SH BUGS
+The
+.BR key
+clause is not implemented in Version \*(PV.
+.PP
+Optional specifications (\c
+.BR inherits ", " archive ", " store )
+must be supplied in the order given above, if they are supplied at
+all.

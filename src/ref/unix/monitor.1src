@@ -1,157 +1,250 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP MONITOR UNIX 6/14/90
-.XA 1 "Terminal Monitor"
-.uh NAME
-.lp
-monitor \*- run the interactive terminal monitor
-.uh SYNOPSIS
-.lp
-.(l
-\fBmonitor\fP [-h hostname] [-p port] [-t tty_device] [-N] [-T]
-	[-c query] [-d path] [-q] [-o options] dbname
-.)l
-.uh DESCRIPTION
-.lp
-The interactive terminal monitor is a simple frontend to \*(PP.
-It enables one to formulate, edit and review queries before
-issuing them to \*(PP.
-If changes must be made,
-a \*(UU editor may be called
-called to edit the
-.b "query buffer" ,
-which the terminal monitor manages.
-The editor used is determined by the value of
-the
-.A EDITOR
-environment variable.
-If
-.A EDITOR
+.TH MONITOR UNIX 01/23/93
+.XA 1 "The \*(PG Terminal Monitor"
+.SH NAME
+monitor \(em run the interactive terminal monitor
+.SH SYNOPSIS
+.BR monitor
+[\c
+.BR "-N"
+]
+[\c
+.BR "-Q"
+]
+[\c
+.BR "-T"
+]
+[\c
+.BR "-a"
+system]
+[\c
+.BR "-c"
+query]
+[\c
+.BR "-d"
+path]
+.br
+.in +5n
+[\c
+.BR "-h"
+hostname]
+[\c
+.BR "-p"
+port]
+[\c
+.BR "-q"
+]
+[\c
+.BR "-t"
+tty_device]
+[dbname]
+.in -5n
+.SH DESCRIPTION
+The interactive terminal monitor is a simple frontend to \*(PG.  It
+enables one to formulate, edit and review queries before issuing them
+to \*(PG.  If changes must be made, a \*(UU editor may be called
+to edit the
+.BR "query buffer"
+managed by the terminal monitor.  The editor used is determined by the
+value of the
+.SM EDITOR
+environment variable.  If
+.SM EDITOR
 is not set, then
-.b vi
+.BR "vi"
 is used by default.
-.sp
-The terminal monitor requires that the postmaster be running, and the ports
-(specified with the "-p" option or by the PGPORT environment variable)
-must be identical to those specified to the postmaster.
-.uh "COMMAND OPTIONS"
-.lp
-\fI-h host\fR specifies host machine on which the \*(PP backend
-is running; default is your local machine (localhost).
-.sp
-\fI-p port\fR specifies the well known TCP/IP port used for network 
-communication between the terminal monitor and the postmaster.
-.sp
-\fI-t tty_device\fR specifies the path name to the tty device (or regular
-UNIX file) which you want the backend debugging messages to be sent to;
-default is /dev/null. 
-\fI-N\fR specifies that query results will be dumped to the screen without
-any attempt at formatting.  This is useful in conjunction with the
-.b -c
+.PP
+.IR "Monitor"
+is a frontend application, like any other.  Hence, a
+.IR "postmaster"
+process must be running on the database server host before
+.IR "monitor"
+is executed.  In addition, the correct 
+.IR "postmaster"
+port number must be specified
+as described below.
+.PP
+The optional argument
+.IR dbname
+specifies the name of the database to be accessed.  This database must
+already have been created using 
+.IR createdb .
+.IR Dbname
+defaults to the value of the
+.SM USER
+environment variable.
+.PP
+.IR "Monitor"
+understands the following command-line options:
+.TP 5n
+.BR "-N"
+Specifies that query results will be dumped to the screen without any
+attempt at formatting.  This is useful in conjunction with the
+.BR -c
 option in shell scripts.
-.sp
-\fI-T\fR specifies that attribute names will not be printed - only the
-data itself.  This is useful in conjunction with the 
-.b -c
+.TP
+.BR "-Q"
+Produces extremely unverbose output.  This is useful in conjunction
+with the
+.BR -c
 option in shell scripts.
-.sp
-\fI-c query\fR specifies that the monitor is to run one query and exit.
-This is useful for shell scripts, typically in conjunction with the
-.b -N
+.TP
+.BR "-T"
+Specifies that attribute names will not be printed.  This is useful in
+conjunction with the
+.BR -c
+option in shell scripts.
+.TP
+.BR "-a" " system"
+Specifies an authentication system
+.IR "system"
+(see 
+.IR introduction (unix))
+to use in connecting to the 
+.IR postmaster
+process.  The default is site-specific.
+.TP
+.BR "-c" " query"
+Specifies that
+.IR "monitor"
+is to execute one query string,
+.IR "query" ,
+and then exit.  This is useful for shell scripts, typically in
+conjunction with the
+.BR -N
 and
-.b -T
-options.  Examples of shell scripts in the \*(PP distribution using 
-.b monitor -c
-are createdb, destroydb, createuser, and destroyuser.
-.sp
-\fI-d path\fR specifies the path name of the file or tty which you want
-the frontend debugging messages to be written to; the default is not
-to generate any debugging messages. 
-.sp
-\fI-q\fR specifies that the monitor should do its work quietly.
-By default,
-it prints welcome and exit messages
-and the queries it sends to the backend.
-If the \fI-q\fP flag is used,
-none of this happens.
-.sp
-\fI-o options\fR specifies additonal options for the \*(PP backend.
-This is only intended for use by \*(PP developers.
-.lp
-You may set environment variables to avoid typing the above options.
-See the \fBENVIRONMENT VARIABLES\fR section below.
-.uh "MESSAGES AND PROMPTS"
-.lp
-The terminal monitor gives a variety of messages to keep the user informed
-of the status of the monitor and the query buffer.
-.sp
-When the terminal monitor is executed,
-it gives the current date and time,
-usually followed by the information in the
-.b dayfile
-(files).
+.BR -T
+options.  Examples of shell scripts in the \*(PG distribution using 
+.IB "monitor" " -c"
+include 
+.IR createdb ,
+.IR destroydb , 
+.IR createuser , 
+.IR destroyuser ,
+and
+.IR vacuum .
+.TP
+.BR "-d" " path"
+.IR path
+specifies the path name of the file or tty to which frontend (i.e., 
+.IR monitor )
+debugging messages are to be written; the default is not to generate
+any debugging messages.
+.TP
+.BR "-h" " hostname"
+Specifies the hostname of the machine on which the 
+.IR postmaster
+is running.  Defaults to the name of the local host, or the value of
+the
+.SM PGHOST
+environment variable (if set).
+.TP
+.BR "-p" " port"
+Specifies the Internet TCP port on which the
+.IR postmaster
+is listening for connections.  Defaults to 4321, or the value of the
+.SM PGPORT
+environment variable (if set).
+.TP
+.BR "-q"
+Specifies that the monitor should do its work quietly.  By default, it
+prints welcome and exit messages and the queries it sends to the
+backend.  If this option is used, none of this happens.
+.TP
+.BR "-t" " tty_device"
+.IR "tty_device"
+specifies the path name to the file or tty
+to which backend (i.e., 
+.IR postgres )
+debugging messages are to be written; the default is 
+.IR "/dev/null" .
+.PP
+You may set environment variables to avoid typing some of the above
+options.  See the 
+.SM "ENVIRONMENT VARIABLES"
+section below.
+.SH "MESSAGES AND PROMPTS"
+The terminal monitor gives a variety of messages to keep the user
+informed of the status of the monitor and the query buffer.
+.PP
+When the terminal monitor is executed, it displays the current date
+and time as well as a prompt.
 .sp
 The terminal monitor displays two kinds of messages:
-.nf
-
-go		The query buffer is empty and the terminal monitor is ready
-		for input.  Anything typed will be added to the buffer.
-
-*		This prompt is typed at the beginning of each line when the
-		terminal monitor is waiting for input.
-.sp
-.uh "TERMINAL MONITOR COMMANDS"
-.nf
-.sp
- \\e		Enter the editor to edit the query buffer
-
- \\g		Submit query buffer to \*(PP for execution
-
- \\h		Get on-line help
-
- \\i \fIfilename\fR	Include the file filename into the query buffer
-
- \\p		Print contents of the query buffer 
-
- \\q		Exit from the terminal monitor
-
- \\r		Reset (clear) the query buffer
-
- \\s		Escape to a \*(UU subshell.  To return to the
-		terminal monitor, type \*(lqexit\*(rq at the shell prompt.
-
- \\t		Print current time
-
- \\w \fIfilename\fR	Store the query buffer to an external file
-
- \\\\		Produce a single backslash at the current location in query buffer
-.sp
-.uh "ENVIRONMENT VARIABLES"
-.lp
-You may set environment variables to avoid specifying command line
-options.  These are as follows:
-.sp
+.IP go
+The query buffer is empty and the terminal monitor is ready for input.
+Anything typed will be added to the buffer.
+.IP *
+This prompt is typed at the beginning of each line when the terminal
+monitor is waiting for input.
+.SH "TERMINAL MONITOR COMMANDS"
+.IP \ee
+Enter the editor to edit the query buffer.
+.IP \eg
+Submit query buffer to \*(PG for execution.
+.IP \eh
+Get on-line help.
+.IP "\ei \fIfilename\fR"
+Include the file 
+.IR filename
+into the query buffer.
+.IP \ep
+Print the current contents of the query buffer.
+.IP \eq
+Exit from the terminal monitor.
+.IP \er
+Reset (clear) the query buffer.
+.IP \es
+Escape to a \*(UU subshell.  To return to the terminal monitor, type
+\*(lqexit\*(rq at the shell prompt.
+.IP \et
+Print the current time.
+.IP "\ew \fIfilename\fR"
+Store (write) the query buffer to an external file
+.IR filename .
+.IP \e\e
+Produce a single backslash at the current location in query buffer.
+.SH "ENVIRONMENT VARIABLES"
+You may set any of the following environment variables to avoid
+specifying command-line options:
 .(l
 hostname:	PGHOST
 port:		PGPORT
 tty:		PGTTY
 options:		PGOPTION
+realm:		PGREALM
 .)l
-.sp
-.lp
-If PGOPTION is specified, then the options it contains are
-parsed
-.i before
+.PP
+If 
+.SM PGOPTION
+is specified, then the options it contains are parsed
+.BR before
 any command-line options.
-.uh "RETURN VALUE"
-.lp
+.PP
+.SM PGREALM
+only applies if 
+.IR Kerberos
+authentication is in use.  If this environment variable is set, \*(PG
+will attempt authentication with servers for this realm and use
+separate ticket files to avoid conflicts with local ticket files.  See
+.IR introduction (unix)
+for additional information on 
+.IR Kerberos .
+.PP
+See 
+.IR introduction (libpq)
+for additional details.
+.SH "RETURN VALUE"
 When executed with the
-.b -c query
-option
-.i monitor
+.BR "-c"
+option,
+.IR monitor
 returns 0 to the shell on successful query completion, 1 otherwise.
-.sp
-.uh "SEE ALSO"
-.lp
-backend(unix), postmaster(unix), createdb(unix), destroydb(unix),
-createuser(unix), destroyuser(unix).
+.SH "SEE ALSO"
+introduction(libpq),
+createdb(unix),
+createuser(unix),
+postgres(unix),
+postmaster(unix).

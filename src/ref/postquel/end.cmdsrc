@@ -1,22 +1,18 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP END COMMANDS 6/14/90
+.TH END COMMANDS 01/23/93
 .XA 2 End
-.uh NAME
-.lp
-end \*- commit the current transaction 
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+end \(em commit the current transaction 
+.SH SYNOPSIS
+.(l M
 \fBend\fR
 .)l
-.uh DESCRIPTION
-.lp
-This commands commits the current transaction.
-All changes made by
-the transaction become
-visible to others and are guaranteed to be durable if a crash occurs. 
-.uh "SEE ALSO"
-.lp
-begin(commands),
-abort(commands).
+.SH DESCRIPTION
+This commands commits the current transaction.  All changes made by
+the transaction become visible to others and are guaranteed to be
+durable if a crash occurs.
+.SH "SEE ALSO"
+abort(commands),
+begin(commands).

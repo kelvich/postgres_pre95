@@ -1,224 +1,146 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP BKI FILES 6/14/90
-.XA 1 "Backend Interface \*- BKI"
-.uh NAME
-.lp
-\&.../src/support/{local,dbdb}.bki \*- template scripts
-.uh DESCRIPTION
-.lp
-Backend Interface (BKI) files are scripts that describe
-the contents of the initial \*(PP database.
-This database is constructed during system installation,
-by the
-.b initdb
+.TH BKI FILES 01/23/93
+.XA 1 "Backend Interface \(em BKI"
+.SH NAME
+\&.../src/backend/obj/{local,dbdb}.bki \(em template scripts
+.SH DESCRIPTION
+Backend Interface (BKI) files are scripts that describe the contents
+of the initial \*(PG database.  This database is constructed during
+system installation, by the
+.IR initdb
 command.
-.b Initdb
-executes the \*(PP backend with a special set of flags,
-that cause it to consume the BKI scripts and bootstrap
-a database.
-.lp
-These files are automatically generated from system header
-files during installation.
-They are not intended for use by humans,
-and you do not need to understand their contents in order
-to use \*(PP.
-These files are copied to .../files/local1.bki
-and .../files/global1.bki during system installation.
-.lp
+.IR Initdb
+executes the \*(PG backend with a special set of flags, that cause it
+to consume the BKI scripts and bootstrap a database.
+.PP
+These files are automatically generated from system header files
+during installation.  They are not intended for use by humans, and you
+do not need to understand their contents in order to use \*(PG.  These
+files are copied to
+.(C
+\&.../files/{global1,local1_XXX}.bki
+.)C
+during system installation.
+.PP
 All new user databases will be created by copying the template
-database that \*(PP constructs from the BKI files.
-Thus,
-a simple way to customize the template database is to
-let the \*(PP initialization script create it for you,
-and then to run the terminal monitor to make the changes
-you want.
-.lp
-The \*(PP backend
-interprets BKI files as described below.
-This description will be easier to understand
-if the example in  .../files/global1.bki is at hand.
-.lp
-Commands are composed of a command
-name followed by space separated arguments.
-Arguments to a command which begin with
-a
-.q $
-are treated specially.
-If
-.q $$
-are the first two characters, then
-the first
-.q $
-is ignored and the argument
-is then processed normally.
-If the
-.q $
-is followed by space,
-then it is treated as a
-.A NULL
-value.
-Otherwise, the characters following the
-.q $
-are interpreted as the name of a macro
-causing the argument to be replaced with the macro's value.
-It is an error for this macro to be undefined.
-.lp
+database that \*(PG constructs from the BKI files.  Thus, a simple way
+to customize the template database is to let the \*(PG initialization
+script create it for you, and then to run the terminal monitor to make
+the changes you want.
+.PP
+The \*(PG backend interprets BKI files as described below.  This
+description will be easier to understand if the example in
+\*(lq.../files/global1.bki\*(rq is at hand.
+.PP
+Commands are composed of a command name followed by space separated
+arguments.  Arguments to a command which begin with a \*(lq$\*(rq are
+treated specially.  If \*(lq$$\*(rq are the first two characters, then
+the first \*(lq$\*(rq is ignored and the argument is then processed
+normally.  If the \*(lq$\*(rq is followed by space, then it is treated
+as a
+.SM NULL
+value.  Otherwise, the characters following the \*(lq$\*(rq are
+interpreted as the name of a macro causing the argument to be replaced
+with the macro's value.  It is an error for this macro to be
+undefined.
+.PP
 Macros are defined using
-"define macro macro_name = macro_value"
+.(C
+define macro macro_name = macro_value
+.)C
 and are undefined using 
-"undefine macro macro_name"
+.(C
+undefine macro macro_name
+.)C
 and redefined using the same syntax as define.
-.sp
+.PP
 Lists of general commands and macro commands
 follow.
-.uh "GENERAL COMMANDS"
-.lp
-.ft C
-open classname
-.ft
-.sp
+.SH "GENERAL COMMANDS"
+.TP 5n
+.BR "open" " classname"
 Open the class called
-.i classname
+.IR classname
 for further manipulation.
-.sp
-.ft C
-close [classname]
-.ft
-.sp
+.TP
+.BR "close" " [classname]"
 Close the open class called
-.i classname.
+.IR classname.
 It is an error if 
-.i classname
+.IR classname
 is not already opened.   If no
-.i classname
-is given, then the 
-currently open class is closed.
-.sp
-.ft C
-print
-.ft
-.sp
+.IR classname
+is given, then the currently open class is closed.
+.TP
+.BR print
 Print the currently open class.
-.sp
-.ft C
-insert [ oid= oid_value ] '(' value1 value2 ...')'
-.ft
-.sp
-Insert a new instance to the open
-class using
-.ul
-value1,
-.ul
-value2,
-etc. for its attribute values and oid_value for it's OID.
-If
-.ul
-oid
-is not \*(lq0\*(rq, then this value
-will be used as the instance's
-object identifier.
-Otherwise, it is an error.
-To let the system generate a unique object identifier (as opposed to the
-"well-known" object identifiers which we specify) use 
-insert '(' value1, value2, ... valuen ')' .
-
-.sp
-.ft C
-create classname '(' name1 = type1,
-                     name2 = type2, ...name n = type n ')'
-.ft
-.sp
+.TP
+.BR "insert" " [oid=oid_value] " "(" " value1 value2 ... " ")"
+Insert a new instance to the open class using
+.IR value1 ,
+.IR value2 ,
+etc., for its attribute values and 
+.IR oid_value
+for its OID.  If
+.IR oid_value
+is not \*(lq0\*(rq, then this value will be used as the instance's
+object identifier.  Otherwise, it is an error.
+.TP
+.BR "insert (" " value1 value2 ... " ")"
+As above, but the system generates a unique object identifier.
+.TP
+.BR "create" " classname " "(" " name1 = type1, name2 = type2, ... " ")"
 Create a class named
-.ul
-classname
+.IR classname
 with the attributes given in parentheses.
-.sp
-.ft C
-open '('name1 = type1, name2 = type2,...name n = type n ')'
-    as classname
-.ft
-.sp
+.TP
+.BR "open (" " name1 = type1, name2 = type2,... " ") as" " classname"
 Open a class named
-.ul
-classname
-for writing 
-but do not record its existence
-in the system catalogs.  (This is primarily to aid in bootstrapping.)
-.sp
-.ft C
-destroy classname
-.ft
-.sp
+.IR classname
+for writing but do not record its existence in the system catalogs.
+(This is primarily to aid in bootstrapping.)
+.TP
+.BR "destroy" " classname"
 Destroy the class named
-.ul
-classname.
-.sp
-.ft C
-define index <index-name> on <class-name> using <amname>
-    ( <opclass> <attr> | function({attr}) )
-.ft
-.sp
+.IR classname .
+.TP
+.BR "define index" " index-name " "on" " class-name " "using" " amname "
+( opclass attr | function({attr}) )
+.br
 Create an index named
-.ul
-index_name
+.IR index_name
 on the class named
-.ul
-classname
+.IR classname
 using the
-.ul
-amname
-access method.
-The fields to index are called
-.ul
-name1,
-.ul
-name2,
-etc. and the operator
-collections to use are
-.ul
-collection_1,
-.ul
-collection_2,
+.IR amname
+access method.  The fields to index are called
+.IR name1 ,
+.IR name2 ,
+etc., and the operator collections to use are
+.IR collection_1 ,
+.IR collection_2 ,
 etc., respectively.
-.uh "MACRO COMMANDS"
-.lp
-.ft C
-define function macro_name
-       as rettype function_name ( args )
-.ft
-.sp
+.SH "MACRO COMMANDS"
+.TP
+.BR "define function" " macro_name " "as" " rettype function_name ( args )"
 Define a function prototype for a function named
-.ul
-macro_name
+.IR macro_name
 which has its value of type
-.ul
-rettype
-computed from the
-execution
-.ul
-function_name
-with the
-.ul
-arguments
-.ul
-args 
-declared in a C-like manner
-etc.
-.sp
-.ft C
-define macro macro_name from file filename
-.ft
-.sp
+.IR rettype
+computed from the execution
+.IR function_name
+with the arguments
+.IR args 
+declared in a C-like manner.
+.TP
+.BR "define macro" " macro_name " "from file" " filename"
 Define a macro named
-.ul
-macname
+.IR macname
 which has its value 
 read from the file called
-.ul
-filename.
-.sp
-
+.IR filename .
 .\" .uh "DEBUGGING COMMANDS"
 .\" .sp
 .\" .in .5i
@@ -282,28 +204,21 @@ filename.
 .\" to
 .\" .ul
 .\" newattname.
-.uh EXAMPLE
-.lp
-The following set of commands will create the
-OPCLASS class containing
-the
-.i int_ops
+.SH EXAMPLE
+The following set of commands will create the \*(lqpg_opclass\*(rq
+class containing the
+.IR int_ops
 collection as object
-.i 421,
+.IR 421,
 print out the class, and then close it.
-.sp
-.nf
-.ft C
+.(C
 create pg_opclass (opcname=char16)
 open pg_opclass
 insert oid=421 (int_ops)
 print
 close pg_opclass
-.ft
-
-.fi
-.uh "SEE ALSO"
-.lp
+.)C
+.SH "SEE ALSO"
 initdb(unix),
 createdb(unix),
 createdb(commands),

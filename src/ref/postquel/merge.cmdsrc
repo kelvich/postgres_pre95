@@ -1,64 +1,58 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP MERGE COMMANDS 6/14/90
+.TH MERGE COMMANDS 01/23/93
 .XA 2 Merge
-.uh NAME
-.lp
-merge \*- merge two classes
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+merge \(em merge two classes
+.SH SYNOPSIS
+.(l M
 \fBmerge\fR classname1 \fBinto\fR classname2
 .)l
-.uh DESCRIPTION
-.lp
-.b Merge
+.SH DESCRIPTION
+.BR Merge
 will combine a version class, 
-.i classname1 ,
+.IR classname1 ,
 with its parent,
-.i classname2 .
+.IR classname2 .
 If 
-.i classname2 
-is a base class, then
-this operation merges a differently encoded offset,
-.i classname1 ,
+.IR classname2 
+is a base class, then this operation merges a differently encoded
+offset,
+.IR classname1 ,
 into its parent.  On the other hand, if 
-.i classname2 
-is also a version,
-then this operation combines two differentially
-encoded offsets together into a single one.
-In either case any children of 
-.i classname1
+.IR classname2 
+is also a version, then this operation combines two differentially
+encoded offsets together into a single one.  In either case any
+children of
+.IR classname1
 becomes children of
-.i classname2 .
-.lp
-It is disallowed for a version class to
-be merged into its parent class when the parent class
-is also the parent of another version class.
-.lp
+.IR classname2 .
+.PP
+It is disallowed for a version class to be merged into its parent
+class when the parent class is also the parent of another version
+class.
+.PP
 Moreover, merging in the reverse direction is also allowed.
 Specifically, merging the parent,
-.i classname1 ,
+.IR classname1 ,
 with a version,
-.i classname2 ,
+.IR classname2 ,
 causes
-.i classname2
-to become disassociated from its parent.
-As a side effect,
-.i classname1
-will be destroyed if is not the parent of
-some other version class.
-.uh EXAMPLE
-.lp
-.ft C
-/* Combine office class and employee class */
-
+.IR classname2
+to become disassociated from its parent.  As a side effect,
+.IR classname1
+will be destroyed if is not the parent of some other version class.
+.SH EXAMPLE
+.(C
+/*
+ * Combine office class and employee class
+ */
 merge office into employee
-.ft
-.uh "SEE ALSO"
-.lp
-destroy(commands),
-create version(commands).
-.uh BUGS
-.lp
-Merge has not yet been implemented.
+.)C
+.SH "SEE ALSO"
+create version(commands),
+destroy(commands).
+.SH BUGS
+.BR Merge
+is not implemented in Version \*(PV.

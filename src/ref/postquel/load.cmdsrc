@@ -1,61 +1,60 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP LOAD COMMANDS 6/14/90
+.TH LOAD COMMANDS 01/23/93
 .XA 2 Load
-.uh NAME
-.lp
-load \*- dynamically load an object file
-.uh SYNOPSIS
-.lp
-.(l
-\fBload \fR "filename"
+.SH NAME
+load \(em dynamically load an object file
+.SH SYNOPSIS
+.(l M
+\fBload\fR "filename"
 .)l
-.uh DESCRIPTION
-.lp
-.b Load
-loads an object (or ".o") file into \*(PP's address space.  Once a file
-is loaded, all functions in that file can be accessed.  This function is
-used in support of ADT's.
-.lp
+.SH DESCRIPTION
+.BR Load
+loads an object (or ".o") file into \*(PG's address space.  Once a
+file is loaded, all functions in that file can be accessed.  This
+function is used in support of ADT's.
+.PP
 If a file is not loaded using the 
-.b load
-command, the file will be loaded automatically the first time the function
-is called by \*(PP.
-.b Load
-can also be used to reload an object file if it has been edited and recompiled.
-Only objects created from C language files are supported at this time.
-.uh EXAMPLE
-.lp
-.nf
-.ft C
-/* Load the file /usr/postgres/demo/circle.o */
-
+.BR load
+command, the file will be loaded automatically the first time the
+function is called by \*(PG.
+.BR Load
+can also be used to reload an object file if it has been edited and
+recompiled.  Only objects created from C language files are supported
+at this time.
+.SH EXAMPLE
+.(C
+/*
+ * Load the file /usr/postgres/demo/circle.o
+ */
 load "/usr/postgres/demo/circle.o"
-.ft
-.fi
-.sp
-.uh CAVEATS
-.sp
-Functions in loaded object files should not call functions in other object
-files loaded through the 
-.b load
-command, meaning, for example, that all functions in file A should call
-each other, functions in the standard or math libraries, or in \*(PP itself.
-They should not call functions defined in a different loaded file B.  This is
-because if B is reloaded, the \*(PP loader is not "smart" enough to relocate
-the calls from the functions in A into the new address space of B.  If B is
-not reloaded, however, there will not be a problem.
-.lp
+.)C
+.SH CAVEATS
+Functions in loaded object files should not call functions in other
+object files loaded through the
+.BR load
+command, meaning, for example, that all functions in file A should
+call each other, functions in the standard or math libraries, or in
+\*(PG itself.  They should not call functions defined in a different
+loaded file B.  This is because if B is reloaded, the \*(PG loader is
+not "smart" enough to relocate the calls from the functions in A into
+the new address space of B.  If B is not reloaded, however, there will
+not be a problem.
+.PP
 On diskless platforms or when running across NFS,
-.b load
-can take two or three minutes or more, depending on network traffic.  On
-diskful platforms,
-.b load
-takes from a few seconds on Suns and Sparcs to several minutes on DECstations.
-.lp
-On DECstations, you must use the "-G O" option when compiling object files to
-be loaded.
-.lp
-Note that if you are porting \*(PP to a new platform, the
-.b load
-command will have to work in order to support ADT's.
+.BR load
+can take two or three minutes or more, depending on network traffic.
+On diskful platforms,
+.BR load
+takes from a few seconds on Suns and Sparcs to several minutes on
+DECstations.
+.PP
+On DECstations, you must use 
+.IR /bin/cc
+with the \*(lq-G O\*(rq option when compiling object files to be
+loaded.
+.PP
+Note that if you are porting \*(PG to a new platform, the
+.BR load
+command will have to work in order to support ADTs.

@@ -1,32 +1,30 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP "REMOVE OPERATOR" COMMANDS 6/14/90
+.TH "REMOVE OPERATOR" COMMANDS 01/23/93
 .XA 2 "Remove Operator"
-.uh NAME
-.lp
-remove operator \*- remove an operator from the system
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+remove operator \(em remove an operator from the system
+.SH SYNOPSIS
+.(l M
 \fBremove operator\fR opr_desc
 .)l
-.uh DESCRIPTION
-.lp
-This command drops an existing operator from the database.
-To execute this command you must be the owner of the operator.
-.lp
-.i Opr_desc
-is the name of the operator to be removed followed by a
-parenthesized list of the operand types for the operator.
-.uh EXAMPLE
-.lp
-.nf
-.ft C
-/* Remove power operator a^n for 4 byte integers */
-
+.SH DESCRIPTION
+This command drops an existing operator from the database.  To execute
+this command you must be the owner of the operator.
+.PP
+.IR Opr_desc
+is the name of the operator to be removed followed by a parenthesized
+list of the operand types for the operator.
+.PP
+It is the user's responsibility to remove any access methods, operator
+classes, etc. that rely on the deleted operator.
+.SH EXAMPLE
+.(C
+/*
+ * Remove power operator a^n for 4 byte integers
+ */
 remove operator ^ (int4, int4)
-.ft
-.fi
-.uh "SEE ALSO"
-.lp
+.)C
+.SH "SEE ALSO"
 define operator(commands).

@@ -1,31 +1,21 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP BEGIN COMMANDS 6/14/90
+.TH BEGIN COMMANDS 01/23/93
 .XA 2 Begin
-.uh NAME
-.lp
-begin \*- begins a transaction
-.uh SYNOPSIS
-.lp
-.(l
-\fBbegin\fR
+.SH NAME
+begin \(em begins a transaction
+.SH SYNOPSIS
+.(l M
+\fBbegin\fP
 .)l
-.uh DESCRIPTION
-.lp
-This command begins a user transaction which \*(PP will guarantee
-is serializable with respect to all concurrently executing transactions.
-\*(PP uses two-phase locking to perform this task.  If the transaction
-is committed, \*(PP will ensure that all updates are done or none
-of them are done.
-Transactions have the standard
-.A ACID
-(atomic,
-consistent,
-isolatable,
-and
-durable)
-property.
-.uh "SEE ALSO"
-.lp
-end(commands),
-abort(commands).
+.SH DESCRIPTION
+This command begins a user transaction which \*(PG will guarantee is
+serializable with respect to all concurrently executing transactions.
+\*(PG uses two-phase locking to perform this task.  If the transaction
+is committed, \*(PG will ensure that all updates are done or none of
+them are done.  Transactions have the standard ACID (atomic,
+consistent, isolatable, and durable) property.
+.SH "SEE ALSO"
+abort(commands),
+end(commands).

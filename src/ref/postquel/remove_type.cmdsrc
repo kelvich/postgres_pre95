@@ -1,39 +1,31 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP "REMOVE TYPE" COMMANDS 6/14/90
+.TH "REMOVE TYPE" COMMANDS 01/23/93
 .XA 2 "Remove Type"
-.uh NAME
-.lp
-remove type \*- remove a user-defined type from the system catalogs
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+remove type \(em remove a user-defined type from the system catalogs
+.SH SYNOPSIS
+.(l M
 \fBremove type\fR typename
 .)l
-.uh DESCRIPTION
-.lp
-This command removes a user type
-from the system catalogs.
-Anyone is allowed to remove a type,
-and removal of types in use by a class will not be refused.
-Be careful not to remove a built-in type.
-.lp
-It is the user's responsibility to remove any operators and
-functions that use a deleted type.
-.uh EXAMPLE
-.lp
-.nf
-.ft C
-/* remove the box type */
-
+.SH DESCRIPTION
+This command removes a user type from the system catalogs.  Only the
+owner of a type can remove it.
+.PP
+It is the user's responsibility to remove any operators, functions,
+aggregates, access methods, sub-types, classes, etc. that use a
+deleted type.
+.SH EXAMPLE
+.(C
+/*
+ * remove the box type
+ */
 remove type box
-.ft
-.fi
-.uh "SEE ALSO"
-.lp
+.)C
+.SH "SEE ALSO"
 introduction(commands),
-definetype(commands),
-removeoperator(commands).
-.uh "BUGS"
-.lp
-This command should only be available to the definer of the type.
+define type(commands),
+remove operator(commands).
+.SH "BUGS"
+It is still possible to remove built-in types.

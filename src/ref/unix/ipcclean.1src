@@ -1,25 +1,32 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP IPCCLEAN UNIX 6/14/90
-.XA 1 "ipcclean"
-.uh NAME
-.lp
-ipcclean \*- clean up shared memory and semaphores from aborted backends
-.uh SYNOPSIS
-.lp
-.(l
-\fBipcclean\fR
-.)l
-.uh DESCRIPTION
-.lp
-Ipcclean cleans up shared memory and semaphore space from aborted backends.
-Only the DBA should execute this program, as it can cause bizarre behavior
-if run during multi-user execution.  This program should be ran if errors
-such as \fBsemget: No space left on device\fR are encountered in starting up
-programs like the Postmaster or \*(PP backend.
-.pp
-.uh BUGS
-.lp
-If this command is run while a Postmaster or backend is running, the shared
-memory and semaphores allocated by the postmaster will be deleted.  This will
-result in a general failure of the backends which are currently running.
+.TH IPCCLEAN UNIX 01/23/93
+.XA 1 "Ipcclean"
+.SH NAME
+ipcclean \(em clean up shared memory and semaphores from aborted backends
+.SH SYNOPSIS
+.BR "ipcclean"
+.SH DESCRIPTION
+.IR Ipcclean 
+cleans up shared memory and semaphore space from aborted backends by
+deleting all instances owned by user \*(lqpostgres\*(rq.  Only the DBA
+should execute this program as it can cause bizarre behavior (i.e.,
+crashes) if run during multi-user execution.  This program should be
+executed if messages such as
+.BR "semget: No space left on device"
+are encountered when starting up the 
+.IR postmaster
+or the backend server.
+.SH BUGS
+If this command is executed while a 
+.IR postmaster 
+is running, the shared memory and semaphores allocated by the
+.IR postmaster
+will be deleted.  This will result in a general failure of the
+backends servers started by that
+.IR postmaster .
+.PP
+This script is a hack, but in the many years since it was written, no
+one has come up with an equally effective and portable solution.
+Suggestions are welcome.

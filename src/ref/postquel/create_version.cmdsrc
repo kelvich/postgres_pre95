@@ -1,78 +1,68 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP "CREATE VERSION" COMMANDS 6/14/90
+.TH "CREATE VERSION" COMMANDS 01/23/93
 .XA 2 "Create Version"
-.uh NAME
-.lp
-create version \*- construct a version class 
-.uh SYNOPSIS
-.lp
-.(l
-\fBcreate version\fR classname1 \fBfrom\fR classname2 [ \fB[\fR abstime \fB]\fR ]
+.SH NAME
+create version \(em construct a version class 
+.SH SYNOPSIS
+.(l M
+\fBcreate version\fP classname1 \fBfrom\fP classname2 [\fB[\fPabstime\fB]\fP]
 .)l
-.uh DESCRIPTION
-.lp
+.SH DESCRIPTION
 This command creates a version class
-.i classname1
+.IR classname1
 which is related
 to its parent class,
-.i classname2 .
+.IR classname2 .
 Initially,
-.i classname1
+.IR classname1
 has the same contents as
-.i classname2.
+.IR classname2.
 As updates to 
-.i classname1 
+.IR classname1 
 occur, however,
-the contents of
-.i classname1
+the content of
+.IR classname1
 diverges from
-.i classname2.
+.IR classname2.
 On the other hand, any updates to
-.i classname2
-show transparently through
-to
-.i classname1 ,
-unless the instance in question has already been updated
-in
-.i classname1 .  
-.lp
+.IR classname2
+show transparently through to
+.IR classname1 ,
+unless the instance in question has already been updated in
+.IR classname1 .  
+.PP
 If the optional
-.i abstime
-clause is specified, then the version is
-constructed relative to a 
-.b snapshot
+.IR abstime
+clause is specified, then the version is constructed relative to a
+.BR snapshot
 of
-.i classname2
+.IR classname2
 as of the time specified.
-.lp
-\*(PP uses the query rewrite rule system to ensure that 
-.i classname1
-is differentially encoded relative
-to 
-.i classname2.  
+.PP
+\*(PG uses the query rewrite rule system to ensure that 
+.IR classname1
+is differentially encoded relative to
+.IR classname2.  
 Moreover, 
-.i classname1
-is automatically constructed
-to have the same indexes as
-.i classname2 .
-It is legal to cascade versions
-arbitrarily, so a tree of versions can ultimately result.
-The algorithms that control versions are explained in [ONG90].
-.uh EXAMPLE
-.lp
-.ft C
-.nf
-/* create a version foobar from a snapshot of */
-/* barfoo as of January 17, 1990              */
-
+.IR classname1
+is automatically constructed to have the same indexes as
+.IR classname2 .
+It is legal to cascade versions arbitrarily, so a tree of versions can
+ultimately result.  The algorithms that control versions are explained
+in [ONG90].
+.SH EXAMPLE
+.(C
+/*
+ * create a version foobar from a snapshot of
+ * barfoo as of January 17, 1990
+ */
 create version foobar from barfoo [ "Jan 17 1990" ]
-.ft
-.uh "SEE ALSO"
-.lp
-merge(commands), define view(commands), postquel(commands).
-.lp
-.uh "BUGS"
-.lp
-Snapshots (i.e. the optional abstime specifications) have not yet been
-implemented.
+.)C
+.SH "SEE ALSO"
+define view(commands), merge(commands), postquel(commands).
+.SH "BUGS"
+Snapshots (i.e., the optional 
+.IR abstime 
+clause) are not implemented in Version \*(PV.

@@ -1,54 +1,40 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP VACUUM COMMANDS 8/11/91
+.TH VACUUM COMMANDS 01/23/93
 .XA 2 Vacuum
-.uh NAME
-.lp
-vacuum \*- vacuum a database
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+vacuum \(em vacuum a database
+.SH SYNOPSIS
+.(l M
 \fBvacuum\fP
 .)l
-.uh DESCRIPTION
-.lp
-.b Vacuum
-is the \*(PP vacuum cleaner.
-It opens every class in the database,
-moves deleted records to the archive for archived relations,
-cleans out records from aborted transactions,
-and updates statistics in the system catalogs.
-The statistics maintained include the number of tuples
-and number of pages stored in all classes.
-Running
-.b vacuum
-periodically will increase \*(PP' speed in processing
-user queries.
-.lp
-The open database is the one that is
-vacuumed.
-This is a new \*(PQ command in Version \*(PV;
-earlier versions of \*(PP had a separate program for vacuuming
-databases.
-That program has been replaced by the
-.b vacuum
-shell script;
-see
-.b vacuum (unix)
-for details.
-.lp
-We recommend that production databases be vacuumed nightly,
-in order to keep statistics relatively current.
-The
-.b vacuum
-query may be executed at any time, however.
-In particular, after copying a large class into \*(PP or deleting a large
-number of records, it may be a good idea to issue a
-.b vacuum
-query.
-This will update the system catalogs with the results of all recent
-changes, and allow the \*(PP query optimizer to make better choices in
-planning user queries.
-.uh "SEE ALSO"
-.lp
+.SH DESCRIPTION
+.BR Vacuum
+is the \*(PG vacuum cleaner.  It opens every class in the database,
+moves deleted records to the archive for archived relations, cleans
+out records from aborted transactions, and updates statistics in the
+system catalogs.  The statistics maintained include the number of
+tuples and number of pages stored in all classes.  Running
+.BR vacuum
+periodically will increase \*(PG's speed in processing user queries.
+.PP
+The open database is the one that is vacuumed.  This is a new \*(PQ
+command in Version \*(PV; earlier versions of \*(PG had a separate
+program for vacuuming databases.  That program has been replaced by
+the
+.IR vacuum (unix)
+shell script.
+.PP
+We recommend that production databases be vacuumed nightly, in order
+to keep statistics relatively current.  The
+.BR vacuum
+query may be executed at any time, however.  In particular, after
+copying a large class into \*(PG or deleting a large number of
+records, it may be a good idea to issue a
+.BR vacuum
+query.  This will update the system catalogs with the results of all
+recent changes, and allow the \*(PG query optimizer to make better
+choices in planning user queries.
+.SH "SEE ALSO"
 vacuum(unix).

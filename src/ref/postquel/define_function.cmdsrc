@@ -1,180 +1,176 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP "DEFINE FUNCTION" COMMANDS 7/9/92
+.TH "DEFINE FUNCTION" COMMANDS 01/23/93
 .XA 2 "Define Function"
-.uh "NAME"
-.lp
-define function \*- define a new function
-.uh "SYNOPSIS"
-.lp
-.(l
+.SH "NAME"
+define function \(em define a new function
+.SH "SYNOPSIS"
+.(l M
 \fBdefine function\fP function_name \fB(\fP
-          \fBlanguage =\fP {"c" | "postquel"}\fB,\fP
-          \fBreturntype =\fP type-r
-          [ \fB, percall_cpu =\fP \fB"costly\fR{\fB!\fR*}\fB"\fR ]
-          [ \fB, perbyte_cpu =\fP \fB"costly\fR{\fB!\fR*}\fB"\fR ]
-          [ \fB, outin_ratio = \fP percentage]
-          [ \fB, byte_pct = \fP percentage]
-        \fB)\fP
+	\fBlanguage =\fP {"c" | "postquel"}\fB,\fP
+	\fBreturntype =\fP type-r
+	[ \fB, iscachable\fP ]
+	[ \fB, trusted\fP ]
+	[ \fB, percall_cpu =\fP \fB"costly\fR{\fB!\fR*}\fB"\fR ]
+	[ \fB, perbyte_cpu =\fP \fB"costly\fR{\fB!\fR*}\fB"\fR ]
+	[ \fB, outin_ratio = \fP percentage]
+	[ \fB, byte_pct = \fP percentage]
+	\fB)\fP
     \fBarg is (\fP type-1  { \fB,\fP type-n } \fB)\fP
     \fBas\fP {"/full/path/filename.o" | "list-of-postquel-queries"}
 .)l
-.uh "DESCRIPTION"
-.lp
-With this command, a \*(PP user can register a function with \*(PP.
+.SH "DESCRIPTION"
+With this command, a \*(PG user can register a function with \*(PG.
 Subsequently, this user is treated as the owner of the function.
-.lp
+.PP
 When defining the function, the input data types,
-.i type-1 ,
-.i type-2 ,
+.IR type-1 ,
+.IR type-2 ,
 \&...,
-.i type-n ,
+.IR type-n ,
 and the return data type,
-.i type-r
-must be specified,
-along with the language, which may be
-.i 
-"c"
-.r
+.IR type-r
+must be specified, along with the language, which may be
+.IR "\*(lqc\*(rq"
 or
-.i
-"postquel".
-.r
+.IR "\*(lqpostquel\*(rq" .
 The input types may be base or complex types.  The output type may be
 specified as a base type, complex type, or 
-.i "setof <type>".
+.IR "setof <type>".
 The 
-.i setof
+.IR setof
 modifier indicates that the function will return a set of items,
 rather than a single item.
 The
-.i as
+.IR as
 clause of the command is treated differently for C and \*(PQ
 functions, as explained below.
-.lp
-.uh "C FUNCTIONS"
-.lp
-Functions written in C can be defined to \*(PP, which will
-dynamically load them into its address space.  The loading happens
-either via the \fBload\fP command, or automatically the
-first time the function is necessary for execution. Repeated execution
-of a function will cause negligible additional overhead, as the
-function will remain in a main memory cache.
-.lp
+.SH "C FUNCTIONS"
+Functions written in C can be defined to \*(PG, which will dynamically
+load them into its address space.  The loading happens either using
+.IR load (commands)
+or automatically the first time the function is necessary for
+execution. Repeated execution of a function will cause negligible
+additional overhead, as the function will remain in a main memory
+cache.
+.PP
 The 
-.i percall_cpu,
-.i perbyte_cpu,
-.i outin_ratio,
+.BR iscachable
+flag indicates to the system that the return value of the function can
+be associatively cached.
+.PP
+The 
+.BR trusted
+flag specifies that the function can run inside the \*(PG server's
+address space with the user-id of the \*(PG super-user.  If this flag
+is not specified, the function will be run in a separate process.
+.PP
+The 
+.BR percall_cpu ,
+.BR perbyte_cpu ,
+.BR outin_ratio ,
 and
-.i byte_pct
+.BR byte_pct
 flags are provided for C functions to give a rough estimate of the
-function's running time, allowing the query optimizer to postpone applying
-expensive functions used in a query's
-.i where
+function's running time, allowing the query optimizer to postpone
+applying expensive functions used in a query's
+.BR where
 clause.  The 
-.i percall_cpu
+.BR percall_cpu
 flag captures the overhead of the function's invocation (regardless of
-input size), while the 
-.i perbyte_cpu
+input size), while the
+.BR perbyte_cpu
 flag captures the sensitivity of the function's running time to the
 size of its inputs.  The magnitude of these two parameters is
 determined by the number of exclamation points appearing after the
 word
-.i costly: 
+.BR costly :
 specifically, each exclamation point can be thought of as another
 order of magnitude in cost, i.e.,
-.i "cost = 10\s-2\unumber-of-exclamation-points\d\s0."
+.BR "cost = 10\s-2\unumber-of-exclamation-points\d\s0."
 The default value for 
-.i percall_cpu
+.BR percall_cpu
 and
-.i perbyte_cpu
-is 0.  Examples of reasonable cost values may be found in the system catalog
-.i pg_proc;
+.BR perbyte_cpu
+is 0.  Examples of reasonable cost values may be found in the system
+catalog \*(lqpg_proc\*(rq;
 most simple functions on base types have costs of 0.
-.lp
+.PP
 The
-.i outin_ratio
+.IR outin_ratio
 is provided for functions which return variable-length types, such as
-.i text
+.IR text
 or
-.i bytea.
+.IR bytea.
 It should be set to the size of the function's output as a percentage
 of the size of the input.  For example, a function which compresses
 its operands by 2 should have
-.i "outin_ratio = 50."
+.BR "outin_ratio" " = 50."
 The default value is 100.
-.lp
+.PP
 The
-.i byte_pct
+.BR byte_pct
 flag should be set to the percentage of the bytes of the arguments
 that actually need to be examined in order to compute the function.
 This flag is particularly useful for functions which generally take a
 large object as an argument, but only examine a small fixed portion of
 the object.  The default value is 100.
-.lp
+.PP
 The body of a C function following 
-.i as
-should be the FULL PATH of the object code (.o file) for the function,
-bracketed by quotation marks.  (\*(PP will not compile a function
-automatically -- it must be compiled before it is used in a define
-function command.)
-.lp
+.BR as
+should be the
+.BR "FULL PATH"
+of the object code (.o file) for the function, bracketed by quotation
+marks.  (\*(PG will not compile a function automatically \(em it must
+be compiled before it is used in a 
+.BR "define function"
+command.)
+.PP
 C functions with base type arguments can be written in a
-straightforward fashion.  The C equivalents of built-in \*(PP types
+straightforward fashion.  The C equivalents of built-in \*(PG types
 are accessible in a C file if 
-.ft C
-$POSTGRESHOME/src/lib/H/utils/builtins.h
-.ft
+.(C
+\&.../src/backend/utils/builtins.h
+.)C
 is included as a header file.  This can be achieved by having
-.(l
-.ft C
-#include <utils/builtins.h>
-.ft
-.)l
+.(C
+\&#include <utils/builtins.h>
+.)C
 at the top of the C source file and by compiling all C files with the
 following include options:
-.(l
-.ft C
- -I$POSTGRESHOME/src/lib/H
- -I$POSTGRESHOME/src/port/$PORTNAME
- -I$POSTGRESHOME/O/lib/H
-.ft
-.)l
-before any ".c" programs in the "cc" command line, e.g.:
-.(l
-.ft C
-cc -I$POSTGRESHOME/src/lib/H \\
-        -I$POSTGRESHOME/src/port/$PORTNAME \\
-        -I$POSTGRESHOME/O/lib/H \\
-        -c progname.c
-.ft
-.)l
-The directory
-.ft C
-$POSTGRESHOME/O/lib/H
-.ft
-contains "tags.h", which is generated in the
-build process.  The directory
-.ft C
-$POSTGRESHOME/src/port/$PORTNAME
-.ft
-contains
-"machine.h".  Typical values for PORTNAME are sunos4 and ultrix4.
-.lp
-The convention for passing arguments to and from the user's C functions is
-to use pass-by-value for data types that are 32 bits (4 bytes) or
-smaller, and pass-by-reference for data types that require more than 32 bits.
-The following table gives the C type required for parameters in the C
-functions that will be loaded into \*(PP.  The "Defined In" column
-gives the actual header file (in the
-.ft C
-$POSTGRESHOME/src/lib/H
-.ft
-directory) that the equivalent
-C type is defined.  However, if you include "utils/builtins.h", these
-files will automatically be included.
-.uh "Equivalent C Types for Built-In \*(PP Types"
-.lp
+.(C
+-I.../src/backend
+-I.../src/backend/port/<portname>
+-I.../src/backend/obj
+.)C
+before any \*(lq.c\*(rq programs in the 
+.IR /bin/cc
+command line, e.g.:
+.(C
+cc -I.../src/backend \e
+   -I.../src/backend/port/<portname> \e
+   -I.../src/backend/obj \e
+   -c progname.c
+.)C
+where \*(lq...\*(rq is the path to the installed \*(PG source tree and
+\*(lq<portname>\*(rq is the name of the port for which the source tree
+has been built.
+.PP
+The convention for passing arguments to and from the user's C
+functions is to use pass-by-value for data types that are 32 bits (4
+bytes) or smaller, and pass-by-reference for data types that require
+more than 32 bits.  The following table gives the C type required for
+parameters in the C functions that will be loaded into \*(PG.  The
+\*(lqDefined In\*(rq column gives the actual header file (in the
+.(C
+\&.../src/backend
+.)C
+directory) that the equivalent C type is defined.  However, if you
+include "utils/builtins.h", these files will automatically be
+included.
+.SH "Equivalent C Types for Built-In \*(PG Types"
+.PP
 .TS
 center;
 l l l
@@ -207,70 +203,65 @@ uint2	uint16	tmp/c.h
 uint4	uint32	tmp/c.h
 xid	(XID *) 	tmp/postgres.h
 .TE
-.lp
-
+.PP
 Complex arguments to C functions are passed into the C function as a
 special C type, TUPLE, defined in
-.ft C
-$POSTGRESHOME/src/lib/H/tmp/libpq-fe.h.
-.ft
-Given a variable t of this
-type, the C function may extract attributes from the function
+.(C
+\&.../src/libpq/libpq-fe.h.
+.)C
+Given a variable 
+.IR t
+of this type, the C function may extract attributes from the function
 using the function call:
-.(l
-.ft C
+.(C
 GetAttributeByName(t, "fieldname", &isnull)
-.ft
-.)l
+.)C
 where 
-.i isnull
-is a pointer to a bool, which the function sets to \fItrue\fP if the
-field is null.  The result of this function should be cast
+.IR isnull
+is a pointer to a 
+.IR bool ,
+which the function sets to
+.IR true
+if the field is null.  The result of this function should be cast
 appropriately as shown in the examples below.
-.lp
-.uh "POSTQUEL FUNCTIONS"
-.lp
-\*(PQ functions execute an arbitrary list of \*(PQ queries,
-returning the results of the last query in the list.  \*(PQ
-functions in general return sets.  If their returntype is not
-specified as a \fIsetof\fP, then an arbitrary element of the last
-query's result will be returned.  The expensive function parameters
-.i percall_cpu,
-.i perbyte_cpu,
-.i outin_ratio,
+.SH "POSTQUEL FUNCTIONS"
+\*(PQ functions execute an arbitrary list of \*(PQ queries, returning
+the results of the last query in the list.  \*(PQ functions in general
+return sets.  If their returntype is not specified as a
+.IR setof ,
+then an arbitrary element of the last query's result will be returned.
+The expensive function parameters
+.BR percall_cpu,
+.BR perbyte_cpu,
+.BR outin_ratio,
 and
-.i byte_pct
+.BR byte_pct
 are not used for \*(PQ functions; their costs are determined
-dynamically by the planner.
-.lp
+dynamically by the query optimizer.
+.PP
 The body of a \*(PQ function following
-.i as
-should be a list of queries separated by
-whitespace characters and bracketed within quotation marks.  Note that
-quotation marks used in the queries must be escaped, by preceding them
-with two backslashes (i.e. \\").
-.lp
-Arguments to the \*(PQ function may be referenced in the queries
-using a $n syntax: $1 refers to the first argument, $2 to the second,
-and so on.  If an argument is complex, then a "dot" notation may be used to
-access attributes of the argument (e.g. $1.emp), or to invoke
-functions via a nested dot syntax.  
-.lp
-.uh "EXAMPLES: C Functions"
-.lp
+.BR as
+should be a list of queries separated by whitespace characters and
+bracketed within quotation marks.  Note that quotation marks used in
+the queries must be escaped, by preceding them with two backslashes
+(i.e. \e\e").
+.PP
+Arguments to the \*(PQ function may be referenced in the queries using
+a $n syntax: $1 refers to the first argument, $2 to the second, and so
+on.  If an argument is complex, then a \*(lqdot\*(rq notation may be
+used to access attributes of the argument (e.g. \*(lq$1.emp\*(rq), or
+to invoke functions via a nested-dot syntax.
+.SH "EXAMPLES: C Functions"
 The following command defines a C function, overpaid, of two basetype
 arguments.
-.(l
-.ft C
+.(C
 define function overpaid
         (language = "c", returntype = bool)
         arg is (float8, int4)
         as "/usr/postgres/src/adt/overpaid.o"
-.ft
-.)l
+.)C
 The C file "overpaid.c" might look something like:
-.(l
-.ft C
+.(C
 #include <utils/builtins.h>
 
 bool overpaid(salary, age)
@@ -283,37 +274,28 @@ bool overpaid(salary, age)
                 return(TRUE);
         return(FALSE)
 }
-.ft
-.)l
+.)C
 The overpaid function can be used in a query, e.g:
-.(l
-.ft C
+.(C
 retrieve (EMP.name)
     where overpaid(EMP.salary, EMP.age)
-.ft
-.)l
-.lp
+.)C
 One can also write this as a function of a single argument of type
 EMP:
-.(l
-.ft C
+.(C
 define function overpaid_2
         (language = "c", returntype = bool)
         arg is (EMP)
         as "/usr/postgres/src/adt/overpaid_2.o"
-.ft
-.)l
+.)C
 The following query is now accepted:
-.(l
-.ft C
+.(C
 retrieve (EMP.name) where overpaid_2(EMP) 
-.ft
-.)l
+.)C
 In this case, in the body of the overpaid_2 function, the fields in the EMP
 record must be extracted.  The C file "overpaid_2.c" might look
 something like:
-.(l
-.ft C
+.(C
 #include <utils/builtins.h>
 #include <tmp/libpq-fe.h>
 
@@ -333,34 +315,26 @@ TUPLE t;
         return(TRUE);
     return(FALSE)
 }
-.ft
-.)l
-.lp
-.uh "EXAMPLES: \*(PQ Functions"
-.lp
+.)C
+.SH "EXAMPLES: \*(PQ Functions"
 To illustrate a simple \*(PQ function, consider the following,
 which might be used to debit a bank account:
-.(l
-.ft C
+.(C
 define function TP1
         (language = "postquel", returntype = int4)
         arg is (int4, float8)
         as "replace BANK (balance = BANK.balance - $2)
               where BANK.accountno = $1
             retrieve(x = 1)"
-.ft
-.)l
-A user could execute this function to debit account 17 by $100.00 as follows:
-.(l
-.ft C
+.)C
+A user could execute this function to debit account 17 by $100.00 as
+follows:
+.(C
 retrieve (x = TP1( 17,100.0))
-.ft
-.)l
-.lp
+.)C
 The following more interesting examples take a single argument of type
 EMP, and retrieve multiple results:
-.(l
-.ft C
+.(C
 define function hobbies
     (language = "postquel", returntype = setof HOBBIES)
     arg is (EMP)
@@ -373,42 +347,34 @@ define function children
     as "retrieve (KIDS.all)
           where $1.name = KIDS.dad
              or $1.name = KIDS.mom"
-.ft
-.)l
-.lp
+.)C
 Then the following query retrieves overpaid employees, their hobbies, and
 their children:
-.lp
-.(l
-.ft C
+.(C
 retrieve (name=name(EMP), hobby=name(hobbies(EMP)),
 	kid=name(children(EMP)))
     where overpaid_2(EMP)
-.ft
-.)l
+.)C
 Note that attributes can be projected using function syntax (e.g.
 name(EMP)), as well as the traditional dot syntax (e.g. EMP.name).
-.lp
+.PP
 An equivalent expression of the previous query is:
-.(l
-.ft C
+.(C
 retrieve (EMP.name, hobby=EMP.hobbies.name,
 	kid=EMP.children.name)
     where overpaid_2(EMP)
-.ft
-.)l
+.)C
 This "nested dot" notation for functions can be used to cascade
 functions of single arguments.  Note that the function after a dot
 must have only one argument, of the type returned by the function
 before the dot.
-.lp
-\*(PP 
-.i flattens
-the target list of the queries above.  That is, it produces the cross-product
-of the hobbies and the children of the employees.  For example, given
-the schema:
-.(l
-.ft C
+.PP
+\*(PG 
+.IR flattens
+the target list of the queries above.  That is, it produces the
+cross-product of the hobbies and the children of the employees.  For
+example, given the schema:
+.(C
 create BANK (accountno = int4, balance = float8) 
 append BANK (accountno = 17,
              balance = "10000.00"::float8)
@@ -433,66 +399,58 @@ append KIDS (name = "matthew", dad = "mike",
              mom = "teresa")
 append KIDS (name = "calvin", dad = "mike",
              mom = "teresa")
-.ft
-.)l
-.sp
-the query above returns
-.lp
-.ft C
-.TS
-center;
-l l l
-l l l.
-name	hobby	kid
-_
+.)C
+The query above returns
+.if n .ta 1.5i +1.5i +1.5i
+.if n .ta 15n +15n +15n
+.(C
+\fBname	hobby	kid\fP
+
 jeff	biking	(null)
 joey	jamming	(null)
 mike	swimming	matthew
 mike	philately	matthew
 mike	swimming	calvin
 mike	philately	calvin
-.TE
-.ft
-.lp
-Note that flattening preserves the name and hobby fields even when the kid
-field is null.
-.lp
-.uh "SEE ALSO"
-.lp
+.)C
+Note that flattening preserves the name and hobby fields even when the
+\*(lqkid\*(rq field is null.
+.SH "SEE ALSO"
 information(unix), load(commands), remove function(commands).
-.lp
-.uh "NOTES"
-.lp
+.SH "NOTES"
 The 
-.i percall_cpu
+.BR percall_cpu
 and
-.i perbyte_cpu
+.BR perbyte_cpu
 flags can take integers surrounded by quotes instead of the 
-.i """costly{!*}"""
-syntax
-described above.  This allows a finer grain of distinction between
-function costs, but is not encouraged since such distinctions are
-difficult to estimate accurately.
-.lp
-On Ultrix, all .o files that \*(PP is expected to load dynamically must
-be compiled under \f2cc\fP with the
-.ft C
-"-G 0"
-.ft
-option turned on.
-.uh "RESTRICTIONS"
-.lp
-The name of the C function must be a legal C function name, and the name of
-the function in C code must be exactly the same as the name used in
-define function.
-.lp
-.uh "BUGS"
-.lp
+.BR """costly{!*}"""
+syntax described above.  This allows a finer grain of distinction
+between function costs, but is not encouraged since such distinctions
+are difficult to estimate accurately.
+.PP
+Under Ultrix, all object files that \*(PG is expected to load
+dynamically must be compiled under
+.IR /bin/cc
+with the \*(lq-G 0\*(rq option turned on.
+.SH "RESTRICTIONS"
+The name of the C function must be a legal C function name, and the
+name of the function in C code must be exactly the same as the name
+used in
+.BR "define function" .
+.SH "BUGS"
 Function names must be unique per database, except for the fact that
 there may be attributes of the same name as a function.  In the case
 that a there is an ambiguity between a function on a complex type and
 an attribute of the complex type, the attribute will always be used.
-.lp
+.PP
+The
+.BR iscachable
+flag does not do anything in Version \*(PV.
+.PP
+Untrusted functions cannot make any function calls using access
+methods or built-in functions that have not been loaded into the
+untrusted-function process.
+.PP
 C functions cannot return a set of values.
-.lp
-The dynamic loader for DECstation Ultrix has exceedingly bad performance.
+.PP
+The dynamic loader for DECstation Ultrix is very slow.

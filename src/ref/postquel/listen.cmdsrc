@@ -1,26 +1,27 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP "LISTEN" COMMANDS 3/25/92
+.TH "LISTEN" COMMANDS 01/23/93
 .XA 2 "Listen"
-.uh NAME
-.lp
-listen \(em Listen for notification on a relation
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+listen \(em listen for notification on a relation
+.SH SYNOPSIS
+.(l M
 \fBlisten\fR relation_name
 .)l
-.uh DESCRIPTION
-.lp
-.b listen
+.SH DESCRIPTION
+.BR listen
 is used to register the current backend as a listener on the relation
-.b relation_name.
+.BR relation_name.
 When the command 
-.b notify 
-.b relation_name
+.BI notify " relation_name"
 is called either from within a rule or at the query level, the
 frontends corresponding to the listening backends are notified.
-.uh "SEE ALSO"
-.lp
-retrieve(commands), notify(commands), definerule(commands), libpq.
-.uh BUGS
+.SH "SEE ALSO"
+define rule(commands),
+notify(commands),
+retrieve(commands),
+libpq.
+.SH BUGS
+.BR Listen
+is not implemented in Version \*(PV.

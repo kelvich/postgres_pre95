@@ -1,46 +1,42 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP DELETE COMMANDS 6/14/90
+.TH DELETE COMMANDS 01/23/93
 .XA 2 Delete
-.uh NAME
-.lp
-delete \*- delete instances from a class
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+delete \(em delete instances from a class
+.SH SYNOPSIS
+.(l M
 \fBdelete\fR instance_variable [ \fBfrom\fR from_list ] [ \fBwhere\fR qual ]
 .)l
-.uh DESCRIPTION
-.lp
-.b Delete
+.SH DESCRIPTION
+.BR Delete
 removes instances which satisfy the qualification,
-.i qual ,
-from the
-class specified by
-.i instance_variable .
-.i Instance_variable
+.IR qual ,
+from the class specified by
+.IR instance_variable .
+.IR Instance_variable
 is either a class name or a variable assigned by
-.i from_list .
-If the qualification is absent,
-the effect is to delete all
-instances in the class.
-The result is a valid, but empty class.
-.sp
-.uh EXAMPLE
-.lp
-.nf
-.ft C
-/* Remove all employees who make over $30,000 */
-
+.IR from_list .
+If the qualification is absent, the effect is to delete all instances
+in the class.  The result is a valid, but empty class.
+.PP
+You must have write access to the class in order to modify it, as well
+as read access to any class whose values are read in the qualification
+(see
+.IR "change acl" (commands).
+.SH EXAMPLE
+.(C
+/*
+ * Remove all employees who make over $30,000
+ */
 delete emp where emp.sal > 30000
-.ft
-.fi
-.sp
-.ft C
-/* Clear the hobbies class */
-
+.)C
+.(C
+/*
+ * Clear the hobbies class
+ */
 delete hobbies
-.ft
-.uh "SEE ALSO"
-.lp
+.)C
+.SH "SEE ALSO"
 destroy(commands).

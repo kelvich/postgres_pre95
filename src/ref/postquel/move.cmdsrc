@@ -1,61 +1,56 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP MOVE COMMANDS 6/14/90
+.TH MOVE COMMANDS 01/23/93
 .XA 2 Move
-.uh NAME
-.lp
-move \*- move the pointer in a portal
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+move \(em move the pointer in a portal
+.SH SYNOPSIS
+.(l M
 \fBmove\fR [ ( \fBforward\fR | \fBbackward\fR ) ]
     [ ( number | \fBall\fR | \fBto\fR ( number | record_qual ) ) ]
     [ \fBin\fR portal_name ]
 .)l
-.uh DESCRIPTION
-.lp
-.b Move
+.SH DESCRIPTION
+.BR Move
 allows a user to move the
-.i "instance pointer"
+.IR "instance pointer"
 within the portal named
-.i portal_name .
-Each portal has an instance pointer,
-which points to the previous instance to be fetched.
-It always points to before the first instance when the portal is first created.
-The pointer can be moved
-.i forward
+.IR portal_name .
+Each portal has an instance pointer, which points to the previous
+instance to be fetched.  It always points to before the first instance
+when the portal is first created.  The pointer can be moved
+.IR forward
 or
-.i backward .
+.IR backward .
 It can be moved to an absolute position or over a certain distance.
 An absolute position may be specified by using
-.b to;
-distance is specified by a
-number.
-.i Record_qual
-is a qualification with no instance variables,
-aggregates,
-or set expressions
-which can be evaluated completely on a single instance in the portal.
-.uh EXAMPLE
-.lp
-.nf
-.ft C
-/* Move backwards 5 instances in the portal FOO */
-
+.BR to ;
+distance is specified by a number.
+.IR Record_qual
+is a qualification without instance variables, aggregates, or set
+expressions which can be evaluated completely on a single instance in
+the portal.
+.SH EXAMPLE
+.(C
+/*
+ * Move backwards 5 instances in the portal FOO
+ */
 move backward 5 in FOO
-	
-/* Move to the 6th instance in the portal FOO */
-
+.)C
+.(C
+/*
+ * Move to the 6th instance in the portal FOO
+ */
 move to 6 in FOO
-.ft
-.fi
-.uh "SEE ALSO"
-.lp
-retrieve(commands),
+.)C
+.SH "SEE ALSO"
+close(commands),
 fetch(commands),
-close(commands).
-.uh BUGS
-.lp
-This command is not yet available.  The pointer may be moved using the
-.b fetch
-command, and ignoring its return values.
+retrieve(commands).
+.SH BUGS
+.BR Move
+is not implemented in Version \*(PV.  The portal pointer may be moved
+using the
+.BR fetch
+command and ignoring its return values.

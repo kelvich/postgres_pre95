@@ -1,43 +1,42 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP RENAME COMMANDS 6/14/90
+.TH RENAME COMMANDS 01/23/93
 .XA 2 Rename
-.uh NAME
-.lp
-rename \*- rename a class or an attribute in a class
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+rename \(em rename a class or an attribute in a class
+.SH SYNOPSIS
+.(l M
 \fBrename\fR classname1 \fBto\fR classname2
 \fBrename\fR attname1 \fBin\fR classname \fBto\fR attname2
 .)l
-.uh DESCRIPTION
-.lp
+.SH DESCRIPTION
 The
-.b rename
+.BR rename
 command
-causes the name of a class or attribute
-to change
-without changing any of the data contained in the affected class.
-Thus, the class or attribute will remain of the same type
-and size after this command is executed.
-.lp
-.uh EXAMPLE
-.lp
-.ft C
-/* change the emp class to personnel */
-
+causes the name of a class or attribute to change without changing any
+of the data contained in the affected class.  Thus, the class or
+attribute will remain of the same type and size after this command is
+executed.
+.PP
+You must own the class being modified in order to rename it or part of
+its schema.  Renaming any part of the schema of a system catalog is
+not permitted.
+.SH EXAMPLE
+.(C
+/*
+ * change the emp class to personnel
+ */
 rename emp to personnel
-
-/* change the sports attribute to hobbies */
-
+.)C
+.(C
+/*
+ * change the sports attribute to hobbies
+ */
 rename sports in emp to hobbies
-.ft
-.uh BUGS
-.lp
-Execution of historical queries
-using classes and attributes
-whose names have changed will
-produce incorrect results in many situations.
-.lp
+.)C
+.SH BUGS
+Execution of historical queries using classes and attributes whose
+names have changed will produce incorrect results in many situations.
+.PP
 Renaming of types, operators, rules, etc. should also be supported.

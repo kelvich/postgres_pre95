@@ -1,72 +1,72 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SS BUILT-INS 6/14/90
-.XA 0 "Section 3 \*- What comes with \*(PP (BUILT-INS)"
-.SP TYPES BUILT-INS 7/11/90
-.sp 2i
-.ps 14
-.ce
-.b "SECTION 3 \*- WHAT COMES WITH \*(PP (BUILT-INS)"
-.sp 3
-.uh "DESCRIPTION"
-.lp
-This section describes both built-in and system data types.
-Built-in types are required for \*(PP to run.
-System types are installed in every database,
-but are not strictly required.
-Built-in types are marked with asterisks in the table below.
-.lp
-Users may add new types to \*(PP using the
-.b "define type"
-command described in this manual.
-User-defined types are not described in this section.
-.sp
+.TH INTRODUCTION BUILT-INS 01/23/93
+.XA 0 "Section 3 \(em What comes with \*(PG (BUILT-INS)"
+.BH "SECTION 3 \(em WHAT COMES WITH \*(PG (BUILT-INS)"
+.SH "DESCRIPTION"
+This section describes the data types, functions and operators
+available to users in \*(PG as it is distributed.
 .XA 1 "Built-in and System Types"
-.TS
-center;
-l l l
-l l c.
-\fBPOSTGRES Type\fP	\fBMeaning\fP	\fBRequired\fP
-_
-abstime	absolute date and time	*
-bool	boolean	*
-box	2-dimensional rectangle
-bytea	variable length array of bytes
-char	character	*
-char16	array of 16 characters	*
-cid	command identifier type	*
-int2	two-byte signed integer	*
-int28	array of 8 int2	*
-int4	four-byte signed integer	*
-float4	single-precision floating-point number	*
-float8	double-precision floating-point number	*
-lseg	2-dimensional line segment
-oid	object identifier type	*
-oid8	array of 8 oid	*
-path	variable-length array of lseg
-point	2-dimensional geometric point
-regproc	registered procedure	*
-reltime	relative date and time	*
-text	variable length array of characters
-tid	tuple identifier type	*
-tinterval	time interval	*
-uint2	two-byte unsigned integer	*
-uint4	four-byte unsigned integer	*
-xid	transaction identifier type	*
-.TE
-.lp
+.SH "BUILT-IN AND SYSTEM TYPES"
+This section describes both 
+.BR built-in
+and
+.BR system
+data types.  Built-in types are required for \*(PG to run.  System
+types are installed in every database, but are not strictly required.
+Built-in types are marked with asterisks in the table below.
+.PP
+Users may add new types to \*(PG using the
+.IR "define type"
+command described in this manual.  User-defined types are not
+described in this section.
+.XA 2 "List of built-in types"
+.PP
+.if n .ta 5 +15 +40
+.if t .ta 0.5i +1.5i +3.0i
+.in 0
+.nf
+	\fBPOSTGRES Type\fP	\fBMeaning\fP	\fBRequired\fP
+	abstime	absolute date and time	*
+	aclitem	access control list item	*
+	bool	boolean	*
+	box	2-dimensional rectangle
+	bytea	variable length array of bytes	*
+	char	character	*
+	char16	array of 16 characters	*
+	cid	command identifier type	*
+	int2	two-byte signed integer	*
+	int28	array of 8 int2	*
+	int4	four-byte signed integer	*
+	float4	single-precision floating-point number	*
+	float8	double-precision floating-point number	*
+	lseg	2-dimensional line segment
+	oid	object identifier type	*
+	oid8	array of 8 oid	*
+	path	variable-length array of lseg
+	point	2-dimensional geometric point
+	regproc	registered procedure	*
+	reltime	relative date and time	*
+	text	variable length array of characters	*
+	tid	tuple identifier type	*
+	tinterval	time interval	*
+	uint2	two-byte unsigned integer	*
+	uint4	four-byte unsigned integer	*
+	xid	transaction identifier type	*
+.fi
+.in
+.PP
 These types all have obvious formats except for the three time types,
 explained in the following.
-.XA 1 "Syntax of date and time types"
-.SP "DATE AND TIME" BUILT-INS 7/11/92
-.uh "ABSOLUTE TIME"
-.lp
+.XA 2 "Syntax of date and time types"
+.SP "DATE AND TIME" BUILT-INS 01/23/93
+.SH "ABSOLUTE TIME"
 Absolute time is specified using the following syntax:
-.(l
-.ft C
+.(C
 Month  Day [ Hour : Minute : Second ]  Year [ Timezone ]
-.ft
-
+.)C
+.(l
 where	Month is Jan, Feb, ..., Dec
 	Day is 1, 2, ..., 31
 	Hour is 01, 02, ..., 24
@@ -74,92 +74,70 @@ where	Month is Jan, Feb, ..., Dec
 	Second is 00, 01, ..., 59
 	Year is 1970, 1971, ..., 2038
 .)l
-.lp
-Valid dates are, therefore, Jan 1 00:00:00 1970 GMT to Jan 1 00:00:00 2038 GMT.
-As of Version 3.0, times are no longer read and written using Greenwich mean
-time; the input and output routines default to the local time zone.
-.lp
-The special absolute time
-.q now
-is provided as a convenience.
-The special absolute time ``epoch'' means Jan 1 00:00:00 1970 GMT.
-.uh "RELATIVE TIME"
-.lp
+Valid dates are, therefore, Jan 1 00:00:00 1970 GMT to Jan 1 00:00:00
+2038 GMT.  As of Version 3.0, times are no longer read and written
+using Greenwich Mean Time; the input and output routines default to
+the local time zone.
+.PP
+The special absolute time \*(lqnow\*(rq is provided as a convenience.
+The special absolute time \*(lqepoch\*(rq means Jan 1 00:00:00 1970
+GMT.
+.SH "RELATIVE TIME"
 Relative time is specified with the following syntax:
-.(l
-.ft C
+.(C
 @ Quantity Unit [Direction]
-.ft
-
+.)C
+.(l
 where 	Quantity is `1', `2', ...
 	Unit is ``second'', ``minute'', ``hour'', ``day'', ``week'',
 	``month'' (30-days), or ``year'' (365-days),
 	or PLURAL of these units.
 	Direction is ``ago''
-(\fBNote\fR: Valid relative times are less than or equal to 68 years)
 .)l
-.sp
-In addition, the special relative time ``Undefined RelTime'' is provided.
-.uh "TIME RANGES"
-.lp
+.PP
+.RB ( Note :
+Valid relative times are less than or equal to 68 years.)
+In addition, the special relative time \*(lqUndefined RelTime\*(rq is
+provided.
+.SH "TIME RANGES"
 Time ranges are specified as:
-.(l
-.ft C
+.(C
 [abstime, abstime]
 [ , abstime]
 [abstime, \*(lq\*(rq]
 [\*(lq\*(rq, \*(lq\*(rq]
-.ft
-.)l
-where \fIabstime\fR is a time in the absolute time format.
-.q ""
-will cause the time interval to either start or end
-at the least or greatest time allowable, that is, either 
-Jan 1 00:00:00 1902 or Jan 1 00:00:00 2038, respectively.
+.)C
+where 
+.IR abstime
+is a time in the absolute time format.  Pairs of double-quotes ("")
+will cause the time interval to either start or end at the least or
+greatest time allowable, that is, either Jan 1 00:00:00 1902 or Jan 1
+00:00:00 2038, respectively.
 .XA 1 "Built-in operators and functions"
-.SP OPERATORS BUILT-INS 7/11/89
-.uh OPERATORS
-.lp
-\*(PP provides a large number of built-in operators on system types.
+.SP OPERATORS BUILT-INS 01/23/93
+.SH OPERATORS
+\*(PG provides a large number of built-in operators on system types.
 These operators are declared in the system catalog
-.i pg_operator .
-Every entry in
-.i pg_operator
-includes the object ID
-of the procedure that implements the operator.
-.lp
-Users may invoke operators using the operator name,
-as in
-.(l
-.ft C
+\*(lqpg_operator\*(rq.  Every entry in \*(lqpg_operator\*(rq includes
+the object ID of the procedure that implements the operator.
+.PP
+Users may invoke operators using the operator name, as in
+.(C
 retrieve (emp.all) where emp.salary < 40000
-.ft
-.)l
-Alternatively,
-users may call the functions that implement the operators directly.
-In this case,
-the query above would be expressed as
-.(l
-.ft C
+.)C
+Alternatively, users may call the functions that implement the
+operators directly.  In this case, the query above would be expressed
+as
+.(C
 retrieve (emp.all) where int4lt(emp.salary, 40000)
-.ft
-.)l
-.lp
-The rest of this section provides a list of the built-in operators
-and the functions that implement them.
-Binary operators are listed first,
+.)C
+The rest of this section provides a list of the built-in operators and
+the functions that implement them.  Binary operators are listed first,
 followed by unary operators.
-.sp
 .XA 2 "Binary operators"
-.ft B
-.ce
-Binary Operators
-.ft
-.lp
-This list was generated from the \*(PP system catalogs with the
-query
-.(b
-.ft C
+.SH "BINARY OPERATORS"
+This list was generated from the \*(PG system catalogs with the query
+.(C
 retrieve (argtype = t1.typname, o.oprname,
 	t0.typname, p.proname,
 	ltype=t1.typname, rtype=t2.typname)
@@ -170,298 +148,47 @@ retrieve (argtype = t1.typname, o.oprname,
 	and p.pronargs = 2
 	and o.oprleft = t1.oid
 	and o.oprright = t2.oid
-.ft
-.)b
+.)C
 The list is sorted by the built-in type name of the first operand.
 The
-.i "function prototype"
-column gives the return type, function name,
-and argument types for the procedure that implements the operator.
-(Note that these function prototypes are \*(PP function prototypes and they
-are \fBnot equivalent\fP to C function prototypes.)
-.TS
-center expand;
-l l c l
-c l l lw(2i).
-\fBType\fP	\fBOperator\fP	\fB\POSTGRES Function Prototype\fP	\fBOperation\fP
-_
-abstime	!\(eq	bool abstimene(abstime, abstime)	inequality
-	+	abstime timepl(abstime, reltime)	addition
-	\(mi	abstime timemi(abstime, reltime)	subtraction
-	<\(eq	bool abstimele(abstime, abstime)	less or equal
-	<?>	bool ininterval(abstime, tinterval)	abstime in tinterval?
-	<	bool abstimelt(abstime, abstime)	less than
-	\(eq	bool abstimeeq(abstime, abstime)	equality
-	>\(eq	bool abstimege(abstime, abstime)	greater or equal
-	>	bool abstimegt(abstime, abstime)	greater than
-_
-bool	\(eq	bool booleq(bool, bool)	equality
-_
-box	&&	bool box_overlap(box, box)	boxes overlap
-	&<	bool box_overleft(box, box)	T{
-box A overlaps box B,
-but does not extend to right
-of box B
-T}
-	&>	bool box_overright(box, box)	T{
-box A overlaps box B,
-but does not extend to left
-of box B
-T}
-	<<	bool box_left(box, box)	A is left of B
-	<\(eq	bool box_le(box, box)	area less or equal
-	<	bool box_lt(box, box)	area less than
-	\(eq	bool box_eq(box, box)	area equal
-	>\(eq	bool box_ge(box, box)	area greater or equal
-	>>	bool box_right(box, box)	A is right of B
-	>	bool box_gt(box, box)	area greater than
-	@	bool box_contained(box, box)	A is contained in B
-	~\(eq	bool box_same(box, box)	box equality
-	~	bool box_contain(box, box)	A contains B
-_
-char16	!\(eq	bool char16ne(char16, char16)	inequality
-	!~	bool char16regexne(char16, char16)	T{
-A does not match regular expression B
-(\*(PP uses the libc regexp calls for this
-operation)
-T}
-	<\(eq	bool char16le(char16, char16)	less or equal
-	<	bool char16lt(char16, char16)	less than
-	\(eq	bool char16eq(char16, char16)	equality
-	>\(eq	bool char16ge(char16, char16)	greater or equal
-	>	bool char16gt(char16, char16)	greater than
-	~	bool char16regexeq(char16, char16)	T{
-A matches regular expression B
-(\*(PP uses the libc regexp calls for this
-operation)
-T}
-_
-char	!\(eq	bool charne(char, char)	inequality
-	*	bool charmul(char, char)	multiplication
-	+	bool charpl(char, char)	addition
-	\(mi	bool charmi(char, char)	subtraction
-	/	bool chardiv(char, char)	division
-	<\(eq	bool charle(char, char)	less or equal
-	<	bool charlt(char, char)	less than
-	\(eq	bool chareq(char, char)	equality
-	>\(eq	bool charge(char, char)	greater or equal
-	>	bool chargt(char, char)	greater than
-_
-float4	!\(eq	bool float4ne(float4, float4)	inequality
-	*	float4 float4mul(float4, float4)	multiplication
-	+	float4 float4pl(float4, float4)	addition
-	\(mi	float4 float4mi(float4, float4)	subtraction
-	/	float4 float4div(float4, float4)	division
-	<\(eq	bool float4le(float4, float4)	less or equal
-	<	bool float4lt(float4, float4)	less than
-	\(eq	bool float4eq(float4, float4)	equality
-	>\(eq	bool float4ge(float4, float4)	greater or equal
-	>	bool float4gt(float4, float4)	greater than
-_
-float8	!\(eq	bool float8ne(float8, float8)	inequality
-	*	float8 float8mul(float8, float8)	multiplication
-	+	float8 float8pl(float8, float8)	addition
-	\(mi	float8 float8mi(float8, float8)	subtraction
-	/	float8 float8div(float8, float8)	division
-	<\(eq	bool float8le(float8, float8)	less or equal
-	<	bool float8lt(float8, float8)	less than1
-	\(eq	bool float8eq(float8, float8)	equality
-	>\(eq	bool float8ge(float8, float8)	greater or equal
-	>	bool float8gt(float8, float8)	greater than
-	^	float8 dpow(float8, float8)	exponentiation
-_
-int2	!\(eq	bool int2ne(int2, int2)	inequality
-	!\(eq	int4 int24ne(int2, int4)	inequality
-	%	int2 int2mod(int2, int2)	modulus
-	%	int4 int24mod(int2, int4)	modulus
-	*	int2 int2mul(int2, int2)	multiplication
-	*	int4 int24mul(int2, int4)	multiplication
-	+	int2 int2pl(int2, int2)	addition
-	+	int4 int24pl(int2, int4)	addition
-	\(mi	int2 int2mi(int2, int2)	subtraction
-	\(mi	int4 int24mi(int2, int4)	subtraction
-	/	int2 int2div(int2, int2)	division
-	/	int4 int24div(int2, int4)	division
-	<\(eq	bool int2le(int2, int2)	less or equal
-	<\(eq	int4 int24le(int2, int4)	less or equal
-	<	bool int2lt(int2, int2)	less than
-	<	int4 int24lt(int2, int4)	less than
-	\(eq	bool int2eq(int2, int2)	equality
-	\(eq	int4 int24eq(int2, int4)	equality
-	>\(eq	bool int2ge(int2, int2)	greater or equal
-	>\(eq	int4 int24ge(int2, int4)	greater or equal
-	>	bool int2gt(int2, int2)	greater than
-	>	int4 int24gt(int2, int4)	greater than
-		int2 int2inc(int2)	increment
-_
-int4	!!\(eq	bool int4notin(int4, char16)	T{
-This is the relational ``not in'' operator,
-and is not intended for public use.
-T}
-	!\(eq	bool int4ne(int4, int4)	inequality
-	!\(eq	int4 int42ne(int4, int2)	inequality
-	%	int4 int42mod(int4, int2)	modulus
-	%	int4 int4mod(int4, int4)	modulus
-	*	int4 int42mul(int4, int2)	multiplication
-	*	int4 int4mul(int4, int4)	multiplication
-	+	int4 int42pl(int4, int2)	addition
-	+	int4 int4pl(int4, int4)	addition
-	\(mi	int4 int42mi(int4, int2)	subtraction
-	\(mi	int4 int4mi(int4, int4)	subtraction
-	/	int4 int42div(int4, int2)	division
-	/	int4 int4div(int4, int4)	division
-	<\(eq	bool int4le(int4, int4)	less or equal
-	<\(eq	int4 int42le(int4, int2)	less or equal
-	<	bool int4lt(int4, int4)	less than
-	<	int4 int42lt(int4, int2)	less than
-	\(eq	bool int4eq(int4, int4)	equality
-	\(eq	int4 int42eq(int4, int2)	equality
-	>\(eq	bool int4ge(int4, int4)	greater or equal
-	>\(eq	int4 int42ge(int4, int2)	greater or equal
-	>	bool int4gt(int4, int4)	greater than
-	>	int4 int42lt(int4, int2)	less than
-		int4 int4inc(int4)	increment
-_
-oid	!!\(eq	bool oidnotin(oid, char16)	T{
-This is the relational ``not in'' operator,
-and is not intended for public use.
-T}
-	!\(eq	bool oidneq(oid, oid)	inequality
-	!\(eq	bool oidneq(oid, regproc)	inequality
-	<\(eq	bool int4le(oid, oid)	less or equal
-	<	bool int4lt(oid, oid)	less than
-	\(eq	bool oideq(oid, oid)	equality
-	\(eq	bool oideq(oid, regproc)	equality
-	>\(eq	bool int4ge(oid, oid)	greater or equal
-	>	bool int4gt(oid, oid)	greater than
-_
-point	!<	bool point_left(point, point)	A is left of B
-	!>	bool point_right(point, point)	A is right of B
-	!^	bool point_above(point, point)	A is above B
-	!|	bool point_below(point, point)	A is below B
-	\(eq|\(eq	bool point_eq(point, point)	equality
-	--->	bool on_pb(point, box)	point inside box
-	---`	bool on_ppath(point, path)	point on path
-	<--->	int4 pointdist(point, point)	distance between points
-_
-polygon	&&	bool poly_overlap(polygon, polygon)	polygons overlap
-	&<	bool poly_overleft(polygon, polygon)	T{
-A overlaps B but does not extend to
-right of B
-T}
-	&>	bool poly_overright(polygon, polygon)	T{
-A overlaps B but does not extend to
-left of B
-T}
-	<<	bool poly_left(polygon, polygon)	A is left of B
-	>>	bool poly_right(polygon, polygon)	A is right of B
-	@	bool poly_contained(polygon, polygon)	A is contained by B
-	~\(eq	bool poly_same(polygon, polygon)	equality
-	~	bool poly_contain(polygon, polygon)	A contains B
-_
-regproc	!\(eq	bool oidneq(regproc, oid)	inequality
-	\(eq	bool oideq(regproc, oid)	equality
-_
-reltime	!\(eq	bool reltimene(reltime, reltime)	inequality
-	<\(eq	bool reltimele(reltime, reltime)	less or equal
-	<	bool reltimelt(reltime, reltime)	less than
-	\(eq	bool reltimeeq(reltime, reltime)	equality
-	>\(eq	bool reltimege(reltime, reltime)	greater or equal
-	>	bool reltimegt(reltime, reltime)	greater than
-_
-text	!\(eq	bool textne(text, text)	inequality
-	!~	bool textregexne(text, text)	T{
-A does not contain the regular expression B.
-\*(PP uses the libc regexp interface for this
-operator.
-T}
-	<\(eq	bool text_le(text, text)	less or equal
-	<	bool text_lt(text, text)	less than
-	\(eq	bool texteq(text, text)	equality
-	>\(eq	bool text_ge(text, text)	greater or equal
-	>	bool text_gt(text, text)	greater than
-	~	bool textregexeq(text, text)	T{
-A contains the regular expression B.
-\*(PP uses the libc regexp interface for this
-operator.
-T}
-_
-tinterval	#!\(eq	bool intervallenne(tinterval, reltime)	T{
-interval length not equal to reltime.
-T}
-	#<\(eq	bool intervallenle(tinterval, reltime)	T{
-interval length less or equal reltime
-T}
-	#<	bool intervallenlt(tinterval, reltime)	T{
-interval length less than reltime
-T}
-	#\(eq	bool intervalleneq(tinterval, reltime)	T{
-interval length not equal to reltime
-T}
-	#>\(eq	bool intervallenge(tinterval, reltime)	T{
-interval length greater or equal reltime
-T}
-	#>	bool intervallengt(tinterval, reltime)	T{
-interval length greater than reltime
-T}
-	&&	bool intervalov(tinterval, tinterval)	intervals overlap
-	<<	bool intervalct(tinterval, tinterval)	A contains B
-	\(eq	bool intervaleq(tinterval, tinterval)	equality
-.TE
-.sp
-.sp
+.IR "function prototype"
+column gives the return type, function name, and argument types for
+the procedure that implements the operator.  Note that these function
+prototypes are cast in terms of \*(PQ types and so are
+.BR not
+directly usable as C function prototypes.
+.ie t \{
+.so ../postquel/binary.tbl
+\}
+.el \{
+.so ../obj/binary.nr
+\}
 .XA 2 "Unary operators"
-.ft B
-.ce
-Unary Operators
-.ft
-.lp
+.SH "UNARY OPERATORS"
 The tables below give right and left unary operators.
 Left unary operators have the operator precede the operand;
 right unary operators have the operator follow the operand.
-.sp
-.sp
-.ft B
-.ce
-Right Unary Operators
-.ft
-.TS
-center expand;
-l l c l
-c l l lw(2i).
-\fBType\fP	\fBOperator\fP	\fB\POSTGRES Function Prototype\fP	\fBOperation\fP
-_
-float8	%	float8 dround(float8)	round to nearest integer
-.TE
-.sp
-.ft B
-.ce
-Left Unary Operators
-.ft
-.TS
-center expand;
-l l c l
-c l l lw(2i).
-\fBType\fP	\fBOperator\fP	\fB\POSTGRES Function Prototype\fP	\fBOperation\fP
-_
-box	@@	point box_center(box)	center of box
-_
-float4	@	float4 float4abs(float4)	absolute value
-_
-float8	@	float8 float8abs(float8)	absolute value
-	%	float8 dtrunc(float8)	truncate to integer
-	|/	float8 dsqrt(float8)	square root
-	||/	float8 dcbrt(float8)	cube root
-	:	float8 dexp(float8)	exponential function
-	;	float8 dlog1(float8)	natural logarithm
-_
-tinterval	|	abstime intervalstart(tinterval)	start of interval
-.TE
-.uh "SEE ALSO"
-.lp
-For examples on specifying literals of built-in types, see postquel(commands).
-.uh BUGS
-.lp
+.PP
+.SS "Right Unary Operators"
+.ie t \{
+.so ../postquel/right_unary.tbl
+\}
+.el \{
+.so ../obj/right_unary.nr
+\}
+.PP
+.SS "Left Unary Operators"
+.\" we want soelim to include the .nr table but not the .tbl table
+.ie t \{
+.so ../postquel/left_unary.tbl
+\}
+.el \{
+.so ../obj/left_unary.nr
+\}
+.SH "SEE ALSO"
+For examples on specifying literals of built-in types, see
+.IR postquel (commands).
+.SH BUGS
 The lists of types, functions, and operators are accurate only for
 Version \*(PV.  The lists will be incomplete and contain extraneous
-entries in future versions of \*(PP.
+entries in future versions of \*(PG.

@@ -1,215 +1,225 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP "DEFINE RULE" COMMANDS 6/14/90
+.TH "DEFINE RULE" COMMANDS 01/23/93
 .XA 2 "Define Rule"
-.uh NAME
-.lp
-define rule \(em Define a new rule
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+define rule \(em define a new rule
+.SH SYNOPSIS
+.(l M
 \fBdefine\fR [\fBinstance\fR | \fBrewrite\fR] \fBrule\fR rule_name
     [\fBas exception to\fR rule_name_2]
     \fBis\fR \fBon\fR event
       \fBto\fR object [[\fBfrom\fR clause] \fBwhere\fR clause]
     \fBdo\fR [\fBinstead\fR]
-    [action | nothing | '[' action ... ']']
+    [action | nothing | \fB[\fPactions...\fB]\fP]
 .)l
-.uh DESCRIPTION
-.lp
-.b Define
-.b rule
-is used to define a new rule.
-There are two implementations of the rules system, one based on 
-.b query
-.b rewrite
+.SH DESCRIPTION
+.BR "Define rule"
+is used to define a new rule.  There are two implementations of the
+rules system, one based on
+.BR "query rewrite"
 and the other based on 
-.b instance-level
+.BR "instance-level"
 processing.  In general, the instance-level system is more efficient
 if there are many rules on a single class, each covering a small
-subset of the instances.  The rewrite system is more
-efficient if large scope rules are being defined. The user
-can optionally choose which rule system to use by specifying 
-.i rewrite
+subset of the instances.  The rewrite system is more efficient if
+large scope rules are being defined. The user can optionally choose
+which rule system to use by specifying
+.BR rewrite
 or
-.i instance
-in the command.  If the user does not specify which system to use, \*(PP
-defaults to using the instance-level system.  In the long run
-\*(PP will automatically decide which rules system to use and the possibility
-of user selection will be removed.
-.lp
-Here, event is one of:
-.(l
-.ft C
-retrieve 
-replace 
-delete
-append
-.ft
-.)l
-Moreover, object is either:
+.BR instance
+in the command.  If the user does not specify which system to use,
+\*(PG defaults to using the instance-level system.  In the long run
+\*(PG will automatically decide which rules system to use and the
+possibility of user selection will be removed.
+.PP
+Here, 
+.IR event
+is one of 
+.IR retrieve ,
+.IR replace ,
+.IR delete
+or
+.IR append .
+.IR Object
+is either:
 .(l
 a class name
-\fIor\fR
+    \fIor\fR
 class.column
 .)l
-The FROM clause, the WHERE clause, and the
-action are respectively normal \*(PQ
-FROM clauses, WHERE clauses 
-and collections of \*(PQ commands
-with the following change:
-.in +6
+The 
+.BR "from"
+clause, the 
+.BR "where"
+clause, and the
+.IR action
+are respectively normal \*(PQ
+.BR "from"
+clauses,
+.BR "where"
+clauses and collections of \*(PQ commands with the following change:
 .ll -6
-
-.b new
+.IP
+.BR new
 or
-.b current
+.BR current
 can appear instead of 
 an instance variable whenever an instance 
 variable is permissible in \*(PQ.
-.in -6
 .ll +6
-.lp
+.PP
 The semantics of a rule is that at the time an individual instance is
-accessed, updated, inserted or deleted, there is a current instance (for
-retrieves, replaces and deletes) and a new instance (for replaces and appends).
-If the event specified in the ON clause and the condition specified
-in the WHERE clause are true 
-for the current instance,
-then the action part of the rule is executed.  First, however, values
-from fields in the current instance and/or the new instance are substituted 
-for:
+accessed, updated, inserted or deleted, there is a 
+.BR current
+instance
+(for retrieves, replaces and deletes) and a 
+.BR new
+instance (for replaces and appends).  If the event specified in the
+.BR "on"
+clause and the condition specified in the
+.BR "where"
+clause are true for the current instance, then the 
+.IR action
+part of the rule is executed.  First, however, values from fields in
+the current instance and/or the new instance are substituted for:
 .(l
-.ft C
 current.attribute-name
 new.attribute-name
-.ft
 .)l
-The action part of the rule executes with same command and
-transaction identifier as the user command that caused activation.  
-.lp
+The
+.IR action
+part of the rule executes with same command and transaction identifier
+as the user command that caused activation.
+.PP
 A note of caution about \*(PQ rules is in order.  If the same class
-name or instance variable appears in the event, where clause 
-and the action parts of a rule, they are 
-all considered different tuple variables.  
-More accurately, new and current are the only
-tuple variables that are shared between these clauses.
-For example the following two rules have the
-same semantics: 
-.(l
-.ft C
+name or instance variable appears in the event, 
+.BR where
+clause and the 
+.IR action
+parts of a rule, they are all considered different tuple variables.
+More accurately,
+.BR new
+and
+.BR current
+are the only tuple variables that are shared between these clauses.
+For example, the following two rules have the same semantics:
+.(C
 on replace to EMP.salary where EMP.name = "Joe"
 	do replace EMP ( ... ) where ...
 
 on replace to EMP-1.salary where EMP-2.name = "Joe"
 	do replace EMP-3 ( ... ) where ...
-.ft
-.)l
-.lp
-Each rule can have the optional tag "instead".  Without this tag the
-action will be performed in addition to the user command 
-when the event 
-in the condition part of the rule occurs. 
-Alternately, the action part will be done instead of the user command.
+.)C
+Each rule can have the optional tag 
+.BR "instead" .
+Without this tag 
+.IR action
+will be performed in addition to the user command when the event in
+the condition part of the rule occurs.  Alternately, the
+.IR action 
+part will be done instead of the user command.
 In this later case, the action can be the keyword
-.b nothing.
-.lp
-When choosing between the rewrite and instance rule systems for a particular
-rule application, remember that in the rewrite system  'current' refers to a
-relation and some qualifiers whereas in the instance system it refers to an
-instance (read tuple).
-
-.uh EXAMPLES
-.lp
-.ft C
-/* Make Sam get the same salary adjustment as Joe */
-.ft
-.(l
-.ft C
+.BR nothing .
+.PP
+When choosing between the rewrite and instance rule systems for a
+particular rule application, remember that in the rewrite system
+.BR current
+refers to a relation and some qualifiers whereas in the instance
+system it refers to an instance (tuple).
+.PP
+You must have
+.IR "rule definition"
+access to a class in order to define a rule on it (see
+.IR "change acl" (commands).
+.SH EXAMPLES
+.(C
+/*
+ * Make Sam get the same salary adjustment as Joe
+ */
 define rule example_1 is
     on replace to EMP.salary where current.name = "Joe"
     do replace EMP (salary = new.salary)
 	where EMP.name = "Sam"
-.ft
-.)l
+.)C
 At the time Joe receives a salary adjustment, the event will become
 true and Joe's current instance and proposed new instance are available
 to the execution routines.  Hence, his new salary is substituted into the 
-action part of the rule which is subsequently executed.  This 
-propagates Joe's salary on to Sam.
-.lp
-.ft C
-/* Make Bill get Joe's salary when it is accessed */
-.ft
-.(l
-.ft C
+.IR action
+part of the rule which is subsequently executed.  This propagates
+Joe's salary on to Sam.
+.(C
+/*
+ * Make Bill get Joe's salary when it is accessed
+ */
 define rule example_2 is
     on retrieve to EMP.salary
         where current.name = "Bill"
     do instead
 	retrieve (EMP.salary) where EMP.name = "Joe"
-.ft
-.)l
-.lp
-.ft C
-/* Deny Joe access to the salary of employees in */
-/* the shoe department.  Note: pg_username()     */
-/* returns the name of the current user          */
-.ft
-.(l
-.ft C
+.)C
+.(C
+/*
+ * Deny Joe access to the salary of employees in the shoe
+ * department.  (pg_username() returns the name of the current user)
+ */
 define rule example_3 is
     on retrieve to EMP.salary
 	where current.dept = "shoe"
               and pg_username() = "Joe"
     do instead nothing
-.ft
-.)l
-.lp
-.ft C
-/* Create a view of the employees working in */
-/* the toy department.                       */
-.ft
-.(l
-.ft C
+.)C
+.(C
+/*
+ * Create a view of the employees working in the toy department.
+ */
 create TOYEMP(name = char16, salary = int4)
 
 define rule example_4 is
     on retrieve to TOYEMP
     do instead retrieve (EMP.name, EMP.salary)
 	where EMP.dept = "toy"
-.ft
-.)l
-.lp
-.ft C
-/* All new employees must make 5,000 or less */
-.ft
-.(l
-.ft C
+.)C
+.(C
+/*
+ * All new employees must make 5,000 or less
+ */
 define rule example_5 is
 	on append to EMP where new.salary > 5000
 	do replace new(salary = 5000)
-.ft
-.)l
-.uh "SEE ALSO"
-.lp
-postquel(commands).
-.uh BUGS
-.lp
+.)C
+.SH "SEE ALSO"
+postquel(commands),
+remove rule(commands),
+define view(commands).
+.SH BUGS
 Exceptions are not implemented in Version \*(PV.
-.lp
-The object in a \*(PQ rule cannot be an array reference and cannot have
-parameters.
-.lp
-The WHERE clause can not have a FROM clause.
-.lp
-Only one \*(PQ command can be specified in the action part of a tuple rule
-and it can only be a
-replace, append, retrieve or delete command.
-.lp
-The rewrite rule system does support multiple action rules surrouas long as the
-event is not retrieve.
-.lp
-The query rewrite rule system now supports most rule semantics, and closely
-parallels the tuple system.  It also attempts to avoid odd semantics by
-running instead rules before non-instead rules.
+.PP
+The object in a \*(PQ rule cannot be an array reference and cannot
+have parameters.
+.PP
+The 
+.BR where
+clause can not have a 
+.BR from
+clause.
+.PP
+Only one \*(PQ command can be specified in the 
+.IR action
+part of a tuple rule and it can only be a 
+.IR replace ,
+.IR append ,
+.IR retrieve
+or
+.IR delete
+command.
+.PP
+The rewrite rule system does support multiple action rules as long as
+.IR event
+is not
+.IR retrieve .
+.PP
+The query rewrite rule system now supports most rule semantics, and
+closely parallels the tuple system.  It also attempts to avoid odd
+semantics by running instead rules before non-instead rules.

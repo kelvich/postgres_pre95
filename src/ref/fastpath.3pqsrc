@@ -1,67 +1,60 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SS "FAST PATH" 6/14/90
-.XA 0 "Section 6 \*- Fast Path"
-.sp 2i
-.ps 14
-.ce
-.b "SECTION 6 \*- FAST PATH"
-.sp 3
-.uh NAME
-.lp
-fast path \*- trap door into system internals
-.uh SYNOPSIS
-.lp
+.TH INTRODUCTION "FAST PATH" 01/23/93
+.XA 0 "Section 6 \(em Fast Path"
+.BH "SECTION 6 \(em FAST PATH"
+.SH SYNOPSIS
 .(l
-.q "retrieve (retval = function([ arg { , arg } ] )"
+\fBretrieve (\fPretval \fB=\fP function\fB(\fP[ arg {\fB,\fP arg } ]\fB))\fP
 .)l
-.uh DESCRIPTION
-.lp
-\*(PP allows any valid \*(PP function to be called in this way.  Prior
-implementations of 
-.b fast
-.b path
-allowed user functions to be called directly.  For now, the above syntax should
-be used, with arguments cast into the appropriate types.  By executing the
-above type of query, control transfers completely to the user function; any
-user function can access any \*(PP function or any global variable in the
-\*(PP address space.
-.sp
+.SH DESCRIPTION
+\*(PG allows any valid \*(PG function to be called in this way.  Prior
+implementations of
+.BR "fast path"
+allowed user functions to be called directly.  For now, the above
+syntax should be used, with arguments cast into the appropriate types.
+By executing the above type of query, control transfers completely to
+the user function; any user function can access any \*(PG function or
+any global variable in the \*(PG address space.
+.PP
 There are six levels at which calls can be performed:
-.sp
-.nf
-1)	Traffic cop level
-	If a function wants to execute a \*(PP command and pass a string
-	representation, this level is appropriate.
-.sp
-2)	Parser
-	A function can access the \*(PP parser, passing a string and
-	getting a parse tree in return.
-.sp
-3)	Query optimizer
-	A function can call the query optimizer, passing it a parse tree
-	and obtaining a query plan in return.
-.sp
-4)	Executor
-	A function can call the executor and pass it a query plan to be executed.
-.sp
-5)	Access methods
-	A function can directly call the access methods if it wishes.
-.sp
-6)	Function manager
-	A function can call other functions using this level.
-.fi
-.sp
-Documentation of layers 1-6 will appear
-at some future time.
-Meanwhile, fast path users must consult the source code
-for function names and arguments at each level.
-.lp
-It should be noted that users who are concerned with ultimate performance
-can bypass the query language completely and directly call functions that
-in turn interact with the access methods.
-On the other hand, a user can implement a new query language by coding
-a function with an internal parser that then calls the \*(PP
-optimizer and executor.
-Complete flexibility to use the pieces of \*(PP as a tool kit is
-thereby provided.
+.IP 1)
+Traffic cop level
+.br
+If a function wants to execute a \*(PG command and pass a string
+representation, this level is appropriate.
+.IP 2)
+Parser
+.br
+A function can access the \*(PG parser, passing a string and
+getting a parse tree in return.
+.IP 3)
+Query optimizer
+.br
+A function can call the query optimizer, passing it a parse tree
+and obtaining a query plan in return.
+.IP 4)
+Executor
+.br
+A function can call the executor and pass it a query plan to be executed.
+.IP 5)
+Access methods
+.br
+A function can directly call the access methods if it wishes.
+.IP 6)
+Function manager
+.br
+A function can call other functions using this level.
+.PP
+Documentation of layers 1-6 will appear at some future time.
+Meanwhile, fast path users must consult the source code for function
+names and arguments at each level.
+.PP
+It should be noted that users who are concerned with ultimate
+performance can bypass the query language completely and directly call
+functions that in turn interact with the access methods.  On the other
+hand, a user can implement a new query language by coding a function
+with an internal parser that then calls the \*(PG optimizer and
+executor.  Complete flexibility to use the pieces of \*(PG as a tool
+kit is thereby provided.

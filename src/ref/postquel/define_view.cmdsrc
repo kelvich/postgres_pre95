@@ -1,50 +1,45 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP "DEFINE VIEW" COMMANDS 6/14/90
+.TH "DEFINE VIEW" COMMANDS 01/23/93
 .XA 2 "Define View"
-.uh NAME
-.lp
-define view \*- construct a virtual class
-.uh SYNOPSIS
-.lp
-.(l
+.SH NAME
+define view \(em construct a virtual class
+.SH SYNOPSIS
+.(l M
 \fBdefine view\fR view_name
         \fB(\fR [ dom_name_1 \fB=\fR] expression_1
 	    {\fB,\fR [dom_name_i \fB=\fR] expression_i} \fB)\fR
     [ \fBfrom\fR from_list ]
     [ \fBwhere\fR qual ]
 .)l
-.sp
-.uh DESCRIPTION
-.lp
-.b "Define view"
-will define a view of a class.
-This view is not physically materialized;
-instead the rule system is used to support view processing as in [STON90].
-Specifically,
-a query rewrite retrieve rule is automatically generated
-to support retrieve operations on views.
-Then,
-the user can add as many update rules as he wishes to specify the
-processing of update operations to views.
-See [STON90] for a detailed discussion of this point.
-.uh EXAMPLE
-.lp
-.nf
-.ft C
-/* define a view consisting of toy department employees */
-
+.SH DESCRIPTION
+.BR "Define view"
+will define a view of a class.  This view is not physically
+materialized; instead the rule system is used to support view
+processing as in [STON90].  Specifically, a query rewrite retrieve
+rule is automatically generated to support retrieve operations on
+views.  Then, the user can add as many update rules as he wishes to
+specify the processing of update operations to views.  See [STON90]
+for a detailed discussion of this point.
+.SH EXAMPLE
+.(C
+/*
+ * define a view consisting of toy department employees
+ */
 define view toyemp (e.name)
    from e in emp
    where e.dept = "toy"
-
-/* Specify deletion semantics for toyemp */
-
+.)C
+.(C
+/*
+ * Specify deletion semantics for toyemp
+ */
 define rewrite rule example1 is
    on delete to toyemp
    then do instead delete emp where emp.OID = current.OID
-.ft
-
-.uh "SEE ALSO"
-.lp
-postquel(commands), create(commands), define rule(commands).
+.)C
+.SH "SEE ALSO"
+create(commands), 
+define rule(commands),
+postquel(commands).

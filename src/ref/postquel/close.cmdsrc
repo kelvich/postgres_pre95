@@ -1,36 +1,30 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP CLOSE COMMANDS 6/14/90
+.TH CLOSE COMMANDS 01/23/93
 .XA 2 Close
-.uh NAME
-.lp
-close \*- close a portal
-.uh SYNOPSIS
-.lp
-.(l
-\fBclose\fR [ portal_name ]
+.SH NAME
+close \(em close a portal
+.SH SYNOPSIS
+.(l M
+\fBclose\fP [ portal_name ]
 .)l
-.uh DESCRIPTION
-.lp
-.b Close
+.SH DESCRIPTION
+.BR Close
 frees the resources associated with a portal,
-.i portal_name.
-After this portal is closed,
-no subsequent operations are allowed on it.
-A portal should be closed when it is no longer needed.
-If
-.i portal_name
-is not specified,
-then the blank portal is closed.
-.uh EXAMPLE
-.lp
-.nf
-.ft C
-/* close the portal FOO */
-
+.IR portal_name.
+After this portal is closed, no subsequent operations are allowed on
+it.  A portal should be closed when it is no longer needed.  If
+.IR portal_name
+is not specified, then the blank portal is closed.
+.SH EXAMPLE
+.(C
+/*
+ * close the portal FOO
+ */
 close FOO
-.ft
-.fi
-.uh "SEE ALSO"
-.lp
-retrieve(commands), fetch(commands), move(commands).
+.)C
+.SH "SEE ALSO"
+fetch(commands),
+move(commands),
+retrieve(commands).

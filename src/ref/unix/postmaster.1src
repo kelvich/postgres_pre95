@@ -1,113 +1,239 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP POSTMASTER UNIX 6/14/90
-.XA 1 "The \*(PP Postmaster"
-.uh "NAME"
-.lp
-postmaster \*- run the \*(PP postmaster
-.uh "SYNOPSIS"
-.lp
-.(l
-\fBpostmaster\fR [ -p port ] [ -b backend_pathname ] [ -d debug_level ] [ -D data_dir] [ -s ] [ -n ] &
-.)l
-.uh "DESCRIPTION"
-.lp
-The postmaster manages the communication between frontends and backends,
-as well as allocating the shared buffer pool and semaphores (on machines
-without TAS).  The postmaster
-does not itself interact with the user so it should be started as a background
-process.  \fBOnly one postmaster should be run on a machine!\fR
-.sp
-.uh "COMMAND OPTIONS"
-.lp
-\fIport\fR is the well known TCP/IP port used for network 
-communication between a libpq application and the backend.  If you specify
-a port other than the default port then you must specify the same port when 
-starting any libpq application including the terminal monitor.  Alternatively
-you may set the environment variable PGPORT to the specified port and all
-libpq applications will use it instead of the default.
-.lp
-\fIbackend_pathname\fR is the full pathname of the \*(PP backend you
-wish to use.
-.lp
-\fIdeug_level\fR determines the amount of debugging output the backend will
-produce.  Specifying any level will cause the postmaster to print out
-a few terse debugging output messages to the tty on which it was started.
-.lp
-The \fI\-D\fP option specifies the directory to use as the root of the
-tree of database directories.
-By default,
-this is $PGDATA;
-if PGDATA is not defined in the environment,
-then the default is $POSTGRESHOME/data.
-.lp
+.TH POSTMASTER UNIX 01/23/93
+.XA 1 "The \*(PG Postmaster"
+.SH "NAME"
+postmaster \(em run the \*(PG postmaster
+.SH "SYNOPSIS"
+.BR "postmaster"
+[\c
+.BR "-B"
+n_buffers]
+[\c
+.BR "-D"
+data_dir]
+[\c
+.BR "-a"
+system]
+.br
+.in +5n
+[\c
+.BR "-b"
+backend_pathname]
+[\c
+.BR "-d"
+[debug_level]]
+[\c
+.BR "-n"
+]
+.br
+[\c
+.BR "-o"
+backend_options]
+[\c
+.BR "-p"
+port]
+[\c
+.BR "-s"
+]
+.in -5n
+.SH "DESCRIPTION"
 The
-\fI\-s\fP and \fI\-n\fP options control the behavior of the postmaster
-when a backend dies abnormally.
-The ordinary strategy for this situation is to notify all other backends
-that they must terminate,
-and to reinitialize shared memory and semaphores.
-This is because an errant backend,
-before dumping core,
-could have contaminated some shared state.
-.lp
-If the \fI\-s\fP option is supplied, then the postmaster will stop all
-other backends,
-but will not cause them to terminate.
-This permits system programmers to collect core dumps from all concurrent
-backends by hand.
-.lp
-If the \fI\-n\fP command-line option is supplied,
-then the postmaster does not reinitialize shared data structures.
-A knowledgable system programmer can use the
-.i shmemdoc
-program to examine shared memory and semaphore state,
-in order to debug the problem.
-.lp
-Neither \fI\-s\fP nor \fI\-n\fP is intended for use in ordinary operation.
-.sp
-.uh "EXAMPLES"
-.lp
-.ft C
+.IR "postmaster"
+manages the communication between frontend and backend processes, as
+well as allocating the shared buffer pool and semaphores (on machines
+without a test-and-set instruction).  The 
+.IR postmaster
+does not itself interact with the user and should be started as a
+background process.
+.BR "Only one postmaster should be run on a machine."
+.PP
+The 
+.IR "postmaster"
+understands the following command-line options:
+.TP 5n
+.BR "-B" " n_buffers"
+.IR "n_buffers"
+is the number of shared-memory buffers for the 
+.IR "postmaster"
+to allocate and manage for the backend server processes that it
+starts.  This value defaults to 64.
+.TP
+.BR "-D" " data_dir"
+Specifies the directory to use as the root of the tree of database
+directories.  This directory defaults to the value of the environment
+variable 
+.SM PGDATA ;
+if 
+.SM PGDATA
+is not set, then the default is
+.SM $POSTGRESHOME\c
+/data.  If neither environment variable is set and this command-line
+option is not specified, a default set at compile-time is used.
+.TP
+.BR "-a" " system"
+Specifies whether or not to use the authentication system 
+.IR "system"
+(see 
+.IR introduction (unix))
+for frontend applications to use in connecting to the 
+.IR postmaster
+process.  Specify
+.IR "system"
+to enable a system, or
+.BI "no" "system"
+to disable a system.  For example, to permit users to use
+.IR Kerberos
+authentication, use 
+.BR "-a kerberos" ;
+to deny any unauthenticated
+connections, use
+.BR "-a nounauth .
+The default is site-specific.
+.TP
+.BR "-b" " backend_pathname"
+.IR "backend_pathname"
+is the full pathname of the \*(PG backend server executable file that
+the
+.IR "postmaster"
+will invoke when it receives a connection from a frontend application.
+If this option is not used, then the 
+.IR postmaster
+tries to find this executable file in the directory in which its own
+executable is located (this is done by looking at the pathname under
+which the
+.IR "postmaster"
+was invoked; if no pathname was specified, then the
+.SM PATH
+environment variable is searched for an executable named
+\*(lqpostgres\*(rq).
+.TP
+.BR "-d" " [debug_level]"
+The optional argument
+.IR debug_level
+determines the amount of debugging output the backend servers will
+produce.  Note that if no file is specified for backend servers to
+send their debugging output (e.g., using the
+.BR "-t"
+option of 
+.IR monitor 
+or the 
+.BR "-o"
+option of
+.IR postgres )
+then this output will appear on the controlling tty of their parent
+.IR postmaster .
+.TP
+.BR "-n" ", " "-s"
+The
+.IR "-s" " and " "-n"
+options control the behavior of the
+.IR "postmaster"
+when a backend dies abnormally.  Neither option is intended for use in
+ordinary operation.
+.IP
+The ordinary strategy for this situation is to notify all other
+backends that they must terminate and then reinitialize the shared
+memory and semaphores.  This is because an errant backend could have
+corrupted some shared state before terminating.
+.IP
+If the
+.IR "-s"
+option is supplied, then the
+.IR "postmaster"
+will stop all other backend processes by sending the signal
+.SM SIGSTOP ,
+but will not cause them to terminate.  This permits system programmers
+to collect core dumps from all backend processes by hand.
+.IP
+If the
+.IR "-n"
+option is supplied, then the
+.IR "postmaster"
+does not reinitialize shared data structures.  A knowledgable system
+programmer can then use the
+.IR shmemdoc
+program to examine shared memory and semaphore state.
+.TP
+.BR "-o" " backend_options"
+The 
+.IR postgres (unix)
+options specified in
+.IR "backend_options"
+are passed to all backend server processes started by this
+.IR postmaster .
+If the option string contains any spaces, the entire string must be
+quoted.
+.TP
+.BR "-p" " port"
+Specifies the Internet TCP port on which the
+.IR postmaster
+is to listen for connections from frontend applications.  Defaults to
+4321, or the value of the 
+.SM PGPORT 
+environment variable (if set).  If you specify a port other than the
+default port then all frontend application users must specify the same
+port (using command-line options or
+.SM PGPORT )
+when starting any libpq application, including the terminal monitor.
+.SH "EXAMPLES"
+.(C
 postmaster &
-.ft
-.lp
-This command will start up a postmaster on the default port (4321) and 
-will expect to use the default path to the 
-\*(PP backend ($POSTGRESHOME/bin/postgres) or /usr/postgres/bin/postgres.
-This is the simplest and most common way to start the postmaster.
-.sp
-.lp
-.ft C
-postmaster -p 1234 -b /a/postgres/bin/postgres &
-.ft
-.lp
+.)C
+This command will start up 
+.IR "postmaster"
+on the default port (4321) and will search 
+.SM $PATH
+to find an executable file called \*(lqpostgres\*rq.  This is the
+simplest and most common way to start the
+.IR "postmaster" .
+.(C
+postmaster -p 1234 -b /usr/postgres/bin/postgres &
+.)C
 This command will start up a postmaster communicating through the port
-1234, and will expect to use the backend located at
-/a/postgres/bin/postgres.  Note: to connect to this postmaster using
-the terminal monitor, you would need to specify \fB-p 1234\fR on
-the command line invoking the terminal monitor.
-.sp
-.uh "DIAGNOSTICS"
-.lp
-\fBsemget: No space left on device\fR
-.lp
-If you see this message, you should run the \fIipcclean\fR command.
-After doing this, try starting the postmaster again.  If this still doesn't
-work, you will need to configure your kernel for shared memory and
-semaphores as described in the installation notes.
-.lp
-\fBStreamServerPort: cannot bind to port\fR
-.lp
+1234, and will attempt to use the backend located at
+\*(lq/usr/postgres/bin/postgres\*(rq.  In order to connect to this
+.IR "postmaster"
+using the terminal monitor, you would need to either
+specify
+.BR "-p 1234"
+on the 
+.IR "monitor"
+command-line or set the environment variable
+.SM PGPORT
+to 1234.
+.SH "SEE ALSO"
+ipcclean(unix),
+monitor(unix), 
+postgres(unix), 
+shmemdoc(unix).
+.SH "DIAGNOSTICS"
+.TP
+.BR "semget: No space left on device"
+If you see this message, you should run the
+.IR "ipcclean"
+command.  After doing this, try starting the
+.IR "postmaster"
+again.  If this still doesn't work, you probably need to configure
+your kernel for shared memory and semaphores as described in the
+installation notes.
+.TP
+.BR "StreamServerPort: cannot bind to port"
 If you see this message, you should be certain that there is no other 
-postmaster program already running.  The easiest way to determine this is
-by the command "ps -ax | grep postmaster".  If you are sure there is no
-other postmaster running and you still get this error try specifying a
-different port using the -p option.  You may also get this error if you
-terminate the postmaster and immediately restart it using the same port;
-in this case, you should simply wait until the operating system closes
-the port.
-.lp
-.uh "SEE ALSO"
-.lp
-postgres(unix), monitor(unix), ipcclean(unix), shmemdoc(unix).
+.IR "postmaster"
+process already running.  The easiest way to determine this is by
+using the command
+.(C
+ps -ax | grep postmaster
+.)C
+If you are sure that no other
+.IR "postmaster"
+processes are running and you still get this error, try specifying a
+different port using the
+.BR "-p"
+option.  You may also get this error if you terminate the
+.IR "postmaster"
+and immediately restart it using the same port; in this case, you must
+simply wait a few seconds until the operating system closes the port
+before trying again.
