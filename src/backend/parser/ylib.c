@@ -24,6 +24,7 @@
 #include "parser/parse.h"
 #include "parser/parsetree.h"
 #include "utils/builtins.h"
+#include "lib/lisplist.h"
  
 RcsId("$Header$");
 
@@ -375,78 +376,168 @@ ParseFunc ( funcname , fargs )
     extern ObjectId *funcname_get_funcargtypes();
     OID rettype = (OID)0;
     OID funcid = (OID)0;
+    OID argrelid;
     Func funcnode = (Func)NULL;
     LispValue i = LispNil;
     List first_arg_type = NULL;
-    char *relname = NULL;
+    Name relname;
     extern List p_rtable;
     extern Var make_relation_var();
+    Relation rd;
+    ObjectId relid;
+    int attnum;
+    int nargs,x;
+    ObjectId *oid_array;
+    OID argtype;
+    Iter iter;
+    Param f;
+    int vnum;
 
-    if (fargs){
-	if (CAR(fargs) == LispNil)
-		  elog (WARN,"function %s does not allow NULL input",funcname);
-      first_arg_type = CAR(CAR(fargs));
-    }
+    if (fargs)
+     {
+	 if (CAR(fargs) == LispNil)
+	   elog (WARN,"function %s does not allow NULL input",funcname);
+	 first_arg_type = CAR(CAR(fargs));
+     }
 
-    if (fargs && lispAtomp(first_arg_type) && CAtom(first_arg_type) == RELATION)
-    {
-	relname = CString(CDR(CAR(fargs)));
-	/* this is really a method */
+    /*
+    ** check for methods: if function takes one argument, and that argument
+    ** is either a relation or a PQ function returning a complex type,
+    ** then the function could be a projection.
+    */
 
-	if( RangeTablePosn ( relname ,LispNil ) == 0 )
-	  ADD_TO_RT( MakeRangeTableEntry ((Name)relname,
-					  LispNil, 
-					  (Name)relname ));
+    if (length(fargs) == 1)
+      if (lispAtomp(first_arg_type) && CAtom(first_arg_type) == RELATION)
+       {
+	   /* this is could be a method */
+	   relname = (Name) CString(CDR(CAR(fargs)));
+	   if( RangeTablePosn ( relname ,LispNil ) == 0 )
+	     ADD_TO_RT( MakeRangeTableEntry ((Name)relname,
+					     LispNil, 
+					     (Name)relname ));
+	   rd = heap_openr(relname);
+	   relid = RelationGetRelationId(rd);
+	   heap_close(rd);
+	   if ((attnum = get_attnum(relid, (Name) funcname)) 
+	       != InvalidAttributeNumber)
+	     return(make_var(relname, funcname));
+	   else	/* drop through */;
+       }
+      else if (IsA(CADR(CAR(fargs)),Func) && 
+	      (argrelid = typeid_get_relid
+	       ((int)(argtype = funcid_get_rettype
+		(get_funcid((Func)CADR(CAR(fargs))))))))
+       {
+	   /* the argument is a function returning a tuple, so funcname
+	      may be a projection */
+	   if ((attnum = get_attnum(argrelid, (Name) funcname)) 
+	       != InvalidAttributeNumber)
+	    {
+		/* 
+		** build an Iter containing this func node, add a tlist to the 
+		** func node, and return the Iter.
+		*/
+		iter = (Iter)MakeIter((LispValue)CDR(CAR(fargs)));
+		setup_func_tlist((Func)CAR(get_iterexpr(iter)), 
+				 funcname, argrelid);
+		return(lispCons(lispInteger(argtype),iter));
+	    }
+	   else /* drop through */;
+       }
 
-	funcid = funcname_get_funcid ( funcname );
-	rettype = funcname_get_rettype ( funcname );
+    /* If we dropped through to here it's really a function */
+    funcid = funcname_get_funcid ( funcname );
+    rettype = funcname_get_rettype ( funcname );
 	
-	if ( funcid != (OID)0 && rettype != (OID)0 ) {
-	    funcnode = MakeFunc ( funcid , rettype , false, 0, LispNil ,0,
-				 NULL);
-	} else
-	  elog (WARN,"function %s does not exist",funcname);
+    if ( funcid != (OID)0 && rettype != (OID)0 ) 
+     {
+	 funcnode = MakeFunc ( funcid , rettype , false, 0,LispNil,0, NULL );
+     } 
+    else elog (WARN,"function %s does not exist",funcname);
+    nargs = funcname_get_funcnargs(funcname);
+    if (nargs != length(fargs))
+      elog(WARN, "function '%s' takes %d arguments not %d",
+	   funcname, nargs, length(fargs));
+    oid_array = funcname_get_funcargtypes(funcname);
 
-	CDR(CAR(fargs)) = (LispValue) make_relation_var( relname );
+    /* 
+    ** type checking and resolution -- if an argument is a relation we turn it 
+    ** into a Var.  if it's a Param we resolve the type of the parameter.
+    */
+    x=0;
+    foreach ( i , fargs ) 
+     {
+	 List pair = CAR(i);
+	 ObjectId toid;
+	 
+	 if (IsA(CDR(pair),Param)) 
+	  {
+	      f = (Param)CDR(pair);
+	      rd = heap_open(get_paramtype(f));
+	      if (!RelationIsValid(rd)) {
+		  elog(WARN,
+		       "$%d is not a complex type; illegal expression",
+		       get_paramid(f));
+	      }
+	      relname = RelationGetRelationName(rd);
+	      relid = RelationGetRelationId(rd);
+	     
+	      /* set up the function args list to point to the parameter */
+	      CAR(i) = (LispValue)MakeList
+		(MakeParam(get_paramkind(f),get_paramid(f),
+			   get_paramname(f),get_paramtype(f)),
+		 -1);
+	  }
 
-	foreach ( i , fargs ) {
-	    CAR(i) = CDR(CAR(i));
-	}
+	 else if (lispAtomp(CAR(pair)) && CAtom(CAR(pair)) == RELATION)
+	  {
+	      toid = typeid(type(CString(CDR(pair))));
 
-    } else {
-	/* is really a function */
-	int nargs,x;
-	ObjectId *oid_array;
+	      relname = (Name)CString(CDR(pair));
+	      rd = heap_openr(relname);
+	      relid = RelationGetRelationId(rd);
 
-	funcid = funcname_get_funcid ( funcname );
-	rettype = funcname_get_rettype ( funcname );
+	      /* get the range table entry for the var node */
+	      vnum = RangeTablePosn(relname, 0);
+	      if (vnum == 0) {
+		  p_rtable = nappend1(p_rtable ,
+				      MakeRangeTableEntry(relname, 0, relname));
+		  vnum = RangeTablePosn (relname, 0);
+	      }
+
+	      /*
+	       *  for func(func..(relname)..), the param to the first function
+	       *  is the tuple under consideration.  we build a special
+	       *  VarNode to reflect this -- it has varno set to the correct
+	       *  range table entry, but has varattno == 0 to signal that the
+	       *  whole tuple is the argument.
+	       */
+
+	      CAR(i) = (LispValue)
+		MakeList(MakeVar(vnum, 0, relid,
+				 LispNil /* vardotfields */,
+				 LispNil /* vararraylist */,
+				 lispCons(lispInteger(vnum),
+					  lispCons(lispInteger(0),LispNil)),
+				 0 /* varslot */),
+			 -1);
+	  }
+
+	 else
+	  {
+	      toid = CInteger(CAR(pair));
+	      CAR(i) = CDR(pair);
+	  }
+
+	 if (oid_array[x] != 0 && toid != oid_array[x]) 
+	   elog(WARN, "Argument type mismatch in function '%s': arg %d is not of type %s",
+		funcname, x+1, tname(get_id_type(oid_array[x])));
+
+	 x++;
+     }
 	
-	if ( funcid != (OID)0 && rettype != (OID)0 ) {
-	    funcnode = MakeFunc ( funcid , rettype , false, 0,LispNil,0, NULL );
-	} else
-	  elog (WARN,"function %s does not exist",funcname);
-	nargs = funcname_get_funcnargs(funcname);
-	if (nargs != length(fargs))
-	    elog(WARN, "function '%s' takes %d arguments not %d",
-		 funcname, nargs, length(fargs));
-	oid_array = funcname_get_funcargtypes(funcname);
-	/* type checking */
-	x=0;
-	foreach ( i , fargs ) {
-	    List pair = CAR(i);
-	    ObjectId toid;
-	    
-	    toid = CInteger(CAR(pair));
-	    if (oid_array[x] != 0 && toid != oid_array[x]) 
-		elog(WARN, "Argument type mismatch in function '%s' at arg %d",
-		     funcname, x+1);
-	    CAR(i) = CDR(pair);
-	    x++;
-	}
-	
-    } /* was a function */
     return ( lispCons (lispInteger(rettype) ,
-			   lispCons ( (LispValue)funcnode , fargs )));
+		       lispCons ( (LispValue)funcnode , fargs )));
 	    
 }
 
@@ -459,7 +550,6 @@ ParseAgg(aggname, query, tlist)
     int fintype;
     OID AggId = (OID)0;
     List list = LispNil;
-    extern List MakeList();
     char *keyword = "agg";
     HeapTuple theAggTuple;
     tlist = CADR(tlist);
@@ -475,8 +565,9 @@ ParseAgg(aggname, query, tlist)
 		AggregateFinalTypeAttributeNumber, aggname, 0, 0, 0));
 
     if(fintype != 0 ) {
-       list = MakeList(lispInteger(fintype),lispName(keyword),lispName(aggname),
-							query,tlist,-1);
+       list = (LispValue)
+	 MakeList(lispInteger(fintype),lispName(keyword),lispName(aggname),
+		  query,tlist,-1);
     } else
 	elog(WARN, "aggregate %s does not exist", aggname);
 
@@ -750,15 +841,11 @@ LispValue HandleNestedDots(dots)
     Relation rd;
     char *mutator;
     LispValue retval = LispNil;
-    TLE tle;
-    LispValue tlist;
-    Resdom resnode;
     ObjectId funcid;
     ObjectId functype;
     OID funcrettype;
     LispValue first;
     Param f;
-    Var varnode;
     List fargs;
     ObjectId *oid_array,input_type;
     int nargs;
@@ -784,8 +871,8 @@ LispValue HandleNestedDots(dots)
 	relid = RelationGetRelationId(rd);
 
 	/* set up the function args list to point to the parameter */
-	retval = MakeList(MakeParam(get_paramkind(f),get_paramid(f),
-				    get_paramname(f),get_paramtype(f)),
+	retval = (LispValue)MakeList(MakeParam(get_paramkind(f),get_paramid(f),
+					       get_paramname(f),get_paramtype(f)),
 			  -1);
     } else {
 	relname = (Name)CString(first);
@@ -808,13 +895,14 @@ LispValue HandleNestedDots(dots)
 	 *  whole tuple is the argument.
 	 */
 
-	retval = MakeList(MakeVar(vnum, 0, relid,
-				  LispNil /* vardotfields */,
-				  LispNil /* vararraylist */,
-				  lispCons(lispInteger(vnum),
-					   lispCons(lispInteger(0),LispNil)),
-				  0 /* varslot */),
-			   -1);
+	retval = (LispValue)
+	  MakeList(MakeVar(vnum, 0, relid,
+			   LispNil /* vardotfields */,
+			   LispNil /* vararraylist */,
+			   lispCons(lispInteger(vnum),
+				    lispCons(lispInteger(0),LispNil)),
+			   0 /* varslot */),
+		   -1);
     }
 
     /* 
@@ -843,30 +931,8 @@ LispValue HandleNestedDots(dots)
 	    if (CDR(mutator_iter) != LispNil)
 		elog(WARN,
 		     "%s is a projection, cannot put a dot after it", mutator);
-
-	    /* 
-	     *  this is the hellerstein memorial target list strategy
-	     *  for indicating the attribute(s) over which to iterate.
-	     */
-
-	    producer_type = find_atttype(producer_relid, (Name)mutator);
-	    resnode = MakeResdom(1, producer_type,
-				 tlen(get_id_type(producer_type)),
-                                 NULL /* reskey   */,
-                                 NULL /* reskeyop */,
-                                 0    /* resjunk  */);
-	    varnode = MakeVar(-1, attnum, producer_type,
-			      LispNil /* vardotfields */,
-			      LispNil /* vararraylist */,
-			      lispCons(lispInteger(-1),
-				       lispCons(lispInteger(attnum),LispNil)),
-			      0 /* varslot */);
-
-	    tle = MakeList(resnode, varnode, -1);
-	    tlist = MakeList(tle, -1);
-
-            set_func_tlist((Func)CAR(get_iterexpr((Iter)retval)), tlist);
-
+	    setup_func_tlist((Func)CAR(get_iterexpr((Iter)retval)), 
+			     mutator, producer_relid);
 	    producer_relid = 0;
 
 	} else {
@@ -921,4 +987,41 @@ LispValue HandleNestedDots(dots)
     retval = lispCons(lispInteger(producer_type), retval);
 
     return(retval);
+}
+
+
+/*
+** setup_func_tlist --
+**     Add a tlist to a Func node that says which attribute to project to.
+*/
+void setup_func_tlist(func, attname, relid)
+     Func func;
+     Name attname;
+     ObjectId relid;
+{
+    TLE tle;
+    LispValue tlist;
+    Resdom resnode;
+    Var varnode;
+    ObjectId typeid;
+    int attno;
+
+    attno = get_attnum(relid, attname);
+    typeid = find_atttype(relid, attname);
+    resnode = MakeResdom(1, typeid,
+			 tlen(get_id_type(typeid)),
+			 get_attname(relid, attno),
+			 NULL	/* reskey   */,
+			 NULL	/* reskeyop */,
+			 0	/* resjunk  */);
+    varnode = MakeVar(-1, attno, typeid,
+		      LispNil	/* vardotfields */,
+		      LispNil	/* vararraylist */,
+		      lispCons(lispInteger(-1),
+			       lispCons(lispInteger(attno),LispNil)),
+		      0		/* varslot */);
+
+    tle = (LispValue)MakeList(resnode, varnode, -1);
+    tlist = MakeList(tle, -1);
+    set_func_tlist(func, tlist);
 }
