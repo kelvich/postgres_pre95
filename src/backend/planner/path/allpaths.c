@@ -240,14 +240,17 @@ find_join_paths (outer_rels,levels_left,nest_level)
 /* The following functions are solely for the purpose of debugging */
 
 /*
-char *strcat (s1, s2)
+ * xStrcat --
+ *	Special strcat which returns concatenation into a static buffer.
+ */
+static
+char *xStrcat (s1, s2)
 char *s1, *s2;
 {
     static char stringbuf[100];
     sprintf(stringbuf, "%s%s",s1,s2);
     return stringbuf;
 }
-*/
 
 void
 printclauseinfo (ind,cl)
@@ -287,7 +290,7 @@ List jl;
 	printf("\n%sOtherRels:	",indent);
 	lispDisplay (get_otherrels (j),0);
 	printf("\n%sClauseInfo:	",indent);
-	printclauseinfo (strcat(indent, "	"),get_jinfoclauseinfo(j));
+	printclauseinfo (xStrcat(indent, "	"),get_jinfoclauseinfo(j));
     }
 }
 #endif	/* defined(_xprs_) */
@@ -308,23 +311,23 @@ Path p;
 	switch (get_pathtype (p))  {
 	case T_NestLoop:
 		printf("\n%sClauseInfo:	\n",indent);
-		printclauseinfo (strcat (indent,"	"),get_pathclauseinfo (p));
+		printclauseinfo (xStrcat (indent,"	"),get_pathclauseinfo (p));
 		printf("%sOuterJoinPath:	\n",indent);
-		printpath (strcat (indent,"	"),get_outerjoinpath (p));
+		printpath (xStrcat (indent,"	"),get_outerjoinpath (p));
 		printf("%sInnerJoinPath:	\n",indent);
-		printpath (strcat (indent,"	"),get_innerjoinpath (p));
+		printpath (xStrcat (indent,"	"),get_innerjoinpath (p));
 		printf("%sOuterJoinCost:	%lg",indent,get_outerjoincost (p));
 		printf("\n%sJoinId:	",indent);
 		lispDisplay (get_joinid (p),0);
 		break;
 	case T_MergeSort:
 		printf("\n%sClauseInfo: \n",indent);
-                printclauseinfo (strcat (indent,"       "),get_pathclauseinfo (p
+                printclauseinfo (xStrcat (indent,"       "),get_pathclauseinfo (p
 ));
                 printf("%sOuterJoinPath:        \n",indent);
-                printpath (strcat (indent," "),get_outerjoinpath (p));
+                printpath (xStrcat (indent," "),get_outerjoinpath (p));
                 printf("%sInnerJoinPath:        \n",indent);
-                printpath (strcat (indent," "),get_innerjoinpath (p));
+                printpath (xStrcat (indent," "),get_innerjoinpath (p));
                 printf("%sOuterJoinCost:        %lg",indent,get_outerjoincost (p
 ));
                 printf("\n%sJoinId:     ",indent);
@@ -338,12 +341,12 @@ Path p;
 		break;
 	case T_HashJoin:
                 printf("\n%sClauseInfo: \n",indent);
-                printclauseinfo (strcat (indent,"       "),get_pathclauseinfo (p
+                printclauseinfo (xStrcat (indent,"       "),get_pathclauseinfo (p
 ));
                 printf("%sOuterJoinPath:        \n",indent);
-                printpath (strcat (indent," "),get_outerjoinpath (p));
+                printpath (xStrcat (indent," "),get_outerjoinpath (p));
                 printf("%sInnerJoinPath:        \n",indent);
-                printpath (strcat (indent," "),get_innerjoinpath (p));
+                printpath (xStrcat (indent," "),get_innerjoinpath (p));
                 printf("%sOuterJoinCost:        %lg",indent,get_outerjoincost (p
 ));
                 printf("\n%sJoinId:     ",indent);
@@ -393,12 +396,12 @@ List rl;
 	lispDisplay(get_relids (r),0);
 	printf("\n%sSize:	%u",indent,get_size (r));
 	printf("\n%sPathlist:	\n",indent);
-	printpathlist (strcat(indent,"	"),get_pathlist (r));
+	printpathlist (xStrcat(indent,"	"),get_pathlist (r));
 	printf("%sClauseInfo:	\n",indent);
-	printclauseinfo (strcat(indent,"	"),get_clauseinfo (r));
+	printclauseinfo (xStrcat(indent,"	"),get_clauseinfo (r));
 #ifdef	_xprs_
 	printf("%sJoinInfo:	",indent);
-	printjoininfo (strcat(indent,"	"),get_joininfo (r));
+	printjoininfo (xStrcat(indent,"	"),get_joininfo (r));
 #endif	/* defined(_xprs_) */
      }
 }
