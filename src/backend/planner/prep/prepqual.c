@@ -19,24 +19,10 @@
 #include "pg_lisp.h"
 #include "clause.h"
 #include "prepqual.h"
+#include "lsyscache.h"
 
-extern LispValue get_negator(); /* defined in lsyscache.c */
 
-/*
-extern LispValue cnfify();
-extern LispValue pull_args();
-extern LispValue pull_ors();
-extern LispValue pull_ands();
-extern LispValue find_nots();
-extern LispValue push_nots();
-extern LispValue or_normalize();
-extern LispValue cleanup();
-extern LispValue distribute_args();
-extern LispValue remove_ands();
-extern LispValue update_relations();
-extern LispValue normalize();
-extern LispValue update_clauses();
-*/
+
 /*    
  *    	preprocess-qualification
  *    
@@ -55,14 +41,14 @@ preprocess_qualification (qual,tlist)
 {
   LispValue cnf_qual = cnfify (qual);
   LispValue existential_qual = 
-    update_clauses (cons (_query_result_relation_,
+    update_clauses (lispCons (_query_result_relation_,
 			  update_relations (tlist)),
 		    cnf_qual,_query_command_type_);
   if ( existential_qual ) 
     return (list (set_difference (cnf_qual,existential_qual),
 		  existential_qual));
   else 
-    return (list (cnf_qual,existential_qual));
+    return (lispCons (cnf_qual,lispCons(existential_qual,LispNil)));
 
 }  /* function end   */
 
@@ -98,19 +84,20 @@ LispValue
 cnfify (qual)
      LispValue qual ;
 {
-  if ( consp (qual) ) {
-    /* XXX - let form, maybe incorrect */
-    LispValue newqual = LispNil;
-    newqual = find_nots (pull_args (qual));
-    newqual = normalize (pull_args (newqual));
-    newqual = cleanup (pull_args (newqual));
-    newqual = pull_args (newqual);;
-
-    if(and_clause (newqual)) 
-      return (remove_ands (newqual));
-    else 
-      return (remove_ands (make_andclause (list (newqual))));
-  }
+    if ( consp (qual) ) {
+	/* XXX - let form, maybe incorrect */
+	LispValue newqual = LispNil;
+	newqual = find_nots (pull_args (qual));
+	newqual = normalize (pull_args (newqual));
+	newqual = qualcleanup (pull_args (newqual));
+	newqual = pull_args (newqual);;
+	
+	if(and_clause (newqual)) 
+	  return (remove_ands (newqual));
+	else 
+	  return (remove_ands (make_andclause (list (newqual))));
+    }
+    return (LispNil);
 } /*  function end   */
 
 /*    
@@ -183,7 +170,7 @@ pull_ors (orlist)
       return (pull_ors (append (CDR (orlist),
 				get_orclauseargs (CAR (orlist)))));
     else 
-      return (cons (CAR (orlist),pull_ors (CDR (orlist))));
+      return (lispCons (CAR (orlist),pull_ors (CDR (orlist))));
 }  /* function end   */
 
 /*    
@@ -208,7 +195,7 @@ pull_ands (andlist)
       return (pull_ands (append (CDR (andlist),
 				 get_andclauseargs (CAR (andlist)))));
     else 
-      return (cons (CAR (andlist),pull_ands (CDR (andlist))));
+      return (lispCons (CAR (andlist),pull_ands (CDR (andlist))));
 }  /* function end   */
 
 /*    
@@ -287,9 +274,9 @@ push_nots (qual)
 
     if(is_clause (qual)) {
       LispValue oper = get_op (qual);
-      LispValue negator = get_negator (get_opno (oper));
+      ObjectId negator = get_negator (get_opno (oper));
       if(negator &&  !zerop (negator)) 
-	return (make_clause (make_oper (negator,
+	return (make_clause (MakeOper (negator,
 					get_oprelationlevel (oper),
 					get_opresulttype (oper)),
 			     get_leftop (qual),get_rightop (qual)));
@@ -428,7 +415,7 @@ or_normalize (orlist)
 	    new_orlist = remove(distributable,orlist);
 	  
 	  if(new_orlist) 
-	    return (or_normalize (cons (distribute_args 
+	    return (or_normalize (lispCons (distribute_args 
 					(CAR (new_orlist),
 					 get_andclauseargs (distributable)),
 					CDR (new_orlist))));
@@ -470,7 +457,7 @@ distribute_args (item,args)
 }  /* function end  */
 
 /*    
- *    	cleanup
+ *    	qualcleanup
  *    
  *    	Fix up a qualification by removing duplicate entries (left over from
  *    	normalization), and by removing 'and' and 'or' clauses which have only
@@ -480,10 +467,10 @@ distribute_args (item,args)
  *    
  */
 
-/*  .. cleanup, cnfify    */
+/*  .. qualcleanup, cnfify    */
 
 LispValue
-cleanup (qual)
+qualcleanup (qual)
      LispValue qual ;
 {
      if(null (qual)) 
@@ -491,8 +478,8 @@ cleanup (qual)
      else 
        if (is_clause (qual)) 
 	 return (make_clause (get_op (qual),
-			      cleanup (get_leftop (qual)),
-			      cleanup (get_rightop (qual))));
+			      qualcleanup (get_leftop (qual)),
+			      qualcleanup (get_rightop (qual))));
        else 
 	 if (and_clause (qual)) {
 	      /* XXX - let form, maybe incorrect */
@@ -501,7 +488,7 @@ cleanup (qual)
 	      LispValue new_and_args = LispNil;
 
 	      foreach(temp,get_andclauseargs(qual)) 
-		   t_list = nappend1(t_list,cleanup(temp));
+		   t_list = nappend1(t_list,qualcleanup(temp));
 	      new_and_args = remove_duplicates (t_list);
 
 	      if(length (new_and_args) > 1) 
@@ -517,7 +504,7 @@ cleanup (qual)
 		LispValue new_or_args = LispNil;
 
 		foreach (temp,get_orclauseargs(qual)) 
-		  t_list = nappend1(t_list,cleanup(temp));
+		  t_list = nappend1(t_list,qualcleanup(temp));
 		new_or_args = remove_duplicates (t_list);
 
 		if(length (new_or_args) > 1) 
@@ -526,7 +513,8 @@ cleanup (qual)
 		  return (CAR (new_or_args));
 	   } else 
 	      if (not_clause (qual)) 
-		   return (make_notclause (cleanup (get_notclausearg (qual))));
+		   return (make_notclause (qualcleanup 
+					(get_notclausearg (qual))));
 	      else 
 		return (qual);
 }  /* function end   */
@@ -600,13 +588,18 @@ update_relations (tlist)
      LispValue t_list1 = LispNil;    /* used in mapcan  */
      LispValue t_list2 = LispNil;
 
-     /* was mapCAR nested with mapcan  */
+     /* was mapCAR nested with mapcan  
      foreach(xtl,tlist) 
-       t_list1 = nconc (t_list1,pull_var_clause(tl_expr(xtl)));
+       t_list1 = nconc (t_list1,pull_var_clause(get_expr(xtl)));
      foreach(var,t_list1) 
        t_list2 = nappend1(t_list2,get_varno(var));
      return(remove_duplicates (t_list2));
 
+     XXX - fix me after "retrieve x=1" works
+     by uncommenting the code above and removing the return below
+
+     */
+     return(LispNil);
 } /* function end  */
 
 /*    

@@ -20,11 +20,14 @@
 #include "c.h"
 #include "internal.h"
 #include "pg_lisp.h"
+#include "relation.h"
+#include "relation.a.h"
 #include "prepunion.h"
 #include "planner.h"
 #include "plannodes.h"
 #include "plannodes.a.h"
 #include "parsetree.h"
+#include "parse.h"
 
 /* XXX - remove these when we find the right files to inclde */
 extern LispValue copy_seq_tree();
@@ -170,8 +173,8 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
 	
       case ARCHIVE :
 	{ /* XXX - let form, maybe incorrect */
-	    LispValue primary_plan = LispNil;
-	    LispValue archive_plan = LispNil;
+	    Plan primary_plan;
+	    Plan archive_plan;
 
 	    _query_is_archival_ = false;
 	    primary_plan = init_query_planner (root,tlist,qual);
@@ -340,17 +343,15 @@ LispValue
 subst_rangetable (root,index,new_entry)
      LispValue root,index,new_entry ;
 {
-  /* XXX - let form, maybe incorrect */
   LispValue new_root = copy_seq_tree (root);
-  /* XXX - setf  */
-  rt_store (index,root_rangetable (new_root),new_entry)
+  setf(rt_fetch (index,root_rangetable (new_root)),new_entry);
   return (new_root);
 
 }
 
 /*    
  *    	fix-parsetree-attnums
- *    
+ *     
  *    	Replaces attribute numbers from the relation represented by
  *    	'old-relid' in 'parsetree' with the attribute numbers from
  *    	'new-relid'.
@@ -359,23 +360,38 @@ subst_rangetable (root,index,new_entry)
  *    
  */
 
-/*  .. fix-parsetree-attnums, plan-union-query
- */
+/*  .. fix-parsetree-attnums, plan-union-query    */
+
 LispValue
 fix_parsetree_attnums (rt_index,old_relid,new_relid,parsetree)
-LispValue rt_index,old_relid,new_relid,parsetree ;
+     LispValue rt_index,old_relid,new_relid,parsetree ;
 {
-if(and (var_p (parsetree),equal (get_varno (parsetree),rt_index))) {
-setf (get_varattno (parsetree),get_attnum (new_relid,get_attname (old_relid,get_varattno (parsetree))));
-
-} else if (vectorp (parsetree)) {
-dotimes (i (vsize (parsetree)),setf (aref (parsetree,i),fix_parsetree_attnums (rt_index,old_relid,new_relid,aref (parsetree,i))));
-
-} else if (listp (parsetree)) {
-dotimes (i (length (parsetree)),setf (nth (i,parsetree),fix_parsetree_attnums (rt_index,old_relid,new_relid,nth (i,parsetree))));
-
-} else if ( true ) ;  /* end-cond */;
-parsetree;
+  if (IsA (parsetree,Var) && 
+      equal (get_varno (parsetree),rt_index)) {
+    setf (get_varattno (parsetree),
+	  get_attnum (new_relid,
+		      get_attname (old_relid,
+				   get_varattno (parsetree))));
+/*  } else 
+ *   if (vectorp (parsetree)) {
+ *     dotimes (i (vsize (parsetree)),
+ *	       setf (aref (parsetree,i),
+ *		     fix_parsetree_attnums (rt_index,
+ *					    old_relid,new_relid,
+ *					    aref (parsetree,i))));
+ *    for now --- must be removed
+ */
+    } else if (listp (parsetree)) {
+      int i;
+      for (i = 0; i <= length(parsetree); i++) {
+	setf (nth (i,parsetree),
+	      fix_parsetree_attnums (rt_index,
+				     old_relid,
+				     new_relid,
+				     nth (i,parsetree)));
+      }
+    }
+  return (parsetree);
 }
 
 /*    
@@ -402,3 +418,12 @@ fix_rangetable (rangetable,index,new_entry)
   return (new_rangetable);
 
 }
+
+/*  XXX dummy function -- HELP fix me !  */
+TL
+fix_targetlist (oringtlist, tlist)
+     TL oringtlist,tlist;
+{
+  return((TL)LispNil);
+}
+		
