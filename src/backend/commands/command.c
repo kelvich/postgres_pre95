@@ -495,7 +495,7 @@ PerformAddAttribute(relationName, schema)
 	 * check to see if it is an array attribute.
 	 */
 
-	p = CString(CADR(CAR(element)));
+	p = CString(CAR(CADR(CAR(element))));
 
 	q = index(p, '[');
 
