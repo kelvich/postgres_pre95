@@ -12,7 +12,7 @@
 	key hashes, calculate that bucket, and check that in fact
 	we did already split it.
 */
-int
+long
 string_hash(key,keysize)
 char *	key;
 int	keysize;
@@ -32,11 +32,12 @@ int	keysize;
 }
 
 
+long
 tag_hash(key,keysize)
 int *	key;
 int	keysize;
 {
-	register int h = 0;
+	register long h = 0;
 
 	/*
 	 * Convert tag to integer;  Use four byte chunks in a "jump table"
@@ -119,7 +120,7 @@ int	keysize;
  * instructions.  If this routine is heavily used enough, it's
  * worth the ugly coding
  */
-int
+long
 disk_hash(key)
 char *key;
 {

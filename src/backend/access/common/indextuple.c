@@ -288,9 +288,25 @@ fastgetiattr(tup, attnum, att, isnull)
 
 	    switch(att[j]->attlen)
 	    {
-		case sizeof(char) : break;
-		case sizeof(short): off = SHORTALIGN(off); break;
-		default           : off = LONGALIGN(off); break;
+		case -1:
+			off = INTALIGN(off);
+			break;
+		case sizeof(char):
+			break;
+		case sizeof(short):
+			off = SHORTALIGN(off);
+			break;
+		case sizeof(int32):
+			off = INTALIGN(off);
+			break;
+		default:
+			if (att[j]->attlen > sizeof(int32))
+				off = LONGALIGN(off);
+			else
+				elog(WARN, "fastgetiattr: attribute %d has len %d",
+					j, att[j]->attlen);
+			break;
+
 	    }
 
 	    att[j]->attcacheoff = off;
@@ -342,11 +358,16 @@ fastgetiattr(tup, attnum, att, isnull)
 	            break;
 	        case -1:
 	            usecache = false;
-		    off = LONGALIGN(off);
+		    off = INTALIGN(off);
 	    	    off += VARSIZE(tp + off);
 		    break;
 		default:
-		    off = LONGALIGN(off + att[i]->attlen);
+		    if (att[i]->attlen > sizeof(int32))
+			    off = LONGALIGN(off + att[i]->attlen);
+		    else
+			  elog(WARN, "fastgetiattr2: attribute %d has len %d",
+				  i, att[i]->attlen);
+
 		    break;
 	    }
 	}
@@ -523,9 +544,9 @@ unsigned short t_info;
 	}
 	if (t_info & INDEX_RULE_MASK)
 	{
-	    size = LONGALIGN(size) + sizeof(IndexTupleRuleLock) + sizeof(char);
+	    size = INTALIGN(size) + sizeof(IndexTupleRuleLock) + sizeof(char);
 	}
-	return(LONGALIGN(size));
+	return(INTALIGN(size));
     }
 }
 

@@ -62,7 +62,7 @@
  */
 #ifdef	BMTRACE
 bmtrace	*TraceBuf;
-int	*CurTraceBuf;
+long	*CurTraceBuf;
 #define	BMT_LIMIT	200
 #endif /* BMTRACE */
 
@@ -75,11 +75,11 @@ int		Num_Descriptors;
 BufferDesc 	*BufferDescriptors;
 BufferBlock 	BufferBlocks;
 #ifndef HAS_TEST_AND_SET
-static int	*NWaitIOBackendP;
+static long	*NWaitIOBackendP;
 #endif
 
-int	*PrivateRefCount;
-int	*LastRefCount;  /* refcounts of last ExecMain level */
+long	*PrivateRefCount;
+long	*LastRefCount;  /* refcounts of last ExecMain level */
 
 /*
  * Data Structures:
@@ -931,11 +931,11 @@ IPCKey key;
   SpinAcquire(BufMgrLock);
 
 #ifdef BMTRACE
-  CurTraceBuf = (int *) ShmemInitStruct("Buffer trace",
-				(BMT_LIMIT * sizeof(bmtrace)) + sizeof(int),
+  CurTraceBuf = (long *) ShmemInitStruct("Buffer trace",
+				(BMT_LIMIT * sizeof(bmtrace)) + sizeof(long),
 				&foundDescs);
   if (!foundDescs)
-      bzero(CurTraceBuf, (BMT_LIMIT * sizeof(bmtrace)) + sizeof(int));
+      bzero(CurTraceBuf, (BMT_LIMIT * sizeof(bmtrace)) + sizeof(long));
 
   TraceBuf = (bmtrace *) &(CurTraceBuf[1]);
 #endif
@@ -949,8 +949,8 @@ IPCKey key;
 		    NBuffers*BLOCK_SIZE,&foundBufs);
 
 #ifndef HAS_TEST_AND_SET
-  NWaitIOBackendP = (int*)ShmemInitStruct("#Backends Waiting IO",
-					  sizeof(int),
+  NWaitIOBackendP = (long *)ShmemInitStruct("#Backends Waiting IO",
+					  sizeof(long),
 					  &foundNWaitIO);
   if (!foundNWaitIO)
       *NWaitIOBackendP = 0;
@@ -963,10 +963,10 @@ IPCKey key;
 
   } else {
     BufferDesc *buf;
-    unsigned int block;
+    unsigned long block;
 
     buf = BufferDescriptors;
-    block = (unsigned int) BufferBlocks;
+    block = (unsigned long) BufferBlocks;
 
     /*
      * link the buffers into a circular, doubly-linked list to
@@ -974,7 +974,7 @@ IPCKey key;
      * replacement strategy in this file.
      */
     for (i = 0; i < Data_Descriptors; block+=BLOCK_SIZE,buf++,i++) {
-      Assert(ShmemIsValid((unsigned int)block));
+      Assert(ShmemIsValid((unsigned long)block));
 
       buf->freeNext = i+1;
       buf->freePrev = i-1;
@@ -1004,16 +1004,16 @@ IPCKey key;
   WaitIOSemId = IpcSemaphoreCreate(IPCKeyGetWaitIOSemaphoreKey(key),
 				   1, IPCProtection, 0, &status);
 #endif
-  PrivateRefCount = (int*)malloc(NBuffers * sizeof(int));
-  LastRefCount = (int*)malloc(NBuffers * sizeof(int));
+  PrivateRefCount = (long *)malloc(NBuffers * sizeof(long));
+  LastRefCount = (long *)malloc(NBuffers * sizeof(long));
   for (i = 0; i < NBuffers; i++) {
       PrivateRefCount[i] = 0;
       LastRefCount[i] = 0;
     }
 }
 
-int NDirectFileRead;	/* some I/O's are direct file access.  bypass bufmgr */
-int NDirectFileWrite;   /* e.g., I/O in psort and hashjoin.		     */
+long NDirectFileRead;	/* some I/O's are direct file access.  bypass bufmgr */
+long NDirectFileWrite;   /* e.g., I/O in psort and hashjoin.		     */
 
 void
 PrintBufferUsage(statfp)
@@ -1390,9 +1390,9 @@ PrintBufferDescs()
 
 void
 GetPageAddr(bufno)
-	int bufno;
+	long bufno;
 {
-	int p;
+	long p;
 
 	p = ShmemBase + BufferDescriptors[bufno].data;
 	printf("0x%lx (%ld)\n", p, p);
@@ -1447,7 +1447,7 @@ BufferShmemSize()
     size += NBuffers * 4 + 4096;
 
 #ifdef BMTRACE
-    size += (BMT_LIMIT * sizeof(bmtrace)) + sizeof(int);
+    size += (BMT_LIMIT * sizeof(bmtrace)) + sizeof(long);
 #endif
     return size;
 }
@@ -1585,7 +1585,7 @@ _bm_trace(dbId, relId, blkNo, bufNo, allocType)
     int allocType;
 {
     static int mypid = 0;
-    int start, cur;
+    long start, cur;
     bmtrace *tb;
 
     if (mypid == 0)
@@ -1639,8 +1639,8 @@ _bm_die(dbId, relId, blkNo, bufNo, allocType, start, cur)
     int blkNo;
     int bufNo;
     int allocType;
-    int start;
-    int cur;
+    long start;
+    long cur;
 {
     FILE *fp;
     bmtrace *tb;
@@ -1722,7 +1722,7 @@ _bm_die(dbId, relId, blkNo, bufNo, allocType, start, cur)
 
 void
 BufferRefCountReset(refcountsave)
-int *refcountsave;
+long *refcountsave;
 {
     int i;
     for (i=0; i<NBuffers; i++) {
@@ -1734,7 +1734,7 @@ int *refcountsave;
 
 void
 BufferRefCountRestore(refcountsave)
-int *refcountsave;
+long *refcountsave;
 {
     int i;
     for (i=0; i<NBuffers; i++) {

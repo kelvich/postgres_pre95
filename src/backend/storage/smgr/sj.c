@@ -127,7 +127,7 @@ static void		_sjdump();
 
 /* routines declared elsewhere */
 extern HTAB		*ShmemInitHash();
-extern int		*ShmemInitStruct();
+extern long		*ShmemInitStruct();
 extern Relation		RelationIdGetRelation();
 extern BlockNumber	pgjb_offset();
 extern bool		pgjb_freespc();

@@ -61,15 +61,15 @@
 
 /* shared memory global variables */
 	/* start and end address of shared memory */
-unsigned int  ShmemBase = 0;
-unsigned int  ShmemEnd = 0;
+unsigned long  ShmemBase = 0;
+unsigned long  ShmemEnd = 0;
 	/* current size (and default) */
-unsigned int  ShmemSize = 0;
+unsigned long  ShmemSize = 0;
 
 	/* pointer to the OFFSET of first free shared memory */
-unsigned int *ShmemFreeStart = NULL;
+unsigned long *ShmemFreeStart = NULL;
 	/* start of the binding table (for bootstrap) */
-unsigned int *ShmemBindingTabOffset = NULL;
+unsigned long *ShmemBindingTabOffset = NULL;
 	/* flag becomes true when shared mem is created by POSTMASTER*/
 int	      ShmemBootstrap = FALSE;
 	/* lock for shared memory allocation */
@@ -136,7 +136,7 @@ unsigned int key;
 unsigned int size;
 {
   Addr 	sharedRegion;
-  unsigned int 	currFreeSpace;
+  unsigned long currFreeSpace;
 
   HASHCTL 	info;
   int 		hash_flags;
@@ -163,12 +163,12 @@ unsigned int size;
   }
 
   /* get pointers to the dimensions of shared memory */
-  ShmemBase = (unsigned int) sharedRegion;
-  ShmemEnd  = (unsigned int) sharedRegion + ShmemSize;
+  ShmemBase = (unsigned long) sharedRegion;
+  ShmemEnd  = (unsigned long) sharedRegion + ShmemSize;
   currFreeSpace = 0;
 
-  /* First int in shared memory is the count of available space */
-  ShmemFreeStart = (unsigned int *) ShmemBase;
+  /* First long in shared memory is the count of available space */
+  ShmemFreeStart = (unsigned long *) ShmemBase;
   /* next is a shmem pointer to the binding table */
   ShmemBindingTabOffset = ShmemFreeStart + 1;
 
@@ -255,16 +255,16 @@ unsigned int size;
  * 	of space.  Has to return a real pointer in order 
  *  	to be compatable with malloc().
  */
-int *
+long *
 ShmemAlloc(size)
-unsigned int size;
+unsigned long size;
 {
-  unsigned int tmpFree;
-  int *newSpace;
+  unsigned long tmpFree;
+  long *newSpace;
 
   /* ensure space is word aligned */
-  if (size % sizeof(int *))
-    size += sizeof(int *) - (size % sizeof(int *));
+  if (size % sizeof(long *))
+    size += sizeof(long *) - (size % sizeof(long *));
 
   Assert(*ShmemFreeStart);
 
@@ -272,7 +272,7 @@ unsigned int size;
 
   tmpFree = *ShmemFreeStart + size;
   if (tmpFree <= ShmemSize) {
-    newSpace = (int *)MAKE_PTR(*ShmemFreeStart);
+    newSpace = (long *)MAKE_PTR(*ShmemFreeStart);
     *ShmemFreeStart += size;
   } else {
     newSpace = NULL;
@@ -292,7 +292,7 @@ unsigned int size;
  * Returns TRUE if the pointer is valid.
  */
 ShmemIsValid(addr)
-unsigned int addr;
+unsigned long addr;
 {
   return ((addr<ShmemEnd) && (addr>=ShmemBase));
 }
@@ -311,20 +311,20 @@ unsigned int addr;
 HTAB *
 ShmemInitHash(name,init_size,max_size,infoP,hash_flags)
 char *	name;		/* table string name for binding */
-int 	init_size;	/* initial size */
-int 	max_size;	/* max size of the table */
+long 	init_size;	/* initial size */
+long 	max_size;	/* max size of the table */
 HASHCTL *infoP;		/* info about key and bucket size */
 int hash_flags;		/* info about infoP */
 {
   Boolean	found;
-  int  *	location;
+  long  *	location;
 
   /* shared memory hash tables have a fixed max size so that the
    * control structures don't try to grow.  The segbase is for
    * calculating pointer values.  The shared memory allocator
    * must be specified.
    */
-  infoP->segbase = (int *) ShmemBase;
+  infoP->segbase = (long *) ShmemBase;
   infoP->alloc = ShmemAlloc;
   infoP->max_size = max_size;
   hash_flags |= HASH_SHARED_MEM;
@@ -349,9 +349,9 @@ int hash_flags;		/* info about infoP */
 
   /* these structures were allocated or bound in ShmemInitStruct */
 	/* control information and parameters */
-  infoP->hctl = (int *) location;
+  infoP->hctl = (long *) location;
 	/* directory for hash lookup */
-  infoP->dir = (int *) (location + sizeof(HHDR));
+  infoP->dir = (long *) (location + sizeof(HHDR));
   
   return(hash_create(init_size, infoP, hash_flags));;
 }
@@ -458,14 +458,14 @@ int		pid;
  *	the object is already in the binding table (hence, already
  *	initialized).
  */
-int *
+long *
 ShmemInitStruct(name,size,foundPtr)
 char *name;
-unsigned int size;
+unsigned long size;
 Boolean *foundPtr;
 {
   BindingEnt *	result,item;
-  int * structPtr;
+  long * structPtr;
 
   strncpy(item.key,name,BTABLE_KEYSIZE);
   item.location = BAD_LOCATION;
@@ -489,13 +489,13 @@ Boolean *foundPtr;
       /* in POSTMASTER/Single process */
 
       *foundPtr = FALSE;
-      return((int *)ShmemAlloc(size));
+      return((long *)ShmemAlloc(size));
 
     } else {
       Assert (ShmemBindingTabOffset);
 
       *foundPtr = TRUE;
-      return((int *)MAKE_PTR(*ShmemBindingTabOffset));
+      return((long *)MAKE_PTR(*ShmemBindingTabOffset));
     }
 
 
@@ -525,11 +525,11 @@ Boolean *foundPtr;
       /* let caller print its message too */
       return(NULL);
     }
-    structPtr = (int *)MAKE_PTR(result->location);
+    structPtr = (long *)MAKE_PTR(result->location);
   } else {
 
     /* It isn't in the table yet. allocate and initialize it */
-    structPtr = ShmemAlloc(size);
+    structPtr = ShmemAlloc((long)size);
     if (! structPtr) {
       /* out of memory */
       Assert (BindingTable);
@@ -544,7 +544,7 @@ Boolean *foundPtr;
     result->size = size;
     result->location = MAKE_OFFSET(structPtr);
   }
-  Assert (ShmemIsValid((unsigned int)structPtr));
+  Assert (ShmemIsValid((unsigned long)structPtr));
 
   SpinRelease(BindingLock);
   return(structPtr);

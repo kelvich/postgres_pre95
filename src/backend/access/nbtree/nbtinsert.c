@@ -131,6 +131,7 @@ _bt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
     ItemId hikey;
     InsertIndexResult newres;
     BTItem new_item = (BTItem) NULL;
+    Buffer _bt_split();
 
     page = BufferGetPage(buf, 0);
     itemsz = IndexTupleDSize(btitem->bti_itup)

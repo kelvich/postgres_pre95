@@ -42,7 +42,7 @@
  *	SHORTALIGN(LEN)	- length (or address) aligned for shorts
  */
 #define	SHORTALIGN(LEN)\
-	(((long)(LEN) + 1) & ~01)
+	(((long)(LEN) + (sizeof (short) - 1)) & ~(sizeof (short) - 1))
 
 /*
  *	LONGALIGN(LEN)	- length (or address) aligned for longs
@@ -50,9 +50,18 @@
 #if defined(sun) && ! defined(sparc)
 #define	LONGALIGN(LEN)	SHORTALIGN(LEN)
 #else 
+#if defined (PORTNAME_alpha)
 #define	LONGALIGN(LEN)\
-	(((long)(LEN) + 3) & ~03)
+	(((long)(LEN) + (sizeof (int) - 1)) & ~(sizeof (int) -1))
+#else
+#define	LONGALIGN(LEN)\
+	(((long)(LEN) + (sizeof (long) - 1)) & ~(sizeof (long) -1))
 #endif
+#endif
+
+#define       INTALIGN(LEN)\
+	(((long)(LEN) + (sizeof (int) - 1)) & ~(sizeof (int) -1))
+
 
 #endif _ALIGN_H_
 

@@ -64,7 +64,7 @@ TOOLSLIBDIR= /usr/local/lib
 #	does not take effect (for .if purposes) until after this file is
 #	processed!
 #
-PORTNAME?=	ultrix4
+PORTNAME?=	alpha
 
 #
 # POSTGRESLOGIN is the login name of the user who gets special
@@ -251,7 +251,7 @@ CFLAGS+= -DPORTNAME=${PORTNAME} -DPORTNAME_${PORTNAME}
 #
 # Globally pass the default TCP port for postmaster(1)
 #
-CFLAGS+= '-DPOSTPORT="4321"'
+CFLAGS+= -DPOSTPORT='"4321"'
 
 #
 # == OTHER RANDOM CONFIGURATION ITEMS ==
@@ -270,7 +270,7 @@ CFLAGS+= -DSEQUOIA
 .if (${PORTNAME} == "hpux" || ${PORTNAME} == "svr4")
 CFLAGS+= -DSYSV_SIGNAL
 .elif (${PORTNAME} == "linux")
-CFLAGS+= -D__USE_BSD_SIGNAL
+CFLAGS+= -D__USE_BSD -D__USE_BSD_SIGNAL
 .endif
 
 #
@@ -292,4 +292,10 @@ CFLAGS+= -DNOFIXADE
 CFLAGS+= +u
 LDFLAGS+= +u
 .  endif
+.endif
+
+.if  (${PORTNAME} == "alpha")
+.undef USE_DLD
+LDADD+= -lbsd
+CFLAGS+= -DNOPRINTADE
 .endif

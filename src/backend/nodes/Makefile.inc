@@ -42,10 +42,10 @@ GENCREATORFILES= plannodes.c primnodes.c relation.c execnodes.c
 GENCREATOR: .USE
 	sh ${SHOPTS} ${ND}/Gen_creator.sh ${.ALLSRC} > ${.TARGET}
 
-plannodes.c: plannodes.h GENCREATOR
-primnodes.c: primnodes.h GENCREATOR
-relation.c:  relation.h  GENCREATOR
-execnodes.c: execnodes.h GENCREATOR
+plannodes.c: plannodes.h slots GENCREATOR
+primnodes.c: primnodes.h slots GENCREATOR
+relation.c:  relation.h slots GENCREATOR
+execnodes.c: execnodes.h slots GENCREATOR
 
 .depend: ${GENFILES} ${INHERITSFILES} ${GENCREATORFILES}
 

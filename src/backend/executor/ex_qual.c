@@ -26,7 +26,6 @@
  * ----------------------------------------------------------------
  */
 
-#include "tmp/align.h"
 #include "parser/parsetree.h"
 #include "parse.h" /* for NOT used in macros in ExecEvalExpr */
 #include "nodes/primnodes.h"
@@ -35,6 +34,7 @@
 #include "nodes/mnodes.h"
 #include "catalog/pg_language.h"
 #include "executor/executor.h"
+#include "utils/memutils.h"
 RcsId("$Header$");
 /* ----------------
  *	externs and constants
@@ -1444,6 +1444,7 @@ ExecFormComplexResult(tlist, natts, tdesc, values, nulls)
  
 int
 ExecTargetListLength(targetlist)
+    List targetlist;
 {
     int len;
     List tl, curTle;

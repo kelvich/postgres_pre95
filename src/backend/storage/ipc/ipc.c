@@ -23,7 +23,7 @@
 
 #include "storage/ipci.h"		/* for PrivateIPCKey XXX */
 #include "storage/ipc.h"
-#include "tmp/align.h"
+#include "utils/memutils.h"
 #include "utils/log.h"
 #include "tcop/slaves.h"
 

@@ -195,8 +195,8 @@ SHM_QUEUE	*nextQueue;
   SHM_QUEUE *elemPtr = (SHM_QUEUE *) MAKE_PTR((queue)->next);
 
   Assert(SHM_PTR_VALID(queue));
-  *nextPtrPtr = (Addr) (((unsigned) *nextPtrPtr) +
-    ((unsigned) elemPtr) - ((unsigned) nextQueue)); 
+  *nextPtrPtr = (Addr) (((unsigned long) *nextPtrPtr) +
+    ((unsigned long) elemPtr) - ((unsigned long) nextQueue)); 
 
   /*
   nextPtrPtr a ptr to a structure linked in the queue

@@ -78,7 +78,7 @@ IPCKey key;
   bool found = false;
   int pid;
   int semstat;
-  unsigned int location, myOffset;
+  unsigned long location, myOffset;
 
   /* ------------------
    * Routine called if deadlock timer goes off. See ProcSleep()

@@ -34,9 +34,12 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.13  1992/08/18 18:27:16  mer
-    allow sequential walk of a hash table (better protocol for hash_seq)
+    Revision 1.14  1993/08/10 01:46:51  marc
+    alpha port
 
+ * Revision 1.13  1992/08/18  18:27:16  mer
+ * allow sequential walk of a hash table (better protocol for hash_seq)
+ *
  * Revision 1.12  1992/03/30  00:10:43  mer
  * cut down on calls to hash functions by saving some state
  * .,
@@ -116,7 +119,7 @@
 /*
  * Private function prototypes
  */
-int *DynaHashAlloc ARGS((unsigned int size ));
+long *DynaHashAlloc ARGS((unsigned int size ));
 void DynaHashFree ARGS((Pointer ptr ));
 int hash_clear ARGS((HTAB *hashp ));
 uint32 call_hash ARGS((HTAB *hashp , char *k , int len ));
@@ -141,14 +144,14 @@ int my_log2 ARGS((int num ));
  */
 GlobalMemory DynaHashCxt = (GlobalMemory) NULL;
 
-int *
+long *
 DynaHashAlloc(size)
     unsigned int size;
 {
     if (! DynaHashCxt)
 	DynaHashCxt = CreateGlobalMemory("DynaHash");
 
-    return (int *)
+    return (long  *)
 	MemoryContextAlloc((MemoryContext)DynaHashCxt, size);
 }
 
@@ -182,13 +185,13 @@ static int init_htab();
  */
 
 #define GET_SEG(hp,seg_num)\
-  (SEGMENT) (((unsigned int) (hp)->segbase) + (hp)->dir[seg_num])
+  (SEGMENT) (((unsigned long) (hp)->segbase) + (hp)->dir[seg_num])
 
 #define GET_BUCKET(hp,bucket_offs)\
-  (ELEMENT *) (((unsigned int) (hp)->segbase) + bucket_offs)
+  (ELEMENT *) (((unsigned long) (hp)->segbase) + bucket_offs)
 
 #define MAKE_HASHOFFSET(hp,ptr)\
-  ( ((unsigned int) ptr) - ((unsigned int) (hp)->segbase) )
+  ( ((unsigned long) ptr) - ((unsigned long) (hp)->segbase) )
 
 # if HASH_STATISTICS
 static long hash_accesses, hash_collisions, hash_expansions;
@@ -206,7 +209,7 @@ int	flags;
 	HTAB * 		hashp;
 	
 
-	hashp = (HTAB *) MEM_ALLOC((unsigned int) sizeof(HTAB));
+	hashp = (HTAB *) MEM_ALLOC((unsigned long) sizeof(HTAB));
 	bzero(hashp,sizeof(HTAB));
 
 	if ( flags & HASH_FUNCTION ) {
@@ -239,7 +242,7 @@ int	flags;
 	}
 
 	if (! hashp->hctl) {
-	  hashp->hctl = (HHDR *) hashp->alloc((unsigned int)sizeof(HHDR));
+	  hashp->hctl = (HHDR *) hashp->alloc((unsigned long)sizeof(HHDR));
 	  if (! hashp->hctl) {
 	    return(0);
 	  }
@@ -473,7 +476,7 @@ HTAB	*hashp;
 char    *k;
 int     len;
 {
-        int     hash_val, bucket;
+        long     hash_val, bucket;
 	HHDR	*hctl;
 
 	hctl = hashp->hctl;
@@ -497,7 +500,7 @@ int     len;
  *	foundPtr is TRUE if we found an element in the table 
  *	(FALSE if we entered one).
  */
-int *
+long *
 hash_search(hashp, keyPtr, action, foundPtr)
 HTAB		*hashp;
 char		*keyPtr;
@@ -508,8 +511,8 @@ HASHACTION	action;		/*
 Boolean	*foundPtr;
 {
 	uint32 bucket;
-	int segment_num;
-	int segment_ndx;
+	long segment_num;
+	long segment_ndx;
 	SEGMENT segp;
 	register ELEMENT *curr;
 	HHDR	*hctl;
@@ -599,11 +602,11 @@ Boolean	*foundPtr;
 	     */
 	    return (&(curr->key));
 	  }
-	  return((int *) TRUE);
+	  return((long *) TRUE);
 	case HASH_FIND:
 	  if (currIndex != INVALID_INDEX)
 	    return(&(curr->key));
-	  return((int *)TRUE);
+	  return((long *)TRUE);
 	case HASH_FIND_SAVE:
 	  if (currIndex != INVALID_INDEX)
 	  {
@@ -612,7 +615,7 @@ Boolean	*foundPtr;
 	      saveState.currIndex = currIndex;
 	      return(&(curr->key));
 	  }
-	  return((int *)TRUE);
+	  return((long *)TRUE);
 	default:
 	  /* can't get here */
 	  return (NULL);
@@ -672,14 +675,14 @@ Boolean	*foundPtr;
  *	       return TRUE in the end.
  *
  */
-int *
+long *
 hash_seq(hashp)
 HTAB		*hashp;
 {
     static uint32 curBucket = 0;
     static ELEMENT *curElem = NULL;
-    int segment_num;
-    int segment_ndx;
+    long segment_num;
+    long segment_ndx;
     SEGMENT segp;
     HHDR *hctl;
     BUCKET_INDEX currIndex;
@@ -717,7 +720,7 @@ HTAB		*hashp;
 	curElem = GET_BUCKET(hashp, currIndex);
 	return(&(curElem->key));
       }
-    return (int*)TRUE;
+    return (long *)TRUE;
 }
 
 
@@ -728,10 +731,10 @@ HTAB *	hashp;
 {
   	HHDR	*hctl;
 	SEGMENT	old_seg,new_seg;
-	int	old_bucket, new_bucket;
-	int	new_segnum, new_segndx;
-	int	old_segnum, old_segndx;
-	int	dirsize;
+	long	old_bucket, new_bucket;
+	long	new_segnum, new_segndx;
+	long	old_segnum, old_segndx;
+	long	dirsize;
 	ELEMENT	*chain;
 	BUCKET_INDEX *old,*newbi;
 	register BUCKET_INDEX chainIndex,nextIndex;
@@ -804,8 +807,8 @@ HTAB *	hashp;
 {
 	register char	*p;
 	char	**p_ptr;
-	int	old_dirsize;
-	int	new_dirsize;
+	long	old_dirsize;
+	long	new_dirsize;
 
 
 	if (hashp->hctl->max_dsize != NO_MAX_DSIZE) 
@@ -816,7 +819,7 @@ HTAB *	hashp;
 	new_dirsize = old_dirsize << 1;
 
 	p_ptr = (char **) hashp->dir;
-	p = (char *) hashp->alloc((unsigned int) new_dirsize );
+	p = (char *) hashp->alloc((unsigned long) new_dirsize );
 	if (p != NULL) {
 	  bcopy ( *p_ptr, p, old_dirsize );
 	  bzero ( *p_ptr + old_dirsize, new_dirsize-old_dirsize );
@@ -838,7 +841,7 @@ HTAB * hashp;
   SEG_OFFSET segOffset;
   
 
-  segp = (SEGMENT) hashp->alloc((unsigned int) 
+  segp = (SEGMENT) hashp->alloc((unsigned long) 
 	    sizeof(SEGMENT)*hashp->hctl->ssize);
 
   if (! segp) {
@@ -846,7 +849,7 @@ HTAB * hashp;
   }
 
   bzero((char *)segp,
-	(int) sizeof(SEGMENT)*hashp->hctl->ssize);
+	(long) sizeof(SEGMENT)*hashp->hctl->ssize);
 
   segOffset = MAKE_HASHOFFSET(hashp,segp);
   return(segOffset);
@@ -860,20 +863,20 @@ HTAB *hashp;
 {
   int i;
   ELEMENT *tmpBucket;
-  int bucketSize;
+  long bucketSize;
   BUCKET_INDEX tmpIndex,lastIndex;
 
   bucketSize = 
     sizeof(BUCKET_INDEX) + hashp->hctl->keysize + hashp->hctl->datasize;
 
   /* make sure its aligned correctly */
-  bucketSize += sizeof(int *) - (bucketSize % sizeof(int *));
+  bucketSize += sizeof(long *) - (bucketSize % sizeof(long *));
 
   /* tmpIndex is the shmem offset into the first bucket of
    * the array.
    */
   tmpBucket = (ELEMENT *)
-    hashp->alloc((unsigned int) BUCKET_ALLOC_INCR*bucketSize);
+    hashp->alloc((unsigned long) BUCKET_ALLOC_INCR*bucketSize);
 
   if (! tmpBucket) {
     return(0);
@@ -902,7 +905,7 @@ HTAB *hashp;
 
 /* calculate the log base 2 of num */
 my_log2( num )
-int	num;
+long	num;
 {
     int		i = 1;
     int		limit;

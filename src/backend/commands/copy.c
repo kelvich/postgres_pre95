@@ -6,7 +6,6 @@
 
 #include "tmp/postgres.h"
 #include "tmp/miscadmin.h"
-#include "tmp/align.h"
 #include "catalog/syscache.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_index.h"
@@ -23,6 +22,7 @@
 #include "executor/x_tuples.h"
 #include "utils/rel.h"
 #include "utils/log.h"
+#include "utils/memutils.h"
 #include "tmp/daemon.h"
 #include "fmgr.h"
 #include "machine.h"
@@ -452,11 +452,10 @@ FILE *fp;
                                 values[i] = (Datum) *(unsigned short *) ptr; 
                                 ptr += sizeof(short);
                                 break;
-                            case 3:
-                            case sizeof(long):
-				ptr = (char *) LONGALIGN(ptr);
-                                values[i] = (Datum) *(unsigned long *) ptr; 
-                                ptr += sizeof(long);
+                            case sizeof(int32):
+                                ptr = (char *) INTALIGN(ptr);
+                                values[i] = (Datum) *(uint32 *) ptr;
+                                ptr += sizeof(int32);
                                 break;
                             default:
                                 elog(WARN, "COPY BINARY: impossible size!");
@@ -465,15 +464,15 @@ FILE *fp;
                     }
                     else if (nulls[i] != 'n')
                     {
-                        if (attr[i]->attlen < 0)
+                        if (attr[i]->attlen == -1)
                         {
-			    ptr = (char *)LONGALIGN(ptr);
+			    ptr = (char *)INTALIGN(ptr);
                             values[i] = (Datum) ptr;
-                            ptr += * (unsigned long *) ptr;
+                            ptr += * (uint32 *) ptr;
                         }
                         else
                         {
-			    ptr = (char *)LONGALIGN(ptr);
+			    ptr = (char *)LONGALIGN(ptr);	/* XXX ? */
                             values[i] = (Datum) ptr;
                             ptr += attr[i]->attlen;
                         }

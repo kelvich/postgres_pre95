@@ -66,6 +66,7 @@ _bt_searchr(rel, keysz, scankey, bufP, stack_in)
     int item_nbytes;
     IndexTuple itup;
     IndexTuple itup_save;
+    Buffer _bt_moveright();
 
     /* if this is a leaf page, we're done */
     page = BufferGetPage(*bufP, 0);

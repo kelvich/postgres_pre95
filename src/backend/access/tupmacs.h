@@ -34,11 +34,11 @@
  */
 #define fetchatt(A, T) \
  ((*(A))->attbyval \
-  ? ((*(A))->attlen > sizeof(short) \
-     ? (char *) *((long *)(T)) \
-     : ((*(A))->attlen < sizeof(short) \
+  ? ((*(A))->attlen > sizeof(int16) \
+     ? (char *) *((int32 *)(T)) \
+     : ((*(A))->attlen < sizeof(int16) \
         ? (char *) (long) *((char *)(T)) \
-        : (char *) (long) *((short *)(T)))) \
+        : (char *) (long) *((int16 *)(T)))) \
   : (char *) (T))
 	
 #endif

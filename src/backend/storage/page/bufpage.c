@@ -11,15 +11,14 @@
  */
 #include <sys/types.h>
 #include <sys/file.h>
-#include "tmp/align.h"
 
 #include "tmp/c.h"
 
 #include "storage/item.h"
-
 #include "storage/buf.h"
 #include "storage/bufmgr.h"
 #include "utils/log.h"
+#include "utils/memutils.h"
 #include "storage/page.h"
 #include "storage/pagenum.h"
 #include "storage/part.h"

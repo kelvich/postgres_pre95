@@ -65,11 +65,20 @@ static int	DisableCache;
  * 	XXX this should be replaced by catalog lookups soon
  * ----------------
  */
+#ifdef PORTNAME_alpha
+/* XXX HACK FOR ALPHA PORT - REMOVE LATER */
 static long	eqproc[] = {
+    F_BOOLEQ, 0l, F_CHAREQ, F_CHAR16EQ, 0l,
+    F_INT2EQ, F_KEYFIRSTEQ, F_INT4EQ, 0l, F_TEXTEQ,
+    F_OIDEQ, 0l, 0l, 0l, F_OIDEQ
+};
+#else
+static long   eqproc[] = {
     F_BOOLEQ, 0l, F_CHAREQ, F_CHAR16EQ, 0l,
     F_INT2EQ, F_KEYFIRSTEQ, F_INT4EQ, 0l, F_TEXTEQ,
     F_OIDEQ, 0l, 0l, 0l, F_OID8EQ
 };
+#endif
 
 #define	EQPROC(SYSTEMTYPEOID)	eqproc[(SYSTEMTYPEOID)-16]
     ;
@@ -279,18 +288,19 @@ CatalogCacheSetId(cacheInOutP, id)
 /**** xxref:
  *           CatalogCacheComputeHashIndex
  ****/
+long
 comphash(l, v)
-    int			l;
+    long		l;
     register char	*v;
 {
-    register int  i;
+    register long  i;
     CACHE3_elog(DEBUG, "comphash (%d,%x)", l, v);
     
     switch (l) {
     case 1:
     case 2:
     case 4:
-	return((int) v);
+	return((long) v);
     }
 
     /* special hack for char16 values */

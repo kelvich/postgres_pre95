@@ -90,7 +90,7 @@ ComputeDataSize(numberOfAttributes, att, value, nulls)
 		 * This is the size of the disk representation and so
 		 * must inclue the additional sizeof long.
 		 */
-		length = LONGALIGN(length)
+		length = INTALIGN(length)
 		       + VARSIZE(DatumGetPointer(value[i]));
 		break;
 	    case sizeof(char):
@@ -99,8 +99,15 @@ ComputeDataSize(numberOfAttributes, att, value, nulls)
 	    case sizeof(short):
 		length = SHORTALIGN(length + sizeof(short));
 		break;
+	    case sizeof(int32):
+		length = INTALIGN(length + sizeof(int32));
+		break;
 	    default:
-		length = LONGALIGN(length) + att[i]->attlen;
+		if (att[i]->attlen > sizeof(int32))
+			length = LONGALIGN(length) + att[i]->attlen;
+		else
+			elog(WARN, "ComputeDataSize: attribute %d has len %d",
+				i, att[i]->attlen);
 		break;
 	}
     }
@@ -161,7 +168,7 @@ DataFill(data, numberOfAttributes, att, value, nulls, infomask, bit)
 	{
 	    case -1:
 	        *infomask |= 0x2;
-	        data = (Pointer) LONGALIGN((char *) data);
+	        data = (Pointer) INTALIGN((char *) data);
 	        length = VARSIZE(DatumGetPointer(value[i]));
 	        bcopy(DatumGetPointer(value[i]), data, length);
 	        data += length;
@@ -172,26 +179,29 @@ DataFill(data, numberOfAttributes, att, value, nulls, infomask, bit)
 				   *((char *) value[i]));
 		data += sizeof(char);
 		break;
-	    case sizeof(short):
+	    case sizeof(int16):
 		data = (Pointer) SHORTALIGN(data);
 		* (short *) data = (att[i]->attbyval ?
 		                    DatumGetInt16(value[i]) :
 				    *((short *) value[i]));
 		data += sizeof(short);
 		break;
-	    case 3: /* XXX */
-	    case sizeof(long):
-		data = (Pointer) LONGALIGN(data);
-		* (long *) data = (att[i]->attbyval ?
+	    case sizeof(int32):
+		data = (Pointer) INTALIGN(data);
+		* (int32 *) data = (att[i]->attbyval ?
 				   DatumGetInt32(value[i]) :
-				   *((long *) value[i]));
-		data += sizeof(long);
+				   *((int32 *) value[i]));
+		data += sizeof(int32);
 		break;
 	    default:
-		data = (Pointer) LONGALIGN(data);
-		bcopy(DatumGetPointer(value[i]), data, att[i]->attlen);
-		data += att[i]->attlen;
-		break;
+		if (att[i]->attlen > sizeof(int32)) {
+			data = (Pointer) LONGALIGN(data);
+			bcopy(DatumGetPointer(value[i]), data, att[i]->attlen);
+			data += att[i]->attlen;
+		} else {
+			elog(WARN, "DataFill: attribute %d has len %d",
+				  i, att[i]->attlen);
+		}
 
 	}
     }
@@ -599,16 +609,27 @@ fastgetattr(tup, attnum, att, isnull)
 
 	for (; j < attnum + 1; j++)
 	{
-	    /*
-	     * Fix me when going to a machine with more than a four-byte
-	     * word!
-	     */
-
 	    switch(att[j]->attlen)
 	    {
-		case sizeof(char) : break;
-		case sizeof(short): off = SHORTALIGN(off); break;
-		default           : off = LONGALIGN(off); break;
+		case -1:
+			off = INTALIGN(off);
+			break;
+		case sizeof(char):
+			break;
+		case sizeof(short):
+			off = SHORTALIGN(off);
+			break;
+		case sizeof(int32):
+			off = INTALIGN(off);
+			break;
+		default:
+			if (att[j]->attlen > sizeof(int32))
+				off = LONGALIGN(off);
+			else
+				elog(WARN, "fastgetattr: attribute %d has len %d"
+ ,
+					j, att[j]->attlen);
+			break;
 	    }
 
 	    att[j]->attcacheoff = off;
@@ -646,9 +667,24 @@ fastgetattr(tup, attnum, att, isnull)
 	    }
 	    switch (att[i]->attlen)
 	    {
-		case sizeof(char)  : break;
-		case sizeof(short) : off = SHORTALIGN(off); break;
-		default            : off = LONGALIGN(off); break;
+		case -1:
+			off = INTALIGN(off);
+			break;
+		case sizeof(char):
+			break;
+		case sizeof(short):
+			off = SHORTALIGN(off);
+			break;
+		case sizeof(int32):
+			off = INTALIGN(off);
+			break;
+                default:
+			if (att[i]->attlen > sizeof(int32))
+				off = LONGALIGN(off);
+			else
+				elog(WARN, "fastgetattr2: attribute %d has len %d",
+					i, att[i]->attlen);
+			break;
 	    }
 	    if (usecache && att[i]->attcacheoff > 0)
 	    {
@@ -660,7 +696,7 @@ fastgetattr(tup, attnum, att, isnull)
 	    }
 	    else
 	    {
-	        if (usecache) att[i]->attcacheoff = off;
+		if (usecache) att[i]->attcacheoff = off;
 	    }
 
 	    switch(att[i]->attlen)
@@ -671,23 +707,41 @@ fastgetattr(tup, attnum, att, isnull)
 	        case sizeof(char):
 	            off++;
 	            break;
-	        case sizeof(short):
-	            off = off + sizeof(short);
+	        case sizeof(int16):
+	            off += sizeof(int16);
 	            break;
+	        case sizeof(int32):
+	            off += sizeof(int32);
+		    break;
 	        case -1:
 	            usecache = false;
 		    off += VARSIZE(tp + off);
 		    break;
 		default:
-		    off = off + att[i]->attlen;
+		    off += att[i]->attlen;
 		    break;
 	    }
 	}
 	switch (att[attnum]->attlen)
 	{
-	    case sizeof(char)  : break;
-	    case sizeof(short) : off = SHORTALIGN(off); break;
-	    default            : off = LONGALIGN(off); break;
+	    case -1:
+		off = INTALIGN(off);
+		break;
+	    case sizeof(char):
+		break;
+	    case sizeof(short):
+		off = SHORTALIGN(off);
+		break;
+	    case sizeof(int32):
+		off = INTALIGN(off);
+		break;
+	    default:
+		if (att[attnum]->attlen > sizeof(int32))
+			off = LONGALIGN(off);
+		else
+			  elog(WARN, "fastgetattr3: attribute %d has len %d",
+				  attnum, att[attnum]->attlen);
+		break;
 	}
 	return((char *) fetchatt(att + attnum, tp + off));
     }
@@ -1162,6 +1216,9 @@ slowgetattr(tup, b, attnum, att, isnull)
     int			pskip(), pfill();
     extern		endpskip();
     
+elog(WARN, "slowgetattr: SHOULD NOT BE CALLED");
+/* XXX - what should we do with this ??? */
+
     Assert(PointerIsValid(isnull));
     Assert(attnum > 0);
     

@@ -121,8 +121,8 @@ typedef struct {
  * function prototypes -- not called by function manager
  * ----------------------
  */
-double poly_max ARGS((double *coords , int ncoords ));
-double poly_min ARGS((double *coords , int ncoords ));
+double poly_max ARGS((double *coords , long ncoords ));
+double poly_min ARGS((double *coords , long ncoords ));
 BOX *box_fill ARGS((BOX *result , double x1 , double x2 , double y1 , double y2 ));
 BOX *box_construct ARGS((double x1 , double x2 , double y1 , double y2 ));
 BOX *box_copy ARGS((BOX *box ));

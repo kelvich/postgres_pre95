@@ -509,7 +509,7 @@ InitPostgres(name)
      * ----------------
      */
     {
-	static char  myPath[MAXPGPATH];	/* DatabasePath points here! */
+	static char  myPath[MAXPGPATH] = ".";	/* DatabasePath points here! */
 	static char  myName[17]; 	/* DatabaseName points here! */
 
 	/* ----------------
@@ -517,7 +517,6 @@ InitPostgres(name)
 	 *  when bootstrap or Noversion is true?? -cim 10/5/90
 	 * ----------------
 	 */
-	myPath[0] = '\0';
 	
 	if (! bootstrap &&
 	    ! DatabaseMetaGunkIsConsistent(name, myPath) &&

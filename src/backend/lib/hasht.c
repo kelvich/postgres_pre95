@@ -6,10 +6,10 @@
  */
 
 #include "tmp/c.h"
-#include "tmp/align.h"
 
 RcsId("$Header$");
 
+#include "utils/memutils.h"
 #include "utils/log.h"
 #include "utils/hsearch.h"
 

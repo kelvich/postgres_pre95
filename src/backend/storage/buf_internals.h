@@ -56,8 +56,8 @@ typedef bits16 BufFlags;
 typedef struct sbufdesc BufferDesc;
 typedef struct sbufdesc BufferHdr;
 typedef struct buftag BufferTag;
-/* int * so alignment will be correct */
-typedef int **BufferBlock;
+/* long * so alignment will be correct */
+typedef long **BufferBlock;
 
 
 struct buftag{
@@ -161,7 +161,7 @@ struct sbufdesc {
 
 typedef struct _bmtrace {
     int		bmt_pid;
-    int		bmt_buf;
+    long	bmt_buf;
     long	bmt_dbid;
     long	bmt_relid;
     int		bmt_blkno;
@@ -196,7 +196,7 @@ extern BufferDesc 	*BufferDescriptors;
 extern BufferBlock 	BufferBlocks;
 
 typedef struct Stack {
-    int datum;
+    long datum;
     struct Stack *next;
 } Stack;
 

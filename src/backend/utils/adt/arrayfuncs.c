@@ -9,7 +9,6 @@
 #include <ctype.h>
 #include <stdio.h>
 #include "tmp/postgres.h"
-#include "tmp/align.h"
 #include "tmp/libpq-fs.h"
 
 #include "catalog/pg_type.h"
@@ -17,6 +16,7 @@
 #include "catalog/pg_lobj.h"
 
 #include "utils/palloc.h"
+#include "utils/memutils.h"
 #include "fmgr.h"
 #include "utils/log.h"
 #include "array.h"
@@ -335,11 +335,11 @@ bool typbyval;
     } else {
         for (i = 0, *nbytes = 0; i < nitems; i++) {
             if (values[i])
-                *nbytes += LONGALIGN(* (int *) values[i]);
+                *nbytes += INTALIGN(* (int32 *) values[i]);
             else {
-                *nbytes += sizeof(int);
-                values[i] = palloc(sizeof(int));
-                *(int *)values[i] = sizeof(int); 
+                *nbytes += sizeof(int32);
+                values[i] = palloc(sizeof(int32));
+                *(int32 *)values[i] = sizeof(int32); 
             }
         }
     }
@@ -521,7 +521,7 @@ ObjectId element_type;
             if (typlen > 0)
                 p += typlen;
             else
-                p += LONGALIGN(* (int32 *) p);
+                p += INTALIGN(* (int32 *) p);
             /*
               * For the pair of double quotes
               */
@@ -683,8 +683,8 @@ bool *isNull;
                 retval = temp;
                 done = true;
             }
-            bytes -= LONGALIGN(* (int32 *) temp);
-            temp += LONGALIGN(* (int32 *) temp);
+            bytes -= INTALIGN(* (int32 *) temp);
+            temp += INTALIGN(* (int32 *) temp);
             i++;
         }
         if (! done) 
@@ -1037,7 +1037,7 @@ bool typbyval;
         inc = typlen;
     } else {
         bcopy(src, dest, * (int32 *) src);
-        inc = (LONGALIGN(* (int32 *) src));
+        inc = (INTALIGN(* (int32 *) src));
     }
     return(inc);
 } 
@@ -1128,7 +1128,7 @@ ArrayType *array;
     i = j = n-1;
     do {
         ptr = array_seek(ptr, -1,  dist[j]);
-        inc =  LONGALIGN(* (int *) ptr);
+        inc =  INTALIGN(* (int32 *) ptr);
         ptr += inc; count += inc;
     } while ((j = next_tuple(i+1, indx, span)) != -1);
     return count;
@@ -1145,7 +1145,7 @@ char *ptr;
     if (eltsize > 0) 
         return(ptr + eltsize*nitems);
     for (i = 0; i < nitems; i++) 
-          ptr += LONGALIGN(* (int *) ptr);
+          ptr += INTALIGN(* (int32 *) ptr);
     return(ptr);
 }
 /***********************************************************************/
@@ -1160,7 +1160,7 @@ char *srcptr, *destptr;
         return(eltsize*nitems);
     }
     for (i = inc = 0; i < nitems; i++) {
-      tmp = (LONGALIGN(* (int *) srcptr));
+      tmp = (INTALIGN(* (int32 *) srcptr));
       bcopy(srcptr, destptr, tmp);
       srcptr += tmp;
       destptr += tmp;

@@ -59,7 +59,7 @@ extern struct catcache	*Caches;
  */
 extern
 struct catcache *
-InitSysCache ARGS(( char *relname, Name *indname, int nkeys , int key [], HeapTuple (*iScanfuncP)() ));
+InitSysCache ARGS(( char *relname, Name *indname, long nkeys , long key [], HeapTuple (*iScanfuncP)() ));
 
 /*
  * ResetSystemCache --
@@ -127,7 +127,7 @@ void CatalogCacheInitializeCache ARGS((
 	Relation relation
 ));
 
-int comphash ARGS((int l , char *v ));
+long comphash ARGS((int l , char *v ));
 
 Index CatalogCacheComputeHashIndex ARGS((struct catcache *cacheInP ));
 
@@ -136,8 +136,8 @@ void CatCacheRemoveCTup ARGS((CatCache *cache , CatCTup *ct ));
 struct catcache *InitIndexedSysCache ARGS((
 	char *relname, 
 	char *indname, 
-	int nkeys, 
-	int key [],
+	long nkeys, 
+	long key [],
 	HeapTuple (*iScanfuncP)()
 ));
 

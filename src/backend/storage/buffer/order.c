@@ -17,7 +17,7 @@ extern int NBuffers;
 
 static Stack		**adjlist;
 static BufferDesc 	**datlist;
-static int		*used;
+static long		*used;
 
 
 /*
@@ -31,7 +31,7 @@ static int		*used;
 
 static
 bs_push(i, s)
-	int	i;
+	long	i;
 	Stack	**s;
 {
 	Stack	*sp;
@@ -42,12 +42,12 @@ bs_push(i, s)
 	*s = sp;
 }	
 
-static
+static long
 bs_pop(s)
 	Stack	**s;
 {
 	Stack	*sp;
-	int	ret;
+	long	ret;
 
 	if (s == (Stack **) NULL)
 		return(-1);
@@ -74,7 +74,7 @@ bwinit()
 
 	adjlist = (Stack**)malloc(NBuffers * sizeof(Stack*));
 	datlist = (BufferDesc**)malloc(NBuffers * sizeof(BufferDesc*));
-	used = (int*)malloc(NBuffers * sizeof(int));
+	used = (long *)malloc(NBuffers * sizeof(int));
 
 	for (i = 0; i < NBuffers; i++) {
 		adjlist[i] = (Stack *) NULL;
@@ -96,7 +96,7 @@ BufferWriteInOrder(predb, succb)
 	BufferDesc 	*predb, *succb;
 {
 	register int	i;
-	int		before = -1, after = -1;
+	long		before = -1, after = -1;
 
 	if (predb == succb) {
 		elog(DEBUG, "BufferWriteInOrder: predb == succb!  Ignoring...");
@@ -155,11 +155,11 @@ bwsort(item)
 	int			count = 0, active_bufs = 0;
 	register Stack		*sp;
 	Stack			*zeroindeg = (Stack *) NULL;
-	int			*indeg;
+	long			*indeg;
 	static BufferDesc	**ret;
 
 
-	indeg = (int*)malloc(NBuffers * sizeof(int));
+	indeg = (long *)malloc(NBuffers * sizeof(long));
 	ret = (BufferDesc**)malloc(NBuffers * sizeof(BufferDesc*));
 	for (i = 0; i < NBuffers; i++) {
 		ret[i] = (BufferDesc *) NULL;
@@ -233,9 +233,9 @@ bwremove(nitems, items)
 {
 	register Stack	*p;
 	register int	i, j;
-	int		*remove;
+	long		*remove;
 
-	remove = (int*)malloc(NBuffers * sizeof(int));
+	remove = (long *)malloc(NBuffers * sizeof(long));
 	if (nitems < 0 || nitems > NBuffers) {
 		elog(WARN, "bwremove: bad nitems %d", nitems);
 		free((char*)remove);

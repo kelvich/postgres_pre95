@@ -22,8 +22,8 @@
 
 static
 BufferDesc 	*SharedFreeList;
-extern int	*PrivateRefCount;
-extern int	*LastRefCount;
+extern long	*PrivateRefCount;
+extern long	*LastRefCount;
 #ifndef NO_ASSERT_CHECKING
 extern Buffer	BufferDescriptorGetBuffer();
 #endif
@@ -123,7 +123,7 @@ BufferDesc *buf;
 UnpinBuffer(buf)
     BufferDesc *buf;
 {
-  int b;
+  long b;
   Assert (buf->refcount);
   Assert (PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1]);
   b = BufferDescriptorGetBuffer(buf) - 1;

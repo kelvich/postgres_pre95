@@ -137,7 +137,7 @@ BufferGetBlockNumber ARGS((
  *
  */
 extern
-ReturnStatus
+Buffer
 ReadBuffer ARGS((
 	Relation	relation,
 	BlockNumber	blockNumber
@@ -253,9 +253,9 @@ PrintBufferUsage ARGS(());
 
 extern
 void
-BufferRefCountReset ARGS((int *refcountsave));
+BufferRefCountReset ARGS((long *refcountsave));
 
 extern
 void
-BufferRefCountRestore ARGS((int *refcountsave));
+BufferRefCountRestore ARGS((long *refcountsave));
 #endif	/* !defined(BufMgrIncluded) */

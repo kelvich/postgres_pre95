@@ -83,7 +83,7 @@ typedef struct JBPlatDesc {
 #define	JBPH_STARTSIZE	10
 
 /* globals defined here */
-static int		*JBNEntries;
+static long		*JBNEntries;
 static HTAB		*JBHash;
 static bool		JBConnected = false;
 static HTAB		*JBPlatHash;
@@ -109,7 +109,7 @@ static void		_pgjb_mdblockwrt();
 
 /* routines declared elsewhere */
 extern HTAB		*ShmemInitHash();
-extern int		*ShmemInitStruct();
+extern long		*ShmemInitStruct();
 extern BlockNumber	sjmaxseg();
 extern int		mylog2();
 
@@ -142,7 +142,7 @@ pgjb_init()
     JBNEntries = ShmemInitStruct("Jukebox connection metadata",
 				 sizeof(*JBNEntries), &found);
 
-    if (JBNEntries == (int *) NULL) {
+    if (JBNEntries == (long *) NULL) {
 	SpinRelease(JBSpinLock);
 	return (SM_FAIL);
     }

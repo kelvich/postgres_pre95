@@ -17,7 +17,7 @@
 #define InvalidBuffer	(-1)
 #define UnknownBuffer	(-2)
 
-typedef int	Buffer;
+typedef long	Buffer;
 
 /*
  * RelationGetNumberOfBlocks --

@@ -94,7 +94,7 @@ typedef OpaqueData	*Opaque;
  *	Check proper alignment of the dp_last - dp_lower.  May
  *	have a problem.
  */
-#define TSPACELEFT(DP) ((int)((DP)->pd_upper - (DP)->pd_lower) \
+#define TSPACELEFT(DP) ((long)((DP)->pd_upper - (DP)->pd_lower) \
 			- sizeof (ItemIdData))
 
 #define MAXTUPLEN	(BLCKSZ - sizeof (PageHeaderData))	/* XXX */

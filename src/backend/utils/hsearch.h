@@ -30,62 +30,62 @@
  * variable length and a variable length data field follows it.
  */
 typedef struct element {
-	unsigned int next;	       /* secret from user	 */
-	int key;
+	unsigned long next;	       /* secret from user	 */
+	long key;
 } ELEMENT;
 
-typedef unsigned int BUCKET_INDEX;
+typedef unsigned long BUCKET_INDEX;
 /* segment is an array of bucket pointers  */
 typedef BUCKET_INDEX *SEGMENT;
-typedef unsigned int SEG_OFFSET;
+typedef unsigned long SEG_OFFSET;
 
 typedef struct hashhdr {
-	int bsize;	/* Bucket/Page Size */
-	int bshift;	/* Bucket shift */
-	int dsize;	/* Directory Size */
-	int ssize;	/* Segment Size */
-	int sshift;	/* Segment shift */
-	int max_bucket;	/* ID of Maximum bucket in use */
-	int high_mask;	/* Mask to modulo into entire table */
-	int low_mask;	/* Mask to modulo into lower half of table */
-	int ffactor;	/* Fill factor */
-	int nkeys;	/* Number of keys in hash table */
-	int nsegs;	/* Number of allocated segments */
-	int keysize;	/* hash key length in bytes */
-	int datasize;	/* elem data length in bytes */
-	int max_dsize;  /* 'dsize' limit if directory is fixed size */ 
+	long bsize;	/* Bucket/Page Size */
+	long bshift;	/* Bucket shift */
+	long dsize;	/* Directory Size */
+	long ssize;	/* Segment Size */
+	long sshift;	/* Segment shift */
+	long max_bucket;	/* ID of Maximum bucket in use */
+	long high_mask;	/* Mask to modulo into entire table */
+	long low_mask;	/* Mask to modulo into lower half of table */
+	long ffactor;	/* Fill factor */
+	long nkeys;	/* Number of keys in hash table */
+	long nsegs;	/* Number of allocated segments */
+	long keysize;	/* hash key length in bytes */
+	long datasize;	/* elem data length in bytes */
+	long max_dsize;  /* 'dsize' limit if directory is fixed size */ 
 	BUCKET_INDEX freeBucketIndex;
 			/* index of first free bucket */
 #ifdef HASH_STATISTICS
-	int accesses;
-	int collisions;
+	long accesses;
+	long collisions;
 #endif
 } HHDR;
 
 typedef struct htab {
   	HHDR		*hctl;	 /* shared control information */
-	int 		(*hash)(); /* Hash Function */
+	long 		(*hash)(); /* Hash Function */
 	char *	 	segbase;   /* segment base address for 
 				    * calculating pointer values */
 	SEG_OFFSET	*dir;	   /* 'directory' of segm starts */
-	int *		(*alloc)();/* memory allocator */
-	/* int * for alignment reasons */
+	long *		(*alloc)();/* memory allocator */
+	/* long * for alignment reasons */
 
 } HTAB;
 
 typedef struct hashctl {
-	int bsize;	/* Bucket Size */
-	int ssize;	/* Segment Size */
-	int dsize;	/* Dirsize Size */
-	int ffactor;	/* Fill factor */
-	int (*hash)();	/* Hash Function */
-	int keysize;	/* hash key length in bytes */
-	int datasize;	/* elem data length in bytes */
-	int max_size;  /* limit to dsize if directory size is limited */
-	int *segbase;  /* base for calculating bucket + seg ptrs */
-	int * (*alloc)(); /* memory allocation function */
-	int *dir;	/* directory if allocated already */
-	int *hctl;	/* location of header information in shd mem */
+	long bsize;	/* Bucket Size */
+	long ssize;	/* Segment Size */
+	long dsize;	/* Dirsize Size */
+	long ffactor;	/* Fill factor */
+	long (*hash)();	/* Hash Function */
+	long keysize;	/* hash key length in bytes */
+	long datasize;	/* elem data length in bytes */
+	long max_size;  /* limit to dsize if directory size is limited */
+	long *segbase;  /* base for calculating bucket + seg ptrs */
+	long * (*alloc)(); /* memory allocation function */
+	long *dir;	/* directory if allocated already */
+	long *hctl;	/* location of header information in shd mem */
 } HASHCTL;
 
 /* Flags to indicate action for hctl */
@@ -110,11 +110,11 @@ typedef struct hashctl {
 typedef enum { HASH_FIND, HASH_ENTER, HASH_REMOVE, HASH_FIND_SAVE, HASH_REMOVE_SAVED } HASHACTION;
 
 /* entry points */
-HTAB *hash_create ARGS((int nelem , HASHCTL *info , int flags ));
+HTAB *hash_create ARGS((long nelem , HASHCTL *info , int flags ));
 void hash_destroy ARGS((HTAB *hashp ));
 void hash_stats ARGS((char *where , HTAB *hashp ));
-int *hash_seq ARGS((HTAB *hashp ));
-int *hash_search ARGS((
+long *hash_seq ARGS((HTAB *hashp ));
+long *hash_search ARGS((
 	HTAB *hashp,
 	char *keyPtr,
 	HASHACTION action,
@@ -123,8 +123,8 @@ int *hash_search ARGS((
 
 /* hash functions from hashfn.c */
 
-int string_hash ARGS((char *key, int keysize ));
-int tag_hash ARGS((int *key, int keysize ));
-int disk_hash ARGS((char *key ));
+long string_hash ARGS((char *key, long keysize ));
+long tag_hash ARGS((long *key, long keysize ));
+long disk_hash ARGS((char *key ));
 
 #endif
