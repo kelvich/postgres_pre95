@@ -81,6 +81,8 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	 */
 	relation = heap_openr(RelationRelationName->data);
 	key[0].argument = NameGetDatum(relationName);
+	fmgr_info(key[0].procedure, &key[0].func, &key[0].nargs);
+
 	scan = heap_beginscan(relation, 0, NowTimeQual, 1, (ScanKey) key);
 	oldTuple = heap_getnext(scan, 0, &buffer);
 	if (!HeapTupleIsValid(oldTuple)) {
