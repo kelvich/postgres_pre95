@@ -303,15 +303,19 @@ int PQnportals(rule_p)
 Return all portal names.  If 
 .IR rule_p
 is not 0, then only return the names of asynchronous portals.
+The caller is responsible for allocating sufficent storage for
+.IR pnames.  The number of names returned can be determined with a call to 
+.BR PQnportals().  Each portal name is at most PortalNameLength
+characters long (see \&.../src/backend/tmp/libpq.h).
 .(C
 void PQpnames(pnames, rule_p)
-	char *pnames[MAXPORTALS];
+	char **pnames;
 	int rule_p;
 .)C
 .TP 15n
 .BR PQparray
-Return the portal buffer given a portal name,
-.IR pname .
+Return the portal buffer given a portal name, 
+.IR pname.  
 .(C
 PortalBuffer *PQparray(pname)
 	char *pname;
