@@ -21,6 +21,8 @@
 #ifndef PrimNodesIncluded
 #define	PrimNodesIncluded
 
+#include "postgres.h"
+
 #include "nodes.h"	/* bogus inheritance system */
 #include "pg_lisp.h"
 
@@ -28,9 +30,7 @@
 #include "attnum.h"
 #include "buf.h"
 #include "rel.h"
-#include "oid.h"
 #include "name.h"
-#include "cat.h"
 #include "params.h"
 
 /* ----------------------------------------------------------------

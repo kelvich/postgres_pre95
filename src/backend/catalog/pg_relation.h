@@ -18,12 +18,12 @@
 #define PgRelationIncluded 1	/* include this only once */
 
 /* ----------------
- *	catmacros.h defines the CATALOG(), BOOTSTRAP and
- *	DATA() sugar words so this file can be read by both
- *	genbki.sh and the C compiler.
+ *	postgres.h contains the system type definintions and the
+ *	CATALOG(), BOOTSTRAP and DATA() sugar words so this file
+ *	can be read by both genbki.sh and the C compiler.
  * ----------------
  */
-#include "catalog/catmacros.h"
+#include "postgres.h"
 
 /* ----------------
  *	pg_relation definition.  cpp turns this into
@@ -183,7 +183,7 @@ struct	relation {
     Anum_pg_relation_relpreserved
 #define RelationHasIndexAttributeNumber \
     Anum_pg_relation_relhasindex
-#define e RelationStubAttributeNumber \
+#define RelationStubAttributeNumber \
     Anum_pg_relation_relstub
 
 #define RelationRelationNumberOfAttributes \

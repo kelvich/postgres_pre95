@@ -21,12 +21,12 @@
 #define PgVariableIncluded 1	/* include this only once */
 
 /* ----------------
- *	catmacros.h defines the CATALOG(), BOOTSTRAP and
- *	DATA() sugar words so this file can be read by both
- *	genbki.sh and the C compiler.
+ *	postgres.h contains the system type definintions and the
+ *	CATALOG(), BOOTSTRAP and DATA() sugar words so this file
+ *	can be read by both genbki.sh and the C compiler.
  * ----------------
  */
-#include "catalog/catmacros.h"
+#include "postgres.h"
 
 /* ----------------
  *	pg_variable definition.  cpp turns this into

@@ -18,12 +18,12 @@
 #define PgProcIncluded 1	/* include this only once */
 
 /* ----------------
- *	catmacros.h defines the CATALOG(), BOOTSTRAP and
- *	DATA() sugar words so this file can be read by both
- *	genbki.sh and the C compiler.
+ *	postgres.h contains the system type definintions and the
+ *	CATALOG(), BOOTSTRAP and DATA() sugar words so this file
+ *	can be read by both genbki.sh and the C compiler.
  * ----------------
  */
-#include "catalog/catmacros.h"
+#include "postgres.h"
 
 /* ----------------
  *	pg_proc definition.  cpp turns this into
@@ -91,6 +91,8 @@ DATA(insert OID =  43 (  int4out           6 11 f t f 1  23 foo bar ));
 DATA(insert OID =  44 (  regprocin         6 11 f t f 1  24 foo bar ));
 DATA(insert OID =  45 (  regprocout        6 11 f t f 1  23 foo bar ));
 DATA(insert OID =  46 (  textin            6 11 f t f 1  25 foo bar ));
+#define TextInRegProcedure 46
+    
 DATA(insert OID =  47 (  textout           6 11 f t f 1  23 foo bar ));
 DATA(insert OID =  48 (  tidin             6 11 f t f 1  27 foo bar ));
 DATA(insert OID =  49 (  tidout            6 11 f t f 1  23 foo bar ));
@@ -107,9 +109,16 @@ DATA(insert OID =  59 (  stubout           6 11 f t f 1  23 foo bar ));
 DATA(insert OID =  60 (  booleq            6 11 f t f 2  16 foo bar ));
 DATA(insert OID =  61 (  chareq            6 11 f t f 2  16 foo bar ));
 DATA(insert OID =  62 (  char16eq          6 11 f t f 2  16 foo bar ));
+#define NameEqualRegProcedure		62
+#define Character16EqualRegProcedure	62
+    
 DATA(insert OID =  63 (  int2eq            6 11 f t f 2  16 foo bar ));
+#define Integer16EqualRegProcedure	63
+    
 DATA(insert OID =  64 (  int2lt            6 11 f t f 2  16 foo bar ));
 DATA(insert OID =  65 (  int4eq            6 11 f t f 2  16 foo bar ));
+#define Integer32EqualRegProcedure	65
+    
 DATA(insert OID =  66 (  int4lt            6 11 f t f 2  16 foo bar ));
 DATA(insert OID =  67 (  texteq            6 11 f t f 2  16 foo bar ));
 DATA(insert OID =  68 (  xideq             6 11 f t f 2  16 foo bar ));
@@ -210,6 +219,8 @@ DATA(insert OID = 181 (  int4mi            6 11 f t f 2  23 foo bar ));
 DATA(insert OID = 182 (  int24mi           6 11 f t f 2  23 foo bar ));
 DATA(insert OID = 183 (  int42mi           6 11 f t f 2  23 foo bar ));
 DATA(insert OID = 184 (  oideq             6 11 f t f 2  16 foo bar ));
+#define ObjectIdEqualRegProcedure	184
+    
 DATA(insert OID = 185 (  oidneq            6 11 f t f 2  16 foo bar ));
 DATA(insert OID = 186 (  box_same          6 11 f t f 2  16 foo bar ));
 DATA(insert OID = 187 (  box_contain       6 11 f t f 2  16 foo bar ));
