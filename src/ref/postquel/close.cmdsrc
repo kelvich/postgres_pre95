@@ -7,8 +7,9 @@
 close \*- close a portal
 .uh SYNOPSIS
 .lp
-.b close
-[ portal_name ]
+.(l
+\fBclose\fR [ portal_name ]
+.)l
 .uh DESCRIPTION
 .lp
 .b Close
@@ -24,11 +25,11 @@ then the blank portal is closed.
 .uh EXAMPLE
 .lp
 .nf
+.ft C
 /* close the portal FOO */
-   close FOO
+close FOO
+.ft
 .fi
 .uh "SEE ALSO"
 .lp
-retrieve(commands),
-fetch(commands),
-move(commands).
+retrieve(commands), fetch(commands), move(commands).
