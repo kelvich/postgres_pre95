@@ -72,6 +72,7 @@ VariableRelationGetNextXid(xid)
     if (! RelationIsValid(VariableRelation))
 	return;
 
+    RelationSetLockForRead(VariableRelation);
     /* ----------------
      *	read the variable page, get the the nextXid field and
      *  release the buffer
@@ -84,8 +85,9 @@ VariableRelationGetNextXid(xid)
 
     var = (VariableRelationContents) BufferGetBlock(buf);
 
-    TransactionIdStore(&(var->nextXidData), xid);
+    RelationUnsetLockForRead(VariableRelation);
 
+    TransactionIdStore(&(var->nextXidData), xid);
     ReleaseBuffer(buf);
 }
 
@@ -142,6 +144,8 @@ VariableRelationPutNextXid(xid)
     if (! RelationIsValid(VariableRelation))
 	return;
 
+    RelationSetLockForWrite(VariableRelation);
+
     /* ----------------
      *	read the variable page, update the nextXid field and
      *  write the page back out to disk.
@@ -157,6 +161,8 @@ VariableRelationPutNextXid(xid)
     TransactionIdStore(xid, &(var->nextXidData));
 
     WriteBuffer(buf);
+
+    RelationUnsetLockForWrite(VariableRelation);
 }
 
 /* --------------------------------
