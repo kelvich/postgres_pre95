@@ -215,7 +215,7 @@ class (Scan) public (Plan) {
 #define	ScanDefs \
 	inherits(Plan); \
 	Index			scanrelid; \
-   	ScanState		scanstate   
+	ScanState		scanstate
  /* private: */
 	ScanDefs;
  /* public: */
