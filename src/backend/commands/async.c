@@ -136,15 +136,15 @@ static int notifyIssued = 0;
 static int initialized = 0;
 static SLList pendingNotifies;      
 
-void Async_NotifyHandler(void);
-void Async_Notify(char *);
-void Async_NotifyAtCommit(void);
-void Async_NotifyAtAbort(void);
-void Async_Listen(char *, int);
-void Async_Unlisten(char *, int);
-void Async_NotifyFrontEnd(void);
-static int AsyncExistsPendingNotify(char *);
-static void ClearPendingNotify(void);
+void Async_NotifyHandler ARGS((void));
+void Async_Notify ARGS((char *));
+void Async_NotifyAtCommit ARGS((void));
+void Async_NotifyAtAbort ARGS((void));
+void Async_Listen ARGS((char *, int));
+void Async_Unlisten ARGS((char *, int));
+void Async_NotifyFrontEnd ARGS((void));
+static int AsyncExistsPendingNotify ARGS((char *));
+static void ClearPendingNotify ARGS((void));
 
 /*
  *--------------------------------------------------------------
@@ -204,7 +204,8 @@ void Async_NotifyHandler()
  *
  *--------------------------------------------------------------
  */
-void Async_Notify(char *relname)
+void Async_Notify(relname)
+    char *relname;
 {
 
   HeapTuple lTuple, rTuple;
@@ -585,7 +586,8 @@ void Async_NotifyFrontEnd()
   CommitTransactionCommand();
 }
 
-static int AsyncExistsPendingNotify(char *relname)
+static int AsyncExistsPendingNotify(relname)
+    char *relname;
 {
   PendingNotifyNode *p;
   
