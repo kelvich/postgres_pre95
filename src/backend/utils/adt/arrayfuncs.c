@@ -17,6 +17,23 @@
 #include "utils/log.h"
 
 /*
+ * Function prototypes - contained in this file as no one outside should
+ * be calling these except the function manager.
+ */
+
+int array_count ARGS((char *string , char delimiter ));
+int system_cache_lookup ARGS((
+    ObjectId
+    element_type ,
+    Boolean input ,
+    int *typlen ,
+    bool *typbyval ,
+    char *typdelim ,
+    ObjectId *typelem ,
+    ObjectId *proc
+));
+
+/*
  *    array_count - counts the number of elements in an array.
  */
 
@@ -201,7 +218,7 @@ ObjectId element_type;
         if (!typbyval) pfree(values[i]);
     }
     pfree(string_save);
-    pfree(values);
+    pfree((char *)values);
     return(retval);
 }
 
@@ -339,7 +356,7 @@ ObjectId element_type;
         pfree(values[i]);
     }
 
-    pfree(values);
+    pfree((char *)values);
 
     return(retval);
 }
