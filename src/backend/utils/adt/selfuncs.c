@@ -449,7 +449,52 @@ char		*constValue;
 int32		constFlag;
 int32		nIndexKeys;
 {
-    return ((float64) NULL);
+
+        float64 result;
+        float64data resultData;
+        HeapTuple atp;
+        int ntuples;
+
+        if (FunctionalSelectivity(nIndexKeys, attributeNumber)) {
+                /*
+                 * Need to call the functions selectivity
+                 * function here.  For now simply use 1/Number of Tuples
+                 * since functions don't currently
+                 * have selectivity functions
+                 */
+
+                atp = SearchSysCacheTuple(RELOID, indexrelid, NULL, NULL, NULL);
+                if (!HeapTupleIsValid(atp)) {
+                        elog(WARN, "hashsel: no index tuple %d", indexrelid);
+                        return(0);
+                }
+                ntuples = ((RelationTupleForm) GETSTRUCT(atp))->reltuples;
+                if (ntuples > 0) {
+                        resultData =  1.0 / (float64data) ntuples;
+                }
+                else {
+                        resultData = (float64data) (1.0 / 100.0);
+                }
+                result = &resultData;
+
+        }
+        else {
+                result = (float64)fmgr(get_oprrest (operatorObjectId),
+                                        (char*)operatorObjectId,
+                                        (char*)indrelid,
+                                        (char*)attributeNumber,
+                                        (char*)constValue,
+                                        (char*)constFlag);
+        }
+
+        if (!PointerIsValid(result))
+                elog(WARN, "Hash Table Selectivity: bad pointer");
+        if (*result < 0.0 || *result > 1.0)
+                elog(WARN, "Hash Table Selectivity: bad value %lf", *result);
+
+        return(result);
+
+
 }
 
 float64
@@ -461,7 +506,50 @@ char		*constValue;
 int32		constFlag;
 int32		nIndexKeys;
 {
-	return((float64) NULL);
+        float64 temp, result;
+        float64data tempData;
+        HeapTuple atp;
+        int npage;
+        int ntuples;
+
+        atp = SearchSysCacheTuple(RELOID, indexrelid, NULL, NULL, NULL);
+        if (!HeapTupleIsValid(atp)) {
+                elog(WARN, "hashsel: no index tuple %d", indexrelid);
+                return(0);
+        }
+        
+
+        if (FunctionalSelectivity(nIndexKeys, attributeNumber)) {
+                /*
+                 * Need to call the functions selectivity
+                 * function here.  For now, use 1/Number of Tuples
+                 * since functions don't currently
+                 * have selectivity functions
+                 */
+
+                ntuples = ((RelationTupleForm) GETSTRUCT(atp))->reltuples;
+                if (ntuples > 0) {
+                        tempData =  1.0 / (float64data) ntuples;
+                }
+                else {
+                        tempData = (float64data) (1.0 / 100.0);
+                }
+                temp = &tempData;
+
+        }
+        else {
+                temp = (float64)fmgr(get_oprrest (operatorObjectId),
+                                        (char*)operatorObjectId,
+                                        (char*)indrelid,
+                                        (char*)attributeNumber,
+                                        (char*)constValue,
+                                        (char*)constFlag);
+        }
+
+        npage = ((RelationTupleForm) GETSTRUCT(atp))->relpages;
+        result = (float64)palloc(sizeof(float64data));
+        *result = *temp * npage;
+        return(result);
 }
 
 
