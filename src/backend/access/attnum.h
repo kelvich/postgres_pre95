@@ -17,6 +17,8 @@
 
 typedef int16	AttributeNumber;
 
+typedef AttributeNumber	*AttributeNumberPtr;
+
 #define InvalidAttributeNumber	0
 
 typedef uint16	AttributeOffset;

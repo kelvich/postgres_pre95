@@ -26,12 +26,14 @@
 #include "buf.h"
 #include "catalog.h"
 #include "catname.h"
+#include "ftup.h"
 #include "heapam.h"
 #include "itup.h"
 #include "log.h"
 #include "parse.h"
 #include "pmod.h"
 #include "rel.h"
+#include "rproc.h"
 #include "strings.h"
 #include "syscache.h"
 #include "tqual.h"
@@ -142,28 +144,6 @@
 #define EXEC_REFUSE 	2
 #define EXEC_ALWAYS 	3
 
-/*
- *      Constants taken from RuleLock.h
- */
-
-#define RuleLockTypeWrite	0		/* Rule lock Write 0 */
-#define RuleLockTypeRead1	1		/* Rule lock Write 1 */
-#define RuleLockTypeRead2	2		/* Rule Lock Read 2 */
-#define RuleLockTypeRead3	3		/* Rule Lock Read 3 */
-
-/*
- *      RuleLockIntermediate.ruletype is one of the following
- */
-
-#define RuleTypeRetrieve	0		/* Retrieve rule */
-#define RuleTypeReplace		1		/* Replace rule */
-#define RuleTypeAppend		2		/* Append rule */
-#define RuleTypeDelete		3		/* Delete rule */
-#define RuleTypeRefuseRetrieve	4		/* Refuse retrieve rule */
-#define RuleTypeRefuseReplace	5		/* Refuse replace rule */
-#define RuleTypeRefuseAppend	6		/* Refuse append rule */
-#define RuleTypeRefuseDelete	7		/* Refuse delete rule */
-
 #endif NOTYET
 
 /* ----------------------------------------------------------------
@@ -264,65 +244,6 @@
 #define ExecIsHash(node)	IsA(node,Hash)
 
 
-#ifdef NOTYET
-/* ----------------
- *   	index scan accessor macros
- *
- * 	IGetRelID(node)		    get the id of the relation to be scanned
- *	IGetRelDesc(node)	    get the relation descriptor from relation id
- *	IGetScanDesc(node)	    get the scan descriptor from relation id
- *	IGetQual(node)		    get the qualification clause
- *	IGetTarget(node)	    get the target list
- *	IGetRuleFlag(node)	    get the flag indicating rule activation
- *	ISetRuleFlag(node, value)   set the flag indicating rule activation
- *	IGetRuleDesc(node)	    get rule descriptor
- *	ISetRuleDesc(node, value)   set rule descriptor
- *	IGetIndices(node)	    get indices
- *	IGetIndexPtr(node)	    get index pointer
- *	ISetIndexPtr(node, value)   set index pointer
- *	IGetIndexQual(node)	    get index qualifications
- * ----------------
- */
-
-#define IGetRelID(node)		get_scanrelid(node)
-#define IGetRelDesc(node) 	ExecGetRelDesc(IGetRelID(node))
-#define IGetScanDesc(node) 	ExecGetScanDesc(IGetRelID(node))
-#define IGetQual(node)		get_qpqual(node)
-#define IGetTarget(node)	get_qptargetlist(node)
-
-#define IGetRuleFlag(node) \
-    ExecGetStates(EXEC_INDEXSCAN_RuleFlag, get_states(node))
-     
-#define ISetRuleFlag(node, value) \
-    ExecSetStates(EXEC_INDEXSCAN_RuleFlag, get_states(node)), value)
-
-#define IGetRuleDesc(node) \
-    ExecGetStates(EXEC_INDEXSCAN_RuleDesc, get_states(node))
-
-#define ISetRuleDesc(node, value) \
-    ExecSetStates(EXEC_INDEXSCAN_RuleDesc, get_states(node), value)
-
-#define IGetIndices(node)	get_indxid(node)
-
-#define IGetIndexPtr(node) \
-    ExecGetStates(EXEC_INDEXSCAN_IndexPtr, get_states(node))
-
-#define ISetIndexPtr(node, value) \
-    ExecSetStates(EXEC_INDEXSCAN_IndexPtr, get_states(node), value)
-
-#define IGetIndexQual(node) \
-    getindxqual(node)
-
-/*
- * XXX automatic conversion failed on this one but we might not need it
- * -cim 8/4/89
- *
- * get the scan descriptor from index id = (relDesc, scanDesc)
- *
- * #define IGetIScanDesc,indexID (),ExecGetScanDesc (indexID)
- */
-#endif NOTYET
-
 
 #ifdef NOTYET
 /* ----------------
@@ -403,6 +324,7 @@ extern RuleLock		aminsert();
 extern RuleLock		amdelete();
 extern RuleLock		amreplace();
 
+extern GeneralInsertIndexResult   AMinsert();
 extern GeneralRetrieveIndexResult AMgettuple();
 extern HeapTuple		  RelationGetHeapTupleByItemPointer();
 
@@ -439,6 +361,63 @@ extern Const		ConstFalse;
  */
 
 #ifdef TIMETODIE
+/* ----------------
+ *   	index scan accessor macros
+ *
+ * 	IGetRelID(node)		    get the id of the relation to be scanned
+ *	IGetRelDesc(node)	    get the relation descriptor from relation id
+ *	IGetScanDesc(node)	    get the scan descriptor from relation id
+ *	IGetQual(node)		    get the qualification clause
+ *	IGetTarget(node)	    get the target list
+ *	IGetRuleFlag(node)	    get the flag indicating rule activation
+ *	ISetRuleFlag(node, value)   set the flag indicating rule activation
+ *	IGetRuleDesc(node)	    get rule descriptor
+ *	ISetRuleDesc(node, value)   set rule descriptor
+ *	IGetIndices(node)	    get indices
+ *	IGetIndexPtr(node)	    get index pointer
+ *	ISetIndexPtr(node, value)   set index pointer
+ *	IGetIndexQual(node)	    get index qualifications
+ * ----------------
+ */
+
+#define IGetRelID(node)		get_scanrelid(node)
+#define IGetRelDesc(node) 	ExecGetRelDesc(IGetRelID(node))
+#define IGetScanDesc(node) 	ExecGetScanDesc(IGetRelID(node))
+#define IGetQual(node)		get_qpqual(node)
+#define IGetTarget(node)	get_qptargetlist(node)
+
+#define IGetRuleFlag(node) \
+    ExecGetStates(EXEC_INDEXSCAN_RuleFlag, get_states(node))
+     
+#define ISetRuleFlag(node, value) \
+    ExecSetStates(EXEC_INDEXSCAN_RuleFlag, get_states(node)), value)
+
+#define IGetRuleDesc(node) \
+    ExecGetStates(EXEC_INDEXSCAN_RuleDesc, get_states(node))
+
+#define ISetRuleDesc(node, value) \
+    ExecSetStates(EXEC_INDEXSCAN_RuleDesc, get_states(node), value)
+
+#define IGetIndices(node)	get_indxid(node)
+
+#define IGetIndexPtr(node) \
+    ExecGetStates(EXEC_INDEXSCAN_IndexPtr, get_states(node))
+
+#define ISetIndexPtr(node, value) \
+    ExecSetStates(EXEC_INDEXSCAN_IndexPtr, get_states(node), value)
+
+#define IGetIndexQual(node) \
+    getindxqual(node)
+
+/*
+ * XXX automatic conversion failed on this one but we might not need it
+ * -cim 8/4/89
+ *
+ * get the scan descriptor from index id = (relDesc, scanDesc)
+ *
+ * #define IGetIScanDesc,indexID (),ExecGetScanDesc (indexID)
+ */
+
 
 /* ----------------
  *	append node macros

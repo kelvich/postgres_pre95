@@ -38,12 +38,29 @@ extern bool	EqualEState();
 typedef int	*IntPtr;
 
 /* ----------------------------------------------------------------
+ *    IndexInfo information
+ *
+ *	NumKeyAttributes	number of key attributes
+ *	KeyAttributeNumbers	array of attribute numbers used as keys
+ * ----------------------------------------------------------------
+ */
+
+class (IndexInfo) public (Node) {
+    inherits(Node);
+    int			ii_NumKeyAttributes;
+    AttributeNumberPtr	ii_KeyAttributeNumbers;
+};
+
+typedef IndexInfo	*IndexInfoPtr;
+
+/* ----------------------------------------------------------------
  *    RelationInfo information
  *
  *	RangeTableIndex		result relation's range table index
  *	RelationDesc		relation descriptor for result relation
  *	NumIndices		number indices existing on result relation
  *	IndexRelationDescs	array of relation descriptors for indices
+ *	IndexInfoPtr		array
  * ----------------------------------------------------------------
  */
 
@@ -53,6 +70,7 @@ class (RelationInfo) public (Node) {
     Relation		ri_RelationDesc;
     int			ri_NumIndices;
     RelationPtr		ri_IndexRelationDescs;
+    IndexInfoPtr	ri_IndexRelationInfo;
 };
 
 /* ----------------------------------------------------------------
@@ -97,22 +115,26 @@ class (EState) public (Node) {
 /* ----------------------------------------------------------------
  *   StateNode information
  *
- *	OuterTuple	points to the current outer tuple
- *  	TupType   	attr type info of tuples from this node
- *   	TupValue   	array to store attr values for 'formtuple'
- *   	Level      	level of the outer subplan
- *	ScanType	type of tuples in relation being scanned
+ *	OuterTuple	   points to the current outer tuple
+ *  	TupType   	   attr type info of tuples from this node
+ *   	TupValue   	   array to store attr values for 'formtuple'
+ *   	Level      	   level of the outer subplan
+ *	ScanType	   type of tuples in relation being scanned
+ *	ScanAttributes	   attribute numbers of interest in this tuple
+ *	NumScanAttributes  number of attributes of interest..
  * ----------------------------------------------------------------
  */
 
 class (StateNode) public (Node) {
 #define StateNodeDefs \
       inherits(Node); \
-      List 	   sn_OuterTuple; \
-      AttributePtr sn_TupType; \
-      Pointer 	   sn_TupValue; \
-      int	   sn_Level; \
-      AttributePtr sn_ScanType      
+      List 	   	  sn_OuterTuple; \
+      AttributePtr 	  sn_TupType; \
+      Pointer 	   	  sn_TupValue; \
+      int	   	  sn_Level; \
+      AttributePtr 	  sn_ScanType; \
+      AttributeNumberPtr  sn_ScanAttributes; \
+      int		  sn_NumScanAttributes
   /* private: */
       StateNodeDefs;
   /* public: */
@@ -125,11 +147,13 @@ class (StateNode) public (Node) {
  *
  *   StateNode information
  *
- *	OuterTuple	points to the current outer tuple
- *  	TupType   	attr type info of tuples from this node
- *   	TupValue   	array to store attr values for 'formtuple'
- *   	Level      	level of the outer subplan
- *	ScanType	type of tuples in relation being scanned
+ *	OuterTuple	   points to the current outer tuple
+ *  	TupType   	   attr type info of tuples from this node
+ *   	TupValue   	   array to store attr values for 'formtuple'
+ *   	Level      	   level of the outer subplan
+ *	ScanType	   type of tuples in relation being scanned
+ *	ScanAttributes	   attribute numbers of interest in this tuple
+ *	NumScanAttributes  number of attributes of interest..
  * ----------------------------------------------------------------
  */
 
@@ -169,11 +193,13 @@ class (AppendState) public (Node) {
  *
  *   StateNode information
  *
- *	OuterTuple	points to the current outer tuple
- *  	TupType   	attr type info of tuples from this node
- *   	TupValue   	array to store attr values for 'formtuple'
- *   	Level      	level of the outer subplan
- *	ScanType	type of tuples in relation being scanned
+ *	OuterTuple	   points to the current outer tuple
+ *  	TupType   	   attr type info of tuples from this node
+ *   	TupValue   	   array to store attr values for 'formtuple'
+ *   	Level      	   level of the outer subplan
+ *	ScanType	   type of tuples in relation being scanned
+ *	ScanAttributes	   attribute numbers of interest in this tuple
+ *	NumScanAttributes  number of attributes of interest..
  * ----------------------------------------------------------------
  */
 
@@ -191,51 +217,58 @@ class (CommonState) public (StateNode) {
 /* ----------------------------------------------------------------
  *    ScanState information
  *
- *   	RuleFlag	whether a rule is activated
- *   	RuleDesc	rule desc returned by Tuple Rule Mgr
- *   	ProcOuterFlag	need to process outer subtree
- *   	OldRelId	need for compare for joins if result relid.
+ *   	ProcOuterFlag	   need to process outer subtree
+ *   	OldRelId	   need for compare for joins if result relid.
  *
  *   CommonState information
  *
- *   	PortalFlag	Set to enable portals to work.
- *	currentRelation relation being scanned
- *      currentScanDesc current scan descriptor for scan
+ *   	PortalFlag	   Set to enable portals to work.
+ *	currentRelation    relation being scanned
+ *      currentScanDesc    current scan descriptor for scan
  *
  *   StateNode information
  *
- *	OuterTuple	points to the current outer tuple
- *  	TupType   	attr type info of tuples from this node
- *   	TupValue   	array to store attr values for 'formtuple'
- *   	Level      	level of the outer subplan
- *	ScanType	type of tuples in relation being scanned
- *
+ *	OuterTuple	   points to the current outer tuple
+ *  	TupType   	   attr type info of tuples from this node
+ *   	TupValue   	   array to store attr values for 'formtuple'
+ *   	Level      	   level of the left subplan
+ *	ScanType	   type of tuples in relation being scanned
+ *	ScanAttributes	   attribute numbers of interest in this tuple
+ *	NumScanAttributes  number of attributes of interest..
  * ----------------------------------------------------------------
  */
 
 class (ScanState) public (CommonState) {
       inherits(CommonState);
   /* private: */
-      bool 		ss_RuleFlag;
-      List 		ss_RuleDesc;
-      bool 		ss_ProcLeftFlag;
-      Index 		ss_OldRelId;
+      bool 			ss_ProcLeftFlag;
+      Index 			ss_OldRelId;
   /* public: */
 };
 
 /* ----------------------------------------------------------------
  *    IndexScanState information
  *
- *   	IndexPtr		current index in use
- *	NumIndices		number of indices in this scan
- *   	ScanKeys		Skey structures to scan index rels
- *   	NumScanKeys		array of no of keys in each Skey struct
- *	RelationDescs		ptr to array of relation descriptors
- *	ScanDescs		ptr to array of scan descriptors
+ *   	IndexPtr	   current index in use
+ *	NumIndices	   number of indices in this scan
+ *   	ScanKeys	   Skey structures to scan index rels
+ *   	NumScanKeys	   array of no of keys in each Skey struct
+ *	RelationDescs	   ptr to array of relation descriptors
+ *	ScanDescs	   ptr to array of scan descriptors
+ *
+ *   StateNode information
+ *
+ *	OuterTuple	   points to the current outer tuple
+ *  	TupType   	   attr type info of tuples from this node
+ *   	TupValue   	   array to store attr values for 'formtuple'
+ *   	Level      	   level of the left subplan
+ *	ScanType	   type of tuples in relation being scanned
+ *	ScanAttributes	   attribute numbers of interest in this tuple
+ *	NumScanAttributes  number of attributes of interest..
  * ----------------------------------------------------------------
  */
-class (IndexScanState) public (Node) {
-    inherits(Node);
+class (IndexScanState) public (StateNode) {
+    inherits(StateNode);
     int		     	iss_NumIndices;
     int			iss_IndexPtr;
     ScanKeyPtr		iss_ScanKeys;
@@ -247,18 +280,19 @@ class (IndexScanState) public (Node) {
 /* ----------------------------------------------------------------
  *    NestLoopState information
  *
- *   	PortalFlag	Set to enable portals to work.
- *	currentRelation relation being scanned
- *      currentScanDesc current scan descriptor for scan
+ *   	PortalFlag	   Set to enable portals to work.
+ *	currentRelation    relation being scanned
+ *      currentScanDesc    current scan descriptor for scan
  *
  *   StateNode information
  *
- *	OuterTuple	points to the current outer tuple
- *  	TupType   	attr type info of tuples from this node
- *   	TupValue   	array to store attr values for 'formtuple'
- *   	Level      	level of the left subplan
- *	ScanType	type of tuples in relation being scanned
- *
+ *	OuterTuple	   points to the current outer tuple
+ *  	TupType   	   attr type info of tuples from this node
+ *   	TupValue   	   array to store attr values for 'formtuple'
+ *   	Level      	   level of the left subplan
+ *	ScanType	   type of tuples in relation being scanned
+ *	ScanAttributes	   attribute numbers of interest in this tuple
+ *	NumScanAttributes  number of attributes of interest..
  * ----------------------------------------------------------------
  */
 
@@ -271,26 +305,27 @@ class (NestLoopState) public (CommonState) {
 /* ----------------------------------------------------------------
  *    MergeJoinState information
  *
- *   	OSortopI      	outerKey1 sortOp innerKey1 ...
- *  	ISortopO      	innerkey1 sortOp outerkey1 ...
- *   	MarkFlag      	'true' is inner and outer relations marked.
- *   	FrwdMarkPos   	scan mark for forward scan
- *   	BkwdMarkPos	scan mark for backward scan
+ *   	OSortopI      	   outerKey1 sortOp innerKey1 ...
+ *  	ISortopO      	   innerkey1 sortOp outerkey1 ...
+ *   	MarkFlag      	   'true' is inner and outer relations marked.
+ *   	FrwdMarkPos   	   scan mark for forward scan
+ *   	BkwdMarkPos	   scan mark for backward scan
  *
  *   CommonState information
  *
- *   	PortalFlag	Set to enable portals to work.
- *	currentRelation relation being scanned
- *      currentScanDesc current scan descriptor for scan
+ *   	PortalFlag	   Set to enable portals to work.
+ *	currentRelation    relation being scanned
+ *      currentScanDesc    current scan descriptor for scan
  *
  *   StateNode information
  *
- *	OuterTuple	points to the current outer tuple
- *  	TupType   	attr type info of tuples from this node
- *   	TupValue   	array to store attr values for 'formtuple'
- *   	Level      	level of the left subplan
- *	ScanType	type of tuples in relation being scanned
- *
+ *	OuterTuple	   points to the current outer tuple
+ *  	TupType   	   attr type info of tuples from this node
+ *   	TupValue   	   array to store attr values for 'formtuple'
+ *   	Level      	   level of the left subplan
+ *	ScanType	   type of tuples in relation being scanned
+ *	ScanAttributes	   attribute numbers of interest in this tuple
+ *	NumScanAttributes  number of attributes of interest..
  * ----------------------------------------------------------------
  */
 
@@ -325,15 +360,17 @@ class (SortState) public (Node) {
 /* ----------------------------------------------------------------
  *    ExistentialState information
  *
- *	SatState	See if we have satisfied the left tree.
+ *	SatState	   See if we have satisfied the left tree.
  *
  *   StateNode information
  *
- *	OuterTuple	points to the current outer tuple
- *  	TupType   	attr type info of tuples from this node
- *   	TupValue   	array to store attr values for 'formtuple'
- *   	Level      	level of the left subplan
- *	ScanType	type of tuples in relation being scanned
+ *	OuterTuple	   points to the current outer tuple
+ *  	TupType   	   attr type info of tuples from this node
+ *   	TupValue   	   array to store attr values for 'formtuple'
+ *   	Level      	   level of the left subplan
+ *	ScanType	   type of tuples in relation being scanned
+ *	ScanAttributes	   attribute numbers of interest in this tuple
+ *	NumScanAttributes  number of attributes of interest..
  * ----------------------------------------------------------------
  */
 class (ExistentialState) public (StateNode) {
