@@ -1286,4 +1286,25 @@ static int isinf(x)
 }
 #endif /* PORTNAME_alpha */
 
+#if defined(PORTNAME_sparc_solaris)
+#include <ieeefp.h>
+static int
+isinf(d)
+	double d;
+{
+	fpclass_t	type = fpclass(d);
+	switch (type) {
+	case FP_SNAN:
+	case FP_QNAN:
+	case FP_NINF:
+	case FP_PINF:
+	    return (1);
+	default:
+	    break;
+	}
+				       
+	return (0);
+}
+#endif /* PORTNAME_sparc_solaris */
+  
 #endif /* NEED_ISINF */
