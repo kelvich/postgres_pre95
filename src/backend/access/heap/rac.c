@@ -52,20 +52,27 @@ HeapTuple tuple;
  *
  * A rule lock can be either an ItemPointer to the actual data in a
  * disk page or a RuleLock, i.e. a pointer to a main memory structure.
+ *
  * This routine always return the main memory representation (if necessary
  * it makes the conversion)
  *
- * NOTE: When we save the tuple on disk, if the rule lock is empty
+ * NOTE #1: When we save the tuple on disk, if the rule lock is empty
  * (i.e. a "(numOfLocks: 0)"::lock, which must not be confused with
  * an 'InvalidRuleLock') then we store an InvalidItemPointer.
  * So, if the disk representation of the tuple's lock is such an
  * InvalidItemPointer we have to create & return an empty lock.
+ *
+ * NOTE #2: We ALWAYS return a COPY of the locks. That means we
+ * return a freshly palloced new lock, that can and probably MUST
+ * be pfreed by the caller (to avoid memory leaks).
  */
 RuleLock
 HeapTupleGetRuleLock(tuple, buffer)
 	HeapTuple	tuple;
 	Buffer		buffer;
 {
+	register RuleLock l;
+
 	Assert(HeapTupleIsValid(tuple));
 
 	/*
@@ -81,7 +88,12 @@ HeapTupleGetRuleLock(tuple, buffer)
 	 * if this is a main memory lock, then return it.
 	 */
         if (tuple->t_locktype == MEM_RULE_LOCK) {
-            return(tuple->t_lock.l_lock);
+            l = tuple->t_lock.l_lock;
+	    if (l==InvalidRuleLock) {
+		elog(WARN, "HeapTupleGetRuleLock: Invalid Rule Lock!");
+	    } else {
+		return(prs2CopyLocks(l));
+	    }
         }
 
 	/*
@@ -119,8 +131,66 @@ HeapTupleGetRuleLock(tuple, buffer)
 	returnItem = (Item) palloc(itemId->lp_len);	/* XXX */
 	bcopy(item, returnItem, (int)itemId->lp_len);	/* XXX Clib-copy */
 	BufferPut(buffer, L_UNPIN);
-	return (LintCast(RuleLock, returnItem));
+	l = LintCast(RuleLock, returnItem);
+	/*
+	 * `l' is a pointer to data in a buffer page.
+	 * return a copy of it.
+	 */
+	return(prs2CopyLocks(l));
 }
+}
+
+/*----------------------------------------------------------------------------
+ * HeapTupleHasEmptyRuleLock
+ *
+ * return true if the given tuple has an empty rule lock.
+ * We can always use 'HeapTupleGetRuleLock', test the locks, and then
+ * pfreed it, but this routine avoids the calls to 'palloc'
+ * and 'pfree' thus making postgres 153.34 % faster....
+ *----------------------------------------------------------------------------
+ */
+bool
+HeapTupleHasEmptyRuleLock(tuple, buffer)
+	HeapTuple	tuple;
+	Buffer		buffer;
+{
+	register RuleLock l;
+
+	Assert(HeapTupleIsValid(tuple));
+
+	/*
+	 * sanity check
+	 */
+        if (tuple->t_locktype != MEM_RULE_LOCK &&
+            tuple->t_locktype != DISK_RULE_LOCK) {
+            elog(WARN,"HeapTupleHasEmptyRuleLock: locktype = '%c',(%d)\n",
+                tuple->t_locktype, tuple->t_locktype);
+        }
+
+	/*
+	 * is this is a main memory lock ?
+	 */
+        if (tuple->t_locktype == MEM_RULE_LOCK) {
+            l = tuple->t_lock.l_lock;
+	    if (l==InvalidRuleLock) {
+		elog(WARN, "HeapTupleHasEmptyRuleLock: Invalid Rule Lock!");
+	    } else {
+		if (prs2RuleLockIsEmpty(l))
+		    return(true);
+		else
+		    return(false);
+	    }
+        }
+
+	/*
+	 * no, it is a disk lock. Check if it the item pointer is
+	 * invalid and if yes, return true (empty lock), otherwise
+	 * return false.
+	 */
+	if (!ItemPointerIsValid(&tuple->t_lock.l_ltid))
+	    return (true);
+	else
+	    return(false);
 }
 
 /*------------------------------------------------------------
@@ -289,42 +359,3 @@ HeapTupleStoreRuleLock(tuple, buffer)
 	/* RelationInvalidateHeapTuple(relation, tuple); */
 
 }
-
-
-#ifdef OBSOLETE_BEYOND_BELIEF
-/*=====================================================================
- * HeapStoreRuleLock used to be a little bit different:
- * It was *replacing* the lock of a tuple with a new one,
- * so it was first trying to free the disk space occupied by the first
- * lock. This probably screws time range queries involving rules
- * though..
- *
- * Anyway, there was some obscure code for "disk" rule lock removal
- * and as probably its writer (M. Hirohama???) is far away, and
- * nobody ever will want to duplicate his effort I decided to keep this
- * piece of code just in case we might need it again (God forbids!)
- *
- * sp.
- *=====================================================================
- */
-
-        if (tuple->t_locktype == DISK_RULE_LOCK &&
-            ItemPointerIsValid(&tuple->t_lock.l_ltid)) {
-		/* XXX Is the physical removal of the lock safe? */
-
-		if (ItemPointerGetBlockNumber(&tuple->t_lock.l_ltid) ==
-				BufferGetBlockNumber(buffer)) {
-
-			PageRemoveItem(page,
-				PageGetItemId(page,
-					ItemPointerSimpleGetOffsetIndex(
-						&tuple->t_lock.l_ltid)));
-		} else {
-			;
-			/*
-			 * XXX for now, let the vacuum demon remove locks
-			 * on other pages
-			 */
-		}
-	}
-#endif OBSOLETE_BEYOND_BELIEF
