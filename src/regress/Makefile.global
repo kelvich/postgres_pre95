@@ -1,7 +1,8 @@
 #
 # $Header$
 #
-CFLAGS+= -I${.CURDIR}/../../backend
+CFLAGS+= -I${.CURDIR}/../../backend \
+	-I${.CURDIR}/../../backend/port/${PORTNAME}
 
 #
 # Insure when calling shell scripts that we set the search path
