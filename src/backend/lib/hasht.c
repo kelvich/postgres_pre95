@@ -26,16 +26,20 @@ HTAB *hashtable;
 void (*function)();
 int arg;
 {
-    int *hashent;
-    int *data;
+    long *hashent;
+    long *data;
     int keysize;
 
     keysize = hashtable->hctl->keysize;
     (void)hash_seq((HTAB *)NULL);
-    while ((hashent = hash_seq(hashtable)) != (int*)TRUE) {
+    while ((hashent = hash_seq(hashtable)) != (long *) TRUE) {
 	if (hashent == NULL)
 	    elog(FATAL, "error in HashTableWalk.");
-	data = (int*)LONGALIGN((char*)hashent + keysize);
+	/* 
+	 * XXX the corresponding hash table insertion does NOT
+	 * LONGALIGN -- make sure the keysize is ok
+	 */
+	data = (long *) LONGALIGN((char*) hashent + keysize);
 	(*function)(data, arg);
     }
 }
