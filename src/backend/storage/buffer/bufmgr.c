@@ -131,6 +131,29 @@ int ReadBufferCount;
 int BufferHitCount;
 int BufferFlushCount;
 
+/* ---------------------------------------------------
+ * RelationGetBufferWithBuffer
+ *	see if the given buffer is what we want
+ *	if yes, we don't need to bother the buffer manager
+ * ---------------------------------------------------
+ */
+Buffer
+RelationGetBufferWithBuffer(relation, blockNumber, buffer)
+Relation relation;
+BlockNumber blockNumber;
+Buffer buffer;
+{
+    BufferDesc *bufHdr;
+
+    if (BufferIsValid(buffer)) {
+        bufHdr = BufferGetBufferDescriptor(buffer);
+	if (bufHdr->tag.blockNum == blockNumber &&
+	    bufHdr->tag.relId.relId == relation->rd_id)
+	    return buffer;
+      }
+    return(ReadBuffer(relation,blockNumber));
+}
+
 /*
  * ReadBuffer -- returns a buffer containing the requested
  *	block of the requested relation.  If the blknum
@@ -144,12 +167,33 @@ int BufferFlushCount;
  *	opened already.
  */
 
+extern int ShowPinTrace;
+#undef ReadBuffer
+
 Buffer
 ReadBuffer(reln, blockNum)
 Relation	reln;
 BlockNumber	blockNum;
 {
     return ReadBufferWithBufferLock(reln, blockNum, false);
+}
+
+Buffer
+ReadBuffer_Debug(file, line, reln, blockNum)
+String file;
+int line;
+Relation reln;
+BlockNumber blockNum;
+{
+    Buffer buffer;
+
+    buffer = ReadBufferWithBufferLock(reln, blockNum, false);
+    if (ShowPinTrace) {
+	BufferDesc *buf;
+	buf = BufferGetBufferDescriptor(buffer);
+	fprintf(stderr, "PIN(RD) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
+      }
+    return buffer;
 }
 
 /*
@@ -418,6 +462,9 @@ bool		bufferLockHeld;
  * Side Effects:
  *    	Pin count is decremented.
  */
+
+#undef WriteBuffer
+
 WriteBuffer(buffer)
 Buffer	buffer;
 {
@@ -440,6 +487,19 @@ Buffer	buffer;
   }
   return(TRUE);
 } 
+
+WriteBuffer_Debug(file, line, buffer)
+String file;
+int line;
+Buffer buffer;
+{
+    WriteBuffer(buffer);
+    if (ShowPinTrace) {
+	BufferDesc *buf;
+	buf = BufferGetBufferDescriptor(buffer);
+	fprintf(stderr, "UNPIN(WR) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
+      }
+}
 
 /*
  *  DirtyBufferCopy() -- Copy a given dirty buffer to the requested
@@ -607,37 +667,7 @@ Buffer	buffer;
 }
 
 
-/*
- * ReleaseBuffer -- remove the pin on a buffer without
- * 	marking it dirty.
- *
- */
-
-ReleaseBuffer(buffer)
-Buffer	buffer;
-{
-  BufferDesc	*bufHdr;
-
-  if (BAD_BUFFER_ID(buffer)) {
-    return(STATUS_ERROR);
-  }
-  bufHdr = BufferGetBufferDescriptor(buffer);
-
-  Assert(PrivateRefCount[buffer - 1] > 0);
-  PrivateRefCount[buffer - 1]--;
-  if (PrivateRefCount[buffer - 1] == 0) {
-      SpinAcquire(BufMgrLock);
-      bufHdr->refcount--;
-      if (bufHdr->refcount == 0) {
-	  AddBufferToFreelist(bufHdr);
-	  bufHdr->flags |= BM_FREE;
-      }
-      SpinRelease(BufMgrLock);
-  }
-
-  return(STATUS_OK);
-}
-
+#undef ReleaseAndReadBuffer
 /*
  * ReleaseAndReadBuffer -- combine ReleaseBuffer() and ReadBuffer()
  * 	so that only one semop needs to be called.
@@ -975,6 +1005,7 @@ int StableMainMemoryFlag;
      */
     for (i=1; i<=NBuffers; i++) {
         if (BufferIsValid(i)) {
+	    elog(DEBUG, "BUFFER LEAK!!! send mail to wei.");
             while(PrivateRefCount[i - 1] > 0) {
                 ReleaseBuffer(i);
 	     }
@@ -1086,101 +1117,6 @@ BufferDescriptorGetBuffer(descriptor)
     return(1+descriptor - BufferDescriptors);
 }
 
-void
-IncrBufferRefCount(buffer)
-Buffer buffer;
-{
-    PrivateRefCount[buffer - 1]++;
-}
-
-/**************************************************
-  BufferPut 
-  XXX -  this is is old cruft rehacked so it will
-  coninue to behave in a predictably buggy version.
-  Done under extreme protest. -jeff goh
-
-  Remove ASAP.
-
-  Unfortunately, this function is called everywhere,
-  so it still gets preversed from the past. -- Wei
- **************************************************/
-
-ReturnStatus
-BufferPut(buffer,lockLevel)
-    Buffer buffer;
-    BufFlags lockLevel;
-    
-{
-    Assert(BufferIsValid(buffer));
-    
-    if (lockLevel & L_UN) {
-        switch(lockLevel & L_LOCKS) {
-        case L_PIN:
-#ifndef NO_BUFFERISVALID
-            if (!BufferIsValid(buffer))
-                elog(WARN,"BufferPut called with invalid buffer");
-#endif
-            ReleaseBuffer(buffer);
-            return(0);
-            
-        case L_LOCKS:
-#ifndef NO_BUFFERISVALID
-            if (!BufferIsValid(buffer))
-                elog(WARN,"BufferPut called with invalid buffer");
-#endif
-            IncrBufferRefCount(buffer);
-            WriteBuffer(buffer);
-            return(0);
-            
-        default:
-            if (lockLevel & L_WRITE) 
-                WriteBuffer(buffer);
-            else
-                ReleaseBuffer(buffer);
-            return(0);
-        }
-    }
-    
-    switch(lockLevel & L_LOCKS) {
-    case L_SH:
-        if (lockLevel & L_WRITE) {
-            IncrBufferRefCount(buffer);
-            WriteBuffer(buffer);
-        }
-        break;
-    case L_EX:
-        if (lockLevel & L_WRITE) {
-            IncrBufferRefCount(buffer);
-            WriteBuffer(buffer);
-        }
-        break;
-    case L_UP:
-        if (lockLevel & L_WRITE) {
-            IncrBufferRefCount(buffer);
-            WriteBuffer(buffer);
-        }
-        break;
-    case L_PIN:
-#ifndef NO_BUFFERISVALID
-        if (!BufferIsValid(buffer))
-          elog(WARN,"BufferPut: trying to pin invalid buffer");
-#endif
-        if (lockLevel & L_WRITE) {
-            IncrBufferRefCount(buffer);
-            WriteBuffer(buffer);
-        }
-        break;
-    case L_DUP:
-        Assert(BufferIsValid(buffer));
-        IncrBufferRefCount(buffer);
-        break;
-    default:
-        break;
-    }
-
-    return(0);
-}
-
 BufferReplace(bufHdr)
     BufferDesc 	*bufHdr;
 {
@@ -1219,48 +1155,6 @@ BufferReplace(bufHdr)
 
     return (TRUE);
 }
-
-/**************************************************
- * RelationGetBuffer --
- *      Gets the buffer number of a given disk block.
- *
- *      Returns InvalidBuffer on error.  Currently calls elog() instead.
- **************************************************
- */
-
-Buffer
-RelationGetBuffer(relation, blockNumber, lockLevel)
-     Relation    relation;              /* relation */
-     BlockNumber blockNumber;   /* block number */
-     BufferLock  lockLevel;             /* lock level */
-
-{
-    return(ReadBuffer(relation,blockNumber));
-}
-
-/* ---------------------------------------------------
- * RelationGetBufferWithBuffer
- *	see if the given buffer is what we want
- *	if yes, we don't need to bother the buffer manager
- * ---------------------------------------------------
- */
-Buffer
-RelationGetBufferWithBuffer(relation, blockNumber, buffer)
-Relation relation;
-BlockNumber blockNumber;
-Buffer buffer;
-{
-    BufferDesc *bufHdr;
-
-    if (BufferIsValid(buffer)) {
-        bufHdr = BufferGetBufferDescriptor(buffer);
-	if (bufHdr->tag.blockNum == blockNumber &&
-	    bufHdr->tag.relId.relId == relation->rd_id)
-	    return buffer;
-      }
-    return(ReadBuffer(relation,blockNumber));
-}
-
 
 /**************************************************
   BufferIsDirty
@@ -1471,3 +1365,95 @@ BufferPoolBlowaway()
     }
 }
 
+#undef IncrBufferRefCount
+#undef ReleaseBuffer
+
+IncrBufferRefCount(buffer)
+Buffer buffer;
+{
+    PrivateRefCount[buffer - 1]++;
+}
+
+/*
+ * ReleaseBuffer -- remove the pin on a buffer without
+ * 	marking it dirty.
+ *
+ */
+
+ReleaseBuffer(buffer)
+Buffer	buffer;
+{
+  BufferDesc	*bufHdr;
+
+  if (BAD_BUFFER_ID(buffer)) {
+    return(STATUS_ERROR);
+  }
+  bufHdr = BufferGetBufferDescriptor(buffer);
+
+  Assert(PrivateRefCount[buffer - 1] > 0);
+  PrivateRefCount[buffer - 1]--;
+  if (PrivateRefCount[buffer - 1] == 0) {
+      SpinAcquire(BufMgrLock);
+      bufHdr->refcount--;
+      if (bufHdr->refcount == 0) {
+	  AddBufferToFreelist(bufHdr);
+	  bufHdr->flags |= BM_FREE;
+      }
+      SpinRelease(BufMgrLock);
+  }
+
+  return(STATUS_OK);
+}
+
+int ShowPinTrace = 0;
+
+IncrBufferRefCount_Debug(file, line, buffer)
+String file;
+int line;
+Buffer buffer;
+{
+    IncrBufferRefCount(buffer);
+    if (ShowPinTrace) {
+        BufferDesc *buf;
+        buf = BufferGetBufferDescriptor(buffer);
+        fprintf(stderr, "PIN(Incr) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
+      }
+}
+
+ReleaseBuffer_Debug(file, line, buffer)
+String file;
+int line;
+Buffer buffer;
+{
+    ReleaseBuffer(buffer);
+    if (ShowPinTrace) {
+        BufferDesc *buf;
+	buf = BufferGetBufferDescriptor(buffer);
+        fprintf(stderr, "UNPIN(Rel) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
+      }
+}
+
+ReleaseAndReadBuffer_Debug(file, line, buffer, relation, blockNum)
+String file;
+int line;
+Buffer buffer;
+Relation relation;
+BlockNumber blockNum;
+{
+    bool bufferValid;
+    Buffer b;
+
+    bufferValid = BufferIsValid(buffer);
+    b = ReleaseAndReadBuffer(buffer, relation, blockNum);
+    if (ShowPinTrace && bufferValid) {
+	BufferDesc *buf;
+	buf = BufferGetBufferDescriptor(buffer);
+        fprintf(stderr, "UNPIN(Rel&Rd) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
+      }
+    if (ShowPinTrace) {
+	BufferDesc *buf;
+	buf = BufferGetBufferDescriptor(b);
+        fprintf(stderr, "PIN(Rel&Rd) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", b, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
+      }
+    return b;
+}

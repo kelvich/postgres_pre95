@@ -13,6 +13,7 @@
  * Sync: all routines in this file assume that the buffer
  * 	semaphore has been acquired by the caller.
  */
+#include <stdio.h>
 #include "storage/buf_internals.h"
 #include "storage/spin.h"
 #include "utils/log.h"
@@ -61,6 +62,8 @@ BufferDesc *bf;
   BufferDescriptors[bf->freePrev].freeNext = bf->id;
 }
 
+#undef PinBuffer
+
 /*
  * PinBuffer -- make buffer unavailable for replacement.
  */
@@ -88,6 +91,23 @@ PinBuffer(buf)
   PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1]++;
 }
 
+extern int ShowPinTrace;
+
+PinBuffer_Debug(file, line, buf)
+String file;
+int line;
+BufferDesc *buf;
+{
+    PinBuffer(buf);
+    if (ShowPinTrace) {
+	Buffer buffer;
+	buffer = BufferDescriptorGetBuffer(buf);
+	fprintf(stderr, "PIN(Pin) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
+      }
+}
+
+#undef UnpinBuffer
+
 /*
  * UnpinBuffer -- make buffer available for replacement.
  */
@@ -111,6 +131,18 @@ UnpinBuffer(buf)
   }
 }
 
+UnpinBuffer_Debug(file, line, buf)
+String file;
+int line;
+BufferDesc *buf;
+{
+    UnpinBuffer(buf);
+    if (ShowPinTrace) {
+	Buffer buffer;
+	buffer = BufferDescriptorGetBuffer(buf);
+	fprintf(stderr, "UNPIN(Unpin) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
+      }
+}
 
 /*
  * GetFreeBuffer() -- get the 'next' buffer from the freelist.
