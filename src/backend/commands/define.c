@@ -302,8 +302,11 @@ DefineOperator(name, parameters)
      * XXX is undocumented in the reference manual source as of 89/8/22.
      * ----------------
      */
-    entry = DefineListRemoveRequiredAssignment(&parameters, "arg1");
-    typeName1 = DefineEntryGetName(entry);
+    entry = DefineListRemoveOptionalAssignment(&parameters, "arg1");
+    typeName1 = NULL;
+    if (!null(entry)) {
+	typeName1 = DefineEntryGetName(entry);
+    }
     
     /* ----------------
      * handle "[ arg2 = typname ]"
