@@ -18,18 +18,20 @@
 #include "utils/dynamic_loader.h"
 
 /* dfmgr.c */
-
 void		    del_shlibs ARGS((int code));
 
 /* dynloader.c */
-
-DynamicFunctionList *dynamic_file_load 
-	ARGS((char **err , char *filename , char **libname , shl_t *handle ));
 
 DynamicFunctionList *read_symbols ARGS((char *filename ));
 func_ptr 	    dynamic_load ARGS((char **err ));
 int       	    execld ARGS((char *tmp_file , char *filename ));
 void      	    free_dyna ARGS(( DynamicFunctionList **dyna_list ));
+
+typedef struct dfHandle {
+    DynamicFunctionList *func_list;
+    char		*libname;
+    shl_t		handle;
+} dfHandle;
 
 /* port.c */
 
