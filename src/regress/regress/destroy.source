@@ -1,0 +1,119 @@
+/*
+ * Function/Method removal
+ */
+remove function hobbies
+\g
+remove function hobby_construct
+\g
+remove function equipment
+\g
+remove function user_relns
+\g
+remove function circle_in
+\g
+remove function circle_out
+\g
+remove function pt_in_circle
+\g
+remove function overpaid
+\g
+remove function boxarea
+\g
+remove function interpt_pp
+\g
+remove function reverse_c16
+\g
+
+/*
+ * Operators
+ */
+remove operator ## (path, path)
+\g
+remove operator <% (point, circle)
+\g
+
+/*
+ * Abstract data type definitions
+ */
+remove type city_budget
+\g
+remove type circle
+\g
+
+/*
+ * Define ancillary data structures (i.e. indices)
+ */
+remove index onek_unique1
+\g
+remove index onek_unique2
+\g
+remove index onek_hundred
+\g
+remove index onek_stringu1
+\g
+remove index tenk1_unique1
+\g
+remove index tenk1_unique2
+\g
+remove index tenk1_hundred
+\g
+remove index tenk2_unique1
+\g
+remove index tenk2_unique2
+\g
+remove index tenk2_hundred
+\g
+remove index rect2ind
+\g
+remove index rix
+\g
+remove index iix
+\g
+remove index six
+\g
+
+
+/*
+ * Relations/Classes - Inheritance heirarchies deleted in reverse order
+ */
+destroy onek
+\g
+destroy tenk1 
+\g
+destroy tenk2 
+\g
+
+destroy stud_emp
+\g
+destroy student
+\g
+destroy slow_emp4000
+\g
+destroy fast_emp4000
+\g
+destroy emp
+\g
+destroy person
+\g
+destroy real_city
+\g
+destroy dept
+\g
+destroy ihighway
+\g
+destroy shighway
+\g
+destroy road
+\g
+destroy city
+\g
+
+/*
+ * virtual classes
+ */
+remove view street
+\g
+remove view iexit
+\g
+remove view toyemp
+\g

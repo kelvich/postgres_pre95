@@ -1,0 +1,859 @@
+/*
+ * --- operators and target lists ---
+ */
+
+/*
+ * sanity check - if this fails go insane!
+ */
+retrieve (x=1)
+\g
+
+/*
+ * start with some math/logic (who needs bc?)
+ */
+
+/*
+ * boolean logic
+ */
+retrieve (true="t"::bool)
+\g
+retrieve (false="f"::bool)
+\g
+retrieve (true="t"::bool or "f"::bool)
+\g
+retrieve (false="t"::bool and "f"::bool)
+\g
+retrieve (true = not "f"::bool)
+\g
+retrieve (false = "t"::bool = "f"::bool)
+\g
+retrieve (true = "t"::bool != "f"::bool)
+\g
+/*
+ * int24 logic 
+ */
+retrieve (true = "2"::int2 = "2"::int4)
+\g
+retrieve (false = "1"::int2 = "2"::int4)
+\g
+retrieve (false = "2"::int2 != "2"::int4)
+\g
+retrieve (true = "1"::int2 != "2"::int4)
+\g
+retrieve (true = "2"::int2 <= "2"::int4)
+\g
+retrieve (true = "1"::int2 <= "2"::int4)
+\g
+retrieve (false = "2"::int2 < "2"::int4)
+\g
+retrieve (false = "2"::int2 > "2"::int4)
+\g
+retrieve (true = "1"::int2 < "2"::int4)
+\g
+retrieve (true = "3"::int2 > "2"::int4)
+\g
+retrieve (true = "2"::int2 >= "2"::int4)
+\g
+retrieve (true = "3"::int2 >= "2"::int4)
+\g
+retrieve (true = "2"::int2 <= "2"::int4)
+\g
+retrieve (true = "1"::int2 <= "2"::int4)
+\g
+/*
+ * int42 logic
+ */
+retrieve (true = "2"::int4 = "2"::int2)
+\g
+retrieve (false = "1"::int4 = "2"::int2)
+\g
+retrieve (false = "2"::int4 != "2"::int2)
+\g
+retrieve (true = "1"::int4 != "2"::int2)
+\g
+retrieve (true = "2"::int4 <= "2"::int2)
+\g
+retrieve (true = "1"::int4 <= "2"::int2)
+\g
+retrieve (false = "2"::int4 < "2"::int2)
+\g
+retrieve (false = "2"::int4 > "2"::int2)
+\g
+retrieve (true = "1"::int4 < "2"::int2)
+\g
+retrieve (true = "3"::int4 > "2"::int2)
+\g
+retrieve (true = "2"::int4 >= "2"::int2)
+\g
+retrieve (true = "3"::int4 >= "2"::int2)
+\g
+retrieve (true = "2"::int4 <= "2"::int2)
+\g
+retrieve (true = "1"::int4 <= "2"::int2)
+\g
+/*
+ * int4 logic
+ */
+retrieve (true = "2"::int4 = "2"::int4)
+\g
+retrieve (false = "1"::int4 = "2"::int4)
+\g
+retrieve (false = "2"::int4 != "2"::int4)
+\g
+retrieve (true = "1"::int4 != "2"::int4)
+\g
+retrieve (true = "2"::int4 <= "2"::int4)
+\g
+retrieve (true = "1"::int4 <= "2"::int4)
+\g
+retrieve (false = "2"::int4 < "2"::int4)
+\g
+retrieve (false = "2"::int4 > "2"::int4)
+\g
+retrieve (true = "1"::int4 < "2"::int4)
+\g
+retrieve (true = "3"::int4 > "2"::int4)
+\g
+retrieve (true = "2"::int4 >= "2"::int4)
+\g
+retrieve (true = "3"::int4 >= "2"::int4)
+\g
+retrieve (true = "2"::int4 <= "2"::int4)
+\g
+retrieve (true = "1"::int4 <= "2"::int4)
+\g
+/*
+ * int2 logic
+ */
+retrieve (true = "2"::int2 = "2"::int2)
+\g
+retrieve (false = "1"::int2 = "2"::int2)
+\g
+retrieve (false = "2"::int2 != "2"::int2)
+\g
+retrieve (true = "1"::int2 != "2"::int2)
+\g
+retrieve (false = "2"::int2 < "2"::int2)
+\g
+retrieve (false = "2"::int2 > "2"::int2)
+\g
+retrieve (true = "1"::int2 < "2"::int2)
+\g
+retrieve (true = "3"::int2 > "2"::int2)
+\g
+retrieve (true = "2"::int2 >= "2"::int2)
+\g
+retrieve (true = "3"::int2 >= "2"::int2)
+\g
+retrieve (true = "2"::int2 <= "2"::int2)
+\g
+retrieve (true = "1"::int2 <= "2"::int2)
+\g
+/*
+ * int42 arithmetic
+ */
+retrieve (three = "1"::int4 + "2"::int2)
+\g
+retrieve (neg_one = "1"::int4 - "2"::int2)
+\g
+retrieve (two = "1"::int4 * "2"::int2)
+\g
+retrieve (one = "2"::int4 / "2"::int2)
+\g
+retrieve (zero = "27"::int4 % "3"::int2)
+\g
+/*
+ * int24 arithmetic
+ */
+retrieve (three = "1"::int2 + "2"::int4)
+\g
+retrieve (neg_one = "1"::int2 - "2"::int4)
+\g
+retrieve (two = "1"::int2 * "2"::int4)
+\g
+retrieve (one = "2"::int2 / "2"::int4)
+\g
+retrieve (zero = "27"::int2 % "3"::int4)
+\g
+/*
+ * int2 arithmetic
+ */
+retrieve (three = "1"::int2 + "2"::int2)
+\g
+retrieve (neg_one = "1"::int2 - "2"::int2)
+\g
+retrieve (two = "1"::int2 * "2"::int2)
+\g
+retrieve (one = "2"::int2 / "2"::int2)
+\g
+retrieve (zero = "27"::int2 % "3"::int2)
+\g
+retrieve (neg_seven = - "7"::int2)
+\g
+/*
+ * int4 arithmetic
+ */
+retrieve (three = "1"::int4 + "2"::int4)
+\g
+retrieve (neg_one = "1"::int4 - "2"::int4)
+\g
+retrieve (two = "1"::int4 * "2"::int4)
+\g
+retrieve (one = "2"::int4 / "2"::int4)
+\g
+retrieve (zero = "27"::int4 % "3"::int4)
+\g
+retrieve (neg_seven = - "7"::int4)
+\g
+/*
+ * float8 arithmetic
+ */
+retrieve (three = "1"::float8 + "2"::float8)
+\g
+retrieve (neg_one = "1"::float8 - "2"::float8)
+\g
+retrieve (two = "1"::float8 * "2"::float8)
+\g
+retrieve (one = "2"::float8 / "2"::float8)
+\g
+retrieve (neg_seven = - "7"::float8)
+\g
+/*
+ * float8 truncation and rounding
+ */
+retrieve (one = % "1.1"::float8)
+\g
+retrieve (neg_one = % "-1.1"::float8)
+\g
+retrieve (one = "0.9"::float8 % )
+\g
+retrieve (neg_one = "-0.9"::float8 % )
+\g
+retrieve (pos_3 = @ "-3"::float8)
+\g
+retrieve (pos_3 = @ "3"::float8)
+\g
+retrieve (onek = "2.0"::float8 ^ "10.0"::float8)
+\g
+retrieve (e = : "1.0"::float8)
+\g
+retrieve (zero = ; "1.0"::float8)
+\g
+retrieve (one = : (; "1.0"::float8))
+\g
+retrieve (one = : ; "1.0"::float8)
+\g
+/*
+ * float4 arithmetic
+ */
+retrieve (three = "1"::float4 + "2"::float4)
+\g
+retrieve (neg_one = "1"::float4 - "2"::float4)
+\g
+retrieve (two = "1"::float4 * "2"::float4)
+\g
+retrieve (one = "2"::float4 / "2"::float4)
+\g
+retrieve (neg_seven = - "7"::float4)
+\g
+retrieve (pos_3 = @ "-3"::float4)
+\g
+retrieve (pos_3 = @ "3"::float4)
+\g
+/*
+ * more complex expressions
+ */
+retrieve (true = "2"::int2 * "2"::int2 = "16"::int2 / "4"::int2)
+\g
+retrieve (true = "2"::int4 * "2"::int2 = "16"::int2 / "4"::int4)
+\g
+retrieve (true = "2"::int2 * "2"::int4 = "16"::int4 / "4"::int2)
+\g
+retrieve (false = "1000"::int4 < "999"::int4)
+\g
+retrieve (four_fact = 4!)
+\g
+retrieve (three_fact = !!3)
+\g
+retrieve (ten = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
+\g
+retrieve (precedence = 2 + 2 / 2)
+\g
+retrieve (precedence = (2 + 2) / 2)
+\g
+retrieve (eight = dsqrt("64"::float8))
+\g
+retrieve (eight = |/"64"::float8)
+\g
+retrieve (three = ||/"27"::float8)
+\g
+
+/*
+ * adt operators in the target list
+ */
+retrieve (false = "char 16 string"::char16 = "char 16 string "::char16)
+\g
+retrieve (true = "c"::char = "c"::char)
+\g
+retrieve (true = "this is a text string"::char16 = "this is a text string"::char16)
+\g
+retrieve (false = "this is a text string"::char16 = "this is a text strin"::char16)
+\g
+/*
+ * box logic
+ */
+retrieve (true = "(2.0,2.0,0.0,0.0)"::box << "(3.0,3.0,1.0,1.0)"::box)
+\g
+retrieve (true = "(2.0,2.0,0.0,0.0)"::box &< "(3.0,3.0,1.0,1.0)"::box)
+\g
+retrieve (true = "(2.0,2.0,0.0,0.0)"::box &> "(3.0,3.0,1.0,1.0)"::box)
+\g
+retrieve (false = "(2.0,2.0,0.0,0.0)"::box >> "(3.0,3.0,1.0,1.0)"::box)
+\g
+retrieve (false = "(2.0,2.0,0.0,0.0)"::box @ "(3.0,3.0,1.0,1.0)"::box)
+\g
+retrieve (false = "(2.0,2.0,0.0,0.0)"::box ~ "(3.0,3.0,1.0,1.0)"::box)
+\g
+retrieve (false = "(2.0,2.0,0.0,0.0)"::box ~= "(3.0,3.0,1.0,1.0)"::box)
+\g
+retrieve (true = "(2.0,2.0,0.0,0.0)"::box && "(3.0,3.0,1.0,1.0)"::box)
+\g
+/*
+ * polygon logic -  (anemic tests)
+ */
+retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon << "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
+\g
+retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon &< "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
+\g
+retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon &> "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
+\g
+retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon >> "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
+\g
+retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon @ "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
+\g
+retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon ~ "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
+\g
+retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon ~= "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
+\g
+retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon && "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
+\g
+/*
+ * abstime logic
+ */
+
+/*
+ * reltime logic
+ */
+
+
+/*
+ * qualifications
+ */
+
+/*
+ * from clauses
+ */
+
+/*
+ * retrieve
+ */
+retrieve (onek.all) where onek.unique1 < 10
+\g
+retrieve (onek.unique1, onek.stringu1)
+    where onek.unique1 < 20 sort by unique1 using >
+\g
+retrieve (onek.unique1, onek.stringu1)
+    where onek.unique1 > 980 sort by stringu1 using <
+\g	
+retrieve (onek.unique1, onek.string4)
+    where onek.unique1 > 980 sort by string4 using <, unique1 using >
+\g	
+retrieve (onek.unique1, onek.string4)
+    where onek.unique1 > 980 sort by string4 using >, unique1 using <
+\g	
+retrieve (onek.unique1, onek.string4)
+    where onek.unique1 < 20 sort by unique1 using >, string4 using <
+\g
+retrieve (onek.unique1, onek.string4)
+    where onek.unique1 < 20 sort by unique1 using <, string4 using >
+\g
+retrieve into temp (onek.two, onek.stringu1, onek.ten, onek.string4)
+\g
+retrieve unique (temp.two) 
+\g
+retrieve unique (temp.ten) 
+\g
+retrieve unique (temp.string4) 
+\g
+retrieve unique (temp.two, temp.string4, temp.ten)
+    sort by two using <, string4 using <, ten using <
+\g
+retrieve into temp1 (temp.all) where onek.unique1 < 2
+\g
+destroy temp1
+\g
+retrieve (p.name, p.age) from p in person*
+\g
+retrieve (p.name, p.age) from p in person* sort by age using >
+\g
+retrieve unique (p.age) from p in person* sort by age using >
+\g
+
+/*
+ * replace
+ */
+replace onek (unique1 = onek.unique1 + 1)
+\g
+replace onek (unique1 = onek.unique1 - 1)
+\g
+replace temp (stringu1 = reverse_c16(o.stringu1))
+    from o in onek
+    where o.stringu1 = "JBAAAA" and
+	  o.stringu1 = temp.stringu1
+\g
+destroy temp
+\g
+replace p (age = p.age + 1) from p in person*
+\g
+replace p (age = p.age + 3) from p in person* where p.name = "linda"
+\g
+
+/*
+ * append
+ *
+ * - pretty well tested in the create script -
+ */
+
+/*
+ * delete
+ */
+
+/*
+ * queries to plan and execute each plannode and execnode we have
+ */
+
+/*
+ * builtin functions
+ */
+
+/*
+ * copy
+ */
+copy onek to "_CWD_/obj/onek.data"
+\g
+delete onek
+\g
+copy onek from "_CWD_/obj/onek.data"
+\g
+retrieve (onek.unique1) where onek.unique1 < 2
+\g
+copy binary stud_emp to "_CWD_/obj/stud_emp.data"
+\g
+delete stud_emp
+\g
+copy binary stud_emp from "_CWD_/obj/stud_emp.data"
+\g
+retrieve (stud_emp.all)
+\g
+
+/*
+ * transaction blocks
+ */
+
+/*
+ * portal manipulation
+ */
+begin
+\g
+retrieve portal foo1 (tenk1.all)
+\g
+retrieve portal foo2 (tenk2.all)
+\g
+retrieve portal foo3 (tenk1.all)
+\g
+retrieve portal foo4 (tenk2.all)
+\g
+retrieve portal foo5 (tenk1.all)
+\g
+retrieve portal foo6 (tenk2.all)
+\g
+retrieve portal foo7 (tenk1.all)
+\g
+retrieve portal foo8 (tenk2.all)
+\g
+retrieve portal foo9 (tenk1.all)
+\g
+retrieve portal foo10 (tenk2.all)
+\g
+retrieve portal foo11 (tenk1.all)
+\g
+retrieve portal foo12 (tenk2.all)
+\g
+retrieve portal foo13 (tenk1.all)
+\g
+retrieve portal foo14 (tenk2.all)
+\g
+retrieve portal foo15 (tenk1.all)
+\g
+retrieve portal foo16 (tenk2.all)
+\g
+retrieve portal foo17 (tenk1.all)
+\g
+retrieve portal foo18 (tenk2.all)
+\g
+retrieve portal foo19 (tenk1.all)
+\g
+retrieve portal foo20 (tenk2.all)
+\g
+retrieve portal foo21 (tenk1.all)
+\g
+retrieve portal foo22 (tenk2.all)
+\g
+retrieve portal foo23 (tenk1.all)
+\g
+fetch 1 in foo1
+\g
+fetch 2 in foo2
+\g
+fetch 3 in foo3
+\g
+fetch 4 in foo4
+\g
+fetch 5 in foo5
+\g
+fetch 6 in foo6
+\g
+fetch 7 in foo7
+\g
+fetch 8 in foo8
+\g
+fetch 9 in foo9
+\g
+fetch 10 in foo10
+\g
+fetch 11 in foo11
+\g
+fetch 12 in foo12
+\g
+fetch 13 in foo13
+\g
+fetch 14 in foo14
+\g
+fetch 15 in foo15
+\g
+fetch 16 in foo16
+\g
+fetch 17 in foo17
+\g
+fetch 18 in foo18
+\g
+fetch 19 in foo19
+\g
+fetch 20 in foo20
+\g
+fetch 21 in foo21
+\g
+fetch 22 in foo22
+\g
+fetch 23 in foo23
+\g
+fetch backward 1 in foo23
+\g
+fetch backward 2 in foo22
+\g
+fetch backward 3 in foo21
+\g
+fetch backward 4 in foo20
+\g
+fetch backward 5 in foo19
+\g
+fetch backward 6 in foo18
+\g
+fetch backward 7 in foo17
+\g
+fetch backward 8 in foo16
+\g
+fetch backward 9 in foo15
+\g
+fetch backward 10 in foo14
+\g
+fetch backward 11 in foo13
+\g
+fetch backward 12 in foo12
+\g
+fetch backward 13 in foo11
+\g
+fetch backward 14 in foo10
+\g
+fetch backward 15 in foo9
+\g
+fetch backward 16 in foo8
+\g
+fetch backward 17 in foo7
+\g
+fetch backward 18 in foo6
+\g
+fetch backward 19 in foo5
+\g
+fetch backward 20 in foo4
+\g
+fetch backward 21 in foo3
+\g
+fetch backward 22 in foo2
+\g
+fetch backward 23 in foo1
+\g
+close foo1
+\g
+close foo2
+\g
+close foo3
+\g
+close foo4
+\g
+close foo5
+\g
+close foo6
+\g
+close foo7
+\g
+close foo8
+\g
+close foo9
+\g
+close foo10
+\g
+close foo11
+\g
+close foo12
+\g
+end
+\g
+begin
+\g
+retrieve portal foo13 (onek.all) where onek.unique1 = 50
+\g
+retrieve portal foo14 (onek.all) where onek.unique1 = 51
+\g
+retrieve portal foo15 (onek.all) where onek.unique1 = 52
+\g
+retrieve portal foo16 (onek.all) where onek.unique1 = 53
+\g
+retrieve portal foo17 (onek.all) where onek.unique1 = 54
+\g
+retrieve portal foo18 (onek.all) where onek.unique1 = 55
+\g
+retrieve portal foo19 (onek.all) where onek.unique1 = 56
+\g
+retrieve portal foo20 (onek.all) where onek.unique1 = 57
+\g
+retrieve portal foo21 (onek.all) where onek.unique1 = 58
+\g
+retrieve portal foo22 (onek.all) where onek.unique1 = 59
+\g
+retrieve portal foo23 (onek.all) where onek.unique1 = 60
+\g
+fetch all in foo13
+\g
+fetch all in foo14
+\g
+fetch all in foo15
+\g
+fetch all in foo16
+\g
+fetch all in foo17
+\g
+fetch all in foo18
+\g
+fetch all in foo19
+\g
+fetch all in foo20
+\g
+fetch all in foo21
+\g
+fetch all in foo22
+\g
+fetch all in foo23
+\g
+close foo13
+\g
+close foo14
+\g
+close foo15
+\g
+close foo16
+\g
+close foo17
+\g
+close foo18
+\g
+close foo19
+\g
+close foo20
+\g
+close foo21
+\g
+close foo22
+\g
+close foo23
+\g
+end
+\g
+
+/*
+ * purge
+ */
+
+/*
+ * add attribute
+ */
+create temp (initial = int4)
+\g
+addattr (a = int4) to temp
+\g
+addattr
+    (b = char16,
+     c = text,
+     d = float8,
+     e = float4,
+     f = int2,
+     g = polygon,
+     h = abstime,
+     i = char,
+     j = abstime[],
+     k = dt,
+     l = tid,
+     m = xid,
+     n = oid8,
+     o = lock,
+     p = smgr,
+     q = point,
+     r = lseg,
+     s = path,
+     t = box,
+     u = tinterval,
+     v = oidint4,
+     w = oidchar16,
+     x = float8[],
+     y = float4[],
+     z = int2[])
+to temp
+\g
+append temp (a=4,
+	     b="char16",
+	     c="text",
+	     d=4.1,
+	     e=4.1,
+	     f=2,
+	     g="(4.1,4.1,3.1,3.1)",
+	     h="now",
+	     i='c',
+	     j="{now, Monday Aug 24 14:43:07 1992 PDT, epoch}",
+	     k=314159,
+	     l="(1,0,1)",
+	     m=512,
+	     n="1 2 3 4 5 6 7 8",
+	     p="magnetic disk",
+	     q="(1.1,1.1)",
+	     r="(4.1,4.1,3.1,3.1)",
+	     s="(0,2,4.1,4.1,3.1,3.1)",
+	     t="(4.1,4.1,3.1,3.1)",
+	     u="['now' 'epoch']",
+	     v="1/3",
+	     w="1,char16",
+	     x="{1.0,2.0,3.0,4.0}",
+	     y="{1.0,2.0,3.0,4.0}",
+	     z="{1,2,3,4}")
+\g
+retrieve (temp.all)
+\g
+destroy temp
+\g
+
+/*
+ * rename -
+ *   should preserve indices
+ */
+rename tenk1 to ten_k
+\g
+retrieve (ten_k.unique1) where ten_k.unique1 < 20
+\g
+retrieve (ten_k.unique2) where ten_k.unique2 < 20
+\g
+retrieve (ten_k.hundred) where ten_k.hundred = 50
+\g
+rename ten_k to tenk1
+\g
+retrieve (tenk1.unique1) where tenk1.unique1 < 5
+\g
+
+/*
+ * aggregates
+ */
+
+/*
+ * define aggregate
+ */
+
+/*
+ * remove aggregate
+ */
+
+/*
+ * versions
+ */
+
+/*
+ * listen,notify - not sure how to do this yet, may need a multi-user
+ *                 portion of the regression test.  These commands
+ *                 would fall under that category.
+ */
+
+/*
+ * postquel functions
+ */
+retrieve (p.name, p.hobbies.name) from p in person
+\g
+retrieve (p.name, p.hobbies.name) from p in person*
+\g
+retrieve unique (hobbies_r.name, hobbies_r.equipment.name)
+\g
+retrieve (hobbies_r.name, hobbies_r.equipment.name)
+\g
+retrieve (p.name, p.hobbies.name, p.hobbies.equipment.name) from p in person
+\g
+retrieve (p.name, p.hobbies.name, p.hobbies.equipment.name) from p in person*
+\g
+retrieve (p.hobbies.equipment.name, p.name, p.hobbies.name) from p in person
+\g
+retrieve (p.hobbies.equipment.name, p.name, p.hobbies.name) from p in person*
+\g
+retrieve (p.hobbies.equipment.name, p.hobbies.name, p.name) from p in person
+\g
+retrieve (p.hobbies.equipment.name, p.hobbies.name, p.name) from p in person*
+\g
+retrieve (user_relns = user_relns())
+\g
+retrieve (equip_name =
+	    name(equipment(hobby_construct("skywalking"::text, "mer"::text))))
+\g
+
+/*
+ * functional joins
+ */
+
+/*
+ * instance rules
+ */
+
+/*
+ * rewrite rules
+ */
+
+/*
+ * arrays
+ */
+
+/*
+ * expensive functions
+ */

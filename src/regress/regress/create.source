@@ -1,0 +1,297 @@
+/*
+ * Abstract data type definitions
+ */
+
+define function circle_in (   language = "c",
+             		      returntype = circle ) 
+  arg is (char16)
+  as "_CWD_/obj/regress.o"
+\g
+
+define function circle_out (   language = "c", 
+			       returntype = char16 ) 
+    arg is (circle)
+    as "_CWD_/obj/regress.o"
+\g
+
+define type circle (internallength = 24, 
+		    input = circle_in,
+		    output = circle_out)
+\g
+
+define type city_budget ( internallength = 16, 
+			  input = int44in, 
+			  output = int44out, 
+			  element = int4)
+\g
+
+/*
+ * Relation/Class definition
+ */
+create hobbies_r (name = text, person = text)
+\g
+create equipment_r (name = text, hobby = text)
+\g
+create onek(unique1=int4,
+	    unique2=int4,
+	    two=int4,
+	    four=int4,
+	    ten=int4,
+	    twenty=int4,
+	    hundred=int4,
+	    thousand=int4,
+	    twothousand=int4,
+	    fivethous=int4,
+	    tenthous=int4,
+	    odd=int4,
+	    even=int4,
+	    stringu1=char16,
+	    stringu2=char16,
+	    string4=char16)
+\g
+create tenk1 (unique1=int4,
+	      unique2=int4,
+	      two=int4,
+	      four=int4,
+	      ten=int4,
+	      twenty=int4,
+	      hundred=int4,
+	      thousand=int4,
+	      twothousand=int4,
+	      fivethous=int4,
+	      tenthous=int4,
+	      odd=int4,
+	      even=int4,
+	      stringu1=char16,
+	      stringu2=char16,
+	      string4=char16)
+\g
+create tenk2 (unique1 = int4,
+	      unique2 = int4,
+	      two = int4,
+	      four = int4,
+	      ten=int4,
+	      twenty = int4,
+	      hundred = int4,
+	      thousand = int4,
+	      twothousand = int4,
+	      fivethous = int4,
+	      tenthous=int4,
+	      odd=int4,
+	      even=int4,
+	      stringu1=char16,
+	      stringu2=char16,
+	      string4=char16)
+\g
+
+create person (name = text, age = int4, location = point)
+\g
+create emp (salary = int4, manager = char16) inherits (person)
+\g
+create student (gpa = float8) inherits (person)
+\g
+create stud_emp (percent = int4) inherits (emp, student)
+\g
+create city (name = char16, location = box, budget = city_budget)
+\g
+create dept (dname = char16, mgrname = text)
+\g
+create slow_emp4000 (home_base = box)
+\g
+create fast_emp4000 (home_base = box)
+\g
+create road (name = text, thepath = path)
+\g
+create ihighway () inherits (road)
+\g
+create shighway (surface = text) inherits (road)
+\g
+create real_city (pop = int4, cname = text, outline = path)
+\g
+
+
+/*
+ * Function/Method definitions
+ */
+define function hobbies (language = "postquel", returntype = setof hobbies_r)
+    arg is (person)
+    as "retrieve (hobbies_r.all) where hobbies_r.person = $1.name"
+\g
+define function hobby_construct (language = "postquel", returntype = hobbies_r)
+    arg is (text, text)
+    as "retrieve (name = $1, hobby = $2)"
+\g
+define function equipment
+    (language = "postquel", returntype = setof equipment_r)
+    arg is (hobbies_r)
+    as "retrieve (equipment_r.all) where equipment_r.hobby = $1.name"
+\g
+define function user_relns (language = "postquel", returntype = setof char16)
+    as "retrieve (pg_class.relname)
+    where pg_class.relname !~ \\"pg_.*\\" and
+	  pg_class.relkind != 'i' "
+\g
+define function pt_in_circle (   language = "c",
+				 returntype = int4) 
+    arg is (point, circle)
+    as "_CWD_/obj/regress.o"
+\g
+
+define function overpaid (       language = "c",
+				 returntype = bool) 
+    arg is (emp)
+    as "_CWD_/obj/regress.o"
+\g
+
+define function boxarea (   language = "c", 
+			    returntype = int4) 
+     arg is (box)
+     as "_CWD_/obj/regress.o"
+\g
+
+define function interpt_pp (language = "c", returntype = point)
+     arg is (path, path)
+     as "_CWD_/obj/regress.o"
+\g
+
+define function reverse_c16 (language = "c", returntype = char16)
+    arg is (char16)
+    as "_CWD_/obj/regress.o"
+\g
+
+/*
+ * Function/Method dynamic loading
+ */
+load "_CWD_/obj/regress.o"
+\g
+
+/*
+ * relation/class population
+ *	(any resemblance to real life is purely coincidental)
+ */
+copy onek from "_CWD_/../data/onek.data"
+\g
+copy tenk1 from "_CWD_/../data/tenk.data"
+\g
+append tenk2 (tenk1.all)
+\g
+
+copy slow_emp4000 from "_CWD_/../data/rect.data"
+\g
+append fast_emp4000 (slow_emp4000.all)
+\g
+
+copy person from "_CWD_/../data/person.data"
+\g
+copy emp from "_CWD_/../data/emp.data"
+\g
+copy student from "_CWD_/../data/student.data"
+\g
+copy stud_emp from "_CWD_/../data/stud_emp.data"
+\g
+retrieve into Bprime (t.all) from t in tenk1 where t.unique2 < 1000
+\g
+append hobbies_r (name = "posthacking", person = p.name) from p in person*
+    where p.name = "mike" or p.name = "jeff"
+\g
+append hobbies_r (name = "basketball", person = person.name)
+    where person.name = "joe" or person.name = "sally"
+\g
+append hobbies_r (name = "skywalking")
+\g
+append equipment_r (name = "advil", hobby = "posthacking")
+\g
+append equipment_r (name = "peet's coffee", hobby = "posthacking")
+\g
+append equipment_r (name = "hightops", hobby = "basketball")
+\g
+append equipment_r (name = "guts", hobby = "skywalking")
+\g
+
+copy road from "_CWD_/../data/streets.data"
+\g
+copy real_city from "_CWD_/../data/real_city.data"
+\g
+retrieve into ramp (road.all) where road.name ~ ".*Ramp"
+\g
+append ihighway (road.all) where road.name ~ "I- .*"
+\g
+append shighway (road.all) where road.name ~ "State Hwy.*"
+\g
+replace shighway (surface = "asphalt")
+\g
+
+
+/*
+ * Define ancillary data structures (i.e. indices)
+ */
+define index onek_unique1 on onek using btree(unique1 int4_ops)
+\g
+define index onek_unique2 on onek using btree(unique2 int4_ops)
+\g
+define index onek_hundred on onek using btree(hundred int4_ops)
+\g
+define index onek_stringu1 on onek using btree(stringu1 char16_ops)
+\g
+define index tenk1_unique1 on tenk1 using btree(unique1 int4_ops)
+\g
+define index tenk1_unique2 on tenk1 using btree(unique2 int4_ops)
+\g
+define index tenk1_hundred on tenk1 using btree(hundred int4_ops)
+\g
+define index tenk2_unique1 on tenk2 using btree(unique1 int4_ops)
+\g
+define index tenk2_unique2 on tenk2 using btree(unique2 int4_ops)
+\g
+define index tenk2_hundred on tenk2 using btree(hundred int4_ops)
+\g
+define index rect2ind on fast_emp4000 using rtree (home_base bigbox_ops)
+\g
+define index rix on road using btree (name text_ops)
+\g
+define index iix on ihighway using btree (name text_ops)
+\g
+define index six on shighway using btree (name text_ops)
+\g
+
+/*
+ * Operators
+ */
+define operator ## (arg1 = path, arg2 = path, procedure = path_inter,
+		    commutator = ##)
+\g
+
+define operator <% ( arg1 = point, arg2 = circle,
+		     procedure = pt_in_circle,
+		     associativity = left,
+		     commutator = >=%,
+		     restrict = int4eq )
+
+\g
+
+/*
+ * Virtual classes
+ */
+
+define view street (road.name, road.thepath, cname = real_city.cname)
+		   where real_city.outline ## road.thepath
+\g
+
+define view iexit (ihighway.name, ihighway.thepath, 
+		   exit = interpt_pp(ihighway.thepath, ramp.thepath))
+		  where ihighway.thepath ## ramp.thepath
+\g
+
+define view toyemp (emp.name, emp.age, emp.location, annualsal = 12*emp.salary)
+\g
+
+vacuum
+\g
+
+/*
+ * sanity check, if we don't have indices the test will take years to
+ * complete.
+ */
+retrieve (pg_class.relname, pg_class.relhasindex)
+    where pg_class.relhasindex
+\g
