@@ -26,10 +26,10 @@
  */
 
 #include <math.h>
-#include "pg_lisp.h"
-#include "c.h"
-#include "log.h"
-#include "nodes.h"
+#include "nodes/pg_lisp.h"
+#include "tmp/c.h"
+#include "utils/log.h"
+#include "nodes/nodes.h"
 
 /*     	=================
  *     	GENERAL UTILITIES

@@ -22,19 +22,18 @@
  */
  /* provide ("internal"); */
 
-#include "nodes.h"
-#include "primnodes.h"
-#include "plannodes.h"
-#include "parsetree.h"
-#include "relation.h"
-#include "c.h"
+#include "nodes/nodes.h"
+#include "nodes/primnodes.h"
+#include "nodes/plannodes.h"
+#include "parser/parsetree.h"
+#include "nodes/relation.h"
+#include "tmp/c.h"
 
 /* XXX - versions don't work yet, so parsetree doesn't have them,
    I define the constant here just for the heck of it - jeff */
 
 /*   parse tree manipulation routines */
 
-#include "parsetree.h"
 
 
 /*    
