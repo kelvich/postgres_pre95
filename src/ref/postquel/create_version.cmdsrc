@@ -73,3 +73,8 @@ create version foobar from
 .uh "SEE ALSO"
 .lp
 merge(commands), define view(commands), postquel(postquel) 
+.lp
+.uh "BUGS"
+.lp
+Snapshots (i.e. the optional abstime specifications) are not yet
+implemented.
