@@ -3,15 +3,25 @@
 # This example is modelled after the example in the libpq reference manual.
 # $Id$
 # $Log$
-# Revision 1.2  1991/03/08 13:22:41  kemnitz
-# added RCS header.
+# Revision 1.3  1992/02/15 20:33:20  mer
+# updated by George Hartzell of the Stanford Genome project
 #
+#% Revision 1.2  92/02/07  16:33:47  hartzell
+#% *** empty log message ***
+#% 
+#% Revision 1.1  92/01/29  15:10:42  hartzell
+#% Initial revision
+#% 
+#% Revision 1.2  91/03/08  13:22:41  kemnitz
+#% added RCS header.
+#% 
 #
-# $Header$
+# $Header: /genome/src/postgres/src/contrib/pgperl/RCS/testlibpq.pl,v 1.2 92/0
+2/07 16:33:47 hartzell Exp $
 #
-% Revision 1.1  90/10/24  20:31:22  cimarron
-% Initial revision
-% 
+#% Revision 1.1  90/10/24  20:31:22  cimarron
+#% Initial revision
+#% 
 
 &init_handler();
 
@@ -52,7 +62,8 @@ sub test_append {
 
     &PQexec("begin"); # transaction
     for ($i=50; $i <= 150; $i = $i + 10) {
-	$query = "append person (name = \"fred\", age = $i, location = \"($i,10)\"::point)";
+	$query = "append person (name = \"fred\", age = $i, location = \"($i,10
+)\"::point)";
 	printf("query = %s\n", $query);
 	&PQexec($query);
     }
@@ -72,6 +83,7 @@ sub test_functions {
     local($p, $g, $t, $n, $m, $k, $i, $j);
 
     # fetch tuples from the person table
+    &PQexec ("begin");
     &PQexec ("retrieve portal eportal (person.all)");
     &PQexec ("fetch all in eportal");
     
@@ -103,7 +115,8 @@ sub test_functions {
     
     # close the portal
     &PQexec ("close eportal");
-    
+    &PQexec ("end");
+
     # try some other functions
     printf("\nNumber of portals open: %d\n", &PQnportals(0));
 }

@@ -1,15 +1,17 @@
 # Makefile for pgperl.
-# $Header$
+# $Header: /genome/src/postgres/src/contrib/pgperl/RCS/Makefile,v 1.2 92/02/07
+ 16:37:46 hartzell Exp $
 # Thu Aug 23 15:00:05 1990  Igor Metz <metz@iam.unibe.ch>
+# touched up to work with my configuration under postgres3.1 and perl4.x
 
 # PERLDIR is the directory, where your uperl.o and all perl header file live
 PERLDIR = ..
 
 # GLOBINCS defines include paths, where your Postgres header files live
-GLOBINCS = -I../../pg -I/usr/postgres/PERLDIR/lib/H
+GLOBINCS = -I../../pg -I/usr/postgres/src/lib/H
 
 # LIBS defines, where your libpq.a lives
-LIBS = -L/usr/postgres/obj.sparc -lpq
+LIBS = -L/usr/postgres/obj.sparc -lpq -lm
 
 DISTFILES = README Makefile pg-mus usersub.c pg-libpq.mus testlibpq.pl
 
@@ -21,7 +23,7 @@ CFLAGS = -g -I$(PERLDIR) $(GLOBINCS)
 all: pgperl
 
 pgperl: $(PERLDIR)/uperl.o usersub.o pg-libpq.o
-	$(CC) -g $(PERLDIR)/uperl.o usersub.o libpq.o $(LIBS) -o pgperl
+	$(CC) -g $(PERLDIR)/uperl.o usersub.o pg-libpq.o $(LIBS) -o pgperl 
 
 pg-libpq.c: pg-libpq.mus
 	pg-mus pg-libpq.mus > pg-libpq.c
