@@ -333,13 +333,12 @@ struct paralleldebuginfo ParallelDebugInfo[] = {
 };
 #define NPARALLELDEBUGINFO      4
 
-PrintParallelDebugInfo(statfp)
-FILE *statfp;
+PrintParallelDebugInfo()
 {
     int i;
     for (i=0; i<NPARALLELDEBUGINFO; i++) {
 	if (ParallelDebugInfo[i].count > 0)
-	   fprintf(statfp, "!\t%sCount %d %sTime %.6f\n",
+	   fprintf(stderr, "!\t%sCount %d %sTime %.6f\n",
 		ParallelDebugInfo[i].name, ParallelDebugInfo[i].count,
 		ParallelDebugInfo[i].name, ParallelDebugInfo[i].time/1e6);
       }
