@@ -10,6 +10,10 @@ pagedoc \- \*(PP page doctor
 .i "\-h|b|r"
 ] [
 .i "\-d level"
+] [
+.i "\-s start"
+] [
+.i "\-n count"
 ]
 .i filename
 .uh DESCRIPTION
@@ -61,6 +65,16 @@ The default is
 .i h .
 .ip "\fI\-d level\fP"
 The detail level to use in displaying pages.
+.ip "\fI\-s start\fP"
+Start at page number
+.i start
+(zero-based),
+rather than zero.
+.ip "\fI\-n count\fP"
+Display data for
+.i count
+pages,
+rather than all of them.
 .ip \fIfilename\fP
 The name of the file containing the relation.
 .uh EXAMPLES
