@@ -206,6 +206,11 @@ ObjectId element_type;
         }
         *q = '\0';                    /* Put a null at the end of it */
         values[i] = (*inputproc) (p, typelem);
+	if (!typbyval && !values[i])
+	{
+	    elog(NOTICE, "pass by reference array element is NULL, you may");
+	    elog(WARN, "need to quote each individual element in the constant");
+	}
 	p = ++q;	/* p goes past q */
 	if (!eoArray)	/* if not at the end of the array skip white space */
 	    while (isspace(*q))
@@ -238,7 +243,19 @@ ObjectId element_type;
         {
             if (typbyval)
             {
-                bcopy(&values[i], p, typlen);
+		char oneByte;
+		short twoBytes;
+		switch(typlen) {
+		    case 1: 
+			*p = DatumGetChar(values[i]);
+			break;
+		    case 2: 
+			* (int16 *) p = DatumGetInt16(values[i]);
+			break;
+		    case 4:
+			* (int32 *) p = (int32)values[i];
+			break;
+		}
             }
             else
                 bcopy(values[i], p, typlen);
