@@ -127,20 +127,19 @@ ExecEvalArrayRef(arrayRef, econtext, isNull, isDone)
 				      isNull, &dummy);
    		if (*isNull) return (Datum)NULL;
 		if (lIndex == NULL)
-		return (Datum) array_set(array_scanner, i, upper.indx,
-					dataPtr, get_refelembyval(arrayRef), 
-					get_refelemlength(arrayRef), isNull);
+			return (Datum) array_set(array_scanner, i, upper.indx, dataPtr, 
+					get_refelembyval(arrayRef), get_refelemlength(arrayRef), 
+					get_refattrlength(arrayRef), isNull);
 		return (Datum) array_assgn(array_scanner, i, upper.indx,
-					lower.indx, dataPtr, get_refelembyval(arrayRef), 
-					get_refelemlength(arrayRef), isNull);
+				lower.indx, dataPtr, get_refelembyval(arrayRef), 
+				get_refelemlength(arrayRef), isNull);
 	}
 	if (lIndex == NULL) 
-	return (Datum) array_ref(array_scanner, i, upper.indx,
-						get_refelembyval(arrayRef),
-						get_refelemlength(arrayRef), isNull);
+		return (Datum) array_ref(array_scanner, i, upper.indx,
+				get_refelembyval(arrayRef), get_refelemlength(arrayRef), 
+				get_refattrlength(arrayRef), isNull);
 	return (Datum) array_clip(array_scanner, i, upper.indx, lower.indx,
-                        get_refelembyval(arrayRef),
-                        get_refelemlength(arrayRef), isNull);
+            get_refelembyval(arrayRef), get_refelemlength(arrayRef), isNull);
 }
 
 Datum
