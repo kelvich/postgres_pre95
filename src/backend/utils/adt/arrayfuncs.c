@@ -1,0 +1,261 @@
+/*
+ * arrayfuncs.c --
+ *     Special array in and out functions for arrays.
+ *
+ *
+ * RcsId("$Header$");
+ */
+
+#include "tmp/postgres.h"
+#include "utils/palloc.h"
+#include "utils/fmgr.h"
+
+/*
+ *    array_in - takes an array surrounded by {...} and returns it in
+ *    VARLENA format:
+ */
+
+char *
+array_in(string, element_type)
+
+char *string;
+ObjectId element_type;
+
+{
+    static ObjectId element_type_save = 0;
+    static int typlen;
+    static bool typbyval;
+    static char typdelim;
+    static ObjectId typinput;
+
+    char *string_save, *p, *q;
+    char **values;
+    FmgrFunction inputproc;
+    int i, nitems, dummy;
+    int32 nbytes;
+    char *retval;
+
+    string_save = (char *) palloc(strlen(string) + 1);
+    strcpy(string_save, string);
+
+    if (element_type_save != element_type)
+    {
+        system_cache_lookup(element_type, true,
+                            &typlen, &typbyval, &typdelim, &typinput);
+        element_type_save = element_type;
+    }
+
+    fmgr_info(typoutput, & inputproc, &dummy);
+
+    for (i = 0; nitems = 0; string_save[i] != '}'; i++) 
+    {
+        if (string_save[i] == typdelim) nitems++; 
+    }
+
+    nitems++; /* account for last item in list */
+
+    values = (char **) palloc(nitems);
+
+    p = q = string_save;
+
+    p++; q++; /* get past leading '{' */
+
+    for (i = 0; i < nitems - 1; i++)
+    {
+        while (*q != typdelim) q++;   /* Get to end of next string */
+        *q = '\0';                    /* Put a null at the end of it */
+        values[i] = (*inputproc) (p); /* p points to head of string we want */
+        p = q + 1; q++;               /* p goes past q */
+    }
+
+    while (*q != '}') q++;
+    *q = '\0';
+
+    values[nitems - 1] = (*inputproc) (p);
+
+    if (typlen != 0)
+    {
+        nbytes = nitems * typlen + sizeof(int32);
+    }
+	else
+	{
+		for (i = 0, nbytes = 0;
+			 i < nitems;
+			 i++, nbytes += * (int32 *)  values[i]);
+		nbytes += sizeof(int32);
+	}
+
+	retval = (char *) palloc(nbytes);
+	p = retval;
+
+	bcopy(retval, &nbytes, sizeof(int4));
+
+	for (i = 0; i < nitems; i++)
+	{
+		if (typlen != 0)
+		{
+			bcopy(retval, p, typlen);
+			p += typlen;
+		}
+		else
+		{
+			int len;
+
+			len = * (int32 *) p;
+			bcopy(retval, p, len);
+			p += len;
+		}
+		if (!typbyval) pfree(values[i]);
+	}
+	pfree(string_save);
+	pfree(values);
+	return(retval);
+}
+
+char *
+array_out(items, element_type)
+
+char *items
+ObjectId element_type;
+
+{
+    /*
+     * statics so we don't do excessive system cache lookups.
+     */
+
+    static ObjectId element_type_save = 0;
+    static int typlen;
+    static bool typbyval;
+    static char typdelim;
+    static ObjectId typoutput;
+
+    char *p;
+    char *retval;
+    char **values;
+    int32 nitems, nbytes, overall_length;
+    int i, dummy;
+    FmgrFunction outputproc;
+    char delim[2];
+
+    if (element_type != element_type_save)
+    {
+        system_cache_lookup(element_type, false,
+                            &typlen, &typbyval, &typdelim, &typoutput);
+        element_type_save = element_type;
+    }
+
+    fmgr_info(typoutput, & outputproc, &dummy);
+    sprintf(delim, "%c", typdelim);
+
+    /*
+     * It's an array of fixed-length things (either fixed-length arrays
+     * or non-array objects.  We can compute the number of items just by
+     * dividing the number of bytes in the blob of memory by the length
+     * of each element.
+     */
+
+    if (typlen != 0)
+    {
+        nitems = * (int32 *) items / typlen;
+    }
+    else
+
+    /*
+     * It's an array of variable length objects.  We have to manually walk
+     * through each variable length element to count the number of elements.
+     */
+
+    {
+        nbytes = * (int32 *) items - sizeof(int32);
+        nitems = 0;
+        p = items + sizeof(int32);
+
+        while (nbytes != 0)
+        {
+            nbytes -= * (int32 *) p;
+            p += * (int32 *) p;
+            nitems++;
+        }
+    }
+
+    items += sizeof(int32);
+
+    values = (char **) palloc(nitems * sizeof (char *));
+    overall_length = 0;
+
+    for (i = 0; i < nitems; i++)
+    {
+        values[i] = (*outputproc) (items);
+        overall_length += strlen(values[i]);
+
+        if (typlen != 0)
+        {
+            items += typlen;
+        }
+        else
+        {
+            items += * (int32 *) items;
+        }
+    }
+
+    p = (char *) palloc(overall_length + 3);
+    retval = p;
+
+    strcpy(p, "{");
+
+    for (i = 0; i < nitems - 1; i++)
+    {
+        strcat(p, values[i]);
+        strcat(p, delim);
+        pfree(values[i]);
+    }
+
+    strcat(p, values[nitems - 1]);
+    strcat(p, "}");
+
+    pfree(values[nitems - 1]);
+    pfree(values);
+
+    return(retval);
+}
+
+char *
+string_in(a1, a2) {}
+
+char *
+string_out(a1, a2) {}
+
+system_cache_lookup(element_type, input, typlen, typbyval, typdelim, proc)
+
+ObjectId type;
+boolean input;
+int *typlen;
+bool *typbyval;
+char *typdelim;
+ObjectId *proc;
+
+{
+    HeapTuple typeTuple;
+    TypeTupleForm typeStruct;
+
+    typeTuple = SearchSysCacheTuple(TYPOID, element_type, NULL, NULL, NULL);
+
+    if (!HeapTupleIsValid(typeTuple))
+    {
+        elog(WARN, "array_out: Cache lookup failed for type %d\n",
+             element_type);
+        return NULL;
+    }
+    typeStruct = (TypeTupleForm) GETSTRUCT(typeTuple);
+    *typlen = typeStruct->typlen;
+    *typbyval = typeStruct->typbyval;
+    *typdelim = typeStruct->typdelim;
+    if (input)
+    {
+        *proc = typeStruct->typinput;
+    }
+    else
+    {
+        *proc = typeStruct->typoutput;
+    }
+}
