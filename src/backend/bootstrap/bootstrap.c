@@ -761,11 +761,9 @@ InsertOneTuple(objectid)
 
     tuple = heap_formtuple(numattr,attrtypes,values,Blanks);
     if(objectid !=(OID)0) {
-	SetProcessingMode(BootstrapProcessing);
 	tuple->t_oid=objectid;
     }
     RelationInsertHeapTuple(reldesc,(HeapTuple)tuple,(double *)NULL);
-    SetProcessingMode(NormalProcessing);
     pfree(tuple);
     if (DebugMode) {
 	printf("End InsertOneTuple\n", objectid);
