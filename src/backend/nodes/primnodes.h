@@ -172,12 +172,12 @@ class (Expr) public (Node) {
 
 /* ----------------
  * Var
- *	varno 		- XXX comment me.
- *	varattno 	- XXX comment me.
- *	vartype 	- XXX comment me.
- *	vardotfields 	- XXX comment me.
+ *	varno 		- index of this var's relation in the range table
+ *	varattno 	- attribute number of this var
+ *	vartype 	- pg_type tuple oid for the type of this var
+ *	vardotfields 	- always nil (don't know why --mao 6/92)
  *	vararraylist 	- XXX comment me.
- *	varid 		- XXX comment me.
+ *	varid 		- cons cell containing (varno, (varattno))
  *	varslot 	- cached pointer to addr of expr cxt slot
  * ----------------
  */
