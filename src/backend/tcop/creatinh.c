@@ -108,7 +108,7 @@ StoreCatalogInheritance ARGS((
 
 void
 DefineRelation(relationName, parameters, schema)
-	LispValue	relationName;
+	Name		relationName;
 	LispValue	parameters;
 	LispValue	schema;
 {
@@ -118,46 +118,27 @@ DefineRelation(relationName, parameters, schema)
 	ObjectId	relationId;
 	List		inheritList = LispNil;
 
-	AssertArg(lispStringp(relationName));
-	AssertArg(listp(parameters));
-	AssertArg(length(parameters) == 4);
-	AssertArg(listp(schema));
-
 	/*
-	 * Check each schema element for satisfaction of ...
-	 *
-	 *	AssertArg(listp(elem));
-	 *	AssertArg(listp(CDR(elem)));
-	 *	AssertArg(lispStringp(CAR(elem)));
-	 *	AssertArg(lispStringp(CADR(elem)));
+	 * minimal argument checking follows
 	 */
+	AssertArg(NameIsValid(relationName));
+	AssertArg(listp(parameters));
+	AssertArg(listp(schema));
 
 	/*
 	 * Handle parameters
 	 * XXX parameter handling missing below.
 	 */
 	if (!lispNullp(CAR(parameters))) {
-		AssertArg(lispIntegerp(CAR(CAR(parameters))));
-		AssertArg(CInteger(CAR(CAR(parameters))) == KEY);
-
 		elog(WARN, "RelationCreate: KEY not yet supported");
 	}
 	if (!lispNullp(CADR(parameters))) {
-		AssertArg(lispIntegerp(CAR(CADR(parameters))));
-		AssertArg(CInteger(CAR(CADR(parameters))) == INHERITS);
-
 		inheritList = CDR(CADR(parameters));
 	}
 	if (!lispNullp(CADDR(parameters))) {
-		AssertArg(lispIntegerp(CAR(CADDR(parameters))));
-		AssertArg(CInteger(CAR(CADDR(parameters))) == INDEXABLE);
-
 		elog(WARN, "RelationCreate: INDEXABLE not yet supported");
 	}
 	if (!lispNullp(CADDR(CDR(parameters)))) {
-		AssertArg(lispIntegerp(CAR(CADDR(CDR(parameters)))));
-		AssertArg(CInteger(CAR(CADDR(CDR(parameters)))) == ARCHIVE);
-
 		elog(WARN, "RelationCreate: ARCHIVE not yet supported");
 	}
 
@@ -169,7 +150,7 @@ DefineRelation(relationName, parameters, schema)
 "DefineRelation: please inherit from a relation or define an attribute");
 	}
 
-	relationId = RelationNameCreateHeapRelation(CString(relationName),
+	relationId = RelationNameCreateHeapRelation(relationName,
 		/*
 		 * Default archive mode should be looked up from the VARIABLE
 		 * relation the first time.  Note that it is set to none, now.
@@ -224,14 +205,39 @@ MergeAttributes(schema, supers)
 	List	schema;
 	List	supers;
 {
-	List		entry;
+	List	entry;
 
 	/*
-	 * Note:
-	 *	Assumes valid argument formats including the fact that
-	 * schema contains no duplicate names and that the types all exist.
+	 * Validates that there are no duplications.
+	 * Validity checking of types occurs later.
 	 */
+	foreach (entry, schema) {
+		List	rest;
 
+		foreach (rest, CDR(entry)) {
+			/*
+			 * check for duplicated relation names
+			 */
+			if (equal(CAR(CAR(entry)), CAR(CAR(rest)))) {
+				elog(WARN, "attribute \"%s\" duplicated",
+					CString(CAR(CAR(entry))));
+			}
+		}
+	}
+	foreach (entry, supers) {
+		List	rest;
+
+		foreach (rest, CDR(entry)) {
+			if (equal(CAR(entry), CAR(rest))) {
+				elog(WARN, "relation \"%s\" duplicated",
+					CString(CAR(CAR(entry))));
+			}
+		}
+	}
+
+	/*
+	 * merge the inherited attributes into the schema
+	 */
 	foreach (entry, supers) {
 		LispValue	name = CAR(entry);
 		Relation	relation;
@@ -329,6 +335,34 @@ BuildDesc(schema)
 	return (desc);
 }
 
+/*
+ * CL copy-list
+ *	Returns #'equal list by copying top level of list structure.
+ */
+List
+lispCopyList(list)
+	List	list;
+{
+	List	result;
+	List	rest;
+	List	last;
+
+	if (null(list)) {
+		return (LispNil);
+	}
+	AssertArg(listp(list));
+
+	result = lispCons(CAR(list), LispNil);
+
+	last = result;
+	foreach (rest, CDR(list)) {
+		CDR(last) = lispCons(CAR(rest), LispNil);
+		last = CDR(last);
+	}
+
+	return (result);
+}
+
 private
 void
 StoreCatalogInheritance(relationId, supers)
@@ -337,9 +371,17 @@ StoreCatalogInheritance(relationId, supers)
 {
 	Relation	relation;
 	TupleDesc	desc;
-	AttributeNumber	attributeNumber;
+	int16		seqNumber;
 	List		entry;
+	List		idList;
 	HeapTuple	tuple;
+
+	AssertArg(ObjectIdIsValid(relationId));
+
+	if (null(supers)) {
+		return;
+	}
+	AssertArg(listp(supers));
 
 	/*
 	 * Catalog INHERITS information.
@@ -347,7 +389,8 @@ StoreCatalogInheritance(relationId, supers)
 	relation = RelationNameOpenHeapRelation(InheritsRelationName);
 	desc = RelationGetTupleDescriptor(relation);
 
-	attributeNumber = 1;
+	seqNumber = 1;
+	idList = LispNil;
 	foreach (entry, supers) {
 		Datum		datum[InheritsRelationNumberOfAttributes];
 		char		null[InheritsRelationNumberOfAttributes];
@@ -355,10 +398,14 @@ StoreCatalogInheritance(relationId, supers)
 		tuple = SearchSysCacheTuple(RELNAME, CString(CAR(entry)));
 		AssertArg(HeapTupleIsValid(tuple));
 
-		
+		/*
+		 * build idList for use below
+		 */
+		idList = nappend1(idList, lispInteger(tuple->t_oid));
+
 		datum[0] = ObjectIdGetDatum(relationId);	/* inhrel */
 		datum[1] = ObjectIdGetDatum(tuple->t_oid);	/* inhparent */
-		datum[2] = Int16GetDatum(attributeNumber);	/* inhseqno */
+		datum[2] = Int16GetDatum(seqNumber);		/* inhseqno */
 
 		null[0] = ' ';
 		null[1] = ' ';
@@ -370,33 +417,100 @@ StoreCatalogInheritance(relationId, supers)
 		RelationInsertHeapTuple(relation, tuple, NULL);	/* XXX retval */
 		pfree(tuple);
 
-		attributeNumber += 1;
+		seqNumber += 1;
 	}
 	RelationCloseHeapRelation(relation);
 	
 	/*
 	 * Catalog IPL information.
+	 *
+	 * Algorithm:
+	 *	0. list superclasses (by ObjectId) in order given (see idList).
+	 *	1. append after each relationId, its superclasses, recursively.
+	 *	3. remove all but last of duplicates.
+	 *	4. store result.
+	 */
+
+	/*
+	 * 1.
+	 */
+	foreach (entry, idList) {
+		HeapTuple		tuple;
+		ObjectId		id;
+		int16			number;
+		List			next;
+		List			current;
+		InheritsTupleForm	form;
+
+		id = CInteger(CAR(entry));
+		current = entry;
+		next = CDR(entry);
+
+		for (number = 1; ; number += 1) {
+			tuple = SearchSysCacheTuple(INHRELID, id, number);
+
+			if (!HeapTupleIsValid(tuple)) {
+				break;
+			}
+			CDR(current) = lispCons(lispInteger(
+				((InheritsTupleForm)
+					GETSTRUCT(tuple))->inhparent),
+				LispNil);
+
+			current = CDR(current);
+		}
+		CDR(current) = next;
+	}
+
+	/*
+	 * 2.
+	 */
+	foreach (entry, idList) {
+		LispValue	name;
+		List		rest;
+		bool		found = false;
+
+	again:
+		name = CAR(entry);
+		foreach (rest, CDR(entry)) {
+			if (equal(name, CAR(rest))) {
+				found = true;
+				break;
+			}
+		}
+		if (found) {
+			/*
+			 * entry list must be of length >= 2 or else no match
+			 *
+			 * so, remove this entry.
+			 */
+			CAR(entry) = CADR(entry);
+			CDR(entry) = CDR(CDR(entry));
+
+			found = false;
+			goto again;
+		}
+	}
+
+	/*
+	 * 3.
 	 */
 	relation = RelationNameOpenHeapRelation(
 		InheritancePrecidenceListRelationName);
 	desc = RelationGetTupleDescriptor(relation);
 
-	attributeNumber = 1;
-	/*
-	 * XXX need to perform transative closure?
-	 */
-	foreach (entry, supers) {
+	seqNumber = 1;
+
+	foreach (entry, idList) {
 		Datum		datum[
 			InheritancePrecidenceListRelationNumberOfAttributes];
 		char		null[
 			InheritancePrecidenceListRelationNumberOfAttributes];
 
-		tuple = SearchSysCacheTuple(RELNAME, CString(CAR(entry)));
-		AssertArg(HeapTupleIsValid(tuple));
-
 		datum[0] = ObjectIdGetDatum(relationId);	/* iplrel */
-		datum[1] = ObjectIdGetDatum(tuple->t_oid);	/*iplinherits*/
-		datum[2] = Int16GetDatum(attributeNumber);	/* iplseqno */
+		datum[1] = ObjectIdGetDatum(CInteger(CAR(entry)));
+								/*iplinherits*/
+		datum[2] = Int16GetDatum(seqNumber);		/* iplseqno */
 
 		null[0] = ' ';
 		null[1] = ' ';
@@ -409,7 +523,7 @@ StoreCatalogInheritance(relationId, supers)
 		RelationInsertHeapTuple(relation, tuple, NULL);	/* XXX retval */
 		pfree(tuple);
 
-		attributeNumber += 1;
+		seqNumber += 1;
 	}
 	RelationCloseHeapRelation(relation);
 }
