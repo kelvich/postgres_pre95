@@ -6,8 +6,7 @@
  *	floating point:		ftoa, atof1
  */
 
-#include "c.h"
-#include "postgres.h"
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 

@@ -3,14 +3,14 @@
  *	POSTGRES memory allocator code.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "mcxt.h"
-#include "mnodes.h"
+#include "utils/mcxt.h"
+#include "nodes/mnodes.h"
 
-#include "palloc.h"
+#include "utils/palloc.h"
 
 /*
  * User library functions

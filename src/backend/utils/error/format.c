@@ -47,9 +47,10 @@ form(va_alist)
 	char	*str;
 	FILE	fake;
 
+#if !sprite
 #ifdef	lint
 	fmt = fmt;
-#endif
+#endif /* lint */
 
 	if (FormBufP + FormMinSize > FormBuf + FormMaxSize)
 		FormBufP = FormBuf;
@@ -58,22 +59,25 @@ form(va_alist)
 	fake._base = fake._ptr = (iochar *)FormBufP;
 	fake._flag = _IOWRT | _IOSTRG;
 	fake._file = _NFILE;
-
+#endif /* sprite */
 	va_start(args);
 
 	format = va_arg(args, char *);
-
+#if !sprite
 	_doprnt(format, args, &fake);
 
 	va_end(args);
 
 #ifndef	lint
 	(void) putc('\0', &fake);
-#endif
+#endif  /* lint */
 
 	str = FormBufP;
 
 	FormBufP += strlen(FormBufP) + 1;
-
+#else   /* sprite */
+        str = vsprintf(FormBuf, format, args);
+        va_end(args);
+#endif  /* sprite */
 	return (str);
 }
