@@ -161,6 +161,8 @@ va_dcl
 		 */
 		fflush(stdout);
 		fflush(stderr);
+		ProcReleaseSpins(NULL);	/* get rid of spinlocks we hold */
+		ProcReleaseLocks();	/* get rid of real locks we hold */
 		exitpg(0);
 	}
 
