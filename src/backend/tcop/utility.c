@@ -368,8 +368,11 @@ ProcessUtility(command, args)
 			break;
 
 		case RULE:
-			rule_define(CADR(args),		/* rule name */
-				CADR(CDR(args)));	/* parsed rule query */
+			AssertArg(listp(args));
+			AssertArg(lispStringp(CADR(args)));
+			AssertArg(listp(CADDR(args)));
+			DefineRule(CString(CADR(args)),	/* rule name */
+				CADDR(args));		/* parsed rule query */
 			break;
 
 		case P_TYPE:
