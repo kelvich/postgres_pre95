@@ -16,16 +16,20 @@ sets up the initial template databases.  It is normally executed as part
 of the installation process.
 The template database is created under the directory specified by
 the the environment variable, POSTGRESHOME.  For example,
-.lp
+.(l
+.ft C
 setenv POSTGRESHOME /usr/postgres
-.lp
+.ft P
+.)l
 Postgres also supports
 data striping by allowing a database spread across multiple directories.
 The user can specify multiple directories in POSTGRESHOME separated by
 ':'.  For example,
-.lp
-setenv POSTGRESHOME /usr1/postgres:/usr2/postgres:/usr3/postgres
-.lp
+.(l
+.ft C
+setenv POSTGRESHOME /usr1/postgres:/usr2/postgres
+.ft P
+.)l
 The
 .i -v
 option
