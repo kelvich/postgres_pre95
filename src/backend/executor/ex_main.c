@@ -276,10 +276,7 @@ ExecMain(queryDesc, estate, feature)
  *   	and start up the rule manager
  * ----------------------------------------------------------------
  */
-extern ReturnState MakeReturnState();
-extern ReturnState CopyReturnStateUsing();
 extern Relation    CopyRelDescUsing();
-extern Pointer	   *SlaveRetStateP;
 
 List
 InitPlan(operation, parseTree, plan, estate)
@@ -292,13 +289,13 @@ InitPlan(operation, parseTree, plan, estate)
     List 		rangeTable;
     List		resultRelation;
     Relation 		relationRelationDesc;
-    Relation		intoRelationDesc;
+    Relation            intoRelationDesc;
     
     TupleDescriptor 	tupType;
     List	 	targetList;
     int		 	len;
     List	 	attinfo;
-    ReturnState		retstate;
+    extern List		MakeList();
     
 #ifdef PALLOC_DEBUG
     {
@@ -485,15 +482,9 @@ InitPlan(operation, parseTree, plan, estate)
 
 		intoRelationDesc = ExecCreatR(len, tupType, -1);
 		if (! IsMaster) {
-		    intoRelationDesc = (Relation)
+		    SlaveInfoP[MyPid].resultTmpRelDesc = (Relation)
 			CopyRelDescUsing(intoRelationDesc, ExecSMAlloc);
 		}
-                retstate = MakeReturnState();
-		if (! IsMaster) {
-                    retstate = CopyReturnStateUsing(retstate, ExecSMAlloc);
-		}
-		set_resultTmpRelDesc(retstate, intoRelationDesc);
-		SlaveRetStateP[MyPid] = (Pointer)retstate;
 	    }
 	}
     }
@@ -570,7 +561,11 @@ EndPlan(plan, estate)
      * ----------------
      */
     if (intoRelationDesc != NULL)
-	local_heap_close(intoRelationDesc);
+	if (ParallelExecutorEnabled())
+	    /* have to use shared buffer pool for paralle backends */
+	    heap_close(intoRelationDesc);
+	else
+	    local_heap_close(intoRelationDesc);
     
     /* ----------------
      *	return successfully
@@ -850,7 +845,11 @@ ExecRetrieve(slot, printfunc, intoRelationDesc)
      * ----------------
      */
     if (intoRelationDesc != NULL) {
-	(void) local_heap_insert(intoRelationDesc, tuple);
+	if (ParallelExecutorEnabled())
+	    /* for parallel executor, has to insert through shared buffer */
+	    (void) heap_insert(intoRelationDesc, tuple, NULL);
+	else
+	    (void) local_heap_insert(intoRelationDesc, tuple);
 	IncrAppended();
     }
     
