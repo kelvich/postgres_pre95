@@ -48,14 +48,11 @@
  */
 #define EXEC_START 			1
 #define EXEC_END 			2
-#define EXEC_DUMP			3
+#define EXEC_RUN		        3
 #define EXEC_FOR 			4
 #define EXEC_BACK			5
-#define EXEC_FDEBUG  			6
-#define EXEC_BDEBUG  			7
-#define EXEC_DEBUG   			8
-#define EXEC_RETONE  			9
-#define EXEC_RESULT  			10
+#define EXEC_RETONE  			6
+#define EXEC_RESULT  			7
 
 #define EXEC_INSERT_RULE 		11
 #define EXEC_DELETE_RULE 		12

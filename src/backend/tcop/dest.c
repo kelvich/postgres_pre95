@@ -34,6 +34,48 @@ RcsId("$Header$");
 #include "catalog/pg_type.h"
 
 /* ----------------
+ *	output functions
+ * ----------------
+ */
+void
+donothing(tuple, attrdesc)
+    List tuple;
+    List attrdesc;
+{
+}
+
+extern void debugtup();
+extern void printtup();
+
+/* ----------------
+ * 	DestToFunction - return the proper "output" function for dest
+ * ----------------
+ */
+void
+(*DestToFunction(dest))()
+    CommandDest	dest;
+{
+    switch (dest) {
+    case Remote:
+	return printtup;
+	break;
+	
+    case Local:
+	return donothing;
+	break;
+	
+    case Debug:
+	return debugtup;
+	break;
+	
+    case None:
+    default:
+	return donothing;
+	break;
+    }	
+}
+
+/* ----------------
  * 	BeginCommand - prepare destination for tuples of the given type
  * ----------------
  */

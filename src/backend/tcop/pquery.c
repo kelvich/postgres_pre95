@@ -227,12 +227,9 @@ ProcessPortal(operation, portalName, parseTree, plan, state, attinfo, dest)
      */
     AssertArg(operation == RETRIEVE);
     
-    /*
-     * Note:  "BeginCommand" is not called since no tuples are returned.
-     */
-
     /* ----------------
      *   initialize the portal
+     *   Note: "BeginCommand" is not called since no tuples are returned.
      * ----------------
      */
     portal = BlankPortalAssignName(portalName);
@@ -285,7 +282,6 @@ ProcessQueryDesc(queryDesc)
     String	intoName;
     CommandDest dest;
 
-    
     /* ----------------
      *	get info from the query desc
      * ----------------
@@ -303,7 +299,7 @@ ProcessQueryDesc(queryDesc)
      */
     isIntoPortal =   false;
     isIntoRelation = false;
-    isIntoTemp = false;
+    isIntoTemp =     false;
     
     if (operation == RETRIEVE) {
 	List	resultDesc;
@@ -323,6 +319,17 @@ ProcessQueryDesc(queryDesc)
 	    }
 	}
     }
+
+    /* ----------------
+     *	when preforming a retrieve into, we override the normal
+     *  communication destination during the processing of the
+     *  the query.  This only affects the tuple-output function
+     *  - the correct destination will still see BeginCommand()
+     *  and EndCommand() messages.
+     * ----------------
+     */
+    if (isIntoRelation)
+    	QdSetDest(queryDesc, None);
     
     /* ----------------
      *	create a default executor state.. 
@@ -336,7 +343,6 @@ ProcessQueryDesc(queryDesc)
      * ----------------
      */
     feature = lispCons(lispInteger(EXEC_START), LispNil);
-
     attinfo = ExecMain(queryDesc, state, feature);
     
     /* ----------------
@@ -379,22 +385,9 @@ ProcessQueryDesc(queryDesc)
     /* ----------------
      *   Now we get to the important call to ExecMain() where we
      *   actually run the plan..
-     *
-     *	 The trick here is we have to pass the appopriate
-     *   feature depending on if we have a postmaster or if
-     *   we are retrieving "into" a relation... This is a
-     *   poor interface preserved from the lisp days, so we
-     *   should do something better soon...
      * ----------------
      */
-    if (isIntoRelation) {
-	feature = lispCons(lispInteger(EXEC_RESULT), LispNil);
-    } else if (dest == Remote) {
-	feature = lispCons(lispInteger(EXEC_DUMP), LispNil);
-    } else {
-	feature = lispCons(lispInteger(EXEC_DEBUG), LispNil);
-    }
-
+    feature = lispCons(lispInteger(EXEC_RUN), LispNil);
     (void) ExecMain(queryDesc, state, feature);
 
     /* ----------------
@@ -402,7 +395,6 @@ ProcessQueryDesc(queryDesc)
      *   and free allocated resources...
      * ----------------
      */
-
     feature = lispCons(lispInteger(EXEC_END), LispNil);
     (void) ExecMain(queryDesc, state, feature);
 
@@ -418,13 +410,7 @@ ProcessQueryDesc(queryDesc)
 #endif EXEC_TUPLECOUNT	    
 
     /* ----------------
-     *   not certain what this does.. -cim 8/29/89
-     *
-     * A: Notify the frontend of end of processing.
-     * Perhaps it would be cleaner for ProcessQuery
-     * and ProcessCommand to return the tag, and for
-     * the "traffic cop" to call EndCommand on it.
-     *	-hirohama
+     *  Notify the destination of end of processing.
      * ----------------
      */
     EndCommand(tag, dest);
