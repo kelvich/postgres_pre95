@@ -8,7 +8,7 @@
  *
  *   SUPPORT ROUTINES
  *	read_initstr, read_remark, EstablishComm, process_portal,
- *	StringPointerSet, InitVacuumDemon
+ *	StringPointerSet
  *
  *   INTERFACE ROUTINES
  *	PQdb 		- Return the current database being accessed. 
@@ -294,49 +294,6 @@ StringPointerSet(stringInOutP, newString, environmentString, defaultString)
     }
 }
 
-/* ----------------
- *	InitVacuumDemon
- * ----------------
- */
-void
-InitVacuumDemon(host, database, terminal, option, port, vacuum)
-    String	host;
-    String	database;
-    String	terminal;
-    String	option;
-    String	port;
-    String	vacuum;
-{
-    String	path = NULL;
-    
-    Assert(!PQportset);
-    Assert(!PointerIsValid(PQdatabase));
-    
-    StringPointerSet(&PQhost, host, "PGHOST", DefaultHost);
-    
-    if (!PointerIsValid(database)) {
-	database = getenv ("PGDATABASE");
-    }
-    if (!PointerIsValid(database)) {
-	libpq_raise(ProtocolError,
-		    form("InitVacuumDemon: No database specified"));
-    }
-    PQsetdb(database);
-    
-    StringPointerSet(&PQtty, terminal, "PGTTY", DefaultTty);
-    StringPointerSet(&PQoption, option, "PGOPTION", DefaultOption);
-    StringPointerSet(&PQport, port, "PGPORT", DefaultPort);
-    StringPointerSet(&path, vacuum, "PGVACUUM", DefaultVacuum);
-    
-    if (pq_connect(PQdatabase, getenv("USER"), PQoption, PQhost, PQtty,
-		   path, (short) atoi(PQport)) == -1 ) {
-	    libpq_raise(ProtocolError,
-		    form("Fatal Error -- No POSTGRES backend to connect to"));
-    }
-    pq_flush();
-    PQportset = 1;
-}
-
 /* ----------------------------------------------------------------
  *			PQ interface routines
  * ----------------------------------------------------------------
@@ -388,7 +345,13 @@ PQreset()
 void
 PQfinish()
 {
+    if (!PQportset)
+	return;
+    
+    pq_putnchar("X", 1);	/* exiting */
+    pq_flush();
     pq_close();
+
     PQportset = 0;
 }
 

@@ -138,6 +138,9 @@ pq_getstr(s, maxlen)
 {
     int	c;
     
+    if (Pfin == (FILE *) NULL)
+	return (EOF);
+
     while (maxlen-- && (c = getc(Pfin)) != EOF && c)
 	*s++ = c;
     *s = '\0';
@@ -167,7 +170,11 @@ char *s;
 int maxlen;
 
 {
-	int c;
+    int c;
+
+    if (Pfin == (FILE *) NULL)
+	return (EOF);
+
     while (maxlen-- && (c = getc(Pfin)) != '\n' && c != EOF)
 	{
 		*s++ = c;
@@ -213,6 +220,9 @@ pq_getnchar(s, off, maxlen)
 {
     int	c;
     
+    if (Pfin == (FILE *) NULL)
+	return (EOF);
+
     s += off;
     while (maxlen-- && (c = getc(Pfin)) != EOF)
 	*s++ = c;
@@ -237,6 +247,9 @@ pq_getint(b)
 {
     int	n, c, p;
     
+    if (Pfin == (FILE *) NULL)
+	return (EOF);
+
     n = p = 0;
     while (b-- && (c = getc(Pfin)) != EOF && p < 32) {
 	n |= (c & 0xff) << p;
