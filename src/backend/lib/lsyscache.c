@@ -186,6 +186,23 @@ get_atttype (relid,attnum)
       return((ObjectId)NULL);
 }
 
+/* This routine uses the attname instead of the attnum because it
+ * replaces the routine find_atttype, which is called sometimes when
+ * only the attname, not the attno, is available.
+ */
+bool
+get_attisset (relid, attname)
+ObjectId relid;
+Name attname;
+{
+     AttributeTupleFormD att_tup;
+     
+     if ( SearchSysCacheStruct (ATTNAME, &att_tup, relid, attname, 0, 0) )
+	  return(att_tup.attisset);
+     else
+	  return(false);  /* XXX This should really be some error value */
+}
+
 /*    		---------- INDEX CACHE ----------
  */
 
