@@ -23,6 +23,8 @@
 #include "./RewriteHandler.h"
 #include "./locks.h"
 
+#define REWRITE_DEBUG
+
 extern List lispCopy();
 
 /*****************************************************/
@@ -68,16 +70,20 @@ ChangeTheseVars ( varno, varattno, parser_subtree, replacement , modified )
  * used only by procedures,
  */
 
-ReplaceVarWithMulti ( varno, attno, parser_subtree, replacement , modified )
+ReplaceVarWithMulti(varno, attno, parser_subtree, replacement, modified, ruleId)
      int varno;
      AttributeNumber attno;
      List parser_subtree;
      List replacement;
      bool *modified;
+     ObjectId ruleId;
 {
     List i = NULL;
     List vardotfields = NULL;
     List saved = NULL;
+    Resdom rule_resdom;
+    List rule_tlexpr;
+    char *var_dotfields_firstname;
 
     foreach ( i , parser_subtree ) {
 	Node temp = (Node)CAR(i);
@@ -88,47 +94,92 @@ ReplaceVarWithMulti ( varno, attno, parser_subtree, replacement , modified )
 	    vardotfields = get_vardotfields ( temp );
 
  	    if ( vardotfields != NULL ) {
-		/* a real postquel procedure invocation */
-		List j = NULL;
+		/*
+		 * a real postquel procedure invocation
+		 * Find the rule expression that we must substitute
+		 * in the place of the multi-dot var node.
+		 */
+		List j;
+		List this_rule_tlentry, this_rule_tlexpr;
+		Resdom this_rule_resdom;
+		Name this_rule_resdom_name;
 
-		*modified = true;
+		var_dotfields_firstname = CString ( CAR ( vardotfields ) );
 		foreach ( j , replacement ) {
-		    List  rule_tlentry = CAR(j);
-		    Resdom rule_resdom = (Resdom)CAR(rule_tlentry);
-		    List rule_tlexpr = CDR(rule_tlentry);
-		    Name rule_resdom_name = get_resname ( rule_resdom );
-		    char *var_dotfields_firstname = NULL;
-
-		    var_dotfields_firstname =
-		      CString ( CAR ( vardotfields ) );
-		
-		    if ( !strcmp ( rule_resdom_name,
-				  var_dotfields_firstname ) ) {
-		      if ( saved && saved->type == PGLISP_DTPR  &&
-			   IsA(CAR(saved),Resdom) &&
-			   get_restype (CAR(saved)) !=
-			   get_restype (rule_resdom) ) {
-			set_restype (CAR(saved), get_restype(rule_resdom));
-			set_reslen  (CAR(saved), get_reslen(rule_resdom));
-		      }
-		      CAR(i) = CAR(rule_tlexpr);
-		      CDR(i) = CDR(rule_tlexpr);
-		  }
-		
-		}
-
+		    this_rule_tlentry = CAR(j);
+		    this_rule_resdom = (Resdom)CAR(this_rule_tlentry);
+		    this_rule_tlexpr = CDR(this_rule_tlentry);
+		    this_rule_resdom_name = get_resname ( this_rule_resdom );
+		    if (!strcmp(this_rule_resdom_name,var_dotfields_firstname)){
+			/*
+			 * we found it!
+			 */
+			rule_resdom = this_rule_resdom;
+			rule_tlexpr = this_rule_tlexpr;
+			break;
+		    }
+		} /* foreach */
 	    } else {
-		/* no dotfields, so retrieve text ??? */
+		/*
+		 * retrieve the "text" of the rule...
+		 * Well, actually for the time being,
+		 * lets just retrieve the rule id.
+		 * Make a "text" Const node
+		 */
+		Const c1;
+		Resdom r1;
+		Const RMakeConst();
+		Resdom RMakeResdom();
+		char buf[100];
+		struct varlena *vl;
+		int size;
 
-	    } /* vardotfields != NULL */
+		sprintf(buf, "<ruleId: %ld>", ruleId);
+		size = strlen(buf) + 1 + sizeof(vl->vl_len);
+		vl = (struct varlena *) palloc(size);
+		if (vl == NULL) {
+		    elog(WARN, "ReplaceVarWithMulti: out of memory");
+		}
+		vl->vl_len = size;
+		bcopy(buf, (char *) vl->vl_dat, strlen(buf)+1);
 
+		c1 = RMakeConst();
+		set_consttype(c1, (ObjectId) 25);	/* text */
+		set_constlen(c1, (Size) -1);
+		set_constvalue(c1, PointerGetDatum((Pointer)vl));
+		set_constisnull(c1, false);
+		set_constbyval(c1, false);
+
+		/*
+		 * NOTE: we only use the 'type & 'len' information from
+		 * this resno. No need to fill in the rest...
+		 */
+		r1 = RMakeResdom();
+		set_restype(r1, (ObjectId) 25);       /* text */
+		set_reslen(r1, (Size) -1);
+
+		rule_resdom = r1;
+		rule_tlexpr = lispCons(c1, LispNil);
+	    }
+	    /*
+	     * OK, do the substitution...
+	     */
+	    *modified = true;
+	    if ( saved && saved->type == PGLISP_DTPR  &&
+		   IsA(CAR(saved),Resdom) &&
+		   get_restype (CAR(saved)) !=
+		   get_restype (rule_resdom) ) {
+		set_restype (CAR(saved), get_restype(rule_resdom));
+		set_reslen  (CAR(saved), get_reslen(rule_resdom));
+	    }
+	    CAR(i) = CAR(rule_tlexpr);
+	    CDR(i) = CDR(rule_tlexpr);
 	}
-
 	
 	if ( temp->type == PGLISP_DTPR )
 	  ReplaceVarWithMulti ( varno, attno, (List)temp,
 			        (List)replacement ,
-			        modified );
+			        modified, ruleId);
 	
 	saved = i;
     }
@@ -187,7 +238,10 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
     List additional_queries	= NULL; /* set by locktyperetrieveaction */
     List action_info		= NULL;
     List user_qual		= parse_qualification(user_parsetree);
+    List original_user_parsetree;
     bool modified		= false;
+
+    original_user_parsetree = lispCopy(user_parsetree);
 
     foreach ( i , retrieve_locks ) {
 	Prs2OneLock this_lock = (Prs2OneLock)CAR(i);
@@ -221,7 +275,7 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 
 #ifdef REWRITE_DEBUG
 	    if ( this_lock->attributeNumber == -1 )
-	      elog(NOTICE, "firing a multi-attribute rule");
+	      elog(DEBUG, "firing a multi-attribute rule");
 #endif REWRITE_DEBUG
 
 	    /****************************************
@@ -237,17 +291,21 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	     triggered by actual procedure invocation
 
 	     *****************************************/
+	    /*
+	     * NOTE: user_rt can change, so user_rt_length
+	     * might not be the correct length!
+	     */
 	    HandleVarNodes ( ruleparse,
 			     user_parsetree,
 			     current_varno,
-			     user_rt_length - 2 );
+			     length(user_rt) - 2 );
 
 	    switch ( Action(this_lock)) {
 	      case DoReplaceCurrentOrNew:
 		/* ON RETRIEVE DO REPLACE CURRENT */
 		
 #ifdef REWRITE_DEBUG
-		elog ( NOTICE, "replace current action");
+		elog ( DEBUG, "replace current action");
 		Print_parse ( ruleparse );
 #endif REWRITE_DEBUG
 		
@@ -257,7 +315,7 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		result_relname = CString ( CAR ( result_rte ));
 		if ( strcmp ( result_relname,"*CURRENT*"))
 		  elog(WARN,"a on-retr-do-repl rulelock with bogus result");
-		saved_parsetree = lispCopy ( user_parsetree );
+		saved_parsetree = lispCopy ( original_user_parsetree );
 		saved_qual = parse_qualification(saved_parsetree);
 		saved_tl = parse_targetlist(saved_parsetree);
 		foreach ( k , rule_tlist ) {
@@ -269,7 +327,7 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		    int attno;
 		
 #ifdef REWRITE_DEBUG
-		    elog ( NOTICE, "replacing %s", attname );
+		    elog ( DEBUG, "replacing %s", attname );
 #endif REWRITE_DEBUG
 		    attno =
 		      varattno ( to_be_rewritten, attname );
@@ -286,6 +344,37 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 				     &modified );
 
 		} /* foreach */
+		/*
+		 * add the rule's body & event qual to 'saved_parsetree'
+		 */
+		AddQualifications(saved_parsetree, rule_qual, 0);
+		AddEventQualifications ( saved_parsetree,
+					 ev_qual);
+
+		if (modified) {
+
+		    /*
+		     * add the rule's range table to the user's range
+		     * table...
+		     */
+		    CDR(last(user_rt)) =
+		      CDR(CDR(rule_rangetable));
+
+		    /* LP says : no need to clean up redundant rt_entries
+		     * because planner will ignore them
+		     */
+	    
+
+		    /* XXX - offset varnodes so that current and new
+		     * point correctly here
+		     */
+		    AddNotEventQualifications ( user_parsetree,
+					     ev_qual);
+		    Print_parse ( saved_parsetree );
+		    additional_queries = lispCons ( saved_parsetree,
+						   additional_queries );
+
+		}
 		break;
 	      case DoExecuteProc:
 		/* now stuff the entire targetlist
@@ -295,75 +384,74 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		 * NOTE: used only by procedures ???
 		 */
 #ifdef REWRITE_DEBUG
-		elog(NOTICE,"Possibly retrieving procedure result fields");
+		elog(DEBUG,"Possibly retrieving procedure result fields");
 #endif REWRITE_DEBUG
-		saved_parsetree = lispCopy ( user_parsetree );
+		/*
+		 * OK, for the time being, we do not accept
+		 * event qualifications on this kind of rules...
+		 * (we do accept other qualification on the body
+		 * of the rule though...)
+		 */
+		if (!null(ev_qual)) {
+		    elog(WARN,"Sorry, no event qual for procedure rules...");
+		}
+		/*
+		 * change all the node in the target list..
+		 */
 		ReplaceVarWithMulti ( current_varno,
 				     this_lock->attributeNumber,
 				     user_tl,
 				     rule_tlist ,
-				     &modified );
+				     &modified,
+				     this_lock->ruleId);
+		/*
+		 * I guess currently we do not accept dot fields
+		 * in the user_qual, otherwise we have to process them
+		 * too, right?
+		 */
 		if ( modified ) {
+		    result_relname = "";
+		    FixResdom ( user_tl );
+		    /*
+		     * now append the qual of the postquel function to the
+		     * qual of the user query.
+		     * Don't forget to fix the range tables too...
+		     */
+		    AddQualifications(user_parsetree, rule_qual, 0);
+		    CDR(last(user_rt)) = CDR(CDR(rule_rangetable));
 #ifdef REWRITE_DEBUG
 		    printf ("after replacing tlist entry :\n");
 		    lispDisplay ( user_tl, 0 );
 		    fflush(stdout);
 #endif REWRITE_DEBUG
-		    result_relname = "";
-		    FixResdom ( user_tl );
 		} else {
 #ifdef REWRITE_DEBUG
-		    elog(NOTICE,"no actual modification");
+		    elog(DEBUG,"no actual modification");
 #endif REWRITE_DEBUG
 		}
 		break;
 	      case DoOther:
 #ifdef REWRITE_DEBUG
-		elog(NOTICE,"retrieve triggering other actions");
-		elog(NOTICE,"does not modify existing parsetree");
+		elog(DEBUG,"retrieve triggering other actions");
+		elog(DEBUG,"does not modify existing parsetree");
 #endif REWRITE_DEBUG
 		break;
 	      default:
 		elog(WARN,"on retrieve do <action>, action unknown");
 	    }
 
-	    if ( modified ) {
-		AddQualifications ( saved_parsetree ,
-				   rule_qual,
-				   0 );
-		CDR(last(user_rt)) =
-		  CDR(CDR(rule_rangetable));
 
-		/* LP says : no need to clean up redundant rt_entries
-		 * because planner will ignore them
-		 */
-	
-		if ( ev_qual ) {
-		    /* XXX - offset varnodes so that current and new
-		     * point correctly here
-		     */
-		    AddEventQualifications ( saved_parsetree,
-					     ev_qual);
-		    AddNotEventQualifications ( user_parsetree,
-					     ev_qual);
-					
-		    Print_parse ( saved_parsetree );
-		    additional_queries = lispCons ( saved_parsetree,
-						   additional_queries );
-
-		}
 #ifdef REWRITE_DEBUG
+	    if ( modified ) {
 		printf ("\n");
 		printf ("*************************\n");
 		printf (" Modified User Parsetree\n");
 		printf ("*************************\n");
 		Print_parse ( user_parsetree );
-#endif REWRITE_DEBUG
 	    } else {
-#ifdef REWRITE_DEBUG
-		elog(NOTICE,"parsetree not modified");
-#endif REWRITE_DEBUG
+		elog(DEBUG,"parsetree not modified");
 	    }
+#endif REWRITE_DEBUG
 	} /* foreach of the ruletrees */
     } /* foreach of the locks */
 
@@ -423,7 +511,7 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 
 	if (*drop_user_query) {
 #ifdef REWRITE_DEBUG
-	    elog ( NOTICE,
+	    elog ( DEBUG,
 		  "drop_user_query is set ; punting on rule with id %d",
 		  this_lock->ruleId );
 #endif REWRITE_DEBUG
@@ -485,7 +573,7 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 				     -2 );
 		    break;
 		default:
-		    elog(NOTICE,"unsupported action");
+		    elog(DEBUG,"unsupported action");
 	    }
 
 	    AddQualifications(rule_action,
