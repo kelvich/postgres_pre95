@@ -12,10 +12,11 @@ SHCMD= PATH=${BINDIR}:$$PATH sh
 .if (${PORTNAME} == "ultrix4")
 CFLAGS+= -G 0
 .elif (${PORTNAME} == "sparc")
+CFLAGS+= -PIC
 SLSUFF=.so
 .SUFFIXES: ${SLSUFF}
 .o${SLSUFF}:
-	${LD} -Bdynamic -o ${.TARGET} ${.ALLSRC}
+	${LD} -dc -dp -Bdynamic -o ${.TARGET} ${.ALLSRC}
 .elif (${PORTNAME} == "alpha")
 SLSUFF=.so
 .SUFFIXES: ${SLSUFF}
