@@ -568,6 +568,17 @@ HeapTupleSatisfiesItself(tuple)
  * (Xmin is committed &&
  *	(Xmax is null || (Xmax == my-transaction && Cmax == my-command) ||
  *		(Xmax is not committed && Xmax != my-transaction))))
+ *
+ *	mao says 17 march 1993:  the tests in this routine are correct;
+ *	if you think they're not, you're wrong, and you should think
+ *	about it again.  i know, it happened to me.  we don't need to
+ *	check commit time against the start time of this transaction
+ *	because 2ph locking protects us from doing the wrong thing.
+ *	if you mess around here, you'll break serializability.  the only
+ *	problem with this code is that it does the wrong thing for system
+ *	catalog updates, because the catalogs aren't subject to 2ph, so
+ *	the serializability guarantees we provide don't extend to xacts
+ *	that do catalog accesses.  this is unfortunate, but not critical.
  */
 static
 bool
@@ -623,24 +634,9 @@ HeapTupleSatisfiesNow(tuple)
 	if (!TransactionIdDidCommit((TransactionId)tuple->t_xmin)) {
 	    return (false);
 	}
-
-	tuple->t_tmin = TransactionIdGetCommitTime(tuple->t_xmin);
     }
 
-    curtime = GetCurrentTransactionStartTime();
-
-    if (AbsoluteTimeIsAfter(tuple->t_tmin, curtime)) {
-	return (false);
-    }
-
-    /* we can see the insert */
-    if (AbsoluteTimeIsReal(tuple->t_tmax)) {
-	if (AbsoluteTimeIsAfter(tuple->t_tmax, curtime))
-	    return (true);
-
-	return (false);
-    }
-
+    /* by here, the inserting transaction has committed */
     if (!TransactionIdIsValid((TransactionId)tuple->t_xmax)) {
 	return (true);
     }
@@ -653,11 +649,7 @@ HeapTupleSatisfiesNow(tuple)
 	return (true);
     }
 
-    tuple->t_tmax = TransactionIdGetCommitTime(tuple->t_xmax);
-
-    if (AbsoluteTimeIsAfter(tuple->t_tmax, curtime))
-	return (true);
-
+    /* by here, deleting transaction has committed */
     return (false);
 }
 
