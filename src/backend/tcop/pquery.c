@@ -22,6 +22,7 @@ RcsId("$Header$");
 #include "sdir.h"
 #include "tim.h"
 #include "params.h"
+#include "prs2.h"		/* for the Prs2EStateInfo */
 #include "command.h"
 
 /* ----------------------------------------------------------------
@@ -86,7 +87,7 @@ CreateExecutorState()
     RelationInfo       	resultRelationInfo;
     ParamListInfo	paramListInfo;
     TupleCount		tuplecount;
-    int			recursionDepth;
+    Prs2EStateInfo	prs2EStateInfo;
     
     /* ----------------
      *	These are just guesses.. Someone should tell me if
@@ -99,7 +100,7 @@ CreateExecutorState()
     locks = 		LispNil;
     qualTuple =		NULL;
     qualTupleID =	0;
-    recursionDepth = 	0;
+    prs2EStateInfo=NULL;
     
     /* ----------------
      *   currently these next are initialized in InitPlan.
@@ -142,7 +143,7 @@ CreateExecutorState()
 		       resultRelationInfo,
 		       tuplecount,
 		       paramListInfo,
-		       recursionDepth);
+		       prs2EStateInfo);
 
     return state;
 }
