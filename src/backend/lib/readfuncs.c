@@ -18,27 +18,28 @@
 #include <math.h>
 #include <strings.h>
 
-#include "c.h"
-#include "datum.h"
-#include "pg_lisp.h"
-#include "nodes.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
-#include "plannodes.h"
-#include "execnodes.h"
-#include "execnodes.a.h"
-#include "relation.h"
-#include "tags.h"
-
-#include "fmgr.h"
-#include "heapam.h"
-#include "log.h"
-#include "oid.h"
-#include "syscache.h"
-#include "htup.h"
-
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
+
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "utils/fmgr.h"
+#include "utils/log.h"
+
+#include "catalog/syscache.h"
+#include "catalog/pg_type.h"
+
+#include "tags.h"
+
+#include "nodes/pg_lisp.h"
+#include "nodes/nodes.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
+#include "nodes/plannodes.h"
+#include "nodes/execnodes.h"
+#include "nodes/execnodes.a.h"
+#include "nodes/relation.h"
 
 extern LispValue lispRead();
 extern char *lsptok ARGS((char *string, int *length));
@@ -66,6 +67,7 @@ extern Join 		RMakeJoin();
 extern JoinKey 		RMakeJoinKey();
 extern JoinMethod 	RMakeJoinMethod();
 extern JoinPath 	RMakeJoinPath();
+extern JoinRuleInfo	RMakeJoinRuleInfo();
 extern MergeJoin 	RMakeMergeJoin();
 extern MergeOrder 	RMakeMergeOrder();
 extern MergePath 	RMakeMergePath();
@@ -102,6 +104,14 @@ _getPlan(node)
 
 	node->cost = (Cost) atof(token);
 
+	token = lsptok(NULL, &length);		/* skip the :size */
+	token = lsptok(NULL, &length);		/* get the plan_size */
+	node->plan_size = (Count) atoi(token);
+
+	token = lsptok(NULL, &length);		/* skip the :width */
+	token = lsptok(NULL, &length);		/* get the plan_width */
+	node->plan_width = (Count) atoi(token);
+
 	token = lsptok(NULL, &length);    	/* eat the :state stuff */
 	token = lsptok(NULL, &length);    	/* now get the state */ 
 
@@ -118,7 +128,7 @@ _getPlan(node)
 
 	node->qptargetlist = lispRead(true);
 
-	token = lsptok(NULL, &length);    	/* eat :qpqpal */
+	token = lsptok(NULL, &length);    	/* eat :qpqual */
 
 	node->qpqual = lispRead(true);
 
@@ -288,6 +298,73 @@ _readRecursive()
 }
 
 /* ----------------
+ * 	_readJoinRuleInfo
+ *
+ * ----------------
+ */
+JoinRuleInfo
+_readJoinRuleInfo()
+{
+	JoinRuleInfo	local_node;
+	char *token;
+	int length;
+
+	local_node = RMakeJoinRuleInfo();
+
+	token = lsptok(NULL, &length);    		/* eat :operator */
+	token = lsptok(NULL, &length);    		/* get operator */
+	
+	local_node->jri_operator = atoi(token);
+
+	token = lsptok(NULL, &length);    		/* eat :inattrno */
+	token = lsptok(NULL, &length);    		/* get inattrno */
+	
+	local_node->jri_inattrno = atoi(token);
+
+	token = lsptok(NULL, &length);    		/* eat :outattrno */
+	token = lsptok(NULL, &length);    		/* get outattrno */
+	
+	local_node->jri_outattrno = atoi(token);
+
+	/*
+	 * a rule lock is printed as a string enclosed in double
+	 * quotes. So, we first read the string and then
+	 * call `StringToRuleLock()' to get the actual RuleLock
+	 * structure.
+	 */
+	token = lsptok(NULL, &length);    		/* eat :lock */
+	token = lsptok(NULL, &length);			/* get lock */
+	/*
+	 * peel off the double quotes...
+	 */
+	token++;
+	token[length - 2] = '\0';
+	local_node->jri_lock = StringToRuleLock(token);
+	token[length - 2] = '\"';
+
+	token = lsptok(NULL, &length);    		/* eat :ruleid */
+	token = lsptok(NULL, &length);    		/* get ruleId */
+	
+	local_node->jri_ruleid = atoi(token);
+
+	token = lsptok(NULL, &length);    		/* eat :stubid */
+	token = lsptok(NULL, &length);    		/* get stubid */
+	
+	local_node->jri_stubid = atoi(token);
+
+	/*
+	 * remember: JoinRuleInfo->stub is only temporarily used.
+	 * so its actual value is of no interest.
+	 * Always initialize it to NULL
+	 */
+	token = lsptok(NULL, &length);    		/* eat :stub */
+	token = lsptok(NULL, &length);    		/* skip stub */
+	local_node->jri_stub = (Prs2OneStub) NULL;
+
+	return(local_node);
+}
+
+/* ----------------
  *	_getJoin
  *
  * In case Join is not the same structure as Plan someday.
@@ -297,7 +374,14 @@ void
 _getJoin(node)
     Join node;
 {
+	char		*token;
+	int length;
+
 	_getPlan(node);
+
+	token = lsptok(NULL, &length);	/* skip ruleinfo: */
+	node->ruleinfo = (struct JoinRuleInfo *) lispRead(true);
+
 }
 
 
@@ -630,7 +714,7 @@ _readResdom()
 		token++;
 		token[length - 2] = '\0';
 
-		local_node->resname = (Name) palloc(sizeof(Char16Data));
+		local_node->resname = (Name) palloc(sizeof(char16));
 		strcpy(local_node->resname, token);
 		token[length - 2] = '\"';
 	}
@@ -693,7 +777,7 @@ _readVar()
 	token = lsptok(NULL, &length);    		/* eat :vartype */
 	token = lsptok(NULL, &length);    		/* get vartype */
 	
-	local_node->vartype = atoi(token);
+	local_node->vartype = (ObjectId) atoi(token);
 
 	token = lsptok(NULL, &length);    		/* eat :vardotfields */
 
@@ -710,7 +794,10 @@ _readVar()
 	token = lsptok(NULL, &length);    		/* eat :varid */
 
 	local_node->varid = lispRead(true); 		/* now read it */
-	/* token = lsptok(NULL, &length); */    	/* eat last ) */
+
+	token = lsptok(NULL, &length);    		/* eat :varelemtype */
+	token = lsptok(NULL, &length);
+	local_node->varelemtype = (ObjectId) atoi(token);
 
 	return(local_node);
 }
@@ -886,7 +973,7 @@ _readParam()
 	token++;			    /* skip the first `"' */
 	token[length - 2] = '\0';	    /* this is the 2nd `"' */
 
-	local_node->paramname = (Name) palloc(sizeof(Char16Data));
+	local_node->paramname = (Name) palloc(sizeof(char16));
 	strcpy(local_node->paramname, token);
 	token[length - 2] = '\"';	/* restore the 2nd `"' */
 
@@ -945,7 +1032,7 @@ _readEState()
 	token++;
 	token[length-2] = '\0';
 
-	local_node->es_error_message = (Name) palloc(sizeof(Char16Data));
+	local_node->es_error_message = (Name) palloc(sizeof(char16));
 	strcpy(local_node->es_error_message, token);
 
 	token[length-2] = '\"';
@@ -1695,6 +1782,16 @@ parsePlanString()
 	{
 		return_value = (LispValue) _readAppend();
 		return_value->type = T_Append;
+	}
+	else if (!strncmp(token, "joinruleinfo", 12))
+	{
+		/*
+		 * NOTE: 'joinruleinfo' must be checked BEFORE
+		 * 'join', because both `strncmp' test will
+		 * succeeed !
+		 */
+		return_value = (LispValue) _readJoinRuleInfo();
+		return_value->type = T_JoinRuleInfo;
 	}
 	else if (!strncmp(token, "join", 4))
 	{
