@@ -65,27 +65,28 @@ typedef FormData_pg_user	*Form_pg_user;
  *	initial contents of pg_user
  * ----------------
  */
-DATA(insert OID =    PGUID ( postgres PGUID t t t t ));
+DATA(insert OID = 0 ( postgres PGUID t t t t ));
 
 BKI_BEGIN
 #ifdef ALLOW_PG_GROUP
 BKI_END
 
-DATA(insert OID =  799 ( mike 799 t t t t ));
-DATA(insert OID = 1806 ( mao 1806 t t t t ));
-DATA(insert OID = 3918 ( glass 3918 t t t t ));
-DATA(insert OID = 1089 ( hellers 1089 t t t t ));
-DATA(insert OID = 5568 ( clarsen 5568 t t t t ));
-DATA(insert OID = 5443 ( jolly 5443 t t t t ));
-DATA(insert OID = 6559 ( sunita 6559 t t t t ));
-DATA(insert OID = 3029 ( paxson 3029 t t t t ));
-DATA(insert OID = 2435 ( marc 2435 t t t t ));
-DATA(insert OID = 6324 ( jh 6324 t t t t ));
-DATA(insert OID = 6124 ( jiangwu 6124 t t t t ));
-DATA(insert OID = 6364 ( terryw 6364 t t t t ));
-DATA(insert OID = 2331 ( olson 2331 t t t t ));
-DATA(insert OID = 2360 ( aoki 2360 t t t t ));
-DATA(insert OID = 2200 ( cgd 2200 t t t t ));
+DATA(insert OID = 0 ( mike 799 t t t t ));
+DATA(insert OID = 0 ( mao 1806 t t t t ));
+DATA(insert OID = 0 ( glass 3918 t t t t ));
+DATA(insert OID = 0 ( hellers 1089 t t t t ));
+DATA(insert OID = 0 ( joey 5209 t t t t ));
+DATA(insert OID = 0 ( clarsen 5568 t t t t ));
+DATA(insert OID = 0 ( jolly 5443 t t t t ));
+DATA(insert OID = 0 ( sunita 6559 t t t t ));
+DATA(insert OID = 0 ( paxson 3029 t t t t ));
+DATA(insert OID = 0 ( marc 2435 t t t t ));
+DATA(insert OID = 0 ( jh 6324 t t t t ));
+DATA(insert OID = 0 ( jiangwu 6124 t t t t ));
+DATA(insert OID = 0 ( terryw 6364 t t t t ));
+DATA(insert OID = 0 ( olson 2331 t t t t ));
+DATA(insert OID = 0 ( aoki 2360 t t t t ));
+DATA(insert OID = 0 ( cgd 2200 t t t t ));
 
 BKI_BEGIN
 #endif ALLOW_PG_GROUP
@@ -109,6 +110,4 @@ struct	user {
 
 #endif struct_user_Defined
 
-    
 #endif PgUserIncluded
-
