@@ -11,7 +11,7 @@
 CAT=cat
 if [ -f /usr/bin/cb ]
 then
-	CB=cb
+	CB=/usr/bin/cb
 elif [ -f /usr/bin/indent -a -r /dev/stdin -a -w /dev/stdout ]
 then
 	CB="indent /dev/stdin /dev/stdout"
