@@ -68,22 +68,6 @@ RcsId("$Header$");
 #include <usclkc.h>
 #endif
 
-#ifdef NOFIXADE
-/*
- * headers required for turning off unaligned address dereference fixup
- */
-#ifdef PORTNAME_ultrix4
-#include <sys/syscall.h>
-#include <sys/sysmips.h>
-#else
-#ifdef PORTNAME_alpha
-#include <sys/types.h>
-#include <sys/sysinfo.h>
-#include <sys/proc.h>
-#endif /* PORTNAME_alpha */
-#endif /* PORTNAME_ultrix4 */
-#endif /* NOFIXADE */
-
 extern int on_exitpg();
 
 /* ----------------
@@ -755,23 +739,6 @@ PostgresMain(argc, argv)
     extern	char	*optarg;
     extern      char	*DBName; /* a global name for current database */
     extern	short	DebugLvl;
-
-#ifdef NOFIXADE
-    /*
-     * disable unaligned address dereference fixups
-     */
-#ifdef PORTNAME_ultrix4
-    syscall(SYS_sysmips, MIPS_FIXADE, 0, NULL, NULL, NULL);
-#else
-#ifdef PORTNAME_alpha
-    {
-	static int ssinbuf[] = { SSIN_UACPROC, UAC_SIGBUS };
-	setsysinfo((unsigned long) SSI_NVPAIRS, ssinbuf, (unsigned long) 1,
-		   (caddr_t) NULL, (unsigned long) NULL);
-    }
-#endif /* PORTNAME_alpha */
-#endif /* PORTNAME_ultrix4 */
-#endif /* NOFIXADE */
 
     /* ----------------
      * 	register signal handlers.
