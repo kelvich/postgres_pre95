@@ -75,6 +75,7 @@ typedef	struct {
  *	PATH	- 	Specified by vertex points.
  *-------------------------------------------------------------------*/
 typedef	struct {
+	long	length;
 	short	closed;	/* is this a closed polygon? */
 	long	npts;
 	POINT	p[1];	/* variable length array of POINTs */

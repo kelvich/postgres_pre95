@@ -656,8 +656,8 @@ POINT *			/* point where l1, l2 intersect (if any) */
  **
  ***********************************************************************/
 
-#define	PATHALLOC(N) \
-(PATH *) PALLOC((unsigned) (sizeof(PATH) + \
+#define	PATHALLOCSIZE(N) \
+(long) ((unsigned) (sizeof(PATH) + \
 			    (((N)-1) > 0 ? ((N)-1) : 0) \
 			    * sizeof(POINT)))
 
@@ -676,6 +676,7 @@ path_in(str)
 	char	*s;
 	int	ct, i;
 	PATH	*result;
+	long	pathsize;
 
 	if (str == NULL)
 		return(NULL);
@@ -686,7 +687,9 @@ path_in(str)
 			field[i++] = atol(s + 1);
 	if (i < 1)
 		return(NULL);
-	result = PATHALLOC(field[1]);
+	pathsize = PATHALLOCSIZE(field[1]);
+	result = (PATH *)palloc(pathsize);
+	result->length = pathsize;
 	result->closed = field[0];
 	result->npts =  field[1];
 
