@@ -674,7 +674,8 @@ join_references (clauses,outer_tlist,inner_tlist)
 
 LispValue
 index_outerjoin_references (inner_indxqual,outer_tlist,inner_relid)
-     LispValue inner_indxqual,outer_tlist,inner_relid ;
+     LispValue inner_indxqual,outer_tlist;
+     int inner_relid ;
 {
     LispValue t_list = LispNil;
     LispValue temp = LispNil;
@@ -684,7 +685,7 @@ index_outerjoin_references (inner_indxqual,outer_tlist,inner_relid)
     foreach (t_clause,inner_indxqual) {
 	clause = CAR(t_clause);
 	if(IsA (get_rightop (clause),Var) &&    /*   inner var on right */
-	   equal (inner_relid,get_varno (get_rightop (clause)))) {
+	   (inner_relid == get_varno (get_rightop (clause)))) {
 	    temp = make_opclause (replace_opid (get_op (clause)),
 				  replace_clause_joinvar_refs 
 				  (get_leftop (clause),
