@@ -620,9 +620,9 @@ make_var ( relname, attrname)
  */
 
 LispValue
-make_array_ref(expr, index)
+make_array_ref(expr, indexpr)
      LispValue expr;
-     int index;
+     LispValue indexpr;
 {
     ObjectId typearray;
     HeapTuple type_tuple;
@@ -632,7 +632,7 @@ make_array_ref(expr, index)
     typearray = (ObjectId) CInteger(CAR(expr));
 
     type_tuple = SearchSysCacheTuple(TYPOID, typearray, NULL, NULL, NULL);
-    
+
     if (!HeapTupleIsValid(type_tuple))
 	elog(WARN, "make_array_ref: Cache lookup failed for type %d\n",
 	     typearray);
@@ -658,7 +658,7 @@ make_array_ref(expr, index)
     aref = (ArrayRef) MakeArrayRef(type_struct_array->typelem,
 				   type_struct_element->typlen,
 				   type_struct_element->typbyval,
-				   index,
+				   CDR(indexpr),
 				   CDR(expr));
 
     return (lispCons(lispInteger(get_refelemtype(aref)),

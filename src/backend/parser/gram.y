@@ -1599,8 +1599,7 @@ opt_array_bounds:
 	| '[' Iconst ']'
 		{
 		    $$ = (LispValue) MakeArray((ObjectId) 0, 0, false, 0,
-						LISPVALUE_INTEGER($2),
-				    		0);
+						$2, 0);
 		}
 	| /* EMPTY */				{ NULLTREE }
 	;
@@ -1716,7 +1715,11 @@ a_expr:
 
 /* we support only single-dim arrays in the current system */
 opt_indirection:
-	  '[' Iconst ']'		{ $$ = $2;}
+	  '[' a_expr ']'		{
+		if (CInteger(CAR($2)) != INT4OID)
+		    elog(WARN, "array index expressions must yield type int4");
+		$$ = $2;
+	    }
 	| /* EMPTY */			{ NULLTREE }
 	;
 
@@ -1856,7 +1859,7 @@ res_target_el:
 		 temp = HandleNestedDots($1);
 
 		 if ($2 != LispNil)
-		     temp = make_array_ref(temp, LISPVALUE_INTEGER($2));
+		     temp = make_array_ref(temp, $2);
 
 		 type_id = CInteger(CAR(temp));
 		 type_len = tlen(get_id_type(type_id));
