@@ -27,4 +27,3 @@ destroydb(unix).
 .lp
 This query should NOT be executed by humans.  The destroydb (unix) script,
 should be used instead.
-.lp
