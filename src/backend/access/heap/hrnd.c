@@ -3,22 +3,23 @@
  *	POSTGRES heap access method randomization code.
  */
 
-#include "c.h"
-
-#include "align.h"
-#include "block.h"
-#include "buf.h"
-#include "bufmgr.h"
-#include "bufpage.h"
-#ifdef	RANDOMDEBUG
-#include "log.h"
-#endif	/* defined(RANDOMDEBUG) */
-#include "oid.h"
-#include "rel.h"
-
-#include "hrnd.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
+
+#include "storage/block.h"
+#include "storage/buf.h"
+#include "storage/bufmgr.h"
+#include "storage/bufpage.h"
+
+#include "tmp/align.h"
+#include "utils/rel.h"
+
+#ifdef	RANDOMDEBUG
+#include "utils/log.h"
+#endif	/* defined(RANDOMDEBUG) */
+
+#include "access/hrnd.h"
 
 static bool		DisableHeapRandomization = false;
 static BlockNumber	RandomBlockIndexList[1 + MaxLengthOfBlockIndexList];
