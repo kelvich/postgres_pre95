@@ -119,7 +119,7 @@ float4out(num)
 	float32	num;
 {
 	
-	char	*ascii = (char *)palloc(MAXFLOATWIDTH);	
+	char	*ascii = (char *)palloc(MAXFLOATWIDTH+1);	
 	
 	if (!num)
 		return strcpy(ascii, "(null)");
@@ -215,7 +215,7 @@ char *
 float8out(num)
 	float64	num;
 {
-	char	*ascii = (char *)palloc(MAXDOUBLEWIDTH);
+	char	*ascii = (char *)palloc(MAXDOUBLEWIDTH+1);
 
 	if (!num)
 		return strcpy(ascii, "(null)");
@@ -764,14 +764,11 @@ float64
 dround(arg1)
 	float64	arg1;
 {
-#ifdef sun
 	float64	result = (float64) palloc(sizeof(float64data));
+	double rint();
 
 	*result = (float64data) rint((double) *arg1);
 	return(result);
-#else
-	elog(WARN, "dround: not implemented yet for non-sun machines");
-#endif
 }
 
 
