@@ -14,7 +14,7 @@
  * ----------------------------------------------------------------
  */
 
-#include <signal.h>
+#include "libpq/pqsignal.h"	/* substitute for <signal.h> */
 #include <string.h>
 
 #define BOOTSTRAP_INCLUDE

@@ -33,7 +33,7 @@
  * $Header$
  */
 #include <sys/time.h>
-#include <signal.h>
+#include "libpq/pqsignal.h"	/* substitute for <signal.h> */
 
 #include "utils/hsearch.h"
 #include "utils/log.h"

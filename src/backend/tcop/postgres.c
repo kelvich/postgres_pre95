@@ -15,7 +15,7 @@
  *	$Header$
  * ****************************************************************
  */
-#include <signal.h>
+#include "libpq/pqsignal.h"	/* substitute for <signal.h> */
 #include <setjmp.h>
 #include <stdio.h>
 #include <sys/time.h>
@@ -1154,11 +1154,6 @@ PostgresMain(argc, argv)
 	  parser_input[i] = 0;
 
 	AbortCurrentTransaction();
-
-#ifdef SYSV_SIGNAL
-	/* reinstall signal handler */
-   	signal(SIGHUP, handle_warn);
-#endif /* SYSV_SIGNAL */
     }
     
     /* ----------------

@@ -39,10 +39,9 @@
  *	$Header$
  * ----------------------------------------------------------------
  */
-#include <signal.h>
+#include "libpq/pqsignal.h"	/* substitute for <signal.h> */
 #include <stdio.h>
 #include <strings.h>
-#include <sys/signal.h>
 
 #include "tmp/c.h"
 #include "tmp/postgres.h"

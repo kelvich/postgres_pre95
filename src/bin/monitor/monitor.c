@@ -4,7 +4,7 @@
  */
 
 #include <errno.h>
-#include <signal.h>
+#include "libpq/pqsignal.h"	/* substitute for <signal.h> */
 #include <stdio.h>
 #include <strings.h>
 #include <sys/file.h>

@@ -28,36 +28,43 @@
 # == CONFIGURATION SECTION ==
 #
 
-# Following is where the tools necessary to build postgres
-# get installed.
-# It is necessary to have the TOOLSBINDIR, whatever that may be,
-# in your PATH before attempting to bootstrap the build.  To
-# bootstrap (that is, if bmake(1) is not installed on your system)
-# you should cd(1) to the src/tools/bmake directory and type
 #
-#       make -f Makefile.boot
+# The following directories are where the tools necessary to 
+# build postgres will be installed.
 #
-# This will install bmake(1) in the TOOLSBINDIR and supporting
-# postgres configuration files in TOOLSLIBDIR.  Then you can
-# go back up to the src/ directory and run "bmake".
+# To bootstrap (that is, if bmake(1) is not installed on your 
+# system) you should cd(1) to the src/tools/bmake directory 
+# and type
+#
+#       ./Bootstrap portname
+#
+# where portname is one of those listed below.  This will install 
+# bmake(1) in the TOOLSBINDIR and supporting postgres configuration 
+# files in TOOLSLIBDIR.  Then you can go back up to the src/ 
+# directory and run "bmake".  You must put the TOOLSBINDIR, whatever 
+# that may be, in your PATH before attempting to build postgres.
 #
 TOOLSBINDIR= /usr/local/bin
 TOOLSLIBDIR= /usr/local/lib
 
-# Following are settings pertaining to the postgres build
-# and installation.  The most important one is obviously
-# the name of the port.
+#
+# Following are settings pertaining to the postgres build and 
+# installation.  The most important one is obviously the name 
+# of the port.
+#
 
 #
 #  The name of the port.  Valid choices are:
-#	ultrix4	-	DEC MIPS on Ultrix 4.2 or 4.3
+#	ultrix4	-	DEC MIPS on Ultrix 4.2, 4.2A or 4.3A
 #	sparc	-	SUN SPARC on SunOS 4.1.2 or 4.1.3
-#	hpux	-	HP PA-RISC on HP-UX 8.07 or 9.01
-#	alpha	-	DEC ALPHA AXP on OSF/1 1.3
-#	aix	-	IBM RS/6000 on AIX 3.2.3
-#  Partial, untested support is provided for
+#	hpux	-	HP PA-RISC on HP-UX 9.00 or 9.01
+#	alpha	-	DEC Alpha AXP on OSF/1 1.3
+#	aix	-	IBM POWER on AIX 3.2.5
+#  Some hooks are provided for
 #	linux	-	Intel 386/486 on Linux 0.99pl11
-#  but you're really taking your life into your own hands on these.
+#	svr4	-	Intel 386/486 on Intel SVR4
+#	next	-	Motorola MC68K or Intel 386/486 on NeXTSTEP 3.2
+#  but these are guaranteed not to work as of yet.
 #
 #  XXX	Note that you MUST set PORTNAME here (or on the command line) so 
 #	that port-dependent variables are correctly set within this file.
@@ -155,22 +162,27 @@ ENFORCE_ALIGNMENT=
 .endif
 
 #
-# This should probably be in the sys.mk file.  I can't
-# believe system V install is different.
+# The flags we give to install(1) are intended for the BSD version of
+# install(1) and not the System V version.
 #
+# This should probably be in the sys.mk file.
+#
+.if (${PORTNAME} == "aix")
+INSTALL=/usr/ucb/install
+.endif
 .if (${PORTNAME} == "alpha")
 INSTALL=installbsd
 .endif
 
 #
 # The default bmake rules will strip binaries while installing them.
-# This line OVERRIDES the stripping option.
+# This line OVERRIDES the default stripping option in the .mk files.
 # You do NOT want to comment out or remove this line.
 #
 STRIP=
 
 #
-# Man pages don't live with sources this release (coming soon).
+# Man pages don't currently live with sources.
 # This line OVERRIDES the default action of trying to install man 
 # pages from the source directories (which doesn't work).
 # You do NOT want to comment out or remove this line.
@@ -239,6 +251,7 @@ KRBLIBS+= -lkrb5 -lcrypto -lcom_err -lisode
 .   endif
 .endif
 
+
 #
 # Globally pass debugging/optimization/profiling flags based
 # on the options selected above.
@@ -261,9 +274,10 @@ LDFLAGS+= ${PROFILE}
 CFLAGS+= -DPORTNAME_${PORTNAME}
 
 #
-# Globally pass the default TCP port for postmaster(1)
+# Globally pass the default TCP port for postmaster(1).
 #
 CFLAGS+= -DPOSTPORT='"4321"'
+
 
 #
 # == OTHER RANDOM CONFIGURATION ITEMS ==
@@ -273,30 +287,47 @@ CFLAGS+= -DPOSTPORT='"4321"'
 # Globally define SEQUOIA for development at Berkeley and other
 # Sequoia 2000 Project sites.
 #
+# This turns on support for the Sony WORM optical disk jukebox
+# storage manager, the main memory storage manager, and both
+# Jaquith and external large objects.  None of these options
+# are supported outside of UC Berkeley.
+#
 CFLAGS+= -DSEQUOIA
 
 
 #
-# SVID and POSIX signal(2) semantics differ from BSD signal(2) semantics.
-# These systems are SVID or POSIX based by default.
+# signal(2) handling - this is here because it affects some of 
+# the frontend commands as well as the backend server.
 #
-# XXX the right thing to do is to convert to POSIX signals, but...
+# Ultrix and SunOS provide BSD signal(2) semantics by default.
 #
-.if (${PORTNAME} == "hpux" || ${PORTNAME} == "svr4")
-# These systems are SVID-based so we do handler-reinstallation.
-CFLAGS+= -DSYSV_SIGNAL
-.elif (${PORTNAME} == "linux")
-# gnulib #defines the problem away for you and calls the BSD routines
-# if you give it these flags.
-CFLAGS+= -D__USE_BSD -D__USE_BSD_SIGNAL
-.elif (${PORTNAME} == "aix")
-# AIX has you link in BSD or SVID libraries as desired.  The -lm is 
-# here because there is a conflict with pow(3m) in the AIX BSD library.
-LDADD+= -lm -lbsd
-.elif (${PORTNAME} == "alpha")
-# OSF/1 has you link in BSD or SVID libraries as desired.
-LDADD+= -lbsd
+# SVID2 and POSIX signal(2) semantics differ from BSD signal(2) 
+# semantics.  We can use the POSIX sigaction(2) on systems that
+# allow us to request restartable signals (SA_RESTART).
+#
+.if (${PORTNAME} == "aix" || ${PORTNAME} == "alpha" || ${PORTNAME} == "svr4")
+CFLAGS+= -DUSE_POSIX_SIGNALS
 .endif
+#
+# Some systems don't allow restartable signals at all unless we 
+# link to a special BSD library.
+#
+.if (${PORTNAME} == "hpux")
+LDADD+= -lBSD
+.endif
+#
+# The Linux gnulib #defines the problem away for you and calls 
+# the BSD routines if you give it the right flags.
+#
+.if (${PORTNAME} == "linux")
+CFLAGS+= -D__USE_BSD -D__USE_BSD_SIGNAL
+.endif
+#
+# We devoutly hope that there aren't any systems that provide
+# neither POSIX signals nor BSD signals.  The alternative 
+# is to do signal-handler reinstallation, which doesn't work well 
+# at all.
+#
 
 
 #

@@ -31,6 +31,7 @@
  * ----------------------------------------------------------------
  */
 
+#include "libpq/pqsignal.h"	/* substitute for <signal.h> */
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -39,7 +40,6 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <signal.h>
 #include <unistd.h>		/* for ttyname() */
 
 #ifdef PORTNAME_linux
