@@ -211,7 +211,7 @@ CatalogHasIndex(catName, catId)
 
     if (! HeapScanIsValid(pg_relation_scan)) {
 	heap_close(pg_relation);
-	elog(WARN, "UpdateStats: cannot scan RELATION relation");
+	elog(WARN, "CatalogHasIndex: cannot scan RELATION relation");
     }
     htup = heap_getnext(pg_relation_scan, 0, &buffer);
     heap_endscan(pg_relation_scan);
