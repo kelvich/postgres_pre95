@@ -16,6 +16,8 @@ CLEANFILES+= scan.c ${PARSEYACCS}
 
 ${PROG}: ${PARSEYACCS}
 
+.depend: scan.c ${PARSEYACCS}
+
 .if ${PORTNAME} == "bsd44"
 YFLAGS+= -l
 .endif
