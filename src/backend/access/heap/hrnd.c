@@ -146,6 +146,11 @@ RelationContainsUsableBlock(relation, blockIndex, size, numberOfFailures)
 	numberOfBlocks = RelationGetNumberOfBlocks(relation);
 	Assert(numberOfBlocks > 0);
 
+#ifndef	DOCLUSTER
+	if (/* type of relation is temporary */ 1) {
+		fillLimit = 0;		/* XXX -1 is better? */
+	} else
+#endif
 	if (ClusterIsEnabled &&
 			numberOfFailures == ClusteredNumberOfFailures) {
 
