@@ -183,6 +183,7 @@ TypeShellMakeWithOpenRelation(pg_type_desc, typeName)
     values[i++] = (char *) (Boolean) 0;
     values[i++] = (char *) (Boolean) 0;
     values[i++] = (char *) (Boolean) 0;
+    values[i++] = (char *) (Boolean) 0;
     values[i++] = (char *) InvalidObjectId;
     values[i++] = (char *) InvalidObjectId;
     values[i++] = (char *) InvalidObjectId;
@@ -274,14 +275,14 @@ TypeShellMake(typeName)
  */
 ObjectId
 TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
-	   inputProcedure, outputProcedure, sendProcedure, receiveProcedure,
-	   elementTypeName,
-	   defaultTypeValue, passedByValue)
+       typDelim, inputProcedure, outputProcedure, sendProcedure,
+	   receiveProcedure, elementTypeName, defaultTypeValue, passedByValue)
     Name	typeName;
     ObjectId	relationOid;		/* only for 'c'atalog typeTypes */
     int16	internalSize;
     int16	externalSize;
     char	typeType;
+	char	typDelim;
     Name	inputProcedure;
     Name	outputProcedure;
     Name	sendProcedure;
@@ -382,6 +383,7 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
     values[i++] = (char *) (Boolean) 1;
     values[i++] = (char *) (typeType == 'c' ? relationOid : InvalidObjectId);
     values[i++] = (char *) elementObjectId;
+	values[i++] = (char *) typDelim;
     
     /* ----------------
      *	initialize the various procedure id's in value[]
