@@ -140,7 +140,7 @@ get_pg_usertup(command, username)
 	usertup = (HeapTuple) palloctup(tup, buf, urel);
 	ReleaseBuffer(buf);
     } else {
-	elog(WARN, "go away, you don't exist.");
+	elog(WARN, "No pg_user tuple for %s", username);
     }
 
     heap_endscan(scan);
