@@ -262,9 +262,9 @@ void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified,
 		break;
 	    case classTag(Var): {
 		int this_varno = (int)get_varno ( (Var) this_node );
-		char *name_to_look_for;
-		if (this_varno != rt_index &&
-		    get_varattno((Var) this_node) != attr_num) {
+		char *name_to_look_for = NULL;
+		if (this_varno == rt_index &&
+		    get_varattno((Var) this_node) == attr_num) {
 			if (get_vartype((Var) this_node) == 32) { /* HACK */
 			    n = (List) make_null(get_vartype((Var) this_node));
 			    CAR(i) = CAR(n);
@@ -279,13 +279,15 @@ void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified,
 					    attr_num);
 			}
 		    }
+		if (name_to_look_for) {
 		    n = FindMatchingTLEntry(tl,name_to_look_for);
 		    if (n == NULL)
 			n = (List) make_null(get_vartype((Var) this_node));
 		    CAR(i) = CAR(n);
-		    *modified = TRUE;
+		    *Modified = TRUE;
 		}
 		break;
+	    }
 	    default:
 		/* ignore the others */
 		break;
