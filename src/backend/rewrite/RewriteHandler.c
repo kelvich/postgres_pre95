@@ -226,6 +226,7 @@ ApplyRetrieveRule(parsetree, rule, rt_index,relation_level, attr_num,modified)
     List rule_action;
     List rule_qual, rt;
     int nothing,rt_length;
+    int badpostquel= FALSE;
     if (!null(rule) && CDR(rule)) {
 	if (length(CDR(rule)) > 1)
 	    return;
@@ -242,6 +243,8 @@ ApplyRetrieveRule(parsetree, rule, rt_index,relation_level, attr_num,modified)
     root_rangetable(parse_root(rule_action)) = rt;
     OffsetVarNodes(rule_action, rt_length);
     OffsetVarNodes(rule_qual, rt_length);
+    ChangeVarNodes(rule_action, PRS2_CURRENT_VARNO+rt_length, rt_index);
+    ChangeVarNodes(rule_qual, PRS2_CURRENT_VARNO+rt_length, rt_index);
     if (relation_level) {
 	HandleViewRule(parsetree, rt, parse_targetlist(rule_action),rt_index
 		       ,modified);
@@ -249,9 +252,9 @@ ApplyRetrieveRule(parsetree, rule, rt_index,relation_level, attr_num,modified)
     else {
 	HandleRIRAttributeRule(parsetree, rt,
 			       parse_targetlist(rule_action),
-			       rt_index, attr_num,modified);
+			       rt_index, attr_num,modified,&badpostquel);
     }
-    if (*modified)
+    if (*modified && !badpostquel)
 	AddQual(parsetree,parse_qualification(rule_action));
 }
 List ProcessRetrieveQuery(parsetree, rt,instead_flag,rule)

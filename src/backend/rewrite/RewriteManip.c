@@ -241,10 +241,11 @@ RewriteInfo *info;
  * Handles 'on retrieve to relation.attribute
  *          do instead retrieve (attribute = expression) w/qual'
  */
-void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified)
+void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified,
+			    badpostquel)
      List rt;
      List parsetree, tl;
-     int  rt_index, attr_num,*modified;
+     int  rt_index, attr_num,*modified,*badpostquel;
 {
     List entry, entry_LHS;
     List i,n;
@@ -272,6 +273,7 @@ void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified)
 			    CAR(i) = CAR(n);
 /*			    CDR(i) = CDR(n);*/
 			    *modified = TRUE;
+			    *badpostquel = TRUE;
 			    break;
 			}
 			else {
