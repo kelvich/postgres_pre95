@@ -185,28 +185,6 @@ replace_opid (oper)
     return(oper);
 }
 
-/*    	===========
- *    	PARAM nodes
- *    	===========
- */
-
-/*    
- *    	param_is_attr
- *    
- *    	Returns t iff the argument is a parameter of the $.name type.
- *    
- */
-
-bool
-param_is_attr (param)
-     Param param ;
-{
-    if ( stringp (get_paramid (param)))
-      return(true);
-    else
-      return(false);
-}
-
 /*    	=============================
  *    	constant (CONST, PARAM) nodes
  *    	=============================

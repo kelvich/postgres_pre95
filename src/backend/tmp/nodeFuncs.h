@@ -11,7 +11,6 @@ extern bool varid_indexes_into_array ARGS((Var var));
 extern List varid_array_index ARGS((LispValue var));
 extern bool consider_vararrayindex ARGS((Var var));
 extern Oper replace_opid ARGS((Oper oper));
-extern bool param_is_attr ARGS((Param param));
 extern bool constant_p ARGS((Expr node));
 extern bool non_null ARGS((Expr const));
 extern bool is_null ARGS((Expr const));
