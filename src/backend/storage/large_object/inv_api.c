@@ -113,11 +113,11 @@ int flags;
     strcpy((char *) &(attname.data[0]), "olastbyte");
     strcpy((char *) &(typname.data[0]), "int4");
     (void) TupleDescInitEntry((TupleDesc) tupdesc, (AttributeNumber) 1,
-			      &attname, &typname, 0);
+			      &attname, &typname, 0, false);
     strcpy((char *) &(attname.data[0]), "odata");
     strcpy((char *) &(typname.data[0]), "bytea");
     (void) TupleDescInitEntry((TupleDesc) tupdesc, (AttributeNumber) 2,
-			      &attname, &typname, 0);
+			      &attname, &typname, 0, false);
 
     /*
      *  First create the table to hold the inversion large object.  It
