@@ -1,15 +1,24 @@
-SRC=	am.me smgr.me fmgr.me
-DEST=	am.ps smgr.ps fmgr.ps
-ROFF=	groff
-RFLAGS=	-te -me -Tps
+.include <postgres.global.mk>
 
-all:	$(DEST)
+.MAIN: all
 
-am.ps: am.me
-	$(ROFF) $(RFLAGS) am.me > am.ps
+.SUFFIXES: .cat .ps .me
 
-smgr.ps: smgr.me
-	$(ROFF) $(RFLAGS) smgr.me > smgr.ps
+DOCSRCS= am.me smgr.me fmgr.me
 
-fmgr.ps: fmgr.me
-	$(ROFF) $(RFLAGS) fmgr.me > fmgr.ps
+NROFF=nroff
+
+GROFF=groff -spte
+
+DOCOBJS= ${DOCSRCS:S/.me/.cat/g} ${DOCSRCS:S/.me/.ps/g}
+
+.me.cat:
+	${GROFF} -me -Tascii ${.IMPSRC} > ${.TARGET}
+
+.me.ps:
+	${GROFF} -me -Tps ${.IMPSRC} > ${.TARGET}
+
+all: ${DOCOBJS}
+
+.include <postgres.prog.mk>
+
