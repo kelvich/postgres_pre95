@@ -1,4 +1,4 @@
-/* ----------------------------------------------------------------
+/* ---------------------------------------------------------------------------
  *   FILE
  *     	acl.h
  *
@@ -17,7 +17,7 @@
  *
  *   IDENTIFICATION
  *   	$Header$
- * ----------------------------------------------------------------
+ * ---------------------------------------------------------------------------
  */
 
 #ifndef AclHIncluded			/* include only once */
@@ -65,33 +65,38 @@ typedef uint8 AclMode;
 /*
  * AclItem
  */
-typedef struct _AclItem {
+typedef struct {
 	AclId		ai_id;
 	AclIdType	ai_idtype;
 	AclMode		ai_mode;
 } AclItem;
 
+/*
+ * The value of the first dimension-array element.  Since these arrays
+ * always have a lower-bound of 0, this is the same as the number of
+ * elements in the array.
+ */
 #define	ARR_DIM0(a) (((unsigned *) (((char *) a) + sizeof(ArrayType)))[0])
 
 /*
  * Acl		a one-dimensional POSTGRES array of AclItem
  */
 typedef ArrayType Acl;
-#define	ACL_NUM(ACL) ARR_DIM0(ACL)
-#define	ACL_DAT(ACL) ((AclItem *) ARR_DATA_PTR(ACL))
+#define	ACL_NUM(ACL)		ARR_DIM0(ACL)
+#define	ACL_DAT(ACL)		((AclItem *) ARR_DATA_PTR(ACL))
 #define	ACL_N_SIZE(N) \
-((unsigned) (ARR_OVERHEAD(N) + ((N) * sizeof(AclItem))))
-#define	ACL_SIZE(ACL) (((Acl *) ACL)->size)
+	((unsigned) (ARR_OVERHEAD(1) + ((N) * sizeof(AclItem))))
+#define	ACL_SIZE(ACL)		ARR_SIZE(ACL)
 
 /*
  * IdList	a one-dimensional POSTGRES array of AclId
  */
 typedef ArrayType IdList;
-#define	IDLIST_NUM(IDL)	ARR_DIM0(IDL)
-#define	IDLIST_DAT(IDL)	((AclId *) ARR_DATA_PTR(IDL))
+#define	IDLIST_NUM(IDL)		ARR_DIM0(IDL)
+#define	IDLIST_DAT(IDL)		((AclId *) ARR_DATA_PTR(IDL))
 #define	IDLIST_N_SIZE(N) \
-((unsigned) (ARR_OVERHEAD(N) + ((N) * sizeof(AclId))))
-#define	IDLIST_SIZE(IDL) (((IdList *) IDL)->size)
+	((unsigned) (ARR_OVERHEAD(1) + ((N) * sizeof(AclId))))
+#define	IDLIST_SIZE(IDL)	ARR_SIZE(IDL)
 
 /*
  * Enable ACL execution tracing and table dumps
@@ -107,6 +112,8 @@ extern Acl *aclinsert3 ARGS((Acl *acl, AclItem *aip, unsigned modechg));
 /* XXX move these elsewhere */
 extern int32 pg_aclcheck ARGS((char *relname, char *usename, AclMode mode));
 extern int32 pg_ownercheck ARGS((char *relname, char *usename));
+extern int32 pg_func_ownercheck ARGS((char *usename, char *funcname,
+				      int nargs, ObjectId *arglist));
 
 /*
  * exported routines (from acl.c)
@@ -118,4 +125,4 @@ extern Acl *aclinsert ARGS((Acl *acl, AclItem *aip));
 extern Acl *aclremove ARGS((Acl *acl, AclItem *aip));
 extern int32 aclcontains ARGS((Acl *acl, AclItem *aip));
 
-#endif AclHIncluded
+#endif /* AclHIncluded */
