@@ -299,12 +299,11 @@ relopen(relationName, flags, mode)
 {
     File	file;
     int		oumask;
-    int		umask();
     extern char	*relpath();
     
     IN();
     
-    oumask = umask(0077);
+    oumask = (int) umask(0077);
     
     file = FileNameOpenFile(relpath(relationName), flags, mode);
     if (file == -1) 
