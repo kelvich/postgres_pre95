@@ -193,8 +193,8 @@ cost_sort (keys,tuples,width,noread)
 {
     Cost temp = 0;
     int npages = page_size (tuples,width);
-    double pages = npages;
-    double numTuples = tuples;
+    Cost pages = (Cost)npages;
+    Cost numTuples = tuples;
     
     if ( !_enable_sort_ ) 
       temp += _disable_cost_ ;
@@ -203,9 +203,9 @@ cost_sort (keys,tuples,width,noread)
 	 Assert(temp >= 0);
 	 return(temp);
      }
-    temp += pages * base_log(pages, (double)2.0);
+    temp += pages * base_log((double)pages, (double)2.0);
     /* could be base_log(pages, NBuffers), but we are only doing 2-way merges */
-    temp += _CPU_PAGE_WEIGHT_ * numTuples * base_log(pages, 2.0);
+    temp += _CPU_PAGE_WEIGHT_ * numTuples * base_log((double)pages,(double)2.0);
     if( !noread )
       temp = temp + cost_seqscan(lispInteger(_TEMP_RELATION_ID_),npages,tuples);
     Assert(temp >= 0);
@@ -416,11 +416,11 @@ int
 compute_rel_size (rel)
      Rel rel ;
 {
-    double temp = 0;
+    Cost temp = 0;
     Count temp1;
 
     temp = get_tuples(rel) * product_selec(get_clauseinfo(rel)); 
-    temp1 = ceil(temp);
+    temp1 = ceil((double)temp);
     Assert(temp >= 0);
     return(temp1);
       
@@ -510,14 +510,14 @@ int
 compute_joinrel_size (joinpath)
      JoinPath joinpath ;
 {
-    double temp = 1.0;
+    Cost temp = 1.0;
     Count temp1 = 0;
 
     CostMultiplyCount(temp, get_size(get_parent((Path)get_outerjoinpath(joinpath))));
     CostMultiplyCount(temp, get_size(get_parent((Path)get_innerjoinpath(joinpath))));
     temp = temp * product_selec(get_pathclauseinfo(joinpath));  
 
-    temp1 = floor(temp);
+    temp1 = floor((double)temp);
     Assert(temp1 >= 0);
     return(temp1);
 }

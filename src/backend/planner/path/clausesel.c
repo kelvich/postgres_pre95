@@ -53,7 +53,7 @@ set_clause_selectivities (clauseinfo_list,new_selectivity)
 {
     LispValue temp;
     CInfo clausenode;
-    double cost_clause;
+    Cost cost_clause;
 
     foreach (temp,clauseinfo_list) {
 	clausenode = (CInfo)CAR(temp);
@@ -75,14 +75,14 @@ set_clause_selectivities (clauseinfo_list,new_selectivity)
 
 /*  .. compute-joinrel-size, compute-rel-size     */
 
-double
+Cost
 product_selec (clauseinfo_list)
      LispValue clauseinfo_list ;
 {
-     double result = 1.0;
+     Cost result = 1.0;
      if ( consp (clauseinfo_list) ) {
 	  LispValue xclausenode = LispNil;
-	  double temp;
+	  Cost temp;
 
 	  foreach(xclausenode,clauseinfo_list) {
 	       temp = get_selectivity((CInfo)CAR(xclausenode));
@@ -135,7 +135,7 @@ LispValue clauseinfo_list ;
 {
     LispValue temp = LispNil;
     CInfo clausenode = (CInfo)NULL;
-    double cost_clause;
+    Cost cost_clause;
     
     foreach (temp,clauseinfo_list) {
 	clausenode = (CInfo)CAR(temp);
@@ -173,7 +173,7 @@ LispValue clauseinfo_list ;
 
 /*  .. add-clause-to-rels, set_rest_selec    */
 
-double
+Cost
 compute_clause_selec (clause,or_selectivities)
      LispValue clause,or_selectivities ;
 {
@@ -219,11 +219,11 @@ compute_clause_selec (clause,or_selectivities)
 
 /*  .. compute_clause_selec, compute_selec   */
 
-double
+Cost
 compute_selec (clauses,or_selectivities)
      LispValue clauses,or_selectivities ;
 {
-    double s1 = 0;
+    Cost s1 = 0;
     LispValue clause = CAR (clauses);
 
     if(null (clauses)) 
@@ -264,7 +264,7 @@ compute_selec (clauses,or_selectivities)
 	else
 	  relid = lispInteger(_SELEC_VALUE_UNKNOWN_);
 	
-	s1 = (double)restriction_selectivity (oprrest,
+	s1 = (Cost)restriction_selectivity (oprrest,
 					      opno,
 					      CInteger(relid),
 					      CInteger(CADR (relattvals)),
@@ -293,7 +293,7 @@ compute_selec (clauses,or_selectivities)
 	    relid2 = translate_relid(CADDR(relsatts));
 	 else
 	   relid2 =  lispInteger(_SELEC_VALUE_UNKNOWN_);
-	 s1 = (double)join_selectivity (oprjoin,
+	 s1 = (Cost)join_selectivity (oprjoin,
 					opno,
 					CInteger(relid1),
 					CInteger(CADR (relsatts)),
@@ -312,7 +312,7 @@ compute_selec (clauses,or_selectivities)
     else {
 	/* Compute selectivity of the 'or'ed subclauses. */
 	/* Added check for taking CDR(LispNil).  -- JMH 3/9/92 */
-	  double s2;
+	  Cost s2;
 	  if (or_selectivities != LispNil)
 	    s2 = compute_selec (CDR (clauses),CDR (or_selectivities));
 	  else

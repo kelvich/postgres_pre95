@@ -81,7 +81,7 @@ create_or_index_paths (rel,clauses)
 						 get_orclauseargs
 					         ((LispValue)get_clause(clausenode)),
 						 get_indexids (clausenode),
-						 LispNil,(double)0,
+						 LispNil,(Cost)0,
 						 LispNil);
 
 		    set_pathtype((Path)pathnode,INDEX_SCAN);
@@ -148,7 +148,7 @@ best_or_subclause_indices (rel,subclauses,indices,
 			   examined_indexids,subcost,selectivities)
      Rel rel;
      List subclauses,indices,examined_indexids, selectivities ;
-     double subcost;
+     Cost subcost;
 {
      LispValue t_list = LispNil;
      if ( null (subclauses) ) {
