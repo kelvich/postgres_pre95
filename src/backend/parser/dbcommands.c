@@ -10,12 +10,13 @@ RcsId("$Header$");
 #include "utils/rel.h"
 #include "utils/log.h"
 #include "tmp/daemon.h"
+#include "catalog/catname.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_user.h"
 #include "catalog/pg_database.h"
+#include "catalog/syscache.h"
 
 extern char *DataDir;
-extern char *PG_username;
 extern char *DBName;
 
 createdb(dbname)
@@ -82,48 +83,6 @@ destroydb(dbname)
 }
 
 HeapTuple
-get_pg_usertup(command, username)
-    char *command;
-    char *username;
-{
-    Relation urel;
-    HeapTuple usertup;
-    HeapTuple tup;
-    Buffer buf;
-    HeapScanDesc scan;
-	ScanKeyData scanKey;
-
-    urel = heap_openr(Name_pg_user);
-    if (!RelationIsValid(urel))
-	elog(FATAL, "%s: cannot open %s.", command, Name_pg_user);
-
-	ScanKeyEntryInitialize(&scanKey.data[0], 0,
-						   Anum_pg_user_usename,
-						   NameEqualRegProcedure, NameGetDatum(username));
-
-    scan = heap_beginscan(urel, 0, NowTimeQual, 1, &scanKey);
-    if (!HeapScanIsValid(scan))
-	elog(WARN, "%s: cannot begin scan of pg_user.", command);
-
-    /*
-     *  since we want to return the tuple out of this proc, and we're
-     *  going to close the relation, copy the tuple and return the copy.
-     */
-    tup = heap_getnext(scan, 0, &buf);
-
-    if (HeapTupleIsValid(tup)) {
-	usertup = (HeapTuple) palloctup(tup, buf, urel);
-	ReleaseBuffer(buf);
-    } else {
-	elog(WARN, "No pg_user tuple for %s", username);
-    }
-
-    heap_endscan(scan);
-    heap_close(urel);
-    return (usertup);
-}
-
-HeapTuple
 get_pg_dbtup(command, dbname, dbrel)
     char *command;
     char *dbname;
@@ -180,16 +139,19 @@ check_permissions(command, dbname, dbIdP, userIdP)
     char use_createdb;
     bool dbfound;
     bool use_super;
+    NameData user;
+    extern void GetUserName();
 
-    utup = get_pg_usertup(command, PG_username);
+    GetUserName(&user);
+    utup = SearchSysCacheTuple(USENAME, user.data, NULL, NULL, NULL);
     *userIdP = ((Form_pg_user)GETSTRUCT(utup))->usesysid;
     use_super = ((Form_pg_user)GETSTRUCT(utup))->usesuper;
     use_createdb = ((Form_pg_user)GETSTRUCT(utup))->usecreatedb;
 
     /* Check to make sure user has permission to use createdb */
     if (!use_createdb) {
-        elog(WARN, "User %s is not allowed to create/destroy databases",
-             PG_username);
+        elog(WARN, "%s: user \"%-*s\" is not allowed to create/destroy databases",
+             sizeof(NameData), user);
     }
 
     /* Make sure we are not mucking with the template database */
@@ -208,10 +170,11 @@ check_permissions(command, dbname, dbIdP, userIdP)
      * need the reldesc to get the database owner out of dbtup 
      * and to set a write lock on it.
      */
-    dbrel = heap_openr(Name_pg_database);
+    dbrel = heap_openr(DatabaseRelationName);
 
     if (!RelationIsValid(dbrel))
-	elog(FATAL, "%s: cannot open %s.", command, Name_pg_database);
+	elog(FATAL, "%s: cannot open relation \"%-*s\"",
+	     command, DatabaseRelationName->data);
 
     /*
      * Acquire a write lock on pg_database from the beginning to avoid 
