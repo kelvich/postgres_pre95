@@ -161,7 +161,7 @@ DefinePFunction(pname,relname,qstring)
 
   /* XXX Fix this after catalogs fix to get relation type. */
 
-  sprintf(query_buf, "addattr (%s = int4) to %s", pname, relname); 
+  sprintf(query_buf, "addattr (%s = RELATION ) to %s", pname, relname); 
   /*  printf( "Query is : %s\n", query_buf); */
   pg_eval(query_buf); 
 
