@@ -11,7 +11,7 @@
 #include "nodes.h"
 #include "pg_lisp.h"
 #include "nodeFuncs.h"
-#include "keys.h"
+#include "planner/keys.h"
 
 /* XXX - find what this really means */
 extern LispValue last_element();
