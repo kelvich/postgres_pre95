@@ -32,6 +32,7 @@
 /* XXX check above includes */
  
 #include "tmp/postgres.h"
+#include "tmp/miscadmin.h"
 
 RcsId("$Header$");
  
@@ -71,6 +72,7 @@ RcsId("$Header$");
 #include "catalog/pg_variable.h"
 #include "catalog/pg_log.h"
 #include "catalog/pg_time.h"
+#include "catalog/indexing.h"
 
 #include "utils/relcache.h"
 
@@ -85,6 +87,7 @@ RcsId("$Header$");
  * ----------------
  */
 #define private static
+#define INIT_FILENAME	"pg_internal.init"
 
 /* ----------------
  *	externs
@@ -138,9 +141,26 @@ typedef struct relnamecacheent {
     Relation reldesc;
 } RelNameCacheEnt;
 
+void init_irels();
+void write_irels();
+HeapTuple scan_pg_rel_seq ARGS((RelationBuildDescInfo buildinfo));
+HeapTuple scan_pg_rel_ind ARGS((RelationBuildDescInfo buildinfo));
+
 char *BuildDescInfoError ARGS((RelationBuildDescInfo buildinfo ));
 HeapTuple ScanPgRelation ARGS((RelationBuildDescInfo buildinfo ));
 void RelationBuildTupleDesc ARGS((
+	RelationBuildDescInfo buildinfo,
+	Relation relation,
+	AttributeTupleForm attp,
+	u_int natts
+));
+void build_tupdesc_seq ARGS((
+	RelationBuildDescInfo buildinfo,
+	Relation relation,
+	AttributeTupleForm attp,
+	u_int natts
+));
+void build_tupdesc_ind ARGS((
 	RelationBuildDescInfo buildinfo,
 	Relation relation,
 	AttributeTupleForm attp,
@@ -280,13 +300,27 @@ BuildDescInfoError(buildinfo)
  *	this is used by RelationBuildDesc to find a pg_relation
  *	tuple matching either a relation name or a relation id
  *	as specified in buildinfo.
- *
- *	ADD INDEXING HERE
  * --------------------------------
  */
 HeapTuple
 ScanPgRelation(buildinfo)   
     RelationBuildDescInfo buildinfo;    
+{
+    /*
+     *  If this is bootstrap time (initdb), then we can't use the system
+     *  catalog indices, because they may not exist yet.  Otherwise, we
+     *  can, and do.
+     */
+
+    if (IsBootstrapProcessingMode())
+	return (scan_pg_rel_seq(buildinfo));
+    else
+	return (scan_pg_rel_ind(buildinfo));
+}
+
+HeapTuple
+scan_pg_rel_seq(buildinfo)
+    RelationBuildDescInfo buildinfo;
 {
     HeapTuple	 pg_relation_tuple;
     HeapTuple	 return_tuple;
@@ -325,7 +359,8 @@ ScanPgRelation(buildinfo)
      * ----------------
      */
     pg_relation_desc =  heap_openr(RelationRelationName);
-    RelationSetLockForRead(pg_relation_desc);
+    if (!IsInitProcessingMode())
+	RelationSetLockForRead(pg_relation_desc);
     pg_relation_scan =
 	heap_beginscan(pg_relation_desc, 0, NowTimeQual, 1, &key);
     pg_relation_tuple = heap_getnext(pg_relation_scan, 0, &buf);
@@ -351,8 +386,42 @@ ScanPgRelation(buildinfo)
 
     /* all done */
     heap_endscan(pg_relation_scan);
-    RelationUnsetLockForRead(pg_relation_desc);
+    if (!IsInitProcessingMode())
+	RelationUnsetLockForRead(pg_relation_desc);
     heap_close(pg_relation_desc);
+
+    return return_tuple;
+}
+
+HeapTuple
+scan_pg_rel_ind(buildinfo)
+    RelationBuildDescInfo buildinfo;
+{
+    Relation pg_class_desc;
+    HeapTuple return_tuple;
+
+    pg_class_desc = heap_openr(Name_pg_relation);
+    if (!IsInitProcessingMode())
+	RelationSetLockForRead(pg_class_desc);
+
+    switch (buildinfo.infotype) {
+    case INFO_RELID:
+	return_tuple = ClassOidIndexScan(pg_class_desc, buildinfo.i.info_id);
+	break;
+
+    case INFO_RELNAME:
+	return_tuple = ClassNameIndexScan(pg_class_desc, buildinfo.i.info_name);
+	break;
+
+    default:
+	elog(WARN, "ScanPgRelation: bad buildinfo");
+	/* NOTREACHED */
+    }
+
+    /* all done */
+    if (!IsInitProcessingMode())
+	RelationUnsetLockForRead(pg_class_desc);
+    heap_close(pg_class_desc);
 
     return return_tuple;
 }
@@ -409,12 +478,29 @@ AllocateRelationDesc(natts, relp)
  *
  *	Form the relation's tuple descriptor from information in
  *	the pg_attribute system catalog.
- *
- *	ADD INDEXING HERE
  * --------------------------------
  */
 void
 RelationBuildTupleDesc(buildinfo, relation, attp, natts) 
+    RelationBuildDescInfo buildinfo;    
+    Relation		  relation;
+    AttributeTupleForm	  attp;
+    u_int		  natts;
+{
+    /*
+     *  If this is bootstrap time (initdb), then we can't use the system
+     *  catalog indices, because they may not exist yet.  Otherwise, we
+     *  can, and do.
+     */
+
+    if (IsBootstrapProcessingMode())
+	build_tupdesc_seq(buildinfo, relation, attp, natts);
+    else
+	build_tupdesc_ind(buildinfo, relation, attp, natts);
+}
+
+void
+build_tupdesc_seq(buildinfo, relation, attp, natts) 
     RelationBuildDescInfo buildinfo;    
     Relation		  relation;
     AttributeTupleForm	  attp;
@@ -480,6 +566,40 @@ RelationBuildTupleDesc(buildinfo, relation, attp, natts)
      */
     heap_endscan(pg_attribute_scan);
     heap_close(pg_attribute_desc);
+}
+
+void
+build_tupdesc_ind(buildinfo, relation, attp, natts) 
+    RelationBuildDescInfo buildinfo;    
+    Relation		  relation;
+    AttributeTupleForm	  attp;
+    u_int		  natts;
+{
+    Relation attrel;
+    HeapTuple atttup;
+    int i;
+
+    attrel = heap_openr(Name_pg_attribute);
+
+    for (i = 1; i <= relation->rd_rel->relnatts; i++) {
+
+	atttup = (HeapTuple) AttributeNumIndexScan(attrel, relation->rd_id, i);
+
+	if (!HeapTupleIsValid(atttup))
+	    elog(WARN, "cannot find attribute %d of relation %.16s", i,
+			&(relation->rd_rel->relname.data[0]));
+
+	attp = (AttributeTupleForm) HeapTupleGetForm(atttup);
+
+	relation->rd_att.data[i - 1] = (Attribute)
+	    palloc(sizeof (RuleLock) + sizeof *relation->rd_att.data[0]);
+
+	bcopy((char *) attp,
+	      (char *) relation->rd_att.data[i - 1],
+	      sizeof *relation->rd_att.data[0]);
+    }
+
+    heap_close(attrel);
 }
 
 /* --------------------------------
@@ -1220,9 +1340,7 @@ RelationInitialize()
      * ----------------
      */
 #define INIT_RELDESC(x) \
-    formrdesc(SCHEMA_NAME(x), \
-	      SCHEMA_NATTS(x), \
-	      SCHEMA_DESC(x))
+    formrdesc(SCHEMA_NAME(x), SCHEMA_NATTS(x), SCHEMA_DESC(x))
     
     INIT_RELDESC(pg_relation);
     INIT_RELDESC(pg_attribute);
@@ -1231,6 +1349,303 @@ RelationInitialize()
     INIT_RELDESC(pg_variable);
     INIT_RELDESC(pg_log);
     INIT_RELDESC(pg_time);
-    
+
+    /*
+     *  If this isn't initdb time, then we want to initialize some index
+     *  relation descriptors, as well.  The descriptors are for pg_attnumind
+     *  (to make building relation descriptors fast) and possibly others,
+     *  as they're added.
+     */
+
+    if (!IsBootstrapProcessingMode())
+	init_irels();
+
     MemoryContextSwitchTo(oldcxt);
+}
+
+/*
+ *  init_irels(), write_irels() -- handle special-case initialization of
+ *				   index relation descriptors.
+ *
+ *	In late 1992, we started regularly having databases with more than
+ *	a thousand classes in them.  With this number of classes, it became
+ *	critical to do indexed lookups on the system catalogs.
+ *
+ *	Bootstrapping these lookups is very hard.  We want to be able to
+ *	use an index on pg_attribute, for example, but in order to do so,
+ *	we must have read pg_attribute for the attributes in the index,
+ *	which implies that we need to use the index.
+ *
+ *	In order to get around the problem, we do the following:
+ *
+ *	   +  When the database system is initialized (at initdb time), we
+ *	      don't use indices on pg_attribute.  We do sequential scans.
+ *
+ *	   +  When the backend is started up in normal mode, we load an image
+ *	      of the appropriate relation descriptors, in internal format,
+ *	      from an initialization file in the data/base/... directory.
+ *
+ *	   +  If the initialization file isn't there, then we create the
+ *	      relation descriptor using sequential scans and write it to
+ *	      the initialization file for use by subsequent backends.
+ *
+ *	This is complicated and interferes with system changes, but
+ *	performance is so bad that we're willing to pay the tax.
+ */
+
+/* pg_attnumind, pg_classnameind, pg_classoidind */
+#define Num_indices_bootstrap	3
+
+void
+init_irels()
+{
+    int len;
+    int nread;
+    File fd;
+    Relation irel[Num_indices_bootstrap];
+    Relation ird;
+    AccessMethodTupleForm am;
+    RelationTupleForm relform;
+    IndexStrategy strat;
+    RegProcedure *support;
+    int i;
+    int relno;
+    char *p;
+
+    if ((fd = FileNameOpenFile(INIT_FILENAME, O_RDONLY, 0600)) < 0) {
+	write_irels();
+	return;
+    }
+
+    (void) FileSeek(fd, 0L, L_SET);
+
+    for (relno = 0; relno < Num_indices_bootstrap; relno++) {
+	/* first read the relation descriptor */
+	if ((nread = FileRead(fd, &len, sizeof(int))) != sizeof(int)) {
+	    write_irels();
+	    return;
+	}
+
+	ird = irel[relno] = (Relation) palloc(len);
+	if ((nread = FileRead(fd, ird, len)) != len) {
+	    write_irels();
+	    return;
+	}
+
+	/* the file descriptor is not yet opened */
+	ird->rd_fd = -1;
+
+	/* lock info is not initialized */
+	ird->lockInfo = (char *) NULL;
+
+	/* next read the access method tuple form */
+	if ((nread = FileRead(fd, &len, sizeof(int))) != sizeof(int)) {
+	    write_irels();
+	    return;
+	}
+
+	am = (AccessMethodTupleForm) palloc(len);
+	if ((nread = FileRead(fd, am, len)) != len) {
+	    write_irels();
+	    return;
+	}
+
+	ird->rd_am = am;
+
+	/* next read the relation tuple form */
+	if ((nread = FileRead(fd, &len, sizeof(int))) != sizeof(int)) {
+	    write_irels();
+	    return;
+	}
+
+	relform = (RelationTupleForm) palloc(len);
+	if ((nread = FileRead(fd, relform, len)) != len) {
+	    write_irels();
+	    return;
+	}
+
+	ird->rd_rel = relform;
+
+	/* next read all the attribute tuple form data entries */
+	len = sizeof(RuleLock) + sizeof(*ird->rd_att.data[0]);
+	for (i = 0; i < relform->relnatts; i++) {
+	    if ((nread = FileRead(fd, &len, sizeof(int))) != sizeof(int)) {
+		write_irels();
+		return;
+	    }
+
+	    ird->rd_att.data[i] = (AttributeTupleForm) palloc(len);
+
+	    if ((nread = FileRead(fd, ird->rd_att.data[i], len)) != len) {
+		write_irels();
+		return;
+	    }
+	}
+
+	/* next read the index strategy map */
+	if ((nread = FileRead(fd, &len, sizeof(int))) != sizeof(int)) {
+	    write_irels();
+	    return;
+	}
+
+	strat = (IndexStrategy) palloc(len);
+	if ((nread = FileRead(fd, strat, len)) != len) {
+	    write_irels();
+	    return;
+	}
+
+/* oh, for god's sake... */
+#define SMD(i)	strat[0].strategyMapData[i].entry[0]
+
+	/* have to reinit the function pointers in the strategy maps */
+	for (i = 0; i < am->amstrategies; i++)
+	    fmgr_info(SMD(i).procedure, &(SMD(i).func), &(SMD(i).nargs));
+
+
+	p = (char *) (&ird->rd_att.data[ird->rd_rel->relnatts]);
+	*((IndexStrategy *) p) = strat;
+
+	/* finally, read the vector of support procedures */
+	if ((nread = FileRead(fd, &len, sizeof(int))) != sizeof(int)) {
+	    write_irels();
+	    return;
+	}
+
+	support = (RegProcedure *) palloc(len);
+	if ((nread = FileRead(fd, support, len)) != len) {
+	    write_irels();
+	    return;
+	}
+
+	p += sizeof(IndexStrategy);
+	*((RegProcedure **) p) = support;
+
+	RelationCacheInsert(ird);
+    }
+}
+
+void
+write_irels()
+{
+    int len;
+    int nwritten;
+    File fd;
+    Relation irel[Num_indices_bootstrap];
+    Relation ird;
+    AccessMethodTupleForm am;
+    RelationTupleForm relform;
+    IndexStrategy *strat;
+    RegProcedure **support;
+    char *p;
+    ProcessingMode oldmode;
+    extern Name AttributeNumIndex;
+    int i;
+    int relno;
+    RelationBuildDescInfo bi;
+
+    fd = FileNameOpenFile(INIT_FILENAME, O_WRONLY|O_CREAT|O_TRUNC, 0600);
+    if (fd < 0)
+	elog(FATAL, "cannot create init file %s", INIT_FILENAME);
+
+    (void) FileSeek(fd, 0L, L_SET);
+
+    /*
+     *  Build a relation descriptor for pg_attnumind without resort to the
+     *  descriptor cache.  In order to do this, we set ProcessingMode
+     *  to Bootstrap.  The effect of this is to disable indexed relation
+     *  searches -- a necessary step, since we're trying to instantiate
+     *  the index relation descriptors here.
+     */
+
+    oldmode = GetProcessingMode();
+    SetProcessingMode(BootstrapProcessing);
+
+    bi.infotype = INFO_RELNAME;
+    bi.i.info_name = AttributeNumIndex;
+    irel[0] = RelationBuildDesc(bi);
+    irel[0]->rd_isnailed = true;
+
+    bi.i.info_name = ClassNameIndex;
+    irel[1] = RelationBuildDesc(bi);
+    irel[1]->rd_isnailed = true;
+
+    bi.i.info_name = ClassOidIndex;
+    irel[2] = RelationBuildDesc(bi);
+    irel[2]->rd_isnailed = true;
+
+    SetProcessingMode(oldmode);
+
+    /* nail the descriptor in the cache */
+    for (relno = 0; relno < Num_indices_bootstrap; relno++) {
+	ird = irel[relno];
+
+	/* save the volatile fields in the relation descriptor */
+	am = ird->rd_am;
+	ird->rd_am = (AccessMethodTupleForm) NULL;
+	relform = ird->rd_rel;
+	ird->rd_rel = (RelationTupleForm) NULL;
+	p = (char *) (&ird->rd_att.data[relform->relnatts]);
+	strat = (IndexStrategy *) p;
+	p += sizeof(IndexStrategy);
+	support = (RegProcedure **) p;
+
+	/* first write the relation descriptor, excluding strategy and support */
+	len = sizeof(RelationData)
+	      + ((relform->relnatts - 1) * sizeof(ird->rd_att));
+	len += sizeof(IndexStrategy) + sizeof(RegProcedure *);
+
+	if ((nwritten = FileWrite(fd, &len, sizeof(int))) != sizeof(int))
+	    elog(FATAL, "cannot write init file -- descriptor length");
+
+	if ((nwritten = FileWrite(fd, ird, len)) != len)
+	    elog(FATAL, "cannot write init file -- reldesc");
+
+	/* next write the access method tuple form */
+	len = sizeof(AccessMethodTupleFormD);
+	if ((nwritten = FileWrite(fd, &len, sizeof(int))) != sizeof(int))
+	    elog(FATAL, "cannot write init file -- am tuple form length");
+
+	if ((nwritten = FileWrite(fd, am, len)) != len)
+	    elog(FATAL, "cannot write init file -- am tuple form");
+
+	/* next write the relation tuple form */
+	len = sizeof(RelationTupleFormD);
+	if ((nwritten = FileWrite(fd, &len, sizeof(int))) != sizeof(int))
+	    elog(FATAL, "cannot write init file -- relation tuple form length");
+
+	if ((nwritten = FileWrite(fd, relform, len)) != len)
+	    elog(FATAL, "cannot write init file -- relation tuple form");
+
+	/* next, do all the attribute tuple form data entries */
+	len = sizeof(RuleLock) + sizeof(*ird->rd_att.data[0]);
+	for (i = 0; i < relform->relnatts; i++) {
+	    if ((nwritten = FileWrite(fd, &len, sizeof(int))) != sizeof(int))
+		elog(FATAL, "cannot write init file -- length of attdesc %d", i);
+	    if ((nwritten = FileWrite(fd, ird->rd_att.data[i], len)) != len)
+		elog(FATAL, "cannot write init file -- attdesc %d", i);
+	}
+
+	/* next write the index strategy map */
+	len = AttributeNumberGetIndexStrategySize(relform->relnatts,
+						  am->amstrategies);
+	if ((nwritten = FileWrite(fd, &len, sizeof(int))) != sizeof(int))
+	    elog(FATAL, "cannot write init file -- strategy map length");
+
+	if ((nwritten = FileWrite(fd, *strat, len)) != len)
+	    elog(FATAL, "cannot write init file -- stragegy map");
+
+	/* finally, write the vector of support procedures */
+	len = relform->relnatts * (am->amstrategies * sizeof(RegProcedure));
+	if ((nwritten = FileWrite(fd, &len, sizeof(int))) != sizeof(int))
+	    elog(FATAL, "cannot write init file -- support vector length");
+
+	if ((nwritten = FileWrite(fd, *support, len)) != len)
+	    elog(FATAL, "cannot write init file -- support vector");
+
+	/* restore volatile fields */
+	ird->rd_am = am;
+	ird->rd_rel = relform;
+    }
+
+    (void) FileClose(fd);
 }

@@ -791,11 +791,6 @@ SearchSysCache(cache, v1, v2, v3, v4)
     if (cache->relationId == InvalidObjectId)
 	CatalogCacheInitializeCache(cache, NULL);
     
-    if (DisableCache) {
-	elog(WARN, "SearchSysCache: Called while cache disabled");
-	return((HeapTuple) NULL);
-    }
-
     /* ----------------
      *	initialize the search key information
      * ----------------
@@ -850,13 +845,23 @@ SearchSysCache(cache, v1, v2, v3, v4)
 	return
 	    (ct->ct_tup);
     }
-    
+
     /* ----------------
      *	Tuple was not found in cache, so we have to try and
      *  retrieve it directly from the relation.  If it's found,
-     *  we add it to the cache.
+     *  we add it to the cache.  We must avoid recursion here,
+     *  so we disable cache operations.  If operations are
+     *  currently disabled and we couldn't find the requested item
+     *  in the cache, then this may be a recursive request, and we
+     *  abort with an error.
      * ----------------
      */
+
+    if (DisableCache) {
+	elog(WARN, "SearchSysCache: Called while cache disabled");
+	return((HeapTuple) NULL);
+    }
+
     /* ----------------
      *	open the relation associated with the cache
      * ----------------
@@ -877,14 +882,15 @@ SearchSysCache(cache, v1, v2, v3, v4)
     oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
    
     /* ----------------
-     *	now preform a scan of the relation
-     *  ADD INDEXING HERE.
+     *  Scan the relation to find the tuple.  If there's an index, and
+     *  if this isn't bootstrap (initdb) time, use the index.
      * ----------------
      */
     CACHE2_elog(DEBUG, "SearchSysCache: performing scan (override==%d)",
 		heapisoverride());
     
-    if ((RelationGetRelationTupleForm(relation))->relhasindex)
+    if ((RelationGetRelationTupleForm(relation))->relhasindex
+	 && !IsBootstrapProcessingMode())
     {
 	Assert(cache->cc_iscanfunc);
 	switch(cache->cc_nkeys)

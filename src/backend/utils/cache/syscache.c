@@ -179,8 +179,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(struct relation),
-      NULL,
-      NULL  },
+      &ClassNameIndex,
+      ClassNameIndexScan  },
     { &RelationRelationName,			/* RELOID */
 	  1,
 	  { ObjectIdAttributeNumber,
@@ -188,8 +188,8 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(struct relation),
-      NULL,
-      NULL  },
+      &ClassOidIndex,
+      ClassOidIndexScan  },
     { &TypeRelationName,			/* TYPNAME */
 	  1,
 	  { TypeNameAttributeNumber,
