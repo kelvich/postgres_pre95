@@ -44,7 +44,7 @@ typedef uint16	SystemPortAddress;
 
 #define IPCProtection	(0600)		/* access/modify by user only */
 
-#define IPC_NMAXSEM	50		/* maximum number of semaphores */
+#define IPC_NMAXSEM	25		/* maximum number of semaphores */
 #define IpcSemaphoreDefaultStartValue	255
 #define IpcSharedLock					(-1)
 #define IpcExclusiveLock			  (-255)
