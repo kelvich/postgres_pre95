@@ -567,9 +567,10 @@ IndexTuple source, *target;
     size = IndexTupleSize(source);
     if (*target == NULL)
     {
-	*target = ret = (IndexTuple) palloc(size);
+	*target = (IndexTuple) palloc(size);
     }
 
+    ret = *target;
     bcopy(source, ret, size);
 }
 
