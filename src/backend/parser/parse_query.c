@@ -14,16 +14,16 @@
 #include <ctype.h>
 #include "rel.h" 		/* Relation stuff */
 #include "catalog_utils.h"
+#include "datum.h"
 #include "pg_lisp.h"
 #include "log.h"
 #include "parse.h"
-#include "tim.h"
-#include "trange.h"
 #include "parse_query.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
 #include "palloc.h"
-#include "datum.h"
+#include "tim.h"
+#include "tqual.h"
 
 extern LispValue parser_ppreserve();
 
@@ -217,7 +217,7 @@ MakeTimeRange( datestring1 , datestring2 , timecode )
      LispValue datestring1, datestring2;
      int timecode; /* 0 = snapshot , 1 = timerange */
 {
-	TimeRange  trange;
+	TimeQual	qual;
 	Time t1,t2;
 
 	switch (timecode) {
@@ -230,7 +230,7 @@ MakeTimeRange( datestring1 , datestring2 , timecode )
 				elog(WARN, "bad snapshot time: \"%s\"",
 					CString(datestring1));
 			}
-			trange = TimeFormSnapshotTimeRange(t1);
+			qual = TimeFormSnapshotTimeQual(t1);
 			break;
 		case 1:
 			if (datestring1 == LispNil) {
@@ -253,12 +253,12 @@ MakeTimeRange( datestring1 , datestring2 , timecode )
 						CString(datestring2));
 				}
 			}
-			trange = TimeFormRangedTimeRange(t1,t2);
+			qual = TimeFormRangedTimeQual(t1,t2);
 			break;
 		default:
 			elog(WARN, "MakeTimeRange: internal parser error");
 	}
-	return(lispInteger(trange));
+	return(lispInteger(qual));
 }
 
 LispValue 
