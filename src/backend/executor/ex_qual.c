@@ -134,7 +134,7 @@ ExecEvalArrayRef(arrayRef, econtext, isNull, isDone)
     char 	*retval;
     
     *isNull       =	false;
-    array_scanner =	(char *)ExecEvalExpr(get_refexpr(arrayRef),
+    array_scanner =	(char *)ExecEvalExpr((Node)get_refexpr(arrayRef),
 					     econtext,
 					     isNull,
 					     isDone);
@@ -143,7 +143,7 @@ ExecEvalArrayRef(arrayRef, econtext, isNull, isDone)
     /*
      * Array indices *cannot* be sets and are 1 based (convert to 0 based).
      */
-    indirection = (int32)ExecEvalExpr(get_refindexpr(arrayRef),
+    indirection = (int32)ExecEvalExpr((Node)get_refindexpr(arrayRef),
 				      econtext,
 				      isNull,
 				      &dummy);
@@ -348,16 +348,16 @@ ExecEvalVar(variable, econtext, isNull)
 	tempSlot = MakeTupleTableSlot(false,
 				      true,
 				      (TupleDescriptor)NULL,
-				      (TupleDescriptor)NULL,
+				      (ExecTupDescriptor)NULL,
 				      InvalidBuffer,
 				      -1);
 
 	tup = (HeapTuple)heap_copysimple(ExecFetchTuple(slot));
 	td = (TupleDescriptor)
 		ExecCopyTupType(ExecSlotDescriptor(slot), tup->t_natts);
-	ExecSetSlotDescriptor(tempSlot, td);
+	ExecSetSlotDescriptor((Pointer)tempSlot, td);
 
-	ExecStoreTuple(tup, tempSlot, InvalidBuffer, true);
+	ExecStoreTuple(tup, (Pointer)tempSlot, InvalidBuffer, true);
 	return (Datum) tempSlot;
     }
 
@@ -586,7 +586,7 @@ GetAttributeByNum(slot, attrno, isNull)
     if (isNull == (Boolean *)NULL)
 	elog(WARN, "GetAttributeByNum: a NULL isNull flag was passed");
     
-    if (TupIsNull(slot))
+    if (TupIsNull((Pointer)slot))
     {
     	*isNull = true;
 	return;
@@ -896,7 +896,7 @@ ExecEvalOper(opClause, econtext, isNull)
      * -----------
      */
     return
-	ExecMakeFunctionResult(op, argList, econtext, isNull, &isDone);
+	ExecMakeFunctionResult((Node)op, argList, econtext, isNull, &isDone);
 }
  
 /* ----------------------------------------------------------------
@@ -943,7 +943,7 @@ ExecEvalFunc(funcClause, econtext, isNull, isDone)
     }
 
     return
-	ExecMakeFunctionResult(func, argList, econtext, isNull, isDone);
+	ExecMakeFunctionResult((Node)func, argList, econtext, isNull, isDone);
 }
  
 /* ----------------------------------------------------------------

@@ -18,6 +18,7 @@
 #include "nodes/primnodes.h"
 #include "nodes/relation.h"
 #include "nodes/execnodes.h"
+#include "nodes/plannodes.h"
 #include "planner/keys.h"
 #include "tcop/pquery.h"
 #include "utils/params.h"
@@ -105,7 +106,7 @@ init_execution_state(fcache, args)
     {
 	EState    estate;
 	LispValue parseTree = CAR(parseTree_list);
-	LispValue planTree = CAR(planTree_list);
+	Plan planTree = (Plan)CAR(planTree_list);
 
 	if (!nextes)
 	    nextes = (execution_state *) palloc(sizeof(execution_state));
@@ -219,7 +220,7 @@ copy_function_result(fcache, resultSlot)
     HeapTuple newTuple;
     HeapTuple oldTuple;
 
-    Assert(! TupIsNull(resultSlot));
+    Assert(! TupIsNull((Pointer)resultSlot));
     oldTuple = (HeapTuple)ExecFetchTuple(resultSlot);
 
     funcSlot = (TupleTableSlot)fcache->funcSlot;
@@ -232,7 +233,7 @@ copy_function_result(fcache, resultSlot)
      * When the funcSlot is NULL we have to initialize the funcSlot's
      * tuple descriptor.
      */
-    if (TupIsNull(funcSlot))
+    if (TupIsNull((Pointer)funcSlot))
     {
 	int             i      = 0;
 	TupleDescriptor funcTd = ExecSlotDescriptor(funcSlot);
@@ -278,7 +279,7 @@ postquel_execute(es, fcache, fTlist, args, isNull)
 
     slot = postquel_getnext(es);
 
-    if (TupIsNull(slot))
+    if (TupIsNull((Pointer)slot))
     {
 	postquel_end(es);
 	es->status = F_EXEC_DONE;
