@@ -174,24 +174,34 @@
  * ----------------------------------------------------------------
  */
 
+#define EXEC_TUPLECOUNT
 /* ----------------
  *	tuple count debugging defines
  * ----------------
  */
 #ifdef EXEC_TUPLECOUNT
-#define IncrRetrieved(x)	ExecIncrementRetrieved(x)
-#define	IncrAppended(x)		ExecIncrementAppended(x)
-#define	IncrDeleted(x)		ExecIncrementDeleted(x)
-#define	IncrReplaced(x)		ExecIncrementReplaced(x)
-#define	IncrInserted(x)		ExecIncrementInserted(x)
-#define IncrProcessed(x)	ExecIncrementProcessed(x)
+extern int     NTupleProcessed;
+extern int     NTupleRetrieved;
+extern int     NTupleReplaced;
+extern int     NTupleAppended;
+extern int     NTupleDeleted;
+extern int     NIndexTupleProcessed;
+
+#define IncrRetrieved()		NTupleRetrieved++
+#define	IncrAppended()		NTupleAppended++
+#define	IncrDeleted()		NTupleDeleted++
+#define	IncrReplaced()		NTupleReplaced++
+#define	IncrInserted()		NTupleInserted++
+#define IncrProcessed()		NTupleProcessed++
+#define IncrIndexProcessed()	NIndexTupleProcessed++
 #else
-#define IncrRetrieved(x)
-#define	IncrAppended(x)
-#define	IncrDeleted(x)
-#define	IncrReplaced(x)
-#define	IncrInserted(x)
-#define IncrProcessed(x)
+#define IncrRetrieved()
+#define	IncrAppended()
+#define	IncrDeleted()
+#define	IncrReplaced()
+#define	IncrInserted()
+#define IncrProcessed()
+#define IncrIndexProcessed()
 #endif EXEC_TUPLECOUNT
 
 /* ----------------
