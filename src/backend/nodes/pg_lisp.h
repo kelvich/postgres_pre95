@@ -146,14 +146,19 @@ extern bool null();
 extern LispValue collect();
 extern LispValue last_element();
 extern LispValue last();
+extern bool same();
 
 extern bool listp();
 extern int CAtom();
+extern double CDouble();
+extern char *CString();
+extern int CInteger();
 
 /* temporary functions */
 
 extern LispValue mapcar();
-#define foreach(elt,list)	for(elt=list;elt!=LispNil;elt=CDR(elt))
+#define foreach(_elt_,_list_)	for(_elt_=(LispValue)_list_; \
+_elt_!=LispNil;_elt_=CDR(_elt_))
 
 /* sigh, used so often, I'm lazy to do global search & replace */
 #define cons(x,y) lispCons(x,y)
