@@ -635,7 +635,7 @@ SISetDataEntry(segP, data)
     SISetStartFreeSpace(segP, eP->next);
     /* fill it up */
     eP->entryData = data;
-    eP->free = false;
+    eP->isfree = false;
     eP->next = InvalidOffset;
     
     /* handle insertion point at the end of the chain !!*/
@@ -697,7 +697,7 @@ SIDelDataEntry(segP)
     	SISetEndEntryChain(segP, InvalidOffset);
     }
     /* free the entry */
-    e1P->free = true;
+    e1P->isfree = true;
     e1P->next = SIGetStartFreeSpace(segP);
     SISetStartFreeSpace(segP, SIEntryOffset(segP, e1P));
     SIDecProcLimit(segP, 1);
@@ -833,14 +833,14 @@ SISegInit(segP)
     	eP = (SISegEntry  *) ((Pointer) segP +
     	                     SIGetStartEntrySection(segP) +
     	                     (i - 1) * sizeof(SISegEntry));
-    	eP->free = true;
+    	eP->isfree = true;
     	eP->next = i * sizeof(SISegEntry); /* relative to B */
     }
     /* handle the last free entry separate  	    	    	    */
     eP = (SISegEntry  *) ((Pointer) segP +
     	                     SIGetStartEntrySection(segP) +
     	                     (MAXNUMMESSAGES - 1) * sizeof(SISegEntry));
-    eP->free = true;
+    eP->isfree = true;
     eP->next = InvalidOffset;  /* it's the end of the chain !! */
     	                     
 }
@@ -1061,7 +1061,7 @@ SIBufferImage()
     eP = SIGetFirstDataEntry(segP);
     while (eP != NULL) {
     	fprintf(stderr, "\n  cacheId: %-7d", eP->entryData.cacheId);
-    	fprintf(stderr, "   free: %s", eP->free ? "true" : "false");
+    	fprintf(stderr, "   free: %s", eP->isfree ? "true" : "false");
     	fprintf(stderr, "   my offset: %-4d", SIEntryOffset(segP, eP));
     	fprintf(stderr, "   next: %-4d", eP->next);
     	eP = SIGetNextDataEntry(segP, eP->next);
@@ -1073,7 +1073,7 @@ SIBufferImage()
 /*  fprintf(stderr, "\n Free space chain:");
     eP = SIGetNextDataEntry(segP, SIGetStartFreeSpace(segP));
     while (eP != NULL) {
-    	fprintf(stderr, "\n  free: %s", eP->free ? "true" : "false");
+    	fprintf(stderr, "\n  free: %s", eP->isfree ? "true" : "false");
     	fprintf(stderr, "   my offset: %-4d", SIEntryOffset(segP, eP));
     	fprintf(stderr, "   next: %-4d", eP->next);
     	eP = SIGetNextDataEntry(segP, eP->next);

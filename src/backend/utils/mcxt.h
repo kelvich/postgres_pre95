@@ -60,12 +60,23 @@ EnableMemoryContext ARGS((
  *	BadArg if context is invalid or if size is 0.
  *	BadAllocSize if size is larger than MaxAllocSize.
  */
+#ifndef PALLOC_DEBUG
 extern
 Pointer
 MemoryContextAlloc ARGS((
 	MemoryContext	context,
 	Size		size
 ));
+#else
+extern
+Pointer
+MemoryContextAlloc_Debug ARGS((
+	String		file,
+	int		line,
+        MemoryContext   context,
+        Size            size
+));
+#endif
 
 /*
  * MemoryContextFree --
@@ -78,13 +89,23 @@ MemoryContextAlloc ARGS((
  *	???
  *	BadArgumentsErr if firstTime is true for subsequent calls.
  */
+#ifndef PALLOC_DEBUG
 extern
 void
 MemoryContextFree ARGS((
 	MemoryContext	context,
 	Pointer		pointer
 ));
-
+#else
+extern
+void
+MemoryContextFree_Debug ARGS((
+	String		file,
+	int		line,
+        MemoryContext   context,
+        Pointer         pointer
+));
+#endif
 /*
  * MemoryContextRelloc --
  *	Returns pointer to aligned allocated memory in the given context.

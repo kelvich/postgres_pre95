@@ -46,7 +46,6 @@ static
 bs_pop(s)
 	Stack	**s;
 {
-	extern	free();
 	Stack	*sp;
 	int	ret;
 
