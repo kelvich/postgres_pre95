@@ -1,13 +1,14 @@
 #! /bin/sh
 #
-#
+# $Header$
 #
 TMPDIR=${TMPDIR-/tmp}
 INHFILE=$TMPDIR/inh.$$
 TAGFILE=tags.h
+TAGTEMP=tags.temp
 OUTFILE=inh.c
 NODEFILES="nodes.h plannodes.h primnodes.h \
-relation.h execnodes.h mnodes.h lnodes.h"
+relation.h execnodes.h mnodes.h lnodes.h pg_lisp.h"
 #
 # Generate the initial inheritance graph
 #
@@ -19,7 +20,7 @@ sed \
 #
 # Assign tags to the classes
 #
-cat > $TAGFILE << 'EOF'
+cat > $TAGTEMP << 'EOF'
 /*
  * node tag header file
  *
@@ -28,7 +29,7 @@ cat > $TAGFILE << 'EOF'
 
 EOF
 awk 'BEGIN { i = -1 }\
-     { printf("#define T_%s %d\n", $1, ++i) }' $INHFILE >> $TAGFILE
+     { printf("#define T_%s %d\n", $1, ++i) }' $INHFILE >> $TAGTEMP
 #
 #
 #
@@ -39,6 +40,8 @@ cat > $OUTFILE << 'EOF'
  * Based on: $Header$
  */
 
+#include "pg_lisp.h"
+#include "c.h"
 #include "nodes.h"
 EOF
 echo '#include' \"$TAGFILE\" >> $OUTFILE
@@ -103,5 +106,52 @@ Dump_NodeInfo()
 		       _NodeInfo[i].ni_id, 
 		       _NodeInfo[_NodeInfo[i].ni_parent].ni_name);
 }
+bool
+NodeTagIsValid(tag)
+	NodeTag	tag;
+{
+	return ((bool)(tag < _InvalidTypeId));
+}
+
+NodeTag
+NodeGetTag(node)
+	Node	node;
+{
+	Assert(NodeIsValid(node));
+
+	return (node->type);
+}
+
+void
+NodeSetTag(node, tag)
+	Node	node;
+	NodeTag	tag;
+{
+	Assert(PointerIsValid(node));
+	Assert(NodeTagIsValid(tag));
+
+	node->type = tag;
+}
+
+bool
+NodeHasTag(node, tag)
+	Node	node;
+	NodeTag	tag;
+{
+	return ((bool)(NodeGetTag(node) == tag));
+}
+
 EOF
 rm -f $INHFILE
+
+if [ -r $TAGFILE ]; then 
+	if cmp -s $TAGFILE $TAGTEMP ; then 
+		echo "tags.h unchanged";
+	else
+		mv $TAGTEMP $TAGFILE; 
+		echo "tags.h has changed; remake cinterface.a";
+	fi
+else
+	mv $TAGTEMP $TAGFILE;
+fi
+exit 0
