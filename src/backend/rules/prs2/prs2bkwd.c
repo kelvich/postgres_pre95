@@ -28,10 +28,10 @@
  * 
  * Any of these events can activate some rules. These rules can
  * either be 'backward chaining' rules (i.e. rules that have
- * a lock of type 'LockTypeTupleXXXWrite' where XXX is the appropriate event)
- * or `forward chanining' (with a 'LockTypeTupleXXXAction' lock).
+ * a lock of type 'LockTypeXXXWrite' where XXX is the appropriate event)
+ * or `forward chanining' (with a 'LockTypeXXXAction' lock).
  * In the first case, we must call 'prs2ActivateBackwardChainingRules' for
- * every attribute that has the 'LockTypeTupleXXXWrite' lock.
+ * every attribute that has the 'LockTypeXXXWrite' lock.
  * This routine, finds these rules (if they exist) checks their
  * qualification and if true it activates them, retrieves the value
  * calculated by the rule and puts it in the tuple.
@@ -51,7 +51,7 @@
  *   oldAttributeValues: an array containing the values of the
  *       'old' tuple, plus some other info.
  *   oldTupleLocks: the rule locks of the old tuple.
- *   oldTupleLockType: the lock type (one of the 'LockTypeTupleXXXWrite'
+ *   oldTupleLockType: the lock type (one of the 'LockTypeXXXWrite'
  *       locks that should be used to calculate the values of the
  *       'old' tuple's attributes. See discussion below.
  *   newTupleOid,
@@ -78,33 +78,33 @@
  * 
  * In the 'retrieve' case, we only have an 'old' tuple, so all the
  * info about the 'new' tuple is ignored. The lock type that is 
- * used is 'LockTypeTupleRetrieveWrite'.
+ * used is 'LockTypeRetrieveWrite'.
  * In the case of 'append' event, we only have a new tuple, and
- * the lock type is 'LockTypeTupleAppendWrite'
+ * the lock type is 'LockTypeAppendWrite'
  * Finally in the case of replace, we have both a 'new' & 'old'
  * tuple, however we (directly) call 'prs2ActivateBackwardChainingRules'
- * only for the new tuple and the lock type is 'LockTypeTupleReplaceWrite'.
+ * only for the new tuple and the lock type is 'LockTypeReplaceWrite'.
  *
  * 'prs2ActivateForwardChainingRules' is called by
  * the prs2 routines thath handle 'retrieve', 'delete', 'append'
  * and 'replace' events.
  *
  * In the 'retrieve' case, we only have a 'old' tuple, the
- * `eventTypeLock' is 'LockTypeTupleRetrieveAction' and the 'oldTupleLockType'
- * is 'LockTypeTupleRetrieveWrite'
+ * `eventTypeLock' is 'LockTypeRetrieveAction' and the 'oldTupleLockType'
+ * is 'LockTypeRetrieveWrite'
  *
  * In the 'delete' case, we only have an 'old' tuple, the 
- * `eventTypeLock' is 'LockTypeTupleDeleteAction' and the 'oldTupleLockType'
- * is 'LockTypeTupleRetrieveWrite'
+ * `eventTypeLock' is 'LockTypeDeleteAction' and the 'oldTupleLockType'
+ * is 'LockTypeRetrieveWrite'
  * 
  * In the 'append' case, we only have a 'new' tuple, the 
- * `eventTypeLock' is 'LockTypeTupleAppendAction' and the 'newTupleLockType'
- * is 'LockTypeTupleAppendWrite'
+ * `eventTypeLock' is 'LockTypeAppendAction' and the 'newTupleLockType'
+ * is 'LockTypeAppendWrite'
  * 
  * In the 'replace' case, we have both an 'old' & a 'new' tuple, the 
- * `eventTypeLock' is 'LockTypeTupleReplaceAction', the 'oldTupleLockType'
- * is 'LockTypeTupleRetrieveWrite' and the 'newTupleLockType' is
- * 'LockTypeTupleReplaceWrite'
+ * `eventTypeLock' is 'LockTypeReplaceAction', the 'oldTupleLockType'
+ * is 'LockTypeRetrieveWrite' and the 'newTupleLockType' is
+ * 'LockTypeReplaceWrite'
  *
  *===================================================================
  */
@@ -209,7 +209,7 @@ AttributeNumber numberOfAttributes;
 	ruleId = prs2OneLockGetRuleId(oneLock);
         if (lockType==lockTypeToBeUsed&& attributeNumber==lockAttrNo) {
 	    /*
-	     * We've found a 'LockTypeTupleXXXWrite' lock, i.e. there
+	     * We've found a 'LockTypeXXXWrite' lock, i.e. there
 	     * is a rule that might calculate a new value
 	     * for this attribute.
 	     *
@@ -243,9 +243,9 @@ AttributeNumber numberOfAttributes;
 		 */
 		continue;
 	    }
-	    ruleInfo = prs2GetRuleInfoFromRulePlan(plan);
-	    planQual = prs2GetQualFromRulePlan(plan);
-	    planAction = prs2GetActionsFromRulePlan(plan);
+	    ruleInfo = prs2GetRuleInfoFromActionPlan(plan);
+	    planQual = prs2GetQualFromActionPlan(plan);
+	    planAction = prs2GetActionsFromActionPlan(plan);
 
 	    /*
 	     * in the case of a rule of the form:
@@ -253,7 +253,7 @@ AttributeNumber numberOfAttributes;
 	     * activate this rule only if the attribute 'Y' has been
 	     * replaced by either the user or another ON REPLACE rule.
 	     */
-	    if (lockType==LockTypeTupleReplaceWrite
+	    if (lockType==LockTypeReplaceWrite
 		&& oldOrNewTuple == PRS2_NEW_TUPLE) {
 		eventAttr = prs2GetEventAttributeNumberFromRuleInfo(ruleInfo);
 		/*
@@ -622,7 +622,7 @@ AttributeNumber numberOfAttributes;
 	ruleId = prs2OneLockGetRuleId(oneLock);
         if (lockType==actionLockType && attributeNumber==lockAttrNo) {
 	    /*
-	     * We've found a 'LockTypeTupleXXXAction' lock, i.e. there
+	     * We've found a 'LockTypeXXXAction' lock, i.e. there
 	     * is a rule that might be activated by this event.
 	     * for this attribute.
 	     *
@@ -640,9 +640,9 @@ AttributeNumber numberOfAttributes;
 		 */
 		continue;
 	    }
-	    ruleInfo = prs2GetRuleInfoFromRulePlan(plan);
-	    planQual = prs2GetQualFromRulePlan(plan);
-	    planActions = prs2GetActionsFromRulePlan(plan);
+	    ruleInfo = prs2GetRuleInfoFromActionPlan(plan);
+	    planQual = prs2GetQualFromActionPlan(plan);
+	    planActions = prs2GetActionsFromActionPlan(plan);
 
 	    /*
 	     * Now try to calculate all the parameters needed to fill in

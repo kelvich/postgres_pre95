@@ -127,7 +127,8 @@ typedef char Prs2LockType;
 
 #define LockTypeInvalid			((Prs2LockType) '*')
 
-/*--- TUPLE LEVEL LOCK TYPES --------------------------------------*/
+#ifdef OBSOLETE
+/*--- QUERY REWRITE LOCK TYPES ------------------------------------*/
 #define LockTypeTupleRetrieveAction		((Prs2LockType) '1')
 #define LockTypeTupleAppendAction		((Prs2LockType) '2')
 #define LockTypeTupleDeleteAction		((Prs2LockType) '3')
@@ -137,8 +138,9 @@ typedef char Prs2LockType;
 #define LockTypeTupleDeleteWrite		((Prs2LockType) '7')
 #define LockTypeTupleReplaceWrite		((Prs2LockType) '8')
 #define LockTypeTupleRetrieveRelation		((Prs2LockType) '9')
+#endif OBSOLETE
 
-/*--- QUERY REWRITE LOCK TYPES ------------------------------------*/
+/*--- TUPLE LEVEL LOCK TYPES --------------------------------------*/
 #define LockTypeRetrieveAction		((Prs2LockType) 'r')
 #define LockTypeAppendAction		((Prs2LockType) 'a')
 #define LockTypeDeleteAction		((Prs2LockType) 'd')
@@ -148,6 +150,8 @@ typedef char Prs2LockType;
 #define LockTypeDeleteWrite		((Prs2LockType) 'D')
 #define LockTypeReplaceWrite		((Prs2LockType) 'U')
 #define LockTypeRetrieveRelation	((Prs2LockType) 'V')
+#define LockTypeImport			((Prs2LockType) 'I')
+#define LockTypeExport			((Prs2LockType) 'E')
 
 /*------------------------------------------------------------------
  * Every single lock (`Prs2OneLock') has the following fields:
@@ -162,6 +166,20 @@ typedef char Prs2LockType;
  *                      equal to 'ActionPlanNumber', but we might add
  *                      others as well when we'll implement a 
  *                      more complex locking scheme.
+ *	partialindx,
+ *	npartial:	This is a field unique to 'import' locks.
+ *			A tuple might have many "import" locks,
+ *			depending on the rule. Each such import
+ *			lock is only a "partial" lock, and in order
+ *			for the tuple to be locked, we must have all
+ *			its partial locks. `npartial' is the number
+ *			of locks this tuple must have to be considered
+ *			as locked, and foreach lock `partialindx'
+ *			is the "index" of this partial lock
+ *			(a number between 0 ... npartial-1).
+ *			NOTE: we might have more than one locks with
+ *			the same `partialindx'. However they only count
+ *			as one.
  *
  * Every tuple can have more than one rule locks, so we need
  * a structure 'Prs2LocksData' to hold them.
@@ -174,7 +192,9 @@ typedef struct Prs2OneLockData {
     ObjectId		ruleId;	
     Prs2LockType	lockType;
     AttributeNumber	attributeNumber;
-    Prs2PlanNumber		planNumber;
+    Prs2PlanNumber	planNumber;
+    int			partialindx;
+    int			npartial;
 } Prs2OneLockData;
 
 typedef Prs2OneLockData *Prs2OneLock;
@@ -215,11 +235,15 @@ typedef Prs2LocksData	*RuleLock;
 #define prs2OneLockGetLockType(l)		((l)->lockType)
 #define prs2OneLockGetAttributeNumber(l)	((l)->attributeNumber)
 #define prs2OneLockGetPlanNumber(l)		((l)->planNumber)
+#define prs2OneLockGetPartialIndx(l)		((l)->partialindx)
+#define prs2OneLockGetNPartial(l)		((l)->npartial)
 
 #define prs2OneLockSetRuleId(l, x)		((l)->ruleId = (x))
 #define prs2OneLockSetLockType(l, x)		((l)->lockType = (x))
 #define prs2OneLockSetAttributeNumber(l, x)	((l)->attributeNumber = (x))
 #define prs2OneLockSetPlanNumber(l, x)		((l)->planNumber = (x))
+#define prs2OneLockSetPartialIndx(l, x)		((l)->partialindx = (x))
+#define prs2OneLockSetNPartial(l, x)		((l)->npartial = (x))
 
 /*------------------------------------------------------------------
  * prs2LockSize

@@ -177,11 +177,13 @@ prs2MakeLocks ARGS((
 extern
 RuleLock
 prs2AddLock ARGS((
-    RuleLock       oldLocks,
-    ObjectId	    ruleId,
-    Prs2LockType    lockType,
-    AttributeNumber attributeNumber,
-    Prs2PlanNumber  planNumber
+    RuleLock		oldLocks,
+    ObjectId		ruleId,
+    Prs2LockType	lockType,
+    AttributeNumber	attributeNumber,
+    Prs2PlanNumber	planNumber
+    int			partialindx,
+    int		 	npartial
 ));
 
 /*------------------------------------------------------------------
@@ -194,6 +196,29 @@ Prs2OneLock
 prs2GetOneLockFromLocks ARGS((
     RuleLock	locks,
     int		n
+));
+
+/*------------------------------------------------------------------
+ * prs2OneLocksAreTheSame
+ * return true iff the two 'Prs2OneLock' are the same...
+ */
+extern
+bool
+prs2OneLocksAreTheSame ARGS((
+    Prs2OneLock	oneLock1,
+    Prs2OneLock	oneLock2,
+));
+
+/*------------------------------------------------------------------
+ * prs2OneLockIsMemberOfLocks
+ * return true iff the given `Prs2OneLock' is one of the locks of
+ * `locks'
+ */
+extern
+bool
+prs2OneLockIsMemberOfLocks ARGS((
+    Prs2OneLock	oneLock,
+    RuleLock	locks;
 ));
 
 /*------------------------------------------------------------------
@@ -302,6 +327,17 @@ prs2GetLocksFromRelation ARGS((
 extern
 RuleLock
 prs2LockUnion ARGS((
+    RuleLock	lock1,
+    RuleLock	lock1
+));
+
+/*------------------------------------------------------------------
+ * prs2LockDifference
+ *   Create the difference of two RuleLock.
+ */
+extern
+RuleLock
+prs2LockDifference ARGS((
     RuleLock	lock1,
     RuleLock	lock1
 ));
@@ -454,31 +490,68 @@ extern void prs2AddRelationLevelLock();
  * RULE PLANS
  *
  * The rule plans are stored in the "pg_prs2plans" relation.
- * They are a list with at least two items:
+ * There are different types of plans.
+ * Each "plan" contains appart from one or more parsetrees/plans
+ * some rule information.
+ * The first item of all the plans is a string describing the type of the
+ * plan. This string can be "action" for the ACTION plans, and "export"
+ * for the EXPORT plans.
+ * The second item is the plan information itself, and its format depends
+ * on the type of plan:
  *
- * The first item is a list giving some info for the rule.
- * Currently this can have the following elements:
- * The first element is an integer, equal to 1 if the rule is an
- * instead rule, 0 otherwise.
+ * a) ACTION PLANS:
+ *	They are a list with at least two items:
  *
- * The second item is the qualification of the rule.
- * This should be tested before and only if it succeeds should the
- * action part of the rule be executed.
- * This qualifcation can be either "nil" which means that
- * there is no qualifcation and the action part of the rule should be
- * executed, or a 2 item list, the first item beeing the parse tree
- * corresponding to the qualifcation and the second one the plan.
+ *	The first item is a list giving some info for the rule.
+ *	Currently this can have the following elements:
+ *	The first element is an integer, equal to 1 if the rule is an
+ *	instead rule, 0 otherwise.
+ *	The second is the "event attribute" number, i.e. the attrno
+ *	of the attribute specified in the "on <action> to <rel>.<attr>"
+ *	rule clause.
+ *	The third is the "updated attribute" number, i.e. the attrno 
+ * 	of the attribute updated by a backward chaining rule.
  *
- * Finally the (optional) rest items are the actions of the rule.
- * Each one of them can be either a 2 item list (parse tree + plan)
- * or the string "abort" which means that the current Xaction should be
- * aborted.
+ *	The second item is the qualification of the rule.
+ *	This should be tested before and only if it succeeds should the
+ *	action part of the rule be executed.
+ *	This qualifcation can be either "nil" which means that
+ *	there is no qualification and the action part of the rule should be
+ *	always executed, or a 2 item list, the first item beeing the parse
+ *	tree corresponding to the qualification and the second one the plan.
+ *
+ *	Finally the (optional) rest items are the actions of the rule.
+ *	Each one of them can be either a 2 item list (parse tree + plan)
+ *	or the string "abort" which means that the current Xaction should be
+ *	aborted.
+ *
+ * b) EXPORT PLANS:
+ *	this is the kind of plan to be executed when an export
+ *	lock is broken.
+ *	The first item of the plan is a list with information
+ *	about this export lock. This information consists of the
+ *	following items:
+ *		1) a string containing the lock (use `lockin' to recreate
+ *		the lock).
+ *	Then there is the plan to be run in order to add/delete
+ *	rule locks when this export lock is broken. This plan is actually
+ * 	a two item list conatining the parsetree and the actual plan.
+ *	
  *===================================================================
  */
 
-#define prs2GetRuleInfoFromRulePlan(x)	(CAR(x))
-#define prs2GetQualFromRulePlan(x)	(CADR(x))
-#define prs2GetActionsFromRulePlan(x)	(CDR(CDR(x)))
+#define Prs2RulePlanType_EXPORT			("export")
+#define Prs2RulePlanType_ACTION			("action")
+
+#define prs2GetTypeOfRulePlan(x)		(CAR(x))
+#define prs2GetPlanInfoFromRulePlan(x)		(CADR(x))
+
+#define prs2GetRuleInfoFromActionPlan(x)	(CAR(CADR(x)))
+#define prs2GetQualFromActionPlan(x)		(CADR(CADR(x)))
+#define prs2GetActionsFromActionPlan(x)		(CDR(CDR(CADR(x))))
+
+#define prs2GetLockInfoFromExportPlan(x)	(CAR(CADR(x)))
+#define prs2GetActionPlanFromExportPlan(x)	(CADR(CADR(x)))
 
 extern
 Boolean
@@ -734,7 +807,9 @@ PlanToString ARGS((
  *========================================================================
  */
 
+extern LispValue StringToPlan();
 extern LispValue StringToPlanWithParams();
+
 extern LispValue MakeQueryDesc();
 /* XXX this causes circular dependency!
 extern EState CreateExecutorState();
@@ -762,6 +837,13 @@ extern LispValue prs2MakeQueryDescriptorFromPlan();
 extern void prs2CalculateAttributesOfParamNodes();
 extern void prs2ActivateBackwardChainingRules();
 extern void prs2ActivateForwardChainingRules();
+
+/*
+ * functions in prs2impexp.c
+ */
+extern RuleLock prs2FindNewExportLocksFromLocks();
+extern RuleLock prs2GetExportLockFromCatalog();
+extern void prs2ActivateExportLockRulePlan();
 
 #endif Prs2Included
 

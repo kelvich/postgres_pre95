@@ -83,11 +83,14 @@ RuleLock locks;
 	 * ditto for attribute numbers,  and lock types are chars.
 	 */
 	oneLock = prs2GetOneLockFromLocks(locks, i);
-	sprintf(s1, " (ruleId: %ld lockType: %c attrNo: %d planNo: %d)",
+	sprintf(s1,
+    " (ruleId: %ld lockType: %c attrNo: %d planNo: %d partindx: %d npart %d)",
 	    prs2OneLockGetRuleId(oneLock),
 	    prs2OneLockGetLockType(oneLock),
 	    prs2OneLockGetAttributeNumber(oneLock),
-	    prs2OneLockGetPlanNumber(oneLock));
+	    prs2OneLockGetPlanNumber(oneLock),
+	    prs2OneLockGetPartialIndx(oneLock),
+	    prs2OneLockGetNPartial(oneLock));
 	res = appendString(res, s1, &maxLength);
     }
 
@@ -117,6 +120,7 @@ char *s;
     Prs2LockType lockType;
     AttributeNumber attrNo;
     Prs2PlanNumber planNo;
+    int partialindx, npartial;
     int index;
     long l;
     char c;
@@ -154,11 +158,18 @@ char *s;
 	skipToken("planNo:", s, &index);
 	l = readLongInt(s, &index);
 	planNo = (Prs2PlanNumber) l;
+	skipToken("partindx:", s, &index);
+	l = readLongInt(s, &index);
+	partialindx = (Prs2PlanNumber) l;
+	skipToken("npart:", s, &index);
+	l = readLongInt(s, &index);
+	npartial = (Prs2PlanNumber) l;
 	skipToken(")", s, &index);
 	/*
 	 * now append them into the rule lock structure..
 	 */
-	lock = prs2AddLock(lock, ruleId, lockType, attrNo, planNo);
+	lock = prs2AddLock(lock, ruleId, lockType, attrNo, planNo,
+			    partialindx, npartial);
     }
 
     skipToken(")", s, &index);

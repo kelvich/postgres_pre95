@@ -18,6 +18,7 @@
 #include "storage/buf.h"
 #include "utils/rel.h"
 #include "rules/prs2.h"
+#include "parser/parse.h"	/* for the DELETE */
 
 
 /*------------------------------------------------------------------
@@ -52,6 +53,8 @@ Relation relation;
     AttributeValues attrValues;
     bool insteadRuleFound;
     Name relName;
+    TupleDescriptor tupDesc;
+    int i;
 
     /*
      * Find the locks of the tuple.
@@ -66,6 +69,8 @@ Relation relation;
      * b) all "on retrieve" backward chaining rules have been activated
      */
     relName = RelationGetRelationName(relation);
+    tupDesc = RelationGetTupleDescriptor(relation);
+
     l1 = prs2GetLocksFromTuple (rawTuple, rawBuffer,
 			RelationGetTupleDescriptor(relation));
     l2 = prs2GetLocksFromRelation(relName);
@@ -105,12 +110,12 @@ Relation relation;
 	    explainRelation,
 	    relation,
 	    InvalidAttributeNumber,
-	    LockTypeTupleDeleteAction,
+	    LockTypeDeleteAction,
 	    PRS2_OLD_TUPLE,
 	    tuple->t_oid,
 	    attrValues,
 	    locks,
-	    LockTypeTupleRetrieveWrite,
+	    LockTypeRetrieveWrite,
 	    InvalidObjectId,
 	    InvalidAttributeValues,
 	    InvalidRuleLock,
@@ -119,6 +124,25 @@ Relation relation;
 	    (AttributeNumberPtr) NULL,
 	    (AttributeNumber) 0);
 
+    /*
+     * if this tuple contains any 'export' locks, then
+     * activate the appropriate rule plans...
+     */
+    for (i=0; i<prs2GetNumberOfLocks(locks); i++) {
+	Prs2OneLock oneLock;
+	AttributeNumber attrno;
+
+	oneLock = prs2GetOneLockFromLocks(locks, i);
+	if (prs2OneLockGetLockType(oneLock)  == LockTypeExport) {
+	    attrno = prs2OneLockGetAttributeNumber(oneLock);
+	    if (!attrValues[attrno-1].isNull)
+		prs2ActivateExportLockRulePlan(oneLock,
+				attrValues[attrno-1].value,
+				tupDesc->data[attrno-1]->atttypid,
+				DELETE);
+	}
+    }
+    
     /*
      * free allocated stuff...
      */

@@ -77,7 +77,10 @@ ParamListInfo *paramListP;
     t = VARDATA(&planStruct->prs2code);
     planString = PSIZESKIP(t);
 
-    plan = StringToPlanWithParams(planString, paramListP);
+    if (paramListP == NULL)
+	plan = StringToPlan(planString);
+    else
+	plan = StringToPlanWithParams(planString, paramListP);
 
     return(plan);
 }

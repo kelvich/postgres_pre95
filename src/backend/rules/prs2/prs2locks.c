@@ -80,12 +80,15 @@ prs2MakeLocks()
  *-----------------------------------------------------------------------
  */
 RuleLock
-prs2AddLock(oldLocks, ruleId, lockType, attributeNumber, planNumber)
+prs2AddLock(oldLocks, ruleId, lockType, attributeNumber, planNumber,
+		partialindx, npartial)
 RuleLock	oldLocks;
 ObjectId	ruleId;
 Prs2LockType	lockType;
 AttributeNumber attributeNumber;
 Prs2PlanNumber	planNumber;
+int		partialindx;
+int		npartial;
 {
     long oldSize;
     long newSize;
@@ -120,9 +123,11 @@ Prs2PlanNumber	planNumber;
     prs2OneLockSetLockType(theNewLock, lockType);
     prs2OneLockSetAttributeNumber(theNewLock, attributeNumber);
     prs2OneLockSetPlanNumber(theNewLock, planNumber);
+    prs2OneLockSetPartialIndx(theNewLock, partialindx);
+    prs2OneLockSetNPartial(theNewLock, npartial);
 
     /*
-     * Free the spcae occupied by oldLocks
+     * Free the space occupied by oldLocks
      */
     prs2FreeLocks(oldLocks);
     return(newLocks);
@@ -157,6 +162,51 @@ int n;
 }
 
 /*------------------------------------------------------------------
+ * prs2OneLocksAreTheSame
+ *
+ * return true iff the given two 'Prs2OneLock' are the same...
+ *------------------------------------------------------------------
+ */
+bool
+prs2OneLocksAreTheSame(l1, l2)
+Prs2OneLock l1;
+Prs2OneLock l2;
+{
+    if (prs2OneLockGetRuleId(l1)==prs2OneLockGetRuleId(l2) &&
+	prs2OneLockGetLockType(l1)==prs2OneLockGetLockType(l2) &&
+	prs2OneLockGetAttributeNumber(l1)== prs2OneLockGetAttributeNumber(l2) &&
+	prs2OneLockGetPlanNumber(l1)==prs2OneLockGetPlanNumber(l2) &&
+	prs2OneLockGetPartialIndx(l1)==prs2OneLockGetPartialIndx(l2) &&
+	prs2OneLockGetNPartial(l1)==prs2OneLockGetNPartial(l2))
+	    return(true);
+    else
+	    return(false);
+}
+
+/*------------------------------------------------------------------
+ * prs2OneLockIsMemberOfLocks
+ *
+ * return true iff the given `oneLock' is one of the locks in `locks'.
+ *------------------------------------------------------------------
+ */
+bool
+prs2OneLockIsMemberOfLocks(oneLock, locks)
+Prs2OneLock oneLock;
+RuleLock locks;
+{
+    int i, nlocks;
+    Prs2OneLock l;
+
+    nlocks = prs2GetNumberOfLocks(locks);
+    for (i=0; i<nlocks; i++) {
+	l = prs2GetOneLockFromLocks(locks, i);
+	if (prs2OneLocksAreTheSame(oneLock, l))
+	    return(true);
+    }
+    return(false);
+}
+
+/*------------------------------------------------------------------
  *
  * prs2GetLocksFromTuple
  *
@@ -181,6 +231,7 @@ TupleDescriptor tupleDescriptor;
 
     t = HeapTupleGetRuleLock(tuple, buffer);
 
+#ifdef MEMORY_LEAK
 	/* 
 	 * If we got an empty lock, return it.  Otherwise, we have one too many
 	 * palloc's and we'll drop the space for the empty lock on the floor.
@@ -199,6 +250,9 @@ TupleDescriptor tupleDescriptor;
      	 */
     	locks = prs2CopyLocks(t);
 	}
+#else
+    locks = prs2CopyLocks(t);
+#endif MEMORY_LEAK
 
     return(locks);
 }
@@ -258,7 +312,10 @@ RuleLock   locks;
 	printf(" (rulid=%ld,", prs2OneLockGetRuleId(oneLock));
 	printf(" type=%c,", prs2OneLockGetLockType(oneLock));
 	printf(" attrn=%d,", (int)prs2OneLockGetAttributeNumber(oneLock));
-	printf(" plano=%d)", (int)prs2OneLockGetPlanNumber(oneLock));
+	printf(" plano=%d,", (int)prs2OneLockGetPlanNumber(oneLock));
+	printf(" partial=%d/%ds)",
+		(int)prs2OneLockGetPartialIndx(oneLock),
+		(int)prs2OneLockGetNPartial(oneLock));
     }
 
     printf(" }");
@@ -335,6 +392,8 @@ int n;
     prs2OneLockSetAttributeNumber(lock1,
 	    prs2OneLockGetAttributeNumber(lock2));
     prs2OneLockSetPlanNumber(lock1, prs2OneLockGetPlanNumber(lock2));
+    prs2OneLockSetPartialIndx(lock1, prs2OneLockGetPartialIndx(lock2));
+    prs2OneLockSetNPartial(lock1, prs2OneLockGetNPartial(lock2));
 
     /*
      * decrease the number of locks
@@ -418,7 +477,9 @@ ObjectId ruleId;
 			    prs2OneLockGetRuleId(oneLock),
 			    prs2OneLockGetLockType(oneLock),
 			    prs2OneLockGetAttributeNumber(oneLock),
-			    prs2OneLockGetPlanNumber(oneLock));
+			    prs2OneLockGetPlanNumber(oneLock),
+			    prs2OneLockGetPartialIndx(oneLock),
+			    prs2OneLockGetNPartial(oneLock));
 	}
     }
 
@@ -455,11 +516,53 @@ RuleLock lock2;
 		prs2OneLockGetRuleId(oneLock),
 		prs2OneLockGetLockType(oneLock),
 		prs2OneLockGetAttributeNumber(oneLock),
-		prs2OneLockGetPlanNumber(oneLock));
+		prs2OneLockGetPlanNumber(oneLock),
+		prs2OneLockGetPartialIndx(oneLock),
+		prs2OneLockGetNPartial(oneLock));
     }
 
     return(result);
 
+}
+
+/*------------------------------------------------------------------
+ *
+ * prs2LockDifference
+ *
+ * Create the differenc of the two locks, i.e. all Prs2OneLocks
+ * that exist in `lock1' and do not exist in `lock2'.
+ *
+ * NOTE: we make COPIES of the locks. The two original locks
+ * are NOT modified.
+ *------------------------------------------------------------------
+ */
+RuleLock
+prs2LockDifference(lock1, lock2)
+RuleLock lock1;
+RuleLock lock2;
+{
+    RuleLock result;
+    Prs2OneLock oneLock;
+    int nlocks;
+    int i;
+
+    result = prs2MakeLocks();
+
+    nlocks = prs2GetNumberOfLocks(lock1);
+
+    for (i=0; i<nlocks; i++) {
+	oneLock = prs2GetOneLockFromLocks(lock1, i);
+	if (!prs2OneLockIsMemberOfLocks(oneLock, lock2)) {
+	    result = prs2AddLock(result,
+		    prs2OneLockGetRuleId(oneLock),
+		    prs2OneLockGetLockType(oneLock),
+		    prs2OneLockGetAttributeNumber(oneLock),
+		    prs2OneLockGetPlanNumber(oneLock),
+		    prs2OneLockGetPartialIndx(oneLock),
+		    prs2OneLockGetNPartial(oneLock));
+	}
+    }
+    return(result);
 }
 
 /*------------------------------------------------------------------
@@ -490,7 +593,9 @@ Prs2LockType lockType;
 			    prs2OneLockGetRuleId(oneLock),
 			    prs2OneLockGetLockType(oneLock),
 			    prs2OneLockGetAttributeNumber(oneLock),
-			    prs2OneLockGetPlanNumber(oneLock));
+			    prs2OneLockGetPlanNumber(oneLock),
+			    prs2OneLockGetPartialIndx(oneLock),
+			    prs2OneLockGetNPartial(oneLock));
 	}
     }
 

@@ -64,7 +64,7 @@ Relation relation;
 
     /*
      * create a linked list of all the rule ids that hold a
-     * 'LockTypeTupleRetrieveRelation'
+     * 'LockTypeRetrieveRelation'
      */
     ruleList = NULL;
     nlocks = prs2GetNumberOfLocks(locks);
@@ -73,7 +73,7 @@ Relation relation;
         lockType = prs2OneLockGetLockType(oneLock);
         ruleId = prs2OneLockGetRuleId(oneLock);
 	planNo = prs2OneLockGetPlanNumber(oneLock);
-        if (lockType==LockTypeTupleRetrieveRelation) {
+        if (lockType==LockTypeRetrieveRelation) {
 	    ruleListItem = (Prs2RuleList) palloc(sizeof(Prs2RuleListItem));
 	    if (ruleListItem == NULL) {
 		elog(WARN,"prs2MakeRuleList: Out of memory");
@@ -163,9 +163,9 @@ Relation explainRel;
 		if (paramList != NULL && paramList[0].kind != PARAM_INVALID) {
 		    elog(WARN, "View Rules must not have parameters!\n");
 		}
-		ruleInfo = prs2GetRuleInfoFromRulePlan(plan);
-		planQual = prs2GetQualFromRulePlan(plan);
-		planActions = prs2GetActionsFromRulePlan(plan);
+		ruleInfo = prs2GetRuleInfoFromActionPlan(plan);
+		planQual = prs2GetQualFromActionPlan(plan);
+		planActions = prs2GetActionsFromActionPlan(plan);
 		/*
 		 * test the rule qualification and if true, then
 		 * for every plan specified in the action part of the

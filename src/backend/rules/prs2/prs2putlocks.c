@@ -250,7 +250,7 @@ AttributeNumber *attributeNoResult;
 	/*
 	 * this is a "view" rule....
 	 */
-	lockType = LockTypeTupleRetrieveRelation;
+	lockType = LockTypeRetrieveRelation;
 	attributeNo = InvalidAttributeNumber;
     } else if (r->actionType == ActionTypeRetrieveValue ||
 	r->actionType == ActionTypeReplaceCurrent ||
@@ -262,22 +262,22 @@ AttributeNumber *attributeNoResult;
 	attributeNo = r->updatedAttributeNumber;
 	switch (r->eventType) {
 	    case EventTypeRetrieve:
-		lockType = LockTypeTupleRetrieveWrite;
+		lockType = LockTypeRetrieveWrite;
 		break;
 	    case EventTypeReplace:
-		lockType = LockTypeTupleReplaceWrite;
+		lockType = LockTypeReplaceWrite;
 		if (r->actionType == ActionTypeReplaceCurrent) {
 		    elog(WARN, "ON REPLACE rules can not update CURRENT tuple");
 		}
 		break;
 	    case EventTypeAppend:
-		lockType = LockTypeTupleAppendWrite;
+		lockType = LockTypeAppendWrite;
 		if (r->actionType == ActionTypeReplaceCurrent) {
 		    elog(WARN, "ON APPEND rules can not update CURRENT tuple");
 		}
 		break;
 	    case EventTypeDelete:
-		lockType = LockTypeTupleDeleteWrite;
+		lockType = LockTypeDeleteWrite;
 		elog(WARN, "ON DELETE rules can not update CURRENT tuple");
 		break;
 	    default:
@@ -292,16 +292,16 @@ AttributeNumber *attributeNoResult;
 	attributeNo = r->eventAttributeNumber;
 	switch (r->eventType) {
 	    case EventTypeRetrieve:
-		lockType = LockTypeTupleRetrieveAction;
+		lockType = LockTypeRetrieveAction;
 		break;
 	    case EventTypeReplace:
-		lockType = LockTypeTupleReplaceAction;
+		lockType = LockTypeReplaceAction;
 		break;
 	    case EventTypeAppend:
-		lockType = LockTypeTupleAppendAction;
+		lockType = LockTypeAppendAction;
 		break;
 	    case EventTypeDelete:
-		lockType = LockTypeTupleDeleteAction;
+		lockType = LockTypeDeleteAction;
 		break;
 	    default:
 		elog(WARN,

@@ -15,6 +15,7 @@
 #include "tmp/c.h"
 #include "utils/log.h"
 #include "rules/prs2.h"
+#include "parser/parse.h"	/* for the APPEND/DELETE */
 
 /*-------------------------------------------------------------------
  *
@@ -39,16 +40,19 @@ Relation relation;
 HeapTuple *returnedTupleP;
 Buffer *returnedBufferP;
 {
-    RuleLock oldLocks, oldTupleLocks;
+    RuleLock oldLocks, oldTupleLocks, explocks;
     RuleLock newLocks;
     RuleLock relLocks;
-    int i;
+    Prs2OneLock oneLock;
+    int i,j;
     AttributeValues oldAttrValues, newAttrValues, rawAttrValues;
-    AttributeNumber attr, maxattrs;
+    AttributeNumber attr, maxattrs, attrno;
     int newTupleMade;
     Name relName;
     bool insteadRuleFound;
     bool insteadRuleFoundThisTime;
+    TupleDescriptor tupDesc;
+
 
 
     /*
@@ -68,6 +72,7 @@ Buffer *returnedBufferP;
      *
      */
     relName = & ((RelationGetRelationTupleForm(relation))->relname);
+    tupDesc = RelationGetTupleDescriptor(relation);
 
     relLocks = prs2GetLocksFromRelation(relName);
     oldTupleLocks = prs2GetLocksFromTuple(rawTuple, rawBuffer,
@@ -82,7 +87,7 @@ Buffer *returnedBufferP;
      * So, get rid of the "write" locks of on retrieve-do retrieve
      * (otherwise, we might re-activate them unnecessarily)
      */
-    prs2RemoveLocksOfTypeInPlace(oldLocks, LockTypeTupleRetrieveWrite);
+    prs2RemoveLocksOfTypeInPlace(oldLocks, LockTypeRetrieveWrite);
 
     /*
      * now extract from the tuple the array of the attribute values.
@@ -97,7 +102,7 @@ Buffer *returnedBufferP;
      *
      * NOTE: WE use as locks of the new tuple the locks of the old
      * tuple! But in reality we are only interested in the 
-     * 'LockTypeTupleReplaceWrite' locks...
+     * 'LockTypeReplaceWrite' locks...
      */
     maxattrs = RelationGetNumberOfAttributes(relation);
     for(attr=1; attr <= maxattrs; attr++) {
@@ -110,18 +115,18 @@ Buffer *returnedBufferP;
 		    oldTuple->t_oid,
 		    oldAttrValues,
 		    oldLocks,
-		    LockTypeTupleRetrieveWrite,
+		    LockTypeRetrieveWrite,
 		    newTuple->t_oid,
 		    newAttrValues,
 		    oldLocks,
-		    LockTypeTupleReplaceWrite,
+		    LockTypeReplaceWrite,
 		    attributeArray,
 		    numberOfAttributes);
     }
 
     /*
      * Then, activate all the 'forward chaining rules'
-     * NOTE: Both old & new locks have the same "LockTypeTupleReplaceAction"
+     * NOTE: Both old & new locks have the same "LockTypeReplaceAction"
      * locks
      */
     insteadRuleFound = false;
@@ -131,12 +136,12 @@ Buffer *returnedBufferP;
 		    explainRelation,
 		    relation,
 		    attributeArray[i],
-		    LockTypeTupleReplaceAction,
+		    LockTypeReplaceAction,
 		    PRS2_OLD_TUPLE,
 		    oldTuple->t_oid,
 		    oldAttrValues,
 		    oldLocks,
-		    LockTypeTupleRetrieveWrite,
+		    LockTypeRetrieveWrite,
 		    newTuple->t_oid,
 		    newAttrValues,
 		    InvalidRuleLock,
@@ -158,12 +163,12 @@ Buffer *returnedBufferP;
 		explainRelation,
 		relation,
 		InvalidAttributeNumber,
-		LockTypeTupleReplaceAction,
+		LockTypeReplaceAction,
 		PRS2_OLD_TUPLE,
 		oldTuple->t_oid,
 		oldAttrValues,
 		oldLocks,
-		LockTypeTupleRetrieveWrite,
+		LockTypeRetrieveWrite,
 		newTuple->t_oid,
 		newAttrValues,
 		InvalidRuleLock,
@@ -198,6 +203,75 @@ Buffer *returnedBufferP;
 		    relation);
     HeapTupleSetRuleLock(*returnedTupleP, InvalidBuffer, newLocks);
 
+    /*
+     * are there any export locks "broken" ???
+     * That includes
+     * a) new export locks that didn't exist before
+     * b) removal of old export locks
+     * c) value of an attribute locked by an export lock has changed.
+     */
+    explocks = prs2FindNewExportLocksFromLocks(newLocks);
+    for (i=0; i<prs2GetNumberOfLocks(explocks); i++) {
+	oneLock = prs2GetOneLockFromLocks(explocks);
+	if (!prs2OneLockIsMemberOfLocks(oneLock, oldLocks)) {
+	    /*
+	     * a brand new export lock !
+	     */
+	    attrno = prs2OneLockGetAttributeNumber(oneLock);
+	    if (!newAttrValues[attrno-1].isNull)
+		prs2ActivateExportLockRulePlan(oneLock,
+				newAttrValues[attrno-1].value,
+				tupDesc->data[attrno-1]->atttypid,
+				APPEND);
+
+	}
+    }
+    for (i=0; i<prs2GetNumberOfLocks(oldLocks); i++) {
+	oneLock = prs2GetOneLockFromLocks(explocks);
+	if (prs2OneLockGetLockType(oneLock) != LockTypeExport)
+	    continue;
+	if (!prs2OneLockIsMemberOfLocks(oneLock, oldLocks)) {
+	    /*
+	     * an old lock that has been deleted...
+	     */
+	    attrno = prs2OneLockGetAttributeNumber(oneLock);
+	    if (!oldAttrValues[attrno-1].isNull)
+		prs2ActivateExportLockRulePlan(oneLock,
+				oldAttrValues[attrno-1].value,
+				tupDesc->data[attrno-1]->atttypid,
+				DELETE);
+	}
+    }
+    for (i=0; i<prs2GetNumberOfLocks(explocks); i++) {
+	oneLock = prs2GetOneLockFromLocks(explocks);
+	if (prs2OneLockIsMemberOfLocks(oneLock, oldLocks)) {
+	    /*
+	     * this lock existed before & still exists now...
+	     * has the locked atribute changed in any way ??
+	     * (either by the user or by the rule ?)
+	     */
+	    attrno = prs2OneLockGetAttributeNumber(oneLock);
+	    for (j=0; j<numberOfAttributes; j++) {
+		    if (attributeArray[j] == attrno)
+			break;
+	    }
+	    if (newAttrValues[attrno-1].isChanged || j <numberOfAttributes) {
+		/*
+		 * yes, this attribute values has been changed...
+		 */
+		if (!oldAttrValues[attrno-1].isNull)
+		    prs2ActivateExportLockRulePlan(oneLock,
+				    oldAttrValues[attrno-1].value, DELETE);
+		if (!newAttrValues[attrno-1].isNull)
+		    prs2ActivateExportLockRulePlan(oneLock,
+				    newAttrValues[attrno-1].value,
+				    tupDesc->data[attrno-1]->atttypid,
+				    APPEND);
+	    }
+	}
+    }
+	    
+    
     /*
      * clean up, sweep the floor and do the laundry....
      */

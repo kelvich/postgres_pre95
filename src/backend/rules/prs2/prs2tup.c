@@ -147,7 +147,7 @@ bool hintFlag;
      * Another reason we should use relation level locks, is if the
      * 'constQual' references an attribute which is calculated by
      * a rule using a relation-level lock. (i.e. if the attribute
-     * has a relation level "LockTypeTupleRetrieveWrite" lock.
+     * has a relation level "LockTypeRetrieveWrite" lock.
      */
     rel = ObjectIdOpenHeapRelation(r->eventRelationOid);
     relLocks = prs2GetLocksFromRelation(RelationGetRelationName(rel));
@@ -213,7 +213,8 @@ bool hintFlag;
      */
     thislock = prs2MakeLocks();
     thislock = prs2AddLock(thislock, r->ruleId, lockType,
-			attributeNo, ActionPlanNumber);
+			attributeNo, ActionPlanNumber,
+			0, 0);
 
     /*
      * Find the locks that we must put to the tuple.
@@ -223,7 +224,7 @@ bool hintFlag;
      * "write" lock...
      */
     oldStubs = prs2GetRelationStubs(r->eventRelationOid);
-    if (lockType == LockTypeTupleRetrieveWrite)
+    if (lockType == LockTypeRetrieveWrite)
 	newLocks = prs2FindLocksThatWeMustPut(oldStubs, thislock, attributeNo);
     else
 	newLocks = prs2CopyLocks(thislock);
@@ -450,7 +451,7 @@ AttributeNumber attrno;
 			l = prs2GetOneLockFromLocks(thisStubLock,j);
 			lt = prs2OneLockGetLockType(l);
 			a = prs2OneLockGetAttributeNumber(l);
-			if (lt==LockTypeTupleRetrieveWrite) {
+			if (lt==LockTypeRetrieveWrite) {
 			    attrlist = lispCons(lispInteger((int)a),attrlist);
 			}
 		    }/*for*/
@@ -529,7 +530,7 @@ int attrListSize;
 
     for (i=0; i< prs2GetNumberOfLocks(locks); i++) {
 	oneLock = prs2GetOneLockFromLocks(locks, i);
-	if (prs2OneLockGetLockType(oneLock) == LockTypeTupleRetrieveWrite) {
+	if (prs2OneLockGetLockType(oneLock) == LockTypeRetrieveWrite) {
 	    attrno = prs2OneLockGetAttributeNumber(oneLock);
 	    for (j=0; j<attrListSize; j++) {
 		if (attrno == attrList[j]) {

@@ -100,7 +100,7 @@ Buffer *returnedBufferP;
 		    tuple->t_oid,
 		    attrValues,
 		    locks,
-		    LockTypeTupleRetrieveWrite,
+		    LockTypeRetrieveWrite,
 		    InvalidObjectId,
 		    InvalidAttributeValues,
 		    InvalidRuleLock,
@@ -119,12 +119,12 @@ Buffer *returnedBufferP;
 		    explainRelation,
 		    relation,
 		    attributeArray[i],
-		    LockTypeTupleRetrieveAction,
+		    LockTypeRetrieveAction,
 		    PRS2_OLD_TUPLE,
 		    tuple->t_oid,
 		    attrValues,
 		    locks,
-		    LockTypeTupleRetrieveWrite,
+		    LockTypeRetrieveWrite,
 		    InvalidObjectId,
 		    InvalidAttributeValues,
 		    InvalidRuleLock,
@@ -143,7 +143,7 @@ Buffer *returnedBufferP;
      */
     newTupleMade = attributeValuesMakeNewTuple(
 				tuple, buffer,
-				attrValues, locks, LockTypeTupleRetrieveWrite,
+				attrValues, locks, LockTypeRetrieveWrite,
 				relation, returnedTupleP);
 
     prs2FreeLocks(locks);

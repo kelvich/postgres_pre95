@@ -151,22 +151,40 @@ TupleDescriptor innerTupleDesc;
  *----------------------------------------------------------------
  */
 bool
-prs2AddLocksAndReplaceTuple(tuple, buffer, relation, oneStub)
+prs2AddLocksAndReplaceTuple(tuple, buffer, relation, oneStub, newExpLocksFlag)
 HeapTuple tuple;
 Buffer buffer;
 Relation relation;
 Prs2OneStub oneStub;
+bool *newExpLocksFlag;
 {
-    RuleLock oldLocks, newLocks;
+    RuleLock oldLocks, newLocks, expLocks, temp;
     TupleDescriptor tupDesc;
     ItemPointer tupleId;
     HeapTuple newTuple;
 
     tupDesc = RelationGetTupleDescriptor(relation);
+    *newExpLocksFlag = false;
 
     if (prs2StubQualTestTuple(tuple, buffer, tupDesc, oneStub->qualification)) {
 	oldLocks = prs2GetLocksFromTuple(tuple, buffer,tupDesc);
 	newLocks = prs2LockUnion(oneStub->lock, oldLocks);
+	prs2FreeLocks(oldLocks);
+	/*
+	 * If the stub lock was an "import" lock, then this addition
+	 * might create a new "export" lock for the tuple...
+	 */
+	expLocks = prs2FindNewExportLocksFromLocks(newLocks);
+	if (!prs2RuleLockIsEmpty(expLocks)) {
+	    *newExpLocksFlag = true;
+	    temp = prs2LockUnion(newLocks, expLocks);
+	    prs2FreeLocks(newLocks);
+	    prs2FreeLocks(expLocks);
+	    newLocks = temp;
+	}
+	/*
+	 * create a copy of the tuple & add the locks
+	 */
 	newTuple = palloctup(tuple, buffer, relation);
 	prs2PutLocksInTuple(newTuple, buffer, relation, newLocks);
 	/*

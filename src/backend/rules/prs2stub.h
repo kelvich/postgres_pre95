@@ -439,7 +439,7 @@ prs2AddLocksAndReplaceTuple ARGS((
     Buffer	buffer,
     Relation	relation,
     Prs2OneStub oneStub,
-    RuleLock	lock
+    bool	*newExportLocksFlag
 ));
 
 /*--------------------------

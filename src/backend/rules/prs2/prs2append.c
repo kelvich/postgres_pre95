@@ -20,6 +20,7 @@
 #include "utils/palloc.h"
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
+#include "parser/parse.h"		/* for the APPEND */
 
 extern HeapTuple palloctup();
 
@@ -39,12 +40,14 @@ Relation relation;
 HeapTuple *returnedTupleP;
 Buffer *returnedBufferP;
 {
-    RuleLock locks, newLocks;
+    RuleLock locks, newLocks, explocks, temp;
     AttributeValues attrValues;
     AttributeNumber numberOfAttributes, attrNo;
     bool insteadRuleFound;
     Name relName;
     Prs2Status status;
+    int i;
+    TupleDescriptor tupDesc;
 
     /*
      * NOTE: currently we only have relation-level-locks for
@@ -53,8 +56,18 @@ Buffer *returnedBufferP;
      * (after all this is a brand new tuple with no locks on it)
      */
     relName = RelationGetRelationName(relation);
+    tupDesc = RelationGetTupleDescriptor(relation);
+
     locks = prs2GetLocksFromRelation(relName);
 
+    /*
+     * now extract from the tuple the array of the attribute values.
+     */
+    attrValues = attributeValuesCreate(tuple, buffer, relation);
+
+    /*
+     * activate 'on append' rules...
+     */
     if (locks == NULL || prs2GetNumberOfLocks(locks)==0) {
 	/*
 	 * the trivial case: no "on append" rules!
@@ -64,11 +77,6 @@ Buffer *returnedBufferP;
 	*returnedTupleP = tuple;
 	*returnedBufferP = buffer;
     } else {
-	/*
-	 * now extract from the tuple the array of the attribute values.
-	 */
-	attrValues = attributeValuesCreate(tuple, buffer, relation);
-
 	/*
 	 * first calculate all the attributes of the tuple.
 	 * I.e. see if there is any rule that will calculate a new
@@ -89,14 +97,14 @@ Buffer *returnedBufferP;
 		    tuple->t_oid,
 		    attrValues,
 		    locks,
-		    LockTypeTupleAppendWrite,
+		    LockTypeAppendWrite,
 		    (AttributeNumberPtr) NULL,
 		    (AttributeNumber) 0);
 	}
 
 	/*
 	 * now, try to activate all other 'on append' rules.
-	 * (these ones will have a LockTypeTupleAppendAction lock ....)
+	 * (these ones will have a LockTypeAppendAction lock ....)
 	 * NOTE: the attribute number stored in the locks for these
 	 * rules must be `InvalidAttributeNumber' because they
 	 * do not refer to any attribute in particular.
@@ -106,7 +114,7 @@ Buffer *returnedBufferP;
 		explainRelation,
 		relation,
 		InvalidAttributeNumber,
-		LockTypeTupleAppendAction,
+		LockTypeAppendAction,
 		PRS2_NEW_TUPLE,
 		InvalidObjectId,
 		InvalidAttributeValues,
@@ -115,7 +123,7 @@ Buffer *returnedBufferP;
 		tuple->t_oid,
 		attrValues,
 		locks,
-		LockTypeTupleAppendWrite,
+		LockTypeAppendWrite,
 		&insteadRuleFound,
 		(AttributeNumberPtr) NULL,
 		(AttributeNumber) 0);
@@ -123,14 +131,14 @@ Buffer *returnedBufferP;
 	/*
 	 * Now all the correct values for the new tuple
 	 * (the ones proposed by the user + the ones calculated
-	 * by rule with 'LockTypeTupleAppendWrite' locks,
+	 * by rule with 'LockTypeAppendWrite' locks,
 	 * are in the attrValues array.
 	 * Create a new tuple with the correct values.
 	 */
 	if (attributeValuesMakeNewTuple(
 				    tuple, buffer,
 				    attrValues, locks,
-				    LockTypeTupleRetrieveWrite,
+				    LockTypeRetrieveWrite,
 				    relation, returnedTupleP)) {
 	    status = PRS2_STATUS_TUPLE_CHANGED;
 	    *returnedBufferP = InvalidBuffer;
@@ -139,14 +147,8 @@ Buffer *returnedBufferP;
 	    *returnedTupleP = tuple;
 	    *returnedBufferP = buffer;
 	}
-	attributeValuesFree(attrValues, relation);
     }
 
-    /*
-     * free the relation level locks. We are not going to
-     * need them anymore...
-     */
-    prs2FreeLocks(locks);
 
     /*
      * OK, if there was an 'instead' rule, then we must not
@@ -165,6 +167,35 @@ Buffer *returnedBufferP;
 		    *returnedTupleP,
 		    *returnedBufferP,
 		    relation);
+    /*
+     * Check if any "export" lock should be added to the
+     * tuple. If yes, then activate the appropriate
+     * rule plans...
+     */
+    explocks = prs2FindNewExportLocksFromLocks(newLocks);
+    for (i=0; i<prs2GetNumberOfLocks(explocks); i++) {
+	Prs2OneLock oneLock;
+	AttributeNumber attrno;
+	oneLock = prs2GetOneLockFromLocks(explocks);
+	attrno = prs2OneLockGetAttributeNumber(oneLock);
+	if (!attrValues[attrno-1].isNull)
+	    prs2ActivateExportLockRulePlan(oneLock,
+					attrValues[attrno-1].value,
+					tupDesc->data[attrno-1]->atttypid,
+					APPEND);
+    }
+
+    /*
+     * the locks that this tuple must get is the union of 'newLocks'
+     * and 'explocks'.
+     */
+    temp = prs2LockUnion(newLocks, explocks);
+    prs2FreeLocks(newLocks);
+    prs2FreeLocks(explocks);
+    newLocks = temp;
+
+    attributeValuesFree(attrValues, relation);
+    prs2FreeLocks(locks);
 
     /*
      * Did the locks or an attribute of the tuple change?
@@ -292,7 +323,7 @@ Relation relation;
 		for (j=0; j<prs2GetNumberOfLocks(res); j++) {
 		    thisLock = prs2GetOneLockFromLocks(res, j);
 		    locktype = prs2OneLockGetLockType(thisLock);
-		    if (locktype == LockTypeTupleRetrieveWrite) {
+		    if (locktype == LockTypeRetrieveWrite) {
 			/*
 			 * does this stub depend on the attribute
 			 * "calculated" by this "write" lock?
@@ -321,7 +352,7 @@ Relation relation;
 		for (j=0; j<prs2GetNumberOfLocks(thisStub->lock); j++) {
 		    thisLock = prs2GetOneLockFromLocks(thisStub->lock, j);
 		    locktype = prs2OneLockGetLockType(thisLock);
-		    if (locktype == LockTypeTupleRetrieveWrite) {
+		    if (locktype == LockTypeRetrieveWrite) {
 			done = false;
 			break;
 		    }

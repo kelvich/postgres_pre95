@@ -523,6 +523,8 @@ List rulePlan;
     (void) RelationInsertHeapTuple(prs2PlansRelation,
 				heapTuple, (double *) NULL);
     RelationCloseHeapRelation(prs2PlansRelation);
+    pfree(rulePlanString);
+
 }
 
 /*--------------------------------------------------------------------------

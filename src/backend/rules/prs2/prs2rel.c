@@ -107,13 +107,15 @@ Prs2RuleData r;
 		    r->ruleId,
 		    lockType,
 		    attributeNo,
-		    ActionPlanNumber);	/* 'ActionPlanNumber' is a constant */
-    
+		    ActionPlanNumber, /* 'ActionPlanNumber' is a constant */
+		    0,			/* partial indx - UNUSED */
+		    0);			/* npartial - UNUSED  */
+
     /*
      * if this is a "write" lock, we might have to change some other
      * rules too (from tuple-level-lock to relation-level-lock).
      */
-    if (lockType == LockTypeTupleRetrieveWrite) {
+    if (lockType == LockTypeRetrieveWrite) {
 	/*
 	 * find all the tuple-level-lock rules that must be changed
 	 * to relation-level-lock...
@@ -364,8 +366,9 @@ AttributeNumber attrNo;
 			ruleId,
 			lockType,
 			attrNo,
-			ActionPlanNumber);	/* ActionPlanNumber is
-						   a constant.  */
+			ActionPlanNumber, /* ActionPlanNumber is a constant.*/
+			0,		  /* partialindx - UNUSED */
+			0);		  /* npartial - UNUSED */
 
     /*
      * Now, update the locks of the relation
