@@ -1,22 +1,19 @@
-/*
+/* ----------------------------------------------------------------
  * manip.h --
  *	POSTGRES "manipulation" utility definitions.
  *
- * Identification:
+ * DESCRIPTION:
+ *	Prototypes and routine descriptions for manip.c.
+ *
+ * NOTES:
+ *
+ * IDENTIFICATION:
  *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef	ManipIncluded		/* Include this file only once */
 #define ManipIncluded	1
-
-#include <strings.h>
-
-#include "tmp/postgres.h"
-
-/*
- * XXX style--this should be in a more global header file
- */
-#define StringEquals(x, y)	(strcmp(x, y) == 0)
 
 #include "nodes/pg_lisp.h"
 
@@ -77,6 +74,7 @@ DefineListRemoveRequiredAssignment ARGS((
 /*
  * DefineEntryGetString --
  *	Returns "value" string for given define entry.
+ *	Returns NULL if entry is undefined.
  *
  * Exceptions:
  *	BadArg if entry is an invalid "entry."
@@ -91,6 +89,7 @@ DefineEntryGetString ARGS((
 /*
  * DefineEntryGetName --
  *	Returns "value" name for given define entry.
+ *	Returns NULL if entry is undefined.
  *
  * Exceptions:
  *	BadArg if entry is an invalid "entry."
@@ -119,6 +118,7 @@ DefineEntryGetInteger ARGS((
 /*
  * DefineEntryGetLength --
  *	Returns "value" length for given define entry.
+ *	Returns -1 if the entry is the string "variable".
  *
  * Exceptions:
  *	BadArg if entry is an invalid "entry."

@@ -6,10 +6,7 @@
  *	routines to support manipulation of the pg_operator relation
  *
  *   INTERFACE ROUTINES
- * 	OperatorGetWithOpenRelation
- * 	OperatorGet
- * 	OperatorShellMakeWithOpenRelation
- * 	OperatorShellMake
+ *	OperatorDefine
  *	
  *   NOTES
  *	these routines moved here from commands/define.c and
@@ -22,7 +19,7 @@
 
 #include "tmp/postgres.h"
 
- RcsId("$Header$");
+RcsId("$Header$");
 
 #include "access/ftup.h"
 #include "access/heapam.h"
@@ -39,6 +36,13 @@
 #include "catalog/pg_proc.h"
 #include "catalog/pg_protos.h"
 
+static ObjectId OperatorGetWithOpenRelation ARGS((Relation pg_operator_desc , Name operatorName , ObjectId leftObjectId , ObjectId rightObjectId ));
+static ObjectId OperatorGet ARGS((Name operatorName , Name leftTypeName , Name rightTypeName ));
+static ObjectId OperatorShellMakeWithOpenRelation ARGS((Relation pg_operator_desc , Name operatorName , ObjectId leftObjectId , ObjectId rightObjectId ));
+static ObjectId OperatorShellMake ARGS((Name operatorName , Name leftTypeName , Name rightTypeName ));
+static int OperatorDef ARGS((Name operatorName , int definedOK , Name leftTypeName , Name rightTypeName , Name procedureName , uint16 precedence , Boolean isLeftAssociative , Name commutatorName , Name negatorName , Name restrictionName , Name joinName , Boolean canHash , Name leftSortName , Name rightSortName ));
+static void OperatorUpd ARGS((ObjectId baseId , ObjectId commId , ObjectId negId ));
+
 /* ----------------------------------------------------------------
  * 	OperatorGetWithOpenRelation
  *
@@ -46,6 +50,7 @@
  *	with given name and left/right type oids.
  * ----------------------------------------------------------------
  */
+static
 ObjectId
 OperatorGetWithOpenRelation(pg_operator_desc, operatorName,
 			    leftObjectId, rightObjectId)
@@ -64,9 +69,9 @@ OperatorGetWithOpenRelation(pg_operator_desc, operatorName,
 	{ 0, OperatorRightAttributeNumber, ObjectIdEqualRegProcedure },
     };
 
-	fmgr_info(NameEqualRegProcedure,     &opKey[0].func, &opKey[0].nargs);
-	fmgr_info(ObjectIdEqualRegProcedure, &opKey[1].func, &opKey[1].nargs);
-	fmgr_info(ObjectIdEqualRegProcedure, &opKey[2].func, &opKey[2].nargs);
+    fmgr_info(NameEqualRegProcedure,     &opKey[0].func, &opKey[0].nargs);
+    fmgr_info(ObjectIdEqualRegProcedure, &opKey[1].func, &opKey[1].nargs);
+    fmgr_info(ObjectIdEqualRegProcedure, &opKey[2].func, &opKey[2].nargs);
 
     /* ----------------
      *	form scan key
@@ -111,6 +116,7 @@ OperatorGetWithOpenRelation(pg_operator_desc, operatorName,
  *	and left and right type names.
  * ----------------------------------------------------------------
  */
+static
 ObjectId
 OperatorGet(operatorName, leftTypeName, rightTypeName)
     Name 	operatorName; 	/* name of operator */
@@ -144,16 +150,16 @@ OperatorGet(operatorName, leftTypeName, rightTypeName)
 	leftObjectId = TypeGet(leftTypeName, &leftDefined);
 	
 	if (!ObjectIdIsValid(leftObjectId) || !leftDefined)
-	    elog(WARN, "OperatorGet: left type %s nonexistent",
-		 leftTypeName);
+	    elog(WARN, "OperatorGet: left type \"%-.*s\" nonexistent",
+		 NAMEDATALEN, leftTypeName);
     }
 
     if (NameIsValid(rightTypeName)) {
 	rightObjectId = TypeGet(rightTypeName, &rightDefined);
 	
 	if (!ObjectIdIsValid(rightObjectId) || !rightDefined)
-	    elog(WARN, "OperatorGet: right type %s nonexistent",
-		 rightTypeName);
+	    elog(WARN, "OperatorGet: right type \"%-.*s\" nonexistent",
+		 NAMEDATALEN, rightTypeName);
     }
     
     if (!((ObjectIdIsValid(leftObjectId) && leftDefined) ||
@@ -191,6 +197,7 @@ OperatorGet(operatorName, leftTypeName, rightTypeName)
  *
  * ----------------------------------------------------------------
  */
+static
 ObjectId
 OperatorShellMakeWithOpenRelation(pg_operator_desc, operatorName,
 				  leftObjectId, rightObjectId)
@@ -274,6 +281,7 @@ OperatorShellMakeWithOpenRelation(pg_operator_desc, operatorName,
  *	to the caller.
  * ----------------------------------------------------------------
  */
+static
 ObjectId
 OperatorShellMake(operatorName, leftTypeName, rightTypeName)
     Name	operatorName, leftTypeName, rightTypeName;
@@ -345,7 +353,7 @@ OperatorShellMake(operatorName, leftTypeName, rightTypeName)
  * operators must be placed in the fields of "op", a forward
  * declaration is done on the commutator and negator operators.
  * This is called creating a shell, and its main effect is to
- * create a tuple in the PG_OPERARTOR catalog with minimal
+ * create a tuple in the PG_OPERATOR catalog with minimal
  * information about the operator (just its name and types).
  * Forward declaration is used only for this purpose, it is
  * not available to the user as it is for type definition.
@@ -399,7 +407,7 @@ OperatorShellMake(operatorName, leftTypeName, rightTypeName)
  *   call heap_insert
  * --------------------------------
  */
-
+static
 int  /* return status */
 OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
 	    procedureName, precedence, isLeftAssociative,
@@ -467,8 +475,8 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
 				    rightTypeName);
     
     if (ObjectIdIsValid(operatorObjectId) && !definedOK)
-	elog(WARN, "OperatorDef: operator %s already defined",
-	     operatorName); 
+	elog(WARN, "OperatorDef: operator \"%-.*s\" already defined",
+	     NAMEDATALEN, operatorName); 
 
     if (NameIsValid(leftTypeName))
 	leftTypeId = TypeGet(leftTypeName, &leftDefined);
@@ -601,13 +609,13 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
 	    /* for the commutator, switch order of arguments */
 	    if (j == 0) {
 	        other_oid = OperatorGet(name[j],
-			          rightTypeName,
-			          leftTypeName);
+					rightTypeName,
+					leftTypeName);
 		commutatorId = other_oid;
 	    } else {
 	        other_oid = OperatorGet(name[j],
-			          leftTypeName,
-			          rightTypeName);
+					leftTypeName,
+					rightTypeName);
 		if (j == 1)
 		    negatorId = other_oid;
 	    }
@@ -620,18 +628,18 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
 		/* for the commutator, switch order of arguments */
 		if (j == 0) {
 		    other_oid = OperatorShellMake(name[j],
-					    rightTypeName,
-					    leftTypeName);
+						  rightTypeName,
+						  leftTypeName);
 		} else {
 		    other_oid = OperatorShellMake(name[j],
-					    leftTypeName,
-					    rightTypeName);
+						  leftTypeName,
+						  rightTypeName);
 		}
 
 		if (!ObjectIdIsValid(other_oid))
 		    elog(WARN,
-			 "OperatorDef: can't create %s",
-			 name[j]);     
+			 "OperatorDef: can't create operator \"%-.*s\"",
+			 NAMEDATALEN, name[j]);     
 		values[i++] = (char *) other_oid;
 		
 	    } else /* not in catalogs, same as operator ??? */
@@ -719,6 +727,8 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
  *  which are the negator or commutator of each other.
  * ---------------------------------------------------------------- 
  */
+static
+void
 OperatorUpd(baseId, commId, negId)
     ObjectId baseId;
     ObjectId commId;
@@ -726,7 +736,6 @@ OperatorUpd(baseId, commId, negId)
 {
     register		i, j;
     Relation 		pg_operator_desc;
-
     HeapScanDesc 	pg_operator_scan;
     HeapTuple 		tup;
     Buffer 		buffer;
@@ -914,8 +923,8 @@ OperatorDefine(operatorName, leftTypeName, rightTypeName, procedureName,
 {
     ObjectId 	commObjectId, negObjectId;
     ObjectId	leftSortObjectId, rightSortObjectId;
-/*  ObjectId	newOpObjectId; */
     int	 	definedOK;
+    NameData	opNameData;
 
     /* ----------------
      *	sanity checks
@@ -926,6 +935,10 @@ OperatorDefine(operatorName, leftTypeName, rightTypeName, procedureName,
 
     if (!PointerIsValid(leftTypeName) && !PointerIsValid(rightTypeName))
 	elog(WARN, "OperatorDefine : at least one of arg1 and arg2 must be defined");
+
+    /* operatorName is probably just a CString'd LispString */
+    bzero(&opNameData, sizeof(NameData));
+    (void) strncpy(opNameData.data, operatorName->data, NAMEDATALEN);
 
     /* ----------------
      *	get the oid's of the operator's associated operators, if possible.
@@ -961,16 +974,12 @@ OperatorDefine(operatorName, leftTypeName, rightTypeName, procedureName,
      */
     definedOK = 0;
     
-    OperatorDef(operatorName, definedOK,
+    OperatorDef(&opNameData, definedOK,
 		leftTypeName, rightTypeName, procedureName,
 		precedence, isLeftAssociative,
 		commutatorName, negatorName, restrictionName, joinName,
 		canHash, leftSortName, rightSortName);
 
-    /*
-    newOpObjectId = OperatorGet(operatorName, leftTypeName, rightTypeName);
-    */
-    
     /* ----------------
      *	Now fill in information in the operator's associated
      *  operators.
@@ -988,7 +997,7 @@ OperatorDefine(operatorName, leftTypeName, rightTypeName, procedureName,
 		    procedureName,
 		    precedence,
 		    isLeftAssociative,
-		    operatorName,	/* commutator */
+		    &opNameData,	/* commutator */
 		    negatorName,
 		    restrictionName,
 		    joinName,
@@ -1005,7 +1014,7 @@ OperatorDefine(operatorName, leftTypeName, rightTypeName, procedureName,
 		    precedence,
 		    isLeftAssociative,
 		    commutatorName,
-		    operatorName,	/* negator */
+		    &opNameData,	/* negator */
 		    restrictionName,
 		    joinName,
 		    canHash,
@@ -1025,7 +1034,7 @@ OperatorDefine(operatorName, leftTypeName, rightTypeName, procedureName,
 		    restrictionName,
 		    joinName,
 		    canHash,
-		    operatorName,	/* left sort */
+		    &opNameData,	/* left sort */
 		    rightSortName);
 
     if (NameIsValid(rightSortName) && !ObjectIdIsValid(rightSortObjectId))
@@ -1042,57 +1051,5 @@ OperatorDefine(operatorName, leftTypeName, rightTypeName, procedureName,
 		    joinName,
 		    canHash,
 		    leftSortName,
-		    operatorName);	/* right sort */
-}
-
-/* find the default type for the right arg of a binary operator */
-HeapTuple
-FindDefaultType(operatorName, leftTypeId)
-char *operatorName;
-int leftTypeId;
-{
-    Relation            pg_operator_desc;
-    HeapScanDesc        pg_operator_scan;
-    HeapTuple           tup1, tup2;  /* returned tuples */
-    Buffer              buffer;
-
-    static ScanKeyEntryData     opKey[3] = {
-        { 0, OperatorNameAttributeNumber, NameEqualRegProcedure },
-        { 0, OperatorLeftAttributeNumber, ObjectIdEqualRegProcedure },
-        { 0, OperatorRightAttributeNumber, ObjectIdEqualRegProcedure },
-    };
-
-	fmgr_info(NameEqualRegProcedure,     &opKey[0].func, &opKey[0].nargs);
-	fmgr_info(ObjectIdEqualRegProcedure, &opKey[1].func, &opKey[1].nargs);
-	fmgr_info(ObjectIdEqualRegProcedure, &opKey[2].func, &opKey[2].nargs);
-
-    pg_operator_desc = heap_openr(OperatorRelationName);
-
-        opKey[0].argument = NameGetDatum(operatorName);
-        opKey[1].argument = ObjectIdGetDatum(leftTypeId);
-
-        pg_operator_scan = heap_beginscan(pg_operator_desc,
-                                                 0,
-                                                 SelfTimeQual,
-                                                 2,
-                                                 (ScanKey) opKey);
-
-        tup1 = heap_getnext(pg_operator_scan, 0, &buffer);
-        if (!HeapTupleIsValid(tup1)) {
-            elog(WARN, "OperatorDef: no operator %s", operatorName);
-            return ((HeapTuple)NULL);
-        }
-        tup2 = heap_getnext(pg_operator_scan, 0, &buffer);
-
-        heap_endscan(pg_operator_scan);
-
-        heap_close(pg_operator_desc);
-
-        if (HeapTupleIsValid(tup2)) {
-            return ((HeapTuple)NULL); /* failed to find default type, since 
- 				 right arg can take on two or more types */
-        }
-
-        return (tup1);
-
+		    &opNameData);	/* right sort */
 }

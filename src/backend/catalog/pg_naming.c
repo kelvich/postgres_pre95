@@ -144,16 +144,20 @@ void CreateNameTuple(parentID,name,ourid)
     int i;
     bool hasindex;
     Relation idescs[Num_pg_name_indices];
+    NameData tmpname;
     
     for (i = 0 ; i < Natts_pg_naming; i++) {
 	nulls[i] = ' ';
 	values[i] = NULL;
     }
     
+    /* name is a string that's "long enough" but DataFill expects a NameData */
+    (void) strncpy(tmpname.data, name, sizeof(NameData));
+
     i = 0;
-    values[i++] = (char *) name;
+    values[i++] = (char *) &tmpname;
     values[i++] = (char *) ourid;
-    values[i++] = (char *)parentID;
+    values[i++] = (char *) parentID;
 #if NAMINGDB
     elog(NOTICE,"CreateNameTuple: parent = %d,oid = %d,name = %s",
 	 parentID,ourid,name);
