@@ -19,6 +19,7 @@
  */
 
 #include "executor/executor.h"
+#include "catalog/pg_protos.h"
 
  RcsId("Header: RCS/aggregate.c,v 1.1 91/07/28 15:02:49 caetta Exp $");
 /* ---------------------------------------
@@ -77,30 +78,24 @@ ExecAgg(node)
     EState		estate;
     AggState		aggstate;
     Plan		outerNode;
-    ScanDirection	dir;
     HeapTuple		outerTuple;
     TupleDescriptor	outerTupDesc;
-    HeapTuple		temp_tuple;
     HeapTuple		heapTuple;
     TupleTableSlot	outerslot;
     Buffer		buffer;
     Relation		tempRelation;
-    Relation 		rel;
-    HeapScanDesc	currentScanDesc;
     extern Datum 	fastgetattr();
     char		*running_comp[2];
-    char		*AggNameGetInitAggVal(),*AggNameGetInitAggVal();
     char 		*final_value;
     TupleDescriptor 	aggtupdesc;
     TupleTableSlot	slot;
     String 		aggname;
     bool		isNull = 0;
-    extern char		*update_aggregate();
-    extern char 	*finalize_aggregate();
     ObjectId		func1, func2, finalfunc;
     char 		nulls = ' ';
     char 		*theNewVal;
     int			nargs[3];
+    long		nTuplesAgged = 0;
     func_ptr		functionptrarray[3];
     char 		*args[2];
 
@@ -110,7 +105,6 @@ ExecAgg(node)
      */
     aggstate = 		get_aggstate((Agg) node);
     estate = 		(EState) get_state((Plan) node);
-    dir = 		get_es_direction(estate);
 
     /* the first time we call this we aggregate the tuples below.
      * subsequent calls return tuples from the temp relation
@@ -125,7 +119,7 @@ ExecAgg(node)
     /* ---------------------
      * if we couldn't create the temp or current relations then
      * we print a warning and return NULL.
-     *----------------------
+     * ----------------------
      */
     tempRelation = get_agg_TempRelation((AggState) aggstate);
     if (tempRelation == NULL) 
@@ -134,35 +128,9 @@ ExecAgg(node)
 	return NULL;
     }
 
-    /* ----------------------
-     *  retrieve tuples from subplan
-     * ----------------------
-     */
-
     outerNode = get_outerPlan((Plan) node);
-
     aggtupdesc = ExecGetResultType((CommonState) aggstate);
-
     aggname = (String)get_aggname(node);
-
-    running_comp[0] = (char *)
-	AggNameGetInitVal(aggname, Anum_pg_aggregate_initaggval, &isNull);
-    while (isNull)
-    {
-	outerslot = ExecProcNode(outerNode);
-	outerTuple = (HeapTuple) ExecFetchTuple((Pointer) outerslot);
-	if(outerTuple == NULL)
-	    elog(WARN, "No initial value *and* no values to aggregate");
- 	outerTupDesc = (TupleDescriptor)SlotTupleDescriptor(outerslot);
-	/* 
-	 * find an initial value.
-	 */
-	running_comp[0] = (char *)
-	    fastgetattr(outerTuple, 1, outerTupDesc, &isNull);
-    }
-	
-    running_comp[1] = (char *)
-	AggNameGetInitVal(aggname, Anum_pg_aggregate_initsecval, &isNull);
 
     func1 = CInteger((LispValue)SearchSysCacheGetAttribute(AGGNAME,
 						Anum_pg_aggregate_xitionfunc1,
@@ -182,11 +150,62 @@ ExecAgg(node)
 						    0, 0, 0));
 
     fmgr_info(func1, &functionptrarray[0], &nargs[0]);
+
+    /* -----------
+     * If this agg has a 2nd xition function get it and its initial value
+     * -----------
+     */
     if (func2)
+    {
 	fmgr_info(func2, &functionptrarray[1], &nargs[1]);
+	running_comp[1] = (char *)
+	    AggNameGetInitVal(aggname, Anum_pg_aggregate_initsecval, &isNull);
+
+	if (isNull)
+	    elog(WARN,
+		 "Aggregate has no initial value for the 2nd xition function");
+    }
+
     if (finalfunc)
 	fmgr_info(finalfunc, &functionptrarray[2], &nargs[2]);
 
+    /* ------------------------------------------
+     * Get the intial value for the aggregate's running computation.
+     * If one doesn't exist in the pg_aggregate table then the first
+     * value returned from the outer procNode becomes the initial value.
+     * (This is useful for aggregates like max{} and min{})
+     * ------------------------------------------
+     */
+    running_comp[0] = (char *)
+	AggNameGetInitVal(aggname, Anum_pg_aggregate_initaggval, &isNull);
+    while (isNull)
+    {
+	outerslot = ExecProcNode(outerNode);
+	outerTuple = (HeapTuple) ExecFetchTuple((Pointer) outerslot);
+	if(outerTuple == NULL)
+	    elog(WARN, "No initial value *and* no values to aggregate");
+ 	outerTupDesc = (TupleDescriptor)SlotTupleDescriptor(outerslot);
+
+	/* ------------
+	 * find an initial value.
+	 * ------------
+	 */
+	running_comp[0] = (char *)
+	    fastgetattr(outerTuple, 1, outerTupDesc, &isNull);
+
+	/* -------------
+	 * xition function 2 must be run for each outerProcNode tuple.
+	 * -------------
+	 */
+	if (func2) 
+	{
+	    running_comp[1] = (char *)
+		fmgr_by_ptr_array_args( functionptrarray[1],
+					nargs[1],
+					&running_comp[1] );
+	}
+    }
+	
     for(;;) 
     {
 	outerslot = ExecProcNode(outerNode);
@@ -207,6 +226,12 @@ ExecAgg(node)
 	    fmgr_by_ptr_array_args( functionptrarray[0],
 				    nargs[0],
 				    &args[0] );
+	/* ----------
+	 * We aggregated another tuple
+	 * ----------
+	 */
+	nTuplesAgged++;
+
 	if (func2) 
 	{
 	    running_comp[1] = (char *)
@@ -216,11 +241,11 @@ ExecAgg(node)
 	}
     }
 
-    /* 
+    /* --------------
      * finalize the aggregate (if necessary), and get the resultant value
+     * --------------
      */
-
-    if (finalfunc)
+    if (finalfunc && nTuplesAgged > 0)
     {
 	final_value = (char *)
 	    fmgr_by_ptr_array_args( functionptrarray[2],
