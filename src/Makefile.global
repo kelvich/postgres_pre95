@@ -178,6 +178,9 @@ INSTALL=/bin/installbsd
 # in src/tools/bsdinst if you don't already have it installed.
 INSTALL=bsdinst
 .endif
+.if (${PORTNAME} == "linux")
+INSTALL=/usr/bin/install
+.endif
 
 #
 # The default bmake rules will strip binaries while installing them.
@@ -218,7 +221,7 @@ CDEBUG= -g
 # Comment out OLD_MKDIR if your mkdir has the -p flag or your install
 # creates all intermediate directories.
 #
-.if (${PORTNAME} != "ultrix4")
+.if (${PORTNAME} != "ultrix4" && ${PORTNAME} != "linux")
 OLD_MKDIR=
 .endif
 
@@ -265,7 +268,11 @@ KRBLIBS+= -lkrb5 -lcrypto -lcom_err -lisode
 CFLAGS= ${CDEBUG}
 LDFLAGS= ${CDEBUG}
 .else
+.  if (${PORTNAME} == "linux")
+CFLAGS= -O2 -DNO_ASSERT_CHECKING
+.  else
 CFLAGS= -O -DNO_ASSERT_CHECKING
+.  endif
 .endif
 
 .ifdef PROFILE
@@ -341,6 +348,7 @@ LDADD+= -lBSD
 #
 .if (${PORTNAME} == "linux")
 CFLAGS+= -D__USE_BSD -D__USE_BSD_SIGNAL
+LDADD+= -lbsd
 .endif
 #
 # We devoutly hope that there aren't any systems that provide

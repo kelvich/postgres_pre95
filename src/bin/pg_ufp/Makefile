@@ -47,6 +47,9 @@ ${PROG}.noexp: ${OBJS}
 	${CC} ${LDFLAGS} -o ${.TARGET} ${OBJS} ${LDADD}
 
 CLEANFILES+= ${PROG}.noexp ${PROG}.exp
+.elif (${PORTNAME} == "linux")
+LDFLAGS+= -N
+LDADD+= -ldld
 .else
 # put the executable in OMAGIC format
 LDFLAGS+= -N
