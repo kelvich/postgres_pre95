@@ -12,6 +12,15 @@ RcsId("$Header$");
 
 #include "utils/palloc.h"
 
+char *PG_username;
+
+char *
+pg_username(dummy)
+int dummy;
+{
+    return(PG_username);
+}
+
 	    /* ========== USER I/O ROUTINES ========== */
 
 
@@ -163,15 +172,4 @@ char16ge(arg1, arg2)
 	return((int32) NULL);
 
     return((int32) (strncmp(arg1, arg2, 16) >= 0));
-}
-
-char *
-pg_username(dummy)
-
-int dummy;
-
-{
-	extern char *PG_username;
-
-	return(PG_username);
 }
