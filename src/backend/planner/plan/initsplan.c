@@ -39,6 +39,7 @@
 #include "planner/joininfo.h"
 #include "planner/relnode.h"
 #include "planner/tlist.h"
+#include "planner/var.h"
 
 extern bool _enable_mergesort_;
 extern bool _enable_hashjoin_;
@@ -89,7 +90,8 @@ initialize_targetlist(tlist)
 	fflush(stdout);
 	}
 #endif NO_PLEASE
-	tlist_vars = nconc(tlist_vars,pull_var_clause(get_expr(entry)));
+	tlist_vars = nconc(tlist_vars,pull_var_clause( (LispValue)
+						get_expr(entry) ));
     }
 
     foreach (tvar, tlist_vars) {
@@ -188,7 +190,8 @@ add_clause_to_rels(clause)
 	    /* so 'clause' must be a restriction clause. */
 	    /* XXX - let form, maybe incorrect */
 	    Rel rel = get_rel(CAR(relids));
-	    set_clauseinfo(rel,cons(clauseinfo,get_clauseinfo(rel)));
+	    set_clauseinfo(rel,cons((LispValue)clauseinfo,
+				    (LispValue)get_clauseinfo(rel)));
 	} 
 	else {
 	    /* 'clause' is a join clause, since there is more than one */

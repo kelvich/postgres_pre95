@@ -91,12 +91,12 @@ LispValue tlist ;
 		    relid = get_varno((Var)expr);
 		  push (lispCons(lispInteger(get_reskey(resdom)),
 		                 lispCons(lispCons(lispInteger
-						   (get_reskeyop(resdom)), 
+						   ((int)get_reskeyop(resdom)), 
 				                   LispNil), 
 					  LispNil)),
                  	sort_ops);
 		  push (lispCons (lispInteger(get_reskey (resdom)),
-				  lispCons(lispCons(expr,LispNil),
+				  lispCons(lispCons((LispValue)expr,LispNil),
 					   LispNil)),
 			varkeys);
 		  if (get_vararraylist((Var)expr))
@@ -130,7 +130,7 @@ LispValue tlist ;
       else 
 	return ((LispValue)MakeSortKey(sort_list_car (varkeys),
 				       sort_list_car (keys),
-				       (Relid)LispInteger(relid),
+				       (Relid)lispInteger(relid),
 				       sort_list_car (sort_ops)));
 }  /* function end   */
 
@@ -236,7 +236,7 @@ int width ;
 		
 	  if (newcost) {
 	       set_path_cost (path,newcost);
-	       if(equal (path,get_cheapestpath (rel))) {
+	       if(equal ((Node)path,(Node)get_cheapestpath (rel))) {
 		    set_cheapest (rel,get_pathlist (rel));
 	       } 
 	       else 

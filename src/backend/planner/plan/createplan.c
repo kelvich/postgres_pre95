@@ -36,6 +36,8 @@
 #include "planner/tlist.h"
 #include "planner/planner.h"
 
+#include "lib/lisplist.h"
+
 #define TEMP_SORT	1
 #define TEMP_MATERIAL	2
 /* "Print out the total cost at each query processing operator"  */
@@ -326,7 +328,7 @@ create_indexscan_node(best_path,tlist,scan_clauses)
 
      if(or_clause((LispValue)index_clause))
        qpqual = set_difference(scan_clauses,
-				lispCons(index_clause,LispNil));
+				lispCons((LispValue)index_clause,LispNil));
      else 
        qpqual = set_difference(scan_clauses, CAR(indxqual));
      
@@ -547,12 +549,14 @@ create_mergejoin_node(best_path,tlist,clauses,
      RegProcedure opcode = 
      get_opcode(get_join_operator((MergeOrder)get_p_ordering((Path)best_path)));
      
-     LispValue outer_order = 
-       lispCons(get_left_operator((MergeOrder)get_p_ordering((Path)best_path)),
-		LispNil);
+     LispValue outer_order =
+	lispCons((LispValue) get_left_operator( (MergeOrder)
+					get_p_ordering( (Path) best_path)),
+		 LispNil);
      
      LispValue inner_order = 
-       lispCons(get_right_operator((MergeOrder)get_p_ordering((Path)best_path)),
+       lispCons( (LispValue) get_right_operator( (MergeOrder)
+					get_p_ordering( (Path) best_path)),
 		LispNil);
      
      MergeJoin join_node;
@@ -620,9 +624,9 @@ switch_outer(clauses)
     foreach(i,clauses) {
 	clause = CAR(i);
 	if(var_is_outer(get_rightop(clause))) {
-	    temp = make_clause(get_op(clause),
-				lispCons(get_rightop(clause),
-					 lispCons(get_leftop(clause),
+	    temp = make_clause((LispValue)get_op(clause),
+				lispCons((LispValue)get_rightop(clause),
+					 lispCons((LispValue)get_leftop(clause),
 						  LispNil)));
 	    t_list = nappend1(t_list,temp);
 	} 
@@ -1006,11 +1010,11 @@ make_agg(arglist, aggidnum)
      /* arglist is(Resnode((interesting stuff), NULL)) */
      Agg node = RMakeAgg();
      Resdom resdom = (Resdom)CAR(arglist);
-     Name aggname = NULL; 
+     String aggname = NULL; 
      LispValue query = LispNil;
      List varnode = LispNil;
      arglist = CADR(arglist);
-     aggname = (Name)CAR(arglist);
+     aggname = CString(CAR(arglist));
      arglist = CDR(arglist);
      query = CAR(arglist);
      arglist = CDR(arglist);
@@ -1021,7 +1025,10 @@ make_agg(arglist, aggidnum)
      set_state((Plan)node, (EState)NULL);
      set_qpqual((Plan)node, LispNil);
      set_qptargetlist((Plan)node, 
-		      lispCons(MakeList(resdom, varnode, -1), LispNil));
+		      lispCons(MakeList((LispValue)resdom, 
+					varnode,
+					-1),
+			       LispNil));
      set_lefttree((Plan)node, planner(query));
      set_righttree((Plan)node, (Plan)NULL);
      set_tempid((Temp)node, aggidnum);

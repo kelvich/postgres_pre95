@@ -125,7 +125,7 @@ new_level_qual (quals,prevtlist,prevlevel)
      LispValue t_list = LispNil;
      LispValue qual = LispNil;
 
-     foreach(qual,collect(nested_clause_p(quals))) {
+     foreach(qual,collect(nested_clause_p, quals)) {
 	  temp = replace_clause_nestvar_refs ( CAR(qual),prevtlist,prevlevel);
 	  t_list = nappend1(t_list,temp);
      }
@@ -319,7 +319,7 @@ new_result_tlist (tlist,ltlist,rtlist,levelnum,sorted)
 		  }
 		  temp = lispCons(tl_resdom (entry),
 				  lispCons 
-				  (replace_clause_resultvar_refs 
+				  ((LispValue)replace_clause_resultvar_refs 
 				   ((Expr)get_expr(entry),
 				    ltlist,
 				    rtlist,
@@ -477,12 +477,12 @@ replace_resultvar_refs (var,ltlist,rtlist,levelnum)
      
      if (levelnum == numlevels (var)) 
 	  varno = lispCons (lispInteger(levelnum - 1),
-			    lispCons(get_resno ((Resdom)tl_resdom 
-						(match_varid (var, ltlist))),
+			    lispCons((LispValue)get_resno ((Resdom)tl_resdom 
+						  (match_varid (var, ltlist))),
 				     LispNil));
      else
        varno = lispCons (lispInteger(levelnum),
-			 lispCons (get_resno ((Resdom)tl_resdom 
+			 lispCons ((LispValue)get_resno ((Resdom)tl_resdom 
 					  (match_varid (var, rtlist))),
 				   LispNil));
      

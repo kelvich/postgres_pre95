@@ -370,7 +370,7 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 	  foreach (x, pathlist) {
 	      path = (Path)CAR(x);
 	      plan = create_plan(path, original_tlist);
-	      planlist = nappend1(planlist, plan);
+	      planlist = nappend1(planlist, (LispValue)plan);
 	    }
 	  chooseplan = RMakeChoose();
 	  set_chooseplanlist(chooseplan, planlist);
@@ -495,11 +495,11 @@ List	planlist;
     plist = planlist;
     while (!lispNullp(plist)) {
 	p1 = (Plan)CAR(plist);
-	g = lispCons(p1, LispNil);
+	g = lispCons((LispValue)p1, LispNil);
 	foreach (x, CDR(plist)) {
 	    p2 = (Plan)CAR(x);
 	    if (plan_isomorphic(p1, p2)) {
-		g = nappend1(g, p2);
+		g = nappend1(g, (LispValue)p2);
 	      }
 	  }
 	plist = nset_difference(plist, g);
@@ -635,7 +635,7 @@ List	planlist;
 	    ResetUsage();
 	    ProcessQuery(parsetree, nlplan, None);
 	    ShowUsage();
-	    plangroup = nLispRemove(plangroup, nlplan);
+	    plangroup = nLispRemove(plangroup, (LispValue)nlplan);
 	    setPlanGroupStats(nlplan, plangroup);
 	  }
 	else {
@@ -687,7 +687,7 @@ List planlist;
     foreach (x, planlist) {
 	plan = (Plan)CAR(x);
 	if (!plan_contain_redundant_hashjoin(plan))
-	    retlist = nappend1(retlist, plan);
+	    retlist = nappend1(retlist, (LispValue)plan);
       }
     return retlist;
 }
