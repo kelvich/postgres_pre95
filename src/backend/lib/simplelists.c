@@ -18,7 +18,7 @@ RcsId("$Header$");
 
 #define NODE	SLNode
 #define LIST	SLList
-#define SBASE(list,node) ((void *)((char *)(node) - (list)->sl_Offset))
+#define SBASE(list,node) ((Pointer)((char *)(node) - (list)->sl_Offset))
 
 void
 SLNewList(list, offset)
@@ -40,7 +40,7 @@ NODE *node;
     node->sn_Magic= NODE_MAGIC;
 }
 
-void *
+Pointer
 SLGetHead(list)
 register LIST *list;
 {
@@ -56,7 +56,7 @@ register LIST *list;
     return(NULL);
 }
 
-void *
+Pointer
 SLGetTail(list)
 register LIST *list;
 {
@@ -72,7 +72,7 @@ register LIST *list;
     return(NULL);
 }
 
-void *
+Pointer
 SLGetPred(node)
 register NODE *node;
 {
@@ -85,7 +85,7 @@ register NODE *node;
     return(NULL);
 }
 
-void *
+Pointer
 SLGetSucc(node)
 register NODE *node;
 {
@@ -180,7 +180,7 @@ register NODE *node, *newnode;
     newnode->sn_List = node->sn_List;
 }
 
-void *
+Pointer
 SLRemHead(list)
 register LIST *list;
 {
@@ -197,7 +197,7 @@ register LIST *list;
     return(NULL);
 }
 
-void *
+Pointer
 SLRemTail(list)
 register LIST *list;
 {
