@@ -118,6 +118,9 @@ extern LispValue 	car();
 extern LispValue 	cdr();
 extern LispValue 	rplaca();
 extern LispValue 	rplacd();
+extern LispValue 	find_if_not();
+extern LispValue 	find_if();
+extern LispValue 	rplacd();
 extern			init_list();
 
 /*
