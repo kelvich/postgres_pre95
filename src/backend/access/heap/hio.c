@@ -329,13 +329,6 @@ HeapTuple tuple;
 	ItemId		itemId;
 	Item		item;
 
-	/* ----------------
-	 *	increment access statistics
-	 * ----------------
-	 */
-	IncrHeapAccessStat(local_RelationPutHeapTuple);
-	IncrHeapAccessStat(global_RelationPutHeapTuple);
-
 	Assert(RelationIsValid(relation));
 	Assert(HeapTupleIsValid(tuple));
 
