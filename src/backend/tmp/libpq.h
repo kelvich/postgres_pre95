@@ -168,7 +168,7 @@ extern char *pbuf_addValues ARGS((int n));
 extern PortalEntry *pbuf_addEntry ARGS(());
 extern void pbuf_freeEntry ARGS((int i));
 extern void pbuf_freeTypes ARGS((TypeBlock *types));
-extern void pbuf_freeTuples ARGS((int no_ tuples, int no_tuples, int no_fields));
+extern void pbuf_freeTuples ARGS((TupleBlock *tuples, int no_tuples, int no_fields));
 extern void pbuf_freeGroup ARGS((GroupBuffer *group));
 extern void pbuf_freePortal ARGS((PortalBuffer *portal));
 extern int pbuf_getIndex ARGS((char *pname));
