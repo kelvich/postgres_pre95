@@ -10,6 +10,9 @@
  */
 
 #include "c.h"
+#include "primnodes.h"
+#include "primnodes.a.h"
+#include "datum.h"
 #include "pg_lisp.h"
 #include "log.h"
 #include "relcache.h"	/* RelationNameGetRelation() defined here...*/
@@ -28,6 +31,7 @@
 
 extern HeapTuple palloctup();
 extern LispValue planner();
+void changeReplaceToRetrieve();
 
 /*-----------------------------------------------------------------------
  *
@@ -55,7 +59,15 @@ char *ruleText;
     LispValue ruleActionPlans;
     ObjectId ruleId;		/*the OID for the new rule*/
     Prs2LockType lockType;
+    AttributeNumber updatedAttributeNumber;
 
+
+    LispValue prs2ReadRule();
+
+#define NO_PARSER_SUPPORT
+#ifdef NO_PARSER_SUPPORT
+    parseTree = prs2ReadRule("/users/spyros/postgres/O/support/RULE");
+#endif
 
 #ifdef PRS2_DEBUG
     printf("---prs2DefineTupleRule called, with argument =");
@@ -71,8 +83,6 @@ char *ruleText;
     ruleAction = GetRuleActionFromParse(parseTree);
 
     eventType = prs2FindEventTypeFromParse(parseTree);
-    actionType = prs2FindActionTypeFromParse(parseTree);
-
     /*
      * 
      * Find the OID of the relation to be locked, and the
@@ -104,6 +114,17 @@ char *ruleText;
 	    elog(WARN,"Illegal attribute in event target list");
 	}
     }
+
+    /*
+     * Now, find the type of action. (i.e. ActionTypeRetrieve, 
+     * ActionTypeReplaceCurrent or ActionTypeOther).
+     * In the first 2 cases,  `updatedAttributeNumber' is the number
+     * of attribute beeing updated.
+     */
+    actionType = prs2FindActionTypeFromParse(parseTree,
+			eventTargetAttributeNumber,
+			&updatedAttributeNumber);
+
     
 
 #ifdef PRS2_DEBUG
@@ -152,7 +173,9 @@ char *ruleText;
      * Now generate the plans for the action part of the rule
      */
     ruleActionPlans = prs2GenerateActionPlans(isRuleInstead,
-					    ruleQual,ruleAction);
+					    ruleQual,ruleAction,
+					    eventTargetAttributeNumber,
+					    updatedAttributeNumber);
 
     /*
      * Store the plans generated above in the system 
@@ -166,7 +189,9 @@ char *ruleText;
      * Now set the appropriate locks.
      */
     prs2PutLocks(ruleId, eventTargetRelationOid,
-		eventTargetAttributeNumber, eventType, actionType);
+		eventTargetAttributeNumber,
+		updatedAttributeNumber,
+		eventType, actionType);
 
 #ifdef PRS2_DEBUG
     printf("--- DEFINE PRS2 RULE: Done.\n");
@@ -427,29 +452,48 @@ LispValue	rulePlan;
  * generate the plan+parse trees for the action part of the rule
  */
 LispValue
-prs2GenerateActionPlans(isRuleInstead, ruleQual,ruleAction)
+prs2GenerateActionPlans(isRuleInstead, ruleQual,ruleAction,
+			eventTargetAttributeNumber,
+			updatedAttributeNumber)
 int isRuleInstead;
 LispValue ruleQual;
 LispValue ruleAction;
+AttributeNumber eventTargetAttributeNumber;
+AttributeNumber updatedAttributeNumber;
 {
     LispValue result;
     LispValue action;
     LispValue oneParse;
     LispValue onePlan;
     LispValue oneEntry;
+    LispValue qualQuery;
+    LispValue ruleInfo;
+    AttributeNumber currentAttributeNo;
 
-    result = LispNil;
 
     /*
      * the first entry in the result is some rule info
+     * This consists of the following fields:
+     * a) "instead" or "not-instead"
+     * b) the attribute number of the attribute specified
+     *    in the ON EVENT TO REL.attribute clause
+     *    (or InvalidAttributeNumber)
+     * c) either InvalidAttributeNumber, or in the case of a rule
+     *    of the form:
+     *       ON REPLACE TO REL.x WHERE ....
+     *       DO REPLACE CURRENT.attribute
+     *    the 'attribute' that is replced by the rule.
      */
     if (isRuleInstead) {
-	oneEntry = lispCons(lispString("instead"), LispNil);
+	ruleInfo = lispCons(lispString("instead"), LispNil);
     } else {
-	oneEntry = lispCons(lispString("not-instead"), LispNil);
+	ruleInfo = lispCons(lispString("not-instead"), LispNil);
     }
 
-    result = nappend1(result, oneEntry);
+    ruleInfo = nappend1(ruleInfo, lispInteger(eventTargetAttributeNumber));
+    ruleInfo = nappend1(ruleInfo, lispInteger(updatedAttributeNumber));
+
+    result = lispCons(ruleInfo, LispNil);
 
 
     /*
@@ -458,9 +502,50 @@ LispValue ruleAction;
     if (null(ruleQual)) {
 	oneEntry = LispNil;
     } else {
-	onePlan = planner(ruleQual);
+#ifdef NOT_YET
+	/*
+	 * the 'ruleQual' is just a qualification.
+	 * Transform it into a query of the form:
+	 * "retrieve (foo=1) where QUAL".
+	 * The rule manager will run this query and if there is 
+	 * a tuple returned, then we know that the qual is true,
+	 * otherwise we know it is false
+	 */
+	LispValue root, targetList;
+	Resdom resdom;
+	Const constant;
+	NameData nameData;
+	Datum value;
+
+	root = lispCons(lispInteger(1),
+		lispCons(lispAtom("retrieve"),
+		    lispCons(LispNil,
+			lispCons(LispNil,
+			    lispCons(lispCons(0,LispNil),LispNil)))));
+	strcpy(nameData.data,"foo");
+	resdom = MakeResdom((AttributeNumber)1,
+			    (ObjectId) 23,
+			    (Size) 4,
+			    &nameData,
+			    (Index) 0,
+			    (OperatorTupleForm) 0);
+	value = Int32GetDatum(1);
+	constant = MakeConst((ObjectId) 23,
+			    (Size) 4,
+			    value,
+			    false);
+	targetList = lispCons(
+			lispCons(resdom, lispCons(constant, LispNil)),
+			LispNil);
+	qualQuery = lispCons(root,
+			lispCons(targetList,
+			    lispCons(ruleQual, LispNil)));
+#else /* NOT_YET*/
+	qualQuery = ruleQual;
+#endif /* NOT_YET */
+	onePlan = planner(qualQuery);
 	oneEntry = lispCons(onePlan, LispNil);
-	oneEntry = lispCons(ruleQual, oneEntry);
+	oneEntry = lispCons(qualQuery, oneEntry);
     }
     result = nappend1(result, oneEntry);
 
@@ -470,6 +555,14 @@ LispValue ruleAction;
      */
     foreach (action, ruleAction) {
 	oneParse = CAR(action);
+	/*
+	 * XXX: THIS IS A HACK !!!
+	 *      (but it works, so what the hell....) 
+	 *
+	 * if this is a REPLACE CURRENT (X = ...)
+	 * change it to a RETRIEVE (X = ...)
+	 */
+	changeReplaceToRetrieve(oneParse);
 	/*
 	 * call the planner to create a plan for this parse tree
 	 */
@@ -726,10 +819,18 @@ LispValue parseTree;
  * prs2FindActionTypeFromParse
  *
  * find the ActionType of a rule.
+ *
+ * if the action is in the form 'REPLACE CURRENT(x = ....)'
+ * then (*updatedAttributeNumber) is the attribute number of the
+ * updated field, otherwise it is InvalidAttributeNumber.
  */
 ActionType
-prs2FindActionTypeFromParse(parseTree)
+prs2FindActionTypeFromParse(parseTree,
+			    eventTargetAttributeNumber,
+			    updatedAttributeNumberP)
 LispValue parseTree;
+AttributeNumber eventTargetAttributeNumber;
+AttributeNumberPtr updatedAttributeNumberP;
 {
     
     LispValue ruleActions;
@@ -740,8 +841,20 @@ LispValue parseTree;
     LispValue rangeTable;
     ActionType actionType;
     Name relationName;
+    NameData nameData;
+    LispValue targetList;
+
+    *updatedAttributeNumberP = InvalidAttributeNumber;
 
     ruleActions = GetRuleActionFromParse(parseTree);
+
+    if (null(ruleActions)) {
+	/*
+	 * then this is probably an `instead' rule with no action
+	 * specified, e.g. "ON delete to DEPT WHERE ... DO INSTEAD"
+	 */
+	return(ActionTypeOther);
+    }
 
     foreach(t, ruleActions) {
 	oneRuleAction = CAR(t);
@@ -753,11 +866,12 @@ LispValue parseTree;
 	resultRelation = root_result_relation(root);
 	rangeTable = root_rangetable(root);
 	if (!null(rangeTable)) {
-	    strcpy(relationName,CString(rt_relname(CAR(rangeTable))));
+	    strcpy(&(nameData.data[0]), CString(rt_relname(CAR(rangeTable))));
+	    relationName = &nameData;
 	} else {
 	    relationName = InvalidName;
 	}
-	if (commandType == RETRIEVE && !null(resultRelation)) {
+	if (commandType == RETRIEVE && null(resultRelation)) {
 	    /*
 	     * this is a retrieve (NOT a retrieve into...)
 	     */
@@ -769,6 +883,15 @@ LispValue parseTree;
 	     * this is a replace CURRENT(...)
 	     */
 	    actionType = ActionTypeReplaceCurrent;
+	    /*
+	     * find the updated attribute number...
+	     */
+	    targetList = parse_targetlist(oneRuleAction);
+	    if (length(targetList) != 1) {
+		elog(WARN,
+		" a 'replace CURRENT(...)' must replace ONLY 1 attribute");
+	    }
+	    *updatedAttributeNumberP = get_resno(tl_resdom(CAR(targetList)));
 	    break; 	/* exit 'foreach' loop */
 	} else {
 	    actionType = ActionTypeOther;
@@ -783,6 +906,7 @@ LispValue parseTree;
 	    elog(WARN,
 	    "a 'retrieve (..)' must be the only action of a PRS2 rule!");
 	}
+	*updatedAttributeNumberP = eventTargetAttributeNumber;
     }
 	
     if (actionType == ActionTypeReplaceCurrent) {
@@ -805,14 +929,17 @@ LispValue parseTree;
  * Put the appropriate rule locks.
  * NOTE: currently only relation level locking is implemented
  */
-prs2PutLocks(ruleId, relationOid, attributeNo, eventType, actionType)
+prs2PutLocks(ruleId, relationOid, eventAttributeNo, updatedAttributeNo,
+			eventType, actionType)
 ObjectId ruleId;
 ObjectId relationOid;
-AttributeNumber attributeNo;
+AttributeNumber eventAttributeNo;
+AttributeNumber updatedAttributeNo;
 EventType eventType;
 ActionType actionType;
 {
     Prs2LockType lockType;
+    AttributeNumber attributeNo;
 
     /*
      * find the lock type
@@ -821,6 +948,11 @@ ActionType actionType;
 
     if (actionType == ActionTypeRetrieveValue ||
 	actionType == ActionTypeReplaceCurrent) {
+	/*
+	 * In this case the attribute to be locked is the updated
+	 * attribute...
+	 */
+	attributeNo = updatedAttributeNo;
 	switch (eventType) {
 	    case EventTypeRetrieve:
 		lockType = LockTypeRetrieveWrite;
@@ -839,6 +971,11 @@ ActionType actionType;
 		elog(WARN, "prs2PutLocks: Illegal Event type: %c", eventType);
 	}
     } else if (actionType == ActionTypeOther) {
+	/*
+	 * In this case the attribute to be locked is the 'event'
+	 * attribute...
+	 */
+	attributeNo = eventAttributeNo;
 	switch (eventType) {
 	    case EventTypeRetrieve:
 		lockType = LockTypeRetrieveAction;
@@ -865,4 +1002,130 @@ ActionType actionType;
 #endif PRS2DEBUG
 
     prs2PutLocksInRelation(ruleId, lockType, relationOid, attributeNo);
+}
+
+/*=============================== DEBUGGINF STUFF ================*/
+LispValue
+prs2ReadRule(fname)
+char *fname;
+{
+    FILE *fp;
+    int c;
+    int count, maxcount;
+    char *s1, *s2;
+    LispValue l;
+    LispValue StringToPlan();
+
+    printf("--- prsReadRule.\n");
+    AllocateFile();
+    if (fname==NULL) {
+	fp = stdin;
+	printf(" reading rule from stdin.\n");
+    } else {
+	AllocateFile();
+	fp = fopen(fname, "r");
+	if (fp==NULL){
+	    printf(" Can not open rule file %s\n", fname);
+	    elog(WARN,"prs2ReadRule.... exiting...\n");
+	} else {
+	    printf("Reading rule from file %s\n", fname);
+	}
+    }
+
+    maxcount = 100;
+    s1 = palloc(maxcount);
+    if (s1 == NULL) {
+	elog(WARN,"prs2ReadRule : out of memory!");
+    }
+
+    count = 0;
+    while((c=getc(fp)) != EOF) {
+	if (count >= maxcount) {
+	    maxcount = maxcount + 1000;
+	    s2 = palloc(maxcount);
+	    if (s2 == NULL) {
+		elog(WARN,"prs2ReadRule : out of memory!");
+	    }
+	    bcopy(s1, s2, count);
+	    free(s1);
+	    s1 = s2;
+	}
+	s1[count] = c;
+	count++;
+    }
+    s1[count+1] = '\0';
+
+    l = StringToPlan(s1);
+
+    printf("  list = \n");
+    lispDisplay(l,0);
+
+    if (fp!=stdin) {
+	fclose(fp);
+	FreeFile();
+    }
+
+    return(l);
+}
+
+/*----------------------------------------------------------------
+ *
+ * changeReplaceToRetrieve
+ *
+ * Ghange the parse tree of a 'REPLACE CURRENT(X = ...)' command to a
+ * 'RETRIEVE (X = ...)'
+ */
+void
+changeReplaceToRetrieve(parseTree)
+LispValue parseTree;
+{
+
+    LispValue root;
+    LispValue targetList;
+    int commandType;
+    LispValue resultRelation;
+    LispValue rangeTable;
+    Name relationName;
+    NameData nameData;
+
+
+    root = parse_root(parseTree);
+    commandType = root_command_type(root);
+    resultRelation = root_result_relation(root);
+    rangeTable = root_rangetable(root);
+    if (!null(rangeTable)) {
+	strcpy(&(nameData.data[0]), CString(rt_relname(CAR(rangeTable))));
+	relationName = &nameData;
+    } else {
+	relationName = InvalidName;
+    }
+
+    /*
+     * Is this a REPLACE CURRENT command?
+     */
+    if (commandType!=REPLACE || !NameIsEqual("CURRENT", relationName)) {
+	/*
+	 * NO, this is not a REPLACE CURRENT command
+	 */
+	return;
+    }
+
+    /*
+     * Yes it is!
+     *
+     * Now *DESTRUCTIVELY* change the parse tree...
+     * 
+     * Change the command from 'replace' to 'retrieve'
+     * and the result relation to 'nil'
+     */
+    root = parse_root(parseTree);
+    root_command_type_atom(root) = lispAtom("retrieve");
+    root_result_relation(root) = LispNil;
+
+    /*
+     * Now go to the target list (which must have exactly 1 Resdom
+     * node, and change the 'resno' to 1
+     */
+    targetList = parse_targetlist(parseTree);
+    set_resno(tl_resdom(CAR(targetList)), (AttributeNumber)1);
 }
