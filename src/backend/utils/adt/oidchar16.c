@@ -19,17 +19,19 @@ oidchar16in(inStr)
 
     oc = (OidChar16) palloc(sizeof(OidChar16Data));
 
-    bzero(oc->name, sizeof(OidChar16Data));
+    bzero(oc, sizeof(OidChar16Data));
     for (inptr = inStr; *inptr && *inptr != ','; inptr++)
 	;
 
     if (*inptr)
     {
 	oc->id = atoi(inStr);
-	strncpy(oc->name, ++inptr, sizeof(OidChar16Data));
+	strncpy(&(oc->name.data[0]), ++inptr, sizeof(char16));
     }
     else
 	elog(WARN, "Bad input data for type oidchar16");
+
+    return oc;
 }
 
 char *
