@@ -184,13 +184,18 @@ LDADD+= -ldld
 # == BEGIN MACHINE-SPECIFIC SECTION ==
 #
 
+LDADD+=	-lm
 .if (${PORTNAME} == "linux")
-LDADD+= -lm -lipc
+LDADD+= -lipc
+.elif (${PORTNAME} == "hpux")
+CFLAGS+= -W l,-E -W p,-H400000
+LDFLAGS+= -W l,-E
+LDADD+= -ll -ldld
 .else
-.ifndef PROFILE
+LDADD+=	-lln
+.  ifndef PROFILE
 LDADD+= -N 
-.endif
-LDADD+=	-lm -lln
+.  endif
 .endif
 
 #
@@ -213,7 +218,7 @@ CFLAGS+= -DNOFIXADE
 # with cleardbdir(1)).
 #
 afterinstall: pg_id
-	install ${STRIP} -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
+	${INSTALL} ${STRIP} -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
 		postmaster ${DESTDIR}${BINDIR}/postmaster
 .if defined(OLD_MKDIR)
 	-if test ! -d ${DESTDIR}${DATADIR}; \
@@ -228,10 +233,10 @@ afterinstall: pg_id
 	esac ;\
 	for bki in ${BKIFILES}; do \
 		sed "s/PGUID/$$PG_UID/" < $$bki > $$bki.sed ; \
-		install -c -o ${BINOWN} -g ${BINGRP} -m 444 \
+		${INSTALL} -c -o ${BINOWN} -g ${BINGRP} -m 444 \
 		    $$bki.sed ${DESTDIR}${DATADIR}/files/$$bki; \
 		rm -f $$bki.sed; \
-		install -c -o ${BINOWN} -g ${BINGRP} -m 444 \
+		${INSTALL} -c -o ${BINOWN} -g ${BINGRP} -m 444 \
 		    $$bki ${DESTDIR}${DATADIR}/files/$$bki.source; \
 	done
 
