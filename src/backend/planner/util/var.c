@@ -68,7 +68,10 @@ pull_var_clause (clause)
  *    	array element, if applicable), ignoring the dot fields (making
  *    	"foo.bar.baz" equivalent to "foo.ack.hodedo.baz") unless 'dots' is
  *    	set.
- *    
+ *
+ *      vartype will be different in the case of array vars on the same
+ *      attribute, ie a.b[1][1] will be a different type than a.b[1].
+ *
  */
 bool
 var_equal (var1,var2,dots)
@@ -77,6 +80,7 @@ var_equal (var1,var2,dots)
 {
     if (IsA (var1,Var) && IsA (var2,Var) &&
 	(get_varno (var1) == get_varno (var2)) &&
+	(get_vartype (var1) == get_vartype (var2)) && 
 	(get_varattno (var1) == get_varattno (var2))) {
 
 /*   comment out for now since vararrayindex is always
