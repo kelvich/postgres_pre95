@@ -123,6 +123,7 @@ bool Typecast_ok = true;
 %left  	'+' '-'
 %left  	'*' '/'
 %left	'|'		/* this is the relation union op, not logical or */
+%right  ';' ':'		/* Unary Operators      */
 %right   UMINUS
 %nonassoc  '<' '>'
 %left	'.'
@@ -1670,6 +1671,15 @@ a_expr:
 	| a_expr '=' a_expr
 		{ $$ = make_op (lispString("="), $1, $3, 'b' ) ;
 		  Typecast_ok = false; }
+	| ':' a_expr
+		{ $$ = make_op (lispString(":"), LispNil, $2, 'l' ) ;
+		Typecast_ok = false; }
+	| ';' a_expr
+		{ $$ = make_op (lispString(";"), LispNil, $2, 'l' ) ;
+		Typecast_ok = false; }
+	| '|' a_expr
+		{ $$ = make_op (lispString("|"), LispNil, $2, 'l' ) ;
+		Typecast_ok = false; }
 	| AexprConst TYPECAST Typename
 		{ 
 		    extern LispValue parser_typecast();
@@ -1681,6 +1691,12 @@ a_expr:
 	/* XXX Or other stuff.. */
 	| a_expr Op a_expr
 		{ $$ = make_op ( $2, $1 , $3, 'b' );
+		  Typecast_ok = false; }
+	| Op a_expr
+	  	{ $$ = make_op ( $1, LispNil, $2, 'l');
+		  Typecast_ok = false; }
+	| a_expr Op
+	  	{ $$ = make_op ( $2, $1, LispNil, 'r');
 		  Typecast_ok = false; }
 	| relation_name
 		{ $$ = lispCons ( KW(relation), $1 );
