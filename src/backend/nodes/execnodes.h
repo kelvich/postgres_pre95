@@ -83,6 +83,29 @@ class (RelationInfo) public (Node) {
 };
 
 /* ----------------------------------------------------------------
+ *	TupleCount node information
+ *
+ *	retrieved	number of tuples seen by ExecRetrieve
+ *	appended	number of tuples seen by ExecAppend
+ *	deleted		number of tuples seen by ExecDelete
+ *	replaced	number of tuples seen by ExecReplace
+ *	inserted	number of index tuples inserted
+ *	processed	number of tuples processed by the plan
+ * ----------------------------------------------------------------
+ */
+class (TupleCount) public (Node) {
+      inherits(Node);
+  /* private: */
+      int	tc_retrieved;
+      int	tc_appended;
+      int	tc_deleted;
+      int	tc_replaced;
+      int	tc_inserted;
+      int	tc_processed;
+  /* public: */
+};
+
+/* ----------------------------------------------------------------
  *    EState information
  *
  *	direction			direction of the scan
@@ -99,6 +122,7 @@ class (RelationInfo) public (Node) {
  *	result_relation_information	for update queries
  *	param_list_info			information needed to transform
  *					Param nodes into Const nodes
+ *	tuplecount			summary of tuples processed
  * ----------------------------------------------------------------
  */
 
@@ -117,8 +141,8 @@ class (EState) public (Node) {
       Relation		es_into_relation_descriptor;
       RelationInfo	es_result_relation_info;
       ParamListInfo	es_param_list_info;
+      TupleCount	es_tuplecount;
 };
-
 
 /* ----------------
  *	Executor Type information needed by plannodes.h
@@ -478,6 +502,5 @@ class (ExistentialState) public (CommonState) {
       List 	ex_SatState;
   /* public: */
 };
-
 
 #endif /* ExecNodesIncluded */
