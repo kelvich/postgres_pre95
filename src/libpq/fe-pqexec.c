@@ -144,6 +144,11 @@ read_remark(id)
 	pq_getstr(remarks, remark_length);
 	pq_getnchar(id, 0, 1);
     }
+    while(id[0] == 'E') {
+        pq_getstr(errormsg,error_msg_length);
+        fprintf(stdout,"%s \n",&errormsg[0]+4);
+        pq_getnchar(id, 0, 1);
+    }
     while(id[0] == 'N') {
         pq_getstr(errormsg,error_msg_length);
         fprintf(stdout,"%s \n",&errormsg[0]+4);
@@ -480,6 +485,13 @@ PQfn(fnid, result_buf, result_len, actual_result_len,
 	      ((char *)result_buf)[actual_len] = 0; /* add a \0 */
 	    pq_getnchar(id, 0, 1);
 	    return("G");
+	    
+	  case 'E':		/* print error and go back to processing return values */
+	    pq_getstr(errormsg, error_msg_length);
+	    pqdebug("%s error encountered.", errormsg);
+	    fprintf(stdout,"%s \n", errormsg);
+	    pq_getnchar(id, 0, 1);
+	    break;
 
 	  case 'N':		/* print notice and go back to processing return values */
 	    pq_getstr(errormsg, error_msg_length);
