@@ -255,6 +255,57 @@ _bt_dump(rel)
     }
 }
 
+_bt_dumppg(rel, page)
+    Relation rel;
+    Page page;
+{
+    BTPageOpaque opaque;
+    ItemId itemid;
+    BTItem item;
+    OffsetIndex offind, maxoff, start;
+    BlockNumber nxtbuf;
+    TupleDescriptor itupdesc;
+    IndexTuple itup;
+    Boolean isnull;
+    Datum keyvalue;
+    uint16 flags;
+
+    itupdesc = RelationGetTupleDescriptor(rel);
+
+    opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+
+    printf("prev %d next %d", opaque->btpo_prev, opaque->btpo_next);
+
+    flags = opaque->btpo_flags;
+
+    if (flags & BTP_ROOT)
+	printf (" <root>");
+    if (flags & BTP_LEAF)
+	printf (" <leaf>");
+    if (flags & BTP_FREE)
+	printf (" <free>");
+
+    printf("\n");
+
+    if (opaque->btpo_next != P_NONE) {
+	printf("    high key:");
+	_bt_dumptup(rel, itupdesc, page, 0);
+	start = 1;
+    } else {
+	printf(" no high key\n");
+	start = 0;
+    }
+
+    maxoff = PageGetMaxOffsetIndex(page);
+    if (!PageIsEmpty(page) &&
+	 (opaque->btpo_next == P_NONE || maxoff != start)) {
+	for (offind = start; offind <= maxoff; offind++) {
+	    printf("\t{%d} ", offind + 1);
+	    _bt_dumptup(rel, itupdesc, page, offind);
+	}
+    }
+}
+
 #include "tmp/datum.h"
 
 _bt_dumptup(rel, itupdesc, page, offind)
@@ -287,10 +338,10 @@ _bt_dumptup(rel, itupdesc, page, offind)
     offno = ItemPointerGetOffsetNumber(iptr, 0);
 
     idatum = IndexTupleGetAttributeValue(itup, 1, itupdesc, &null);
-    tmpkey = DatumGetInt16(idatum);
+    tmpkey = DatumGetInt32(idatum);
 
-    printf("[%d/%d bytes] <%d,%d,%d> %d (seq %d)\n", itemsz, tuplen,
-	    blkno, pgno, offno, tmpkey, btitem->bti_seqno);
+    printf("[%d/%d bytes] <%d,%d,%d> %ld (oid %ld)\n", itemsz, tuplen,
+	    blkno, pgno, offno, tmpkey, btitem->bti_oid);
 }
 
 bool
@@ -306,24 +357,22 @@ _bt_checkqual(scan, itup)
 }
 
 BTItem
-_bt_formitem(itup, xid, seqno)
+_bt_formitem(itup)
     IndexTuple itup;
-    TransactionId xid;
-    uint32 seqno;
 {
     int nbytes_btitem;
     BTItem btitem;
-	Size tuplen = IndexTupleSize(itup);
+    Size tuplen;
+    extern OID newoid();
 
     /* make a copy of the index tuple with room for the sequence number */
+    tuplen = IndexTupleSize(itup);
     nbytes_btitem = tuplen +
 			(sizeof(BTItemData) - sizeof(IndexTupleData));
 
     btitem = (BTItem) palloc(nbytes_btitem);
     bcopy((char *) itup, (char *) &(btitem->bti_itup), tuplen);
 
-    bcopy((char *) xid, (char *) &(btitem->bti_xid), TransactionIdDataSize);
-    btitem->bti_seqno = seqno;
-
+    btitem->bti_oid = newoid();
     return (btitem);
 }

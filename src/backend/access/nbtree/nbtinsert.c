@@ -193,9 +193,7 @@ _bt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
 		ritem = (BTItem) PageGetItem(rpage, PageGetItemId(rpage, 0));
 
 	    /* get a unique btitem for this key */
-	    new_item = _bt_formitem(&(ritem->bti_itup),
-				    GetCurrentTransactionId(),
-				    BTSEQ_GET());
+	    new_item = _bt_formitem(&(ritem->bti_itup));
 
 	    ItemPointerSet(&(new_item->bti_itup.t_tid), 0, rbknum, 0, 1);
 
@@ -536,9 +534,7 @@ _bt_newroot(rel, lbuf, rbuf)
     itemid = PageGetItemId(lpage, 1);
     itemsz = ItemIdGetLength(itemid);
     item = (BTItem) PageGetItem(lpage, itemid);
-    new_item = _bt_formitem(&(item->bti_itup),
-			    GetCurrentTransactionId(),
-			    BTSEQ_GET());
+    new_item = _bt_formitem(&(item->bti_itup));
     ItemPointerSet(&(new_item->bti_itup.t_tid), 0, lbkno, 0, 1);
 
     /* insert the left page pointer */
@@ -548,9 +544,7 @@ _bt_newroot(rel, lbuf, rbuf)
     itemid = PageGetItemId(rpage, 0);
     itemsz = ItemIdGetLength(itemid);
     item = (BTItem) PageGetItem(rpage, itemid);
-    new_item = _bt_formitem(&(item->bti_itup),
-			    GetCurrentTransactionId(),
-			    BTSEQ_GET());
+    new_item = _bt_formitem(&(item->bti_itup));
     ItemPointerSet(&(new_item->bti_itup.t_tid), 0, rbkno, 0, 1);
 
     /* insert the right page pointer */
@@ -587,28 +581,31 @@ _bt_pgaddtup(rel, buf, keysz, itup_scankey, itemsize, btitem, afteritem)
     BTItem afteritem;
 {
     OffsetIndex itup_off, maxoff;
+    OffsetIndex first;
     ItemId itemid;
     BTItem olditem;
     Page page;
     BTPageOpaque opaque;
-    ScanKey tmpskey;
     BTItem chkitem;
-    int chknbytes;
+    OID afteroid;
 
     page = BufferGetPage(buf, 0);
     opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+    if (opaque->btpo_next == P_NONE)
+	first = 0;
+    else
+	first = 1;
 
     if (afteritem == (BTItem) NULL) {
 	itup_off = _bt_binsrch(rel, buf, keysz, itup_scankey, BT_INSERTION) + 1;
     } else {
-	chknbytes = sizeof(BTItemData) - sizeof(IndexTupleData);
-	tmpskey = _bt_mkscankey(rel, &(afteritem->bti_itup));
-	itup_off = _bt_binsrch(rel, buf, keysz, tmpskey, BT_INSERTION);
+	afteroid = afteritem->bti_oid;
+	itup_off = first;
 
 	for (;;) {
 	    chkitem = (BTItem) PageGetItem(page,
 					   PageGetItemId(page, itup_off++));
-	    if (bcmp((char *) chkitem, (char *) afteritem, chknbytes) == 0)
+	    if (chkitem->bti_oid == afteroid)
 		break;
 	}
 
@@ -649,9 +646,8 @@ _bt_goesonpg(rel, buf, keysz, scankey, afteritem)
     BTPageOpaque opaque;
     ItemId itemid;
     BTItem chkitem;
-    int cmpbytes;
     OffsetIndex offind, maxoff;
-    ScanKey tmpskey;
+    OID afteroid;
     bool found;
 
     page = BufferGetPage(buf, 0);
@@ -684,30 +680,25 @@ _bt_goesonpg(rel, buf, keysz, scankey, afteritem)
 	return (false);
 
     /* damn, have to work for it.  i hate that. */
-    tmpskey = _bt_mkscankey(rel, &(afteritem->bti_itup));
+    afteroid = afteritem->bti_oid;
     maxoff = PageGetMaxOffsetIndex(page);
-    offind = _bt_binsrch(rel, buf, keysz, tmpskey, BT_INSERTION);
-
-    /* only need to look at unique xid/seqno pair */
-    cmpbytes = sizeof(BTItemData) - sizeof(IndexTupleData);
 
     /*
-     *  This loop will terminate quickly.  Because of the way that splits
-     *  work, if we start at some location on the page, we're guaranteed
-     *  to hit the tuple we're looking for before we get to the next key
-     *  of a different value on the page.  Lucky, huh?
+     *  Search the entire page for the afteroid.  We need to do this, rather
+     *  than doing a binary search and starting from there, because if the
+     *  key we're searching for is the leftmost key in the tree at this
+     *  level, then a binary search will do the wrong thing.  Splits are
+     *  pretty infrequent, so the cost isn't as bad as it could be.
      */
 
     found = false;
-    while (offind <= maxoff) {
+    for (offind = 1; offind <= maxoff; offind++) {
 	chkitem = (BTItem) PageGetItem(page, PageGetItemId(page, offind));
-	if (bcmp((char *) chkitem, (char *) afteritem, cmpbytes) == 0) {
+	if (chkitem->bti_oid == afteroid) {
 	    found = true;
 	    break;
 	}
-	offind++;
     }
 
-    _bt_freeskey(tmpskey);
     return (found);
 }

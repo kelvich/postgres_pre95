@@ -47,15 +47,6 @@ _bt_search(rel, keysz, scankey, bufP)
 
 /*
  *  _bt_searchr() -- Search the tree recursively for a particular scankey.
- *
- *	This routine takes a pointer to a sequence number.  As we descend
- *	the tree, any time we see a key exactly equal to the one being
- *	inserted, we save its sequence number plus one.  If we are inserting
- *	a tuple, then we can use this number to distinguish among duplicates
- *	and to guarantee that we never store the same sequence number for the
- *	same key at any level in the tree.  This is an important guarantee,
- *	since the Lehman and Yao algorithm relies on being able to find
- *	its place in parent pages by looking at keys in the parent.
  */
 
 BTStack
@@ -103,8 +94,8 @@ _bt_searchr(rel, keysz, scankey, bufP, stack_in)
      *  bit image to figure out what our real parent page is, in case the
      *  parent splits while we're working lower in the tree.  See the paper
      *  by Lehman and Yao for how this is detected and handled.  (We use
-     *  sequence numbers to disambiguate duplicate keys in the index --
-     *  Lehman and Yao disallow duplicate keys).
+     *  unique OIDs to disambiguate duplicate keys in the index -- Lehman
+     *  and Yao disallow duplicate keys).
      */
 
     item_nbytes = ItemIdGetLength(itemid);
@@ -220,7 +211,7 @@ _bt_moveright(rel, buf, keysz, scankey, access)
  *  _bt_skeycmp() -- compare a scan key to a particular item on a page using
  *		     a requested strategy (<, <=, =, >=, >).
  *
- *	We ignore the sequence numbers stored in the btree item here.  Those
+ *	We ignore the unique OIDs stored in the btree item here.  Those
  *	numbers are intended for use internally only, in repositioning a
  *	scan after a page split.  They do not impose any meaningful ordering.
  *
@@ -938,7 +929,6 @@ _bt_twostep(scan, bufP, dir)
     BTItem btitem;
     BTItem svitem;
     BlockNumber blkno;
-    int nbytes;
 
     blkno = BufferGetBlockNumber(*bufP);
     page = BufferGetPage(*bufP, 0);
@@ -990,12 +980,11 @@ _bt_twostep(scan, bufP, dir)
     *bufP = _bt_getbuf(scan->relation, blkno, BT_READ);
     page = BufferGetPage(*bufP, 0);
     maxoff = PageGetMaxOffsetIndex(page);
-    nbytes = sizeof(BTItemData) - sizeof(IndexTupleData);
 
     while (offind <= maxoff) {
 	itemid = PageGetItemId(page, offind);
 	btitem = (BTItem) PageGetItem(page, itemid);
-	if (bcmp((char *) btitem, (char *) svitem, nbytes) == 0) {
+	if (btitem->bti_oid == svitem->bti_oid) {
 	    pfree (svitem);
 	    ItemPointerSet(current, 0, blkno, 0, offind + 1);
 	    return (false);

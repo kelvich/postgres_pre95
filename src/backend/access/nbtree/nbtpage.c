@@ -394,7 +394,6 @@ _bt_getstackbuf(rel, stack, access)
     OffsetIndex i;
     Page page;
     ItemId itemid;
-    int nbytes;
     BTItem item;
     BTPageOpaque opaque;
 
@@ -404,15 +403,12 @@ _bt_getstackbuf(rel, stack, access)
     opaque = (BTPageOpaque) PageGetSpecialPointer(page);
     maxoff = PageGetMaxOffsetIndex(page);
 
-    /* every btree entry is guaranteed unique in its BTItem header */
-    nbytes = sizeof(BTItemData) - sizeof(IndexTupleData);
-
     if (maxoff >= stack->bts_offset) {
 	itemid = PageGetItemId(page, stack->bts_offset);
 	item = (BTItem) PageGetItem(page, itemid);
 
 	/* if the item is where we left it, we're done */
-	if (bcmp((char *) item, (char *) (stack->bts_btitem), nbytes) == 0)
+	if (item->bti_oid == stack->bts_btitem->bti_oid)
 	    return (buf);
 
 	/* if the item has just moved right on this page, we're done */
@@ -421,7 +417,7 @@ _bt_getstackbuf(rel, stack, access)
 	    item = (BTItem) PageGetItem(page, itemid);
 
 	    /* if the item is where we left it, we're done */
-	    if (bcmp((char *) item, (char *) (stack->bts_btitem), nbytes) == 0)
+	    if (item->bti_oid == stack->bts_btitem->bti_oid)
 		return (buf);
 	}
     }
@@ -447,7 +443,7 @@ _bt_getstackbuf(rel, stack, access)
 	for (offind = start; offind <= maxoff; offind++) {
 	    itemid = PageGetItemId(page, offind);
 	    item = (BTItem) PageGetItem(itemid);
-	    if (bcmp((char *) item, (char *) (stack->bts_btitem), nbytes) == 0)
+	    if (item->bti_oid == stack->bts_btitem->bti_oid)
 		return (buf);
 	}
     }

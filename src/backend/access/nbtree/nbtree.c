@@ -25,9 +25,6 @@
 
 RcsId("$Header$");
 
-/* the global sequence number for insertions is defined here */
-uint32	BTCurrSeqNo = 0;
-
 void
 btbuild(heap, index, natts, attnum, istrat, pcount, params)
     Relation heap;
@@ -50,7 +47,6 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params)
     int i;
     BTItem btitem;
     TransactionId currxid;
-    extern TransactionId GetCurrentTransactionId();
 
     /* first initialize the btree index metadata page */
     _bt_metapinit(index);
@@ -58,10 +54,6 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params)
     /* get tuple descriptors for heap and index relations */
     htupdesc = RelationGetTupleDescriptor(heap);
     itupdesc = RelationGetTupleDescriptor(index);
-
-    /* record current transaction id for uniqueness */
-    currxid = GetCurrentTransactionId();
-    BTSEQ_INIT();
 
     /* get space for data items that'll appear in the index tuple */
     attdata = (Datum *) palloc(natts * sizeof(Datum));
@@ -103,7 +95,7 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params)
 	itup = FormIndexTuple(natts, itupdesc, attdata, null);
 	itup->t_tid = htup->t_ctid;
 
-	btitem = _bt_formitem(itup, currxid, BTSEQ_GET());
+	btitem = _bt_formitem(itup);
 	res = _bt_doinsert(index, btitem);
 	pfree(btitem);
 	pfree(itup);
@@ -134,7 +126,7 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params)
  *  btinsert() -- insert an index tuple into a btree.
  *
  *	Descend the tree recursively, find the appropriate location for our
- *	new tuple, put it there, set its sequence number as appropriate, and
+ *	new tuple, put it there, set its unique OID as appropriate, and
  *	return an InsertIndexResult to the caller.
  */
 
@@ -147,8 +139,7 @@ btinsert(rel, itup)
     int nbytes_btitem;
     InsertIndexResult res;
 
-    BTSEQ_INIT();
-    btitem = _bt_formitem(itup, GetCurrentTransactionId(), BTSEQ_GET());
+    btitem = _bt_formitem(itup);
 
     res = _bt_doinsert(rel, btitem);
     pfree(btitem);
