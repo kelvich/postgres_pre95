@@ -205,4 +205,16 @@ BufferWriteInOrder ARGS((
 extern
 int
 BufferShmemSize ARGS(());
+
+extern
+void
+BufferPoolBlowaway ARGS(());
+
+extern
+void
+ResetBufferUsage ARGS(());
+
+extern
+void
+PrintBufferUsage ARGS(());
 #endif	/* !defined(BufMgrIncluded) */
