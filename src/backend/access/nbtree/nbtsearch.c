@@ -17,6 +17,7 @@
 #include "access/genam.h"
 #include "access/ftup.h"
 #include "access/skey.h"
+#include "access/sdir.h"
 
 #include "/n/eden/users/mao/postgres/src/access/nbtree/nbtree.h"
 
@@ -75,7 +76,7 @@ _bt_searchr(rel, keysz, scankey, bufP, stack_in)
     offind = _bt_binsrch(rel, *bufP, keysz, scankey, BT_DESCENT);
     btitem = (BTItem) PageGetItem(page, PageGetItemId(page, offind));
     itup = &(btitem->bti_itup);
-    blkno = ItemPointerGetBlockNumber(&(itup->t_tid));
+    blkno = ItemPointerGetBlockNumber(&(itup->t_tid), 0);
 
     /*
      *  We need to save the bit image of the index entry we chose in the
@@ -187,6 +188,7 @@ _bt_moveright(rel, buf, keysz, scankey, access)
 bool
 _bt_skeyless(rel, keysz, scankey, page, itemid)
     Relation rel;
+    Size keysz;
     ScanKey scankey;
     Page page;
     ItemId itemid;
@@ -216,7 +218,7 @@ _bt_skeyless(rel, keysz, scankey, page, itemid)
 	keyDatum  = entry->argument;
 
 	isLessThan = RelationInvokeBTreeStrategy(rel, i,
-					         BTLessThanStrategyNumber,
+					         BTLessStrategyNumber,
 					         attrDatum, keyDatum);
 	if (!isLessThan)
 	    return (false);
@@ -423,4 +425,464 @@ _bt_compare(rel, itupdesc, page, keysz, scankey, offind)
 
     /* by here, the keys are equal */
     return (0);
+}
+
+/*
+ *  _bt_next() -- Get the next item in a scan.
+ *
+ *	On entry, we have a valid currentItemData in the scan, and a
+ *	read lock on the page that contains that item.  We do not have
+ *	the page pinned.  We return the next item in the scan.  On
+ *	exit, we have the page containing the next item locked but not
+ *	pinned.
+ */
+
+RetrieveIndexResult
+_bt_next(scan, dir)
+    IndexScanDesc scan;
+    ScanDirection dir;
+{
+    Relation rel;
+    BTPageOpaque opaque;
+    Buffer buf;
+    Page page;
+    OffsetIndex offind, maxoff;
+    RetrieveIndexResult res;
+    BlockNumber blkno;
+    ItemPointer current;
+    BTItem btitem;
+    IndexTuple itup;
+    ItemPointer iptr;
+
+    rel = scan->relation;
+    current = &(scan->currentItemData);
+    blkno = ItemPointerGetBlockNumber(current, 0);
+
+    /* we still hold a read lock on the buffer */
+    buf = _bt_getbuf(rel, blkno, BT_NONE);
+
+    /* step one tuple in the appropriate direction */
+    if (!_bt_step(scan, &buf, dir))
+	return ((RetrieveIndexResult) NULL);
+
+    /* by here, current is the tuple we want to return */
+    offind = ItemPointerGetOffsetNumber(current, 0) - 1;
+    page = BufferGetPage(buf, 0);
+    btitem = (BTItem) PageGetItem(page, PageGetItemId(page, offind));
+    itup = &btitem->bti_itup;
+
+    if (_bt_checkqual(scan, itup)) {
+	res = ItemPointerFormRetrieveIndexResult(current, &(itup->t_tid));
+
+	/* unpin, but don't unlock, the buffer */
+	_bt_relbuf(rel, buf, BT_NONE);
+    } else {
+	ItemPointerSetInvalid(current);
+	_bt_relbuf(rel, buf, BT_READ);
+	res = (RetrieveIndexResult) NULL;
+    }
+
+    return (res);
+}
+
+/*
+ *  _bt_first() -- Find the first item in a scan.
+ *
+ *	We need to be clever about the type of scan, the operation it's
+ *	performing, and the tree ordering.  We return the RetrieveIndexResult
+ *	of the first item in the tree that satisfies the qualification
+ *	associated with the scan descriptor.  On exit, the page containing
+ *	the current index tuple is read locked, but not pinned.
+ *
+ *	Locking interactions are critical, and you'll screw them up if you
+ *	try to change this code without understanding them.
+ */
+
+RetrieveIndexResult
+_bt_first(scan, dir)
+    IndexScanDesc scan;
+    ScanDirection dir;
+{
+    Relation rel;
+    TupleDescriptor itupdesc;
+    Buffer buf;
+    Page page;
+    BTStack stack;
+    OffsetIndex offind, maxoff;
+    BTItem btitem;
+    IndexTuple itup;
+    ItemPointer current;
+    ItemPointer iptr;
+    BlockNumber blkno;
+    StrategyNumber strat;
+    RetrieveIndexResult res;
+    int result;
+    ScanKeyData skdata;
+
+    /* if we just need to walk down one edge of the tree, do that */
+    if (scan->scanFromEnd)
+	return (_bt_endpoint(scan, dir));
+
+    rel = scan->relation;
+    itupdesc = RelationGetTupleDescriptor(scan->relation);
+    current = &(scan->currentItemData);
+
+    /*
+     *  Okay, we want something more complicated.  What we'll do is use
+     *  the first item in the scan key passed in (which has been correctly
+     *  ordered to take advantage of index ordering) to position ourselves
+     *  at the right place in the scan.
+     */
+
+    skdata.data[0].flags = 0x0;
+    /*
+     *  XXX -- The attribute number stored in the scan key is the attno
+     *	       in the heap relation.  We need to transmogrify this into
+     *         the index relation attno here.  For the nonce, however...
+     *  skdata.data[0].attributeNumber = scan->keyData.data[0].attributeNumber;
+     */
+    skdata.data[0].attributeNumber = 1;
+    skdata.data[0].argument = scan->keyData.data[0].argument;
+    skdata.data[0].procedure = index_getprocid(rel,
+					       skdata.data[0].attributeNumber,
+					       BTORDER_PROC);
+
+    stack = _bt_search(rel, 1, &skdata, &buf);
+    _bt_freestack(stack);
+
+    /* find the nearest match to the manufactured scan key on the page */
+    offind = _bt_binsrch(rel, buf, 1, &skdata, BT_DESCENT);
+    page = BufferGetPage(buf, 0);
+    maxoff = PageGetMaxOffsetIndex(page);
+
+    if (offind > maxoff)
+	offind = maxoff;
+
+    blkno = BufferGetBlockNumber(buf);
+    ItemPointerSet(current, 0, blkno, 0, offind + 1);
+
+    /* now find the right place to start the scan */
+    result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
+    strat = _bt_getstrat(rel, 1, scan->keyData.data[0].procedure);
+
+    switch (strat) {
+      case BTLessStrategyNumber:
+	if (result <= 0) {
+	    do {
+		if (!_bt_step(scan, &buf, ForwardScanDirection))
+		    return ((RetrieveIndexResult) NULL);
+
+		offind = ItemPointerGetOffsetNumber(current, 0) - 1;
+		page = BufferGetPage(buf, 0);
+		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
+	    } while (result <= 0);
+
+	    if (!_bt_step(scan, &buf, BackwardScanDirection))
+		return((RetrieveIndexResult) NULL);
+	}
+	break;
+
+      case BTLessEqualStrategyNumber:
+	if (result < 0) {
+	    do {
+		if (!_bt_step(scan, &buf, ForwardScanDirection))
+		    return ((RetrieveIndexResult) NULL);
+
+		offind = ItemPointerGetOffsetNumber(current, 0) - 1;
+		page = BufferGetPage(buf, 0);
+		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
+	    } while (result < 0);
+
+	    if (!_bt_step(scan, &buf, BackwardScanDirection))
+		return((RetrieveIndexResult) NULL);
+	}
+	break;
+
+      case BTEqualStrategyNumber:
+	if (result != 0)
+	  return ((RetrieveIndexResult) NULL);
+
+      case BTGreaterEqualStrategyNumber:
+	if (result > 0) {
+	    do {
+		if (!_bt_step(scan, &buf, BackwardScanDirection))
+		    return ((RetrieveIndexResult) NULL);
+
+		offind = ItemPointerGetOffsetNumber(current, 0) - 1;
+		page = BufferGetPage(buf, 0);
+		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
+	    } while (result > 0);
+
+	    if (!_bt_step(scan, &buf, ForwardScanDirection))
+		return((RetrieveIndexResult) NULL);
+	}
+	break;
+
+      case BTGreaterStrategyNumber:
+	if (result >= 0) {
+	    do {
+		if (!_bt_step(scan, &buf, BackwardScanDirection))
+		    return ((RetrieveIndexResult) NULL);
+
+		offind = ItemPointerGetOffsetNumber(current, 0) - 1;
+		page = BufferGetPage(buf, 0);
+		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
+	    } while (result >= 0);
+
+	    if (!_bt_step(scan, &buf, ForwardScanDirection))
+		return((RetrieveIndexResult) NULL);
+	}
+	break;
+    }
+
+    /* okay, current item pointer for the scan is right */
+    offind = ItemPointerGetOffsetNumber(current, 0) - 1;
+    page = BufferGetPage(buf, 0);
+    btitem = (BTItem) PageGetItem(page, PageGetItemId(page, offind));
+    itup = &btitem->bti_itup;
+
+    if (_bt_checkqual(scan, itup)) {
+	res = ItemPointerFormRetrieveIndexResult(current, &(itup->t_tid));
+
+	/* unpin, but don't unlock, the buffer */
+	_bt_relbuf(rel, buf, BT_NONE);
+    } else {
+	ItemPointerSetInvalid(current);
+	_bt_relbuf(rel, buf, BT_READ);
+	res = (RetrieveIndexResult) NULL;
+    }
+
+    return (res);
+}
+
+bool
+_bt_step(scan, bufP, dir)
+    IndexScanDesc scan;
+    Buffer *bufP;
+    ScanDirection dir;
+{
+    Page page;
+    BTPageOpaque opaque;
+    OffsetIndex offind, maxoff;
+    OffsetIndex start;
+    BlockNumber blkno;
+    ItemPointer current;
+    Relation rel;
+
+    rel = scan->relation;
+    current = &(scan->currentItemData);
+    offind = ItemPointerGetOffsetNumber(current, 0) - 1;
+    page = BufferGetPage(*bufP, 0);
+    opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+    maxoff = PageGetMaxOffsetIndex(page);
+
+    /* get the next tuple */
+    if (ScanDirectionIsForward(dir)) {
+	if (offind < maxoff) {
+	    offind++;
+	} else {
+
+	    /* if we're at end of scan, release the buffer and return */
+	    if ((blkno = opaque->btpo_next) == P_NONE) {
+		_bt_relbuf(rel, *bufP, BT_READ);
+		ItemPointerSetInvalid(current);
+		return (false);
+	    } else {
+
+		/* walk right to the next page with data */
+		_bt_relbuf(rel, *bufP, BT_READ);
+		for (;;) {
+		    *bufP = _bt_getbuf(rel, blkno, BT_READ);
+		    page = BufferGetPage(*bufP, 0);
+		    opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+		    if (!PageIsEmpty(page)) {
+			break;
+		    } else {
+			blkno = opaque->btpo_next;
+			_bt_relbuf(rel, *bufP, BT_READ);
+			if (blkno == P_NONE) {
+			    ItemPointerSetInvalid(current);
+			    return (false);
+			}
+		    }
+		}
+		offind = 0;
+	    }
+	}
+    } else if (ScanDirectionIsBackward(dir)) {
+
+	/* remember that high key is item zero on non-rightmost pages */
+	if (opaque->btpo_next == P_NONE)
+	    start = 0;
+	else
+	    start = 1;
+
+	if (offind > start) {
+	    offind--;
+	} else {
+
+	    /* if we're at end of scan, release the buffer and return */
+	    if ((blkno = opaque->btpo_prev) == P_NONE) {
+		_bt_relbuf(rel, *bufP, BT_READ);
+		ItemPointerSetInvalid(current);
+		return (false);
+	    } else {
+
+		/* walk right to the next page with data */
+		_bt_relbuf(rel, *bufP, BT_READ);
+		for (;;) {
+		    *bufP = _bt_getbuf(rel, blkno, BT_READ);
+		    page = BufferGetPage(*bufP, 0);
+		    opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+		    maxoff = PageGetMaxOffsetIndex(page);
+
+		    /* don't consider the high key */
+		    if (opaque->btpo_next == P_NONE)
+			start = 0;
+		    else
+			start = 1;
+
+		    /* anything to look at here? */
+		    if (!PageIsEmpty(page) && maxoff >= start) {
+			break;
+		    } else {
+			blkno = opaque->btpo_prev;
+			_bt_relbuf(rel, *bufP, BT_READ);
+			if (blkno == P_NONE) {
+			    ItemPointerSetInvalid(current);
+			    return (false);
+			}
+		    }
+		}
+		offind = maxoff;
+	    }
+	}
+    }
+    blkno = BufferGetBlockNumber(*bufP);
+    ItemPointerSet(current, 0, blkno, 0, offind + 1);
+
+    return (true);
+}
+
+/*
+ *  _bt_endpoint() -- Find the first or last key in the index.
+ */
+
+RetrieveIndexResult
+_bt_endpoint(scan, dir)
+    IndexScanDesc scan;
+    ScanDirection dir;
+{
+    Relation rel;
+    Buffer buf;
+    Page page;
+    BTPageOpaque opaque;
+    ItemPointer current;
+    OffsetIndex offind, maxoff;
+    OffsetIndex start;
+    BlockNumber blkno;
+    BTItem btitem;
+    IndexTuple itup;
+    RetrieveIndexResult res;
+
+    rel = scan->relation;
+    current = &(scan->currentItemData);
+
+    buf = _bt_getroot(rel, BT_READ);
+    blkno = BufferGetBlockNumber(buf);
+    page = BufferGetPage(buf, 0);
+    opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+
+    for (;;) {
+	if (opaque->btpo_flags & BTP_LEAF)
+	    break;
+
+	if (ScanDirectionIsForward(dir)) {
+	    if (opaque->btpo_next == P_NONE)
+		offind = 0;
+	    else
+		offind = 1;
+	} else
+	    offind = PageGetMaxOffsetIndex(page);
+
+	btitem = (BTItem) PageGetItem(page, PageGetItemId(page, offind));
+	itup = &(btitem->bti_itup);
+
+	blkno = ItemPointerGetBlockNumber(&(itup->t_tid), 0);
+
+	_bt_relbuf(rel, buf, BT_READ);
+	buf = _bt_getbuf(rel, blkno, BT_READ);
+	page = BufferGetPage(buf, 0);
+	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+
+	/*
+	 *  Race condition:  If the child page we just stepped onto is in
+	 *  the process of being split, we need to make sure we're all the
+	 *  way at the edge of the tree.  See the paper by Lehman and Yao.
+	 */
+
+	if (ScanDirectionIsForward(dir) && opaque->btpo_next != P_NONE) {
+	    do {
+		blkno = opaque->btpo_next;
+		_bt_relbuf(rel, buf, BT_READ);
+		buf = _bt_getbuf(rel, blkno, BT_READ);
+		page = BufferGetPage(buf, 0);
+		opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+	    } while (opaque->btpo_next != P_NONE);
+	} else if (ScanDirectionIsBackward(dir)
+		    && opaque->btpo_prev != P_NONE) {
+	    do {
+		blkno = opaque->btpo_prev;
+		_bt_relbuf(rel, buf, BT_READ);
+		buf = _bt_getbuf(rel, blkno, BT_READ);
+		page = BufferGetPage(buf, 0);
+		opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+	    } while (opaque->btpo_prev != P_NONE);
+	}
+    }
+
+    /* okay, we've got the {left,right}-most page in the tree */
+    maxoff = PageGetMaxOffsetIndex(page);
+
+    if (ScanDirectionIsForward(dir)) {
+	maxoff = PageGetMaxOffsetIndex(page);
+	if (opaque->btpo_next == P_NONE)
+	    start = 0;
+	else
+	    start = 1;
+
+	if (PageIsEmpty(page) || start > maxoff) {
+	    ItemPointerSet(current, 0, blkno, 0, maxoff + 1);
+	    if (!_bt_step(scan, &buf, ForwardScanDirection))
+		return ((RetrieveIndexResult) NULL);
+
+	    start = ItemPointerGetOffsetNumber(current, 0);
+	    page = BufferGetPage(buf);
+	} else {
+	    ItemPointerSet(current, 0, blkno, 0, start + 1);
+	}
+    } else if (ScanDirectionIsBackward(dir)) {
+	start = PageGetMaxOffsetIndex(page);
+	if (PageIsEmpty(page)) {
+	    ItemPointerSet(current, 0, blkno, 0, start + 1);
+	    if (!_bt_step(scan, &buf, BackwardScanDirection))
+		return ((RetrieveIndexResult) NULL);
+
+	    start = ItemPointerGetOffsetNumber(current, 0);
+	    page = BufferGetPage(buf);
+	} else {
+	    ItemPointerSet(current, 0, blkno, 0, start + 1);
+	}
+    } else {
+	elog(WARN, "Illegal scan direction %d", dir);
+    }
+
+    btitem = (BTItem) PageGetItem(page, PageGetItemId(page, start));
+    itup = &(btitem->bti_itup);
+    res = ItemPointerFormRetrieveIndexResult(current, &(itup->t_tid));
+
+    /* unpin, but don't unlock, the buffer */
+    _bt_relbuf(rel, buf, BT_NONE);
+
+    return (res);
 }

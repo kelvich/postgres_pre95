@@ -179,8 +179,6 @@ _bt_insertonpg(rel, buf, stack, keysz, scankey, btitem)
 	_bt_relbuf(rel, buf, BT_WRITE);
     }
 
-    _bt_dump(rel);
-
     /* by here, the new tuple is inserted */
     res = (InsertIndexResult) palloc(sizeof(InsertIndexResultData));
     ItemPointerSet(&(res->pointerData), 0, itup_blkno, 0, itup_off);
@@ -222,6 +220,9 @@ _bt_split(rel, buf)
     oopaque = (BTPageOpaque) PageGetSpecialPointer(origpage);
     lopaque = (BTPageOpaque) PageGetSpecialPointer(leftpage);
     ropaque = (BTPageOpaque) PageGetSpecialPointer(rightpage);
+
+    /* if we're splitting this page, it won't be the root when we're done */
+    oopaque->btpo_flags &= ~BTP_ROOT;
     lopaque->btpo_flags = ropaque->btpo_flags = oopaque->btpo_flags;
     lopaque->btpo_prev = oopaque->btpo_prev;
     ropaque->btpo_prev = BufferGetBlockNumber(buf);
@@ -330,7 +331,7 @@ _bt_newroot(rel, lbuf, rbuf)
     /* set btree special data */
     rootopaque = (BTPageOpaque) PageGetSpecialPointer(rootpage);
     rootopaque->btpo_prev = rootopaque->btpo_next = P_NONE;
-    rootopaque->btpo_flags = 0x0;
+    rootopaque->btpo_flags |= BTP_ROOT;
 
     /*
      *  Insert the internal tuple pointers.

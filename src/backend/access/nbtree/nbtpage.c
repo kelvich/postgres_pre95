@@ -163,8 +163,8 @@ _bt_getroot(rel, access)
 	    metad->btm_root = rootblkno;
 	    _bt_pageinit(rootpg);
 	    rootopaque = (BTPageOpaque) PageGetSpecialPointer(rootpg);
-	    rootopaque->btpo_flags |= BTP_LEAF;
-	    WriteNoReleaseBuffer(rel, rootbuf);
+	    rootopaque->btpo_flags |= (BTP_LEAF | BTP_ROOT);
+	    _bt_wrtnorelbuf(rel, rootbuf);
 
 	    /* swap write lock for read lock, if appropriate */
 	    if (access != BT_WRITE) {
@@ -175,19 +175,36 @@ _bt_getroot(rel, access)
 	    /* okay, metadata is correct */
 	    _bt_wrtbuf(rel, metabuf);
 	} else {
-	    _bt_setpagelock(rel, BTREE_METAPAGE, BT_READ);
-	    _bt_unsetpagelock(rel, BTREE_METAPAGE, BT_WRITE);
 
-	    rootbuf = _bt_getbuf(rel, metad->btm_root, access);
+	    /*
+	     *  Metadata initialized by someone else.  In order to guarantee
+	     *  no deadlocks, we have to release the metadata page and start
+	     *  all over again.
+	     */
 
-	    /* done with the meta page */
-	    _bt_relbuf(rel, metabuf, BT_READ);
+	    _bt_relbuf(rel, metabuf, BT_WRITE);
+	    return (_bt_getroot(rel));
 	}
     } else {
 	rootbuf = _bt_getbuf(rel, metad->btm_root, access);
 
 	/* done with the meta page */
 	_bt_relbuf(rel, metabuf, BT_READ);
+    }
+
+    /*
+     *  Race condition:  If the root page split between the time we looked
+     *  at the metadata page and got the root buffer, then we got the wrong
+     *  buffer.
+     */
+
+    rootpg = BufferGetPage(rootbuf, 0);
+    rootopaque = (BTPageOpaque) PageGetSpecialPointer(rootpg);
+    if (!(rootopaque->btpo_flags & BTP_ROOT)) {
+
+	/* it happened, try again */
+	_bt_relbuf(rel, rootbuf, access);
+	return (_bt_getroot(rel));
     }
 
     /*
@@ -223,7 +240,7 @@ _bt_getbuf(rel, blkno, access)
     if (blkno != P_NEW) {
 	if (access == BT_WRITE)
 	    _bt_setpagelock(rel, blkno, BT_WRITE);
-	else
+	else if (access == BT_READ)
 	    _bt_setpagelock(rel, blkno, BT_READ);
 
 	buf = ReadBuffer(rel, blkno);
@@ -235,7 +252,7 @@ _bt_getbuf(rel, blkno, access)
 
 	if (access == BT_WRITE)
 	    _bt_setpagelock(rel, blkno, BT_WRITE);
-	else
+	else if (access == BT_READ)
 	    _bt_setpagelock(rel, blkno, BT_READ);
     }
 
@@ -259,7 +276,7 @@ _bt_relbuf(rel, buf, access)
 
     if (access == BT_WRITE)
 	_bt_unsetpagelock(rel, blkno, BT_WRITE);
-    else
+    else if (access == BT_READ)
 	_bt_unsetpagelock(rel, blkno, BT_READ);
 
     ReleaseBuffer(buf);
@@ -281,7 +298,7 @@ _bt_wrtbuf(rel, buf)
     BlockNumber blkno;
 
     blkno = BufferGetBlockNumber(buf);
-    WriteBuffer(rel, buf);
+    WriteBuffer(buf);
     _bt_unsetpagelock(rel, blkno, BT_WRITE);
 }
 
@@ -301,7 +318,7 @@ _bt_wrtnorelbuf(rel, buf)
     BlockNumber blkno;
 
     blkno = BufferGetBlockNumber(buf);
-    WriteNoReleaseBuffer(rel, buf);
+    WriteNoReleaseBuffer(buf);
 }
 
 /*

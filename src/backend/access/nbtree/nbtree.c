@@ -20,6 +20,7 @@
 #include "access/genam.h"
 #include "access/ftup.h"
 #include "access/sdir.h"
+#include "access/isop.h"
 
 #include "/n/eden/users/mao/postgres/src/access/nbtree/nbtree.h"
 
@@ -195,7 +196,7 @@ btgettuple(scan, dir)
     IndexScanDesc scan;
     ScanDirection dir;
 {
-    InsertIndexResult res;
+    RetrieveIndexResult res;
 
     /*
      *  If we've already initialized this scan, we can just advance it
@@ -203,14 +204,10 @@ btgettuple(scan, dir)
      *  call a routine to get the first item in the scan.
      */
 
-#ifdef notdef
     if (ItemPointerIsValid(&(scan->currentItemData)))
 	res = _bt_next(scan, dir);
     else
 	res = _bt_first(scan, dir);
-#else /* notdef */
-    res = (InsertIndexResult) NULL;
-#endif /* notdef */
 
     return ((char *) res);
 }
@@ -222,7 +219,26 @@ btbeginscan(rel, fromEnd, keysz, scankey)
     uint16 keysz;
     ScanKey scankey;
 {
-    return ((char *) RelationGetIndexScan(rel, fromEnd, keysz, scankey));
+    IndexScanDesc scan;
+    StrategyNumber strat;
+
+    /* first order the keys in the qualification */
+    _bt_orderkeys(rel, &keysz, scankey);
+
+    /* now get the scan */
+    scan = RelationGetIndexScan(rel, fromEnd, keysz, scankey);
+
+    /* finally, be sure that the scan exploits the tree order */
+    scan->flags = 0x0;
+    strat = _bt_getstrat(scan->relation, 1 /* XXX */,
+			 scankey->data[0].procedure);
+
+    if (strat == BTLessStrategyNumber || strat == BTLessEqualStrategyNumber)
+	scan->scanFromEnd = true;
+    else
+	scan->scanFromEnd = false;
+
+    return ((char *) scan);
 }
 
 /*
@@ -238,7 +254,7 @@ btrescan(scan, fromEnd, scankey)
     /* we hold a read lock on the current page in the scan */
     if (ItemPointerIsValid(&(scan->currentItemData))) {
 	_bt_unsetpagelock(scan->relation,
-			  ItemPointerGetBlockNumber(&(scan->currentItemData)),
+			  ItemPointerGetBlockNumber(&(scan->currentItemData), 0),
 			  BT_READ);
 	ItemPointerSetInvalid(&scan->currentItemData);
     }
@@ -246,7 +262,7 @@ btrescan(scan, fromEnd, scankey)
     /* and we hold a read lock on the last marked item in the scan */
     if (ItemPointerIsValid(&(scan->currentMarkData))) {
 	_bt_unsetpagelock(scan->relation,
-			  ItemPointerGetBlockNumber(&(scan->currentMarkData)),
+			  ItemPointerGetBlockNumber(&(scan->currentMarkData), 0),
 			  BT_READ);
 	ItemPointerSetInvalid(&scan->currentMarkData);
     }

@@ -26,7 +26,8 @@ typedef struct BTPageOpaqueData {
 	uint16		btpo_flags;
 
 #define BTP_LEAF	(1 << 0)
-#define BTP_FREE	(1 << 1)
+#define BTP_ROOT	(1 << 1)
+#define BTP_FREE	(1 << 2)
 
 } BTPageOpaqueData;
 
@@ -69,16 +70,20 @@ typedef BTStackData	*BTStack;
 
 /*
  *  We need to be able to tell the difference between read and write
- *  requests for pages, in order to do locking correctly.
+ *  requests for pages, in order to do locking correctly.  If the access
+ *  type is NONE, it means we still hold a lock from some earlier operation.
  */
+
 #define	BT_READ		0
 #define	BT_WRITE	1
+#define BT_NONE		2
 
 /*
  *  Similarly, the difference between insertion and non-insertion binary
  *  searches on a given page makes a difference when we're descending the
  *  tree.
  */
+
 #define BT_INSERTION	0
 #define BT_DESCENT	1
 
@@ -93,7 +98,8 @@ typedef BTStackData	*BTStack;
 /*
  *  Strategy numbers -- ordering of these is <, <=, =, >=, > 
  */
-#define BTLessThanStrategyNumber	1
+
+#define BTLessStrategyNumber		1
 #define BTLessEqualStrategyNumber	2
 #define BTEqualStrategyNumber		3
 #define BTGreaterEqualStrategyNumber	4
@@ -110,9 +116,12 @@ typedef BTStackData	*BTStack;
 
 #define BTORDER_PROC	1
 
-/* extern decls for routines used in this access method */
-OffsetIndex		_bt_pgaddtup();
+/* public routines */
+char			*btgettuple();
 InsertIndexResult	btinsert();
+
+/* private routines */
+OffsetIndex		_bt_pgaddtup();
 InsertIndexResult	_bt_insertonpg();
 ScanKey			_bt_mkscankey();
 BTStack			_bt_search();
@@ -120,6 +129,12 @@ BTStack			_bt_searchr();
 void			_bt_relbuf();
 Buffer			_bt_getbuf();
 void			_bt_wrtbuf();
+void			_bt_wrtnorelbuf();
 bool			_bt_skeyless();
 OffsetIndex		_bt_binsrch();
 Buffer			_bt_getstackbuf();
+RetrieveIndexResult	_bt_first();
+RetrieveIndexResult	_bt_next();
+RetrieveIndexResult	_bt_endpoint();
+StrategyNumber		_bt_getstrat();
+bool			_bt_step();
