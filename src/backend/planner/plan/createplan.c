@@ -78,9 +78,17 @@ create_plan (best_path,origtlist)
      Path best_path;
      List origtlist ;
 {
-     List tlist = get_actual_tlist (get_targetlist (get_parent (best_path)));
+     List tlist;
      Plan plan_node = (Plan)NULL;
      Plan sorted_plan_node = (Plan)NULL;
+     Rel parent_rel;
+     Count size;
+     Count width;
+
+     parent_rel = get_parent (best_path);
+     tlist = get_actual_tlist (get_targetlist (parent_rel));
+     size = get_size(parent_rel);
+     width = get_width(parent_rel);
 
      switch (get_pathtype (best_path)) {
 	case T_IndexScan : 
@@ -95,6 +103,10 @@ create_plan (best_path,origtlist)
 	default: /* do nothing */
 	  break;
      } 
+
+     set_plan_size(plan_node, size);
+     set_plan_width(plan_node, width);
+
      /*    Attach a SORT node to the path if a sort path is specified. */
 
      if(get_sortpath (best_path) &&
@@ -678,37 +690,18 @@ create_hashjoin_node (best_path,tlist,clauses,outer_node,outer_tlist,
       switch_outer (join_references (get_path_hashclauses (best_path),
 				     outer_tlist,
 				     inner_tlist));
-    int opcode = 666;	/*   XXX BOGUS HASH FUNCTION */
-    LispValue outer_hashop = lispCons (666,LispNil); 	/*   XXX BOGUS HASH OP */
-    LispValue inner_hashop = lispCons (666,LispNil);	/* XXX BOGUS HASH OP */
     HashJoin join_node;
+    Hash hash_node;
+    Var innerhashkey;
 
-    if ( get_outerhashkeys (best_path)) {
-	Temp hashed_outer_node = make_temp (outer_tlist,
-					    get_outerhashkeys 
-					    (best_path),
-					    outer_hashop,
-					    outer_node,
-					    T_HashJoin);
-	set_cost (hashed_outer_node,get_cost (outer_node));
-	outer_node = (Node)hashed_outer_node;
-     }
-    if ( get_innerhashkeys (best_path)) {
-	Temp hashed_inner_node = make_temp (inner_tlist,
-					    get_innerhashkeys 
-					    (best_path),
-					    inner_hashop,
-					    inner_node,
-					    T_HashJoin);
-	set_cost (hashed_inner_node,get_cost (inner_node));
-	inner_node = (Node)hashed_inner_node;
-    }
+    innerhashkey = get_rightop(CAR(hashclauses));
+
+    hash_node = make_hash(inner_tlist, innerhashkey, inner_node);
     join_node = make_hashjoin (tlist,
 			       qpqual,
 			       hashclauses,
-			       opcode,
 			       outer_node,
-			       inner_node);
+			       hash_node);
     set_cost (join_node,get_path_cost (best_path));
     if ( _watch_costs_) {
 	printf ("HASHJOIN COST = ");
@@ -909,9 +902,8 @@ make_nestloop(qptlist,qpqual,lefttree,righttree)
 }
 
 HashJoin
-make_hashjoin(tlist,qpqual,hashclauses,opcode,righttree,lefttree)
+make_hashjoin(tlist,qpqual,hashclauses,righttree,lefttree)
      LispValue tlist, qpqual,hashclauses;
-     ObjectId opcode;
      Plan righttree,lefttree;
 {
     HashJoin node = RMakeHashJoin();
@@ -924,17 +916,15 @@ make_hashjoin(tlist,qpqual,hashclauses,opcode,righttree,lefttree)
     set_lefttree(node,lefttree);
     set_righttree(node,righttree);
     set_hashclauses(node,hashclauses);
-    set_hashjoinop(node,opcode);
 
     return(node);
 }
 
 Hash
-make_hash (tlist,tempid,lefttree, keycount)
+make_hash (tlist, hashkey, lefttree)
      LispValue tlist;
-     Count keycount;
+     Var hashkey;
      Plan lefttree;
-     ObjectId tempid;
 {
     extern Hash RMakeHash();
     Hash node = RMakeHash();
@@ -944,10 +934,9 @@ make_hash (tlist,tempid,lefttree, keycount)
     set_state (node, (EState)NULL);
     set_qpqual (node,LispNil);
     set_qptargetlist (node,tlist);
+    set_hashkey(node, hashkey);
     set_lefttree(node,lefttree);
     set_righttree(node,LispNil);
-    set_tempid(node,tempid);
-    set_keycount(node,keycount);
 
     return(node);
 }
