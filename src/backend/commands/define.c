@@ -153,6 +153,7 @@ DefinePFunction(pname,relname,qstring)
      char  *qstring;
 {
   static char query_buf[1024];
+  extern void eval_as_new_xact();
 
   /*
    *  First we have to add a column to the relation.
@@ -169,10 +170,10 @@ DefinePFunction(pname,relname,qstring)
    * function(procedure).
    */
 
-  sprintf(query_buf, "define rule %s_rule is on retrieve to %s.%s do instead %s", pname, relname, pname, qstring);
+  sprintf(query_buf, "define rewrite rule %s_rule is on retrieve to %s.%s do instead %s", pname, relname, pname, qstring);
 
   /*  printf("Rule defined is: %s\n", query_buf); */
-  pg_eval(query_buf); 
+  eval_as_new_xact (query_buf); 
 }
 
 
