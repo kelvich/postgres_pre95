@@ -24,7 +24,7 @@ CFLAGS+= -D_BSD
 .endif
 
 .if ( ${PORTNAME} == "linux" )
-CFLAGS+= -D__USE_BSD
+CFLAGS+= -D__USE_BSD -D__USE_BSD_SIGNAL
 .endif
 
 .if ( ${PORTNAME} == "hpux" )

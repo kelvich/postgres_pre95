@@ -30,7 +30,8 @@ HAS_RANLIB=-DHAS_SYMDEF
 #	define this on Alpha OSF/1 or HP-UX ...
 #BSD_WAIT3=-D_BSD
 #	... but define this on Linux or other gnulib-based systems
-#BSD_WAIT3=-D__USE_BSD
+#	... also needs BSD signals
+#BSD_WAIT3=-D__USE_BSD -D__USE_BSD_SIGNAL
 
 # needs random stuff, most of which is in most POSIXy libraries
 #	define this on nearly everything except Linux
