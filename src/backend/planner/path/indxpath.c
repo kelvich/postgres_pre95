@@ -178,6 +178,7 @@ find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
 
 	return(retval);
     } 
+	return(NULL);
 }  /* function end */
 
 
