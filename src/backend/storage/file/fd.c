@@ -31,15 +31,6 @@
 #include <sys/param.h>
 #include <errno.h>
 #include <sys/stat.h>
-#if defined(PORTNAME_bsd44)
-	/* 
-	 * XXX truely bogus move on 44's part - st_?time are now #defined.
-	 * So we do the expansion so as not to screw up pgstat structure.
-	 */
-#undef st_atime
-#undef st_ctime
-#undef st_mtime
-#endif
 
 extern errno;
 
@@ -288,7 +279,7 @@ LruDelete(file)
 	Delete(file);
 
 	/* save the seek position */
-	fileP->seekPos = lseek(fileP->fd, 0L, L_INCR);
+	fileP->seekPos = lseek(fileP->fd, 0L, SEEK_CUR);
 	Assert( fileP->seekPos != -1);
 
 	/* if we have written to the file, sync it */
@@ -373,7 +364,8 @@ tryAgain:
 
 		/* seek to the right position */
 		if (vfdP->seekPos != 0L) {
-			returnValue = lseek(vfdP->fd, vfdP->seekPos, L_SET);
+			returnValue =
+			    lseek(vfdP->fd, vfdP->seekPos, SEEK_SET);
 			Assert(returnValue != -1);
 		}
 
@@ -735,15 +727,15 @@ fileSeek (file, offset, whence)
 	if (FileIsNotOpen(file)) {
 
 		switch(whence) {
-		  case L_SET:
+		  case SEEK_SET:
 			VfdCache[file].seekPos = offset;
 			return offset;
 
-		  case L_INCR:
+		  case SEEK_CUR:
 			VfdCache[file].seekPos = VfdCache[file].seekPos +offset;
 			return VfdCache[file].seekPos;
 
-		  case L_XTND:
+		  case SEEK_END:
 			FileAccess(file);
 			returnCode = VfdCache[file].seekPos = 
 				lseek(VfdCache[file].fd, offset, whence);
@@ -897,31 +889,31 @@ Sfd *sfdP;
 
     if (h == 0) {
 	current_pos[0] = fileTell(sfdP->vfd[0]);
-	size = fileSeek(sfdP->vfd[0], 0l, L_XTND);
-	fileSeek(sfdP->vfd[0], current_pos[0], L_SET);
+	size = fileSeek(sfdP->vfd[0], 0l, SEEK_END);
+	fileSeek(sfdP->vfd[0], current_pos[0], SEEK_SET);
 	return size;
       }
 
     current_pos[1] = fileTell(sfdP->vfd[1]);
     current_pos[h] = fileTell(sfdP->vfd[h]);
 
-    if ((lsize = fileSeek(sfdP->vfd[l], 0l, L_XTND)) < 0) {
+    if ((lsize = fileSeek(sfdP->vfd[l], 0l, SEEK_END)) < 0) {
 	elog(FATAL, "lseek:%m");
     }
-    fileSeek(sfdP->vfd[1], current_pos[1], L_SET);
-    if ((hsize = fileSeek(sfdP->vfd[h], 0l, L_XTND)) < 0) {
+    fileSeek(sfdP->vfd[1], current_pos[1], SEEK_SET);
+    if ((hsize = fileSeek(sfdP->vfd[h], 0l, SEEK_END)) < 0) {
 	elog(FATAL, "lseek:%m");
     }
-    fileSeek(sfdP->vfd[h], current_pos[h], L_SET);
+    fileSeek(sfdP->vfd[h], current_pos[h], SEEK_SET);
     if (lsize == hsize)
        nf = 0;
     else {
 	while (l + 1 != h) {
 	    m = (l + h) / 2;
 	    current_pos[m] = fileTell(sfdP->vfd[m]);
-	if ((msize = fileSeek(sfdP->vfd[m], 0l, L_XTND)) < 0) {
+	if ((msize = fileSeek(sfdP->vfd[m], 0l, SEEK_END)) < 0) {
 	    elog(FATAL, "lseek:%m");
-	    fileSeek(sfdP->vfd[m], current_pos[m], L_SET);
+	    fileSeek(sfdP->vfd[m], current_pos[m], SEEK_SET);
 	}
 	    if (msize > hsize)
 	       l = m;
@@ -1159,7 +1151,7 @@ Amount amount;
 		    parPos = sfdP->endPos - BLCKSZ;
 		    parstripe = (parPos/BLCKSZ) % NStriping;
 	          }
-		ret = fileSeek(sfdP->vfd[parstripe],(long)rownum*BLCKSZ,L_SET);
+		ret = fileSeek(sfdP->vfd[parstripe],(long)rownum*BLCKSZ,SEEK_SET);
 		/*
 		printf("read old parity at stripe %d row %d\n", parstripe, VfdCache[sfdP->vfd[parstripe]].seekPos/BLCKSZ);
 		*/
@@ -1183,12 +1175,12 @@ Amount amount;
 		    sfdP->endPos += BLCKSZ;
 		  }
 	      }
-	    ret = fileSeek(sfdP->vfd[parstripe],(long)rownum*BLCKSZ,L_SET);
+	    ret = fileSeek(sfdP->vfd[parstripe],(long)rownum*BLCKSZ,SEEK_SET);
 	    /*
 	    printf("write parity at stripe %d row %d\n", parstripe, VfdCache[sfdP->vfd[parstripe]].seekPos/BLCKSZ);
 	    */
 	    ret = fileWrite(sfdP->vfd[parstripe], parblk, BLCKSZ);
-	    ret =fileSeek(sfdP->vfd[sfdP->curStripe],(long)rownum*BLCKSZ,L_SET);
+	    ret =fileSeek(sfdP->vfd[sfdP->curStripe],(long)rownum*BLCKSZ,SEEK_SET);
 	    /*
 	    printf("write new block at stripe %d row %d\n", sfdP->curStripe, VfdCache[sfdP->vfd[sfdP->curStripe]].seekPos/BLCKSZ);
 	    */
@@ -1224,7 +1216,7 @@ int whence;
     printf("SEEK %s to offset %d whence %d\n", VfdCache[sfdP->vfd[0]].fileName, offset, whence);
     */
     switch(whence) {
-    case L_SET:
+    case SEEK_SET:
 	switch (StripingMode) {
 	case 0:
 	case 1:
@@ -1256,22 +1248,22 @@ int whence;
 	EndParallelDebugInfo(PDI_FILESEEK);
 #endif
 	return offset;
-    case L_INCR:
-	sfdP->seekPos = FileSeek(file, sfdP->seekPos + offset, L_SET);
+    case SEEK_CUR:
+	sfdP->seekPos = FileSeek(file, sfdP->seekPos + offset, SEEK_SET);
 #ifdef PARALLELDEBUG
 	EndParallelDebugInfo(PDI_FILESEEK);
 #endif
 	return sfdP->seekPos;
-    case L_XTND:
+    case SEEK_END:
 	switch (StripingMode) {
 	case 0:
 	case 1:
             blknum = sfdP->endPos / BLCKSZ;
             sfdP->curStripe = nf = blknum % NStriping;
-	    offset = fileSeek(sfdP->vfd[nf], 0L, L_XTND);
+	    offset = fileSeek(sfdP->vfd[nf], 0L, SEEK_END);
 	    sfdP->seekPos = sfdP->endPos = offset;
 	    if (StripingMode == 1) {
-		fileSeek(sfdP->vfd[nf+NStriping], 0L, L_XTND);
+		fileSeek(sfdP->vfd[nf+NStriping], 0L, SEEK_END);
 	      }
 	    break;
 	case 5:
@@ -1287,7 +1279,7 @@ int whence;
 	    if (endstripe > 0 && parstripe >= endstripe) {
 		sfdP->seekPos -= BLCKSZ;
 		sfdP->curStripe = endstripe - 1;
-		fileSeek(sfdP->vfd[endstripe - 1], rownum*BLCKSZ, L_SET);
+		fileSeek(sfdP->vfd[endstripe - 1], rownum*BLCKSZ, SEEK_SET);
 		/*
 		printf("seek stripe %d to row %d\n", endstripe-1, rownum);
 		*/
@@ -1298,7 +1290,7 @@ int whence;
 		    endstripe++;
 		  }
 		sfdP->curStripe = endstripe;
-	        ret = fileSeek(sfdP->vfd[endstripe], 0L, L_XTND);
+	        ret = fileSeek(sfdP->vfd[endstripe], 0L, SEEK_END);
 		/*
 		printf("seek stripe %d to row %d\n", endstripe, ret/BLCKSZ);
 		*/
@@ -1380,7 +1372,7 @@ File file;
     long len;
     BlockNumber nblks;
 
-    len = FileSeek(file, 0L, L_XTND) - 1;
+    len = FileSeek(file, 0L, SEEK_END) - 1;
     return((BlockNumber)((len < 0) ? 0 : 1 + len / BLCKSZ));
 }
 
@@ -1485,19 +1477,9 @@ int FileStat(file,stbuf)
 	stbuf->st_uid = ustatbuf.st_uid;
 	stbuf->st_size = ustatbuf.st_size;
 	stbuf->st_sizehigh = 0;
-#if defined(PORTNAME_bsd44)
-	/* 
-	 * XXX truely bogus move on 44's part - st_?time are now #defined.
-	 * So we do the expansion.
-	 */
-	stbuf->st_atime = ustatbuf.st_atimespec.ts_sec;
-	stbuf->st_ctime = ustatbuf.st_ctimespec.ts_sec;
-	stbuf->st_mtime = ustatbuf.st_mtimespec.ts_sec;
-#else
-	stbuf->st_atime = ustatbuf.st_atime;
-	stbuf->st_ctime = ustatbuf.st_ctime;
-	stbuf->st_mtime = ustatbuf.st_mtime;
-#endif
+	stbuf->st_atime_s = ustatbuf.st_atime;
+	stbuf->st_ctime_s = ustatbuf.st_ctime;
+	stbuf->st_mtime_s = ustatbuf.st_mtime;
     }
     return ret;
 }
