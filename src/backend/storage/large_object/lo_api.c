@@ -123,12 +123,24 @@ int open_mode;
     /* Log this instance of large object into directory table. */
     if ((oidf = FilenameToOID(path)) == InvalidObjectId) {
 
-	/* enter it in system relation */
-	if ((oidf = LOpathOID(path,0)) == InvalidObjectId)
-	    elog(WARN, "%s: couldn't force path name", path);
-
 	fd = (int) PathNameOpenFile(path, O_CREAT | O_RDWR, 0666);
-	if (fd == -1) return(NULL);
+	if (fd == -1) {
+		/* Try once more so that we can incorpate read_only
+		   objects.  p_write() to this file descriptor will
+		   fail of course! */
+		fd = (int) PathNameOpenFile(path, O_RDONLY, 0666);
+		if (fd == -1) {
+			elog(WARN, "%s: couldn't open", path);
+			return(NULL);
+		}
+	}
+
+	/* enter it in system relation */
+	if ((oidf = LOpathOID(path,0)) == InvalidObjectId) {
+		FileClose(fd);
+		elog(WARN, "%s: couldn't force path name", path);
+		return (NULL);
+	}
 
 	newobj = (LargeObject *) NewLargeObject(path, EXTERNAL_FILE);
 	retval = (LargeObjectDesc *) palloc(sizeof(LargeObjectDesc));
@@ -512,5 +524,3 @@ int LOWrite (obj_desc,buf,n)
         
     return ret;
 }
-
-
