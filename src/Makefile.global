@@ -258,7 +258,7 @@ LDFLAGS+= ${PROFILE}
 #
 # Globally pass PORTNAME
 #
-CFLAGS+= -DPORTNAME=${PORTNAME} -DPORTNAME_${PORTNAME}
+CFLAGS+= -DPORTNAME_${PORTNAME}
 
 #
 # Globally pass the default TCP port for postmaster(1)
