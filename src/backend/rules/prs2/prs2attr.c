@@ -307,11 +307,9 @@ HeapTuple *newTupleP;
     }
 
     if (locksHaveToChange && tupleHasChanged) {
-	t = *newTupleP;
-	*newTupleP = prs2PutLocksInTuple(
+	prs2PutLocksInTuple(
 			    *newTupleP, InvalidBuffer,
 			    relation, newLocks);
-	pfree(t);
 	return(1);
     } else if (!locksHaveToChange && tupleHasChanged) {
 	/*
@@ -319,9 +317,9 @@ HeapTuple *newTupleP;
 	 */
 	elog(WARN,"attributeValuesMakeNewTuple: Internal error");
     } else if (locksHaveToChange && !tupleHasChanged) {
-	*newTupleP = prs2PutLocksInTuple(
-			    tuple, buffer,
+	prs2PutLocksInTuple( tuple, buffer,
 			    relation, newLocks);
+	*newTupleP = tuple;
 	return(1);
     } else if (!locksHaveToChange && !tupleHasChanged) {
 	if (newLocks != InvalidRuleLock)

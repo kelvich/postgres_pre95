@@ -17,6 +17,8 @@
 #include "utils/log.h"
 #include "tmp/datum.h"
 
+extern HeapTuple palloctup();
+
 /*----------------------------------------------------------------
  *
  * prs2MakeStubForInnerRelation
@@ -165,14 +167,19 @@ Prs2OneStub oneStub;
     if (prs2StubTestTuple(tuple, buffer, tupDesc, oneStub->qualification)) {
 	oldLocks = prs2GetLocksFromTuple(tuple, buffer,tupDesc);
 	newLocks = prs2LockUnion(oneStub->lock, oldLocks);
-	newTuple = prs2PutLocksInTuple(tuple, buffer, relation, newLocks);
-
+	newTuple = palloctup(tuple, buffer, relation);
+	prs2PutLocksInTuple(newTuple, buffer, relation, newLocks);
 	/*
 	 * XXX: what happens if this tuple has already been replaced ?
 	 * Should we check with: TupleUpdatedByCurXactAndCmd() ???
 	 */
 	tupleId = &(tuple->t_ctid);
 	amreplace(relation, tupleId, newTuple);
+	/*
+	 * free the new tuple...
+	 */
+	HeapTupleFreeRuleLock(newTuple);
+	pfree(newTuple);
 	return(true);
     } else {
 	return(false);

@@ -41,6 +41,8 @@
 #include "catalog/pg_prs2rule.h"
 #include "catalog/pg_prs2plans.h"
 
+extern HeapTuple palloctup();
+
 /*-----------------------------------------------------------------------
  * prs2PutRelationLevelLocks
  *
@@ -128,11 +130,11 @@ AttributeNumber lockedAttrNo;
     /*
      * Create a new tuple (i.e. a copy of the old tuple
      * with its rule lock field changed and replace the old
-     * tuple in the Relationrelation
+     * tuple in the RelationRelation
+     * NOTE: XXX ??? do we really need to make that copy ????
      */
-    newTuple = prs2PutLocksInTuple(tuple, buffer,
-		    relationRelation,
-		    currentLock);
+    newTuple = palloctup(tuple, buffer, relationRelation);
+    prs2PutLocksInTuple(newTuple, buffer, relationRelation, currentLock);
 
     RelationReplaceHeapTuple(relationRelation, &(tuple->t_ctid),
 			    newTuple, (double *)NULL);
@@ -216,10 +218,10 @@ ObjectId eventRelationOid;
 	 * Create a new tuple (i.e. a copy of the old tuple
 	 * with its rule lock field changed and replace the old
 	 * tuple in the RelationRelation
+	 * NOTE: XXX ??? do we really need to make that copy ????
 	 */
-	newTuple = prs2PutLocksInTuple(tuple, buffer,
-				    relationRelation,
-				    currentLocks);
+	newTuple = palloctup(tuple, buffer, relationRelation);
+	prs2PutLocksInTuple(tuple, buffer, relationRelation, currentLocks);
 	RelationReplaceHeapTuple(relationRelation, &(tuple->t_ctid),
 				newTuple, (double *)NULL);
 	

@@ -164,11 +164,11 @@ prs2GetLocksFromTuple ARGS((
 
 /*------------------------------------------------------------------
  * prs2PutLocksInTuple
- *    given a tuple, create a copy of it and put the given locks in its
- *    t_lock field...
+ *    given a tuple, update its rule lock.
+ *    NOTE: the old rule lock is pfreed!
  */
 extern
-HeapTuple
+void
 prs2PutLocksInTuple ARGS((
     HeapTuple	tuple,
     Buffer	buffer,

@@ -42,6 +42,7 @@ RuleLock lock;
     }
 #endif PRS2_DEBUG
 
+    printf("---> free 0x%x\n", lock);
     pfree(lock);
 }
 
@@ -183,31 +184,29 @@ TupleDescriptor tupleDescriptor;
 
     return(locks);
 }
-
+ 
 /*------------------------------------------------------------------
  *
  * prs2PutLocksInTuple
  *
- * given a tuple, create a copy of it and put the given locks in its
- * t_lock field...
+ * given a tuple, replace its current locks with the given new ones.
+ *
+ * NOTE: the old locks are pfreed!!!!!!
  *
  */
 
-HeapTuple
+void
 prs2PutLocksInTuple(tuple, buffer, relation, newLocks)
 HeapTuple   tuple;
 Buffer      buffer;
 Relation    relation;
 RuleLock   newLocks;
 {
-    HeapTuple	newTuple;
     HeapTuple	palloctup();
     void	HeapTupleSetRuleLock();
 
-    newTuple = palloctup(tuple, buffer, relation);
-    HeapTupleSetRuleLock(newTuple, InvalidBuffer, newLocks);
+    HeapTupleSetRuleLock(tuple, InvalidBuffer, newLocks);
 
-    return(newTuple);
 }
 
 /*------------------------------------------------------------------
