@@ -262,10 +262,15 @@ ProcessUtility(command, args, commandString)
 			       CString(CADR(args)),	/* operator name */
 			   CDR(CDR(args)));	/* rest */
 		break;
-	  case FUNCTION:
+	  case C_FUNCTION:
 	    DefineFunction(
 			   CString(CADR(args)),	/* function name */
 			   CDR(CDR(args)));	/* rest */
+	    break;
+	  case P_FUNCTION:
+	    DefinePFunction(CString(CADR(args)), /* function name */
+			    CString(CADDR(args)), /* relation name */
+			    CString(nth(3,args)));  /* query string */
 	    break;
 	  case RULE:
 	    elog(WARN,
