@@ -297,3 +297,73 @@ int operation;
 
     return(result);
 }
+
+/*------------------------------------------------------------------
+ *
+ * prs2IsRuleInsteadFromRuleInfo
+ *
+ * Given the 'rule info' stored in pg_prs2plans return true iff
+ * a rule is an 'instead' rule, otherwise return false
+ */
+Boolean
+prs2IsRuleInsteadFromRuleInfo(ruleInfo)
+LispValue ruleInfo;
+{
+    LispValue t;
+    char *s;
+
+    t = CAR(ruleInfo);
+    s = CString(t);
+
+    if (!strcmp("instead", s)) {
+	return((Boolean) 1);
+    } else {
+	return((Boolean) 0);
+    }
+}
+
+/*------------------------------------------------------------------
+ *
+ * prs2GetEventAttributeNumberFromRuleInfo
+ *
+ * Given the 'rule info' as stored in pg_prs2plans, 
+ * return the attribute number of the attribute specified in the
+ * 'ON EVENT to REL.attr' clause
+ */
+AttributeNumber
+prs2GetEventAttributeNumberFromRuleInfo(ruleInfo)
+LispValue ruleInfo;
+{
+    LispValue t;
+    int n;
+
+    t = CAR(CDR(ruleInfo));
+    n = CInteger(t);
+
+    return(n);
+}
+
+
+/*------------------------------------------------------------------
+ *
+ * prs2GetUpdatedAttributeNumberFromRuleInfo
+ *
+ * Given the 'rule info' as stored in pg_prs2plans, 
+ * return the attribute number of the attribute of the CURRENT tuple
+ * which is updated by the rule. This only applies to rules of the
+ * form 'ON RETRIEVE TO REL.X DO RETRIEVE INSTEAD (X = ...)' or
+ * 'ON REPLACE TO REL.Y DO REPLACE CURRENT(X = ....)'.
+ */
+AttributeNumber
+prs2GetUpdatedAttributeNumberFromRuleInfo(ruleInfo)
+LispValue ruleInfo;
+{
+    LispValue t;
+    int n;
+
+    t = CAR(CDR(CDR(ruleInfo)));
+    n = CInteger(t);
+
+    return(n);
+}
+
