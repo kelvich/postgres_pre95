@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MACHINE=dec
+MACHINE=sparc
 
 if (test $MACHINE = seq)
 then
