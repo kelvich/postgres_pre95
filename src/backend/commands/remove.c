@@ -246,7 +246,9 @@ RemoveType(typeName)
 
 	/* Now, Delete the "array of" that type */
 
-	strcpy(arrayName, "_");
+	arrayName->data[0] = '_';
+	arrayName->data[1] = '\0';
+
 	strncat(arrayName, typeName, 15);
 
 	typeKey[0].argument = NameGetDatum(arrayName);
@@ -255,6 +257,10 @@ RemoveType(typeName)
 				     1, (ScanKey) typeKey);
 	tup = HeapScanGetNextTuple(scan, 0, (Buffer *) 0);
 
+	if (!HeapTupleIsValid(tup))
+	{
+	    elog(WARN, "Array stub for type %s not found", typeName->data);
+	}
 	typeOid = tup->t_oid;
 	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
         RelationDeleteHeapTuple(relation, &itemPointerData);
