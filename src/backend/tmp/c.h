@@ -9,8 +9,8 @@
  *	$Header$
  */
 
-#ifndef	CIncluded		/* Include this file only once */
-#define CIncluded	1
+#ifndef C_H
+#define C_H
 
 /*
  * Begin COMPILER DEPENDENT section
@@ -517,4 +517,6 @@ AssertionFailed ARGS((
 
 #define SccsId(id)	RevisionId(_SccsId_, id)
 #define RcsId(id)	RevisionId(_RcsId_, id)
-#endif	/* !defined(CIncluded) */
+
+#endif  /* !defined(C_H)	*/
+
