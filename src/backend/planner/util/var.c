@@ -104,7 +104,10 @@ var_equal (var1,var2,dots)
 	    return(true);
 	}
 */
-      return(true);
+	  if (equal(get_vararraylist(var1), get_vararraylist(var2)))
+         return(true);
+	  else
+		 return(false);
     }
 	else 
       return(false);

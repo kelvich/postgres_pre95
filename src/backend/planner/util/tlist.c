@@ -309,8 +309,8 @@ tlist_resdom(tlist,resnode)
  */
 
 LispValue
-match_varid (var_to_test,tlist)
-	Var var_to_test;
+match_varid (test_var,tlist)
+	Var test_var;
 	LispValue tlist;
 {
     LispValue i;
@@ -318,15 +318,17 @@ match_varid (var_to_test,tlist)
     oid type_var, type_entry;
     List test_varid;
 
-    test_varid = (List) get_varid(var_to_test);
-    type_var = (oid) get_vartype(var_to_test);
+    test_varid = (List) get_varid(test_var);
+    type_var = (oid) get_vartype(test_var);
 
     foreach (i,tlist)
     {
 	entry = CAR(i);
 	if (equal(get_varid(get_expr(entry)), test_varid))
 	{
-	    if (get_vartype(get_expr(entry)) == type_var)
+	    if ((get_vartype(get_expr(entry)) == type_var) &&
+			(equal(get_vararraylist(get_expr(entry)),
+				   get_vararraylist(test_var))))
 	    {
 	    	return(entry);
 	    }
