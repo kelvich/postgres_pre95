@@ -365,7 +365,7 @@ CreateBVersion(vname,bnamestring)
     Name bname;
 #endif
     now = GetCurrentTransactionStartTime();
-    timestring = (char *)abstimeout(now);
+    timestring = (char *)nabstimeout(now);
 
 
     sprintf(bname,"%s", CString(bnamestring) );
