@@ -40,7 +40,7 @@ HeapTuple *returnedTupleP;
 Buffer *returnedBufferP;
 {
     RuleLock oldLocks, oldTupleLocks;
-    RuleLock newLocks, newTupleLocks;
+    RuleLock newLocks;
     RuleLock relLocks;
     int i;
     AttributeValues oldAttrValues, newAttrValues, rawAttrValues;
@@ -54,22 +54,35 @@ Buffer *returnedBufferP;
     /*
      * Find the locks of the tuple.
      *
-     * To find the locks of the old tuple, we have to check both
+     * To find the locks of the RAW(old) tuple, we have to check both
      * for relation level locks and for tuple level locks.
+     * 
+     * NOTE: 'old' tuple has no lock on it, because locks
+     * are not propagated from node to node inside the executor.
      *
-     * For the "new" tuple, we have to check the relation level locks
-     * and the locks from the rule stubs which are put in the tuple
-     * itself by the executor.
+     * NOTE: 'on replace' rules have either a relation level
+     * lock, or a tuple-level-lock on the old tuple.
+     *
+     * The rule stubs need only be checked at the end, and only
+     * to find out what locks the "new" tuple should get.
+     *
      */
     relName = & ((RelationGetRelationTupleForm(relation))->relname);
 
     relLocks = prs2GetLocksFromRelation(relName);
-    newTupleLocks = prs2GetLocksFromTuple(newTuple, newBuffer,
-			    RelationGetTupleDescriptor(relation));
-    oldTupleLocks = prs2GetLocksFromTuple(oldTuple, oldBuffer,
+    oldTupleLocks = prs2GetLocksFromTuple(rawTuple, rawBuffer,
 			    RelationGetTupleDescriptor(relation));
     oldLocks = prs2LockUnion(oldTupleLocks, relLocks);
-    newLocks = prs2LockUnion(newTupleLocks, relLocks);
+
+    /*
+     * XXX HACK! HACK! HACK!
+     *
+     * When `old' tuple was formed, we evaluated ALL backward
+     * chaining rules defined on it.
+     * So, get rid of the "write" locks of on retrieve-do retrieve
+     * (otherwise, we might re-activate them unnecessarily)
+     */
+    prs2RemoveLocksOfTypeInPlace(oldLocks, LockTypeTupleRetrieveWrite);
 
     /*
      * now extract from the tuple the array of the attribute values.
@@ -81,8 +94,12 @@ Buffer *returnedBufferP;
     /*
      * First activate all the 'late evaluation' rules, i.e.
      * all the rules that try to update the fields of the 'new' tuple
+     *
+     * NOTE: WE use as locks of the new tuple the locks of the old
+     * tuple! But in reality we are only interested in the 
+     * 'LockTypeTupleReplaceWrite' locks...
      */
-	maxattrs = RelationGetNumberOfAttributes(relation);
+    maxattrs = RelationGetNumberOfAttributes(relation);
     for(attr=1; attr <= maxattrs; attr++) {
 	prs2ActivateBackwardChainingRules(
 		    prs2EStateInfo,
@@ -96,7 +113,7 @@ Buffer *returnedBufferP;
 		    LockTypeTupleRetrieveWrite,
 		    newTuple->t_oid,
 		    newAttrValues,
-		    newLocks,
+		    oldLocks,
 		    LockTypeTupleReplaceWrite,
 		    attributeArray,
 		    numberOfAttributes);
@@ -122,8 +139,8 @@ Buffer *returnedBufferP;
 		    LockTypeTupleRetrieveWrite,
 		    newTuple->t_oid,
 		    newAttrValues,
-		    newLocks,
-		    LockTypeTupleRetrieveWrite,
+		    InvalidRuleLock,
+		    LockTypeInvalid,
 		    &insteadRuleFoundThisTime,
 		    attributeArray,
 		    numberOfAttributes);
@@ -144,10 +161,23 @@ Buffer *returnedBufferP;
 				relation,
 				attributeArray,
 				numberOfAttributes);
-    HeapTupleSetRuleLock(*returnedTupleP, InvalidBuffer, newTupleLocks);
 
-    prs2FreeLocks(newLocks);
+    /*
+     * OK, now find out the rule locks that the new tuple
+     * must get.
+     */
+    newLocks = prs2FindLocksForNewTupleFromStubs(
+		    *returnedTupleP,
+		    *returnedBufferP,
+		    relation);
+    HeapTupleSetRuleLock(*returnedTupleP, InvalidBuffer, newLocks);
+
+    /*
+     * clean up, sweep the floor and do the laundry....
+     */
     prs2FreeLocks(oldLocks);
+    prs2FreeLocks(relLocks);
+    prs2FreeLocks(oldTupleLocks);
     attributeValuesFree(newAttrValues, relation);
     attributeValuesFree(oldAttrValues, relation);
 
