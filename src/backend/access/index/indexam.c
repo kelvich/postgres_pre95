@@ -80,10 +80,13 @@
 #include "catalog/pg_index.h"
 #include "catalog/pg_proc.h"
 
-#include "internal.h"
-
 RcsId("$Header$");
 
+/* ----------------
+ *   delete is used as the argument to a macro in this file so
+ *   we don't use the "delete" macro defined in c.h
+ * ----------------
+ */
 #undef delete
 
 /* ----------------
@@ -416,10 +419,10 @@ InsertIndexTuple(heapRelation, indexRelation, numberOfAttributes,
 
     indexTuple->t_tid = heapTuple->t_ctid;
 
-    insertResult = RelationInsertIndexTuple(indexRelation,
-					    indexTuple, 
-					    (Pointer)NULL,
-					    (double *)NULL);
+    insertResult = index_insert(indexRelation,
+				indexTuple, 
+				(Pointer)NULL,
+				(double *)NULL);
 	
     pfree(indexTuple);
     pfree(null);
@@ -446,10 +449,7 @@ GetHeapTuple(result, heaprel, buffer)
     if (! ItemPointerIsValid(pointer))
 	return NULL;
 
-    tuple = RelationGetHeapTupleByItemPointer(heaprel,
-					      NowTimeQual,
-					      pointer,
-					      &buffer);
+    tuple = heap_fetch(heaprel, NowTimeQual, pointer, &buffer);
 
     if (! HeapTupleIsValid(tuple)) 
 	return(NULL);
