@@ -1,11 +1,11 @@
-/*     
- *      FILE
- *     	pathnode
+/* ----------------------------------------------------------------
+ *   FILE
+ *	pathnode.c
  *     
- *      DESCRIPTION
- *     	Routines to manipulate pathlists and create path nodes
+ *   DESCRIPTION
+ *	Routines to manipulate pathlists and create path nodes
  *     
- *      EXPORTS
+ *   INTERFACE ROUTINES
  *     		path-is-cheaper
  *     		cheaper-path
  *     		set_cheapest
@@ -15,7 +15,10 @@
  *     		create_nestloop_path
  *     		create_mergesort_path
  *     		create_hashjoin_path
+ *
+ *   IDENTIFICATION
  *	$Header$
+ *----------------------------------------------------------------
  */
 #include <math.h>
 
@@ -368,7 +371,7 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 	/*   each clause gets an equal selectivity */
 	Cost clausesel = 
 	  pow (CDouble(CADR (pagesel)),
-	       (double)(1/length(restriction_clauses)));
+	       1.0 / (double) length(restriction_clauses));
 	 
 	Count temp1 = (Count)CDouble(CAR(pagesel));
 	Cost temp2 = (Cost)CDouble(CADR(pagesel));
@@ -587,4 +590,3 @@ create_hashjoin_path (joinrel,outersize,innersize,outerwidth,
     }
     return(pathnode);
 }
-
