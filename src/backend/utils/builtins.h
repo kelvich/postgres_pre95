@@ -20,13 +20,9 @@
 #include "tim.h"
 #include "xid.h"
 
-/*
- *	This is a gentle reminder that the files in useradt/ have to be 
- *	moved or linked to adt/ before compilation will work (see fmgr.h).
- */
 #ifdef FMGR_ADT
-#include "../adt/geo-decls.h"
-#include "../ftree/kwlist.h"
+#include "geo-decls.h"
+#include "kwlist.h"
 #endif /* FMGR_ADT */
 
 
