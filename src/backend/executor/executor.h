@@ -141,11 +141,11 @@ typedef struct FragmentInfo {
 #define	REVERSESHORTALIGN(LEN)\
     (((long)(LEN)) & ~01)
 
-#ifndef	sun
+#if defined(sun) && ! defined(sparc)
+#define	REVERSELONGALIGN(LEN)	REVERSESHORTALIGN(LEN)
+#else
 #define	REVERSELONGALIGN(LEN)\
     (((long)(LEN)) & ~03)
-#else
-#define	REVERSELONGALIGN(LEN)	REVERSESHORTALIGN(LEN)
 #endif
 
 /* ----------------
