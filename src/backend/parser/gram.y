@@ -1970,7 +1970,7 @@ SubstituteParamForNewOrCurrent ( parsetree, relid )
 		attrname = get_attname(relid, get_varattno(temp));
 		attrno = get_attnum(relid, attrname);
 		CAR(i) = (List)MakeParam(PARAM_NEW,
-				   (int32)0,
+				   attrno,
 				   attrname,
 				   get_vartype(temp) );
 	    }
