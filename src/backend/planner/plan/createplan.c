@@ -48,6 +48,7 @@ extern HashJoin RMakeHashJoin();
 extern NestLoop RMakeNestLoop();
 extern IndexScan RMakeIndexScan();
 extern SeqScan RMakeSeqScan();
+extern Agg RMakeAgg();
 
 /*    	================
  *    	GENERIC ROUTINES
@@ -1011,6 +1012,29 @@ make_sort (tlist,tempid,lefttree, keycount)
     return(node);
 }
 
+Agg
+make_agg (arglist, aggidnum)
+     List arglist;
+     int aggidnum;
+{
+     Agg node = RMakeAgg();
+     Name aggname = CAR(arglist);
+     LispValue query = CADR(arglist);
+     List tlist = LispNil;
+     arglist = CDR(CDR(arglist)); /* trying to get rid of a misalignment */
+     tlist = CAR(arglist);
+     set_cost(node, 0.0);
+     set_fragment(node, 0);
+     set_parallel(node, 1);
+     set_state(node, (EState)NULL);
+     set_qpqual(node, LispNil);
+     set_qptargetlist(node, tlist);
+     set_lefttree(node, planner(query));
+     set_righttree(node, LispNil);
+     set_tempid(node, aggidnum);
+     set_aggname(node, aggname);
+     return(node);
+}
 
 /*
  *  A unique node always has a SORT node in the lefttree.
