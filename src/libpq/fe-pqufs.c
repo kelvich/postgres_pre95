@@ -453,10 +453,10 @@ PDIR *p_opendir(path)
     }
 }
 
-struct dirent *p_readdir(dirp)
+struct pgdirent *p_readdir(dirp)
      PDIR *dirp;
 {
-    struct dirent *d = NULL;
+    struct pgdirent *d = NULL;
     if (dirp->current_entry != NULL) {
 	d = &dirp->current_entry->d;
 	dirp->current_entry = (Direntry *)SLGetSucc(&dirp->current_entry->Node);

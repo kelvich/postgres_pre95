@@ -80,13 +80,10 @@
  *       partial blocks).
  */
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/file.h>
 #include "tmp/c.h"
 #include "tmp/postgres.h"
 #include "tmp/libpq.h"
+#include "tmp/libpq-fs.h"
 #include "utils/large_object.h"
 #include "utils/mcxt.h"
 #include "catalog/pg_lobj.h"
@@ -419,6 +416,7 @@ struct varlena *LOstat(path)
     VARSIZE(ret) = len;
     st = (struct stat *)VARDATA(ret);
     bzero(st,len);	/* default values of 0 */
+#if 0
     if (!LOisdir(path)) {
 	/* kemnitz large objects */
 	int fd = LOopen(path,O_RDONLY);
@@ -444,7 +442,7 @@ struct varlena *LOstat(path)
     } else {
 	VARSIZE(ret) = 5;
     }
-    
+#endif    
     return ret;
 }
 
