@@ -130,6 +130,39 @@ exitpg(code)
     exit(code);
 }
 
+/* ------------------
+ * Run all of the on_exitpg routines but don't exit in the end.
+ * This is used by the postmaster to re-initialize shared memory and
+ * semaphores after a backend dies horribly
+ * ------------------
+ */
+void
+quasi_exitpg()
+{
+    int i;
+
+    /* ----------------
+     *	if exitpg_inprocess is true, then it means that we
+     *  are being invoked from within an on_exit() handler
+     *  and so we return immediately to avoid recursion.
+     * ----------------
+     */
+    if (exitpg_inprogress)
+	return;
+
+    exitpg_inprogress = 1;
+
+    /* ----------------
+     *	call all the callbacks registered before calling exit().
+     * ----------------
+     */
+    for (i = onexit_index - 1; i >= 0; --i)
+	(*onexit_list[i].function)(0, onexit_list[i].arg);
+
+    onexit_index = 0;
+    exitpg_inprogress = 0;
+}
+
 /* ----------------------------------------------------------------
  *	on_exitpg
  *
