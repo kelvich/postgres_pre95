@@ -1146,6 +1146,13 @@ PostgresMain(argc, argv)
     signal(SIGHUP, handle_warn);
     
     if (setjmp(Warn_restart) != 0) {
+#ifdef PORTNAME_sparc_solaris
+	/*
+	 * i don't have a good grasp as to why this is necessary but it is
+	 * -- pma 06/15/94
+	 */
+	(void) sigrelse(SIGHUP);
+#endif /* PORTNAME_sparc_solaris */
 	Warnings++;
 	time(&tim);
 	
@@ -1290,7 +1297,11 @@ PostgresMain(argc, argv)
     }
 }
 
+#ifdef NEED_RUSAGE
+#include "rusagestub.h"
+#else /* NEED_RUSAGE */
 #include <sys/resource.h>
+#endif /* NEED_RUSAGE */
 
 struct rusage Save_r;
 struct timeval Save_t;
@@ -1306,10 +1317,10 @@ ResetUsage()
 
 ShowUsage()
 {
-	struct rusage r;
 	struct timeval user, sys;
         struct timeval elapse_t;
         struct timezone tz;
+	struct rusage r;
 
 	getrusage(RUSAGE_SELF, &r);
 	gettimeofday(&elapse_t, &tz);
@@ -1349,6 +1360,7 @@ ShowUsage()
 	fprintf(StatFp,
 		"!\t[%ld.%06ld user %ld.%06ld sys total]\n",
 		user.tv_sec, user.tv_usec, sys.tv_sec, sys.tv_usec);
+#ifndef NEED_RUSAGE
 	fprintf(StatFp, 
 		"!\t%d/%d [%d/%d] filesystem blocks in/out\n",
 		r.ru_inblock - Save_r.ru_inblock,
@@ -1374,6 +1386,7 @@ ShowUsage()
 		r.ru_nvcsw - Save_r.ru_nvcsw,
 		r.ru_nivcsw - Save_r.ru_nivcsw,
 		r.ru_nvcsw, r.ru_nivcsw);
+#endif /* NEED_RUSAGE */
 	fprintf(StatFp, "! postgres usage stats:\n");
 	PrintBufferUsage(StatFp);
 	DisplayTupleCount(StatFp);
