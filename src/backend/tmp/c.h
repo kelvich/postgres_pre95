@@ -137,6 +137,7 @@
 
 #ifdef	__STDC__ /* ANSI C */
 
+#define PROTOTYPES
 /*
  * Pointer --
  *	Variable holding address of any memory resident object.
@@ -168,16 +169,11 @@ typedef void	*Pointer;
  *	Concatenate two arguments together, using the C preprocessor.
  */
 #define CppConcat(x, y)		x##y
-
-/*
- * ARGS --
- *	Specifies parameter types of the declared function.
- *
- * Example:
- *	extern int	printf ARGS((const String format, ...));
- *	extern void	noop ARGS((void));
- */
-#define ARGS(args)	args
+#define CppConcat0(x, y)	x##y
+#define CppConcat1(x, y)	x##y
+#define CppConcat2(x, y)	x##y
+#define CppConcat3(x, y)	x##y
+#define CppConcat4(x, y)	x##y
 
 #else	/* !defined(__STDC__) */ /* NOT ANSI C */
 
@@ -213,8 +209,18 @@ typedef char	*Pointer;
  */
 #ifdef sprite
 #define CppConcat(x, y)         x/**/y
+#define CppConcat0(x, y)        x/**/y
+#define CppConcat1(x, y)        x/**/y
+#define CppConcat2(x, y)        x/**/y
+#define CppConcat3(x, y)        x/**/y
+#define CppConcat4(x, y)        x/**/y
 #else
 #define CppConcat(x, y)		CppIdentity(x)y
+#define CppConcat0(x, y)	CppIdentity(x)y
+#define CppConcat1(x, y)	CppIdentity(x)y
+#define CppConcat2(x, y)	CppIdentity(x)y
+#define CppConcat3(x, y)	CppIdentity(x)y
+#define CppConcat4(x, y)	CppIdentity(x)y
 #endif /* sprite */
 
 /*
@@ -242,14 +248,6 @@ typedef char	*Pointer;
  */
 #define volatile	/* volatile */
 
-/*
- * ARGS --
- *	Specifies parameter types of the declared function.
- *
- * Example:
- *	extern int	printf ARGS((const String format, ...));
- */
-#define ARGS(args)	(/* args */)
 
 #endif	/* !defined(__STDC__) */ /* NOT ANSI C */
 
@@ -257,6 +255,13 @@ typedef char	*Pointer;
 #ifndef __GNUC__	/* GNU cc */
 # define inline
 #endif
+
+#ifdef	PROTOTYPES
+#define ARGS(args)	args
+#else
+#define ARGS(args)	(/*args*/)
+#endif
+
 
 /* ----------------------------------------------------------------
  *		Section 4:  standard system types

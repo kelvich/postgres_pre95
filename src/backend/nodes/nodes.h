@@ -60,7 +60,40 @@ typedef double Cost;
  */
 
 #define	public(_x_)
-#define	inherits(_x_)	CppConcat(_x_,Defs)
+/*
+ *  inheritsN is necessary because ANSI C cpp doesn't expand a macro that
+ *  occurs in a definition more than once. 
+ *
+ *  example: now the old inherits macros would turn
+ *   class (Var) public (Expr) {
+ *            inherits(Expr);
+ *            Index			varno; 
+ *
+ *  into:
+ *    typedef struct _Var *Var; struct _Var {
+ *            inherits(Node);
+ *            Index  varno; 
+ *    ...
+ *
+ *  instead of:
+ *    typedef struct _Var *Var; struct _Var {
+ *            NodeTag	type;
+ *            void	(*outFunc)();
+ *            char 	(*equalFunc)();
+ *            char 	(*copyFunc)()    ;
+ *            Index     varno; 
+ *    ...
+ *    
+ *   so now we have inheritsN instead of inherits.  If you define
+ *   a subclass which inhertsN(foo) then you have to use inheritsN+1(foo)
+ *   or everything breaks.
+ */
+
+#define	inherits0(_x_)	CppConcat0(_x_,Defs)
+#define	inherits1(_x_)	CppConcat1(_x_,Defs)
+#define	inherits2(_x_)	CppConcat2(_x_,Defs)
+#define	inherits3(_x_)	CppConcat3(_x_,Defs)
+#define	inherits4(_x_)	CppConcat4(_x_,Defs)
 #define	classObj(_x_)	struct CppConcat(_,_x_)
 #define	classSize(_x_)	((Size) sizeof(classObj(_x_)))
 #define	classTag(_x_)	((NodeTag) CppConcat(T_,_x_))

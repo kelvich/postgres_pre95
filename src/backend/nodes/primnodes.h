@@ -137,7 +137,7 @@ extern bool	CopyArray();
  */
 class (Resdom) public (Node) {
  /* private: */
-	inherits(Node);
+	inherits0(Node);
 	AttributeNumber		resno;
 	ObjectId		restype;
 	Size			reslen;
@@ -154,7 +154,7 @@ class (Resdom) public (Node) {
  */
 class (Expr) public (Node) {
 #define	ExprDefs \
-	inherits(Node)
+	inherits0(Node)
  /* private: */
 	ExprDefs;
  /* public: */
@@ -173,7 +173,7 @@ class (Expr) public (Node) {
  */
 class (Var) public (Expr) {
  /* private: */
-	inherits(Expr);
+	inherits1(Expr);
 	Index			varno; 
 	AttributeNumber		varattno;
 	ObjectId		vartype;
@@ -207,7 +207,7 @@ class (Var) public (Expr) {
  */
 class (Oper) public (Expr) {
  /* private: */
-	inherits(Expr);
+	inherits1(Expr);
 	ObjectId		opno;
 	ObjectId		opid;
 	bool			oprelationlevel;
@@ -233,7 +233,7 @@ class (Oper) public (Expr) {
  */
 class (Const) public (Expr) {
  /* private: */
-	inherits(Expr);
+	inherits1(Expr);
 	ObjectId		consttype;
 	Size			constlen;
 	Datum			constvalue;
@@ -270,7 +270,7 @@ class (Const) public (Expr) {
  */
 class (Param) public (Expr) {
  /* private: */
-	inherits(Expr);
+	inherits1(Expr);
 	int			paramkind;
 	AttributeNumber		paramid;
 	Name			paramname;
@@ -291,7 +291,7 @@ class (Param) public (Expr) {
  */
 class (Func) public (Expr) {
  /* private: */
-	inherits(Expr);
+	inherits1(Expr);
 	ObjectId		funcid;
 	ObjectId		functype;
 	bool			funcisindex;
@@ -312,7 +312,7 @@ class (Func) public (Expr) {
  */
 class (Array) public (Expr) {
  /* private: */
-	inherits(Expr);
+	inherits1(Expr);
 	ObjectId		arrayelemtype;
 	int			arrayelemlength;
 	bool			arrayelembyval;
