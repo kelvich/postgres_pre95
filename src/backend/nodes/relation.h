@@ -64,22 +64,6 @@ extern void     PrintJoinMethod();
 #define EqualJoinKeyExists 1
 #define EqualMergePathExists 1
 
-extern bool     EqualRel();
-extern bool	EqualSortKey();
-extern bool	EqualPath();
-extern bool	EqualIndexPath();
-extern bool	EqualJoinPath();
-extern bool	EqualMergePath();
-extern bool	EqualHashPath();
-extern bool	EqualOrderKey();
-extern bool	EqualJoinKey();
-extern bool	EqualMergeOrder();
-extern bool	EqualCInfo();
-extern bool	EqualJInfo();
-extern bool     EqualIndexScan();
-extern bool     EqualHInfo();
-extern bool     EqualJoinmethod();
-
 /*
  * Relid
  *	List of relation identifiers (indexes into the rangetable).
