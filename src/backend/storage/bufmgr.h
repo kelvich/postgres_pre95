@@ -124,8 +124,7 @@ extern
 ReturnStatus
 ReadBuffer ARGS((
 	Relation	relation,
-	BlockNumber	blockNumber,
-	BufFlags	flags
+	BlockNumber	blockNumber
 ));
 
 /*
