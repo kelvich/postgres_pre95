@@ -607,9 +607,6 @@ _equalHeapTuple(a, b)
 
 	if (!ItemPointerEquals(&a->t_chain, &b->t_chain))
 		return (false);
-	if (!ItemPointerEquals(&a->t_anchor, &b->t_anchor))
-		return (false);
-
 	if (a->t_tmin != b->t_tmin)
 		return (false);
 	if (a->t_tmax != b->t_tmax)
