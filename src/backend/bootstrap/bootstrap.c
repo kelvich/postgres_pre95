@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------
  *   FILE
- *	backendsup.c
+ *	bootstrap.c
  *	
  *   DESCRIPTION
  *	"backend" program support routines.
@@ -17,6 +17,8 @@
 #include <signal.h>
 #include <string.h>
 
+#define BOOTSTRAP_INCLUDE
+
 #include "tmp/postgres.h"
 #include "tmp/miscadmin.h"
 #include "tcop/tcopprot.h"
@@ -24,10 +26,12 @@
 RcsId("$Header$");
 
 #include "access/heapam.h"
+#include "access/genam.h"
 #include "access/tqual.h"
 #include "access/tupmacs.h"
 #include "utils/exc.h"	/* for ExcAbort and <setjmp.h> */
 #include "fmgr.h"
+#include "utils/palloc.h"
 #include "utils/mcxt.h"
 #include "storage/smgr.h"
 
@@ -35,24 +39,11 @@ RcsId("$Header$");
 #include "catalog/catname.h"
 #include "catalog/indexing.h"
 
+#include "lib/copyfuncs.h"
+
 #undef BOOTSTRAP
 
-/* ----------------
- *	prototypes
- *
- *  	NOTE: see also bkint.h
- * ----------------
- */
 #include "bootstrap/bkint.h"
-
-/* tcop/postgres.c */
-extern char SocketBackend ARGS((char *));
-extern char InteractiveBackend ARGS((char *));
-extern void die ARGS((void));
-extern void handle_warn ARGS((void));
-
-/* bootstrap/bootstrap.c */
-extern bool BootstrapAlreadySeen ARGS(( ObjectId id ));
 
 /* ----------------
  *	global variables
@@ -174,6 +165,8 @@ typedef struct _IndexList {
 
 static IndexList *ILHead = (IndexList *) NULL;
 
+typedef void (*sig_func)();
+
 
 /* ----------------------------------------------------------------
  *			misc functions
@@ -212,9 +205,9 @@ char *av[];
      *	initialize signal handlers
      * ----------------
      */
-    signal(SIGHUP, die);
-    signal(SIGINT, die);
-    signal(SIGTERM, die);
+    signal(SIGHUP, (sig_func) die);
+    signal(SIGINT, (sig_func) die);
+    signal(SIGTERM, (sig_func) die);
 
     /* ----------------
      *	process command arguments
@@ -321,7 +314,7 @@ char *av[];
      *	abort processing resumes here
      * ----------------
      */
-    signal(SIGHUP, handle_warn);
+    signal(SIGHUP, (sig_func) handle_warn);
     if (setjmp(Warn_restart) != 0) {
 	Warnings++;
 	AbortCurrentTransaction();
@@ -623,6 +616,9 @@ showtup(tuple, buffer, relation)
     Boolean	isnull;
     struct	typmap	**app;
     int		i, typeindex;
+    AbsoluteTime tabstime;
+    TransactionId txid;
+    CommandId tcid;
 
     value = (char *)
 	heap_getattr(tuple, buffer, ObjectIdAttributeNumber,
@@ -664,80 +660,83 @@ showtup(tuple, buffer, relation)
     }
     if (!Quiet) printf(">\n");
     if (ShowTime) {
+
  	printf("\t[");
 	value = heap_getattr(tuple, buffer, MinAbsoluteTimeAttributeNumber,
 			  &reldesc->rd_att.data[0], &isnull);
+	tabstime = DatumGetUInt32(value);
 	if (isnull) {
 	    printf("{*NULL*} ");
-	} else if (AbsoluteTimeIsBackwardCompatiblyValid((AbsoluteTime)value)) {
-	    showtime((AbsoluteTime)value);
+	} else if (AbsoluteTimeIsBackwardCompatiblyValid(tabstime)) {
+	    showtime(tabstime);
 	}
 
 	value = heap_getattr(tuple, buffer, MinCommandIdAttributeNumber,
-			  &reldesc->rd_att.data[0], &isnull);
+			     &reldesc->rd_att.data[0], &isnull);
+	tcid = DatumGetUInt16(value);
 	if (isnull) {
 	    printf("(*NULL*,");
 	} else {
-	    printf("(%u,", (CommandId) DatumGetInt16(value));
+	    printf("(%u,", tcid);
 	}
 	
 	value = heap_getattr(tuple, buffer, MinTransactionIdAttributeNumber,
-			  &reldesc->rd_att.data[0], &isnull);
-	
+			     &reldesc->rd_att.data[0], &isnull);
+	txid = DatumGetUInt32(value);
 	if (isnull) {
 	    printf("*NULL*),");
-	} else if (!TransactionIdIsValid((TransactionId)value)) {
+	} else if (!TransactionIdIsValid(txid)) {
 	    printf("-),");
 	} else {
-	    printf("%s)", TransactionIdFormString((TransactionId)value));
-	    if (!TransactionIdDidCommit((TransactionId)value)) {
-		if (TransactionIdDidAbort((TransactionId)value)) {
+	    printf("%s)", TransactionIdFormString(txid));
+	    if (!TransactionIdDidCommit(txid)) {
+		if (TransactionIdDidAbort(txid)) {
 		    printf("*A*");
 		} else {
 		    printf("*InP*");
 		}
 	    }
-	    value = (char *)TransactionIdGetCommitTime((TransactionId)value);
-	    if (!AbsoluteTimeIsBackwardCompatiblyValid((AbsoluteTime)value)) {
+	    tabstime = (AbsoluteTime) TransactionIdGetCommitTime(txid);
+	    if (!AbsoluteTimeIsBackwardCompatiblyValid(tabstime)) {
 		printf("{-},");
 	    } else {
-		showtime((AbsoluteTime)value);
+		showtime(tabstime);
 		printf(",");
 	    }
 	}
 	
 	value = heap_getattr(tuple, buffer, MaxAbsoluteTimeAttributeNumber,
-			  &reldesc->rd_att.data[0], &isnull);
-	
+			     &reldesc->rd_att.data[0], &isnull);
+	tabstime = DatumGetUInt32(value);
 	if (isnull) {
 	    printf("{*NULL*} ");
-	} else if (AbsoluteTimeIsBackwardCompatiblyValid((AbsoluteTime)value)) {
-	    showtime((AbsoluteTime)value);
+	} else if (AbsoluteTimeIsBackwardCompatiblyValid(tabstime)) {
+	    showtime(tabstime);
 	}
 
 	value = heap_getattr(tuple, buffer, MaxCommandIdAttributeNumber,
-			&reldesc->rd_att.data[0], &isnull);
-	
+			     &reldesc->rd_att.data[0], &isnull);
+	tcid = DatumGetUInt16(value);
 	if (isnull) {
 	    printf("(*NULL*,");
 	} else {
-	    printf("(%u,", (CommandId) DatumGetInt16(value));
+	    printf("(%u,", tcid);
 	}
 
 	value = heap_getattr(tuple, buffer, MaxTransactionIdAttributeNumber,
-			&reldesc->rd_att.data[0], &isnull);
-	
+			     &reldesc->rd_att.data[0], &isnull);
+	txid = DatumGetUInt32(value);
 	if (isnull) {
 	    printf("*NULL*)]\n");
-	} else if (!TransactionIdIsValid((TransactionId)value)) {
+	} else if (!TransactionIdIsValid(txid)) {
 	    printf("-)]\n");
 	} else {
-	    printf("%s)", TransactionIdFormString((TransactionId)value));
-	    value = (char *)TransactionIdGetCommitTime((TransactionId)value);
-	    if (!AbsoluteTimeIsBackwardCompatiblyValid((AbsoluteTime)value)) {
+	    printf("%s)", TransactionIdFormString(txid));
+	    tabstime = TransactionIdGetCommitTime(txid);
+	    if (!AbsoluteTimeIsBackwardCompatiblyValid(tabstime)) {
 		printf("{-}]\n");
 	    } else {
-		showtime((AbsoluteTime)value);
+		showtime(tabstime);
 		printf("]\n");
 	    }
 	}
@@ -1476,7 +1475,7 @@ index_register(heap, ind, natts, attnos, nparams, params, finfo, predInfo)
 	v = newind->il_params = (Datum *) palloc(2 * nparams * sizeof(Datum));
 	nparams *= 2;
 	while (nparams-- > 0) {
-	    *v = (Datum) palloc((char *) strlen((char *)(*params)) + 1);
+	    *v = (Datum) palloc(strlen((char *)(*params)) + 1);
 	    strcpy((char *) *v++, (char *) *params++);
 	}
     } else {

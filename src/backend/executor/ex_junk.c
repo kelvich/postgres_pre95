@@ -12,8 +12,11 @@
 
 #include "executor/executor.h"
 
-extern Node CopyObject();
-extern List MakeTLE();
+#include "utils/palloc.h"
+
+#include "lib/copyfuncs.h"
+
+#include "planner/internal.h"	/* for MakeTLE */
 
 /*-------------------------------------------------------------------------
  * 	XXX this stuff should be rewritten to take advantage
@@ -87,13 +90,13 @@ ExecInitJunkFilter(targetList)
 		/*
 		 * make a copy of the resdom node, changing its resno.
 		 */
-		cleanResdom = (Resdom) CopyObject(resdom);
+		cleanResdom = (Resdom) CopyObject((Node) resdom);
 		set_resno(cleanResdom, cleanResno);
 		cleanResno ++;
 		/*
 		 * create a new target list entry
 		 */
-		tle = (List) MakeTLE(cleanResdom, expr);
+		tle = (List) MakeTLE(cleanResdom, (Expr) expr);
 		cleanTargetList = nappend1(cleanTargetList, tle);
 	    }
 	}
@@ -104,28 +107,28 @@ ExecInitJunkFilter(targetList)
 	    List fjList = CAR(t);
 	    Fjoin fjNode = (Fjoin)tl_node(fjList);
 
-	    cleanFjoin = (Fjoin)CopyObject(fjNode);
-	    cleanFjList = lispCons(cleanFjoin, LispNil);
+	    cleanFjoin = (Fjoin)CopyObject((Node) fjNode);
+	    cleanFjList = lispCons((LispValue) cleanFjoin, LispNil);
 
 	    resdom = (Resdom) CAR(get_fj_innerNode(fjNode));
 	    expr =   CADR(get_fj_innerNode(fjNode));
-	    cleanResdom = (Resdom) CopyObject(resdom);
+	    cleanResdom = (Resdom) CopyObject((Node) resdom);
 	    set_resno(cleanResdom, cleanResno);
 	    cleanResno++;
-	    tle = (List) MakeTLE(cleanResdom, expr);
+	    tle = (List) MakeTLE(cleanResdom, (Expr) expr);
 	    set_fj_innerNode(cleanFjoin, tle);
 
 	    foreach(fjListP, CDR(fjList)) {
 		
 	    	resdom = (Resdom) tl_resdom(CAR(fjListP));
 	    	expr = tl_expr(CAR(fjListP));
-	    	cleanResdom = (Resdom) CopyObject(resdom);
+	    	cleanResdom = (Resdom) CopyObject((Node) resdom);
 		cleanResno++;
 	    	set_resno(cleanResdom, cleanResno);
 	    	/*
 	     	 * create a new target list entry
 	     	 */
-	    	tle = (List) MakeTLE(cleanResdom, expr);
+	    	tle = (List) MakeTLE(cleanResdom, (Expr) expr);
 	    	cleanFjList = nappend1(cleanFjList, tle);
 	    }
 	    nappend1(cleanTargetList, cleanFjList);

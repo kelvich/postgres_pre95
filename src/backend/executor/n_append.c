@@ -54,6 +54,8 @@
 
 #include "executor/executor.h"
 
+#include "utils/palloc.h"
+
  RcsId("$Header$");
 /* ----------------------------------------------------------------
  *      exec-append-initialize-next
@@ -333,7 +335,7 @@ ExecCountSlotsAppend(node)
     int  nSlots     = 0;
 
     foreach (plan,unionplans) {
-	nSlots += ExecCountSlotsNode(CAR(plan));
+	nSlots += ExecCountSlotsNode((Plan) CAR(plan));
     }
     return nSlots + APPEND_NSLOTS;
 }

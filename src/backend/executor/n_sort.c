@@ -19,7 +19,11 @@
 
 #include "executor/executor.h"
 
- RcsId("$Header$");
+#include "utils/palloc.h"
+
+#include "lib/catalog.h"
+
+RcsId("$Header$");
 
 /* ----------------------------------------------------------------
  *    	FormSortKeys(node)
@@ -57,7 +61,7 @@ FormSortKeys(sortnode)
      *	first allocate space for scan keys
      * ----------------
      */
-    sortkeys = (struct skey*)ExecMakeSkeys(keycount);
+    sortkeys = (struct skey *) ExecMakeSkeys(keycount);
     if (sortkeys == NULL)
 	elog(DEBUG, "FormSortKeys: ExecMakeSkeys(keycount) returns NULL!");
     
@@ -75,7 +79,7 @@ FormSortKeys(sortnode)
 	    ExecSetSkeys(reskey - 1,
 			 (ScanKeyEntry)sortkeys,
 			 (AttributeNumber) resno,
-			 (RegProcedure) reskeyop,
+			 (RegProcedure) DatumGetInt32(reskeyop),
 			 (Datum) 0);
 	}
     }
@@ -490,11 +494,9 @@ ExecEndSort(node)
      */
     ReleaseTmpRelBuffers(tempRelation);
     ReleaseTmpRelBuffers(sortedRelation);
-    if (FileNameUnlink((char *)
-	relpath((char *) &(tempRelation->rd_rel->relname))) < 0)
+    if (FileNameUnlink(relpath((char *) &(tempRelation->rd_rel->relname))) < 0)
 	elog(WARN, "ExecEndSort: unlink: %m");
-    if (FileNameUnlink((char *) relpath((char *)
-			       &(sortedRelation->rd_rel->relname))) < 0)
+    if (FileNameUnlink(relpath((char *) &(sortedRelation->rd_rel->relname))) < 0)
 	elog(WARN, "ExecEndSort: unlink: %m");
     
     amclose(tempRelation);

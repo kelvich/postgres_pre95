@@ -24,7 +24,9 @@
 #include "tcop/slaves.h"
 #include "executor/executor.h"
 
- RcsId("$Header$");
+#include "lib/lisplist.h"
+
+RcsId("$Header$");
 
 /* ----------------------------------------------------------------
  *   			Scan Support
@@ -391,8 +393,7 @@ ExecInitSeqScan(node, estate, parent)
      * ----------------
      */
     {
-	List returnOid = (List)
-	    MakeList(lispInteger(reloid), -1);
+	List returnOid = MakeList(lispInteger(reloid), -1);
 	
 	return
 	    returnOid;

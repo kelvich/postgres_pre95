@@ -28,7 +28,11 @@
 #include "tcop/slaves.h"
 #include "executor/executor.h"
 
- RcsId("$Header$");
+#include "planner/clauses.h"
+
+#include "utils/palloc.h"
+
+RcsId("$Header$");
 
 /* ----------------
  *	Misc stuff to move to executor.h soon -cim 6/5/90
@@ -306,7 +310,9 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
 	    palloc(len * sizeof(IndexInfo));
 	
 	for (i=0; i<len; i++)
-	    indexInfoArray[i] = MakeIndexInfo(0,NULL);
+	    indexInfoArray[i] = MakeIndexInfo(0, (AttributeNumberPtr) NULL,
+					      (FuncIndexInfoPtr) NULL,
+					      (List) LispNil);
 	
 	/* ----------------
 	 *   attempt to open each of the indices.  If we succeed,
@@ -1672,14 +1678,16 @@ partition_indexscan(numIndices, scanDescs, parallel)
 	
         if (SlaveInfoP[MyPid].groupPid > 0) {
            lowKeyEntry.procedure = INT4GE;
-	   fmgr_info(INT4GE, &lowKeyEntry.func, &lowKeyEntry.nargs);
+	   fmgr_info(INT4GE, (func_ptr *) &lowKeyEntry.func, 
+		     &lowKeyEntry.nargs);
 	  }
 	
         highKeyEntry.argument = Int32GetDatum(newhighkey);
 	
         if (SlaveInfoP[MyPid].groupPid < parallel - 1) {
            highKeyEntry.procedure = INT4LT;
-	   fmgr_info(INT4LT, &highKeyEntry.func, &highKeyEntry.nargs);
+	   fmgr_info(INT4LT, (func_ptr *) &highKeyEntry.func,
+		     &highKeyEntry.nargs);
 	  }
 	
         scanDesc->keyData.data[0] = lowKeyEntry;

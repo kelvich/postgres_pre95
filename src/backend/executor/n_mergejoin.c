@@ -74,7 +74,9 @@
 
 #include "executor/executor.h"
 
- RcsId("$Header$");
+#include "lib/copyfuncs.h"
+
+RcsId("$Header$");
 
 /* ----------------------------------------------------------------
  *	MarkInnerTuple and RestoreInnerTuple macros
@@ -154,7 +156,7 @@ MJFormOSortopI(qualList, sortOp)
      *  so let's use it instead of the old fashoned lispCopy()...
      * ----------------
      */
-    qualCopy = (List) CopyObject(qualList);
+    qualCopy = (List) CopyObject((Node) qualList);
     
     foreach (qualcdr, qualCopy) {
 	/* ----------------

@@ -10,6 +10,7 @@
 #include "storage/page.h"
 
 #include "utils/log.h"
+#include "utils/palloc.h"
 #include "utils/rel.h"
 #include "utils/excid.h"
 
@@ -43,7 +44,7 @@ _hash_search(rel, keysz, scankey, bufP, metap)
     Datum keyDatum;
     Bucket bucket;
 
-    if ((keyDatum = scankey->data[0].argument) == NULL) {
+    if ((keyDatum = scankey->data[0].argument) == (Datum) NULL) {
 	/* 
 	 * If the scankey argument is NULL, all tuples will
 	 * satisfy the scan so we start the scan at  the

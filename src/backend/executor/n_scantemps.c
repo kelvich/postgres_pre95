@@ -19,10 +19,12 @@
  */
 
 #include <sys/file.h>
+#include "utils/palloc.h"
 #include "utils/relcache.h"
 #include "tcop/slaves.h"
 #include "executor/executor.h"
 
+#include "lib/catalog.h"
 
 /* ----------------------------------------------------------------
  *	ExecScanTemps(node)
@@ -89,8 +91,7 @@ ScanTemps node;
 	 * was opened in another backend, so the virtual file descriptor
 	 * is invalid in the current process.
 	 */
-        tempreldesc->rd_fd = FileNameOpenFile(
-				  (char *) relpath((char *)
+        tempreldesc->rd_fd = FileNameOpenFile(relpath((char *)
 					  &(tempreldesc->rd_rel->relname)),
                                   O_RDWR, 0666);
 	
@@ -190,8 +191,8 @@ ExecInitScanTemps(node, estate, parent)
     tempRelDescs = get_temprelDescs(node);
     tempreldesc = (Relation)CAR(tempRelDescs);
     tempreldesc->rd_fd =
-	FileNameOpenFile((char *) relpath(&(tempreldesc->rd_rel->relname)),
-			 O_RDWR, 0666);
+	FileNameOpenFile(relpath((char *) &(tempreldesc->rd_rel->relname)),
+				 O_RDWR, 0666);
     
     RelationRegisterTempRel(tempreldesc);
     
