@@ -51,6 +51,10 @@
 #include "utils/log.h"
 #include "utils/palloc.h"
 
+#if !defined(PF_UNSPEC)
+#define PF_UNSPEC 0
+#endif /* !PF_UNSPEC */
+
 RcsId("$Header$");
 
 /*
