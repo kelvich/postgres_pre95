@@ -13,6 +13,8 @@
  *     		find-all-join-paths
  */
 
+#include <math.h>
+
 #include "nodes/pg_lisp.h"
 #include "nodes/relation.h"
 #include "nodes/relation.a.h"
