@@ -1455,9 +1455,16 @@ var_list:
 where_clause:
 	/* empty - no qualifiers */
 	        { NULLTREE } 
-	| WHERE boolexpr
-		{ $$ = $2; p_qual = $$; }
+	| WHERE a_expr
+	    {
+		if (CInteger(CAR($2)) != BOOLOID)
+		    elog(WARN,
+			 "where clause must return type bool, not %s",
+			 tname(get_id_type(CInteger(CAR($2)))));
+		p_qual = $$ = CDR($2);
+	    }
 	;
+
 opt_portal:
   	/* common to retrieve, execute */
 	/*EMPTY*/
@@ -1555,33 +1562,6 @@ opt_range_end:
 		{ $$ = lispString("now"); }
 	| date
 	;
- /**********************************************************************
-
-   Boolean Expressions - qualification clause
-
-	XXX - for each left, right side of boolean op,
-	need to check that qualification is indeed boolean
-
-  **********************************************************************/
-
-boolexpr:
-	  a_expr
-	    {
-		if (CInteger(CAR($1)) != BOOLOID)
-		    elog(WARN,
-			 "where clause must return type bool, not %s",
-			 tname(get_id_type(CInteger(CAR($1)))));
-		$$ = CDR($1);
-	    }
-	| boolexpr AND boolexpr
-		{ $$ = MakeList ( lispInteger(AND) , $1 , $3 , -1 ); }
-	| boolexpr OR boolexpr
-		{ $$ = MakeList ( lispInteger(OR) , $1, $3, -1 ); }
-	| NOT boolexpr
-		{ $$ = MakeList ( lispInteger(NOT) , $2, -1 ); }
-	| '(' boolexpr ')'
-		{ $$ = $2; }
-	;
 
 record_qual:
 	/*EMPTY*/
@@ -1643,7 +1623,14 @@ opt_var_defs:
 
 agg_where_clause:
 	/* empty list */  {NULLTREE; }
-	| WHERE boolexpr  { $$ = $2; }
+	| WHERE a_expr 
+	    {
+		if (CInteger(CAR($2)) != BOOLOID)
+		    elog(WARN,
+			 "where clause must return type bool, not %s",
+			 tname(get_id_type(CInteger(CAR($2)))));
+		$$ = CDR($2);
+	    }
 	;
 
  /* 
@@ -1740,9 +1727,49 @@ a_expr:
 			extern List ParseFunc();
 			 yyval =  nappend1( LispNil, $1);
 			 $$ = ParseFunc( "NonNullValue", yyval );
-			 Typecast_ok = false; }
+			 Typecast_ok = false;
+		}
+	| a_expr AND a_expr
+	    {
+		if (CInteger(CAR($1)) != BOOLOID)
+		    elog(WARN,
+			 "left-hand side of AND is type '%s', not bool",
+			 tname(get_id_type(CInteger(CAR($1)))));
+		if (CInteger(CAR($3)) != BOOLOID)
+		    elog(WARN,
+			 "right-hand side of AND is type '%s', not bool",
+			 tname(get_id_type(CInteger(CAR($3)))));
 
+		$$ = lispCons(lispInteger(BOOLOID),
+			      MakeList (lispInteger(AND),
+					CDR($1), CDR($3), -1));
+	    }
+	| a_expr OR a_expr
+	    {
+		if (CInteger(CAR($1)) != BOOLOID)
+		    elog(WARN,
+			 "left-hand side of OR is type '%s', not bool",
+			 tname(get_id_type(CInteger(CAR($1)))));
+		if (CInteger(CAR($3)) != BOOLOID)
+		    elog(WARN,
+			 "right-hand side of OR is type '%s', not bool",
+			 tname(get_id_type(CInteger(CAR($3)))));
 
+		$$ = lispCons(lispInteger(BOOLOID),
+			      MakeList (lispInteger(OR),
+					CDR($1), CDR($3), -1));
+	    }
+	| NOT a_expr
+	    {
+		if (CInteger(CAR($2)) != BOOLOID)
+		    elog(WARN,
+			 "argument to NOT is type '%s', not bool",
+			 tname(get_id_type(CInteger(CAR($2)))));
+
+		$$ = lispCons(lispInteger(BOOLOID),
+			      MakeList (lispInteger(NOT),
+					CDR($2), -1));
+	    }
 	;
 
 /* we support only single-dim arrays in the current system */
