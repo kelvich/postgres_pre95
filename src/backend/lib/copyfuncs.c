@@ -280,15 +280,15 @@ bool CopyNodeFields(from, newnode, alloc)
         
 bool
 _copyNode(from, to, alloc)
-    Plan	from;
-    Plan	*to;
+    Node	from;
+    Node	*to;
     char *	(*alloc)();
 {
-    Plan	newnode;
+    Node	newnode;
 
     COPY_CHECKARGS();
     COPY_CHECKNULL();
-    COPY_NEW(Plan);
+    COPY_NEW(Node);
     
     /* ----------------
      *	copy the node
@@ -1028,7 +1028,7 @@ _copyResdom(from, to, alloc)
     newnode->restype = from->restype;
     newnode->reslen  = from->reslen;
     newnode->resname = (Name)
-	strcpy(from->resname, (char *) (*alloc)(strlen(from->resname)));
+	strcpy((char *) (*alloc)(strlen(from->resname)+1), from->resname);
     
     newnode->reskey  = from->reskey;
     newnode->reskeyop = from->reskeyop; /* USED AS AN INT (see above) */
@@ -1226,7 +1226,7 @@ _copyParam(from, to, alloc)
     newnode->paramid = from->paramid;
     
     newnode->paramname = (Name)
-	strcpy(from->paramname, (char *) (*alloc)(strlen(from->paramname)));
+	strcpy((char *) (*alloc)(strlen(from->paramname)+1), from->paramname);
     
     newnode->paramtype = from->paramtype;
     
@@ -1960,7 +1960,7 @@ _copyLispStr(from, to, alloc)
      * ----------------
      */
     newnode->val.name = (char *)
-	strcpy(from->val.name, (char *) (*alloc)(strlen(from->val.name)));
+	strcpy((char *) (*alloc)(strlen(from->val.name)+1), from->val.name);
     newnode->cdr = LispNil;
     
     (*to) = newnode;
