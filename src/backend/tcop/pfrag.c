@@ -22,25 +22,8 @@
 #include "nodes/plannodes.h"
 #include "nodes/execnodes.a.h"
 #include "nodes/plannodes.a.h"
+#include "executor/execmisc.h"
 #include "executor/x_execinit.h"
-
-/* XXX the following #define's are copied from executor.h */
-#define ExecIsNestLoop(node)    IsA(node,NestLoop)
-#define ExecIsHash(node)        IsA(node,Hash)
-#define ExecIsSort(node)        IsA(node,Sort)
-
-#define QdGetParseTree(queryDesc)    (List) CAR(CDR(queryDesc))
-#define QdGetPlan(queryDesc)         (Plan) CAR(CDR(CDR(queryDesc)))
-
-#define parse_tree_root(parse_tree) \
-    CAR(parse_tree)
-
-#define parse_tree_root_result_relation(parse_tree_root) \
-    CAR(CDR(CDR(parse_tree_root)))
-
-#define parse_tree_result_relation(parse_tree) \
-    parse_tree_root_result_relation(parse_tree_root(parse_tree))
-
 
  RcsId("$Header$");
 
@@ -54,9 +37,9 @@
  * ----------------------------------------------------------------
  */
 extern Pointer *SlaveQueryDescsP;
-extern ScanTemp RMakeScanTemp();
-extern Append RMakeAppend();
+extern ScanTemps RMakeScanTemps();
 extern Fragment RMakeFragment();
+extern Relation CopyRelDescUsing();
 
 Fragment
 ExecuteFragments(queryDesc, fragmentlist, rootFragment)
@@ -77,9 +60,10 @@ Fragment rootFragment;
     List		subtrees;
     Fragment		parentFragment;
     List		fragQueryDesc;
-    ScanTemp		scantempNode;
+    ScanTemps		scantempNode;
     Relation		tempRelationDesc;
-    Append		appendNode;
+    List		tempRelationDescList;
+    Relation		shmTempRelationDesc;
     
     /* ----------------
      *	execute the query appropriately if we are running one or
@@ -112,6 +96,7 @@ Fragment rootFragment;
 	   nparallel = get_frag_parallel(fragment);
 	   plan = get_frag_root(fragment);
 	   parseTree = QdGetParseTree(queryDesc);
+	   parse_tree_result_relation(parseTree) = LispNil;
 	   if (ExecIsHash(plan))  {
 	      int nbatch;
 	      nbatch = ExecHashPartition(plan);
@@ -149,7 +134,7 @@ Fragment rootFragment;
 	 * ----------------
 	 */
 	elog(DEBUG, "Master Backend: waiting for slaves...");
-	P_Finished();
+	P_Finished(nproc);
 	elog(DEBUG, "Master Backend: slaves execution complete!");
 
 	nproc = 0;
@@ -172,31 +157,48 @@ Fragment rootFragment;
 	      }
    	   else {
 	       List unionplans = LispNil;
+	       if (ExecIsScanTemps(plan)) {
+		   Relation tempreldesc;
+		   List	tempRelDescs;
+		   LispValue y;
+
+		   tempRelDescs = get_temprelDescs(plan);
+		   foreach (y, tempRelDescs) {
+		       tempreldesc = (Relation)CAR(y);
+		       ReleaseTmpRelBuffers(tempreldesc);
+		       if (unlink(relpath(&(tempreldesc->rd_rel->relname))) < 0)
+			   elog(WARN, "ExecEndScanTemp: unlink: %m");
+		    }
+		 }
 	       if (parentPlan == NULL && nparallel == 1)
 		  rootFragment = NULL;
 	       else {
+		  tempRelationDescList = LispNil;
 		  for (i=0; i<nparallel; i++) {
 		     shmPlan = QdGetPlan((List)SlaveQueryDescsP[nproc+i]);
-		     tempRelationDesc=get_resultTmpRelDesc(get_retstate(shmPlan));
-		     scantempNode = RMakeScanTemp();
-		     set_temprelDesc(scantempNode, tempRelationDesc);
-		     unionplans = nappend1(unionplans, scantempNode);
+		     shmTempRelationDesc=get_resultTmpRelDesc(
+					  get_retstate(shmPlan));
+		     tempRelationDesc = CopyRelDescUsing(shmTempRelationDesc,
+							 palloc);
+		     tempRelationDescList = nappend1(tempRelationDescList, 
+						     tempRelationDesc);
 		     }
-		  appendNode = RMakeAppend();
-		  set_unionplans(appendNode, unionplans);
+		  scantempNode = RMakeScanTemps();
+		  set_qptargetlist(scantempNode, get_qptargetlist(plan));
+		  set_temprelDescs(scantempNode, tempRelationDescList);
 		  if (parentPlan == NULL) {
-		     set_frag_root(rootFragment, appendNode);
+		     set_frag_root(rootFragment, scantempNode);
 		     set_frag_subtrees(rootFragment, LispNil);
-		     set_fragment(appendNode,-1); /* means end of parallelism */
+		     set_fragment(scantempNode,-1);/*means end of parallelism */
 		    }
 	          else {
 	          if (plan == (Plan)get_lefttree(parentPlan)) {
-		     set_lefttree(parentPlan, appendNode);
+		     set_lefttree(parentPlan, scantempNode);
 		    }
 	          else {
-		     set_righttree(parentPlan, appendNode);
+		     set_righttree(parentPlan, scantempNode);
 		    }
-	          set_fragment(appendNode, get_fragment(parentPlan));
+	          set_fragment(scantempNode, get_fragment(parentPlan));
 	          }
 	       }
 	   nproc += nparallel;
