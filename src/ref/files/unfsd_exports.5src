@@ -1,0 +1,86 @@
+.\" This is -*-nroff-*-
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.TH UNFSD_EXPORTS FILES 01/23/93
+.XA 1 "Unfsd_exports"
+.SH NAME
+unfsd_exports \(em NFS file systems being exported by user-level NFS server
+.SH SYNOPSIS
+.B /etc/unfsd_exports
+.SH DESCRIPTION
+The file
+.I /etc/unfsd_exports
+describes the file systems which are being exported to 
+nfs clients.
+It is processed by the
+.I user-level NFS
+daemon
+.IR unfsd (8C)
+when the daemon is started.
+.PP
+The file format is similar to that of the SunOS
+.IR exports (5)
+file.
+The file is organized by lines.
+A # introduces a comment to the end of the line,
+a \e preceding a new line disables the line break making the entry of
+long input lines more convenient.
+Each line consists of a mount point
+and list of machine names
+allowed to remote mount the server's file hierarchy at that mount point.
+A machine name is optionally followed by a list of mount parameters
+enclosed in parentheses.
+These are the parameters that are currently recognized.
+.ds d " *
+.ds n " +
+.TP 20
+secure\*d
+Reject requests that originate on an internet port \(>= IPPORT_RESERVED.
+.TP 20
+insecure
+Accept requests originating on any port.
+.TP 20
+root_squash
+Map requests from uid 0 on the client to uid -2 on the server.
+.TP 20
+no_root_squash\*d
+Don't map requests from uid 0.
+.TP 20
+ro\*d
+Mount file hierarchy read-only.
+.TP 20
+rw\*n
+Mount file hierarchy read-write.
+.TP 20
+link_relative\*d
+Convert symbolic links starting with a slash into relative links
+by prepending the necessary number of ../'s to get from the link directory
+to the file hierarchy root on the server.
+.TP 20
+link_absolute
+Leave symbolic links starting with a slash as they are.
+.TP 20
+map_identity\*d
+Assume the client and server share the same uid/gid space.
+.TP 20
+map_daemon
+Map local and remote names and numeric ids using a lname/uid map
+daemon on the client from which the NFS
+request originated, to map between the client and server uid spaces
+(see ugidd(8)).
+.PP
+(\*d indicates defaults,\*n indicates currently unimplemented features)
+.SH EXAMPLE
+.(C
+/     snail whelk(map_identity) tusk(root_squash, map_daemon, ro)
+/usr  usage(root_squash, map_daemon, ro)
+.)C
+.SH FILES
+/etc/unfsd_exports
+.SH "SEE ALSO"
+mountd(8C)
+unfsd(8C)
+ugidd(8C)
+.SH BUGS
+The mount point at the start of each line is currently ignored.
+Authorized clients may mount at any point in the server's hierarchy.

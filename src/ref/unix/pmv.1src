@@ -1,0 +1,76 @@
+.\" This is -*-nroff-*-
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.TH PMV UNIX 01/23/93
+.XA 1 "Pmv"
+.SH NAME
+pmv \- rename an Inversion file or directory
+.SH SYNOPSIS
+.B pmv
+[\c
+.B -D
+database]
+[\c
+.B -H
+host]
+[\c
+.B -P
+port]
+.I oldpath
+.I newpath
+.SH DESCRIPTION
+.B Pmv
+changes the name of an existing file or directory on the Inversion
+file system.  In the case that a directory is moved, the children of
+the original directory remain children of the directory under its new
+name.
+.SH ARGUMENTS
+.TP 10
+.I oldpath
+The path name of the file or directory to rename.  This must be a
+fully-qualified path rooted at \*(lq/\*(rq, and the named file or
+directory must exist.
+.TP 10
+.I newpath
+The new pathname for the file or directory.  Again, this must be fully
+qualified, and intermediate components must exist \- that is, you
+cannot move a file to a directory which does not yet exist.
+.TP
+.BR "-D" " database"
+Specifies the database to use.  Defaults to the value of the
+environment variable 
+.SM DATABASE
+(see below).
+.TP
+.BR "-H" " host"
+Specifies the hostname of the machine on which the 
+.IR postmaster
+is running.  Defaults to the name of the local host, or the value of
+the
+.SM PGHOST
+environment variable (if set).
+.TP
+.BR "-P" " port"
+Specifies the Internet TCP port on which the
+.IR postmaster
+is listening for connections.  Defaults to 4321, or the value of the
+.SM PGPORT
+environment variable (if set).
+.SH EXAMPLES
+The command
+.(C
+pmv c/d b/c/longname
+.)C
+renames the Inversion file \*(lqd\*(rq in directory \*(lqc\*(rq to
+\*(lqb/c/longname\*(rq.
+.SH ENVIRONMENT
+If no database is given on the command line, the environment variable
+.SM DATABASE
+is checked.  If no environment variable
+.SM DATABASE
+is present, the command exits with an error status.
+.PP 
+The environment variable 
+.SM PFCWD
+is used for the current directory if the pathname specified is
+relative.

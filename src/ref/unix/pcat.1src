@@ -1,0 +1,67 @@
+.\" This is -*-nroff-*-
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.TH PCAT UNIX 01/23/93
+.XA 1 "Pcat"
+.SH NAME
+pcat \- cat an Inversion file to stdout
+.SH SYNOPSIS
+.B pcat
+[\c
+.B -D
+database]
+[\c
+.B -H
+host]
+[\c
+.B -P
+port]
+.I filename
+{\c
+.I ", filename ..."
+}
+.SH DESCRIPTION
+.B Pcat
+catenates files from the Inversion file system to standard output.
+.SH ARGUMENTS
+.TP 10
+.I filename
+The name of the Inversion file to copy to standard output.
+If
+.I filename
+is \*(lq\-\*(rq (a single dash), then standard input is copied.
+.TP
+.BR "-D" " database"
+Specifies the database to use.  Defaults to the value of the
+environment variable 
+.SM DATABASE
+(see below).
+.TP
+.BR "-H" " host"
+Specifies the hostname of the machine on which the 
+.IR postmaster
+is running.  Defaults to the name of the local host, or the value of
+the
+.SM PGHOST
+environment variable (if set).
+.TP
+.BR "-P" " port"
+Specifies the Internet TCP port on which the
+.IR postmaster
+is listening for connections.  Defaults to 4321, or the value of the
+.SM PGPORT
+environment variable (if set).
+.SH EXAMPLES
+The command
+.(C
+pcat /myfile1 - /myfile2
+.)C
+copies the contents of Inversion file \*(lq/myfile1\*(rq, standard
+input, and the contents of Inversion file \*(lq/myfile2\*(rq to
+standard output.
+.SH ENVIRONMENT
+If no database is given on the command line, the environment variable
+.SM DATABASE
+is checked.  If no environment variable 
+.SM DATABASE
+is present, the command exits with an error status.

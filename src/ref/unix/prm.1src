@@ -1,0 +1,71 @@
+.\" This is -*-nroff-*-
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.TH PRM UNIX 01/23/93
+.XA 1 "Prm"
+.SH NAME
+prm \- remove an Inversion file
+.SH SYNOPSIS
+.B prm
+[\c
+.B -D
+database]
+[\c
+.B -H
+host]
+[\c
+.B -P
+port]
+.I pathname
+.SH DESCRIPTION
+.B Prm
+removes a file stored by the Inversion file system.  Directories must
+be removed using the
+.B prmdir
+command.
+.SH ARGUMENTS
+.TP 10
+.I pathname
+The fully-qualified pathname of the file to remove, rooted at
+\*(lq/\*(rq.
+.TP
+.BR "-D" " database"
+Specifies the database to use.  Defaults to the value of the
+environment variable 
+.SM DATABASE
+(see below).
+.TP
+.BR "-H" " host"
+Specifies the hostname of the machine on which the 
+.IR postmaster
+is running.  Defaults to the name of the local host, or the value of
+the
+.SM PGHOST
+environment variable (if set).
+.TP
+.BR "-P" " port"
+Specifies the Internet TCP port on which the
+.IR postmaster
+is listening for connections.  Defaults to 4321, or the value of the
+.SM PGPORT
+environment variable (if set).
+.SH EXAMPLES
+The command
+.(C
+prm b/c/d
+.)C
+removes file \*(lqd\*(rq from directory \*(lqb/c\*(rq.
+.SH ENVIRONMENT
+If no database is given on the command line, the environment variable
+.SM DATABASE
+is checked.  If no environment variable 
+.SM DATABASE
+is present, the command exits with an error status.
+.PP 
+The environment variable
+.SM PFCWD
+is used for the current directory if the pathname specified is
+relative.
+.SH BUGS
+It is not possible to remove files stored on write-once storage
+managers (e.g., the Sony optical disk jukebox at Berkeley).

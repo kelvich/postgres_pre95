@@ -1,0 +1,74 @@
+.\" This is -*-nroff-*-
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.TH PMKDIR UNIX 01/23/93
+.XA 1 "Pmkdir"
+.SH NAME
+pmkdir \- create a new Inversion file system directory
+.SH SYNOPSIS
+.B pmkdir
+[\c
+.B -D
+database]
+[\c
+.B -H
+host]
+[\c
+.B -P
+port]
+.I path
+{
+.I path ...
+}
+.SH DESCRIPTION
+.B Pmkdir
+creates new directories on the Inversion file system.
+The Inversion file system has a hierarchical namespace with
+the same rules as that of the Unix filesystem:
+components in a pathname are separated by slashes,
+and an initial slash refers to the root directory of the file system.
+.SH ARGUMENTS
+.TP 10
+.I pathname
+The name of the directory to create.
+.\" Because Inversion has no notion of a current working directory,
+.\" this must be a fully-qualified pathname rooted at ``/''.
+.TP
+.BR "-D" " database"
+Specifies the database to use.  Defaults to the value of the
+environment variable 
+.SM DATABASE
+(see below).
+.TP
+.BR "-H" " host"
+Specifies the hostname of the machine on which the 
+.IR postmaster
+is running.  Defaults to the name of the local host, or the value of
+the
+.SM PGHOST
+environment variable (if set).
+.TP
+.BR "-P" " port"
+Specifies the Internet TCP port on which the
+.IR postmaster
+is listening for connections.  Defaults to 4321, or the value of the
+.SM PGPORT
+environment variable (if set).
+.SH EXAMPLES
+The command
+.(C
+pmkdir /a/b/c/d
+.)C
+creates a new directory \*(lqd\*(rq as a child of \*(lq/a/b/c\*(rq,
+which must exist.
+.SH ENVIRONMENT
+If no database is given on the command line, the environment variable
+.SM DATABASE
+is checked.  If no environment variable
+.SM DATABASE
+is present, the command exits with an error status.
+.PP 
+The environment variable
+.SM PFCWD
+is used for the current directory if the pathname specified is
+relative.

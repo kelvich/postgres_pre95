@@ -1,0 +1,118 @@
+.\" This is -*-nroff-*-
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.\"
+.\" ------------------------------------------------------------------
+.\" XXX The reason for this braindeath is that .TH automatically resets
+.\"	the page number to "1".  Since we don't want to do that when 
+.\"	we're printing out the whole manual, we save the page number in
+.\"	a local number register until the real .TH finishes and then
+.\"	restore it.
+.\"
+.rn TH tH
+.af Px 1
+.de TH
+.nr Px \\n%
+.tH "\\$1" "\\$2" "\\$3" "\\$4" "\\$5" "\\$6"
+.nr % \\n(Px+1
+..
+.\" ------------------------------------------------------------------
+.\" Frew's wrapper around -me index stuff.
+.\"
+.af IW 1
+.nr IW 5n
+.de XA
+.nr TI \\n(IW*\\$1
+.(x t
+.ti +\\n(TIu
+\\$2
+.)x \\$3
+..
+.de XP
+.xp t
+..
+.\" ------------------------------------------------------------------
+.\" We can use -me index stuff except that it changes environment all
+.\" the time.  We don't care, and -man doesn't set up .ev right, so I
+.\" stripped out all references to .ev calls.
+.\"
+.af xs 1
+.nr xs 2n
+.de @C
+..
+.so ../index.me
+.\" ------------------------------------------------------------------
+.\" .(l, .)l
+.\"	fake "-me"-style lists
+.de (l 
+.nf
+.ie '\\$1'M' .in +0n
+.el .in +5n
+..
+.de )l
+.fi
+.in
+..
+.\" .(C, .)C
+.\"	constant-width font blocks
+.de (C
+.ft C
+.(b
+.(l \\$1
+.sp
+..
+.de )C
+.sp
+.)l
+.)b
+.ft R
+..
+.\" ------------------------------------------------------------------
+.\" .BH
+.\"	reference manual "big header" for sections
+.de BH
+.sp 2i
+.ps 14
+.ce
+.B \\$1
+.sp 3
+..
+.\" ------------------------------------------------------------------
+.de SB
+.nr si .5i	\" 1/2 inch relative base indent per section depth
+.nr so -.5i	\" -1/2 inch additional section title offset
+.nr $0 1	\" section depth of 1
+.nr $i \\n(si*\\n($0	\" paragraph base indent
+..
+.\" ------------------------------------------------------------------
+.de SE
+.nr si 0
+.nr so 0
+.nr $0 0
+.nr $i \\n(si*\\n($0
+.in \\n($i+\\n(po
+..
+.\" ------------------------------------------------------------------
+.de SP
+.he '\fB\\$1 (\\$2)'\\$3'\\$1 (\\$2)\fR'
+..
+.\" ------------------------------------------------------------------
+.de SS
+.PP
+.B \\$1 \\$2 \\$3 \\$4 \\$5 \\$6 \\$7 \\$8
+.PP
+..
+.\" ------------------------------------------------------------------
+.ds II \s-1INGRES\s0
+.ds PG \s-1POSTGRES\s0
+.ds UU \s-1UNIX\s0
+.ds PQ \s-1POSTQUEL\s0
+.ds LI \s-1LIBPQ\s0
+.ds PV 4.1
+.\" ------------------------------------------------------------------
+.nr ps .50v	\" .15v larger paragraph prespace
+.nr pp 11	\" one point larger paragraph pointsize
+.ps 11
+.vs 13
+.fo ''\\s+2%\\s0''	\" page numbers in 12 point type
+.SB

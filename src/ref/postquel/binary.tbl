@@ -1,0 +1,230 @@
+.\" This is -*-nroff-*-
+.TS
+center expand;
+l l c l
+c l l lw(2i).
+\fBType\fP	\fBOperator\fP	\fBPOSTGRES Function Prototype\fP	\fBOperation\fP
+_
+abstime	!\(eq	bool abstimene(abstime, abstime)	inequality
+	+	abstime timepl(abstime, reltime)	addition
+	\(mi	abstime timemi(abstime, reltime)	subtraction
+	<\(eq	bool abstimele(abstime, abstime)	less or equal
+	<?>	bool ininterval(abstime, tinterval)	abstime in tinterval?
+	<	bool abstimelt(abstime, abstime)	less than
+	\(eq	bool abstimeeq(abstime, abstime)	equality
+	>\(eq	bool abstimege(abstime, abstime)	greater or equal
+	>	bool abstimegt(abstime, abstime)	greater than
+_
+bool	\(eq	bool booleq(bool, bool)	equality
+_
+box	&&	bool box_overlap(box, box)	boxes overlap
+	&<	bool box_overleft(box, box)	T{
+box A overlaps box B,
+but does not extend to right
+of box B
+T}
+	&>	bool box_overright(box, box)	T{
+box A overlaps box B,
+but does not extend to left
+of box B
+T}
+	<<	bool box_left(box, box)	A is left of B
+	<\(eq	bool box_le(box, box)	area less or equal
+	<	bool box_lt(box, box)	area less than
+	\(eq	bool box_eq(box, box)	area equal
+	>\(eq	bool box_ge(box, box)	area greater or equal
+	>>	bool box_right(box, box)	A is right of B
+	>	bool box_gt(box, box)	area greater than
+	@	bool box_contained(box, box)	A is contained in B
+	~\(eq	bool box_same(box, box)	box equality
+	~	bool box_contain(box, box)	A contains B
+_
+char16	!\(eq	bool char16ne(char16, char16)	inequality
+	!~	bool char16regexne(char16, char16)	T{
+A does not match regular expression B
+(\*(PG uses the libc regexp calls for this
+operation)
+T}
+	<\(eq	bool char16le(char16, char16)	less or equal
+	<	bool char16lt(char16, char16)	less than
+	\(eq	bool char16eq(char16, char16)	equality
+	>\(eq	bool char16ge(char16, char16)	greater or equal
+	>	bool char16gt(char16, char16)	greater than
+	~	bool char16regexeq(char16, char16)	T{
+A matches regular expression B
+(\*(PG uses the libc regexp calls for this
+operation)
+T}
+_
+char	!\(eq	bool charne(char, char)	inequality
+	*	bool charmul(char, char)	multiplication
+	+	bool charpl(char, char)	addition
+	\(mi	bool charmi(char, char)	subtraction
+	/	bool chardiv(char, char)	division
+	<\(eq	bool charle(char, char)	less or equal
+	<	bool charlt(char, char)	less than
+	\(eq	bool chareq(char, char)	equality
+	>\(eq	bool charge(char, char)	greater or equal
+	>	bool chargt(char, char)	greater than
+_
+float4	!\(eq	bool float4ne(float4, float4)	inequality
+	*	float4 float4mul(float4, float4)	multiplication
+	+	float4 float4pl(float4, float4)	addition
+	\(mi	float4 float4mi(float4, float4)	subtraction
+	/	float4 float4div(float4, float4)	division
+	<\(eq	bool float4le(float4, float4)	less or equal
+	<	bool float4lt(float4, float4)	less than
+	\(eq	bool float4eq(float4, float4)	equality
+	>\(eq	bool float4ge(float4, float4)	greater or equal
+	>	bool float4gt(float4, float4)	greater than
+_
+float8	!\(eq	bool float8ne(float8, float8)	inequality
+	*	float8 float8mul(float8, float8)	multiplication
+	+	float8 float8pl(float8, float8)	addition
+	\(mi	float8 float8mi(float8, float8)	subtraction
+	/	float8 float8div(float8, float8)	division
+	<\(eq	bool float8le(float8, float8)	less or equal
+	<	bool float8lt(float8, float8)	less than1
+	\(eq	bool float8eq(float8, float8)	equality
+	>\(eq	bool float8ge(float8, float8)	greater or equal
+	>	bool float8gt(float8, float8)	greater than
+	^	float8 dpow(float8, float8)	exponentiation
+_
+int2	!\(eq	bool int2ne(int2, int2)	inequality
+	!\(eq	int4 int24ne(int2, int4)	inequality
+	%	int2 int2mod(int2, int2)	modulus
+	%	int4 int24mod(int2, int4)	modulus
+	*	int2 int2mul(int2, int2)	multiplication
+	*	int4 int24mul(int2, int4)	multiplication
+	+	int2 int2pl(int2, int2)	addition
+	+	int4 int24pl(int2, int4)	addition
+	\(mi	int2 int2mi(int2, int2)	subtraction
+	\(mi	int4 int24mi(int2, int4)	subtraction
+	/	int2 int2div(int2, int2)	division
+	/	int4 int24div(int2, int4)	division
+	<\(eq	bool int2le(int2, int2)	less or equal
+	<\(eq	int4 int24le(int2, int4)	less or equal
+	<	bool int2lt(int2, int2)	less than
+	<	int4 int24lt(int2, int4)	less than
+	\(eq	bool int2eq(int2, int2)	equality
+	\(eq	int4 int24eq(int2, int4)	equality
+	>\(eq	bool int2ge(int2, int2)	greater or equal
+	>\(eq	int4 int24ge(int2, int4)	greater or equal
+	>	bool int2gt(int2, int2)	greater than
+	>	int4 int24gt(int2, int4)	greater than
+		int2 int2inc(int2)	increment
+_
+int4	!!\(eq	bool int4notin(int4, char16)	T{
+This is the relational ``not in'' operator,
+and is not intended for public use.
+T}
+	!\(eq	bool int4ne(int4, int4)	inequality
+	!\(eq	int4 int42ne(int4, int2)	inequality
+	%	int4 int42mod(int4, int2)	modulus
+	%	int4 int4mod(int4, int4)	modulus
+	*	int4 int42mul(int4, int2)	multiplication
+	*	int4 int4mul(int4, int4)	multiplication
+	+	int4 int42pl(int4, int2)	addition
+	+	int4 int4pl(int4, int4)	addition
+	\(mi	int4 int42mi(int4, int2)	subtraction
+	\(mi	int4 int4mi(int4, int4)	subtraction
+	/	int4 int42div(int4, int2)	division
+	/	int4 int4div(int4, int4)	division
+	<\(eq	bool int4le(int4, int4)	less or equal
+	<\(eq	int4 int42le(int4, int2)	less or equal
+	<	bool int4lt(int4, int4)	less than
+	<	int4 int42lt(int4, int2)	less than
+	\(eq	bool int4eq(int4, int4)	equality
+	\(eq	int4 int42eq(int4, int2)	equality
+	>\(eq	bool int4ge(int4, int4)	greater or equal
+	>\(eq	int4 int42ge(int4, int2)	greater or equal
+	>	bool int4gt(int4, int4)	greater than
+	>	int4 int42lt(int4, int2)	less than
+		int4 int4inc(int4)	increment
+_
+oid	!!\(eq	bool oidnotin(oid, char16)	T{
+This is the relational ``not in'' operator,
+and is not intended for public use.
+T}
+	!\(eq	bool oidneq(oid, oid)	inequality
+	!\(eq	bool oidneq(oid, regproc)	inequality
+	<\(eq	bool int4le(oid, oid)	less or equal
+	<	bool int4lt(oid, oid)	less than
+	\(eq	bool oideq(oid, oid)	equality
+	\(eq	bool oideq(oid, regproc)	equality
+	>\(eq	bool int4ge(oid, oid)	greater or equal
+	>	bool int4gt(oid, oid)	greater than
+_
+point	!<	bool point_left(point, point)	A is left of B
+	!>	bool point_right(point, point)	A is right of B
+	!^	bool point_above(point, point)	A is above B
+	!|	bool point_below(point, point)	A is below B
+	\(eq|\(eq	bool point_eq(point, point)	equality
+	--->	bool on_pb(point, box)	point inside box
+	---`	bool on_ppath(point, path)	point on path
+	<--->	int4 pointdist(point, point)	distance between points
+_
+polygon	&&	bool poly_overlap(polygon, polygon)	polygons overlap
+	&<	bool poly_overleft(polygon, polygon)	T{
+A overlaps B but does not extend to
+right of B
+T}
+	&>	bool poly_overright(polygon, polygon)	T{
+A overlaps B but does not extend to
+left of B
+T}
+	<<	bool poly_left(polygon, polygon)	A is left of B
+	>>	bool poly_right(polygon, polygon)	A is right of B
+	@	bool poly_contained(polygon, polygon)	A is contained by B
+	~\(eq	bool poly_same(polygon, polygon)	equality
+	~	bool poly_contain(polygon, polygon)	A contains B
+_
+regproc	!\(eq	bool oidneq(regproc, oid)	inequality
+	\(eq	bool oideq(regproc, oid)	equality
+_
+reltime	!\(eq	bool reltimene(reltime, reltime)	inequality
+	<\(eq	bool reltimele(reltime, reltime)	less or equal
+	<	bool reltimelt(reltime, reltime)	less than
+	\(eq	bool reltimeeq(reltime, reltime)	equality
+	>\(eq	bool reltimege(reltime, reltime)	greater or equal
+	>	bool reltimegt(reltime, reltime)	greater than
+_
+text	!\(eq	bool textne(text, text)	inequality
+	!~	bool textregexne(text, text)	T{
+A does not contain the regular expression B.
+\*(PG uses the libc regexp interface for this
+operator.
+T}
+	<\(eq	bool text_le(text, text)	less or equal
+	<	bool text_lt(text, text)	less than
+	\(eq	bool texteq(text, text)	equality
+	>\(eq	bool text_ge(text, text)	greater or equal
+	>	bool text_gt(text, text)	greater than
+	~	bool textregexeq(text, text)	T{
+A contains the regular expression B.
+\*(PG uses the libc regexp interface for this
+operator.
+T}
+_
+tinterval	#!\(eq	bool intervallenne(tinterval, reltime)	T{
+interval length not equal to reltime.
+T}
+	#<\(eq	bool intervallenle(tinterval, reltime)	T{
+interval length less or equal reltime
+T}
+	#<	bool intervallenlt(tinterval, reltime)	T{
+interval length less than reltime
+T}
+	#\(eq	bool intervalleneq(tinterval, reltime)	T{
+interval length not equal to reltime
+T}
+	#>\(eq	bool intervallenge(tinterval, reltime)	T{
+interval length greater or equal reltime
+T}
+	#>	bool intervallengt(tinterval, reltime)	T{
+interval length greater than reltime
+T}
+	&&	bool intervalov(tinterval, tinterval)	intervals overlap
+	<<	bool intervalct(tinterval, tinterval)	A contains B
+	\(eq	bool intervaleq(tinterval, tinterval)	equality
+.TE

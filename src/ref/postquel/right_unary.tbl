@@ -1,0 +1,9 @@
+.\" This is -*-nroff-*-
+.TS
+center expand;
+l l c l
+c l l lw(2i).
+\fBType\fP	\fBOperator\fP	\fBPOSTGRES Function Prototype\fP	\fBOperation\fP
+_
+float8	%	float8 dround(float8)	round to nearest integer
+.TE

@@ -1,0 +1,156 @@
+.\" This is -*-nroff-*-
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.TH "CHANGE ACL" COMMANDS 01/23/93
+.XA 2 "Change ACL"
+.SH NAME
+change acl \(em change access control list(s)
+.SH SYNOPSIS
+.(l M
+\fBchange acl\fP [\fBgroup\fP|\fBuser\fP] [name]\fB+\fP{\fBa\fP|\fBr\fP|\fBw\fP|\fBR\fP} class-1 {, class-i}
+\fBchange acl\fP [\fBgroup\fP|\fBuser\fP] [name]\fB-\fP{\fBa\fP|\fBr\fP|\fBw\fP|\fBR\fP} class-1 {, class-i}
+\fBchange acl\fP [\fBgroup\fP|\fBuser\fP] [name]\fB=\fP{\fBa\fP|\fBr\fP|\fBw\fP|\fBR\fP} class-1 {, class-i}
+.)l
+.SH DESCRIPTION
+.SS Introduction
+An 
+.I "access control list"
+(ACL) specifies the access modes that are permitted on a given class
+for a set of users and groups of users.  These modes are:
+.(l
+a \- append data to a class
+r \- read data from a class
+w \- write data (append, delete, replace) to a class
+R \- define rules on a class
+.)l
+.SS "Application of ACLs to users"
+Each entry in an ACL consists of an identifier and a set of permitted
+access modes.  The identifier may apply to a single 
+.IR user ,
+a
+.IR group
+of users, or all 
+.IR other
+users.  If a user has a personal entry in an ACL, then only the listed
+access modes are permitted.  If a user does not have a personal entry
+but is a member of some group(s) listed in the ACL, then access is
+permitted if
+.BR all
+of the listed groups of which the user is a member have the desired
+access mode.  Finally, if a user does not have a personal entry and is
+not a member of any listed groups, then the desired access mode is
+checked against the "other" entry.
+.PP
+Database superusers (i.e., users who have pg_user.usesuper set)
+silently bypass all access controls with one exception: manual system
+catalog updates are never permitted if the user does not have
+pg_user.usecatupd set.  This is intended as a convenience (safety net)
+for careless superusers.
+.SS "Application of ACLs through time"
+The access control system always uses the ACLs that are currently
+valid, i.e., time travel is not supported.  This may change if/when a
+more general notion of time-travel is documented.
+.SH "CHANGING ACLS"
+In the syntax shown above, 
+.IR name
+is a user or group identifier.  If the 
+.BR user
+or
+.BR group
+keywords are left out, 
+.IR name
+is assumed to be a user name.  If no 
+.IR name
+is listed at all, then the ACL entry applies to the "other" category.
+.PP
+Access modes are added, deleted or explicitly set using exactly one of
+the
+.BR + ,
+.BR -
+and
+.BR =
+mode-change flags.  The access modes themselves are specified using
+any number of the single-letter mode flags listed above.
+.PP
+Only the owner of a class (or a database superuser) may change an ACL.
+.PP
+By default, classes start without any ACLs.  Classes created using the 
+inheritance mechanism do not inherit ACLs.
+.SH EXAMPLES
+.(C
+/*
+ * Deny any access to "other" to classes "gcmdata" and "btdata".
+ */
+change acl = gcmdata, btdata
+.)C
+.(C
+/*
+ * Grant "dozier" all permissions to "gcmdata" and "btdata".
+ */
+change acl user dozier=arwR gcmdata, btdata
+.)C
+.(C
+/*
+ * Allow group "sequoia" to read and append data to "gcmdata".
+ */
+change acl group sequoia+ra gcmdata
+.)C
+.(C
+/*
+ * Deny "frew" the ability to define rules on "gcmdata".
+ */
+change acl frew-R gcmdata
+.)C
+.SH "SEE ALSO"
+introduction(unix),
+append(commands),
+copy(commands),
+delete(commands),
+define rule(commands),
+replace(commands),
+retrieve(commands).
+.SH CAVEATS 
+The command syntax, patterned after
+.IR chmod (1),
+is admittedly somewhat cryptic.
+.PP
+A facility like
+.IR umask (2)
+will be added in the future.
+.PP
+User authentication is only conducted if the frontend process and
+backend server have been compiled with the
+.IR kerberos (5)
+libraries.  See
+.IR introduction (unix).
+.PP
+As shipped, the system does not have any installed ACLs.
+.PP
+An access control mode for defining trusted functions (analogous to 
+the access control on defining rules) will be added after the
+(mis)features and interface of untrusted functions have stabilized.
+.PP
+User names, group names and associated system identifiers (e.g., the
+contents of pg_user.usesysid) are assumed to be unique throughout a
+database.  Unpredictable results may occur if they are not.
+.PP
+User system identifiers, as mentioned in a previous section of the
+manual, are currently UNIX user-id's.  This may change at some time in
+the future.
+.PP
+It is possible for users to change the server's internal data
+structures from inside of trusted (fast path) C functions.  Hence,
+among many other things, such functions can circumvent any system
+access controls.  This is an inherent problem with trusted functions.
+.PP
+No \*(PQ command is provided to clean up ACLs by removing entries (as
+opposed to removing the associated permissions).  However, the
+built-in ACL functions provided make most administrative tasks fairly
+trivial.  For example, to remove all ACL references to a user "mao"
+who is about to be fired, use:
+.(C
+replace pg_class (relacl = pg_class.relacl - "mao="::aclitem)
+.)C
+.PP
+Security should be implemented with a clever query modification or
+rule-based scheme.

@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# $Header$
+#
+# XXX column widths are hard-coded based on hand-tuning.
+#	I could fix this with a 2-pass system, but it doesn't seem
+#	worth it...
+#
+awk '
+BEGIN {
+	print ".ta", "+11", "+10", "+39";
+	print ".na";
+	indt = 11 + 10 + 39;
+	FS = "\t";
+	raw = 0;
+}
+raw == 1 {
+	if ($1 != "T}") {
+		print;
+	} else {
+		raw = 0;
+	}
+	next;
+}
+NF == 4 {
+	print ".TP", indt;
+	print $1 "\t" $2 "\t" $3;
+	if ($4 == "T{") {
+		raw = 1;
+	} else {
+		print $4;
+	}
+}
+END {
+	print ".ad b";
+}' $1

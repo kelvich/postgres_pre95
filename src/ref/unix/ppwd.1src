@@ -1,0 +1,23 @@
+.\" This is -*-nroff-*-
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.TH PPWD UNIX 01/23/93
+.XA 1 "Ppwd"
+.SH NAME
+ppwd \- return Inversion file system working directory name
+.SH SYNOPSIS
+.B ppwd
+.SH DESCRIPTION
+.B Ppwd
+writes the absolute pathname of the current working directory to the
+standard output.
+.PP
+.B Ppwd
+exits with status 0 on success, and >0 if an error occurs.
+.SH ENVIRONMENT
+The environment variable
+.SM PFCWD
+stores the current Inversion working directory.
+.SH SEE ALSO
+pcd(unix),
+p_getwd(large_objects).

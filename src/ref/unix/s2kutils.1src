@@ -1,0 +1,54 @@
+.\" This is -*-nroff-*-
+.TH S2KINIT UNIX 01/23/93
+.SH "NAME"
+s2kutils \(em scripts to allow operation with a different Kerberos realm
+.SH "SYNOPSIS"
+.(l M
+\fBs2kinit\fP
+\fBs2klist\fP
+\fBs2kdestroy\fP
+.)l
+.SH "DESCRIPTION"
+.IR s2kinit ,
+.IR s2klist
+and
+.IR s2kdestroy
+are wrappers around the
+.IR Kerberos
+programs
+.IR kinit (1),
+.IR klist (1)
+and
+.IR kdestroy (1)
+that cause them to operate in the realm indicated by the environment
+variable 
+.SM PGREALM\c
+\&.  This includes the use of ticket files distinct from
+those obtained for use in the local realm.
+.PP
+The PGREALM environment variable is also understood by the
+authentication code invoked by \*(LI
+applications.  Hence, if
+.SM PGREALM 
+is set, tickets obtained using 
+.IR s2kinit
+are used by 
+.IR monitor
+and the Inversion file system utilities.  If 
+.SM PGREALM 
+is not set, then the programs display the usual 
+.IR Kerberos
+behavior.
+.SH "SEE ALSO"
+monitor(UNIX),
+kerberos(1),
+kinit(1),
+klist(1),
+kdestroy(1)
+.SH "BUGS"
+These have almost nothing to do with \*(PG.  They are here as a
+convenience to Sequoia 2000 researchers who do not work in the Sequoia
+2000 realm except to use \*(PG.
+.PP
+You still have to insert the correct realm-server mapping into 
+.I /etc/krb.conf .

@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# $Header$
+#
+# XXX column widths are hard-coded to 15 characters.
+#	I could fix this using 2-pass system but it doesn't seem 
+#	worth it...
+#
+awk '/ScanKeywords\[\]/,/^};/ { print; }' $1 | \
+	egrep '^[ 	]*{' | \
+	sed -e 's/^[^"]*"//' -e 's/".*$//' | \
+	sort -f | \
+	awk '
+{
+	++n;
+	save[n] = $0;
+}
+END {
+	print ".ft B";
+	print ".nf";
+	print ".if n .ta 5 +15 +15 +15";
+	print ".if t .ta 0.5i +1.5i +1.5i +1.5i"
+	ncol = 4;
+	nrow = int(n / ncol);
+	if (n % ncol > 0) {
+		++nrow;
+	}
+	for (i = 1; i <= nrow; ++i) {
+		x1=i; x2=x1+nrow; x3=x2+nrow; x4=x3+nrow;
+		print "\t" save[x1] "\t" save[x2] "\t" save[x3] "\t" save[x4];
+	}
+	print ".fi";
+	print ".ft";
+}
