@@ -1157,7 +1157,7 @@ generate_fjoin(tlist)
 				     inner,
 				     results,
 				     alwaysDone);
-	tempList = lispCons(fjoinNode, LispNil);
+	tempList = lispCons((LispValue)fjoinNode, LispNil);
 	tempList = nconc(tempList, fjoinList);
 	newTlist = nappend1(newTlist, tempList);
     }
