@@ -108,8 +108,6 @@ long *size;
 
 	image_size = size_text + size_data + 10000;
 
-	fd = open(filename, O_RDONLY);
-
 	if (temp_file_name == NULL)
 	{
 		temp_file_name = (char *)malloc(strlen(path) + 1);
@@ -120,7 +118,7 @@ long *size;
 
 	load_address = (char *) valloc(image_size);
 
-	sprintf(command,"ld -N -A %s -T %lx -o %s  %s -lc -lm -ll",
+	sprintf(command,"ld -x -N -A %s -T %lx -o %s  %s -lc -lm -ll",
 	    pg_pathname,
 	    load_address,
 	    temp_file_name,  filename);
@@ -205,6 +203,7 @@ long *size;
 finish_up:
 	fclose(temp_file);
 	unlink(temp_file_name);
+	close(fd);
 	*start_addr = load_address;
 	*size = true_image_size;
 	return retval;
