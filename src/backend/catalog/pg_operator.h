@@ -274,6 +274,13 @@ DATA(insert OID = 679 (  ">="      PGUID 0 b t f  911  911  16 677 676  0 0 oidc
 DATA(insert OID = 680 (  ">"       PGUID 0 b t f  911  911  16 676 677  0 0 oidchar16gt intltsel intltjoinsel ));
 DATA(insert OID = 681 (  "!="      PGUID 0 b t f  911  911  16 681 678  0 0 oidchar16ne intltsel intltjoinsel ));
 
+DATA(insert OID = 830 (  "<"       PGUID 0 b t f  810  810  16 834 833  0 0 oidint2lt intltsel intltjoinsel ));
+DATA(insert OID = 831 (  "<="      PGUID 0 b t f  810  810  16 833 834  0 0 oidint2le intltsel intltjoinsel ));
+DATA(insert OID = 832 (  "="       PGUID 0 b t f  810  810  16 832 835  0 0 oidint2eq intltsel intltjoinsel ));
+DATA(insert OID = 833 (  ">="      PGUID 0 b t f  810  810  16 831 830  0 0 oidint2ge intltsel intltjoinsel ));
+DATA(insert OID = 834 (  ">"       PGUID 0 b t f  810  810  16 830 831  0 0 oidint2gt intltsel intltjoinsel ));
+DATA(insert OID = 835 (  "!="      PGUID 0 b t f  810  810  16 835 832  0 0 oidint2ne intltsel intltjoinsel ));
+
 DATA(insert OID = 930 (  "<"       PGUID 0 b t f  910  910  16 934 933  0 0 oidint4lt intltsel intltjoinsel ));
 DATA(insert OID = 931 (  "<="      PGUID 0 b t f  910  910  16 933 934  0 0 oidint4le intltsel intltjoinsel ));
 DATA(insert OID = 932 (  "="       PGUID 0 b t f  910  910  16 932 935  0 0 oidint4eq intltsel intltjoinsel ));
