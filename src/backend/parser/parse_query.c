@@ -8,6 +8,7 @@
   the planner requires.
 
   Synthesizes the lisp object via routines in lisplib/lispdep.c
+
   $Header$
  **********************************************************************/
 
@@ -138,6 +139,13 @@ MakeRangeTableEntry( relname , options , refname)
 
     return ( lispCons ( lispString(refname), entry ));
 }
+
+LispValue
+MakeTargetList()
+{
+	
+}
+
 
 /**************************************************
 
