@@ -33,14 +33,14 @@
  *	@(#)extern.h	5.3 (Berkeley) 3/13/92
  */
 
-int acccmp __P((const FTSENT *, const FTSENT *));
-int revacccmp __P((const FTSENT *, const FTSENT *));
-int modcmp __P((const FTSENT *, const FTSENT *));
-int revmodcmp __P((const FTSENT *, const FTSENT *));
-int namecmp __P((const FTSENT *, const FTSENT *));
-int revnamecmp __P((const FTSENT *, const FTSENT *));
-int statcmp __P((const FTSENT *, const FTSENT *));
-int revstatcmp __P((const FTSENT *, const FTSENT *));
+int acccmp __P((FTSENT *, FTSENT *));
+int revacccmp __P((FTSENT *, FTSENT *));
+int modcmp __P((FTSENT *, FTSENT *));
+int revmodcmp __P((FTSENT *, FTSENT *));
+int namecmp __P((FTSENT *, FTSENT *));
+int revnamecmp __P((FTSENT *, FTSENT *));
+int statcmp __P((FTSENT *, FTSENT *));
+int revstatcmp __P((FTSENT *, FTSENT *));
 
 void err __P((int, const char *, ...));
 void prcopy __P((char *, char *, int));
