@@ -138,7 +138,7 @@ add_tl_element (rel,var,joinlist)
 			      (consider_vararrayindex(var) ?
 			       varid_array_index(var) :
 			       0 ),
-			      get_varid (var));
+			      get_varid (var),0);
 
 	set_targetlist (rel,nappend1 (tlist,
 				      create_tl_element (newvar,
