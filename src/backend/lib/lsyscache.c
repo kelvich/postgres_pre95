@@ -39,6 +39,7 @@
 #include "nodes/pg_lisp.h"
 #include "catalog/syscache.h"
 #include "access/att.h"
+#include "access/tupmacs.h"
 #include "utils/rel.h"
 #include "utils/log.h"
 #include "access/attnum.h"
@@ -195,12 +196,22 @@ get_attisset (relid, attname)
 ObjectId relid;
 Name attname;
 {
-     AttributeTupleFormD att_tup;
+     HeapTuple htup;
+     AttributeNumber attno;
+     Form_pg_attribute att_tup;
+
+     attno = get_attnum(relid, attname);
      
-     if ( SearchSysCacheStruct (ATTNAME, &att_tup, relid, attname, 0, 0) )
-	  return(att_tup.attisset);
-     else
-	  return(false);  /* XXX This should really be some error value */
+     htup = SearchSysCacheTuple (ATTNAME, relid, attname, 0, 0);
+     if (!HeapTupleIsValid(htup))
+	  elog(WARN, "get_attisset: no attribute %.16s in relation %d",
+	       attname->data, relid);
+     if (heap_attisnull(htup, attno))
+	 return(false);
+     else {
+	  att_tup = (Form_pg_attribute)GETSTRUCT(htup);
+	  return(att_tup->attisset);
+     }
 }
 
 /*    		---------- INDEX CACHE ----------
