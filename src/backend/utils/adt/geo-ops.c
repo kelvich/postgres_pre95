@@ -234,9 +234,7 @@ box_contained(box1, box2)
 	BOX	*box1, *box2;
 {
 	return((box1->xh <= box2->xh && box1->xl >= box2->xl &&
-		box1->yh <= box2->yh && box1->yl >= box2->yl) ||
-	       (box2->xh <= box1->xh && box2->xl >= box1->xl &&
-		box2->yh <= box1->yh && box2->yl >= box1->yl) );
+		box1->yh <= box2->yh && box1->yl >= box2->yl));
 }
 
 /*	box_contain	-	does box1 contain box2?
@@ -246,9 +244,7 @@ box_contain(box1, box2)
 	BOX	*box1, *box2;
 {
 	return((box1->xh >= box2->xh && box1->xl <= box2->xl &&
-		box1->yh >= box2->yh && box1->yl <= box2->yl) ||
-	       (box2->xh >= box1->xh && box2->xl <= box1->xl &&
-		box2->yh >= box1->yh && box2->yl <= box1->yl) );
+		box1->yh >= box2->yh && box1->yl <= box2->yl));
 }
 
 
@@ -1809,7 +1805,7 @@ inter_lb(line, box)
  *------------------------------------------------------------------*/
 
 	/* Maximum number of output digits printed */
-#define P_MAXDIG 10
+#define P_MAXDIG 8
 
 double poly_min();
 double poly_max();
@@ -1855,6 +1851,7 @@ char *s;
 		elog(WARN, "Memory allocation failed, can't input polygon");
 
 	poly->npts = points;
+	poly->size = size;
 
 	/* Store all x coords followed by all y coords */
 	xp = (double *) &(poly->pts[0]);
@@ -1932,20 +1929,13 @@ POLYGON *poly;
 	xp = (double *) poly->pts;
 	yp = (double *) (poly->pts + (poly->npts * sizeof(double)));
 
-	sprintf(outptr, "%-*.*e", P_MAXDIG, P_MAXDIG-6, *xp++);
-	outptr += P_MAXDIG;
-	*outptr++ = DELIM;
-	sprintf(outptr, "%-*.*e", P_MAXDIG, P_MAXDIG-6, *yp++);
-	outptr += P_MAXDIG;
+	sprintf(outptr, "%*g,%*g", P_MAXDIG, *xp++, P_MAXDIG, *yp++);
+	outptr += (2*P_MAXDIG + 1);
 
 	for (i=1; i<poly->npts; i++,xp++,yp++)
 	{
-		*outptr++ = DELIM;
-		sprintf(outptr, "%-*.*e", P_MAXDIG, P_MAXDIG-6, *xp);
-		outptr += P_MAXDIG;
-		*outptr++ = DELIM;
-		sprintf(outptr, "%-*.*e", P_MAXDIG, P_MAXDIG-6, *yp);
-		outptr += P_MAXDIG;
+		sprintf(outptr, ",%*g,%*g", P_MAXDIG, *xp++, P_MAXDIG, *yp++);
+		outptr += 2*(P_MAXDIG + 1);
 	}
 	*outptr++ = RDELIM;
 	*outptr = '\0';
@@ -2117,5 +2107,5 @@ long
 poly_contained(polya, polyb)
 POLYGON *polya, *polyb;
 {
-	return box_contain(&(polya->boundbox), &(polyb->boundbox));
+	return box_contained(&(polya->boundbox), &(polyb->boundbox));
 }
