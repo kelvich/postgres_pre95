@@ -129,6 +129,7 @@ SOURCES= \
 	${.CURDIR}/postquel/remove_operator${CMD_SRC_EXT} \
 	${.CURDIR}/postquel/remove_rule${CMD_SRC_EXT} \
 	${.CURDIR}/postquel/remove_type${CMD_SRC_EXT} \
+	${.CURDIR}/postquel/remove_view${CMD_SRC_EXT} \
 	${.CURDIR}/postquel/rename${CMD_SRC_EXT} \
 	${.CURDIR}/postquel/replace${CMD_SRC_EXT} \
 	${.CURDIR}/postquel/retrieve${CMD_SRC_EXT} \
@@ -242,6 +243,7 @@ CMD_MAN_OBJS= \
 	remove_operator${CMD_MAN_EXT} \
 	remove_rule${CMD_MAN_EXT} \
 	remove_type${CMD_MAN_EXT} \
+	remove_view${CMD_MAN_EXT} \
 	rename${CMD_MAN_EXT} \
 	replace${CMD_MAN_EXT} \
 	retrieve${CMD_MAN_EXT} \
