@@ -704,6 +704,20 @@ set_difference(foo,bar)
     return(result);
 }
 
+List
+nset_difference(foo, bar)
+List foo, bar;
+{
+    LispValue x;
+    List result;
+
+    result = foo;
+    foreach (x, bar) {
+	result = nLispRemove(result, CAR(x));
+      }
+    return result;
+}
+
 LispValue
 push(foo,bar)
      LispValue foo;
@@ -781,6 +795,20 @@ LispRemove (foo,bar)
       }
 	  
     return(result);
+}
+
+List
+nLispRemove(foo, bar)
+List foo;
+LispValue bar;
+{
+    LispValue x;
+    List result = LispNil;
+
+    foreach (x, foo)
+	if (bar != CAR(x))
+	    result = nappend1(result, CAR(x));
+    return result;
 }
 
 bool
