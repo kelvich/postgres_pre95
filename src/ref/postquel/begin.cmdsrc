@@ -15,13 +15,15 @@ This command begins a user transaction which \*(PP will guarantee
 is serializable with respect to all concurrently executing transactions.
 Postgres uses two-phase locking to perform this task.  If the transaction
 is committed, \*(PP will ensure that all updates are done or none
-of them are done.  Transactions have the standard
+of them are done.
+Transactions have the standard
 .A ACID
+(atomic,
+consistent,
+isolatable,
+and
+durable)
 property.
-.lp
-Transactions are supported by page level locks which
-are escalated to the relation level if excessive page level
-locks are set.  
 .uh "SEE ALSO"
 .lp
 end(commands),
