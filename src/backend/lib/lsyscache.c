@@ -486,17 +486,9 @@ struct varlena *
 get_typdefault (typid)
      ObjectId typid ;
 {
-    if(typid == 19) {
-	/*   char16 */
-	/*   XXX temporary diddle for char16 */
-	return((struct varlena *)malloc(16));
-	/*make_string (16,initial_element,space);*/
-    } else {
-	struct varlena *typdefault = 
-	  (struct varlena *)TypeDefaultRetrieve (typid);
-	/* if(integerp (typdefault) || vectorip (typdefault) */
-	return(typdefault);
-    }
+    struct varlena *typdefault = 
+      (struct varlena *)TypeDefaultRetrieve (typid);
+    return(typdefault);
 }
 
 

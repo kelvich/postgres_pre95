@@ -432,10 +432,9 @@ SearchSysCacheGetAttribute(cacheId, attributeNumber,
  *	vectori for types which are not.
  */
 LispValue
-TypeDefaultRetrieve(lispTypId)
-	LispValue	lispTypId;
-{
+TypeDefaultRetrieve(typId)
 	ObjectId	typId;
+{
 	HeapTuple	typeTuple;
 	TypeTupleForm	type;
 	int32		typByVal, typLen;
@@ -444,7 +443,6 @@ TypeDefaultRetrieve(lispTypId)
 	int32		dataSize;
 	LispValue	returnValue;
 
-	typId = LISPVALUE_INTEGER(lispTypId);
 	typeTuple = SearchSysCacheTuple(TYPOID,
 					(char *) typId, (char *) NULL,
 					(char *) NULL, (char *) NULL);
@@ -508,8 +506,10 @@ TypeDefaultRetrieve(lispTypId)
 #endif /* !BIGENDIAN */
 #endif /* !LITTLEENDIAN */
 			      (int) dataSize);
+			returnValue = lispInteger((int) aligned);
+		} else {
+		    returnValue = LispNil;
 		}
-		returnValue = lispInteger((int) aligned);
 	} else {
 		if ((typLen < 0 && dataSize < 0) || dataSize != typLen)
 			returnValue = LispNil;
