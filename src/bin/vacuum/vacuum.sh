@@ -1,4 +1,5 @@
 #!/bin/sh
+# $Header$
 #
 #	Vacuum postgres databases
 #
