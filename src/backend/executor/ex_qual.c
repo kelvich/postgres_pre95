@@ -1491,6 +1491,7 @@ ExecFormComplexResult(tlist, natts, tdesc, values, nulls)
  
 int
 ExecTargetListLength(targetlist)
+    List targetlist;
 {
     int len;
     List tl, curTle;
