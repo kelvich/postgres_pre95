@@ -441,10 +441,20 @@ fix_opids (clauses)
  *    		value of the CONST node (if any), and a
  *    		flag indicating whether the value appears on the left or right
  *    			of the operator and whether the value varied.
+ *
+ * OLD OBSOLETE COMMENT FOLLOWS:
  *    	If 'clause' is not of the format (op var node) or (op node var),
  *    	or if the var refers to a nested attribute, then -1's are returned for
  *    	everything but the value  a blank string "" (pointer to \0) is
  *    	returned for the value if it is unknown or null.
+ * END OF OLD OBSOLETE COMMENT.
+ * NEW COMMENT:
+ * when defining rules one of the attibutes of the operator can
+ * be a Param node (which is supposed to be treated as a constant).
+ * However as there is no value specified for a parameter until run time
+ * this routine used to return "" as value, which made 'compute_selec'
+ * to bomb (because it was expecting a lisp integer and got back a lisp
+ * string). Now the code returns a plain old good "lispInteger(0)".
  *    
  */
 
@@ -470,7 +480,8 @@ get_relattval (clause)
 	} else {
 	    return(lispCons (lispInteger(get_varno (left)),
 		  lispCons(lispInteger(get_varattno (left)),
-			   lispCons(lispString(""),
+			   /* lispCons(lispString(""), */
+			   lispCons(lispInteger(0),
 				    lispCons((lispInteger
 					      (_SELEC_CONSTANT_RIGHT_ |
 					       _SELEC_NOT_CONSTANT_)),
@@ -489,7 +500,8 @@ get_relattval (clause)
 	} else {
 	    return(lispCons (lispInteger(get_varno (right)),
 		    lispCons(lispInteger(get_varattno (right)),
-			     lispCons(lispString(""),
+			     /* lispCons(lispString(""), */
+			     lispCons(lispInteger(0),
 				      lispCons(lispInteger(_SELEC_NOT_CONSTANT_),
 					       LispNil)))));
 	} 
@@ -499,7 +511,8 @@ get_relattval (clause)
 	      */
 	return(lispCons (lispInteger(_SELEC_VALUE_UNKNOWN_),
 		  lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
-			   lispCons(lispString(""),
+			   /* lispCons(lispString(""), */
+			   lispCons(lispInteger(0),
 				    lispCons(lispInteger(_SELEC_NOT_CONSTANT_),
 					     LispNil)))));
     }		       
