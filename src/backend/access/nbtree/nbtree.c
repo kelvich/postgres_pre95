@@ -108,7 +108,7 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, predInfo)
 	slot = (TupleTableSlot)
 	    ExecGetTableSlot(tupleTable, ExecAllocTableSlot(tupleTable));
 	econtext = RMakeExprContext();
-	FillDummyExprContext(econtext, slot, htupdesc, buffer);
+	FillDummyExprContext(econtext, slot, htupdesc, InvalidBuffer);
     }
 
     /* start a heap scan */
