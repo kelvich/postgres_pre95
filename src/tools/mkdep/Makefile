@@ -12,4 +12,8 @@ SHPROG=mkdep
 SEDSCRIPT= -e 's/^cc /gcc -traditional /'
 .endif
 
+.if (${PORTNAME} == "aix")
+SEDSCRIPT= -e 's/^cc /cc -c /' -e 's/^.AIX//'
+.endif
+
 .include <postgres.shell.mk>
