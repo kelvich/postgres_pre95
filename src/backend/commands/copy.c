@@ -44,7 +44,7 @@ char *filename;
 
     if (from)
     {
-		if (pipe && IsUnderPostmaster) SendCopyBegin();
+        if (pipe && IsUnderPostmaster) SendCopyBegin();
         if (IsUnderPostmaster)
         {
             fp = pipe ? Pfin : fopen(filename, "r");
@@ -61,7 +61,7 @@ char *filename;
     }
     else
     {
-		if (pipe && IsUnderPostmaster) SendCopyBegin();
+        if (pipe && IsUnderPostmaster) SendCopyBegin();
         if (IsUnderPostmaster)
         {
             fp = pipe ? Pfout : fopen(filename, "w");
@@ -83,7 +83,7 @@ char *filename;
     else if (!from && !binary)
     {
         fputs(".\n", fp);
-		if (IsUnderPostmaster) fflush(Pfout);
+        if (IsUnderPostmaster) fflush(Pfout);
     }
 }
 
@@ -108,6 +108,7 @@ FILE *fp;
     char *nulls;
     char *string;
     bool *byval;
+    int32 ntuples;
 
     rel = heap_openr(relname);
     if (rel == NULL) elog(WARN, "%s: class %s does not exist", relname);
@@ -129,6 +130,11 @@ FILE *fp;
     {
         nulls = (char *) palloc(attr_count);
         for (i = 0; i < attr_count; i++) nulls[i] = ' ';
+
+        /* XXX expensive */
+
+        ntuples = CountTuples(rel);
+        fwrite(&ntuples, sizeof(int32), 1, fp);
     }
 
     for (tuple = heap_getnext(scandesc, NULL, NULL);
@@ -233,6 +239,8 @@ FILE *fp;
     char *string, *ptr, *CopyReadAttribute();
     Relation *index_rels;
     int32 len, null_ct, null_id;
+    int32 ntuples, tuples_read = 0;
+    bool reading_to_eof = true;
 
     Relation *index_relations;
     int28 *index_atts;
@@ -263,6 +271,11 @@ FILE *fp;
             in_func_oid = (oid) GetInputFunction(attr[i]->atttypid);
             fmgr_info(in_func_oid, &in_functions[i], &dummy);
         }
+    }
+    else
+    {
+         fread(&ntuples, sizeof(int32), 1, fp);
+         if (ntuples != 0) reading_to_eof = false;
     }
 
     values       = (Datum *) palloc(sizeof(Datum) * attr_count);
@@ -398,18 +411,22 @@ FILE *fp;
         }
 
         if (binary) pfree(string);
-           for (i = 0; i < attr_count; i++) 
-           {
-               if (!byval[i] && nulls[i] != 'n')
-               {
-                   if (!binary) pfree(values[i]);
-               }
-               else if (nulls[i] == 'n')
-               {
-                   nulls[i] = ' ';
-               }
-           }
+
+        for (i = 0; i < attr_count; i++) 
+        {
+            if (!byval[i] && nulls[i] != 'n')
+            {
+                if (!binary) pfree(values[i]);
+            }
+            else if (nulls[i] == 'n')
+            {
+                nulls[i] = ' ';
+            }
+        }
         pfree(tuple);
+        tuples_read++;
+
+        if (!reading_to_eof && ntuples == tuples_read) done = true;
     }
     pfree(values);
     if (!binary) pfree(in_functions);
@@ -661,4 +678,31 @@ char *string;
         }
         fputc(string[i], fp);
     }
+}
+
+/*
+ * Returns the number of tuples in a relation.  Unfortunately, currently
+ * must do a scan of the entire relation to determine this.
+ *
+ * relation is expected to be an open relation descriptor.
+ */
+
+int
+CountTuples(relation)
+
+Relation relation;
+
+{
+    HeapScanDesc scandesc, heap_beginscan();
+    HeapTuple tuple, heap_getnext();
+
+    int i;
+
+    scandesc = heap_beginscan(relation, 0, NULL, NULL, NULL);
+
+    for (tuple = heap_getnext(scandesc, NULL, NULL), i = 0;
+         tuple != NULL; 
+         tuple = heap_getnext(scandesc, NULL, NULL), i++);
+    heap_endscan(scandesc);
+    return(i);
 }
