@@ -131,17 +131,16 @@ This is *unsupported* software.
 .pp
 \*(PG currently has been tested by the Postgres development team on Sun
 Microsystems 3/xx family of
-processors with SunOS 3.4, or 3.5, and 4.0, Sparc architecture machines
-(Sparcstation and Sun 4) running SunOS 4.0 and higher, as well as Digital
-Equipment Corporation DECstation 3100 computers running Ultrix 4.0.  An
-unsupported port for DECstations running Ultrix lower than 4.0 is included,
-as well as an unsupported port for Sequent Symmetry running Dynix.  These
-ports are unsupported for the following reasons:  the dynamic loading mechanism
-on Ultrix less than 4.0 is severely limited, and the standard
+processors with SunOS 3.4, or 3.5, and 4.0, and Sparc architecture machines
+(Sparcstation and Sun 4) running SunOS 4.0 and higher.  Postgres is also
+supported on DECstations running Ultrix LOWER than 4.0.  Unsupported
+ports for DECstation Ultrix 4.0 and Sequent Symmetry machines running Dynix
+are included.  These ports are unsupported for the following reasons: we are
+having various problems porting to Ultrix 4.0 but Postgres mostly works (see
+the release notes), and the standard
 .i make
 on the
-Sequent Symmetry cannot compile Postgres.  Other than these disclaimers, these
-two ports work as well as the others.
+Sequent Symmetry cannot compile Postgres.  
 In order to use \*(PG,
 your machine should have at least 8 megabytes of memory
 and you will require at least 30 megabytes of disk space
