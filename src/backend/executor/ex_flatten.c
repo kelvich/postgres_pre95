@@ -174,15 +174,13 @@ FjoinBumpOuterNodes(tlist, econtext, results, nulls)
     while ((funcIsDone == true) && (outerList != LispNil))
     {
 	if (alwaysDone[curNode] == true)
-	{
 	    nulls[curNode] = 'n';
-	    curNode++;
-	}
 	else
 	    results[curNode] = ExecEvalIter(tl_expr(CAR(outerList)),
 					    econtext,
 					    &nulls[curNode],
 					    &funcIsDone);
+	curNode++;
 	outerList = CDR(outerList);
     }
 
@@ -202,15 +200,14 @@ FjoinBumpOuterNodes(tlist, econtext, results, nulls)
      * before it.  As usual watch out for functions that are always done.
      */
     trailNode = 1;
-    while (trailNode != curNode)
+    while (trailNode != curNode-1)
     {
-	if (alwaysDone[curNode] == true)
-	    trailNode++;
-	else
-	    results[curNode] = ExecEvalIter(tl_expr(CAR(trailers)),
+	if (alwaysDone[trailNode] != true)
+	    results[trailNode] = ExecEvalIter(tl_expr(CAR(trailers)),
 					    econtext,
-					    &nulls[curNode],
+					    &nulls[trailNode],
 					    &funcIsDone);
+	trailNode++;
 	trailers = CDR(trailers);
     }
     return false;
