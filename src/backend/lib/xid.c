@@ -8,20 +8,15 @@
  * ----------------------------------------------------------------
  */
 
-#include "c.h"
+#include <math.h>	/* for floor ... */
+
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 
-#include <math.h>	/* for floor ... */
-
-#include "bit.h"
-#include "clib.h"
-#include "log.h"
-#include "palloc.h"
-#include "postgres.h"	/* XXX for XID, remove this when XID -> TransactionId */
-#include "tim.h"
-
-#include "xid.h"
+#include "utils/palloc.h"
+#include "utils/log.h"
+#include "utils/memutils.h"
 
 /* ----------------------------------------------------------------
  *	transaction system constants
@@ -32,14 +27,9 @@ RcsId("$Header$");
  * ----------------------------------------------------------------
  */
 
-static TransactionIdData NullTransactionIdData = { { 0, 0, 0, 0, 0 } };
-TransactionId NullTransactionId = &NullTransactionIdData;
-
-static TransactionIdData TransactionIdOneData = { { 0, 0, 0, 2, 0 } };
-TransactionId AmiTransactionId = &TransactionIdOneData;
-
-static TransactionIdData FirstTransactionIdData = { { 0, 0, 0, 2, 2 } };
-TransactionId FirstTransactionId = &FirstTransactionIdData;
+extern TransactionId NullTransactionId;
+extern TransactionId AmiTransactionId;
+extern TransactionId FirstTransactionId;
 
 
 /* ----------------------------------------------------------------
@@ -109,8 +99,6 @@ void
 PointerStoreInvalidTransactionId(destination)
 	Pointer		destination;
 {
-	Assert(PointerIsValid(destination));
-
 	MemoryCopy((String)destination, (String)NullTransactionId,
 		TransactionIdDataSize);
 }
@@ -125,9 +113,6 @@ TransactionIdStore(transactionId, destination)
 	TransactionId	transactionId;
 	Pointer		destination;
 {
-	Assert(TransactionIdIsValid(transactionId));
-	Assert(PointerIsValid(destination));
-
 	MemoryCopy((String)destination, (String)transactionId,
 		TransactionIdDataSize);
 }
