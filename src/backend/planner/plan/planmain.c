@@ -212,9 +212,11 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 				    constant_qual,
 				   subplan,
 				   restplan);
-	  if ( constant_qual ) {
-	    set_join_tlist_references ( plan ); 
-	  }
+	  /*
+	   * Change all varno's of the Result's node target list.
+	   */
+	  set_result_tlist_references(plan);
+
 	  if ( valid_numkeys (sortkeys) ) 
 	    return (sort_level_result (plan,sortkeys));
 	  else 
