@@ -550,6 +550,7 @@ append FLOAT4_TBL(f1="-34.84")
 append FLOAT4_TBL(f1="1.2345678901234e+20")
 \g
 append FLOAT4_TBL(f1="1.2345678901234e-20")
+\g
 /* test for over and under flow */
 append FLOAT4_TBL(f1="10e40") 
 \g
@@ -585,7 +586,7 @@ retrieve (x= f.f1 - "-10") from f in FLOAT4_TBL where f.f1 > "0.0"
 retrieve (FLOAT4_TBL.all)
 \g
 /* test the unary float4abs operator */
-retrieve (x = @f.f1) from f in FLOAT8_TBL
+retrieve (x = @f.f1) from f in FLOAT4_TBL
 \g
 replace FLOAT4_TBL(f1= FLOAT4_TBL.f1 * "-1") where FLOAT4_TBL.f1 > "0.0"
 \g
@@ -608,12 +609,14 @@ append FLOAT8_TBL(f1="1.2345678901234e-200")
 \g
 /* test for over and under flow */
 /* this causes floating point exceptions right now! */
-/* 
 append FLOAT8_TBL(f1="10e400") 
+\g
 append FLOAT8_TBL(f1="-10e400")
+\g
 append FLOAT8_TBL(f1="10e-400")
+\g
 append FLOAT8_TBL(f1="-10e-400")
-*/
+\g
 
 retrieve (FLOAT8_TBL.all)
 \g
