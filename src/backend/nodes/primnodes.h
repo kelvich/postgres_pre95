@@ -116,6 +116,7 @@ class (Var) public (Expr) {
 	List			vardotfields;
 	Index			vararrayindex;
 	List			varid;
+	ObjectId		varelemtype;
  /* public: */
 };
 
