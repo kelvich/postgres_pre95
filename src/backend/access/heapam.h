@@ -24,8 +24,6 @@
 #include "access/tupdesc.h"
 
 #include "rules/rlock.h"
-#include "tmp/datum.h"
-#include "tmp/name.h"
 #include "utils/rel.h"
 
 /* ----------------------------------------------------------------

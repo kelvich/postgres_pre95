@@ -12,7 +12,6 @@ RcsId("$Header$");
 #include "access/htup.h"
 #include "storage/buf.h"
 #include "utils/log.h"
-#include "tmp/name.h"
 
 #include "catalog/syscache.h"
 #include "catalog/catname.h"	/* NameIs{,Shared}SystemRelationName */

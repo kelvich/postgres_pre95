@@ -9,8 +9,7 @@
 #ifndef	XLogIncluded	/* Include this file only once. */
 #define XLogIncluded	1
 
-#include "tmp/c.h"
-#include "tmp/xid.h"
+#include "tmp/postgres.h"
 
 /*
  * InitializeTransactionLog --

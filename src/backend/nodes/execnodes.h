@@ -18,6 +18,8 @@
 #ifndef ExecNodesIncluded
 #define ExecNodesIncluded
 
+#include "tmp/postgres.h"
+
 #include "executor/recursion_a.h" /* recursion stuff that must go first - JRB */
 #include "nodes/primnodes.h"
 #include "nodes/pg_lisp.h"
@@ -28,7 +30,6 @@
 #include "storage/item.h"
 #include "access/sdir.h"
 #include "access/htup.h"
-#include "tmp/tim.h"
 #include "utils/rel.h"
 #include "access/relscan.h"
 #include "executor/hashjoin.h"

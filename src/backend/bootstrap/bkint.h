@@ -22,8 +22,6 @@ static	char ami_h[] = "$Header$";
 #include "storage/buf.h"
 #include "storage/bufmgr.h"	/* for BufferManagerFlush */
 #include "tmp/portal.h"
-#include "tmp/tim.h"
-#include "tmp/xid.h"
 #include "utils/log.h"
 #include "utils/rel.h"
 

@@ -11,10 +11,9 @@
  */
 #define TUPDESC_H	"$Header$"
 
-#include "tmp/c.h"
+#include "tmp/postgres.h"
 #include "access/att.h"
 #include "access/attnum.h"
-#include "tmp/name.h"
 
 typedef struct TupleDescriptorData {
 	AttributeTupleForm	data[1];	/* VARIABLE LENGTH ARRAY */

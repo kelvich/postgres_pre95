@@ -1,23 +1,24 @@
 /* $Header$ */
 
-#include "tmp/c.h"
-#include "parser/parse.h"
-#include "parser/atoms.h"
-#include "nodes/pg_lisp.h"
-#include "utils/log.h"
-#include "parser/parsetree.h"
-#include "catalog/catname.h"
-#include "nodes/relation.h"
+#include "tmp/postgres.h"
+
+#include "access/ftup.h";
 #include "access/heapam.h"		/* access methods like amopenr */
 #include "access/htup.h"
-#include "access/ftup.h";
-#include "utils/fmgr.h"
-#include "tmp/datum.h"
-#include "catalog_utils.h"
-#include "utils/rel.h"		/* for Relation stuff */
-#include "catalog/syscache.h"		/* for SearchSysCache ... */
 #include "access/itup.h"		/* for T_LOCK */
+#include "catalog/catname.h"
+#include "catalog/syscache.h"		/* for SearchSysCache ... */
+#include "catalog_utils.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/relation.h"
+#include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
+#include "parser/atoms.h"
+#include "parser/parse.h"
+#include "parser/parsetree.h"
+#include "utils/fmgr.h"
+#include "utils/log.h"
+#include "utils/rel.h"		/* for Relation stuff */
 
 ObjectId LastOidProcessed = InvalidObjectId;
 

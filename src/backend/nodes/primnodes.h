@@ -27,7 +27,6 @@
 #include "access/attnum.h"
 #include "storage/buf.h"
 #include "utils/rel.h"
-#include "tmp/name.h"
 #include "rules/params.h"
 
 #include "nodes/nodes.h"	/* bogus inheritance system */

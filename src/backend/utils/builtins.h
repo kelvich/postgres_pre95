@@ -15,9 +15,6 @@
 #define BuiltinsIncluded
 
 #include "tmp/postgres.h"
-#include "tmp/datum.h"
-#include "tmp/tim.h"
-#include "tmp/xid.h"
 #include "rules/prs2locks.h"
 #include "rules/prs2stub.h"
 

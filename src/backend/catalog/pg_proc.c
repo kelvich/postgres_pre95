@@ -25,7 +25,6 @@
 #include "utils/rel.h"
 #include "utils/fmgr.h"
 #include "utils/log.h"
-#include "tmp/name.h"
 
 #include "nodes/pg_lisp.h"
 

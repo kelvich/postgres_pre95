@@ -10,8 +10,6 @@
 #define ParamsIncluded	1	/* Include this file only once */
 
 #include "tmp/postgres.h"
-#include "tmp/name.h"
-#include "tmp/datum.h"
 
 /* ----------------------------------------------------------------
  *

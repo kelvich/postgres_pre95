@@ -9,9 +9,7 @@
 #ifndef	XTimIncluded	/* Include this file only once. */
 #define XTimIncluded	1
 
-#include "tmp/c.h"
-#include "tmp/tim.h"
-#include "tmp/xid.h"
+#include "tmp/postgres.h"
 
 /*
  * TransactionIdGetCommitTime --

@@ -30,7 +30,6 @@
 #include "access/skey.h"
 #include "utils/rel.h"
 #include "utils/log.h"
-#include "tmp/name.h"
 
 #include "catalog/catname.h"
 #include "catalog/syscache.h"

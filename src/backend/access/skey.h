@@ -16,8 +16,6 @@
 
 #include "tmp/postgres.h"
 #include "access/attnum.h"
-#include "tmp/datum.h"
-#include "tmp/regproc.h"
 
 typedef uint16	ScanKeySize;
 

@@ -9,8 +9,7 @@
 #ifndef	DefRemIncluded		/* Include this file only once */
 #define DefRemIncluded	1
 
-#include "tmp/c.h"
-#include "tmp/name.h"
+#include "tmp/postgres.h"
 #include "nodes/pg_lisp.h"
 
 /*

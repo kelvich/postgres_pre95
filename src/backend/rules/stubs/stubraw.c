@@ -14,8 +14,9 @@
  */
 
 #include <stdio.h>
+#include "tmp/postgres.h"
+
 #include "utils/log.h"
-#include "tmp/datum.h"
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
 

@@ -16,7 +16,6 @@
 #include "storage/buf.h"
 #include "machine.h"		/* for BLCKSZ */
 #include "utils/rel.h"
-#include "tmp/status.h"
 
 /* lock levels */
 #define L_LOCKS	0x07	/* lock mask */

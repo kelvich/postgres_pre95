@@ -31,17 +31,6 @@
  */
 #define DATUM_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
-
-#ifndef NAME_H
-# include "name.h"
-#endif
-#ifndef OID_H
-# include "oid.h"
-#endif
-
 typedef struct AnyStruct {
 	char    character;
 	double  largeFloat;

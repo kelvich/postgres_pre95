@@ -11,8 +11,7 @@
  */
 #define CATNAME_H	"$Header$"
 
-#include "tmp/c.h"
-#include "tmp/name.h"
+#include "tmp/postgres.h"
 
 extern Name	AggregateRelationName;
 extern Name	AccessMethodRelationName;

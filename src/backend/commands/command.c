@@ -41,8 +41,7 @@ RcsId("$Header$");
 #include "nodes/pg_lisp.h"
 #include "storage/buf.h"
 #include "storage/itemptr.h"
-#include "tmp/globals.h"	/* for IsUnderPostmaster */
-#include "tmp/name.h"		/* for NameIsEqual */
+#include "tmp/miscadmin.h"
 #include "tmp/portal.h"
 #include "utils/excid.h"
 #include "utils/log.h"

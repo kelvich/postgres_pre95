@@ -3,7 +3,7 @@
 RcsId("$Header$");
 
 #include "access/htup.h"
-#include "tmp/align.h"
+#include "utils/memutils.h"
 #include "utils/log.h"
 #include "utils/pg_malloc.h"
 

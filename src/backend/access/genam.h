@@ -16,8 +16,6 @@
 #include "access/itup.h"
 #include "access/relscan.h"
 #include "access/skey.h"
-#include "tmp/datum.h"
-#include "tmp/name.h"
 
 /*
  * RelationNameCreateIndexRelation --

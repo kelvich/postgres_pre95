@@ -22,7 +22,6 @@ RcsId("$Header$");
 #include "parser/parsetree.h"
 #include "rules/prs2.h"
 #include "rules/prs2locks.h"
-#include "tmp/datum.h"
 #include "utils/fmgr.h"
 #include "utils/log.h"
 #include "utils/rel.h"		/* for Relation stuff */

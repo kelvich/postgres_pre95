@@ -21,9 +21,10 @@
 #ifndef PlanNodesIncluded
 #define	PlanNodesIncluded
 
+#include "tmp/postgres.h"
+
 #include "nodes/nodes.h"		/* bogus inheritance system */
 #include "nodes/pg_lisp.h"
-#include "tmp/oid.h"
 #include "executor/recursion_a.h"       /* recursion stuff that must go first */
 #include "nodes/primnodes.h"
 #include "rules/prs2stub.h"

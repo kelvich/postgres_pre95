@@ -12,7 +12,7 @@ RcsId("$Header$");
 #include "storage/bufmgr.h"
 #include "storage/bufpage.h"
 
-#include "tmp/align.h"
+#include "utils/memutils.h"
 #include "utils/rel.h"
 
 #ifdef	RANDOMDEBUG

@@ -9,15 +9,14 @@
 #ifndef	AttValIncluded	/* Include this file only once. */
 #define AttValIncluded	1
 
-#include "tmp/c.h"
+#include "tmp/postgres.h"
 
-#include "tmp/datum.h"
+typedef Datum	AttributeValue;
+
 #include "access/attnum.h"
 #include "access/htup.h"
 #include "access/itup.h"
 #include "access/tupdesc.h"
-
-typedef Datum	AttributeValue;
 
 /*
  * AttributeValueIsValid --

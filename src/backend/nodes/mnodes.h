@@ -11,9 +11,8 @@
 
 #include "tmp/c.h"
 
-#include "tmp/aset.h"
+#include "utils/memutils.h"
 #include "tmp/fstack.h"
-#include "tmp/oset.h"
 
 #include "nodes/nodes.h"
 

@@ -22,8 +22,6 @@
 #include "storage/page.h"
 #include "storage/part.h"
 
-#include "tmp/status.h"
-
 typedef uint16		LocationIndex;
 
 typedef Size		PageSize;

@@ -11,9 +11,10 @@
 
 /* #define	CACHEDEBUG 	/* turns DEBUG elogs on */
 
+#include "tmp/postgres.h"
+    
 #include "access/skey.h"
 #include "access/htup.h"
-#include "tmp/oid.h"
 #include "utils/rel.h"
 #include "tmp/simplelists.h"
 

@@ -11,7 +11,7 @@
 
 #include <strings.h>
 
-#include "tmp/c.h"
+#include "tmp/postgres.h"
 
 /*
  * XXX style--this should be in a more global header file
@@ -19,7 +19,6 @@
 #define StringEquals(x, y)	(strcmp(x, y) == 0)
 
 #include "nodes/pg_lisp.h"
-#include "tmp/name.h"
 
 /*
  * DefineListRemoveOptionalIndicator --

@@ -19,8 +19,6 @@ RcsId("$Header$");
 
 #include "access/tqual.h"
 #include "parser/parse.h"
-#include "tmp/datum.h"
-#include "tmp/tim.h"
 #include "utils/log.h"
 #include "utils/palloc.h"
 #include "utils/rel.h" 		/* Relation stuff */

@@ -12,7 +12,7 @@
 
 #include <strings.h>	/* XXX style */
 
-#include "tmp/c.h"
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 
@@ -25,7 +25,6 @@ RcsId("$Header$");
 #include "manip.h"
 #include "nodes/pg_lisp.h"
 #include "parser/parse.h"	/* for ARG */
-#include "tmp/name.h"
 #include "utils/fmgr.h"		/* for fmgr */
 #include "utils/log.h"
 

@@ -35,9 +35,6 @@
 
 RcsId("$Header$");
 
-#include "tmp/os.h"
-#include "tmp/clib.h"
-
 #include "access/att.h"
 #include "access/attnum.h"
 #include "access/genam.h"
@@ -52,8 +49,10 @@ RcsId("$Header$");
 #include "rules/rlock.h"
 #include "storage/buf.h"
 #include "storage/fd.h"
+#include "tmp/miscadmin.h"
 #include "tmp/hashlib.h"
 #include "tmp/hasht.h"
+#include "utils/memutils.h"
 #include "utils/lmgr.h"
 #include "utils/log.h"
 #include "utils/mcxt.h"

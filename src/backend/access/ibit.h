@@ -10,7 +10,7 @@
 #define IBitIncluded	1
 
 #include "tmp/c.h"
-#include "tmp/limit.h"
+#include "utils/memutils.h"
 
 typedef struct IndexAttributeBitMapData {
 	char	bits[(MaxIndexAttributeNumber + MaxBitsPerByte - 1)

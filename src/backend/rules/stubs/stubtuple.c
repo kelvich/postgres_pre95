@@ -13,7 +13,8 @@
 
 
 #include <stdio.h>
-#include "tmp/datum.h"
+#include "tmp/postgres.h"
+
 #include "utils/log.h"
 #include "access/tupdesc.h"
 #include "access/heapam.h"

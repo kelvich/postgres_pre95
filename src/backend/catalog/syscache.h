@@ -11,8 +11,8 @@
 
 /*#define CACHEDEBUG 	/* turns DEBUG elogs on */
 
+#include "tmp/postgres.h"
 #include "access/htup.h"
-#include "tmp/name.h"
 
 /*
  *	Declarations for util/syscache.c.

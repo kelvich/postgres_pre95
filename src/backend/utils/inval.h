@@ -9,9 +9,8 @@
 #ifndef	InvalIncluded	/* Include this file only once */
 #define InvalIncluded	1
 
-#include "tmp/c.h"
+#include "tmp/postgres.h"
 #include "access/htup.h"
-#include "tmp/oid.h"
 #include "utils/rel.h"
 
 /*

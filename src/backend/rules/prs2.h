@@ -15,13 +15,12 @@
 #ifndef Prs2Included
 #define Prs2Included
 
-#include "tmp/c.h"
+#include "tmp/postgres.h"
 
 #include "access/heapam.h"
 #include "access/tupdesc.h"
 #include "nodes/pg_lisp.h"
 #include "storage/buf.h"
-#include "tmp/datum.h"
 #include "utils/rel.h"
 
 #include "rules/params.h"

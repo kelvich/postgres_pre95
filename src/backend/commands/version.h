@@ -9,7 +9,7 @@
 #ifndef VersionIncluded          /* Include this file only once */
 #define VersionIncluded  1
 
-#include "tmp/name.h"
+#include "tmp/postgres.h"
 
 /*
  *  Creates a version.

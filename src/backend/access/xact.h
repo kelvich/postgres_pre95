@@ -15,21 +15,15 @@
 #ifndef XactIncluded       /* include this file only once */
 #define XactIncluded 1
 
-/* ----------------
- *	Include files (XXX clean these up!)
- * ----------------
- */
 #include <signal.h>
 
-#include "tmp/c.h"
+#include "tmp/postgres.h"
 
 #include "access/xcxt.h"
 #include "access/xlog.h"
 #include "storage/ipci.h"
-#include "tmp/pmod.h"
+#include "tmp/miscadmin.h"
 #include "tmp/portal.h"
-#include "tmp/tim.h"
-#include "tmp/xid.h"
 #include "utils/log.h"
 #include "utils/mcxt.h"
 
