@@ -36,6 +36,10 @@ int system_cache_lookup ARGS((
 
 /*
  *    array_count - counts the number of elements in an array.
+ *	XXX since this code only counts items when it seems a delimiter,
+ *	    it is unable to return "1" .. so assume that if we've seen a
+ *	    string that there's actually an array item somewhere.
+ *	    (hence single items *must* be quoted.)  FIX ME CORRECTLY.
  */
 
 int
@@ -46,7 +50,7 @@ char delimiter;
 
 {
     int i = 1, nelems = 0;
-    bool scanning_string = false;
+    bool scanning_string = false, seen_string = false;
     int nest_level = 1;
 
     while (nest_level >= 1)
@@ -64,6 +68,7 @@ char delimiter;
                 break;
             case '\"':
                 scanning_string = !scanning_string;
+		seen_string = true;
                 break;
 	    case 0:
 		elog(WARN, "array constant is missing a closing bracket");
@@ -86,7 +91,7 @@ char delimiter;
      * Careful! If the array string is "{}" there is no 'last element'
      */
 
-    return(((nelems > 0) ? (nelems + 1) : 0));
+    return(((nelems > 0 || seen_string) ? (nelems + 1) : 0));
 }
 
 /*
