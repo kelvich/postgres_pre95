@@ -23,8 +23,11 @@
 #include "catalog/pg_group.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_relation.h"
+#include "catalog/pg_type.h"
 #include "catalog/pg_user.h"
 #include "catalog/syscache.h"
+
+RcsId("$Header$");
 
 /*
  * Enable use of user relations in place of real system catalogs.
@@ -32,7 +35,8 @@
 /*#define ACLDEBUG*/
 
 #ifdef ACLDEBUG
-/* Fool the code below into thinking that "pgacls" is pg_class.
+/*
+ * Fool the code below into thinking that "pgacls" is pg_class.
  * relname and relowner are in the same place, happily.
  */
 #undef	Anum_pg_relation_relacl
@@ -93,8 +97,8 @@ ChangeAcl(relname, mod_aip, modechg)
 	 */
 	relation = heap_openr(Name_pg_relation);
 	if (!RelationIsValid(relation))
-		elog(WARN, "ChangeAcl: could not open \"%s\"??",
-		     Name_pg_relation);
+		elog(WARN, "ChangeAcl: could not open \"%-*s\"??",
+		     sizeof(NameData), Name_pg_relation);
 	fmgr_info(NameEqualRegProcedure, &relkey[0].func, &relkey[0].nargs);
 	relkey[0].argument = NameGetDatum(relname);
 	hsdp = heap_beginscan(relation,
@@ -106,7 +110,8 @@ ChangeAcl(relname, mod_aip, modechg)
 	if (!HeapTupleIsValid(htp)) {
 		heap_endscan(hsdp);
 		heap_close(relation);
-		elog(WARN, "ChangeAcl: class \"%s\" not found", relname);
+		elog(WARN, "ChangeAcl: class \"%-*s\" not found",
+		     sizeof(NameData), relname);
 		return;
 	}
 	if (!heap_attisnull(htp, Anum_pg_relation_relacl))
@@ -162,36 +167,14 @@ get_grosysid(groname)
 {
 	HeapTuple htp;
 	AclId id = 0;
-#if 0
-	Relation relation;
-	static ScanKeyEntryData groupkey[1] = {
-		{ 0, Anum_pg_group_groname, NameEqualRegProcedure }
-	};
-	HeapScanDesc hsdp;
 
-	relation = heap_openr(Name_pg_group);
-	if (!RelationIsValid(relation)) {
-		elog(NOTICE, "in_group: could not open \"%s\"??",
-		     Name_pg_group);
-		return(0);
-	}
-	fmgr_info(NameEqualRegProcedure, &groupkey[0].func,
-		  &groupkey[0].nargs);
-	groupkey[0].argument = NameGetDatum(groname);
-	hsdp = heap_beginscan(relation, 0, NowTimeQual, 1, (ScanKey) groupkey);
-	htp = heap_getnext(hsdp, 0, (Buffer *) NULL);
-	if (HeapTupleIsValid(htp))
-		id = ((Form_pg_group) GETSTRUCT(htp))->grosysid;
-	heap_endscan(hsdp);
-	heap_close(relation);
-#else
 	htp = SearchSysCacheTuple(GRONAME, groname, NULL, NULL, NULL);
 	if (HeapTupleIsValid(htp)) {
 		id = ((Form_pg_group) GETSTRUCT(htp))->grosysid;
 	} else {
-		elog(NOTICE, "get_grosysid: group \"%s\" not found", groname);
+		elog(NOTICE, "get_grosysid: group \"%-*s\" not found",
+		     sizeof(NameData), groname);
 	}
-#endif
 	return(id);
 }
 
@@ -201,32 +184,7 @@ get_groname(grosysid)
 {
 	HeapTuple htp;
 	Name name;
-#if 0
-	Relation relation;
-	static ScanKeyEntryData groupkey[1] = {
-		{ 0, Anum_pg_group_grosysid, Integer16EqualRegProcedure }
-	};
-	HeapScanDesc hsdp;
 
-	name = (Name) palloc(sizeof(NameData));
-	bzero(name, sizeof(NameData));
-	relation = heap_openr(Name_pg_group);
-	if (!RelationIsValid(relation)) {
-		elog(NOTICE, "get_groname: could not open \"%s\"??",
-		     Name_pg_group);
-		return(name);
-	}
-	fmgr_info(Integer16EqualRegProcedure, &groupkey[0].func,
-		  &groupkey[0].nargs);
-	groupkey[0].argument = UInt16GetDatum(grosysid);
-	hsdp = heap_beginscan(relation, 0, NowTimeQual, 1, (ScanKey) groupkey);
-	htp = heap_getnext(hsdp, 0, (Buffer *) NULL);
-	if (HeapTupleIsValid(htp))
-		strncpy(name, ((Form_pg_group) GETSTRUCT(htp))->groname.data,
-			sizeof(NameData));
-	heap_endscan(hsdp);
-	heap_close(relation);
-#else
 	name = (Name) palloc(sizeof(NameData));
 	bzero(name, sizeof(NameData));
 	htp = SearchSysCacheTuple(GROSYSID, grosysid, NULL, NULL, NULL);
@@ -236,7 +194,6 @@ get_groname(grosysid)
 	} else {
 		elog(NOTICE, "get_groname: group %d not found", grosysid);
 	}
-#endif
 	return(name);
 }
 
@@ -251,29 +208,14 @@ in_group(uid, gid)
 	unsigned i, num;
 	AclId *aidp;
 	int32 found = 0;
-#if 0
-	static ScanKeyEntryData groupkey[1] = {
-		{ 0, Anum_pg_group_grosysid, Integer16EqualRegProcedure }
-	};
-	HeapScanDesc hsdp;
-#endif
 
 	relation = heap_openr(Name_pg_group);
 	if (!RelationIsValid(relation)) {
-		elog(NOTICE, "in_group: could not open \"%s\"??",
-		     Name_pg_group);
+		elog(NOTICE, "in_group: could not open \"%-*s\"??",
+		     sizeof(NameData), Name_pg_group);
 		return(0);
 	}
-#if 0
-	fmgr_info(Integer16EqualRegProcedure, &groupkey[0].func,
-		  &groupkey[0].nargs);
-	groupkey[0].argument = UInt16GetDatum(gid);
-	hsdp = heap_beginscan(relation, 0, NowTimeQual, 1, (ScanKey) groupkey);
-	htp = heap_getnext(hsdp, 0, (Buffer *) 0);
-	heap_endscan(hsdp);
-#else
 	htp = SearchSysCacheTuple(GROSYSID, gid, NULL, NULL, NULL);
-#endif
 	if (HeapTupleIsValid(htp) &&
 	    !heap_attisnull(htp, Anum_pg_group_grolist)) {
 		tmp = (IdList *) heap_getattr(htp, InvalidBuffer,
@@ -316,7 +258,7 @@ aclcheck(acl, id, idtype, mode)
 	 */
 	if (!acl) {
 #ifdef ACLDEBUG_TRACE
-		elog(NOTICE, "aclcheck: null ACL, returning 1");
+		elog(DEBUG, "aclcheck: null ACL, returning 1");
 #endif
 		return(1);
 	}
@@ -390,7 +332,7 @@ aclcheck(acl, id, idtype, mode)
 	case ACL_IDTYPE_WORLD:
 		break;
 	default:
-		elog(WARN, "aclcheck: bogus ACL id type");
+		elog(WARN, "aclcheck: bogus ACL id type: %d", idtype);
 		break;
 	}
 	
@@ -402,7 +344,7 @@ aclcheck(acl, id, idtype, mode)
 
 int32
 pg_aclcheck(relname, usename, mode)
-	char *relname, *usename; /* string, not Name */
+	char *relname, *usename;
 	AclMode mode;
 {
 	HeapTuple htp;
@@ -413,7 +355,8 @@ pg_aclcheck(relname, usename, mode)
 
 	htp = SearchSysCacheTuple(USENAME, usename, NULL, NULL, NULL);
 	if (!HeapTupleIsValid(htp))
-		elog(WARN, "pg_aclcheck: user \"%s\" not found", usename);
+		elog(WARN, "pg_aclcheck: user \"%-*s\" not found",
+		     sizeof(NameData), usename);
 	id = (AclId) ((Form_pg_user) GETSTRUCT(htp))->usesysid;
 
 	/* Deny anyone permission to update a system catalog unless
@@ -423,8 +366,8 @@ pg_aclcheck(relname, usename, mode)
 	if (((mode | ACL_WR) || (mode | ACL_AP)) &&
 	    NameIsSystemRelationName(relname) &&
 	    !((Form_pg_user) GETSTRUCT(htp))->usecatupd) {
-		elog(DEBUG, "catalog update to \"%s\": permission denied",
-		     relname);
+		elog(DEBUG, "pg_aclcheck: catalog update to \"%-*s\": permission denied",
+		     sizeof(NameData), relname);
 		return(0);
 	}
 	
@@ -432,7 +375,8 @@ pg_aclcheck(relname, usename, mode)
 	 */
 	if (((Form_pg_user) GETSTRUCT(htp))->usesuper) {
 #ifdef ACLDEBUG_TRACE
-		elog(DEBUG, "pg_aclcheck: %s is superuser", usename);
+		elog(DEBUG, "pg_aclcheck: \"%-*s\" is superuser",
+		     sizeof(NameData), usename);
 #endif
 		return(1);
 	}
@@ -440,8 +384,8 @@ pg_aclcheck(relname, usename, mode)
 #ifndef ACLDEBUG
 	htp = SearchSysCacheTuple(RELNAME, relname, NULL, NULL, NULL);
 	if (!HeapTupleIsValid(htp)) {
-		/* This could just be a historical relation, we may not care */
-		elog(NOTICE, "pg_aclcheck: class \"%s\" not found", relname);
+		elog(WARN, "pg_aclcheck: class \"%-*s\" not found",
+		     sizeof(NameData), relname);
 		return(1);
 	}
 	if (!heap_attisnull(htp, Anum_pg_relation_relacl)) {
@@ -462,8 +406,8 @@ pg_aclcheck(relname, usename, mode)
 
 		relation = heap_openr(Name_pg_relation);
 		if (!RelationIsValid(relation)) {
-			elog(NOTICE, "pg_checkacl: could not open \"%s\"??",
-			     Name_pg_relation);
+			elog(NOTICE, "pg_checkacl: could not open \"%-*s\"??",
+			     sizeof(NameData), Name_pg_relation);
 			return(1);
 		}
 		fmgr_info(NameEqualRegProcedure,
@@ -493,29 +437,61 @@ pg_aclcheck(relname, usename, mode)
 }
 
 int32
-pg_ownercheck(relname, usename)
-	char *relname, *usename; /* string, not Name */
+pg_ownercheck(usename, value, cacheid)
+	char *usename; /* string, not Name */
+	char *value;
+	int cacheid;
 {
 	HeapTuple htp;
 	AclId user_id, owner_id;
 
 	htp = SearchSysCacheTuple(USENAME, usename, NULL, NULL, NULL);
 	if (!HeapTupleIsValid(htp))
-		elog(WARN, "pg_ownercheck: user \"%s\" not found", usename);
+		elog(WARN, "pg_ownercheck: user \"%-*s\" not found",
+		     sizeof(NameData), usename);
 	user_id = (AclId) ((Form_pg_user) GETSTRUCT(htp))->usesysid;
 
 	/* Superusers bypass all permission-checking.
 	 */
 	if (((Form_pg_user) GETSTRUCT(htp))->usesuper) {
 #ifdef ACLDEBUG_TRACE
-		elog(DEBUG, "pg_ownercheck: %s is superuser", usename);
+		elog(DEBUG, "pg_ownercheck: user \"%-*s\" is superuser",
+		     sizeof(NameData), usename);
 #endif
 		return(1);
 	}
 
-	htp = SearchSysCacheTuple(RELNAME, relname, NULL, NULL, NULL);
-	if (!HeapTupleIsValid(htp))
-		elog(WARN, "pg_ownercheck: class \"%s\" not found", relname);
-	owner_id = ((Form_pg_relation) GETSTRUCT(htp))->relowner;
+	htp = SearchSysCacheTuple(cacheid, value, NULL, NULL, NULL);
+	switch (cacheid) {
+	case OPROID:
+		if (!HeapTupleIsValid(htp))
+			elog(WARN, "pg_ownercheck: operator %d not found",
+			     (int) value);
+		owner_id = ((Form_pg_operator) GETSTRUCT(htp))->oprowner;
+		break;
+	case PRONAME:
+		if (!HeapTupleIsValid(htp))
+			elog(WARN, "pg_ownercheck: function \"%-*s\" not found",
+			     sizeof(NameData), value);
+		owner_id = ((Form_pg_proc) GETSTRUCT(htp))->proowner;
+		break;
+	case RELNAME:
+		if (!HeapTupleIsValid(htp))
+			elog(WARN, "pg_ownercheck: class \"%-*s\" not found",
+			     sizeof(NameData), value);
+		owner_id = ((Form_pg_relation) GETSTRUCT(htp))->relowner;
+		break;
+	case TYPNAME:
+		if (!HeapTupleIsValid(htp))
+			elog(WARN, "pg_ownercheck: type \"%-*s\" not found",
+			     sizeof(NameData), value);
+		owner_id = ((Form_pg_type) GETSTRUCT(htp))->typowner;
+		break;
+	default:
+		elog(WARN, "pg_ownercheck: invalid cache id: %d",
+		     cacheid);
+		break;
+	}
+	
 	return(user_id == owner_id);
 }
