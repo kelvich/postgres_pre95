@@ -190,7 +190,15 @@ ProcessQuery(parser_output, plan)
 
 	switch(commandType) {
 	  case RETRIEVE:
-	    BeginCommand("blank",attinfo);
+	    if (isInto) {
+		putnchar("P",1);
+		putint(0,4);
+		putstr("blank");
+	    } else if (isPortal) {
+		BeginCommand(intoName,attinfo);
+	    } else {
+		BeginCommand("blank",attinfo);
+	    }
 	    break;
 	  default:
 	    if (IsUnderPostmaster) {
