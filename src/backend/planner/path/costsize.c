@@ -73,10 +73,10 @@ bool _enable_hashjoin_ =    true;
 bool _cost_weirdness_ = false;
 bool _enable_seqscan_ =     true;
 bool _enable_indexscan_ =   true; 
-bool _enable_sort_ =        false;
+bool _enable_sort_ =        true;
 bool _enable_hash_ =        false;
 bool _enable_nestloop_ =    true; /* XXX - true */
-bool _enable_mergesort_ =   false;
+bool _enable_mergesort_ =   true;
 bool _enable_hashjoin_ =    false;
 #endif /* _xprs_ */
 
