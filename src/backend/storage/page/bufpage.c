@@ -55,13 +55,12 @@ PageIsUsed(page)
 	return ((bool)(((PageHeader)page)->pd_lower != 0));
 }
 
-PagePartition
+void
 BufferInitPage(buffer, pageSize)
 	Buffer		buffer;
 	PageSize	pageSize;
 {
 	BlockSize	blockSize;
-/*	PartitionCount	partitions; */
 	Page		page;
 	int		i;		/* loop index */
 
@@ -69,23 +68,6 @@ BufferInitPage(buffer, pageSize)
 	Assert(PageSizeIsValid(pageSize));
 
 	blockSize = BufferGetBlockSize(buffer);
-/*
-	if (pageSize == MaximumPageSize) {
-		pageSize = (PageSize)bufferSize;
-	}
-*/
-
-/*
-	partitions = bufferSize / pageSize;
-	page = (Page)BufferGetPage(buffer);
-	for (i = 0; i < partitions; i += 1) {
-		PageSet	
-		page += pageSize;
-	}
-*/
-/*
-	return (BufferSizeGetPagePartition(bufferSize, pageSize));
-*/
 }
 
 PageSize
@@ -182,9 +164,20 @@ OffsetIndex
 PageGetMaxOffsetIndex(page)
 	Page	page;
 {
+	LocationIndex	low;
+	OffsetIndex	i;
+
+	low = ((PageHeader)page)->pd_lower;
+	i = (low - (sizeof(PageHeaderData) - sizeof(ItemIdData)))
+		/ sizeof(ItemIdData);
+
+	return(--i);
+
+	/*
 	return ((((PageHeader)page)->pd_lower - (sizeof (PageHeaderData) -
 		sizeof (ItemIdData))) / sizeof (ItemIdData) - 1);
-		/* XXX */
+	*/
+	/* XXX */
 }
 
 ItemId
@@ -269,17 +262,11 @@ PageAddItem(page, item, size, offsetNumber, flags)
 	bool shuffled = false;
 
 	/*
-	if (!OffsetNumberIsValid(offsetNumber)) {
-		offsetNumber = (int16)(2 + PageGetMaxOffsetIndex(page));
-	} else {
-		if (offsetNumber != (int16)(2 + PageGetMaxOffsetIndex(page))) {
-			Assert(0);
-		}
-	}
-	*/
-	limit = 2 + PageGetMaxOffsetIndex(page);   /* 1st unalloc'd offsetNumber */
+	 *  Find first unallocated offsetNumber
+	 */
+	limit = 2 + PageGetMaxOffsetIndex(page);
 
-		/* if offsetNumber was passed in */
+	/* was offsetNumber passed in? */
 	if (OffsetNumberIsValid(offsetNumber)) {
 		if (PageManagerShuffle == true) {
 
@@ -331,42 +318,7 @@ PageAddItem(page, item, size, offsetNumber, flags)
 	((PageHeader)page)->pd_upper = upper;
 
 	return (offsetNumber);
-/*	((PageHeader)page)->pd_nline++;
-*/
 }
-/*
-ReturnStatus
-PageAddItem(page, item, size, offsetIndex, flags)
-	Page		page;
-	Item		item;
-	Size		size;
-	OffsetIndex	offsetIndex;
-	ItemIdFlags	flags;
-{
-	Size		alignedSize;
-	Offset		lower;
-	Offset		upper;
-	ItemId		itemId;
-
-	Assert(offsetIndex == (OffsetIndex)(1 + PageGetMaxOffsetIndex(page)));
-
-	alignedSize = LONGALIGN(size);
-
-	lower = ((PageHeader)page)->pd_lower + sizeof (ItemIdData);
-	upper = ((PageHeader)page)->pd_upper - alignedSize;
-	itemId = &((PageHeader)page)->pd_linp[offsetIndex];
-	(*itemId).lp_off = upper;
-	(*itemId).lp_len = size;
-	(*itemId).lp_flags = flags;
-	bcopy(item, (char *)page + upper, size);
-	((PageHeader)page)->pd_lower = lower;
-	((PageHeader)page)->pd_upper = upper;
-*/
-/*	((PageHeader)page)->pd_nline++;
-*/
-/*
-}
-*/
 
 ReturnStatus
 PageRemoveItem(page, itemId)
@@ -387,6 +339,51 @@ PageRemoveItem(page, itemId)
 	PageRepairFragmentation(page);
 }
 
+Page
+PageGetTempPage(page, specialSize)
+	Page	page;
+	Size	specialSize;
+{
+	PageSize	pageSize;
+	PageSize	size;
+	Page		temp;
+	PageHeader	thdr;
+
+	pageSize = PageGetPageSize(page);
+
+	if ((temp = (Page) palloc(pageSize)) == (Page) NULL)
+		elog(FATAL, "Cannot allocate %d bytes for temp page.", size);
+	thdr = (PageHeader) temp;
+
+	/* copy old page in */
+	bcopy(page, temp, pageSize);
+
+	/* clear out the middle */
+	size = (pageSize - sizeof(PageHeaderData)) + sizeof(ItemIdData);
+	size -= specialSize;
+	bzero((char *) &(thdr->pd_linp[0]), size);
+
+	/* set high, low water marks */
+	thdr->pd_lower = sizeof (PageHeaderData) - sizeof (ItemIdData);
+	thdr->pd_upper = pageSize - specialSize;
+
+	return (temp);
+}
+
+void
+PageRestoreTempPage(tempPage, oldPage)
+	Page	tempPage;
+	Page	oldPage;
+{
+	PageSize	pageSize;
+
+	pageSize = PageGetPageSize(tempPage);
+
+	bcopy((char *) tempPage, (char *) oldPage, pageSize);
+
+	pfree(tempPage);
+}
+
 PageSize
 PageGetPageSize(page)
 	Page	page;
@@ -402,15 +399,6 @@ PageGetInternalFragmentation(page)
 	return (OpaqueGetInternalFragmentation((Opaque)
 		&((PageHeader)page)->opaque));
 }
-
-/*
-ItemIndex
-PageGetMaxItemIndex(page)
-	Page	page;
-{
-	Assert(0);
-}
-*/
 
 static
 PageSize
