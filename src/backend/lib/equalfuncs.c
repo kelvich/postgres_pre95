@@ -71,7 +71,7 @@ _equalResdom(a, b)
 	if (at == bt)
 		return (true);
 
-	if (strncmp(at->oprname, bt->oprname, sizeof (bt->oprname)) != 0)
+	if (namestrcmp(&(at->oprname), &(bt->oprname)) != 0)
 		return (false);
 	if (at->oprowner != bt->oprowner)
 		return (false);
