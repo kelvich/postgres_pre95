@@ -293,7 +293,7 @@ CLEANFILES+= .purify* .pure .lock.*.o *_pure_*.o *.pure_*link*
 #
 .PATH: ${.CURDIR}/../bin/pg_id
 pg_id:	pg_id.c
-	${CC} ${LDFLAGS} -o ${.TARGET} ${.ALLSRC} 
+	${CC} ${LDFLAGS} -o ${.TARGET} ${.ALLSRC} ${LDADD}
 
 CLEANFILES+= pg_id
 
