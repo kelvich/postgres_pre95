@@ -69,6 +69,7 @@ rtrescan(s, fromEnd, key)
 {
     RTreeScanOpaque p;
     int nbytes;
+    RegProcedure internal_proc;
 
     if (!IndexScanIsValid(s)) {
 	elog(WARN, "rtrescan: invalid scan.");
@@ -128,14 +129,23 @@ rtrescan(s, fromEnd, key)
 	p->s_internalNKey = s->numberOfKeys;
 	p->s_flags = 0x0;
 	if (s->numberOfKeys > 0) {
-	    nbytes = s->numberOfKeys * sizeof(ScanKeyEntryData);
-	    bcopy(&(s->keyData.data[0]), &(p->s_internalKey.data[0]), nbytes);
+
+	    /*
+	     *  Scans on internal pages use different operators than they
+	     *  do on leaf pages.  For example, if the user wants all boxes
+	     *  that exactly match (x1,y1,x2,y2), then on internal pages
+	     *  we need to find all boxes that contain (x1,y1,x2,y2).
+	     */
 
 	    for (i = 0; i < s->numberOfKeys; i++) {
-		p->s_internalKey.data[i].procedure =
-		   RTMapOperator(s->relation,
-				 s->keyData.data[i].attributeNumber,
-				 s->keyData.data[i].procedure);
+		internal_proc = RTMapOperator(s->relation,
+					     s->keyData.data[i].attributeNumber,
+					     s->keyData.data[i].procedure);
+		ScanKeyEntryInitialize(&(p->s_internalKey.data[i]),
+				       s->keyData.data[i].flags,
+				       s->keyData.data[i].attributeNumber,
+				       internal_proc,
+				       s->keyData.data[i].argument);
 	    }
 	}
     }
