@@ -328,15 +328,22 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
 	elog(WARN, "TypeDefine: type %s already defined", typeName);
     }
 
-	if (elementTypeName != NULL)
-	{
-		elementObjectId = TypeGet(elementTypeName, &defined);
+    /* ----------------
+     *	if this type has an associated elementType, then we check that
+     *  it is defined.
+     * ----------------
+     */
+    if (elementTypeName != NULL) {
+	elementObjectId = TypeGet(elementTypeName, &defined);
     	if (!defined) {
-		elog(WARN, "TypeDefine: type %s is not defined", elementTypeName);
-		}
+	    elog(WARN, "TypeDefine: type %s is not defined", elementTypeName);
+	}
     }
 
-    
+    /* ----------------
+     *	XXX comment me
+     * ----------------
+     */
     if (externalSize == 0) {
 	externalSize = -1;		/* variable length */
     }
@@ -463,3 +470,88 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
 	typeObjectId;
 }
 
+/* ----------------------------------------------------------------
+ *	TypeRename
+ *
+ *	This renames a type 
+ * ----------------------------------------------------------------
+ */
+void
+TypeRename(oldTypeName, newTypeName)
+    Name	oldTypeName;
+    Name	newTypeName;
+{
+    Relation 		pg_type_desc;
+    HeapScanDesc 	pg_type_scan;
+
+    ObjectId            oldTypeObjectId;
+    ObjectId            newTypeObjectId;
+    
+    HeapTuple 		tup;
+    HeapTuple 		newtup;
+    
+    Buffer		buffer;
+    bool 		defined;
+    ItemPointerData	itemPointerData;
+    
+    static ScanKeyEntryData	typeKey[1] = {
+	{ 0, TypeNameAttributeNumber, NameEqualRegProcedure }
+    };
+
+    /* ----------------
+     *	sanity checks
+     * ----------------
+     */
+    Assert(NameIsValid(oldTypeName));
+    Assert(NameIsValid(newTypeName));
+
+    /* ----------------
+     *	check that that the new type is not already defined
+     * ----------------
+     */
+    newTypeObjectId = TypeGet(newTypeName, &defined);
+    if (ObjectIdIsValid(newTypeObjectId) && defined) {
+	elog(WARN, "TypeRename: type %s already defined", newTypeName);	
+    }
+
+    /* ----------------
+     *	open pg_type and begin a scan for the type name.
+     * ----------------
+     */
+    pg_type_desc = RelationNameOpenHeapRelation(TypeRelationName);
+    
+    typeKey[0].argument = NameGetDatum(oldTypeName);
+    pg_type_scan = RelationBeginHeapScan(pg_type_desc,
+					 0,
+					 SelfTimeQual,
+					 1,
+					 (ScanKey) typeKey);
+    
+    /* ----------------
+     *  update the name of the tuple in the type relation
+     * ----------------
+     */
+    tup = HeapScanGetNextTuple(pg_type_scan, 0, &buffer);
+    if (HeapTupleIsValid(tup)) {
+	
+	newtup = (HeapTuple) palloctup(tup, InvalidBuffer, pg_type_desc);
+	bcopy(newTypeName,
+	      (char *) &(((Form_pg_type) GETSTRUCT(newtup))->typname),
+	      sizeof(NameData));
+	
+	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
+	setheapoverride(true);
+	RelationReplaceHeapTuple(pg_type_desc, &itemPointerData, newtup);
+	setheapoverride(false);
+	
+    } else {
+	elog(WARN, "TypeRename: type %s not defined", oldTypeName);	
+    }
+    
+    /* ----------------
+     *	finish up
+     * ----------------
+     */
+    HeapScanEnd(pg_type_scan);
+    RelationCloseHeapRelation(pg_type_desc);
+}
