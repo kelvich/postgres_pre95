@@ -601,17 +601,7 @@ AllocSetStep ARGS((
 #define CLibIncluded	1
 
 /* #include "tmp/c.h" (now at the top of memutils.h) */
-
-/* 
- *	stuff from old libc.h file:
- * 
- */
-extern char
-	*memccpy(),
-	*memchr(),
-	*memcpy(),
-	*memset();
-extern int memcmp();
+#include <memory.h>
 
 /* 
  *	LibCCopyLength is only used within this file. -cim 6/12/90
@@ -619,71 +609,6 @@ extern int memcmp();
  */
 typedef int	LibCCopyLength;
 
-/*
- * memccpy --
- *	memory(3)
- */
-extern
-char *
-memccpy ARGS((
-	const String		toBuffer,
-	const String		fromBuffer,
-	const char		stopCharacter,
-	const LibCCopyLength	length
-));
-
-/*
- * memchr --
- *	memory(3)
- */
-extern
-char *
-memchr ARGS((
-	const String		buffer,
-	const char		stopCharacter,
-	const LibCCopyLength	length
-));
-
-/*
- * memchr --
- *	memory(3)
- */
-extern
-int
-memcmp ARGS((
-	const String		buffer1,
-	const String		buffer2,
-	const LibCCopyLength	length
-));
-
-/*
- * memcpy --
- *	memory(3)
- */
-extern
-char *
-memcpy ARGS((
-	const String		toBuffer,
-	const String		fromBuffer,
-	const LibCCopyLength	length
-));
-
-/*
- * memset --
- *	memory(3)
- */
-extern
-char *
-memset ARGS((
-	const String		toBuffer,
-	const char		value,
-	const LibCCopyLength	length
-));
-
-/* 
- *	end of libc.h
- * 
- */
 typedef 	CLibCopyLength;
 
 /*
