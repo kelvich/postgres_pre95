@@ -1,118 +1,319 @@
+.\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SS UNIX 6/14/90
-.XA 0 "Section 2 \*- \*(UU Commands (\*(UU)"
-.SP INFORMATION UNIX 6/14/90
-.sp 2i
-.ps 14
-.ce
-.b "SECTION 2 \*- \*(UU COMMANDS (\*(UU)"
-.sp 3
+.XA 0 "Section 2 \(em \*(UU Commands (\*(UU)"
 .XA 1 "General Information"
-.uh OVERVIEW
-.lp
-This section contains
-information on the interaction between \*(PP and
-the operating system.
-In particular, the pages of this section describe
-the \*(PP support programs which are
-executable as \*(UU commands.
-.uh TERMINOLOGY
-.lp
-In the following documentation,
-the term
-.i site
-may be interpreted as
-the host machine on which \*(PP is installed.
-But since it is possible to install more than
-one set of \*(PP databases on a single host,
-this term more precisely denotes any
-particular set of installed \*(PP binaries and databases.
-.lp
+.TH INTRODUCTION UNIX 01/23/93
+.SP INFORMATION UNIX 01/23/93
+.BH "SECTION 2 \(em \*(UU COMMANDS (\*(UU)"
+.SH "OVERVIEW"
+This section contains information on the interaction between \*(PG and
+the operating system.  In particular, the pages of this section
+describe the \*(PG support programs that are executable as \*(UU
+commands.
+.SH TERMINOLOGY
+In the following documentation, the term
+.IR site
+may be interpreted as the host machine on which \*(PG is installed.
+However, since it is possible to install more than one set of \*(PG
+databases on a single host, this term more precisely denotes any
+particular set of installed \*(PG binaries and databases.
+.PP
 The
-.i "\*(PP super user"
-is the user named
-.i postgres
-(usually),
-who is the owner of the \*(PP binaries and
-database files.
-As the super user,
-all protection mechanisms may be bypassed
-and any data accessed arbitrarily.
-In addition,
-the \*(PP super user is allowed to
-execute some support programs which are generally not available to all users.
-Note that the postgres super user is
-.i not
-the same as root,
+.IR "\*(PG super-user"
+is the user named \*(lqpostgres\*(rq (usually) who owns the \*(PG
+binaries and database files.  As the database super-user, all
+protection mechanisms may be bypassed and any data accessed
+arbitrarily.  In addition, the \*(PG super-user is allowed to execute
+some support programs which are generally not available to all users.
+Note that the \*(PG super-user is
+.IR not
+the same as the \*(UU super-user,
+.IR root ,
 and should have a non-zero userid.
-.lp
+.PP
 The
-.i "database base administrator"
-or
-.A DBA
-is the person who
-is responsible for installing \*(PP
-to enforce a security policy for a site.
-The
-.A DBA
-will
-add new users by the method described below,
-change the status of user-defined functions
-from
-.b untrusted
+.IR "database base administrator"
+or DBA, is the person who is responsible for installing \*(PG to
+enforce a security policy for a site.  The DBA will add new users by
+the method described below, change the status of user-defined
+functions from
+.BR untrusted
 to
-.b trusted
-as explained in \fBdefine function\fR(commands), and maintain a set of
-template databases for use by \fBcreatedb\fR(unix).
-.lp
+.BR trusted
+as explained in
+.IR "define function" (commands),
+and maintain a set of template databases for use by
+.IR createdb (unix).
+.PP
 The
-.ul
-postmaster is a process which acts as a clearing house for requests to
-the \*(PP system.  Basically, frontend applications connect with the postmaster
-which keeps tracks of any system errors and communication between the backend
-processes.  The postmaster (POSTMASTER (UNIX)) takes from zero to seven
-arguments to tune its behavior.
-Supplying arguments is necessary only if you intend to run multiple sites
-or a non-default site.
-.lp
+.IR postmaster
+is the process that acts as a clearing-house for requests to the \*(PG
+system.  Frontend applications connect to the 
+.IR postmaster ,
+which keeps tracks of any system errors and communication between the
+backend processes.  The
+.IR postmaster
+can take several command-line arguments to tune its behavior, but
+supplying arguments is necessary only if you intend to run multiple
+sites or a non-default site.  See
+.IR postmaster (unix)
+for details.
+.PP
 The
-.ul
-\*(PP backend
-(.../bin/postgres) may
-be executed directly from the shell by
-the postgres super user (with the database name as an argument).
-However, doing this bypasses the shared buffer pool and lock table
-associated with a postmaster/site,
-so this is not recommended in a multiuser site.
-.lp
-.uh NOTATION
-.lp
-.q .../
-at the front of file names is used to represent the path
-to the postgres user's home directory.
-Anything in brackets (\*(lq[\*(rq and \*(lq]\*(rq) is optional.
-Anything in braces (\*(lq{\*(rq and \*(lq}\*(rq) can be repeated 0 or more
-times.  Parentheses ( \*(lq(\*(rq and \*(lq)\*(rq ) are used to group boolean
+.IR "\*(PG backend"
+(.../bin/postgres) may be executed directly from the user shell by the
+\*(PG super-user (with the database name as an argument).  However,
+doing this bypasses the shared buffer pool and lock table associated
+with a postmaster/site, so this is not recommended in a multiuser
+site.
+.SH NOTATION
+\*(lq.../\*(rq at the front of a file name is used to represent the
+path to the \*(PG super-user's home directory.  Anything in brackets
+(\*(lq[\*(rq and \*(lq]\*(rq) is optional.  Anything in braces
+(\*(lq{\*(rq and \*(lq}\*(rq) can be repeated 0 or more times.
+Parentheses (\*(lq(\*(rq and \*(lq)\*(rq ) are used to group boolean
 expressions.  \*(lq|\*(rq is the boolean operator
-.A OR .
-.uh "USING \*(PP FROM UNIX"
-.lp
-All \*(PP commands which are executed directly from a UNIX shell
-are found in the directory
-.q \&.../bin.
-Including this directory in your search path will make
-executing the commands easier.
-.lp
-There is a collection of system catalogs that exist at each site.
-These include a
-.A USER
-class 
-which contains an instance for each valid \*(PP user.
-In the instance is a collection of \*(PP privileges,
-the most relevant of which
-is whether or not creation of \*(PP databases is allowed.
-A \*(UU user can do nothing at all with \*(PP
-until an appropriate record is installed in this system catalog class.
-Further information on the system catalogs is available
-by running queries on the appropraiate classes.
+.SM OR .
+.SH "USING \*(PG FROM \*(UU"
+All \*(PG commands that are executed directly from a \*(UU shell are
+found in the directory \*(lq.../bin\*(rq.  Including this directory in
+your search path will make executing the commands easier.
+.PP
+A collection of system catalogs exist at each site.  These include a
+class (\*(lqpg_user\*(rq) that contains an instance for each valid
+\*(PG user.  The instance specifies a set of \*(PG privileges, such as
+the ability to act as \*(PG super-user, the ability to create/destroy
+databases, and the ability to update the system catalogs.  A \*(UU
+user cannot do anything with \*(PG until an appropriate instance is
+installed in this class.  Further information on the system catalogs
+is available by running queries on the appropriate classes.
+.XA 1 "Security"
+.SP SECURITY UNIX 01/23/93
+.SH "USER AUTHENTICATION"
+.IR Authentication
+is the process by which the backend server and 
+.IR postmaster
+ensure that the user requesting access to data is in fact who he/she
+claims to be.  All users who invoke \*(PG are checked against the
+contents of the \*(lqpg_user\*(rq class to ensure that they are
+authorized to do so.  However, verification of the user's actual
+identity is performed in a variety of ways.
+.SS "From the user shell"
+A backend server started from a user shell notes the user's (real)
+user-id before performing a 
+.IR setuid (3)
+to the user-id of user \*(lqpostgres\*(rq.  The real user-id is used
+as the basis for access control checks.  No other authentication is
+conducted.
+.SS "From the network"
+If the \*(PG system is built as distributed, access to the Internet
+TCP port of the
+.IR postmaster
+process is completely unrestricted.  That is, any user may connect to
+this port, spoof the
+.IR postmaster ,
+pose as an authorized user and issue any commands desired.  However,
+since this port is configurable and not normally advertised in any
+public files (e.g.,
+.IR /etc/services ),
+some administrators may be satisfied with security-by-obscurity.
+.PP
+If greater security is desired, \*(PG and its clients may be
+modified to use a network authentication system.  For example, the
+.IR postmaster ,
+.IR monitor
+and
+.IR libpq
+have already been configured to use either Version 4 or Version 5 of
+the
+.IR Kerberos
+authentication system from the Massachusetts Institute of Technology.
+For more information on using
+.IR Kerberos
+with \*(PG, see the appendix below.
+.SH "ACCESS CONTROL"
+\*(PG provides mechanisms to allow users to limit the access to
+their data that is provided to other users.
+.SS "Database superusers"
+Database super-users (i.e., users who have \*(lqpg_user.usesuper\*(rq
+set) silently bypass all of the access controls described below with
+two exceptions: manual system catalog updates are not permitted if the
+user does not have \*(lqpg_user.usecatupd\*(rq set, and destruction of
+system catalogs (or modification of their schemas) is never allowed.
+.SS "Access control lists"
+The use of access control lists to limit reading, writing and setting
+of rules on classes is covered in
+.IR "change acl" (commands).
+.SS "Class removal and schema modification"
+Commands that destroy or modify the structure of an existing class,
+such as
+.IR "addattr" ,
+.IR "destroy" ,
+.IR "rename" ,
+and
+.IR "remove index" ,
+only operate for the owner of the class.  As mentioned above, these
+operations are
+.BR never
+permitted on system catalogs.
+.SH "FUNCTIONS AND RULES"
+Functions and rules allow users to insert code into the backend server
+that other users may execute without knowing it.  Hence, both
+mechanisms permit users to
+.BR "trojan horse"
+others with relative impunity.  The only real protection is tight
+control over who can define functions (e.g., write to relations with
+\*(PQ fields) and rules.  Audit trails and alerters on
+\*(lqpg_class\*(rq, \*(lqpg_user\*(rq and \*(lqpg_group\*(rq are also
+recommended.
+.SS "Functions"
+Functions written in any language except \*(PQ with
+\*(lqpg_proc.proistrusted\*(rq set run inside the backend server
+process with the permissions of the user \*(lqpostgres\*(rq (the
+backend server runs with its real and effective user-id set to
+\*(lqpostgres\*(rq).  It is possible for users to change the server's
+internal data structures from inside of trusted functions.  Hence,
+among many other things, such functions can circumvent any system
+access controls.  This is an inherent problem with trusted functions.
+.PP
+Non-\*(PQ functions that do not have \*(lqpg_proc.proistrusted\*(rq
+set run in a separate
+.IR "untrusted-function process"
+spawned by the backend server.  If correctly installed, this process
+runs with real and effective user-id set to \*(lqnobody\*(rq (or some
+other user with strictly limited permissions).  It should be noted,
+however, that the primary purpose of untrusted functions is actually
+to simplify debugging of user-defined functions (since buggy functions
+will only crash or corrupt the untrusted-function process instead of
+the server process).  The current RPC protocol only works in one
+direction, so any function that make function-manager calls (e.g.,
+access method calls) or performs other database file operations must
+be trusted.
+.PP
+Since untrusted functions are a new feature in Version \*(PV, the
+.BR "define function"
+command still defaults to making new functions trusted.  This is a
+massive security hole that will be removed in a later release, once
+the (mis)features and interface of untrusted functions have stabilized.
+(An additional access control will be added for defining functions,
+analogous to the access control on defining rules.)
+.PP
+Like other functions that perform database file operations, \*(PQ
+functions must run in the same address space as the backend server.
+The \*(lqpg_proc.proistrusted\*(rq field has no effect for \*(PQ
+functions, which always run with the permissions of the user who
+invoked the backend server.  (Otherwise, users could circumvent access
+controls \(em the \*(lqnobody\*(rq user may well be allowed greater
+access to a particular object than a given user.)
+.SS "Rules"
+Like \*(PQ functions, rules always run with the permissions of the
+user who invoked the backend server.
+.SH "SEE ALSO"
+postmaster(unix),
+addattr(commands),
+append(commands),
+change acl(commands),
+copy(commands),
+define rule(commands),
+delete(commands),
+destroy(commands),
+remove index(commands),
+remove rule(commands),
+rename(commands),
+replace(commands),
+retrieve(commands),
+kerberos(1),
+kinit(1),
+kerberos(3)
+.SH CAVEATS 
+.PP
+There are no plans to explicitly support encrypted data inside of
+\*(PG (though there is nothing to prevent users from encrypting
+data within user-defined functions).  There are no plans to explicitly
+support encrypted network connections, either, pending a total rewrite
+of the frontend/backend protocol.
+.PP
+User names, group names and associated system identifiers (e.g., the
+contents of \*(lqpg_user.usesysid\*(rq) are assumed to be unique
+throughout a database.  Unpredictable results may occur if they are
+not.
+.PP
+User system identifiers are currently \*(UU user-ids.  This may change at
+some time in the future.
+.SH "APPENDIX: USING KERBEROS"
+.SS "Availability"
+The
+.IR Kerberos
+authentication system is not distributed with \*(PG, nor is it
+available from the University of California at Berkeley.  Versions of
+.IR Kerberos
+are typically available as optional software from operating system
+vendors.  In addition, a source code distribution may be obtained
+through MIT Project Athena by anonymous FTP from ATHENA-DIST.MIT.EDU
+(18.71.0.38).  (You may wish to obtain the MIT version even if your
+vendor provides a version, since some vendor ports have been
+deliberately crippled or rendered non-interoperable with the MIT
+version.)  Users located outside the United States of America and
+Canada are warned that distribution of the actual encryption code in
+.IR Kerberos
+is restricted by U. S. government export regulations.
+.PP
+Any additional inquiries should be directed to your vendor or MIT
+Project Athena (\*(lqinfo-kerberos@ATHENA.MIT.EDU\*(rq).  Note that FAQLs
+(Frequently-Asked Questions Lists) are periodically posted to the
+.IR Kerberos
+mailing list, \*(lqkerberos@ATHENA.MIT.EDU\*(rq (send mail to
+\*(lqkerberos-request@ATHENA.MIT.EDU\*(rq to subscribe), and USENET
+news group, \*(lqcomp.protocols.kerberos\*(rq.
+.SS "Installation"
+Installation of 
+.IR Kerberos
+itself is covered in detail in the 
+.IR "Kerberos Installation Notes" .
+Make sure that the server key file (the
+.IR srvtab
+or
+.IR keytab )
+is somehow readable by user \*(lqpostgres\*(rq.
+.PP
+\*(PG and its clients can be compiled to use either Version 4 or
+Version 5 of the MIT
+.IR Kerberos
+protocols by setting the 
+.SM KRBVERS
+variable in the file \*(lq.../src/Makefile.global\*(rq to the
+appropriate value.  You can also change the location where \*(PG
+expects to find the associated libraries, header files and its own
+server key file.
+.PP
+After compilation is complete, \*(PG must be registered as a
+.IR Kerberos
+service.  See the
+.IR "Kerberos Operations Notes"
+and related manual pages for more details on registering services.
+.SS "Operation"
+After initial installation, \*(PG should operate in all ways as a
+normal
+.IR Kerberos
+service.  For details on the use of authentication, see the manual
+pages for 
+.IR postmaster (unix)
+and 
+.IR monitor (unix).
+.PP
+In the Version 5 hooks, the following assumptions are made about user
+and service naming: (1) user principal names (anames) are assumed to
+contain the actual \*(UU/\*(PG user name in the first component; (2)
+the \*(PG service is assumed to be have two components, the service
+name and a hostname, canonicalized as in Version 4 (i.e., all domain
+suffixes removed).
+.PP
+.(C
+user example: frew@S2K.ORG
+user example: aoki/HOST=miyu.S2K.Berkeley.EDU@S2K.ORG
+host example: postgres_dbms/ucbvax@S2K.ORG
+.)C
+.PP
+Support for Version 4 will disappear sometime after the production
+release of Version 5.
