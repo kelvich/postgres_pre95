@@ -330,13 +330,11 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
       if (testFlag) {
 	  List planlist = LispNil;
 	  List pathlist = LispNil;
-	  List prunePathListForTest();
 	  LispValue x;
 	  Path path;
 	  Plan plan;
 	  Choose chooseplan;
 	  pathlist = get_pathlist(final_relation);
-	  pathlist = prunePathListForTest(pathlist);
 	  foreach (x, pathlist) {
 	      path = (Path)CAR(x);
 	      plan = create_plan(path, original_tlist);
@@ -381,68 +379,6 @@ make_result( tlist,resrellevelqual,resconstantqual,left,right)
 } 
 
 bool
-pathShouldPruned(path, order_expected)
-Path path;
-bool order_expected;
-{
-    if (IsA(path,MergePath)) {
-	return pathShouldPruned(get_outerjoinpath(path), 
-				!get_outersortkeys(path)) ||
-	       pathShouldPruned(get_innerjoinpath(path), 
-				!get_innersortkeys(path));
-      }
-    if (IsA(path,HashPath)) {
-	return pathShouldPruned(get_outerjoinpath(path), false) ||
-	       pathShouldPruned(get_innerjoinpath(path), false);
-      }
-    if (IsA(path,JoinPath)) {
-	if (!IsA(get_innerjoinpath(path),IndexPath) &&
-	    !IsA(get_innerjoinpath(path),JoinPath) &&
-	    length(get_relids(get_parent(get_innerjoinpath(path)))) == 1)
-	   return true;
-	return pathShouldPruned(get_outerjoinpath(path), order_expected) ||
-	       pathShouldPruned(get_innerjoinpath(path), false);
-      }
-    if (IsA(path,IndexPath)) {
-	return lispNullp(get_indexqual(path)) && !order_expected;
-      }
-    return false;
-}
-
-List
-prunePathListForTest(pathlist)
-List pathlist;
-{
-    LispValue x, y;
-    Path path, path1;
-    List path_prune_list = LispNil;
-    List new_pathlist;
-
-    foreach (x, pathlist) {
-	path = (Path)CAR(x);
-	if (pathShouldPruned(path, false))
-	    path_prune_list = nappend1(path_prune_list, path);
-      }
-    new_pathlist = nset_difference(pathlist, path_prune_list);
-    path_prune_list = LispNil;
-    foreach (x, new_pathlist) {
-	path = (Path)CAR(x);
-	if (IsA(path,MergePath)) {
-	    foreach (y, CDR(x)) {
-		path1 = (Path)CAR(y);
-		if (IsA(path1,MergePath) && 
-		    equal(get_outerjoinpath(path), get_innerjoinpath(path1)) &&
-		    equal(get_innerjoinpath(path), get_outerjoinpath(path1)))
-		    path_prune_list = nappend1(path_prune_list, path1);
-	      }
-	  }
-       }
-    new_pathlist = nset_difference(new_pathlist, path_prune_list);
-	    
-    return new_pathlist;
-}
-
-bool
 plan_isomorphic(p1, p2)
 Plan p1, p2;
 {
@@ -466,9 +402,11 @@ Plan p1, p2;
 	    return plan_isomorphic(p1, get_lefttree(p2));
 	return false;
       }
-    if (IsA(p1,Temp) || IsA(p1,Hash))
+    if (IsA(p1,Temp) || IsA(p1,Hash) ||
+	(IsA(p1,Scan) && get_scanrelid(p1) == _TEMP_RELATION_ID_))
 	return plan_isomorphic(get_lefttree(p1), p2);
-    if (IsA(p2,Temp) || IsA(p2,Hash))
+    if (IsA(p2,Temp) || IsA(p2,Hash) ||
+	(IsA(p2,Scan) && get_scanrelid(p2) == _TEMP_RELATION_ID_))
 	return plan_isomorphic(p1, get_lefttree(p2));
     return false;
 }
