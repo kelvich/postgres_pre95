@@ -372,6 +372,9 @@ extern char *pg_username();
 extern char *array_in();
 extern char *array_out();
 
+extern char *filename_in();
+extern char *filename_out();
+
 extern int32 pqtest();
 
 #endif !BuiltinsIncluded
