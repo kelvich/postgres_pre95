@@ -146,7 +146,7 @@ add		{return(ADD);}
 		}
 
 
-.	printf("syntax error %d : -> %s\n", yylineno, yytext);
+.	printf("syntax error %d : -> %s\n", yyline, yytext);
 
 
 
@@ -163,6 +163,6 @@ yywrap()
 yyerror(str)
 	char *str;
 {
-	fprintf(stderr,"\tsyntax error %d : %s",yylineno, str);
+	fprintf(stderr,"\tsyntax error %d : %s",yyline, str);
 }
 
