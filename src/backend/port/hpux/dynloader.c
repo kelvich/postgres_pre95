@@ -9,8 +9,7 @@
  *	dynamic_file_load
  *
  *  NOTES
- *	This code comes from RIchard Turnbull's port of 4.0.1 to 
- *	HP-UX 8.07.
+ *	This code is based on Richard Turnbull's port of 4.0.1 to HP-UX 8.07.
  *
  *  IDENTIFICATION
  *	$Header$
@@ -27,6 +26,7 @@
 #include "tmp/c.h"
 #include "fmgr.h"
 #include "utils/dynamic_loader.h"
+#include "port-protos.h"
 
 extern char pg_pathname[];
 
@@ -48,9 +48,9 @@ void *pg_dlopen( filename, err )
     char *endptr = NULL;
     char *startptr = NULL;
     char *fname = NULL;
-    char *temp_file_name = NULL;
+    char *temp_file_name = (char *) NULL;
     int str_len = 0;
-    dfHandle *dfhandle= NULL;
+    dfHandle *dfhandle = (dfHandle *) NULL;
     shl_t handle;
 
     /* Build name of shared library: */
@@ -138,8 +138,7 @@ failed:
 int execld( tmp_file, filename )
 char *tmp_file, *filename;
 {
-
-    char command[256];
+    char command[2 * MAXPATHLEN + 10];
     int retval;
 
     sprintf( command, "ld -b -o %s %s" , tmp_file, filename );
@@ -147,7 +146,6 @@ char *tmp_file, *filename;
     retval = system(command);
 
     return(retval);
-
 }
 
 func_ptr dynamic_load(err)
