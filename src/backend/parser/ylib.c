@@ -106,6 +106,20 @@ char *file;
 		ind = len + 1;
 	    }
 	}
+    } else if (file[0] == '$') {  /* $POSTGRESHOME, etc.  expand it. */
+	char name[16], environment[80], *p;
+	int len;
+	    
+	if ((p = (char *) index(file, '/')) == NULL) {
+		strcpy(environment, file+1);
+		len = strlen(environment);
+	} else {
+		len = (p - file) - 1;
+		strncpy(environment, file+1, len);
+		environment[len] = '\0';
+	}
+	strcpy(str, getenv(environment));
+	ind = len + 1;
     } else {
 	ind = 0;
     }
