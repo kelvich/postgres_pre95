@@ -56,6 +56,7 @@ IPCKey key;
 
 #ifdef SONY_JUKEBOX
   extern SPINLOCK SJCacheLock;
+  extern SPINLOCK JBSpinLock;
 #endif /* SONY_JUKEBOX */
 
 #ifdef MAIN_MEMORY
@@ -72,6 +73,7 @@ IPCKey key;
 
 #ifdef SONY_JUKEBOX
   SJCacheLock = (SPINLOCK) SJCACHELOCKID;
+  JBSpinLock = (SPINLOCK) JBSPINLOCKID;
 #endif /* SONY_JUKEBOX */
 
 #ifdef MAIN_MEMORY
@@ -211,6 +213,7 @@ IPCKey key;
 
 #ifdef SONY_JUKEBOX
   extern SPINLOCK SJCacheLock;
+  extern SPINLOCK JBSpinLock;
 #endif /* SONY_JUKEBOX */
 
 #ifdef MAIN_MEMORY
@@ -237,6 +240,7 @@ IPCKey key;
 
 #ifdef SONY_JUKEBOX
   SJCacheLock = (SPINLOCK) SJCACHELOCKID;
+  JBSpinLock = (SPINLOCK) JBSPINLOCKID;
 #endif /* SONY_JUKEBOX */
 
 #ifdef MAIN_MEMORY
