@@ -440,7 +440,7 @@ fix_indxqual_references(clause,index_path)
 				       (get_parent(index_path)))),
 				       1, /* func indices have one key */
 				       get_functype((Func)get_function(clause)),
-				       LispNil, LispNil, LispNil, (Pointer)NULL),
+				       LispNil, (Pointer)NULL),
 			       get_rightop(clause)));
 
       } 
@@ -1152,14 +1152,13 @@ generate_fjoin(tlist)
 
 	inner = CAR(fjoinList);
 	fjoinList = CDR(fjoinList);
-	CDR(inner) = LispNil;
 	fjoinNode = (Fjoin)MakeFjoin(false,
 				     nIters,
 				     inner,
 				     results,
 				     alwaysDone);
 	tempList = lispCons(fjoinNode, LispNil);
-	tempList = nappend1(tempList, fjoinList);
+	tempList = nconc(tempList, fjoinList);
 	newTlist = nappend1(newTlist, tempList);
     }
     else if (nIters == 1)
