@@ -1,4 +1,3 @@
-/*#define FSDB 1*/
 /* ----------------------------------------------------------------
  *   FILE
  *	be-fsstubs.c
@@ -92,6 +91,8 @@
 #include "catalog/pg_naming.h"
 
 #include "utils/log.h"
+
+/*#define FSDB 1*/
 
 static GlobalMemory fscxt = NULL;
 
@@ -382,6 +383,7 @@ int LOtell(fd)
 
 int LOftruncate()
 {
+    return(0);
 }
 
 struct varlena *
@@ -424,30 +426,35 @@ LOstat(path)
  */
 
 int LOmkdir(path,mode)
-     char *path;
-     int mode;
+    char *path;
+    int mode;
 {
+    MemoryContext currentContext;
     oid oidf;
-    /* enter new pathname */
-    oidf = LOcreatOID(path,mode);
-    if (oidf == InvalidObjectId) {
-	return -1;
-    } else {
-	return 0;
+
+    if (fscxt == NULL) {
+	fscxt = CreateGlobalMemory("Filesystem");
     }
+
+    currentContext = MemoryContextSwitchTo((MemoryContext) fscxt);
+
+    /* enter new pathname */
+    if ((oidf = LOcreatOID(path,mode)) == InvalidObjectId) {
+	MemoryContextSwitchTo(currentContext);
+	return(-1);
+    }
+    /* switch context back to original memory context */
+    MemoryContextSwitchTo(currentContext);
+    return(0);
 }
 
 int LOrmdir(path)
-     char *path;
+    char *path;
 {
-    if (!LOisdir(path))
-      return -1;
-    else if (!LOisemptydir(path))
-      return -1;
-    else {
-      LOunlink(path);
-      return 0;
+    if (!LOisdir(path) || !LOisemptydir(path)) {
+	return(-1);
     }
+    return(LOunlink(path));
 }
 
 int LOunlink(path)
@@ -461,6 +468,7 @@ int LOunlink(path)
     if (deloid != InvalidObjectId) { /* remove associated file if any */
 	LOunassocOID(deloid);
     }
+    return(0);
 }
 
 /*
