@@ -11,6 +11,7 @@
 RcsId("$Header$");
 
 #include "nodes/primnodes.h"
+#include "nodes/plannodes.h"
 #include "nodes/nodes.h"
 #include "nodes/pg_lisp.h"
 #include "tmp/nodeFuncs.h"
@@ -37,7 +38,7 @@ bool
 single_node (node)
      Node node ;
 {
-    if(atom (node) || IsA(node,Const) || IsA(node,Var) || IsA(node,Param))
+    if(atom (node) || IsA(node,Const) || IsA(node,Var) || IsA(node,Param)) 
       return(true);
     else
       return(false);
