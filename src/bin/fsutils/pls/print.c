@@ -150,7 +150,7 @@ printcol(dp)
 	 */
 	if (dp->entries > lastentries) {
 		lastentries = dp->entries;
-		if ((array =
+		if ((array = (FTSENT **)
 		    realloc(array, dp->entries * sizeof(FTSENT *))) == NULL) {
 			err(0, "%s", strerror(errno));
 			printscol(dp);

@@ -460,7 +460,7 @@ display(p, list)
 #endif
 					flen = 0;
 
-				if ((np = malloc(sizeof(NAMES) +
+				if ((np = (NAMES *)malloc(sizeof(NAMES) +
 				    ulen + glen + flen + 3)) == NULL)
 					err(1, "%s", strerror(errno));
 

@@ -88,7 +88,7 @@ fts_open(argv, options, compar)
 	}
 
 	/* Allocate/initialize the stream */
-	if ((sp = malloc((u_int)sizeof(FTS))) == NULL)
+	if ((sp = (FTS *)malloc((u_int)sizeof(FTS))) == NULL)
 		return (NULL);
 	bzero(sp, sizeof(FTS));
 	sp->fts_compar = compar;
@@ -836,7 +836,7 @@ fts_sort(sp, head, nitems)
 	 */
 	if (nitems > sp->fts_nitems) {
 		sp->fts_nitems = nitems + 40;
-		if ((sp->fts_array = realloc(sp->fts_array,
+		if ((sp->fts_array = (FTSENT **)realloc(sp->fts_array,
 		    (size_t)(sp->fts_nitems * sizeof(FTSENT *)))) == NULL) {
 			sp->fts_nitems = 0;
 			return (head);
@@ -871,7 +871,7 @@ fts_alloc(sp, name, namelen)
 	len = sizeof(FTSENT) + namelen;
 	if (!ISSET(FTS_NOSTAT))
 		len += sizeof(struct pgstat) + /*ALIGNBYTES*/ 8;
-	if ((p = malloc(len)) == NULL)
+	if ((p = (FTSENT *)malloc(len)) == NULL)
 		return (NULL);
 
 	/* Copy the name plus the trailing NULL. */
@@ -914,7 +914,7 @@ fts_palloc(sp, more)
 	size_t more;
 {
 	sp->fts_pathlen += more + 256;
-	sp->fts_path = realloc(sp->fts_path, (size_t)sp->fts_pathlen);
+	sp->fts_path = (char *)realloc(sp->fts_path, (size_t)sp->fts_pathlen);
 	return (sp->fts_path == NULL);
 }
 
