@@ -49,6 +49,7 @@ extern void	PrintVar();
 #define EqualVarExists
 
 #include "nodes.h"	/* bogus inheritance system */
+#include "att.h"
 #include "attnum.h"
 #include "oid.h"
 #include "name.h"
