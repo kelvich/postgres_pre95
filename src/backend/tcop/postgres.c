@@ -135,6 +135,13 @@ int UseNewLine = 0;  /* Use EOF as query delimiters */
  */
 extern int Quiet;
 
+/* ----------------
+ *	bushy tree plan flag: if true planner will generate bushy-tree
+ *	plans
+ * ----------------
+ */
+int BushyPlanFlag = 0; /* default to false -- consider only left-deep trees */
+
 /* ----------------------------------------------------------------
  *			support functions
  * ----------------------------------------------------------------
@@ -444,12 +451,10 @@ pg_eval_dest(query_string, dest)
     MemoryContext oldcontext;
     extern Plan planner();
 
-    /*
     if (testFlag) {
 	ParserPlannerContext = CreateGlobalMemory("ParserPlannerContext");
 	oldcontext = MemoryContextSwitchTo(ParserPlannerContext);
       }
-    */
 
     /* ----------------
      *	(1) parse the request string into a set of plans
@@ -465,11 +470,6 @@ pg_eval_dest(query_string, dest)
 	ShowUsage();
     }
     
-    /*
-    if (testFlag)
-       MemoryContextSwitchTo(oldcontext);
-    */
-
     /* ----------------
      *	(2) rewrite the queries, as necessary
      * ----------------
@@ -656,6 +656,10 @@ pg_eval_dest(query_string, dest)
 	    plan_list = nappend1(plan_list, plan);
 	  }
       }
+
+    if (testFlag)
+       MemoryContextSwitchTo(oldcontext);
+
     /* ----------------
      *	(4) execute plans in plan_list sequentially or in parallel
      * ----------------
@@ -733,10 +737,6 @@ pg_eval_dest(query_string, dest)
 	    planlist = setRealPlanStats(parsetree, planlist);
 	    planlist = pruneHashJoinPlans(planlist);
 	    
-	    /*
-	    MemoryContextSwitchTo(oldcontext);
-	    */
-	    
 	    foreach (x, planlist) {
 		char s[10];
 		p = (Plan) CAR(x);
@@ -749,18 +749,14 @@ pg_eval_dest(query_string, dest)
 		}
 		BufferPoolBlowaway();
 		
-		/*
 		CommitTransactionCommand();
 		StartTransactionCommand();
-		*/
 		
 		ResetUsage();
 		ProcessQuery(parsetree, p, dest);
 		ShowUsage();
 	    }
-	    /*
 	     GlobalMemoryDestroy(ParserPlannerContext);
-	     */
 	} else {
 	    /* ----------------
 	     *   execute the plan
@@ -904,7 +900,7 @@ PostgresMain(argc, argv)
     ShowParserStats = ShowPlannerStats = ShowExecutorStats = 0;
     MasterPid = getpid();
     
-    while ((flag = getopt(argc, argv, "aA:B:b:Cd:EGM:NnOP:pQSsLit:Tf:")) != EOF)
+    while ((flag = getopt(argc, argv, "aA:B:bCd:EGM:NnOP:pQSsLit:Tf:")) != EOF)
       switch (flag) {
 	  	  
       case 'A':
@@ -929,6 +925,12 @@ PostgresMain(argc, argv)
 	  break;
 	  
       case 'b':
+	  /* ----------------
+	   *	set BushyPlanFlag to true.
+	   * ----------------
+	   */
+	  BushyPlanFlag = 1;
+	  break;
       case 'B':
 	  /* ----------------
 	   *	specify the size of buffer pool
@@ -1062,7 +1064,6 @@ PostgresMain(argc, argv)
            * ----------------
            */
           ShowStats = 1;
-	  StatFp = stderr;
           break;
 
       case 't':
