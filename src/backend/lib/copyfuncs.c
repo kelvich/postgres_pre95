@@ -1116,6 +1116,8 @@ _copyVar(from, to, alloc)
     
     Node_Copy(from, newnode, alloc, varid);    
 
+    newnode->varelemtype = from->varelemtype;
+    
     (*to) = newnode;
     return true;
 }
