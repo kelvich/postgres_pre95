@@ -55,9 +55,6 @@ extern List MakeList();
 extern List FlattenRelationList();
 extern List ParseAgg();
 
-bool CurrentWasUsed = false;
-bool NewWasUsed = false;
-
 #define ELEMENT 	yyval = nappend1( LispNil , yypvt[-0] )
 			/* yypvt [-1] = $1 */
 #define INC_LIST 	yyval = nappend1( yypvt[-2] , yypvt[-0] ) /* $1,$3 */
@@ -1719,29 +1716,6 @@ a_expr:
 	       List temp = NULL;
 	       temp = HandleNestedDots($1);
 	       $$ = (LispValue)temp;
-
-	       if (CurrentWasUsed) {
-		   $$ = (LispValue)MakeParam ( PARAM_OLD , 
-					      get_varattno((Var)temp), 
-					      (Name)CString(CDR($1)),
-					      get_vartype((Var)temp));
-		   CurrentWasUsed = false;
-	       }
-
-	       if (NewWasUsed) {
-		   $$ = (LispValue)MakeParam ( PARAM_NEW , 
-					      get_varattno((Var)temp), (Name)CString(CDR($1)),
-					      get_vartype((Var)temp));
-		   NewWasUsed = false;
-	       }
-	       /* Obsolete, I think.  -- JMH  ??? 
-	       if (IsA(temp,Var)) {
-		      set_vardotfields ( (Var) temp , CDR(CDR($1)));  
-		   if (null(CDR(CDR($1))))
-		     $$ = lispCons ( lispInteger
-				    (get_vartype((Var)temp)),$$ );
-	       }
-	       */
 	   }
 	| AexprConst		
 	| attr optional_indirection
@@ -1862,17 +1836,7 @@ agg_res_target_el:
 				     (Name)CString(CAR(last ($1) )),
 				     (Index)0 , (OperatorTupleForm)0 ,
 				     0 );
-
 	        varnode = CDR(temp);
-
-	       /* Obsolete, I think.  -- JMH  ??? 
-	        if (IsA(varnode,Var)) {
-		     set_vardotfields((Var)varnode, CDR(CDR($1)));
-		} else {
-		   if ( CDR(CDR($1)) != LispNil )
-		     elog(WARN,"cannot mix procedures with unions");
-		  }
-		*/
 
 	        $$ = lispCons((LispValue)resnode, lispCons(varnode,LispNil));
 	 }
@@ -2074,7 +2038,7 @@ AexprConst:
 	| Sconst 			{ $$ = make_const ( $1 ) ; 
 					  Input_is_string = true; }
 	| ParamNo			{
-		$$ = MakeList(lispInteger(get_paramtype((Param)$1)),
+		$$ = lispCons(lispInteger(get_paramtype((Param)$1)),
 			      $1, -1);
 	    }
 	| Pnull			 	{ $$ = LispNil; 
@@ -2111,18 +2075,16 @@ Id:
 SpecialRuleRelation:
 	CURRENT
 		{ 
-		    if (QueryIsRule) {
+		    if (QueryIsRule)
 		      $$ = lispString("*CURRENT*");
-		      /* CurrentWasUsed = true; */
-		    } else 
-		      yyerror("\"current\" used in non-rule query");
+		    else 
+		      elog(WARN,"\"current\" used in non-rule query");
 		}
 	| NEW
 		{ 
-		    if (QueryIsRule) {
+		    if (QueryIsRule)
 		      $$ = lispString("*NEW*");
-		      /* NewWasUsed = true; */
-		    } else 
+		    else 
 		      elog(WARN,"NEW used in non-rule query"); 
 		    
 		}
