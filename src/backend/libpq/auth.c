@@ -54,14 +54,13 @@
  */
 
 #include <stdio.h>
-#include <strings.h>
+#include <string.h>
 #include <sys/param.h>	/* for MAX{HOSTNAME,PATH}LEN, NOFILE */
 #include <pwd.h>
 
 #include "libpq/auth.h"
+#include "tmp/libpq.h"
 #include "tmp/pqcomm.h"
-
-extern char	*getenv ARGS((const char *name));	/* XXX STDLIB */
 
 RcsId("$Header$");
 
@@ -118,6 +117,7 @@ static n_authsvcs = sizeof(authsvcs) / sizeof(struct authsvc);
 
 #ifdef FRONTEND
 
+/* for some reason, this is not defined in krb.h ... */
 extern char	*tkt_string ARGS((void));
     
 /*
@@ -173,8 +173,11 @@ pg_krb4_authname()
     name[SNAME_SZ] = '\0';
     status = krb_get_tf_fullname(tkt_string(), name, instance, realm);
     if (status != KSUCCESS) {
-	fprintf(stderr, "pg_krb4_authname: krb_get_tf_fullname: %s\n",
-		krb_err_txt[status]);
+	(void) sprintf(PQerrormsg,
+		       "pg_krb4_authname: krb_get_tf_fullname: %s\n",
+		       krb_err_txt[status]);
+	fputs(PQerrormsg, stderr);
+	pqdebug("%s", PQerrormsg);
 	return((char *) NULL);
     }
     return(name);
@@ -228,8 +231,11 @@ pg_krb4_sendauth(sock, laddr, raddr, hostname)
 			  raddr,
 			  PG_KRB4_VERSION);
     if (status != KSUCCESS) {
-	fprintf(stderr, "pg_krb4_sendauth: kerberos error: %s\n",
-		krb_err_txt[status]);
+	(void) sprintf(PQerrormsg,
+		       "pg_krb4_sendauth: kerberos error: %s\n",
+		       krb_err_txt[status]);
+	fputs(PQerrormsg, stderr);
+	pqdebug("%s", PQerrormsg);
 	return(STATUS_ERROR);
     }
     return(STATUS_OK);
@@ -273,21 +279,30 @@ pg_krb4_recvauth(sock, laddr, raddr, username)
 			  key_sched,
 			  version);
     if (status != KSUCCESS) {
-	fprintf(stderr, "pg_krb4_recvauth: kerberos error: %s\n",
-		krb_err_txt[status]);
+	(void) sprintf(PQerrormsg,
+		       "pg_krb4_recvauth: kerberos error: %s\n",
+		       krb_err_txt[status]);
+	fputs(PQerrormsg, stderr);
+	pqdebug("%s", PQerrormsg);
 	return(STATUS_ERROR);
     }
     if (strncmp(version, PG_KRB4_VERSION, KRB_SENDAUTH_VLEN)) {
-	fprintf(stderr, "pg_krb4_recvauth: protocol version != \"%s\"\n",
-		PG_KRB4_VERSION);
+	(void) sprintf(PQerrormsg,
+		       "pg_krb4_recvauth: protocol version != \"%s\"\n",
+		       PG_KRB4_VERSION);
+	fputs(PQerrormsg, stderr);
+	pqdebug("%s", PQerrormsg);
 	return(STATUS_ERROR);
     }
     if (username && *username &&
 	/* XXX use smaller of ANAME_SZ and sizeof(NameData) */
 	strncmp(username, auth_data.pname, sizeof(NameData))) {
-	fprintf(stderr, "pg_krb4_recvauth: name \"%-*s\" != \"%-*s\"\n",
-		sizeof(NameData), username,
-		sizeof(NameData), auth_data.pname);
+	(void) sprintf(PQerrormsg,
+		       "pg_krb4_recvauth: name \"%-.*s\" != \"%-.*s\"\n",
+		       sizeof(NameData), username,
+		       sizeof(NameData), auth_data.pname);
+	fputs(PQerrormsg, stderr);
+	pqdebug("%s", PQerrormsg);
 	return(STATUS_ERROR);
     }
     return(STATUS_OK);
@@ -357,7 +372,10 @@ pg_krb5_init()
      * name: <usual-ticket-file-name>@<PGREALM-value>
      */
     if (!(defname = krb5_cc_default_name())) {
-	fprintf(stderr, "pg_krb5_init: krb5_cc_default_name failed\n");
+	(void) sprintf(PQerrormsg,
+		       "pg_krb5_init: krb5_cc_default_name failed\n");
+	fputs(PQerrormsg, stderr);
+	pqdebug("%s", PQerrormsg);
 	return((krb5_ccache) NULL);
     }
     (void) strcpy(tktbuf, defname);
@@ -367,6 +385,9 @@ pg_krb5_init()
     }
 
     if (code = krb5_cc_resolve(tktbuf, &ccache)) {
+	(void) sprintf(PQerrormsg,
+		       "pg_krb5_init: Kerberos error %d in krb5_cc_resolve\n",
+		       code);
 	com_err("pg_krb5_init", code, "in krb5_cc_resolve");
 	return((krb5_ccache) NULL);
     }
@@ -394,10 +415,16 @@ pg_krb5_authname()
     ccache = pg_krb5_init();	/* don't free this */
 
     if (code = krb5_cc_get_principal(ccache, &principal)) {
+	(void) sprintf(PQerrormsg,
+		       "pg_krb5_authname: Kerberos error %d in krb5_cc_get_principal\n",
+		       code);
 	com_err("pg_krb5_authname", code, "in krb5_cc_get_principal");
 	return((char *) NULL);
     }
     if (code = krb5_unparse_name(principal, &authname)) {
+	(void) sprintf(PQerrormsg,
+		       "pg_krb5_authname: Kerberos error %d in krb5_unparse_name\n",
+		       code);
 	com_err("pg_krb5_authname", code, "in krb5_unparse_name");
 	krb5_free_principal(principal);
 	return((char *) NULL);
@@ -443,6 +470,9 @@ pg_krb5_sendauth(sock, laddr, raddr, hostname)
      * file.
      */
     if (code = krb5_cc_get_principal(ccache, &client)) {
+	(void) sprintf(PQerrormsg,
+		       "pg_krb5_sendauth: Kerberos error %d in krb5_cc_get_principal\n",
+		       code);
 	com_err("pg_krb5_sendauth", code, "in krb5_cc_get_principal");
 	return(STATUS_ERROR);
     }
@@ -465,6 +495,9 @@ pg_krb5_sendauth(sock, laddr, raddr, hostname)
 	(void) strcat(servbuf, realm);
     }
     if (code = krb5_parse_name(servbuf, &server)) {
+	(void) sprintf(PQerrormsg,
+		       "pg_krb5_sendauth: Kerberos error %d in krb5_parse_name\n",
+		       code);
 	com_err("pg_krb5_sendauth", code, "in krb5_parse_name");
 	krb5_free_principal(client);
 	return(STATUS_ERROR);
@@ -486,11 +519,18 @@ pg_krb5_sendauth(sock, laddr, raddr, hostname)
 			     (krb5_keyblock **) NULL,
 			     &error,
 			     (krb5_ap_rep_enc_part **) NULL)) {
-	if ((code == KRB5_SENDAUTH_REJECTED) && error)
-	    fprintf(stderr, "pg_krb5_sendauth: authentication rejected: \"%*s\"\n",
-		    error->text.length, error->text.data);
-	else
+	if ((code == KRB5_SENDAUTH_REJECTED) && error) {
+	    (void) sprintf(PQerrormsg,
+			   "pg_krb5_sendauth: authentication rejected: \"%*s\"\n",
+			   error->text.length, error->text.data);
+	    fputs(PQerrormsg, stderr);
+	    pqdebug("%s", PQerrormsg);
+	} else {
+	    (void) sprintf(PQerrormsg,
+			   "pg_krb5_sendauth: Kerberos error %d in krb5_sendauth\n",
+			   code);
 	    com_err("pg_krb5_sendauth", code, "in krb5_sendauth");
+	}
     }
     krb5_free_principal(client);
     krb5_free_principal(server);
@@ -548,6 +588,9 @@ pg_krb5_recvauth(sock, laddr, raddr, username)
     if (hostp = strchr(hostp, '.'))
 	*hostp = '\0';
     if (code = krb5_parse_name(servbuf, &server)) {
+	(void) sprintf(PQerrormsg,
+		       "pg_krb5_recvauth: Kerberos error %d in krb5_parse_name\n",
+		       code);
 	com_err("pg_krb5_recvauth", code, "in krb5_parse_name");
 	return(STATUS_ERROR);
     }
@@ -577,6 +620,9 @@ pg_krb5_recvauth(sock, laddr, raddr, username)
 			     &client,
 			     (krb5_ticket **) NULL,
 			     (krb5_authenticator **) NULL)) {
+	(void) sprintf(PQerrormsg,
+		       "pg_krb5_recvauth: Kerberos error %d in krb5_recvauth\n",
+		       code);
 	com_err("pg_krb5_recvauth", code, "in krb5_recvauth");
 	krb5_free_principal(server);
 	return(STATUS_ERROR);
@@ -589,20 +635,29 @@ pg_krb5_recvauth(sock, laddr, raddr, username)
      * postmaster startup packet.
      */
     if ((code = krb5_unparse_name(client, &kusername))) {
+	(void) sprintf(PQerrormsg,
+		       "pg_krb5_recvauth: Kerberos error %d in krb5_unparse_name\n",
+		       code);
 	com_err("pg_krb5_recvauth", code, "in krb5_unparse_name");
 	krb5_free_principal(client);
 	return(STATUS_ERROR);
     }
     krb5_free_principal(client);
     if (!kusername) {
-	fprintf(stderr, "pg_krb5_recvauth: could not decode username\n");
+	(void) sprintf(PQerrormsg,
+		       "pg_krb5_recvauth: could not decode username\n");
+	fputs(PQerrormsg, stderr);
+	pqdebug("%s", PQerrormsg);
 	return(STATUS_ERROR);
     }
     kusername = pg_an_to_ln(kusername);
     if (username && strncmp(username, kusername, sizeof(NameData))) {
-	fprintf(stderr, "pg_krb5_recvauth: name \"%-*s\" != \"%-*s\"\n",
-		sizeof(NameData), username,
-		sizeof(NameData), kusername);
+	(void) sprintf(PQerrormsg,
+		       "pg_krb5_recvauth: name \"%-.*s\" != \"%-.*s\"\n",
+		       sizeof(NameData), username,
+		       sizeof(NameData), kusername);
+	fputs(PQerrormsg, stderr);
+	pqdebug("%s", PQerrormsg);
 	free(kusername);
 	return(STATUS_ERROR);
     }
@@ -634,7 +689,10 @@ fe_sendauth(msgtype, port, hostname)
     case STARTUP_KRB4_MSG:
 	if (pg_krb4_sendauth(port->sock, &port->laddr, &port->raddr,
 			     hostname) != STATUS_OK) {
-	    fprintf(stderr, "fe_sendauth: krb4 authentication failed\n");
+	    (void) sprintf(PQerrormsg,
+			   "fe_sendauth: krb4 authentication failed\n");
+	    fputs(PQerrormsg, stderr);
+	    pqdebug("%s", PQerrormsg);
 	    return(STATUS_ERROR);
 	}
 	break;
@@ -643,7 +701,10 @@ fe_sendauth(msgtype, port, hostname)
     case STARTUP_KRB5_MSG:
 	if (pg_krb5_sendauth(port->sock, &port->laddr, &port->raddr,
 			     hostname) != STATUS_OK) {
-	    fprintf(stderr, "fe_sendauth: krb5 authentication failed\n");
+	    (void) sprintf(PQerrormsg,
+			   "fe_sendauth: krb5 authentication failed\n");
+	    fputs(PQerrormsg, stderr);
+	    pqdebug("%s", PQerrormsg);
 	    return(STATUS_ERROR);
 	}
 	break;
@@ -674,9 +735,13 @@ fe_setauthsvc(name)
 	    pg_authsvc = i;
 	    break;
 	}
-    if (i == n_authsvcs)
-	fprintf(stderr, "fe_setauthsvc: invalid name: %s, ignoring...\n",
-		name);
+    if (i == n_authsvcs) {
+	(void) sprintf(PQerrormsg,
+		       "fe_setauthsvc: invalid name: %s, ignoring...\n",
+		       name);
+	fputs(PQerrormsg, stderr);
+	pqdebug("%s", PQerrormsg);
+    }
     return;
 }
 
@@ -728,8 +793,11 @@ fe_getauthname()
 	}
 	break;
     default:
-	fprintf(stderr, "fe_getauthname: invalid authentication system: %d\n",
-		authsvc);
+	(void) sprintf(PQerrormsg,
+		       "fe_getauthname: invalid authentication system: %d\n",
+		       authsvc);
+	fputs(PQerrormsg, stderr);
+	pqdebug("%s", PQerrormsg);
 	break;
     }
     return(name);
@@ -751,11 +819,17 @@ be_recvauth(msgtype, port, username)
     char *username;
 {
     if (!username) {
-	fprintf(stderr, "be_recvauth: no user name passed\n");
+	(void) sprintf(PQerrormsg,
+		       "be_recvauth: no user name passed\n");
+	fputs(PQerrormsg, stderr);
+	pqdebug("%s", PQerrormsg);
 	return(STATUS_ERROR);
     }
     if (!port) {
-	fprintf(stderr, "be_recvauth: no port structure passed\n");
+	(void) sprintf(PQerrormsg,
+		       "be_recvauth: no port structure passed\n");
+	fputs(PQerrormsg, stderr);
+	pqdebug("%s", PQerrormsg);
 	return(STATUS_ERROR);
     }
 
@@ -763,12 +837,18 @@ be_recvauth(msgtype, port, username)
 #ifdef KRB4
     case STARTUP_KRB4_MSG:
 	if (!be_getauthsvc(msgtype)) {
-	    fprintf(stderr, "be_recvauth: krb4 authentication disallowed\n");
+	    (void) sprintf(PQerrormsg,
+			   "be_recvauth: krb4 authentication disallowed\n");
+	    fputs(PQerrormsg, stderr);
+	    pqdebug("%s", PQerrormsg);
 	    return(STATUS_ERROR);
 	}
 	if (pg_krb4_recvauth(port->sock, &port->laddr, &port->raddr,
 			     username) != STATUS_OK) {
-	    fprintf(stderr, "be_recvauth: krb4 authentication failed\n");
+	    (void) sprintf(PQerrormsg,
+			   "be_recvauth: krb4 authentication failed\n");
+	    fputs(PQerrormsg, stderr);
+	    pqdebug("%s", PQerrormsg);
 	    return(STATUS_ERROR);
 	}
 	break;
@@ -776,25 +856,37 @@ be_recvauth(msgtype, port, username)
 #ifdef KRB5
     case STARTUP_KRB5_MSG:
 	if (!be_getauthsvc(msgtype)) {
-	    fprintf(stderr, "be_recvauth: krb5 authentication disallowed\n");
+	    (void) sprintf(PQerrormsg,
+			   "be_recvauth: krb5 authentication disallowed\n");
+	    fputs(PQerrormsg, stderr);
+	    pqdebug("%s", PQerrormsg);
 	    return(STATUS_ERROR);
 	}
 	if (pg_krb5_recvauth(port->sock, &port->laddr, &port->raddr,
 			     username) != STATUS_OK) {
-	    fprintf(stderr, "be_recvauth: krb5 authentication failed\n");
+	    (void) sprintf(PQerrormsg,
+			   "be_recvauth: krb5 authentication failed\n");
+	    fputs(PQerrormsg, stderr);
+	    pqdebug("%s", PQerrormsg);
 	    return(STATUS_ERROR);
 	}
 	break;
 #endif
     case STARTUP_MSG:
 	if (!be_getauthsvc(msgtype)) {
-	    fprintf(stderr, "be_recvauth: unauthenticated connections disallowed\n");
+	    (void) sprintf(PQerrormsg,
+			   "be_recvauth: unauthenticated connections disallowed\n");
+	    fputs(PQerrormsg, stderr);
+	    pqdebug("%s", PQerrormsg);
 	    return(STATUS_ERROR);
 	}
 	break;
     default:
-	fprintf(stderr, "be_recvauth: unrecognized message type: %d\n",
-		msgtype);
+	(void) sprintf(PQerrormsg,
+		       "be_recvauth: unrecognized message type: %d\n",
+		       msgtype);
+	fputs(PQerrormsg, stderr);
+	pqdebug("%s", PQerrormsg);
 	return(STATUS_ERROR);
     }
     return(STATUS_OK);
@@ -835,9 +927,13 @@ be_setauthsvc(name)
 		    authsvcs[j].allowed = turnon;
 	    break;
 	}
-    if (i == n_authsvcs)
-	fprintf(stderr, "be_setauthsvc: invalid name %s, ignoring...\n",
-		name);
+    if (i == n_authsvcs) {
+	(void) sprintf(PQerrormsg,
+		       "be_setauthsvc: invalid name %s, ignoring...\n",
+		       name);
+	fputs(PQerrormsg, stderr);
+	pqdebug("%s", PQerrormsg);
+    }
     return;
 }
 
