@@ -30,7 +30,12 @@
 
 #include <strings.h>
 #include <ctype.h>
+#ifndef sparc
 #include <float.h>
+#else
+#define FLT_DIG 6
+#define DBL_DIG 15
+#endif
 #include <math.h>
 
 #include "tmp/postgres.h"
