@@ -148,13 +148,28 @@ parser_typecast ( expr, typename )
     /* check for passing non-ints */
     Const adt;
     Datum lcp;
-    Type tp = type(CString(typename));
-    int32 len = tlen(tp);
+    Type tp;
+	char *type_string, *p, type_string_2[16];
+    int32 len;
     char *cp = NULL;
 
     char *const_string; 
 	bool string_palloced = false;
-    
+
+	type_string = CString(typename);
+	if ((p = (char *) index(type_string, '[')) != NULL)
+	{
+		*p = 0;
+		sprintf(type_string_2,"_%s", type_string);
+		tp = (Type) type(type_string_2);
+	}
+	else
+	{
+		tp = (Type) type(type_string);
+	}
+
+	len = tlen(tp);
+
     switch ( CInteger(CAR(expr)) ) {
       case 23: /* int4 */
 	  const_string = (char *) palloc(256);
