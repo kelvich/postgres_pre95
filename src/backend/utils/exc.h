@@ -48,7 +48,7 @@ typedef struct Exception {
 } Exception;
 #endif	/* 0 */
 
-typedef jmp_buf		ExcContext;
+typedef sigjmp_buf	ExcContext;
 typedef Exception*	ExcId;
 typedef long		ExcDetail;
 typedef char*		ExcData;
@@ -69,7 +69,7 @@ extern	ExcFrame*	ExcCurFrameP;
 		ExcFrame	exception;				\
 									\
 		exception.link = ExcCurFrameP; 				\
-		if (setjmp(exception.context) == 0) {			\
+		if (sigsetjmp(exception.context, 1) == 0) {		\
 			ExcCurFrameP = &exception;			\
 			{
 #define	ExcExcept()							\
@@ -131,4 +131,4 @@ ExcAbort ARGS((
 	ExcMessage	message
 ));
 
-#endif	/* !defined(ExcIncluded) */
+#endif	/* !defined(ExcIncluded) 

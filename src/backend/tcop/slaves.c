@@ -130,15 +130,15 @@ SendAbortSignals()
  *	of SlaveMain(), right before SlaveBackendsAbort().
  * --------------------------------
  */
-jmp_buf	SlaveRestartPoint;
-int	SlaveWarnings = 0;
+sigjmp_buf	SlaveRestartPoint;
+int		SlaveWarnings = 0;
 
 void
 SlaveRestart()
 {
     SLAVE1_elog(DEBUG, "Slave Backend %d *** SlaveRestart ***", MyPid);
 
-    longjmp(SlaveRestartPoint, 1);
+    siglongjmp(SlaveRestartPoint, 1);
 }
 
 /* --------------------------------
@@ -264,7 +264,7 @@ SlaveMain()
      *  all the backends resynchronize.
      * ----------------
      */
-    if (setjmp(SlaveRestartPoint) != 0) {
+    if (sigsetjmp(SlaveRestartPoint, 1) != 0) {
 	if (RestartForParAdj) {
 	    /* restart for parallelism adjustment */
 	    RestartForParAdj = false;

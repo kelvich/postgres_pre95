@@ -99,7 +99,7 @@ static int	confirmExecute = 0;
 
 Relation	reldesc;		/* current relation descritor */
 char		relname[80];		/* current relation name */
-jmp_buf		Warn_restart;
+sigjmp_buf	Warn_restart;
 extern int	NBuffers;
 time_t		tim;
 int		EchoQuery = 0;		/* default don't echo */
@@ -685,7 +685,7 @@ pg_eval_dest(query_string, argv, typev, nargs, dest)
 void
 handle_warn()
 {
-    longjmp(Warn_restart,1);
+    siglongjmp(Warn_restart, 1);
 }
 
 void
@@ -737,7 +737,7 @@ PostgresMain(argc, argv)
 
     extern	int	Noversion;		/* util/version.c */
     extern	int	Quiet;
-    extern	jmp_buf	Warn_restart;
+    extern	sigjmp_buf	Warn_restart;
     extern	int	optind;
     extern	char	*optarg;
     extern      char	*DBName; /* a global name for current database */
@@ -1145,14 +1145,7 @@ PostgresMain(argc, argv)
      */
     signal(SIGHUP, handle_warn);
     
-    if (setjmp(Warn_restart) != 0) {
-#ifdef PORTNAME_sparc_solaris
-	/*
-	 * i don't have a good grasp as to why this is necessary but it is
-	 * -- pma 06/15/94
-	 */
-	(void) sigrelse(SIGHUP);
-#endif /* PORTNAME_sparc_solaris */
+    if (sigsetjmp(Warn_restart, 1) != 0) {
 	Warnings++;
 	time(&tim);
 	

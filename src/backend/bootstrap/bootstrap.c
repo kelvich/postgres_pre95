@@ -134,7 +134,7 @@ char		relname[80];		/* current relation name */
 struct	attribute *attrtypes[MAXATTR];  /* points to attribute info */
 char		*values[MAXATTR];	/* cooresponding attribute values */
 int		numattr;		/* number of attributes for cur. rel */
-jmp_buf		Warn_restart;
+sigjmp_buf	Warn_restart;
 int		DebugMode;
 static int UseBackendParseY = 0;
 GlobalMemory	nogc = (GlobalMemory) NULL;	/* special no-gc mem context */
@@ -315,7 +315,7 @@ char *av[];
      * ----------------
      */
     signal(SIGHUP, (sig_func) handle_warn);
-    if (setjmp(Warn_restart) != 0) {
+    if (sigsetjmp(Warn_restart, 1) != 0) {
 	Warnings++;
 	AbortCurrentTransaction();
     }
