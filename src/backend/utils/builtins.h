@@ -356,6 +356,8 @@ char *lo_fileout ARGS((LargeObject *object ));
 
 /* misc.c */
 int32 userfntest ARGS((int i ));
+bool  NullValue ARGS((Datum value));
+bool  NonNullValue ARGS((Datum value));
 
 /* not_in.c */
 bool int4notin ARGS((int16 not_in_arg , char *relation_and_attr ));
