@@ -120,8 +120,7 @@ void *pg_dlopen( filename, err )
 
     dfhandle= (dfHandle *)malloc(sizeof(dfHandle));
     dfhandle->func_list= dyna_head;
-    dfhandle->libname= temp_file_name;
-    temp_file_name = NULL;
+    strncpy(dfhandle->shlib, temp_file_name, MAXPATHLEN);
     dfhandle->handle= handle;
 
 failed:
