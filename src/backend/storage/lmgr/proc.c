@@ -278,9 +278,14 @@ int pid;
    * get off the wait queue
    * ----------------
    */
-  if (proc->links.next != INVALID_OFFSET)
-    SHMQueueDelete(&(proc->links));
+  LockLockTable();
+  if (proc->links.next != INVALID_OFFSET) {
+      Assert(proc->waitLock->waitProcs.size > 0);
+      SHMQueueDelete(&(proc->links));
+      --proc->waitLock->waitProcs.size;
+  }
   SHMQueueElemInit(&(proc->links));
+  UnlockLockTable();
 
   SpinAcquire(ProcStructLock);
 
@@ -414,7 +419,7 @@ LOCK *		lock;
    * --------------
    */
   bzero(&timeval, sizeof(struct itimerval));
-  timeval.it_value.tv_sec = 60;
+  timeval.it_value.tv_sec = DEADLOCK_TIMEOUT;
 
   if (setitimer(ITIMER_REAL, &timeval, &dummy))
 	elog(FATAL, "ProcSleep: Unable to set timer for process wakeup");
@@ -462,9 +467,14 @@ int	errType;
   PROC *retProc;
   /* assume that spinlock has been acquired */
 
+  if (proc->links.prev == INVALID_OFFSET ||
+      proc->links.next == INVALID_OFFSET)
+      return((PROC *) NULL);
+
   retProc = (PROC *) MAKE_PTR(proc->links.prev);
-  if (proc->links.next != INVALID_OFFSET)
-      SHMQueueDelete(&(proc->links));
+
+  /* you have to update waitLock->waitProcs.size yourself */
+  SHMQueueDelete(&(proc->links));
   SHMQueueElemInit(&(proc->links));
 
   proc->errType = errType;
@@ -515,6 +525,7 @@ char *		lock;
      */
     GrantLock((LOCK *) lock, proc->token);
     queue->size--;
+
     /*
      * ProcWakeup removes proc from the lock waiting process queue and
      * returns the next proc in chain.  If a writer just dropped
@@ -523,7 +534,7 @@ char *		lock;
     proc = ProcWakeup(proc, NO_ERROR);
 
     count++;
-    if (queue->size == 0)
+    if (!proc || queue->size == 0)
       break;
   }
 
@@ -542,8 +553,8 @@ SHM_QUEUE	*elem;
 }
 
 /* --------------------
- * We only get to this routine I sleep for a minute 
- * waiting for a lock to be released by some other process.  After
+ * We only get to this routine if we got SIGALRM after DEADLOCK_TIMEOUT
+ * while waiting for a lock to be released by some other process.  After
  * the one minute deadline we assume we have a deadlock and must abort
  * this transaction.  We must also indicate that I'm no longer waiting
  * on a lock so that other processes don't try to wake me up and screw 
@@ -554,7 +565,7 @@ int
 HandleDeadLock()
 {
   LOCK *lock;
-  LOCKT lockt;
+  int size;
 
   LockLockTable();
 
@@ -569,57 +580,62 @@ HandleDeadLock()
    * ---------------------
    */
   if (IpcSemaphoreGetCount(MyProc->sem.semId, MyProc->sem.semNum) == 
-                                                IpcSemaphoreDefaultStartValue)
-  {
-	UnlockLockTable();
-	return 1;
+      IpcSemaphoreDefaultStartValue) {
+      UnlockLockTable();
+      return 1;
+  }
+
+  /*
+   * you would think this would be unnecessary, but...
+   *
+   * this also means we've been removed already.  in some ports
+   * (e.g., sparc and aix) the semop(2) implementation is such that
+   * we can actually end up in this handler after someone has removed
+   * us from the queue and bopped the semaphore *but the test above
+   * fails to detect the semaphore update* (presumably something weird
+   * having to do with the order in which the semaphore wakeup signal
+   * and SIGALRM get handled).
+   */
+  if (MyProc->links.prev == INVALID_OFFSET ||
+      MyProc->links.next == INVALID_OFFSET) {
+      UnlockLockTable();
+      return(1);
   }
 
   lock = MyProc->waitLock;
-  lockt = (LOCKT) MyProc->token;
-
-#if 0
-  /* ----------------------
-   * Decrement the holders fields since we can wait no longer.
-   * the name hodlers is misleading, it represents the sum of the number
-   * of active holders (those who have acquired the lock), and the number
-   * of waiting processes trying to acquire the lock.
-   * ----------------------
-   */
-  /*
-   * pma observes on 1/31/94: this is already done by the code in
-   * WaitOnLock that handles all ProcSleep failures, leading to
-   * wacky double-decrement problems.  (How the heck this worked
-   * before on Ultrix is beyond me...)
-   */
-  LockDecrWaitHolders(lock, lockt);
-#endif
+  size = lock->waitProcs.size; /* so we can look at this in the core */
 
   /* ------------------------
    * Get this process off the lock's wait queue
    * ------------------------
    */
-  if (MyProc->links.next != INVALID_OFFSET)
-      SHMQueueDelete(&MyProc->links);
+  Assert(lock->waitProcs.size > 0);
+  --lock->waitProcs.size;
+  SHMQueueDelete(&(MyProc->links));
   SHMQueueElemInit(&(MyProc->links));
-  lock->waitProcs.size--;
-
-  UnlockLockTable();
 
   /* ------------------
-   * Unlock my semaphore, so that the count is right for next time.
-   * I was awoken by a signal not by someone unlocking my semaphore.
+   * Unlock my semaphore so that the count is right for next time.
+   * I was awoken by a signal, not by someone unlocking my semaphore.
    * ------------------
    */
   IpcSemaphoreUnlock(MyProc->sem.semId, MyProc->sem.semNum, IpcExclusiveLock);
 
-  elog(NOTICE, "Timeout -- possible deadlock");
   /* -------------
    * Set MyProc->errType to STATUS_ERROR so that we abort after
    * returning from this handler.
    * -------------
    */
   MyProc->errType = STATUS_ERROR;
+  
+  /*
+   * if this doesn't follow the IpcSemaphoreUnlock then we get lock
+   * table corruption ("LockReplace: xid table corrupted") due to
+   * race conditions.  i don't claim to understand this...
+   */
+  UnlockLockTable();
+
+  elog(NOTICE, "Timeout -- possible deadlock");
 }
 
 void
