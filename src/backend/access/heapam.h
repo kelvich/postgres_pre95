@@ -6,7 +6,7 @@
  *	$Header$
  */
 
-#ifndef	HeapAMIncluded	/* Include this file only once */
+#ifndef	HeapAMIncluded		/* Include this file only once */
 #define HeapAMIncluded	1
 
 #include "att.h"	/* XXX */
@@ -25,10 +25,10 @@
 
 /*
  * RelationNameCreateHeapRelation --
- *	Creates a cataloged heap relation.
+ *	Returns relation id of a newly created cataloged heap relation.
  */
 extern
-void
+ObjectId
 RelationNameCreateHeapRelation ARGS((
 	Name		relationName,
 	ArchiveMode	archiveMode,

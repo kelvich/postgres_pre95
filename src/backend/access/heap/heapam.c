@@ -32,7 +32,7 @@ HeapScanIsValid(scan)
 	return ((bool)PointerIsValid(scan));
 }
 
-void
+ObjectId
 RelationNameCreateHeapRelation(relationName, archiveMode, numberOfAttributes,
 		tupleDescriptor)
 	Name		relationName;
@@ -40,8 +40,8 @@ RelationNameCreateHeapRelation(relationName, archiveMode, numberOfAttributes,
 	AttributeNumber	numberOfAttributes;
 	TupleDescriptor	tupleDescriptor;
 {
-	amcreate(relationName, archiveMode, numberOfAttributes,
-		tupleDescriptor);
+	return (amcreate(relationName, archiveMode, numberOfAttributes,
+		tupleDescriptor));
 }
 
 Relation
