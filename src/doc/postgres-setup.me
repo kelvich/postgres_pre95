@@ -137,7 +137,9 @@ Equipment Corporation DECstation 3100 computers running Ultrix 4.0.  An
 unsupported port for DECstations running Ultrix lower than 4.0 is included,
 as well as an unsupported port for Sequent Symmetry running Dynix.  These
 ports are unsupported for the following reasons:  the dynamic loading mechanism
-on Ultrix less than 4.0 is severely limited, and the standard "make" on the
+on Ultrix less than 4.0 is severely limited, and the standard
+.i make
+on the
 Sequent Symmetry cannot compile Postgres.  Other than these disclaimers, these
 two ports work as well as the others.
 In order to use \*(PG,
@@ -153,7 +155,9 @@ See the section on compilation for details.
 The DECstation version requires a kernel which allows 4 megabytes of
 shared memory.
 To compile the Sequent Symmetry port, you will have to obtain
-a System V Release 3 compatible "make".  Consult your Sequent representative
+a System V Release 3 compatible
+.i make.
+Consult your Sequent representative
 for details.
 .sh 2 "Software"
 .pp
@@ -234,8 +238,6 @@ Configuration
 Compilation
 .ip \0\0\0\(bu
 Testing
-.ip \0\0\0\(bu
-Cleanup
 .lp
 Each of these steps is described below.
 It is advised that you read over
@@ -384,7 +386,6 @@ README	doc/	ref/
 .pp
 At this point you have loaded the \*(PG files.
 Other directories will be created by the installation process.
-Proceed now to the Configuration section.
 .sp
 .\" ----------------
 .tm    Configuration
@@ -502,8 +503,7 @@ and reboot.
 .pp
 In order to reconfigure your DECstation 3100 Ultrix kernel,
 you will have to become root and add some lines to /usr/sys/conf
-(your kernel config file) and /usr/sys/conf/param.c (your kernel
-parameters file).
+(your kernel config file).
 .sp
 The following lines should be added to /usr/sys/conf/KERNEL:
 .sp
@@ -548,9 +548,11 @@ the default options.  Also, if you plan to modify Postgres, you may want to
 enable debugging (note that this will take Postgres up to about 50 megs from
 about 30 megs otherwise).
 .pp
+\fB
 WARNING!!  DO NOT ENABLE COMPILER OPTIMIZATION ON SUN 4's OR SPARCS - POSTGRES
 WILL CRASH YOUR MACHINE IF COMPILED THIS WAY!!  (This appears to be due to
 a kernel problem with the shared memory functions.)
+\fR
 .pp
 To enable compiler directives, 
 look in the file ./newconf/CONFIG/README
@@ -566,12 +568,12 @@ Now to edit the configuration file,
 where
 .i <port> is the following:
 .(l
-dec			\- DS3100 running Ultrix LOWER than 4.0
-ultrix4		\- DS3100 running Ultrix 4.0
-sun			\- Sun 3 running SunOS 3.4 or 3.5
-sunos4		\- Sun 3 running SunOS 4.0
-seq			\- Sequent Symmetry running Dynix
-sparc		\- Sparcstation or Sun 4
+dec	\- DS3100 running Ultrix LOWER than 4.0
+ultrix4	\- DS3100 running Ultrix 4.0
+sun	\- Sun 3 running SunOS 3.4 or 3.5
+sunos4	\- Sun 3 running SunOS 4.0
+seq	\- Sequent Symmetry running Dynix
+sparc	\- Sparcstation or Sun 4
 .)l
 The
 .i only
@@ -587,10 +589,11 @@ simply execute the following commands:
 .)l
 .pp
 .lp
-Make install will ask you for the port you wish to use.  Use the same port as
-in Step 2.  You will also be asked for the name of the object tree; go ahead
-and use the default if there is no problem.  This step will take at least
-an hour and may take several hours on diskless Sun 3's.
+.i Make install
+will ask you for the port you wish to use.  Use the same port as
+in Step 2.  You will also be asked for the name of the object tree directory.
+This step will take at least an hour and may take several hours on diskless
+Sun 3's.
 .pp
 .i Make
 is a C shell script that runs
@@ -605,7 +608,10 @@ sets or unsets environment variables,
 and so on.
 .pp
 You should see no errors during this phase, except possibly for warnings
-(which can be ignored) when compiling the output of YACC and LEX.
+(which can be ignored) when compiling the output of
+.i yacc
+and
+.i lex.
 .sh 3 "Creating the initial database"
 .pp
 \*(PG databases are stored in the directory ~postgres/data.
@@ -625,7 +631,9 @@ will be generated.
 If several users wish to use \*(PG,
 we advise you to create additional databases,
 one for each user.
-This can be done by running createdb with the username as the first argument.
+This can be done by running
+.i createdb
+with the username as the first argument.
 For example,
 to create a database for the user \*(lqbill\*(rq,
 type
@@ -776,13 +784,13 @@ Go
 *
 .ft
 
-.ft I
-	The ``*'' is the terminal monitor prompt.  We are now
-	talking to the backend, so let's send a simple test
-	query:  list the names and user ids of the postgres users.
-	We terminate the query with a \eg \*- the ``go'' command
-	to the terminal monitor.
-.ft R
+\fI
+The ``*'' is the terminal monitor prompt.  We are now
+talking to the backend, so let's send a simple test
+query:  list the names and user ids of the postgres users.
+We terminate the query with a \eg \*- the ``go'' command
+to the terminal monitor.
+\fR
 
 *\fBretrieve (u.usename, u.usesysid) from u in pg_user
 \eg\fP
@@ -824,10 +832,12 @@ Query sent to backend is "retrieve (u.usename, u.usesysid) from u in pg_user"
 Go 
 .ft
 .ft I
+.pp
 	Okay, this worked, too.  Now we'll quit.
+.pp
 *\fB\eq\fP
 .ft CW
-Bye 
+I live to serve you.
 .ft
 %
 .)l
@@ -862,12 +872,16 @@ a program used by createdb to initialize databases.
 Included in \*(PG are a handful of support programs.
 Most of these are used internally by the system but here is a list of
 them for your information.
+.\
+.\ Keep the below indentation - this comes out correctly.
+.\
+.\
 .(l
 backend		\- used by createdb to create system relations
-createdb	\- creates new postgres databases
+createdb		\- creates new postgres databases
 destroydb	\- destroys postgres databases
-ipcclean	\- frees up garbage shared memory from failed backends
-vacuumd		\- vacuum cleaner daemon
+ipcclean		\- frees up garbage shared memory from failed backends
+vacuumd	\- vacuum cleaner daemon
 pg_version	\- make version numbers for createdb
 pg_id		\- gets user id's for createdb
 .)l
@@ -894,7 +908,7 @@ you may wish to copy this file to
 To do this,
 type:
 .(l
-# \fBcp ~postgres/O/libpq.a   /usr/lib\fR
+# \fBcp ~postgres/obj.<port>/libpq.a   /usr/lib\fR
 .)l
 .sh 2 "Demo Database"
 .pp
@@ -1024,9 +1038,11 @@ commitment to support in a research environment.
 If you do want to talk directly to the Postgres
 group, electronic mail is strongly preferred.
 We can be reached via the Internet as
-.q "post_questions@postgres.Berkeley.EDU"
-and via UUCP as
-.q "ucbvax!postgres!post_questions" .
+.(l
+\0\0\0\0\0post_questions@postgres.Berkeley.EDU
+or
+\0\0\0\0\0(ucbvax!postgres!post_questions)
+.)l
 We can also be reached at (415) 642-7520,
 Monday through Friday,
 between 1 and 4 PM Pacific Time.
@@ -1035,10 +1051,15 @@ between 1 and 4 PM Pacific Time.
 A mailing list for Postgres announcements and discussion
 is available for anyone who is interested.  If you wish
 to subscribe to this mailing list, send mail to
-.q postgres-request@postgres.berkeley.edu
-with "Add" as the subject.
+.(l
+\0\0\0\0\0postgres-request@postgres.Berkeley.EDU
+.)l
+with "Add" as the subject.  Note that mail sent to this address is processed
+.b electronically.
 .pp
 The mailing list itself is called 
-.q postgres@postgres.berkeley.edu
+.(l
+\0\0\0\0\0postgres@postgres.Berkeley.EDU
+.)l
 and all mail sent to this address will be 
 will be routed to the mailing list membership.
