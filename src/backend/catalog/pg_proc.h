@@ -347,6 +347,7 @@ DATA(insert OID = 655 (  char16lt          6 11 f t f 2  16 foo bar ));
 DATA(insert OID = 656 (  char16le          6 11 f t f 2  16 foo bar ));
 DATA(insert OID = 657 (  char16gt          6 11 f t f 2  16 foo bar ));
 DATA(insert OID = 658 (  char16ge          6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 659 (  char16ne          6 11 f t f 2  16 foo bar ));
 
 DATA(insert OID = 700 (  lockadd           6 11 f t f 2  31 foo bar ));
 DATA(insert OID = 701 (  lockrm            6 11 f t f 2  31 foo bar ));

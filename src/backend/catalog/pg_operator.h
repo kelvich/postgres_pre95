@@ -233,11 +233,12 @@ DATA(insert OID = 639 (  "~"       6 0 b t f  19  19  16 0 640  0 0 char16regexe
 DATA(insert OID = 640 (  "!~"      6 0 b t f  19  19  16 0 639  0 0 char16regexne eqsel eqjoinsel ));
 DATA(insert OID = 641 (  "~"       6 0 b t f  25  25  16 0 642  0 0 textregexeq eqsel eqjoinsel ));
 DATA(insert OID = 642 (  "!~"      6 0 b t f  25  25  16 0 641  0 0 textregexne eqsel eqjoinsel ));
+DATA(insert OID = 643 (  "!="      6 0 b t f  19  19  16 93 643  0 0 char16ne eqsel eqjoinsel ));
 
-DATA(insert OID = 660 (  "<"       6 0 b t f  19  19  16 662 663  0 0 char16lt eqsel eqjoinsel ));
-DATA(insert OID = 661 (  "<="      6 0 b t f  19  19  16 663 662  0 0 char16le eqsel eqjoinsel ));
-DATA(insert OID = 662 (  ">"       6 0 b t f  19  19  16 660 661  0 0 char16gt eqsel eqjoinsel ));
-DATA(insert OID = 663 (  ">="      6 0 b t f  19  19  16 661 660  0 0 char16ge eqsel eqjoinsel ));
+DATA(insert OID = 660 (  "<"       6 0 b t f  19  19  16 662 663  0 0 char16lt intltsel inltjoinsel ));
+DATA(insert OID = 661 (  "<="      6 0 b t f  19  19  16 663 662  0 0 char16le intltsel intltjoinsel ));
+DATA(insert OID = 662 (  ">"       6 0 b t f  19  19  16 660 661  0 0 char16gt intltsel intltjoinsel ));
+DATA(insert OID = 663 (  ">="      6 0 b t f  19  19  16 661 660  0 0 char16ge intltsel intltjoinsel ));
 DATA(insert OID = 664 (  "<"       6 0 b t f  25  25  16 666 667  0 0 text_lt intltsel intltjoinsel ));
 DATA(insert OID = 665 (  "<="      6 0 b t f  25  25  16 667 666  0 0 text_le intltsel intltjoinsel ));
 DATA(insert OID = 666 (  ">"       6 0 b t f  25  25  16 664 665  0 0 text_gt intltsel intltjoinsel ));
