@@ -23,6 +23,8 @@
 #include "planner/joinrels.h"
 #include "planner/prune.h"
 
+#include <strings.h>	/* XXX style */
+
 
 /* #include "allpaths.h"
    #include "internal.h"
@@ -237,6 +239,7 @@ find_join_paths (outer_rels,levels_left,nest_level)
 
 /* The following functions are solely for the purpose of debugging */
 
+/*
 char *strcat (s1, s2)
 char *s1, *s2;
 {
@@ -244,6 +247,7 @@ char *s1, *s2;
     sprintf(stringbuf, "%s%s",s1,s2);
     return stringbuf;
 }
+*/
 
 void
 printclauseinfo (ind,cl)
