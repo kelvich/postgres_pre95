@@ -979,7 +979,7 @@ void param_type_init(typev, nargs)
     ObjectId *typev;
     int nargs;
 {
-    int nargs,y=0,z;
+    int y=0,z;
     List i,x,args = LispNil;
 
     pfunc_num_args = nargs;
