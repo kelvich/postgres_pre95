@@ -44,25 +44,65 @@
 #define DISK_RULE_LOCK	'd'
 #define MEM_RULE_LOCK	'm'
 
+/*
+ * to avoid wasting space, the attributes should be layed out in such a
+ * way to reduce structure padding.
+ */
+
 typedef struct HeapTupleData {
+
+    /* size is unsigned int */
+
 	Size		t_len;		/* length of entire tuple */
+
+	/* this is six bytes long */
+
+	ItemPointerData	t_anchor;	/* anchor point TID */
+
+	/* keep these chars here as padding */
+
+
 	ItemPointerData	t_ctid;		/* current TID of this tuple */
-	char		t_locktype;	/* type of rule lock representation*/
+
+	/* keep these here as padding */
+
+
+	ItemPointerData	t_chain;	/* replaced tuple TID */
+
+	/* keep these here as padding */
+
 	union {
 		ItemPointerData	l_ltid;	/* TID of the lock */
 		RuleLock	l_lock;	/* internal lock format */
 	}		t_lock;
+
+	/* four bytes long */
+
 	ObjectId	t_oid;		/* OID of this tuple */
+
+	/* char[5] each */
+
 	XID		t_xmin;		/* insert XID stamp */
-	CID		t_cmin;		/* insert CID stamp */
 	XID		t_xmax;		/* delete XID stamp */
+
+	/* one byte each */
+
+	CID		t_cmin;		/* insert CID stamp */
 	CID		t_cmax;		/* delete CID stamp */
-	ItemPointerData	t_chain;	/* replaced tuple TID */
-	ItemPointerData	t_anchor;	/* anchor point TID */
+
+	/* four bytes each */
+
 	ABSTIME		t_tmin, t_tmax;	/* time stamps */
+
 	AttributeNumber	t_natts;	/* number of attributes */
+
+    /* one byte each */
+
+	char		t_locktype;	/* type of rule lock representation*/
 	uint8		t_hoff;		/* sizeof tuple header */
 	char		t_vtype;	/* `d', `i', `r' */
+	char		t_infomask; /* used for various stuff in getattr() */
+
 	char		t_bits[MinHeapTupleBitmapSize / 8];
 					/* bit map of domains */
 } HeapTupleData;	/* MORE DATA FOLLOWS AT END OF STRUCT */
@@ -123,5 +163,13 @@ typedef HeapTupleData	*HeapTuple;
  */
 #define HeapTupleGetForm(tuple) \
     ((Form) ((char *)(tuple) + (tuple)->t_hoff))
+
+/* Various information about the tuple used by getattr() */
+
+#define HeapTupleNoNulls(tuple) (!(((HeapTuple) (tuple))->t_infomask & 0x01))
+#define HeapTupleAllFixed(tuple) (!(((HeapTuple) (tuple))->t_infomask & 0x02))
+
+#define HeapTupleSetNull(tuple) (((HeapTuple) (tuple))->t_infomask |= 0x01)
+#define HeapTupleSetVarlena(tuple) (((HeapTuple) (tuple))->t_infomask |= 0x02)
 
 #endif	/* !defined(HTupIncluded) */
