@@ -19,7 +19,11 @@
 #define	EXPBUFSZ	256
 #define	PCHARLEN	16
 
+#ifdef sprite
+#include "regexp.h"
+#else
 #include <regexp.h>
+#endif /* sprite */
 
 /*
  *  routines that use the regexp stuff
