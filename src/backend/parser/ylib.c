@@ -44,26 +44,26 @@ parser(str, l)
 	bcopy(str,TheString,strlen(str)+1);
     }
 
-    parser_init();
-    yyresult = yyparse();
-
-    /* DB_PARSE("parse_string is %s\n",str); */
-
-    fflush(stdout);
-    clearerr(stdin);
-
-    if (yyresult) {	/* error */
+    ExcBegin(); {
+      parser_init();
+      yyresult = yyparse();
+      
+      /* DB_PARSE("parse_string is %s\n",str); */
+      
+      fflush(stdout);
+      clearerr(stdin);
+      
+      if (yyresult) {	/* error */
 	/* DB_PARSE("parser error\n");
-	printf("parse_string is %s\n",str); */
+	   printf("parse_string is %s\n",str); */
 	fflush(stdout);
 	CAR(l) = LispNil;
 	CDR(l) = LispNil;
 	return;
-    }
-
-    ExcBegin(); {
-	    CAR(l) = CAR(parsetree);
-	    CDR(l) = CDR(parsetree);
+      }
+      
+      CAR(l) = CAR(parsetree);
+      CDR(l) = CDR(parsetree);
     }
 
     ExcExcept(); {
