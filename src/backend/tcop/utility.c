@@ -498,9 +498,12 @@ ProcessUtility(command, args, commandString, dest)
 		/* XXX moved to remove.c */
 #endif
 		args = CADR(args);
-		if (length(args) == 3) {
-		    type2 = CString(CADR(CDR(args)));
-		}
+
+/*		if (length(args) == 3) {
+ *		    type2 = CString(CADR(CDR(args)));
+ *		}
+ */
+		type2 = CString(CADR(CDR(args)));
 		RemoveOperator(CString(CAR(args)), CString(CADR(args)),
 			       type2);
 	    }
