@@ -568,7 +568,7 @@ FileSync (file)
  * warning if there are too few left
  */
 
-private static allocatedFiles = 0;
+private allocatedFiles = 0;
 
 /*
  * Note:
