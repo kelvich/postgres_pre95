@@ -153,7 +153,8 @@ smgrcreate(which, reln)
     int fd;
 
     if ((fd = (*(smgrsw[which].smgr_create))(reln)) < 0)
-	elog(WARN, "cannot open %16s", &(reln->rd_rel->relname.data[0]));
+	elog(WARN, "cannot open %.*s",
+	     NAMEDATALEN, &(reln->rd_rel->relname.data[0]));
 
     return (fd);
 }
@@ -172,7 +173,8 @@ smgrunlink(which, reln)
     int status;
 
     if ((status = (*(smgrsw[which].smgr_unlink))(reln)) == SM_FAIL)
-	elog(WARN, "cannot unlink %16s", &(reln->rd_rel->relname.data[0]));
+	elog(WARN, "cannot unlink %.*s",
+	     NAMEDATALEN, &(reln->rd_rel->relname.data[0]));
 
     return (status);
 }
@@ -195,7 +197,8 @@ smgrextend(which, reln, buffer)
     status = (*(smgrsw[which].smgr_extend))(reln, buffer);
 
     if (status == SM_FAIL)
-	elog(WARN, "%16s: cannot extend", &(reln->rd_rel->relname.data[0]));
+	elog(WARN, "%.*s: cannot extend",
+	     NAMEDATALEN, &(reln->rd_rel->relname.data[0]));
 
     return (status);
 }
@@ -215,7 +218,8 @@ smgropen(which, reln)
     int fd;
 
     if ((fd = (*(smgrsw[which].smgr_open))(reln)) < 0)
-	elog(WARN, "cannot open %16s", &(reln->rd_rel->relname.data[0]));
+	elog(WARN, "cannot open %.*s",
+	     NAMEDATALEN, &(reln->rd_rel->relname.data[0]));
 
     return (fd);
 }
@@ -232,7 +236,8 @@ smgrclose(which, reln)
     Relation reln;
 {
     if ((*(smgrsw[which].smgr_close))(reln) == SM_FAIL)
-	elog(WARN, "cannot close %16s", &(reln->rd_rel->relname.data[0]));
+	elog(WARN, "cannot close %.*s",
+	     NAMEDATALEN, &(reln->rd_rel->relname.data[0]));
 
     return (SM_SUCCESS);
 }
@@ -260,8 +265,8 @@ smgrread(which, reln, blocknum, buffer)
     status = (*(smgrsw[which].smgr_read))(reln, blocknum, buffer);
 
     if (status == SM_FAIL)
-	elog(WARN, "cannot read block %d of %16s",
-	     blocknum, &(reln->rd_rel->relname.data[0]));
+	elog(WARN, "cannot read block %d of %.*s",
+	     blocknum, NAMEDATALEN, &(reln->rd_rel->relname.data[0]));
 
     return (status);
 }
@@ -287,8 +292,8 @@ smgrwrite(which, reln, blocknum, buffer)
     status = (*(smgrsw[which].smgr_write))(reln, blocknum, buffer);
 
     if (status == SM_FAIL)
-	elog(WARN, "cannot write block %d of %16s",
-	     blocknum, &(reln->rd_rel->relname.data[0]));
+	elog(WARN, "cannot write block %d of %.*s",
+	     blocknum, NAMEDATALEN, &(reln->rd_rel->relname.data[0]));
 
     return (status);
 }
@@ -309,8 +314,8 @@ smgrflush(which, reln, blocknum, buffer)
     status = (*(smgrsw[which].smgr_flush))(reln, blocknum, buffer);
 
     if (status == SM_FAIL)
-	elog(WARN, "cannot flush block %d of %16s to stable store",
-	     blocknum, &(reln->rd_rel->relname.data[0]));
+	elog(WARN, "cannot flush block %d of %.*s to stable store",
+	     blocknum, NAMEDATALEN, &(reln->rd_rel->relname.data[0]));
 
     return (status);
 }
@@ -380,8 +385,8 @@ smgrnblocks(which, reln)
     int nblocks;
 
     if ((nblocks = (*(smgrsw[which].smgr_nblocks))(reln)) < 0)
-	elog(WARN, "cannot count blocks for %16s",
-		   &(reln->rd_rel->relname.data[0]));
+	elog(WARN, "cannot count blocks for %.*s",
+	     NAMEDATALEN, &(reln->rd_rel->relname.data[0]));
 
     return (nblocks);
 }
