@@ -173,6 +173,7 @@ int flags;
 	RelationSetLockForRead(r);
 	retval->ofs.i_fs.flags = IFS_RDLOCK;
     }
+    retval->ofs.i_fs.flags |= IFS_ATEOF;
 
     retval->object = newobj;
 
@@ -304,6 +305,12 @@ inv_seek(obj_desc, offset, whence)
     Assert(PointerIsValid(obj_desc->object));
     Assert(obj_desc->object->lo_storage_type == CLASS_FILE);
 
+    /*
+     *  Whenever we do a seek, we turn off the EOF flag bit to force
+     *  ourselves to check for real on the next read.
+     */
+
+    obj_desc->ofs.i_fs.flags &= ~IFS_ATEOF;
     obj_desc->ofs.i_fs.offset = offset;
 
     /* try to avoid doing any work, if we can manage it */
@@ -344,7 +351,8 @@ inv_tell(obj_desc)
     return (obj_desc->ofs.i_fs.offset);
 }
 
-int inv_read(obj_desc, buf, nbytes)
+int
+inv_read(obj_desc, buf, nbytes)
      LargeObjectDesc *obj_desc;
      char *buf;
      int nbytes;
@@ -363,6 +371,10 @@ int inv_read(obj_desc, buf, nbytes)
     Assert(obj_desc->object->lo_storage_type == CLASS_FILE);
     Assert(buf != NULL);
 
+    /* if we're already at EOF, we don't need to do any work here */
+    if (obj_desc->ofs.i_fs.flags & IFS_ATEOF)
+	return (0);
+
     /* make sure we obey two-phase locking */
     if (!(obj_desc->ofs.i_fs.flags & IFS_RDLOCK)) {
 	RelationSetLockForRead(obj_desc->ofs.i_fs.heap_r);
@@ -377,8 +389,10 @@ int inv_read(obj_desc, buf, nbytes)
 	/* fetch an inversion file system block */
 	htup = inv_fetchtup(obj_desc, &b);
 
-	if (!HeapTupleIsValid(htup))
+	if (!HeapTupleIsValid(htup)) {
+	    obj_desc->ofs.i_fs.flags |= IFS_ATEOF;
 	    break;
+	}
 
 	/* copy the data from this block into the buffer */
 	d = (Datum) heap_getattr(htup, b, 2, obj_desc->ofs.i_fs.hdesc, &isNull);
@@ -439,7 +453,8 @@ inv_write(obj_desc, buf, nbytes)
 	 *  files (should be fixed someday).
 	 */
 
-	if (obj_desc->ofs.i_fs.heap_r->rd_nblocks == 0)
+	if ((obj_desc->ofs.i_fs.flags & IFS_ATEOF)
+	    || obj_desc->ofs.i_fs.heap_r->rd_nblocks == 0)
 	    htup = (HeapTuple) NULL;
 	else
 	    htup = inv_fetchtup(obj_desc, &b);
