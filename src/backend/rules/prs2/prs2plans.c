@@ -22,6 +22,7 @@
 #include "executor/execdefs.h"
 #include "executor/x_execmain.h"
 #include "parser/parsetree.h"
+#include "utils/fmgr.h"
 
 #include "catalog/pg_prs2rule.h"
 #include "catalog/pg_prs2plans.h"
@@ -115,6 +116,48 @@ Name relationName;
 			    relationTuple,
 			    InvalidBuffer,
 			    (TupleDescriptor) NULL);
+/* #define RULE_BUG_DEBUG */
+#ifdef RULE_BUG_DEBUG
+    {
+	Relation rel;
+	TupleDescriptor tdesc;
+	ScanKeyData scanKey;
+	HeapScanDesc scanDesc;
+	HeapTuple tuple;
+	Buffer buffer;
+	RuleLock locks;
+
+	printf("------- prs2GetLocksFromRelation(%s)\n", relationName);
+	/*----
+	 * print the tuple as returned by the sys cache...
+	 */
+	rel = RelationNameOpenHeapRelation(Name_pg_relation);
+	tdesc = RelationGetTupleDescriptor(rel);
+	printf("------- sys cache tuple = \n");
+	debugtup(relationTuple, tdesc);
+	printf("------- locks of sys cache tuple:");
+	prs2PrintLocks(relationLocks); printf("\n");
+	/*----
+	 * Scan pg_relation
+	 */
+	scanKey.data[0].flags = 0;
+	scanKey.data[0].attributeNumber = Anum_pg_relation_relname;
+	scanKey.data[0].procedure = F_CHAR16EQ;
+	scanKey.data[0].argument = NameGetDatum(relationName);
+	scanDesc = RelationBeginHeapScan(rel, 0, NowTimeQual, 1, &scanKey);
+	tuple = HeapScanGetNextTuple(scanDesc, 0, &buffer);
+	locks = prs2GetLocksFromTuple( tuple, buffer, (TupleDescriptor) NULL);
+	printf("------- pg_relation tuple = \n");
+	debugtup(tuple, tdesc);
+	printf("------- locks of pg_relation tuple:");
+	prs2PrintLocks(locks); printf("\n");
+	/*---
+	 * Close all open rel descriptors..
+	 */
+	RelationCloseHeapRelation(rel);
+    }
+#endif RULE_BUG_DEBUG
+
     return(relationLocks);
 }
 
