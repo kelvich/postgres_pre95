@@ -547,23 +547,6 @@ funcid_get_rettype ( funcid)
     return (funcrettype);
 }
 
-ObjectId *
-funcname_get_funcargtypes ( function_name )
-     char *function_name;
-{
-    HeapTuple func_tuple = NULL;
-    ObjectId *oid_array = NULL;
-    struct proc *foo;
-    func_tuple = SearchSysCacheTuple(PRONAME,function_name,0,0,0);
-
-    if ( !HeapTupleIsValid ( func_tuple )) 
-	elog (WARN, "function named %s does not exist", function_name);
-    
-    foo = (struct proc *)GETSTRUCT(func_tuple);
-    oid_array = foo->proargtypes.data;
-    return (oid_array);
-}
-
 bool
 func_get_detail(funcname, nargs, oid_array, funcid, rettype, retset)
     char *funcname;
@@ -575,53 +558,42 @@ func_get_detail(funcname, nargs, oid_array, funcid, rettype, retset)
 {
     ObjectId *fargs;
     ObjectId **oid_vector;
+    ObjectId *current_oids;
     HeapTuple ftup;
     Form_pg_proc pform;
 
-    /* find the named function in the system catalogs */
-    ftup = SearchSysCacheTuple(PRONAME, funcname, 0, 0, 0);
-
-    if (!HeapTupleIsValid(ftup))
-	return (false);
-
-    /*
-     *  If the function exists, we need to check the argument types
-     *  passed in by the user.  If they don't match, then we need to
-     *  check the user's arg types against superclasses of the arguments
-     *  to this function.
+    /* attempt to find named function in the system catalogs
+     * with arguments exactly as specified
      */
+    ftup = SearchSysCacheTuple(PRONAME, funcname, nargs, oid_array, 0);
 
-    pform = (Form_pg_proc)GETSTRUCT(ftup);
-    if (pform->pronargs != nargs) {
-	elog(NOTICE, "argument count mismatch: %s takes %d, %d supplied",
-		     funcname, pform->pronargs, nargs);
-	return (false);
-    }
-
-    /* typecheck arguments */
-    fargs = pform->proargtypes.data;
-    if (*fargs != InvalidObjectId && *oid_array != InvalidObjectId) {
-	if (bcmp(fargs, oid_array, 8 * sizeof(ObjectId)) != 0) {
-	    oid_vector = argtype_inherit(nargs, oid_array);
-	    while (**oid_vector != InvalidObjectId) {
-		oid_array = *oid_vector++;
-		if (bcmp(fargs, oid_array, 8 * sizeof(ObjectId)) == 0)
-		    goto okay;
-	    }
-	    if (**oid_vector == InvalidObjectId)
-		elog(NOTICE, "type mismatch in invocation of function %s",
-			     funcname);
-		return (false);
+    /* if an exact match isn't found, get a vector of all possible
+     * arg type lists constructed from the superclasses of the
+     * original arg types (might it be better to inherit one by one?)
+     */
+    if (!HeapTupleIsValid(ftup)) {
+	oid_vector = argtype_inherit(nargs, oid_array);
+	while ((**oid_vector != InvalidObjectId) &&
+	       (!HeapTupleIsValid(ftup))) {
+	      current_oids = *oid_vector++;
+	      ftup = SearchSysCacheTuple(PRONAME,
+					 funcname, nargs, current_oids, 0);
 	}
     }
 
-okay:
-    /* by here, we have a match */
-    *funcid = ftup->t_oid;
-    *rettype = (ObjectId) pform->prorettype;
-    *retset = (ObjectId) pform->proretset;
+    if (!HeapTupleIsValid(ftup)) {
+	func_error("func_get_detail", funcname, nargs, oid_array);
+	return (false);
+    }
 
-    return (true);
+    else {
+	pform = (Form_pg_proc) GETSTRUCT(ftup);
+	*funcid = ftup->t_oid;
+	*rettype = (ObjectId) pform->prorettype;
+	*retset = (ObjectId) pform->proretset;
+
+	return (true);
+    }
 }
 
 /*
@@ -959,4 +931,39 @@ int arg1, arg2;
 	elog(NOTICE, "You will either have to retype this query using an");
 	elog(NOTICE, "explicit cast, or you will have to define the operator");
 	elog(WARN, "%s for %s and %s using DEFINE OPERATOR", op, p1, p2);
+}
+
+/*
+ * Error message when function lookup fails that gives details of the
+ * argument types
+ */
+void
+func_error(caller, funcname, nargs, argtypes)
+
+char *caller;
+char *funcname;
+int nargs;
+int *argtypes;
+{	Type get_id_type();
+	char *typname;
+	char p[(16+2)*8], *ptr;
+	int i;
+
+	ptr = p;
+	*ptr = '\0';
+	for (i=0; i<nargs; i++) {
+	      if (i) {
+		    *ptr++ = ',';
+		    *ptr++ = ' ';
+	      }
+	      if (argtypes[i] != 0) {
+		    strncpy(ptr, tname(get_id_type(argtypes[i])), 16);
+		    *(ptr + 16) = '\0';
+	      }
+	      else
+		    strcpy(ptr, "**TYPE 0**");
+	      ptr += strlen(ptr);
+	}
+
+	elog(WARN, "%s: function %s(%s) does not exist", caller, funcname, p);
 }
