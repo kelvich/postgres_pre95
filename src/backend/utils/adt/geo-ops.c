@@ -3,7 +3,7 @@
  *	2D geometric operations
  */
 
-#ifndef l[20~int
+#ifndef lint
 static char rcs_id[] = 
 "$Header$";
 #endif
