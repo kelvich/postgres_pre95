@@ -30,7 +30,13 @@ typedef struct HeapScanDescData {
 	Buffer		rs_pbuf;	/* previous buffer in scan */
 	Buffer		rs_cbuf;	/* current buffer in scan */
 	Buffer		rs_nbuf;	/* next buffer in scan */
+#if 0
+	/*
+	 * XXX this is totally unreferenced but it's probably something 
+	 *     we should think about...
+	 */
 	struct	dchain	*rs_dc;		/* cached expanded delta chain */
+#endif
 	ItemPointerData	rs_mptid;	/* marked previous tid */
 	ItemPointerData	rs_mctid;	/* marked current tid */
 	ItemPointerData	rs_mntid;	/* marked next tid */
