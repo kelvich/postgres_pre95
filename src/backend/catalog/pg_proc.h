@@ -350,7 +350,7 @@ DATA(insert OID = 326 (  rtmarkpos         6 11 f t f 1  23 "0" 0 100 100 10 100
 DATA(insert OID = 327 (  rtrestrpos        6 11 f t f 1  23 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 328 (  rtrescan          6 11 f t f 3  23 "0" 0 100 100 10 100 100  foo bar ));
 
-DATA(insert OID = 330 (  btgettuple        6 11 f t f 6  23 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 330 (  btgettuple        6 11 f t f 2  23 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 331 (  btinsert          6 11 f t f 3  23 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 332 (  btdelete          6 11 f t f 2  23 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 333 (  btbeginscan       6 11 f t f 4  23 "0" 0 100 100 10 100 100  foo bar ));
