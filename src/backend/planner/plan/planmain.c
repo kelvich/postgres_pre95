@@ -28,6 +28,7 @@
 #include "createplan.h"
 #include "allpaths.h"
 
+extern Result make_result();
 /*    
  *    	query_planner
  *    
@@ -88,7 +89,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	 
 	 if (null (tlist) && null (qual)) {
 	     if ( command_type == DELETE ) {
-		 return ((Plan)make_seqscan ((List) NULL, 
+		 return ((Plan)MakeSeqScan ((List) NULL, 
 					     (List) NULL,
 					 (Index) _query_result_relation_,
 					     (Node) NULL ));
@@ -106,9 +107,9 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	   level_tlist = tlist;
 	 else
 	   level_tlist = (List)NULL;
-}
+     }
 
-/*    A query may have a non-variable target list and a non-variable */
+     /*    A query may have a non-variable target list and a non-variable */
      /*    qualification only under certain conditions: */
      /*    - the query creates all-new tuples, or */
      /*   - the query is a replace (a scan must still be done in this case). */
@@ -120,7 +121,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	       
 	     case RETRIEVE : 
 	     case APPEND :
-	       return ((Plan)MakeResult (tlist,
+	       return ((Plan)make_result (tlist,
 				    LispNil,
 				    constant_qual,
 				    LispNil,
@@ -135,7 +136,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 					       _query_result_relation_,
 					       LispNil);
 		   if ( consp (constant_qual) ) {
-		       return ((Plan)MakeResult (tlist,
+		       return ((Plan)make_result (tlist,
 						 LispNil,
 						 constant_qual,
 						 scan,
@@ -167,7 +168,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 /*    create subplans for lower levels of nesting.  Modify the target */
 /*    list and qualifications to reflect the new nesting level. */
 
-       if ( !(equal (currentlevel,maxlevel))) {
+       if ( !(currentlevel == maxlevel ) ) {
 	    restplan = query_planner (command_type,
 				      new_level_tlist (level_tlist,
 						       subtlist,
@@ -195,7 +196,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	  if ( restplan ) 
 	    resttlist = get_qptargetlist (restplan);
 	  subtlist = get_qptargetlist (subplan);
-	  plan = (Plan)MakeResult (new_result_tlist (tlist,
+	  plan = (Plan)make_result (new_result_tlist (tlist,
 						     subtlist,
 						     resttlist,
 						     currentlevel,
@@ -218,10 +219,10 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	/*    for a path that had to be explicitly sorted. */
 
      if ( 1 == maxlevel &&
-	 !(temp_p(subplan) || 
-	   (seqscan_p(subplan) && 
+	 !(IsA(subplan,Temp) || 
+	   (IsA(subplan,SeqScan) && 
 	    get_lefttree(subplan) && 
-	    temp_p (get_lefttree (subplan))))) {
+	    IsA (get_lefttree (subplan),Temp)))) {
 	  set_qptargetlist (subplan,
 			    flatten_tlist_vars (tlist,
 						get_qptargetlist (subplan)));
@@ -260,7 +261,7 @@ Plan
 subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
      LispValue flat_tlist,original_tlist,qual,level,sortkeys ;
 {
-     LispValue final_relation = LispNil;
+    Rel final_relation;
 
      /* Initialize the targetlist and qualification, adding entries to */
      /* *query-relation-list* as relation references are found (e.g., in the */
@@ -270,6 +271,7 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 	initialize_targetlist (flat_tlist);
 	initialize_qualification (qual);
 
+
 /* Find all possible scan and join paths. */
 /* Mark all the clauses and relations that can be processed using special */
 /* join methods, then do the exhaustive path search. */
@@ -278,7 +280,10 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 	_query_relation_list_ = find_paths (_query_relation_list_,
 					    level,
 					    sortkeys);
-	final_relation = CAR (_query_relation_list_);
+     if (_query_relation_list_)
+       final_relation = CAR (_query_relation_list_);
+     else
+       final_relation = (Rel)LispNil;
      
 /*    If we want a sorted result and indices could have been used to do so, */
 /*    then explicitly sort those paths that weren't sorted by indices so we */
@@ -292,8 +297,31 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 			       compute_targetlist_width(original_tlist));
      }
 /*    Determine the cheapest path and create a subplan corresponding to it. */
-
-     return (create_plan (get_cheapest_path (final_relation),
-			  original_tlist));
+    
+    if (final_relation)
+      return (create_plan (get_cheapestpath (final_relation),
+			   original_tlist));
+    else {
+	printf(" Warn: final relation is nil \n");
+	return(create_plan (LispNil,original_tlist));
+    }
 
 }  /* function end  */
+
+Result
+make_result( tlist,resrellevelqual,left,right)
+     List tlist;
+     List resrellevelqual;
+{
+    extern void PrintResult();
+    
+    Result node = New_Node(Result);
+    
+    set_resrellevelqual( node ,resrellevelqual); 
+    set_resconstantqual( node ,LispNil); 
+    set_qptargetlist ((Plan)node, tlist);
+    set_lefttree((Plan)node,left);
+    set_righttree((Plan)node,right);
+    node->printFunc = PrintResult; 
+    return(node);
+} 

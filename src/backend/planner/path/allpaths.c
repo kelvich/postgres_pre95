@@ -44,36 +44,36 @@ find_paths (rels,nest_level,sortkeys)
      LispValue rels,sortkeys ;
      int nest_level;
 {
-     if ( length (rels) > 0 && nest_level > 0 ) {
-  /* Set the number of join (not nesting) levels yet to be processed. */
-	  
-	  int levels_left = length (rels);
-
-	  /* Find the base relation paths. */
-	  find_rel_paths (rels,nest_level,sortkeys);
-	  if ( and ( not (sortkeys), (1 == levels_left))) {
-	       /* Unsorted single relation, no more processing is required. */
-	       return (rels);   
-	  } 
-	  else {
+    if ( length (rels) > 0 && nest_level > 0 ) {
+	/* Set the number of join (not nesting) levels yet to be processed. */
+	
+	int levels_left = length (rels);
+	
+	/* Find the base relation paths. */
+	find_rel_paths (rels,nest_level,sortkeys);
+	if ( !sortkeys && (1 == levels_left)) {
+	    /* Unsorted single relation, no more processing is required. */
+	    return (rels);   
+	} 
+	else {
 	       
-	       /* Joins or sorts are required. */
-	       /* Compute the sizes, widths, and selectivities required for */
-	       /* further join processing and/or sorts. */
-	       LispValue rel;
-	       set_rest_relselec (rels);
-	       foreach (rel,rels) {
-		    set_size (rel,compute_rel_size (rel));
-		    set_width (rel,compute_rel_width (rel));
-	       }
-	       if(1 == levels_left) {
-		    return(rels); 
-	       } 
-	       else {
-		    return (find_join_paths (rels,levels_left - 1,nest_level));
-	       }
-	  }
-     }
+	    /* Joins or sorts are required. */
+	    /* Compute the sizes, widths, and selectivities required for */
+	    /* further join processing and/or sorts. */
+	    LispValue rel;
+	    set_rest_relselec (rels);
+	    foreach (rel,rels) {
+		set_size (rel,compute_rel_size (rel));
+		set_width (rel,compute_rel_width (rel));
+	    }
+	    if(1 == levels_left) {
+		return(rels); 
+	    } 
+	    else {
+		return (find_join_paths (rels,levels_left - 1,nest_level));
+	    }
+	}
+    }
 }  /* end find_paths */
 
 /*    
@@ -101,11 +101,12 @@ find_rel_paths (rels,level,sortkeys)
      LispValue rel;
 
      foreach (rel,rels) {
-	  LispValue sequential_scan_list = list (create_seqscan_path (rel));
+	  LispValue sequential_scan_list = lispCons(create_seqscan_path (rel),
+						    LispNil);
 	  if (level > 1) {
 	       set_pathlist (rel,sequential_scan_list);
-	       set_unordered_path (rel,sequential_scan_list);
-	       set_cheapest_path (rel,sequential_scan_list);
+	       set_unorderedpath (rel,sequential_scan_list);
+	       set_cheapestpath (rel,sequential_scan_list);
 	  } 
 	  else {
 	       
@@ -114,10 +115,10 @@ find_rel_paths (rels,level,sortkeys)
 		*/
 	       LispValue rel_index_scan_list = 
 		 find_index_paths (rel,find_relation_indices(rel),
-				   get_clause_info(rel),
-				   get_join_info(rel),sortkeys);
+				   get_clauseinfo(rel),
+				   get_joininfo(rel),sortkeys);
 	       LispValue or_index_scan_list = 
-		 create_or_index_paths (rel,get_clause_info (rel));
+		 create_or_index_paths (rel,get_clauseinfo (rel));
 
 	       set_pathlist (rel,add_pathlist (rel,sequential_scan_list,
 					       append (rel_index_scan_list,
@@ -172,7 +173,7 @@ find_join_paths (outer_rels,levels_left,nest_level)
   /* Compute cost and sizes, then go on to next level of join processing. */
 
   prune_rel_paths (new_rels);
-  for (rel= CAR(new_rels); new_rels != LispNil; new_rels = CDR(new_rels)) {
+  foreach (rel,new_rels) {
        set_width (rel,compute_rel_width (rel));
   }
   if(levels_left == 1) {

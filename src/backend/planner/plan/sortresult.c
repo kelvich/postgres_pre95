@@ -62,62 +62,77 @@ LispValue
 relation_sortkeys (tlist)
      LispValue tlist ;
 {
-     LispValue xtl = LispNil;
+    LispValue xtl = LispNil;
+    
+    return(LispNil);
 
-	foreach (xtl,tlist) {
-	     int numkeys = 0;
-	     bool allsame = true;
-	     LispValue relid = LispNil;
-	     LispValue sort_ops = LispNil;
-	     List	varkeys = LispNil;
-	     List	keys = LispNil;
-	     Resdom	resdom;
-	     Node	expr;
+/* XXX - remove line above and uncomment the following code
+   after retrieve(x=1) works
 
-	     /* end test  */
-	     if ( null (xtl)) {
-		  if(!allsame) 
-		    return (lispInteger(numkeys));
+    foreach (xtl,tlist) {
+	int numkeys = 0;
+	bool allsame = true;
+	LispValue relid = LispNil;
+	LispValue sort_ops = LispNil;
+	List	varkeys = LispNil;
+	List	keys = LispNil;
+	Resdom	resdom;
+	Node	expr;
+	
+	if ( null (xtl)) {
+	    if(!allsame) 
+	      return (lispInteger(numkeys));
 		  else 
 		    if (null (relid)) 
 		      return (LispNil);
 		    else 
-		      return ((LispValue)MakeSortKey (list (relid),
-						      sort_list_car (sort_ops),
+		    return ((LispValue)MakeSortKey (lispCons(lispInteger(relid)
+		                                             ,LispNil),
+		                                      sort_list_car (sort_ops),
 						      sort_list_car (varkeys),
 						      sort_list_car (keys)));
-	      }
-	     resdom = get_resdom (CAR (xtl));
-	     expr = get_expr (CAR (xtl));
-
-	     /*  If reskey is non-zero, we've found a sort key of some kind. */
-	     if (!(equal (0,get_reskey (resdom)))) {
-		  if(!(var_p (expr)) ||
-		     var_is_nested (expr) || 
-		     (relid && ! (equal (relid,get_varno (expr)))))
-		       allsame = false;
-		  else 
-		    if (allsame) {
-			 if ( null (relid)) 
-			   relid = get_varno (expr);
-			 push (list (get_reskey (resdom),
-				     list (get_reskeyop (resdom))),sort_ops);
-			 push (list (get_reskey (resdom),
-				     list (expr)),varkeys);
-			 if (get_vararrayindex(expr))
-			   push (list (get_reskey (resdom),
-					list (get_varattno (expr),
-					      get_vararrayindex (expr))),
-				 keys);
-			 else 
-			   push (list (get_reskey (resdom),
-				       get_varattno (expr)),
-				 keys);
-		    } 
-		  numkeys++;
-		  set_reskeyop (resdom,get_opcode (get_reskeyop (resdom)));
-	     }
 	}
+	resdom = get_resdom (CAR (xtl));
+	expr = get_expr (CAR (xtl));
+	
+	if (!(equal (0,get_reskey (resdom)))) {
+	    if(!(IsA (expr,Var)) ||
+	       var_is_nested (expr) || 
+	       (relid && ! (equal (relid,get_varno (expr)))))
+	      allsame = false;
+	    else 
+	      if (allsame) {
+		  if ( null (relid)) 
+		    relid = get_varno (expr);
+		  push (lispCons(get_reskey (resdom),
+		                 lispCons(lispCons(get_reskeyop(resdom), 
+				                   LispNil), 
+					   LispNil)),
+                 	sort_ops);
+         	push (lispCons (get_reskey (resdom),
+		                lispCons(lispCons(expr,LispNil),
+				         LispNil)),
+		      varkeys);
+		  if (get_vararrayindex(expr))
+		    push (lispCons(get_reskey (resdom),
+		                   lispCons(lispCons (get_varattno (expr),
+				                      lispCons
+						      (get_vararrayindex 
+						      (expr),
+						      LispNil)),
+					    LispNil)),
+			  keys);
+		  else 
+		    push (lispCons (get_reskey (resdom),
+				    lispCons(get_varattno (expr),
+				             LispNil)),
+			  keys);
+	      } 
+	    numkeys++;
+	    set_reskeyop (resdom,get_opcode (get_reskeyop (resdom)));
+	}
+    }
+    */
 }  /* function end   */
 
 /*    
@@ -202,7 +217,8 @@ LispValue pathlist,sortkeys,rel,width ;
 					get_keys (path)))) {
 	       set_sortpath (path,sortkeys);
 	       newcost = get_cost (path) + 
-		 cost_sort (list(1),get_size (rel),width,final_result);
+		 cost_sort (lispCons(lispInteger(1),LispNil),
+			    get_size (rel),width,final_result);
 	  } 
 	  else 
 	    if (final_result) {
@@ -217,12 +233,12 @@ LispValue pathlist,sortkeys,rel,width ;
 		
 	  if (newcost) {
 	       set_cost (path,newcost);
-	       if(equal (path,get_cheapest_path (rel))) {
+	       if(equal (path,get_cheapestpath (rel))) {
 		    set_cheapest (rel,get_pathlist (rel));
 	       } 
 	       else 
-		 if (newcost < get_cost (get_cheapest_path (rel))) {
-		      set_cheapest_path (rel,path);
+		 if (newcost < get_cost (get_cheapestpath (rel))) {
+		      set_cheapestpath (rel,path);
 		 } 
 	  }
      }
@@ -267,7 +283,7 @@ sort_level_result (plan,numkeys)
 						      new_tlist),
 				LispNil,
 				_TEMP_RELATION_ID_,
-				make_sort (get_qptargetlist (plan),
+				MakeSort  (get_qptargetlist (plan),
 					   _TEMP_RELATION_ID_,
 					   plan,
 					   numkeys));

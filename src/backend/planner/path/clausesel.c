@@ -25,7 +25,7 @@
 #include "relation.a.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
-
+#include "parsetree.h"
 
 /*     		----  ROUTINES TO SET CLAUSE SELECTIVITIES  ----   */
 
@@ -50,8 +50,8 @@ set_clause_selectivities (clauseinfo_list,new_selectivity)
 {
      LispValue clausenode;
      foreach (clausenode,clauseinfo_list) {
-	  if ( or (null (get_selectivity (clausenode)),
-		   new_selectivity < get_selectivity (clausenode))) {
+	  if ( null (get_selectivity (clausenode)) ||
+	      new_selectivity < get_selectivity (clausenode)) {
 	       set_selectivity (clausenode,new_selectivity);
 	  }
      }
@@ -106,7 +106,7 @@ set_rest_relselec (rel_list)
 {
      LispValue rel;
      foreach (rel,rel_list) {
-	  set_rest_selec (get_clause_info (rel));
+	  set_rest_selec (get_clauseinfo (rel));
      }
 }
 
@@ -123,15 +123,15 @@ set_rest_relselec (rel_list)
 /*  .. set_rest_relselec    */
 
 void
-***set_rest_selec (clauseinfo_list)
+set_rest_selec (clauseinfo_list)
 LispValue clauseinfo_list ;
 {
      LispValue clausenode;
      foreach (clausenode,clauseinfo_list) {
 	  /*    Check to see if the selectivity of this clause or any 'or' */
 	  /*    subclauses (if any) haven't been set yet. */
-	  if ( or (valid_or_clause (clausenode),
-		   null (get_selectivity (clausenode)))) {
+	  if ( valid_or_clause (clausenode) ||
+	      null (get_selectivity (clausenode))) {
 	       set_selectivity (clausenode,
 				compute_clause_selec (get_clause (clausenode),
 						      get_selectivity 
@@ -164,13 +164,14 @@ double
 compute_clause_selec (clause,or_selectivities)
      LispValue clause,or_selectivities ;
 {
-     if (not (is_clause (clause))) {
+     if (!is_clause (clause)) {
 	  /* Boolean variables get a selectivity of 1/2. */
 	  return(0.5);
      } 
      else if (not_clause (clause)) {
 	  /* 'not' gets "1.0 - selectivity-of-inner-clause". */
-	  return (1.000000 - compute_selec (list (get_notclausearg (clause)),
+	  return (1.000000 - compute_selec (lispCons(get_notclausearg (clause),
+						     LispNil),
 					    or_selectivities));
      }
      else if (or_clause (clause)) {
@@ -180,7 +181,7 @@ compute_clause_selec (clause,or_selectivities)
 	  return (compute_selec (get_orclauseargs (clause),or_selectivities));
      } 
      else {
-	  return(compute_selec (list (clause),or_selectivities));
+	  return(compute_selec (lispCons(clause,LispNil),or_selectivities));
      } 
 }
 
@@ -291,10 +292,8 @@ translate_relid (relid)
      ObjectId relid ;
 {
      if ( integerp (relid) && relid > 0 ) {
-	  return (getrelid (relid,_query_range_table_));
+	  return ((ObjectId)getrelid (relid,_query_range_table_));
      } 
      return((ObjectId)0);
-}
-
 }
 

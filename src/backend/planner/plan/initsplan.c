@@ -43,7 +43,6 @@ extern void *add_vars_to_rels();
 extern LispValue hashjoinop();
 extern LispValue mergesortop();
 */
-extern LispValue create_mergeorder(); /* XXX - where is this from ? */
 
 extern Boolean _enable_mergesort_;
 extern Boolean _enable_hashjoin_;
@@ -67,20 +66,39 @@ extern Boolean _enable_hashjoin_;
 
 /*  .. subplanner      */
 
-void
-*initialize_targetlist (tlist)
-LispValue tlist ;
+void 
+initialize_targetlist (tlist)
+     List tlist ;
 {
-     LispValue tlist_vars = LispNil;
-     LispValue xtl = LispNil;
-     LispValue var = LispNil;
+    List tlist_vars = LispNil;
+    List xtl = LispNil;
+    List tvar = LispNil;
+    
+    lispDisplay(tlist,0);
+    printf("\n");
+    fflush(stdout);
 
-     foreach(xtl,tlist) 
-       tlist_vars = nappend1(tlist_vars,pull_var_clause(tl_expr(xtl)));
+    foreach (xtl,tlist) {
+	TLE entry;
+	(LispValue)entry = CAR(xtl);
 
-     foreach (var, tlist_vars) 
-       add_tl_element (get_rel (get_varno (var)),var,LispNil);
+	lispDisplay(entry,0);
+	fflush(stdout);
+	tlist_vars = nconc(tlist_vars,pull_var_clause(get_expr(entry)));
+    }
 
+    foreach (tvar, tlist_vars) {
+	Var 	var;
+	Index   varno;
+	Rel	result;
+	
+	var = (Var)CAR(tvar);
+	varno = get_varno(var);
+	result = get_rel(lispInteger(varno));
+
+	add_tl_element (result,var,LispNil);
+    }
+    
 }  /* function end   */
 
 /*     	==============
@@ -102,16 +120,16 @@ LispValue tlist ;
 /*  .. initialize-qualification, subplanner      */
 
 void
-*initialize_qualification (clauses)
+initialize_qualification (clauses)
      LispValue clauses ;
 {
      LispValue clause = LispNil;
 
      foreach (clause, clauses) {
-	  if(func_p (clause))
+	  if(IsA(clause,Func))
 	    initialize_qualification (get_funcargs (clause));
 	  else 
-	    if (oper_p (clause))
+	    if (IsA(clause,Oper))
 	      initialize_qualification (get_opargs (clause));
 	  add_clause_to_rels (clause);
      }
@@ -132,7 +150,7 @@ void
 /*  .. initialize-qualification		 */
 
 void
-*add_clause_to_rels (clause)
+add_clause_to_rels (clause)
      LispValue clause ;
 {
      
@@ -160,7 +178,7 @@ void
 	       /* so 'clause' must be a restriction clause. */
 	       /* XXX - let form, maybe incorrect */
 	       Rel rel = get_rel (CAR (relids));
-	       set_clause_info (rel,cons (clauseinfo,get_clause_info (rel)));
+	       set_clauseinfo (rel,cons (clauseinfo,get_clauseinfo (rel)));
 	  } 
 	  else {
 	       /* 'clause' is a join clause, since there is more than one */
@@ -191,7 +209,7 @@ void
 /*  .. add-clause-to-rels		 */
 
 void
-*add_join_clause_info_to_rels (clauseinfo,join_relids)
+add_join_clause_info_to_rels (clauseinfo,join_relids)
      LispValue clauseinfo,join_relids ;
 {
      LispValue join_relid = LispNil;
@@ -200,9 +218,9 @@ void
 	 JInfo joininfo = 
 	   find_joininfo_node (get_rel (join_relid),
 			       remove (join_relid,join_relids));
-	  set_clause_info (joininfo,
+	  set_clauseinfo (joininfo,
 			   cons (clauseinfo,
-				 get_clause_info (joininfo)));
+				 get_clauseinfo (joininfo)));
 
      }
 } /* function end  */
@@ -228,23 +246,23 @@ void
 /*  .. add-clause-to-rels     */
  
 void
-*add_vars_to_rels (vars,join_relids)
+add_vars_to_rels (vars,join_relids)
      List vars,join_relids ;
 {
      LispValue var = LispNil;
      foreach (var, vars) {
-	  Rel rel = get_rel (get_varno (var));
-	  LispValue  tlistentry = tlistentry_member (var,get_tlist (rel));
+	  Rel rel = get_rel (lispInteger(get_varno (var)));
+	  LispValue  tlistentry = tlistentry_member (var,get_targetlist (rel));
 	  LispValue other_join_relids = remove (get_varno (var),
 						join_relids);
 	  if(null (tlistentry))
 	    /*   add a new entry */
 	    add_tl_element (rel,var,other_join_relids);
 	  else 
-	    if (get_join_list (tlistentry)) {
-		 set_join_list (tlistentry,
+	    if (get_joinlist (tlistentry)) {
+		 set_joinlist (tlistentry,
 				/*   modify an existing entry */
-				LispUnion (get_join_list(tlistentry),
+				LispUnion (get_joinlist(tlistentry),
 				       other_join_relids));
 	    } 
      }
@@ -270,16 +288,16 @@ void
 /*  .. subplanner    */
  
 void
-*initialize_join_clause_info (rel_list)
+initialize_join_clause_info (rel_list)
      LispValue rel_list ;
 {
      LispValue rel = LispNil;
      LispValue joininfo = LispNil;
      LispValue clauseinfo = LispNil;
      foreach (rel, rel_list) {
-	  foreach (joininfo, get_joininfo (rel)) {
+	  foreach (joininfo, get_joininfo (CAR(rel))) {
 	       foreach (clauseinfo, get_clauseinfo (joininfo)) {
-		    Expr clause = get_clause (clauseinfo);
+		    Expr clause = get_clause (CAR(clauseinfo));
 		    if ( join_clause_p (clause) ) {
 			 LispValue sortop = LispNil;
 			 ObjectId hashop;
@@ -290,12 +308,12 @@ void
 			   hashop = hashjoinop (clause);
 
 			 if ( sortop) {
-			      set_mergesortorder (clauseinfo,sortop);
-			      set_mergesortable (joininfo,true);
+			      set_mergesortorder (CAR(clauseinfo),sortop);
+			      set_mergesortable (CAR(joininfo),true);
 			 }
 			 if ( hashop) {
-			      set_hashjoinoperator (clauseinfo,hashop);
-			      set_hashjoinable (joininfo,true);
+			      set_hashjoinoperator (CAR(clauseinfo),hashop);
+			      set_hashjoinable (CAR(joininfo),true);
 			 }
 		    }
 	       }
@@ -319,11 +337,11 @@ mergesortop (clause)
 					   get_vartype(get_leftop(clause)),
 					   get_vartype (get_rightop (clause)));
      if ( consp (sortops) ) {
-	  return (create_mergeorder (get_opno (get_op (clause)),
-				     nth (0,sortops),
-				     nth (1,sortops),
-				     get_vartype (get_leftop (clause)),
-				     get_vartype (get_rightop (clause))));
+	  return ((LispValue)MakeMergeOrder (get_opno (get_op (clause)),
+					     nth (0,sortops),
+					     nth (1,sortops),
+					     get_vartype (get_leftop (clause)),
+					     get_vartype (get_rightop (clause))));
      }
      else 
        return(LispNil);

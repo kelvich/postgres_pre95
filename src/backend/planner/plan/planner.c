@@ -166,26 +166,40 @@ planner (parse)
     LispValue tlist = parse_targetlist (parse);
     LispValue qual = parse_qualification (parse);
     LispValue rangetable = root_rangetable (root);
-    Plan special_plan;
+    List special_plans;
     LispValue flag;
+    List plan_list ;
 
-    if ( root_ruleinfo (root) )
-      special_plan = process_rules (parse);
+/*    if ( root_ruleinfo (root) )
+      special_plans = process_rules (parse);
      else 
-       foreach (flag, list(INHERITS,UNION,ARCHIVE)) {
-	   /* XXX - add VERSION too, sometime */
-	   int rt_index = first_matching_rt_entry (rangetable,flag);
+       plan_list = lispCons(lispInteger(INHERITS),
+                            lispCons(lispInteger(UNION),
+			             lispCons(lispInteger(ARCHIVE),LispNil)));
+       foreach (flag,plan_list) {
+           int rt_index = first_matching_rt_entry (rangetable,flag);
 	   if ( rt_index )
-	     special_plan = (Plan)plan_union_queries (rt_index,
+	     special_plans = (List)plan_union_queries (rt_index,
 						      flag,
 						      root,
 						      tlist,
 						      qual,rangetable);
        }
-    if (special_plan)
-      return(special_plan);
+    if (special_plans)
+      return((Plan)CAR(special_plans));
     else 
-      return(init_query_planner (root,tlist,qual));
+ *   -XXX hack to make retrieve x= 1 work  */
+
+    printf ("\nroot is ");
+    lispDisplay (root,0);
+    printf ("\ntlist is ");
+    lispDisplay (tlist,0);
+    printf ("\nqual is ");
+    lispDisplay (qual,0);
+    printf("\n");
+
+    return(init_query_planner (root,tlist,qual));
+
     
 } /* function end  */
 
@@ -206,13 +220,13 @@ Plan
 init_query_planner (root,tlist,qual)
      LispValue root,tlist,qual ;
 {
-/*     LispValue tlist;
-     LispValue qual;
-*/
      LispValue primary_qual;
      LispValue existential_qual;
 
-     _query_max_level_ = root_levels (root);
+     lispDisplay(CAR(root),0);
+     printf("\n");
+     fflush(stdout);
+     _query_max_level_ = root_numlevels (root);
      _query_command_type_ = (int) root_command_type (root);
      _query_result_relation_ = root_result_relation (root);
      _query_range_table_ = root_rangetable (root);
@@ -221,11 +235,23 @@ init_query_planner (root,tlist,qual)
 				    _query_command_type_,
 				    _query_result_relation_,
 				    _query_range_table_);
-     qual = preprocess_qualification (qual,tlist);
-     primary_qual = CAR(qual);
-     existential_qual = CADR(qual);
 
-     if(null (existential_qual)) {
+     qual = preprocess_qualification (qual,tlist);
+
+     printf("after preprocessing, qual is :\n");
+     lispDisplay(qual,0);
+     printf("\n");
+     fflush(stdout);
+
+     if (qual) {
+	 primary_qual = CAR(qual);
+	 existential_qual = CADR(qual);
+     } else {
+	 primary_qual = LispNil;
+	 existential_qual = LispNil;
+     }
+
+     if(lispNullp (existential_qual)) {
 	 return(query_planner(_query_command_type_,
 			      tlist,
 			      primary_qual,
@@ -241,10 +267,11 @@ init_query_planner (root,tlist,qual)
 	 existential_plan = query_planner(temp,LispNil,existential_qual,1,
 					  _query_max_level_);
      
-	 return(make_existential (existential_plan,
-				  query_planner (_query_command_type_,
-						 tlist,primary_qual,
-						 1,_query_max_level_)));
+	 return((Plan) (make_existential (existential_plan,
+					  query_planner (_query_command_type_,
+							 tlist,primary_qual,
+							 1,
+							 _query_max_level_))));
      }
      
  }  /* function end  */
@@ -257,7 +284,7 @@ init_query_planner (root,tlist,qual)
  *	the left and right subtree slots.
  */
 
-Plan
+Existential
 make_existential(left,right)
      Plan left,right;
 {

@@ -26,7 +26,6 @@
 #include "clauseinfo.h"
 #include "relation.a.h"
 #include "relation.h"
-#include "parse.h"
 #include "setrefs.h"
 #include "lsyscache.h"
 
@@ -38,7 +37,7 @@
 #define NESTLOOP   22
 #define HASHJOIN   23
 #define MERGESORT  24
-/*  #define SORT       25  */
+/* #define SORT       25    */
 #define HASH       26
 
 /*
@@ -87,7 +86,7 @@ create_plan (best_path,origtlist)
      Path best_path;
      List origtlist ;
 {
-     List tlist = get_actual_tlist (get_tlist (get_parent (best_path)));
+     List tlist = get_actual_tlist (get_targetlist (get_parent (best_path)));
      Plan plan_node;
      Plan sorted_plan_node;
 
@@ -162,7 +161,7 @@ create_scan_node (best_path,tlist)
      /* operator OIDs with the corresponding regproc ids. */
 
      LispValue scan_clauses = fix_opids(get_actual_clauses
-					(get_clause_info 
+					(get_clauseinfo 
 					 (get_parent (best_path))));
      switch (get_pathtype (best_path)) {
 
@@ -209,13 +208,13 @@ create_join_node (best_path,origtlist,tlist)
      LispValue 	clauses;
      Join 	retval;
 
-     outer_node = create_plan (get_outerpath (best_path),origtlist);
+     outer_node = create_plan (get_outerjoinpath (best_path),origtlist);
      outer_tlist  = get_qptargetlist (outer_node);
 
-     inner_node = create_plan (get_innerpath (best_path),origtlist);
+     inner_node = create_plan (get_innerjoinpath (best_path),origtlist);
      inner_tlist = get_qptargetlist (inner_node);
 
-     clauses = get_actual_clauses (get_clause_info (best_path));
+     clauses = get_actual_clauses (get_clauseinfo (best_path));
      
      switch (get_pathtype (best_path)) {
 	 
@@ -297,7 +296,7 @@ create_indexscan_node (best_path,tlist,scan_clauses)
 {
        /* Extract the (first if conjunct, only if disjunct) clause from the */
        /* clauseinfo list. */
-     Expr 	index_clause = get_clause (car (get_indexqual (best_path)));
+     Expr 	index_clause = get_clause (CAR (get_indexqual (best_path)));
      List 	indxqual = LispNil;
      List 	qpqual = LispNil;
      List 	fixed_indxqual = LispNil;
@@ -312,16 +311,16 @@ create_indexscan_node (best_path,tlist,scan_clauses)
 	  LispValue temp = LispNil;
 	
 	  foreach (temp,get_orclauseargs(index_clause)) 
-	    indxqual = nappend1(indxqual,list(temp));
+	    indxqual = nappend1(indxqual,lispCons (temp,LispNil));
      } 
      else {
-	  list (get_actual_clauses (get_indexqual (best_path)));
+	  lispCons(get_actual_clauses (get_indexqual (best_path)),LispNil);
      } 
      /*    The qpqual field contains all restrictions except the indxqual. */
 
      if (or_clause(index_clause))
        qpqual = set_difference (scan_clauses,
-				list (index_clause));
+				lispCons (index_clause,LispNil));
      else 
        qpqual = set_difference(scan_clauses, CAR (indxqual));
      
@@ -349,7 +348,7 @@ LispValue
 fix_indxqual_references (clause,index_path)
      LispValue clause,index_path ;
 {
-     if(var_p (clause) && 
+     if(IsA (clause,Var) && 
 	equal(get_relid(get_parent(index_path)),
 	      get_varno (clause))) {
 	  set_varattno (clause,
@@ -424,7 +423,7 @@ create_nestloop_node (best_path,tlist,clauses,
 {
     NestLoop join_node;
 
-    if ( indexscan_p (inner_node)) {
+    if ( IsA(inner_node,IndexScan)) {
 
 	/*  An index is being used to reduce the number of tuples scanned in 
 	 *    the inner relation.
@@ -451,9 +450,9 @@ create_nestloop_node (best_path,tlist,clauses,
 							 (outer_node),
 							 get_scanrelid 
 							 (inner_node));
-	    set_indxqual (inner_node,list (new_inner_qual));
-	}
-    }
+	    set_indxqual (inner_node,lispCons (new_inner_qual,LispNil));
+	  }
+      }
     join_node = MakeNestLoop (tlist,
 			       join_references (clauses,
 						outer_tlist,
@@ -515,13 +514,13 @@ create_mergejoin_node (best_path,tlist,clauses,
 				      outer_tlist,
 				      inner_tlist));
      RegProcedure opcode = 
-       get_opcode (mergeorder_join_operator (get_ordering (best_path)));
+       get_opcode (get_join_operator (get_ordering (best_path)));
      
      LispValue outer_order = 
-       list (mergeorder_left_operator (get_ordering (best_path)));
+       lispCons (get_left_operator (get_ordering (best_path)), LispNil);
      
      LispValue inner_order = 
-       list (mergeorder_right_operator (get_ordering (best_path)));
+       lispCons (get_right_operator (get_ordering (best_path)), LispNil);
      
      MergeSort join_node;
      
@@ -638,8 +637,8 @@ create_hashjoin_node (best_path,tlist,clauses,outer_node,outer_tlist,
 				      outer_tlist,
 				      inner_tlist));
      int opcode = 666;	/*   XXX BOGUS HASH FUNCTION */
-     LispValue outer_hashop = list (666); 	/*   XXX BOGUS HASH OP */
-     LispValue inner_hashop = list (666);	/*   XXX BOGUS HASH OP */
+     LispValue outer_hashop = lispCons (666,LispNil); 	/*   XXX BOGUS HASH OP */
+     LispValue inner_hashop = lispCons (666,LispNil);	/* XXX BOGUS HASH OP */
      HashJoin join_node;
 
      if ( get_outerhashkeys (best_path)) {
@@ -716,20 +715,20 @@ make_temp (tlist,keys,operators,plan_node,temptype)
 
      switch (temptype) {
        case SORT : 
-	 retval = (Temp)make_seqscan(tlist,
+	 retval = (Temp)MakeSeqScan(tlist,
 				     LispNil,
 				     _TEMP_RELATION_ID_,
-				     make_sort (temp_tlist,
+				     MakeSort (temp_tlist,
 						_TEMP_RELATION_ID_,
 						plan_node,
 						length (keys)));
 	 break;
 	 
        case HASH : 
-	 retval = (Temp)make_seqscan(tlist,
+	 retval = (Temp)MakeSeqScan(tlist,
 				 LispNil,
 				     _TEMP_RELATION_ID_,
-				     make_hash (temp_tlist,
+				     MakeHash (temp_tlist,
 						_TEMP_RELATION_ID_,
 						plan_node,
 						length (keys)));
