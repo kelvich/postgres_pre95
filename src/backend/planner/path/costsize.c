@@ -52,18 +52,24 @@
 	{ Cost cost = _count_; _cost_ *= cost; }
 
 /* ----------------
- *	defining _xprs_ to 1 enables the entire planner,
- *	otherwise it should be defined to 0
- *
- *	(It is explicitly tested in various places so it had
- *	 better be definied to 	one of these -cim 10/9/89)
+ *	_xprs_ #define'd enables the entire planner,
  * ----------------
  */
-#define _xprs_ 0
 
 int _disable_cost_ = 30000000;
  
-#if (! _xprs_)
+#ifdef _xprs_
+#define _xprs_	1
+bool _cost_weirdness_ = true;
+bool _enable_seqscan_ =     true;
+bool _enable_indexscan_ =   true;
+bool _enable_sort_ =        true;
+bool _enable_hash_ =        false;    /* XXX just for now */
+bool _enable_nestloop_ =    true;
+bool _enable_mergesort_ =   true;
+bool _enable_hashjoin_ =    false;   /* XXX just for now */
+#else /* _xprs_ */
+#define _xprs_	0
 bool _cost_weirdness_ = false;
 bool _enable_seqscan_ =     true;
 bool _enable_indexscan_ =   true; 
@@ -72,16 +78,7 @@ bool _enable_hash_ =        false;
 bool _enable_nestloop_ =    true; /* XXX - true */
 bool _enable_mergesort_ =   false;
 bool _enable_hashjoin_ =    false;
-#else
-bool _cost_weirdness_ = true;
-bool _enable_seqscan_ =     true;
-bool _enable_indexscan_ =   true;
-bool _enable_sort_ =        true;
-bool _enable_hash_ =        true;
-bool _enable_nestloop_ =    true;
-bool _enable_mergesort_ =   true;
-bool _enable_hashjoin_ =    true; 
-#endif
+#endif /* _xprs_ */
 
 /*    
  *    	cost_seqscan
@@ -228,11 +225,17 @@ cost_sort (keys,tuples,width,noread)
     if (tuples == 0 || null(keys) )
       temp += 0;
     else {
-	int pages = page_size (tuples,width);
-	temp += pages * base_log ((double)pages,(double)2);
-	temp += _CPU_PAGE_WEIGHT_ * tuples *base_log ((double)tuples,(double)2);
+	int npages = page_size (tuples,width);
+	double pages = npages;
+	double numTuples = tuples;
+	double log_pages = base_log(pages, 2.0);
+	double log_tuples = base_log (numTuples, 2.0);
+
+	temp += pages * log_pages;
+	temp += _CPU_PAGE_WEIGHT_ * numTuples * log_tuples;
+
 	if( !noread )
-	  temp = temp + cost_seqscan(lispInteger(_TEMP_RELATION_ID_),pages,tuples);
+	  temp = temp + cost_seqscan(lispInteger(_TEMP_RELATION_ID_),npages,tuples);
     }
     return(temp);
 }
@@ -373,8 +376,9 @@ cost_nestloop (outercost,innercost,outertuples)
 Cost
 cost_mergesort (outercost,innercost,outersortkeys,innersortkeys,
 		outersize,innersize,outerwidth,innerwidth)
-     LispValue outersortkeys,innersortkeys,outerwidth,innerwidth ;
-     int outercost,innercost,outersize,innersize;
+     LispValue outersortkeys,innersortkeys;
+     Cost outercost,innercost;
+     int outersize,innersize,outerwidth,innerwidth;
 {
     Cost temp = 0;
     if ( _cost_weirdness_ ) {
