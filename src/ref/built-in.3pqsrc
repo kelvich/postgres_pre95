@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH INTRODUCTION BUILT-INS 01/23/93
+.TH INTRODUCTION BUILT-INS 05/28/93
 .XA 0 "Section 3 \(em What comes with \*(PG (BUILT-INS)"
 .BH "SECTION 3 \(em WHAT COMES WITH \*(PG (BUILT-INS)"
 .SH "DESCRIPTION"
@@ -188,7 +188,8 @@ right unary operators have the operator follow the operand.
 .el \{
 .so obj/left_unary.nr
 \}
-.XA 2 "Aggregate Functions"
+.XA 1 "Built-in aggregate functions"
+.SP AGGREGATES BUILT-INS 05/28/93
 .SH "AGGREGATE FUNCTIONS"
 The table below gives the aggregate functions that are normally
 registered in the system catalogs.  None of them are required for
