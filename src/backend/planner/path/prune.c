@@ -329,7 +329,9 @@ prune_rel_path(rel,unorderedpath)
 {
      Path cheapest = set_cheapest(rel,get_pathlist(rel));
 
-     if(!(eq(unorderedpath,cheapest)) && !testFlag) {
+     /* don't prune if not pruneable  -- JMH, 11/23/92 */
+     if(!(eq(unorderedpath,cheapest)) && !testFlag
+	&& get_pruneable(rel)) {
 
 	  set_unorderedpath(rel,(PathPtr)NULL);
 	  set_pathlist(rel,LispRemove((LispValue)unorderedpath,
