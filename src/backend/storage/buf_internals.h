@@ -133,22 +133,29 @@ struct sbufdesc {
     slock_t	io_in_progress_lock;
 #endif /* HAS_TEST_AND_SET */
 
-#if defined(PORTNAME_ultrix4)
     /*
      * I padded this structure to a power of 2 (128 bytes on a MIPS) because
      * BufferDescriptorGetBuffer is called a billion times and it does an
-     * ANSI C pointer subtraction (i.e., "x - y" -> array index of x relative
+     * C pointer subtraction (i.e., "x - y" -> array index of x relative
      * to y, which is calculated using division by struct size).  Integer
      * ".div" hits you for 35 cycles, as opposed to a 1-cycle "sra" ...
      * this hack cut 10% off of the time to create the Wisconsin database!
      * It eats up more shared memory, of course, but we're (allegedly)
      * going to make some of these types bigger soon anyway... -pma 1/2/93
      */
-    char		sb_pad[60];
+#if defined(PORTNAME_ultrix4) || \
+    defined(PORTNAME_hpux)
+    char		sb_pad[60];	/* no slock_t */
 #endif /* mips */
-#if defined(PORTNAME_sparc) || \
-    defined(PORTNAME_alpha)
-    char		sb_pad[56];	/* 4 bytes less - has slock_t */
+#if defined(PORTNAME_sparc)
+    char		sb_pad[56];	/* has slock_t */
+#endif /* sparc */
+#if defined(PORTNAME_alpha)
+#if defined(HAS_TEST_AND_SET)
+    char		sb_pad[44];	/* has slock_t */
+#else /* HAS_TEST_AND_SET */
+    char		sb_pad[48];	/* no slock_t */
+#endif /* HAS_TEST_AND_SET */
 #endif /* sparc */
 };
 
