@@ -381,6 +381,8 @@ ParseFunc ( funcname , fargs )
     extern Var make_relation_var();
 
     if (fargs){
+	if (CAR(fargs) == LispNil)
+		  elog (WARN,"function %s does not allow NULL input",funcname);
       first_arg_type = CAR(CAR(fargs));
     }
 
