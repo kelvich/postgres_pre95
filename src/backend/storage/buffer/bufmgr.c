@@ -399,7 +399,9 @@ BufferIsValid(bufnum)
     Buffer bufnum;
 {
     if (bufnum <= 0 || bufnum > NDBUFS) {
+#ifdef BUFMGR_DEBUG
         BM_debug(BUFDEB,"buffer not even in range");
+#endif
         return(false);
     }
     
@@ -551,13 +553,17 @@ ReadBuffer(relation,blknum,flags)
         elog(WARN,"ReadBuffer called with null relation");
     
     if (blknum != P_NEW) {
+#ifdef BUFMGR_DEBUG
         BM_debug(BUFDEB,"read:reln/blnum = %.16s/%d\n",
                  RelationGetRelationName(relation),blknum);
+#endif
 
         bp = FindLocalBuffer(relation,blknum);
 
         if (bp == NULL) {
+#ifdef BUFMGR_DEBUG
             BM_debug(BUFDEB,"read : Buffer not in local memory\n");
+#endif
             bp = GetFreeLocalBuffer();
             Assert(PointerIsValid(bp));
             sb = ReadSharedBuffer(relation,blknum);
@@ -571,7 +577,9 @@ ReadBuffer(relation,blknum,flags)
             }
         }
         
+#ifdef BUFMGR_DEBUG
         BM_debug(BUFDEB,"read:bufdesc is %d\n",bp);
+#endif
         /* 
          * At this pt, bp MUST be a valid buffer 
          * descriptor
@@ -579,7 +587,9 @@ ReadBuffer(relation,blknum,flags)
     } else { 
         /* caller wants P_NEW */
         
+#ifdef BUFMGR_DEBUG
         BM_debug(BUFDEB,"Someone actually wants P_NEW ?\n");
+#endif
         bp = GetFreeLocalBuffer();
         sb = ReadSharedBuffer(relation,blknum);
         Assert(PointerIsValid(sb));
@@ -593,8 +603,10 @@ ReadBuffer(relation,blknum,flags)
         bp->flags = flags;
     }
 
+#ifdef BUFMGR_DEBUG
     BM_debug(BUFDEB,"read:buffer number is %d\n",
              BufferDescriptorGetBuffer(bp));
+#endif
 
     /* XXX - only if server model is reached
              otherwise, only 1 xaction per backend, so no need 
@@ -620,7 +632,9 @@ BufferDescriptorGetBuffer(descriptor)
     BM_debug(BUFDEB," size = %d\n",sizeof(Lbufdesc));
 #endif
     
+#ifdef BUFMGR_DEBUG
     BM_debug(BUFDEB,"buffer - %d",descriptor-Local);
+#endif
     if (BufferDescriptorIsValid(descriptor))
         return(1+descriptor - Local);
 
@@ -654,7 +668,9 @@ WriteBuffer(bufnum)
 
     buf = BufferGetBufferDescriptor(bufnum);
     
+#ifdef BUFMGR_DEBUG
     BM_debug(BUFDEB,"write: buffer number is %d\n",bufnum);
+#endif
     if (buf->refcount == 0)
         BM_debug(WARN,"Write: Inconsistent Buffer refcount (< 0)");
     if (IsPrivate(bufnum)) {
@@ -689,7 +705,9 @@ FlushBuffer(bufnum)
 
     buf = BufferGetBufferDescriptor(bufnum); 
     
+#ifdef BUFMGR_DEBUG
     BM_debug(BUFDEB,"write: buffer number is %d\n",bufnum);
+#endif
     if (buf->refcount == 0)
         BM_debug(WARN,"Write: Inconsistent Buffer refcount (< 0)");
     if (IsPrivate(bufnum)) {
@@ -722,7 +740,9 @@ WriteNoReleaseBuffer(bufnum)
 
     buf = BufferGetBufferDescriptor(bufnum); 
     
+#ifdef BUFMGR_DEBUG
     BM_debug(BUFDEB,"write: buffer number is %d\n",bufnum);
+#endif
 
     if (buf->refcount == 0)
         BM_debug(WARN,"Write: Inconsistent Buffer refcount (< 0)");
@@ -756,7 +776,9 @@ ReleaseBuffer(bufnum)
 
     buf = BufferGetBufferDescriptor(bufnum);
     
+#ifdef BUFMGR_DEBUG
     BM_debug(BUFDEB,"release: buffer number is %d\n",bufnum);
+#endif
     
     if (buf->refcount == 0)
         BM_debug(WARN,"ReleaseBuffer :Inconsistent Buffer refcount (<0)");
@@ -799,7 +821,9 @@ BufferPut(buffer,lockLevel)
             return(0);
             
         case L_LOCKS:
+#ifdef BUFMGR_DEBUG
             BM_debug(BUFDEB,"BufferPut called with UN_LOCKS, unsupported");
+#endif
             if (!BufferIsValid(buffer))
                 BM_debug(WARN,"BufferPut called with invalid buffer");
             IncrSharedRefCount(BufferGetBufferDescriptor(buffer)->sh_buf);
@@ -818,7 +842,9 @@ BufferPut(buffer,lockLevel)
     
     switch(lockLevel & L_LOCKS) {
     case L_SH:
+#ifdef BUFMGR_DEBUG
         BM_debug(BUFDEB,"BufferPut: unsupported flag L_SH");
+#endif
         if (lockLevel & L_WRITE) {
             IncrSharedRefCount(BufferGetBufferDescriptor(buffer)->sh_buf);
             BufferGetBufferDescriptor(buffer)->refcount++;
@@ -826,7 +852,9 @@ BufferPut(buffer,lockLevel)
         }
         break;
     case L_EX:
+#ifdef BUFMGR_DEBUG
         BM_debug(BUFDEB,"BufferPut: unsupported flag L_EX");
+#endif
         if (lockLevel & L_WRITE) {
             IncrSharedRefCount(BufferGetBufferDescriptor(buffer)->sh_buf);
             BufferGetBufferDescriptor(buffer)->refcount++;
@@ -834,7 +862,9 @@ BufferPut(buffer,lockLevel)
         }
         break;
     case L_UP:
+#ifdef BUFMGR_DEBUG
         BM_debug(BUFDEB,"BufferPut: unsupported flag L_UP");
+#endif
         if (lockLevel & L_WRITE) {
             IncrSharedRefCount(BufferGetBufferDescriptor(buffer)->sh_buf);
             BufferGetBufferDescriptor(buffer)->refcount++;
@@ -842,7 +872,9 @@ BufferPut(buffer,lockLevel)
         }
         break;
     case L_PIN:
+#ifdef BUFMGR_DEBUG
         BM_debug(BUFDEB,"BufferPut: repinning buffer? bad flag L_PIN");
+#endif
         if (!BufferIsValid(buffer))
           elog(WARN,"BufferPut: trying to pin invalid buffer");
         if (lockLevel & L_WRITE) {
@@ -858,8 +890,10 @@ BufferPut(buffer,lockLevel)
         BufferGetBufferDescriptor(buffer)->refcount ++;
         break;
     default:
+#ifdef BUFMGR_DEBUG
         BM_debug(BUFDEB,"BufferPut(%x, 0%o)",
                  BufferGetBufferDescriptor(buffer),lockLevel);
+#endif
         break;
     }
 
@@ -880,7 +914,9 @@ RelationGetBuffer(relation, blockNumber, lockLevel)
      BufferLock  lockLevel;             /* lock level */
 
 {
+#ifdef BUFMGR_DEBUG
     flag_print(lockLevel);
+#endif
 
     return(ReadBuffer(relation,blockNumber,BM_PINNED|BM_SHARED));
 
