@@ -200,8 +200,8 @@ bool addFlag;
  */
 
 void
-prs2ReplaceRelationStub(relation, newStubs)
-Relation relation;
+prs2ReplaceRelationStub(relationOid, newStubs)
+ObjectId relationOid;
 Prs2Stub newStubs;
 {
 
@@ -219,15 +219,14 @@ Prs2Stub newStubs;
      * Go to the pg_prs2stub relation (i.e. pg_relation), find the
      * appropriate tuple, and add the specified lock to it.
      */
-
-	strcpy(relname.data, Name_pg_prs2stub);
+    strcpy(relname.data, Name_pg_prs2stub);
 
     prs2stubRelation = RelationNameOpenHeapRelation(&relname);
 
     scanKey.data[0].flags = 0;
     scanKey.data[0].attributeNumber = Anum_pg_prs2stub_prs2relid;
     scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
-    scanKey.data[0].argument = ObjectIdGetDatum(relation->rd_id);
+    scanKey.data[0].argument = ObjectIdGetDatum(relationOid);
     scanDesc = RelationBeginHeapScan(prs2stubRelation,
 					0, NowTimeQual,
 					1, &scanKey);
@@ -249,7 +248,7 @@ Prs2Stub newStubs;
 	for (i=0; i<Natts_pg_prs2stub; i++)
 	    null[i] = 'n';
 	values[Anum_pg_prs2stub_prs2relid-1] = 
-		    ObjectIdGetDatum(relation->rd_id);
+		    ObjectIdGetDatum(relationOid);
 	null[Anum_pg_prs2stub_prs2relid-1] = ' ';
 	values[Anum_pg_prs2stub_prs2stub-1] = 
 		StructPointerGetDatum(prs2StubToRawStub(prs2MakeStub()));
