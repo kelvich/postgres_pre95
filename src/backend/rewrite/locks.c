@@ -148,7 +148,7 @@ MatchRetrieveLocks ( rulelocks , varno , parse_subtree  )
 	    if ( ThisLockWasTriggered ( varno,
 				       oneLock->attributeNumber,
 				       parse_subtree )) 
-	      real_locks = nappend1 ( real_locks, oneLock );
+	      real_locks = nappend1 ( real_locks, (LispValue)oneLock );
 	}
     }
 
@@ -197,9 +197,9 @@ MatchLocks ( locktype, rulelocks , varno , user_parsetree )
 		if ( ThisLockWasTriggered ( varno,
 					   oneLock->attributeNumber,
 					   user_parsetree ))
-		    real_locks = nappend1 ( real_locks, oneLock );
+		    real_locks = nappend1 ( real_locks, (LispValue)oneLock );
 	    }
-	    else real_locks = nappend1 ( real_locks, oneLock );
+	    else real_locks = nappend1 ( real_locks, (LispValue)oneLock );
 	} /* if lock is suitable */
     } /* for all locks */
     
