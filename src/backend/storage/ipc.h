@@ -90,6 +90,7 @@ typedef struct slock {
     short		nshlocks;
     slock_t		shlock;
     slock_t		exlock;
+    slock_t		comlock;
     struct slock	*next;
 } SLock;
 extern void CreateAndInitSLockMemory();
@@ -100,5 +101,6 @@ extern void SharedLock();
 extern void SharedUnlock();
 extern void ExclusiveLock();
 extern void ExclusiveUnlock();
+extern bool LockIsFree();
 #endif /* sequent */
 #endif	/* !defined(IPCIncluded) */
