@@ -6,13 +6,6 @@
  *	parse almost any absolute date getdate(3) can (& some it can't)
  *
  *   NOTES
- *	In porting this to postgres I condensed 6 files to 3.  So the 
- *	abstime adt is made up of the files nabstime.c dateconv.c and
- *	datetok.c  -mer 6 Feb 1992
- *
- *	These three files were then squashed into one by someone who
- *	wasn't very careful about conflicting extern/static declarations,
- *	etc., so beware weird behavior... -- pma 09/27/93
  *
  *   IDENTIFICATION
  *	$Header$
@@ -211,51 +204,8 @@ static datetkn datetktbl[] = {
 {	"zp6",		TZ,	NEG(36)},	/* GMT +6  hours. */
 };
 
-#if	0
-/*
- * these time zones are orphans, i.e. the name is also used by a more
- * likely-to-appear time zone
- */
-{	"at",		TZ,	NEG(12)},	/* Azores Time */
-{	"bst",		TZ,	NEG(18)},	/* Brazil Std Time */
-{	"bt",		TZ,	NEG(66)},	/* Bering Time */
-{	"edt",		TZ,	66},		/* Australian Eastern DaylTime*/
-{	"est",		TZ,	60},		/* Australian Eastern Std Time*/
-{	"ist",		TZ,	33},		/* Indian Standard Time */
-{	"nst",		TZ,	51},		/* North Sumatra Time */
-{	"sst",		TZ,	42},		/* South Sumatra, USSR Zone 6 */
-{	"sst",		TZ,	48},		/* Singapore Std Time */
-{	"wet",		TZ,	6},		/* Western European Time */
-/* military timezones are deprecated by RFC 1123 section 5.2.14 */
-{	"a",		TZ,	6},		/* UTC+1h */
-{	"b",		TZ,	12},		/* UTC+2h */
-{	"c",		TZ,	18},		/* UTC+3h */
-{	"d",		TZ,	24},		/* UTC+4h */
-{	"e",		TZ,	30},		/* UTC+5h */
-{	"f",		TZ,	36},		/* UTC+6h */
-{	"g",		TZ,	42},		/* UTC+7h */
-{	"h",		TZ,	48},		/* UTC+8h */
-{	"i",		TZ,	54},		/* UTC+9h */
-{	"k",		TZ,	60},		/* UTC+10h */
-{	"l",		TZ,	66},		/* UTC+11h */
-{	"m",		TZ,	72},		/* UTC+12h */
-{	"n",		TZ,	NEG(6)},	/* UTC-1h */
-{	"o",		TZ,	NEG(12)},	/* UTC-2h */
-{	"p",		TZ,	NEG(18)},	/* UTC-3h */
-{	"q",		TZ,	NEG(24)},	/* UTC-4h */
-{	"r",		TZ,	NEG(30)},	/* UTC-5h */
-{	"s",		TZ,	NEG(36)},	/* UTC-6h */
-{	"t",		TZ,	NEG(42)},	/* UTC-7h */
-{	"u",		TZ,	NEG(48)},	/* UTC-8h */
-{	"v",		TZ,	NEG(54)},	/* UTC-9h */
-{	"w",		TZ,	NEG(60)},	/* UTC-10h */
-{	"x",		TZ,	NEG(66)},	/* UTC-11h */
-{	"y",		TZ,	NEG(72)},	/* UTC-12h */
-{	"z",		TZ,	0},		/* UTC */
-#endif
-
 static unsigned int szdatetktbl = sizeof datetktbl / sizeof datetktbl[0];
- 
+
 /*
  * parse and convert absolute date in timestr (the normal interface)
  *
@@ -268,105 +218,34 @@ char *timestr;
     int tz = 0;
     struct tm date;
 
-    if (IsEpochStr(timestr))
+    if (!timestr)
+	return INVALID_ABSTIME;
+    while (ISSPACE(*timestr))
+	++timestr;
+
+    if (!strcasecmp(timestr, "epoch"))
 	return EPOCH_ABSTIME;
-    if (IsNowStr(timestr))
+    if (!strcasecmp(timestr, "now"))
 	return GetCurrentTransactionStartTime();
-    if (IsCurrentStr(timestr))
+    if (!strcasecmp(timestr, "current"))
 	return CURRENT_ABSTIME;
-    if (IsNoendStr(timestr))
+    if (!strcasecmp(timestr, "infinity"))
 	return NOEND_ABSTIME;
-    if (IsNostartStr(timestr))
+    if (!strcasecmp(timestr, "-infinity"))
 	return NOSTART_ABSTIME;
-    return (prsabsdate(timestr, NULL, &date, &tz) < 0) ?
-		INVALID_ABSTIME :
-		dateconv(&date, tz);
+    if (prsabsdate(timestr, &date, &tz) < 0)
+	return INVALID_ABSTIME;
+    return dateconv(&date, tz);
 }
-
-int
-IsNowStr(tstr)
-    char *tstr;
-{
-    while (ISSPACE(*tstr))
-	tstr++;
-
-    return ((tstr[0] == 'n' || tstr[0] == 'N') &&
-	    (tstr[1] == 'o' || tstr[1] == 'O') &&
-	    (tstr[2] == 'w' || tstr[2] == 'W')); 
-}
-
-
-int
-IsEpochStr(tstr)
-    char *tstr;
-{
-    while (ISSPACE(*tstr))
-	tstr++;
-    return ((tstr[0] == 'e' || tstr[0] == 'E') &&
-	    (tstr[1] == 'p' || tstr[1] == 'P') &&
-	    (tstr[2] == 'o' || tstr[2] == 'O') &&
-	    (tstr[3] == 'c' || tstr[3] == 'C') &&
-	    (tstr[4] == 'h' || tstr[4] == 'H'));
-}
-
-int
-IsCurrentStr(tstr)
-     char *tstr;
-{
-    while (ISSPACE(*tstr))
-	tstr++;
-    return ((tstr[0] == 'c' || tstr[0] == 'C') &&
-	    (tstr[1] == 'u' || tstr[1] == 'U') &&
-	    (tstr[2] == 'r' || tstr[2] == 'R') &&
-	    (tstr[3] == 'r' || tstr[3] == 'R') &&
-	    (tstr[4] == 'e' || tstr[4] == 'E') &&
-	    (tstr[5] == 'n' || tstr[5] == 'N') &&
-	    (tstr[6] == 't' || tstr[6] == 'T'));
-}
-
-int
-IsNoendStr(tstr)
-     char *tstr;
-{
-    while (ISSPACE(*tstr))
-	tstr++;
-    return ((tstr[0] == 'i' || tstr[0] == 'I') &&
-	    (tstr[1] == 'n' || tstr[1] == 'N') &&
-	    (tstr[2] == 'f' || tstr[2] == 'F') &&
-	    (tstr[3] == 'i' || tstr[3] == 'I') &&
-	    (tstr[4] == 'n' || tstr[4] == 'N') &&
-	    (tstr[5] == 'i' || tstr[5] == 'I') &&
-	    (tstr[6] == 't' || tstr[6] == 'T') &&
-	    (tstr[7] == 'y' || tstr[7] == 'Y'));
-}
-
-int
-IsNostartStr(tstr)
-     char *tstr;
-{
-    while (ISSPACE(*tstr))
-	tstr++;
-    return ((tstr[0] == '-' || tstr[0] == '-') &&
-	    (tstr[1] == 'i' || tstr[1] == 'I') &&
-	    (tstr[2] == 'n' || tstr[2] == 'N') &&
-	    (tstr[3] == 'f' || tstr[3] == 'F') &&
-	    (tstr[4] == 'i' || tstr[4] == 'I') &&
-	    (tstr[5] == 'n' || tstr[5] == 'N') &&
-	    (tstr[6] == 'i' || tstr[6] == 'I') &&
-	    (tstr[7] == 't' || tstr[7] == 'T') &&
-	    (tstr[8] == 'y' || tstr[8] == 'Y'));
-}
-
 
 /*
  * just parse the absolute date in timestr and get back a broken-out date.
  */
 int
-prsabsdate(timestr, now, tm, tzp)
-char *timestr;
-struct timeb *now;
-register struct tm *tm;
-int *tzp;
+prsabsdate(timestr, tm, tzp)
+    char *timestr;
+    register struct tm *tm;
+    int *tzp; /* - minutes west */
 {
 	register int nf;
 	char *fields[MAXDATEFIELDS];
@@ -375,7 +254,7 @@ int *tzp;
 	nf = split(timestr, fields, MAXDATEFIELDS, delims+1);
 	if (nf > MAXDATEFIELDS)
 		return -1;
-	if (tryabsdate(fields, nf, now, tm, tzp) < 0) {
+	if (tryabsdate(fields, nf, tm, tzp) < 0) {
 		register char *p = timestr;
 
 		/*
@@ -391,7 +270,7 @@ int *tzp;
 		nf = split(timestr, fields, MAXDATEFIELDS, delims);
 		if (nf > MAXDATEFIELDS)
 			return -1;
-		if (tryabsdate(fields, nf, now, tm, tzp) < 0)
+		if (tryabsdate(fields, nf, tm, tzp) < 0)
 			return -1;
 	}
 	return 0;
@@ -401,24 +280,27 @@ int *tzp;
  * try to parse pre-split timestr as an absolute date
  */
 int
-tryabsdate(fields, nf, now, tm, tzp)
-char *fields[];
-int nf;
-struct timeb *now;
-register struct tm *tm;
-int *tzp;
+tryabsdate(fields, nf, tm, tzp)
+    char *fields[];
+    int nf;
+    register struct tm *tm;
+    int *tzp; /* - minutes west */
 {
 	register int i;
 	register datetkn *tp;
 	register long flg = 0, ty;
 	int mer = HR24, bigval = -1;
-	struct timeb ftz;
+#ifndef USE_POSIX_TIME
+	struct timeb now;
 
-	if (now == NULL) {		/* default to local time (zone) */
-		now = &ftz;
-		(void) ftime(now);
-	}
-	*tzp = now->timezone;
+	(void) ftime(&now);
+	*tzp = now.timezone;
+#else /* USE_POSIX_TIME */
+	time_t now = time((time_t *) NULL);
+	struct tm *tmnow = localtime(&now);
+
+	*tzp = - tmnow->tm_gmtoff / 60;
+#endif /* USE_POSIX_TIME */
 
 	tm->tm_mday = tm->tm_mon = tm->tm_year = -1;	/* mandatory */
 	tm->tm_hour = tm->tm_min = tm->tm_sec = 0;
@@ -629,168 +511,34 @@ char *sep;			/* "" white, "c" single char, "ab" [ab]+ */
 
 /*
  * Given an AbsoluteTime return the English text version of the date
- *
- * e.g. January 1 1970
  */
 char *
 nabstimeout(time)
     AbsoluteTime time;
 {
-    char *outStr;
-    char *tzoneStr = "";
-    struct tm timeVals;
-    struct tm *timeValp;
-    char month[16];
-    char weekday[16];
+    /*
+     * Fri Jan 28 23:05:29 1994 PST
+     * 0        1         2
+     * 12345678901234567890123456789
+     *
+     * we allocate some extra -- timezones are usually 3 characters but
+     * this is not in the POSIX standard...
+     */
+    char buf[40];
 
-    outStr = (char *)palloc(64);
-
-    if (time == EPOCH_ABSTIME)
-    {
-	strcpy(outStr, "epoch");
-	return outStr;
-    }
-    if (time == INVALID_ABSTIME)
-    {
-	strcpy(outStr, "Invalid Abstime");
-	return outStr;
-    }
-    if (time == CURRENT_ABSTIME)
-    {
-	strcpy(outStr, "current");
-	return outStr;
-    }
-
-    if (time == NOEND_ABSTIME)
-    {
-	strcpy(outStr, "infinity");
-	return outStr;
-    }
-    if (time == NOSTART_ABSTIME)
-    {
-	strcpy(outStr, "-infinity");
-	return outStr;
-    }
-
-    timeValp = localtime((time_t *)&time);
-    MonthNumToStr(timeValp->tm_mon, month);
-    WeekdayToStr(timeValp->tm_wday, weekday);
-
-#if defined(USE_POSIX_TIME)
-    tzset(); /* should be unnecessary if localtime() has been called, but.. */
-    switch (timeValp->tm_isdst) {
-    case 0:
-    case 1:
-	tzoneStr = tzname[timeValp->tm_isdst];
-	break;
+    switch (time) {
+    case EPOCH_ABSTIME:	  (void) strcpy(buf, "epoch");			break;
+    case INVALID_ABSTIME: (void) strcpy(buf, "Invalid Abstime");	break;
+    case CURRENT_ABSTIME: (void) strcpy(buf, "current");		break;
+    case NOEND_ABSTIME:   (void) strcpy(buf, "infinity");		break;
+    case NOSTART_ABSTIME: (void) strcpy(buf, "-infinity");		break;
     default:
-	timeValp = gmtime((time_t *)&time);
-	tzoneStr = "GMT";
+	/* hack -- localtime happens to work for negative times */
+	(void) strftime(buf, sizeof(buf), "%a %b %d %H:%M:%S %Y %Z",
+			localtime((time_t *) &time));
 	break;
     }
-#else /* !USE_POSIX_TIME */
-    /* assume we have BSD struct tm, which has tm_zone */
-    tzoneStr = timeValp->tm_zone;
-#endif /* !USE_POSIX_TIME */
-
-    sprintf(outStr,
-	    "%s %s %d %2.2d:%2.2d:%2.2d %d %s",
-	    weekday,
-	    month,
-	    timeValp->tm_mday,
-	    timeValp->tm_hour,
-	    timeValp->tm_min,
-	    timeValp->tm_sec,
-	    /* handle times before 1969 */
-	    (time < 0 || timeValp->tm_year >= 69) ? timeValp->tm_year+1900 :
-					timeValp->tm_year+2000,
-	    tzoneStr);
-    return(outStr);
-}
-
-int
-MonthNumToStr(mnum, mstr)
-    int mnum;
-    char *mstr;
-{
-    switch(mnum)
-    {
-	case 0:
-	    strcpy(mstr, "Jan");
-	    break;
-	case 1:
-	    strcpy(mstr, "Feb");
-	    break;
-	case 2:
-	    strcpy(mstr, "Mar");
-	    break;
-	case 3:
-	    strcpy(mstr, "Apr");
-	    break;
-	case 4:
-	    strcpy(mstr, "May");
-	    break;
-	case 5:
-	    strcpy(mstr, "Jun");
-	    break;
-	case 6:
-	    strcpy(mstr, "Jul");
-	    break;
-	case 7:
-	    strcpy(mstr, "Aug");
-	    break;
-	case 8:
-	    strcpy(mstr, "Sep");
-	    break;
-	case 9:
-	    strcpy(mstr, "Oct");
-	    break;
-	case 10:
-	    strcpy(mstr, "Nov");
-	    break;
-	case 11:
-	    strcpy(mstr, "Dec");
-	    break;
-	default:
-	    strcpy(mstr, "Bad Month");
-	    break;
-    }
-    return 1;
-}
-
-int
-WeekdayToStr(wday, wstr)
-    int wday;
-    char *wstr;
-{
-    switch(wday)
-    {
-	case 0:
-	    strcpy(wstr, "Sun");
-	    break;
-	case 1:
-	    strcpy(wstr, "Mon");
-	    break;
-	case 2:
-	    strcpy(wstr, "Tues");
-	    break;
-	case 3:
-	    strcpy(wstr, "Wed");
-	    break;
-	case 4:
-	    strcpy(wstr, "Thurs");
-	    break;
-	case 5:
-	    strcpy(wstr, "Fri");
-	    break;
-	case 6:
-	    strcpy(wstr, "Sat");
-	    break;
-	default:
-	    strcpy(wstr, "Bad Weekday");
-	    break;
-    }
-    return 1;
+    return(strcpy(palloc(strlen(buf) + 1), buf));
 }
 
 /* turn a (struct tm) and a few variables into a time_t, with range checking */
