@@ -20,6 +20,8 @@
 #include "access/htup.h"
 #include "storage/buf.h"
 #include "rules/prs2.h"
+#include "rules/prs2stub.h"
+#include "nodes/execnodes.h"		/* which includes access/rulescan.h */
 #include "nodes/execnodes.h"
 #include "nodes/execnodes.a.h"
 
@@ -32,7 +34,7 @@
  *
  * Explanation of arguments:
  *   estate: the EState (executor state)
- *   scanStateRuleInfo:
+ *   relationRuleInfo:
  *	If the rule manager is called as part of a 'scan'
  *	(i.e. the operation is a 'RETRIEVE' then this contains
  *	some useful info about the scanned relation...
@@ -106,14 +108,14 @@
  */
 
 Prs2Status
-prs2Main(estate, scanStateRuleInfo, operation, userId, relation,
+prs2Main(estate, retrieveRelationRuleInfo, operation, userId, relation,
 	    oldTuple, oldBuffer,
 	    newTuple, newBuffer,
 	    rawTuple, rawBuffer,
 	    attributeArray, numberOfAttributes,
 	    returnedTupleP, returnedBufferP)
 EState estate;
-ScanStateRuleInfo scanStateRuleInfo;
+RelationRuleInfo retrieveRelationRuleInfo;
 int operation;
 int userId;
 Relation relation;
@@ -129,6 +131,7 @@ Buffer *returnedBufferP;
     Prs2Status status;
     Buffer localBuffer;
     Prs2EStateInfo prs2EStateInfo;
+    RelationRuleInfo updateRelationRuleInfo;
     int topLevel;
     Relation explainRelation;
 
@@ -157,7 +160,7 @@ Buffer *returnedBufferP;
 	case RETRIEVE:
 	    status = prs2Retrieve(
 				prs2EStateInfo,
-				scanStateRuleInfo,
+				retrieveRelationRuleInfo,
 				explainRelation,
 				oldTuple,
 				oldBuffer,
@@ -168,8 +171,10 @@ Buffer *returnedBufferP;
 				returnedBufferP);
 	    break;
 	case DELETE:
+	    updateRelationRuleInfo = get_es_result_rel_ruleinfo(estate);
 	    status = prs2Delete(
 				prs2EStateInfo,
+				updateRelationRuleInfo,
 				explainRelation,
 				oldTuple,
 				oldBuffer,
@@ -178,8 +183,10 @@ Buffer *returnedBufferP;
 				relation);
 	    break;
 	case APPEND:
+	    updateRelationRuleInfo = get_es_result_rel_ruleinfo(estate);
 	    status = prs2Append(
 				prs2EStateInfo,
+				updateRelationRuleInfo,
 				explainRelation,
 				newTuple,
 				newBuffer,
@@ -188,8 +195,10 @@ Buffer *returnedBufferP;
 				returnedBufferP);
 	    break;
 	case REPLACE:
+	    updateRelationRuleInfo = get_es_result_rel_ruleinfo(estate);
 	    status = prs2Replace(
 				prs2EStateInfo,
+				updateRelationRuleInfo,
 				explainRelation,
 				oldTuple,
 				oldBuffer,
@@ -213,4 +222,82 @@ Buffer *returnedBufferP;
 	prs2RuleStackFree(prs2EStateInfo);
     }
     return(status);
+}
+
+/*---------------------------------------------------------------------
+ * prs2MustCallRuleManager
+ *
+ * return true if the rule manager needs to be called, false
+ * otherwise (i.e. if there are absolutely no rules defined!).
+ *
+ * The main reason for this routine is for the executro to know whether
+ * is should call or not the rule manager. If there is no need to do so
+ * the executor can avoid setting up all the information the rule
+ * manager needs thus making things go faster.
+ *
+ * NOTE: in case of doubt, return true!
+ * NOTE2: we might make this routine slightly more clever.
+ * For instance even if there are some locks, they might not be relevant
+ * to the operation currently performed.
+ * 
+ *---------------------------------------------------------------------
+ */
+bool
+prs2MustCallRuleManager(relationRuleInfo, oldTuple, oldBuffer, operation)
+RelationRuleInfo relationRuleInfo;
+HeapTuple oldTuple;
+Buffer oldBuffer;
+int operation;
+{
+
+    bool relLocksFlag;
+    bool oldTupLocksFlag;
+    bool stubsFlag;
+
+    if (prs2GetNumberOfLocks(relationRuleInfo->relationLocks)==0)
+	relLocksFlag = false;
+    else
+	relLocksFlag = true;
+    
+    if (oldTuple != NULL)
+	oldTupLocksFlag = !(HeapTupleHasEmptyRuleLock(oldTuple, oldBuffer));
+    else
+	oldTupLocksFlag = false;
+
+    if (relationRuleInfo->relationStubs == NULL ||
+			    prs2StubIsEmpty(relationRuleInfo->relationStubs))
+	stubsFlag = false;
+    else
+	stubsFlag = true;
+
+
+    switch (operation) {
+	case RETRIEVE:
+	    if (relLocksFlag || oldTupLocksFlag)
+		return(true);
+	    else
+		return(false);
+	    break;
+	case DELETE:
+	    if (relLocksFlag || oldTupLocksFlag)
+		return(true);
+	    else
+		return(false);
+	case APPEND:
+	    if (stubsFlag || relLocksFlag)
+		return(true);
+	    else
+		return(false);
+	    break;
+	case REPLACE:
+	    if (stubsFlag || relLocksFlag || oldTupLocksFlag)
+		return(true);
+	    else
+		return(false);
+	    break;
+	default:
+	    elog(WARN, "prs2MustCallRuleManager: illegal operation %d",
+		operation);
+
+    } /* switch */
 }
