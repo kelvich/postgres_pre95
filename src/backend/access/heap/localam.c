@@ -256,6 +256,16 @@ local_doinsert(relation, tuple)
     if (rel_info->write_page == NULL)
     {
         rel_info->write_page = (Page) palloc(BLCKSZ);
+
+	/*
+	 *  (This comment copied from _bt_pageinit :-)
+	 *
+	 *  Cargo-cult programming -- don't really need this to be zero, but
+	 *  creating new pages is an infrequent occurrence and it makes me feel
+	 *  good when I know they're empty.
+	 */
+	bzero((char *) rel_info->write_page, BLCKSZ);	/* XXX PURIFY */
+
         PageInit(rel_info->write_page, BLCKSZ, 0);
     }
 
