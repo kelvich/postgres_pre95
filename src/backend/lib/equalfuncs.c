@@ -1,3 +1,7 @@
+/*
+ *  equalfuncs -- functions for computing equality of various nodes.
+ */
+
 #include "c.h"
 #include "postgres.h"
 #include "log.h"
@@ -7,6 +11,8 @@
 #include "relation.h"
 #include "execnodes.h"
 #include "plannodes.h"
+
+RcsId("$Header$");
 
 extern bool	_equalLispValue();
 extern bool	_equalHeapTuple();
