@@ -20,8 +20,9 @@
 #include <stdio.h>
 
 #include "tmp/postgres.h"
+#include "parser/parse.h"
 
- RcsId("$Header$");
+RcsId("$Header$");
 
 /* ----------------
  *	FILE INCLUDE ORDER GUIDELINES
