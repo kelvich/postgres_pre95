@@ -262,8 +262,33 @@ tlist_member (var,tlist,dots,key,test)
 	else 
 	  return((Resdom)NULL);
     }
+    return ((Resdom)NULL);
     
 }
+
+/*
+ *   Routine to get the resdom out of a targetlist.
+ */
+
+Resdom
+tlist_resdom(tlist,resnode)
+     LispValue tlist;
+     Resdom resnode;
+{
+    Resdom resdom = (Resdom)NULL;
+    LispValue i = LispNil;
+    TLE temp_tle = (TLE)NULL;
+
+    foreach(i,tlist) {
+	temp_tle = (TLE)CAR(i);
+	resdom = get_resdom(temp_tle);
+	/*  Since resnos are supposed to be unique */
+	if (get_resno(resnode) == get_resno(resdom))  
+	  return(resdom);
+    }
+    return((Resdom)NULL);
+}
+
 
 /*    
  *    	match_varid
