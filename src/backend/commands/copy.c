@@ -44,7 +44,7 @@ char *filename;
 
     if (from)
     {
-        if (pipe && IsUnderPostmaster) SendCopyBegin();
+        if (pipe && IsUnderPostmaster) ReceiveCopyBegin();
         if (IsUnderPostmaster)
         {
             fp = pipe ? Pfin : fopen(filename, "r");
