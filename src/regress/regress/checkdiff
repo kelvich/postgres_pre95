@@ -9,7 +9,9 @@ sed \
 -e 's/HERE=.*/HERE=/' \
 -e 's/.* -> //' \
 -e 's%"/.*/%"%g' \
+-e 's/ -0 / 0  /g' \
 -e 's/-1e-39/0     /g' \
+-e 's/1e-39/0    /g' \
 -e 's/1\.79769313486232e\+308/Infinity    /g' \
 -e '/ a,[0-9]+ /d' \
 -e '/RCS/d' \
@@ -17,6 +19,7 @@ sed \
 -e '/^so_locations$/d' \
 -e '/[a-zA-Z0-9]\.sl$/d' \
 -e '/[a-zA-Z0-9]\.so$/d' \
+-e '/[a-zA-Z0-9]\.exp$/d' \
 -e '/^$/d' \
 sample.$HERE.out > $SAMPLE
 sed \
@@ -26,7 +29,9 @@ sed \
 -e 's/HERE=.*/HERE=/' \
 -e 's/.* -> //' \
 -e 's%"/.*/%"%g' \
+-e 's/ -0 / 0  /g' \
 -e 's/-1e-39/0     /g' \
+-e 's/1e-39/0    /g' \
 -e 's/1\.79769313486232e\+308/Infinity    /g' \
 -e '/ a,[0-9]+ /d' \
 -e '/RCS/d' \
@@ -34,6 +39,7 @@ sed \
 -e '/^so_locations$/d' \
 -e '/[a-zA-Z0-9]\.sl$/d' \
 -e '/[a-zA-Z0-9]\.so$/d' \
+-e '/[a-zA-Z0-9]\.exp$/d' \
 -e '/^$/d' \
 $MAKEOBJDIR/$HERE.out > $ACTUAL
 diff $SAMPLE $ACTUAL | \
