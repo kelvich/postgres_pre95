@@ -22,10 +22,10 @@
 #include "nodes/primnodes.a.h"
 #include "utils/lsyscache.h"
 
-LispValue MakeRangeTableEntry();
-LispValue MakeRoot();
-LispValue planner();
-Prs2StubQual prs2StubQualFromConstQual();
+extern LispValue MakeRangeTableEntry();
+extern LispValue MakeRoot();
+extern LispValue planner();
+extern LispValue cnfify();
 
 /*--------------------------------------------------------------------
  *
@@ -63,6 +63,7 @@ LispValue constQual;
     Var var;
     Func func;
     Resdom resdom;
+    LispValue planQual;
     LispValue root;
     LispValue tlist, expr;
     LispValue rtable, rtentry;
@@ -174,7 +175,7 @@ LispValue constQual;
     
     parseTree = lispCons(root, LispNil);
     parseTree = nappend1(parseTree, tlist);
-    parseTree = nappend1(parseTree, constQual);
+    parseTree = nappend1(parseTree, lispCopy(constQual));
 
     /*
      * Now call the planner to plan the parse tree
@@ -194,16 +195,18 @@ LispValue constQual;
     /*
      * BTW, don't forget to put the (relation level) stub record too!
      *
-     * NOTE: we assume that the "varno" for the CURRENT relation is
-     * always 1.
+     * NOTE: we can not use the qualification as produced by the parser.
+     * We have to pre-process it a little bit.
      */
      oneStub = prs2MakeOneStub();
      oneStub->ruleId = ruleId;
      oneStub->stubId = (Prs2StubId) 0;
      oneStub->counter = 1;
      oneStub->lock = newlock;
-     oneStub->qualification = prs2StubQualFromConstQual(relationOid,
-					    constQual, 1);
+
+     planQual = cnfify(constQual,true);
+     fix_opids(planQual);
+     oneStub->qualification = planQual;
 
      prs2AddRelationStub(relation, oneStub);
 

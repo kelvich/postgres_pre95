@@ -68,6 +68,7 @@ LispValue ruleQual;
      * NOTE: XXX!
      * We assume the the "varno" of the CURRENT relation is 1
      */
+#define NEW_RULE_SYSTEM
 #ifdef NEW_RULE_SYSTEM
     constQual = prs2FindConstantQual(ruleQual, 1);
 
@@ -266,6 +267,13 @@ int currentVarno;
     newQual = cnfify(lispCopy(qual), false);
 
     /*
+     * Hacky stuff!
+     * If the qual is a very simple one, i.e. "(<operator> <arg1> <arg2>)"
+     * then the parser does NOT enclose it into an extra set of
+     * parentheses and does NOT add the 'AND' operator.
+     */
+
+    /*
      * Now newQual is in CNF, i.e. it has a big 'AND'
      * clause and all its elements are OR clauses of
      * operators or maybe negations of operators.
@@ -303,89 +311,81 @@ bool *isConstant;
 {
     LispValue t;
     LispValue newSubclause;
-    LispValue newAndClauses, newOrClauses, newOperClause;
-    Oper oper;
-    LispValue leftop, rightop;
+    LispValue newAndClauses, newOrClauses;
     bool subclauseIsConst;
 
     if (null(clause)) {
 	*isConstant = true;
 	return(LispNil);
-    } else if (is_clause(clause)) {
+    } else if (IsA(clause,Var)) {
 	/*
-	 * it's an operator
+	 * Is it a CURRENT Var node ?
 	 */
-	oper = (Oper) clause_head(clause);
-	leftop = (LispValue) get_leftop(clause);
-	rightop = (LispValue) get_rightop(clause);
-	/* 
-	 * check the left operator first.
-	 * If it is a CURRENT Var node or a Const node
-	 * constant nodes, we are done.
-	 */
-	if (IsA(leftop,Const) ||
-	(IsA(leftop,Var) && get_varno(leftop)==currentVarno)) {
-	    newSubclause = leftop;
-	} else if (is_clause(leftop)){
-	    /*----------------------
-	     * XXX: currently operands can only be simple not-nested nodes
-	     *----------------------
+	if (get_varno(clause) == currentVarno) {
+	    *isConstant = true;
+	    return(clause);
+	} else {
+	    /*
+	     * no it is a var node of another relation...
+	     * tough luck!
 	     */
 	    *isConstant = false;
 	    return(LispNil);
-
-	    newSubclause = prs2FindConstantClause(leftop,
+	}
+    } else if (IsA(clause,Const)) {
+	/*
+	 * good! It is a constant....
+	 */
+	*isConstant = true;
+	return(clause);
+    } else if (is_clause(clause)) {
+	/*
+	 * it's an operator.
+	 * Check if the operands are constants too...
+	 */
+	foreach(t, get_opargs(clause)) {
+	    newSubclause = prs2FindConstantClause(CAR(t),
 				    currentVarno,
 				    &subclauseIsConst);
 	    if (!subclauseIsConst) {
+		/*
+		 * at least one operand is not constant.
+		 * That condemns the whole operator clause!
+		 */
 		*isConstant = false;
 		return(LispNil);
 	    }
-	} else {
-	    /*
-	     * probably it is an non constant node, something
-	     * like a Var node of another relation etc.
-	     */
-	    *isConstant = false;
-	    return(LispNil);
 	}
-	newOperClause = lispCons(newSubclause, LispNil);
 	/*
-	 * now continue with the right operator
-	 */
-	if (IsA(rightop,Const) ||
-	(IsA(rightop,Var) && get_varno(rightop)==currentVarno)) {
-	    newSubclause = rightop;
-	} else if (is_clause(rightop)){
-	    /*----------------------
-	     * XXX: currently operands can only be simple not-nested
-	     nodes
-	     *----------------------
-	     */
-	    *isConstant = false;
-	    return(LispNil);
-
-	    newSubclause = prs2FindConstantClause(rightop,
-					    currentVarno,
-					    &subclauseIsConst);
-	    if (!subclauseIsConst) {
-		*isConstant = false;
-		return(LispNil);
-	    }
-	} else {
-	    /*
-	     * prpbably it is an non constant node, something
-	     * like a Var node of another relation etc.
-	     */
-	    *isConstant = false;
-	    return(LispNil);
-	}
-	newOperClause = nappend1(newOperClause, newSubclause);
-	/*
-	 * both operands have passed the test!
+	 * all operands have passed the test!
+	 * Return the clause as it is.
 	 */
 	*isConstant = true;
-	return(make_clause(get_op(clause), newOperClause));
+	return(clause);
+    } else if (is_funcclause(clause)) {
+	/*
+	 * it's a function
+	 * Check if its arguments are constants too...
+	 */
+	foreach(t, get_funcargs(clause)) {
+	    newSubclause = prs2FindConstantClause(CAR(t),
+				    currentVarno,
+				    &subclauseIsConst);
+	    if (!subclauseIsConst) {
+		/*
+		 * at least one operand is not constant.
+		 * That condemns the whole operator clause!
+		 */
+		*isConstant = false;
+		return(LispNil);
+	    }
+	}
+	/*
+	 * all arguments have passed the test!
+	 * Return the clause as it is.
+	 */
+	*isConstant = true;
+	return(clause);
     } else if (and_clause(clause)) {
 	/*
 	 * It's an AND clause.
@@ -465,154 +465,11 @@ bool *isConstant;
 	    return(make_notclause(newSubclause));
 	}
     } else {
-	elog(WARN, "prs2FindConstantClause: unexpected clause");
+	/*
+	 * well it is something we do not know how to handle...
+	 * Play it cool & ignore it...
+	 */
+	*isConstant = false;
+	return(LispNil);
     }
-}
-
-/*------------------------------------------------------------------------
- *
- * prs2StubQualFromConstQual
- *
- * Given a "Const" qual, i.e. one that contains only Const nodes
- * and Var with varno==currentVarno, construct & return the equivalent
- * StubQual.
- *
- *------------------------------------------------------------------------
- */
-Prs2StubQual
-prs2StubQualFromConstQual(relid, qual, currentVarno)
-ObjectId relid;
-LispValue qual;
-int currentVarno;
-{
-    LispValue t;
-    Oper oper;
-    LispValue left, right;
-    Prs2StubQual res;
-    Prs2ComplexStubQualData *complex;
-    Prs2SimpleStubQualData *simple;
-    Size size;
-    int i;
-    Param p;
-    Var v;
-    AttributeNumber attrno;
-    Name attrname;
-
-    res = prs2MakeStubQual();
-
-    if (null(qual)) {
-	/*
-	 * a null qualification
-	 */
-	res->qualType = PRS2_NULL_STUBQUAL;
-    } else if (and_clause(qual)) {
-	/*
-	 * AND clause -> complex qual
-	 */
-	res->qualType = PRS2_COMPLEX_STUBQUAL;
-	complex = &(res->qual.complex);
-	complex->boolOper = AND;
-	complex->nOperands = length(get_andclauseargs(qual));
-	size = complex->nOperands * sizeof(Prs2StubQual);
-	complex->operands = (Prs2StubQual *)palloc(size);
-	i = 0;
-	foreach (t, get_andclauseargs(qual)) {
-	    complex->operands[i] = prs2StubQualFromConstQual(CAR(t),
-							currentVarno);
-	    i++;
-	}
-    } else if (or_clause(qual)) {
-	/*
-	 * OR clause -> complex qual
-	 */
-	res->qualType = PRS2_COMPLEX_STUBQUAL;
-	complex = &(res->qual.complex);
-	complex->boolOper = OR;
-	complex->nOperands = length(get_orclauseargs(qual));
-	size = complex->nOperands * sizeof(Prs2StubQual);
-	complex->operands = (Prs2StubQual *)palloc(size);
-	i = 0;
-	foreach (t, get_orclauseargs(qual)) {
-	    complex->operands[i] = prs2StubQualFromConstQual(CAR(t),
-							currentVarno);
-	    i++;
-	}
-    } else if (not_clause(qual)) {
-	/*
-	 * NOT clause -> complex qual
-	 */
-	res->qualType = PRS2_COMPLEX_STUBQUAL;
-	complex = &(res->qual.complex);
-	complex->boolOper = NOT;
-	complex->nOperands = length(get_notclausearg(qual));
-	/*
-	 * NOTE: normally there would be just one operand, right ?
-	 * Well, in any case better safe than sorry...
-	 */
-	if (complex->nOperands != 1) {
-	    elog(NOTICE,
-	    "prs2StubQualFromConstQual: NOT qual with %d subclauses!",
-	    complex->nOperands);
-	}
-	size = complex->nOperands * sizeof(Prs2StubQual);
-	complex->operands = (Prs2StubQual *)palloc(size);
-	i = 0;
-	foreach (t, get_notclausearg(qual)) {
-	    complex->operands[i] = prs2StubQualFromConstQual(CAR(t),
-							currentVarno);
-	    i++;
-	}
-    } else if (is_clause(qual)) {
-	/*
-	 * it's an operator - it corresponds to a simple qual
-	 */
-	res->qualType = PRS2_SIMPLE_STUBQUAL;
-	simple = &(res->qual.simple);
-	oper = (Oper) clause_head(qual);
-	if (get_opid(oper) == InvalidObjectId) {
-	    replace_opid(oper);
-	}
-	simple->operator = get_opid(oper);
-	simple->left = (Node) get_leftop(qual);
-	simple->right = (Node) get_rightop(qual);
-	if (IsA(simple->left,Var) && get_varno(simple->left)==1) {
-	    /*
-	     * Substitute the CURRENT Var node with the
-	     * appropriate Param node.
-	     */
-	    v = (Var) simple->left;
-	    attrname = get_attname(relid, get_varattno(v));
-	    attrno = get_attnum(relid, attrname);
-	    p = MakeParam(PARAM_NEW,
-			    attrno,
-			    attrname,
-			    get_vartype(v));
-	    simple->left = (Node) p;
-	} else if (!IsA(simple->left,Const)) {
-	    elog(WARN,
-	    "prs2StubQualFromConstQual: operand is not current or const");
-	}
-	if (IsA(simple->right,Var) && get_varno(simple->right)==1) {
-	    /*
-	     * Substitute the CURRENT Var node with the
-	     * appropriate Param node.
-	     */
-	    v = (Var) simple->right;
-	    attrname = get_attname(relid, get_varattno(v));
-	    attrno = get_attnum(relid, attrname);
-	    p = MakeParam(PARAM_NEW,
-			    attrno,
-			    attrname,
-			    get_vartype(v));
-	    simple->right = (Node) p;
-	} else if (!IsA(simple->right,Const)) {
-	    elog(WARN,
-	    "prs2StubQualFromConstQual: operand is not current or const");
-	}
-    } else {
-	elog(WARN,
-	"prs2StubQualFromConstQual: are you sure that this is a const qual?");
-    }
-
-    return(res);
 }
