@@ -82,6 +82,42 @@ PutRelationLocks ( rule_oid, ev_oid, ev_attno,
 
 
 /*
+ * ThisLockWasTriggered
+ *
+ * walk the tree, if there we find a varnode,
+ * we check the varattno against the attnum
+ * if we find at least one such match, we return true
+ * otherwise, we return false
+ */
+
+
+bool
+ThisLockWasTriggered ( varno, attnum, parse_subtree )
+     int varno;
+     AttributeNumber attnum;
+     List parse_subtree;
+{
+    List i;
+
+    foreach ( i , parse_subtree ) {
+
+	Node temp = (Node)CAR(i);
+
+	if ( !null(temp) ) {
+	    if ( IsA(temp,Var) && 
+		 ( varno == get_varno((Var)temp)) && 
+		 (( get_varattno((Var)temp) == attnum ) || attnum == -1 ) ) {
+		     return ( true );
+	    } else if ( IsA(temp,LispList) &&
+			ThisLockWasTriggered ( varno, attnum, (List) temp )) {
+			    return (true);
+	    }
+	}
+    }
+    return ( false );
+}
+
+/*
  * MatchRetrieveLocks
  * - looks for varnodes that match the rulelock
  * (where match(foo) => varno = foo.varno AND 
@@ -122,42 +158,6 @@ MatchRetrieveLocks ( rulelocks , varno , parse_subtree  )
 
 }
 
-
-/*
- * ThisLockWasTriggered
- *
- * walk the tree, if there we find a varnode,
- * we check the varattno against the attnum
- * if we find at least one such match, we return true
- * otherwise, we return false
- */
-
-
-bool
-ThisLockWasTriggered ( varno, attnum, parse_subtree )
-     int varno;
-     AttributeNumber attnum;
-     List parse_subtree;
-{
-    List i;
-
-    foreach ( i , parse_subtree ) {
-
-	Node temp = (Node)CAR(i);
-
-	if ( !null(temp) ) {
-	    if ( IsA(temp,Var) && 
-		 ( varno == get_varno((Var)temp)) && 
-		 (( get_varattno((Var)temp) == attnum ) || attnum == -1 ) ) {
-		     return ( true );
-	    } else if ( IsA(temp,LispList) &&
-			ThisLockWasTriggered ( varno, attnum, (List) temp )) {
-			    return (true);
-	    }
-	}
-    }
-    return ( false );
-}
 
 /*
  * MatchLocks
