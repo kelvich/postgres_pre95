@@ -88,7 +88,7 @@ install-headers::
 		${INSTALL} -c -m 444 \
 			${.CURDIR}/../backend/$$i ${HEADERDIR}/$$i; \
 	done
-	-ln ${HEADERDIR}/tmp/libpq.h ${HEADERDIR}
+	-ln -f ${HEADERDIR}/tmp/libpq.h ${HEADERDIR}
 #	XXX - installing fmgr.h depends on the backend being built
 	${INSTALL} -c -m 444 \
 		${.CURDIR}/../backend/${MAKEOBJDIR}/fmgr.h ${HEADERDIR}/fmgr.h
