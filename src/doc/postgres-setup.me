@@ -908,18 +908,15 @@ as semaphores and shared memory.
 In addition, returned tuples are displayed more usefully
 and input is buffered better.  
 The backend is used interactively primarily during debugging.
-Note that the program called "backend" is not really the backend; it is
-a program used by createdb to initialize databases.
 .sh 2 "\*(PG Support Programs"
 .pp
 Included in \*(PG are a handful of support programs.
 Most of these are used internally by the system but here is a list of
 them for your information.
 .(l
-backend		\- used by initdb to create system classes
 initdb		\- creates the initial template database
 createdb		\- creates new postgres databases
-createdb.sh		\- creates new postgres databases - old version
+createdb.sh	\- creates new postgres databases - old version
 destroydb	\- destroys postgres databases
 ipcclean		\- frees up garbage shared memory from failed backends
 pg_version	\- make version numbers for createdb
@@ -953,12 +950,14 @@ of \*(PG.
 A description of the demo database can be found
 in ~postgres/demo/DEMO-README.
 .sh 2 "Video Demo Database"
+.pp
 In ~postgres/video are files that were used in the 1991 Postgres SIGMOD
 video.  These files demonstrate both the instance level and query rewrite
 rule systems, views, versions, and spatial queries using R-Tree indices.
 A description of the video database can be found in
 ~postgres/video/VIDEO-README.
 .sh 2 "Wisconsin Benchmark Database"
+.pp
 In ~postgres/bench are files which are the queries used in the Postgres
 version of the Wisconsin benchmark.  The Wisconsin benchmark illustrates
 "basic" relational performance using B-Tree indices on nontrivial amounts
