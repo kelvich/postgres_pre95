@@ -194,6 +194,7 @@ int type;
 	case T_Append:	return("Append");
 	case T_Result:	return("Result");
 	case T_Existential: return("Existential");
+	case T_ScanTemps: return("ScanTemps");
 	default: return("???");
 	}
 }
@@ -596,6 +597,14 @@ Plan plan;
 	    pplan(get_lefttree(plan));
 	  }
 	break;
+    case classTag(ScanTemps):
+	{   LispValue x;
+	    Relation tmpreldesc;
+	    foreach (x, get_temprelDescs(plan)) {
+		tmpreldesc = (Relation)CAR(x);
+		fprintf(stderr, " %s", &(tmpreldesc->rd_rel->relname));
+	      }
+	}
     case classTag(MergeJoin):
     case classTag(HashJoin):
     case classTag(NestLoop):
