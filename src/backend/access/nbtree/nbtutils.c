@@ -67,3 +67,114 @@ _bt_freestack(stack)
 	pfree(ostack);
     }
 }
+
+#include <stdio.h>
+
+_bt_dump(rel)
+    Relation rel;
+{
+    Buffer buf;
+    Page page;
+    BTPageOpaque opaque;
+    ItemId itemid;
+    BTItem item;
+    OffsetIndex offind, maxoff, start;
+    BlockNumber nxtbuf;
+    TupleDescriptor itupdesc;
+    IndexTuple itup;
+    Boolean isnull;
+    Datum keyvalue;
+
+    printf("--------------------------------------------------\n");
+    itupdesc = RelationGetTupleDescriptor(rel);
+
+    buf = _bt_getroot(rel, BT_READ);
+    page = BufferGetPage(buf, 0);
+    opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+
+    while (!(opaque->btpo_flags & BTP_LEAF)) {
+	if (opaque->btpo_next == P_NONE)
+	    itemid = PageGetItemId(page, 0);
+	else
+	    itemid = PageGetItemId(page, 1);
+
+	item = (BTItem) PageGetItem(page, itemid);
+	nxtbuf = ItemPointerGetBlockNumber(&(item->bti_itup.t_tid));
+	_bt_relbuf(rel, buf, BT_READ);
+	buf = _bt_getbuf(rel, nxtbuf, BT_READ);
+	page = BufferGetPage(buf, 0);
+	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+    }
+
+    for (;;) {
+
+	printf("page %d prev %d next %d\n", BufferGetBlockNumber(buf),
+		opaque->btpo_prev, opaque->btpo_next);
+
+	if (opaque->btpo_next != P_NONE) {
+	    printf("    high key:");
+	    _bt_dumptup(rel, itupdesc, page, 0);
+	    start = 1;
+	} else {
+	    printf(" no high key\n");
+	    start = 0;
+	}
+
+	maxoff = PageGetMaxOffsetIndex(page);
+	if (!PageIsEmpty(page) &&
+	     (opaque->btpo_next == P_NONE || maxoff != start)) {
+	    for (offind = start; offind <= maxoff; offind++) {
+		printf("\t");
+		_bt_dumptup(rel, itupdesc, page, offind);
+	    }
+	}
+
+	nxtbuf = opaque->btpo_next;
+	_bt_relbuf(rel, buf, BT_READ);
+
+	if (nxtbuf == P_NONE)
+	    break;
+
+	buf = _bt_getbuf(rel, nxtbuf, BT_READ);
+	page = BufferGetPage(buf, 0);
+	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+    }
+}
+
+#include "tmp/datum.h"
+
+_bt_dumptup(rel, itupdesc, page, offind)
+    Relation rel;
+    TupleDescriptor itupdesc;
+    Page page;
+    OffsetIndex offind;
+{
+    ItemId itemid;
+    Size itemsz;
+    BTItem btitem;
+    IndexTuple itup;
+    Size tuplen;
+    ItemPointer iptr;
+    BlockNumber blkno;
+    PageNumber pgno;
+    OffsetNumber offno;
+    Datum idatum;
+    int16 tmpkey;
+    Boolean null;
+
+    itemid = PageGetItemId(page, offind);
+    itemsz = ItemIdGetLength(itemid);
+    btitem = (BTItem) PageGetItem(page, itemid);
+    itup = &(btitem->bti_itup);
+    tuplen = itup->t_size;
+    iptr = &(itup->t_tid);
+    blkno = ItemPointerGetBlockNumber(iptr, 0);
+    pgno = ItemPointerGetPageNumber(iptr, 0);
+    offno = ItemPointerGetOffsetNumber(iptr, 0);
+
+    idatum = IndexTupleGetAttributeValue(itup, 1, itupdesc, &null);
+    tmpkey = DatumGetInt16(idatum);
+
+    printf("[%d/%d bytes] <%d,%d,%d> %d (seq %d)\n", itemsz, tuplen,
+	    blkno, pgno, offno, tmpkey, btitem->bti_seqno);
+}
