@@ -1107,6 +1107,12 @@ handle_copy_in()
 		 --buflen) {
 		*s++ = c;
 	    }
+	    if (c == EOF) {
+		/* reading from stdin, but from a file */
+		PQputline(".");
+		copydone = true;
+		break;
+	    }
 	    *s = '\0';
 	    PQputline(copybuf);
 	    if (firstload) {
