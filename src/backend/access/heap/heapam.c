@@ -198,17 +198,16 @@ unpinsdesc(sdesc)
     }
 
     /* ------------------------------------
-     *  each scan will only pin a buffer once, so make sure not to
-     *  unpin them multiple times.
+     *  Scan will pin buffer one for each non-NULL tuple pointer
+     *  (ptup, ctup, ntup), so they have to be unpinned multiple
+     *  times.
      * ------------------------------------
      */
-    if (sdesc->rs_cbuf != sdesc->rs_pbuf && BufferIsValid(sdesc->rs_cbuf)) {
+    if (BufferIsValid(sdesc->rs_cbuf)) {
 	ReleaseBuffer(sdesc->rs_cbuf);
     }
 
-    if (sdesc->rs_nbuf != sdesc->rs_cbuf &&
-	sdesc->rs_nbuf != sdesc->rs_pbuf &&
-	BufferIsValid(sdesc->rs_nbuf)) {
+    if (BufferIsValid(sdesc->rs_nbuf)) {
        ReleaseBuffer(sdesc->rs_nbuf);
     }
 }
@@ -991,9 +990,14 @@ heap_getnext(scandesc, backw, b)
 
 	    iptr = (sdesc->rs_ctup != NULL) ?
 		&(sdesc->rs_ctup->t_ctid) : (ItemPointer) NULL;
-	    
-	    if (BufferIsValid(sdesc->rs_cbuf))
-		ReleaseBuffer(sdesc->rs_cbuf);
+
+            /* Don't release sdesc->rs_cbuf at this point, because
+               heapgettup doesn't increase PrivateRefCount if it
+               is already set. On a backward scan, both rs_ctup and rs_ntup
+               usually point to the same buffer page, so
+               PrivateRefCount[rs_cbuf] should be 2 (or more, if for instance
+               ctup is stored in a TupleTableSlot).  - 01/09/94 */
+
 	    sdesc->rs_ctup = (HeapTuple)
 		heapgettup(sdesc->rs_rd,
 			   iptr,
@@ -1065,9 +1069,13 @@ heap_getnext(scandesc, backw, b)
 
 	    iptr = (sdesc->rs_ctup != NULL) ?
 		&sdesc->rs_ctup->t_ctid : (ItemPointer) NULL;
-	    
-	    if (BufferIsValid(sdesc->rs_cbuf))
-		ReleaseBuffer(sdesc->rs_cbuf);
+
+            /* Don't release sdesc->rs_cbuf at this point, because
+               heapgettup doesn't increase PrivateRefCount if it
+               is already set. On a forward scan, both rs_ctup and rs_ptup
+               usually point to the same buffer page, so
+               PrivateRefCount[rs_cbuf] should be 2 (or more, if for instance
+               ctup is stored in a TupleTableSlot).  - 01/09/93 */
 
 	    sdesc->rs_ctup = (HeapTuple)
 		heapgettup(sdesc->rs_rd,
@@ -1655,6 +1663,10 @@ heap_markpos(sdesc)
  *	cause the added tuples to be visible when the scan continues.
  *	Problems also arise if the TID's are rearranged!!!
  *
+ *	Now pins buffer once for each valid tuple pointer (rs_ptup,
+ *	rs_ctup, rs_ntup) referencing it.
+ *	 - 01/13/94
+ *
  * XXX	might be better to do direct access instead of
  *	using the generality of heapgettup().
  *
@@ -1678,19 +1690,15 @@ heap_restrpos(sdesc)
 	
     /* Note: no locking manipulations needed */
 
-    if (BufferIsValid(sdesc->rs_pbuf)) {
-	ReleaseBuffer(sdesc->rs_pbuf);
-    }
-    if (BufferIsValid(sdesc->rs_cbuf)) {
-	ReleaseBuffer(sdesc->rs_cbuf);
-    }
-    if (BufferIsValid(sdesc->rs_nbuf)) {
-	ReleaseBuffer(sdesc->rs_nbuf);
-    }
+    unpinsdesc(sdesc);
+
+    /* force heapgettup to pin buffer for each loaded tuple */
+    sdesc->rs_pbuf = InvalidBuffer;
+    sdesc->rs_cbuf = InvalidBuffer;
+    sdesc->rs_nbuf = InvalidBuffer;
 
     if (!ItemPointerIsValid(&sdesc->rs_mptid)) {
 	sdesc->rs_ptup = NULL;
-	sdesc->rs_pbuf = InvalidBuffer;
     } else {
 	sdesc->rs_ptup = (HeapTuple)
 	    heapgettup(sdesc->rs_rd,
@@ -1705,7 +1713,6 @@ heap_restrpos(sdesc)
 
     if (!ItemPointerIsValid(&sdesc->rs_mctid)) {
 	sdesc->rs_ctup = NULL;
-	sdesc->rs_cbuf = InvalidBuffer;
     } else {
 	sdesc->rs_ctup = (HeapTuple)
 	    heapgettup(sdesc->rs_rd,
@@ -1720,7 +1727,6 @@ heap_restrpos(sdesc)
 
     if (!ItemPointerIsValid(&sdesc->rs_mntid)) {
 	sdesc->rs_ntup = NULL;
-	sdesc->rs_nbuf = InvalidBuffer;
     } else {
 	sdesc->rs_ntup = (HeapTuple)
 	    heapgettup(sdesc->rs_rd,
