@@ -3,7 +3,7 @@
 #include "parser/parsetree.h"
 #include "parser/parse.h"
 
-static void
+void
 OffsetVarNodes ( qual_or_tlist , offset ) 
      List qual_or_tlist;
      int offset;
@@ -52,13 +52,14 @@ AddQualifications ( rule_parsetree , new_qual , rule_rtlength)
      int rule_rtlength;
 {
     List copied_qual = NULL ;
+    extern List copy_seq_tree();
 
     if ( new_qual  == NULL )
       return;
 
-    copied_qual = new_qual; /* XXX - should change to lispCopy ??? */
+    copied_qual = copy_seq_tree ( new_qual );
 
-    OffsetVarNodes ( new_qual , rule_rtlength );
+    OffsetVarNodes ( copied_qual , rule_rtlength );
     if ( parse_qualification(rule_parsetree) == NULL )
       parse_qualification(rule_parsetree) = copied_qual;
     else
