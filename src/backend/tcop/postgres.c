@@ -47,6 +47,7 @@ RcsId("$Header$");
 #include "planner/costsize.h"
 #include "planner/planner.h"
 #include "planner/xfunc.h"
+#include "planner/archive.h"
 #include "nodes/plannodes.h"
 #include "nodes/plannodes.a.h"
 
