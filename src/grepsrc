@@ -1,0 +1,9 @@
+case $# in 
+1)  : ;;
+*)	echo 'Specify pattern'
+	exit 1
+	;;
+esac
+
+gfind .  -name '*.[hclyg]*' -print | 
+	xargs egrep "$1"

@@ -1,0 +1,108 @@
+#!/bin/sh
+#
+#	pci -- postgres checkin command
+#
+#	this script should be used to check in changes made in a
+#	developer's private copy of the postgres tree.  it will
+#	run the rcs checkin command, and then guarantee that the
+#	source file is checked out in the postgres master tree.
+#
+#	Usage:  pci [-v] [-M master_tree_pathname] <ci flags> file file ...
+#
+#		-v puts pci into verbose mode
+#		-M tells pci to use master_tree_pathname as the root of
+#		   the postgres master tree
+#
+#	$Header$
+#
+
+# control the behavior of this script
+verbose=0
+master=/usr/local/devel/postgres
+M=
+getmaster=0
+
+# a set of interesting rcs flags that we'll pass on to 'ci'
+u=
+l=
+f=
+
+getarg=0
+m=
+s=
+n=
+N=
+
+cicmd=ci
+files=
+
+# parse the argument list
+for i in $*
+do
+	if [ $getmaster -ne 0 ]
+	then
+		master=$i
+		getmaster=0
+	elif [ $getarg -ne 0 ]
+	then
+		cicmd="$cicmd \'$i\'"
+		getmmsg=0
+	else
+		case $i in
+
+			-v)		verbose=1;;
+			-M)		getmaster=1;;
+			-M*)		master=`echo $i | sed -e 's/-M//'`;;
+
+			-[ulf])		cicmd="$cicmd $i";;
+
+			-[mnNs]) 	cicmd="$cicmd $i";getarg=1;;
+
+			-[mnNs]*)	cicmd="$cicmd \'$i\'";;
+
+			*)		files="$files $i";;
+		esac
+	fi
+done
+
+# tell them what they've won, don pardo...
+if [ $verbose -ne 0 ]
+then
+	echo $cicmd $files
+fi
+
+$cicmd $files
+
+if [ $? -ne 0 ]
+then
+	echo checkin failed.
+	exit 1
+fi
+
+curdir=`pwd`
+
+# extract the pathname relative to the postgres root directory from curdir
+subtree=`echo $curdir | sed -e "s%.\*/src/%%"`
+
+if [ $verbose -ne 0 ]
+then
+	echo cd $master/src/$subdir
+fi
+
+cd $master/src/$subdir
+if [ $? -ne 0 ]
+then
+	echo cannot chdir to $master/src/$subdir
+	echo checkout of $files in master tree failed
+	echo please do the checkout manually
+	exit 1
+fi
+
+if [ $verbose -ne 0 ]
+then
+	echo co $files
+fi
+
+co $files
+
+exit 0
