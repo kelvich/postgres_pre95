@@ -142,6 +142,22 @@ MYBOXES.description !== \*(lq0,0,1,1\*(rq::box
 .)l
 .in .5i
 .sp
+If a commutator operator name is supplied,
+POSTGRES searches for it in the catalog.
+If it is found and it does not yet have a commutator itself,
+then the commutator's entry is updated to have the
+current (new) operator as its commutator.
+This applies to the negator,
+as well.
+.sp
+This is to allow the definition of two operators that are the
+commutators or the negators of each other.
+The first operator should be defined without a commutator or
+negator (as appropriate).
+When the second operator is defined,
+name the first as the commutator or negator.
+The first will be updated as a side effect.
+.sp
 The next two specifications are present to support the query optimizer
 in performing joins.
 \*(PP can always evaluate a
