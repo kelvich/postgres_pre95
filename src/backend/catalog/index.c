@@ -332,9 +332,9 @@ BuildFuncTupleDesc(funcInfo)
     /*
      * Lookup the function for the return type and number of args.
      */
-    tuple = SearchSysCacheTuple(PRONAME,FIgetname(funcInfo),0,0,0);
+    tuple = SearchSysCacheTuple(PROOID,FIgetProcOid(funcInfo),0,0,0);
     if (!HeapTupleIsValid(tuple))
-	elog(WARN, "Function name %s does not exist", FIgetname(funcInfo));
+	elog(WARN, "Function with OID %d does not exist", FIgetProcOid(funcInfo));
 
     retType = ((Form_pg_proc)GETSTRUCT(tuple))->prorettype;
     nArgs = ((Form_pg_proc)GETSTRUCT(tuple))->pronargs;
@@ -1136,11 +1136,11 @@ index_create(heapRelationName, indexRelationName, funcInfo,
     {
 	HeapTuple proc_tup, SearchSysCacheTuple();
 	
-	proc_tup = SearchSysCacheTuple(PRONAME,FIgetname(funcInfo),0,0,0);
+	proc_tup = SearchSysCacheTuple(PROOID,FIgetProcOid(funcInfo),0,0,0);
 
 	if (!HeapTupleIsValid(proc_tup))
-	     elog (WARN, "function named %s does not exist",
-		   FIgetname(funcInfo));
+	     elog (WARN, "function with OID % does not exist",
+		   FIgetProcOid(funcInfo));
 	FIgetProcOid(funcInfo) = proc_tup->t_oid;
     }
 
