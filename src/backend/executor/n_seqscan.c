@@ -90,8 +90,14 @@ SeqNext(node)
     direction =     get_es_direction(estate);
     parallel =      get_parallel(node);
 
-    scandesc->pageskip = parallel;
-    scandesc->initskip = SlaveInfoP[MyPid].groupPid;
+    if (ParallelExecutorEnabled()) {
+	scandesc->pageskip = parallel;
+	scandesc->initskip = SlaveInfoP[MyPid].groupPid;
+      }
+    else {
+	scandesc->pageskip = 1;
+	scandesc->initskip = 0;
+      }
 
     /* ----------------
      *	get the next tuple from the access methods
