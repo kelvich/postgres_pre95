@@ -9,9 +9,6 @@
  *	form
  *
  *   NOTES
- *	If this file is changed, make sure to change
- *	lib/libpq/fe-pqstubs.c file too.  That is the copy
- *	that gets compiled into libpq.a
  *
  *   IDENTIFICATION
  *	$Header$
@@ -63,12 +60,12 @@ form(va_alist)
     va_list	args;
     char	*format;
     char	*str;
-#ifdef NO_VSPRINTF
+#ifdef NEED_VSPRINTF
     FILE	fake;
 
-#ifdef	lint
+#ifdef lint
     fmt = fmt;
-#endif  /* lint */
+#endif /* lint */
 
     if (FormBufP + FormMinSize > FormBuf + FormMaxSize)
 	FormBufP = FormBuf;
@@ -77,21 +74,21 @@ form(va_alist)
     fake._base = fake._ptr = (iochar *) FormBufP;
     fake._flag = _IOWRT | _IOSTRG;
     fake._file = _NFILE;
-#endif /* NO_VSPRINTF */
+#endif /* NEED_VSPRINTF */
     
     va_start(args);
     format = va_arg(args, char *);
 
     str = FormBufP;
-#ifdef NO_VSPRINTF
+#ifdef NEED_VSPRINTF
     _doprnt(format, args, &fake);
 #ifndef	lint
     (void) putc('\0', &fake);
 #endif  /* lint */
     FormBufP += strlen(FormBufP) + 1;
-#else /* NO_VSPRINTF */
+#else /* !NEED_VSPRINTF */
     (void) vsprintf(FormBuf, format, args);
-#endif /* NO_VSPRINTF */
+#endif /* !NEED_VSPRINTF */
     va_end(args);
     
     return (str);
