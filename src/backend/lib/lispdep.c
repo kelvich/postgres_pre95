@@ -27,7 +27,6 @@ extern void lispDisplay();
 
 #include "c.h"
 #include "nodes.h"
-extern char *malloc();
 
 #define lispAlloc() (LispValue)palloc(sizeof(struct _LispValue))
 
@@ -174,7 +173,7 @@ lispString(string)
     newobj->cdr = LispNil;
 
     if(string) {
-	newstr = malloc(strlen(string)+1);
+	newstr = palloc(strlen(string)+1);
 	newstr = strcpy(newstr,string);
     } else
       newstr = (char *)NULL;
