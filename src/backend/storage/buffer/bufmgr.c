@@ -940,7 +940,8 @@ BufferIsUnknown(buffer)
  */
 
 void
-BufferManagerFlush()
+BufferManagerFlush(StableMainMemoryFlag)
+int StableMainMemoryFlag;
 {
     register int i;
     
@@ -952,7 +953,11 @@ BufferManagerFlush()
         }
     }
     
-    FlushDirtyShared(); /* XXX should be at exit time ? */
+    /* flush dirty shared memory only when main memory is not stable */
+    /* plai 8/7/90                                                   */
+ 
+    if (!StableMainMemoryFlag)
+        FlushDirtyShared(); /* XXX should be at exit time ? */
 }
 
 /***************************************************
