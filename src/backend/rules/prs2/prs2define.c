@@ -64,7 +64,7 @@ char *ruleText;
 
     LispValue prs2ReadRule();
 
-#define NO_PARSER_SUPPORT
+/* #define NO_PARSER_SUPPORT */
 #ifdef NO_PARSER_SUPPORT
     parseTree = prs2ReadRule("/users/spyros/postgres/O/support/RULE");
 #endif
