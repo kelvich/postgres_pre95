@@ -30,7 +30,14 @@ main(argc, argv)
 	int argc;
 	char *argv[];
 {
-	init_address_fixups();		/* must be first */
+#if defined(NOFIXADE) || defined(NOPRINTADE)
+	/*
+	 * Must be first so that the bootstrap code calls it, too.
+	 * (Only needed on some RISC architectures.)
+	 */
+	init_address_fixups();
+#endif /* NOFIXADE || NOPRINTADE */
+
 	/* 
 	 * set up DataDir here; it's used by the bootstrap and regular systems 
 	 */
@@ -39,5 +46,4 @@ main(argc, argv)
 		BootstrapMain(argc, argv);
 	else
 		PostgresMain(argc, argv);
-
 }
