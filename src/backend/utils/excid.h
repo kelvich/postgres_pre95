@@ -1,15 +1,23 @@
 /*
  * excid.h --
  *	POSTGRES known exception identifier definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	ExcIdIncluded		/* Include this only once */
+#ifndef	ExcIdIncluded		/* Include this file only once */
 #define ExcIdIncluded	1
 
-#include "exc.h"	/* for Exception */
+/*
+ * Identification:
+ */
+#define EXCID_H	"$Header$"
+
+#ifndef C_H
+#include "c.h"
+#endif
+
+#ifndef	EXC_H
+# include "exc.h"	/* for Exception */
+#endif
 
 /*
  * Nonrecoverable Exceptions
@@ -101,5 +109,21 @@ extern Exception SemanticError;		/* XXX inconsistent naming style */
  *  --
  */
 extern Exception SystemError;		/* XXX inconsistent naming style */
+
+#define EXCID_SYMBOLS \
+	ExternDecl(FailedAssertion, "_FailedAssertion"), \
+	ExternDecl(BadState, "_BadState"), \
+	ExternDecl(BadArg, "_BadArg"), \
+	ExternDecl(BadAllocSize, "_BadAllocSize"), \
+	ExternDecl(ExhaustedMemory, "_ExhaustedMemory"), \
+	ExternDecl(Unimplemented, "_Unimplemented")
+/*
+ * Private symbols:
+ *
+ *	CatalogFailure
+ *	InternalError
+ *	SemanticError
+ *	SystemError
+ */
 
 #endif	/* !defined(ExcIdIncluded) */

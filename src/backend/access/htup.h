@@ -1,26 +1,40 @@
 /*
  * htup.h --
  *	POSTGRES heap tuple definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	HTupIncluded	/* Include this file only once. */
+#ifndef	HTupIncluded		/* Include this file only once */
 #define HTupIncluded	1
 
-#include "postgres.h"
+/*
+ * Identification:
+ */
+#define HTUP_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
 #endif
 
-#include "attnum.h"
-#include "form.h"
-#include "itemptr.h"
-#include "oid.h"
-#include "tupsiz.h"
-#include "rlock.h"
+#include "postgres.h"		/* XXX obsolete, for XID, etc. */
+
+#ifndef	ATTNUM_H
+# include "attnum.h"
+#endif
+#ifndef	FORM_H
+# include "form.h"
+#endif
+#ifndef	ITEMPTR_H
+# include "itemptr.h"
+#endif
+#ifndef	OID_H
+# include "oid.h"
+#endif
+#ifndef	TUPSIZ_H
+# include "tupsiz.h"
+#endif
+#ifndef	RLOCK_H
+# include "rlock.h"
+#endif
 
 #define MinHeapTupleBitmapSize	32		/* 8 * 4 */
 
@@ -113,5 +127,9 @@ Form
 HeapTupleGetForm ARGS((
 	HeapTuple	tuple
 ));
+
+#define HTUP_SYMBOLS \
+	SymbolDecl(HeapTupleIsValid, "_HeapTupleIsValid"), \
+	SymbolDecl(HeapTupleGetForm, "_HeapTupleGetForm")
 
 #endif	/* !defined(HTupIncluded) */

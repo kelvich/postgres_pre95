@@ -1,19 +1,23 @@
 /*
  * pagenum.h --
  *	POSTGRES page number definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	PageNumIncluded	/* Include this file only once. */
+#ifndef	PageNumIncluded		/* Include this file only once */
 #define PageNumIncluded	1
+
+/*
+ * Identification:
+ */
+#define PAGENUM_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
 #endif
 
-#include "part.h"
+#ifndef	PART_H
+# include "part.h"
+#endif
 
 typedef uint16	PageNumber;
 
@@ -40,9 +44,13 @@ PageNumberIsValid ARGS((
  */
 extern
 bool
-PageNumberIsValid ARGS((
+LogicalPageNumberIsValid ARGS((
 	PageNumber	pageNumber,
 	PagePartition	pagePartition
 ));
+
+#define PAGENUM_SYMBOLS \
+	SymbolDecl(PageNumberIsValid, "_PageNumberIsValid"), \
+	SymbolDecl(LogicalPageNumberIsValid, "_LogicalPageNumberIsValid")
 
 #endif	/* !defined(PageNumIncluded) */

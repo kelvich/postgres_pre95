@@ -1,15 +1,19 @@
 /*
  * exc.h --
  *	POSTGRES exception handling definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	ExcIncluded
-#define ExcIncluded	1	/* Include this only once */
+#ifndef	ExcIncluded		/* Include this file only once */
+#define ExcIncluded	1
 
+/*
+ * Identification:
+ */
+#define EXC_H	"$Header$"
+
+#ifndef	C_H
 #include "c.h"
+#endif
 
 #include <setjmp.h>
 
@@ -117,5 +121,19 @@ ExcAbort ARGS((
 	ExcData		data,
 	ExcMessage	message
 ));
+
+#define EXC_SYMBOLS \
+	ExternDecl(ExcCurFrameP, "_ExcCurFrameP"), \
+	SymbolDecl(EnableExceptionHandling, "_EnableExceptionHandling"), \
+	SymbolDecl(ExcRaise, "_ExcRaise")
+/*
+ * Protected symbols:
+ *
+ *	ExcGetUnCaught
+ *	ExcSetUnCaught
+ *	ExcPrint
+ *
+ * What about ProgramName?  Unclear at first glance to me.  -hirohama
+ */
 
 #endif	/* !defined(ExcIncluded) */

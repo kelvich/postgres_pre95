@@ -4,21 +4,29 @@
  *
  * Note:
  *	Needs more accessor/assignment routines.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	SKey	/* Include this file only once. */
-#define SKey	1
+#ifndef	SKeyIncluded		/* Include this file only once */
+#define SKeyIncluded	1
+
+/*
+ * Identification:
+ */
+#define SKEY_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
 #endif
 
-#include "attnum.h"
-#include "datum.h"
-#include "regproc.h"
+#ifndef	ATTNUM_H
+# include "attnum.h"
+#endif
+#ifndef	DATUM_H
+# include "datum.h"
+#endif
+#ifndef	REGPROC_H
+# include "regproc.h"
+#endif
 
 typedef uint16	ScanKeySize;
 
@@ -113,4 +121,11 @@ ScanKeyEntryInitialize ARGS((
 	Datum		argument
 ));
 
-#endif	/* !defined(SKey) */
+#define SKEY_SYMBOLS \
+	SymbolDecl(ScanKeyIsValid, "_ScanKeyIsValid"), \
+	SymbolDecl(ScanKeyEntryIsValid, "_ScanKeyEntryIsValid"), \
+	SymbolDecl(ScanKeyEntryIsLegal, "_ScanKeyEntryIsLegal"), \
+	SymbolDecl(ScanKeyEntrySetIllegal, "_ScanKeyEntrySetIllegal"), \
+	SymbolDecl(ScanKeyEntryInitialize, "_ScanKeyEntryInitialize")
+
+#endif	/* !defined(SKeyIncluded) */

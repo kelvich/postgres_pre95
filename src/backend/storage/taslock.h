@@ -1,21 +1,21 @@
-
 /*
- *  TASLOCK.H
+ * taslock.h --
  *
- *  $Header$
- *
- *  included by pladt.h
+ * Note:
+ *	Included by pladt.h.
  */
 
-#ifndef INCLUDE_TASKLOCK_H
-#define INCLUDE_TASKLOCK_H
-#include <sys/types.h>
-#include <stdio.h>
-#include <signal.h>
+#ifndef	TasLockIncluded		/* Include this file only once */
+#define	TasLockIncluded	1
 
-#define NUMPROCS	64
+/*
+ * Identification:
+ */
+#define TASLOCK_H	"$Header$"
 
 #include "port_taslock.h"	/* from port* directory */
+
+#define NUMPROCS	64
 
 typedef unsigned char ubyte;
 
@@ -35,5 +35,4 @@ typedef struct {
     char	Monitor[NUMPROCS];
 } TASStructure;
 
-#endif
-
+#endif	/* !defined(TasLockIncluded) */

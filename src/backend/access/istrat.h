@@ -1,21 +1,29 @@
 /*
  * istrat.h --
  *	POSTGRES index strategy definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	IStratIncluded	/* Include this file only once. */
+#ifndef	IStratIncluded		/* Include this file only once */
 #define IStratIncluded	1
+
+/*
+ * Identification:
+ */
+#define ISTRAT_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
 #endif
 
-#include "attnum.h"
-#include "skey.h"
-#include "oid.h"
+#ifndef	ATTNUM_H
+# include "attnum.h"
+#endif
+#ifndef	SKEY_H
+# include "skey.h"
+#endif
+#ifndef	OID_H
+# include "oid.h"
+#endif
 
 typedef uint16	StrategyNumber;
 
@@ -140,5 +148,20 @@ IndexStrategyInitialize ARGS((
 	ObjectId	accessMethodObjectId,
 	StrategyNumber	maxStrategyNumber
 ));
+
+#define ISTRAT_SYMBOLS \
+	SymbolDecl(StrategyNumberIsValid, "_StrategyNumberIsValid"), \
+	SymbolDecl(IndexStrategyIsValid, "_IndexStrategyIsValid")
+/*
+ * Protected symbols:
+ *
+ *	StrategyNumberIsInBounds
+ *	AttributeNumberGetIndexStrategySize
+ *	StrategyMapIsValid
+ *	StrategyMapGetScanKeyEntry
+ *	IndexStrategyGetStrategyMap
+ *	AttributeNumberGetIndexStrategySize
+ *	IndexStrategyInintialize
+ */
 
 #endif	/* !defined(IStratIncluded) */

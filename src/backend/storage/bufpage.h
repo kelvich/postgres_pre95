@@ -1,27 +1,44 @@
 /*
  * bufpage.h --
  *	Standard POSTGRES buffer page definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef BUFPAGE_H
-#define BUFPAGE_H
+#ifndef	BufPageIncluded		/* Include this file only once */
+#define BufPageIncluded	1
+
+/*
+ * Identification:
+ */
+#define BUFPAGE_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
 #endif
 
-#include "status.h"
+#ifndef	BUF_H
+# include "buf.h"
+#endif
 
-#include "buf.h"
-#include "bufmgr.h"
-#include "item.h"
-#include "itemid.h"
-#include "itemptr.h"
-#include "page.h"
-#include "part.h"
+#ifndef	ITEM_H
+# include "item.h"
+#endif
+#ifndef	ITEMID_H
+# include "itemid.h"
+#endif
+#ifndef	ITEMPTR_H
+# include "itemptr.h"
+#endif
+#ifndef	MACHINE_H
+# include "machine.h"		/* for BLCKSZ */
+#endif
+#ifndef	PAGE_H
+# include "page.h"
+#endif
+#ifndef	PART_H
+# include "part.h"
+#endif
+
+#include "status.h"
 
 typedef uint16		LocationIndex;
 
@@ -401,4 +418,28 @@ PageGetMaxItemIndex ARGS((
 ));
 */
 
-#endif	/* !defined(BUFPAGE_H) */
+#define BUFPAGE_SYMBOLS \
+	SymbolDecl(PageSizeIsValid, "_PageSizeIsValid"), \
+	SymbolDecl(PageIsUsed, "_PageIsUsed"), \
+	SymbolDecl(BufferInitPage, "_BufferInitPage"), \
+	SymbolDecl(BufferGetPage, "_BufferGetPage"), \
+	SymbolDecl(BufferGetPageSize, "_BufferGetPageSize"), \
+	SymbolDecl(BufferGetPagePartition, "_BufferGetPagePartition"), \
+	SymbolDecl(BufferSimpleGetPage, "_BufferSimpleGetPage"), \
+	SymbolDecl(PageInit, "_PageInit"), \
+	SymbolDecl(BufferSimpleInitPage, "_BufferSimpleInitPage"), \
+	SymbolDecl(PageGetMaxOffsetIndex, "_PageGetMaxOffsetIndex"), \
+	SymbolDecl(PageGetItemId, "_PageGetItemId"), \
+	SymbolDecl(PageGetFirstItemId, "_PageGetFirstItemId"), \
+	SymbolDecl(PageGetItem, "_PageGetItem"), \
+	SymbolDecl(PageGetSpecialSize, "_PageGetSpecialSize"), \
+	SymbolDecl(PageGetSpecialPointer, "_PageGetSpecialPointer"), \
+	SymbolDecl(PageAddItem, "_PageAddItem"), \
+	SymbolDecl(PageRemoveItem, "_PageRemoveItem"), \
+	SymbolDecl(PageRepairFragmentation, "_PageRepairFragmentation"), \
+	SymbolDecl(PageGetPageSize, "_PageGetPageSize"), \
+	SymbolDecl(PageGetInternalFragmentation, "_PageGetInternalFragmentation"), \
+	SymbolDecl(PageGetFreeSpace, "_PageGetFreeSpace"), \
+	SymbolDecl(PageManagerModeSet, "_PageManagerModeSet")
+
+#endif	/* !defined(BufPageIncluded) */

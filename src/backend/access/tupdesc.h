@@ -1,21 +1,29 @@
 /*
  * tupdesc.h --
  *	POSTGRES tuple descriptor definitions.
- *
- * Identification:
- *	$Header$
  */
 
 #ifndef	TupDescIncluded		/* Include this file only once */
 #define TupDescIncluded	1
 
+/*
+ * Identification:
+ */
+#define TUPDESC_H	"$Header$"
+
 #ifndef C_H
 #include "c.h"
 #endif
 
-#include "att.h"
-#include "attnum.h"
-#include "name.h"
+#ifndef	ATT_H
+# include "att.h"
+#endif
+#ifndef	ATTNUM_H
+# include "attnum.h"
+#endif
+#ifndef	NAME_H
+# include "name.h"
+#endif
 
 typedef struct TupleDescriptorData {
 	AttributeTupleForm	data[1];	/* VARIABLE LENGTH ARRAY */
@@ -69,5 +77,10 @@ TupleDescInitEntry ARGS((
 	Name		attributeName,
 	Name		typeName
 ));
+
+#define TUPDESC_SYMBOLS \
+	SymbolDecl(TupleDescIsValid, "_TupleDescIsValid"), \
+	SymbolDecl(CreateTemplateTupleDesc, "_CreateTemplateTupleDesc"), \
+	SymbolDecl(TupleDescInitEntry, "_TupleDescInitEntry")
 
 #endif	/* !defined(TupDescIncluded) */

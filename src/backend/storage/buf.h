@@ -1,19 +1,23 @@
 /*
  * buf.h --
  *	Basic buffer manager data types.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	BufIncluded	/* Include this file only once. */
+#ifndef	BufIncluded		/* Include this file only once */
 #define BufIncluded	1
+
+/*
+ * Identification:
+ */
+#define BUF_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
 #endif
 
-#include "block.h"
+#ifndef	BLOCK_H
+# include "block.h"
+#endif
 
 #define InvalidBuffer	(-1)
 #define UnknownBuffer	(-2)
@@ -68,5 +72,11 @@ bool
 BufferIsUnknown ARGS ((
 	Buffer	buffer
 ));
+
+#define BUF_SYMBOLS \
+	SymbolDecl(RelationGetNumberOfBlocks, "_RelationGetNumberOfBlocks"), \
+	SymbolDecl(BufferIsValid, "_BufferIsValid"), \
+	SymbolDecl(BufferIsInvalid, "_BufferIsInvalid"), \
+	SymbolDecl(BufferIsUnknown, "_BufferIsUnknown")
 
 #endif	/* !defined(BufIncluded) */

@@ -5,16 +5,17 @@
  *	postgres.h	- Central and misc definitions for POSTGRES
  *
  *	This is bound to grow without bound.
+ *
+ * XXX This file should be obsoleted and the necessary definitions moved
+ * XXX to new places.  -hirohama
  */
 
 #ifndef C_H
 #include "c.h"
 #endif
+
 #include "oid.h"
 
-#ifndef NULL
-#define	NULL	0L
-#endif
 #define	SIGNBIT	(0x8000)	/* msb for int/unsigned */
 #define	CSIGNBIT	(1 << 7)	/* msb for char */
 
@@ -72,9 +73,10 @@ struct	varlena	{
 #define	VARSIZE(PTR)	(((struct varlena *)(PTR))->vl_len)
 #define	VARDATA(PTR)    (((struct varlena *)(PTR))->vl_dat)
 
-char	*palloc();
+/*
 char	*calloc();
 #define	ALLOC(t, c)	(t *)calloc((unsigned)(c), sizeof(t))
+*/
 
 #define	MAXPGPATH	128
 

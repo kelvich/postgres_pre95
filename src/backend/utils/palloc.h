@@ -1,15 +1,19 @@
 /*
  * palloc.h --
  *	POSTGRES memory allocator definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	PAllocIncluded
-#define PAllocIncluded	1	/* Include this only once */
+#ifndef	PAllocIncluded		/* Include this file only once */
+#define PAllocIncluded	1
 
+/*
+ * Identification:
+ */
+#define PALLOC_H	"$Header$"
+
+#ifndef C_H
 #include "c.h"
+#endif
 
 /*
  * palloc --
@@ -81,5 +85,11 @@ repalloc ARGS((
 	Pointer	pointer,
 	Size	size
 ));
+
+#define PALLOC_SYMBOLS \
+	SymbolDecl(palloc, "_palloc"), \
+	SymbolDecl(pfree, "_pfree"), \
+	SymbolDecl(pfree, "_psize"), \
+	SymbolDecl(repalloc, "_repalloc")
 
 #endif /* !defined(PAllocIncluded) */

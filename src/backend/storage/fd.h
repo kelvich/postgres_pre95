@@ -21,13 +21,15 @@
  *
  *  AllocateFile();
  *  FreeFile();
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	FDIncluded	/* Include this file only once */
+#ifndef	FDIncluded		/* Include this file only once */
 #define FDIncluded	1
+
+/*
+ * Identification:
+ */
+#define FD_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
@@ -111,6 +113,18 @@ FileTell ARGS((
 ));
 
 /*
+ * FileSync --
+ *
+ *  fsync		(UNIX)
+ */
+
+extern
+int
+FileSync ARGS((
+	File	file
+));
+
+/*
  * AllocateFile --
  *
  */
@@ -150,16 +164,17 @@ FreeFiles ARGS((
 	uint16	numberOfFiles
 ));
 
-/*
- * FileSync --
- *
- *  fsync		(UNIX)
- */
-
-extern
-int
-FileSync ARGS((
-	File	file
-));
+#define FD_SYMBOLS \
+	SymbolDecl(FileNameOpenFile, "_FileNameOpenFile"), \
+	SymbolDecl(FileClose, "_FileClose"), \
+	SymbolDecl(FileRead, "_FileRead"), \
+	SymbolDecl(FileWrite, "_FileWrite"), \
+	SymbolDecl(FileSeek, "_FileSeek"), \
+	SymbolDecl(FileTell, "_FileTell"), \
+	SymbolDecl(FileSync, "_FileSync"), \
+	SymbolDecl(AllocateFile, "_AllocateFile"), \
+	SymbolDecl(AllocateFiles, "_AllocateFiles"), \
+	SymbolDecl(FreeFile, "_FreeFile"), \
+	SymbolDecl(FreeFiles, "_FreeFiles")
 
 #endif	/* !defined(FDIncluded) */

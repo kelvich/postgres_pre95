@@ -1,13 +1,15 @@
 /*
  * block.h --
  *	POSTGRES disk block definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	BlockIncluded	/* Include this file only once */
+#ifndef	BlockIncluded		/* Include this file only once */
 #define BlockIncluded	1
+
+/*
+ * Identification:
+ */
+#define BLOCK_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
@@ -26,8 +28,18 @@ typedef struct BlockIdData {
 typedef BlockIdData	*BlockId;	/* block identifier */
 
 /*
+ * BlockSizeIsValid --
+ *	True iff size is valid.
+ */
+extern
+bool
+BlockSizeIsValid ARGS((
+	BlockSize	size
+));
+
+/*
  * BlockNumberIsValid --
- *	True iff the block number is valid.
+ *	True iff blockNumber is valid.
  */
 extern
 bool
@@ -65,5 +77,12 @@ BlockNumber
 BlockIdGetBlockNumber ARGS((
 	PageId		pageId
 ));
+
+#define BLOCK_SYMBOLS \
+	SymbolDecl(BlockSizeIsValid, "_BlockSizeIsValid"), \
+	SymbolDecl(BlockNumberIsValid, "_BlockNumberIsValid"), \
+	SymbolDecl(BlockIdIsValid, "_BlockIdIsValid"), \
+	SymbolDecl(BlockIdSet, "_BlockIdSet"), \
+	SymbolDecl(BlockIdGetBlockNumber, "_BlockIdGetBlockNumber")
 
 #endif	/* !defined(BlockIncluded) */

@@ -1,20 +1,26 @@
 /*
  * pos.h --
  *	POSTGRES "position" definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	PosIncluded	/* Include this file only once. */
+#ifndef	PosIncluded		/* Include this file only once */
 #define PosIncluded	1
+
+/*
+ * Identification:
+ */
+#define POS_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
 #endif
 
-#include "part.h"
-#include "pagenum.h"
+#ifndef	PART_H
+# include "part.h"
+#endif
+#ifndef	PAGENUM_H
+# include "pagenum.h"
+#endif
 
 typedef bits16	PositionIdData;	/* internal position identifier */
 typedef PositionIdData	*PositionId;	/* position identifier */
@@ -64,5 +70,11 @@ PositionIdGetOffsetNumber ARGS((
 	PositionId	positionId,
 	PagePartition	partition
 ));
+
+#define POS_SYMBOLS \
+	SymbolDecl(PositionIdIsValid, "_PositionIdIsValid"), \
+	SymbolDecl(PositionIdSet, "_PositionIdSet"), \
+	SymbolDecl(PositionIdGetPageNumber, "_PositionIdGetPageNumber"), \
+	SymbolDecl(PositionIdGetOffsetNumber, "_PositionIdGetOffsetNumber")
 
 #endif	/* !defined(PosIncluded) */

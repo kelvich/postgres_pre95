@@ -1,25 +1,32 @@
 /*
  * bufmgr.h --
  *	POSTGRES buffer manager definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef BUFMGR_H
-#define BUFMGR_H
+#ifndef	BufMgrIncluded		/* Included this file only once */
+#define BufMgrIncluded	1
+
+/*
+ * Identification:
+ */
+#define BUFMGR_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
 #endif
 
-#include "postgres.h"
-#include "rel.h"
-#include "machine.h"		/* BLCKSZ	*/
-
-#include "status.h"
-
-#include "buf.h"
+#ifndef	BUF_H
+# include "buf.h"
+#endif
+#ifndef	MACHINE_H
+# include "machine.h"		/* for BLCKSZ */
+#endif
+#ifndef	REL_H
+# include "rel.h"
+#endif
+#ifndef	STATUS_H
+# include "status.h"
+#endif
 
 /* lock levels */
 #define L_LOCKS	0x07	/* lock mask */
@@ -103,7 +110,7 @@ BufferGetRelation ARGS((
  */
 extern
 BlockSize
-BufferGetDiskBlockSize ARGS((
+BufferGetBlockSize ARGS((
 	Buffer	buffer
 ));
 
@@ -121,11 +128,54 @@ BufferGetBlockNumber ARGS((
 ));
 
 /*
+ * ReadBuffer --
+ *
+ */
+extern
+ReturnStatus
+ReadBuffer ARGS((
+	Relation	relation,
+	BlockNumber	blockNumber,
+	BufFlags	flags
+));
+
+/*
+ * WriteBuffer --
+ *
+ */
+extern
+ReturnStatus
+WriteBuffer ARGS((
+	Buffer	buffer
+));
+
+/*
+ * WriteNoReleaseBuffer --
+ *
+ */
+extern
+ReturnStatus
+WriteNoReleaseBuffer ARGS((
+	Buffer	buffer
+));
+
+/*
+ * ReleaseBuffer --
+ *
+ */
+extern
+ReturnStatus
+ReleaseBuffer ARGS((
+	Buffer	buffer
+));
+
+/*
  * RelationGetBuffer --
  *	Returns the buffer associated with a page in a relation.
  *
  * Note:
  *	Assumes buffer is valid.
+ * XXX	This is an obsolete function--see above.
  */
 extern
 Buffer
@@ -141,6 +191,7 @@ RelationGetBuffer ARGS((
  *
  * Note:
  *	Assumes buffer is valid.
+ * XXX	This is an obsolete function--see above.
  */
 extern
 ReturnStatus
@@ -163,20 +214,22 @@ BufferWriteInOrder ARGS((
 	const Buffer	successorBuffer
 ));
 
-/* XXX - Remove this cruft below : 
- */
-/*
- * BufferIsLocked --
- *	True iff the buffer is locked for shared, update, or exclusive access.
- *
- * Note:
- *	Assumes buffer is valid.
- */
-/*extern
-bool
-BufferIsLocked ARGS((
-	const Buffer	buffer
-));
-*/
+#define BUFMGR_SYMBOLS \
+	SymbolDecl(BufferGetBlock, "_BufferGetBlock"), \
+	SymbolDecl(BufferGetRelation, "_BufferGetRelation"), \
+	SymbolDecl(BufferGetBlockSize, "_BufferGetBlockSize"), \
+	SymbolDecl(BufferGetBlockNumber, "_BufferGetBlockNumber"), \
+	SymbolDecl(ReadBuffer, "_ReadBuffer"), \
+	SymbolDecl(WriteBuffer, "_WriteBuffer"), \
+	SymbolDecl(WriteNoReleaseBuffer, "_WriteNoReleaseBuffer"), \
+	SymbolDecl(ReleaseBuffer, "_ReleaseBuffer"), \
+	SymbolDecl(BufferWriteInOrder, "_BufferWriteInOrder")
 
-#endif	/* !defined(BUFMGR_H) */
+/*
+ * Protected symbols:
+ *
+ *	RelationGetBuffer
+ *	BufferPut
+ */
+
+#endif	/* !defined(BufMgrIncluded) */

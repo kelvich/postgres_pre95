@@ -1,13 +1,15 @@
 /*
  * off.h --
  *	POSTGRES disk "offset" definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	OffIncluded	/* Include this file only once. */
+#ifndef	OffIncluded		/* Include this file only once */
 #define OffIncluded	1
+
+/*
+ * Identification:
+ */
+#define OFF_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
@@ -21,16 +23,6 @@ typedef OffsetIdData	*OffsetId;	/* offset identifier */
 
 #define InvalidOffsetNumber	0
 #define FirstOffsetIndex	0
-
-/*
- * OffsetIndexIsValid --
- *	True iff the offset index is valid.
- */
-extern
-bool
-OffsetIndexIsValid ARGS((
-	OffsetIndex	offsetIndex
-));
 
 /*
  * OffsetNumberIsValid --
@@ -72,5 +64,11 @@ OffsetNumber
 OffsetIdGetOffsetNumber ARGS((
 	OffsetId	offsetId
 ));
+
+#define OFF_SYMBOLS \
+	SymbolDecl(OffsetNumberIsValid, "_OffsetNumberIsValid"), \
+	SymbolDecl(OffsetIdIsValid, "_OffsetIdIsValid"), \
+	SymbolDecl(OffsetIdSet, "_OffsetIdSet"), \
+	SymbolDecl(OffsetIdGetOffsetNumber, "_OffsetIdGetOffsetNumber")
 
 #endif	/* !defined(OffIncluded) */

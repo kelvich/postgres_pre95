@@ -1,13 +1,15 @@
 /*
  * itemid.h --
  *	Standard POSTGRES buffer page item identifier definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	ItemIdIncluded	/* Include this file only once. */
+#ifndef	ItemIdIncluded		/* Include this file only once */
 #define ItemIdIncluded	1
+
+/*
+ * Identification:
+ */
+#define ITEMID_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
@@ -152,5 +154,13 @@ bool
 ItemIdIsInternal ARGS((
 	ItemId	itemId;
 ));
+
+#define ITEMID_SYMBOLS \
+	SymbolDecl(ItemIdIsValid, "_ItemIdIsValid"), \
+	SymbolDecl(ItemIdIsUsed, "_ItemIdIsUsed"), \
+	SymbolDecl(ItemIdIsContinuing, "_ItemIdIsContinuing"), \
+	SymbolDecl(ItemIdIsContinuation, "_ItemIdIsContinuation"), \
+	SymbolDecl(ItemIdIsLock, "_ItemIdIsLock"), \
+	SymbolDecl(ItemIdIsInternal, "_ItemIdIsInternal")
 
 #endif	/* !defined(ItemIdIncluded) */

@@ -1,18 +1,22 @@
 /*
  * att.h --
  *	POSTGRES attribute definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	AttIncluded	/* Include this file only once. */
+#ifndef	AttIncluded		/* Include this file only once */
 #define AttIncluded	1
 
-#include "cat.h"
+/*
+ * Identification:
+ */
+#define ATT_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
+#endif
+
+#ifndef	CAT_H
+#include "cat.h"
 #endif
 
 typedef AttributeTupleForm	Attribute;
@@ -28,5 +32,8 @@ bool
 AttributeIsValid ARGS((
 	Attribute	attribute
 ));
+
+#define ATT_SYMBOLS \
+	SymbolDecl(AttributeIsValid, "_AttributeIsValid")
 
 #endif	/* !defined(AttIncluded) */

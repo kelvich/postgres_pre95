@@ -1,13 +1,15 @@
 /*
  * attnum.h --
  *	POSTGRES attribute number definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	AttNumIncluded	/* Include this file only once. */
+#ifndef	AttNumIncluded		/* Include this file only once */
 #define AttNumIncluded	1
+
+/*
+ * Identification:
+ */
+#define ATTNUM_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
@@ -78,5 +80,12 @@ AttributeNumber
 AttributeOffsetGetAttributeNumber ARGS((
 	AttributeOffset	attributeOffset
 ));
+
+#define ATTNUM_SYMBOLS \
+	SymbolDecl(AttributeNumberIsValid, "_AttributeNumberIsValid"), \
+	SymbolDecl(AttributeNumberIsForUserDefinedAttribute, "_AttributeNumberIsForUserDefinedAttribute"), \
+	SymbolDecl(AttributeNumberIsInBounds, "_AttributeNumberIsInBounds"), \
+	SymbolDecl(AttributeNumberGetAttributeOffset, "_AttributeNumberGetAttributeOffset"), \
+	SymbolDecl(AttributeOffsetGetAttributeNumber, "_AttributeOffsetGetAttributeNumber")
 
 #endif	/* !defined(AttNumIncluded) */

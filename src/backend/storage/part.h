@@ -1,19 +1,23 @@
 /*
  * part.h --
  *	POSTGRES "partition" definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	PartIncluded	/* Include this file only once. */
+#ifndef	PartIncluded		/* Include this file only once */
 #define PartIncluded	1
+
+/*
+ * Identification:
+ */
+#define PART_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
 #endif
 
-#include "page.h"
+#ifndef	PAGE_H
+# include "page.h"
+#endif
 
 typedef uint32	PagePartition;	/* subpage partition indicator */
 
@@ -50,5 +54,10 @@ Count
 PagePartitionGetPagesPerBlock ARGS((
 	PagePartition	partition
 ));
+
+#define PART_SYMBOLS \
+	SymbolDecl(PagePartitionIsValid, "_PagePartitionIsValid"), \
+	SymbolDecl(CreatePagePartition, "_CreatePagePartition"), \
+	SymbolDecl(PagePartitionGetPagesPerBlock, "_PagePartitionGetPagesPerBlock")
 
 #endif	/* !defined(PartIncluded) */

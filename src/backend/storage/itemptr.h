@@ -1,23 +1,35 @@
 /*
  * itemptr.h --
  *	POSTGRES disk item pointer definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	ObjPtrIncluded	/* Include this file only once. */
-#define ObjPtrIncluded	1
+#ifndef	ItemPtrIncluded		/* Include this file only once */
+#define ItemPtrIncluded	1
+
+/*
+ * Identification:
+ */
+#define ITEMPTR_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
 #endif
 
-#include "block.h"
-#include "off.h"
-#include "pagenum.h"
-#include "part.h"
-#include "pos.h"
+#ifndef	BLOCK_H
+# include "block.h"
+#endif
+#ifndef	OFF_H
+# include "off.h"
+#endif
+#ifndef	PAGENUM_H
+# include "pagenum.h"
+#endif
+#ifndef	PART_H
+# include "part.h"
+#endif
+#ifndef	POS_H
+# include "pos.h"
+#endif
 
 typedef struct ItemPointerData {
 	BlockIdData	blockData;
@@ -246,4 +258,22 @@ ItemPointerSetLogicalPageNumber ARGS((
 	LogicalPageNumber	pageNumber
 ));
 
-#endif	/* !defined(ObjPtrIncluded) */
+#define ITEMPTR_SYMBOLS \
+	SymbolDecl(ItemPointerIsUserDefined, "_ItemPointerIsUserDefined"), \
+	SymbolDecl(ItemPointerIsValid, "_ItemPointerIsValid"), \
+	SymbolDecl(ItemPointerGetBlockNumber, "_ItemPointerGetBlockNumber"), \
+	SymbolDecl(ItemPointerGetPageNumber, "_ItemPointerGetPageNumber"), \
+	SymbolDecl(ItemPointerGetOffsetNumber, "_ItemPointerGetOffsetNumber"), \
+	SymbolDecl(ItemPointerGetOffsetIndex, "_ItemPointerGetOffsetIndex"), \
+	SymbolDecl(ItemPointerSet, "_ItemPointerSet"), \
+	SymbolDecl(ItemPointerCopy, "_ItemPointerCopy"), \
+	SymbolDecl(ItemPointerSetInvalid, "_ItemPointerSetInvalid"), \
+	SymbolDecl(ItemPointerSimpleGetPageNumber, "_ItemPointerSimpleGetPageNumber"), \
+	SymbolDecl(ItemPointerSimpleGetOffsetNumber, "_ItemPointerSimpleGetOffsetNumber"), \
+	SymbolDecl(ItemPointerSimpleGetOffsetIndex, "_ItemPointerSimpleGetOffsetIndex"), \
+	SymbolDecl(ItemPointerSimpleSet, "_ItemPointerSimpleSet"), \
+	SymbolDecl(ItemPointerEquals, "_ItemPointerEquals"), \
+	SymbolDecl(ItemPointerGetLogicalPageNumber, "_ItemPointerGetLogicalPageNumber"), \
+	SymbolDecl(ItemPointerSetLogicalPageNumber, "_ItemPointerSetLogicalPageNumber")
+
+#endif	/* !defined(ItemPtrIncluded) */

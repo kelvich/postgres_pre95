@@ -4,29 +4,31 @@
  *
  * Note:
  *	This file is MACHINE AND COMPILER dependent!!!
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	DatumIncluded	/* Include this file only once. */
+#ifndef	DatumIncluded		/* Include this file only once */
 #define DatumIncluded	1
+
+/*
+ * Identification:
+ */
+#define DATUM_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
 #endif
 
 #ifndef NAME_H
-#include "name.h"
+# include "name.h"
 #endif
 #ifndef OID_H
-#include "oid.h"
+# include "oid.h"
 #endif
 
-typedef struct AnyStructure {
+typedef struct AnyStruct {
 	char    character;
 	double  largeFloat;
-} AnyStructure;
+} AnyStruct;
 
 #ifdef	sun
 typedef union Datum {
@@ -68,9 +70,9 @@ typedef union Datum {
 	struct pointerPointer {
 		Pointer	*value;
 	} pointerPointer;
-	struct structurePointer {
-		AnyStructure	*value;
-	} structurePointer;
+	struct structPointer {
+		AnyStruct	*value;
+	} structPointer;
 	struct name {
 		Name	value;	
 	} name;
@@ -119,9 +121,9 @@ typedef union Datum {
 	struct pointerPointer {
 		Pointer	*value;
 	} pointerPointer;
-	struct structurePointer {
-		AnyStructure	*value;
-	} structurePointer;
+	struct structPointer {
+		AnyStruct	*value;
+	} structPointer;
 	struct name {
 		Name	value;	
 	} name;
@@ -333,7 +335,7 @@ PointerPointerGetDatum ARGS((
  * DatumGetStructPointer --
  *	Returns pointer to structure value of a datum.
  */
-AnyStructure *
+AnyStruct *
 DatumGetStructPointer ARGS((
 	Datum	datum
 ));
@@ -344,7 +346,7 @@ DatumGetStructPointer ARGS((
  */
 Datum
 StructPointerGetDatum ARGS((
-	AnyStructure	*structurePointerInP
+	AnyStruct	*structPointerInP
 ));
 
 /*
@@ -382,5 +384,35 @@ Datum
 ObjectIdGetDatum ARGS((
 	ObjectId	objectId
 ));
+
+#define DATUM_SYMBOLS \
+	SymbolDecl(DatumGetChar, "_DatumGetChar"), \
+	SymbolDecl(CharGetDatum, "_CharGetDatum"), \
+	SymbolDecl(DatumGetInt8, "_DatumGetInt8"), \
+	SymbolDecl(Int8GetDatum, "_Int8GetDatum"), \
+	SymbolDecl(DatumGetUInt8, "_DatumGetUInt8"), \
+	SymbolDecl(UInt8GetDatum, "_UInt8GetDatum"), \
+	SymbolDecl(DatumGetInt16, "_DatumGetInt16"), \
+	SymbolDecl(Int16GetDatum, "_Int16GetDatum"), \
+	SymbolDecl(DatumGetUInt16, "_DatumGetUInt16"), \
+	SymbolDecl(UInt16GetDatum, "_UInt16GetDatum"), \
+	SymbolDecl(DatumGetInt32, "_DatumGetInt32"), \
+	SymbolDecl(Int32GetDatum, "_Int32GetDatum"), \
+	SymbolDecl(DatumGetUInt32, "_DatumGetUInt32"), \
+	SymbolDecl(UInt32GetDatum, "_UInt32GetDatum"), \
+	SymbolDecl(DatumGetFloat32, "_DatumGetFloat32"), \
+	SymbolDecl(Float32GetDatum, "_Float32GetDatum"), \
+	SymbolDecl(DatumGetFloat64, "_DatumGetFloat64"), \
+	SymbolDecl(Float64GetDatum, "_Float64GetDatum"), \
+	SymbolDecl(DatumGetPointer, "_DatumGetPointer"), \
+	SymbolDecl(PointerGetDatum, "_PointerGetDatum"), \
+	SymbolDecl(DatumGetPointerPointer, "_DatumGetPointerPointer"), \
+	SymbolDecl(PointerPointerGetDatum, "_PointerPointerGetDatum"), \
+	SymbolDecl(DatumGetStructPointer, "_DatumGetStructPointer"), \
+	SymbolDecl(StructPointerGetDatum, "_StructPointerGetDatum"), \
+	SymbolDecl(DatumGetName, "_DatumGetName"), \
+	SymbolDecl(NameGetDatum, "_NameGetDatum"), \
+	SymbolDecl(DatumGetObjectId, "_DatumGetObjectId"), \
+	SymbolDecl(ObjectIdGetDatum, "_ObjectIdGetDatum")
 
 #endif	/* !defined(DatumIncluded) */

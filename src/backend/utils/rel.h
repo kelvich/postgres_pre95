@@ -1,25 +1,35 @@
 /*
  * rel.h --
  *	POSTGRES relation descriptor definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	RelIncluded	/* Include this file only once. */
+#ifndef	RelIncluded		/* Include this file only once */
 #define RelIncluded	1
+
+/*
+ * Identification:
+ */
+#define REL_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
 #endif
 
-#include "os.h"
-
-#include "oid.h"
-#include "cat.h"
-#include "istrat.h"
-#include "tupdesc.h"
-#include "fd.h"
+#ifndef	CAT_H
+# include "cat.h"
+#endif
+#ifndef	FD_H
+# include "fd.h"
+#endif
+#ifndef	ISTRAT_H
+# include "istrat.h"
+#endif
+#ifndef	OID_H
+# include "oid.h"
+#endif
+#ifndef	TUPDESC_H
+# include "tupdesc.h"
+#endif
 
 typedef struct RelationData {
 	File			rd_fd;		/* open file descriptor */
@@ -65,7 +75,7 @@ RelationIsValid ARGS ((
  *	Assumes relation descriptor is valid.
  */
 extern
-SystemPort
+int		/* XXX SystemPort of "os.h" */
 RelationGetSystemPort ARGS((
 	Relation	relation
 ));
@@ -224,5 +234,24 @@ extern
 AttributeNumber
 RelationGetNumberOfAttributes ARGS((
 	Relation relation
-));				  
+));
+
+#define REL_SYMBOLS \
+	SymbolDecl(RelationIsValid, "_RelationIsValid"), \
+	SymbolDecl(RelationGetSystemPort, "_RelationGetSystemPort"), \
+	SymbolDecl(RelationGetAccessMethodTupleForm, "_RelationGetAccessMethodTupleForm"), \
+	SymbolDecl(RelationGetRelationTupleForm, "_RelationGetRelationTupleForm"), \
+	SymbolDecl(RelationGetTupleDescriptor, "_RelationGetTupleDescriptor"), \
+	SymbolDecl(RelationGetIndexStrategy, "_RelationGetIndexStrategy"), \
+	SymbolDecl(RelationGetRelationId, "_RelationGetRelationId"), \
+	SymbolDecl(RelationGetFile, "_RelationGetFile"), \
+	SymbolDecl(RelationGetRelationName, "_RelationGetRelationName"), \
+	SymbolDecl(RelationGetNumberOfAttributes, "_RelationGetNumberOfAttributes")
+/*
+ *	SymbolDecl(RelationHasReferenceCountZero, "_RelationHasReferenceCountZero")
+ *	SymbolDecl(RelationIncrementReferenceCount, "_RelationIncrementReferenceCount")
+ *	SymbolDecl(RelationDecrementReferenceCount, "_RelationDecrementReferenceCount")
+ *	SymbolDecl(RelationSetIndexStrategy, "_RelationSetIndexStrategy")
+ */
+
 #endif	/* !defined(RelIncluded) */

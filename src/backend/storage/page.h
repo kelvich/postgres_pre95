@@ -1,13 +1,15 @@
 /*
  * page.h --
  *	POSTGRES buffer page abstraction definitions.
- *
- * Identification:
- *	$Header$
  */
 
-#ifndef	PageIncluded	/* Include this file only once. */
+#ifndef	PageIncluded		/* Include this file only once */
 #define PageIncluded	1
+
+/*
+ * Identification:
+ */
+#define PAGE_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
@@ -17,12 +19,15 @@ typedef Pointer	Page;
 
 /*
  * PageIsValid --
- *	True iff the page is valid.
+ *	True iff page is valid.
  */
 extern
 bool
-PageSizeIsValid ARGS((
+PageIsValid ARGS((
 	Page	page
 ));
+
+#define PAGE_SYMBOLS \
+	SymbolDecl(PageIsValid, "_PageIsValid")
 
 #endif	/* !defined(PageIncluded) */

@@ -6,6 +6,10 @@ static	char ami_h[] = "$Header$";
 
  **********************************************************************/
 
+#ifndef	C_H
+#include "c.h"
+#endif
+
 #include <sys/file.h>
 #include <stdio.h>
 #include <strings.h>
@@ -14,9 +18,7 @@ static	char ami_h[] = "$Header$";
 #include "fmgr.h"
 #include "catalog.h"
 
-#include "postgres.h"
-
-#include "c.h"
+/* #include "postgres.h" */
 
 #include "bufmgr.h"	/* for BufferManagerFlush */
 #include "buf.h"
@@ -31,6 +33,9 @@ static	char ami_h[] = "$Header$";
 #include "trange.h"
 #include "xcxt.h"
 #include "xid.h"
+
+extern char *calloc();
+#define ALLOC(t, c)	(t *)calloc((unsigned)(c), sizeof(t)))
 
 #define FIRST_TYPE_OID 16	/* OID of the first type */
 #define	MAXATTR 40		/* max. number of attributes in arelation */

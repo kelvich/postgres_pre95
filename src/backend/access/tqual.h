@@ -2,23 +2,29 @@
  * tqual.h --
  *	POSTGRES time qualification definitions.
  *
- * Identification:
- *	$Header$
- *
  * Note:
  *	It may be desirable to allow time qualifications to indicate
  *	relative times.
  */
 
-#ifndef	TQualIncluded	/* Include this file only once */
+#ifndef	TQualIncluded		/* Include this file only once */
 #define TQualIncluded	1
+
+/*
+ * Identification:
+ */
+#define TQUAL_H	"$Header$"
 
 #ifndef C_H
 #include "c.h"
 #endif
 
-#include "htup.h"
-#include "tim.h"
+#ifndef	HTUP_H
+# include "htup.h"
+#endif
+#ifndef	TIM_H
+# include "tim.h"
+#endif
 
 typedef struct TimeQualSpace {
 	char	data[12];
@@ -201,13 +207,8 @@ TimeFormRangedTimeQual ARGS((
  *	Returns debugging snapshot time qual for a time.
  *
  * Note:
- *	Assumes time is valid.
+ *	Removed since it does not make sense semantically.
  */
-extern
-TimeQual
-TimeFormDebuggingTimeQual ARGS((
-	Time	time
-));
 
 /*
  * HeapTupleSatisfiesTimeQual --
@@ -223,5 +224,21 @@ HeapTupleSatisfiesTimeQual ARGS((
 	HeapTuple	tuple,
 	TimeQual	qual
 ));
+
+#define TQUAL_SYMBOLS \
+	ExternDecl(SelfTimeQual, "_SelfTimeQual"), \
+	SymbolDecl(TimeQualIsValid, "_TimeQualIsValid"), \
+	SymbolDecl(TimeQualIsLegal, "_TimeQualIsLegal"), \
+	SymbolDecl(TimeQualIncludesNow, "_TimeQualIncludesNow"), \
+	SymbolDecl(TimeQualIncludesPast, "_TimeQualIncludesPast"), \
+	SymbolDecl(TimeQualIsSnapshot, "_TimeQualIsSnapshot"), \
+	SymbolDecl(TimeQualIsRanged, "_TimeQualIsRanged"), \
+	SymbolDecl(TimeQualIndicatesDisableValidityChecking, "_TimeQualIndicatesDisableValidityChecking"), \
+	SymbolDecl(TimeQualGetSnapshotTime, "_TimeQualGetSnapshotTime"), \
+	SymbolDecl(TimeQualGetStartTime, "_TimeQualGetStartTime"), \
+	SymbolDecl(TimeQualGetEndTime, "_TimeQualGetEndTime"), \
+	SymbolDecl(TimeFormSnapshotTimeQual, "_TimeFormSnapshotTimeQual"), \
+	SymbolDecl(TimeFormRangedTimeQual, "_TimeFormRangedTimeQual"), \
+	SymbolDecl(HeapTupleSatisfiesTimeQual, "_HeapTupleSatisfiesTimeQual")
 
 #endif	/* !defined(TQualIncluded) */
