@@ -113,6 +113,8 @@ DefineRelation(relationName, parameters, schema)
 	List		arch;
 	char		archChar;
 	List		inheritList = LispNil;
+	Name		archiveName;
+	TupleDesc	descriptor;
 
 	/*
 	 * minimal argument checking follows
@@ -170,13 +172,27 @@ DefineRelation(relationName, parameters, schema)
 
 	relationId = RelationNameCreateHeapRelation(relationName,
 		archChar,
-		numberOfAttributes, BuildDesc(schema));
+		numberOfAttributes, descriptor = BuildDesc(schema));
 
 	StoreCatalogInheritance(relationId, inheritList);
 
-	/*
-	 * No automatic index definition.  (yet?)
-	 */
+	if (archChar != 'n') {
+
+		/*
+		 *  Need to create an archive relation for this heap relation.
+		 *  We cobble up the command by hand, and increment the command
+		 *  counter ourselves.
+		 */
+
+		CommandCounterIncrement();
+		archiveName = (Name) palloc(sizeof(NameData));
+		sprintf(&archiveName->data[0], "a,%ld", relationId);
+		relationId = RelationNameCreateHeapRelation(archiveName,
+			'n',			/* archive isn't archived */
+			numberOfAttributes,
+			descriptor);
+		pfree(archiveName);
+	}
 }
 
 void
