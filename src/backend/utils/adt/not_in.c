@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include "executor/executor.h"
-
 /*
  * $Header$
  *
@@ -17,6 +14,22 @@
  *
  */
 
+#include <stdio.h>
+      
+#include "tmp/postgres.h"
+
+ RcsId("$Header$");
+
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "access/relscan.h"
+#include "utils/rel.h"
+#include "utils/log.h"
+
+/* ----------------------------------------------------------------
+ *	
+ * ----------------------------------------------------------------
+ */
 bool
 int4notin(not_in_arg, relation_and_attr)
 
@@ -38,8 +51,8 @@ char *relation_and_attr;
 
     strcpy(my_copy, relation_and_attr);
 
-    relation = strtok(my_copy, ".");
-    attribute = strtok(NULL, ".");
+    relation = (char *) strtok(my_copy, ".");
+    attribute = (char *) strtok(NULL, ".");
 
 
     /* fetch tuple OID */
