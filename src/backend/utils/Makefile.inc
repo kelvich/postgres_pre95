@@ -1,3 +1,7 @@
+#
+# $Header$
+#
+
 .include "${.CURDIR}/utils/adt/Makefile.inc"
 .include "${.CURDIR}/utils/cache/Makefile.inc"
 .include "${.CURDIR}/utils/error/Makefile.inc"

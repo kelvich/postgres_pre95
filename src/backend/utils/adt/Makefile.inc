@@ -1,3 +1,7 @@
+#
+# $Header$
+#
+
 .PATH: ${.CURDIR}/utils/adt
 
 #

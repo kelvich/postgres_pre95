@@ -1,3 +1,7 @@
+#
+# $Header$
+#
+
 .PATH: ${.CURDIR}/tcop
 
 SRCS+= aclchk.c creatinh.c dest.c fastpath.c parsev.c pfrag.c postgres.c \

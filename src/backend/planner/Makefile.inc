@@ -1,3 +1,7 @@
+#
+# $Header$
+#
+
 .include "${.CURDIR}/planner/path/Makefile.inc"
 .include "${.CURDIR}/planner/plan/Makefile.inc"
 .include "${.CURDIR}/planner/prep/Makefile.inc"

@@ -1,4 +1,8 @@
 #
+# $Header$
+#
+
+#
 # The frontend libpq interfaces to the backend through these files.
 #
 .PATH: ${.CURDIR}/libpq

@@ -1,3 +1,7 @@
+#
+# $Header$
+#
+
 .PATH: ${.CURDIR}/lib
 
 SRCS+= atoms.c bit.c copyfuncs.c equalfuncs.c fcache.c fstack.c \

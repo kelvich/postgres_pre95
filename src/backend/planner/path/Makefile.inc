@@ -1,3 +1,7 @@
+#
+# $Header$
+#
+
 .PATH: ${.CURDIR}/planner/path
 
 SRCS+= allpaths.c clausesel.c costsize.c hashutils.c indxpath.c \

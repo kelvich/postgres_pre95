@@ -1,4 +1,8 @@
 #
+# $Header$
+#
+
+#
 # sparc specific stuff
 #
 

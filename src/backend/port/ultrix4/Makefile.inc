@@ -1,4 +1,8 @@
 #
+# $Header$
+#
+
+#
 # Ultrix4.x specific stuff
 #
 
