@@ -26,6 +26,7 @@
 #include "oid.h"
 #include "recursion_a.h"        /* recursion stuff that must go first */
 #include "primnodes.h"
+#include "rules/prs2stub.h"
 
 /* ----------------------------------------------------------------
  *  Executor State types are used in the plannode structures
@@ -338,9 +339,31 @@ class (IndexScan) public (Scan) {
  * ==========
  */
 
+/* ----------------
+ *	Rule information stored in Join nodes
+ * ----------------
+ */
+class (JoinRuleInfo) public (Node) {
+	inherits(Node);
+ /* private: */
+	ObjectId	jri_operator;
+	AttributeNumber	jri_inattrno;
+	AttributeNumber	jri_outattrno;
+	RuleLock	jri_lock;
+	ObjectId	jri_ruleid;
+	Prs2StubId	jri_stubid;
+	Prs2OneStub	jri_stub
+ /* public: */
+};
+
+/* ----------------
+ *	Join node
+ * ----------------
+ */
 class (Join) public (Plan) {
 #define	JoinDefs \
-	inherits(Plan)
+	inherits(Plan);	\
+	struct JoinRuleInfo	*ruleinfo
  /* private: */
 	JoinDefs;
  /* public: */
@@ -354,6 +377,7 @@ class (NestLoop) public (Join) {
 	inherits(Join);
  /* private: */
 	NestLoopState		nlstate;
+	JoinRuleInfo		nlRuleInfo;
  /* public: */
 };
 
