@@ -663,7 +663,6 @@ _outVar(str, node)
 	sprintf(buf, " :varid ");
 	appendStringInfo(str,buf);
 	_outLispValue(str, node->varid);
-
 }
 
 /*
@@ -696,6 +695,32 @@ _outConst(str, node)
 	sprintf(buf, " :constbyval %s", (node->constbyval ? "true" : "nil"));
 	appendStringInfo(str,buf);
 
+}
+
+/*
+ *  Array is a subclass of Expr
+ */
+
+void
+_outArray(str, node)
+	StringInfo str;
+	Array	node;
+{
+	char buf[500];
+	sprintf(buf, "array");
+	appendStringInfo(str, buf);
+	sprintf(buf, " :arrayelemtype %d", node->arrayelemtype);
+	appendStringInfo(str, buf);
+	sprintf(buf, " :arrayelemlength %d", node->arrayelemlength);
+	appendStringInfo(str, buf);
+	sprintf(buf, " :arrayelembyval %c", (node->arrayelembyval) ? 't' : 'f');
+	appendStringInfo(str, buf);
+	sprintf(buf, " :arraylow %d", node->arraylow);
+	appendStringInfo(str, buf);
+	sprintf(buf, " :arrayhigh %d", node->arrayhigh);
+	appendStringInfo(str, buf);
+	sprintf(buf, " :arraylen %d", node->arraylen);
+	appendStringInfo(str, buf);
 }
 
 /*
