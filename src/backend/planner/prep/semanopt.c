@@ -262,14 +262,14 @@ SemantOpt2(rangetable,qual,modqual,tlist)
     else
       if (and_clause(qual)) 
 	foreach(i,get_andclauseargs(qual)) 
-	  modqual = SemantOpt2(rangetable,CAR(i),modqual);
+	  modqual = SemantOpt2(rangetable,CAR(i),modqual,tlist);
       else
 	if (or_clause(qual))
 	  foreach(i,get_orclauseargs(qual))
-	    modqual = SemantOpt2(rangetable,CAR(i),modqual);
+	    modqual = SemantOpt2(rangetable,CAR(i),modqual,tlist);
 	else
 	  if (not_clause(qual))
-	    modqual = SemantOpt2(rangetable,CDR(qual), modqual);
+	    modqual = SemantOpt2(rangetable,CDR(qual), modqual,tlist);
 
 return(modqual);
 }
