@@ -16,6 +16,7 @@
 #include "catalog/pg_proc.h"
 #include "catalog/pg_language.h"
 #include "catalog/pg_relation.h"
+#include "parser/parsetree.h"
 #include "utils/fcache.h"
 #include "utils/log.h"
 #include "nodes/primnodes.h"
@@ -47,11 +48,40 @@ typeid_get_relid(type_id)
  *        when the function return type is interesting (ie: set_fcache).
  *-----------------------------------------------------------------
  */
+#define FuncArgTypeIsDynamic(arg) \
+    (ExactNodeType(arg,Var) && get_varattno((Var)arg) == InvalidAttributeNumber)
+
+ObjectId
+GetDynamicFuncArgType(arg, econtext)
+    Var arg;
+    ExprContext econtext;
+{
+    char *relname;
+    int rtid;
+    List rte;
+    HeapTuple tup;
+    Form_pg_relation pgc;
+    Form_pg_type  pgt;
+
+    Assert(ExactNodeType(arg,Var));
+
+    rtid = CInteger(CAR(get_varid(arg)));
+    relname = CString(getrelname(rtid, get_ecxt_range_table(econtext)));
+
+    tup = SearchSysCacheTuple(TYPNAME, relname, NULL, NULL, NULL);
+    if (!tup)
+	elog(WARN,
+	     "Lookup failed on type tuple for class %s",
+	     &(pgc->relname.data[0]));
+
+    return tup->t_oid;
+}
 
 FunctionCachePtr
-init_fcache(foid, use_syscache)
+init_fcache(foid, use_syscache, argList, econtext)
 ObjectId foid;
 Boolean use_syscache;
+LispValue argList;
 {
     HeapTuple        procedureTuple;
     HeapTuple        typeTuple;
@@ -169,12 +199,30 @@ Boolean use_syscache;
 
 	retval->nullVect = (bool *)palloc((retval->nargs)*sizeof(bool));
 
-	retval->argOidVect =
+	if (retval->language == POSTQUELlanguageId)
+	{
+	    int  i;
+	    List oneArg;
+	    
+	    retval->argOidVect =
 		(ObjectId *)palloc(retval->nargs*sizeof(ObjectId));
-	argTypes = funcname_get_funcargtypes(&procedureStruct->proname.data[0]);
-	bcopy(argTypes,
-	      retval->argOidVect,
-	      (retval->nargs)*sizeof(ObjectId));
+	    argTypes =
+		funcname_get_funcargtypes(&procedureStruct->proname.data[0]);
+	    bcopy(argTypes,
+		  retval->argOidVect,
+		  (retval->nargs)*sizeof(ObjectId));
+
+	    for (i=0, oneArg = CAR(argList);
+		 argList;
+		 i++, argList = CDR(argList))
+	    {
+		if (FuncArgTypeIsDynamic(oneArg))
+		    retval->argOidVect[i] = GetDynamicFuncArgType(oneArg,
+								  econtext);
+	    }
+	}
+	else
+	    retval->argOidVect = (ObjectId *)NULL;
     }
     else
     {
@@ -193,6 +241,7 @@ Boolean use_syscache;
     }
     else
     {
+#if 0
 	/*
 	 * I'm not sure that we even need to do this at all.
 	 */
@@ -201,6 +250,8 @@ Boolean use_syscache;
 					   Anum_pg_proc_probin,
 					   foid);
         retval->bin = (char *) textout(tmp);
+#endif 
+        retval->bin = (char *) NULL;
 	retval->src = (char *) NULL;
     }
 
@@ -214,17 +265,19 @@ Boolean use_syscache;
 }
 
 void
-set_fcache(node, foid)
+set_fcache(node, foid, argList, econtext)
 
 Node node;
 ObjectId foid;
+LispValue argList;
+ExprContext econtext;
 
 {
     Func fnode;
     Oper onode;
     FunctionCachePtr fcache, init_fcache();
 
-    fcache = init_fcache(foid, true);
+    fcache = init_fcache(foid, true, argList, econtext);
 
     if (IsA(node,Oper))
     {
