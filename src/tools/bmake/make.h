@@ -214,6 +214,9 @@ typedef struct GNode {
  * case, it ought to be a power of two simply because most storage allocation
  * schemes allocate in powers of two. 
  */
+#ifdef BSIZE
+#undef BSIZE
+#endif /* BSIZE */
 #define BSIZE		256	/* starting size for expandable buffers */
 
 /*
