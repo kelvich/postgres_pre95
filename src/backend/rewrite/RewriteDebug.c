@@ -72,53 +72,53 @@ Print_expr ( expr )
 	printf (" )");
 	break;
       case classTag(Var): 
-	lispDisplay ( get_varid(expr), 0 );
+	lispDisplay ( get_varid((Var) expr));
 	break;
       case classTag(Const):
-	switch ( get_consttype(expr)) {
+	switch ( get_consttype((Const) expr)) {
 	  case 19: /* char 16 */
 	  case 25: /* text */
-	    printf("%s",get_constvalue(expr));
+	    printf("%s",get_constvalue((Const) expr));
 	    break;
 	  case 26: /* oid */
 	  case 23: /* int4 */
-	    printf("%d",get_constvalue(expr));
+	    printf("%d",get_constvalue((Const) expr));
 	    break;
 	}
 	break;
       case classTag(Oper):
-	printf(" %s ",OperOidGetName ( (ObjectId)get_opno(expr)));
+	printf(" %s ",OperOidGetName ( (ObjectId)get_opno((Oper) expr)));
 	break;
       case classTag(Func):
-	lispDisplay(expr, 0);
+	lispDisplay(expr);
 	break;
       case classTag(Result):
 	printf("result :");
-	Print_expr(get_resconstantqual(expr));
+	Print_expr(get_resconstantqual((Result) expr));
 	break;
       case classTag(Append):
 	printf("append :");
-	Print_expr(get_unionplans(expr));
+	Print_expr(get_unionplans((Append) expr));
 	printf("\n");
 	break;
       case classTag(SeqScan):
 	printf("seqscan : qual");
-	Print_expr(get_qpqual(expr));
+	Print_expr(get_qpqual((Plan) expr));
 	printf("\n");
 	break;
       case classTag(NestLoop):
 	printf("nestloop : qual");
-	Print_expr(get_qpqual(expr));
+	Print_expr(get_qpqual((Plan) expr));
 	printf("\n");
 	printf("nestloop : righttree ");
-	Print_expr(get_righttree(expr));
+	Print_expr(get_righttree((Plan) expr));
 	printf("\n");
 	printf("nestloop : lefttree ");
-	Print_expr(get_lefttree(expr));
+	Print_expr(get_lefttree((Plan) expr));
 	printf("\n");
 	break;
       default:
-	lispDisplay(expr, 0 );
+	lispDisplay(expr);
 	break;
     }
 }
@@ -135,7 +135,7 @@ Print_targetlist ( tlist )
 	List expr = tl_expr(entry);
 
 	Assert(IsA(resdom,Resdom));
-	printf("%s = ", get_resname(resdom));
+	printf("%s = ", get_resname((Resdom) resdom));
 	Print_expr ( expr );
 	if (CDR(i) != NULL) 
 	  printf(", ");
