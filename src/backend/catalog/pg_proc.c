@@ -44,13 +44,16 @@
 /*ARGSUSED*/
 void
 ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
-		canCache, argList)
+		canCache, arch_pct, disk_pct, byte_pct, perbyte_cpu, 
+		percall_cpu, outin_ratio, argList)
      Name 		procedureName;
      Name 		returnTypeName;	
      Name 		languageName;
      char 		*prosrc;
      char               *probin;
      Boolean		canCache;
+     int32              arch_pct, disk_pct, perbyte_cpu, percall_cpu,
+                        outin_ratio;
      List		argList;
 {
     register		i;
@@ -160,12 +163,12 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
      * The following assignments of constants are made.  The real values
      * will have to be extracted from the arglist someday soon.
      */
-    values[i++] = 0; /* proarch_pct */
-    values[i++] = 0; /* prodisk_pct */
-    values[i++] = 0; /* probyte_pct */
-    values[i++] = 0; /* properbyte_cpu */
-    values[i++] = 0; /* propercall_cpu */
-    values[i++] = 0; /* prooutin_ratio */
+    values[i++] = (char *) arch_pct; /* proarch_pct */
+    values[i++] = (char *) disk_pct; /* prodisk_pct */
+    values[i++] = (char *) byte_pct; /* probyte_pct */
+    values[i++] = (char *) perbyte_cpu; /* properbyte_cpu */
+    values[i++] = (char *) percall_cpu; /* propercall_cpu */
+    values[i++] = (char *) outin_ratio; /* prooutin_ratio */
 
     values[i++] = fmgr(TextInRegProcedure, prosrc);	/* prosrc */
     values[i++] = fmgr(TextInRegProcedure, probin);   /* probin */
