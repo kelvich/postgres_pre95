@@ -1,6 +1,5 @@
 %{
 #define YYDEBUG 1
-static char *gram_y ="$Header$";
 /**********************************************************************
   POSTGRES YACC rules/actions
   the result returned by parser is the undecorated parsetree.
@@ -26,6 +25,10 @@ static char *gram_y ="$Header$";
 
  **********************************************************************/
 
+#include "c.h"
+
+RcsId("$Header$");
+
 #include "catalog_utils.h"
 #include "log.h"
 #include "pg_lisp.h"
@@ -46,7 +49,7 @@ extern Relation amopenr();
 #define LAST(lv)        lispCons ( lv , LispNil )
 
 #define INC_NUM_LEVELS(x)	if (NumLevels < x ) NumLevels = x;
-#define KW(keyword)		lispAtom("keyword")
+#define KW(keyword)		lispAtom(CppAsString(keyword))
 
 #define YYSTYPE LispValue
 extern YYSTYPE parsetree;
@@ -200,7 +203,7 @@ CopyStmt:
 			$$ = nappend1($$,lispCons ($8,lispCons($9,LispNil)));
 			if(! lispNullp($10))
 			  $10 = lispCons($10,LispNil);
-			$$ = nappend1 ($$ , lispCons( KW(USING),$10 ));
+			$$ = nappend1($$, lispCons(KW(using), $10));
 			temp = $$;
 			while(temp != LispNil && CDR(temp) != LispNil )
 			  temp = CDR(temp);
@@ -356,11 +359,11 @@ DefineStmt:
 
 def_type:	
 	  Function 
-		{ $$ = KW(FUNCTION); }
+		{ $$ = KW(function); }
 	| Operator 
-		{ $$ = KW(OPERATOR); }
+		{ $$ = KW(operator); }
 	| Type 
-		{ $$ = KW(TYPE); }
+		{ $$ = KW(type); }
 	;
 def_name:
 	  Id 
@@ -369,7 +372,7 @@ def_name:
 
 opt_def_args:	/* Because "define procedure .." */
 	  Arg Is '(' def_name_list ')'
-		{ $$ = lispCons (KW(args), $4); }
+		{ $$ = lispCons (KW(arg), $4); }
 	| /*EMPTY*/
 		{ NULLTREE }
 	;
@@ -390,8 +393,10 @@ definition:
 
 def_elem:
 	  def_name equals def_arg
-		{ $$ = lispCons ( lispAtom(CString($1)) , 
-			lispCons ($3, LispNil)); }
+
+/*		{ $$ = lispCons ( lispAtom(CString($1)) , */
+/*			lispCons ($3, LispNil)); } */
+		{ $$ = lispCons($1, lispCons($3, LispNil)); }
 	| def_name
 		{ $$ = lispCons(lispAtom(CString($1)), LispNil); }
 	;
@@ -434,14 +439,14 @@ FetchStmt:
 
 OptFetchDirn:
 	  /*EMPTY, default is forward*/
-		{ $$ = KW(FORWARD); }
+		{ $$ = KW(forward); }
 	| Backward
 	| Forward
 	;
 
 OptFetchNum:
 	/*EMPTY, default is all*/
-		{ $$ = KW(ALL) ; }
+		{ $$ = KW(all) ; }
 	| NumConst
 	| All
 	;
@@ -486,7 +491,7 @@ MoveStmt:
 	;
 
 opt_move_dirn:
-	/*EMPTY, by default forward */		{ $$ = KW(FORWARD); } 
+	/*EMPTY, by default forward */		{ $$ = KW(forward); }
 	| Forward 				/* $$ = $1 */
 	| Backward 				/* $$ = $1 */
 	;
@@ -873,7 +878,7 @@ result:
 		{
 			$2=lispCons($2 , LispNil );
 			/* should check for archive level */
-			$$=lispCons( KW(RELATION) , $2 ); 
+			$$=lispCons(KW(relation), $2);
 		}
 	| opt_portal
 		/* takes care of the null case too */
