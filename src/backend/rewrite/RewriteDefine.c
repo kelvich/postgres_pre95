@@ -12,6 +12,7 @@
 #include "ftup.h";
 #include "fmgr.h"
 #include "datum.h"
+#include "catalog_utils.h"
 
 ObjectId LastOidProcessed = InvalidObjectId;
 
