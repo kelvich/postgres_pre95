@@ -98,7 +98,7 @@ typedef FormData_pg_am	*Form_pg_am;
 
 DATA(insert OID = 400 (  btree 6 "o" 5 0 btreegettuple btreeinsert btreedelete - - - - btbeginscan btreerescan btreeendscan btreemarkpos btreerestrpos - - btreebuild - - ));
 DATA(insert OID = 401 (  fbtree 6 "o" 5 0 fbtreegettuple fbtreeinsert fbtreedelete - - - - - - - - - - - fbtreebuild - - ));
-DATA(insert OID = 402 (  rtree 6 "o" 5 0 rtgettuple rtinsert rtdelete - - - - rtbeginscan btrescan rtendscan rtmarkpos rtrestrpos - - rtbuild - - ));
+DATA(insert OID = 402 (  rtree 6 "o" 5 3 rtgettuple rtinsert rtdelete - - - - rtbeginscan rtrescan rtendscan rtmarkpos rtrestrpos - - rtbuild - - ));
 
 /* ----------------
  *	old definition of AccessMethodTupleForm
