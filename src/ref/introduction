@@ -33,7 +33,7 @@ this is
 software.
 .uh "POSTGRES DISTRIBUTION"
 .sp
-This manual describes Version 2 of POSTGRES.  The POSTGRES software is
+This manual describes Version 2.1 of POSTGRES.  The POSTGRES software is
 about 170,000 lines of C code, and is available for SUN 3 and
 SUN 4 class machines, for DECstation 3100 machines and for
 the SEQUENT Symetry machine.
@@ -49,7 +49,7 @@ Berkeley, Ca. 94720
 .)l
 .sp
 No
-attempt has been made to optimize Version 2;
+attempt has been made to optimize Version 2.1;
 consequently, one
 should expect
 performance comparable to the public domain,
@@ -58,19 +58,18 @@ California Version of \*(II, a relational prototype
 from the late 1970s.
 .sp
 This manual contains the description of a few capabilities
-which are not implemented in Version 2.  We expect to support
-additional functionality in Version 2.1, currently scheduled for December 1990 and
-complete functionality of this manual in Version 3, which
-we expect to make available by mid-year 1991.  Moreover, Version 3
+which are not implemented in Version 2.1.  We expect to support
+additional functionality in Version 3, currently scheduled for third quarter 1991. 
+Moreover, Version 3
 will be tuned to run as fast as possible.
 
 .uh "POSTGRES DOCUMENTATION"
 .lp
 This
-reference manual describes the functionality of Versions 2, 2.1, and 3
+reference manual describes the functionality of Versions 2.1, and 3
 and contains
 notations where appropriate to indicate which features are not implemented in
-Version 2.
+Version 2.1.
 Application developers should note that
 this reference manual contains only the specification for
 the low-level call-oriented application program interface,
@@ -105,7 +104,7 @@ for files used by \*(PP.
 .lp
 \*(PP has been constructed by a team of undergraduate, graduate, and
 staff programmers.
-The Version 2 contributors (in alphabetical order) consisted of 
+The Version 2.1 contributors (in alphabetical order) consisted of 
 James Bell,
 Ron Choi,
 Jeffrey Goh,
