@@ -484,7 +484,6 @@ typeid_get_retinfunc(type_id)
         return(infunc);
 }
 
-/* ron */
 char
 FindDelimiter(typename)
 char *typename;

@@ -57,7 +57,7 @@ int len;
 	delimiter = '`';
 	scancon(buf, len);
 }
-/* ron */
+
 scanarray(buf, len)
 char *buf;
 int len;
