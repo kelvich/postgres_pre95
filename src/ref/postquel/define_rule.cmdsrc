@@ -199,9 +199,14 @@ Exceptions are not implemented in Version \*(PV.
 The object in a \*(PQ rule cannot be an array reference and cannot
 have parameters.
 .PP
+Aside from the \*(lqoid\*(rq field, system attributes cannot be
+referenced anywhere in a rule.  Among other things, this means that
+functions of instances (e.g., \*(lqfoo(emp)\*(rq where \*(lqemp\*(rq
+is a class) cannot be called anywhere in a rule.
+.PP
 The 
 .BR where
-clause can not have a 
+clause cannot have a 
 .BR from
 clause.
 .PP
