@@ -202,4 +202,7 @@ BufferWriteInOrder ARGS((
 	const Buffer	successorBuffer
 ));
 
+extern
+int
+BufferShmemSize ARGS(());
 #endif	/* !defined(BufMgrIncluded) */
