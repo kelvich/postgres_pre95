@@ -28,6 +28,7 @@ On the other hand, fast path allows the formulation
 .(l
 \*(lqoverpaid (17)\*(rq
 .)l
+.lp
 There is type checking in the first expression, but not in the second.
 Any function called using fast path or invoked within a normal command
 will be run in
