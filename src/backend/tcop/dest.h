@@ -44,7 +44,9 @@ typedef enum {
     None,		/* results are discarded */
     Debug,		/* results go to debugging output */
     Local,		/* results go in local portal buffer */
-    Remote		/* results sent to frontend process */
+    Remote,		/* results sent to frontend process */
+	CopyBegin,	/* results sent to frontend process but are strings */
+	CopyEnd		/* results sent to frontend process but are strings */
 } CommandDest;
 
 #endif  DestIncluded
