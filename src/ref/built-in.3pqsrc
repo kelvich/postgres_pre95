@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH INTRODUCTION BUILT-INS 05/28/93
+.TH INTRODUCTION BUILT-INS 02/18/94
 .XA 0 "Section 3 \(em What comes with \*(PG (BUILT-INS)"
 .BH "SECTION 3 \(em WHAT COMES WITH \*(PG (BUILT-INS)"
 .SH "DESCRIPTION"
@@ -64,10 +64,12 @@ described in this section.
 .fi
 .in
 .PP
-These types all have obvious formats except for the three time types,
-explained in the following.
+As a rule, the built-in types are all either (1) internal types, in
+which case the user should not worry about their external format, or
+(2) have obvious formats.  The exceptions to this rule are the three
+time types.
 .XA 2 "Syntax of date and time types"
-.SP "DATE AND TIME" BUILT-INS 01/23/93
+.SP "DATE AND TIME" BUILT-INS 02/18/94
 .SH "ABSOLUTE TIME"
 Absolute time is specified using the following syntax:
 .(C
@@ -124,7 +126,7 @@ where
 is a time in the absolute time format.  Special abstime values such as 
 \*(lqcurrent\*(rq, \*(lqinfinity\*(rq and \*(lq-infinity\*(rq can be used.
 .XA 1 "Built-in operators and functions"
-.SP OPERATORS BUILT-INS 01/23/93
+.SP OPERATORS BUILT-INS 02/18/94
 .SH OPERATORS
 \*(PG provides a large number of built-in operators on system types.
 These operators are declared in the system catalog
@@ -196,7 +198,7 @@ right unary operators have the operator follow the operand.
 .so obj/left_unary.nr
 \}
 .XA 1 "Built-in aggregate functions"
-.SP AGGREGATES BUILT-INS 05/28/93
+.SP AGGREGATES BUILT-INS 02/18/94
 .SH "AGGREGATE FUNCTIONS"
 The table below gives the aggregate functions that are normally
 registered in the system catalogs.  None of them are required for
@@ -223,7 +225,7 @@ registered in the system catalogs.  None of them are required for
 	int4min	int4 minimum (low value)
 	float4min	float4 minimum (low value)
 	float8min	float8 minimum (low value)
-	count	int4 count
+	count	any count
 .fi
 .in
 .SH "SEE ALSO"
@@ -233,3 +235,15 @@ For examples on specifying literals of built-in types, see
 The lists of types, functions, and operators are accurate only for
 Version \*(PV.  The lists will be incomplete and contain extraneous
 entries in future versions of \*(PG.
+.PP
+Although most of the input and output functions correponding to the
+base types (e.g., integers and floating point numbers) do some
+error-checking, none of them are particularly rigorous about it.  More
+importantly, almost none of the operators and functions (e.g.,
+addition and multiplication) perform any error-checking at all.
+Consequently, many of the numeric operations will (for example)
+silently underflow or overflow.
+.PP
+Some of the input and output functions are not invertible.  That is,
+the result of an output function may lose precision when compared to
+the original input.
