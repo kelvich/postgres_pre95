@@ -839,7 +839,7 @@ PostgresMain(argc, argv)
      */
     if (! Quiet)
 	puts("\tInitPostgres()..");
-    InitPostgres(NULL, DatabaseName);
+    InitPostgres(DatabaseName);
 
     /* ----------------
      *  Initialize the Master/Slave shared memory allocator,

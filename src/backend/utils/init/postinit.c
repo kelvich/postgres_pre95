@@ -410,8 +410,7 @@ static bool	PostgresIsInitialized = false;
 /*
  */
 void
-InitPostgres(dummy, name)
-	Pointer	dummy;
+InitPostgres(name)
     String	name;		/* database name */
 {
     bool	bootstrap;	/* true if BootstrapProcessing */
