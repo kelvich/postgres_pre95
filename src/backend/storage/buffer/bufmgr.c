@@ -263,6 +263,8 @@ bool		bufferLockHeld;
      * want this extended.
      */
     if (extend) {
+      /* new buffers are zero-filled */
+      (void) bzero((char *) MAKE_PTR(bufHdr->data), BLCKSZ);
       (void) smgrextend(bufHdr->bufsmgr, reln,
 			(char *) MAKE_PTR(bufHdr->data));
     }
@@ -276,6 +278,8 @@ bool		bufferLockHeld;
    */
 
   if (extend) {
+    /* new buffers are zero-filled */
+    (void) bzero((char *) MAKE_PTR(bufHdr->data), BLCKSZ);
     status = smgrextend(bufHdr->bufsmgr, reln,
 			(char *) MAKE_PTR(bufHdr->data));
   } else {
