@@ -483,3 +483,29 @@ Prs2LockType lockType;
 
 }
 
+/*------------------------------------------------------------------
+ * prs2RemoveLocksOfTypeInPlace
+ *
+ * remove all the locks of the given type in place.
+ *------------------------------------------------------------------
+ */
+void
+prs2RemoveLocksOfTypeInPlace(locks, lockType)
+RuleLock locks;
+Prs2LockType lockType;
+{
+    int i;
+    Prs2OneLock onelock;
+
+    i = 0;
+    while (i<prs2GetNumberOfLocks(locks)) {
+	onelock = prs2GetOneLockFromLocks(locks, i);
+	if (prs2OneLockGetLockType(onelock) == lockType) {
+	    prs2RemoveOneLockInPlace(locks, i);
+	} else {
+	    i++;
+	}
+    }
+
+}
+
