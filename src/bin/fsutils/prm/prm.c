@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <sys/param.h>
 #include <sys/stat.h>
-#include <sys/dir.h>
+#include <dirent.h>
 #include <sys/file.h>
 #include <string.h>
 #include "tmp/libpq-fs.h"
