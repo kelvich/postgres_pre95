@@ -752,6 +752,19 @@ ExecutePlan(estate, plan, parseTree, operation, numberTuples,
 	case REPLACE:
 	    result = ExecReplace(slot, tupleid, estate, parseTree, locks);
 	    break;
+
+	    /* Total hack. I'm ignoring any accessor functions for
+	       Relation, RelationTupleForm, NameData.
+	       Assuming that NameData.data has offset 0.
+	       */
+	case NOTIFY: {
+	    RelationInfo rInfo = get_es_result_relation_info(estate);
+	    Relation rDesc = get_ri_RelationDesc(rInfo);
+	    Async_Notify(&rDesc->rd_rel->relname);
+	    result = NULL;
+	    elog(DEBUG, "ExecNotify %s",&rDesc->rd_rel->relname);
+	}
+	    break;
 	    
 	default:
 	    elog(DEBUG, "ExecutePlan: unknown operation in queryDesc");
