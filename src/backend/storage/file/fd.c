@@ -570,6 +570,42 @@ FileClose(file)
 	return;
 }
 
+void
+FileUnlink(file)
+	FileNumber	file;
+{
+
+	DO_DB(printf("DEBUG: FileClose: %d (%s)\n",file,VfdCache[file].fileName));
+
+	if (!FileIsNotOpen(file)) {
+
+		/*
+		 * Remove the file from the Lru ring
+		 */
+		Delete(file);
+		/*
+		 * Note that there is now one more free operating system
+		 * file descriptor available
+		 */
+		FreeFd++;
+		/*
+		 * Close the file
+		 */
+		--nfile;
+	}
+	/*
+	 * Add the Vfd slot to the free list
+	 */
+	FreeVfd(file);
+	/*
+	 * Free the filename string
+	 */
+	unlink(VfdCache[file].fileName);
+	free(VfdCache[file].fileName);
+
+	return;
+}
+
 Amount
 FileRead (file, buffer, amount)
 	FileNumber	file;

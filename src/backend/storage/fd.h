@@ -70,6 +70,16 @@ FileClose ARGS((
 ));
 
 /*
+ * FileUnlink --
+ *
+ */
+extern
+void
+FileUnlink ARGS((
+	FileNumber	file
+));
+
+/*
  * FileRead --
  *
  */
