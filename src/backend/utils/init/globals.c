@@ -30,8 +30,8 @@ RcsId("$Header$");
 
 #include "catalog/catname.h"
 
-int Debugfile, Ttyfile, Dblog, Slog;
-int Portfd, Packfd, Slog, Pipefd;
+int Debugfile, Ttyfile;
+int Portfd;
 int Noversion = 0;
 
 BackendId	MyBackendId;
