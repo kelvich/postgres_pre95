@@ -12,27 +12,27 @@
  *    $Header$
  */
 
-/* ----------------
- *	these include files need cleaning up..
- * ----------------
- */
 #include <stdio.h>
 #include <ctype.h>
 
-#include "palloc.h"
-#include "pg_lisp.h"
-#include "log.h"
-#include "atoms.h"
-#include "params.h"
+#include "tmp/postgres.h"
 
-#include "name.h"
-#include "nodes.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
+RcsId("$Header$");
+
+#include "parser/atoms.h"
+#include "rules/params.h"
+#include "utils/palloc.h"
+#include "utils/log.h"
+
+#include "nodes/nodes.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
 
 extern bool _equalLispValue();
 extern void lispDisplayFp();
 extern void lispDisplay();
+double atof();
 
 #define RIGHT_PAREN (1000000 + 1)
 #define LEFT_PAREN  (1000000 + 2)
@@ -89,9 +89,22 @@ int length;
 
 {
 	NodeTag retval;
+	int sign;
 
-	if (isdigit(*token))
+	/*
+	 * Check if the token is a number (decimal or integer,
+	 * positive or negative
+	 */
+	if (isdigit(*token) ||
+	   (length>=2 && *token=='-' && isdigit(*(token+1)) ))
 	{
+		/*
+		 * skip the optional '-' (i.e. negative number)
+		 */
+		if (*token == '-') {
+		    token++;
+		}
+
 		/*
 		 * See if there is a decimal point
 		 */
@@ -150,6 +163,7 @@ bool read_car_only;
 	if (token == NULL) return(NULL);
 
 	type = lispTokenType(token, tok_len);
+
 	
 	switch(type)
 	{
@@ -248,7 +262,7 @@ bool read_car_only;
 			this_value = (LispValue) -1;
 			break;
 		default:
-			fprintf(stderr, "bad type\n");
+			elog(WARN, "Bad type (lispRead)");
 			break;
 	}
 	if (make_dotted_pair_cell)
@@ -296,7 +310,9 @@ int  *length;
 	if (string != NULL) 
 	{
 		local_str = string;
-		if (length == NULL) return(NULL);
+		if (length == NULL) {
+		    return(NULL);
+		}
 	}
 
 
