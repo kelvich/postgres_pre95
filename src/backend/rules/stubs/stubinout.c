@@ -32,6 +32,9 @@ char *palloc();
  * these routines are local to this file.
  */
 static char *appendString();
+static void skipToken();
+static long readLongInt();
+static char readChar();
 
 #define ISBLANK(c) ((c)==' ' || (c)=='\t' || (c)=='\n')
 
@@ -116,9 +119,13 @@ Prs2Stub relstub;
 	res = appendString(res, s1, &maxLength);
 	/*
 	 * now print the rule lock
+	 * Enclose it in double quotes, so that it
+	 * will be easy for `prs2StringToStub' to read it
 	 */
 	s2 = RuleLockToString(oneStub->lock);
+	appendString(res, "`", &maxLength);
 	res = appendString(res, s2, &maxLength);
+	appendString(res, "'", &maxLength);
 	pfree(s2);
 	/*
 	 * Now print the qualifications...
@@ -182,7 +189,123 @@ Prs2Stub
 prs2StringToStub(s)
 char *s;
 {
-    elog(WARN, "StringToRuleStub: NOT CURRENTLY IMPLEMENTED");
+    int i,j,k;
+    int numOfStubs;
+    Prs2Stub stubs;
+    Prs2OneStub oneStub;
+    ObjectId ruleId;
+    Prs2StubId stubId;
+    int count;
+    int nQuals;
+    Datum constDatum;
+    Prs2SimpleQual quals;
+    AttributeNumber attrNo;
+    int indx;
+    long l;
+    char c;
+    RuleLock lock;
+    Size size;
+    char *data;
+
+
+    /*
+     * Create an initially empty rule stub.
+     */
+    stubs = prs2MakeStub();
+
+    /*
+     * Now read the number of stubs;
+     */
+    indx = 0;
+    skipToken("(", s, &indx);
+    skipToken("numOfStubs:", s, &indx);
+    l = readLongInt(s, &indx);
+    numOfStubs = (int) l;
+
+    for (i=0; i<numOfStubs; i++) {
+	/*
+	 * read one `Prs2OneStub'
+	 * First read the ruleId, stubId, counter, numQuals
+	 */
+	skipToken("(", s, &indx);
+	skipToken("ruleId:", s, &indx);
+	l = readLongInt(s, &indx);
+	ruleId = (ObjectId) l;
+	skipToken("stubId:", s, &indx);
+	l = readLongInt(s, &indx);
+	stubId = (Prs2StubId) l;
+	skipToken("count:", s, &indx);
+	l = readLongInt(s, &indx);
+	count = (int) l;
+	skipToken("nQuals:", s, &indx);
+	l = readLongInt(s, &indx);
+	nQuals = (int) l;
+	/*
+	 * now read the lock
+	 */
+	skipToken("lock:", s, &indx);
+	skipToken("`", s, &indx);
+	lock = StringToRuleLock(&s[indx]);
+	while (s[indx++] != '\'');
+	/*
+	 * now read the quals
+	 */
+	quals = prs2MakeSimpleQuals(nQuals);
+	for (j=0; j<nQuals; j++) {
+	    skipToken("(", s, &indx);
+	    skipToken("attrNo:", s, &indx);
+	    l = readLongInt(s, &indx);
+	    quals[j].attrNo = (AttributeNumber) l;
+
+	    skipToken("opr:", s, &indx);
+	    l = readLongInt(s, &indx);
+	    quals[j].operator = (ObjectId) l;
+
+	    skipToken("type:", s, &indx);
+	    l = readLongInt(s, &indx);
+	    quals[j].constType = (ObjectId) l;
+
+	    skipToken("byval:", s, &indx);
+	    c = readChar(s, &indx);
+	    quals[j].constByVal = (c=='t' ? true : false);
+
+	    skipToken("len:", s, &indx);
+	    l = readLongInt(s, &indx);
+	    quals[j].constLength = (Size) l;
+
+	    /*
+	     * now read the const data
+	     */
+	    skipToken("data:", s, &indx);
+	    l = readLongInt(s, &indx);
+	    size = (Size) l;
+	    skipToken("{", s, &indx);
+
+	    if (quals[j].constByVal){
+		data = (char *) (&constDatum);
+	    } else {
+		data = palloc(size);
+		Assert(data!=NULL);
+		constDatum = PointerGetDatum(data);
+	    }
+	    for (k=0; k<size; k++) {
+		l = readLongInt(s, &indx);
+		data[k] = (char) (l);
+	    }
+	    quals[j].constData = constDatum;
+	    skipToken("}", s, &indx);
+	    skipToken(")", s, &indx);
+	}
+
+	skipToken(")", s, &indx);
+	oneStub = prs2MakeOneStub( ruleId, stubId, count, nQuals,
+					lock, quals);
+	prs2AddOneStub(stubs, oneStub);
+
+    }
+
+    skipToken(")", s, &indx);
+    return(stubs);
 }
 
 /*====================================================================
@@ -201,7 +324,6 @@ char *s;
  * It returns the result of the string concatenation, and
  * if more space has been allocated, *maxLengthP is updated.
  */
-
 static char*
 appendString(res, s, maxLengthP)
 char *res;
@@ -224,4 +346,93 @@ int *maxLengthP;
     }
     strcat(res, s);
     return(res);
+}
+
+/*--------------------------------------------------------------------
+ *
+ * skipToken
+ *
+ * read & skip the specified token 'token' from the string that
+ * starts at 's[*indx]'. '*indx' is incremented accordingly
+ * If there is a mismatch, signal a syntax error.
+ */
+static void
+skipToken(token, s, indx)
+char *token;
+char *s;
+int *indx;
+{
+    char *t;
+
+    /*
+     * skip blanks
+     */
+    while (ISBLANK(s[*indx])) {
+	(*indx)++;
+    }
+
+    t = token;
+    while (*t != '\0') {
+	if (s[*indx] != *t) {
+	    elog(WARN,"Syntax error while reading RuleStub, token=%s", token);
+	}
+	t++;
+	(*indx)++;
+    }
+}
+
+/*--------------------------------------------------------------------
+ *
+ * readLongInt
+ *
+ * read an (long) integer from the string that
+ * starts at 's[*indx]'. '*indx' is incremented accordingly
+ */
+static long
+readLongInt(s, indx)
+char *s;
+int *indx;
+{
+    long res;
+
+    /*
+     * skip blanks
+     */
+    while (ISBLANK(s[*indx])) {
+	(*indx)++;
+    }
+
+    res = 0;
+    while (s[*indx] <='9' && s[*indx] >= '0') {
+	res = 10*res + s[*indx] - '0';
+	(*indx)++;
+    }
+
+    return(res);
+}
+
+/*--------------------------------------------------------------------
+ *
+ * readChar
+ *
+ * read the first non blank character from the string that
+ * starts at 's[*indx]'. '*indx' is incremented accordingly
+ */
+static char
+readChar(s, indx)
+char *s;
+int *indx;
+{
+    char c;
+
+    /*
+     * skip blanks
+     */
+    while (ISBLANK(s[*indx])) {
+	(*indx)++;
+    }
+
+    c = s[*indx];
+    (*indx)++;
+    return(c);
 }
