@@ -89,7 +89,7 @@ find_tl_elt ( varname ,tlist )
 	/* Var tvarnode = (Var) CADR(CAR(i));*/
 	Name resname = get_resname(resnode );
 
-	if ( ! strcmp ( resname, varname ) ) {
+	if ( ! strncmp ( resname, varname, NAMEDATALEN ) ) {
 	    return ( resnode );
 	} 
     }
@@ -272,7 +272,7 @@ ExpandAll(relname,this_resno)
 
 	first_resno = *this_resno;
 	
-	/* printf("\nExpanding %s.all\n",relname); */
+	/* printf("\nExpanding %.*s.all\n", NAMEDATALEN, relname); */
 	vnum = RangeTablePosn (relname,0);
 	if ( vnum == 0 ) {
 		p_rtable = nappend1 ( p_rtable,
@@ -297,7 +297,8 @@ ExpandAll(relname,this_resno)
 		bool attrisset;
 
 		attrname = (char *) palloc (sizeof(NameData)+1);
-		strcpy(attrname, (char *)(&rdesc->rd_att.data[i]->attname));
+		strncpy(attrname, (char *)(&rdesc->rd_att.data[i]->attname),
+                        NAMEDATALEN);
 		temp = make_var ( relname, (Name) attrname);
 		varnode = (Var)CDR(temp);
 		type_id = CInteger(CAR(temp));
@@ -982,7 +983,7 @@ char *attrName;
     if (name == NULL) {
 	elog(WARN, "make_param: out of memory!\n");
     }
-    strcpy(&(name->data[0]), attrName);
+    namestrcpy(name, attrName);
 
     paramNode = MakeParam(paramKind,	/* paramkind */
 			attrNo,		/* paramid - i.e. attrno */
@@ -1171,4 +1172,3 @@ SubstituteParamForNewOrCurrent ( parsetree, relid )
 	  SubstituteParamForNewOrCurrent ( temp , relid );
     }
 }
-
