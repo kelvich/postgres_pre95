@@ -11,8 +11,7 @@
 
 #include <stdio.h>
 #include <string.h>
-
-#include "exception.h"
+#include "exc.h"
 
 /*
  * PQArgBlock --
@@ -139,13 +138,22 @@ extern int PQftype ();
 extern int PQsametype ();
 extern int PQgetgroup ();
 extern char *PQgetvalue ();
-extern char *PQdb ();
-extern void PQsetdb ();
-extern void PQreset ();
-extern void PQfinish ();
-extern void PQtrace ();
-extern void PQuntrace ();
 extern void PQerror ();
-extern char *PQexec ();
+
+extern char *PQdb ARGS((void));
+extern void PQsetdb ARGS((char *dbname));
+extern void PQreset ARGS((void));
+extern void PQfinish ARGS((void));
+extern void PQtrace ARGS((void));
+extern void PQuntrace ARGS((void));
+extern pqdebug ARGS((char *target, char *msg));
+extern pqdebug2 ARGS((char *target, char *msg1, char *msg2));
+extern void read_initstr ARGS((void));
+extern char *process_portal ARGS((int rule_p));
+extern read_remark ARGS((char id[]));
+extern char *PQfn ARGS((int fnid, void *result_buf, int result_len, int result_is_int, int n args, int nargs));
+extern char *PQexec ARGS((char *query));
+extern void InitVacuumDemon ARGS((String host, String database, String terminal, String option, String port, String vacuum));
+
 
 #endif	/* ifndef LibpqIncluded */
