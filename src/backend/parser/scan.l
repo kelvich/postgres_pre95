@@ -34,6 +34,7 @@ operator	({op_and_self}{op_and_self}+)|{op_only}+
 string		\"
 specialstr	\`
 character	"'"
+array		\{
 
 integer		[-+]?{digit}+
 real		[-+]?{digit}+\.{digit}+([Ee][-+]?{digit}+)?
@@ -70,6 +71,12 @@ other		.
 			scanstr(buf,sizeof(buf));
 			yylval = lispString(buf);
 			return (SCONST);
+		}
+{array}		{
+			char buf[8192];
+			scanarray(buf,sizeof(buf));
+			yylval = lispString(buf);
+			return (ARRAY);
 		}
 
 {character}	{

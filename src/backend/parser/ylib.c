@@ -379,7 +379,57 @@ int4varout ( an_array )
     }
     return(output_string);
 }
+/* ron */
+/* LispValue
+GetNextArrayElem(val, delim)
+Datum val;
+char delim;
+{
+	static int i = 0;
+	char current[8092], *temp;
 
+	current = (char *) val;
+
+	if  (current[i] == '\0'){
+		i = 0;
+		temp = NULL;
+		return((LispValue)temp);
+	}
+	temp = (char *) palloc(8092);
+	while ((current[i] != delim) && (current[i] != '\0'))
+		temp[i] = current[i++];
+
+	temp[i] = '\0';
+	return((LispValue)temp);
+}
+*/
+
+/* ron */
+List 
+ParseArrayList( arraylist, typename)
+LispValue arraylist; 
+List typename;
+{
+        Type tp;
+        LispValue temp, list;
+        Datum val;
+	char delim; /* array delimiter */
+
+        tp = type("unknown"); /* unknown for now, will be type coerced */
+        val = PointerGetDatum(textin(arraylist->val.str));
+/*	delim = FindDelimiter(CString(CAR(typename))); */
+/*	temp = GetNextArrayElem(val, delim); 
+	while ( temp ){
+		list = lispCons(list, temp); 
+		temp = GetNextArrayElem(val, delim);
+	}
+*/
+	list = (LispValue) array_in((char *) val, typename);
+
+/* make a list and return */
+    return ( lispCons (typename, list));
+}
+ 
 #define ADD_TO_RT(rt_entry)     p_rtable = nappend1(p_rtable,rt_entry) 
 List
 ParseFunc ( funcname , fargs )

@@ -433,12 +433,12 @@ make_op(op,ltree,rtree)
 
 List 
 make_concat_var ( list_of_varnos , attid , vartype, vardotfields, 
-		  vararrayindex )
+		  vararraylist )
      List list_of_varnos;
      int attid;
      int vartype;
      List vardotfields;
-     int vararrayindex;
+     List vararraylist;
 {
     List retval = NULL;
     List temp = NULL;
@@ -450,7 +450,7 @@ make_concat_var ( list_of_varnos , attid , vartype, vardotfields,
 
 	vnum = CInteger(each_varno);
 	varnode = MakeVar (vnum , attid ,
-			   vartype , vardotfields , vararrayindex ,
+			   vartype , vardotfields , vararraylist ,
 			   lispCons(lispInteger(vnum),
 				    lispCons(lispInteger(attid),LispNil)),
 			   0 );
@@ -486,7 +486,7 @@ make_var ( relname, attrname)
     extern LispValue p_rtable;
     extern int p_last_resno;
     extern List RangeTablePositions();
-    Index vararrayindex = 0;
+    List vararraylist = LispNil;
     List multi_varnos = RangeTablePositions ( relname , 0 );
 
     vnum = RangeTablePosn ( relname,0,0) ;
@@ -510,12 +510,11 @@ make_var ( relname, attrname)
     vartype = att_typeid ( rd , attid );
     rtype = get_id_type(vartype);
     vardotfields = LispNil;                          /* XXX - fix this */
-    
+
     varnode = MakeVar (vnum , attid ,
-		       vartype , vardotfields , vararrayindex ,
-		       lispCons(lispInteger(vnum),
-				lispCons(lispInteger(attid),LispNil)),
-		       0 );
+                       vartype , vardotfields , vararraylist ,
+                       lispCons(lispInteger(vnum),
+                                lispCons(lispInteger(attid),LispNil)));
 
     /*
      * for now at least, attributes of concatenated relations will not have
@@ -526,7 +525,7 @@ make_var ( relname, attrname)
     if ( length ( multi_varnos ) > 1 )
       return ( lispCons ( lispInteger ( typeid (rtype)),
 			 make_concat_var ( multi_varnos , attid , vartype,
-					   LispNil, 0 )));
+					   LispNil, LispNil )));
 
     return ( lispCons ( lispInteger ( typeid (rtype ) ),
 		       varnode ));
@@ -542,9 +541,10 @@ make_var ( relname, attrname)
  **********************************************************************/
 
 LispValue
-make_array_ref_var( relname, attrname, vararrayindex)
+make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
      Name relname, attrname;
      Index vararrayindex;
+     List indirect_list;  /* has indirection - e.g. arrayname[i][j][k] */ 
 {
     Var varnode;
     int vnum, attid, typearray, typelem;
@@ -554,7 +554,8 @@ make_array_ref_var( relname, attrname, vararrayindex)
     extern LispValue p_rtable;
     extern int p_last_resno;
     HeapTuple type_tuple;
-    TypeTupleForm type_struct;
+    TypeTupleForm type_struct, type_struct2;
+    List vararraylist = LispNil;
     
     vnum = RangeTablePosn ( relname,0,0) ;
     if (vnum == 0) {
@@ -588,16 +589,106 @@ make_array_ref_var( relname, attrname, vararrayindex)
      * ----------------
      */
     type_struct = (TypeTupleForm) GETSTRUCT(type_tuple);
-    typelem = (type_struct)->typelem;
 
     rtype = get_id_type(typelem);
     vardotfields = LispNil;                          /* XXX - fix this */
+/*    if (!(type_struct)->typbyval){ */
+    if (indirect_list != LispNil){
+    	type_tuple = SearchSysCacheTuple(TYPOID,
+					 (type_struct)->typelem,
+					 NULL,
+					 NULL,
+					 NULL);
+   
+  	if (!HeapTupleIsValid(type_tuple)) {
+		elog(WARN, 
+		"make_array_ref_var: Cache lookup failed for type %d\n",
+		     typearray);
+		return LispNil;
+    	}
+    	type_struct2 = (TypeTupleForm) GETSTRUCT(type_tuple);
+        vararraylist = lispCons(MakeArray (  (type_struct)->typelem,
+					(type_struct2)->typlen,
+					(type_struct)->typbyval,
+					(int) vararrayindex,
+					0,
+					(type_struct)->typlen),
+				LispNil); 
+	indirect_list = CDR(indirect_list);
+
+      	while (indirect_list != LispNil){
+		type_struct = type_struct2;
+    		type_tuple = SearchSysCacheTuple(TYPOID,
+						 (type_struct)->typelem,
+						 NULL,
+						 NULL,
+						 NULL);
     
+    		if (!HeapTupleIsValid(type_tuple)) {
+			elog(WARN, 
+			"make_array_ref_var: Cache lookup failed for type %d\n",
+			     typearray);
+			return LispNil;
+    		}
+    		type_struct2 = (TypeTupleForm) GETSTRUCT(type_tuple);
+		vararraylist = lispCons(vararraylist,
+					MakeArray ((type_struct)->typelem,
+       	                        		 (type_struct2)->typlen,
+       	                        		 (type_struct)->typbyval,
+       	                        		 lispInteger(CAR(indirect_list)),
+       	                      			 0, 
+					 	 (type_struct)->typlen));
+		indirect_list = CDR(indirect_list);
+      	}
+	type_struct = type_struct2;
+    	type_tuple = SearchSysCacheTuple(TYPOID,
+					 (type_struct)->typelem,
+					 NULL,
+					 NULL,
+					 NULL);
+   
+   	if (!HeapTupleIsValid(type_tuple)) {
+		elog(WARN, 
+		"make_array_ref_var: Cache lookup failed for type %d\n",
+		     typearray);
+		return LispNil;
+    	}
+    	type_struct2 = (TypeTupleForm) GETSTRUCT(type_tuple);
+	vararraylist = lispCons(vararraylist,
+				MakeArray ((type_struct)->typelem,
+                               		 (type_struct2)->typlen,
+                               		 (type_struct)->typbyval,
+                               		 lispInteger(CAR(indirect_list)),
+                       			 0, 
+				 	 (type_struct)->typlen));
+    } else{
+    	type_tuple = SearchSysCacheTuple(TYPOID,
+					 (type_struct)->typelem,
+					 NULL,
+					 NULL,
+					 NULL);
+   
+  	if (!HeapTupleIsValid(type_tuple)) {
+		elog(WARN, 
+		"make_array_ref_var: Cache lookup failed for type %d\n",
+		     typearray);
+		return LispNil;
+    	}
+    	type_struct2 = (TypeTupleForm) GETSTRUCT(type_tuple);
+        vararraylist = lispCons(MakeArray (  (type_struct)->typelem,
+					(type_struct2)->typlen,
+					(type_struct)->typbyval,
+					(int) vararrayindex,
+					0,
+					(type_struct)->typlen),
+				LispNil); 
+    }
+
     varnode = MakeVar (vnum , attid ,
-		       typearray , vardotfields , vararrayindex ,
+		       typearray , vardotfields , vararraylist ,
 		       lispCons(lispInteger(vnum),
-				lispCons(lispInteger(attid),LispNil)),
-		       typelem);
+				lispCons(lispInteger(attid),LispNil))
+		       );
     
     return ( lispCons ( lispInteger ( typeid (rtype ) ),
 		       varnode ));

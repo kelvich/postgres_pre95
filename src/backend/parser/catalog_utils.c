@@ -481,3 +481,23 @@ typeid_get_retinfunc(type_id)
         infunc = type->typinput;
         return(infunc);
 }
+
+/* ron */
+char
+FindDelimiter(typename)
+char *typename;
+{
+        char delim;
+        HeapTuple     typeTuple;
+        TypeTupleForm   type;
+
+
+	if (!(typeTuple = SearchSysCacheTuple(TYPNAME, typename))) {
+		elog (WARN , "type name lookup of %s failed", typename);
+	}
+        type = (TypeTupleForm) GETSTRUCT(typeTuple);
+
+	delim = type->typdelim;
+        return (delim);
+}
+
