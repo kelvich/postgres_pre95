@@ -1197,14 +1197,9 @@ ShowUsage()
 		user.tv_sec, user.tv_usec, sys.tv_sec, sys.tv_usec);
 	fprintf(stderr, "\t%d/%d [%d/%d] filesystem blocks in/out\n",
 		r.ru_inblock - Save_r.ru_inblock,
-#ifdef sun
-		r.ru_outblock - Save_r.ru_outblock,
-		r.ru_inblock, r.ru_outblock);
-#else /* sun */
 		/* they only drink coffee at dec */
 		r.ru_oublock - Save_r.ru_oublock,
 		r.ru_inblock, r.ru_oublock);
-#endif /* sun */
 	fprintf(stderr, "\t%d/%d [%d/%d] page faults/reclaims, %d [%d] swaps\n",
 		r.ru_majflt - Save_r.ru_majflt,
 		r.ru_minflt - Save_r.ru_minflt,
