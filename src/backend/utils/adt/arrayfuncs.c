@@ -384,7 +384,7 @@ int ndim, dim[], baseSize;
 
         else if (!strcmp(word, "-invert"))
             *invFlag = true;
-        else if (!strcmp(word, "-native"))
+        else if (!strcmp(word, "-unix"))
             *invFlag = false;
         else 
             elog(WARN, "usage: <input file> -chunk DEFAULT/<access pattern file> -invert/-native [-noreorg <chunk file>]");
