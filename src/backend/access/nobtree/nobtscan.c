@@ -29,7 +29,7 @@
 #include "access/heapam.h"
 #include "access/genam.h"
 #include "access/sdir.h"
-#include "access/nbtree.h"
+#include "access/nobtree.h"
 
 RcsId("$Header$");
 

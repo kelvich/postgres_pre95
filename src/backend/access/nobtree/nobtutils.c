@@ -17,7 +17,7 @@
 #include "access/genam.h"
 #include "access/iqual.h"
 #include "access/ftup.h"
-#include "access/nbtree.h"
+#include "access/nobtree.h"
 
 RcsId("$Header$");
 
@@ -65,6 +65,8 @@ _nobt_freestack(stack)
 	ostack = stack;
 	stack = stack->nobts_parent;
 	pfree(ostack->nobts_btitem);
+	if (ostack->nobts_nxtitem != (NOBTItem) NULL)
+	    pfree(ostack->nobts_nxtitem);
 	pfree(ostack);
     }
 }
@@ -289,8 +291,8 @@ _nobt_dumptup(rel, itupdesc, page, offind)
     idatum = IndexTupleGetAttributeValue(itup, 1, itupdesc, &null);
     tmpkey = DatumGetInt16(idatum);
 
-    printf("[%d/%d bytes] <%d,%d,%d> %d (seq %d)\n", itemsz, tuplen,
-	    blkno, pgno, offno, tmpkey, btitem->nobti_seqno);
+    printf("[%d/%d bytes] <%d,%d,%d> %d\n", itemsz, tuplen,
+	    blkno, pgno, offno, tmpkey);
 }
 
 bool
@@ -306,24 +308,20 @@ _nobt_checkqual(scan, itup)
 }
 
 NOBTItem
-_nobt_formitem(itup, xid, seqno)
+_nobt_formitem(itup)
     IndexTuple itup;
-    TransactionId xid;
-    uint32 seqno;
 {
     int nbytes_btitem;
     NOBTItem btitem;
-	Size tuplen = IndexTupleSize(itup);
+    Size tuplen = IndexTupleSize(itup);
 
     /* make a copy of the index tuple with room for the sequence number */
     nbytes_btitem = tuplen +
-			(sizeof(NONOBTItemData) - sizeof(IndexTupleData));
+			(sizeof(NOBTItemData) - sizeof(IndexTupleData));
 
     btitem = (NOBTItem) palloc(nbytes_btitem);
     bcopy((char *) itup, (char *) &(btitem->nobti_itup), tuplen);
-
-    bcopy((char *) xid, (char *) &(btitem->nobti_xid), TransactionIdDataSize);
-    btitem->nobti_seqno = seqno;
+    btitem->nobti_oldchild = P_NONE;
 
     return (btitem);
 }

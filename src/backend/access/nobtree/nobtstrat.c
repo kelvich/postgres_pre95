@@ -14,7 +14,7 @@
 
 #include "access/genam.h"
 #include "access/isop.h"
-#include "access/nbtree.h"
+#include "access/nobtree.h"
 
 RcsId("$Header$");
 

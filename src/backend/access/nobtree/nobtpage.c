@@ -22,7 +22,7 @@
 
 #include "access/genam.h"
 #include "access/ftup.h"
-#include "access/nbtree.h"
+#include "access/nobtree.h"
 
 RcsId("$Header$");
 
@@ -201,7 +201,8 @@ _nobt_getroot(rel, access)
 
     rootpg = BufferGetPage(rootbuf, 0);
     rootopaque = (NOBTPageOpaque) PageGetSpecialPointer(rootpg);
-    if (!(rootopaque->nobtpo_flags & NOBTP_ROOT)) {
+    if (!(rootopaque->nobtpo_flags & NOBTP_ROOT)
+	|| (rootopaque->nobtpo_replaced != P_NONE)) {
 
 	/* it happened, try again */
 	_nobt_relbuf(rel, rootbuf, access);
@@ -239,22 +240,14 @@ _nobt_getbuf(rel, blkno, access)
      */
 
     if (blkno != P_NEW) {
-	if (access == NOBT_WRITE)
-	    _nobt_setpagelock(rel, blkno, NOBT_WRITE);
-	else
-	    _nobt_setpagelock(rel, blkno, NOBT_READ);
-
+	_nobt_setpagelock(rel, blkno, access);
 	buf = ReadBuffer(rel, blkno);
     } else {
 	buf = ReadBuffer(rel, blkno);
 	blkno = BufferGetBlockNumber(buf);
 	page = BufferGetPage(buf, 0);
 	_nobt_pageinit(page);
-
-	if (access == NOBT_WRITE)
-	    _nobt_setpagelock(rel, blkno, NOBT_WRITE);
-	else
-	    _nobt_setpagelock(rel, blkno, NOBT_READ);
+	_nobt_setpagelock(rel, blkno, access);
     }
 
     /* ref count and lock type are correct */
@@ -338,7 +331,7 @@ _nobt_pageinit(page)
 
     bzero(page, BLCKSZ);
 
-    PageInit(page, BLCKSZ, sizeof(NONOBTPageOpaqueData));
+    PageInit(page, BLCKSZ, sizeof(NOBTPageOpaqueData));
 }
 
 /*
@@ -405,7 +398,7 @@ _nobt_getstackbuf(rel, stack, access)
     maxoff = PageGetMaxOffsetIndex(page);
 
     /* every btree entry is guaranteed unique in its NOBTItem header */
-    nbytes = sizeof(NONOBTItemData) - sizeof(IndexTupleData);
+    nbytes = sizeof(NOBTItemData) - sizeof(IndexTupleData);
 
     if (maxoff >= stack->nobts_offset) {
 	itemid = PageGetItemId(page, stack->nobts_offset);
@@ -462,10 +455,21 @@ _nobt_setpagelock(rel, blkno, access)
 
     ItemPointerSet(&iptr, 0, blkno, 0, 1);
 
-    if (access == NOBT_WRITE)
+    switch (access) {
+
+      case NOBT_WRITE:
 	RelationSetLockForWritePage(rel, 0, &iptr);
-    else
+	break;
+
+      case NOBT_READ:
 	RelationSetLockForReadPage(rel, 0, &iptr);
+	break;
+
+      case NOBT_PREVLNK:
+      case NOBT_NEXTLNK:
+      default:
+	break;
+    }
 }
 
 _nobt_unsetpagelock(rel, blkno, access)
@@ -477,10 +481,21 @@ _nobt_unsetpagelock(rel, blkno, access)
 
     ItemPointerSet(&iptr, 0, blkno, 0, 1);
 
-    if (access == NOBT_WRITE)
+    switch (access) {
+
+      case NOBT_WRITE:
 	RelationUnsetLockForWritePage(rel, 0, &iptr);
-    else
+	break;
+
+      case NOBT_READ:
 	RelationUnsetLockForReadPage(rel, 0, &iptr);
+	break;
+
+      case NOBT_PREVLNK:
+      case NOBT_NEXTLNK:
+      default:
+	break;
+    }
 }
 
 void

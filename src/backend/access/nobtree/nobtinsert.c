@@ -16,9 +16,12 @@
 #include "access/heapam.h"
 #include "access/genam.h"
 #include "access/ftup.h"
-#include "access/nbtree.h"
+#include "access/nobtree.h"
 
 RcsId("$Header$");
+
+extern bool	NOBT_Building;
+extern uint32	CurrentLinkToken;
 
 /*
  *  _nobt_doinsert() -- Handle insertion of a single btitem in the tree.
@@ -64,11 +67,11 @@ _nobt_doinsert(rel, btitem)
      *  an excruciatingly precise description.
      */
 
-    buf = _nobt_moveright(rel, buf, natts, itup_scankey, NOBT_WRITE);
+    buf = _nobt_moveright(rel, buf, natts, itup_scankey, NOBT_WRITE, stack);
 
     /* do the insertion */
     res = _nobt_insertonpg(rel, buf, stack, natts, itup_scankey,
-			 btitem, (NOBTItem) NULL);
+			   btitem, (NOBTItem) NULL);
 
     /* be tidy */
     _nobt_freestack(stack);
@@ -130,21 +133,26 @@ _nobt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
     int ritemsz;
     ItemId hikey;
     InsertIndexResult newres;
+    Page ppage;
+    NOBTItem lftitem;
     NOBTItem new_item = (NOBTItem) NULL;
 
     page = BufferGetPage(buf, 0);
     itemsz = IndexTupleDSize(btitem->nobti_itup)
-	   + (sizeof(NONOBTItemData) - sizeof(IndexTupleData));
+	   + (sizeof(NOBTItemData) - sizeof(IndexTupleData));
 
     if (PageGetFreeSpace(page) < itemsz) {
 
 	/* split the buffer into left and right halves */
-	rbuf = _nobt_split(rel, buf);
+	if (NOBT_Building)
+	    rbuf = _nobt_bsplit(rel, buf);
+	else
+	    rbuf = _nobt_nsplit(rel, &buf);
 
 	/* which new page (left half or right half) gets the tuple? */
 	if (_nobt_goesonpg(rel, buf, keysz, scankey, afteritem)) {
 	    itup_off = _nobt_pgaddtup(rel, buf, keysz, scankey,
-				    itemsz, btitem, afteritem);
+				      itemsz, btitem, afteritem);
 	    itup_blkno = BufferGetBlockNumber(buf);
 	} else {
 	    itup_off = _nobt_pgaddtup(rel, rbuf, keysz, scankey,
@@ -193,14 +201,20 @@ _nobt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
 		ritem = (NOBTItem) PageGetItem(rpage, PageGetItemId(rpage, 0));
 
 	    /* get a unique btitem for this key */
-	    new_item = _nobt_formitem(&(ritem->nobti_itup),
-				    GetCurrentTransactionId(),
-				    NOBTSEQ_GET());
+	    new_item = _nobt_formitem(&(ritem->nobti_itup));
 
 	    ItemPointerSet(&(new_item->nobti_itup.t_tid), 0, rbknum, 0, 1);
 
 	    /* find the parent buffer */
 	    pbuf = _nobt_getstackbuf(rel, stack, NOBT_WRITE);
+
+	    /* xyzzy should use standard l&y "walk right" alg here */
+	    ppage = BufferGetPage(pbuf, 0);
+	    lftitem = (NOBTItem) PageGetItem(ppage,
+				  PageGetItemId(ppage, stack->nobts_offset));
+	    lftitem->nobti_oldchild = ItemPointerGetBlockNumber(&(lftitem->nobti_itup.t_tid));
+	    ItemPointerSet(&(lftitem->nobti_itup.t_tid),
+			    0, BufferGetBlockNumber(buf), 0, 1);
 
 	    /* don't need the children anymore */
 	    _nobt_relbuf(rel, buf, NOBT_WRITE);
@@ -234,15 +248,19 @@ _nobt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
 }
 
 /*
- *  _nobt_split() -- split a page in the btree.
+ *  _nobt_bsplit() -- split a page in the btree.
  *
  *	On entry, buf is the page to split, and is write-locked and pinned.
  *	Returns the new right sibling of buf, pinned and write-locked.  The
  *	pin and lock on buf are maintained.
+ *
+ *	This routine is used only when the tree is being built; for normal
+ *	insertions, we must not reuse the left-hand page, and we must manage
+ *	the list of free pages correctly.
  */
 
 Buffer
-_nobt_split(rel, buf)
+_nobt_bsplit(rel, buf)
     Relation rel;
     Buffer buf;
 {
@@ -266,7 +284,7 @@ _nobt_split(rel, buf)
 
     rbuf = _nobt_getbuf(rel, P_NEW, NOBT_WRITE);
     origpage = BufferGetPage(buf, 0);
-    leftpage = PageGetTempPage(origpage, sizeof(NONOBTPageOpaqueData));
+    leftpage = PageGetTempPage(origpage, sizeof(NOBTPageOpaqueData));
     rightpage = BufferGetPage(rbuf, 0);
 
     _nobt_pageinit(rightpage);
@@ -380,6 +398,378 @@ _nobt_split(rel, buf)
 
 	/* write and release the old right sibling */
 	_nobt_wrtbuf(rel, sbuf);
+    }
+
+    /* split's done */
+    return (rbuf);
+}
+/*
+ *  _nobt_nsplit() -- split a page in the btree.
+ *
+ *	On entry, buf is the page to split, and is write-locked and pinned.
+ *	Returns the new right sibling of buf, pinned and write-locked.  The
+ *	pin and lock on buf are maintained.
+ *
+ *	This routine is used only during normal page splits.  It does not
+ *	reuse the left page, and manages the free list correctly.  During
+ *	the initial build of the index, we don't need to bother with this,
+ *	since building the index either commits or aborts atomically.
+ */
+
+Buffer
+_nobt_nsplit(rel, bufP)
+    Relation rel;
+    Buffer *bufP;
+{
+    Buffer rbuf;
+    Buffer buf;
+    Page origpage;
+    Page leftpage, rightpage;
+    BlockNumber lbkno, rbkno;
+    NOBTPageOpaque ropaque, lopaque, oopaque;
+    Buffer sbuf;
+    Page spage;
+    NOBTPageOpaque sopaque;
+    int itemsz;
+    ItemId itemid;
+    NOBTItem item;
+    int nleft, nright;
+    OffsetIndex start;
+    OffsetIndex maxoff;
+    OffsetIndex firstright;
+    OffsetIndex i;
+    Size llimit;
+    PageNumber repl;
+    Buffer newsbuf;
+    Page newspage;
+    bool nobackup;
+    NOBTPageOpaque newsopaque;
+
+    buf = _nobt_getbuf(rel, P_NEW, NOBT_WRITE);
+    rbuf = _nobt_getbuf(rel, P_NEW, NOBT_WRITE);
+    origpage = BufferGetPage(*bufP, 0);
+    leftpage = BufferGetPage(buf, 0);
+    rightpage = BufferGetPage(rbuf, 0);
+
+    _nobt_pageinit(leftpage);
+    _nobt_pageinit(rightpage);
+
+    /* init btree private data */
+    oopaque = (NOBTPageOpaque) PageGetSpecialPointer(origpage);
+    lopaque = (NOBTPageOpaque) PageGetSpecialPointer(leftpage);
+    ropaque = (NOBTPageOpaque) PageGetSpecialPointer(rightpage);
+
+
+    /* if we're splitting this page, it won't be the root when we're done */
+    lopaque->nobtpo_flags = ropaque->nobtpo_flags
+	= (oopaque->nobtpo_flags & ~NOBTP_ROOT);
+
+    /*
+     *  In order to guarantee atomicity of updates, we need a sentinel value
+     *  in the peer pointers between the pages.  Note that we set these before
+     *  we establish any path to the new pages.  We can set the peer pointers
+     *  between the two new pages, since no one else will screw around with
+     *  those.  There's no path to the new pages yet, so we don't need to
+     *  bother locking the peer pointers before we update them.
+     */
+
+    lopaque->nobtpo_prev = P_NONE;
+    ropaque->nobtpo_next = P_NONE;
+    ropaque->nobtpo_prev = BufferGetBlockNumber(buf);
+    lopaque->nobtpo_next = BufferGetBlockNumber(rbuf);
+
+    /*
+     *  No need for a critical section here, since these pages can't be
+     *  written out by anybody.
+     */
+
+    lopaque->nobtpo_nexttok = ropaque->nobtpo_prevtok = CurrentLinkToken;
+
+    /*
+     *  Order of operations here is critical.  First, make sure that the
+     *  link pointer tokens for the 'replaced' link agree.  Then set the
+     *  'replaced' link for the original page.
+     *
+     *  The fake peer pointer locks are for exclusive locks on links; they
+     *  conflict only with themselves.  The fake critical section calls
+     *  block concurrent processes from doing a 'commit' (and associated
+     *  sync) while we're in a critical section.
+     */
+
+#define PEER_LOCK(a)
+#define PEER_UNLOCK(a)
+
+#define CRIT_SEC_START
+#define CRIT_SEC_END
+
+    PEER_LOCK(oopaque->nobtpo_nobtpo_replaced);
+    CRIT_SEC_START;
+    oopaque->nobtpo_repltok = lopaque->nobtpo_linktok = CurrentLinkToken;
+    CRIT_SEC_END;
+    oopaque->nobtpo_replaced = BufferGetBlockNumber(buf);
+    PEER_UNLOCK(oopaque->nobtpo_nobtpo_replaced);
+
+    /*
+     *  Now a path to the new pages exists (via the replaced link from the
+     *  old page).  Concurrent updates in the tree in adjacent pages will
+     *  follow this link if they want to update the peer pointers on the
+     *  (old) page.  For that reason, we issue a peer lock on the peer pointer
+     *  values before we update them.  If they've been updated already, then
+     *  we leave them as they are, since the update that changed them knew
+     *  what it was doing.
+     *
+     *  5 June 91 17:00:  Mark suggests that we might be able to do away with
+     *  peer locks if we use a write lock on the old page to control access
+     *  to the peer pointers on the children.  I need to think about whether
+     *  or not this is correct, and code it up if it can work.  xyzzy.
+     */
+
+    PEER_LOCK(lopaque->nobtpo_prev);
+    if (lopaque->nobtpo_prev == P_NONE)
+	lopaque->nobtpo_prev = oopaque->nobtpo_prev;
+    PEER_UNLOCK(lopaque->nobtpo_prev);
+
+    PEER_LOCK(ropaque->nobtpo_next);
+    if (ropaque->nobtpo_next == P_NONE)
+	ropaque->nobtpo_next = oopaque->nobtpo_next;
+    PEER_UNLOCK(ropaque->nobtpo_next);
+
+    /*
+     *  If the page we're splitting is not the rightmost page at its level
+     *  in the tree, then the first (0) entry on the page is the high key
+     *  for the page.  We need to copy that to the right half.  Otherwise,
+     *  we should treat the line pointers beginning at zero as user data.
+     *
+     *  We leave a blank space at the start of the line table for the left
+     *  page.  We'll come back later and fill it in with the high key item
+     *  we get from the right key.
+     *
+     *  Note on no-overwrite implementation:  we don't really need to do
+     *  the lock here (at least, I don't think we do), but we'll leave it
+     *  in.  Since the only way the value will be NONE is if we're splitting
+     *  the rightmost page in the index, no one will ever change it from
+     *  anything else to none in until we release the page (and someone else
+     *  re-splits it).  For this argument to work, udpates of the next value
+     *  must be atomic (it's a longword, so they should be).
+     */
+
+    nleft = 2;
+    nright = 1;
+    PEER_LOCK(ropaque->nobtpo_next);
+    if (ropaque->nobtpo_next != P_NONE) {
+	start = 1;
+	itemid = PageGetItemId(origpage, 0);
+	itemsz = ItemIdGetLength(itemid);
+	item = (NOBTItem) PageGetItem(origpage, itemid);
+	PageAddItem(rightpage, item, itemsz, nright++, LP_USED);
+    } else {
+	start = 0;
+    }
+    PEER_UNLOCK(ropaque->nobtpo_next);
+
+    maxoff = PageGetMaxOffsetIndex(origpage);
+    llimit = PageGetFreeSpace(leftpage) / 2;
+    firstright = _nobt_findsplitloc(rel, origpage, start, maxoff, llimit);
+
+    for (i = start; i <= maxoff; i++) {
+	itemid = PageGetItemId(origpage, i);
+	itemsz = ItemIdGetLength(itemid);
+	item = (NOBTItem) PageGetItem(origpage, itemid);
+
+	/* decide which page to put it on */
+	if (i < firstright)
+	    PageAddItem(leftpage, item, itemsz, nleft++, LP_USED);
+	else
+	    PageAddItem(rightpage, item, itemsz, nright++, LP_USED);
+    }
+
+    /*
+     *  Okay, page has been split, high key on right page is correct.  Now
+     *  set the high key on the left page to be the min key on the right
+     *  page.
+     */
+
+    if (ropaque->nobtpo_next == P_NONE)
+	itemid = PageGetItemId(rightpage, 0);
+    else
+	itemid = PageGetItemId(rightpage, 1);
+    itemsz = ItemIdGetLength(itemid);
+    item = (NOBTItem) PageGetItem(rightpage, itemid);
+
+    /*
+     *  We left a hole for the high key on the left page; fill it.  The
+     *  modal crap is to tell the page manager to put the new item on the
+     *  page and not screw around with anything else.  Whoever designed
+     *  this interface has presumably crawled back into the dung heap they
+     *  came from.  No one here will admit to it.
+     */
+
+    PageManagerModeSet(OverwritePageManagerMode);
+    PageAddItem(leftpage, item, itemsz, 1, LP_USED);
+    PageManagerModeSet(ShufflePageManagerMode);
+
+    /*
+     *  By here, the original data page has been split into two new halves,
+     *  and these are correct.  The original buffer has had its 'replaced'
+     *  entry updated as appropriate.  Write these guys out.
+     */
+
+    _nobt_wrtnorelbuf(rel, rbuf);
+    _nobt_wrtnorelbuf(rel, buf);
+
+    /* can afford to drop the lock on the original and switch to the new */
+    _nobt_wrtbuf(rel, *bufP);
+    *bufP = buf;
+
+    /*
+     *  Finally, we need to adjust the link pointers among siblings.  Since
+     *  we've added new pages, we have to adjust the sibling pointers on
+     *  either side of the new pages in the tree.
+     *
+     *  On-demand recovery requires that we detect and handle the case where
+     *  our (left or right) sibling in the tree was split, and not all pages
+     *  affected by the split made it to disk before a crash.  The major idea
+     *  is to defer repairing the page for as long as possible.  To that end,
+     *  what we do here is only update the peer pointer of the last page that
+     *  made it safely to disk.
+     *
+     *  In the case that the 'replaced' link is broken, we know that the peer
+     *  pointer on the source page was correctly updated, and that the 'old'
+     *  value for the peer pointer in the page opaque data must be preserved
+     *  until the page is fixed.
+     */
+
+    nobackup = false;
+    if (ropaque->nobtpo_next != P_NONE) {
+	sbuf = _nobt_getbuf(rel, ropaque->nobtpo_next, NOBT_PREVLNK);
+	spage = BufferGetPage(sbuf, 0);
+	sopaque = (NOBTPageOpaque) PageGetSpecialPointer(spage);
+	PEER_LOCK(sopaque->nobtpo_replaced);
+	while ((repl = sopaque->nobtpo_replaced) != P_NONE) {
+	    newsbuf = _nobt_getbuf(rel, repl, NOBT_PREVLNK);
+	    newspage = BufferGetPage(sbuf, 0);
+	    newsopaque = (NOBTPageOpaque) PageGetSpecialPointer(newspage);
+
+	    /*
+	     *  Determine whether this is a valid link.  If so, traverse
+	     *  it.  Otherwise, we've gotten as far as we need to; bust
+	     *  out.  Someone later will repair the damage we've just
+	     *  detected.  This will happen when an insert or read of a
+	     *  datum on the page with the broken link happens.
+	     */
+
+	    if (sopaque->nobtpo_repltok != newsopaque->nobtpo_linktok) {
+
+		/*
+		 *  Link is broken.  Someone later will fix it.  For now,
+		 *  we want to preserve the old peer pointer and link token,
+		 *  since they may be needed to do the repair.  Store the
+		 *  new peer pointer without backing up the old one.
+		 *
+		 *  The "break" is for the while (repl = ...) loop.
+		 */
+
+		nobackup = true;
+		break;
+	    } else {
+
+		/*
+		 *  Traverse the replaced link and move the lock down.
+		 */
+
+		_nobt_relbuf(rel, sbuf, NOBT_PREVLNK);
+		PEER_UNLOCK(sopaque->nobtpo_replaced);
+		sopaque = newsopaque;
+		PEER_LOCK(sopaque->nobtpo_replaced);
+
+		/* still have newsbuf locked with PREVLNK */
+		sbuf = newsbuf;
+	    }
+	}
+
+	/*
+	 *  We need to hold the 'replaced' link lock until we have the
+	 *  peer pointers correct.
+	 */
+
+	PEER_LOCK(sopaque->nobto_prev);
+	if (!nobackup)
+	    sopaque->nobtpo_oldprev = sopaque->nobtpo_prev;
+
+	sopaque->nobtpo_prev = BufferGetBlockNumber(rbuf);
+	CRIT_SEC_START;
+	ropaque->nobtpo_nexttok = sopaque->nobtpo_prevtok = CurrentLinkToken;
+	CRIT_SEC_END;
+
+	/* write and release the old right sibling */
+	_nobt_wrtnorelbuf(rel, sbuf);
+	_nobt_relbuf(rel, sbuf, NOBT_PREVLNK);
+
+	PEER_UNLOCK(sopaque->nobtpo_replaced);
+    }
+
+    nobackup = false;
+    if (lopaque->nobtpo_prev != P_NONE) {
+	sbuf = _nobt_getbuf(rel, ropaque->nobtpo_next, NOBT_NEXTLNK);
+	spage = BufferGetPage(sbuf, 0);
+	sopaque = (NOBTPageOpaque) PageGetSpecialPointer(spage);
+	PEER_LOCK(sopaque->nobtpo_replaced);
+	while ((repl = sopaque->nobtpo_replaced) != P_NONE) {
+	    newsbuf = _nobt_getbuf(rel, repl, NOBT_NEXTLNK);
+	    newspage = BufferGetPage(sbuf, 0);
+	    newsopaque = (NOBTPageOpaque) PageGetSpecialPointer(newspage);
+
+	    /*
+	     *  Determine whether this is a valid link.  If so, traverse
+	     *  it.  Otherwise, we've gotten as far as we need to.
+	     */
+
+	    if (sopaque->nobtpo_repltok != newsopaque->nobtpo_linktok) {
+
+		/*
+		 *  Link is broken.  Someone later will fix it.  For now,
+		 *  we want to preserve the old peer pointer and link token,
+		 *  since they may be needed to do the repair.  Store the
+		 *  new peer pointer without backing up the old one.
+		 *
+		 *  The "break" is for the while (repl = ...) loop.
+		 */
+
+		nobackup = true;
+		break;
+	    } else {
+
+		/*
+		 *  Traverse the replaced link and move the lock down.
+		 */
+
+		_nobt_relbuf(rel, sbuf, NOBT_NEXTLNK);
+		PEER_UNLOCK(sopaque->nobtpo_replaced);
+		sopaque = newsopaque;
+		PEER_LOCK(sopaque->nobtpo_replaced);
+		sbuf = newsbuf;
+	    }
+	}
+
+	/*
+	 *  By here, we have sopaque->nobtpo_next locked.  Need to hold the
+	 *  'replaced' lock (which we also hold) unitl the peer pointers are
+	 *  correct.
+	 */
+
+	if (!nobackup)
+	    sopaque->nobtpo_oldnext = sopaque->nobtpo_next;
+
+	sopaque->nobtpo_next = BufferGetBlockNumber(buf);
+	CRIT_SEC_START;
+	lopaque->nobtpo_prevtok = sopaque->nobtpo_nexttok = CurrentLinkToken;
+	CRIT_SEC_END;
+
+	/* write and release the old right sibling */
+	_nobt_wrtnorelbuf(rel, sbuf);
+	_nobt_relbuf(rel, sbuf, NOBT_PREVLNK);
+
+	PEER_UNLOCK(sopaque->nobtpo_replaced);
     }
 
     /* split's done */
@@ -536,9 +926,7 @@ _nobt_newroot(rel, lbuf, rbuf)
     itemid = PageGetItemId(lpage, 1);
     itemsz = ItemIdGetLength(itemid);
     item = (NOBTItem) PageGetItem(lpage, itemid);
-    new_item = _nobt_formitem(&(item->nobti_itup),
-			    GetCurrentTransactionId(),
-			    NOBTSEQ_GET());
+    new_item = _nobt_formitem(&(item->nobti_itup));
     ItemPointerSet(&(new_item->nobti_itup.t_tid), 0, lbkno, 0, 1);
 
     /* insert the left page pointer */
@@ -548,9 +936,7 @@ _nobt_newroot(rel, lbuf, rbuf)
     itemid = PageGetItemId(rpage, 0);
     itemsz = ItemIdGetLength(itemid);
     item = (NOBTItem) PageGetItem(rpage, itemid);
-    new_item = _nobt_formitem(&(item->nobti_itup),
-			    GetCurrentTransactionId(),
-			    NOBTSEQ_GET());
+    new_item = _nobt_formitem(&(item->nobti_itup));
     ItemPointerSet(&(new_item->nobti_itup.t_tid), 0, rbkno, 0, 1);
 
     /* insert the right page pointer */
@@ -601,16 +987,19 @@ _nobt_pgaddtup(rel, buf, keysz, itup_scankey, itemsize, btitem, afteritem)
     if (afteritem == (NOBTItem) NULL) {
 	itup_off = _nobt_binsrch(rel, buf, keysz, itup_scankey, NOBT_INSERTION) + 1;
     } else {
-	chknbytes = sizeof(NONOBTItemData) - sizeof(IndexTupleData);
+	chknbytes = sizeof(NOBTItemData) - sizeof(IndexTupleData);
 	tmpskey = _nobt_mkscankey(rel, &(afteritem->nobti_itup));
-	itup_off = _nobt_binsrch(rel, buf, keysz, tmpskey, NOBT_INSERTION);
+	itup_off = _nobt_binsrch(rel, buf, keysz, tmpskey, NOBT_INSERTION) + 1;
 
+#ifdef notdef
+	/* this stuff is necessary to disambiguate duplicate keys */
 	for (;;) {
 	    chkitem = (NOBTItem) PageGetItem(page,
 					   PageGetItemId(page, itup_off++));
 	    if (bcmp((char *) chkitem, (char *) afteritem, chknbytes) == 0)
 		break;
 	}
+#endif /* notdef */
 
 	/* we want to be after the item */
 	itup_off++;
@@ -689,7 +1078,7 @@ _nobt_goesonpg(rel, buf, keysz, scankey, afteritem)
     offind = _nobt_binsrch(rel, buf, keysz, tmpskey, NOBT_INSERTION);
 
     /* only need to look at unique xid/seqno pair */
-    cmpbytes = sizeof(NONOBTItemData) - sizeof(IndexTupleData);
+    cmpbytes = sizeof(NOBTItemData) - sizeof(IndexTupleData);
 
     /*
      *  This loop will terminate quickly.  Because of the way that splits

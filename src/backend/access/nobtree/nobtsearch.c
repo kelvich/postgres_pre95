@@ -18,12 +18,7 @@
 #include "access/ftup.h"
 #include "access/skey.h"
 #include "access/sdir.h"
-#include "access/nbtree.h"
-
-int16	*MaoBlock1;
-Buffer	*MaoBuffer1;
-int16	*MaoBlock2;
-Buffer	*MaoBuffer2;
+#include "access/nobtree.h"
 
 RcsId("$Header$");
 
@@ -70,6 +65,7 @@ _nobt_searchr(rel, keysz, scankey, bufP, stack_in)
     OffsetIndex offind;
     Page page;
     NOBTPageOpaque opaque;
+    PageNumber newpg;
     BlockNumber par_blkno;
     BlockNumber blkno;
     ItemId itemid;
@@ -79,9 +75,10 @@ _nobt_searchr(rel, keysz, scankey, bufP, stack_in)
     IndexTuple itup;
     IndexTuple itup_save;
 
-    /* if this is a leaf page, we're done */
     page = BufferGetPage(*bufP, 0);
     opaque = (NOBTPageOpaque) PageGetSpecialPointer(page);
+
+    /* if this is a leaf page, we're done */
     if (opaque->nobtpo_flags & NOBTP_LEAF)
 	return (stack_in);
 
@@ -102,18 +99,43 @@ _nobt_searchr(rel, keysz, scankey, bufP, stack_in)
      *  parent page on a stack.  In case we split the tree, we'll use this
      *  bit image to figure out what our real parent page is, in case the
      *  parent splits while we're working lower in the tree.  See the paper
-     *  by Lehman and Yao for how this is detected and handled.  (We use
-     *  sequence numbers to disambiguate duplicate keys in the index --
-     *  Lehman and Yao disallow duplicate keys).
+     *  by Lehman and Yao for how this is detected and handled.
+     *
+     *  Also, in the no-overwrite implementation, we use the keys that
+     *  bound this pointer as the link token, to verify that we've traversed
+     *  an active link in the tree.  For the no-overwrite case, we also need
+     *  the next pointer.
      */
 
     item_nbytes = ItemIdGetLength(itemid);
     item_save = (NOBTItem) palloc(item_nbytes);
     bcopy((char *) btitem, (char *) item_save, item_nbytes);
-    stack = (NOBTStack) palloc(sizeof(NONOBTStackData));
-    stack->nobts_blkno = par_blkno;
+    stack = (NOBTStack) palloc(sizeof(NOBTStackData));
     stack->nobts_offset = offind;
+    stack->nobts_blkno = par_blkno;
     stack->nobts_btitem = item_save;
+
+    /* if there's no "next" key on this page, use the high key */
+    if (offind++ >= PageGetMaxOffsetIndex(page)) {
+	if (opaque->nobtpo_next == P_NONE) {
+	    stack->nobts_nxtitem = (NOBTItem) NULL;
+	} else {
+	    itemid = PageGetItemId(page, 0);
+	    item_nbytes = ItemIdGetLength(itemid);
+	    item_save = (NOBTItem) palloc(item_nbytes);
+	    btitem = (NOBTItem) PageGetItem(page, itemid);
+	    bcopy((char *) btitem, (char *) item_save, item_nbytes);
+	    stack->nobts_nxtitem = item_save;
+	}
+    } else {
+	itemid = PageGetItemId(page, offind);
+	item_nbytes = ItemIdGetLength(itemid);
+	item_save = (NOBTItem) palloc(item_nbytes);
+	btitem = (NOBTItem) PageGetItem(page, itemid);
+	bcopy((char *) btitem, (char *) item_save, item_nbytes);
+	stack->nobts_nxtitem = item_save;
+    }
+
     stack->nobts_parent = stack_in;
 
     /* drop the read lock on the parent page and acquire one on the child */
@@ -126,7 +148,7 @@ _nobt_searchr(rel, keysz, scankey, bufP, stack_in)
      *  new sibling.  Do that.
      */
 
-    *bufP = _nobt_moveright(rel, *bufP, keysz, scankey, NOBT_READ);
+    *bufP = _nobt_moveright(rel, *bufP, keysz, scankey, NOBT_READ, stack);
 
     /* okay, all set to move down a level */
     return (_nobt_searchr(rel, keysz, scankey, bufP, stack));
@@ -152,67 +174,126 @@ _nobt_searchr(rel, keysz, scankey, bufP, stack_in)
  */
 
 Buffer
-_nobt_moveright(rel, buf, keysz, scankey, access)
+_nobt_moveright(rel, buf, keysz, scankey, access, stack)
     Relation rel;
     Buffer buf;
     int keysz;
     ScanKey scankey;
     int access;
+    NOBTStack stack;
 {
     Page page;
     PageNumber right;
+    PageNumber newpg;
     NOBTPageOpaque opaque;
     ItemId hikey;
     ItemId itemid;
     BlockNumber rblkno;
+    IndexTuple stktupa, chktupa;
+    IndexTuple stktupb, chktupb;
+    NOBTItem chkitem;
+    char *stkstra, *chkstra;
+    char *stkstrb, *chkstrb;
+    int cmpsiza, cmpsizb;
+    bool inconsistent;
 
     page = BufferGetPage(buf, 0);
     opaque = (NOBTPageOpaque) PageGetSpecialPointer(page);
-
-    /* if we're on a rightmost page, we don't need to move right */
-    if (opaque->nobtpo_next == P_NONE)
-	return (buf);
-
-    /* by convention, item 0 on non-rightmost pages is the high key */
-    hikey = PageGetItemId(page, 0);
+    inconsistent = false;
 
     /*
-     *  If the scan key that brought us to this page is >= the high key
-     *  stored on the page, then the page has split and we need to move
-     *  right.
+     *  For the no-overwrite implementation, here are the things that can
+     *  cause us to have to move around in the tree:
+     *
+     *    +  The page we have just come to has just split, but the parent
+     *	     now contains the correct entries for the new children, so the
+     *       tree is consistent.  In this case, we adjust the parent pointer
+     *       stack, move right as far as necessary, and continue.
+     *
+     *    +  The tree is genuinely inconsistent -- there was a failure during
+     *       the write of the modified tree to disk, and some set of pages
+     *       failed to make it out.  In this case, we must immediately repair
+     *       the damage.  We're on one of the modified pages.
+     *
+     *  Short-term Lehman and Yao locking guarantees that if no failure has
+     *  occurred, then case one must have happened.  The no-overwrite algorithm
+     *	by Sullivan guarantees that we can recover from two in the face of
+     *  any failure.
      */
 
-    if (_nobt_skeycmp(rel, keysz, scankey, page, hikey,
-		    NOBTGreaterEqualStrategyNumber)) {
-
-	/* move right as long as we need to */
-	do {
-	    /*
-	     *  If this page consists of all duplicate keys (hikey and first
-	     *  key on the page have the same value), then we don't need to
-	     *  step right.
-	     */
-	    if (PageGetMaxOffsetIndex(page) > 0) {
-		itemid = PageGetItemId(page, 1);
-		if (_nobt_skeycmp(rel, keysz, scankey, page, itemid,
-				NOBTEqualStrategyNumber)) {
-		    /* break is for the "move right" while loop */
-		    break;
-		}
-	    }
-
-	    /* step right one page */
-	    rblkno = opaque->nobtpo_next;
-	    _nobt_relbuf(rel, buf, access);
-	    buf = _nobt_getbuf(rel, rblkno, access);
-	    page = BufferGetPage(buf, 0);
-	    opaque = (NOBTPageOpaque) PageGetSpecialPointer(page);
-	    hikey = PageGetItemId(page, 0);
-
-	} while (opaque->nobtpo_next != P_NONE
-		 && _nobt_skeycmp(rel, keysz, scankey, page, hikey,
-				 NOBTGreaterEqualStrategyNumber));
+    /* first, if this page has been replaced, then move to the new page */
+    while ((newpg = opaque->nobtpo_replaced) != P_NONE) {
+	_nobt_relbuf(rel, buf, access);
+	buf = _nobt_getbuf(rel, newpg, access);
+	page = BufferGetPage(buf, 0);
+	opaque = (NOBTPageOpaque) PageGetSpecialPointer(page);
+	inconsistent = true;
     }
+
+    /*
+     *  If the key range on the parent doesn't match the key range on the
+     *  child at which we've arrived (after possibly following "replaced"
+     *  links above), then the tree may be inconsistent.  The hairy code
+     *  structure (next page, prev page == P_NONE -- four cases) is due to
+     *  the fact that the high and low key in the index are handled specially
+     *  to avoid expensive updates.
+     */
+
+    if (opaque->nobtpo_next == P_NONE) {
+	if (opaque->nobtpo_prev == P_NONE) {
+	    if (stack != (NOBTStack) NULL)
+		inconsistent = true;
+	} else if (stack == NULL) {
+	    inconsistent = true;
+	} else {
+	    stktupa = &(stack->nobts_btitem->nobti_itup);
+	    stkstra = ((char *) stktupa) + sizeof(IndexTupleData);
+	    chkitem = (NOBTItem) PageGetItem(page, PageGetItemId(page, 0));
+	    chktupa = &(chkitem->nobti_itup);
+	    chkstra = ((char *) chktupa) + sizeof(IndexTupleData);
+	    cmpsiza = IndexTupleSize(stktupa) - sizeof(IndexTupleData);
+	    if (IndexTupleSize(stktupa) != IndexTupleSize(chktupa)
+		|| bcmp(stkstra, chkstra, cmpsiza) != 0)
+		inconsistent = true;
+	}
+    } else {
+	if (stack == NULL || stack->nobts_nxtitem == (NOBTItem) NULL) {
+	    inconsistent = true;
+	} else if (opaque->nobtpo_prev == P_NONE) {
+	    if (stack->nobts_offset != 0)
+		inconsistent = true;
+	} else {
+	    /* stack tuple a, check tuple a are the low key on the page */
+	    stktupa = &(stack->nobts_btitem->nobti_itup);
+	    stkstra = ((char *) stktupa) + sizeof(IndexTupleData);
+	    chkitem = (NOBTItem) PageGetItem(page, PageGetItemId(page, 1));
+	    chktupa = &(chkitem->nobti_itup);
+	    chkstra = ((char *) chktupa) + sizeof(IndexTupleData);
+	    cmpsiza = IndexTupleSize(stktupa) - sizeof(IndexTupleData);
+
+	    /* stack tuple b, check tuple b are the high key */
+	    stktupb = &(stack->nobts_nxtitem->nobti_itup);
+	    stkstrb = ((char *) stktupb) + sizeof(IndexTupleData);
+	    chkitem = (NOBTItem) PageGetItem(page, PageGetItemId(page, 0));
+	    chktupb = &(chkitem->nobti_itup);
+	    chkstrb = ((char *) chktupb) + sizeof(IndexTupleData);
+	    cmpsizb = IndexTupleSize(stktupb) - sizeof(IndexTupleData);
+
+	    if (IndexTupleSize(stktupa) != IndexTupleSize(chktupa)
+		|| bcmp(stkstra, chkstra, cmpsiza) != 0
+	        || IndexTupleSize(stktupb) != IndexTupleSize(chktupb)
+		|| bcmp(stkstrb, chkstrb, cmpsizb) != 0)
+		inconsistent = true;
+	}
+    }
+
+    /* XXX XXX XXX peer pointer check? */
+
+    /* if the tree may be inconsistent, it has to be fixed... */
+    if (inconsistent) {
+	elog(NOTICE, "inconsistency detected, should do something here...");
+    }
+
     return (buf);
 }
 
@@ -990,7 +1071,7 @@ _nobt_twostep(scan, bufP, dir)
     *bufP = _nobt_getbuf(scan->relation, blkno, NOBT_READ);
     page = BufferGetPage(*bufP, 0);
     maxoff = PageGetMaxOffsetIndex(page);
-    nbytes = sizeof(NONOBTItemData) - sizeof(IndexTupleData);
+    nbytes = sizeof(NOBTItemData) - sizeof(IndexTupleData);
 
     while (offind <= maxoff) {
 	itemid = PageGetItemId(page, offind);

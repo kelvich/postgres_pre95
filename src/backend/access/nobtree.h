@@ -5,7 +5,7 @@
  */
 
 /*
- *  NONOBTPageOpaqueData -- At the end of every page, we store a pointer to
+ *  NOBTPageOpaqueData -- At the end of every page, we store a pointer to
  *  both siblings in the tree.  See Lehman and Yao's paper for more info.
  *  In addition, we need to know what sort of page this is (leaf or internal),
  *  and whether the page is available for reuse.
@@ -20,18 +20,26 @@
  *  Rightmost pages in the tree have no high key.
  */
 
-typedef struct NONOBTPageOpaqueData {
+typedef struct NOBTPageOpaqueData {
+	uint32		nobtpo_linktok;
 	PageNumber	nobtpo_prev;
+	PageNumber	nobtpo_oldprev;
+	uint32		nobtpo_prevtok;
 	PageNumber	nobtpo_next;
+	PageNumber	nobtpo_oldnext;
+	uint32		nobtpo_nexttok;
+	uint32		nobtpo_repltok;
+	PageNumber	nobtpo_replaced;
 	uint16		nobtpo_flags;
 
 #define NOBTP_LEAF	(1 << 0)
 #define NOBTP_ROOT	(1 << 1)
-#define NOBTP_FREE	(1 << 2)
+#define NOBTP_SIBOK	(1 << 3)
+#define NOBTP_FREE	(1 << 4)
 
-} NONOBTPageOpaqueData;
+} NOBTPageOpaqueData;
 
-typedef NONOBTPageOpaqueData	*NOBTPageOpaque;
+typedef NOBTPageOpaqueData	*NOBTPageOpaque;
 
 /*
  *  ScanOpaqueData is used to remember which buffers we're currently
@@ -41,69 +49,82 @@ typedef NONOBTPageOpaqueData	*NOBTPageOpaque;
  *  which are expensive.
  */
 
-typedef struct NONOBTScanOpaqueData {
+typedef struct NOBTScanOpaqueData {
     Buffer	nobtso_curbuf;
     Buffer	nobtso_mrkbuf;
-} NONOBTScanOpaqueData;
+} NOBTScanOpaqueData;
 
-typedef NONOBTScanOpaqueData	*NOBTScanOpaque;
+typedef NOBTScanOpaqueData	*NOBTScanOpaque;
 
+#ifndef notdef
 /*
- *  NOBTItems are what we store in the btree.  Each item has an index tuple,
- *  including key and pointer values.  In addition, we must guarantee that
- *  all tuples in the index are unique, in order to satisfy some assumptions
- *  in Lehman and Yao.  The way that we do this is by storing the XID of the
- *  inserting transaction, and a sequence number, which tells us which index
- *  tuple insertion in that transaction this is.  With alignment, this is
- *  twelve bytes of space overhead in order to provide high concurrency and
- *  short-duration locks.
+ *  NOBTItems are what we store in the btree.  The oldchild entry is used
+ *  to store a pointer to the previous child page on internal items after
+ *  a new one has been added by a page split.  It's necessary to store these
+ *  in order to guarantee recoverability.
  */
 
-typedef struct NONOBTItemData {
-	TransactionIdData	nobti_xid;
-	uint32			nobti_seqno;
+typedef struct NOBTItemData {
+	PageNumber		nobti_oldchild;
+	uint16			nobti_filler;		/* force longalign */
 	IndexTupleData		nobti_itup;
-} NONOBTItemData;
+} NOBTItemData;
 
-typedef NONOBTItemData	*NOBTItem;
+typedef NOBTItemData	*NOBTItem;
+#else /* notdef */
+typedef struct NOBTIItemData {
+	uint16			nobtii_flags;
+	PageNumber		nobtii_oldchild;
+	PageNumber		nobtii_child;
+	unsigned short		nobtii_info;
+	/* MORE DATA FOLLOWS AT END OF STRUCT */
+} NOBTIItemData;
+
+typedef NOBTIItemData	*NOBTIItem;
+
+typedef struct NOBTLItemData {
+	uint16			nobtli_flags;
+	IndexTupleData		nobtli_itup;
+	/* MORE DATA FOLLOWS AT END OF STRUCT */
+} NOBTLItemData;
+
+typedef NOBTLItemData	*NOBTLItem;
+#endif /* notdef */
 
 /*
- *  The following macros manage btitem sequence numbers for insertions.
- *  The global variable is in private space, so we won't have contention
- *  problems since we further disambiguate with XID.  However, this does
- *  mean that this algorithm is not easy to parallelize.
- */
-
-extern uint32 NOBTCurrSeqNo;
-#define	NOBTSEQ_INIT()	NOBTCurrSeqNo = 0
-#define NOBTSEQ_GET()	NOBTCurrSeqNo++
-
-/*
- *  NONOBTStackData -- As we descend a tree, we push the (key, pointer) pairs
+ *  NOBTStackData -- As we descend a tree, we push the (key, pointer) pairs
  *  from internal nodes onto a private stack.  If we split a leaf, we use
  *  this stack to walk back up the tree and insert data into parent nodes
  *  (and possibly to split them, too).  Lehman and Yao's update algorithm
  *  guarantees that under no circumstances can our private stack give us
  *  an irredeemably bad picture up the tree.  Again, see the paper for
  *  details.
+ *
+ *  For the no-overwrite algorithm, we store the keys that bound the link
+ *  we traverse in the tree in the stack.  When we reach the child, we use
+ *  these keys to verify that we traversed an active link.
  */
 
-typedef struct NONOBTStackData {
+typedef struct NOBTStackData {
 	PageNumber		nobts_blkno;
 	OffsetIndex		nobts_offset;
-	NOBTItem			nobts_btitem;
-	struct NONOBTStackData	*nobts_parent;
-} NONOBTStackData;
+	NOBTItem		nobts_btitem;
+	NOBTItem		nobts_nxtitem;
+	struct NOBTStackData	*nobts_parent;
+} NOBTStackData;
 
-typedef NONOBTStackData	*NOBTStack;
+typedef NOBTStackData	*NOBTStack;
 
 /*
  *  We need to be able to tell the difference between read and write
  *  requests for pages, in order to do locking correctly.
  */
 
-#define	NOBT_READ		0
+#define	NOBT_READ	0
 #define	NOBT_WRITE	1
+#define	NOBT_NEXTLNK	2
+#define	NOBT_PREVLNK	3
+#define	NOBT_LINKTOK	4
 
 /*
  *  Similarly, the difference between insertion and non-insertion binary
@@ -130,7 +151,7 @@ typedef NONOBTStackData	*NOBTStack;
 #define NOBTLessEqualStrategyNumber	2
 #define NOBTEqualStrategyNumber		3
 #define NOBTGreaterEqualStrategyNumber	4
-#define NOBTGreaterStrategyNumber		5
+#define NOBTGreaterStrategyNumber	5
 #define NOBTMaxStrategyNumber		5
 
 /*
@@ -152,8 +173,8 @@ InsertIndexResult	_nobt_doinsert();
 InsertIndexResult	_nobt_insertonpg();
 OffsetIndex		_nobt_pgaddtup();
 ScanKey			_nobt_mkscankey();
-NOBTStack			_nobt_search();
-NOBTStack			_nobt_searchr();
+NOBTStack		_nobt_search();
+NOBTStack		_nobt_searchr();
 void			_nobt_relbuf();
 Buffer			_nobt_getbuf();
 void			_nobt_wrtbuf();
@@ -169,7 +190,7 @@ bool			_nobt_step();
 bool			_nobt_twostep();
 StrategyNumber		_nobt_getstrat();
 bool			_nobt_invokestrat();
-NOBTItem			_nobt_formitem();
+NOBTItem		_nobt_formitem();
 bool			_nobt_goesonpg();
 void			_nobt_regscan();
 void			_nobt_dropscan();

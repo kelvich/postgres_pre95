@@ -21,12 +21,14 @@
 #include "access/ftup.h"
 #include "access/sdir.h"
 #include "access/isop.h"
-#include "access/nbtree.h"
+#include "access/nobtree.h"
 
 RcsId("$Header$");
 
 /* the global sequence number for insertions is defined here */
 uint32	NOBTCurrSeqNo = 0;
+bool	NOBT_Building = false;
+uint32  CurrentLinkToken = 0;
 
 void
 nobtbuild(heap, index, natts, attnum, istrat, pcount, params)
@@ -52,6 +54,9 @@ nobtbuild(heap, index, natts, attnum, istrat, pcount, params)
     TransactionId currxid;
     extern TransactionId GetCurrentTransactionId();
 
+    /* don't bother with no-overwrite behavior for initial build */
+    NOBT_Building = true;
+
     /* first initialize the btree index metadata page */
     _nobt_metapinit(index);
 
@@ -61,7 +66,6 @@ nobtbuild(heap, index, natts, attnum, istrat, pcount, params)
 
     /* record current transaction id for uniqueness */
     currxid = GetCurrentTransactionId();
-    NOBTSEQ_INIT();
 
     /* get space for data items that'll appear in the index tuple */
     attdata = (Datum *) palloc(natts * sizeof(Datum));
@@ -103,7 +107,7 @@ nobtbuild(heap, index, natts, attnum, istrat, pcount, params)
 	itup = FormIndexTuple(natts, itupdesc, attdata, null);
 	itup->t_tid = htup->t_ctid;
 
-	btitem = _nobt_formitem(itup, currxid, NOBTSEQ_GET());
+	btitem = _nobt_formitem(itup);
 	res = _nobt_doinsert(index, btitem);
 	pfree(btitem);
 	pfree(itup);
@@ -128,6 +132,8 @@ nobtbuild(heap, index, natts, attnum, istrat, pcount, params)
     /* be tidy */
     pfree(null);
     pfree(attdata);
+
+    NOBT_Building = false;
 }
 
 /*
@@ -147,8 +153,7 @@ nobtinsert(rel, itup)
     int nbytes_btitem;
     InsertIndexResult res;
 
-    NOBTSEQ_INIT();
-    btitem = _nobt_formitem(itup, GetCurrentTransactionId(), NOBTSEQ_GET());
+    btitem = _nobt_formitem(itup);
 
     res = _nobt_doinsert(rel, btitem);
     pfree(btitem);
@@ -202,7 +207,7 @@ nobtbeginscan(rel, fromEnd, keysz, scankey)
 
     /* now get the scan */
     scan = RelationGetIndexScan(rel, fromEnd, keysz, scankey);
-    so = (NOBTScanOpaque) palloc(sizeof(NONOBTScanOpaqueData));
+    so = (NOBTScanOpaque) palloc(sizeof(NOBTScanOpaqueData));
     so->nobtso_curbuf = so->nobtso_mrkbuf = InvalidBuffer;
     scan->opaque = (Pointer) so;
 
