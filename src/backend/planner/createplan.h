@@ -21,3 +21,4 @@ extern Sort make_sort ARGS((List tlist, ObjectId tempid, Plan inner_node, Count 
 extern Material make_material ARGS((List tlist, ObjectId tempid, Plan inner_node, Count keycount));
 extern IndexScan make_indexscan ARGS((List qptlist, List qpqual, Index scanrelid, List indxid, List indxqual));
 extern Unique make_unique ARGS ((List tlist, Plan plannode));
+extern List generate_fjoin ARGS ((List tlist));
