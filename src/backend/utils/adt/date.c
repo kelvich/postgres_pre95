@@ -11,6 +11,8 @@
  * XXX	This code needs to be rewritten to work with the "new" definitions
  * XXX	in h/tim.h.  Look for int32's, int, long, etc. in the code.  The
  * XXX	definitions in h/tim.h may need to be rethought also.
+ *
+ * XXX  This code has been cleaned up some - avi 07/07/93
  */
 
 #include <ctype.h>
@@ -43,37 +45,21 @@ RcsId("$Header$");
 #define	TIME_NOW_STR		"now"	   /* represents time now */
 #define	TIME_EPOCH_STR		"epoch"	   /* Jan 1 00:00:00 1970 GMT */
 #define TIME_EPOCH_STR_LEN	(sizeof(TIME_EPOCH_STR)-1)
-#ifndef INVALID_ABSTIME
-#define	INVALID_ABSTIME		MAX_LONG
-#endif	!INVALID_ABSTIME
-	/* -2145916801 invalid time representation */
-	/*   Dec 31 23:59:59 1901       */
+
 #define	INVALID_ABSTIME_STR 	"Undefined AbsTime"
 #define	INVALID_ABSTIME_STR_LEN	(sizeof(INVALID_ABSTIME_STR)-1)
 
-/*
- *  Unix epoch is Jan  1 00:00:00 1970.  Postgres knows about times
- *  sixty-eight years on either side of that.
- */ 
-
-#define	MAX_ABSTIME		2147483647	/* Jan 19 03:14:07 2038 GMT */
-#define	MIN_ABSTIME		(0)		/* Jan  1 00:00:00 1970 */
-
-/* relative time definitions */
-#define	MAX_RELTIME		2144448000
-	/* about 68 years, compatible to absolute time */
-#define	INVALID_RELTIME		MAX_LONG
-	/* invalid reltime representation */
 #define	INVALID_RELTIME_STR	"Undefined RelTime"
 #define	INVALID_RELTIME_STR_LEN (sizeof(INVALID_RELTIME_STR)-1)
 #define	RELTIME_LABEL		'@'
 #define	RELTIME_PAST		"ago"
 #define	DIRMAXLEN		(sizeof(RELTIME_PAST)-1)
 
-#define	InAbsTimeInterval(T) \
-	((int32)(T) <= MAX_ABSTIME && (int32)(T) >= MIN_ABSTIME)
-#define	InRelTimeInterval(T) \
-	((int32)(T) <= MAX_RELTIME && (int32)(T) >= - MAX_RELTIME)
+/*
+ *  Unix epoch is Jan  1 00:00:00 1970.  Postgres knows about times
+ *  sixty-eight years on either side of that.
+ */ 
+
 #define	IsCharDigit(C)		isdigit(C)
 #define	IsCharA_Z(C)		isalpha(C)		
 #define	IsSpace(C)		((C) == ' ')
@@ -81,10 +67,12 @@ RcsId("$Header$");
 
 #define	T_INTERVAL_INVAL   0	/* data represents no valid interval */
 #define	T_INTERVAL_VALID   1	/* data represents a valid interval */
-#define	T_INTERVAL_UNCOM   2	/* data represents an uncomplete interval */
 #define	T_INTERVAL_LEN     47	/* 2+20+1+1+1+20+2 : ['...' '...']  */
 #define	INVALID_INTERVAL_STR		"Undefined Range"
 #define	INVALID_INTERVAL_STR_LEN	(sizeof(INVALID_INTERVAL_STR)-1)
+
+#define ABSTIMEMIN(t1, t2) abstimele((t1),(t2)) ? (t1) : (t2)
+#define ABSTIMEMAX(t1, t2) abstimelt((t1),(t2)) ? (t2) : (t1)
 
 static char	*month_name[] = {
 	"Jan","Feb","Mar","Apr","May","Jun","Jul",
@@ -121,10 +109,6 @@ static char *timezonename = NULL;
  * Function prototypes -- internal to this file only
  */
 
-int isabstime ARGS((char *datestring , struct tm *brokentime ));
-int correct_month ARGS((char month [], int *num ));
-int isleap ARGS((int year ));
-int timeinsec ARGS((struct tm *t , AbsoluteTime *seconds ));
 int isreltime ARGS((char *timestring , int *sign , long *quantity , int *unitnr ));
 int correct_unit ARGS((char unit [], int *unptr ));
 int correct_dir ARGS((char direction [], int *signptr ));
@@ -167,126 +151,11 @@ bsdtimezone(tz, dst)
 #define	bsdtimezone	timezone
 #endif /* bsd */
 
+#ifdef PORTNAME_sparc
+extern char *timezone ARGS((short tz, short dst));
+#endif /* PORTNAME_sparc */
+
 	    /* ========== USER I/O ROUTINES ========== */
-
-/*
- *	abstimein	- converts a time string to an internal format
- *			  checks syntax and range of datetime,
- *			  returns time as long integer in respect of GMT
- */
-
-AbsoluteTime	
-abstimein(datetime)
-	char	*datetime;
-{
-	int		which;
-	AbsoluteTime	time;
-	struct tm	brokentime;
-
-	if ( TimeDiffIsInited == false ) {
-	    TimeDifferenceFromGMT = (struct timeb *)
-	      malloc( sizeof(struct timeb));
-	    ftime(TimeDifferenceFromGMT);
-	    timezonename = bsdtimezone(TimeDifferenceFromGMT->timezone,
-				       TimeDifferenceFromGMT->dstflag);
-	    TimeDiffIsInited = true;
-	}
-
-	which = isabstime(datetime, &brokentime);
-
-	switch (which) {
-
-	case 3:							/* epoch */
-		time = MIN_ABSTIME;
-		break;
-
-	case 2:							/* now */
-		time = GetCurrentTransactionStartTime();
-		break;
-
-	case 1:							/* from user */
-		(void) timeinsec(&brokentime, &time);
-
-		/* user inputs in local time, we need to store things
-		 * in GMT so that moving databases across timezones
-		 * (amongst other things) behave predictably
-		 */
-
-		time = time + 
-		  (TimeDifferenceFromGMT->timezone * 60 ) -
-		    ( TimeDifferenceFromGMT->dstflag * 3600 ) ;
-		  
-		
-		break;
-
-	case 0:							/* error */
-		time = INVALID_ABSTIME;
-		break;
-	}
-
-	return(time);
-}
-
-/*
- *	abstimeout	- converts the internal time format to a string
- */
-char	*
-abstimeout(datetime)
-	AbsoluteTime	datetime;
-	/* seconds in respect of Greenwich Mean Time GMT!! */
-{
-	extern	struct tm	*gmtime();
-	extern	char		*asctime();
-	extern	char		*index();
-	extern	char		*strcpy();
-	struct tm		*brokentime;
-	/*points to static structure in gmtime*/
-	char			*datestring, *p;
-	int			i;
-
-	if ( TimeDiffIsInited == false ) {
-	    TimeDifferenceFromGMT = (struct timeb *)
-	      malloc( sizeof(struct timeb));
-	    ftime(TimeDifferenceFromGMT);
-	    timezonename = bsdtimezone(TimeDifferenceFromGMT->timezone,
-				       TimeDifferenceFromGMT->dstflag);
-	    TimeDiffIsInited = true;
-	}
-
-	if (datetime == INVALID_ABSTIME) {
-	    datestring = (char *) palloc ( INVALID_ABSTIME_STR_LEN +1 );
-	    (void) strcpy(datestring,INVALID_ABSTIME_STR);
-	} else if ( datetime == 0 ) {
-	    datestring = (char *)palloc ( TIME_EPOCH_STR_LEN + 1 );
-	    (void) strcpy(datestring, TIME_EPOCH_STR );
-	} else   {
-	    /* Using localtime instead of gmtime
-	     * does the correct conversion !!!
-	     */
-	    char *temp_date_string = NULL;
-
-	    brokentime = localtime((long *) &datetime);
-	    temp_date_string = asctime(brokentime);
-
-	    /* add ten to the length because we want to append
-	     * the local timezone spec which might be up to GMT+xx:xx
-	     */
-
-	    datestring = (char *)palloc ( strlen ( temp_date_string ) + 10 );
-
-	    (void) strcpy(datestring, 
-			  temp_date_string + 4 );    /* skip name of day */
-
-	    /* change new-line character "\n" at the end to timezone 
-	       followed by a null */
-	    p = index(datestring,'\n');
-	    *p = ' ';
-
-	    strcpy ( p+1 , timezonename );
-	}
-	return(datestring);
-}
-
 
 /*
  *	reltimein	- converts a reltime string in an internal format
@@ -323,22 +192,9 @@ reltimein(timestring)
 			elog(DEBUG, "reltimein: computed timeinsec %d",
 				timeinsec);
 #endif	/* DATEDEBUG */
-			if (timeinsec > MAX_RELTIME || 
-					timeinsec < - MAX_RELTIME) {
-				timeinsec = INVALID_RELTIME;
-			}
-		}
+		        }
 	}
-/*
-	if (timeinsec == INVALID_RELTIME)
-		(void) printf("\n\tInvalid RelTime");
-*/
-	if (timeinsec == InvalidTime) {
-		elog(WARN, "reltimein: cannot handle reltime of 0 secs, yet");
-		return(0);
-	} else if (timeinsec == INVALID_ABSTIME) {
-		timeinsec = InvalidTime;
-	}
+
 	return(timeinsec);
 }
 
@@ -389,24 +245,22 @@ tintervalin(intervalstr)
 	char	*intervalstr;
 {	
 	int 		error;
-	AbsoluteTime	i_start, i_end;
+	AbsoluteTime	i_start, i_end, t1, t2;
 	TimeInterval	interval;
 
 	interval = (TimeInterval) palloc(sizeof(TimeIntervalData));
-	error = istinterval(intervalstr, &i_start, &i_end);
+	error = istinterval(intervalstr, &t1, &t2);
 	if (error == 0)	/* not a valid interval NOT IMPLEMENTED */
 		interval->status = T_INTERVAL_INVAL;
+	if (interval->data[0] == INVALID_ABSTIME ||
+	    interval->data[1] == INVALID_ABSTIME)
+	        interval->status = T_INTERVAL_INVAL;  /* undefined  */
 	else {
-		interval->data[0] = Min(i_start, i_end);
-		interval->data[1] = Max(i_start, i_end);
+	        i_start = ABSTIMEMIN(t1, t2);
+	        i_end = ABSTIMEMAX(t1, t2);
+		interval->data[0] = i_start;
+		interval->data[1] = i_end;
 		interval->status = T_INTERVAL_VALID;
-		/* suppose valid range*/
-		if (interval->data[0] == INVALID_ABSTIME ||
-		    interval->data[1] == INVALID_ABSTIME)
-			interval->status = T_INTERVAL_UNCOM;  /* uncomplete */
-		if (interval->data[0] == INVALID_ABSTIME &&
-		    interval->data[1] == INVALID_ABSTIME)
-			interval->status = T_INTERVAL_INVAL;  /* undefined  */
 	}
 	return(interval);
 }
@@ -449,77 +303,86 @@ TimeInterval mktinterval(t1, t2)
         AbsoluteTime	t1;
         AbsoluteTime	t2;
 {
-        AbsoluteTime	tstart = MIN(t1, t2), tend = MAX(t1, t2);
+        AbsoluteTime	tstart = ABSTIMEMIN(t1, t2), tend = ABSTIMEMAX(t1, t2);
 	TimeInterval interval;
 
 	interval = (TimeInterval) palloc(sizeof(TimeIntervalData));
-        if (InAbsTimeInterval(tstart) &&
-	    InAbsTimeInterval(tend) &&
-	    abstimemi(tend, tstart) != INVALID_RELTIME) {
+        if (t1 == INVALID_ABSTIME || t2 == INVALID_ABSTIME)
+	        interval->status = T_INTERVAL_INVAL;
+	else {
 	        interval->status = T_INTERVAL_VALID;
 		interval->data[0] = tstart;
 		interval->data[1] = tend;
 	}
-	else
-	        interval->status = T_INTERVAL_INVAL;
+
 	return interval;
 }
 
+/*
+ *	timepl, timemi and abstimemi use the formula
+ *		abstime + reltime = abstime
+ *	so	abstime - reltime = abstime
+ *	and	abstime - abstime = reltime
+ */
 
 /*
- *	timemi		- returns the value of (AbsTime_t1 - RelTime_t2)
+ *	timepl		- returns the value of (abstime t1 + relime t2)
  */
 AbsoluteTime
-timemi(AbsTime_t1, RelTime_t2)
-	AbsoluteTime	AbsTime_t1;
-	RelativeTime	RelTime_t2;
+timepl(t1, t2)
+	AbsoluteTime	t1;
+	RelativeTime	t2;
 {
-       AbsoluteTime	t;
+	if (t1 == CURRENT_ABSTIME)
+	        t1 = GetCurrentTransactionStartTime();
 
-       if (InAbsTimeInterval(AbsTime_t1) && InRelTimeInterval(RelTime_t2)) {
-	       t = AbsTime_t1 - RelTime_t2;
-	       if (InAbsTimeInterval(t))
-		       return(t);
-       }
-       return(INVALID_ABSTIME);
-}
+        if (AbsoluteTimeIsReal(t1) &&
+	    RelativeTimeIsValid(t2) &&
+	    t1 < NOEND_ABSTIME - t2) 	/* prevent overflow */
+	        return (t1 + t2);
 
-
-/*
- *	timepl		- returns the avlue of (AbsTime_t1 + RelTime_t2)
- */
-AbsoluteTime
-timepl(AbsTime_t1,RelTime_t2)
-	AbsoluteTime	AbsTime_t1;
-	RelativeTime	RelTime_t2;
-{
-	AbsoluteTime	t;
-
-	if (InAbsTimeInterval(AbsTime_t1) && InRelTimeInterval(RelTime_t2)) {
-		t = AbsTime_t1 + RelTime_t2;
-		if (InAbsTimeInterval(t))
-			return(t);
-	}
 	return(INVALID_ABSTIME);
 }
 
 
 /*
- *	abstimemi		- returns the value of (AbsTime_t1 - AbsTime_t2)
+ *	timemi		- returns the value of (abstime t1 - reltime t2)
+ */
+AbsoluteTime
+timemi(t1, t2)
+	AbsoluteTime	t1;
+	RelativeTime	t2;
+{
+	if (t1 == CURRENT_ABSTIME)
+	        t1 = GetCurrentTransactionStartTime();
+
+        if (AbsoluteTimeIsReal(t1) &&
+	    RelativeTimeIsValid(t2) &&
+	    t1 > NOSTART_ABSTIME + t2) 	/* prevent overflow */
+	        return (t1 + t2);
+
+	return(INVALID_ABSTIME);
+}
+
+
+/*
+ *	abstimemi	- returns the value of (abstime t1 - abstime t2)
  */
 RelativeTime
-abstimemi(AbsTime_t1, AbsTime_t2)
-	AbsoluteTime	AbsTime_t1;
-	AbsoluteTime	AbsTime_t2;
+abstimemi(t1, t2)
+	AbsoluteTime	t1;
+	AbsoluteTime	t2;
 {
-       RelativeTime	t;
+	if (t1 == CURRENT_ABSTIME)
+	    t1 = GetCurrentTransactionStartTime();
+	if (t2 == CURRENT_ABSTIME)
+	    t2 = GetCurrentTransactionStartTime();
 
-       if (InAbsTimeInterval(AbsTime_t1) && InAbsTimeInterval(AbsTime_t2)) {
-	       t = AbsTime_t1 - AbsTime_t2;
-	       if (InRelTimeInterval(t))
-		       return(t);
-       }
-       return(INVALID_RELTIME);
+	if (AbsoluteTimeIsReal(t1) &&
+	    AbsoluteTimeIsReal(t2))
+	    return (t1 - t2);
+
+        return(INVALID_RELTIME);
 }
 
 
@@ -528,16 +391,14 @@ abstimemi(AbsTime_t1, AbsTime_t2)
  */
 int
 ininterval(t, interval)
-	int32	/* AbsoluteTime */	t;
+	AbsoluteTime	t;
 	TimeInterval	interval;
 {
-	if (interval->status == T_INTERVAL_VALID) {
-		if (t >= (int32)interval->data[0] &&
-				t <= (int32)interval->data[1]) {
+        AbsoluteTime t1, t2;
 
-			return(1);	/* t in valid interval */
-		}
-	}
+	if (interval->status == T_INTERVAL_VALID && t != INVALID_ABSTIME)
+		return (abstimege(t, interval->data[0]) &&
+			abstimele(t, interval->data[1]));
 	return(0);
 }
 
@@ -548,8 +409,10 @@ RelativeTime
 intervalrel(interval)
 	TimeInterval	interval;
 {
+        AbsoluteTime t1, t2;
+
 	if (interval->status == T_INTERVAL_VALID)
-		return(abstimemi(interval->data[1], interval->data[0]));
+		return(abstimemi(interval->data[0], interval->data[1]));
 	else
 		return(INVALID_RELTIME);
 }
@@ -612,32 +475,56 @@ timenowout()
 int32
 reltimeeq(t1,t2)
 	RelativeTime	t1,t2;
-{ return(t1 == t2); }
+{
+        if (t1 == INVALID_RELTIME || t2 == INVALID_RELTIME)
+	        return 0;
+	return(t1 == t2);
+}
 
 int32
 reltimene(t1, t2)
 	RelativeTime	t1,t2;
-{ return(t1 != t2); }
+{
+        if (t1 == INVALID_RELTIME || t2 == INVALID_RELTIME)
+	        return 0;
+	return(t1 != t2);
+}
 
 int32
 reltimelt(t1, t2)
-	int32 /* RelativeTime */	t1,t2;
-{ return(t1 < t2); }
+	RelativeTime	t1,t2;
+{
+        if (t1 == INVALID_RELTIME || t2 == INVALID_RELTIME)
+	        return 0;
+	return(t1 < t2);
+}
 
 int32
 reltimegt(t1, t2)
-	int32 /* RelativeTime */	t1,t2;
-{ return(t1 > t2); }
+	RelativeTime	t1,t2;
+{
+        if (t1 == INVALID_RELTIME || t2 == INVALID_RELTIME)
+	        return 0;
+	return(t1 > t2);
+}
 
 int32
 reltimele(t1, t2)
-	int32 /* RelativeTime */	t1,t2;
-{ return(t1 <= t2); }
+	RelativeTime	t1,t2;
+{
+        if (t1 == INVALID_RELTIME || t2 == INVALID_RELTIME)
+	        return 0;
+	return(t1 <= t2);
+}
 
 int32
 reltimege(t1, t2)
-	int32 /* RelativeTime */	t1,t2;
-{ return(t1 >= t2); }
+	RelativeTime	t1,t2;
+{
+        if (t1 == INVALID_RELTIME || t2 == INVALID_RELTIME)
+	        return 0;
+	return(t1 >= t2);
+}
 
 
 /*
@@ -649,8 +536,8 @@ intervaleq(i1, i2)
 {
 	if (i1->status == T_INTERVAL_INVAL || i2->status == T_INTERVAL_INVAL)
 		return(0);	/* invalid interval */
-	return((i1->data[0] == i2->data[0]) &&
-	       (i1->data[1] == i2->data[1]) );
+	return(abstimeeq(i1->data[0], i2->data[0]) &&
+	       abstimeeq(i1->data[1], i2->data[1]));
 }
 
 /*
@@ -662,9 +549,12 @@ intervalleneq(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {
+        RelativeTime rt;
+
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
 		return(0);
-	return ( (intervalrel(i) == t));
+	rt = intervalrel(i);
+	return (rt != INVALID_RELTIME && rt == t);
 }
 
 /*
@@ -676,9 +566,12 @@ intervallenne(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {
+        RelativeTime rt;
+
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
 		return(0);
-	return ( (intervalrel(i) != t));
+	rt = intervalrel(i);
+	return (rt != INVALID_RELTIME && rt != t);
 }
 
 /*
@@ -690,9 +583,12 @@ intervallenlt(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {
+        RelativeTime rt;
+
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
 		return(0);
-	return ( (intervalrel(i) < t));
+	rt = intervalrel(i);
+	return (rt != INVALID_RELTIME && rt < t);
 }
 
 /*
@@ -704,9 +600,12 @@ intervallengt(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {
+        RelativeTime rt;
+
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
 		return(0);
-	return ( (intervalrel(i) > t));
+	rt = intervalrel(i);
+	return (rt != INVALID_RELTIME && rt > t);
 }
 
 /*
@@ -718,9 +617,12 @@ intervallenle(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {	
+        RelativeTime rt;
+
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
 		return(0);
-	return ( (intervalrel(i) <= t));
+	rt = intervalrel(i);
+	return (rt != INVALID_RELTIME && rt <= t);
 }
 
 /*
@@ -732,9 +634,12 @@ intervallenge(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {
+        RelativeTime rt;
+
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
 		return(0);
-	return ( (intervalrel(i) >= t));
+	rt = intervalrel(i);
+	return (rt != INVALID_RELTIME && rt >= t);
 }
 
 /*
@@ -745,9 +650,9 @@ intervalct(i1,i2)
 	TimeInterval	i1, i2;
 {
 	if (i1->status == T_INTERVAL_INVAL || i2->status == T_INTERVAL_INVAL)
-		return(0);	/* invalid interval */
-	return((i1->data[0] <= i2->data[0]) &&
-	       (i1->data[1] >= i2->data[1]) );
+		return(0);
+	return(abstimele(i1->data[0], i2->data[0]) &&
+	       abstimege(i1->data[1], i2->data[1]));
 }
 
 /*
@@ -758,9 +663,9 @@ intervalov(i1, i2)
 	TimeInterval	i1, i2;
 {
 	if (i1->status == T_INTERVAL_INVAL || i2->status == T_INTERVAL_INVAL)
-		return(0);	/* invalid interval */
-	return(! ((i1->data[1] <= i2->data[0]) ||
-		  (i1->data[0] >= i2->data[1])));
+		return(0);
+	return(! (abstimelt(i1->data[1], i2->data[0]) ||
+		  abstimegt(i1->data[0], i2->data[1])));
 }
 
 /*
@@ -770,6 +675,8 @@ AbsoluteTime
 intervalstart(i)
 	TimeInterval	i;
 {
+        if (i->status == T_INTERVAL_INVAL)
+	        return INVALID_ABSTIME;
 	return(i->data[0]);
 }
 
@@ -780,114 +687,13 @@ AbsoluteTime
 intervalend(i)
 	TimeInterval	i;
 {
+        if (i->status == T_INTERVAL_INVAL)
+	        return INVALID_ABSTIME;
 	return(i->data[1]);
 }
 
 
 	     /* ========== PRIVATE ROUTINES ========== */
-
-
-/*
- * These are support routines for the old abstime implementation.  As
- * far as I know they are no longer used...
- *
- *	correct_month	- returns 1, iff month is a correct month descriptor
- *				     else 0.
- *	output parameter:
- *		num:	points to an integer which is an index 
- *			in table month_name[]
- */
-int
-correct_month(month, num)
-	char	month[];
-	int	*num;			/* number of month 0,...,11 */
-{
-	extern	int	strncmp();
-	extern	char	*month_name[];
-	int		i = 0;
-
-	while (i <= 11) {
-		if (strncmp(month, month_name[i],3) == 0) {
-			*num = i;
-			return(1);
-		}
-		i++;
-	}
-	return(0);  /* invalid month describtion */
-}
-
-/*
- *	isleap		- returns 1, iff year is a leap year
- */
-int
-isleap(year)
-	int	year;
-{
-	return(year%4 == 0 && year%100 != 0 || year%400 == 0);
-}
-
-
-/*
- *	timeinsec	- returns 1, iff a valid date is given, otherwise 0
- *
- *	output parameter
- *		seconds:	date in seconds (in respect of GMT!)
- */
-int
-timeinsec(t, seconds)
-	struct tm	*t;
-	AbsoluteTime	*seconds;	/* absolute time in seconds */
-{
-	register long	sec;
-	register int	year, mon;
-
-	if (t == NULL)	
-		return(0);
-	sec = 0;
-	*seconds = INVALID_ABSTIME;
-	year = t->tm_year + TM_YEAR_BASE;
-	mon = t->tm_mon + 1;  /* mon  1,...,12 */
-	if (year >= EPOCH_YEAR) {
-		/* collect days, maybe also the Feb 29. */
-		if (isleap(year) && mon > 2)
-			++sec;
-		for (--year; year >= EPOCH_YEAR; --year)
-			sec += isleap(year) ? DAYS_PER_LYEAR : DAYS_PER_NYEAR;
-		--mon;  /* mon  0,...,11 */
-		while(--mon >= 0)
-			sec += day_tab[0][mon];
-		sec += t->tm_mday - 1;
-		sec = HOURS_PER_DAY * sec + t->tm_hour;
-		sec = MINS_PER_HOUR * sec + t->tm_min;
-		sec = SECS_PER_MIN * sec + t->tm_sec;
-		/* year >= EPOCH_YEAR ==> sec >= 0 , otherwise overflow!! */
-		if (sec >= 0 && sec <= MAX_ABSTIME) {
-			*seconds = sec;	/* seconds in respect of */
-			return(1);  	/*  Greenwich Mean Time GMT */
-		} else
-			return(0);
-	} else {	/* collect days, maby also the Feb 29. */
-		if(isleap(year) && mon <= 2)
-			++sec;
-		for (++year; year < EPOCH_YEAR; ++year)
-			sec += isleap(year) ? DAYS_PER_LYEAR : DAYS_PER_NYEAR;
-		--mon;  /* mon  0,...,11 */
-		while(++mon <= 11)
-			sec += day_tab[0][mon];
-		sec += day_tab[isleap(t->tm_year)][t->tm_mon] - t->tm_mday;
-		sec = HOURS_PER_DAY * sec + (24 - (t->tm_hour + 1));
-		sec = MINS_PER_HOUR * sec + (60 - (t->tm_min + 1));
-		sec = SECS_PER_MIN * sec + (60 - t->tm_sec);
-		sec = -sec; /* year was less then EPOCH_YEAR !! */
-		/* year < EPOCH_YEAR ==> sec < 0 , otherwise overflow!! */
-		if (sec < 0 && sec >= MIN_ABSTIME) {
-			*seconds = sec;	/* seconds in respect of */
-			return(1);  	/*  Greenwich Mean Time GMT */
-		} else
-			return(0);
-	}
-}
-
 
 /*
  *	isreltime	- returns 1, iff datestring is of type reltime
