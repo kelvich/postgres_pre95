@@ -6,24 +6,13 @@ static char *scan_l =
   lexical scanner for POSTGRES 
  **********************************************************************/
 
+#include "atoms.h"
 #include "parse.h"
-/*#include "catalog_utils.h"*/
-/*#include "global.h"*/
 #include "pg_lisp.h"
 #include "ctype.h"
 
 #undef input
 #undef unput
-/*
-#define lengthof(byte_array)	(sizeof(byte_array) / sizeof((byte_array)[0]))
-#define endof(byte_array)	(&byte_array[lengthof(byte_array)])
-*/
-typedef struct ScanKeyword {
-	char	*name;
-	int	value;
-} ScanKeyword;
-
-ScanKeyword	*ScanKeywordLookup();
 
 extern LispValue yylval;
 %}
@@ -92,121 +81,14 @@ other		.
 
 %%
 
-/*
- * List of (keyword-name, keyword-token-value) pairs.
- *
- * NOTE: This list must be sorted, because binary
- *	 search is used to locate entries.
- */
-ScanKeyword	ScanKeywords[] = {
-	/* name			value		*/
-	{ "abort",		ABORT_TRANS	},
-	{ "addattr",		ADD_ATTR	},
-	{ "after",		AFTER		},
-	{ "all",		ALL		},
-	{ "always",		ALWAYS		},
-	{ "and",		AND		},
-	{ "append",		APPEND		},
-	{ "archive",		ARCHIVE		},
-	{ "arg",		ARG		},
-	{ "ascending",		ASCENDING	},
-	{ "attachas",		ATTACH_AS	},
-	{ "backward",		BACKWARD	},
-	{ "before",		BEFORE		},
-	{ "begin",		BEGIN_TRANS	},
-	{ "binary",		BINARY		},
-	{ "by",			BY		},
-	{ "close",		CLOSE		},
-	{ "cluster",		CLUSTER		},
-	{ "copy",		COPY		},
-	{ "create",		CREATE		},
-	{ "define",		DEFINE		},
-	{ "delete",		DELETE		},
-	{ "demand",		DEMAND		},
-	{ "descending",		DESCENDING	},
-	{ "destroy",		DESTROY		},
-	{ "empty",		EMPTY		},
-	{ "end",		END_TRANS	},
-	{ "execute",		EXECUTE		},
-	{ "fetch",		FETCH		},
-	{ "forward",		FORWARD		},
-	{ "from",		FROM		},
-	{ "function",		FUNCTION	},
-	{ "heavy",		HEAVY		},
-	{ "in",			IN		},
-	{ "index",		INDEX		},
-	{ "indexable",		INDEXABLE	},
-	{ "inherits",		INHERITS	},
-	{ "input_proc",		INPUTPROC	},
-	{ "intersect",		INTERSECT	},
-	{ "into",		INTO		},
-	{ "is",			IS		},
-	{ "key",		KEY		},
-	{ "leftouter",		LEFTOUTER	},
-	{ "light",		LIGHT		},
-	{ "merge",		MERGE		},
-	{ "move",		MOVE		},
-	{ "never",		NEVER		},
-	{ "none",		NONE		},
-	{ "nonulls",		NONULLS		},
-	{ "not",		NOT		},
-	{ "on",			ON		},
-	{ "once",		ONCE		},
-	{ "operator",		OPERATOR	},
-	{ "or",			OR		},
-	{ "output_proc",	OUTPUTPROC	},
-	{ "portal",		PORTAL		},
-	{ "priority",		PRIORITY	},
-	{ "purge",		PURGE		},
-	{ "quel",		QUEL		},
-	{ "remove",		REMOVE		},
-	{ "rename",		RENAME		},
-	{ "replace",		REPLACE		},
-	{ "retrieve",		RETRIEVE	},
-	{ "rightouter",		RIGHTOUTER	},
-	{ "rule",		RULE		},
-	{ "sort",		SORT		},
-	{ "to",			TO		},
-	{ "type",		P_TYPE		},
-	{ "transaction",	TRANSACTION	},
-	{ "union",		UNION		},
-	{ "unique",		UNIQUE		},
-	{ "using",		USING		},
-	{ "version",		NEWVERSION	},
-	{ "where",		WHERE		},
-	{ "with",		WITH		},
-	{ "NULL",		PNULL		},
-};
-
-ScanKeyword *
-ScanKeywordLookup(text)
-	char	*text;
-{
-	ScanKeyword	*low	= &ScanKeywords[0];
-	ScanKeyword	*high	= endof(ScanKeywords) - 1;
-	ScanKeyword	*middle;
-	int		difference;
-
-	while (low <= high) {
-		middle = low + (high - low) / 2;
-		difference = strcmp(middle->name, text);
-		if (difference == 0)
-			return (middle);
-		else if (difference < 0)
-			low = middle + 1;
-		else
-			high = middle - 1;
-	}
-
-	return (NULL);
-}
-
 /**************************************************
   MakeUpper 
   - destructively changes the inputstr, converting
   any lower-case characters to their corresponding
   upper case equivalents
  **************************************************/
+/*
+	XXX - unused code, remove sometime in the future
 
 MakeUpper(mixedstr)
 	char *mixedstr;
@@ -217,6 +99,10 @@ MakeUpper(mixedstr)
 		mixedstr++;
 	}
 }
+*/
+
+/*
+	XXX - unused code, remove sometime in the future
 
 MakeLower(mixedstr)
 	char *mixedstr;
@@ -227,7 +113,5 @@ MakeLower(mixedstr)
 		mixedstr++;
 	}
 }
-
-
-
+*/
 
