@@ -61,7 +61,9 @@ static ProcGroupLocalInfo FreeProcGroupP;
 int 	*MasterProcessIdP;	/* master backend process id */
 int	*SlaveAbortFlagP;	/* flag set during a transaction abort */
 SlaveInfo	SlaveInfoP;	/* slave backend info */
-ProcGroupInfo	ProcGroupInfoP; /* process group info */
+extern ProcGroupInfo	ProcGroupInfoP; /* process group info */
+					/* defined in execipc.c to make
+					   postmaster happy */
 
 TransactionState SharedTransactionState; /* current transaction info */
 
