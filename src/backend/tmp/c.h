@@ -608,4 +608,11 @@ form ARGS((
 
 #define SccsId(id)	RevisionId(_SccsId_, id)
 #define RcsId(id)	RevisionId(_RcsId_, id)
+
+/*
+ *  Force a syntax error during compilation
+ */
+
+#define CauseCompilerError()	{ a b; }
+
 #endif	/* !defined(CIncluded) */
