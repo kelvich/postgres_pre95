@@ -82,9 +82,11 @@ char delimiter;
 
     /*
      * account for last element in list.
+     *
+     * Careful! If the array string is "{}" there is no 'last element'
      */
 
-    return(nelems + 1);
+    return(((nelems > 0) ? (nelems + 1) : 0));
 }
 
 /*
@@ -150,7 +152,13 @@ ObjectId element_type;
         strcpy(string_save, string);
     }
 
-    nitems = array_count(string, typdelim);
+    if ((nitems = array_count(string, typdelim)) == 0)
+    {
+	char *emptyArray = palloc(sizeof(int32));
+
+	* (int32 *) emptyArray = sizeof(int32);
+	return emptyArray;
+    }
 
     values        = (char **) palloc(nitems * sizeof(char *));
 
@@ -340,6 +348,14 @@ ObjectId element_type;
 
     items += sizeof(int32);
 
+    if (nitems == 0)
+    {
+	char *emptyArray = palloc(3);
+	emptyArray[0] = '{';
+	emptyArray[1] = '}';
+	emptyArray[2] = '\0';
+	return emptyArray;
+    }
     values = (char **) palloc(nitems * sizeof (char *));
     overall_length = 0;
 
