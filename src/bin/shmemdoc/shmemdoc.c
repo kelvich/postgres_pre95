@@ -53,6 +53,7 @@ extern int	bufdesc();
 extern int	bufdescs();
 extern int	buffer();
 extern int	linp();
+extern int	sony();
 extern int	tuple();
 
 Cmd	CmdList[] = {
@@ -66,6 +67,7 @@ Cmd	CmdList[] = {
     "semstat",		0,	semstat,
     "setbase",		1,	setbase,
     "shmemstat",	0,	shmemstat,
+    "sony",		0,	sony,
     "tuple",		3,	tuple,
     "whatis",		1,	whatis,
     (char *) NULL,	0,	NULL
@@ -115,6 +117,49 @@ typedef struct BufferDesc {
 #endif /* HAS_TEST_AND_SET */
 } BufferDesc;
 
+typedef struct SJCacheTag {
+    long		sjct_dbid;
+    long		sjct_relid;
+    long		sjct_base;
+} SJCacheTag;
+
+typedef struct SJCacheHeader {
+    int			sjh_nentries;
+    int			sjh_freehead;
+    int			sjh_freetail;
+    long		sjh_flags;
+#define SJH_INITING	(1 << 0)
+#define SJH_INITED	(1 << 1)
+
+#ifdef HAS_TEST_AND_SET
+    long		sjh_initlock;
+#endif /* HAS_TEST_AND_SET */
+} SJCacheHeader;
+
+#define SJGRPSIZE	16
+
+typedef struct SJCacheItem {
+    SJCacheTag		sjc_tag;
+    int			sjc_freeprev;
+    int			sjc_freenext;
+    int			sjc_refcount;
+    long		sjc_oid;
+    long		sjc_plid;
+    char		sjc_plname[16];
+    int			sjc_jboffset;
+    unsigned char	sjc_gflags;
+    unsigned char	sjc_flags[SJGRPSIZE];
+
+#define	SJC_CLEAR	(unsigned char) 0x0
+#define	SJC_MISSING	(unsigned char) (1 << 0)
+#define	SJC_ONPLATTER	(unsigned char) (1 << 1)
+#define SJC_IOINPROG	(unsigned char) (1 << 7)
+
+#ifdef HAS_TEST_AND_SET
+    long		sjc_iolock;
+#endif /* HAS_TEST_AND_SET */
+} SJCacheItem;
+
 char		*Base;
 char		*SharedRegion;
 int		SemaphoreId;
@@ -129,8 +174,15 @@ char		*BufHashTable;
 char		*LockTableCtl;
 char		*LockTableLockHash;
 char		*LockTableXIDHash;
-char		*SharedRegionEnd;
+char		*SharedInvalBuffer;
+char		*SJHeader;
+#ifndef HAS_TEST_AND_SET
+char		*SJNWaiting;
+#endif /* ndef HAS_TEST_AND_SET */
+char		*SJNBlockCache;
+char		*SJCache;
 char		*LastKnownSMAddr;
+char		*SharedRegionEnd;
 
 typedef struct ItemIdData {
     unsigned		lp_off:13,		/* offset to tuple */
@@ -564,6 +616,18 @@ shmemsplit(region)
     region += (72 + 1024);
     LockTableXIDHash = region;
     region += (72 + 1024);
+    SharedInvalBuffer = region;
+    region += 3900;
+    SJHeader = region;
+    region += 16;
+#ifndef HAS_TEST_AND_SET
+    SJNWaiting = region;
+    region += 4;
+#endif /* ndef HAS_TEST_AND_SET */
+    SJNBlockCache = region;
+    region += 20 * 12;
+    SJCache = region;
+    region += 64 * 72;
     LastKnownSMAddr = region;
 }
 
@@ -626,10 +690,28 @@ whatis(addr)
 	if (locn > LockTableLockHash)
 	    printf("pointer into ");
 	printf("lock table (lock hash)\n");
-    } else if (locn >= LockTableXIDHash && locn < LastKnownSMAddr) {
+    } else if (locn >= LockTableXIDHash && locn < SharedInvalBuffer) {
 	if (locn > LockTableXIDHash)
 	    printf("pointer into ");
 	printf("lock table (xid hash)\n");
+    } else if (locn >= SharedInvalBuffer && locn < SJHeader) {
+	if (locn > SharedInvalBuffer)
+	    printf("pointer into ");
+	printf("shared invalidation buffer\n");
+#ifndef HAS_TEST_AND_SET
+    } else if (locn >= SJNWaiting && locn < SJNBlockCache) {
+	if (locn > SJNWaiting)
+	    printf("pointer into ");
+	printf("number of processes waiting on jukebox I/O");
+#endif /* ndef HAS_TEST_AND_SET */
+    } else if (locn >= SJNBlockCache && locn < SJCache) {
+	if (locn > SJNBlockCache)
+	    printf("pointer into ");
+	printf("nblock cache\n");
+    } else if (locn >= SJCache && locn < LastKnownSMAddr) {
+	if (locn > SJCache)
+	    printf("pointer into ");
+	printf("sony jukebox metadata cache\n");
     } else if (locn >= LastKnownSMAddr && locn < SharedRegionEnd) {
 	printf("unknown shared memory pointer\n");
     } else
@@ -646,15 +728,32 @@ shmemstat()
     printf("shared region                0x%lx - 0x%lx\n",
 	   XLATE(SharedRegion), XLATE(SharedRegionEnd));
     printf("binding table                0x%lx\n", XLATE(BindingTable));
+    printf("\n");
+
     printf("buffer descriptors           0x%lx\n", XLATE(BufferDescriptors));
     printf("buffer blocks                0x%lx\n", XLATE(BufferBlocks));
 #ifndef HAS_TEST_AND_SET
     printf("# backends waiting on i/o    0x%lx\n", XLATE(NWaitIOBackend));
 #endif /* ndef HAS_TEST_AND_SET */
     printf("buffer hash table            0x%lx\n", XLATE(BufHashTable));
+    printf("\n");
+
     printf("lock table control           0x%lx\n", XLATE(LockTableCtl));
     printf("lock table (lock hash)       0x%lx\n", XLATE(LockTableLockHash));
     printf("lock table (xid hash)        0x%lx\n", XLATE(LockTableXIDHash));
+    printf("\n");
+
+    printf("shared invalidation region   0x%lx\n", XLATE(SharedInvalBuffer));
+    printf("\n");
+
+    printf("sony jukebox cache header    0x%lx\n", XLATE(SJHeader));
+#ifndef HAS_TEST_AND_SET
+    printf("# backends wait on sony i/o  0x%lx\n", XLATE(SJNWaiting));
+#endif /* ndef HAS_TEST_AND_SET */
+    printf("sony nblock cache            0x%lx\n", XLATE(SJNBlockCache));
+    printf("sony metadata cache          0x%lx\n", XLATE(SJCache));
+    printf("\n");
+
     printf("last known shared mem addr   0x%lx\n", XLATE(LastKnownSMAddr));
 
     return (0);
@@ -1087,4 +1186,49 @@ tuple(pgno, type, which)
     }
 
     return (0);
+}
+
+int
+sony()
+{
+    int i;
+    SJCacheItem *cache;
+    SJCacheHeader *cachehdr;
+#ifndef HAS_TEST_AND_SET
+    int *nwaiting = (int *) SJNWaiting;
+#endif
+
+    cachehdr = (SJCacheHeader *) SJHeader;
+    cache = (SJCacheItem *) SJCache;
+
+    printf("cache header: %d pinned, free list head %d, tail %d, ",
+	   cachehdr->sjh_nentries, cachehdr->sjh_freehead,
+	   cachehdr->sjh_freetail);
+    printf("flags = <");
+    if (cachehdr->sjh_flags & SJH_INITING)
+	printf(" initing ");
+    if (cachehdr->sjh_flags & SJH_INITED)
+	printf(" inited ");
+    printf(">");
+#ifdef HAS_TEST_AND_SET
+    printf(", init lock %sset", (cachehdr->sjh_initlock ? "" : "not "));
+#endif /* HAS_TEST_AND_SET */
+    printf("\n");
+    printf("%d backends waiting on i/o\n\n", *nwaiting);
+
+    printf("cache contents:\n");
+    for (i = 0; i < 64; i++) {
+	printf("  [%2d]  <%d,%d,%d> prev %d next %d refcnt %d oid %ld\n",
+		i, cache[i].sjc_tag.sjct_dbid,
+		cache[i].sjc_tag.sjct_relid,
+		cache[i].sjc_tag.sjct_base,
+		cache[i].sjc_freeprev,
+		cache[i].sjc_freenext,
+		cache[i].sjc_refcount,
+		cache[i].sjc_oid);
+	printf("\tplatter %ld (%.16s) @ %ld\n",
+		cache[i].sjc_plid,
+		cache[i].sjc_plname,
+		cache[i].sjc_jboffset);
+    }
 }
