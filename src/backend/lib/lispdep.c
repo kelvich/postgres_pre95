@@ -64,7 +64,6 @@ extern bool	_copyLispStr();
 
 /* ===================== PGLISP ==================== */
 
-extern char		*malloc();
 
 lispNullp ( lval)
      LispValue lval;

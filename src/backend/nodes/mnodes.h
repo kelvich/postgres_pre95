@@ -43,7 +43,7 @@
 typedef struct MemoryContextMethodsData {
 	Pointer	(*alloc)
 		ARGS((classObj(MemoryContext) context, uint32 length));
-	void	(*free)
+	void	(*free_p) /* need to use free as a #define, so can't use free */
 		ARGS((classObj(MemoryContext) context, Pointer pointer));
 	Pointer	(*realloc) ARGS((
 			classObj(MemoryContext) context,
