@@ -1,6 +1,9 @@
 %{
 #define YYDEBUG 1
 /**********************************************************************
+
+  $Header$
+
   POSTGRES YACC rules/actions
   the result returned by parser is the undecorated parsetree.
   
@@ -15,7 +18,7 @@
 		<action 1>
 	| <rule 2>
 		<action 2>
-	...
+		...
 	| <rule n>
 		<action n>
 	;
@@ -26,10 +29,6 @@
  **********************************************************************/
 
 #include "c.h"
-
-RcsId("$Header$");
-
-#include <pwd.h>
 #include "catalog_utils.h"
 #include "log.h"
 #include "palloc.h"
@@ -40,9 +39,10 @@ RcsId("$Header$");
 #include "primnodes.a.h"
 
 extern LispValue new_filestr();
+extern LispValue parser_typecast();
+extern LispValue make_targetlist_expr();
 extern Relation amopenr();
 
-#define MAXPATHLEN 1024
 #define ELEMENT 	yyval = nappend1( LispNil , yypvt[-0] )
 			/* yypvt [-1] = $1 */
 #define INC_LIST 	yyval = nappend1( yypvt[-2] , yypvt[-0] ) /* $1,$3 */
@@ -57,7 +57,9 @@ extern Relation amopenr();
 
 #define YYSTYPE LispValue
 extern YYSTYPE parsetree;
-static ResdomNoIsAttrNo = 0;
+
+LispValue NewOrCurrentIsReally = (LispValue)NULL;
+bool ResdomNoIsAttrNo = false;
 extern YYSTYPE parser_ppreserve();
 
 static YYSTYPE temp;
@@ -74,7 +76,7 @@ YYSTYPE	       p_trange,
                p_target_resnos;
 
 static int p_numlevels,p_last_resno;
-static Relation CurrentRelationPtr = NULL;
+Relation parser_current_rel = NULL;
 static bool QueryIsRule = false;
 
 
@@ -195,7 +197,7 @@ ClosePortalStmt:
 
   **********************************************************************/
 ClusterStmt:
-	  Cluster Relation On index_name OptUseOp
+	  Cluster Relation ON index_name OptUseOp
   		{ elog(WARN,"cluster statement unimplemented in version 2"); }
 	;
 
@@ -390,21 +392,12 @@ DefineStmt:
 		}
 	;
 
-def_type:	
-	  Function 
-		{ $$ = KW(function); }
-	| Operator 
-		{ $$ = KW(operator); }
-	| Type 
-		{ $$ = KW(type); }
-	;
-def_name:
-	  Id 
-	| Op	
-	;
+def_type:   Function | Operator | Type	;
+
+def_name:  Id | Op ;
 
 opt_def_args:	/* Because "define procedure .." */
-	  ARG Is '(' def_name_list ')'
+	  ARG IS '(' def_name_list ')'
 		{ $$ = lispCons (KW(arg), $4); }
 	| /*EMPTY*/
 		{ NULLTREE }
@@ -456,12 +449,12 @@ DestroyStmt:
 
   **********************************************************************/
 FetchStmt:
-	  Fetch opt_direction fetch_how_many opt_portal_name
+	  FETCH opt_direction fetch_how_many opt_portal_name
 		{
 		    $3 = lispCons ( $3 , LispNil );
 		    $2 = lispCons ( $2 , $3 );
 		    $4 = lispCons ( $4 , $2 );
-		    $$ = lispCons ( $1 , $4 );
+		    $$ = lispCons ( KW(fetch) , $4 );
 	        }
 	;
 
@@ -481,12 +474,12 @@ fetch_how_many:
   **********************************************************************/
 
 MoveStmt:
-	  Move opt_direction opt_move_where opt_portal_name
+	  MOVE opt_direction opt_move_where opt_portal_name
 		{ 
 		    $3 = lispCons ( $3 , LispNil );
 		    $2 = lispCons ( $2 , $3 );
 		    $4 = lispCons ( $4 , $2 );
-		    $$ = lispCons ( $1 , $4 );
+		    $$ = lispCons ( KW(move) , $4 );
 		}
 	;
 
@@ -526,7 +519,7 @@ opt_portal_name:
 
 
 IndexStmt:
-	  Define opt_archive Index index_name On relation_name
+	  Define opt_archive Index index_name ON relation_name
 	    Using access_method '(' index_list ')' with_clause
 		{
 		    /* should check that access_method is valid,
@@ -552,7 +545,7 @@ IndexStmt:
 
   ************************************************************/
 MergeStmt:
-	MERGE Relation Into relation_name
+	MERGE Relation INTO relation_name
 		{ 
 		    elog(NOTICE, "merge is unsupported in version 1");
 		    $$ = lispCons($1,
@@ -606,7 +599,7 @@ after_clause:	AFTER date		{ $$ = lispCons($1,
 	remove function <funcname>
 		(REMOVE FUNCTION "funcname")
 	remove operator <opname>
-		(REMOVE OPERATOR "opname")
+		(REMOVE OPERATOR ("opname" leftoperand_typ rightoperand_typ))
 	remove type <typename>
 		(REMOVE TYPE "typename")
 	remove rule <rulename>
@@ -672,8 +665,19 @@ RenameStmt :
           Define Rule <old rules >
   */
 
+opt_support:
+  	'[' NumConst ',' NumConst ']'
+		{
+		    $$ = lispCons ( $2, $4 );
+		}
+	| /* EMPTY */
+		{
+		    $$ = lispCons ( lispFloat(1.0), lispFloat(0.0) );
+		}
+	 ;
+
 RuleStmt:
-	Define newruleTag Rule name Is 
+	Define newruleTag Rule name opt_support IS
 		{
 		    p_ruleinfo = lispCons(lispInteger(0),LispNil);
 		    p_priority = lispInteger(0) ;
@@ -681,7 +685,8 @@ RuleStmt:
 	RuleBody
 		{
 
-	 	    $4 = lispCons ( $4, $7 );
+		    $8 = nappend1 ( $8, $5 );
+	 	    $4 = lispCons ( $4, $8 );
 	 	    $3 = lispCons ( $3, $4 );
 		    $2 = lispCons ( $2, $3 );	
 		    $$ = lispCons ( $1, $2 );	
@@ -700,6 +705,7 @@ RuleBody:
 	ON event TO event_object opt_qual
 	DO opt_instead 
 	{ 
+	    NewOrCurrentIsReally = $4;
 	    QueryIsRule = true;
 	} 
 	OptimizableStmt
@@ -746,18 +752,18 @@ opt_instead:
 	
   **************************************************/
 TransactionStmt:
-	  Abort TRANSACTION
-		{ $$ = lispCons ( $1, LispNil ) ; } 
-	| Begin TRANSACTION
-		{ $$ = lispCons ( $1, LispNil ) ; } 
-	| End TRANSACTION
-		{ $$ = lispCons ( $1, LispNil ) ; } 
-	| Abort
-		{ $$ = lispCons ( $1, LispNil ) ; } 
-	| Begin
-		{ $$ = lispCons ( $1, LispNil ) ; } 
-	| End
-		{ $$ = lispCons ( $1, LispNil ) ; } 
+	  ABORT_TRANS TRANSACTION
+		{ $$ = lispCons ( KW(abort), LispNil ) ; } 
+	| BEGIN_TRANS TRANSACTION
+		{ $$ = lispCons ( KW(begin), LispNil ) ; } 
+	| END_TRANS TRANSACTION
+		{ $$ = lispCons ( KW(end), LispNil ) ; } 
+	| ABORT_TRANS
+		{ $$ = lispCons ( KW(abort), LispNil ) ; } 
+	| BEGIN_TRANS
+		{ $$ = lispCons ( KW(begin), LispNil ) ; } 
+	| END_TRANS
+		{ $$ = lispCons ( KW(end), LispNil ) ; } 
 	;
 
  /**************************************************
@@ -819,10 +825,10 @@ AppendStmt:
 						    CString($5)));
                   if (x==0)
                     x = RangeTablePosn(CString($5),LispNil);
-                  CurrentRelationPtr = amopenr(VarnoGetRelname(x));
-                  if (CurrentRelationPtr == NULL)
+                  parser_current_rel = amopenr(VarnoGetRelname(x));
+                  if (parser_current_rel == NULL)
                         elog(WARN,"invalid relation name");
-                  ResdomNoIsAttrNo = 1;
+                  ResdomNoIsAttrNo = true;
                 }
           '(' res_target_list ')'
           where_clause
@@ -844,7 +850,7 @@ AppendStmt:
                         $$ = lispCons ( root , LispNil );
                         $$ = nappend1 ( $$ , $8 ); /* (eq p_target $8) */
                         $$ = nappend1 ( $$ , $10 ); /* (eq p_qual $10 */
-                        ResdomNoIsAttrNo = 0;
+                        ResdomNoIsAttrNo = false;
                 }
         ;
 
@@ -874,10 +880,10 @@ DeleteStmt:
 		    if (x==0)
 		      x = RangeTablePosn(CString($5),LispNil);
 		    
-		    CurrentRelationPtr = amopenr(VarnoGetRelname(x));
-		    if (CurrentRelationPtr == NULL)
+		    parser_current_rel = amopenr(VarnoGetRelname(x));
+		    if (parser_current_rel == NULL)
 		      elog(WARN,"invalid relation name");
-		    ResdomNoIsAttrNo = 1; 
+		    ResdomNoIsAttrNo = true; 
 		}
           where_clause
                 {
@@ -947,11 +953,11 @@ ReplaceStmt:
 						     CString($5)));
                   if (x==0)
                     x = RangeTablePosn(CString($5),LispNil);
-                  CurrentRelationPtr = amopenr(VarnoGetRelname(x));
+                  parser_current_rel = amopenr(VarnoGetRelname(x));
                    fflush(stdout);
-                  if (CurrentRelationPtr == NULL)
+                  if (parser_current_rel == NULL)
                         elog(WARN,"invalid relation name");
-                  ResdomNoIsAttrNo = 1; }
+                  ResdomNoIsAttrNo = true; }
         '(' res_target_list ')' where_clause
                 {
                     LispValue root;
@@ -973,7 +979,7 @@ ReplaceStmt:
                     $$ = lispCons( root , LispNil );
                     $$ = nappend1 ( $$ , $8 );          /* (eq p_target $6) */
                     $$ = nappend1 ( $$ , $10 );         /* (eq p_qual $9) */
-                    ResdomNoIsAttrNo = 0;
+                    ResdomNoIsAttrNo = false;
                 }
         ;
 
@@ -1035,7 +1041,7 @@ RetrieveSubStmt:
 
   **************************************************/
 result:
-	  Into relation_name
+	  INTO relation_name
 		{
 			$2=lispCons($2 , LispNil );
 			/* should check for archive level */
@@ -1287,15 +1293,15 @@ opt_range_end:
   **********************************************************************/
 
 boolexpr:
-	  b_expr And boolexpr
+	  b_expr AND boolexpr
 		{ $$ = lispCons ( lispInteger(AND) , lispCons($1 , 
 		  lispCons($3 ,LispNil ))) ; }
-	| b_expr Or boolexpr
+	| b_expr OR boolexpr
 		{ $$ = lispCons ( lispInteger(OR) , lispCons($1 , 
 		  lispCons ( $3 , LispNil))); }
 	| b_expr
 		{ $$ = $1;}
-	| Not b_expr
+	| NOT b_expr
 		{ $$ = lispCons ( lispInteger(NOT) , 
 		       lispCons ($2, LispNil  )); }
 	;
@@ -1314,21 +1320,50 @@ record_qual:
   * otherwise, the size is an integer from 1 to MAXINT 
   */
 
-var_def: 	
-	  Id '=' typename
+opt_array_bounds:
+  	  '[' ']'
 		{ 
-		    $3 = lispCons($3,LispNil); 
-		    $$ = lispCons($1,$3);
+#ifdef REAL_ARRAYS		    
+		    $$ = lispCons (lispInteger(-1),LispNil);
+#else
+		    $$ = (LispValue)"[]";
+#endif
 		}
-	| Id '=' typename '[' ']'
+	| '[' Iconst ']'
 		{
-		    $3 = lispCons($3,lispCons(lispInteger(-1),LispNil));
-		    $$ = lispCons($1,$3);
+		    /* someday, multidimensional arrays will work */
+#ifdef REAL_ARRAYS
+		    $$ = lispCons ($2, LispNil);
+#else
+		    char *bogus = palloc(20);
+		    bogus = sprintf (bogus, "[%d]", CInteger($2));
+		    $$ = (LispValue)bogus;
+#endif
 		}
-	| Id '=' typename '[' Iconst ']'
-		{
-		    $3 = lispCons($3,lispCons($5,LispNil));
-		    $$ = lispCons($1,$3);
+	| /* EMPTY */
+		{ NULLTREE }
+	;
+
+Typename:
+  	  name opt_array_bounds
+		{ 
+#ifdef REAL_ARRAYS
+		    $$ = lispCons($1,$2);
+#else
+		    char *bogus = palloc(40);
+		    if ($2 != (LispValue)NULL) {
+		      bogus = sprintf(bogus,"%s%s", CString($1), $2);
+		      $$ = lispString(bogus);
+		    } else
+		      $$ = $1;
+#endif
+		}
+	;
+
+var_def: 	
+	  Id '=' Typename 
+		{ 
+		    $$ = lispCons($1,lispCons($3,LispNil));
 		}
 	;
 
@@ -1348,6 +1383,19 @@ opt_var_defs:
 
 b_expr:	a_expr { $$ = CDR($1) ; } /* necessary to strip the addnl type info 
 				     XXX - check that it is boolean */
+
+array_attribute:
+	  attr
+		{
+		$$ = make_var ( CString(CAR ($1)) , CString(CDR($1)));
+		}
+	| attr '[' Iconst ']'
+		{ 
+		     Var temp = (Var)NULL;
+		     temp = (Var)make_var ( CString(CAR($1)),
+				       CString(CADR($1)) );
+		     $$ = (LispValue)MakeArrayRef( temp , $3 );
+		}
 a_expr:
 	  attr
 		{
@@ -1378,86 +1426,30 @@ a_expr:
 		{ $$ = make_op (lispString(">"), $1, $3 ) ; }
 	| a_expr '=' a_expr
 		{ $$ = make_op (lispString("="), $1, $3 ) ; }
-	| a_expr TYPECAST Id 
+	| a_expr TYPECAST Typename
 		{ 
-			/* check for passing non-ints */
-		        Const adt;
-			Datum lcp;
-			Type tp = type(CString($3));
-			int32 len = tlen(tp);
-			char *cp = NULL;
-			char *const_string = palloc(256);
-
-			switch ( CInteger(CAR($1)) ) {
-				case 23: /* int4 */
-					sprintf(const_string,"%d",
-						get_constvalue(CDR($1)));
-					break;
-				case 19: /* char16 */
-					sprintf(const_string,"%s",
-						get_constvalue(CDR($1)));
-					break;
-				case 18: /* char */
-					sprintf(const_string,"%c",
-						get_constvalue(CDR($1)));
-					break;
-				case 701:/* float8 */
-					sprintf(const_string,"%f",
-						get_constvalue(CDR($1)));
-					break;
-				case 25: /* text */
-					const_string = 
-					DatumGetPointer(
-					   get_constvalue(CDR($1)) );
-					break;
-				default:
-					elog(WARN,"unknown type%d ",
-					     CInteger(CAR($1)) );
-			}
-			
-			cp = instr2 (tp, const_string);
-
-
-			if (!tbyvalue(tp)) {
-			    if (len >= 0 && len != PSIZE(cp)) {
-				char *pp;
-				pp = palloc(len);
-				bcopy(cp, pp, len);
-				cp = pp;
-			    }
-			    lcp = PointerGetDatum(cp);
-			} else {
-			    switch(len) {
-			      case 1:
-				lcp = Int8GetDatum(cp);
-				break;
-			      case 2:
-				lcp = Int16GetDatum(cp);
-				break;
-			      case 4:
-				lcp = Int32GetDatum(cp);
-				break;
-			      default:
-				lcp = PointerGetDatum(cp);
-				break;
-			    }
-			}
-
-			adt = MakeConst ( typeid(tp), len, lcp , 0 );
-			/*
-			printf("adt %s : %d %d %d\n",CString($1),typeid(tp) ,
-			       len,cp);
-			       */
-			$$ = lispCons  ( lispInteger (typeid(tp)) , adt );
-		    
+		    extern LispValue parser_typecast();
+		    $$ = parser_typecast ( $1, $3 );
 		}
 	| '(' a_expr ')'
 		{$$ = $2;}
 	/* XXX Or other stuff.. */
 	| a_expr Op a_expr
 		{ $$ = make_op ( $2, $1 , $3 ); }
+	| name '(' expr_list ')'
+		{ 
+		    extern Func MakeFunc();
+		    Type funcrettype = get_id_type ( 95 );
+
+		    $$ = lispCons ( lispInteger (23),
+				    MakeFunc ( 0 , 0 , false ));
+		}
 	;
 
+expr_list:
+	   a_expr				{ ELEMENT ; }
+	|  expr_list ',' a_expr		{ INC_LIST ; }
+	;
 attr:
 	  relation_name '.' attribute
 		{    
@@ -1492,7 +1484,7 @@ res_target_list:
 	| res_target_list ',' relation_name '.' All
 		{
 			LispValue temp = p_target;
-			if (ResdomNoIsAttrNo) {
+			if (ResdomNoIsAttrNo == true) {
 			  elog(WARN,"all doesn't make any sense here");
 			  return(1);
 			}
@@ -1511,40 +1503,7 @@ res_target_list:
 res_target_el:
 	  Id '=' a_expr
 		{
-		    int type_id,type_len, attrtype, attrlen;
-		    int resdomno;
-		    Relation rd;
-		    type_id = CInteger(CAR($3));
-		    type_len = tlen(get_id_type(type_id));
-
-		    if (ResdomNoIsAttrNo) { /* append or replace query */
-			/* append, replace work only on one relation,
-			   so multiple occurence of same resdomno is bogus */
-			rd = CurrentRelationPtr;
-			Assert(rd != NULL);
-			resdomno = varattno(rd,CString($1));
-			attrtype = att_typeid(rd,resdomno);
-			attrlen = tlen(get_id_type(attrtype)); 
-			if (attrtype != type_id)
-			  elog(WARN, "unequal type in tlist : %s \n",
-			       CString($1));
-			if( lispAssoc( lispInteger(resdomno),p_target_resnos) 
-			   != -1 ) {
-			    elog(WARN,"two or more occurence of same attr");
-			} else {
-			    p_target_resnos = lispCons( lispInteger(resdomno),
-						        p_target_resnos);
-			}
-		    } else {
-			resdomno = p_last_resno++;
-			attrtype = type_id;
-			attrlen = type_len;
-		    }
-		    $$ = (LispValue)lispCons (MakeResdom (resdomno,
-					      attrtype,
-					      attrlen , 
-					      CString($1), 0 , 0 ) ,
-				  lispCons((Var)CDR($3),LispNil));
+		    $$ = make_targetlist_expr ($1,$3);
 		}
 
 	| attr
@@ -1584,7 +1543,6 @@ map_rel_name:		Id		/*$$=$1*/;
 var_name:		Id		/*$$=$1*/;
 name:			Id		/*$$-$1*/;
 string: 		Id		/*$$=$1 Sconst ?*/;
-typename:		Id		/*$$=$1*/
 
 date:			Sconst		/*$$=$1*/;
 file_name:		SCONST		{$$ = new_filestr($1); };
@@ -1622,18 +1580,25 @@ Id:
 		{ $$ = yylval; }
 SpecialRuleRelation:
 	CURRENT
-		{ if (QueryIsRule) $$ = yylval; else elog(WARN,"parser"); }
+		{ 
+		    if (QueryIsRule) 
+		      $$ = CAR ( NewOrCurrentIsReally );
+		    else 
+		      yyerror("\"current\" used in non-rule query");
+		}
 	| NEW
-		{ if (QueryIsRule) $$ = yylval; else elog(WARN,"parser"); }
+		{ 
+		    if (QueryIsRule) 
+		      $$ = CAR ( NewOrCurrentIsReally );
+		    else 
+		      elog(WARN,"NEW used in non-rule query"); 
+		}
 	;
 
-Abort:			ABORT_TRANS	{ $$ = yylval ; } ;
 Addattr:		ADD_ATTR	{ $$ = yylval ; } ;
 All:			ALL		{ $$ = yylval ; } ;
-And:			AND		{ $$ = yylval ; } ;
 Archive:		ARCHIVE		{ $$ = yylval ; } ;
 Attachas:		ATTACH_AS	{ $$ = yylval ; } ;
-Begin:			BEGIN_TRANS	{ $$ = yylval ; } ;
 Binary:			BINARY		{ $$ = yylval ; } ;
 Close:			CLOSE		{ $$ = yylval ; } ;
 Cluster:		CLUSTER		{ $$ = yylval ; } ;
@@ -1641,21 +1606,13 @@ Copy:			COPY		{ $$ = yylval ; } ;
 Create:			CREATE		{ $$ = yylval ; } ;
 Define:			DEFINE		{ $$ = yylval ; } ;
 Destroy:		DESTROY		{ $$ = yylval ; } ;
-End:			END_TRANS	{ $$ = yylval ; } ;
-Fetch:			FETCH		{ $$ = yylval ; } ;
 Function:		FUNCTION	{ $$ = yylval ; } ;
 Index:			INDEX		{ $$ = yylval ; } ;
 Indexable:		INDEXABLE	{ $$ = yylval ; } ;
 Inherits:		INHERITS	{ $$ = yylval ; } ;
-Into:			INTO		{ $$ = yylval ; } ;
-Is:			IS		{ $$ = yylval ; } ;
 Key:			KEY		{ $$ = yylval ; } ;
-Move:			MOVE		{ $$ = yylval ; } ;
 Nonulls:		NONULLS		{ $$ = yylval ; } ;
-Not:			NOT		{ $$ = yylval ; } ;
-On:			ON		{ $$ = yylval ; } ;
 Operator:		OPERATOR	{ $$ = yylval ; } ;
-Or:			OR		{ $$ = yylval ; } ;
 Portal:			PORTAL		{ $$ = yylval ; } ;
 Purge:			PURGE		{ $$ = yylval ; } ;
 Remove:			REMOVE		{ $$ = yylval ; } ;
@@ -1669,7 +1626,6 @@ With:			WITH		{ $$ = yylval ; } ;
 Pnull:			PNULL		{ $$ = yylval ; } ;
 
 %%
-
 parser_init()
 {
 	NumLevels = 0;
@@ -1683,77 +1639,51 @@ parser_init()
 	p_last_resno = 1;
 	p_numlevels = 0;
 	p_target_resnos = LispNil;
-	ResdomNoIsAttrNo = 0;
+	ResdomNoIsAttrNo = false;
 	QueryIsRule = false;
 }
 
-char *
-expand_file_name(file)
-char *file;
-{
-    char *str;
-    int ind;
-
-    str = (char *) palloc(MAXPATHLEN * sizeof(*str));
-    str[0] = '\0';
-    if (file[0] == '~') {
-	if (file[1] == '\0' || file[1] == '/') {
-	    /* Home directory */
-	    strcpy(str, getenv("HOME"));
-	    ind = 1;
-	} else {
-	    /* Someone else's directory */
-	    char name[16], *p;
-	    struct passwd *pw;
-	    int len;
-
-	    if ((p = (char *) index(file, '/')) == NULL) {
-		strcpy(name, file+1);
-		len = strlen(name);
-	    } else {
-		len = (p - file) - 1;
-		strncpy(name, file+1, len);
-		name[len] = '\0';
-	    }
-	    /*printf("name: %s\n");*/
-	    if ((pw = getpwnam(name)) == NULL) {
-		elog(WARN, "No such user: %s\n", name);
-		ind = 0;
-	    } else {
-		strcpy(str, pw->pw_dir);
-		ind = len + 1;
-	    }
-	}
-    } else {
-	ind = 0;
-    }
-    strcat(str, file+ind);
-    return(str);
-}
 
 LispValue
-new_filestr ( filename )
-     LispValue filename;
+make_targetlist_expr ( name , expr )
+     LispValue name;
+     LispValue expr;
 {
-  return (lispString (expand_file_name (CString(filename))));
-}
-
-int
-lispAssoc ( element, list)
-     LispValue element, list;
-{
-    LispValue temp = list;
-    int i = 0;
-    if (list == LispNil) 
-      return -1; 
-    /* printf("Looking for %d", CInteger(element));*/
-
-    while (temp != LispNil ) {
-	if(CInteger(CAR(temp)) == CInteger(element))
-	  return i;
-	temp = CDR(temp);
-	i ++;
+    extern bool ResdomNoIsAttrNo;
+    extern Relation parser_current_rel;
+    int type_id,type_len, attrtype, attrlen;
+    int resdomno;
+    Relation rd;
+    type_id = CInteger(CAR(expr));
+    type_len = tlen(get_id_type(type_id));
+    
+    if (ResdomNoIsAttrNo) { /* append or replace query */
+	/* append, replace work only on one relation,
+	   so multiple occurence of same resdomno is bogus */
+	rd = parser_current_rel;
+	Assert(rd != NULL);
+	resdomno = varattno(rd,CString(name));
+	attrtype = att_typeid(rd,resdomno);
+	attrlen = tlen(get_id_type(attrtype)); 
+	if (attrtype != type_id)
+	  elog(WARN, "unequal type in tlist : %s \n",
+	       CString(name));
+	if( lispAssoc( lispInteger(resdomno),p_target_resnos) 
+	   != -1 ) {
+	    elog(WARN,"two or more occurence of same attr");
+	} else {
+	    p_target_resnos = lispCons( lispInteger(resdomno),
+				       p_target_resnos);
+	}
+    } else {
+	resdomno = p_last_resno++;
+	attrtype = type_id;
+	attrlen = type_len;
     }
-	   
-    return -1;
+    return  ( lispCons (MakeResdom (resdomno,
+					  attrtype,
+					  attrlen , 
+					  CString(name), 0 , 0 ) ,
+			      lispCons((Var)CDR(expr),LispNil)) );
+    
 }
