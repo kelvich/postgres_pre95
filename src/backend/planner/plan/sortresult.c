@@ -97,15 +97,15 @@ LispValue tlist ;
 				  lispCons(lispCons(expr,LispNil),
 					   LispNil)),
 			varkeys);
-		  if (get_vararrayindex(expr))
+		  if (get_vararraylist(expr))
 		    push (lispCons(lispInteger(get_reskey (resdom)),
 		                   lispCons(lispCons (lispInteger
 						      (get_varattno (expr)),
 				                      lispCons
-						      (lispInteger
-						       (get_vararrayindex 
-							(expr)),
-						       LispNil)),
+						      (
+						       get_vararraylist(expr),
+						       LispNil
+						      )),
 					    LispNil)),
 			  keys);
 		  else 
