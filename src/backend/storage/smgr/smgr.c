@@ -192,9 +192,6 @@ smgrextend(which, reln, buffer)
 {
     int status;
 
-    /* new blocks are zero-filled */
-    bzero((char *) buffer, BLCKSZ);
-
     status = (*(smgrsw[which].smgr_extend))(reln, buffer);
 
     if (status == SM_FAIL)
