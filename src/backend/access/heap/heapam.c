@@ -289,9 +289,9 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
 	    *b = InvalidBuffer;
 	    return (NULL);
 	}
-	*b = RelationGetBuffer(relation,
-			       ItemPointerGetBlockNumber(tid),
-			       L_SH);
+	*b = RelationGetBufferWithBuffer(relation,
+			                 ItemPointerGetBlockNumber(tid),
+			                 *b);
 	
 #ifndef NO_BUFFERISVALID
 	if (!BufferIsValid(*b)) {
@@ -326,7 +326,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
 	    return (NULL);
 	}
 
-	*b = RelationGetBuffer(relation, page, L_SH);
+	*b = RelationGetBufferWithBuffer(relation, page, *b);
 #ifndef NO_BUFFERISVALID
 	if (!BufferIsValid(*b)) {
 	    elog(WARN, "heapgettup: failed RelationGetBuffer");
@@ -358,7 +358,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
 	}
 
 	/* page and lineoff now reference the physically next tid */
-	*b = RelationGetBuffer(relation, page, L_SH);
+	*b = RelationGetBufferWithBuffer(relation, page, *b);
 	
 #ifndef NO_BUFFERISVALID
 	if (!BufferIsValid(*b)) {
@@ -416,6 +416,8 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
 	if (BufferPut(*b, L_UN | L_SH) < 0) {
 	    elog(WARN, "heapgettup: failed BufferPut");
 	}	
+	if (BufferIsValid(*b))
+	    ReleaseBuffer(*b);
 
 	if (dir < 0)
 	    page -= pageskip;
@@ -427,6 +429,8 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
 	 * ----------------
 	 */
 	if (page < 0 || page >= pages) {
+	    if (BufferIsValid(*b))
+		ReleaseBuffer(*b);
 	    *b = InvalidBuffer;
 	    return (NULL);
 	}
@@ -900,8 +904,10 @@ heap_getnext(scandesc, backw, b)
 		return (NULL);
 	    }
 
+	/*
 	if (BufferIsValid(sdesc->rs_nbuf))
 	    BufferPut(sdesc->rs_nbuf, L_UNPIN);
+	*/
 
 	sdesc->rs_ntup = sdesc->rs_ctup;
 	sdesc->rs_nbuf = sdesc->rs_cbuf;
@@ -949,10 +955,12 @@ heap_getnext(scandesc, backw, b)
 	    return (NULL);
 	}
 
+	/*
 	if (BufferIsValid(sdesc->rs_pbuf)) {
-	    HEAPDEBUG_4; /* heap_getnext valid buffer UNPIN'd */
+	    HEAPDEBUG_4;
 	    BufferPut(sdesc->rs_pbuf, L_UNPIN);
 	}
+	*/
 
 	sdesc->rs_ptup = sdesc->rs_ctup;
 	sdesc->rs_pbuf = sdesc->rs_cbuf;
