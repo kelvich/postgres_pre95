@@ -90,6 +90,20 @@ create_or_index_paths (rel,clauses)
 				   lispCons((LispValue)clausenode,LispNil));
 		    set_indexid (pathnode,nth (0,indexinfo));
 		    set_path_cost ((Path)pathnode,(Cost)CDouble(nth (1,indexinfo)));
+
+		    /* copy clauseinfo list into path for expensive 
+		       function processing    -- JMH, 7/7/92 */
+		    set_locclauseinfo
+		      (pathnode,
+		       set_difference(clauses,
+				      CopyObject(get_clauseinfo(rel)),
+				      LispNil));
+
+		    /* add in cost for expensive functions!  -- JMH, 7/7/92 */
+		    set_path_cost((Path)pathnode, 
+				  get_path_cost((Path)pathnode) + 
+				  xfunc_get_path_cost(pathnode));
+
 		    set_selectivity(clausenode,(Cost)CDouble(nth(2,indexinfo)));
 		    t_list = 
 		      lispCons ((LispValue)pathnode,
