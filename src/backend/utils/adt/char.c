@@ -80,10 +80,10 @@ int32 c;
 
     /*
      * cid is a number between 0 .. 2^16-1, therefore we need at most
-     * 4 chars for the string (6 digits + '\0')
+     * 6 chars for the string (5 digits + '\0')
      * NOTE: print it as an UNSIGNED int!
      */
-    result = palloc(8);
+    result = palloc(6);
     c2 = (CommandId)c;
     sprintf(result, "%u", (unsigned)(c2));
     return(result);
