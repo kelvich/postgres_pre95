@@ -11,10 +11,15 @@
  *
  */
 
+char *DataDir;
+
 main(argc, argv)
 int argc;
 char *argv[];
 {
+    /* set up DataDir here; it's used by the bootstrap and regular systems */
+    DataDir = GetPGData();
+
     if (argc > 1)
     {
     	if (!strcmp(argv[1], "-boot"))
@@ -23,7 +28,7 @@ char *argv[];
         }
         else
         {
-        	PostgresMain(argc, argv);
+	    PostgresMain(argc, argv);
         }
     }
     else
