@@ -821,15 +821,6 @@ float84ge(arg1, arg2)
 #endif FMGR_MATH
 
 
-#ifdef sequent
-double
-cbrt(x)
-double x;
-{
-    return(pow(x, 1.0/3.0));
-}
-#endif
-
 
 	     /* ========== PRIVATE ROUTINES ========== */
 
