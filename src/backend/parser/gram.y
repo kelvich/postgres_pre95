@@ -68,18 +68,13 @@ int NumLevels = 0;
 
 static char saved_relname[BUFSIZ];  /* need this for complex attributes */
 
-#ifndef PORTNAME_hpux
-YYSTYPE yylval;
-#else /* PORTNAME_hpux */
+extern YYSTYPE yylval;
 /*
- * HPUX yacc kindly redefines yylval for us later in the file.
- *
- * if you need access to certain yacc-generated variables and find that 
+ * If you need access to certain yacc-generated variables and find that 
  * they're static by default, uncomment the next line.  (this is not a
  * problem, yet.)
  */
 /*#define __YYSCLASS*/
-#endif /* PORTNAME_hpux */
 
 YYSTYPE p_target,
         p_qual,
@@ -2289,143 +2284,144 @@ LispValue name;
 LispValue expr;
 LispValue arrayRef;
 {
-    extern bool ResdomNoIsAttrNo;
-    extern Relation parser_current_rel;
-    int type_id,type_len, attrtype, attrlen;
-    int resdomno;
-    Relation rd;
-    bool attrisset;
-
-    if(ResdomNoIsAttrNo && (expr == LispNil) && !Typecast_ok){
-		/* expr is NULL, and the query is append or replace */
-		/* append, replace work only on one relation,
-		   so multiple occurence of same resdomno is bogus */
-		rd = parser_current_rel;
-		Assert(rd != NULL);
-		resdomno = varattno(rd,CString(name));
-		attrtype = att_typeid(rd,resdomno);
-		attrlen = tlen(get_id_type(attrtype));
-		attrisset = varisset(rd, CString(name));
-		expr = lispCons( lispInteger(attrtype), (LispValue)
-						MakeConst((ObjectId) attrtype, (Size) attrlen,
-								  (Datum) LispNil, (bool)1, (bool) 0
-								  /* ignored */, (bool) 0));
-		Input_is_string = false;
-		Input_is_integer = false;
-		Typecast_ok = true;
-		if( lispAssoc( lispInteger(resdomno),p_target_resnos)
-		   != -1 ) {
-			elog(WARN,"two or more occurence of same attr");
-		} else {
-			p_target_resnos = lispCons( lispInteger(resdomno),
-									   p_target_resnos);
-		}
-		return(lispCons ((LispValue)
-						 MakeResdom ((AttributeNumber)resdomno,
-									 (ObjectId) attrtype,
-									 attrisset ? false : ISCOMPLEX(attrtype),
-									 attrisset ? tlen(type("oid")) : (Size)attrlen , 
-									 (Name)CString(name),
-									 (Index) 0 ,
-									 (OperatorTupleForm) 0 , 0 ) ,
-						 lispCons((LispValue)CDR(expr),LispNil)) );
-	}
- 
-    type_id = CInteger(CAR(expr));
-    type_len = tlen(get_id_type(type_id));
-    if (ResdomNoIsAttrNo) {
-		/*
-		 * append or replace query -- 
-		 * append, replace work only on one relation,
-		 * so multiple occurence of same resdomno is bogus
-		 */
-		rd = parser_current_rel;
-		Assert(rd != NULL);
-		resdomno = varattno(rd,CString(name));
-		attrisset = varisset(rd, CString(name));
-		attrtype = att_typeid(rd,resdomno);
-		if ((arrayRef != LispNil) && (CAR(arrayRef) == LispNil))
-			attrtype = GetArrayElementType(attrtype);
-		attrlen = tlen(get_id_type(attrtype)); 
-		if(Input_is_string && Typecast_ok){
-			Datum val;
-			if (CInteger(CAR(expr)) == typeid(type("unknown"))){
-                val = (Datum)textout((struct varlena *)
-									 get_constvalue((Const)CDR(expr)));
-			}else{
-                val = get_constvalue((Const)CDR(expr));
-			}
-			if (attrisset) {
-				CDR(expr) = (LispValue) MakeConst(attrtype,
-												  attrlen,
-												  val,
-												  false,
-												  true,
-												  true /* is set */);
-			} else {
-				CDR(expr) = (LispValue)
-					MakeConst(attrtype, 
-							  attrlen,
-							  (Datum)fmgr(typeid_get_retinfunc(attrtype),
-										  val,get_typelem(attrtype)),
-							  false, 
-							  true /* Maybe correct-- 80% chance */,
-							  false /* is not a set */);
-			}
-		} else if((Typecast_ok) && (attrtype != type_id)){
-			CDR(expr) = (LispValue) 
-				parser_typecast2 ( expr, get_id_type((long)attrtype));
-		} else
-			if (attrtype != type_id) {
-				if ((attrtype == INT2OID) && (type_id == INT4OID))
-                        CAR(expr) = lispInteger (INT2OID);
+     extern bool ResdomNoIsAttrNo;
+     extern Relation parser_current_rel;
+     int type_id,type_len, attrtype, attrlen;
+     int resdomno;
+     Relation rd;
+     bool attrisset;
+     
+     if(ResdomNoIsAttrNo && (expr == LispNil) && !Typecast_ok){
+	  /* expr is NULL, and the query is append or replace */
+	  /* append, replace work only on one relation,
+	     so multiple occurence of same resdomno is bogus */
+	  rd = parser_current_rel;
+	  Assert(rd != NULL);
+	  resdomno = varattno(rd,CString(name));
+	  attrtype = att_typeid(rd,resdomno);
+	  attrlen = tlen(get_id_type(attrtype));
+	  attrisset = varisset(rd, CString(name));
+	  expr = lispCons( lispInteger(attrtype), (LispValue)
+			  MakeConst((ObjectId) attrtype, (Size) attrlen,
+				    (Datum) LispNil, (bool)1, (bool) 0
+				    /* ignored */, (bool) 0));
+	  Input_is_string = false;
+	  Input_is_integer = false;
+	  Typecast_ok = true;
+	  if( lispAssoc( lispInteger(resdomno),p_target_resnos)
+	     != -1 ) {
+	       elog(WARN,"two or more occurence of same attr");
+	  } else {
+	       p_target_resnos = lispCons( lispInteger(resdomno),
+					  p_target_resnos);
+	  }
+	  return(lispCons ((LispValue)
+			   MakeResdom ((AttributeNumber)resdomno,
+				       (ObjectId) attrtype,
+				       attrisset ? false : ISCOMPLEX(attrtype),
+				       attrisset ? tlen(type("oid")) 
+				                 : (Size)attrlen , 
+				       (Name)CString(name),
+				       (Index) 0 ,
+				       (OperatorTupleForm) 0 , 0 ) ,
+			   lispCons((LispValue)CDR(expr),LispNil)) );
+     }
+     
+     type_id = CInteger(CAR(expr));
+     type_len = tlen(get_id_type(type_id));
+     if (ResdomNoIsAttrNo) {
+	  /*
+	   * append or replace query -- 
+	   * append, replace work only on one relation,
+	   * so multiple occurence of same resdomno is bogus
+	   */
+	  rd = parser_current_rel;
+	  Assert(rd != NULL);
+	  resdomno = varattno(rd,CString(name));
+	  attrisset = varisset(rd, CString(name));
+	  attrtype = att_typeid(rd,resdomno);
+	  if ((arrayRef != LispNil) && (CAR(arrayRef) == LispNil))
+	       attrtype = GetArrayElementType(attrtype);
+	  attrlen = tlen(get_id_type(attrtype)); 
+	  if(Input_is_string && Typecast_ok){
+	       Datum val;
+	       if (CInteger(CAR(expr)) == typeid(type("unknown"))){
+		    val = (Datum)textout((struct varlena *)
+					 get_constvalue((Const)CDR(expr)));
+	       }else{
+		    val = get_constvalue((Const)CDR(expr));
+	       }
+	       if (attrisset) {
+		    CDR(expr) = (LispValue) MakeConst(attrtype,
+						      attrlen,
+						      val,
+						      false,
+						      true,
+						      true /* is set */);
+	       } else {
+		    CDR(expr) = (LispValue)
+			 MakeConst(attrtype, 
+				   attrlen,
+				   (Datum)fmgr(typeid_get_retinfunc(attrtype),
+					       val,get_typelem(attrtype)),
+				   false, 
+				   true /* Maybe correct-- 80% chance */,
+				   false /* is not a set */);
+	       }
+	  } else if((Typecast_ok) && (attrtype != type_id)){
+	       CDR(expr) = (LispValue) 
+		    parser_typecast2 ( expr, get_id_type((long)attrtype));
+	  } else
+	       if (attrtype != type_id) {
+		    if ((attrtype == INT2OID) && (type_id == INT4OID))
+			 CAR(expr) = lispInteger (INT2OID);
                     else if ((attrtype == FLOAT4OID) && (type_id == FLOAT8OID))
-                        CAR(expr) = lispInteger (FLOAT4OID);
+			 CAR(expr) = lispInteger (FLOAT4OID);
                     else
-                        elog(WARN, "unequal type in tlist : %s \n",
-							 CString(name));
-                }
-
-		Input_is_string = false;
-		Input_is_integer = false;
-        Typecast_ok = true;
-
-		if( lispAssoc( lispInteger(resdomno),p_target_resnos) != -1 ) {
-			elog(WARN,"two or more occurrences of same attr");
-		} else {
-			p_target_resnos = lispCons( lispInteger(resdomno),
-									   p_target_resnos);
-		}
-		if (arrayRef != LispNil) {
-			LispValue target_expr;
-			target_expr = HandleNestedDots(
-								   lispCons(
-									  lispString(RelationGetRelationName(rd)), 
-											lispCons(name, LispNil)),
-										   &p_last_resno);
-			expr = (LispValue) make_array_set(target_expr, CDR(arrayRef),
-											  CAR(arrayRef), expr);	
-			attrtype = att_typeid(rd,resdomno);
-			attrlen = tlen(get_id_type(attrtype)); 
-		}
-    } else {
-		resdomno = p_last_resno++;
-		attrtype = type_id;
-		attrlen = type_len;
-    }
-
-    return  (lispCons 
-             ((LispValue)MakeResdom (
-									 (AttributeNumber)resdomno,
-									 (ObjectId)  attrtype,
-									 ISCOMPLEX(attrtype),
-									 (Size) attrlen,
-									 (Name)  CString(name), 
-									 (Index)0 ,
-									 (OperatorTupleForm)0 , 
-									 0 ),
-			  lispCons(CDR(expr),LispNil)) );
-    
+			 elog(WARN, "unequal type in tlist : %s \n",
+			      CString(name));
+	       }
+	  
+	  Input_is_string = false;
+	  Input_is_integer = false;
+	  Typecast_ok = true;
+	  
+	  if( lispAssoc( lispInteger(resdomno),p_target_resnos) != -1 ) {
+	       elog(WARN,"two or more occurrences of same attr");
+	  } else {
+	       p_target_resnos = lispCons( lispInteger(resdomno),
+					  p_target_resnos);
+	  }
+	  if (arrayRef != LispNil) {
+	       LispValue target_expr;
+	       target_expr = HandleNestedDots(
+					      lispCons(
+						       lispString(RelationGetRelationName(rd)), 
+						       lispCons(name, LispNil)),
+					      &p_last_resno);
+	       expr = (LispValue) make_array_set(target_expr, CDR(arrayRef),
+						 CAR(arrayRef), expr);	
+	       attrtype = att_typeid(rd,resdomno);
+	       attrlen = tlen(get_id_type(attrtype)); 
+	  }
+     } else {
+	  resdomno = p_last_resno++;
+	  attrtype = type_id;
+	  attrlen = type_len;
+     }
+     
+     return  (lispCons 
+	      ((LispValue)MakeResdom (
+				      (AttributeNumber)resdomno,
+				      (ObjectId)  attrtype,
+				      ISCOMPLEX(attrtype),
+				      (Size) attrlen,
+				      (Name)  CString(name), 
+				      (Index)0 ,
+				      (OperatorTupleForm)0 , 
+				      0 ),
+	       lispCons(CDR(expr),LispNil)) );
+     
 }
 
 
