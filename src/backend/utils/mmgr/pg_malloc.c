@@ -23,24 +23,30 @@ static uint8 trace_depth = 0;
 
 static NodeTable *node_table = NULL;
 
+#undef HeaderIsValid
 #define HeaderIsValid(header) \
     ((header) != NULL \
      && (header)->sanity_check == (long) (header) + sizeof(*(header)))
 
+#undef PageIsValid
 #define PageIsValid(page) \
     (((page) != NULL) && ((page)->sanity_check == (long) (page)->begin_addr))
 
+#undef NextOtherHeader
 #define NextOtherHeader(header) \
     ((OtherMemoryHeader *) (((long) (header)) \
      + sizeof(OtherMemoryHeader) + (header)->size))
 
+#undef NextNodeHeader(header,
 #define NextNodeHeader(header, size) \
     ((NodeMemoryHeader *) (((long) (header)) \
      + sizeof(NodeMemoryHeader) + size))
 
+#undef NodeTableHash
 #define NodeTableHash(size) \
 	((LONGALIGN(size) - PALLOC_HEADER_SIZE) / 4 - 1)
 
+#undef SizeIsNodeSize
 #define SizeIsNodeSize(size) \
 	(NodeTableHash(size) > -1 && NodeTableHash(size) < number_of_nodes)
 /*
