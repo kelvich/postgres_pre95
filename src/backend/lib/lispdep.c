@@ -10,6 +10,11 @@
  *		util/{plancat,rlockutils,syscache}.c
  */
 
+#include "c.h"
+
+RcsId("$Header$");
+
+#include "palloc.h"
 #include "pg_lisp.h"
 #include "log.h"
 #include "atoms.h"
@@ -29,8 +34,6 @@ extern void lispDisplay();
 #include "nodes.h"
 
 #define lispAlloc() (LispValue)palloc(sizeof(struct _LispValue))
-
-RcsId("$Header$");
 
 /*
  *	Allocation and manipulation routines.
