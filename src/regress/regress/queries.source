@@ -383,6 +383,14 @@ retrieve (onek.unique1, onek.string4)
 retrieve (onek.unique1, onek.string4)
     where onek.unique1 < 20 sort by unique1 using <, string4 using >
 \g
+retrieve (onek2.all) where onek2.unique1 < 10
+\g
+retrieve (onek2.unique1, onek2.stringu1)
+    where onek2.unique1 < 20 sort by unique1 using >
+\g
+retrieve (onek2.unique1, onek2.stringu1)
+    where onek2.unique1 > 980 sort by stringu1 using <
+\g	
 retrieve into temp (onek.two, onek.stringu1, onek.ten, onek.string4)
 \g
 retrieve unique (temp.two) 
@@ -395,6 +403,10 @@ retrieve unique (temp.two, temp.string4, temp.ten)
     sort by two using <, string4 using <, ten using <
 \g
 retrieve into temp1 (temp.all) where onek.unique1 < 2
+\g
+destroy temp1
+\g
+retrieve into temp1 (temp.all) where onek2.unique1 < 2
 \g
 destroy temp1
 \g
@@ -412,9 +424,18 @@ replace onek (unique1 = onek.unique1 + 1)
 \g
 replace onek (unique1 = onek.unique1 - 1)
 \g
+replace onek2 (unique1 = onek2.unique1 + 1)
+\g
+replace onek2 (unique1 = onek2.unique1 - 1)
+\g
 replace temp (stringu1 = reverse_c16(o.stringu1))
     from o in onek
     where o.stringu1 = "JBAAAA" and
+	  o.stringu1 = temp.stringu1
+\g
+replace temp (stringu1 = reverse_c16(o.stringu1))
+    from o in onek2
+    where o.stringu1 = "JCAAAA" and
 	  o.stringu1 = temp.stringu1
 \g
 destroy temp
@@ -451,6 +472,12 @@ delete onek
 copy onek from "_CWD_/obj/onek.data"
 \g
 retrieve (onek.unique1) where onek.unique1 < 2
+\g
+delete onek2
+\g
+copy onek2 from "_CWD_/obj/onek.data"
+\g
+retrieve (onek2.unique1) where onek2.unique1 < 2
 \g
 copy binary stud_emp to "_CWD_/obj/stud_emp.data"
 \g
@@ -663,6 +690,8 @@ close foo12
 \g
 end
 \g
+extend index onek2_u1_prtl where onek2.unique1 <= 60
+\g
 begin
 \g
 retrieve portal foo13 (onek.all) where onek.unique1 = 50
@@ -687,6 +716,10 @@ retrieve portal foo22 (onek.all) where onek.unique1 = 59
 \g
 retrieve portal foo23 (onek.all) where onek.unique1 = 60
 \g
+retrieve portal foo24 (onek2.all) where onek2.unique1 = 50
+\g
+retrieve portal foo25 (onek2.all) where onek2.unique1 = 60
+\g
 fetch all in foo13
 \g
 fetch all in foo14
@@ -709,6 +742,10 @@ fetch all in foo22
 \g
 fetch all in foo23
 \g
+fetch all in foo24
+\g
+fetch all in foo25
+\g
 close foo13
 \g
 close foo14
@@ -730,6 +767,10 @@ close foo21
 close foo22
 \g
 close foo23
+\g
+close foo24
+\g
+close foo25
 \g
 end
 \g

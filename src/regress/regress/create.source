@@ -229,6 +229,9 @@ copy tenk1 from "_CWD_/../data/tenk.data"
 append tenk2 (tenk1.all)
 \g
 
+retrieve into onek2 (onek.all)
+\g
+
 copy slow_emp4000 from "_CWD_/../data/rect.data"
 \g
 append fast_emp4000 (slow_emp4000.all)
@@ -326,6 +329,19 @@ define index tenk2_unique1 on tenk2 using btree(unique1 int4_ops)
 define index tenk2_unique2 on tenk2 using btree(unique2 int4_ops)
 \g
 define index tenk2_hundred on tenk2 using btree(hundred int4_ops)
+\g
+define index onek2_u1_prtl on onek2 using btree(unique1 int4_ops)
+	where onek2.unique1 < 20 or onek2.unique1 > 980
+\g
+define index onek2_u2_prtl on onek2 using btree(unique2 int4_ops)
+	where onek2.stringu1 < "B"
+\g
+extend index onek2_u2_prtl where onek2.stringu1 < "C"
+\g
+extend index onek2_u2_prtl
+\g
+define index onek2_stu1_prtl on onek2 using btree(stringu1 char16_ops)
+	where onek2.stringu1 >= "J" and onek2.stringu1 < "K"
 \g
 define index rect2ind on fast_emp4000 using rtree (home_base bigbox_ops)
 \g
