@@ -12,12 +12,12 @@
 
 #include <stdio.h>
 
-#include "c.h"
-#include "rel.h"
-#include "heapam.h"
-#include "log.h"
-#include "pg_lisp.h"
-#include "version.h"
+#include "tmp/c.h"
+#include "utils/rel.h"
+#include "access/heapam.h"
+#include "utils/log.h"
+#include "nodes/pg_lisp.h"
+#include "commands/version.h"
 
 #define MAX_QUERY_LEN 1024
 
@@ -167,8 +167,8 @@ VersionRetrieve(vname,bname)
 
   sprintf(rule_buf, 
 	  "define rule %s_retrieve is on retrieve to %s do instead\n\
-retrieve (%s_added | %s).all where %s.oid !!= %s_del.DOID",
-	  vname, vname, vname, bname,vname,vname);
+retrieve (%s_1.all) from %s_1 in (%s_added | %s) where %s.oid !!= \"%s_del.DOID\"",
+	  vname, vname, vname, vname, vname, bname,vname,vname);
 
   printf("%s\n",rule_buf);
 
@@ -229,7 +229,7 @@ VersionReplace(vname, bname)
 { \n\
 replace %s_added(%s) where current.oid = %s_added.oid \n\
 append %s_del(DOID = %s.oid) where current.oid = %s.oid\n\
-append %s_added(%s) where current.oid !!= %s_added.oid and current.oid = \
+append %s_added(%s) where current.oid !!= \"%s_added.oid\" and current.oid = \
 %s.oid\n }\n",
 	  vname,vname,
 	  vname,attr_list,vname,
