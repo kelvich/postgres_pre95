@@ -15,5 +15,19 @@ main(argc, argv)
 int argc;
 char *argv[];
 {
-    PostgresMain(argc, argv);
+    if (argc > 1)
+    {
+    	if (!strcmp(argv[1], "-boot"))
+	{
+	    BootstrapMain(argc, argv);
+        }
+        else
+        {
+        	PostgresMain(argc, argv);
+        }
+    }
+    else
+    {
+        PostgresMain(argc, argv);
+    }
 }
