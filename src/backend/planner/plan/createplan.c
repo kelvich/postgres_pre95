@@ -111,7 +111,6 @@ create_plan (best_path,origtlist)
      set_plan_size(plan_node, size);
      set_plan_width(plan_node, width);
      set_fragment(plan_node, 0);
-     set_parallel(plan_node, 1);
 
      /*    Attach a SORT node to the path if a sort path is specified. */
 
@@ -171,17 +170,18 @@ create_scan_node (best_path,tlist)
      /*Extract the relevant clauses from the parent relation and replace the */
      /* operator OIDs with the corresponding regproc ids. */
 
+     Scan node;
      LispValue scan_clauses = fix_opids(get_actual_clauses
 					(get_clauseinfo 
 					 (get_parent (best_path))));
      switch (get_pathtype (best_path)) {
 
 	case T_SeqScan : 
-	  return((Scan)create_seqscan_node (best_path,tlist,scan_clauses));
+	  node = (Scan)create_seqscan_node (best_path,tlist,scan_clauses);
 	  break;
 
 	case T_IndexScan:
-	  return((Scan)create_indexscan_node (best_path,tlist,scan_clauses));
+	  node = (Scan)create_indexscan_node (best_path,tlist,scan_clauses);
 	  break;
 	  
 	  default :
@@ -189,6 +189,8 @@ create_scan_node (best_path,tlist)
 		     get_pathtype (best_path));
 	  break;
      }
+     set_parallel(node, 1);
+     return node;
 
 }  /* function end  */
 
@@ -244,11 +246,13 @@ create_join_node (best_path,origtlist,tlist)
 	 retval = (Join)create_nestloop_node (best_path,tlist,
 					      clauses,outer_node,outer_tlist,
 					      inner_node,inner_tlist);
+	 set_parallel(inner_node, 0);
 	 break;
        default: /* do nothing */
 	  elog (WARN,"create_join_node: unknown node type",
 		get_pathtype (best_path));
      } 
+     set_parallel(retval, 1);
      return(retval);
 
 }  /* function end  */
