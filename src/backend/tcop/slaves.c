@@ -236,6 +236,11 @@ SlaveMain()
     List queryDesc;
     int i;
 
+    /* -----------------
+     * set the flag to false in case the SIGPARADJ is received
+     * -----------------
+     */
+    SlaveLocalInfoD.isworking = false;
     /* ----------------
      *  before we begin processing we have to register a SIGHUP
      *  handler so that if a problem occurs in one slave backend,
@@ -294,6 +299,9 @@ SlaveMain()
 	SlaveLocalInfoD.paradjpending = false;
 	SlaveLocalInfoD.paradjpage = -1;
 	SlaveLocalInfoD.newparallel = -1;
+	SlaveLocalInfoD.heapscandesc = NULL;
+	SlaveLocalInfoD.indexscandesc = NULL;
+	SlaveLocalInfoD.isworking = true;
 
 	/* ----------------
 	 *  get the query descriptor to execute.
@@ -327,6 +335,7 @@ SlaveMain()
 	 * ----------------
 	 */
 	SLAVE1_elog(DEBUG, "Slave Backend %d task complete.", MyPid);
+	SlaveLocalInfoD.isworking = false;
 	V_Finished(SlaveInfoP[MyPid].groupId);
     }
 }
@@ -465,6 +474,10 @@ SlaveBackendsInit()
     for (i=0; i<nslaves; i++)
 	if (IsMaster) {
 	    if ((p = fork()) != 0) {
+		if (p < 0) {
+		    perror("fork");
+		    exitpg(1);
+		  }
 		/* initialize shared data structures */
 		SlaveInfoP[i].unixPid = p;
 		SlaveInfoP[i].groupId = -1;
@@ -605,12 +618,13 @@ int nproc;
  * --------------------------
  */
 void
-addSlaveToProcGroup(slave, group)
+addSlaveToProcGroup(slave, group, groupid)
 int slave;
 int group;
+int groupid;
 {
     SlaveInfoP[slave].groupId = group;
-    SlaveInfoP[slave].groupPid = ++(ProcGroupInfoP[group].nprocess);
+    SlaveInfoP[slave].groupPid = groupid;
     SlaveInfoP[slave].isAddOnSlave = true;
     SlaveArray[slave].next = ProcGroupLocalInfoP[group].memberProc;
     ProcGroupLocalInfoP[group].memberProc = SlaveArray + slave;
@@ -870,6 +884,7 @@ int groupid;
  *	paradj_handler
  *
  *	signal handler for dynamically adjusting degrees of parallelism
+ *	XXX only handle heap scan now.
  * ---------------------------------------
  */
 int
@@ -879,14 +894,29 @@ paradj_handler()
     HeapTuple curtuple;
     ItemPointer tid;
 
-    curtuple = SlaveLocalInfoD.heapscandesc->rs_ctup;
-    tid = &(curtuple->t_ctid);
-    curpage = ItemPointerGetBlockNumber(tid);
-    SlaveInfoP[MyPid].comdata.data = curpage;
+    SLAVE1_elog(DEBUG, "slave %d got SIGPARADJ", MyPid);
+    if (!SlaveLocalInfoD.isworking || SlaveLocalInfoD.heapscandesc == NULL) {
+	if (SlaveInfoP[MyPid].isAddOnSlave) {
+	    SlaveInfoP[MyPid].comdata.data = SlaveLocalInfoD.startpage;
+	    curpage = SlaveLocalInfoD.startpage;
+	  }
+	else {
+	    SlaveInfoP[MyPid].comdata.data = -1;
+	    curpage = -1;
+	  }
+      }
+    else {
+        curtuple = SlaveLocalInfoD.heapscandesc->rs_ctup;
+        tid = &(curtuple->t_ctid);
+        curpage = ItemPointerGetBlockNumber(tid);
+        SlaveInfoP[MyPid].comdata.data = curpage;
+      }
 #ifdef HAS_TEST_AND_SET
     S_UNLOCK(&(SlaveInfoP[MyPid].comdata.lock));
 #endif
+    SLAVE2_elog(DEBUG, "slave %d sending back curpage = %d", MyPid, curpage);
     MWaitOne(&(MasterDataP->m1lock));
+    SLAVE1_elog(DEBUG, "slave %d complete handshaking with master", MyPid);
     SlaveLocalInfoD.paradjpending = true;
     SlaveLocalInfoD.paradjpage = MasterDataP->data[0];
     SlaveLocalInfoD.newparallel = MasterDataP->data[1];
