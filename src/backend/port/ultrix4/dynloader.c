@@ -3,6 +3,9 @@
  *   DYNAMIC_LOADER.C
  *
  *   Dynamically load specified object module
+ *
+ *   IDENTIFICATION:
+ *   $Header$
  */
 
 #include <stdio.h>
