@@ -63,12 +63,11 @@ RcsId("$Header$");
  
 extern bool	AMI_OVERRIDE;	/* XXX style */
  
-#define BIGENDIAN		/* e.g.: 68000, MIPS, Tahoe */
-/*#define LITTLEENDIAN		/* e.g.: VAX, i386 */
-
 #include "catalog/syscache.h"
 #include "catalog/indexing.h"
     
+typedef HeapTuple (*ScanFunc)();
+
 /* ----------------
  *	Warning:  cacheinfo[] below is changed, then be sure and
  *	update the magic constants in syscache.h!
@@ -83,7 +82,7 @@ static struct cachedesc cacheinfo[] = {
 		0 },
 	  sizeof(FormData_pg_amop),
       NULL,
-      NULL  },
+      (ScanFunc) NULL  },
     { &AccessMethodOperatorRelationName,	/* AMOPSTRATEGY */
 	  3,
 	  { Anum_pg_amop_amopid,
@@ -92,7 +91,7 @@ static struct cachedesc cacheinfo[] = {
 		0 },
 	  sizeof(FormData_pg_amop),
       NULL,
-      NULL  },
+      (ScanFunc) NULL  },
     { &AttributeRelationName,			/* ATTNAME */
 	  2,
 	  { Anum_pg_attribute_attrelid,
@@ -101,7 +100,7 @@ static struct cachedesc cacheinfo[] = {
 		0 },
 	  sizeof(FormData_pg_attribute),
       &AttributeNameIndex,
-      AttributeNameIndexScan  },
+      (ScanFunc) AttributeNameIndexScan  },
     { &AttributeRelationName,			/* ATTNUM */
 	  2,
 	  { Anum_pg_attribute_attrelid,
@@ -117,7 +116,7 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0,
 		0 },
-	  sizeof(FormData_pg_index) - sizeof(text),
+	  offsetof(FormData_pg_index, indpred),
       NULL,
       NULL  },
     { &LanguageRelationName,			/* LANNAME */
@@ -126,7 +125,7 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0,
 		0 },
-	  sizeof(FormData_pg_language) - sizeof(struct varlena),
+	  offsetof(FormData_pg_language, lancompiler),
       NULL,
       NULL  },
     { &OperatorRelationName,			/* OPRNAME */
@@ -146,50 +145,50 @@ static struct cachedesc cacheinfo[] = {
 		0 },
 	  sizeof(FormData_pg_operator),
       NULL,
-      NULL  },
+      (ScanFunc) NULL  },
     { &ProcedureRelationName,			/* PRONAME */
 	  3,
 	  { Anum_pg_proc_proname,
 	    Anum_pg_proc_pronargs,
 	    Anum_pg_proc_proargtypes,
 		0 },
-	  sizeof(FormData_pg_proc) - (sizeof(text) + sizeof(bytea)),
+	  offsetof(FormData_pg_proc, prosrc),
       &ProcedureNameIndex,
-      ProcedureNameIndexScan  },
+      (ScanFunc) ProcedureNameIndexScan  },
     { &ProcedureRelationName,			/* PROOID */
 	  1,
 	  { ObjectIdAttributeNumber,
 		0,
 		0,
 		0 },
-	  sizeof(FormData_pg_proc) - (sizeof(text) + sizeof(bytea)),
+	  offsetof(FormData_pg_proc, prosrc),
       &ProcedureOidIndex,
-      ProcedureOidIndexScan  },
+      (ScanFunc) ProcedureOidIndexScan  },
     { &RelationRelationName,			/* RELNAME */
 	  1,
 	  { Anum_pg_relation_relname,
 		0,
 		0,
 		0 },
-	  sizeof(FormData_pg_relation) - sizeof(aclitem),
+	  offsetof(FormData_pg_relation, relacl[0]),
       &ClassNameIndex,
-      ClassNameIndexScan  },
+      (ScanFunc) ClassNameIndexScan  },
     { &RelationRelationName,			/* RELOID */
 	  1,
 	  { ObjectIdAttributeNumber,
 		0,
 		0,
 		0 },
-	  sizeof(FormData_pg_relation) - sizeof(aclitem),
+	  offsetof(FormData_pg_relation, relacl[0]),
       &ClassOidIndex,
-      ClassOidIndexScan  },
+      (ScanFunc) ClassOidIndexScan  },
     { &TypeRelationName,			/* TYPNAME */
 	  1,
 	  { Anum_pg_type_typname,
 		0,
 		0,
 		0 },
-	  sizeof(FormData_pg_type) - sizeof(struct varlena),
+	  offsetof(FormData_pg_type, typdefault),
       &TypeNameIndex,
       TypeNameIndexScan  },
     { &TypeRelationName,			/* TYPOID */
@@ -198,7 +197,7 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0,
 		0},
-	  sizeof(FormData_pg_type) - sizeof(struct varlena),
+	  offsetof(FormData_pg_type, typdefault),
       &TypeOidIndex,
       TypeOidIndexScan  },
     { &AccessMethodRelationName,		/* AMNAME */
@@ -225,72 +224,72 @@ static struct cachedesc cacheinfo[] = {
 		Anum_pg_index_indkey,
 		0,
 		0},
-	  sizeof(FormData_pg_index),
+	  offsetof(FormData_pg_index, indpred),
       NULL,
-      NULL  },
+      (ScanFunc) NULL  },
     { &InheritsRelationName,			/* INHRELID */
 	  2,
 	  { InheritsRelationIdAttributeNumber,
 		InheritsSequenceNumberAttributeNumber,
 		0,
 		0},
-	  sizeof(InheritsTupleFormD),
+	  sizeof(FormData_pg_inherits),
       NULL,
-      NULL  },
+      (ScanFunc) NULL  },
     { &Prs2PlansRelationName,			/* PRS2PLANCODE */
 	  2,
 	  { Anum_pg_prs2plans_prs2ruleid,
 		Anum_pg_prs2plans_prs2planno,
 		0,
 		0 },
-	  sizeof(FormData_pg_prs2plans) - sizeof(struct varlena),
+	  offsetof(FormData_pg_prs2plans, prs2code),
       NULL,
-      NULL  },
+      (ScanFunc) NULL  },
     { &RewriteRelationName,			/* RULOID */
 	  1,
 	  { ObjectIdAttributeNumber,
 		0,
 		0,
 		0 },
-	  sizeof(FormData_pg_rewrite) - (2 * sizeof(text)),
+	  offsetof(FormData_pg_rewrite, ev_qual),
       NULL,
-      NULL  },
+      (ScanFunc) NULL  },
     { &Prs2StubRelationName,			/* PRS2STUB */
 	  2,
 	  { Anum_pg_prs2stub_prs2relid,
 	    Anum_pg_prs2stub_prs2no,
 		0,
 		0 },
-	  sizeof(FormData_pg_prs2stub) - sizeof(struct varlena),
+	  offsetof(FormData_pg_prs2stub, prs2stub),
       NULL,
-      NULL  },
+      (ScanFunc) NULL  },
     { &Prs2RuleRelationName,			/* PRS2RULEID	*/
 	  1,
 	  { Anum_pg_prs2rule_prs2name,
 		0,
 		0,
 		0 },
-	  sizeof(FormData_pg_prs2rule),
+	  offsetof(FormData_pg_prs2rule, prs2text),
       NULL,
-      NULL  },
+      (ScanFunc) NULL  },
     { &Prs2RuleRelationName,			/* PRS2EVENTREL	*/
 	  1,
 	  { ObjectIdAttributeNumber,
 		0,
 		0,
 		0 },
-	  sizeof(FormData_pg_prs2rule) - sizeof(text),
+	  offsetof(FormData_pg_prs2rule, prs2text),
       NULL,
-      NULL  },
+      (ScanFunc) NULL  },
     { &AggregateRelationName,			/*AGGNAME*/
 	  1,
 	  { Anum_pg_aggregate_aggname,
 	        0,
 		0,
 		0 },
-	   sizeof(FormData_pg_aggregate) - (2 * sizeof(text)),
+	   offsetof(FormData_pg_aggregate, agginitval1),
        NULL,
-       NULL  },    
+       (ScanFunc) NULL  },    
     { &NamingRelationName,                      /*NAMEREL */
         2,
         { Anum_pg_naming_parent_oid,
@@ -299,16 +298,16 @@ static struct cachedesc cacheinfo[] = {
             0 },
         sizeof(FormData_pg_naming),
       &NamingNameIndex,
-      NamingNameIndexScan  },
+      (ScanFunc) NamingNameIndexScan  },
     { &LargeObjectAssocRelationName,           /*LOBJREL */
         1,
         { Anum_pg_large_object_oid,/*LargeObjectOIDAttributeNumber,*/
             0,
             0,
             0 },
-        sizeof(FormData_pg_large_object) - sizeof(bytea),
+        offsetof(FormData_pg_large_object, object_descriptor),
         NULL,
-	NULL  },
+	(ScanFunc) NULL  },
     { &ListenerRelationName,                  /* LISTENREL */
 	2,
 	{  Anum_pg_listener_relname,
@@ -317,7 +316,7 @@ static struct cachedesc cacheinfo[] = {
 	     0 },
 	sizeof(FormData_pg_listener),
 	NULL,
-	NULL  },
+	(ScanFunc) NULL  },
     { &UserRelationName,           		/* USENAME */
 	      1,
 	      { Anum_pg_user_usename,
@@ -326,7 +325,7 @@ static struct cachedesc cacheinfo[] = {
 			0 },
 	      sizeof(FormData_pg_user),
 	      NULL,
-	      NULL  },
+	      (ScanFunc) NULL  },
     { &UserRelationName,           		/* USESYSID */
 	      1,
 	      { Anum_pg_user_usesysid,
@@ -335,43 +334,43 @@ static struct cachedesc cacheinfo[] = {
 			0 },
 	      sizeof(FormData_pg_user),
 	      NULL,
-	      NULL  },
+	      (ScanFunc) NULL  },
     { &GroupRelationName,           		/* GRONAME */
 	      1,
 	      { Anum_pg_group_groname,
 			0,
 			0,
 			0 },
-	      sizeof(FormData_pg_group) - sizeof(int2),
+	      offsetof(FormData_pg_group, grolist[0]),
 	      NULL,
-	      NULL  },
+	      (ScanFunc) NULL  },
     { &GroupRelationName,           		/* GROSYSID */
 	      1,
 	      { Anum_pg_group_grosysid,
 			0,
 			0,
 			0 },
-	      sizeof(FormData_pg_group) - sizeof(int2),
+	      offsetof(FormData_pg_group, grolist[0]),
 	      NULL,
-	      NULL  },
+	      (ScanFunc) NULL  },
     { &RewriteRelationName,           		/* REWRITENAME */
 	      1,
 	      { Anum_pg_rewrite_rulename,
 			0,
 			0,
 			0 },
-	      sizeof(FormData_pg_rewrite) - (2 * sizeof(text)),
+	      offsetof(FormData_pg_rewrite, ev_qual),
 	      NULL,
-	      NULL  },
+	      (ScanFunc) NULL  },
     { &ProcedureRelationName,                   /* PROSRC */
 	   1,
            { Anum_pg_proc_prosrc,
 		  0,
 		  0,
 		  0 },
-	   sizeof(FormData_pg_proc) - (sizeof(text) + sizeof(bytea)),
+	   offsetof(FormData_pg_proc, prosrc),
       &ProcedureSrcIndex,
-      ProcedureSrcIndexScan  }
+      (ScanFunc) ProcedureSrcIndexScan  }
 };
  
 static struct catcache	*SysCache[lengthof(cacheinfo)];
@@ -609,10 +608,6 @@ SearchSysCacheGetAttribute(cacheId, attributeNumber, key1, key2, key3, key4)
 }
  
 /*
- * DANGER!!!  Bizarre byte-ordering hacks follow.-hirohama
- *				(nest ten miles) -jc
- */
-/*
  *	TypeDefaultRetrieve
  *
  *	Given a type OID, return the typdefault field associated with that
@@ -671,46 +666,29 @@ TypeDefaultRetrieve(typId)
 	
     }
     
-    dataSize = VARSIZE(typDefault) - sizeof(typDefault->vl_len);
-    
-    /*
-     * If the attribute is passed by value, copy the data bytes left to
-     * right into the return structure.  Otherwise, copy the entire struct
-     * varlena (which works out to be the same as ppreserve()'ing the
-     * vl_dat portion).
-     *
-     * XXX This is garbage.  The varlena should contain the external form,
-     *     which should be converted using fmgr() -- it would be easier
-     *     to specify and maintain that way.  But nooooo...catalogs have
-     *     to contain internal form attributes....
-     */
+    dataSize = VARSIZE(typDefault) - VARHDRSZ;
     
     if (typByVal) {
-	int32	aligned = 0;
+	int8 i8;
+	int16 i16;
+	int32 i32;
+	char *p;
 	
 	if (dataSize == typLen) {
-	    bcopy(VARDATA(typDefault),
-		  /* 
-		   * The data itself is assumed to be the correct
-		   * byte-order; however, which end we copy the
-		   * bytes into does depend on the processor...
-		   */
-		  
-#ifdef LITTLEENDIAN
-		  /* flush-left for little-endian (LSB..MSB) */
-		  (char *) &aligned,
-#else /* !LITTLEENDIAN */
-#ifdef BIGENDIAN			      
-		  /* flush-right for big-endian (MSB..LSB) */
-		  ((char *) &aligned) + (sizeof(aligned) -
-					 dataSize),
-#else /* !BIGENDIAN */
-		  /* you've got one, you figure it out... */
-#endif /* !BIGENDIAN */
-#endif /* !LITTLEENDIAN */
-		  (int) dataSize);
-	    
-	    returnValue = lispInteger((int) aligned);
+	    switch (typLen) {
+	    case sizeof(int8):
+		bcopy(VARDATA(typDefault), (char *) &i8, sizeof(int8));
+		i32 = i8;
+		break;
+	    case sizeof(int16):
+		bcopy(VARDATA(typDefault), (char *) &i16, sizeof(int16));
+		i32 = i16;
+		break;
+	    case sizeof(int32):
+		bcopy(VARDATA(typDefault), (char *) &i32, sizeof(int32));
+		break;
+	    }
+	    returnValue = lispInteger(i32);
 	} else {
 	    returnValue = LispNil;
 	}
