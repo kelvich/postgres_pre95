@@ -297,18 +297,21 @@ retrieve (three = ||/"27"::float8)
 /*
  * adt operators in the target list
  */
+/* fixed-length by reference */
 retrieve (false = "char 16 string"::char16 = "char 16 string "::char16)
 \g
+/* fixed-length by value */
 retrieve (true = "c"::char = "c"::char)
 \g
-retrieve (true = "this is a text string"::char16 = "this is a text string"::char16)
+/* variable-length */
+retrieve (true = "this is a text string"::text = "this is a text string"::text)
 \g
-retrieve (false = "this is a text string"::char16 = "this is a text strin"::char16)
+retrieve (false = "this is a text string"::text = "this is a text strin"::text)
 \g
 /*
  * box logic
  */
-retrieve (true = "(2.0,2.0,0.0,0.0)"::box << "(3.0,3.0,1.0,1.0)"::box)
+retrieve (false = "(2.0,2.0,0.0,0.0)"::box << "(3.0,3.0,1.0,1.0)"::box)
 \g
 retrieve (true = "(2.0,2.0,0.0,0.0)"::box &< "(3.0,3.0,1.0,1.0)"::box)
 \g
@@ -465,25 +468,25 @@ replace p (age = p.age + 3) from p in person* where p.name = "linda"
 /*
  * copy
  */
-copy onek to "_CWD_/obj/onek.data"
+copy onek to "_OBJWD_/onek.data"
 \g
 delete onek
 \g
-copy onek from "_CWD_/obj/onek.data"
+copy onek from "_OBJWD_/onek.data"
 \g
 retrieve (onek.unique1) where onek.unique1 < 2
 \g
 delete onek2
 \g
-copy onek2 from "_CWD_/obj/onek.data"
+copy onek2 from "_OBJWD_/onek.data"
 \g
 retrieve (onek2.unique1) where onek2.unique1 < 2
 \g
-copy binary stud_emp to "_CWD_/obj/stud_emp.data"
+copy binary stud_emp to "_OBJWD_/stud_emp.data"
 \g
 delete stud_emp
 \g
-copy binary stud_emp from "_CWD_/obj/stud_emp.data"
+copy binary stud_emp from "_OBJWD_/stud_emp.data"
 \g
 retrieve (stud_emp.all)
 \g
