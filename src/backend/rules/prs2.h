@@ -292,7 +292,7 @@ StringToRuleLock ARGS((
 #define GetRuleEventTargetFromParse(p)	(nth(4,p))
 #define GetRuleQualFromParse(p)		(nth(5,p))
 #define GetRuleInsteadFromParse(p)	(nth(6,p))
-#define GetRuleActionFromParse(p)	(lispCons(nth(7,p),LispNil))
+#define GetRuleActionFromParse(p)	(nth(7,p))
 
 /*------------------------------------------------------------------
  * Various routines...
