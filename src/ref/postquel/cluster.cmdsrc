@@ -50,4 +50,4 @@ then this command will have no effect.
 .fi
 .uh BUGS
 .lp
-Cluster has no effect in Version 3.
+Cluster has no effect in Version \*(PV.

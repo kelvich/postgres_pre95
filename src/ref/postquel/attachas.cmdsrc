@@ -31,4 +31,4 @@ the
 command will reattach the user to the active rules.
 .uh BUGS
 .lp
-This command is not implemented in Version 3.0.
+This command is not implemented in Version \*(PV.
