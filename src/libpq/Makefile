@@ -1,8 +1,13 @@
+#
+# $Header$
+#
+
 .include <postgres.global.mk>
 
 LIB= pq
 
 .PATH:	${.CURDIR}/../backend/libpq \
+	${.CURDIR}/../backend/utils/error \
 	${.CURDIR}/../backend/lib
 
 CFLAGS+= -DFRONTEND \
@@ -14,7 +19,8 @@ CFLAGS+= ${KRBFLAGS}
 .endif
 
 SRCS=	fe-dumpdata.c fe-pqexec.c fe-pqstubs.c fe-pqufs.c \
-	auth.c portal.c portalbuf.c pqcomm.c pqpacket.c simplelists.c
+	auth.c portal.c portalbuf.c pqcomm.c pqpacket.c \
+	format.c simplelists.c \
 
 .if (${PORTNAME} == "sparc")
 NOPROFILE=1
@@ -55,7 +61,7 @@ HEADERFILES= port/${PORTNAME}/machine.h catalog/pg_user.h catalog/pg_lobj.h \
 	utils/exception.h utils/log.h utils/geo-decls.h libpq/auth.h
 
 install-headers::
-.if ${PORTNAME} == "sparc"
+.if defined(OLD_MKDIR)
 	@-if [ ! -d ${HEADERDIR} ]; then mkdir ${HEADERDIR}; fi
 	@-if [ ! -d ${HEADERDIR}/port ]; then mkdir ${HEADERDIR}/port; fi
 	@-if [ ! -d ${HEADERDIR}/port/${PORTNAME} ]; \
@@ -72,12 +78,15 @@ install-headers::
 		then mkdir ${HEADERDIR}/libpq; fi
 .endif
 	-for i in ${HEADERFILES}; do \
-		install -c -m 444 ${.CURDIR}/../backend/$$i ${HEADERDIR}/$$i; \
+		${INSTALL} -c -m 444 \
+			${.CURDIR}/../backend/$$i ${HEADERDIR}/$$i; \
 	done
 	-ln ${HEADERDIR}/tmp/libpq.h ${HEADERDIR}
 #	XXX - installing fmgr.h depends on the backend being built
-	install -c -m 444 ${.CURDIR}/../backend/obj/fmgr.h ${HEADERDIR}/fmgr.h
-	install -c -m 444 ${.CURDIR}/../backend/obj/tags.h ${HEADERDIR}/tags.h
+	${INSTALL} -c -m 444 \
+		${.CURDIR}/../backend/obj/fmgr.h ${HEADERDIR}/fmgr.h
+	${INSTALL} -c -m 444 \
+		${.CURDIR}/../backend/obj/tags.h ${HEADERDIR}/tags.h
 	-rm -f ${HEADERDIR}/tmp/c.h
 	-echo "#define PORTNAME ${PORTNAME}" > ${HEADERDIR}/tmp/c.h
 	-echo "#define PORTNAME_${PORTNAME}" >> ${HEADERDIR}/tmp/c.h
