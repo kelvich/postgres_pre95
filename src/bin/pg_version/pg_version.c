@@ -7,22 +7,20 @@ int Noversion = 0;
 char *DataDir = (char *) NULL;
 
 main(argc, argv)
-
-int argc;
-char **argv;
-
+	int argc;
+	char *argv[];
 {
-	char *path = argv[1];
-
-    SetPgVersion(path);
+	if (argc < 2) {
+		fprintf(stderr, "pg_version: missing argument\n");
+		exit(1);
+	}
+	SetPgVersion(argv[1]);
+	exit(0);
 }
 
-elog()
-
-{}
+elog() {}
 
 GetDataHome()
-
 {
 	return(NULL);
 }
