@@ -55,6 +55,7 @@ RcsId("$Header$");
 				/*    after decimal point */
 
 extern double	atof();
+extern double   cbrt();
 
 float64		ftod();
 float32		dtof();
