@@ -186,40 +186,33 @@ HandleFunctionRequest()
     int  rettype;
     int  nargs;
     int  i;
+    unsigned char palloced;
 
     xactid = pq_getint(4);
     fid = pq_getint(4);
-
-    /* XXX FUNCTION_BY_NAME is unsupported by PQfn() in fe-pqexec.c -cim */
-    
-    if ( fid == FUNCTION_BY_NAME ) { 	
-	HeapTuple	tuple;
-
-	pq_getstr(function_name, MAX_FUNC_NAME_LENGTH);
-	tuple = SearchSysCacheTuple(PRONAME, function_name);
-	if (!HeapTupleIsValid(tuple)) {
-	    elog(WARN, "Function name lookup failed for \"%s\"",
-		 function_name);
-	}
-	fid = tuple->t_oid;
-    } 
-
     rettype = pq_getint(4);
     nargs = pq_getint(4);
 
-    /* copy arguments into arg[] */
-    
+    /*
+     *  Copy arguments into arg vector.  If we palloc() an argument, we need
+     *  to remember, so that we pfree() it after the call.  Elsewhere, we
+     *  hardwire nargs <= 8, so palloced is an eight-bit flag vector.
+     */
+
+    palloced = 0x0;
     for (i = 0 ; i < nargs ; i++ ) {
 	arg_length[i] = pq_getint(4);
 	
 	if (arg_length[i] == VAR_LENGTH_ARG ) {
 	    char *data = (char *) palloc(MAX_STRING_LENGTH);
+	    palloced |= (1 << i);
 	    pq_getstr(data,MAX_STRING_LENGTH);
 	    arg[i] = external_to_internal(data,MAX_STRING_LENGTH,PASS_BY_REF);
 	} else if (arg_length[i] > 4)  {
 	    char *vl;
 /*	    elog(WARN,"arg_length of %dth argument too long",i);*/
 	    vl = palloc(arg_length[i]+4);
+	    palloced |= (1 << i);
 	    VARSIZE(vl) = arg_length[i];
 	    pq_getnchar(VARDATA(vl),0,arg_length[i]);
 	    arg[i] = (int)vl;
@@ -244,7 +237,11 @@ HandleFunctionRequest()
     retval = fmgr (fid, arg[0],arg[1],arg[2],arg[3],
 		   arg[4],arg[5],arg[6],arg[7] );
 
+    for (i = 0; i < nargs; i++) {
+	if (palloced & (1 << i))
+	    pfree(arg[i]);
+    }
+
     if (rettype != PORTAL_RESULT)
 	SendFunctionResult ( fid, retval, rettype );
-
 }
