@@ -108,6 +108,8 @@ DATA(insert OID =  58 (  stubin            6 11 f t f 1  33 foo bar ));
 DATA(insert OID =  59 (  stubout           6 11 f t f 1  23 foo bar ));
 DATA(insert OID =  60 (  booleq            6 11 f t f 2  16 foo bar ));
 DATA(insert OID =  61 (  chareq            6 11 f t f 2  16 foo bar ));
+#define       CharacterEqualRegProcedure      61
+
 DATA(insert OID =  62 (  char16eq          6 11 f t f 2  16 foo bar ));
 #define NameEqualRegProcedure		62
 #define Character16EqualRegProcedure	62
