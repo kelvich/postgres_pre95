@@ -46,18 +46,18 @@ append BOOLTBL1 (f1 = "true"::bool)
 \g
 
 /* BOOLTBL1 should be full of true's at this point */
-retrieve (BOOLTBL1.all)
+retrieve (t_3 = "", BOOLTBL1.all)
 \g
 
-retrieve (BOOLTBL1.all) where BOOLTBL1.f1 = "true"::bool
+retrieve (t_3 = "", BOOLTBL1.all) where BOOLTBL1.f1 = "true"::bool
 \g
-retrieve (BOOLTBL1.all) where BOOLTBL1.f1 != "false"::bool
+retrieve (t_3 = "", BOOLTBL1.all) where BOOLTBL1.f1 != "false"::bool
 \g
-retrieve (BOOLTBL1.all) where booleq("false"::bool,BOOLTBL1.f1)
+retrieve (zero = "", BOOLTBL1.all) where booleq("false"::bool,BOOLTBL1.f1)
 \g
 append BOOLTBL1 (f1 = "f"::bool)
 \g
-retrieve (BOOLTBL1.all) where BOOLTBL1.f1 = "false"::bool
+retrieve (f_1 = "", BOOLTBL1.all) where BOOLTBL1.f1 = "false"::bool
 \g
 
 create BOOLTBL2 (f1 = bool)
@@ -72,19 +72,21 @@ append BOOLTBL2 (f1 = "XXX"::bool)  /* this evaluates to a false value */
 \g
 
 /* BOOLTBL2 should be full of false's at this point */
-retrieve (BOOLTBL2.all)
+retrieve (f_4 = "", BOOLTBL2.all)
 \g
 
-/* BUG---->  this two produce different results,
-   the first being erroneous,   bug in hash join??? */
-retrieve (BOOLTBL1.all, BOOLTBL2.all) where BOOLTBL2.f1 != BOOLTBL1.f1
+retrieve (tf_12 = "", BOOLTBL1.all, BOOLTBL2.all)
+	where BOOLTBL2.f1 != BOOLTBL1.f1
 \g
-retrieve (BOOLTBL1.all, BOOLTBL2.all) where boolne(BOOLTBL2.f1,BOOLTBL1.f1)
+retrieve (tf_12 = "", BOOLTBL1.all, BOOLTBL2.all)
+	where boolne(BOOLTBL2.f1,BOOLTBL1.f1)
 \g
 
-retrieve (BOOLTBL1.all, BOOLTBL2.all) where BOOLTBL2.f1 = BOOLTBL1.f1 and BOOLTBL1.f1 = "false"::bool
+retrieve (ff_4 = "", BOOLTBL1.all, BOOLTBL2.all)
+	where BOOLTBL2.f1 = BOOLTBL1.f1 and BOOLTBL1.f1 = "false"::bool
 \g
-retrieve (BOOLTBL1.all, BOOLTBL2.all) where BOOLTBL2.f1 = BOOLTBL1.f1 or BOOLTBL1.f1 = "true"::bool
+retrieve (tf_12_ff_4 = "", BOOLTBL1.all, BOOLTBL2.all)
+	where BOOLTBL2.f1 = BOOLTBL1.f1 or BOOLTBL1.f1 = "true"::bool
 \g
 
 /********testing built-in time types: abstime, reltime, and tinterval *****/
@@ -160,93 +162,142 @@ append TINTERVAL_TBL(f1 = "['' 'infinity']")
 
 /* test abstime operators */
 
-retrieve (ABSTIME_TBL.all)
+retrieve (eleven = "", ABSTIME_TBL.all)
 \g
-retrieve (ABSTIME_TBL.all) where ABSTIME_TBL.f1 < "Jun 30, 2001"::abstime
+retrieve (eight = "", ABSTIME_TBL.all)
+	where ABSTIME_TBL.f1 < "Jun 30, 2001"::abstime
 \g
-retrieve (ABSTIME_TBL.all) where ABSTIME_TBL.f1 > "-infinity"::abstime
+retrieve (eight = "", ABSTIME_TBL.all)
+	where ABSTIME_TBL.f1 > "-infinity"::abstime
 \g
-retrieve (ABSTIME_TBL.all) where "May 10, 1943 23:59:12"::abstime != ABSTIME_TBL.f1
+retrieve (eight = "", ABSTIME_TBL.all)
+	where "May 10, 1943 23:59:12"::abstime != ABSTIME_TBL.f1
 \g
-retrieve (ABSTIME_TBL.all) where "current"::abstime = ABSTIME_TBL.f1
+retrieve (one = "", ABSTIME_TBL.all)
+	where "current"::abstime = ABSTIME_TBL.f1
 \g
-retrieve (ABSTIME_TBL.all) where "epoch"::abstime >= ABSTIME_TBL.f1
+retrieve (five = "", ABSTIME_TBL.all)
+	where "epoch"::abstime >= ABSTIME_TBL.f1
 \g
-retrieve (ABSTIME_TBL.all) where ABSTIME_TBL.f1 <= "Jan 14, 1973 03:14:21"::abstime
+retrieve (six = "", ABSTIME_TBL.all)
+	where ABSTIME_TBL.f1 <= "Jan 14, 1973 03:14:21"::abstime
 \g
-retrieve (ABSTIME_TBL.all) where ABSTIME_TBL.f1 <?> "['Apr 1 1945 00:00:00' 'Dec 30 1999 23:00:00']"::tinterval 
+retrieve (six = "", ABSTIME_TBL.all)
+	where ABSTIME_TBL.f1 <?>
+		"['Apr 1 1945 00:00:00' 'Dec 30 1999 23:00:00']"::tinterval 
 \g
 /* these four queries should return the same answer */
 /* the "infinity" and "-infinity" tuples in ABSTIME_TBL cannot be added and */
 /* therefore, should not show up in the results. */
-retrieve (ABSTIME_TBL.all) where  (ABSTIME_TBL.f1 + "@ 3 year"::reltime) < "Jan 14 14:00:00 1977"::abstime 
+retrieve (five = "", ABSTIME_TBL.all)
+	where  (ABSTIME_TBL.f1 + "@ 3 year"::reltime)     /* +3 years */
+		< "Jan 14 14:00:00 1977"::abstime 
 \g
-retrieve (ABSTIME_TBL.all) where  (ABSTIME_TBL.f1 + "@ 3 year ago"::reltime) < "Jan 14 14:00:00 1971"::abstime 
+retrieve (five = "", ABSTIME_TBL.all)
+	where  (ABSTIME_TBL.f1 + "@ 3 year ago"::reltime) /* -3 years */
+		< "Jan 14 14:00:00 1971"::abstime 
 \g
-retrieve (ABSTIME_TBL.all) where  (ABSTIME_TBL.f1 - "@ 3 year"::reltime) < "Jan 14 14:00:00 1971"::abstime 
+retrieve (five = "", ABSTIME_TBL.all)
+	where  (ABSTIME_TBL.f1 - "@ 3 year"::reltime)     /* -(+3) years */
+		< "Jan 14 14:00:00 1971"::abstime 
 \g
-retrieve (ABSTIME_TBL.all) where  (ABSTIME_TBL.f1 - "@ 3 year ago"::reltime) < "Jan 14 14:00:00 1971"::abstime 
+retrieve (five = "", ABSTIME_TBL.all)
+	where  (ABSTIME_TBL.f1 - "@ 3 year ago"::reltime) /* -(-3) years */
+		< "Jan 14 14:00:00 1977"::abstime 
 \g
-retrieve (ABSTIME_TBL.all, RELTIME_TBL.all) where (ABSTIME_TBL.f1 + RELTIME_TBL.f1) < "Jan 14 14:00:00 1971"::abstime
+
+retrieve (twenty = "", ABSTIME_TBL.all, RELTIME_TBL.all)
+	where (ABSTIME_TBL.f1 + RELTIME_TBL.f1)
+		< "Jan 14 14:00:00 1971"::abstime
 \g
 
 /* test reltime operators */
 
-retrieve (RELTIME_TBL.all)
+retrieve (eight = "", RELTIME_TBL.all)
 \g
-retrieve (RELTIME_TBL.all) where RELTIME_TBL.f1 != "@ 10 days"::reltime
+retrieve (five = "", RELTIME_TBL.all)
+	where RELTIME_TBL.f1 != "@ 10 days"::reltime
 \g
-retrieve (RELTIME_TBL.all) where RELTIME_TBL.f1 <= "@ 5 hours"::reltime
+retrieve (three = "", RELTIME_TBL.all)
+	where RELTIME_TBL.f1 <= "@ 5 hours"::reltime
 \g
-retrieve (RELTIME_TBL.all) where RELTIME_TBL.f1 < "@ 1 day"::reltime
+retrieve (three = "", RELTIME_TBL.all)
+	where RELTIME_TBL.f1 < "@ 1 day"::reltime
 \g
-retrieve (RELTIME_TBL.all) where RELTIME_TBL.f1 = "@ 34 years"::reltime
+retrieve (one = "", RELTIME_TBL.all)
+	where RELTIME_TBL.f1 = "@ 34 years"::reltime
 \g
-retrieve (RELTIME_TBL.all) where RELTIME_TBL.f1 >= "@ 1 month"::reltime
+retrieve (two = "", RELTIME_TBL.all)
+	where RELTIME_TBL.f1 >= "@ 1 month"::reltime
 \g
-retrieve (RELTIME_TBL.all) where RELTIME_TBL.f1 > "@ 3 seconds ago"::reltime
+retrieve (five = "", RELTIME_TBL.all)
+	where RELTIME_TBL.f1 > "@ 3 seconds ago"::reltime
 \g
-retrieve (r1.all, r2.all) from r1 in RELTIME_TBL, r2 in RELTIME_TBL where r1.f1 > r2.f1
+retrieve (fifteen = "", r1.all, r2.all)
+	from r1 in RELTIME_TBL, r2 in RELTIME_TBL
+	where r1.f1 > r2.f1
 \g
 
 /* test tinterval operators */
 
-retrieve (TINTERVAL_TBL.all)
+retrieve (seven = "", TINTERVAL_TBL.all)
 \g
-retrieve (t.all) from t in TINTERVAL_TBL where t.f1 #= "@ 1 months"
+/* length == */
+retrieve (one = "", t.all) from t in TINTERVAL_TBL
+	where t.f1 #= "@ 1 months"
 \g
-retrieve (t.all) from t in TINTERVAL_TBL where t.f1 #!= "@ 1 months"
+/* length != */
+retrieve (three = "", t.all) from t in TINTERVAL_TBL
+	where t.f1 #!= "@ 1 months"
 \g
-retrieve (t.all) from t in TINTERVAL_TBL where t.f1 #< "@ 1 month"
+/* length < */
+retrieve (zero = "", t.all) from t in TINTERVAL_TBL
+	where t.f1 #< "@ 1 month"
 \g
-retrieve (t.all) from t in TINTERVAL_TBL where t.f1 #<= "@ 1 month"
+/* length <= */
+retrieve (one = "", t.all) from t in TINTERVAL_TBL
+	where t.f1 #<= "@ 1 month"
 \g
-retrieve (t.all) from t in TINTERVAL_TBL where t.f1 #> "@ 1 year"
+/* length > */
+retrieve (three = "", t.all) from t in TINTERVAL_TBL
+	where t.f1 #> "@ 1 year"
 \g
-retrieve (t.all) from t in TINTERVAL_TBL where t.f1 #>= "@ 3 years"
+/* length >= */
+retrieve (three = "", t.all) from t in TINTERVAL_TBL
+	where t.f1 #>= "@ 3 years"
 \g
-retrieve (t1.all) from t1 in TINTERVAL_TBL where t1.f1 && "['Aug 15 14:23:19 1983' 'Sep 16 14:23:19 1983']"::tinterval
+/* overlaps */
+retrieve (three = "", t1.all) from t1 in TINTERVAL_TBL
+	where t1.f1 &&
+	"['Aug 15 14:23:19 1983' 'Sep 16 14:23:19 1983']"::tinterval
 \g
-retrieve (t1.all, t2.all) from t1,t2 in TINTERVAL_TBL
+retrieve (five = "", t1.all, t2.all) from t1,t2 in TINTERVAL_TBL
    where t1.f1 && t2.f1 and
 	 t1.f1 = t2.f1
 \g
-retrieve (t1.all, t2.all) from t1,t2 in TINTERVAL_TBL
+retrieve (fourteen = "", t1.all, t2.all) from t1,t2 in TINTERVAL_TBL
    where t1.f1 && t2.f1 and 
 	not t1.f1 = t2.f1
 \g
-retrieve (t1.all) from t1 in TINTERVAL_TBL where not t1.f1 << "['Aug 15 14:23:19 1980' 'Sep 16 14:23:19 1990']"::tinterval
+/* contains */
+retrieve (five = "", t1.all) from t1 in TINTERVAL_TBL
+	where not t1.f1 <<
+		"['Aug 15 14:23:19 1980' 'Sep 16 14:23:19 1990']"::tinterval
 \g
-retrieve (t1.all) from t1 in TINTERVAL_TBL where t1.f1 &&  ("Aug 15 14:23:19 1983'"::abstime <> "Sep 16 14:23:19 1983"::abstime)
+/* make time interval */
+retrieve (three = "", t1.all) from t1 in TINTERVAL_TBL
+	where t1.f1 && 
+		("Aug 15 14:23:19 1983'"::abstime <> 
+		 "Sep 16 14:23:19 1983"::abstime)
 \g
 
 /******************** test built-in type box *********************/
 
 /*
  * box logic
- *
- * 3	  o---o 
- *	  |   |
+ *	     o
+ * 3	  o--|X
+ *	  |  o|
  * 2	+-+-+ |
  *	| | | |
  * 1	| o-+-o
@@ -273,62 +324,80 @@ append BOX_TBL(f1=  "(2.5, 2.5, 2.5,3.5)")
 append BOX_TBL(f1 = "(3.0, 3.0,3.0,3.0)")
 \g
 /* badly formatted box inputs */
-append BOX_TBL(f1="(2.3, 4.5)")
+append BOX_TBL(f1="(2.3, 4.5)")		/* bad */
 \g
-append BOX_TBL(f1="asdfasdf(ad")
+append BOX_TBL(f1="asdfasdf(ad")	/* bad */
 \g
 
-retrieve (BOX_TBL.all)
+retrieve (four = "", BOX_TBL.all)
+\g
+retrieve (four = "", b.all, barea = box_area(b.f1))
 \g
 /* overlap */
-retrieve (b.f1) from b in BOX_TBL where b.f1 && "(2.5,2.5,1.0,1.0)"::box
+retrieve (three = "", b.f1) from b in BOX_TBL
+	where b.f1 && "(2.5,2.5,1.0,1.0)"::box
 \g
-/* left overlap */
-retrieve (b1.all) from b1 in BOX_TBL 
-   where b1.f1 &< "(2.0,2.0,2.5,2.5)"::box
+/* left-or-overlap (x only) */
+retrieve (two = "", b1.all) from b1 in BOX_TBL 
+	where b1.f1 &< "(2.0,2.0,2.5,2.5)"::box
 \g
-/* right overlap */
-retrieve (b1.all) from b1 in BOX_TBL 
-   where b1.f1 &> "(2.0,2.0,2.5,2.5)"::box
+/* right-or-overlap (x only) */
+retrieve (two = "", b1.all) from b1 in BOX_TBL 
+	where b1.f1 &> "(2.0,2.0,2.5,2.5)"::box
 \g
 /* left of */
-retrieve (b.f1) from b in BOX_TBL where b.f1 << "(3.0,3.0,5.0,5.0)"::box
+retrieve (two = "", b.f1) from b in BOX_TBL
+	where b.f1 << "(3.0,3.0,5.0,5.0)"::box
 \g
 /* area <= */
-retrieve (b.f1) from b in BOX_TBL where b.f1 <= "(3.0,3.0,5.0,5.0)"::box
+retrieve (four = "", b.f1) from b in BOX_TBL
+	where b.f1 <= "(3.0,3.0,5.0,5.0)"::box
 \g
 /* area < */
-retrieve (b.f1) from b in BOX_TBL where b.f1 < "(3.0,3.0,5.0,5.0)"::box
+retrieve (two = "", b.f1) from b in BOX_TBL
+	where b.f1 < "(3.0,3.0,5.0,5.0)"::box
 \g
 /* area = */
-retrieve (b.f1) from b in BOX_TBL where b.f1 = "(3.0,3.0,5.0,5.0)"::box
+retrieve (two = "", b.f1) from b in BOX_TBL
+	where b.f1 = "(3.0,3.0,5.0,5.0)"::box
 \g
 /* area > */
-retrieve (b.f1) from b in BOX_TBL where b.f1 > "(3.5,3.0,4.5,3.0)"::box
+retrieve (two = "", b.f1) from b in BOX_TBL
+	where b.f1 > "(3.5,3.0,4.5,3.0)"::box	/* zero area */
 \g
 /* area >= */
-retrieve (b.f1) from b in BOX_TBL where b.f1 >= "(3.5,3.0,4.5,3.0)"::box
+retrieve (four = "", b.f1) from b in BOX_TBL
+	where b.f1 >= "(3.5,3.0,4.5,3.0)"::box	/* zero area */
 \g
 /* right of */
-retrieve (b.f1) from b in BOX_TBL where "(3.0,3.0,5.0,5.0)"::box >> b.f1
+retrieve (two = "", b.f1) from b in BOX_TBL
+	where "(3.0,3.0,5.0,5.0)"::box >> b.f1
 \g
 /* contained in */
-retrieve (b.f1) from b in BOX_TBL where b.f1 @ "(0,0,3,3)"::box
+retrieve (three = "", b.f1) from b in BOX_TBL
+	where b.f1 @ "(0,0,3,3)"::box
 \g
 /* contains */
-retrieve (b.f1) from b in BOX_TBL where "(0,0,3,3)"::box ~ b.f1
+retrieve (three = "", b.f1) from b in BOX_TBL
+	where "(0,0,3,3)"::box ~ b.f1
 \g
 /* box equality */
-retrieve (b.f1) from b in BOX_TBL where "(1,1,3,3)"::box ~= b.f1
+retrieve (one = "", b.f1) from b in BOX_TBL
+	where "(1,1,3,3)"::box ~= b.f1
 \g
 /* center of box, left unary operator */
-retrieve (p = @@(b1.f1)) from b1 in BOX_TBL
+retrieve (four = "", p = @@(b1.f1)) from b1 in BOX_TBL
 \g
-retrieve (b1.all, b2.all) from b1, b2 in BOX_TBL
+/* wholly-contained */
+retrieve (one = "", b1.all, b2.all) from b1, b2 in BOX_TBL
   where b1.f1 ~ b2.f1 and not b1.f1 ~= b2.f1
 \g
 
 /******************* test built-in type char ***************/
+/*
+ * all inputs are SILENTLY truncated at 1 character
+ */
+
 create CHAR_TBL(f1 = char)
 \g
 append CHAR_TBL(f1 = "a")
@@ -346,24 +415,37 @@ append CHAR_TBL(f1 = '3')
 append CHAR_TBL(f1 = "")
 \g
 /* try char's of greater than 1 length */
-/* postgres truncates and ignores the rest of the string */
 append CHAR_TBL(f1 = "cd")
 \g
 
-retrieve (CHAR_TBL.all)
+retrieve (seven = "", CHAR_TBL.all)
 \g
-retrieve (c.all) from c in CHAR_TBL where c.f1 != "a"
+retrieve (six = "", c.all) from c in CHAR_TBL where c.f1 != "a"
 \g
-retrieve (c.all) from c in CHAR_TBL where c.f1 = "a"
+retrieve (one = "", c.all) from c in CHAR_TBL where c.f1 = "a"
 \g
-retrieve (c.all) from c in CHAR_TBL where c.f1 < "a"
+retrieve (five = "", c.all) from c in CHAR_TBL where c.f1 < "a"
 \g
-retrieve (c.all) from c in CHAR_TBL where c.f1 <= "a"
+retrieve (six = "", c.all) from c in CHAR_TBL where c.f1 <= "a"
 \g
-retrieve (c.all) from c in CHAR_TBL where c.f1 > "a"
+retrieve (one = "", c.all) from c in CHAR_TBL where c.f1 > "a"
 \g
-retrieve (c.all) from c in CHAR_TBL where c.f1 >= "a"
+retrieve (two = "", c.all) from c in CHAR_TBL where c.f1 >= "a"
 \g
+/*
+ * char		* '3'	+ '3'	- '3'	/ 'S'
+ * -----------------------------------------------
+ * a	141	123 S	224	056 .	001 ^A
+ * A	101	363	164 t	016 ^N	001 ^A
+ * 1	061	303	144 d	376	000
+ * 2	062	366	145 e	377	000
+ * 3	063	051 )	146 f	000	001 ^A
+ * NUL	000	000	063 3	315	000
+ * c	143	271	226	060 0	001 ^A
+ * -----------------------------------------------
+ * 3	063
+ * -----------------------------------------------
+ */
 retrieve (x= (c.f1 * "3"::char)) from c in CHAR_TBL
 \g
 retrieve (x= (c.f1 + "3"::char)) from c in CHAR_TBL
@@ -374,6 +456,10 @@ retrieve (x= (c.f1 / "3"::char)) from c in CHAR_TBL
 \g
 
 /***************** testing built-in type char2 ***************/
+/*
+ * all inputs are silently truncated at 2 characters
+ */
+
 create CHAR2_TBL(f1 = char2)
 \g
 append CHAR2_TBL(f1 = "AB")
@@ -391,31 +477,35 @@ append CHAR2_TBL(f1 = "")
 append CHAR2_TBL(f1 = "12345")
 \g
 
-retrieve (CHAR2_TBL.all)
+retrieve (seven = "", CHAR2_TBL.all)
 \g
-retrieve (c.f1) from c in CHAR2_TBL where c.f1 != "AB"
+retrieve (six = "", c.f1) from c in CHAR2_TBL where c.f1 != "AB"
 \g
-retrieve (c.f1) from c in CHAR2_TBL where c.f1 = "AB"
+retrieve (one = "", c.f1) from c in CHAR2_TBL where c.f1 = "AB"
 \g
-retrieve (c.f1) from c in CHAR2_TBL where c.f1 < "AB"
+retrieve (three = "", c.f1) from c in CHAR2_TBL where c.f1 < "AB"
 \g
-retrieve (c.f1) from c in CHAR2_TBL where c.f1 <= "AB"
+retrieve (four = "", c.f1) from c in CHAR2_TBL where c.f1 <= "AB"
 \g
-retrieve (c.f1) from c in CHAR2_TBL where c.f1 > "AB"
+retrieve (three = "", c.f1) from c in CHAR2_TBL where c.f1 > "AB"
 \g
-retrieve (c.f1) from c in CHAR2_TBL where c.f1 >= "AB"
+retrieve (four = "", c.f1) from c in CHAR2_TBL where c.f1 >= "AB"
 \g
-retrieve (c.f1) from c in CHAR2_TBL where c.f1 ~ ".*"
+retrieve (seven = "", c.f1) from c in CHAR2_TBL where c.f1 ~ ".*"
 \g
-retrieve (c.f1) from c in CHAR2_TBL where c.f1 !~ ".*"
+retrieve (zero = "", c.f1) from c in CHAR2_TBL where c.f1 !~ ".*"
 \g
-retrieve (c.f1) from c in CHAR2_TBL where c.f1 ~ "34"
+retrieve (one = "", c.f1) from c in CHAR2_TBL where c.f1 ~ "34"
 \g
-retrieve (c.f1) from c in CHAR2_TBL where c.f1 ~ "3.*"
+retrieve (one = "", c.f1) from c in CHAR2_TBL where c.f1 ~ "3.*"
 \g
 
 
 /***************** testing built-in type char4 ***************/
+/*
+ * all inputs are silently truncated at 4 characters
+ */
+
 create CHAR4_TBL(f1 = char4)
 \g
 append CHAR4_TBL(f1 = "ABCD")
@@ -433,28 +523,32 @@ append CHAR4_TBL(f1 = "")
 append CHAR4_TBL(f1 = "12345678")
 \g
 
-retrieve (CHAR4_TBL.all)
+retrieve (seven = "", CHAR4_TBL.all)
 \g
-retrieve (c.f1) from c in CHAR4_TBL where c.f1 != "ABCD"
+retrieve (six = "", c.f1) from c in CHAR4_TBL where c.f1 != "ABCD"
 \g
-retrieve (c.f1) from c in CHAR4_TBL where c.f1 = "ABCD"
+retrieve (one = "", c.f1) from c in CHAR4_TBL where c.f1 = "ABCD"
 \g
-retrieve (c.f1) from c in CHAR4_TBL where c.f1 < "ABCD"
+retrieve (three = "", c.f1) from c in CHAR4_TBL where c.f1 < "ABCD"
 \g
-retrieve (c.f1) from c in CHAR4_TBL where c.f1 <= "ABCD"
+retrieve (four = "", c.f1) from c in CHAR4_TBL where c.f1 <= "ABCD"
 \g
-retrieve (c.f1) from c in CHAR4_TBL where c.f1 > "ABCD"
+retrieve (three = "", c.f1) from c in CHAR4_TBL where c.f1 > "ABCD"
 \g
-retrieve (c.f1) from c in CHAR4_TBL where c.f1 >= "ABCD"
+retrieve (four = "", c.f1) from c in CHAR4_TBL where c.f1 >= "ABCD"
 \g
-retrieve (c.f1) from c in CHAR4_TBL where c.f1 ~ ".*"
+retrieve (seven = "", c.f1) from c in CHAR4_TBL where c.f1 ~ ".*"
 \g
-retrieve (c.f1) from c in CHAR4_TBL where c.f1 !~ ".*"
+retrieve (zero = "", c.f1) from c in CHAR4_TBL where c.f1 !~ ".*"
 \g
-retrieve (c.f1) from c in CHAR4_TBL where c.f1 ~ ".*34.*"
+retrieve (three = "", c.f1) from c in CHAR4_TBL where c.f1 ~ ".*34.*"
 \g
 
 /***************** testing built-in type char8 ***************/
+/*
+ * all inputs are silently truncated at 8 characters
+ */
+
 create CHAR8_TBL(f1 = char8)
 \g
 append CHAR8_TBL(f1 = "ABCDEFGH")
@@ -472,31 +566,35 @@ append CHAR8_TBL(f1 = "")
 append CHAR8_TBL(f1 = "1234567890")
 \g
 
-retrieve (CHAR8_TBL.all)
+retrieve (seven = "", CHAR8_TBL.all)
 \g
-retrieve (c.f1) from c in CHAR8_TBL where c.f1 != "ABCDEFGH"
+retrieve (six = "", c.f1) from c in CHAR8_TBL where c.f1 != "ABCDEFGH"
 \g
-retrieve (c.f1) from c in CHAR8_TBL where c.f1 = "ABCDEFGH"
+retrieve (one = "", c.f1) from c in CHAR8_TBL where c.f1 = "ABCDEFGH"
 \g
-retrieve (c.f1) from c in CHAR8_TBL where c.f1 < "ABCDEFGH"
+retrieve (three = "", c.f1) from c in CHAR8_TBL where c.f1 < "ABCDEFGH"
 \g
-retrieve (c.f1) from c in CHAR8_TBL where c.f1 <= "ABCDEFGH"
+retrieve (four = "", c.f1) from c in CHAR8_TBL where c.f1 <= "ABCDEFGH"
 \g
-retrieve (c.f1) from c in CHAR8_TBL where c.f1 > "ABCDEFGH"
+retrieve (three = "", c.f1) from c in CHAR8_TBL where c.f1 > "ABCDEFGH"
 \g
-retrieve (c.f1) from c in CHAR8_TBL where c.f1 >= "ABCDEFGH"
+retrieve (four = "", c.f1) from c in CHAR8_TBL where c.f1 >= "ABCDEFGH"
 \g
-retrieve (c.f1) from c in CHAR8_TBL where c.f1 ~ ".*"
+retrieve (seven = "", c.f1) from c in CHAR8_TBL where c.f1 ~ ".*"
 \g
-retrieve (c.f1) from c in CHAR8_TBL where c.f1 !~ ".*"
+retrieve (zero = "", c.f1) from c in CHAR8_TBL where c.f1 !~ ".*"
 \g
-retrieve (c.f1) from c in CHAR8_TBL where c.f1 ~ "[0-9]"
+retrieve (four = "", c.f1) from c in CHAR8_TBL where c.f1 ~ "[0-9]"
 \g
-retrieve (c.f1) from c in CHAR8_TBL where c.f1 ~ ".*34.*"
+retrieve (three = "", c.f1) from c in CHAR8_TBL where c.f1 ~ ".*34.*"
 \g
 
 
 /***************** testing built-in type char16 ***************/
+/*
+ * all inputs are silently truncated at 16 characters
+ */
+
 create CHAR16_TBL(f1 = char16)
 \g
 append CHAR16_TBL(f1 = "ABCDEFGHIJKLMNOP")
@@ -514,27 +612,27 @@ append CHAR16_TBL(f1 = "")
 append CHAR16_TBL(f1 = "1234567890ABCDEFGHIJKLMNOPQRSTUV")
 \g
 
-retrieve (CHAR16_TBL.all)
+retrieve (seven = "", CHAR16_TBL.all)
 \g
-retrieve (c.f1) from c in CHAR16_TBL where c.f1 != "ABCDEFGHIJKLMNOP"
+retrieve (six = "", c.f1) from c in CHAR16_TBL where c.f1 != "ABCDEFGHIJKLMNOP"
 \g
-retrieve (c.f1) from c in CHAR16_TBL where c.f1 = "ABCDEFGHIJKLMNOP"
+retrieve (one = "", c.f1) from c in CHAR16_TBL where c.f1 = "ABCDEFGHIJKLMNOP"
 \g
-retrieve (c.f1) from c in CHAR16_TBL where c.f1 < "ABCDEFGHIJKLMNOP"
+retrieve (three = "", c.f1) from c in CHAR16_TBL where c.f1 < "ABCDEFGHIJKLMNOP"
 \g
-retrieve (c.f1) from c in CHAR16_TBL where c.f1 <= "ABCDEFGHIJKLMNOP"
+retrieve (four = "", c.f1) from c in CHAR16_TBL where c.f1 <= "ABCDEFGHIJKLMNOP"
 \g
-retrieve (c.f1) from c in CHAR16_TBL where c.f1 > "ABCDEFGHIJKLMNOP"
+retrieve (three = "", c.f1) from c in CHAR16_TBL where c.f1 > "ABCDEFGHIJKLMNOP"
 \g
-retrieve (c.f1) from c in CHAR16_TBL where c.f1 >= "ABCDEFGHIJKLMNOP"
+retrieve (four = "", c.f1) from c in CHAR16_TBL where c.f1 >= "ABCDEFGHIJKLMNOP"
 \g
-retrieve (c.f1) from c in CHAR16_TBL where c.f1 ~ ".*"
+retrieve (seven = "", c.f1) from c in CHAR16_TBL where c.f1 ~ ".*"
 \g
-retrieve (c.f1) from c in CHAR16_TBL where c.f1 !~ ".*"
+retrieve (zero = "", c.f1) from c in CHAR16_TBL where c.f1 !~ ".*"
 \g
-retrieve (c.f1) from c in CHAR16_TBL where c.f1 ~ "[0-9]"
+retrieve (three = "", c.f1) from c in CHAR16_TBL where c.f1 ~ "[0-9]"
 \g
-retrieve (c.f1) from c in CHAR16_TBL where c.f1 ~ ".*asdf.*"
+retrieve (two = "", c.f1) from c in CHAR16_TBL where c.f1 ~ ".*asdf.*"
 \g
 
 /**************testing built-in type float4 *****************/
@@ -552,45 +650,49 @@ append FLOAT4_TBL(f1="1.2345678901234e+20")
 append FLOAT4_TBL(f1="1.2345678901234e-20")
 \g
 /* test for over and under flow */
-append FLOAT4_TBL(f1="10e40") 
+append FLOAT4_TBL(f1="10e40")	/* bad */
 \g
-append FLOAT4_TBL(f1="-10e40")
+append FLOAT4_TBL(f1="-10e40")	/* bad */
 \g
-append FLOAT4_TBL(f1="10e-40")
+append FLOAT4_TBL(f1="10e-40")	/* bad */
 \g
-append FLOAT4_TBL(f1="-10e-40")
+append FLOAT4_TBL(f1="-10e-40")	/* ok (negative zero) */
 \g
 
-retrieve (FLOAT4_TBL.all)
+retrieve (six = "", FLOAT4_TBL.all)
 \g
-retrieve (f.all) from f in FLOAT4_TBL where f.f1 != "1004.3"
+retrieve (five = "", f.all) from f in FLOAT4_TBL where f.f1 != "1004.3"
 \g
-retrieve (f.all) from f in FLOAT4_TBL where f.f1 = "1004.3"
+retrieve (one = "", f.all) from f in FLOAT4_TBL where f.f1 = "1004.3"
 \g
-retrieve (f.all) from f in FLOAT4_TBL where "1004.3" > f.f1
+retrieve (four = "", f.all) from f in FLOAT4_TBL where "1004.3" > f.f1
 \g
-retrieve (f.all) from f in FLOAT4_TBL where  f.f1 < "1004.3"
+retrieve (four = "", f.all) from f in FLOAT4_TBL where  f.f1 < "1004.3"
 \g
-retrieve (f.all) from f in FLOAT4_TBL where "1004.3" >= f.f1
+retrieve (five = "", f.all) from f in FLOAT4_TBL where "1004.3" >= f.f1
 \g
-retrieve (f.all) from f in FLOAT4_TBL where  f.f1 <= "1004.3"
+retrieve (five = "", f.all) from f in FLOAT4_TBL where  f.f1 <= "1004.3"
 \g
-retrieve (x= f.f1 * "-10") from f in FLOAT4_TBL where f.f1 > "0.0"
+retrieve (three = "", f.f1, x= f.f1 * "-10") from f in FLOAT4_TBL
+	where f.f1 > "0.0"
 \g
-retrieve (x= f.f1 + "-10") from f in FLOAT4_TBL where f.f1 > "0.0"
+retrieve (three = "", f.f1, x= f.f1 + "-10") from f in FLOAT4_TBL
+	where f.f1 > "0.0"
 \g
-retrieve (x= f.f1 / "-10") from f in FLOAT4_TBL where f.f1 > "0.0"
+retrieve (three = "", f.f1, x= f.f1 / "-10") from f in FLOAT4_TBL
+	where f.f1 > "0.0"
 \g
-retrieve (x= f.f1 - "-10") from f in FLOAT4_TBL where f.f1 > "0.0"
+retrieve (three = "", f.f1, x= f.f1 - "-10") from f in FLOAT4_TBL
+	where f.f1 > "0.0"
 \g
-retrieve (FLOAT4_TBL.all)
+retrieve (six = "", FLOAT4_TBL.all)
 \g
 /* test the unary float4abs operator */
-retrieve (x = @f.f1) from f in FLOAT4_TBL
+retrieve (six = "", f.f1, abs_f1 = @f.f1) from f in FLOAT4_TBL
 \g
 replace FLOAT4_TBL(f1= FLOAT4_TBL.f1 * "-1") where FLOAT4_TBL.f1 > "0.0"
 \g
-retrieve (FLOAT4_TBL.all)
+retrieve (six = "", FLOAT4_TBL.all)
 \g
 
 /**************testing built-in type float8 *****************/
@@ -608,67 +710,77 @@ append FLOAT8_TBL(f1="1.2345678901234e+200")
 append FLOAT8_TBL(f1="1.2345678901234e-200")
 \g
 /* test for over and under flow */
-/* this causes floating point exceptions right now! */
-append FLOAT8_TBL(f1="10e400") 
+append FLOAT8_TBL(f1="10e400")		/* bad */
 \g
-append FLOAT8_TBL(f1="-10e400")
+append FLOAT8_TBL(f1="-10e400")		/* bad */
 \g
-append FLOAT8_TBL(f1="10e-400")
+append FLOAT8_TBL(f1="10e-400")		/* bad */
 \g
-append FLOAT8_TBL(f1="-10e-400")
+append FLOAT8_TBL(f1="-10e-400")	/* bad */
 \g
 
-retrieve (FLOAT8_TBL.all)
+retrieve (five = "", FLOAT8_TBL.all)
 \g
-retrieve (f.all) from f in FLOAT8_TBL where f.f1 != "1004.3"
+retrieve (four = "", f.all) from f in FLOAT8_TBL where f.f1 != "1004.3"
 \g
-retrieve (f.all) from f in FLOAT8_TBL where f.f1 = "1004.3"
+retrieve (one = "", f.all) from f in FLOAT8_TBL where f.f1 = "1004.3"
 \g
-retrieve (f.all) from f in FLOAT8_TBL where "1004.3" > f.f1
+retrieve (three = "", f.all) from f in FLOAT8_TBL where "1004.3" > f.f1
 \g
-retrieve (f.all) from f in FLOAT8_TBL where  f.f1 < "1004.3"
+retrieve (three = "", f.all) from f in FLOAT8_TBL where  f.f1 < "1004.3"
 \g
-retrieve (f.all) from f in FLOAT8_TBL where "1004.3" >= f.f1
+retrieve (four = "", f.all) from f in FLOAT8_TBL where "1004.3" >= f.f1
 \g
-retrieve (f.all) from f in FLOAT8_TBL where  f.f1 <= "1004.3"
+retrieve (four = "", f.all) from f in FLOAT8_TBL where  f.f1 <= "1004.3"
 \g
-retrieve (x= f.f1 * "-10") from f in FLOAT8_TBL where f.f1 > "0.0"
+retrieve (three = "", f.f1, x= f.f1 * "-10") from f in FLOAT8_TBL
+	where f.f1 > "0.0"
 \g
-retrieve (x= f.f1 + "-10") from f in FLOAT8_TBL where f.f1 > "0.0"
+retrieve (three = "", f.f1, x= f.f1 + "-10") from f in FLOAT8_TBL
+	where f.f1 > "0.0"
 \g
-retrieve (x= f.f1 / "-10") from f in FLOAT8_TBL where f.f1 > "0.0"
+retrieve (three = "", f.f1, x= f.f1 / "-10") from f in FLOAT8_TBL
+	where f.f1 > "0.0"
 \g
-retrieve (x= f.f1 - "-10") from f in FLOAT8_TBL where f.f1 > "0.0"
+retrieve (three = "", f.f1, x= f.f1 - "-10") from f in FLOAT8_TBL
+	where f.f1 > "0.0"
 \g
-retrieve (x = f.f1 ^ "2.0") from f in FLOAT8_TBL
+retrieve (five = "", square_f1 = f.f1 ^ "2.0") from f in FLOAT8_TBL
 \g
 /* absolute value */
-retrieve (x = @f.f1) from f in FLOAT8_TBL
+retrieve (five = "", f.f1, abs_f1 = @f.f1) from f in FLOAT8_TBL
 \g
 /* truncate */
-retrieve (x = %f.f1) from f in FLOAT8_TBL
+retrieve (five = "", f.f1, trunc_f1 = %f.f1) from f in FLOAT8_TBL
 \g
 /* round */
-retrieve (x = f.f1 %) from f in FLOAT8_TBL
+retrieve (five = "", f.f1, round_f1 = f.f1 %) from f in FLOAT8_TBL
 \g
 /* square root */
-retrieve (x = |/f.f1) from f in FLOAT8_TBL where f.f1 > "0.0"
+retrieve (three = "", f.f1, sqrt_f1 = |/f.f1) from f in FLOAT8_TBL
+	where f.f1 > "0.0"
 \g
 /* take exp of ln(f.f1) */
-retrieve (x = : ( ; f.f1) ) from f in FLOAT8_TBL where f.f1 > "0.0"
+retrieve (three = "", f.f1, exp_ln_f1 = : ( ; f.f1) ) from f in FLOAT8_TBL
+	where f.f1 > "0.0"
 \g
 /* cube root */
-retrieve (x = ||/f.f1) from f in FLOAT8_TBL
+retrieve (five = "", f.f1, cbrt_f1 = ||/f.f1) from f in FLOAT8_TBL
 \g
 
-retrieve (FLOAT8_TBL.all)
+retrieve (five = "", FLOAT8_TBL.all)
 \g
 replace FLOAT8_TBL(f1= FLOAT8_TBL.f1 * "-1") where FLOAT8_TBL.f1 > "0.0"
 \g
-retrieve (FLOAT8_TBL.all)
+retrieve (five = "", FLOAT8_TBL.all)
 \g
 
 /**************testing built-in type int2 *****************/
+/*
+ * NOTE: int2 operators never check for over/underflow!
+ * Some of these answers are consequently numerically incorrect.
+ */
+
 create INT2_TBL(f1=int2)
 \g
 append INT2_TBL(f1="0")
@@ -677,8 +789,7 @@ append INT2_TBL(f1="1234")
 \g
 append INT2_TBL(f1="-1234")
 \g
-/* the digits after the decimal should be ignored */
-append INT2_TBL(f1="34.5")
+append INT2_TBL(f1="34.5")	/* bad */
 \g
 /* largest and smallest values */
 append INT2_TBL(f1="32767")
@@ -686,60 +797,67 @@ append INT2_TBL(f1="32767")
 append INT2_TBL(f1="-32767")
 \g
 /* bad input values -- should give warnings */
-append INT2_TBL(f1="100000")
+append INT2_TBL(f1="100000")	/* bad */
 \g
-append INT2_TBL(f1="asdf")
+append INT2_TBL(f1="asdf")	/* bad */
 \g
 
-retrieve (INT2_TBL.all)
+retrieve (five = "", INT2_TBL.all)
 \g
-retrieve (i.all) from i in INT2_TBL where i.f1 != "0"::int2
+retrieve (four = "", i.all) from i in INT2_TBL where i.f1 != "0"::int2
 \g
-retrieve (i.all) from i in INT2_TBL where i.f1 != "0"::int4
+retrieve (four = "", i.all) from i in INT2_TBL where i.f1 != "0"::int4
 \g
-retrieve (i.all) from i in INT2_TBL where i.f1 = "0"::int2
+retrieve (one = "", i.all) from i in INT2_TBL where i.f1 = "0"::int2
 \g
-retrieve (i.all) from i in INT2_TBL where i.f1 = "0"::int4
+retrieve (one = "", i.all) from i in INT2_TBL where i.f1 = "0"::int4
 \g
-retrieve (i.all) from i in INT2_TBL where i.f1 < "0"::int2
+retrieve (two = "", i.all) from i in INT2_TBL where i.f1 < "0"::int2
 \g
-retrieve (i.all) from i in INT2_TBL where i.f1 < "0"::int4
+retrieve (two = "", i.all) from i in INT2_TBL where i.f1 < "0"::int4
 \g
-retrieve (i.all) from i in INT2_TBL where i.f1 <= "0"::int2
+retrieve (three = "", i.all) from i in INT2_TBL where i.f1 <= "0"::int2
 \g
-retrieve (i.all) from i in INT2_TBL where i.f1 <= "0"::int4
+retrieve (three = "", i.all) from i in INT2_TBL where i.f1 <= "0"::int4
 \g
-retrieve (i.all) from i in INT2_TBL where i.f1 > "0"::int2
+retrieve (two = "", i.all) from i in INT2_TBL where i.f1 > "0"::int2
 \g
-retrieve (i.all) from i in INT2_TBL where i.f1 > "0"::int4
+retrieve (two = "", i.all) from i in INT2_TBL where i.f1 > "0"::int4
 \g
-retrieve (i.all) from i in INT2_TBL where i.f1 >= "0"::int2
+retrieve (three = "", i.all) from i in INT2_TBL where i.f1 >= "0"::int2
 \g
-retrieve (i.all) from i in INT2_TBL where i.f1 >= "0"::int4
+retrieve (three = "", i.all) from i in INT2_TBL where i.f1 >= "0"::int4
 \g
-retrieve (i.all) from i in INT2_TBL where (i.f1 % "2"::int2) = "1"::int2
+/* positive odds */
+retrieve (one = "", i.all) from i in INT2_TBL where (i.f1 % "2"::int2) = "1"::int2
 \g
-retrieve (i.all) from i in INT2_TBL where (i.f1 % "2"::int4) = "0"::int2
+/* any evens */
+retrieve (three = "", i.all) from i in INT2_TBL where (i.f1 % "2"::int4) = "0"::int2
 \g
-retrieve (x = i.f1 * "2"::int2) from i in INT2_TBL
+retrieve (five = "", i.f1, x = i.f1 * "2"::int2) from i in INT2_TBL
 \g
-retrieve (x = i.f1 * "2"::int4) from i in INT2_TBL
+retrieve (five = "", i.f1, x = i.f1 * "2"::int4) from i in INT2_TBL
 \g
-retrieve (x = i.f1 + "2"::int2) from i in INT2_TBL
+retrieve (five = "", i.f1, x = i.f1 + "2"::int2) from i in INT2_TBL
 \g
-retrieve (x = i.f1 + "2"::int4) from i in INT2_TBL
+retrieve (five = "", i.f1, x = i.f1 + "2"::int4) from i in INT2_TBL
 \g
-retrieve (x = i.f1 - "2"::int2) from i in INT2_TBL
+retrieve (five = "", i.f1, x = i.f1 - "2"::int2) from i in INT2_TBL
 \g
-retrieve (x = i.f1 - "2"::int4) from i in INT2_TBL
+retrieve (five = "", i.f1, x = i.f1 - "2"::int4) from i in INT2_TBL
 \g
-retrieve (x = i.f1 / "2"::int2) from i in INT2_TBL
+retrieve (five = "", i.f1, x = i.f1 / "2"::int2) from i in INT2_TBL
 \g
-retrieve (x = i.f1 / "2"::int4) from i in INT2_TBL
+retrieve (five = "", i.f1, x = i.f1 / "2"::int4) from i in INT2_TBL
 \g
 
 
 /**************testing built-in type int4 *****************/
+/*
+ * WARNING: int4 operators never check for over/underflow!
+ * Some of these answers are consequently numerically incorrect.
+ */
+
 create INT4_TBL(f1=int4)
 \g
 append INT4_TBL(f1="0")
@@ -748,8 +866,7 @@ append INT4_TBL(f1="123456")
 \g
 append INT4_TBL(f1="-123456")
 \g
-/* the digits after the decimal should be ignored */
-append INT4_TBL(f1="34.5")
+append INT4_TBL(f1="34.5")		/* bad */
 \g
 /* largest and smallest values */
 append INT4_TBL(f1="2147483647")
@@ -757,56 +874,58 @@ append INT4_TBL(f1="2147483647")
 append INT4_TBL(f1="-2147483647")
 \g
 /* bad input values -- should give warnings */
-append INT4_TBL(f1="1000000000000")
+append INT4_TBL(f1="1000000000000")	/* bad */
 \g
-append INT4_TBL(f1="asdf")
+append INT4_TBL(f1="asdf")		/* bad */
 \g
 
-retrieve (INT4_TBL.all)
+retrieve (five = "", INT4_TBL.all)
 \g
-retrieve (i.all) from i in INT4_TBL where i.f1 != "0"::int2
+retrieve (four = "", i.all) from i in INT4_TBL where i.f1 != "0"::int2
 \g
-retrieve (i.all) from i in INT4_TBL where i.f1 != "0"::int4
+retrieve (four = "", i.all) from i in INT4_TBL where i.f1 != "0"::int4
 \g
-retrieve (i.all) from i in INT4_TBL where i.f1 = "0"::int2
+retrieve (one = "", i.all) from i in INT4_TBL where i.f1 = "0"::int2
 \g
-retrieve (i.all) from i in INT4_TBL where i.f1 = "0"::int4
+retrieve (one = "", i.all) from i in INT4_TBL where i.f1 = "0"::int4
 \g
-retrieve (i.all) from i in INT4_TBL where i.f1 < "0"::int2
+retrieve (two = "", i.all) from i in INT4_TBL where i.f1 < "0"::int2
 \g
-retrieve (i.all) from i in INT4_TBL where i.f1 < "0"::int4
+retrieve (two = "", i.all) from i in INT4_TBL where i.f1 < "0"::int4
 \g
-retrieve (i.all) from i in INT4_TBL where i.f1 <= "0"::int2
+retrieve (three = "", i.all) from i in INT4_TBL where i.f1 <= "0"::int2
 \g
-retrieve (i.all) from i in INT4_TBL where i.f1 <= "0"::int4
+retrieve (three = "", i.all) from i in INT4_TBL where i.f1 <= "0"::int4
 \g
-retrieve (i.all) from i in INT4_TBL where i.f1 > "0"::int2
+retrieve (two = "", i.all) from i in INT4_TBL where i.f1 > "0"::int2
 \g
-retrieve (i.all) from i in INT4_TBL where i.f1 > "0"::int4
+retrieve (two = "", i.all) from i in INT4_TBL where i.f1 > "0"::int4
 \g
-retrieve (i.all) from i in INT4_TBL where i.f1 >= "0"::int2
+retrieve (three = "", i.all) from i in INT4_TBL where i.f1 >= "0"::int2
 \g
-retrieve (i.all) from i in INT4_TBL where i.f1 >= "0"::int4
+retrieve (three = "", i.all) from i in INT4_TBL where i.f1 >= "0"::int4
 \g
-retrieve (i.all) from i in INT4_TBL where (i.f1 % "2"::int2) = "1"::int2
+/* positive odds */
+retrieve (one = "", i.all) from i in INT4_TBL where (i.f1 % "2"::int2) = "1"::int2
 \g
-retrieve (i.all) from i in INT4_TBL where (i.f1 % "2"::int4) = "0"::int2
+/* any evens */
+retrieve (three = "", i.all) from i in INT4_TBL where (i.f1 % "2"::int4) = "0"::int2
 \g
-retrieve (x = i.f1 * "2"::int2) from i in INT4_TBL
+retrieve (five = "", i.f1, x = i.f1 * "2"::int2) from i in INT4_TBL
 \g
-retrieve (x = i.f1 * "2"::int4) from i in INT4_TBL
+retrieve (five = "", i.f1, x = i.f1 * "2"::int4) from i in INT4_TBL
 \g
-retrieve (x = i.f1 + "2"::int2) from i in INT4_TBL
+retrieve (five = "", i.f1, x = i.f1 + "2"::int2) from i in INT4_TBL
 \g
-retrieve (x = i.f1 + "2"::int4) from i in INT4_TBL
+retrieve (five = "", i.f1, x = i.f1 + "2"::int4) from i in INT4_TBL
 \g
-retrieve (x = i.f1 - "2"::int2) from i in INT4_TBL
+retrieve (five = "", i.f1, x = i.f1 - "2"::int2) from i in INT4_TBL
 \g
-retrieve (x = i.f1 - "2"::int4) from i in INT4_TBL
+retrieve (five = "", i.f1, x = i.f1 - "2"::int4) from i in INT4_TBL
 \g
-retrieve (x = i.f1 / "2"::int2) from i in INT4_TBL
+retrieve (five = "", i.f1, x = i.f1 / "2"::int2) from i in INT4_TBL
 \g
-retrieve (x = i.f1 / "2"::int4) from i in INT4_TBL
+retrieve (five = "", i.f1, x = i.f1 / "2"::int4) from i in INT4_TBL
 \g
 
 /*
@@ -849,24 +968,24 @@ append OID_TBL(f1="987")
 \g
 append OID_TBL(f1="-1040")
 \g
-/* bad inputs */
 append OID_TBL(f1="")
 \g
-append OID_TBL(f1="asdfasd")
+/* bad inputs */
+append OID_TBL(f1="asdfasd")	/* bad */
 \g
-retrieve (OID_TBL.all)
+retrieve (five = "", OID_TBL.all)
 \g
-retrieve (o.all) from o in OID_TBL where o.f1 = "1234"
+retrieve (one = "", o.all) from o in OID_TBL where o.f1 = "1234"
 \g
-retrieve (o.all) from o in OID_TBL where o.f1 != "1234"
+retrieve (four = "", o.all) from o in OID_TBL where o.f1 != "1234"
 \g
-retrieve (o.all) from o in OID_TBL where o.f1 <= "1234"
+retrieve (four = "", o.all) from o in OID_TBL where o.f1 <= "1234"
 \g
-retrieve (o.all) from o in OID_TBL where o.f1 < "1234"
+retrieve (three = "", o.all) from o in OID_TBL where o.f1 < "1234"
 \g
-retrieve (o.all) from o in OID_TBL where o.f1 >= "1234"
+retrieve (two = "", o.all) from o in OID_TBL where o.f1 >= "1234"
 \g
-retrieve (o.all) from o in OID_TBL where o.f1 > "1234"
+retrieve (one = "", o.all) from o in OID_TBL where o.f1 > "1234"
 \g
 
 /**************testing built-in type oidchar16 *****************/
@@ -882,29 +1001,29 @@ append OIDCHAR16_TBL(f1="1235,efgh")
 append OIDCHAR16_TBL(f1="987,XXXX")
 \g
 /* no char16 component */
-append OIDCHAR16_TBL(f1="123456")
+append OIDCHAR16_TBL(f1="123456")	/* bad */
 \g
 /* char16 component too long */
 append OIDCHAR16_TBL(f1="123456,abcdefghijklmnopqrsutvwyz")
 \g
 /* bad inputs */
-append OIDCHAR16_TBL(f1="")
+append OIDCHAR16_TBL(f1="")		/* bad */
 \g
-append OIDCHAR16_TBL(f1="asdfasd")
+append OIDCHAR16_TBL(f1="asdfasd")	/* bad */
 \g
-retrieve (OIDCHAR16_TBL.all)
+retrieve (four = "", OIDCHAR16_TBL.all)
 \g
-retrieve (o.all) from o in OIDCHAR16_TBL where o.f1 = "1234,abcd"
+retrieve (one = "", o.all) from o in OIDCHAR16_TBL where o.f1 = "1234,abcd"
 \g
-retrieve (o.all) from o in OIDCHAR16_TBL where o.f1 != "1234,abcd"
+retrieve (three = "", o.all) from o in OIDCHAR16_TBL where o.f1 != "1234,abcd"
 \g
-retrieve (o.all) from o in OIDCHAR16_TBL where o.f1 <= "1234,abcd"
+retrieve (two = "", o.all) from o in OIDCHAR16_TBL where o.f1 <= "1234,abcd"
 \g
-retrieve (o.all) from o in OIDCHAR16_TBL where o.f1 < "1234,abcd"
+retrieve (one = "", o.all) from o in OIDCHAR16_TBL where o.f1 < "1234,abcd"
 \g
-retrieve (o.all) from o in OIDCHAR16_TBL where o.f1 >= "1234,abcd"
+retrieve (three = "", o.all) from o in OIDCHAR16_TBL where o.f1 >= "1234,abcd"
 \g
-retrieve (o.all) from o in OIDCHAR16_TBL where o.f1 > "1234,abcd"
+retrieve (two = "", o.all) from o in OIDCHAR16_TBL where o.f1 > "1234,abcd"
 \g
 
 /**************testing built-in type oidint2 *****************/
@@ -920,29 +1039,37 @@ append OIDINT2_TBL(f1="1235/9873")
 append OIDINT2_TBL(f1="987/-1234")
 \g
 /* no int2 component */
+/*
+ * this is defined as good in the code -- I don't know what will break
+ * if we disallow it.
+ */
 append OIDINT2_TBL(f1="123456")
 \g
 /* int2 component too large */
-append OIDINT2_TBL(f1="123456/123456")
+append OIDINT2_TBL(f1="123456/123456")	/* bad */
 \g
-/* bad inputs */
+/*
+ * this is defined as good in the code -- I don't know what will break
+ * if we disallow it.
+ */
 append OIDINT2_TBL(f1="")
 \g
-append OIDINT2_TBL(f1="asdfasd")
+/* bad inputs */
+append OIDINT2_TBL(f1="asdfasd")	/* bad */
 \g
-retrieve (OIDINT2_TBL.all)
+retrieve (five = "", OIDINT2_TBL.all)
 \g
-retrieve (o.all) from o in OIDINT2_TBL where o.f1 = "1235/9873"
+retrieve (one = "", o.all) from o in OIDINT2_TBL where o.f1 = "1235/9873"
 \g
-retrieve (o.all) from o in OIDINT2_TBL where o.f1 != "1235/9873"
+retrieve (four = "", o.all) from o in OIDINT2_TBL where o.f1 != "1235/9873"
 \g
-retrieve (o.all) from o in OIDINT2_TBL where o.f1 <= "1235/9873"
+retrieve (four = "", o.all) from o in OIDINT2_TBL where o.f1 <= "1235/9873"
 \g
-retrieve (o.all) from o in OIDINT2_TBL where o.f1 < "1235/9873"
+retrieve (three = "", o.all) from o in OIDINT2_TBL where o.f1 < "1235/9873"
 \g
-retrieve (o.all) from o in OIDINT2_TBL where o.f1 >= "1235/9873"
+retrieve (two = "", o.all) from o in OIDINT2_TBL where o.f1 >= "1235/9873"
 \g
-retrieve (o.all) from o in OIDINT2_TBL where o.f1 > "1235/9873"
+retrieve (one = "", o.all) from o in OIDINT2_TBL where o.f1 > "1235/9873"
 \g
 
 /**************testing built-in type oidint4 *****************/
@@ -958,29 +1085,37 @@ append OIDINT4_TBL(f1="1235/9873")
 append OIDINT4_TBL(f1="987/-1234")
 \g
 /* no int4 component */
+/*
+ * this is defined as good in the code -- I don't know what will break
+ * if we disallow it.
+ */
 append OIDINT4_TBL(f1="123456")
 \g
 /* int4 component too large */
-append OIDINT4_TBL(f1="123456/1234568901234567890")
+append OIDINT4_TBL(f1="123456/1234568901234567890")	/* bad */
+\g
+/*
+ * this is defined as good in the code -- I don't know what will break
+ * if we disallow it.
+ */
+append OIDINT4_TBL(f1="")				/* bad */
 \g
 /* bad inputs */
-append OIDINT4_TBL(f1="")
+append OIDINT4_TBL(f1="asdfasd")			/* bad */
 \g
-append OIDINT4_TBL(f1="asdfasd")
+retrieve (five = "", OIDINT4_TBL.all)
 \g
-retrieve (OIDINT4_TBL.all)
+retrieve (one = "", o.all) from o in OIDINT4_TBL where o.f1 = "1235/9873"
 \g
-retrieve (o.all) from o in OIDINT4_TBL where o.f1 = "1235/9873"
+retrieve (four = "", o.all) from o in OIDINT4_TBL where o.f1 != "1235/9873"
 \g
-retrieve (o.all) from o in OIDINT4_TBL where o.f1 != "1235/9873"
+retrieve (four = "", o.all) from o in OIDINT4_TBL where o.f1 <= "1235/9873"
 \g
-retrieve (o.all) from o in OIDINT4_TBL where o.f1 <= "1235/9873"
+retrieve (three = "", o.all) from o in OIDINT4_TBL where o.f1 < "1235/9873"
 \g
-retrieve (o.all) from o in OIDINT4_TBL where o.f1 < "1235/9873"
+retrieve (two = "", o.all) from o in OIDINT4_TBL where o.f1 >= "1235/9873"
 \g
-retrieve (o.all) from o in OIDINT4_TBL where o.f1 >= "1235/9873"
-\g
-retrieve (o.all) from o in OIDINT4_TBL where o.f1 > "1235/9873"
+retrieve (one = "", o.all) from o in OIDINT4_TBL where o.f1 > "1235/9873"
 \g
 
 /**************testing built-in type point *****************/
@@ -998,36 +1133,55 @@ append POINT_TBL(f1="(5.1, 34.5)")
 append POINT_TBL(f1="(-5.0,-12.0)")
 \g
 /* bad format points */
-append POINT_TBL(f1="asdfasdf")
+append POINT_TBL(f1="asdfasdf")		/* bad */
 \g
-append POINT_TBL(f1="10.0,10.0")
+append POINT_TBL(f1="10.0,10.0")	/* bad */
 \g
-append POINT_TBL(f1="(10.0 10.0)")
+append POINT_TBL(f1="(10.0 10.0)")	/* bad */
 \g
-append POINT_TBL(f1="(10.0,10.0")
+append POINT_TBL(f1="(10.0,10.0")	/* bad */
 \g
 
-retrieve (POINT_TBL.all)
+retrieve (five = "", POINT_TBL.all)
 \g
-retrieve (p.all) from p in POINT_TBL where p.f1 !< "(0.0, 0.0)"
+/* left of */
+retrieve (three = "", p.all) from p in POINT_TBL where p.f1 !< "(0.0, 0.0)"
 \g
-retrieve (p.all) from p in POINT_TBL where "(0.0,0.0)" !> p.f1
+/* right of */
+retrieve (three = "", p.all) from p in POINT_TBL where "(0.0,0.0)" !> p.f1
 \g
-retrieve (p.all) from p in POINT_TBL where "(0.0,0.0)" !^ p.f1
+/* above */
+retrieve (one = "", p.all) from p in POINT_TBL where "(0.0,0.0)" !^ p.f1
 \g
-retrieve (p.all) from p in POINT_TBL where p.f1 !| "(0.0, 0.0)"
+/* below */
+retrieve (one = "", p.all) from p in POINT_TBL where p.f1 !| "(0.0, 0.0)"
 \g
-retrieve (p.all) from p in POINT_TBL where p.f1 =|= "(5.1, 34.5)"
+/* equal */
+retrieve (one = "", p.all) from p in POINT_TBL where p.f1 =|= "(5.1, 34.5)"
 \g
-retrieve (p.all) from p in POINT_TBL where p.f1 ---> "(0,0,100,100)"
+/* point in box */
+retrieve (two = "", p.all) from p in POINT_TBL
+	where p.f1 ---> "(0,0,100,100)"
 \g
-retrieve (p.all) from p in POINT_TBL where not on_pb(p.f1,"(0,0,100,100)"::box)
+retrieve (three = "", p.all) from p in POINT_TBL
+	where not on_pb(p.f1,"(0,0,100,100)"::box)
 \g
-retrieve (p.all) from p in POINT_TBL where on_ppath(p.f1,"(0,3,0,0,-10,0,-10,10)"::path)
+retrieve (two = "", p.all) from p in POINT_TBL
+	where on_ppath(p.f1,"(0,3,0,0,-10,0,-10,10)"::path)
 \g
-retrieve (p.f1, dist= p.f1 <---> "(0,0)") from p in POINT_TBL
+retrieve (five = "", p.f1, dist= p.f1 <---> "(0,0)") from p in POINT_TBL
 \g
-retrieve (p1.f1, p2.f1) from p1, p2 in POINT_TBL
+retrieve (twentyfive = "", p1.f1, p2.f1, dist = p1.f1 <---> p2.f1)
+	from p1, p2 in POINT_TBL
+\g
+retrieve (twenty = "", p1.f1, p2.f1) from p1, p2 in POINT_TBL
+   where (p1.f1 <---> p2.f1) > 3
+\g
+retrieve (ten = "", p1.f1, p2.f1) from p1, p2 in POINT_TBL
+   where (p1.f1 <---> p2.f1) > 3 and 
+	p1.f1 !< p2.f1
+\g
+retrieve (two = "", p1.f1, p2.f1) from p1, p2 in POINT_TBL
    where (p1.f1 <---> p2.f1) > 3 and 
 	p1.f1 !< p2.f1 and
 	p1.f1 !^ p2.f1
@@ -1042,9 +1196,9 @@ retrieve (p1.f1, p2.f1) from p1, p2 in POINT_TBL
  *	      |
  * 2	    + |
  *	   /  |
- * 1	  / o +
+ * 1	  # o +
  *       /    |
- * 0	+-----o-+
+ * 0	#-----o-+
  *
  *	0 1 2 3 4
  */
@@ -1061,67 +1215,52 @@ append POLYGON_TBL(f1="(0.0,0.0)")
 append POLYGON_TBL(f1="(0.0,0.0,1.0,1.0)")
 \g
 /* bad polygon input strings */
-append POLYGON_TBL(f1="0.0")
+append POLYGON_TBL(f1="0.0")		/* bad */
 \g
-append POLYGON_TBL(f1="(0.0 0.0")
+append POLYGON_TBL(f1="(0.0 0.0")	/* bad */
 \g
-append POLYGON_TBL(f1="(0,1,2)")
+append POLYGON_TBL(f1="(0,1,2)")	/* bad */
 \g
-append POLYGON_TBL(f1="(0,1,2,3")
+append POLYGON_TBL(f1="(0,1,2,3")	/* bad */
 \g
-append POLYGON_TBL(f1="asdf")
-\g
-
-retrieve (POLYGON_TBL.all)
+append POLYGON_TBL(f1="asdf")		/* bad */
 \g
 
-retrieve (p.all) from p in POLYGON_TBL
+retrieve (four = "", POLYGON_TBL.all)
+\g
+/* overlap */
+retrieve (three = "", p.all) from p in POLYGON_TBL
   where p.f1 && "(3.0,3.0,1.0,1.0,3.0,0.0)"
 \g
-retrieve (p.all) from p in POLYGON_TBL
+/* left overlap */
+retrieve (four = "", p.all) from p in POLYGON_TBL
   where p.f1 &< "(3.0,3.0,1.0,1.0,3.0,0.0)"
 \g
-retrieve (p.all) from p in POLYGON_TBL
+/* right overlap */
+retrieve (two = "", p.all) from p in POLYGON_TBL
   where p.f1 &> "(3.0,3.0,1.0,1.0,3.0,0.0)"
 \g
-retrieve (p.all) from p in POLYGON_TBL
+/* left of */
+retrieve (one = "", p.all) from p in POLYGON_TBL
   where p.f1 << "(3.0,3.0,1.0,1.0,3.0,0.0)"
 \g
-retrieve (p.all) from p in POLYGON_TBL
+/* right of */
+retrieve (zero = "", p.all) from p in POLYGON_TBL
   where p.f1 >> "(3.0,3.0,1.0,1.0,3.0,0.0)"
 \g
-retrieve (p.all) from p in POLYGON_TBL
+/* contained */
+retrieve (one = "", p.all) from p in POLYGON_TBL
   where p.f1 @ "(3.0,3.0,1.0,1.0,3.0,0.0)"
 \g
-retrieve (p.all) from p in POLYGON_TBL
+/* same */
+retrieve (one = "", p.all) from p in POLYGON_TBL
   where p.f1 ~= "(3.0,3.0,1.0,1.0,3.0,0.0)"
 \g
-retrieve (p.all) from p in POLYGON_TBL
+/* contains */
+retrieve (one = "", p.all) from p in POLYGON_TBL
   where p.f1 ~ "(3.0,3.0,1.0,1.0,3.0,0.0)"
 \g
 
-
-
-retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon &< "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
-\g
-/* right overlap */
-retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon &> "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
-\g
-/* right of */
-retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon >> "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
-\g
-/* contained in */
-retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon @ "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
-\g
-/* contains */
-retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon ~ "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
-\g
-/* same */
-retrieve (false = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon ~= "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
-\g
-/* overlap */
-retrieve (true = "(2.0,2.0,0.0,0.0,4.0,0.0)"::polygon && "(3.0,3.0,1.0,1.0,3.0,0.0)"::polygon)
-\g
 
 /**************testing built-in type text  *****************/
 
