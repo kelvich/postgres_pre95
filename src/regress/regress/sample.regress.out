@@ -1,14 +1,12 @@
 =============== destroying old regression database... =================
-WARN:Jan  6 17:01:46:destroydb: database regression does not exist.
-destroydb: database destroy failed on regression.
 =============== creating new regression database... =================
 Welcome to the POSTGRES terminal monitor
 
 Go 
 * 
 Query sent to backend is "    define function circle_in ( language = "c", 			    returntype = circle )        arg is (any)        as "/private/postgres/src/regress/regress/obj/regress.so" "
-NOTICE:Jan  6 17:01:49:ProcedureDefine: type 'circle' is not yet defined
-NOTICE:Jan  6 17:01:49:ProcedureDefine: creating a shell for type 'circle'
+NOTICE:Jan 28 17:51:50:ProcedureDefine: type 'circle' is not yet defined
+NOTICE:Jan 28 17:51:50:ProcedureDefine: creating a shell for type 'circle'
 DEFINE
 Go 
 * 
@@ -225,23 +223,23 @@ APPEND 0
 Go 
 * 
 Query sent to backend is "append hobbies_r (name = "skywalking") "
-APPEND 702594
+APPEND 971042
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "advil", hobby = "posthacking") "
-APPEND 702595
+APPEND 971043
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "peet's coffee", hobby = "posthacking") "
-APPEND 702596
+APPEND 971044
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "hightops", hobby = "basketball") "
-APPEND 702597
+APPEND 971045
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "guts", hobby = "skywalking") "
-APPEND 702598
+APPEND 971046
 Go 
 * 
 Query sent to backend is "copy road from "/private/postgres/src/regress/regress/../data/streets.data" "
@@ -277,7 +275,7 @@ COPY
 Go 
 * 
 Query sent to backend is "   append arrtest (a[5] = "{1,2,3,4,5}", b[2][1][2] = "{{{},{1,2}}}", c = "{}",  					d = "{}", e[0:4] = "/floatarr") "
-APPEND 718841
+APPEND 987289
 Go 
 * 
 Query sent to backend is "replace arrtest (e[0] = "1.1") "
@@ -289,11 +287,11 @@ REPLACE
 Go 
 * 
 Query sent to backend is "append arrtest (a = "{11,12,23}", b[2][2][1] = "{{3,4},{4,5}}", c = "{"foobar"}",  				d = "{{"elt1", "elt2"}}", e = "{"3.4", "6.7"}") "
-APPEND 718842
+APPEND 987290
 Go 
 * 
 Query sent to backend is "append arrtest (a = "{}", b[1][2][2] = "{3,4}", c = "{foo,bar}",  				d[2][1] = "{bar,foo}") "
-APPEND 718843
+APPEND 987291
 Go 
 * 
 Query sent to backend is "create iportaltest (i = int4, d = float4, p = polygon) "
@@ -301,11 +299,11 @@ CREATE
 Go 
 * 
 Query sent to backend is "append iportaltest (i = 1, d = 3.567, p = "(3.0,4.0,1.0,2.0)"::polygon) "
-APPEND 718910
+APPEND 987358
 Go 
 * 
 Query sent to backend is "append iportaltest (i = 2, d = 89.05, p = "(4.0,3.0,2.0,1.0)"::polygon) "
-APPEND 718911
+APPEND 987359
 Go 
 * 
 Query sent to backend is " define index onek_unique1 on onek using btree(unique1 int4_ops) "
@@ -397,15 +395,15 @@ DEFINE
 Go 
 * 
 Query sent to backend is " define view street ( road.name, 		     road.thepath, 		     cname = real_city.cname )        where real_city.outline ## road.thepath "
-APPEND 800270DEFINE
+APPEND 1068718DEFINE
 Go 
 * 
 Query sent to backend is "define view iexit ( ihighway.name, 		    ihighway.thepath,  		    exit = interpt_pp(ihighway.thepath, ramp.thepath) )        where ihighway.thepath ## ramp.thepath "
-APPEND 800339DEFINE
+APPEND 1068787DEFINE
 Go 
 * 
 Query sent to backend is "define view toyemp ( emp.name, 		     emp.age, 		     emp.location, 		     annualsal = 12*emp.salary ) "
-APPEND 800412DEFINE
+APPEND 1068860DEFINE
 Go 
 * 
 Query sent to backend is "  define aggregate newavg (sfunc1 = int4pl, 			 basetype = int4, 			 stype1 = int4, 			 sfunc2 = int4inc, 			 stype2 = int4, 			 finalfunc = int4div, 			 initcond1 = "0", 			 initcond2 = "0") "
@@ -538,15 +536,15 @@ CREATE
 Go 
 * 
 Query sent to backend is "append BOOLTBL1 (f1 = "t"::bool) "
-APPEND 800507
+APPEND 1068955
 Go 
 * 
 Query sent to backend is "append BOOLTBL1 (f1 = "True"::bool) "
-APPEND 800508
+APPEND 1068956
 Go 
 * 
 Query sent to backend is "append BOOLTBL1 (f1 = "true"::bool) "
-APPEND 800509
+APPEND 1068957
 Go 
 * 
 Query sent to backend is " retrieve (BOOLTBL1.all) "
@@ -596,7 +594,7 @@ Query sent to backend is "retrieve (BOOLTBL1.all) where booleq("false"::bool,BOO
 Go 
 * 
 Query sent to backend is "append BOOLTBL1 (f1 = "f"::bool) "
-APPEND 800510
+APPEND 1068958
 Go 
 * 
 Query sent to backend is "retrieve (BOOLTBL1.all) where BOOLTBL1.f1 = "false"::bool "
@@ -613,19 +611,19 @@ CREATE
 Go 
 * 
 Query sent to backend is "append BOOLTBL2 (f1 = "f"::bool) "
-APPEND 800569
+APPEND 1069017
 Go 
 * 
 Query sent to backend is "append BOOLTBL2 (f1 = "false"::bool) "
-APPEND 800570
+APPEND 1069018
 Go 
 * 
 Query sent to backend is "append BOOLTBL2 (f1 = "False"::bool) "
-APPEND 800571
+APPEND 1069019
 Go 
 * 
 Query sent to backend is "append BOOLTBL2 (f1 = "XXX"::bool)   "
-APPEND 800572
+APPEND 1069020
 Go 
 * 
 Query sent to backend is " retrieve (BOOLTBL2.all) "
@@ -764,47 +762,47 @@ CREATE
 Go 
 * 
 Query sent to backend is "append ABSTIME_TBL (f1 = "Jan 14, 1973 03:14:21") "
-APPEND 800631
+APPEND 1069079
 Go 
 * 
 Query sent to backend is "append ABSTIME_TBL (f1 = "now"::abstime) "
-APPEND 800632
+APPEND 1069080
 Go 
 * 
 Query sent to backend is "append ABSTIME_TBL (f1 = "epoch"::abstime) "
-APPEND 800633
+APPEND 1069081
 Go 
 * 
 Query sent to backend is "append ABSTIME_TBL (f1 = "current"::abstime) "
-APPEND 800634
+APPEND 1069082
 Go 
 * 
 Query sent to backend is "append ABSTIME_TBL (f1 = "infinity"::abstime) "
-APPEND 800635
+APPEND 1069083
 Go 
 * 
 Query sent to backend is "append ABSTIME_TBL (f1 = "-infinity"::abstime) "
-APPEND 800636
+APPEND 1069084
 Go 
 * 
 Query sent to backend is "append ABSTIME_TBL (f1 = "May 10, 1943 23:59:12") "
-APPEND 800637
+APPEND 1069085
 Go 
 * 
 Query sent to backend is " append ABSTIME_TBL (f1 = "Feb 35, 1946 10:00:00") "
-APPEND 800638
+APPEND 1069086
 Go 
 * 
 Query sent to backend is "append ABSTIME_TBL (f1 = "Feb 28, 1984 25:08:10") "
-APPEND 800639
+APPEND 1069087
 Go 
 * 
 Query sent to backend is " append ABSTIME_TBL (f1 = "bad date format") "
-APPEND 800640
+APPEND 1069088
 Go 
 * 
 Query sent to backend is "append ABSTIME_TBL (f1 = "Jun 10, 1843") "
-APPEND 800641
+APPEND 1069089
 Go 
 * 
 Query sent to backend is "create RELTIME_TBL (f1 = reltime) "
@@ -812,35 +810,35 @@ CREATE
 Go 
 * 
 Query sent to backend is "append RELTIME_TBL (f1 = "@ 1 minute") "
-APPEND 800700
+APPEND 1069148
 Go 
 * 
 Query sent to backend is "append RELTIME_TBL (f1 = "@ 5 hour") "
-APPEND 800701
+APPEND 1069149
 Go 
 * 
 Query sent to backend is "append RELTIME_TBL (f1 = "@ 10 day") "
-APPEND 800702
+APPEND 1069150
 Go 
 * 
 Query sent to backend is "append RELTIME_TBL (f1 = "@ 34 year") "
-APPEND 800703
+APPEND 1069151
 Go 
 * 
 Query sent to backend is "append RELTIME_TBL (f1 = "@ 3 months") "
-APPEND 800704
+APPEND 1069152
 Go 
 * 
 Query sent to backend is "append RELTIME_TBL (f1 = "@ 14 seconds ago") "
-APPEND 800705
+APPEND 1069153
 Go 
 * 
 Query sent to backend is " append RELTIME_TBL (f1 = "badly formatted reltime") "
-APPEND 800706
+APPEND 1069154
 Go 
 * 
 Query sent to backend is "append RELTIME_TBL (f1 = "@ 30 eons ago") "
-APPEND 800707
+APPEND 1069155
 Go 
 * 
 Query sent to backend is "create TINTERVAL_TBL(f1 = tinterval) "
@@ -848,40 +846,40 @@ CREATE
 Go 
 * 
 Query sent to backend is "append TINTERVAL_TBL(f1 = "['-infinity' 'infinity']") "
-APPEND 800766
+APPEND 1069214
 Go 
 * 
 Query sent to backend is "append TINTERVAL_TBL(f1 = "['May 10, 1943 23:59:12' 'Jan 14, 1973 03:14:21']") "
-APPEND 800767
+APPEND 1069215
 Go 
 * 
 Query sent to backend is "append TINTERVAL_TBL(f1 = "['Sep 4, 1983 23:59:12' 'Oct 4, 1983 23:59:12']") "
-APPEND 800768
+APPEND 1069216
 Go 
 * 
 Query sent to backend is "append TINTERVAL_TBL(f1 = "['epoch' 'now']") "
-APPEND 800769
+APPEND 1069217
 Go 
 * 
 Query sent to backend is "append TINTERVAL_TBL(f1 = "['Feb 15 1990 12:15:03' 'current']") "
-APPEND 800770
+APPEND 1069218
 Go 
 * 
 Query sent to backend is " append TINTERVAL_TBL(f1 = "['bad time specifications' '']") "
-APPEND 800771
+APPEND 1069219
 Go 
 * 
 Query sent to backend is "append TINTERVAL_TBL(f1 = "['' 'infinity']") "
-APPEND 800772
+APPEND 1069220
 Go 
 * 
 Query sent to backend is "  retrieve (ABSTIME_TBL.all) "
 ---------------
 | f1          |
 ---------------
-| Sun Jan 14 03:14:21 1973 PDT|
+| Sun Jan 14 03:14:21 1973 PST|
 ---------------
-| Thurs Jan 6 17:10:53 1994 PDT|
+| Fri Jan 28 18:00:57 1994 PST|
 ---------------
 | epoch       |
 ---------------
@@ -893,9 +891,9 @@ Query sent to backend is "  retrieve (ABSTIME_TBL.all) "
 ---------------
 | Mon May 10 23:59:12 1943 PDT|
 ---------------
-| Thurs Mar 7 10:00:00 1946 PDT|
+| Thurs Mar 7 10:00:00 1946 PST|
 ---------------
-| Wed Dec 31 15:59:59 1969 PDT|
+| Wed Dec 31 15:59:59 1969 PST|
 ---------------
 | Invalid Abstime|
 ---------------
@@ -908,9 +906,9 @@ Query sent to backend is "retrieve (ABSTIME_TBL.all) where ABSTIME_TBL.f1 < "Jun
 ---------------
 | f1          |
 ---------------
-| Sun Jan 14 03:14:21 1973 PDT|
+| Sun Jan 14 03:14:21 1973 PST|
 ---------------
-| Thurs Jan 6 17:10:53 1994 PDT|
+| Fri Jan 28 18:00:57 1994 PST|
 ---------------
 | epoch       |
 ---------------
@@ -920,9 +918,9 @@ Query sent to backend is "retrieve (ABSTIME_TBL.all) where ABSTIME_TBL.f1 < "Jun
 ---------------
 | Mon May 10 23:59:12 1943 PDT|
 ---------------
-| Thurs Mar 7 10:00:00 1946 PDT|
+| Thurs Mar 7 10:00:00 1946 PST|
 ---------------
-| Wed Dec 31 15:59:59 1969 PDT|
+| Wed Dec 31 15:59:59 1969 PST|
 ---------------
 
 Go 
@@ -931,9 +929,9 @@ Query sent to backend is "retrieve (ABSTIME_TBL.all) where ABSTIME_TBL.f1 > "-in
 ---------------
 | f1          |
 ---------------
-| Sun Jan 14 03:14:21 1973 PDT|
+| Sun Jan 14 03:14:21 1973 PST|
 ---------------
-| Thurs Jan 6 17:10:53 1994 PDT|
+| Fri Jan 28 18:00:57 1994 PST|
 ---------------
 | epoch       |
 ---------------
@@ -943,9 +941,9 @@ Query sent to backend is "retrieve (ABSTIME_TBL.all) where ABSTIME_TBL.f1 > "-in
 ---------------
 | Mon May 10 23:59:12 1943 PDT|
 ---------------
-| Thurs Mar 7 10:00:00 1946 PDT|
+| Thurs Mar 7 10:00:00 1946 PST|
 ---------------
-| Wed Dec 31 15:59:59 1969 PDT|
+| Wed Dec 31 15:59:59 1969 PST|
 ---------------
 
 Go 
@@ -954,9 +952,9 @@ Query sent to backend is "retrieve (ABSTIME_TBL.all) where "May 10, 1943 23:59:1
 ---------------
 | f1          |
 ---------------
-| Sun Jan 14 03:14:21 1973 PDT|
+| Sun Jan 14 03:14:21 1973 PST|
 ---------------
-| Thurs Jan 6 17:10:53 1994 PDT|
+| Fri Jan 28 18:00:57 1994 PST|
 ---------------
 | epoch       |
 ---------------
@@ -966,9 +964,9 @@ Query sent to backend is "retrieve (ABSTIME_TBL.all) where "May 10, 1943 23:59:1
 ---------------
 | -infinity   |
 ---------------
-| Thurs Mar 7 10:00:00 1946 PDT|
+| Thurs Mar 7 10:00:00 1946 PST|
 ---------------
-| Wed Dec 31 15:59:59 1969 PDT|
+| Wed Dec 31 15:59:59 1969 PST|
 ---------------
 
 Go 
@@ -992,9 +990,9 @@ Query sent to backend is "retrieve (ABSTIME_TBL.all) where "epoch"::abstime >= A
 ---------------
 | Mon May 10 23:59:12 1943 PDT|
 ---------------
-| Thurs Mar 7 10:00:00 1946 PDT|
+| Thurs Mar 7 10:00:00 1946 PST|
 ---------------
-| Wed Dec 31 15:59:59 1969 PDT|
+| Wed Dec 31 15:59:59 1969 PST|
 ---------------
 
 Go 
@@ -1003,7 +1001,7 @@ Query sent to backend is "retrieve (ABSTIME_TBL.all) where ABSTIME_TBL.f1 <= "Ja
 ---------------
 | f1          |
 ---------------
-| Sun Jan 14 03:14:21 1973 PDT|
+| Sun Jan 14 03:14:21 1973 PST|
 ---------------
 | epoch       |
 ---------------
@@ -1011,9 +1009,9 @@ Query sent to backend is "retrieve (ABSTIME_TBL.all) where ABSTIME_TBL.f1 <= "Ja
 ---------------
 | Mon May 10 23:59:12 1943 PDT|
 ---------------
-| Thurs Mar 7 10:00:00 1946 PDT|
+| Thurs Mar 7 10:00:00 1946 PST|
 ---------------
-| Wed Dec 31 15:59:59 1969 PDT|
+| Wed Dec 31 15:59:59 1969 PST|
 ---------------
 
 Go 
@@ -1022,17 +1020,17 @@ Query sent to backend is "retrieve (ABSTIME_TBL.all) where ABSTIME_TBL.f1 <?> "[
 ---------------
 | f1          |
 ---------------
-| Sun Jan 14 03:14:21 1973 PDT|
+| Sun Jan 14 03:14:21 1973 PST|
 ---------------
-| Thurs Jan 6 17:10:53 1994 PDT|
+| Fri Jan 28 18:00:57 1994 PST|
 ---------------
 | epoch       |
 ---------------
 | current     |
 ---------------
-| Thurs Mar 7 10:00:00 1946 PDT|
+| Thurs Mar 7 10:00:00 1946 PST|
 ---------------
-| Wed Dec 31 15:59:59 1969 PDT|
+| Wed Dec 31 15:59:59 1969 PST|
 ---------------
 
 Go 
@@ -1041,15 +1039,15 @@ Query sent to backend is "   retrieve (ABSTIME_TBL.all) where  (ABSTIME_TBL.f1 +
 ---------------
 | f1          |
 ---------------
-| Sun Jan 14 03:14:21 1973 PDT|
+| Sun Jan 14 03:14:21 1973 PST|
 ---------------
 | epoch       |
 ---------------
 | Mon May 10 23:59:12 1943 PDT|
 ---------------
-| Thurs Mar 7 10:00:00 1946 PDT|
+| Thurs Mar 7 10:00:00 1946 PST|
 ---------------
-| Wed Dec 31 15:59:59 1969 PDT|
+| Wed Dec 31 15:59:59 1969 PST|
 ---------------
 
 Go 
@@ -1058,15 +1056,15 @@ Query sent to backend is "retrieve (ABSTIME_TBL.all) where  (ABSTIME_TBL.f1 + "@
 ---------------
 | f1          |
 ---------------
-| Sun Jan 14 03:14:21 1973 PDT|
+| Sun Jan 14 03:14:21 1973 PST|
 ---------------
 | epoch       |
 ---------------
 | Mon May 10 23:59:12 1943 PDT|
 ---------------
-| Thurs Mar 7 10:00:00 1946 PDT|
+| Thurs Mar 7 10:00:00 1946 PST|
 ---------------
-| Wed Dec 31 15:59:59 1969 PDT|
+| Wed Dec 31 15:59:59 1969 PST|
 ---------------
 
 Go 
@@ -1075,15 +1073,15 @@ Query sent to backend is "retrieve (ABSTIME_TBL.all) where  (ABSTIME_TBL.f1 - "@
 ---------------
 | f1          |
 ---------------
-| Sun Jan 14 03:14:21 1973 PDT|
+| Sun Jan 14 03:14:21 1973 PST|
 ---------------
 | epoch       |
 ---------------
 | Mon May 10 23:59:12 1943 PDT|
 ---------------
-| Thurs Mar 7 10:00:00 1946 PDT|
+| Thurs Mar 7 10:00:00 1946 PST|
 ---------------
-| Wed Dec 31 15:59:59 1969 PDT|
+| Wed Dec 31 15:59:59 1969 PST|
 ---------------
 
 Go 
@@ -1094,7 +1092,7 @@ Query sent to backend is "retrieve (ABSTIME_TBL.all) where  (ABSTIME_TBL.f1 - "@
 ---------------
 | Mon May 10 23:59:12 1943 PDT|
 ---------------
-| Thurs Mar 7 10:00:00 1946 PDT|
+| Thurs Mar 7 10:00:00 1946 PST|
 ---------------
 
 Go 
@@ -1107,41 +1105,41 @@ Query sent to backend is "retrieve (ABSTIME_TBL.all, RELTIME_TBL.all) where (ABS
 -----------------------------
 | Mon May 10 23:59:12 1943 PDT| @ 1 minute  |
 -----------------------------
-| Thurs Mar 7 10:00:00 1946 PDT| @ 1 minute  |
+| Thurs Mar 7 10:00:00 1946 PST| @ 1 minute  |
 -----------------------------
-| Wed Dec 31 15:59:59 1969 PDT| @ 1 minute  |
+| Wed Dec 31 15:59:59 1969 PST| @ 1 minute  |
 -----------------------------
 | epoch       | @ 5 hours   |
 -----------------------------
 | Mon May 10 23:59:12 1943 PDT| @ 5 hours   |
 -----------------------------
-| Thurs Mar 7 10:00:00 1946 PDT| @ 5 hours   |
+| Thurs Mar 7 10:00:00 1946 PST| @ 5 hours   |
 -----------------------------
-| Wed Dec 31 15:59:59 1969 PDT| @ 5 hours   |
+| Wed Dec 31 15:59:59 1969 PST| @ 5 hours   |
 -----------------------------
 | epoch       | @ 10 days   |
 -----------------------------
 | Mon May 10 23:59:12 1943 PDT| @ 10 days   |
 -----------------------------
-| Thurs Mar 7 10:00:00 1946 PDT| @ 10 days   |
+| Thurs Mar 7 10:00:00 1946 PST| @ 10 days   |
 -----------------------------
-| Wed Dec 31 15:59:59 1969 PDT| @ 10 days   |
+| Wed Dec 31 15:59:59 1969 PST| @ 10 days   |
 -----------------------------
 | epoch       | @ 3 months  |
 -----------------------------
 | Mon May 10 23:59:12 1943 PDT| @ 3 months  |
 -----------------------------
-| Thurs Mar 7 10:00:00 1946 PDT| @ 3 months  |
+| Thurs Mar 7 10:00:00 1946 PST| @ 3 months  |
 -----------------------------
-| Wed Dec 31 15:59:59 1969 PDT| @ 3 months  |
+| Wed Dec 31 15:59:59 1969 PST| @ 3 months  |
 -----------------------------
 | epoch       | @ 14 seconds ago|
 -----------------------------
 | Mon May 10 23:59:12 1943 PDT| @ 14 seconds ago|
 -----------------------------
-| Thurs Mar 7 10:00:00 1946 PDT| @ 14 seconds ago|
+| Thurs Mar 7 10:00:00 1946 PST| @ 14 seconds ago|
 -----------------------------
-| Wed Dec 31 15:59:59 1969 PDT| @ 14 seconds ago|
+| Wed Dec 31 15:59:59 1969 PST| @ 14 seconds ago|
 -----------------------------
 
 Go 
@@ -1292,13 +1290,13 @@ Query sent to backend is "  retrieve (TINTERVAL_TBL.all) "
 ---------------
 | ['-infinity' 'infinity']|
 ---------------
-| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PST']|
 ---------------
 | ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
 ---------------
-| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']|
 ---------------
-| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
+| ['Thurs Feb 15 12:15:03 1990 PST' 'current']|
 ---------------
 | ['Undefined Range']|
 ---------------
@@ -1320,11 +1318,11 @@ Query sent to backend is "retrieve (t.all) from t in TINTERVAL_TBL where t.f1 #!
 ---------------
 | f1          |
 ---------------
-| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PST']|
 ---------------
-| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']|
 ---------------
-| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
+| ['Thurs Feb 15 12:15:03 1990 PST' 'current']|
 ---------------
 
 Go 
@@ -1349,11 +1347,11 @@ Query sent to backend is "retrieve (t.all) from t in TINTERVAL_TBL where t.f1 #>
 ---------------
 | f1          |
 ---------------
-| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PST']|
 ---------------
-| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']|
 ---------------
-| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
+| ['Thurs Feb 15 12:15:03 1990 PST' 'current']|
 ---------------
 
 Go 
@@ -1362,11 +1360,11 @@ Query sent to backend is "retrieve (t.all) from t in TINTERVAL_TBL where t.f1 #>
 ---------------
 | f1          |
 ---------------
-| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PST']|
 ---------------
-| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']|
 ---------------
-| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
+| ['Thurs Feb 15 12:15:03 1990 PST' 'current']|
 ---------------
 
 Go 
@@ -1379,7 +1377,7 @@ Query sent to backend is "retrieve (t1.all) from t1 in TINTERVAL_TBL where t1.f1
 ---------------
 | ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
 ---------------
-| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']|
 ---------------
 
 Go 
@@ -1390,13 +1388,13 @@ Query sent to backend is "retrieve (t1.all, t2.all) from t1,t2 in TINTERVAL_TBL 
 -----------------------------
 | ['-infinity' 'infinity']| ['-infinity' 'infinity']|
 -----------------------------
-| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PST']| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PST']|
 -----------------------------
 | ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
 -----------------------------
-| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']|
 -----------------------------
-| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
+| ['Thurs Feb 15 12:15:03 1990 PST' 'current']| ['Thurs Feb 15 12:15:03 1990 PST' 'current']|
 -----------------------------
 
 Go 
@@ -1405,33 +1403,33 @@ Query sent to backend is "retrieve (t1.all, t2.all) from t1,t2 in TINTERVAL_TBL 
 -----------------------------
 | f1          | f1          |
 -----------------------------
-| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']| ['-infinity' 'infinity']|
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PST']| ['-infinity' 'infinity']|
 -----------------------------
 | ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']| ['-infinity' 'infinity']|
 -----------------------------
-| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']| ['-infinity' 'infinity']|
+| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']| ['-infinity' 'infinity']|
 -----------------------------
-| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']| ['-infinity' 'infinity']|
+| ['Thurs Feb 15 12:15:03 1990 PST' 'current']| ['-infinity' 'infinity']|
 -----------------------------
-| ['-infinity' 'infinity']| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
+| ['-infinity' 'infinity']| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PST']|
 -----------------------------
-| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
+| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PST']|
 -----------------------------
 | ['-infinity' 'infinity']| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
 -----------------------------
-| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
+| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
 -----------------------------
-| ['-infinity' 'infinity']| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+| ['-infinity' 'infinity']| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']|
 -----------------------------
-| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PST']| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']|
 -----------------------------
-| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+| ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']|
 -----------------------------
-| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+| ['Thurs Feb 15 12:15:03 1990 PST' 'current']| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']|
 -----------------------------
-| ['-infinity' 'infinity']| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
+| ['-infinity' 'infinity']| ['Thurs Feb 15 12:15:03 1990 PST' 'current']|
 -----------------------------
-| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
+| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']| ['Thurs Feb 15 12:15:03 1990 PST' 'current']|
 -----------------------------
 
 Go 
@@ -1440,11 +1438,11 @@ Query sent to backend is "retrieve (t1.all) from t1 in TINTERVAL_TBL where not t
 ---------------
 | f1          |
 ---------------
-| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PDT']|
+| ['Mon May 10 23:59:12 1943 PDT' 'Sun Jan 14 03:14:21 1973 PST']|
 ---------------
 | ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
 ---------------
-| ['Thurs Feb 15 12:15:03 1990 PDT' 'current']|
+| ['Thurs Feb 15 12:15:03 1990 PST' 'current']|
 ---------------
 | ['Undefined Range']|
 ---------------
@@ -1461,7 +1459,7 @@ Query sent to backend is "retrieve (t1.all) from t1 in TINTERVAL_TBL where t1.f1
 ---------------
 | ['Sun Sep 4 23:59:12 1983 PDT' 'Tues Oct 4 23:59:12 1983 PDT']|
 ---------------
-| ['epoch' 'Thurs Jan 6 17:10:59 1994 PDT']|
+| ['epoch' 'Fri Jan 28 18:01:03 1994 PST']|
 ---------------
 
 Go 
@@ -1471,28 +1469,28 @@ CREATE
 Go 
 * 
 Query sent to backend is "append BOX_TBL(f1 = "(2.0,2.0,0.0,0.0)") "
-APPEND 800832
+APPEND 1069280
 Go 
 * 
 Query sent to backend is "append BOX_TBL(f1 = "(1.0,1.0,3.0,3.0)") "
-APPEND 800833
+APPEND 1069281
 Go 
 * 
 Query sent to backend is "  append BOX_TBL(f1=  "(2.5, 2.5, 2.5,3.5)") "
-APPEND 800834
+APPEND 1069282
 Go 
 * 
 Query sent to backend is "append BOX_TBL(f1 = "(3.0, 3.0,3.0,3.0)") "
-APPEND 800835
+APPEND 1069283
 Go 
 * 
 Query sent to backend is " append BOX_TBL(f1="(2.3, 4.5)") "
-WARN:Jan  6 17:11:10:Bad box external representation '(2.3, 4.5)'
+WARN:Jan 28 18:01:13:Bad box external representation '(2.3, 4.5)'
 
 Go 
 * 
 Query sent to backend is "append BOX_TBL(f1="asdfasdf(ad") "
-WARN:Jan  6 17:11:10:Bad box external representation 'asdfasdf(ad'
+WARN:Jan 28 18:01:13:Bad box external representation 'asdfasdf(ad'
 
 Go 
 * 
@@ -1695,31 +1693,31 @@ CREATE
 Go 
 * 
 Query sent to backend is "append CHAR_TBL(f1 = "a") "
-APPEND 800895
+APPEND 1069343
 Go 
 * 
 Query sent to backend is "append CHAR_TBL(f1 = "A") "
-APPEND 800896
+APPEND 1069344
 Go 
 * 
 Query sent to backend is " append CHAR_TBL(f1 = "1") "
-APPEND 800897
+APPEND 1069345
 Go 
 * 
 Query sent to backend is "append CHAR_TBL(f1 = 2) "
-APPEND 800898
+APPEND 1069346
 Go 
 * 
 Query sent to backend is "append CHAR_TBL(f1 = '3') "
-APPEND 800899
+APPEND 1069347
 Go 
 * 
 Query sent to backend is " append CHAR_TBL(f1 = "") "
-APPEND 800900
+APPEND 1069348
 Go 
 * 
 Query sent to backend is "  append CHAR_TBL(f1 = "cd") "
-APPEND 800901
+APPEND 1069349
 Go 
 * 
 Query sent to backend is "retrieve (CHAR_TBL.all) "
@@ -1916,31 +1914,31 @@ CREATE
 Go 
 * 
 Query sent to backend is "append CHAR2_TBL(f1 = "AB") "
-APPEND 800960
+APPEND 1069408
 Go 
 * 
 Query sent to backend is "append CHAR2_TBL(f1 = "ab") "
-APPEND 800961
+APPEND 1069409
 Go 
 * 
 Query sent to backend is "append CHAR2_TBL(f1 = "ZY") "
-APPEND 800962
+APPEND 1069410
 Go 
 * 
 Query sent to backend is "append CHAR2_TBL(f1 = "34") "
-APPEND 800963
+APPEND 1069411
 Go 
 * 
 Query sent to backend is "append CHAR2_TBL(f1 = "d") "
-APPEND 800964
+APPEND 1069412
 Go 
 * 
 Query sent to backend is "append CHAR2_TBL(f1 = "") "
-APPEND 800965
+APPEND 1069413
 Go 
 * 
 Query sent to backend is "append CHAR2_TBL(f1 = "12345") "
-APPEND 800966
+APPEND 1069414
 Go 
 * 
 Query sent to backend is "retrieve (CHAR2_TBL.all) "
@@ -2099,31 +2097,31 @@ CREATE
 Go 
 * 
 Query sent to backend is "append CHAR4_TBL(f1 = "ABCD") "
-APPEND 801025
+APPEND 1069473
 Go 
 * 
 Query sent to backend is "append CHAR4_TBL(f1 = "abcd") "
-APPEND 801026
+APPEND 1069474
 Go 
 * 
 Query sent to backend is "append CHAR4_TBL(f1 = "ZYWZ") "
-APPEND 801027
+APPEND 1069475
 Go 
 * 
 Query sent to backend is "append CHAR4_TBL(f1 = "343f") "
-APPEND 801028
+APPEND 1069476
 Go 
 * 
 Query sent to backend is "append CHAR4_TBL(f1 = "d34a") "
-APPEND 801029
+APPEND 1069477
 Go 
 * 
 Query sent to backend is "append CHAR4_TBL(f1 = "") "
-APPEND 801030
+APPEND 1069478
 Go 
 * 
 Query sent to backend is "append CHAR4_TBL(f1 = "12345678") "
-APPEND 801031
+APPEND 1069479
 Go 
 * 
 Query sent to backend is "retrieve (CHAR4_TBL.all) "
@@ -2277,31 +2275,31 @@ CREATE
 Go 
 * 
 Query sent to backend is "append CHAR8_TBL(f1 = "ABCDEFGH") "
-APPEND 801091
+APPEND 1069539
 Go 
 * 
 Query sent to backend is "append CHAR8_TBL(f1 = "abcdefgh") "
-APPEND 801092
+APPEND 1069540
 Go 
 * 
 Query sent to backend is "append CHAR8_TBL(f1 = "ZYWZ410-") "
-APPEND 801093
+APPEND 1069541
 Go 
 * 
 Query sent to backend is "append CHAR8_TBL(f1 = "343f%2a") "
-APPEND 801094
+APPEND 1069542
 Go 
 * 
 Query sent to backend is "append CHAR8_TBL(f1 = "d34aas") "
-APPEND 801095
+APPEND 1069543
 Go 
 * 
 Query sent to backend is "append CHAR8_TBL(f1 = "") "
-APPEND 801096
+APPEND 1069544
 Go 
 * 
 Query sent to backend is "append CHAR8_TBL(f1 = "1234567890") "
-APPEND 801097
+APPEND 1069545
 Go 
 * 
 Query sent to backend is "retrieve (CHAR8_TBL.all) "
@@ -2468,31 +2466,31 @@ CREATE
 Go 
 * 
 Query sent to backend is "append CHAR16_TBL(f1 = "ABCDEFGHIJKLMNOP") "
-APPEND 801156
+APPEND 1069604
 Go 
 * 
 Query sent to backend is "append CHAR16_TBL(f1 = "abcdefghijklmnop") "
-APPEND 801157
+APPEND 1069605
 Go 
 * 
 Query sent to backend is "append CHAR16_TBL(f1 = "asdfghjkl;") "
-APPEND 801158
+APPEND 1069606
 Go 
 * 
 Query sent to backend is "append CHAR16_TBL(f1 = "343f%2a") "
-APPEND 801159
+APPEND 1069607
 Go 
 * 
 Query sent to backend is "append CHAR16_TBL(f1 = "d34aaasdf") "
-APPEND 801160
+APPEND 1069608
 Go 
 * 
 Query sent to backend is "append CHAR16_TBL(f1 = "") "
-APPEND 801161
+APPEND 1069609
 Go 
 * 
 Query sent to backend is "append CHAR16_TBL(f1 = "1234567890ABCDEFGHIJKLMNOPQRSTUV") "
-APPEND 801162
+APPEND 1069610
 Go 
 * 
 Query sent to backend is "retrieve (CHAR16_TBL.all) "
@@ -2657,39 +2655,45 @@ CREATE
 Go 
 * 
 Query sent to backend is "append FLOAT4_TBL(f1="0.0") "
-APPEND 801221
+APPEND 1069669
 Go 
 * 
 Query sent to backend is "append FLOAT4_TBL(f1="1004.30") "
-APPEND 801222
+APPEND 1069670
 Go 
 * 
 Query sent to backend is "append FLOAT4_TBL(f1="-34.84") "
-APPEND 801223
+APPEND 1069671
 Go 
 * 
 Query sent to backend is "append FLOAT4_TBL(f1="1.2345678901234e+20") "
-APPEND 801224
+APPEND 1069672
 Go 
 * 
-Query sent to backend is "append FLOAT4_TBL(f1="1.2345678901234e-20")  append FLOAT4_TBL(f1="10e40")  "
-WARN:Jan  6 17:11:37:	float4 overflow
+Query sent to backend is "append FLOAT4_TBL(f1="1.2345678901234e-20") "
+APPEND 1069673
+Go 
+* 
+Query sent to backend is " append FLOAT4_TBL(f1="10e40")  "
+WARN:Jan 28 18:01:41:	Bad float4 input format -- overflow
 
 
 Go 
 * 
 Query sent to backend is "append FLOAT4_TBL(f1="-10e40") "
-WARN:Jan  6 17:11:37:	float4 underflow
+WARN:Jan 28 18:01:41:	Bad float4 input format -- overflow
 
 
 Go 
 * 
 Query sent to backend is "append FLOAT4_TBL(f1="10e-40") "
-APPEND 801225
+WARN:Jan 28 18:01:41:	Bad float4 input format -- underflow
+
+
 Go 
 * 
 Query sent to backend is "append FLOAT4_TBL(f1="-10e-40") "
-APPEND 801226
+APPEND 1069674
 Go 
 * 
 Query sent to backend is "retrieve (FLOAT4_TBL.all) "
@@ -2704,7 +2708,7 @@ Query sent to backend is "retrieve (FLOAT4_TBL.all) "
 ---------------
 | 1.23457e+20 |
 ---------------
-| 0           |
+| 1.23457e-20 |
 ---------------
 | 0           |
 ---------------
@@ -2721,7 +2725,7 @@ Query sent to backend is "retrieve (f.all) from f in FLOAT4_TBL where f.f1 != "1
 ---------------
 | 1.23457e+20 |
 ---------------
-| 0           |
+| 1.23457e-20 |
 ---------------
 | 0           |
 ---------------
@@ -2745,7 +2749,7 @@ Query sent to backend is "retrieve (f.all) from f in FLOAT4_TBL where "1004.3" >
 ---------------
 | -34.84      |
 ---------------
-| 0           |
+| 1.23457e-20 |
 ---------------
 | 0           |
 ---------------
@@ -2760,7 +2764,7 @@ Query sent to backend is "retrieve (f.all) from f in FLOAT4_TBL where  f.f1 < "1
 ---------------
 | -34.84      |
 ---------------
-| 0           |
+| 1.23457e-20 |
 ---------------
 | 0           |
 ---------------
@@ -2777,7 +2781,7 @@ Query sent to backend is "retrieve (f.all) from f in FLOAT4_TBL where "1004.3" >
 ---------------
 | -34.84      |
 ---------------
-| 0           |
+| 1.23457e-20 |
 ---------------
 | 0           |
 ---------------
@@ -2794,7 +2798,7 @@ Query sent to backend is "retrieve (f.all) from f in FLOAT4_TBL where  f.f1 <= "
 ---------------
 | -34.84      |
 ---------------
-| 0           |
+| 1.23457e-20 |
 ---------------
 | 0           |
 ---------------
@@ -2809,6 +2813,8 @@ Query sent to backend is "retrieve (x= f.f1 * "-10") from f in FLOAT4_TBL where 
 ---------------
 | -1.23457e+21|
 ---------------
+| -1.23457e-19|
+---------------
 
 Go 
 * 
@@ -2819,6 +2825,8 @@ Query sent to backend is "retrieve (x= f.f1 + "-10") from f in FLOAT4_TBL where 
 | 994.3       |
 ---------------
 | 1.23457e+20 |
+---------------
+| -10         |
 ---------------
 
 Go 
@@ -2831,6 +2839,8 @@ Query sent to backend is "retrieve (x= f.f1 / "-10") from f in FLOAT4_TBL where 
 ---------------
 | -1.23457e+19|
 ---------------
+| -1.23457e-21|
+---------------
 
 Go 
 * 
@@ -2841,6 +2851,8 @@ Query sent to backend is "retrieve (x= f.f1 - "-10") from f in FLOAT4_TBL where 
 | 1014.3      |
 ---------------
 | 1.23457e+20 |
+---------------
+| 10          |
 ---------------
 
 Go 
@@ -2857,16 +2869,29 @@ Query sent to backend is "retrieve (FLOAT4_TBL.all) "
 ---------------
 | 1.23457e+20 |
 ---------------
-| 0           |
+| 1.23457e-20 |
 ---------------
 | 0           |
 ---------------
 
 Go 
 * 
-Query sent to backend is " retrieve (x = @f.f1) from f in FLOAT8_TBL "
-WARN:Jan  6 17:11:40:FLOAT8_TBL: no such class
-
+Query sent to backend is " retrieve (x = @f.f1) from f in FLOAT4_TBL "
+---------------
+| x           |
+---------------
+| 0           |
+---------------
+| 1004.3      |
+---------------
+| 34.84       |
+---------------
+| 1.23457e+20 |
+---------------
+| 1.23457e-20 |
+---------------
+| 0           |
+---------------
 
 Go 
 * 
@@ -2884,11 +2909,11 @@ Query sent to backend is "retrieve (FLOAT4_TBL.all) "
 ---------------
 | 0           |
 ---------------
-| 0           |
----------------
 | -1004.3     |
 ---------------
 | -1.23457e+20|
+---------------
+| -1.23457e-20|
 ---------------
 
 Go 
@@ -2898,26 +2923,50 @@ CREATE
 Go 
 * 
 Query sent to backend is "append FLOAT8_TBL(f1="0.0") "
-APPEND 801285
+APPEND 1069733
 Go 
 * 
 Query sent to backend is "append FLOAT8_TBL(f1="1004.30") "
-APPEND 801286
+APPEND 1069734
 Go 
 * 
 Query sent to backend is "append FLOAT8_TBL(f1="-34.84") "
-APPEND 801287
+APPEND 1069735
 Go 
 * 
 Query sent to backend is "append FLOAT8_TBL(f1="1.2345678901234e+200") "
-APPEND 801288
+APPEND 1069736
 Go 
 * 
 Query sent to backend is "append FLOAT8_TBL(f1="1.2345678901234e-200") "
-APPEND 801289
+APPEND 1069737
 Go 
 * 
-Query sent to backend is "    retrieve (FLOAT8_TBL.all) "
+Query sent to backend is "  append FLOAT8_TBL(f1="10e400")  "
+WARN:Jan 28 18:01:46:	Bad float8 input format
+
+
+Go 
+* 
+Query sent to backend is "append FLOAT8_TBL(f1="-10e400") "
+WARN:Jan 28 18:01:46:	Bad float8 input format
+
+
+Go 
+* 
+Query sent to backend is "append FLOAT8_TBL(f1="10e-400") "
+WARN:Jan 28 18:01:46:	Bad float8 input format
+
+
+Go 
+* 
+Query sent to backend is "append FLOAT8_TBL(f1="-10e-400") "
+WARN:Jan 28 18:01:46:	Bad float8 input format
+
+
+Go 
+* 
+Query sent to backend is "retrieve (FLOAT8_TBL.all) "
 ---------------
 | f1          |
 ---------------
@@ -3220,35 +3269,35 @@ CREATE
 Go 
 * 
 Query sent to backend is "append INT2_TBL(f1="0") "
-APPEND 801348
+APPEND 1069796
 Go 
 * 
 Query sent to backend is "append INT2_TBL(f1="1234") "
-APPEND 801349
+APPEND 1069797
 Go 
 * 
 Query sent to backend is "append INT2_TBL(f1="-1234") "
-APPEND 801350
+APPEND 1069798
 Go 
 * 
 Query sent to backend is " append INT2_TBL(f1="34.5") "
-APPEND 801351
+APPEND 1069799
 Go 
 * 
 Query sent to backend is " append INT2_TBL(f1="32767") "
-APPEND 801352
+APPEND 1069800
 Go 
 * 
 Query sent to backend is "append INT2_TBL(f1="-32767") "
-APPEND 801353
+APPEND 1069801
 Go 
 * 
 Query sent to backend is " append INT2_TBL(f1="100000") "
-APPEND 801354
+APPEND 1069802
 Go 
 * 
 Query sent to backend is "append INT2_TBL(f1="asdf") "
-APPEND 801355
+APPEND 1069803
 Go 
 * 
 Query sent to backend is "retrieve (INT2_TBL.all) "
@@ -3671,35 +3720,35 @@ CREATE
 Go 
 * 
 Query sent to backend is "append INT4_TBL(f1="0") "
-APPEND 801414
+APPEND 1069862
 Go 
 * 
 Query sent to backend is "append INT4_TBL(f1="123456") "
-APPEND 801415
+APPEND 1069863
 Go 
 * 
 Query sent to backend is "append INT4_TBL(f1="-123456") "
-APPEND 801416
+APPEND 1069864
 Go 
 * 
 Query sent to backend is " append INT4_TBL(f1="34.5") "
-APPEND 801417
+APPEND 1069865
 Go 
 * 
 Query sent to backend is " append INT4_TBL(f1="2147483647") "
-APPEND 801418
+APPEND 1069866
 Go 
 * 
 Query sent to backend is "append INT4_TBL(f1="-2147483647") "
-APPEND 801419
+APPEND 1069867
 Go 
 * 
 Query sent to backend is " append INT4_TBL(f1="1000000000000") "
-APPEND 801420
+APPEND 1069868
 Go 
 * 
 Query sent to backend is "append INT4_TBL(f1="asdf") "
-APPEND 801421
+APPEND 1069869
 Go 
 * 
 Query sent to backend is "retrieve (INT4_TBL.all) "
@@ -4230,27 +4279,27 @@ CREATE
 Go 
 * 
 Query sent to backend is "append OID_TBL(f1="1234") "
-APPEND 801480
+APPEND 1069928
 Go 
 * 
 Query sent to backend is "append OID_TBL(f1="1235") "
-APPEND 801481
+APPEND 1069929
 Go 
 * 
 Query sent to backend is "append OID_TBL(f1="987") "
-APPEND 801482
+APPEND 1069930
 Go 
 * 
 Query sent to backend is "append OID_TBL(f1="-1040") "
-APPEND 801483
+APPEND 1069931
 Go 
 * 
 Query sent to backend is " append OID_TBL(f1="") "
-APPEND 801484
+APPEND 1069932
 Go 
 * 
 Query sent to backend is "append OID_TBL(f1="asdfasd") "
-APPEND 801485
+APPEND 1069933
 Go 
 * 
 Query sent to backend is "retrieve (OID_TBL.all) "
@@ -4355,33 +4404,33 @@ CREATE
 Go 
 * 
 Query sent to backend is "append OIDCHAR16_TBL(f1="1234,abcd") "
-APPEND 801544
+APPEND 1069992
 Go 
 * 
 Query sent to backend is "append OIDCHAR16_TBL(f1="1235,efgh") "
-APPEND 801545
+APPEND 1069993
 Go 
 * 
 Query sent to backend is "append OIDCHAR16_TBL(f1="987,XXXX") "
-APPEND 801546
+APPEND 1069994
 Go 
 * 
 Query sent to backend is " append OIDCHAR16_TBL(f1="123456") "
-WARN:Jan  6 17:12:09:Bad input data for type oidchar16
+WARN:Jan 28 18:02:13:Bad input data for type oidchar16
 
 Go 
 * 
 Query sent to backend is " append OIDCHAR16_TBL(f1="123456,abcdefghijklmnopqrsutvwyz") "
-APPEND 801547
+APPEND 1069995
 Go 
 * 
 Query sent to backend is " append OIDCHAR16_TBL(f1="") "
-WARN:Jan  6 17:12:09:Bad input data for type oidchar16
+WARN:Jan 28 18:02:14:Bad input data for type oidchar16
 
 Go 
 * 
 Query sent to backend is "append OIDCHAR16_TBL(f1="asdfasd") "
-WARN:Jan  6 17:12:09:Bad input data for type oidchar16
+WARN:Jan 28 18:02:14:Bad input data for type oidchar16
 
 Go 
 * 
@@ -4471,31 +4520,31 @@ CREATE
 Go 
 * 
 Query sent to backend is "append OIDINT2_TBL(f1="1234/9873") "
-APPEND 801607
+APPEND 1070055
 Go 
 * 
 Query sent to backend is "append OIDINT2_TBL(f1="1235/9873") "
-APPEND 801608
+APPEND 1070056
 Go 
 * 
 Query sent to backend is "append OIDINT2_TBL(f1="987/-1234") "
-APPEND 801609
+APPEND 1070057
 Go 
 * 
 Query sent to backend is " append OIDINT2_TBL(f1="123456") "
-APPEND 801610
+APPEND 1070058
 Go 
 * 
 Query sent to backend is " append OIDINT2_TBL(f1="123456/123456") "
-APPEND 801611
+APPEND 1070059
 Go 
 * 
 Query sent to backend is " append OIDINT2_TBL(f1="") "
-APPEND 801612
+APPEND 1070060
 Go 
 * 
 Query sent to backend is "append OIDINT2_TBL(f1="asdfasd") "
-APPEND 801613
+APPEND 1070061
 Go 
 * 
 Query sent to backend is "retrieve (OIDINT2_TBL.all) "
@@ -4608,31 +4657,31 @@ CREATE
 Go 
 * 
 Query sent to backend is "append OIDINT4_TBL(f1="1234/9873") "
-APPEND 801673
+APPEND 1070121
 Go 
 * 
 Query sent to backend is "append OIDINT4_TBL(f1="1235/9873") "
-APPEND 801674
+APPEND 1070122
 Go 
 * 
 Query sent to backend is "append OIDINT4_TBL(f1="987/-1234") "
-APPEND 801675
+APPEND 1070123
 Go 
 * 
 Query sent to backend is " append OIDINT4_TBL(f1="123456") "
-APPEND 801676
+APPEND 1070124
 Go 
 * 
 Query sent to backend is " append OIDINT4_TBL(f1="123456/1234568901234567890") "
-APPEND 801677
+APPEND 1070125
 Go 
 * 
 Query sent to backend is " append OIDINT4_TBL(f1="") "
-APPEND 801678
+APPEND 1070126
 Go 
 * 
 Query sent to backend is "append OIDINT4_TBL(f1="asdfasd") "
-APPEND 801679
+APPEND 1070127
 Go 
 * 
 Query sent to backend is "retrieve (OIDINT4_TBL.all) "
@@ -4745,42 +4794,42 @@ CREATE
 Go 
 * 
 Query sent to backend is "append POINT_TBL(f1="(0.0,0.0)") "
-APPEND 801738
+APPEND 1070186
 Go 
 * 
 Query sent to backend is "append POINT_TBL(f1="(-10.0,0.0)") "
-APPEND 801739
+APPEND 1070187
 Go 
 * 
 Query sent to backend is "append POINT_TBL(f1="(-3.0,4.0)") "
-APPEND 801740
+APPEND 1070188
 Go 
 * 
 Query sent to backend is "append POINT_TBL(f1="(5.1, 34.5)") "
-APPEND 801741
+APPEND 1070189
 Go 
 * 
 Query sent to backend is "append POINT_TBL(f1="(-5.0,-12.0)") "
-APPEND 801742
+APPEND 1070190
 Go 
 * 
 Query sent to backend is " append POINT_TBL(f1="asdfasdf") "
-WARN:Jan  6 17:12:19:Bad point external representation 'asdfasdf'
+WARN:Jan 28 18:02:25:Bad point external representation 'asdfasdf'
 
 Go 
 * 
 Query sent to backend is "append POINT_TBL(f1="10.0,10.0") "
-WARN:Jan  6 17:12:19:Bad point external representation '10.0,10.0'
+WARN:Jan 28 18:02:25:Bad point external representation '10.0,10.0'
 
 Go 
 * 
 Query sent to backend is "append POINT_TBL(f1="(10.0 10.0)") "
-WARN:Jan  6 17:12:19:Bad point external representation '(10.0 10.0)'
+WARN:Jan 28 18:02:25:Bad point external representation '(10.0 10.0)'
 
 Go 
 * 
 Query sent to backend is "append POINT_TBL(f1="(10.0,10.0") "
-WARN:Jan  6 17:12:19:Bad point external representation '(10.0,10.0'
+WARN:Jan 28 18:02:25:Bad point external representation '(10.0,10.0'
 
 Go 
 * 
@@ -4922,43 +4971,43 @@ CREATE
 Go 
 * 
 Query sent to backend is "append POLYGON_TBL(f1="(2.0,2.0,0.0,0.0,4.0,0.0)") "
-APPEND 801801
+APPEND 1070249
 Go 
 * 
 Query sent to backend is "append POLYGON_TBL(f1="(3.0,3.0,1.0,1.0,3.0,0.0)") "
-APPEND 801802
+APPEND 1070250
 Go 
 * 
 Query sent to backend is " append POLYGON_TBL(f1="(0.0,0.0)") "
-APPEND 801803
+APPEND 1070251
 Go 
 * 
 Query sent to backend is "append POLYGON_TBL(f1="(0.0,0.0,1.0,1.0)") "
-APPEND 801804
+APPEND 1070252
 Go 
 * 
 Query sent to backend is " append POLYGON_TBL(f1="0.0") "
-WARN:Jan  6 17:12:23:Bad input polyon
+WARN:Jan 28 18:02:29:Bad input polyon
 
 Go 
 * 
 Query sent to backend is "append POLYGON_TBL(f1="(0.0 0.0") "
-WARN:Jan  6 17:12:23:Bad input polyon
+WARN:Jan 28 18:02:29:Bad input polyon
 
 Go 
 * 
 Query sent to backend is "append POLYGON_TBL(f1="(0,1,2)") "
-WARN:Jan  6 17:12:23:Bad input polyon
+WARN:Jan 28 18:02:29:Bad input polyon
 
 Go 
 * 
 Query sent to backend is "append POLYGON_TBL(f1="(0,1,2,3") "
-WARN:Jan  6 17:12:23:Bad input polyon
+WARN:Jan 28 18:02:29:Bad input polyon
 
 Go 
 * 
 Query sent to backend is "append POLYGON_TBL(f1="asdf") "
-WARN:Jan  6 17:12:23:Bad input polyon
+WARN:Jan 28 18:02:29:Bad input polyon
 
 Go 
 * 
@@ -6138,14 +6187,14 @@ REPLACE
 Go 
 * 
 Query sent to backend is "replace temp (stringu1 = reverse_c16(o.stringu1))     from o in onek     where o.stringu1 = "JBAAAA" and 	  o.stringu1 = temp.stringu1 "
-NOTICE:Jan  6 17:13:33:Non-functional update, only first update is performed
-NOTICE:Jan  6 17:13:33:Non-functional update, only first update is performed
+NOTICE:Jan 28 18:03:43:Non-functional update, only first update is performed
+NOTICE:Jan 28 18:03:44:Non-functional update, only first update is performed
 REPLACE
 Go 
 * 
 Query sent to backend is "replace temp (stringu1 = reverse_c16(o.stringu1))     from o in onek2     where o.stringu1 = "JCAAAA" and 	  o.stringu1 = temp.stringu1 "
-NOTICE:Jan  6 17:13:41:Non-functional update, only first update is performed
-NOTICE:Jan  6 17:13:44:Non-functional update, only first update is performed
+NOTICE:Jan 28 18:03:52:Non-functional update, only first update is performed
+NOTICE:Jan 28 18:03:55:Non-functional update, only first update is performed
 REPLACE
 Go 
 * 
@@ -6278,7 +6327,7 @@ RETRIEVE
 Go 
 * 
 Query sent to backend is "append xacttest (a = 777, b = 777.777) "
-APPEND 828687
+APPEND 1097135
 Go 
 * 
 Query sent to backend is "end "
@@ -7871,14 +7920,14 @@ ADD
 Go 
 * 
 Query sent to backend is "append temp (a=4, 	     b="char16", 	     c="text", 	     d=4.1, 	     e=4.1, 	     f=2, 	     g="(4.1,4.1,3.1,3.1)", 	     h="now", 	     i='c', 	     j="{now, Monday Aug 24 14:43:07 1992 PDT, epoch}", 	     k=314159, 	     l="(1,0,1)", 	     m=512, 	     n="1 2 3 4 5 6 7 8", 	     p="magnetic disk", 	     q="(1.1,1.1)", 	     r="(4.1,4.1,3.1,3.1)", 	     s="(0,2,4.1,4.1,3.1,3.1)", 	     t="(4.1,4.1,3.1,3.1)", 	     u="['current' 'infinity']", 	     v="1/3", 	     w="1,char16", 	     x="{1.0,2.0,3.0,4.0}", 	     y="{1.0,2.0,3.0,4.0}", 	     z="{1,2,3,4}") "
-APPEND 828934
+WARN:Jan 28 18:04:54:parser: syntax error at or near "char16"
+
+
 Go 
 * 
 Query sent to backend is "retrieve (temp.all) "
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 | initial     | a           | b           | c           | d           | e           | f           | g           | h           | i           | j           | k           | l           | m           | n           | o           | p           | q           | r           | s           | t           | u           | v           | w           | x           | y           | z           |
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-| (null)      | 4           | char16      | text        | 4.1         | 4.1         | 2           | (         4.1,         4.1,         3.1,         3.1)| Thurs Jan 6 17:14:40 1994 PDT| c           | {Thurs Jan 6 17:14:40 1994 PDT,Mon Aug 24 14:43:07 1992 PDT,epoch}| 314159      | (1,0,1)     | 512         | 1 2 3 4 5 6 7 8| (null)      | magnetic disk| (1.1,1.1)   | (4.1,4.1,3.1,3.1)| (0,2,4.1,4.1,3.1,3.1)| (4.1,4.1,3.1,3.1)| ['current' 'infinity']| 1/3         | 1,char16    | {"1","2","3","4"}| {"1","2","3","4"}| {1,2,3,4}   |
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 Go 
@@ -9522,7 +9571,7 @@ Query sent to backend is "retrieve (arrtest.a[1:3],           arrtest.b[1:1][1:2
 Go 
 * 
 Query sent to backend is "    retrieve (forty_two = ufp0()) "
-NOTICE:Jan  6 17:15:11:ufp_start: forked UFP[656]
+NOTICE:Jan 28 18:05:25:ufp_start: forked UFP[17108]
 ---------------
 | forty_two   |
 ---------------
@@ -9571,7 +9620,7 @@ CREATE
 Go 
 * 
 Query sent to backend is " append myclass0 (a=5) "
-APPEND 829160
+APPEND 1097607
 Go 
 * 
 Query sent to backend is "retrieve (myclass0.a) "
@@ -9588,11 +9637,11 @@ REPLACE
 Go 
 * 
 Query sent to backend is "append myclass0 (a=10) "
-APPEND 829161
+APPEND 1097608
 Go 
 * 
 Query sent to backend is "append myclass0 (a=20) "
-APPEND 829162
+APPEND 1097609
 Go 
 * 
 Query sent to backend is "replace myclass0 (a=10) where myclass0.a < 10 "
@@ -9624,7 +9673,7 @@ REPLACE
 Go 
 * 
 Query sent to backend is " append myclass0 (a=100) "
-APPEND 829171
+APPEND 1097618
 Go 
 * tuple 0: got
 	 i=(4 bytes) 1,
@@ -9769,6 +9818,7 @@ ufp2.o
 ufp2.so
 ufp3.o
 ufp3.so
+ultrix.r.out
 #
 # - relative pmkdir
 #
@@ -9812,6 +9862,7 @@ ufp2.o
 ufp2.so
 ufp3.o
 ufp3.so
+ultrix.r.out
 
 #
 # - more complex pcat
@@ -9836,333 +9887,332 @@ Welcome to the POSTGRES terminal monitor
 Go 
 * 
 Query sent to backend is "  retrieve (1) "
-WARN:Jan  6 17:16:39:parser: syntax error at or near "1"
+WARN:Jan 28 18:07:22:parser: syntax error at or near "1"
 
 
 Go 
 * 
 Query sent to backend is "  attachas nonesuch "
-WARN:Jan  6 17:16:39:parser: syntax error at or near "nonesuch"
+WARN:Jan 28 18:07:22:parser: syntax error at or near "nonesuch"
 
 
 Go 
 * 
 Query sent to backend is " notify pg_class "
-WARN:Jan  6 17:16:39:notify is turned off for 4.0.1 - see the release notes
-
+NOTIFY
 Go 
 * 
 Query sent to backend is "  retrieve "
-WARN:Jan  6 17:16:39:parser: syntax error at or near ""
+WARN:Jan 28 18:07:23:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " retrieve (nonesuch.all) "
-WARN:Jan  6 17:16:39:nonesuch: no such class
+WARN:Jan 28 18:07:23:nonesuch: no such class
 
 
 Go 
 * 
 Query sent to backend is "  delete "
-WARN:Jan  6 17:16:39:parser: syntax error at or near ""
+WARN:Jan 28 18:07:23:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " delete nonesuch "
-WARN:Jan  6 17:16:39:nonesuch: no such class
+WARN:Jan 28 18:07:23:nonesuch: no such class
 
 
 Go 
 * 
 Query sent to backend is "  destroy "
-WARN:Jan  6 17:16:39:parser: syntax error at or near ""
+WARN:Jan 28 18:07:23:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " destroy nonesuch "
-WARN:Jan  6 17:16:39:pg_ownercheck: class "nonesuch" not found
+WARN:Jan 28 18:07:23:pg_ownercheck: class "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is "     rename "
-WARN:Jan  6 17:16:39:parser: syntax error at or near ""
+WARN:Jan 28 18:07:23:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " rename nonesuch to newnonesuch "
-WARN:Jan  6 17:16:40:pg_ownercheck: class "nonesuch" not found
+WARN:Jan 28 18:07:23:pg_ownercheck: class "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is " rename nonesuch to stud_emp "
-WARN:Jan  6 17:16:40:pg_ownercheck: class "nonesuch" not found
+WARN:Jan 28 18:07:23:pg_ownercheck: class "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is " rename stud_emp to pg_stud_emp "
-WARN:Jan  6 17:16:40:renamerel: Illegal class name: "pg_stud_emp" -- pg_ is reserved for system catalogs
+WARN:Jan 28 18:07:23:renamerel: Illegal class name: "pg_stud_emp" -- pg_ is reserved for system catalogs
 
 Go 
 * 
 Query sent to backend is " rename stud_emp to aggtest "
-WARN:Jan  6 17:16:40:renamerel: relation "aggtest" exists
+WARN:Jan 28 18:07:23:renamerel: relation "aggtest" exists
 
 Go 
 * 
 Query sent to backend is " rename stud_emp to stud_emp "
-WARN:Jan  6 17:16:40:renamerel: relation "stud_emp" exists
+WARN:Jan 28 18:07:23:renamerel: relation "stud_emp" exists
 
 Go 
 * 
 Query sent to backend is "   rename nonesuchatt in nonesuchrel to newnonesuchatt "
-WARN:Jan  6 17:16:40:pg_ownercheck: class "nonesuchrel" not found
+WARN:Jan 28 18:07:23:pg_ownercheck: class "nonesuchrel" not found
 
 Go 
 * 
 Query sent to backend is " rename nonesuchatt in emp to newnonesuchatt "
-WARN:Jan  6 17:16:40:renameatt: attribute "nonesuchatt" nonexistent
+WARN:Jan 28 18:07:23:renameatt: attribute "nonesuchatt" nonexistent
 
 Go 
 * 
 Query sent to backend is " rename salary in emp to manager "
-WARN:Jan  6 17:16:40:renameatt: attribute "manager" exists
+WARN:Jan 28 18:07:23:renameatt: attribute "manager" exists
 
 Go 
 * 
 Query sent to backend is " rename salary in emp to oid "
-WARN:Jan  6 17:16:40:renameatt: attribute "oid" exists
+WARN:Jan 28 18:07:23:renameatt: attribute "oid" exists
 
 Go 
 * 
 Query sent to backend is "  abort "
-NOTICE:Jan  6 17:16:40:UserAbortTransactionBlock and not inprogress state
+NOTICE:Jan 28 18:07:23:UserAbortTransactionBlock and not inprogress state
 ABORT
 Go 
 * 
 Query sent to backend is " end "
-NOTICE:Jan  6 17:16:40:EndTransactionBlock and not inprogress/abort state 
+NOTICE:Jan 28 18:07:24:EndTransactionBlock and not inprogress/abort state 
 END
 Go 
 * 
 Query sent to backend is "  define aggregate newavg1 (sfunc1 = int4pl, 			  basetype = int4, 			  stype1 = int4, 			  sfunc2 = int4inc, 			  stype2 = int4,  			  initcond1 = "0", 			  initcond2 = "0") "
-WARN:Jan  6 17:16:40:AggregateDefine: Aggregate must have final function with both transition functions
+WARN:Jan 28 18:07:24:AggregateDefine: Aggregate must have final function with both transition functions
 
 Go 
 * 
 Query sent to backend is " define aggregate newavg2 (sfunc1 = int4pl, 			  basetype = int4, 			  stype1 = int4, 			  sfunc2 = int2inc, 			  stype2 = int2, 			  finalfunc = int4div, 			  initcond1 = "0", 			  initcond2 = "0") "
-WARN:Jan  6 17:16:41:AggregateDefine: "int4div"("int4", "int2") does not exist
+WARN:Jan 28 18:07:24:AggregateDefine: "int4div"("int4", "int2") does not exist
 
 Go 
 * 
 Query sent to backend is " define aggregate newavg3 (sfunc1 = int4pl, 			  basetype = int4, 			  stype1 = int4, 			  sfunc2 = int4inc, 			  stype2 = int4, 			  finalfunc = int2div, 			  initcond1 = "0", 			  initcond2 = "0") "
-WARN:Jan  6 17:16:41:AggregateDefine: "int2div"("int4", "int4") does not exist
+WARN:Jan 28 18:07:24:AggregateDefine: "int2div"("int4", "int4") does not exist
 
 Go 
 * 
 Query sent to backend is " define aggregate newcnt1 (sfunc2 = int4inc, 			  stype2 = int4) "
-WARN:Jan  6 17:16:41:AggregateDefine: transition function 2 MUST have an initial value
+WARN:Jan 28 18:07:24:AggregateDefine: transition function 2 MUST have an initial value
 
 Go 
 * 
 Query sent to backend is "  remove index "
-WARN:Jan  6 17:16:41:parser: syntax error at or near ""
+WARN:Jan 28 18:07:24:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove index 314159 "
-WARN:Jan  6 17:16:41:parser: syntax error at or near "314159"
+WARN:Jan 28 18:07:24:parser: syntax error at or near "314159"
 
 
 Go 
 * 
 Query sent to backend is " remove index nonesuch "
-WARN:Jan  6 17:16:41:pg_ownercheck: class "nonesuch" not found
+WARN:Jan 28 18:07:24:pg_ownercheck: class "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is "  remove aggregate "
-WARN:Jan  6 17:16:41:parser: syntax error at or near ""
+WARN:Jan 28 18:07:24:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove aggregate 314159 "
-WARN:Jan  6 17:16:41:parser: syntax error at or near "314159"
+WARN:Jan 28 18:07:24:parser: syntax error at or near "314159"
 
 
 Go 
 * 
 Query sent to backend is " remove aggregate nonesuch "
-WARN:Jan  6 17:16:41:RemoveAggregate: aggregate "nonesuch" does not exist
+WARN:Jan 28 18:07:24:RemoveAggregate: aggregate "nonesuch" does not exist
 
 Go 
 * 
 Query sent to backend is "  remove function () "
-WARN:Jan  6 17:16:41:parser: syntax error at or near "("
+WARN:Jan 28 18:07:24:parser: syntax error at or near "("
 
 
 Go 
 * 
 Query sent to backend is " remove function 314159() "
-WARN:Jan  6 17:16:41:parser: syntax error at or near "314159"
+WARN:Jan 28 18:07:24:parser: syntax error at or near "314159"
 
 
 Go 
 * 
 Query sent to backend is " remove function nonesuch() "
-WARN:Jan  6 17:16:41:RemoveFunction: function nonesuch() does not exist
+WARN:Jan 28 18:07:24:RemoveFunction: function nonesuch() does not exist
 
 Go 
 * 
 Query sent to backend is "  remove type "
-WARN:Jan  6 17:16:41:parser: syntax error at or near ""
+WARN:Jan 28 18:07:24:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove type 314159 "
-WARN:Jan  6 17:16:41:parser: syntax error at or near "314159"
+WARN:Jan 28 18:07:24:parser: syntax error at or near "314159"
 
 
 Go 
 * 
 Query sent to backend is " remove type nonesuch "
-WARN:Jan  6 17:16:41:pg_ownercheck: type "nonesuch" not found
+WARN:Jan 28 18:07:24:pg_ownercheck: type "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is "  remove operator "
-WARN:Jan  6 17:16:41:parser: syntax error at or near ""
+WARN:Jan 28 18:07:24:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove operator equals "
-WARN:Jan  6 17:16:41:parser: syntax error at or near "equals"
+WARN:Jan 28 18:07:24:parser: syntax error at or near "equals"
 
 
 Go 
 * 
 Query sent to backend is " remove operator === "
-WARN:Jan  6 17:16:41:parser: syntax error at or near ""
+WARN:Jan 28 18:07:24:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove operator int4, int4 "
-WARN:Jan  6 17:16:41:parser: syntax error at or near "int4"
+WARN:Jan 28 18:07:25:parser: syntax error at or near "int4"
 
 
 Go 
 * 
 Query sent to backend is " remove operator (int4, int4) "
-WARN:Jan  6 17:16:41:RemoveOperator: operator "===" taking "int4" and "int4" does not exist
+WARN:Jan 28 18:07:25:RemoveOperator: operator "===" taking "int4" and "int4" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator === () "
-WARN:Jan  6 17:16:41:parser: syntax error at or near ")"
+WARN:Jan 28 18:07:25:parser: syntax error at or near ")"
 
 
 Go 
 * 
 Query sent to backend is " remove operator === (int4) "
-WARN:Jan  6 17:16:41:RemoveOperator: operator "===" taking "int4" does not exist
+WARN:Jan 28 18:07:25:RemoveOperator: operator "===" taking "int4" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator === (int4, int4) "
-WARN:Jan  6 17:16:41:RemoveOperator: operator "===" taking "int4" and "int4" does not exist
+WARN:Jan 28 18:07:25:RemoveOperator: operator "===" taking "int4" and "int4" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator = (nonesuch) "
-WARN:Jan  6 17:16:41:RemoveOperator: type "nonesuch" does not exist
+WARN:Jan 28 18:07:25:RemoveOperator: type "nonesuch" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator = ( , int4) "
-WARN:Jan  6 17:16:41:parser: syntax error at or near ","
+WARN:Jan 28 18:07:25:parser: syntax error at or near ","
 
 
 Go 
 * 
 Query sent to backend is " remove operator = (nonesuch, int4) "
-WARN:Jan  6 17:16:41:RemoveOperator: type "nonesuch" does not exist
+WARN:Jan 28 18:07:25:RemoveOperator: type "nonesuch" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator = (int4, nonesuch) "
-WARN:Jan  6 17:16:41:RemoveOperator: type "nonesuch" does not exist
+WARN:Jan 28 18:07:25:RemoveOperator: type "nonesuch" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator = (int4, ) "
-WARN:Jan  6 17:16:41:parser: syntax error at or near ")"
+WARN:Jan 28 18:07:25:parser: syntax error at or near ")"
 
 
 Go 
 * 
 Query sent to backend is "  remove rule "
-WARN:Jan  6 17:16:41:parser: syntax error at or near ""
+WARN:Jan 28 18:07:25:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove rule 314159 "
-WARN:Jan  6 17:16:41:parser: syntax error at or near "314159"
+WARN:Jan 28 18:07:25:parser: syntax error at or near "314159"
 
 
 Go 
 * 
 Query sent to backend is " remove rule nonesuch "
-WARN:Jan  6 17:16:42:prs2GetRuleEventRel: rule "nonesuch" not found
+WARN:Jan 28 18:07:25:prs2GetRuleEventRel: rule "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is " remove tuple rule nonesuch "
-WARN:Jan  6 17:16:42:parser: syntax error at or near "tuple"
+WARN:Jan 28 18:07:25:parser: syntax error at or near "tuple"
 
 
 Go 
 * 
 Query sent to backend is " remove instance rule nonesuch "
-WARN:Jan  6 17:16:42:prs2GetRuleEventRel: rule "nonesuch" not found
+WARN:Jan 28 18:07:25:prs2GetRuleEventRel: rule "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is " remove rewrite rule nonesuch "
-WARN:Jan  6 17:16:42:RewriteGetRuleEventRel: rule "nonesuch" not found
+WARN:Jan 28 18:07:25:RewriteGetRuleEventRel: rule "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is "  retrieve (myclass0.a) "
-WARN:Jan  6 17:16:42:read on "myclass0": permission denied
+WARN:Jan 28 18:07:25:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " replace myclass0 (a = 10) where myclass0.a < 15 "
-WARN:Jan  6 17:16:42:read on "myclass0": permission denied
+WARN:Jan 28 18:07:25:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " replace myclass0 (a = myclass0.a + 1) "
-WARN:Jan  6 17:16:42:read on "myclass0": permission denied
+WARN:Jan 28 18:07:25:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " delete myclass0 where myclass0.a >= 100 "
-WARN:Jan  6 17:16:42:read on "myclass0": permission denied
+WARN:Jan 28 18:07:25:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " define rule foo is on retrieve to myclass0 do instead nothing "
-WARN:Jan  6 17:16:42:define rule on "myclass0": permission denied
+WARN:Jan 28 18:07:25:define rule on "myclass0": permission denied
 
 Go 
 * Welcome to the POSTGRES terminal monitor
