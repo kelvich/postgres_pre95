@@ -53,23 +53,44 @@ int32
 userfntest(i)
     int i;
 {
+    int small;
+
+    if (i >= 100) {
+	i -= 100;
+	small = 1;
+    } else {
+	small = 0;
+    }
     switch (i) {
 	case 0:
-	    return (u_setup());
+	    return (u_setup(small));
 
 	case 1:
-	    return (u_write());
+	    return (u_read(small));
 
 	case 2:
-	    return (u_read());
+	    return (u_rndread(small));
+
+	case 3:
+	    return (u_locrndread(small));
+
+	case 4:
+	    return (u_write(small));
+
+	case 5:
+	    return (u_rndwrite(small));
+
+	case 6:
+	    return (u_locrndwrite(small));
 
 	default:
-	    elog(WARN, "userfntest groks zero and one");
+	    elog(WARN, "userfntest doesn't grok %d", i);
     }
 }
 
 int
-u_setup()
+u_setup(small)
+    int small;
 {
     File vfd;
     int fd;
@@ -80,7 +101,7 @@ u_setup()
 	elog(WARN, "benchmark: cannot open %s", FILENAME);
     }
 
-    CALL(bigsetup,      BIG,   "setup\n");
+    CALL(bigsetup,      small,   "setup\n");
 
     LOclose(fd);
 
@@ -88,7 +109,8 @@ u_setup()
 }
 
 int
-u_write()
+u_write(small)
+    int small;
 {
     File vfd;
     int fd;
@@ -99,7 +121,11 @@ u_write()
 	elog(WARN, "benchmark: cannot open %s", FILENAME);
     }
 
-    CALL(bigwrite,      BIG,   "10 MByte sequential write\n");
+    if (small) {
+	CALL(bigwrite,      small,   "100 KByte sequential write\n");
+    } else {
+	CALL(bigwrite,      small,   "10 MByte sequential write\n");
+    }
 
     LOclose(fd);
 
@@ -107,7 +133,8 @@ u_write()
 }
 
 int
-u_read()
+u_read(small)
+    int small;
 {
     int fd;
 
@@ -115,17 +142,69 @@ u_read()
 	elog(WARN, "benchmark: cannot open %s", FILENAME);
     }
 
-    CALL(bigread,      BIG,   "10 MByte sequential read\n");
+    if (small) {
+	CALL(bigread,      small,   "100 KByte sequential read\n");
+    } else {
+	CALL(bigread,      small,   "10 MByte sequential read\n");
+    }
 
     LOclose(fd);
 
     return (0);
 }
 
-itest_stop_here(nbytes)
-    int nbytes;
+int
+u_rndread(small)
+    int small;
 {
-    nbytes = nbytes;
+    int fd;
+
+    if ((fd = LOopen(FILENAME, INV_READ, Inversion)) < 0) {
+	elog(WARN, "benchmark: cannot open %s", FILENAME);
+    }
+
+    if (small) {
+	CALL(rndread,      small,   "10 KByte random read\n");
+    } else {
+	CALL(rndread,      small,   "1 MByte random read\n");
+    }
+
+    LOclose(fd);
+
+    return (0);
+}
+
+int
+u_locrndread(small)
+    int small;
+{
+    int fd;
+
+    if ((fd = LOopen(FILENAME, INV_READ, Inversion)) < 0) {
+	elog(WARN, "benchmark: cannot open %s", FILENAME);
+    }
+
+    if (small) {
+	CALL(locrndread,      small,   "10 KByte random read with locality\n");
+    } else {
+	CALL(locrndread,      small,   "1 MByte random read with locality\n");
+    }
+
+    LOclose(fd);
+
+    return (0);
+}
+
+int
+u_rndwrite(small)
+{
+    return (-1);
+}
+
+int
+u_locrndwrite(small)
+{
+    return (-1);
 }
 
 bigread(fd, small)
@@ -153,10 +232,103 @@ bigread(fd, small)
 	nread = 0;
 	while (nread < want) {
 	    nbytes = want - nread;
-	    if (nbytes > 1024000)
-		nbytes = 1024000;
+	    if (nbytes > 8092)
+		nbytes = 8092;
 	    buf = (struct varlena *) LOread(fd, nbytes);
-	    nbytes = buf->vl_len;
+	    nbytes = buf->vl_len - sizeof(int32);
+	    pfree(buf);
+	    if (nbytes < 0) {
+		elog(WARN, "cannot read");
+	    } else {
+		nread += nbytes;
+	    }
+	}
+	myShowUsage();
+    }
+}
+
+rndread(fd, small)
+    int fd;
+    int small;
+{
+    int nbytes;
+    int nread;
+    int want;
+    int i;
+    int iter;
+    long off;
+    struct varlena *buf;
+    extern long random();
+
+    srandom(getpid());
+
+    for (i = 0; i < NITERS_BIG; i++) {
+
+	myResetUsage();
+	want = 1024 * 1000;
+	if (small)
+	    want /= 100;
+	nread = 0;
+	while (nread < want) {
+	    off = random() % (49 * 1024 * 1000);
+	    off = (off / 8092) * 8092;
+	    if (LOlseek(fd, off, L_SET) != (off_t) off) {
+		elog(WARN, "bigread: cannot seek");
+	    }
+	    nbytes = want - nread;
+	    if (nbytes > 8092)
+		nbytes = 8092;
+	    buf = (struct varlena *) LOread(fd, nbytes);
+	    nbytes = buf->vl_len - sizeof(int32);
+	    pfree(buf);
+	    if (nbytes < 0) {
+		elog(WARN, "cannot read");
+	    } else {
+		nread += nbytes;
+	    }
+	}
+	myShowUsage();
+    }
+}
+
+locrndread(fd, small)
+    int fd;
+    int small;
+{
+    int nbytes;
+    int nread;
+    int want;
+    int i;
+    int iter;
+    long off;
+    struct varlena *buf;
+    long pct;
+    extern long random();
+
+    srandom(getpid());
+
+    for (i = 0; i < NITERS_BIG; i++) {
+
+	myResetUsage();
+	want = 1024 * 1000;
+	if (small)
+	    want /= 100;
+	nread = 0;
+	off = -1;
+	while (nread < want) {
+	    pct = random() % 10;
+	    if (off < 0 || pct > 7) {
+		off = random() % (40 * 1024 * 1000);
+		off = (off / 8092) * 8092;
+		if (LOlseek(fd, off, L_SET) != (off_t) off) {
+		    elog(WARN, "bigread: cannot seek");
+		}
+	    }
+	    nbytes = want - nread;
+	    if (nbytes > 8092)
+		nbytes = 8092;
+	    buf = (struct varlena *) LOread(fd, nbytes);
+	    nbytes = buf->vl_len - sizeof(int32);
 	    pfree(buf);
 	    if (nbytes < 0) {
 		elog(WARN, "cannot read");
@@ -180,10 +352,11 @@ bigwrite(fd, small)
     int want;
     struct varlena *buf;
 
-    buf = (struct varlena *) palloc(1024000);
+    buf = (struct varlena *) palloc(8096);
     sbuf = (char *) &(buf->vl_dat[0]);
-    for (i = 0; i < 1024000; i++)
+    for (i = 0; i < 8096; i++)
 	*sbuf++ = (char) (i % 255);
+
     for (i = 0; i < NITERS_BIG; i++) {
 
 	/* start of file, please */
@@ -198,9 +371,9 @@ bigwrite(fd, small)
 	nwritten = 0;
 	while (nwritten < want) {
 	    nbytes = want - nwritten;
-	    if (nbytes > 1024000)
-		nbytes = 1024000;
-	    buf->vl_len = nbytes;
+	    if (nbytes > 8092)
+		nbytes = 8092;
+	    buf->vl_len = nbytes + sizeof(int32);
 	    nbytes = LOwrite(fd, buf);
 	    if (nbytes < 0) {
 		elog(WARN, "cannot read");
