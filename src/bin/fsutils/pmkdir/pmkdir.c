@@ -94,8 +94,15 @@ main(argc, argv)
 	    PQsetdb(dbname);
 	}
 
+	{
+	    extern int p_attr_caching;
+	    p_attr_caching = 0;
+	}
+
 	if (!*(argv += optind))
 		usage();
+
+	(void) PQexec("begin");
 
 	for (exitval = 0; *argv; ++argv)
 		if (pflag)
@@ -105,6 +112,28 @@ main(argc, argv)
 			    *argv, strerror(p_errno));
 			exitval = 1;
 		}
+
+	(void) PQexec("end");
+
+#if defined(PORTNAME_aix)
+	/*
+	 * XXX This is a crock.
+	 * There's something broken such that the result of p_mkdir
+	 * is sometimes not visible until after *two* xacts.  (This
+	 * is not true of a simple p_creat.)  It is visible to the
+	 * current xact and the N+2'th xact but not the N+1'th xact..
+	 *
+	 * Until I figure out what's going on, this is a cheap 
+	 * workaround.
+	 */
+	(void) PQexec("begin");
+	(void) PQexec(" ");
+	(void) PQexec("end");
+	(void) PQexec("begin");
+	(void) PQexec(" ");
+	(void) PQexec("end");
+#endif /* PORTNAME_aix */
+
 	PQfinish();
 	exit(exitval);
 }
@@ -113,7 +142,7 @@ build(path)
 	char *path;
 {
 	register char *p;
-	struct stat sb;
+	struct pgstat sb;
 	int create, ch;
 
 	for (create = 0, p = path;; ++p)
