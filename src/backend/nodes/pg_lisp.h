@@ -9,6 +9,7 @@
 #ifndef	LispDepIncluded
 #define	LispDepIncluded
 
+#include "nodes.h"
 #include <stdio.h>
 #include "c.h"
 
@@ -21,20 +22,38 @@ struct vectori {
 	char	data[1];		/* variable length array */
 };
 
+class (LispValue) public (Node) {
+    /* private: */
+    inherits(Node);
+    union {
+	char			*name;	/* symbol */
+	char   			*str;	/* string */
+	int    			fixnum;
+	double 			flonum;
+	struct _LispValue	*car;	/* dotted pair */
+	struct vectori		*veci;
+    } 			val;
+    struct _LispValue	*cdr;
+    /* public: */
+};
+
+#define List LispValue
+/*
 struct lisp_atom {
 	int 			type;
 	union {
-		char			*name;	/* symbol */
-		char   			*str;	/* string */
+		char			*name;
+		char   			*str;
 		int    			fixnum;
 		double 			flonum;
-		struct lisp_atom	*car;	/* dotted pair */
+		struct lisp_atom	*car;
 		struct vectori		*veci;
 	} 			val;
 	struct lisp_atom	*cdr;
 };
 
 typedef struct lisp_atom	*LispValue;
+*/
 
 #define	LISP_GC_OFF		/* yow! */
 #define	LISP_GC_ON		/* yow! */
@@ -42,6 +61,7 @@ typedef struct lisp_atom	*LispValue;
 
 #define	CAR(LISPVALUE)			((LISPVALUE)->val.car)
 #define	CDR(LISPVALUE)			((LISPVALUE)->cdr)
+#define CAAR(lv)                (CAR(CAR(lv)))
 #define CADR(lv)			(CAR(CDR(lv)))
 #define CADDR(lv)			(CAR(CDR(CDR(lv))))
 #define	LISPVALUE_DOUBLE(LISPVALUE)	((LISPVALUE)->val.flonum)
@@ -50,17 +70,17 @@ typedef struct lisp_atom	*LispValue;
 
 #define	LISP_TYPE(LISPVALUE)		((LISPVALUE)->type)
 
-#define	PGLISP_ATOM	0
-#define	PGLISP_DTPR	1
-#define	PGLISP_FLOAT	2
-#define	PGLISP_INT	3
-#define	PGLISP_STR	4
-#define	PGLISP_VECI	5
+#define	PGLISP_ATOM	255
+#define	PGLISP_DTPR	254
+#define	PGLISP_FLOAT	253
+#define	PGLISP_INT	252
+#define	PGLISP_STR	251
+#define	PGLISP_VECI	250
 
-#define	LISP_BYTEVECTOR			5
-#define	LISP_DOUBLE			2
-#define	LISP_INTEGER			3
-#define	LISP_STRING			4
+#define	LISP_BYTEVECTOR			250
+#define	LISP_DOUBLE			253
+#define	LISP_INTEGER			252
+#define	LISP_STRING			251
 
 #define lispStringp(x) ((bool)(LISP_TYPE(x)==PGLISP_STR))
 #define lispIntegerp(x) ((bool)(LISP_TYPE(x)==PGLISP_INT))
@@ -69,8 +89,9 @@ typedef struct lisp_atom	*LispValue;
 /*
  *	Defined in lisplib/lispdep.c
  */
+#define LispTrue 	((LispValue)1)
+
 extern LispValue 	LispNil;
-extern LispValue	LispTrue;
 extern LispValue	lispAtom();
 extern LispValue	lispDottedPair();
 extern LispValue	lispFloat();
@@ -99,9 +120,11 @@ extern LispValue	lprestore();
  * as yet undefined, but should be defined soon
  */
 
-extern LispValue nth();
+#define nth(index,list)         CAR(nthCdr(index,list))
+
+extern LispValue nthCdr();
 extern LispValue lispArray();
-extern LispValue list(); /* XXX - varargs ??? */
+/* extern LispValue list(); /* XXX - varargs ??? */
 extern LispValue setf();
 extern LispValue find();
 extern LispValue nconc();
@@ -121,5 +144,13 @@ extern LispValue push();
 extern bool null();
 extern LispValue collect();
 extern LispValue last_element();
+extern LispValue last();
+
+extern bool listp();
+extern int CAtom();
+
+/* temporary functions */
+
+extern LispValue mapcar();
 
 #endif /* !LispDepIncluded */
