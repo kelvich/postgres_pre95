@@ -18,7 +18,7 @@
 #include "catcache.h"
 #include "catname.h"
 #include "heapam.h"
-#include "lispdep.h"
+#include "pg_lisp.h"
 #include "log.h"
 #include "tuple.h"
 /* #include "var-access.h"	/* XXX for AMI_OVERRIDE */
