@@ -18,7 +18,6 @@ RcsId("$Header$");
 
 #include "anum.h"
 #include "catname.h"
-#include "default.h"	/* for FetchDefault */
 #include "fmgr.h"	/* for fmgr */
 #include "ftup.h"
 #include "heapam.h"
@@ -44,6 +43,13 @@ extern		ProcedureDefine();
 extern		OperatorDefine();
 
 /*#define USEPARGS	/* XXX */
+
+extern
+String		/* XXX Datum */
+FetchDefault ARGS((
+	String	string,
+	String	standard
+));
 
 /*
  * TypeGet
