@@ -838,9 +838,9 @@ isabstime(datestring, brokentime)
 	struct tm	*brokentime;
 {
 	extern int	strncmp();
+	char c;
 
 	register char	*p;
-	register char	c;
 	char		month[3];
 	int		day, yday, monthnum, year, hour,
 			min, sec, yeardigits,leap;
@@ -853,11 +853,8 @@ isabstime(datestring, brokentime)
 
 	p = datestring;
 	/* skip leading blanks */
-	while (c = *p) {
-		if ( ! IsSpace(c))
-			break;
+	while (IsSpace(*p))
 		p++;
-	}
 
 	/* check whether invalid time representation or not */
 	if (strcmp(INVALID_ABSTIME_STR, datestring) == 0)
@@ -872,22 +869,19 @@ isabstime(datestring, brokentime)
 		return(3);		    /* time EPOCH required */
 
 	/* handle month */
-	for( i=0; i<=2; i++) {
-		month[i] = c;
-		p++;
-		c = *p;
-	}
+	month[0] = toupper(*p++);
+	month[1] = tolower(*p++);
+	month[2] = tolower(*p++);
 
 	/* syntax test month*/
-	if (c != ' ' || ! correct_month(month, &monthnum))
+	if (! correct_month(month, &monthnum))
 		return(0);		/*syntax error */
-	/* Month correct*/
-	p++;
-	/* skip blanks between month and number of days*/
-	while (c = *p) {
-		if ( ! IsSpace(c))	break;
+	/*
+	 * Month correct - skip spaces after month.
+	 */
+	while (IsSpace(*p))
 		p++;
-	}
+
 	/* syntax test day number*/
 	day = 0;
 	for (;;) {
@@ -904,11 +898,10 @@ isabstime(datestring, brokentime)
 	}
 	/* test correct day number day after determination of year!*/
 	p++;
-	/* skip blanks between number of days and hour:min:sec option or year */
-	while (c = *p) {
-		if ( ! IsSpace(c))	break;
+	/* skip blanks between # of days and hour:min:sec option or year */
+	while (IsSpace(*p))
 		p++;
-	}
+
 	/* search for hour:minute:sec option */
 	hour=0;
 	min=0;
@@ -936,7 +929,7 @@ isabstime(datestring, brokentime)
 		timeoption=1;
 	if (isdigit(c))
 		timeoption=0;
-	if (timeoption == -1)	/* no hour:min:sec option and no correct year */
+	if (timeoption == -1)	/* no hour:min:sec option and no correct year*/
 		return(0);	/* syntax error */
 	if (timeoption) {
 		/* then search for minutes and seconds */
