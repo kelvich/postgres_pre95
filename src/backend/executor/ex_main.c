@@ -619,12 +619,6 @@ ExecutePlan(estate, plan, parseTree, operation, numberTuples,
     set_es_direction(estate, direction);
 
     /* ----------------
-     *	get the junk filter
-     * ----------------
-     */
-    junkfilter = (JunkFilter) get_es_junkFilter(estate);
-    
-    /* ----------------
      *	Loop until we've processed the proper number
      *  of tuples from the plan..
      * ----------------
@@ -638,27 +632,6 @@ ExecutePlan(estate, plan, parseTree, operation, numberTuples,
 	 if (operation != NOTIFY)
 		slot = ExecProcNode(plan);
 	
-	/* ----------------
-	 *	For append nodes the plan can change during ExecProcNode()
-	 *	If this has occured we need to update the current result-
-	 *	relationInfo and the current Junkfilter.
-	 * ----------------
-	 */
-	if (slot && operation != RETRIEVE &&
-	    get_ttc_whichplan(slot) != get_es_whichplan(estate)) {
-
-	    set_es_junkFilter(estate, 
-		  (JunkFilter) nth(get_ttc_whichplan(slot),
-				   get_es_junkFilter_list(estate)));
-	    set_es_result_relation_info(estate,
-		  (RelationInfo) nth(get_ttc_whichplan(slot),
-				     get_es_result_relation_info_list(estate)));
-
-	    junkfilter = get_es_junkFilter(estate);
-	    set_es_whichplan(estate, get_ttc_whichplan(slot));
-	}
-	    
-
 	/* ----------------
 	 *	if the tuple is null, then we assume
 	 *	there is nothing more to process so
@@ -680,7 +653,7 @@ ExecutePlan(estate, plan, parseTree, operation, numberTuples,
 	 *      Also, extract all the junk ifnormation we need.
 	 * ----------------
 	 */
-	if (junkfilter != NULL) {
+	if ((junkfilter = get_es_junkFilter(estate)) != (JunkFilter)NULL) {
 	    Datum 	datum;
 	    NameData 	attrName;
 	    HeapTuple 	newTuple;
