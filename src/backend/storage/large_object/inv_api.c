@@ -385,8 +385,8 @@ int inv_read(obj_desc, buf, nbytes)
 	fsblock = (struct varlena *) DatumGetPointer(d);
 
 	off = obj_desc->ofs.i_fs.offset - obj_desc->ofs.i_fs.lowbyte;
-	ncopy = obj_desc->ofs.i_fs.hibyte - obj_desc->ofs.i_fs.offset;
-	bcopy(fsblock->vl_dat, buf, ncopy);
+	ncopy = obj_desc->ofs.i_fs.hibyte - obj_desc->ofs.i_fs.offset + 1;
+	bcopy(&(fsblock->vl_dat[0]), buf, ncopy);
 
 	/* be a good citizen */
 	ReleaseBuffer(b);
@@ -394,7 +394,7 @@ int inv_read(obj_desc, buf, nbytes)
 	/* move pointers past the amount we just read */
 	buf += ncopy;
 	nread += ncopy;
-	obj_desc->ofs.i_fs.offset += (ncopy + 1);
+	obj_desc->ofs.i_fs.offset += ncopy;
     }
 
     /* that's it */
@@ -454,7 +454,7 @@ inv_write(obj_desc, buf, nbytes)
 	/* move pointers past the amount we just wrote */
 	buf += tuplen;
 	nwritten += tuplen;
-	obj_desc->ofs.i_fs.offset += (tuplen + 1);
+	obj_desc->ofs.i_fs.offset += tuplen;
     }
 
     /* that's it */
@@ -624,7 +624,6 @@ inv_wrnew(obj_desc, buf, nbytes)
 
     ntup = inv_newtuple(obj_desc, buffer, page, buf, nwritten);
     inv_indextup(obj_desc, ntup);
-    obj_desc->ofs.i_fs.offset += nwritten;
 
     /* new tuple is inserted */
     WriteBuffer(buffer);
@@ -730,7 +729,7 @@ inv_wrold(obj_desc, dbuf, nbytes, htup, buffer)
 		+ sizeof(fsblock->vl_len);
 
     if (obj_desc->ofs.i_fs.offset > obj_desc->ofs.i_fs.lowbyte) {
-	bcopy(fsblock->vl_dat, dptr,
+	bcopy(&(fsblock->vl_dat[0]), dptr,
 		obj_desc->ofs.i_fs.offset - obj_desc->ofs.i_fs.lowbyte);
 	dptr += obj_desc->ofs.i_fs.offset - obj_desc->ofs.i_fs.lowbyte;
     }
@@ -746,7 +745,7 @@ inv_wrold(obj_desc, dbuf, nbytes, htup, buffer)
 	loc = (obj_desc->ofs.i_fs.hibyte - obj_desc->ofs.i_fs.offset)
 		+ nwritten;
 	sz = obj_desc->ofs.i_fs.hibyte - (obj_desc->ofs.i_fs.lowbyte + loc);
-	bcopy(dptr, fsblock->vl_dat, sz);
+	bcopy(dptr, &(fsblock->vl_dat[0]), sz);
     }
 
     /* index the new tuple */
@@ -775,18 +774,21 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
 {
     HeapTuple ntup;
     PageHeader ph;
-    int off, limit;
-    int i;
-    int lower, upper;
     int tupsize;
+    int hoff;
+    register i;
+    Offset lower;
+    Offset upper;
     ItemId itemId;
+    OffsetNumber off;
+    OffsetNumber limit;
     char *attptr;
-
+    
     /* compute tuple size -- no nulls */
-    tupsize = sizeof(HeapTupleData) - sizeof(ntup->t_bits);
+    hoff = sizeof(HeapTupleData) - sizeof(ntup->t_bits);
 
     /* add in olastbyte, varlena.vl_len, varlena.vl_dat */
-    tupsize += (2 * sizeof(int32)) + nwrite;
+    tupsize = hoff + (3 * sizeof(int32)) + nwrite;
     tupsize = LONGALIGN(tupsize);
 
     /*
@@ -795,34 +797,33 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
      */
 
     ph = (PageHeader) page;
-    limit = PageGetMaxOffsetIndex(page) + 1;
-    for (i = 0; i < limit; i++) {
-	itemId = &(ph->pd_linp[i]);
-	if (!((*itemId).lp_flags & LP_USED) && (*itemId).lp_len == 0)
+    limit = 2 + PageGetMaxOffsetIndex(page);
+
+    /* look for "recyclable" (unused & deallocated) ItemId */
+    for (off = 1; off < limit; off++) {
+	itemId = &ph->pd_linp[off - 1];
+	if ((((*itemId).lp_flags & LP_USED) == 0) && 
+	    ((*itemId).lp_len == 0)) 
 	    break;
     }
 
-    off = i + 1;
-    limit++;
-
     if (off > limit)
-	lower = (Offset) (((char *) (&(ph->pd_linp[off]))) - ((char *) page));
+	lower = (Offset) (((char *) (&ph->pd_linp[off])) - ((char *) page));
     else if (off == limit)
 	lower = ph->pd_lower + sizeof (ItemIdData);
     else
 	lower = ph->pd_lower;
 
     upper = ph->pd_upper - tupsize;
-
-    itemId = &(ph->pd_linp[i]);
+    
+    itemId = &ph->pd_linp[off - 1];
     (*itemId).lp_off = upper;
     (*itemId).lp_len = tupsize;
     (*itemId).lp_flags = LP_USED;
-
     ph->pd_lower = lower;
     ph->pd_upper = upper;
 
-    ntup = (HeapTuple) (((char *) page) + upper);
+    ntup = (HeapTuple) ((char *) page + upper);
 
     /*
      *  Tuple is now allocated on the page.  Next, fill in the tuple
@@ -830,7 +831,7 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
      */
 
     ntup->t_len = tupsize;
-    ItemPointerSimpleSet(&(ntup->t_ctid), BufferGetBlockNumber(buffer), off);
+    ItemPointerSet(&(ntup->t_ctid), 0, BufferGetBlockNumber(buffer), 0, off);
     ItemPointerSetInvalid(&(ntup->t_chain));
     ItemPointerSetInvalid(&(ntup->t_lock.l_ltid));
     LastOidProcessed = ntup->t_oid = newoid();
@@ -841,18 +842,19 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
     ntup->t_tmin = ntup->t_tmax = InvalidTime;
     ntup->t_natts = 2;
     ntup->t_locktype = 'd';
-    ntup->t_hoff = sizeof(HeapTupleData);
+    ntup->t_hoff = hoff;
     ntup->t_vtype = 'r';
     ntup->t_infomask = 0x0;
-    ntup->t_bits[0] = 0x0;
 
     /*
      *  Finally, copy the user's data buffer into the tuple.  This violates
      *  the tuple and class abstractions.
      */
 
-    attptr = ((char *) ntup) + sizeof(HeapTupleData) - sizeof(ntup->t_bits);
+    attptr = ((char *) ntup) + hoff;
     *((int32 *) attptr) = obj_desc->ofs.i_fs.offset + nwrite - 1;
+    attptr += sizeof(int32);
+    *((int32 *) attptr) = nwrite + sizeof(int32);
     attptr += sizeof(int32);
     *((int32 *) attptr) = nwrite + sizeof(int32);
     attptr += sizeof(int32);
@@ -866,6 +868,10 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
 
     if (dbuf != (char *) NULL)
 	bcopy(dbuf, attptr, nwrite);
+
+    /* keep track of boundary of current tuple */
+    obj_desc->ofs.i_fs.lowbyte = obj_desc->ofs.i_fs.offset;
+    obj_desc->ofs.i_fs.hibyte = obj_desc->ofs.i_fs.offset + nwrite - 1;
 
     /* new tuple is filled -- return it */
     return (ntup);
@@ -890,4 +896,148 @@ inv_indextup(obj_desc, htup)
 	pfree ((char *) res);
 
     pfree ((char *) itup);
+}
+
+inv_showheap(obj_desc)
+    LargeObjectDesc *obj_desc;
+{
+    Buffer b;
+    Page p;
+    int nblocks;
+    int i;
+
+    nblocks = RelationGetNumberOfBlocks(obj_desc->ofs.i_fs.heap_r);
+
+    for (i = 0; i < nblocks; i++) {
+	b = ReadBuffer(obj_desc->ofs.i_fs.heap_r, i);
+	p = BufferSimpleGetPage(b);
+	DumpPage(p, i);
+	ReleaseBuffer(b);
+    }
+}
+
+extern String ItemPointerFormExternal ARGS((ItemPointer pointer ));
+
+DumpPage(page, blkno)
+	Page	page;
+	int blkno;
+{
+	ItemId		lp;
+	HeapTuple	tup;
+	int		flags, i, nline;
+	ItemPointerData	pointerData;
+
+	printf("\t[subblock=%d]:lower=%d:upper=%d:special=%d\n", 0,
+		((PageHeader)page)->pd_lower, ((PageHeader)page)->pd_upper,
+		((PageHeader)page)->pd_special);
+
+	printf("\t:MaxOffsetIndex=%d:InternalFragmentation=%d\n",
+		(int16)PageGetMaxOffsetIndex(page),
+		PageGetInternalFragmentation(page));
+
+	nline = 1 + (int16)PageGetMaxOffsetIndex(page);
+
+	/* add printing of the specially allocated fields */
+{
+	int	i;
+	char	*cp;
+
+	i = PageGetSpecialSize(page);
+	cp = PageGetSpecialPointer(page);
+
+	printf("\t:SpecialData=");
+
+	while (i > 0) {
+		printf(" 0x%02x", *cp);
+		cp += 1;
+		i -= 1;
+	}
+	printf("\n");
+}
+	for (i = 0; i < nline; i++) {
+		lp = ((PageHeader)page)->pd_linp + i;
+		flags = (*lp).lp_flags;
+		ItemPointerSet(&pointerData, 0, blkno, 0, 1 + i);
+		printf("%s:off=%d:flags=0x%x:len=%d",
+			ItemPointerFormExternal(&pointerData), (*lp).lp_off,
+			flags, (*lp).lp_len);
+		if (flags & LP_USED)
+			printf(":USED");
+		if (flags & LP_IVALID)
+			printf(":IVALID");
+		if (flags & LP_DOCNT) {
+			ItemPointer	pointer;
+
+			pointer = (ItemPointer)(uint16 *)
+				((char *)page + (*lp).lp_off);
+			
+			printf(":DOCNT@%s", ItemPointerFormExternal(pointer));
+		}
+		if (flags & LP_CTUP)
+			printf(":CTUP");
+		if (flags & LP_LOCK)
+			printf(":LOCK");
+
+		if (flags & LP_USED) {
+
+			HeapTupleData	htdata;
+
+			bcopy((char *) &((char *)page)[(*lp).lp_off],
+				(char *) &htdata, sizeof(htdata));
+
+			tup = &htdata;
+
+			if (flags & LP_DOCNT) {
+				bcopy((char *) &((char *)tup)[TCONTPAGELEN],
+					(char *) &htdata, sizeof(tup));
+			}
+
+			printf("\n\t:ctid=%s:oid=%ld",
+				ItemPointerFormExternal(&tup->t_ctid),
+				tup->t_oid);
+			printf(":natts=%d:thoff=%d:vtype=`%c' (0x%02x):",
+				tup->t_natts,
+				tup->t_hoff, tup->t_vtype, tup->t_vtype);
+
+			printf("\n\t:tmin=%d:cmin=%u:",
+				tup->t_tmin, tup->t_cmin);
+			printf("xmin=0x%02x%02x%02x%02x%02x:",
+				(unsigned char) tup->t_xmin[0],
+				(unsigned char) tup->t_xmin[1],
+				(unsigned char) tup->t_xmin[2],
+				(unsigned char) tup->t_xmin[3],
+				(unsigned char) tup->t_xmin[4]);
+
+			printf("\n\t:tmax=%d:cmax=%u:",
+				tup->t_tmax, tup->t_cmax);
+			printf("xmax=0x%02x%02x%02x%02x%02x:",
+				(unsigned char) tup->t_xmax[0],
+				(unsigned char) tup->t_xmax[1],
+				(unsigned char) tup->t_xmax[2],
+				(unsigned char) tup->t_xmax[3],
+				(unsigned char) tup->t_xmax[4]);
+
+			printf("\n\t:chain=%s:\n",
+				ItemPointerFormExternal(&tup->t_chain));
+		} else
+			putchar('\n');
+	}
+}
+
+String
+ItemPointerFormExternal(pointer)
+	ItemPointer	pointer;
+{
+	static char	itemPointerString[32];
+
+	if (!ItemPointerIsValid(pointer)) {
+		bcopy("<-,-,->", itemPointerString, sizeof "<-,-,->");
+	} else {
+		sprintf(itemPointerString, "<%lu,%u,%u>",
+			ItemPointerGetBlockNumber(pointer),
+			ItemPointerSimpleGetPageNumber(pointer),
+			ItemPointerSimpleGetOffsetNumber(pointer));
+	}
+
+	return (itemPointerString);
 }
