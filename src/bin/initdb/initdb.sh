@@ -86,7 +86,7 @@ UID=`pg_id`
 # 	create the template database if necessary
 # ----------------
 
-if test -f "$PGDATA/pg_user
+if test -f "$PGDATA/pg_user"
 then
 	echo "$CMDNAME: error: it looks like initdb has already been run.  You must"
 	echo "clean out the database directory first with the cleardbdir program"
