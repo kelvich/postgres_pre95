@@ -371,7 +371,7 @@ get_relattval (clause)
     if(is_clause (clause) && IsA (left,Var) && 
        !var_is_mat (left) && IsA (right,Const)) {
 	if(!null(right)) {
-	    return(lispCons (lispInteger(get_varno (left)),
+	    return(lispCons (lispCopy(CAR(get_varid (left))),
 		      lispCons(lispInteger(get_varattno (left)),
 			     lispCons(lispInteger(get_constvalue((Const)right)),
 				      lispCons(lispInteger(
@@ -379,7 +379,7 @@ get_relattval (clause)
 						   _SELEC_IS_CONSTANT_)),
 						 LispNil)))));
 	} else {
-	    return(lispCons (lispInteger(get_varno (left)),
+	    return(lispCons (lispCopy(CAR(get_varid (left))),
 		  lispCons(lispInteger(get_varattno (left)),
 			   /* lispCons(lispString(""), */
 			   lispCons(lispInteger(0),
@@ -394,7 +394,7 @@ get_relattval (clause)
 	     is_funcclause((LispValue)left) &&
 	     IsA(right,Const))
     {
-	    return(lispCons(lispInteger(get_varno((Var)CAR(get_funcargs((LispValue)left)))),
+	    return(lispCons(lispCopy(CAR(get_varid((Var)CAR(get_funcargs((LispValue)left))))),
 		      lispCons(lispInteger(InvalidAttributeNumber),
 			     lispCons(lispInteger(get_constvalue((Const)right)),
 					lispCons(lispInteger(
@@ -403,11 +403,19 @@ get_relattval (clause)
 						 LispNil)))));
     }
     
+    /*
+     * XXX both of these func clause handling if's seem wrong to me.
+     *     they assume that the first argument is the Var.  It could
+     *     not handle (for example) f(1, emp.name).  I think I may have
+     *     been assuming no constants in functional index scans when I
+     *     implemented this originally (still currently true).
+     *     -mer 10 Aug 1992
+     */
     else if (is_clause(clause) &&
 	     is_funcclause((LispValue)right) &&
 	     IsA(left,Const))
     {
-	    return(lispCons(lispInteger(get_varno((Var)CAR(get_funcargs((LispValue)right)))),
+	    return(lispCons(lispCopy(CAR(get_varid((Var)CAR(get_funcargs((LispValue)right))))),
 		      lispCons(lispInteger(InvalidAttributeNumber),
 			     lispCons(lispInteger(get_constvalue ((Const)left)),
 					lispCons(lispInteger(
@@ -418,13 +426,13 @@ get_relattval (clause)
     else if (is_clause (clause) && IsA (right,Var) &&
 	     ! var_is_mat (right) && IsA (left,Const)) {
 	if (!null (left)) {
-	    return(lispCons(lispInteger(get_varno (right)),
+	    return(lispCons(lispCopy(CAR(get_varid (right))),
 		   lispCons(lispInteger(get_varattno(right)),
 			    lispCons(lispInteger(get_constvalue ((Const)left)),
 				     lispCons(lispInteger(_SELEC_IS_CONSTANT_),
 					      LispNil)))));
 	} else {
-	    return(lispCons (lispInteger(get_varno (right)),
+	    return(lispCons (lispCopy(CAR(get_varid (right))),
 		    lispCons(lispInteger(get_varattno (right)),
 			     /* lispCons(lispString(""), */
 			     lispCons(lispInteger(0),
