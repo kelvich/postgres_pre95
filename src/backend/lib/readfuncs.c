@@ -1033,6 +1033,16 @@ _readFunc()
 	{
 		local_node->funcisindex = false;
 	}
+
+	token = lsptok(NULL, &length);      /* get :funcsize */
+	token = lsptok(NULL, &length);      /* now read it */
+
+	local_node->funcsize = atol(token);
+
+	token = lsptok(NULL, &length); 	    /* get :func_fcache */
+	token = lsptok(NULL, &length);	    /* get @ */
+	token = lsptok(NULL, &length);	    /* now read it */
+
 	local_node->func_fcache = (FunctionCache *) NULL;
 
 	token = lsptok(NULL, &length);            /* get :func_tlist */
