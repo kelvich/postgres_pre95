@@ -79,7 +79,6 @@ ExecAgg(node)
     Plan		outerNode;
     ScanDirection	dir;
     HeapTuple		outerTuple;
-    char		*Caggname;
     TupleDescriptor	outerTupDesc;
     HeapTuple		temp_tuple;
     HeapTuple		heapTuple;
@@ -94,7 +93,7 @@ ExecAgg(node)
     char 		*final_value;
     TupleDescriptor 	aggtupdesc;
     TupleTableSlot	slot;
-    Name 		aggname;
+    String 		aggname;
     bool		isNull = 0;
     extern char		*update_aggregate();
     extern char 	*finalize_aggregate();
@@ -144,11 +143,10 @@ ExecAgg(node)
 
     aggtupdesc = ExecGetResultType((CommonState) aggstate);
 
-    aggname = get_aggname(node);
-    Caggname = CString(aggname);
+    aggname = (String)get_aggname(node);
 
     running_comp[0] = (char *)
-	AggNameGetInitVal(Caggname, Anum_pg_aggregate_initaggval, &isNull);
+	AggNameGetInitVal(aggname, Anum_pg_aggregate_initaggval, &isNull);
     while (isNull)
     {
 	outerslot = ExecProcNode(outerNode);
@@ -164,24 +162,24 @@ ExecAgg(node)
     }
 	
     running_comp[1] = (char *)
-	AggNameGetInitVal(Caggname, Anum_pg_aggregate_initsecval, &isNull);
+	AggNameGetInitVal(aggname, Anum_pg_aggregate_initsecval, &isNull);
 
-    func1 = CInteger(SearchSysCacheGetAttribute(AGGNAME,
+    func1 = CInteger((LispValue)SearchSysCacheGetAttribute(AGGNAME,
 						Anum_pg_aggregate_xitionfunc1,
-						Caggname,
-						0,0,0));
+						aggname,
+						0, 0, 0));
     if (!func1)
-	elog(WARN, "Missing xition function 1 for aggregate %s", Caggname);
+	elog(WARN, "Missing xition function 1 for aggregate %s", aggname);
 
-    func2 = CInteger(SearchSysCacheGetAttribute(AGGNAME,
+    func2 = CInteger((LispValue)SearchSysCacheGetAttribute(AGGNAME,
 						Anum_pg_aggregate_xitionfunc2,
-						Caggname,
-						0,0,0));
+						aggname,
+						0, 0, 0));
 
-    finalfunc = CInteger(SearchSysCacheGetAttribute(AGGNAME, 
+    finalfunc = CInteger((LispValue)SearchSysCacheGetAttribute(AGGNAME, 
 						    Anum_pg_aggregate_finalfunc,
-						    Caggname,
-						    0,0,0));
+						    aggname,
+						    0, 0, 0));
 
     fmgr_info(func1, &functionptrarray[0], &nargs[0]);
     if (func2)

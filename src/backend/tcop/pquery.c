@@ -79,7 +79,7 @@ MakeQueryDesc(operation, parsetree, plantree, state, feature, dest)
 		 plantree, 	    /* plan */
 		 state, 	    /* state */
 		 feature, 	    /* feature */
-		 lispInteger(dest), /* output dest */
+		 lispInteger((int)dest), /* output dest */
 		 -1);
 
 }
@@ -471,7 +471,7 @@ ParallelProcessQueries(parsetree_list, plan_list, dest)
 	plan = (Plan)CAR(plist);
 	plist = CDR(plist);
 	rootFragment = InitialPlanFragments(parsetree, plan);
-	fragmentList = nappend1(fragmentList, rootFragment);
+	fragmentList = nappend1(fragmentList, (LispValue)rootFragment);
       }
 
     OptimizeAndExecuteFragments(fragmentList, dest);

@@ -1768,7 +1768,7 @@ agg_res_target_el:
 		   else if ( CDR(CDR($1)) != LispNil )
 		       elog(WARN,"cannot mix procedures with unions");
 
-		   $$ = lispCons(resnode,lispCons(varnode,LispNil));
+		   $$ = lispCons((LispValue)resnode,lispCons(varnode,LispNil));
 	 }
 
 agg:
@@ -1842,7 +1842,7 @@ res_target_el:
 	     type_id = CInteger(CAR($3));
 	     type_len = tlen(get_id_type(type_id));
 	     resdomno = p_last_resno++;
-	     temp = lispCons (MakeResdom((AttributeNumber)resdomno,
+	     temp = lispCons ((LispValue)MakeResdom((AttributeNumber)resdomno,
 					 (ObjectId)type_id,
 					 (Size)type_len,
 					 (Name)CString($1),
@@ -1876,7 +1876,7 @@ res_target_el:
 		      else if ( CDR(CDR($1)) != LispNil )
 			elog(WARN,"cannot mix procedures with unions");
 
-		      $$ = lispCons(resnode,lispCons(varnode,LispNil));
+		      $$=lispCons((LispValue)resnode,lispCons(varnode,LispNil));
 		}
 	| attr optional_indirection
 		{
@@ -1899,7 +1899,7 @@ res_target_el:
 		      else if ( CDR(CDR($1)) != LispNil )
 			elog(WARN,"cannot mix procedures with unions");
 
-		      $$ = lispCons(resnode,lispCons(varnode,LispNil));
+		      $$=lispCons((LispValue)resnode,lispCons(varnode,LispNil));
 		}
 	;		 
 
@@ -1961,7 +1961,7 @@ AexprConst:
 		    elog(WARN, "Parameter '$%d' is out of range",
 			 aid);
 		}
-		$$ = (List) lispCons(lispInteger(toid),
+		$$ = (List) lispCons(lispInteger(toid), (LispValue)
 				     MakeParam(PARAM_NUM, (AttributeNumber)aid,
 					       (Name)"foop", (ObjectId)toid));
 	    }
@@ -2061,7 +2061,7 @@ make_targetlist_expr ( name , expr )
        resdomno = varattno(rd,CString(name));
        attrtype = att_typeid(rd,resdomno);
        attrlen = tlen(get_id_type(attrtype));
-       expr = lispCons( lispInteger(attrtype),
+       expr = lispCons( lispInteger(attrtype), (LispValue)
                 MakeConst((ObjectId) attrtype, (Size) attrlen, (Datum) LispNil, (bool)1, (bool) 0 /* ignored */));
        Input_is_string = false;
        Input_is_integer = false;
@@ -2073,13 +2073,13 @@ make_targetlist_expr ( name , expr )
            p_target_resnos = lispCons( lispInteger(resdomno),
                                      p_target_resnos);
        }
-       return  ( lispCons (MakeResdom ((AttributeNumber)resdomno,
+       return  ( lispCons ((LispValue)MakeResdom ((AttributeNumber)resdomno,
 				       (ObjectId) attrtype,
 				       (Size)attrlen ,
 				       (Name)CString(name),
 				       (Index) 0 ,
 				       (OperatorTupleForm) 0 , 0 ) ,
-                             lispCons((Var)CDR(expr),LispNil)) );
+                             lispCons((LispValue)CDR(expr),LispNil)) );
      }
  
     type_id = CInteger(CAR(expr));
@@ -2125,12 +2125,12 @@ make_targetlist_expr ( name , expr )
 	attrtype = type_id;
 	attrlen = type_len;
     }
-    return  ( lispCons (MakeResdom ((AttributeNumber)resdomno,
+    return  ( lispCons ((LispValue)MakeResdom ((AttributeNumber)resdomno,
 				    (ObjectId)  attrtype,
 				    (Size)  attrlen , 
 				    (Name)  CString(name), (Index)0 ,
 				    (OperatorTupleForm)0 , 0 ) ,
-			      lispCons((Var)CDR(expr),LispNil)) );
+			      lispCons(CDR(expr),LispNil)) );
     
 }
 

@@ -1061,12 +1061,12 @@ ExecTypeFromTL(targetList)
 	restype = get_restype(resdom);
       
 	ExecSetTypeInfo((int) get_resno(resdom) - 1,	/* index */
-/*bug ??? - glass */	(struct attribute **) typeInfo, /* addr of type info */
+			(struct attribute **) typeInfo, /* addr of type info */
 			(ObjectId) restype,		/* type id */
 			(int) get_resno(resdom),	/* att num */
 			(int) get_reslen(resdom),	/* att len */
-			(Name) get_resname(resdom), /* att name */
-			get_typbyval(restype));	/* att by val */
+			(char *) get_resname(resdom),	/* att name */
+			get_typbyval(restype));		/* att by val */
 
 	tlcdr = CDR(tlcdr);
     }

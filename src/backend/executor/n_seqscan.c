@@ -163,7 +163,7 @@ ExecSeqScan(node)
 	slot = ExecProcNode(outerPlan);
     } else {
 	slot = ExecScan((Scan) node,
-			(Pointer) SeqNext); 	/* SeqNext is a function */
+			(VoidFunctionType) SeqNext);
     }
     
     DEBUG_ExecSeqScan_2;

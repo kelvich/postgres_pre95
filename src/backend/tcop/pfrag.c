@@ -78,7 +78,7 @@ int fragmentNo;
           set_frag_subtrees(fragment, LispNil);
 	  set_frag_parsetree(fragment, parsetree);
 	  set_frag_is_inprocess(fragment, false);
-          subFragments = nappend1(subFragments, fragment);
+          subFragments = nappend1(subFragments, (LispValue)fragment);
         }
        else {
           subFragments = FindFragments(parsetree,get_lefttree(node),fragmentNo);
@@ -96,7 +96,7 @@ int fragmentNo;
           set_frag_subtrees(fragment, LispNil);
 	  set_frag_parsetree(fragment, parsetree);
 	  set_frag_is_inprocess(fragment, false);
-          subFragments = nappend1(subFragments, fragment);
+          subFragments = nappend1(subFragments, (LispValue)fragment);
          }
        else {
          newFragments = FindFragments(parsetree,get_righttree(node),fragmentNo);
@@ -137,7 +137,7 @@ List parsetree;
     set_frag_parsetree(rootFragment, parsetree);
     set_frag_is_inprocess(rootFragment, false);
 
-    fragmentlist = lispCons(rootFragment, LispNil);
+    fragmentlist = lispCons((LispValue)rootFragment, LispNil);
 
     while (!lispNullp(fragmentlist)) {
 	newFragmentList = LispNil;
@@ -201,7 +201,7 @@ Fragment fragments;
 
     if (lispNullp(get_frag_subtrees(fragments)) && 
 	!get_frag_is_inprocess(fragments))
-       return lispCons(fragments, LispNil);
+       return lispCons((LispValue)fragments, LispNil);
     foreach (x, get_frag_subtrees(fragments)) {
 	frag = (Fragment)CAR(x);
 	readyFrags = GetReadyFragments(frag);
@@ -727,7 +727,7 @@ MasterWait:
 					    palloc_debug);
 #endif
 		    tempRelationDescList = nappend1(tempRelationDescList,
-						    tempRelationDesc);
+						    (LispValue)tempRelationDesc);
 		    if (prev == NULL) {
 			ProcGroupLocalInfoP[groupid].memberProc = nextp;
 		      }
@@ -784,7 +784,8 @@ MasterWait:
 	  subtrees = LispNil;
        else {
 	  subtrees = get_frag_subtrees(parentFragment);
-	  set_frag_subtrees(parentFragment, nLispRemove(subtrees, fragment));
+	  set_frag_subtrees(parentFragment,
+			    nLispRemove(subtrees, (LispValue)fragment));
 	 }
        /* ----------------
 	* let the parent fragment know where the result is
@@ -823,7 +824,7 @@ MasterWait:
 	     }
 	   if (parentPlan == NULL && nparallel == 1)
 	      /* in this case the whole plan has been finished */
-	      fraglist = nLispRemove(fraglist, fragment);
+	      fraglist = nLispRemove(fraglist, (LispValue)fragment);
 	   else {
 	      /* -----------------
 	       *  make a ScanTemps node to let the parent collect the tuples
@@ -845,7 +846,7 @@ MasterWait:
 						     palloc_debug);
 #endif PALLOC_DEBUG		     
 		 tempRelationDescList = nappend1(tempRelationDescList, 
-						 tempRelationDesc);
+						 (LispValue)tempRelationDesc);
 		 }
 	      scantempNode = RMakeScanTemps();
 	      set_qptargetlist((Plan)scantempNode, get_qptargetlist(plan));

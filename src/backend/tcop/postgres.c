@@ -656,7 +656,7 @@ pg_eval_dest(query_string, dest)
 		fprintf(stderr, "! Planner Stats:\n");
 		ShowUsage();
 	    }
-	    plan_list = nappend1(plan_list, plan);
+	    plan_list = nappend1(plan_list, (LispValue)plan);
 	  }
       }
 

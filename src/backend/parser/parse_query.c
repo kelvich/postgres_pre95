@@ -144,7 +144,7 @@ MakeRoot(NumLevels,query_name,result,rtable,priority,ruleinfo,unique_flag,
 
 	/* Assert ( tlelementP (one_sort_elt) ); */
 
-	sort_clause_elts = nappend1( sort_clause_elts, one_sort_elt );
+	sort_clause_elts = nappend1(sort_clause_elts, (LispValue)one_sort_elt);
 	sort_elt_type = get_restype(one_sort_elt);
 
 	sort_clause_ops = nappend1( sort_clause_ops,
@@ -234,14 +234,14 @@ MakeRangeTableEntry( relname , options , refname)
     /* RelOID */
     RelOID = lispInteger ( RelationGetRelationId (relation ));
     
-    entry = lispCons (lispString(relname), 
+    entry = lispCons (lispString(&relname->data[0]), 
 		      lispCons(RelOID,
 			       lispCons(TRange,
 					    lispCons(Flags,
 						     lispCons(RuleLocks,
 							      LispNil)))));
 
-    return ( lispCons ( lispString(refname), entry ));
+    return ( lispCons ( lispString(&refname->data[0]), entry ));
 }
 
 /**************************************************
@@ -301,7 +301,8 @@ ExpandAll(relname,this_resno)
 		tall = lispCons(lispCons(resnode, lispCons(varnode, LispNil)),
 				tall);
 */
-		tall = lispCons(lispCons(resnode,lispCons(varnode,LispNil)),
+		tall = lispCons(lispCons((LispValue)resnode,
+					 lispCons((LispValue)varnode,LispNil)),
 				tall);
 	}
 
@@ -355,7 +356,7 @@ MakeTimeRange( datestring1 , datestring2 , timecode )
 		default:
 			elog(WARN, "MakeTimeRange: internal parser error");
 	}
-	return(lispInteger(qual));
+	return(lispInteger((int)qual));
 }
 
 LispValue 
@@ -416,7 +417,7 @@ make_op(op,ltree,rtree)
 			    0 ,       	     /* operator relation level */
 			    opform->oprresult, /* operator result type */
 			    NULL, NULL);
-	t1 = lispCons ( newop , lispCons (left ,
+	t1 = lispCons ( (LispValue)newop , lispCons (left ,
 					     lispCons (right,LispNil)));
 	return ( lispCons (lispInteger ( opform->oprresult ) ,
 			   t1 ));
@@ -454,7 +455,7 @@ make_concat_var ( list_of_varnos , attid , vartype, vardotfields,
 			   lispCons(lispInteger(vnum),
 				    lispCons(lispInteger(attid),LispNil)),
 			   0 );
-	retval = lispCons ( varnode , retval );
+	retval = lispCons ( (LispValue)varnode , retval );
     }
     retval = lispCons ( lispAtom ( "union" ), retval );
     return(retval);
@@ -528,7 +529,7 @@ make_var ( relname, attrname)
 					   LispNil, LispNil )));
 
     return ( lispCons ( lispInteger ( typeid (rtype ) ),
-		       varnode ));
+		       (LispValue)varnode ));
 }
 /**********************************************************************
  make_array_ref_var
@@ -616,7 +617,7 @@ make_array_ref_var( relname, attrname, indirect_list)
 	indirect_num = CInteger(CAR(indirect_list));
 	indirect_list = CDR(indirect_list);
 
-	vararraylist = nappend1(vararraylist,
+	vararraylist = nappend1(vararraylist, (LispValue)
 				MakeArray((type_struct_array)->typelem,
 					  (type_struct_element)->typlen,
 					  (type_struct_element)->typbyval,
@@ -648,7 +649,7 @@ make_array_ref_var( relname, attrname, indirect_list)
 				lispCons(lispInteger(attid),LispNil)), 0);
     
     rtype = get_id_type((type_struct_array)->typelem);
-    return ( lispCons ( lispInteger ( typeid (rtype ) ), varnode ));
+    return ( lispCons ( lispInteger ( typeid (rtype ) ), (LispValue)varnode ));
 }
 
 
@@ -788,12 +789,12 @@ make_const( value )
 	    elog(NOTICE,"unknown type : %d\n", value->type );
 	    /* null const */
 	    return ( lispCons (LispNil , 
-			       MakeConst ( (ObjectId)0 , (Size)0 , 
+			       (LispValue)MakeConst ( (ObjectId)0 , (Size)0 , 
 					  (Datum)LispNil , 1, 0/*ignored*/ )) );
 	}
 
 	temp = lispCons (lispInteger ( typeid (tp)) ,
-			  MakeConst(typeid( tp ), tlen( tp ),
+			  (LispValue)MakeConst(typeid( tp ), tlen( tp ),
 				    val , false, tbyval(tp) ));
 /*	lispDisplay( temp , 0 );*/
 	return (temp);
@@ -870,7 +871,7 @@ char *attrName;
      * form the final result (a list of the parameter type and
      * the Param node)
      */
-    result = lispCons(lispInteger(attrType), paramNode);
+    result = lispCons(lispInteger(attrType), (LispValue)paramNode);
     return(result);
 		    
 }

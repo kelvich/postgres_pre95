@@ -461,7 +461,10 @@ ExecCreatR(numberAttributes, tupType, relationOid)
 	 */
 	sprintf(tempname, "temp_%d.%d", getpid(), tmpcnt++);
 	EU1_printf("ExecCreatR: attempting to create %s\n", tempname);
-	relDesc = amcreatr(tempname, numberAttributes, DEFAULT_SMGR, tupType);
+	relDesc = amcreatr(tempname,
+			   numberAttributes,
+			   DEFAULT_SMGR,
+			   (struct attribute **)tupType);
     } else {
 	/* ----------------
 	 *	use a relation from the range table

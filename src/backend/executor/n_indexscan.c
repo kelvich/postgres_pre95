@@ -249,7 +249,7 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
 	 */
 	oidList =  lispCons(lispInteger(indexOid), oidList);
 	nkeyList = lispCons(lispInteger(numKeyAtts), nkeyList);
-	keyList =  lispCons(indexKeyAtts, keyList);
+	keyList =  lispCons((LispValue)indexKeyAtts, keyList);
 	fiList =   lispCons((LispValue)fInfoP, fiList);
     }
     
@@ -704,7 +704,7 @@ ExecIndexScan(node)
      *	use IndexNext as access method
      * ----------------
      */
-    returnTuple = ExecScan((Scan) node, IndexNext);
+    returnTuple = ExecScan((Scan) node, (VoidFunctionType)IndexNext);
     return
 	returnTuple;
 }	
@@ -1375,14 +1375,21 @@ ExecInitIndexScan(node, estate, parent)
 	    
 	    /* ----------------
 	     *	initialize the scan key's fields appropriately
+	     *
+	     * XXX UGLY, UGLY, UGLY cast here. scan_keys is an array of
+	     * pointers to ScanKeyData structs and the macro first
+	     * dereferences then takes address of it and passes this
+	     * off as a ScanKeyEntry. It works but its not right.
+	     * -- mer 16 Nov. 1991
 	     * ----------------
 	     */
 	    ExecSetSkeys(j,		/* index into scan_keys array */
-			 scan_keys,	/* array in which to plug scan key */
+					/* array in which to plug scan key */
+			 (ScanKeyEntry)scan_keys,
+			 		/* attribute number to scan */
 			 (AttributeNumber) varattno,
-			 /* attribute number to scan */
 			 (RegProcedure) opid,		/* reg proc to use */
-			 (Datum) scanvalue);	/* constant */
+			 (Datum) scanvalue);		/* constant */
 	}
 	
 	/* ----------------

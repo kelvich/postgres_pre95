@@ -73,7 +73,7 @@ FormSortKeys(sortnode)
 	    
 	if (reskey > 0) {
 	    ExecSetSkeys(reskey - 1,
-			 sortkeys,
+			 (ScanKeyEntry)sortkeys,
 			 (AttributeNumber) resno,
 			 (RegProcedure) reskeyop,
 			 (Datum) 0);

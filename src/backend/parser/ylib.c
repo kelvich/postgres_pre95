@@ -206,7 +206,7 @@ parser_typecast ( expr, typename )
       len,cp);
       */
 	if (string_palloced) pfree(const_string);
-    return (lispCons  ( lispInteger (typeid(tp)) , adt ));
+    return (lispCons  ( lispInteger (typeid(tp)) , (LispValue)adt ));
 }
 
 LispValue
@@ -437,7 +437,7 @@ ParseFunc ( funcname , fargs )
 	
     } /* was a function */
     return ( lispCons (lispInteger(rettype) ,
-			   lispCons ( funcnode , fargs )));
+			   lispCons ( (LispValue)funcnode , fargs )));
 	    
 }
 
@@ -462,7 +462,7 @@ ParseAgg(aggname, query, tlist)
     if(AggId == (OID)0) {
        elog(WARN, "aggregate %s does not exist", aggname);
     }
-    fintype = CInteger(SearchSysCacheGetAttribute(AGGNAME,
+    fintype = CInteger((LispValue)SearchSysCacheGetAttribute(AGGNAME,
 		AggregateFinalTypeAttributeNumber, aggname, 0, 0, 0));
 
     if(fintype != 0 ) {

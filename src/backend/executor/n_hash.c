@@ -612,7 +612,7 @@ ExecHashTableDestroy(hashtable)
 #ifdef sequent
     IPCPrivateMemoryKill(0, hashtable->shmid);
 #else /* sequent */
-    free(hashtable);
+    free((char *)hashtable);
 #endif /* sequent */
 }
 
@@ -854,8 +854,6 @@ ExecScanHashBucket(hjstate, bucket, curtuple, hjclauses, econtext)
  *	the hash function, copied from Margo
  * ----------------------------------------------------------------
  */
-#define PRIME1		37
-#define PRIME2		1048583
 
 int
 hashFunc(key,len)

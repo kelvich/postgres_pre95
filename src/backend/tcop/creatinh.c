@@ -266,11 +266,11 @@ DefineRelation(relname, parameters, schema)
      * ----------------
      */
     descriptor = BuildDescForRelation(schema, relationName);
-    relationId = heap_create(relationName,
+    relationId = heap_create(relationName->data,
 			     archChar,
 			     numberOfAttributes,
 			     heaploc,
-			     descriptor);
+			     (struct attribute **)descriptor);
 
     StoreCatalogInheritance(relationId, inheritList);
 
@@ -289,11 +289,11 @@ DefineRelation(relname, parameters, schema)
 	archiveName = (Name) palloc(sizeof(NameData));
 	sprintf(&archiveName->data[0], "a,%ld", relationId);
 	
-	relationId = heap_create(archiveName,
-				 'n', 		/* archive isn't archived */
+	relationId = heap_create(archiveName->data,
+				 'n',		/* archive isn't archived */
 				 numberOfAttributes,
 				 archloc,
-				 descriptor);
+				 (struct attribute **)descriptor);
 
 	pfree(archiveName);
     }
@@ -305,7 +305,7 @@ RemoveRelation(name)
 {
     AssertArg(NameIsValid(name));
     
-    heap_destroy(name);
+    heap_destroy(name->data);
 }
 
 
@@ -322,7 +322,7 @@ bool
 CarEqualsInstalledName(list)
     List		list;
 {
-    return (equal(*InstalledNameP, CAR(list)));
+    return (equal((Node)*InstalledNameP, (Node)CAR(list)));
 }
 
 private
@@ -344,7 +344,7 @@ MergeAttributes(schema, supers)
 	    /*
 	     * check for duplicated relation names
 	     */
-	    if (equal(CAR(CAR(entry)), CAR(CAR(rest)))) {
+	    if (equal((Node)CAR(CAR(entry)), (Node)CAR(CAR(rest)))) {
 		elog(WARN, "attribute \"%s\" duplicated",
 		     CString(CAR(CAR(entry))));
 	    }
@@ -354,7 +354,7 @@ MergeAttributes(schema, supers)
 	List	rest;
 	
 	foreach (rest, CDR(entry)) {
-	    if (equal(CAR(entry), CAR(rest))) {
+	    if (equal((Node)CAR(entry), (Node)CAR(rest))) {
 		elog(WARN, "relation \"%s\" duplicated",
 		     CString(CAR(CAR(entry))));
 	    }
@@ -399,12 +399,12 @@ MergeAttributes(schema, supers)
 	    /*
 	     * form name and type
 	     */
-	    attributeName = lispString(&attribute->attname);
+	    attributeName = lispString(&(attribute->attname.data[0]));
 	    tuple = SearchSysCacheTuple(TYPOID,
 					attribute->atttypid);
 	    AssertState(HeapTupleIsValid(tuple));
 	    attributeType =
-		lispString(&((TypeTupleForm)GETSTRUCT(tuple))->typname);
+		lispString(&(((TypeTupleForm)GETSTRUCT(tuple))->typname.data[0]));
 	    
 	    /*
 	     * check validity
@@ -414,7 +414,7 @@ MergeAttributes(schema, supers)
 	    LispValuePInstallAsName(&attributeName);
 	    match = find_if(CarEqualsInstalledName, schema);
 	    if (!null(match)) {
-		if (!equal(attributeType, CADR(match))) {
+		if (!equal((Node)attributeType, (Node)CADR(match))) {
 		    elog(WARN, "%s and %s conflict for %s",
 			 CString(attributeType),
 			 CString(CADR(match)),
@@ -588,7 +588,7 @@ StoreCatalogInheritance(relationId, supers)
     again:
 	name = CAR(entry);
 	foreach (rest, CDR(entry)) {
-	    if (equal(name, CAR(rest))) {
+	    if (equal((Node)name, (Node)CAR(rest))) {
 		found = true;
 		break;
 	    }

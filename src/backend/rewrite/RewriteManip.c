@@ -127,7 +127,7 @@ static List make_null(type)
     set_constvalue(c, PointerGetDatum(NULL));
     set_constisnull(c, true);
     set_constbyval(c, get_typbyval(type));
-    return lispCons(c,LispNil);
+    return lispCons((LispValue)c,LispNil);
 }
 void FixResdomTypes (user_tlist)
      List user_tlist;

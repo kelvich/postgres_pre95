@@ -421,7 +421,7 @@ InitPlan(operation, parseTree, plan, estate)
 					     archiveMode,
 					     len,
 					     DEFAULT_SMGR,
-					     tupType);
+					     (struct attribute **)tupType);
 		
 		/* ----------------
 		 *  XXX rather than having to call setheapoverride(true)

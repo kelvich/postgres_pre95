@@ -99,8 +99,8 @@ List OptimizeRIRRules(locks)
     foreach (i, locks) {
 	Prs2OneLock rule_lock 	= (Prs2OneLock)CAR(i);
 	if ( prs2OneLockGetAttributeNumber(rule_lock) == -1) 
-	    relation_level = nappend1(relation_level, rule_lock);
-	else attr_level = nappend1(attr_level, rule_lock);
+	    relation_level = nappend1(relation_level, (LispValue)rule_lock);
+	else attr_level = nappend1(attr_level, (LispValue)rule_lock);
     }
     return append(relation_level, attr_level);
 }
@@ -119,8 +119,8 @@ List OrderRules(locks)
 	Prs2OneLock rule_lock 	= (Prs2OneLock)CAR(i);
 	if (!(IsActive(rule_lock) && IsRewrite(rule_lock))) continue;
 	if (IsInstead(rule_lock))
-	    instead_rules = nappend1(instead_rules, rule_lock);
-	else regular = nappend1(regular, rule_lock);
+	    instead_rules = nappend1(instead_rules, (LispValue)rule_lock);
+	else regular = nappend1(regular, (LispValue)rule_lock);
     }
     return append(regular, instead_rules);
 }
@@ -172,7 +172,7 @@ List FireRetrieveRulesAtQuery(parsetree, rt_index, relation,instead_flag,
 	int instead;
 
 	if (!IsInstead(rule_lock)) continue;
-	work = nappend1(work, rule_lock);
+	work = nappend1(work, (LispValue)rule_lock);
     }
     if (work != LispNil) {
 	work = OptimizeRIRRules(locks);

@@ -479,8 +479,19 @@ ExecInitHashJoin(node, estate, parent)
      * ----------------
      */
     hjstate =
-	MakeHashJoinState(NULL,0, NULL, NULL, NULL, LispNil, /*this is stupid*/
-			  NULL, NULL, NULL, 0, NULL, NULL);
+	MakeHashJoinState((HashJoinTable)NULL,	/* this is a little silly */
+			  (IpcMemoryId)0,
+			  (HashBucket )NULL,
+			  (HeapTuple )NULL,
+			  (OverflowTuple )NULL,
+			  (Var)LispNil,
+			  (FileP)NULL,
+			  (FileP)NULL,
+			  (charP)NULL,
+			  (int)0,
+			  (Pointer)NULL,
+			  (Pointer)NULL);
+
     set_hashjoinstate(node, hjstate);
         
     /* ----------------
