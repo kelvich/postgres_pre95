@@ -32,6 +32,7 @@
  *	PQftype 	- Return the type of a field
  *	PQsametype 	- Return 1 if the two tuples have the same type
  *	PQgetvalue 	- Return an attribute (field) value
+ *	PQgetlength 	- Return an attribute (field) length
  *	PQclear		- free storage claimed by named portal
  *      PQnotifies      - Return a list of relations on which notification 
  *                        has occurred.
@@ -452,6 +453,43 @@ PQgetvalue(portal, tuple_index, field_number)
     
     return
 	tuple_ptr->values[tuple_index][field_number];
+}
+
+/* --------------------------------
+ *	PQgetlength - Return an attribute (field) length
+ * --------------------------------
+ */
+int
+PQgetlength(portal, tuple_index, field_number)
+    PortalBuffer *portal;
+    int		 tuple_index;
+    int		 field_number;
+{
+    GroupBuffer *group;
+    TupleBlock  *tuple_ptr;
+
+    if (tuple_index < 0 || tuple_index >= portal->no_tuples)
+	libpq_raise(&PortalError, 
+		    form((int)"tuple index %d out of bound.", tuple_index));
+    
+    group = portal->groups;
+
+    while (tuple_index >= group->no_tuples) {
+	tuple_index -= group->no_tuples;
+	group = group->next;
+    }
+    
+    tuple_ptr = group->tuples;    
+
+    while (tuple_index >= TupleBlockSize) {
+	tuple_index -= TupleBlockSize;
+	tuple_ptr = tuple_ptr->next;
+    }
+
+    pbuf_checkFnumber(group, field_number);
+    
+    return
+	tuple_ptr->lengths[tuple_index][field_number];
 }
 
 /* ----------------
