@@ -869,9 +869,12 @@ isabstime(datestring, brokentime)
 		return(3);		    /* time EPOCH required */
 
 	/* handle month */
-	month[0] = toupper(*p++);
-	month[1] = tolower(*p++);
-	month[2] = tolower(*p++);
+	month[0] = (islower(*p) ? toupper(*p) : *p);
+	p++;
+	month[1] = (islower(*p) ? toupper(*p) : *p);
+	p++;
+	month[2] = (islower(*p) ? toupper(*p) : *p);
+	p++;
 
 	/* syntax test month*/
 	if (! correct_month(month, &monthnum))

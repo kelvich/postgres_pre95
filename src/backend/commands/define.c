@@ -86,7 +86,7 @@ DefineFunction(nameargsexe)
     languageName = DefineEntryGetString(entry);
     /* Uppercase-ise the language */
     for (c = languageName; *c != '\0'; c++)
-      *c = toupper(*c);
+      *c = (islower(*c) ? toupper(*c) : *c);
 
     if (!strcmp(languageName, "POSTQUEL"))
       {
