@@ -271,12 +271,28 @@ inv_destroy(object)
     pfree(object);
 }
 
+/*
+ *  inv_stat() -- do a stat on an inversion file.
+ *
+ *	For the time being, this is an insanely expensive operation.  In
+ *	order to find the size of the file, we seek to the last block in
+ *	it and compute the size from that.  We scan pg_class to determine
+ *	the file's owner and create time.  We don't maintain mod time or
+ *	access time, yet.
+ *
+ *	These fields aren't stored in a table anywhere because they're
+ *	updated so frequently, and postgres only appends tuples at the
+ *	end of relations.  Once clustering works, we should fix this.
+ */
+
 int
 inv_stat(obj_desc, stbuf)
     LargeObjectDesc *obj_desc;
     struct pgstat *stbuf;
 {
     int ret;
+    IndexScanDesc iscan;
+    ScanKeyData ignore;
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
@@ -289,7 +305,18 @@ inv_stat(obj_desc, stbuf)
 	obj_desc->ofs.i_fs.flags |= IFS_RDLOCK;
     }
 
-    return (-1);
+    stbuf->st_ino = obj_desc->ofs.i_fs.heap_r->rd_id;
+    stbuf->st_mode = 0666;
+    stbuf->st_size = _inv_getsize(obj_desc->ofs.i_fs.heap_r,
+				  obj_desc->ofs.i_fs.hdesc,
+				  obj_desc->ofs.i_fs.index_r);
+
+    stbuf->st_uid = obj_desc->ofs.i_fs.heap_r->rd_rel->relowner;
+
+    /* we have no good way of computing access times right now */
+    stbuf->st_atime = stbuf->st_mtime = stbuf->st_ctime = 0;
+
+    return (0);
 }
 
 int
@@ -1061,4 +1088,65 @@ ItemPointerFormExternal(pointer)
 	}
 
 	return (itemPointerString);
+}
+
+int
+_inv_getsize(hreln, hdesc, ireln)
+    Relation hreln;
+    TupleDescriptor hdesc;
+    Relation ireln;
+{
+    IndexScanDesc iscan;
+    ScanKeyData skey;
+    RetrieveIndexResult res;
+    Buffer buf;
+    HeapTuple htup;
+    Datum d;
+    long size;
+    bool isNull;
+
+    ScanKeyEntryInitialize(&skey, 0x0, 1, Int4GEProcedure, Int32GetDatum(-1));
+
+    /* scan backwards from end */
+    iscan = index_beginscan(ireln, (Boolean) 1, (uint16) 1, (ScanKey) &skey);
+
+    buf = InvalidBuffer;
+
+    do {
+	res = index_getnext(iscan, BackwardScanDirection);
+
+	/*
+	 *  If there are no more index tuples, then the relation is empty,
+	 *  so the file's size is zero.
+	 */
+
+	if (res == (RetrieveIndexResult) NULL) {
+	    index_endscan(iscan);
+	    return (0);
+	}
+
+	/*
+	 *  For time travel, we need to use the actual time qual here,
+	 *  rather that NowTimeQual.  We currently have no way to pass
+	 *  a time qual in.
+	 */
+
+	if (buf != InvalidBuffer)
+	    (void) ReleaseBuffer(buf);
+
+	htup = heap_fetch(hreln, NowTimeQual, &(res->heapItemData), &buf);
+
+    } while (!HeapTupleIsValid(htup));
+
+    /* don't need the index scan anymore */
+    index_endscan(iscan);
+
+    /* get olastbyte attribute */
+    d = (Datum) heap_getattr(htup, buf, 1, hdesc, &isNull);
+    size = DatumGetInt32(d) + 1;
+
+    /* wei hates it if you forget to do this */
+    ReleaseBuffer(buf);
+
+    return (size);
 }
