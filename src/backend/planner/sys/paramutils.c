@@ -6,13 +6,14 @@
  *     	Routines to manipulate param nodes in rule plans.
  *     
  */
-#include "c.h"
-#include "pg_lisp.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
-#include "postgres.h"
-#include "nodes.h"
-#include "lsyscache.h"
+#include "tmp/postgres.h"
+
+#include "nodes/nodes.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
+
+#include "utils/lsyscache.h"
 #include "planner/paramutils.h"
 
 
