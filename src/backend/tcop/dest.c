@@ -83,6 +83,8 @@ void
     return donothing;
 }
 
+#define IS_APPEND_TAG(tag) (*tag == 'A')
+
 /* ----------------
  * 	EndCommand - tell destination that no more tuples will arrive
  * ----------------
@@ -92,6 +94,8 @@ EndCommand(commandTag, dest)
     String  	commandTag;
     CommandDest	dest;
 {
+    char buf[64];
+
     switch (dest) {
     case RemoteInternal:
     case Remote:
@@ -101,7 +105,13 @@ EndCommand(commandTag, dest)
 	 */
 	pq_putnchar("C", 1);
 	pq_putint(0, 4);
-	pq_putstr(commandTag);
+	if (IS_APPEND_TAG(commandTag))
+	{
+	    sprintf(buf, "%s %d", commandTag, GetLastOid());
+	    pq_putstr(buf);
+	}
+	else
+	    pq_putstr(commandTag);
 	pq_flush();
 	break;
 
@@ -232,6 +242,7 @@ BeginCommand(pname, operation, attinfo, isIntoRel, isIntoPortal, tag, dest)
 	 *	because nothing needs to be sent to the fe.
 	 * ----------------
 	 */
+        ResetLastOid();
 	if (isIntoPortal)
 	    return;
 	    
@@ -309,4 +320,25 @@ BeginCommand(pname, operation, attinfo, isIntoRel, isIntoPortal, tag, dest)
     default:
 	break;
     }
+}
+
+static ObjectId LastOid;
+
+void
+ResetLastOid()
+{
+    LastOid = InvalidObjectId;
+}
+
+void
+UpdateLastOid(newoid)
+    ObjectId newoid;
+{
+    LastOid = newoid;
+}
+
+ObjectId
+GetLastOid()
+{
+    return LastOid;
 }
