@@ -8,7 +8,7 @@ postmaster \*- run the \*(PP postmaster
 .uh "SYNOPSIS"
 .lp
 .(l
-\fBpostmaster\fR [ -p port ] [ -b backend_pathname ] [ -d debug_level ] &
+\fBpostmaster\fR [ -p port ] [ -b backend_pathname ] [ -d debug_level ] [ -s ] [ -n ] &
 .)l
 .uh "DESCRIPTION"
 .lp
@@ -33,6 +33,31 @@ wish to use.
 \fIdeug_level\fR determines the amount of debugging output the backend will
 produce.  Specifying any level will cause the postmaster to print out
 a few terse debugging output messages to the tty on which it was started.
+.lp
+The
+\fI\-s\fP and \fI\-n\fP options control the behavior of the postmaster
+when a backend dies abnormally.
+The ordinary strategy for this situation is to notify all other backends
+that they must terminate,
+and to reinitialize shared memory and semaphores.
+This is because an errant backend,
+before dumping core,
+could have contaminated some shared state.
+.lp
+If the \fI\-s\fP option is supplied, then the postmaster will stop all
+other backends,
+but will not cause them to terminate.
+This permits system programmers to collect core dumps from all concurrent
+backends by hand.
+.lp
+If the \fI\-n\fP command-line option is supplied,
+then the postmaster does not reinitialize shared data structures.
+A knowledgable system programmer can use the
+.i shmemdoc
+program to examine shared memory and semaphore state,
+in order to debug the problem.
+.lp
+Neither \fI\-s\fP nor \fI\-n\fP is intended for use in ordinary operation.
 .sp
 .uh "EXAMPLES"
 .lp
@@ -78,4 +103,4 @@ the port.
 .lp
 .uh "SEE ALSO"
 .lp
-postgres(unix), monitor(unix), ipcclean(unix).
+postgres(unix), monitor(unix), ipcclean(unix), shmemdoc(unix).
