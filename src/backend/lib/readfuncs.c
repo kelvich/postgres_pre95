@@ -1752,7 +1752,7 @@ _readCInfo()
 	local_node = RMakeCInfo();
 
 	token = lsptok(NULL, &length);      /* get :clause */
-	local_node->clause = (Expr) lispRead(true); /* now read it */
+	local_node->clause = (LispValue) lispRead(true); /* now read it */
 
 	token = lsptok(NULL, &length);      /* get :selectivity */
 	token = lsptok(NULL, &length);      /* now read it */
