@@ -177,13 +177,15 @@ nested_clause_p (clause)
 {
     bool retval = false;
 
+/*
+ *  XXX turn it off for now since it always return false
+ * until we support dotted queries.
+ 
     if(null (clause) ||single_node (clause)) {
-	/* retval = false;  by default */
     } 
     else if (IsA(clause,Var) && var_is_nested (clause)) {
 	retval = true;
     } else if (or_clause (clause)) {
-	/* XXX was "some" function  */
 	LispValue i = LispNil;
 	LispValue orclause = LispNil;
 
@@ -205,6 +207,7 @@ nested_clause_p (clause)
 	retval = (bool)(nested_clause_p (get_leftop (clause)) ||
 			nested_clause_p (get_rightop (clause)));
     }
+ */
     return(retval);
 }
 
