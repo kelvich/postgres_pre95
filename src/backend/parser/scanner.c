@@ -171,8 +171,8 @@ int len;
 
 	while (counter != 0) {
 		c = input();
-		if ( c == '\{' && !in_string) counter++;
-		if ( c == '\}' && !in_string) counter--;
+		if ( c == '{' && !in_string) counter++;
+		if ( c == '}' && !in_string) counter--;
 		if (cp - buf > len - 1) {
 			serror("String/char constant too large");
 			cp = buf;
