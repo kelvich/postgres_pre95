@@ -136,10 +136,17 @@ IPCKey key;
 
     /* this cannot be initialized until after the buffer pool */
     SHMQueueInit(&(MyProc->lockQueue));
-
     MyProc->procId = ProcGlobal->numProcs;
     ProcGlobal->numProcs++;
   }
+
+  /*
+   * zero out the spin lock counts and set the sLocks field for ProcStructLock 
+   * to * 1 as we have acquired this spinlock above but didn't record it since
+   * we didn't have MyProc until now.
+   */
+  bzero(MyProc->sLocks, sizeof(MyProc->sLocks));
+  MyProc->sLocks[ProcStructLock] = 1;
 
   MyProc->sem.semId = IpcSemaphoreCreate(ProcGlobal->currKey,
                                          1,
