@@ -361,6 +361,7 @@ bool textregexne ARGS((char *s , char *p ));
 /* regproc.c */
 int32 regprocin ARGS((char *proname ));
 char *regprocout ARGS((RegProcedure proid ));
+ObjectId RegprocToOid ARGS((RegProcedure rp));
 
 /* selfuncs.c */
 float64 eqsel ARGS((ObjectId opid , ObjectId relid , AttributeNumber attno , char *value , int32 flag ));
