@@ -26,6 +26,12 @@ SRCS=	fe-dumpdata.c fe-pqexec.c fe-pqstubs.c fe-pqufs.c \
 NOPROFILE=1
 .endif
 
+.if defined(OLD_MKDIR)
+beforeinstall:
+	-if test ! -d ${DESTDIR}${LIBDIR}; \
+		then mkdir ${DESTDIR}${LIBDIR}; fi
+.endif
+
 #
 # We install the necessary header files from the backend directory
 # into ${HEADERDIR}.  If this is installed into /usr/include/postgres
