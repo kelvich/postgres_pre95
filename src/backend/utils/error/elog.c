@@ -6,9 +6,9 @@
 #include <strings.h>
 #include <sys/file.h>
 #include <sys/types.h>
-#include "c.h"
-#include "log.h"
-#include "postgres.h"
+
+#include "tmp/postgres.h"
+#include "utils/log.h"
 #include "installinfo.h"
 
 RcsId("$Header$");
