@@ -1011,4 +1011,50 @@ OperatorDefine(operatorName, leftTypeName, rightTypeName, procedureName,
 		    operatorName);	/* right sort */
 }
 
+/* find the default type for the right arg of a binary operator */
+HeapTuple
+FindDefaultType(operatorName, leftTypeId)
+char *operatorName;
+int leftTypeId;
+{
+    Relation            pg_operator_desc;
+    HeapScanDesc        pg_operator_scan;
+    HeapTuple           tup1, tup2;  /* returned tuples */
+    Buffer              buffer;
 
+    static ScanKeyEntryData     operatorKey[3] = {
+        { 0, OperatorNameAttributeNumber, NameEqualRegProcedure },
+        { 0, OperatorLeftAttributeNumber, ObjectIdEqualRegProcedure },
+        { 0, OperatorRightAttributeNumber, ObjectIdEqualRegProcedure },
+    };
+
+    pg_operator_desc = RelationNameOpenHeapRelation(OperatorRelationName);
+
+        operatorKey[0].argument = NameGetDatum(operatorName);
+        operatorKey[1].argument = ObjectIdGetDatum(leftTypeId);
+
+        pg_operator_scan = RelationBeginHeapScan(pg_operator_desc,
+                                                 0,
+                                                 SelfTimeQual,
+                                                 2,
+                                                 (ScanKey) operatorKey);
+
+        tup1 = HeapScanGetNextTuple(pg_operator_scan, 0, &buffer);
+        if (!HeapTupleIsValid(tup1)) {
+            elog(WARN, "OperatorDef: no operator %s", operatorName);
+            return ((HeapTuple)NULL);
+        }
+        tup2 = HeapScanGetNextTuple(pg_operator_scan, 0, &buffer);
+
+        HeapScanEnd(pg_operator_scan);
+
+        RelationCloseHeapRelation(pg_operator_desc);
+
+        if (HeapTupleIsValid(tup2)) {
+            return ((HeapTuple)NULL); /* failed to find default type, since 
+ 				 right arg can take on two or more types */
+        }
+
+        return (tup1);
+
+}
