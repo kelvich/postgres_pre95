@@ -19,29 +19,32 @@ agg-name [
 .lp
 An aggregate requires three functions, two
 .i "state transition"
-functions, T:
+functions, X1 and X2:
 .(l
-T( internal-state, next-data_item) ---> next-internal-state
+X1( internal-state1, next-data_item ) ---> next-internal-state1
+X2( internal-state2 ) ---> next-internal-state2
 .)l
 .lp
 and a
 .b "final calculation"
-function, C:
+function, F:
 .(l
-C(internal-state) ---> aggregate-value
+F(internal-state1, internal-state2) ---> aggregate-value
 .)l
 .lp
 These functions are required to have the following three properties:
 .np
-The output of each state-transition-function and the input 
-of final-calculation-function must be the same type, S.
+The return type of each state-transition-function and the arguments
+of the final-calculation-function must be the same type (\fIt\fP).
 .np
-The output of final-calculation-function can be of arbitrary type.
+The return type of the final-calculation-function must be a \*(PP base
+type.
 .np
-The input to state-transition-function must include as its first 
-argument a value of type S.  The other arguments must match the 
-data types of the object being aggregated.  Therefore, aggregates 
-also require two initial conditions, one for each transition 
+The first argument to state-transition-function1 must be of type \fIt\fP,
+while the second argument must match the data type of the object
+being aggregated.
+.lp
+Aggregates also require two initial conditions, one for each transition 
 function.
 .uh EXAMPLE
 .lp
@@ -60,7 +63,5 @@ answer.
 .lp
 /* Define an aggregate for int4average */
 .lp
-define aggregate avg ( sfunc1 = int4add,  sfunc2 = int4inc,
-finalfunc = int4div, initcond1 =  initial-condition-for-sum,
-initcond1 = "0",
-initcond2 = "0")
+define aggregate avg (sfunc1 = int4add, sfunc2 = int4inc
+     finalfunc = int4div, initcond1 = "0", initcond2 = "0")
