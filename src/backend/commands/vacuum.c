@@ -21,6 +21,7 @@
 #include "storage/itemid.h"
 #include "storage/bufmgr.h"
 #include "storage/bufpage.h"
+#include "storage/smgr.h"
 
 #include "utils/log.h"
 #include "utils/mcxt.h"
@@ -140,6 +141,7 @@ _vc_getrels(p)
     VRelList vrl, cur;
     Datum d;
     Name rname;
+    int16 smgrno;
     Boolean n;
     ScanKeyEntryData pgckey[1];
 
@@ -157,13 +159,32 @@ _vc_getrels(p)
 
     while (HeapTupleIsValid(pgctup = heap_getnext(pgcscan, false, &buf))) {
 
-	/* careful not to vacuum the archive */
+	/*
+	 *  We have to be careful not to vacuum the archive (since it
+	 *  already contains vacuumed tuples), and not to vacuum
+	 *  relations on write-once storage managers like the Sony
+	 *  jukebox at Berkeley.
+	 */
+
 	d = (Datum) heap_getattr(pgctup, buf, Anum_pg_relation_relname,
 				 pgcdesc, &n);
 	rname = DatumGetName(d);
 
-	if (_vc_isarchrel(rname))
+	/* skip archive relations */
+	if (_vc_isarchrel(rname)) {
+	    ReleaseBuffer(buf);
 	    continue;
+	}
+
+	d = (Datum) heap_getattr(pgctup, buf, Anum_pg_relation_relsmgr,
+				 pgcdesc, &n);
+	smgrno = DatumGetInt16(d);
+
+	/* skip write-once storage managers */
+	if (smgriswo(smgrno)) {
+	    ReleaseBuffer(buf);
+	    continue;
+	}
 
 	/* get a relation list entry for this guy */
 	old = MemoryContextSwitchTo((MemoryContext)portalmem);
@@ -181,6 +202,9 @@ _vc_getrels(p)
 	cur->vrl_npages = cur->vrl_ntups = 0;
 	cur->vrl_hasindex = false;
 	cur->vrl_next = (VRelList) NULL;
+
+	/* wei hates it if you forget to do this */
+	ReleaseBuffer(buf);
     }
 
     heap_close(pgclass);
