@@ -166,7 +166,6 @@ LOCKT		lockt;
    */
   bzero(&tag,sizeof(tag));
 
-  tag.relId = RelationGetRelationId(reln);
 
   /* ----------------------------
    * Now we want to set the page offset to be invalid 
@@ -177,8 +176,8 @@ LOCKT		lockt;
    * when we say lock the page we mean the 8k block. -Jeff 16 July 1991
    * ----------------------------
    */
-  ItemPointerSetInvalid( &(tag.tupleId) );
-  BlockIdCopy( &(tag.tupleId.blockData), &(tidPtr->blockData) );
+  tag.relId = RelationGetRelationId(reln);
+  BlockIdCopy( ItemPointerBlockId(&tag.tupleId), ItemPointerBlockId(tidPtr) );
   return(MultiAcquire(MultiTableId, &tag, lockt, PAGE_LEVEL));
 }
 
@@ -243,13 +242,27 @@ LOCKT		lockt;
     if (locks[i] != NO_LOCK) {
       switch (i) {
       case RELN_LEVEL:
-	ItemPointerSetInvalid( &(tmpTag->tupleId) );
+	/* -------------
+	 * Set the block # and offset to invalid
+	 * -------------
+	 */
+	BlockIdSet(ItemPointerBlockId(&tmpTag->tupleId), InvalidBlockNumber);
+	PositionIdSetInvalid( ItemPointerPositionId(&(tmpTag->tupleId)) );
 	break;
       case PAGE_LEVEL:
-	ItemPointerSetInvalid( &(tmpTag->tupleId) );
-	BlockIdCopy(&(tmpTag->tupleId.blockData),&tag->tupleId.blockData);
+	/* -------------
+	 * Copy the block #, set the offset to invalid
+	 * -------------
+	 */
+	BlockIdCopy(ItemPointerBlockId(&tmpTag->tupleId),ItemPointerBlockId(&tag->tupleId));
+
+	PositionIdSetInvalid(ItemPointerPositionId(&(tmpTag->tupleId)));
 	break;
       case TUPLE_LEVEL:
+	/* --------------
+	 * Copy the entire tuple id.
+	 * --------------
+	 */
 	ItemPointerCopy(&tmpTag->tupleId, &tag->tupleId);
 	break;
       }
@@ -319,11 +332,22 @@ LOCKT		lockt;
   for (i=N_LEVELS;i;i--) {
     switch (i) {
     case RELN_LEVEL:
-      ItemPointerSetInvalid( &(tmpTag->tupleId) );
+      /* -------------
+       * Set the block # and offset to invalid
+       * -------------
+       */
+      BlockIdSet(ItemPointerBlockId(&tmpTag->tupleId),InvalidBlockNumber);
+      PositionIdSetInvalid(ItemPointerPositionId(&tmpTag->tupleId));
       break;
     case PAGE_LEVEL:
-      ItemPointerSetInvalid( &(tmpTag->tupleId) );
-      BlockIdCopy(&(tmpTag->tupleId.blockData),&tag->tupleId.blockData);
+      /* -------------
+       * Copy the block #, set the offset to invalid
+       * These long macros cannot have newlines in them or else... 8-0X
+       * -------------
+       */
+      BlockIdCopy(ItemPointerBlockId(&tmpTag->tupleId),ItemPointerBlockId(&tag->tupleId));
+
+      PositionIdSetInvalid(ItemPointerPositionId(&(tmpTag->tupleId)));
       break;
     case TUPLE_LEVEL:
       ItemPointerCopy(&tmpTag->tupleId, &tag->tupleId);
