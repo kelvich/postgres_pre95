@@ -34,9 +34,12 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.4  1991/04/01 08:49:32  hong
-    for debugging memory leaks.
+    Revision 1.5  1991/07/29 16:54:33  mer
+    cleanup
 
+ * Revision 1.4  91/04/01  08:49:32  hong
+ * for debugging memory leaks.
+ * 
  * Revision 1.3  91/03/07  21:56:57  kemnitz
  * Fixed log2() problem.
  * 
@@ -282,7 +285,7 @@ HTAB *	hashp;
   /* table has no fixed maximum size */
   hctl->max_dsize = NO_MAX_DSIZE;
 
-  /* garbage collection for REMOVE */
+  /* garbage collection for HASH_REMOVE */
   hctl->freeBucketIndex = INVALID_INDEX;
 
   return(1);
@@ -430,10 +433,30 @@ HTAB *hashp;
 
 /*******************************SEARCH ROUTINES *****************************/
 
+uint32
+call_hash ( hashp, k, len )
+HTAB	*hashp;
+char    *k;
+int     len;
+{
+        int     n, bucket;
+	HHDR	*hctl;
+
+	hctl = hashp->hctl;
+        n = hashp->hash(k, len);
+
+        bucket = n & hctl->high_mask;
+        if ( bucket > hctl->max_bucket ) {
+            bucket = bucket & hctl->low_mask;
+        }
+
+        return(bucket);
+}
+
 /*
  * hash_search -- look up key in table and perform action
  *
- * action is one of FIND/ENTER/REMOVE
+ * action is one of HASH_FIND/HASH_ENTER/HASH_REMOVE
  *
  * RETURNS: NULL if table is corrupted, a pointer to the element
  * 	found/removed/entered if applicable, TRUE otherwise.
@@ -444,7 +467,7 @@ int *
 hash_search(hashp, keyPtr, action, foundPtr)
 HTAB	*hashp;
 char	*keyPtr;
-ACTION 	action;			       /* FIND/ENTER/REMOVE */
+ACTION 	action;			       /* HASH_FIND/HASH_ENTER/HASH_REMOVE */
 Boolean	*foundPtr;
 {
 	int bucket;
@@ -461,7 +484,7 @@ Boolean	*foundPtr;
 	if ((hashp == NULL) || (keyPtr == NULL)) {
 	  return(NULL);
 	}
-	Assert((action == FIND)||(action == REMOVE)||(action==ENTER));
+	Assert((action == HASH_FIND)||(action == HASH_REMOVE)||(action==HASH_ENTER));
 
 	hctl = hashp->hctl;
 
@@ -508,11 +531,11 @@ Boolean	*foundPtr;
 	 */
 	*foundPtr = (Boolean) (currIndex != INVALID_INDEX);
 	switch (action) {
-	case ENTER:
+	case HASH_ENTER:
 	  if (currIndex != INVALID_INDEX)
 	    return(&(curr->key));
 	  break;
-	case REMOVE:
+	case HASH_REMOVE:
 	  if (currIndex != INVALID_INDEX) {
 	    Assert(hctl->nkeys > 0);
 	    hctl->nkeys--;
@@ -529,7 +552,7 @@ Boolean	*foundPtr;
 	    return (&(curr->key));
 	  }
 	  return((int *) TRUE);
-	case FIND:
+	case HASH_FIND:
 	  if (currIndex != INVALID_INDEX)
 	    return(&(curr->key));
 	  return((int *)TRUE);
@@ -606,8 +629,8 @@ HTAB *	hashp;
 #endif
 
 	hctl = hashp->hctl;
-	old_bucket = (hctl->max_bucket & hctl->low_mask) + 1;
 	new_bucket = ++hctl->max_bucket;
+	old_bucket = (hctl->max_bucket & hctl->low_mask);
 
 	new_segnum = new_bucket >> hctl->sshift;
 	new_segndx = MOD ( new_bucket, hctl->ssize );
