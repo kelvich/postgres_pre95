@@ -9,6 +9,7 @@
 #ifndef ExecNodesIncluded
 #define	ExecNodesIncluded
 
+#include "recursion_a.h"	/* recursion stuff that must go first - JRB */
 #include "pg_lisp.h"
 #include "nodes.h"	/* bogus inheritance system */
 #include "params.h"	/* parameterized plan stuff... */
@@ -310,6 +311,31 @@ class (AppendState) public (Node) {
     int 	as_nplans;
     ListPtr 	as_initialized;
     List 	as_rtentries;
+};
+
+/* ----------------------------------------------------------------
+ *   RecursiveState information -JRB 12/11/89
+ *
+ *      Recursive nodes have some fields labelled "recurInitPlans",
+ *      "recurLoopPlans", and "recurCleanupPlans" which are lists
+ *      of plans and utilities to execute in sequence.  The following
+ *      variables keep track of things...
+ *
+ *      whichSequence   which sequence of the three is being used
+ *      whichPlan       which plan in the sequence is being executed
+ *      numPlans        how many plans are in each list (list of 3)
+ *      initialized     array of ExecInitNode() results
+ *      rtentries       range table for the current plan
+ * ----------------------------------------------------------------
+ */
+
+class (RecursiveState) public (Node) {
+    inherits(Node);
+    int         rcs_whichSequence;
+    int         rcs_whichPlan;
+    ListPtr     rcs_numPlans;
+    ListPtr     rcs_initialized;
+    List        rcs_rtentries;
 };
 
 /* ----------------------------------------------------------------
