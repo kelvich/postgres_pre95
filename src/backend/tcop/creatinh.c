@@ -171,17 +171,9 @@ RemoveRelation(name)
 {
 	AssertArg(NameIsValid(name));
 
-	/* (delete-inheritance relation-name) */
-	/* (check-indices relation-name) */
 	RelationNameDestroyHeapRelation(name);
 }
 
-#if 0
-(defun index-remove (relation-name)
-  (delete-index relation-name)
-  (am-destroy relation-name)
-  (utility-end "REMOVE"))
-#endif
 
 private
 void
