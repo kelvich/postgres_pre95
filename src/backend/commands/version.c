@@ -128,9 +128,11 @@ CreateVersion (name, bnamestring)
     attrname = CString(temp);
 
     if (notfirst == 1)
-      sprintf(temp_buf, ", %s = new.%s", attrname, attrname);
+      sprintf(temp_buf, ", %.*s = new.%.*s", NAMEDATALEN, attrname,
+		NAMEDATALEN, attrname);
     else {
-      sprintf(temp_buf, "%s = new.%s", attrname, attrname);
+      sprintf(temp_buf, "%.*s = new.%.*s", NAMEDATALEN, attrname, 
+		NAMEDATALEN, attrname);
       notfirst = 1;
     }
     strcat(attr_list, temp_buf);  
@@ -157,14 +159,16 @@ VersionCreate (vname, bname)
   /*
    *  Creating the dummy version relation for triggering rules.
    */
-  sprintf(query_buf, "retrieve into %s ( %s.all) where 1 =2", vname,bname);
+  sprintf(query_buf, "retrieve into %.*s ( %.*s.all) where 1 =2", NAMEDATALEN,
+	vname, NAMEDATALEN, bname);
 
   pg_eval (query_buf, (char *) NULL, (ObjectId *) NULL, 0);  
 
   /* 
    * Creating the ``v_added'' relation 
    */
-  sprintf (query_buf, "retrieve into %s_added (%s.all) where 1 = 2", vname, bname);
+  sprintf (query_buf, "retrieve into %.*s_added (%.*s.all) where 1 = 2", 
+	NAMEDATALEN, vname, NAMEDATALEN, bname);
   eval_as_new_xact (query_buf); 
 
 /*  printf ("%s\n",query_buf); */
@@ -173,7 +177,7 @@ VersionCreate (vname, bname)
   /* 
    * Creating the ``v_deleted'' relation. 
    */
-  sprintf (query_buf, "create %s_del(DOID = oid)", vname);
+  sprintf (query_buf, "create %.*s_del(DOID = oid)", NAMEDATALEN, vname);
 
   eval_as_new_xact (query_buf); 
 }
@@ -359,8 +363,8 @@ CreateBVersion(vname,bnamestring)
     AbsoluteTime now	= NULL;
     char *timestring 	= NULL;
     static char query_buf[MAX_QUERY_LEN];
-    static char saved_vname[sizeof(NameData)];
-    static char bname[sizeof(NameData)];
+    static char saved_vname[sizeof(NameData)+1];
+    static char bname[sizeof(NameData)+1];
 #ifdef BOGUS
     Name bname;
 #endif
@@ -369,7 +373,7 @@ CreateBVersion(vname,bnamestring)
 
 
     sprintf(bname,"%s", CString(bnamestring) );
-    sprintf(saved_vname,"%s", vname);
+    sprintf(saved_vname,"%.*s", NAMEDATALEN, vname);
 
 
     if (NodeType(bnamestring) != classTag(LispStr)) {
@@ -381,15 +385,16 @@ CreateBVersion(vname,bnamestring)
      *  Rename the base relation to the version name.
      */
 
-    sprintf(query_buf, "rename %s to %s", bname,vname);
+    sprintf(query_buf, "rename %.*s to %.*s", NAMEDATALEN, bname,
+	NAMEDATALEN, vname);
     eval_as_new_xact(query_buf); 
 
     /*
      *  Create a dummy base relation from which the 
      *  retrieve rule can be triggered.
      */
-    sprintf(query_buf, "retrieve into %s(%s.all) where 1 = 2",
-	    bname, saved_vname);
+    sprintf(query_buf, "retrieve into %.*s(%s.all) where 1 = 2",
+	    NAMEDATALEN, bname, saved_vname);
     eval_as_new_xact(query_buf);  
 
     /* Now to define the retrieve rule. */

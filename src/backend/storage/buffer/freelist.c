@@ -114,9 +114,9 @@ BufferDesc *buf;
     if (ShowPinTrace) {
 	Buffer buffer = BufferDescriptorGetBuffer(buf);
 
-	fprintf(stderr, "PIN(Pin) %d relname = %.16s, blockNum = %d, \
+	fprintf(stderr, "PIN(Pin) %d relname = %.*s, blockNum = %d, \
 refcount = %d, file: %s, line: %d\n",
-		buffer, &(buf->sb_relname), buf->tag.blockNum,
+		buffer, NAMEDATALEN, &(buf->sb_relname), buf->tag.blockNum,
 		PrivateRefCount[buffer - 1], file, line);
     }
 }
@@ -155,9 +155,9 @@ BufferDesc *buf;
     if (ShowPinTrace) {
 	Buffer buffer = BufferDescriptorGetBuffer(buf);
 
-	fprintf(stderr, "UNPIN(Unpin) %d relname = %.16s, blockNum = %d, \
+	fprintf(stderr, "UNPIN(Unpin) %d relname = %.*s, blockNum = %d, \
 refcount = %d, file: %s, line: %d\n",
-		buffer, &(buf->sb_relname), buf->tag.blockNum,
+		buffer, NAMEDATALEN, &(buf->sb_relname), buf->tag.blockNum,
 		PrivateRefCount[buffer - 1], file, line);
     }
 }

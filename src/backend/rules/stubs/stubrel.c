@@ -128,7 +128,7 @@ bool addFlag;
      * Go to the pg_prs2stub relation find the
      * appropriate tuple, and add the specified lock to it.
      */
-	strcpy(relname.data, Name_pg_prs2stub);
+	strncpy(relname.data, Name_pg_prs2stub, NAMEDATALEN);
 
     prs2stubRelation = RelationNameOpenHeapRelation(&relname);
 
@@ -308,7 +308,7 @@ Prs2Stub newStubs;
      * Go to the pg_prs2stub relation (i.e. pg_relation), and start
      * scanning it for the appropriate tuples.
      */
-    strcpy(relname.data, Name_pg_prs2stub);
+    strncpy(relname.data, Name_pg_prs2stub, NAMEDATALEN);
 
     prs2stubRelation = RelationNameOpenHeapRelation(&relname);
 
@@ -444,8 +444,8 @@ ObjectId relOid;
 	char *s1, *s2;
 
 	relstub2 = prs2SlowlyGetRelationStub(relOid);
-	printf("--> Looking stubs for relation %ld (%s)\n",
-	    relOid, get_rel_name(relOid));
+	printf("--> Looking stubs for relation %ld (%.*s)\n",
+	    relOid, NAMEDATALEN, get_rel_name(relOid));
 	s1 = prs2StubToString(relstub);
 	printf("--> syscache stub = %s\n", s1);
 	s2 = prs2StubToString(relstub2);
@@ -489,7 +489,7 @@ ObjectId relationOid;
      * Go to the pg_prs2stub relation (i.e. pg_relation), find the
      * appropriate tuple
      */
-    strcpy(relname.data, Name_pg_prs2stub);
+    strncpy(relname.data, Name_pg_prs2stub, NAMEDATALEN);
 
     prs2stubRelation = RelationNameOpenHeapRelation(&relname);
 

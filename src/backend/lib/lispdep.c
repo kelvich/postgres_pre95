@@ -181,6 +181,7 @@ lispInteger(integerValue)
     return(newobj);
 }
 
+#define LISPNAMESNULLTERMINATED
 /* ----------------
  *	lispName returns a node of type T_LispStr
  *	but gurantees that the string is char16 aligned and filled
@@ -200,12 +201,14 @@ lispName(string)
     CDR(newobj) = LispNil;
 
     if (string) {
+#ifdef LISPNAMESNULLTERMINATED
 	if (strlen(string) + 1 > NAMEDATALEN) {
 	    elog(WARN,"Name %s was longer than %d",string,NAMEDATALEN);
 	    /* NOTREACHED */
+#endif
 	}
-	newstr = (char *) palloc(NAMEDATALEN);
-	newstr = strcpy(newstr,string);
+	newstr = (char *)palloc(NAMEDATALEN);
+	newstr = strncpy(newstr, string, NAMEDATALEN);
     } else
       newstr = (char *)NULL;
 

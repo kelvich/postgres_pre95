@@ -286,7 +286,7 @@ BuildDescInfoError(buildinfo)
 	sprintf(errBuf, "(relation id %d)", buildinfo.i.info_id);
 	break;
     case INFO_RELNAME:
-	sprintf(errBuf, "(relation name %s)", buildinfo.i.info_name);
+	sprintf(errBuf, "(relation name %.*s)", NAMEDATALEN, buildinfo.i.info_name);
 	break;
     }
 

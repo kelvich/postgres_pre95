@@ -161,7 +161,8 @@ ObjectId tupleOid;
      * find the scan relation's name
      */
     (void) strncpy(relName.data,
-		   RelationGetRelationTupleForm(relation)->relname.data, 16);
+		   RelationGetRelationTupleForm(relation)->relname.data,
+		   NAMEDATALEN);
     
     
     /*

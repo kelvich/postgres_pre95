@@ -79,6 +79,8 @@ Print_expr ( expr )
       case classTag(Const):
 	switch ( get_consttype((Const) expr)) {
 	  case 19: /* char 16 */
+	    printf("%.*s", NAMEDATALEN, get_constvalue((Const) expr));
+	    break;
 	  case 25: /* text */
 	    printf("%s",get_constvalue((Const) expr));
 	    break;
@@ -89,7 +91,8 @@ Print_expr ( expr )
 	}
 	break;
       case classTag(Oper):
-	printf(" %s ",OperOidGetName ( (ObjectId)get_opno((Oper) expr)));
+	printf(" %.*s ", NAMEDATALEN, 
+		OperOidGetName ( (ObjectId)get_opno((Oper) expr)));
 	break;
       case classTag(Func):
 	lispDisplay(expr);
@@ -137,7 +140,7 @@ Print_targetlist ( tlist )
 	List expr = tl_expr(entry);
 
 	Assert(IsA(resdom,Resdom));
-	printf("%s = ", get_resname((Resdom) resdom));
+	printf("%.*s = ", NAMEDATALEN, get_resname((Resdom) resdom));
 	Print_expr ( expr );
 	if (CDR(i) != NULL) 
 	  printf(", ");
@@ -159,8 +162,10 @@ Print_rangetable ( rtable )
     foreach (i,rtable) {
 	List rt_entry = CAR(i);
 	if ( IsA (rt_refname(rt_entry),LispStr) ) {
-	    printf("%s in %s",
+	    printf("%.*s in %.*s",
+		   NAMEDATALEN,
 		   CString(rt_refname(rt_entry)),
+		   NAMEDATALEN,
 		   CString(rt_relname(rt_entry)));
 	} else {
 	    foreach ( j , rt_refname(rt_entry)) {
@@ -169,7 +174,7 @@ Print_rangetable ( rtable )
 	    if (CDR(j) != NULL) 
 	      printf(", ");
 	    }
-	    printf(" in %s ",CString(rt_relname(rt_entry)));
+	    printf(" in %.*s ", NAMEDATALEN, CString(rt_relname(rt_entry)));
 	}
 	if (CDR(i) != NULL) 
 	  printf(", ");
@@ -195,7 +200,7 @@ Print_parse ( parsetree )
     switch (root_command_type(parse_root(parsetree))) {
       case RETRIEVE:
 	if (result_reln) {
-	    printf(" into %s ",result_reln_name);
+	    printf(" into %.*s ", NAMEDATALEN, result_reln_name);
 	} else {
 	    printf(" ");
 	}
@@ -203,7 +208,7 @@ Print_parse ( parsetree )
       case APPEND:
       case DELETE:
       case REPLACE:
-	printf(" %s\n",result_reln_name );
+	printf(" %.*s\n", NAMEDATALEN, result_reln_name );
 	break;
     }
     Print_targetlist(tlist);

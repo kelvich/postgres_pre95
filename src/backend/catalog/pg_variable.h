@@ -45,7 +45,7 @@ typedef FormData_pg_variable	*Form_pg_variable;
 #define struct_variables_Defined 1
 
 struct	variables {
-	char	varname[16];
+	char	varname[NAMEDATALEN];
 	struct	varlena	varvalue;
 }; /* VARIABLE LENGTH STRUCTURE */
 

@@ -216,9 +216,9 @@ BlockNumber blockNum;
     if (ShowPinTrace && is_userbuffer(buffer)) {
 	BufferDesc *buf;
 	buf = BufferGetBufferDescriptor(buffer);
-	fprintf(stderr, "PIN(RD) %d relname = %.16s, blockNum = %d, \
+	fprintf(stderr, "PIN(RD) %d relname = %.*s, blockNum = %d, \
 refcount = %d, file: %s, line: %d\n",
-		buffer, &(buf->sb_relname), buf->tag.blockNum,
+		buffer, NAMEDATALEN, &(buf->sb_relname), buf->tag.blockNum,
 		PrivateRefCount[buffer - 1], file, line);
     }
     return buffer;
@@ -607,9 +607,9 @@ Buffer buffer;
     if (ShowPinTrace && is_userbuffer(buffer)) {
 	BufferDesc *buf;
 	buf = BufferGetBufferDescriptor(buffer);
-	fprintf(stderr, "UNPIN(WR) %d relname = %s, blockNum = %d, \
+	fprintf(stderr, "UNPIN(WR) %d relname = %.*s, blockNum = %d, \
 refcount = %d, file: %s, line: %d\n",
-		buffer, &(buf->sb_relname), buf->tag.blockNum,
+		buffer, NAMEDATALEN, &(buf->sb_relname), buf->tag.blockNum,
 		PrivateRefCount[buffer - 1], file, line);
     }
 }
@@ -1452,9 +1452,9 @@ PrintBufferDescs()
     BufferDesc *buf = BufferDescriptors;
 
     for (i = 0; i < NBuffers; ++i, ++buf) {
-	elog(NOTICE, "[%02d] (freeNext=%d, freePrev=%d, relname=%.16s, \
+	elog(NOTICE, "[%02d] (freeNext=%d, freePrev=%d, relname=%.*s, \
 blockNum=%d, flags=0x%x, refcount=%d %d)",
-	     i, buf->freeNext, buf->freePrev, &(buf->sb_relname),
+	     i, buf->freeNext, buf->freePrev, NAMEDATALEN, &(buf->sb_relname),
 	     buf->tag.blockNum, buf->flags,
 	     buf->refcount, PrivateRefCount[i]);
     }
@@ -1478,9 +1478,9 @@ PrintPinnedBufs()
 
     for (i = 0; i < NBuffers; ++i, ++buf) {
 	if (PrivateRefCount[i] > 0)
-	    elog(NOTICE, "[%02d] (freeNext=%d, freePrev=%d, relname=%.16s, \
+	    elog(NOTICE, "[%02d] (freeNext=%d, freePrev=%d, relname=%.*s, \
 blockNum=%d, flags=0x%x, refcount=%d %d)\n",
-		 i, buf->freeNext, buf->freePrev, &(buf->sb_relname),
+		 i, buf->freeNext, buf->freePrev, NAMEDATALEN, &(buf->sb_relname),
 		 buf->tag.blockNum, buf->flags,
 		 buf->refcount, PrivateRefCount[i]);
      }
@@ -1618,9 +1618,9 @@ Buffer buffer;
     if (ShowPinTrace && is_userbuffer(buffer)) {
         BufferDesc *buf = BufferGetBufferDescriptor(buffer);
 
-        fprintf(stderr, "PIN(Incr) %d relname = %.16s, blockNum = %d, \
+        fprintf(stderr, "PIN(Incr) %d relname = %.*s, blockNum = %d, \
 refcount = %d, file: %s, line: %d\n",
-		buffer, &(buf->sb_relname), buf->tag.blockNum,
+		buffer, NAMEDATALEN, &(buf->sb_relname), buf->tag.blockNum,
 		PrivateRefCount[buffer - 1], file, line);
       }
 }
@@ -1634,9 +1634,9 @@ Buffer buffer;
     if (ShowPinTrace && is_userbuffer(buffer)) {
         BufferDesc *buf = BufferGetBufferDescriptor(buffer);
 
-        fprintf(stderr, "UNPIN(Rel) %d relname = %.16s, blockNum = %d, \
+        fprintf(stderr, "UNPIN(Rel) %d relname = %.*s, blockNum = %d, \
 refcount = %d, file: %s, line: %d\n",
-		buffer, &(buf->sb_relname), buf->tag.blockNum,
+		buffer, NAMEDATALEN, &(buf->sb_relname), buf->tag.blockNum,
 		PrivateRefCount[buffer - 1], file, line);
     }
 }
@@ -1656,17 +1656,17 @@ BlockNumber blockNum;
     if (ShowPinTrace && bufferValid && is_userbuffer(buffer)) {
 	BufferDesc *buf = BufferGetBufferDescriptor(buffer);
 
-        fprintf(stderr, "UNPIN(Rel&Rd) %d relname = %.16s, blockNum = %d, \
+        fprintf(stderr, "UNPIN(Rel&Rd) %d relname = %.*s, blockNum = %d, \
 refcount = %d, file: %s, line: %d\n",
-		buffer, &(buf->sb_relname), buf->tag.blockNum,
+		buffer, NAMEDATALEN, &(buf->sb_relname), buf->tag.blockNum,
 		PrivateRefCount[buffer - 1], file, line);
     }
     if (ShowPinTrace && is_userbuffer(buffer)) {
 	BufferDesc *buf = BufferGetBufferDescriptor(b);
 
-        fprintf(stderr, "PIN(Rel&Rd) %d relname = %.16s, blockNum = %d, \
+        fprintf(stderr, "PIN(Rel&Rd) %d relname = %.*s, blockNum = %d, \
 refcount = %d, file: %s, line: %d\n",
-		b, &(buf->sb_relname), buf->tag.blockNum,
+		b, NAMEDATALEN, &(buf->sb_relname), buf->tag.blockNum,
 		PrivateRefCount[b - 1], file, line);
     }
     return b;

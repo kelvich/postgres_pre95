@@ -53,7 +53,7 @@ _equalResdom(a, b)
 	        return(false);
 	if (a->reslen != b->reslen)
 		return (false);
-	if (strcmp(a->resname, b->resname) != 0)
+	if (namestrcmp(a->resname, b->resname) != 0)
 		return (false);
 	if (a->reskey != b->reskey)
 		return (false);
@@ -310,7 +310,7 @@ _equalParam(a, b)
 	    case PARAM_NAMED:
 	    case PARAM_NEW:
 	    case PARAM_OLD:
-		if (strcmp(a->paramname, b->paramname) != 0)
+		if (namestrcmp(a->paramname, b->paramname) != 0)
 			return (false);
 		break;
 	    case PARAM_NUM:

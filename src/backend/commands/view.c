@@ -128,7 +128,7 @@ DefineVirtualRelation2 ( relname , tlist )
 	querybuf[i] = NULL;
     }
 
-    sprintf(querybuf,"create %s(",relname );
+    sprintf(querybuf,"create %.*s(", NAMEDATALEN, relname);
     index += strlen(querybuf);
     
     if ( ! null ( tlist )) {
@@ -139,7 +139,8 @@ DefineVirtualRelation2 ( relname , tlist )
 	    ObjectId	restype = get_restype(res);
 	    Name	restypename = tname(get_id_type(restype));
 
-	    sprintf(index,"%s = %s,",resname,restypename);
+	    sprintf(index,"%.*s = %.*s,", NAMEDATALEN, resname,
+		NAMEDATALEN, restypename);
 	    index += strlen(index);
 	}
 	*(index-1) = ')';
@@ -195,7 +196,7 @@ Name view_name;
      * '\0' at the end of the string...
      */
     bzero(buf, sizeof(buf));
-    sprintf(buf, "_RET%s", view_name);
+    sprintf(buf, "_RET%.*s", NAMEDATALEN, view_name);
     buf[15] = '\0';
     bcopy(buf, &(rule_name->data[0]), 16);
 }
@@ -322,7 +323,7 @@ List view_parse;
 
 #endif
 
-    sprintf(ruleText, "retrieve rule for view %s", view_name);
+    sprintf(ruleText, "retrieve rule for view %.*s", NAMEDATALEN, view_name);
     DefineQueryRewrite(retrieve_rule);
 #ifdef TUPLE_VIEW
     prs2DefineTupleRule(retrieve_rule, ruleText);

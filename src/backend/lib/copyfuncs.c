@@ -1175,7 +1175,7 @@ _copyResdom(from, to, alloc)
 
     if (from->resname != NULL)
 	newnode->resname = (Name)
-	    strcpy((char *) COPYALLOC(strlen(from->resname)+1), from->resname);
+	    strncpy((char *) COPYALLOC(NAMEDATALEN), from->resname, NAMEDATALEN);
     else
 	newnode->resname = (Name) NULL;
     
@@ -1628,8 +1628,8 @@ _copyParam(from, to, alloc)
 
     if (from->paramname != NULL)
 	newnode->paramname = (Name)
-	    strcpy((char *) COPYALLOC(strlen(from->paramname)+1),
-		   from->paramname);
+	    strncpy((char *)COPYALLOC(NAMEDATALEN), from->paramname, 
+		NAMEDATALEN);
     else
 	newnode->paramname = (Name) NULL;
     
@@ -2385,8 +2385,8 @@ _copyLispStr(from, to, alloc)
      */
     if (from->val.name != NULL)
 	newnode->val.name = (char *)
-	    strcpy((char *) COPYALLOC(strlen(from->val.name)+1),
-		   from->val.name);
+	    strncpy((char *)COPYALLOC(NAMEDATALEN), from->val.name,
+		NAMEDATALEN);
     else
 	newnode->val.name = NULL;
     

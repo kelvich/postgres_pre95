@@ -463,8 +463,9 @@ boot_openrel(name)
 
 	if (DebugMode) {
 	    struct attribute *at = attrtypes[i];
-	    printf("create attribute %d name %s len %d num %d type %d\n",
-		i, at->attname, at->attlen, at->attnum, at->atttypid
+	    printf("create attribute %d name %.*s len %d num %d type %d\n",
+		i, NAMEDATALEN, at->attname, at->attlen, at->attnum, 
+		at->atttypid
 	    );
 	    fflush(stdout);
 	}
@@ -514,7 +515,7 @@ printrel()
     printf("Relation %s:  ", relname);
     printf("[ ");
     for (i=0; i < reldesc->rd_rel->relnatts; i++)
-	printf("%s ", &reldesc->rd_att.data[i]->attname);
+	printf("%.*s ", NAMEDATALEN, &reldesc->rd_att.data[i]->attname);
     printf("]\n\n");
     StartPortalAllocMode(DefaultAllocMode, 0);
     
@@ -557,7 +558,7 @@ randomprintrel()
 	printf("Relation %s:  ", relname);
 	printf("[ ");
 	for (i=0; i<reldesc->rd_rel->relnatts; i++) {
-	    printf("%s ", &reldesc->rd_att.data[i]->attname);
+	    printf("%.*s ", NAMEDATALEN, &reldesc->rd_att.data[i]->attname);
 	}
 	printf(
 		"]\nWill display %d tuples in a slightly random order\n\n",
@@ -782,15 +783,17 @@ DefineAttr(name, type, attnum)
 	attrtypes[attnum] = AllocateAttribute();
     if (Typ != (struct typmap **)NULL) {
 	attrtypes[attnum]->atttypid = Ap->am_oid;
-	strncpy(attrtypes[attnum]->attname, name, 16);
-	if (!Quiet) printf("<%s %s> ", attrtypes[attnum]->attname, type);
+	strncpy(attrtypes[attnum]->attname, name, NAMEDATALEN);
+	if (!Quiet) printf("<%.*s %s> ", NAMEDATALEN, 
+		attrtypes[attnum]->attname, type);
 	attrtypes[attnum]->attnum = 1 + attnum; /* fillatt */
 	attlen = attrtypes[attnum]->attlen = Ap->am_typ.typlen;
 	attrtypes[attnum]->attbyval = Ap->am_typ.typbyval;
     } else {
 	attrtypes[attnum]->atttypid = Procid[t].oid;
-	strncpy(attrtypes[attnum]->attname,name, 16);
-	if (!Quiet) printf("<%s %s> ", attrtypes[attnum]->attname, type);
+	strncpy(attrtypes[attnum]->attname,name, NAMEDATALEN);
+	if (!Quiet) printf("<%.*s %s> ", NAMEDATALEN,
+		 attrtypes[attnum]->attname, type);
 	attrtypes[attnum]->attnum = 1 + attnum; /* fillatt */
 	attlen = attrtypes[attnum]->attlen = Procid[t].len;
 	attrtypes[attnum]->attbyval = (attlen==1) || (attlen==2)||(attlen==4);
@@ -1029,19 +1032,19 @@ gettype(type)
 
     if (Typ != (struct typmap **)NULL) {
 	for (app = Typ; *app != (struct typmap *)NULL; app++) {
-	    if (strcmp((*app)->am_typ.typname, type) == 0) {
+	    if (strncmp((*app)->am_typ.typname, type, NAMEDATALEN) == 0) {
 		Ap = *app;
 		return((*app)->am_oid);
 	    }
 	}
     } else {
 	for (i = 0; i <= n_types; i++) {
-	    if (strcmp(type, Procid[i].name) == 0) {
+	    if (strncmp(type, Procid[i].name, NAMEDATALEN) == 0) {
 		return(i);
 	    }
 	}
 	if (DebugMode)
-	    printf("backendsup.c: External Type: %s\n", type);
+	    printf("backendsup.c: External Type: %.*s\n", NAMEDATALEN, type);
         rdesc = heap_openr(TypeRelationName->data);
         sdesc = heap_beginscan(rdesc, 0, NowTimeQual, 0, (ScanKey)NULL);
 	i = 0;

@@ -144,7 +144,7 @@ CatalogCacheInitializeCache(cache, relation)
 	 * ----------------
 	 */
         for (cp = Caches; cp; cp = cp->cc_next) {
-	    if (strcmp(cp->cc_relname, cache->cc_relname) == 0) {
+	    if (strncmp(cp->cc_relname, cache->cc_relname, NAMEDATALEN) == 0) {
 		if (cp->relationId != InvalidObjectId)
 		    break;
 	    }

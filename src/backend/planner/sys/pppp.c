@@ -242,7 +242,7 @@ print_subplan (subplan, levels)
 		 *     (_TEMP_RELATION_ID_ != get_scanrelid (subplan)))
 		 */
 		if (_TEMP_RELATION_ID_ != get_scanrelid((Scan)subplan)) {
-			printf( "%s",
+			printf( "%.*s", NAMEDATALEN,
 				CString(getrelname(get_scanrelid((Scan)subplan),
 						   _query_range_table_)));
 		} else {
@@ -398,7 +398,7 @@ print_tlistentry(tlistentry, level)
 	};
 	/*
 	 * if (get_resname(resdom) != (char *) NULL) {
-	 * 	printf ("%s", get_resname(resdom));
+	 * 	printf ("%.*s", NAMEDATALEN, get_resname(resdom));
 	 * };
 	 */
 	print_clause (expr, level);
@@ -461,8 +461,10 @@ print_var(var)
 		   varno = CInteger(CAR(varid));
 		   attnum = CInteger(CADR(varid));
 		  }
-		printf("%s %s",
+		printf("%.*s %.*s",
+			NAMEDATALEN,
 			CString(getrelname(varno, _query_range_table_)),
+			NAMEDATALEN,
 		        get_attname(CInteger(getrelid(varno,
 				 _query_range_table_)), attnum));
 
@@ -579,7 +581,7 @@ print_param (param)
 	 */
 
 	 if (get_paramname((Param)param) != (Name) NULL)
-		printf("(\"%s\")", get_paramname((Param)param));
+		printf("(\"%.*s\")", NAMEDATALEN, get_paramname((Param)param));
 }
 
 void
@@ -592,8 +594,9 @@ Plan plan;
     case classTag(SeqScan):
     case classTag(IndexScan):
 	if (_TEMP_RELATION_ID_ != get_scanrelid((Scan)plan)) {
-	    fprintf(stderr,  "%s", CString(getrelname(get_scanrelid((Scan)plan),
-				  _query_range_table_)));
+	    fprintf(stderr,  "%.*s", NAMEDATALEN,
+			CString(getrelname(get_scanrelid((Scan)plan),
+			_query_range_table_)));
 	  }
 	else {
 	    pplan((Plan)get_lefttree(plan));
@@ -604,7 +607,8 @@ Plan plan;
 	    Relation tmpreldesc;
 	    foreach (x, get_temprelDescs((ScanTemps)plan)) {
 		tmpreldesc = (Relation)CAR(x);
-		fprintf(stderr, " %s", &(tmpreldesc->rd_rel->relname));
+		fprintf(stderr, " %.*s", NAMEDATALEN,
+			 &(tmpreldesc->rd_rel->relname));
 	      }
 	}
     case classTag(MergeJoin):
@@ -728,7 +732,7 @@ Path path;
 	break;
     case classTag(IndexPath):
     case classTag(Path):
-	fprintf(stderr, "%s", 
+	fprintf(stderr, "%.*s", NAMEDATALEN,
 	  CString(getrelname(CInteger(CAR(get_relids(get_parent(path)))),
 			     _query_range_table_)));
 	break;

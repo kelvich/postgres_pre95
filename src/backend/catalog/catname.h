@@ -54,7 +54,7 @@ extern Name	VersionRelationName;
 
 extern Name	SharedSystemRelationNames[10];
 
-#define NameIsTypeRelationName(name) (!strcmp(name, TypeRelationName))
+#define NameIsTypeRelationName(name) (!namestrcmp(name, TypeRelationName))
 /*
  * NameIsSystemRelationName --
  *	True iff name is the name of a system catalog relation.

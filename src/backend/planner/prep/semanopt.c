@@ -476,7 +476,7 @@ ConstVarno(rangetable,constnode,attname)
      Const constnode;
      char **attname;
 {
-  static char tmpstring[32];
+  static char tmpstring[64];
   char *ptr;
   char *relname;
   List i = LispNil;

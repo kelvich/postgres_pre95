@@ -417,7 +417,7 @@ Plan plan;
 	foreach (x, CAR(indxqual)) {
 	    op = (Oper)CAR(CAR(x));
 	    opname = get_opname(get_opno(op));
-	    if (strcmp(&opname, "=") == 0)
+	    if (namestrcmp(&opname, "=") == 0)
 		return false;
 	 }
       }

@@ -456,15 +456,17 @@ mdblindwrt(dbstr, relstr, dbid, relid, blkno, buffer)
     if (dbid == (OID) 0) {
 	path = (char *) palloc(strlen(DataDir) + sizeof(NameData) + 2 + nchars);
 	if (segno == 0)
-	    sprintf(path, "%s/%s", DataDir, relstr);
+	    sprintf(path, "%s/%.*s", DataDir, NAMEDATALEN, relstr);
 	else
-	    sprintf(path, "%s/%s.%d", DataDir, relstr, segno);
+	    sprintf(path, "%s/%.*s.%d", DataDir, NAMEDATALEN, relstr, segno);
     } else {
 	path = (char *) palloc(strlen(DataDir) + strlen("/base/") + 2 * sizeof(NameData) + 2 + nchars);
 	if (segno == 0)
-	    sprintf(path, "%s/base/%s/%s", DataDir, dbstr, relstr);
+	    sprintf(path, "%s/base/%.*s/%.*s", DataDir, NAMEDATALEN, 
+			dbstr, NAMEDATALEN, relstr);
 	else
-	    sprintf(path, "%s/base/%s/%s.%d", DataDir, dbstr, relstr, segno);
+	    sprintf(path, "%s/base/%.*s/%.*s.%d", DataDir, NAMEDATALEN, dbstr,
+			NAMEDATALEN, relstr, segno);
     }
 
     if ((fd = open(path, O_RDWR, 0600)) < 0)

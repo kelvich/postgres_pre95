@@ -611,11 +611,12 @@ sjcreate(reln)
 
     /* last thing to do is to create the mag-disk file to hold last page */
     if (reln->rd_rel->relisshared) {
-	path = (char *) palloc(strlen(DataDir) + sizeof(NameData) + 2);
-	sprintf(path, "%s/%.16s", DataDir, &(reln->rd_rel->relname.data[0]));
+	path = (char *) palloc(strlen(DataDir) + NAMEDATALEN + 2);
+	sprintf(path, "%s/%.*s", DataDir, NAMEDATALEN,
+		&(reln->rd_rel->relname.data[0]));
     } else {
-	path = (char *) palloc(sizeof(NameData) + 1);
-	sprintf(path, "%.16s", &(reln->rd_rel->relname.data[0]));
+	path = (char *) palloc(NAMEDATALEN + 1);
+	sprintf(path, "%.*s", NAMEDATALEN, &(reln->rd_rel->relname.data[0]));
     }
 
     vfd = FileNameOpenFile(path, O_CREAT|O_RDWR|O_EXCL, 0600);

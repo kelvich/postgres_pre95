@@ -157,8 +157,9 @@ printatt(attributeId, attributeP, value)
     struct attribute	*attributeP;
     char			*value;
 {
-    printf("\t%2d: %s%s%s%s\t(typeid = %lu, len = %d, byval = %c)\n",
+    printf("\t%2d: %.*s%s%s%s\t(typeid = %lu, len = %d, byval = %c)\n",
 	   attributeId,
+	   NAMEDATALEN,		/* attname is a char16 */
 	   attributeP->attname,
 	   value != NULL ? " = \"" : "",
 	   value != NULL ? value : "",

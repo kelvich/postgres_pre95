@@ -755,8 +755,8 @@ _readResdom()
 		token++;
 		token[length - 2] = '\0';
 
-		local_node->resname = (Name) palloc(sizeof(char16));
-		strcpy(local_node->resname, token);
+		local_node->resname = (Name) palloc(NAMEDATALEN);
+		namestrcpy(local_node->resname, token);
 		token[length - 2] = '\"';
 	}
 
@@ -1134,8 +1134,8 @@ _readParam()
 	token++;			    /* skip the first `"' */
 	token[length - 2] = '\0';	    /* this is the 2nd `"' */
 
-	local_node->paramname = (Name) palloc(sizeof(char16));
-	strcpy(local_node->paramname, token);
+	local_node->paramname = (Name) palloc(NAMEDATALEN);
+	namestrcpy(local_node->paramname, token);
 	token[length - 2] = '\"';	/* restore the 2nd `"' */
 
 	token = lsptok(NULL, &length);      /* get :paramtype */
@@ -1195,8 +1195,8 @@ _readEState()
 	token++;
 	token[length-2] = '\0';
 
-	local_node->es_error_message = (Name) palloc(sizeof(char16));
-	strcpy(local_node->es_error_message, token);
+	local_node->es_error_message = (Name) palloc(NAMEDATALEN);
+	namestrcpy(local_node->es_error_message, token);
 
 	token[length-2] = '\"';
 

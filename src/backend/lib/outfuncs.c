@@ -574,7 +574,7 @@ _outResdom(str, node)
 	appendStringInfo(str,buf);
 	sprintf(buf, " :reslen %d", node->reslen);
 	appendStringInfo(str,buf);
-	sprintf(buf, " :resname \"%s\"",
+	sprintf(buf, " :resname \"%.*s\"", NAMEDATALEN,
 	       ((node->resname) ? ((char *) node->resname) : "null"));
 	appendStringInfo(str,buf);
 	sprintf(buf, " :reskey %d", node->reskey);
@@ -843,7 +843,7 @@ _outParam(str, node)
 	appendStringInfo(str,buf);
 	sprintf(buf, " :paramid %hd", node->paramid);
 	appendStringInfo(str,buf);
-	sprintf(buf, " :paramname \"%s\"", node->paramname);
+	sprintf(buf, " :paramname \"%.*s\"", NAMEDATALEN, node->paramname);
 	appendStringInfo(str,buf);
 	sprintf(buf, " :paramtype %ld", node->paramtype);
 	appendStringInfo(str,buf);

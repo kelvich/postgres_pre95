@@ -233,8 +233,8 @@ ObjectId relationId;
 
     currentLocks = prs2GetLocksFromRelation(relationName);
 #ifdef PRS2_DEBUG
-    printf("PRS2: Remove RelationLevelLock of rule %d from rel=%s\n",
-	ruleId, relationName);
+    printf("PRS2: Remove RelationLevelLock of rule %d from rel=%.*s\n",
+	ruleId, NAMEDATALEN, relationName);
 #endif PRS2_DEBUG
 
     /*

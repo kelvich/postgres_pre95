@@ -385,7 +385,7 @@ typedef OperatorTupleFormD	*OperatorTupleForm;
 #define struct_operator_Defined 1
 
 struct	operator {
-	char	oprname[16];
+	NameData oprname;
 	OID	oprowner;
 	uint16	oprprec;
 	char	oprkind;

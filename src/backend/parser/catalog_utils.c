@@ -579,7 +579,7 @@ varattno ( rd , a)
 	int i;
 	
 	for (i = 0; i < rd->rd_rel->relnatts; i++) {
-		if (!strcmp(&rd->rd_att.data[i]->attname, a)) {
+		if (!namestrcmp(&rd->rd_att.data[i]->attname, a)) {
 			return(i+1);
 		}
 	}
@@ -624,7 +624,7 @@ nf_varattno ( rd , a)
 	int i;
 	
 	for (i = 0; i < rd->rd_rel->relnatts; i++) {
-		if (!strcmp(&rd->rd_att.data[i]->attname, a)) {
+		if (!namestrcmp(&rd->rd_att.data[i]->attname, a)) {
 			return(i+1);
 		}
 	}

@@ -181,7 +181,7 @@ FindMatchingTLEntry ( user_tlist , e_attname)
 	Assert(IsA(entry_LHS,Resdom));
 	x = (Resdom) entry_LHS;	
 	foo = get_resname((Resdom) entry_LHS);
-	if (!strcmp(foo, e_attname))
+	if (!strncmp(foo, e_attname, NAMEDATALEN))
 	    return ( CDR(one_entry));
     }
     return LispNil ; /* could not find a matching RHS */

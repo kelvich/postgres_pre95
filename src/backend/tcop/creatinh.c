@@ -174,13 +174,12 @@ DefineRelation(relname, parameters, schema)
     AssertArg(listp(parameters));
     AssertArg(listp(schema));
 
-    if ( strlen ( relname ) > sizeof ( NameData ))
+    if ( strlen ( relname ) > NAMEDATALEN)
       elog(WARN, "the relation name %s is > %d characters long", relname,
-	   sizeof(NameData));
+	   NAMEDATALEN);
 
-    relationName = (Name)palloc(sizeof (NameData)+1);
-    bzero(relationName, sizeof (NameData)+1);
-    strncpy( &(relationName->data[0]), relname, sizeof (NameData) );
+    relationName = (Name)palloc(NAMEDATALEN + 1);
+    namestrcpy(relationName, relname);
 
     /* ----------------
      * 	Handle parameters

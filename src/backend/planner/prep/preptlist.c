@@ -206,8 +206,8 @@ replace_matching_resname (new_tlist,old_tlist)
 
 	 foreach (temp,old_tlist) {
 	     old_tl = CAR(temp);
-	     if (!strcmp(get_resname ((Resdom)tl_resdom(old_tl)),
-			get_resname ((Resdom)tl_resdom(new_tl)))) {
+	     if (!strncmp(get_resname ((Resdom)tl_resdom(old_tl)),
+			get_resname ((Resdom)tl_resdom(new_tl)), NAMEDATALEN)) {
 		 matching_old_tl = old_tl;
 		 break;
 	     }

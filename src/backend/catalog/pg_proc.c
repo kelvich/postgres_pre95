@@ -98,7 +98,7 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
 	    elog(WARN, "Procedures cannot take more than 8 arguments");
 
 	if (strcmp(CString(t), "any") == 0) {
-	    if (strcmp(languageName, "postquel") == 0) {
+	    if (namestrcmp(languageName, "postquel") == 0) {
 		elog(WARN, "ProcedureDefine: postquel functions cannot take type \"any\"");
 	    }
 	    else
@@ -133,13 +133,13 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
 	elog(WARN, "ProcedureDefine: procedure %s already exists with same arguments",
 	     procedureName);
 
-    if (!strcmp((char *)languageName, "postquel"))  {
+    if (!namestrcmp((char *)languageName, "postquel"))  {
 	 /* If this call is defining a set, check if the set is already
 	  * defined by looking to see whether this call's function text
 	  * matches a function already in pg_proc.  If so just return the 
 	  * OID of the existing set.
 	  */
-	 if (!strcmp((char*)procedureName, GENERICSETNAME)) {
+	 if (!namestrcmp((char*)procedureName, GENERICSETNAME)) {
 	      prosrctext = textin(prosrc);
 	      tup = SearchSysCacheTuple(PROSRC,
 					(char *) prosrctext,
@@ -163,8 +163,8 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
 
     languageObjectId = tup->t_oid;
 
-    if (strcmp(returnTypeName, "any") == 0) {
-	if (strcmp(languageName, "postquel") == 0) {
+    if (namestrcmp(returnTypeName, "any") == 0) {
+	if (namestrcmp(languageName, "postquel") == 0) {
 	    elog(WARN, "ProcedureDefine: postquel functions cannot return type \"any\"");
 	}
 	else

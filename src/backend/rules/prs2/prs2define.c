@@ -176,7 +176,8 @@ char *ruleText;
     r->ruleId = InvalidObjectId;
     r->parseTree = parseTree;
     r->ruleText = ruleText;
-    strcpy(r->ruleName->data, CString(GetRuleNameFromParse(parseTree)));
+    strncpy(r->ruleName->data, CString(GetRuleNameFromParse(parseTree)), 
+	NAMEDATALEN);
 
     if  (CInteger(GetRuleInsteadFromParse(parseTree)) != 0)
 	r->isInstead = true;
@@ -200,7 +201,8 @@ char *ruleText;
      * and the attibute number instead of their names!
      */
     eventTarget = GetRuleEventTargetFromParse(parseTree);
-    strcpy(r->eventRelationName->data, CString(CAR(eventTarget)));
+    strncpy(r->eventRelationName->data, CString(CAR(eventTarget)),
+	NAMEDATALEN);
     rel = RelationNameGetRelation(r->eventRelationName);
     r->eventRelationOid = rel->rd_id;
     if (null(CDR(eventTarget))) {
@@ -210,7 +212,8 @@ char *ruleText;
 	r->eventAttributeNumber = InvalidAttributeNumber;
 	r->eventAttributeName = NULL;
     } else {
-	strcpy(r->eventAttributeName->data, CString(CADR(eventTarget)));
+	strncpy(r->eventAttributeName->data, CString(CADR(eventTarget)),
+		NAMEDATALEN);
 	r->eventAttributeNumber = get_attnum(r->eventRelationOid,
 					    r->eventAttributeName);
 	if (r->eventAttributeNumber == InvalidAttributeNumber) {
@@ -317,7 +320,7 @@ char *ruleText;
 #ifdef PRS2_DEBUG
     {
     printf("PRS2: ---DEFINE TUPLE RULE:\n");
-    printf("PRS2:    RuleName = %s\n", r->ruleName->data);
+    printf("PRS2:    RuleName = %.*s\n", NAMEDATALEN, r->ruleName->data);
     printf("PRS2:    event type = %d ", r->eventType);
     switch (r->eventType) {
 	case EventTypeRetrieve:
@@ -680,7 +683,7 @@ Prs2RuleData r;
 	if (name == NULL) {
 	    elog(WARN, "prs2GenerateActionPlans: Out of memory");
 	}
-	strcpy(name->data,"foo");
+	strncpy(name->data, "foo", NAMEDATALEN);
 	resdom = MakeResdom((AttributeNumber)1,
 			    (ObjectId) 23,
 			    false,
@@ -878,12 +881,13 @@ EventType eventType;
 		 * is a list of junk.
 		 */
 		strncpy(&(nameData.data[0]),
-			CString(CADR(resultRelation)), sizeof(NameData));
+			CString(CADR(resultRelation)), NAMEDATALEN);
 	    } else {
 		resultRelationNo = CInteger(resultRelation);
 		resultRelationEntry = nth(resultRelationNo-1, rangeTable);
-		strcpy(&(nameData.data[0]),
-		CString(rt_relname(resultRelationEntry)));
+		strncpy(&(nameData.data[0]),
+			CString(rt_relname(resultRelationEntry)),
+			NAMEDATALEN);
 	    }
 	    relationName = &nameData;
 	} else {
@@ -1020,12 +1024,13 @@ LispValue parseTree;
 	     * is a list of junk.
 	     */
 	    strncpy(&(nameData.data[0]),
-		    CString(CADR(resultRelation)), sizeof(NameData));
+		    CString(CADR(resultRelation)), NAMEDATALEN);
 	} else {
 	    resultRelationNo = CInteger(resultRelation);
 	    resultRelationEntry = nth(resultRelationNo-1, rangeTable);
 	    strcpy(&(nameData.data[0]),
-	    CString(rt_relname(resultRelationEntry)));
+		    CString(rt_relname(resultRelationEntry)),
+		    NAMEDATALEN);
 	}
 	    relationName = &nameData;
     } else {
