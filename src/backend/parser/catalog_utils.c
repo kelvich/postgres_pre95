@@ -20,10 +20,12 @@ RcsId("$Header$");
 
 #include "nodes/pg_lisp.h"
 #include "catalog/syscache.h"
+#include "catalog/catname.h"
 
 #include "exceptions.h"
 #include "catalog_utils.h"
 #include "catalog/pg_inherits.h"
+#include "catalog/pg_type.h"
 
 #include "access/skey.h"
 #include "access/relscan.h"
@@ -88,6 +90,15 @@ typedef struct _InhPaths {
     ObjectId	self;		/* this class */
     ObjectId	*supervec;	/* vector of superclasses */
 } InhPaths;
+
+/*
+ *  This structure holds a list of possible functions or operators that
+ *  agree with the known name and argument types of the function/operator.
+ */
+typedef struct _CandidateList {
+    ObjectId *args;
+    struct _CandidateList *next;
+} *CandidateList;
 
 /* return a Type structure, given an typid */
 Type
@@ -208,6 +219,125 @@ Operator op;
     return(op->t_oid);
 }
 
+/*
+ *  given opname, leftTypeId and rightTypeId,
+ *  find all possible (arg1, arg2) pairs for which an operator named
+ *  opname exists, such that leftTypeId can be coerced to arg1 and
+ *  rightTypeId can be coerced to arg2
+ */
+int
+binary_oper_get_candidates(opname, leftTypeId, rightTypeId, candidates)
+char *opname;
+int leftTypeId;
+int rightTypeId;
+CandidateList *candidates;
+{
+    CandidateList 	current_candidate;
+    Relation            pg_operator_desc;
+    HeapScanDesc        pg_operator_scan;
+    HeapTuple           tup;
+    Form_pg_operator	oper;
+    Buffer              buffer;
+    int			nkeys;
+    int			ncandidates = 0;
+    ScanKeyEntryData    opKey[3];
+
+    *candidates = NULL;
+
+    opKey[0].flags = 0;
+    opKey[0].attributeNumber = OperatorNameAttributeNumber;
+    opKey[0].procedure = NameEqualRegProcedure;
+    fmgr_info(NameEqualRegProcedure, &opKey[0].func, &opKey[0].nargs);
+    opKey[0].argument = NameGetDatum(opname);
+
+    opKey[1].flags = 0;
+    opKey[1].attributeNumber = OperatorKindAttributeNumber;
+    opKey[1].procedure = CharacterEqualRegProcedure;
+    fmgr_info(CharacterEqualRegProcedure, &opKey[1].func, &opKey[1].nargs);
+    opKey[1].argument = CharGetDatum('b');
+
+    opKey[2].flags = 0;
+    opKey[2].procedure = ObjectIdEqualRegProcedure;
+    fmgr_info(ObjectIdEqualRegProcedure, &opKey[2].func, &opKey[2].nargs);
+
+    if (leftTypeId == UNKNOWNOID) {
+        if (rightTypeId == UNKNOWNOID) {
+	    nkeys = 2;
+        }
+	else {
+	    nkeys = 3;
+	    opKey[2].attributeNumber = OperatorRightAttributeNumber;
+	    opKey[2].argument = ObjectIdGetDatum(rightTypeId);
+        }
+    }
+    else if (rightTypeId == UNKNOWNOID) {
+	nkeys = 3;
+	opKey[2].attributeNumber = OperatorLeftAttributeNumber;
+	opKey[2].argument = ObjectIdGetDatum(leftTypeId);
+    }
+    else {
+	/* currently only "unknown" can be coerced */
+        return 0;
+    }
+
+    pg_operator_desc = heap_openr(OperatorRelationName);
+    pg_operator_scan = heap_beginscan(pg_operator_desc,
+				      0,
+				      SelfTimeQual,
+				      nkeys,
+				      (ScanKey) opKey);
+
+    do {
+        tup = heap_getnext(pg_operator_scan, 0, &buffer);
+	if (HeapTupleIsValid(tup)) {
+	    current_candidate = (CandidateList)palloc(sizeof(struct _CandidateList));
+	    current_candidate->args = (ObjectId *)palloc(2 * sizeof(ObjectId));
+
+	    oper = (Form_pg_operator)GETSTRUCT(tup);
+	    current_candidate->args[0] = oper->oprleft;
+	    current_candidate->args[1] = oper->oprright;
+	    current_candidate->next = *candidates;
+	    *candidates = current_candidate;
+	    ncandidates++;
+	    ReleaseBuffer(buffer);
+	}
+    } while(HeapTupleIsValid(tup));
+
+    heap_endscan(pg_operator_scan);
+    heap_close(pg_operator_desc);
+
+    return ncandidates;
+}
+
+/*
+ *  given a choice of argument type pairs for a binary operator,
+ *  try to choose a default pair
+ */
+CandidateList
+binary_oper_select_candidate(arg1, arg2, candidates)
+int arg1, arg2;
+CandidateList candidates;
+{
+    /*
+     * if both are "unknown", there is no way to select a candidate
+     *
+     * current wisdom holds that the default operator should be one
+     * in which both operands have the same type (there will only
+     * be one such operator)
+     */
+    CandidateList result;
+
+    if (arg1 == UNKNOWNOID && arg2 == UNKNOWNOID)
+	return (NULL);
+
+    for (result = candidates; result != NULL; result = result->next) {
+	if (result->args[0] == result->args[1])
+	    return result;
+    }
+
+    return (NULL);
+}
+
 /* Given operator, types of arg1, and arg2, return oper struct */
 Operator
 oper(op, arg1, arg2)
@@ -215,38 +345,117 @@ char *op;
 int arg1, arg2;	/* typeids */
 {
     HeapTuple tup;
-
+    CandidateList candidates;
+    int ncandidates;
     /*
     if (!OpCache) {
 	init_op_cache();
     }
     */
     if (!(tup = SearchSysCacheTuple(OPRNAME, op, arg1, arg2, (char *) 'b'))) {
-	op_error(op, arg1, arg2);
-	return(NULL);
+	ncandidates = binary_oper_get_candidates(op, arg1, arg2, &candidates);
+	if (ncandidates == 0) {
+	    op_error(op, arg1, arg2);
+	    return(NULL);
+	}
+	else if (ncandidates == 1) {
+	    tup = SearchSysCacheTuple(OPRNAME, op, candidates->args[0],
+				      candidates->args[1], (char *) 'b');
+	    Assert(HeapTupleIsValid(tup));
+	}
+	else {
+	    candidates = binary_oper_select_candidate(arg1, arg2, candidates);
+	    if (candidates != NULL) {
+		tup = SearchSysCacheTuple(OPRNAME, op, candidates->args[0],
+					  candidates->args[1], (char *) 'b');
+		Assert(HeapTupleIsValid(tup));
+	    }
+	    else {
+		char p1[16], p2[16];
+		Type tp, get_id_type();
+
+		tp = get_id_type(arg1);
+		strncpy(p1, tname(tp), 16);
+
+		tp = get_id_type(arg2);
+		strncpy(p2, tname(tp), 16);
+
+		elog(NOTICE, "there is more than one operator %s for types", op);
+		elog(NOTICE, "%s and %s. You will have to retype this query", p1, p2);
+		elog(WARN, "using an explicit cast");
+		
+		return(NULL);
+	    }
+	}
     }
     return((Operator) tup);
 }
-/* Find default type for right arg of binary operator */
-Operator
-oper_default(op, arg1)
-char *op;
-int arg1;       /* typeid */
-{
-    HeapTuple tup;
 
-    /* see if there is only one type available for right arg. of binary op. */
-    tup = (HeapTuple) FindDefaultType(op, arg1);
-    if(!tup){  /* this could mean a) there is no operator named op.
-                                b) there are more than one possible right arg */
-       if (!(tup = SearchSysCacheTuple(OPRNAME, op, arg1, arg1, (char *) 'b')))
-       {
-          /* there's no reasonable default type for the right argument */
-          return(NULL);
-       }
+/*
+ *  given opname and typeId, find all possible types for which 
+ *  a right/left unary operator named opname exists,
+ *  such that typeId can be coerced to it
+ */
+int
+unary_oper_get_candidates(op, typeId, candidates, rightleft)
+char *op;
+int typeId;
+CandidateList *candidates;
+char rightleft;
+{
+    CandidateList 	current_candidate;
+    Relation            pg_operator_desc;
+    HeapScanDesc        pg_operator_scan;
+    HeapTuple           tup;
+    Form_pg_operator	oper;
+    Buffer              buffer;
+    int			ncandidates = 0;
+
+    static ScanKeyEntryData opKey[2] = {
+	{ 0, OperatorNameAttributeNumber, NameEqualRegProcedure },
+	{ 0, OperatorKindAttributeNumber, CharacterEqualRegProcedure } };
+
+    *candidates = NULL;
+
+    fmgr_info(NameEqualRegProcedure, &opKey[0].func, &opKey[0].nargs);
+    opKey[0].argument = NameGetDatum(op);
+    fmgr_info(CharacterEqualRegProcedure, &opKey[1].func, &opKey[1].nargs);
+    opKey[1].argument = CharGetDatum(rightleft);
+
+    /* currently, only "unknown" can be coerced */
+    if (typeId != UNKNOWNOID) {
+        return 0;
     }
 
-    return((Operator) tup);
+    pg_operator_desc = heap_openr(OperatorRelationName);
+    pg_operator_scan = heap_beginscan(pg_operator_desc,
+				      0,
+				      SelfTimeQual,
+				      2,
+				      (ScanKey) opKey);
+
+    do {
+        tup = heap_getnext(pg_operator_scan, 0, &buffer);
+	if (HeapTupleIsValid(tup)) {
+	    current_candidate = (CandidateList)palloc(sizeof(struct _CandidateList));
+	    current_candidate->args = (ObjectId *)palloc(sizeof(ObjectId));
+
+	    oper = (Form_pg_operator)GETSTRUCT(tup);
+	    if (rightleft == 'r')
+		current_candidate->args[0] = oper->oprleft;
+	    else
+		current_candidate->args[0] = oper->oprright;
+	    current_candidate->next = *candidates;
+	    *candidates = current_candidate;
+	    ncandidates++;
+	    ReleaseBuffer(buffer);
+	}
+    } while(HeapTupleIsValid(tup));
+
+    heap_endscan(pg_operator_scan);
+    heap_close(pg_operator_desc);
+
+    return ncandidates;
 }
 
 /* Given unary right-side operator (operator on right), return oper struct */
@@ -256,6 +465,8 @@ char *op;
 int arg; /* type id */
 {
     HeapTuple tup;
+    CandidateList candidates;
+    int ncandidates;
 
     /*
     if (!OpCache) {
@@ -263,9 +474,23 @@ int arg; /* type id */
     }
     */
     if (!(tup = SearchSysCacheTuple(OPRNAME, op, arg, 0, (char *) 'r'))) {
-	elog ( WARN ,
-	      "Can't find right op: %s for type %d", op, arg );
-	return(NULL);
+	ncandidates = unary_oper_get_candidates(op, arg, &candidates, 'r');
+	if (ncandidates == 0) {
+	    elog ( WARN ,
+		  "Can't find right op: %s for type %d", op, arg );
+	    return(NULL);
+	}
+	else if (ncandidates == 1) {
+	    tup = SearchSysCacheTuple(OPRNAME, op, candidates->args[0],
+				      0, (char *) 'r');
+	    Assert(HeapTupleIsValid(tup));
+	}
+	else {
+	    elog(NOTICE, "there is more than one right operator %s", op);
+	    elog(NOTICE, "you will have to retype this query");
+	    elog(WARN, "using an explicit cast");
+	    return(NULL);
+	}
     }
     return((Operator) tup);
 }
@@ -273,18 +498,38 @@ int arg; /* type id */
 /* Given unary left-side operator (operator on left), return oper struct */
 Operator
 left_oper(op, arg)
-     char *op;
-     int arg; /* type id */
+char *op;
+int arg; /* type id */
 {
-	HeapTuple tup;
-	
-	if (!(tup = SearchSysCacheTuple(OPRNAME, op, 0, arg, (char *) 'l'))) {
-		elog (WARN ,
-			"Can't find left op: %s for type %s",
-			op, tname(get_id_type(arg)));
-		return(NULL);
+    HeapTuple tup;
+    CandidateList candidates;
+    int ncandidates;
+
+    /*
+    if (!OpCache) {
+	init_op_cache();
+    }
+    */
+    if (!(tup = SearchSysCacheTuple(OPRNAME, op, 0, arg, (char *) 'l'))) {
+	ncandidates = unary_oper_get_candidates(op, arg, &candidates, 'l');
+	if (ncandidates == 0) {
+	    elog ( WARN ,
+		  "Can't find left op: %s for type %d", op, arg );
+	    return(NULL);
 	}
-	return ((Operator) tup);
+	else if (ncandidates == 1) {
+	    tup = SearchSysCacheTuple(OPRNAME, op, 0,
+				      candidates->args[0], (char *) 'l');
+	    Assert(HeapTupleIsValid(tup));
+	}
+	else {
+	    elog(NOTICE, "there is more than one left operator %s", op);
+	    elog(NOTICE, "you will have to retype this query");
+	    elog(WARN, "using an explicit cast");
+	    return(NULL);
+	}
+    }
+    return((Operator) tup);
 }
 
 /* given range variable, return id of variable */
