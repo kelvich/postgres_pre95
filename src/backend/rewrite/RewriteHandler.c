@@ -42,6 +42,7 @@ extern RuleLock RelationGetRelationLocks ();
  *	- returns true iff a relation has some locks on it
  */
 extern RuleLock prs2GetLocksFromTuple();
+extern int Quiet;
 
 RuleLock
 RelationGetRelationLocks ( relation )
@@ -467,8 +468,10 @@ QueryRewrite ( parsetree )
 	if ( to_be_rewritten == NULL ) {
 	    elog (WARN,"strangeness ... rangevar %s can't be found",varname);
 	}
-	printf("checking for locks on %s\n",varname);
-	fflush(stdout);
+	if (!Quiet) {
+	   printf("checking for locks on %s\n",varname);
+	   fflush(stdout);
+	 }
 	
 	if ( RelationHasLocks( to_be_rewritten )) {
 	    RuleLock rlocks;
