@@ -155,6 +155,17 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
     values[i++] = (char *) typeObjectId;
 
     values[i++] = fmgr(F_OID8IN, oid_string);
+    /*
+     * The following assignments of constants are made.  The real values
+     * will have to be extracted from the arglist someday soon.
+     */
+    values[i++] = 0; /* proarch_pct */
+    values[i++] = 0; /* prodisk_pct */
+    values[i++] = 0; /* probyte_pct */
+    values[i++] = 0; /* properbyte_cpu */
+    values[i++] = 0; /* propercall_cpu */
+    values[i++] = 0; /* prooutin_ratio */
+
     values[i++] = fmgr(TextInRegProcedure, prosrc);	/* prosrc */
     values[i++] = fmgr(TextInRegProcedure, probin);   /* probin */
 
