@@ -180,6 +180,18 @@ PageGetMaxOffsetIndex(page)
 	/* XXX */
 }
 
+bool
+PageIsEmpty(page)
+	Page	page;
+{
+	PageHeader phdr = (PageHeader) page;
+
+	if (phdr->pd_lower == (sizeof(PageHeaderData) - sizeof(ItemIdData)))
+		return (true);
+
+	return (false);
+}
+
 ItemId
 PageGetItemId(page, offsetIndex)
 	Page		page;
@@ -270,7 +282,7 @@ PageAddItem(page, item, size, offsetNumber, flags)
 	if (OffsetNumberIsValid(offsetNumber)) {
 		if (PageManagerShuffle == true) {
 
-				/* shuffle ItemId's (Do the PageManager Shuffle...) */
+			/* shuffle ItemId's (Do the PageManager Shuffle...) */
 			for (i = (limit - 1); i >= offsetNumber; i--) {
 				fromitemId = &((PageHeader)page)->pd_linp[i - 1];
 				toitemId = &((PageHeader)page)->pd_linp[i];
@@ -284,7 +296,7 @@ PageAddItem(page, item, size, offsetNumber, flags)
 				elog(WARN, "PageAddItem: tried overwrite of used ItemId");
 				return (InvalidOffsetNumber);
 			}
-		}		
+		}
 	} else {	/* offsetNumber was not passed in, so find one */
 
 		/* look for "recyclable" (unused & deallocated) ItemId */
@@ -295,12 +307,11 @@ PageAddItem(page, item, size, offsetNumber, flags)
 					break;
 		}
 	}
-	if (offsetNumber == limit || shuffled == true)
+	if (offsetNumber > limit)
+		lower = (Offset) (((char *) (&((PageHeader)page)->pd_linp[offsetNumber])) - ((char *) page));
+	else if (offsetNumber == limit || shuffled == true)
 		lower = ((PageHeader)page)->pd_lower + sizeof (ItemIdData);
-	else	/* 
-			 * offsetNumber != limit && shuffled == false, i.e.
-			 * either overwriting or recycling an ItemId
-			 */
+	else
 		lower = ((PageHeader)page)->pd_lower;
 
 	alignedSize = LONGALIGN(size);
