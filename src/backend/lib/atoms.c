@@ -92,6 +92,7 @@ ScanKeyword	ScanKeywords[] = {
 	{ "operator",		OPERATOR	},
 	{ "or",			OR		},
 	{ "output_proc",	OUTPUTPROC	},
+	{ "parallel",		PARALLEL	},
 	{ "pfunction",		P_FUNCTION	},
 	{ "portal",		PORTAL		},
 	{ "postquel",		POSTQUEL	},
