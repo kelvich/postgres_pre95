@@ -26,11 +26,13 @@
  *----------------------------------------------------------------
  */
 Prs2OneStub
-prs2MakeStubForInnerRelation(ruleInfo, tuple, buffer, outerTupleDesc)
+prs2MakeStubForInnerRelation(ruleInfo, tuple, buffer,
+			    outerTupleDesc, innerTupleDesc)
 JoinRuleInfo ruleInfo;
 HeapTuple tuple;
 Buffer buffer;
 TupleDescriptor outerTupleDesc;
+TupleDescriptor innerTupleDesc;
 {
     Prs2OneStub oneStub;
     ObjectId ruleId;
@@ -38,13 +40,21 @@ TupleDescriptor outerTupleDesc;
     RuleLock lock;
     Prs2StubQual qual;
     AttributeNumber innerAttrNo, outerAttrNo;
-    ObjectId operator;
-    Datum value;
+    Name innerAttrName;
+    ObjectId operator, type;
+    Size len;
+    bool byval;
+    Datum value, cpvalue;
     Boolean isNull;
 
 
     operator = get_jri_operator(ruleInfo);
     innerAttrNo = get_jri_inattrno(ruleInfo);
+    innerAttrName = (Name) palloc(sizeof(NameData));
+    if (innerAttrName == NULL) {
+	elog(WARN, "prs2MakeStubForInnerRelation: out of memory");
+    }
+    strcpy((char *)innerAttrName, innerTupleDesc->data[innerAttrNo]->attname);
     outerAttrNo = get_jri_outattrno(ruleInfo);
     ruleId = get_jri_ruleid(ruleInfo);
     stubId = get_jri_stubid(ruleInfo);
@@ -72,21 +82,25 @@ TupleDescriptor outerTupleDesc;
     }
     qual = prs2MakeStubQual();
     qual->qualType = PRS2_SIMPLE_STUBQUAL;
-    qual->qual.simple.attrNo = innerAttrNo;
     qual->qual.simple.operator = operator;
-    qual->qual.simple.constType = outerTupleDesc->data[outerAttrNo-1]->atttypid;
-    qual->qual.simple.constByVal = get_typbyval(qual->qual.simple.constType);
-    qual->qual.simple.constLength = get_typlen(qual->qual.simple.constType);
+    type = outerTupleDesc->data[outerAttrNo-1]->atttypid;
+    len = get_typlen(type);
+    byval = get_typbyval(type);
     /*
      * NOTE: make a "copy" of the datum (i.e. of the data pointed
      * by, if any)... Beter be safe (and slow) then sorry...
      */
-    qual->qual.simple.constData = datumCopy(
-				    qual->qual.simple.constType,
-				    qual->qual.simple.constByVal,
-				    qual->qual.simple.constLength,
-				    value);
-
+    cpvalue = datumCopy(value, type, byval, len);
+    qual->qual.simple.right = (Node) MakeConst(type,	/* consttype */
+					len,		/* constlen */
+					cpvalue,	/* constvalue */
+					false,		/* constisnull */
+					byval);		/* constbyval */
+    qual->qual.simple.left = (Node) MakeParam(
+				    PARAM_OLD,
+				    (int32) 0,
+				    innerAttrName,
+				    type);
     /*
      * OK, now form the 'Prs2OneStub'
      */
