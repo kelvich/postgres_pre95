@@ -152,7 +152,7 @@ extern pqdebug2 ARGS((char *target, char *msg1, char *msg2));
 extern void read_initstr ARGS((void));
 extern char *process_portal ARGS((int rule_p));
 extern read_remark ARGS((char id[]));
-extern char *PQfn ARGS((int fnid, void *result_buf, int result_len, int result_is_int, int n args, int nargs));
+extern char *PQfn ARGS((int fnid, void *result_buf, int result_len, int result_is_int, PQArgBlock *args, int nargs));
 extern char *PQexec ARGS((char *query));
 extern void InitVacuumDemon ARGS((String host, String database, String terminal, String option, String port, String vacuum));
 
