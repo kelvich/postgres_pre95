@@ -381,7 +381,7 @@ fix_indxqual_references (clause,index_path)
 					  (get_function (clause)),
 					  LispNil,
 					  LispNil,
-					  LispNil),
+					  LispNil, 0),
 				 get_rightop (clause)));
 
       } 

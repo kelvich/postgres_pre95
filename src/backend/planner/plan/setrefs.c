@@ -240,7 +240,9 @@ replace_nestvar_refs (var,prevtlist,prevlevel)
 	  var2 = varid_array_index(var);
 	else
 	  var2 = get_varid(var);
-	
+
+/* XXX This MakeVar call is bogus - it only has one argument!! */
+
 	return ((Var)MakeVar (lispCons (lispInteger(prevlevel - 1),
 					lispCons (get_resno 
 					 (tlist_member (var,   /* resno */
@@ -254,7 +256,7 @@ replace_nestvar_refs (var,prevtlist,prevlevel)
 							      (var)),
 							     lispCons(var2,
 								      LispNil))
-							   ))))));
+							   )))),0)); 
 
       }
     
@@ -477,7 +479,7 @@ replace_resultvar_refs (var,ltlist,rtlist,levelnum)
 		      get_vartype (var),
 		      LispNil,
 		      LispNil,
-		      get_varid (var)));
+		      get_varid (var), 0));
      
  } /* function end */
 
@@ -828,7 +830,8 @@ replace_joinvar_refs (var,outer_tlist,inner_tlist)
 			  get_vartype (var),
 			  LispNil,
 			  LispNil,
-			  get_varid (var)));
+			  get_varid (var),
+			  0));
      } 
     else {
 	Resdom inner_resdom;
@@ -839,7 +842,8 @@ replace_joinvar_refs (var,outer_tlist,inner_tlist)
 			     get_vartype (var),
 			     LispNil,
 			     LispNil,
-			     get_varid (var)));
+			     get_varid (var),
+				 0));
 	 } 
     } 
 }  /* function end  */
@@ -886,7 +890,8 @@ tlist_temp_references (tempid,tlist)
 				  get_restype (tl_resdom (xtl)),
 				      LispNil,
 				      LispNil,
-				      var1));
+				      var1,
+					  0));
 	 
 	 t_list = nappend1(t_list,temp);
      }

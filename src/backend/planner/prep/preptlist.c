@@ -242,7 +242,7 @@ new_relation_targetlist (relid,rt_index,node_type)
 				 LispNil,LispNil,
 				 lispCons (lispInteger(rt_index),
 					   lispCons(attno,
-						    LispNil)));
+						    LispNil)), 0);
 		 temp_list = MakeTLE (MakeResdom (CInteger(attno),atttype,
 					      typlen,
 					      attname,0,LispNil),
