@@ -215,7 +215,7 @@ CreateOperationTag(operationType)
 void
 ProcessPortal(portalName, portalType, parseTree, plan, state, attinfo, dest)
     String 	portalName;
-    int         portalType;
+    int         portalType;	/* XXX unused */
     List	parseTree;
     Plan	plan;
     EState	state;
@@ -282,7 +282,7 @@ ProcessQueryDesc(queryDesc)
     bool	isRetrieveIntoRelation;
     bool	isRetrieveIntoTemp;
     String	intoName;
-    int         intoType;
+    int         intoType = 0;
     CommandDest dest;
 
     /* ----------------
