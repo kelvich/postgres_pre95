@@ -166,7 +166,7 @@ ExecUnique(node)
      */
     ExecStoreTuple((Pointer)heap_copysimple(ExecFetchTuple((Pointer) slot)),
 		   (Pointer) resultTupleSlot,
-		   ExecSlotBuffer((Pointer) slot),
+		   InvalidBuffer,
 		   true);
     
     return
