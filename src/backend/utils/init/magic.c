@@ -77,7 +77,7 @@ ValidPgVersion(path)
 		if (statbuf.st_uid != my_euid)
 			elog(FATAL,
 			     "process userid (%d) != database owner (%d)",
-			     statbuf.st_uid, my_euid);
+				my_euid, statbuf.st_uid);
 	} else
 		return(0);
 	
