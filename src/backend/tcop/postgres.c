@@ -78,6 +78,9 @@ int		ShowLock = 0;
 
 extern char	*PG_username;
 
+/* this global is defined in utils/init/postinit.c */
+extern int	testFlag;
+
 Relation	reldesc;		/* current relation descritor */
 char		relname[80];		/* current relation name */
 jmp_buf		Warn_restart;
@@ -86,7 +89,6 @@ time_t		tim;
 bool 		override = false;
 int		EchoQuery = 0;		/* default don't echo */
 char pg_pathname[256];
-int		testFlag = 0;
 int		MasterPid;
 static int	ShowParserStats;
 static int	ShowPlannerStats;
