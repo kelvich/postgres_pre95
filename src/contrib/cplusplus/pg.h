@@ -21,7 +21,7 @@ extern "C" {
 #undef offsetof			// we define this in tmp/c.h ...
 #include "tmp/libpq-fe.h"
 
-// These are for applications.
+    // These are for applications.
     extern char* PQhost;	// machine on which the backend is running
     extern char* PQport;	// comm. port with the postgres backend.
 }
@@ -77,13 +77,13 @@ public:
     int fieldlength(int, char*);
 };
 
-void pgdb::operator<<(char *query)
+void pgdb::operator<<(char* query)
 {
-    char *tmpres = PQexec(query);	// pointer to static buffer
+    char* tmpres = PQexec(query);	// pointer to static buffer
     (void) strncpy(res, tmpres, PortalNameLength+1);
     portalbuf = (PortalBuffer*) NULL;
     if (*res == 'E') {
-	cout << "error accessing" << res + 1 <<endl;
+	cout << "error while executing \"" << query << "\"" << endl;
 	libpq_raise(&ProtocolError, "pgdb::operator: backend died.\n");
     }
     if (*res == 'P') {
@@ -116,7 +116,7 @@ int pgdb::nfields(int groupno)
 
 const char* pgdb::fieldname(int groupno, int n)
 {
-    char *outp = (char *) NULL;
+    char* outp = (char*) NULL;
     if (portalbuf) {
 	outp = PQfnameGroup(portalbuf,groupno,n);
     } else {
@@ -133,7 +133,7 @@ const char* pgdb::fieldname(int n)
 char* pgdb::fielddata(int tupleno, char* fieldname)
 {
     int fnumber, groupno;
-    char *outp = (char *) NULL;
+    char* outp = (char*) NULL;
     if (portalbuf) {
 	groupno = PQgetgroup(portalbuf, tupleno);
 	fnumber = PQfnumberGroup(portalbuf, groupno, fieldname);

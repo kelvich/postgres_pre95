@@ -17,8 +17,7 @@ CFLAGS= -g
 #	HEADERDIR and LIBDIR should point to the install libpq.
 #
 #POSTGRESDIR=${.CURDIR}/../../..
-#POSTGRESDIR= /private/devel/postgres
-POSTGRESDIR= /private/aoki/postgres
+POSTGRESDIR= /private/devel/postgres
 BINDIR= ${POSTGRESDIR}/bin
 HEADERDIR= ${POSTGRESDIR}/include
 LIBDIR= ${POSTGRESDIR}/lib

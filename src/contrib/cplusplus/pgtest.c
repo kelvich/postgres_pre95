@@ -1,6 +1,10 @@
 // This file is a ".c" but it's really -*- C++ -*-
 //
 // This is just a trivial little test program.
+// Since everyone's system catalogs should be the same, we can use
+// the pg_class entries as a regression test.
+//
+// XXX should test multiple groups and updates.
 //
 // $Header$
 //
@@ -10,7 +14,7 @@
 main()
 {
     pgdb mydb("template1");
-    char *query =
+    char* query =
 	"retrieve (pg_class.all) where pg_class.relname ~ \"pg_\"";
     
     cout << "Sending" << endl
@@ -40,7 +44,7 @@ main()
 		 << " (strlen="
 		 << mydb.fieldlength(tupno, "relname")
 		 << "): ";
-	    char *am = mydb.fielddata(tupno, "relam");
+	    char* am = mydb.fielddata(tupno, "relam");
 	    if (!strcmp(am, "0")) {
 		cout << "HEAP" << endl;
 	    } else {
