@@ -29,6 +29,8 @@ static char *gram_y ="$Header$";
 #include "catalog_utils.h"
 #include "log.h"
 #include "pg_lisp.h"
+#include "primnodes.h"
+#include "primnodes.a.h"
 #include "parse_query.h"
 #include <pwd.h>
 
@@ -715,7 +717,7 @@ AppendStmt:
 		  ResdomNoIsAttrNo = 1; SkipForwardToFromList(); 
 		  if(RangeTablePosn(CString($3),0,0) == 0)
 		    p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-					       ($3,0,$3));
+					       (CString($3),0,CString($3)));
 		}
 	  from_clause
 	  '(' res_target_list ')'
@@ -752,7 +754,7 @@ DeleteStmt:
 			LispValue root;
 			if(RangeTablePosn(CString($5),0,0) == 0)
 			  p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-					       ($5,0,$5));
+					       (CString($5),0,CString($5)));
 			StripRangeTable();
 			root = MakeRoot(NumLevels,KW(delete),
 					lispInteger ( 1 ) ,
@@ -798,7 +800,7 @@ ReplaceStmt:
 		   int x = 0;
 		   if((x=RangeTablePosn(CString($5),0,0)) == 0)
 		      p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-					   ($5,0,$5));
+					   (CString($5),0,CString($5)));
 		  if (x==0) x = 1;
 		  CurrentRelationPtr = amopenr(VarnoGetRelname(x));
 		  if (CurrentRelationPtr == NULL) 
@@ -1053,9 +1055,9 @@ Relation:
 				inherit_flag = 1;
 			if( !RangeTablePosn(CString($1),inherit_flag,p_trange))
 				p_rtable = nappend1 (p_rtable, 
-					MakeRangeTableEntry ($1,
+					MakeRangeTableEntry (CString($1),
 						inherit_flag | trange_flag,
-						$1 ));
+						CString($1) ));
 		}
 	;
 
@@ -1127,7 +1129,8 @@ a_expr:
 	| adt_name '[' adt_const ']'
 		{
 			/* check for passing non-ints */
-		        LispValue adt,lcp;
+		        Const adt;
+			LispValue lcp;
 			Type tp = type(CString($1));
 			int32 len = tlen(tp);
 			char *cp = instr2 (tp, CString($3));
@@ -1193,7 +1196,8 @@ attr:
 		    INC_NUM_LEVELS(1);		
 		    if( RangeTablePosn ( CString ($1),0,0 ) == 0 ) 
 		      p_rtable = nappend1 (p_rtable ,
-					   MakeRangeTableEntry( $1 , 0, $1));
+					   MakeRangeTableEntry( CString($1) ,
+							       0, CString($1)));
 		    $$ = lispCons ( $1 , $3 );
 		}
 	;
@@ -1267,16 +1271,17 @@ res_target_el:
 			attrtype = type_id;
 			attrlen = type_len;
 		    }
-		    $$ = lispCons (MakeResdom (  resdomno,
-						   attrtype,
-						   attrlen , 
-						   $1, 0 , 0 ) ,
-					   lispCons (CDR($3) , LispNil) );
+		    $$ = (LispValue)lispCons (MakeResdom (resdomno,
+					      attrtype,
+					      attrlen , 
+					      CString($1), 0 , 0 ) ,
+				  lispCons((Var)CDR($3),LispNil));
 		}
 
 	| attr
 		{
-		      LispValue varnode, temp,resnode;
+		      LispValue varnode, temp;
+		      Resdom resnode;
 		      int type_id, type_len;
 
 		      temp = make_var ( CString(CAR($1)) , CString(CDR($1)));
@@ -1284,9 +1289,9 @@ res_target_el:
 		      type_len = tlen(get_id_type(type_id));
 		      resnode = MakeResdom ( p_last_resno++ ,
 						type_id, type_len, 
-						CDR ( $1 ) , 0 , 0 );
+						CString(CDR ( $1 )) , 0 , 0 );
 		      varnode = CDR(temp);
-		      $$ = lispCons (resnode, lispCons(varnode , LispNil ) );
+		      $$ = lispCons(resnode,lispCons(varnode,LispNil));
 		}
 	;		 
 
@@ -1317,7 +1322,7 @@ attach_args:		Sconst		/*$$=$1*/;
 			/* XXX should be converted by fmgr? */
 spec:
 	  adt_name '[' '$' spec_tail ']'
-		{ $$ = MakeParam( $4 ) ; }
+		{ $$ = (LispValue)MakeParam( $4 ) ; }
 	;
 
 spec_tail:

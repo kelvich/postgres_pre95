@@ -14,10 +14,10 @@ static char *scan_l =
 
 #undef input
 #undef unput
-
+/*
 #define lengthof(byte_array)	(sizeof(byte_array) / sizeof((byte_array)[0]))
 #define endof(byte_array)	(&byte_array[lengthof(byte_array)])
-
+*/
 typedef struct ScanKeyword {
 	char	*name;
 	int	value;
