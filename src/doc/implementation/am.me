@@ -1,3 +1,4 @@
+.fo ''%''
 .EQ
 delim %%
 .EN
@@ -1910,8 +1911,287 @@ The
 entry stores a vector of
 .SE ScanKeyEntryData
 structures that describe the scan key in use on the index.
-.sh 3 "Using Scans"
-.\" buffer pinning
-.\" sample code, scan some index catalog two ways
 .sh 2 "The \*(PG Access Method Interface"
+.pp
+This section describes the programmatic interface to the \*(PG
+access methods.
+The previous sections described the data structures that are
+important when using the access methods.
+Here,
+the structures are filled in and used to do real work.
+.pp
+The prototypes for the functions described in this section
+are not well-managed in the current version of the system.
+Some routines are not prototyped at all,
+and the prototypes that do exist are not ANSI.
+The header files in the directory
+.FI access
+are where the prototypes appear.
+.pp
+The routines that operate on heap relations all do the work
+themselves.
+The routines that operate on index relations use the
+.RN pg_am
+tuple to dispatch the request to the appropriate indexed access
+method for the relation.
+This happens transparently to the user.
+.sh 3 "Opening and Closing Relations"
+.pp
+Relations may be opened by relid (object ID of the corresponding
+.RN pg_class
+tuple)
+or by name.
+The interfaces are
+.(E
+Relation
+heap_open(ObjectId relid)
+
+Relation
+heap_openr(Name relname)
+
+Relation
+index_open(ObjectId relid)
+
+Relation
+index_openr(Name relname)
+.)E
+The first two open the requested heap relation if it exists,
+and return the reldesc for it.
+The second two do the same for index relations.
+If the named relations do not exist,
+the routines will report a
+.SE NOTICE -level
+.SE elog
+message,
+but will not abort.
+Instead,
+they return a NULL reldesc.
+.pp
+In order to close a relation,
+.(E
+void
+heap_close(Relation reldesc)
+
+void
+index_close(Relation reldesc)
+.)E
+.sh 3 "Using Scans"
+.pp
+Once a relation has been opened,
+a scan may be set up on it to find tuples of interest.
+.sh 4 "Beginning and Ending Scans"
+.pp
+To set up a scan key,
+.(E
+void
+ScanKeyEntryInitialize(ScanKeyEntry entry, bits16 flags,
+		       AttributeNumber attributeNumber,
+		       RegProcedure procedure, Datum argument)
+.)E
+As many scan key entries as desired may be defined for a single scan.
+These should be allocated as an array of
+.SE ScanKeyEntryData
+structures,
+as shown in a previous section.
+.\" XXX fix this section ref.
+.pp
+Once a set of scan keys is initialized,
+the routines
+.(E
+HeapScanDesc
+heap_beginscan(Relation reldesc, bool atend,
+	       TimeQual timeQual, unsigned nkeys, ScanKey key)
+
+IndexScanDesc
+index_beginscan(Relation reldesc, bool scanFromEnd,
+	        uint16 numberOfKeys, ScanKey key)
+.)E
+will begin scans using the keys.
+The keys should be in the array beginning at address
+.SE key .
+.pp
+To end an open scan,
+.(E
+void
+heap_endscan(HeapScanDesc scan)
+
+void
+index_endscan(IndexScanDesc scan)
+.)E
+The scans may no longer be used once the
+.SE endscan
+routine has been called on them.
+.sh 4 "Fetching Qualifying Tuples"
+.pp
+Once a scan has been initialized by the
+.SE beginscan
+routines,
+qualifying tuples may be fetched from the relation by calling
+the routines
+.(E
+HeapTuple
+heap_getnext(HeapScanDesc scan, int backw, Buffer *b)
+
+RetrieveIndexResult
+index_getnext(IndexScanDesc scan, ScanDirection direction)
+.)E
+In both cases,
+the
+.SE scan
+argument is the scan to use to find qualifying tuples.
+For heap scans,
+if
+.SE backw
+is non-zero,
+then the scan moves backwards;
+otherwise,
+it moves forwards.
+There is never a reason to set the
+.SE backw
+flag.
+For index scans,
+.SE direction
+may be one of
+.SE ForwardScanDirection ,
+.SE NoMovementScanDirection ,
+or
+.SE BackwardScanDirection .
+.SE ForwardScanDirection
+is commonly used,
+and the others may not work.
+.pp
+The purpose of the
+.SE b
+argument for the heap routine is described below.
+.sh 4 "Buffer Management"
+.pp
+\*(PG manages a shared cache of recently-used buffers.
+This cache is available to all of the backends that are running
+concurrently.
+The shared cache allows some backends to take advantage of work
+done by others.
+For example,
+pages from the system catalog are typically moved into the cache
+by one backend and read by many others.
+.pp
+When a given backend has a pointer into one of the pages in the
+shared buffer cache,
+that buffer is
+.i pinned .
+A pinned buffer cannot be evicted from the cache.
+When the pointer is dropped,
+the buffer may be safely unpinned and evicted from the cache,
+and the space that it occupied may be used by another page from
+a database.
+.pp
+When scanning tuples in a relation,
+the user may choose to examine the tuple directly on the page,
+or to copy the tuple to private space and to examine the copy.
+The benefit to using the tuple on the page is that no extra
+copy is required.
+The down side is that the user must be more careful in managing
+his scan.
+In particular,
+he must unpin the buffer when he no longer plans to use the
+pointer into it.
+.pp
+The interface to fetch tuples from a heap scan is
+.(E
+HeapTuple
+heap_getnext(HeapScanDesc scan, int backw, Buffer *b)
+.)E
+The
+.SE b
+argument is a pointer to a value of type
+.SE Buffer .
+.SE Buffer
+is basically an integer,
+which is the number of the buffer in the shared buffer cache.
+.BU
+If the
+.SE b
+argument to
+.SE heap_getnext
+is not
+.SE "(Buffer *) NULL" ,
+then the buffer number on which the returned tuple appears will
+be copied to the
+.SE Buffer
+value that
+.SE b
+points to.
+.BU
+If the
+.SE b
+argument is NULL,
+then memory is allocated (via
+.SE palloc )
+and the tuple is copied from the data page to the allocated memory.
+.pp
+The following code fragments show how to use the
+.SE b
+argument in both cases.
+The first example uses the tuple directly on the data page.
+.(E
+HeapTuple htup;
+Buffer b;
+
+\&...
+htup = heap_getnext(hscan, 0, &b);
+
+/* ... process the tuple ... */
+
+/* all done */
+ReleaseBuffer(b);
+.)E
+When
+.SE heap_getnext
+returns,
+.SE b
+is the buffer number on which the tuple appears,
+and the
+.i "pin count"
+on
+.SE b
+has been incremented to account for this new reference.
+After the call to
+.SE ReleaseBuffer ,
+the tuple pointed to by
+.SE htup
+may no longer be used.
+Some of the most insidious bugs in the project's history were
+from users who unpinned buffers,
+but continued to use tuples on them.
+The buffer would be paged out at some later time by another process,
+and the user would have a pointer into some random location of
+another data page.
+.pp
+The second example shows how to use a copy of the tuple
+that does not reside on the page.
+.(E
+HeapTuple htup;
+
+\&...
+htup = heap_getnext(hscan, 0, (Buffer *) NULL);
+
+/* ... process the tuple ... */
+
+/* all done */
+pfree(htup);
+.)E
+In this case,
+the user should release the memory allocated to
+the tuple before returning.
+Allocated memory is automatically freed at transaction boundaries,
+but relying on this feature causes memory leaks that make
+\*(PG run slowly and consume large amounts of system memory.
+.sh 3 "Fetching Attributes"
+.sh 3 "Inserting New Tuples"
+.sh 3 "Deleting Tuples"
+.sh 3 "Creating Relations"
+.sh 3 "Destroying Relations"
+.sh 3 "Building Indices"
+.sh 3 "Scan Position Management"
+.sh 3 "Managing the System Catalogs"
+.\" indices
 .sh 2 "Page Layout"
