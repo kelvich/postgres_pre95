@@ -159,10 +159,10 @@ DATA(insert OID =  71 (  charlt            PGUID 11 f t f 2 f 16 "18 18" 100 0 0
 DATA(insert OID =  72 (  charle            PGUID 11 f t f 2 f 16 "18 18" 100 0 0 100  foo bar ));
 DATA(insert OID =  73 (  chargt            PGUID 11 f t f 2 f 16 "18 18" 100 0 0 100  foo bar ));
 DATA(insert OID =  74 (  charge            PGUID 11 f t f 2 f 16 "18 18" 100 0 0 100  foo bar ));
-DATA(insert OID =  75 (  charpl            PGUID 11 f t f 2 f 16 "18 18" 100 0 0 100  foo bar ));
-DATA(insert OID =  76 (  charmi            PGUID 11 f t f 2 f 16 "18 18" 100 0 0 100  foo bar ));
-DATA(insert OID =  77 (  charmul           PGUID 11 f t f 2 f 16 "18 18" 100 0 0 100  foo bar ));
-DATA(insert OID =  78 (  chardiv           PGUID 11 f t f 2 f 16 "18 18" 100 0 0 100  foo bar ));
+DATA(insert OID =  75 (  charpl            PGUID 11 f t f 2 f 18 "18 18" 100 0 0 100  foo bar ));
+DATA(insert OID =  76 (  charmi            PGUID 11 f t f 2 f 18 "18 18" 100 0 0 100  foo bar ));
+DATA(insert OID =  77 (  charmul           PGUID 11 f t f 2 f 18 "18 18" 100 0 0 100  foo bar ));
+DATA(insert OID =  78 (  chardiv           PGUID 11 f t f 2 f 18 "18 18" 100 0 0 100  foo bar ));
 
 DATA(insert OID =  699 (  char2regexeq     PGUID 11 f t f 2 f 16 "409 25" 100 0 0 100  foo bar ));
 DATA(insert OID =  837 (  char2regexne     PGUID 11 f t f 2 f 16 "409 25" 100 0 0 100  foo bar ));

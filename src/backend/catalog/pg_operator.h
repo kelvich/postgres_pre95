@@ -274,10 +274,10 @@ DATA(insert OID = 632 (  "<="      PGUID 0 b t f  18  18  16 634 633  0 0 charle
 DATA(insert OID = 633 (  ">"       PGUID 0 b t f  18  18  16 631 632  0 0 chargt intltsel intltjoinsel ));
 DATA(insert OID = 634 (  ">="      PGUID 0 b t f  18  18  16 632 631  0 0 charge intltsel intltjoinsel ));
     
-DATA(insert OID = 635 (  "+"       PGUID 0 b t f  18  18  16 0 0  0 0 charpl eqsel eqjoinsel ));
-DATA(insert OID = 636 (  "-"       PGUID 0 b t f  18  18  16 0 0  0 0 charmi eqsel eqjoinsel ));
-DATA(insert OID = 637 (  "*"       PGUID 0 b t f  18  18  16 0 0  0 0 charmul eqsel eqjoinsel ));
-DATA(insert OID = 638 (  "/"       PGUID 0 b t f  18  18  16 0 0  0 0 chardiv eqsel eqjoinsel ));
+DATA(insert OID = 635 (  "+"       PGUID 0 b t f  18  18  18 0 0  0 0 charpl eqsel eqjoinsel ));
+DATA(insert OID = 636 (  "-"       PGUID 0 b t f  18  18  18 0 0  0 0 charmi eqsel eqjoinsel ));
+DATA(insert OID = 637 (  "*"       PGUID 0 b t f  18  18  18 0 0  0 0 charmul eqsel eqjoinsel ));
+DATA(insert OID = 638 (  "/"       PGUID 0 b t f  18  18  18 0 0  0 0 chardiv eqsel eqjoinsel ));
 
 DATA(insert OID = 839 (  "~"       PGUID 0 b t f  409  25  16 0 841  0 0 char2regexeq eqsel eqjoinsel ));
 DATA(insert OID = 841 (  "!~"      PGUID 0 b t f  409  25  16 0 839  0 0 char2regexne neqsel neqjoinsel ));
