@@ -42,6 +42,8 @@ char	OPCLASS_R[16] = "pg_opclass";
 char	OPERATOR_R[16] = "pg_operator";
 char	PARG_R[16] = "pg_parg";
 char	PROC_R[16] = "pg_proc";
+char 	PRS2RULE_R[16] = "pg_prs2rule";
+char	PRS2PLANS_R[16] = "pg_prs2plans";
 char	RELATION_R[16] = "pg_relation";
 char	RULE_R[16] = "pg_rule";
 char	RULEPLANS_R[16] = "pg_ruleplans";
@@ -56,8 +58,9 @@ char	VERSION_R[16] = "pg_version";
 static	char	*SystemRelname[] = {
 	AGGREGATE_R, AM_R, AMOP_R, ATTRIBUTE_R, DATABASE_R, DEFAULTS_R, DEMON_R,
 	INDEX_R, INHERITPROC_R, INHERITS_R, IPL_R, LANGUAGE_R, LOG_R, MAGIC_R,
-	OPCLASS_R, OPERATOR_R, PARG_R, PROC_R, RELATION_R, RULE_R, RULEPLANS_R,
-	SERVER_R, STATISTIC_R, TIME_R, TYPE_R, USER_R, VARIABLE_R, VERSION_R
+	OPCLASS_R, OPERATOR_R, PARG_R, PROC_R, PRS2RULE_R, PRS2PLANS_R,
+	RELATION_R, RULE_R, RULEPLANS_R, SERVER_R, STATISTIC_R, TIME_R,
+	TYPE_R, USER_R, VARIABLE_R, VERSION_R,
 };
 
 static	char	**Spp;			/* system relname pointer */
@@ -69,8 +72,9 @@ static	char	**Spp;			/* system relname pointer */
 static	char	IsDbdb[] = {
 	'\0', '\0', '\0', '\0', '\001', '\001', '\001',
 	'\0', '\0', '\0', '\0', '\0', '\001', '\001',
-	'\0', '\0', '\0', '\0', '\0', '\0', '\0',
-	'\001', '\0', '\001', '\0', '\001', '\001', '\0'
+	'\0', '\0', '\0', '\0', '\0', '\0',
+	'\0', '\0', '\0', '\001', '\0', '\001',
+	'\0', '\001', '\001', '\0',
 };
 
 /*
