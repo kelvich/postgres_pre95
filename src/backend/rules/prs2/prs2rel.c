@@ -225,8 +225,14 @@ ObjectId relationId;
      */
     relationName = get_rel_name(relationId);
     if (relationName == NULL) {
-	elog(WARN, "prs2RemoveRelationLevelLocksOfRule: can not find rel %d",
+	/*
+	 * complain, but do not abort the transaction
+	 * so that we can remove a rule, even if we have
+	 * accidentally destroyed the corresponding relation...
+	 */
+	elog(NOTICE, "prs2RemoveRelationLevelLocksOfRule: can not find rel %d",
 	    relationId);
+	return;
     }
 
     currentLocks = prs2GetLocksFromRelation(relationName);
