@@ -30,7 +30,7 @@ static	char ami_h[] = "$Header$";
 #include "relscan.h"
 #include "skey.h"
 #include "tim.h"
-#include "trange.h"
+#include "tqual.h"
 #include "xcxt.h"
 #include "xid.h"
 
