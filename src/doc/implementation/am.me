@@ -184,8 +184,9 @@ the
 .SE rd_am
 entry is NULL for reldescs describing heap relations.
 .pp
-The access method tuple contents will be described in the next subsection.
-.\" XXX fix up this section reference
+The access method tuple contents will be described in section
+\n($1.\n($2.1.
+.\" XXX maintainable section ref
 .pp
 The structure entry
 .SE rd_rel
@@ -201,8 +202,9 @@ among other things,
 the relation's name and the user id of its owner.
 The complete contents of the tuple pointed to by
 .SE rd_rel
-are supplied later in this section.
-.\" XXX fix up this section reference
+are supplied in section
+\n($1.\n($2.2.
+.\" XXX maintainable section ref
 .pp
 The entry
 .SE rd_id
@@ -243,8 +245,9 @@ non-system) attribute that the relation stores.
 This vector is initialized when the reldesc is loaded into the cache.
 The data in the vector come from a scan of
 .RN pg_attribute .
-The contents of the vector are described below.
-.\" XXX fix this section ref
+The contents of the vector are described in section
+\n($1.\n($2.3.
+.\" XXX maintainable section ref
 .sh 3 "The Access Method Tuple Form (rd_am)"
 .pp
 The
@@ -254,8 +257,9 @@ describing the access method that manages the relation.
 This tuple has one attribute for each of
 the routines that implement the standard
 access method interface for the particular access method.
-Details of the interface routines appear later in this section.
-.\" XXX fix this section ref
+Details of the interface routines appear in section
+\n($1.4.
+.\" XXX maintainable section ref
 Here,
 we list only the contents of the access method tuple form.
 This declaration appears in the source file
@@ -847,8 +851,9 @@ Lines have been broken so that the commands fit across the page;
 the statements should be typed on a single line.
 .pp
 The strategy map is a vector of scan key entries.
-Scan keys are described in a later section.
-.\" XXX fix this section ref
+Scan keys are described in sections
+\n($1.3.1 and \n($1.3.2.
+.\" XXX maintainable section ref
 There is one entry in the vector for every operator that is supported by
 the access method.
 For example,
@@ -2176,8 +2181,9 @@ As many scan key entries as desired may be defined for a single scan.
 These should be allocated as an array of
 .SE ScanKeyEntryData
 structures,
-as shown in a previous section.
-.\" XXX fix this section ref.
+as shown in section
+\n($1.3.2.
+.\" XXX maintainable section ref
 .pp
 Once a set of scan keys is initialized,
 the routines
@@ -2509,8 +2515,9 @@ so the return value should always be coerced to that type.
 This is an implementation mistake.
 In order to extract the actual value,
 one of the \fCDatumGet\fP\fIType\fP macros described in
-a previous section.
-.\" XXX fix this section ref
+section
+\n($1.3.2.
+.\" XXX maintainable section ref
 .sh 3 "Inserting New Tuples"
 .pp
 When a user submits a \*(PQ query to insert new tuples into a heap relation,
@@ -2518,8 +2525,9 @@ the \*(PG executor automatically updates all associated indices with
 pointers to the new tuple after it has been inserted.
 There is no simple interface for doing this in general on user relations
 inside the \*(PG backend.
-A later section
-.\" XXX fix this section ref
+Section
+\n($1.4.1.2
+.\" XXX maintainable section ref
 describes a simple way for doing this on system catalogs,
 but the user must explicitly code updates to indices on user relations
 when new values are inserted into the heap.
@@ -2673,8 +2681,8 @@ see the routine
 in
 .SE commands/copy.c .
 Special interfaces,
-described below,
-.\" XXX fix this section ref
+described in section \n($1.4.1.2,
+.\" XXX maintainable section ref
 have been defined to update the functional and normal indices
 on system catalogs,
 so the user need not manage these by hand.
