@@ -122,7 +122,7 @@ ExecAgg(node)
 	if (ObjectIdIsValid(xfn2_oid)) {
 		fmgr_info(xfn2_oid, &xfn2_ptr, &xfn2_nargs);
 		xfn2_val = AggNameGetInitVal(aggname,
-					     Anum_pg_aggregate_agginitval2,
+					     2,
 					     &isNull2);
 		/* ------------------------------------------
 		 * If there is a second transition function, its initial
@@ -136,7 +136,7 @@ ExecAgg(node)
 	if (ObjectIdIsValid(xfn1_oid)) {
 		fmgr_info(xfn1_oid, &xfn1_ptr, &xfn1_nargs);
 		xfn1_val = AggNameGetInitVal(aggname,
-					     Anum_pg_aggregate_agginitval1,
+					     1,
 					     &isNull1);
 		/* ------------------------------------------
 		 * If the initial value for the first transition function
