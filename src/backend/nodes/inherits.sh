@@ -27,6 +27,7 @@ CMP=cmp
 AWK=awk
 RM=rm
 MV=mv
+EXPR=expr
 
 # ----------------
 # 	collect nodefiles
@@ -36,7 +37,7 @@ x=1
 numargs=$#
 while [ $x -le $numargs ]; do
    NODEFILES="$NODEFILES $1"
-   x=`expr $x + 1`
+   x=`$EXPR $x + 1`
    shift
 done
 
@@ -370,17 +371,15 @@ $RM -f $INHFILE
 
 # ----------------
 #	finally, compare the new tagfile with the old.
-#
-#	if the tagfile has changed, then it means that
-#	cinterface.a has to be remade because its tag #defines
-#	are different.
+#	this can potentially save some work in rebuilding stuff
+#	in the case where tags.h may not have actually changed.
 # ----------------
 if [ -r $TAGFILE ]; then 
 	if $CMP -s $TAGFILE $TAGTEMP ; then 
 		echo "tags.h unchanged";
+		$RM -f $TAGTEMP
 	else
 		$MV $TAGTEMP $TAGFILE; 
-		echo "tags.h has changed; remake cinterface.a";
 	fi
 else
 	$MV $TAGTEMP $TAGFILE;
