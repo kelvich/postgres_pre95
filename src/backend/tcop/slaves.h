@@ -26,20 +26,6 @@ extern int ParallelExecutorEnableState;
 extern int NumberSlaveBackends;
 #define GetNumberSlaveBackends()	NumberSlaveBackends
 
-struct mastercommunicationdata {
-    long	data[2]; /* long for now, may be replaced by some union */
-    M1Lock	m1lock; /* one producer multiple consumer lock */
-};
-typedef struct mastercommunicationdata MasterCommunicationData;
-
-struct slavecommunicationdata {
-    long	data; /* long for now, may be replaced by some union */
-#ifdef HAS_TEST_AND_SET
-    slock_t	lock;	/* mutex lock */
-#endif
-};
-typedef struct slavecommunicationdata SlaveCommunicationData;
-
 /* slave info will stay in shared memory */
 struct slaveinfo {
     int		unixPid;		/* the unix process id -- for sending
@@ -54,7 +40,11 @@ struct slaveinfo {
     Relation	resultTmpRelDesc;	/* the reldesc of the tmp relation
 					   that holds the result of this
 					   slave backend */
-    SlaveCommunicationData	comdata;	/* communication data area */
+    int		curpage;		/* current page being scanned:
+					   for communication with master */
+#ifdef HAS_TEST_AND_SET
+    slock_t	lock;			/* mutex lock for comm. with master */
+#endif
 };
 typedef struct slaveinfo SlaveInfoData;
 typedef SlaveInfoData *SlaveInfo;
@@ -73,16 +63,18 @@ struct slavelocalinfo {
 typedef struct slavelocalinfo SlaveLocalInfoData;
 extern SlaveLocalInfoData SlaveLocalInfoD;
 
+typedef enum { IDLE, FINISHED, WORKING, PARADJPENDING }		ProcGroupStatus;
 /* pgroupinfo will stay in shared memory */
 struct pgroupinfo {
-    enum { IDLE, FINISHED, WORKING }
-		status;		/* status of the process group */
+    ProcGroupStatus status;	/* status of the process group */
     List	queryDesc;	/* querydesc for the process group */
     int		countdown;	/* countdown of # of proc in progress */
     int		nprocess;	/* # of processes in group */
-#ifdef sequent
-    slock_t	lock;		/* for synchronization when dec. countdown */
-#endif
+    SharedCounter scounter;	/* a shared counter for sync purpose */
+    SharedCounter dropoutcounter; /* a counter for drop out slaves */
+    M1Lock	m1lock; /* one producer multiple consumer lock for comm. */
+    int         paradjpage;   /* page on which to adjust parallelism */
+    int         newparallel;  /* new page skip */
 };
 typedef struct pgroupinfo ProcGroupInfoData;
 typedef ProcGroupInfoData *ProcGroupInfo;
@@ -102,6 +94,7 @@ struct lpgroupinfo {
     ProcessNode		*memberProc;
     MemoryHeader	groupSMQueue;
     struct lpgroupinfo	*nextfree;
+    List		resultTmpRelDescList;
 };
 typedef struct lpgroupinfo ProcGroupLocalInfoData;
 typedef ProcGroupLocalInfoData *ProcGroupLocalInfo;
@@ -110,6 +103,7 @@ extern int getFreeProcGroup();
 extern void addSlaveToProcGroup();
 extern int getFinishedProcGroup();
 extern void freeProcGroup();
+extern void freeSlave();
 extern void wakeupProcGroup();
 extern void signalProcGroup();
 extern void ProcGroupSMBeginAlloc();
@@ -119,6 +113,7 @@ extern void ProcGroupSMClean();
 extern void SlaveTmpRelDescInit();
 extern char *SlaveTmpRelDescAlloc();
 extern int getProcGroupMaxPage();
+extern int paradj_nextpage();
 
 #define SIGPARADJ	SIGUSR1
 
