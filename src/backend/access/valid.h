@@ -51,7 +51,7 @@ HeapTuple
 heap_tuple_satisfies ARGS((
     ItemId	itemId,
 	Relation relation,
-    Buffer	buffer,
+    PageHeader  disk_page,
     TimeQual	qual,
     ScanKeySize	nKeys,
     struct skey	*key
