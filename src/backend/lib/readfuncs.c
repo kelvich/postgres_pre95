@@ -1428,6 +1428,7 @@ MergeOrder _readMergeOrder()
 	char		*token;
 	int length;
 
+	local_node = (MergeOrder) palloc(sizeof(struct _MergeOrder));
 	token = lsptok(NULL, &length);      /* get :join_operator */
 	token = lsptok(NULL, &length);      /* now read it */
 
