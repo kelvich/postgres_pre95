@@ -33,8 +33,6 @@ typedef struct SPLITVEC {
     char		*spl_rdatum;
 } SPLITVEC;
 
-static int MaoDebugRT = 0;
-
 void
 rtbuild(heap, index, natts, attnum, istrat, pcount, params)
     Relation heap;
@@ -55,9 +53,6 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params)
     Datum *d;
     Boolean *null;
     int n;
-
-    if (MaoDebugRT)
-	return;
 
     /* rtrees only know how to do stupid locking now */
     RelationSetLockForWrite(index);
@@ -113,11 +108,10 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params)
 	    d[attoff] = (Datum) heap_getattr(htup, buffer,
 					     attnum[attoff], hd, &attnull);
 	    null[attoff] = (attnull ? 'n' : ' ');
-	    box_maodebug(d[attoff]);
 	}
 
 	/* form an index tuple and point it at the heap tuple */
-	itup = FormIndexTuple(natts, id, d, null);
+	itup = FormIndexTuple(natts, id, &d[0], null);
 	itup->t_tid = htup->t_ctid;
 
 	/*
@@ -139,6 +133,7 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params)
 
     /* okay, all heap tuples are indexed */
     heap_endscan(scan);
+    _rtdump(index);
     RelationUnsetLockForWrite(index);
 
     /*
@@ -792,9 +787,10 @@ _rtdump(r)
 	    itoffno = ItemPointerGetOffsetNumber(&(itup->t_tid), 0);
 	    datum = ((char *) itup);
 	    datum += sizeof(IndexTupleData);
-	    printf("\t[%d] size %d heap <%d,%d,%d> key:",
-		   offind + 1, itup->t_size, itblkno, itpgno, itoffno);
-	    box_maodebug(datum);
+	    itkey = (char *) box_out(datum);
+	    printf("\t[%d] size %d heap <%d,%d,%d> key:%s",
+		   offind + 1, itup->t_size, itblkno, itpgno, itoffno, itkey);
+	    pfree(itkey);
 	}
 
 	ReleaseBuffer(buf);
