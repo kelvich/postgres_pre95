@@ -878,6 +878,9 @@ AbsoluteTimeIsAfter ARGS((
 #define DATA(x)
 #define BOOTSTRAP
 
+#define BKI_BEGIN
+#define BKI_END
+
 /* ----------------------------------------------------------------
  *	real old type names, may be obsoleted soon -cim 8/6/90
  * XXX These should disappear!!! -hirohama
