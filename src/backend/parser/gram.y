@@ -1640,7 +1640,7 @@ a_expr:
 	;
 
 expr_list:
-	   a_expr				{ ELEMENT ; }
+	|  a_expr				{ ELEMENT ; }
 	|  expr_list ',' a_expr		{ INC_LIST ; }
 	;
 attr:

@@ -404,12 +404,14 @@ ParseFunc ( funcname , fargs )
     List first_arg_type = NULL;
     char *relname = NULL;
     extern List p_rtable;
-	extern Var make_relation_var();
+    extern Var make_relation_var();
 
-    first_arg_type = CAR(CAR(fargs));
+    if (fargs){
+      first_arg_type = CAR(CAR(fargs));
+    }
 
-    if (lispAtomp(first_arg_type) && CAtom(first_arg_type) == RELATION ) {
-
+    if (fargs && lispAtomp(first_arg_type) && CAtom(first_arg_type) == RELATION)
+    {
 	relname = CString(CDR(CAR(fargs)));
 	/* this is really a method */
 
