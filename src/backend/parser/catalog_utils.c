@@ -189,6 +189,29 @@ int arg1, arg2;	/* typeids */
     }
     return((Operator) tup);
 }
+/* Find default type for right arg of binary operator */
+Operator
+oper_default(op, arg1)
+char *op;
+int arg1;       /* typeid */
+{
+    HeapTuple tup;
+
+    /* see if there is only one type available for right arg. of binary op. */
+    tup = (HeapTuple) FindDefaultType(op, arg1);
+    if(!tup){  /* this could mean a) there is no operator named op.
+                                b) there are more than one possible right arg */
+       if (!(tup = SearchSysCacheTuple(OPRNAME, op, arg1, arg1, (char *) 'b')))
+       {
+          /* there's no reasonable default type for the right argument */
+          elog ( WARN , "Can't find binary op: %s for types %d and %d",
+                 op, arg1, arg1);
+          return(NULL);
+       }
+    }
+
+    return((Operator) tup);
+}
 
 /* Given unary right-side operator (argument on right), return oper struct */
 Operator
