@@ -65,6 +65,9 @@ ProjectAttribute(TD, tlist, tup,isnullP)
 				     attrno,
 				     TD,
 				     isnullP);
+    if (*isnullP)
+	return NULL;
+
     valueP = datumCopy(val,
 		       TD->data[attrno-1]->atttypid,
 		       TD->data[attrno-1]->attbyval,
@@ -280,6 +283,13 @@ postquel_execute(es, fcache, fTlist, args, isNull)
 	postquel_end(es);
 	es->status = F_EXEC_DONE;
 	*isNull = true;
+	/*
+	 * If this isn't the last command for the function
+	 * we have to increment the command
+	 * counter so that subsequent commands can see changes made
+	 * by previous ones.
+	 */
+	if (!LAST_POSTQUEL_COMMAND(es)) CommandCounterIncrement();
 	return (Datum)NULL;
     }
 
@@ -322,6 +332,13 @@ postquel_execute(es, fcache, fTlist, args, isNull)
 
 	return value;
     }
+    /*
+     * If this isn't the last command for the function, we don't
+     * return any results, but we have to increment the command
+     * counter so that subsequent commands can see changes made
+     * by previous ones.
+     */
+    CommandCounterIncrement();
     return (Datum)NULL;
 }
 
