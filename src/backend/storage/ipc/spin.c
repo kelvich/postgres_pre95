@@ -96,7 +96,7 @@ SPINLOCK lock;
 #else /* SONY_JUKEBOX */
 #define MAX_SPINS 5	/* only for ShmemLock, BindingLock,
 			   BufMgrLock, LockMgrLock and ProcStructLock */
-#else /* SONY_JUKEBOX */
+#endif /* SONY_JUKEBOX */
 IpcSemaphoreId  SpinLockId = -1;
 
 /*
