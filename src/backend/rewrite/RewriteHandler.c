@@ -239,7 +239,8 @@ FixResdom ( targetlist )
 
 List
 ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
-	        to_be_rewritten , user_tl , user_rt ,user_parsetree )
+	        to_be_rewritten , user_tl , user_rt ,user_parsetree,
+		drop_user_query)
      List retrieve_locks;
      int user_rt_length;
      int current_varno;
@@ -247,6 +248,7 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
      List user_tl;
      List user_rt;
      List user_parsetree;
+     bool *drop_user_query;
 {
     List i			= NULL;
     List j			= NULL;
@@ -276,7 +278,12 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 
 	/* is_instead is always false for replace current
 	 * and retrieve-retrieve , so don't need to check
+	 *
+	 * NOT QUITE! we can have rules like:
+	 * "on retrieve to foo do instead retrieve (bar.all)"
 	 */
+	if (this_lock->lockType & DoInstead)
+	    *drop_user_query = true;
 
 	ev_qual = CAR(action_info);
 	ruletrees = CDR(action_info);
@@ -643,7 +650,7 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
     List user_tlist 		= parse_targetlist(user_parsetree);
 
     Assert ( rlocks != NULL );	
-    Assert ( *drop_user_query == false );
+    /* Assert ( *drop_user_query == false ); */
 
     /*
      * if we got here, there better be some locks on the
@@ -766,7 +773,8 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
 						 reldesc,
 						 user_tlist,
 						 user_rangetable,
-						 user_parsetree
+						 user_parsetree,
+						 drop_user_query
 						 );
 	}
 	
