@@ -86,6 +86,7 @@ CreateExecutorState()
     RelationInfo       	resultRelationInfo;
     ParamListInfo	paramListInfo;
     TupleCount		tuplecount;
+    int			recursionDepth;
     
     /* ----------------
      *	These are just guesses.. Someone should tell me if
@@ -98,7 +99,8 @@ CreateExecutorState()
     locks = 		LispNil;
     qualTuple =		NULL;
     qualTupleID =	0;
-
+    recursionDepth = 	0;
+    
     /* ----------------
      *   currently these next are initialized in InitPlan.
      *	 For now we use dummy variables.. -cim 9/18/89
@@ -137,8 +139,9 @@ CreateExecutorState()
 		       qualTupleID,
 		       relationRelationDesc,
 		       resultRelationInfo,
+		       tuplecount,
 		       paramListInfo,
-		       tuplecount);
+		       recursionDepth);
 
     return state;
 }
