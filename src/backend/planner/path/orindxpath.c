@@ -131,7 +131,7 @@ create_or_index_paths (rel,clauses)
  *    
  */
 
-/*  .. best-or-subclause-indices, create-or-index-paths    */
+/*  .. best_or_subclause_indices, create_or_index_paths    */
 
 LispValue
 best_or_subclause_indices (rel,subclauses,indices,
@@ -197,7 +197,7 @@ best_or_subclause_index (rel,subclause,indices)
 	  LispValue 	bestrest = LispNil;
 	  Rel	 	index = (Rel)CAR (indices);
 	  AttributeNumber attno = get_varattno (get_leftop (subclause));
-	  ObjectId 	opno = get_opno (subclause);
+	  ObjectId 	opno = get_opno (CAR(subclause));
 	  bool 		constant_on_right = non_null (get_rightop (subclause));
 
 	  if(constant_on_right) {
@@ -214,16 +214,18 @@ best_or_subclause_index (rel,subclause,indices)
 	  } 
 	  pagesel = index_selectivity (CInteger(CAR(get_relids (index))) ,
 				       get_classlist (index),
-				       lispCons (opno,LispNil),
-				       getrelid(CInteger(CAR(get_relids(rel))),
-						_query_range_table_),
-				       lispCons (attno,LispNil),
-				       lispCons (value,LispNil),
-				       lispCons (flag,LispNil),
+				       lispInteger(opno),
+				       CInteger(getrelid (CInteger
+						    (CAR(get_relids(rel))),
+						_query_range_table_)),
+				       lispCons (lispInteger(attno),LispNil),
+				       lispCons (lispInteger(value),LispNil),
+				       lispCons (lispInteger(flag),LispNil),
 				       1);
-	  subcost = cost_index (nth (0,get_indexid (index)),
-				floor (nth (0,pagesel)),
-				(int)(CAR (pagesel)),
+
+	  subcost = cost_index (CInteger(nth (0,get_indexid (index))),
+				(Count)CDouble(CAR(pagesel)),
+				(Cost)CDouble(CADR(pagesel)),
 				get_pages (rel),
 				get_tuples (rel),
 				get_pages (index),
