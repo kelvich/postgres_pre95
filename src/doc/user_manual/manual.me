@@ -551,7 +551,8 @@ class empty.
 .\"-----------------
 .sh 3 "Arrays"
 .lp
-\*(PP fully supports both fixed-length and variable-length arrays.
+\*(PP supports both fixed-length and variable-length
+one-dimensional arrays.
 To illustrate their use, we first create a class with an array type.
 .(C
 * create SAL_EMP (name = char[],
@@ -639,24 +640,6 @@ as in the following example:
 This creates a class
 .cW manager ,
 and provides a list of employees.
-Note that
-the
-.cW text
-type in \*(PP is defined as an array of character, so queries like
-.(C
-* retrieve (manager.name)
-      where manager.employees[1][1] = 'b' \\g
-
-* retrieve (manager.name)
-      where manager.employees[3] = "jeff" \\g
-
-* retrieve (manager.employees[3][2]) \\g
-
-* delete manager where manager.employees[2][1] = 'g' \\g
-.)C
-will all work.
-However, in general \*(PP currently only supports arrays of
-one dimension.
 .\"------------------------------------
 .sh 2 "Advanced \*(PQ"
 .lp
