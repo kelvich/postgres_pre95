@@ -9,12 +9,12 @@
  * ----------------------------------------------------------------
  */
 
+#include "catalog/catname.h"
 #include "catalog/pg_rewrite.h"
-
 #include "utils/rel.h"			/* Relation, RelationData ... */
 #include "catalog/syscache.h"		/* for SearchSysCache */
 #include "utils/builtins.h"		/* for textout */
-
+#include "utils/log.h"		        /* for elog */
 /* 
  * RuleIdGetActionInfo
  *
@@ -24,8 +24,9 @@
  */
 
 List
-RuleIdGetActionInfo ( ruleoid )
+RuleIdGetActionInfo ( ruleoid , instead_flag)
      OID ruleoid;
+     int *instead_flag;
 {
     HeapTuple 		ruletuple;
     char 		*ruleaction = NULL;
@@ -37,17 +38,20 @@ RuleIdGetActionInfo ( ruleoid )
     char		*rule_evqual_string = NULL;
     List		rule_evqual = NULL;
     List		i = NULL;
-
-    ruleRelation = amopenr ("pg_rewrite");
+    int  instead;
+    ruleRelation = amopenr (RewriteRelationName);
     ruleTupdesc = RelationGetTupleDescriptor(ruleRelation);
     ruletuple = SearchSysCacheTuple ( RULOID,  ruleoid );
-
+    if (ruletuple == NULL)
+	elog(WARN, "rule %d isn't in rewrite system relation");
     ruleaction = amgetattr ( ruletuple, InvalidBuffer, Anum_pg_rewrite_action, 
 			    ruleTupdesc , &action_is_null ) ;
     rule_evqual_string = amgetattr (ruletuple, InvalidBuffer, 
 				    Anum_pg_rewrite_ev_qual, 
 				    ruleTupdesc , &action_is_null ) ;
-
+    *instead_flag = (int) amgetattr (ruletuple, InvalidBuffer, 
+				    Anum_pg_rewrite_is_instead, 
+				    ruleTupdesc , &instead_is_null ) ;
     ruleaction = textout (ruleaction );
     rule_evqual_string = textout(rule_evqual_string);
 
@@ -60,11 +64,10 @@ RuleIdGetActionInfo ( ruleoid )
     } else {
 	foreach ( i , ruleparse ) {
 #ifdef DEBUG
-	    Print_parse ( CAR(i) );
+/*	    Print_parse ( CAR(i) ); */
 #endif
 	}
     }
-
     amclose ( ruleRelation );
     return (lispCons(rule_evqual,ruleparse));
 }
