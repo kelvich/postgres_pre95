@@ -371,8 +371,9 @@ MakeTimeRange( datestring1 , datestring2 , timecode )
 }
 
 LispValue 
-make_op(op,ltree,rtree)
+make_op(op,ltree,rtree, optype)
      LispValue op,ltree,rtree;
+     char optype;
 {
 	Type ltype,rtype;
 	Operator temp;
@@ -381,45 +382,67 @@ make_op(op,ltree,rtree)
 	LispValue left,right;
 	LispValue t1;
 	ObjectId fid;
-	
-	left = CDR(ltree);
-	right = CDR(rtree);
-	if (! lispNullp(left)) 
-	  ltype = get_id_type ( CInteger ( CAR(ltree) ));
-	if (! lispNullp(right))
-	  rtype = get_id_type ( CInteger ( CAR(rtree) ) );
-	/* XXX - do we want auto type casting ?
-	   if ( !strcmp(CString(op),"=") &&
-	     (ltype != rtype) )
-	  */
-	  
-	if ( lispNullp(left) ) {
-		/* right operator */
-	 	temp = right_oper( CString( op ), typeid(rtype));
-	} else if ( lispNullp(right)) {
-		/* left operator */
-		temp = left_oper( CString( op ), typeid(ltype) );
+
+	if ( optype == 'r' ) {
+	/* right operator */
+		if (lispNullp(ltree))
+		elog(WARN, "NULL not allowed with this operator type");
+		left = CDR(ltree);
+		right = LispNil;
+		if (! lispNullp(left))
+		ltype = get_id_type ( CInteger ( CAR(ltree) ));
+		temp = right_oper( CString( op ), typeid(ltype));
+	 } else if (optype == 'l') {
+	/* left operator */
+		if (lispNullp(rtree))
+		elog(WARN, "NULL not allowed with this operator type");
+		 right = CDR(rtree);
+		 left = right;
+		 if (! lispNullp(right))
+		 rtype = get_id_type ( CInteger ( CAR(rtree) ) );
+		 temp = left_oper( CString( op ), typeid(rtype) );
+		 right = LispNil;
 	} else {
 		/* binary operator */
-                if (typeid(rtype) == typeid(type("unknown")))
-                {
-                    /* trying to find default type for the right arg... */
+		if (lispNullp(ltree)) {
+		elog(WARN, "NULL not allowed with this operator type");
+		} else {
+		left = CDR(ltree);
+		ltype = get_id_type ( CInteger ( CAR(ltree) ));
+		if (! lispNullp(rtree)) {
+		right = CDR(rtree);
+		rtype = get_id_type ( CInteger ( CAR(rtree) ) );
+		if (typeid(rtype) == typeid(type("unknown")))
+		{
+		    /* trying to find default type for the right arg... */
+		temp = (Operator) oper_default(CString(op),typeid(ltype));
+		/* now, we have the default type, typecast */
+		if(temp){
+		Datum val;
+		val = textout((struct varlena *)get_constvalue((Const)right));
+		optemp = (OperatorTupleForm) GETSTRUCT(temp);
+		right = (LispValue) MakeConst(optemp->oprright,
+				tlen(get_id_type(optemp->oprright)),
+			(Datum)fmgr(typeid_get_retinfunc(optemp->oprright),val),
+				false, true /*XXX was omitted */);
+		} else
+				op_error(CString(op), typeid(ltype), typeid(rtype));
+				
+		}
+		else
+		temp = oper(CString(op),typeid(ltype), typeid ( rtype ));
+		} else {
+		/* Right Operator is NULL */
                     temp = (Operator) oper_default(CString(op),typeid(ltype));
-                    /* now, we have the default type, typecast */
                     if(temp){
-                        Datum val;
-                        val = textout((struct varlena *)get_constvalue((Const)right));
                         optemp = (OperatorTupleForm) GETSTRUCT(temp);
-                        right = (LispValue) MakeConst(optemp->oprright,
-					tlen(get_id_type(optemp->oprright)),
-			     (Datum)fmgr(typeid_get_retinfunc(optemp->oprright),
-					     val),
-					false, true /*XXX was omitted */);
+                        right = (LispValue) MakeConst(optemp->oprright, 0,
+			     		(Datum)(struct varlena *)NULL,
+					true, true );
                      } else 
-					 op_error(CString(op), typeid(ltype), typeid(rtype));
-                }
-                else
-                   temp = oper(CString(op),typeid(ltype), typeid ( rtype ));
+			op_error(CString(op), typeid(ltype), typeid(rtype));
+		}
+		}
 	}
 	opform = (OperatorTupleForm) GETSTRUCT(temp);
 
@@ -432,7 +455,6 @@ make_op(op,ltree,rtree)
 					     lispCons (right,LispNil)));
 	return ( lispCons (lispInteger ( opform->oprresult ) ,
 			   t1 ));
-			   
 } /* make_op */
 
 /*
