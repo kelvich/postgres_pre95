@@ -3,7 +3,7 @@
  *	dest.c
  *	
  *   DESCRIPTION
- *	support for various command destinations - see lib/H/tcop/dest.h
+ *	support for various communication destinations - see lib/H/tcop/dest.h
  *
  *   INTERFACE ROUTINES
  * 	BeginCommand - prepare destination for tuples of the given type
@@ -26,8 +26,9 @@ RcsId("$Header$");
 
 #include "tcop/dest.h"
 #include "parser/parse.h"
-#include "utils/log.h"
+#include "tmp/libpq.h"
 #include "tmp/portal.h"
+#include "utils/log.h"
 
 #include "nodes/pg_lisp.h"
 
@@ -46,6 +47,7 @@ donothing(tuple, attrdesc)
 
 extern void debugtup();
 extern void printtup();
+extern void be_printtup();
 
 /* ----------------
  * 	DestToFunction - return the proper "output" function for dest
@@ -61,7 +63,7 @@ void
 	break;
 	
     case Local:
-	return donothing;
+	return be_printtup;
 	break;
 	
     case Debug:
@@ -87,15 +89,24 @@ BeginCommand(pname, attinfo, operation, isInto, dest)
     bool	isInto;
     CommandDest	dest;
 {
+    PortalEntry	*entry;
     struct attribute **attrs;
-    int natts;
-    int i;
+    int    natts;
+    int    i;
 
     natts = CInteger(CAR(attinfo));
     attrs  = (struct attribute **) CADR(attinfo);
 
     switch (dest) {
     case Remote:
+	/* ----------------
+	 *	if portal name not specified for remote query,
+	 *	use the "blank" portal.
+	 * ----------------
+	 */
+	if (pname == NULL)
+	    pname = "blank";
+	
 	/* ----------------
 	 *	send fe info on tuples we're about to send
 	 * ----------------
@@ -125,6 +136,14 @@ BeginCommand(pname, attinfo, operation, isInto, dest)
 	break;
 	
     case Local:
+	/* ----------------
+	 *	prepare local portal buffer for query results
+	 * ----------------
+	 */
+	entry = (PortalEntry *) be_newportal(pname);
+	if (operation == RETRIEVE && !isInto)
+	    be_typeinit(entry, attrs, natts);
+	be_portalpush(entry);
 	break;
 	
     case Debug:
@@ -132,6 +151,9 @@ BeginCommand(pname, attinfo, operation, isInto, dest)
 	 *	show the return type of the tuples
 	 * ----------------
 	 */
+	if (pname == NULL)
+	    pname = "blank";
+	
 	showatts(pname, natts, attrs);
 	break;
 	
@@ -147,7 +169,7 @@ BeginCommand(pname, attinfo, operation, isInto, dest)
  */
 void
 EndCommand(commandTag, dest)
-    String  commandTag;
+    String  	commandTag;
     CommandDest	dest;
 {
     switch (dest) {
