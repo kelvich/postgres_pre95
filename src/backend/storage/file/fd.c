@@ -691,6 +691,10 @@ fileRead (file, buffer, amount)
 	FileAccess(file);
 	returnCode = read(VfdCache[file].fd, buffer, amount);
 
+	if (returnCode > 0) {  /* changed by sklower doing what Boris did */
+	    VfdCache[file].seekPos += returnCode;
+	}
+    
 	return returnCode;
 }
 
@@ -1066,6 +1070,8 @@ Amount amount;
        ret = fileRead(sfdP->vfd[sfdP->curStripe], buffer, amount);
        break;
       }
+    if (ret > 0) /* Added by sklower doing what Boris did */
+	sfdP->seekPos += ret;
 #ifdef PARALLELDEBUG
    EndParallelDebugInfo(PDI_FILEREAD);
 #endif
