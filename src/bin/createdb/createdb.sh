@@ -1,14 +1,14 @@
 #!/bin/sh
 # ----------------------------------------------------------------
 #   FILE
-#	createdb	create a postgres database
+#    createdb    create a postgres database
 #
 #   DESCRIPTION
-#	this program runs the monitor with the "-c" option to create
+#    this program runs the monitor with the "-c" option to create
 #   the requested database.
 #
 #   IDENTIFICATION
-# 	$Header$
+#     $Header$
 # ----------------------------------------------------------------
 
 #
@@ -17,9 +17,9 @@
 
 if (test -n "$POSTGRESHOME")
 then
-	PG=$POSTGRESHOME
+    PG=$POSTGRESHOME
 else
-	PG=/usr/postgres
+    PG=/usr/postgres
 fi
 
 #
@@ -28,38 +28,53 @@ fi
 
 if (test -f "$PG/bin/monitor")
 then
-	MONITOR=$PG/bin/monitor
+    MONITOR=$PG/bin/monitor
 elif (test -f "MONITOR=$PG/obj*/support/monitor")
 then
-	MONITOR=$PG/obj*/support/monitor
+    MONITOR=$PG/obj*/support/monitor
 else
-	echo "$0: can't find the monitor program!"
-	exit 1
+    echo "$0: can't find the monitor program!"
+    exit 1
 fi
 
 progname=$0
 
-port=4321
-host=localhost
+#
+# handle pgport and pghost
+#
+
+if (test -n "$PGPORT")
+then
+    port=$PGPORT
+else
+    port=4321
+fi
+
+if (test -n "$PGHOST")
+then
+    host=$PGHOST
+else
+    host=localhost
+fi
 
 dbname=$USER
 
 while (test -n "$1")
 do
-	case $1 in
-		-h) host=$2; shift;;
-		-p) port=$2; shift;;
-		 *) dbname=$1;;
-	esac
-	shift;
+    case $1 in
+        -h) host=$2; shift;;
+        -p) port=$2; shift;;
+         *) dbname=$1;;
+    esac
+    shift;
 done
 
 $MONITOR -TN -h $host -p $port -c "createdb $dbname" template1
 
 if (test $? -ne 0)
 then
-	echo "$progname: database creation failed on $dbname."
-	exit 1
+    echo "$progname: database creation failed on $dbname."
+    exit 1
 fi
 
 # successful execution
