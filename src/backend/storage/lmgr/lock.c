@@ -30,6 +30,37 @@
 #include "utils/log.h"
 #include "access/xact.h"
 
+#ifndef LOCK_MGR_DEBUG
+
+#define LOCK_PRINT(where,tag,type)
+#define XID_PRINT(where,xidentP)
+
+#else LOCK_MGR_DEBUG
+
+#define LOCK_PRINT(where,tag,type)\
+  elog(DEBUG, "%s: rel (%d) dbid (%d) tid (%d,%d) type (%d)\n",where, \
+	 tag->relId, tag->dbId, \
+	 ( (tag->tupleId.blockData.data[0] >= 0) ? \
+		BlockIdGetBlockNumber(&tag->tupleId.blockData) : -1 ), \
+	 tag->tupleId.positionData, \
+	 type);
+
+#define XID_PRINT(where,xidentP)\
+  elog(DEBUG,\
+       "%s:xid (%d) pid (%d) lock (%x) nHolding (%d) holders (%d,%d,%d,%d,%d)",\
+       where,\
+       xidentP->tag.xid,\
+       xidentP->tag.pid,\
+       xidentP->tag.lock,\
+       xidentP->nHolding,\
+       xidentP->holders[1],\
+       xidentP->holders[2],\
+       xidentP->holders[3],\
+       xidentP->holders[4],\
+       xidentP->holders[5]);
+
+#endif LOCK_MGR_DEBUG
+
 void LockTypeInit ARGS((
 	LOCKTAB *ltable, 
 	MASK *conflictsP, 
@@ -413,6 +444,7 @@ LOCKT		lockt;
   }
   if (!found)
   {
+    XID_PRINT("queueing XidEnt LockAcquire:", result);
     ProcAddLock(&result->queue);
     result->nHolding = 0;
     bzero((char *)result->holders,sizeof(int)*MAX_LOCKTYPES);
@@ -453,11 +485,8 @@ LOCKT		lockt;
   }
   else if (status == STATUS_FOUND)
   {
-    /* -----------------
-     * nHolding tells how many have tried to acquire the lock.
-     *------------------
-     */
     status = WaitOnLock(ltable, tableId, lock, lockt);
+    XID_PRINT("Someone granted me the lock", result);
   }
 
   SpinRelease(masterLock);
@@ -544,8 +573,11 @@ int pid;
    */
   if (! (ltable->ctl->conflictTab[lockt] & lock->mask))
   {
+
     result->holders[lockt]++;
     result->nHolding++;
+
+    XID_PRINT("Conflict Resolved: updated xid entry stats", result);
 
     return(STATUS_OK);
   }
@@ -580,6 +612,9 @@ int pid;
 
     result->holders[lockt]++;
     result->nHolding++;
+
+    XID_PRINT("Conflict Resolved: updated xid entry stats", result);
+
     return(STATUS_OK);
 
   }
@@ -755,6 +790,8 @@ LOCKT	lockt;
   result->holders[lockt]--;
   result->nHolding--;
 
+  XID_PRINT("LockRelease updated xid stats", result);
+
   /*
    * If this was my last hold on this lock, delete my entry
    * in the XID table.
@@ -841,6 +878,8 @@ SHM_QUEUE	*lockQueue;
     return TRUE;
 
   SHMQueueFirst(lockQueue,&xidLook,&xidLook->queue);
+
+  XID_PRINT("LockReleaseAll:", xidLook);
 
   SpinAcquire(masterLock);
   for (;;)
