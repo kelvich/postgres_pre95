@@ -12,8 +12,6 @@ RcsId("$Header$");
 #include "storage/buf_internals.h"
 /* #include "storage/buf_protos.h" */
 
-
-extern char *calloc();
 extern int NBuffers;
 #define ALLOC(t, c)	(t *)calloc((unsigned)(c), sizeof(t))
 
