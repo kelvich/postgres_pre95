@@ -78,6 +78,8 @@ DefineFunction(nameargsexe, dest)
     String	returnTypeName;
     char        blankstring[2];
     bool	canCache;
+    bool        trusted;
+    String      trusted_str;
     LispValue	argList;
     int32       byte_pct, perbyte_cpu, percall_cpu, outin_ratio;
     String      perbyte_str, percall_str;
@@ -127,6 +129,17 @@ DefineFunction(nameargsexe, dest)
 
 	 entry = DefineListRemoveOptionalIndicator(&parameters, "iscachable");
 	 canCache = (bool)!null(entry);
+	
+	 /*
+	  * handle trusted/untrusted.  defaults to trusted for now; when
+	  * i finish real support it'll default untrusted.  -dpassage
+	  */
+
+	 entry = DefineListRemoveOptionalAssignment(&parameters, "trusted");
+	 if (null(entry)) 
+	     trusted = true;
+	 else 
+	     trusted = ((DefineEntryGetString(entry)[0]) == 't');
 
 	 /*
 	  ** handle expensive function parameters
@@ -236,6 +249,7 @@ DefineFunction(nameargsexe, dest)
 		    sourceCode,
 		    fileName,
 		    canCache,
+		    trusted,
 		    byte_pct, perbyte_cpu, percall_cpu, 
 		    outin_ratio,
 		    argList,

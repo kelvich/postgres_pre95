@@ -44,7 +44,7 @@
 /*ARGSUSED*/
 void
 ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
-		prosrc, probin, canCache, byte_pct, perbyte_cpu, 
+		prosrc, probin, canCache, trusted, byte_pct, perbyte_cpu, 
 		percall_cpu, outin_ratio, argList, dest)
      Name 		procedureName;
      bool		returnsSet;
@@ -53,6 +53,7 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
      char 		*prosrc;
      char               *probin;
      Boolean		canCache;
+     Boolean            trusted;
      int32              byte_pct, perbyte_cpu, percall_cpu, outin_ratio;
      List		argList;
      CommandDest	dest;
@@ -183,7 +184,7 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
 
     /* XXX istrusted is always false for now */
 
-    values[i++] = (char *) (Boolean) 0;
+    values[i++] = (char *) trusted;
     values[i++] = (char *) canCache;
     values[i++] = (char *) parameterCount;
     values[i++] = (char *) returnsSet;
