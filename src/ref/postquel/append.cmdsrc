@@ -76,6 +76,10 @@ The keyword
 can be used when it is desired to append all fields of a class to
 another class.
 .PP
+If the attribute is a complex type, its contents are specified as 
+a query which will return the tuples in the set.  See the examples
+below.
+.PP
 You must have write or append access to a class in order to append to
 it, as well as read access on any class whose values are read in the
 target list or qualification (see
@@ -154,6 +158,20 @@ append tictactoe (board[3][3] =
  */
 append tictactoe (board[3][3] = 
  "/large/tictactoe/board -chunk /etc/acc_patt")
+.)C
+.(C
+/*
+ * Append a tuple with a set attribute "mgr" of type emp.  The query
+ * to produce the manager of "carol" (specified dynamically here) will 
+ * be stored as a Postquel function in the system catalog pg_proc.  
+ * The ObjectId of this tuple in pg_proc will be used in the name of 
+ * the procedure, resulting in a procedure name of the form 
+ * "set<OID of the tuple>".  Two backslashes are needed here to escape 
+ * the inner quotes when running Postgres from the monitor.  When 
+ * running Postgres directly, only one set of backslashes is needed.
+ */
+append emp (name = "carol", mgr = 
+                   "retrieve (emp.all) where emp.name = \\"mike\\"")
 .)C
 .SH "SEE ALSO"
 postquel(commands),
