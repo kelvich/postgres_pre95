@@ -118,7 +118,7 @@ finish_dump()
     temp = pq_getint(4);
     pq_getstr(command, command_length);
     
-    pqdebug("return code is %d",temp);
+    pqdebug("return code is %d",(char *)temp);
     pqdebug("command is %s",command);
 }
 
@@ -265,12 +265,12 @@ dump_data(portal_name, rule_p)
 
 		/* This should never happen. */
 		sprintf(s, "Unexpected identfier in dump_data: %c", id[0]);
-		libpq_raise(ProtocolError, form(s));
+		libpq_raise(ProtocolError, form((int)s));
 	    }
 	}
 	
     	pq_getnchar(id,0,1); 
     	read_remark(id);
-	pqdebug("The identifier is: %c", id[0]);
+	pqdebug("The identifier is: %c", (char *)id[0]);
     }
 }
