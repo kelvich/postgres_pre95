@@ -315,7 +315,7 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 	      so compute the scan cost 
 	      accordingly -- use a selectivity of 1.0. */
 	set_path_cost (pathnode,cost_index (CInteger(CAR(get_relids(index))),
-					    get_pages (index),0.000000,
+					    get_pages (index),1.0,
 					    get_pages (rel),get_tuples (rel),
 					    get_pages (index),get_tuples(index)));
     } 
