@@ -90,7 +90,8 @@ _hash_next(scan)
     HashScanOpaque so;
 
     rel = scan->relation;
-    so = (HashScanOpaque) scan->opaque;
+    so = (HashScanOpaque) scan->opaque; 
+    current = &(scan->currentItemData);
 
     metabuf = _hash_getbuf(rel, HASH_METAPAGE, HASH_READ);
     metap = (HashMetaPage) BufferGetPage(metabuf, 0);
