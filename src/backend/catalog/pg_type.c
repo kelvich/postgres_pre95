@@ -30,6 +30,7 @@
 #include "catalog/syscache.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
+#include "catalog/indexing.h"
 
 /* ----------------------------------------------------------------
  * 	TypeGetWithOpenRelation
@@ -213,6 +214,14 @@ TypeShellMakeWithOpenRelation(pg_type_desc, typeName)
     heap_insert(pg_type_desc, tup, (double *) NULL);
     typoid = tup->t_oid;
 
+    if (RelationGetRelationTupleForm(pg_type_desc)->relhasindex)
+    {
+	Relation idescs[Num_pg_type_indices];
+
+	CatalogOpenIndices(Num_pg_type_indices, Name_pg_type_indices, idescs);
+	CatalogIndexInsert(idescs, Num_pg_type_indices, pg_type_desc, tup);
+	CatalogCloseIndices(Num_pg_type_indices, idescs);
+    }
     /* ----------------
      *	free the tuple and return the type-oid
      * ----------------
@@ -488,6 +497,14 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
      */
     heap_endscan(pg_type_scan);
 
+    if (RelationGetRelationTupleForm(pg_type_desc)->relhasindex)
+    {
+	Relation idescs[Num_pg_type_indices];
+
+	CatalogOpenIndices(Num_pg_type_indices, Name_pg_type_indices, idescs);
+	CatalogIndexInsert(idescs, Num_pg_type_indices, pg_type_desc, tup);
+	CatalogCloseIndices(Num_pg_type_indices, idescs);
+    }
     RelationUnsetLockForWrite(pg_type_desc);
     heap_close(pg_type_desc);
 
