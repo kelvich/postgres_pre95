@@ -40,6 +40,15 @@ Relation TimeRelation	  = (Relation) NULL;
 Relation VariableRelation = (Relation) NULL;
 
 /* ----------------
+ *    	global variables holding cached transaction id's and statuses.
+ * ----------------
+ */
+TransactionIdData cachedGetCommitTimeXid;
+Time 		  cachedGetCommitTime;
+TransactionIdData cachedTestXid;
+XidStatus	  cachedTestXidStatus;
+
+/* ----------------
  *	transaction recovery state variables
  *
  *	When the transaction system is initialized, we may
@@ -51,7 +60,7 @@ Relation VariableRelation = (Relation) NULL;
  *	goes from zero to one. -cim 3/21/90
  * ----------------
  */
-bool RecoveryCheckingEnableState = false;
+int RecoveryCheckingEnableState = 0;
 
 /* ----------------
  *	recovery checking accessors
@@ -90,9 +99,9 @@ SetRecoveryCheckingEnabled(state)
 bool	/* true/false: does transaction id have specified status? */
 TransactionLogTest(transactionId, status)
     TransactionId 	transactionId; 	/* transaction id to test */
-    TransactionStatus 	status;		/* transaction status */
+    XidStatus 		status;		/* transaction status */
 {
-    ItemPointerData	xptr;		/* item pointer to TransTuple */
+    BlockNumber		blockNumber;
     XidStatus		xidstatus;	/* recorded status of xid */
     bool		fail;      	/* success/failure */
     
@@ -105,19 +114,37 @@ TransactionLogTest(transactionId, status)
 	return (bool) (status == XID_COMMIT);
 
     /* ----------------
-     *	compute the item pointer corresponding to the
-     *  page containing our transaction id.
+     *	 before going to the buffer manager, check our single
+     *   item cache to see if we didn't just check the transaction
+     *   status a moment ago.
      * ----------------
      */
-    TransComputeItemPointer(transactionId, &xptr);
-    xidstatus = TransItemPointerGetXidStatus(LogRelation, &xptr, &fail);
+    if (TransactionIdEquals(transactionId, &cachedTestXid))
+	return (bool)
+	    (status == cachedTestXidStatus);
+        
+    /* ----------------
+     *	compute the item pointer corresponding to the
+     *  page containing our transaction id.  We save the item in
+     *  our cache to speed up things if we happen to ask for the
+     *  same xid's status more than once.
+     * ----------------
+     */
+    TransComputeBlockNumber(LogRelation, transactionId, &blockNumber);
+    xidstatus = TransBlockNumberGetXidStatus(LogRelation,
+					     blockNumber,
+					     transactionId,
+					     &fail);
 
-    if (! fail)
+    if (! fail) {
+	TransactionIdStore(transactionId, &cachedTestXid);
+	cachedTestXidStatus = xidstatus;
 	return (bool)
 	    (status == xidstatus);
-
+    }
+    
     /* ----------------
-     *	  here the block didn't contain the tuple we wanted
+     *	  here the block didn't contain the information we wanted
      * ----------------
      */
     elog(WARN, "TransactionLogTest: failed to get xidstatus");
@@ -130,11 +157,9 @@ TransactionLogTest(transactionId, status)
 void
 TransactionLogUpdate(transactionId, status)
     TransactionId 	transactionId;	/* trans id to update */
-    TransactionStatus 	status;		/* new trans status */
+    XidStatus 		status;		/* new trans status */
 {
-    ItemPointerData  	xptr;		/* item pointer to TransTuple */
-    ItemId	   	itemId;		/* item id referencing TransTuple */
-    Item		ttitem;		/* TransTuple containing xid status */
+    BlockNumber		blockNumber;
     bool		fail;      	/* success/failure */
     Time 		currentTime;	/* time of this transaction */
 
@@ -146,21 +171,28 @@ TransactionLogUpdate(transactionId, status)
 	return;
     
     /* ----------------
-     *    get the transaction commit time
+     *  get the transaction commit time
      * ----------------
      */
     currentTime = GetSystemTime();
-    
+
     /* ----------------
-     *    update the log relation
+     *  update the log relation
      * ----------------
      */
-    TransComputeItemPointer(LogRelation, transactionId, &xptr);
-    TransItemPointerSetXidStatus(LogRelation,
-				 &xptr,
+    TransComputeBlockNumber(LogRelation, transactionId, &blockNumber);
+    TransBlockNumberSetXidStatus(LogRelation,
+				 blockNumber,
 				 transactionId,
 				 status,
 				 &fail);
+
+    /* ----------------
+     *	 update (invalidate) our single item TransactionLogTest cache.
+     * ----------------
+     */
+    TransactionIdStore(transactionId, &cachedTestXid);
+    cachedTestXidStatus = status;
     
     /* ----------------
      *	now we update the time relation, if necessary
@@ -168,14 +200,20 @@ TransactionLogUpdate(transactionId, status)
      * ----------------
      */
     if (RelationIsValid(TimeRelation) && status == XID_COMMIT) {
-	TransComputeItemPointer(TimeRelation, transactionId, &xptr);
-	TransItemPointerSetTransactionCommitTime(TimeRelation,
-						 &xptr,
-						 transactionId,
-						 currentTime,
-						 &fail);
+	TransComputeBlockNumber(TimeRelation, transactionId, &blockNumber);
+	TransBlockNumberSetCommitTime(TimeRelation,
+				      blockNumber,
+				      transactionId,
+				      currentTime,
+				      &fail);
+	/* ----------------
+	 *   update (invalidate) our single item GetCommitTime cache.
+	 * ----------------
+	 */
+	TransactionIdStore(transactionId, &cachedGetCommitTimeXid);
+	cachedGetCommitTime = currentTime;
     }
-    
+
     /* ----------------
      *	now we update the "last committed transaction" field
      *  in the variable relation if we are recording a commit.
@@ -183,6 +221,58 @@ TransactionLogUpdate(transactionId, status)
      */
     if (RelationIsValid(VariableRelation) && status == XID_COMMIT)
 	UpdateLastCommittedXid(transactionId);
+}
+
+/* --------------------------------
+ *	TransactionIdGetCommitTime
+ * --------------------------------
+ */
+
+Time  /* commit time of transaction id */
+TransactionIdGetCommitTime(transactionId)
+    TransactionId 	transactionId; 	/* transaction id to test */
+{
+    BlockNumber		blockNumber;
+    Time		commitTime;     /* commit time */
+    bool		fail;      	/* success/failure */
+    
+    /* ----------------
+     *   return invalid if we aren't running yet...
+     * ----------------
+     */
+    if (! RelationIsValid(TimeRelation))
+	return InvalidTime;
+
+    /* ----------------
+     *	 before going to the buffer manager, check our single
+     *   item cache to see if we didn't just get the commit time
+     *   a moment ago.
+     * ----------------
+     */
+    if (TransactionIdEquals(transactionId, &cachedGetCommitTimeXid))
+	return cachedGetCommitTime;
+    
+    /* ----------------
+     *	compute the item pointer corresponding to the
+     *  page containing our transaction commit time
+     * ----------------
+     */
+    TransComputeBlockNumber(TimeRelation, transactionId, &blockNumber);
+    commitTime = TransBlockNumberGetCommitTime(TimeRelation,
+					       blockNumber,
+					       transactionId,
+					       &fail);
+
+    /* ----------------
+     *	update our cache and return the transaction commit time
+     * ----------------
+     */
+    if (! fail) {
+	TransactionIdStore(transactionId, &cachedGetCommitTimeXid);
+	cachedGetCommitTime = commitTime;
+	return commitTime;
+    } else
+	return InvalidTime;
 }
 
 /* ----------------------------------------------------------------
@@ -346,6 +436,7 @@ InitializeTransactionLog()
     Relation	  timeRelation;
     Relation	  varRelation;
     MemoryContext oldContext;
+    BlockNumber	  n;
     bool	  fail;
     
     /* ----------------
@@ -381,24 +472,30 @@ InitializeTransactionLog()
 
     /* ----------------
      *   if we have a virgin database, we initialize the log and time
-     *	 relation by committing the AmiTransactionId (id 1) and we
+     *	 relation by committing the AmiTransactionId (id 512) and we
      *   initialize the variable relation by setting the next available
-     *   transaction id to FirstTransactionId (id 2).
+     *   transaction id to FirstTransactionId (id 514).
      * ----------------
      */
     n = RelationGetNumberOfBlocks(logRelation);
     if (n == 0) {
 	/* ----------------
-	 *   XXX transaction log update requires that LogRelation be
-	 *       valid so we temporarily set it so we can initialize
-	 *	 things properly.  This could be done cleaner.
+	 *   XXX TransactionLogUpdate requires that LogRelation
+	 *	 and TimeRelation are valid so we temporarily set
+	 *	 them so we can initialize things properly.
+	 *	 This could be done cleaner.
 	 * ----------------
 	 */
 	LogRelation =  logRelation;
 	TimeRelation = timeRelation;
-	
-	TransactionLogUpdate(&AmiTransactionId, XID_COMMIT);
-	VariableRelationSetNextXid(&FirstTransactionId);
+
+	/* ----------------
+	 *  SOMEDAY initialize the information stored in
+	 *          the headers of the log/time/variable relations.
+	 * ----------------
+	 */
+	TransactionLogUpdate(AmiTransactionId, XID_COMMIT);
+	VariableRelationPutNextXid(FirstTransactionId);
 	
 	LogRelation =  (Relation) NULL;
 	TimeRelation = (Relation) NULL;

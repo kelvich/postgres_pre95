@@ -8,13 +8,11 @@
  *   INTERFACE ROUTINES
  * 	AmiTransactionOverride
  *	CreateTransRelation
- *	CreateNewTransTuple
- *	TransComputeItemPointer
  *
- *	TransItemPointerGetXidStatus
- *	TransItemPointerSetXidStatus
- *	TransItemPointerGetCommitTime
- *	TransItemPointerSetCommitTime
+ *	TransBlockNumberGetXidStatus
+ *	TransBlockNumberSetXidStatus
+ *	TransBlockNumberGetCommitTime
+ *	TransBlockNumberSetCommitTime
  *	TransGetLastRecordedTransaction
  *
  *   NOTES
@@ -51,16 +49,14 @@ AmiTransactionOverride(flag)
  *	CreateTransRelation
  *
  *	This function does the work of creating the given specified
- *	relation using the TransTuple schema.
+ *	relation using a dummy schema.  
  * --------------------
  */
 
 AttributeTupleFormData
-    TransAtt1 = { 0l, "xid", 28, 0l, 0l, 0l,  5, 1, 0, '\000', '\001' };
-AttributeTupleFormData
-    TransAtt2 = { 0l, "data",   17, 0l, 0l, 0l, -1, 2, 0, '\000', '\001' };
+    DummyAtt1 = { 0l, "dummy", 28, 0l, 0l, 0l, 5, 1, 0, '\000', '\001' };
 AttributeTupleForm
-    TransTupleDescriptor[ TT_NumAttributes ] = { &TransAtt1, &TransAtt2 };
+    DummyTupleDescriptor[ 1 ] = { &DummyAtt1 };
 
 void
 CreateTransRelation(name)
@@ -68,136 +64,22 @@ CreateTransRelation(name)
 {
     RelationNameCreateHeapRelation(name,
 				   'n',
-				   TT_NumAttributes,
-				   TransTupleDescriptor);
-}
-
-/* --------------------
- *	CreateNewTransTuple
- *
- *	This function is used when we need a new trans tuple on a
- *	new page in the trans relation because no existing page
- *	in the trans relation contains the trans tuple we want --
- *	there is no tuple containing information associated with
- *	the given transaction id in the relation.
- *
- *	This function adds a page to the relation and initializes
- *	the page to contain the needed trans tuple.  An item pointer
- *	to the new trans tuple is returned.
- *
- *   	Notes to minimize confusion:
- *
- *   	VARSIZE is a macro which returns the size field of a varlena object
- *   	VARDATA is a macro which returns the data field of a varlena object
- *
- *	&ttupData[ sizeof(*tuple) ] is the address of the first byte
- *      beyond the tuple header. (tuples are variable length structures)
- * --------------------
- */
-
-ItemPointer	/* location of new trans tuple */
-CreateNewTransTuple(relation, id)
-    Relation		relation; /* relation */
-    TransactionId	id;	  /* base transaction id */
-{
-    HeapTuple		tuple;
-    TransTuple		ttup;
-    struct varlena 	*byteArrayP;
-    char		ttupData[ TT_HeapTupleSize ];
-
-    /* ----------------
-     *	initialize our pointer to the heap tuple header
-     * ----------------
-     */
-    tuple = (HeapTuple) &ttupData[0];
-
-    /* ----------------
-     *	initialize our pointer to the first byte in the tuple
-     *  past the heap tuple header where the attributes are stored.
-     * ----------------
-     */
-    ttup = (TransTuple) &ttupData[ sizeof(*tuple) ];
-
-    /* ----------------
-     *  Now, ttup->xid is the first attribute and ttup->data is
-     *  the second.  ttup->data is a variable length attribute.
-     *
-     *  initialize fields of the heap tuple header.  this is
-     *  stolen from the heap code.
-     * ----------------
-     */
-    tuple->t_len = 	   TT_HeapTupleSize;
-    tuple->t_lock.l_lock = InvalidRuleLock;
-    tuple->t_natts = 	   TT_NumAttributes;
-    tuple->t_hoff = 	   sizeof(HeapTupleData);
-    tuple->t_bits[0] =     0x3;		/* XXX unportable byte order? */
-    tuple->t_bits[1] =     0x0;
-    tuple->t_bits[2] =     0x0;
-    tuple->t_bits[3] =     0x0;
-
-    /* ----------------
-     *    initialize the first (xid) attribute
-     * ----------------
-     */
-    TransactionIdStore(id, &(ttup->xid));
-
-    /* ----------------
-     *    initialize the second (data) attribute
-     *
-     *	  XXX assuming the size of a variable length attribute
-     *        being an int32 will change soon when we implement
-     *	      arrays and "large attributes".  -cim 3/20/90
-     * ----------------
-     */
-    VARSIZE(&ttup->data) =
-	TT_TupleDataSize + sizeof(int32);
-	
-    bzero(VARDATA(&ttup->data), TT_TupleDataSize);
-
-    /* ----------------
-     *    insert tuple in relation and return item pointer.
-     *
-     *    XXX we have to guarantee that this is appended to
-     *	      the relation. -cim 3/20/90
-     * ----------------
-     */
-    (void) RelationInsertHeapTuple(relation, tuple, (double*) NULL);
-
-    return
-	(ItemPointer) &(tuple->t_ctid);
+				   1,
+				   DummyTupleDescriptor);
 }
 
 /* --------------------------------
- *	TransCacheLookup
- *
- *	This checks the (xid, item pointer) cache to see
- *	if we can avoid going to the buffer manager to get the
- *	heap item pointer associated with the TransTuple containing
- *	the status of xid, thus avoiding a disk I/O.
- * --------------------------------
- */
-
-ItemPointer
-TransCacheLookup(transactionId, relation)
-    TransactionId	transactionId;
-    Relation		relation;
-{
-    return ((ItemPointer) NULL);
-}
-
-/* --------------------------------
- *	TransComputeItemPointer
+ *	TransComputeBlockNumber
  * --------------------------------
  */
 void
-TransComputeItemPointer(relation, transactionId, iptr)
-    Relation	  	relation; 	/* relation to test */
-    TransactionId 	transactionId; 	/* transaction id to test */
-    ItemPointer		iptr;		/* item pointer to TransTuple */
+TransComputeBlockNumber(relation, transactionId, blockNumberOutP)
+    Relation	  		relation; 	/* relation to test */
+    TransactionId 		transactionId; 	/* transaction id to test */
+    BlockNumber			*blockNumberOutP;
 {
-    BlockNumber			block;
-    double			result;
     TransactionIdValueData	xidv;
+    TransactionIdValueData	itemsPerBlock;
     
     /* ----------------
      *  we calculate the block number of our transaction
@@ -206,86 +88,73 @@ TransComputeItemPointer(relation, transactionId, iptr)
      * ----------------
      */
     if (relation == LogRelation)
-	itemsPerPage = TT_NumXidStatusPerTuple;
+	itemsPerBlock = TP_NumXidStatusPerBlock;
     else if (relation == TimeRelation)
-	itemsPerPage = TT_NumTimePerTuple;
+	itemsPerBlock = TP_NumTimePerBlock;
     else
-	elog(WARN, "TransComputeItemPointer: unknown relation");
+	elog(WARN, "TransComputeBlockNumber: unknown relation");
     
     /* ----------------
      *	warning! if the transaction id's get too large
      *  then a BlockNumber may not be large enough to hold the results
-     *  of our division. 
+     *  of our division.
+     *
+     *	XXX  this will all vanish soon when we implement an improved
+     *       transaction id schema -cim 3/23/90
      * ----------------
      */
     TransactionIdSetTransactionIdValue(transactionId, &xidv);
-    result = xidv / itemsPerPage;
-    block = result;
-    
-    /* ----------------
-     *	place the computed block number into the given item pointer.
-     * ----------------
-     */
-    ItemPointerSimpleSet(iptr, block, 1);
+    (*blockNumberOutP) = xidv / itemsPerBlock;
 }
 
 
 /* ----------------------------------------------------------------
- *		     trans tuple support routines
+ *		     trans block support routines
  * ----------------------------------------------------------------
  */
   
 /* --------------------------------
- *	TransTupleGetLastTransactionIdStatus
+ *	TransBlockGetLastTransactionIdStatus
  *
  *	This returns the status and transaction id of the last
- *	transaction information recorded on the given TransTuple.
+ *	transaction information recorded on the given TransBlock.
  * --------------------------------
  */
 
 XidStatus
-TransTupleGetLastTransactionIdStatus(ttup, transactionId)
-    TransTuple		ttup;
-    TransactionId	transactionId;  /* RETURN */
+TransBlockGetLastTransactionIdStatus(tblock, baseXid, returnXid)
+    Pointer		tblock;
+    TransactionId	baseXid;
+    TransactionId	returnXid;  /* RETURN */
 {
     Index         index;
     Index         maxIndex;
-    BitArray      bitArray;
     bits8         bit1;
     bits8	  bit2;
     BitIndex      offset;
     TransactionId TTupXid;
-    XidStatus     status;
+    XidStatus     xstatus;
 
     /* ----------------
      *	sanity check
      * ----------------
      */
-    Assert((ttup != NULL));
+    Assert((tblock != NULL));
 
     /* ----------------
-     *	get the starting transaction id from the trans tuple
-     *  and calculate the maximum index into the tuple
-     * ----------------
-     */
-    TTupXid = (TransactionId) &(ttup->xid);
-    maxIndex = VARSIZE(&(ttup->data)) * 4;
-
-    /* ----------------
-     *	search downward from the top of the tuple data, looking
+     *	search downward from the top of the block data, looking
      *  for the first Non-in progress transaction status.  Since we
      *  are scanning backward, this will be last recorded transaction
-     *  status on the tuple.
+     *  status on the block.
      * ----------------
      */
+    maxIndex = TP_NumXidStatusPerBlock;
     for (index = maxIndex-1; index>=0; index--) {
-	offset =    BitIndexOf(index);
-	bitArray =  (BitArray) VARDATA(&(ttup->data));
-
-	bit1 =    ((bits8) BitArrayBitIsSet(bitArray, offset++)) << 1;
-	bit2 =    (bits8)  BitArrayBitIsSet(bitArray, offset);
+	offset =  BitIndexOf(index);
+	bit1 =    ((bits8) BitArrayBitIsSet(tblock, offset++)) << 1;
+	bit2 =    (bits8)  BitArrayBitIsSet(tblock, offset);
 	
-	status =  (bit1 | bit2) ;
+	xstatus =  (bit1 | bit2) ;
 
 	/* ----------------
 	 *  here we have the status of some transaction, so test
@@ -293,82 +162,87 @@ TransTupleGetLastTransactionIdStatus(ttup, transactionId)
 	 *  we save the transaction id in the place specified by the caller.
 	 * ----------------
 	 */
-	if (status != XID_INPROGRESS) {
-	    if (transactionId != NULL) {
-		TransactionIdStore(TTupXid, transactionId);
-		TransactionIdAdd(transactionId, index);
+	if (xstatus != XID_INPROGRESS) {
+	    if (returnXid != NULL) {
+		TransactionIdStore(baseXid, returnXid);
+		TransactionIdAdd(returnXid, index);
 	    }
 	    break;
 	}
+    }
 
-	if (index == 0) {
-	    if (transactionId != NULL)
-		TransactionIdStore(TTupXid, transactionId);
-	    break;
-	}
+    /* ----------------
+     *	if we get here and index is 0 it means we couldn't find
+     *  a non-inprogress transaction on the block.  For now we just
+     *  return this info to the user.  They can check if the return
+     *  status is "in progress" to know this condition has arisen.
+     * ----------------
+     */
+    if (index == 0) {
+	if (returnXid != NULL)
+	    TransactionIdStore(baseXid, returnXid);
     }
 
     /* ----------------
      *	return the status to the user
      * ----------------
      */
-    return status;
+    return xstatus;
 }
 
 /* --------------------------------
- *	TransTupleGetXidStatus
+ *	TransBlockGetXidStatus
  *
  *	This returns the status of the desired transaction
  * --------------------------------
  */
 
 XidStatus
-TransTupleGetXidStatus(ttup, transactionId, failP)
-    TransTuple		ttup;
+TransBlockGetXidStatus(tblock, transactionId)
+    Pointer		tblock;
     TransactionId	transactionId;
-    bool		*failP;
 {
-    Index       index;
-    Index       maxIndex;
-    BitArray    bitArray;
-    bits8       bit1;
-    bits8	bit2;
-    BitIndex    offset;
+    TransactionIdValueData	xidv;
+    TransactionIdValueData 	itemsPerBlock;
+    TransactionIdValueData 	result;
+    Index       		index;
+    bits8       		bit1;
+    bits8			bit2;
+    BitIndex    		offset;
 
-    (*failP) = false;
-    
     /* ----------------
      *	sanity check
      * ----------------
      */
-    if (ttup == NULL) {
-	(*failP) = true;
-	return;
+    if (tblock == NULL) {
+	return XID_INVALID;
     }
 
     /* ----------------
      *	calculate the index into the transaction data where
      *  our transaction status is located
+     *
+     *  XXX this will be replaced soon when we move to the
+     *      new transaction id scheme -cim 3/23/90
      * ----------------
      */
-    index = IntegerTransactionIdMinus(transactionId, ttup->xid);
-    maxIndex = VARSIZE(&(ttup->data)) * 4;
+    TransactionIdSetTransactionIdValue(transactionId, &xidv);
+    itemsPerBlock = TP_NumXidStatusPerBlock;
+    result = xidv - floor(xidv / itemsPerBlock) * itemsPerBlock;
+    index = result;
    
-    if (index >= maxIndex) {
-	(*failP) = true;
-	return;
+    if (index >= TP_NumXidStatusPerBlock) {
+	return XID_INVALID;
     }
-      
+    
     /* ----------------
      *	get the data at the specified index
      * ----------------
      */
     offset =    BitIndexOf(index);
-    bitArray =  (BitArray) VARDATA(&(ttup->data));
-
-    bit1 =      ((bits8)   BitArrayBitIsSet(bitArray, offset++)) << 1;
-    bit2 =      (bits8)    BitArrayBitIsSet(bitArray, offset);
-
+    bit1 =      ((bits8)   BitArrayBitIsSet(tblock, offset++)) << 1;
+    bit2 =      (bits8)    BitArrayBitIsSet(tblock, offset);
+    
     /* ----------------
      *	return the transaction status to the caller
      * ----------------
@@ -378,175 +252,173 @@ TransTupleGetXidStatus(ttup, transactionId, failP)
 }
 
 /* --------------------------------
- *	TransTupleSetXidStatus
+ *	TransBlockSetXidStatus
  *
  *	This sets the status of the desired transaction
  * --------------------------------
  */
 
 void
-TransTupleSetXidStatus(ttup, transactionId, status, failP)
-    TransTuple		ttup;
+TransBlockSetXidStatus(tblock, transactionId, xstatus)
+    Pointer		tblock;
     TransactionId	transactionId;
-    LogValue 		status;
-    bool		*failP;
+    XidStatus 		xstatus;
 {
-    Index       index;
-    Index       maxIndex;
-    BitArray    bitArray;
-    BitIndex    offset;
-
-    (*failP) = false;
+    TransactionIdValueData	xidv;
+    Index       		index;
+    BitIndex    		offset;
+    TransactionIdValueData 	itemsPerBlock;
+    TransactionIdValueData 	result;
     
     /* ----------------
      *	sanity check
      * ----------------
      */
-    if (ttup == NULL) {
-	(*failP) = true;
+    if (tblock == NULL)
 	return;
-    }
-
+    
     /* ----------------
      *	calculate the index into the transaction data where
-     *  we sould store our transaction status
+     *  we sould store our transaction status.
+     *
+     *  XXX this will be replaced soon when we move to the
+     *      new transaction id scheme -cim 3/23/90
      * ----------------
      */
-    index = IntegerTransactionIdMinus(transactionId, ttup->xid);
-    maxIndex = VARSIZE(&(ttup->data)) * 4;
-
-    if (index >= maxIndex) {
-	(*failP) = true;
+    TransactionIdSetTransactionIdValue(transactionId, &xidv);
+    itemsPerBlock = TP_NumXidStatusPerBlock;
+    result = xidv - floor(xidv / itemsPerBlock) * itemsPerBlock;
+    index = result;
+    
+    if (index >= TP_NumXidStatusPerBlock) 
 	return;
-    }
        
     offset =    BitIndexOf(index);
-    bitArray =  (BitArray) VARDATA(&(ttup->data));
-
+    
     /* ----------------
      *	store the transaction value at the specified offset
      * ----------------
      */
-    switch(status) {
+    switch(xstatus) {
     case XID_COMMIT:             /* set 10 */
-	BitArraySetBit(bitArray, offset);
-	BitArrayClearBit(bitArray, offset + 1);
+	BitArraySetBit(tblock, offset);
+	BitArrayClearBit(tblock, offset + 1);
 	break;
     case XID_ABORT:             /* set 01 */
-	BitArrayClearBit(bitArray, offset);
-	BitArraySetBit(bitArray, offset + 1);
+	BitArrayClearBit(tblock, offset);
+	BitArraySetBit(tblock, offset + 1);
 	break;
     case XID_INPROGRESS:        /* set 00 */
-	BitArrayClearBit(bitArray, offset);
-	BitArrayClearBit(bitArray, offset + 1);
+	BitArrayClearBit(tblock, offset);
+	BitArrayClearBit(tblock, offset + 1);
 	break;
     default:
 	elog(NOTICE,
-	     "TransTupleSetXidIdStatus: invalid status: %d (ignored)",
-	     status);
-	(*failP) = true;
+	     "TransBlockSetXidStatus: invalid status: %d (ignored)",
+	     xstatus);
 	break;
     }
 }
 
 /* --------------------------------
- *	TransTupleGetTransactionCommitTime
+ *	TransBlockGetCommitTime
  *
  *	This returns the transaction commit time for the
- *	specified transaction id in the trans tuple.
+ *	specified transaction id in the trans block.
  * --------------------------------
  */
 
 Time
-TransTupleGetTransactionCommitTime(ttup, transactionId, failP)
-    TransTuple		ttup;
+TransBlockGetCommitTime(tblock, transactionId)
+    Pointer		tblock;
     TransactionId	transactionId;
-    bool		*failP;
 {
-    Time	*timeArray;
-    Index	index;
-    Index       maxIndex;
-
-    (*failP) = false;
+    TransactionIdValueData	xidv;
+    Index			index;
+    Time			*timeArray;
+    TransactionIdValueData 	itemsPerBlock;
+    TransactionIdValueData 	result;
     
     /* ----------------
      *	sanity check
      * ----------------
      */
-    if (ttup == NULL) {
-	(*failP) = true;
-	return InvalidCommitTime;
-    }
-
+    if (tblock == NULL)
+	return InvalidTime;
+    
     /* ----------------
      *	calculate the index into the transaction data where
      *  our transaction commit time is located
+     *
+     *  XXX this will be replaced soon when we move to the
+     *      new transaction id scheme -cim 3/23/90
      * ----------------
      */
-    index = IntegerTransactionIdMinus(transactionId, ttup->xid);
-    maxIndex = VARSIZE(&(ttup->data)) / sizeof(Time);
-   
-    if (index >= maxIndex) {
-	(*failP) = true;
-	return InvalidCommitTime;
-    }
-
+    TransactionIdSetTransactionIdValue(transactionId, &xidv);
+    itemsPerBlock = TP_NumTimePerBlock;
+    result = xidv - floor(xidv / itemsPerBlock) * itemsPerBlock;
+    index = result;
+    
+    if (index >= TP_NumTimePerBlock)
+	return InvalidTime;
+    
     /* ----------------
      *	return the commit time to the caller
      * ----------------
      */
-    timeArray =  (Time *) VARDATA(&(ttup->data));
+    timeArray =  (Time *) tblock;
     return (Time)
 	timeArray[ index ];
 }
 
 /* --------------------------------
- *	TransTupleSetTransactionCommitTime
+ *	TransBlockSetCommitTime
  *
  *	This sets the commit time of the specified transaction
  * --------------------------------
  */
 
 void
-TransTupleSetTransactionCommitTime(ttup, transactionId, commitTime, failP)
-    TransTuple		ttup;
+TransBlockSetCommitTime(tblock, transactionId, commitTime)
+    Pointer		tblock;
     TransactionId	transactionId;
     Time 		commitTime;
-    bool		*failP;
 {
-    Time	*timeArray;
-    Index	index;
-    Index       maxIndex;
-
-    (*failP) = false;
+    TransactionIdValueData	xidv;
+    Index			index;
+    Time			*timeArray;
+    TransactionIdValueData 	itemsPerBlock;
+    TransactionIdValueData 	result;
     
     /* ----------------
      *	sanity check
      * ----------------
      */
-    if (ttup == NULL) {
-	(*failP) = true;
+    if (tblock == NULL)
 	return;
-    }
 
+    
     /* ----------------
      *	calculate the index into the transaction data where
-     *  we sould store our transaction status
+     *  we sould store our transaction status.  
+     *
+     *  XXX this will be replaced soon when we move to the
+     *      new transaction id scheme -cim 3/23/90
      * ----------------
      */
-    index = IntegerTransactionIdMinus(transactionId, ttup->xid);
-    maxIndex = VARSIZE(&(ttup->data)) / sizeof(Time);
+    TransactionIdSetTransactionIdValue(transactionId, &xidv);
+    itemsPerBlock = TP_NumTimePerBlock;
+    result = xidv - floor(xidv / itemsPerBlock) * itemsPerBlock;
+    index = result;
 
-    if (index >= maxIndex) {
-	(*failP) = true;
+    if (index >= TP_NumTimePerBlock)
 	return;
-    }
 
     /* ----------------
      *	store the transaction commit time at the specified index
      * ----------------
      */
-    timeArray =  (Time *) VARDATA(&(ttup->data));
+    timeArray =  (Time *) tblock;
     timeArray[ index ] = commitTime;
 }
 
@@ -556,183 +428,147 @@ TransTupleSetTransactionCommitTime(ttup, transactionId, commitTime, failP)
  */
 
 /* --------------------------------
- *	TransItemPointerGetXidStatus
+ *	TransBlockNumberGetXidStatus
  * --------------------------------
  */
 XidStatus
-TransItemPointerGetXidStatus(relation, iptr, xid, failP)
+TransBlockNumberGetXidStatus(relation, blockNumber, xid, failP)
     Relation		relation;
-    ItemPointer		iptr;
+    BlockNumber	   	blockNumber;
     TransactionId	xid;
     bool		*failP;
 {
-    PagePartition   	partition;	/* number partitions on page */
-    BlockNumber	   	blockNumber;	/* TransTuple block number */
-    PageNumber	  	pageNumber;	/* TransTuple page number */
-    OffsetNumber	offsetNumber;	/* item number on page of TransTuple */
     Buffer	   	buffer;		/* buffer associated with block */
-    Page		page;		/* page containing TransTuple */
-    ItemId	   	itemId;		/* item id referencing TransTuple */
-    Item		ttitem;		/* TransTuple containing xid status */
-    XidStatus		xidstatus;	/* recorded status of xid */
+    Block		block;		/* block containing xstatus */
+    XidStatus		xstatus;	/* recorded status of xid */
     bool		localfail;      /* bool used if failP = NULL */
 
     /* ----------------
-     *	get the block number and stuff from the item pointer
+     *	SOMEDAY place a read lock on the log relation
      * ----------------
      */
-    partition =    SinglePagePartition;
-    blockNumber =  ItemPointerGetBlockNumber(iptr);
-    pageNumber =   ItemPointerGetPageNumber(iptr, partition);
-    offsetNumber = ItemPointerGetOffsetNumber(iptr, partition);
 
     /* ----------------
-     *	get the page containing the tuple
+     *	get the page containing the transaction information
      * ----------------
      */
-    buffer = 	ReadBuffer(relation, blockNumber, 0);
-    page =   	BufferGetPageDebug(buffer, pageNumber);
+    buffer = 	   ReadBuffer(relation, blockNumber, 0);
+    block =   	   BufferGetBlock(buffer);
 
     /* ----------------
-     *	get the item on the page we want
-     * ----------------
-     */
-    itemId =    PageGetItemId(page, offsetNumber - 1);
-    ttitem =   	PageGetItem(page, itemId);
-
-    /* ----------------
-     *	get the status from the tuple
+     *	get the status from the block.  note, for now we always
+     *  return false in failP.
      * ----------------
      */
     if (failP == NULL)
 	failP = &localfail;
+    (*failP) = false;
 
-    xidstatus = TransTupleGetXidIdStatus(ttitem, xid, failP);
+    xstatus = TransBlockGetXidStatus(block, xid);
 
     /* ----------------
      *	release the buffer and return the status
      * ----------------
      */
     ReleaseBuffer(buffer);
-    
+
+    /* ----------------
+     *	SOMEDAY release our lock on the log relation
+     * ----------------
+     */
     return
-	xidstatus;
+	xstatus;
 }
 
 /* --------------------------------
- *	TransItemPointerSetXidStatus
+ *	TransBlockNumberSetXidStatus
  * --------------------------------
  */
 void
-TransItemPointerSetXidStatus(relation, iptr, xid, status, failP)
+TransBlockNumberSetXidStatus(relation, blockNumber, xid, xstatus, failP)
     Relation		relation;
-    ItemPointer		iptr;
+    BlockNumber	  	blockNumber;
     TransactionId	xid;
-    XidStatus		xidstatus;
+    XidStatus		xstatus;
     bool		*failP;
 {
-    PagePartition   	partition;	/* number partitions on page */
-    BlockNumber	   	blockNumber;	/* TransTuple block number */
-    PageNumber	  	pageNumber;	/* TransTuple page number */
-    OffsetNumber	offsetNumber;	/* item number on page of TransTuple */
     Buffer	   	buffer;		/* buffer associated with block */
-    Page		page;		/* page containing TransTuple */
-    ItemId	   	itemId;		/* item id referencing TransTuple */
-    Item		ttitem;		/* TransTuple containing xid status */
+    Block		block;		/* block containing xstatus */
     bool		localfail;      /* bool used if failP = NULL */
     
     /* ----------------
-     *	get the block number and stuff from the item pointer
+     *	SOMEDAY gain exclusive access to the log relation
      * ----------------
      */
-    partition =    SinglePagePartition;
-    blockNumber =  ItemPointerGetBlockNumber(iptr);
-    pageNumber =   ItemPointerGetPageNumber(iptr, partition);
-    offsetNumber = ItemPointerGetOffsetNumber(iptr, partition);
-    
-    /* ----------------
-     *	get the page containing the tuple
-     * ----------------
-     */
-    buffer = ReadBuffer(relation, blockNumber, 0);
-    page =   BufferGetPageDebug(buffer, pageNumber);
-    
-    /* ----------------
-     *	get the item on the page
-     * ----------------
-     */
-    itemId =   	PageGetItemId(page, offsetNumber - 1);
-    ttitem =   	PageGetItem(page, itemId);
 
     /* ----------------
-     *	attempt to update the status of the transaction on the page.
-     *  if we are successful, write the page. otherwise release the buffer.
+     *	get the block containing the transaction status
+     * ----------------
+     */
+    buffer = 	ReadBuffer(relation, blockNumber, 0);
+    block =   	BufferGetBlock(buffer);
+    
+    /* ----------------
+     *	attempt to update the status of the transaction on the block.
+     *  if we are successful, write the block. otherwise release the buffer.
+     *  note, for now we always return false in failP.
      * ----------------
      */
     if (failP == NULL)
 	failP = &localfail;
+    (*failP) == false;
     
-    TransTupleSetXidStatus(ttitem, xid, status, failP);
+    TransBlockSetXidStatus(block, xid, xstatus);
 
     if ((*failP) == false)
 	WriteBuffer(buffer);
     else
 	ReleaseBuffer(buffer);
+
+    /* ----------------
+     *	SOMEDAY release our lock on the log relation
+     * ----------------
+     */    
 }
 
 /* --------------------------------
- *	TransItemPointerGetCommitTime
+ *	TransBlockNumberGetCommitTime
  * --------------------------------
  */
 Time
-TransItemPointerGetCommitTime(relation, iptr, xid, failP)
+TransBlockNumberGetCommitTime(relation, blockNumber, xid, failP)
     Relation		relation;
-    ItemPointer		iptr;
+    BlockNumber	   	blockNumber;
     TransactionId	xid;
     bool		*failP;
 {
-    PagePartition   	partition;	/* number partitions on btree page */
-    BlockNumber	   	blockNumber;	/* TransTuple block number */
-    PageNumber	  	pageNumber;	/* TransTuple page number */
-    OffsetNumber	offsetNumber;	/* item number on page of TransTuple */
     Buffer	   	buffer;		/* buffer associated with block */
-    Page		page;		/* page containing TransTuple */
-    ItemId	   	itemId;		/* item id referencing TransTuple */
-    Item		ttitem;		/* TransTuple containing xid status */
-    Time		xtime;		/* recorded commit time of xid */
+    Block		block;		/* block containing commit time */
     bool		localfail;      /* bool used if failP = NULL */
-
+    Time		xtime;		/* commit time */
+    
     /* ----------------
-     *	get the block number and stuff from the item pointer
+     *	SOMEDAY place a read lock on the time relation
      * ----------------
      */
-    partition =    SinglePagePartition;
-    blockNumber =  ItemPointerGetBlockNumber(iptr);
-    pageNumber =   ItemPointerGetPageNumber(iptr, partition);
-    offsetNumber = ItemPointerGetOffsetNumber(iptr, partition);
-
+    
     /* ----------------
-     *	get the page containing the tuple
+     *	get the block containing the transaction information
      * ----------------
      */
-    buffer = 	ReadBuffer(relation, blockNumber, 0);
-    page =   	BufferGetPageDebug(buffer, pageNumber);
+    buffer = 		ReadBuffer(relation, blockNumber, 0);
+    block =   		BufferGetBlock(buffer);
 
     /* ----------------
-     *	get the item on the page we want
-     * ----------------
-     */
-    itemId =    PageGetItemId(page, offsetNumber - 1);
-    ttitem =   	PageGetItem(page, itemId);
-
-    /* ----------------
-     *	get the commit time from the tuple
+     *	get the commit time from the block
+     *  note, for now we always return false in failP.
      * ----------------
      */
     if (failP == NULL)
 	failP = &localfail;
-
-    xtime = TransTupleGetTransactionCommitTime(ttitem, xid, failP);
+    (*failP) == false;
+    
+    xtime = TransBlockGetCommitTime(block, xid);
 
     /* ----------------
      *	release the buffer and return the commit time
@@ -740,71 +576,66 @@ TransItemPointerGetCommitTime(relation, iptr, xid, failP)
      */
     ReleaseBuffer(buffer);
     
+    /* ----------------
+     *	SOMEDAY release our lock on the time relation
+     * ----------------
+     */
     if ((*failP) == false)
 	return xtime;
     else
-	return InvalidCommitTime;
+	return InvalidTime;
+
 }
 
 /* --------------------------------
- *	TransItemPointerSetCommitTime
+ *	TransBlockNumberSetCommitTime
  * --------------------------------
  */
 void
-TransItemPointerSetCommitTime(relation, iptr, xid, xtime, failP)
+TransBlockNumberSetCommitTime(relation, blockNumber, xid, xtime, failP)
     Relation		relation;
-    ItemPointer		iptr;
+    BlockNumber	  	blockNumber;
     TransactionId	xid;
     Time		xtime;
     bool		*failP;
 {
-    PagePartition   	partition;	/* number partitions on btree page */
-    BlockNumber	   	blockNumber;	/* TransTuple block number */
-    PageNumber	  	pageNumber;	/* TransTuple page number */
-    OffsetNumber	offsetNumber;	/* item number on page of TransTuple */
     Buffer	   	buffer;		/* buffer associated with block */
-    Page		page;		/* page containing TransTuple */
-    ItemId	   	itemId;		/* item id referencing TransTuple */
-    Item		ttitem;		/* TransTuple containing xid status */
+    Block		block;		/* block containing commit time */
     bool		localfail;      /* bool used if failP = NULL */
 
     /* ----------------
-     *	get the block number and stuff from the item pointer
+     *	SOMEDAY gain exclusive access to the time relation
      * ----------------
      */
-    partition =    SinglePagePartition;
-    blockNumber =  ItemPointerGetBlockNumber(iptr);
-    pageNumber =   ItemPointerGetPageNumber(iptr, partition);
-    offsetNumber = ItemPointerGetOffsetNumber(iptr, partition);
-
+    
     /* ----------------
-     *	get the page containing the tuple
+     *	get the block containing our commit time
      * ----------------
      */
-    buffer = 	ReadBuffer(relation, blockNumber, 0);
-    page =   	BufferGetPageDebug(buffer, pageNumber);
+    buffer = 	   ReadBuffer(relation, blockNumber, 0);
+    block =   	   BufferGetBlock(buffer);
 
     /* ----------------
-     *	get the item on the page we want
-     * ----------------
-     */
-    itemId =    PageGetItemId(page, offsetNumber - 1);
-    ttitem =   	PageGetItem(page, itemId);
-
-    /* ----------------
-     *	attempt to update the commit time of the transaction on the page.
-     *  if we are successful, write the page. otherwise release the buffer.
+     *	attempt to update the commit time of the transaction on the block.
+     *  if we are successful, write the block. otherwise release the buffer.
+     *  note, for now we always return false in failP.
      * ----------------
      */
     if (failP == NULL)
 	failP = &localfail;
+    (*failP) = false;
     
-    TransTupleSetTransactionCommitTime(ttitem, xid, status, xtime, failP);
+    TransBlockSetCommitTime(block, xid, xtime);
 
     if ((*failP) == false)
 	WriteBuffer(buffer);
     else
 	ReleaseBuffer(buffer);
+    
+    /* ----------------
+     *	SOMEDAY release our lock on the time relation
+     * ----------------
+     */
 }
 
 /* --------------------------------
@@ -817,20 +648,21 @@ TransGetLastRecordedTransaction(relation, xid, failP)
     TransactionId	xid;		/* return: transaction id */
     bool		*failP;
 {
-    PagePartition   	partition;	/* number partitions on page */
-    BlockNumber	   	blockNumber;	/* TransTuple block number */
-    PageNumber	  	pageNumber;	/* TransTuple page number */
-    OffsetNumber	offsetNumber;	/* item number on page of TransTuple */
+    BlockNumber	  	blockNumber;	/* block number */
     Buffer	   	buffer;		/* buffer associated with block */
-    Page		page;		/* page containing TransTuple */
-    ItemId	   	itemId;		/* item id referencing TransTuple */
-    Item		ttitem;		/* TransTuple containing xid status */
-    BlockNumber		n;		/* number of pages in the relation */
-
-    (*failP) = false;
+    Block		block;		/* block containing xid status */
+    BlockNumber		n;		/* number of blocks in the relation */
+    TransactionIdValueData xidv;	/* arithmetic representation of xid */
+    TransactionIdData	baseXid;
     
+    (*failP) = false;
+
     /* ----------------
-     *	we assume the last page of the log contains the last
+     *	SOMEDAY gain exclusive access to the log relation
+     * ----------------
+     */
+    /* ----------------
+     *	we assume the last block of the log contains the last
      *  recorded transaction.  If the relation is empty we return
      *  failure to the user.
      * ----------------
@@ -842,26 +674,27 @@ TransGetLastRecordedTransaction(relation, xid, failP)
     }
 
     /* ----------------
-     *	get the page containing the tuple
+     *	get the block containing the transaction information
      * ----------------
      */
-    partition =    SinglePagePartition;
     blockNumber =  n-1;
-    pageNumber =   0;
-    offsetNumber = 0;
-
     buffer = 	ReadBuffer(relation, blockNumber, 0);
-    page =   	BufferGetPageDebug(buffer, pageNumber);
+    block =   	BufferGetBlock(buffer);
 
     /* ----------------
-     *	get the item on the page we want
+     *	get the last xid on the block
      * ----------------
      */
-    itemId =    PageGetItemId(page, offsetNumber - 1);
-    ttitem =   	PageGetItem(page, itemId);
-
-    (void) TransTupleGetLastTransactionIdStatus(ttitem, xid);
+    xidv = blockNumber * TP_NumXidStatusPerBlock;
+    TransactionIdValueSetTransactionId(&xidv, &baseXid);
+    
+    (void) TransBlockGetLastTransactionIdStatus(block, &baseXid, xid);
     
     ReleaseBuffer(buffer);
+
+    /* ----------------
+     *	SOMEDAY release our lock on the log relation
+     * ----------------
+     */
 }
 
