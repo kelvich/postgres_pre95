@@ -282,3 +282,139 @@ RelationPutLongHeapTuple(relation, tuple)
 
 	/* return(TIDFOR(blockNumber, 0)); */
 }
+
+/*
+ * The heap_insert routines "know" that a buffer page is initialized to
+ * zero when a BlockExtend operation is performed. 
+ */
+
+#define PageIsBrandNew(page) ((page)->pd_upper == 0)
+
+/*
+ * This routine is another in the series of attempts to reduce the number
+ * of I/O's and system calls executed in the various benchmarks.  In
+ * particular, this routine is used to append data to the end of a relation
+ * file without excessive lseeks.  This code should do no more than 2 semops
+ * in the ideal case.
+ *
+ * Eventually, we should cache the number of blocks in a relation somewhere.
+ * Until that time, this code will have to do an lseek to determine the number
+ * of blocks in a relation.
+ * 
+ * This code should ideally do at most 4 semops, 1 lseek, and possibly 1 write
+ * to do an append; it's possible to eliminate 2 of the semops if we do direct
+ * buffer stuff (!); the lseek and the write can go if we get
+ * RelationGetNumberOfBlocks to be useful.
+ *
+ * NOTE: This code presumes that we have a write lock on the relation.
+ *
+ * Also note that this routine probably shouldn't have to exist, and does
+ * screw up the call graph rather badly, but we are wasting so much time and
+ * system resources being massively general that we are losing badly in our
+ * performance benchmarks.
+ */
+
+void
+RelationPutHeapTupleAtEnd(relation, tuple)
+
+Relation relation;
+HeapTuple tuple;
+
+{
+	Buffer		buffer;
+	PageHeader	pageHeader;
+	BlockNumber	lastblock;
+	OffsetIndex	offsetIndex;
+	unsigned	len;
+	ItemId		itemId;
+	Item		item;
+	bool		init = false;
+
+	/* ----------------
+	 *	increment access statistics
+	 * ----------------
+	 */
+	IncrHeapAccessStat(local_RelationPutHeapTuple);
+	IncrHeapAccessStat(global_RelationPutHeapTuple);
+
+	Assert(RelationIsValid(relation));
+	Assert(HeapTupleIsValid(tuple));
+
+	/*
+	 * XXX This does an lseek - VERY expensive - but at the moment it
+	 * is the only way to accurately determine how many blocks are in
+	 * a relation.  A good optimization would be to get this to actually
+	 * work properly.
+	 */
+
+	lastblock = RelationGetNumberOfBlocks(relation);
+
+	/*
+	 * If the above returns zero, we have not yet written any tuples to
+	 * this relation.  We need to initialize things here.
+	 */
+
+	if (lastblock == 0)
+	{
+		buffer = ReadBuffer(relation, 0);
+		pageHeader = LintCast(PageHeader, BufferSimpleGetPage(buffer));
+
+		if (PageIsBrandNew(pageHeader))
+		{
+			BufferSimpleInitPage(buffer);
+			init = true;
+		}
+
+		len = (unsigned)LONGALIGN(tuple->t_len);
+	}
+	else
+	{
+		lastblock--;
+		buffer = ReadBuffer(relation, lastblock);
+		pageHeader = LintCast(PageHeader, BufferSimpleGetPage(buffer));
+		len = (unsigned)LONGALIGN(tuple->t_len);
+	}
+
+	if (len > PageGetFreeSpace(pageHeader))
+	{
+		buffer = ReleaseAndReadBuffer(buffer, relation, ++lastblock);
+		pageHeader = LintCast(PageHeader, BufferSimpleGetPage(buffer));
+
+		if (PageIsBrandNew(pageHeader))
+		{
+			init = true;
+			BufferSimpleInitPage(buffer);
+		}
+		else
+			elog(FATAL, "doinsert: Page info is corrupted");
+
+		if (len > PageGetFreeSpace(pageHeader))
+			elog(WARN, "Tuple is too big: size %d", len);
+	}
+
+	offsetIndex = PageAddItem((Page)pageHeader, (Item)tuple,
+		tuple->t_len, InvalidOffsetNumber, LP_USED) - 1;
+
+	itemId = PageGetItemId((Page)pageHeader, offsetIndex);
+	item = PageGetItem((Page)pageHeader, itemId);
+
+	ItemPointerSimpleSet(&LintCast(HeapTuple, item)->t_ctid, lastblock,
+		1 + offsetIndex);
+
+	HeapTupleStoreRuleLock(LintCast(HeapTuple, item), buffer);
+
+	/*
+	 * XXX We have to do this in order to make RelationGetNumberOfBlocks
+	 * do the right thing for us.  Until RelationGetNumberOfBlocks is
+	 * actually working, we'll have to do this incredibly crufty thing.
+	 */
+
+	if (init)
+	{
+		FlushBuffer(buffer);
+	}
+	else
+	{
+		BufferPut(buffer, L_UN | L_EX | L_WRITE);
+	}
+}
