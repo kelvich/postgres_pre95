@@ -22,10 +22,12 @@
 .\" 
 .\" The POSTGRES User Manual
 .\" 
+.\" typeset this document with: groff -set -me -Tps manual.me
+.\" 
 .\" $Header$
 .\" 
 .\" ----------------------------------------------------------------
-.\".he '\*(dA'DRAFT'\*(tI'		\" comment out in production version
+.he '\*(dA'DRAFT'\*(tI'		\" comment out in production version
 .\"------------------------------------
 .de cW					\" arg3arg1arg2, constant-width arg1
 \&\\$3\\fC\\$1\\fP\\$2
@@ -100,7 +102,7 @@
 \s+3The \*(PP User Manual\s0
 .sp 2
 .i
-Edited by Paul M. Aoki, Jim Frew and The \*(PP Group
+Edited by the \*(PP Group
 Computer Science Div., Dept. of EECS
 University of California at Berkeley
 .r
@@ -172,11 +174,12 @@ H-P 9000/700 (PA-RISC)|HP-UX 9.01
 IBM RS/6000 (POWER)|AIX 3.2.3
 .TE
 .(f
-\*(UU is a trademark of Unix Systems Laboratories, Inc..  SPARC, SunOS
-and Solaris are trademarks of Sun Microsystems, Inc.  DECstation,
+\*(UU is a trademark of Unix Systems Laboratories.  Sun4, SPARC, SunOS
+and Solaris are trademarks of Sun Microsystems, Inc.  DEC, DECstation,
 Alpha AXP and ULTRIX are trademarks of Digital Equipment Corp.
 PA-RISC and HP-UX are trademarks of Hewlett-Packard Co.  RS/6000,
-POWER and AIX are trademarks of International Business Machines.
+POWER and AIX are trademarks of International Business Machines Corp.
+OSF/1 is a trademark of the Open Systems Foundation.
 .)f
 Previous versions of \*(PP ran on Sun Microsystems Sun3 and Sequent
 Symmetry machines.  \*(PP no longer runs on these systems, nor does it
@@ -2704,7 +2707,12 @@ pg_group|user groups
 .lp
 Before executing any of the queries below, be sure to execute the \*(PP
 .cW vacuum
-command.  (The queries will run much more quickly that way.)
+command.  (The queries will run much more quickly that way.)  Also,
+note that the text used to generate this document can be found in
+.(C
+\&.../src/doc/manual.me
+.)C
+so use cut-and-paste instead of doing a lot of typing.
 .lp
 This query prints the names of all database adminstrators and the name
 of their database(s).
@@ -2717,17 +2725,35 @@ of their database(s).
       sort by user_name, database
  \\g
 .)C
-The following query lists all user-defined classes in the database.
+This query lists all user-defined classes in the database.
 .(C
 * retrieve (class_name = c.relname)
       from c in pg_class
-      where c.relkind = 'r'     /* exclude indexes */
-        and c.relname !~ "^pg_"  /* exclude catalogs */
+      where c.relkind = 'r'      /* no indexes */
+        and c.relname !~ "^pg_"  /* no catalogs */
       sort by class_name
  \\g
 .)C
-The following query prints a report of the user-defined attributes and
-their types for all user-defined classes in the database.
+This query lists all simple indices (i.e., those that are not defined
+over a function of several attributes).
+.(C
+* retrieve (class_name = bc.relname,
+            index_name = ic.relname,
+            attr_name = a.attname)
+      from bc in pg_class,         /* base class */
+           ic in pg_class,         /* index class */
+           i in pg_index,
+           a in pg_attribute       /* att in base */
+      where i.indrelid = bc.oid
+        and i.indexrelid = ic.oid
+        and i.indkey[0] = a.attnum
+        and a.attrelid = bc.oid
+        and i.indproc = "0"::oid   /* no functional indices */
+      sort by class_name, index_name, 
+              attr_name
+.)C
+This query prints a report of the user-defined attributes and their
+types for all user-defined classes in the database.
 .(C
 * retrieve (class_name = c.relname, 
             attr_name = a.attname, 
@@ -2735,12 +2761,26 @@ their types for all user-defined classes in the database.
       from c in pg_class,
            a in pg_attribute,
            t in pg_type
-      where c.relkind = 'r'    /* no indexes */
+      where c.relkind = 'r'     /* no indexes */
         and c.relname !~ "^pg_" /* no catalogs */
-        and a.attnum > 0       /* no system att's */
+        and a.attnum > 0        /* no system att's */
         and a.attrelid = c.oid
         and a.atttypid = t.oid
       sort by class_name, attr_name
+ \\g
+.)C
+This query lists all user-defined base types (not including array
+types).
+.(C
+* retrieve (owner_name = u.usename,
+            type_name = t.typname)
+      from t in pg_type,
+           u in pg_user
+      where u.usesysid = int2in(int4out(t.typowner))
+        and t.typrelid = "0"::oid   /* no complex types */
+        and t.typelem = "0"::oid    /* no arrays */
+        and u.usename != "postgres"
+      sort by owner_name, type_name
  \\g
 .)C
 This query lists all left-associative (post-fix) operators.
@@ -2751,7 +2791,7 @@ This query lists all left-associative (post-fix) operators.
       from o in pg_operator,
            right in pg_type,
            result in pg_type
-      where o.oprkind = 'l'
+      where o.oprkind = 'l'           /* left assoc */
         and o.oprright = right.oid
         and o.oprresult = result.oid
       sort by operand
@@ -2765,7 +2805,7 @@ This query lists all right-associative (pre-fix) operators.
       from o in pg_operator,
            left in pg_type,
            result in pg_type
-      where o.oprkind = 'r'
+      where o.oprkind = 'r'          /* right assoc */
         and o.oprleft = left.oid
         and o.oprresult = result.oid
       sort by operand
@@ -2781,7 +2821,7 @@ This query lists all binary operators.
            left in pg_type,
            right in pg_type,
            result in pg_type
-      where o.oprkind = 'b'
+      where o.oprkind = 'b'         /* binary */
         and o.oprleft = left.oid
         and o.oprright = right.oid
         and o.oprresult = result.oid
@@ -2812,15 +2852,34 @@ to
  \\g
 .)C
 This query lists all of the aggregate functions that have been
-installed, except for 
+installed and the types to which they can be applied.
 .cW count
-(which can take any type as its argument).
+is not included because it can take any type as its argument.
 .(C
-* retrieve (a.aggname, t.typname)
+* retrieve (aggregate_name = a.aggname,
+            type_name = t.typname)
       from a in pg_aggregate,
            t in pg_type
       where a.aggbasetype = t.oid
-      sort by aggname
+      sort by aggregate_name, type_name
+ \\g
+.)C
+This query lists all of the operator classes that can be used with
+each access method as well as the operators that can be used with the
+respective operator classes.
+.(C
+* retrieve (access_method = am.amname,
+            operator_class = opc.opcname,
+            operator_name = opr.oprname)
+      from am in pg_am,
+           amop in pg_amop,
+           opc in pg_opclass,
+           opr in pg_operator
+      where amop.amopid = am.oid
+        and amop.amopclaid = opc.oid
+        and amop.amopopr = opr.oid
+      sort by access_method, operator_class, 
+              operator_name
  \\g
 .)C
 .\"---------------------------------------------------------------------------
@@ -3578,7 +3637,11 @@ and re-reread) the manual pages for the C compiler,
 .cW cc (1),
 and the link editor,
 .cW ld (1),
-if you have specific questions.
+if you have specific questions.  In addition, the regression test
+suites in the directory
+.cW /usr/local/postgres/src/regress
+contain several working examples of this process.  If you copy what
+these tests do, you should not have any problems.
 .lp
 The following terminology will be used below:
 .ip "Dynamic loading"
@@ -3799,8 +3862,17 @@ flag must be produced by hand (using the
 .cW mkldexport
 command, as shown) before the
 .cW .so
-shared object file can be produced.
-.lp
+shared object file can be produced.\**
+.(f
+\** If you wish to create a shared object file for use with untrusted
+functions (see the Reference Manual under the heading
+.b "define function" ,
+you must use the
+.cW pg_ufp.exp
+exports file instead of the
+.cW postgres.exp
+exports file.
+.)f
 You are probably asking,
 .q "If it's so easy, why not do it all for me?!"
 In fact, the magic command lines given above do work in most cases and
