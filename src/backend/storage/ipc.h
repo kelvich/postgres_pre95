@@ -11,7 +11,7 @@
 
 #include "tmp/c.h"
 
-#if defined(sequent) || defined(sparc)
+#if defined(sequent) || defined(sparc) || defined(sun3)
 #define HAS_TEST_AND_SET
 #endif
 
