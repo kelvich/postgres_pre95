@@ -21,13 +21,9 @@
  *	fastpath #defines
  * ----------------
  */
-#define FUNCTION_BY_NAME 	(-1)
-#define MAX_FUNC_NAME_LENGTH	80
 #define VAR_LENGTH_RESULT 	(-1)
 #define VAR_LENGTH_ARG 		(-5)
-#define MAX_STRING_LENGTH 	100
+#define MAX_STRING_LENGTH 	256
 #define PORTAL_RESULT 		(-2)
-#define PASS_BY_REF 		(1)
-#define PASS_BY_VALUE 		(0)
 
 #endif FastpathIncluded

@@ -580,18 +580,18 @@ DATA(insert OID = 948 (  oidchar16cmp	   PGUID 11 f t f 2 f 23 "911 911" 100 0 0
 DATA(insert OID = 949 (  mkoidchar16	   PGUID 11 f t f 2 f 911 "26 19" 100 0 0 100  foo bar));
 
 DATA(insert OID = 950 (  FilenameToOID     PGUID 11 f t f 1 f 26 "605" 100 0 0 100  foo bar ));
-DATA(insert OID = 951 (  LOcreatOID        PGUID 11 f t f 1 f 26 "0" 100 0 0 100  foo bar ));
-DATA(insert OID = 952 (  LOopen            PGUID 11 f t f 2 f 23 "25 23" 100 0 0 100  foo bar ));
+DATA(insert OID = 951 (  LOcreatOID        PGUID 11 f t f 2 f 26 "0 23" 100 0 0 100  foo bar ));
+DATA(insert OID = 952 (  LOopen            PGUID 11 f t f 2 f 23 "0 23" 100 0 0 100  foo bar ));
 DATA(insert OID = 953 (  LOclose           PGUID 11 f t f 1 f 23 "23" 100 0 0 100  foo bar ));
-DATA(insert OID = 954 (  LOread            PGUID 11 f t f 2 f 17 "0 0" 100 0 0 100  foo bar ));
-DATA(insert OID = 955 (  LOwrite           PGUID 11 f t f 2 f 23 "0 0" 100 0 0 100  foo bar ));
-DATA(insert OID = 956 (  LOlseek           PGUID 11 f t f 3 f 23 "0 0 0" 100 0 0 100  foo bar ));
-DATA(insert OID = 957 (  LOcreat           PGUID 11 f t f 3 f 23 "0 0 0" 100 0 0 100  foo bar ));
-DATA(insert OID = 958 (  LOtell            PGUID 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
-DATA(insert OID = 959 (  LOftruncate       PGUID 11 f t f 2 f 23 "0 0" 100 0 0 100  foo bar ));
+DATA(insert OID = 954 (  LOread            PGUID 11 f t f 2 f 17 "23 23" 100 0 0 100  foo bar ));
+DATA(insert OID = 955 (  LOwrite           PGUID 11 f t f 2 f 23 "23 17" 100 0 0 100  foo bar ));
+DATA(insert OID = 956 (  LOlseek           PGUID 11 f t f 3 f 23 "23 23 23" 100 0 0 100  foo bar ));
+DATA(insert OID = 957 (  LOcreat           PGUID 11 f t f 3 f 23 "0 23 23" 100 0 0 100  foo bar ));
+DATA(insert OID = 958 (  LOtell            PGUID 11 f t f 1 f 23 "23" 100 0 0 100  foo bar ));
+DATA(insert OID = 959 (  LOftruncate       PGUID 11 f t f 1 f 23 "23" 100 0 0 100  foo bar ));
 DATA(insert OID = 960 (  LOstat            PGUID 11 f t f 1 f 17 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 961 (  LOrename          PGUID 11 f t f 2 f 23 "0 0" 100 0 0 100  foo bar ));
-DATA(insert OID = 962 (  LOmkdir           PGUID 11 f t f 2 f 23 "0 0" 100 0 0 100  foo bar ));
+DATA(insert OID = 962 (  LOmkdir           PGUID 11 f t f 2 f 23 "0 23" 100 0 0 100  foo bar ));
 DATA(insert OID = 963 (  LOrmdir           PGUID 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 964 (  LOunlink          PGUID 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 

@@ -6,18 +6,37 @@
  * 	routines to handle function requests from the frontend
  *
  *   INTERFACE ROUTINES
- *	
+ *	HandleFunctionRequest
+ *
  *   NOTES
- *	this protocol was hacked up quickly - should decide this
- *	and then synchronize code in lib/libpq/{fe,be}-pqexec.c 
+ *	This cruft is the server side of PQfn.
  *
- *	error condition may be asserted by fmgr code and
- *   	an "elog" propagated to the frontend independent of the
- *   	code in this module
+ *	The VAR_LENGTH_{ARGS,RESULT} stuff is limited to MAX_STRING_LENGTH
+ *	(see src/backend/tmp/fastpath.h) for no obvious reason.  Since its
+ *	primary use (for us) is for Inversion path names, it should probably
+ *	be increased to 256 (MAXPATHLEN for Inversion, hidden in pg_type
+ *	as well as utils/adt/filename.c).
  *
- *      for no good reason, function names are limited to 80 chars
- *      by this module.
+ *	Quoth PMA on 08/15/93:
+ *
+ *	This code has been almost completely rewritten with an eye to
+ *	keeping it as compatible as possible with the previous (broken)
+ *	implementation.
+ *
+ *	The previous implementation would assume (1) that any value of
+ *	length <= 4 bytes was passed-by-value, and that any other value
+ *	was a struct varlena (by-reference).  There was NO way to pass a
+ *	fixed-length by-reference argument (like char16) or a struct
+ *	varlena of size <= 4 bytes.
  *	
+ *	The new implementation checks the catalogs to determine whether
+ *	a value is by-value (type "0" is null-delimited character string,
+ *	as it is for, e.g., the parser).  The only other item obtained
+ *	from the catalogs is whether or not the value should be placed in
+ *	a struct varlena or not.  Otherwise, the size given by the
+ *	frontend is assumed to be correct (probably a bad decision, but
+ *	we do strange things in the name of compatibility).
+ *
  *   IDENTIFICATION
  *	$Header$
  * ----------------------------------------------------------------
@@ -43,123 +62,278 @@
 #include "utils/palloc.h"
 #include "fmgr.h"
 #include "utils/log.h"
+#include "utils/builtins.h"	/* for oideq */
+#include "tmp/fastpath.h"
+#include "tmp/libpq.h"
+
+#include "access/xact.h"	/* for TransactionId/CommandId protos */
 
 #include "catalog/syscache.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
 
-#include "tmp/fastpath.h"
+
+/* ----------------
+ *	SendPortalResult
+ * ----------------
+ */
+static void
+SendPortalResult()
+{
+    pq_putnchar("V", 1);
+    pq_putint(0, 4);		/* bogus function id */
+}
+
 
 /* ----------------
  *	SendFunctionResult
  * ----------------
  */
 static void
-SendFunctionResult ( fid, retval, retsize )
-     int fid;
-     char *retval;
-     int retsize;
+SendFunctionResult(fid, retval, retbyval, retlen, retsize)
+    ObjectId fid;	/* function id */
+    char *retval;	/* actual return value */
+    bool retbyval;
+    int retlen;		/* the length according to the catalogs */
+    int retsize;	/* whatever the frontend passed */
 {
-    char *retdata;
-
-#if 0    
-    printf("Sending results %d, %d, %d",fid,retval,retsize);
-#endif    
-    
-    pq_putnchar("V",1);
-    pq_putint(fid,4);
+    pq_putnchar("V", 1);
+    pq_putint(fid, 4);
     
     switch (retsize) {
-
-      case 0: 			/* void retval */
+    case 0: 			/* void retval */
+    case PORTAL_RESULT:
         break;
-      case PORTAL_RESULT:
-	break;
-
-      /*
-       *  XXX 10/27/92:  mao says this is bogus, and predicts that this code
-       *  never gets executed.  retdata may contain nulls.  the caller always
-       *  passes the real length of the return value, and never -1, to this
-       *  routine.
-       */
-
-      case VAR_LENGTH_RESULT:
+	
+    case VAR_LENGTH_RESULT:	/* string */
+	/*
+	 *  XXX 10/27/92:  mao says this is bogus, and predicts that this code
+	 *  never gets executed.  retdata may contain nulls.  the caller always
+	 *  passes the real length of the return value, and never -1, to this
+	 *  routine.
+	 *  XXX 08/15/93:  pma says mao's probably right about it not being
+	 *  used much, since it was passing an uninitialized char * to
+	 *  pq_putstr before today. :-)   However, there's nothing too
+	 *  unreasonable about returning a null-delimited string with
+	 *  known bounded length (just like VAR_LENGTH_ARGS) -- for example,
+	 *  a function returning a pathname.  We can't just turn this off
+	 *  since the user (frontend code) is the one who might specify
+	 *  VAR_LENGTH_RESULT...
+	 */
 	pq_putnchar("G", 1);
-	pq_putint(retsize, 4);
-	pq_putstr(retdata);
+	pq_putint(VAR_LENGTH_RESULT, 4);
+	pq_putstr(retval);
 	break;
 
-      case 1: case 2: case 4:
-	pq_putnchar("G",1);
-	pq_putint(retsize,4);
-	pq_putint(retval, retsize);
-	break;
-
-      default:
-	pq_putnchar("G",1);
-	pq_putint(VARSIZE(retval)-4,4);
-	pq_putnchar(retval+4, VARSIZE(retval)-4);
+    default:
+	pq_putnchar("G", 1);
+	if (retbyval) {		/* by-value */
+	    pq_putint(retlen, 4);
+	    pq_putint(retval, retlen);
+	} else {		/* by-reference ... */
+	    if (retlen < 0) {		/* ... varlena */
+		pq_putint(VARSIZE(retval) - VARHDRSZ, 4);
+		pq_putnchar(VARDATA(retval), VARSIZE(retval) - VARHDRSZ);
+	    } else {			/* ... fixed */
+		/* XXX cross our fingers and trust "retsize" */
+		pq_putint(retsize, 4);
+		pq_putnchar(retval, retsize);
+	    }
+	}
     }
 
     pq_putnchar("0", 1);
     pq_flush();
 }
 
-/* ---------------
- * 
- * HandleFunctionRequest
- * - externally callable routine for handling function requests
- * 
- * Desc : This code is called only when the backend recieves
- *        a function request (current protocol is "F") we then
- *        handle the parameters of the request here.
- *        Requests come in 2 forms, by name, and by id.
- *        If requests come by id, we just call the fmgr with the id
- *        and the required number of arguments.
- *        If requests come by name, we do a catalog lookup to determine
- *        the id, which we subsequently return to the frontend so that
- *        it may cache it , and subsequent calls to the same function
- *        can be made by id.
+/*
+ * This structure saves enough state so that one can avoid having to
+ * do catalog lookups over and over again.  (Each RPC can require up
+ * to MAXFMGRARGS+2 lookups, which is quite tedious.)
  *
- *        XXX - note that if the catalog changes in the meantime, 
- *              the function id cannot be invalidated here, and the
- *              frontend must take care of it by itself  ( - jeff)
- *	  XXX - someday, maybe we should standardize on an RPC 
- *		mechanism that everyone else uses
- *
- *        If any error condition exists, we terminate with an elog
- *        which causes an "E" followed by the message to be sent to the
- *        frontend.  
- *
- * BUGS:  for no particular reasion, function names are limited to 80
- *        characters, and VARLENGTHARGS has a max of 100 (inherited from
- *	  the lisp backend)
- * CAVEAT:the function_by_name code was given to me by Mike H, I am taking
- *        it on faith since it looks ok & I don't have the time to verify it. 
- *
- * ----------------
+ * The previous incarnation of this code just assumed that any argument
+ * of size <= 4 was by value; this is not correct.  There is no cheap
+ * way to determine function argument length etc.; one must simply pay
+ * the price of catalog lookups.
  */
+struct fp_info {
+    ObjectId		funcid;
+    int			nargs;
+    bool		argbyval[MAXFMGRARGS];
+    int32		arglen[MAXFMGRARGS];	/* signed (for varlena) */
+    bool		retbyval;
+    int32		retlen;			/* signed (for varlena) */
+    TransactionId	xid;
+    CommandId		cid;
+};
 
+/*
+ * We implement one-back caching here.  If we need to do more, we can.
+ * Most routines in tight loops (like PQfswrite -> F_LOWRITE) will do
+ * the same thing repeatedly.
+ */
+static struct fp_info last_fp = { InvalidObjectId };
+
+/*
+ * valid_fp_info
+ *
+ * RETURNS:
+ *	1 if the state in 'fip' is valid
+ *	0 otherwise
+ *
+ * "valid" means:
+ * The saved state was either uninitialized, for another function,
+ * or from a previous command.  (Commands can do updates, which
+ * may invalidate catalog entries for subsequent commands.  This
+ * is overly pessimistic but since there is no smarter invalidation
+ * scheme...).
+ */
+static
+int
+valid_fp_info(func_id, fip)
+    ObjectId func_id;
+    struct fp_info *fip;
+{
+    Assert(ObjectIdIsValid(func_id));
+    Assert(fip != (struct fp_info *) NULL);
+    
+    return(ObjectIdIsValid(fip->funcid) &&
+	   oideq(func_id, fip->funcid) &&
+	   TransactionIdIsCurrentTransactionId(fip->xid) &&
+	   CommandIdIsCurrentCommandId(fip->cid));
+}
+
+/*
+ * update_fp_info
+ *
+ * Performs catalog lookups to load a struct fp_info 'fip' for the
+ * function 'func_id'.
+ *
+ * RETURNS:
+ *	The correct information in 'fip'.  Sets 'fip->funcid' to
+ *	InvalidObjectId if an exception occurs.
+ */
+static
+void
+update_fp_info(func_id, fip)
+    ObjectId func_id;
+    struct fp_info *fip;
+{
+    oid8		*argtypes;
+    ObjectId		rettype;
+    HeapTuple		func_htp, type_htp;
+    Form_pg_type	tp;
+    Form_pg_proc	pp;
+    int			i;
+    
+    Assert(ObjectIdIsValid(func_id));
+    Assert(fip != (struct fp_info *) NULL);
+
+    /*
+     * Since the validity of this structure is determined by whether
+     * the funcid is OK, we clear the funcid here.  It must not be
+     * set to the correct value until we are about to return with
+     * a good struct fp_info, since we can be interrupted (i.e., with
+     * an elog(WARN, ...)) at any time.
+     */
+    bzero((char *) fip, (int) sizeof(struct fp_info));
+    fip->funcid = InvalidObjectId;
+
+    func_htp = SearchSysCacheTuple(PROOID, (char *) func_id,
+				   (char *) NULL, (char *) NULL,
+				   (char *) NULL);
+    if (!HeapTupleIsValid(func_htp)) {
+	elog(WARN, "update_fp_info: cache lookup for function %d failed",
+	     func_id);
+	/*NOTREACHED*/
+    }
+    pp = (Form_pg_proc) GETSTRUCT(func_htp);
+    fip->nargs = pp->pronargs;
+    rettype = pp->prorettype;
+    argtypes = &(pp->proargtypes);
+
+    for (i = 0; i < fip->nargs; ++i) {
+	if (ObjectIdIsValid(argtypes->data[i])) {
+	    type_htp = SearchSysCacheTuple(TYPOID, (char *) argtypes->data[i],
+					   (char *) NULL, (char *) NULL,
+					   (char *) NULL);
+	    if (!HeapTupleIsValid(type_htp)) {
+		elog(WARN, "update_fp_info: bad argument type %d for %d",
+		     argtypes->data[i], func_id);
+		/*NOTREACHED*/
+	    }
+	    tp = (Form_pg_type) GETSTRUCT(type_htp);
+	    fip->argbyval[i] = tp->typbyval;
+	    fip->arglen[i] = tp->typlen;
+	} /* else it had better be VAR_LENGTH_ARG */
+    }
+
+    if (ObjectIdIsValid(rettype)) {
+	type_htp = SearchSysCacheTuple(TYPOID, (char *) rettype,
+				       (char *) NULL, (char *) NULL,
+				       (char *) NULL);
+	if (!HeapTupleIsValid(type_htp)) {
+	    elog(WARN, "update_fp_info: bad return type %d for %d",
+		 rettype, func_id);
+	    /*NOTREACHED*/
+	}
+	tp = (Form_pg_type) GETSTRUCT(type_htp);
+	fip->retbyval = tp->typbyval;
+	fip->retlen = tp->typlen;
+    } /* else it had better by VAR_LENGTH_RESULT */
+
+    fip->xid = GetCurrentTransactionId();
+    fip->cid = GetCurrentCommandId();
+
+    /*
+     * This must be last!
+     */
+    fip->funcid = func_id;
+}
+	
+
+/*
+ * HandleFunctionRequest
+ *
+ * Server side of PQfn (fastpath function calls from the frontend).
+ * This corresponds to the libpq protocol symbol "F".
+ *
+ * RETURNS:
+ *	nothing of significance.
+ *	All errors result in elog(WARN,...).
+ */
 int
 HandleFunctionRequest()
 {
     ObjectId		fid;
-    char		function_name[MAX_FUNC_NAME_LENGTH+1];
-    HeapTuple		htp;
-    ObjectId		prorettype;
-    bool		typbyval;
+    int			argsize, retsize;
     Count		nargs;
     char		*arg[8];
     char		*retval;
-    Size		retsize;
     int			i;
     uint32		palloced;
     char		*p;
+    struct fp_info	*fip;
 
     (void) pq_getint(4);		/* xactid */
     fid = (ObjectId) pq_getint(4);	/* function oid */
-    retsize = (Size) pq_getint(4);	/* size of return value */
+    retsize = pq_getint(4);		/* size of return value */
     nargs = (Count) pq_getint(4);	/* # of arguments */
+
+    /*
+     * This is where the one-back caching is done.
+     * If you want to save more state, make this a loop around an array.
+     */
+    fip = &last_fp;
+    if (!valid_fp_info(fid, fip)) {
+	update_fp_info(fid, fip);
+    }
+
+    if (fip->nargs != nargs) {
+	elog(WARN, "HandleFunctionRequest: actual arguments (%d) != registered arguments (%d)",
+	     nargs, fip->nargs);
+	/*NOTREACHED*/
+    }
 
     /*
      *  Copy arguments into arg vector.  If we palloc() an argument, we need
@@ -170,51 +344,61 @@ HandleFunctionRequest()
 	if (i >= nargs) {
 	    arg[i] = (char *) NULL;
 	} else {
-	    Size argsize = (Size) pq_getint(4);
+	    argsize = pq_getint(4);
 	    
 	    if (argsize == VAR_LENGTH_ARG) {	/* string */
-		if (!(p = palloc(MAX_STRING_LENGTH)))
+		/*
+		 * This is a special interface that should be deprecated
+		 * and removed.  There is no particular reason why you
+		 * can't just pass the actual string length from the
+		 * frontend instead of this magic value.
+		 */
+		if (!(p = palloc(MAX_STRING_LENGTH))) {
 		    elog(WARN, "HandleFunctionRequest: palloc failed");
+		    /*NOTREACHED*/
+		}
 		palloced |= (1 << i);
 		pq_getstr(p, MAX_STRING_LENGTH);
 		arg[i] = p;
-	    } else if (argsize > 4)  {		/* by-reference */
-		if (!(p = palloc(argsize + sizeof(VARSIZE(p)))))
-		    elog(WARN, "HandleFunctionRequest: palloc failed");
-		palloced |= (1 << i);
-		VARSIZE(p) = argsize + sizeof(VARSIZE(p));
-		pq_getnchar(VARDATA(p), 0, argsize);
-		arg[i] = p;
-	    } else {				/* by-value */
-		arg[i] = (char *) pq_getint(argsize);
+	    } else {
+		Assert(argsize > 0);
+		if (fip->argbyval[i]) {		/* by-value */
+		    Assert(argsize <= 4);
+		    arg[i] = (char *) pq_getint(argsize);
+		} else {			/* by-reference ... */
+		    if (fip->arglen[i] < 0) {		/* ... varlena */
+			if (!(p = palloc(argsize + VARHDRSZ))) {
+			    elog(WARN, "HandleFunctionRequest: palloc failed");
+			    /*NOTREACHED*/
+			}
+			VARSIZE(p) = argsize + VARHDRSZ;
+			pq_getnchar(VARDATA(p), 0, argsize);
+		    } else {				/* ... fixed */
+			/* XXX cross our fingers and trust "argsize" */
+			if (!(p = palloc(argsize))) {
+			    elog(WARN, "HandleFunctionRequest: palloc failed");
+			    /*NOTREACHED*/
+			}
+			pq_getnchar(p, 0, argsize);
+		    }
+		    palloced |= (1 << i);
+		    arg[i] = p;
+		}
 	    }
 	}
     }
 
+    /*
+     *	Old comment:
+     *		fake it out by putting the stuff out first
+     *	I have no idea what that is supposed to mean.   Evidently it 
+     *  is a bad idea to move this down to where SendFunctionResult is.
+     *  -- PMA 08/15/93
+     */
     if (retsize == PORTAL_RESULT) {
-	/* fake it out by putting the stuff out first */
-	pq_putnchar("V", 1);
-	pq_putint(0, 4);
+	SendPortalResult();
     }
 
-    /*
-     *  Figure out the return type for this function, and remember whether
-     *  it's pass-by-value or pass-by-reference.  Pass-by-ref values need
-     *  to be pfree'd before we exit this routine.
-     */
-    htp = SearchSysCacheTuple(PROOID, (char *) fid,
-			      (char *) NULL, (char *) NULL, (char *) NULL);
-    if (!HeapTupleIsValid(htp))
-	elog(WARN, "HandleFunctionRequest: procedure id %d does not exist",
-	     fid);
-    prorettype = ((Form_pg_proc) GETSTRUCT(htp))->prorettype;
-    htp = SearchSysCacheTuple(TYPOID, (char *) prorettype,
-			      (char *) NULL, (char *) NULL, (char *) NULL);
-    if (!HeapTupleIsValid(htp))
-	elog(WARN, "HandleFunctionRequest: return type %d for procedure %d does not exist",
-	     prorettype, fid);
-    typbyval = ((Form_pg_type) GETSTRUCT(htp))->typbyval;
-    
     retval = fmgr(fid,
 		  arg[0], arg[1], arg[2], arg[3],
 		  arg[4], arg[5], arg[6], arg[7]);
@@ -231,8 +415,9 @@ HandleFunctionRequest()
      *  then it must also be freed.
      */
     if (retsize != PORTAL_RESULT) {
-	SendFunctionResult(fid, retval, retsize);
-	if (!typbyval)
+	SendFunctionResult(fid, retval, fip->retbyval, fip->retlen, retsize);
+	if (!fip->retbyval)
 	    pfree(retval);
     }
+    return(0);
 }
