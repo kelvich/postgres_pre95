@@ -249,6 +249,7 @@ DATA(insert OID = 600 (  "^"       PGUID 0 b t f 701 701 701   0   0   0   0 dpo
 DATA(insert OID = 601 (  ":"       PGUID 0 l t f   0 701 701   0   0   0   0 dexp - - ));
 DATA(insert OID = 602 (  ";"       PGUID 0 l t f   0 701 701   0   0   0   0 dlog1 - - ));
 DATA(insert OID = 603 (  "|"       PGUID 0 l t f   0 704 702   0   0   0   0 intervalstart - - ));
+DATA(insert OID = 606 (  "<>"      PGUID 0 b t f 702 702 704   0   0   0   0 mktinterval - - ));
 DATA(insert OID = 607 (  "="       PGUID 0 b t t  26  26  16 607 608  97  97 oideq eqsel eqjoinsel ));
 DATA(insert OID = 608 (  "!="      PGUID 0 b t f  26  26  16 608 607  0  0 oidne eqsel eqjoinsel ));
 DATA(insert OID = 609 (  "<"       PGUID 0 b t f  26  26  16 610 612  0  0 int4lt intltsel intltjoinsel ));
