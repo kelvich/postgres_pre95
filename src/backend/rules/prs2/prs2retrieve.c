@@ -76,6 +76,7 @@ Buffer *returnedBufferP;
      * If there are no rules, then return immediatelly...
      */
     if (locks == NULL || prs2GetNumberOfLocks(locks)==0) {
+	prs2FreeLocks(locksInTuple);
 	return(PRS2_STATUS_TUPLE_UNCHANGED);
     }
 
@@ -161,6 +162,12 @@ Buffer *returnedBufferP;
 	HeapTupleSetRuleLock(*returnedTupleP, InvalidBuffer, locksInTuple);
 	return(PRS2_STATUS_TUPLE_CHANGED);
     } else {
+
+	/*
+	 * This is a copy - don't need if we didn't form tuple.
+	 */
+
+	prs2FreeLocks(locksInTuple);
 	return(PRS2_STATUS_TUPLE_UNCHANGED);
     }
 }
