@@ -1,14 +1,14 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH ADDATTR COMMANDS 01/25/94
+.TH ADDATTR COMMANDS 02/08/94
 .XA 2 "Addattr"
 .SH NAME
 addattr \(em add attributes to a class
 .SH SYNOPSIS
 .(l M
 \fBaddattr\fR \fB(\fR attname1 \fB=\fR type1 {\fB,\fR attname-i \fB=\fR type-i} \fB)\fR
-	\fBto\fR classname{\fB*\fP}
+	\fBto\fR classname [\fB*\fP]
 .)l
 .SH DESCRIPTION
 The
@@ -20,20 +20,23 @@ The new attributes and their types are specified
 in the same style and with the the same restrictions as in
 .IR create (commands).
 .PP
-The new attributes will not be added to any classes which inherit
-attributes from
-.IR classname ,
-unless the \*(lq*\*(rq is present.  Neglecting to add the attribute 
-to all inheriting classes will cause many queries involving
-inheritance (i.e., queries using clauses of the form \*(lqfrom a in 
-b*\*(rq) to fail.
-.PP
-The initial value of each added attribute for all instances is
-\*(lqnull\*(rq.
+In order to add an attribute to each class in an entire inheritance
+hierarchy, use the
+.IR classname
+of the superclass and append a \*(lq*\*(rq.  (By default, the
+attribute will not be added to any of the subclasses.)  This should
+.BR always
+be done when adding an attribute to a superclass.  If it is not,
+queries on the inheritance hierarchy such as
+.(C
+retrieve (s.all) from s in super*
+.)C
+will not work because the subclasses will be missing an attribute
+found in the superclass.
 .PP
 For efficiency reasons, default values for added attributes are not
 placed in existing instances of a class.  That is, existing instances
-will have NULL values in the new attributes.  If default values are
+will have NULL values in the new attributes.  If non-NULL values are
 desired, a subsequent
 .IR replace (commands)
 query should be run.
@@ -46,6 +49,14 @@ You must own the class in order to change its schema.
  */
 addattr (hiredate = abstime) to emp
 .)C
+.(C
+/*
+ * add a health-care number to all persons
+ * (including employees, students, ...)
+ */
+addattr (health_care_id = int4) to person*
+.)C
 .SH "SEE ALSO"
 create(commands),
+rename(commands),
 replace(commands).
