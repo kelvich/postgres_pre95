@@ -296,10 +296,12 @@ tryabsdate(fields, nf, tm, tzp)
 	(void) ftime(&now);
 	*tzp = now.timezone;
 #else /* USE_POSIX_TIME */
-#if defined(PORTNAME_hpux) || defined(PORTNAME_aix)
+#if defined(PORTNAME_hpux) || \
+    defined(PORTNAME_aix) || \
+    defined(PORTNAME_sparc_solaris)
 	tzset();
 	*tzp = timezone / 60;		/* this is an X/Open-ism */
-#else /* PORTNAME_hpux || PORTNAME_aix */
+#else /* PORTNAME_hpux || PORTNAME_aix || PORTNAME_sparc_solaris */
 	time_t now = time((time_t *) NULL);
 	struct tm *tmnow = localtime(&now);
 
