@@ -23,11 +23,14 @@
 #include "nodes/primnodes.a.h"
 #include "nodes/relation.h"
 #include "utils/log.h"
+#include "utils/palloc.h"
 #include "catalog/pg_proc.h"
+#include "catalog/pg_type.h"
 #include "catalog/syscache.h"
 #include "planner/xfunc.h"
 #include "planner/clausesel.h"
 #include "planner/relnode.h"
+#include "planner/internal.h"
 #include "parser/parse.h"
 #include "planner/keys.h"
 #include "planner/tlist.h"
@@ -118,7 +121,8 @@ double xfunc_expense(clause)
     double cost = 0;
     LispValue tmpclause;
 
-    if (IsA(clause,Const) || IsA(clause,Var)) /* base case */
+    /* First handle the base case */
+    if (IsA(clause,Const) || IsA(clause,Var) || IsA(clause,Param)) 
       return(0);
     else if (fast_is_clause(clause)) /* cost is sum of operands' costs */
       return(xfunc_expense(CAR(CDR(clause))) + 
@@ -198,8 +202,12 @@ int xfunc_width(clause)
     ObjectId reloid;   /* oid of pg_attribute */
     HeapTuple tupl;    /* structure to hold a cached tuple */
     Form_pg_proc proc; /* structure to hold the pg_proc tuple */
+    Form_pg_type type;
     int retval = 0;
     LispValue tmpclause;
+    int vnum;
+    Name relname;
+    Relation rd;
 
     if (IsA(clause,Const))
      {
@@ -209,34 +217,96 @@ int xfunc_width(clause)
      }
     else if (IsA(clause,Var))
      {
-	 /* base case: width is width of this attribute, as stored in
-	    the pg_attribute table */
-	 relptr = amopenr ((Name) "pg_attribute");
-	 reloid = RelationGetRelationId ( relptr );
+	 /* base case: width is width of this attribute */
+	 if (get_varattno((Var)clause) == 0)
+	  {
+	      vnum = CInteger(CAR(get_varid((Var)clause)));
+	      relname = (Name)planner_VarnoGetRelname(vnum);
+	      rd = heap_openr(relname);
+	      retval = xfunc_tuple_width(rd);
+	      heap_close(rd);
+	  }
+	 else
+	  {
+	      /* attribute is a base type */
+	      relptr = amopenr ((Name) "pg_attribute");
+	      reloid = RelationGetRelationId ( relptr );
 	 
-	 tupl = SearchSysCacheTuple(ATTNUM, reloid, ((Var) clause)->varattno, 
-				    NULL, NULL );
-	 if (!HeapTupleIsValid(tupl)) {
-	     elog(WARN, "getattnvals: no attribute tuple %d %d",
-		  reloid, ((Var) clause)->varattno);
-	     return(-1);
-	 }
-	 retval = (int)((AttributeTupleForm) GETSTRUCT(tupl))->attlen;
+	      tupl = SearchSysCacheTuple(ATTNUM, reloid, 
+					 get_varattno((Var)clause),
+					 NULL, NULL );
+	      if (!HeapTupleIsValid(tupl)) {
+		  elog(WARN, "getattnvals: no attribute tuple %d %d",
+		       reloid, get_varattno((Var)clause));
+		  return(-1);
+	      }
+	      retval = (int)((AttributeTupleForm) GETSTRUCT(tupl))->attlen;
+	      amclose(relptr);
+	  }
 	 goto exit;
+     }
+    else if (IsA(clause,Param))
+     {
+	 if (complexType(get_paramtype((Param)clause)))
+	  {
+	      rd = heap_open(typeid_get_relid(get_paramtype((Param)clause)));
+	      retval = xfunc_tuple_width(rd);
+	      heap_close(rd);
+	  }
+	 else 
+	   retval = 
+	     xfunc_width(get_expr((TLE)CAR(get_param_tlist((Param)clause))));
+	 goto exit;	 
      }
     else if (fast_is_funcclause(clause))
      {
-	 tupl = SearchSysCacheTuple(PROOID, 
-				    get_funcid((Func)get_function(clause)),
-				    NULL, NULL, NULL);
-	 proc = (Form_pg_proc) GETSTRUCT(tupl);
-	 /* find width of the function's arguments */
-	 for (tmpclause = CDR(clause); tmpclause != LispNil; 
-	      tmpclause = CDR(tmpclause))
-	   retval += xfunc_width(CAR(tmpclause));
-	 /* multiply by outin_ratio */
-	 retval = proc->prooutin_ratio/100.0 * retval;
-	 goto exit;
+	 if (get_func_tlist((Func)clause) != LispNil)
+	  {
+	      /* this function has a projection on it.  Get the length
+		 of the projected attribute */
+	      retval = 
+		xfunc_width(get_expr((TLE)CAR(get_func_tlist((Func)clause))));
+	      goto exit;
+	  }
+	 else
+	  {
+	      /* lookup function and find its return type */
+	      tupl = SearchSysCacheTuple(PROOID, 
+					 get_funcid((Func)get_function(clause)),
+					 NULL, NULL, NULL);
+	      proc = (Form_pg_proc) GETSTRUCT(tupl);
+	      
+	      /* if function returns a tuple, get the width of that */
+	      if (complexType(proc->prorettype))
+	       {
+		   rd = heap_open(typeid_get_relid(proc->prorettype));
+		   retval = xfunc_tuple_width(rd);
+		   heap_close(rd);
+		   goto exit;
+	       }
+	      else /* function returns a base type */
+	       {
+		   tupl = SearchSysCacheTuple(TYPOID,
+					      proc->prorettype,
+					      NULL, NULL, NULL);
+		   type = (Form_pg_type) GETSTRUCT(tupl);
+		   if (type->typlen != -1)
+		    {
+			retval = type->typlen;
+			goto exit;
+		    }
+		   else
+		    {
+			/* find width of the function's arguments */
+			for (tmpclause = CDR(clause); tmpclause != LispNil; 
+			     tmpclause = CDR(tmpclause))
+			  retval += xfunc_width(CAR(tmpclause));
+			/* multiply by outin_ratio */
+			retval = proc->prooutin_ratio/100.0 * retval;
+			goto exit;
+		    }
+	       }
+	  }
      }
     else
      {
@@ -244,9 +314,33 @@ int xfunc_width(clause)
 	 return(-1);
      }
   exit:
+    if (retval == -1)
+      retval = VARLEN_DEFAULT;
     return(retval);
 }
 
+
+/*
+** xfunc_tuple_width --
+**     Return the sum of the lengths of all the attributes of a given relation
+*/
+int xfunc_tuple_width(rd)
+     Relation rd;
+{
+    int i;
+    int retval = 0;
+    TupleDescriptor tdesc = RelationGetTupleDescriptor(rd);
+    Assert(TupleDescIsValid(tdesc));
+
+    for (i = 0; i < RelationGetNumberOfAttributes(rd); i++)
+     {
+	 if (tdesc->data[i]->attlen != -1)
+	   retval += tdesc->data[i]->attlen;
+	 else retval += VARLEN_DEFAULT;
+     }
+
+    return(retval);
+}
 
 /*
 ** xfunc_trypullup --
@@ -308,26 +402,64 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
      int whichchild;      /* whether child is INNER or OUTER of join */
      int clausetype;      /* whether clause to pull is join or local */
 {
+    Path newkid;
+    Rel newrel;
+    double pulled_selec;
+
     /* remove clause from childpath */
     if (clausetype == XFUNC_LOCPRD)
      {
-	 set_locclauseinfo(childpath, 
-			   LispRemove(cinfo, get_locclauseinfo(childpath)));
+	 set_locclauseinfo(((Path)newkid = (Path)CopyObject(childpath)), 
+			   LispRemove(cinfo, get_locclauseinfo(newkid)));
      }
     else
      {
 	 set_pathclauseinfo
-	   ((JoinPath)childpath,
-	    LispRemove(cinfo, get_pathclauseinfo((JoinPath)childpath)));
+	   (((JoinPath)(newkid = (Path)CopyObject(childpath))),
+	    LispRemove(cinfo, get_pathclauseinfo((JoinPath)newkid)));
      }
+
+    /*
+    ** give the new child path its own Rel node that reflects the
+    ** lack of the pulled-up predicate
+    */
+    pulled_selec = compute_clause_selec(get_clause(cinfo), LispNil);
+    xfunc_copyrel(get_parent(newkid), &newrel);
+    set_parent(newkid, newrel);
+    set_pathlist(newrel, lispCons(newkid, LispNil));
+    set_unorderedpath(newrel, (PathPtr)newkid);
+    set_cheapestpath(newrel, (PathPtr)newkid);
+    set_tuples(newrel, get_tuples(get_parent(childpath)) / pulled_selec);
+    set_pages(newrel, get_pages(get_parent(childpath)) / pulled_selec);
+    
+    /* 
+    ** fix up path cost of newkid.  To do this we subtract away all the
+    ** xfunc_costs of childpath, then recompute the xfunc_costs of newkid
+    */
+    set_path_cost(newkid, get_path_cost(newkid) 
+		  - xfunc_get_path_cost(childpath));
+    set_path_cost(newkid, get_path_cost(newkid)
+		  + xfunc_get_path_cost(newkid));
 
     /* Fix all vars in the clause 
        to point to the right varno and varattno in parentpath */
-    xfunc_fixvars(get_clause(cinfo), get_parent(childpath), whichchild);
+    xfunc_fixvars(get_clause(cinfo), newrel, whichchild);
 
-    /* add clause to parentpath */
+    /* add clause to parentpath, and fix up its xfunc costs */
+    set_path_cost(parentpath, get_path_cost(parentpath) 
+		  - xfunc_get_path_cost(parentpath));
     set_locclauseinfo(parentpath, 
 		      lispCons(cinfo, get_locclauseinfo(parentpath)));
+    set_path_cost(newkid, get_path_cost(parentpath)
+		  + xfunc_get_path_cost(parentpath));
+    if (whichchild == INNER)
+     {
+	 set_innerjoinpath(parentpath, (pathPtr)newkid);
+     }
+    else
+     {
+	 set_outerjoinpath(parentpath, (pathPtr)newkid);
+     }
 }
 
 /*
@@ -346,7 +478,7 @@ void xfunc_fixvars(clause, rel, varno)
     LispValue tmpclause;  /* temporary variable */
     TL member;            /* tlist member corresponding to var */
 
-    if (IsA(clause,Const)) return;
+    if (IsA(clause,Const) || IsA(clause,Param)) return;
     else if (IsA(clause,Var))
      {
 	 /* here's the meat */
@@ -405,6 +537,8 @@ int xfunc_shouldpull(childpath, parentpath, maxcinfopt)
 {
     LispValue clauselist, tmplist;      /* lists of clauses */
     CInfo maxcinfo;                     /* clause to pullup */
+    CInfo primjoinclause            /* primary join clause */
+      = xfunc_primary_join(get_pathclauseinfo(parentpath));
     double tmpmeasure, maxmeasure = 0;  /* measures of clauses */
     double joinselec = 0;               /* selectivity of the join predicates */
     int retval = XFUNC_LOCPRD;
@@ -442,23 +576,24 @@ int xfunc_shouldpull(childpath, parentpath, maxcinfopt)
 	     maxmeasure = tmpmeasure;
 	     retval = XFUNC_JOINPRD;
 	 }
+    /* sanity check: we better not be pulling up the primary join clause */
+    if (retval == XFUNC_JOINPRD)
+      Assert(primjoinclause != maxcinfo);
 
     if (maxmeasure == 0)  /* no expensive clauses */
       return(0);
-
     /*
     ** Pullup over join if clause is higher measure than join.
     ** Note that the cost of a secondary join clause is only what's
-    ** calculated by xfunc_expense(), since the actual joining is paid for
-    ** by the primary join clause
+    ** calculated by xfunc_expense(), since the actual joining 
+    ** (i.e. the path_cost) is paid for by the primary join clause
     */
-    joinselec = compute_clause_selec(get_clause
-				     ((CInfo) CAR
-				      (get_pathclauseinfo(parentpath))), 
-				     LispNil);
+    joinselec = compute_clause_selec(get_clause(primjoinclause), LispNil);
     if (joinselec != 1.0 &&
 	xfunc_measure(get_clause(maxcinfo)) > 
-	(get_path_cost(parentpath)/(1.0 - joinselec)))
+	((xfunc_expense(get_clause(primjoinclause)) 
+	  + get_path_cost(parentpath))
+	 / (1.0 - joinselec)))
      {
 	 *maxcinfopt = maxcinfo;
 	 return(retval);
@@ -507,4 +642,133 @@ int xfunc_disjunct_compare(arg1, arg2)
     else if (measure1 == measure2)
       return(0);
     else return(1);
+}
+
+/*
+** xfunc_primary_join:
+**   Find the join clause of minimum measure.  This clause cannot be pulled
+** up.
+*/
+CInfo xfunc_primary_join(joinclauselist)
+     LispValue joinclauselist;
+{
+    CInfo mincinfo;
+    LispValue tmplist;
+    double minmeasure, tmpmeasure;
+
+    for(tmplist = joinclauselist, mincinfo = (CInfo) CAR(joinclauselist),
+	minmeasure = xfunc_measure(get_clause((CInfo) CAR(tmplist)));
+	tmplist != LispNil;
+	tmplist = CDR(tmplist))
+      if ((tmpmeasure = xfunc_measure(get_clause((CInfo) CAR(tmplist))))
+	  < minmeasure)
+       {
+	   minmeasure = tmpmeasure;
+	   mincinfo = (CInfo) CAR(tmplist);
+       }
+    return(mincinfo);
+}
+
+/*
+** xfunc_get_path_cost
+**   get the expensive function costs of the path
+*/
+int xfunc_get_path_cost(pathnode)
+Path pathnode;
+{
+    int cost = 0;
+    LispValue tmplist;
+    
+    /* first add in the expensive local function costs */
+    foreach(tmplist, get_locclauseinfo(pathnode))
+      cost += xfunc_expense(get_clause((CInfo)CAR(tmplist)))
+	         * get_tuples(get_parent(pathnode));
+
+    /* Now add in any node-specific expensive function costs */
+    if (IsA(pathnode,JoinPath))
+      foreach(tmplist, get_pathclauseinfo((JoinPath) pathnode))
+	cost += xfunc_expense(get_clause((CInfo)CAR(tmplist)))
+	           * get_tuples(get_parent(pathnode));
+    if (IsA(pathnode,HashPath))
+      foreach(tmplist, get_path_hashclauses((HashPath) pathnode))
+	cost += xfunc_expense(CAR(tmplist))
+	           * get_tuples(get_parent(pathnode));
+    if (IsA(pathnode,MergePath))
+      foreach(tmplist, get_path_mergeclauses((MergePath) pathnode))
+	cost += xfunc_expense(CAR(tmplist))
+	           * get_tuples(get_parent(pathnode));
+    return(cost);
+}
+
+
+
+#define Node_Copy(a, b, c, d) \
+    if (NodeCopy(((a)->d), &((b)->d), c) != true) { \
+       return false; \
+    } 
+
+/*
+** xfunc_copyrel --
+**   Just like _copyRel, but doesn't copy the paths
+*/
+bool
+xfunc_copyrel(from, to)
+    Rel	from;
+    Rel	*to;
+{
+    Rel	newnode;
+    Pointer (*alloc)() = palloc;
+
+    /*  COPY_CHECKARGS() */
+    if (to == NULL) 
+     { 
+	 return false;
+     } 
+				      
+    /* COPY_CHECKNULL() */
+    if (from == NULL) 
+     {
+	 (*to) = NULL;
+	 return true;
+     } 
+
+    /* COPY_NEW(c) */
+    newnode =  (Rel)(*alloc)(classSize(Rel));
+    if (newnode == NULL) 
+     { 
+	 return false;
+     } 
+    
+    /* ----------------
+     *	copy node superclass fields
+     * ----------------
+     */
+    CopyNodeFields(from, newnode, alloc);
+
+    /* ----------------
+     *	copy remainder of node
+     * ----------------
+     */
+    Node_Copy(from, newnode, alloc, relids);
+    
+    newnode->indexed = from->indexed;
+    newnode->pages =   from->pages;
+    newnode->tuples =  from->tuples;
+    newnode->size =    from->size;
+    newnode->width =   from->width;
+
+    Node_Copy(from, newnode, alloc, targetlist);
+/* No!!!!    Node_Copy(from, newnode, alloc, pathlist);  
+    Node_Copy(from, newnode, alloc, unorderedpath);
+    Node_Copy(from, newnode, alloc, cheapestpath);  */
+    Node_Copy(from, newnode, alloc, classlist);
+    Node_Copy(from, newnode, alloc, indexkeys);
+    Node_Copy(from, newnode, alloc, ordering);
+    Node_Copy(from, newnode, alloc, clauseinfo);
+    Node_Copy(from, newnode, alloc, joininfo);
+    Node_Copy(from, newnode, alloc, innerjoin);
+    Node_Copy(from, newnode, alloc, superrels);
+    
+    (*to) = newnode;
+    return true;
 }
