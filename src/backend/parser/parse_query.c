@@ -312,6 +312,10 @@ ExpandAll(relname,this_resno)
 				tall);
 	}
 
+	/*
+	 * Close the reldesc - we're done with it now
+	 */
+	heap_close(rdesc);
 	*this_resno = first_resno + maxattrs;
 	return(tall);
 }
@@ -658,6 +662,10 @@ make_array_ref_var( relname, attrname, indirect_list)
 		       lispCons(lispInteger(vnum),
 				lispCons(lispInteger(attid),LispNil)), 0);
     
+    /*
+     * close relation - we're done with it now
+     */
+    amclose(rd);
     rtype = get_id_type((type_struct_array)->typelem);
     return ( lispCons ( lispInteger ( typeid (rtype ) ), (LispValue)varnode ));
 }
@@ -877,6 +885,11 @@ char *attrName;
 			name,		/* paramname */
 			attrType);	/* paramtype */
     
+    /*
+     * close the relation - we're done with it now
+     */
+    heap_close(relation);
+
     /*
      * form the final result (a list of the parameter type and
      * the Param node)
