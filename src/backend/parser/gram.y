@@ -949,7 +949,7 @@ NotifyStmt: NOTIFY relation_name
 
 ListenStmt: LISTEN relation_name 
             {
-		parser_current_rel = heap_openr($2);
+		parser_current_rel = heap_openr(CString($2));
 		if (parser_current_rel == NULL)
 		  elog(WARN,"listen: relation %s doesn't exist",$2);
 		else
