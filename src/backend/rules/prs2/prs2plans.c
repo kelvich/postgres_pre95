@@ -207,6 +207,17 @@ Boolean *isNullP;
      * XXX Note: it appears that 'AttributePtr' and 'TupleDescriptor'
      * are the same thing!
      */
+
+	/*
+	 * XXX - 
+	 * Unfortunately, by now the executor has freed (with pfree) the tuple
+	 * descriptor!!!  You will have to either copy it or work out something
+	 * with Cim - I hacked the executor to avoid freeing this for now, but it
+	 * *should* be freeing these things to prevent memory leaks.
+	 *
+	 * -- Greg
+	 */
+
     numberOfAttributes = (AttributeNumber) CInteger(CAR(res1));
     resultTupleDescriptor = (TupleDescriptor) CADR(res1);
 
