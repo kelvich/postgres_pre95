@@ -42,6 +42,7 @@
 #include "utils/log.h"
 #include "utils/palloc.h"
 #include "utils/rel.h"
+#include "utils/nabstime.h"
 #include "rules/prs2.h"
 
 /* this is so the sparcstation debugger works */
@@ -436,12 +437,18 @@ heap_getsysattr(tup, b, attnum)
      */
 
     case MinAbsoluteTimeAttributeNumber:
-	if (tup->t_tmin == 0 && TransactionIdDidCommit(tup->t_xmin))
+	if (AbsoluteTimeIsValid(tup->t_tmin) && 
+	    TransactionIdDidCommit(tup->t_xmin))
 		tup->t_tmin = TransactionIdGetCommitTime(tup->t_xmin);
 	return ((char *)tup->t_tmin);
     case MaxAbsoluteTimeAttributeNumber:
-	if (tup->t_tmax == 0 && TransactionIdDidCommit(tup->t_xmax))
+	if (!AbsoluteTimeIsReal(tup->t_tmax))
+	{
+	    if (TransactionIdDidCommit(tup->t_xmax))
 		tup->t_tmax = TransactionIdGetCommitTime(tup->t_xmax);
+	    else
+		tup->t_tmax = EPOCH_ABSTIME;
+	}
 	return ((char *)tup->t_tmax);
     case VersionTypeAttributeNumber:
 	return ((char *)tup->t_vtype);
@@ -890,6 +897,8 @@ heap_formtuple(numberOfAttributes, tupleDescriptor, value, nulls)
     tuple->t_len = 	len;
     tuple->t_natts = 	numberOfAttributes;
     tuple->t_hoff = hoff;
+    tuple->t_tmin = INVALID_ABSTIME;
+    tuple->t_tmax = INVALID_ABSTIME;
     
     DataFill((Pointer) tuple + tuple->t_hoff,
 	     numberOfAttributes,

@@ -696,7 +696,7 @@ showtime(time)
     Time time;
 {
     Assert(TimeIsValid(time));
-    printf("{%d=%s}", time, abstimeout(time));
+    printf("{%d=%s}", time, nabstimeout(time));
 }
 
 
@@ -916,7 +916,7 @@ handletime()
 	    fputs("Error: failed to read time\n", stderr);
 	    err();
 	}
-	time1 = abstimein(firstTime);
+	time1 = nabstimein(firstTime);
 	if (!Quiet) printf("*** You entered \"%s\"", firstTime);
 	if (time1 == INVALID_ABSTIME) {
 	    if (!Quiet) 
@@ -938,8 +938,8 @@ handletime()
 	}
 	if (!Quiet) 
 		printf("*** You entered \"%s\" and \"%s\"\n", firstTime, secondTime);
-	time1 = abstimein(firstTime);
-	time2 = abstimein(secondTime);
+	time1 = nabstimein(firstTime);
+	time2 = nabstimein(secondTime);
 	if (time1 == INVALID_ABSTIME) {
 	    time1 = InvalidTime;
 	    if (time2 == INVALID_ABSTIME) {

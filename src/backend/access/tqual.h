@@ -16,7 +16,7 @@
 #define TQUAL_H	"$Header$"
 
 #include "tmp/postgres.h"
-#include "tmp/miscadmin.h"
+#include "utils/nabstime.h"
 #include "access/htup.h"
 
 typedef struct TimeQualSpace {

@@ -12,6 +12,7 @@
 
 #include "tmp/c.h"
 #include "tmp/postgres.h"
+#include "utils/nabstime.h"
 
 RcsId("$Header$");
 

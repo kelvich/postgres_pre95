@@ -55,7 +55,7 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 			absoluteTimeString[0] = '\0';
 			elog(WARN, "purge not executed");
 		}
-		absoluteTime = (int32) abstimein(absoluteTimeString);
+		absoluteTime = (int32) nabstimein(absoluteTimeString);
 		absoluteTimeString[0] = '\0';
 
 #ifdef	PURGEDEBUG
@@ -63,7 +63,7 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 		    absoluteTimeString, absoluteTime);
 #endif	/* defined(PURGEDEBUG) */
 	} else {
-		absoluteTime = abstimein("now");
+		absoluteTime = nabstimein("now");
 	}
 
 	if (PointerIsValid(relativeTimeString)) {

@@ -188,8 +188,8 @@ char *array_in ARGS((char *string , ObjectId element_type ));
 char *array_out ARGS((char *items , ObjectId element_type ));
 
 /* date.c */
-AbsoluteTime abstimein ARGS((char *datetime ));
-char *abstimeout ARGS((AbsoluteTime datetime ));
+AbsoluteTime nabstimein ARGS((char *datetime ));
+char *nabstimeout ARGS((AbsoluteTime datetime ));
 int32 reltimein ARGS((char *timestring ));
 char *reltimeout ARGS((int32 timevalue ));
 AbsoluteTime timepl ARGS((AbsoluteTime AbsTime_t1 , RelativeTime RelTime_t2 ));

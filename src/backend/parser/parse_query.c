@@ -326,7 +326,7 @@ MakeTimeRange( datestring1 , datestring2 , timecode )
 			if (datestring1 == LispNil) {
 				elog(WARN, "MakeTimeRange: bad snapshot arg");
 			}
-			t1 = abstimein(CString(datestring1));
+			t1 = nabstimein(CString(datestring1));
 			if (!AbsoluteTimeIsValid(t1)) {
 				elog(WARN, "bad snapshot time: \"%s\"",
 					CString(datestring1));
@@ -337,7 +337,7 @@ MakeTimeRange( datestring1 , datestring2 , timecode )
 			if (datestring1 == LispNil) {
 				t1 = InvalidAbsoluteTime;
 			} else {
-				t1 = abstimein(CString(datestring1));
+				t1 = nabstimein(CString(datestring1));
 				if (!AbsoluteTimeIsValid(t1)) {
 					elog(WARN,
 						"bad range start time: \"%s\"",
@@ -347,7 +347,7 @@ MakeTimeRange( datestring1 , datestring2 , timecode )
 			if (datestring2 == LispNil) {
 				t2 = InvalidAbsoluteTime;
 			} else {
-				t2 = abstimein(CString(datestring2));
+				t2 = nabstimein(CString(datestring2));
 				if (!AbsoluteTimeIsValid(t2)) {
 					elog(WARN,
 						"bad range end time: \"%s\"",

@@ -23,6 +23,7 @@
 #include "tmp/postgres.h"
 #include "tmp/miscadmin.h"
 #include "utils/log.h"
+#include "utils/nabstime.h"
 
 RcsId("$Header$");
 
@@ -60,8 +61,8 @@ typedef TimeIntervalData *TimeInterval;
  *  sixty-eight years on either side of that.
  */ 
 
-#define	MAX_ABSTIME		2145916800	/* Jan  1 00:00:00 2038 */ 
-#define	MIN_ABSTIME		(-2145916800)	/* Jan  1 00:00:00 1902 */
+#define	MAX_ABSTIME		2147483647	/* Jan 19 03:14:07 2038 GMT */
+#define	MIN_ABSTIME		(0)		/* Jan  1 00:00:00 1970 */
 
 /* relative time definitions */
 #define	MAX_RELTIME		2144448000
@@ -424,11 +425,11 @@ tintervalout(interval)
 	if (interval->status == T_INTERVAL_INVAL)
 		(void) strcat(i_str,INVALID_INTERVAL_STR);
 	else {
-		p = abstimeout(interval->data[0]);
+		p = nabstimeout(interval->data[0]);
 		(void) strcat(i_str,p);
 		(void) strcat(i_str,"\' \'");
-		p = abstimeout(interval->data[1]);
-		(void) strcat(i_str,abstimeout(interval->data[1]));
+		p = nabstimeout(interval->data[1]);
+		(void) strcat(i_str,nabstimeout(interval->data[1]));
 	}
 	(void) strcat(i_str,"\']\0");
 	return(i_str);
@@ -510,28 +511,17 @@ intervalrel(interval)
 
 /*
  *	timenow		- returns  time "now", internal format
+ *
+ *      Now AbsoluteTime is time since Jan 1 1970 -mer 7 Feb 1992
  */
 AbsoluteTime	
 timenow()
 {
-	extern	int		gettimeofday();
-	extern	struct tm 	*localtime();
+	struct timeval tp;
+	struct timezone tzp;
 
-	struct timeval *tp;
-	struct timezone *tzp;
-	struct tm	*brokentime;
-	long		sec;
-
-	tp = (struct timeval *) palloc(sizeof(struct timeval));
-	tzp= (struct timezone *) palloc(sizeof(struct timezone));
-	(void) gettimeofday(tp, tzp);
-	sec = tp->tv_sec;	/* in GMT! represents NOT the local time!*/
-	brokentime = (struct tm *) palloc(sizeof(struct tm));
-	brokentime = localtime(&sec);
-	(void) timeinsec(brokentime, (AbsoluteTime *) &sec);
-	/* now local time in */
-	/* respect of GMT!   */
-	return(sec);
+	(void) gettimeofday(&tp, &tzp);
+	return((AbsoluteTime)tp.tv_sec);
 }
 
 
@@ -563,46 +553,6 @@ timenowout()
 		datestring=datestring++;
 	return(datestring);
 }
-
-
-/*
- *	abstimeeq	- returns 1, iff arguments are equal
- *	abstimene	- returns 1, iff arguments are not equal
- *	abstimelt	- returns 1, iff t1 less than t2
- *	abstimegt	- returns 1, iff t1 greater than t2
- *	abstimele	- returns 1, iff t1 less than or equal to t2
- *	abstimege	- returns 1, iff t1 greater than or equal to t2
- *
- */
-int32
-abstimeeq(t1,t2)
-	AbsoluteTime	t1,t2;
-{ return(t1 == t2); }
-
-int32
-abstimene(t1, t2)
-	AbsoluteTime	t1,t2;
-{ return(t1 != t2); }
-
-int32
-abstimelt(t1, t2)
-	int32 /* AbsoluteTime */	t1,t2;
-{ return(t1 < t2); }
-
-int32
-abstimegt(t1, t2)
-	int32 /* AbsoluteTime */	t1,t2;
-{ return(t1 > t2); }
-
-int32
-abstimele(t1, t2)
-	int32 /* AbsoluteTime */	t1,t2;
-{ return(t1 <= t2); }
-
-int32
-abstimege(t1, t2)
-	int32 /* AbsoluteTime */	t1,t2;
-{ return(t1 >= t2); }
 
 
 /*
@@ -810,216 +760,9 @@ intervalend(i)
 
 
 /*
- *	isabstime	- returns 1, iff datestring is of type abstime
- *				(and returns the convertion in brokentime)
- *			  returns 0 for any syntax error
- *			  returns 2 for time 'now'
+ * These are support routines for the old abstime implementation.  As
+ * far as I know they are no longer used...
  *
- *	Absolute time:
- *
- *	Month ` ' Day [ ` ' Hour `:' Minute `:' Second ] ` ' Year
- *
- *	where
- *	Month is	`Jan', `Feb', ..., `Dec'
- *	Day is		` 1', ` 2', ..., `31'
- *	Hour is		`01', `02', ..., `24' (leading zero optional if < 10 )
- *	Minute is	`00', `01', ..., `59'
- *	Second is	`00', `01', ..., `59'
- *	Year is		`1970', `1971', ..., `2156'
- *
- *	OR    `Undefined AbsTime'  (see also INVALID_ABSTIME_STR)
- *
- *	VALID dates from  Jan 1 00:00:00 1902  to Jan 1 00:00:00 2038.
- *
- */
-int
-isabstime(datestring, brokentime)
-	char	*datestring;
-	struct tm	*brokentime;
-{
-	extern int	strncmp();
-	char c;
-
-	register char	*p;
-	char		month[3];
-	int		day, yday, monthnum, year, hour,
-			min, sec, yeardigits,leap;
-	int		timeoption, i;
-	struct tm	localTime;
-
-	if (!PointerIsValid(brokentime)) {
-		brokentime = &localTime;
-	}
-
-	p = datestring;
-	/* skip leading blanks */
-	while (IsSpace(*p))
-		p++;
-
-	/* check whether invalid time representation or not */
-	if (strcmp(INVALID_ABSTIME_STR, datestring) == 0)
-		return (0);
-
-	/* check whether time NOW required or not */
-	if (strcmp(TIME_NOW_STR, datestring) == 0)
-		return(2);		    /* time NOW required */
-
-	/* check whether time EPOCH required */
-	if (strcmp(TIME_EPOCH_STR, datestring) == 0)
-		return(3);		    /* time EPOCH required */
-
-	/* handle month */
-	month[0] = (islower(*p) ? toupper(*p) : *p);
-	p++;
-	month[1] = (isupper(*p) ? tolower(*p) : *p);
-	p++;
-	month[2] = (isupper(*p) ? tolower(*p) : *p);
-	p++;
-
-	/* syntax test month*/
-	if (! correct_month(month, &monthnum))
-		return(0);		/*syntax error */
-	/*
-	 * Month correct - skip spaces after month.
-	 */
-	while (IsSpace(*p))
-		p++;
-
-	/* syntax test day number*/
-	day = 0;
-	for (;;) {
-		c = *p;
-		if (isdigit(c)) {
-			day = day * 10 + (c - '0');
-			p++;
-		} else {
-			if (c == ' ' && day != 0)
-				break;	/*maybe correct day number found*/
-			else
-				return(0);	/*syntax error*/
-		}
-	}
-	/* test correct day number day after determination of year!*/
-	p++;
-	/* skip blanks between # of days and hour:min:sec option or year */
-	while (IsSpace(*p))
-		p++;
-
-	/* search for hour:minute:sec option */
-	hour=0;
-	min=0;
-	sec=0;
-	for (i=0; i<=1; i++) {
-	    c = *p;
-	    hour = -1;
-	    if (isdigit(c)) {
-		if (hour < 0)
-		    hour = (c - '0');
-		else
-		    hour = hour * 10 + (c - '0');
-		p++;
-	    } else if ( c == ':' && hour >= 0 ) {
-		/* one digit hours */
-		break;
-	    } else {
-		return(0);	/*syntax error*/
-	    }
-	}
-	c = *p;	/*if hour:min:sec option then c==':' */
-	/* else c = third digit of year */
-	timeoption = -1;
-	if (c == ':')
-		timeoption=1;
-	if (isdigit(c))
-		timeoption=0;
-	if (timeoption == -1)	/* no hour:min:sec option and no correct year*/
-		return(0);	/* syntax error */
-	if (timeoption) {
-		/* then search for minutes and seconds */
-		p++;
-		for (i=0; i<=1; i++) {
-			c = *p;
-			if (isdigit(c)) {
-				min=min * 10 + (c - '0');
-				p++;
-			} else
-				return(0);	/*syntax error*/
-		}
-		c = *p;
-		if (c != ':')
-			return(0);	/* syntax error */
-		p++;
-		for (i=0; i<=1; i++) {
-			c = *p;
-			if (isdigit(c)) {
-				sec=sec * 10 + (c - '0');
-				p++;
-			} else
-				return(0);	/*syntax error*/
-		}
-		/* skip blanks between hour:min:sec option and year*/
-		while (c = *p) {
-			if ( ! IsSpace(c))	break;
-			p++;
-		}
-	}
-	/* search for year digits */
-	if (timeoption) {
-		yeardigits=4;
-		year=0;
-	} else {	/* no hour:min:sec option, only 4 digits of year */
-		year=hour;	
-		yeardigits=2;	/* first two digits in variable hour */
-		hour=0; 	/* no  hour:min:sec  option !! */
-	}
-	/* collect rest digits of year */
-	for (i=0; i <= (yeardigits - 1); i++) {
-		c = *p;
-		if (isdigit(c)) {
-			year=year * 10 + (c - '0');
-			p++;
-		} else
-			return(0);	/*syntax error */
-	}
-	/* year found */
-	/* after the year digits a NULL have to be found */
-	c = *p;
-	if ( ! IsNull(c) )
-		return(0);  /* syntax error at the end */
-	/* test whether year is correct or not */
-	if (year < YEAR_MIN || year > YEAR_MAX)
-		return(0);		/*invalid number */
-	/* test correct day number in respect of year and month  */
-	leap = isleap(year);
-	/*	leap = year%4 == 0 && year%100 != 0 || year%400 == 0; */
-	if (day < 1 || day > day_tab[leap] [monthnum])
-		return(0); 	/* invalid day number */
-	/* calculate day-of-year */
-	yday = day;
-	for (i=0; i < monthnum; i++)
-		yday += day_tab[leap] [i];
-	/* define result values   LOCAL TIME*/
-	brokentime->tm_sec = sec;
-	brokentime->tm_min = min;
-	brokentime->tm_hour = hour;
-	brokentime->tm_mday = day;
-	brokentime->tm_mon = monthnum;  	/* 0,...,11 */
-	brokentime->tm_year = year - TM_YEAR_BASE;
-	brokentime->tm_wday = 0;		/* not calculated! */
-	brokentime->tm_yday = yday;
-
-	/*
-	 *  this is just wrong.  if the specified time happens to fall
-	 *  during dst in the local time zone, we screw up printing the
-	 *  actual time.
-	 */
-	brokentime->tm_isdst = 0;
-
-	return(1);
-}
-
-
-/*
  *	correct_month	- returns 1, iff month is a correct month descriptor
  *				     else 0.
  *	output parameter:
@@ -1358,7 +1101,7 @@ istinterval(i_string, i_start, i_end)
 		p1++;
 	}
 	/* get the first date */
-	*i_start = abstimein(p);	/* first absolute date */
+	*i_start = nabstimein(p);	/* first absolute date */
 	/* rechange NULL at the end of the first date to a "'" */
 	*p1 = '\'';
 	p = ++p1;
@@ -1382,7 +1125,7 @@ istinterval(i_string, i_start, i_end)
 		p1++;
 	}
 	/* get the second date */
-	*i_end = abstimein(p);		/* second absolute date */
+	*i_end = nabstimein(p);		/* second absolute date */
 	/* rechange NULL at the end of the first date to a ''' */
 	*p1 = '\'';
 	p = ++p1;

@@ -290,8 +290,8 @@ DATA(insert OID = 232 (  dpow              6 11 f t f 2 701 "0" 0 100 100 10 100
 DATA(insert OID = 233 (  dexp              6 11 f t f 1 701 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 234 (  dlog1             6 11 f t f 1 701 "0" 0 100 100 10 100 100  foo bar ));
     
-DATA(insert OID = 240 (  abstimein         6 11 f t f 1 702 "0" 0 100 100 10 100 100  foo bar ));
-DATA(insert OID = 241 (  abstimeout        6 11 f t f 1  23 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 240 (  nabstimein         6 11 f t f 1 702 "0" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID = 241 (  nabstimeout        6 11 f t f 1  23 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 242 (  reltimein         6 11 f t f 1 703 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 243 (  reltimeout        6 11 f t f 1  23 "703" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 244 (  timepl            6 11 f t f 2 702 "0" 0 100 100 10 100 100  foo bar ));

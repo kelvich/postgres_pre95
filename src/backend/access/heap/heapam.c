@@ -86,6 +86,7 @@ RcsId("$Header$");
 #include "access/htup.h"
 #include "access/relscan.h"
 #include "access/skey.h"
+
 #include "access/tqual.h"
 #include "access/valid.h"
 #include "access/xcxt.h"
@@ -1353,7 +1354,6 @@ heap_delete(relation, tid)
      */
     TransactionIdStore(GetCurrentTransactionId(), (Pointer)tp->t_xmax);
     tp->t_cmax = GetCurrentCommandId();
-    /* tp->t_tmax = InvalidTime; */
     ItemPointerSetInvalid(&tp->t_chain);
 
     /* ----------------
@@ -1535,7 +1535,6 @@ heap_replace(relation, otid, tup)
     }
     TransactionIdStore(GetCurrentTransactionId(), (Pointer)tp->t_xmax);
     tp->t_cmax = GetCurrentCommandId();
-    /* tp->t_tmax = InvalidTime; */
     tp->t_chain = tup->t_ctid;
 
     /* ----------------

@@ -12,6 +12,7 @@
 #include "access/xlog.h"
 #include "access/xact.h"
 #include "utils/log.h"
+#include "utils/nabstime.h"
 
 #include "access/tqual.h"
 
@@ -542,7 +543,7 @@ HeapTupleSatisfiesItself(tuple)
     }
     /* the tuple was inserted validly */
 
-    if (AbsoluteTimeIsValid(tuple->t_tmax)) {
+    if (AbsoluteTimeIsReal(tuple->t_tmax)) {
 	return (false);
     }
 
@@ -614,7 +615,7 @@ HeapTupleSatisfiesNow(tuple)
     }
     /* the tuple was inserted validly */
 
-    if (AbsoluteTimeIsValid(tuple->t_tmax)) {
+    if (AbsoluteTimeIsReal(tuple->t_tmax)) {
 		return (false);
     }
 
@@ -661,7 +662,7 @@ HeapTupleSatisfiesSnapshotInternalTimeQual(tuple, qual)
     }
     /* the tuple was inserted validly before the snapshot time */
 
-    if (!AbsoluteTimeIsValid(tuple->t_tmax)) {
+    if (!AbsoluteTimeIsReal(tuple->t_tmax)) {
 
 	if (!TransactionIdIsValid((TransactionId)tuple->t_xmax) ||
 	    !TransactionIdDidCommit((TransactionId)tuple->t_xmax)) {
@@ -713,7 +714,7 @@ HeapTupleSatisfiesUpperBoundedInternalTimeQual(tuple, qual)
 	return (true);
     }
 
-    if (!AbsoluteTimeIsValid(tuple->t_tmax)) {
+    if (!AbsoluteTimeIsReal(tuple->t_tmax)) {
 
 	if (!TransactionIdIsValid((TransactionId)tuple->t_xmax) ||
 	    !TransactionIdDidCommit((TransactionId)tuple->t_xmax)) {
@@ -782,7 +783,7 @@ HeapTupleSatisfiesUpperUnboundedInternalTimeQual(tuple, qual)
 	return (true);
     }
 
-    if (!AbsoluteTimeIsValid(tuple->t_tmax)) {
+    if (!AbsoluteTimeIsReal(tuple->t_tmax)) {
 
 	if (!TransactionIdIsValid((TransactionId)tuple->t_xmax)) {
 	    return (true);

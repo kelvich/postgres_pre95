@@ -505,27 +505,16 @@ typedef uint8	CommandId;
 #define TransactionsPerSecondAdjustment	TransactionMultiplierPerByte	
 
 /* ----------------------------------------------------------------
- *		Section 6:  time types + support macros
+ *		Section 6: some time types + support macros
  *
- *	Note: see miscadmin.h for time support macros
+ *	Note: see nabstime.h for time support macros
  * ----------------------------------------------------------------
  */
-typedef uint32	AbsoluteTime;
-#define InvalidAbsoluteTime	0
+
+typedef uint32	Time;			/* XXX this will disappear */
 
 typedef uint32	RelativeTime;
 #define InvalidRelativeTime	0
-
-typedef uint32	Time;		/* XXX this will disappear */
-#define InvalidTime	0	/* XXX this will disappear */
-
-/*
- * XXX INVALID_ABSTIME from adt/date.h.
- * XXX access/tim and adt/date should be merged somehow.
- */
-#ifndef	INVALID_ABSTIME
-#define INVALID_ABSTIME	2147483647
-#endif	/* !defined(INVALID_ABSTIME) */
 
 /* ----------------------------------------------------------------
  *		Section 7: genbki macros used by the
@@ -622,9 +611,6 @@ typedef Pointer (*VoidFunctionType)();
  */
 extern bool NameIsEqual ARGS((Name name1, Name name2));
 extern uint32 NameComputeLength ARGS((Name name));
-
-extern bool AbsoluteTimeIsBefore ARGS((AbsoluteTime time1,AbsoluteTime time2));
-extern bool AbsoluteTimeIsAfter  ARGS((AbsoluteTime time1,AbsoluteTime time2));
 
 extern TransactionId	NullTransactionId;
 extern TransactionId	AmiTransactionId;

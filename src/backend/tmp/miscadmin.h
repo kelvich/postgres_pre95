@@ -116,33 +116,6 @@ extern ObjectId	    LastOidProcessed;	/* for query rewrite */
 #endif
 
 /* ----------------
- *	time support macros (from tim.h)
- * ----------------
- */
-
-#define AbsoluteTimeIsValid(time) \
-    ((bool) ((time) != InvalidAbsoluteTime))
-
-#define RelativeTimeIsValid(time) \
-    ((bool) ((time) != InvalidRelativeTime))
-
-#define TimeIsValid(time) AbsoluteTimeIsValid(time)
-
-#define GetCurrentAbsoluteTime() \
-    ((Time) GetSystemTime())
-
-/* XXX remove this */
-#define GetCurrentTime() \
-    ((AbsoluteTime) GetCurrentAbsoluteTime())
-
-/*
- * GetSystemTime --
- *	Returns system time.
- */
-#define GetSystemTime() \
-    ((SystemTime) (time(0l)))
-
-/* ----------------
  *	pdir.h
  * ----------------
  */
