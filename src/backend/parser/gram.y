@@ -29,6 +29,7 @@
  **********************************************************************/
 
 #include <strings.h>
+#include <ctype.h>
 
 #include "tmp/c.h"
 #include "catalog_utils.h"
@@ -2172,7 +2173,7 @@ static int is_postquel_func(parameters)
 
 	    name = CString(value);
 	    for (c = name; *c != '\0'; c++)
-		*c = toupper(*c);
+		*c = (islower(*c) ? toupper(*c) : *c);
 	    if (!strcmp(name, "POSTQUEL")) return true;
 	}
     }
