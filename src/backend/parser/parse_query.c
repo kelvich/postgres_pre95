@@ -8,7 +8,6 @@
   the planner requires.
 
   Synthesizes the lisp object via routines in lisplib/lispdep.c
-
   $Header$
  **********************************************************************/
 
@@ -139,13 +138,6 @@ MakeRangeTableEntry( relname , options , refname)
 
     return ( lispCons ( lispString(refname), entry ));
 }
-
-LispValue
-MakeTargetList()
-{
-	
-}
-
 
 /**************************************************
 
@@ -373,7 +365,7 @@ make_var ( relname, attrname )
 
  **********************************************************************/
 
-static char *tlist_buf = 0;
+static char tlist_buf[1024];
 static int end_tlist_buf = 0;
 
 LispValue
@@ -385,9 +377,6 @@ SkipForwardToFromList()
     LispValue next_token;
     int i;
     char *temp;
-    
-    if (tlist_buf == 0 )
-      tlist_buf = (char*) malloc(1024);
     
     for(i=0;i<1024;i++)
       tlist_buf[i]=0;
