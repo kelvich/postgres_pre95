@@ -1,6 +1,6 @@
 PG_INCLUDE=../backend
 
-all: int4_abs.o circle.o
+all: int4_abs.so circle.so
 
 int4_abs.o: int4_abs.c
 	cc -c -g -PIC -I$(PG_INCLUDE) int4_abs.c
