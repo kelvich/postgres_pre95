@@ -108,6 +108,7 @@ class (ExprContext) public (Node) {
 	Relation      ecxt_relation; \
 	Index	      ecxt_relid
  /* private: */
+	ExprContextDefs;
  /* public: */
 };
 
