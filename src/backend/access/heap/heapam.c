@@ -392,7 +392,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
 	     *	if current tuple qualifies, return it.
 	     * ----------------
 	     */
-	    if (heap_satisifies(lpp, *b, timeQual, nkeys, key)) {
+	    if (heap_satisfies(lpp, relation, *b, timeQual, nkeys, key)) {
 		rtup = (HeapTuple) PageGetItem(dp, lpp);
 		if (BufferPut(*b, L_PIN) < 0)
 		    elog(WARN, "heap_fetch: failed BufferPut");
@@ -1109,7 +1109,7 @@ heap_fetch(relation, timeQual, tid, b)
      *	check time qualification of tid
      * ----------------
      */
-    if (! heap_satisifies(lp, buffer, timeQual, 0,(ScanKey)NULL)) {
+    if (! heap_satisfies(lp, relation, buffer, timeQual, 0,(ScanKey)NULL)) {
 	if (BufferPut(buffer, L_UNPIN) < 0)
 	    elog(WARN, "heap_fetch: BufferPut failed");
 	
@@ -1252,7 +1252,7 @@ heap_delete(relation, tid)
      *	check that we're deleteing a valid item
      * ----------------
      */
-    if (! heap_satisifies(lp, b, NowTimeQual, 0, (ScanKey) NULL)) {
+    if (! heap_satisfies(lp, relation, b, NowTimeQual, 0, (ScanKey) NULL)) {
 	
 	/* XXX call something else */
 	if (BufferPut(b, L_UN | L_UP) < 0)
@@ -1353,8 +1353,9 @@ heap_replace(relation, otid, tup)
      *	check that we're replacing a valid item
      * ----------------
      */
-    if (! heap_satisifies(lp, buffer, NowTimeQual, 0, (ScanKey) NULL)) {
-	
+    if (! heap_satisfies(lp, relation, buffer, NowTimeQual, 0,
+	 (ScanKey) NULL)) {
+
 	/* XXX call something else */
 	if (BufferPut(buffer, L_UN | L_UP) < 0)
 	    elog(WARN, "heap_replace: failed BufferPut");
