@@ -7,6 +7,10 @@ SUBDIR=  monitor pagedoc pg_id pg_version shmemdoc
 #
 SUBDIR+= createdb createuser destroydb destroyuser initdb vacuum ipcclean \
 	pg_copytree
+#
+# Subsystems
+#
+SUBDIR += fsutils
 
 #
 # Removed: tree xexemon.
