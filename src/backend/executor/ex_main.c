@@ -87,7 +87,78 @@ InitializeExecutor()
 
     ExecIsInitialized = true;
 }
- 
+
+void
+ExecCheckPerms(operation, resultRelation, rangeTable, parseTree)
+	int operation;
+	LispValue resultRelation;
+	List rangeTable;
+	List parseTree;
+{
+	int rr, i = 1;
+	ObjectId relid;
+	HeapTuple htp;
+	List lp;
+	List qvars, tvars;
+	int32 ok = 1;
+	char *opstr;
+	NameData rname, user;
+	extern void GetUserName();
+	extern LispValue pull_varnos();
+	
+#define CHECK(MODE)	pg_aclcheck(rname.data, user.data, MODE)
+	
+	GetUserName(&user);
+
+	rr = integerp(resultRelation) ? CInteger(resultRelation) : 0;
+	foreach (lp, rangeTable) {
+		relid = (ObjectId) CInteger(rt_relid(CAR(lp)));
+		htp = SearchSysCacheTuple(RELOID, (char *) relid,
+					  NULL, NULL, NULL);
+		if (!HeapTupleIsValid(htp))
+			elog(WARN, "ExecCheckPerms: bogus RT relid: %d",
+			     relid);
+		strncpy(rname.data,
+			((Form_pg_relation) GETSTRUCT(htp))->relname.data,
+			sizeof(NameData));
+		if (i == rr) {	/* this is the result relation */
+			qvars = pull_varnos(parse_qualification(parseTree));
+			tvars = pull_varnos(parse_targetlist(parseTree));
+			if (member(resultRelation, qvars) ||
+			    member(resultRelation, tvars)) {
+				/* result relation is scanned */
+				ok = CHECK(ACL_RD);
+				opstr = "read";
+				if (!ok)
+					break;
+			}
+			switch (operation) {
+			case APPEND:
+				ok = CHECK(ACL_AP) ||
+					CHECK(ACL_WR);
+				opstr = "append";
+				break;
+			case DELETE:
+			case REPLACE:
+				ok = CHECK(ACL_WR);
+				opstr = "write";
+				break;
+			default:
+				elog(WARN, "ExecCheckPerms: bogus operation %d",
+				     operation);
+			}
+		} else {
+			/* XXX NOTIFY?? */
+			ok = CHECK(ACL_RD);
+			opstr = "read";
+		}
+		if (!ok)
+			break;
+		++i;
+	}
+	if (!ok)
+		elog(WARN, "%s on \"%s\": permission denied", opstr, rname);
+}
 
 /* ----------------------------------------------------------------
  *   	ExecMain
@@ -356,67 +427,9 @@ InitPlan(operation, parseTree, plan, estate)
 	 */
 	set_es_result_relation_info(estate, NULL);
     }
+
 #ifndef NO_SECURITY
-    {
-	    int rr, i = 1;
-	    ObjectId o;
-	    HeapTuple htp;
-	    List lp;
-	    int32 ok = 1;
-	    char *opstr;
-	    NameData rname, user;
-	    extern void GetUserName();
-
-#define CHECK(MODE)	pg_aclcheck(rname.data, user.data, MODE)
-
-	    GetUserName(&user);
-	    rr = integerp(resultRelation) ? CInteger(resultRelation) : 0;
-	    foreach (lp, rangeTable) {
-		    o = (ObjectId) CInteger(rt_relid(CAR(lp)));
-		    htp = SearchSysCacheTuple(RELOID, (char *) o,
-					      NULL, NULL, NULL);
-		    if (!HeapTupleIsValid(htp))
-			    elog(WARN, "InitPlan: bogus RT relid: %d", o);
-		    strncpy(rname.data,
-			    ((Form_pg_relation) GETSTRUCT(htp))->relname.data,
-			    sizeof(NameData));
-		    /* XXX NOTIFY?? */
-		    if (i == rr) {	/* this is the result relation */
-			    if (find_varno(parse_qualification(parseTree),
-					   rr) ||
-				find_varno(parse_targetlist(parseTree),
-					   rr)) {
-				    /* result relation is scanned */
-				    ok = CHECK(ACL_RD);
-				    opstr = "read";
-			    }
-			    if (ok) {
-				    switch (operation) {
-				    case APPEND:
-					    ok = CHECK(ACL_AP) ||
-						    CHECK(ACL_WR);
-					    opstr = "append";
-					    break;
-				    case DELETE:
-				    case REPLACE:
-					    ok = CHECK(ACL_WR);
-					    opstr = "write";
-					    break;
-				    default:
-					    elog(WARN, "InitPlan: bogus operation %d",
-						 operation);
-				    }
-			    }
-		    } else {
-			    ok = CHECK(ACL_RD);
-			    opstr = "read";
-		    }
-		    if (!ok)
-			    elog(WARN, "%s on \"%s\": permission denied",
-				 opstr, rname);
-		    ++i;
-	    }
-    }
+    ExecCheckPerms(operation, resultRelation, rangeTable, parseTree);
 #endif
     
     relationRelationDesc = heap_openr(RelationRelationName);
