@@ -105,6 +105,7 @@ cost_seqscan (relid,relpages,reltuples)
 	temp += relpages;
 	temp += _CPU_PAGE_WEIGHT_ * reltuples;
     }
+    Assert(temp >= 0);
     return(temp);
 } /* end cost_seqscan */
 
@@ -156,6 +157,7 @@ cost_index (indexid,expected_indexpages,selec,relpages,
 	CostAddCostTimesCount(temp2, selec, indextuples);
 	CostAddCostTimesCount(temp2, selec, reltuples);
     temp =  temp + (_CPU_PAGE_WEIGHT_ * temp2);
+    Assert(temp >= 0);
     return(temp);
 } /* end cost_index */
 
@@ -197,12 +199,16 @@ cost_sort (keys,tuples,width,noread)
     if ( !_enable_sort_ ) 
       temp += _disable_cost_ ;
     if (tuples == 0 || null(keys) )
-      return(temp);
+     {
+	 Assert(temp >= 0);
+	 return(temp);
+     }
     temp += pages * base_log(pages, (double)2.0);
     /* could be base_log(pages, NBuffers), but we are only doing 2-way merges */
     temp += _CPU_PAGE_WEIGHT_ * numTuples * base_log(pages, 2.0);
     if( !noread )
       temp = temp + cost_seqscan(lispInteger(_TEMP_RELATION_ID_),npages,tuples);
+    Assert(temp >= 0);
     return(temp);
 }
 
@@ -250,6 +256,7 @@ cost_hash (keys,tuples,width,which_rel)
 		else 
 		  temp +=pages;
 	}
+    Assert(temp >= 0);
     return(temp);
 } /* end cost_hash */
 
@@ -273,6 +280,7 @@ cost_result (tuples,width)
     Cost temp =0;
     temp = temp + page_size(tuples,width);
     temp = temp + _CPU_PAGE_WEIGHT_ * tuples;
+    Assert(temp >= 0);
     return(temp);
 }
 
@@ -305,6 +313,7 @@ cost_nestloop (outercost,innercost,outertuples,innertuples,outerpages,is_indexjo
        temp += _disable_cost_;
     temp += outercost;
     temp += outertuples * innercost;
+    Assert(temp >= 0);
     return(temp);
 }
 
@@ -342,6 +351,7 @@ cost_mergesort (outercost,innercost,outersortkeys,innersortkeys,
     temp += cost_sort(outersortkeys,outersize,outerwidth,false);
     temp += cost_sort(innersortkeys,innersize,innerwidth,false);
     temp += _CPU_PAGE_WEIGHT_ * (outersize + innersize);
+    Assert(temp >= 0);
     return(temp);
 }
 
@@ -382,6 +392,7 @@ cost_hashjoin (outercost,innercost,outerkeys,innerkeys,outersize,
        temp += _disable_cost_;
     temp += outercost + nrun * innercost;
     temp += _CPU_PAGE_WEIGHT_ * (outersize + nrun * innersize);
+    Assert(temp >= 0);
     return(temp);
     
 } /* end cost_hashjoin */
@@ -410,6 +421,7 @@ compute_rel_size (rel)
 
     temp = get_tuples(rel) * product_selec(get_clauseinfo(rel)); 
     temp1 = ceil(temp);
+    Assert(temp >= 0);
     return(temp1);
       
 }
@@ -506,6 +518,7 @@ compute_joinrel_size (joinpath)
     temp = temp * product_selec(get_pathclauseinfo(joinpath));  
 
     temp1 = floor(temp);
+    Assert(temp1 >= 0);
     return(temp1);
 }
 
@@ -523,5 +536,6 @@ page_size (tuples,width)
 	int temp =0;
 	temp = ceil((double)(tuples * (width + sizeof(HeapTupleData))) 
 		    / BLCKSZ);
+	Assert(temp >= 0);
 	return(temp);
 }
