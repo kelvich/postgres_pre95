@@ -488,7 +488,7 @@ GlobalMemoryDestroy(context)
 	GlobalMemory	context;
 {
 	AssertState(MemoryContextEnabled);
-	AssertArg(IsA(context,GlobalMemory));
+	AssertArg(ExactNodeType(context,GlobalMemory));
 	AssertArg(context != &TopGlobalMemoryData);
 
 	AllocSetReset(&context->setData);
