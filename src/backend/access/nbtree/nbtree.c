@@ -75,6 +75,7 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     ExprContext econtext;
     TupleTable tupleTable;
     TupleTableSlot slot;
+    ObjectId hrelid, irelid;
 
     /* note that this is a new btree */
     BuildingBtree = true;
@@ -174,12 +175,18 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
      *  stats in pg_class to guarantee that the planner takes advantage
      *  of the index we just created. Finally, only update statistics
      *  during normal index definitions, not for indices on system catalogs
-     *  created during bootstrap processing.
+     *  created during bootstrap processing.  We must close the relations
+     *  before updatings statistics to guarantee that the relcache entries
+     *  are flushed when we increment the command counter in UpdateStats().
      */
     if (IsNormalProcessingMode())
     {
-	UpdateStats(heap, nhtups);
-	UpdateStats(index, nitups);
+	hrelid = heap->rd_id;
+	irelid = index->rd_id;
+	heap_close(heap);
+	index_close(index);
+	UpdateStats(hrelid, nhtups, true);
+	UpdateStats(irelid, nitups, false);
     }
 
     /* be tidy */

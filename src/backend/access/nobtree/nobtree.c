@@ -72,6 +72,7 @@ nobtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     TupleTable tupleTable;
     TupleTableSlot slot;
     extern TransactionId GetCurrentTransactionId();
+    ObjectId hrelid, irelid;
 
     /* don't bother with no-overwrite behavior for initial build */
     NOBT_Building = true;
@@ -174,11 +175,18 @@ nobtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     /*
      *  Since we just counted the tuples in the heap, we update its
      *  stats in pg_class to guarantee that the planner takes advantage
-     *  of the index we just created.
+     *  of the index we just created.  We have to close the relations
+     *  before calling UpdateStats() so that the relcache entries for
+     *  them, which are now incorrect, will be flushed by the call to
+     *  CommandCounterIncrement() in UpdateStats().
      */
 
-    UpdateStats(heap, nhtups);
-    UpdateStats(index, nitups);
+    hrelid = heap->rd_id;
+    irelid = index->rd_id;
+    heap_close(heap);
+    index_close(index);
+    UpdateStats(hrelid, nhtups, true);
+    UpdateStats(irelid, nitups, false);
 
     /* be tidy */
     pfree(nulls);

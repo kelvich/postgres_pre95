@@ -1025,6 +1025,11 @@ index_create(heapRelationName, indexRelationName, funcInfo,
      */
     heapRelation = heap_openr(heapRelationName);
    
+    /*
+     *  The routines that construct the indices for the various access
+     *  methods close the heap and index relations.
+     */
+
     index_build(heapRelation,
 		indexRelation,
 		numatts,
@@ -1033,9 +1038,6 @@ index_create(heapRelationName, indexRelationName, funcInfo,
 		parameter,
 		funcInfo,
 		predicate);
-   
-   heap_close(heapRelation);
-   heap_close(indexRelation);
 }
 
 /* ----------------------------------------------------------------
@@ -1175,10 +1177,12 @@ FormIndexDatum(numberOfAttributes, attributeNumber, heapTuple, heapDescriptor,
  *	UpdateStats
  * ----------------
  */
-UpdateStats(whichRel, reltuples)
-    Relation 	whichRel;
+UpdateStats(relid, reltuples, hasindex)
+    ObjectId	relid;
     long 	reltuples;
+    bool	hasindex;
 {
+    Relation 	whichRel;
     Relation 	pg_relation;
     HeapScanDesc pg_relation_scan;
     HeapTuple 	htup;
@@ -1196,7 +1200,7 @@ UpdateStats(whichRel, reltuples)
     char 	nulls[Natts_pg_relation];
     char 	replace[Natts_pg_relation];
 
-	fmgr_info(ObjectIdEqualRegProcedure, &key[0].func, &key[0].nargs);
+    fmgr_info(ObjectIdEqualRegProcedure, &key[0].func, &key[0].nargs);
 
     /* ----------------
      * This routine handles updates for both the heap and index relation
@@ -1208,6 +1212,20 @@ UpdateStats(whichRel, reltuples)
     CommandCounterIncrement();
 
     /* ----------------
+     * CommandCounterIncrement() flushes invalid cache entries, including
+     * those for the heap and index relations for which we're updating
+     * statistics.  Now that the cache is flushed, it's safe to open the
+     * relation again.  We need the relation open in order to figure out
+     * how many blocks it contains.
+     * ----------------
+     */
+
+    whichRel = (Relation) RelationIdGetRelation(relid);
+
+    if (!RelationIsValid(whichRel))
+	elog(WARN, "UpdateStats: cannot open relation id %d", relid);
+
+    /* ----------------
      * Find the RELATION relation tuple for the given relation.
      * ----------------
      */
@@ -1215,8 +1233,8 @@ UpdateStats(whichRel, reltuples)
     if (! RelationIsValid(pg_relation)) {
 	elog(WARN, "UpdateStats: could not open RELATION relation");
     }
-    key[0].argument = ObjectIdGetDatum(whichRel->rd_id);
-    
+    key[0].argument = ObjectIdGetDatum(relid);
+
     pg_relation_scan =
 	heap_beginscan(pg_relation, 0, NowTimeQual, 1, (ScanKey) key);
     
@@ -1224,21 +1242,26 @@ UpdateStats(whichRel, reltuples)
 	heap_close(pg_relation);
 	elog(WARN, "UpdateStats: cannot scan RELATION relation");
     }
-    
+
+    /* if the heap_open above succeeded, then so will this heap_getnext() */
     htup = heap_getnext(pg_relation_scan, 0, &buffer);
     heap_endscan(pg_relation_scan);
-    
-    if (! HeapTupleIsValid(htup)) {
-	heap_close(pg_relation);
-	elog(NOTICE, "UpdateStats: no such relation: %d", whichRel->rd_id);
-	return;
-    }
-    
+
     /* ----------------
      *	update statistics
      * ----------------
      */
     relpages = RelationGetNumberOfBlocks(whichRel);
+
+    /*
+     *  We shouldn't have to do this, but we do...  Modify the reldesc
+     *  in place with the new values so that the cache contains the
+     *  latest copy.
+     */
+
+    whichRel->rd_rel->relhasindex = hasindex;
+    whichRel->rd_rel->relpages = relpages;
+    whichRel->rd_rel->reltuples = reltuples;
 
     for (i = 0; i < Natts_pg_relation; i++) {
 	nulls[i] = ' ';
@@ -1258,15 +1281,14 @@ UpdateStats(whichRel, reltuples)
     replace[Anum_pg_relation_reltuples - 1] = 'r';
     values[Anum_pg_relation_reltuples - 1] = (Datum)reltuples;
     replace[Anum_pg_relation_relhasindex - 1] = 'r';
-    values[Anum_pg_relation_relhasindex - 1] =
-	(whichRel->rd_rel->relkind == 'r') ? CharGetDatum('\001') :
-					     CharGetDatum('\000');
+    values[Anum_pg_relation_relhasindex - 1] = CharGetDatum(hasindex);
 
     newtup = ModifyHeapTuple(htup, buffer, pg_relation, values,
 			     nulls, replace);
 
     heap_replace(pg_relation, &(newtup->t_ctid), newtup);
     heap_close(pg_relation);
+    heap_close(whichRel);
 }
 
 

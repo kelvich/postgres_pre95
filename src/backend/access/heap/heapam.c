@@ -1139,15 +1139,6 @@ heap_fetch(relation, timeQual, tid, b)
     IncrHeapAccessStat(local_fetch);    
     IncrHeapAccessStat(global_fetch);    
 
-    /* ----------------
-     *	sanity checks
-     * ----------------
-     */
-    Assert(RelationIsValid(relation));
-    Assert(relation->rd_rel->relkind == 'r');
-
-    /* Note: set tuple level read lock */
-
     /*
      * Note: This is collosally expensive - does two system calls per
      * indexscan tuple fetch.  Not good, and since we should be doing

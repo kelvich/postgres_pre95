@@ -70,6 +70,7 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     ExprContext econtext;
     TupleTable tupleTable;
     TupleTableSlot slot;
+    ObjectId hrelid, irelid;
 
     /* rtrees only know how to do stupid locking now */
     RelationSetLockForWrite(index);
@@ -185,11 +186,21 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     /*
      *  Since we just counted the tuples in the heap, we update its
      *  stats in pg_relation to guarantee that the planner takes
-     *  advantage of the index we just created.
+     *  advantage of the index we just created.  UpdateStats() does a
+     *  CommandCounterIncrement(), which flushes changed entries from
+     *  the system relcache.  The act of constructing an index changes
+     *  these heap and index tuples in the system catalogs, so they
+     *  need to be flushed.  We close them to guarantee that they
+     *  will be.
      */
 
-    UpdateStats(heap, nh);
-    UpdateStats(index, ni);
+    hrelid = heap->rd_id;
+    irelid = index->rd_id;
+    heap_close(heap);
+    index_close(index);
+
+    UpdateStats(hrelid, nh, true);
+    UpdateStats(irelid, ni, false);
 
     /* be tidy */
     pfree(nulls);

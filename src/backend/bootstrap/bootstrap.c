@@ -900,7 +900,7 @@ defineindex(heapName, indexName, accessMethodName, attributeList)
             elog(WARN, "defineindex: could not open %s relation", heapName);
 
     if (!BootstrapAlreadySeen(cur_relation->rd_id))
-	UpdateStats(cur_relation, 0);
+	UpdateStats(cur_relation->rd_id, 0, true);
 }
 
 #define MORE_THAN_THE_NUMBER_OF_CATALOGS 256
