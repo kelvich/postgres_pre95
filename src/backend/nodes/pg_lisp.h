@@ -24,6 +24,53 @@
 #include <stdio.h>
 #include "nodes.h"
 
+/* ----------------------------------------------------------------
+ *	Node Function Declarations
+ *
+ *  All of these #defines indicate that we have written print/equal/copy
+ *  support for the classes named.  The print routines are in
+ *  lib/C/printfuncs.c, the equal functions are in lib/C/equalfincs.c and
+ *  the copy functions can be found in lib/C/copyfuncs.c
+ *
+ *  An interface routine is generated automatically by Gen_creator.sh for
+ *  each node type.  This routine will call either do nothing or call
+ *  an _print, _equal or _copy function defined in one of the above
+ *  files, depending on whether or not the appropriate #define is specified.
+ *
+ *  Thus, when adding a new node type, you have to add a set of
+ *  _print, _equal and _copy functions to the above files and then
+ *  add some #defines below.
+ *
+ *  This is pretty complicated, and a better-designed system needs to be
+ *  implemented.
+ * ----------------------------------------------------------------
+ */
+
+/* ----------------
+ *	Node Copy Function declarations
+ * ----------------
+ */
+#define	CopyLispValueExists
+#define	CopyLispSymbolExists
+#define	CopyLispListExists
+#define	CopyLispIntExists
+#define	CopyLispFloatExists
+#define	CopyLispVectorExists
+#define	CopyLispStrExists
+
+extern bool	CopyLispValue();
+extern bool	CopyLispSymbol();
+extern bool	CopyLispList();
+extern bool	CopyLispInt();
+extern bool	CopyLispFloat();
+extern bool	CopyLispVector();
+extern bool	CopyLispStr();
+
+/* ----------------------------------------------------------------
+ *			node definitions
+ * ----------------------------------------------------------------
+ */
+
 /* ----------------
  *	vectori definition used in LispValue
  * ----------------
@@ -122,12 +169,18 @@ class (LispStr) public (Node) {
 #define lispAtomp(x) ((bool)(LISP_TYPE(x)==PGLISP_ATOM))
 
 /* ----------------
+ *	lispAlloc
+ * ----------------
+ */
+#define lispAlloc() (LispValue) palloc(sizeof(classObj(LispValue)))
+
+/* ----------------
  *	lisp value accessor macros
  * ----------------
  */
 #define	CAR(LISPVALUE)			((LISPVALUE)->val.car)
 #define	CDR(LISPVALUE)			((LISPVALUE)->cdr)
-#define CAAR(lv)                (CAR(CAR(lv)))
+#define CAAR(lv)                	(CAR(CAR(lv)))
 #define CADR(lv)			(CAR(CDR(lv)))
 #define CADDR(lv)			(CAR(CDR(CDR(lv))))
 #define	LISPVALUE_DOUBLE(LISPVALUE)	((LISPVALUE)->val.flonum)

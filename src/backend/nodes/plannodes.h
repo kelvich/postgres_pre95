@@ -1,9 +1,21 @@
-/*
- * PlanNodes.h --
- *	Definitions for query tree nodes.
+/* ----------------------------------------------------------------
+ *   FILE
+ *	plannodes.h
+ *	
+ *   DESCRIPTION
+ *	definitions for query plan nodes
  *
- * Identification:
+ *   NOTES
+ *	this file is listed in lib/Gen/inherits.sh and in the
+ *	INH_SRC list in conf/inh.mk and is used to generate the
+ *	obj/lib/C/plannodes.c file
+ *
+ *	For explanations of what the structure members mean,
+ *	see ~postgres/doc/query-tree.t.
+ *
+ *   IDENTIFICATION
  *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef PlanNodesIncluded
@@ -14,7 +26,7 @@
 #include "oid.h"
 #include "recursion_a.h"        /* recursion stuff that must go first */
 
-/* ----------------
+/* ----------------------------------------------------------------
  *  Executor State types are used in the plannode structures
  *  so we have to include their definitions too.
  *
@@ -48,21 +60,37 @@
  *      Unique			UniqueState		uniquestate;
  *      Hash			HashState		hashstate;
  *
- * ----------------
+ * ----------------------------------------------------------------
  */
 #include "execnodes.h"		/* XXX move executor types elsewhere */
 
 
-/*
- *  All of these #defines indicate that we have written print support
- *  for the classes named.  The print routines are in lib/C/printfuncs.c;
- *  an interface routine is generated automatically by Gen_creator.sh for
- *  each node type.
+/* ----------------------------------------------------------------
+ *	Node Function Declarations
+ *
+ *  All of these #defines indicate that we have written print/equal/copy
+ *  support for the classes named.  The print routines are in
+ *  lib/C/printfuncs.c, the equal functions are in lib/C/equalfincs.c and
+ *  the copy functions can be found in lib/C/copyfuncs.c
+ *
+ *  An interface routine is generated automatically by Gen_creator.sh for
+ *  each node type.  This routine will call either do nothing or call
+ *  an _print, _equal or _copy function defined in one of the above
+ *  files, depending on whether or not the appropriate #define is specified.
+ *
+ *  Thus, when adding a new node type, you have to add a set of
+ *  _print, _equal and _copy functions to the above files and then
+ *  add some #defines below.
  *
  *  This is pretty complicated, and a better-designed system needs to be
  *  implemented.
+ * ----------------------------------------------------------------
  */
 
+/* ----------------
+ *	Node Print Function declarations
+ * ----------------
+ */
 #define	PrintPlanExists
 #define	PrintResultExists
 #define	PrintExistentialExists
@@ -96,6 +124,10 @@ extern void	PrintTemp();
 extern void	PrintSort();
 extern void	PrintHash();
 
+/* ----------------
+ *	Node Equal Function declarations
+ * ----------------
+ */
 extern bool	EqualPlan();
 extern bool	EqualResult();
 extern bool	EqualExistential();
@@ -111,6 +143,48 @@ extern bool	EqualIndexScan();
 extern bool	EqualTemp();
 extern bool	EqualSort();
 extern bool	EqualHash();
+
+/* ----------------
+ *	Node Copy Function declarations
+ * ----------------
+ */
+#define	CopyPlanExists
+#define	CopyResultExists
+#define	CopyExistentialExists
+#define	CopyAppendExists
+#define	CopyRecursiveExists
+#define	CopyJoinExists
+#define	CopyNestLoopExists
+#define	CopyMergeJoinExists
+#define	CopyHashJoinExists
+#define	CopyScanExists
+#define	CopySeqScanExists
+#define	CopyIndexScanExists
+#define	CopyTempExists
+#define	CopySortExists
+#define	CopyHashExists
+#define CopyUniqueExists
+
+extern bool	CopyPlan();
+extern bool	CopyResult();
+extern bool	CopyExistential();
+extern bool	CopyAppend();
+extern bool	CopyRecursive();
+extern bool	CopyJoin();
+extern bool	CopyNestLoop();
+extern bool	CopyMergeJoin();
+extern bool	CopyHashJoin();
+extern bool	CopyScan();
+extern bool	CopySeqScan();
+extern bool	CopyIndexScan();
+extern bool	CopyTemp();
+extern bool	CopySort();
+extern bool	CopyHash();
+
+/* ----------------------------------------------------------------
+ *			node definitions
+ * ----------------------------------------------------------------
+ */
 
 /* ----------------
  *	Plan node
