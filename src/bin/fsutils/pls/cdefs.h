@@ -61,20 +61,11 @@
 #define	__CONCAT(x,y)	x/**/y
 #define	__STRING(x)	"x"
 
-#if 0
-#ifdef __GNUC__
-#define	const		__const		/* GCC: ANSI C with -traditional */
-#define	inline		__inline
-#define	signed		__signed
-#define	volatile	__volatile
+#endif	/* !(__STDC__ || __cplusplus) */
 
-#else	/* !__GNUC__ */
 #define	const				/* delete ANSI C keywords */
 #define	inline
 #define	signed
 #define	volatile
-#endif	/* !__GNUC__ */
-#endif	/* !(__STDC__ || __cplusplus) */
-#endif
 
 #endif /* !_CDEFS_H_ */
