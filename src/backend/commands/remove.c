@@ -86,7 +86,9 @@ RemoveOperator(operatorName, typeName1, typeName2)
 	if (HeapTupleIsValid(tup)) {
 #ifndef NO_SECURITY
 		GetUserName(&user);
-		if (!pg_ownercheck(user.data, (char *) tup->t_oid, OPROID))
+		if (!pg_ownercheck(user.data,
+				   (char *) ObjectIdGetDatum(tup->t_oid),
+				   OPROID))
 			elog(WARN, "RemoveOperator: operator \"%-.*s\": permission denied",
 			     sizeof(NameData), operatorName);
 #endif
@@ -329,14 +331,15 @@ RemoveFunction(functionName, nargs, argNameList)
 
 	bzero(argList, 8 * sizeof(ObjectId));
 	for (i=0; i<nargs; i++) {
-	    strncpy(&typename, CString(CAR(argNameList)),
-		    sizeof(NameData));
+	    (void) namestrcpy(&typename, CString(CAR(argNameList)));
 	    argNameList = CDR(argNameList);
 	    
-	    if (strcmp(&typename, "any") == 0)
+	    if (strncmp(typename.data, "any", NAMEDATALEN) == 0)
 		argList[i] = 0;
 	    else {
-		tup = SearchSysCacheTuple(TYPNAME, &typename, NULL, NULL, NULL);
+		tup = SearchSysCacheTuple(TYPNAME, (char *) &typename,
+					  (char *) NULL, (char *) NULL,
+					  (char *) NULL);
 
 		if (!HeapTupleIsValid(tup)) {
 		    elog(WARN, "RemoveFunction: type \"%-.*s\" not found",
@@ -347,7 +350,9 @@ RemoveFunction(functionName, nargs, argNameList)
 	    }
 	}
 
-	tup = SearchSysCacheTuple(PRONAME, functionName, nargs, argList, NULL);
+	tup = SearchSysCacheTuple(PRONAME, (char *) functionName,
+				  (char *) Int32GetDatum(nargs),
+				  (char *) argList, (char *) NULL);
 	if (!HeapTupleIsValid(tup))
 	        func_error("RemoveFunction", functionName, nargs, argList);
 
@@ -378,13 +383,13 @@ RemoveFunction(functionName, nargs, argNameList)
 		        break;
 		bufferUsed = TRUE;
 		the_proc = (Form_pg_proc) GETSTRUCT(tup);
-	} while (!strcmp(&(the_proc->proname.data[0]), functionName) &&
+	} while (NameIsEqual(&(the_proc->proname), functionName) &&
 		 (the_proc->pronargs != nargs ||
 		  !oid8eq(&(the_proc->proargtypes.data[0]), &argList[0])));
 
 
-	if (!HeapTupleIsValid(tup) || strcmp(&(the_proc->proname.data[0]), 
-					     functionName))
+	if (!HeapTupleIsValid(tup) || !NameIsEqual(&(the_proc->proname), 
+						   functionName))
 	        {	
 		      HeapScanEnd(scan);
 		      RelationCloseHeapRelation(relation);
