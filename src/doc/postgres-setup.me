@@ -131,10 +131,10 @@ Digital Equipment DECstation 3000 series (Alpha AXP architecture)
 machines running Alpha OSF/1 1.3 and higher.
 .bu
 Digital Equipment DECstation 3100 and 5000 series (MIPS architecture)
-machines running Ultrix 4.1 and higher.
+machines running Ultrix 4.2 and higher.
 .bu
-Hewlett-Packard H-P 9000/700 series (PA-RISC architecture) machines
-running HP-UX 8.07 and higher.
+Hewlett-Packard H-P 9000 Series 700 and 800 (PA-RISC architecture) 
+machines running HP-UX 9.00 and higher.
 .bu
 International Business Machines RS/6000 (POWER architecture) machines
 running AIX 3.2.3 and higher.
@@ -160,14 +160,14 @@ included in Ultrix 4.3a.)
 .sh 2 "Distribution Tape"
 .lp
 These instructions assume you have a \*(PG Version \*(PV distribution
-tape (in either 1600bpi 9-track, SCSI cartridge, or DEC TK50 cartridge
+tape (in either SCSI cartridge or DEC TK50 cartridge
 format) or a \*(PG tar file.  
 The previous version of \*(PG came with pre-compiled binaries for
 the SPARC and Ultrix platforms, however this release is a source
 distribution only.  The source code is available in tar format over
 the internet via anonymous ftp from the site s2k-ftp.CS.Berkeley.EDU.
-Look in the directory pub/postgres/postgres-v4r2.  The compressed tar
-file containing the complete source distribution 
+Look in the directory \f(CWpub/postgres/postgres-v4r2\fP.  The 
+compressed tar file containing the complete source distribution 
 is named \f(CWpostgres-v4r2.tar.Z\fP.
 .sh 2 "Expertise"
 .lp
@@ -180,7 +180,7 @@ may be difficult and we advise that the person installing
 procedures.
 Also note that various
 steps require superuser privilege on the system,
-so we advise
+so we recommend
 that your site's system administrator read this document also.
 .sh 2 "Configuration"
 .lp
@@ -293,7 +293,12 @@ owned by this \*(lqpostgres\*(rq user.  Then, we start the postmaster
 when logged in as this \*(lqpostgres\*(rq user, and all the backends
 are also started by the user \*(lqpostgres\*(rq and are able to access
 the databases.  You can make this work without creating a
-\*(lqpostgres\*(rq login but this is highly discouraged.
+\*(lqpostgres\*(rq login but this is highly discouraged \(em all 
+\*(PG processes run with this user id, and making yourself the
+\*(PG user essentially grants all of your database users the ability
+to become 
+.i you
+without a password.
 .lp
 Note that the restriction about having a \*(lqpostgres\*(rq login with
 UID 6 was removed in \*(PG Version 4.0.1.
@@ -403,93 +408,11 @@ your machine.
 .lp
 .sh 3 "Kernel reconfiguration for Sparcs"
 .lp
-In order to reconfigure Sun or Sparc kernel, you will have to become
-the superuser and add some lines to \f(CW/usr/sys/conf/KERNEL\fP (your
-kernel config file) and \f(CW/usr/sys/conf/param.c\fP (your kernel
-parameters file).  We
-.i strongly
-advise you to make a spare copy of your system's original config
-and parameter files before you make any changes.
-.lp
-The following lines should be added to \f(CW/usr/sys/conf/KERNEL\fP:
-.sp
-.(l
-.ft CW
-options		IPCMESSAGE		# SystemV IPC Message Facility 
-options		IPCSEMAPHORE	# SystemV IPC Semaphore Facility
-options		IPCSHMEM		# SystemV IPC Shared-Memory Facility
-options		EMOREIPCS	# more semaphores and shared memory (for 8M)
-.ft
-.)l
-.sp
-.lp
-At Berkeley, we substitute the line: 
-.(l 
-.ft CW
-options		EMOREIPCS	# more semaphores and shared memory (for 8M)
-.ft
-.)l
-.lp
-with the line:
-.(l
-.ft CW
-options		TTMOREIPCS	# more semaphores and shared memory (for 32M)
-.ft
-.)l
-.lp
-to allocate more shared memory so that we can run more \*(PG backends
-at the same time.  Either of the lines will result in a kernel that
-has enough shared memory allocated.
-.lp
-Also add the following lines to the \fItop\fR of
-\f(CW/usr/sys/conf/param.c\fP: 
-.sp
-.(l
-.ft CW
-/*
- * LOCAL DEFINITIONS START
- */
-
-#ifdef	EMORESEMS
-#define EMOREIPCS
-#endif	/* defined(EMORESEMS) */
-
-#ifdef	TTMORESEMS
-#define TTMOREIPCS
-#endif	/* defined(TTMORESEMS) */
-
-#ifdef	EMOREIPCS
-#define SEMMNI		30	/* # of semaphore identifiers */
-#define SEMMNS		180	/* # of semaphores in system */
-#define SEMUME		10	/* max # of undo entries per process */
-#define SEMMNU		30	/* # of undo structures in system */
-
-#define SHMSIZE 	1536		/* max total shared memory system wide (in Kbytes) */
-#define SHMSEG		6	/* max attached shared memory segments per process */
-#define SHMMNI		100	/* # of shared memory identifiers */
-#endif	/* defined(EMOREIPCS) */
-
-#ifdef	TTMOREIPCS
-#define SEMMNI		60	/* # of semaphore identifiers */
-#define SEMMNS		384	/* # of semaphores in system */
-#define SEMUME		10	/* max # of undo entries per process */
-#define SEMMNU		30	/* # of undo structures in system */
-
-#define SHMSIZE 	8192		/* max total shared memory system wide (in Kbytes) */
-#define SHMSEG		6	/* max attached shared memory segments per process */
-#define SHMMNI		100	/* # of shared memory identifiers */
-#endif				/* defined(TTMOREIPCS) */
-
-/*
- * LOCAL DEFINITIONS END
- */
-.ft
-.)l
-.lp
-After adding these lines, run \f(CWconfig\fP over the config file,
-install the new kernel (saving a copy of the old kernel first!) and
-reboot.
-.sp
+We previously suggested that you reconfigure your kernel under
+SunOS.  However, the parameters in the generic kernel of current
+releases of SunOS ought to suffice.  (We never reconfigure our
+kernels and have not noticed any problems while running several
+\f(CWpostmaster\fPs at once.)
 .sh 3 "Kernel reconfiguration for DECs"
 .lp
 In order to reconfigure your DECstation 3100 or 5000 Ultrix kernel,
@@ -555,14 +478,16 @@ proceeding.
 Standards notwithstanding, every system has an \f(CWinstall\fP program
 with slightly different options and behavior.  Our Makefiles assume
 that \f(CWinstall\fP accepts BSD (as opposed to System V) options.
-For example, the \f(CWinstall\fP that comes with AIX, SunOS and Ultrix
-accept BSD options.  However, the default OSF/1 and HP-UX installation
+For example, the \f(CWinstall\fP that comes with SunOS and Ultrix
+accept BSD options.  However, the default OSF/1, HP-UX and AIX installation
 programs do not.  You can set the INSTALL variable to control which
 program is called.  On OSF/1, set INSTALL to \f(CW/bin/installbsd\fP.
+On AIX, use \f(CW/usr/ucb/install\fP instead of \f(CW/bin/install\fP.
 On HP-UX, you will have to find a BSD-compatible installation program
 and set INSTALL to the location of this program.  \f(CWbsdinst\fP,
 which comes with the MIT X Window System distribution (in
-\f(CWmit/util/scripts\fP), is widely available and works acceptably.
+\f(CWmit/util/scripts\fP), is widely available (we include it in
+the \f(CWsrc/tools\fP directory) and works acceptably.
 The GNU \f(CWinstall\fP program does not.
 .lp
 If you are not installing \*(PG using superuser privileges, or you are
@@ -581,6 +506,10 @@ MANOWN=         janeuser
 .ft
 .)l
 to prevent the \f(CWinstall\fP program from complaining.
+.lp
+If you absolutely insist on having a \*(PG user other than
+.q postgres ,
+set the variable POSTGRESLOGIN to the name of that user.
 .sh 3 "Build Step 2: Bootstrapping \*(lqbmake\*(rq"
 .lp
 Because the \f(CWbmake\fP program is normally installed into
@@ -592,14 +521,14 @@ the value of the TOOLSBINDIR and TOOLSLIBDIR options
 in \f(CWsrc/Makefile.global\fP, otherwise you will need to su(1) to root.
 Next make sure that the \f(CWmake\fP program in your
 PATH environment variable is the system-provided \f(CWmake\fP (usually
-\f(CW/bin/make\fP) and \fBNOT\fP GNU \f(CWmake\fP.  GNU \f(CWmake\fP
-is \fBguaranteed not to work\fP.
+\f(CW/bin/make\fP) and \fBNOT\fP GNU \f(CWmake\fP (many users have
+noted problems getting GNU \f(CWmake\fP to work).
 .lp
 \f(CWCd\fP into \f(CWsrc/tools/bmake\fP and type
 .(l
 % \fB./Bootstrap\fP \fIportname\fP
 .)l
-where \fIportname\fP is the value of PORTNAME (ultrix, sparc, etc).
+where \fIportname\fP is the value of PORTNAME (ultrix4, sparc, etc).
 This should compile
 and install the \f(CWbmake\fP program and its supporting files,
 including the \*(PG-related Makefile templates.  If all went well you
@@ -608,10 +537,10 @@ assuming you have \f(CW/usr/local/bin\fP in your shell path.  You may
 have to type \f(CWrehash\fP if you run \f(CWcsh\fP.
 .sh 3 "On Ultrix only, building and installing libdl"
 .lp
-This version of \*(PG uses the dlopen() interface to implement dynamic
-function loading.  Since there is no such vendor supplied interface
-on the Ultrix platform you must build and install a version that we
-provide you with.  
+This version of \*(PG uses the \f(CWdlopen(3)\fP interface to 
+implement dynamic function loading.  Since there is no such 
+vendor-supplied interface on the Ultrix platform you must build 
+and install a version that we provide.  
 .lp
 The same previous discussion about being root also holds true here.
 However, if you cannot become root to install this library, then you
@@ -619,15 +548,20 @@ will have to change the backend Makefile to look for this library
 where you have decided to put it using the -L loader flag.
 .lp
 To compile and install the library
-simply \f(CWCd\fP into \f(CWsrc/tools/libdl\fP and type
+simply \f(CWcd\fP into \f(CWsrc/tools/libdl\fP and type
 .(l
 % \fBbmake all install\fP
 .)l
 This will build and install the \f(CWlibdl.a\fP library into
 TOOLSLIBDIR (/usr/local/lib by default).  If your linker/loader
 doesn't search here by default (it usually does), you may have to 
-move it to /usr/lib.  If you do move it, be sure to run ranlib(1)
-on it.
+\f(CWranlib(1)\fP on it.
+.sh 3 "On AIX only, installing mkldexport"
+.lp
+\f(CWCd\fP into \f(CWsrc/tools/mkldexport\fP and type
+.(l
+% \fBbmake all install\fP
+.)l
 .sh 3 "Build Step 3: Compile and Install"
 .lp
 \f(CWCd\fP back to the \f(CWsrc/\fP directory (i.e., \f(CWcd ../..\fP)
@@ -700,7 +634,7 @@ running to run the test, so type the following:
 if you haven't already.
 Next, create a new user using the \f(CWcreateuser\fP command
 (see the reference manual).  \fBDo not\fP run the regression test
-script as user \*(lqpostgres\*(rq!  If you do, certain tests will fail.
+script as user \*(lqpostgres\*(rq!
 .lp
 Change directories to \f(CWsrc/regress/regress\fP.
 .(l
@@ -891,9 +825,9 @@ newbki		\- adjust userid of "postgres" in the database
 pg_version	\- make version numbers for createdb
 pg_id		\- gets user id's - used by various commands
 pagedoc		\- disk page doctor
+reindexdb	\- rebuild system catalog indices after disaster
 shmemdoc	\- shared memory buffer pool doctor
 vacuum		\- database vacuum cleaner
-pg_copytree	\- copy the source tree (probably shouldn't be shipped)
 icopy		\- inversion filesystem file management utility
 pcat		\- inversion filesystem cat command
 pcd		\- inversion filesystem cd command
