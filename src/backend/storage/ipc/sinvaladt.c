@@ -127,17 +127,6 @@ SIBackendInit(segInOutP)
     
     Assert(MyBackendTag > 0);
 
-    SIRelId = LtCreateRelId(SIDbId,0);
-    
-    /*
-     * Allocate a transaction id to allow use of the lock table.
-     * Is there a non-hack which can be used to allow lock table access?
-     * Maybe, use the getpid() or MyBackendId with a special lock table?
-     */
-    GetNewTransactionId(SIXid);
-    
-    SILockTableId = InitMultiLevelLockm();
-
     MyBackendId = SIAssignBackendId(segInOutP, MyBackendTag);
 
 #ifdef	INVALIDDEBUG
@@ -1022,6 +1011,7 @@ SIWriteUnlock()
 
 
 
+#ifdef DEBUG
 /************************************************************************
 * debug routines
 *************************************************************************/
@@ -1086,7 +1076,7 @@ SIBufferImage()
     	    elog(FATAL, "InvalidateSharedInvalid: Could not unlock buffer segment");
     }
 }
-   
+#endif DEBUG
 
 /****************************************************************************/
 /*  Invalidation functions for testing cache invalidation   	    	    */
