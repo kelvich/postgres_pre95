@@ -28,7 +28,7 @@ pull_agg_clause(clause)
 	if(null(clause))
 	    retval=LispNil;
 	else if(agg_clause(clause))
-	    retval = lispCons(CDR(clause), LispNil);
+	    retval = CDR(clause);
 	    /* this brings the clause down to
 	     * (aggname, query, tlist, -1)
 	     */
