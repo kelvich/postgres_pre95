@@ -14,11 +14,13 @@
  */
 
 #include <stdio.h>
+#include <math.h>
 
 #include "tmp/c.h"
 
 RcsId("$Header$");
 
+#include "executor/execdebug.h"
 #include "access/heapam.h"
 #include "access/htup.h"
 #include "access/relscan.h"
@@ -60,6 +62,12 @@ static	struct	tape	Tape[MAXTAPES];
 static	long		shortzero = 0;		/* used to delimit runs */
 static	struct	tuple	*LastTuple = NULL;	/* last output */
 
+static  int		BytesRead;		/* to keep track of # of IO */
+static  int		BytesWritten;
+
+extern  int		NDirectFileRead;
+extern  int		NDirectFileWrite;
+
 Relation		SortRdesc;		/* current tuples in memory */
 struct	leftist		*Tuples;		/* current tuples in memory */
 
@@ -91,6 +99,8 @@ struct	skey	key[];
 	Key = key;
 	SortMemory = 0;
 	SortRdesc = oldrel;
+	BytesRead = 0;
+	BytesWritten = 0;
 	StartPortalAllocMode(StaticAllocMode);	/* may not be the best place */
 	initpsort();
 	initialrun(oldrel);
@@ -99,6 +109,8 @@ struct	skey	key[];
 	TRACE(TR_MEMORY, PDEBUG2(psort, "memory use", SortMemory));
 	EndPortalAllocMode();
 	TRACE(X, PDEBUG(psort, "exiting"));
+	NDirectFileRead += (int)ceil((double)BytesRead / BLCKSZ);
+	NDirectFileWrite += (int)ceil((double)BytesWritten / BLCKSZ);
 }
 
 /*
@@ -172,11 +184,15 @@ resetpsort()
  *		LEN field must be a short; FP is a stream
  */
 
-#define	PUTTUP(TUP, FP)	fwrite((char *)TUP, (TUP)->t_len, 1, FP)
+#define	PUTTUP(TUP, FP)\
+	BytesWritten += (TUP)->t_len; \
+	fwrite((char *)TUP, (TUP)->t_len, 1, FP)
 #define	ENDRUN(FP)	fwrite((char *)&shortzero, sizeof (shortzero), 1, FP)
 #define	GETLEN(LEN, FP)	fread((char *)&(LEN), sizeof (shortzero), 1, FP)
 #define	ALLOCTUP(LEN)	((HeapTuple)malloc((unsigned)LEN))
 #define	GETTUP(TUP, LEN, FP)\
+	IncrProcessed(); \
+	BytesRead += (LEN) - sizeof (shortzero); \
 	fread((char *)(TUP) + sizeof (shortzero), (LEN) - sizeof (shortzero), 1, FP)
 #define	SETTUPLEN(TUP, LEN)	(TUP)->t_len = LEN
 
@@ -319,6 +335,7 @@ FILE		*file;
 			foundeor = true;
 			break;
 		}
+		IncrProcessed();
 		tup = tuplecopy(btup, sdesc->rs_rd, b);
 		USEMEM(tup->t_len);
 		TRACEMEM(createrun);
