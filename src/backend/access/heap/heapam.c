@@ -1454,7 +1454,7 @@ heap_replace(relation, otid, tup)
     tup->t_oid = tp->t_oid;
     TransactionIdStore(GetCurrentTransactionId(), &(tup->t_xmin));
     tup->t_cmin = GetCurrentCommandId();
-    PointerStoreInvalidTransactionId(&(tup->t_xmax));
+    PointerStoreInvalidTransactionId((Pointer)&(tup->t_xmax));
     tup->t_tmin = InvalidTime;
     tup->t_tmax = InvalidTime;
     ItemPointerSetInvalid(&tup->t_chain);
