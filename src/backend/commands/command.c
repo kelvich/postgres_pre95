@@ -12,7 +12,9 @@ RcsId("$Header$");
 #include "log.h"
 
 #include "anum.h"
+#include "attnum.h"
 #include "buf.h"
+#include "cat.h"
 #include "catname.h"
 #include "copy.h"
 #include "excid.h"
@@ -23,11 +25,13 @@ RcsId("$Header$");
 #include "htup.h"
 #include "mcxt.h"
 #include "name.h"	/* for NameIsEqual */
+#include "oid.h"
 #include "pg_lisp.h"
 #include "portal.h"
 #include "rel.h"
 #include "relscan.h"
 #include "rproc.h"
+#include "syscache.h"
 #include "tqual.h"
 
 #include "command.h"
@@ -182,69 +186,77 @@ PerformPortalClose(name)
  *	insert new relation in relation catalog
  *	delete original relation from relation catalog
  */
-
-addattribute(relname, natts, att)
-	char			relname[];
-	int			natts;
-	struct attribute	*att[];
+void
+PerformAddAttribute(relationName, schema)
+	Name	relationName;
+	List	schema;
 {
+	List		element;
+	AttributeNumber	newAttributes;
+
 	Relation			relrdesc, attrdesc;
 	HeapScanDesc			relsdesc, attsdesc;
-	HeapTuple			reltup, atttup;
+	HeapTuple			reltup;
+	HeapTuple		attributeTuple;
+	AttributeTupleForm	attribute;
+	AttributeTupleFormD	attributeD;
 	struct attribute		*ap, *attp, **app;
 	int				i;
 	int				minattnum, maxatts;
 	HeapTuple			tup;
 	struct	skey			key[2];	/* static better? [?] */
 	ItemPointerData			oldTID;
-	HeapTuple			addtupleheader(), palloctup();
-	int				issystem();
+	HeapTuple		palloctup();
 	
-	if (natts <= 0)
-		elog(FATAL, "addattribute: passed %d attributes?!?", natts);
-	if (issystem(relname)) {
-		elog(WARN, "addattribute: system relation \"%s\" not changed",
-		     relname);
+	if (issystem(relationName)) {
+		elog(WARN, "Add: system relation \"%s\" unchanged",
+			relationName);
 		return;
 	}
 
-	/* check if any attribute is repeated in list */
-	for (i = 1; i < natts; i += 1) {
-		int	j;
+	/*
+	 * verify that no attributes are repeated in the list
+	 */
+	foreach (element, schema) {
+		List	rest;
 
-		for (j = 0; j < i; j += 1) {
-			if (NameIsEqual(att[j]->attname, att[i]->attname)) {
-
-				elog(WARN, "addattribute: \"%s\" repeated",
-					att[j]->attname);
+		foreach (rest, CDR(element)) {
+			if (equal(CAR(CAR(element)), CAR(CAR(rest)))) {
+				elog(WARN, "Add: \"%s\" repeated",
+					CString(CAR(CAR(element))));
 			}
 		}
 	}
+
+	newAttributes = length(schema);
 
 	relrdesc = amopenr(RelationRelationName);
 	key[0].sk_flags = NULL;
 	key[0].sk_attnum = RelationNameAttributeNumber;
 	key[0].sk_opr = Character16EqualRegProcedure;	/* XXX name= */
-	key[0].sk_data = (DATUM) relname;
+	key[0].sk_data = (DATUM)relationName;
 	relsdesc = ambeginscan(relrdesc, 0, NowTimeQual, 1, key);
 	reltup = amgetnext(relsdesc, 0, (Buffer *) NULL);
 	if (!PointerIsValid(reltup)) {
 		amendscan(relsdesc);
 		amclose(relrdesc);
 		elog(WARN, "addattribute: relation \"%s\" not found",
-		     relname);
+			relationName);
 		return;
 	}
+	/*
+	 * XXX is the following check sufficient?
+	 */
 	if (((struct relation *) GETSTRUCT(reltup))->relkind == 'i') {
 		elog(WARN, "addattribute: index relation \"%s\" not changed",
-		     relname);
+			relationName);
 		return;
 	}
 	reltup = palloctup(reltup, InvalidBuffer, relrdesc);
 	amendscan(relsdesc);
 
 	minattnum = ((struct relation *) GETSTRUCT(reltup))->relnatts;
-	maxatts = minattnum + natts;
+	maxatts = minattnum + newAttributes;
 	if (maxatts > MAXATTS) {
 		pfree((char *) reltup);			/* XXX temp */
 		amclose(relrdesc);			/* XXX temp */
@@ -262,10 +274,29 @@ addattribute(relname, natts, att)
 	key[1].sk_attnum = AttributeNameAttributeNumber;
 	key[1].sk_opr = Character16EqualRegProcedure;	/* XXX name= */
 	key[1].sk_data = (DATUM) NULL;	/* set in each iteration below */
-	app = att;
-	for (i = minattnum; i < maxatts; ++i) {
-		ap = *app++;
-		key[1].sk_data = (DATUM) ap->attname;
+
+	attributeD.attrelid = reltup->t_oid;
+	attributeD.attdefrel = InvalidObjectId;		/* XXX temporary */
+	attributeD.attnvals = 1;			/* XXX temporary */
+	attributeD.atttyparg = InvalidObjectId;		/* XXX temporary */
+	attributeD.attbound = 0;			/* XXX temporary */
+	attributeD.attcanindex = 0;			/* XXX need this info */
+	attributeD.attproc = InvalidObjectId;		/* XXX tempoirary */
+
+	attributeTuple = addtupleheader(AttributeRelationNumberOfAttributes,
+		sizeof attributeD, (Pointer)&attributeD);
+
+	attribute = (AttributeTupleForm)GETSTRUCT(attributeTuple);
+
+	i = 1 + minattnum;
+	foreach (element, schema) {
+		HeapTuple	typeTuple;
+		TypeTupleForm	form;
+
+		/*
+		 * XXX use syscache here as an optimization
+		 */
+		key[1].sk_data = (DATUM)CString(CAR(CAR(element)));
 		attsdesc = ambeginscan(attrdesc, 0, NowTimeQual, 2, key);
 		tup = amgetnext(attsdesc, 0, (Buffer *) NULL);
 		if (HeapTupleIsValid(tup)) {
@@ -274,23 +305,33 @@ addattribute(relname, natts, att)
 			amclose(attrdesc);		/* XXX temp */
 			amclose(relrdesc);		/* XXX temp */
 			elog(WARN, "addattribute: attribute \"%s\" exists",
-			     ap->attname);
+				key[1].sk_data);
 			return;
 		}
 		amendscan(attsdesc);
-		ap->attrelid = reltup->t_oid;
-		ap->attnum = 1 + (short) i;
+
+		typeTuple = SearchSysCacheTuple(TYPNAME,
+			CString(CADR(CAR(element))));
+		form = (TypeTupleForm)GETSTRUCT(typeTuple);
+
+		if (!HeapTupleIsValid(typeTuple)) {
+			elog(WARN, "Add: type \"%s\" nonexistant",
+				CString(CADR(CAR(element))));
+		}
+		/*
+		 * Note: structure assignment
+		 */
+		attribute->attname = *((Name)key[1].sk_data);
+		attribute->atttypid = typeTuple->t_oid;
+		attribute->attlen = form->typlen;
+		attribute->attnum = i;
+		attribute->attbyval = form->typbyval;
+
+		RelationInsertHeapTuple(attrdesc, attributeTuple,
+			(double *)NULL);
+		i += 1;
 	}
-	app = att;
-	atttup = addtupleheader(11, sizeof(struct attribute), (char *) ap);
-	/* *ap is a place holder */
 	
-	attp = (struct attribute *) GETSTRUCT(atttup);
-	for (i = minattnum; i < maxatts; ++i) {
-		bcopy((char *) *app++, (char *) attp, sizeof(*attp));
-		aminsert(attrdesc, atttup, (double *) NULL);
-	}
-	pfree((char *) atttup);
 	amclose(attrdesc);
 	((struct relation *) GETSTRUCT(reltup))->relnatts = maxatts;
 	oldTID = reltup->t_ctid;
