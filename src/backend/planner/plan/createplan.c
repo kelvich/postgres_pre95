@@ -355,7 +355,12 @@ create_indexscan_node(best_path,tlist,scan_clauses)
      /*   indxqual will simply contain one conjunctive qualification: ((a)). */
 	
      if(!null(get_indexqual(best_path)))
-	  index_clause = get_clause((CInfo)CAR(get_indexqual(best_path)));
+       /* added call to fix_opids, JMH 6/23/92 */
+       index_clause = (Expr)
+	 CAR(fix_opids
+	     (get_actual_clauses((LispValue)get_indexqual(best_path))));
+
+
      if(or_clause_p((LispValue)index_clause)) {
 	  LispValue temp = LispNil;
 	
