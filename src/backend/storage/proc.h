@@ -48,7 +48,9 @@ typedef struct proc {
 
   LOCK *            waitLock;	/* Lock we're sleeping on */
   int               token;	/* info for proc wakeup routines */	
-  SHM_QUEUE	lockQueue;	/* locks associated with current transaction */
+  int		    backendId;	/* This procs backend id */
+  short		    sLocks[MAX_SPINS];	/* Spin lock stats */
+  SHM_QUEUE	    lockQueue;	/* locks associated with current transaction */
 } PROC;
 
 /*
@@ -60,6 +62,11 @@ typedef struct procglobal {
   int		numProcs;
   IPCKey	currKey;
 } PROC_HDR;
+
+extern PROC *MyProc;
+
+#define PROC_INCR_SLOCK(lock) if (MyProc) (MyProc->sLocks[(lock)])++
+#define PROC_DECR_SLOCK(lock) if (MyProc) (MyProc->sLocks[(lock)])--
 
 /*
  * flags explaining why process woke up
