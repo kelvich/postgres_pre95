@@ -31,6 +31,7 @@
 #include "log.h"
 #include "strings.h"
 #include "syscache.h"
+#include "tuple.h"
 #include "tqual.h"
 #include "pmod.h"
 
@@ -273,18 +274,212 @@
 
 #ifdef NOTYET
 /* ----------------
- *   	sequential scan node accessors
+ *   	index scan accessor macros
+ *
+ * 	IGetRelID(node)		    get the id of the relation to be scanned
+ *	IGetRelDesc(node)	    get the relation descriptor from relation id
+ *	IGetScanDesc(node)	    get the scan descriptor from relation id
+ *	IGetQual(node)		    get the qualification clause
+ *	IGetTarget(node)	    get the target list
+ *	IGetRuleFlag(node)	    get the flag indicating rule activation
+ *	ISetRuleFlag(node, value)   set the flag indicating rule activation
+ *	IGetRuleDesc(node)	    get rule descriptor
+ *	ISetRuleDesc(node, value)   set rule descriptor
+ *	IGetIndices(node)	    get indices
+ *	IGetIndexPtr(node)	    get index pointer
+ *	ISetIndexPtr(node, value)   set index pointer
+ *	IGetIndexQual(node)	    get index qualifications
  * ----------------
  */
 
-#define SGetRelID(node)		get_scanrelid(node)
-#define SGetQual(node)		get_qpqual(node)
-#define SGetTarget(node)	get_qptargetlist(node)
+#define IGetRelID(node)		get_scanrelid(node)
+#define IGetRelDesc(node) 	ExecGetRelDesc(IGetRelID(node))
+#define IGetScanDesc(node) 	ExecGetScanDesc(IGetRelID(node))
+#define IGetQual(node)		get_qpqual(node)
+#define IGetTarget(node)	get_qptargetlist(node)
+
+#define IGetRuleFlag(node) \
+    ExecGetStates(EXEC_INDEXSCAN_RuleFlag, get_states(node))
+     
+#define ISetRuleFlag(node, value) \
+    ExecSetStates(EXEC_INDEXSCAN_RuleFlag, get_states(node)), value)
+
+#define IGetRuleDesc(node) \
+    ExecGetStates(EXEC_INDEXSCAN_RuleDesc, get_states(node))
+
+#define ISetRuleDesc(node, value) \
+    ExecSetStates(EXEC_INDEXSCAN_RuleDesc, get_states(node), value)
+
+#define IGetIndices(node)	get_indxid(node)
+
+#define IGetIndexPtr(node) \
+    ExecGetStates(EXEC_INDEXSCAN_IndexPtr, get_states(node))
+
+#define ISetIndexPtr(node, value) \
+    ExecSetStates(EXEC_INDEXSCAN_IndexPtr, get_states(node), value)
+
+#define IGetIndexQual(node) \
+    getindxqual(node)
+
+/*
+ * XXX automatic conversion failed on this one but we might not need it
+ * -cim 8/4/89
+ *
+ * get the scan descriptor from index id = (relDesc, scanDesc)
+ *
+ * #define IGetIScanDesc,indexID (),ExecGetScanDesc (indexID)
+ */
+#endif NOTYET
+
+
+#ifdef NOTYET
+/* ----------------
+ *    Merge Join Macros
+ * ----------------
+ */
+
+#define MJGetOuterTuple(node)		GetMJOuterTuple(get_state(node))
+#define MJSetOuterTuple(node,value)	setf(MJGetOuterTuple(node),value)
+
+#define MJGetTupType(node)		GetMJTupType(get_state(node))
+#define MJSetTupType(node,value)	setf(MJGetTupType(node),value)
+
+#define MJGetTupValue(node)		GetMJTupValue(get_state(node))
+#define MJSetTupValue(node,value)	setf(MJGetTupValue(node),value)
+
+#define MJGetBufferPage(node)		GetMJBufferPage(get_state(node))
+#define MJSetBufferPage(node,value)	setf(MJGetBufferPage(node),value)
+
+#define MJGetOSortopI(node)		GetMJOSortopI(get_state(node))
+#define MJSetOSortopI(node,value)	setf(MJGetOSortopI(node),value)
+
+#define MJGetISortopO(node)		GetMJISortopO(get_state(node))
+#define MJSetISortopO(node,value)	setf(MJGetISortopO(node),value)
+
+#define MJGetMarkFlag(node)		GetMJMarkFlag(get_state(node))
+#define MJSetMarkFlag(node,value)	setf(MJGetMarkFlag(node),value)
+
+#define MJGetFrwdMarkPos(node)		GetMJFrwdMarkPos(get_state(node))
+#define MJSetFrwdMarkPos(node,value)	setf(MJGetFrwdMarkPos(node),value)
+
+#define MJGetBkwdMarkPos(node)		GetMJBkwdMarkPos(get_state(node))
+#define MJSetBkwdMarkPos(node,value)    setf(MJGetBkwdMarkPos(node),value)
+
+#define MJGetMarkPos(node) \
+    (execDirection == EXEC_FRWD ? \
+     MJGetFrwdMarkPos(node) : MJGetBkwdMarkPos(node))
+
+#define MJSetMarkPos(node,scanPos) \
+    (execDirection == EXEC_FRWD  ? \
+     MJSetFrwdMarkPos(node,scanPos) : MJSetBkwdMarkPos(node,scanPos))
 #endif NOTYET
 
 
 
+
 #ifdef NOTYET
+/* ----------------
+ *	sort node defines
+ * ----------------
+ */
+
+#define SortGetSortedFlag(node)		GetSortFlag(get_state(node))
+#define SortSetSortedFlag(node,value)	setf(SortGetSortedFlag (node),value)
+#define SortGetSortKeys(node)		GetSortKeys(get_state(node))
+#define SortSetSortKeys(node,value)	setf(SortGetSortKeys(node),value)
+#endif NOTYET
+
+
+
+
+/* ----------------------------------------------------------------
+ *	externs
+ * ----------------------------------------------------------------
+ */
+
+/* 
+ *	miscellany
+ */
+
+extern Relation		amopen();
+extern Relation		amopenr();
+extern HeapScanDesc 	ambeginscan();
+extern HeapTuple 	amgetnext();
+extern char *		amgetattr();
+
+extern Const		ConstTrue;
+extern Const		ConstFalse;
+
+/* 
+ *	public executor functions
+ */
+
+#include "executor/append.h"
+#include "executor/endnode.h"
+#include "executor/error.h"
+#include "executor/eutils.h"
+#include "executor/exist.h"
+#include "executor/indexscan.h"
+#include "executor/initnode.h"
+#include "executor/main.h"
+#include "executor/mergejoin.h"
+#include "executor/nestloop.h"
+#include "executor/procnode.h"
+#include "executor/qual.h"
+#include "executor/result.h"
+#include "executor/rulelocks.h"
+#include "executor/rulemgr.h"
+#include "executor/scan.h"
+#include "executor/seqscan.h"
+#include "executor/sort.h"
+#include "executor/tuples.h"
+
+/* ----------------------------------------------------------------
+ *	shit whose time is to die
+ *	(but we keep it around for reference purposes)
+ * ----------------------------------------------------------------
+ */
+
+#ifdef TIMETODIE
+
+/* ----------------
+ *	append node macros
+ * ----------------
+ */
+
+#define append_nplans_is_valid(nplans) \
+    (nplans > 0)
+
+#define append_whichplan_is_valid(whichplan, nplans) \
+    (whichplan >= 0 && whichplan < nplans)
+
+#define append_initialized_is_valid(initialized) \
+    (lispVectorp(initialized))
+
+#define append_plans_is_valid(plans) \
+    (lispAtomp(plans))
+
+#define append_rtentries_is_valid(rtentries) \
+    (lispAtomp(rtentries))
+
+/* ----------------
+ *    nest loop macros
+ * ----------------
+ */
+
+#define NLGetOuterTuple(node)		GetNLOuterTuple(get_state(node))
+#define NLSetOuterTuple(node,value) \
+    setf(NLGetOuterTuple(node), ppreserve (value))
+     
+#define NLGetPortalFlag(node)		GetNLPortalFlag(get_state(node))
+#define NLSetPortalFlag(node,value)	setf(NLGetPortalFlag(node), value)
+
+#define NLGetTupType(node)		GetNLTupType(get_state(node))
+#define NLSetTupType(node,value)	setf(NLGetTupType(node), value)
+
+#define NLGetTupValue(node)		GetNLTupValue(get_state(node))
+#define NLSetTupValue(node,value)	setf(NLGetTupValue(node), value)
+
 /* ----------------
  *	scan/relation descriptor accessors
  * ----------------
@@ -354,226 +549,15 @@
      
 #define SSetIndexID(indexPtr,node,value) \
     setf(SGetIndexPtr(indexPtr, get_indxid(node)), value)
-#endif NOTYET
 
-
-
-#ifdef NOTYET
 /* ----------------
- *   	index scan accessor macros
- *
- * 	IGetRelID(node)		    get the id of the relation to be scanned
- *	IGetRelDesc(node)	    get the relation descriptor from relation id
- *	IGetScanDesc(node)	    get the scan descriptor from relation id
- *	IGetQual(node)		    get the qualification clause
- *	IGetTarget(node)	    get the target list
- *	IGetRuleFlag(node)	    get the flag indicating rule activation
- *	ISetRuleFlag(node, value)   set the flag indicating rule activation
- *	IGetRuleDesc(node)	    get rule descriptor
- *	ISetRuleDesc(node, value)   set rule descriptor
- *	IGetIndices(node)	    get indices
- *	IGetIndexPtr(node)	    get index pointer
- *	ISetIndexPtr(node, value)   set index pointer
- *	IGetIndexQual(node)	    get index qualifications
+ *   	sequential scan node accessors
  * ----------------
  */
 
-#define IGetRelID(node)		get_scanrelid(node)
-#define IGetRelDesc(node) 	ExecGetRelDesc(IGetRelID(node))
-#define IGetScanDesc(node) 	ExecGetScanDesc(IGetRelID(node))
-#define IGetQual(node)		get_qpqual(node)
-#define IGetTarget(node)	get_qptargetlist(node)
-
-#define IGetRuleFlag(node) \
-    ExecGetStates(EXEC_INDEXSCAN_RuleFlag, get_states(node))
-     
-#define ISetRuleFlag(node, value) \
-    ExecSetStates(EXEC_INDEXSCAN_RuleFlag, get_states(node)), value)
-
-#define IGetRuleDesc(node) \
-    ExecGetStates(EXEC_INDEXSCAN_RuleDesc, get_states(node))
-
-#define ISetRuleDesc(node, value) \
-    ExecSetStates(EXEC_INDEXSCAN_RuleDesc, get_states(node), value)
-
-#define IGetIndices(node)	get_indxid(node)
-
-#define IGetIndexPtr(node) \
-    ExecGetStates(EXEC_INDEXSCAN_IndexPtr, get_states(node))
-
-#define ISetIndexPtr(node, value) \
-    ExecSetStates(EXEC_INDEXSCAN_IndexPtr, get_states(node), value)
-
-#define IGetIndexQual(node) \
-    getindxqual(node)
-
-/*
- * XXX automatic conversion failed on this one but we might not need it
- * -cim 8/4/89
- *
- * get the scan descriptor from index id = (relDesc, scanDesc)
- *
- * #define IGetIScanDesc,indexID (),ExecGetScanDesc (indexID)
- */
-#endif NOTYET
-
-
-
-
-#ifdef NOTYET
-/* ----------------
- *    nest loop macros
- * ----------------
- */
-
-#define NLGetOuterTuple(node)		GetNLOuterTuple(get_state(node))
-#define NLSetOuterTuple(node,value) \
-    setf(NLGetOuterTuple(node), ppreserve (value))
-     
-#define NLGetPortalFlag(node)		GetNLPortalFlag(get_state(node))
-#define NLSetPortalFlag(node,value)	setf(NLGetPortalFlag(node), value)
-
-#define NLGetTupType(node)		GetNLTupType(get_state(node))
-#define NLSetTupType(node,value)	setf(NLGetTupType(node), value)
-
-#define NLGetTupValue(node)		GetNLTupValue(get_state(node))
-#define NLSetTupValue(node,value)	setf(NLGetTupValue(node), value)
-#endif NOTYET
-
-
-
-
-#ifdef NOTYET
-/* ----------------
- *    Merge Join Macros
- * ----------------
- */
-
-#define MJGetOuterTuple(node)		GetMJOuterTuple(get_state(node))
-#define MJSetOuterTuple(node,value)	setf(MJGetOuterTuple(node),value)
-
-#define MJGetTupType(node)		GetMJTupType(get_state(node))
-#define MJSetTupType(node,value)	setf(MJGetTupType(node),value)
-
-#define MJGetTupValue(node)		GetMJTupValue(get_state(node))
-#define MJSetTupValue(node,value)	setf(MJGetTupValue(node),value)
-
-#define MJGetBufferPage(node)		GetMJBufferPage(get_state(node))
-#define MJSetBufferPage(node,value)	setf(MJGetBufferPage(node),value)
-
-#define MJGetOSortopI(node)		GetMJOSortopI(get_state(node))
-#define MJSetOSortopI(node,value)	setf(MJGetOSortopI(node),value)
-
-#define MJGetISortopO(node)		GetMJISortopO(get_state(node))
-#define MJSetISortopO(node,value)	setf(MJGetISortopO(node),value)
-
-#define MJGetMarkFlag(node)		GetMJMarkFlag(get_state(node))
-#define MJSetMarkFlag(node,value)	setf(MJGetMarkFlag(node),value)
-
-#define MJGetFrwdMarkPos(node)		GetMJFrwdMarkPos(get_state(node))
-#define MJSetFrwdMarkPos(node,value)	setf(MJGetFrwdMarkPos(node),value)
-
-#define MJGetBkwdMarkPos(node)		GetMJBkwdMarkPos(get_state(node))
-#define MJSetBkwdMarkPos(node,value)    setf(MJGetBkwdMarkPos(node),value)
-
-#define MJGetMarkPos(node) \
-    (execDirection == EXEC_FRWD ? \
-     MJGetFrwdMarkPos(node) : MJGetBkwdMarkPos(node))
-
-#define MJSetMarkPos(node,scanPos) \
-    (execDirection == EXEC_FRWD  ? \
-     MJSetFrwdMarkPos(node,scanPos) : MJSetBkwdMarkPos(node,scanPos))
-#endif NOTYET
-
-
-
-
-#ifdef NOTYET
-/* ----------------
- *	sort node defines
- * ----------------
- */
-
-#define SortGetSortedFlag(node)		GetSortFlag(get_state(node))
-#define SortSetSortedFlag(node,value)	setf(SortGetSortedFlag (node),value)
-#define SortGetSortKeys(node)		GetSortKeys(get_state(node))
-#define SortSetSortKeys(node,value)	setf(SortGetSortKeys(node),value)
-#endif NOTYET
-
-
-
-
-#ifdef NOTYET
-/* ----------------
- *	append node macros
- * ----------------
- */
-
-#define append_nplans_is_valid(nplans) \
-    (nplans > 0)
-
-#define append_whichplan_is_valid(whichplan, nplans) \
-    (whichplan >= 0 && whichplan < nplans)
-
-#define append_initialized_is_valid(initialized) \
-    (lispVectorp(initialized))
-
-#define append_plans_is_valid(plans) \
-    (lispAtomp(plans))
-
-#define append_rtentries_is_valid(rtentries) \
-    (lispAtomp(rtentries))
-#endif NOTYET
-
-
-/* ----------------------------------------------------------------
- *	externs
- * ----------------------------------------------------------------
- */
-
-/* 
- *	miscellany
- */
-
-extern Relation		amopen();
-extern Relation		amopenr();
-extern HeapScanDesc 	ambeginscan();
-extern HeapTuple 	amgetnext();
-extern char *		amgetattr();
-
-extern Const		ConstTrue;
-extern Const		ConstFalse;
-
-/* 
- *	public executor functions
- */
-
-#include "executor/append.h"
-#include "executor/endnode.h"
-#include "executor/error.h"
-#include "executor/eutils.h"
-#include "executor/exist.h"
-#include "executor/indexscan.h"
-#include "executor/initnode.h"
-#include "executor/main.h"
-#include "executor/mergejoin.h"
-#include "executor/nestloop.h"
-#include "executor/procnode.h"
-#include "executor/qual.h"
-#include "executor/result.h"
-#include "executor/rulelocks.h"
-#include "executor/rulemgr.h"
-#include "executor/scan.h"
-#include "executor/seqscan.h"
-#include "executor/sort.h"
-#include "executor/tuples.h"
-
-/* ----------------------------------------------------------------
- *	shit whose time is to die
- * ----------------------------------------------------------------
- */
-
-#ifdef TIMETODIE
+#define SGetRelID(node)		get_scanrelid(node)
+#define SGetQual(node)		get_qpqual(node)
+#define SGetTarget(node)	get_qptargetlist(node)
 
 /* ----------------
  *	result node accessors
