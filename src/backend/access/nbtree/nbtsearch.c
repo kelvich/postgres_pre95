@@ -288,9 +288,9 @@ _bt_binsrch(rel, buf, keysz, scankey, srchtype)
 	result = _bt_compare(rel, itupdesc, page, keysz, scankey, mid);
 
 	if (result > 0)
-	    low = mid + 1;
+	    low = mid;
 	else if (result < 0)
-	    high = mid;
+	    high = mid - 1;
 	else {
 	    match = true;
 	    break;
@@ -307,8 +307,8 @@ _bt_binsrch(rel, buf, keysz, scankey, srchtype)
 	 *  are two cases to take care of.
 	 *
 	 *  For non-insertion searches on internal pages, we want to point at
-	 *  the last key <= the scankey on the page.  This guarantees that
-	 *  we'll descend the tree correctly.
+	 *  the last key <, or first key =, the scankey on the page.  This
+	 *  guarantees that we'll descend the tree correctly.
 	 *
 	 *  For all other cases, we want to point at the first key >=
 	 *  the scankey on the page.  This guarantees that scans and
@@ -336,9 +336,7 @@ _bt_binsrch(rel, buf, keysz, scankey, srchtype)
 
 	    /* we want the first key >= the scan key */
 	    result = _bt_compare(rel, itupdesc, page, keysz, scankey, low);
-	    if (result == 0) {
-		return (_bt_firsteq(rel, itupdesc, page, keysz, scankey, low));
-	    } else if (result < 0) {
+	    if (result <= 0) {
 		return (low);
 	    } else {
 		if (low == high)

@@ -124,7 +124,8 @@ _bt_insertonpg(rel, buf, stack, keysz, scankey, btitem)
 	 */
 
 	hikey = PageGetItemId(page, 0);
-	if (!_bt_skeyless(rel, keysz, scankey, page, hikey)) {
+	if (!_bt_skeycmp(rel, keysz, scankey, page, hikey,
+			 BTLessStrategyNumber)) {
 	    itup_off = _bt_pgaddtup(rel, rbuf, keysz, scankey, itemsz, btitem);
 	    itup_blkno = BufferGetBlockNumber(rbuf);
 	} else {
@@ -153,6 +154,8 @@ _bt_insertonpg(rel, buf, stack, keysz, scankey, btitem)
 	    _bt_newroot(rel, buf, rbuf);
 	    _bt_relbuf(rel, buf, BT_WRITE);
 	    _bt_relbuf(rel, rbuf, BT_WRITE);
+
+	    _bt_dump(rel);
 
 	} else {
 
@@ -325,7 +328,7 @@ _bt_split(rel, buf)
  *	On entry, lbuf (the old root) and rbuf (its new peer) are write-
  *	locked.  We don't drop the locks in this routine; that's done by
  *	the caller.  On exit, a new root page exists with entries for the
- *	two new children.
+ *	two new children.  The new root page is neither pinned nor locked.
  */
 
 _bt_newroot(rel, lbuf, rbuf)
@@ -420,10 +423,32 @@ _bt_pgaddtup(rel, buf, keysz, itup_scankey, itemsize, btitem)
     BTItem btitem;
 {
     OffsetIndex itup_off;
+    ItemId itemid;
+    BTItem olditem;
     Page page;
+    BTPageOpaque opaque;
 
+    opaque = (BTPageOpaque) PageGetSpecialPointer(page);
     itup_off = _bt_binsrch(rel, buf, keysz, itup_scankey, BT_INSERTION) + 1;
     page = BufferGetPage(buf, 0);
+
+    /*
+     *  Lehman and Yao require unique keys in the index.  In order to handle
+     *  this, Postgres prepends a sequence number which is incremented on
+     *  the first and subsequent duplicates inserted.  Our tree descent and
+     *  binary search algorithms guarantee that we'll always insert a duplicate
+     *  at the start of the chain of equal values.  We detect and set the
+     *  sequence numbers for duplicates here.
+     */
+
+    itemid = PageGetItemId(page, itup_off - 1);
+    if (ItemIdIsUsed(itemid)) {
+	if (_bt_skeycmp(rel, keysz, itup_scankey,
+			page, itemid, BTEqualStrategyNumber)) {
+	    olditem = (BTItem) PageGetItem(page, itemid);
+	    btitem->bti_seqno = olditem->bti_seqno + 1;
+	}
+    }
 
     PageAddItem(page, btitem, itemsize, itup_off, LP_USED);
 
