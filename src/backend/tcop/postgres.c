@@ -36,7 +36,6 @@ static	char	amiint_c[] = "$Header$";
 #include "postgres.h"
 #include "c.h"
 #include "bufmgr.h"
-#include "defind.h"
 #include "log.h"
 #include "htup.h"
 #include "portal.h"
