@@ -147,11 +147,15 @@ LOCreate ARGS((
    int open_mode
 ));
 
+#ifdef JAQUITH
+
 LargeObjectDesc *
 JOCreate ARGS((
    char *path,
    int open_mode
 ));
+
+#endif  /* JAQUITH */
 
 LargeObjectDesc *
 LOOpen ARGS((
@@ -159,11 +163,14 @@ LOOpen ARGS((
     int open_mode
 ));
 
+#ifdef JAQUITH
 LargeObjectDesc *
 JOOpen ARGS((
     LargeObject *object,
     int open_mode
 ));
+
+#endif /* JAQUITH */
 
 void
 LOStat ARGS((
@@ -199,10 +206,13 @@ LOClose ARGS((
     LargeObjectDesc *obj_desc
 ));
 
+#ifdef JAQUITH
 void
 JOClose ARGS((
     LargeObjectDesc *obj_desc
 ));
+
+#endif  /* JAQUITH */
 
 void
 LODestroy ARGS((
@@ -213,6 +223,8 @@ LargeObject *
 LODescToObject ARGS((
     LargeObjectDesc *obj_desc
 ));
+
+#ifdef JAQUITH
 
 char *
 JO_path ARGS((
@@ -233,4 +245,7 @@ int
 JO_put ARGS((
     char *name
 ));
+
+
+#endif  /* JAQUITH */
 
