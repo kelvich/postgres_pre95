@@ -32,7 +32,6 @@ RcsId("$Header$");
 #include "lib/equalfuncs.h"
 #include "nodes/pg_lisp.h"
 #include "utils/lsyscache.h"
-double atof();
 
 #define RIGHT_PAREN (1000000 + 1)
 #define LEFT_PAREN  (1000000 + 2)
