@@ -70,6 +70,7 @@ extern bool EqualExpr ARGS((Expr a, Expr b));
 extern Var MakeVar ARGS((Index varno, AttributeNumber varattno, ObjectId vartype, List vardotfields, List vararraylist, List varid));
 extern void PrintVar ARGS((FILE *fp, Var node));
 extern bool EqualVar ARGS((Var a, Var b));
+extern bool EqualArray ARGS((Array a, Array b));
 extern Oper MakeOper ARGS((ObjectId opno, ObjectId opid, bool oprelationlevel, ObjectId opresulttype));
 extern void PrintOper ARGS((FILE *fp, Oper node));
 extern bool EqualOper ARGS((Oper a, Oper b));
