@@ -351,6 +351,10 @@ ObjectId element_type;
                 items += typlen;
             else
                 items += LONGALIGN(* (int32 *) items);
+	    /*
+	     * For the pair of double quotes
+	     */
+	    overall_length += 2;
         }
         overall_length += strlen(values[i]);
 
