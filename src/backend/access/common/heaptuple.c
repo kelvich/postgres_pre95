@@ -411,11 +411,11 @@ heap_getsysattr(tup, b, attnum)
     case ObjectIdAttributeNumber:
 	return ((char *)tup->t_oid);
     case MinTransactionIdAttributeNumber:
-	return (tup->t_xmin);
+	return ((char *)tup->t_xmin);
     case MinCommandIdAttributeNumber:
 	return ((char *)tup->t_cmin);
     case MaxTransactionIdAttributeNumber:
-	return (tup->t_xmax);
+	return ((char *)tup->t_xmax);
     case MaxCommandIdAttributeNumber:
 	return ((char *)tup->t_cmax);
     case ChainItemPointerAttributeNumber:
