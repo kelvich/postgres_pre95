@@ -142,8 +142,7 @@ PerformPortalFetch(name, forward, count)
     
     context = MemoryContextSwitchTo(PortalGetHeapMemory(portal));
 
-    AssertState(context == (MemoryContext) \
-		PortalGetHeapMemory(GetPortalByName(NULL)));
+    AssertState(context == (MemoryContext) PortalGetHeapMemory(GetPortalByName(NULL)));
 
     /* ----------------
      *  setup "feature" to tell the executor what direction and
