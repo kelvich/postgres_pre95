@@ -6,9 +6,7 @@
  *	$Header$
  */
 
-#include "c.h"
-
-#include "bit.h"
+#include "utils/memutils.h"
 
 int
 NumberOfBitsPerByte()

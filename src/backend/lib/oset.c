@@ -7,11 +7,11 @@
  *	XXX validity checking of arguments.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "oset.h"
+#include "utils/memutils.h"
 
 /*
  * OrderedElemGetBase --

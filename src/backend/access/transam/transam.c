@@ -25,8 +25,24 @@
  * ----------------------------------------------------------------
  */
 
-#include "transam.h"
+#include "tmp/postgres.h"
+
  RcsId("$Header$");
+
+#include "machine.h"		/* in port/ directory (needed for BLCKSZ) */
+
+#include "access/heapam.h"
+#include "storage/buf.h"
+#include "storage/bufmgr.h"
+
+#include "utils/memutils.h"
+#include "utils/mcxt.h"
+#include "utils/rel.h"
+#include "utils/log.h"
+
+#include "catalog/catname.h"
+
+#include "access/transam.h"
 
 /* ----------------
  *    global variables holding pointers to relations used
@@ -47,6 +63,56 @@ TransactionIdData cachedGetCommitTimeXid;
 Time 		  cachedGetCommitTime;
 TransactionIdData cachedTestXid;
 XidStatus	  cachedTestXidStatus;
+
+/* ----------------
+ *	transaction system constants
+ * ----------------
+ */
+static TransactionIdData NullTransactionIdData = { { 0, 0, 0, 0, 0 } };
+TransactionId NullTransactionId = &NullTransactionIdData;
+
+static TransactionIdData TransactionIdOneData = { { 0, 0, 0, 2, 0 } };
+TransactionId AmiTransactionId = &TransactionIdOneData;
+
+static TransactionIdData FirstTransactionIdData = { { 0, 0, 0, 2, 2 } };
+TransactionId FirstTransactionId = &FirstTransactionIdData;
+
+/* ----------------
+ *	note: we reserve the first 32767 object ids for internal use.
+ *	oid's less than this are typically used for bootstrapping.
+ *	the choice of 32767 is completely arbitrary - I just don't
+ *	want us to run out of reserved oids too soon... -cim 9/10/90
+ *
+ *	of these 32767 reserved oid, oids 1-16383 are reserved for
+ *	allocation in the system catalog bootstrap files: lib/catalog/pg_*.h
+ *	and id's 16384 through 32767 are used for oids needed at bootstrap
+ *	time, before the variable relation is created.  These should not be
+ *	used in the catalog bootstrap files!  Once the variable relation is
+ *	initialized, the system uses the oid information stored there.
+ * ----------------
+ */
+static oid FirstObjectIdData = 32768;
+oid *FirstObjectId = &FirstObjectIdData;
+
+static oid NextBootstrapObjectIdData = 16384;
+oid *NextBootstrapObjectId = &NextBootstrapObjectIdData;
+
+/* --------------------------------
+ *	GetNextBootstrapObjectIdBlock
+ *
+ *	This returns a block of oid's to be allocated during bootstrap
+ *	time.  Once the variable relation is initialized, this should
+ *	not be called.
+ * --------------------------------
+ */
+void
+GetNextBootstrapObjectIdBlock(oid_return, oid_block_size)
+    oid *oid_return;
+    int oid_block_size;
+{
+    (*oid_return) = NextBootstrapObjectIdData;
+    NextBootstrapObjectIdData += oid_block_size;
+}
 
 /* ----------------
  *	transaction recovery state variables
@@ -474,7 +540,8 @@ InitializeTransactionLog()
      *   if we have a virgin database, we initialize the log and time
      *	 relation by committing the AmiTransactionId (id 512) and we
      *   initialize the variable relation by setting the next available
-     *   transaction id to FirstTransactionId (id 514).
+     *   transaction id to FirstTransactionId (id 514).  We also set
+     *   initialize the FirstObjectId (oid 32768)
      * ----------------
      */
     n = RelationGetNumberOfBlocks(logRelation);
@@ -496,6 +563,7 @@ InitializeTransactionLog()
 	 */
 	TransactionLogUpdate(AmiTransactionId, XID_COMMIT);
 	VariableRelationPutNextXid(FirstTransactionId);
+	VariableRelationPutNextOid(FirstObjectId);
 	
 	LogRelation =  (Relation) NULL;
 	TimeRelation = (Relation) NULL;
