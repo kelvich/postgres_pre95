@@ -86,7 +86,12 @@ DATA(insert OID = 0 ( jiangwu 6124 t t t t ));
 DATA(insert OID = 0 ( terryw 6364 t t t t ));
 DATA(insert OID = 0 ( olson 2331 t t t t ));
 DATA(insert OID = 0 ( aoki 2360 t t t t ));
-DATA(insert OID = 0 ( cgd 2200 t t t t ));
+DATA(insert OID = 0 ( avi 31080 t t t t ));
+DATA(insert OID = 0 ( kristin 1123 t t t t ));
+DATA(insert OID = 0 ( andrew 5229 t t t t ));
+DATA(insert OID = 0 ( nobuko 5493 t t t t ));
+DATA(insert OID = 0 ( hartzell 6676 t t t t ));
+DATA(insert OID = 0 ( devine 6724 t t t t ));
 
 BKI_BEGIN
 #endif ALLOW_PG_GROUP
