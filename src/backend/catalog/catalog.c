@@ -17,7 +17,7 @@ RcsId("$Header$");
 #include "name.h"
 #include "oid.h"
 #include "syscache.h"
-#include "tuple.h"	/* XXX OBSOLETE, for MAXATTS, etc. */
+#include "htup.h"
 
 /*
  * XXX The global relation names should be merged with the ones defined
