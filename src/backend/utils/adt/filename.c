@@ -10,6 +10,8 @@
 /*
  * "$Header$"
  */
+char *pg_username ARGS((void ));
+
 
 char *
 filename_in(file)
