@@ -15,6 +15,8 @@
 #include "tmp/c.h"
 #include "utils/log.h"
 #include "rules/prs2.h"
+#include "rules/prs2stub.h"
+#include "nodes/execnodes.h"	/* which includes access/rulescan.h */
 #include "parser/parse.h"	/* for the APPEND/DELETE */
 
 /*-------------------------------------------------------------------
@@ -22,11 +24,13 @@
  * prs2Replace
  */
 Prs2Status
-prs2Replace(prs2EStateInfo, explainRelation, oldTuple, oldBuffer,
+prs2Replace(prs2EStateInfo, relationRuleInfo, explainRelation,
+	    oldTuple, oldBuffer,
 	    newTuple, newBuffer, rawTuple, rawBuffer,
 	    attributeArray, numberOfAttributes, relation,
 	    returnedTupleP, returnedBufferP)
 Prs2EStateInfo prs2EStateInfo;
+RelationRuleInfo relationRuleInfo;
 Relation explainRelation;
 HeapTuple oldTuple;
 Buffer oldBuffer;
@@ -53,8 +57,6 @@ Buffer *returnedBufferP;
     bool insteadRuleFoundThisTime;
     TupleDescriptor tupDesc;
 
-
-
     /*
      * Find the locks of the tuple.
      *
@@ -74,20 +76,10 @@ Buffer *returnedBufferP;
     relName = & ((RelationGetRelationTupleForm(relation))->relname);
     tupDesc = RelationGetTupleDescriptor(relation);
 
-    relLocks = prs2GetLocksFromRelation(relName);
+    relLocks = relationRuleInfo->relationLocks;
     oldTupleLocks = prs2GetLocksFromTuple(rawTuple, rawBuffer,
 			    RelationGetTupleDescriptor(relation));
     oldLocks = prs2LockUnion(oldTupleLocks, relLocks);
-
-    /*
-     * XXX HACK! HACK! HACK!
-     *
-     * When `old' tuple was formed, we evaluated ALL backward
-     * chaining rules defined on it.
-     * So, get rid of the "write" locks of on retrieve-do retrieve
-     * (otherwise, we might re-activate them unnecessarily)
-     */
-    prs2RemoveLocksOfTypeInPlace(oldLocks, LockTypeRetrieveWrite);
 
     /*
      * now extract from the tuple the array of the attribute values.
@@ -276,7 +268,6 @@ Buffer *returnedBufferP;
      * clean up, sweep the floor and do the laundry....
      */
     prs2FreeLocks(oldLocks);
-    prs2FreeLocks(relLocks);
     prs2FreeLocks(oldTupleLocks);
     attributeValuesFree(newAttrValues, relation);
     attributeValuesFree(oldAttrValues, relation);

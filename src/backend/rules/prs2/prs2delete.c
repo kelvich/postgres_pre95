@@ -18,6 +18,8 @@
 #include "storage/buf.h"
 #include "utils/rel.h"
 #include "rules/prs2.h"
+#include "rules/prs2stub.h"
+#include "nodes/execnodes.h"	/* which includes access/rulescan.h */
 #include "parser/parse.h"	/* for the DELETE */
 
 
@@ -38,9 +40,10 @@
  *------------------------------------------------------------------
  */
 Prs2Status
-prs2Delete(prs2EStateInfo, explainRelation, tuple, buffer,
+prs2Delete(prs2EStateInfo, relationRuleInfo, explainRelation, tuple, buffer,
 			rawTuple, rawBuffer, relation)
 Prs2EStateInfo prs2EStateInfo;
+RelationRuleInfo relationRuleInfo;
 Relation explainRelation;
 HeapTuple tuple;
 Buffer buffer;
@@ -52,7 +55,6 @@ Relation relation;
     RuleLock locks, l1, l2;
     AttributeValues attrValues;
     bool insteadRuleFound;
-    Name relName;
     TupleDescriptor tupDesc;
     int i;
 
@@ -68,14 +70,12 @@ Relation relation;
      * a) no rule locks
      * b) all "on retrieve" backward chaining rules have been activated
      */
-    relName = RelationGetRelationName(relation);
     tupDesc = RelationGetTupleDescriptor(relation);
 
     l1 = prs2GetLocksFromTuple (rawTuple, rawBuffer);
-    l2 = prs2GetLocksFromRelation(relName);
+    l2 = relationRuleInfo->relationLocks;
     locks = prs2LockUnion(l1, l2);
     prs2FreeLocks(l1);
-    prs2FreeLocks(l2);
 
     /*
      * if there are no rules, then return immediatelly

@@ -20,6 +20,7 @@
 #include "utils/palloc.h"
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
+#include "nodes/execnodes.h"		/* which includes access/rulescan.h */
 #include "parser/parse.h"		/* for the APPEND */
 
 extern HeapTuple palloctup();
@@ -30,9 +31,10 @@ extern HeapTuple palloctup();
  * prs2Append
  */
 Prs2Status
-prs2Append(prs2EStateInfo, explainRelation, tuple, buffer, relation,
-	    returnedTupleP, returnedBufferP)
+prs2Append(prs2EStateInfo, relationRuleInfo, explainRelation,
+		tuple, buffer, relation, returnedTupleP, returnedBufferP)
 Prs2EStateInfo prs2EStateInfo;
+RelationRuleInfo relationRuleInfo;
 Relation explainRelation;
 HeapTuple tuple;
 Buffer buffer;
@@ -58,7 +60,7 @@ Buffer *returnedBufferP;
     relName = RelationGetRelationName(relation);
     tupDesc = RelationGetTupleDescriptor(relation);
 
-    locks = prs2GetLocksFromRelation(relName);
+    locks = relationRuleInfo->relationLocks;
 
     /*
      * now extract from the tuple the array of the attribute values.
@@ -195,7 +197,6 @@ Buffer *returnedBufferP;
     newLocks = temp;
 
     attributeValuesFree(attrValues, relation);
-    prs2FreeLocks(locks);
 
     /*
      * Did the locks or an attribute of the tuple change?
