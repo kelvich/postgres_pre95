@@ -8,6 +8,7 @@
 RcsId("$Header$");
 
 #include "attnum.h"
+#include "cat.h"
 #include "genam.h"
 #include "heapam.h"
 #include "htup.h"
@@ -84,7 +85,7 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 	accessMethodId = tuple->t_oid;
 
 	/*
-	 * process X
+	 * process attributeList
 	 */
 	rest = attributeList;
 	for (attributeNumber = 1; attributeNumber <= numberOfAttributes;
@@ -155,8 +156,19 @@ void
 RemoveIndex(name)
 	Name	name;
 {
-	/* delete-index(name); */
-	/* am-destroy(name); */
+	ObjectId	id;
+	HeapTuple	tuple;
 
-	RelationNameDestroyIndexRelation(name);
+	tuple = SearchSysCacheTuple(RELNAME, name);
+
+	if (!HeapTupleIsValid(tuple)) {
+		elog(WARN, "index \"%s\" nonexistant", name);
+	}
+
+	if (((RelationTupleForm)GETSTRUCT(tuple))->relkind != 'i') {
+		elog(WARN, "relation \"%s\" is of type \"%c\"", name,
+			((RelationTupleForm)GETSTRUCT(tuple))->relkind);
+	}
+
+	DestroyIndexRelationById(tuple->t_oid);
 }
