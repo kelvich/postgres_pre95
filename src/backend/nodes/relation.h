@@ -138,7 +138,7 @@ class (Rel) public (Node) {
   /* materialization information */
 	List	targetlist;
 	List	pathlist;
-	struct	Path *unorderedpath; 
+	struct Path	*unorderedpath; 
 	struct Path 	*cheapestpath;  
   /* used solely by indices: */
 	List	classlist;
