@@ -643,6 +643,11 @@ Var _readVar()
 	token = lsptok(NULL, &length);    		/* eat :varid */
 
 	local_node->varid = lispRead(true); 		/* now read it */
+
+	token = lsptok(NULL, &length);			/* eat :varelemtype */
+
+	token = lsptok(NULL, &length);    		/* get varelemtype */
+	local_node->varelemtype = atoi(token);
 	/* token = lsptok(NULL, &length); */    		/* eat last ) */
 	local_node->printFunc = PrintVar;
 	local_node->equalFunc = EqualVar;
