@@ -239,14 +239,14 @@ OLD_MKDIR=
 .ifdef KRBVERS
 KRBINCS= -I/usr/athena/include
 KRBLIBS= -L/usr/athena/lib
-KRBFLAGS+= ${KRBINCS} '-DPG_KRB_SRVNAM="postgres_dbms"'
+KRBFLAGS+= ${KRBINCS} -DPG_KRB_SRVNAM='"postgres_dbms"'
 .   if ${KRBVERS} == "4"
 KRBFLAGS+= -DKRB4
-KRBFLAGS+= '-DPG_KRB_SRVTAB="/etc/srvtab"'
+KRBFLAGS+= -DPG_KRB_SRVTAB='"/etc/srvtab"'
 KRBLIBS+= -lkrb -ldes
 .   elif ${KRBVERS} == "5"
 KRBFLAGS+= -DKRB5
-KRBFLAGS+= '-DPG_KRB_SRVTAB="FILE:/krb5/srvtab.postgres"'
+KRBFLAGS+= -DPG_KRB_SRVTAB='"FILE:/krb5/srvtab.postgres"'
 KRBLIBS+= -lkrb5 -lcrypto -lcom_err -lisode
 .   endif
 .endif
@@ -293,6 +293,17 @@ CFLAGS+= -DPOSTPORT='"4321"'
 # are supported outside of UC Berkeley.
 #
 CFLAGS+= -DSEQUOIA
+
+
+#
+# This is the time, in seconds, at which a given backend server
+# will wait on a lock before deciding to abort the transaction
+# (this is what we do in lieu of deadlock detection).
+#
+# Low numbers are not recommended as they will tend to cause
+# false aborts if many transactions are long-lived.
+#
+CFLAGS+= -DDEADLOCK_TIMEOUT=60
 
 
 #
