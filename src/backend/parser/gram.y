@@ -257,6 +257,8 @@ CreateStmt:
 	  Create relation_name '(' dom_list ')' 
 	  OptKeyPhrase OptInherit OptIndexable OptArchiveType
 		{
+			LispValue temp = LispNil;
+
 			$9 = lispCons ( $9, LispNil);
 			$8 = lispCons ( $8, $9 );
 			$7 = lispCons ( $7, $8 );
@@ -266,7 +268,12 @@ CreateStmt:
 			$$ = lispCons ( $1, $2 );
 
 			$$ = nappend1 ( $$, $6 );
-			$$ = nappend1 ( $$, $4 );
+			temp = $$;
+			while (temp != LispNil && CDR(temp) != LispNil) {
+				temp = CDR(temp);
+			}
+			CDR(temp) = $4;
+			/* $$ = nappend1 ( $$, $4 ); */
 		}
 	| Create Version relation_name FROM Relation
 		{
