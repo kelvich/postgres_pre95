@@ -1440,21 +1440,12 @@ heap_replace(relation, otid, tup)
     lp = PageGetItemId(dp, ItemPointerSimpleGetOffsetIndex(otid));
 
     /* ----------------
-     *	check that we're replacing a valid item
-     * ----------------
-     */
-    if (!(tp = heap_tuple_satisfies(lp, relation, (PageHeader) dp, NowTimeQual,
-									(ScanKeySize) 0, (ScanKey) NULL))) {
-
-	ReleaseBuffer(buffer);
-	
-	elog(WARN, "heap_replace: (am)invalid otid");
-    }
-
-    /* ----------------
      *	logically delete old item
      * ----------------
      */
+
+    tp = (HeapTuple) PageGetItem(dp, lp);
+    Assert(HeapTupleIsValid(tp));
 
     /* -----------------
      *  the following test should be able to catch all non-functional
@@ -1474,6 +1465,28 @@ heap_replace(relation, otid, tup)
 	ReleaseBuffer(buffer);
         return (RuleLock)NULL;
     }
+
+    /* ----------------
+     *	check that we're replacing a valid item -
+     *
+     *  NOTE that this check must follow the non-functional update test
+     *       above as it can happen that we try to 'replace' the same tuple
+     *       twice in a single transaction.  The second time around the
+     *       tuple will fail the NowTimeQual.  We don't want to abort the
+     *       xact, we only want to flag the 'non-functional' NOTICE. -mer
+     * ----------------
+     */
+    if (!heap_tuple_satisfies(lp,
+			      relation,
+			      (PageHeader)dp,
+			      NowTimeQual,
+			      (ScanKeySize)0,
+			      (ScanKey)NULL))
+    {
+	ReleaseBuffer(buffer);
+	elog(WARN, "heap_replace: (am)invalid otid");
+    }
+
     /* XXX order problems if not atomic assignment ??? */
     tup->t_oid = tp->t_oid;
     TransactionIdStore(GetCurrentTransactionId(), &(tup->t_xmin));
