@@ -2,7 +2,10 @@
  * $Header$
  */
 
-unsigned int InsertRule ARGS((struct char16 *, int, struct char16 *, struct char16 *, char *, char, char *, double, double));
-void ModifyActionToReplaceCurrent ARGS((struct _LispValue *));
-int DefineQueryRewrite ARGS((struct _LispValue *));
-int ShowRuleAction ARGS((struct _LispValue *));
+/* RewriteDefine.c */
+void strcpyq ARGS((char *dest , char *source ));
+OID InsertRule ARGS((Name rulname , int evtype , Name evobj , Name evslot , char *evqual , bool evinstead , char *actiontree ));
+void ModifyActionToReplaceCurrent ARGS((List retrieve_parsetree ));
+void ValidateRule ARGS((int event_type , char *eobj_string , char *eslot_string , List event_qual , List *action , int is_instead , ObjectId event_attype ));
+int DefineQueryRewrite ARGS((List args ));
+int ShowRuleAction ARGS((LispValue ruleaction ));

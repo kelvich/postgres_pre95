@@ -4,9 +4,5 @@
  * $Header$
  */
 
-#ifdef OLD_REWRITE
-struct _LispValue *RuleIdGetActionInfo ARGS((unsigned int));
-char *OperOidGetName ARGS((ObjectId oproid));
-#endif OLD_REWRITE
-
-List RuleIdGetActionInfo ARGS((unsigned int, int *instead));
+List RuleIdGetActionInfo ARGS((OID ruleoid , int *instead_flag ));
+char *OperOidGetName ARGS((oid oproid ));

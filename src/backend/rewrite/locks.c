@@ -4,7 +4,6 @@
 
 #include "tmp/postgres.h"		/* for oid defs */
 #include "utils/log.h"			/* for elog */
-#include "./locks.h"			/* for rewrite specific lock defns */
 #include "parser/parse.h"		/* atom defs */
 #include "nodes/pg_lisp.h"		/* lisp support package */
 #include "rules/prs2locks.h"		/* prs2 lock definitions */
@@ -12,13 +11,13 @@
 #include "nodes/primnodes.h"		/* Var node def */
 #include "parser/parsetree.h"		/* parsetree manip routines */
 #include "catalog/syscache.h"		/* for SearchSysCache */
-
+#include "./locks.h"			/* for rewrite specific lock defns */
 char
 PutRelationLocks ( rule_oid, ev_oid, ev_attno,
 		   ev_type, is_instead )
      oid rule_oid;
      oid ev_oid;
-     short ev_attno;
+     int ev_attno;
      int ev_type;
      bool is_instead;
 {

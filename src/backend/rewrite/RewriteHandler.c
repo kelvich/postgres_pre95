@@ -159,7 +159,6 @@ List FireRetrieveRulesAtQuery(parsetree, rt_index, relation,instead_flag,
     List results  = LispNil;
     RuleLock rt_entry_locks = NULL;
     List locks = LispNil;
-    List MatchRetrieveLocks();
     rt_entry_locks = prs2GetLocksFromRelation(
 				RelationGetRelationName(relation));
     locks = MatchRetrieveLocks(rt_entry_locks, rt_index, parsetree);
@@ -263,7 +262,6 @@ List ProcessRetrieveQuery(parsetree, rt,instead_flag,rule)
     List rt_entry_ptr;
     int rt_index = 0;
     List product_queries = LispNil;
-    List MatchLocks();
 
     foreach (rt_entry_ptr, rt) {
 	List rt_entry = CAR(rt_entry_ptr);

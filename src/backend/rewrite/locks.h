@@ -33,12 +33,13 @@
 #define LockEventIsDelete(lock) 	(Event(lock)==EventIsDelete)
 #define LockEventIsReplace(lock) 	(Event(lock)==EventIsReplace)
 
-#ifdef OLD_REWRITE
-struct _LispValue *MatchRetrieveLocks ARGS((struct Prs2LocksData *, int, struct _LispValue *));
-char ThisLockWasTriggered ARGS((int, short, struct _LispValue *));
-struct _LispValue *MatchLocks ARGS((char, struct Prs2LocksData *, int, struct _LispValue *));
-struct _LispValue *MatchReplaceLocks ARGS((struct Prs2LocksData *, int, struct _LispValue *));
-struct _LispValue *MatchAppendLocks ARGS((struct Prs2LocksData *, int, struct _LispValue *));
-struct _LispValue *MatchDeleteLocks ARGS((struct Prs2LocksData *, int, struct _LispValue *));
+/* locks.c */
+char PutRelationLocks ARGS((oid rule_oid , oid ev_oid , int ev_attno , int ev_type , bool is_instead ));
+bool ThisLockWasTriggered ARGS((int varno , AttributeNumber attnum , List parse_subtree ));
+List MatchRetrieveLocks ARGS((RuleLock rulelocks , int varno , List parse_subtree ));
+List MatchLocks ARGS((Prs2LockType locktype , RuleLock rulelocks , int varno , List user_parsetree ));
+List MatchReplaceLocks ARGS((RuleLock rulelocks , int current_varno , List user_parsetree ));
+List MatchAppendLocks ARGS((RuleLock rulelocks , int current_varno , List user_parsetree ));
+List MatchDeleteLocks ARGS((RuleLock rulelocks , int current_varno , List user_parsetree ));
 
-#endif OLD_REWRITE
+

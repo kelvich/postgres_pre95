@@ -6,14 +6,13 @@
 #include "tmp/postgres.h"
 
 /* #include "rules/prs2locks.h"		/* temporarily */
-#include "./locks.h"			
 #include "utils/rel.h"			/* for Relation stuff */
 #include "access/heapam.h"		/* access methods like amopenr */
 #include "utils/log.h"			/* for elog */
 #include "nodes/pg_lisp.h"		/* for Lisp support */
 #include "parser/parse.h"		/* lisp atom database */
 #include "parser/parsetree.h"		/* for parsetree manip defines */
-
+#include "./locks.h"			
 ObjectId LastOidProcessed = InvalidObjectId;
 bool prs2AttributeIsOfBasicType();
 
@@ -209,7 +208,6 @@ DefineQueryRewrite ( args )
     extern ObjectId att_typeid();
 
     extern	char		*PlanToString();
-    extern	char		PutRelationLocks();
 
     eobj_string = CString ( CAR ( event_obj));
     
