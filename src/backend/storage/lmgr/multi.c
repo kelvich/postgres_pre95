@@ -21,7 +21,6 @@
  *
  * $Header$
  */
-#include "storage/sem.h"
 #include "storage/shmem.h"
 #include "storage/lock.h"
 #include "utils/rel.h"

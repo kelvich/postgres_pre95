@@ -34,7 +34,6 @@
  */
 
 #include "storage/shmem.h"
-#include "storage/sem.h"
 #include "storage/spin.h"
 #include "storage/proc.h"
 #include "storage/lock.h"
