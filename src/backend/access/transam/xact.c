@@ -822,6 +822,7 @@ CommitTransaction()
      * ----------------
      */
     RecordTransactionCommit();
+	AtCommit_LocalRels();
     AtCommit_Cache();
     AtCommit_Locks();
     AtCommit_Memory();
@@ -866,6 +867,7 @@ AbortTransaction()
      * ----------------
      */
     RecordTransactionAbort();
+	AtAbort_LocalRels();
     AtAbort_Cache();
     AtAbort_Locks();
     AtAbort_Memory();
@@ -919,6 +921,7 @@ SlaveStartTransaction()
 void
 SlaveCommitTransaction()
 {
+	AtCommit_LocalRels();
     AtCommit_Cache();
     AtCommit_Locks();
     AtCommit_Memory();
@@ -936,6 +939,7 @@ SlaveCommitTransaction()
 void
 SlaveAbortTransaction()
 {
+	AtAbort_LocalRels();
     AtAbort_Cache();
     AtAbort_Locks();
     AtCommit_Memory();
