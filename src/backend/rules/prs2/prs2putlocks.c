@@ -25,7 +25,6 @@ void prs2FindLockTypeAndAttrNo();
 void prs2TupleSystemPutLocks();
 LispValue prs2FindConstantQual();
 LispValue prs2FindConstantClause();
-void prs2PrintQual();
 
 extern Name get_attname();
 extern AttributeNumber get_attnum();
@@ -69,6 +68,7 @@ LispValue ruleQual;
      * NOTE: XXX!
      * We assume the the "varno" of the CURRENT relation is 1
      */
+#ifdef NEW_RULE_SYSTEM
     constQual = prs2FindConstantQual(ruleQual, 1);
 
     if (constQual == LispNil) {
@@ -80,6 +80,9 @@ LispValue ruleQual;
 	prs2PutTupleLevelLocks(ruleId, lockType, relationOid, attributeNo,
 			    constQual);
     }
+#else NEW_RULE_SYSTEM
+    prs2PutRelationLevelLocks(ruleId, lockType, relationOid, attributeNo);
+#endif NEW_RULE_SYSTEM
 
 }
 
@@ -464,72 +467,6 @@ bool *isConstant;
     } else {
 	elog(WARN, "prs2FindConstantClause: unexpected clause");
     }
-}
-
-/*------------------------------------------------------------------------
- *
- * prs2PrintQual:
- *
- * print in stdout a qual. Used for debugging...
- *
- *------------------------------------------------------------------------
- */
-void
-prs2PrintQual(q)
-LispValue q;
-{
-    LispValue t;
-    Oper oper;
-    LispValue left, right;
-
-    if (null(q)) {
-	printf("NIL");
-    } else if (IsA(q,Var)) {
-	printf("V%d.%d", get_varno(q), get_varattno(q));
-    } else if (IsA(q,Const)) {
-	printf("{");
-	printValue(get_constvalue(q), get_consttype(q), stdout);
-	printf("}");
-    } else if (is_clause(q)) {
-	/*
-	 * it's an operator
-	 */
-	oper = (Oper) clause_head(q);
-	left = (LispValue) get_leftop(q);
-	right = (LispValue) get_rightop(q);
-	printf("[%d ", get_opno(oper));
-	prs2PrintQual(left);
-	printf(" ");
-	prs2PrintQual(right);
-	printf("]");
-    } else if (and_clause(q)) {
-	printf("(AND");
-	foreach (t, get_andclauseargs(q)) {
-	    printf(" ");
-	    prs2PrintQual(CAR(t));
-	}
-	printf(")");
-    } else if (or_clause(q)) {
-	printf("(OR");
-	foreach (t, get_orclauseargs(q)) {
-	    printf(" ");
-	    prs2PrintQual(CAR(t));
-	}
-	printf(")");
-    } else if (not_clause(q)) {
-	printf("(NOT ");
-	prs2PrintQual(get_notclausearg(q));
-	printf(")");
-    } else if (consp(q)) {
-	printf("(");
-	foreach (t, q) {
-	    prs2PrintQual(CAR(t));
-	}
-	printf(")");
-    } else {
-	printf("****");
-    }
-    fflush(stdout);
 }
 
 /*------------------------------------------------------------------------
