@@ -24,12 +24,11 @@ va_dcl
 
     while ( (int)(temp =  va_arg(args, LispValue) ) != -1) {
 	temp = lispCons ( temp, LispNil );
-	if ( tempcons == LispNil ) {
-	    tempcons  = temp;
+	if ( tempcons == LispNil )
 	    retval = temp;
-	} else
+	else
 	    CDR(tempcons) = temp;
-	    tempcons = temp;
+	tempcons = temp;
     }
 
     va_end(args);
