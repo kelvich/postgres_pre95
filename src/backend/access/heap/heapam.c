@@ -1058,8 +1058,8 @@ heap_fetch(relation, timeQual, tid, b)
 
     /*
      * Note: This is collosally expensive - does two system calls per
-     * indexscan tuple fetch.  Not good, and since we are doing page
-     * level locking with the buffer pool, it is commented out.
+     * indexscan tuple fetch.  Not good, and since we should be doing
+	 * page level locking by the scanner anyway, it is commented out.
      */
 
     /* RelationSetLockForTupleRead(relation, tid); */
