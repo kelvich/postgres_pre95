@@ -11,6 +11,8 @@
 
 #ifdef SONY_JUKEBOX
 
+RcsId("$Header$");
+
 #include "machine.h"
 
 #include "storage/block.h"
