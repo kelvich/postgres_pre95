@@ -35,7 +35,7 @@ main(argc, argv)
 	 * Must be first so that the bootstrap code calls it, too.
 	 * (Only needed on some RISC architectures.)
 	 */
-	init_address_fixups();
+	init_address_fixup();
 #endif /* NOFIXADE || NOPRINTADE */
 
 	/* 
