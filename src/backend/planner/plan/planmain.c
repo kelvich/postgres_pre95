@@ -91,7 +91,8 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	     if ( command_type == DELETE ) {
 		 return ((Plan)make_seqscan((List) NULL, 
 					     (List) NULL,
-					 (Index) _query_result_relation_,
+					     (Index) CInteger(
+						_query_result_relation_),
 					     (Node) NULL ));
 	     } else
 	       return((Plan)NULL);
