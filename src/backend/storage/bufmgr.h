@@ -119,6 +119,7 @@ BufferGetBlockNumber ARGS((
 	const Buffer	buffer
 ));
 
+#ifndef BUFMGR_DEBUG
 /*
  * ReadBuffer --
  *
@@ -129,6 +130,7 @@ ReadBuffer ARGS((
 	Relation	relation,
 	BlockNumber	blockNumber
 ));
+#endif
 
 /*
  * ReadBufferWithBufferLock
@@ -142,6 +144,7 @@ ReadBufferWithBufferLock ARGS((
 	bool		bufferLockHeld
 ));
 
+#ifndef BUFMGR_DEBUG
 /*
  * WriteBuffer --
  *
@@ -151,6 +154,7 @@ ReturnStatus
 WriteBuffer ARGS((
 	Buffer	buffer
 ));
+#endif
 
 /*
  * WriteNoReleaseBuffer --
@@ -162,6 +166,7 @@ WriteNoReleaseBuffer ARGS((
 	Buffer	buffer
 ));
 
+#ifndef BUFMGR_DEBUG
 /*
  * ReleaseBuffer --
  *
@@ -183,22 +188,7 @@ ReleaseAndReadBuffer ARGS((
 	Relation relation,
 	BlockNumber blockNum
 ));
-
-/*
- * RelationGetBuffer --
- *	Returns the buffer associated with a page in a relation.
- *
- * Note:
- *	Assumes buffer is valid.
- * XXX	This is an obsolete function--see above.
- */
-extern
-Buffer
-RelationGetBuffer ARGS((
-	const Relation		relation,
-	const BlockNumber	blockNumber,
-	const BufferLock	lockLevel
-));
+#endif
 
 extern
 Buffer
@@ -206,21 +196,6 @@ RelationGetBufferWithBuffer ARGS((
 	Relation 	relation,
 	BlockNumber	blockNumber,
 	Buffer		buffer
-));
-
-/*
- * BufferPut --
- *	Performs operations on a buffer.
- *
- * Note:
- *	Assumes buffer is valid.
- * XXX	This is an obsolete function--see above.
- */
-extern
-ReturnStatus
-BufferPut ARGS((
-	const Buffer	buffer,
-	const BufferLock	lockLevel
 ));
 
 /*
