@@ -22,6 +22,7 @@
 #include "storage/ipci.h"
 #include "storage/shmem.h"
 #include "storage/spin.h"
+#include "storage/proc.h"
 #include "utils/log.h"
 
 /* globals used in this file */
@@ -87,11 +88,13 @@ SpinAcquire(lock)
 SPINLOCK lock;
 {
     ExclusiveLock(lock);
+    PROC_INCR_SLOCK(lock);
 }
 
 SpinRelease(lock)
 SPINLOCK lock;
 {
+    PROC_DECR_SLOCK(lock);
     ExclusiveUnlock(lock);
 }
 
@@ -113,6 +116,7 @@ SpinAcquire(lock)
 SPINLOCK	lock;
 {
   IpcSemaphoreLock(SpinLockId, lock, IpcExclusiveLock);
+  PROC_INCR_SLOCK(lock);
 }
 
 /*
@@ -123,8 +127,9 @@ SPINLOCK	lock;
 SpinRelease(lock) 
 SPINLOCK	lock;
 {
-  if (SpinIsLocked(lock))
-      IpcSemaphoreUnlock(SpinLockId, lock, IpcExclusiveLock);
+  Assert(SpinIsLocked(lock))
+  PROC_DECR_SLOCK(lock);
+  IpcSemaphoreUnlock(SpinLockId, lock, IpcExclusiveLock);
 }
 
 int
