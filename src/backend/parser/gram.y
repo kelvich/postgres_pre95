@@ -113,9 +113,9 @@ static bool QueryIsRule = false;
 %left  	'+' '-'
 %left  	'*' '/'
 %right   UMINUS
-%left  	'[' ']' 
-%left	'.'
 %nonassoc  '<' '>'
+%left	'.'
+%left  	'[' ']' 
 %nonassoc TYPECAST
 %nonassoc REDUCE
 
@@ -1533,7 +1533,7 @@ opt_id:
 
 relation_name:
 	SpecialRuleRelation
-	Id		/*$$=$1*/
+	| Id		/*$$=$1*/
 	;
 
 access_method: 		Id 		/*$$=$1*/;
