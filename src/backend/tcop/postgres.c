@@ -42,6 +42,7 @@ RcsId("$Header$");
 #include "parser/parsetree.h"
 #include "executor/execdebug.h"
 #include "executor/x_execstats.h"
+#include "nodes/relation.h"
 #include "planner/costsize.h"
 #include "planner/planner.h"
 #include "nodes/plannodes.h"
