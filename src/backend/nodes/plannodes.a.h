@@ -10,7 +10,7 @@ extern int get_fragment ARGS((Plan node));
 extern void set_parallel ARGS((Plan node, int value));
 extern int get_parallel ARGS((Plan node));
 extern void set_state ARGS((Plan node, EStatePtr value));
-extern EStatePtr get_state ARGS((Plan node));
+extern EState get_state ARGS((Plan node));
 extern void set_qptargetlist ARGS((Plan node, List value));
 extern List get_qptargetlist ARGS((Plan node));
 extern void set_qpqual ARGS((Plan node, List value));
