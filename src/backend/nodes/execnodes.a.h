@@ -43,6 +43,8 @@ extern void set_es_qualification_tuple ARGS((EState node, HeapTuple value));
 extern HeapTuple get_es_qualification_tuple ARGS((EState node));
 extern void set_es_qualification_tuple_id ARGS((EState node, ItemPointer value));
 extern ItemPointer get_es_qualification_tuple_id ARGS((EState node));
+extern void set_es_qualification_tuple_buffer ARGS((EState node, Buffer value));
+extern Buffer get_es_qualification_tuple_buffer ARGS((EState node));
 extern void set_es_relation_relation_descriptor ARGS((EState node, Relation value));
 extern void set_es_raw_qualification_tuple ARGS((EState node, HeapTuple value));
 extern HeapTuple get_es_raw_qualification_tuple ARGS((EState node));

@@ -155,6 +155,8 @@ class (TupleCount) public (Node) {
  *
  *      qualification_tuple_id          tid of qualification_tuple
  *
+ *      qualification_tuple_buffer      buffer of qualification_tuple
+ *
  *      raw_qualification_tuple         tuple satsifying qualification
  *                                      but with no rules activated.
  *
@@ -199,6 +201,7 @@ class (EState) public (Node) {
       List              es_range_table;
       HeapTuple         es_qualification_tuple;
       ItemPointer       es_qualification_tuple_id;
+      Buffer		es_qualification_tuple_buffer;
       HeapTuple         es_raw_qualification_tuple;
       Relation          es_relation_relation_descriptor;
       Relation          es_into_relation_descriptor;
