@@ -1162,7 +1162,7 @@ int len;
 
     execTupDesc = ExecMakeExecTupDesc(len);
     for (i=0; i<len; i++) {
-        execTupDesc->data[i] = MakeExecAttDesc(ATTVAL, 1, tupDesc->data[i]);
+        execTupDesc->data[i] = MakeExecAttDesc(ATTVAL, 1, (TupleDescriptor)tupDesc->data[i]);
       }
     return execTupDesc;
 }
