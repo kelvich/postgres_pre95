@@ -1,0 +1,33 @@
+.\" This is -*-nroff-*-
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.TH "EXTEND INDEX" COMMANDS 02/08/93
+.XA 2 "Extend Index"
+.SH NAME
+extend index \(em extend a partial secondary index
+.SH SYNOPSIS
+.(l M
+\fBextend\fR \fBindex\fR index-name [\fBwhere\fR qual]
+.)l
+.SH DESCRIPTION
+This command extends the existing partial index called
+.IR index-name.
+.PP
+If a
+.IR qual
+is given, the index will be extended to cover all instances that satisfy
+the predicate specified by
+.IR qual
+(in addition to the instances the index already covers).  If no
+.IR qual
+is given, the index will be extended to be a complete index.
+Note that the predicate may only refer to attributes
+of the class on which the specified partial index was defined
+(see the \fBdefine index\fR command).
+.SH EXAMPLE
+.(C
+/*
+ * Extend a partial index on employee salaries to include all employees over 40
+ */
+extend index empsal where emp.age > 39
+.)C
