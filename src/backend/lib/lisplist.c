@@ -1,4 +1,4 @@
-/* $Header$
+/* $Header$ */
 
 #include <varargs.h>
 #include "pg_lisp.h"
