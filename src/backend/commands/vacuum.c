@@ -341,6 +341,8 @@ _vc_vacheap(p, curvrl, onerel)
     bool isarchived;
     int ntups;
     bool pgchanged, tupgone;
+    AbsoluteTime purgetime, expiretime;
+    RelativeTime preservetime;
 
     ntups = 0;
     nblocks = RelationGetNumberOfBlocks(onerel);
@@ -352,6 +354,22 @@ _vc_vacheap(p, curvrl, onerel)
     } else
 	isarchived = false;
 
+    /* calculate the purge time: tuples that expired before this time
+       will be archived or deleted */
+    purgetime = GetCurrentTransactionStartTime();
+    expiretime = onerel->rd_rel->relexpires;
+    preservetime = onerel->rd_rel->relpreserved;
+
+    if (RelativeTimeIsValid(preservetime) && (preservetime)) {
+	purgetime -= preservetime;
+	if (AbsoluteTimeIsBackwardCompatiblyValid(expiretime) &&
+	    expiretime > purgetime)
+	    purgetime = expiretime;
+    }
+
+    else if (AbsoluteTimeIsBackwardCompatiblyValid(expiretime))
+	purgetime = expiretime;
+	    
     for (blkno = 0; blkno < nblocks; blkno++) {
 	buf = ReadBuffer(onerel, blkno);
 	page = BufferGetPage(buf, 0);
@@ -392,18 +410,16 @@ _vc_vacheap(p, curvrl, onerel)
 		} else if (TransactionIdDidCommit(htup->t_xmax)) {
 		    if (!AbsoluteTimeIsBackwardCompatiblyReal(htup->t_tmax)) {
 
-			htup->t_tmax = TransactionIdGetCommitTime(htup->t_xmax);
+			htup->t_tmax = TransactionIdGetCommitTime(htup->t_xmax);  
 			pgchanged = true;
 		    }
 
 		    /*
-		     *  Reap the dead tuple.  We should check the commit time
-		     *  of the deleting transaction against the relation's
-		     *  expiration time, but relexpires is not maintained by
-		     *  any postgres code I can find.
+		     *  Reap the dead tuple if its expiration time is
+		     *  before purgetime.
 		     */
 
-		    if (!tupgone) {
+		    if (!tupgone && htup->t_tmax < purgetime) {
 			_vc_reaptid(p, curvrl, blkno, offind);
 			tupgone = true;
 			pgchanged = true;
@@ -600,8 +616,7 @@ _vc_updstats(relid, npages, ntuples, hasindex)
     pgcform->reltuples = ntuples;
     pgcform->relpages = npages;
     pgcform->relhasindex = hasindex;
-    pgcform->relpreserved = GetCurrentTransactionStartTime();
-
+ 
     /* XXX -- after write, should invalidate relcache in other backends */
     WriteNoReleaseBuffer(buf);
 
