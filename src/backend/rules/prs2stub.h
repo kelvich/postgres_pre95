@@ -22,7 +22,7 @@
  * The reason for using 2 formats instead of one, is that we have to
  * have a "flat" representation (like Prs2RawStub) for reading/writing
  * stub records to disk, but on the other hand, as these records
- * contain a lot of variabkle length information, main memory
+ * contain a lot of variable length information, main memory
  * operations (like adding/deleting stub record entries) would
  * reequire a complex interface (probably inefficient & difficult to
  * write & maintain)
@@ -44,7 +44,7 @@
 /*--------------
  * turn on/off debugging....
  */
-#define STUB_DEBUG	1
+#define STUB_DEBUG	10
 
 #include "tmp/postgres.h"
 #include "access/attnum.h"
@@ -64,8 +64,8 @@
  *	of a tuple (a tuple can have 0 or more stub records).
  *	It has the following fields:
  *	numOfStubs: the number of stub records for this tuple.
- *	stubRecors: an array of 'Prs2OneStubData' structures, holding
- *		information about each individual stub record.
+ *	stubRecors: an array of pointers to 'Prs2OneStubData' structures,
+ *	holding information about each individual stub record.
  *
  * Prs2OneStubData: a structure holding information about one
  *	stub record. It has the following fields:
@@ -77,14 +77,9 @@
  *		duplicating information, we use a counter of these
  *		copies.
  *	lock: the RuleLock associated with this stub.
- *	numQuals: each stub record has a qual associated with it.
- *		this qualification is the conjuction of one or more
- *		simple qualifications (see Prs2SimpleQualData).
- *		`numQuals' is the number of these simple qualifications.
- *		If it is equal to 0, the qualification always evaluates
- *		to true.
- *	qualification: the array of the simple qualifications mentioned
- *		before.
+ *	qualification: The qualification associated with the stub.
+ *		If the qualification is NULL then the qualification
+ *		of the stub is always true.
  *
  *	NOTE: XXX!!!!!!!!!!!!!  THIS IS A HACK !!!!!!!!!!
  *	'lock' and 'qualification' are pointers to variable length
@@ -92,7 +87,29 @@
  *	format to 'Prs2RawStub' and vice versa easier, 
  *	these fields MUST BE THE LAST FIELDS IN THE STRUCTURE
  *
- * Prs2SimpleQualData: this struct contains information about one
+ * Prs2StubQual: This is the structure which holds the qualification
+ *	of a stub record. A qualification can be arbitrary general
+ *	tree consinsting of the boolean operators AND, OR & NOT,
+ *	which can have one or more operands. Each operand can
+ *	either be another complex tree ("Prs2ComplexQualData")
+ *	or a leaf node ("Prs2SimpleQualData").
+ *	The struct holding the information for every node
+ *	of the tree has the attribute "qualType" which
+ * 	can be PRS2_COMPLEX_STUBQUAL (then this is a non leaf
+ *	node of the tree), PRS2_SIMPLE_STUBQUAL (leaf node) or
+ *      PRS2_NULL_STUBQUAL (null qualification, which ALWAYS EVALUATES
+ * 	to TRUE !!!!).
+ *	The other attribute is a union holding either the data for
+ *	a "complex qualification" (non-leaf nodes) or for a 
+ *	"simple qualification" (leaf nodes).
+ *	
+ * Prs2ComplexStubQualData: this struct holds the information
+ *	about a "complex qualification". "boolOper" is one of AND,
+ *	NOT, or OR, "nOperands" is the number of operands for
+ *	this operator (one or more) and "operands" is an
+ *	array of pointers to "Prs2StubQualData" structures.
+ *
+ * Prs2SimpleStubQualData: this struct contains information about one
  *	of the "simple qualifications" mentioned before.
  *	These have the format:
  *	<attributeNumber> <operator> <Constant>
@@ -106,6 +123,13 @@
  *	operator: the oid of the operator.
  *	constType: the (oid of the) type of the constant.
  *	constLength: the length of the constant.
+ *		NOTE: this is 'Size' which is an unsigned long int.
+ *		This in theory might cause some problems, because
+ *		this fielf can have the value of -1 to indicate
+ *		a variable length type.
+ *		However things seem to work ok as it is....
+ *		The correct fix would be to change Size so that
+ *		it is a signed number...
  *	constData: an array of `constLength' bytes, holding the
  *		value of the constant.
  *		NOTE: there might be alignment problems here...
@@ -116,32 +140,48 @@
 
 typedef uint16 Prs2StubId;
 
-typedef struct Prs2SimpleQualData {
+typedef struct Prs2SimpleStubQualData {
     AttributeNumber attrNo;
     ObjectId operator;
     ObjectId constType;
     bool constByVal;
     Size constLength;
     Datum constData;
-} Prs2SimpleQualData;
+} Prs2SimpleStubQualData;
 
-typedef Prs2SimpleQualData *Prs2SimpleQual;
+typedef struct Prs2ComplexStubQualData {
+    int boolOper;	/* one of AND, NOT, OR */
+    int nOperands;	
+    struct Prs2StubQualData **operands;	/* NOTE: an array of pointers */
+} Prs2ComplexStubQualData;
 
+#define PRS2_COMPLEX_STUBQUAL	'c'
+#define PRS2_SIMPLE_STUBQUAL	's'
+#define PRS2_NULL_STUBQUAL	'n'
+
+typedef struct Prs2StubQualData {
+    char qualType;
+    union {
+	Prs2SimpleStubQualData simple;
+	Prs2ComplexStubQualData complex;
+    } qual;
+} Prs2StubQualData;
+
+typedef Prs2StubQualData *Prs2StubQual;
 
 typedef struct Prs2OneStubData {
     ObjectId ruleId;
     Prs2StubId stubId;
     int counter;
-    int numQuals;
     RuleLock lock;
-    Prs2SimpleQual qualification;
+    Prs2StubQual qualification;
 } Prs2OneStubData;
 
 typedef Prs2OneStubData *Prs2OneStub;
 
 typedef struct Prs2StubData {
     int numOfStubs;	/* number of Stub Records */
-    Prs2OneStub stubRecords;
+    Prs2OneStub *stubRecords;	/* an array of pointers to the stub records */
 } Prs2StubData;
 
 typedef Prs2StubData *Prs2Stub;
@@ -182,6 +222,8 @@ typedef Prs2StubStatsData *Prs2StubStats;
  *========================================================================
  */
 
+/*================= ROUTINES IN FILE 'stubraw.c' =======================*/
+
 /*-------------------------
  * Prs2StubToRawStub:
  * given a 'Prs2Stub' create the equivalent 'Prs2RawStub'
@@ -202,15 +244,47 @@ prs2RawStubToStub ARGS((
 	Prs2RawStub	rawStub;
 ));
 
+
+/*================ ROUTINES IN FILE 'stubutil.c' ==================*/
+
 /*-------------------------
- * prs2SearchStub:
- * given a `Prs2Stub', return a pointer to the 
- * stub record (Prs2OneStub) that is equal to the given
- * `Prs2OneStub'
- * If no such record exist, return NULL
+ * prs2StubQualIsEqual
+ *
+ * returns true if the given 'Prs2StubQual' point to the same stub
+ * qualifications.
+ * NOTE 1: it returns false even if the two qualifications are different
+ * but isomprphic.
+ * NOTE 2: see also restrictions in 'prs2EqualDatum'
  */
 extern
-Prs2OneStub
+bool
+prs2StubQualIsEqual ARGS((
+    Prs2StubQual	q1,
+    Prs2StubQual	q2
+));
+
+/*-------------------------
+ * prs2OneStubIsEqual
+ *
+ * Return true iff the two given 'Prs2OneStub' pointers point to
+ * equal structures.
+ */
+extern
+bool
+prs2OneStubIsEqual ARGS((
+	Prs2OneStub	stub1,
+	Prs2OneStub	stub2
+));
+
+/*-------------------------
+ * prs2SearchStub:
+ * given a `Prs2Stub', return the index of the
+ * stub record (Prs2OneStub) that is equal to the given
+ * `Prs2OneStub'
+ * If no such record exist, return -1
+ */
+extern
+int
 prs2SearchStub ARGS((
 	Prs2Stub	stubs,
 	Prs2OneStub	oneStub,
@@ -219,8 +293,7 @@ prs2SearchStub ARGS((
 /*-------------------------
  * prs2AddOneStub:
  * add a new stub record (Prs2OneStub) to the given stub records.
- * NOTE: 'oldStubs->stubRecords' might be 'pfreed' so if you have
- * pointers pointing there you might be in trouble!
+ * NOTE 1: We do NOT make a copy of the 'newStub'. So DO NOT pfree it
  */
 extern
 void
@@ -252,8 +325,6 @@ prs2MakeStub ARGS((
 /*-------------------------
  * prs2FreeStub:
  * free the space occupied by a 'Prs2Stub'
- * If 'freeLocksFlag' is true then we also free the space occupied by the
- * rule locks.
  */
 extern
 void
@@ -263,38 +334,22 @@ prs2FreeStub ARGS((
 ));
 
 /*-------------------------
- * prs2MakeSimpleQuals(n)
- * allocate space for `n' `Prs2SimpleQualData' records.
+ * prs2CopyStub:
+ * Make a (complete) copy of the given 'Prs2Stub'
  */
 extern
-Prs2SimpleQual
-prs2MakeSimpleQuals ARGS((
-	int		n;
-));
-
-/*-------------------------
- * prs2FreeSimpleQuals
- * pfree the spcae allocated by a call to `prs2MakeSimpleQuals'
- */
-extern
-void
-prs2FreeSimpleQuals ARGS((
-	Prs2SimpleQual	quals
+Prs2Stub
+prs2CopyStub ARGS((
+    Prs2Stub	stub
 ));
 
 /*-------------------------
  * prs2MakeOneStub
- * create an 'Prs2OneStub' record
+ * create an empty 'Prs2OneStub' record
  */
 extern
 Prs2OneStub
 prs2MakeOneStub ARGS((
-	ObjectId	ruleId;
-	Prs2StubId	stubId;
-	int		counter;
-	int		numQuals;
-	RuleLock	lock;
-	Prs2SimpleQual	quals
 ));
 
 /*-------------------------
@@ -306,6 +361,47 @@ void
 prs2FreeOneStub ARGS((
 	Prs2OneStub	oneStub
 ));
+
+/*-------------------------
+ * prs2CopyOneStub:
+ * Make a (complete) copy of the given Prs2OneStub
+ */
+extern
+Prs2OneStub
+prs2CopyOneStub ARGS((
+    Prs2OneStub	onestub
+));
+
+/*-------------------------
+ * prs2MakeStubQual:
+ * Create an unitialized 'Prs2StubQualData' record
+ */
+extern
+Prs2StubQual
+prs2MakeStubQual ARGS((
+));
+
+/*-------------------------
+ * prs2FreeStubQual:
+ * pfree the space allocated for the stub qualification
+ */
+extern
+void
+prs2FreeStubQual ARGS((
+	Prs2StubQual	qual
+));
+
+/*-------------------------
+ * prs2CopyStubQual:
+ * Make and return a complete copy of the given stub qualification.
+ */
+extern
+Prs2StubQual
+prs2CopyStubQual ARGS((
+    Prs2StubQual	qual
+));
+
+/*================= ROUTINES IN FILE 'stubinout.c' =======================*/
 
 /*-------------------------
  * prs2StubToString:
@@ -349,6 +445,7 @@ stubin ARGS((
 	char	*string
 ));
 
+/*================= ROUTINES IN FILE 'stubrel.c' =======================*/
 
 /*-------------------------
  * prs2AddRelationStub:
@@ -373,14 +470,14 @@ prs2DeleteRelationStub ARGS((
 ));
 /*-------------------------
  * prs2ReplaceRelationStub:
- * Replace the relation stubs of a realtion with the given ones
- * (the old ones are completely ignored)/
+ * Replace the relation stubs of a relation with the given ones
+ * (the old ones are completely ignored)
  */
 extern
 void
 prs2ReplaceRelationStub ARGS((
-	Relation	relation;
-	Prs2Stub	stubs;
+	Relation	relation,
+	Prs2Stub	stubs
 ));
 
 /*-------------------------
@@ -401,9 +498,9 @@ prs2GetRelationStubs ARGS((
 extern
 Prs2Stub
 prs2GetStubsFromPrs2StubTuple ARGS((
-    	HeapTuple		tuple;
-	Buffer			buffer;
-	TupleDesccriptor	tupleDesc;
+    	HeapTuple		tuple,
+	Buffer			buffer,
+	TupleDesccriptor	tupleDesc
 ));
 
 /*-------------------------
@@ -415,46 +512,19 @@ prs2GetStubsFromPrs2StubTuple ARGS((
 extern
 HeapTuple
 prs2PutStubsInPrs2StubTuple ARGS((
-    	HeapTuple		tuple;
-	Buffer			buffer;
-	TupleDesccriptor	tupleDesc;
-	Prs2Stub		stubs;
+    	HeapTuple		tuple,
+	Buffer			buffer,
+	TupleDesccriptor	tupleDesc,
+	Prs2Stub		stubs
 ));
 
-#endif Prs2StubIncluded
-
-/*--------------------------
- * prs2GetDatumSize
- * caclulate the actual size of a constant's value
- */
-extern
-Size
-prsGetDatumSize ARGS((
-	ObjectId	constType;
-	bool		constByVal;
-	Size		constLength;
-	Datum		constData
-));
-
-/*--------------------------
- * prs2EqualDatum
- * returns true if 2 datums are equal (i.e. similar byte-to-byte)
- * NOTE: fails if a single value can have more than one representations.
- */
-extern
-bool
-prs2EqualDatum ARGS((
-	ObjectId 	type;
-	bool		byValue;
-	Size		length;
-	Datum		datum1;
-	Datum		datum2
-));
+/*================= ROUTINES IN FILE 'stubtuple.c' =======================*/
 
 /*-------------------------
  * prs2StubGetLocksForTuple
  * given a collection of stub records and a tuple, find all the locks
  * that the tuple must inherit.
+ *-------------------------
  */
 extern
 RuleLock
@@ -467,8 +537,9 @@ prs2StubGetLocksForTuple ARGS((
 
 /*-------------------------
  * prs2StubTestTuple
- * test if a tuple satisfies all the qualifications of a given
+ * test if a tuple satisfies the given qualifications of a
  * stub record.
+ *-------------------------
  */
 extern
 bool
@@ -476,21 +547,50 @@ prs2StubTestTuple ARGS((
     HeapTuple		tuple,
     Buffer		buffer,
     TupleDescriptor	tupDesc,
-    Prs2OneStub		stub
+    Prs2StubQual	qual
 ));
 
-/*-------------------------
- * prs2SimpleQualTestTuple
- * test if a tuple satisfies the given 'Prs2SimpleQual'
+/*================= ROUTINES IN FILE 'stubjoin.c' =======================*/
+
+/*--------------------------
+ * prs2MakeStubForInnerRelation:
+ * Create the 'prs2OneStub' corresponding to the inner relation
+ * when proccessing a Join.
+ */
+extern
+Prs2OneStub
+prs2MakeStubForInnerRelation ARGS((
+    JoinRuleInfo	ruleInfo,
+    HeapTuple		tuple,
+    Buffer		buffer,
+    TupleDescriptor	outerTupleDesc
+));
+
+/*--------------------------
+ * prs2AddLocksAndReplaceTuple:
+ * test the given tuple to see if it satisfies the stub qualification,
+ * and if yes add to it the corresponding rule lock.
  */
 extern
 bool
-prs2SimpleQualTestTuple ARGS((
-    HeapTuple		tuple,
-    Buffer		buffer,
-    TupleDescriptor	tupDesc,
-    Prs2SimpleQual	qual
+prs2AddLocksAndReplaceTuple ARGS((
+    HeapTuple	tuple,
+    Buffer	buffer,
+    Relation	relation,
+    Prs2OneStub oneStub,
+    RuleLock	lock
 ));
 
-Prs2OneStub prs2MakeStubForInnerRelation();
-bool prs2AddLocksAndReplaceTuple();
+/*--------------------------
+ * prs2UpdateStats:
+ * used for benchmarks... Keep some statistics about rule stub records
+ * and stuff...
+ */
+extern
+void
+prs2UpdateStats ARGS((
+    JoinRuleInfo	ruleInfo,
+    int			operation;
+));
+
+#endif Prs2StubIncluded
