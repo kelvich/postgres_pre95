@@ -1717,15 +1717,8 @@ a_expr:
 	  attr
            {
 	       List temp = NULL;
-
 	       if (IsA(CAR($1),Param))
-		{
-		    Param f = (Param)CAR($1); 
-		    set_param_tlist(f,
-				    setup_tlist(CString(CDR($1)),
-						get_paramtype(f)));
-		    temp = (List) f;
-		}
+		 temp = HandleParam((Param)CAR($1), (Name)CString(CADR($1)));
 	       else
 		 temp = HandleNestedDots($1);
 	       $$ = (LispValue)temp;
@@ -1841,19 +1834,19 @@ attr:
           relation_name '.' attrs
                 {
 		    INC_NUM_LEVELS(1);
-		    $$ = MakeList($1, $3, -1);
+		    $$ = lispCons($1,$3);
 		}
 
 	| ParamNo '.' attrs
             {
 		INC_NUM_LEVELS(1);
-		$$ = MakeList($1, $3, -1);
+		$$ = lispCons($1,$3);
 	    }
 	;
 
 attrs:
-        attr_name                       { $$ = $1; }
-      | attrs '.' attr_name             { $$ = MakeList ($1, $3, -1); }
+        attr_name                       { $$ = lispCons($1, LispNil); }
+      | attrs '.' attr_name             { $$ = nappend1($1, $3);}
 
 agg_res_target_el:
        attr
@@ -1862,7 +1855,10 @@ agg_res_target_el:
 	       Resdom resnode;
 	       int type_id, type_len;
 
-	        temp = HandleNestedDots($1);
+	       if (IsA(CAR($1),Param))
+		 temp = HandleParam((Param)CAR($1), (Name)CString(CADR($1)));
+	       else
+		 temp = HandleNestedDots($1);
 
 	        type_id = CInteger(CAR(temp));
 	        type_len = tlen(get_id_type(type_id));
@@ -1874,13 +1870,14 @@ agg_res_target_el:
 
 	        varnode = CDR(temp);
 
+	       /* Obsolete, I think.  -- JMH  ??? 
 	        if (IsA(varnode,Var)) {
 		     set_vardotfields((Var)varnode, CDR(CDR($1)));
 		} else {
 		   if ( CDR(CDR($1)) != LispNil )
 		     elog(WARN,"cannot mix procedures with unions");
 		  }
-
+		*/
 
 	        $$ = lispCons((LispValue)resnode,lispCons(varnode,LispNil));
 	 }
@@ -1975,7 +1972,10 @@ res_target_el:
 		 Resdom resnode;
 		 int type_id, type_len;
 
-		 temp = HandleNestedDots($1);
+		 if (IsA(CAR($1),Param))
+		   temp = HandleParam((Param)CAR($1), (Name)CString(CADR($1)));
+		 else
+		   temp = HandleNestedDots($1);
 
 		 type_id = CInteger(CAR(temp));
 		 type_len = tlen(get_id_type(type_id));
@@ -1986,13 +1986,14 @@ res_target_el:
 					0 );
 		 varnode = CDR(temp);
 
+		 /* Obsolete, I think.  -- JMH  ??? 
 		 if ( IsA(varnode,Var))
 		 {
 		   set_vardotfields ( (Var)varnode , CDR(CDR($1)));
 		 }
 		 else if ( CDR(CDR($1)) != LispNil )
 		   elog(WARN,"cannot mix procedures with unions");
-
+                 */
 		  $$=lispCons((LispValue)resnode,lispCons(varnode,LispNil));
 	    }
 	| attr optional_indirection
@@ -2011,12 +2012,14 @@ res_target_el:
 						(Name)CString(CAR(last ($1) ))
 					    , 0 , 0 , 0 );
 		      varnode = CDR(temp);
+		      /* Obsolete, I think.  -- JMH  ??? 
 		      if ( IsA(varnode,Var))
 		      {
 			set_vardotfields ( (Var)varnode , CDR(CDR($1)));
 		      }
 		      else if ( CDR(CDR($1)) != LispNil )
 			elog(WARN,"cannot mix procedures with unions");
+		      */
 
 		      $$=lispCons((LispValue)resnode,lispCons(varnode,LispNil));
 		}
