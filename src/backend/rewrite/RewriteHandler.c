@@ -314,8 +314,8 @@ ReplaceVarWithMulti ( varno, attno, parser_subtree, replacement )
 	    get_varno((Var)temp) == varno ) {
 	    elog (NOTICE, "now replacing ( %d %d )",varno,attno);
 	    vardotfields = get_vardotfields ( temp );
-	    
-	    if ( vardotfields != NULL ) {
+
+ 	    if ( vardotfields != NULL ) { 
 		/* a real postquel procedure invocation */
 		List j = NULL;
 		
@@ -330,7 +330,8 @@ ReplaceVarWithMulti ( varno, attno, parser_subtree, replacement )
 		    
 		    if ( !strcmp ( rule_resdom_name, 
 				  var_dotfields_firstname ) ) {
-		      if ( IsA(CAR(saved),Resdom) &&
+		      if ( saved && saved->type == PGLISP_DTPR  &&
+			   IsA(CAR(saved),Resdom) &&
 			   get_restype (CAR(saved)) !=
 			   get_restype (rule_resdom) ) {
 			set_restype (CAR(saved), get_restype(rule_resdom));
@@ -338,13 +339,28 @@ ReplaceVarWithMulti ( varno, attno, parser_subtree, replacement )
 		      }
 		      CAR(i) = CAR(rule_tlexpr);
 		      CDR(i) = CDR(rule_tlexpr);
-		    }
-		    
 		  }
-	      } else {
+		    
+		}
+
+	    } else {
 		/* no dotfields, so retrieve text ??? */
-	      }
-	  }	
+		List j = NULL;
+		foreach ( j , replacement ) {
+		    List  rule_tlentry = CAR(j);
+		    Resdom rule_resdom = (Resdom)CAR(rule_tlentry);
+		    List rule_tlexpr = CDR(rule_tlentry);
+		    Name rule_resdom_name = get_resname ( rule_resdom );
+		    
+		    CAR(i) = CAR(rule_tlexpr);
+		    CDR(i) = CDR(rule_tlexpr);
+		    
+		}
+		
+	    } /* vardotfields != NULL */
+
+	}
+
 	
 	if ( temp->type == PGLISP_DTPR )
 	  ReplaceVarWithMulti ( varno, attno, temp, replacement );
@@ -475,6 +491,11 @@ QueryRewrite ( parsetree )
 		    List rule_rangetable = NULL;
 		    int action_command = 0;
 
+		    printf("\t{ rulid = %ld ",temp->ruleId);
+		    printf("locktype = %c ", temp->lockType );
+		    printf("attnum = %d }\n", temp->attributeNumber );
+		    fflush(stdout);
+
 		    /*
 		     * for now, since the 289 project
 		     * only requires a single "action"
@@ -490,10 +511,6 @@ QueryRewrite ( parsetree )
 		    rule_rangetable = root_rangetable(parse_root
 						      (ruleparse));
 		    action_command = CInteger ( CADR ( CAR ( ruleparse) ));
-
-		    printf("\t{ rulid = %ld ",temp->ruleId);
-		    printf("locktype = %c ", temp->lockType );
-		    printf("attnum = %d }\n", temp->attributeNumber );
 
 		    if ( temp->attributeNumber == -1 )
 		      elog(NOTICE, "firing a multi-attribute rule");
@@ -527,6 +544,11 @@ QueryRewrite ( parsetree )
 						     temp->attributeNumber, 
 						     user_tl, 
 						     rule_tlist );
+
+				printf ("after replacing tlist entry :\n");
+				lispDisplay ( user_tl, 0 );
+				fflush(stdout);
+
 				result_relname = "";
 				CDR(last(rangetable)) = 
 				  CDR(CDR(rule_rangetable));
