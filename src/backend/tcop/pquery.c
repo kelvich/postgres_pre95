@@ -77,7 +77,7 @@ MakeQueryDesc(operation, parsetree, plantree, state, feature, dest)
 		  CONS(plantree, 		      	/* plan */
 		       CONS(state, 	      		/* state */
 			    CONS(feature, 		/* feature */
-				 CONS(dest, 		/* output dest */
+				 CONS(lispInteger(dest), /* output dest */
 				      LispNil))))));
 }
 
@@ -372,30 +372,9 @@ ProcessQueryDesc(queryDesc)
      *   report the query's result type information
      *   back to the front end or to whatever destination
      *   we're dealing with.
-     *
-     *   XXX all these pq_ calls should be put into a function
-     *   and moved to dest.c   Likewise, the isIntoTemp and
-     *   isHash tests should be eliminated and the destination
-     *   of None used instead.  -cim 2/10/91
      * ----------------
      */
-    if (operation == RETRIEVE) {
-	if (isIntoRelation && dest == Remote) {
-	    pq_putnchar("P", 1);
-	    pq_putint(0, 4);
-	    pq_putstr("blank");
-	} else {
-	    if (!isIntoTemp && !ExecIsHash(plan))
-		BeginCommand("blank", attinfo, dest);
-	}	
-    } else {
-	if (dest == Remote) {
-	    pq_putnchar("P", 1);
-	    pq_putint(0, 4);
-	    pq_putstr("blank");
-	} else
-	    BeginCommand("blank", attinfo, dest);
-    }
+    BeginCommand("blank", attinfo, operation, isIntoRelation, dest);
     
     /* ----------------
      *   Now we get to the important call to ExecMain() where we
@@ -408,24 +387,9 @@ ProcessQueryDesc(queryDesc)
      *   should do something better soon...
      * ----------------
      */
-    
     if (isIntoRelation) {
-	/* ----------------
-	 *   creation of the into relation is now done in InitPlan()
-	 *   so we nolonger pass the relation descriptor around in
-	 *   the feature..  (it's in the EState struct now)
-	 *   -cim 9/18/89
-	 * ----------------
-	 */
 	feature = lispCons(lispInteger(EXEC_RESULT), LispNil);
-    } else if (IsUnderPostmaster) {
-	/* ----------------
-	 *   I suggest that the IsUnderPostmaster test be
-	 *   performed at a lower level in the code--at
-	 *   least inside the executor to reduce the number
-	 *   of externally visible requests. -hirohama
-	 * ----------------
-	 */
+    } else if (dest == Remote) {
 	feature = lispCons(lispInteger(EXEC_DUMP), LispNil);
     } else {
 	feature = lispCons(lispInteger(EXEC_DEBUG), LispNil);

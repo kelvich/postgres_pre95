@@ -25,6 +25,7 @@
 RcsId("$Header$");
 
 #include "tcop/dest.h"
+#include "parser/parse.h"
 #include "utils/log.h"
 #include "tmp/portal.h"
 
@@ -33,60 +34,51 @@ RcsId("$Header$");
 #include "catalog/pg_type.h"
 
 /* ----------------
- *	initport
- *
- *	XXX change all these "P"'s and "T"'s to use #define constants
- * ----------------
- */
-void
-initport(name, natts, attinfo)
-    char		*name;
-    int			natts;
-    struct attribute	*attinfo[];
-{
-    register int	i;
-    
-    /* ----------------
-     *	send fe info on tuples we're about to send
-     * ----------------
-     */
-    pq_putnchar("P", 1);	/* new portal.. */
-    pq_putint(0, 4);		/* xid */
-    pq_putstr(name);		/* portal name */
-    pq_putnchar("T", 1);	/* type info to follow.. */
-    pq_putint(natts, 2);	/* number of attributes in tuples */
-    
-    /* ----------------
-     *	send tuple attribute types to fe
-     * ----------------
-     */
-    for (i = 0; i < natts; ++i) {
-	pq_putstr(attinfo[i]->attname);	/* if 16 char name oops.. */
-	pq_putint((int) attinfo[i]->atttypid, 4);
-	pq_putint(attinfo[i]->attlen, 2);
-    }
-}
-
-/* ----------------
  * 	BeginCommand - prepare destination for tuples of the given type
  * ----------------
  */
 void
-BeginCommand(pname, attinfo, dest)
+BeginCommand(pname, attinfo, operation, isInto, dest)
     char 	*pname;
     LispValue 	attinfo;
+    int		operation;
+    bool	isInto;
     CommandDest	dest;
 {
     struct attribute **attrs;
-    int nattrs;
+    int natts;
+    int i;
 
-    nattrs = CInteger(CAR(attinfo));
+    natts = CInteger(CAR(attinfo));
     attrs  = (struct attribute **) CADR(attinfo);
 
     switch (dest) {
     case Remote:
+	/* ----------------
+	 *	send fe info on tuples we're about to send
+	 * ----------------
+	 */
 	pq_flush();
-	initport(pname, nattrs, attrs);
+	pq_putnchar("P", 1);	/* new portal.. */
+	pq_putint(0, 4);	/* xid */
+	pq_putstr(pname);	/* portal name */
+	
+	/* ----------------
+	 *	if this is a retrieve, then we send back the tuple
+	 *	descriptor of the tuples.  "retrieve into" is an
+	 *	exception because no tuples are returned in that case.
+	 * ----------------
+	 */
+	if (operation == RETRIEVE && !isInto) {
+	    pq_putnchar("T", 1);	/* type info to follow.. */
+	    pq_putint(natts, 2);	/* number of attributes in tuples */
+    
+	    for (i = 0; i < natts; ++i) {
+		pq_putstr(attrs[i]->attname);	/* if 16 char name oops.. */
+		pq_putint((int) attrs[i]->atttypid, 4);
+		pq_putint(attrs[i]->attlen, 2);
+	    }
+	}
 	pq_flush();
 	break;
 	
@@ -94,7 +86,11 @@ BeginCommand(pname, attinfo, dest)
 	break;
 	
     case Debug:
-	showatts(pname, nattrs, attrs);
+	/* ----------------
+	 *	show the return type of the tuples
+	 * ----------------
+	 */
+	showatts(pname, natts, attrs);
 	break;
 	
     case None:
@@ -114,6 +110,10 @@ EndCommand(commandTag, dest)
 {
     switch (dest) {
     case Remote:
+	/* ----------------
+	 *	tell the fe that the query is over
+	 * ----------------
+	 */
 	pq_putnchar("C", 1);
 	pq_putint(0, 4);
 	pq_putstr(commandTag);
@@ -141,6 +141,10 @@ NullCommand(dest)
 {
     switch (dest) {
     case Remote:
+	/* ----------------
+	 *	tell the fe that the last of the queries has finished
+	 * ----------------
+	 */
 	pq_putnchar("I", 1);
 	pq_putint(0, 4);
 	pq_flush();
