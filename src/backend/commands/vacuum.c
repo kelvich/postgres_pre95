@@ -372,7 +372,7 @@ _vc_vacheap(p, curvrl, onerel)
 	    htup = (HeapTuple) PageGetItem(page, itemid);
 	    tupgone = false;
 
-	    if (!AbsoluteTimeIsValid(htup->t_tmin) && 
+	    if (!AbsoluteTimeIsBackwardCompatiblyValid(htup->t_tmin) && 
 		TransactionIdIsValid((TransactionId)htup->t_xmin)) {
 
 		if (TransactionIdDidAbort(htup->t_xmin)) {
@@ -390,7 +390,7 @@ _vc_vacheap(p, curvrl, onerel)
 		    PointerStoreInvalidTransactionId((Pointer)&(htup->t_xmax));
 		    pgchanged = true;
 		} else if (TransactionIdDidCommit(htup->t_xmax)) {
-		    if (!AbsoluteTimeIsReal(htup->t_tmax)) {
+		    if (!AbsoluteTimeIsBackwardCompatiblyReal(htup->t_tmax)) {
 
 			htup->t_tmax = TransactionIdGetCommitTime(htup->t_xmax);
 			pgchanged = true;

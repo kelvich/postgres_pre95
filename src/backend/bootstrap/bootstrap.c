@@ -657,7 +657,7 @@ showtup(tuple, buffer, relation)
 			  &reldesc->rd_att.data[0], &isnull);
 	if (isnull) {
 	    printf("{*NULL*} ");
-	} else if (AbsoluteTimeIsValid((AbsoluteTime)value)) {
+	} else if (AbsoluteTimeIsBackwardCompatiblyValid((AbsoluteTime)value)) {
 	    showtime((AbsoluteTime)value);
 	}
 
@@ -686,7 +686,7 @@ showtup(tuple, buffer, relation)
 		}
 	    }
 	    value = (char *)TransactionIdGetCommitTime((TransactionId)value);
-	    if (!AbsoluteTimeIsValid((AbsoluteTime)value)) {
+	    if (!AbsoluteTimeIsBackwardCompatiblyValid((AbsoluteTime)value)) {
 		printf("{-},");
 	    } else {
 		showtime((AbsoluteTime)value);
@@ -699,7 +699,7 @@ showtup(tuple, buffer, relation)
 	
 	if (isnull) {
 	    printf("{*NULL*} ");
-	} else if (AbsoluteTimeIsValid((AbsoluteTime)value)) {
+	} else if (AbsoluteTimeIsBackwardCompatiblyValid((AbsoluteTime)value)) {
 	    showtime((AbsoluteTime)value);
 	}
 
@@ -722,7 +722,7 @@ showtup(tuple, buffer, relation)
 	} else {
 	    printf("%s)", TransactionIdFormString((TransactionId)value));
 	    value = (char *)TransactionIdGetCommitTime((TransactionId)value);
-	    if (!AbsoluteTimeIsValid((AbsoluteTime)value)) {
+	    if (!AbsoluteTimeIsBackwardCompatiblyValid((AbsoluteTime)value)) {
 		printf("{-}]\n");
 	    } else {
 		showtime((AbsoluteTime)value);
@@ -740,7 +740,7 @@ void
 showtime(time)
     AbsoluteTime time;
 {
-    Assert(AbsoluteTimeIsValid(time));
+    Assert(AbsoluteTimeIsBackwardCompatiblyValid(time));
     printf("{%d=%s}", time, nabstimeout(time));
 }
 

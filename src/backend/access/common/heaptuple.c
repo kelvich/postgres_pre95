@@ -445,12 +445,12 @@ heap_getsysattr(tup, b, attnum)
      */
 
     case MinAbsoluteTimeAttributeNumber:
-	if (!AbsoluteTimeIsValid(tup->t_tmin) &&
+	if (!AbsoluteTimeIsBackwardCompatiblyValid(tup->t_tmin) &&
 	    TransactionIdDidCommit(tup->t_xmin))
 		tup->t_tmin = TransactionIdGetCommitTime(tup->t_xmin);
 	return ((char *)tup->t_tmin);
     case MaxAbsoluteTimeAttributeNumber:
-	if (!AbsoluteTimeIsReal(tup->t_tmax))
+	if (!AbsoluteTimeIsBackwardCompatiblyReal(tup->t_tmax))
 	{
 	    if (TransactionIdDidCommit(tup->t_xmax))
 		tup->t_tmax = TransactionIdGetCommitTime(tup->t_xmax);

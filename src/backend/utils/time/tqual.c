@@ -187,20 +187,20 @@ TimeQualIsValid(qual)
 	}
 
 	if (((InternalTimeQual)qual)->mode & TimeQualAt) {
-		return (AbsoluteTimeIsValid(((InternalTimeQual)qual)->start));
+		return (AbsoluteTimeIsBackwardCompatiblyValid(((InternalTimeQual)qual)->start));
 	}
 
 	hasStartTime = false;
 
 	if (((InternalTimeQual)qual)->mode & TimeQualNewer) {
-		if (!AbsoluteTimeIsValid(((InternalTimeQual)qual)->start)) {
+		if (!AbsoluteTimeIsBackwardCompatiblyValid(((InternalTimeQual)qual)->start)) {
 			return (false);
 		}
 		hasStartTime = true;
 	}
 
 	if (((InternalTimeQual)qual)->mode & TimeQualOlder) {
-		if (!AbsoluteTimeIsValid(((InternalTimeQual)qual)->end)) {
+		if (!AbsoluteTimeIsBackwardCompatiblyValid(((InternalTimeQual)qual)->end)) {
 			return (false);
 		}
 		if (hasStartTime) {
@@ -413,7 +413,7 @@ TimeFormSnapshotTimeQual(time)
 {
 	InternalTimeQual	qual;
 
-	Assert(AbsoluteTimeIsValid(time));
+	Assert(AbsoluteTimeIsBackwardCompatiblyValid(time));
 
 	qual = LintCast(InternalTimeQual, palloc(sizeof *qual));
 
@@ -437,10 +437,10 @@ TimeFormRangedTimeQual(startTime, endTime)
 	qual->end = endTime;
 	qual->mode = TimeQualEvery;
 
-	if (AbsoluteTimeIsValid(startTime)) {
+	if (AbsoluteTimeIsBackwardCompatiblyValid(startTime)) {
 		qual->mode |= TimeQualNewer;
 	}
-	if (AbsoluteTimeIsValid(endTime)) {
+	if (AbsoluteTimeIsBackwardCompatiblyValid(endTime)) {
 		qual->mode |= TimeQualOlder;
 	}
 
@@ -454,7 +454,7 @@ TimeFormDebuggingTimeQual(time)
 {
 	InternalTimeQual	qual;
 
-	Assert(AbsoluteTimeIsValid(time));
+	Assert(AbsoluteTimeIsBackwardCompatiblyValid(time));
 
 	qual = LintCast(InternalTimeQual, palloc(sizeof *qual));
 
@@ -531,7 +531,7 @@ HeapTupleSatisfiesItself(tuple)
      * TransactionId works only because TransactionId->data is the first
      * (and only) field of the structure.
      */
-    if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
+    if (!AbsoluteTimeIsBackwardCompatiblyValid(tuple->t_tmin)) {
 	if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmin) &&
 	    !TransactionIdIsValid((TransactionId)tuple->t_xmax)) {
 			return (true);
@@ -543,7 +543,7 @@ HeapTupleSatisfiesItself(tuple)
     }
     /* the tuple was inserted validly */
 
-    if (AbsoluteTimeIsReal(tuple->t_tmax)) {
+    if (AbsoluteTimeIsBackwardCompatiblyReal(tuple->t_tmax)) {
 	return (false);
     }
 
@@ -605,7 +605,7 @@ HeapTupleSatisfiesNow(tuple)
      * TransactionId works only because TransactionId->data is the first
      * (and only) field of the structure.
      */
-    if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
+    if (!AbsoluteTimeIsBackwardCompatiblyValid(tuple->t_tmin)) {
 
 	if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmin)
 	    && CommandIdIsCurrentCommandId(tuple->t_cmin)) {
@@ -671,7 +671,7 @@ HeapTupleSatisfiesSnapshotInternalTimeQual(tuple, qual)
      * TransactionId works only because TransactionId->data is the first
      * (and only) field of the structure.
      */
-    if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
+    if (!AbsoluteTimeIsBackwardCompatiblyValid(tuple->t_tmin)) {
 
 	if (!TransactionIdDidCommit((TransactionId)tuple->t_xmin)) {
 	    return (false);
@@ -685,7 +685,7 @@ HeapTupleSatisfiesSnapshotInternalTimeQual(tuple, qual)
     }
     /* the tuple was inserted validly before the snapshot time */
 
-    if (!AbsoluteTimeIsReal(tuple->t_tmax)) {
+    if (!AbsoluteTimeIsBackwardCompatiblyReal(tuple->t_tmax)) {
 
 	if (!TransactionIdIsValid((TransactionId)tuple->t_xmax) ||
 	    !TransactionIdDidCommit((TransactionId)tuple->t_xmax)) {
@@ -719,7 +719,7 @@ HeapTupleSatisfiesUpperBoundedInternalTimeQual(tuple, qual)
      * TransactionId works only because TransactionId->data is the first
      * (and only) field of the structure.
      */
-    if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
+    if (!AbsoluteTimeIsBackwardCompatiblyValid(tuple->t_tmin)) {
 
 	if (!TransactionIdDidCommit((TransactionId)tuple->t_xmin)) {
 	    return (false);
@@ -733,11 +733,11 @@ HeapTupleSatisfiesUpperBoundedInternalTimeQual(tuple, qual)
     }
     /* the tuple was inserted validly before the range end */
 
-    if (!AbsoluteTimeIsValid(TimeQualGetStartTime((TimeQual)qual))) {
+    if (!AbsoluteTimeIsBackwardCompatiblyValid(TimeQualGetStartTime((TimeQual)qual))) {
 	return (true);
     }
 
-    if (!AbsoluteTimeIsReal(tuple->t_tmax)) {
+    if (!AbsoluteTimeIsBackwardCompatiblyReal(tuple->t_tmax)) {
 
 	if (!TransactionIdIsValid((TransactionId)tuple->t_xmax) ||
 	    !TransactionIdDidCommit((TransactionId)tuple->t_xmax)) {
@@ -770,7 +770,7 @@ HeapTupleSatisfiesUpperUnboundedInternalTimeQual(tuple, qual)
 	HeapTuple		tuple;
 	InternalTimeQual	qual;
 {
-    if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
+    if (!AbsoluteTimeIsBackwardCompatiblyValid(tuple->t_tmin)) {
 
 	if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmin) &&
 	    CommandIdIsCurrentCommandId(tuple->t_cmin)) {
@@ -798,11 +798,11 @@ HeapTupleSatisfiesUpperUnboundedInternalTimeQual(tuple, qual)
     }
     /* the tuple was inserted validly */
 
-    if (!AbsoluteTimeIsValid(TimeQualGetStartTime((TimeQual)qual))) {
+    if (!AbsoluteTimeIsBackwardCompatiblyValid(TimeQualGetStartTime((TimeQual)qual))) {
 	return (true);
     }
 
-    if (!AbsoluteTimeIsReal(tuple->t_tmax)) {
+    if (!AbsoluteTimeIsBackwardCompatiblyReal(tuple->t_tmax)) {
 
 	if (!TransactionIdIsValid((TransactionId)tuple->t_xmax)) {
 	    return (true);
