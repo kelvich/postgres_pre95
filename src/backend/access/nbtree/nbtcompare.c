@@ -114,6 +114,7 @@ bttextcmp(a, b)
 {
     char *ap, *bp;
     int len;
+    int res;
 
     ap = VARDATA(a);
     bp = VARDATA(b);
