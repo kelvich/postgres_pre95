@@ -27,3 +27,6 @@
 #define TUPLE_LEVEL 2
 typedef int LOCK_LEVEL;
 
+/* multi.c *
+
+TableId InitMultiLevelLockm();
