@@ -38,7 +38,11 @@ OBJSTRIPPREFIX?=	/usr/
 
 .c.po:
 	${CC} -p ${CFLAGS} -c ${.IMPSRC} -o ${.TARGET}
+.if (${MACHINE} == "mips" || ${MACHINE} == "sparc")
 	@${LD} -X -r ${.TARGET}
+.else
+	@${LD} -r ${.TARGET}
+.endif
 	@mv a.out ${.TARGET}
 
 #.if (${MACHINE} == "mips")
@@ -117,19 +121,19 @@ beforeinstall:
 .endif
 
 realinstall: beforeinstall
-	install -c -o ${LIBOWN} -g ${LIBGRP} -m 664 lib${LIB}.a \
+	${INSTALL} -c -o ${LIBOWN} -g ${LIBGRP} -m 664 lib${LIB}.a \
 	    ${DESTDIR}${LIBDIR}/lib${LIB}.a; \
 	cd ${DESTDIR}${LIBDIR}; \
 	ranlib lib${LIB}.a; \
 	chmod ${LIBMODE} lib${LIB}.a
 .if !defined(NOPROFILE)
-	install -c -o ${LIBOWN} -g ${LIBGRP} -m 664 \
+	${INSTALL} -c -o ${LIBOWN} -g ${LIBGRP} -m 664 \
 	    lib${LIB}_p.a ${DESTDIR}${LIBDIR}/lib${LIB}_p.a; \
 	cd ${DESTDIR}${LIBDIR}; \
 	ranlib lib${LIB}_p.a; \
 	chmod ${LIBMODE} lib${LIB}_p.a
 .endif
-#	install -c -o ${LIBOWN} -g ${LIBGRP} -m ${LIBMODE} \
+#	${INSTALL} -c -o ${LIBOWN} -g ${LIBGRP} -m ${LIBMODE} \
 #	    llib-l${LIB}.ln ${DESTDIR}${LINTLIBDIR}
 .if defined(LINKS) && !empty(LINKS)
 	@set ${LINKS}; \
