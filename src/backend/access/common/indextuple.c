@@ -297,9 +297,10 @@ index_formtuple(numberOfAttributes, tupleDescriptor, value, null)
 	     &tuple->bits.bits[0]);
     
     /* ----------------
-     * initialize rule lock information
+     * initialize metadata
      * ----------------
      */
+    tuple->t_size = size;
     tuple->t_locktype = MEM_INDX_RULE_LOCK;
     tuple->t_lock.l_lock = NULL;
     
