@@ -23,7 +23,6 @@
 #include "parser/parsetree.h"
 #include "executor/flatten.h"
 
-
 Datum
 ExecEvalIter(iterNode, econtext, resultIsNull, iterIsDone)
     Iter		iterNode;
@@ -100,6 +99,12 @@ ExecEvalFjoin(tlist, econtext, isNullVect, fj_isDone)
 	 * Mark the Fjoin as initialized now.
 	 */
 	set_fj_initialized(fjNode, true)
+
+	/*
+	 * If the inner node is always done, then we are done for now
+	 */
+	if (isDone)
+	    return;
     }
     else
     {
