@@ -147,7 +147,7 @@ LispValue clauseinfo_list ;
 	if (valid_or_clause(clausenode) || FLOAT_IS_ZERO(cost_clause)) {
 	    set_selectivity (clausenode,
 			     compute_clause_selec((List)get_clause(clausenode),
-						   lispCons((LispValue)cost_clause, 
+					      lispCons(lispFloat(cost_clause), 
 			/* XXX this bogus */		    LispNil)));
 	}
     }

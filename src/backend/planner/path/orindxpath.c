@@ -140,7 +140,7 @@ best_or_subclause_indices (rel,subclauses,indices,
      if ( null (subclauses) ) {
 	  t_list = 
 	    lispCons (nreverse (examined_indexids),
-		      lispCons((LispValue)subcost,
+		      lispCons(lispFloat(subcost),
 			       lispCons(nreverse (selectivities),LispNil)));
      } 
      else {
@@ -231,7 +231,7 @@ best_or_subclause_index (rel,subclause,indices)
 	  if(null (bestrest) || (subcost < CInteger(CAR(bestrest)) )) {
 	       /* XXX - this used to be "list "(CAR(get....index),.." */
 	       t_list = lispCons (get_relids (index),
-				  lispCons((LispValue)subcost,
+				  lispCons(lispFloat(subcost),
 					   lispCons(CADR(pagesel),
 						    LispNil)));
 	  } 
