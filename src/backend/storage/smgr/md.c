@@ -148,9 +148,13 @@ mdopen(reln)
     int fd;
     extern char *relpath();
 
-    path = relpath(reln->rd_rel->relname);
+    path = relpath(&(reln->rd_rel->relname.data[0]));
 
     fd = FileNameOpenFile(path, O_RDWR, 0666);
+
+    /* this should only happen during bootstrap processing */
+    if (fd < 0)
+	fd = FileNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0666);
 
     return (fd);
 }
