@@ -24,9 +24,9 @@
 
 #include <stdio.h>
 #include "pg_lisp.h"
-#include "internal.h"
+#include "planner/internal.h"
 #include "c.h"
-#include "plancat.h"
+#include "planner/plancat.h"
 
 
 /*    
