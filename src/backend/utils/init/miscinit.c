@@ -466,7 +466,9 @@ FindBackend(backend, argv0)
 		continue;
 	    if (endp)
 		*endp = '\0';
-	    (void) strcpy(buf, startp);
+	    if (*startp == '/' || !getwd(buf))
+		buf[0] = '\0';
+	    (void) strcat(buf, startp);
 	    (void) strcat(buf, "/postgres");
 	    switch (ValidateBackend(buf)) {
 	    case 0:		/* found ok */
