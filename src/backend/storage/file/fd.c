@@ -593,6 +593,7 @@ tryAgain:
 
 	vfdP->fileFlags = fileFlags & ~(O_TRUNC|O_EXCL);
 	vfdP->fileMode = fileMode;
+	vfdP->seekPos = 0;
 
 	return file;
 }
