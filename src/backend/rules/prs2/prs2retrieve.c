@@ -17,18 +17,18 @@
 #include "tmp/c.h"
 #include "utils/log.h"
 #include "rules/prs2.h"
-#include "access/rulescan.h"
+#include "nodes/execnodes.h"	/* which includes access/rulescan.h */
 
 /*-------------------------------------------------------------------
  *
  * prs2Retrieve
  */
 Prs2Status
-prs2Retrieve(prs2EStateInfo, scanStateRuleInfo,
+prs2Retrieve(prs2EStateInfo, relationRuleInfo,
 	    explainRelation, tuple, buffer, attributeArray,
 	    numberOfAttributes, relation, returnedTupleP, returnedBufferP)
 Prs2EStateInfo prs2EStateInfo;
-ScanStateRuleInfo scanStateRuleInfo;
+RelationRuleInfo relationRuleInfo;
 Relation explainRelation;
 HeapTuple tuple;
 Buffer buffer;
@@ -53,7 +53,7 @@ Buffer *returnedBufferP;
      * There are 2 places to look for locks. The "tuple-level"
      * locks are stored in the tuple, and the "relation-level"
      * locks are stored in the PG_RELATION relation, but we
-     * have also copied them (for efficiency) in 'scanStateRuleInfo'
+     * have also copied them (for efficiency) in 'relationRuleInfo'
      * when initializing the plan.
      *
      * XXX: note this only happens in a retrieve operation.
@@ -62,13 +62,7 @@ Buffer *returnedBufferP;
      * back to the tuple returned.
      */
     locksInTuple = prs2GetLocksFromTuple(tuple, buffer);
-    if (scanStateRuleInfo == NULL) {
-	/*
-	 * this should not happen!
-	 */
-	elog(WARN,"prs2Retrieve: scanStateRuleInfo==NULL!");
-    }
-    locksInRelation = scanStateRuleInfo->relationLocks;
+    locksInRelation = relationRuleInfo->relationLocks;
     locks = prs2LockUnion(locksInRelation, locksInTuple);
     prs2FreeLocks(locksInTuple);
 
