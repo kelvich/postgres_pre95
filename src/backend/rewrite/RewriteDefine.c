@@ -182,13 +182,38 @@ DefineQueryRewrite ( args )
 					ev_relid,
 					event_attno,
 					CAtom(event_type),
-					0,
-					0,
 					1);
 	prs2AddRelationLevelLock(ruleId[0],locktype[0],
 				 ev_relid,event_attno);
     }
     else {
+	printf("# number of actions = %d\n", length(action));
+	/*
+	 * I don't use the some of the more interesting LockTypes...so
+	 * PutRelationLocks() has suddenly got much dumber -- glass
+	 */
+	ruleId[0] = InsertRule ( rulename, 
+				CAtom(event_type),
+				(Name)eobj_string,
+				(Name)eslot_string,
+				PlanToString(event_qual),
+				is_instead,
+				PlanToString(action));
+				
+	locktype[0] = PutRelationLocks ( ruleId[0], 
+					ev_relid,
+					event_attno,
+					CAtom(event_type),
+					is_instead);
+	/* what is the max size of type text? XXX -- glass */
+	j = length(action);
+	if ( j > 15 )
+	    elog(WARN,"max # of actions exceeded"); 
+	prs2AddRelationLevelLock(ruleId[0],locktype[0],
+				 ev_relid,event_attno);
+    }
+}
+#ifdef OLD_CRAP
 	foreach ( i , action ) {
 	    List 	this_action 		= CAR(i);
 	    int 	this_action_is_instead 	= 0;
@@ -196,7 +221,7 @@ DefineQueryRewrite ( args )
 	    List	action_result		= NULL;
 	    int	action_result_index	= 0;
 	    
-	    if (CDR(i) == LispNil && is_instead ) {
+	    if (CDR(i) == LispNil && is_instead ) { /* CDR(i)???? */
 		this_action_is_instead = 1;
 	    }
 	
@@ -260,6 +285,7 @@ DefineQueryRewrite ( args )
 
     }
 }
+#endif OLD_CRAP
 ShowRuleAction(ruleaction)
      LispValue ruleaction;
 {
