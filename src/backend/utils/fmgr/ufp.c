@@ -67,7 +67,7 @@ RcsId("$Header$");
  * ----------------------------------------------------------------
  */
 #ifdef UFP
-char *
+Pointer
 palloc(n)
 	Size n;
 {

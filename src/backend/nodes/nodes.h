@@ -204,16 +204,15 @@ class (Node) {
  * ----------------------------------------------------------------
  */
 
-/*
- * NewNode --
- *	Returns a new node of the given size and tag.
- */
-extern
-Node
-NewNode ARGS((Size size, NodeTag tag ));
+/* nodes.c */
+extern void SetNodeType ARGS((Node thisNode, TypeId tag));
+extern Node NewNode ARGS((Size size, TypeId tag));
+extern Size NodeTagGetSize ARGS((TypeId tag));
 
-void SetNodeType ARGS((Node thisNode , TypeId tag ));
-Size NodeTagGetSize ARGS((TypeId tag ));
+/* inh.c */
+extern void InitNodeArray ARGS((TypeId i));
+extern bool NodeIsType ARGS((Node thisNode, TypeId tag));
+extern void Dump_NodeInfo ARGS((void));
 
 extern TypeId _InvalidTypeId;
 

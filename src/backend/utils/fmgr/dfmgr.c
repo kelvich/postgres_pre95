@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include "tmp/c.h"
+#include "tmp/postgres.h"
 
 #include "fmgr.h"
 #include "utils/dynamic_loader.h"

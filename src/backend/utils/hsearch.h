@@ -110,21 +110,16 @@ typedef struct hashctl {
 typedef enum { HASH_FIND, HASH_ENTER, HASH_REMOVE, HASH_FIND_SAVE, HASH_REMOVE_SAVED } HASHACTION;
 
 /* entry points */
-HTAB *hash_create ARGS((long nelem , HASHCTL *info , int flags ));
-void hash_destroy ARGS((HTAB *hashp ));
-void hash_stats ARGS((char *where , HTAB *hashp ));
-long *hash_seq ARGS((HTAB *hashp ));
-long *hash_search ARGS((
-	HTAB *hashp,
-	char *keyPtr,
-	HASHACTION action,
-	Boolean *foundPtr
-));
+extern HTAB *hash_create ARGS((int nelem, HASHCTL *info, int flags));
+extern void hash_destroy ARGS((HTAB *hashp));
+extern void hash_stats ARGS((char *where, HTAB *hashp));
+extern long *hash_search ARGS((HTAB *hashp, char *keyPtr, HASHACTION action, Boolean *foundPtr));
+extern long *hash_seq ARGS((HTAB *hashp));
 
 /* hash functions from hashfn.c */
 
-long string_hash ARGS((char *key, long keysize ));
-long tag_hash ARGS((long *key, long keysize ));
-long disk_hash ARGS((char *key ));
+extern long string_hash ARGS((char *key, int keysize));
+extern long tag_hash ARGS((int *key, int keysize));
+extern long disk_hash ARGS((char *key));
 
 #endif

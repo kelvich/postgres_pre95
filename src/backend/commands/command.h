@@ -1,15 +1,20 @@
-/*
- * command.h --
- *	POSTGRES utility command definitions.
+/* ----------------------------------------------------------------
+ *   FILE
+ *	command.h
+ *
+ *   DESCRIPTION
+ *	prototypes for command.c.
+ *
+ *   NOTES
+ *	Automatically generated using mkproto
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
-#ifndef	CommandIncluded		/* Include this file only once */
-#define CommandIncluded	1
-
-/*
- * Identification:
- */
-#define COMMAND_H	"$Header$"
+#ifndef commandIncluded		/* include this file only once */
+#define commandIncluded	1
 
 /*
  * PortalCleanup --
@@ -18,11 +23,6 @@
  * Exceptions:
  *	BadArg if portal invalid.
  */
-extern
-void
-PortalCleanup ARGS((
-	Portal	portal
-));
 
 /*
  * PerformPortalFetch --
@@ -33,36 +33,20 @@ PortalCleanup ARGS((
  *	BadArg if forward invalid.
  *	"WARN" if portal not found.
  */
-extern
-void
-PerformPortalFetch ARGS((
-	String	name,		/* XXX PortalName */
-	bool	goForward,
-	Count	count,
-	String tag,
-        CommandDest dest
-));
 
 /*
  * PerformPortalClose --
  *	Performs the POSTQUEL function CLOSE.
  */
-extern
-void
-PerformPortalClose ARGS((
-	String	name,		/* XXX PortalName */
-	CommandDest dest		 
-));
 
 /*
  * PerformAddAttribute --
  *	Performs the POSTQUEL function ADD.
  */
-extern
-void
-PerformAddAttribute ARGS((
-	Name	relationName,
-	List	schema
-));
 
-#endif	/* !defined(CommandIncluded) */
+extern void PortalCleanup ARGS((Portal portal));
+extern void PerformPortalFetch ARGS((String name, bool forward, Count count, String tag, CommandDest dest));
+extern void PerformPortalClose ARGS((String name, CommandDest dest));
+extern void PerformAddAttribute ARGS((Name relationName, Name userName, List schema));
+
+#endif /* commandIncluded */

@@ -34,9 +34,12 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.15  1993/08/14 11:37:37  aoki
-    conditionalize mem cxt stuff so that we can use this in the frontend
+    Revision 1.16  1994/02/07 11:49:13  aoki
+    proto fixes
 
+ * Revision 1.15  1993/08/14  11:37:37  aoki
+ * conditionalize mem cxt stuff so that we can use this in the frontend
+ *
  * Revision 1.14  1993/08/10  01:46:51  marc
  * alpha port
  *
@@ -125,13 +128,13 @@
 /*
  * Private function prototypes
  */
-long *DynaHashAlloc ARGS((unsigned int size ));
-void DynaHashFree ARGS((Pointer ptr ));
-int hash_clear ARGS((HTAB *hashp ));
-uint32 call_hash ARGS((HTAB *hashp , char *k , int len ));
-SEG_OFFSET seg_alloc ARGS((HTAB *hashp ));
-int bucket_alloc ARGS((HTAB *hashp ));
-int my_log2 ARGS((int num ));
+extern long *DynaHashAlloc ARGS((unsigned int size));
+extern void DynaHashFree ARGS((Pointer ptr));
+extern int hash_clear ARGS((HTAB *hashp));
+extern uint32 call_hash ARGS((HTAB *hashp, char *k, int len));
+extern SEG_OFFSET seg_alloc ARGS((HTAB *hashp));
+extern int bucket_alloc ARGS((HTAB *hashp));
+extern int my_log2 ARGS((long num));
 
 typedef long * ((*dhalloc_ptr)());
 

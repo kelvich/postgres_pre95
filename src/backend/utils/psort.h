@@ -6,6 +6,13 @@
 #define	TAPEEXT		"pg_psort.XXXXXX"	/* TEMPDIR/TAPEEXT */
 #define	FREE(x)		free((char *) x)
 
+struct	tape {
+	int		tp_dummy;		/* (D) */
+	int		tp_fib;			/* (A) */
+	FILE		*tp_file;		/* (TAPE) */
+	struct	tape	*tp_prev;
+};
+
 struct	cmplist {
 	int			cp_attn;	/* attribute number */
 	int			cp_num;		/* comparison function code */
@@ -48,16 +55,17 @@ if (1) CODE; else
 #endif
 
 /* psort.c */
-bool psort ARGS((
-	Relation oldrel,
-	Relation newrel,
-	int nkeys,
-	struct skey key []
-));
-int initpsort ARGS((void ));
-int resetpsort ARGS((void ));
-HeapTuple tuplecopy ARGS((HeapTuple tup , Relation rdesc , Buffer b ));
-int merge ARGS((struct tape *dest ));
-int endpsort ARGS((Relation rdesc , FILE *file ));
+extern bool psort ARGS((Relation oldrel, Relation newrel, int nkeys, struct skey key[]));
+extern int initpsort ARGS((void));
+extern int resetpsort ARGS((void));
+extern int initialrun ARGS((Relation rdesc));
+extern bool createrun ARGS((HeapScanDesc sdesc, FILE *file));
+extern HeapTuple tuplecopy ARGS((HeapTuple tup, Relation rdesc, Buffer b));
+extern FILE *mergeruns ARGS((void));
+extern int merge ARGS((struct tape *dest));
+extern int endpsort ARGS((Relation rdesc, FILE *file));
+extern FILE *gettape ARGS((void));
+extern int resettape ARGS((FILE *file));
+extern int destroytape ARGS((FILE *file));
 
 #endif
