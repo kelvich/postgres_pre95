@@ -111,24 +111,6 @@
 #define OutFragmentExists
 #define OutScanTempsExists
 
-extern void	OutPlan();
-extern void	OutResult();
-extern void	OutExistential();
-extern void	OutAppend();
-extern void	OutJoin();
-extern void	OutJoinRuleInfo();
-extern void	OutNestLoop();
-extern void	OutMergeJoin();
-extern void	OutHashJoin();
-extern void	OutScan();
-extern void	OutSeqScan();
-extern void	OutIndexScan();
-extern void	OutTemp();
-extern void	OutAgg();
-extern void	OutSort();
-extern void	OutHash();
-extern void     OutScanTemps();
-extern void     OutFragment();
 
 /* ----------------
  *	Node Equal Function declarations
@@ -136,22 +118,6 @@ extern void     OutFragment();
  */
 #define EqualFragmentExists
 
-extern bool	EqualPlan();
-extern bool	EqualResult();
-extern bool	EqualExistential();
-extern bool	EqualAppend();
-extern bool	EqualJoin();
-extern bool	EqualNestLoop();
-extern bool	EqualMergeJoin();
-extern bool	EqualHashJoin();
-extern bool	EqualScan();
-extern bool	EqualSeqScan();
-extern bool	EqualIndexScan();
-extern bool	EqualTemp();
-extern bool 	EqualAgg();
-extern bool	EqualSort();
-extern bool	EqualHash();
-extern bool     EqualFragment();
 
 /* ----------------
  *	Node Copy Function declarations
@@ -176,23 +142,6 @@ extern bool     EqualFragment();
 #define CopyUniqueExists
 #define CopyScanTempsExists
 
-extern bool	CopyPlan();
-extern bool	CopyResult();
-extern bool	CopyExistential();
-extern bool	CopyAppend();
-extern bool	CopyJoin();
-extern bool	CopyJoinRuleInfo();
-extern bool	CopyNestLoop();
-extern bool	CopyMergeJoin();
-extern bool	CopyHashJoin();
-extern bool	CopyScan();
-extern bool	CopySeqScan();
-extern bool	CopyIndexScan();
-extern bool	CopyTemp();
-extern bool	CopyAgg();
-extern bool	CopySort();
-extern bool	CopyHash();
-extern bool     CopyScanTemps();
 
 /* ----------------------------------------------------------------
  *			node definitions
