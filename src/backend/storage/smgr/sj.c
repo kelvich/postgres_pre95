@@ -529,6 +529,9 @@ sjcreate(reln)
 {
     SJCacheItem *item;
     SJGroupDesc *group;
+    SJCacheTag tag;
+    ObjectId dbid;
+    ObjectId relid;
     File vfd;
     int grpno;
     int i;
@@ -554,10 +557,20 @@ sjcreate(reln)
 
     /*
      *  By here, cache is initialized and we have exclusive access to
-     *  metadata.  Allocate an initial (empty) extent in the cache.
+     *  metadata.  We are aggressively lazy, and will not allocate an
+     *  initial extent for this relation until it's actually used.  We
+     *  just register an initial block count of zero.
      */
 
-    _sjnewextent(reln, 0);
+    if (reln->rd_rel->relisshared)
+	tag.sjct_dbid = (ObjectId) 0;
+    else
+	tag.sjct_dbid = MyDatabaseId;
+
+    tag.sjct_relid = reln->rd_id;
+    tag.sjct_base = (BlockNumber) 0;
+
+    _sjregnblocks(&tag);
 
     /* last thing to do is to create the mag-disk file to hold last page */
     if (reln->rd_rel->relisshared)
@@ -956,11 +969,19 @@ _sjrdextent(item)
 			   Int32GetDatum(item->sjc_tag.sjct_base));
     hscan = heap_beginscan(reln, false, NowTimeQual, 3, &skey[0]);
 
+    /*
+     *  if there is no matching entry in the platter map, then we're
+     *  asking for an extent that has not yet been allocated.  in this
+     *  case, we return a zero-filled extent.  this happens, for example,
+     *  when we try to read the initial block of a relation before one
+     *  has been written.
+     */
+
     if (!HeapTupleIsValid(htup = heap_getnext(hscan, false, (Buffer *) NULL))) {
-	_sjunwait_io(item);
-	elog(WARN, "_sjrdextent: cannot find <%d,%d,%d>",
-		   item->sjc_tag.sjct_dbid, item->sjc_tag.sjct_relid,
-		   item->sjc_tag.sjct_base);
+	heap_endscan(hscan);
+	heap_close(reln);
+	bzero(&(SJCacheBuf[0]), SJBUFSIZE);
+	return;
     }
 
     d = (Datum) heap_getattr(htup, InvalidBuffer, Anum_pg_plmap_plid,
@@ -1106,6 +1127,7 @@ _sjwritegrp(item, grpno)
 
     /* first update the metadata file */
     seekpos = grpno * sizeof(*item);
+
     if ((loc = FileSeek(SJMetaVfd, seekpos, L_SET)) != seekpos)
 	return (SM_FAIL);
 
@@ -1202,7 +1224,6 @@ sjextend(reln, buffer)
     int nblocks;
     int base;
     int offset;
-    int blkno;
     bool found;
     int grpoffset;
 
@@ -1218,8 +1239,7 @@ sjextend(reln, buffer)
      *  We need to reacquire it immediately afterwards.
      */
 
-    if (((nblocks + 1) % SJGRPSIZE) == 0) {
-	base += SJGRPSIZE;
+    if ((nblocks % SJGRPSIZE) == 0) {
 	_sjnewextent(reln, base);
 	SpinAcquire(SJCacheLock);
     }
@@ -1239,8 +1259,10 @@ sjextend(reln, buffer)
 	elog(WARN, "sjextend:  hey mao:  your group is missing.");
     }
 
+    /* find the item and block in the item to write */
     grpno = entry->sjhe_groupno;
     item = &SJCache[grpno];
+    grpoffset = nblocks % SJGRPSIZE;
 
     /*
      *  Okay, allocate the next block in this extent by marking it 'not
@@ -1254,7 +1276,6 @@ sjextend(reln, buffer)
      *  it may not work correctly; should think more about this.
      */
 
-    grpoffset = nblocks % SJGRPSIZE;
     if (!(item->sjc_flags[grpoffset] & SJC_MISSING)) {
 	if (item->sjc_flags[grpoffset] & SJC_DIRTY
 	    || item->sjc_flags[grpoffset] & SJC_ONPLATTER) {
@@ -1274,7 +1295,7 @@ sjextend(reln, buffer)
 	return (SM_FAIL);
     }
 
-    offset = ((blkno % SJGRPSIZE) * BLCKSZ) + JBBLOCKSZ;
+    offset = (grpoffset * BLCKSZ) + JBBLOCKSZ;
     bcopy(buffer, &(SJCacheBuf[offset]), BLCKSZ);
 
     /*
@@ -1468,6 +1489,12 @@ sjread(reln, blocknum, buffer)
     BlockNumber base;
     int offset;
     int grpno;
+
+    /* fake successful read on non-existent data */
+    if (sjnblocks(reln) <= blocknum) {
+	bzero(buffer, BLCKSZ);
+	return (SM_SUCCESS);
+    }
 
     if (reln->rd_rel->relisshared)
 	reldbid = (ObjectId) 0;
