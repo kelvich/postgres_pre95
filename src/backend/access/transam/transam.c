@@ -509,7 +509,7 @@ InitializeTransactionLog()
     
     /* ----------------
      *   first open the log and time relations
-     *   (these are created by amiint so they are guarantted to exist)
+     *   (these are created by amiint so they are guaranteed to exist)
      * ----------------
      */
     logRelation = 	heap_openr(LogRelationName);
@@ -547,11 +547,11 @@ InitializeTransactionLog()
     } else if (RecoveryCheckingEnabled()) {
 	/* ----------------
 	 *	if we have a pre-initialized database and if the
-	 *	preform recovery checking flag was passed then we
+	 *	perform recovery checking flag was passed then we
 	 *	do our database integrity checking.
 	 * ----------------
 	 */
-	TransRecover();
+	TransRecover(logRelation);
     }
     LogRelation =  (Relation) NULL;
     TimeRelation = (Relation) NULL;
