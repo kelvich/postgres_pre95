@@ -16,4 +16,8 @@ CFLAGS+= ${KRBFLAGS}
 SRCS=	fe-dumpdata.c fe-pqexec.c fe-pqstubs.c fe-pqufs.c \
 	auth.c portal.c portalbuf.c pqcomm.c pqpacket.c simplelists.c
 
+.if (${PORTNAME} == "sparc")
+NOPROFILE=1
+.endif
+
 .include <postgres.lib.mk>
