@@ -94,16 +94,17 @@ A.  PostQUEL, which is an incompatible, extended version of QUEL (the
 Q.  What about SQL support?
 
 A.  POSTGRES does not support SQL.  A commercial version of POSTGRES
-    produced by Montage Software, Inc. (see below) does support SQL.
+    produced by Illustra Information Technologies, Inc. (see below)
+    does support SQL.
 
 Q.  What does POSTGRES run on?
 
 A.  POSTGRES 4.2 is known to run on Sun-4 (SPARC) computers running SunOS
-    4.1.2 or higher, DECstation 3100 and 5000 (MIPS) computers running
-    Ultrix 4.2 or higher, H-P 9000 Model 700 and 800 (PA-RISC)
+    4.1.3 and Solaris 2.3, DECstation 3100 and 5000 (MIPS) computers
+    running Ultrix 4.2 or higher, H-P 9000 Model 700 and 800 (PA-RISC)
     computers running HP-UX 9.00 or higher, DECstation 3000 (Alpha
-    AXP) running OSF/1 1.3, and IBM RS/6000 (POWER) running AIX 3.2.3
-    or higher.
+    AXP) running OSF/1 1.3 and 2.0, and IBM RS/6000 (POWER) running
+    AIX 3.2.5 or higher.
 
     The experience of outside developers indicates that POSTGRES is
     relatively easy to port to any system that supports:
@@ -212,15 +213,16 @@ A.  Unfortunately, POSTGRES is no longer an active research project at
 
 Q.  Is there a commercial version of POSTGRES?
 
-A.  Yes.  Montage Software, Inc. has performed a substantial amount of
+A.  Yes.  Illustra Information Technologies (formerly Montage
+    Software, Inc.( has performed a substantial amount of
     bullet-proofing and performance improvement and has added many new
     features (true log-based crash recovery, an type system that makes
-    sense, SQL support).  They also provide technical support.  You can
-    contact them at:
+    sense, SQL support).  They also provide technical support.  You
+    can contact them at:
 
-	Montage Software, Inc.
+	Illustra Information Technologies, Inc.
 	1111 Broadway, Suite 2000
 	Oakland, CA 94607
 	510-652-8000
 	510-652-8050 (fax)
-	sales@montage.com
+	sales@illustra.com
