@@ -26,12 +26,16 @@
 #endif /* sprite */
 
 /*
+ *  interface routines called by the function manager
+ */
+
+/*
  *  routines that use the regexp stuff
  */
 bool
-char16regexeq(p, s)
-	char *p;
+char16regexeq(s, p)
 	char *s;
+	char *p;
 {
 	char *expbuf, *endbuf;
 	char *sterm, *pterm;
@@ -58,16 +62,21 @@ char16regexeq(p, s)
 	pfree(sterm);
 	pfree(pterm);
 
-	if (result)
-		return (true);
-	else
-		return (false);
+	return ((bool) result);
 }
 
 bool
-textregexeq(p, s)
-	char *p;
+char16regexne(s, p)
 	char *s;
+	char *p;
+{
+	return (!char16regexeq(s, p));
+}
+
+bool
+textregexeq(s, p)
+	char *s;
+	char *p;
 {
 	char *expbuf, *endbuf;
 	int result;
@@ -83,8 +92,13 @@ textregexeq(p, s)
 
 	pfree(expbuf);
 
-	if (result)
-		return (true);
-	else
-		return (false);
+	return ((bool) result);
+}
+
+bool
+textregexne(s, p)
+	char *s;
+	char *p;
+{
+	return (!textregexeq(s, p));
 }
