@@ -9,6 +9,8 @@
 #include "utils/log.h"
 #include "utils/geo-decls.h"
 
+RcsId("$Header$");
+
 BOX *
 rt_box_union(a, b)
 	BOX *a;
