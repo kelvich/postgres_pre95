@@ -270,8 +270,17 @@ bool hintFlag;
 	    prs2PutLocksInTuple(newTuple, InvalidBuffer, rel, newtlocks);
 	    RelationReplaceHeapTuple(rel, &(tuple->t_ctid),
 					newTuple, (double *)NULL);
+	    /*
+	     * Free all tuples/locks.
+	     * Do NOT free `tuple' because it is probably a pointer
+	     * to a buffer page and not to 'palloced' data.
+	     * But free 'newtlocks' and 'newTuple' because the are
+	     * guaranteed to be palloced.
+	     * We should also free 'tlocks' because 'HeapTupleGetRuleLock'
+	     * returns a palloced memory representation of locks...
+	     */
 	    prs2FreeLocks(newtlocks);
-	    pfree(tuple);
+	    prs2FreeLocks(tlocks);
 	    pfree(newTuple);
 	}
     }
