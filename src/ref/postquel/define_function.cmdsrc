@@ -17,7 +17,7 @@ define function \(em define a new function
 	[ \fB, outin_ratio = \fP percentage ]
 	[ \fB, byte_pct = \fP percentage ]
 	\fB)\fP
-    [ \fBarg is (\fP type-1  { \fB,\fP type-n } \fB)\fP ]
+    \fBarg is ( \fP[ type-1  { \fB,\fP type-n } ]\fB )\fP
     \fBas\fP {"/full/path/to/objectfile" | "list-of-postquel-queries"}
 .)l
 .SH "DESCRIPTION"
@@ -37,7 +37,8 @@ or
 .IR "\*(lqpostquel\*(rq" .
 (The
 .IR "arg is"
-clause may be left out if the function has no arguments.)
+clause may be left out if the function has no arguments, or
+alternatively the argument list may be left empty.)
 The input types may be base or complex types.  The output type may be
 specified as a base type, complex type, or 
 .IR "setof <type>".
@@ -447,17 +448,18 @@ Under Ultrix, all object files that \*(PG is expected to load
 dynamically must be compiled under
 .IR /bin/cc
 with the \*(lq-G 0\*(rq option turned on.
+.PP
+More than one function may be defined with the same name, as long as
+the arguments they take are different.  A function may also have the
+same name as an attribute.  In the case
+that there is an ambiguity between a function on a complex type and
+an attribute of the complex type, the attribute will always be used.
 .SH "RESTRICTIONS"
 The name of the C function must be a legal C function name, and the
 name of the function in C code must be exactly the same as the name
 used in
 .BR "define function" .
 .SH "BUGS"
-Function names must be unique per database, except for the fact that
-there may be attributes of the same name as a function.  In the case
-that a there is an ambiguity between a function on a complex type and
-an attribute of the complex type, the attribute will always be used.
-.PP
 The
 .BR iscachable
 flag does not do anything in Version \*(PV.
