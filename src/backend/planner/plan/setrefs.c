@@ -467,14 +467,12 @@ replace_resultvar_refs (var,ltlist,rtlist,levelnum)
      if (levelnum == numlevels (var)) 
 	  varno = lispCons (lispInteger(levelnum - 1),
 			    lispCons(get_resno (tl_resdom 
-						(match_varid (get_varid (var),
-							      ltlist))),
+						(match_varid (var, ltlist))),
 				     LispNil));
      else
        varno = lispCons (lispInteger(levelnum),
 			 lispCons (get_resno (tl_resdom 
-					  (match_varid (get_varid (var),
-							rtlist))),
+					  (match_varid (var, rtlist))),
 				   LispNil));
      
      return (MakeVar (varno,
@@ -977,7 +975,7 @@ List subplanTargetList;		/* target list of the subplan */
 	/*
 	 * Ha! A Var node!
 	 */
-	subplanVar = match_varid(get_varid(clause), subplanTargetList);
+	subplanVar = match_varid(clause, subplanTargetList);
 	/*
 	 * Change the varno & varattno fields of the
 	 * var node.
