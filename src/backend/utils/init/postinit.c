@@ -552,6 +552,12 @@ InitPostgres(name)
     be_portalinit();
 
     /* ----------------
+     *  intialize the storage manager switch
+     * ----------------
+     */
+    smgrinit();
+
+    /* ----------------
      *   set ourselves to the proper user id and figure out our postgres
      *   user id.  If we ever add security so that we check for valid
      *   postgres users, we might do it here.
