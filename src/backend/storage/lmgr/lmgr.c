@@ -232,6 +232,14 @@ RelationInitLockInfo(relation)
 	info->flags = 0x0;
 	return;		/* prevent an infinite loop--still true? */
     }
+    else if (info->initialized)
+    {
+        /* ------------
+         *  If we've already initialized we're done.
+         * ------------
+         */
+	return;
+    }
 
     /* ----------------
      *	initialize lockinfo.dbId and .relId appropriately
@@ -260,8 +268,7 @@ RelationInitLockInfo(relation)
      * ----------------
      */
     info->flags = 0x0;
-    info->initialized =	(bool)
-	TransactionInitWasProcessed || processingVariable;
+    info->initialized =	(bool)true;
     relation->lockInfo = (Pointer) info;
 }
 
@@ -340,8 +347,6 @@ void
 RelationSetLockForRead(relation)
     Relation	relation;
 {
-    int		status;		/* XXX style */
-    int16	numberOfFailures;
     LockInfo	linfo;
     TransactionId curXact;
 
@@ -363,13 +368,21 @@ RelationSetLockForRead(relation)
      * ----------------
      */
     curXact = GetCurrentTransactionId();
-    if ((linfo->flags & ReadRelationLock) &&
-	TransactionIdEquals(curXact, &linfo->transactionIdData))
+    if (TransactionIdEquals(curXact, &linfo->transactionIdData))
     {
-	return;
+	if (linfo->flags & ReadRelationLock) 
+            return;
+	linfo->flags |= ReadRelationLock;
     }
-    TransactionIdStore(curXact, (Pointer) &linfo->transactionIdData);
-    linfo->flags |= ReadRelationLock;
+    else
+    {
+        TransactionIdStore(curXact, (Pointer) &linfo->transactionIdData);
+	/* ---------------
+	 * use &= to clear all bits from previous xacts
+	 * ---------------
+	 */
+        linfo->flags &= ReadRelationLock;
+    }
     
     MultiLockReln(relation, READ_LOCK);
 }
@@ -445,14 +458,18 @@ RelationSetLockForWrite(relation)
      * ----------------
      */
     curXact = GetCurrentTransactionId();
-    if ((linfo->flags & WriteRelationLock) &&
-	TransactionIdEquals(curXact, &linfo->transactionIdData))
+    if (TransactionIdEquals(curXact, &linfo->transactionIdData))
     {
-	return;
+	if (linfo->flags & WriteRelationLock) 
+            return;
+	linfo->flags |= WriteRelationLock;
     }
-    linfo->flags |= WriteRelationLock;
-    TransactionIdStore(curXact, (Pointer) &linfo->transactionIdData);
-    
+    else
+    {
+        TransactionIdStore(curXact, (Pointer) &linfo->transactionIdData);
+        linfo->flags &= WriteRelationLock;
+    }
+
     MultiLockReln(relation, WRITE_LOCK);
 }
 
@@ -472,9 +489,6 @@ void
 RelationUnsetLockForWrite(relation)
     Relation relation;
 {
-    LRelId	lRelId;
-    int		status;		/* XXX style */
-    
     /* ----------------
      *	sanity checks
      * ----------------
