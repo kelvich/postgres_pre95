@@ -73,8 +73,6 @@ remove type circle
  * RULE REMOVAL
  *	(is also tested in queries.source)
  */
-remove rule r1
-\g
 
 /*
  * AGGREGATE REMOVAL
@@ -168,10 +166,6 @@ destroy xacttest
 destroy arrtest
 \g
 destroy iportaltest
-\g
-destroy asynctest1
-\g
-destroy asynctest1a
 \g
 
 destroy f_star
