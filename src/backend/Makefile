@@ -209,12 +209,12 @@ afterinstall: pg_id
 # 	actually, if mkdir doesn't have the -p flag.  we'll paramaterize
 # 	all this stuff in the next release so please bear with us.
 #
-	if test ! -d ${DESTDIR}${DATADIR}; \
+	-if test ! -d ${DESTDIR}${DATADIR}; \
 		then mkdir ${DESTDIR}${DATADIR}; fi
-	if test ! -d ${DESTDIR}${DATADIR}/files; \
+	-if test ! -d ${DESTDIR}${DATADIR}/files; \
 		then mkdir ${DESTDIR}${DATADIR}/files; fi
 .endif
-	PG_UID=`./pg_id ${POSTGRESLOGIN}`; \
+	-PG_UID=`./pg_id ${POSTGRESLOGIN}`; \
 	case $$PG_UID in "NOUSER") \
 		echo "Warning: no account named ${POSTGRESLOGIN}, using yours";\
 		PG_UID=`./pg_id`;; \
