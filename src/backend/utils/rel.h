@@ -76,7 +76,7 @@ RelationIsValid ARGS ((
  *	Assumes relation descriptor is valid.
  */
 extern
-int		/* XXX SystemPort of "os.h" */
+File		/* XXX SystemPort of "os.h" */
 RelationGetSystemPort ARGS((
 	Relation	relation
 ));
