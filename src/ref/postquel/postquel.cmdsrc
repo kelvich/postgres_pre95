@@ -29,7 +29,7 @@ The following identifiers are reserved for use as
 and may not be used otherwise:
 .PP
 .\" .s3
-.so ../obj/keyword.nr
+.so obj/keyword.nr
 .PP
 In addition, all \*(PG classes have several predefined attributes used
 by the system.  For a list of these, see the section
