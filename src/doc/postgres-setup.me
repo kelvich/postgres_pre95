@@ -94,7 +94,7 @@ C-Only Release 3.0
 	Demo Database
 	Minimal Installation
     Documentation
-	Printing the Reference Manual
+	Printing the Manual and Reference
 	    If you do not have a Postscript printer
 	Printing the Technical Reports and Tutorials
 	    If the directory has a makefile
@@ -807,7 +807,7 @@ To start the postmaster, type:
 % \fBpostmaster &\fR
 .)l
 Here we are using the default parameters for the postmaster.  For more
-details, consult the Reference Manual.
+details, consult the Reference.
 .sh 2 "The \*(PG Terminal Monitor"
 .pp
 The \*(PG terminal monitor is a front-end user interface to the
@@ -990,8 +990,8 @@ demo/		demo database scripts
 video/		video demo database scripts
 bench/		Wisconsin benchmark database scripts
 sample/		Sample LIBPQ application
-doc/		postgres technical reports and tutorials
-ref/		\*(PG Reference Manual source
+doc/		postgres technical reports and the \*(PG Manual
+ref/		\*(PG Reference source
 .)l
 .pp
 These directories take up about 2 Mbytes, and can be reduced to about
@@ -1002,9 +1002,27 @@ We do not recommend deleting these unless absolutely necessary.
 .tm    Documentation
 .\" ----------------
 .sh 1 "Documentation"
-.sh 2 "Printing the Reference Manual"
+.sh 2 "Printing the Manual"
 .pp
-If you have a Postscript printer, you can print the reference manual by
+The \*(PG manual is now in the file
+.(l
+\fB~postgres/doc/manual.me\fR
+.)l
+This manual replaces the old tutorials, which are no longer distributed.  It
+is recommended that you read this manual before making extensive use of 
+\*(PG.  A Postscript version of this manual is in
+.(l
+\fB~postgres/doc/psdump/manual.ps\fR
+.)l
+.pp
+.sh 2 "Printing the Reference"
+.pp
+The Reference is the document which details the exact syntax used by
+\*(PG commands, and provides interface definitions for LIBPQ and large
+objects.  It is intended as a reference and should not be read cover to
+cover.
+.pp
+If you have a Postscript printer, you can print the Reference by
 changing directory to the 
 .(l
 \fB~postgres/ref\fR
@@ -1029,7 +1047,7 @@ If \fBgenref\fR fails, you may not have the \fBgrn\fR preprocessor.  This
 preprocessor for troff allows pictures drawn with the \fBgremlin\fR graphics
 editor to be printed using a "troff" command.  A script called \fBeatgrn\fR is
 provided, which will cause \fBgenref\fR to ignore \fBgrn\fR directives and
-print anyway - this will result in the reference manual being printed without
+print anyway - this will result in the reference being printed without
 illustrations.  There is only one illustration, so this should not be too
 much of a problem.
 .pp
