@@ -124,7 +124,7 @@ index_info (not_first,relid)
 /*  .. best-or-subclause-index, create_index_path, index-innerjoin
  */
 List
-index_selectivity (indid,classes,opnos,relid,attnos,values,flags,nkeys)
+index_selectivity (indid,classes,opnos,relid,flags,attnos,values,nkeys)
      ObjectId 	indid,relid;
      List	attnos;
      List 	values;
@@ -134,8 +134,8 @@ index_selectivity (indid,classes,opnos,relid,attnos,values,flags,nkeys)
      int32	nkeys ;
 {
     int *class_array,*opno_array,*attno_array,*value_array,*flag_array;
-    if(nkeys == length (classes) &&
-       nkeys == length (opnos)  &&
+
+    if (nkeys == length (opnos)  &&
        nkeys == length (attnos) &&
        nkeys == length (values) && 
        nkeys == length (flags)) {
@@ -155,7 +155,7 @@ index_selectivity (indid,classes,opnos,relid,attnos,values,flags,nkeys)
 	}
 	i = 0;
 	foreach(xopno,opnos) {
-	    opno_array[i++] = CInteger(CAR(xopno));
+	    opno_array[i++] = LISPVALUE_INTEGER(xopno);
 	}
 	  i = 0;
 	foreach(xattno,attnos) {
@@ -169,7 +169,7 @@ index_selectivity (indid,classes,opnos,relid,attnos,values,flags,nkeys)
 	foreach(flag,flags) {
 	    flag_array[i++] = CInteger(CAR(flag));
 	}
-	
+
 	IndexSelectivity (indid,relid,nkeys,
 			  class_array,
 			  opno_array,
