@@ -229,6 +229,7 @@ afterinstall: pg_id
 	${INSTALL} ${STRIP} -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
 		postmaster ${DESTDIR}${BINDIR}/postmaster
 	-PG_UID=`./pg_id ${POSTGRESLOGIN}`; \
+	POSTGRESLOGIN=${POSTGRESLOGIN};\
 	case $$PG_UID in "NOUSER") \
 		echo "Warning: no account named ${POSTGRESLOGIN}, using yours";\
 		POSTGRESLOGIN=`whoami`; \
