@@ -1066,7 +1066,7 @@ char *fname;
 		elog(WARN,"prs2ReadRule : out of memory!");
 	    }
 	    bcopy(s1, s2, count);
-	    free(s1);
+	    pfree(s1);
 	    s1 = s2;
 	}
 	s1[count] = c;
