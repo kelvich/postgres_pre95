@@ -37,6 +37,7 @@
 #include "catalog/indexing.h"
 #include "parse.h"  		/* temporary */
 #include "tcop/dest.h"
+#include "tcop/tcopprot.h"
 
 /* ----------------------------------------------------------------
  *	ProcedureDefine
@@ -125,8 +126,8 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
 
     tup = SearchSysCacheTuple(PRONAME,
 			      (char *) procedureName,
-			      parameterCount,
-			      typev,
+			      (char *) UInt16GetDatum(parameterCount),
+			      (char *) typev,
 			      (char *) NULL);
 
     if (HeapTupleIsValid(tup))
@@ -211,9 +212,9 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
      *  just store the procedure's text in the prosrc attribute.
      */
 
-    if (strncmp(languageName, "postquel", 16) == 0) {
-	plan_list = (List) pg_plan(prosrc, typev, parameterCount,
-				   &parsetree_list, dest);
+    if (namestrcmp(languageName, "postquel") == 0) {
+	plan_list = pg_plan(prosrc, typev, parameterCount,
+			    &parsetree_list, dest);
 
 	/* typecheck return value */
 	pg_checkretval(typeObjectId, parsetree_list);
@@ -226,30 +227,30 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
 
     i = 0;
     values[i++] = (char *) procedureName;
-    values[i++] = (char *) (ObjectId) GetUserId();
-    values[i++] = (char *) languageObjectId;
+    values[i++] = (char *) Int32GetDatum(GetUserId());
+    values[i++] = (char *) ObjectIdGetDatum(languageObjectId);
 
     /* XXX isinherited is always false for now */
 
-    values[i++] = (char *) (Boolean) 0;
+    values[i++] = (char *) Int8GetDatum((Boolean) 0);
 
     /* XXX istrusted is always false for now */
 
-    values[i++] = (char *) trusted;
-    values[i++] = (char *) canCache;
-    values[i++] = (char *) parameterCount;
-    values[i++] = (char *) returnsSet;
-    values[i++] = (char *) typeObjectId;
+    values[i++] = (char *) Int8GetDatum(trusted);
+    values[i++] = (char *) Int8GetDatum(canCache);
+    values[i++] = (char *) UInt16GetDatum(parameterCount);
+    values[i++] = (char *) Int8GetDatum(returnsSet);
+    values[i++] = (char *) ObjectIdGetDatum(typeObjectId);
 
     values[i++] = (char *) typev;
     /*
      * The following assignments of constants are made.  The real values
      * will have to be extracted from the arglist someday soon.
      */
-    values[i++] = (char *) byte_pct; /* probyte_pct */
-    values[i++] = (char *) perbyte_cpu; /* properbyte_cpu */
-    values[i++] = (char *) percall_cpu; /* propercall_cpu */
-    values[i++] = (char *) outin_ratio; /* prooutin_ratio */
+    values[i++] = (char *) Int32GetDatum(byte_pct); /* probyte_pct */
+    values[i++] = (char *) Int32GetDatum(perbyte_cpu); /* properbyte_cpu */
+    values[i++] = (char *) Int32GetDatum(percall_cpu); /* propercall_cpu */
+    values[i++] = (char *) Int32GetDatum(outin_ratio); /* prooutin_ratio */
 
     values[i++] = fmgr(TextInRegProcedure, prosrc);	/* prosrc */
     values[i++] = fmgr(TextInRegProcedure, probin);   /* probin */
