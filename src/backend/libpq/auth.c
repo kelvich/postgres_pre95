@@ -46,7 +46,7 @@
  *
  *	Someday, this cruft will go away and magically be replaced by a
  *	nice interface based on the GSS API or something.  For now, though,
- *	there's no security API to work with...
+ *	there's no (stable) UNIX security API to work with...
  *
  *   IDENTIFICATION
  *	$Header$
@@ -54,13 +54,13 @@
  */
 
 #include <stdio.h>
+#include <strings.h>
 #include <sys/param.h>	/* for MAX{HOSTNAME,PATH}LEN, NOFILE */
 
 #include "libpq/auth.h"
 #include "tmp/pqcomm.h"
 
-extern char	*getenv();	/* XXX STDLIB */
-extern char	*index();	/* XXX STDLIB */
+extern char	*getenv ARGS((const char *name));	/* XXX STDLIB */
 
 RcsId("$Header$");
 
@@ -117,7 +117,7 @@ static n_authsvcs = sizeof(authsvcs) / sizeof(struct authsvc);
 
 #ifdef FRONTEND
 
-extern char	*tkt_string();	/* XXX thanks for the prototype, guys */
+extern char	*tkt_string ARGS((void));
 
 /*
  * pg_krb4_init -- initialization performed before any Kerberos calls are made
@@ -130,7 +130,7 @@ static
 void
 pg_krb4_init()
 {
-	char		*pgrealm;
+	char		*realm;
 	static		init_done = 0;
 	
 	if (init_done)
@@ -141,10 +141,10 @@ pg_krb4_init()
 	 * If the user set PGREALM, then we use a ticket file with a special
 	 * name: <usual-ticket-file-name>@<PGREALM-value>
 	 */
-	if (pgrealm = getenv("PGREALM")) {
+	if (realm = getenv("PGREALM")) {
 		char	tktbuf[MAXPATHLEN];
 		
-		(void) sprintf(tktbuf, "%s@%s", tkt_string(), pgrealm);
+		(void) sprintf(tktbuf, "%s@%s", tkt_string(), realm);
 		krb_set_tkt_string(tktbuf);
 	}
 }
@@ -203,6 +203,7 @@ pg_krb4_sendauth(sock, laddr, raddr, hostname)
 	KTEXT_ST	clttkt;
 	int		status;
 	char		hostbuf[MAXHOSTNAMELEN];
+	char		*realm = getenv("PGREALM"); /* NULL == current realm */
 
 	if (!hostname || !(*hostname)) {
 		if (gethostname(hostbuf, MAXHOSTNAMELEN) < 0)
@@ -217,7 +218,7 @@ pg_krb4_sendauth(sock, laddr, raddr, hostname)
 			      &clttkt,
 			      PG_KRB_SRVNAM,
 			      hostname,
-			      (char *) NULL,		/* current realm */
+			      realm,
 			      (u_long) 0,
 			      (MSG_DAT *) NULL,
 			      (CREDENTIALS *) NULL,
@@ -311,8 +312,10 @@ pg_krb4_recvauth(sock, laddr, raddr, username)
  *     necessarily so, since an aname can actually be something out of your
  *     worst X.400 nightmare, like
  *	  ORGANIZATION=U. C. Berkeley/NAME=Paul M. Aoki@CS.BERKELEY.EDU
- *     But then, the MIT an_to_ln code does the same thing if you don't
- *     provide an aname mapping database, so I don't feel too bad.
+ *     Note that the MIT an_to_ln code does the same thing if you don't
+ *     provide an aname mapping database...it may be a better idea to use
+ *     krb5_an_to_ln, except that it punts if multiple components are found,
+ *     and we can't afford to punt.
  */
 static
 char *
@@ -321,7 +324,7 @@ pg_an_to_ln(aname)
 {
 	char	*p;
 
-	if ((p = index(aname, '/')) || (p = index(aname, '@')))
+	if ((p = strchr(aname, '/')) || (p = strchr(aname, '@')))
 		*p = '\0';
 	return(aname);
 }
@@ -332,7 +335,8 @@ pg_an_to_ln(aname)
  * pg_krb5_init -- initialization performed before any Kerberos calls are made
  *
  * With v5, we can no longer set the ticket (credential cache) file name;
- * we now have to provide a file handle for the open ticket file everywhere.
+ * we now have to provide a file handle for the open (well, "resolved")
+ * ticket file everywhere.
  * 
  */
 static
@@ -340,7 +344,7 @@ krb5_ccache
 pg_krb5_init()
 {
 	krb5_error_code		code;
-	char			*pgrealm, *defname;
+	char			*realm, *defname;
 	char			tktbuf[MAXPATHLEN];
 	static krb5_ccache	ccache = (krb5_ccache) NULL;
 
@@ -356,9 +360,9 @@ pg_krb5_init()
 		return((krb5_ccache) NULL);
 	}
 	(void) strcpy(tktbuf, defname);
-	if (pgrealm = getenv("PGREALM")) {
+	if (realm = getenv("PGREALM")) {
 		(void) strcat(tktbuf, "@");
-		(void) strcat(tktbuf, pgrealm);
+		(void) strcat(tktbuf, realm);
 	}
 	
 	if (code = krb5_cc_resolve(tktbuf, &ccache)) {
@@ -414,10 +418,7 @@ pg_krb5_authname()
  * are simply chopped off.  Hence, we are assuming that you've entered your
  * server instances as
  *	<value-of-PG_KRB_SRVNAM>/<canonicalized-hostname>
- * in the database of the local realm.  This is probably a bad assumption
- * (especially as I already know there are some good reasons not to do this,
- * like the fact that "alpha.cs.berkeley.edu" and "alpha.berkeley.edu" exist
- * at UCB).
+ * in the PGREALM (or local) database.  This is probably a bad assumption.
  */
 static
 pg_krb5_sendauth(sock, laddr, raddr, hostname)
@@ -428,6 +429,7 @@ pg_krb5_sendauth(sock, laddr, raddr, hostname)
 	char			servbuf[MAXHOSTNAMELEN + 1 +
 					sizeof(PG_KRB_SRVNAM)];
 	char			*hostp;
+	char			*realm;
 	krb5_error_code		code;
 	krb5_principal		client, server;
 	krb5_ccache		ccache;
@@ -455,8 +457,12 @@ pg_krb5_sendauth(sock, laddr, raddr, hostname)
 		if (gethostname(++hostp, MAXHOSTNAMELEN) < 0)
 			(void) strcpy(hostp, "localhost");
 	}
-	if (hostp = index(hostp, '.'))
+	if (hostp = strchr(hostp, '.'))
 		*hostp = '\0';
+	if (realm = getenv("PGREALM")) {
+		(void) strcat(servbuf, "@");
+		(void) strcat(servbuf, realm);
+	}
 	if (code = krb5_parse_name(servbuf, &server)) {
 		com_err("pg_krb5_sendauth", code, "in krb5_parse_name");
 		krb5_free_principal(client);
@@ -498,7 +504,7 @@ pg_krb5_sendauth(sock, laddr, raddr, hostname)
  *
  * We still need to compare the username obtained from the client's setup
  * packet to the authenticated name, as described in pg_krb4_recvauth.  This
- * is a bit more problematic in v5, as described in pg_an_to_ln.
+ * is a bit more problematic in v5, as described above in pg_an_to_ln.
  *
  * In addition, as described above in pg_krb5_sendauth, we still need to
  * canonicalize the server name v4-style before constructing a principal
@@ -538,7 +544,7 @@ pg_krb5_recvauth(sock, laddr, raddr, username)
 	*(hostp = servbuf + (sizeof(PG_KRB_SRVNAM) - 1)) = '/';
 	if (gethostname(++hostp, MAXHOSTNAMELEN) < 0)
 		(void) strcpy(hostp, "localhost");
-	if (hostp = index(hostp, '.'))
+	if (hostp = strchr(hostp, '.'))
 		*hostp = '\0';
 	if (code = krb5_parse_name(servbuf, &server)) {
 		com_err("pg_krb5_recvauth", code, "in krb5_parse_name");
@@ -567,7 +573,7 @@ pg_krb5_recvauth(sock, laddr, raddr, username)
 				 keyprocarg,
 				 (char *) NULL,
 				 (krb5_int32 *) NULL,
-				 &client, /* this comes out of the ticket */
+				 &client,
 				 (krb5_ticket **) NULL,
 				 (krb5_authenticator **) NULL)) {
 		com_err("pg_krb5_recvauth", code, "in krb5_recvauth");
@@ -576,6 +582,11 @@ pg_krb5_recvauth(sock, laddr, raddr, username)
 	}
 	krb5_free_principal(server);
 
+	/*
+	 * The "client" structure comes out of the ticket and is therefore
+	 * authenticated.  Use it to check the username obtained from the
+	 * postmaster startup packet.
+	 */
 	if ((code = krb5_unparse_name(client, &kusername))) {
 		com_err("pg_krb5_recvauth", code, "in krb5_unparse_name");
 		krb5_free_principal(client);
