@@ -853,7 +853,7 @@ heap_endscan(sdesc)
      * Non 2-phase read locks on catalog relations
      * ----------------
      */
-    if ( IsSystemRelation(sdesc->rs_rd) )
+    if ( issystem(RelationGetRelationName(sdesc->rs_rd)) )
 	RelationUnsetLockForRead(sdesc->rs_rd);
 
     pfree((char *)sdesc);	/* XXX */
@@ -1267,7 +1267,7 @@ heap_insert(relation, tup, off)
 
     returnMe = doinsert(relation, tup);
 
-    if ( IsSystemRelation(relation) )
+    if ( issystem(RelationGetRelationName(relation)) )
 	RelationUnsetLockForWrite(relation);
 
     return(returnMe);
@@ -1366,7 +1366,7 @@ heap_delete(relation, tid)
     if (BufferPut(b, L_UN | L_EX | L_WRITE) < 0) {
 	elog(WARN, "heap_delete: failed BufferPut(L_UN | L_WRITE)");
     }
-    if ( IsSystemRelation(relation) )
+    if ( issystem(RelationGetRelationName(relation)) )
 	RelationUnsetLockForWrite(relation);
 }
 
@@ -1457,7 +1457,7 @@ heap_replace(relation, otid, tup)
 
     if (TupleUpdatedByCurXactAndCmd(tp)) {
 	elog(NOTICE, "Non-functional update, only first update is performed");
-	if ( IsSystemRelation(relation) )
+	if ( issystem(RelationGetRelationName(relation)) )
 	    RelationUnsetLockForWrite(relation);
         return (RuleLock)NULL;
     }
@@ -1549,7 +1549,7 @@ heap_replace(relation, otid, tup)
 	elog(WARN, "heap_replace: failed BufferPut(L_UN | L_WRITE)");
     }
 
-    if ( IsSystemRelation(relation) )
+    if ( issystem(RelationGetRelationName(relation)) )
 	RelationUnsetLockForWrite(relation);
 
     return ((RuleLock)NULL);	/* XXX */
