@@ -7,7 +7,7 @@ extern Datum ExecEvalVar ARGS((Expr variable, ExprContext econtext, Boolean *isN
 extern Datum ExecEvalParam ARGS((Expr expression, ExprContext econtext));
 extern Datum ExecMakeFunctionResult ARGS((ObjectId functionOid, ObjectId returnType, List arguments, ExprContext econtext, Boolean *IsNull));
 extern Datum ExecEvalOper ARGS((List opClause, ExprContext econtext, Boolean *isNull));
-extern Datum ExecEvalFunc ARGS((Expr funcClause, ExprContext econtext, Boolean *isNull));
+extern Datum ExecEvalFunc ARGS((LispValue funcClause, ExprContext econtext, Boolean *isNull));
 extern Datum ExecEvalNot ARGS((List notclause, ExprContext econtext, Boolean *isNull));
 extern Datum ExecEvalOr ARGS((List orExpr, ExprContext econtext, Boolean *isNull));
-extern Datum ExecEvalExpr ARGS((Node expression, ExprContext econtext, Boolean *isNull));
+extern Datum ExecEvalExpr ARGS((Node expression, ExprContext econtext, Boolean *isNull, Boolean *isDone));
