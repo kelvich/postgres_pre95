@@ -40,10 +40,9 @@ static char sccsid[] = "@(#)fts.c	5.40 (Berkeley) 7/23/92";
 #include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
-#include <fts.h>
-#include <string.h>
 #include <strings.h>
 #include <unistd.h>
+#include <fts.h>
 #include "tmp/libpq-fs.h"
 
 static FTSENT	*fts_alloc __P((FTS *, char *, int));
