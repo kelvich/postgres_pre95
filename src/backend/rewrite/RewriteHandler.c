@@ -376,9 +376,9 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		     * table and to the "saved" range table...
 		     */
 		    CDR(last(user_rt)) =
-		      CDR(CDR(rule_rangetable));
+		      lispCopy(CDR(CDR(rule_rangetable)));
 		    CDR(last(saved_rt)) =
-		      CDR(CDR(rule_rangetable));
+		      lispCopy(CDR(CDR(rule_rangetable)));
 
 		    /* LP says : no need to clean up redundant rt_entries
 		     * because planner will ignore them
