@@ -625,13 +625,7 @@ InitPostgres(name)
      */
     InitMyDatabaseId();
 
-    /* ----------------
-     *  intialize the storage manager switch -- must be after shared memory,
-     *  semaphores, and database name get initialized.  PostgresIpcKey gets
-     *  set in InitCommunication(), above.
-     * ----------------
-     */
-    smgrinit(PostgresIpcKey);
+    smgrinit();
 
     /* ----------------
      *	initialize the transaction system and the relation descriptor
