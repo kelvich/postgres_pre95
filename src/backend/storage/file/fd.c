@@ -1054,3 +1054,22 @@ File file;
 
 }
 
+void
+closeAllVfds()
+{
+    int i;
+    for (i=0; i<SizeVfdCache; i++) {
+	if (!FileIsNotOpen(i))
+	    LruDelete(i);
+      }
+}
+
+int
+OurSystem(cmd)
+char *cmd;
+{
+#ifdef sequent
+    closeAllVfds();
+#endif
+    return system(cmd);
+}
