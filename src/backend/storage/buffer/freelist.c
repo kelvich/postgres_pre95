@@ -92,8 +92,7 @@ PinBuffer(buf)
   }
 
   if (PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1] == 0 &&
-      LastRefCount[BufferDescriptorGetBuffer(buf) - 1] == 0 &&
-      buf->refcount == 0)
+      LastRefCount[BufferDescriptorGetBuffer(buf) - 1] == 0)
       buf->refcount++;
   PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1]++;
 }
