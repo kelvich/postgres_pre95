@@ -1241,6 +1241,11 @@ cbrt(x)
 #ifdef NEED_ISINF
 
 #if defined(PORTNAME_aix)
+#ifdef CLASS_CONFLICT
+/* we want the math symbol */
+#undef class
+#endif /* CLASS_CONFICT */
+
 static int isinf(x)
     double x;
 {
