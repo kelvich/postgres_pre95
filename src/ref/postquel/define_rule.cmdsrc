@@ -156,6 +156,9 @@ Exceptions are not implemented in Version 2
 .lp
 The object in a POSTQUEL rule cannot be an array reference and cannot have parameters.
 .lp
+In 2.0, the tuple level rule system (the default) cannot handle rules
+operating on objects of type RELATION.
+.lp
 The rewrite system currently processes only a subset of the rule set.  Specifically, it
 can only accept rules of the form:
 .(l
