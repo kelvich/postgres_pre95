@@ -42,8 +42,8 @@ boolout(b)
 
 	     /* ========== PUBLIC ROUTINES ========== */
 
-	 /* (see int.c for comparison/operation routines) */
-
+int32 booleq(arg1, arg2)	int8 arg1, arg2; { return(arg1 == arg2); }
+int32 boolne(arg1, arg2)	int8 arg1, arg2; { return(arg1 != arg2); }
 
 	     /* ========== PRIVATE ROUTINES ========== */
 

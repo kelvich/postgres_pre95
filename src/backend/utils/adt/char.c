@@ -1,6 +1,7 @@
 /*
  * char.c --
  * 	Functions for the built-in type "char".
+ * 	Functions for the built-in type "cid".
  * 	Functions for the built-in type "char16".
  */
 
@@ -44,7 +45,7 @@ charout(ch)
 /*
  *	cidin	- converts "..." to internal representation.
  *
- * 	NOTE: we must no use 'charin' because cid might be a non
+ * 	NOTE: we must not use 'charin' because cid might be a non
  *	printable character...
  */
 int32
@@ -140,6 +141,7 @@ int32 charmi(arg1, arg2)	int8 arg1, arg2; { return(arg1 - arg2); }
 int32 charmul(arg1, arg2)	int8 arg1, arg2; { return(arg1 * arg2); }
 int32 chardiv(arg1, arg2)	int8 arg1, arg2; { return(arg1 / arg2); }
 
+int32 cideq(arg1, arg2)		int8 arg1, arg2; { return(arg1 == arg2); }
 
 /*
  *	char16eq	- returns 1 iff arguments are equal

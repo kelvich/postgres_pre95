@@ -77,14 +77,28 @@ oid8out(oidArray)
 	return(result);
 }
 
+ObjectId
+oidin(s)
+	char *s;
+{
+	extern int32 int4in();
+
+	return(int4in(s));
+}
+
+char *
+oidout(o)
+	ObjectId o;
+{
+	extern char *int4out();
+
+	return(int4out(o));
+}
 
 	     /* ========== PUBLIC ROUTINES ========== */
 
-	 /* (see int.c for comparison/operation routines) */
+int32	oideq(arg1, arg2) ObjectId arg1, arg2;	{ return(arg1 == arg2); }
 
+int32	oidne(arg1, arg2) ObjectId arg1, arg2;	{ return(arg1 != arg2); }
 
 	     /* ========== PRIVATE ROUTINES ========== */
-
-/*
- * ObjectIdIsValid moved to postgres.h -cim 4/27/91
- */
