@@ -632,6 +632,12 @@ TransactionIdCommit(transactionId)
     if (AMI_OVERRIDE)
 	return;
     
+    /*
+     * Within TransactionLogUpdate we call UpdateLastCommited()
+     * which assumes we have exclusive access to pg_variable.
+     * Therefore we need to get exclusive access before calling
+     * TransactionLogUpdate. -mer 18 Aug 1992
+     */
     SpinAcquire(OidGenLockId);
     TransactionLogUpdate(transactionId, XID_COMMIT);
     SpinRelease(OidGenLockId);
