@@ -663,6 +663,8 @@ BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 	  RelationGetRelationTupleForm(relation)->relam,
 	  AMStrategies(
 	    RelationGetAccessMethodTupleForm(relation)->amstrategies));
+
+	RelationSetIndexStrategy(relation,strategy);
     }
     
     relation->rd_id = relid;
