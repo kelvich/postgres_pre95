@@ -281,6 +281,10 @@ DATA(insert OID = 933 (  ">="      PGUID 0 b t f  910  910  16 931 930  0 0 oidi
 DATA(insert OID = 934 (  ">"       PGUID 0 b t f  910  910  16 930 931  0 0 oidint4gt intltsel intltjoinsel ));
 DATA(insert OID = 935 (  "!="      PGUID 0 b t f  910  910  16 935 932  0 0 oidint4ne intltsel intltjoinsel ));
 
+DATA(insert OID =   0 (  "+"       PGUID 0 b t f 1034 1033 1034 0 0 0 0 aclinsert   intltsel intltjoinsel ));
+DATA(insert OID =   0 (  "-"       PGUID 0 b t f 1034 1033 1034 0 0 0 0 aclremove   intltsel intltjoinsel ));
+DATA(insert OID =   0 (  "~"       PGUID 0 b t f 1034 1033   16 0 0 0 0 aclcontains intltsel intltjoinsel ));
+
 /* ----------------
  *	old definition of OperatorTupleForm
  * ----------------
