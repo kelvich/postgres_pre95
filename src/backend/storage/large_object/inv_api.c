@@ -105,7 +105,8 @@ int flags;
 
         /* enter cookie into table */
         LOputOIDandLargeObjDesc(file_oid, Inversion, (struct varlena *)newobj);
-    }
+    } else
+	elog(WARN, "large object %s already exists -- cannot create", path);
 
     /* this is pretty painful...  want a tuple descriptor */
     tupdesc = CreateTemplateTupleDesc(2);
