@@ -437,6 +437,7 @@ typedef signed int	Offset;
  */
 typedef char	*String;
 
+typedef int	*intPtr;
 /*
  * ReturnStatus --
  *	Return status from POSTGRES library functions.
