@@ -77,7 +77,7 @@ static struct cachedesc cacheinfo[] = {
     { &AccessMethodOperatorRelationName,	/* AMOPOPID */
 	  2,
 	  { Anum_pg_amop_amopclaid,
-		Anum_pg_amop_amopid,
+		Anum_pg_amop_amopopr,
 		0,
 		0 },
 	  sizeof(FormData_pg_amop),
