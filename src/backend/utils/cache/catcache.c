@@ -408,8 +408,7 @@ CatCacheRemoveCTup(cache, ct)
 {
     SLRemove(&ct->ct_node);
     SLRemove(&ct->ct_lrunode);
-    if (RuleLockIsValid(ct->ct_tup->t_lock.l_lock)) 
-        pfree((char *)ct->ct_tup->t_lock.l_lock);
+    HeapTupleFreeRuleLock(ct->ct_tup);	/* XXX: careful here... */
     pfree((char *) ct->ct_tup);
     pfree((char *)ct);
     --cache->cc_ntup;
