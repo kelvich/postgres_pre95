@@ -219,6 +219,8 @@ Prs2RawStub rawStub;
 	if (relstub->stubRecords == NULL) {
 	    elog(WARN, "prs2RawStubToStub: Out of memory");
 	}
+    } else {
+	relstub->stubRecords = NULL;
     }
     
     for (i=0; i< relstub->numOfStubs; i++) {
