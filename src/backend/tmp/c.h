@@ -306,7 +306,7 @@ typedef char	*Pointer;
  */
 typedef signed char	int8;		/* >= 8 bits */
 typedef signed short	int16;		/* >= 16 bits */
-typedef signed long	int32;		/* >= 32 bits */
+typedef signed int	int32;		/* >= 32 bits */
 
 /*
  * AsInt8 --
@@ -328,7 +328,7 @@ typedef signed long	int32;		/* >= 32 bits */
  */
 typedef unsigned char	uint8;		/* >= 8 bits */
 typedef unsigned short	uint16;		/* >= 16 bits */
-typedef unsigned long	uint32;		/* >= 32 bits */
+typedef unsigned int	uint32;		/* >= 32 bits */
 
 /*
  * floatN --
@@ -473,9 +473,17 @@ free_debug ARGS((
         char    *p
 ));
 #else /* PALLOC_DEBUG */
-#if defined(PORTNAME_bsd44) || defined(PORTNAME_alpha)
+#if defined(PORTNAME_ultrix4) || \
+    defined(PORTNAME_hpux) || \
+    defined(PORTNAME_sparc) || \
+    defined(PORTNAME_bsd44) || \
+    defined(PORTNAME_alpha)
+/*
+ * All of our target machines have <stdlib.h>
+ * (mind you, they sometimes aren't very "std"...)
+ */
 #include <stdlib.h>
-#else
+#else /* stdlib */
 extern
 char *	/* as defined in /usr/lib/lint/llib-lc */
 malloc ARGS((
@@ -486,7 +494,7 @@ extern
 free ARGS((
         char    *p
 ));
-#endif /* ! PORTNAME_bsd44 */
+#endif /* stdlib */
 #endif /* PALLOC_DEBUG */
 
 /*
