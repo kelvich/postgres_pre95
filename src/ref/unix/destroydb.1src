@@ -14,16 +14,9 @@ dbname
 .lp
 .b Destroydb
 removes all reference to an existing database named
-.i dbname
-and turns off the vacuum demon if running on this database.
-Normally, the directory containing this database
-and all associated files
+.i dbname.
+The directory containing this database and all associated files
 are removed.
-But when the database is placed elsewhere via the
-use of a
-.q "reference file,"
-only the files contained in the referenced directory
-will be removed.
 .lp
 To execute this command, the user must be the
 .A DBA
@@ -36,11 +29,6 @@ needs to connect to a running postmaster to accomplish
 its tasks.  If no postmaster is running then one must be started
 before destroydb is run.
 .lp
-As of release 3.0 of POSTGRES,
-this is a shell script that executes the Postquel query
-.i destroydb
-from inside the template database.
-See the Postquel reference manual for details.
 .uh "COMMAND OPTIONS"
 .lp
 \fI-p port\fR indicates that destroydb should attempt to connect to a

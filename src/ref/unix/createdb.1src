@@ -42,12 +42,6 @@ running on the database server
 The defaults are to the local machine (localhost) and to the default port
 (4321).
 .lp
-As of release 3.0 of POSTGRES,
-this command is a shell script that executes the
-Postquel query
-.i createdb
-from inside the template database.
-See the Postquel reference manual for details.
 .uh "SEE ALSO"
 .lp
 destroydb(unix),
