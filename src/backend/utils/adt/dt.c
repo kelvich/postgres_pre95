@@ -8,6 +8,7 @@
 RcsId("$Header$");
 
 #include "utils/palloc.h"
+#include "utils/builtins.h"
 
 
 	    /* ========== USER I/O ROUTINES ========== */
@@ -15,32 +16,30 @@ RcsId("$Header$");
 /*
  *	dtin		- converts "nseconds" to internal representation
  *
- *	XXX Should probably take some for other than just nseconds.
+ *	XXX Currently, just creates an integer.
  */
 int32
 dtin(datetime)
 	char	*datetime;
 {
-	extern long	atol();
-
 	if (datetime == NULL)
-		return((int32) NULL);
+		return((int32) 0);
 	return((int32) atol(datetime));
 }
 
 /*
  *	dtout		- converts internal form to "..."
  *
- *	XXX Currently, just creates an integer.
+ *	XXX assumes sign, 10 digits max, '\0'
  */
 char *
 dtout(datetime)
 	int32	datetime;
 {
 	char		*result;
-	extern int	ltoa();
 
-	result = (char *) palloc(12);	/* assumes sign, 10 digits max, '\0' */
+	result = (char *) palloc(12);
+	Assert(result);
 	ltoa((long) datetime, result);
 	return(result);
 }
