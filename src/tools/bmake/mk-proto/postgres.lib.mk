@@ -77,14 +77,14 @@ lib${LIB}.a:: ${OBJS}
 	@echo building standard ${LIB} library
 	@rm -f lib${LIB}.a
 	@${AR} cq lib${LIB}.a `lorder ${OBJS} | tsort`
-	ranlib lib${LIB}.a
+	${RANLIB} lib${LIB}.a
 
 POBJS+=	${OBJS:.o=.po}
 lib${LIB}_p.a:: ${POBJS}
 	@echo building profiled ${LIB} library
 	@rm -f lib${LIB}_p.a
 	@${AR} cq lib${LIB}_p.a `lorder ${POBJS} | tsort`
-	ranlib lib${LIB}_p.a
+	${RANLIB} lib${LIB}_p.a
 
 llib-l${LIB}.ln: ${SRCS}
 	${LINT} -C${LIB} ${CFLAGS} ${.ALLSRC:M*.c}
@@ -120,13 +120,13 @@ realinstall: beforeinstall
 	${INSTALL} -c -o ${LIBOWN} -g ${LIBGRP} -m 664 lib${LIB}.a \
 	    ${DESTDIR}${LIBDIR}/lib${LIB}.a; \
 	cd ${DESTDIR}${LIBDIR}; \
-	ranlib lib${LIB}.a; \
+	${RANLIB} lib${LIB}.a; \
 	chmod ${LIBMODE} lib${LIB}.a
 .if !defined(NOPROFILE)
 	${INSTALL} -c -o ${LIBOWN} -g ${LIBGRP} -m 664 \
 	    lib${LIB}_p.a ${DESTDIR}${LIBDIR}/lib${LIB}_p.a; \
 	cd ${DESTDIR}${LIBDIR}; \
-	ranlib lib${LIB}_p.a; \
+	${RANLIB} lib${LIB}_p.a; \
 	chmod ${LIBMODE} lib${LIB}_p.a
 .endif
 #	${INSTALL} -c -o ${LIBOWN} -g ${LIBGRP} -m ${LIBMODE} \
