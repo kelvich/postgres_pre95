@@ -692,6 +692,7 @@ _outArray(str, node)
 	Array	node;
 {
 	char buf[500];
+	int i;
 	sprintf(buf, "array");
 	appendStringInfo(str, buf);
 	sprintf(buf, " :arrayelemtype %d", node->arrayelemtype);
@@ -700,10 +701,20 @@ _outArray(str, node)
 	appendStringInfo(str, buf);
 	sprintf(buf, " :arrayelembyval %c", (node->arrayelembyval) ? 't' : 'f');
 	appendStringInfo(str, buf);
-	sprintf(buf, " :arraylow %d", node->arraylow);
+	sprintf(buf, " :arrayndim %d", node->arrayndim);
 	appendStringInfo(str, buf);
-	sprintf(buf, " :arrayhigh %d", node->arrayhigh);
+	sprintf(buf, " :arraylow ");
 	appendStringInfo(str, buf);
+	for (i = 0; i < node->arrayndim; i++){
+	sprintf(buf, "  %d", node->arraylow.indx[i]);
+	appendStringInfo(str, buf);
+	}
+	sprintf(buf, " :arrayhigh ");
+	appendStringInfo(str, buf);
+	for (i = 0; i < node->arrayndim; i++){
+	sprintf(buf, " %d", node->arrayhigh.indx[i]);
+	appendStringInfo(str, buf);
+	}
 	sprintf(buf, " :arraylen %d", node->arraylen);
 	appendStringInfo(str, buf);
 }
@@ -730,13 +741,21 @@ _outArrayRef(str, node)
 	appendStringInfo(str, buf);
 	sprintf(buf, " :refelembyval %c", (node->refelembyval) ? 't' : 'f');
 	appendStringInfo(str, buf);
-	sprintf(buf, " :refindex ");
+	sprintf(buf, " :refupperindex ");
 	appendStringInfo(str, buf);
-	s = lispOut(node->refindexpr);
+	s = lispOut(node->refupperindexpr);
+	appendStringInfo(str, s);
+	sprintf(buf, " :reflowerindex ");
+	appendStringInfo(str, buf);
+	s = lispOut(node->reflowerindexpr);
 	appendStringInfo(str, s);
 	sprintf(buf, " :refexpr ");
 	appendStringInfo(str, buf);
 	s = lispOut(node->refexpr);
+	appendStringInfo(str, s);
+	sprintf(buf, " :refassgnexpr ");
+	appendStringInfo(str, buf);
+	s = lispOut(node->refassgnexpr);
 	appendStringInfo(str, s);
 }
 
