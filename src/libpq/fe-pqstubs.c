@@ -90,15 +90,6 @@ ExceptionalCondition(conditionName, exceptionP, detail, fileName, lineNumber)
     const String    fileName;
     const int       lineNumber;
 {
-    /*
-     * for picky compiler purposes
-     */
-    conditionName = conditionName;
-    exceptionP = exceptionP;
-    detail = detail;
-    fileName = fileName;
-    lineNumber = lineNumber;
-
     fprintf(stderr, "ExceptionalCondition called (%s,%s,file %s, line %d)!\n",conditionName,detail,fileName,lineNumber);
     exit(1);
 }
