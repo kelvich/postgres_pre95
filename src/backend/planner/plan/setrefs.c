@@ -705,8 +705,10 @@ index_outerjoin_references (inner_indxqual,outer_tlist,inner_relid)
 
     foreach (t_clause,inner_indxqual) {
 	clause = CAR(t_clause);
-	if(IsA (get_rightop (clause),Var) &&    /*   inner var on right */
-	   (inner_relid == get_varno (get_rightop (clause)))) {
+	/*
+	 * if inner scan on the right.
+	 */
+	if(OperandIsInner(get_rightop(clause), inner_relid)) {
 	    temp = make_opclause (replace_opid (get_op (clause)),
 				  replace_clause_joinvar_refs 
 				  (get_leftop (clause),
@@ -715,7 +717,7 @@ index_outerjoin_references (inner_indxqual,outer_tlist,inner_relid)
 				  get_rightop (clause));
 	    t_list = nappend1(t_list,temp);
 	} 
-	else {   /*   inner var on left */
+	else {   /*   inner scan on left */
 	    temp = make_opclause (replace_opid (get_op (clause)),
 				get_leftop (clause),
 				replace_clause_joinvar_refs (get_rightop 
@@ -776,11 +778,13 @@ replace_clause_joinvar_refs (clause,outer_tlist,inner_tlist)
 				  inner_tlist)));
 	else 
 	  if (is_funcclause (clause))
-	    return (make_funcclause (get_function (clause),
-				     replace_subclause_joinvar_refs 
-				      (get_funcargs (clause),
-				       outer_tlist,
-				       inner_tlist)));
+	  {
+	      return (make_funcclause (get_function (clause),
+				       replace_subclause_joinvar_refs 
+						(get_funcargs (clause),
+						outer_tlist,
+						inner_tlist)));
+	  }
 	  else 
 	    if (not_clause (clause)) 
 	      
@@ -854,6 +858,8 @@ replace_joinvar_refs (var,outer_tlist,inner_tlist)
 				 0));
 	 } 
     } 
+    return (Var) NULL;
+
 }  /* function end  */
 
 /*    
@@ -1015,4 +1021,34 @@ List subplanTargetList;		/* target list of the subplan */
 	 */
 	elog(WARN,"replace_result_clause: Can not handle this tlist!\n");
     }
+}
+
+bool
+OperandIsInner(opnd, inner_relid)
+    LispValue opnd;
+    int inner_relid;
+{
+
+    /*
+     * Can be the inner scan if its a varnode or a function and the
+     * inner_relid is equal to the varnode's var number or in the 
+     * case of a function the first argument's var number (all args
+     * in a functional index are from the same relation).
+     */
+    if ( IsA (opnd,Var) && 
+	 (inner_relid == get_varno(opnd)) )
+    {
+	return true;
+    }
+    if ( consp(opnd) && IsA(CAR(opnd),Func) )
+    {
+	LispValue firstArg = CAR(get_funcargs(opnd));
+
+	if ( IsA (firstArg,Var) &&
+	     (inner_relid == get_varno(firstArg)) )
+	{
+		return true;
+	}
+    }
+    return false;
 }
