@@ -113,9 +113,13 @@ lispAtom(atomName)
 	char *atomName; 
 {
 	LispValue	newobj = lispAlloc();
-	int keyword;
+	int 		keyword;
+	ScanKeyword	*search_result;	
 
-	keyword = (ScanKeywordLookup(atomName))->value;
+	search_result = ScanKeywordLookup(atomName);
+	Assert(search_result);
+
+	keyword = search_result->value;
 
 	newobj->type = PGLISP_ATOM;
 	newobj->equalFunc = _equalLispValue;
@@ -571,6 +575,8 @@ nconc (list1, list2)
 
      if (list1 == LispNil)
        return(list2);
+     if (list2 == LispNil)
+       return(list1);
      if (list1 == list2)
 	elog(WARN,"trying to nconc a list to itself");
 
