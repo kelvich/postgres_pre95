@@ -724,6 +724,8 @@ _outArrayRef(str, node)
 	appendStringInfo(str, buf);
 	sprintf(buf, " :refelemtype %d", node->refelemtype);
 	appendStringInfo(str, buf);
+	sprintf(buf, " :refattrlength %d", node->refattrlength);
+	appendStringInfo(str, buf);
 	sprintf(buf, " :refelemlength %d", node->refelemlength);
 	appendStringInfo(str, buf);
 	sprintf(buf, " :refelembyval %c", (node->refelembyval) ? 't' : 'f');

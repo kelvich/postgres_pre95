@@ -202,6 +202,8 @@ _equalArrayRef(a, b)
 		return (false);
 	if (a->refelemtype != b->refelemtype)
 		return (false);
+	if (a->refattrlength != b->refattrlength)
+		return (false);
 	if (a->refelemlength != b->refelemlength)
 		return (false);
 	if (a->refelembyval != b->refelembyval)

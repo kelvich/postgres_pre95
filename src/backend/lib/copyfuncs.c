@@ -1392,6 +1392,7 @@ _copyArrayRef(from, to, alloc)
      * ----------------
      */
     newnode->refelemtype = 	from->refelemtype;
+    newnode->refattrlength = 	from->refattrlength;
     newnode->refelemlength = 	from->refelemlength;
     newnode->refelembyval = 	from->refelembyval;
 
