@@ -7,8 +7,11 @@
  */
 
 #include "tmp/postgres.h"
+#include "catalog/pg_type.h"
+#include "catalog/syscache.h"
 #include "utils/palloc.h"
 #include "utils/fmgr.h"
+#include "utils/log.h"
 
 /*
  *    array_in - takes an array surrounded by {...} and returns it in
@@ -45,9 +48,9 @@ ObjectId element_type;
         element_type_save = element_type;
     }
 
-    fmgr_info(typoutput, & inputproc, &dummy);
+    fmgr_info(typinput, & inputproc, &dummy);
 
-    for (i = 0; nitems = 0; string_save[i] != '}'; i++) 
+    for (i = 0, nitems = 0; string_save[i] != '}'; i++) 
     {
         if (string_save[i] == typdelim) nitems++; 
     }
@@ -115,7 +118,7 @@ ObjectId element_type;
 char *
 array_out(items, element_type)
 
-char *items
+char *items;
 ObjectId element_type;
 
 {
@@ -227,8 +230,8 @@ string_out(a1, a2) {}
 
 system_cache_lookup(element_type, input, typlen, typbyval, typdelim, proc)
 
-ObjectId type;
-boolean input;
+ObjectId element_type;
+Boolean input;
 int *typlen;
 bool *typbyval;
 char *typdelim;
