@@ -23,16 +23,14 @@ OUTFILE=inh.c
 # ----------------
 # 	collect nodefiles
 # ----------------
-# NODEFILES=''
-# x=1
-# numargs=$#
-# while test $x -le $numargs ; do
-#    NODEFILES="$NODEFILES $1"
-#    x=`expr $x + 1`
-#    shift
-# done
-
-NODEFILES="nodes.h plannodes.h primnodes.h relation.h execnodes.h mnodes.h pg_lisp.h"
+NODEFILES=''
+x=1
+numargs=$#
+while test $x -le $numargs ; do
+   NODEFILES="$NODEFILES $1"
+   x=`expr $x + 1`
+   shift
+done
 
 # ----------------
 # 	generate the initial inheritance graph
@@ -222,9 +220,14 @@ cat > $OUTFILE << 'EOF'
  * ----------------------------------------------------------------
  */
 
-#include "pg_lisp.h"
-#include "c.h"
-#include "nodes.h"
+#include "tmp/c.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/nodes.h"
+#include "nodes/primnodes.h"
+#include "nodes/execnodes.h"
+#include "nodes/relation.h"
+#include "nodes/plannodes.h"
+#include "nodes/mnodes.h"
 EOF
 
 echo '#include' \"$TAGFILE\" >> $OUTFILE
@@ -234,15 +237,16 @@ struct nodeinfo {
 	char	*ni_name;
 	TypeId	ni_id;
 	TypeId	ni_parent;
+	Size	ni_size;
 };
-static struct nodeinfo _NodeInfo[] = {
+struct nodeinfo _NodeInfo[] = {
 EOF
 
 awk '{ if ($2 == "") { $2 = "Node" };\
-       printf("	{ \"%s\", T_%s, T_%s },\n", $1, $1, $2) }' \
+       printf("	{ \"%s\", T_%s, T_%s, sizeof(struct _%s) },\n", $1, $1, $2, $1) }' \
       $INHFILE >> $OUTFILE
 cat >> $OUTFILE << 'EOF'
-	{ "INVALID", 0, 0 }
+	{ "INVALID", 0, 0, 0 }
 };
 
 TypeId	_InvalidTypeId = (TypeId) (lengthof(_NodeInfo) - 1);
