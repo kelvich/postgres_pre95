@@ -3,7 +3,7 @@
  *      FILE
  *     	mergeutils
  *     
- *      DESC<RIPTION
+ *      DESCRIPTION
  *     	Utilities for finding applicable merge clauses and pathkeys
  *     
  */

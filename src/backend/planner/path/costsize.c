@@ -90,8 +90,7 @@ bool _enable_hashjoin_ = true;
 
 int
 cost_seqscan (relid,relpages,reltuples)
-     LispValue relid;
-     int reltuples, relpages;
+     int relid, reltuples, relpages;
 {
 	int temp = 0;
 	if ( _cost_weirdness_ ) {
@@ -140,7 +139,8 @@ cost_seqscan (relid,relpages,reltuples)
 int 
 cost_index (indexid,expected_indexpages,selec,relpages,
 	    reltuples,indexpages,indextuples)
-     LispValue indexid,relpages,indexpages;
+     ObjectId indexid;
+     int relpages,indexpages;
      int expected_indexpages,selec,indextuples,reltuples;
 {
 	int temp = 0;
@@ -237,8 +237,8 @@ cost_sort (keys,tuples,width,noread)
 
 int
 cost_hash (keys,tuples,width,which_rel)
-     LispValue keys,width,which_rel ;
-     int tuples;
+     LispValue keys;
+     int tuples, width, which_rel;  /* which_rel is a #defined const */
 {
 	int temp = 0;
 	if ( _cost_weirdness_ ) {
@@ -390,7 +390,8 @@ cost_mergesort (outercost,innercost,outersortkeys,innersortkeys,
 int
 cost_hashjoin (outercost,innercost,outerkeys,innerkeys,outersize,
 	       innersize,outerwidth,innerwidth)
-     LispValue outerkeys,innerkeys,outersize,innersize,outerwidth,innerwidth ;
+     LispValue outerkeys,innerkeys;
+     int outersize, innersize, outerwidth, innerwidth;
      int outercost,innercost;
 {
 	int temp = 0;
@@ -407,7 +408,7 @@ cost_hashjoin (outercost,innercost,outerkeys,innerkeys,outersize,
 	temp += innercost;
 	temp += cost_hash(outerkeys,outersize,outerwidth,OUTER);
 	temp += cost_hash(innerkeys,innersize,innerwidth,INNER);
-	if (_xprs_)  /* read outer block */
+	if (_xprs_ == 1)  /* read outer block */
 	  temp += max(0, outerpages - _MAX_BUFFERS_);
 	else
 	  temp += outerpages;
@@ -426,19 +427,19 @@ cost_hashjoin (outercost,innercost,outerkeys,innerkeys,outersize,
  *    
  *    	Sets the 'size' field for each relation entry with this computed size.
  *    
- *    	Returns nothing of interest.
+ *      Returns the size.
  *    
  */
 
 /*  .. find-paths */
 
-void
-*compute_rel_size (rel)
+int
+compute_rel_size (rel)
      LispValue rel ;
 {
 	int temp;
 	temp = get_tuples(rel) * product_selec(get_clause_info(rel));
-	floor(temp);
+	return ((int)floor(temp));
 }
 
 /*    
@@ -456,9 +457,8 @@ int
 compute_rel_width (rel)
      LispValue rel ;
 {
-	int temp;
-	compute_targetlist_width(get_actual_tlist(get_tlist (rel)));
-	return(temp);
+
+     return (compute_targetlist_width(get_actual_tlist(get_tlist (rel))));
 }
 
 /*    

@@ -125,6 +125,7 @@ match_pathkey_joinkeys (pathkey,joinkeys,which_subkey)
 	  if (flag == true)
 	    return(temp);
      }
+     return (-1);    /* no index found   */
 
 }  /* function end   */
 
@@ -281,6 +282,7 @@ new_join_pathkeys (outer_pathkeys,join_rel_tlist,joinclauses)
 				    outer_pathkey,join_rel_tlist,joinclauses));
 	  t_list = nconc(t_list,temp_node);
      }
+     return(t_list);
      
 }
 
@@ -364,10 +366,9 @@ new_matching_subkeys (subkey,considered_subkeys,join_rel_tlist,joinclauses)
 {
      LispValue joinclause = LispNil;
      LispValue t_list = LispNil;
-     LispValue temp_node = LispNil;
+     LispValue temp = LispNil;
 
      foreach(joinclause,joinclauses) {
-	  /* XXX - let form, maybe incorrect */
 	  Expr tlist_other_var = 
 	    matching_tlvar (other_join_clause_var (subkey,joinclause),
 			    join_rel_tlist);
@@ -375,8 +376,11 @@ new_matching_subkeys (subkey,considered_subkeys,join_rel_tlist,joinclauses)
 	  if(tlist_other_var && 
 	     !(member (tlist_other_var,considered_subkeys))) {
 	       push (tlist_other_var,considered_subkeys);
-	       list (tlist_other_var);
-
+	       temp = list (tlist_other_var);
+	       t_list = nconc(t_list,temp);
 	  } 
+	  else
+	    t_list = nconc(t_list,LispNil);
      }
+     return(t_list);
 }  /* function end  */

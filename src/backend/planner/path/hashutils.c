@@ -16,7 +16,7 @@
  */
 
 #include "pg_lisp.h"
-#include "internal.h
+#include "internal.h"
 #include "relation.h"
 #include "relation.a.h"
 #include "hashutils.h"

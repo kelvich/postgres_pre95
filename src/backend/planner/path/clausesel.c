@@ -44,9 +44,9 @@
 /*  .. create_index_path
  */
 void
-*set_clause_selectivities (clauseinfo_list,new_selectivity)
-LispValue clauseinfo_list; 
-Cost new_selectivity ;
+set_clause_selectivities (clauseinfo_list,new_selectivity)
+     LispValue clauseinfo_list; 
+     Cost new_selectivity ;
 {
      LispValue clausenode;
      foreach (clausenode,clauseinfo_list) {
@@ -101,7 +101,7 @@ product_selec (clauseinfo_list)
 /*  .. find-paths    */
 
 void
-*set_rest_relselec (rel_list)
+set_rest_relselec (rel_list)
      LispValue rel_list ;
 {
      LispValue rel;
@@ -123,7 +123,7 @@ void
 /*  .. set_rest_relselec    */
 
 void
-*set_rest_selec (clauseinfo_list)
+***set_rest_selec (clauseinfo_list)
 LispValue clauseinfo_list ;
 {
      LispValue clausenode;
@@ -288,10 +288,13 @@ compute_selec (clauses,or_selectivities)
  */
 ObjectId
 translate_relid (relid)
-     LispValue relid ;
+     ObjectId relid ;
 {
      if ( integerp (relid) && relid > 0 ) {
-	  getrelid (relid,_query_range_table_);
+	  return (getrelid (relid,_query_range_table_));
      } 
+     return((ObjectId)0);
+}
+
 }
 

@@ -41,9 +41,10 @@
 
 LispValue
 find_paths (rels,nest_level,sortkeys)
-     LispValue rels,nest_level,sortkeys ;
+     LispValue rels,sortkeys ;
+     int nest_level;
 {
-     if ( and (length (rels) > 0,nest_level > 0) ) {
+     if ( length (rels) > 0 && nest_level > 0 ) {
   /* Set the number of join (not nesting) levels yet to be processed. */
 	  
 	  int levels_left = length (rels);
@@ -162,7 +163,6 @@ find_join_paths (outer_rels,levels_left,nest_level)
   /* Determine all possible pairs of relations to be joined at this level. */
   /* Determine paths for joining these relation pairs and modify 'new-rels' */
   /* accordingly, then eliminate redundant join relations. */
-  /* XXX - let form, maybe incorrect */
 
   LispValue new_rels = find_join_rels (outer_rels);
 
@@ -173,12 +173,12 @@ find_join_paths (outer_rels,levels_left,nest_level)
 
   prune_rel_paths (new_rels);
   for (rel= CAR(new_rels); new_rels != LispNil; new_rels = CDR(new_rels)) {
-    set_width (rel,compute_rel_width (rel));
+       set_width (rel,compute_rel_width (rel));
   }
   if(levels_left == 1) {
-      new_rels;
-    } 
+       return (new_rels);
+  } 
   else {
-    find_join_paths (new_rels,levels_left - 1,nest_level);
+       return (find_join_paths (new_rels,levels_left - 1,nest_level));
   } 
 }

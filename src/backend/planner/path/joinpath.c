@@ -1,4 +1,5 @@
 
+
 /*     
  *      FILE
  *     	joinpath
@@ -60,7 +61,7 @@ extern bool _enable_mergesort_;
 /*  .. find-all-join-paths, find-join-paths    */
 
 void
-*find_all_join_paths (joinrels,previous_level_rels,nest_level)
+find_all_join_paths (joinrels,previous_level_rels,nest_level)
      LispValue joinrels,previous_level_rels;
      int nest_level;
 {
@@ -91,7 +92,7 @@ void
 	  
 	  if ( _enable_hashjoin_ ) {
 	       hashinfo_list = 
-		 group_clauses_by_hashop(get_clause_info (joinrel),
+		 group_clauses_by_hashop(get_clauseinfo (joinrel),
 					 get_relid (innerrel));
 	  } 
 
@@ -352,7 +353,7 @@ match_unsorted_outer (joinrel,outerrel,innerrel,outerpath_list,
 		    bool path_is_cheaper_than_sort;
 		    LispValue varkeys = LispNil;
 		    
-		    LispValue mergeinnerpath = 
+		    Path mergeinnerpath = 
 		      match_paths_joinkeys (nth (0,keyquals),
 					    outerpath_ordering,
 					    get_pathlist (innerrel),

@@ -18,6 +18,7 @@
 #include "internal.h"
 #include "relation.h"
 #include "relation.a.h"
+#include "clauses.h"
 #include "orindxpath.h"
 #include "nodeFuncs.h"
 #include "primnodes.h"
@@ -46,7 +47,6 @@ create_or_index_paths (rel,clauses)
      LispValue rel,clauses ;
 {
      LispValue t_list = LispNil;
-     LispValue temp = LispNil;
 
      if ( consp (clauses) ) {
 	  /* XXX - let form, maybe incorrect */
@@ -75,8 +75,8 @@ create_or_index_paths (rel,clauses)
 		      best_or_subclause_indices (rel,
 						 get_orclauseargs
 					          (get_clause (clausenode)),
-						 get_index (clausenode),
-						 LispNil,0,
+						 get_indexids (clausenode),
+						 LispNil,(double)0,
 						 LispNil);
 
 		    set_pathtype (pathnode,INDEX_SCAN);
@@ -178,7 +178,7 @@ best_or_subclause_index (rel,subclause,indices)
 
      if ( consp (indices) ) {
 	  Datum 	value;
-	  bool 		flag = false;
+	  int 		flag = 0;
 	  LispValue pagesel = LispNil;
 	  Cost 		subcost;
 	  LispValue 	bestrest = LispNil;
@@ -194,10 +194,10 @@ best_or_subclause_index (rel,subclause,indices)
 	       value = NameGetDatum("");
 	  } 
 	  if(constant_on_right) {
-	       flag = (bool)(_SELEC_IS_CONSTANT_ ||_SELEC_CONSTANT_RIGHT_);
+	       flag = (_SELEC_IS_CONSTANT_ ||_SELEC_CONSTANT_RIGHT_);
 	  } 
 	  else {
-	       flag = (bool)_SELEC_CONSTANT_RIGHT_;
+	       flag = _SELEC_CONSTANT_RIGHT_;
 	  } 
 	  pagesel = index_selectivity (nth (0,get_indexid (rel)),
 				       get_class (index),
@@ -209,7 +209,7 @@ best_or_subclause_index (rel,subclause,indices)
 				       list (flag),1);
 	  subcost = cost_index (nth (0,get_indexid (index)),
 				floor (nth (0,pagesel)),
-				nth (1,pagesel),
+				(int)(CAR (pagesel)),
 				get_pages (rel),
 				get_tuples (rel),
 				get_pages (index),

@@ -107,7 +107,7 @@ prune_joinrel (rel,other_rels)
 /*  .. find-join-paths   */
 
 void
-*prune_rel_paths (rel_list)
+prune_rel_paths (rel_list)
 LispValue rel_list ;
 {
      LispValue rel = LispNil;
