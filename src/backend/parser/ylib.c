@@ -17,6 +17,7 @@
 #include "parser/parse.h"
 #include "parser/parsetree.h"
 #include "utils/builtins.h"
+#include "utils/fcache.h"
 
 RcsId("$Header$");
 
@@ -296,6 +297,7 @@ ParseFunc ( funcname , fargs )
      List fargs;
 {
     extern Func MakeFunc();
+	extern FunctionCache *init_fcache();
     extern OID funcname_get_rettype();
     extern OID funcname_get_funcid();
     OID rettype = (OID)0;
@@ -323,7 +325,7 @@ ParseFunc ( funcname , fargs )
 	rettype = funcname_get_rettype ( funcname );
 	
 	if ( funcid != (OID)0 && rettype != (OID)0 ) {
-	    funcnode = MakeFunc ( funcid , rettype , false );
+	    funcnode = MakeFunc ( funcid , rettype , false, 0, init_fcache(funcid));
 	} else
 	  elog (WARN,"function %s does not exist",funcname);
 
@@ -340,7 +342,7 @@ ParseFunc ( funcname , fargs )
 	rettype = funcname_get_rettype ( funcname );
 	
 	if ( funcid != (OID)0 && rettype != (OID)0 ) {
-	    funcnode = MakeFunc ( funcid , rettype , false );
+	    funcnode = MakeFunc ( funcid , rettype , false, 0,init_fcache(funcid) );
 	} else
 	  elog (WARN,"function %s does not exist",funcname);
 	
