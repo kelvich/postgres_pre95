@@ -84,13 +84,18 @@ UID=`pg_id`
 # 	create the template database if necessary
 # ----------------
 
-if test -f "$PGDATA"
+if test ! -d "$PGDATA"
 then
-	echo "$CMDNAME: $PGDATA exists - delete it if necessary"
+	mkdir "$PGDATA"
+fi
+
+if test -d "$PGDATA"/base
+then
+	echo "$CMDNAME: $PGDATA/base exists: delete it first"
 	exit 1
 fi
 
-mkdir $PGDATA $PGDATA/base $PGDATA/base/template1
+mkdir $PGDATA/base $PGDATA/base/template1
 
 if test "$verbose" -eq 1
 then
