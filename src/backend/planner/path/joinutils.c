@@ -307,7 +307,7 @@ new_join_pathkeys (outer_pathkeys,join_rel_tlist,joinclauses)
 	outer_pathkey = CAR(i);
 	temp_node = 
 	  lispCons (new_join_pathkey (outer_pathkey,
-				      outer_pathkey,
+				      LispNil,
 				      join_rel_tlist,joinclauses),
 		    LispNil);
 	t_list = nconc(t_list,temp_node);
@@ -359,11 +359,8 @@ new_join_pathkey (subkeys,considered_subkeys,join_rel_tlist,joinclauses)
 	newly_considered_subkeys = LispNil;
 
 	if ( tlist_key ) {
-	    /* XXX was "adjoin" function */
-	    if (member(tlist_key,matched_subkeys))
-	      newly_considered_subkeys = lispCons(lispCons(tlist_key,
-							   matched_subkeys),
-						  LispNil);
+	    if (!member(tlist_key,matched_subkeys))
+	      newly_considered_subkeys = lispCons(tlist_key, matched_subkeys);
 	} 
 	else {
 	    newly_considered_subkeys = matched_subkeys;
