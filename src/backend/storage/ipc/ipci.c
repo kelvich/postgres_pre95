@@ -47,13 +47,6 @@ CreateSharedMemoryAndSemaphores(key)
     int		status;
     int		size;
 
-    /* ----------------
-     *	kill the lock table stuff
-     * ----------------
-     */
-    LtSynchKill(IPCKeyGetLockTableMemoryKey(key));
-    LtTransactionSemaphoreKill(IPCKeyGetLockTableSemaphoreKey(key));
-
 #ifdef HAS_TEST_AND_SET
     /* ---------------
      *  create shared memory for slocks
@@ -66,7 +59,7 @@ CreateSharedMemoryAndSemaphores(key)
      * ----------------
      */
     CreateSpinlocks(IPCKeyGetSpinLockSemaphoreKey(key));
-    size = BufferShmemSize();
+    size = BufferShmemSize() + LockShmemSize();
     ShmemCreate(IPCKeyGetBufferMemoryKey(key), size);
     InitShmem(key, size);
     InitBufferPool(key);
@@ -85,21 +78,9 @@ CreateSharedMemoryAndSemaphores(key)
      *	do the lock table stuff
      * ----------------
      */
-    LtSynchInit(IPCKeyGetLockTableMemoryKey(key));
-    LtTransactionSemaphoreInit(IPCKeyGetLockTableSemaphoreKey(key));
-
-    status = LMSegmentInit(true, IPCKeyGetLockTableSemaphoreBlockKey(key));
-
-    if (status == -1)
-	elog(FATAL, "CreateSharedMemoryAndSemaphores: failed LMSegmentInit");
-
-    PageLockTableId = LMLockTableCreate("page",
-					PageLockTable,
-					LockTableNormal);
-    
-    MultiLevelLockTableId = LMLockTableCreate("multiLevel",
-					      MultiLevelLockTable,
-					      LockTableNormal);
+    InitLocks();
+    InitMultiLevelLockm();
+    InitProcess(key);
 
     CreateSharedInvalidationState(key);
 }
@@ -132,7 +113,7 @@ AttachSharedMemoryAndSemaphores(key)
      *	attach the buffer manager buffer pool (and semaphore)
      * ----------------
      */
-    size = BufferShmemSize();
+    size = BufferShmemSize() + LockShmemSize();
     InitShmem(key, size);
     InitBufferPool(key);
 
@@ -150,21 +131,9 @@ AttachSharedMemoryAndSemaphores(key)
      *	initialize lock table stuff
      * ----------------
      */
-    LtSynchInit(IPCKeyGetLockTableMemoryKey(key));
-    LtTransactionSemaphoreInit(IPCKeyGetLockTableSemaphoreKey(key));
-
-    status = LMSegmentInit(false, IPCKeyGetLockTableSemaphoreBlockKey(key));
-
-    if (status == -1)
-	elog(FATAL, "AttachSharedMemoryAndSemaphores: failed LMSegmentInit");
-
-    PageLockTableId = LMLockTableCreate("page",
-					PageLockTable,
-					LockTableNormal);
-    
-    MultiLevelLockTableId = LMLockTableCreate("multiLevel",
-					      MultiLevelLockTable,
-					      LockTableNormal);
+    InitLocks();
+    InitMultiLevelLockm();
+    InitProcess(key);
 
     AttachSharedInvalidationState(key);
 }
