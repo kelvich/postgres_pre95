@@ -164,3 +164,14 @@ char16ge(arg1, arg2)
 
     return((int32) (strncmp(arg1, arg2, 16) >= 0));
 }
+
+char *
+pg_username(dummy)
+
+int dummy;
+
+{
+	extern char *PG_username;
+
+	return(PG_username);
+}
