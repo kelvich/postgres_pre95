@@ -57,7 +57,3 @@ final answer.
 /* Define an aggregate for average */
 .lp
 define aggregate avg as (add-new-value-function, divide-by-total-function)
-.uh BUGS
-.lp
-Define aggregate
-is not implemented in Version 2.1.
