@@ -1,13 +1,13 @@
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP MONITOR UNIX 6/14/90
+.SP IPCCLEAN UNIX 6/14/90
 .XA 1 "ipcclean"
 .uh NAME
 .lp
 ipcclean \*- clean up shared memory and semaphores from aborted backends
 .uh SYNOPSIS
 .lp
-.b monitor
+.b ipcclean
 .uh DESCRIPTION
 .lp
 Ipcclean cleans up shared memory and semaphore space from aborted backends.
