@@ -212,7 +212,7 @@ AssertLruRoom();
 private FileNumber
 AllocateVfd();
 
-private inline void
+void
 Delete (file)
 	FileNumber	file;
 {
@@ -230,7 +230,7 @@ Delete (file)
 }
 
 
-private inline void
+void
 LruDelete(file)
 	FileNumber	file;
 {
@@ -268,7 +268,7 @@ LruDelete(file)
 	FreeFd++;
 }
 
-private inline void
+void
 Insert(file)
 	FileNumber	file;
 {
@@ -350,7 +350,7 @@ tryAgain:
 	return (0);
 }
 
-private inline void
+void
 AssertLruRoom()
 {
 	DO_DB(printf("DEBUG:	AssertLruRoom (FreeFd = %d)\n",FreeFd));
@@ -459,7 +459,7 @@ AllocateVfd()
     	return file;
 }
 
-private inline void
+void
 FreeVfd(file)
 	FileNumber	file;
 {
