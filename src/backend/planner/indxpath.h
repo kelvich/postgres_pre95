@@ -17,3 +17,5 @@ extern LispValue index_innerjoin ARGS((LispValue rel, LispValue clausegroup_list
 extern LispValue create_index_paths ARGS((LispValue rel, LispValue index, LispValue clausegroup_list, LispValue join));
 
 extern bool function_index_operand ARGS((LispValue funcOpnd, Rel rel));
+
+extern bool SingleAttributeIndex ARGS((LispValue index));
