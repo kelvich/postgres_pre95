@@ -397,10 +397,10 @@ key:
 
   **********************************************************************/
 DefineStmt:
-	  Define def_type def_rest
+	  DEFINE def_type def_rest
 		{
 		   $2 = lispCons ($2 , $3 ); 
-		   $$ = lispCons ($1 , $2 ); 
+		   $$ = lispCons (KW(define) , $2 ); 
 		}
 	;
 
@@ -588,7 +588,7 @@ ProcedureStmt:
 	DEFINE C_FN FUNCTION def_rest
 		{
 		   $$ = lispCons (KW(cfunction) , $4 ); 
-		   $$ = lispCons ($1 , $$ ); 
+		   $$ = lispCons (KW(define) , $$ ); 
 		}
 	| DEFINE POSTQUEL FUNCTION name '(' relation_name ')' 
     	  RETURNS relation_name IS
@@ -1745,7 +1745,6 @@ SpecialRuleRelation:
 		}
 	;
 
-Define:			DEFINE		{ $$ = yylval ; } ;
 Function:		FUNCTION	{ $$ = yylval ; } ;
 Index:			INDEX		{ $$ = yylval ; } ;
 Indexable:		INDEXABLE	{ $$ = yylval ; } ;
