@@ -17,6 +17,14 @@
 #include "storage/shmem.h"
 #include "utils/log.h"
 
+/*#define SHMQUEUE_DEBUG*/
+#ifdef SHMQUEUE_DEBUG
+#define SHMQUEUE_DEBUG_DEL	/* deletions */
+#define SHMQUEUE_DEBUG_HD	/* head inserts */
+#define SHMQUEUE_DEBUG_TL	/* tail inserts */
+#define SHMQUEUE_DEBUG_ELOG NOTICE
+#endif /* SHMQUEUE_DEBUG */
+
 /*
  * ShmemQueueInit -- make the head of a new queue point
  * 	to itself
@@ -59,27 +67,29 @@ SHM_QUEUE	*queue;
   SHM_QUEUE *nextElem = (SHM_QUEUE *) MAKE_PTR((queue)->next);
   SHM_QUEUE *prevElem = (SHM_QUEUE *) MAKE_PTR((queue)->prev);
 
-/*
-  dumpQ(queue);
-*/
-
   Assert(SHM_PTR_VALID(queue));
   Assert(SHM_PTR_VALID(nextElem));
   Assert(SHM_PTR_VALID(prevElem));
+
+#ifdef SHMQUEUE_DEBUG_DEL
+  dumpQ(queue, "in SHMQueueDelete: begin");
+#endif /* SHMQUEUE_DEBUG_DEL */
+
   prevElem->next =  (queue)->next;
   nextElem->prev =  (queue)->prev;
 
-/*
-  dumpQ((SHM_QUEUE *)MAKE_PTR(queue->prev));
-*/
-
+#ifdef SHMQUEUE_DEBUG_DEL
+  dumpQ((SHM_QUEUE *)MAKE_PTR(queue->prev), "in SHMQueueDelete: end");
+#endif /* SHMQUEUE_DEBUG_DEL */
 }
 
-dumpQ(q)
+#ifdef SHMQUEUE_DEBUG
+dumpQ(q, s)
 SHM_QUEUE	*q;
+char		*s;
 {
     char elem[16];
-    char buf[512];
+    char buf[1024];
     SHM_QUEUE	*start = q;
     int count = 0;
 
@@ -100,7 +110,7 @@ SHM_QUEUE	*q;
     }
     sprintf(elem, "--->%x", MAKE_OFFSET(q));
     strcat(buf, elem);
-    elog(DEBUG, buf);
+    elog(SHMQUEUE_DEBUG_ELOG, "%s: %s", s, buf);
 
     sprintf(buf, "q nexts: %x", MAKE_OFFSET(q));
     count = 0;
@@ -120,8 +130,9 @@ SHM_QUEUE	*q;
     }
     sprintf(elem, "--->%x", MAKE_OFFSET(q));
     strcat(buf, elem);
-    elog(DEBUG, buf);
+    elog(SHMQUEUE_DEBUG_ELOG, "%s: %s", s, buf);
 }
+#endif /* SHMQUEUE_DEBUG */
 
 /*
  * SHMQueueInsertHD -- put elem in queue between the queue head
@@ -136,10 +147,18 @@ SHM_QUEUE *queue,*elem;
   Assert(SHM_PTR_VALID(queue));
   Assert(SHM_PTR_VALID(elem));
 
+#ifdef SHMQUEUE_DEBUG_HD
+  dumpQ(queue, "in SHMQueueInsertHD: begin");
+#endif /* SHMQUEUE_DEBUG_HD */
+
   (elem)->next = prevPtr->next;
   (elem)->prev = queue->prev;
   (queue)->prev = elemOffset;
   prevPtr->next = elemOffset;
+
+#ifdef SHMQUEUE_DEBUG_HD
+  dumpQ(queue, "in SHMQueueInsertHD: end");
+#endif /* SHMQUEUE_DEBUG_HD */
 }
 
 SHMQueueInsertTL(queue,elem)
@@ -151,18 +170,18 @@ SHM_QUEUE *queue,*elem;
   Assert(SHM_PTR_VALID(queue));
   Assert(SHM_PTR_VALID(elem));
 
-/*
-  dumpQ(queue);
-*/
+#ifdef SHMQUEUE_DEBUG_TL
+  dumpQ(queue, "in SHMQueueInsertTL: begin");
+#endif /* SHMQUEUE_DEBUG_TL */
 
   (elem)->prev = nextPtr->prev;
   (elem)->next = queue->next;
   (queue)->next = elemOffset;
   nextPtr->prev = elemOffset;
 
-/*
-  dumpQ(queue);
-*/
+#ifdef SHMQUEUE_DEBUG_TL
+  dumpQ(queue, "in SHMQueueInsertTL: end");
+#endif /* SHMQUEUE_DEBUG_TL */
 }
 
 /*
@@ -208,6 +227,7 @@ SHM_QUEUE	*nextQueue;
   */
 }
 
+#if 0
 /*
  * SHMQueueDoLRU -- move elem to the front of the list
  */
@@ -225,7 +245,6 @@ SHM_QUEUE	*elem;
   SHMQueueInsertTL(queue,elem);
 }
 
-
 SHMQueueCheck(queue)
 SHM_QUEUE	*queue;
 {
@@ -240,6 +259,7 @@ SHM_QUEUE	*queue;
   Assert(nextElem->prev == MAKE_OFFSET(queue));
   Assert(prevElem->next == MAKE_OFFSET(queue));
 }
+#endif
 
 /*
  * SHMQueueEmpty -- TRUE if queue head is only element, FALSE otherwise
