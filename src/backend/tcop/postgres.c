@@ -1052,12 +1052,12 @@ PostgresMain(argc, argv)
 	    XfuncMode = XFUNC_NOPULL;
 	  else if (strcmp(optarg, "nopm") == 0)
 	    XfuncMode = XFUNC_NOPM;
-	  else if (strcmp(optarg, "noprune") == 0)
-	    XfuncMode = XFUNC_NOPRUNE;
 	  else if (strcmp(optarg, "pullall") == 0)
 	    XfuncMode = XFUNC_PULLALL;
+	  else if (strcmp(optarg, "wait") == 0)
+	    XfuncMode = XFUNC_WAIT;
 	  else {
-	       fprintf(stderr, "use -x {off,nor,nopull,nopm,noprune,pullall}\n");
+	       fprintf(stderr, "use -x {off,nor,nopull,nopm,pullall,wait}\n");
 	       errs++;
 	  }
 	  break;
