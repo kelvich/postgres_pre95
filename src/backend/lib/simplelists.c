@@ -1,3 +1,4 @@
+
 /*
  *  SIMPLELISTS.C
  *
@@ -108,6 +109,26 @@ register NODE *node;
     node->sn_Prev = list->sl_Tail;
     node->sn_Next->sn_Prev = node;
     node->sn_Prev->sn_Next = node;
+}
+
+void
+SListInsertAfter(node, newnode)
+register NODE *node, *newnode;
+{
+    newnode->sn_Next = node->sn_Next;
+    newnode->sn_Prev = node;
+    node->sn_Next = newnode;
+    newnode->sn_Next->sn_Prev = newnode;
+}
+
+void
+SListInsertBefore(node, newnode)
+register NODE *node, *newnode;
+{
+    newnode->sn_Next = node;
+    newnode->sn_Prev = node->sn_Prev;
+    node->sn_Prev = newnode;
+    newnode->sn_Prev->sn_Next = newnode;
 }
 
 void *
