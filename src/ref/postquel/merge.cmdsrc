@@ -57,7 +57,7 @@ merge office into employee
 .uh "SEE ALSO"
 .lp
 destroy(commands),
-createversion(commands).
+create version(commands).
 .uh BUGS
 .lp
 Merge

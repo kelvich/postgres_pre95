@@ -56,5 +56,5 @@ destroy emp, parts
 .uh "SEE ALSO"
 .lp
 delete(commands),
-removeindex(commands),
+remove index(commands),
 merge(commands).
