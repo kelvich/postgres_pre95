@@ -238,9 +238,21 @@ SetUserId()
 {
     HeapScanDesc s;
     ScanKeyData  key;
-    Relation userRel = heap_openr(UserRelationName);
+    Relation userRel;
     HeapTuple userTup;
 
+    /*
+     * Don't do scans if we're bootstrapping, none of the system
+     * catalogs exist yet, and they should be owned by postgres
+     * anyway.
+     */
+    if (IsBootstrapProcessingMode())
+    {
+	UserId = getuid();
+	return;
+    }
+
+    userRel = heap_openr(UserRelationName);
     ScanKeyEntryInitialize(&key.data[0],
 			   (bits16)0x0,
 			   Anum_pg_user_usename,
