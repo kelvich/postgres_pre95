@@ -40,16 +40,20 @@
 #include <sys/file.h>
 #include <stdio.h>
 #include <math.h>
-#include "internal.h"
+#include "storage/buf_internals.h"
+#include "storage/bufmgr.h"
+
 #include "storage/fd.h"
 #include "storage/ipc.h"
 #include "storage/ipci.h"
 #include "storage/shmem.h"
 #include "storage/spin.h"
 #include "storage/smgr.h"
+#include "storage/lmgr.h"
 #include "tmp/miscadmin.h"
 #include "utils/hsearch.h"
 #include "utils/log.h"
+/* #include "storage/buf_protos.h" */
 
 int		NBuffers = NDBUFS;  /* NDBUFS defined in miscadmin.h */
 int		Data_Descriptors;
@@ -1468,3 +1472,4 @@ BufferPoolBlowaway()
         BufTableDelete(BufferGetBufferDescriptor(i));
     }
 }
+

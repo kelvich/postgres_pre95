@@ -91,7 +91,7 @@ void ProcReleaseSpins ARGS((PROC *proc));
 bool ProcSemaphoreKill ARGS((int pid));
 bool ProcKill ARGS((int exitStatus, int pid));
 int ProcGetId();
-int ProcLockWakeup ARGS((PROC_QUEUE *queue, Address ltable, Address lock));
+int ProcLockWakeup ARGS((PROC_QUEUE *queue, char * ltable, char * lock));
 int HandleDeadLock();
 int ProcSleep ARGS((
 	PROC_QUEUE *queue, 

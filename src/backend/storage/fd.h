@@ -98,7 +98,7 @@ Amount
 FileRead ARGS((
 	File	file,
 	String	buffer,
-	Size	amount
+	Amount	amount
 ));
 
 /*
@@ -110,7 +110,7 @@ Amount
 FileWrite ARGS((
 	File	file,
 	String	buffer,
-	Size	amount
+	Amount	amount
 ));
 
 /* UNIX DEPENDENT XXXX 6/21/88 */
@@ -187,7 +187,7 @@ FreeFile ARGS((
 extern
 void
 FreeFiles ARGS((
-	uint16	numberOfFiles
+	int	numberOfFiles
 ));
 
 /*

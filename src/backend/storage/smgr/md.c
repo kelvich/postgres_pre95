@@ -78,7 +78,7 @@ mdcreate(reln)
     if (fd < 0) {
 	if ((fd = FileNameOpenFile(path, O_RDWR, 0600)) >= 0) {
 	    if (!IsBootstrapProcessingMode() &&
-		FileRead(fd, &tmp, sizeof(tmp)) != 0) {
+		FileRead(fd, (char *) &tmp, sizeof(tmp)) != 0) {
 		FileClose(fd);
 		return (-1);
 	    }

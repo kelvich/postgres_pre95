@@ -52,7 +52,7 @@ RelationGetLRelId ARGS((
 extern
 ObjectId
 LRelIdGetDatabaseId ARGS((
-	Relation	relation
+	LRelId  lRelId
 ));
 
 /*
@@ -62,7 +62,7 @@ LRelIdGetDatabaseId ARGS((
 extern
 ObjectId
 LRelIdGetRelationId ARGS((
-	Relation	relation
+	LRelId	relation
 ));
 
 /*

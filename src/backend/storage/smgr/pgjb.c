@@ -106,7 +106,6 @@ static void		_pgjb_mdblockwrt();
 /* routines declared elsewhere */
 extern HTAB		*ShmemInitHash();
 extern int		*ShmemInitStruct();
-extern int		tag_hash();
 extern BlockNumber	sjmaxseg();
 extern int		mylog2();
 
@@ -282,7 +281,8 @@ _pgjb_hashget(plid)
     JBHashEntry *entry;
     bool found;
 
-    entry = (JBHashEntry *) hash_search(JBHash, &plid, HASH_FIND, &found);
+    entry = (JBHashEntry *) hash_search(JBHash, (char *) &plid,
+					HASH_FIND, &found);
 
     if (entry == (JBHashEntry *) NULL) {
 	SpinRelease(JBSpinLock);
@@ -301,7 +301,8 @@ _pgjb_hashget(plid)
     /* entering a new plid */
     (*JBNEntries)++;
 
-    entry = (JBHashEntry *) hash_search(JBHash, &plid, HASH_ENTER, &found);
+    entry = (JBHashEntry *) hash_search(JBHash, (char *) &plid,
+					HASH_ENTER, &found);
 
     if (entry == (JBHashEntry *) NULL) {
 	SpinRelease(JBSpinLock);
@@ -437,7 +438,8 @@ _pgjb_getplatdesc(plname, plid)
     JBPlatDesc *jbp;
     bool found;
 
-    jbp = (JBPlatDesc *) hash_search(JBPlatHash, &plid, HASH_ENTER, &found);
+    jbp = (JBPlatDesc *) hash_search(JBPlatHash, (char *) &plid,
+				     HASH_ENTER, &found);
 
     if (jbp == (JBPlatDesc *) NULL) {
 	elog(NOTICE, "_pgjb_getplatdesc: private hash table corrupt");

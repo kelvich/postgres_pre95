@@ -124,7 +124,6 @@ static void		_sjdump();
 /* routines declared elsewhere */
 extern HTAB	*ShmemInitHash();
 extern int	*ShmemInitStruct();
-extern int	tag_hash();
 extern Relation	RelationIdGetRelation();
 
 /*
@@ -324,7 +323,7 @@ _sjcacheinit()
 
     /* suck in the metadata */
     nbytes = SJCACHESIZE * sizeof(SJCacheItem);
-    nread = FileRead(SJMetaVfd, SJCache, nbytes);
+    nread = FileRead(SJMetaVfd, (char *) SJCache, nbytes);
 
     /* be sure we got an integral number of entries */
     nentries = nread / sizeof(SJCacheItem);
@@ -1518,7 +1517,7 @@ _sjhashop(tagP, op, foundP)
 {
     SJHashEntry *entry;
 
-    entry = (SJHashEntry *) hash_search(SJCacheHT, tagP, op, foundP);
+    entry = (SJHashEntry *) hash_search(SJCacheHT, (char *) tagP, op, foundP);
 
     if (entry == (SJHashEntry *) NULL) {
 	SpinRelease(SJCacheLock);
@@ -1644,7 +1643,7 @@ _sjgroupvrfy(item, grpno)
 	return (SM_FAIL);
     }
 
-    if (FileRead(SJCacheVfd, &gdesc, sizeof(gdesc)) < 0) {
+    if (FileRead(SJCacheVfd, (char *) &gdesc, sizeof(gdesc)) < 0) {
 	elog(NOTICE, "sjgroupvrfy: Cannot read group desc from sj cache file");
 	return (SM_FAIL);
     }
@@ -1821,7 +1820,7 @@ _sjfindnblocks(tag)
 	elog(FATAL, "_sjfindnblocks: cannot seek to zero on block count file");
     }
 
-    while ((nbytes = FileRead(SJBlockVfd, &mytag, sizeof(mytag))) > 0) {
+    while ((nbytes = FileRead(SJBlockVfd, (char *)&mytag, sizeof(mytag))) > 0) {
 	if (mytag.sjct_dbid == tag->sjct_dbid
 	    && mytag.sjct_relid == tag->sjct_relid) {
 
@@ -1886,7 +1885,7 @@ _sjregnblocks(tag)
     mytag.sjct_base = tag->sjct_base;
 
     /* overwrite existing entry, if any */
-    while (FileRead(SJBlockVfd, &mytag, sizeof(mytag)) > 0) {
+    while (FileRead(SJBlockVfd, (char *) &mytag, sizeof(mytag)) > 0) {
 	if (mytag.sjct_dbid == tag->sjct_dbid
 	    && mytag.sjct_relid == tag->sjct_relid) {
 	    if (FileSeek(SJBlockVfd, (loc * sizeof(SJCacheTag)), L_SET) < 0)

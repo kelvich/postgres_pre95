@@ -51,11 +51,6 @@ static MASK	BITS_ON[MAX_LOCKTYPES];
  */
 static bool LockingIsDisabled;
 
-/* -------------------
- * hash function from (hash_fn.c)
- * -------------------
- */
-extern int tag_hash();
 /* ------------------
  * from storage/ipc/shmem.c
  * ------------------
@@ -406,7 +401,7 @@ LOCKT		lockt;
    * ------------------
    */
   bzero(&item, XID_TAGSIZE);
-  TransactionIdStore(myXid, &item.tag.xid);
+  TransactionIdStore(myXid, (char *) &item.tag.xid);
   item.tag.lock = MAKE_OFFSET(lock);
   item.tag.pid = MyPid;
 
@@ -450,7 +445,7 @@ LOCKT		lockt;
 
   Assert(result->nHolding <= lock->nActive);
 
-  status = LockResolveConflicts(ltable, lock, lockt, myXid, MyPid);
+  status = LockResolveConflicts(ltable, lock, lockt, myXid, (int) MyPid);
 
   if (status == STATUS_OK)
   {
@@ -513,7 +508,7 @@ int pid;
    * ------------------
    */
   bzero(&item, XID_TAGSIZE);
-  TransactionIdStore(xid, &item.tag.xid);
+  TransactionIdStore(xid, (char *) &item.tag.xid);
   item.tag.lock = MAKE_OFFSET(lock);
   item.tag.pid = pid;
 
@@ -721,7 +716,7 @@ LOCKT	lockt;
    */
   bzero(&item, XID_TAGSIZE);
 
-  TransactionIdStore(GetCurrentTransactionId(), &item.tag.xid);
+  TransactionIdStore(GetCurrentTransactionId(), (char *) &item.tag.xid);
   item.tag.lock = MAKE_OFFSET(lock);
   item.tag.pid = MyPid;
 
@@ -796,7 +791,7 @@ LOCKT	lockt;
    * himself.
    * --------------------------
    */
-  (void) ProcLockWakeup(&(lock->waitProcs), ltable, lock);
+  (void) ProcLockWakeup(&(lock->waitProcs), (char *) ltable, (char *) lock);
 
   SpinRelease(masterLock);
   return(TRUE);
@@ -829,7 +824,7 @@ SHM_QUEUE	*lockQueue;
   LOCKTAB 	*ltable;
   int		i,nLockTypes;
   LOCK		*lock;
-  int		found;
+  Boolean	found;
 
   Assert (tableId < NumTables);
   ltable = AllTables[tableId];
@@ -923,7 +918,7 @@ SHM_QUEUE	*lockQueue;
        * --------------------
        */
       waitQueue = &(lock->waitProcs);
-      (void) ProcLockWakeup(waitQueue, ltable, lock);
+      (void) ProcLockWakeup(waitQueue, (char *) ltable, (char *) lock);
     }
 
     if (done)

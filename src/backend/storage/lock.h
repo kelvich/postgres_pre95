@@ -204,8 +204,8 @@ int LockShmemSize();
 
 int WaitOnLock ARGS((
 	LOCKTAB *ltable, 
-	LOCK *lock, 
 	LockTableId tableId, 
+	LOCK *lock, 
 	LOCKT lockt
 ));
 

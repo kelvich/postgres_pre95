@@ -232,7 +232,6 @@ int pid;
 {
   PROC 		*proc;
   SHMEM_OFFSET	location,ShmemPIDDestroy();
-  void ProcReleaseSpins();
 
   /* -------------------- 
    * If this is a FATAL exit the postmaster will have to kill all the existing
@@ -380,7 +379,8 @@ LOCK *		lock;
    * currently, we only need this for the ProcWakeup routines
    * -------------------
    */
-  TransactionIdStore(GetCurrentTransactionId(), &MyProc->xid);
+  TransactionIdStore((TransactionId) GetCurrentTransactionId(),
+		     (char *) &MyProc->xid);
 
   /* -------------------
    * assume that these two operations are atomic (because
@@ -472,8 +472,8 @@ ProcGetId()
 int
 ProcLockWakeup( queue, ltable, lock)
 PROC_QUEUE	*queue;
-Address		ltable;
-Address		lock;
+char *		ltable;
+char *		lock;
 {
   PROC	*proc;
   int	count;
@@ -483,8 +483,8 @@ Address		lock;
 
   proc = (PROC *) MAKE_PTR(queue->links.prev);
   count = 0;
-  while ((LockResolveConflicts (ltable,
-				lock,
+  while ((LockResolveConflicts ((LOCKTAB *) ltable,
+				(LOCK *) lock,
 				proc->token,
 				&proc->xid,
 				proc->pid) == STATUS_OK))
@@ -494,7 +494,7 @@ Address		lock;
      * between the time we release the lock master (spinlock) and
      * the time that the awoken process begins executing again.
      */
-    GrantLock(lock, proc->token);
+    GrantLock((LOCK *) lock, proc->token);
     queue->size--;
     ProcWakeup(proc, NO_ERROR);
     /* get next proc in chain.  If a writer just dropped its lock

@@ -215,7 +215,7 @@ unsigned int size;
   strncpy(item.key,"BindingTable",BTABLE_KEYSIZE);
 
   result = (BindingEnt *) 
-    hash_search(BindingTable,&item,HASH_ENTER, &found);
+    hash_search(BindingTable,(char *) &item,HASH_ENTER, &found);
 
 
   if (! result ) {
@@ -380,7 +380,7 @@ SHMEM_OFFSET*	locationPtr;
   
   SpinAcquire(BindingLock);
   result = (BindingEnt *) 
-    hash_search(BindingTable,&item, HASH_ENTER, &found);
+    hash_search(BindingTable,(char *) &item, HASH_ENTER, &found);
 
   if (! result) {
 
@@ -424,7 +424,7 @@ int		pid;
   
   SpinAcquire(BindingLock);
   result = (BindingEnt *) 
-    hash_search(BindingTable,&item, HASH_REMOVE, &found);
+    hash_search(BindingTable,(char *) &item, HASH_REMOVE, &found);
 
   if (found)
     location = result->location;
@@ -502,7 +502,7 @@ Boolean *foundPtr;
   } else {
 	/* look it up in the bindint table */
     result = (BindingEnt *) 
-      hash_search(BindingTable,&item,HASH_ENTER, foundPtr);
+      hash_search(BindingTable,(char *) &item,HASH_ENTER, foundPtr);
   }
 
   if (! result) {
@@ -533,7 +533,7 @@ Boolean *foundPtr;
     if (! structPtr) {
       /* out of memory */
       Assert (BindingTable);
-      (void) hash_search(BindingTable,&item,HASH_REMOVE, foundPtr);
+      (void) hash_search(BindingTable,(char *) &item,HASH_REMOVE, foundPtr);
       SpinRelease(BindingLock);
       *foundPtr = FALSE;
 

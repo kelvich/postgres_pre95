@@ -13,9 +13,10 @@
  * Sync: all routines in this file assume that the buffer
  * 	semaphore has been acquired by the caller.
  */
-#include "internal.h"
+#include "storage/buf_internals.h"
 #include "storage/spin.h"
 #include "utils/log.h"
+/* #include "storage/buf_protos.h" */
 
 static
 BufferDesc 	*SharedFreeList;

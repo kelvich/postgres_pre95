@@ -9,6 +9,7 @@
 #define _INC_MULTILEV_
 
 #include "storage/lock.h"
+#include "storage/lmgr.h"
 
 #define READ_LOCK  	2
 #define WRITE_LOCK 	1
@@ -48,14 +49,14 @@ bool MultiReleaseReln ARGS((LockInfo linfo, LOCKT lockt));
 bool MultiReleasePage ARGS((LockInfo linfo, ItemPointer tidPtr, LOCKT lockt));
 
 bool MultiAcquire ARGS((
-	TableId tableId, 
+	LockTableId tableId, 
 	LOCKTAG *tag, 
 	LOCK_LEVEL level, 
 	LOCKT lockt
 ));
 
 bool MultiRelease ARGS((
-	TableId tableId, 
+	LockTableId tableId, 
 	LOCKTAG *tag, 
 	LOCK_LEVEL level, 
 	LOCKT lockt

@@ -15,14 +15,15 @@
  *  All routines in this file assume buffer manager spinlock is
  *  held by their caller.
  */
-#include "internal.h"
+#include "storage/buf_internals.h"
+#include "storage/bufmgr.h"
 #include "storage/shmem.h"
 #include "storage/spin.h"
 #include "utils/hsearch.h"
 #include "utils/log.h"
+/* #include "storage/buf_protos.h" */
 
 HTAB *SharedBufHash,*ShmemInitHash();
-int tag_hash();
 
 extern int NBuffers;
 
@@ -76,7 +77,7 @@ BufferTag *tagPtr;
       return(NULL);
 
   result = (LookupEnt *) 
-    hash_search(SharedBufHash,tagPtr,HASH_FIND,&found);
+    hash_search(SharedBufHash,(char *) tagPtr,HASH_FIND,&found);
 
   if (! result){
     elog(WARN,"BufTableLookup: BufferLookup table corrupted");
@@ -108,7 +109,7 @@ BufferDesc *buf;
   buf->flags |= BM_DELETED;
 
   result = (LookupEnt *)
-    hash_search(SharedBufHash,&(buf->tag),HASH_REMOVE,&found);
+    hash_search(SharedBufHash,(char *) &(buf->tag),HASH_REMOVE,&found);
 
   if (! (result && found)) {
     elog(WARN,"BufTableDelete: BufferLookup table corrupted");    
@@ -129,7 +130,7 @@ BufferDesc *buf;
   buf->flags &= ~(BM_DELETED);
 
   result = (LookupEnt *)
-    hash_search(SharedBufHash,&(buf->tag),HASH_ENTER,&found);
+    hash_search(SharedBufHash,(char *) &(buf->tag),HASH_ENTER,&found);
 
   if (! result) {
     elog(WARN,"BufTableInsert: BufferLookup table corrupted");

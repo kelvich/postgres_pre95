@@ -9,7 +9,9 @@ RcsId("$Header$");
 
 #include "utils/log.h"
 
-#include "internal.h"
+#include "storage/buf_internals.h"
+/* #include "storage/buf_protos.h" */
+
 
 extern char *calloc();
 extern int NBuffers;

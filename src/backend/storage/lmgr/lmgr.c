@@ -199,7 +199,7 @@ RelationInitLockInfo(relation)
     info = (LockInfo) relation->lockInfo;
     relname = (char *) RelationGetRelationName(relation);
     relationid = RelationGetRelationId(relation);
-    processingVariable = NameIsEqual(relname, VariableRelationName);
+    processingVariable = NameIsEqual((Name) relname, VariableRelationName);
     
     /* ----------------
      *	create a new lockinfo if not already done
@@ -228,7 +228,7 @@ RelationInitLockInfo(relation)
      *	initialize lockinfo.dbId and .relId appropriately
      * ----------------
      */
-    if (NameIsSharedSystemRelationName(relname))
+    if (NameIsSharedSystemRelationName((Name) relname))
 	LRelIdAssign(&info->lRelId, InvalidObjectId, relationid);
     else
 	LRelIdAssign(&info->lRelId, MyDatabaseId, relationid);
@@ -244,7 +244,7 @@ RelationInitLockInfo(relation)
 	TransactionIdStore(GetCurrentTransactionId(),
 			   (Pointer) &info->transactionIdData);
     else
-	PointerStoreInvalidTransactionId(&info->transactionIdData);
+	PointerStoreInvalidTransactionId((Pointer) &info->transactionIdData);
 	
     /* ----------------
      *	initialize rest of lockinfo
@@ -634,7 +634,7 @@ RelationSetLockForReadPage(relation, partition, itemPointer)
      *	attempt to set lock
      * ----------------
      */
-    MultiLockPage(relation->lockInfo, itemPointer, READ_LOCK);
+    MultiLockPage((LockInfo) (relation->lockInfo), itemPointer, READ_LOCK);
 }
 
 /* ----------------
@@ -675,7 +675,7 @@ RelationSetLockForWritePage(relation, partition, itemPointer)
      *	attempt to set lock
      * ----------------
      */
-    MultiLockPage(relation->lockInfo, itemPointer, WRITE_LOCK);
+    MultiLockPage((LockInfo) relation->lockInfo, itemPointer, WRITE_LOCK);
 }
 
 /* ----------------
@@ -710,7 +710,7 @@ RelationUnsetLockForReadPage(relation, partition, itemPointer)
             "Releasing a lock on %s with invalid lock information",
             RelationGetRelationName(relation));
 
-    MultiReleasePage(relation->lockInfo, itemPointer, READ_LOCK);
+    MultiReleasePage((LockInfo) relation->lockInfo, itemPointer, READ_LOCK);
 }
 
 /* ----------------
@@ -745,7 +745,7 @@ RelationUnsetLockForWritePage(relation, partition, itemPointer)
             "Releasing a lock on %s with invalid lock information",
             RelationGetRelationName(relation));
 
-    MultiReleasePage(relation->lockInfo, itemPointer, WRITE_LOCK);
+    MultiReleasePage((LockInfo) relation->lockInfo, itemPointer, WRITE_LOCK);
 }
 
 /*
@@ -956,7 +956,7 @@ RelationSetLockForExtend(relation)
     if (!LockInfoIsValid(relation->lockInfo))
 	RelationInitLockInfo(relation);
 
-    MultiLockReln(relation->lockInfo, EXTEND_LOCK);
+    MultiLockReln((LockInfo) relation->lockInfo, EXTEND_LOCK);
 }
 
 RelationUnsetLockForExtend(relation)
@@ -973,7 +973,7 @@ RelationUnsetLockForExtend(relation)
     if (!LockInfoIsValid(relation->lockInfo))
 	RelationInitLockInfo(relation);
 
-    MultiReleaseReln(relation->lockInfo, EXTEND_LOCK);
+    MultiReleaseReln((LockInfo) relation->lockInfo, EXTEND_LOCK);
 }
 
 /* 

@@ -14,6 +14,7 @@
 #include "tmp/c.h"
 
 #include "storage/buf.h"
+#include "storage/buf_internals.h"
 #include "machine.h"		/* for BLCKSZ */
 #include "utils/rel.h"
 
@@ -230,8 +231,7 @@ BufferPut ARGS((
 extern
 ReturnStatus
 BufferWriteInOrder ARGS((
-	const Buffer	predecessorBuffer,
-	const Buffer	successorBuffer
+    BufferDesc  *predb, BufferDesc *succb
 ));
 
 extern

@@ -74,8 +74,8 @@ TransactionId	SIXid = &SIXidData;
 extern
 BackendId
 SIAssignBackendId ARGS((
-	SISeg 		*segInOutP;
-	BackendTag	tag;
+	SISeg 		*segInOutP,
+	BackendTag	tag
 ));
 
 /*
@@ -87,8 +87,8 @@ SIAssignBackendId ARGS((
 extern
 void
 CleanupInvalidationState ARGS((
-	int		status;	/* XXX */
-	SISeg		*segInOutP;
+	int		status,	/* XXX */
+	SISeg		*segInOutP
 ));
 
 /************************************************************************/

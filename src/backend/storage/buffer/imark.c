@@ -15,6 +15,7 @@ RcsId("$Header$");
 #include "access/imark.h"
 #include "storage/buf.h"
 #include "storage/itemptr.h"
+/* #include "storage/buf_protos.h" */
 
 bool
 ItemMarkIsValid(mark)
