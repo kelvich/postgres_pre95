@@ -5,7 +5,7 @@
  *   prs2attr.c
  *
  * IDENTIFICATION:
- *$Header$
+ * $Header$
  *
  * DESCRIPTION:
  *
