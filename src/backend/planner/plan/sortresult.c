@@ -17,9 +17,13 @@
  */
 
 #include "internal.h"
-
-#define TRUE  1
-#define FALSE  0
+#include "relation.h"
+#include "relation.a.h"
+#include "primnodes.h"
+#include "primnodes.a.h"
+#include "c.h"
+#include "pg_lisp.h"
+#include "tlist.h"
 
 extern LispValue sort_list_car();
 
@@ -62,36 +66,36 @@ relation_sortkeys (tlist)
 
 	foreach (xtl,tlist) {
 	     int numkeys = 0;
-	     Boolean allsame = TRUE;
+	     bool allsame = true;
 	     LispValue relid = LispNil;
 	     LispValue sort_ops = LispNil;
-	     LispValue varkeys = LispNil;
-	     LispValue keys = LispNil;
-	     LispValue resdom = LispNil;
-	     LispValue expr = LispNil;
+	     List	varkeys = LispNil;
+	     List	keys = LispNil;
+	     Resdom	resdom;
+	     Node	expr;
 
 	     /* end test  */
 	     if ( null (xtl)) {
 		  if(!allsame) 
-		    return (numkeys);
+		    return (lispInteger(numkeys));
 		  else 
 		    if (null (relid)) 
 		      return (LispNil);
 		    else 
-		      return (new_sortkey (list (relid),
-					   sort_list_car (sort_ops),
-					   sort_list_car (varkeys),
-					   sort_list_car (keys)));
-	     }
-	     resdom = tl_resdom (CAR (xtl));
-	     expr = tl_expr (CAR (xtl));
+		      return ((LispValue)MakeSortKey (list (relid),
+						      sort_list_car (sort_ops),
+						      sort_list_car (varkeys),
+						      sort_list_car (keys)));
+	      }
+	     resdom = get_resdom (CAR (xtl));
+	     expr = get_expr (CAR (xtl));
 
 	     /*  If reskey is non-zero, we've found a sort key of some kind. */
 	     if (!(equal (0,get_reskey (resdom)))) {
 		  if(!(var_p (expr)) ||
 		     var_is_nested (expr) || 
 		     (relid && ! (equal (relid,get_varno (expr)))))
-		       allsame = FALSE;
+		       allsame = false;
 		  else 
 		    if (allsame) {
 			 if ( null (relid)) 
@@ -187,7 +191,7 @@ LispValue pathlist,sortkeys,rel,width ;
 	  /* sort explicitly.  For results that don't have to be explicitly */
 	  /* sorted, account for the cost of putting tuples into a result */
 	  /* relation. */
-	  LispValue final_result = _query_result_relation_ &&
+	  int final_result = _query_result_relation_ &&
                          	    (1 == _query_max_level_);
 	  int newcost = 0;
 
@@ -244,21 +248,22 @@ LispValue pathlist,sortkeys,rel,width ;
 
 /*  .. create_plan, query_planner		 */
 
-LispValue
+Plan
 sort_level_result (plan,numkeys)
-     LispValue plan,numkeys ;
+     Plan plan;
+     int numkeys ;
 {
      LispValue new_tlist = new_unsorted_tlist (get_qptargetlist (plan));
-     LispValue new_plan = LispNil;
+     Plan new_plan;
      LispValue xtl = LispNil;
 
      if(_query_result_relation_)
-       new_plan = make_sort (get_qptargetlist (plan),
+       new_plan = (Plan)MakeSort (get_qptargetlist (plan),
 			     _query_result_relation_,
 			     plan,
 			     numkeys);
      else 
-       new_plan = make_seqscan (tlist_temp_references(_TEMP_RELATION_ID_,
+       new_plan = (Plan)MakeSeqScan (tlist_temp_references(_TEMP_RELATION_ID_,
 						      new_tlist),
 				LispNil,
 				_TEMP_RELATION_ID_,
