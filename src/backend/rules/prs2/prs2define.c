@@ -845,10 +845,19 @@ EventType eventType;
 	resultRelation = root_result_relation(root);
 	rangeTable = root_rangetable(root);
 	if (!null(resultRelation)) {
-	    resultRelationNo = CInteger(resultRelation);
-	    resultRelationEntry = nth(resultRelationNo-1, rangeTable);
-	    strcpy(&(nameData.data[0]),
-		    CString(rt_relname(resultRelationEntry)));
+	    if (commandType == RETRIEVE) {
+		/*
+		 * This is a retrieve into, the result reln info
+		 * is a list of junk.
+		 */
+		strncpy(&(nameData.data[0]),
+			CString(CADR(resultRelation)), sizeof(NameData));
+	    } else {
+		resultRelationNo = CInteger(resultRelation);
+		resultRelationEntry = nth(resultRelationNo-1, rangeTable);
+		strcpy(&(nameData.data[0]),
+		CString(rt_relname(resultRelationEntry)));
+	    }
 	    relationName = &nameData;
 	} else {
 	    relationName = InvalidName;
@@ -978,11 +987,20 @@ LispValue parseTree;
     resultRelation = root_result_relation(root);
     rangeTable = root_rangetable(root);
     if (!null(resultRelation)) {
-	resultRelationNo = CInteger(resultRelation);
-	resultRelationEntry = nth(resultRelationNo-1, rangeTable);
-	strcpy(&(nameData.data[0]),
-		CString(rt_relname(resultRelationEntry)));
-	relationName = &nameData;
+	if (commandType == RETRIEVE) {
+	    /*
+	     * This is a retrieve into, the result reln info
+	     * is a list of junk.
+	     */
+	    strncpy(&(nameData.data[0]),
+		    CString(CADR(resultRelation)), sizeof(NameData));
+	} else {
+	    resultRelationNo = CInteger(resultRelation);
+	    resultRelationEntry = nth(resultRelationNo-1, rangeTable);
+	    strcpy(&(nameData.data[0]),
+	    CString(rt_relname(resultRelationEntry)));
+	}
+	    relationName = &nameData;
     } else {
 	relationName = InvalidName;
     }
