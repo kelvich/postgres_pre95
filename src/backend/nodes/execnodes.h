@@ -328,6 +328,12 @@ class (AppendState) public (Node) {
  *      numPlans        how many plans are in each list (list of 3)
  *      initialized     array of ExecInitNode() results
  *      rtentries       range table for the current plan
+ *      effectsNoted    flag indicating whether the result relation
+ *                      has been successfully affected in present
+ *                      iteration.
+ *      tempsSwapped    flag indicating whether the temporary relations
+ *                      mentioned in the plan are used as initially
+ *                      planned, or have switched places.
  * ----------------------------------------------------------------
  */
 
@@ -335,9 +341,11 @@ class (RecursiveState) public (Node) {
     inherits(Node);
     int         rcs_whichSequence;
     int         rcs_whichPlan;
-    ListPtr     rcs_numPlans;
+    List        rcs_numPlans;
     ListPtr     rcs_initialized;
     List        rcs_rtentries;
+    bool        rcs_effectsNoted;
+    bool	rcs_tempsSwapped;
 };
 
 /* ----------------------------------------------------------------
