@@ -82,8 +82,9 @@ $AWK 'BEGIN { i = -1 }\
 $RM -f $SLOTFILE
 $CAT $NODEFILES | \
 $EGREP -v '(^#|^[ 	/]*\*|typedef|extern|Defs)'  | \
-$SED -e 's/;//' \
+$SED \
     -e '/\/\*/,/\*\//D' \
+    -e 's/;//' \
     -e 's/	/ /g' \
     -e 's/  */ /g' \
     -e 's/\\//' | \
