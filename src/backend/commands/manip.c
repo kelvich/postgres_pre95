@@ -150,7 +150,7 @@ DefineEntryGetLength(entry)
 		AssertArg(lispStringp(CAR(entry)));
 		elog(WARN, "Define: %s = what?", CString(CADR(entry)));
 	} else {
-		if (CInteger(CADR(entry)) <= 0) {
+		if (CInteger(CADR(entry)) < 0) {
 			elog(WARN, "Define: non-positive lengths disallowed");
 		}
 		length = CInteger(CADR(entry));
