@@ -4,53 +4,53 @@
 .XA 2 Destroy
 .uh NAME
 .lp
-destroy \*- destroy existing relations
+destroy \*- destroy existing classes
 .uh SYNOPSIS
 .lp
 .b destroy
-relname1 { ,
-.r relname \c
+classname1 { ,
+.r classname \c
 .i i
 }
 .uh DESCRIPTION
 .lp
 .b Destroy
-removes relations from the data base.
-Only its owner may destroy a relation.
-A relation may be emptied of tuples,
+removes classes from the data base.
+Only its owner may destroy a class.
+A class may be emptied of instances,
 but not destroyed,
 by using the
 .b delete
 statement.
 .lp
-If a relation being destroyed has secondary indices on it,
+If a class being destroyed has secondary indices on it,
 then they will be removed first.
 The removal of just a secondary index will not affect
-the indexed relation.
+the indexed class.
 .lp
-This command may be used to destroy a version relation
+This command may be used to destroy a version class
 which is not a parent of some other version.
-Destroying a relation which is a parent of a
-version relation is disallowed.
+Destroying a class which is a parent of a
+version class is disallowed.
 Instead, the
 .b merge
 command should be used.
-Moreover, destroying a relation whose fields are inherited by other relations
+Moreover, destroying a qclass whose fields are inherited by other classes
 is similarly disallowed.  An inheritance hierarchy must be destroyed from 
 leaf level to root level.
 .lp
-The destruction of relations is not reversable.
-Thus, a destroyed relation will not be recovered
-if a transaction which destroys this relation fails to commit.
+The destruction of classes is not reversable.
+Thus, a destroyed class will not be recovered
+if a transaction which destroys this class fails to commit.
 In addition,
-historical access to records in a destroyed relation is not possible.
+historical access to instances in a destroyed class is not possible.
 .uh EXAMPLE
 .lp
-/* Destroy the emp relation */
+/* Destroy the emp class */
 
 destroy emp
 .lp
-/* Destroy the emp and parts relations */
+/* Destroy the emp and parts classes */
 
 destroy emp, parts
 .uh "SEE ALSO"

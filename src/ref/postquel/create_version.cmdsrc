@@ -4,42 +4,42 @@
 .XA 2 "Create Version"
 .uh NAME
 .lp
-create version \*- construct a version relation 
+create version \*- construct a version class 
 .uh SYNOPSIS
 .lp
 .b "create version"
-.r relname1
+.r classname1
 .b from
-.r relname2 [\c
+.r classname2 [\c
 .b [
 abstime
 .b ] ]
 .uh DESCRIPTION
 .lp
-This command creates a version relation
-.i relname1
+This command creates a version class
+.i classname1
 which is related
-to its parent relation,
-.i relname2 .
+to its parent class,
+.i classname2 .
 Initially,
-.i relname1
+.i classname1
 has the same contents as
-.i relname2.
+.i classname2.
 As updates to 
-.i relname1 
+.i classname1 
 occur, however,
 the contents of
-.i relname1
+.i classname1
 diverges from
-.i relname2.
+.i classname2.
 On the other hand, any updates to
-.i relname2
+.i classname2
 show transparently through
 to
-.i relname1 ,
-unless the tuple in question has already been updated
+.i classname1 ,
+unless the instance in question has already been updated
 in
-.i relname1 .  
+.i classname1 .  
 .lp
 If the optional
 .i abstime
@@ -47,19 +47,19 @@ clause is specified, then the version is
 constructed relative to a 
 .b snapshot
 of
-.i relname2
+.i classname2
 as of the time specified.
 .lp
 POSTGRES uses the rules system to ensure that 
-.i relname1
+.i classname1
 is differentially encoded relative
 to 
-.i relname2.  
+.i classname2.  
 Moreover, 
-.i relname1
+.i classname1
 is automatically constructed
 to have the same indexes as
-.i relname2 .
+.i classname2 .
 It is legal to cascade versions
 arbitrarily, so a tree of versions can ultimately result.
 The algorithms that control versions are explained in [ONG90].
@@ -73,7 +73,3 @@ create version foobar from
 .uh "SEE ALSO"
 .lp
 merge(commands).
-.uh "BUGS"
-.lp
-Create version
-will not work until Version 2.1
