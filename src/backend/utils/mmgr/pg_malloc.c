@@ -402,6 +402,7 @@ Size size;
                                        ((long) header
                                         + sizeof(NodeMemoryHeader)
                                         + this_page->element_size);
+		this_page->offset = 1;
     }
     return(addr);
 }
@@ -669,7 +670,7 @@ Size size;
     BigMemoryPage *page;
     Size page_size;
 
-    page_size = sizeof(BigMemoryPage) - sizeof(char) + size;
+    page_size = sizeof(BigMemoryPage) + size - sizeof(char *);
 
     page = (BigMemoryPage *) malloc(page_size);
     if (page == NULL)
@@ -824,31 +825,32 @@ FreeBigMemory(addr)
 unsigned char *addr;
 
 {
-    BigMemoryPage *page, *prev;
+    BigMemoryPage *page, *scanner;
     bool8 freed = FALSE;
+	Size size = sizeof(BigMemoryPage) - sizeof(char *);
 
-    if (page_data->big_pages != NULL)
-    {
-        for (page = page_data->big_pages, prev = page_data->big_pages;
-             page != NULL && !freed;
-             page = page->next)
-        {
-            if (page->begin_addr <= addr && page->end_addr > addr)
-            {
-                if (prev == page)
-                {
-                    free(prev);
-                    page_data->big_pages == NULL;
-                }
-                else
-                {
-                    prev->next = page->next;
-                    free(page);
-                }
-                freed = TRUE;
-            }
-        }
-    }
+	printf("sizeof(BigMemoryPage) is %d\n", size);
+
+	page = (BigMemoryPage *) ((long) addr - size);
+
+	if (PageIsValid(page))
+	{
+		if (page == page_data->big_pages)
+		{
+			page_data->big_pages = page_data->big_pages->next;
+			free(page);
+		}
+		else
+		{
+			for (scanner = page_data->big_pages;
+				 scanner->next != page;
+				 scanner = scanner->next);
+
+			scanner->next = page->next;
+			free(page);
+		}
+		freed = TRUE;
+	}
     return(freed);
 }
 
