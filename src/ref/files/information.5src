@@ -1,0 +1,45 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.XA 0 "Section 6 \*- Files" _
+.SP INFORMATION FILES 6/14/90
+.XA 1 "General Information (Information)"
+.uh OVERVIEW
+.lp
+This section describes
+some of the important files used by \*(PP.
+.uh NOTATION
+.lp
+.q .../
+at the front of file names represents the path
+to the postgres user's home directory.
+Anything in square brackets
+.r ( \c
+.b [
+and
+.b ] )
+is optional.
+Anything in braces
+.r ( \c
+.b {
+and
+.b } )
+can be repeated 0 or more times.
+Parentheses
+.r ( \c
+.b (
+and
+.b ) )
+are used to group boolean expressions.
+.b |
+is the boolean
+operator
+.A OR .
+.uh BUGS
+.lp
+The descriptions of
+.b .../.postgresrc ,
+.b .../data/PG_VERSION,
+.b .../data/*/PG_VERSION ,
+the temporary sort files,
+and the database debugging trace
+files are absent.
