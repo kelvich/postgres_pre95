@@ -41,12 +41,12 @@ int	keysize;
 	/*
 	 * Convert tag to integer;
 	 */
-	for(h = 0;keysize > (sizeof(int)-1);keysize -= sizeof(int),key ++) {
+	for(h = 0;keysize > (sizeof(int)-1);keysize -= sizeof(int),key++) {
 	  h = h * PRIME1 ^ (*key);
 	}
 	while (keysize) {
 	  h = h * PRIME1 ^ (*((char *)key));
-	  key = (int *) ((unsigned)key)+1;
+	  key = (int *) ( ((char *)key)+1 );
 	  keysize--;
 	}
 	h %= PRIME2;
