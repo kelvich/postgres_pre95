@@ -963,13 +963,13 @@ ExecGetTupType(node)
     
     case classTag(Material):
 	s.matstate = 		get_matstate(node);
-	slot =			get_css_ScanTupleSlot(s.matstate);
+	slot = (TupleTableSlot) get_css_ScanTupleSlot(s.matstate);
 	tupType =  		ExecSlotDescriptor(slot);
 	return tupType;
 	
     case classTag(Sort):
 	s.sortstate = 		get_sortstate(node);
-	slot =			get_css_ScanTupleSlot(s.sortstate);
+	slot = (TupleTableSlot) get_css_ScanTupleSlot(s.sortstate);
 	tupType =  		ExecSlotDescriptor(slot);
 	return tupType;
         

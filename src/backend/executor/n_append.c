@@ -347,10 +347,10 @@ ExecProcAppend(node)
          * ----------------
          */
 	return
-	    ExecStoreTuple(ExecFetchTuple(result),
-			   result_slot,
-			   ExecSlotBuffer(result),
-			   false);
+	    (TupleTableSlot) ExecStoreTuple(ExecFetchTuple(result),
+			   		    result_slot,
+			   		    ExecSlotBuffer(result),
+			   		    false);
     
     } else {
         /* ----------------
@@ -376,7 +376,7 @@ ExecProcAppend(node)
 		ExecProcAppend(node);
         } else
 	    return
-		ExecClearTuple(result_slot);
+		(TupleTableSlot) ExecClearTuple(result_slot);
     }
 }
  
