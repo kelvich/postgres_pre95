@@ -80,6 +80,22 @@ static f_smgr smgrsw[] = {
 #endif /* MAIN_MEMORY */
 };
 
+/*
+ *  This array records which storage managers are write-once, and which
+ *  support overwrite.  A 'true' entry means that the storage manager is
+ *  write-once.  In the best of all possible worlds, there would be no
+ *  write-once storage managers.
+ */
+
+static bool smgrwo[] = {
+    false		/* magnetic disk */
+#ifdef SONY_JUKEBOX
+    , true		/* sony jukebox */
+#endif /* SONY_JUKEBOX */
+#ifdef MAIN_MEMORY
+    , false		/* main memory*/
+#endif /* MAIN_MEMORY */
+};
 static int NSmgr = lengthof(smgrsw);
 
 /*
@@ -408,4 +424,14 @@ smgrabort()
     }
 
     return (SM_SUCCESS);
+}
+
+bool
+smgriswo(smgrno)
+    int16 smgrno;
+{
+    if (smgrno < 0 || smgrno >= NSmgr)
+	elog(WARN, "illegal storage manager number %d", smgrno);
+
+    return (smgrwo[smgrno]);
 }
