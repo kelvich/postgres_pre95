@@ -304,8 +304,8 @@ static struct cachedesc cacheinfo[] = {
             0,
             0 },
         sizeof(FormData_pg_naming),
-        NULL,
-	NULL  },
+      &NamingNameIndex,
+      NamingNameIndexScan  },
     { &LargeObjectAssocRelationName,           /*LOBJREL */
         1,
         { Anum_pg_large_object_oid,/*LargeObjectOIDAttributeNumber,*/
