@@ -261,11 +261,13 @@ int32 int4pl(arg1, arg2) 	int32	arg1, arg2; { return(arg1 + arg2); }
 int32 int4mi(arg1, arg2)	int32	arg1, arg2; { return(arg1 - arg2); }
 int32 int4mul(arg1, arg2)	int32	arg1, arg2; { return(arg1 * arg2); }
 int32 int4div(arg1, arg2)	int32	arg1, arg2; { return(arg1 / arg2); }
+int32 int4inc(arg)		int32   arg;        { return(arg + (int32)1); }
 
 int32 int2pl(arg1, arg2)	int16	arg1, arg2; { return(arg1 + arg2); }
 int32 int2mi(arg1, arg2)	int16	arg1, arg2; { return(arg1 - arg2); }
 int32 int2mul(arg1, arg2)	int16	arg1, arg2; { return(arg1 * arg2); }
 int32 int2div(arg1, arg2)	int16	arg1, arg2; { return(arg1 / arg2); }
+int32 int2inc(arg)		int16   arg;	    { return(arg + (int16)1); }
 
 #ifdef FMGR_MATH
 /*
