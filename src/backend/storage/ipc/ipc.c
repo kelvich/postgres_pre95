@@ -690,6 +690,8 @@ static SLock **FreeSLockPP;
 static int *UnusedSLockIP;
 static slock_t *SLockMemoryLock;
 static IpcMemoryId SLockMemoryId = -1;
+static int SLockMemorySize = sizeof(SLock*) + sizeof(int) + 
+			     sizeof(slock_t) + NSLOCKS*sizeof(SLock);
 void
 CreateAndInitSLockMemory(key)
 IPCKey key;
@@ -698,12 +700,9 @@ IPCKey key;
     SLock *slckP;
 
     SLockMemoryId = IpcMemoryCreate(key,
-				    sizeof(SLock*) + 
-				    sizeof(int) +
-				    sizeof(slock_t) +
-				    NSLOCKS*sizeof(SLock),
+				    SLockMemorySize,
 				    0700);
-    AttachSLockMemory();
+    AttachSLockMemory(key);
     *FreeSLockPP = NULL;
     *UnusedSLockIP = FIRSTFREELOCKID;
     for (id=0; id<FIRSTFREELOCKID; id++) {
@@ -725,7 +724,7 @@ IPCKey key;
 {
     char *slockM;
     if (SLockMemoryId == -1)
-	   SLockMemoryId = IpcMemoryIdGet(key,0);
+	   SLockMemoryId = IpcMemoryIdGet(key,SLockMemorySize);
     if (SLockMemoryId == -1)
 	   elog(FATAL, "SLockMemory not in shared memory");
     slockM = IpcMemoryAttach(SLockMemoryId);
