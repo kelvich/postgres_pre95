@@ -183,10 +183,6 @@ CFLAGS+=  -DPOSTGRESDIR='"${POSTGRESDIR}"' \
 	-I${.CURDIR}/tmp \
 	-I${.CURDIR}/port/${PORTNAME}
 
-.if defined(USE_DLD)
-LDADD+= -ldld 
-.endif
-
 #
 # == BEGIN MACHINE-SPECIFIC SECTION ==
 #
