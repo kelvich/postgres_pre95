@@ -896,7 +896,7 @@ hashFunc(key,len)
      * data.
      */
     if (len == -1) {
-	l = VARSIZE(key) - sizeof(long);	/* 'varlena.vl_len' is a long*/
+	l = VARSIZE(key) - VARHDRSZ;
 	k = (unsigned char*) VARDATA(key);
     } else {
 	l = len;
