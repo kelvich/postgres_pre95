@@ -101,10 +101,16 @@ extern float64		float8um();
 extern float32		float4pl();
 extern float32		float4mi();
 extern float32		float4mul();
+extern float32		float4inc();
+extern float32		float4larger();
+extern float32		float4smaller();
 extern float32		float4div();
 extern float64		float8pl();
 extern float64		float8mi();
 extern float64 		float8mul();
+extern float64 		float8inc();
+extern float64 		float8larger();
+extern float64 		float8smaller();
 extern float64		float8div();
 extern int32		float4eq();
 extern int32		float4ne();
@@ -373,6 +379,10 @@ extern bool smgrne();
 
 extern int32 pqtest();
 extern int32 int2inc();
+extern int16 int2larger();
+extern int16 int2smaller();
 extern int32 int4inc();
+extern int32 int4larger();
+extern int32 int4smaller();
 
 #endif !BuiltinsIncluded
