@@ -257,7 +257,6 @@ bool		bufferLockHeld;
   BufferDesc 		*buf;	  
   BufferTag 		newTag;	 /* identity of requested block */
   Boolean		inProgress; /* buffer undergoing IO */
-  File			virtFile; /* descriptor for reln file */
   int			status;
   Boolean		newblock = FALSE;
   BufferDesc		oldbufdesc;
@@ -393,7 +392,7 @@ bool		bufferLockHeld;
   SpinRelease(BufMgrLock);
 
   if (oldbufdesc.flags & BM_DIRTY) {
-     (void) BlockReplace(&oldbufdesc);
+     (void) BufferReplace(&oldbufdesc);
      BufferFlushCount++;
   } 
   return (buf);
@@ -457,7 +456,7 @@ Buffer	buffer;
     UnpinBuffer(bufHdr);
     SpinRelease(BufMgrLock); 
   } else {
-    BlockReplace(bufHdr);
+    BufferReplace(bufHdr);
   }
 
 
@@ -1129,6 +1128,45 @@ BufferPut(buffer,lockLevel)
     }
 
     return(0);
+}
+
+BufferReplace(bufHdr)
+    BufferDesc 	*bufHdr;
+{
+    int		blockSize;
+    int		blockNum;
+    LRelId	*relIdPtr;
+    Relation 	reln;
+    ObjectId	bufdb, bufrel;
+    int		status;
+
+    blockSize = BLOCKSZ(bufHdr);
+    blockNum = bufHdr->tag.blockNum;
+
+    /*
+     * first try to find the reldesc in the cache, if no luck,
+     * don't bother to build the reldesc from scratch, just do
+     * a blind write.
+     */
+    reln = RelationIdCacheGetRelation(LRelIdGetRelationId(bufHdr->tag.relId));
+
+    if (reln == (Relation) NULL) {
+	bufdb = bufHdr->tag.relId.dbId;
+	bufrel = bufHdr->tag.relId.relId;
+	status = smgrblindwrt(bufHdr->bufsmgr, bufdb, bufrel,
+			      bufHdr->sb_dbname, bufHdr->sb_relname,
+			      bufHdr->tag.blockNum,
+			      (char *) MAKE_PTR(bufHdr->data));
+    } else {
+	status = smgrwrite(bufHdr->bufsmgr, reln,
+			   bufHdr->tag.blockNum,
+			   (char *) MAKE_PTR(bufHdr->data));
+    }
+
+    if (status == SM_FAIL)
+	return (FALSE);
+
+    return (TRUE);
 }
 
 /**************************************************
