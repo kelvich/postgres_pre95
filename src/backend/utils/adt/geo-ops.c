@@ -50,12 +50,15 @@ box_in(str)
 	double	atof();
 
 	if (str == NULL)
-		return(NULL);
+	  elog (WARN," Bad (Null) box external representation");
+
+	if ((p = (char *)index(str, LDELIM)) == (char *)NULL)
+		elog (WARN, "Bad box external representation '%s'",str);
 	for (i = 0, p = str; *p && i < BOXNARGS && *p != RDELIM; p++)
 		if (*p == DELIM || (*p == LDELIM && !i))
 			coord[i++] = p + 1;
 	if (i < BOXNARGS - 1)
-		return(NULL);
+	  elog (WARN, "Bad box external representation '%s'", str);
 	result = PALLOCTYPE(BOX);
 	result->xh = atof(coord[0]);
 	result->yh = atof(coord[1]);
@@ -1103,12 +1106,15 @@ lseg_in(str)
 	extern double	atof();
 
 	if (str == NULL)
-		return(NULL);
+	  elog (WARN," Bad (Null) box external representation");
+
+	if ((p = (char *)index(str, LDELIM)) == (char *)NULL)
+		elog (WARN, "Bad lseg external representation '%s'",str);
 	for (i = 0, p = str; *p && i < LSEGNARGS && *p != RDELIM; p++)
 		if (*p == DELIM || (*p == LDELIM && !i))
 			coord[i++] = p + 1;
 	if (i < LSEGNARGS - 1)
-		return(NULL);
+	  elog (WARN, "Bad lseg external representation '%s'", str);
 	result = PALLOCTYPE(LSEG);
 	result->p[0].x = atof(coord[0]);
 	result->p[0].y = atof(coord[1]);
