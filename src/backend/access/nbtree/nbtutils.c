@@ -30,6 +30,8 @@ _bt_mkscankey(rel, itup)
     TupleDescriptor itupdesc;
     int natts;
     int i;
+    Pointer arg;
+    RegProcedure proc;
     Boolean null;
 
     natts = rel->rd_rel->relnatts;
@@ -38,10 +40,9 @@ _bt_mkscankey(rel, itup)
     skey = (ScanKey) palloc(natts * sizeof(ScanKeyEntryData));
 
     for (i = 0; i < natts; i++) {
-	skey->data[i].flags = 0x0;
-	skey->data[i].attributeNumber = i + 1;
-	skey->data[i].argument = index_getattr(itup, i + 1, itupdesc, &null);
-	skey->data[i].procedure = index_getprocid(rel, i + 1, BTORDER_PROC);
+	arg = index_getattr(itup, i + 1, itupdesc, &null);
+	proc = index_getprocid(rel, i + 1, BTORDER_PROC);
+	ScanKeyEntryInitialize(&(skey->data[i]), 0x0, i + 1, arg, proc);
     }
 
     return (skey);
@@ -117,9 +118,8 @@ _bt_orderkeys(relation, numberOfKeys, key)
 	/* have we seen one of these before? */
 	if (init[j]) {
 	    /* yup, use the appropriate value */
-	    test = (int) fmgr(cur->procedure,
-			      cur->argument,
-			      xform->data[j].argument);
+	    test = (int) (*(cur->func))(cur->argument,
+				        xform->data[j].argument);
 	    if (test)
 		xform->data[j].argument = cur->argument;
 	} else {
@@ -145,6 +145,15 @@ _bt_orderkeys(relation, numberOfKeys, key)
 
 	lt = &xform->data[BTLessStrategyNumber - 1];
 	le = &xform->data[BTLessEqualStrategyNumber - 1];
+
+	/*
+	 *  DO NOT use the cached function stuff here -- this is key
+	 *  ordering, happens only when the user expresses a hokey
+	 *  qualification, and gets executed only once, anyway.  The
+	 *  transform maps are hard-coded, and can't be initialized
+	 *  in the correct way.
+	 */
+
 	test = (int) fmgr(le->procedure, le->argument, lt->argument);
 
 	if (test)
@@ -161,6 +170,8 @@ _bt_orderkeys(relation, numberOfKeys, key)
 
 	gt = &xform->data[BTGreaterStrategyNumber - 1];
 	ge = &xform->data[BTGreaterEqualStrategyNumber - 1];
+
+	/* see note above on function cache */
 	test = (int) fmgr(ge->procedure, gt->argument, gt->argument);
 
 	if (test)
