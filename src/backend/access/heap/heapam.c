@@ -886,24 +886,30 @@ heap_getnext(scandesc, backw, b)
     if (sdesc == NULL)
 	elog(WARN, "heap_getnext: NULL relscan");
 
-    if (!PointerIsValid(b)) {
-	localb = InvalidBuffer;
-	b = &localb;
-    }
+    /* ----------------
+     *	initialize return buffer to InvalidBuffer
+     * ----------------
+     */
+    if (! PointerIsValid(b)) b = &localb;
+    (*b) = InvalidBuffer;
     
     HEAPDEBUG_1; /* heap_getnext( info ) */
-
+    
     if (backw) {
+	/* ----------------
+	 *  handle reverse scan
+	 * ----------------
+	 */
 	HEAPDEBUG_2; /* heap_getnext called with backw */
 	
 	if (sdesc->rs_ptup == sdesc->rs_ctup &&
-	    BufferIsInvalid(sdesc->rs_pbuf)) {
-	    return (NULL);
-	}
+	    BufferIsInvalid(sdesc->rs_pbuf))
+	    {
+		return (NULL);
+	    }
 
-	if (BufferIsValid(sdesc->rs_nbuf)) {
+	if (BufferIsValid(sdesc->rs_nbuf))
 	    BufferPut(sdesc->rs_nbuf, L_UNPIN);
-	}
 
 	sdesc->rs_ntup = sdesc->rs_ctup;
 	sdesc->rs_nbuf = sdesc->rs_cbuf;
@@ -930,17 +936,21 @@ heap_getnext(scandesc, backw, b)
 	}
 
 	if (sdesc->rs_ctup == NULL &&
-	    !BufferIsValid(sdesc->rs_cbuf)) {
-	    sdesc->rs_ptup = NULL;
-	    sdesc->rs_pbuf = InvalidBuffer;
-	    *b = sdesc->rs_cbuf;
-	    return (NULL);
-	}
+	    ! BufferIsValid(sdesc->rs_cbuf))
+	    {
+		sdesc->rs_ptup = NULL;
+		sdesc->rs_pbuf = InvalidBuffer;
+		return (NULL);
+	    }
 
 	sdesc->rs_ptup = NULL;
 	sdesc->rs_pbuf = UnknownBuffer;
 
     } else {
+	/* ----------------
+	 *  handle forward scan
+	 * ----------------
+	 */
 	if (sdesc->rs_ctup == sdesc->rs_ntup &&
 	    BufferIsInvalid(sdesc->rs_nbuf)) {
 	    HEAPDEBUG_3; /* heap_getnext returns NULL at end */
@@ -964,7 +974,7 @@ heap_getnext(scandesc, backw, b)
 
 	    iptr = (sdesc->rs_ctup != NULL) ?
 		&sdesc->rs_ctup->t_ctid : (ItemPointer) NULL;
-
+	    
 	    sdesc->rs_ctup = (HeapTuple)
 		heapgettup(sdesc->rs_rd,
 			   iptr,
@@ -981,7 +991,6 @@ heap_getnext(scandesc, backw, b)
 	    !BufferIsValid(sdesc->rs_cbuf)) {
 	    sdesc->rs_ntup = NULL;
 	    sdesc->rs_nbuf = InvalidBuffer;
-	    *b = sdesc->rs_cbuf;
 	    HEAPDEBUG_6; /* heap_getnext returning EOS */
 	    return (NULL);
 	}
@@ -990,7 +999,12 @@ heap_getnext(scandesc, backw, b)
 	sdesc->rs_nbuf = UnknownBuffer;
     }
 
-    *b = sdesc->rs_cbuf;
+    /* ----------------
+     *	if we get here it means we have a new current scan tuple, so
+     *  point to the proper return buffer and return the tuple.
+     * ----------------
+     */
+    (*b) = sdesc->rs_cbuf;
     
     HEAPDEBUG_7; /* heap_getnext returning tuple */
     

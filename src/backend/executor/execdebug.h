@@ -21,6 +21,14 @@
  */
 
 /* ----------------
+ *	EXEC_DEBUGSTORETUP is for tuple table debugging - this
+ *	will print a message every time we call ExecStoreTuple.
+ *	-cim 3/20/91
+ * ----------------
+ */
+#undef EXEC_DEBUGSTORETUP
+
+/* ----------------
  *	EXEC_TUPLECOUNT is a #define which causes the
  *	executor keep track of tuple counts.  This might be
  *	causing some problems with the decstation stuff so
@@ -173,6 +181,15 @@
  *	      only as necessary -cim 10/26/89
  * ----------------------------------------------------------------
  */
+
+/* ----------------
+ *	tuple table debugging
+ * ----------------
+ */
+#ifdef EXEC_DEBUGSTORETUP
+#define ExecStoreTuple(tuple, slot, buffer, shouldFree) \
+    ExecStoreTupleDebug(__FILE__, __LINE__, tuple, slot, buffer, shouldFree)
+#endif EXEC_DEBUGSTORETUP
 
 #define EXEC_TUPLECOUNT
 /* ----------------
