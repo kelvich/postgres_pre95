@@ -4,7 +4,7 @@
 .XA 2 Copy
 .uh NAME
 .lp
-copy \*- copy data to or from a relation from or to a \*(UU file.
+copy \*- copy data to or from a class from or to a \*(UU file.
 .uh SYNOPSIS
 .lp
 .b copy
@@ -12,25 +12,25 @@ copy \*- copy data to or from a relation from or to a \*(UU file.
 .b binary
 [
 .b nonulls
-] ] relname
+] ] classname
 .b (
 copy-specification
 .b )
 direction filename [
 .b using
-map_relname
+map_classname
 ]
 .uh DESCRIPTION
 .lp
 .b Copy
-moves data between \*(PP relations and standard \*(UU files.
+moves data between \*(PP classes and standard \*(UU files.
 The keywords
 .b binary
 and
 .b nonulls
 change the behavior of field formatting,
 as described below.
-.i Relname
+.i Classname
 is the name of an existing relation.
 .i Copy-specification
 looks like:
@@ -46,7 +46,7 @@ In the first case,
 .i domname
 identifies a domain
 (usually an attribute in
-.i relname ,
+.i classname ,
 but possibly a dummy),
 .i domtype
 indicates the format the \*(UU file
@@ -65,8 +65,8 @@ or
 .b from .
 .i Filename
 is the \*(UU pathname of the file.
-Map_relationname
-is the name of a relation to which
+Map_classname
+is the name of a class to which
 .A OID
 mapping information
 will be appended.
@@ -74,20 +74,20 @@ will be appended.
 On a
 copy 
 .b from
-a \*(UU file to a relation,
-the relation cannot have a secondary index and
+a \*(UU file to a class,
+the class cannot have a secondary index and
 it must be owned by the owner running the command,
 or the owner cannot have used the rule system to restrict
-your access to the relation.
-If the relation is a system catalog,
+your access to the class.
+If the class is a system catalog,
 you must have the catalog update privilege.
 .sp
 For a
 copy 
 .b to
-a \*(UU file from a relation,
-you must either be the owner of the relation,
-or the owner must not have restricted your access to the relation.
+a \*(UU file from a class,
+you must either be the owner of the class,
+or the owner must not have restricted your access to the class.
 If the file already existed, it is truncated to zero 
 length before copying begins.
 .\"
@@ -102,7 +102,7 @@ The domains should be ordered according to
 the way they should appear in the \*(UU file.
 Domains are matched according to name,
 so the order of the fields in the \*(UU file need not be the
-same as the order of the fields in the source/target relation.
+same as the order of the fields in the source/target class.
 .sp
 There are four types of objects in \*(UU files which 
 .b copy
@@ -155,7 +155,7 @@ is the most compact data representation.
 Dummy domains are any domain for which
 \fIdomname\fR
 is not an attribute in 
-\fIrelname.\fR
+\fIclassname.\fR
 They can only be used with copy
 .b from 
 in which case they indicate that a field in a format consistent
@@ -173,17 +173,17 @@ dummy2 = text
 .in .5i
 .fi
 String domains are only usable with copy \fBto\fR and may not have delimiters.
-They are simply written to disk per-tuple in the place specified.
+They are simply written to disk per-instance in the place specified.
 .sp
 In a copy \fBfrom\fR,
-domains in the \*(PP relation which are not
+domains in the \*(PP class which are not
 assigned values from the \*(UU file will be
 set to 
 null.
 .sp
 If no domains appear in the copy command, e.g.,
 .(l
-copy relationname ( ) to/from filename
+copy classnname ( ) to/from filename
 .)l
 .fi
 then
@@ -202,10 +202,10 @@ This is provided as a convenient shorthand
 notation for copying and restoring entire relations.
 .uh "EXAMPLES"
 .lp
-/* Define the emp relation */
+/* Define the emp class */
    create emp (name=char16,sal=float4,bdate=int2,mgr=text) 
 .sp
-/* Copy mixed-format data into the emp relation */
+/* Copy mixed-format data into the emp class */
    copy emp (name=char16,sal=float4,bdate=int2,mgr=text) 
      from \*(lq/usr2/me/myfile\*(rq
 .sp
@@ -215,10 +215,10 @@ notation for copying and restoring entire relations.
 /* Copy employee names and managers into a binary file */
    copy binary emp (name=char16, mgr=text) to \*(lq../theirfile\*(rq
 .sp
-/* Bulk copy the emp relation into a text file */
+/* Bulk copy the emp class into a text file */
    copy emp ( ) to \*(lq~/ours/ourfile\*(rq
 .sp
-/* Bulk copy the emp relation from a binary file */
+/* Bulk copy the emp class from a binary file */
    copy binary emp ( ) from \*(lq~thy/thyfile\*(rq
 .uh "OID MAPPING"
 .lp
@@ -228,29 +228,29 @@ will cause
 .b copy
 to append
 .A OID
-mapping data to that relation.
+mapping data to that class.
 If it does not exist,
 it will be created as if the following command had been executed:
 .(l
-create map-relationname ( old=OID, new=OID )
+create map-classname ( old=OID, new=OID )
 .)l
 .in 0
 .fi
 .in .5i
 As an example of the use of this facility,
-consider a relation which has circular data dependencies in its
+consider a class which has circular data dependencies in its
 attributes:
 .(l
 people1 (name=char16, parent=OID, child=OID)
 .)l
 .in .5i
 .fi
-If this relation were simply copied into a new relation,
+If this class were simply copied into a new class,
 say people2,
 the
 .A OID
 attributes of people2 would still contain values which
-represented tuples in people1.
+represented instances in people1.
 .in 0
 .in .5i
 The commands
@@ -260,7 +260,7 @@ copy people1 (name=char16, parent=OID, child=OID)
 copy people2 (name=char16, parent=OID, child=OID)
 	from hodedo using whoof
 .)l
-would correctly fill relation 
+would correctly fill class 
 .q "whoof"
 with the appropriate
 .A OID
@@ -288,7 +288,7 @@ introduction(commands).
 .uh BUGS
 .lp
 .A OID
-mapping does not work in Version 2.
+mapping does not work in Version 2.1.
 .lp
 Copy
 stops operation at the first error.
