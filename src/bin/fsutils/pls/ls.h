@@ -74,3 +74,7 @@ typedef struct {
 #define ST_BLOCKS(sp) ((sp->st_size+511)/512)
 
 #define S_ISLNK(x) 0
+
+#ifdef PORTNAME_sparc
+extern char *strerror();
+#endif

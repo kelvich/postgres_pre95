@@ -98,3 +98,18 @@ err(fatal, fmt, va_alist)
 	if (fatal)
 		exit(1);
 }
+
+#ifdef PORTNAME_sparc
+char *
+strerror(eno)
+	int eno;
+{
+	static char retbuf[30];
+
+	if (eno < 0 || eno >= sys_nerr) {
+		(void) sprintf(retbuf, "Unknown error %d", eno);
+		return(retbuf);
+	}
+	return(sys_errlist[eno]);
+}
+#endif
