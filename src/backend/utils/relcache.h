@@ -82,6 +82,11 @@ RelationRegisterRelation ARGS((
 	Relation	relation
 ));
 
+extern void
+RelationRegisterTempRel ARGS((
+	Relation relation
+));
+
 /*
  * RelationFlushRelation
  *
