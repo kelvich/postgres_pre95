@@ -133,8 +133,7 @@ extern bool EqualMaterialState ARGS((MaterialState a, MaterialState b));
 extern bool CopyMaterialState ARGS((MaterialState from, MaterialState *to, int alloc));
 extern MaterialState IMakeMaterialState ARGS((int base_id, Pointer base_parent, Pointer base_parent_state, HookNode base_hook, TupleTableSlot cs_OuterTupleSlot, TupleTableSlot cs_ResultTupleSlot, ExprContext cs_ExprContext, ProjectionInfo cs_ProjInfo, int cs_NumScanAttributes, AttributeNumberPtr cs_ScanAttributes, Relation css_currentRelation, HeapScanDesc css_currentScanDesc, RelationRuleInfo css_ruleInfo, Pointer css_ScanTupleSlot, Pointer css_RawTupleSlot, bool mat_Flag, Relation mat_TempRelation));
 extern void RInitAggState ARGS((Pointer p));
-extern AggState MakeAggState ARGS((bool agg_Flag, Relation agg_TempRelation,
-Plan outerPlan));
+extern AggState MakeAggState ARGS((bool agg_Flag, Relation agg_TempRelation));
 extern void OutAggState ARGS((StringInfo str, AggState node));
 extern bool EqualAggState ARGS((AggState a, AggState b));
 extern bool CopyAggState ARGS((AggState from, AggState *to, int alloc));
