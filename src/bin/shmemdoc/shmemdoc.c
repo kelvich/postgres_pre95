@@ -274,7 +274,7 @@ main(argc, argv)
 	exit (1);
     }
 
-    Base = SharedRegion = region = shmat(shmid, 0, 0);
+    Base = SharedRegion = region = (char *) shmat(shmid, 0, 0);
     if (region == (char *) -1) {
 	fprintf(stderr, "%s: cannot attach shared memory\n", *argv);
 	perror("shmat");
@@ -563,7 +563,7 @@ int
 setbase(addr)
     char *addr;
 {
-    Base = (char *) strtoul(addr, (char *) NULL, 0);
+    Base = (char *) strtol(addr, (char *) NULL, 0);
     return (0);
 }
 
@@ -670,8 +670,7 @@ showbufd(i)
 #endif
 }
 
-bufdescs(i)
-    int i;
+bufdescs()
 {
     BufferDesc *d;
     int i;
