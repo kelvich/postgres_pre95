@@ -158,6 +158,10 @@ pfree_remove(file, line, pointer)
 	    SLAddTail(PfreeList, &(d->Link));
 	else
 	    free(d); /* can't use pfree, see palloc_record -cim  */
+        if (PallocNoisy)
+	    printf("!- f: %s l: %d p: 0x%x s: %d %s\n",
+	           d->file, d->line, pointer, d->size, d->context);
+    
     } else
 	elog(NOTICE, "pfree_remove l:%d f:%s p:0x%x %s",
 	     line, file, pointer, "** not on list **");
@@ -249,8 +253,8 @@ pfree_debug(file, line, pointer)
     else
 	pfree(pointer);
 	
-    if (PallocNoisy)
-	printf("!- f: %s l: %d p: 0x%x %s\n",
+    if (PallocNoisy && !PallocRecord)
+	printf("!- f: %s l: %d p: 0x%x s: ? %s\n",
 	       file, line, pointer, context);
 }
  
@@ -261,10 +265,6 @@ alloc_set_message(file, line, pointer, set)
     Pointer  pointer;
     Pointer  set;
 {
-    if (PallocNoisy)
-	printf("!* f: %s l: %d p: 0x%x s:0x%x \n",
-	       file, line, pointer, set);
-
     if (PallocRecord)
 	pfree_remove(file, line, pointer);
 }
@@ -466,7 +466,11 @@ char *p;
 		 line, file, p, "** not on list **");
       }
     if (PallocNoisy)
-	printf("!- f: %s l: %d p: 0x%x ** Direct Malloc **\n",
-	       file, line, p);
+	if (d != NULL)
+	    printf("!- f: %s l: %d p: 0x%x s: %d ** Direct Malloc **\n",
+	           d->file, d->line, p, d->size);
+	else
+	    printf("!- f: %s l: %d p: 0x%x s: ? ** Direct Malloc **\n",
+	           file, line, p);
     free(p);
 }
