@@ -889,6 +889,50 @@ class (MaterialState) public (CommonScanState) {
   /* public: */
 };
 
+/* ---------------------
+ *  AggregateState information
+ *
+ *      aggregate nodes are used to modify and materialize the results
+ *      of a subplan into a temporary relation.  Instead of just placing
+ *      the tuples in the temp relation, the Agg node retrieves a tuple
+ *      from the temp relation using the "by" index if there is one, and
+ *      modifies the returned tuple to reflect the changes caused by
+ *      aggregation.  When the subplan returns no more tuples, the final
+ *      state function is performed, and the temp relation contains the
+ *      computed aggregate(s).
+ *
+ *      Flag            indicated whether aggregate has been materialized
+ *      TempRelation    temporary relation containing result of aggregating
+ *                      the subplan.
+ *      *clause*        *not used until aggregate functions are supported*
+ *
+ *  CommonScanState information
+ *
+ *      currentRelation    relation descriptor of sorted relation
+ *      currentScanDesc    current scan descriptor for scan
+ *      ScanTupleSlot      pointer to slot in tuple table holding scan tuple
+ *      ViewTupleSlot       ... holding the view tuple from the rmgr.
+ *
+ *   CommonState information
+ *
+ *      OuterTupleSlot     pointer to slot containing current "outer" tuple
+ *      ResultTupleSlot    pointer to slot in tuple table for projected tuple
+ *      ExprContext        node's current expression context
+ *      ProjInfo           info this node ues to form tuple projections
+ *      NumScanAttributes  size of ScanAttributes array
+ *      ScanAttributes     attribute numbers of interest in this tuple
+ * -------------------------
+ */
+
+class (AggState) public (CommonScanState) {
+	inherits(CommonScanState);
+    /* private: */
+	 bool      agg_Flag;
+	 Relation  agg_TempRelation;
+    /*public: */
+};
+
+
 /* ----------------
  *   SortState information
  *
