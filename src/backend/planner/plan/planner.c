@@ -265,4 +265,5 @@ make_existential(left,right)
     
     set_lefttree(node,left);
     set_righttree(node,right);
+    return(node);
 }
