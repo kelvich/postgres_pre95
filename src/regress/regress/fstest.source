@@ -32,7 +32,8 @@ icopy in -d $DATABASE -s $SMGR -R $HERE/../data /data1 \
 #
 # - recursive icopy "in" with dotfiles
 #
-cp -f $HERE/../data/dept.data $HERE/obj/.dept.data \
+rm -f $HERE/obj/.dept.data
+cp $HERE/../data/dept.data $HERE/obj/.dept.data \
 	|| exit 1
 icopy in -d $DATABASE -s $SMGR -R -a $HERE/obj /data2 \
 	|| exit 1
