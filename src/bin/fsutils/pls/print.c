@@ -44,7 +44,6 @@ static char sccsid[] = "@(#)print.c	5.37 (Berkeley) 7/20/92";
 
 #include <sys/param.h>
 #include <sys/stat.h>
-#include <fts.h>
 #include <time.h>
 #include <errno.h>
 #include <grp.h>
@@ -52,7 +51,8 @@ static char sccsid[] = "@(#)print.c	5.37 (Berkeley) 7/20/92";
 #include <utmp.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <string.h>
+#include <strings.h>
+#include <fts.h>
 
 #include "tmp/libpq-fs.h"
 #include "ls.h"
@@ -120,11 +120,11 @@ printlong(dp)
 /*			(void)printf("%*qd ", dp->s_size, sp->st_size);*/
 			(void)printf("%*d ", dp->s_size, sp->st_size);
 		if (f_accesstime)
-			printtime(sp->st_atime);
+			printtime(sp->st_atime_s);
 		else if (f_statustime)
-			printtime(sp->st_ctime);
+			printtime(sp->st_ctime_s);
 		else
-			printtime(sp->st_mtime);
+			printtime(sp->st_mtime_s);
 		(void)printf("%s", p->fts_name);
 		if (f_type)
 			(void)printtype(sp->st_mode);
