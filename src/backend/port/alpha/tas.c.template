@@ -1,0 +1,27 @@
+/*
+ * To generate tas.s using this template:
+ *	1. cc -S -c tas.c
+ *		don't use the -O option!  -O2 removes the second test..
+ *	2. edit tas.s:
+ *		- replace the first ldq with ldq_l.
+ *		- replace the stq with stq_c.
+ *		- remove the second ldq and change the "beq $3" to a 
+ *		"beq $2" (we need to test the same register we tried to 
+ *		store with the stq_c).
+ *		- fix the livereg bitmask if you feel particularly 
+ *		virtuous.
+ * This template was written so that failure results in a forward branch
+ * and the store is not attempted unless the locked load succeeded (i.e., 
+ * the lock variable is zero).  See page 5-7 of the Alpha Architecture
+ * Handbook (EC-H1689-10, release of 4/92) for details.
+ */
+tas(lock)
+	long *lock;
+{
+	if (*lock == 0) {
+		*lock = 1;
+		if (*lock)
+			return 0;
+	}
+	return 1;
+}
