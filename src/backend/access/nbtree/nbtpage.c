@@ -389,6 +389,7 @@ _bt_getstackbuf(rel, stack, access)
     Buffer buf;
     BlockNumber blkno;
     OffsetIndex start, offind, maxoff;
+    OffsetIndex i;
     Page page;
     ItemId itemid;
     int itemsz;
@@ -399,8 +400,9 @@ _bt_getstackbuf(rel, stack, access)
     buf = _bt_getbuf(rel, blkno, access);
     page = BufferGetPage(buf, 0);
     opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+    maxoff = PageGetMaxOffsetIndex(page);
 
-    if (PageGetMaxOffsetIndex(page) > stack->bts_offset) {
+    if (maxoff >= stack->bts_offset) {
 	itemid = PageGetItemId(page, stack->bts_offset);
 	itemsz = ItemIdGetLength(itemid);
 	item = (BTItem) PageGetItem(page, itemid);
@@ -408,9 +410,20 @@ _bt_getstackbuf(rel, stack, access)
 	/* if the item is where we left it, we're done */
 	if (bcmp((char *) item, (char *) (stack->bts_btitem), itemsz) == 0)
 	    return (buf);
+
+	/* if the item has just moved right on this page, we're done */
+	for (i = stack->bts_offset + 1; i <= maxoff; i++) {
+	    itemid = PageGetItemId(page, stack->bts_offset);
+	    itemsz = ItemIdGetLength(itemid);
+	    item = (BTItem) PageGetItem(page, itemid);
+
+	    /* if the item is where we left it, we're done */
+	    if (bcmp((char *) item, (char *) (stack->bts_btitem), itemsz) == 0)
+		return (buf);
+	}
     }
 
-    /* the item we're looking for moved right on us */
+    /* by here, the item we're looking for moved right at least one page */
     for (;;) {
 	if ((blkno = opaque->btpo_next) == P_NONE)
 	    elog(FATAL, "my bits moved right off the end of the world!");

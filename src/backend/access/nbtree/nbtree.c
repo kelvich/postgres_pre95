@@ -114,8 +114,6 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params)
     UpdateStats(heap, ntups);
     UpdateStats(index, ntups);
 
-    _bt_dump(index);
-
     /* be tidy */
     pfree(null);
     pfree(attdata);
@@ -161,6 +159,7 @@ btinsert(rel, itup)
 
     /* find the page containing this key */
     stack = _bt_search(rel, natts, itup_scankey, &buf);
+    blkno = BufferGetBlockNumber(buf);
 
     /* trade in our read lock for a write lock */
     _bt_relbuf(rel, buf, BT_READ);

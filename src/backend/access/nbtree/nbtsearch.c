@@ -55,6 +55,7 @@ _bt_searchr(rel, keysz, scankey, bufP, stack_in)
     BTPageOpaque opaque;
     BlockNumber par_blkno;
     BlockNumber blkno;
+    ItemId itemid;
     BTItem btitem;
     BTItem item_save;
     int item_nbytes;
@@ -74,7 +75,8 @@ _bt_searchr(rel, keysz, scankey, bufP, stack_in)
 
     par_blkno = BufferGetBlockNumber(*bufP);
     offind = _bt_binsrch(rel, *bufP, keysz, scankey, BT_DESCENT);
-    btitem = (BTItem) PageGetItem(page, PageGetItemId(page, offind));
+    itemid = PageGetItemId(page, offind);
+    btitem = (BTItem) PageGetItem(page, itemid);
     itup = &(btitem->bti_itup);
     blkno = ItemPointerGetBlockNumber(&(itup->t_tid), 0);
 
@@ -88,10 +90,9 @@ _bt_searchr(rel, keysz, scankey, bufP, stack_in)
      *  Lehman and Yao disallow duplicate keys).
      */
 
-    item_nbytes = itup->t_size
-		     + (sizeof(BTItemData) - sizeof(IndexTupleData));
+    item_nbytes = ItemIdGetLength(itemid);
     item_save = (BTItem) palloc(item_nbytes);
-    bcopy((char *) itup, (char *) item_save, item_nbytes);
+    bcopy((char *) btitem, (char *) item_save, item_nbytes);
     stack = (BTStack) palloc(sizeof(BTStackData));
     stack->bts_blkno = par_blkno;
     stack->bts_offset = offind;
@@ -157,8 +158,14 @@ _bt_moveright(rel, buf, keysz, scankey, access)
     /* by convention, item 0 on non-rightmost pages is the high key */
     hikey = PageGetItemId(page, 0);
 
-    /* figure out if we need to move right */
-    if (_bt_skeycmp(rel, keysz, scankey, page, hikey, BTLessStrategyNumber)) {
+    /*
+     *  If the scan key that brought us to this page is >= the high key
+     *  stored on the page, then the page has split and we need to move
+     *  right.
+     */
+
+    if (_bt_skeycmp(rel, keysz, scankey, page, hikey,
+		    BTGreaterEqualStrategyNumber)) {
 
 	/* move right as long as we need to */
 	do {
@@ -172,7 +179,7 @@ _bt_moveright(rel, buf, keysz, scankey, access)
 
 	} while (opaque->btpo_next != P_NONE
 		 && _bt_skeycmp(rel, keysz, scankey, page, hikey,
-				 BTLessStrategyNumber));
+				 BTGreaterEqualStrategyNumber));
     }
     return (buf);
 }
@@ -327,9 +334,9 @@ _bt_binsrch(rel, buf, keysz, scankey, srchtype)
 	    if (result == 0) {
 		return (_bt_firsteq(rel, itupdesc, page, keysz, scankey, high));
 	    } else if (result > 0) {
-		return (low);
-	    } else {
 		return (high);
+	    } else {
+		return (low);
 	    }
 	    /* NOTREACHED */
 	} else {

@@ -197,32 +197,31 @@ _bt_dump(rel)
     IndexTuple itup;
     Boolean isnull;
     Datum keyvalue;
+    uint16 flags;
+    BlockNumber i, nblocks;
 
-    printf("--------------------------------------------------\n");
+    printf("----------------------- tree dump --------------------------\n");
+    nblocks = RelationGetNumberOfBlocks(rel);
     itupdesc = RelationGetTupleDescriptor(rel);
 
-    buf = _bt_getroot(rel, BT_READ);
-    page = BufferGetPage(buf, 0);
-    opaque = (BTPageOpaque) PageGetSpecialPointer(page);
-
-    while (!(opaque->btpo_flags & BTP_LEAF)) {
-	if (opaque->btpo_next == P_NONE)
-	    itemid = PageGetItemId(page, 0);
-	else
-	    itemid = PageGetItemId(page, 1);
-
-	item = (BTItem) PageGetItem(page, itemid);
-	nxtbuf = ItemPointerGetBlockNumber(&(item->bti_itup.t_tid), 0);
-	_bt_relbuf(rel, buf, BT_READ);
-	buf = _bt_getbuf(rel, nxtbuf, BT_READ);
+    for (i = 1; i < nblocks; i++) {
+	buf = _bt_getbuf(rel, i, BT_READ);
 	page = BufferGetPage(buf, 0);
 	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
-    }
 
-    for (;;) {
-
-	printf("page %d prev %d next %d\n", BufferGetBlockNumber(buf),
+	printf("page %d prev %d next %d", BufferGetBlockNumber(buf),
 		opaque->btpo_prev, opaque->btpo_next);
+
+	flags = opaque->btpo_flags;
+
+	if (flags & BTP_ROOT)
+	    printf (" <root>");
+	if (flags & BTP_LEAF)
+	    printf (" <leaf>");
+	if (flags & BTP_FREE)
+	    printf (" <free>");
+
+	printf("\n");
 
 	if (opaque->btpo_next != P_NONE) {
 	    printf("    high key:");
@@ -237,20 +236,11 @@ _bt_dump(rel)
 	if (!PageIsEmpty(page) &&
 	     (opaque->btpo_next == P_NONE || maxoff != start)) {
 	    for (offind = start; offind <= maxoff; offind++) {
-		printf("\t");
+		printf("\t{%d} ", offind + 1);
 		_bt_dumptup(rel, itupdesc, page, offind);
 	    }
 	}
-
-	nxtbuf = opaque->btpo_next;
 	_bt_relbuf(rel, buf, BT_READ);
-
-	if (nxtbuf == P_NONE)
-	    break;
-
-	buf = _bt_getbuf(rel, nxtbuf, BT_READ);
-	page = BufferGetPage(buf, 0);
-	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
     }
 }
 

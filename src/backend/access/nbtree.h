@@ -29,6 +29,7 @@ typedef struct BTPageOpaqueData {
 #define BTP_ROOT	(1 << 1)
 #define BTP_FREE	(1 << 2)
 
+	char		btpo_unused[7800];
 } BTPageOpaqueData;
 
 typedef BTPageOpaqueData	*BTPageOpaque;
