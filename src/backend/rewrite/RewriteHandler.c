@@ -331,7 +331,7 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	List result_rte = NULL;
 	
 	action_info = RuleIdGetActionInfo ( this_lock->ruleId );
-	ruletrees = CDR(action_info);
+	ruletrees = lispCons(CDR(action_info), LispNil);
 
 	foreach ( j , ruletrees ) {
 	    List ruleparse = CAR(j);
@@ -341,7 +341,7 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	    rule_qual = parse_qualification(ruleparse);
 	    rule_rangetable = root_rangetable(parse_root
 					      (ruleparse));
-	    
+
 	    if ( this_lock->attributeNumber == -1 )
 	      elog(NOTICE, "firing a multi-attribute rule");
 

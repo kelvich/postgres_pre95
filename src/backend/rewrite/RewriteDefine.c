@@ -61,6 +61,7 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
     AttributeNumber evslot_index = InvalidAttributeNumber;
     Relation eventrel = NULL;
     char *is_instead = "f";
+    extern void eval_as_new_xact();
 
     eventrel = amopenr( evobj );
     if ( eventrel == NULL ) {
@@ -98,7 +99,7 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
 
     fprintf(stdout,"rule is \n%s\n", rulebuf ); 
 
-    pg_eval(rulebuf);
+    eval_as_new_xact(rulebuf);
 
     /* elog(NOTICE,"RuleOID is : %d\n", LastOidProcessed ); */
 
@@ -121,6 +122,7 @@ ModifyActionToReplaceCurrent ( retrieve_parsetree )
 DefineQueryRewrite ( args ) 
      List args;
 {
+     List i			= NULL;
      Name rulename 		= (Name)CString ( nth ( 0,args )) ;
      LispValue event_type	= nth ( 1 , args );
      List event_obj		= nth ( 2 , args );
@@ -152,83 +154,94 @@ DefineQueryRewrite ( args )
      else
        eslot_string = NULL;
 
+     event_relation = amopenr ( eobj_string );
+     if ( event_relation == NULL ) {
+	 elog(WARN, "virtual relations not supported yet");
+     }
+
+
      if ( eslot_string == NULL ) 
 	   event_attno = -1;
      else
 	   event_attno = varattno ( event_relation, eslot_string );
 
 
-     event_relation = amopenr ( eobj_string );
-     if ( event_relation == NULL ) {
-	 elog(WARN, "virtual relations not supported yet");
-     }
+     foreach ( i , action ) {
+	 List 	this_action 		= CAR(i);
+	 int 	this_action_is_instead 	= 0;
+	 
+	 if (CDR(i) == LispNil && is_instead ) {
+	     this_action_is_instead = 1;
+	 }
+	 
+	 if ( NodeHasTag ( event_type, classTag(LispSymbol) ) ) {
+	     
+	     int action_type = 0;
+	     
+	     ActionType  prs2actiontype;
 
-     if ( NodeHasTag ( event_type, classTag(LispSymbol) ) ) {
+	     action_type = root_command_type(parse_root(this_action));
+	     
+	     switch (  CAtom ( event_type ) ) {
+	       case APPEND:
+		 this_event = EventTypeAppend;
+		 prs2actiontype = ActionTypeOther;
+		 break;
+	       case DELETE:
+		 this_event = EventTypeDelete;
+		 prs2actiontype = ActionTypeOther;
+		 break;
+	       case RETRIEVE:
+		 this_event = EventTypeRetrieve;
+		 switch ( action_type ) {
+		   case RETRIEVE:
+		     /*
+		      * a slight optimization here, modify
+		      * a "on retrieve to foo.all do instead retrieve bar.all
+		      * type rule to use replace current, since we assume
+		      * that foo and bar have compatiable schemas
+		      */
+		     if ( event_attno != -1 ) {
+			 prs2actiontype = ActionTypeRetrieveValue;
+			 break;
+		     }
+		     ModifyActionToReplaceCurrent(this_action);
 
-	 int action_type = 0;
+		     /* NO BREAK HERE IS CORRECT */
 
-	 ActionType  prs2actiontype;
-
-	 action_type = root_command_type(parse_root(CAR(action)));
-
-	 switch (  CAtom ( event_type ) ) {
-	   case APPEND:
-	     this_event = EventTypeAppend;
-	     prs2actiontype = ActionTypeOther;
-	     break;
-	   case DELETE:
-	     this_event = EventTypeDelete;
-	     prs2actiontype = ActionTypeOther;
-	     break;
-	   case RETRIEVE:
-	     this_event = EventTypeRetrieve;
-	     switch ( action_type ) {
-		case RETRIEVE:
-	     	  /*
- 	      	   * a slight optimization here, modify
-	           * a "on retrieve to foo.all do instead retrieve bar.all
-	           * type rule to use replace current, since we assume
-	           * that foo and bar have compatiable schemas
-	           */
-		/* XXX - should be updated to allow multi action */
-		  if ( event_attno != -1 ) 
-			prs2actiontype = ActionTypeRetrieveValue;
-		  else 
-			ModifyActionToReplaceCurrent(CAR(action));
-		  /* !!! NO BREAK HERE, THIS IS CORRECT */
-		case REPLACE:
-		  prs2actiontype = ActionTypeReplaceCurrent;
-		  break;
-		default:
+		   case REPLACE:
+		     prs2actiontype = ActionTypeReplaceCurrent;
+		     break;
+		   default:
 		  prs2actiontype = ActionTypeOther;
-	     } 
-	     break;
-	   case REPLACE:
-	     this_event = EventTypeReplace;
-	     prs2actiontype = ActionTypeOther;
-	     break;
-	   default:
-	     this_event = EventTypeInvalid;
-	     elog(WARN,"unknown event type given to rule definition");
+		 } 
+		 break;
+	       case REPLACE:
+		 this_event = EventTypeReplace;
+		 prs2actiontype = ActionTypeOther;
+		 break;
+	       default:
+		 this_event = EventTypeInvalid;
+		 elog(WARN,"unknown event type given to rule definition");
+		 
+	     } /* end switch */
 
-	 } /* end switch */
-
-
-	 ruleId = InsertRule ( rulename, 
-			      CAtom(event_type),
-			      (Name)eobj_string,
-			      (Name)eslot_string,
-			      PlanToString(event_qual),
-			      (int)is_instead,
-			      PlanToString(action),
+	     ruleId = InsertRule ( rulename, 
+				  CAtom(event_type),
+				  (Name)eobj_string,
+				  (Name)eslot_string,
+				  PlanToString(event_qual),
+				  this_action_is_instead,
+				  PlanToString(this_action),
 				  necessary,
-			      sufficient );
+				  sufficient );
 
-	 prs2PutLocks ( ruleId, RelationGetRelationId (event_relation),
-		       event_attno,
-		       event_attno,
-		       this_event,
-		       prs2actiontype  );
+	     prs2PutLocks ( ruleId, RelationGetRelationId (event_relation),
+			   event_attno,
+			   event_attno,
+			   this_event,
+			   prs2actiontype  );
+	 } /* foreach action */
     }
 }
 
