@@ -85,6 +85,10 @@ ComputeDataSize(numberOfAttributes, att, value, nulls)
 	switch (att[i]->attlen) 
 	{
 	    case -1:
+		/*
+		 * This is the size of the disk representation and so
+		 * must inclue the additional sizeof long.
+		 */
 		length = LONGALIGN(length)
 		       + PSIZE(DatumGetPointer(value[i]))
 		       + sizeof (long);
@@ -635,7 +639,12 @@ fastgetattr(tup, attnum, att, isnull)
 		    continue;
 		}
 	    }
-
+	    switch (att[i]->attlen)
+	    {
+		case sizeof(char)  : break;
+		case sizeof(short) : off = SHORTALIGN(off); break;
+		default            : off = LONGALIGN(off); break;
+	    }
 	    if (usecache && att[i]->attcacheoff > 0)
 	    {
 		off = att[i]->attcacheoff;
@@ -659,21 +668,19 @@ fastgetattr(tup, attnum, att, isnull)
 	            break;
 	        case -1:
 	            usecache = false;
-		    off = off + sizeof(long);
-		    off += PSIZE(tp + off);
+		    off += VARSIZE(tp + off) + sizeof(long);
 		    break;
 		default:
 		    off = off + att[i]->attlen;
 		    break;
 	    }
-	    switch (att[i+1]->attlen)
-	    {
-		case sizeof(char)  : break;
-		case sizeof(short) : off = SHORTALIGN(off); break;
-		default            : off = LONGALIGN(off); break;
-	    }
 	}
-
+	switch (att[attnum]->attlen)
+	{
+	    case sizeof(char)  : break;
+	    case sizeof(short) : off = SHORTALIGN(off); break;
+	    default            : off = LONGALIGN(off); break;
+	}
 	return((char *) fetchatt(att + attnum, tp + off));
     }
 }
