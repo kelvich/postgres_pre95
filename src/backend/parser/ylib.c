@@ -46,8 +46,6 @@ parser(str, l)
 	bcopy(str,TheString,strlen(str)+1);
     }
 
-    /* ExcBegin(); */
-
     {
       parser_init();
       yyresult = yyparse();
@@ -70,27 +68,6 @@ parser(str, l)
       CDR(l) = CDR(parsetree);
     }
 
-/*    ExcExcept(); {
-	if (exception.id == &SystemError) {
-	    elog(FATAL, exception.message);
-	} else if (exception.id == &InternalError) {
-	    elog(FATAL, exception.message);
-	} else if (exception.id == &CatalogFailure) {
-	    elog(WARN, exception.message);
-	} else if (exception.id == &SemanticError) {
-	    elog(WARN, exception.message);
-	} else {
-	    reraise();
-	}
-    }
-    ExcEnd();
-    /* XXX close_rt(); */
-/*
- * Parser must now return a parse tree in C space.  Thus, it cannot
- * start/end at this high a granularity.
- *
-    endmmgr(NULL);
- */
     if (yyl == NULL) {
 	return(-1);
     } else {
