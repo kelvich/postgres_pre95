@@ -397,7 +397,7 @@ intervalrel(interval)
         AbsoluteTime t1, t2;
 
 	if (interval->status == T_INTERVAL_VALID)
-		return(abstimemi(interval->data[0], interval->data[1]));
+		return(abstimemi(interval->data[1], interval->data[0]));
 	else
 		return(INVALID_RELTIME);
 }
