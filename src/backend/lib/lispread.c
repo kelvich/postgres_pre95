@@ -166,6 +166,14 @@ bool read_car_only;
 			if (!strncmp(token, "nil", 3))
 			{
 				this_value = LispNil;
+				/*
+				 * It might be "nil" but it is an atom!
+				 */
+				if (read_car_only) {
+				    make_dotted_pair_cell = false;
+				} else {
+				    make_dotted_pair_cell = true;
+				}
 			}
 			else
 			{
