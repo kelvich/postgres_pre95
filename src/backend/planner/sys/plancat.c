@@ -163,8 +163,14 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 	indexCatalogInfo[2] = indexRelation->rd_rel->reltuples;
 	RelationCloseHeapRelation(indexRelation);
 	
-	/* Find the index ordering keys */
-	for (i = 0; i < 8 && index->indkey[i]; ++i) {		/* 11-18 */
+	/* 
+	 * Find the index ordering keys 
+	 *
+	 * Must use indclass to know when to stop looking since with
+	 * functional indices there could be several keys (args) for
+	 * one opclass. -mer 27 Sept 1991
+	 */
+	for (i = 0; i < 8 && index->indclass[i]; ++i) {		/* 11-18 */
 		amopTuple = SearchSysCacheTuple(AMOPSTRATEGY,
 						(char *) relam,
 						(char *) index->indclass[i],
