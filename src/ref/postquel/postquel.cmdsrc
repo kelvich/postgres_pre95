@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH INTRODUCTION COMMANDS 06/13/93
+.TH INTRODUCTION COMMANDS 03/12/94
 .XA 0 "Section 4 \(em \*(PQ Commands (COMMANDS)"
 .BH "SECTION 4 \(em \*(PQ COMMANDS (COMMANDS)"
 .XA 1 "General Information"
@@ -361,9 +361,13 @@ clause).
 Therefore, of the three example queries given, only the second is
 actually supported.
 .SH "Set Expressions"
-.BR "Generalized set expressions are not supported in Version \*(PV. For
-information on sets as attributes, see the man pages for the CREATE,
-APPEND, and RETRIEVE commands."
+.BR "Generalized set expressions are not supported in Version \*(PV."
+For information on sets as attributes, see the manual pages for the
+.IR create (postquel),
+.IR append (postquel)
+and
+.IR retrieve (postquel)
+commands.
 .PP
 A
 .IR "set expression"
@@ -386,9 +390,13 @@ employees in each department:
 Set expressions can be used in class expressions which are defined
 below.
 .SH "Class Expression"
-.BR "Generalized class expressions are not supported in Version \*(PV. For
-information on classes as attributes, see the man pages for the CREATE,
-APPEND, and RETRIEVE commands."
+.BR "Generalized class expressions are not supported in Version \*(PV."
+For information on classes as attributes, see the manual pages for the
+.IR create (postquel),
+.IR append (postquel)
+and 
+.IR retrieve (postquel)
+commands.
 .PP
 A 
 .IR "class expression"
@@ -493,8 +501,8 @@ A
 .IR "time expression"
 is in one of two forms:
 .(C
- [date]
- [date-1, date-2]
+ ["date"]
+ ["date-1", "date-2"]
 .)C
 The first case requires instances that are valid at the indicated
 time.  The second case requires instances that are valid at some time
@@ -519,6 +527,9 @@ For example,
 ["Mar 3 00:00:00 1980", "Mar 3 23:59:59 1981"]
 .)C
 are valid time specifications.
+.PP
+Note that this syntax is slightly different than that used by the 
+time-range type.
 .SH "SEE ALSO"
 append(commands),
 delete(commands),
