@@ -32,6 +32,7 @@
 #include "catalog/syscache.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_protos.h"
+#include "catalog/indexing.h"
 #include "parser/parse.h"  /* temporary */
 
 /* ----------------------------------------------------------------
@@ -176,6 +177,15 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
 			nulls);
     
     RelationInsertHeapTuple(rdesc, (HeapTuple) tup, (double *) NULL);
+
+    if (RelationGetRelationTupleForm(rdesc)->relhasindex)
+    {
+	Relation idescs[Num_pg_proc_indices];
+
+	CatalogOpenIndices(Num_pg_proc_indices, Name_pg_proc_indices, idescs);
+	CatalogIndexInsert(idescs, Num_pg_proc_indices, rdesc, tup);
+	CatalogCloseIndices(Num_pg_proc_indices, idescs);
+    }
 #ifdef USEPARGS
     procedureObjectId = tup->t_oid;
 #endif
