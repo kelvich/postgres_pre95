@@ -211,7 +211,8 @@ init_join_rel(outer_rel,inner_rel,joininfo)
     set_relids(joinrel,lispCons(get_relids(outer_rel),
 				lispCons(get_relids(inner_rel),
 					  LispNil)));
-    set_targetlist(joinrel,nconc(new_outer_tlist,new_inner_tlist));
+    new_outer_tlist = nconc(new_outer_tlist,new_inner_tlist);
+    set_targetlist(joinrel,new_outer_tlist);
     
     if( joininfo) {
 	set_clauseinfo(joinrel,get_jinfoclauseinfo(joininfo));
