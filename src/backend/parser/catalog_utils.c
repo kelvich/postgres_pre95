@@ -835,6 +835,8 @@ typeid_get_relid(type_id)
         OID             infunc;
         typeTuple = SearchSysCacheTuple(TYPOID, (char *) type_id,
                   (char *) NULL, (char *) NULL, (char *) NULL);
+	if (typeTuple == NULL)
+	  elog(WARN, "Type %d not found!", type_id);
         type = (TypeTupleForm) GETSTRUCT(typeTuple);
         infunc = type->typrelid;
         return(infunc);
