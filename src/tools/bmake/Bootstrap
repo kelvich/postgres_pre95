@@ -66,7 +66,8 @@ s/^MOREOBJS=.*/MOREOBJS=strdup.o/
 EOF
 		;;
 	*)
-		echo "Invalid port name:" $PORTNAME
+		echo "$0: invalid port name:" $1
+		echo "$0: valid port names are: alpha hpux linux sparc ultrix4"
 		exit 1;
 		;;
 esac
