@@ -320,13 +320,12 @@ IndexScanGetGeneralRetrieveIndexResult(scan, direction)
     RetrieveIndexResult		result;
     ItemPointer 		heapItemPointer;
     GeneralRetrieveIndexResult	generalResult;
-    
+
     /* ----------------
      *	use index_getnext to get the "RetrieveIndexResult"
      * ----------------
      */
-    result = (RetrieveIndexResult)
-	index_getnext(scan, direction);
+    result = (RetrieveIndexResult) index_getnext(scan, direction);
 
     if (! RetrieveIndexResultIsValid(result))
 	return (GeneralRetrieveIndexResult) NULL;
@@ -337,12 +336,11 @@ IndexScanGetGeneralRetrieveIndexResult(scan, direction)
      * ----------------
      */
     heapItemPointer = RetrieveIndexResultGetHeapItemPointer(result);
-    
-    generalResult = (GeneralRetrieveIndexResult)
-	palloc(sizeof *result);
+    pfree(result);
 
+    generalResult = (GeneralRetrieveIndexResult) palloc(sizeof *result);
     generalResult->heapItemData = *heapItemPointer;
-    
+
     return generalResult;
 }
 
