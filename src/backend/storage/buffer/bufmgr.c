@@ -504,8 +504,8 @@ Buffer	buffer;
   } else {
 
       /* blind write always flushes */
-      status = smgrblindwrt(bufHdr->bufsmgr, bufdb, bufrel,
-			    bufHdr->sb_relname, bufHdr->sb_dbname,
+      status = smgrblindwrt(bufHdr->bufsmgr, &bufHdr->sb_dbname,
+			    &bufHdr->sb_relname, bufdb, bufrel,
 			    bufHdr->tag.blockNum,
 			    (char *) MAKE_PTR(bufHdr->data));
   }
@@ -697,8 +697,8 @@ BufferSync()
 	       */
 
 	      if (reln == (Relation) NULL) {
-		  status = smgrblindwrt(bufHdr->bufsmgr, bufdb, bufrel,
-					bufHdr->sb_dbname, bufHdr->sb_relname,
+		  status = smgrblindwrt(bufHdr->bufsmgr, &bufHdr->sb_dbname,
+					&bufHdr->sb_relname, bufdb, bufrel,
 					bufHdr->tag.blockNum,
 					(char *) MAKE_PTR(bufHdr->data));
 	      } else {
@@ -1153,8 +1153,8 @@ BufferReplace(bufHdr)
     if (reln == (Relation) NULL) {
 	bufdb = bufHdr->tag.relId.dbId;
 	bufrel = bufHdr->tag.relId.relId;
-	status = smgrblindwrt(bufHdr->bufsmgr, bufdb, bufrel,
-			      bufHdr->sb_dbname, bufHdr->sb_relname,
+	status = smgrblindwrt(bufHdr->bufsmgr, &bufHdr->sb_dbname, 
+			      &bufHdr->sb_relname, bufdb, bufrel,
 			      bufHdr->tag.blockNum,
 			      (char *) MAKE_PTR(bufHdr->data));
     } else {
