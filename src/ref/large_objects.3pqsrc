@@ -1,51 +1,36 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
-.\" $Header$
+.\" $Header: /usr/local/devel/postgres/src/ref/RCS/large_objects.3pqsrc,v 1.12 1
+993/08/23 09:03:16 aoki Exp $
 .TH INTRODUCTION "LARGE OBJECTS" 01/23/93
 .XA 0 "Section 7 \(em Large Objects"
 .BH "SECTION 7 \(em LARGE OBJECTS"
 .SH DESCRIPTION
-In \*(PG, data values are stored in tuples, and individual tuples
-cannot span multiple data pages.  Since the size of a data page is
-8192 bytes, the upper limit on the size of a data value is relatively
-low.  To support the storage of larger atomic values, \*(PG provides a
-.IR "large object"
-interface.  This interface provides file-oriented access to user data
-that has been explicitly declared to be a large type.
+.SH DESCRIPTION
+.SH 
+In \*(PG, data values are stored in tuples and individual tuples cannot
+span data pages. Since the size of a data page is 8192 bytes, the upper
+limit on the size of a data value is relatively low. To support the
+storage of larger atomic values, \*(PG provides a large object interface.
+This interface provides file-oriented access to user data that has been 
+declared to be a large type.
 .PP
-Version \*(PV of \*(PG supports two different implementations of large
-objects.  These two implementations allow users to trade off speed of
-access against transaction protection and crash recovery on large
-object data.  Applications that can tolerate lost data may store
-object data in conventional files that are fast to access, but cannot
-be recovered in the case of system crashes.  For applications that
-require stricter guarantees of durability, a transaction-protected
-large object implementation is available.  This section describes the
-two implementations and the programmatic and query language interfaces
-to large object data.
+\*(PG supports three standard implementations of large objects: as files
+external to \*(PG, as \*(UU files managed by \*(PG, and as data stored
+within the \*(PG database. These implementation allow users to trade-off 
+between access speed, recoverability and security.  The choice of 
+implementation is specified when the Large Object is created or 
+"registered" with \*(PG.
 .PP
-Unlike the BLOB support provided by most commercial relational
-database management systems, \*(PG allows users to define specific
-large object types.  \*(PG large objects are first-class objects in
-the database, and any operation that can be applied to a conventional
-(small) abstract data type (ADT) may also be applied to a large one.
-For example, two different large object types, such as
-.IR image
-and
-.IR voice ,
-may be created.  Functions that operate on image data, and other
-functions that operate on voice data, may be declared to the database
-system.  The data manager will distinguish between image and voice
-data automatically, and will allow users to invoke the appropriate
-functions on values of each of these types.  In addition, indices may
-be created large data values, or on functions of them.  Finally,
-operators may be defined that operate on large values.  Users may
-invoke these functions and operators from the query language.  The
-database system will enforce type restrictions on large object data
-values.
+Applications which can tolerate lost data may store large objects as 
+conventional files which are fast to access, but cannot be recovered in 
+the case of system crashes. For applications requiring stricter 
+data integrity, the transaction protected large object implementation is 
+available.  This section describes each implementation and the programmatic 
+and query language interfaces to \*(PG large object data.
 .PP
-The \*(PG large object interface is modeled after the Unix file system
-interface, with analogs of 
+The \*(PG large object interface is modeled after the \*(UU file system
+interface, with analogs of
 .IR open (2),
 .IR read (2),
 .IR write (2),
@@ -77,79 +62,53 @@ existing data files (such as word-processor files) that must be
 accessed simultaneously by the database system and existing
 application programs.
 .PP
-This implementation stores large object data in a \*(UU file, and
-stores only the file name in the database.  Importing a large object
-into the database is as simple as storing the file name in a
-distinguished \*(lqlarge object name\*(rq relation.  Interface
-routines allow the database system to open, seek, read, write, and
-close these \*(UU files by an internal large object identifier.
+There are two ways in which \*(PG can handle \*(UU files storing
+large objects. The quickest way is to register the external file
+containing the large object with the \*(PG database. This leaves
+the file in it directory outside the \*(PG domain and allows other
+\*(UU users access to it. The file is only protected by the standard
+\*(UU permissions mechanism. In the case of a system crash, or if
+the file is removed or deleted, \*(PG provides no recovery 
+mechanism.
 .PP
-The functions
-.IR lo_filein
-and
-.IR lo_fileout
-convert between \*(UU filenames and internal large object identifiers.
-These functions are \*(PG registered functions, meaning they can be
-used directly in Postquel queries as well as from dynamically loaded C
-functions.  If you are defining a simple large object ADT, these
-functions can be used as your \*(lqinput\*(rq and \*(lqoutput\*(rq
-functions (see
-.IR "define type" (commands)
-and the \*(PG Manual sections concerning user-defined types for
-details).
+The second approach registers the large object in the \*(PG
+database and copies the specified file into the \*(PG database 
+directory structure, re-naming it. Reading and writing the
+file takes time so this is not so fast as the External large object
+process, and like External large objects \*(UU large objects are
+unrecoverable. However, placing the large object files in the
+\*(PG data area gives them the security of \*(PG data files.
 .PP
-The routine
-.(C
-char *lo_filein(filename)
-	char *filename;
-.)C
-imports a new \*(UU file storing large object data into the database
-system.  This routine stores the filename in a large object naming
-relation and assigns it a unique large object identifier.
+External large objects provide \*(PG users with the ability to
+share large objects between \*(PG and other systems. The files
+can be read and written by other \*(UU users, and \*(PG can be
+made aware of the large object very quickly. However, because of
+the security implications of the External large objects approach
+the facility is not provided by default. To enable External
+large objects, refer to the release notes that are provided with
+the software.
 .PP
-The converse routine,
-.(C
-char *lo_fileout(object)
-	LargeObject *object;
-.)C
-returns the \*(UU filename associated with a large object.
-.PP
-The file storing the large object must be accessible on the machine on
-which \*(PG is running.  The data is not copied into the database
-system, so if the file is later removed, it is unrecoverable.
-.PP
-Large objects are accessible from both the \*(PG backend, using
-dynamically-loaded functions, and from the front-end, using the \*(LI
-interface.  These interfaces will be described in detail below.
 .SH "INVERSION LARGE OBJECTS"
 In contrast to \*(UU files as large objects, the Inversion large
-object implementation guarantees transaction protection, crash
-recovery, and time travel on user large object data.  This
-implementation breaks large objects up into \*(lqchunks\*(rq and
+object implementation breaks large objects up into \*(lqchunks\*(rq and
 stores the chunks in tuples in the database.  A B-tree index
 guarantees fast searches for the correct chunk number when doing
 random access reads and writes.
 .PP
-If a transaction that has made changes to an Inversion large object
-subsequently aborts, the changes are backed out in the normal way.
-Inversion large objects are stored in the database, and so are not
-directly accessible to other programs.  Only programs that use the
-\*(PG data manager can read and write Inversion large objects.
+Only programs that use the \*(PG data manager can read and write 
+Inversion large objects. Inversion large objects are slower than storing 
+large objects as \*(UU files, and they require more space. 
 .PP
-To use Inversion large objects, a new large object should be created
-using the
-.IR LOcreat ()
-interface, defined below.  Afterwards, the name of the large object
-can be stored in an ordinary tuple.
-.PP
-The next section describes the programmatic interface to both \*(UU
-and Inversion large objects.
-.XA 1 "Backend Interface to Large Objects"
-.SH "BACKEND INTERFACE TO LARGE OBJECTS"
-Large object data is accessible from front-end programs linked with
-the \*(LI library, and from dynamically-loaded routines that execute
-in the \*(PG backend.  This section describes access from dynamically
-loaded C functions.
+The facilities \*(PG provides to access large objects, both in
+the backend as part of user defined functions or the front end
+as part of an application using the libpq interface, are described 
+below. As \*(PG has evolved a newer set of functions providing 
+a more coherent interface have replaced an older set. The most recent 
+approach will be described first, and the historical information 
+included for completeness.
+.SH "LARGE OBJECTS: BACKEND INTERFACE"
+This section describes how large objects may be accessed from dynamically
+loaded 'C' functions.
 .SH "Creating New Large Objects"
 The routine
 .(C
@@ -167,9 +126,9 @@ virtual root directory (\*(lq/\*(rq) in which objects may be placed.
 The
 .IR objtype
 parameter can be one of
-.IR Inversion
-or
-.IR Unix ,
+.IR Inversion ,
+.IR \*(UU ,
+.IR External ,
 which are symbolic constants defined in
 .(C
 \&.../include/catalog/pg_lobj.h
@@ -179,20 +138,38 @@ The interpretation of the
 argument depends on the
 .IR objtype
 selected.
+(Note that the
+.IR External
+type is conditionally compiled into the backend.) Please refer to the
+Release Notes for information on enabling External large objects and
+to the indroduction of this section for a discussion on External large
+objects.
 .PP
-For \*(UU files,
+For \*(UU files, (as described by the constants
+.IR \*(UU
+),
 .IR mode
 is the mode used to protect the file on the \*(UU file system.  On
 creation, the file is open for reading and writing.
+For
+.I External
+files, (as described by the constants
+.IR External
+),
+a permissions check is made to verify that users may access the file in
+the manner requested, (in addition to whether the postgres entity
+may do so).  External file which already exist are not truncated
+when imported by LOcreate().
 .PP
-For Inversion large objects,
+For inversion large objects,
 .IR mode
 is a bitmask describing several different attributes of the new
 object.  The symbolic constants listed here are defined in
 .(C
 \&.../include/tmp/libpq-fs.h
 .)C
-The access type (read, write, or both) is controlled by
+
+ccess type (read, write, or both) is controlled by
 .SM OR\c
 \&'ing together the bits
 .SM INV_READ
@@ -222,14 +199,18 @@ inv_fd = LOcreat("/my_inv_obj",
                  INV_READ|INV_WRITE, Inversion);
 .)C
 .SH "Opening Large Objects"
-Existing large objects may be opened for reading or writing by calling
-the routine
+Large objects registered into the database by
+the
+.IR LOcreat ()
+call described above, or
+.IR p_open ()
+call described below may be opened by calling the routine
 .(C
 int LOopen(path, mode)
     char *path;
     int mode;
 .)C
-The
+where the
 .IR path
 argument specifies the large object's pathname, and is the same as the
 pathname used to create the object.  The
@@ -282,15 +263,9 @@ parameter is the file descriptor returned by either
 or
 .IR LOopen .
 .IR Offset
-is the byte offset in the large object to which to seek.  The only
-legal value for
-.IR whence
-in the current release of the system is
-.SM L_SET\c
-, as defined in 
-.IR "<sys/files.h>" .
+is the byte offset in the large object to which to seek.
 .PP
-\*(UU large objects allow holes to exist in objects; that is, a
+*(UU large objects allow holes to exist in objects; that is, a
 program may seek well past the end of the object and write bytes.
 Intervening blocks will not be created; reading them will return
 zero-filled blocks.  Inversion large objects do not support holes.
@@ -345,10 +320,10 @@ nwrite_inv = LOwrite(inv_fd, vl);
 returns the number of bytes actually written, or a negative number on
 error.  For Inversion large objects, the entire write is guaranteed to
 succeed or fail.  That is, if the number of bytes written is
-non-negative, then it equals 
+non-negative, then it equals
 .IR VARSIZE (vl).
 .PP
-The 
+The
 .IR VARSIZE ()
 and
 .IR VARDATA ()
@@ -356,7 +331,7 @@ macros are declared in the file
 .(C
 \&.../include/tmp/postgres.h
 .)C
-.SH "Reading from Large Objects"
+SH "Reading from Large Objects"
 Data may be read from large objects by calling the routine
 .(C
 struct varlena *
@@ -410,7 +385,7 @@ if (LOclose(unix_fd) < 0)
 if (LOclose(inv_fd) < 0)
     /* error */
 .)C
-.XA 1 "LIBPQ Interface to Large Objects"
+XA 1 "LIBPQ Interface to Large Objects"
 .SH "LIBPQ LARGE OBJECT INTERFACE"
 Large objects may also be accessed from database client programs that
 link the \*(LI library.  This library provides a set of routines that
@@ -418,13 +393,6 @@ support opening, reading, writing, closing, and seeking on large
 objects.  The interface is similar to that provided via the backend,
 but rather than using varlena structures, a more conventional
 \*(UU-style buffer scheme is used.
-.PP
-In version \*(PV of \*(PG, large object operations must be enclosed in
-a transaction block.  This is true even for \*(UU large objects, which
-are not transaction-protected.  This is due to a shortcoming in the
-memory management scheme for large objects, and will be rectified in
-the future.  The end of this section shows a short example program
-that correctly transaction-protects its file system operations.
 .PP
 This section describes the \*(LI interface in detail.
 .SH "Creating a Large Object"
@@ -443,16 +411,19 @@ argument specifies a large-object system pathname.
 The
 .IR objtype
 parameter can be one of
-.IR Inversion
-or
+.IR Inversion ,
 .IR Unix ,
+or
+.IR External ,
 which are symbolic constants defined in
 .(C
 \&.../include/catalog/pg_lobj.h
 .)C
 The interpretation of the
 .IR mode
-argument depends on the
+and
+.IR files
+arguments depends on the
 .IR objtype
 selected.
 .PP
@@ -460,6 +431,28 @@ For \*(UU files,
 .IR mode
 is the mode used to protect the file on the \*(UU file system.  On
 creation, the file is open for reading and writing.
+The path name is an internal convention relative to the specific
+database and the actual files are stored in the directory of
+the database itself.
+.PP
+Application writers use this call to "import" an external file into
+the \*(PG data area. In the case of the External Large Object 
+implementation, the set of other calls: 'p_open()', 'p_read()',
+'p_write()' apply. \*(PG distinguishes between the storage methods in 
+the p_create() call.  However, \*(PG enforces the Unix level permissions
+of the current user, as well as its own, on External large object
+files.
+.PP
+For example, if Kym was using a \*(PG application, the External
+large object file 'mug_shot' in Kym's home directory would require
+permissions that allowed both the \*(PG account's uid and Kym's
+uid permissions over it. For Unix large objects or Inversion large
+object classes, where the files are managed by \*(PG in its own 
+data area, Kym doesn't require permissions over the file.
+.PP
+In addition, doing a p_unlink() operation (or the prm command) will
+not actually remove the host system file; it simply makes \*(PG
+forget about its existance.
 .PP
 For Inversion large objects,
 .IR mode
@@ -471,7 +464,7 @@ object.  The symbolic constants listed here are defined in
 The access type (read, write, or both) is controlled by
 .SM OR\c
 \&'ing together the bits
-.SM INV_READ 
+.SM INV_READ
 and
 .SM INV_WRITE\c
 \&.  If the large object should be archived \(em that is, if
@@ -519,7 +512,7 @@ writing, or both.  For \*(UU large objects, the appropriate flags are
 and
 .SM O_TRUNC\c
 \&.  For Inversion large objects, only
-.SM INV_READ 
+.SM INV_READ
 and
 .SM INV_WRITE
 are recognized.
@@ -551,24 +544,6 @@ or
 The number of bytes actually written is returned.
 In the event of an error,
 the return value is negative.
-.SH "Reading Data from a Large Object"
-The routine
-.(C
-int
-p_read(fd, buf, nbytes)
-    int fd;
-    char *buf;
-    int nbytes;
-.)C
-reads
-.IR nbytes
-bytes into buffer
-.IR buf
-from the large object descriptor
-.IR fd .
-The number of bytes actually read is returned.
-In the event of an error,
-the return value is less than zero.
 .SH "Seeking on a Large Object"
 To change the current read or write location on a large object,
 call
@@ -642,56 +617,55 @@ closes it.
 #include "tmp/libpq-fs.h"
 #include "catalog/pg_lobj.h"
 
-#define	MYBUFSIZ	1024
+#define MYBUFSIZ        1024
 
 main()
-{
-	int inv_fd;
-	int fd;
-	char *qry_result;
-	char buf[MYBUFSIZ];
-	int nbytes;
-	int tmp;
+        int inv_fd;
+        int fd;
+        char *qry_result;
+        char buf[MYBUFSIZ];
+        int nbytes;
+        int tmp;
 
-	PQsetdb("mydatabase");
+        PQsetdb("mydatabase");
 
-	/* large object accesses must be */
-	/* transaction-protected         */
-	qry_result = PQexec("begin");
+        /* large object accesses must be */
+        /* transaction-protected         */
+        qry_result = PQexec("begin");
 
-	if (*qry_result == 'E')	/* error */
-		exit (1);
+        if (*qry_result == 'E') /* error */
+                exit (1);
 
-	/* open the UNIX file */
-	fd = open("/my_unix_file", O_RDONLY, 0666);
-	if (fd < 0)	/* error */
-		exit (1);
+        /* open the UNIX file */
+        fd = open("/my_unix_file", O_RDONLY, 0666);
+        if (fd < 0)     /* error */
+                exit (1);
 
-	/* create the Inversion file */
-	inv_fd = p_creat("/inv_file", INV_WRITE, Inversion);
-	if (inv_fd < 0)	/* error */
-		exit (1);
+        /* create the Inversion file */
+        inv_fd = p_creat("/inv_file", INV_WRITE, Inversion);
+        if (inv_fd < 0) /* error */
+                exit (1);
 
-	/* copy the UNIX file to the Inversion */
-	/* large object                        */
-	while ((nbytes = read(fd, buf, MYBUFSIZ)) > 0)
-	{
-		tmp = p_write(inv_fd, buf, nbytes);
-		if (tmp < nbytes)	/* error */
-			exit (1);
-	}
+        /* copy the UNIX file to the Inversion */
+        /* large object                        */
+        while ((nbytes = read(fd, buf, MYBUFSIZ)) > 0)
+        {
+                tmp = p_write(inv_fd, buf, nbytes);
+                if (tmp < nbytes)       /* error */
+                        exit (1);
+        }
 
-	(void) close(fd);
-	(void) close(inv_fd);
+        (void) close(fd);
+        (void) close(inv_fd);
 
-	/* commit the transaction */
-	qry_result = PQexec("end");
+        /* commit the transaction */
+        qry_result = PQexec("end");
 
-	if (*qry_result == 'E')	/* error */
-		exit (1);
+        if (*qry_result == 'E') /* error */
+                exit (1);
 
-	/* by here, success */
-	exit (0);
+        /* by here, success */
+        exit (0);
 }
 .)C
 .SH "BUGS"
@@ -703,9 +677,68 @@ in these two cases.
 All large object file names (paths) are limited to 256 characters.
 .PP
 In the Inversion file system, file name components (the sections
-of the path preceding, following or in between \*(lq/\*(rq) are 
+of the path preceding, following or in between \*(lq/\*(rq) are
 limited to 16 characters each.  The maximum path length is still 256
 characters.
+.SH "lo_filein() and lo_fileout() IMPLEMENTATION"
+As \*(PG has evolved, the approach described above has replaced an
+earlier attempt at a large object interface which is described below.
+.PP
+This implementation stores large object data in a \*(UU file, and
+stores only the file name in the database.  Importing a large object
+into the database is as simple as storing the file name in a
+distinguished \*(lqlarge object name\*(rq relation.  Interface
+routines allow the database system to open, seek, read, write, and
+close these \*(UU files by an internal large object identifier.
+.PP
+The functions
+.IR lo_filein
+and
+.IR lo_fileout
+convert between \*(UU filenames and internal large object identifiers.
+These functions are \*(PG registered functions, meaning they can be
+used directly in Postquel queries as well as from dynamically loaded C
+functions.
+.PP
+The routine
+.(C
+LargeObject *lo_filein(filename)
+        char *filename;
+.)C
+imports a new \*(UU file storing large object data into the database
+system.  This routine stores the filename in a abstract data structure
+suitable for inclusion as an attribute of a tuple.
+.PP
+The converse routine,
+.(C
+char *lo_fileout(object)
+        LargeObject *object;
+.)C
+returns the \*(UU filename associated with a large object.
+.PP
+If you are defining a simple large object ADT, these
+functions can be used as your \*(lqinput\*(rq and \*(lqoutput\*(rq
+functions (see
+.IR "define type"
+(commands)).  A suitable declaration would be
+.(C
+        define type LargeObject (internallength = variable,
+                input = lo_filein, output = lo_fileout)
+.)C
+.PP
+The file storing the large object must be accessible on the machine on
+which \*(PG is running.  The data is not copied into the database
+system, so if the file is later removed, it is unrecoverable.
+.PP
+The data in large objects imported in this manner are only accesible
+from the \*(PG backend, using dynamically-loaded functions.
+Postgres maintains a virtual directory structure, into which it
+files its own unix-like large objects, or Inversion objects.
+.PP
+Because this older implementation of the large objects feature is not
+as robust or complete as the more recent ones, we recommend against
+using this functionality. It is documented for reasons of backwards
+compatability with systems already written using \*(PG.
 .SH "SEE ALSO"
 introduction(commands),
 define function(commands),
