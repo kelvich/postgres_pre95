@@ -154,8 +154,25 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
 
 	/* form an index tuple and point it at the heap tuple */
 	itup = FormIndexTuple(natts, itupdesc, attdata, nulls);
-	itup->t_tid = htup->t_ctid;
 
+	/*
+	 *  If the single index key is null, we don't insert it into
+	 *  the index.  Btrees support scans on <, <=, =, >=, and >.
+	 *  Relational algebra says that A op B (where op is one of the
+	 *  operators above) returns null if either A or B is null.  This
+	 *  means that no qualification used in an index scan could ever
+	 *  return true on a null attribute.  It also means that indices
+	 *  can't be used by ISNULL or NOTNULL scans, but that's an
+	 *  artifact of the strategy map architecture chosen in 1986, not
+	 *  of the way nulls are handled here.
+	 */
+
+	if (itup->t_info & INDEX_NULL_MASK) {
+	    pfree(itup);
+	    continue;
+	}
+
+	itup->t_tid = htup->t_ctid;
 	btitem = _bt_formitem(itup);
 	res = _bt_doinsert(index, btitem);
 	pfree(btitem);
@@ -214,6 +231,9 @@ btinsert(rel, itup)
     BTItem btitem;
     int nbytes_btitem;
     InsertIndexResult res;
+
+    if (itup->t_info & INDEX_NULL_MASK)
+	return ((InsertIndexResult) NULL);
 
     btitem = _bt_formitem(itup);
 
