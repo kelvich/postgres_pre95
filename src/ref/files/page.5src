@@ -107,6 +107,6 @@ The last piece is handled normally.
 .lp
 The page format may change in the future to provide
 more efficient access to large objects.
-This section contains too much detail for this manual and
+This section contains 
 insufficient detail to be of any assistance in writing a new
 access method.

@@ -12,11 +12,16 @@ distribution.
 .ip [ONG90]
 Ong, L. and Goh, J., "A Unified Framework for Version Modeling Using
 Production Rules in a Database System," Electronics Research Laboratory,
-University of California, Memo M90/33, April 1990.
+University of California, Berkeley, ERL Memo M90/33, April 1990.
 .ip [ROWE87]
 Rowe, L. and Stonebraker, M.,
 .q "The POSTGRES Data Model,"
 Proc. 1987 VLDB Conference, Brighton, England, Sept. 1987.
+.ip [SHAP86]
+Shapiro, L.,
+.q "Join Processing in Database Systems with Large
+Main Memories,"
+ACM-TODS, Sept. 1986.
 .ip [STON87]
 Stonebraker, M.,
 .q "The POSTGRES Storage System,"
@@ -25,4 +30,8 @@ Proc. 1987 VLDB Conference, Brighton, England, Sept. 1987.
 Stonebraker, M. et. al., "On Rules, Procedures, Caching and Views in Database
 Systems," Proc. 1990 ACM-SIGMOD Conference on Management of Data, Atlantic City, N.J.,
 June 1990.
+.ip [WONG76]
+Wong, E.,
+.q "Decomposition: A Strategy for Query Processing,"
+ACM-TODS, Sept. 1976.
 .SB
