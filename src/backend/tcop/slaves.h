@@ -49,6 +49,8 @@ struct slaveinfo {
     int		groupPid;		/* virtual pid within the process 
 					   group */
     bool	isAddOnSlave;		/* true if is add-on slave */
+    bool	isDone;			/* true if slave has finished task and
+					   is waiting for others to finish */
     Relation	resultTmpRelDesc;	/* the reldesc of the tmp relation
 					   that holds the result of this
 					   slave backend */
@@ -119,5 +121,8 @@ extern char *SlaveTmpRelDescAlloc();
 extern int getProcGroupMaxPage();
 
 #define SIGPARADJ	SIGUSR1
+
+#define NULLPAGE	-1
+#define NOPARADJ	-2
 
 #endif  TcopIncluded
