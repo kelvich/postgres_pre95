@@ -48,7 +48,7 @@ SIAssignBackendId ARGS((
  * CleanupInvalidationState --
  * Note:
  *	This is a temporary hack.  ExitBackend should call this instead
- *	of exit (via on_exit).
+ *	of exit (via on_exitpg).
  */
 extern
 void
@@ -103,7 +103,7 @@ SIBackendInit(segInOutP)
 #endif	/* defined(INVALIDDEBUG) */
 
 	SISetActiveProcess(segInOutP, MyBackendId);
-	on_exit(CleanupInvalidationState, segInOutP);
+	on_exitpg(CleanupInvalidationState, segInOutP);
 }
 
 BackendId
