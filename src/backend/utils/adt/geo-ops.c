@@ -68,11 +68,6 @@ box_in(str)
 		result->yl = tmp;
 	}
 
-#ifdef DEBUG
-	printf("box_in: (xh: %g, yh: %g, xl: %g, yl: %g)\n", 
-	       result->xh, result->yh, result->xl, result->yl);
-#endif
-
 	return(result);
 }
 
@@ -90,10 +85,6 @@ box_out(box)
 	result = PALLOC(60);
 	(void) sprintf(result, "(%g,%g,%g,%g)",
 		       box->xh, box->yh, box->xl, box->yl);
-
-#ifdef DEBUG
-	printf("box_out: %s\n", result);
-#endif
 
 	return(result);
 }
@@ -739,14 +730,6 @@ path_in(str)
 		return(NULL);
 	} 
 
-#ifdef DEBUG
-	printf("path_in: %d %d ", 
-	       result->closed, result->npts);
-	for (i = 0; i < result->npts; ++i)
-		printf(", %g %g", result->p[i].x, result->p[i].y);
-	putchar('\n');
-#endif
-
 	return(result);
 }
 
@@ -772,9 +755,6 @@ path_out(path)
 	}
 	*s++ = RDELIM;
 	*s = '\0';
-#ifdef DEBUG
-	printf("path_out: buf = %s\n", buf);
-#endif
 	result = PALLOC(strlen(buf) + 1);
 	(void) strcpy(result, buf);
 
@@ -1696,10 +1676,6 @@ on_ppath(pt, path)
 		hi = path->p[i].x < path->p[NEXT(i)].x;
 		xh = path->p[i+hi].x;
 		xl = path->p[i+!hi].x;
-#ifdef DEBUG
-		printf("(%d) ray %5f / %5f %5f / above = %d\n", 
-		       i, pt->y, yh, yl, above);
-#endif
 		/* skip seg if it doesn't touch the ray */
 
 		if (FPeq(yh, yl))	/* horizontal seg? */
@@ -1728,10 +1704,6 @@ on_ppath(pt, path)
 		next = FPgt(path->p[NEXT(i)].y, pt->y) ? ABOVE : 
 			FPlt(path->p[NEXT(i)].y, pt->y) ? BELOW : above;
 		inter += FPge(x, pt->x) && next != above;
-#ifdef DEBUG
-		printf("  cross x = %5f, next = %d, above = %d / %d\n", 
-		       x, next, above, inter);
-#endif
 		above = next;
 	}
 	return(	above == UNDEF || 	/* path is horizontal */
