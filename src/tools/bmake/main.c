@@ -1,4 +1,8 @@
 /*
+ * $Header$
+ */
+
+/*
  * Copyright (c) 1988, 1989, 1990 The Regents of the University of California.
  * Copyright (c) 1988, 1989 by Adam de Boor
  * Copyright (c) 1989 by Berkeley Softworks
@@ -340,7 +344,7 @@ main(argc, argv)
 	char **argv;
 {
 	Lst targs;	/* target nodes to create -- passed to Make_Init */
-	Boolean outOfDate; 	/* FALSE if all targets up to date */
+	Boolean outOfDate = FALSE; 	/* FALSE if all targets up to date */
 	struct stat sb;
 	char *p, *path, *getenv();
 
@@ -358,8 +362,8 @@ main(argc, argv)
 		if (S_ISDIR(sb.st_mode))
 			curdir = "..";
 		else {
-			curdir = emalloc((u_int)MAXPATHLEN + 1);
-			if (!getwd(curdir)) {
+			curdir = emalloc((u_int)MAXPATHLEN + 2);
+			if (!getcwd(curdir, MAXPATHLEN)) {
 				(void)fprintf(stderr, "make: %s.\n", curdir);
 				exit(2);
 			}
@@ -792,3 +796,31 @@ usage()
             [-I directory] [-j max_jobs] [variable=value]\n");
 	exit(2);
 }
+
+#ifdef hpux
+/*
+ * From: corrigan@weber.ucsd.edu (Michael J. Corrigan)
+ */
+#include <sys/types.h>
+#include <sys/time.h>
+#include <utime.h>
+
+int
+utimes(file, tvp)
+    char *file;
+    struct timeval *tvp;
+{
+    struct utimbuf ut;
+    time_t now;
+
+    now = time((time_t *) NULL);
+    if (!tvp) {
+	ut.actime = now;
+	ut.modtime = now;
+    } else {
+	ut.actime = tvp[0].tv_sec;
+	ut.modtime = tvp[1].tv_sec;
+    }
+    return(utime(file, &ut));
+}
+#endif /* hpux */
