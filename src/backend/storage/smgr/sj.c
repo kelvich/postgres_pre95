@@ -1552,7 +1552,7 @@ sjopen(reln)
 
     path = relpath(&(reln->rd_rel->relname.data[0]));
 
-    fd = FileNameOpenFile(path, O_RDWR, 0666);
+    fd = FileNameOpenFile(path, O_RDWR, 0600);
 
     return (fd);
 }

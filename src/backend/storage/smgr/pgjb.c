@@ -808,7 +808,7 @@ _pgjb_mdblockwrt(item, relblocks, buf)
     sprintf(&(path[0]), "../%s/%s",
 	    &(group->sjgd_dbname.data[0]), &(group->sjgd_relname.data[0]));
 
-    if ((vfd = PathNameOpenFile(&(path[0]), O_RDWR, 0666)) < 0)
+    if ((vfd = PathNameOpenFile(&(path[0]), O_RDWR, 0600)) < 0)
 	elog(FATAL, "_pgjb_mdblockwrt: can't open %s", &(path[0]));
 
     if (FileSeek(vfd, 0L, L_SET) != 0L)

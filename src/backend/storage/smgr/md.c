@@ -66,7 +66,7 @@ mdcreate(reln)
     extern bool IsBootstrapProcessingMode();
 
     path = relpath(&(reln->rd_rel->relname.data[0]));
-    fd = FileNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0666);
+    fd = FileNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0600);
 
     /*
      *  If the file already exists and is empty, we pretend that the
@@ -76,7 +76,7 @@ mdcreate(reln)
      */
 
     if (fd < 0) {
-	if ((fd = FileNameOpenFile(path, O_RDWR, 0666)) >= 0) {
+	if ((fd = FileNameOpenFile(path, O_RDWR, 0600)) >= 0) {
 	    if (!IsBootstrapProcessingMode() &&
 		FileRead(fd, &tmp, sizeof(tmp)) != 0) {
 		FileClose(fd);
@@ -147,11 +147,11 @@ mdopen(reln)
 
     path = relpath(&(reln->rd_rel->relname.data[0]));
 
-    fd = FileNameOpenFile(path, O_RDWR, 0666);
+    fd = FileNameOpenFile(path, O_RDWR, 0600);
 
     /* this should only happen during bootstrap processing */
     if (fd < 0)
-	fd = FileNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0666);
+	fd = FileNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0600);
 
     return (fd);
 }
@@ -358,7 +358,7 @@ mdblindwrt(dbstr, relstr, dbid, relid, blkno, buffer)
 
     /* construct the path to the file and open it */
     sprintf(path, "../%s/%s", (dbid == (OID) 0 ? ".." : dbstr), relstr);
-    if ((fd = open(path, O_RDWR, 0666)) < 0)
+    if ((fd = open(path, O_RDWR, 0600)) < 0)
 	return (SM_FAIL);
 
     /* seek to the right spot */
