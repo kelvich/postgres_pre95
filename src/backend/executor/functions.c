@@ -41,6 +41,8 @@ typedef struct local_es {
     ExecStatus status;
 } execution_state;
 
+#define LAST_POSTQUEL_COMMAND(es) ((es)->next == (execution_state *)NULL)
+
 Datum
 ProjectAttribute(TD, tlist, tup,isnullP)
      TupleDescriptor TD;
@@ -143,41 +145,44 @@ init_execution_state(fcache, args)
 }
 
 List
-postquel_start(qd, estate)
-     List qd;
-     EState estate;
+postquel_start(es)
+    execution_state *es;
 {
-    return ExecMain(qd, estate,
+    return ExecMain(es->qd, es->estate,
 		    lispCons(lispInteger(EXEC_START), LispNil));
 }
 
 TupleTableSlot
-postquel_getnext(qd, estate)
-     List qd;
-     EState estate;
+postquel_getnext(es)
+    execution_state *es;
 {
-    return (TupleTableSlot)
-	ExecMain(qd, estate, lispCons(lispInteger(EXEC_RETONE), LispNil));
+    LispValue feature;
+
+    feature = (LAST_POSTQUEL_COMMAND(es)) ?
+	lispCons(lispInteger(EXEC_RETONE), LispNil) :
+	lispCons(lispInteger(EXEC_RUN), LispNil);
+
+    return (TupleTableSlot) ExecMain(es->qd, es->estate, feature);
 }
 
 List
-postquel_end(qd, estate)
-     List qd;
-     EState estate;
+postquel_end(es)
+    execution_state *es;
 {
+    List qd;
+    EState estate;
     List res3;
-    res3 = ExecMain(qd, estate,
+    res3 = ExecMain(es->qd, es->estate,
 		    lispCons(lispInteger(EXEC_END), LispNil));
     return res3;
 }
 
 void
-postquel_sub_params(fcache, es, args)
-    FunctionCachePtr fcache;
+postquel_sub_params(es, nargs, args)
     execution_state  *es;
+    int              nargs;
     char             *args[];
 {
-    execution_state *es;
     ParamListInfo paramLI;
     EState estate;
     int i;
@@ -189,11 +194,39 @@ postquel_sub_params(fcache, es, args)
     {
 	if (paramLI->kind == PARAM_NUM)
 	{
-	    Assert(paramLI->id <= fcache->nargs);
+	    Assert(paramLI->id <= nargs);
 	    paramLI->value = (Datum)args[(paramLI->id - 1)];
 	    paramLI++;
 	}
     }
+}
+
+TupleTableSlot
+postquel_execute(es, fcache, args)
+    execution_state *es;
+    FunctionCachePtr fcache;
+    char **args;
+{
+    TupleTableSlot slot;
+
+    if (es->status == F_EXEC_START)
+    {
+	(void) postquel_start(es);
+	es->status = F_EXEC_RUN;
+    }
+
+    if (fcache->nargs > 0)
+        postquel_sub_params(es, fcache->nargs, args);
+
+    slot = postquel_getnext(es);
+
+    if (slot == (TupleTableSlot)NULL)
+    {
+	postquel_end(es);
+	es->status = F_EXEC_DONE;
+    }
+
+    return slot;
 }
 
 Datum
@@ -203,11 +236,11 @@ postquel_function(funcNode, args, isNull, isDone)
      bool *isNull;
      bool *isDone;
 {
-    TupleTableSlot   slot;
     HeapTuple        tup;
     Datum            value;
     execution_state  *es;
     LispValue	     tlist;
+    TupleTableSlot   slot = (TupleTableSlot)NULL;
     FunctionCachePtr fcache = get_func_fcache(funcNode);
 
     es = (execution_state *) fcache->func_state;
@@ -220,50 +253,60 @@ postquel_function(funcNode, args, isNull, isDone)
     while (es && es->status == F_EXEC_DONE)
     	es = es->next;
 
-    if (!es)
+    Assert(es);
+    /*
+     * Execute each command in the function one after another until we
+     * either get a tuple back from one of them or we run out of commands.
+     */
+    while (slot == (TupleTableSlot)NULL && es != (execution_state *)NULL)
     {
-	*isDone = true;
-	return NULL;
-    }
-    if (es->status == F_EXEC_START)
-    {
-	(void) postquel_start(es->qd, es->estate);
-	es->status = F_EXEC_RUN;
-    }
-
-    if (fcache->nargs > 0)
-        postquel_sub_params(fcache, es, args);
-
-    slot = postquel_getnext(es->qd, es->estate);
-
-    if (TupIsNull(slot))
-    {
-	(void)postquel_end(es->qd, es->estate);
-	es->status = F_EXEC_DONE;
+	slot = postquel_execute(es, fcache, args);
 	/*
-	 * If there aren't anymore commands in this function then we
-	 * are completely done.
+	 * If the current command is done move to the next command.
 	 */
-	if (! es->next)
+	if (slot == (TupleTableSlot)NULL)
+	    es = es->next;
+    }
+
+    /*
+     * If we've gone through every command in this function, we are done.
+     */
+    if (es == (execution_state *)NULL)
+    {
+	/*
+	 * Reset the execution states to start over again
+	 */
+	es = (execution_state *)fcache->func_state;
+	while (es)
 	{
-	    es = (execution_state *)fcache->func_state;
-	    while (es)
-	    {
-		es->status = F_EXEC_START;
-		es = es->next;
-	    }
-	    *isDone = true;
+	    es->status = F_EXEC_START;
+	    es = es->next;
 	}
+	/*
+	 * Let caller know we're finished.
+	 */
+	*isDone = true;
 	return NULL;
     }
     *isDone = false;
 
-    tup = (HeapTuple)ExecFetchTuple((Pointer)slot);
-    if ((tlist = get_func_tlist(funcNode)) != (List)NULL)
+    /*
+     * We only return results when this is the final command in the
+     * function.  Currently all functions must return something.
+     */
+    if (LAST_POSTQUEL_COMMAND(es))
     {
-	List tle = CAR(tlist);
+	tup = (HeapTuple)ExecFetchTuple((Pointer)slot);
+	if ((tlist = get_func_tlist(funcNode)) != (List)NULL)
+	{
+	    List tle = CAR(tlist);
 
-	value = ProjectAttribute(ExecSlotDescriptor(slot),tle,tup,isNull);
+	    value = ProjectAttribute(ExecSlotDescriptor(slot),tle,tup,isNull);
+	}
+	else
+	    value = (Datum) slot;
+	return value;
     }
-    return value;
+    *isNull = true;
+    return NULL;
 }

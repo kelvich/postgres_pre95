@@ -488,7 +488,8 @@ ExecEvalParam(expression, econtext, isNull)
     {
 	HeapTuple      tup;
 	Datum          value;
-	List           tle  = CAR(get_param_tlist(expression));
+	List           tlist = get_param_tlist(expression);
+	List           tle  = CAR(tlist);
 	TupleTableSlot slot = (TupleTableSlot)paramList->value;
 
 	tup = (HeapTuple)ExecFetchTuple((Pointer)slot);
@@ -610,6 +611,46 @@ GetAttribute(attname)
 	return retval;
 }
 
+void
+ExecEvalFuncArgs(fcache, econtext, argList, argV, argIsDone)
+    FunctionCachePtr fcache;
+    ExprContext econtext;
+    List argList;
+    Datum argV[];
+    Boolean *argIsDone;
+{
+    int i;
+    bool      argIsNull, *nullVect;
+    LispValue arg;
+
+    nullVect = fcache->nullVect;
+
+    i = 0;
+    foreach (arg, argList) {
+	/* ----------------
+	 *   evaluate the expression, in general functions cannot take
+	 *   sets as arguments but we make an exception in the case of
+	 *   nested dot expressions.  We have to watch out for this case
+	 *   here.
+	 * ----------------
+	 */
+	 argV[i] = (Datum)
+	    ExecEvalExpr((Node) CAR(arg),
+		     	econtext,
+		     	&argIsNull,
+		     	argIsDone);
+	    if (! (*argIsDone))
+	    {
+		Assert(i == 0);
+		fcache->setArg = (char *)argV[0];
+		fcache->hasSetArg = true;
+	    }
+	    if (argIsNull)
+		nullVect[i] = true;
+	    i++;
+    }
+}
+
 /* ----------------
  *	ExecMakeFunctionResult
  * ----------------
@@ -623,8 +664,7 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
     Boolean *isDone;
 {
     List	arg;
-    Datum	args[MAXFMGRARGS];
-    bool	argIsNull, *nullVect;
+    Datum	argv[MAXFMGRARGS];
     FunctionCachePtr fcache;
     int 	i;
     Func	funcNode = NULL;
@@ -654,7 +694,8 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
      *  shift the argument list to handle the special case for tuple arguments.
      *
      *  XXX this *has* to go away soon.  The executor's attempt at AI is
-     *      miserable at best.
+     *      miserable at best.  Once we figure out how c functions will
+     *      take tuple args we are home free.
      * ----------------
      */
     if (ArgumentIsRelation(arguments)) {
@@ -662,35 +703,38 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
   	SetCurrentTuple(econtext);
     }
 
-    nullVect = fcache->nullVect;
 
     /* ----------------
      *	arguments is a list of expressions to evaluate
      *  before passing to the function manager.
      *  We collect the results of evaluating the expressions
-     *  into a datum array (args) and pass this array to arrayFmgr()
+     *  into a datum array (argv) and pass this array to arrayFmgr()
      * ----------------
      */
     if (fcache->nargs != 0) {
+	bool argDone;
+
 	if (fcache->nargs > MAXFMGRARGS) 
 	    elog(WARN, "ExecMakeFunctionResult: too many arguments");
 
-   	i = 0;
-	foreach (arg, arguments) {
-	    bool dummyIsDone;
-	    /* ----------------
-	     *   evaluate the expression, functions cannot take sets as
-	     *   arguments so we pass in a dummy isDone boolean, and ignore
-	     *   it.
-	     * ----------------
-	     */
-	    args[i++] = (Datum)
-		ExecEvalExpr((Node) CAR(arg),
-			     econtext,
-			     &argIsNull,
-			     &dummyIsDone);
-	    if (argIsNull)
-		nullVect[i] = true;
+	/*
+	 * If the setArg in the fcache is set we have an argument
+	 * returning a set of tuples (i.e. a nested dot expression).  We
+	 * don't want to evaluate the arguments again until the function
+	 * is done. hasSetArg will always be false until we eval the args
+	 * for the first time. We should set this in the parser.
+	 */
+	if ((fcache->hasSetArg) && fcache->setArg != NULL)
+	{
+	    argv[0] = (Datum)fcache->setArg;
+	    argDone = false;
+	}
+	else
+	    ExecEvalFuncArgs(fcache, econtext, arguments, argv, &argDone);
+
+	if ((fcache->hasSetArg) && (argDone)) {
+	    *isDone = true;
+	    return (Datum)NULL;
 	}
     }
 
@@ -699,19 +743,44 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
      *   passing the function the evaluated parameter values. 
      * ----------------
      */
-    if (fcache->language == POSTQUELlanguageId)
-    {
+    if (fcache->language == POSTQUELlanguageId) {
+	Datum result;
+
 	Assert(funcNode);
-	return (Datum)
-	    postquel_function (funcNode, args, isNull, isDone);
+	result = postquel_function (funcNode, argv, isNull, isDone);
+	/*
+	 * finagle the situation where we are iterating through all results
+	 * in a nested dot function (whose argument function returns a set
+	 * of tuples) and the current function finally finishes.  We need to
+	 * get the next argument in the set and run the function all over
+	 * again.  This is getting unclean.
+	 */
+	if ((*isDone) && (fcache->hasSetArg)) {
+	    Boolean argDone;
+
+	    ExecEvalFuncArgs(fcache, econtext, arguments, argv, &argDone);
+
+	    if (argDone) {
+		*isDone = true;
+		result = (Datum)NULL;
+	    }
+	    else
+		result = postquel_function(funcNode,
+					   argv,
+					   isNull,
+					   isDone,
+					   &argDone);
+	}
+	return result;
     }
     else 
     {
 	*isDone = true;
 	return (Datum)
-	    fmgr_by_ptr_array_args(fcache->func, fcache->nargs, args, isNull);
+	    fmgr_by_ptr_array_args(fcache->func, fcache->nargs, argv, isNull);
     }
 }
+
 
 /* ----------------------------------------------------------------
  *    	ExecEvalOper
