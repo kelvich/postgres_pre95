@@ -818,7 +818,7 @@ int whichrel;       /* INNER or OUTER of joinnode */
 	 int outerpages = 
 	   get_pages(get_parent((Path)get_outerjoinpath(joinnode)));
 
-	 int nrun = ceil((Cost)outerpages/(Cost)NBuffers);
+	 int nrun = ceil((double)outerpages/(double)NBuffers);
 	 if (whichrel == INNER)
 	   return((Cost)(_CPU_PAGE_WEIGHT_ * nrun));
 	 else
