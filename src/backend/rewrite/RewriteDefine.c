@@ -13,6 +13,16 @@
 #include "fmgr.h"
 #include "datum.h"
 
+ObjectId LastOidProcessed = InvalidObjectId;
+
+typedef EventType Event;
+
+typedef struct REWRITE_RULE_LOCK {
+    ObjectId ruleid;
+    AttributeNumber attnum;
+    struct REWRITE_RULE_LOCK *next;
+} RewriteRuleLock;
+      
 #define ShowParseTL(ptree)	lispDisplay(parse_targetlist(ptree),0)
 #define ShowParseQual(ptree)	lispDisplay(parse_qualification(ptree),0)
 #define ShowParseCmd(ptree)	lispDisplay(root_command_type \
@@ -37,18 +47,6 @@ List RuleGetTriggerQual (ruleptr) Rule ruleptr;{ return(ruleptr->TriggerQual);}
 List RuleGetNewTree (ruleptr) Rule ruleptr; { return(ruleptr->NewTree); }
 bool RuleGetInstead (ruleptr) Rule ruleptr; { return(ruleptr->Instead); }
 bool RuleGetValid (ruleptr) Rule ruleptr; { return(ruleptr->Valid); }
-
-HandleReplaceRuleDef()
-{
-}
-HandleRetrieveRuleDef()
-{
-}
-QueryRewrite()
-{
-}
-
-#ifdef nowrk
 
 void RuleSetTriggerRel (ruleptr,trigger) 
      Rule ruleptr;
@@ -237,6 +235,149 @@ HandleRuleDef(event_type,event_relname,event_qual,instead,action)
       return(retval);
 }
      
+void
+createAndPutLock(ruleId, priority, oidOfRelationToBeLocked, attrno)
+ObjectId ruleId;
+int priority;
+ObjectId oidOfRelationToBeLocked;
+AttributeNumber attrno;
+{
+#ifdef NOTWORK
+    RuleLockIntermediate *ruleLock;
+    RuleLockIntermediateLockData *ruleLockData;
+    Relation relationRelation;
+    long size;
+
+    /*
+     * Create a new lock.
+     * NOTE:ths space occupied by this lock wil lbe freed
+     * by 'RuleLockRelation'.
+     */
+    size = sizeof(RuleLockIntermediate);
+    ruleLock = (RuleLockIntermediate *)palloc(size);
+    size = sizeof(RuleLockIntermediateLockData);
+    ruleLockData = (RuleLockIntermediateLockData *)palloc(size);
+    if (ruleLock == NULL || ruleLockData == NULL) {
+        elog(WARN, "createAndPutLock: palloc failed!");
+    }
+
+    /*
+     * Fill in the lock with the appropriate info
+     */
+    ruleLock->ruleid = ruleId;
+    ruleLock->priority = (char) priority;
+    ruleLock->ruletype = (char) RuleTypeReplace;
+    ruleLock->isearly = (bool) false;
+    ruleLock->locks = ruleLockData;
+    ruleLock->next_rulepack = NULL;
+
+    ruleLockData->locktype = RuleLockTypeWrite;
+    ruleLockData->attrno = (unsigned long) attrno;
+    ruleLockData->planno = (unsigned long) 1;
+    ruleLockData->next_lock = NULL;
+
+
+    /*
+     * Now put the lock in the RlationRelation
+     */
+    RuleLockRelation(
+        oidOfRelationToBeLocked,
+        ruleLock);
+
+#endif
+}
+/*--------------------------------------------------------------
+ *
+ * RuleLockRelation
+ *
+ * Lock a relation given its ObjectId.
+ * Go to the RelationRelation (i.e. pg_relation), find the
+ * appropriate tuple, and add the specified lock to it.
+ */
+
+static void
+RuleLockRelation(relationOid, lock)
+#ifdef NOTWORK
+ObjectId relationOid;
+RuleLockIntermediate *lock;
+#endif
+{
+#ifdef NOTWORK
+    Relation relationRelation;
+    HeapScanDesc scanDesc;
+    ScanKeyData scanKey;
+    HeapTuple tuple;
+    Buffer buffer;
+    HeapTuple newTuple;
+    HeapTuple newTuple2;
+    Datum currentLock;
+    RuleLockIntermediate *currentLockIntermediate;
+    RuleLockIntermediate *newLockIntermediate;
+    RuleLock newLock;
+    Boolean isNull;
+
+    relationRelation = RelationNameOpenHeapRelation(RelationRelationName);
+
+    scanKey.data[0].flags = 0;
+    scanKey.data[0].attributeNumber = ObjectIdAttributeNumber;
+    scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
+    scanKey.data[0].argument.objectId.value = relationOid;
+    scanDesc = RelationBeginHeapScan(relationRelation,
+                                        0, NowTimeQual,
+                                        1, &scanKey);
+
+    tuple = HeapScanGetNextTuple(scanDesc, 0, &buffer);
+    if (!HeapTupleIsValid(tuple)) {
+        elog(WARN, "Invalid rel OID %ld", relationOid);
+    }
+
+    currentLock = HeapTupleGetAttributeValue(
+                            tuple,
+                            buffer,
+                            RuleLockAttributeNumber,
+                            &(relationRelation->rd_att),
+                            &isNull);
+
+    if (!isNull) {
+        currentLockIntermediate = RuleLockInternalToIntermediate(
+                                    ((RuleLock) currentLock.pointer.value));
+    } else {
+        currentLockIntermediate = NULL;
+    }
+
+#ifdef RULEDEF_DEBUG
+    /*-- DEBUG --*/
+    printf("previous Lock:");
+    RuleLockIntermediateDump(currentLockIntermediate);
+#endif /* RULEDEF_DEBUG */
+
+    newLockIntermediate = RuleLockIntermediateUnion(
+                                currentLockIntermediate,
+                                lock);
+#ifdef RULEDEF_DEBUG
+    /*-- DEBUG --*/
+    printf("new Lock:");
+    RuleLockIntermediateDump(newLockIntermediate);
+#endif /* RULEDEF_DEBUG */
+
+    newLock = RuleLockIntermediateToInternal(newLockIntermediate);
+    RuleLockIntermediateFree(newLockIntermediate);
+
+    /*
+     * Create a new tuple (i.e. a copy of the old tuple
+     * with its rule lock field changed and replace the old
+     * tuple in the Relationrelation
+     */
+    newTuple = palloctup(tuple, buffer, relationRelation);
+    newTuple->t_lock.l_lock = newLock;
+
+    RelationReplaceHeapTuple(relationRelation, &(tuple->t_ctid),
+                            newTuple, (double *)NULL);
+
+    RelationCloseHeapRelation(relationRelation);
+#endif
+}
+
 /*
  *	for now, event_object must be a single attribute
  */
@@ -276,11 +417,12 @@ DefineQueryRewrite ( args )
 				  PlanToString(event_qual),
 				  (int)is_instead,
 				  PlanToString(action) );
-			 
-	     createAndPutLock ( ruleId, 0, 
+		 
+	     /*
+	       createAndPutLock ( ruleId, 0, 
 			       RelationGetRelationId ( event_relation ),
 			       varattno ( event_relation, eslot_string ));
-
+			       */
 	     /* HandleRetrieveRuleDef ( event_obj, event_qual, false ,
 				    action ); */
 	     break;
@@ -353,6 +495,8 @@ ShowRuleAction(ruleaction)
  */
 
 #include "anum.h"		/* why are nattrs hardwired ??? */
+#include "oid.h"
+#include "pmod.h"
 
 OID
 InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
@@ -366,52 +510,43 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
      char	*actiontree;
 
 {
-    Relation 	rule_relation = NULL;
-    HeapTuple 	new_rule_tuple = NULL;
-    char	*attr_values[RuleRelationNumberOfAttributes];
-    char	attr_is_null[RuleRelationNumberOfAttributes];
-    int		i = 0 ;
-
     static char	rulebuf[1024];
+    ObjectId rule_oid = InvalidObjectId;
+    ObjectId eventrel_oid = InvalidObjectId;
+    AttributeNumber evslot_index = InvalidAttributeNumber;
+    Relation eventrel = NULL;
 
-    /* sprintf(rulebuf,"append pg_rule (rulname=%s,evtype=%d,evobj=%s,\
-       evslot=%s,evqual=%s,evinstead=%d,action=%s",
-	    evtype,evobj,evslot,evqual,evinstead,actiontree);
-	    */
+    /* XXX - executor cannot
+       handle appends with oids yet, so this
+       won't work. temporarily, hack executor/result.c
+       to set LastOidProcesed.
 
-    rule_relation = RelationNameOpenHeapRelation ( RuleRelationName );
+       rule_oid = newoid(); /* lib/catalog/catalog.c */
 
-    attr_values[i]  = (char *)rulname ;
-    for ( i = 1 ; i < 9 ; i ++ ) {
-	attr_values[i] = (char *)(NULL);
+    eventrel = amopenr( evobj );
+    if ( eventrel == NULL ) {
+	elog ( WARN, "rules cannot be defined on relations not in schema");
     }
-    attr_values[i++] = (char *)evtype;
-    attr_values[i++] = (char *)evinstead;
-    attr_values[i++] = (char *)evobj; 
-    attr_values[i++] = fmgr(F_TEXTIN,evslot);		/* slot list */
-    attr_values[i++] = fmgr(F_TEXTIN,evqual);
-    attr_values[i++] = fmgr(F_TEXTIN,actiontree);
- 
-    for ( i = 0 ; i < 15 ; i ++ ) {
-	attr_is_null[i] = ( (attr_values[i] == NULL) ? 
-			   'n' : ' ' );
-    }
-    if ( !RelationIsValid( rule_relation )) {
-	elog(WARN, "RuleInsertCatalog: could not open relation %s",
-	     RuleRelationName);
-	return((ObjectId) 0);
-    }
+    eventrel_oid = RelationGetRelationId(eventrel);
+    evslot_index = varattno ( eventrel,evslot );
 
-    new_rule_tuple = FormHeapTuple ( RuleRelationNumberOfAttributes , 
-				     &rule_relation->rd_att , attr_values ,
-				     attr_is_null );
-    (void) RelationInsertHeapTuple ( rule_relation , new_rule_tuple, 
-				     (double *)NULL );
+    sprintf(rulebuf,
+"	    append pg_prs2rule (prs2name=\"%s\",prs2eventtype=\"%d2\"::char,\
+	    prs2eventrel=%d::oid,prs2eventattr=%d::int2,\
+	    prs2text= `%s`::text )",
+	    rulname,
+	    AtomValueGetString(evtype),
+	    eventrel_oid,
+	    evslot_index,
+	    actiontree);
 
-    RelationCloseHeapRelation ( rule_relation );
-    return ( new_rule_tuple->t_oid );
+    pg_eval(rulebuf);
+
+    printf("RuleOID is : %d\n", LastOidProcessed );
+
+    return ( LastOidProcessed );
 }
-	
+
 /*	DefineVirtualRelation
  *	- takes a relation name and a targetlist
  *	and generates a string "create relation ( ... )"
@@ -571,26 +706,29 @@ HandleRewrite ( parsetree , trigger ,varno ,varname , commandtype)
      Name	varname;
      int	commandtype;
 {
-    RuleLock relationLock = RelationGetRelationLocks(trigger);
-    List newparse_list = LispNil;
-    RuleLockIntermediate 	*lock  = NULL;
+    List 			newparse_list = LispNil;
+    RuleLock 			relationLock = 
+      				RelationGetRelationLocks(trigger);
+    RewriteRuleLock 		*lock  = NULL;
     bool			no_insteads = false;
-    RuleLockIntermediate 	*temp = NULL;
+    RewriteRuleLock	 	*temp = NULL;
     Relation 			ruleRelation = NULL;
     TupleDescriptor		ruleTupdesc = NULL;
 
     ruleRelation = amopenr ("pg_rule");
     ruleTupdesc = RelationGetTupleDescriptor(ruleRelation);
 
+    /* 
     lock = RuleLockInternalToIntermediate(relationLock);
 
     RuleLockIntermediatePrint( stdout , lock );
+    */
 
     if ( no_insteads ) {
 	newparse_list = lispCons ( parsetree, LispNil );
     }
 
-    for (temp = lock ; temp != NULL ; temp = temp->next_rulepack ) {
+    for (temp = lock ; temp != NULL ; temp = temp->next ) {
 	AttributeNumber oldattno = 0;
 	AttributeNumber newattno = 0;
 	int   		oldvarno = 0;
@@ -733,4 +871,4 @@ QueryRewrite ( parsetree )
 }
 
 
-#endif
+
