@@ -24,6 +24,8 @@
 #include "access/ftup.h"
 #include "access/nbtree.h"
 
+RcsId("$Header$");
+
 #define BTREE_METAPAGE	0
 #define BTREE_MAGIC	0x053162
 #define BTREE_VERSION	0
