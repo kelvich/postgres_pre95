@@ -38,7 +38,7 @@ CATALOG(pg_type) BOOTSTRAP {
     bool  	typbyval;
     char  	typtype;
     bool  	typisdefined;
-	char	typdelim
+    char	typdelim;
     oid 	typrelid;
     oid  	typelem;
     regproc  	typinput;
@@ -68,13 +68,14 @@ typedef FormData_pg_type	*Form_pg_type;
 #define Anum_pg_type_typbyval		5
 #define Anum_pg_type_typtype		6
 #define Anum_pg_type_typisdefined	7
-#define Anum_pg_type_typrelid		8
-#define Anum_pg_type_typelem		9
-#define Anum_pg_type_typinput		10
-#define Anum_pg_type_typoutput		11
-#define Anum_pg_type_typreceive		12
-#define Anum_pg_type_typsend		13
-#define Anum_pg_type_typdefault		14
+#define Anum_pg_type_typdelim     	8
+#define Anum_pg_type_typrelid		9
+#define Anum_pg_type_typelem		10
+#define Anum_pg_type_typinput		11
+#define Anum_pg_type_typoutput		12
+#define Anum_pg_type_typreceive		13
+#define Anum_pg_type_typsend		14
+#define Anum_pg_type_typdefault		15
 
 /*
  * XXX -- the implementation of int28's in postgres is a hack, and will
@@ -140,6 +141,7 @@ typedef struct	TypeTupleFormD {
 	Boolean		typbyval;
 	char		typtype;
 	Boolean 	typisdefined;
+	char		typdelim;
 	ObjectId	typrelid;
 	ObjectId	typelem;
 	RegProcedure	typinput;
@@ -169,6 +171,7 @@ struct	type {
 	Boolean	typbyval;
 	char	typtype;
 	Boolean typisdefined;
+	char	typdelim;
 	OID	typrelid;
 	OID	typelem;
 	REGPROC	typinput;
