@@ -217,6 +217,7 @@ extern char	*path_out();
 extern BOX	*box_in();
 extern char	*box_out();
 extern long	box_overlap();
+extern long	box_same();
 extern long	box_ge();
 extern long	box_gt();
 extern long	box_eq();
