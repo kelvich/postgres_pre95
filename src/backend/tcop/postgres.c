@@ -69,6 +69,11 @@ RcsId("$Header$");
 #include <usclkc.h>
 #endif
 
+#ifdef NOFIXADE
+#include <sys/syscall.h>
+#include <sys/sysmips.h>
+#endif
+
 extern int on_exitpg();
 
 /* ----------------
@@ -861,7 +866,12 @@ PostgresMain(argc, argv)
     extern	char	*optarg;
     extern      char	*DBName; /* a global name for current database */
     extern	short	DebugLvl;
-    
+
+#ifdef NOFIXADE
+    /* under ultrix, disable unaligned address fixups */
+    syscall(SYS_sysmips, MIPS_FIXADE, 0, NULL, NULL, NULL);
+#endif
+
     /* ----------------
      * 	register signal handlers.
      * ----------------
