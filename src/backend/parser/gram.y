@@ -1435,6 +1435,7 @@ opt_portal:
 
 OptUseOp:
 	  /*EMPTY*/			{ NULLTREE }
+	| USING Op			{ $$ = $2; }
 	| USING '<'			{ $$ = lispString("<"); }
 	| USING '>'			{ $$ = lispString(">"); }
 	;
