@@ -410,7 +410,11 @@ InitStdio()
 	 * ----------------
 	 */
 	if (!ValidPgVersion(".") || !ValidPgVersion("../.."))
-	    elog(FATAL, "InitStdio: !ValidPgVersion");
+	{
+		extern char *DBName;
+	    elog(NOTICE, "InitStdio: !ValidPgVersion");
+	    elog(FATAL, "Did you run createdb on %s yet??", DBName);
+	}
 	
 	Slog = SYSLOG_FD;
 /*	Packfd = 5; 	Packfd not used see below */
