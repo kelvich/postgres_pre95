@@ -85,7 +85,7 @@ RelationRegisterTempRel ARGS((
 
 extern void
 RelationFlushRelation ARGS((
-	Relation        relation,
+	Relation        *relationPtr,
 	bool            onlyFlushReferenceCountZero
 ));
 
