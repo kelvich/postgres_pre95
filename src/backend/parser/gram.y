@@ -2074,55 +2074,64 @@ res_target_el:
 	}
 
 	| Id opt_indirection '=' a_expr
-	  {
+	{
 /*		if ($4 != LispNil && ISCOMPLEX(CInteger(CAR($4))))
 		    elog(WARN, "Cannot assign complex type to variable %s in target list", CString($1));
 */
-		if ((parser_current_query == APPEND) && ($2 != LispNil)) {
-			char * val;
-			char *str, *save_str;
-			LispValue elt;
-			int i = 0, ndims, j = 0;
-			int lindx[MAXDIM], uindx[MAXDIM];
-    		int resdomno;
-    		Relation rd;
-
-			if (CInteger(CAR($4)) != UNKNOWNOID)
-				elog(WARN, "yyparse: string constant expected");
-            val = (char *) textout((struct varlena *)
-							get_constvalue((Const)CDR($4)));
-			str = save_str = palloc(strlen(val) + MAXDIM*25);
-			foreach(elt, CDR($2)) {
-				if (!IsA(CAR(elt),Const)) 
-					elog(WARN, "Array Index for Append should be a constant");
-				uindx[i++] = get_constvalue((Const)CAR(elt));
-			}
-			if (CAR($2) != LispNil) {
-				foreach(elt, CAR($2)) {
-				if (!IsA(CAR(elt),Const)) 
-					elog(WARN, "Array Index for Append should be a constant");
-				lindx[j++] = get_constvalue((Const)CAR(elt));
-				}
-				if (i != j) elog(WARN, "yyparse: dimension mismatch");
-			} else for (j = 0; j < i; lindx[j++] = 1);
-			for (j = 0; j < i; j++) {
-				if (lindx[j] > uindx[j]) 
-				  elog(WARN, "yyparse: lower index cannot be greater than upper index");
-				sprintf(str, "[%d:%d]", lindx[j], uindx[j]);
-				str += strlen(str);
-			}
-			sprintf(str, "=%s", val);
-			rd = parser_current_rel;
-			Assert(rd != NULL);
-			resdomno = varattno(rd,CString($1));
-			ndims = att_attnelems(rd,resdomno);
-			if (i != ndims) elog(WARN, "yyparse: array dimensions do not match");
-			$$ = make_targetlist_expr ($1, make_const(lispString(save_str)), LispNil);
-			pfree(save_str);
+	    if ((parser_current_query == APPEND) && ($2 != LispNil)) {
+		/* this is an array assignment */
+		char *val;
+		char *str, *save_str;
+		LispValue elt;
+		int i = 0, ndims, j = 0;
+		int lindx[MAXDIM], uindx[MAXDIM];
+		int resdomno;
+		Relation rd;
+		
+		if (CInteger(CAR($4)) != UNKNOWNOID)
+		    elog(WARN, "yyparse: string constant expected");
+		val = (char *) textout((struct varlena *)
+				       get_constvalue((Const) CDR($4)));
+		str = save_str = palloc(strlen(val) + MAXDIM * 25);
+		foreach(elt, CDR($2)) {
+		    if (!IsA(CAR(elt),Const)) 
+			elog(WARN, "Array Index for Append should be a constant");
+		    uindx[i++] = get_constvalue((Const)CAR(elt));
 		}
-		else
-		$$ = make_targetlist_expr ($1,$4, $2);
-	   } 
+		if (CAR($2) != LispNil) {
+		    foreach(elt, CAR($2)) {
+			if (!IsA(CAR(elt),Const))
+			    elog(WARN, "Array Index for Append should be a constant");
+			lindx[j++] = get_constvalue((Const)CAR(elt));
+		    }
+		    if (i != j)
+			elog(WARN, "yyparse: dimension mismatch");
+		} else {
+		    for (j = 0; j < i; lindx[j++] = 1)
+			;
+		}
+		for (j = 0; j < i; j++) {
+		    if (lindx[j] > uindx[j]) 
+			elog(WARN, "yyparse: lower index cannot be greater than upper index");
+		    sprintf(str, "[%d:%d]", lindx[j], uindx[j]);
+		    str += strlen(str);
+		}
+		sprintf(str, "=%s", val);
+		rd = parser_current_rel;
+		Assert(rd != NULL);
+		resdomno = varattno(rd, CString($1));
+		ndims = att_attnelems(rd, resdomno);
+		if (i != ndims)
+		    elog(WARN, "yyparse: array dimensions do not match");
+		$$ = make_targetlist_expr($1,
+					  make_const(lispString(save_str)),
+					  LispNil);
+		pfree(save_str);
+	    } else {
+		/* this is not an array assignment */
+		$$ = make_targetlist_expr($1, $4, $2);
+	    }
+	} 
 	| attr opt_indirection
              {
 		 LispValue varnode, temp;
@@ -2342,6 +2351,9 @@ LispValue arrayRef;
 			   lispCons((LispValue)CDR(expr),LispNil)) );
      }
      
+     if (expr == LispNil)
+	 elog(WARN, "make_targetlist_expr: invalid use of NULL expression");
+
      type_id = CInteger(CAR(expr));
      type_len = tlen(get_id_type(type_id));
      if (ResdomNoIsAttrNo) {

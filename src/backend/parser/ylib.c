@@ -43,6 +43,9 @@ RcsId("$Header$");
 
 LispValue parsetree;
 
+extern bool Input_is_string;
+extern bool Typecast_ok;
+
 #define DB_PARSE(foo) 
 
 void fixupsets();
@@ -208,13 +211,19 @@ parser_typecast ( expr, typename )
     bool string_palloced = false;
 
     type_string = CString(CAR(typename));
+
+    if (!Input_is_string && !Typecast_ok)
+	elog(WARN,
+	     "parser_typecast: cannot cast this expression to type \"%s\"",
+	     type_string);
+    
     if (CDR(typename) != LispNil) {
 	    sprintf(type_string_2,"_%s", type_string);
 	    tp = (Type) type(type_string_2);
     } else {
 	    tp = (Type) type(type_string);
     }
-
+    
     len = tlen(tp);
 
     switch ( CInteger(CAR(expr)) ) {
