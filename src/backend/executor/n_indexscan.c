@@ -92,10 +92,11 @@
  *           ExecOpenIndices
  ****/
 void
-ExecGetIndexKeyInfo(indexTuple, numAttsOutP, attsOutP)
+ExecGetIndexKeyInfo(indexTuple, numAttsOutP, attsOutP, fInfoP)
     IndexTupleForm	indexTuple;
     int			*numAttsOutP;
     AttributeNumberPtr	*attsOutP;
+    FuncIndexInfoPtr	fInfoP;
 {
     int			i;
     int 		numKeys;
@@ -111,7 +112,13 @@ ExecGetIndexKeyInfo(indexTuple, numAttsOutP, attsOutP)
     }
     
     /* ----------------
-     *	first count the number of keys..
+     * set the procid for a possible functional index.
+     * ----------------
+     */
+    FIsetProcOid(fInfoP, indexTuple->indproc);
+
+    /* ----------------
+     *	count the number of keys..
      * ----------------
      */
     numKeys = 0;
@@ -120,9 +127,20 @@ ExecGetIndexKeyInfo(indexTuple, numAttsOutP, attsOutP)
     
     /* ----------------
      *	place number keys in callers return area
+     *  or the number of arguments for a functional index.
+     *
+     *  If we have a functional index then the number of 
+     *  attributes defined in the index must 1 (the function's 
+     *  single return value).
      * ----------------
      */
-    (*numAttsOutP) = numKeys;
+    if (FIgetProcOid(fInfoP) != InvalidObjectId) {
+	FIsetnArgs(fInfoP, numKeys);
+	(*numAttsOutP) = 1;
+    }
+    else
+	(*numAttsOutP) = numKeys;
+
     if (numKeys < 1) {
 	elog(DEBUG, "ExecGetIndexKeyInfo: %s",
 	     "all index key attribute numbers are zero!");
@@ -187,13 +205,16 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
     List		oidList;
     List		nkeyList;
     List		keyList;
+    List		fiList;
     List		indexoid;
     List		numkeys;
     List		indexkeys;
+    List		indexfuncs;
     int			len;
     
     RelationPtr		relationDescs;
     IndexInfoPtr	indexInfoArray;
+    FuncIndexInfoPtr	fInfoP;
     int		   	numKeyAtts;
     AttributeNumberPtr 	indexKeyAtts;
     int			i;
@@ -226,6 +247,7 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
     oidList =  LispNil;
     nkeyList = LispNil;
     keyList =  LispNil;
+    fiList =   LispNil;
     
     while(tuple = amgetnext(indexSd, 		/* scan desc */
 			    false,		/* scan backward flag */
@@ -243,12 +265,19 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
 	indexOid = indexStruct->indexrelid;
 	
 	/* ----------------
+	 * allocate space for functional index information.
+	 * ----------------
+	 */
+	fInfoP = (FuncIndexInfoPtr)palloc( sizeof(*fInfoP) );
+
+	/* ----------------
 	 *  next get the index key information from the tuple
 	 * ----------------
 	 */
 	ExecGetIndexKeyInfo(indexStruct,
 			    &numKeyAtts,
-			    &indexKeyAtts);
+			    &indexKeyAtts,
+			    fInfoP);
 	
 	/* ----------------
 	 *  save the index information into lists
@@ -257,6 +286,7 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
 	oidList =  lispCons(lispInteger(indexOid), oidList);
 	nkeyList = lispCons(lispInteger(numKeyAtts), nkeyList);
 	keyList =  lispCons(indexKeyAtts, keyList);
+	fiList =   lispCons((LispValue)fInfoP, fiList);
     }
     
     /* ----------------
@@ -334,6 +364,11 @@ ExecOpenIndices(resultRelationOid, resultRelationInfo)
 	    set_ii_KeyAttributeNumbers(indexInfoArray[i++], indexKeyAtts);
 	}
 	
+	i = 0;
+	foreach (indexfuncs, fiList) {
+	    FuncIndexInfoPtr fiP = (FuncIndexInfoPtr)CAR(indexfuncs);
+	    set_ii_FuncIndexInfo(indexInfoArray[i++], fiP);
+	}
 	/* ----------------
 	 *   store the index info array into relation info
 	 * ----------------
@@ -406,6 +441,7 @@ ExecFormIndexTuple(heapTuple, heapRelation, indexRelation, indexInfo)
     
     int			numberOfAttributes;
     AttributeNumberPtr  keyAttributeNumbers;
+    FuncIndexInfoPtr	fInfoP;
     
     /* ----------------
      *	get information from index info structure
@@ -413,6 +449,7 @@ ExecFormIndexTuple(heapTuple, heapRelation, indexRelation, indexInfo)
      */
     numberOfAttributes =  get_ii_NumKeyAttributes(indexInfo);
     keyAttributeNumbers = get_ii_KeyAttributeNumbers(indexInfo);
+    fInfoP =              get_ii_FuncIndexInfo(indexInfo);
     
     /* ----------------
      *	datum and null are arrays in which we collect the index attributes
@@ -442,7 +479,8 @@ ExecFormIndexTuple(heapTuple, heapRelation, indexRelation, indexInfo)
 		   heapDescriptor,	/* heap tuple's descriptor */
 		   InvalidBuffer,	/* buffer associated with heap tuple */
 		   datum,		/* return: array of attributes */
-		   nulls);		/* return: array of char's */
+		   nulls,		/* return: array of char's */
+		   fInfoP);		/* functional index information */
     
     indexTuple = FormIndexTuple(numberOfAttributes,
 				indexDescriptor,
