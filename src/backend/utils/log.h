@@ -48,6 +48,6 @@ extern int	ElogDebugIndentLevel;
  */
 extern
 void
-elog ARGS((va_alist));
+elog ARGS(( int, ... ));
 
 #endif	/* !defined(LogIncluded) */
