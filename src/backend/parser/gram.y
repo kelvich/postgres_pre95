@@ -1832,19 +1832,21 @@ SubstituteParamForNewOrCurrent ( parsetree )
      List parsetree;
 {
     List i = NULL;
+    Name getAttrName();
 
     foreach ( i , parsetree ) {
 	List temp = CAR(i);
 	if ( temp && IsA (temp,Var) ) {
-	    char  *attrname = NULL;
+	    Name attrname = NULL;
 	    Relation foo = amopenr ( CString(CAR(NewOrCurrentIsReally)));
-
-	    if ( foo ) {
-		attrname = (char *)
-		  &(foo->rd_att.data[get_varattno(temp)-1]->attname);
+	    if (foo==NULL) {
+		elog(WARN, "Could not open relation %s\n",
+		    CString(CAR(NewOrCurrentIsReally)));
 	    }
+
 	    if ( get_varno(temp) == 1 ) {
 		/* replace with make_param(old) */
+		attrname = getAttrName(foo, get_varattno(temp));
 		CAR(i) = (List)MakeParam (PARAM_OLD,
 				    (int32)0,
 				    attrname,
@@ -1852,6 +1854,7 @@ SubstituteParamForNewOrCurrent ( parsetree )
 	    } 
 	    if ( get_varno(temp) == 2 ) {
 		/* replace with make_param(new) */
+		attrname = getAttrName(foo, get_varattno(temp));
 		CAR(i) = (List)MakeParam(PARAM_NEW,
 				   (int32)0,
 				   attrname,
