@@ -201,7 +201,7 @@ parser_typecast ( expr, typename )
     Const adt;
     Datum lcp;
     Type tp;
-    char *type_string, *p, type_string_2[16];
+    char *type_string, type_string_2[16];
     int32 len;
     char *cp = NULL;
     char *const_string; 
@@ -209,7 +209,6 @@ parser_typecast ( expr, typename )
 
     type_string = CString(CAR(typename));
     if (CDR(typename) != LispNil) {
-	    *p = 0;
 	    sprintf(type_string_2,"_%s", type_string);
 	    tp = (Type) type(type_string_2);
     } else {
