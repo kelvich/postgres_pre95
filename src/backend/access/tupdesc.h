@@ -25,6 +25,22 @@ typedef TupleDescriptorData	TupleDescD;
 
 typedef TupleDescD		*TupleDesc;
 
+/* special tuple descriptor used in the executor */
+
+typedef enum {ATTVAL, ATTTUP} AttributeTag;
+typedef struct ExecAttDescData {
+        AttributeTag	      tag;  /* indicating whether it is single value
+                                         or a tuple */
+        int                   len;  /* if it is a tuple, number of atts */
+        TupleDescriptor       attdesc; /* descriptor of atts: variable len */
+} ExecAttDescData;
+typedef ExecAttDescData *ExecAttDesc;
+
+typedef struct ExecTupDescriptorData {
+        ExecAttDesc data[1];            /* variable length array */
+} ExecTupDescriptorData;
+typedef ExecTupDescriptorData *ExecTupDescriptor;
+
 /*
  * TupleDescIsValid --
  *	True iff tuple descriptor is valid.
