@@ -367,6 +367,20 @@ char * PQgetvalue ( portal, tuple_index, field_number )
 	int	field_number;
 .ft
 
+.ft
+
+PQgetlen \*- Return the length of an attribute (field) value in bytes.
+If the field is a varlena, the length of the attribute returned here
+does not include the longword size field of the varlena, e.g. it is 4
+bytes less.
+
+.ft C
+char * PQgetlen ( portal, tuple_index, field_number )
+	PortalBuffer	*portal;
+	int	tuple_index;
+	int	field_number;
+.ft
+
 PQNotifies \*- Return the list of relations on which notification has occurred.
 
 .ft C
@@ -677,20 +691,22 @@ void main()
 .nf
 .ft C
 /*
- * Testing of binary portal interface.
+ * Testing of new binary portal interface.
  * 
  * Do the following at the monitor:
  *
 
- create test1 (i = int4,d = float4) \eg
- append test1 (i = 7, d=3.567) \eg
+ create test1 (i = int4,d = float4,p = polygon) \g
+ append test1 (i = 7, d=3.567,p="(1.0,2.0,3.0,4.0)"::polygon) \g
 
  -- Anything else you can think of. 
  * Start up this program.
  * The correct contents of test1 should be printed
  */
+
 #include "tmp/simplelists.h"
 #include "tmp/libpq.h"
+#include "utils/geo-decls.h"
 
 void main()
 {
@@ -702,40 +718,45 @@ void main()
     PQsetdb(getenv("USER"));
 
     PQexec("begin");
-    res = (char *)
-	  PQexec("retrieve iportal junk (test1.all)");
+    res = (char *)PQexec("retrieve iportal junk (test1.all)");
     if (*res == 'E') {
-        fprintf(stderr,"%s\nfailed",++res);
-        goto exit_error;
+	fprintf(stderr,"%s\nfailed",++res);
+	goto exit_error;
     }
     res = (char *)PQexec("fetch all in junk");
     if (*res != 'P') {
-        fprintf(stderr,"\nno portal");
-        goto exit_error;
+	fprintf(stderr,"\nno portal");
+	goto exit_error;
     }
     /* get tuples in relation */
     portalbuf = PQparray(++res);
     ngroups = PQngroups(portalbuf);
     for (grpno = 0; grpno < ngroups; grpno++) {
-        ntups = PQntuplesGroup(portalbuf, grpno);
-	nflds = PQnfieldsGroup(portalbuf, grpno);
-        if (nflds != 2) {
-            fprintf(stderr,
-		"expected 2 attributes, got %d\n",
-		nflds);
-            goto exit_error;
-        }
-        for (tupno = 0; tupno < ntups; tupno++) {
-            int *bla1;
-            char *bla2;
-            bla1 = (int *)PQgetvalue(portalbuf,tupno,0);
-            bla2 = PQgetvalue(portalbuf,tupno,1);
+	ntups = PQntuplesGroup(portalbuf, grpno);
+	if ((nflds = PQnfieldsGroup(portalbuf, grpno)) != 3) {
+	    fprintf(stderr, "expected 3 attributes, got %d\n", nflds);
+	    goto exit_error;
+	}
+	for (tupno = 0; tupno < ntups; tupno++) {
+	    int *bla1;
+	    char *bla2;
+	    POLYGON *bla3;
+	    bla1 = (int *)PQgetvalue(portalbuf,tupno,0);
+	    bla2 = PQgetvalue(portalbuf,tupno,1);
+	    bla3 = PQgetvalue(portalbuf,tupno,2)-4;
 
-            printf ("got i=%d, d=(%f)|%x|%x|%x|%x\n",
-		    *bla1,*((float *)bla2),
-                    *bla2,*(bla2+1),*(bla2+2),
-		    *(bla2+3));
-        }
+	    printf ("got i=%d(%d bytes), d=(%f)(%d bytes)|%x|%x|%x|%x\n\
+ Polygon(%d bytes)\
+  %d points (%f,%f,%f,%f)\n",
+		    *bla1,PQgetlength(portalbuf,tupno,0),
+		    *((float *)bla2),
+		    PQgetlength(portalbuf,tupno,1),
+		    *bla2,*(bla2+1),*(bla2+2),*(bla2+3),
+		    PQgetlength(portalbuf,tupno,2),
+		    bla3->npts,
+		    bla3->boundbox.xh,bla3->boundbox.yh,
+		    bla3->boundbox.xl,bla3->boundbox.yl);
+	}
     }
 
     PQexec("end");
