@@ -53,12 +53,12 @@ since the data that they store spans multiple user queries.
 .lp
 .nf
 /* set up and use a portal */
-   begin
-   retrieve portal myportal (pg_user.all)
-   fetch 2 in myportal
-   fetch all in myportal
-   close myportal
-   end
+   begin \eg
+   retrieve portal myportal (pg_user.all) \eg
+   fetch 2 in myportal \eg
+   fetch all in myportal \eg
+   close myportal \eg
+   end \eg
 
 /* Fetch all the instances available in the portal FOO */
    fetch all in FOO
