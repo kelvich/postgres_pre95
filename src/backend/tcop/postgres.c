@@ -130,12 +130,30 @@ extern int Quiet;
 void
 GetUserName()
 {
-    if (IsUnderPostmaster) {
-	PG_username = (char *) getenv("PG_USER");
-	if (PG_username == NULL)
-	    elog(FATAL, "GetUserName(): Can\'t get PG_USER environment name");
-    } else
-	PG_username = (char *) getenv("USER");
+    char *t;
+
+    if (IsUnderPostmaster)
+	{
+		t = (char *) getenv("PG_USER");
+		if (t == NULL)
+	    	elog(FATAL, "GetUserName(): Can\'t get PG_USER environment name");
+		
+	}
+    else
+	{
+		t = (char *) getenv("USER");
+	}
+
+	/*
+	 * Valid Postgres username can be at most 16
+	 * characters - leave one for null
+	 * 
+	 * DO NOT REMOVE THIS MALLOC - apparently some getenv's reuse space and
+	 * this hozed on a Sparcstation.
+	 */
+
+	PG_username = (char *) malloc(17);
+	strcpy(PG_username, t);
 }
 
 void
