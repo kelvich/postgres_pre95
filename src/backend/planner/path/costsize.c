@@ -153,9 +153,7 @@ cost_index (indexid,expected_indexpages,selec,relpages,
 	    temp += _disable_cost_;
 	} 
     }
-    else {
-	temp += 0;
-    } 
+
     temp += expected_indexpages;      /*   expected index relation pages */
     temp += selec * indextuples;      /*   about one base relation page */
     /*    per index tuple */
