@@ -44,6 +44,7 @@
 #include "storage/bufpage.h"	/* for page layout, for InitMyDatabaseId() */
 #include "storage/sinval.h"
 #include "storage/sinvaladt.h"
+#include "storage/lmgr.h"
 #include "support/master.h"
 
 #include "tmp/hasht.h"		/* for EnableHashTable, etc. */
@@ -52,7 +53,6 @@
 
 #include "utils/exc.h"		/* for EnableExceptionHandling, etc. */
 #include "utils/fmgr.h"		/* for EnableDynamicFunctionManager, etc. */
-#include "utils/lmgr.h"
 #include "utils/log.h"
 #include "utils/mcxt.h"		/* for EnableMemoryContext, etc. */
 

@@ -43,8 +43,8 @@
 #include "storage/pladt.h"
 /*#include "storage/plm.h"	L_DONE, etc. */
 #include "storage/multilev.h"
+#include "storage/lmgr.h"
 
-#include "utils/lmgr.h"
 #include "utils/log.h"
 #include "utils/rel.h"
 

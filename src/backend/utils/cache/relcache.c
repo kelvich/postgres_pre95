@@ -48,13 +48,13 @@ RcsId("$Header$");
  
 #include "rules/rlock.h"
 #include "storage/buf.h"
+#include "storage/lmgr.h"
  
 #include "tmp/miscadmin.h"
 #include "tmp/hashlib.h"
 #include "tmp/hasht.h"
  
 #include "utils/memutils.h"
-#include "utils/lmgr.h"
 #include "utils/log.h"
 #include "utils/mcxt.h"
 #include "utils/rel.h"

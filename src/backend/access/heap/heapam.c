@@ -100,13 +100,13 @@ RcsId("$Header$");
 #include "storage/itemid.h"
 #include "storage/itemptr.h"
 #include "storage/page.h"
+#include "storage/lmgr.h"
 
 #include "tmp/miscadmin.h"
 
 #include "utils/memutils.h"
 #include "utils/fmgr.h"
 #include "utils/inval.h"
-#include "utils/lmgr.h"
 #include "utils/log.h"
 #include "utils/mcxt.h"
 #include "utils/rel.h"

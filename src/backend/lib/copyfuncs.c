@@ -35,7 +35,7 @@
 #include "access/htup.h"
 #include "utils/fmgr.h"
 #include "utils/log.h"
-#include "utils/lmgr.h"
+#include "storage/lmgr.h"
 
 #include "nodes/execnodes.h"
 #include "nodes/nodes.h"
