@@ -141,12 +141,6 @@ find_rel_paths(rels,level,sortkeys)
 	   * If it is not the cheapest path, prune it.
 	   */
 	  prune_rel_path(rel, (Path)last_element(get_pathlist(rel))); 
-
-	  /* copy clauseinfo list into each path for expensive function 
-	     processing */
-	  foreach(tmppath, get_pathlist(rel))
-	    set_locclauseinfo((Path)CAR(tmppath),
-			      (List)CopyObject(get_clauseinfo(rel)));
        }
      foreach(temp, rels) {
 	 rel = (Rel)CAR(temp);
