@@ -154,11 +154,10 @@ prune_rel_path (rel,unorderedpath)
 {
      Path cheapest = set_cheapest (rel,get_pathlist (rel));
 
-     if (!(eq (unorderedpath,cheapest))) {
+     if (!(eq (unorderedpath,cheapest)) && !testFlag) {
 
 	  set_unorderedpath (rel,LispNil);
-	  if (!testFlag)
-	      set_pathlist (rel,LispRemove(unorderedpath,get_pathlist (rel)));
+	  set_pathlist (rel,LispRemove(unorderedpath,get_pathlist (rel)));
 
      } else {
 
