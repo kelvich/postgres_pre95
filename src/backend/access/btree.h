@@ -277,6 +277,7 @@ typedef bits16 BTreeItemFlags;
 #define	BTREE_ITEM_IS_HIGHKEY	((BTreeItemFlags) (1 << 1))
 #define	BTREE_ITEM_IS_RLOCK_L	((BTreeItemFlags) (1 << 2))
 #define	BTREE_ITEM_IS_RLOCK_R	((BTreeItemFlags) (1 << 3))
+#define	BTREE_ITEM_IS_RLOCK	(BTREE_ITEM_IS_RLOCK_L|BTREE_ITEM_IS_RLOCK_R)
 
 /* ----------------
  * BTreeItem --
@@ -340,6 +341,7 @@ typedef BTreeRuleLockData *BTreeRuleLock;
 #define BTREE_LEAF_INSERT_DATA		((int8) 1<<1)
 #define BTREE_RLOCK_L_INSERT_DATA	((int8) 1<<2)
 #define BTREE_RLOCK_R_INSERT_DATA	((int8) 1<<3)
+#define BTREE_RLOCK_INSERT_DATA		(BTREE_RLOCK_L_INSERT_DATA|BTREE_RLOCK_R_INSERT_DATA)
 
 typedef struct BTreeInsertDataData {
    int8			type;			/* internal or leaf */
