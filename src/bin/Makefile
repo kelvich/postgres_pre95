@@ -1,7 +1,7 @@
 #
 # C programs
 #
-SUBDIR=  monitor pagedoc pg_id pg_version shmemdoc
+SUBDIR=  monitor pagedoc pg_id pg_ufp pg_version shmemdoc
 #
 # Shell scripts
 #
