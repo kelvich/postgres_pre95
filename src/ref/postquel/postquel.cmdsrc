@@ -381,6 +381,12 @@ retrieve (e.age, avg {emp.salary where emp.age = e.age})
    from e in emp 
    where e.age > 18
 .)l
+Such aggregate functions are not supported in Version 3.0. Furthermore,
+in this version, only the a_expr and the where-qualification clause 
+are supported.  Therefore, for the above simple sum aggregate, the 
+supported query would be the latter.  One other note:  the qualification
+will support inheritance, but the expression to be aggregated will not.
+
 .uh "Set Expressions"
 .lp
 .b
