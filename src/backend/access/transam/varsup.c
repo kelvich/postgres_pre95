@@ -36,6 +36,10 @@
 
 #include "storage/buf.h"
 #include "storage/bufmgr.h"
+#ifdef sequent
+#include "storage/pladt.h"	/* for LockId */
+#include "storage/ipc.h"	/* for OIDGENLOCKID */
+#endif
 
 #include "utils/rel.h"
 #include "utils/log.h"
@@ -462,6 +466,10 @@ UpdateLastCommittedXid(xid)
  *	id assignments should use this 
  * ----------------
  */
+#ifdef sequent
+static LockId OidGenLockId = OIDGENLOCKID;
+#endif
+
 void
 GetNewObjectIdBlock(oid_return, oid_block_size)
     oid *oid_return;		/* place to return the new object id */
@@ -473,6 +481,9 @@ GetNewObjectIdBlock(oid_return, oid_block_size)
      *	SOMEDAY obtain exclusive access to the variable relation page
      * ----------------
      */
+#ifdef sequent
+    ExclusiveLock(OidGenLockId);
+#endif
 	
     /* ----------------
      *	get the "next" oid from the variable relation
@@ -495,6 +506,9 @@ GetNewObjectIdBlock(oid_return, oid_block_size)
      *	SOMEDAY relinquish our lock on the variable relation page
      * ----------------
      */
+#ifdef sequent
+    ExclusiveUnlock(OidGenLockId);
+#endif
 }
 
 /* ----------------
