@@ -1630,11 +1630,11 @@ a_expr:
 			
 		}
 	| AexprConst		
-	| attr '[' Iconst ']' optional_indirection /* ron */
+	| attr optional_indirection /* ron */
 		{ 
 		     $$ = (List)make_array_ref_var ( CString(CAR($1)),
 						    CString(CADR($1)),
-						    CInteger($3), $5);
+						    $2);
 		}
 	| spec  { Typecast_ok = false; }
 	| '-' a_expr %prec UMINUS
@@ -1690,10 +1690,10 @@ a_expr:
 	;
 /* ron */
 optional_indirection:
-	|  '[' Iconst ']'
-		{ $$ = $2;}
+	  '[' Iconst ']'
+		{ $$ = lispCons($2, LispNil);}
 	|  optional_indirection '[' Iconst ']'
-		{ $$ = lispCons($1, $3);}
+		{ $$ = nappend1($1, $3);}
 
 expr_list:
 	|  a_expr				{ ELEMENT ; }
