@@ -299,6 +299,13 @@ aminsert ARGS((
 	double		*offsetOutP
 ));
 
+extern
+RuleLock
+doinsert ARGS((
+	Relation	relation,
+	HeapTuple	heapTuple
+));
+
 /*
  * RelationDeleteHeapTuple --
  *	Deletes a heap tuple.
