@@ -901,6 +901,7 @@ OptStmtBlock:
                {
                   p_last_resno = 1;
                   p_target_resnos = LispNil;
+		  p_target = LispNil;
                }
          OptimizableStmt
                { $$ = nappend1($1, $3); }
