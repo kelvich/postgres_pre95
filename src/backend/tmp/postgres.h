@@ -537,8 +537,13 @@ typedef uint16			CommandId;
 #define CATALOG(x) \
     typedef struct CppConcat(FormData_,x)
 
+#if defined(NO_EMPTY_STMTS)
+#define DATA(x) extern int errno
+#define DECLARE_INDEX(x) extern int errno
+#else /* NO_EMPTY_STMTS */
 #define DATA(x)
 #define DECLARE_INDEX(x)
+#endif /* NO_EMPTY_STMTS */
 #define BUILD_INDICES
 #define BOOTSTRAP
 

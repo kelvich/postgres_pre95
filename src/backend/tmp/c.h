@@ -165,7 +165,7 @@ typedef bool	*BoolPtr;
 
 #ifdef	__STDC__ /* ANSI C */
 
-#if ! defined(PORTNAME_bsd44)
+#if defined(__GNUC__)
 #define PROTOTYPES
 #endif
 
@@ -173,7 +173,15 @@ typedef bool	*BoolPtr;
  * Pointer --
  *	Variable holding address of any memory resident object.
  */
+#if defined(__GNUC__)
 typedef void	*Pointer;
+#else /* __GNUC__ */
+/*
+ *	XXX Pointer arithmetic is done with this, so it can't be void *
+ *	under "true" ANSI compilers.
+ */
+typedef char	*Pointer;
+#endif /* __GNUC__ */
 
 #ifndef	NULL
 /*
