@@ -90,7 +90,7 @@ pq_init(fd)
  */
 void
 pq_gettty(tp)
-    char tp[20];
+    char *tp;
 {	
     (void) strncpy(tp, ttyname(0), 19);
 }

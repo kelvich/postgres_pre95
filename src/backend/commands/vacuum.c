@@ -25,6 +25,7 @@
 
 #include "utils/log.h"
 #include "utils/mcxt.h"
+#include "utils/palloc.h"
 
 #include "commands/vacuum.h"
 

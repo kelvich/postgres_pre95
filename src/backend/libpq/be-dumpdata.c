@@ -37,6 +37,7 @@ RcsId("$Header$");
 #include "access/htup.h"
 #include "storage/buf.h"
 #include "utils/memutils.h"
+#include "utils/palloc.h"
 #include "fmgr.h"
 #include "utils/mcxt.h"
 #include "utils/log.h"

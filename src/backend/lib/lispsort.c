@@ -6,6 +6,7 @@
 #include "nodes/relation.h"
 #include "lib/copyfuncs.h"
 #include "lib/lispsort.h"
+#include "utils/palloc.h"
 
 /*
 ** lisp_qsort: Takes a lisp list as input, copies it into an array of lisp 

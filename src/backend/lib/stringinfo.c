@@ -15,6 +15,7 @@
 #include "nodes/pg_lisp.h"
 #include "tmp/stringinfo.h"
 #include "utils/log.h"
+#include "utils/palloc.h"
 
 /*---------------------------------------------------------------------
  * makeStringInfo

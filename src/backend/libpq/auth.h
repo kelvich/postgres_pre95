@@ -36,15 +36,15 @@
 extern		fe_sendauth ARGS((MsgType msgtype,
 				  Port *port,
 				  char *hostname));
-extern char    *fe_getauthname ARGS(());
+extern char    *fe_getauthname ARGS((void));
 extern void	fe_setauthsvc ARGS((char *name));
-extern MsgType	fe_getauthsvc ARGS(());
+extern MsgType	fe_getauthsvc ARGS((void));
 
-extern		be_recvauth ARGS((Msgtype msgtype,
+extern		be_recvauth ARGS((MsgType msgtype,
 				  Port *port,
 				  char *username));
 extern void	be_setauthsvc ARGS((char *name));
-extern int	be_getauthsvc ARGS(());
+extern int	be_getauthsvc ARGS((MsgType msgtype));
 
 #define	PG_KRB4_VERSION	"PGVER4.1"	/* at most KRB_SENDAUTH_VLEN chars */
 #define	PG_KRB5_VERSION	"PGVER5.1"

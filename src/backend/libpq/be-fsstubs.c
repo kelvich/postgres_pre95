@@ -87,6 +87,7 @@
 #include "tmp/libpq-fs.h"
 /*#include "utils/large_object.h"*/
 #include "utils/mcxt.h"
+#include "utils/palloc.h"
 #include "catalog/pg_lobj.h"
 #include "catalog/pg_naming.h"
 
@@ -151,10 +152,12 @@ static struct {
 	inv_seek, inv_tell, inv_stat},
     /* Unix */
     { BIG, LOCreate, LOOpen, LOClose, LORead, LOWrite,
-	LOSeek, LOTell, LOUnixStat},
-    /* External */
-    { BIG, XOCreate, XOOpen, LOClose, LORead, LOWrite,
 	LOSeek, LOTell, LOUnixStat}
+#ifdef EXTERNAL_LO
+    /* External */
+    ,{ BIG, XOCreate, XOOpen, LOClose, LORead, LOWrite,
+	LOSeek, LOTell, LOUnixStat}
+#endif /* EXTERNAL_LO */
 #ifdef JAQUITH
     /* Jaquith */
     ,{ BIG, JOCreate, JOOpen, JOClose, LORead, LOWrite,
@@ -222,7 +225,7 @@ int LOopen(fname,mode)
 	switch (LOprocs[objtype].bigcookie) {
 	  case SMALL_INT:
 	    lobjDesc = (char *)
-	      LOprocs[objtype].LOopen((void *) *((int *)VARDATA(lobjCookie)),mode);
+	      LOprocs[objtype].LOopen((void *) Int32GetDatum(*((int *)VARDATA(lobjCookie))),mode);
 	    break;
 	  case BIG: 
 	    lobjDesc = (char *) LOprocs[objtype].LOopen(lobjCookie,mode);

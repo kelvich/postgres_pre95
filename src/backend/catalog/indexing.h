@@ -64,7 +64,7 @@ extern HeapTuple AttributeNameIndexScan ARGS((Relation heapRelation, ObjectId re
 extern HeapTuple AttributeNumIndexScan ARGS((Relation heapRelation, ObjectId relid, AttributeNumber attnum));
 extern HeapTuple ProcedureOidIndexScan ARGS((Relation heapRelation, ObjectId procId));
 extern HeapTuple ProcedureNameIndexScan ARGS((Relation heapRelation, char *procName, int nargs, ObjectId *argTypes));
-extern HeapTuple ProcedureSrcIndexScan ARGS((Relation heapRelation, char *procSrc));
+extern HeapTuple ProcedureSrcIndexScan ARGS((Relation heapRelation, text *procSrc));
 extern HeapTuple TypeOidIndexScan ARGS((Relation heapRelation, ObjectId typeId));
 extern HeapTuple TypeNameIndexScan ARGS((Relation heapRelation, char *typeName));
 extern HeapTuple NamingNameIndexScan ARGS((Relation heapRelation, ObjectId parentid, char *filename));

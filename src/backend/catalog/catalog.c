@@ -12,6 +12,7 @@ RcsId("$Header$");
 #include "access/htup.h"
 #include "storage/buf.h"
 #include "utils/log.h"
+#include "utils/palloc.h"
 
 #include "catalog/syscache.h"
 #include "catalog/catname.h"	/* NameIs{,Shared}SystemRelationName */
@@ -185,7 +186,8 @@ fillatt(natts, att)
 	
 	for (i = 0; i < natts;) {
 	     tuple = SearchSysCacheTuple(TYPOID,
-					 (*attributeP)->atttypid,
+					 (char *) 
+					 Int32GetDatum((*attributeP)->atttypid),
 					 (char *) NULL,
 					 (char *) NULL,
 					 (char *) NULL);

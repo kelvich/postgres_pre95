@@ -26,6 +26,7 @@ RcsId("$Header$");
 #include "access/htup.h"
 #include "fmgr.h"
 #include "utils/log.h"
+#include "utils/palloc.h"
 
 #include "catalog/syscache.h"
 #include "catalog/pg_type.h"
