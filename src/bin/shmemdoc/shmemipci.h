@@ -1,6 +1,8 @@
 /*
  * ipci.h --
  *	POSTGRES inter-process communication initialization definitions.
+ *
+ * $Header$
  */
 
 typedef unsigned long	IPCKey;
