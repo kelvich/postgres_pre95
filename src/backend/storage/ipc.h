@@ -107,7 +107,6 @@ extern int on_exitpg();
 typedef enum _LockId_ {
     BUFMGRLOCKID,
     LOCKLOCKID,
-    SINVALLOCKID,
     OIDGENLOCKID,
     SHMEMLOCKID,
     BINDINGLOCKID,
