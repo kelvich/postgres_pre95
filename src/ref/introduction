@@ -39,7 +39,7 @@ is about 200,000 lines of C code.  Information on obtaining the source
 code is available from:
 .sp
 .(l
-Chandra Ghosh
+Claire Mosher
 Computer Science Division
 521 Evans Hall
 University of California
@@ -55,12 +55,12 @@ prototype from the late 1970s.
 As distributed, \*(PG runs on Digital Equipment Corporation computers
 based on
 .SM MIPS
-R2000 and R3000 processors (under Ultrix 4.2A; a kernel bug prevents
+R2000 and R3000 processors (under Ultrix 4.2; a kernel bug prevents
 \*(PG from running under Ultrix 4.3) and Sun Microsystems computers
 based on
 .SM SPARC
 processors (under SunOS 4.1).  Work is underway to support
-Digital Equipment Corporation computers based on Alpha (DECchip 21064)
+Digital Equipment Corporation computers based on Alpha AXP (DECchip 21064)
 processors (under OSF/1) and Hewlett-Packard computers based on PA-RISC
 processors (under HP-UX).
 .SH "\*(PG DOCUMENTATION"
@@ -96,6 +96,7 @@ Philip Chang,
 Jolly Chen,
 Ron Choi,
 Chris Demitriou,
+Bob Devine,
 Matt Dillon,
 Zelaine Fong,
 Adam Glass,
@@ -125,8 +126,7 @@ Marc Teitelbaum served as chief programmer for Version \*(PV and was
 responsible for overall coordination of the project.
 .PP
 This reference was collectively written by the above implementation
-team, assisted by Michael Stonebraker, Chandra Ghosh and Claire
-Mosher.
+team, assisted by Michael Stonebraker, Chandra Ghosh and Claire Mosher.
 .SH "FOOTNOTES"
 \*(UU is a trademark of
 .SM AT&T .
