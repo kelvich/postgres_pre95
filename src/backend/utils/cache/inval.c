@@ -8,6 +8,7 @@
 #include "tmp/postgres.h"
 #include "access/heapam.h"	/* XXX to support hacks below */
 #include "access/htup.h"
+#include "storage/bufpage.h"
 #include "storage/buf.h"	/* XXX for InvalidBuffer */
 #include "storage/ipci.h"
 #include "storage/sinval.h"
