@@ -1027,8 +1027,12 @@ _copyResdom(from, to, alloc)
     newnode->resno   = from->resno;
     newnode->restype = from->restype;
     newnode->reslen  = from->reslen;
-    newnode->resname = (Name)
-	strcpy((char *) (*alloc)(strlen(from->resname)+1), from->resname);
+
+    if (from->resname != NULL)
+	newnode->resname = (Name)
+	    strcpy((char *) (*alloc)(strlen(from->resname)+1), from->resname);
+    else
+	newnode->resname = (Name) NULL;
     
     newnode->reskey  = from->reskey;
     newnode->reskeyop = from->reskeyop; /* USED AS AN INT (see above) */
@@ -1299,9 +1303,13 @@ _copyParam(from, to, alloc)
      */
     newnode->paramkind = from->paramkind;
     newnode->paramid = from->paramid;
-    
-    newnode->paramname = (Name)
-	strcpy((char *) (*alloc)(strlen(from->paramname)+1), from->paramname);
+
+    if (from->paramname != NULL)
+	newnode->paramname = (Name)
+	    strcpy((char *) (*alloc)(strlen(from->paramname)+1),
+		   from->paramname);
+    else
+	newnode->paramname = (Name) NULL;
     
     newnode->paramtype = from->paramtype;
     
@@ -2034,8 +2042,13 @@ _copyLispStr(from, to, alloc)
      *	copy remainder of node
      * ----------------
      */
-    newnode->val.name = (char *)
-	strcpy((char *) (*alloc)(strlen(from->val.name)+1), from->val.name);
+    if (from->val.name != NULL)
+	newnode->val.name = (char *)
+	    strcpy((char *) (*alloc)(strlen(from->val.name)+1),
+		   from->val.name);
+    else
+	newnode->val.name = NULL;
+    
     newnode->cdr = LispNil;
     
     (*to) = newnode;
