@@ -92,6 +92,20 @@ typedef FormData_pg_type	*Form_pg_type;
  * ----------------
  */
 
+DATA(insert OID = 0 ( pg_attribute 6 1 1 t b t \054 75 0 foo bar foo bar _null_));
+DATA(insert OID = 0 ( pg_class 6 1 1 t b t \054 83 0 foo bar foo bar _null_));
+DATA(insert OID = 0 ( pg_database 6 1 1 t b t \054 88 0 foo bar foo bar _null_));
+DATA(insert OID = 0 ( pg_defaults 6 1 1 t b t \054 89 0 foo bar foo bar _null_));
+DATA(insert OID = 0 ( pg_demon 6 1 1 t b t \054 76 0 foo bar foo bar _null_));
+DATA(insert OID = 0 ( pg_log 6 1 1 t b t \054 99 0 foo bar foo bar _null_));
+DATA(insert OID = 0 ( pg_magic 6 1 1 t b t \054 80 0 foo bar foo bar _null_));
+DATA(insert OID = 0 ( pg_proc 6 1 1 t b t \054 81 0 foo bar foo bar _null_));
+DATA(insert OID = 0 ( pg_server 6 1 1 t b t \054 82 0 foo bar foo bar _null_));
+DATA(insert OID = 0 ( pg_time 6 1 1 t b t \054 100 0 foo bar foo bar _null_));
+DATA(insert OID = 0 ( pg_type 6 1 1 t b t \054 71 0 foo bar foo bar _null_));
+DATA(insert OID = 0 ( pg_user 6 1 1 t b t \054 86 0 foo bar foo bar _null_));
+DATA(insert OID = 0 ( pg_variable 6 1 1 t b t \054 90 0 foo bar foo bar _null_));
+
 DATA(insert OID = 16 (  bool       6  1   1 t b t \054 0   0 boolin boolout boolin boolout _null_ ));
 DATA(insert OID = 17 (  bytea      6 -1  -1 f b t \054 0  18 byteain byteaout byteain byteaout _null_ ));
 DATA(insert OID = 18 (  char       6  1   1 t b t \054 0   0 charin charout charin charout _null_ ));
