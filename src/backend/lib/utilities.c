@@ -150,6 +150,7 @@ copy_seq_tree (seqtree)
     LispValue new_seq = LispNil;
     LispValue new_elem = LispNil;
     LispValue elem = LispNil;
+    LispValue i = LispNil;
 
     if (IsA(seqtree,LispList))
       foreach (i,seqtree) {
