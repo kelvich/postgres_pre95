@@ -206,12 +206,17 @@ RemoveType(typeName)
 	static ScanKeyEntryData typeKey[1] = {
 		{ 0, TypeNameAttributeNumber, NameEqualRegProcedure }
 	};
+	Name bb;
 
 	Assert(NameIsValid(typeName));
 	
-	typeKey[0].argument = NameGetDatum(typeName);
-	fmgr_info(typeKey[0].procedure, &typeKey[0].func, &typeKey[0].nargs);
 	relation = RelationNameOpenHeapRelation(TypeRelationName);
+	fmgr_info(typeKey[0].procedure, &typeKey[0].func, &typeKey[0].nargs);
+
+	/* Delete the primary type */
+
+	typeKey[0].argument = NameGetDatum(typeName);
+
 	scan = RelationBeginHeapScan(relation, 0, NowTimeQual,
 				     1, (ScanKey) typeKey);
 	tup = HeapScanGetNextTuple(scan, 0, (Buffer *) 0);
@@ -224,29 +229,24 @@ RemoveType(typeName)
 	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
         RelationDeleteHeapTuple(relation, &itemPointerData);
 	HeapScanEnd(scan);
+
+	/* Now, Delete the "array of" that type */
+
+	strcpy(bb, "_");
+	strncat(bb, typeName, 15);
+
+	typeKey[0].argument = NameGetDatum(bb);
+
+	scan = RelationBeginHeapScan(relation, 0, NowTimeQual,
+				     1, (ScanKey) typeKey);
+	tup = HeapScanGetNextTuple(scan, 0, (Buffer *) 0);
+
+	typeOid = tup->t_oid;
+	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
+        RelationDeleteHeapTuple(relation, &itemPointerData);
+	HeapScanEnd(scan);
+
 	RelationCloseHeapRelation(relation);
-	
-	/*
-	 * If the type remove was successful, now need to remove all operators
-	 * that have one or more operand of this type.  Need a special
-	 * version of OperatorRemove that only requires one operand type
-	 * to be specified.
-	 */
-
-	/* It was decided to remove only the type, and nothing else.
-	 * Hence the following call is removed
-         */
-
-/*	SingleOpOperatorRemove(typeOid);     */
-	
-	/*
-	 * Also remove any attributes of this type.  However, if an
-	 * attribute is removed, the relation it is an attribute
-	 * of must also be removed.
-	 */
-#ifdef CASCADINGTYPEDELETE
-	AttributeAndRelationRemove(typeOid);
-#endif
 }
 
 void
