@@ -306,6 +306,13 @@ DATA(insert OID = 290 (  float4le          6 11 f t f 2  16 foo bar ));
 DATA(insert OID = 291 (  float4gt          6 11 f t f 2  16 foo bar ));
 DATA(insert OID = 292 (  float4ge          6 11 f t f 2  16 foo bar ));
     
+DATA(insert OID = 293 (  float8eq          6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 294 (  float8ne          6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 295 (  float8lt          6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 296 (  float8le          6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 297 (  float8gt          6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 298 (  float8ge          6 11 f t f 2  16 foo bar ));
+
 DATA(insert OID = 319 (  btbeginscan       6 11 f t f 3  23 foo bar ));
 DATA(insert OID = 320 (  rtinsert          6 11 f t f 3  23 foo bar ));
 DATA(insert OID = 321 (  rtdelete          6 11 f t f 2  23 foo bar ));
@@ -353,7 +360,12 @@ DATA(insert OID = 723 (  byteagetbit	   6 11 f t f 2  23 foo bar ));
 DATA(insert OID = 724 (  byteasetbit	   6 11 f t f 3  17 foo bar ));
     
 DATA(insert OID = 730 (  pqtest            6 11 f t f 1  23 foo bar ));
-    
+
+DATA(insert OID = 740 (  text_lt           6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 741 (  text_le           6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 742 (  text_gt           6 11 f t f 2  16 foo bar ));
+DATA(insert OID = 743 (  text_ge           6 11 f t f 2  16 foo bar ));
+
 /* ----------------
  *	old definition of struct proc
  * ----------------

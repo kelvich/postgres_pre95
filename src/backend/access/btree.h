@@ -209,7 +209,7 @@ typedef bits16 BTreeItemFlags;
 #define	BTREE_ITEM_IS_RLOCK	(BTREE_ITEM_IS_RLOCK_L|BTREE_ITEM_IS_RLOCK_R)
 
 /* ----------------
- * BTreeItem --
+* BTreeItem --
  *	Either a pointer to an internal or leaf B-tree node item.
  * ----------------
  */

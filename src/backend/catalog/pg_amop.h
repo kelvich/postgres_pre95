@@ -64,51 +64,135 @@ typedef FormData_pg_amop	*Form_pg_amop;
  * ----------------
  */
 
+/*
+ *  btree int2_ops
+ */
+
 DATA(insert OID = 0 (  400 421  95 1 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 421 522 2 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 421  94 3 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 421 524 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 421 520 5 btreesel btreenpage ));
+
+/*
+ *  btree float8_ops
+ */
+
+DATA(insert OID = 0 (  400 423 672 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 423 673 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 423 670 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 423 675 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 423 674 5 btreesel btreenpage ));
+
+/*
+ *  btree int24_ops
+ */
+
 DATA(insert OID = 0 (  400 424 534 1 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 424 540 2 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 424 532 3 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 424 542 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 424 536 5 btreesel btreenpage ));
+
+/*
+ *  btree int42_ops
+ */
+
 DATA(insert OID = 0 (  400 425 535 1 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 425 541 2 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 425 533 3 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 425 543 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 425 537 5 btreesel btreenpage ));
+
+/*
+ *  btree int4_ops
+ */
+
 DATA(insert OID = 0 (  400 426  97 1 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 426 523 2 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 426  96 3 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 426 525 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 426 521 5 btreesel btreenpage ));
+
+/*
+ *  btree oid_ops
+ */
+
 DATA(insert OID = 0 (  400 427 609 1 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 427 611 2 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 427 607 3 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 427 612 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 427 610 5 btreesel btreenpage ));
+
+/*
+ *  btree float4_ops
+ */
+
 DATA(insert OID = 0 (  400 428 622 1 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 428 624 2 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 428 620 3 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 428 625 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  400 428 623 5 btreesel btreenpage ));
-DATA(insert OID = 0 (  400 422 504 1 btreesel btreenpage ));
-DATA(insert OID = 0 (  400 422 505 2 btreesel btreenpage ));
-DATA(insert OID = 0 (  400 422 503 3 btreesel btreenpage ));
-DATA(insert OID = 0 (  400 422 501 4 btreesel btreenpage ));
-DATA(insert OID = 0 (  400 422 502 5 btreesel btreenpage ));
+
+/*
+ *  btree char_ops
+ */
+
+DATA(insert OID = 0 (  400 429 631 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 429 632 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 429 92 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 429 634 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 429 633 5 btreesel btreenpage ));
+
+/*
+ *  btree char16_ops
+ */
+
+DATA(insert OID = 0 (  400 430 660 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 430 661 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 430 93 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 430 663 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 430 662 5 btreesel btreenpage ));
+
+/*
+ *  btree text_ops
+ */
+
+DATA(insert OID = 0 (  400 431 664 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 431 665 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 431 98 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 431 667 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 431 666 5 btreesel btreenpage ));
+
+/*
+ *  btree abstime_ops
+ */
+
+DATA(insert OID = 0 (  400 432 562 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 432 564 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 432 560 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 432 565 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  400 432 563 5 btreesel btreenpage ));
+
+/*
+ *  fbtree int2_ops
+ */
+
 DATA(insert OID = 0 (  401 421  95 1 int4eq int4eq ));
 DATA(insert OID = 0 (  401 421  94 3 int4eq int4eq ));
+
+/*
+ *  rtree box_ops
+ */
+
 DATA(insert OID = 0 (  402 422 493 1 rtsel rtnpage ));
 DATA(insert OID = 0 (  402 422 494 2 rtsel rtnpage ));
 DATA(insert OID = 0 (  402 422 500 3 rtsel rtnpage ));
 DATA(insert OID = 0 (  402 422 495 4 rtsel rtnpage ));
 DATA(insert OID = 0 (  402 422 496 5 rtsel rtnpage ));
-DATA(insert OID = 0 (  402 422 499 5 rtsel rtnpage ));
-DATA(insert OID = 0 (  402 422 498 5 rtsel rtnpage ));
-DATA(insert OID = 0 (  402 422 497 5 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 422 499 6 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 422 498 7 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 422 497 8 rtsel rtnpage ));
 
 /* ----------------
  *	old definition of AccessMethodOperatorTupleForm

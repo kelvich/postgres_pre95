@@ -44,10 +44,16 @@ extern int32		charpl();
 extern int32		charmi();
 extern int32		charmul();
 extern int32		chardiv();
+
 extern char		*char16in();
 extern char		*char16out();
 extern int32		char16eq();
 extern int32		char16ne();
+extern int32		char16lt();
+extern int32		char16le();
+extern int32		char16gt();
+extern int32		char16ge();
+
 extern int32		int2eq();
 extern int32		int2lt();
 extern int32		int4eq();
@@ -73,6 +79,12 @@ extern Time		abstimein();
 extern char		*abstimeout();
 extern Time		reltimein();
 extern char		*reltimeout();
+extern int32		abstimeeq();
+extern int32		abstimene();
+extern int32		abstimelt();
+extern int32		abstimegt();
+extern int32		abstimele();
+extern int32		abstimege();
 /* XXX Other time stuff goes here ??? */
 extern int32		dtin();
 extern char		*dtout();
@@ -174,10 +186,15 @@ extern float64		intltjoinsel();
 extern float64		intgtjoinsel();
 extern struct varlena	*byteain();
 extern char		*byteaout();
+
 extern struct varlena	*textin();
 extern char		*textout();
 extern int32		texteq();
 extern int32		textne();
+extern int32		text_lt();
+extern int32		text_le();
+extern int32		text_gt();
+extern int32		text_ge();
 
 extern ItemPointer	tidin();
 extern char		*tidout();
@@ -297,11 +314,6 @@ extern Datum GetAttribute();
 /* rule stub records */
 extern char * stubout();
 extern Prs2RawStub stubin();
-
-extern int32		char16lt();
-extern int32		char16le();
-extern int32		char16gt();
-extern int32		char16ge();
 
 extern int32 byteaGetSize();
 extern int32 byteaGetByte();

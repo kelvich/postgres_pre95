@@ -63,6 +63,10 @@ DATA(insert OID = 425 (    int42_ops ));
 DATA(insert OID = 426 (    int4_ops ));
 DATA(insert OID = 427 (    oid_ops ));
 DATA(insert OID = 428 (    float4_ops ));
+DATA(insert OID = 429 (    char_ops ));
+DATA(insert OID = 430 (    char16_ops ));
+DATA(insert OID = 431 (    text_ops ));
+DATA(insert OID = 432 (    abstime_ops ));
 
 /* ----------------
  *	old definition of struct opclass

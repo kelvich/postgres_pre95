@@ -228,6 +228,81 @@ textne(arg1, arg2)
 	return((int32) !texteq(arg1, arg2));
 }
 
+int32
+text_lt(arg1, arg2)
+	struct varlena *arg1, *arg2;
+{
+	int len;
+
+	if (arg1 == NULL && arg2 != NULL)
+		return((int32) 1);
+	if (arg2 == NULL)
+		return((int32) 0);
+	if ((len = arg1->vl_len) < arg2->vl_len)
+		len = arg2->vl_len;
+	len -= sizeof(int32);					/* varlena? */
+
+	if (strncmp(arg1->vl_dat, arg2->vl_dat, len) < 0)
+		return ((int32) 1);
+	return ((int32) 0);
+}
+
+int32
+text_le(arg1, arg2)
+	struct varlena *arg1, *arg2;
+{
+	int len;
+
+	if (arg1 == NULL && arg2 != NULL)
+		return((int32) 1);
+	if (arg2 == NULL)
+		return((int32) 0);
+	if ((len = arg1->vl_len) < arg2->vl_len)
+		len = arg2->vl_len;
+	len -= sizeof(int32);					/* varlena? */
+
+	if (strncmp(arg1->vl_dat, arg2->vl_dat, len) <= 0)
+		return ((int32) 1);
+	return ((int32) 0);
+}
+
+int32
+text_gt(arg1, arg2)
+	struct varlena *arg1, *arg2;
+{
+	int len;
+
+	if (arg1 == NULL && arg2 != NULL)
+		return((int32) 0);
+	if (arg2 == NULL)
+		return((int32) 1);
+	if ((len = arg1->vl_len) < arg2->vl_len)
+		len = arg2->vl_len;
+	len -= sizeof(int32);					/* varlena? */
+
+	if (strncmp(arg1->vl_dat, arg2->vl_dat, len) > 0)
+		return ((int32) 1);
+	return ((int32) 0);
+}
+
+int32
+text_ge(arg1, arg2)
+	struct varlena *arg1, *arg2;
+{
+	int len;
+
+	if (arg1 == NULL && arg2 != NULL)
+		return((int32) 0);
+	if (arg2 == NULL)
+		return((int32) 1);
+	if ((len = arg1->vl_len) < arg2->vl_len)
+		len = arg2->vl_len;
+	len -= sizeof(int32);					/* varlena? */
+
+	if (strncmp(arg1->vl_dat, arg2->vl_dat, len) >= 0)
+		return ((int32) 1);
+	return ((int32) 0);
+}
 
 /*-------------------------------------------------------------
  * byteaGetSize

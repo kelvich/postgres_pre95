@@ -159,12 +159,12 @@ DATA(insert OID = 556 (  "-"       6 0 b t f  21  23  23   0   0   0   0 int24mi
 DATA(insert OID = 557 (  "-"       6 0 b t f  23  21  23   0   0   0   0 int42mi intltsel intltjoinsel ));
 DATA(insert OID = 558 (  "="       6 0 b t t  26  26  16 558 559   0   0 oideq intltsel intltjoinsel ));
 DATA(insert OID = 559 (  "!="      6 0 b t f  26  26  16 559 558   0   0 oidneq neqsel neqjoinsel ));
-DATA(insert OID = 560 (  "="       6 0 b t t 702 702  16 560 561 562 562 abstimeeq - - ));
-DATA(insert OID = 561 (  "!="      6 0 b t f 702 702  16 561 560 0 0 abstimene - - ));
-DATA(insert OID = 562 (  "<"       6 0 b t f 702 702  16 563 565 0 0 abstimelt - - ));
-DATA(insert OID = 563 (  ">"       6 0 b t f 702 702  16 562 564 0 0 abstimegt - - ));
-DATA(insert OID = 564 (  "<="      6 0 b t f 702 702  16 565 563 0 0 abstimele - - ));
-DATA(insert OID = 565 (  ">="      6 0 b t f 702 702  16 564 562 0 0 abstimege - - ));
+DATA(insert OID = 560 (  "="       6 0 b t t 702 702  16 560 561 562 562 abstimeeq eqsel eqjoinsel ));
+DATA(insert OID = 561 (  "!="      6 0 b t f 702 702  16 561 560 0 0 abstimene neqsel neqjoinsel ));
+DATA(insert OID = 562 (  "<"       6 0 b t f 702 702  16 563 565 0 0 abstimelt intltsel intltjoinsel ));
+DATA(insert OID = 563 (  ">"       6 0 b t f 702 702  16 562 564 0 0 abstimegt intltsel intltjoinsel ));
+DATA(insert OID = 564 (  "<="      6 0 b t f 702 702  16 565 563 0 0 abstimele intltsel intltjoinsel ));
+DATA(insert OID = 565 (  ">="      6 0 b t f 702 702  16 564 562 0 0 abstimege intltsel intltjoinsel ));
 DATA(insert OID = 566 (  "="       6 0 b t t 703 703  16 566 567 568 568 reltimeeq - - ));
 DATA(insert OID = 567 (  "!="      6 0 b t f 703 703  16 567 566 0 0 reltimene - - ));
 DATA(insert OID = 568 (  "<"       6 0 b t f 703 703  16 569 571 0 0 reltimelt - - ));
@@ -238,7 +238,18 @@ DATA(insert OID = 660 (  "<"       6 0 b t f  19  19  16 662 663  0 0 char16lt e
 DATA(insert OID = 661 (  "<="      6 0 b t f  19  19  16 663 662  0 0 char16le eqsel eqjoinsel ));
 DATA(insert OID = 662 (  ">"       6 0 b t f  19  19  16 660 661  0 0 char16gt eqsel eqjoinsel ));
 DATA(insert OID = 663 (  ">="      6 0 b t f  19  19  16 661 660  0 0 char16ge eqsel eqjoinsel ));
-    
+DATA(insert OID = 664 (  "<"       6 0 b t f  25  25  16 666 667  0 0 text_lt intltsel intltjoinsel ));
+DATA(insert OID = 665 (  "<="      6 0 b t f  25  25  16 667 666  0 0 text_le intltsel intltjoinsel ));
+DATA(insert OID = 666 (  ">"       6 0 b t f  25  25  16 664 665  0 0 text_gt intltsel intltjoinsel ));
+DATA(insert OID = 667 (  ">="      6 0 b t f  25  25  16 665 664  0 0 text_ge intltsel intltjoinsel ));
+
+DATA(insert OID = 670 (  "="       6 0 b t f  701  701  16 670 671  0 0 float8eq eqsel eqjoinsel ));
+DATA(insert OID = 671 (  "!="       6 0 b t f  701  701  16 671 670  0 0 float8ne eqsel eqjoinsel ));
+DATA(insert OID = 672 (  "<"      6 0 b t f  701  701  16 674 675  0 0 float8lt intltsel intltjoinsel ));
+DATA(insert OID = 673 (  "<="       6 0 b t f  701  701  16 675 674  0 0 float8le intltsel intltjoinsel ));
+DATA(insert OID = 674 (  ">"      6 0 b t f  701  701  16 672 673  0 0 float8gt intltsel intltjoinsel ));
+DATA(insert OID = 675 (  ">="      6 0 b t f  701  701  16 673 672  0 0 float8ge intltsel intltjoinsel ));
+
 /* ----------------
  *	old definition of OperatorTupleForm
  * ----------------
