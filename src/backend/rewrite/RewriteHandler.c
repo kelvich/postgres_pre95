@@ -887,7 +887,8 @@ QRS ( parsetree , already_handled )
 						 * in front of all queries
 						 */
     Assert ( parsetree != NULL );
-    Assert ( (user_root = parse_root(parsetree)) != NULL );
+	user_root = parse_root(parsetree);
+    Assert ( user_root != NULL );
     command_type = root_command_type_atom(user_root);
 
     user_rangetable 		= root_rangetable(user_root);
@@ -908,7 +909,10 @@ QRS ( parsetree , already_handled )
      * only for a delete may the targetlist be NULL
      */
     if ( user_command != DELETE )
-      Assert ( (user_tl = parse_targetlist(parsetree)) != NULL );
+	{
+      user_tl = parse_targetlist(parsetree);
+      Assert ( user_tl != NULL );
+	}
 
     user_qual = parse_qualification(parsetree);		/* may be NULL */
 
