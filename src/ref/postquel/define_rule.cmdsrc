@@ -176,18 +176,12 @@ The object in a POSTQUEL rule cannot be an array reference and cannot have param
 .lp
 The WHERE clause can not have a FROM clause.
 .lp
-Only one POSTQUEL command can be specified in the action part,
+Only one POSTQUEL command can be specified in the action part of a tuple rule
 and it can only be a
 replace, append, retrieve or delete command.
 .lp
-The rewrite system currently processes only a subset of the rule set.  Specifically, it
-can only accept rules of the form:
-.(l
-on retrieve ...
-then do [instead] retrieve ...
-
-or
-on retrieve ....
-then do replace current ...
-.)l
-
+The rewrite rule system does support multiple action rules as long as the event
+is not retrieve.
+.lp
+The query rewrite rule system now supports most rule semantics, and closely
+parallels the tuple system.  
