@@ -26,6 +26,8 @@
 BINDIR=_fUnKy_BINDIR_sTuFf_
 PATH=$BINDIR:$PATH
 
+CMDNAME=`basename $0`
+
 dbname=$USER
 
 while test -n "$1"
@@ -43,7 +45,7 @@ AUTHOPT="-a $AUTHSYS"
 [ -z "$AUTHSYS" ] && AUTHOPT=""
 
 monitor -TN $AUTHOPT -h $PGHOST -p $PGPORT -c "vacuum" $dbname || {
-    echo "$0: database vacuum failed on $dbname."
+    echo "$CMDNAME: database vacuum failed on $dbname."
     exit 1
 }
 

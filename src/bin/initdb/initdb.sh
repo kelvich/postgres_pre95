@@ -13,8 +13,6 @@
 # 	$Header$
 # ----------------------------------------------------------------
 
-CMDNAME=`basename $0`
-
 # ----------------
 #       Set paths from environment or default values.
 #       The _fUnKy_..._sTuFf_ gets set when the script is installed
@@ -30,6 +28,8 @@ POSTGRESDIR=_fUnKy_POSTGRESDIR_sTuFf_
 BINDIR=_fUnKy_BINDIR_sTuFf_
 FILESDIR=$PGDATA/files
 PATH=$BINDIR:$PATH
+
+CMDNAME=`basename $0`
 
 # ----------------
 # 	check arguments:

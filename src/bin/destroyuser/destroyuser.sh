@@ -18,6 +18,8 @@
 BINDIR=_fUnKy_BINDIR_sTuFf_
 PATH=$BINDIR:$PATH
 
+CMDNAME=`basename $0`
+
 while (test -n "$1")
 do
     case $1 in 
@@ -49,13 +51,13 @@ ADDUSER=`$MONITOR -c "$QUERY" template1`
 
 if [ $? -ne 0 ]
 then
-    echo "$0: database access failed."
+    echo "$CMDNAME: database access failed."
     exit 1
 fi
 
 if [ $ADDUSER != "t" ]
 then
-    echo "$0: $USER cannot delete users."
+    echo "$CMDNAME: $USER cannot delete users."
 fi
 
 #
@@ -74,13 +76,13 @@ RES=`$MONITOR -c "$QUERY" template1`
 
 if [ $? -ne 0 ]
 then
-    echo "$0: database access failed."
+    echo "$CMDNAME: database access failed."
     exit 1
 fi
 
 if [ ! -n "$RES" ]
 then
-    echo "$0: user "\"$DELUSER\"" does not exist."
+    echo "$CMDNAME: user "\"$DELUSER\"" does not exist."
     exit 1
 fi
 
@@ -98,7 +100,7 @@ ALLDBS=`$MONITOR -c "$QUERY" template1`
 
 if [ $? -ne 0 ]
 then
-    echo "$0: database access failed - exiting..."
+    echo "$CMDNAME: database access failed - exiting..."
     exit 1
 fi
 
@@ -134,7 +136,7 @@ then
 
     if [ $yn = n ]
     then
-        echo "$0: exiting"
+        echo "$CMDNAME: exiting"
         exit 1
     fi
 
@@ -150,7 +152,7 @@ then
         $MONITOR -c "$QUERY" template1
         if [ $? -ne 0 ]
         then
-            echo "$0: destroydb on $i failed - exiting"
+            echo "$CMDNAME: destroydb on $i failed - exiting"
             exit 1
         fi
     done
@@ -161,9 +163,9 @@ QUERY="delete pg_user where pg_user.usename = \"$DELUSER\""
 $MONITOR -c "$QUERY" template1
 if [ $? -ne 0 ]
 then
-    echo "$0: delete of user $DELUSER was UNSUCCESSFUL"
+    echo "$CMDNAME: delete of user $DELUSER was UNSUCCESSFUL"
 else
-    echo "$0: delete of user $DELUSER was successful."
+    echo "$CMDNAME: delete of user $DELUSER was successful."
 fi
 
 exit 0

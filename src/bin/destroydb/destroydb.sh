@@ -24,6 +24,8 @@
 BINDIR=_fUnKy_BINDIR_sTuFf_
 PATH=$BINDIR:$PATH
 
+CMDNAME=`basename $0`
+
 dbname=$USER
 
 while [ -n "$1" ]
@@ -44,7 +46,7 @@ monitor -TN -h $PGHOST -p $PGPORT -c "destroydb $dbname" template1
 
 if [ $? -ne 0 ]
 then
-	echo "$0: database destroy failed on $dbname."
+	echo "$CMDNAME: database destroy failed on $dbname."
 	exit 1
 fi
 

@@ -19,6 +19,8 @@
 BINDIR=_fUnKy_BINDIR_sTuFf_
 PATH=$BINDIR:$PATH
 
+CMDNAME=`basename $0`
+
 while [ -n "$1" ]
 do
     case $1 in 
@@ -51,13 +53,13 @@ ADDUSER=`$MONITOR -TN -c "$QUERY" template1`
 
 if [ $? -ne 0 ]
 then
-    echo "$0: database access failed." 1>&2
+    echo "$CMDNAME: database access failed." 1>&2
     exit 1
 fi
 
 if [ $ADDUSER != "t" ]
 then
-    echo "$0: $USER cannot create users." 1>&2
+    echo "$CMDNAME: $USER cannot create users." 1>&2
     exit 1
 fi
 
@@ -77,13 +79,13 @@ RES=`$MONITOR -TN -c "$QUERY" template1`
 
 if [ $? -ne 0 ]
 then
-    echo "$0: database access failed." 1>&2
+    echo "$CMDNAME: database access failed." 1>&2
     exit 1
 fi
 
 if [ -n "$RES" ]
 then
-    echo "$0: user "\"$NEWUSER\"" already exists" 1>&2
+    echo "$CMDNAME: user "\"$NEWUSER\"" already exists" 1>&2
     exit 1
 fi
 
@@ -112,13 +114,13 @@ do
 	RES=`$MONITOR -TN -c "$QUERY" template1`
 	if [ $? -ne 0 ]
 	then
-		echo "$0: database access failed."
+		echo "$CMDNAME: database access failed."
 		exit 1
 	fi
 	if [ -n "$RES" ]
 	then
 		echo 
-		echo "$0: $SYSID already belongs to $RES, pick another"
+		echo "$CMDNAME: $SYSID already belongs to $RES, pick another"
 		DEFMSG= DEFSYSID= SYSID=
 	else
 		done=1
@@ -181,9 +183,9 @@ RES=`$MONITOR -TN -c "$QUERY" template1`
 
 if [ $? -ne 0 ]
 then
-    echo "$0: $NEWUSER was NOT added successfully"
+    echo "$CMDNAME: $NEWUSER was NOT added successfully"
 else
-    echo "$0: $NEWUSER was successfully added"
+    echo "$CMDNAME: $NEWUSER was successfully added"
     if [ "$CANCREATE" = f ]
     then
         echo "don't forget to create a database for $NEWUSER"

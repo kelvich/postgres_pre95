@@ -1,8 +1,11 @@
 #!/bin/sh
+#
 # $Header$
 #
+CMDNAME=`basename $0`
+#
 if [ \! "$PGREALM" ]; then
-	echo "$0: PGREALM not set"
+	echo "$CMDNAME: PGREALM not set"
 	exit 1
 fi
 

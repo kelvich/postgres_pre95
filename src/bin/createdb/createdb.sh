@@ -24,6 +24,8 @@
 BINDIR=_fUnKy_BINDIR_sTuFf_
 PATH=$BINDIR:$PATH
 
+CMDNAME=`basename $0`
+
 dbname=$USER
 
 while test -n "$1"
@@ -41,7 +43,7 @@ AUTHOPT="-a $AUTHSYS"
 [ -z "$AUTHSYS" ] && AUTHOPT=""
 
 monitor -TN $AUTHOPT -h $PGHOST -p $PGPORT -c "createdb $dbname" template1 || {
-    echo "$0: database creation failed on $dbname."
+    echo "$CMDNAME: database creation failed on $dbname."
     exit 1
 }
 
