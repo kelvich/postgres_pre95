@@ -18,6 +18,7 @@
 #include <signal.h>
 #include <setjmp.h>
 #include <stdio.h>
+#include <sys/time.h>
 
 #include "tmp/postgres.h"
 #include "parser/parse.h"
