@@ -685,7 +685,9 @@ after_clause:	AFTER date		{ $$ = MakeList ( KW(after),$2,-1 ); }
 		(REMOVE OPERATOR ("opname" leftoperand_typ rightoperand_typ))
 	remove type <typename>
 		(REMOVE TYPE "typename")
-	remove rule <rulename>
+	remove rewrite rule <rulename>
+		(REMOVE REWRITE RULE "rulename")
+	remove tuple rule <rulename>
 		(REMOVE RULE "rulename")
 
   **********************************************************************/
@@ -698,8 +700,14 @@ RemoveStmt:
 	;
 
 remove_type:
-	  Function | Rule | Type | Index ;
+	  Function | Type | Index | RuleType ;
 
+RuleType:
+	 newruleTag RULE
+		{ 
+			$$ = $1;
+		}
+	;  
 RemoveOperatorStmt:
 	  REMOVE Operator Op '(' remove_operator ')'
 		{
@@ -770,7 +778,7 @@ opt_support:
 	 ;
 
 RuleStmt:
-	DEFINE newruleTag Rule name opt_support IS
+	DEFINE newruleTag RULE name opt_support IS
 		{
 		    p_ruleinfo = lispCons(lispInteger(0),LispNil);
 		    p_priority = lispInteger(0) ;
@@ -787,7 +795,7 @@ RuleStmt:
 			$$ = nappend1 ( $8, $5 ); 
 		    }
 	 	    $$ = lispCons ( $4, $$ );
-		    $$ = lispCons ( $3, $$ );
+		    $$ = lispCons ( KW(rule), $$ );
 		    $$ = lispCons ( $2, $$ );	
 		    $$ = lispCons ( KW(define), $$ );	
 		    
