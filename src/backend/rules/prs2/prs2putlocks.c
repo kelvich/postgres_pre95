@@ -150,8 +150,9 @@
  *------------------------------------------------------------------
  */
 void
-prs2AddTheNewRule(r)
+prs2AddTheNewRule(r, hint)
 Prs2RuleData r;
+List hint;
 {
     Prs2LockType lockType;
     AttributeNumber attributeNo;
@@ -161,13 +162,20 @@ Prs2RuleData r;
 	case EventTypeRetrieve:
 	case EventTypeDelete:
 	case EventTypeReplace:
-	    /*
-	     * first check if we can use tuple level locking.
-	     * If no, then use relation level locks...
-	     */
-	    status = prs2DefTupleLevelLockRule(r);
-	    if (!status) {
+	    if (!null(hint) && LISPVALUE_INTEGER(hint) == RELATION) {
+		/*
+		 * use relation level locks
+		 */
 		prs2DefRelationLevelLockRule(r);
+	    } else {
+		/*
+		 * first check if we can use tuple level locking.
+		 * If no, then use relation level locks...
+		 */
+		status = prs2DefTupleLevelLockRule(r);
+		if (!status) {
+		    prs2DefRelationLevelLockRule(r);
+		}
 	    }
 	    break;
 	case EventTypeAppend:
