@@ -38,30 +38,8 @@ with a diagnostic message in the following format:
 .fi
 Then the \*(UU shell prompt will reappear.
 .lp
-Unless otherwise instructed, \*(PP will place
+\*(PP will place
 all new databases in a directory named \&.../data/base/dbname.
-To place a database elsewhere,
-the \*(PP superuser
-must first create a \fIreference file\fR in \&.../data/base/dbname
-containing a single line which is the full pathname
-of the desired location of the database.
-(The file must be owned by
-.b postgres
-and be in mode 600.)  Then
-when the new database is created,
-it will be created in the file named,
-rather than in the directory \&.../data/base.
-For example, if the file \&.../data/base/userdb
-contained the line
-.(l
-/mnt/user/database
-.)l
-then the database called 
-.q "userdb"
-would be physically stored in the directory
-/mnt/user/database
-rather than in the directory
-\&.../data/base/userdb.
 .uh "SEE ALSO"
 .lp
 destroydb(unix).
