@@ -26,12 +26,16 @@
  *	careful....
  */
 
+#include "c.h"
+
+RcsId("$Header$");
+
 #include <errno.h>
 #include <sys/file.h>
 #include <strings.h>
 #include "context.h"
+/* XXX check above includes */
 
-#include "c.h"
 #include "os.h"
 #include "clib.h"
 
@@ -44,8 +48,8 @@
 #include "context.h"
 #include "fd.h"
 #include "genam.h"
-#include "hash.h"
 #include "hashlib.h"
+#include "hasht.h"
 #include "heapam.h"
 #include "htup.h"
 #include "itup.h"
@@ -64,8 +68,6 @@
 extern bool	AMI_OVERRIDE;	/* XXX style */
 
 #include "relcache.h"
-
-RcsId("$Header$");
 
 extern HeapTuple	GetHeapTuple();	/* XXX use include file */
 
