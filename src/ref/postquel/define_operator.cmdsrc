@@ -59,7 +59,7 @@ The name of the operator,
 can be composed of symbols only. 
 Also, the
 .i func_name
-function
+procedure
 must have been previously defined using 
 .b "define C function"
 and must have one
@@ -187,7 +187,7 @@ Similarly, the two sort
 operators indicate to the query optimizer whether merge-sort is a
 usable join strategy
 and what operators should be used to
-sort the two operand relations.
+sort the two operand classes.
 For the === clause above, the optimizer must
 sort both relations using the operator, <<<.
 On the other hand, merge-sort is not usable with the clause: 
@@ -211,7 +211,7 @@ MYBOXES.description <<< \*(lq0,0,1,1\*(rq::box
 .in .5i
 is present in the qualification, 
 then \*(PP may have to 
-estimate the fraction of the tuples in MYBOXES
+estimate the fraction of the instances in MYBOXES
 that satisfy the clause.  The function res_proc must
 be a registered function (meaning it is already defined using
 .b "define C function"
@@ -220,13 +220,13 @@ which accepts one argument of the correct
 data type and returns a floating point number.  The query optimizer
 simply calls this function, passing the parameter \*(lq0,0,1,1\*(rq and
 multiplies the result by the relation size to get the desired expected number
-of tuples.
+of instances.
 .sp
-Similarly, when the operands of the operator both contain tuple variables,
+Similarly, when the operands of the operator both contain instance variables,
 the query optimizer must estimate the size of the resulting join.
 The function join_proc will return another
 floating point number which will be multiplied by the cardinalities of the two
-relations involved to compute the desired expected result size.
+classes involved to compute the desired expected result size.
 .sp
 The difference between the function
 .(l
@@ -272,5 +272,5 @@ define C function(commands)
 .uh BUGS
 .lp
 Operator names cannot be composed of alphabetic
-characters in Version 2.
-Operator precedence and associativity are not implemented in Version 2.
+characters in Version 2.1.
+Operator precedence and associativity are not implemented in Version 2.1.
