@@ -21,13 +21,7 @@ ObjectId AggregateGetWithOpenRelation ARGS((Relation pg_aggregate_desc , Name ag
 int AggregateDefine ARGS((Name aggName , Name xitionfunc1Name , Name xitionfunc2Name , Name finalfuncName , Name baseType, Name xitionfunc1Type , Name xitionfunc2Type , int initaggval , int initsecval ));
 char *AggNameGetInitVal ARGS((char *aggName , int initValAttno , bool *isNull ));
 
-/*	prototypes for functions in lib/catalog/pg_operator.c */
-ObjectId OperatorGetWithOpenRelation ARGS((Relation pg_operator_desc , Name operatorName , ObjectId leftObjectId , ObjectId rightObjectId ));
-ObjectId OperatorGet ARGS((Name operatorName , Name leftTypeName , Name rightTypeName ));
-ObjectId OperatorShellMakeWithOpenRelation ARGS((Relation pg_operator_desc , Name operatorName , ObjectId leftObjectId , ObjectId rightObjectId ));
-ObjectId OperatorShellMake ARGS((Name operatorName , Name leftTypeName , Name rightTypeName ));
-int OperatorDef ARGS((Name operatorName , int definedOK , Name leftTypeName , Name rightTypeName , Name procedureName , uint16 precedence , Boolean isLeftAssociative , Name commutatorName , Name negatorName , Name restrictionName , Name joinName , Boolean canHash , Name leftSortName , Name rightSortName ));
-int OperatorUpd ARGS((ObjectId baseId , ObjectId commId , ObjectId negId ));
+/* prototypes for functions in lib/catalog/pg_operator.c */
 void OperatorDefine ARGS((Name operatorName , Name leftTypeName , Name rightTypeName , Name procedureName , uint16 precedence , Boolean isLeftAssociative , Name commutatorName , Name negatorName , Name restrictionName , Name joinName , Boolean canHash , Name leftSortName , Name rightSortName ));
 
 /* protoypes for functions in lib/catalog/pg_type.c */
