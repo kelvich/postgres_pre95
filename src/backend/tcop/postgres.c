@@ -32,9 +32,6 @@ extern void handle_warn();
 /* XXX - I'm not sure if these should be here, but the be/fe comms work 
    when I do - jeff, maybe someone can figure out where they should go*/
 
-FILE	*Pfin, *Pfout;
-int 	Portfd = -1;
-
 RcsId("$Header$");
 
 
@@ -134,7 +131,7 @@ main(argc, argv)
 	  IsUnderPostmaster = true;
 	  break;
 	case 'P':
-          Portfd = atoi(optarg);
+          /* Portfd = atoi(optarg); */
 	  break;
 	default:
 	  errs += 1;
@@ -170,7 +167,7 @@ main(argc, argv)
 
     if (! Quiet && ! override)
 	puts("\t**** Transaction System Active ****");
-
+    /*
     if (IsUnderPostmaster == true && Portfd < 0) {
 	fprintf(stderr,"Postmaster flag set, but no port number specified\n");
 	exit(1);
@@ -178,7 +175,8 @@ main(argc, argv)
     if (IsUnderPostmaster == true) {
 	pinit();
     }
-    
+    */
+
     /* ----------------
      * 	initialize the dynamic function manager
      * ----------------
