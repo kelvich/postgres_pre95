@@ -702,7 +702,7 @@ BufferSync()
 	      }
 
 	      if (status == SM_FAIL) {
-		  elog(WARN, "cannot write %d for %16s: %m",
+		  elog(WARN, "cannot write %d for %16s",
 		       bufHdr->tag.blockNum, bufHdr->sb_relname);
 	      }
 
@@ -920,8 +920,10 @@ int StableMainMemoryFlag;
     /* flush dirty shared memory only when main memory is not stable */
     /* plai 8/7/90                                                   */
  
-    if (!StableMainMemoryFlag)
+    if (!StableMainMemoryFlag) {
         BufferSync();
+	smgrcommit();
+    }
 }
 
 /**************************************************
