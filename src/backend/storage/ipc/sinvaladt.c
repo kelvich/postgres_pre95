@@ -50,7 +50,7 @@
  * ----------------
  */
 #ifdef HAS_TEST_AND_SET
-LockId SharedInvalidationLockId;
+int SharedInvalidationLockId;
 #else
 IpcSemaphoreId	SharedInvalidationSemaphore;
 #endif

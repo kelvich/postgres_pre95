@@ -757,7 +757,7 @@ void
 CreateAndInitSLockMemory(key)
 IPCKey key;
 {
-    LockId id;
+    int id;
     SLock *slckP;
 
     SLockMemoryId = IpcMemoryCreate(key,
@@ -799,7 +799,7 @@ IPCKey key;
     return;
 }
 
-SemId
+int
 CreateLock()
 {
     int lockid;
@@ -849,7 +849,7 @@ LOCK->exlock)
 
 void
 SharedLock(lockid)
-SemId lockid;
+int lockid;
 {
     SLock *slckP;
 #ifdef PARALLELDEBUG
@@ -900,7 +900,7 @@ sh_try_again:
 
 void
 SharedUnlock(lockid)
-SemId lockid;
+int lockid;
 {
     SLock *slckP;
     slckP = &(SLockArray[lockid]);
@@ -925,7 +925,7 @@ SemId lockid;
 
 void
 ExclusiveLock(lockid)
-SemId lockid;
+int lockid;
 {
     SLock *slckP;
 #ifdef PARALLELDEBUG
@@ -964,7 +964,7 @@ ex_try_again:
 
 void
 ExclusiveUnlock(lockid)
-SemId lockid;
+int lockid;
 {
     SLock *slckP;
     int i;
@@ -1002,7 +1002,7 @@ SemId lockid;
 
 bool
 LockIsFree(lockid)
-SemId lockid;
+int lockid;
 {
     return(SLockArray[lockid].flag == NOLOCK);
 }

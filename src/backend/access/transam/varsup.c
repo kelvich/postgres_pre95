@@ -475,7 +475,7 @@ UpdateLastCommittedXid(xid)
  * ----------------
  */
 #ifdef sequent
-static SPINLOCK OidGenLockId = OIDGENLOCKID;
+static int OidGenLockId = OIDGENLOCKID;
 #endif
 
 void
@@ -498,7 +498,7 @@ GetNewObjectIdBlock(oid_return, oid_block_size)
     if (RelationIsValid(VariableRelation))
         RelationSetLockForRead(VariableRelation);
 #ifdef sequent
-    SpinAcquire(OidGenLockId);
+    ExclusiveLock(OidGenLockId);
 #endif
 	
     /* ----------------
@@ -524,7 +524,7 @@ GetNewObjectIdBlock(oid_return, oid_block_size)
      * ----------------
      */
 #ifdef sequent
-    SpinRelease(OidGenLockId);
+    ExclusiveUnlock(OidGenLockId);
 #endif
     if (RelationIsValid(VariableRelation))
         RelationUnsetLockForRead(VariableRelation);
