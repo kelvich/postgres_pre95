@@ -120,11 +120,16 @@ DefineQueryRewrite ( args )
      char *eobj_string		= NULL;
      char *eslot_string		= NULL;
      EventType 			this_event;
-     List support 		= nth (6 , args );
      int event_attno 		= 0;
 
+#ifdef FUZZY
+     List support 		= nth (6 , args );
      double necessary 		= CDouble(CAR(support));
      double sufficient 		= CDouble(CDR(support));
+#else
+     double necessary 		= 1.0;
+     double sufficient 		= 0.0;
+#endif
 
      extern	char		*PlanToString();
 
