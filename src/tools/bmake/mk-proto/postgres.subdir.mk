@@ -135,6 +135,7 @@ objdir: _SUBDIRUSE
 
 #
 # "localobj" creates actual "obj" directories inside of the source tree.
+#
 # This is used in source trees that have been copied from a master tree.
 #
 .if !target(localobj)
@@ -143,8 +144,7 @@ localobj: _SUBDIRUSE
 .else
 localobj: _SUBDIRUSE
 	@-cd ${.CURDIR}; \
-	rm -f obj >/dev/null 2>&1; \
-	mkdir obj 2>/dev/null; \
+	[ ! -d obj ] && mkdir obj 2>/dev/null; \
 	true
 .endif
 .endif
