@@ -441,6 +441,8 @@ InitStdio()
  * --------------------------------
  */
 static bool	PostgresIsInitialized = false;
+extern int NBuffers;
+extern int *BTreeBufferPinCount;
 
 /*
  */
@@ -509,19 +511,11 @@ InitPostgres(name)
     InitCommunication();
     InitStdio();
 
-    /* ----------------
-     *	 initialize the buffer manager.  this must happen after
-     *   shared memory/semaphore initialization.
-     *
-     *   if stable main memory is assumed (-S flag is set), it is necessary
-     *   to flush all dirty shared buffers before exit (plai 8/7/90) so we
-     *   register an on_exitpg() handler also.  This has to be done *after*
-     *   InitCommunication or the shared memory will be removed before
-     *   BufferManagerFlush will be called, because on_exitpg() handlers are
-     *   called in the reverse of the order in which they are registered.
-    BufferManagerInit();
-     * ----------------
+    /* 
+     * have to allocate the following variable size array for the
+     * btree code.  should have been encapsulated. XXX
      */
+    BTreeBufferPinCount = (int*)malloc((NBuffers + 1) * sizeof(int));
     
     if (!TransactionFlushEnabled())
         on_exitpg(BufferManagerFlush, (caddr_t) 0);
