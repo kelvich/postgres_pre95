@@ -233,6 +233,10 @@ _bt_split(rel, buf)
      *  in the tree, then the first (0) entry on the page is the high key
      *  for the page.  We need to copy that to the right half.  Otherwise,
      *  we should treat the line pointers beginning at zero as user data.
+     *
+     *  We leave a blank space at the start of the line table for the left
+     *  page.  We'll come back later and fill it in with the high key item
+     *  we get from the right key.
      */
 
     nleft = 2;
@@ -254,13 +258,14 @@ _bt_split(rel, buf)
 	itemid = PageGetItemId(origpage, i);
 	itemsz = ItemIdGetLength(itemid);
 	item = (BTItem) PageGetItem(origpage, itemid);
-	if (nmoved < llimit) {
+
+	/* decide which page to put it on */
+	if (nmoved < llimit)
 	    PageAddItem(leftpage, item, itemsz, nleft++, LP_USED);
-	    nmoved += (itemsz + sizeof(ItemIdData));
-	} else {
+	else
 	    PageAddItem(rightpage, item, itemsz, nright++, LP_USED);
-	    nmoved += (itemsz + sizeof(ItemIdData));
-	}
+
+	nmoved += (itemsz + sizeof(ItemIdData));
     }
 
     /*
@@ -272,7 +277,18 @@ _bt_split(rel, buf)
     itemid = PageGetItemId(rightpage, 0);
     itemsz = ItemIdGetLength(itemid);
     item = (BTItem) PageGetItem(rightpage, itemid);
+
+    /*
+     *  We left a hole for the high key on the left page; fill it.  The
+     *  modal crap is to tell the page manager to put the new item on the
+     *  page and not screw around with anything else.  Whoever designed
+     *  this interface has presumably crawled back into the dung heap they
+     *  came from.  No one here will admit to it.
+     */
+
+    PageManagerModeSet(OverwritePageManagerMode);
     PageAddItem(leftpage, item, itemsz, 1, LP_USED);
+    PageManagerModeSet(ShufflePageManagerMode);
 
     /*
      *  By here, the original data page has been split into two new halves,
@@ -285,6 +301,10 @@ _bt_split(rel, buf)
      */
 
     PageRestoreTempPage(leftpage, origpage);
+
+    /* write these guys out */
+    _bt_wrtnorelbuf(rel, rbuf);
+    _bt_wrtnorelbuf(rel, buf);
 
     /* split's done */
     return (rbuf);
@@ -343,9 +363,9 @@ _bt_newroot(rel, lbuf, rbuf)
     rpage = BufferGetPage(rbuf, 0);
 
     /* step over the high key on the left page */
-    itemid = PageGetItemId(lpage, 1);
+    itemid = PageGetItemId(lpage, 0);
     itemsz = ItemIdGetLength(itemid);
-    item = (BTItem) PageGetItemId(lpage, itemid);
+    item = (BTItem) PageGetItem(lpage, itemid);
 
     new_item = (BTItem) palloc(itemsz);
     bcopy((char *) item, (char *) new_item, itemsz);
@@ -354,7 +374,7 @@ _bt_newroot(rel, lbuf, rbuf)
     /* insert the left page pointer */
     PageAddItem(rootpage, new_item, itemsz, 1, LP_USED);
 
-    itemid = PageGetItemId(rpage, 1);
+    itemid = PageGetItemId(rpage, 0);
     itemsz = ItemIdGetLength(itemid);
     item = (BTItem) PageGetItem(rpage, itemid);
 
