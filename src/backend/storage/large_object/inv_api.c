@@ -405,6 +405,8 @@ inv_read(obj_desc, buf, nbytes)
 
 	off = obj_desc->ofs.i_fs.offset - obj_desc->ofs.i_fs.lowbyte;
 	ncopy = obj_desc->ofs.i_fs.hibyte - obj_desc->ofs.i_fs.offset + 1;
+	if (ncopy > nbytes)
+	    ncopy = nbytes;
 	bcopy(&(fsblock->vl_dat[0]), buf, ncopy);
 
 	/* be a good citizen */
