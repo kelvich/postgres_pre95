@@ -6,4 +6,4 @@
 
 .PATH: ${.CURDIR}/rules
 
-HEADERS+= params.h prs2.h prs2locks.h prs2stub.h rac.h rlock.h
+HEADERS+= params.h prs2.h prs2locks.h prs2stub.h rac.h
