@@ -49,12 +49,12 @@
 /*
  *	local data structures
  */
-int MyPid = -1;	/* int representing the process id */
+extern int MyPid; /* int representing the process id, defined in execipc.c */
 static ProcessNode *SlaveArray, *FreeSlaveP;
 int NumberOfFreeSlaves;
 ProcGroupLocalInfo	ProcGroupLocalInfoP; /* process group local info */
 static ProcGroupLocalInfo FreeProcGroupP;
-SlaveLocalInfoData SlaveLocalInfoD;
+extern SlaveLocalInfoData SlaveLocalInfoD;  /* defined in execipc.c */
 extern int AdjustParallelismEnabled;
 
 /*
@@ -64,7 +64,7 @@ int 	*MasterProcessIdP;	/* master backend process id */
 MasterCommunicationData *MasterDataP; /* communication data area for 
 					master backend */
 int	*SlaveAbortFlagP;	/* flag set during a transaction abort */
-SlaveInfo	SlaveInfoP;	/* slave backend info */
+extern SlaveInfo	SlaveInfoP;	/* slave backend info */
 extern ProcGroupInfo  ProcGroupInfoP; /* process group info */
                                       /* defined in execipc.c to make
                                          postmaster happy */
