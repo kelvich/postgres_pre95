@@ -426,6 +426,7 @@ BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 	    amclose(rd);
 	    RelationCacheHashByName = NameCacheSave;
 	    RelationCacheHashById = IdCacheSave;
+	    MemoryContextSwitchTo(oldcxt); 
 	    return (NULL);
 	}
 
