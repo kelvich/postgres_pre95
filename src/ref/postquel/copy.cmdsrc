@@ -10,276 +10,40 @@ copy \*- copy data to or from a class from or to a \*(UU file.
 .b copy
 [
 .b binary
-[
-.b nonulls
-] ] classname
+] classname
 .b (
-copy-specification
 .b )
-direction filename [
-.b using
-map_classname
-]
+direction "filename" | stdin | stdout
 .uh DESCRIPTION
 .lp
 .b Copy
 moves data between \*(PP classes and standard \*(UU files.
-The keywords
+The keyword
 .b binary
-and
-.b nonulls
 change the behavior of field formatting,
 as described below.
 .i Classname
 is the name of an existing relation.
-.i Copy-specification
-looks like:
-.(l
-[{domain-format} { ,domain-format}]
-.)l
-where \fIdomain-format\fR is either
-.(l
-domname [ = domtype] [delim]
-or string-constant.
-.)l
-In the first case,
-.i domname
-identifies a domain
-(usually an attribute in
-.i classname ,
-but possibly a dummy),
-.i domtype
-indicates the format the \*(UU file
-should have for the corresponding domain,
-and
-.i delim
-is a character which delimits the domain.
-Note that,
-as specified below,
-.i delim
-can only be specified for dummy fields or fields of type \fBtext\fR.
 .i Direction
 is either 
 .b to
 or 
 .b from .
 .i Filename
-is the \*(UU pathname of the file.
-Map_classname
-is the name of a class to which
-.A OID
-mapping information
-will be appended.
-.sp
-On a
-copy 
-.b from
-a \*(UU file to a class,
-the class cannot have a secondary index and
-it must be owned by the owner running the command,
-or the owner cannot have used the rule system to restrict
-your access to the class.
-If the class is a system catalog,
-you must have the catalog update privilege.
-.sp
-For a
-copy 
-.b to
-a \*(UU file from a class,
-you must either be the owner of the class,
-or the owner must not have restricted your access to the class.
-If the file already existed, it is truncated to zero 
-length before copying begins.
-.\"
-.\" XXX  No views yet
-.\"
-.\" .it Copy 
-.\" cannot be performed on a view.
-.\"
-.uh "DOMAIN FORMATS"
-.lp
-The domains should be ordered according to
-the way they should appear in the \*(UU file.
-Domains are matched according to name,
-so the order of the fields in the \*(UU file need not be the
-same as the order of the fields in the source/target class.
-.sp
-There are four types of objects in \*(UU files which 
+is the \*(UU pathname of the file.  In place of a filename, stdin and stdout
+can be used so that input to
 .b copy
-can work with:
-internal form fields (stored as binary objects),
-external form fields (stored as text strings),
-dummy domains,
-and 
-strings.
-.sp
-If 
-.i domtype
-is not specified for a field,
-then is is assumed to be of type \fItext\fR.
-Text objects are stored as delimited,
-variable-length character strings.
-The default field delimiter is \fItab\fR for all fields but the last,
-for which the default delimiter is \fInewline\fR.
-A field which is not of type text but
-is to be stored in a \*(UU file as such is converted
-to its external form before being written to the file.
-(The same is true of character arrays,
-but delimiters are used solely as separators
-and the fields are truncated or space-padded as necessary
-to make them the appropriate length.)
+can be written by an application and 
+output from the
+.b copy 
+command can be read by an application.
 The 
 .b binary
-keyword will force all text and character array domains
-to be stored/read as binary objects rather than
-external-form objects.
-.sp
-If 
-.i domtype
-is not a character type,
-then the attribute is stored in a binary format.
-Binary objects may take one of two forms.
-If
-.b nonulls
-is specified,
-then the internal representation of the attribute value is simply
-written to disk.
-This is the same binary format as used in \*(II.
-Otherwise,
-a somewhat more complicated, 
-\*(PP-specific scheme is used.
-In general,
-.b binary
-is the most compact data representation.
-.sp
-Dummy domains are any domain for which
-\fIdomname\fR
-is not an attribute in 
-\fIclassname.\fR
-They can only be used with copy
-.b from 
-in which case they indicate that a field in a format consistent
-with
-.it
-domtype
-should be skipped.
-Typically,
-dummy domains will be of the form
-.(l
-dummy1 = char[45]
-dummy2 = text
-.)l
-.in 0
-.in .5i
-.fi
-String domains are only usable with copy \fBto\fR and may not have delimiters.
-They are simply written to disk per-instance in the place specified.
-.sp
-In a copy \fBfrom\fR,
-domains in the \*(PP class which are not
-assigned values from the \*(UU file will be
-set to 
-null.
-.sp
-If no domains appear in the copy command, e.g.,
-.(l
-copy classnname ( ) to/from filename
-.)l
-.fi
-then
+keyword will force all data to be stored/read as binary objects rather than
+as ASCII text.  It is somewhat faster than the normal
 .b copy
-automatically does a 
-.q "bulk"
-copy of all domains,
-using the order of the domains in the relation.
-By default,
-attributes are copied as text with the default text delimiters.
-If the optional
-.b binary
-keyword is specified,
-then the attributes are bulk-copied as binary objects.
-This is provided as a convenient shorthand
-notation for copying and restoring entire relations.
-.uh "EXAMPLES"
-.lp
-/* Define the emp class */
-   create emp (name=char16,sal=float4,bdate=int2,mgr=text) 
-.sp
-/* Copy mixed-format data into the emp class */
-   copy emp (name=char16,sal=float4,bdate=int2,mgr=text) 
-     from \*(lq/usr2/me/myfile\*(rq
-.sp
-/* Copy employee names and salaries into a text file */
-   copy emp (name=char16, sal=text) to \*(lqyourfile\*(rq
-.sp
-/* Copy employee names and managers into a binary file */
-   copy binary emp (name=char16, mgr=text) to \*(lq../theirfile\*(rq
-.sp
-/* Bulk copy the emp class into a text file */
-   copy emp ( ) to \*(lq~/ours/ourfile\*(rq
-.sp
-/* Bulk copy the emp class from a binary file */
-   copy binary emp ( ) from \*(lq~thy/thyfile\*(rq
-.uh "OID MAPPING"
-.lp
-Specifying a
-map_relname
-will cause 
-.b copy
-to append
-.A OID
-mapping data to that class.
-If it does not exist,
-it will be created as if the following command had been executed:
-.(l
-create map-classname ( old=OID, new=OID )
-.)l
-.in 0
-.fi
-.in .5i
-As an example of the use of this facility,
-consider a class which has circular data dependencies in its
-attributes:
-.(l
-people1 (name=char16, parent=OID, child=OID)
-.)l
-.in .5i
-.fi
-If this class were simply copied into a new class,
-say people2,
-the
-.A OID
-attributes of people2 would still contain values which
-represented instances in people1.
-.in 0
-.in .5i
-The commands
-.(l
-copy people1 (name=char16, parent=OID, child=OID)
-	to hodedo using whoof
-copy people2 (name=char16, parent=OID, child=OID)
-	from hodedo using whoof
-.)l
-would correctly fill class 
-.q "whoof"
-with the appropriate
-.A OID
-values.
-Specifically, the first copy will fill in the old
-.A OID s
-in whoof,
-while the second will insert the new
-.A OID s.
-Running the queries
-.(l
-replace people2 (parent=whoof.new) where
-	whoof.old=people2.parent
-replace people2 (child=whoof.new) where
-	whoof.old=people2.child
-.)l
-.in 0
-.in .5i
-would then change the fields appropriately.
+command, but is not generally portable, and the files generated are somewhat
+larger, although this factor is highly dependent on the data itself.
 .uh "SEE ALSO"
 .lp
 append(commands),
@@ -287,8 +51,8 @@ create(commands),
 introduction(commands).
 .uh BUGS
 .lp
-.A OID
-mapping does not work in Version 2.1.
+.A Files 
+used as arguments to the copy command must reside on the database server.
 .lp
 Copy
 stops operation at the first error.
@@ -305,6 +69,4 @@ the result of copying to a file
 .q "foo"
 (without additional path information)
 may yield unexpected results for the naive user.
-That is, 
-the file may not end up in the intended directory if
-the full pathname is not specified during the copy process.
+The full pathname should be used when specifying files to be copied.
