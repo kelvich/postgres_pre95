@@ -49,6 +49,9 @@ RcsId("$Header$");
 #define	SJCACHENAME	"_sj_cache_"	/* relative to $POSTGRESHOME/data */
 #define	SJMETANAME	"_sj_meta_"	/* relative to $POSTGRESHOME/data */
 
+/* bogus macros */
+#define	RelationSetLockForExtend(r)
+
 /*
  *  SJGroupDesc -- Descriptor block for a cache group.
  *
@@ -577,6 +580,8 @@ void
 sjunwait_io(item)
     SJCacheItem *item;
 {
+    item->sjc_gflags &= ~SJG_IOINPROG;
+
 #ifdef HAS_TEST_AND_SET
     S_UNLOCK(&(item->sjc_iolock));
 #else /* HAS_TEST_AND_SET */
@@ -725,14 +730,13 @@ sjcreate(reln)
     entry->sjhe_groupno = grpno;
     item->sjc_gflags = SJG_IOINPROG;
 #ifdef HAS_TEST_AND_SET
+    SpinRelease(SJCacheLock);
     S_LOCK(item->sjc_iolock);
 #else /* HAS_TEST_AND_SET */
     (*SJNWaiting)++;
+    SpinRelease(SJCacheLock);
     IpcSemaphoreLock(SJWaitSemId, 0, 1);
 #endif /* HAS_TEST_AND_SET */
-
-    /* okay, cache and group are set up -- safe to release excl lock now */
-    SpinRelease(SJCacheLock);
 
     /* set flags on item, initialize group descriptor block */
     for (i = 0; i < SJGRPSIZE; i++)
@@ -770,6 +774,7 @@ sjcreate(reln)
 
     /* record presence of new extent in system catalogs */
     sjregister(item, group->sjgd_jboffset, group->sjgd_extentsz);
+    sjregnblocks(reln->rd_id, 0);
 
     /* can now release i/o lock on the item we just added */
     sjunwait_io(item);
@@ -779,9 +784,11 @@ sjcreate(reln)
 
     /* last thing to do is to create the mag-disk file to hold last page */
     if (group->sjgd_dbid == (ObjectId) 0)
-	sprintf(path, "../%16s", &(reln->rd_rel->relname.data[0]));
+	strcpy(path, "../");
     else
-	sprintf(path, "%16s", &(reln->rd_rel->relname.data[0]));
+	path[0] = '\0';
+
+    strncpy(path, &(reln->rd_rel->relname.data[0]), sizeof(NameData));
 
     vfd = FileNameOpenFile(path, O_CREAT|O_RDWR|O_EXCL, 0600);
 
@@ -916,10 +923,11 @@ sjallocgrp(grpno)
 }
 
 SJCacheItem *
-sjfetchgrp(dbid, relid, blkno)
+sjfetchgrp(dbid, relid, blkno, grpno)
     ObjectId dbid;
     ObjectId relid;
     int blkno;
+    int *grpno;
 {
     SJCacheItem *item;
     SJHashEntry *entry;
@@ -940,14 +948,15 @@ sjfetchgrp(dbid, relid, blkno)
     }
 
     if (found) {
-	item = &(SJCache[entry->sjhe_groupno]);
+	*grpno = entry->sjhe_groupno;
+	item = &(SJCache[*grpno]);
 
 	if (item->sjc_gflags & SJG_IOINPROG) {
 	    sjwait_io(item);
 	    return (sjfetchgrp(dbid, relid, blkno));
 	}
 
-	sjtouch(item, entry->sjhe_groupno);
+	sjtouch(item, *grpno);
 
 	SpinRelease(SJCacheLock);
     } else {
@@ -991,6 +1000,7 @@ sjunpin(item)
     if (item->sjc_refcount <= 0)
 	elog(FATAL, "sjunpin: illegal reference count");
     (item->sjc_refcount)--;
+    SpinRelease(SJCacheLock);
 }
 
 int
@@ -1041,6 +1051,59 @@ sjwritegrp(item, grpno)
 }
 
 int
+sjreadgrp(item, grpno)
+    SJCacheItem *item;
+    int grpno;
+{
+    long seekpos;
+    long loc;
+    int nbytes, i;
+    char *buf;
+    SJGroupDesc *gdesc;
+
+    long	sjgd_magic;
+    long	sjgd_version;
+    NameData	sjgd_dbname;
+    NameData	sjgd_relname;
+    ObjectId	sjgd_dbid;
+    ObjectId	sjgd_relid;
+    long	sjgd_relblkno;
+    long	sjgd_jboffset;
+    long	sjgd_extentsz;
+    ObjectId	sjgd_groupoid;
+
+    /* get the group from the cache file */
+    seekpos = grpno * SJBufSize;
+    if ((loc = FileSeek(SJCacheVfd, seekpos, L_SET)) != seekpos) {
+	elog(NOTICE, "sjreadgrp: cannot seek");
+	return (SM_FAIL);
+    }
+
+    nbytes = SJBufSize;
+    buf = &(SJCacheBuf[0]);
+    while (nbytes > 0) {
+	i = FileRead(SJCacheVfd, buf, nbytes);
+	if (i < 0) {
+	    elog(NOTICE, "sjreadgrp: read failed");
+	    return (SM_FAIL);
+	}
+	nbytes -= i;
+	buf += i;
+    }
+
+    gdesc = (SJGroupDesc *) &(SJCacheBuf[0]);
+
+    if (gdesc->sjgd_magic != SJGDMAGIC
+	|| gdesc->sjgd_version != SJGDVERSION
+	|| gdesc->sjgd_groupoid != item->sjc_oid) {
+	elog(NOTICE, "sjreadgrp: trashed cache");
+	return (SM_FAIL);
+    }
+
+    return (SM_SUCCESS);
+}
+
+int
 sjunlink(reln)
     Relation reln;
 {
@@ -1052,21 +1115,114 @@ sjextend(reln, buffer)
     Relation reln;
     char *buffer;
 {
-    return (SM_FAIL);
+    SJCacheItem *item;
+    SJHashEntry *entry;
+    SJCacheTag tag;
+    int grpno;
+    int nblocks;
+    int base;
+    int offset;
+    int blkno;
+    bool found;
+
+    RelationSetLockForExtend(reln);
+    nblocks = sjnblocks(reln);
+    base = nblocks / SJGRPSIZE;
+
+    if (reln->rd_rel->relisshared)
+	tag.sjct_dbid = (ObjectId) 0;
+    else
+	tag.sjct_dbid = MyDatabaseId;
+
+    tag.sjct_relid = reln->rd_id;
+    tag.sjct_base = base;
+
+    SpinAcquire(SJCacheLock);
+
+    entry = (SJHashEntry *) hash_search(SJCacheHT, &tag, FIND, &found);
+
+    if (entry == (SJHashEntry *) NULL) {
+	SpinRelease(SJCacheLock);
+	elog(FATAL, "sjextend: cache hash table corrupted");
+    }
+
+    if (!found) {
+	SpinRelease(SJCacheLock);
+	elog(WARN, "sjextend:  hey mao:  your group is missing.");
+    }
+
+    grpno = entry->sjhe_groupno;
+    item = &SJCache[grpno];
+
+    sjtouch(item, grpno);
+
+    for (blkno = 0; blkno < SJGRPSIZE; blkno++) {
+	if (item->sjc_flags[blkno] & SJC_MISSING) {
+	    item->sjc_flags[blkno] &= ~SJC_MISSING;
+	    item->sjc_flags[blkno] |= SJC_DIRTY;
+	    break;
+	}
+    }
+
+    if (blkno == SJGRPSIZE) {
+	SpinRelease(SJCacheLock);
+	elog(WARN, "sjextend:  hey mao:  no missing blocks to extend");
+    }
+
+    item->sjc_gflags = SJG_IOINPROG;
+
+#ifdef HAS_TEST_AND_SET
+    SpinRelease(SJCacheLock);
+    S_LOCK(item->sjc_iolock);
+#else /* HAS_TEST_AND_SET */
+    (*SJNWaiting)++;
+    SpinRelease(SJCacheLock);
+    IpcSemaphoreLock(SJWaitSemId, 0, 1);
+#endif /* HAS_TEST_AND_SET */
+
+    if (sjreadgrp(item, grpno) == SM_FAIL) {
+	sjunwait_io(item);
+	return (SM_FAIL);
+    }
+
+    offset = ((blkno % SJGRPSIZE) * BLCKSZ) + JBBLOCKSZ;
+    bcopy(buffer, &(SJCacheBuf[offset]), BLCKSZ);
+
+    if (sjwritegrp(item, grpno) == SM_FAIL) {
+	sjunwait_io(item);
+	return (SM_FAIL);
+    }
+
+    sjunwait_io(item);
+    sjunpin(item);
+
+    sjregnblocks(reln->rd_id, ++nblocks);
+
+    return (SM_SUCCESS);
 }
 
 int
 sjopen(reln)
     Relation reln;
 {
-    return (-1);
+    char *path;
+    int fd;
+    extern char *relpath();
+
+    path = relpath(reln->rd_rel->relname);
+
+    fd = FileNameOpenFile(path, O_RDWR, 0666);
+
+    return (fd);
 }
 
 int
 sjclose(reln)
     Relation reln;
 {
-    return (SM_FAIL);
+    FileClose(reln->rd_fd);
+
+    return (SM_SUCCESS);
 }
 
 int
@@ -1075,7 +1231,44 @@ sjread(reln, blocknum, buffer)
     BlockNumber blocknum;
     char *buffer;
 {
-    return (SM_FAIL);
+    SJCacheItem *item;
+    ObjectId reldbid;
+    int offset;
+    int grpno;
+
+    if (reln->rd_rel->relisshared)
+	reldbid = (ObjectId) 0;
+    else
+	reldbid = MyDatabaseId;
+
+    item = sjfetchgrp(reldbid, reln->rd_id, blocknum / SJGRPSIZE, &grpno);
+
+    /* shd expand sjfetchgrp() inline to avoid extra semop()s */
+    SpinAcquire(SJCacheLock);
+
+    item->sjc_gflags = SJG_IOINPROG;
+
+#ifdef HAS_TEST_AND_SET
+    SpinRelease(SJCacheLock);
+    S_LOCK(item->sjc_iolock);
+#else /* HAS_TEST_AND_SET */
+    (*SJNWaiting)++;
+    SpinRelease(SJCacheLock);
+    IpcSemaphoreLock(SJWaitSemId, 0, 1);
+#endif /* HAS_TEST_AND_SET */
+
+    if (sjreadgrp(item, grpno) == SM_FAIL) {
+	sjunwait_io(item);
+	return (SM_FAIL);
+    }
+
+    offset = ((blocknum % SJGRPSIZE) * BLCKSZ) + JBBLOCKSZ;
+    bcopy(&(SJCacheBuf[offset]), buffer, BLCKSZ);
+
+    sjunwait_io(item);
+    sjunpin(item);
+
+    return (SM_SUCCESS);
 }
 
 int
@@ -1084,7 +1277,62 @@ sjwrite(reln, blocknum, buffer)
     BlockNumber blocknum;
     char *buffer;
 {
-    return (SM_FAIL);
+    SJCacheItem *item;
+    ObjectId reldbid;
+    int offset;
+    int grpno;
+    int which;
+
+    if (reln->rd_rel->relisshared)
+	reldbid = (ObjectId) 0;
+    else
+	reldbid = MyDatabaseId;
+
+    item = sjfetchgrp(reldbid, reln->rd_id, blocknum / SJGRPSIZE, &grpno);
+
+    /* shd expand sjfetchgrp() inline to avoid extra semop()s */
+    SpinAcquire(SJCacheLock);
+
+    which = blocknum % SJGRPSIZE;
+
+    if (item->sjc_flags[which] & SJC_ONPLATTER) {
+	SpinRelease(SJCacheLock);
+	sjunpin(item);
+	elog(WARN, "sjwrite: optical platters are write-once, cannot rewrite");
+    }
+
+    item->sjc_flags[which] &= ~SJC_MISSING;
+    item->sjc_flags[which] |= SJC_DIRTY;
+    item->sjc_gflags = SJG_IOINPROG;
+
+#ifdef HAS_TEST_AND_SET
+    SpinRelease(SJCacheLock);
+    S_LOCK(item->sjc_iolock);
+#else /* HAS_TEST_AND_SET */
+    (*SJNWaiting)++;
+    SpinRelease(SJCacheLock);
+    IpcSemaphoreLock(SJWaitSemId, 0, 1);
+#endif /* HAS_TEST_AND_SET */
+
+    if (sjreadgrp(item, grpno) == SM_FAIL) {
+	sjunwait_io(item);
+	sjunpin(item);
+	return (SM_FAIL);
+    }
+
+    offset = (which * BLCKSZ) + JBBLOCKSZ;
+    bcopy(buffer, &(SJCacheBuf[offset]), BLCKSZ);
+
+    if (sjwritegrp(item, grpno) == SM_FAIL) {
+	sjunwait_io(item);
+	sjunpin(item);
+	return (SM_FAIL);
+    }
+
+    sjunwait_io(item);
+    sjunpin(item);
+
+    return (SM_SUCCESS);
 }
 
 int
@@ -1093,7 +1341,7 @@ sjflush(reln, blocknum, buffer)
     BlockNumber blocknum;
     char *buffer;
 {
-    return (SM_FAIL);
+    return (sjwrite(reln, blocknum, buffer));
 }
 
 int
@@ -1115,8 +1363,6 @@ sjblindwrt(dbstr, relstr, dbid, relid, blkno, buffer)
  *	number in shared memory once we compute it.
  */
 
-#define	RelationSetLockForExtend(r)
-
 int
 sjnblocks(reln)
     Relation reln;
@@ -1132,11 +1378,9 @@ sjnblocks(reln)
     int32 v;
     int32 maxblkno;
     int i;
+    int grpno;
     SJCacheItem *item;
-    ScanKeyEntry plmkey[2];
-
-    /* need to guarantee reln doesn't change size while we're thinking */
-    RelationSetLockForExtend(reln);
+    ScanKeyEntryData plmkey[2];
 
     /* see if we've already figured this out */
     if ((maxblkno = sjfindnblocks(reln->rd_id)) >= 0)
@@ -1183,7 +1427,7 @@ sjnblocks(reln)
      *  that are actually present in the group.
      */
 
-    item = sjfetchgrp(reldbid, reln->rd_id, maxblkno);
+    item = sjfetchgrp(reldbid, reln->rd_id, maxblkno, &grpno);
 
     for (i = 0; i < SJGRPSIZE; i++) {
 	if (item->sjc_flags[i] & SJC_MISSING)
