@@ -31,16 +31,15 @@
  *	 routines, but then you pay the overhead of converting...)
  */
 
-#include "c.h"
-#include "postgres.h"
-#include "fmgr.h"
-
 #include <strings.h>
 #include <ctype.h>
 #include <math.h>
 
+#include "tmp/postgres.h"
+#include "utils/fmgr.h"
+
 #ifndef sun
-#include "log.h"
+#include "utils/log.h"
 #endif
 
 RcsId("$Header$");
