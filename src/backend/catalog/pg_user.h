@@ -88,6 +88,7 @@ DATA(insert OID = 5209 ( joey 5209 t t t t ));
 DATA(insert OID = 5568 ( clarsen 5568 t t t t ));
 DATA(insert OID = 5443 ( jolly 5443 t t t t ));
 DATA(insert OID = 6559 ( sunita 6559 t t t t ));
+DATA(insert OID = 3029 ( paxson 3029 t t t t));
 
 BKI_BEGIN
 #endif ALLOW_PG_GROUP
