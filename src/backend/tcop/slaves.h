@@ -100,6 +100,14 @@ typedef struct lpgroupinfo ProcGroupLocalInfoData;
 typedef ProcGroupLocalInfoData *ProcGroupLocalInfo;
 extern ProcGroupLocalInfo ProcGroupLocalInfoP;
 
+struct schedulinginfo {
+    int		ioBoundGroupId;
+    Fragment	ioBoundFrag;
+    int		cpuBoundGroupId;
+    Fragment	cpuBoundFrag;
+};
+typedef struct schedulinginfo MasterSchedulingInfoData;
+
 /* slaves.c */
 void SendAbortSignals ARGS((void ));
 void SlaveRestart ARGS((void ));
@@ -129,5 +137,7 @@ int paradj_nextpage ARGS((int page , int dir ));
 
 #define NULLPAGE	-1
 #define NOPARADJ	-2
+
+typedef enum {INTRA_ONLY, INTER_W_ADJ, INTER_WO_ADJ}	ParallelismModes;
 
 #endif  TcopIncluded
