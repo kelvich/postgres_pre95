@@ -30,55 +30,6 @@
 
 
 /*    
- *    	intermediate-rule-lock-data
- *    	intermediate-rule-lock
- *    	print-rule-lock-intermediate
- *    	rule-insert-catalog
- *    
- *    	Return pointers to malloc'd copies of the appropriate rule lock
- *    	structures.
- *    
- */
-
-/*  .. exec-make-intermediate-locks, make-rule-locks     */
-
-LispValue
-intermediate_rule_lock_data (type,attribute,plan)
-     LispValue type,attribute,plan ;
-{
-    MakeRuleLockIntermediateLock (type,attribute,plan);
-}
-
-/*  .. exec-make-intermediate-locks, make-rule-locks
- */
-LispValue
-intermediate_rule_lock (rule_id,priority,type,is_early,
-			rule_lock_intermediate_data_list)
-     LispValue rule_id,priority,type,is_early,
-     rule_lock_intermediate_data_list ;
-{
-    MakeRuleLockIntermediate (rule_id,priority,type,is_early,
-			      rule_lock_intermediate_data_list);
-}
-
-/*  .. print_rtentries
- */
-LispValue
-print_rule_lock_intermediate (rule_lock_intermediate)
-     LispValue rule_lock_intermediate ;
-{
-     RuleLockIntermediateDump (rule_lock_intermediate);
-}
-
-/*  .. make-rule-locks
- */
-LispValue
-rule_insert_catalog ()
-{
-    RuleInsertCatalog ();
-}
-
-/*    
  *    	index-info
  *    
  *    	Retrieves catalog information on an index on a given relation.
