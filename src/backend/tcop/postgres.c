@@ -46,6 +46,7 @@ RcsId("$Header$");
 #include "nodes/relation.h"
 #include "planner/costsize.h"
 #include "planner/planner.h"
+#include "planner/xfunc.h"
 #include "nodes/plannodes.h"
 #include "nodes/plannodes.a.h"
 
@@ -148,6 +149,11 @@ extern int Quiet;
  */
 int BushyPlanFlag = 0; /* default to false -- consider only left-deep trees */
 ParallelismModes ParallelismMode = INTER_W_ADJ;
+
+/*
+** Flags for expensive function optimization -- JMH 3/9/92
+*/
+int XfuncMode = 0;
 
 /* ----------------------------------------------------------------
  *			support functions
@@ -917,7 +923,7 @@ PostgresMain(argc, argv)
     ShowParserStats = ShowPlannerStats = ShowExecutorStats = 0;
     MasterPid = getpid();
     
-    while ((flag = getopt(argc, argv, "aA:B:bCd:EGM:NnOP:pQSsLit:Tf:F:")) != EOF)
+    while ((flag = getopt(argc, argv, "aA:B:bCd:EGM:NnOP:pQSsLit:Tf:F:x:")) != EOF)
       switch (flag) {
 	  	  
       case 'A':
@@ -1185,6 +1191,19 @@ PostgresMain(argc, argv)
 	      fprintf(stderr, "use -F {intra_only,inter_w_adj,inter_wo_adj}\n");
 	      errs++;
 	    }
+	  break;
+      case 'x':
+	  if (strcmp(optarg, "off") == 0)
+	    XfuncMode = XFUNC_OFF;
+	  else if (strcmp(optarg, "nor") == 0)
+	    XfuncMode = XFUNC_NOR;
+	  else if (strcmp(optarg, "nopull") == 0)
+	    XfuncMode = XFUNC_NOPULL;
+	  else
+	   {
+	       fprintf(stderr, "use -x {off,nor,nopull}\n");
+	       errs++;
+	   }
 	  break;
       default:
 	  /* ----------------
