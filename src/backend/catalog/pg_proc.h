@@ -141,6 +141,8 @@ DATA(insert OID =  65 (  int4eq            PGUID 11 f t f 2 f 16 "23 23" 100 0 0
     
 DATA(insert OID =  66 (  int4lt            PGUID 11 f t f 2 f 16 "23 23" 100 0 0 100  foo bar ));
 DATA(insert OID =  67 (  texteq            PGUID 11 f t f 2 f 16 "25 25" 100 0 0 0  foo bar ));
+#define TextEqualRegProcedure           67
+
 DATA(insert OID =  68 (  xideq             PGUID 11 f t f 2 f 16 "28 28" 100 0 0 100  foo bar ));
 DATA(insert OID =  69 (  cideq             PGUID 11 f t f 2 f 16 "29 29" 100 0 0 100  foo bar ));
 DATA(insert OID =  70 (  charne            PGUID 11 f t f 2 f 16 "18 18" 100 0 0 100  foo bar ));
@@ -299,8 +301,8 @@ DATA(insert OID = 240 (  nabstimein        PGUID 11 f t f 1 f 702 "0" 100 0 0 10
 DATA(insert OID = 241 (  nabstimeout       PGUID 11 f t f 1 f 23  "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 242 (  reltimein         PGUID 11 f t f 1 f 703 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 243 (  reltimeout        PGUID 11 f t f 1 f 23  "0" 100 0 0 100  foo bar ));
-DATA(insert OID = 244 (  timepl            PGUID 11 f t f 2 f 702 "702 702" 100 0 0 100  foo bar ));
-DATA(insert OID = 245 (  timemi            PGUID 11 f t f 2 f 702 "702 702" 100 0 0 100  foo bar ));
+DATA(insert OID = 244 (  timepl            PGUID 11 f t f 2 f 702 "702 703" 100 0 0 100  foo bar ));
+DATA(insert OID = 245 (  timemi            PGUID 11 f t f 2 f 702 "702 703" 100 0 0 100  foo bar ));
 DATA(insert OID = 246 (  tintervalin       PGUID 11 f t f 1 f 704 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 247 (  tintervalout      PGUID 11 f t f 1 f 23  "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 248 (  ininterval        PGUID 11 f t f 2 f 16 "702 704" 100 0 0 100  foo bar ));
@@ -631,6 +633,8 @@ DATA(insert OID = 1032 (  aclitemout       PGUID 11 f t f 1 f 23 "0" 100 0 0 100
 DATA(insert OID = 1035 (  aclinsert        PGUID 11 f t f 2 f 1034 "1034 1033" 100 0 0 100  foo bar ));
 DATA(insert OID = 1036 (  aclremove        PGUID 11 f t f 2 f 1034 "1034 1033" 100 0 0 100  foo bar ));
 DATA(insert OID = 1037 (  aclcontains      PGUID 11 f t f 2 f 16 "1034 1033" 100 0 0 100  foo bar ));
+DATA(insert OID = 1038 (  seteval          PGUID 11 f t f 1 f 23 "26" 100 0 0 100  foo bar ));
+#define SetEvalRegProcedure 1038
 
 /* ----------------
  *	old definition of struct proc
@@ -676,5 +680,5 @@ struct	proc {
 
 #include "nodes/pg_lisp.h"
 /* pg_proc.c */
-void ProcedureDefine ARGS((Name procedureName , bool returnsSet , Name returnTypeName , Name languageName , char *prosrc , char *probin , Boolean canCache , Boolean trusted ,  int32 byte_pct , int32 perbyte_cpu , int32 percall_cpu , int32 outin_ratio , List argList , CommandDest dest));
+ObjectId ProcedureDefine ARGS((Name procedureName , bool returnsSet , Name returnTypeName , Name languageName , char *prosrc , char *probin , Boolean canCache , int32 byte_pct , int32 perbyte_cpu , int32 percall_cpu , int32 outin_ratio , List argList , CommandDest dest));
 #endif PgProcIncluded
