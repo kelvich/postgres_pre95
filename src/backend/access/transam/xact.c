@@ -701,8 +701,16 @@ StartTransaction()
     if (s->state == TRANS_DISABLED)
 	return;
     
-    if (s->state != TRANS_DEFAULT)
-	elog(NOTICE, "StartTransaction and not in default state");
+/*
+ * -------------
+ * XXX:  mao commented these lines out 20 feb 91.  due to fe/be comm problems,
+ *	 we get this message for every query submitted to the monitor.  i just
+ *	 want the message to go away.  we should fix the comm problems instead.
+ * -------------
+ *
+ *   if (s->state != TRANS_DEFAULT)
+ *	elog(NOTICE, "StartTransaction and not in default state");
+ */
     
     /* ----------------
      *	set the current transaction state information
