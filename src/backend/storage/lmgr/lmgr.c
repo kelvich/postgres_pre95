@@ -545,7 +545,7 @@ RelationSetLockForWrite(relation)
 	
 	elog(NOTICE, 
 		"RelationSetLockForWrite %s: retrying", 
-		RelationGetRelationName(relation);
+		RelationGetRelationName(relation));
 	
 	status = LMLock(MultiLevelLockTableId,
 			LockTimeout,
