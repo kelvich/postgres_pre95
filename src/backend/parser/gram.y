@@ -17,7 +17,7 @@
 #include <ctype.h>
 
 #include "tmp/c.h"
-#include "parser/catalog_utils.h"	/* XXX - marc */
+#include "parser/catalog_utils.h"
 #include "catalog/catname.h"
 #include "catalog/pg_log.h"
 #include "catalog/pg_magic.h"
@@ -28,11 +28,12 @@
 #include "utils/palloc.h"
 #include "nodes/pg_lisp.h"
 /* XXX ORDER DEPENDENCY */
-#include "parser/parse_query.h"		/* XXX - marc */
+#include "parser/parse_query.h"
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
 #include "rules/params.h"
 #include "utils/lsyscache.h"
+#include "tmp/acl.h"
 extern LispValue new_filestr();
 extern LispValue parser_typecast();
 extern LispValue make_targetlist_expr();
@@ -83,23 +84,29 @@ bool Input_is_integer = false;
 bool Typecast_ok = true;
 %}
 
+/*
+ * If you make any token changes, remember to:
+ *	- use "yacc -d" and update parse.h
+ * 	- update the keyword table in atoms.c
+ */
+
 /* Commands */
 
-%token  ABORT_TRANS ADD_ATTR APPEND ATTACH_AS BEGIN_TRANS CLOSE
+%token  ABORT_TRANS ADD_ATTR APPEND ATTACH_AS BEGIN_TRANS CHANGE CLOSE
         CLUSTER COPY CREATE DEFINE DELETE DESTROY END_TRANS EXECUTE
         FETCH MERGE MOVE PURGE REMOVE RENAME REPLACE RETRIEVE
 
 /* Keywords */
 
-%token  ALL ALWAYS AFTER AND ARCHIVE ARCH_STORE ARG ASCENDING BACKWARD BEFORE
-	BINARY BY DEMAND DESCENDING EMPTY FORWARD FROM HEAVY INTERSECT INTO
+%token  ACL ALL ALWAYS AFTER AND ARCHIVE ARCH_STORE ARG ASCENDING BACKWARD BEFORE
+	BINARY BY DEMAND DESCENDING EMPTY FORWARD FROM GROUP HEAVY INTERSECT INTO
 	IN INDEX INDEXABLE INHERITS INPUTPROC IS KEY LEFTOUTER LIGHT STORE
 	MERGE NEVER NEWVERSION NONE NONULLS NOT PNULL ON ONCE OR OUTPUTPROC
         PORTAL PRIORITY QUEL RIGHTOUTER RULE SCONST SETOF SORT TO TRANSACTION
-        UNION UNIQUE USING WHERE WITH FUNCTION OPERATOR P_TYPE
+        UNION UNIQUE USING WHERE WITH FUNCTION OPERATOR P_TYPE USER
 
 
-/* Special keywords */
+/* Special keywords, not in the query language - see the "lex" file */
 
 %token  IDENT SCONST ICONST Op CCONST FCONST
 
@@ -110,7 +117,6 @@ bool Typecast_ok = true;
 		POSTQUEL RELATION RETURNS INTOTEMP LOAD CREATEDB DESTROYDB
 		STDIN STDOUT VACUUM PARALLEL AGGREGATE NOTIFY LISTEN 
                 IPORTAL ISNULL NOTNULL
-                
 
 /* precedence */
 %left	OR
@@ -156,6 +162,7 @@ stmt :
 	  AttributeAddStmt
 	| ATTACH_AS attach_args /* what are the args ? */
 	| AggregateStmt
+	| ChangeACLStmt
 	| ClosePortalStmt
 	| ClusterStmt
 	| CopyStmt
@@ -196,6 +203,37 @@ AttributeAddStmt:
 		{
 		     $$ = lispCons( $6 , $3);
 		     $$ = lispCons( KW(addattr) , $$);
+		}
+	;
+
+ /**********************************************************************
+	
+	QUERY :
+		change acl [group|user] <name>[+-=][arwR]*
+			<relname1> [, <relname2> .. <relnameN> ]
+	TREE :
+		(CHANGE ACL acl_struct modechg relname1 ... relnameN)
+
+   **********************************************************************/
+ChangeACLStmt:
+	CHANGE ACL
+	{
+		extern char *Ch;
+		LispValue aclitem_lv, modechg_lv;
+
+		aclitem_lv = lispVectori(sizeof(AclItem));
+		modechg_lv = lispInteger(0);
+		Ch = aclparse(Ch,
+			      (AclItem *) LISPVALUE_BYTEVECTOR(aclitem_lv),
+			      &modechg_lv->val.fixnum);
+		temp = lispCons(aclitem_lv,
+				lispCons(modechg_lv, LispNil));
+	}
+	relation_name_list
+		{
+			$$ = lispCons(KW(change),
+				      lispCons(KW(acl),
+					       nconc(temp, $4)));
 		}
 	;
 

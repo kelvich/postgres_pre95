@@ -7,7 +7,7 @@ SRCS+= cat.c catalog.c catname.c heap.c index.c indexing.c \
 
 HEADERS+= catmacros.h catname.h indexing.h pg_aggregate.h \
 	 pg_am.h pg_amop.h pg_amproc.h pg_attribute.h pg_database.h \
-	 pg_defaults.h pg_demon.h pg_index.h pg_inheritproc.h \
+	 pg_defaults.h pg_demon.h pg_group.h pg_index.h pg_inheritproc.h \
 	 pg_inherits.h pg_ipl.h pg_language.h pg_listener.h \
 	 pg_lobj.h pg_log.h pg_magic.h pg_naming.h pg_opclass.h \
 	 pg_operator.h pg_parg.h pg_platter.h pg_plmap.h pg_proc.h \

@@ -450,5 +450,11 @@ int LOrename ARGS((char *path , char *newpath ));
 int pftp_read ARGS((struct varlena *host, int port, oid foid));
 oid pftp_write ARGS((struct varlena *host, int port));
 
-#endif !BuiltinsIncluded
+/* acl.c */
+struct varlena *aclitemin ARGS((char *s));
+char *aclitemout ARGS((struct varlena *s));
+struct varlena *aclinsert ARGS((struct varlena *acl, char *aclitem));
+struct varlena *aclremove ARGS((struct varlena *acl, char *aclitem));
+int aclcontains ARGS((struct varlena *acl, char *aclitem));
 
+#endif !BuiltinsIncluded

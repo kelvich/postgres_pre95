@@ -60,6 +60,7 @@ RcsId("$Header$");
 #include "catalog/pg_rewrite.h"
 #include "catalog/pg_aggregate.h"
 #include "catalog/pg_naming.h"
+#include "catalog/pg_user.h"
 #include "utils/large_object.h"
 #include "catalog/pg_lobj.h"
 #include "catalog/pg_listener.h"
@@ -323,7 +324,25 @@ static struct cachedesc cacheinfo[] = {
 	     0 },
 	sizeof(FormData_pg_listener),
 	NULL,
-	NULL  }
+	NULL  },
+    { &UserRelationName,           		/* USENAME */
+	      1,
+	      { Anum_pg_user_usename,
+			0,
+			0,
+			0 },
+	      sizeof(FormData_pg_user),
+	      NULL,
+	      NULL  },
+    { &UserRelationName,           		/* USESYSID */
+	      1,
+	      { Anum_pg_user_usesysid,
+			0,
+			0,
+			0 },
+	      sizeof(FormData_pg_user),
+	      NULL,
+	      NULL  }
 };
  
 static struct catcache	*SysCache[lengthof(cacheinfo)];

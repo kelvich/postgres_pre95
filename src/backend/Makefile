@@ -185,8 +185,9 @@ afterinstall:
 	install ${STRIP} -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
 		postmaster ${DESTDIR}${BINDIR}/postmaster
 	for bki in ${BKIFILES}; do \
+		sed "s/PGUID/`egrep '^postgres' /etc/passwd | sed -e 's/^[^:]*:[^:]*://' -e 's/:.*//'`/g" < $$bki > $$bki.sed ; \
 		install -c -o ${BINOWN} -g ${BINGRP} -m 444 \
-		    $$bki ${DESTDIR}${DATADIR}/files/$$bki; \
+		    $$bki.sed ${DESTDIR}${DATADIR}/files/$$bki; \
 	done
 
 ###

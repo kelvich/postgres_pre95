@@ -19,7 +19,7 @@
 
 #define PTIME	0x100	/* prepend time to message */
 #define POS	0x200	/* prepend source position to message */
-#define USER	0x400	/* send message to user */
+#define USERMSG	0x400	/* send message to user */
 #define TERM	0x800	/* send message to terminal */
 #define DBLOG	0x1000	/* put message in per db log */
 #define SLOG	0x2000	/* put message in system log */

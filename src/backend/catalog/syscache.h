@@ -18,7 +18,6 @@
  *	Declarations for util/syscache.c.
  *
  *	SysCache identifiers.
- *	These must agree with (and are used to generate) lisplib/cacheids.l.
  */
 
 #define	AMOPOPID	0
@@ -48,6 +47,8 @@
 #define NAMEREL         24
 #define LOBJREL         25
 #define LISTENREL       26
+#define USENAME		27
+#define USESYSID	28
 
 /* ----------------
  *	struct cachedesc:	information needed for a call to InitSysCache()
@@ -71,10 +72,5 @@ void InitCatalogCache ARGS((void ));
  */
 int32 SearchSysCacheStruct();
 HeapTuple SearchSysCacheTuple();
-
-/*
- * XXX Declarations for LISP stuff deliberately left out.
- *     You shouldn't be using them.
- */
 
 #endif /* !SysCacheIncluded */
