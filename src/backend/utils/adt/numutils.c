@@ -37,17 +37,17 @@ pg_atoi(s, size, c)
 
     switch (size) {
     case sizeof(int32):
-#ifdef PORTNAME_alpha
+#ifdef HAS_LONG_LONG
 	/* won't get ERANGE on these with 64-bit longs... */
-	if (l < -0x80000000) {
+	if (l < -0x80000000L) {
 	    errno = ERANGE;
 	    elog(WARN, "pg_atoi: error reading \"%s\": %m", s);
 	}
-	if (l > 0x7fffffff) {
+	if (l > 0x7fffffffL) {
 	    errno = ERANGE;
 	    elog(WARN, "pg_atoi: error reading \"%s\": %m", s);
 	}
-#endif /* PORTNAME_alpha */
+#endif /* HAS_LONG_LONG */
 	break;
     case sizeof(int16):
 	if (l < -0x8000) {
