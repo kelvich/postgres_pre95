@@ -39,9 +39,9 @@ _bt_mkscankey(rel, itup)
     skey = (ScanKey) palloc(natts * sizeof(ScanKeyEntryData));
 
     for (i = 0; i < natts; i++) {
-	arg = index_getattr(itup, i + 1, itupdesc, &null);
+	arg = (Pointer) index_getattr(itup, i + 1, itupdesc, &null);
 	proc = index_getprocid(rel, i + 1, BTORDER_PROC);
-	ScanKeyEntryInitialize(&(skey->data[i]), 0x0, i + 1, arg, proc);
+	ScanKeyEntryInitialize(&(skey->data[i]), 0x0, i + 1, proc, arg);
     }
 
     return (skey);
