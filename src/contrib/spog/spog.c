@@ -4,7 +4,10 @@
  * $Id$
  *
  * $Log$
- * Revision 1.1  1993/02/18 23:29:29  aoki
+ * Revision 1.2  1993/03/05 04:03:07  aoki
+ * fixed my dumb strdup (how embarrassing).
+ *
+ * Revision 1.1  1993/02/18  23:29:29  aoki
  * Initial revision
  *
  * Revision 2.3  1992/08/13  11:44:48  schoenw
@@ -82,7 +85,7 @@ char *s;
 
 	if (!s)
 		return((char *) NULL);
-	if (!(news = malloc(strlen(s)) + 1))
+	if (!(news = malloc(strlen(s) + 1)))
 		return((char *) NULL);
 	return(strcpy(news, s));
 }
