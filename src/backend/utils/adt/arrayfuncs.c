@@ -947,7 +947,7 @@ ArrayType *array1, *array2;
 {
     if ((array1 == NULL) || (array2 == NULL)) return(0);
     if ( *(int *)array1 != *(int *)array2 ) return (0);
-    if ( strncmp(array1, array2, *(int *)array1)) return(0);
+    if ( bcmp(array1, array2, *(int *)array1)) return(0);
     return(1);
 }
 /***************************************************************************/
