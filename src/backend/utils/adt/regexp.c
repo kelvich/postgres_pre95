@@ -41,6 +41,9 @@ char16regexeq(s, p)
 	char *sterm, *pterm;
 	int result;
 
+	if (!s || !p)
+		return FALSE;
+
 	expbuf = (char *) palloc(EXPBUFSZ);
 	endbuf = expbuf + (EXPBUFSZ - 1);
 
@@ -81,6 +84,9 @@ textregexeq(s, p)
 	char *expbuf, *endbuf;
 	char *sbuf, *pbuf;
 	int result;
+
+	if (!s || !p)
+		return FALSE;
 
 	/* ---------------
 	 * text is a varlena, not a string so we have to make 
