@@ -181,8 +181,7 @@ LOStat(obj_desc, nblocks, byte_offset)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
-    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
 
     /* see where we are now */
 
@@ -214,8 +213,7 @@ LOBlockRead(obj_desc, buf, nblocks)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
-    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
 
     nbytes = LARGE_OBJECT_BLOCK * nblocks;
     bytes_read = FileRead(obj_desc->ofs.u_fs.fd, buf, nbytes);
@@ -233,8 +231,7 @@ LOClose(obj_desc)
 {
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
-    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
 
     FileClose(obj_desc->ofs.u_fs.fd);
     pfree(obj_desc);
@@ -320,8 +317,7 @@ LOUnixStat(obj_desc, stbuf)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
-    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
     Assert(stbuf != NULL);
 
     ret = FileStat(obj_desc->ofs.u_fs.fd,stbuf);
@@ -341,8 +337,7 @@ LOSeek(obj_desc,offset,whence)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
-    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
 
     ret = FileSeek(obj_desc->ofs.u_fs.fd,offset,whence);
 
@@ -360,8 +355,7 @@ LOTell(obj_desc)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
-    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
 
     ret = FileTell(obj_desc->ofs.u_fs.fd);
 
@@ -380,8 +374,7 @@ int LORead(obj_desc,buf,n)
     int ret;
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
-    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
     Assert(buf != NULL);
 
     ret = FileRead(obj_desc->ofs.u_fs.fd,buf,n);
@@ -401,8 +394,7 @@ int LOWrite (obj_desc,buf,n)
     int ret;
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || \
-    	    (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
     Assert(buf != NULL);
 
     ret = FileWrite(obj_desc->ofs.u_fs.fd,buf,n);
