@@ -109,56 +109,57 @@ DefineFunction(nameargsexe, dest)
     entry = DefineListRemoveRequiredAssignment(&parameters, "returntype");
     returnTypeName = DefineEntryGetString(entry);
     
-    /* ----------------
-     * handle "[ iscachable ]": figure out if Postquel functions are
-     * cacheable automagically?
-     * ----------------
-     */
+    /* Next attributes only definable for C functions */
     if (!strcmp(languageName, "c"))
      {
+	 /* ----------------
+	  * handle "[ iscachable ]": figure out if Postquel functions are
+	  * cacheable automagically?
+	  * ----------------
+	  */
+
 	 entry = DefineListRemoveOptionalIndicator(&parameters, "iscachable");
 	 canCache = (bool)!null(entry);
-     }
 
+	 /*
+	  ** handle expensive function parameters
+	  */
+	 entry = DefineListRemoveOptionalAssignment(&parameters, "byte_pct");
+	 if (null(entry)) byte_pct = BYTE_PCT;
+	 else byte_pct = DefineEntryGetInteger(entry);
 
-    /*
-    ** handle expensive function parameters
-    */
-    entry = DefineListRemoveOptionalAssignment(&parameters, "byte_pct");
-    if (null(entry)) byte_pct = BYTE_PCT;
-    else byte_pct = DefineEntryGetInteger(entry);
-
-    entry = DefineListRemoveOptionalAssignment(&parameters, "perbyte_cpu");
-    if (null(entry)) perbyte_cpu = PERBYTE_CPU;
-    else 
-     {
-	 perbyte_str = DefineEntryGetString(entry);
-	 if (!sscanf(perbyte_str, "%d", &perbyte_cpu))
+	 entry = DefineListRemoveOptionalAssignment(&parameters, "perbyte_cpu");
+	 if (null(entry)) perbyte_cpu = PERBYTE_CPU;
+	 else 
 	  {
-	      for (count = 0, ptr = perbyte_str; *ptr != '\0'; ptr++)
-		if (*ptr == '!') count++;
-	      perbyte_cpu = (int) pow(10.0, (double)count);
+	      perbyte_str = DefineEntryGetString(entry);
+	      if (!sscanf(perbyte_str, "%d", &perbyte_cpu))
+	       {
+		   for (count = 0, ptr = perbyte_str; *ptr != '\0'; ptr++)
+		     if (*ptr == '!') count++;
+		   perbyte_cpu = (int) pow(10.0, (double)count);
+	       }
 	  }
-     }
 
-    entry = DefineListRemoveOptionalAssignment(&parameters, "percall_cpu");
-    if (null(entry)) percall_cpu = PERCALL_CPU;
-    else 
-     {
-	 percall_str = DefineEntryGetString(entry);
-	 if (!sscanf(percall_str, "%d", &percall_cpu))
+	 entry = DefineListRemoveOptionalAssignment(&parameters, "percall_cpu");
+	 if (null(entry)) percall_cpu = PERCALL_CPU;
+	 else 
 	  {
-	      for (count = 0, ptr = percall_str; *ptr != '\0'; ptr++)
-		if (*ptr == '!') count++;
-	      percall_cpu = (int) pow(10.0, (double)count);
+	      percall_str = DefineEntryGetString(entry);
+	      if (!sscanf(percall_str, "%d", &percall_cpu))
+	       {
+		   for (count = 0, ptr = percall_str; *ptr != '\0'; ptr++)
+		     if (*ptr == '!') count++;
+		   percall_cpu = (int) pow(10.0, (double)count);
+	       }
 	  }
+
+
+	 entry = DefineListRemoveOptionalAssignment(&parameters, "outin_ratio");
+	 if (null(entry)) outin_ratio = OUTIN_RATIO;
+	 else outin_ratio = DefineEntryGetInteger(entry);
+
      }
-
-
-    entry = DefineListRemoveOptionalAssignment(&parameters, "outin_ratio");
-    if (null(entry)) outin_ratio = OUTIN_RATIO;
-    else outin_ratio = DefineEntryGetInteger(entry);
-
 
     /* ----------------
      * handle "[ arg is (...) ]"
