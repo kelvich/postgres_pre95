@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH INITDB UNIX 01/23/93
+.TH INITDB UNIX 02/14/94
 .XA 1 Initdb
 .SH NAME
 initdb \(em initalize the database templates and primary directories
@@ -22,7 +22,9 @@ sets up the initial template databases and is normally executed as
 part of the installation process.  The template database is created
 under the directory specified by the the environment variable 
 .SM PGDATA ,
-or to a default specified at compile-time.
+or to a default specified at compile-time.  The template database
+is then 
+.BR vacuum ed.
 .PP
 .IR Initdb
 is a shell script that invokes the backend server directly.  Hence, it
@@ -37,7 +39,8 @@ directories are being created, etc.
 .TP
 .BR "-d"
 Print debugging output from the backend server.  This option generates
-a tremendous amount of information.
+a tremendous amount of information.  This option also turns off the
+final vacuuming step.
 .TP
 .BR "-n"
 Run in \*(lqnoclean\*(rq mode.  By default, 
@@ -58,5 +61,6 @@ Command files used to generate the global and template databases,
 generated and installed by the initial compilation process.
 .SH "SEE ALSO"
 createdb(unix),
+vacuum(commands),
 bki(files),
 template(files).
