@@ -163,6 +163,9 @@ postquel(postquel),
 create(commands).
 .uh BUGS
 .lp
+.q "Retrieve into"
+does not delete duplicates in Version 2.
+.lp
 .q Archive_mode 
 is not implemented in Version 2.
 .lp
