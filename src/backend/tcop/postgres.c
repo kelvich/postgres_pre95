@@ -1070,6 +1070,7 @@ PostgresMain(argc, argv)
            * ----------------
            */
           ShowStats = 1;
+	  StatFp = stderr;
           break;
 
       case 't':
@@ -1515,7 +1516,7 @@ ShowUsage()
 
 	fprintf(StatFp, "! system usage stats:\n");
         fprintf(StatFp, 
-		"!\t%ld.%06ld elapse %ld.%06ld user %ld.%06ld system sec\n",
+		"!\t%ld.%06ld elapsed %ld.%06ld user %ld.%06ld system sec\n",
                 elapse_t.tv_sec - Save_t.tv_sec,
                 elapse_t.tv_usec - Save_t.tv_usec,
 		r.ru_utime.tv_sec - Save_r.ru_utime.tv_sec,
