@@ -607,6 +607,13 @@ typedef	union {
 #define STATUS_NOT_DONE		(-6)
 #define STATUS_FOUND            (1)
 
+/*
+ * The following is a gimmick to pass functions that return void as
+ * paramters to other functions.  This type defined here is used as
+ * the cast.
+ */
+typedef Pointer (*VoidFunctionType)();
+
 /* ----------------------------------------------------------------
  *	externs
  *
