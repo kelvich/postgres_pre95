@@ -316,6 +316,27 @@ pg_eval( query_string )
 	    extern List QueryRewrite();
 
 	    /* ----------------
+  	     *	if we are running in a transaction which has
+  	     *  been aborted by a prior command, then we do
+  	     *  nothing until an "end" comes along and fixes things.
+  	     * ----------------
+  	     */
+  	    if (IsAbortedTransactionBlockState()) {
+  		/* ----------------
+  		 *   the EndCommand() stuff is to tell the frontend
+  		 *   that the command ended. -cim 6/1/90
+  		 * ----------------
+  		 */
+  		char *tag = "*ABORT STATE*";
+  		EndCommand(tag);
+  		
+  		elog(NOTICE, "(transaction aborted): %s",
+  		     "queries ignored until END");
+  
+  		return;
+  	    }
+  	    
+  	    /* ----------------
 	     *	first rewrite the query, if necessary
 	     * ----------------
 	     */
