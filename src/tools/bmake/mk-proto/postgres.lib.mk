@@ -15,6 +15,10 @@ BINMODE?=	555
 OBJDEST?=	/private/obj/
 OBJSTRIPPREFIX?=	/usr/
 
+MINUSX=
+
+INSTALL?=	install
+
 .MAIN: all
 
 # prefer .s to a .c, add .po, remove stuff not used in the BSD libraries
@@ -26,32 +30,24 @@ OBJSTRIPPREFIX?=	/usr/
 
 .c.o:
 	${CC} ${CFLAGS} -c ${.IMPSRC} 
-	@${LD} -x -r ${.TARGET}
+	@${LD} ${MINUSX} -r ${.TARGET}
 	@mv a.out ${.TARGET}
 
 .c.po:
 	${CC} -p ${CFLAGS} -c ${.IMPSRC} -o ${.TARGET}
-.if (${MACHINE} == "mips" || ${MACHINE} == "sparc")
-	@${LD} -X -r ${.TARGET}
-.else
-	@${LD} -r ${.TARGET}
-.endif
+	@${LD} ${MINUSX} -r ${.TARGET}
 	@mv a.out ${.TARGET}
-
-#.if (${MACHINE} == "mips")
-#NOPROFILE=1
-#.endif
 
 .s.o:
 	${CPP} -E ${CFLAGS:M-[ID]*} ${AINC} ${.IMPSRC} | \
 	    ${AS} -o ${.TARGET}
-	@${LD} -x -r ${.TARGET}
+	@${LD} ${MINUSX} -r ${.TARGET}
 	@mv a.out ${.TARGET}
 
 .s.po:
 	${CPP} -E -DPROF ${CFLAGS:M-[ID]*} ${AINC} ${.IMPSRC} | \
 	    ${AS} -o ${.TARGET}
-	@${LD} -X -r ${.TARGET}
+	@${LD} ${MINUSX} -r ${.TARGET}
 	@mv a.out ${.TARGET}
 
 MANALL=	${MAN1} ${MAN2} ${MAN3} ${MAN4} ${MAN5} ${MAN6} ${MAN7} ${MAN8}
