@@ -372,7 +372,7 @@ _vc_vacheap(p, curvrl, onerel)
 	    htup = (HeapTuple) PageGetItem(page, itemid);
 	    tupgone = false;
 
-	    if (AbsoluteTimeIsValid(htup->t_tmin) && 
+	    if (!AbsoluteTimeIsValid(htup->t_tmin) && 
 		TransactionIdIsValid((TransactionId)htup->t_xmin)) {
 
 		if (TransactionIdDidAbort(htup->t_xmin)) {
