@@ -28,7 +28,7 @@
  * IMPORTANT: these routines are called by backends, clients, and
  *	the Postmaster.
  *
- * NOTE: assume htons() is sufficient for all header structs.  If
+ * NOTE: assume htonl() is sufficient for all header structs.  If
  *	header structs become longs, must switch to htonl().
  */
 #include <stdio.h>
@@ -80,7 +80,7 @@ ConnId		*connIdP;    /* sender's connection (seqpack) */
    */
   tmp = ((Addr)buf) + port->nBytes;
   if (port->nBytes >= sizeof(PacketHdr)) {
-    packetLen = htons(hdr->len) + sizeof(PacketHdr);
+    packetLen = htonl(hdr->len) + sizeof(PacketHdr);
   } else {
     cc = recvfrom(port->sock, tmp, sizeof(PacketHdr), flag, 
 		  &(port->addr), &addrLen);
@@ -117,7 +117,7 @@ ConnId		*connIdP;    /* sender's connection (seqpack) */
       /* great. got the header. now get the true length (including
        * header size).
        */
-      packetLen = htons(hdr->len);
+      packetLen = htonl(hdr->len);
       packetLen -= decr;
       tmp += decr - port->nBytes;
     }
@@ -151,7 +151,7 @@ ConnId		*connIdP;    /* sender's connection (seqpack) */
     }
   }
 
-  *connIdP = htons(hdr->connId);
+  *connIdP = htonl(hdr->connId);
   port->nBytes = 0;
   return(STATUS_OK);
 }
@@ -183,10 +183,10 @@ Boolean		nonBlocking;
 
   totalLen = len;
 
-  hdr->seqno = htons(conn->seqno++);
-  hdr->connId = htons(conn->id);
-  hdr->type = (MsgType)htons(type);
-  hdr->len = htons(len);
+  hdr->seqno = htonl(conn->seqno++);
+  hdr->connId = htonl(conn->id);
+  hdr->type = (MsgType)htonl(type);
+  hdr->len = htonl(len);
 
   len = sendto(port->sock, (Addr) buf, totalLen, /* flags */ 0,
 	       &(port->addr), addrLen);
@@ -218,13 +218,13 @@ SeqNo		*seqnoP;
   PacketHdr	*hdr = (PacketHdr *) buf;
 
   /* seq pack protocol only */
-  if (htons(hdr->seqno) != *seqnoP)
+  if (htonl(hdr->seqno) != *seqnoP)
     *msgTypeP = DUPLICATE_MSG;
   else
     *seqnoP++;
 
-  *msgTypeP = (MsgType)htons(hdr->type);
-  *bufSizeP = htons(hdr->len);
+  *msgTypeP = (MsgType)htonl(hdr->type);
+  *bufSizeP = htonl(hdr->len);
 
   /* data part starts right after the header */
   *dataP = (Addr) (hdr+1);
@@ -246,7 +246,7 @@ Addr		addr;
   PacketLen	len,totalLen;
   int		addrLen = sizeof (struct sockaddr_in);
 
-  len = totalLen = htons(hdr->len);
+  len = totalLen = htonl(hdr->len);
   len = sendto(port->sock, (Addr) buf, totalLen, /* flags */ 0,
 	       (struct sockaddr *)addr, addrLen);
 
