@@ -36,6 +36,7 @@ RcsId("$Header$");
 #include "access/heapam.h"
 #include "access/genam.h"
 #include "access/itup.h"
+#include "access/tupmacs.h"
 
 #include "storage/buf.h"
 
@@ -604,21 +605,14 @@ Relation rd;
 char *name;
 {
      int i;
-     
-     for (i = 0; i < rd->rd_rel->relnatts; i++) {
-	  if (! strcmp(&rd->rd_att.data[i]->attname, name)) {
-	       return(rd->rd_att.data[i]->attisset);
-	  }
-     }
+
+     /* First check if this is a system attribute */
      for (i = 0; i < SPECIALS; i++) {
 	  if (! strcmp(special_attr[i].field, name)) {
 	       return(false);   /* no sys attr is a set */
 	  }
      }
-
-     elog(WARN, "Relation %s does not have attribute %s\n",
-	  RelationGetRelationName(rd), name);
-     return false;
+     return (get_attisset(rd->rd_id, name));
 }
 
 /* given range variable, return id of variable */
