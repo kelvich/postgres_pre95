@@ -34,6 +34,40 @@
 
 RcsId("$Header$");
 
+#if defined(HAS_TEST_AND_SET)
+
+/*
+ * OSF/1 (Alpha AXP)
+ *
+ * Note that slock_t is long instead of char (see storage/ipc.h).
+ */
+
+#if defined(PORTNAME_alpha)
+
+/* defined in port/alpha/tas.s */
+extern int tas ARGS((slock_t *lock));
+
+S_LOCK(lock)
+    slock_t *lock;
+{
+    while (tas(lock))
+	;
+}
+
+S_UNLOCK(lock)
+    slock_t *lock;
+{
+    *lock = 0;
+}
+
+S_INIT_LOCK(lock)
+    slock_t *lock;
+{
+    S_UNLOCK(lock);
+}
+
+#endif /* PORTNAME_alpha */
+
 /*
  * AIX (POWER)
  *
@@ -187,3 +221,5 @@ unsigned char *addr;
 }
 
 #endif /* sparc */
+
+#endif /* HAS_TEST_AND_SET */
