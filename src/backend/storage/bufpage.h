@@ -232,6 +232,16 @@ PageGetMaxOffsetIndex ARGS((
 ));
 
 /*
+ * PageIsEmpty --
+ *	returns true iff no itemid has been allocated on the page
+ */
+extern
+bool
+PageIsEmpty ARGS((
+	Page	page
+));
+
+/*
  * PageGetItemId --
  *	Returns an item identifier of a page.
  */
@@ -409,17 +419,5 @@ void
 PageManagerModeSet ARGS((
 	PageManagerMode	mode
 ));
-
-/*
- * PageGetMaxItemIndex --
- *	Returns the index of the maximum disk item currently allocated.
- */
-/*
-extern
-ItemIndex
-PageGetMaxItemIndex ARGS((
-	Page	page
-));
-*/
 
 #endif	/* !defined(BufPageIncluded) */
