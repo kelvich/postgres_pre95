@@ -402,7 +402,7 @@ MakeFromClause ( from_list, base_rel )
 {
     List i = NULL;
     List j = NULL;
-    List flags = lispCons(lispInteger(0),LispNil);
+    List flags = NULL;
     /* from_list will be a list of strings */
     /* base_rel will be a wierd assortment of things, 
        including timerange, inheritance and union relations */
@@ -414,27 +414,33 @@ MakeFromClause ( from_list, base_rel )
 
     foreach ( i , from_list ) {
         List temp = CAR(i);
-    	if ( base_rel->type == PGLISP_STR ) {
-	    /* Just a normal relation */
-	    ADD_TO_RT(MakeRangeTableEntry( CString(base_rel), LispNil, 
-					   CString(temp)));
-    	} else if ( base_rel->type == PGLISP_DTPR ) {
-	        List first = CAR(base_rel);
-	        if ( first->type == PGLISP_STR ) {
-		    if ( !strcmp(CString(first),"*") ) {
-		        /* inheritance query */
-		        flags = nappend1(flags, lispAtom("inherits"));
-		    } else {
-			elog(WARN,"unioned relations not allowed in from");
-		    }
-	        } 
-                if ( first->type == PGLISP_INT ) {
-		    /* timerange query */
-		    CAR(flags) = first;
-	        } 
- 	    ADD_TO_RT(MakeRangeTableEntry( CString(CDR(base_rel)),flags,
-					   CString(temp) ));
-    	}
+
+	foreach ( j , base_rel ) {
+	    List x = CAR(j);
+
+	    /* now reinitialize "flags" so that we don't 
+	     * get inheritance or time range queries for
+	     * relations that we didn't want them on 
+	     */
+
+	    flags = lispCons(lispInteger(0),LispNil);
+
+	    if ( ! null ( CADDR(x))) {
+		flags = nappend1(flags, lispAtom("inherits"));
+	    }
+
+	    if ( ! null ( CADR(x))) {
+		CAR(flags) = CADR(x);
+	    }
+
+	    ADD_TO_RT(MakeRangeTableEntry ( CString ( CAR(x)),
+					    flags , 
+					    CString(temp)));
+
+	    /* NOTE : we dont' pfree old "flags" because they are
+	     * really still present in the parsetree
+	     */
+	}
     }
 }
 
