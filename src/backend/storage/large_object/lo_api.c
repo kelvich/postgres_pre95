@@ -70,8 +70,11 @@ int open_mode;
       if ((oidf = FilenameToOID(path)) == InvalidObjectId) { /* new file */
         oidf = LOcreatOID(path,0); /* enter it in system relation */
         /* enter cookie into table */
-        if (LOputOIDandLargeObjDesc(oidf, Unix,newobj) < 0)
+        if (LOputOIDandLargeObjDesc(oidf, Unix, (struct varlena *)newobj) < 0) {
+#if FSDB
           elog(NOTICE,"LOputOIDandLargeObjDesc failed");
+#endif
+	  }
       }
     }
 
@@ -195,7 +198,10 @@ unsigned long n_whole_blocks, bytes_at_end;
 
     ret = FileWrite(obj_desc->fd, buf, totalbytes);
     if (ret < 0) {
+#if FSDB
 	perror ("NOTICE: write");
+#endif
+        return ret;
     } else {
 	return ret;
     }
