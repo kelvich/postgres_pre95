@@ -48,13 +48,26 @@ TOOLSLIBDIR= /usr/local/lib
 # and installation.  The most important one is obviously
 # the name of the port.
 
+#
 #  The name of the port.  Valid choices are:
 #	ultrix4	-	DEC MIPS on Ultrix 4.2 or 4.3
 #	sparc	-	SUN SPARC on SunOS 4.1.2 or 4.1.3
-#  or add your own - :)
+#	hpux	-	HP PA-RISC on HP-UX 8.07
+#	alpha	-	DEC ALPHA AXP on OSF/1 1.3
+#  Partial, untested support is provided for
+#	linux	-	Intel 386/486 on Linux 0.99
+#	next	-	NeXT MC680x0 on NeXTSTEP
+#  but you're really taking your life into your own hands on these.
+#
+#  XXX	Note that you MUST set PORTNAME here so that port-dependent 
+#	variables are correctly set within this file.  ./obj/Makefile.global 
+#	does not take effect (for .if purposes) until after this file is
+#	processed!
 #
 #PORTNAME=	sparc
 PORTNAME=	ultrix4
+#PORTNAME=	alpha
+#PORTNAME=	hpux
 
 #
 # POSTGRESLOGIN is the login name of the user who gets special
@@ -114,6 +127,18 @@ HEADERDIR=	${POSTGRESDIR}/include
 #
 
 #
+# MACHINE is needed for machine-dependent part of the system mk files.
+#
+.if (${PORTNAME} == "alpha" || ${PORTNAME} == "ultrix4")
+MACHINE!=machine
+.elif (${PORTNAME} == "sparc")
+MACHINE=sparc
+.elif (${PORTNAME} == "hpux")
+MACHINE=hppa
+.elif (${PORTNAME} == "linux" || ${PORTNAME} == "svr4")
+MACHINE=i386
+.endif
+#
 # FEATURES: 
 # To disable a feature, comment out the entire definition
 # (that is, prepend '#', don't set it to "0" or "no").
@@ -123,20 +148,25 @@ HEADERDIR=	${POSTGRESDIR}/include
 # Comment out USE_DLD if you do not use the GNU DLD package for
 # dynamic loading.
 #
-#	XXX DLD is currently only supported for the MIPS/Ultrix4 and
+#	XXX GNU DLD is currently only supported for the MIPS/Ultrix4 and
 #	    SPARC/SunOS4 ports!
 #
+.if (${PORTNAME} == "ultrix4" || ${PORTNAME} == "sparc")
 #USE_DLD=
+.endif
 
 #
 # The default bmake rules will strip binaries while installing them.
-# You almost certainly don't want to comment out or remove this line.
+# This line OVERRIDES the stripping option.
+# You do NOT want to comment out or remove this line.
 #
 STRIP=
 
 #
 # Man pages don't live with sources this release (coming soon).
-# You almost certainly don't want to comment out or remove this line.
+# This line OVERRIDES the default action of trying to install man 
+# pages from the source directories (which doesn't work).
+# You do NOT want to comment out or remove this line.
 #
 NOMAN=
 
@@ -161,9 +191,10 @@ CDEBUG= -g
 #PROFILE=
 
 #
-# Comment out OLD_MKDIR if your mkdir has the -p flag.
+# Comment out OLD_MKDIR if your mkdir has the -p flag or your install
+# creates all intermediate directories.
 #
-.if (${PORTNAME} == "sparc" || ${PORTNAME} == "linux")
+.if (${PORTNAME} == "sparc" || ${PORTNAME} == "hpux" || ${PORTNAME} == "linux")
 OLD_MKDIR=
 .endif
 
@@ -238,8 +269,11 @@ CFLAGS+= '-DPOSTPORT="4321"'
 CFLAGS+= -DSEQUOIA
 
 #
-# Linux needs some extra compatibility help.
+# SysV signal(2) semantics require reinstallation of signal handlers
+# after being called.  These systems are SysV-like.
 #
-.if (${PORTNAME} == "linux")
+.if (${PORTNAME} == "hpux" || ${PORTNAME} == "svr4")
+CFLAGS+= -DSYSV_SIGNAL
+.elif (${PORTNAME} == "linux")
 CFLAGS+= -D__USE_BSD_SIGNAL
 .endif
