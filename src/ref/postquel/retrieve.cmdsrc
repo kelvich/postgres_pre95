@@ -139,8 +139,8 @@ retrieve into raise (salary = 1.1 * emp.salary)
 /* do a retrieve into a portal */
 begin \eg
    retrieve portal myportal (pg_user.all) \eg
-   fetch 2 from myportal \eg
-   fetch all from myportal \eg
+   fetch 2 in myportal \eg
+   fetch all in myportal \eg
    close myportal \eg
 end \eg
 .ft
