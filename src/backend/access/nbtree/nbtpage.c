@@ -185,7 +185,7 @@ _bt_getroot(rel, access)
 	     */
 
 	    _bt_relbuf(rel, metabuf, BT_WRITE);
-	    return (_bt_getroot(rel));
+	    return (_bt_getroot(rel, access));
 	}
     } else {
 	rootbuf = _bt_getbuf(rel, metad->btm_root, access);
