@@ -1,5 +1,7 @@
 /*
  *  vacuum.h -- header file for postgres vacuum cleaner
+ *
+ *	$Header$
  */
 
 #ifndef _VACUUM_H_
