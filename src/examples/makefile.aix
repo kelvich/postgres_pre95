@@ -10,12 +10,12 @@ circle.o: circle.c
 
 int4_abs.so: int4_abs.o
 	mkldexport int4_abs.o `pwd` > int4_abs.exp
-	ld -H512 -T512 -o int4_abs.so \
+	ld -H512 -T512 -o int4_abs.so -e _nostart \
 		-bI:../../lib/postgres.exp -bE:int4_abs.exp \
 		int4_abs.o -lm -lc 2>/dev/null
 
 circle.so: circle.o
 	mkldexport circle.o `pwd` > circle.exp
-	ld -H512 -T512 -o circle.so \
+	ld -H512 -T512 -o circle.so -e _nostart \
 		-bI:../../lib/postgres.exp -bE:circle.exp \
 		circle.o -lm -lc 2>/dev/null
