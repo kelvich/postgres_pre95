@@ -37,7 +37,7 @@
  * ----------------------------------------------------------------
  */
  
-#include "tmp/align.h"
+#include "utils/memutils.h"
 #include "utils/log.h"
 #include "executor/execshmem.h"
 
