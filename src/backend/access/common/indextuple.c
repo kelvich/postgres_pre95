@@ -75,6 +75,7 @@ index_formtuple(numberOfAttributes, tupleDescriptor, value, null)
 	     tupleDescriptor,
 	     value,
 	     null,
+		 &tuple->t_infomask,
 	     &tuple->bits.bits[0]);
     
     /* ----------------
