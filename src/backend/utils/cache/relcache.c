@@ -87,8 +87,7 @@ extern HeapTuple	GetHeapTuple();	/* XXX use include file */
 #define OUT()	DO_DB(ElogDebugIndentLevel--)
 
 /* XXX using the values in h/anum.h might be better */
-/* #define REL_NATTS	(15) */
-#define REL_NATTS	(14)
+#define REL_NATTS	(15)
 #define ATT_NATTS	(12)
 #define PRO_NATTS	(10)
 #define TYP_NATTS	(14)
@@ -134,7 +133,8 @@ private AttributeTupleFormData	relatt[REL_NATTS] = {
 	{ 83l, "relkeyop",     30,  83l, 0l, 0l, 32, 14, 0, '\0', '\001', 0l },
 	{ 83l, "rellock",     591,   0l, 0l, 0l,  8, 15, 0, '\0', '\001', 0l }
 */
-	{ 83l, "relkeyop",     30,  83l, 0l, 0l, 32, 14, 0, '\0', '\001', 0l }
+	{ 83l, "relkeyop",     30,  83l, 0l, 0l, 32, 14, 0, '\0', '\001', 0l },
+	{ 83l, "relstub",      33,  83l, 0l, 0l, -1, 15, 0, '\0', '\001', 0l }
 };
 private AttributeTupleFormData	attatt[ATT_NATTS] = {
 	{ 75l, "attrelid",    26l, 75l, 0l, 0l, 4, 1, 0, '\001', '\001', 0l },
