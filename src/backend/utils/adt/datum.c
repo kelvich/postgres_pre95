@@ -114,11 +114,12 @@ Size len;
     Datum res;
     Pointer s;
 
-    realSize = datumGetSize(value, type, byVal, len);
 
     if (byVal) {
 	res = value;
     } else {
+	if (value == NULL) return(NULL);
+    realSize = datumGetSize(value, type, byVal, len);
 	/*
 	 * the value is a pointer. Allocate enough space
 	 * and copy the pointed data.
