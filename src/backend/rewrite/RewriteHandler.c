@@ -166,7 +166,7 @@ List FireRetrieveRulesAtQuery(parsetree, rt_index, relation,instead_flag)
 			      &modified);
 	    if (modified) {
 		*instead_flag = TRUE;
-/*		FixResdomTypes(parse_targetlist(parsetree));*/
+		FixResdomTypes(parse_targetlist(parsetree));
 		return parsetree;
 	    }
 	}
@@ -528,7 +528,7 @@ List RewriteQuery(parsetree,instead_flag,qual_products)
 	
 	new_pt = (List)StringToPlan(temp);
 	other = (List) CopyObject(parsetree);
-	return ProcessRetrieveQuery(new_pt, rt, instead_flag,FALSE);
+	return ProcessRetrieveQuery(other, rt, instead_flag,FALSE);
     }
 }
 
