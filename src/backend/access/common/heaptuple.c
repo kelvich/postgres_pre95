@@ -617,6 +617,12 @@ fastgetattr(tup, attnum, att, isnull)
 
 	/*
 	 * Now we know that we have to walk the tuple CAREFULLY.
+	 *
+	 * Note - This loop is a little tricky.  On iteration i we
+	 * first set the offset for attribute i and figure out how much
+	 * the offset should be incremented.  Finally, we need to align the
+	 * offset based on the size of attribute i+1 (for which the offset
+	 * has been computed). -mer 12 Dec 1991
 	 */
 	
 	for (i = 0; i < attnum; i++)
@@ -649,29 +655,23 @@ fastgetattr(tup, attnum, att, isnull)
 	            off++;
 	            break;
 	        case sizeof(short):
-	            off = SHORTALIGN(off + sizeof(short));
+	            off = off + sizeof(short);
 	            break;
 	        case -1:
 	            usecache = false;
-		    off = LONGALIGN(off) + sizeof(long);
-		    /* 
-		     * The alignment after a varlena must correspond to 
-		     * the type of the attribute we're fetching, otherwise 
-		     * we might not get the right n bytes.
-		     */
+		    off = off + sizeof(long);
 		    off += PSIZE(tp + off);
 		    break;
 		default:
-		    off = LONGALIGN(off + att[i]->attlen);
+		    off = off + att[i]->attlen;
 		    break;
 	    }
-	}
-
-	switch(att[attnum]->attlen)
-	{
+	    switch (att[i+1]->attlen)
+	    {
 		case sizeof(char)  : break;
 		case sizeof(short) : off = SHORTALIGN(off); break;
 		default            : off = LONGALIGN(off); break;
+	    }
 	}
 
 	return((char *) fetchatt(att + attnum, tp + off));
