@@ -37,7 +37,13 @@
 
 typedef String	FileName;
 
+#ifdef _xprs_
+#define NSTRIPING	5	/* no. of disks hermes has */
+typedef struct { int fd[NSTRIPING]; bool is_sys; } File;
+#else /* _xprs_ */
 typedef int	File;
+#endif /* _xprs_ */
+typedef int	FileNumber;
 typedef int	Amount;
 
 /*
@@ -46,7 +52,7 @@ typedef int	Amount;
  */
 /* VARARGS2 */
 extern
-File
+FileNumber
 FileNameOpenFile ARGS((
 	FileName	fileName,
 	int		flags,
@@ -60,7 +66,7 @@ FileNameOpenFile ARGS((
 extern
 void
 FileClose ARGS((
-	File	file
+	FileNumber	file
 ));
 
 /*
@@ -70,7 +76,7 @@ FileClose ARGS((
 extern
 Amount
 FileRead ARGS((
-	File	file,
+	FileNumber	file,
 	String	buffer,
 	Size	amount
 ));
@@ -82,7 +88,7 @@ FileRead ARGS((
 extern
 Amount
 FileWrite ARGS((
-	File	file,
+	FileNumber	file,
 	String	buffer,
 	Size	amount
 ));
@@ -96,7 +102,7 @@ FileWrite ARGS((
 extern
 long		/* XXX FilePosition? */
 FileSeek ARGS((
-	File	file,
+	FileNumber	file,
 	long	offset,
 	int	whence
 ));
@@ -109,7 +115,7 @@ FileSeek ARGS((
 extern
 long		/* XXX FilePosition? */
 FileTell ARGS((
-	File	file
+	FileNumber	file
 ));
 
 /*
@@ -121,7 +127,7 @@ FileTell ARGS((
 extern
 int
 FileSync ARGS((
-	File	file
+	FileNumber	file
 ));
 
 /*
