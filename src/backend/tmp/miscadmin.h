@@ -591,13 +591,6 @@ time ARGS((
 ));
 
 /*
- * The following definitions are compiler and operating system specific.
- */
-extern Address etext;
-extern Address edata;
-extern Address end;
-
-/*
  * These tests can be made more strict given a particular compiler.
  *
  * XXX Someday, this should go into the compiler port directory.
