@@ -115,9 +115,13 @@ or
 .IR uIndex
 is an integer constant.
 .PP
+When you retrieve an attribute which is of a complex type, the behavior
+of the system depends on whether you used "nested dots" to project
+out attributes of the complex type or not.  See the examples below.
+.PP
 You must have read access to a class to read its values (see
 .IR "change acl" (commands).
-.SH EXAMPLE
+.SH EXAMPLES
 .(C
 /*
  * Find all employees who make more than their manager
@@ -198,6 +202,25 @@ retrieve (tictactoe.board[2:2][1:3])
  */
 retrieve (tictactoe.board[2][2])
     where tictactoe.game = 2
+.)C
+.(C
+/*
+ * Retrieve all attributes of a class "newemp" which contains two attributes,
+ * a name and a complex type "manager" which is of type newemp.  Since 
+ * each complex attribute represents a procedure recorded in pg_proc, 
+ * the system will return the ObjectIds of each procedure.  In this 
+ * example, the system will return tuples of the form
+ * ("carol", 34562), ("sunita", 45662), and so on.  The manager field is
+ * represented as an ObjectId.
+retrieve (newemp.name, newemp.manager)
+.)C
+.(C
+/*
+ * In order to see the attributes of a complex type, they must be 
+ * explicitly projected.  The following query will return tuples of
+ * the form
+ * ("carol", "mike", 23434), ("sunita", "mike", 23434)
+retrieve (newemp.name, newemp.manager.name, newemp.manager.manager)
 .)C
 .SH "SEE ALSO"
 append(commands),
