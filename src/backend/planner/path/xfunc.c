@@ -477,11 +477,8 @@ LispValue args;
 int xfunc_width(clause)
      LispValue clause;
 {
-    int vnum;            /* range table entry for rel in a var */
-    Name relname;        /* name of a rel */
     Relation rd;         /* Relation Descriptor */
     HeapTuple tupl;      /* structure to hold a cached tuple */
-    int attno;           /* number of attribute within relation */
     Form_pg_type type;   /* structure to hold a type tuple */
     int retval = 0;
 
@@ -500,7 +497,7 @@ int xfunc_width(clause)
     else if (IsA(clause,Var))  /* base case: width is width of this attribute */
      {
 	 tupl = SearchSysCacheTuple(TYPOID, get_vartype((Var)clause),
-				    NULL, NULL, NULL, NULL);
+				    NULL, NULL, NULL);
 	 if (!HeapTupleIsValid(tupl))
 	   elog(WARN, "Cache lookup failed for type %d", 
 		get_vartype((Var)clause));
@@ -894,11 +891,6 @@ void xfunc_fixvars(clause, rel, varno)
 	       ** anyway.  It's definitely supposed to be a list of relids,
 	       ** so I just figured I'd use the ones in the clause.
 	       */
-
-	      /* Set the varno to be the original varno! 
-		 -- NO!  THIS IS A BUG, NOT A BUGFIX!  -- JMH 7/22/92
-	      ((Var)clause)->varno = 
-		CInteger(CAR((LispValue)(((Var)clause)->varid))); */
 	      add_tl_element(rel, (Var)clause, clause_relids_vars(clause));
 	      tle = tlistentry_member((Var)clause, get_targetlist(rel));
 	  }
