@@ -36,9 +36,8 @@ extern int u_setup();
 #define READSIZE	10000 * 1024	/* ten disk manufacturer megabytes */
 #define FILENAME	"/mao_file"
 
-#define NITERS_BIG	1
-#define NITERS_RAND	1
-#define NITERS_RANDLOC	1
+#define NITERS_WRBIG	1
+#define NITERS_BIG	10
 
 #define BIG	0
 #define SMALL	1
@@ -122,7 +121,7 @@ u_write(small)
     }
 
     if (small) {
-	CALL(bigwrite,      small,   "100 KByte sequential write\n");
+	CALL(bigwrite,      small,   "100 kByte sequential write\n");
     } else {
 	CALL(bigwrite,      small,   "10 MByte sequential write\n");
     }
@@ -143,7 +142,7 @@ u_read(small)
     }
 
     if (small) {
-	CALL(bigread,      small,   "100 KByte sequential read\n");
+	CALL(bigread,      small,   "100 kByte sequential read\n");
     } else {
 	CALL(bigread,      small,   "10 MByte sequential read\n");
     }
@@ -164,7 +163,7 @@ u_rndread(small)
     }
 
     if (small) {
-	CALL(rndread,      small,   "10 KByte random read\n");
+	CALL(rndread,      small,   "10 kByte random read\n");
     } else {
 	CALL(rndread,      small,   "1 MByte random read\n");
     }
@@ -185,7 +184,7 @@ u_locrndread(small)
     }
 
     if (small) {
-	CALL(locrndread,      small,   "10 KByte random read with locality\n");
+	CALL(locrndread,      small,   "10 kByte random read with locality\n");
     } else {
 	CALL(locrndread,      small,   "1 MByte random read with locality\n");
     }
@@ -205,7 +204,7 @@ u_rndwrite(small)
     }
 
     if (small) {
-	CALL(rndwrite,      small,   "10 KByte random write\n");
+	CALL(rndwrite,      small,   "10 kByte random write\n");
     } else {
 	CALL(rndwrite,      small,   "1 MByte random write\n");
     }
@@ -225,9 +224,9 @@ u_locrndwrite(small)
     }
 
     if (small) {
-	CALL(locrndwrite,      small,   "10 KByte random write\n");
+	CALL(locrndwrite,      small,   "10 kByte random write with locality\n");
     } else {
-	CALL(locrndwrite,      small,   "1 MByte random write\n");
+	CALL(locrndwrite,      small,   "1 MByte random write with locality\n");
     }
 
     LOclose(fd);
@@ -378,6 +377,7 @@ bigwrite(fd, small)
     int i;
     int iter;
     int want;
+    int lim;
     struct varlena *buf;
 
     buf = (struct varlena *) palloc(8096);
@@ -385,7 +385,12 @@ bigwrite(fd, small)
     for (i = 0; i < 8096; i++)
 	*sbuf++ = (char) (i % 255);
 
-    for (i = 0; i < NITERS_BIG; i++) {
+    if (small)
+	lim = NITERS_BIG;
+    else
+	lim = NITERS_WRBIG;
+
+    for (i = 0; i < lim; i++) {
 
 	/* start of file, please */
 	if (LOlseek(fd, 0, L_SET) != (off_t) 0) {
@@ -426,6 +431,7 @@ rndwrite(fd, small)
     long off;
     struct varlena *buf;
     char *sbuf;
+    int lim;
     extern long random();
 
     buf = (struct varlena *) palloc(8096);
@@ -435,7 +441,12 @@ rndwrite(fd, small)
 
     srandom(getpid());
 
-    for (i = 0; i < NITERS_BIG; i++) {
+    if (small)
+	lim = NITERS_BIG;
+    else
+	lim = NITERS_WRBIG;
+
+    for (i = 0; i < lim; i++) {
 
 	want = 1024 * 1000;
 	if (small)
@@ -477,6 +488,7 @@ locrndwrite(fd, small)
     long pct;
     struct varlena *buf;
     char *sbuf;
+    int lim;
     extern long random();
 
     buf = (struct varlena *) palloc(8096);
@@ -486,7 +498,12 @@ locrndwrite(fd, small)
 
     srandom(getpid());
 
-    for (i = 0; i < NITERS_BIG; i++) {
+    if (small)
+	lim = NITERS_BIG;
+    else
+	lim = NITERS_WRBIG;
+
+    for (i = 0; i < lim; i++) {
 
 	want = 1024 * 1000;
 	if (small)
