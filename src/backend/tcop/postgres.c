@@ -67,7 +67,7 @@ bool override = false;
 void
 handle_warn()
 {
-	longjmp(Warn_restart);
+	longjmp(Warn_restart,1);
 }
 
 void
