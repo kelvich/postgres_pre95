@@ -387,6 +387,7 @@ DefineType(name, parameters)
     LispValue	entry;
     int16	internalLength;		/* int2 */
     int16	externalLength;		/* int2 */
+	Name	elemName;
     Name	inputName;
     Name	outputName;
     Name	sendName;
@@ -457,6 +458,18 @@ DefineType(name, parameters)
 	receiveName = DefineEntryGetName(entry);
     }
     
+	/*
+	 * ----------------
+	 * handle "[ element = type]"
+	 * ----------------
+	 */
+
+    entry = DefineListRemoveOptionalAssignment(&parameters, "element");
+    elemName = NULL;
+    if (!null(entry)) {
+	elemName = DefineEntryGetName(entry);
+    }
+
     /* ----------------
      * handle "[ default = `...' ]"
      * ----------------
@@ -493,6 +506,7 @@ DefineType(name, parameters)
 		      outputName,	/* output procedure */
 		      sendName,		/* send procedure */
 		      receiveName,	/* recieve procedure */
+			  elemName,		/* element type name */
 		      defaultValue,	/* default type value */
 		      byValue);		/* passed by value */
 }
