@@ -196,20 +196,25 @@ btbeginscan(rel, fromEnd, keysz, scankey)
     StrategyNumber strat;
 
     /* first order the keys in the qualification */
-    _bt_orderkeys(rel, &keysz, scankey);
+    if (keysz > 0)
+	_bt_orderkeys(rel, &keysz, scankey);
 
     /* now get the scan */
     scan = RelationGetIndexScan(rel, fromEnd, keysz, scankey);
 
     /* finally, be sure that the scan exploits the tree order */
+    scan->scanFromEnd = false;
     scan->flags = 0x0;
-    strat = _bt_getstrat(scan->relation, 1 /* XXX */,
-			 scankey->data[0].procedure);
+    if (keysz > 0) {
+	strat = _bt_getstrat(scan->relation, 1 /* XXX */,
+			     scankey->data[0].procedure);
 
-    if (strat == BTLessStrategyNumber || strat == BTLessEqualStrategyNumber)
+	if (strat == BTLessStrategyNumber
+	    || strat == BTLessEqualStrategyNumber)
+	    scan->scanFromEnd = true;
+    } else {
 	scan->scanFromEnd = true;
-    else
-	scan->scanFromEnd = false;
+    }
 
     return ((char *) scan);
 }
