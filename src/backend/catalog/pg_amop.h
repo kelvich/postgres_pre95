@@ -225,6 +225,16 @@ DATA(insert OID = 0 (  403 435 933 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  403 435 934 5 btreesel btreenpage ));
 
 /*
+ *  nbtree oidint2_ops
+ */
+
+DATA(insert OID = 0 (  403 437 830 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 437 831 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 437 832 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 437 833 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 437 834 5 btreesel btreenpage ));
+
+/*
  *  nbtree oidchar16_ops
  */
 
