@@ -357,13 +357,15 @@ FILE *fp;
                                 ptr++;
                                 break;
                             case 2:
+				ptr = (char *) SHORTALIGN(ptr);
                                 values[i] = (Datum) *(unsigned short *) ptr; 
-                                ptr = (char *) SHORTALIGN(ptr + 2);
+                                ptr += 2;
                                 break;
                             case 3:
                             case 4:
+				ptr = (char *) LONGALIGN(ptr);
                                 values[i] = (Datum) *(unsigned long *) ptr; 
-                                ptr = (char *) LONGALIGN(ptr) + 4;
+                                ptr += 4;
                                 break;
                             default:
                                 elog(WARN, "COPY BINARY: impossible size!");
