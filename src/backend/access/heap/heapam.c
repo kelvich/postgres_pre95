@@ -1159,8 +1159,17 @@ heap_insert(relation, tup, off)
     if (off != NULL)
 	*off = -1.0;			/* XXX ignore off for now */
 
-    /* if (special) then don't */
-    if (!IsBootstrapProcessingMode()) {
+    /* ----------------
+     *  If the object id of this tuple has already been assigned, trust
+     *  the caller.  There are a couple of ways this can happen.  At initial
+     *  db creation, the backend program sets oids for tuples.  When we
+     *  define an index, we set the oid.  Finally, in the future, we may
+     *  allow users to set their own object ids in order to support a
+     *  persistent object store (objects need to contain pointers to one
+     *  another).
+     * ----------------
+     */
+    if (!ObjectIdIsValid(tup->t_oid)) {
 	tup->t_oid = newoid();
 	LastOidProcessed = tup->t_oid;
     }
