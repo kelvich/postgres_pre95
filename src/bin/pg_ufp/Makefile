@@ -30,6 +30,7 @@ CFLAGS+= -G 0
 LDFLAGS+= -N -G 0
 .elif (${PORTNAME} == "hpux")
 CFLAGS+= -W l,-E
+LDFLAGS+= -W l,-E
 LDADD+= -ldld
 .else
 LDFLAGS+= -N
