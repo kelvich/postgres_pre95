@@ -118,6 +118,7 @@ bool Typecast_ok = true;
 %token   	INHERITANCE VERSION CURRENT NEW THEN DO INSTEAD VIEW
 		REWRITE P_TUPLE TYPECAST P_FUNCTION C_FUNCTION C_FN
 		POSTQUEL RELATION RETURNS INTOTEMP LOAD CREATEDB DESTROYDB
+		INPUT OUTPUT
 
 /* precedence */
 %nonassoc Op
@@ -240,7 +241,7 @@ ClusterStmt:
 
 CopyStmt:
 	  COPY copy_type copy_null 
-	  relation_name '(' copy_list ')' copy_dirn file_name copy_map
+	  relation_name '(' copy_list ')' copy_dirn copy_file_name copy_map
 	
 		{
 		    LispValue temp;
@@ -1792,6 +1793,10 @@ string: 		Id		/*$$=$1 Sconst ?*/;
 
 date:			Sconst		/*$$=$1*/;
 file_name:		SCONST		{$$ = new_filestr($1); };
+copy_file_name:
+          SCONST		{$$ = new_filestr($1); };
+	| INPUT				{ $$ = lispString(CppAsString(input)); }
+	| OUTPUT			{ $$ = lispString(CppAsString(output)); }
  /* adt_const:		Sconst		/*$$=$1*/;
 attach_args:		Sconst		/*$$=$1*/;
 			/* XXX should be converted by fmgr? */
