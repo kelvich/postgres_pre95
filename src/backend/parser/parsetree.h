@@ -208,6 +208,8 @@
  */
 #define tl_resdom(tl_entry)          CAR(tl_entry)
 
+#define tl_node(tl_entry)            CAR(tl_entry)
+
 
 /* .. MakeAttlist, copy-vars, find-tlist-read-vars, flatten-tlist
  * .. flatten-tlist-vars, flatten-tlistentry, in-line-lambda%598041218
