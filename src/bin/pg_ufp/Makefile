@@ -4,8 +4,16 @@ PROG= pg_ufp
 
 SRCS= ufp.c dfmgr.c dynloader.c
 
-.PATH:	${.CURDIR}/../../backend/utils/fmgr \
-	${.CURDIR}/../../backend/port/${PORTNAME}
+.if defined(USE_DLD)
+.PATH:	${.CURDIR}/../../backend/port/dld \
+	${.CURDIR}/../../backend/utils/fmgr
+CFLAGS+= -DUSE_DLD
+LDADD+= -ldld
+.else
+.PATH:	${.CURDIR}/../../backend/port/${PORTNAME} \
+	${.CURDIR}/../../backend/utils/fmgr
+.endif
+
 
 CFLAGS+= -I${.CURDIR}/../../backend/port/${PORTNAME} \
 	 -I${.CURDIR}/../../backend/obj \
@@ -17,6 +25,7 @@ CFLAGS+= -DUFP
 CFLAGS+= -G 0
 LDFLAGS+= -G 0
 .endif
+
 LDFLAGS+= -N
 
 .include <postgres.prog.mk>
