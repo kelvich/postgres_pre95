@@ -64,10 +64,6 @@ typedef TupleTableData *TupleTable;
  *	go away once the tuple table stuff is robust.
  * ----------------------------------------------------------------
  */
-#ifdef EXECTUPLETABLE
 #define TupIsNull(x)	ExecNullSlot(x)
-#else
-#define TupIsNull(x)	lispNullp(x)
-#endif EXECTUPLETABLE
 
 #endif ExecTupTableHIncluded
