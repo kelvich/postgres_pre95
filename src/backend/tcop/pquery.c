@@ -138,6 +138,7 @@ CreateExecutorState()
 		       qualTuple,
 		       qualTupleID,
 		       relationRelationDesc,
+		       (Relation) NULL,
 		       resultRelationInfo,
 		       tuplecount,
 		       paramListInfo,
