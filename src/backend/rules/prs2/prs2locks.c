@@ -14,6 +14,7 @@
 #include "utils/log.h"
 #include "utils/palloc.h"
 #include "rules/prs2.h"
+#include "rules/rac.h"
 
 /*-----------------------------------------------------------------------
  *
@@ -24,22 +25,24 @@ void
 prs2FreeLocks(lock)
 RuleLock lock;
 {
+    if (!RuleLockIsValid(lock))
+	elog(WARN,"prs2FreeLocks: Invalid rule lock");
+
 #ifdef PRS2_DEBUG
+    {
     /*
      * yes, yes, it might help discover a couple of these
      * tedious, stupid, mean, "carefull what you pfree" memory bugs...
      */
-    if (lock != NULL) {
-	long i, size;
-        size = prs2LockSize(lock->numberOfLocks);
-	for (i=0; i<size; i++)
-	    *( ((char *)lock) + i) = (char) 255;
+    long i, size;
+
+    size = prs2LockSize(lock->numberOfLocks);
+    for (i=0; i<size; i++)
+	*( ((char *)lock) + i) = (char) 255;
     }
 #endif PRS2_DEBUG
 
-    if (lock != NULL) {
-	pfree(lock);
-    }
+    pfree(lock);
 }
 
 /*-----------------------------------------------------------------------
@@ -86,9 +89,8 @@ Prs2PlanNumber	planNumber;
     RuleLock newLocks;
     Prs2OneLock theNewLock;
 
-    if (oldLocks == NULL){
-	oldLocks = prs2MakeLocks();
-    }
+    if (!RuleLockIsValid(oldLocks))
+	elog(WARN,"prs2AddLock: Invalid rule lock");
 
     /*
      * allocate enough space to hold the old locks + the new one..
@@ -137,9 +139,8 @@ int n;
 {
     Prs2OneLock t;
 
-    if (lock == NULL) {
-	elog(WARN, "prs2GetOneLockFromLocks: called with NULL rule lock");
-    }
+    if (!RuleLockIsValid(lock))
+	elog(WARN,"prs2GetOneLockFromLocks: Invalid rule lock");
 
     if (n >= lock->numberOfLocks || n<0) {
 	elog(WARN, "prs2GetOneLockFromLocks: lock # out of range (%d/%d)",
@@ -169,37 +170,16 @@ Buffer buffer;
 TupleDescriptor tupleDescriptor;
 {
     
-    Datum lockDatum;
-    Boolean isNull;
     RuleLock locks;
     RuleLock t;
     int n;
-    Size size;
 
-    lockDatum = HeapTupleGetAttributeValue(
-                            tuple,
-                            buffer,
-                            RuleLockAttributeNumber,
-			    tupleDescriptor,
-                            &isNull);
-    if (isNull) {
-        /*
-         * No lock was in there.. Create an empty lock
-         */
-        locks = prs2MakeLocks();
-    } else {
-	t = (RuleLock) DatumGetPointer(lockDatum);
-	/*
-	 * Make a copy of the locks
-	 */
-	n = prs2GetNumberOfLocks(t);
-	size = prs2LockSize(n);
-	locks = (RuleLock) palloc(size);
-	if (locks == NULL) {
-	    elog(WARN,"prs2MakeLocks: palloc(%d) failed",size);
-	}
-	bcopy((char *)t, (char *)locks, size);
-    }
+
+    t = HeapTupleGetRuleLock(tuple, buffer);
+    /*
+     * Make a copy of the locks
+     */
+    locks = prs2CopyLocks(t);
 
     return(locks);
 }
@@ -245,8 +225,8 @@ RuleLock   locks;
     int nlocks;
     Prs2OneLock oneLock;
 
-    if (locks == NULL) {
-	printf("{-null-lock-}");
+    if (!RuleLockIsValid(locks)) {
+	printf("{Invalidlock}");
 	fflush(stdout);
 	return;
     }
@@ -279,33 +259,22 @@ RuleLock locks;
 {
     RuleLock newLocks;
     int numberOfLocks;
-    int i;
-    Prs2OneLock oneLock;
+    Size size;
 
-    if (locks == NULL)
-	return(NULL);
+    if (!RuleLockIsValid(locks))
+	elog(WARN,"prs2CopyLocks: Invalid rule lock");
 
     numberOfLocks = prs2GetNumberOfLocks(locks);
 
-    /*
-     * create an emtpy lock
-     */
-    newLocks = prs2MakeLocks();
-
-    /*
-     * copy all the locks from locks to newLocks if their rule
-     * id is different form the given one.
-     */
-    for (i=0; i < numberOfLocks; i++) {
-	oneLock = prs2GetOneLockFromLocks(locks, i);
-	newLocks = prs2AddLock(newLocks,
-		prs2OneLockGetRuleId(oneLock),
-		prs2OneLockGetLockType(oneLock),
-		prs2OneLockGetAttributeNumber(oneLock),
-		prs2OneLockGetPlanNumber(oneLock));
+    size = prs2LockSize(numberOfLocks);
+    newLocks = (RuleLock) palloc(size);
+    if (newLocks == NULL) {
+	elog(WARN,"prs2MakeLocks: palloc(%d) failed",size);
     }
+    bcopy((char *)locks, (char *)newLocks, size);
 
     return(newLocks);
+
 }
 
 /*------------------------------------------------------------------
@@ -325,7 +294,7 @@ int n;
     int i;
     Prs2OneLock lock1, lock2;
 
-    if (locks == NULL) {
+    if (!RuleLockIsValid(locks)) {
 	elog(WARN, "prs2RemoveOneLockInPlace: called with NULL lock");
     }
 
@@ -367,8 +336,8 @@ ObjectId ruleId;
     int i;
     Prs2OneLock oneLock;
 
-    if (oldLocks==NULL) {
-	return(NULL);
+    if (!RuleLockIsValid(oldLocks)) {
+	elog(WARN,"prs2RemoveAllLocksOfRule: Invalid rule lock");
     }
 
     numberOfLocks = prs2GetNumberOfLocks(oldLocks);
@@ -430,4 +399,5 @@ RuleLock lock2;
     }
 
     return(result);
+
 }
