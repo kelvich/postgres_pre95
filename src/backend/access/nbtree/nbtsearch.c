@@ -20,11 +20,6 @@
 #include "access/sdir.h"
 #include "access/nbtree.h"
 
-int16	*MaoBlock1;
-Buffer	*MaoBuffer1;
-int16	*MaoBlock2;
-Buffer	*MaoBuffer2;
-
 RcsId("$Header$");
 
 /*
@@ -647,7 +642,12 @@ _bt_first(scan, dir)
     blkno = BufferGetBlockNumber(buf);
     ItemPointerSet(current, 0, blkno, 0, offind + 1);
 
-    /* now find the right place to start the scan */
+    /*
+     *  Now find the right place to start the scan.  Result is the
+     *  value we're looking for minus the value we're looking at
+     *  in the index.
+     */
+
     result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
     strat = _bt_getstrat(rel, 1, scan->keyData.data[0].procedure);
 
@@ -704,6 +704,9 @@ _bt_first(scan, dir)
 		page = BufferGetPage(buf, 0);
 		result = _bt_compare(rel, itupdesc, page, 1, &skdata, offind);
 	    } while (result < 0);
+
+	    if (result > 0)
+		(void) _bt_twostep(scan, &buf, ForwardScanDirection);
 	}
 	break;
 
