@@ -53,7 +53,7 @@ See [STON90] for a detailed discussion of this point.
 
 /* Specify deletion semantics for toyemp */
 
-   define rewrite rule example1 
+   define rewrite rule example1 is
    on delete to toyemp
    then do instead delete emp where emp.OID = current.OID
 
