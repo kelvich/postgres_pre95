@@ -368,12 +368,8 @@ ProcessUtility(command, args)
 			break;
 
 		case RULE:
-			elog(WARN,
-				"InvokeUtility: DEFINE RULE now unsupported");
-#if 0
-			rule_define(CAR(args),		/* rule name */
-				CADR(args));		/* parsed rule query */
-#endif
+			rule_define(CADR(args),		/* rule name */
+				CADR(CDR(args)));	/* parsed rule query */
 			break;
 
 		case P_TYPE:
