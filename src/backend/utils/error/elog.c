@@ -9,15 +9,18 @@
 #include <varargs.h>
 
 #include "tmp/postgres.h"
+#include "tmp/miscadmin.h"
 #include "utils/log.h"
 #include "installinfo.h"
 
 RcsId("$Header$");
 
 
-int	Debug_file = -1;
-int	Err_file = -1;
-int	ElogDebugIndentLevel;
+static int	Debugfile = -1;
+static int	Err_file = -1;
+static int	ElogDebugIndentLevel = 0;
+
+extern char	OutputFileName[];
 
 /*
  *  If the parser has detected an empty query from the front end, then
@@ -77,7 +80,7 @@ va_dcl
 	va_start(ap);
 	lev = va_arg(ap, int);
 	fmt = va_arg(ap, char *);
-	if (lev == DEBUG && Debug_file < 0) {
+	if (lev == DEBUG && Debugfile < 0) {
 		return;
 	}
 	switch (lev) {
@@ -122,8 +125,8 @@ va_dcl
 	vsprintf(line, buf, ap);
 	va_end(ap);
 	len = strlen(strcat(line, "\n"));
-	if (Debug_file > -1)
-		write(Debug_file, line, len);
+	if (Debugfile > -1)
+		write(Debugfile, line, len);
 	if (lev == DEBUG || lev == NOIND)
 		return;
 
@@ -138,7 +141,7 @@ va_dcl
 	 *  is if Err_file was set to some disk log.  This is a major pain.
 	 */
 
-	if (Err_file > -1 && Debug_file != Err_file) {
+	if (Err_file > -1 && Debugfile != Err_file) {
 		if (write(Err_file, line, len) < 0) {
 			write(open("/dev/console", O_WRONLY, 0666), line, len);
 			fflush(stdout);
@@ -242,37 +245,53 @@ GetDataHome()
 }
 
 
-ErrorFileOpen()
-{
-	int		fd;
-	char		buffer[MAXPGPATH];
-	extern char	*GetPGData();
-
-	fd = fileno(stderr);
-
-	if (fcntl(fd, F_GETFD, 0) < 0) {
-		sprintf(buffer, "%s/pg.errors\0", GetPGData());
-		fd = open(buffer, O_CREAT|O_APPEND|O_WRONLY, 0666);
-		if (fd < 0)
-			elog(FATAL, "ErrorFileOpen: open(%s) failed", buffer);
-	}
-
-	return(fd);
-}
-
-
+#ifndef PG_STANDALONE
 DebugFileOpen()
 {
-	int		fd;
-	char		buffer[MAXPGPATH];
-	extern char	*GetPGData();
+	int fd, istty;
 
+	Err_file = Debugfile = -1;
+	ElogDebugIndentLevel = 0;
+
+	if (OutputFileName[0]) {
+		OutputFileName[MAXPGPATH-1] = '\0';
+		if ((fd = open(OutputFileName, O_CREAT|O_APPEND|O_WRONLY,
+			       0666)) < 0)
+			elog(FATAL, "DebugFileOpen: open of %s: %m",
+			     OutputFileName);
+		istty = isatty(fd);
+		(void) close(fd);
+		/* If the file is a tty and we're running under the
+		 * postmaster, try to send stdout there as well (if it
+		 * isn't a tty then stderr will block out stdout, so we
+		 * may as well let stdout go wherever it was going before).
+		 */
+		if (istty &&
+		    IsUnderPostmaster &&
+		    !freopen(OutputFileName, "a", stdout))
+			elog(FATAL, "DebugFileOpen: %s reopen as stdout: %m",
+			     OutputFileName);
+		if (!freopen(OutputFileName, "a", stderr))
+			elog(FATAL, "DebugFileOpen: %s reopen as stderr: %m",
+			     OutputFileName);
+		Err_file = Debugfile = fileno(stderr);
+		return(Debugfile);
+	}
+
+	/* If no filename was specified, send debugging output to stderr.
+	 * If stderr has been hosed, try to open a file.
+	 */
 	fd = fileno(stderr);
 	if (fcntl(fd, F_GETFD, 0) < 0) {
-		sprintf(buffer, "%s/pg.debug\0", GetPGData());
-		fd = open(buffer, O_CREAT|O_APPEND|O_WRONLY, 0666);
-		if (fd < 0)
-			elog(FATAL, "DebugFileOpen: open(%s) failed", buffer);
+		sprintf(OutputFileName, "%s/pg.errors.%d",
+			GetPGData(), getpid());
+		fd = open(OutputFileName, O_CREAT|O_APPEND|O_WRONLY, 0666);
 	}
-	return(fd);
+
+	if (fd < 0)
+		elog(FATAL, "DebugFileOpen: could not open debugging file");
+
+	Err_file = Debugfile = fd;
+	return(Debugfile);
 }
+#endif
