@@ -49,6 +49,7 @@ extern char *getenv();
 void SocketBackend ARGS((char *, LispValue));
 void InteractiveBackend ARGS((char *, LispValue));
 void EvalLine ARGS((char *, LispValue));
+bool BootstrapAlreadySeen ARGS(( ObjectId id ));
 
 /* ----------------
  *	global variables
@@ -869,6 +870,7 @@ defineindex(heapName, indexName, accessMethodName, attname, opsname)
     List  attributeList;
     List  parameterList;
     List  predicate;
+    Relation    cur_relation;
 
     attributeList = nappend1(LispNil, lispName(attname));
     attributeList = nappend1(attributeList, lispName(opsname));
@@ -876,14 +878,65 @@ defineindex(heapName, indexName, accessMethodName, attname, opsname)
     
     parameterList = predicate = LispNil;
 
-    if (heapName) return;	/*for now always return doesn't yet work*/
     DefineIndex(heapName,
 		indexName,
 		accessMethodName,
 		attributeList,
 		parameterList,
 		predicate);
+    /*
+     * All of the rest of this routine is needed only because in bootstrap
+     * processing we don't increment xact id's.  The normal DefineIndex
+     * code replaces a pg_class tuple with updated info including the
+     * relhasindex flag (which we need to have updated).  Unfortunately, 
+     * there are always two indices defined on each catalog causing us to 
+     * update the same pg_class tuple twice for each catalog getting an 
+     * index during bootstrap resulting in the ghost tuple problem (see 
+     * heap_replace).  To get around this we change the relhasindex 
+     * field ourselves in this routine keeping track of what catalogs we 
+     * already changed so that we don't modify those tuples twice.  The 
+     * normal mechanism for updating pg_class is disabled during bootstrap.
+     *
+     *		-mer 
+     */
+    cur_relation = heap_openr(heapName);
+    if (! RelationIsValid(cur_relation))
+            elog(WARN, "defineindex: could not open %s relation", heapName);
+
+    if (!BootstrapAlreadySeen(cur_relation->rd_id))
+	UpdateStats(cur_relation);
 }
+
+#define MORE_THAN_THE_NUMBER_OF_CATALOGS 256
+
+bool
+BootstrapAlreadySeen(id)
+    ObjectId id;
+{
+    static ObjectId seenArray[MORE_THAN_THE_NUMBER_OF_CATALOGS];
+    static int nseen = 0;
+    bool seenthis;
+    int i;
+
+    seenthis = false;
+
+    for (i=0; i < nseen; i++)
+    {
+	if (seenArray[i] == id)
+	{
+	    seenthis = true;
+	    break;
+	}
+	i++;
+    }
+    if (!seenthis)
+    {
+	seenArray[nseen] = id;
+	nseen++;
+    }
+    return (seenthis);
+}
+
 
 /* ----------------
  *	handletime
