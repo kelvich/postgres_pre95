@@ -422,6 +422,9 @@ CommandCounterIncrement()
     if (CurrentTransactionStateData.commandId == FirstCommandId) {
 	CommandIdCounterOverflowFlag = true;
     }
+
+    /* make cache changes visible to me */
+    AtCommit_Cache();
 }
 
 /* ----------------------------------------------------------------
