@@ -114,6 +114,8 @@ extern LispValue	quote();
 extern LispValue	lispList();
 extern LispValue        lispCons();
 extern LispValue	nappend1();
+extern LispValue 	car();
+extern LispValue 	cdr();
 extern LispValue 	rplaca();
 extern LispValue 	rplacd();
 extern			init_list();

@@ -299,6 +299,7 @@ lispDisplay(lispObject,iscdr)
  *	lispList - allocate a new cons cell, initialized to (nil . nil)
  *	lispCons - allocate a new cons cell, initialized to the arguments
  *	nappend1 - destructive append of "object" to the end of "list"
+ *	car, cdr - same as LISP
  *	rplaca, rplacd - same as LISP
  *	init_list - set the car of a list
  */
@@ -375,6 +376,27 @@ append1(list, lispObject)
     return(retval);
 }
 
+LispValue
+car(dottedPair)
+	LispValue	dottedPair;
+{
+	if (null(dottedPair)) {
+		return (LispNil);
+	}
+	AssertArg(listp(dottedPair));
+	return (CAR(dottedPair));
+}
+
+LispValue
+cdr(dottedPair)
+	LispValue	dottedPair;
+{
+	if (null(dottedPair)) {
+		return (LispNil);
+	}
+	AssertArg(listp(dottedPair));
+	return (CDR(dottedPair));
+}
 
 LispValue
 rplaca(dottedPair, newValue)
