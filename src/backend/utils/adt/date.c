@@ -132,7 +132,6 @@ abstimein(datetime)
 	char	*datetime;
 {
 	extern	int		timeinsec();
-	extern 	AbsoluteTime	timenow();
 
 	int		which;
 	AbsoluteTime	time;
@@ -142,19 +141,19 @@ abstimein(datetime)
 
 	switch (which) {
 
-	case 3:
+	case 3:							/* epoch */
 		time = MIN_ABSTIME;
 		break;
 
-	case 2:
-		time = timenow();
+	case 2:							/* now */
+		time = GetCurrentTransactionStartTime();
 		break;
 
-	case 1:
+	case 1:							/* from user */
 		(void) timeinsec(&brokentime, &time);
 		break;
 
-	case 0:	/* syntax error in time format */
+	case 0:							/* error */
 		time = INVALID_ABSTIME;
 		break;
 	}
