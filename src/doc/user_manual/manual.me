@@ -1755,6 +1755,15 @@ pg_amop|access method operators
 pg_amproc|access method support functions
 pg_opclass|access method operator classes
 .TE
+.(z
+.hl
+.PSPIC manual-er.eps 6i 6.01776i
+.sp
+.(c
+\fBFigure 3\fP.  The major \*(PP system catalogs.
+.)c
+.hl
+.)z
 The Reference Manual gives a more detailed explanation of these
 catalogs and their attributes.  However, Figure 3 shows the major
 entities and their relationships in the system catalogs.  (Attributes
@@ -1803,15 +1812,6 @@ and
 are particularly hard to understand and will be described in depth (in
 the section on interfacing types and operators to indices) after we
 have discussed basic extensions.
-.(z
-.hl
-.PSPIC manual-er.eps 6i 6.01776i
-.sp
-.(c
-\fBFigure 3\fP.  The major \*(PP system catalogs.
-.)c
-.hl
-.)z
 .\"---------------------------------------------------------------------------
 .bp
 .HL
@@ -3205,7 +3205,9 @@ amsupport|number of support routines for this access method (see below)
 _
 T{
 amgettuple
+.br
 aminsert
+.br
 \&...
 T}|T{
 procedure identifiers for interface routines to the access method.
