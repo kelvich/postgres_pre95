@@ -112,7 +112,7 @@ ExecAgg(node)
     Relation 		rel;
     HeapScanDesc	currentScanDesc;
     extern Datum 	fastgetattr();
-    char		*running_comp;
+    char		*running_comp[2];
     char 		*final_value;
     TupleDescriptor 	aggtupdesc;
     TupleTableSlot	slot;
@@ -122,7 +122,10 @@ ExecAgg(node)
     extern char 	*finalize_aggregate();
     ObjectId		func1, func2, finalfunc;
     char 		nulls = ' ';
-    Datum 		theNewVal;
+    char 		*theNewVal;
+    int			nargs[3];
+    func_ptr		functionptrarray[3];
+    char 		*args[2];
     /* ------------
     *  get state info from node
     * ------------
@@ -156,13 +159,13 @@ ExecAgg(node)
 
      outerNode = get_outerPlan(node);
 
-     aggtupdesc = (Attribute *)&tempRelation->rd_att;
+     aggtupdesc = (TupleDescriptor)&tempRelation->rd_att;
 
      aggname = get_aggname(node);
      Caggname = CString(aggname);
-     running_comp = (char *)palloc(2*sizeof(Datum));
-     running_comp[0] = (char *)NULL;
-     running_comp[1] = (char *)NULL;
+
+     running_comp[0] = (char *)AggNameGetInitAggVal(Caggname);
+     running_comp[1] = (char *)AggNameGetInitSecVal(Caggname);
 
      func1 = CInteger(SearchSysCacheGetAttribute(AGGNAME, 
 		   AggregateIntFunc1AttributeNumber, Caggname,0,0,0));
@@ -173,33 +176,40 @@ ExecAgg(node)
      finalfunc = CInteger(SearchSysCacheGetAttribute(AGGNAME, 
       			AggregateFinFuncAttributeNumber, Caggname,0,0,0));
 
-	     for(;;) {
-		outerslot = ExecProcNode(outerNode);
+     fmgr_info(func1, &functionptrarray[0], &nargs[0]);
+     fmgr_info(func2, &functionptrarray[1], &nargs[1]);
+     fmgr_info(finalfunc, &functionptrarray[2], &nargs[2]);
+
+     for(;;) {
+	outerslot = ExecProcNode(outerNode);
 	
-		 outerTuple = (HeapTuple) ExecFetchTuple(outerslot);
-		 if(outerTuple == NULL)
-		    break;
-		outerTupDesc = (TupleDescriptor)SlotTupleDescriptor(outerslot);
+	 outerTuple = (HeapTuple) ExecFetchTuple(outerslot);
+	 if(outerTuple == NULL)
+	    break;
+ 	outerTupDesc = (TupleDescriptor)SlotTupleDescriptor(outerslot);
 		/* continute to aggregate */
-		theNewVal = (char *)fastgetattr(outerTuple, 1,
+	theNewVal = (char *)fastgetattr(outerTuple, 1,
 				outerTupDesc, &isNull);
 
-		running_comp = update_aggregate(Caggname, running_comp,
-						theNewVal, func1, func2);
+	args[0] = running_comp[0];
+	args[1] = theNewVal;
+	running_comp[0] = (char *) 
+			fmgr_by_ptr_array_args( functionptrarray[0],
+							nargs[0],
+							&args[0]);
+	running_comp[1] = (char *)
+			fmgr_by_ptr_array_args( functionptrarray[1],
+							nargs[1],
+							&running_comp[1]);
 
-		/* I'm allowed to do the t_hoff bit because this will be
-		 * a single-datum tuple...*/
-		/* sends running_comp and the new value to be updated.  this
-		 * is generating an array for values[] for the tuple to be
-	 	 * created when we are done aggregating.
-	 	 */
-		/* if this is not true, then we're running an aggregate with
-		 * a clause (otherwise we would have "broke."  so, finalize
-		 * this one and init another.
-		 */
 	}
 	/* finalize this final aggregate*/
-	final_value = finalize_aggregate(running_comp, finalfunc);
+
+	final_value = (char *)
+			fmgr_by_ptr_array_args(functionptrarray[2],
+						nargs[2],
+						&running_comp[0]);
+
 	heapTuple = heap_formtuple(1,
 				aggtupdesc,
 				&final_value,
@@ -346,85 +356,4 @@ ExecEndAgg(node)
 		   "sort node shutdown");
 }
 /* end ExecEndAgg */
-
-
-char *
-update_aggregate(Caggname, running_comp, attr_data, func1, func2)
-    char  *Caggname;
-    char  *running_comp[]; /* full of char *'s */
-    Datum  *attr_data;
-    ObjectId func1, func2;
-{
-    static int nargs[2];
-    static func_ptr functionptrarray[2];
-    int i;
-    Datum args[2];
-
-    if(running_comp[0] == (char *)NULL) {
-	/* first time being called */
-
-	running_comp[0] = (char *)AggNameGetInitAggVal(Caggname);
-	running_comp[1] = (char *)AggNameGetInitSecVal(Caggname);
-	/* equals the initial conditions for the specific aggregate */
-
-	fmgr_info(func1, &functionptrarray[0], &nargs[0]);
-	fmgr_info(func2, &functionptrarray[1], &nargs[1]);
-
-	/* fill up function pointer info */
-    }
-	/* for now, the xition func will be an array of functions for
-	 * each object in the running comp.  for example, for the average
-	 * aggregate, the running comp would look like:
-	 * [sum, number], and the function array would look like [+, +1].
-	 * if the function needs args, it gets it from the running comp
-	 * and attr_data.  otherwise, it just updates the running comp.
-	 * Actually, the OID numbers for the procedures are stored.
-	 */
-    /* now, functionptrarray and nargs are full */
-	for(i=0; i<2; i++) {
-	if(nargs[i] > 1) {
-	    /* make array of appropriate args */
-	    args[0] = running_comp[i];
-	    args[1] = attr_data;
-	    running_comp[i] = fmgr_by_ptr_array_args
-						(functionptrarray[i],
-						    nargs[i], args);
-	 }
-	 else {
-	    running_comp[i] = fmgr_by_ptr_array_args(functionptrarray[i],
-						    nargs[i],
-						    &running_comp[i]);
-
-	/* running_comp[1] will be holding the "incrementer", or the arg
-	 * which does not need to know the new value
-	 */
-    	 }
- 	}  
-    /* now the values in running_comp are updated */
-    return (running_comp);
-}
-
-char *
-finalize_aggregate(running_comp, func)
-    char  *running_comp[];
-    ObjectId func;
-{
-    char *fvalue;
-    int numargs;
-    func_ptr fptr;
-    fmgr_info(func, &fptr, &numargs);
-    /* we'll assume that the aggregates have at most 2 objects that they
-     * can create
-     */
-     fvalue = fmgr_by_ptr_array_args(fptr, numargs, running_comp);
-
-     /* this should be ok regardless of nargs; all arguments come from
-      * running comp, and in the same order that the first argument is
-      * the principle aggregate
-      */
-     pfree(running_comp);
-     return (fvalue);
-}
-
-
 
