@@ -50,6 +50,7 @@ as		return(AS);
 to		return(XTO);
 OID             return(OBJ_ID);
 bootstrap	return(BOOTSTRAP); 
+_null_		return(NULLVAL);
 
 i |
 insert		return(INSERT_TUPLE);
@@ -70,7 +71,6 @@ attribute	{return(ATTR);}
 relation 	{return(RELATION); }
 ","     	{return(COMMA);}
 ":"		{return(COLON);}
-"."		{return(DOT);}
 "="		{return(EQUALS);}
 "("		{return(LPAREN);}
 ")"		{return(RPAREN);}
@@ -113,10 +113,16 @@ add		{return(ADD);}
 
 (-)?{D}+"."{D}*({Exp})?	|
 (-)?{D}*"."{D}+({Exp})?	|
-(-)?{D}+{Exp}		;
+(-)?{D}+{Exp}		{
+			 yylval=EnterString(yytext);
+			 return(FLOAT);
+			}
 
 
-(-)?{D}+	;
+(-)?{D}+	{
+		 yylval=EnterString(yytext);
+		 return(INT);
+		}
 
 
 .	printf("syntax error %d : -> %s\n", yylineno, yytext);
