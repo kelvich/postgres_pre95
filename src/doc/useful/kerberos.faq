@@ -1,21 +1,30 @@
 $Header$
 
+Path: senator-bedfellow.mit.edu!bloom-beacon.mit.edu!pad-thai.aktis.com!suan-la-chow-show.aktis.com!not-for-mail
 From: bjaspan@GZA.COM (Barry Jaspan)
 Newsgroups: comp.protocols.kerberos,news.answers
-Subject: Kerberos Users' Frequently Asked Questions 1.5
-Date: 1 Jul 1993 12:13:12 -0400
-Message-ID: <kerberos-faq/user_741543191@GZA.COM>
+Subject: Kerberos Users' Frequently Asked Questions 1.6
+Supersedes: <kerberos-faq/user_741543191@GZA.COM>
+Followup-To: poster
+Date: 25 Aug 1993 09:58:44 -0400
+Organization: Geer Zolot Associates
+Lines: 638
+Approved: news-answers-request@mit.edu
+Expires: 22 Sep 1993 13:58:43 GMT
+Message-ID: <kerberos-faq/user_746287123@GZA.COM>
+NNTP-Posting-Host: suan-la-chow-show.aktis.com
 Summary: This document answers Frequently Asked Questions about the
 	Kerberos authentication system.  Read this before you post a
 	question to comp.protocols.kerberos or kerberos@athena.mit.edu.
+Xref: senator-bedfellow.mit.edu comp.protocols.kerberos:2265 news.answers:11773
 
 Archive-name: kerberos-faq/user
-Version: 1.5
+Version: 1.6
 
 Kerberos Users' Frequently Asked Questions
-July 1, 1993
+August 25, 1993
 Compiled by: Barry Jaspan, <bjaspan@gza.com>
-             Geer Zolot Associates
+             OpenVision Technologies / Geer Zolot Associates
 
      Kerberos; also spelled Cerberus.  n.  The watch dog of
      Hades, whose duty it was to guard the entrance--against
@@ -31,18 +40,16 @@ presented here has been collected from postings to the
 comp.protocols.kerberos newsgroup (gatewayed to the mailing list
 kerberos@athena.mit.edu).
 
-DISCLAIMER: Geer Zolot Associates makes no representations about the
+DISCLAIMER: OpenVision Technologies makes no representations about the
 suitability of this information for any purpose.  It is provided "as
 is" without express or implied warranty.  In particular, this document
 is not intended as legal advice for exporting Kerberos, DES, or any
 other encryption software.
 
-Release Notes: This release contains a more thorough introduction to
-Kerberos (1.1), new information about Kerberos TELNET and FTP (2.5),
-and additional vendor-supported Kerberos ports information (2.7).
+Release Notes: This release contains the first cut at an answer to
+question 1.7 (DCE Security/Kerberos interoperability.)
 
 Questions addressed in this release:
-	(a * indicates that no answer is currently available)
 
 1.  Kerberos and its Many Incarnations
 ----------------------------------------------------------------------
@@ -54,7 +61,7 @@ Questions addressed in this release:
 (1.5)	Are version 4 and version 5 compatible?
 (1.6)	How/why is Transarc's Kerberos different from MIT Kerberos V4?
 	Can they interoperate?
-(1.7)*	How/why is OSF DCE Security different from MIT Kerberos V5?
+(1.7)	How/why is OSF DCE Security different from MIT Kerberos V5?
 	Can they interoperate?
 (1.8)	How/why is DEC Ultrix Kerberos different from MIT Kerberos V4?
 	Can they interoperate?
@@ -114,7 +121,7 @@ Practically speaking, Kerberos is mostly used in application-level
 protocols (ISO model level 7), such as TELNET or FTP, to provide user
 to host security.  It is also used, though less frequently, as the
 implicit authentication system of data stream (such as SOCK_STREAM) or
-RCP mechanisms (ISO model level 6).  It could also be used at a lower
+RPC mechanisms (ISO model level 6).  It could also be used at a lower
 level for host to host security, in protocols like IP, UDP, or TCP
 (ISO model levels 3 and 4), although such implementations are
 currently rare, if they exist at all.
@@ -123,11 +130,11 @@ It is important to realize that Kerberos is a one-trick pony.  It
 provides for mutual authentication and secure communication between
 principals on an open network by manufacturing secret keys for any
 requestor and providing a mechanism for these secret keys to be safely
-propaged through the network.  Kerberos does not, per se, provide for
-authorization or accounting, although applications that wish to can
-use their secret keys to perform those functions securely.  Kerberos
-also does not provide password validation for individual workstations
-unless care is taken; see question 2.1.
+propagated through the network.  Kerberos does not, per se, provide
+for authorization or accounting, although applications that wish to
+can use their secret keys to perform those functions securely.
+Kerberos also does not provide password validation for individual
+workstations unless care is taken; see question 2.1.
 
 It is also important to understand the using Kerberos on time-sharing
 machines greatly weakens its protections, since a user's tickets
@@ -228,8 +235,40 @@ talk to an MIT or AFS Kerberos server and achieve correct results.
 However, it is probably best to pick one implementation and use it
 exclusively
 
-(1.7)*	How/why is OSF DCE Security different from MIT Kerberos V5?
+(1.7)	How/why is OSF DCE Security different from MIT Kerberos V5?
 	Can they interoperate?
+
+DCE Security is based on Kerberos V5, and uses the same wire protocol.
+However, applications from two systems use the protocol in different
+ways, so the actual interoperability is limited.  Furthermore, DCE
+Security started from an early alpha release of V5 and the two
+versions have developed independently; there are therefore some minor
+incompatibilities that MIT and the OSF have agreed to resolve.  [Time
+frame?]
+
+The DCE Security Server, secd, listens on UDP port 88 for standard
+Kerberos requests and responds appropriately.  Therefore, clients of
+MIT Kerberos can operate in a DCE environment without modification,
+assuming the DCE Security database contains the appropriate principals
+with the correct keys.
+
+An MIT Kerberos V5 server cannot replace the DCE Security Server,
+however.  First, DCE applications communication with secd via the DCE
+RPC.  Second, the DCE layers additional functionality on top of the
+standard application request/response protocol exchange and uses
+ticket semantics that are nonsensical in a strict Kerberos
+environment.  The MIT Kerberos server does not understand either of
+these changes, and therefore cannot support them.
+
+As an additional complication, the DCE does not officially export the
+Kerberos V5 API; it only exports a DCE Security-specific API.
+Individual vendors are capable of providing the Kerberos V5 API if
+they wish, but unless they all do (which seems unlikely) Kerberos V5
+API applications will not be compile-time portable to DCE
+environments; only binaries will continue to work.
+
+[Does secd provide all features of the MIT Kerberos server?  Is it
+guaranteed to do so?]
 
 (1.8)	How/why is DEC Ultrix Kerberos different from MIT Kerberos V4?
 	Can they interoperate?
