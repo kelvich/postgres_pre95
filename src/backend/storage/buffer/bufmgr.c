@@ -128,6 +128,7 @@ int LateWrite = TRUE;
 int ReadBufferCount;
 int BufferHitCount;
 int BufferFlushCount;
+extern FILE *StatFp;
 
 /*
  * ReadBuffer -- returns a buffer containing the requested
@@ -937,7 +938,7 @@ PrintBufferUsage()
 	else
 	    hitrate = (float)BufferHitCount * 100.0/ReadBufferCount;
 
-	fprintf(stderr, "!\t%d blocks read, %d blocks written, buffer hit rate = %.2f%%\n", 
+	fprintf(StatFp, "!\t%d blocks read, %d blocks written, buffer hit rate = %.2f%%\n", 
 		ReadBufferCount - BufferHitCount + NDirectFileRead,
 		BufferFlushCount + NDirectFileWrite,
 		hitrate);
