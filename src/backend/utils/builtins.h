@@ -81,6 +81,7 @@ extern Time		abstimein();
 extern char		*abstimeout();
 extern Time		reltimein();
 extern char		*reltimeout();
+extern Time		timepl();
 extern int32		abstimeeq();
 extern int32		abstimene();
 extern int32		abstimelt();
