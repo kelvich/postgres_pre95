@@ -16,7 +16,7 @@ RcsId("$Header$");
 #include "htup.h"
 #include "log.h"
 #include "rproc.h"
-#include "tqual.h"
+#include "tqual.h"	/* for NowTimeQual */
 
 #include "defrem.h"
 
@@ -111,7 +111,7 @@ SingleOpOperatorRemove(typeOid)
 	rdesc = amopenr(OperatorRelationName->data);
 	for (i = 0; i < 3; ++i) {
 		key[0].sk_attnum = attnums[i];
-		sdesc = ambeginscan(rdesc, 0, DefaultTimeRange, 1, key);
+		sdesc = ambeginscan(rdesc, 0, NowTimeQual, 1, key);
 		while (PointerIsValid(tup = amgetnext(sdesc, 0, &buffer))) {
 			ItemPointerCopy(&tup->t_ctid, &itemPointerData);   
 			/* XXX LOCK not being passed */
@@ -160,7 +160,7 @@ AttributeAndRelationRemove(typeOid)
 	oidptr->next = NULL;
 	optr = oidptr; 
 	rdesc = amopenr(AttributeRelationName->data);
-	sdesc = ambeginscan(rdesc, 0, DefaultTimeRange, 1, key);
+	sdesc = ambeginscan(rdesc, 0, NowTimeQual, 1, key);
 	while (PointerIsValid(tup = amgetnext(sdesc, 0, &buffer))) {
 		ItemPointerCopy(&tup->t_ctid, &itemPointerData);   
 		optr->reloid = ((AttributeTupleForm)GETSTRUCT(tup))->attrelid;
@@ -178,7 +178,7 @@ AttributeAndRelationRemove(typeOid)
 	rdesc = amopenr(RelationRelationName->data);
 	while (PointerIsValid((char *) optr->next)) {
 		key[0].sk_data = (DATUM) (optr++)->reloid;
-		sdesc = ambeginscan(rdesc, 0, DefaultTimeRange, 1, key);
+		sdesc = ambeginscan(rdesc, 0, NowTimeQual, 1, key);
 		tup = amgetnext(sdesc, 0, &buffer);
 		if (PointerIsValid(tup)) {
 			Name	name;

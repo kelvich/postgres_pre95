@@ -17,6 +17,7 @@
 #include "heapam.h"
 #include "log.h"
 #include "syscache.h"
+#include "tqual.h"	/* for NowTimeQual */
 
 RcsId("$Header$");
 
@@ -302,7 +303,7 @@ gethilokey(relid, attnum, opid, high, low)
 	key[0].argument.objectId.value = relid;
 	key[1].argument.integer16.value = (int16) attnum;
 	key[2].argument.objectId.value = opid;
-	sdesc = RelationBeginHeapScan(rdesc, 0, NowTimeRange,
+	sdesc = RelationBeginHeapScan(rdesc, 0, NowTimeQual,
 				      3, (ScanKey) key);
 	tuple = amgetnext(sdesc, 0, (Buffer *) NULL);
 	if (!HeapTupleIsValid(tuple)) {

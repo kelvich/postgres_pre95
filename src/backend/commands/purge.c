@@ -7,14 +7,17 @@
  *	should be changed once it is decided the signed'ness will be.
  */
 
+#include "c.h"
+
+RcsId("$Header$");
+
 #include "anum.h"
 #include "catname.h"
 #include "fmgr.h"
 #include "ftup.h"
 #include "heapam.h"
 #include "log.h"
-
-RcsId("$Header$");
+#include "tqual.h"	/* for NowTimeQual */
 
 static char	cmdname[] = "RelationPurge";
 
@@ -75,7 +78,7 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	 */
 	relation = RelationNameOpenHeapRelation(RelationRelationName->data);
 	key[0].argument.name.value = relationName;
-	scan = RelationBeginHeapScan(relation, 0, DefaultTimeRange, 1, 
+	scan = RelationBeginHeapScan(relation, 0, NowTimeQual, 1, 
 				     (ScanKey) key);
 	oldTuple = HeapScanGetNextTuple(scan, 0, &buffer);
 	if (!HeapTupleIsValid(oldTuple)) {

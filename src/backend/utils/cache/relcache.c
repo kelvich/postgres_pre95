@@ -61,7 +61,7 @@ RcsId("$Header$");
 #include "rproc.h"
 #include "skey.h"
 #include "syscache.h"
-#include "trange.h"
+#include "tqual.h"	/* for NowTimeQual */
 #include "tupdesc.h"
 /* #include "var-access.h"	/* XXX for AMI_OVERRIDE */
 extern bool	AMI_OVERRIDE;	/* XXX style */
@@ -287,7 +287,7 @@ RelationIdGetRelation(relationId)
 	key.data[0].procedure = ObjectIdEqualRegProcedure;
 	key.data[0].argument.objectId.value = relationId;
 
-	sd = ambeginscan(rd, 0, DefaultTimeRange, 1, &key);
+	sd = ambeginscan(rd, 0, NowTimeQual, 1, &key);
 
 	tuple = amgetnext(sd, 0, (Buffer *)NULL);
 	if (!HeapTupleIsValid(tuple)) {
@@ -366,7 +366,7 @@ getreldesc(relationName)
 	key.data[0].procedure = Character16EqualRegProcedure;
 	key.data[0].argument.name.value = relationName;
 
-	sd = ambeginscan(rd, 0, DefaultTimeRange, 1, &key);
+	sd = ambeginscan(rd, 0, NowTimeQual, 1, &key);
 
 	tuple = amgetnext(sd, 0, (Buffer *)NULL);
 	rd = BuildRelation(rd, sd, relationName,oldcxt, tuple,
@@ -463,7 +463,7 @@ BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 		key.data[0].procedure = ObjectIdEqualRegProcedure;
 		key.data[0].argument.objectId.value = relationTupleForm->relam;
 
-		sd = ambeginscan(rd, 0, DefaultTimeRange, 1, &key);
+		sd = ambeginscan(rd, 0, NowTimeQual, 1, &key);
 
 		DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 		tuple = amgetnext(sd, 0, (Buffer *)NULL);
@@ -567,7 +567,7 @@ BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 		 */
 		DO_DB(elog(NOIND,"sequential build of %16s", errorName);)
 		rd = amopenr(AttributeRelationName);
-		sd = ambeginscan(rd, 0, DefaultTimeRange, 1, &key);
+		sd = ambeginscan(rd, 0, NowTimeQual, 1, &key);
 		while (HeapTupleIsValid(
 				tuple = amgetnext(sd, 0, (Buffer *)NULL))) {
 			attp = (AttributeTupleForm)HeapTupleGetForm(tuple);

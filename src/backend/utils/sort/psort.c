@@ -1,11 +1,25 @@
-static	char	psort_c[] = "$Header$";
-
-#include <stdio.h>
+/*
+ * psort.c --
+ *	Polyphase merge sort.
+ *
+ * Description:
+ *	Sorts the first relation into the second relation.  The sort may
+ * not be called twice simultaneously.
+ *
+ * Note:
+ *	Use the tape-splitting method (Knuth, Vol. III, pp281-86) in the future.
+ *
+ *	Arguments? Variables?
+ *		MAXMERGE, MAXTAPES
+ */
 
 #include "c.h"
 
+RcsId("$Header$");
+
+#include <stdio.h>
+
 #include "access.h"
-#include "fmgr.h"
 #include "log.h"
 #include "psort.h"
 #include "lselect.h"
@@ -18,18 +32,7 @@ static	char	psort_c[] = "$Header$";
 #include "rel.h"
 #include "relscan.h"
 #include "portal.h"	/* for {Start,End}PortalAllocMode */
-#include "trange.h"
-
-/*
- *	psort.c		- polyphase merge sort.
- *
- *	(Eventually the tape-splitting method (Knuth, Vol. III, pp281-86).)
- *
- *	Note:
- *		psort() cannot be called twice simultaneously
- *	Arguments? Variables?
- *		MAXMERGE, MAXTAPES
- */
+#include "tqual.h"	/* for NowTimeQual */
 
 struct	tape {
 	int		tp_dummy;		/* (D) */
@@ -60,6 +63,7 @@ extern	int		destroytape();
 extern	int		initialrun();
 extern	FILE		*mergeruns();
 extern  bool		createrun();
+
 /*
  *	psort		- polyphase merge sort entry point
  */
@@ -211,9 +215,8 @@ initialrun(rdesc)
 	int		baseruns;		/* D:(a) */
 	int		morepasses;		/* EOF */
 
-	/* XXX an appropriate time range should be provided */
-	sdesc = ambeginscan(rdesc, 0, DefaultTimeRange, 0,
-		(struct skey *)NULL);		/* XXX may need to pass timer */
+	sdesc = ambeginscan(rdesc, 0, NowTimeQual, 0,
+		(struct skey *)NULL);
 	tp = Tape;
 
 	if ((bool)createrun(sdesc, tp->tp_file) != false)

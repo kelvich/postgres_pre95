@@ -28,7 +28,7 @@ RcsId("$Header$");
 #include "rel.h"
 #include "relscan.h"
 #include "rproc.h"
-#include "trange.h"
+#include "tqual.h"
 
 #include "command.h"
 
@@ -226,7 +226,7 @@ addattribute(relname, natts, att)
 	key[0].sk_attnum = RelationNameAttributeNumber;
 	key[0].sk_opr = Character16EqualRegProcedure;	/* XXX name= */
 	key[0].sk_data = (DATUM) relname;
-	relsdesc = ambeginscan(relrdesc, 0, DefaultTimeRange, 1, key);
+	relsdesc = ambeginscan(relrdesc, 0, NowTimeQual, 1, key);
 	reltup = amgetnext(relsdesc, 0, (Buffer *) NULL);
 	if (!PointerIsValid(reltup)) {
 		amendscan(relsdesc);
@@ -266,7 +266,7 @@ addattribute(relname, natts, att)
 	for (i = minattnum; i < maxatts; ++i) {
 		ap = *app++;
 		key[1].sk_data = (DATUM) ap->attname;
-		attsdesc = ambeginscan(attrdesc, 0, DefaultTimeRange, 2, key);
+		attsdesc = ambeginscan(attrdesc, 0, NowTimeQual, 2, key);
 		tup = amgetnext(attsdesc, 0, (Buffer *) NULL);
 		if (HeapTupleIsValid(tup)) {
 			pfree((char *) reltup);		/* XXX temp */
@@ -342,7 +342,7 @@ renameatt(relname, oldattname, newattname)
 	key[0].sk_opr = Character16EqualRegProcedure;	/* XXX name= */
 	key[0].sk_data = (DATUM) relname;
 	relrdesc = amopenr(RelationRelationName);
-	relsdesc = ambeginscan(relrdesc, 0, DefaultTimeRange, 1, key);
+	relsdesc = ambeginscan(relrdesc, 0, NowTimeQual, 1, key);
 	reltup = amgetnext(relsdesc, 0, (Buffer *) NULL);
 	if (!PointerIsValid(reltup)) {
 		amendscan(relsdesc);
@@ -363,7 +363,7 @@ renameatt(relname, oldattname, newattname)
 	key[1].sk_opr = Character16EqualRegProcedure;	/* XXX name= */
 	key[1].sk_data = (DATUM) oldattname;
 	attrdesc = amopenr(AttributeRelationName);
-	attsdesc = ambeginscan(attrdesc, 0, DefaultTimeRange, 2, key);
+	attsdesc = ambeginscan(attrdesc, 0, NowTimeQual, 2, key);
 	oldatttup = amgetnext(attsdesc, 0, (Buffer *) NULL);
 	if (!PointerIsValid(oldatttup)) {
 		amendscan(attsdesc);
@@ -381,7 +381,7 @@ renameatt(relname, oldattname, newattname)
 	amendscan(attsdesc);
 
 	key[1].sk_data = (DATUM) newattname;
-	attsdesc = ambeginscan(attrdesc, 0, DefaultTimeRange, 2, key);
+	attsdesc = ambeginscan(attrdesc, 0, NowTimeQual, 2, key);
 	newatttup = amgetnext(attsdesc, 0, (Buffer *) NULL);
 	if (PointerIsValid(newatttup)) {
 		pfree((char *) oldatttup);
@@ -443,7 +443,7 @@ renamerel(oldrelname, newrelname)
 	key.sk_attnum = RelationNameAttributeNumber;
 	key.sk_opr = Character16EqualRegProcedure;	/* XXX name= */
 	key.sk_data = (DATUM) oldrelname;
-	oldsdesc = ambeginscan(relrdesc, 0, DefaultTimeRange, 1, &key);
+	oldsdesc = ambeginscan(relrdesc, 0, NowTimeQual, 1, &key);
 	oldreltup = amgetnext(oldsdesc, 0, (Buffer *) NULL);
 	if (!PointerIsValid(oldreltup)) {
 		amendscan(oldsdesc);
@@ -454,7 +454,7 @@ renamerel(oldrelname, newrelname)
 	oldreltup = palloctup(oldreltup, InvalidBuffer, relrdesc);
 
 	key.sk_data = (DATUM) newrelname;
-	newsdesc = ambeginscan(relrdesc, 0, DefaultTimeRange, 1, &key);
+	newsdesc = ambeginscan(relrdesc, 0, NowTimeQual, 1, &key);
 	newreltup = amgetnext(newsdesc, 0, (Buffer *) NULL);
 	if (PointerIsValid(newreltup)) {
 		pfree((char *) oldreltup);

@@ -4,7 +4,11 @@
  */
 
 #include "c.h"
+
+RcsId("$Header$");
+
 #include "postgres.h"
+#include <strings.h>
 
 #include "access.h"
 #include "fmgr.h"
@@ -13,12 +17,10 @@
 #include "catname.h"
 #include "heapam.h"
 #include "relscan.h"
+#include "tqual.h"	/* for NowTimeQual */
 
 #include "regproc.h"
 
-#include <strings.h>
-
-RcsId("$Header$");
 
 
 	    /* ========== USER I/O ROUTINES ========== */
@@ -52,7 +54,7 @@ regprocin(proname)
 	key.sk_flags = 0;
 	key.sk_opr = F_CHAR16EQ;
 	key.sk_data = (DATUM) proname;
-	procscan = ambeginscan(proc, 0, DefaultTimeRange, 1, &key);
+	procscan = ambeginscan(proc, 0, NowTimeQual, 1, &key);
 	if (!HeapScanIsValid(procscan)) {
 		amclose(proc);
 		elog(WARN, "regprocin: could not being scan of %s",
@@ -107,7 +109,7 @@ regprocout(proid)
 	key.sk_flags = 0;
 	key.sk_opr = F_INT4EQ;
 	key.sk_data = (DATUM) proid;
-	procscan = ambeginscan(proc, 0, DefaultTimeRange, 1, &key);
+	procscan = ambeginscan(proc, 0, NowTimeQual, 1, &key);
 	if (!HeapScanIsValid(procscan)) {
 		amclose(proc);
 		elog(WARN, "regprocin: could not being scan of %s",
