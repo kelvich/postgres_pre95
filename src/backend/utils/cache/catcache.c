@@ -253,13 +253,15 @@ comphash(l, v)
 	return((int) v);
     }
     if (l == 16) {
-	if (v < etext) {
+	extern etext;
+	if (v < (char *) &etext) {
 	    /*
 	     * XXX int2, v, is first element of int16[8] key
 	     * XXX this is a non-portable hack for built-in arrays
 	     * XXX even I don't understand this well and I wrote
 	     * XXX this -hirohama
 	     */
+
 	    return((int16) v);
 	} else {
 	    /* XXX char16 special handling */
