@@ -78,7 +78,36 @@ FILENAME != "-" && /{/, /}/ {
 	
 /class /,/{/ { 
 	class = substr($2,2,length($2)-2);
+
 #	print FILENAME "*** " class "\n" > "/dev/tty";
+
+# ----
+#   generate RInit initialization function
+# ----
+	print "\n/* ----------------";
+	print "\n *    RInit", class, " - Raw initializer for ", class;
+	print "\n * ";
+	print "\n *    This function just initializes the internal";
+	print "\n *    information in a node. ";
+	print "\n * ----------------";
+	print "\n */";
+	print "\nextern void RInit", class, "();";
+	print "\n";
+	print "\nvoid \n", "RInit", class, "(p)";
+	print "\nPointer p;";
+	print "\n{";
+	print "\n\textern void Print", class, "();";
+	print "\n\textern bool Equal", class, "();";
+	print "\n\textern bool Copy", class, "();";
+	print "\n\n\t", class, " node = (", class, ") p;\n";
+	print "\n\tnode->printFunc = Print", class, ";";
+	print "\n\tnode->equalFunc = Equal", class, ";";
+	print "\n\tnode->copyFunc =  Copy", class, ";";
+	print "\n\n\treturn;\n}\n";
+
+# ----
+#   generate the Make creator
+# ----
 	print "\n/* ----------------";
 	print "\n *    Make creator function for ", class;
 	print "\n * ";
@@ -127,17 +156,12 @@ FILENAME != "-" && /{/, /}/ {
 		print whole[x],";\n"
 		
 	print "\n{"
-	print "\n\textern void Print", class, "();";
-	print "\n\textern bool Equal", class, "();";
-	print "\n\textern bool Copy", class, "();";
-	print "\n\n\t", class, " node = New_Node(", class, ");\n";
+	print "\n\t", class, " node = New_Node(", class, ");\n";
+	print"\n\tRInit", class, "(node);\n";
 
 	for (x=0;x<i;x++)
 		print "\n\tset_", decl[x], "(node, ", decl[x], ");";
 
-	print"\n\n\tnode->printFunc = Print", class ,";";
-	print"\n\tnode->equalFunc = Equal", class ,";";
-	print"\n\tnode->copyFunc =  Copy", class ,";";
 	print "\n\n\treturn(node);\n}\n";
 
 # ----
@@ -231,10 +255,8 @@ FILENAME != "-" && /{/, /}/ {
 	}
 
 	print "\n{";
-	print "\n\textern void Print", class, "();";
-	print "\n\textern bool Equal", class, "();";
-	print "\n\textern bool Copy", class, "();";
-	print "\n\n\t", class, " node = New_Node(", class, ");\n";
+	print "\n\t", class, " node = New_Node(", class, ");\n";
+	print "\n\tRInit", class, "(node);\n";
 	
 	if (n > 0) {
 		for (s=1; s<=n ; s++) {
@@ -242,11 +264,6 @@ FILENAME != "-" && /{/, /}/ {
 			print "\n\tset_", slot, "(node, ", slot, ");";
 		}
 	}
-
-	print "\n";
-	print "\n\tnode->printFunc = Print", class, ";";
-	print "\n\tnode->equalFunc = Equal", class, ";";
-	print "\n\tnode->copyFunc =  Copy", class, ";";
 	print "\n\n\treturn(node);\n}\n";
 
 # ----
@@ -264,14 +281,8 @@ FILENAME != "-" && /{/, /}/ {
 	print "\n";
 	print "\n", class, "\n", "RMake", class, "()";
 	print "\n{";
-	print "\n\textern void Print", class, "();";
-	print "\n\textern bool Equal", class, "();";
-	print "\n\textern bool Copy", class, "();";
-	print "\n\n\t", class, " node = New_Node(", class, ");\n";
-	print "\n";
-	print "\n\tnode->printFunc = Print", class, ";";
-	print "\n\tnode->equalFunc = Equal", class, ";";
-	print "\n\tnode->copyFunc =  Copy", class, ";";
+	print "\n\t", class, " node = New_Node(", class, ");\n";
+	print "\n\tRInit", class, "(node);";
 	print "\n\n\treturn(node);\n}\n";
 }
 
