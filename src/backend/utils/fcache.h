@@ -23,6 +23,14 @@ typedef struct
 	char     *src;	      /* source code of the function */
 	char     *bin;	      /* binary object code ?? */
 	char     *func_state; /* fuction_state struct for execution */
+
+	bool	 hasSetArg;   /* true if func is part of a nested dot expr
+			       * whose argument is func returning a set ugh!
+			       */
+	char	 *setArg;     /* current argument for nested dot execution
+			       * Nested dot expressions mean we have funcs
+			       * whose argument is a set of tuples
+			       */
 }
 FunctionCache, *FunctionCachePtr;
 
