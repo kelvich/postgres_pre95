@@ -366,6 +366,23 @@ ProcessUtility(command, args, commandString)
 			     CString(CADR(args)));
 	break;
 #endif
+
+/*
+ * Exec the dynamic loader.
+ */
+      case LOAD:
+	commandTag = "LOAD";
+	CHECK_IF_ABORTED();
+	{
+		char *filename;
+		filename = CString(CAR(args));
+		if (*filename != '/')
+		{
+			elog(WARN, "Use full pathname for LOAD command.");
+		}
+		load_file(filename);
+	}
+	break;
 	/* default */
       default:
 	elog(WARN, "ProcessUtility: command #%d unsupport", command);
