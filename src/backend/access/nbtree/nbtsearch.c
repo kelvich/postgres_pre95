@@ -757,6 +757,7 @@ _bt_first(scan, dir)
 	iptr = (ItemPointer) palloc(sizeof(ItemPointerData));
 	bcopy((char *) &(itup->t_tid), (char *) iptr, sizeof(ItemPointerData));
 	res = ItemPointerFormRetrieveIndexResult(current, iptr);
+	pfree (iptr);
 
 	/* remember which buffer we have pinned */
 	so->btso_curbuf = buf;
