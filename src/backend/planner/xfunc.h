@@ -3,12 +3,12 @@
 #include "nodes/relation.h"
 
 /* command line arg flags */
-#define XFUNC_OFF -1
-#define XFUNC_NOR 2
-#define XFUNC_NOPULL 4
-#define XFUNC_NOPM 8
-#define XFUNC_NOPRUNE 16
-#define XFUNC_PULLALL 32
+#define XFUNC_OFF -1		/* do no optimization of expensive preds */
+#define XFUNC_NOR 2		/* do no optimization of OR clauses */
+#define XFUNC_NOPULL 4		/* never pull restrictions above joins */
+#define XFUNC_NOPM 8		/* don't do predicate migration */
+#define XFUNC_WAIT 16		/* don't do pullup until predicate migration */
+#define XFUNC_PULLALL 32	/* pull all expensive restrictions up, always */
 
 /* constants for local and join predicates */
 #define XFUNC_LOCPRD 1
@@ -62,11 +62,13 @@ Count xfunc_card_product ARGS((Relid relids));
 
 /* protos from planner/path/predmig.c */
 extern bool xfunc_do_predmig ARGS((Path root));
-bool xfunc_predmig ARGS((JoinPath pathnode, Stream streamroot, Stream laststream));
+void xfunc_predmig ARGS((JoinPath pathnode, Stream streamroot, Stream laststream, bool *progressp));
 bool xfunc_series_llel ARGS((Stream stream));
 bool xfunc_llel_chains ARGS((Stream root, Stream bottom));
+Stream xfunc_complete_stream ARGS((Stream stream));
 bool xfunc_prdmig_pullup ARGS((Stream origstream, Stream pullme, JoinPath joinpath));
 void xfunc_form_groups ARGS((Stream root, Stream bottom));
+void xfunc_free_stream ARGS((Stream root));
 Stream xfunc_add_clauses ARGS((Stream current));
 void xfunc_setup_group ARGS((Stream node, Stream bottom));
 Stream xfunc_streaminsert ARGS((CInfo clauseinfo, Stream current, int clausetype));
