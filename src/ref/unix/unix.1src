@@ -3,8 +3,8 @@
 .\" $Header$
 .XA 0 "Section 2 \(em \*(UU Commands (\*(UU)"
 .XA 1 "General Information"
-.TH INTRODUCTION UNIX 01/23/93
-.SP INFORMATION UNIX 01/23/93
+.TH INTRODUCTION UNIX 03/12/94
+.SP INFORMATION UNIX 03/12/94
 .BH "SECTION 2 \(em \*(UU COMMANDS (\*(UU)"
 .SH "OVERVIEW"
 This section contains information on the interaction between \*(PG and
@@ -89,7 +89,7 @@ user cannot do anything with \*(PG until an appropriate instance is
 installed in this class.  Further information on the system catalogs
 is available by running queries on the appropriate classes.
 .XA 1 "Security"
-.SP SECURITY UNIX 01/23/93
+.SP SECURITY UNIX 03/12/94
 .SH "USER AUTHENTICATION"
 .IR Authentication
 is the process by which the backend server and 
@@ -207,7 +207,7 @@ invoked the backend server.  (Otherwise, users could circumvent access
 controls \(em the \*(lqnobody\*(rq user may well be allowed greater
 access to a particular object than a given user.)
 .SS "Rules"
-Like \*(PQ functions, rules always run with the idendity and
+Like \*(PQ functions, rules always run with the identity and
 permissions of the user who invoked the backend server.
 .SH "SEE ALSO"
 postmaster(unix),
@@ -239,8 +239,7 @@ contents of \*(lqpg_user.usesysid\*(rq) are assumed to be unique
 throughout a database.  Unpredictable results may occur if they are
 not.
 .PP
-User system identifiers are currently \*(UU user-ids.  This may change at
-some time in the future.
+User system identifiers are currently \*(UU user-ids.
 .SH "APPENDIX: USING KERBEROS"
 .SS "Availability"
 The
