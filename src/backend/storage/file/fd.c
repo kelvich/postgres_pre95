@@ -947,11 +947,10 @@ int stripe;
 {
     char *buf;
     int len;
-    Pointer palloc();
 
     len = strlen(PostgresHomes[stripe]) + strlen("/data/base/") 
 	  + strlen(DBName) + strlen(filename) + 2;
-    buf = (char*)palloc(len);
+    buf = (char*) palloc(len);
     sprintf(buf, "%s/data/base/%s/%s", PostgresHomes[stripe], DBName, filename);
     return(buf);
 }

@@ -140,6 +140,9 @@ pqtest(vlena)
     switch(res[0]) {
     case 'P':
 	a = PQparray(&res[1]);
+	if (a == NULL)
+	    elog(WARN, "pqtest: PQparray could not find portal %s", res);
+	
 	t = PQntuples(a);
 	break;
     case 'C':

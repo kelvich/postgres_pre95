@@ -618,7 +618,13 @@ PostgresMain(argc, argv)
     signal(SIGHUP, die);
     signal(SIGINT, die);
     signal(SIGTERM, die);
-
+    
+    /* ----------------
+     *	initialize palloc memory tracing
+     * ----------------
+     */
+    set_palloc_debug(false, false);
+    
     /* ----------------
      *	parse command line arguments
      * ----------------
@@ -627,8 +633,21 @@ PostgresMain(argc, argv)
     flagC = flagQ = flagM = flagS = ShowStats = flagE = 0;
     MasterPid = getpid();
     
-    while ((flag = getopt(argc, argv, "B:b:Cd:EM:NnOP:pQSsTf:")) != EOF)
+    while ((flag = getopt(argc, argv, "A:B:b:Cd:EM:NnOP:pQSsTf:")) != EOF)
       switch (flag) {
+	  	  
+      case 'A':
+	  /* ----------------
+	   *	tell postgres to turn on memory tracing
+	   * ----------------
+	   */
+          switch (optarg[0]) {
+          case 'n':  set_palloc_debug(true, false);  break;
+          case 'r':  set_palloc_debug(false, true);  break;
+          case 'b':  set_palloc_debug(true, true);   break;
+	  default:   errs++; break;
+	  }
+	  break;
 	  
       case 'b':
       case 'B':

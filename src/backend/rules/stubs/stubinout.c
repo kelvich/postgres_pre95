@@ -28,7 +28,6 @@
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
 
-extern char *palloc();
 extern Const RMakeConst();
 extern Param RMakeParam();
 extern LispValue StringToPlan();
@@ -283,7 +282,7 @@ int *maxLengthP;
 
     if (res == NULL) {
 	*maxLengthP = 100;
-	res = palloc(*maxLengthP);
+	res = (char *) palloc(*maxLengthP);
 	if (res==NULL) {
 	    elog(WARN, "appendString: Out of memory!");
 	}
@@ -294,7 +293,7 @@ int *maxLengthP;
 	while (strlen(s) + strlen(res) >= *maxLengthP -1) {
 	    *maxLengthP += 100;
 	}
-	temp = palloc(*maxLengthP);
+	temp = (char *) palloc(*maxLengthP);
 	if (temp==NULL) {
 	    elog(WARN, "appendString: Out of memory!");
 	}

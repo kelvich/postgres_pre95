@@ -23,7 +23,6 @@
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
 
-extern char *palloc();
 extern Const RMakeConst();
 extern Param RMakeParam();
 extern LispValue StringToPlan();

@@ -29,12 +29,6 @@
  */
 #include <stdio.h>
 
-/* ----------------
- *	this list of header files taken from other node file headers.
- * ----------------
- */
-#include <stdio.h>
-
 #include "tmp/postgres.h"
 
 #include "access/heapam.h"
@@ -174,9 +168,16 @@ CopyObject(from)
     Node from;
 {
     Node copy;
-    extern Pointer palloc();
     
-    if (NodeCopy(from, &copy, palloc) == true)
+#ifndef PALLOC_DEBUG    
+    extern Pointer palloc();
+    Pointer (*f)() = palloc;
+#else    
+    extern Pointer palloc_debug();
+    Pointer (*f)() = palloc_debug;
+#endif PALLOC_DEBUG    
+    
+    if (NodeCopy(from, &copy, f) == true)
 	return copy;
     else
 	return NULL;
@@ -242,6 +243,12 @@ CopyObjectUsing(from, alloc)
  *	failure, it returns the appropriate type of NULL.
  * ----------------
  */
+#ifndef PALLOC_DEBUG    
+#define COPYALLOC(x)	(*alloc)(x)
+#else
+#define COPYALLOC(x)	(alloc == palloc_debug ? palloc(x) : (*alloc)(x))
+#endif PALLOC_DEBUG
+
 #define COPY_CHECKARGS() \
     if (to == NULL || alloc == NULL) { \
        return false; \
@@ -254,13 +261,13 @@ CopyObjectUsing(from, alloc)
     } 
 
 #define COPY_NEW(c) \
-    newnode = (c) (*alloc)(classSize(c)); \
+    newnode = (c) COPYALLOC(classSize(c)); \
     if (newnode == NULL) { \
 	return false; \
     } 
 
 #define COPY_NEW_TYPE(c) \
-    newnode = (c) (*alloc)(classSize(c)); \
+    newnode = (c) COPYALLOC(classSize(c)); \
     if (newnode == NULL) { \
 	return (c) NULL; \
     }
@@ -589,24 +596,24 @@ char *		(*alloc)();
 
     natts = reldesc->rd_rel->relnatts;
     len = sizeof *reldesc + (int)(natts - 1) * sizeof reldesc->rd_att;
-    newreldesc = (Relation)(*alloc)(len);
+    newreldesc = (Relation) COPYALLOC(len);
     newreldesc->rd_fd = reldesc->rd_fd;
     newreldesc->rd_refcnt = reldesc->rd_refcnt;
     newreldesc->rd_ismem = reldesc->rd_ismem;
     newreldesc->rd_am = reldesc->rd_am;  /* YYY */
     newreldesc->rd_rel = (RelationTupleForm)
-                         (*alloc)(sizeof (RuleLock) + sizeof *reldesc->rd_rel);
+	COPYALLOC(sizeof (RuleLock) + sizeof *reldesc->rd_rel);
     *newreldesc->rd_rel = *reldesc->rd_rel;
     newreldesc->rd_id = reldesc->rd_id;
     if (reldesc->lockInfo != NULL) {
-	newreldesc->lockInfo = (Pointer)(*alloc)(sizeof(LockInfoData));
+	newreldesc->lockInfo = (Pointer) COPYALLOC(sizeof(LockInfoData));
         *(LockInfo)(newreldesc->lockInfo) = *(LockInfo)(reldesc->lockInfo); 
       }
 
     len = sizeof *reldesc->rd_att.data[0];
     for (i = 0; i < natts; i++) {
         newreldesc->rd_att.data[i] = (AttributeTupleForm)
-            (*alloc)(len + sizeof (RuleLock));
+            COPYALLOC(len + sizeof (RuleLock));
 
         bcopy((char *)reldesc->rd_att.data[i],
 	      (char *)newreldesc->rd_att.data[i],
@@ -626,7 +633,7 @@ char *	(*alloc)();
 
     if (lispNullp(relDescs))
 	return LispNil;
-    newlist = (List)(*alloc)(classSize(LispValue));
+    newlist = (List) COPYALLOC(classSize(LispValue));
     CopyNodeFields(relDescs, newlist, alloc);
     newlist->val.car = (LispValue)CopyRelDescUsing(CAR(relDescs), alloc);
     newlist->cdr = copyRelDescsUsing(CDR(relDescs), alloc);
@@ -1190,7 +1197,7 @@ _copyResdom(from, to, alloc)
 
     if (from->resname != NULL)
 	newnode->resname = (Name)
-	    strcpy((char *) (*alloc)(strlen(from->resname)+1), from->resname);
+	    strcpy((char *) COPYALLOC(strlen(from->resname)+1), from->resname);
     else
 	newnode->resname = (Name) NULL;
     
@@ -1422,7 +1429,7 @@ _copyConst(from, to, alloc)
 	     *	fixed length structure
 	     * ----------------
 	     */
-	    newnode->constvalue = PointerGetDatum((*alloc)(from->constlen));
+	    newnode->constvalue = PointerGetDatum(COPYALLOC(from->constlen));
 	    bcopy(from->constvalue, newnode->constvalue, from->constlen);
 	} else {
 	    /* ----------------
@@ -1432,7 +1439,7 @@ _copyConst(from, to, alloc)
 	     */
 	    int length;
 	    length = *((int *) newnode->constvalue);
-	    newnode->constvalue = PointerGetDatum((*alloc)(length));
+	    newnode->constvalue = PointerGetDatum(COPYALLOC(length));
 	    bcopy(from->constvalue, newnode->constvalue, length);
 	}
     }
@@ -1475,7 +1482,7 @@ _copyParam(from, to, alloc)
 
     if (from->paramname != NULL)
 	newnode->paramname = (Name)
-	    strcpy((char *) (*alloc)(strlen(from->paramname)+1),
+	    strcpy((char *) COPYALLOC(strlen(from->paramname)+1),
 		   from->paramname);
     else
 	newnode->paramname = (Name) NULL;
@@ -2228,7 +2235,7 @@ _copyLispStr(from, to, alloc)
      */
     if (from->val.name != NULL)
 	newnode->val.name = (char *)
-	    strcpy((char *) (*alloc)(strlen(from->val.name)+1),
+	    strcpy((char *) COPYALLOC(strlen(from->val.name)+1),
 		   from->val.name);
     else
 	newnode->val.name = NULL;
@@ -2343,7 +2350,7 @@ _copyLispVector(from, to, alloc)
 	 * ----------------
 	 */
 	newnode->val.veci = (struct vectori *)
-	    (*alloc)(sizeof(struct vectori) + from->val.veci->size);
+	    COPYALLOC(sizeof(struct vectori) + from->val.veci->size);
 	newnode->val.veci->size = from->val.veci->size;
 	bcopy(from->val.veci->data,
 	      newnode->val.veci->data,

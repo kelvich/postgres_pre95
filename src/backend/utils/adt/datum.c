@@ -107,7 +107,6 @@ Size len;
     Size realSize;
     Datum res;
     Pointer s;
-    char *palloc();
 
     realSize = datumGetSize(value, type, byVal, len);
 

@@ -16,8 +16,6 @@
 #include "rules/prs2.h"
 #include "utils/log.h"
 
-char *palloc();
-
 /*-------------------------------------------------------------
  * these routines are local to this file.
  *-------------------------------------------------------------
@@ -55,7 +53,7 @@ RuleLock locks;
      * Initialize `maxLength' and `res'
      */
     maxLength = 100;
-    res = palloc(maxLength);
+    res = (char *) palloc(maxLength);
     if (res==NULL) {
 	elog(WARN, "RuleLockToString: Out of memeory!");
     }
@@ -195,7 +193,7 @@ int *maxLengthP;
 	while (strlen(s) + strlen(res) >= *maxLengthP -1) {
 	    *maxLengthP += 100;
 	}
-	temp = palloc(*maxLengthP);
+	temp = (char *) palloc(*maxLengthP);
 	if (temp==NULL) {
 	    elog(WARN, "appendString: Out of memory!");
 	}

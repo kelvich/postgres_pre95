@@ -43,9 +43,11 @@
  *	Memory management.
  *-------------------------------------------------------------------*/
 
-/*#define	palloc	malloc	/* if standalone */
-
-extern char			*palloc();
+#ifndef PALLOC_DEBUG
+extern char *palloc();
+#else
+extern char *palloc_debug();
+#endif PALLOC_DEBUG
 
 #define	PALLOC(SIZE)		palloc(SIZE)
 #define	PFREE(P)		pfree((char *) (P))
@@ -56,7 +58,7 @@ extern char			*palloc();
  *-------------------------------------------------------------------*/
 
 #ifdef sun
-extern char			*sprintf();	/* XXX */
+extern char *sprintf();
 #endif sun
 
 #endif !FmgrIncluded

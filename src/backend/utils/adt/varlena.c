@@ -13,8 +13,6 @@
 #include "utils/palloc.h"
 #include "utils/builtins.h"
 
-char *palloc();
-
 	    /* ========== USER I/O ROUTINES ========== */
 
 
@@ -112,7 +110,7 @@ byteaout(vlena)
 	static	char	*result;
 
 	if (vlena == NULL) {
-		result = palloc(2);
+		result = (char *) palloc(2);
 		result[0] = '-';
 		result[1] = '\0';
 		return(result);
@@ -126,7 +124,7 @@ byteaout(vlena)
 			len++;
 		else
 			len += 4;
-	rp = result = palloc(len);
+	rp = result = (char *) palloc(len);
 	vp = vlena->vl_dat;
 	for (i = vlena->vl_len - sizeof(int32); i != 0; i--)	/* varlena? */
 		if (*vp == '\\') {
@@ -183,13 +181,13 @@ textout(vlena)
 	extern		bcopy();
 
 	if (vlena == NULL) {
-		result = palloc(2);
+		result = (char *) palloc(2);
 		result[0] = '-';
 		result[1] = '\0';
 		return(result);
 	}
 	len = vlena->vl_len - sizeof(int32);			/* varlena? */
-	result = palloc(len + 1);
+	result = (char *) palloc(len + 1);
 	bcopy(vlena->vl_dat, result, len);
 	result[len] = '\0';
 	return(result);

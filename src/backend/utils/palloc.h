@@ -22,14 +22,7 @@
  *	ExhaustedMemory if allocation fails.
  *	NonallocatedPointer if pointer was not returned by palloc or repalloc
  *		or may have been freed already.
- */
-extern
-Pointer
-palloc ARGS((
-	Size	size
-));
-
-/*
+ *
  * pfree --
  *	Frees memory associated with pointer returned from palloc or repalloc.
  *
@@ -39,11 +32,14 @@ palloc ARGS((
  *	NonallocatedPointer if pointer was not returned by palloc or repalloc
  *		or may have been subsequently freed.
  */
-extern
-void
-pfree ARGS((
-	Pointer	pointer
-));
+
+#ifndef PALLOC_DEBUG
+extern Pointer palloc ARGS((Size size));
+extern void    pfree  ARGS((Pointer pointer)); 
+#else
+extern Pointer palloc_debug ARGS((Size	size));
+extern void    pfree_debug  ARGS((Pointer pointer));
+#endif PALLOC_DEBUG
 
 /*
  * psize --

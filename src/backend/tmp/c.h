@@ -14,6 +14,12 @@
 
 #define C_H	"$Header$"
 
+/* ----------------
+ *	these govern behaviour of palloc
+ * ----------------
+ */
+#define PALLOC_DEBUG 
+
 /*
  * Begin COMPILER DEPENDENT section
  */
@@ -436,6 +442,17 @@ char *	/* as defined in /usr/lib/lint/llib-lc */
 malloc ARGS((
 	Size	nBytes
 ));
+
+/* ----------------
+ *	allocation debugging stuff
+ * ----------------
+ */
+
+#ifdef PALLOC_DEBUG
+#define palloc(size)       palloc_debug(__FILE__, __LINE__, size)
+#define pfree(ptr)         pfree_debug(__FILE__, __LINE__, ptr)
+#define AllocSetReset(set) AllocSetReset_debug(__FILE__, __LINE__, set)
+#endif PALLOC_DEBUG
 
 /*
  * new --

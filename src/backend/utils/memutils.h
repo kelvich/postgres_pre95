@@ -487,11 +487,11 @@ AllocSetInit ARGS((
  * Exceptions:
  *	BadArg if set is invalid.
  */
-extern
-void
-AllocSetReset ARGS((
-	AllocSet	set
-));
+#ifndef PALLOC_DEBUG
+extern void AllocSetReset ARGS((AllocSet set));
+#else    
+extern void AllocSetReset_debug ARGS((AllocSet set));
+#endif PALLOC_DEBUG
 
 /*
  * AllocSetContains --

@@ -16,6 +16,8 @@ RcsId("$Header$");
 
 extern void bcopy();	/* XXX use header */
 
+#undef AllocSetReset
+
 /*
  * Internal type definitions
  */
@@ -125,8 +127,24 @@ AllocSetReset(set)
 	AssertArg(AllocSetIsValid(set));
 
 	while (AllocPointerIsValid(pointer = AllocSetGetFirst(set))) {
-		AllocSetFree(set, pointer);
+	    AllocSetFree(set, pointer);
 	}
+}
+
+void
+AllocSetReset_debug(file, line, set)
+    String      file;
+    int	        line;
+    AllocSet	set;
+{
+    AllocPointer	pointer;
+
+    AssertArg(AllocSetIsValid(set));
+
+    while (AllocPointerIsValid(pointer = AllocSetGetFirst(set))) {
+	alloc_set_message(file, line, pointer, set);
+	AllocSetFree(set, pointer);
+    }
 }
 
 bool
