@@ -10,17 +10,20 @@ define rule \*(- Define a new rule
 .b "define [tuple | rewrite] rule"
 rule_name
 [as exception to rule_name_2]
+.br
 .b on
 event
 .b to
-object [[\
+object [[
 .b from
 clause]
 .b where
 clause]
-.b "then do"
-[\
+.br
+.b "do"
+[
 .b instead ]
+.br
 action
 .uh DESCRIPTION
 .lp
@@ -37,7 +40,7 @@ and the other based on
 processing.  In general, the tuple system is more efficient
 if there are many rules on a single table, each covering a small
 subset of the tuples.  The rewrite system is more
-efficient if large scope rules are being defined.  inversion 2 the user
+efficient if large scope rules are being defined.  In version 2, the user
 can optionally choose which rule system to use by specifying 
 .i rewrite
 or
@@ -53,8 +56,6 @@ retrieve
 replace 
 delete
 append
-new (i. e. replace or append)
-old (i.e. delete or replace)
 .)l
 Moreover, object is either:
 .(l
@@ -79,7 +80,8 @@ variable is permissible in POSTQUEL.
 The semantics of a rule is that at the time an individual tuple is
 accessed, updated, inserted or deleted, there is a CURRENT tuple (for
 retrieves, replaces and deletes) and a NEW tuple (for replaces and appends).
-If the event and the condition specified in the ON clause are true 
+If the event specified in the ON clause and the condition specified
+in the WHERE clause are true 
 for the CURRENT tuple,
 then the action part of the rule is executed.  First, however, values
 from fields in the CURRENT tuple and/or the NEW tuple are substituted 
@@ -93,9 +95,10 @@ transaction identifier
 as the user command that caused activation.  
 .lp
 A note of caution about POSTQUEL rules is in order.  If the same relation
-name or tuple variable appears in the object wrespectively rt of the rule, in the where clause 
+name or tuple variable appears in the event, where clause 
 and the action parts of a rule, they are 
-all considered different tuple variables.  More accurately, NEW and CURRENT are the only
+all considered different tuple variables.  
+More accurately, NEW and CURRENT are the only
 tuple variables that are shared between these clauses.
 For example the following two rules have the
 same semantics: 
@@ -116,7 +119,7 @@ Alternately, the action part will be done instead of the user command.
 /* Make Sam get the same salary adjustment as Joe */
 .(l
 define rule example_1
-on replace to EMP.salary where current.name = ``Joe''
+on replace to EMP.salary where CURRENT.name = ``Joe''
 then replace EMP (salary = NEW.salary) where EMP.name = ``Sam''
 .)l
 At the time Joe receives a salary adjustment, the event will become
@@ -128,20 +131,20 @@ propagates Joe's salary on to Sam.
 /* Make Bill get Joe's salary when it is accessed */
 .(l
 define rule example_2
-on retrieve to EMP.salary where current.name = ``Joe''
+on retrieve to EMP.salary where CURRENT.name = ``Joe''
 then replace EMP (salary = CURRENT.salary) where EMP.name = ``Bill''
 .)l
 .lp
 /* Deny Joe access to the salary of employees in the shoe department */
 .(l
 define rule example_3
-on retrieve to EMP.salary where current.dept = ``shoe'' and user() = ``Joe''
+on retrieve to EMP.salary where CURRENT.dept = ``shoe'' and user() = ``Joe''
 then do instead retrieve (salary = null)
 .)l
 /* The following also does the same task, somewhat more obscurely */
 .(l
 define rule example_4
-on retrieve to EMP.salary where current.dept = ``shoe'' and user() = ``Joe''
+on retrieve to EMP.salary where CURRENT.dept = ``shoe'' and user() = ``Joe''
 then do replace CURRENT (salary = null)
 .)l
 .uh "SEE ALSO"
@@ -163,3 +166,10 @@ or
 on retrieve ....
 then do replace current ...
 .)l
+
+At present, 
+it is not currently possible to reference the tuple variable ``NEW''
+in the WHERE clause of the rule, so ``CURRENT'' is really the only
+tuple-variable shared between the event and action parts of the rule.
+
+
