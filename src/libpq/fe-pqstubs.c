@@ -28,6 +28,7 @@
 #undef palloc
 #undef pfree
 #include "utils/exc.h"
+#include "utils/log.h"
 
 RcsId("$Header$");
 
