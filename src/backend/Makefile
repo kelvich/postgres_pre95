@@ -218,7 +218,7 @@ LDADD+= -N
 
 .if defined(OLD_MKDIR)
 beforeinstall:
-	-if test ! -d ${DESTDIR}${BINDIR}; \
+	@-if test ! -d ${DESTDIR}${BINDIR}; \
 		then mkdir ${DESTDIR}${BINDIR}; fi
 .endif
 
@@ -237,9 +237,9 @@ afterinstall: pg_id
 	${INSTALL} ${STRIP} -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
 		postmaster ${DESTDIR}${BINDIR}/postmaster
 .if defined(OLD_MKDIR)
-	-if test ! -d ${DESTDIR}${DATADIR}; \
+	@-if test ! -d ${DESTDIR}${DATADIR}; \
 		then mkdir ${DESTDIR}${DATADIR}; fi
-	-if test ! -d ${DESTDIR}${DATADIR}/files; \
+	@-if test ! -d ${DESTDIR}${DATADIR}/files; \
 		then mkdir ${DESTDIR}${DATADIR}/files; fi
 .endif
 	-PG_UID=`./pg_id ${POSTGRESLOGIN}`; \

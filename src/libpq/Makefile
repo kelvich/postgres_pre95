@@ -28,7 +28,7 @@ NOPROFILE=1
 
 .if defined(OLD_MKDIR)
 beforeinstall:
-	-if test ! -d ${DESTDIR}${LIBDIR}; \
+	@-if test ! -d ${DESTDIR}${LIBDIR}; \
 		then mkdir ${DESTDIR}${LIBDIR}; fi
 .endif
 
