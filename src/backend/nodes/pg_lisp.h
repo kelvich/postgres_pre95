@@ -11,6 +11,7 @@
 
 #include "nodes.h"
 #include <stdio.h>
+#include "tags.h"
 #include "c.h"
 
 /* ==========================================================================
@@ -70,17 +71,17 @@ typedef struct lisp_atom	*LispValue;
 
 #define	LISP_TYPE(LISPVALUE)		((LISPVALUE)->type)
 
-#define	PGLISP_ATOM	255
-#define	PGLISP_DTPR	254
-#define	PGLISP_FLOAT	253
-#define	PGLISP_INT	252
-#define	PGLISP_STR	251
-#define	PGLISP_VECI	250
+#define	PGLISP_ATOM	T_LispSymbol
+#define	PGLISP_DTPR	T_LispList
+#define	PGLISP_FLOAT	T_LispFloat
+#define	PGLISP_INT	T_LispInt
+#define	PGLISP_STR	T_LispStr
+#define	PGLISP_VECI	T_LispVector
 
-#define	LISP_BYTEVECTOR			250
-#define	LISP_DOUBLE			253
-#define	LISP_INTEGER			252
-#define	LISP_STRING			251
+#define	LISP_BYTEVECTOR			T_LispVector
+#define	LISP_DOUBLE			T_LispFloat
+#define	LISP_INTEGER			T_LispInt
+#define	LISP_STRING			T_LispStr
 
 #define lispStringp(x) ((bool)(LISP_TYPE(x)==PGLISP_STR))
 #define lispIntegerp(x) ((bool)(LISP_TYPE(x)==PGLISP_INT))
