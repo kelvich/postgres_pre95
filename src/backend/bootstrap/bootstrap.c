@@ -44,10 +44,14 @@ RcsId("$Header$");
  */
 #include "bootstrap/bkint.h"
 
-void SocketBackend ARGS((char *, LispValue));
-void InteractiveBackend ARGS((char *, LispValue));
-void EvalLine ARGS((char *, LispValue));
-bool BootstrapAlreadySeen ARGS(( ObjectId id ));
+/* tcop/postgres.c */
+extern char SocketBackend ARGS((char *));
+extern char InteractiveBackend ARGS((char *));
+extern void die ARGS((void));
+extern void handle_warn ARGS((void));
+
+/* bootstrap/bootstrap.c */
+extern bool BootstrapAlreadySeen ARGS(( ObjectId id ));
 
 /* ----------------
  *	global variables
@@ -77,8 +81,8 @@ static int	num_of_errs = 0;      /* Total number of errors encountered */
  * pg_type is created.
  *
  *	XXX several of these input/output functions do catalog scans
- *	    (e.g., F_REGPROCIN scans pg_proc).  this obviously creates some order
- *	    dependencies in the catalog creation process.
+ *	    (e.g., F_REGPROCIN scans pg_proc).  this obviously creates some 
+ *	    order dependencies in the catalog creation process.
  */
 struct typinfo {
 	char		name[16];
@@ -200,7 +204,7 @@ char *av[];
     int	  flagC, flagQ;
     int	  portFd = -1;
     char  *dat;
-    char  pathbuf[128], *getwd();
+    char  pathbuf[128];
     extern char *DBName;
 
     /* ----------------
@@ -533,9 +537,6 @@ randomprintrel()
     int			count;
     int			mark = 0;
     static bool		isInitialized = false;
-    extern		srandom();
-    long		random();
-    long		time();
 
     StartPortalAllocMode(DefaultAllocMode, 0);
     if (reldesc == NULL) {
@@ -606,7 +607,7 @@ showtup(tuple, buffer, relation)
     Buffer	buffer;
     Relation	relation;
 {
-    char	*value, *fmgr();
+    char	*value;
     Boolean	isnull;
     struct	typmap	**app;
     int		i, typeindex;
@@ -665,7 +666,7 @@ showtup(tuple, buffer, relation)
 	if (isnull) {
 	    printf("(*NULL*,");
 	} else {
-	    printf("(%u,", (CommandId)value);
+	    printf("(%u,", (CommandId) DatumGetInt16(value));
 	}
 	
 	value = heap_getattr(tuple, buffer, MinTransactionIdAttributeNumber,
@@ -708,7 +709,7 @@ showtup(tuple, buffer, relation)
 	if (isnull) {
 	    printf("(*NULL*,");
 	} else {
-	    printf("(%u,", (CommandId)value);
+	    printf("(%u,", (CommandId) DatumGetInt16(value));
 	}
 
 	value = heap_getattr(tuple, buffer, MaxTransactionIdAttributeNumber,
@@ -861,7 +862,6 @@ InsertOneValue(objectid, value, i)
     char	*prt;
     struct typmap **app;
     HeapTuple	tuple;
-    char	*fmgr();
 
     if (DebugMode)
 	printf("Inserting value: '%s'\n", value);
@@ -1317,7 +1317,7 @@ printhashtable()
  * ----------------
  */
 void
-printstrtable ()
+printstrtable()
 {
     register int i;
 
