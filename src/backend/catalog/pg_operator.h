@@ -248,21 +248,23 @@ DATA(insert OID = 601 (  ":"       PGUID 0 l t f   0 701 701   0   0   0   0 dex
 DATA(insert OID = 602 (  ";"       PGUID 0 l t f   0 701 701   0   0   0   0 dlog1 - - ));
 DATA(insert OID = 603 (  "|"       PGUID 0 l t f   0 704 702   0   0   0   0 intervalstart - - ));
 DATA(insert OID = 606 (  "<>"      PGUID 0 b t f 702 702 704   0   0   0   0 mktinterval - - ));
-DATA(insert OID = 607 (  "="       PGUID 0 b t t  26  26  16 607 608  97  97 oideq eqsel eqjoinsel ));
-DATA(insert OID = 608 (  "!="      PGUID 0 b t f  26  26  16 608 607  0  0 oidne eqsel eqjoinsel ));
+DATA(insert OID = 607 (  "="       PGUID 0 b t t  26  26  16 607 608 97 97 oideq eqsel eqjoinsel ));
+#define	OIDEqualOperator 607	/* XXX planner/prep/semanopt.c crock */
+DATA(insert OID = 608 (  "!="      PGUID 0 b t f  26  26  16 608 607  0  0 oidne neqsel neqjoinsel ));
 DATA(insert OID = 609 (  "<"       PGUID 0 b t f  26  26  16 610 612  0  0 int4lt intltsel intltjoinsel ));
 DATA(insert OID = 610 (  ">"       PGUID 0 b t f  26  26  16 609 611  0  0 int4gt intgtsel intgtjoinsel ));
 DATA(insert OID = 611 (  "<="      PGUID 0 b t f  26  26  16 612 610  0  0 int4le intltsel intltjoinsel ));
 DATA(insert OID = 612 (  ">="      PGUID 0 b t f  26  26  16 611 609  0  0 int4ge intgtsel intgtjoinsel ));
 DATA(insert OID = 620 (  "="       PGUID 0 b t t  700  700  16 620 621  622 622 float4eq eqsel eqjoinsel ));
-DATA(insert OID = 621 (  "!="      PGUID 0 b t f  700  700  16 621 620  0 0 float4ne eqsel eqjoinsel ));
+DATA(insert OID = 621 (  "!="      PGUID 0 b t f  700  700  16 621 620  0 0 float4ne neqsel neqjoinsel ));
 DATA(insert OID = 622 (  "<"       PGUID 0 b t f  700  700  16 623 625  0 0 float4lt intltsel intltjoinsel ));
 DATA(insert OID = 623 (  ">"       PGUID 0 b t f  700  700  16 622 624  0 0 float4gt intgtsel intgtjoinsel ));
 DATA(insert OID = 624 (  "<="      PGUID 0 b t f  700  700  16 625 623  0 0 float4le intltsel intltjoinsel ));
 DATA(insert OID = 625 (  ">="      PGUID 0 b t f  700  700  16 624 622  0 0 float4ge intgtsel intgtjoinsel ));
 DATA(insert OID = 626 (  "!!="     PGUID 0 b t f  23   19   16 0   0    0   0   int4notin "-"     "-"));
 DATA(insert OID = 627 (  "!!="     PGUID 0 b t f  26   19   16 0   0    0   0   oidnotin "-"     "-"));
-DATA(insert OID = 630 (  "!="      PGUID 0 b t f  18  18  16 630  92  0 0 charne eqsel eqjoinsel ));
+#define OIDNotInOperator 627	/* XXX planner/prep/semanopt.c crock */
+DATA(insert OID = 630 (  "!="      PGUID 0 b t f  18  18  16 630  92  0 0 charne neqsel neqjoinsel ));
     
 DATA(insert OID = 631 (  "<"       PGUID 0 b t f  18  18  16 633 634  0 0 charlt intltsel intltjoinsel ));
 DATA(insert OID = 632 (  "<="      PGUID 0 b t f  18  18  16 634 633  0 0 charle intltsel intltjoinsel ));
@@ -275,10 +277,10 @@ DATA(insert OID = 637 (  "*"       PGUID 0 b t f  18  18  16 0 0  0 0 charmul eq
 DATA(insert OID = 638 (  "/"       PGUID 0 b t f  18  18  16 0 0  0 0 chardiv eqsel eqjoinsel ));
 
 DATA(insert OID = 639 (  "~"       PGUID 0 b t f  19  19  16 0 640  0 0 char16regexeq eqsel eqjoinsel ));
-DATA(insert OID = 640 (  "!~"      PGUID 0 b t f  19  19  16 0 639  0 0 char16regexne eqsel eqjoinsel ));
+DATA(insert OID = 640 (  "!~"      PGUID 0 b t f  19  19  16 0 639  0 0 char16regexne neqsel neqjoinsel ));
 DATA(insert OID = 641 (  "~"       PGUID 0 b t f  25  25  16 0 642  0 0 textregexeq eqsel eqjoinsel ));
 DATA(insert OID = 642 (  "!~"      PGUID 0 b t f  25  25  16 0 641  0 0 textregexne eqsel eqjoinsel ));
-DATA(insert OID = 643 (  "!="      PGUID 0 b t f  19  19  16 93 643  0 0 char16ne eqsel eqjoinsel ));
+DATA(insert OID = 643 (  "!="      PGUID 0 b t f  19  19  16 93 643  0 0 char16ne neqsel neqjoinsel ));
 
 DATA(insert OID = 660 (  "<"       PGUID 0 b t f  19  19  16 662 663  0 0 char16lt intltsel intltjoinsel ));
 DATA(insert OID = 661 (  "<="      PGUID 0 b t f  19  19  16 663 662  0 0 char16le intltsel intltjoinsel ));
@@ -290,7 +292,7 @@ DATA(insert OID = 666 (  ">"       PGUID 0 b t f  25  25  16 664 665  0 0 text_g
 DATA(insert OID = 667 (  ">="      PGUID 0 b t f  25  25  16 665 664  0 0 text_ge intltsel intltjoinsel ));
 
 DATA(insert OID = 670 (  "="       PGUID 0 b t f  701  701  16 670 671  0 0 float8eq eqsel eqjoinsel ));
-DATA(insert OID = 671 (  "!="      PGUID 0 b t f  701  701  16 671 670  0 0 float8ne eqsel eqjoinsel ));
+DATA(insert OID = 671 (  "!="      PGUID 0 b t f  701  701  16 671 670  0 0 float8ne neqsel neqjoinsel ));
 DATA(insert OID = 672 (  "<"       PGUID 0 b t f  701  701  16 674 675  0 0 float8lt intltsel intltjoinsel ));
 DATA(insert OID = 673 (  "<="      PGUID 0 b t f  701  701  16 675 674  0 0 float8le intltsel intltjoinsel ));
 DATA(insert OID = 674 (  ">"       PGUID 0 b t f  701  701  16 672 673  0 0 float8gt intltsel intltjoinsel ));

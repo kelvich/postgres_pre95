@@ -97,7 +97,7 @@ SemantOpt(varlist,rangetable, qual, is_redundent,is_first)
 	retqual = MakeTClause();
       else {
 	op = get_opno((Oper)get_op(qual));
-	if (op == 627) {
+	if (op == OIDNotInOperator) {	/* XXX CROCK */
 	  leftvarno = get_varno(get_leftop(qual));
 	  rightvarno = ConstVarno(rangetable,(Const)get_rightop(qual),&attname);
 	  /*
@@ -123,8 +123,7 @@ SemantOpt(varlist,rangetable, qual, is_redundent,is_first)
 		if (CInteger(CADR(CDR(rte1))) != CInteger(CADR(CDR(rte2))))
 		  retqual = MakeTClause();
 	      }
-	} else 
-	  if (op == 558) {  /* oid = */
+	} else if (op == OIDEqualOperator) {	/* XXX CROCK */
 	    AttributeNumber leftattno;
 	    AttributeNumber rightattno;
 	    List rte1 = LispNil;
@@ -230,8 +229,8 @@ SemantOpt2(rangetable,qual,modqual,tlist)
 
   if (null(qual))
     return(LispNil);
-  else
-    if (is_clause(qual) && get_opno((Oper)get_op(qual)) == 558) {
+  else if (is_clause(qual) && 
+	   get_opno((Oper) get_op(qual)) == OIDEqualOperator) {	/* XXX CROCK */
       /*
        *  Now to test if they are the same relation.
        */
@@ -411,7 +410,7 @@ update_vars(rangetable,varlist,qual)
     if (is_clause(qual)) {
       op = get_opno((Oper)get_op(qual));
       if (!consp(get_leftop(qual))) { /* ignore union vars at this point */
-	if (op == 627) {  /* Greg's horrendous not-in op */
+	if (op == OIDNotInOperator) {	/* XXX CROCK */
 	  leftvarno = get_varno(get_leftop(qual));
 	  rightvarno = ConstVarno(rangetable,(Const)get_rightop(qual),&attname);
 
