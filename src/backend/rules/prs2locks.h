@@ -252,5 +252,6 @@ typedef Prs2LocksData	*RuleLock;
  * pg_type.oid for the "lock" type
  */
 #define PRS2_LOCK_TYPEID	((ObjectId) 31)
+#define PRS2_BOOL_TYPEID	((ObjectId) 16)
 
 #endif Prs2LocksIncluded
