@@ -850,36 +850,6 @@ Amount amount;
     return(ret);
 }
 
-char *
-FileFindName(file)
-File file;
-{
-    Sfd *sfdP;
-    char *ret;
-    char *fileFindName();
-    char *s; int i;
-
-    ret = VfdCache[file].fileName;
-
-    if (ret==NULL) {
-	return("<null>");
-    }
-    /*
-     * strip the path name
-     */
-    i = 0;
-    while (ret[i] != '\0') {
-	if (ret[i] == '/') {
-	    s = &(ret[i+1]);
-	}
-	i++;
-    }
-
-    /* return(ret); */
-    return(s);
-
-}
-
 long
 FileSeek(file, offset, whence)
 File file;
