@@ -33,6 +33,7 @@ NewNode(size, tag)
 	Assert(size > 0);
 
 	newNode = (Node) palloc(size);
+	bzero((char *)newNode, size);
 	NodeSetTag(newNode, tag);
 	return(newNode);
 }
