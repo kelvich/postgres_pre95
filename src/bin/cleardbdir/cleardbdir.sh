@@ -9,6 +9,7 @@
 #	files so that initdb(1) can be run again.
 #
 # ----------------------------------------------------------------
+[ -z "$PGDATA" ] && PGDATA=_fUnKy_DATADIR_sTuFf_
 
 echo "This program completely destroys all the databases in $PGDATA"
 echo -n "Are you sure you want to do this (y/n) [n]? "
@@ -18,7 +19,7 @@ case $resp in
 	*)	exit ;;
 esac
 
-cd $PGDATA
+cd $PGDATA || exit
 for i in *
 do
 if [ $i != "files" ]
