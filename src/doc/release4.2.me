@@ -1,0 +1,119 @@
+.\"
+.\"	release4.2.me:  postgres version 4.2 release notes.  print using
+.\"			groff -me.
+.\"
+.nr pi 3n
+.nr si 2n
+.nr pp 11
+.nr tp 11
+.nr sp 11
+.de RV
+.ie "\\$2"" \
+\{\
+.	ds VN "0.0
+.	ds VD "(No date)
+.	ds VT "UNAUDITED VERSION
+.\}
+.el \
+\{\
+.	ds VN \\$3
+.	ds VD \\$4
+.	ie "\\$7"Exp" \
+.		ds VT "DRAFT
+.	el \
+.		ds VT \\$7
+.\}
+..
+.de CW
+\\fC\\$1\\fP\\$2
+..
+.RV $Header$
+.ds PG "\\s-2POSTGRES\\s0
+.ds PQ "\\s-2POSTQUEL\\s0
+.ce 99
+.ft B
+.ps 14
+\*(PG Version 4.2
+.sp 0.5v
+Release Notes
+.sp
+.ps 11
+\*(VD
+.ce 0
+.he '\*(PG V4.2 Release Notes'%'\*(VD'
+.sp 2
+.sh 1 "Introduction"
+.pp
+These are the release notes for version 4.2
+of the \*(PG database system from UC Berkeley.
+The database system and its installation procedure
+are covered in detail in the setup document for this release,
+which can be found in the file ~postgres/doc/postgres-setup.me.
+Here, we cover only the most important differences from release
+4.1 and earlier versions of the system.
+.sh 1 "Existing 4.1 Databases"
+.pp
+You are hosed.
+.sh 1 "Known Bugs"
+.pp
+There are a few known bugs that we did not fix in this release.  
+.sh 2 "Hash Joins"
+.pp
+The current implementation of hash joins in \*(PG attempts to put the
+entire hash table in virtual memory.  If the hash table is too big
+to fit into memory the transaction will be aborted.  The planner tries
+to take relation size into account when deciding whether or not to
+plan a hash join, but it is dependent on the most recent database
+statistics.  If these are out of date \*(PG might still exhibit
+this unfriendly behavior.  To avoid this problem you should vacuum your
+database after any and all large append/copy commands.
+.sh 2 "Cache Invalidation"
+.pp
+There is a subtle bug relating to cache invalidation that can cause \*(PG
+to violate transaction semantics in transactions/queries involving multiple
+commands.  If the backend has a relation open that needs to be invalidated
+when one command is finished the invalidation message is ignored.  Thus
+the relation descriptor can become out of date, and won't be updated until the
+next time it is invalidated.   At the time of writing we believe that
+the odds you will ever notice this bug are small.
+.sh 2 "Indices and the Instance Level Rule System"
+.pp
+As ever, the Instance Level Rule System essentially ignores indices, so if
+you are
+defining a rule on an indexed attribute, you should use the Query Rewrite
+rule system.
+.sh 2 "Retrieve Into and failed backends"
+.pp
+If a backend fails while in the course of executing a Retrieve Into query,
+a spurious file, with the same name as the target class of the Retrieve Into,
+will be left in the database directory.  This file can be safely deleted by the
+database DBA. 
+.sh 2 "Large Objects and failed backends"
+.pp
+If a backend fails while it is manipulating large objects, spurious large
+object files will be left in the database directory.  Also, there is no
+mechanism for getting rid of large objects which are returned by functions
+but not stored in instances.
+.sh 1 "Known bugs list"
+.pp
+A list of known bugs and suggested work-arounds can be anonymously
+ftp'ed.  This list is kept in the file ~ftp/pub/postgres/postgres-v4r2/bugs.
+We will make every attempt to keep this list up to date.
+.sh 1 "Machine-dependent Problems"
+.pp
+.sh 2 "HP-UX"
+.pp
+We could not test the H-P port on HP-UX 8.07 because all of the
+machines we had access to were upgraded to HP-UX 9.0.  However,
+the system did work prior to that point.  If you find that some
+minor changes are required to build the system under 8.07, please
+let us know.
+.pp
+The standard HP-UX C compiler does not have the -M (make dependencies)
+option.  If you want dependencies, you will need to use the GNU C
+compiler.
+.pp
+HP-UX does not provide a version of the BSD install program.
+We have provided a copy of the 
+.i bsdinst
+script from the MIT X11R5 distribution, which works acceptably.
