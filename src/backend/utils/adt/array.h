@@ -92,7 +92,7 @@ typedef struct {
 
 #define RETURN_NULL {*isNull = true; return(NULL); }
 #define NAME_LEN    30
-#define MAX_BUFF_SIZE (1 << 18)
+#define MAX_BUFF_SIZE (1 << 13)
 
 typedef struct {
 	char  lo_name[NAME_LEN];
