@@ -11,6 +11,8 @@
  */
 #define HEAPAM_H	"$Header$"
 
+#include <sys/types.h>
+
 #ifndef	C_H
 #include "c.h"
 #endif
@@ -48,6 +50,68 @@
 #ifndef	TUPDESC_H
 # include "tupdesc.h"
 #endif
+
+/* ----------------------------------------------------------------
+ *		heap access method statistics
+ * ----------------------------------------------------------------
+ */
+
+typedef struct HeapAccessStatisticsData {
+    time_t  init_global_timestamp;	/* time global statistics started */
+    time_t  local_reset_timestamp;	/* last time local reset was done */
+    time_t  last_request_timestamp;	/* last time stats were requested */
+
+    int global_amopen;			
+    int global_amopenr;
+    int global_amclose;
+    int global_ambeginscan;
+    int global_amrescan;
+    int global_amendscan;
+    int global_amgetnext;
+    int global_amgetunique;
+    int global_aminsert;
+    int global_amdelete;
+    int global_amreplace; 
+    int global_ammarkpos; 
+    int global_amrestrpos;
+    int global_RelationIdGetRelation;
+    int global_ObjectIdOpenHeapRelation;
+    int global_RelationNameOpenHeapRelation;
+    int global_RelationCloseHeapRelation;
+    int global_getreldesc;
+    int global_heapgettup;
+    int global_RelationPutHeapTuple;
+    int global_RelationPutLongHeapTuple;
+
+    int local_amopen;			
+    int local_amopenr;
+    int local_amclose;
+    int local_ambeginscan;
+    int local_amrescan;
+    int local_amendscan;
+    int local_amgetnext;
+    int local_amgetunique;
+    int local_aminsert;
+    int local_amdelete;
+    int local_amreplace; 
+    int local_ammarkpos; 
+    int local_amrestrpos;
+    int local_RelationIdGetRelation;
+    int local_ObjectIdOpenHeapRelation;
+    int local_RelationNameOpenHeapRelation;
+    int local_RelationCloseHeapRelation;
+    int local_getreldesc;
+    int local_heapgettup;
+    int local_RelationPutHeapTuple;
+    int local_RelationPutLongHeapTuple;
+} HeapAccessStatisticsData;
+
+typedef HeapAccessStatisticsData *HeapAccessStatistics;
+
+#define IncrHeapAccessStat(x) \
+    (heap_access_stats == NULL ? 0 : (heap_access_stats->x)++)
+
+extern HeapAccessStatistics heap_access_stats;
 
 /*
  * RelationNameCreateHeapRelation --
