@@ -12,7 +12,9 @@ ipcclean \*- clean up shared memory and semaphores from aborted backends
 .lp
 Ipcclean cleans up shared memory and semaphore space from aborted backends.
 Only the DBA should execute this program, as it can cause bizarre behavior
-if run during multi-user execution.
+if run during multi-user execution.  This program should be ran if errors
+such as "semget: No space left on device" are encountered in starting up
+programs like the Postmaster or Postgres backend.
 .pp
 .uh BUGS
 .lp
