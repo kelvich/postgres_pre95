@@ -39,7 +39,7 @@
 #include "libpq/auth.h"
 #include "tmp/postgres.h"
 #include "fmgr.h"
-#include "utils/exception.h"
+#include "utils/exc.h"
 
 #include <pwd.h>
 
