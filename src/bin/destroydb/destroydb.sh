@@ -75,3 +75,5 @@ then
 	echo "$progname: database destroy failed on $dbname."
 	exit 1
 fi
+
+exit 0
