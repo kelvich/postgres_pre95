@@ -35,6 +35,7 @@
 #include "access/relscan.h"
 #include "executor/hashjoin.h"
 #include "executor/tuptable.h"
+#include "access/rulescan.h"
 
 /* ----------------------------------------------------------------
  *      Node Function Declarations
@@ -323,6 +324,10 @@ class (JunkFilter) public (JunkFilter) {
  *					result relation, if there is one.
  *					this should be a ScanState but it's
  *					a Pointer because of order conflicts.
+ *
+ *	result_rel_ruleinfo		general information
+ *					for the result relation needed
+ *					by the rule manager.
  * ----------------	
  */
 
@@ -350,6 +355,7 @@ class (EState) public (Node) {
       TupleTable        es_tupleTable;
       JunkFilter	es_junkFilter;
       Pointer		es_result_rel_scanstate;
+      RelationRuleInfo  es_result_rel_ruleinfo;
 };
 
 /* ----------------
@@ -668,15 +674,6 @@ class (ParallelState) public (BaseNode) {
  * ----------------------------------------------------------------
  */
 
-/* ----------
- * NOTE:
- * This file (rulescan.h) must be included here because it uses
- * the EState defined previously in this file.
- * See comments in rulescan.h for more details....
- * ----------
- */
-#include "access/rulescan.h"
-
 /* ----------------
  *   CommonScanState information
  *
@@ -710,7 +707,7 @@ class (CommonScanState) public (CommonState) {
       inherits(CommonState); \
       Relation          css_currentRelation; \
       HeapScanDesc      css_currentScanDesc; \
-      ScanStateRuleInfo css_ruleInfo; \
+      RelationRuleInfo	css_ruleInfo; \
       Pointer           css_ScanTupleSlot; \
       Pointer           css_RawTupleSlot
   /* private: */
