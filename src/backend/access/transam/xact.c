@@ -610,11 +610,10 @@ AtCommit_Locks()
     xid = GetCurrentTransactionId();
 
     /* ----------------
-     *	XXX What if LMLockReleaseAll fails?  (race condition?) 
+     *	XXX What if ProcReleaseLocks fails?  (race condition?) 
      * ----------------
      */
-    LMLockReleaseAll(PageLockTableId, xid);
-    LMLockReleaseAll(MultiLevelLockTableId, xid);
+    ProcReleaseLocks();
 }
 
 /* --------------------------------
@@ -696,11 +695,10 @@ AtAbort_Locks()
     xid = GetCurrentTransactionId();
         
     /* ----------------
-     *	XXX What if LMLockReleaseAll fails?  (race condition?)
+     *	XXX What if ProcReleaseLocks() fails?  (race condition?)
      * ----------------
      */
-    LMLockReleaseAll(PageLockTableId, xid);
-    LMLockReleaseAll(MultiLevelLockTableId, xid);
+    ProcReleaseLocks();
 }
 
 
