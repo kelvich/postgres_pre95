@@ -22,6 +22,7 @@ RcsId("$Header$");
 
 extern bool	NOBT_Building;
 extern uint32	CurrentLinkToken;
+extern int	NOBT_NSplits;
 
 /*
  *  _nobt_doinsert() -- Handle insertion of a single btitem in the tree.
@@ -159,10 +160,16 @@ _nobt_insertonpg(rel, buf, stack, keysz, scankey, btvoid, afteritem)
     if (PageGetFreeSpace(page) < itemsz) {
 
 	/* split the buffer into left and right halves */
+	NOBT_NSplits++;
+#ifdef	SHADOW
 	if (NOBT_Building)
 	    rbuf = _nobt_bsplit(rel, buf);
 	else
 	    rbuf = _nobt_nsplit(rel, &buf);
+#endif	/* SHADOW */
+#ifdef	NORMAL
+	rbuf = _nobt_bsplit(rel, buf);
+#endif	/* NORMAL */
 
 	/* which new page (left half or right half) gets the tuple? */
 	if (_nobt_goesonpg(rel, buf, keysz, scankey, afteritem)) {
@@ -249,7 +256,10 @@ _nobt_insertonpg(rel, buf, stack, keysz, scankey, btvoid, afteritem)
 				  	      PageGetItemId(ppage,
 						  stack->nobts_offset));
 
+#ifdef	SHADOW
 	    lftitem->nobtii_oldchild = lftitem->nobtii_child;
+#endif	/* SHADOW */
+
 	    lftitem->nobtii_child = BufferGetBlockNumber(buf);
 
 	    /* don't need the children anymore */
@@ -439,6 +449,8 @@ _nobt_bsplit(rel, buf)
     /* split's done */
     return (rbuf);
 }
+
+#ifndef	NORMAL
 /*
  *  _nobt_nsplit() -- split a page in the btree.
  *
@@ -773,6 +785,7 @@ _nobt_nsplit(rel, bufP)
     /* split's done */
     return (rbuf);
 }
+#endif	/* ndef NORMAL */
 
 /*
  *  _nobt_findsplitloc() -- find a safe place to split a page.

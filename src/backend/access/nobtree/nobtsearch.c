@@ -101,6 +101,7 @@ _nobt_searchr(rel, keysz, scankey, bufP, stack_in)
     stack->nobts_blkno = par_blkno;
     stack->nobts_btitem = item_save;
 
+#ifdef	SHADOW
     /* if there's no "next" key on this page, use the high key */
     if (offind++ >= PageGetMaxOffsetIndex(page)) {
 	if (opaque->nobtpo_next == P_NONE) {
@@ -121,6 +122,7 @@ _nobt_searchr(rel, keysz, scankey, bufP, stack_in)
 	bcopy((char *) btitem, (char *) item_save, item_nbytes);
 	stack->nobts_nxtitem = item_save;
     }
+#endif	/* SHADOW */
 
     stack->nobts_parent = stack_in;
 
@@ -194,6 +196,7 @@ _nobt_moveright(rel, buf, keysz, scankey, access, stack)
     else
 	isleaf = false;
 
+#ifdef	SHADOW
     /*
      *  For the no-overwrite implementation, here are the things that can
      *  cause us to have to move around in the tree:
@@ -291,6 +294,7 @@ _nobt_moveright(rel, buf, keysz, scankey, access, stack)
 		inconsistent = true;
 	}
     }
+#endif	/* SHADOW */
 
     /* XXX XXX XXX peer pointer check? */
 

@@ -94,8 +94,10 @@ _nobt_freestack(stack)
 	ostack = stack;
 	stack = stack->nobts_parent;
 	pfree(ostack->nobts_btitem);
+#ifdef	SHADOW
 	if (ostack->nobts_nxtitem != (NOBTIItem) NULL)
 	    pfree(ostack->nobts_nxtitem);
+#endif	/* SHADOW */
 	pfree(ostack);
     }
 }
@@ -337,14 +339,21 @@ _nobt_dumptup(rel, itupdesc, page, offind)
 	btiitem = (NOBTIItem) PageGetItem(page, itemid);
 	tempd = ((char *) btiitem) + sizeof(NOBTIItemData);
 	blkno = btiitem->nobtii_child;
+#ifdef	SHADOW
 	oldblkno = btiitem->nobtii_oldchild;
+#endif	/* SHADOW */
 	tuplen = NOBTIItemGetSize(btiitem);
 
 	idatum = (Datum) fetchatt(((struct attribute **) itupdesc), tempd);
 	tmpkey = DatumGetInt16(idatum);
 
+#ifdef	SHADOW
 	printf("[%d/%d bytes] child %d [%d] %d\n", itemsz, tuplen,
 		blkno, oldblkno, tmpkey);
+#endif	/* SHADOW */
+#ifdef	NORMAL
+	printf("[%d/%d bytes] child %d %d\n", itemsz, tuplen, blkno, tmpkey);
+#endif	/* NORMAL */
     }
 }
 
@@ -394,9 +403,11 @@ _nobt_formiitem(bkno, datump, dsize)
 
     btitem = (NOBTIItem) palloc(nbytes_btitem);
     btitem->nobtii_child = bkno;
+#ifdef	SHADOW
     btitem->nobtii_oldchild = P_NONE;
-    btitem->nobtii_info = nbytes_btitem;
     btitem->nobtii_filler = 0;
+#endif	/* SHADOW */
+    btitem->nobtii_info = nbytes_btitem;
 
     tempd = ((char *) btitem) + sizeof(NOBTIItemData);
     bcopy(datump, tempd, dsize);

@@ -4,6 +4,11 @@
  *	$Header$
  */
 
+/* exactly one of these must be defined */
+#undef	SHADOW
+#define	NORMAL
+#undef	REORG
+
 /*
  *  NOBTPageOpaqueData -- At the end of every page, we store a pointer to
  *  both siblings in the tree.  See Lehman and Yao's paper for more info.
@@ -21,6 +26,7 @@
  */
 
 typedef struct NOBTPageOpaqueData {
+#ifdef	SHADOW
 	uint32		nobtpo_linktok;
 	PageNumber	nobtpo_prev;
 	PageNumber	nobtpo_oldprev;
@@ -30,7 +36,13 @@ typedef struct NOBTPageOpaqueData {
 	uint32		nobtpo_nexttok;
 	uint32		nobtpo_repltok;
 	PageNumber	nobtpo_replaced;
+#endif	/* SHADOW */
+#ifdef	NORMAL
+	PageNumber	nobtpo_prev;
+	PageNumber	nobtpo_next;
 	uint16		nobtpo_flags;
+	uint16		nobtpo_filler;
+#endif	/* NORMAL */
 
 #define NOBTP_LEAF	(1 << 0)
 #define NOBTP_ROOT	(1 << 1)
@@ -56,27 +68,17 @@ typedef struct NOBTScanOpaqueData {
 
 typedef NOBTScanOpaqueData	*NOBTScanOpaque;
 
-#ifdef notdef
-/*
- *  NOBTItems are what we store in the btree.  The oldchild entry is used
- *  to store a pointer to the previous child page on internal items after
- *  a new one has been added by a page split.  It's necessary to store these
- *  in order to guarantee recoverability.
- */
-
-typedef struct NOBTItemData {
-	PageNumber		nobti_oldchild;
-	uint16			nobti_filler;		/* force longalign */
-	IndexTupleData		nobti_itup;
-} NOBTItemData;
-
-typedef NOBTItemData	*NOBTItem;
-#else /* notdef */
 typedef struct NOBTIItemData {
+#ifdef	SHADOW
 	PageNumber		nobtii_oldchild;
 	PageNumber		nobtii_child;
 	unsigned short		nobtii_info;
 	unsigned short		nobtii_filler;	   /* must longalign key */
+#endif	/* SHADOW */
+#ifdef	NORMAL
+	PageNumber		nobtii_child;
+	unsigned short		nobtii_info;
+#endif	/* NORMAL */
 	/* MORE DATA FOLLOWS AT END OF STRUCT */
 } NOBTIItemData;
 
@@ -91,7 +93,6 @@ typedef struct NOBTLItemData {
 } NOBTLItemData;
 
 typedef NOBTLItemData	*NOBTLItem;
-#endif /* notdef */
 
 /*
  *  NOBTStackData -- As we descend a tree, we push the (key, pointer) pairs
@@ -110,13 +111,10 @@ typedef NOBTLItemData	*NOBTLItem;
 typedef struct NOBTStackData {
 	PageNumber		nobts_blkno;
 	OffsetIndex		nobts_offset;
-#ifdef notdef
-	NOBTItem		nobts_btitem;
-	NOBTItem		nobts_nxtitem;
-#else /* notdef */
 	NOBTIItem		nobts_btitem;
+#ifdef	SHADOW
 	NOBTIItem		nobts_nxtitem;
-#endif /* notdef */
+#endif	/* SHADOW */
 	struct NOBTStackData	*nobts_parent;
 } NOBTStackData;
 
@@ -129,11 +127,6 @@ typedef NOBTStackData	*NOBTStack;
 
 #define	NOBT_READ	0
 #define	NOBT_WRITE	1
-#ifdef notdef
-#define	NOBT_NEXTLNK	2
-#define	NOBT_PREVLNK	3
-#define	NOBT_LINKTOK	4
-#endif /* notdef */
 
 /*
  *  Similarly, the difference between insertion and non-insertion binary

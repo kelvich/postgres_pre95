@@ -201,8 +201,14 @@ _nobt_getroot(rel, access)
 
     rootpg = BufferGetPage(rootbuf, 0);
     rootopaque = (NOBTPageOpaque) PageGetSpecialPointer(rootpg);
+
+#ifdef	SHADOW
     if (!(rootopaque->nobtpo_flags & NOBTP_ROOT)
 	|| (rootopaque->nobtpo_replaced != P_NONE)) {
+#endif	/* SHADOW */
+#ifdef	NORMAL
+    if (!(rootopaque->nobtpo_flags & NOBTP_ROOT)) {
+#endif	/* NORMAL */
 
 	/* it happened, try again */
 	_nobt_relbuf(rel, rootbuf, access);
