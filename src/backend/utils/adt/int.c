@@ -20,10 +20,10 @@
 
 #include "tmp/postgres.h"
 #include "fmgr.h"
+#include "utils/builtins.h"
 #include "utils/log.h"
 
 RcsId("$Header$");
-
 
 	    /* ========== USER I/O ROUTINES ========== */
 
@@ -35,8 +35,6 @@ int32
 int2in(num)
 	char	*num;
 {
-	extern int	atoi();
-
 	return((int32) atoi(num));
 }
 
@@ -48,7 +46,6 @@ int2out(sh)
 	int16	sh;
 {
 	char		*result;
-	extern int	itoa();
 
 	result = (char *)palloc(7);	/* assumes sign, 5 digits, '\0' */
 	itoa((int) sh, result);
@@ -98,7 +95,6 @@ int28out(shs)
 	register int16	*sp;
 	register char	*rp;
 	char 		*result;
-	extern int	itoa();
 
 	if (shs == NULL) {
 		result = (char *)palloc(2);
@@ -153,7 +149,6 @@ int44out(an_array)
 {
     int temp = 4;
     char *output_string = NULL;
-    extern int itoa();
     int i;
 
     if ( temp > 0 ) {
@@ -182,8 +177,6 @@ int32
 int4in(num)
 	char	*num;
 {
-	extern long	atol();
-
 	return((int32) atol(num));
 }
 
@@ -195,7 +188,6 @@ int4out(l)
 	int32	l;
 {
 	char		*result;
-	extern int	ltoa();
 
 	result = (char *)palloc(12);	/* assumes sign, 10 digits, '\0' */
 	ltoa((long) l, result);
