@@ -16,20 +16,15 @@ creates a new POSTGRES database.
 The creator becomes the administrator of the new database.
 This is a new query language command as of release 3.0.
 .lp
-Since
-.b createdb
-is a Postquel command,
-it must be executed from inside an existing database.
-For this reason,
-the
-.b initdb
-program must have been run to set up the template database.
-The
-.b createdb
-shell script simply opens the template database and executes
-this query.
 .uh "SEE ALSO"
 .lp
 destroydb(commands),
 initdb(unix),
-createdb(unix).
+createdb(unix),
+destroydb(unix).
+.lp
+.uh BUGS
+.lp
+This command should NOT be executed by humans.  The createdb(unix) script
+should be used instead.
+.lp
