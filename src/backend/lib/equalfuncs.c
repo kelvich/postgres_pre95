@@ -4,6 +4,7 @@
 
 #include "nodes.h"
 #include "primnodes.h"
+#include "relation.h"
 #include "execnodes.h"
 
 extern bool	_equalLispValue();
@@ -17,10 +18,16 @@ equal(a, b)
 	Node	a;
 	Node	b;
 {
-	if (a->type != b->type)
-		return (false);
-
-	return ((a->equalFunc)(a, b));
+    if (a == b)
+      return(true);
+    if ((!a && b) || (a && !b))
+      return(false);
+    Assert(IsA(a,Node));
+    Assert(IsA(b,Node));
+    if (a->type != b->type)
+      return (false);
+    
+    return ((a->equalFunc)(a, b));
 }
 
 /*
@@ -238,6 +245,131 @@ _equalFunc(a, b)
 }
 
 /*
+ * CInfo is a subclass of Node.
+ */
+
+bool
+_equalCInfo(a,b)
+     register CInfo a;
+     register CInfo b;
+{
+    Assert(IsA(a,CInfo));
+    Assert(IsA(b,CInfo));
+    
+    if (!_equalExpr(get_clause(a),get_clause(b)))
+      return(false);
+    if (a->selectivity != b->selectivity)
+      return(false);
+    if (a->notclause != b->notclause)
+      return(false);
+#ifdef EqualMergeOrderExists
+    if (!EqualMergeOrder(a->mergesortorder,b->mergesortorder))
+      return(false);
+#endif
+    if(a->hashjoinoperator != b->hashjoinoperator)
+      return(false);
+    return(equal(a->indexids,b->indexids));
+}
+
+bool
+_equalHashPath(a,b)
+     register HashPath a,b;
+{
+    Assert(IsA(a,HashPath));
+    Assert(IsA(b,HashPath));
+    
+    if (!equal(a->path_hashclauses,b->path_hashclauses))
+      return(false);
+
+    if(!equal(a->outerhashkeys,b->outerhashkeys))
+      return(false);
+    
+    if(!equal(a->innerhashkeys,b->innerhashkeys))
+      return(false);
+
+    if(!equal(a->pathclauseinfo,b->pathclauseinfo))
+      return(false);
+
+    if (a->outerjoincost != b->outerjoincost)
+      return(false);
+
+    if (!equal(a->joinid,b->joinid))
+      return(false);
+
+    return(true);
+}
+
+bool
+_equalJoinMethod(a,b)
+     register JoinMethod a,b;
+{
+    Assert(IsA(a,JoinMethod));
+    Assert(IsA(b,JoinMethod));
+
+    if (!equal(a->jmkeys,b->jmkeys))
+      return(false);
+    if (!equal(a->clauses,b->clauses))
+      return(false);
+    return(true);
+}
+
+bool
+_equalHInfo(a,b)
+     register HInfo a,b;
+{
+    Assert(IsA(a,HInfo));
+    Assert(IsA(b,HInfo));
+
+    if (a->hashop != b->hashop)
+      return(false);
+    return(true);
+}
+
+/* XXX  This equality function is a quick hack, should be
+ *      fixed to compare all fields.
+ */
+
+bool
+_equalIndexScan(a,b)
+     register IndexScan a,b;
+{
+    Assert(IsA(a,IndexScan));
+    Assert(IsA(b,IndexScan));
+
+    if(a->cost != b->cost)
+      return(false);
+
+    if (a->fragment != b->fragment)
+      return(false);
+
+    if (!equal(a->indxqual,b->indxqual))
+      return(false);
+
+    if (a->scanrelid != b->scanrelid)
+      return(false);
+
+    if (!equal(a->indxid,b->indxid))
+      return(false);
+    return(true);
+}
+
+bool
+_equalJInfo(a,b)
+     register JInfo a,b;
+{
+    Assert(IsA(a,JInfo));
+    Assert(IsA(b,JInfo));
+    if (!equal(a->otherrels,b->otherrels))
+      return(false);
+    if (!equal(a->jinfoclauseinfo,b->jinfoclauseinfo))
+      return(false);
+    if (a->mergesortable != b->mergesortable)
+      return(false);
+    if (a->hashjoinable != b->hashjoinable)
+      return(false);
+    return(true);
+}
+/*
  *  Stuff from execnodes.h
  */
 
@@ -376,14 +508,15 @@ _equalLispValue(a, b)
 
 		if (b == (LispValue) NULL)
 			return (false);
-
+		if (a == b)
+			return(true);
 		if (LISP_TYPE(a) != LISP_TYPE(b))
 			return (false);
 
 		switch (LISP_TYPE(a)) {
 
 		  case PGLISP_ATOM:
-			if (strcmp(a->val.name, b->val.name) != 0)
+			if (a->val.name != b->val.name)
 				return (false);
 			break;
 
@@ -416,7 +549,13 @@ _equalLispValue(a, b)
 			break;
 
 		  default:
-			elog(WARN, "_equalLispValue: LispAtom type %d unknown",
+			if (IsA(a,Node) && IsA(b,Node) ) 
+			  if(NodeType(a) == NodeType(b)) {
+			     return((*(a->equalFunc))(a,b));
+			  } else {
+			    return(false);
+			  }
+			elog(NOTICE,"equal: LispAtom type %d unknown",
 				a->type);
 			return (false);
 		}
@@ -431,3 +570,8 @@ _equalLispValue(a, b)
 
 	return (true);
 }
+
+
+
+
+
