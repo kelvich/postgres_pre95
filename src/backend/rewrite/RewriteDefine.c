@@ -61,7 +61,6 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
      double	necessary, sufficient;
 {
     static char	rulebuf[4096];
-    ObjectId rule_oid = InvalidObjectId;
     ObjectId eventrel_oid = InvalidObjectId;
     AttributeNumber evslot_index = InvalidAttributeNumber;
     Relation eventrel = NULL;
@@ -110,7 +109,7 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
 DefineQueryRewrite ( args ) 
      List args;
 {
-     char *rulename 		= CString ( nth ( 0,args )) ;
+     Name rulename 		= (Name)CString ( nth ( 0,args )) ;
      LispValue event_type	= nth ( 1 , args );
      List event_obj		= nth ( 2 , args );
      List event_qual	        = nth ( 3 , args );
@@ -180,8 +179,8 @@ DefineQueryRewrite ( args )
 	 }
 	 ruleId = InsertRule ( rulename, 
 			      CAtom(event_type),
-			      eobj_string,
-			      eslot_string,
+			      (Name)eobj_string,
+			      (Name)eslot_string,
 			      PlanToString(event_qual),
 			      (int)is_instead,
 			      PlanToString(action),
