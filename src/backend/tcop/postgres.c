@@ -80,6 +80,7 @@ extern char	*PG_username;
 
 /* this global is defined in utils/init/postinit.c */
 extern int	testFlag;
+extern int	lockingOff;
 
 Relation	reldesc;		/* current relation descritor */
 char		relname[80];		/* current relation name */
@@ -714,7 +715,7 @@ PostgresMain(argc, argv)
     ShowParserStats = ShowPlannerStats = ShowExecutorStats = 0;
     MasterPid = getpid();
     
-    while ((flag = getopt(argc, argv, "A:B:b:Cd:EM:NnOP:pQSst:Tf:")) != EOF)
+    while ((flag = getopt(argc, argv, "A:B:b:Cd:EM:NnOP:pQSsLt:Tf:")) != EOF)
       switch (flag) {
 	  	  
       case 'A':
@@ -927,6 +928,14 @@ PostgresMain(argc, argv)
           default:
                 errs++;
           }
+	  break;
+
+       case 'L':
+	  /* --------------------
+	   *  turn off locking
+	   * --------------------
+	   */
+	  lockingOff = 1;
 	  break;
 
 	  /* ----------------
