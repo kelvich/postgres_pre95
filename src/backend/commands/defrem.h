@@ -138,4 +138,29 @@ RemoveOperator ARGS((
 	Name	type2;
 ));
 
+
+/*
+ * DefineRule
+ *
+ * define rule utility. (used to be called rule_define in the old lisp 
+ * system).
+ */
+extern
+void
+DefineRule ARGS((
+	Name rule_name,
+	LispValue parse
+));
+
+/*
+ * RemoveRule
+ *	Remove a rule
+ *
+ */
+extern
+void
+RemoveRule ARGS((
+	Name ruleName
+));
+
 #endif	/* !defined(DefRemIncluded) */
