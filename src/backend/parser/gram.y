@@ -1585,7 +1585,7 @@ opt_array_bounds:
 	| '[' Iconst ']'
 		{
 		    $$ = (LispValue) MakeArray((ObjectId) 0, 0, false, 0,
-						$2, 0);
+						CInteger($2), 0);
 		}
 	| /* EMPTY */				{ NULLTREE }
 	;
