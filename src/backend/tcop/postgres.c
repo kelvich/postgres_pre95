@@ -9,22 +9,49 @@ static	char	amiint_c[] = "$Header$";
 
 #include <signal.h>
 
+
+#include <sys/file.h>
+#include <stdio.h>
+#include <strings.h>
+#include <signal.h>
+#include <ctype.h>
+
+#include "einternal.h"
+
 #include "c.h"
 #include "pg_lisp.h"
 #include "parse.h"
 
-#include "exc.h"	/* for ExcAbort and <setjmp.h> */
+#include "exc.h"
 
 #include "heapam.h"
-#include "mcxt.h" 
+#include "mcxt.h"
 #include "oid.h"
 #include "pinit.h"
 #include "pmod.h"
 #include "portal.h"
 
-#include "bkint.h"
+#include "fmgr.h"
+#include "catalog.h"
+#include "postgres.h"
+#include "c.h"
+#include "bufmgr.h"
+#include "defind.h"
+#include "log.h"
+#include "htup.h"
+#include "portal.h"
+#include "rel.h"
+#include "relscan.h"
+#include "skey.h"
+#include "tim.h"
+#include "trange.h"
+#include "xcxt.h"
+#include "xid.h"
 
+#include "parse.h"
 
+extern void die();
+extern void handle_warn();
 
 /*
  * AllocateAttribute --
@@ -46,49 +73,6 @@ struct attribute *	/* XXX */
  * position of its string pointer in the array of string pointers.
  */
 
-macro		*strtable [STRTABLESIZE];
-hashnode	*hashtable [HASHTABLESIZE];
-
-FILE		*source = NULL;
-static int	strtable_end = -1;    /* Tells us last occupied string space */
-static int	num_of_errs = 0;      /* Total number of errors encountered */
-
-static char *   (typestr[15]) = {
-	"bool", "bytea", "char", "char16", "dt", "int2", "int28",
-	"int4", "regproc", "text", "oid", "tid", "xid", "iid",
-	"oid8"
-};
-
-/* functions associated with each type */
-static	long	Procid[15][7] = {
-	{ 16, 1, 0, F_BOOLIN, F_BOOLOUT, F_BOOLEQ, NULL },
-	{ 17, -1, 1, F_BYTEAIN, F_BYTEAOUT, NULL, NULL },
-	{ 18, 1, 0, F_CHARIN, F_CHAROUT, F_CHAREQ, NULL },
-	{ 19, 16, 1, F_CHAR16IN, F_CHAR16OUT, F_CHAR16EQ, NULL },
-	{ 20, 4, 0, F_DATETIMEIN, F_DATETIMEOUT, NULL, NULL },
-	{ 21, 2, 0, F_INT2IN, F_INT2OUT, F_INT2EQ, F_INT2LT },
-	{ 22, 16, 1, F_INT28IN, F_INT28OUT, NULL, NULL },
-	{ 23, 4, 0, F_INT4IN, F_INT4OUT, F_INT4EQ, F_INT4LT },
-	{ 24, 4, 0, F_REGPROCIN, F_REGPROCOUT, NULL, NULL },
-	{ 25, -1, 1, F_TEXTIN, F_TEXTOUT, F_TEXTEQ, NULL },
-	{ 26, 4, 0, F_INT4IN, F_INT4OUT, F_INT4EQ, NULL },
-	{ 27, 6, 1, F_TIDIN, F_TIDOUT, NULL, NULL },
-	{ 28, 5, 1, F_XIDIN, F_XIDOUT, NULL, NULL },
-	{ 29, 1, 0, F_CIDIN, F_CIDOUT, NULL, NULL },
-	{ 30, 32, 1, F_OID8IN, F_OID8OUT, NULL, NULL }
-};
-
-struct	typmap {			/* a hack */
-	ObjectId	am_oid;
-	struct type	am_typ;
-};
-
-static	struct	typmap	**Typ = (struct typmap **)NULL;
-static	struct	typmap	*Ap = (struct typmap *)NULL;
-
-/*
-static struct context	*RelationOpenContext = NULL;
-*/
 
 static	int	Quiet = 0;
 static	int	Warnings = 0;
@@ -96,23 +80,177 @@ static	int	ShowTime = 0;
 #ifdef	EBUG
 static	int	ShowLock = 0;
 #endif
-static	char	Blanks[MAXATTR];
-static	char	Buf[MAXPGPATH];
 int		Userid;
 Relation	reldesc;		/* current relation descritor */
 char		relname[80];		/* current relation name */
-struct	attribute *attrtypes[MAXATTR];  /* points to attribute info */
-char		*values[MAXATTR];	/* cooresponding attribute values */
-int		numattr;		/* number of attributes for cur. rel */
-static TimeRange	StandardTimeRange = DefaultTimeRange;
-static TimeRangeSpace	StandardTimeRangeSpace;
 jmp_buf		Warn_restart;
 
 bool override = false;
 
 Portal	BlankPortal = NULL;
 
-
+/* ----------------
+ *	MakeQueryDesc
+ * ----------------
+ */
+
+LispValue
+MakeQueryDesc(command, parsetree, plantree, state, feature)
+     LispValue	command;
+     LispValue	parsetree;
+     LispValue	plantree;
+     LispValue  state;
+     LispValue  feature;
+{
+   return (LispValue)
+      lispCons(command,
+	       lispCons(parsetree,
+			lispCons(plantree,
+				 lispCons(state,
+					  lispCons(feature, LispNil)))));
+
+}
+
+/* ----------------
+ *	doretblank
+ *
+ *      XXX this should disappear when the tcop is converted
+ *          this is just a temporary hack for now.. -cim 8/3/89
+ *
+ * ----------------
+ */
+
+void
+DoRetBlank(parser_output, plan)
+     LispValue parser_output;
+     Plan      plan;
+{
+   LispValue queryDesc;
+   EState state;
+   LispValue feature;
+   LispValue attinfo;		/* returned by ExecMain */
+
+   {
+      /* ----------------
+       *	create the Executor State structure
+       * ----------------
+       */
+      ScanDirection   direction;                    
+      abstime         time;                         
+      ObjectId        owner;                        
+      List            locks;                        
+      List            subPlanInfo;                 
+      Name            errorMessage;                
+      List            rangeTable;                  
+      HeapTuple       qualTuple;
+      ItemPointer     qualTupleID;
+      Relation        relationRelationDesc;
+      ObjectId        resultRelation;
+      Relation        resultRelationDesc; 
+
+      direction = 		  EXEC_FRWD;
+      time = 		  0;
+      owner = 		  0;                
+      locks = 		  LispNil;                
+      qualTuple =		  NULL;
+      qualTupleID =	  0;
+
+      /* ----------------
+       *   currently these next are initialized in InitPlan.  For now
+       *   we pass dummy variables.. Eventually this should be cleaned up.
+       *   -cim 8/5/89
+       * ----------------
+       */
+      rangeTable = 	  LispNil;
+      subPlanInfo = 	  LispNil;   
+      errorMessage = 	  NULL;
+      relationRelationDesc = NULL;
+      resultRelation =	  NULL;
+      resultRelationDesc =   NULL;
+
+      state = MakeEState(direction,    
+			 time,                 
+			 owner,                
+			 locks,                
+			 subPlanInfo,          
+			 errorMessage,         
+			 rangeTable,           
+			 qualTuple,            
+			 qualTupleID,          
+			 relationRelationDesc, 
+			 resultRelation,       
+			 resultRelationDesc);   
+   }
+   
+   /* ----------------
+    *	first time through ExecMain we call it with feature = '(start)
+    *
+    *   (setq attinfo (ExecMain (list (cadar partree)
+    *			      partree plan state '(start))))
+    * ----------------
+    */
+   
+   feature = lispCons(lispInteger(EXEC_START), LispNil);
+   queryDesc = MakeQueryDesc(CAR(CDR(CAR(parser_output))),
+			     parser_output,
+			     plan,
+			     state,
+			     feature);
+
+   attinfo = ExecMain(queryDesc);
+
+   /* ----------------
+    *   display the result of the first call to ExecMain()
+    * ----------------
+    */
+
+   showatts("blank", CInteger(CAR(attinfo)), CADR(attinfo));
+   
+   /* (showatts "blank" (car attinfo) (cadr attinfo)) */
+
+   /* ----------------
+    *   second call to ExecMain we have feature = '(debug) meaning
+    *   run the plan and generate debugging output
+    *
+    *   (ExecMain (list (cadar partree) partree plan state '(debug)))
+    *
+    *	'(debug) == EXEC_DEBUG	("DEBUG" is already used)
+    *
+    * ----------------
+    */
+
+   feature = lispCons(lispInteger(EXEC_DEBUG), LispNil);
+   queryDesc = MakeQueryDesc(CAR(CDR(CAR(parser_output))),
+			     parser_output,
+			     plan,
+			     state,
+			     feature);
+
+   (void) ExecMain(queryDesc);
+
+   /* ----------------
+    *   final call to ExecMain we have feature = '(end) meaning
+    *   close relations, end scans and free resources
+    *
+    *   (ExecMain (list (cadar partree) partree plan state '(end)))
+    *
+    * ----------------
+    */
+
+   feature = lispCons(lispInteger(EXEC_END), LispNil);
+   queryDesc = MakeQueryDesc(CAR(CDR(CAR(parser_output))),
+			     parser_output,
+			     plan,
+			     state,
+			     feature);
+
+   (void) ExecMain(queryDesc);
+}
+
+/* ----------------
+ *	main
+ * ----------------
+ */
 
 main(argc, argv)
 	int	argc;
@@ -124,7 +262,10 @@ main(argc, argv)
 	char		*dat;
 	extern	int	Noversion;		/* util/version.c */
 	extern	int	Quiet;
-	extern	char	Blanks[], Buf[];
+/*	
+        extern	char	Blanks[];
+	extern  char    Buf[];
+*/  
 	extern	jmp_buf	Warn_restart;
 	extern	int	optind;
 	extern	char	*optarg;
@@ -173,17 +314,9 @@ main(argc, argv)
 	(void)MemoryContextSwitchTo(
 		(MemoryContext)PortalGetHeapMemory(BlankPortal));
 */
-	i = MAXATTR;
-	dat = Blanks;
-	while (i--) {
-		attrtypes[i-1]=(struct attribute *)NULL;
-		*dat++ = ' ';
-	}
-	for(i=0;i<STRTABLESIZE;i++)
-		strtable[i]=NULL;                    
-	for(i=0;i<HASHTABLESIZE;i++)
-		hashtable[i]=NULL;                   
-
+/*
+	  dat = Blanks;
+*/
 	signal(SIGHUP, handle_warn);
 
 	if (setjmp(Warn_restart) != 0) {
@@ -193,7 +326,7 @@ main(argc, argv)
 	}
 
 	/*** new code for handling input */
-     
+
 	puts("POSTGRES backend interactive interface:  $Revision$ ($Date$)");
 
 	parser_output = lispList();
@@ -203,47 +336,63 @@ main(argc, argv)
 		startmmgr(0);
 */
 	  /* OverrideTransactionSystem(true); */
-		
+
 	  StartTransactionCommand(BlankPortal);
-	  EMITPROMPT;
+	  printf("> ");
 	  parser_input = gets(parser_input);
 	  printf("input string is %s\n",parser_input);
 	  parser(parser_input,parser_output);
 	  printf("parser outputs :\n");
 	  lispDisplay(parser_output,0);
 	  printf("\n");
-	  
+
 	  if (atom CAR(parser_output))
 	    /*utility_invoke(CAR(parser_output),CDR(parser_output));*/
 	    ;
 	  else {
 	      Node plan;
 	      extern Node planner();
+#ifdef NOTYET	      
 	      extern void init_planner();
 
 	      init_planner();
+#endif NOTYET
+	      
+	      /* ----------------
+	       *   generate the plan
+	       * ----------------
+	       */
 	      plan = planner(parser_output);
 	      printf("\nPlan is :\n");
 	      (*(plan->printFunc))(plan);
 	      printf("\n");
+	      /* ----------------
+	       *   call the executor
+	       * ----------------
+	       */
+	      DoRetBlank(parser_output, plan);
 	  }
-	  CommitTransactionCommand(); 
+	  CommitTransactionCommand();
      }
 
  usage:
 	fputs("Usage: amiint [-C] [-Q] [datname]\n", stderr);
 	exit(1);
-}
+}	
 
 void
 handle_warn()
 {
-    longjmp(Warn_restart);
+	longjmp(Warn_restart);
 }
 
 void
 die()
 {
-    ExitPostgres(0);
+	ExitPostgres(0);
 }
+
+
+
+
 
