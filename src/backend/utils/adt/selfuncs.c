@@ -259,13 +259,16 @@ getattnvals(relid, attnum)
 	HeapTuple	atp;
 	int		nvals;
 
-	atp = SearchSysCacheTuple(ATTNUM, relid, attnum, NULL, NULL);
+	atp = SearchSysCacheTuple(RELOID, relid, NULL, NULL, NULL);
+	/* XXX -- use number of tuples as number of distinctive values
+	   just for now, because number of distinctive values is
+	   not cached */
 	if (!HeapTupleIsValid(atp)) {
 		elog(WARN, "getattnvals: no attribute tuple %d %d",
 		     relid, attnum);
 		return(0);
 	}
-	nvals = ((struct attribute *) GETSTRUCT(atp))->attnvals;
+	nvals = ((RelationTupleForm) GETSTRUCT(atp))->reltuples;
 	return(nvals);
 }
 
