@@ -12,7 +12,7 @@
 #		break it
 #
 CFLAGS+= -W l,-E -W p,-H400000
-CFLAGS+= -DHAVE_STRFTIME
+CFLAGS+= -DUSE_POSIX_TIME
 LDFLAGS+= -W l,-E
 LDADD+= -ll -ldld
 
