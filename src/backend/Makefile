@@ -185,20 +185,43 @@ CLEANFILES+= y.output
 # TODO: include tmp/*.h and port/?/*.h files in $HEADERS
 
 
-afterinstall:
+afterinstall: pg_id
 	install ${STRIP} -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
 		postmaster ${DESTDIR}${BINDIR}/postmaster
+.if ${PORTNAME} == "sparc"
+#
+# 	actually, if mkdir doesn't have the -p flag.  we'll paramaterize
+# 	all this stuff in the next release so please bear with us.
+#
+	if test ! -d ${DESTDIR}${DATADIR}; \
+		then mkdir ${DESTDIR}${DATADIR}; fi
+	if test ! -d ${DESTDIR}${DATADIR}/files; \
+		then mkdir ${DESTDIR}${DATADIR}/files; fi
+.endif
+	PG_UID=`./pg_id ${POSTGRESLOGIN}`; \
+	case $$PG_UID in "NOUSER") \
+		echo "Warning: no account named ${POSTGRESLOGIN}, using yours";\
+		PG_UID=`./pg_id`;; \
+	esac ;\
 	for bki in ${BKIFILES}; do \
-		sed "s/PGUID/`egrep '^postgres' /etc/passwd | sed -e 's/^[^:]*:[^:]*://' -e 's/:.*//'`/g" < $$bki > $$bki.sed ; \
+		sed "s/PGUID/$$PG_UID/" < $$bki > $$bki.sed ; \
 		install -c -o ${BINOWN} -g ${BINGRP} -m 444 \
 		    $$bki.sed ${DESTDIR}${DATADIR}/files/$$bki; \
 	done
 
+#
+# so we can get the UID of the postgres owner (w/o moving pg_id to tools/)
+#
+.PATH: ${.CURDIR}/../bin/pg_id
+pg_id:	pg_id.c
+	${CC} -o pg_id ${.ALLSRC} 
+
 ###
-# `depend' experiment: since the backend has a bazillion source
+# depend target: since the backend has a bazillion source
 #	files, doing a mkdep on the whole thing is unweildly. This
 #	method has a higher fixed cost, but we only remake the
-#	dependecies we need to.
+#	dependecies we need to and don't lose if the mkdep fails on
+#	a file.
 #
 .SUFFIXES: .d
 .c.d:
