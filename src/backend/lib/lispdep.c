@@ -28,6 +28,7 @@ RcsId("$Header$");
 
 LispValue	LispNil = (LispValue) NULL;
 extern bool _equalLispValue();
+extern void lispDisplayFp();
 extern void lispDisplay();
 
 #include "c.h"
@@ -116,7 +117,7 @@ lispAtom(atomName)
 
 	newobj->type = PGLISP_ATOM;
 	newobj->equalFunc = _equalLispValue;
-	newobj->printFunc = lispDisplay;
+	newobj->printFunc = lispDisplayFp;
 	newobj->val.name = (char *)keyword;
 	newobj->cdr = LispNil;
 	return(newobj);
@@ -129,7 +130,7 @@ lispDottedPair()
 
 	newobj->type = PGLISP_DTPR;
 	newobj->equalFunc = _equalLispValue;
-	newobj->printFunc = lispDisplay;
+	newobj->printFunc = lispDisplayFp;
 	newobj->val.car = LispNil;
 	newobj->cdr = LispNil;
 	return(newobj);
@@ -143,7 +144,7 @@ lispFloat(floatValue)
 
 	newobj->type = PGLISP_FLOAT;
 	newobj->equalFunc = _equalLispValue;
-	newobj->printFunc = lispDisplay;
+	newobj->printFunc = lispDisplayFp;
 	newobj->val.flonum = floatValue;
 	newobj->cdr = LispNil;
 	return(newobj);
@@ -157,7 +158,7 @@ lispInteger(integerValue)
 
 	newobj->type = PGLISP_INT;
 	newobj->equalFunc = _equalLispValue;
-	newobj->printFunc = lispDisplay;
+	newobj->printFunc = lispDisplayFp;
 	newobj->val.fixnum = integerValue;
 	newobj->cdr = LispNil;
 	return(newobj);
@@ -172,7 +173,7 @@ lispString(string)
 
     newobj->type = PGLISP_STR;
     newobj->equalFunc = _equalLispValue;
-    newobj->printFunc = lispDisplay;
+    newobj->printFunc = lispDisplayFp;
     newobj->cdr = LispNil;
 
     if(string) {
@@ -193,7 +194,7 @@ lispVectori(nBytes)
 	
 	newobj->type = PGLISP_VECI;
 	newobj->equalFunc = _equalLispValue;
-	newobj->printFunc = lispDisplay;
+	newobj->printFunc = lispDisplayFp;
 	newobj->val.veci = (struct vectori *)
 		palloc((unsigned) (sizeof(struct vectori) + nBytes));
 	newobj->val.veci->size = nBytes;
@@ -218,61 +219,75 @@ quote(lispObject)
 }
 
 /*
- *	lispDisplay
+ *	lispDisplayFp
  *
  *	Print a PGLISP tree depth-first.
  */
 #define length_of(byte_array)	(sizeof(byte_array) / sizeof((byte_array)[0]))
 
 void 
-lispDisplay(lispObject,iscdr)
+lispDisplayFp(fp, lispObject,iscdr)
+	FILE 		*fp;
 	LispValue	lispObject;
         int             iscdr;
 {
 	register	i;
 
 	if (lispObject == LispNil) {
-		printf("nil ");
+		fprintf(fp, "nil ");
 		return;
 	}
 	switch(lispObject->type) {
 	case PGLISP_ATOM:
 	  for (i=0; i < 85  ; i++ )
 	    if (ScanKeywords[i].value == (int)(lispObject->val.name) )
-	      printf ("%s ",ScanKeywords[i].name);
+	      fprintf (fp, "%s ",ScanKeywords[i].name);
 		break;
 	case PGLISP_DTPR:
 		if(!iscdr)
-			printf("(");
-		lispDisplay(CAR(lispObject),0);
+			fprintf(fp, "(");
+		lispDisplayFp(fp, CAR(lispObject),0);
 		if(CDR(lispObject)!=LispNil) {
 			if(CDR(lispObject)->type != PGLISP_DTPR)
-				printf(".");
-			lispDisplay(CDR(lispObject),1);
+				fprintf(fp, ".");
+			lispDisplayFp(fp, CDR(lispObject),1);
 		}
 		if(!iscdr)
-			printf(")");
+			fprintf(fp, ")");
 		break;
 	case PGLISP_FLOAT:
-		printf("%g ", lispObject->val.flonum);
+		fprintf(fp, "%g ", lispObject->val.flonum);
 		break;
 	case PGLISP_INT:
-		printf("%d ", lispObject->val.fixnum);
+		fprintf(fp, "%d ", lispObject->val.fixnum);
 		break;
 	case PGLISP_STR:
-		printf("\"%s\" ", lispObject->val.str);
+		fprintf(fp, "\"%s\" ", lispObject->val.str);
 		break;
 	case PGLISP_VECI:
-		printf("#<%d:", lispObject->val.veci->size);
+		fprintf(fp, "#<%d:", lispObject->val.veci->size);
 		for (i = 0; i < lispObject->val.veci->size; ++i)
-			printf(" %d", lispObject->val.veci->data[i]);
-		printf(" >");
+			fprintf(fp, " %d", lispObject->val.veci->data[i]);
+		fprintf(fp, " >");
 		break;
 	default:
-		(* ((Node)lispObject)->printFunc)(stdout, lispObject);
-		/*printf("\nUnknown LISP type : internal error\n");*/
+		(* ((Node)lispObject)->printFunc)(fp, lispObject);
+		/*fprintf(fp, "\nUnknown LISP type : internal error\n");*/
 		break;
 	}
+}
+
+/*
+ *	lispDisplay
+ *
+ * 	Print a PGLISP tree depth-first in stdout
+ */
+void
+lispDisplay(lispObject,iscdr)
+	LispValue	lispObject;
+        int             iscdr;
+{
+    lispDisplayFp(stdout, lispObject, iscdr);
 }
 
 
