@@ -12,6 +12,7 @@ void main(argc,argv)
     int cnt, total = 0;
     int blen;
     int i;
+    char *res;
 
     PQsetdb(getenv("USER"));
     if (argc == 1)	{
@@ -19,6 +20,7 @@ void main(argc,argv)
 	exit(0);
     }
 
+    res = PQexec("begin");
     for (i=1;i<argc;i++) {
          if (!strcmp(argv[i],"-")) {
 	    copy(0,1);
@@ -32,6 +34,7 @@ void main(argc,argv)
 	 if (pgcopy(infd,1) < 0) errs = 1;
          p_close(infd);
     }
+    res = PQexec("end");
     PQfinish();
 }
 
