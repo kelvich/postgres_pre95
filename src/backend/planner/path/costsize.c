@@ -462,6 +462,8 @@ cost_hashjoin (outercost,innercost,outerkeys,innerkeys,outersize,
     int innerpages = page_size (innersize,innerwidth);
     int nrun = ceil((double)outerpages/(double)NBuffers);
 
+    if (outerpages < innerpages)
+       return _disable_cost_;
     if ( _cost_weirdness_ ) {
 	if ( _enable_hashjoin_ ) 
 	  temp += 3000;
