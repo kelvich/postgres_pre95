@@ -747,7 +747,7 @@ ExecuteStmt:
             from_clause with_clause where_clause
 		{ 
 			$$ = $1; 
-		  	elog(NOTICE,"execute does not work in Version 1");
+		  	elog(WARN, "execute does not work in Version 1");
 		}
 	;
 
