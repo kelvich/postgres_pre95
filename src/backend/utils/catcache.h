@@ -34,6 +34,7 @@ typedef struct catcache {
 	ObjectId	indexId;
 	char		*cc_relname;	/* relation name for defered open */
 	char		*cc_indname;	/* index name for defered open */
+	HeapTuple	(*cc_iscanfunc)(); /* index scanfunction */
 	TupleDescriptor cc_tupdesc; 	/* tuple descriptor from reldesc */
 	int		id;		/* XXX could be improved -hirohama */
 	short		cc_ntup;	/* # of tuples in this cache	*/
@@ -58,7 +59,7 @@ extern struct catcache	*Caches;
  */
 extern
 struct catcache *
-InitSysCache ARGS((char *relname , int nkeys , int key []));
+InitSysCache ARGS(( char *relname, Name *indname, int nkeys , int key [], HeapTuple (*iScanfuncP)() ));
 
 /*
  * ResetSystemCache --
@@ -136,7 +137,8 @@ struct catcache *InitIndexedSysCache ARGS((
 	char *relname, 
 	char *indname, 
 	int nkeys, 
-	int key []
+	int key [],
+	HeapTuple (*iScanfuncP)()
 ));
 
 #endif	/* !defined(CatCacheIncluded) */
