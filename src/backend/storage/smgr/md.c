@@ -37,12 +37,21 @@ static int	*Md_fdvec;
  *	commit, we force changes to disk for all dirty file descriptors.
  *	This routine allocates and initializes the table.
  *
+ *	The parameter, 'unused', is an ipc key suitable for initializing
+ *	shared memory or semaphores.  The magnetic disk storage manager
+ *	requires neither.
+ *
  *	Returns SM_SUCCESS or SM_FAIL with errno set as appropriate.
  */
 
 int
-mdinit()
+mdinit(unused)
+    int unused;
 {
+#ifdef lint
+    unused = unused;
+#endif /* lint */
+
     if ((Md_fdvec = (int *) malloc(Nfds * sizeof(int))) == (int *) NULL)
 	return (SM_FAIL);
 
@@ -60,7 +69,7 @@ mdcreate(reln)
     char *path;
     extern char *relpath();
 
-    path = relpath(reln->rd_rel->relname);
+    path = relpath(&(reln->rd_rel->relname.data[0]));
     fd = FileNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0666);
 
     /*
