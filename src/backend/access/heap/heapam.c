@@ -1259,9 +1259,9 @@ heap_insert(relation, tup, off)
 	LastOidProcessed = tup->t_oid;
     }
 
-    TransactionIdStore(GetCurrentTransactionId(), (Pointer)tup->t_xmin);
+    TransactionIdStore(GetCurrentTransactionId(), &(tup->t_xmin));
     tup->t_cmin = GetCurrentCommandId();
-    PointerStoreInvalidTransactionId((Pointer)tup->t_xmax);
+    PointerStoreInvalidTransactionId((Pointer)&(tup->t_xmax));
     tup->t_tmin = InvalidTime;
     tup->t_tmax = InvalidTime;
 
@@ -1345,7 +1345,7 @@ heap_delete(relation, tid)
      *	store transaction information of xact deleting the tuple
      * ----------------
      */
-    TransactionIdStore(GetCurrentTransactionId(), (Pointer)tp->t_xmax);
+    TransactionIdStore(GetCurrentTransactionId(), &(tp->t_xmax));
     tp->t_cmax = GetCurrentCommandId();
     ItemPointerSetInvalid(&tp->t_chain);
 
@@ -1453,9 +1453,9 @@ heap_replace(relation, otid, tup)
     }
     /* XXX order problems if not atomic assignment ??? */
     tup->t_oid = tp->t_oid;
-    TransactionIdStore(GetCurrentTransactionId(), (Pointer)tup->t_xmin);
+    TransactionIdStore(GetCurrentTransactionId(), &(tup->t_xmin));
     tup->t_cmin = GetCurrentCommandId();
-    PointerStoreInvalidTransactionId((Pointer)tup->t_xmax);
+    PointerStoreInvalidTransactionId(&(tup->t_xmax));
     tup->t_tmin = InvalidTime;
     tup->t_tmax = InvalidTime;
     ItemPointerSetInvalid(&tup->t_chain);
@@ -1519,7 +1519,7 @@ heap_replace(relation, otid, tup)
      *	new item in place, now record transaction information
      * ----------------
      */
-    TransactionIdStore(GetCurrentTransactionId(), (Pointer)tp->t_xmax);
+    TransactionIdStore(GetCurrentTransactionId(), &(tp->t_xmax));
     tp->t_cmax = GetCurrentCommandId();
     tp->t_chain = tup->t_ctid;
 
