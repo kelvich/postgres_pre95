@@ -472,7 +472,7 @@ _vc_vacindices(curvrl, onerel)
 	d = (Datum) heap_getattr(pgitup, buf, Anum_pg_index_indexrelid,
 				 pgidesc, &n);
 	indoid = DatumGetObjectId(d);
-	indrel = heap_open(indoid);
+	indrel = index_open(indoid);
 	_vc_vaconeind(curvrl, indrel);
 	heap_close(indrel);
 	nindices++;
