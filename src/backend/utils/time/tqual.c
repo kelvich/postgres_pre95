@@ -565,8 +565,7 @@ HeapTupleSatisfiesNow(tuple)
 				return (true);
 			}
 
-			Assert(TransactionIdIsCurrentTransactionId(
-				tuple->t_xmax));
+			Assert(TransactionIdIsCurrentTransactionId(tuple->t_xmax));
 
 			if (CommandIdIsCurrentCommandId(tuple->t_cmax)) {
 				return (true);
@@ -717,8 +716,7 @@ HeapTupleSatisfiesUpperUnboundedInternalTimeQual(tuple, qual)
 				return (true);
 			}
 
-			Assert(TransactionIdIsCurrentTransactionId(
-				tuple->t_xmax));
+			Assert(TransactionIdIsCurrentTransactionId(tuple->t_xmax));
 
 			if (CommandIdIsCurrentCommandId(tuple->t_cmax)) {
 				return (true);
