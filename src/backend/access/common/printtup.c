@@ -1,6 +1,23 @@
-/*
- * printtup.c --
- *	Routines to print out tuples to the standard output.
+/*----------------------------------------------------------------------------
+ *   FILE
+ *	printtup.c
+ *
+ *   DESCRIPTION
+ *	Routines to print out tuples to the destination (binary or non-binary
+ *	portals, frontend/interactive backend, etc.).
+ *
+ *   INTERFACE ROUTINES
+ *	typtoout
+ *	printtup
+ *	showatts
+ *	debugtup
+ *	printtup_internal
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ *----------------------------------------------------------------------------
  */
 
 #include <sys/file.h>
@@ -21,32 +38,6 @@ RcsId("$Header$");
 
 #include "catalog/syscache.h"
 #include "catalog/pg_type.h"
-
-/* ----------------
- *	convtypeinfo
- *
- *	Converts an old-style typeinfo (struct attribute array) into
- *	the new-style typeinfo (struct attribute (*) array).
- *
- *	XXX temporary, but still called by the executor.
- * ----------------
- */
-struct attribute **
-convtypeinfo(natts, att)
-    int 		natts;
-    struct attribute	*att;
-{
-    struct	attribute *ap, **rpp, **retatt;
-    
-    rpp = retatt = (struct attribute **) 
-	palloc(natts * sizeof(*rpp) + natts * sizeof(**rpp));
-    MemoryCopy(rpp + natts, att, natts * sizeof(**rpp));
-    
-    ap = (struct attribute *)(rpp + natts);
-    while (--natts >= 0)
-	*rpp++ = ap++;
-    return(retatt);
-}
 
 /* ----------------------------------------------------------------
  *	printtup / debugtup support
@@ -76,6 +67,7 @@ typtoout(type)
     return(InvalidObjectId);
 }
 
+static
 ObjectId
 gettypelem(type)
     ObjectId	type;
@@ -158,6 +150,7 @@ printtup(tuple, typeinfo)
  *	printatt
  * ----------------
  */
+static
 void
 printatt(attributeId, attributeP, value)
     unsigned		attributeId;
@@ -270,6 +263,9 @@ printtup_internal(tuple, typeinfo)
      *	send the attributes of this tuple
      * ----------------
      */
+#ifdef IPORTAL_DEBUG
+    fprintf(stderr, "sending tuple with %d atts\n", tuple->t_natts);
+#endif
     for (i = 0; i < tuple->t_natts; ++i) {
 	int32 len = typeinfo[i]->attlen;
 
@@ -278,7 +274,7 @@ printtup_internal(tuple, typeinfo)
 	    /* # of bytes, and opaque data */
 	    if (len == -1) {
 		/* variable length, assume a varlena structure */
-		len = VARSIZE(attr);
+		len = VARSIZE(attr) - VARHDRSZ;
 
 		pq_putint(len, sizeof(int32));
 		pq_putnchar(VARDATA(attr), len);
@@ -299,15 +295,15 @@ printtup_internal(tuple, typeinfo)
 
 		    pq_putint(len, sizeof(int32));
 		    switch (len) {
-		    case 1:
+		    case sizeof(int8):
 			i8 = DatumGetChar(attr);
 			pq_putnchar((char *) &i8, len);
 			break;
-		    case 2:
+		    case sizeof(int16):
 			i16 = DatumGetInt16(attr);
 			pq_putnchar((char *) &i16, len);
 			break;
-		    case 4:
+		    case sizeof(int32):
 			i32 = DatumGetInt32(attr);
 			pq_putnchar((char *) &i32, len);
 			break;
