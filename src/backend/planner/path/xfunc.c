@@ -44,7 +44,7 @@ void xfunc_rellist_sortprds(LispValue rels)
     int i;
 
     for(temp = rels, i = 0; temp != LispNil; temp = CDR(temp), i++)
-      set_clauseinfo(CAR(temp), lisp_qsort(get_clauseinfo(CAR(temp)), 
+      set_clauseinfo(CAR(temp), lisp_qsort((LispValue) get_clauseinfo(CAR(temp)), 
 					   xfunc_cinfo_compare));
 
     return;

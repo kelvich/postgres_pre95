@@ -185,7 +185,8 @@ create_scan_node(best_path,tlist)
      if (XfuncMode != XFUNC_OFF)
       {
 	  /* sort clauses by cost/(1-selectivity) -- JMH 2/26/92 */
-	  set_qpqual(node, lisp_qsort(get_qpqual(node), xfunc_clause_compare));
+	  set_qpqual((Plan) node, lisp_qsort((LispValue) get_qpqual((Plan) node), 
+				                         xfunc_clause_compare));
 	  if (XfuncMode != XFUNC_NOR)
 	    /* sort the disjuncts within each clause by cost -- JMH 3/4/92 */
 	    xfunc_disjunct_sort(node->qpqual);
