@@ -21,7 +21,7 @@ RcsId("$Header$");
 #include "tmp/portal.h"
 #include "utils/catcache.h"
 #include "utils/fmgr.h"		/* for F_BOOLEQ, etc.  DANGER */
-#include "utils/lmgr.h"
+#include "storage/lmgr.h"
 #include "utils/log.h"
 #include "utils/mcxt.h"
 #include "utils/rel.h"
