@@ -6,6 +6,7 @@ extern Name get_attname ARGS((ObjectId relid, AttributeNumber attnum));
 extern AttributeNumber get_attnum ARGS((ObjectId relid, Name attname));
 extern ObjectId get_atttype ARGS((ObjectId relid, AttributeNumber attnum));
 extern RegProcedure get_opcode ARGS((ObjectId opid));
+extern NameData get_opname ARGS((ObjectId opid));
 extern LispValue op_mergesortable ARGS((ObjectId opid, ObjectId ltype, ObjectId rtype));
 extern ObjectId op_hashjoinable ARGS((ObjectId opid, ObjectId ltype, ObjectId rtype));
 extern ObjectId get_commutator ARGS((ObjectId opid));
