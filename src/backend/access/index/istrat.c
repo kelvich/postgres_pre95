@@ -83,7 +83,6 @@ StrategyMapGetScanKeyEntry(map, strategyNumber)
 {
     Assert(StrategyMapIsValid(map));
     Assert(StrategyNumberIsValid(strategyNumber));
-
     return (&map->entry[strategyNumber - 1]);
 }
 
@@ -102,7 +101,6 @@ IndexStrategyGetStrategyMap(indexStrategy, maxStrategyNum, attrNum)
     Assert(AttributeNumberIsValid(attrNum));
 
     maxStrategyNum = AMStrategies(maxStrategyNum);	/* XXX */
-
     return
 	&indexStrategy->strategyMapData[maxStrategyNum * (attrNum - 1)];
 }
@@ -117,7 +115,6 @@ AttributeNumberGetIndexStrategySize(maxAttributeNumber, maxStrategyNumber)
     StrategyNumber	maxStrategyNumber;
 {
     maxStrategyNumber = AMStrategies(maxStrategyNumber);	/* XXX */
-
     return
 	maxAttributeNumber * maxStrategyNumber * sizeof (ScanKeyData);
 }
@@ -521,7 +518,8 @@ OperatorRelationFillScanKeyEntry(operatorRelation, operatorObjectId, entry)
 void
 IndexSupportInitialize(indexStrategy, indexSupport,
 			indexObjectId, accessMethodObjectId,
-			maxStrategyNumber, maxSupportNumber)
+			maxStrategyNumber, maxSupportNumber,
+			maxAttributeNumber)
 
     IndexStrategy	indexStrategy;
     RegProcedure	*indexSupport;
@@ -529,6 +527,7 @@ IndexSupportInitialize(indexStrategy, indexSupport,
     ObjectId		accessMethodObjectId;
     StrategyNumber	maxStrategyNumber;
     StrategyNumber	maxSupportNumber;
+    AttributeNumber	maxAttributeNumber;
 {
     Relation		relation;
     Relation		operatorRelation;
@@ -538,12 +537,11 @@ IndexSupportInitialize(indexStrategy, indexSupport,
     StrategyMap		map;
     AttributeNumber	attributeNumber;
     AttributeOffset	attributeIndex;
-    AttributeNumber	maxAttributeNumber;
     ObjectId		operatorClassObjectId[ MaxIndexAttributeNumber ];
 
     maxStrategyNumber = AMStrategies(maxStrategyNumber);
 
-	ScanKeyEntryInitialize(&entry[0], 0, IndexRelationIdAttributeNumber,
+    ScanKeyEntryInitialize(&entry[0], 0, IndexRelationIdAttributeNumber,
 						   ObjectIdEqualRegProcedure, 
 						   ObjectIdGetDatum(indexObjectId));
 
@@ -557,8 +555,8 @@ IndexSupportInitialize(indexStrategy, indexSupport,
      * XXX note that the following assumes the INDEX tuple is well formed and
      * that the key[] and class[] are 0 terminated.
      */
-    attributeIndex = 0;
-    for (;;) {
+    for (attributeIndex=0; attributeIndex<maxAttributeNumber; attributeIndex++)
+    {
 	IndexTupleForm	iform;
 
 	iform = (IndexTupleForm) HeapTupleGetForm(tuple);
@@ -572,11 +570,7 @@ IndexSupportInitialize(indexStrategy, indexSupport,
 
 	operatorClassObjectId[attributeIndex]
 		= iform->indclass[attributeIndex];
-
-	attributeIndex++;
     }
-
-    maxAttributeNumber = attributeIndex;
 
     heap_endscan(scan);
     heap_close(relation);
