@@ -10,8 +10,6 @@
 /*
  * "$Header$"
  */
-char *pg_username ARGS((void ));
-
 
 char *
 filename_in(file)
@@ -36,7 +34,7 @@ char *file;
 	    char name[16], *p;
 	    struct passwd *pw;
 
-	    strcpy(name, pg_username());
+	    GetUserName(name);
 
 	    if ((pw = getpwnam(name)) == NULL) {
 		elog(WARN, "User %s is not a Unix user on the db server.",

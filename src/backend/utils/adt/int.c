@@ -13,6 +13,9 @@
  *
  *	Arithmetic operators:
  *	 intmod, int4fac
+ *
+ * XXX makes massive and possibly unwarranted type promotion assumptions.
+ * fix me when we figure out what we want to do about ANSIfication...
  */
 
 #include "tmp/postgres.h"
@@ -206,24 +209,14 @@ int4out(l)
  *	===================
  */
 
-/*
- *	itoi - "convert" arg1 to another integer type
- */
-int32
-itoi(arg1)
-	int32	arg1;
-{
-	return(arg1);
-}
+int32	i2toi4(arg1)	int16	arg1;	{ return((int32) arg1); }
+int16	i4toi2(arg1)	int32	arg1;	{ return((int16) arg1); }
 
 
 /*
  *	=========================
  *	BOOLEAN OPERATOR ROUTINES
  *	=========================
- *
- *	These operations are used (and work correctly) for nearly
- *	every integer type, e.g., int2, int32, bool, char, OID, ...
  */
 
 /*
@@ -248,6 +241,20 @@ int32 int2le(arg1, arg2)	int16	arg1, arg2; { return(arg1 <= arg2); }
 int32 int2gt(arg1, arg2)	int16	arg1, arg2; { return(arg1 > arg2); } 
 int32 int2ge(arg1, arg2)	int16	arg1, arg2; { return(arg1 >= arg2); }
 
+int32 int24eq(arg1, arg2)	int32	arg1, arg2; { return(arg1 == arg2); }
+int32 int24ne(arg1, arg2) 	int32	arg1, arg2; { return(arg1 != arg2); }
+int32 int24lt(arg1, arg2) 	int32	arg1, arg2; { return(arg1 < arg2); }
+int32 int24le(arg1, arg2) 	int32	arg1, arg2; { return(arg1 <= arg2); }
+int32 int24gt(arg1, arg2)	int32	arg1, arg2; { return(arg1 > arg2); } 
+int32 int24ge(arg1, arg2)	int32	arg1, arg2; { return(arg1 >= arg2); }
+
+int32 int42eq(arg1, arg2)	int32	arg1, arg2; { return(arg1 == arg2); }
+int32 int42ne(arg1, arg2) 	int32	arg1, arg2; { return(arg1 != arg2); }
+int32 int42lt(arg1, arg2) 	int32	arg1, arg2; { return(arg1 < arg2); }
+int32 int42le(arg1, arg2) 	int32	arg1, arg2; { return(arg1 <= arg2); }
+int32 int42gt(arg1, arg2)	int32	arg1, arg2; { return(arg1 > arg2); } 
+int32 int42ge(arg1, arg2)	int32	arg1, arg2; { return(arg1 >= arg2); }
+
 int32 keyfirsteq(arg1, arg2)	int16	*arg1,arg2; { return(*arg1 == arg2); }
 
 /*
@@ -270,11 +277,23 @@ int16 int2mul(arg1, arg2)	int16	arg1, arg2; { return(arg1 * arg2); }
 int16 int2div(arg1, arg2)	int16	arg1, arg2; { return(arg1 / arg2); }
 int16 int2inc(arg)		int16   arg;	    { return(arg + (int16)1); }
 
+int32 int24pl(arg1, arg2) 	int32	arg1, arg2; { return(arg1 + arg2); }
+int32 int24mi(arg1, arg2)	int32	arg1, arg2; { return(arg1 - arg2); }
+int32 int24mul(arg1, arg2)	int32	arg1, arg2; { return(arg1 * arg2); }
+int32 int24div(arg1, arg2)	int32	arg1, arg2; { return(arg1 / arg2); }
+
+int32 int42pl(arg1, arg2) 	int32	arg1, arg2; { return(arg1 + arg2); }
+int32 int42mi(arg1, arg2)	int32	arg1, arg2; { return(arg1 - arg2); }
+int32 int42mul(arg1, arg2)	int32	arg1, arg2; { return(arg1 * arg2); }
+int32 int42div(arg1, arg2)	int32	arg1, arg2; { return(arg1 / arg2); }
+
 /*
  *	int[24]mod	- returns arg1 mod arg2
  */
 int32 int4mod(arg1, arg2)	int32	arg1, arg2; { return(arg1 % arg2); }
 int32 int2mod(arg1, arg2)	int16	arg1, arg2; { return(arg1 % arg2); }
+int32 int24mod(arg1, arg2)	int32	arg1, arg2; { return(arg1 % arg2); }
+int32 int42mod(arg1, arg2)	int32	arg1, arg2; { return(arg1 % arg2); }
 
 /*
  *	int[24]fac	- returns arg1!
