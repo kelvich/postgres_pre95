@@ -1163,13 +1163,13 @@ generate_fjoin(tlist)
 				     inner,
 				     results,
 				     alwaysDone);
-	tempList = nappend1(fjoinNode, LispNil);
-	tempList = nappend1(fjoinNode, fjoinList);
+	tempList = lispCons(fjoinNode, LispNil);
+	tempList = nappend1(tempList, fjoinList);
 	newTlist = nappend1(newTlist, tempList);
     }
     else if (nIters == 1)
     {
-	nappend1(newTlist, fjoinList);
+	newTlist = nappend1(newTlist, CAR(fjoinList));
     }
     return newTlist;
 }
