@@ -2,22 +2,9 @@
 
 .MAIN: all
 
-.SUFFIXES: .cat .ps .me
+SRCS= postgres-setup.me
+OBJS= ${SRCS:S/.me/.cat/g} ${SRCS:S/.me/.ps/g}
 
-DOCSRCS= manual.me postgres-setup.me release4.1.me
-
-NROFF=nroff
-
-GROFF=groff -spt
-
-DOCOBJS= ${DOCSRCS:S/.me/.cat/g} ${DOCSRCS:S/.me/.ps/g}
-
-.me.cat:
-	${GROFF} -me -Tascii ${.IMPSRC} > ${.TARGET}
-
-.me.ps:
-	${GROFF} -me -Tps ${.IMPSRC} > ${.TARGET}
-
-all: ${DOCOBJS}
+all: ${OBJS}
 
 .include <postgres.prog.mk>
