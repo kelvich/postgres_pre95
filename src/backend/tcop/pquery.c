@@ -451,6 +451,7 @@ ProcessQueryDesc(queryDesc)
  *	ignored for now.. -cim 9/18/89
  * ----------------------------------------------------------------
  */
+extern Pointer *SlaveQueryDescsP;
 
 Plan
 ExecuteFragments(queryDesc, planFragments)
@@ -488,9 +489,30 @@ ExecuteFragments(queryDesc, planFragments)
 	nslaves = GetNumberSlaveBackends();
 
 	/* ----------------
-	 *	place fragments in shared memory here
+	 *	place fragments in shared memory here.  
 	 * ----------------
 	 */
+	/* ----------------
+	 *	For now we just place the entire query desc in
+	 *	shared memory and let only let the first slave
+	 *	execute it..
+	 * ----------------
+	 */
+	SlaveQueryDescsP[0] = (Pointer)
+	    CopyObjectUsing(queryDesc, ExecSMAlloc);
+
+	/* ----------------
+	 *      Currently I'm debugging the copy function so
+	 *
+	 *	Print the query plan we copied and 
+	 *	try and execute the copied plan locally.
+	 * ----------------
+	 */
+	lispDisplay(SlaveQueryDescsP[0], 0);
+
+	ProcessQueryDesc(SlaveQueryDescsP[0]);
+	
+#if 0	
 	/* ----------------
 	 *	signal slave execution start
 	 * ----------------
@@ -507,7 +529,13 @@ ExecuteFragments(queryDesc, planFragments)
 	elog(DEBUG, "Master Backend: waiting for slaves...");
 	P_Finished();
 	elog(DEBUG, "Master Backend: slaves execution complete!");
-
+#endif
+	/* ----------------
+	 *	Clean Shared Memory used during the query
+	 * ----------------
+	 */
+	ExecSMClean();
+	
 	/* ----------------
 	 *	replace fragments with materialized results and
 	 *	return new plan to ProcessQuery.
