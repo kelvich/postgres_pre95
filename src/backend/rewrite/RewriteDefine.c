@@ -140,9 +140,6 @@ DefineQueryRewrite ( args )
  *		actiontree	-	parsetree(s) of rule action
  */
 
-#include "anum.h"		/* why are nattrs hardwired ??? */
-#include "oid.h"
-#include "pmod.h"
 
 OID
 InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
@@ -213,11 +210,11 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
  *	then calls "pg-eval" to evaluate the creation,
  */
   
-#include "relation.h"
-#include "relation.a.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
 #include "catalog_utils.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
 
 DefineVirtualRelation ( relname , tlist )
      char *relname;
