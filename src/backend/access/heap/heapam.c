@@ -157,7 +157,7 @@ RelationPhysicallyDeleteHeapTuple(relation, heapItem)
 	/* XXX start here */
 /*
 	ItemId		lp;
-	struct	tuple	*tp;
+	HeapTuple	tp;
 	PageHeader	dp;
 	Buffer		b;
 	long		time();
@@ -181,7 +181,7 @@ RelationPhysicallyDeleteHeapTuple(relation, heapItem)
 			elog(WARN, "heapdelete: failed BufferPut");
 		elog(WARN, "heapdelete: (am)invalid heapItem");
 	}
-	tp = (struct tuple *)PageGetItem(dp, lp);
+	tp = (HeapTuple)PageGetItem(dp, lp);
 */
 	/* XXX order problems if not atomic assignment ??? */
 /*
