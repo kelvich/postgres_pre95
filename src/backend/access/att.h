@@ -17,6 +17,8 @@
 
 typedef AttributeTupleForm	Attribute;
 
+typedef Attribute		*AttributePtr;
+
 /*
  * AttributeIsValid
  *	True iff the attribute is valid.
