@@ -788,7 +788,7 @@ OptStmtBlock:
 	  OptimizableStmt 
 		{ ELEMENT ;}
 	| OptStmtBlock OptimizableStmt
-		{ INC_LIST ; }
+		{ $$ = nappend1($1, $2); }
 	;
 
 RuleBody: 
