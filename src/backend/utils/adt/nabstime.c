@@ -44,7 +44,8 @@
 #define YRNUM(c, y) (DIVBY4(DAYS_PER_400YRS*(c)) + DIVBY4(DAYS_PER_4YRS*(y)))
 #define DAYNUM(c,y,mon,d)	(YRNUM((c), (y)) + mdays[mon] + (d))
 #define EPOCH_DAYNUM	DAYNUM(19, 69, 10, 1)	/* really January 1, 1970 */
-
+#define MIN_DAYNUM -24856			/* December 13, 1901 */
+#define MAX_DAYNUM 24854			/* January 18, 2038 */
 
 /* definitions for squeezing values into "value" */
 #define ABS_SIGNBIT 0200
@@ -638,8 +639,8 @@ register struct tm *tp;
 	register int mon = tp->tm_mon;
 	register int day = tp->tm_mday, year = tp->tm_year;
 	register time_t daynum;
+	time_t secondnum;
 	register int century;
-	time_t nrdaynum;
 
 	/* If it was a 2 digit year */
 	if (year < 100)
@@ -677,17 +678,30 @@ register struct tm *tp;
 	}
 	daynum = -EPOCH_DAYNUM + DAYNUM(century, year, mon, day);
 
+	/* check for time out of range */
+	if (daynum < MIN_DAYNUM || daynum > MAX_DAYNUM)
+	        return INVALID_ABSTIME;
+
 	/* convert to seconds */
-	nrdaynum = daynum =
+	secondnum =
 		tp->tm_sec + (tp->tm_min +(daynum*24 + tp->tm_hour)*60)*60;
+
+	/* check for overflow */
+	if ((daynum == MAX_DAYNUM && secondnum < 0) ||
+	    (daynum == MIN_DAYNUM && secondnum > 0))
+	        return INVALID_ABSTIME;
+
+	/* check for "current", "infinity", "-infinity" */
+	if (!AbsoluteTimeIsReal(secondnum))
+	        return INVALID_ABSTIME;
 
 	/* daylight correction */
 	if (tp->tm_isdst < 0)		/* unknown; find out */
-		tp->tm_isdst = localtime(&nrdaynum)->tm_isdst;
+		tp->tm_isdst = localtime(&secondnum)->tm_isdst;
 	if (tp->tm_isdst > 0)
-		daynum -= 60*60;
+		secondnum -= 60*60;
 
-	return daynum;
+	return secondnum;
 }
 
 /* Globals */
