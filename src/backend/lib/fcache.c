@@ -14,9 +14,28 @@
 #include "catalog/syscache.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_proc.h"
+#include "catalog/pg_language.h"
 #include "utils/fcache.h"
 #include "utils/log.h"
 #include "nodes/primnodes.h"
+
+
+
+
+static OID
+typeid_get_relid(type_id)
+        int type_id;
+{
+        HeapTuple     typeTuple;
+        TypeTupleForm   type;
+        OID             infunc;
+        typeTuple = SearchSysCacheTuple(TYPOID, (char *) type_id,
+                  (char *) NULL, (char *) NULL, (char *) NULL);
+        type = (TypeTupleForm) GETSTRUCT(typeTuple);
+        infunc = type->typrelid;
+        return(infunc);
+}
+
 
 /*-----------------------------------------------------------------
  *
@@ -34,12 +53,15 @@ init_fcache(foid, use_syscache)
 ObjectId foid;
 Boolean use_syscache;
 {
-    HeapTuple    procedureTuple;
-    HeapTuple    typeTuple;
-    struct proc    *procedureStruct;
-    Form_pg_type    typeStruct;
+    HeapTuple        procedureTuple;
+    HeapTuple        typeTuple;
+    struct proc      *procedureStruct;
+    Form_pg_type     typeStruct;
     FunctionCachePtr retval;
-    
+    char             *tmp;
+    ObjectId         *funcname_get_funcargtypes();
+    int              nargs;
+
     /* ----------------
      *   get the procedure tuple corresponding to the given
      *   functionOid.  If this fails, returnValue has been
@@ -50,6 +72,7 @@ Boolean use_syscache;
 
     if (use_syscache)
     {
+
         procedureTuple = SearchSysCacheTuple(PROOID, (char *) foid,
                                              NULL, NULL, NULL);
 
@@ -91,17 +114,50 @@ Boolean use_syscache;
         retval->typlen = (typeStruct)->typlen;
         retval->typbyval = (typeStruct)->typbyval ? true : false ;
 	retval->foid = foid;
+        retval->language = procedureStruct->prolang;
+	/*
+	 * might want to change this to just deref the pointer, there are
+	 * no varlenas (currently) before this attribute.
+	 */
+        tmp = (char *) SearchSysCacheGetAttribute(PROOID,Anum_pg_proc_prosrc,
+                                         foid);
+        retval->src =  (char *)  textout(tmp);
+
+        tmp = (char *) SearchSysCacheGetAttribute(PROOID,Anum_pg_proc_probin,
+                                         foid);
+        retval->bin = ( char *) textout(tmp);
+
+        retval->func_state = (char *)NULL;
+	nargs = procedureStruct->pronargs;
+	retval->nargs = nargs;
+
+	if (nargs > 0)
+	{
+	    ObjectId *argTypes;
+
+	    retval->nullVect = (bool *)palloc((retval->nargs)*sizeof(bool));
+
+	    retval->argOidVect =
+		(ObjectId *)palloc(retval->nargs*sizeof(ObjectId));
+	    argTypes = funcname_get_funcargtypes(procedureStruct->proname);
+	    bcopy(argTypes,
+		  retval->argOidVect,
+		  (retval->nargs)*sizeof(ObjectId));
+	}
+	else
+	{
+	    retval->argOidVect = (ObjectId *)NULL;
+	    retval->nullVect = (BoolPtr)NULL;
+	}
     }
     else
-    {
-        /* default to int4 */
+	elog(WARN, "what the ????, init the fcache without the catalogs?");
 
-        retval->typlen = sizeof(int4);
-        retval->typbyval = true;
-	retval->foid = foid;
-    }
+    if (retval->language != POSTQUELlanguageId)
+	fmgr_info(foid, &(retval->func), &(retval->nargs));
+    else
+	retval->func = (func_ptr)NULL;
 
-    fmgr_info(foid, &(retval->func), &(retval->nargs));
 
     return(retval);
 }
