@@ -21,6 +21,8 @@
  */
 
 LispValue	LispNil = (LispValue) NULL;
+extern bool _equalLispValue();
+extern void lispDisplay();
 
 #include "c.h"
 #include "nodes.h"
@@ -108,6 +110,8 @@ lispAtom(atomName)
 	keyword = (ScanKeywordLookup(atomName))->value;
 
 	newobj->type = PGLISP_ATOM;
+	newobj->equalFunc = _equalLispValue;
+	newobj->printFunc = lispDisplay;
 	newobj->val.name = (char *)keyword;
 	newobj->cdr = LispNil;
 	return(newobj);
@@ -119,6 +123,8 @@ lispDottedPair()
 	LispValue	newobj = lispAlloc();
 
 	newobj->type = PGLISP_DTPR;
+	newobj->equalFunc = _equalLispValue;
+	newobj->printFunc = lispDisplay;
 	newobj->val.car = LispNil;
 	newobj->cdr = LispNil;
 	return(newobj);
@@ -131,6 +137,8 @@ lispFloat(floatValue)
 	LispValue	newobj = lispAlloc();
 
 	newobj->type = PGLISP_FLOAT;
+	newobj->equalFunc = _equalLispValue;
+	newobj->printFunc = lispDisplay;
 	newobj->val.flonum = floatValue;
 	newobj->cdr = LispNil;
 	return(newobj);
@@ -143,6 +151,8 @@ lispInteger(integerValue)
 	LispValue	newobj = lispAlloc();
 
 	newobj->type = PGLISP_INT;
+	newobj->equalFunc = _equalLispValue;
+	newobj->printFunc = lispDisplay;
 	newobj->val.fixnum = integerValue;
 	newobj->cdr = LispNil;
 	return(newobj);
@@ -156,6 +166,8 @@ lispString(string)
     char		*newstr;
 
     newobj->type = PGLISP_STR;
+    newobj->equalFunc = _equalLispValue;
+    newobj->printFunc = lispDisplay;
     newobj->cdr = LispNil;
 
     if(string) {
@@ -169,6 +181,8 @@ lispString(string)
 }
 
 LispValue
+lispVectori(nBytes)
+	int	nBytes;
 {
 	LispValue	newobj = lispAlloc();
 	
@@ -180,14 +194,16 @@ LispValue
 	newobj->val.veci->size = nBytes;
 	newobj->cdr = LispNil;
 	return(newobj);
-	return(list);
+}
+
 LispValue
 evalList(list)
 	LispValue	list;
 {
     elog(WARN,"trying to evaluate a list, unsupported function");
     return(list);
-	return(lispObject);
+}
+
 LispValue
 quote(lispObject)
 	LispValue	lispObject;
@@ -243,7 +259,7 @@ lispDisplay(lispObject,iscdr)
 		printf("\"%s\" ", lispObject->val.str);
 		break;
 	case PGLISP_VECI:
-		((Node)lispObject)->printFunc(lispObject);
+		printf("#<%d:", lispObject->val.veci->size);
 		for (i = 0; i < lispObject->val.veci->size; ++i)
 			printf(" %d", lispObject->val.veci->data[i]);
 		printf(" >");
@@ -368,11 +384,13 @@ init_list(list, newValue)
 
 
 /*********************************************************************
+
   consp
-          newlist = lispList();
-          CAR(newlist) = lispObject;
-          CDR(newlist) = LispNil;
-          return(newlist);
+  - p74 of CLtL
+
+ *********************************************************************/
+ 
+bool
 consp(foo)
      LispValue foo;
 {
@@ -448,16 +466,20 @@ nthCdr (index, list)
     }
     return(temp);
 }
+
+bool
+null (lispObj)
+     LispValue lispObj;
+{
+     if (lispObj == LispNil)
+       return(true);
+     else
        return(false);
-          if (last) {
-               last = false;
-               rlist = lispCons(CAR(p),LispNil);
-          }
-          else
 }
 
 LispValue
-     list = rlist;
+nconc (list1, list2)
+     LispValue list1,list2;
 {
      LispValue temp;
 
@@ -469,19 +491,47 @@ LispValue
      for (temp = list1;  CDR(temp) != LispNil; temp = CDR(temp))
        ;
 
+     CDR(temp) = list2;
+     return(list1);      /* list1 is now list1[]list2  */
+}
+
+
 
 LispValue
 nreverse (list)
      LispValue list;
 {
-    return(true);
+     LispValue temp =LispNil;
+     LispValue rlist = LispNil;
+     LispValue p = LispNil;
+     bool last = true;
+
      if(null(list))
        return(LispNil);
 
-remove_duplicates(foo)
+     Assert(IsA(list,LispList));
 
+     if (length (list) == 1)
        return(list);
-    return(foo);
+
+     for (p = list; p != LispNil; p = CDR(p)) {
+            rlist = lispCons (CAR(p),rlist);
+     }
+
+     CAR(list) = CAR(rlist);
+     CDR(list) = CDR(rlist);
+     return(list);
+}
+
+int
+position(foo,bar)
+     LispValue foo;
+     List bar;
+{
+    return(0);
+}
+
+/*
  * member()
  * - nondestructive, returns t iff foo is a member of the list
  *   bar
@@ -507,6 +557,7 @@ remove_duplicates(foo,test)
     LispValue j;
     LispValue result = LispNil;
     bool there_exists_duplicate = false;
+    int times = 0;
 
     if(length(foo) == 1)
       return(foo);
@@ -514,6 +565,7 @@ remove_duplicates(foo,test)
 	if (listp (i) && !null(i)) {
 	    foreach (j,CDR(i)) {
 		if ( (* test)(CAR(i),CAR(j)) )
+		  there_exists_duplicate = true;
 	    }
 	    if ( ! there_exists_duplicate ) 
 	      result = nappend1 (result, CAR(i) );
@@ -528,6 +580,16 @@ remove_duplicates(foo,test)
     return(result);
 }
 
+/* Returns the leftmost element in the list which 
+ * does not satisfy the predicate.  Returns LispNil 
+ * if no elements satisfiy the pred.
+ */
+
+LispValue
+find_if_not(pred,bar)
+     LispValue bar;
+     bool (*pred)();
+{
     LispValue temp;
     
     foreach(temp,bar)
@@ -535,6 +597,7 @@ remove_duplicates(foo,test)
 	return(CAR(temp));
     return(LispNil);
 }
+
 LispValue
 LispDelete(foo,bar)
      LispValue foo;
@@ -551,6 +614,7 @@ LispDelete(foo,bar)
 	      CDR(bar) = CDR(CDR(bar));
 	  } else {
 	      CDR(j) = CDR(i);
+	  }
 	j = i;
     }
 }
@@ -560,13 +624,14 @@ setf(foo,bar)
      LispValue foo,bar;
 {
     elog(WARN,"unsupported function, 'setf' being called");
+    return(bar);
 }
 
-      if (equal(foo,temp)) {
-	/* XXX - remove foo from temp */
-	  break;
+bool
+atom(foo)
      LispValue foo;
-    return(bar);
+{
+    return ((bool)(foo->type == PGLISP_ATOM));
 }
 
 LispValue
@@ -586,6 +651,7 @@ set_difference(foo,bar)
 }
 
 LispValue
+push(foo,bar)
      LispValue foo;
      List bar;
 {
@@ -606,28 +672,13 @@ LispValue
 LispUnion(foo,bar)
      LispValue foo,bar;
 {
-/*
-LispValue
-lispEvery(foo,bar)
-     LispValue foo,bar;
-{
-    return(bar);
-}
-*/
+    LispValue retval = LispNil;
     LispValue i = LispNil;
     LispValue j = LispNil;
     
     if (null(foo))
       return(bar); /* XXX - should be copy of bar */
     if (null (bar))
-/*
-LispValue
-list(foo)
-     LispValue foo;
-{
-    return(foo);
-}
-*/
       return(foo); /* XXX - should be copy of foo */
     
     Assert (IsA(foo,LispList));
@@ -637,13 +688,6 @@ list(foo)
 	foreach (j,bar) {
 	    if (! equal (CAR(i),CAR(j))) {
 	      retval = nappend1(retval,CAR(i));
-Node
-Contents(foo)
-     LispValue foo;
-{
-    return((Node)(foo->val.veci));
-}
-
 	      break;
 	    }
 	}
@@ -670,6 +714,7 @@ remove (foo,bar)
 	  
     return(result);
 }
+
 bool
 listp(foo)
      LispValue foo;
@@ -696,6 +741,8 @@ integerp(foo)
      LispValue foo;
 {
   if (foo)
+    return((bool)(foo->type==PGLISP_INT));
+  else
     return(false);
 }
 
@@ -707,6 +754,7 @@ zerop(foo)
       return((bool)(CInteger(foo) == 0));
 }
 
+bool
 eq(foo,bar)
      LispValue foo,bar;
 {
@@ -714,6 +762,7 @@ eq(foo,bar)
 }
 
 LispValue
+lispArray(foo)
      int foo;
 {
     elog(WARN,"bogus function : lispArray");
@@ -728,6 +777,7 @@ LispValue
  */
 
 List
+number_list(start,n)
      int start,n;
 {
     LispValue return_list = LispNil;
