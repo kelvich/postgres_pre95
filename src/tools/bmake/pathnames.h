@@ -35,5 +35,11 @@
 
 #define	_PATH_OBJDIR		"obj"
 #define	_PATH_DEFSHELLDIR	"/bin"
+
+#ifndef _PATH_DEFSYSMK
 #define	_PATH_DEFSYSMK		"/usr/share/mk/sys.mk"
+#endif
+
+#ifndef _PATH_DEFSYSPATH
 #define	_PATH_DEFSYSPATH	"/usr/share/mk"
+#endif
