@@ -2569,7 +2569,7 @@ the
 .cW oid
 of the
 .cW pg_am
-instance for BTREE (== 400, see above)
+instance for BTREE (== 403, see above)
 T}
 _
 amopclaid|T{
@@ -2670,7 +2670,7 @@ ordered, from less equal through greater equal, in
 Recall that
 the BTREE instance's
 .cW oid
-is 400
+is 403
 and
 .cW int4_abs_ops
 is
@@ -2680,35 +2680,35 @@ Then we
 add the instances we need:
 .(C
 * append pg_amop
-      (amopid = "400"::oid,          /* btree oid        */
+      (amopid = "403"::oid,          /* btree oid        */
        amopclaid = "17314"::oid,     /* pg_opclass tuple */
        amopopr = "17321"::oid,       /* <<& tup oid      */
        amopstrategy = "1"::int2,     /* 1 is <<&         */
        amopselect = "btreesel"::regproc,
        amopnpages = "btreenpage"::regproc) \\g
 
-* append pg_amop (amopid = "400"::oid,
+* append pg_amop (amopid = "403"::oid,
                   amopclaid = "17314"::oid,
                   amopopr = "17322"::oid,
                   amopstrategy = "2"::int2,
                   amopselect = "btreesel"::regproc,
                   amopnpages = "btreenpage"::regproc) \\g
 
-* append pg_amop (amopid = "400"::oid,
+* append pg_amop (amopid = "403"::oid,
                   amopclaid = "17314"::oid,
                   amopopr = "17323"::oid,
                   amopstrategy = "3"::int2,
                   amopselect = "btreesel"::regproc,
                   amopnpages = "btreenpage"::regproc) \\g
 
-* append pg_amop (amopid = "400"::oid,
+* append pg_amop (amopid = "403"::oid,
                   amopclaid = "17314"::oid,
                   amopopr = "17324"::oid,
                   amopstrategy = "4"::int2,
                   amopselect = "btreesel"::regproc,
                   amopnpages = "btreenpage"::regproc) \\g
 
-* append pg_amop (amopid = "400"::oid,
+* append pg_amop (amopid = "403"::oid,
                   amopclaid = "17314"::oid,
                   amopopr = "17325"::oid,
                   amopstrategy = "5"::int2,
