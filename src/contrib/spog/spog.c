@@ -4,7 +4,10 @@
  * $Id$
  *
  * $Log$
- * Revision 1.2  1993/03/05 04:03:07  aoki
+ * Revision 1.3  1993/03/05 04:35:22  aoki
+ * shut up the sunos compiler
+ *
+ * Revision 1.2  1993/03/05  04:03:07  aoki
  * fixed my dumb strdup (how embarrassing).
  *
  * Revision 1.1  1993/02/18  23:29:29  aoki
@@ -56,8 +59,11 @@ char *database;        /* name of the current database */
 
 #ifdef NEED_XMALLOC
 
-#ifdef ultrix
-extern char *malloc(), *realloc();
+#if defined(PORTNAME_ultrix4)
+extern char *malloc();
+#endif
+#if defined(PORTNAME_ultrix4) || defined(PORTNAME_sparc)
+extern char *realloc();
 #endif
 
 char *xmalloc (n)
