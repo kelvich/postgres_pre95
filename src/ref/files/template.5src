@@ -24,7 +24,7 @@ Consequently,
 you can use the terminal monitor or some other frontend
 on a template database to simplify the
 customization task.
-I.e.,
+That is, 
 there is no need to
 express everything about
 your desired initial database state
@@ -50,7 +50,8 @@ for the
 template database.
 .q XXX
 may be any string of 16 or fewer printable characters.
-If no template is specified in a createdb command,
+If no template is specified in a
+.b createdb command,
 then the template in .../files/local1_template1.bki is used.
 .lp
 The .bki files are generated from C source code in Version 2.
