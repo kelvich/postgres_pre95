@@ -177,8 +177,37 @@ CreateStmt:
 	;
 
 DestroyStmt:
-	  XDESTROY ident
-		{ DO_START; heap_destroy(LexIDStr($2)); DO_END;}
+          XDESTROY ident
+                { DO_START; heap_destroy(LexIDStr($2)); DO_END;}
+	|
+	  XDESTROY INDICES
+		{
+		    Relation rdesc;
+		    HeapScanDesc sdesc;
+		    HeapTuple htp;
+		    Form_pg_relation rp;
+
+		    DO_START;
+		    rdesc = heap_openr(RelationRelationName->data);
+		    sdesc = heap_beginscan(rdesc,
+					   0,
+					   NowTimeQual,
+					   (unsigned) 0,
+					   (ScanKey) NULL);
+		    while (htp = heap_getnext(sdesc, 0, (Buffer *) NULL)) {
+			rp = (Form_pg_relation) GETSTRUCT(htp);
+			if (issystem(rp->relname.data) &&
+			    (rp->relkind == 'i')) {
+			    if (!Quiet)
+				fprintf(stderr, "Destroying %.16s...\n",
+					rp->relname.data);
+			    index_destroy(htp->t_oid);
+			}
+		    }
+		    heap_endscan(sdesc);
+		    heap_close(rdesc);
+		    DO_END;
+		}
 	;
 
 InsertStmt:
