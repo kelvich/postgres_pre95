@@ -374,6 +374,7 @@ PerformAddAttribute(relationName, schema)
     List	schema;
 {	
     List		element;
+    Buffer		buf;
     AttributeNumber	newAttributes;
     
     Relation			relrdesc, attrdesc;
@@ -418,7 +419,7 @@ PerformAddAttribute(relationName, schema)
     key[0].sk_opr = Character16EqualRegProcedure;	/* XXX name= */
     key[0].sk_data = (DATUM)relationName;
     relsdesc = ambeginscan(relrdesc, 0, NowTimeQual, 1, key);
-    reltup = amgetnext(relsdesc, 0, (Buffer *) NULL);
+    reltup = amgetnext(relsdesc, 0, &buf);
     if (!PointerIsValid(reltup)) {
 	amendscan(relsdesc);
 	amclose(relrdesc);
@@ -434,7 +435,7 @@ PerformAddAttribute(relationName, schema)
 	     relationName);
 	return;
     }
-    reltup = palloctup(reltup, InvalidBuffer, relrdesc);
+    reltup = palloctup(reltup, buf, relrdesc);
     amendscan(relsdesc);
     
     minattnum = ((struct relation *) GETSTRUCT(reltup))->relnatts;
