@@ -351,6 +351,17 @@ prs2DeleteRelationStub ARGS((
 	Relation	relation;
 	Prs2OneStub	stub;
 ));
+/*-------------------------
+ * prs2ReplaceRelationStub:
+ * Replace the relation stubs of a realtion with the given ones
+ * (the old ones are completely ignored)/
+ */
+extern
+void
+prs2ReplaceRelationStub ARGS((
+	Relation	relation;
+	Prs2Stub	stubs;
+));
 
 /*-------------------------
  * prs2GetRelationStubs
@@ -363,27 +374,27 @@ prs2GetRelationStubs ARGS((
 ));
 
 /*-------------------------
- * prs2GetStubsFromRelationTuple:
- * given a tuple of the Relation relation, extract the value
+ * prs2GetStubsFromPrs2StubTuple:
+ * given a tuple of the pg_prs2stub relation, extract the value
  * of the stubs field.
  */
 extern
 Prs2Stub
-prs2GetStubsFromRelationTuple ARGS((
+prs2GetStubsFromPrs2StubTuple ARGS((
     	HeapTuple		tuple;
 	Buffer			buffer;
 	TupleDesccriptor	tupleDesc;
 ));
 
 /*-------------------------
- * prs2PutStubsInRelationTuple:
+ * prs2PutStubsInPrs2StubTuple:
  * put the given stubs to the appropriate attribute of a 
- * Relation relation tuple.
+ * pg_prs2stub relation tuple.
  * Returns the new tuple
  */
 extern
 HeapTuple
-prs2PutStubsInRelationTuple ARGS((
+prs2PutStubsInPrs2StubTuple ARGS((
     	HeapTuple		tuple;
 	Buffer			buffer;
 	TupleDesccriptor	tupleDesc;
@@ -461,3 +472,5 @@ prs2SimpleQualTestTuple ARGS((
     Prs2SimpleQual	qual
 ));
 
+Prs2OneStub prs2MakeStubForInnerRelation();
+void prs2AddLocksAndReplaceTuple();
