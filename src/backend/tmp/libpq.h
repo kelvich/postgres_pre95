@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include "tmp/simplelists.h"
 #include "utils/exc.h"
+#include "tmp/postgres.h"
 
 /* ----------------
  * PQArgBlock --
@@ -90,7 +91,7 @@ typedef struct PortalBuffer {
     int rule_p;			/* 1 if this is an asynchronized portal. */
     int no_tuples;		/* number of tuples in this portal buffer */
     int no_groups;		/* number of tuple groups */
-    GroupBuffer *groups;	/* tuple groups */
+    GroupBuffer *groups;	/* linked list of tuple groups */
 } PortalBuffer;
 
 /* ----------------
@@ -110,15 +111,21 @@ typedef struct PortalEntry {
     Pointer	  result;	          /* result for PQexec */
 } PortalEntry;
 
-#define MAXPORTALS 10
+/* #define MAXPORTALS 10 */
+/* the portals[] array should not be statically sized to MAXPORTALS,         */
+/* now portals[] starts off at PORTALS_INITIAL_SIZE, and grows dynamically  */
+   
+#define PORTALS_INITIAL_SIZE 32
+#define PORTALS_GROW_BY      32
 
-extern PortalEntry *portals[];
+extern PortalEntry** portals;
+extern size_t portals_array_size;
 
 /*
  *  Asynchronous notification
  */
 typedef struct PQNotifyList {
-    char relname[16];		/* name of relation containing data */
+    char relname[NAMEDATALEN];	/* name of relation containing data */
     int be_pid;			/* process id of backend */
     int valid;			/* has this already been handled by user. */
     SLNode Node;
