@@ -550,7 +550,7 @@ fastgetattr(tup, attnum, att, isnull)
 
     /*
      * if slow is zero, and we got here, we know that we have a tuple with
-     * no nulls.  We also know that we have to initialize the remainder of
+     * no nulls.  We also might have to initialize the remainder of
      * the attribute cached offset values.
      */
 
@@ -565,7 +565,7 @@ fastgetattr(tup, attnum, att, isnull)
 
 	att[0]->attcacheoff = 0;
 
-	while (att[j]->attcacheoff > 0) j++;
+	while ((j < attnum) && att[j]->attcacheoff > 0) j++;
 
 	off = att[j-1]->attcacheoff + att[j-1]->attlen;
 
@@ -621,12 +621,6 @@ fastgetattr(tup, attnum, att, isnull)
 	    }
 	    else
 	    {
-	        switch(att[i]->attlen)
-	        {
-		    case sizeof(char) : break;
-		    case sizeof(short): off = SHORTALIGN(off); break;
-		    default           : off = LONGALIGN(off); break;
-	        }
 	        if (usecache) att[i]->attcacheoff = off;
 	    }
 
