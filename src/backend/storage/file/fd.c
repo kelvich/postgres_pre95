@@ -15,16 +15,18 @@
  * set.
  */
 
-#define RESERVEFORLISP	5
+#define RESERVE_FOR_LD	10
 
 /*
  * CURRENT HACK
  *
- * Problem: you cannot rebind open() when lisp call it.  We therefore need
- * to guarentee that there are file descriptors free for lisp to use.
+ * Problem: Postgres does a system(ld...) to do dynamic loading.  This
+ * will open several extra files in addition to those used by Postgres.
+ * We need to do this hack to guarentee that there are file descriptors free
+ * for ld to use.
  * 
  * The current solution is to limit the number of files descriptors 
- * that this code will allocated at one time.  (it leaves RESERVEDFORLISP
+ * that this code will allocated at one time.  (it leaves RESERVE_FOR_LD
  * free)
  */
 
@@ -34,7 +36,7 @@
 
 extern errno;
 
-#define	MAXFILES	(NOFILE-RESERVEFORLISP)
+#define	MAXFILES	(NOFILE-RESERVE_FOR_LD)
 
 #include "tmp/c.h"
 #include "machine.h"	/* for BLCKSZ */
