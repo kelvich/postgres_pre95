@@ -70,6 +70,24 @@ typedef BlockIdData	*BlockId;	/* block identifier */
     (blockId)->data[1] = (blockNumber) & 0xffff
 
 /*
+ * BlockIdCopy --
+ *	Copy a block identifier.
+ */
+#define BlockIdCopy(toBlockId, fromBlockId) \
+    Assert(PointerIsValid(toBlockId)); \
+    Assert(PointerIsValid(fromBlockId)); \
+    (toBlockId)->data[0] = (fromBlockId)->data[0]; \
+    (toBlockId)->data[1] = (fromBlockId)->data[1]
+
+/*
+ * BlockIdEquals --
+ *	Check for block number equality.
+ */
+#define BlockIdEquals(blockId1, blockId2) \
+    ((blockId1)->data[0] == (blockId2)->data[0] && \
+     (blockId1)->data[1] == (blockId2)->data[1])
+
+/*
  * BlockIdGetBlockNumber --
  *	Retrieve the block number from a block identifier.
  */
