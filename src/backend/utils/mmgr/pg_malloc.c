@@ -5,6 +5,8 @@
 #include "htup.h"
 #include "utils/pg_malloc.h"
 
+RcsId("$Header$");
+
 static bool8 memory_is_initialized = FALSE;
 static int number_of_nodes = 0;
 extern struct nodeinfo _NodeInfo[]; 
