@@ -325,9 +325,10 @@ class (Func) public (Expr) {
  *	arrayelemtype	- base type of the array's elements (homogenous!)
  *	arrayelemlength	- length of that type
  *	arrayelembyval	- can you pass this element by value?
+ *	arrayndim   - number of dimensions of the array
  *	arraylow	- base for array indexing
  *	arrayhigh	- limit for array indexing
- *	arraylen	- ((high - low) + 1) * elemlength, or -1
+ *	arraylen	-
  * ----------------
  *
  *  memo from mao:  the array support we inherited from 3.1 is just
@@ -338,11 +339,12 @@ class (Array) public (Expr) {
  /* private: */
 	inherits1(Expr);
 	ObjectId		arrayelemtype;
-	int			arrayelemlength;
+	int				arrayelemlength;
 	bool			arrayelembyval;
-	int			arraylow;
-	int			arrayhigh;
-	int			arraylen;
+	int 			arrayndim;
+	IntArray		arraylow;
+	IntArray		arrayhigh;
+	int				arraylen;
  /* public: */
 };
 
@@ -351,8 +353,11 @@ class (Array) public (Expr) {
  *	refelemtype	- type of the element referenced here
  *	refelemlength	- length of that type
  *	refelembyval	- can you pass this element type by value?
- *	refindexpr	- expression that evaluates to array index
+ *	refupperindexpr	- expressions that evaluate to upper array index
+ *	reflowerexpr- the expressions that evaluate to a lower array index
  *	refexpr		- the expression that evaluates to an array
+ *	refassignexpr- the expression that evaluates to the new value 
+ *  to be assigned to the array in case of replace.
  * ----------------
  */
 class (ArrayRef) public (Expr) {
@@ -362,7 +367,9 @@ class (ArrayRef) public (Expr) {
 	int			refelemlength;
 	ObjectId		refelemtype;
 	bool			refelembyval;
-	LispValue		refindexpr;
+	LispValue		refupperindexpr;
+	LispValue		reflowerindexpr;
 	LispValue		refexpr;
+	LispValue		refassgnexpr;
 };
 #endif /* PrimNodesIncluded */
