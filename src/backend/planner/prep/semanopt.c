@@ -123,9 +123,7 @@ SemantOpt(root,rangetable,tlist, qual)
 		rte2 = nth (rightvarno -1, rangetable);
 		
 		if (strcmp(CString(CADR(rte1)),
-			   CString(CADR(rte2))) == 0)
-		  retqual = MakeTClause();
-		else
+			   CString(CADR(rte2))) != 0)
 		  retqual = MakeFClause();
 	      }
 	    }
