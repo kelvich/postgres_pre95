@@ -1,6 +1,8 @@
 /*
  * multilev.h -- multi level lock table consts/defs
  *
+ * $Header$
+ *
  * for single.c and multi.c and their clients
  */
 
@@ -27,6 +29,6 @@
 #define TUPLE_LEVEL 2
 typedef int LOCK_LEVEL;
 
-/* multi.c *
+/* multi.c */
 
 TableId InitMultiLevelLockm();
