@@ -1,4 +1,10 @@
-/* $Header$ */
+/* 
+ * $Source$
+ * $Revision$
+ * $State$
+ * $Author$
+ */
+
 #include "access/heapam.h"
 #include "catalog/syscache.h"
 #include "utils/log.h"
@@ -139,7 +145,7 @@ my_find ( string, list )
     return(retval);
 }
 static char *retrieve_rule_template =
-"(\"_r%s\" retrieve (\"%s\") nil 1 (((1 replace 1 ((\"*CURRENT*\" \"%s\" %d 0 nil nil)(\"*NEW*\" \"%s\" %d 0 nil nil) \"rtable\" ) \"tlist\" \"qual\" )))(1.0 . 0.0 ))";
+"(\"_r%s\" retrieve (\"%s\") nil 1 (((1 replace 1 ((\"*CURRENT*\" \"%s\" %d 0 nil nil)(\"*NEW*\" \"%s\" %d 0 nil nil) \"rtable\") 0 nil nil nil ) \"tlist\" \"qual\" )) (1.0 . 0.0 ))";
 
 List
 FormViewRetrieveRule ( view_name,  view_tlist, view_rt, view_qual )
@@ -168,7 +174,8 @@ FormViewRetrieveRule ( view_name,  view_tlist, view_rt, view_qual )
     retrieve_rule = (List)StringToPlan ( retrieve_rule_string );
 
     retrieve_rule_rtable = my_find ( "rtable", retrieve_rule );
-    CAR(retrieve_rule_rtable) = view_rt;
+    CAR(retrieve_rule_rtable) = CAR(view_rt);
+    CDR(retrieve_rule_rtable) = CDR(view_rt);
 
     retrieve_rule_tlist = my_find ( "tlist", retrieve_rule );
     CAR(retrieve_rule_tlist) = view_tlist;
