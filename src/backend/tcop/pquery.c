@@ -327,7 +327,7 @@ ProcessQueryDesc(queryDesc)
      * ----------------
      */
     if (isRetrieveIntoRelation)
-    	QdSetDest(queryDesc, None);
+    	QdSetDest(queryDesc, (int) None);
     
     /* ----------------
      *	create a default executor state.. 
