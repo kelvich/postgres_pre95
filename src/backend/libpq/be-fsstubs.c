@@ -102,10 +102,14 @@ void *LOCreate ARGS((char *path , int open_mode ));
 void *LOOpen ARGS((struct varlena *object , int open_mode ));
 void *XOCreate ARGS((char *path , int open_mode ));
 void *XOOpen ARGS((struct varlena *object , int open_mode ));
+#ifdef JAQUITH
 void *JOCreate ARGS((char *path , int open_mode ));
 void *JOOpen ARGS((struct varlena *object , int open_mode ));
+#endif /* JAQUITH */
 void LOClose ARGS((void *obj_desc ));
+#ifdef JAQUITH
 void JOClose ARGS((void *obj_desc ));
+#endif /* JAQUITH */
 int LOUnixStat ARGS((void *obj_desc , struct pgstat *stbuf ));
 int LOSeek ARGS((void *obj_desc , int offset , int whence ));
 int LOTell ARGS((void *obj_desc ));
@@ -150,10 +154,12 @@ static struct {
 	LOSeek, LOTell, LOUnixStat},
     /* External */
     { BIG, XOCreate, XOOpen, LOClose, LORead, LOWrite,
-	LOSeek, LOTell, LOUnixStat},
-    /* Jaquith */
-    { BIG, JOCreate, JOOpen, JOClose, LORead, LOWrite,
 	LOSeek, LOTell, LOUnixStat}
+#ifdef JAQUITH
+    /* Jaquith */
+    ,{ BIG, JOCreate, JOOpen, JOClose, LORead, LOWrite,
+	LOSeek, LOTell, LOUnixStat}
+#endif /* JAQUITH */
 };
 
 

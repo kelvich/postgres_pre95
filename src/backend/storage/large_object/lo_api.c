@@ -166,6 +166,8 @@ XOOpen(object, open_mode)
     return(retval);
 }
 
+#ifdef JAQUITH
+
 /*
  * These functions deal with ``Jaquith'' large objexts,
  * These are stored on the device, and moved to unix when needed.
@@ -249,6 +251,8 @@ JOOpen(object, open_mode)
     return(retval);
 }
 
+#endif /* JAQUITH */
+
 /*
  * Returns the number of blocks and the byte offset of the last block of
  * the file.  nblocks * LARGE_OBJECT_BLOCK + byte_offset should be equal to
@@ -321,6 +325,8 @@ LOClose(obj_desc)
     pfree(obj_desc);
 }
 
+#ifdef JAQUITH
+
 /*  Jaquith close, just ends the stdout stream */
 
 void
@@ -338,6 +344,8 @@ JOClose(obj_desc)
     JO_clean(JO_path(obj_desc->object->lo_ptr.filename));
     pfree(obj_desc);
 }
+
+#endif /* JAQUITH */
 
 /*
  * Destroys an existing large object, and frees its associated pointers.
