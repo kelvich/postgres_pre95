@@ -86,74 +86,16 @@
  *	fields. In order to make transformation between the 'Prs2Stub'
  *	format to 'Prs2RawStub' and vice versa easier, 
  *	these fields MUST BE THE LAST FIELDS IN THE STRUCTURE
- *
- * Prs2StubQual: This is the structure which holds the qualification
- *	of a stub record. A qualification can be arbitrary general
- *	tree consinsting of the boolean operators AND, OR & NOT,
- *	which can have one or more operands. Each operand can
- *	either be another complex tree ("Prs2ComplexStubQualData")
- *	or a leaf node ("Prs2SimpleQualData").
- *	The struct holding the information for every node
- *	of the tree has the attribute "qualType" which
- * 	can be PRS2_COMPLEX_STUBQUAL (then this is a non leaf
- *	node of the tree), PRS2_SIMPLE_STUBQUAL (leaf node) or
- *      PRS2_NULL_STUBQUAL (null qualification, which ALWAYS EVALUATES
- * 	to TRUE !!!!).
- *	The other attribute is a union holding either the data for
- *	a "complex qualification" (non-leaf nodes) or for a 
- *	"simple qualification" (leaf nodes).
- *	
- * Prs2ComplexStubQualData: this struct holds the information
- *	about a "complex qualification". "boolOper" is one of AND,
- *	NOT, or OR, "nOperands" is the number of operands for
- *	this operator (one or more) and "operands" is an
- *	array of pointers to "Prs2StubQualData" structures.
- *
- * Prs2SimpleStubQualData: this struct contains information about one
- *	of the "simple qualifications" mentioned before.
- *	These have the format:
- *	<left_operand> <operator> <right_operand>
- *	Where <operator> must return a boolean value.
- *	The left & right operands can only be Param or Const
- * 	nodes.
- *	NOTE: operator is the oid of the registered procedure (i.e. the
- *	'opid' field of an Oper node) and NOT the operator oid!
  */
 
 typedef uint16 Prs2StubId;
-
-typedef struct Prs2SimpleStubQualData {
-    ObjectId operator;
-    Node left;
-    Node right;
-} Prs2SimpleStubQualData;
-
-typedef struct Prs2ComplexStubQualData {
-    int boolOper;	/* one of AND, NOT, OR */
-    int nOperands;	
-    struct Prs2StubQualData **operands;	/* NOTE: an array of pointers */
-} Prs2ComplexStubQualData;
-
-#define PRS2_COMPLEX_STUBQUAL	'c'
-#define PRS2_SIMPLE_STUBQUAL	's'
-#define PRS2_NULL_STUBQUAL	'n'
-
-typedef struct Prs2StubQualData {
-    char qualType;
-    union {
-	Prs2SimpleStubQualData simple;
-	Prs2ComplexStubQualData complex;
-    } qual;
-} Prs2StubQualData;
-
-typedef Prs2StubQualData *Prs2StubQual;
 
 typedef struct Prs2OneStubData {
     ObjectId ruleId;
     Prs2StubId stubId;
     int counter;
     RuleLock lock;
-    Prs2StubQual qualification;
+    LispValue qualification;
 } Prs2OneStubData;
 
 typedef Prs2OneStubData *Prs2OneStub;
@@ -231,15 +173,12 @@ prs2RawStubToStub ARGS((
  *
  * returns true if the given 'Prs2StubQual' point to the same stub
  * qualifications.
- * NOTE 1: it returns false even if the two qualifications are different
- * but isomprphic.
- * NOTE 2: see also restrictions in 'prs2EqualDatum'
  */
 extern
 bool
 prs2StubQualIsEqual ARGS((
-    Prs2StubQual	q1,
-    Prs2StubQual	q2
+    LispValue		q1,
+    LispValue		q2
 ));
 
 /*-------------------------
@@ -302,82 +241,12 @@ prs2MakeStub ARGS((
 ));
 
 /*-------------------------
- * prs2FreeStub:
- * free the space occupied by a 'Prs2Stub'
- */
-extern
-void
-prs2FreeStub ARGS((
-	Prs2Stub	stubs;
-	bool		freeLocksFlag
-));
-
-/*-------------------------
- * prs2CopyStub:
- * Make a (complete) copy of the given 'Prs2Stub'
- */
-extern
-Prs2Stub
-prs2CopyStub ARGS((
-    Prs2Stub	stub
-));
-
-/*-------------------------
  * prs2MakeOneStub
  * create an empty 'Prs2OneStub' record
  */
 extern
 Prs2OneStub
 prs2MakeOneStub ARGS((
-));
-
-/*-------------------------
- * prs2FreeOneStub
- * free the `Prs2OneStub' allocated with a call to `prs2MakeOneStub'
- */
-extern
-void
-prs2FreeOneStub ARGS((
-	Prs2OneStub	oneStub
-));
-
-/*-------------------------
- * prs2CopyOneStub:
- * Make a (complete) copy of the given Prs2OneStub
- */
-extern
-Prs2OneStub
-prs2CopyOneStub ARGS((
-    Prs2OneStub	onestub
-));
-
-/*-------------------------
- * prs2MakeStubQual:
- * Create an unitialized 'Prs2StubQualData' record
- */
-extern
-Prs2StubQual
-prs2MakeStubQual ARGS((
-));
-
-/*-------------------------
- * prs2FreeStubQual:
- * pfree the space allocated for the stub qualification
- */
-extern
-void
-prs2FreeStubQual ARGS((
-	Prs2StubQual	qual
-));
-
-/*-------------------------
- * prs2CopyStubQual:
- * Make and return a complete copy of the given stub qualification.
- */
-extern
-Prs2StubQual
-prs2CopyStubQual ARGS((
-    Prs2StubQual	qual
 ));
 
 /*================= ROUTINES IN FILE 'stubinout.c' =======================*/
@@ -526,7 +395,7 @@ prs2StubTestTuple ARGS((
     HeapTuple		tuple,
     Buffer		buffer,
     TupleDescriptor	tupDesc,
-    Prs2StubQual	qual
+    LispValue		qual
 ));
 
 /*================= ROUTINES IN FILE 'stubjoin.c' =======================*/
