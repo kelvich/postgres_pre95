@@ -1,7 +1,7 @@
 /* $Header$ */
 
-#define INNER 1
-#define OUTER 0
+#define INNER 65000
+#define OUTER 65001
 
 /*
  *      1. index key
