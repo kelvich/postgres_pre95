@@ -205,6 +205,9 @@ ExecAgg(node)
 
 	slot = (TupleTableSlot) get_css_ScanTupleSlot(aggstate);
 		/* for now, */
+    	 set_agg_Flag(aggstate, true);
+   }
+   slot = (TupleTableSlot) get_css_ScanTupleSlot(aggstate);
    return (TupleTableSlot)
 	ExecStoreTuple(heapTuple,
 			slot,
