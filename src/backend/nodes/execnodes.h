@@ -19,6 +19,7 @@
 #define	ExecNodesIncluded
 
 #include "recursion_a.h"	/* recursion stuff that must go first - JRB */
+#include "primnodes.h"
 #include "pg_lisp.h"
 #include "nodes.h"	/* bogus inheritance system */
 #include "params.h"	/* parameterized plan stuff... */
@@ -733,12 +734,25 @@ class (MergeJoinState) public (CommonState) {
  * ----------------
  */
 
+typedef File	*FileP;
+typedef char	**charPP;
+typedef char	*charP;
+typedef int	*intP;
 class (HashJoinState) public (CommonState) {
       inherits(CommonState);
   /* private: */
       HashJoinTable	hj_HashTable;
       HashBucket	hj_CurBucket;
       HeapTuple		hj_CurTuple;
+      int		hj_NBatch;
+      FileP		hj_OuterBatches;
+      charPP		hj_OuterBatchPos;
+      FileP		hj_InnerBatches;
+      intP		hj_InnerBatchSizes;
+      Var		hj_InnerHashKey;
+      int		hj_CurBatch;
+      charP		hj_ReadPos;
+      int		hj_ReadBlk;
   /* public: */
 };
 
@@ -876,6 +890,10 @@ class (UniqueState) public (CommonState) {
 class (HashState) public (CommonState) {
       inherits(CommonState);
   /* private: */
+      int	hashNBatch;
+      FileP	hashBatches;
+      charPP	hashBatchPos;
+      intP	hashBatchSizes;
   /* public: */
 };
 

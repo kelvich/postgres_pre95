@@ -30,11 +30,13 @@
  */
 typedef struct HashTableData {
 	int		nbuckets;
+	int		totalbuckets;
 	int		bucketsize;
 	IpcMemoryId	shmid;
 	char		*top;
 	char		*bottom;
 	char		*overflownext;
+	char		*batch;
 } HashTableData;  /* real hash table follows here */
 
 typedef HashTableData	*HashJoinTable;
@@ -120,7 +122,7 @@ ExecHashTableDestroy ARGS((
 ));
 
 extern
-HashBucket
+int
 ExecHashGetBucket ARGS((
 	HashJoinTable hashtable;
 	ExprContext econtext;
@@ -149,6 +151,60 @@ int
 hashFunc ARGS((
 	char *key;
 	int len
+));
+
+extern
+int
+ExecHashPartition ARGS((
+	Hash node
+));
+
+extern
+void
+ExecHashTableReset ARGS((
+	HashJoinTable hashtable;
+	int ntuple
+));
+
+extern
+List
+ExecHashJoinOuterGetTuple ARGS((
+	Plan node;
+	int curbatch;
+	HashJoinState hjstate
+));
+
+extern
+List
+ExecHashJoinGetSavedTuple ARGS((
+	char *buffer;
+	File file;
+	int *block;
+	char **position
+));
+
+extern
+void
+ExecHashJoinNewBatch ARGS((
+	HashJoinState hjstate;
+	int newbatch
+));
+
+extern
+int
+ExecHashJoinGetBatch ARGS((
+	int bucketno;
+	HashJoinTable hashtable;
+	int nbatch
+));
+
+extern
+char *
+ExecHashJoinSaveTuple ARGS((
+	List tuple;
+	char *buffer;
+	File file;
+	char *position
 ));
 
 #endif	/* !defined(HashJoinIncluded) */
