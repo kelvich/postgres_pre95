@@ -479,13 +479,20 @@ extern int NBuffers;
 extern int *BTreeBufferPinCount;
 
 /*
+ *  this global is used by wei for testing his code, but must be declared
+ *  here rather than in postgres.c so that it's defined for cinterface.a
+ *  applications.
+ */
+
+int	testFlag = 0;
+
+/*
  */
 void
 InitPostgres(name)
     String	name;		/* database name */
 {
     bool	bootstrap;	/* true if BootstrapProcessing */
-    extern int	testFlag;
 
     /* ----------------
      *	see if we're running in BootstrapProcessing mode
