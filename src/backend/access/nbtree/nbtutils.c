@@ -69,6 +69,14 @@ _bt_freestack(stack)
     }
 }
 
+/*
+ *  _bt_orderkeys() -- Put keys in a sensible order for conjunctive quals.
+ *
+ *	The order of the keys in the qual match the ordering imposed by
+ *	the index.  This routine only needs to be called if there are
+ *	more than one qual clauses using this index.
+ */
+
 void
 _bt_orderkeys(relation, numberOfKeys, key)
     Relation relation;
