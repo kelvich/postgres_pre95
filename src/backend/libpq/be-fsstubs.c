@@ -392,7 +392,7 @@ LOstat(path)
 	st->st_uid = getuid(); /* fake uid */
 	st->st_mode |= S_IRUSR|S_IWUSR|S_IXUSR;
     } else {
-	VARSIZE(ret) = 9;
+	VARSIZE(ret) = 9; /* 4 + 5 */
     }
 
     return ret;
