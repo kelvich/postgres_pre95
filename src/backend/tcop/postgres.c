@@ -638,70 +638,32 @@ pg_eval_dest(query_string, argv, typev, nargs, dest)
 		printf("\n");
 	    }
 
-	    if (testFlag && IsA(plan,Choose)) {
-		/* ----------------
-		 *	 this is my experiment stuff, will be taken away soon.
-		 *   ignore it. -- Wei
-		 * ----------------
-		 */
-		Plan 	  p;
-		List 	  planlist;
-		LispValue x;
-		List 	  setRealPlanStats();
-		List 	  pruneHashJoinPlans();
-
-		planlist = get_chooseplanlist((Choose)plan);
-		planlist = setRealPlanStats(parsetree, planlist);
-		planlist = pruneHashJoinPlans(planlist);
-		
-		foreach (x, planlist) {
-		    char s[10];
-		    p = (Plan) CAR(x);
-		    p_plan(p);
-		    if (confirmExecute) {
-			printf("execute (y/n/q)? ");
-			scanf("%s", s);
-			if (s[0] == 'n') continue;
-			if (s[0] == 'q') break;
-		    }
-		    BufferPoolBlowaway();
-		    
-		    CommitTransactionCommand();
-		    StartTransactionCommand();
-		    
-		    ResetUsage();
-		    ProcessQuery(parsetree, p, argv, typev, nargs, dest);
-		    ShowUsage();
+	    /* ----------------
+	     *   execute the plan
+	     *
+	     *   Note: _exec_repeat_ defaults to 1 but may be changed
+	     *	   by a DEBUG command.   If you set this to a large
+	     *	   number N, run a single query, and then set it
+	     *	   back to 1 and run N queries, you can get an idea
+	     *	   of how much time is being spent in the parser and
+	     *	   planner b/c in the first case this overhead only
+	     *	   happens once.  -cim 6/9/91
+	     * ----------------
+	     */
+	    if (ShowExecutorStats)
+		ResetUsage();
+	    
+	    for (j = 0; j < _exec_repeat_; j++) {
+		if (! Quiet) {
+		    time(&tim);
+		    printf("\tProcessQuery() at %s\n", ctime(&tim));
 		}
-		 GlobalMemoryDestroy(ParserPlannerContext);
-	    } else {
-		/* ----------------
-		 *   execute the plan
-		 *
-		 *   Note: _exec_repeat_ defaults to 1 but may be changed
-		 *	   by a DEBUG command.   If you set this to a large
-		 *	   number N, run a single query, and then set it
-		 *	   back to 1 and run N queries, you can get an idea
-		 *	   of how much time is being spent in the parser and
-		 *	   planner b/c in the first case this overhead only
-		 *	   happens once.  -cim 6/9/91
-		 * ----------------
-		 */
-		if (ShowExecutorStats)
-		    ResetUsage();
-		
-		for (j = 0; j < _exec_repeat_; j++) {
-		    if (! Quiet) {
-			time(&tim);
-			printf("\tProcessQuery() at %s\n", ctime(&tim));
-		    }
-		    ProcessQuery(parsetree, plan, argv, typev, nargs, dest);
-		}
-		
-		if (ShowExecutorStats) {
-		    fprintf(stderr, "! Executor Stats:\n");
-		    ShowUsage();
-		}
+		ProcessQuery(parsetree, plan, argv, typev, nargs, dest);
+	    }
+	    
+	    if (ShowExecutorStats) {
+		fprintf(stderr, "! Executor Stats:\n");
+		ShowUsage();
 	    }
 	}
 	/*
@@ -714,7 +676,7 @@ pg_eval_dest(query_string, argv, typev, nargs, dest)
 	     CommandCounterIncrement();
     }
 }
-    
+
 /* ----------------------------------------------------------------
  *			postgres main loop
  * ----------------------------------------------------------------

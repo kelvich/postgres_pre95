@@ -122,19 +122,6 @@ create_plan(best_path)
 
      /*    Attach a SORT node to the path if a sort path is specified. */
 
-#if 0
-     /* this piece of code has been long dead -- Wei */
-     if (get_pathsortkey(best_path) &&
-	(_query_max_level_ == 1)) {
-	  set_qptargetlist(plan_node,
-			    (List)fix_targetlist(origtlist,
-					   get_qptargetlist(plan_node)));
-	  sorted_plan_node = (Plan)sort_level_result(plan_node,
-					length(get_varkeys(
-						get_pathsortkey(best_path))));
-     }
-     else 
-#endif
        if(get_pathsortkey(best_path)) {
 	    sorted_plan_node = (Plan)make_temp(tlist,
 				      get_varkeys(get_pathsortkey(best_path)),
@@ -163,34 +150,26 @@ create_plan(best_path)
  *    
  */
 
-/*  .. create_plan    */
+/*  .. create_plan
+ *	Extract the relevant clauses from the parent relation and replace the
+ *	operator OIDs with the corresponding regproc ids.
+ *
+ * 	now that local predicate clauses are copied into paths in
+ *	find_rel_paths() and then (possibly) pulled up in xfunc_trypullup(),
+ *	we get the relevant clauses from the path itself, not its parent
+ *	relation.   --- JMH, 6/15/92
+ */
 
 Scan
 create_scan_node(best_path,tlist)
      Path best_path;
      List tlist ;
 {
-     /*Extract the relevant clauses from the parent relation and replace the */
-     /* operator OIDs with the corresponding regproc ids. */
-
-    /*
-    ** CHANGE: now that local predicate clauses are copied into paths 
-    ** in find_rel_paths() and then (possibly) pulled up in xfunc_trypullup(),
-    ** we get the relevant clauses from the path itself, not its parent
-    ** relation.   --- JMH, 6/15/92
-    */
 
      Scan node;
+     LispValue scan_clauses;
 
-/*  Old version (pre 6/15/92)
-**   LispValue scan_clauses = fix_opids(get_actual_clauses
-**					(get_clauseinfo 
-**					 (get_parent
-**					  (best_path))));
-*/
-     /* New version (6/15/92) */
-     LispValue scan_clauses = fix_opids(get_actual_clauses
-					(get_locclauseinfo(best_path)));
+     scan_clauses = fix_opids(get_actual_clauses(get_locclauseinfo(best_path)));
 
      switch(get_pathtype(best_path)) {
 
@@ -202,7 +181,7 @@ create_scan_node(best_path,tlist)
 	  node = (Scan)create_indexscan_node((IndexPath)best_path,
 					     tlist,scan_clauses);
 	  break;
-	  
+
 	  default :
 	    elog(WARN,"create_scan_node: unknown node type",
 		     get_pathtype(best_path));
@@ -383,9 +362,6 @@ create_indexscan_node(best_path,tlist,scan_clauses)
      else 
        qpqual = set_difference(scan_clauses, CAR(indxqual));
      
-     /*  XXX
-     fixed_indxqual = indxqual;
-     */
      fixed_indxqual = fix_indxqual_references(indxqual,best_path);
      scan_node = make_indexscan(tlist,
 				 qpqual,
