@@ -21,9 +21,11 @@
  *     		find-version-parents
  *     		function-index-info
  */
+
+#include "pg_lisp.h"
 #include "internal.h"
 #include "c.h"
-#include "pg_lisp.h"
+#include "plancat.h"
 
 
 /*    
@@ -37,8 +39,8 @@
  *    
  */
 
-/*  .. exec-make-intermediate-locks, make-rule-locks
- */
+/*  .. exec-make-intermediate-locks, make-rule-locks     */
+
 LispValue
 intermediate_rule_lock_data (type,attribute,plan)
      LispValue type,attribute,plan ;
@@ -62,9 +64,9 @@ intermediate_rule_lock (rule_id,priority,type,is_early,
  */
 LispValue
 print_rule_lock_intermediate (rule_lock_intermediate)
-LispValue rule_lock_intermediate ;
+     LispValue rule_lock_intermediate ;
 {
-    RuleLockIntermediateDump (rule_lock_intermediate);
+     RuleLockIntermediateDump (rule_lock_intermediate);
 }
 
 /*  .. make-rule-locks
@@ -97,8 +99,8 @@ rule_insert_catalog ()
  *    
  */
 
-/*  .. find-secondary-index
- */
+/*  .. find-secondary-index    */
+
 
 List
 index_info (not_first,relid)
@@ -106,19 +108,21 @@ index_info (not_first,relid)
      ObjectId relid ;
 {
     int indexinfo[32];
+    int i;
+    LispValue ikey, iord, am_ops;
     /*    Retrieve information for a single index (if there is another one). */
     if(1 == IndexCatalogInformation (not_first,
 				     getrelid (relid,_query_range_table_),
 				     _query_is_archival_,indexinfo)) {
 	/*    First extract the index OID and the basic statistics (pages,
-	      tuples, and indexrelid), then collect the index keys, operators,
-	      and operator classes into lists.  Only include the 
-	      actual keys in the list, i.e., no 0's.
-	      */
-
+	 *     tuples, and indexrelid), then collect the index keys, operators,
+	 *     and operator classes into lists.  Only include the 
+	 *     actual keys in the list, i.e., no 0's.
+	 */
+	 
 	/*    Keys over which we're indexing: */
 
-	for (i = _MAX_KEYS_+3 ; i > 2; --i ) 
+	 for (i = _MAX_KEYS_+3 ; i > 2; --i ) 
 	  ikey = lispCons(lispInteger(indexinfo[i]),ikey);
 
 	/*    Operators used by the index (for ordering purposes): */
@@ -129,7 +133,7 @@ index_info (not_first,relid)
 	/*    Classes of the AM operators used by index: */
 
 	for (i = _MAX_KEYS_+25 ; i > 18; --i ) 
-	  iord = lispCons(lispInteger(indexinfo[i]),iord);
+	  am_ops = lispCons(lispInteger(indexinfo[i]),iord);
 
 	return(list (lispInteger(indexinfo[0]),
 		     lispInteger(indexinfo[1]),
@@ -161,78 +165,69 @@ index_info (not_first,relid)
 List
 index_selectivity (indid,classes,opnos,relid,attnos,values,flags,nkeys)
      ObjectId 	indid, classes,opnos,relid;
-     int 32	attnos[];
+     int32	attnos[];
      char 	*values[];
      int32	flags;
      int32	nkeys ;
 {
-    if(nkeys == length (classes) &&
-       nkeys == length (opnos)  &&
-       nkeys == length (attnos) &&
-       nkeys == length (values) && 
-       nkeys == length (flags)) {
+     if(nkeys == length (classes) &&
+	nkeys == length (opnos)  &&
+	nkeys == length (attnos) &&
+	nkeys == length (values) && 
+	nkeys == length (flags)) {
 
-	float param[2];
+	  float param[2];
 
-	IndexSelectivity (indid,relid,nkeys,
-			  classes,opnos,attnos,values,flags,param);
-
-	return (list(lispDouble(param[0]),
-		     lispDouble(param[1]));
-    } else 
-      return(lispCons(lispDouble(0.0),
-		      lispCons(lispDouble(1.0))));
+	  IndexSelectivity (indid,relid,nkeys,
+			    classes,opnos,attnos,values,flags,param);
+	  
+	  return (list(lispDouble(param[0]),
+		       lispDouble(param[1])));
+     } else 
+       return(lispCons(lispDouble(0.0),
+		       lispCons(lispDouble(1.0))));
 }
 
 /*    
- *    	restriction-selectivity
+ *    	restriction-selectivity  
  *    
  *    	Returns the selectivity of an operator, given the restriction clause
  *    	information.
- *    
+ *      The routine is now merged with 
+ *      RestrictionClauseSelectivity as defined in plancat.c
+ *
+ *      This routine is called by comput_selec
  */
-
-/*  .. compute_selec
- */
-LispValue
-restriction_selectivity (oprrest,operator,relation,attribute_number,value,flags)
-LispValue oprrest,operator,relation,attribute_number,value,flags ;
-{
-RestrictionClauseSelectivity (oprrest,operator,relation,attribute_number,value,flags);
-}
 
 /*    
  *    	join-selectivity
  *    
  *    	Returns the selectivity of an operator, given the join clause
  *    	information.
- *    
+ *
+ *      Similarly, this routine is merged with JoinClauseSelectivity in
+ *      plancat.c
+ *      Routin is used in compute_selec.
  */
 
-/*  .. compute_selec
- */
-LispValue
-join_selectivity (oprjoin,operator,relation1,attribute_number1,relation2,attribute_number2)
-LispValue oprjoin,operator,relation1,attribute_number1,relation2,attribute_number2 ;
-{
-JoinClauseSelectivity (oprjoin,operator,relation1,attribute_number1,relation2,attribute_number2);
-}
 
 /*    
  *    	find-inheritance-children
  *    
  *    	Returns all relations that directly inherit from the relation
  *    	represented by 'relation-oid'.
- *    
+ *
+ *      Maybe we can merge the 2 functions    
  */
 
-/*  .. find-all-inheritors
- */
+/*  .. find-all-inheritors     */
+
 LispValue
 find_inheritance_children (relation_oid)
-LispValue relation_oid ;
+     LispValue relation_oid ;
 {
-car (InheritanceGetChildren (relation_oid,list (nil)));
+     CAR (InheritanceGetChildren (relation_oid,
+				  list (LispNil)));
 }
 
 /*    
@@ -247,9 +242,10 @@ car (InheritanceGetChildren (relation_oid,list (nil)));
  */
 LispValue
 find_version_parents (relation_oid)
-LispValue relation_oid ;
+     LispValue relation_oid ;
 {
-car (VersionGetParents (relation_oid,list (nil)));
+     CAR (VersionGetParents (relation_oid,
+			     list (LispNil)));
 }
 
 /*    
@@ -259,34 +255,29 @@ car (VersionGetParents (relation_oid,list (nil)));
  *    	to a valid function-index mapping.
  *    
  */
-#ifdef 
-funcindex;
+#ifdef funcindex
+/*  .. function-index-clause-p     */
 
-#endif
-;
-
-/*  .. function-index-clause-p
- */
-LispValue
+int32
 function_index_info (function_oid,index_oid)
-LispValue function_oid,index_oid ;
+     int32 function_oid,index_oid ;
 {
-/* XXX - let form, maybe incorrect */
-LispValue info = new_vectori_long (4);
-and (not (zerop (FunctionIndexInformation (index_oid,info))),vrefi_long (info,0) == function_oid);
-;
-}
-#ifndef 
-funcindex;
+     int32      info[4];
+     if (!zerop (FunctionIndexInformation (index_oid,info)) && 
+	 info[0] == function_oid)
+       return(function_oid);
 
+}
 #endif
-;
+#ifndef funcindex
 
-/*  .. function-index-clause-p
- */
-LispValue
+/*  .. function-index-clause-p    */
+
+int32
 function_index_info (function_oid,index_oid)
-LispValue function_oid,index_oid ;
+     int32 function_oid,index_oid ;
 {
-nil;
+     return((int32)LispNil);
 }
+#endif
+ 
