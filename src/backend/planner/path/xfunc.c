@@ -210,7 +210,7 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
 	 joincost = xfunc_join_expense(parentpath, whichchild);
 	 
 	 if (XfuncMode == XFUNC_PULLALL ||
-	     (XfuncMode != XFUNC_NOPRUNE &&
+	     (XfuncMode != XFUNC_WAIT &&
 	      ((joincost != 0 &&
 		(maxrank = xfunc_rank(get_clause(maxcinfo))) > 
 		((joinselec - 1.0) / joincost))
@@ -1052,7 +1052,6 @@ Cost xfunc_expense_per_tuple(joinnode, whichchild)
 JoinPath joinnode;
 int whichchild;
 {
-    Cost retval;
     Rel outerrel = get_parent((Path)get_outerjoinpath(joinnode));
     Rel innerrel = get_parent((Path)get_innerjoinpath(joinnode));
     Count outerwidth = get_width(outerrel);
@@ -1228,8 +1227,8 @@ int xfunc_disjunct_compare(arg1, arg2)
 
     cost1 = xfunc_expense(disjunct1);
     cost2 = xfunc_expense(disjunct2);
-    selec1 = compute_clause_selec(disjunct1);
-    selec2 = compute_clause_selec(disjunct2);
+    selec1 = compute_clause_selec(disjunct1, LispNil);
+    selec2 = compute_clause_selec(disjunct2, LispNil);
     
     if (selec1 == 0)
       rank1 = MAXFLOAT;
@@ -1239,11 +1238,11 @@ int xfunc_disjunct_compare(arg1, arg2)
       rank1 = cost1/selec1;
 
     if (selec2 == 0)
-      rank1 = MAXFLOAT;
+      rank2 = MAXFLOAT;
     else if (cost2 == 0)
-      rank1 = 0;
+      rank2 = 0;
     else
-      rank1 = cost2/selec2;
+      rank2 = cost2/selec2;
 
     if ( rank1 < rank2) 
       return(-1);
