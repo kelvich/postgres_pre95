@@ -3,11 +3,11 @@
  *	Routines to order the writing of buffers to disk.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "log.h"
+#include "utils/log.h"
 
 #include "internal.h"
 
