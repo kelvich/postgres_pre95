@@ -13,22 +13,21 @@
 #include <sys/file.h>
 #include <sys/param.h>
 
-#include "postgres.h"
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 
-#include "fd.h"
-#include "fmgr.h"
-#include "heapam.h"
-#include "log.h"
-#include "mcxt.h"
-#include "palloc.h"
-#include "pg_lisp.h"
-#include "portal.h"	/* for StartPortalAllocMode, etc. */
-#include "syscache.h"
-#include "tqual.h"
-
-#include "copy.h"
+#include "access/heapam.h"
+#include "access/tqual.h"
+#include "catalog/syscache.h"
+#include "commands/copy.h"
+#include "nodes/pg_lisp.h"
+#include "storage/fd.h"
+#include "tmp/portal.h"		/* for StartPortalAllocMode, etc. */
+#include "utils/fmgr.h"
+#include "utils/log.h"
+#include "utils/mcxt.h"
+#include "utils/palloc.h"
 
 #include "catalog/pg_type.h"
 

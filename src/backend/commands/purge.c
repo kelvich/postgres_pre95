@@ -7,16 +7,16 @@
  *	should be changed once it is decided the signed'ness will be.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "catname.h"
-#include "fmgr.h"
-#include "ftup.h"
-#include "heapam.h"
-#include "log.h"
-#include "tqual.h"	/* for NowTimeQual */
+#include "access/ftup.h"
+#include "access/heapam.h"
+#include "access/tqual.h"	/* for NowTimeQual */
+#include "catalog/catname.h"
+#include "utils/fmgr.h"
+#include "utils/log.h"
 
 #include "catalog/pg_relation.h"
 

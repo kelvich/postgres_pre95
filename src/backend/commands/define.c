@@ -12,24 +12,24 @@
 
 #include <strings.h>	/* XXX style */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "catname.h"
-#include "fmgr.h"	/* for fmgr */
-#include "ftup.h"
-#include "heapam.h"
-#include "htup.h"
-#include "log.h"
+#include "access/ftup.h"
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "access/tqual.h"
+#include "catalog/catname.h"
+#include "catalog/syscache.h"
 #include "manip.h"
-#include "name.h"
-#include "parse.h"	/* for ARG */
-#include "pg_lisp.h"
-#include "syscache.h"
-#include "tqual.h"
+#include "nodes/pg_lisp.h"
+#include "parser/parse.h"	/* for ARG */
+#include "tmp/name.h"
+#include "utils/fmgr.h"		/* for fmgr */
+#include "utils/log.h"
 
-#include "defrem.h"
+#include "commands/defrem.h"
 
 /* ----------------
  *	external functions

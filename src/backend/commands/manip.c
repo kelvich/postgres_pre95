@@ -3,13 +3,13 @@
  *	POSTGRES "manipulation" utility code.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "log.h"	/* for elog, WARN */
-#include "name.h"
-#include "pg_lisp.h"
+#include "nodes/pg_lisp.h"
+#include "tmp/name.h"
+#include "utils/log.h"	/* for elog, WARN */
 
 #include "manip.h"
 

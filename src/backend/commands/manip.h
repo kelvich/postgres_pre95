@@ -9,20 +9,17 @@
 #ifndef	ManipIncluded		/* Include this file only once */
 #define ManipIncluded	1
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include <strings.h>
+
+#include "tmp/c.h"
 
 /*
  * XXX style--this should be in a more global header file
  */
-#include <strings.h>
 #define StringEquals(x, y)	(strcmp(x, y) == 0)
-/*
- */
 
-#include "name.h"
-#include "pg_lisp.h"
+#include "nodes/pg_lisp.h"
+#include "tmp/name.h"
 
 /*
  * DefineListRemoveOptionalIndicator --

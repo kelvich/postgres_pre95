@@ -3,19 +3,18 @@
  *	POSTGRES remove (function | type | operator ) utilty code.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "skey.h"
-#include "attnum.h"
-#include "catname.h"
-#include "heapam.h"
-#include "htup.h"
-#include "log.h"
-#include "tqual.h"	/* for NowTimeQual */
-
-#include "defrem.h"
+#include "access/attnum.h"
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "access/skey.h"
+#include "access/tqual.h"	/* for NowTimeQual */
+#include "catalog/catname.h"
+#include "commands/defrem.h"
+#include "utils/log.h"
 
 #include "catalog/pg_operator.h"
 #include "catalog/pg_proc.h"
