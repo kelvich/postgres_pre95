@@ -138,6 +138,8 @@ _vc_getrels(p)
     PortalVariableMemory portalmem;
     MemoryContext old;
     VRelList vrl, cur;
+    Datum d;
+    Name rname;
     Boolean n;
     ScanKeyEntry pgckey[1];
 
@@ -154,6 +156,14 @@ _vc_getrels(p)
     pgcscan = heap_beginscan(pgclass, false, NowTimeQual, 1, &pgckey[0]);
 
     while (HeapTupleIsValid(pgctup = heap_getnext(pgcscan, false, &buf))) {
+
+	/* careful not to vacuum the archive */
+	d = (Datum) heap_getattr(pgctup, buf, Anum_pg_relation_relname,
+				 pgcdesc, &n);
+	rname = DatumGetName(d);
+
+	if (_vc_isarchrel(rname))
+	    continue;
 
 	/* get a relation list entry for this guy */
 	old = MemoryContextSwitchTo(portalmem);
@@ -720,4 +730,14 @@ _vc_archive(archrel, htup)
     double ignore;
 
     doinsert(archrel, htup, &ignore);
+}
+
+bool
+_vc_isarchrel(rname)
+    Name rname;
+{
+    if (strncmp(ARCHIVE_PREFIX, &(rname->data[0]), strlen(ARCHIVE_PREFIX)) == 0)
+	return (true);
+
+    return (false);
 }
