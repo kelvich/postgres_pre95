@@ -155,22 +155,13 @@ EstablishComm()
     if (!PQportset) { 
 	read_initstr();
 
-	if ( pq_connect( PQdatabase, 
-		getenv("USER"), 
-		PQoption, 
-		PQhost, 
-		PQtty,
-		(short)atoi(PQport) ) == -1 ) {
+	if (pq_connect(PQdatabase, getenv("USER"), PQoption, PQhost, PQtty,
+			(char *) NULL, (short)atoi(PQport) ) == -1 ) {
 	    libpq_raise(ProtocolError,
 	      form("Failed to connect to backend (host=%s, port=%s)",
 		   PQhost, PQport));
 	}
-	
-/*	Now a message.
- *
- *	pqdebug("\nInitstr sent to the backend: %s", PQinitstr);
- *	pq_putstr(PQinitstr);
- */
+
 	pq_flush();
 	PQportset = 1;
     }
@@ -308,25 +299,11 @@ InitVacuumDemon(host, database, terminal, option, port, vacuum)
     StringPointerSet(&PQport, port, "PGPORT", DefaultPort);
     StringPointerSet(&path, vacuum, "PGVACUUM", DefaultVacuum);
     
-/*    
- *  PQinitstr = pbuf_addValues(initstr_length);
- *  sprintf(PQinitstr, "%s,%s,%s,%s,%s\n", getenv ("USER"),
- *	    PQdatabase, PQtty, PQoption, path);
- */
-    
-    if ( pq_connect( PQdatabase, 
-	getenv("USER"), 
-	PQoption, 
-	PQhost, 
-	(short)atoi(PQport) ) == -1 ) {
+    if (pq_connect(PQdatabase, getenv("USER"), PQoption, PQhost, PQtty,
+		   path, (short) atoi(PQport)) == -1 ) {
 	    libpq_raise(ProtocolError,
 		    form("Fatal Error -- No POSTGRES backend to connect to"));
     }
-    
-/*
- *  pqdebug("\nInitstr sent to the backend: %s", PQinitstr);
- *  pq_putstr(PQinitstr);
- */
     pq_flush();
     PQportset = 1;
 }
