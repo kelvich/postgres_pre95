@@ -16,6 +16,13 @@ static	char	ami_lexer_l[] = "$Header$";
 #undef BOOTSTRAP
 #include "bootstrap.h"
 
+/*
+ * This is actually conditional on use of "flex" instead of "lex"
+ */
+#ifdef __linux__
+#undef yywrap
+#endif /* __linux__ */
+
 int	yylval;
 int	yycolumn;
 int	yyline;
@@ -104,7 +111,9 @@ add		{ return(ADD); }
 		    for (in = out = yytext; *out = *in; ++out)
 			if (*in++ == '\\')
 			    *out = (unsigned char) MapEscape(&in);
+#if 0
 		    *(out+1) = '\000';
+#endif
 		    yylval = LookUpMacro(&yytext[1]);
 		    return(ID);
 		}
@@ -123,7 +132,9 @@ add		{ return(ADD); }
 			*p = last;
 			last = this;
 		    }
-		    *p++ = last;
+		    if (*p) {
+			*p++ = last;
+		    }
 		    *p = '\0';
 		    yylval = EnterString(yytext);
 		    return(ID);
@@ -133,7 +144,9 @@ add		{ return(ADD); }
 		    for (in = out = yytext; *out = *in; ++out)
 			if (*in++ == '\\')
 			    *out = (unsigned char) MapEscape(&in);
+#if 0
 		    *(out+1) = '\000';
+#endif
 		    yylval = EnterString(yytext);
 		    return(ID);
 		}
