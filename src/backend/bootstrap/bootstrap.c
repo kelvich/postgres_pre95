@@ -451,9 +451,16 @@ boot_openrel(name)
 	    (char *)attrtypes[i],
 	    sizeof (*attrtypes[0])
 	);
-	/* some old pg_attribute tuples might not have attisset */
-	attrtypes[i]->attisset = get_attisset(reldesc->rd_id,
-                                              attrtypes[i]->attname);
+	/* Some old pg_attribute tuples might not have attisset. */
+	/* If the attname is attisset, don't look for it - it may
+	   not be defined yet.
+         */
+	if (strncmp(attrtypes[i]->attname, "attisset", strlen("attisset")))
+	     attrtypes[i]->attisset = get_attisset(reldesc->rd_id,
+						   attrtypes[i]->attname);
+	else
+	     attrtypes[i]->attisset = false;
+
 	if (DebugMode) {
 	    struct attribute *at = attrtypes[i];
 	    printf("create attribute %d name %s len %d num %d type %d\n",
