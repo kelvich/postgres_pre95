@@ -271,8 +271,10 @@ AttributeNameIndexScan(heapRelation, relid, relname)
     else
 	tuple = (HeapTuple)NULL;
 
-    if (HeapTupleIsValid(tuple))
+    if (HeapTupleIsValid(tuple)) {
 	tuple = palloctup(tuple, buffer, heapRelation);
+	ReleaseBuffer(buffer);
+      }
 
     index_endscan(sd);
     pfree(keyarg);
@@ -316,8 +318,10 @@ AttributeNumIndexScan(heapRelation, relid, attnum)
     else
 	tuple = (HeapTuple)NULL;
 
-    if (HeapTupleIsValid(tuple))
+    if (HeapTupleIsValid(tuple)) {
 	tuple = palloctup(tuple, buffer, heapRelation);
+	ReleaseBuffer(buffer);
+      }
 
     index_endscan(sd);
     pfree(keyarg);
@@ -358,8 +362,10 @@ ProcedureOidIndexScan(heapRelation, procId)
     else
 	tuple = (HeapTuple)NULL;
 
-    if (HeapTupleIsValid(tuple))
+    if (HeapTupleIsValid(tuple)) {
 	tuple = palloctup(tuple, buffer, heapRelation);
+	ReleaseBuffer(buffer);
+      }
 
     index_endscan(sd);
 
@@ -399,8 +405,10 @@ ProcedureNameIndexScan(heapRelation, procName)
     else
 	tuple = (HeapTuple)NULL;
 
-    if (HeapTupleIsValid(tuple))
+    if (HeapTupleIsValid(tuple)) {
 	tuple = palloctup(tuple, buffer, heapRelation);
+	ReleaseBuffer(buffer);
+      }
 
     index_endscan(sd);
 
@@ -440,8 +448,10 @@ TypeOidIndexScan(heapRelation, typeId)
     else
 	tuple = (HeapTuple)NULL;
 
-    if (HeapTupleIsValid(tuple))
+    if (HeapTupleIsValid(tuple)) {
 	tuple = palloctup(tuple, buffer, heapRelation);
+	ReleaseBuffer(buffer);
+      }
 
     index_endscan(sd);
 
@@ -481,8 +491,10 @@ TypeNameIndexScan(heapRelation, typeName)
     else
 	tuple = (HeapTuple)NULL;
 
-    if (HeapTupleIsValid(tuple))
+    if (HeapTupleIsValid(tuple)) {
 	tuple = palloctup(tuple, buffer, heapRelation);
+	ReleaseBuffer(buffer);
+      }
 
     index_endscan(sd);
 

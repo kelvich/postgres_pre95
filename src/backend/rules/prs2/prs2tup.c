@@ -331,6 +331,7 @@ bool hintFlag;
      * OK, we are done, cleanup & return true...
      */
     RelationCloseHeapRelation(rel);
+    HeapScanEnd(scanDesc);
     if (attrList != NULL)
 	pfree((Pointer)attrList);
     pfree((Pointer)thislock);
@@ -752,5 +753,6 @@ int nrules;
     }
 
     RelationCloseHeapRelation(rel);
+    HeapScanEnd(scanDesc);
 }
     

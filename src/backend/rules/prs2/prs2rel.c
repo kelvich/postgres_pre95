@@ -330,6 +330,7 @@ RuleLock newLocks;
 			    newTuple, (double *)NULL);
     
     RelationCloseHeapRelation(relationRelation);
+    HeapScanEnd(scanDesc);
 
 }
 

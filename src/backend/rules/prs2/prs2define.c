@@ -467,6 +467,7 @@ ObjectId ruleId;
      */
     RelationDeleteHeapTuple(prs2RuleRelation, &(tuple->t_ctid));
     RelationCloseHeapRelation(prs2RuleRelation);
+    HeapScanEnd(scanDesc);
 }
 
 /*-----------------------------------------------------------------------
@@ -572,6 +573,7 @@ ObjectId ruleId;
     }
 	
     RelationCloseHeapRelation(prs2PlansRelation);
+    HeapScanEnd(scanDesc);
 
 }
 

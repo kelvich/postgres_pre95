@@ -220,6 +220,7 @@ bool addFlag;
     }
     
     RelationCloseHeapRelation(prs2stubRelation);
+    HeapScanEnd(scanDesc);
 
 }
 #endif
@@ -370,6 +371,8 @@ Prs2Stub newStubs;
 #endif STUB_DEBUG
 	heap_insert(prs2stubRelation, tuple, (double *)NULL);
     }
+    RelationCloseHeapRelation(prs2stubRelation);
+    HeapScanEnd(scanDesc);
 }
 
 /*======================================================================
@@ -533,6 +536,7 @@ ObjectId relationOid;
     }
 
     RelationCloseHeapRelation(prs2stubRelation);
+    HeapScanEnd(scanDesc);
 
     return(result);
 

@@ -155,6 +155,7 @@ Name relationName;
     tuple = HeapScanGetNextTuple(scanDesc, false, &buffer);
     locks = prs2GetLocksFromTuple(tuple, buffer);
     RelationCloseHeapRelation(rel);
+    HeapScanEnd(scanDesc);
 
     return(locks);
 }
