@@ -115,6 +115,7 @@ DATA(insert OID = 600 (  point     6 16  24 f b t \054 0 701 point_in point_out 
 DATA(insert OID = 601 (  lseg      6 32  48 f b t \054 0 600 lseg_in lseg_out lseg_in lseg_out - ));
 DATA(insert OID = 602 (  path      6 -1  -1 f b t \054 0 600 path_in path_out path_in path_out - ));
 DATA(insert OID = 603 (  box       6 32 100 f b t \073 0 600 box_in box_out box_in box_out - ));
+DATA(insert OID = 604 (  polygon   6 -1 100 f b t \054 0 600 poly_in poly_out poly_in poly_out - ));
 DATA(insert OID = 700 (  float4    6  4  12 f b t \054 0   0 float4in float4out float4in float4out - ));
 DATA(insert OID = 701 (  float8    6  8  24 f b t \054 0   0 float8in float8out float8in float8out - ));
 DATA(insert OID = 702 (  abstime   6  4  20 t b t \054 0   0 abstimein abstimeout abstimein abstimeout - ));
