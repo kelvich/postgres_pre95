@@ -188,7 +188,7 @@ EstablishComm()
 	if (pq_connect(PQdatabase, getenv("USER"), PQoption, PQhost, PQtty,
 			(char *) NULL, (short)atoi(PQport) ) == -1 ) {
 	    libpq_raise(&ProtocolError,
-	      form((int)"Failed to connect to backend (host=%s, port=%s), is postmaster running?",
+	      form((int)"Failed to connect to backend (host=%s, port=%s)\nIs the postmaster running?",
 		   PQhost, PQport));
 	}
 
