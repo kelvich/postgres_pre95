@@ -172,6 +172,8 @@ rm(arg, level)
 					fprintf(stderr, "rm: cannot read %s?\n", arg);
 					errcode++;
 				}
+				if (level == 0 && *path == '\0')
+					append(arg);
 				break;
 			}
 			/* pick up where we left off */
@@ -190,6 +192,8 @@ rm(arg, level)
 				}
 				strcpy(prevname, dp->d_name);
 			}
+			if (level == 0 && *path == '\0')
+				append(arg);
 		}
 		p_closedir(dirp);
 		if (level == 0) {
