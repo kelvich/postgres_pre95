@@ -68,10 +68,17 @@ typedef struct mutex	slock_t;
  */
 typedef unsigned int	slock_t;
 #else /* aix */
+#if defined(PORTNAME_alpha)
+/*
+ * The Alpha LDQ_L/STQ_C instructions operate on quadwords (long int).
+ */
+typedef long		slock_t;
+#else /* alpha */
 /*
  * On all other architectures spinlocks are a single byte.
  */
 typedef unsigned char   slock_t;
+#endif /* alpha */
 #endif /* aix */
 #endif /* next */
 #endif /* sequent */
