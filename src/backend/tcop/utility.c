@@ -16,7 +16,6 @@ RcsId("$Header$");
 #include "creatinh.h"
 #include "defrem.h"
 #include "pg_lisp.h"		/* lisp-compat package */
-#include "xcxt.h"		/* for {Start,Commit,Abort}TransactionBlock */
 
 extern int PG_INTERACTIVE;
 
@@ -35,30 +34,33 @@ ProcessUtility(command, args)
 	String	commandTag = NULL;
 
 	switch (command) {
-		/*
-		 * transactions
-		 */
+#if 0
+		/* transactions */
 	case BEGIN_TRANS:
 		commandTag = "BEGIN";
-#ifndef	PERFECTPARSER
-		AssertArg(consp(args) && null(CDR(args)));
-#endif
-		StartTransactionBlock();
+		if ( null (args) ) {
+			start_transaction_block ();
+		} else {
+			cons (command,args);
+		}
 		break;
 	case END_TRANS:
 		commandTag = "END";
-#ifndef	PERFECTPARSER
-		AssertArg(consp(args) && null(CDR(args)));
-#endif
-		CommitTransactionBlock();
+		if ( null (args) ) {
+			commit_transaction_block ();
+		} else {
+			cons (command,args);
+		};
 		break;
 	case ABORT_TRANS:
 		commandTag = "ABORT";
-#ifndef	PERFECTPARSER
-		AssertArg(consp(args) && null(CDR(args)));
-#endif
-		AbortTransactionBlock();
+		if ( null (args) ) {
+			abort_transaction_block ();
+		} else {
+			cons (command,args);
+		}
 		break;
+#endif
 
 		/*
 		 * portal manipulation
@@ -115,7 +117,15 @@ ProcessUtility(command, args)
 		break;
 	case MOVE:
 		commandTag = "MOVE";
-		elog(WARN, "MOVE: unimplemented in Version 1");
+		elog(WARN, "MOVE: unimplemented");
+#if 0
+		portal_move (CAR (args),
+			((CInteger(CADR(args)) ==  FORWARD) ?
+				true : false ),		/* forward ? */
+			CInteger(CADDR (args)));	/* ntups to scan 
+							   -1 means "ALL" */
+		break;
+#endif
 
 		/*
 		 * relation and attribute manipulation
@@ -164,47 +174,16 @@ ProcessUtility(command, args)
 
 	case ADD_ATTR:
 		commandTag = "ADD";
-#ifndef	PERFECTPARSER
-		AssertArg(consp(args) && lispStringp(CAR(args)));
-		AssertArg(consp(CDR(args)) && lispStringp(CADR(args)));
-		AssertArg(null(CDR(CDR(args))));
-#endif
-		addattribute(CString(CAR(args)),
 		relation_add_attribute (CAR (args),	/* relation name */
 			CDR (args));
 		break;
-#endif
-		/*
-		 * schema
-		 */
+
+		/* schema */
 	case RENAME:
 		commandTag = "RENAME";
-	{
-		int	len;
-#ifndef	PERFECTPARSER
-		AssertArg(listp(args));
-#endif
-		len = length(args);
-#ifndef	PERFECTPARSER
-		AssertArg(len == 3 || len == 4);
-		AssertArg(lispStringp(CADR(args)));
-		AssertArg(lispStringp(CADDR(args)));
-		if (len == 4) {
-			AssertArg(lispStringp(CADDR(CDR(args))));
-		}
-#endif
-		/*
-		 * skip unused "RELATION" or "ATTRIBUTE" tag
-		 */
-		args = CDR(args);
-		if (len == 3) {	/* relation */
-			renamerel(CString(CAR(args)), CString(CADR(args)));
-		} else {	/* attribute */
-			renamerel(CString(CAR(args)), CString(CADR(args)),
-				CString(CADDR(args)));
-		}
-	}
+		rename_utility_invoke (CAR (args),cdr (args));
 		break;
+#endif
 		/* object creation */
 	case DEFINE:
 		commandTag = "DEFINE";
@@ -258,7 +237,7 @@ ProcessUtility(command, args)
 			break;
 
 		case RULE:
-			elog(WARN,
+			elog(DEBUG,
 				"InvokeUtility: DEFINE RULE now unsupported");
 #if 0
 			rule_define(CAR(args),		/* rule name */
@@ -337,7 +316,6 @@ ProcessUtility(command, args)
 #if 0
 			rule_remove(CDR(args));
 #endif
-			break;
 		case P_TYPE:
 #ifndef	PERFECTPARSER
 			AssertArg(lispStringp(CADR(args)));
@@ -364,7 +342,7 @@ ProcessUtility(command, args)
 #endif
 		/* default */
 	default:
-		elog(WARN, "ProcessUtility: command #%d unsupport", command);
+		cons (command,args);
 		break;
 	}
 

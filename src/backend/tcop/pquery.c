@@ -7,7 +7,6 @@
 
 RcsId("$Header$");
 
-#include "aset.h"		/* for DefaultAllocMode */
 #include "executor.h"		/* XXX a catch-all include */
 #include "globals.h"		/* for IsUnderPostmaster */
 #include "heapam.h"
@@ -219,8 +218,7 @@ ProcessQuery(parser_output, plan)
 		Portal	portal;
 
 		portal = BlankPortalAssignName(intoName);
-		PortalSetQuery(portal, parser_output, plan, state,
-			PortalCleanup);
+		PortalSetQuery(portal, parser_output, plan, state);
 
 		/*
 		 * Return blank portal for now.
@@ -229,9 +227,7 @@ ProcessQuery(parser_output, plan)
 		 * block in the near future.  Later, someone will fix it to
 		 * do what is possible across transaction boundries.
 		 */
-		MemoryContextSwitchTo((MemoryContext)
-			PortalGetHeapMemory(GetPortalByName(NULL)));
-		StartPortalAllocMode(DefaultAllocMode, 0);
+		(void)GetPortalByName(NULL);
 
 		return;			/* XXX see previous comment */
 	}
