@@ -22,7 +22,9 @@
 #endif  LOCKDEBUGALL
 
 #include "tmp/postgres.h"
+
  RcsId("$Header$");
+
 
 #include "access/heapam.h"
 #include "access/htup.h"
@@ -36,12 +38,13 @@
 #include "storage/ipci.h"	/* PageLockTableId and MultiLevelLockTableId */
 #include "storage/itemptr.h"
 #include "storage/bufpage.h"
-#include "utils/lmgr.h"
 #include "storage/pagenum.h"
 #include "storage/part.h"
 #include "storage/pladt.h"
-#include "storage/plm.h"	/* L_DONE, etc. */
+/*#include "storage/plm.h"	L_DONE, etc. */
+#include "storage/multilev.h"
 
+#include "utils/lmgr.h"
 #include "utils/log.h"
 #include "utils/rel.h"
 
@@ -337,7 +340,6 @@ void
 RelationSetLockForRead(relation)
     Relation	relation;
 {
-    LRelId	lRelId;
     int		status;		/* XXX style */
     int16	numberOfFailures;
     LockInfo	linfo;
@@ -351,7 +353,7 @@ RelationSetLockForRead(relation)
     if (LockingIsDisabled) 
 	return;
     
-    lRelId = RelationGetLRelId(relation);
+    elog(NOTICE, "Setting read lock on %s", relation->rd_rel->relname);
     linfo = (LockInfo) relation->lockInfo;
     LOCKDEBUG_40;
 
@@ -370,44 +372,7 @@ RelationSetLockForRead(relation)
     TransactionIdStore(curXact, (Pointer) &linfo->transactionIdData);
     linfo->flags |= ReadRelationLock;
     
-    status = LMLock(MultiLevelLockTableId,
-		    LockNoWait,
-		    &lRelId,
-		    (ObjectId *)NULL,
-		    (ObjectId *)NULL,
-		    GetCurrentTransactionId(),
-		    MultiLevelLockRequest_ReadRelation);
-
-    /* ----------------
-     *	if we couldn't get the lock we wanted, we sleep and
-     *  try again, sleep more and try again, until hopefully
-     *  we get the lock.  This scheme is pretty pathetic.
-     * ----------------
-     */
-    numberOfFailures = 0;
-    while (status != L_DONE) {
-	if (status == L_ERROR) {
-	    elog(WARN, "RelationSetLockForRead: locking error");
-	}
-	
-	if (numberOfFailures > MaxRetries) {
-	    elog(WARN, "RelationSetLockForRead: deadlock");
-	}
-	numberOfFailures += 1;
-	sleep(numberOfFailures);
-	
-	elog(NOTICE, 
-		"RelationSetLockForRead %s: retrying",
-		RelationGetRelationName(relation));
-	
-	status = LMLock(MultiLevelLockTableId,
-			LockTimeout,
-			&lRelId,
-			(ObjectId *)NULL,
-			(ObjectId *)NULL,
-			GetCurrentTransactionId(),
-			MultiLevelLockRequest_ReadRelation);
-    }
+    MultiLockReln(relation, READ_LOCK);
 }
 
 /* ----------------
@@ -434,38 +399,14 @@ RelationUnsetLockForRead(relation)
      * ----------------
      */
     Assert(RelationIsValid(relation));
-    if (LockingIsDisabled)
-	return;
 
-    /* ----------------
-     *	attempt to remove our read lock
-     * ----------------
+    /* -----------------------
+     * Locks are only released at the eoxact
+     * we may be changing this as we need to implement better locking
+     * protocols for certain catalog relations so as not to keep them
+     * tied up for too long. -mer 17 July 1991
+     * -----------------------
      */
-    lRelId = RelationGetLRelId(relation);
-    LOCKDEBUG_50;
-
-    status = LMLock(MultiLevelLockTableId,
-		    LockUnlock,
-		    &lRelId,
-		    (ObjectId *)NULL,
-		    (ObjectId *)NULL,
-		    GetCurrentTransactionId(),
-		    MultiLevelLockRequest_ReadRelation);
-    
-    /* ----------------
-     *	die horribly if we failed.  This should be fixed. XXX
-     * ----------------
-     */
-    if (status != L_DONE) {
-	if (status == L_ERROR) {
-	    elog(WARN, "RelationUnsetLockForRead(%s[%d,%d]: error",
-		 RelationGetRelationName(relation),
-		 lRelId.dbId, lRelId.relId);
-	}
-	elog(NOTICE, "RelationUnsetLockForRead(%s[%d,%d]: failed",
-	     RelationGetRelationName(relation),
-	     lRelId.dbId, lRelId.relId);
-    }
 }
 
 /* ----------------
@@ -484,9 +425,6 @@ void
 RelationSetLockForWrite(relation)
     Relation	relation;
 {
-    LRelId	lRelId;
-    int		status;
-    int16	numberOfFailures;
     LockInfo	linfo;
     TransactionId curXact;
     
@@ -498,7 +436,7 @@ RelationSetLockForWrite(relation)
     if (LockingIsDisabled)
 	return;
     
-    lRelId = RelationGetLRelId(relation);
+    elog(NOTICE, "Setting write lock on %s", relation->rd_rel->relname);
     linfo = (LockInfo) relation->lockInfo;
     LOCKDEBUG_60;
     
@@ -517,44 +455,7 @@ RelationSetLockForWrite(relation)
     linfo->flags |= WriteRelationLock;
     TransactionIdStore(curXact, (Pointer) &linfo->transactionIdData);
     
-    status = LMLock(MultiLevelLockTableId,
-		    LockNoWait,
-		    &lRelId,
-		    (ObjectId *)NULL,
-		    (ObjectId *)NULL,
-		    GetCurrentTransactionId(),
-		    MultiLevelLockRequest_WriteRelation);
-    
-    /* ----------------
-     *	if we couldn't get the lock we wanted, we sleep and
-     *  try again, sleep more and try again, until hopefully
-     *  we get the lock.  This scheme is pretty pathetic.
-     * ----------------
-     */
-    numberOfFailures = 0;
-    while (status != L_DONE) {
-	if (status == L_ERROR) {
-	    elog(WARN, "RelationSetLockForWrite: locking error");
-	}
-	
-	if (numberOfFailures > MaxRetries) {
-	    elog(WARN, "RelationSetLockForWrite: deadlock");
-	}
-	numberOfFailures += 1;
-	sleep(numberOfFailures);
-	
-	elog(NOTICE, 
-		"RelationSetLockForWrite %s: retrying", 
-		RelationGetRelationName(relation));
-	
-	status = LMLock(MultiLevelLockTableId,
-			LockTimeout,
-			&lRelId,
-			(ObjectId *)NULL,
-			(ObjectId *)NULL,
-			GetCurrentTransactionId(),
-			MultiLevelLockRequest_WriteRelation);
-    }
+    MultiLockReln(relation, WRITE_LOCK);
 }
 
 /* ----------------
@@ -583,36 +484,14 @@ RelationUnsetLockForWrite(relation)
     Assert(RelationIsValid(relation));
     if (LockingIsDisabled)
 	return;
-    
-    /* ----------------
-     *	attempt to remove our write lock
-     * ----------------
+
+    /* -----------------------
+     * Locks are only released at the eoxact
+     * we may be changing this as we need to implement better locking
+     * protocols for certain catalog relations so as not to keep them
+     * tied up for too long. -mer 17 July 1991
+     * -----------------------
      */
-    lRelId = RelationGetLRelId(relation);
-    LOCKDEBUG_70;
-    
-    status = LMLock(MultiLevelLockTableId,
-		    LockUnlock,
-		    &lRelId,
-		    (ObjectId *)NULL,
-		    (ObjectId *)NULL,
-		    GetCurrentTransactionId(),
-		    MultiLevelLockRequest_WriteRelation);
-    
-    /* ----------------
-     *	die horribly if we failed.  This should be fixed. XXX
-     * ----------------
-     */
-    if (status != L_DONE) {
-	if (status == L_ERROR) {
-	    elog(WARN, "RelationUnsetLockForWrite(%s[%d,%d]: error",
-		 RelationGetRelationName(relation),
-		 lRelId.dbId, lRelId.relId);
-	}
-	elog(FATAL, "RelationUnsetLockForWrite(%s[%d,%d]: failed",
-	     RelationGetRelationName(relation),
-	     lRelId.dbId, lRelId.relId);
-    }
 }
 
 /* ----------------
@@ -636,14 +515,8 @@ RelationSetLockForTupleRead(relation, itemPointer)
     Relation	relation;
     ItemPointer	itemPointer;
 {
-    LRelId	lRelId;
-    int		status;		/* XXX style */
-    ObjectId	page;		/* XXX should be 6 byte object */
-    ObjectId	line;		/* XXX should be 2 byte object */
-    LockRequest	lRS[3];
-    int	 	requestProcessStatus[3];	/* XXX not used */
-    int16	numberOfFailures;
     LockInfo	linfo;
+    TransactionId curXact;
     
     /* ----------------
      *	sanity checks
@@ -653,7 +526,6 @@ RelationSetLockForTupleRead(relation, itemPointer)
     if (LockingIsDisabled) 
 	return;
 
-    lRelId = RelationGetLRelId(relation);
     linfo = (LockInfo) relation->lockInfo;
     LOCKDEBUG_80;
     
@@ -661,21 +533,26 @@ RelationSetLockForTupleRead(relation, itemPointer)
      *	no need to set a lower granularity lock
      * ----------------
      */
-    if (linfo->flags & ReadRelationLock)
-	return;		
+    curXact = GetCurrentTransactionId();
+    if (linfo->flags & ReadRelationLock &&
+	TransactionIdEquals(curXact, &linfo->transactionIdData))
+    {
+	return;
+    }
     
     /* ----------------
-     *	
+     * If we don't already have a tuple lock this transaction
      * ----------------
      */
-    if (! (linfo->flags & ReadTupleLock)) {
+    if (!( (linfo->flags & ReadTupleLock) &&
+           TransactionIdEquals(curXact, &linfo->transactionIdData) )) {
 	
 	linfo->flags |=
 	        IntentReadRelationLock |
 		IntentReadPageLock |
 		ReadTupleLock;
 	
-	/* clear count just in case */
+	/* clear count */
 	linfo->flags &= ~TupleLevelLockCountMask;
 	
     } else {
@@ -684,9 +561,9 @@ RelationSetLockForTupleRead(relation, itemPointer)
 	    LOCKDEBUG_81;
 	    
 	    /* escalate */
-	    RelationSetLockForRead(relation);
+	    MultiLockReln(relation, READ_LOCK);
 	    
-	    /* clear count just in case */
+	    /* clear count */
 	    linfo->flags &= ~TupleLevelLockCountMask;
 	    return;
 	}
@@ -697,65 +574,13 @@ RelationSetLockForTupleRead(relation, itemPointer)
 		(1 + (TupleLevelLockCountMask & linfo->flags));
     }
 
-    /* ----------------
-     *	
-     * ----------------
-     */
-    page = ItemPointerSimpleGetPageNumber(itemPointer);
-    line = ItemPointerSimpleGetOffsetNumber(itemPointer);
-    
-    lRS[0].mode = LockNoWait | LockUndo;
-    lRS[0].rel = &lRelId;
-    lRS[0].page = (ObjectId *)NULL;
-    lRS[0].line = (ObjectId *)NULL;
-    lRS[0].xid = GetCurrentTransactionId();
-    lRS[0].lock = MultiLevelLockRequest_IntentReadRelation;
-    
-    lRS[1].mode = LockNoWait | LockUndo;
-    lRS[1].rel = &lRelId;
-    lRS[1].page = &page;
-    lRS[1].line = (ObjectId *)NULL;
-    lRS[1].xid = lRS[0].xid;
-    lRS[1].lock = MultiLevelLockRequest_IntentReadPage;
-    
-    lRS[2].mode = LockNoWait;
-    lRS[2].rel = &lRelId;
-    lRS[2].page = &page;
-    lRS[2].line = &line;
-    lRS[2].xid = lRS[0].xid;
-    lRS[2].lock = MultiLevelLockRequest_ReadLine;
-    
-    status = LMLockSet(MultiLevelLockTableId,
-		       3,
-		       lRS,
-		       requestProcessStatus);
+    TransactionIdStore(curXact, (Pointer) &linfo->transactionIdData);
 
     /* ----------------
-     *	
+     * Lock the tuple.
      * ----------------
      */
-    numberOfFailures = 0;
-    while (status != L_DONE) {
-	if (status == L_ERROR) {
-	    elog(WARN,
-		 "RelationSetLockForTupleRead: locking error");
-	}
-	
-	if (numberOfFailures > MaxRetries) {
-	    elog(WARN, "RelationSetLockForTupleRead: deadlock");
-	}
-	numberOfFailures += 1;
-	sleep(numberOfFailures);
-	
-	elog(NOTICE, "RelationSetLockForTupleRead: retrying");
-	
-	lRS[0].mode = LockTimeout | LockUndo;
-	
-	status = LMLockSet(MultiLevelLockTableId,
-			   3,
-			   lRS,
-			   requestProcessStatus);
-    }
+    MultiLockTuple(relation, itemPointer, READ_LOCK);
 }
 
 /* ----------------
@@ -774,16 +599,9 @@ RelationSetLockForTupleRead(relation, itemPointer)
 void
 RelationSetLockForReadPage(relation, partition, itemPointer)
     Relation		relation;
-    PagePartition	partition;
+    PagePartition	partition;	/* XXX not used */
     ItemPointer		itemPointer;
 {
-    LRelId		lRelId;
-    ObjectId		page;		/* XXX should be something else */
-    int			status;		/* XXX style */
-    BlockNumber		blockIndex;
-    PageNumber		pageNumber;
-    int16		numberOfFailures;
-    
     /* ----------------
      *	sanity check
      * ----------------
@@ -796,48 +614,7 @@ RelationSetLockForReadPage(relation, partition, itemPointer)
      *	attempt to set lock
      * ----------------
      */
-    lRelId = RelationGetLRelId(relation);
-    page = ItemPointerGetLogicalPageNumber(itemPointer, partition);
-    LOCKDEBUG_90;
-    
-    status = LMLock(PageLockTableId,
-		    LockNoWait,
-		    &lRelId,
-		    &page,
-		    (ObjectId *)NULL,
-		    GetCurrentTransactionId(),
-		    PageLockRequest_Share);
-
-    /* ----------------
-     *	if we couldn't get the lock we wanted, we sleep and
-     *  try again, sleep more and try again, until hopefully
-     *  we get the lock.  This scheme is pretty pathetic.
-     * ----------------
-     */
-    numberOfFailures = 0;
-    while (status != L_DONE) {
-	if (status == L_ERROR) {
-	    elog(WARN, "RelationSetLockForReadPage: locking error");
-	}
-	
-	if (numberOfFailures > MaxRetries) {
-	    elog(WARN, "RelationSetLockForReadPage: deadlock");
-	}
-	numberOfFailures += 1;
-	sleep(numberOfFailures);
-	
-	elog(NOTICE, 
-		"RelationSetLockForReadPage %s: retrying",
-		RelationGetRelationName(relation));
-	
-	status = LMLock(PageLockTableId,
-			LockTimeout,
-			&lRelId,
-			&page,
-			(ObjectId *)NULL,
-			GetCurrentTransactionId(),
-			PageLockRequest_Share);
-    }
+    MultiLockPage(relation, itemPointer, READ_LOCK);
 }
 
 /* ----------------
@@ -856,16 +633,9 @@ RelationSetLockForReadPage(relation, partition, itemPointer)
 void
 RelationSetLockForWritePage(relation, partition, itemPointer)
     Relation		relation;
-    PagePartition	partition;
+    PagePartition	partition;	/* XXX not used */
     ItemPointer		itemPointer;
 {
-    LRelId		lRelId;
-    ObjectId	page;		/* XXX should be something else */
-    int		status;		/* XXX style */
-    BlockNumber	blockIndex;
-    PageNumber	pageNumber;
-    int16	numberOfFailures;
-
     /* ----------------
      *	sanity checks
      * ----------------
@@ -878,49 +648,7 @@ RelationSetLockForWritePage(relation, partition, itemPointer)
      *	attempt to set lock
      * ----------------
      */
-    lRelId = RelationGetLRelId(relation);
-    page = ItemPointerGetLogicalPageNumber(itemPointer, partition);
-    LOCKDEBUG_100;
-    
-    status = LMLock(PageLockTableId,
-		    LockNoWait,
-		    &lRelId,
-		    &page,
-		    (ObjectId *)NULL,
-		    GetCurrentTransactionId(),
-		    PageLockRequest_Exclusive);
-
-    /* ----------------
-     *	if we couldn't get the lock we wanted, we sleep and
-     *  try again, sleep more and try again, until hopefully
-     *  we get the lock.  This scheme is pretty pathetic.
-     * ----------------
-     */
-    numberOfFailures = 0;
-    while (status != L_DONE) {
-	if (status == L_ERROR) {
-	    elog(WARN,
-		 "RelationSetLockForWritePage: locking error");
-	}
-	
-	if (numberOfFailures > MaxRetries) {
-	    elog(WARN, "RelationSetLockForWritePage: deadlock");
-	}
-	numberOfFailures += 1;
-	sleep(numberOfFailures);
-	
-	elog(NOTICE, 
-		"RelationSetLockForWritePage %s: retrying",
-		RelationGetRelationName(relation));
-	
-	status = LMLock(PageLockTableId,
-			LockTimeout,
-			&lRelId,
-			&page,
-			(ObjectId *)NULL,
-			GetCurrentTransactionId(),
-			PageLockRequest_Exclusive);
-    }
+    MultiLockPage(relation, itemPointer, WRITE_LOCK);
 }
 
 /* ----------------
@@ -942,12 +670,6 @@ RelationUnsetLockForReadPage(relation, partition, itemPointer)
     PagePartition	partition;
     ItemPointer	itemPointer;
 {
-    LRelId		lRelId;
-    ObjectId	page;		/* XXX should be something else */
-    int		status;		/* XXX style */
-    BlockNumber	blockIndex;
-    PageNumber	pageNumber;
-
     /* ----------------
      *	sanity checks
      * ----------------
@@ -956,33 +678,13 @@ RelationUnsetLockForReadPage(relation, partition, itemPointer)
     if (LockingIsDisabled)
 	return;
 
-    /* ----------------
-     *	attempt to remove our lock
-     * ----------------
+    /* -----------------------
+     * Locks are only released at the eoxact
+     * we may be changing this as we need to implement better locking
+     * protocols for certain catalog relations so as not to keep them
+     * tied up for too long. -mer 17 July 1991
+     * -----------------------
      */
-    lRelId = RelationGetLRelId(relation);
-    page = ItemPointerGetLogicalPageNumber(itemPointer, partition);
-    LOCKDEBUG_110;
-    
-    status = LMLock(PageLockTableId,
-		    LockUnlock,
-		    &lRelId,
-		    &page,
-		    (ObjectId *)NULL,
-		    GetCurrentTransactionId(),
-		    PageLockRequest_Share);
-
-    /* ----------------
-     *	die horribly if we failed.  This should be fixed. XXX
-     * ----------------
-     */
-    if (status != L_DONE) {
-	if (status == L_ERROR) {
-	    elog(WARN,
-		 "RelationUnsetLockForReadPage: locking error");
-	}
-	elog(NOTICE, "RelationUnsetLockForReadPage: failed");
-    }
 }
 
 /* ----------------
@@ -1004,12 +706,6 @@ RelationUnsetLockForWritePage(relation, partition, itemPointer)
     PagePartition	partition;
     ItemPointer		itemPointer;
 {
-    LRelId		lRelId;
-    ObjectId	page;		/* XXX should be something else */
-    int		status;		/* XXX style */
-    BlockNumber	blockIndex;
-    PageNumber	pageNumber;
-
     /* ----------------
      *	sanity checks
      * ----------------
@@ -1018,33 +714,13 @@ RelationUnsetLockForWritePage(relation, partition, itemPointer)
     if (LockingIsDisabled)
 	return;
     
-    /* ----------------
-     *	attempt to remove our lock
-     * ----------------
+    /* -----------------------
+     * Locks are only released at the eoxact
+     * we may be changing this as we need to implement better locking
+     * protocols for certain catalog relations so as not to keep them
+     * tied up for too long. -mer 17 July 1991
+     * -----------------------
      */
-    lRelId = RelationGetLRelId(relation);
-    page = ItemPointerGetLogicalPageNumber(itemPointer, partition);
-    LOCKDEBUG_120;
-    
-    status = LMLock(PageLockTableId,
-		    LockUnlock,
-		    &lRelId,
-		    &page,
-		    (ObjectId *)NULL,
-		    GetCurrentTransactionId(),
-		    PageLockRequest_Exclusive);
-    
-    /* ----------------
-     *	die horribly if we failed.  This should be fixed. XXX
-     * ----------------
-     */
-    if (status != L_DONE) {
-	if (status == L_ERROR) {
-	    elog(WARN,
-		 "RelationUnsetLockForWritePage: locking error");
-	}
-	elog(FATAL, "RelationUnsetLockForWritePage: failed");
-    }
 }
 
 /* ----------------

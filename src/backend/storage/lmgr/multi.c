@@ -21,12 +21,12 @@
  *
  * $Header$
  */
-#include "def.h"
-#include "sem.h"
-#include "shmem.h"
-#include "lock.h"
-#include "reln.h"
-#include "multilev.h"
+#include "storage/sem.h"
+#include "storage/shmem.h"
+#include "storage/lock.h"
+#include "utils/rel.h"
+#include "utils/log.h"
+#include "storage/multilev.h"
 
 
 /*
@@ -36,7 +36,7 @@
  * WRITE conflict between the tuple's intent lock and the relation's
  * write lock.
  */
-private
+static
 int MultiConflicts[] = {
   NULL,	
   /* everything conflicts with a write lock */
@@ -47,13 +47,14 @@ int MultiConflicts[] = {
   (1 << READ_LOCK) | (1 << WRITE_LOCK),
   /* read intent locks*/
   (1 << WRITE_LOCK),
+  /* Will add extend locks for archive storage manager */
 };
 
 /*
  * write locks have higher priority than read locks.  May
  * want to treat INTENT locks differently.
  */
-private
+static
 int MultiPrios[] = {
   NULL,
   2,
@@ -72,19 +73,34 @@ TableId ShortTermTableId = NULL;
 /*
  * Create the lock table described by MultiConflicts and Multiprio.
  */
+
+LockTableId
 InitMultiLevelLockm()
 {
   int tableId;
 
-  tableId = LockTabInit("LockTable",MultiConflicts,MultiPrios,4);
+  /* -----------------------
+   * If we're already initialized just return the table id.
+   * -----------------------
+   */
+  if (MultiTableId)
+	return MultiTableId;
+
+  tableId = LockTabInit("LockTable", MultiConflicts, MultiPrios, 4);
   MultiTableId = tableId;
   if (! (MultiTableId)) {
     elog(WARN,"InitMultiLockm: couldnt initialize lock table");
   }
-  ShortTermTableId = LockTabRename(tableId);
-  if (! (ShortTermTableId)) {
-    elog(WARN,"InitMultiLockm: couldnt rename lock table");
-  }
+  /* -----------------------
+   * No short term lock table for now.  -Jeff 15 July 1991
+   * 
+   * ShortTermTableId = LockTabRename(tableId);
+   * if (! (ShortTermTableId)) {
+   *   elog(WARN,"InitMultiLockm: couldnt rename lock table");
+   * }
+   * -----------------------
+   */
+  return MultiTableId;
 }
 
 /*
@@ -93,7 +109,7 @@ InitMultiLevelLockm()
  * Returns: TRUE if the lock can be set, FALSE otherwise.
  */
 MultiLockReln(reln, lockt)
-Reln *		reln;
+Relation *	reln;
 LOCKT		lockt;
 {
   LOCKTAG	tag;
@@ -103,7 +119,7 @@ LOCKT		lockt;
    * zero'd.
    */
   bzero(&tag,sizeof(tag));
-  RelnGetOid(reln,&tag.relId);
+  tag.relId = RelationGetRelationId(reln);
   return(MultiAcquire(MultiTableId, &tag, lockt, RELN_LEVEL));
 }
 
@@ -116,8 +132,8 @@ LOCKT		lockt;
  * 	at the page and relation level.
  */
 MultiLockTuple(reln, tidPtr, lockt)
-Reln *		reln;
-TupleId		*tidPtr;
+Relation *	reln;
+ItemPointer	tidPtr;
 LOCKT		lockt;		
 {
   LOCKTAG	tag;
@@ -127,7 +143,9 @@ LOCKT		lockt;
    * zero'd.
    */
   bzero(&tag,sizeof(tag));
-  RelnGetOid(reln,&(tag.relId));
+
+  tag.relId = RelationGetRelationId(reln);
+
   /* not locking any valid Tuple, just the page */
   tag.tupleId = *tidPtr;
   return(MultiAcquire(MultiTableId, &tag, lockt, TUPLE_LEVEL));
@@ -137,8 +155,8 @@ LOCKT		lockt;
  * same as above at page level
  */
 MultiLockPage(reln, tidPtr, lockt)
-Reln *		reln;
-TupleId		*tidPtr;
+Relation	*reln;
+ItemPointer	tidPtr;
 LOCKT		lockt;		
 {
   LOCKTAG	tag;
@@ -148,8 +166,20 @@ LOCKT		lockt;
    * zero'd.
    */
   bzero(&tag,sizeof(tag));
-  RelnGetOid(reln,&(tag.relId));
-  MAKE_TID(tag.tupleId,tidPtr->blockNum,INVALID_TID);
+
+  tag.relId = RelationGetRelationId(reln);
+
+  /* ----------------------------
+   * Now we want to set the page offset to be invalid 
+   * and lock the block.  There is some confusion here as to what
+   * a page is.  In Postgres a page is an 8k block, however this
+   * block may be partitioned into many subpages which are sometimes
+   * also called pages.  The term is overloaded, so don't be fooled
+   * when we say lock the page we mean the 8k block. -Jeff 16 July 1991
+   * ----------------------------
+   */
+  ItemPointerSetInvalid( &(tag.tupleId) );
+  BlockIdCopy( &(tag.tupleId.blockData), &(tidPtr->blockData) );
   return(MultiAcquire(MultiTableId, &tag, lockt, PAGE_LEVEL));
 }
 
@@ -204,23 +234,24 @@ LOCKT		lockt;
   /*
    * construct a new tag as we go. Always loop through all levels,
    * but if we arent' seting a low level lock, locks[i] is set to
-   * NO_LOCK for the lowere levels.  Always start from the highest
+   * NO_LOCK for the lower levels.  Always start from the highest
    * level and go to the lowest level. 
    */
   bzero(tmpTag,sizeof(*tmpTag));
-  OID_Assign(tmpTag->relId,tag->relId);
+  tmpTag->relId = tag->relId;
 
   for (i=0;i<N_LEVELS;i++) {
     if (locks[i] != NO_LOCK) {
       switch (i) {
       case RELN_LEVEL:
-	MAKE_TID(tmpTag->tupleId,INVALID_TID,INVALID_TID);
+	ItemPointerSetInvalid( &(tmpTag->tupleId) );
 	break;
       case PAGE_LEVEL:
-	MAKE_TID(tmpTag->tupleId,tag->tupleId.blockNum,INVALID_TID);
+	ItemPointerSetInvalid( &(tmpTag->tupleId) );
+	BlockIdCopy(&(tmpTag->tupleId.blockData),&tag->tupleId.blockData);
 	break;
       case TUPLE_LEVEL:
-	tmpTag->tupleId = tag->tupleId;
+	ItemPointerCopy(&tmpTag->tupleId, &tag->tupleId);
 	break;
       }
 
@@ -285,17 +316,18 @@ LOCKT		lockt;
    * we release the locks in the REVERSE order -- from lowest
    * level to highest level.  
    */
-  OID_Assign(tmpTag->relId,tag->relId);
+  tmpTag->relId = tag->relId;
   for (i=N_LEVELS;i;i--) {
     switch (i) {
     case RELN_LEVEL:
-      MAKE_TID(tmpTag->tupleId,INVALID_TID,INVALID_TID);
+      ItemPointerSetInvalid( &(tmpTag->tupleId) );
       break;
     case PAGE_LEVEL:
-      MAKE_TID(tmpTag->tupleId,tag->tupleId.blockNum,INVALID_TID);
+      ItemPointerSetInvalid( &(tmpTag->tupleId) );
+      BlockIdCopy(&(tmpTag->tupleId.blockData),&tag->tupleId.blockData);
       break;
     case TUPLE_LEVEL:
-      tmpTag->tupleId = tag->tupleId;
+      ItemPointerCopy(&tmpTag->tupleId, &tag->tupleId);
       break;
     }
     if (locks[i] == NO_LOCK) {

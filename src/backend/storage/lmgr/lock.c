@@ -1,11 +1,11 @@
 /*
  * lock.c -- simple lock acquisition
  *
- *  Outside modules can create a lock table and acquire/release 
+ *  Outside modules can create a lock table and acquire/release
  *  locks.  A lock table is a shared memory hash table.  When
  *  a process tries to acquire a lock of a type that conflicts
  *  with existing locks, it is put to sleep using the routines
- *  in proc.c.
+ *  in storage/lmgr/proc.c.
  *
  *  Interface:
  *
@@ -15,25 +15,33 @@
  *  	lkchain module.  It releases a lock without looking
  * 	the lock up in the lock table.
  *
- *  NOTE: This module is used to define new lock tables.  The 
- *	multi-level lock table (multi.c) used by the heap 
+ *  NOTE: This module is used to define new lock tables.  The
+ *	multi-level lock table (multi.c) used by the heap
  *	access methods calls these routines.  See multi.c for
  *	examples showing how to use this interface.
  *
  * $Header$
  */
-#include "def.h"
-#include "sem.h"
-#include "shmem.h"
-#include "proc.h"
-#include "hsearch.h"
-#include "lock.h"
+#include "storage/shmem.h"
+#include "storage/proc.h"
+#include "storage/spin.h"
+#include "utils/hsearch.h"
+#include "storage/lock.h"
+#include "utils/log.h"
+#include "access/xact.h"
 
-private
-int LockingDisabled = TRUE;
+SPINLOCK LockMgrLock;		/* in Shmem or created in CreateSpinlocks() */
+
+static
+TransactionIdData InvalidXid;	/* Since no such beast is defined in xact.c */
+
+static
+int LockingDisabled = FALSE;
+
 typedef int MASK;
 
 /* This is to simplify/speed up some bit arithmetic */
+
 static MASK	BITS_OFF[MAX_LOCKTYPES];
 static MASK	BITS_ON[MAX_LOCKTYPES];
 
@@ -53,7 +61,7 @@ static MASK	BITS_ON[MAX_LOCKTYPES];
  * prio -- each locktype has a priority, so, for example, waiting
  *	writers can be given priority over readers (to avoid
  *	starvation).
- * 
+ *
  * masterlock -- synchronizes access to the table
  *
  */
@@ -62,7 +70,7 @@ typedef struct lockctl {
   int		nLockTypes;
   int		conflictTab[MAX_LOCKTYPES];
   int		prio[MAX_LOCKTYPES];
-  SPINLOCK	*masterLock;
+  SPINLOCK	masterLock;
 } LOCKCTL;
 
 /*
@@ -77,7 +85,7 @@ typedef struct ltable {
   LOCKCTL	*ctl;
 } LOCKTAB;
 
-/*
+/* -----------------------
  * A transaction never conflicts with its own locks.  Hence, if
  * multiple transactions hold non-conflicting locks on the same
  * data, private per-transaction information must be stored in the
@@ -85,19 +93,44 @@ typedef struct ltable {
  * all locks can use the same XID table.  The private information
  * we store is the number of locks of each type (holders) and the
  * total number of locks (nHolding) held by the transaction.
+ *
+ * NOTE: --
+ * There were some problems with the fact that currently TransactionIdData
+ * is a 5 byte entity and compilers long word aligning of structure fields.
+ * If the 3 byte padding is put in front of the actual xid data then the
+ * hash function (which uses XID_TAGSIZE when deciding how many bytes of a
+ * struct to look at for the key) might only see the last two bytes of the xid.
+ *
+ * Clearly this is not good since its likely that these bytes will be the
+ * same for many transactions and hence they will share the same entry in
+ * hash table causing the entry to be corrupted.  For this long-winded
+ * reason I have put the tag in a struct of its own to ensure that the
+ * XID_TAGSIZE is computed correctly.  It used to be sizeof (SHMEM_OFFSET) +
+ * sizeof(TransactionIdData) which != sizeof(XIDTAG).
+ *
+ * Finally since the hash function will now look at all 12 bytes of the tag
+ * the padding bytes MUST be zero'd before use in hash_search() as they
+ * will have random values otherwise.  Jeff 22 July 1991.
+ * -----------------------
  */
+
+typedef struct XIDTAG {
+  SHMEM_OFFSET                lock;
+  TransactionIdData           xid;
+} XIDTAG;
+
 typedef struct XIDLookupEnt {
   /* tag */
-  XID		xid;
-  SHMEM_OFFSET	lock;
+  XIDTAG tag;
 
   /* data */
-  int		holders[MAX_LOCKTYPES];
-  int		nHolding;
-  SHM_QUEUE	queue;
+  int			holders[MAX_LOCKTYPES];
+  int			nHolding;
+  SHM_QUEUE		queue;
 
 } XIDLookupEnt;
-#define XID_TAGSIZE (sizeof(XID)+sizeof(SHMEM_OFFSET))
+
+#define XID_TAGSIZE (sizeof(XIDTAG))
 
 /*
  * lock information:
@@ -110,86 +143,75 @@ typedef struct XIDLookupEnt {
  *	lock.
  * nHolding -- total locks of all types.
  * xid -- identifier of the (process) currently holding the
- *	lock or INVALID if many processed hold locks.  
+ *	lock or INVALID if many processed hold locks.
  */
-typedef struct LOCK {
+typedef struct Lock {
   /* hash key */
-  LOCKTAG	tag;
+  LOCKTAG		tag;
 
   /* data */
-  int		mask;
-  PROC_QUEUE	waitProcs;
-  int		holders[MAX_LOCKTYPES];
-  int		nHolding;
-  int		activeHolders[MAX_LOCKTYPES];
-  int		nActive;
-  XID		xid;
+  int			mask;
+  PROC_QUEUE		waitProcs;
+  int			holders[MAX_LOCKTYPES];
+  int			nHolding;
+  int			activeHolders[MAX_LOCKTYPES];
+  int			nActive;
 } LOCK;
 
-#ifdef undefined
-
-/*
- * I used this for testing.  It shows how the interface works
- *
+/* -------------------
+ * hash function from (hash_fn.c)
+ * -------------------
  */
-#define READ_LOCK	2
-#define WRITE_LOCK	1
-
-int Prios[] = {
-  NULL,
-  2,
-  1
-};
-
-int Conflicts[] = {
-  NULL,
-  (1 << READ_LOCK) | (1 << WRITE_LOCK),
-  (1 << WRITE_LOCK),
-};
-
-
-SingleTabInit()
-{
-  int tableId;
-
-  tableId = LockTabInit("LockTable",Conflicts,Prios,2);
-  if (! tableId) {
-    elog(WARN,"couldnt initialize single-level LT");
-  }
- return(tableId);
-}
-#endif
-
-/* hash function from (hash_fn.c) */
 extern int tag_hash();
-/* from shmem.c */
+/* ------------------
+ * from storage/ipc/shmem.c
+ * ------------------
+ */
 extern HTAB *ShmemInitHash();
 
-/* map from tableId to the lock table structure */
+/* -------------------
+ * map from tableId to the lock table structure
+ * -------------------
+ */
 LOCKTAB *AllTables[MAX_TABLES];
-/* no zero-th table */
+
+/* -------------------
+ * no zero-th table
+ * -------------------
+ */
 int	NumTables = 1;
 
-/*
+/* -------------------
  * InitLocks -- Init the lock module.  Create a private data
  *	structure for constructing conflict masks.
- *
+ * -------------------
  */
 InitLocks()
 {
   int i;
   int bit;
 
+  /* -------------------
+   * set up the invalid transaction id.
+   * -------------------
+   */
+  TransactionIdSetTransactionIdValue(&InvalidXid, NullTransactionIdValue);
+
   bit = 1;
-  /* remember 0th locktype is invalid */
-  for (i=0;i<MAX_LOCKTYPES;i++,bit <<= 1) {
+  /* -------------------
+   * remember 0th locktype is invalid
+   * -------------------
+   */
+  for (i=0;i<MAX_LOCKTYPES;i++,bit <<= 1)
+  {
     BITS_ON[i] = bit;
     BITS_OFF[i] = ~bit;
   }
 }
 
-/*
+/* -------------------
  * LockDisable -- sets LockingDisabled flag to TRUE or FALSE.
+ * ------------------
  */
 LockDisable(status)
 int status;
@@ -204,7 +226,7 @@ int status;
  *
  * Notes: just copying.  Should only be called once.
  */
-private
+static
 void
 LockTypeInit(ltable, conflictsP, prioP, ntypes)
 LOCKTAB	*ltable;
@@ -216,7 +238,8 @@ int 	ntypes;
 
   ltable->ctl->nLockTypes = ntypes;
   ntypes++;
-  for (i=0;i<ntypes;i++,prioP++,conflictsP++) {
+  for (i=0;i<ntypes;i++,prioP++,conflictsP++)
+  {
     ltable->ctl->conflictTab[i] = *conflictsP;
     ltable->ctl->prio[i] = *prioP;
   }
@@ -225,20 +248,20 @@ int 	ntypes;
 /*
  * LockTabInit -- initialize a lock table structure
  *
- * Notes: 
+ * Notes:
  *	(a) a lock table has four separate entries in the binding
- *	table.  This is because every shared hash table and spinlock 
+ *	table.  This is because every shared hash table and spinlock
  *	has its name stored in the binding table at its creation.  It
  *	is wasteful, in this case, but not much space is involved.
  *
  */
+LockTableId
 LockTabInit(tabName, conflictsP, prioP, ntypes)
 char *tabName;
 MASK	*conflictsP;
 int	*prioP;
 int 	ntypes;
 {
-  SPINLOCK *tmpLock;
   LOCKTAB *ltable;
   char *shmemName;
   HASHCTL info;
@@ -246,68 +269,85 @@ int 	ntypes;
   Boolean	found;
   int status = TRUE;
 
-  if (ntypes > MAX_LOCKTYPES) {
+  if (ntypes > MAX_LOCKTYPES)
+  {
     elog(NOTICE,"LockTabInit: too many lock types %d greater than %d",
 	 ntypes,MAX_LOCKTYPES);
     return(INVALID_TABLEID);
-  } 
+  }
 
-  if (NumTables > MAX_TABLES) {
+  if (NumTables > MAX_TABLES)
+  {
     elog(NOTICE,
 	 "LockTabInit: system limit of MAX_TABLES (%d) lock tables",
 	 MAX_TABLES);
     return(INVALID_TABLEID);
-  } 
+  }
 
   /* allocate a string for the binding table lookup */
   shmemName = (char *) palloc((unsigned)(strlen(tabName)+10));
-  if (! shmemName) {
+  if (! shmemName)
+  {
     elog(NOTICE,"LockTabInit: couldn't malloc string %s \n",tabName);
     return(INVALID_TABLEID);
   }
 
   /* each lock table has a non-shared header */
   ltable = (LOCKTAB *) palloc((unsigned) sizeof(LOCKTAB));
-  if (! ltable) {
+  if (! ltable)
+  {
     elog(NOTICE,"LockTabInit: couldn't malloc lock table %s\n",tabName);
     (void) pfree (shmemName);
     return(INVALID_TABLEID);
   }
 
-  /* find/acquire the spinlock for the table */
-  sprintf(shmemName,"%s (spin)",tabName);
-  tmpLock = SpinAlloc(shmemName);
-  if (! tmpLock) {
-    elog(WARN,"LockTabInit: couldn't create master lock %s",tabName);
-    (void) pfree (shmemName);
-    return(INVALID_TABLEID);
-  }
+  /* ------------------------
+   * find/acquire the spinlock for the table
+   * ------------------------
+   */
+   SpinAcquire(LockMgrLock);
 
 
-  /* allocate a control structure from shared memory */
+  /* -----------------------
+   * allocate a control structure from shared memory or attach to it
+   * if it already exists.
+   * -----------------------
+   */
   sprintf(shmemName,"%s (ctl)",tabName);
   ltable->ctl = (LOCKCTL *)
     ShmemInitStruct(shmemName,(unsigned)sizeof(LOCKCTL),&found);
-  if (! ltable->ctl) {
+
+  if (! ltable->ctl)
+  {
     elog(FATAL,"LockTabInit: couldn't initialize %s",tabName);
     status = FALSE;
   }
 
-  if (! found) {
+  /* ----------------
+   * we're first - initialize
+   * ----------------
+   */
+  if (! found)
+  {
     bzero(ltable->ctl,sizeof(LOCKCTL));
-    ltable->ctl->masterLock = tmpLock;
+    ltable->ctl->masterLock = LockMgrLock;
     ltable->ctl->tableId = NumTables;
   }
 
-  /* other modules refer to the lock table by a tableId */
+  /* --------------------
+   * other modules refer to the lock table by a tableId
+   * --------------------
+   */
   AllTables[NumTables] = ltable;
   NumTables++;
-  assert(NumTables <= MAX_TABLES);
+  Assert(NumTables <= MAX_TABLES);
 
-  /* allocate a hash table for the lock tags.  This is used
-   * to find the different locks. 
+  /* ----------------------
+   * allocate a hash table for the lock tags.  This is used
+   * to find the different locks.
+   * ----------------------
    */
-  info.keysize =  sizeof(LOCKTAG); 
+  info.keysize =  sizeof(LOCKTAG);
   info.datasize = sizeof(LOCK);
   info.hash = tag_hash;
   hash_flags = (HASH_ELEM | HASH_FUNCTION);
@@ -317,15 +357,17 @@ int 	ntypes;
 		  INIT_TABLE_SIZE,MAX_TABLE_SIZE,
 		  &info,hash_flags);
 
-  assert( ltable->lockHash->hash == tag_hash);
-  if (! ltable->lockHash) {
+  Assert( ltable->lockHash->hash == tag_hash);
+  if (! ltable->lockHash)
+  {
     elog(FATAL,"LockTabInit: couldn't initialize %s",tabName);
     status = FALSE;
   }
 
-  /*
+  /* -------------------------
    * allocate an xid table.  When different transactions hold
    * the same lock, additional information must be saved (locks per tx).
+   * -------------------------
    */
   info.keysize = XID_TAGSIZE;
   info.datasize = sizeof(XIDLookupEnt);
@@ -337,26 +379,28 @@ int 	ntypes;
 		  INIT_TABLE_SIZE,MAX_TABLE_SIZE,
 		  &info,hash_flags);
 
-  if (! ltable->xidHash) {
+  if (! ltable->xidHash)
+  {
     elog(FATAL,"LockTabInit: couldn't initialize %s",tabName);
     status = FALSE;
   }
 
   /* init ctl data structures */
   LockTypeInit(ltable, conflictsP, prioP, ntypes);
-  SpinRelease(tmpLock);
+
+  SpinRelease(LockMgrLock);
 
   (void) pfree (shmemName);
 
   if (status)
     return(ltable->ctl->tableId);
-  else 
+  else
     return(INVALID_TABLEID);
 }
 
 /*
  * LockTabRename -- allocate another tableId to the same
- *	lock table.  
+ *	lock table.
  *
  * NOTES: Both the lock module and the lock chain (lchain.c)
  *	module use table id's to distinguish between different
@@ -372,10 +416,12 @@ TableId	tableId;
 {
   TableId	newTableId;
 
-  if (NumTables >= MAX_TABLES) {
+  if (NumTables >= MAX_TABLES)
+  {
     return(INVALID_TABLEID);
   }
-  if (AllTables[tableId] == INVALID_TABLEID) {
+  if (AllTables[tableId] == INVALID_TABLEID)
+  {
     return(INVALID_TABLEID);
   }
 
@@ -397,7 +443,6 @@ TableId	tableId;
  *	a lock acquisition other than aborting the transaction.
  *	Lock is recorded in the lkchain.
  */
-TRUSTED
 LockAcquire(tableId, lockName, lockt)
 TableId		tableId;
 LOCKTAG		*lockName;
@@ -407,102 +452,122 @@ LOCKT		lockt;
   HTAB		*xidTable;
   Boolean	found;
   LOCK		*lock = NULL;
-  SPINLOCK 	*masterLock;
+  SPINLOCK 	masterLock;
   LOCKTAB 	*ltable;
   int 		status;
-  XID		myXid;
+  TransactionId	myXid;
 
-  assert (tableId < NumTables);
+  Assert (tableId < NumTables);
   ltable = AllTables[tableId];
-  if (!ltable) {
+  if (!ltable)
+  {
     elog(NOTICE,"LockAcquire: bad lock table %d",tableId);
     return  (FALSE);
   }
 
-  if (LockingDisabled) {
+  if (LockingDisabled)
+  {
     return(TRUE);
   }
 
   LOCK_PRINT("Acquire",lockName);
   masterLock = ltable->ctl->masterLock;
-  SpinAcquire(masterLock);
-  assert( ltable->lockHash->hash == tag_hash);
-  lock = (LOCK *)
-    hash_search(ltable->lockHash,(Address)lockName,ENTER,&found);
 
-  if (! lock) {
+  SpinAcquire(masterLock);
+
+  Assert( ltable->lockHash->hash == tag_hash);
+  lock = (LOCK *)hash_search(ltable->lockHash,(Pointer)lockName,ENTER,&found);
+
+  if (! lock)
+  {
     SpinRelease(masterLock);
     elog(FATAL,"LockAcquire: lock table %d is corrupted",tableId);
     return(FALSE);
   }
-  myXid = TxStateXID();
+  myXid = GetCurrentTransactionId();
 
-  /* if there was nothing else there, complete initialization */
-  if  (! found) {
+  /* --------------------
+   * if there was nothing else there, complete initialization
+   * --------------------
+   */
+  if  (! found)
+  {
     lock->mask = 0;
     ProcQueueInit(&(lock->waitProcs));
     bzero((char *)lock->holders,sizeof(int)*MAX_LOCKTYPES);
     bzero((char *)lock->activeHolders,sizeof(int)*MAX_LOCKTYPES);
     lock->nHolding = 0;
     lock->nActive = 0;
-    assert (lock->tag.tupleId.blockNum == lockName->tupleId.blockNum);
 
-    /* give the lock my xid.  If I created the thing, I own it. */
-    XIDAssign(lock->xid,myXid);
-    assert (! XIDEquals(lock->xid,XIDInvalid));
-  } 
+    Assert ( BlockIdEquals(&(lock->tag.tupleId.blockData), &(lockName->tupleId.blockData)) );
 
-  /* 
-   * add an element to the lock queue so that we can clear the 
+  }
+
+  /* ------------------
+   * add an element to the lock queue so that we can clear the
    * locks at end of transaction.
+   * ------------------
    */
-#ifndef LCHAIN
   xidTable = ltable->xidHash;
-  XIDAssign(item.xid,myXid);
-  item.lock = MAKE_OFFSET(lock);
-  if (! (result = (XIDLookupEnt *)
-	 hash_search(xidTable, (Address)&item, ENTER, &found))) {
+  /* ------------------
+   * Zero out all of the tag bytes (this clears the padding bytes for long
+   * word alignment and ensures hashing consistency).
+   * ------------------
+   */
+  bzero(&item, XID_TAGSIZE);
+  TransactionIdStore(myXid, &item.tag.xid);
+  item.tag.lock = MAKE_OFFSET(lock);
+
+  result = (XIDLookupEnt *)hash_search(xidTable, (Pointer)&item, ENTER, &found);
+  if (!result)
+  {
     elog(NOTICE,"LockResolveConflicts: xid table corrupted");
     return(STATUS_ERROR);
-  } 
-  if (!found) {
+  }
+  if (!found)
+  {
     ProcAddLock(&result->queue);
     result->nHolding = 0;
     bzero((char *)result->holders,sizeof(int)*MAX_LOCKTYPES);
-  } 
-#endif
+  }
 
-  /* 
-   * If I'm the only one holding a lock, then there
-   * cannot be a conflict.
+  /* -----------------
+   * nHolding tells how many have tried to acquire the lock.
+   *------------------
    */
-  if (XIDEquals(lock->xid,myXid)) {
+  lock->nHolding++;
+  lock->holders[lockt]++;
 
+  /* --------------------
+   * If I'm the only one holding a lock, then there
+   * cannot be a conflict.  Need to subtract one from the
+   * lock's count since we just bumped the count up by 1 
+   * above.
+   * --------------------
+   */
+  if (result->nHolding == (lock->nHolding - 1))
+  {
     result->holders[lockt]++;
     result->nHolding++;
     GrantLock(lock, lockt);
     SpinRelease(masterLock);
-#ifdef LCHAIN
-    LkChainStore(tableId, (int *)lock, lockt);
-#endif
     return(TRUE);
   }
 
   status = LockResolveConflicts(ltable, lock, lockt, myXid);
-  if (status == STATUS_OK) {
+  if (status == STATUS_OK)
+  {
     GrantLock(lock, lockt);
-  } else if (status == STATUS_FOUND) 
-    status = LockWait(ltable, tableId, lock, lockt);
+  }
+  else if (status == STATUS_FOUND)
+    status = WaitOnLock(ltable, tableId, lock, lockt);
 
   SpinRelease(masterLock);
 
-#ifdef LCHAIN
-  LkChainStore(tableId, (int *)lock, lockt);
-#endif
   return(status == STATUS_OK);
 }
 
-/*
+/* ----------------------------
  * LockResolveConflicts -- test for lock conflicts
  *
  * NOTES:
@@ -510,10 +575,10 @@ LOCKT		lockt;
  * locks don't conflict with one another.  When many processes
  * hold locks, each has to subtract off the other's locks when
  * determining whether or not any new lock acquired conflicts with
- * the old ones.  
+ * the old ones.
  *
  *  For example, if I am already holding a WRITE_INTENT lock,
- *  there will not be a conflict with my own READ_LOCK.  If I 
+ *  there will not be a conflict with my own READ_LOCK.  If I
  *  don't consider the intent lock when checking for conflicts,
  *  I find no conflict.
  *
@@ -521,13 +586,13 @@ LOCKT		lockt;
  * the xid of the current owner.  As soon as there are multiple owners,
  * the xid field is changed to "ProcTxIdInvalid" to indicate that
  * it belongs to no one person.
- *
+ * ----------------------------
  */
 LockResolveConflicts(ltable,lock,lockt,xid)
 LOCKTAB	*ltable;
 LOCK	*lock;
 LOCKT	lockt;
-XID	xid;
+TransactionId	xid;
 {
   XIDLookupEnt	*result,item;
   int		*myHolders;
@@ -540,101 +605,80 @@ XID	xid;
   nLockTypes = ltable->ctl->nLockTypes;
   xidTable = ltable->xidHash;
 
-  /*
-   * First check to see if someone else owns the lock.
-   * If one other process owns it, that process' XID 
-   * is in the xid field.  If many other processes have acquired
-   * the lock,XIDInvalid is in the lock->xid field.
-   */
-  if (! XIDEquals(lock->xid, XIDInvalid)) {
-
-    /* someone else owns it.  or used to.  Now that I'm
-     * here, we are going to change the lock ownership to
-     * "many" (ProcTxIdInvalid).  Before we do that, store
-     * the current lock stats in a new XID table entry
-     * for the current process so he can find them if he
-     * tries for another lock.  
-     */
-    XIDAssign(item.xid,lock->xid);
-    item.lock = MAKE_OFFSET(lock);
-    if (! (result = (XIDLookupEnt *) 
-	   hash_search(xidTable, (Address)&item, ENTER, &found))) {
-      elog(NOTICE,"LockAcquire: xid table corrupted");
-      return(STATUS_ERROR);
-    } 
-
-    /* ignore the 'found' flag.  Even if there is already an
-     * entry, it may be out of date.  (There shouldn't be
-     * an entry, now that I think about it).
-     */
-    bcopy(lock->holders,result->holders,
-	  nLockTypes*sizeof(* (lock->holders)));
-    result->nHolding = lock->nHolding;
-
-    /* 
-     * now lock has multiple owners. Mark xid so that the next
-     * person to acquire the lock realizes this.
-     */
-    XIDAssign(lock->xid, XIDInvalid);
-  } 
-
-  /*
+  /* ---------------------
    * read my own statistics from the xid table.  If there
    * isn't an entry, then we'll just add one.
+   *
+   * Zero out the tag, this clears the padding bytes for long
+   * word alignment and ensures hashing consistency.
+   * ------------------
    */
-  XIDAssign(item.xid,xid);
-  item.lock = MAKE_OFFSET(lock);
+  bzero(&item, XID_TAGSIZE);
+  TransactionIdStore(xid, &item.tag.xid);
+  item.tag.lock = MAKE_OFFSET(lock);
   if (! (result = (XIDLookupEnt *)
-	 hash_search(xidTable, (Address)&item, ENTER, &found))) {
+	 hash_search(xidTable, (Pointer)&item, ENTER, &found)))
+  {
     elog(NOTICE,"LockResolveConflicts: xid table corrupted");
     return(STATUS_ERROR);
-  } 
+  }
   myHolders = result->holders;
 
-  if (! found) {
-    /* we're not holding any type of lock yet.  Clear
+  if (! found)
+  {
+    /* ---------------
+     * we're not holding any type of lock yet.  Clear
      * the lock stats.
+     * ---------------
      */
     bzero(result->holders,
 	  nLockTypes*sizeof(* (lock->holders)));
     result->nHolding = 0;
   }
 
-  /*
+  /* ----------------------------
    * first check for global conflicts: If no locks conflict
-   * with mine, then I get the lock.  
+   * with mine, then I get the lock.
    *
-   * Checking for conflict: lock->mask represents the types of 
+   * Checking for conflict: lock->mask represents the types of
    * currently held locks.  conflictTable[lockt] has a bit
    * set for each type of lock that conflicts with mine.  Bitwise
    * compare tells if there is a conflict.
+   * ----------------------------
    */
-  if (! (ltable->ctl->conflictTab[lockt] & lock->mask)) {
-
+  if (! (ltable->ctl->conflictTab[lockt] & lock->mask))
+  {
     result->holders[lockt]++;
     result->nHolding++;
 
     return(STATUS_OK);
   }
 
-  /* Rats.  Something conflicts. But it could still be my own
+  /* ------------------------
+   * Rats.  Something conflicts. But it could still be my own
    * lock.  We have to construct a conflict mask
    * that does not reflect our own locks.
+   * ------------------------
    */
   bitmask = 0;
   tmpMask = 1;
-  for (i=1;i<=nLockTypes;i++, tmpMask <<= 1) {
-    if (lock->holders[i] - myHolders[i]) {
+  for (i=1;i<=nLockTypes;i++, tmpMask <<= 1)
+  {
+    if (lock->holders[i] - myHolders[i])
+    {
       bitmask |= tmpMask;
     }
   }
 
-  /* now check again for conflicts.  'bitmask' describes the types
-   * of locks held by other processes.  If one of these 
-   * conflicts with the kind of lock that I want, there is a 
+  /* ------------------------
+   * now check again for conflicts.  'bitmask' describes the types
+   * of locks held by other processes.  If one of these
+   * conflicts with the kind of lock that I want, there is a
    * conflict and I have to sleep.
+   * ------------------------
    */
-  if (! (ltable->ctl->conflictTab[lockt] & bitmask)) {
+  if (! (ltable->ctl->conflictTab[lockt] & bitmask))
+  {
 
     /* no conflict. Get the lock and go on */
 
@@ -642,12 +686,12 @@ XID	xid;
     result->nHolding++;
     return(STATUS_OK);
 
-  } 
+  }
 
   return(STATUS_FOUND);
 }
 
-LockWait(ltable, tableId, lock,lockt)
+WaitOnLock(ltable, tableId, lock,lockt)
 LOCKTAB		*ltable;
 LOCK 		*lock;
 TableId		tableId;
@@ -662,13 +706,16 @@ LOCKT		lockt;
    *
    * SYNC NOTE: I am assuming that the lock table spinlock
    * is sufficient synchronization for this queue.  That
-   * will not be true if/when people can be deleted from 
+   * will not be true if/when people can be deleted from
    * the queue by a SIGINT or something.
    */
-  if (ProcSleep(waitQueue, ltable->ctl->masterLock, lockt, prio)!= NO_ERROR) {
-
-    /* we could handle timeouts here */
-    elog(NOTICE,"LockWait: wakeup with error");
+  if (ProcSleep(waitQueue, ltable->ctl->masterLock, lockt, prio)!= NO_ERROR)
+  {
+    /* ----------------
+     * we could handle timeouts here
+     * ----------------
+     */
+    elog(NOTICE,"WaitOnLock: wakeup with error");
     return(STATUS_ERROR);
   }
 
@@ -677,7 +724,7 @@ LOCKT		lockt;
 
 /*
  * LockRelease -- look up 'lockName' in lock table 'tableId' and
- *	release it.  
+ *	release it.
  *
  * Side Effects: if the lock no longer conflicts with the highest
  *	priority waiting process, that process is granted the lock
@@ -685,52 +732,56 @@ LOCKT		lockt;
  *	race between the waking process and any new process to
  *	come along and request the lock).
  */
-TRUSTED
 LockRelease(tableId, lockName, lockt)
 TableId	tableId;
 LOCKTAG	*lockName;
 LOCKT	lockt;
 {
   LOCK		*lock = NULL;
-  SPINLOCK 	*masterLock;
+  SPINLOCK 	masterLock;
   Boolean	found;
   LOCKTAB 	*ltable;
   int		status;
   XIDLookupEnt	*result,item;
   HTAB 		*xidTable;
 
-  assert (tableId < NumTables);
+  Assert (tableId < NumTables);
   ltable = AllTables[tableId];
   if (!ltable)
     return (NULL);
 
-  if (LockingDisabled) {
+  if (LockingDisabled)
+  {
     return(TRUE);
   }
 
   masterLock = ltable->ctl->masterLock;
   xidTable = ltable->xidHash;
+
   SpinAcquire(masterLock);
-  assert( ltable->lockHash->hash == tag_hash);
+
+  Assert( ltable->lockHash->hash == tag_hash);
   lock = (LOCK *)
-    hash_search(ltable->lockHash,(Address)lockName,FIND,&found);
+    hash_search(ltable->lockHash,(Pointer)lockName,FIND,&found);
 
   /* let the caller print its own error message, too.
    * Do not elog(WARN).
    */
-  if (! lock) {
+  if (! lock)
+  {
     SpinRelease(masterLock);
     elog(NOTICE,"LockRelease: locktable corrupted");
     return(NULL);
   }
 
-  if (! found) {
+  if (! found)
+  {
     SpinRelease(masterLock);
     elog(NOTICE,"LockRelease: locktable lookup failed, no lock");
     return(NULL);
   }
 
-  assert(lock->nHolding > 0);
+  Assert(lock->nHolding > 0);
 
   /*
    * fix the general lock stats
@@ -740,82 +791,93 @@ LOCKT	lockt;
   lock->nActive--;
   lock->activeHolders[lockt]--;
 
-  XIDAssign(item.xid,TxStateXID());
-  assert (! XIDEquals(item.xid,XIDInvalid));
+  Assert(lock->nActive >= 0);
 
-  item.lock = MAKE_OFFSET(lock);
+  /* ------------------
+   * Zero out all of the tag bytes (this clears the padding bytes for long
+   * word alignment and ensures hashing consistency).
+   * ------------------
+   */
+  bzero(&item, XID_TAGSIZE);
+  TransactionIdStore(GetCurrentTransactionId(), &item.tag.xid);
+  Assert (! TransactionIdEquals(&item.tag.xid, &InvalidXid));
+
+  item.tag.lock = MAKE_OFFSET(lock);
   if (! (result = (XIDLookupEnt *)
-	 hash_search(xidTable, (Address)&item, FIND, &found))|| !found) {
+	 hash_search(xidTable, (Pointer)&item, FIND, &found))|| !found)
+  {
     SpinRelease(masterLock);
     elog(NOTICE,"LockReplace: xid table corrupted");
     return(FALSE);
-  } 
+  }
   /*
-   * now check to see if I have any private locks.  If I do, 
+   * now check to see if I have any private locks.  If I do,
    * decrement the counts associated with them.
    */
   result->holders[lockt]--;
   result->nHolding--;
 
-  /* 
+  /*
    * If this was my last hold on this lock, delete my entry
    * in the XID table.
    */
-  if (! result->nHolding) {
+  if (! result->nHolding)
+  {
     LOCK_PRINT("Deleting now",(&lock->tag));
-#ifndef LCHAIN
     SHMQueueDelete(&result->queue);
-#endif
     if (! (result = (XIDLookupEnt *)
-	   hash_search(xidTable, (Address)&item, REMOVE, &found)) || 
-	! found) {
+	   hash_search(xidTable, (Pointer)&item, REMOVE, &found)) ||
+	! found)
+    {
       SpinRelease(masterLock);
       elog(NOTICE,"LockReplace: xid table corrupted");
       return(FALSE);
-    } 
+    }
   }
 
 
-  if (! lock->nHolding) {
-    /* if there's no one waiting in the queue, 
-     * we just released the last lock.  
+  if (! lock->nHolding)
+  {
+    /* ------------------
+     * if there's no one waiting in the queue,
+     * we just released the last lock.
      * Delete it from the lock table.
+     * ------------------
      */
-
-    assert( ltable->lockHash->hash == tag_hash);
+    Assert( ltable->lockHash->hash == tag_hash);
     lock = (LOCK *)
-      hash_search(ltable->lockHash,(Address)&(lock->tag),REMOVE, &found);
+      hash_search(ltable->lockHash,(Pointer)&(lock->tag),REMOVE, &found);
     SpinRelease(masterLock);
 
-    if ((! lock) || (!found))  {
+    if ((! lock) || (!found))
+    {
       elog(NOTICE,"LockReplace: cannot remove lock from HTAB");
       return(FALSE);
     }
     return(TRUE);
   }
 
-  /*
+  /* --------------------------
    * If there are still locks of the type I just released, no one
    * should be woken up.  Whoever is asleep will still conflict
    * with the remaining locks.
+   * --------------------------
    */
-  if (! (lock->holders[lockt])) {
+  if (! (lock->holders[lockt]))
+  {
     /* change the conflict mask.  No more of this lock type. */
     lock->mask &= BITS_OFF[lockt];
   }
 
-  /*
+  /* --------------------------
    * Wake the first waiting process and grant him the lock if it
    * doesn't conflict.  The woken process must record the lock
    * himself.
+   * --------------------------
    */
   (void) ProcLockWakeup(&(lock->waitProcs), ltable, lock);
-  
+
   SpinRelease(masterLock);
-#ifdef LCHAIN
-  if (status == TRUE)
-    LkChainRemove(tableId, lock);
-#endif
   return(TRUE);
 }
 
@@ -827,8 +889,12 @@ GrantLock(lock, lockt)
 LOCK 	*lock;
 LOCKT	lockt;
 {
-  lock->nHolding++;
-  lock->holders[lockt]++;
+/*  This is now done before we actually attempt to get the lock in
+ *  in LockAcquire()
+ *
+ *  lock->nHolding++;
+ *  lock->holders[lockt]++;
+ */
   lock->nActive++;
   lock->activeHolders[lockt]++;
   lock->mask |= BITS_ON[lockt];
@@ -850,12 +916,12 @@ LOCKT 	lockt;
 {
   PROC_QUEUE 	*waitQueue;
   XIDLookupEnt	*result,item;
-  SPINLOCK 	*masterLock;
+  SPINLOCK 	masterLock;
   Boolean	found;
   LOCKTAB 	*ltable;
   HTAB 		*xidTable;
 
-  assert (tableId < NumTables);
+  Assert (tableId < NumTables);
   ltable = AllTables[tableId];
   if (!ltable)
     return (FALSE);
@@ -872,54 +938,65 @@ LOCKT 	lockt;
   lock->nActive--;
   lock->activeHolders[lockt]--;
 
-  XIDAssign(item.xid,TxStateXID());
-  assert (! XIDEquals(item.xid,XIDInvalid));
+  Assert(lock->nActive >= 0);
 
-  item.lock = MAKE_OFFSET(lock);
+  /* ------------------
+   * Zero out all of the tag bytes (this clears the padding bytes for long
+   * word alignment and ensures hashing consistency).
+   * ------------------
+   */
+  bzero(&item, XID_TAGSIZE);
+  TransactionIdStore(GetCurrentTransactionId(), &item.tag.xid);
+  Assert (! TransactionIdEquals(&item.tag.xid, &InvalidXid));
+
+  item.tag.lock = MAKE_OFFSET(lock);
   if (! (result = (XIDLookupEnt *)
-	 hash_search(xidTable, (Address)&item, FIND, &found))|| !found) {
+	 hash_search(xidTable, (Pointer)&item, FIND, &found))|| !found)
+  {
     SpinRelease(masterLock);
     elog(NOTICE,"LockReplace: xid table corrupted");
     return(FALSE);
-  } 
+  }
   /*
-   * now check to see if I have any private locks.  If I do, 
+   * now check to see if I have any private locks.  If I do,
    * decrement the counts associated with them.
    */
   result->holders[lockt]--;
   result->nHolding--;
 
-  /* 
+  /*
    * If this was my last hold on this lock, delete my entry
    * in the XID table.
    */
-  if (! result->nHolding) {
+  if (! result->nHolding)
+  {
     LOCK_PRINT("Deleting now",(&lock->tag));
-#ifndef LCHAIN
     SHMQueueDelete(&result->queue);
-#endif
     if (! (result = (XIDLookupEnt *)
-	   hash_search(xidTable, (Address)&item, REMOVE, &found)) || 
-	! found) {
+	   hash_search(xidTable, (Pointer)&item, REMOVE, &found)) ||
+	! found)
+    {
       SpinRelease(masterLock);
       elog(NOTICE,"LockReplace: xid table corrupted");
       return(FALSE);
-    } 
+    }
   }
 
 
-  if (! lock->nHolding) {
-    /* if there's no one waiting in the queue, 
-     * we just released the last lock.  
+  if (! lock->nHolding)
+  {
+    /* if there's no one waiting in the queue,
+     * we just released the last lock.
      * Delete it from the lock table.
      */
 
-    assert( ltable->lockHash->hash == tag_hash);
+    Assert( ltable->lockHash->hash == tag_hash);
     lock = (LOCK *)
-      hash_search(ltable->lockHash,(Address)&(lock->tag),REMOVE, &found);
+      hash_search(ltable->lockHash,(Pointer)&(lock->tag),REMOVE, &found);
     SpinRelease(masterLock);
 
-    if ((! lock) || (!found))  {
+    if ((! lock) || (!found))
+    {
       elog(NOTICE,"LockReplace: cannot remove lock from HTAB");
       return(FALSE);
     }
@@ -931,7 +1008,8 @@ LOCKT 	lockt;
    * should be woken up.  Whoever is asleep will still conflict
    * with the remaining locks.
    */
-  if (! (lock->holders[lockt])) {
+  if (! (lock->holders[lockt]))
+  {
     /* change the conflict mask.  No more of this lock type. */
     lock->mask &= BITS_OFF[lockt];
   }
@@ -943,7 +1021,7 @@ LOCKT 	lockt;
    */
   waitQueue = &(lock->waitProcs);
   (void) ProcLockWakeup(waitQueue, ltable, lock);
-  
+
   SpinRelease(masterLock);
   return(TRUE);
 }
@@ -956,12 +1034,13 @@ LOCKTAG	*l1,*l2;
   int	c1,c2;
   int	i;
 
-  if (l2->tupleId.offset != (-10))
+  if (l2->tupleId.positionData != (-10))
     return;
 
   res1 = (char *) l1;
   res2 = (char *) l2;
-  for (i=0;i<12;i++) {
+  for (i=0;i<12;i++)
+  {
     c1 = res1[i];
     c2 = res2[i];
 
@@ -970,7 +1049,6 @@ LOCKTAG	*l1,*l2;
   printf("\n");
 }
 
-TRUSTED
 LockReleaseAll(tableId,lockQueue)
 TableId		tableId;
 SHM_QUEUE	*lockQueue;
@@ -979,13 +1057,13 @@ SHM_QUEUE	*lockQueue;
   int		done;
   XIDLookupEnt	*xidLook,*tmp;
   SHMEM_OFFSET 	end = MAKE_OFFSET(lockQueue);
-  SPINLOCK 	*masterLock;
+  SPINLOCK 	masterLock;
   LOCKTAB 	*ltable;
   int		i,nLockTypes;
   LOCK		*lock;
   int		found;
 
-  assert (tableId < NumTables);
+  Assert (tableId < NumTables);
   ltable = AllTables[tableId];
   if (!ltable)
     return (FALSE);
@@ -999,56 +1077,83 @@ SHM_QUEUE	*lockQueue;
   SHMQueueFirst(lockQueue,&xidLook,&xidLook->queue);
 
   SpinAcquire(masterLock);
-  for (;;) {
-    done = (xidLook->queue.prev == end);
-    lock = (LOCK *) MAKE_PTR(xidLook->lock);
+  for (;;)
+  {
+    /* ---------------------------
+     * XXX Here we assume the shared memory queue is circular and
+     * that we know its internal structure.  Should have some sort of
+     * macros to allow one to walk it.  mer 20 July 1991
+     * ---------------------------
+     */
+    done = (xidLook->queue.next == end);
+    lock = (LOCK *) MAKE_PTR(xidLook->tag.lock);
 
     LOCK_PRINT("ReleaseAll",(&lock->tag));
 
-    /*
+    /* ------------------
      * fix the general lock stats
+     * ------------------
      */
-    if (XIDEquals(lock->xid,XIDInvalid)) {
+    if (lock->nHolding != xidLook->nHolding)
+    {
       lock->nHolding -= xidLook->nHolding;
       lock->nActive -= xidLook->nHolding;
-      for (i=0;i<nLockTypes;i++) {
+      Assert(lock->nActive >= 0);
+      for (i=0;i<nLockTypes;i++)
+      {
 	lock->holders[i] -= xidLook->holders[i];
 	lock->activeHolders[i] -= xidLook->holders[i];
 	if (! lock->activeHolders[i])
 	  lock->mask &= BITS_OFF[i];
       }
-    } else {
-      /* set nHolding to zero so that we can garbage collect the lock*/
+    }
+    else
+    {
+      /* --------------
+       * set nHolding to zero so that we can garbage collect the lock
+       * down below...
+       * --------------
+       */
       lock->nHolding = 0;
     }
-    /* always remove the xidLookup entry, we're done with it now */
-    if ((! hash_search(ltable->xidHash, (Address)xidLook, REMOVE, &found)) || 
-	! found) {
+    /* ----------------
+     * always remove the xidLookup entry, we're done with it now
+     * ----------------
+     */
+    if ((! hash_search(ltable->xidHash, (Pointer)xidLook, REMOVE, &found)) ||
+	!found)
+    {
       SpinRelease(masterLock);
       elog(NOTICE,"LockReplace: xid table corrupted");
       return(FALSE);
-    } 
+    }
 
-    if (! lock->nHolding) {
-      /*
+    if (! lock->nHolding)
+    {
+      /* --------------------
        * if there's no one waiting in the queue, we've just released
-       * the last lock. 
+       * the last lock.
+       * --------------------
        */
 
-      assert( ltable->lockHash->hash == tag_hash);
+      Assert( ltable->lockHash->hash == tag_hash);
       lock = (LOCK *)
-	hash_search(ltable->lockHash,(Address)&(lock->tag),REMOVE, &found);
-      if ((! lock) || (!found))  {
+	hash_search(ltable->lockHash,(Pointer)&(lock->tag),REMOVE, &found);
+      if ((! lock) || (!found))
+      {
 	SpinRelease(masterLock);
 	elog(NOTICE,"LockReplace: cannot remove lock from HTAB");
 	return(FALSE);
       }
-    } else {
+    }
+    else
+    {
       printf("lock %x: WAKEUP, nholding %d\n",lock,lock->nHolding);
-      /*
+      /* --------------------
        * Wake the first waiting process and grant him the lock if it
        * doesn't conflict.  The woken process must record the lock
        * himself.
+       * --------------------
        */
       waitQueue = &(lock->waitProcs);
       (void) ProcLockWakeup(waitQueue, ltable, lock);
@@ -1063,9 +1168,21 @@ SHM_QUEUE	*lockQueue;
   SHMQueueInit(lockQueue);
 }
 
-#ifndef LCHAIN
-InitLkChain()
+int
+LockShmemSize()
 {
-}
-#endif
+	int size;
 
+	size = 30*1024;		/* 30 K */
+
+	return size;
+/* ------------------------------------
+ * Dont forget to add in 2*(size needed for 2 hash tables)
+ *  size =  	NLOCK_ENTS*sizeof(LOCK) +
+ *		NLOCKS_PER_XACT*sizeof(XIDLookupEnt) +
+ *		NBACKENDS*sizeof(PROC) +
+ *		sizeof(LOCKCTL) +
+ *		sizeof(PROC_HDR);
+ * ------------------------------------
+ */
+}
