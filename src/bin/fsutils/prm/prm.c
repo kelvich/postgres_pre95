@@ -82,12 +82,16 @@ main(argc, argv)
 		usage();
 	}
 
-
+	(void) PQexec("begin");
 
 	while ((optind < argc) > 0) {
 	    (void) rm(argv[optind], 0);
 	    optind++;
 	}
+
+	if (!errcode)
+	    (void) PQexec("end");
+
 	PQfinish();
 	exit(errcode != 0);
 	/* NOTREACHED */

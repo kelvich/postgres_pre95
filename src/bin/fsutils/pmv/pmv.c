@@ -115,6 +115,8 @@ endarg:	argc -= optind;
 	    PQsetdb(dbname);
 	}
 
+	(void) PQexec("begin");
+
 	/*
 	 * If the stat on the target fails or the target isn't a directory,
 	 * try the move.  More than 2 arguments is an error in this case.
@@ -144,6 +146,10 @@ endarg:	argc -= optind;
 			exitval |= do_move(*argv, path);
 		}
 	}
+
+	if (!exitval)
+	    (void) PQexec("end");
+
 	PQfinish();
 	exit(exitval);
 }
