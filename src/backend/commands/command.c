@@ -123,6 +123,7 @@ PortalCleanup(portal)
      * ----------------
      */
     (void) MemoryContextSwitchTo(context);
+    PortalExecutorHeapMemory = (MemoryContext) NULL;
 }
 
 /* --------------------------------
