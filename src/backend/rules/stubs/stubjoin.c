@@ -164,7 +164,7 @@ Prs2OneStub oneStub;
 
     tupDesc = RelationGetTupleDescriptor(relation);
 
-    if (prs2StubTestTuple(tuple, buffer, tupDesc, oneStub->qualification)) {
+    if (prs2StubQualTestTuple(tuple, buffer, tupDesc, oneStub->qualification)) {
 	oldLocks = prs2GetLocksFromTuple(tuple, buffer,tupDesc);
 	newLocks = prs2LockUnion(oneStub->lock, oldLocks);
 	newTuple = palloctup(tuple, buffer, relation);
