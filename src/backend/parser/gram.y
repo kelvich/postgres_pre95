@@ -750,9 +750,10 @@ RuleStmt:
 			         to replace varnodes that have current 
 				 in them */
 			SubstituteParamForNewOrCurrent ( $8 );
+			$$ = lispCons ( $8, lispCons ( p_rtable, NULL ));
+		    } else {
+			$$ = nappend1 ( $8, $5 ); 
 		    }
-
-		    $$ = nappend1 ( $8, $5 ); 
 	 	    $$ = lispCons ( $4, $$ );
 		    $$ = lispCons ( $3, $$ );
 		    $$ = lispCons ( $2, $$ );	
@@ -1881,18 +1882,19 @@ SubstituteParamForNewOrCurrent ( parsetree )
 	    Relation foo = amopenr ( CString(CAR(NewOrCurrentIsReally)));
 
 	    if ( foo ) {
-		attrname = &(foo->rd_att.data[get_varattno(temp)-1]->attname);
+		attrname = (char *)
+		  &(foo->rd_att.data[get_varattno(temp)-1]->attname);
 	    }
 	    if ( get_varno(temp) == 1 ) {
 		/* replace with make_param(old) */
-		CAR(i) = MakeParam (PARAM_OLD,
+		CAR(i) = (List)MakeParam (PARAM_OLD,
 				    (int32)0,
 				    attrname,
 				    get_vartype(temp));
 	    } 
 	    if ( get_varno(temp) == 2 ) {
 		/* replace with make_param(new) */
-		CAR(i) = MakeParam(PARAM_NEW,
+		CAR(i) = (List)MakeParam(PARAM_NEW,
 				   (int32)0,
 				   attrname,
 				   get_vartype(temp) );
