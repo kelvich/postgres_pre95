@@ -384,9 +384,9 @@ create_indexscan_node(best_path,tlist,scan_clauses)
        qpqual = set_difference(scan_clauses, CAR(indxqual));
      
      /*  XXX
-     fixed_indxqual = fix_indxqual_references(indxqual,best_path);
-     */
      fixed_indxqual = indxqual;
+     */
+     fixed_indxqual = fix_indxqual_references(indxqual,best_path);
      scan_node = make_indexscan(tlist,
 				 qpqual,
 				 CInteger(CAR(get_relids 
