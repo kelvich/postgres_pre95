@@ -340,18 +340,6 @@ bool oidnotin ARGS((ObjectId the_oid , char *compare ));
 ObjectId *oid8in ARGS((char *oidString ));
 char *oid8out ARGS((ObjectId (*oidArray )[]));
 
-/* oidseq.c */
-OidSeq oidseqin ARGS((char *o ));
-char *oidseqout ARGS((OidSeq o ));
-bool oidseqlt ARGS((OidSeq o1 , OidSeq o2 ));
-bool oidseqle ARGS((OidSeq o1 , OidSeq o2 ));
-bool oidseqeq ARGS((OidSeq o1 , OidSeq o2 ));
-bool oidseqge ARGS((OidSeq o1 , OidSeq o2 ));
-bool oidseqgt ARGS((OidSeq o1 , OidSeq o2 ));
-bool oidseqne ARGS((OidSeq o1 , OidSeq o2 ));
-bool oidseqcmp ARGS((OidSeq o1 , OidSeq o2 ));
-OidSeq mkoidseq ARGS((ObjectId v_oid , uint32 v_seq ));
-
 /* regexp.c */
 bool char16regexeq ARGS((char *s , char *p ));
 bool char16regexne ARGS((char *s , char *p ));
