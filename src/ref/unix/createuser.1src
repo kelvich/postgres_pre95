@@ -8,7 +8,7 @@ createuser \*- create a \*(PP user
 .uh SYNOPSIS
 .lp
 .b createuser 
-[-p port -h host]
+[-p port] [-h host]
 .b username
 .uh DESCRIPTION
 .lp
@@ -23,7 +23,7 @@ to be created.
 The name must be unique
 among all \*(PP users.
 .sp
-The argument 
+The arguments 
 .i port
 and
 .i hostname
