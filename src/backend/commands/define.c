@@ -467,46 +467,51 @@ DefineAggregate(name, parameters)
     String primStr, secStr;
     struct varlena *primVal, *secVal;
     LispValue entry;
-
-  /* sanity checks...name validity */
-
-  AssertArg(NameIsValid(name));
-  AssertArg(listp(parameters));
-
-  /* handle "stepfunc = proname" */
-  entry = DefineListRemoveRequiredAssignment(&parameters, "sfunc1");
-  stepfunc1Name = DefineEntryGetName(entry);
-   
-   /* handle "countfunc = proname " */
-  entry = DefineListRemoveRequiredAssignment(&parameters, "sfunc2");
-  stepfunc2Name = DefineEntryGetName(entry);
-
-  /* handle "finalfunc = proname */
-  entry = DefineListRemoveRequiredAssignment(&parameters, "finalfunc");
-  finalfuncName = DefineEntryGetName(entry);
-
-  /* -----------------
-   * handle first initial condition
-   */
-  entry = DefineListRemoveRequiredAssignment(&parameters, "initcond1");
-  primStr = DefineEntryGetString(entry);
-  primVal = textin(primStr);
-
-  /* -------------------
-   * handle second initial condition
-   */
-  entry = DefineListRemoveRequiredAssignment(&parameters, "initcond2");
-  secStr = DefineEntryGetString(entry);
-  secVal = textin(secStr);
-
-  DefineListAssertEmpty(parameters);
-
-  AggregateDefine(name,  		/* aggregate name */
-		  stepfunc1Name,	/* first step function name */
-		  stepfunc2Name,	/* second step function name */
-		  finalfuncName,	/* final function name */
-		  primVal,	/* first initial condition */
-		  secVal);	/* second initial condition */
+    
+    /* sanity checks...name validity */
+    
+    AssertArg(NameIsValid(name));
+    AssertArg(listp(parameters));
+    
+    /* handle "stepfunc = proname" */
+    entry = DefineListRemoveOptionalAssignment(&parameters, "sfunc1");
+    stepfunc1Name = entry ? DefineEntryGetName(entry) : (Name) NULL;
+    
+    /* handle "countfunc = proname " */
+    entry = DefineListRemoveOptionalAssignment(&parameters, "sfunc2");
+    stepfunc2Name = entry ? DefineEntryGetName(entry) : (Name) NULL;
+    
+    /* handle "finalfunc = proname" */
+    entry = DefineListRemoveOptionalAssignment(&parameters, "finalfunc");
+    finalfuncName = entry ? DefineEntryGetName(entry) : (Name) NULL;
+    
+    /* handle first initial condition */
+    entry = DefineListRemoveOptionalAssignment(&parameters, "initcond1");
+    if (entry) {
+	primStr = DefineEntryGetString(entry);
+	primVal = textin(primStr);
+    } else
+	primVal = (struct varlena *) NULL;
+    
+    /* handle second initial condition */
+    entry = DefineListRemoveOptionalAssignment(&parameters, "initcond2");
+    if (entry) {
+	secStr = DefineEntryGetString(entry);
+	secVal = textin(secStr);
+    } else
+	secVal = (struct varlena *) NULL;
+    
+    DefineListAssertEmpty(parameters);
+    
+    /*
+     * Most of the argument-checking is done inside of AggregateDefine
+     */
+    AggregateDefine(name,  		/* aggregate name */
+		    stepfunc1Name,	/* first step function name */
+		    stepfunc2Name,	/* second step function name */
+		    finalfuncName,	/* final function name */
+		    primVal,		/* first initial condition */
+		    secVal);		/* second initial condition */
 }
 
 /* --------------------------------
