@@ -28,4 +28,4 @@ define aggregate(commands).
 .uh BUGS
 .lp
 Remove aggregate
-is not implemented in Version 2.
+is not implemented in Version 2.1.
