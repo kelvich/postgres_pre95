@@ -112,10 +112,11 @@ MatchRetrieveLocks ( rulelocks , varno , parse_subtree  )
 
     for ( i = 0 ; i < nlocks ; i++ ) {
 	oneLock = prs2GetOneLockFromLocks ( rulelocks , i );
-	if ( LockEventIsRetrieve(oneLock)) {
+	if ( IsActive(oneLock) && IsRewrite(oneLock) &&
+		LockEventIsRetrieve(oneLock)) {
 	    if ( ThisLockWasTriggered ( varno,
 				       oneLock->attributeNumber,
-				       parse_subtree ))
+				       parse_subtree )) 
 	      real_locks = nappend1 ( real_locks, oneLock );
 	}
     }
