@@ -462,12 +462,11 @@ ExecHashTableCreate(node)
 	hashtable->innerbatchSizes = RELADDR(innerbatchSizes);
     }
     else {
-	hashtable->batchLock = (slock_t *)NULL;
-	hashtable->outerbatchNames = (RelativeAddr *)NULL;
-	hashtable->outerbatchPos = (RelativeAddr *)NULL;
-	hashtable->innerbatchNames = (RelativeAddr *)NULL;
-	hashtable->innerbatchPos = (RelativeAddr *)NULL;
-	hashtable->innerbatchSizes = (RelativeAddr *)NULL;
+	hashtable->outerbatchNames = (RelativeAddr)NULL;
+	hashtable->outerbatchPos = (RelativeAddr)NULL;
+	hashtable->innerbatchNames = (RelativeAddr)NULL;
+	hashtable->innerbatchPos = (RelativeAddr)NULL;
+	hashtable->innerbatchSizes = (RelativeAddr)NULL;
     }
 
     hashtable->batch = (RelativeAddr)LONGALIGN(hashtable->top + 
