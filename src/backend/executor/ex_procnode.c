@@ -167,14 +167,14 @@
 #define INIT_WITH_HOOKS(n,s) \
 { \
     Pointer p; \
-    result = (List) CppConcat(ExecInit, n)((n) node, estate, parent); \
+    result = (List) CppConcat(ExecInit,n)((n) node, estate, parent); \
     p = (Pointer) CppConcat(get_,s)(node); \
     DO_INIT_AFTER_HOOK(p); \
 }
 
 #define PROC_WITH_HOOKS(f,n,s) \
 { \
-    Pointer p = (Pointer) CppConcat(get_, s)(node); \
+    Pointer p = (Pointer) CppConcat(get_,s)(node); \
     DO_PROC_BEFORE_HOOK(p); \
     result = (TupleTableSlot) f((n) node); \
     DO_PROC_AFTER_HOOK(p); \
@@ -182,9 +182,9 @@
 
 #define END_WITH_HOOKS(n,s) \
 { \
-    Pointer p = (Pointer) CppConcat(get_, s)(node); \
+    Pointer p = (Pointer) CppConcat(get_,s)(node); \
     DO_END_BEFORE_HOOK(p); \
-    CppConcat(ExecEnd, n)((n) node); \
+    CppConcat(ExecEnd,n)((n) node); \
     DO_END_AFTER_HOOK(p); \
 }
 
@@ -197,7 +197,7 @@
     result = (TupleTableSlot) f((n) node);
 
 #define END_WITH_HOOKS(n,s) \
-    CppConcat(ExecEnd, n)((n) node);
+    CppConcat(ExecEnd,n)((n) node);
 	
 #endif /*EXEC_ASSIGNDEBUGHOOKS*/
 
