@@ -54,91 +54,17 @@ typedef struct catcache {
 
 extern struct catcache	*Caches;
 
-/*
- * InitSysCache --
- */
-extern
-struct catcache *
-InitSysCache ARGS(( char *relname, Name *indname, long nkeys , long key [], HeapTuple (*iScanfuncP)() ));
-
-/*
- * ResetSystemCache --
- *	Causes the entire cached system state to be discarded.
- */
-extern
-void
-ResetSystemCache ARGS((
-	void
-));
-
-/*
- * SearchSysCache --
- */
-extern
-HeapTuple
-SearchSysCache ARGS((
-	struct catcache	*cache,
-	DATUM		v1,
-	DATUM		v2,
-	DATUM		v3,
-	DATUM		v4
-));
-
-/*
- * RelationIdInvalidateCatalogCacheTuple --
- */
-extern
-void
-RelationIdInvalidateCatalogCacheTuple ARGS((
-	ObjectId	relationId,
-	HeapTuple	tuple,
-	void		(*function)()
-));
-
-/*
- * CatalogCacheIdInvalidate --
- */
-extern
-void
-CatalogCacheIdInvalidate ARGS((
-	int cacheId,
-	Index hashIndex,
-	ItemPointer pointer
-));
-
-/*
- * CatalogCacheComputeTupleHashIndex --
- */
-Index CatalogCacheComputeTupleHashIndex ARGS((
-	struct catcache *cacheInOutP,
-	Relation relation,
-	HeapTuple tuple
-));
-
-/*
- * CatalogCacheSetId --
- *	XXX This is a temporary function.
- */
-extern
-void CatalogCacheSetId ARGS((CatCache *cacheInOutP , int id ));
-
-void CatalogCacheInitializeCache ARGS((
-	struct catcache *cache,
-	Relation relation
-));
-
-long comphash ARGS((int l , char *v ));
-
-Index CatalogCacheComputeHashIndex ARGS((struct catcache *cacheInP ));
-
-void CatCacheRemoveCTup ARGS((CatCache *cache , CatCTup *ct ));
-
-struct catcache *InitIndexedSysCache ARGS((
-	char *relname, 
-	char *indname, 
-	long nkeys, 
-	long key [],
-	HeapTuple (*iScanfuncP)()
-));
+extern void CatalogCacheInitializeCache ARGS((struct catcache *cache, Relation relation));
+extern void CatalogCacheSetId ARGS((CatCache *cacheInOutP, int id));
+extern long comphash ARGS((long l, char *v));
+extern Index CatalogCacheComputeHashIndex ARGS((struct catcache *cacheInP));
+extern Index CatalogCacheComputeTupleHashIndex ARGS((struct catcache *cacheInOutP, Relation relation, HeapTuple tuple));
+extern void CatCacheRemoveCTup ARGS((CatCache *cache, CatCTup *ct));
+extern void CatalogCacheIdInvalidate ARGS((int cacheId, Index hashIndex, ItemPointer pointer));
+extern void ResetSystemCache ARGS((void));
+extern struct catcache *InitIndexedSysCache ARGS((char *relname, char *indname, int nkeys, int key[], HeapTuple (*iScanfuncP)()));
+extern struct catcache *InitSysCache ARGS((char *relname, Name *indname, int nkeys, int key[], HeapTuple (*iScanfuncP)()));
+extern HeapTuple SearchSysCache ARGS((struct catcache *cache, DATUM v1, DATUM v2, DATUM v3, DATUM v4));
+extern void RelationInvalidateCatalogCacheTuple ARGS((Relation relation, HeapTuple tuple, void (*function)()));
 
 #endif	/* !defined(CatCacheIncluded) */

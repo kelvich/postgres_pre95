@@ -165,7 +165,7 @@ typedef bool	*BoolPtr;
 
 #ifdef	__STDC__ /* ANSI C */
 
-#if ! defined(PORTNAME_bsd44) && ! defined(PORTNAME_alpha)
+#if ! defined(PORTNAME_bsd44)
 #define PROTOTYPES
 #endif
 
@@ -908,9 +908,7 @@ ExceptionalCondition ARGS((
  *	form is used by assert and the exception handling stuff
  * ----------------
  */
-extern
-String
-form ARGS(( int, ... ));
+extern String form();
 
 /* ----------------------------------------------------------------
  *		Section 13: system-specific hacks

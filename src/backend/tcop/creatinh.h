@@ -1,25 +1,25 @@
-/*
- * creatinh.h --
- *	POSTGRES create/destroy relation with inheritance utility definitions.
+/* ----------------------------------------------------------------
+ *   FILE
+ *	creatinh.h
  *
- * Identification:
+ *   DESCRIPTION
+ *	prototypes for creatinh.c.
+ *
+ *   NOTES
+ *	Automatically generated using mkproto
+ *
+ *   IDENTIFICATION
  *	$Header$
+ * ----------------------------------------------------------------
  */
 
-#ifndef CreatinhHIncluded
-#define CreatinhHIncluded 1	/* include once only */
+#ifndef creatinhIncluded		/* include this file only once */
+#define creatinhIncluded	1
 
 /*
  * DefineRelation --
  *	Creates a new relation.
  */
-extern
-void
-DefineRelation ARGS((
-	char		*relationName,
-	LispValue	parameters,
-	LispValue	schema
-));
 
 /*
  * RemoveRelation --
@@ -32,12 +32,8 @@ DefineRelation ARGS((
  *	If the relation has indices defined on it, then the index relations
  * themselves will be destroyed, too.
  */
-extern
-void
-RemoveRelation ARGS((
-	Name	name
-));
-
+extern void DefineRelation ARGS((char *relname, LispValue parameters, LispValue schema));
+extern void RemoveRelation ARGS((Name name));
 extern List lispCopyList ARGS((List list));
 
-#endif CreatinhHIncluded
+#endif /* creatinhIncluded */

@@ -33,6 +33,8 @@
 
 #define ELOG_MAXLEN 4096
 
+#ifndef UFP
+
 #define SYSLOG_FD	5	/* file descriptor for system log file */
 #define DBLOG_FD	6	/* file descriptor for dblog file */
 
@@ -54,5 +56,7 @@ extern void EnableELog ARGS ((int enable));
  *	Old error logging function.
  */
 extern void elog ARGS((int, ...));
+
+#endif /* !UFP */
 
 #endif	/* !defined(LogIncluded) */

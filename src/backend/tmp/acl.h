@@ -111,7 +111,7 @@ extern Acl *acldefault ARGS((AclId owner));
 extern Acl *aclinsert3 ARGS((Acl *acl, AclItem *aip, unsigned modechg));
 /* XXX move these elsewhere */
 extern int32 pg_aclcheck ARGS((char *relname, char *usename, AclMode mode));
-extern int32 pg_ownercheck ARGS((char *relname, char *usename));
+extern int32 pg_ownercheck ARGS((char *relname, char *usename, int cacheid));
 extern int32 pg_func_ownercheck ARGS((char *usename, char *funcname,
 				      int nargs, ObjectId *arglist));
 

@@ -35,7 +35,7 @@
  */
 #define MAX_PACKET_SIZE	(2*1024)
 
-typedef enum MsgType {
+typedef enum _MsgType {
   ACK_MSG = 0,		/* acknowledge a message */
   ERROR_MSG=1,		/* error response to client from server */
   RESET_MSG=2,		/* client must reset connection */

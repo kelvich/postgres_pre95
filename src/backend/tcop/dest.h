@@ -52,13 +52,15 @@ typedef enum {
 } CommandDest;
 
 /* dest.c */
-void donothing ARGS((List tuple , List attrdesc ));
-void EndCommand ARGS((String commandTag , CommandDest dest ));
-void SendCopyBegin ARGS((void ));
-void ReceiveCopyBegin ARGS((void ));
-void NullCommand ARGS((CommandDest dest ));
-void BeginCommand ARGS((char *pname , int operation , LispValue attinfo , bool isIntoRel , bool isIntoPortal , char *tag , CommandDest dest ));
-void ResetAppendOid();
-void UpdateAppendOid ARGS(( ObjectId newoid ));
-ObjectId GetAppendOid();
+extern void donothing ARGS((List tuple, List attrdesc));
+extern void (*DestToFunction()) ARGS((CommandDest dest));
+extern void EndCommand ARGS((String commandTag, CommandDest dest));
+extern void SendCopyBegin ARGS((void));
+extern void ReceiveCopyBegin ARGS((void));
+extern void NullCommand ARGS((CommandDest dest));
+extern void BeginCommand ARGS((char *pname, int operation, LispValue attinfo, bool isIntoRel, bool isIntoPortal, char *tag, CommandDest dest));
+extern void ResetAppendOid ARGS((void));
+extern void UpdateAppendOid ARGS((ObjectId newoid));
+extern ObjectId GetAppendOid ARGS((void));
+
 #endif  DestIncluded

@@ -153,6 +153,15 @@ extern int16 int2smaller ARGS((int16 arg1, int16 arg2));
 extern int32 int4larger ARGS((int32 arg1, int32 arg2));
 extern int32 int4smaller ARGS((int32 arg1, int32 arg2));
 
+/* name.c */
+extern int namecpy ARGS((Name n1, Name n2));
+extern int namecat ARGS((Name n1, Name n2));
+extern int namestrcpy ARGS((Name name, char *str));
+extern int namestrcat ARGS((Name name, char *str));
+extern int namestrcmp ARGS((Name name, char *str));
+extern bool NameIsEqual ARGS((Name name1, Name name2));
+extern uint32 NameComputeLength ARGS((Name name));
+
 /* numutils.c */
 /* XXX hack.  HP-UX has a ltoa (with different arguments) already. */
 #ifdef PORTNAME_hpux
@@ -505,7 +514,7 @@ extern ObjectId oidin ARGS((char *s));
 extern char *oidout ARGS((ObjectId o));
 extern int32 oideq ARGS((ObjectId arg1, ObjectId arg2));
 extern int32 oidne ARGS((ObjectId arg1, ObjectId arg2));
-extern int32 oid8eq ARGS((ObjectId arg1[], ObjectId arg1 arg2[]));
+extern int32 oid8eq ARGS((ObjectId arg1[], ObjectId arg2[]));
 
 /* regexp.c */
 extern bool char2regexeq ARGS((uint16 arg1, struct varlena *p));

@@ -14,6 +14,7 @@
 
 #ifndef SlavesIncluded
 #define SlavesIncluded
+
 #include "utils/rel.h"
 #include "nodes/plannodes.h"
 #include "executor/execshmem.h"
@@ -108,31 +109,6 @@ struct schedulinginfo {
 };
 typedef struct schedulinginfo MasterSchedulingInfoData;
 
-/* slaves.c */
-void SendAbortSignals ARGS((void ));
-void SlaveRestart ARGS((void ));
-void SlaveBackendsAbort ARGS((void ));
-void SlaveMain ARGS((void ));
-void MoveTransactionState ARGS((void ));
-void SlaveBackendsInit ARGS((void ));
-int getFreeSlave ARGS((void ));
-void freeSlave ARGS((int i ));
-int getFreeProcGroup ARGS((int nproc ));
-void addSlaveToProcGroup ARGS((int slave , int group , int groupid ));
-void freeProcGroup ARGS((int gid ));
-int getFinishedProcGroup ARGS((void ));
-void wakeupProcGroup ARGS((int groupid ));
-void signalProcGroup ARGS((int groupid , int sig ));
-void ProcGroupSMBeginAlloc ARGS((int groupid ));
-void ProcGroupSMEndAlloc ARGS((void ));
-char *ProcGroupSMAlloc ARGS((int size ));
-void ProcGroupSMClean ARGS((int groupid ));
-void SlaveTmpRelDescInit ARGS((void ));
-char *SlaveTmpRelDescAlloc ARGS((int size ));
-int getProcGroupMaxPage ARGS((int groupid ));
-int paradj_handler ARGS((void ));
-int paradj_nextpage ARGS((int page , int dir ));
-
 #define SIGPARADJ	SIGUSR1
 
 #define NULLPAGE	-1
@@ -140,4 +116,29 @@ int paradj_nextpage ARGS((int page , int dir ));
 
 typedef enum {INTRA_ONLY, INTER_W_ADJ, INTER_WO_ADJ}	ParallelismModes;
 
-#endif  TcopIncluded
+/* slaves.c */
+extern void SendAbortSignals ARGS((void));
+extern void SlaveRestart ARGS((void));
+extern void SlaveBackendsAbort ARGS((void));
+extern void SlaveMain ARGS((void));
+extern void MoveTransactionState ARGS((void));
+extern void SlaveBackendsInit ARGS((void));
+extern int getFreeSlave ARGS((void));
+extern void freeSlave ARGS((int i));
+extern int getFreeProcGroup ARGS((int nproc));
+extern void addSlaveToProcGroup ARGS((int slave, int group, int groupid));
+extern void freeProcGroup ARGS((int gid));
+extern int getFinishedProcGroup ARGS((void));
+extern void wakeupProcGroup ARGS((int groupid));
+extern void signalProcGroup ARGS((int groupid, int sig));
+extern void ProcGroupSMBeginAlloc ARGS((int groupid));
+extern void ProcGroupSMEndAlloc ARGS((void));
+extern char *ProcGroupSMAlloc ARGS((int size));
+extern void ProcGroupSMClean ARGS((int groupid));
+extern void SlaveTmpRelDescInit ARGS((void));
+extern char *SlaveTmpRelDescAlloc ARGS((int size));
+extern int getProcGroupMaxPage ARGS((int groupid));
+extern int paradj_handler ARGS((void));
+extern int paradj_nextpage ARGS((int page, int dir));
+
+#endif /* slavesIncluded */

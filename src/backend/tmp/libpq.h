@@ -22,9 +22,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
+#include <netinet/in.h>
+
 #include "tmp/simplelists.h"
 #include "utils/exc.h"
 #include "tmp/postgres.h"
+
+#include "tmp/pqcomm.h"
 
 /* ----------------
  * PQArgBlock --
@@ -154,10 +158,11 @@ extern    char PQerrormsg[error_msg_length];
 /*
  * External functions.
  */
+/* portal.c */
 extern void pqdebug ARGS((char *target, char *msg));
 extern void pqdebug2 ARGS((char *target, char *msg1, char *msg2));
-extern void PQtrace ARGS(());
-extern void PQuntrace ARGS(());
+extern void PQtrace ARGS((void));
+extern void PQuntrace ARGS((void));
 extern int PQnportals ARGS((int rule_p));
 extern void PQpnames ARGS((char **pnames, int rule_p));
 extern PortalBuffer *PQparray ARGS((char *pname));
@@ -180,48 +185,62 @@ extern int PQsametype ARGS((PortalBuffer *portal, int tuple_index1, int tuple_in
 extern char *PQgetvalue ARGS((PortalBuffer *portal, int tuple_index, int field_number));
 extern int PQgetlength ARGS((PortalBuffer *portal, int tuple_index, int field_number));
 extern void PQclear ARGS((char *pname));
-void PQcleanNotify ARGS((void ));
-void PQnotifies_init ARGS((void ));
-PQNotifyList *PQnotifies ARGS((void ));
-void PQremoveNotify ARGS((PQNotifyList *nPtr ));
-void PQappendNotify ARGS((char *relname , int pid ));
+extern void PQcleanNotify ARGS((void));
+extern void PQnotifies_init ARGS((void));
+extern PQNotifyList *PQnotifies ARGS((void));
+extern void PQremoveNotify ARGS((PQNotifyList *nPtr));
+extern void PQappendNotify ARGS((char *relname, int pid));
 
+/* portalbuf.c */
 extern caddr_t pbuf_alloc ARGS((size_t size));
 extern void pbuf_free ARGS((caddr_t pointer));
-extern PortalBuffer *pbuf_addPortal ARGS(());
+extern PortalBuffer *pbuf_addPortal ARGS((void));
 extern GroupBuffer *pbuf_addGroup ARGS((PortalBuffer *portal));
 extern TypeBlock *pbuf_addTypes ARGS((int n));
-extern TupleBlock *pbuf_addTuples ARGS(());
+extern TupleBlock *pbuf_addTuples ARGS((void));
 extern char **pbuf_addTuple ARGS((int n));
-extern char *pbuf_addValues ARGS((int n));
 extern int *pbuf_addTupleValueLengths ARGS((int n));
-extern PortalEntry *pbuf_addEntry ARGS(());
+extern char *pbuf_addValues ARGS((int n));
+extern PortalEntry *pbuf_addEntry ARGS((void));
 extern void pbuf_freeEntry ARGS((int i));
 extern void pbuf_freeTypes ARGS((TypeBlock *types));
 extern void pbuf_freeTuples ARGS((TupleBlock *tuples, int no_tuples, int no_fields));
 extern void pbuf_freeGroup ARGS((GroupBuffer *group));
 extern void pbuf_freePortal ARGS((PortalBuffer *portal));
 extern int pbuf_getIndex ARGS((char *pname));
+extern void pbuf_setportalinfo ARGS((PortalEntry *entry, char *pname));
 extern PortalEntry *pbuf_setup ARGS((char *pname));
 extern void pbuf_close ARGS((char *pname));
 extern GroupBuffer *pbuf_findGroup ARGS((PortalBuffer *portal, int group_index));
-extern pbuf_findFnumber ARGS((GroupBuffer *group, char *field_name));
+extern int pbuf_findFnumber ARGS((GroupBuffer *group, char *field_name));
 extern void pbuf_checkFnumber ARGS((GroupBuffer *group, int field_number));
 extern char *pbuf_findFname ARGS((GroupBuffer *group, int field_number));
+
+/* pqcomm.c */
 extern void pq_init ARGS((int fd));
-extern void pq_gettty ARGS((int tp));
-extern int pq_getport ARGS(());
-extern void pq_close ARGS(());
-extern void pq_flush ARGS(());
+extern void pq_gettty ARGS((char *tp));
+extern int pq_getport ARGS((void));
+extern void pq_close ARGS((void));
+extern void pq_flush ARGS((void));
 extern int pq_getstr ARGS((char *s, int maxlen));
+extern int PQgetline ARGS((char *s, int maxlen));
+extern int PQputline ARGS((char *s));
 extern int pq_getnchar ARGS((char *s, int off, int maxlen));
 extern int pq_getint ARGS((int b));
 extern void pq_putstr ARGS((char *s));
 extern void pq_putnchar ARGS((char *s, int n));
 extern void pq_putint ARGS((int i, int b));
+extern int pq_sendoob ARGS((char *msg, int len));
+extern int pq_recvoob ARGS((char *msgPtr, int *lenPtr));
 extern int pq_getinaddr ARGS((struct sockaddr_in *sin, char *host, int port));
 extern int pq_getinserv ARGS((struct sockaddr_in *sin, char *host, char *serv));
-int pq_connect ARGS((char *dbname , char *user , char *args , char *hostName , char *debugTty , char *execFile , int portName ));
-extern int pq_accept ARGS(());
-    
-#endif LibpqIncluded
+extern int pq_connect ARGS((char *dbname, char *user, char *args, char *hostName, char *debugTty, char *execFile, int portName));
+extern void pq_regoob ARGS((void (*fptr)()));
+extern void pq_unregoob ARGS((void));
+extern void pq_async_notify ARGS((void));
+extern int StreamServerPort ARGS((char *hostName, int portName, int *fdP));
+extern int StreamConnection ARGS((int server_fd, Port *port));
+extern int StreamClose ARGS((int sock));
+extern int StreamOpen ARGS((char *hostName, int portName, Port *port));
+
+#endif /* LibpqIncluded */
