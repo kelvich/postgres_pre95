@@ -71,9 +71,9 @@ RcsId("$Header$");
  */
 
 struct authsvc {
-	char	name[16];	/* service nickname (for command line) */
-	MsgType	msgtype;	/* startup packet header type */
-	int	allowed;	/* initially allowed (before command line
+    char	name[16];	/* service nickname (for command line) */
+    MsgType	msgtype;	/* startup packet header type */
+    int		allowed;	/* initially allowed (before command line
 				 * option parsing)?
 				 */
 };
@@ -90,20 +90,20 @@ struct authsvc {
  */
 static struct authsvc authsvcs[] = {
 #ifdef KRB4
-	{ "krb4",     STARTUP_KRB4_MSG, 1 },
-	{ "kerberos", STARTUP_KRB4_MSG, 1 },
+    { "krb4",     STARTUP_KRB4_MSG, 1 },
+    { "kerberos", STARTUP_KRB4_MSG, 1 },
 #endif /* KRB4 */
 #ifdef KRB5
-	{ "krb5",     STARTUP_KRB5_MSG, 1 },
-	{ "kerberos", STARTUP_KRB5_MSG, 1 },
+    { "krb5",     STARTUP_KRB5_MSG, 1 },
+    { "kerberos", STARTUP_KRB5_MSG, 1 },
 #endif /* KRB5 */
-	{ UNAUTHNAME, STARTUP_MSG,
+    { UNAUTHNAME, STARTUP_MSG,
 #if defined(KRB4) || defined(KRB5)
-					0
+	  0
 #else /* !(KRB4 || KRB5) */
-					1
+	  1
 #endif /* !(KRB4 || KRB5) */
-					  }
+    }
 };
 
 static n_authsvcs = sizeof(authsvcs) / sizeof(struct authsvc);
@@ -119,7 +119,7 @@ static n_authsvcs = sizeof(authsvcs) / sizeof(struct authsvc);
 #ifdef FRONTEND
 
 extern char	*tkt_string ARGS((void));
-
+    
 /*
  * pg_krb4_init -- initialization performed before any Kerberos calls are made
  *
@@ -131,23 +131,23 @@ static
 void
 pg_krb4_init()
 {
-	char		*realm;
-	static		init_done = 0;
-	
-	if (init_done)
-		return;
-	init_done = 1;
+    char		*realm;
+    static		init_done = 0;
 
-	/*
-	 * If the user set PGREALM, then we use a ticket file with a special
-	 * name: <usual-ticket-file-name>@<PGREALM-value>
-	 */
-	if (realm = getenv("PGREALM")) {
-		char	tktbuf[MAXPATHLEN];
-		
-		(void) sprintf(tktbuf, "%s@%s", tkt_string(), realm);
-		krb_set_tkt_string(tktbuf);
-	}
+    if (init_done)
+	return;
+    init_done = 1;
+
+    /*
+     * If the user set PGREALM, then we use a ticket file with a special
+     * name: <usual-ticket-file-name>@<PGREALM-value>
+     */
+    if (realm = getenv("PGREALM")) {
+	char	tktbuf[MAXPATHLEN];
+
+	(void) sprintf(tktbuf, "%s@%s", tkt_string(), realm);
+	krb_set_tkt_string(tktbuf);
+    }
 }
 
 /*
@@ -160,24 +160,24 @@ static
 char *
 pg_krb4_authname()
 {
-	char instance[INST_SZ];
-	char realm[REALM_SZ];
-	int status;
-	static char name[SNAME_SZ+1] = "";
-	
-	if (name[0])
-		return(name);
+    char instance[INST_SZ];
+    char realm[REALM_SZ];
+    int status;
+    static char name[SNAME_SZ+1] = "";
 
-	pg_krb4_init();
-
-	name[SNAME_SZ] = '\0';
-	status = krb_get_tf_fullname(tkt_string(), name, instance, realm);
-	if (status != KSUCCESS) {
-		fprintf(stderr, "pg_krb4_authname: krb_get_tf_fullname: %s\n",
-			krb_err_txt[status]);
-		return((char *) NULL);
-	}
+    if (name[0])
 	return(name);
+
+    pg_krb4_init();
+
+    name[SNAME_SZ] = '\0';
+    status = krb_get_tf_fullname(tkt_string(), name, instance, realm);
+    if (status != KSUCCESS) {
+	fprintf(stderr, "pg_krb4_authname: krb_get_tf_fullname: %s\n",
+		krb_err_txt[status]);
+	return((char *) NULL);
+    }
+    return(name);
 }
 
 /*
@@ -196,43 +196,43 @@ pg_krb4_authname()
  */
 static
 pg_krb4_sendauth(sock, laddr, raddr, hostname)
-	int sock;
-	struct sockaddr_in *laddr, *raddr;
-	char *hostname;
+    int sock;
+    struct sockaddr_in *laddr, *raddr;
+    char *hostname;
 {
-	long		krbopts = 0;	/* one-way authentication */
-	KTEXT_ST	clttkt;
-	int		status;
-	char		hostbuf[MAXHOSTNAMELEN];
-	char		*realm = getenv("PGREALM"); /* NULL == current realm */
+    long		krbopts = 0;	/* one-way authentication */
+    KTEXT_ST	clttkt;
+    int		status;
+    char		hostbuf[MAXHOSTNAMELEN];
+    char		*realm = getenv("PGREALM"); /* NULL == current realm */
 
-	if (!hostname || !(*hostname)) {
-		if (gethostname(hostbuf, MAXHOSTNAMELEN) < 0)
-			strcpy(hostbuf, "localhost");
-		hostname = hostbuf;
-	}
+    if (!hostname || !(*hostname)) {
+	if (gethostname(hostbuf, MAXHOSTNAMELEN) < 0)
+	    strcpy(hostbuf, "localhost");
+	hostname = hostbuf;
+    }
 
-	pg_krb4_init();
+    pg_krb4_init();
 
-	status = krb_sendauth(krbopts,
-			      sock,
-			      &clttkt,
-			      PG_KRB_SRVNAM,
-			      hostname,
-			      realm,
-			      (u_long) 0,
-			      (MSG_DAT *) NULL,
-			      (CREDENTIALS *) NULL,
-			      (Key_schedule *) NULL,
-			      laddr,
-			      raddr,
-			      PG_KRB4_VERSION);
-	if (status != KSUCCESS) {
-		fprintf(stderr, "pg_krb4_sendauth: kerberos error: %s\n",
-			krb_err_txt[status]);
-		return(STATUS_ERROR);
-	}
-	return(STATUS_OK);
+    status = krb_sendauth(krbopts,
+			  sock,
+			  &clttkt,
+			  PG_KRB_SRVNAM,
+			  hostname,
+			  realm,
+			  (u_long) 0,
+			  (MSG_DAT *) NULL,
+			  (CREDENTIALS *) NULL,
+			  (Key_schedule *) NULL,
+			  laddr,
+			  raddr,
+			  PG_KRB4_VERSION);
+    if (status != KSUCCESS) {
+	fprintf(stderr, "pg_krb4_sendauth: kerberos error: %s\n",
+		krb_err_txt[status]);
+	return(STATUS_ERROR);
+    }
+    return(STATUS_OK);
 }
 
 #else /* !FRONTEND */
@@ -248,49 +248,49 @@ pg_krb4_sendauth(sock, laddr, raddr, hostname)
  */
 static
 pg_krb4_recvauth(sock, laddr, raddr, username)
-	int sock;
-	struct sockaddr_in *laddr, *raddr;
-	char *username;
+    int sock;
+    struct sockaddr_in *laddr, *raddr;
+    char *username;
 {
-	long		krbopts = 0;	/* one-way authentication */
-	KTEXT_ST	clttkt;
-	char		instance[INST_SZ];
-	AUTH_DAT	auth_data;
-	Key_schedule	key_sched;
-	char		version[KRB_SENDAUTH_VLEN];
-	int		status;
-	
-	strcpy(instance, "*");	/* don't care, but arg gets expanded anyway */
-	status = krb_recvauth(krbopts,
-			      sock,
-			      &clttkt,
-			      PG_KRB_SRVNAM,
-			      instance,
-			      raddr,
-			      laddr,
-			      &auth_data,
-			      PG_KRB_SRVTAB,
-			      key_sched,
-			      version);
-	if (status != KSUCCESS) {
-		fprintf(stderr, "pg_krb4_recvauth: kerberos error: %s\n",
-			krb_err_txt[status]);
-		return(STATUS_ERROR);
-	}
-	if (strncmp(version, PG_KRB4_VERSION, KRB_SENDAUTH_VLEN)) {
-		fprintf(stderr, "pg_krb4_recvauth: protocol version != \"%s\"\n",
-			PG_KRB4_VERSION);
-		return(STATUS_ERROR);
-	}
-	if (username && *username &&
-	    /* XXX use smaller of ANAME_SZ and sizeof(NameData) */
-	    strncmp(username, auth_data.pname, sizeof(NameData))) {
-		fprintf(stderr, "pg_krb4_recvauth: name \"%-*s\" != \"%-*s\"\n",
-			sizeof(NameData), username,
-			sizeof(NameData), auth_data.pname);
-		return(STATUS_ERROR);
-	}
-	return(STATUS_OK);
+    long		krbopts = 0;	/* one-way authentication */
+    KTEXT_ST	clttkt;
+    char		instance[INST_SZ];
+    AUTH_DAT	auth_data;
+    Key_schedule	key_sched;
+    char		version[KRB_SENDAUTH_VLEN];
+    int		status;
+
+    strcpy(instance, "*");	/* don't care, but arg gets expanded anyway */
+    status = krb_recvauth(krbopts,
+			  sock,
+			  &clttkt,
+			  PG_KRB_SRVNAM,
+			  instance,
+			  raddr,
+			  laddr,
+			  &auth_data,
+			  PG_KRB_SRVTAB,
+			  key_sched,
+			  version);
+    if (status != KSUCCESS) {
+	fprintf(stderr, "pg_krb4_recvauth: kerberos error: %s\n",
+		krb_err_txt[status]);
+	return(STATUS_ERROR);
+    }
+    if (strncmp(version, PG_KRB4_VERSION, KRB_SENDAUTH_VLEN)) {
+	fprintf(stderr, "pg_krb4_recvauth: protocol version != \"%s\"\n",
+		PG_KRB4_VERSION);
+	return(STATUS_ERROR);
+    }
+    if (username && *username &&
+	/* XXX use smaller of ANAME_SZ and sizeof(NameData) */
+	strncmp(username, auth_data.pname, sizeof(NameData))) {
+	fprintf(stderr, "pg_krb4_recvauth: name \"%-*s\" != \"%-*s\"\n",
+		sizeof(NameData), username,
+		sizeof(NameData), auth_data.pname);
+	return(STATUS_ERROR);
+    }
+    return(STATUS_OK);
 }
 
 #endif /* !FRONTEND */
@@ -321,13 +321,13 @@ pg_krb4_recvauth(sock, laddr, raddr, username)
 static
 char *
 pg_an_to_ln(aname)
-	char *aname;
+    char *aname;
 {
-	char	*p;
+    char	*p;
 
-	if ((p = strchr(aname, '/')) || (p = strchr(aname, '@')))
-		*p = '\0';
-	return(aname);
+    if ((p = strchr(aname, '/')) || (p = strchr(aname, '@')))
+	*p = '\0';
+    return(aname);
 }
 
 #ifdef FRONTEND
@@ -344,33 +344,33 @@ static
 krb5_ccache
 pg_krb5_init()
 {
-	krb5_error_code		code;
-	char			*realm, *defname;
-	char			tktbuf[MAXPATHLEN];
-	static krb5_ccache	ccache = (krb5_ccache) NULL;
+    krb5_error_code		code;
+    char			*realm, *defname;
+    char			tktbuf[MAXPATHLEN];
+    static krb5_ccache	ccache = (krb5_ccache) NULL;
 
-	if (ccache)
-		return(ccache);
-
-	/*
-	 * If the user set PGREALM, then we use a ticket file with a special
-	 * name: <usual-ticket-file-name>@<PGREALM-value>
-	 */
-	if (!(defname = krb5_cc_default_name())) {
-		fprintf(stderr, "pg_krb5_init: krb5_cc_default_name failed\n");
-		return((krb5_ccache) NULL);
-	}
-	(void) strcpy(tktbuf, defname);
-	if (realm = getenv("PGREALM")) {
-		(void) strcat(tktbuf, "@");
-		(void) strcat(tktbuf, realm);
-	}
-	
-	if (code = krb5_cc_resolve(tktbuf, &ccache)) {
-		com_err("pg_krb5_init", code, "in krb5_cc_resolve");
-		return((krb5_ccache) NULL);
-	}
+    if (ccache)
 	return(ccache);
+
+    /*
+     * If the user set PGREALM, then we use a ticket file with a special
+     * name: <usual-ticket-file-name>@<PGREALM-value>
+     */
+    if (!(defname = krb5_cc_default_name())) {
+	fprintf(stderr, "pg_krb5_init: krb5_cc_default_name failed\n");
+	return((krb5_ccache) NULL);
+    }
+    (void) strcpy(tktbuf, defname);
+    if (realm = getenv("PGREALM")) {
+	(void) strcat(tktbuf, "@");
+	(void) strcat(tktbuf, realm);
+    }
+
+    if (code = krb5_cc_resolve(tktbuf, &ccache)) {
+	com_err("pg_krb5_init", code, "in krb5_cc_resolve");
+	return((krb5_ccache) NULL);
+    }
+    return(ccache);
 }
 
 /*
@@ -383,27 +383,27 @@ static
 char *
 pg_krb5_authname()
 {
-	krb5_ccache	ccache;
-	krb5_principal	principal;
-	krb5_error_code	code;
-	static char	*authname = (char *) NULL;
+    krb5_ccache	ccache;
+    krb5_principal	principal;
+    krb5_error_code	code;
+    static char	*authname = (char *) NULL;
 
-	if (authname)
-		return(authname);
+    if (authname)
+	return(authname);
 
-	ccache = pg_krb5_init();	/* don't free this */
-	
-	if (code = krb5_cc_get_principal(ccache, &principal)) {
-		com_err("pg_krb5_authname", code, "in krb5_cc_get_principal");
-		return((char *) NULL);
-	}
-	if (code = krb5_unparse_name(principal, &authname)) {
-		com_err("pg_krb5_authname", code, "in krb5_unparse_name");
-		krb5_free_principal(principal);
-		return((char *) NULL);
-	}
+    ccache = pg_krb5_init();	/* don't free this */
+
+    if (code = krb5_cc_get_principal(ccache, &principal)) {
+	com_err("pg_krb5_authname", code, "in krb5_cc_get_principal");
+	return((char *) NULL);
+    }
+    if (code = krb5_unparse_name(principal, &authname)) {
+	com_err("pg_krb5_authname", code, "in krb5_unparse_name");
 	krb5_free_principal(principal);
-	return(pg_an_to_ln(authname));
+	return((char *) NULL);
+    }
+    krb5_free_principal(principal);
+    return(pg_an_to_ln(authname));
 }
 
 /*
@@ -423,78 +423,78 @@ pg_krb5_authname()
  */
 static
 pg_krb5_sendauth(sock, laddr, raddr, hostname)
-	int sock;
-	struct sockaddr_in *laddr, *raddr;
-	char *hostname;
+    int sock;
+    struct sockaddr_in *laddr, *raddr;
+    char *hostname;
 {
-	char			servbuf[MAXHOSTNAMELEN + 1 +
+    char			servbuf[MAXHOSTNAMELEN + 1 +
 					sizeof(PG_KRB_SRVNAM)];
-	char			*hostp;
-	char			*realm;
-	krb5_error_code		code;
-	krb5_principal		client, server;
-	krb5_ccache		ccache;
-	krb5_error		*error = (krb5_error *) NULL;
+    char			*hostp;
+    char			*realm;
+    krb5_error_code		code;
+    krb5_principal		client, server;
+    krb5_ccache		ccache;
+    krb5_error		*error = (krb5_error *) NULL;
 
-	ccache = pg_krb5_init();	/* don't free this */
-	
-	/*
-	 * set up client -- this is easy, we can get it out of the ticket
-	 * file.
-	 */
-	if (code = krb5_cc_get_principal(ccache, &client)) {
-		com_err("pg_krb5_sendauth", code, "in krb5_cc_get_principal");
-		return(STATUS_ERROR);
-	}
-	
-	/*
-	 * set up server -- canonicalize as described above
-	 */
-	(void) strcpy(servbuf, PG_KRB_SRVNAM);
-	*(hostp = servbuf + (sizeof(PG_KRB_SRVNAM) - 1)) = '/';
-	if (hostname || *hostname) {
-		(void) strncpy(++hostp, hostname, MAXHOSTNAMELEN);
-	} else {
-		if (gethostname(++hostp, MAXHOSTNAMELEN) < 0)
-			(void) strcpy(hostp, "localhost");
-	}
-	if (hostp = strchr(hostp, '.'))
-		*hostp = '\0';
-	if (realm = getenv("PGREALM")) {
-		(void) strcat(servbuf, "@");
-		(void) strcat(servbuf, realm);
-	}
-	if (code = krb5_parse_name(servbuf, &server)) {
-		com_err("pg_krb5_sendauth", code, "in krb5_parse_name");
-		krb5_free_principal(client);
-		return(STATUS_ERROR);
-	}
-	
-	/*
-	 * The only thing we want back from krb5_sendauth is an error status
-	 * and any error messages.
-	 */
-	if (code = krb5_sendauth((krb5_pointer) &sock,
-				 PG_KRB5_VERSION,
-				 client,
-				 server,
-				 (krb5_flags) 0,
-				 (krb5_checksum *) NULL,
-				 (krb5_creds *) NULL,
-				 ccache,
-				 (krb5_int32 *) NULL,
-				 (krb5_keyblock **) NULL,
-				 &error,
-				 (krb5_ap_rep_enc_part **) NULL)) {
-		if ((code == KRB5_SENDAUTH_REJECTED) && error)
-			fprintf(stderr, "pg_krb5_sendauth: authentication rejected: \"%*s\"\n",
-				error->text.length, error->text.data);
-		else
-			com_err("pg_krb5_sendauth", code, "in krb5_sendauth");
-	}
+    ccache = pg_krb5_init();	/* don't free this */
+
+    /*
+     * set up client -- this is easy, we can get it out of the ticket
+     * file.
+     */
+    if (code = krb5_cc_get_principal(ccache, &client)) {
+	com_err("pg_krb5_sendauth", code, "in krb5_cc_get_principal");
+	return(STATUS_ERROR);
+    }
+
+    /*
+     * set up server -- canonicalize as described above
+     */
+    (void) strcpy(servbuf, PG_KRB_SRVNAM);
+    *(hostp = servbuf + (sizeof(PG_KRB_SRVNAM) - 1)) = '/';
+    if (hostname || *hostname) {
+	(void) strncpy(++hostp, hostname, MAXHOSTNAMELEN);
+    } else {
+	if (gethostname(++hostp, MAXHOSTNAMELEN) < 0)
+	    (void) strcpy(hostp, "localhost");
+    }
+    if (hostp = strchr(hostp, '.'))
+	*hostp = '\0';
+    if (realm = getenv("PGREALM")) {
+	(void) strcat(servbuf, "@");
+	(void) strcat(servbuf, realm);
+    }
+    if (code = krb5_parse_name(servbuf, &server)) {
+	com_err("pg_krb5_sendauth", code, "in krb5_parse_name");
 	krb5_free_principal(client);
-	krb5_free_principal(server);
-	return(code ? STATUS_ERROR : STATUS_OK);
+	return(STATUS_ERROR);
+    }
+
+    /*
+     * The only thing we want back from krb5_sendauth is an error status
+     * and any error messages.
+     */
+    if (code = krb5_sendauth((krb5_pointer) &sock,
+			     PG_KRB5_VERSION,
+			     client,
+			     server,
+			     (krb5_flags) 0,
+			     (krb5_checksum *) NULL,
+			     (krb5_creds *) NULL,
+			     ccache,
+			     (krb5_int32 *) NULL,
+			     (krb5_keyblock **) NULL,
+			     &error,
+			     (krb5_ap_rep_enc_part **) NULL)) {
+	if ((code == KRB5_SENDAUTH_REJECTED) && error)
+	    fprintf(stderr, "pg_krb5_sendauth: authentication rejected: \"%*s\"\n",
+		    error->text.length, error->text.data);
+	else
+	    com_err("pg_krb5_sendauth", code, "in krb5_sendauth");
+    }
+    krb5_free_principal(client);
+    krb5_free_principal(server);
+    return(code ? STATUS_ERROR : STATUS_OK);
 }
 
 #else /* !FRONTEND */
@@ -523,91 +523,91 @@ pg_krb5_sendauth(sock, laddr, raddr, hostname)
  */
 static
 pg_krb5_recvauth(sock, laddr, raddr, username)
-	int sock;
-	struct sockaddr_in *laddr, *raddr;
-	char *username;
+    int sock;
+    struct sockaddr_in *laddr, *raddr;
+    char *username;
 {
-	char			servbuf[MAXHOSTNAMELEN + 1 +
+    char			servbuf[MAXHOSTNAMELEN + 1 +
 					sizeof(PG_KRB_SRVNAM)];
-	char			*hostp, *kusername = (char *) NULL;
-	krb5_error_code		code;
-	krb5_principal		client, server;
-	krb5_address		sender_addr;
-	krb5_rdreq_key_proc	keyproc = (krb5_rdreq_key_proc) NULL;
-	krb5_pointer		keyprocarg = (krb5_pointer) NULL;
+    char			*hostp, *kusername = (char *) NULL;
+    krb5_error_code		code;
+    krb5_principal		client, server;
+    krb5_address		sender_addr;
+    krb5_rdreq_key_proc	keyproc = (krb5_rdreq_key_proc) NULL;
+    krb5_pointer		keyprocarg = (krb5_pointer) NULL;
 
-	/*
-	 * Set up server side -- since we have no ticket file to make this
-	 * easy, we construct our own name and parse it.  See note on
-	 * canonicalization above.
-	 */
-	(void) strcpy(servbuf, PG_KRB_SRVNAM);
-	*(hostp = servbuf + (sizeof(PG_KRB_SRVNAM) - 1)) = '/';
-	if (gethostname(++hostp, MAXHOSTNAMELEN) < 0)
-		(void) strcpy(hostp, "localhost");
-	if (hostp = strchr(hostp, '.'))
-		*hostp = '\0';
-	if (code = krb5_parse_name(servbuf, &server)) {
-		com_err("pg_krb5_recvauth", code, "in krb5_parse_name");
-		return(STATUS_ERROR);
-	}
-	
-	/*
-	 * krb5_sendauth needs this to verify the address in the client
-	 * authenticator.
-	 */
-	sender_addr.addrtype = raddr->sin_family;
-	sender_addr.length = sizeof(raddr->sin_addr);
-	sender_addr.contents = (krb5_octet *) &(raddr->sin_addr);
+    /*
+     * Set up server side -- since we have no ticket file to make this
+     * easy, we construct our own name and parse it.  See note on
+     * canonicalization above.
+     */
+    (void) strcpy(servbuf, PG_KRB_SRVNAM);
+    *(hostp = servbuf + (sizeof(PG_KRB_SRVNAM) - 1)) = '/';
+    if (gethostname(++hostp, MAXHOSTNAMELEN) < 0)
+	(void) strcpy(hostp, "localhost");
+    if (hostp = strchr(hostp, '.'))
+	*hostp = '\0';
+    if (code = krb5_parse_name(servbuf, &server)) {
+	com_err("pg_krb5_recvauth", code, "in krb5_parse_name");
+	return(STATUS_ERROR);
+    }
 
-	if (strcmp(PG_KRB_SRVTAB, "")) {
-		keyproc = krb5_kt_read_service_key;
-		keyprocarg = PG_KRB_SRVTAB;
-	}
+    /*
+     * krb5_sendauth needs this to verify the address in the client
+     * authenticator.
+     */
+    sender_addr.addrtype = raddr->sin_family;
+    sender_addr.length = sizeof(raddr->sin_addr);
+    sender_addr.contents = (krb5_octet *) &(raddr->sin_addr);
 
-	if (code = krb5_recvauth((krb5_pointer) &sock,
-				 PG_KRB5_VERSION,
-				 server,
-				 &sender_addr,
-				 (krb5_pointer) NULL,
-				 keyproc,
-				 keyprocarg,
-				 (char *) NULL,
-				 (krb5_int32 *) NULL,
-				 &client,
-				 (krb5_ticket **) NULL,
-				 (krb5_authenticator **) NULL)) {
-		com_err("pg_krb5_recvauth", code, "in krb5_recvauth");
-		krb5_free_principal(server);
-		return(STATUS_ERROR);
-	}
+    if (strcmp(PG_KRB_SRVTAB, "")) {
+	keyproc = krb5_kt_read_service_key;
+	keyprocarg = PG_KRB_SRVTAB;
+    }
+
+    if (code = krb5_recvauth((krb5_pointer) &sock,
+			     PG_KRB5_VERSION,
+			     server,
+			     &sender_addr,
+			     (krb5_pointer) NULL,
+			     keyproc,
+			     keyprocarg,
+			     (char *) NULL,
+			     (krb5_int32 *) NULL,
+			     &client,
+			     (krb5_ticket **) NULL,
+			     (krb5_authenticator **) NULL)) {
+	com_err("pg_krb5_recvauth", code, "in krb5_recvauth");
 	krb5_free_principal(server);
+	return(STATUS_ERROR);
+    }
+    krb5_free_principal(server);
 
-	/*
-	 * The "client" structure comes out of the ticket and is therefore
-	 * authenticated.  Use it to check the username obtained from the
-	 * postmaster startup packet.
-	 */
-	if ((code = krb5_unparse_name(client, &kusername))) {
-		com_err("pg_krb5_recvauth", code, "in krb5_unparse_name");
-		krb5_free_principal(client);
-		return(STATUS_ERROR);
-	}
+    /*
+     * The "client" structure comes out of the ticket and is therefore
+     * authenticated.  Use it to check the username obtained from the
+     * postmaster startup packet.
+     */
+    if ((code = krb5_unparse_name(client, &kusername))) {
+	com_err("pg_krb5_recvauth", code, "in krb5_unparse_name");
 	krb5_free_principal(client);
-	if (!kusername) {
-		fprintf(stderr, "pg_krb5_recvauth: could not decode username\n");
-		return(STATUS_ERROR);
-	}
-	kusername = pg_an_to_ln(kusername);
-	if (username && strncmp(username, kusername, sizeof(NameData))) {
-		fprintf(stderr, "pg_krb5_recvauth: name \"%-*s\" != \"%-*s\"\n",
-			sizeof(NameData), username,
-			sizeof(NameData), kusername);
-		free(kusername);
-		return(STATUS_ERROR);
-	}
+	return(STATUS_ERROR);
+    }
+    krb5_free_principal(client);
+    if (!kusername) {
+	fprintf(stderr, "pg_krb5_recvauth: could not decode username\n");
+	return(STATUS_ERROR);
+    }
+    kusername = pg_an_to_ln(kusername);
+    if (username && strncmp(username, kusername, sizeof(NameData))) {
+	fprintf(stderr, "pg_krb5_recvauth: name \"%-*s\" != \"%-*s\"\n",
+		sizeof(NameData), username,
+		sizeof(NameData), kusername);
 	free(kusername);
-	return(STATUS_OK);
+	return(STATUS_ERROR);
+    }
+    free(kusername);
+    return(STATUS_OK);
 }
 
 #endif /* !FRONTEND */
@@ -625,33 +625,33 @@ pg_krb5_recvauth(sock, laddr, raddr, username)
  * fe_sendauth -- client demux routine for outgoing authentication information
  */
 fe_sendauth(msgtype, port, hostname)
-	MsgType msgtype;
-	Port *port;
-	char *hostname;
+    MsgType msgtype;
+    Port *port;
+    char *hostname;
 {
-	switch (msgtype) {
+    switch (msgtype) {
 #ifdef KRB4
-	case STARTUP_KRB4_MSG:
-		if (pg_krb4_sendauth(port->sock, &port->laddr, &port->raddr,
-				     hostname) != STATUS_OK) {
-			fprintf(stderr, "fe_sendauth: krb4 authentication failed\n");
-			return(STATUS_ERROR);
-		}
-		break;
+    case STARTUP_KRB4_MSG:
+	if (pg_krb4_sendauth(port->sock, &port->laddr, &port->raddr,
+			     hostname) != STATUS_OK) {
+	    fprintf(stderr, "fe_sendauth: krb4 authentication failed\n");
+	    return(STATUS_ERROR);
+	}
+	break;
 #endif
 #ifdef KRB5
-	case STARTUP_KRB5_MSG:
-		if (pg_krb5_sendauth(port->sock, &port->laddr, &port->raddr,
-				     hostname) != STATUS_OK) {
-			fprintf(stderr, "fe_sendauth: krb5 authentication failed\n");
-			return(STATUS_ERROR);
-		}
-		break;
-#endif
-	case STARTUP_MSG:
-		break;
+    case STARTUP_KRB5_MSG:
+	if (pg_krb5_sendauth(port->sock, &port->laddr, &port->raddr,
+			     hostname) != STATUS_OK) {
+	    fprintf(stderr, "fe_sendauth: krb5 authentication failed\n");
+	    return(STATUS_ERROR);
 	}
-	return(STATUS_OK);
+	break;
+#endif
+    case STARTUP_MSG:
+	break;
+    }
+    return(STATUS_OK);
 }
 
 /*
@@ -665,27 +665,27 @@ static pg_authsvc = -1;
 
 void
 fe_setauthsvc(name)
-	char *name;
+    char *name;
 {
-	int i;
-	
-	for (i = 0; i < n_authsvcs; ++i)
-		if (!strcmp(name, authsvcs[i].name)) {
-			pg_authsvc = i;
-			break;
-		}
-	if (i == n_authsvcs)
-		fprintf(stderr, "fe_setauthsvc: invalid name: %s, ignoring...\n",
-			name);
-	return;
+    int i;
+
+    for (i = 0; i < n_authsvcs; ++i)
+	if (!strcmp(name, authsvcs[i].name)) {
+	    pg_authsvc = i;
+	    break;
+	}
+    if (i == n_authsvcs)
+	fprintf(stderr, "fe_setauthsvc: invalid name: %s, ignoring...\n",
+		name);
+    return;
 }
 
 MsgType
 fe_getauthsvc()
 {
-	if (pg_authsvc < 0 || pg_authsvc >= n_authsvcs)
-		fe_setauthsvc(DEFAULT_CLIENT_AUTHSVC);
-	return(authsvcs[pg_authsvc].msgtype);
+    if (pg_authsvc < 0 || pg_authsvc >= n_authsvcs)
+	fe_setauthsvc(DEFAULT_CLIENT_AUTHSVC);
+    return(authsvcs[pg_authsvc].msgtype);
 }
 
 /*
@@ -695,44 +695,44 @@ fe_getauthsvc()
 char *
 fe_getauthname()
 {
-	char *name = (char *) NULL;
-	MsgType authsvc;
-	
-	authsvc = fe_getauthsvc();
-	switch ((int) authsvc) {
+    char *name = (char *) NULL;
+    MsgType authsvc;
+
+    authsvc = fe_getauthsvc();
+    switch ((int) authsvc) {
 #ifdef KRB4
-	case STARTUP_KRB4_MSG:
-		name = pg_krb4_authname();
-		break;
+    case STARTUP_KRB4_MSG:
+	name = pg_krb4_authname();
+	break;
 #endif
 #ifdef KRB5
-	case STARTUP_KRB5_MSG:
-		name = pg_krb5_authname();
-		break;
+    case STARTUP_KRB5_MSG:
+	name = pg_krb5_authname();
+	break;
 #endif
-	case STARTUP_MSG:
+    case STARTUP_MSG:
 #if 0
-		/*
-		 * mao thinks of this as a convenience.
-		 * marc thinks it's a crock.  whatever...
-		 */
-		name = getenv("USER");
+	/*
+	 * mao thinks of this as a convenience.
+	 * marc thinks it's a crock.  whatever...
+	 */
+	name = getenv("USER");
 #endif
-		{
-		    struct passwd *pw = getpwuid(getuid());
-		    if (pw &&
-			pw->pw_name &&
-			(name = (char *) malloc(strlen(pw->pw_name) + 1))) {
-			(void) strcpy(name, pw->pw_name);
-		    }
-		}
-		break;
-	default:
-		fprintf(stderr, "fe_getauthname: invalid authentication system: %d\n",
-			authsvc);
-		break;
+	{
+	    struct passwd *pw = getpwuid(getuid());
+	    if (pw &&
+		pw->pw_name &&
+		(name = (char *) malloc(strlen(pw->pw_name) + 1))) {
+		(void) strcpy(name, pw->pw_name);
+	    }
 	}
-	return(name);
+	break;
+    default:
+	fprintf(stderr, "fe_getauthname: invalid authentication system: %d\n",
+		authsvc);
+	break;
+    }
+    return(name);
 }
 
 #else /* !FRONTEND */
@@ -746,58 +746,58 @@ fe_getauthname()
  * be_recvauth -- server demux routine for incoming authentication information
  */
 be_recvauth(msgtype, port, username)
-	MsgType msgtype;
-	Port *port;
-	char *username;
+    MsgType msgtype;
+    Port *port;
+    char *username;
 {
-	if (!username) {
-		fprintf(stderr, "be_recvauth: no user name passed\n");
-		return(STATUS_ERROR);
-	}
-	if (!port) {
-		fprintf(stderr, "be_recvauth: no port structure passed\n");
-		return(STATUS_ERROR);
-	}
-			
-	switch (msgtype) {
+    if (!username) {
+	fprintf(stderr, "be_recvauth: no user name passed\n");
+	return(STATUS_ERROR);
+    }
+    if (!port) {
+	fprintf(stderr, "be_recvauth: no port structure passed\n");
+	return(STATUS_ERROR);
+    }
+
+    switch (msgtype) {
 #ifdef KRB4
-	case STARTUP_KRB4_MSG:
-		if (!be_getauthsvc(msgtype)) {
-			fprintf(stderr, "be_recvauth: krb4 authentication disallowed\n");
-			return(STATUS_ERROR);
-		}
-		if (pg_krb4_recvauth(port->sock, &port->laddr, &port->raddr,
-				     username) != STATUS_OK) {
-			fprintf(stderr, "be_recvauth: krb4 authentication failed\n");
-			return(STATUS_ERROR);
-		}
-		break;
+    case STARTUP_KRB4_MSG:
+	if (!be_getauthsvc(msgtype)) {
+	    fprintf(stderr, "be_recvauth: krb4 authentication disallowed\n");
+	    return(STATUS_ERROR);
+	}
+	if (pg_krb4_recvauth(port->sock, &port->laddr, &port->raddr,
+			     username) != STATUS_OK) {
+	    fprintf(stderr, "be_recvauth: krb4 authentication failed\n");
+	    return(STATUS_ERROR);
+	}
+	break;
 #endif
 #ifdef KRB5
-	case STARTUP_KRB5_MSG:
-		if (!be_getauthsvc(msgtype)) {
-			fprintf(stderr, "be_recvauth: krb5 authentication disallowed\n");
-			return(STATUS_ERROR);
-		}
-		if (pg_krb5_recvauth(port->sock, &port->laddr, &port->raddr,
-				     username) != STATUS_OK) {
-			fprintf(stderr, "be_recvauth: krb5 authentication failed\n");
-			return(STATUS_ERROR);
-		}
-		break;
-#endif
-	case STARTUP_MSG:
-		if (!be_getauthsvc(msgtype)) {
-			fprintf(stderr, "be_recvauth: unauthenticated connections disallowed\n");
-			return(STATUS_ERROR);
-		}
-		break;
-	default:
-		fprintf(stderr, "be_recvauth: unrecognized message type: %d\n",
-			msgtype);
-		return(STATUS_ERROR);
+    case STARTUP_KRB5_MSG:
+	if (!be_getauthsvc(msgtype)) {
+	    fprintf(stderr, "be_recvauth: krb5 authentication disallowed\n");
+	    return(STATUS_ERROR);
 	}
-	return(STATUS_OK);
+	if (pg_krb5_recvauth(port->sock, &port->laddr, &port->raddr,
+			     username) != STATUS_OK) {
+	    fprintf(stderr, "be_recvauth: krb5 authentication failed\n");
+	    return(STATUS_ERROR);
+	}
+	break;
+#endif
+    case STARTUP_MSG:
+	if (!be_getauthsvc(msgtype)) {
+	    fprintf(stderr, "be_recvauth: unauthenticated connections disallowed\n");
+	    return(STATUS_ERROR);
+	}
+	break;
+    default:
+	fprintf(stderr, "be_recvauth: unrecognized message type: %d\n",
+		msgtype);
+	return(STATUS_ERROR);
+    }
+    return(STATUS_OK);
 }
 
 /*
@@ -815,41 +815,41 @@ be_recvauth(msgtype, port, username)
  */
 void
 be_setauthsvc(name)
-	char *name;
+    char *name;
 {
-	int i, j;
-	int turnon = 1;
+    int i, j;
+    int turnon = 1;
 
-	if (!name)
-		return;
-	if (!strncmp("no", name, 2)) {
-		turnon = 0;
-		name += 2;
-	}
-	if (name[0] == '\0')
-		return;
-	for (i = 0; i < n_authsvcs; ++i)
-		if (!strcmp(name, authsvcs[i].name)) {
-			for (j = 0; j < n_authsvcs; ++j)
-				if (authsvcs[j].msgtype == authsvcs[i].msgtype)
-					authsvcs[j].allowed = turnon;
-			break;
-		}
-	if (i == n_authsvcs)
-		fprintf(stderr, "be_setauthsvc: invalid name %s, ignoring...\n",
-			name);
+    if (!name)
 	return;
+    if (!strncmp("no", name, 2)) {
+	turnon = 0;
+	name += 2;
+    }
+    if (name[0] == '\0')
+	return;
+    for (i = 0; i < n_authsvcs; ++i)
+	if (!strcmp(name, authsvcs[i].name)) {
+	    for (j = 0; j < n_authsvcs; ++j)
+		if (authsvcs[j].msgtype == authsvcs[i].msgtype)
+		    authsvcs[j].allowed = turnon;
+	    break;
+	}
+    if (i == n_authsvcs)
+	fprintf(stderr, "be_setauthsvc: invalid name %s, ignoring...\n",
+		name);
+    return;
 }
 
 int
 be_getauthsvc(msgtype)
-	MsgType msgtype;
+    MsgType msgtype;
 {
-	int i;
+    int i;
 
-	for (i = 0; i < n_authsvcs; ++i)
-		if (msgtype == authsvcs[i].msgtype)
-			return(authsvcs[i].allowed);
-	return(0);
+    for (i = 0; i < n_authsvcs; ++i)
+	if (msgtype == authsvcs[i].msgtype)
+	    return(authsvcs[i].allowed);
+    return(0);
 }
 #endif /* !FRONTEND */
