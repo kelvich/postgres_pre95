@@ -31,11 +31,18 @@
 #include "nodes/primnodes.h"
 #include "nodes/relation.h"
 #include "planner/keys.h"
+#include "planner/clauses.h"
 #include "nodes/mnodes.h"
 #include "catalog/pg_language.h"
 #include "executor/executor.h"
+
+#include "access/heapam.h"
+
 #include "utils/memutils.h"
+#include "utils/palloc.h"
+
 RcsId("$Header$");
+
 /* ----------------
  *	externs and constants
  * ----------------
@@ -324,7 +331,7 @@ ExecEvalVar(variable, econtext, isNull)
      * ----------------
      */
     if (*isNull)
-	return NULL;
+	return (Datum) NULL;
     
     /* ----------------
      *   get length and type information..
@@ -506,6 +513,7 @@ ExecEvalParam(expression, econtext, isNull)
  * ----------------
  */
 
+char *
 GetAttributeByNum(slot, attrno, isNull)
     TupleTableSlot slot;
     AttributeNumber attrno;
@@ -525,7 +533,7 @@ GetAttributeByNum(slot, attrno, isNull)
     if (TupIsNull((Pointer)slot))
     {
     	*isNull = true;
-	return;
+	return (char *) NULL;
     }
 
     retval = (Datum)
@@ -535,12 +543,12 @@ GetAttributeByNum(slot, attrno, isNull)
 		     ExecSlotDescriptor(slot),
 		     isNull);
     if (*isNull)
-	return NULL;
-    else
-	return retval;
+	return (char *) NULL;
+    return (char *) retval;
 }
 
 /* XXX char16 name for catalogs */
+char *
 att_by_num(slot, attrno, isNull)
     TupleTableSlot slot;
     AttributeNumber attrno;
@@ -549,6 +557,7 @@ att_by_num(slot, attrno, isNull)
 	return(GetAttributeByNum(slot, attrno, isNull));
 }
 
+char *
 GetAttributeByName(slot, attname, isNull)
     TupleTableSlot slot;
     Name    attname;
@@ -571,7 +580,7 @@ GetAttributeByName(slot, attname, isNull)
     if (TupIsNull((Pointer)slot))
     {
     	*isNull = true;
-	return;
+	return (char *) NULL;
     }
 
     tupdesc = ExecSlotDescriptor(slot);
@@ -590,9 +599,7 @@ GetAttributeByName(slot, attname, isNull)
 	 * think of a reasonable way to do this and it is getting
 	 * late. I apologize to future post-boys and post-girls -mer
 	 */
-	if (strncmp(attname,
-		    &(tupdesc->data[i]->attname),
-		    sizeof(NameData)) == 0)
+	if (NameIsEqual(attname, &(tupdesc->data[i]->attname)))
 	{
 	    attrno = tupdesc->data[i]->attnum;
 	    break;
@@ -610,12 +617,12 @@ GetAttributeByName(slot, attname, isNull)
 		     tupdesc,
 		     isNull);
     if (*isNull)
-	return NULL;
-    else
-	return retval;
+	return (char *) NULL;
+    return (char *) retval;
 }
 
 /* XXX char16 name for catalogs */
+char *
 att_by_name(slot, attname, isNull)
     TupleTableSlot slot;
     Name    attname;
@@ -757,9 +764,10 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
 	 funcisset = true;
 	 if (fcache->setArg) {
 	      argv[0] = 0;
-	      set_funcid((Func)node, (ObjectId)fcache->setArg);
+	      set_funcid((Func) node, 
+			 (ObjectId) PointerGetDatum(fcache->setArg));
 	 } else {
-	      set_funcid((Func)node, argv[0]);
+	      set_funcid((Func)node, (ObjectId) argv[0]);
 	      set_fcache(node, argv[0], LispNil,econtext);
 	      fcache = get_func_fcache((Func)node);
 	      fcache->setArg = (char*)argv[0];
@@ -776,7 +784,7 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
 	Datum result;
 
 	Assert(funcNode);
-	result = postquel_function (funcNode, argv, isNull, isDone);
+	result = postquel_function (funcNode, (char **) argv, isNull, isDone);
 	/*
 	 * finagle the situation where we are iterating through all results
 	 * in a nested dot function (whose argument function returns a set
@@ -796,10 +804,9 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
 	    }
 	    else
 		result = postquel_function(funcNode,
-					   argv,
+					   (char **) argv,
 					   isNull,
-					   isDone,
-					   &argDone);
+					   isDone);
 	}
 	if (funcisset) {
 	     /* reset the funcid so that next call to this routine will
@@ -827,7 +834,7 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
 	    if (fcache->nullVect[i] == true) *isNull = true;
 
 	return((Datum) fmgr_c(fcache->func, fcache->foid, fcache->nargs,
-			      argv, isNull));
+			      (FmgrValues *) argv, isNull));
     }
 }
 
