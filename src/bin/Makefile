@@ -5,8 +5,8 @@ SUBDIR=  monitor pagedoc pg_id pg_ufp pg_version shmemdoc unfsd unfsmntd
 #
 # Shell scripts
 #
-SUBDIR+= createdb createuser destroydb destroyuser initdb vacuum ipcclean \
-	pg_copytree
+SUBDIR+= cleardbdir createdb createuser destroydb destroyuser \
+	initdb newbki vacuum ipcclean pg_copytree
 #
 # Subsystems
 #
