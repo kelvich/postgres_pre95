@@ -669,7 +669,7 @@ attributeValuesCreate ARGS((
 extern
 void
 attributeValuesFree ARGS((
-    AttributeValues a;
+    AttributeValues a
 ));
 
 /*--------------------------------------------------------------------
