@@ -160,18 +160,14 @@ ExecUnique(node)
     
     /* ----------------
      *	we have a new tuple different from the previous saved tuple
-     *  so we save it in the saved tuple slot.  Also bump the refcnt
-     *  for the slot's buffer.
+     *  so we save it in the saved tuple slot.  We copy the tuple
+     *  so we don't increment the buffer ref count.
      * ----------------
      */
-    shouldFree = ExecSetSlotPolicy((Pointer) slot, false); 
-    
-    ExecStoreTuple(ExecFetchTuple((Pointer) slot),
+    ExecStoreTuple((Pointer)heap_copysimple(ExecFetchTuple((Pointer) slot)),
 		   (Pointer) resultTupleSlot,
 		   ExecSlotBuffer((Pointer) slot),
-		   shouldFree);
-    
-    ExecIncrSlotBufferRefcnt((Pointer) resultTupleSlot);
+		   true);
     
     return
 	slot;
