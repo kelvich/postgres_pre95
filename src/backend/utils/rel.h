@@ -63,11 +63,7 @@ typedef char	ArchiveMode;
  * Note:
  *	Assumes relation descriptor is valid.
  */
-extern
-File		/* XXX SystemPort of "os.h" */
-RelationGetSystemPort ARGS((
-	Relation	relation
-));
+#define RelationGetSystemPort(relation) ((relation)->rd_fd)
 
 /*
  * RelationHasReferenceCountZero --
@@ -76,42 +72,26 @@ RelationGetSystemPort ARGS((
  * Note:
  *	Assumes relation descriptor is valid.
  */
-extern
-bool
-RelationHasReferenceCountZero ARGS((
-	Relation	relation
-));
+#define RelationHasReferenceCountZero(relation) \
+	((bool)((relation)->rd_refcnt == 0))
 
 /*
  * RelationSetReferenceCount --
  *	Sets relation reference count.
  */
-extern
-void
-RelationSetReferenceCount ARGS((
-	Relation	relation,
-	Count		count
-));
+#define RelationSetReferenceCount(relation,count) ((relation)->rd_refcnt = count)
 
 /*
  * RelationIncrementReferenceCount --
  *	Increments relation reference count.
  */
-extern
-void
-RelationIncrementReferenceCount ARGS((
-	Relation	relation
-));
+#define RelationIncrementReferenceCount(relation) ((relation)->rd_refcnt += 1);
 
 /*
  * RelationDecrementReferenceCount --
  *	Decrements relation reference count.
  */
-extern
-void
-RelationDecrementReferenceCount ARGS((
-	Relation	relation
-));
+#define RelationDecrementReferenceCount(relation) ((relation)->rd_refcnt -= 1)
 
 /*
  * RelationGetAccessMethodTupleForm --
@@ -120,11 +100,7 @@ RelationDecrementReferenceCount ARGS((
  * Note:
  *	Assumes relation descriptor is valid.
  */
-extern
-AccessMethodTupleForm
-RelationGetAccessMethodTupleForm ARGS((
-	Relation	relation
-));
+#define RelationGetAccessMethodTupleForm(relation) ((relation)->rd_am)
 
 /*
  * RelationGetRelationTupleForm --
@@ -133,11 +109,7 @@ RelationGetAccessMethodTupleForm ARGS((
  * Note:
  *	Assumes relation descriptor is valid.
  */
-extern
-RelationTupleForm
-RelationGetRelationTupleForm ARGS((
-	Relation	relation
-));
+#define RelationGetRelationTupleForm(relation) ((relation)->rd_rel)
 
 /*
  * RelationGetTupleDescriptor --
@@ -146,11 +118,37 @@ RelationGetRelationTupleForm ARGS((
  * Note:
  *	Assumes relation descriptor is valid.
  */
-extern
-TupleDescriptor
-RelationGetTupleDescriptor ARGS((
-	Relation	relation
-));
+#define RelationGetTupleDescriptor(relation) (&(relation)->rd_att)
+
+/* 
+ * RelationGetRelationId --
+ *
+ *  returns the object id of the relation
+ *
+ */
+#define RelationGetRelationId(relation) ((relation)->rd_id)
+
+/*
+ * RelationGetFile --
+ *
+ *    Returns the open File decscriptor
+ */
+#define RelationGetFile(relation) ((relation)->rd_fd)
+
+
+/*
+ * RelationGetRelationName --
+ *
+ *    Returns a Relation Name
+ */
+#define RelationGetRelationName(relation) (&(relation)->rd_rel->relname)
+
+/*
+ * RelationGetRelationName --
+ *
+ *    Returns a the number of attributes.
+ */
+#define RelationGetNumberOfAttributes(relation) ((relation)->rd_rel->relnatts)
 
 /*
  * RelationGetIndexStrategy --
@@ -181,50 +179,6 @@ RelationSetIndexSupport ARGS((
 	Relation	relation,
 	IndexStrategy	strategy,
 	RegProcedure	*support
-));
-
-/* 
- * RelationGetRelationId --
- *
- *  returns the object id of the relation
- *
- */
-
-extern
-ObjectId
-RelationGetRelationId ARGS((
-	Relation	relation
-));
-
-/*
- * RelationGetFile --
- *
- *    Returns the open File decscriptor
- */
-
-extern
-File
-RelationGetFile ARGS((
-	Relation	relation
-));
-
-
-/*
- * RelationGetRelationName --
- *
- *    Returns a Relation Name
- */
-
-extern
-Name
-RelationGetRelationName ARGS((
-	Relation	relation
-));
-
-extern
-AttributeNumber
-RelationGetNumberOfAttributes ARGS((
-	Relation relation
 ));
 
 #endif	/* !defined(RelIncluded) */
