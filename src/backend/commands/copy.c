@@ -17,6 +17,7 @@
 #include "utils/rel.h"
 #include "utils/log.h"
 #include "tmp/daemon.h"
+#include "utils/dynamic_loader.h"
 
 /*
  * New copy code.
