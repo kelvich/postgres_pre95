@@ -17,6 +17,7 @@
  */
 #include <signal.h>
 #include <setjmp.h>
+#include <stdio.h>
 
 #include "tmp/postgres.h"
 #include "parser/parsetree.h"
@@ -46,8 +47,6 @@
 
 extern int on_exitpg();
 extern void BufferManagerFlush();
-
-/* #define TIMINGS */		/* show resource usage stats after queries */
 
 /* ----------------
  *	global variables
@@ -613,6 +612,7 @@ PostgresMain(argc, argv)
     int			flagQ;
     int			flagM;
     int			flagS;
+    int			ShowStats;
     int			flagE;
     int			flag;
 
@@ -630,7 +630,7 @@ PostgresMain(argc, argv)
     char	*getenv();
     char	parser_input[MAX_PARSE_BUFFER];
     int		empty_buffer = 0;	
-    
+
     /* ----------------
      * 	register signal handlers.
      * ----------------
@@ -645,18 +645,19 @@ PostgresMain(argc, argv)
      * ----------------
      */
     numslaves = 0;
-    flagC = flagQ = flagM = flagS = flagE = 0;
+    flagC = flagQ = flagM = flagS = ShowStats = flagE = 0;
     
-    while ((flag = getopt(argc, argv, "CQONM:dnpP:B:b:SE")) != EOF)
+    while ((flag = getopt(argc, argv, "B:b:CdEMNnOP:pQSt")) != EOF)
+	
       switch (flag) {
 	  
-      case 'd':
-	  /* -debug mode */
-	  /* DebugMode = true;  */
-	  flagQ = 0;
-	  DebugPrintPlan = true;
-	  DebugPrintParse = true;
-	  DebugPrintRewrittenParsetree = true;
+      case 'b':
+      case 'B':
+	  /* ----------------
+	   *	specify the size of buffer pool
+	   * ----------------
+	   */
+	  NBuffers = atoi(optarg);
 	  break;
 	  
       case 'C':
@@ -667,26 +668,23 @@ PostgresMain(argc, argv)
 	  flagC = 1;
 	  break;
 	  
-      case 'Q':
-	  /* ----------------
-	   *	Q - set Quiet mode (reduce debugging output)
-	   * ----------------
-	   */
-	  flagQ = 1;
+      case 'd':
+	  /* -debug mode */
+	  /* DebugMode = true;  */
+	  flagQ = 0;
+	  DebugPrintPlan = true;
+	  DebugPrintParse = true;
+	  DebugPrintRewrittenParsetree = true;
 	  break;
 	  
-      case 'O':
+      case 'E':
 	  /* ----------------
-	   *	O - override transaction system.  This used
-	   *	    to be used to set the AMI_OVERRIDE flag for
-	   *	    creation of initial system relations at
-	   *	    bootstrap time.  I think MikeH changed its
-	   *	    meaning and am not sure it works now.. -cim 5/12/90
+	   *	E - echo the query the user entered
 	   * ----------------
 	   */
-	  override = true;
+	  flagE = 1;
 	  break;
-	  
+	  	  
       case 'M':
 	  /* ----------------
 	   *	M # - process queries in parallel.  The system
@@ -702,33 +700,6 @@ PostgresMain(argc, argv)
 	  } else
 	      errs += 1;
 	  flagM = 1;
-	  break;
-	  
-      case 'p':	/* started by postmaster */
-	  /* ----------------
-	   *	p - special flag passed if backend was forked
-	   *	    by a postmaster.
-	   * ----------------
-	   */
-	  IsUnderPostmaster = true;
-	  
-	  break;
-	  
-      case 'P':
-	  /* ----------------
-	   *	??? -cim 5/12/90
-	   * ----------------
-	   */
-          Portfd = atoi(optarg);
-	  break;
-	  
-      case 'b':
-      case 'B':
-	  /* ----------------
-	   *	specify the size of buffer pool
-	   * ----------------
-	   */
-	  NBuffers = atoi(optarg);
 	  break;
 	  
       case 'n': /* do nothing for now - no debug mode */
@@ -747,6 +718,46 @@ PostgresMain(argc, argv)
 	  UseNewLine = 0;
 	  break;
 	  
+      case 'O':
+	  /* ----------------
+	   *	O - override transaction system.  This used
+	   *	    to be used to set the AMI_OVERRIDE flag for
+	   *	    creation of initial system relations at
+	   *	    bootstrap time.  I think MikeH changed its
+	   *	    meaning and am not sure it works now.. -cim 5/12/90
+	   * ----------------
+	   */
+	  override = true;
+	  break;
+	  
+      case 'p':	/* started by postmaster */
+	  /* ----------------
+	   *	p - special flag passed if backend was forked
+	   *	    by a postmaster.
+	   * ----------------
+	   */
+	  IsUnderPostmaster = true;
+	  
+	  break;
+	  
+      case 'P':
+	  /* ----------------
+	   *	Use the passed file descriptor number as the port
+	   *    on which to communicate with the user.  This is ONLY
+	   *    useful for debugging when fired up by the postmaster.
+	   * ----------------
+	   */
+          Portfd = atoi(optarg);
+	  break;
+	  
+      case 'Q':
+	  /* ----------------
+	   *	Q - set Quiet mode (reduce debugging output)
+	   * ----------------
+	   */
+	  flagQ = 1;
+	  break;
+
       case 'S':
 	  /* ----------------
 	   *	S - assume stable main memory
@@ -756,17 +767,17 @@ PostgresMain(argc, argv)
 	  flagS = 1;
 	  SetTransactionFlushEnabled(false);
 	  break;
-
-      case 'E':
+	  
+      case 's':
 	  /* ----------------
-	   *	E - echo the query the user entered
+	   *    t - report usage statistics (timings) after each query
 	   * ----------------
 	   */
-	  flagE = 1;
+	  ShowStats = 1;
 	  break;
-	  	  
+
       default:
-	  errs += 1;
+	  errs++;
       }
 
     if (errs || argc - optind > 1) {
@@ -787,7 +798,7 @@ PostgresMain(argc, argv)
 	exitpg(1);
     }
 
-	get_pathname(argv);
+    get_pathname(argv);
 
     Noversion = flagC;
     Quiet = flagQ;
@@ -804,6 +815,7 @@ PostgresMain(argc, argv)
 	printf("\toverride  =    %c\n", override  ? 't' : 'f');
 	printf("\tstable    =    %c\n", flagS     ? 't' : 'f');
 	printf("\tparallel  =    %c\n", flagM     ? 't' : 'f');
+	printf("\ttimings   =	 %c\n", ShowStats ? 't' : 'f');
 	if (flagM)
 	    printf("\t# slaves  =    %d\n", numslaves);
 	
@@ -970,13 +982,13 @@ PostgresMain(argc, argv)
 		 *  otherwise, process the input string.
 		 * ----------------
 		 */
-#ifdef TIMINGS
-		ResetUsage();
-#endif /* TIMINGS */
+		if (ShowStats)
+		    ResetUsage();
+
 		pg_eval(parser_input);
-#ifdef TIMINGS
-		ShowUsage();
-#endif /* TIMINGS */
+
+		if (ShowStats)
+		    ShowUsage();
 	    }
 	    break;
 	    
@@ -1005,7 +1017,6 @@ PostgresMain(argc, argv)
     }
 }
 
-#ifdef TIMINGS
 
 /*
  *  should #include <sys/time.h>, but naturally postgres has a bad decl
@@ -1062,15 +1073,14 @@ ShowUsage()
 		user.tv_sec, user.tv_usec, sys.tv_sec, sys.tv_usec);
 	printf("\t%d/%d [%d/%d] filesystem blocks in/out\n",
 		r.ru_inblock - Save_r.ru_inblock,
-#ifdef (sun||sequent)
+#ifdef sun
 		r.ru_outblock - Save_r.ru_outblock,
 		r.ru_inblock, r.ru_outblock);
-#endif
-#ifdef ultrix
+#else /* sun */
 		/* they only drink coffee at dec */
 		r.ru_oublock - Save_r.ru_oublock,
 		r.ru_inblock, r.ru_oublock);
-#endif
+#endif /* sun */
 	printf("\t%d/%d [%d/%d] page faults/reclaims, %d [%d] swaps\n",
 		r.ru_majflt - Save_r.ru_majflt,
 		r.ru_minflt - Save_r.ru_minflt,
@@ -1088,12 +1098,9 @@ ShowUsage()
 		r.ru_nivcsw - Save_r.ru_nivcsw,
 		r.ru_nvcsw, r.ru_nivcsw);
 }
-#endif /* TIMINGS */
 
 get_pathname(argv)
-
-char **argv;
-
+	char **argv;
 {
 	char buffer[256];
 
