@@ -43,7 +43,6 @@ TupleDescriptor innerTupleDesc;
     RuleLock lock;
     LispValue qual;
     AttributeNumber innerAttrNo, outerAttrNo;
-    Name innerAttrName;
     ObjectId operator, type;
     Size len;
     bool byval;
@@ -57,11 +56,6 @@ TupleDescriptor innerTupleDesc;
 
     operator = get_jri_operator(ruleInfo);
     innerAttrNo = get_jri_inattrno(ruleInfo);
-    innerAttrName = (Name) palloc(sizeof(NameData));
-    if (innerAttrName == NULL) {
-	elog(WARN, "prs2MakeStubForInnerRelation: out of memory");
-    }
-    strcpy((char *)innerAttrName, innerTupleDesc->data[innerAttrNo]->attname);
     outerAttrNo = get_jri_outattrno(ruleInfo);
     ruleId = get_jri_ruleid(ruleInfo);
     stubId = get_jri_stubid(ruleInfo);
