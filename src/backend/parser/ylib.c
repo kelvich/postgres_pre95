@@ -436,7 +436,7 @@ List typename;
 	pfree(s);
 
 /* make a list and return */
-    return ( lispCons (lispInteger(typelem), list));
+    return ( lispCons (lispInteger(type_tuple->t_oid), list));
 }
  
 #define ADD_TO_RT(rt_entry)     p_rtable = nappend1(p_rtable,rt_entry) 
