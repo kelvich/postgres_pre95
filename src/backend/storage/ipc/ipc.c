@@ -692,6 +692,7 @@ IPCKey key;
 	slckP->nshlocks = 0;
 	S_INIT_LOCK(&(slckP->shlock));
 	S_INIT_LOCK(&(slckP->exlock));
+	S_INIT_LOCK(&(slckP->comlock));
 	slckP->next = NULL;
       }
     return;
@@ -738,6 +739,7 @@ CreateLock()
     slckP->nshlocks = 0;
     S_INIT_LOCK(&(slckP->shlock));
     S_INIT_LOCK(&(slckP->exlock));
+    S_INIT_LOCK(&(slckP->comlock));
     slckP->next = NULL;
     S_UNLOCK(SLockMemoryLock);
     return lockid;
@@ -801,7 +803,7 @@ sh_try_again:
        S_UNLOCK(&(slckP->locklock));
        S_LOCK(&(slckP->shlock));
        (slckP->nshlocks)--;
-       S_UNLOCK(&(slckP->shlock));
+       S_UNLOCK(&(slckP->comlock));
        goto sh_try_again;
      }
 }
@@ -884,8 +886,11 @@ SemId lockid;
      */
     slckP->flag = NOLOCK;
     if (slckP->nshlocks > 0) {
-	while (slckP->nshlocks > 0)
+	while (slckP->nshlocks > 0) {
 	   S_UNLOCK(&(slckP->shlock));
+	   S_LOCK(&(slckP->comlock));
+	 }
+	S_UNLOCK(&(slckP->shlock));
       }
     else {
       S_UNLOCK(&(slckP->shlock));
@@ -898,4 +903,12 @@ SemId lockid;
 #endif
     return;
 }
+
+bool
+LockIsFree(lockid)
+SemId lockid;
+{
+    return(SLockArray[lockid].flag == NOLOCK);
+}
+
 #endif /* sequent */
