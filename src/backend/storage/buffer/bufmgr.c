@@ -1077,7 +1077,7 @@ BufferPoolCheckLeak()
     register int i;
     for (i=1; i<=NBuffers; i++) {
 	if (BufferIsValid(i)) {
-	    elog(DEBUG, "BUFFER LEAK!!! send mail to wei.");
+	    elog(NOTICE, "buffer leak detected in BufferPoolCheckLeak()");
 	    return(1);
 	  }
       }
