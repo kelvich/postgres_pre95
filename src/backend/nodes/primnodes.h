@@ -58,6 +58,7 @@ extern void	PrintVar();
 #include "oid.h"
 #include "name.h"
 #include "cat.h"
+#include "params.h"
 
 /*
  * ============
@@ -110,7 +111,8 @@ class (ExprContext) public (Node) {
 	AttributePtr  ecxt_outertype; \
 	Buffer	      ecxt_outer_buffer; \
 	Relation      ecxt_relation; \
-	Index	      ecxt_relid
+	Index	      ecxt_relid; \
+	ParamListInfo ecxt_param_list_info
  /* private: */
 	ExprContextDefs;
  /* public: */
