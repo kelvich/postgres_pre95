@@ -478,7 +478,7 @@ pg_eval(query_string, dest)
 	if ( DebugPrintParse == true ) {
 	    printf("\ninput string is %s\n",query_string);
 	    printf("\n---- \tparser outputs :\n");
-	    lispDisplay(parsetree,0);
+	    lispDisplay(parsetree);
 	    printf("\n");
 	}
 	
@@ -548,7 +548,7 @@ pg_eval(query_string, dest)
 	printf("\n=================\n");
 	printf("  After Rewriting\n");
 	printf("=================\n");
-	lispDisplay(parsetree_list, 0);
+	lispDisplay(parsetree_list); /* takes one arg, not two */
     }
 
     /* ----------------
@@ -672,7 +672,7 @@ pg_eval(query_string, dest)
 	 */
 	if ( DebugPrintPlan == true ) {
 	    printf("\nPlan is :\n");
-	    lispDisplay(plan, 0);
+	    lispDisplay(plan);
 	    printf("\n");
 	}
 
