@@ -1779,6 +1779,28 @@ res_target_el:
 
 		      $$ = lispCons(resnode,lispCons(varnode,LispNil));
 		}
+	| attr optional_indirection
+		{
+		      LispValue varnode, temp;
+		      Resdom resnode;
+		      int type_id, type_len;
+
+		      temp = make_array_ref_var ( CString(CAR($1)) , CString(CADR($1)),
+										 $2);
+		      type_id = CInteger(CAR(temp));
+		      type_len = tlen(get_id_type(type_id));
+		      resnode = MakeResdom ( p_last_resno++ ,
+						type_id, type_len, 
+						CString(CAR(last ($1) ))
+					    , 0 , 0 , 0 );
+		      varnode = CDR(temp);
+		      if ( IsA(varnode,Var))
+			set_vardotfields ( varnode , CDR(CDR($1)));
+		      else if ( CDR(CDR($1)) != LispNil )
+			elog(WARN,"cannot mix procedures with unions");
+
+		      $$ = lispCons(resnode,lispCons(varnode,LispNil));
+		}
 	;		 
 
 opt_id:
