@@ -46,7 +46,7 @@
 #include "storage/sinvaladt.h"
 #include "storage/lmgr.h"
 #include "storage/bufmgr.h"
-#include "support/master.h"
+#include "tmp/master.h"
 
 #include "tmp/miscadmin.h"
 #include "tmp/portal.h"		/* for EnablePortalManager, etc. */
