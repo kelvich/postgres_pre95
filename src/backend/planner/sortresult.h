@@ -1,4 +1,7 @@
+#include "pg_lisp.h"
+#include "c.h"
+
 extern LispValue relation_sortkeys ARGS((LispValue tlist));
-extern LispValue sort_list_carARGS((LispValue list));
+extern LispValue sort_list_car ARGS((LispValue list));
 extern void *sort_relation_paths ARGS((LispValue pathlist, LispValue sortkeys, LispValue rel, LispValue width));
-extern LispValue sort_level_result ARGS((LispValue plan, LispValue numkeys));
+extern Plan sort_level_result ARGS((LispValue plan, LispValue numkeys));
