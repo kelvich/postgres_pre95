@@ -451,16 +451,17 @@ Plan plan;
  * ------------------------
  */
 void
-AdjustParallelism()
+AdjustParallelism(pardelta, notgroupid)
+int pardelta;
+int notgroupid; /* do not adjust this proc group */
 {
     int i, j;
     int slave;
     int max_curpage;
     int size;
     int oldnproc;
-    int nfree;
-    extern MasterCommunicationData *MasterDataP;
 
+    Assert(pardelta != 0);
     SLAVE_elog(DEBUG, "master trying to adjust degrees of parallelism");
     for (i=0; i<GetNumberSlaveBackends(); i++) {
 	/* ---------------
@@ -469,7 +470,8 @@ AdjustParallelism()
 	 * more elaborate later.
 	 * ---------------
 	 */
-	if (ProcGroupInfoP[i].status == WORKING &&
+	if (i != notgroupid &&
+	    ProcGroupInfoP[i].status == WORKING &&
 	    get_fragment(QdGetPlan(ProcGroupInfoP[i].queryDesc)) >= 0)
 	    break;
       };
@@ -489,31 +491,48 @@ AdjustParallelism()
 	 * ---------------------------
 	 */
 	SLAVE_elog(DEBUG, "master changes mind on adjusting parallelism");
-        MasterDataP->data[0] = NOPARADJ;
-        OneSignalM(&(MasterDataP->m1lock), oldnproc);
+	ProcGroupInfoP[i].paradjpage = NOPARADJ;
+        OneSignalM(&(ProcGroupInfoP[i].m1lock), oldnproc);
 	return;
       }
-    MasterDataP->data[0] = max_curpage + 1; /* page on which to adjust par. */
-    ProcGroupInfoP[i].nprocess += NumberOfFreeSlaves;
-    ProcGroupInfoP[i].countdown = ProcGroupInfoP[i].nprocess;
-    MasterDataP->data[1] = ProcGroupInfoP[i].nprocess;
-    SLAVE2_elog(DEBUG,"master signals waiting slaves with adjpage=%d,newpar=%d",
-	        MasterDataP->data[0], MasterDataP->data[1]);
-    OneSignalM(&(MasterDataP->m1lock), oldnproc);
-    set_frag_parallel(ProcGroupLocalInfoP[i].fragment,
-		      get_frag_parallel(ProcGroupLocalInfoP[i].fragment)+
-		      NumberOfFreeSlaves);
-    ProcGroupSMBeginAlloc(i);
-    size = sizeofTmpRelDesc(QdGetPlan(ProcGroupInfoP[i].queryDesc));
-    nfree = NumberOfFreeSlaves;
-    for (j=0; j<nfree; j++) {
-	slave = getFreeSlave();
-	SLAVE2_elog(DEBUG, "master adding slave %d to procgroup %d", slave, i);
-        SlaveInfoP[slave].resultTmpRelDesc = (Relation)ProcGroupSMAlloc(size);
-        addSlaveToProcGroup(slave, i, oldnproc+j);
-	V_Start(slave);
+    ProcGroupInfoP[i].paradjpage = max_curpage + 1; 
+				   /* page on which to adjust par. */
+    if (pardelta > 0) {
+        ProcGroupInfoP[i].nprocess += pardelta;
+        ProcGroupInfoP[i].scounter.count = ProcGroupInfoP[i].nprocess;
+        ProcGroupInfoP[i].newparallel = ProcGroupInfoP[i].nprocess;
+        SLAVE2_elog(DEBUG,
+		    "master signals waiting slaves with adjpage=%d,newpar=%d",
+	            ProcGroupInfoP[i].paradjpage,ProcGroupInfoP[i].newparallel);
+        OneSignalM(&(ProcGroupInfoP[i].m1lock), oldnproc);
+        set_frag_parallel(ProcGroupLocalInfoP[i].fragment,
+		          get_frag_parallel(ProcGroupLocalInfoP[i].fragment)+
+		          pardelta);
+        ProcGroupSMBeginAlloc(i);
+        size = sizeofTmpRelDesc(QdGetPlan(ProcGroupInfoP[i].queryDesc));
+        for (j=0; j<pardelta; j++) {
+	    if (NumberOfFreeSlaves == 0) {
+		elog(WARN, 
+		     "trying to adjust to too much parallelism: out of slaves");
+	      }
+	    slave = getFreeSlave();
+	    SLAVE2_elog(DEBUG, "master adding slave %d to procgroup %d", 
+			slave, i);
+            SlaveInfoP[slave].resultTmpRelDesc = 
+					(Relation)ProcGroupSMAlloc(size);
+            addSlaveToProcGroup(slave, i, oldnproc+j);
+	    V_Start(slave);
+          }
+        ProcGroupSMEndAlloc(i);
       }
-    ProcGroupSMEndAlloc(i);
+    else {
+        ProcGroupInfoP[i].newparallel = ProcGroupInfoP[i].nprocess + pardelta;
+        SLAVE2_elog(DEBUG,
+		    "master signals waiting slaves with adjpage=%d,newpar=%d",
+	            ProcGroupInfoP[i].paradjpage,ProcGroupInfoP[i].newparallel);
+	ProcGroupInfoP[i].dropoutcounter.count = -pardelta;
+        OneSignalM(&(ProcGroupInfoP[i].m1lock), oldnproc);
+      }
 }
 
 /* ----------------------------------------------------------------
@@ -619,7 +638,7 @@ CommandDest	destination;
 		 (Relation)ProcGroupSMAlloc(size);
 	      }
 	   ProcGroupSMEndAlloc();
-	   ProcGroupInfoP[groupid].countdown = nparallel;
+	   ProcGroupInfoP[groupid].scounter.count = nparallel;
 	   ProcGroupInfoP[groupid].nprocess = nparallel;
 #ifdef 	   TCOP_SLAVESYNCDEBUG
 	   {
@@ -651,13 +670,14 @@ CommandDest	destination;
 	* ------------
 	*/
        if (NumberOfFreeSlaves > 0 && AdjustParallelismEnabled) {
-	    AdjustParallelism();
+	    AdjustParallelism(NumberOfFreeSlaves, -1);
 	 }
 
        /* ----------------
 	* wait for some process group to complete execution
 	* ----------------
 	*/
+MasterWait:
        P_Finished();
 
        /* --------------
@@ -666,7 +686,86 @@ CommandDest	destination;
 	* --------------
 	*/
        groupid = getFinishedProcGroup();
-       SLAVE1_elog(DEBUG, "master woken up by process group %d", groupid);
+       if (ProcGroupInfoP[groupid].status == PARADJPENDING) {
+	   /* -----------------------------
+	    * master decided earlier than process group, groupid's parallelism
+	    * was going to be reduced.  now the adjustment point is reached.
+	    * master is ready to collect those slaves spared from the
+	    * group.
+	    * -----------------------------
+	    */
+	   ProcessNode *p, *prev, *nextp;
+	   int newparallel = ProcGroupInfoP[groupid].newparallel;
+	   List tmpreldesclist = LispNil;
+	   int nfreeslave;
+
+         SLAVE1_elog(DEBUG, "master woken up by paradjpending process group %d",
+		       groupid);
+	   tempRelationDescList = 
+			     ProcGroupLocalInfoP[groupid].resultTmpRelDescList;
+	   prev = NULL;
+	   for (p = ProcGroupLocalInfoP[groupid].memberProc;
+		p != NULL; p = nextp) {
+	       nextp = p->next;
+	       if (SlaveInfoP[p->pid].groupPid >= newparallel) {
+		   /* ------------------------
+		    * before freeing this slave, we have to save its
+		    * resultTmpRelDesc somewhere.
+		    * -------------------------
+		    */
+#ifndef PALLOC_DEBUG
+		    tempRelationDesc = CopyRelDescUsing(
+					    SlaveInfoP[p->pid].resultTmpRelDesc,
+					    palloc);
+#else
+		    tempRelationDesc = CopyRelDescUsing(
+					    SlaveInfoP[p->pid].resultTmpRelDesc,
+					    palloc_debug);
+#endif
+		    tempRelationDescList = nappend1(tempRelationDescList,
+						    tempRelationDesc);
+		    if (prev == NULL) {
+			ProcGroupLocalInfoP[groupid].memberProc = nextp;
+		      }
+		    else {
+			prev->next = nextp;
+		      }
+		    freeSlave(p->pid);
+		  }
+	     }
+	        ProcGroupLocalInfoP[groupid].resultTmpRelDescList =
+							tempRelationDescList;
+		/* --------------------------
+		 * now we have to adjust nprocess and countdown of group groupid
+		 * --------------------------
+		 */
+		nfreeslave = ProcGroupInfoP[groupid].nprocess - 
+			     ProcGroupInfoP[groupid].newparallel;
+		ProcGroupInfoP[groupid].nprocess = 
+				ProcGroupInfoP[groupid].newparallel;
+		ProcGroupInfoP[groupid].countdown -= nfreeslave;
+		/* ---------------------------
+		 * adjust parallelism with the freed slaves
+		 * ---------------------------
+		 */
+		AdjustParallelism(nfreeslave, groupid);
+		if (ProcGroupInfoP[groupid].countdown == 0) {
+		    /* -----------------------
+		     * this means that this group has actually finished
+		     * go down to process the group
+		     * -----------------------
+		     */
+		   }
+		else {
+		    /* ------------------------
+		     * otherwise, go to P_Finished()
+		     * ------------------------
+		     */
+		    goto MasterWait;
+		  }
+	  }
+       SLAVE1_elog(DEBUG, "master woken up by finished process group %d", 
+		   groupid);
        fragment = ProcGroupLocalInfoP[groupid].fragment;
        nparallel = get_frag_parallel(fragment);
        plan = get_frag_root(fragment);
@@ -727,7 +826,8 @@ CommandDest	destination;
 	       *  from a set of temporary relations
 	       * -----------------
 	       */
-	      tempRelationDescList = LispNil;
+	      tempRelationDescList = 
+			ProcGroupLocalInfoP[groupid].resultTmpRelDescList;
 	      p = ProcGroupLocalInfoP[groupid].memberProc;
 	      for (p = ProcGroupLocalInfoP[groupid].memberProc;
 		   p != NULL;

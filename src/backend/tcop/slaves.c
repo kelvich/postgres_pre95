@@ -41,6 +41,9 @@
 #include "utils/log.h"
 #include "catalog/syscache.h"
 #include "executor/execdesc.h"
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
+#include "nodes/execnodes.h"
 
 /* ----------------
  *	parallel state variables
@@ -56,14 +59,15 @@ ProcGroupLocalInfo	ProcGroupLocalInfoP; /* process group local info */
 static ProcGroupLocalInfo FreeProcGroupP;
 extern SlaveLocalInfoData SlaveLocalInfoD;  /* defined in execipc.c */
 extern int AdjustParallelismEnabled;
-FILE *StatFp = stderr;
+FILE *StatFp;
+static bool RestartForParAdj = false;  /* indicating that the longjmp to
+					  SlaveRestartPoint is for paradj */
+static List QueryDesc;
 
 /*
  *	shared data structures
  */
 int 	*MasterProcessIdP;	/* master backend process id */
-MasterCommunicationData *MasterDataP; /* communication data area for 
-					master backend */
 int	*SlaveAbortFlagP;	/* flag set during a transaction abort */
 extern SlaveInfo	SlaveInfoP;	/* slave backend info */
 extern ProcGroupInfo  ProcGroupInfoP; /* process group info */
@@ -234,8 +238,8 @@ SlaveBackendsAbort()
 void
 SlaveMain()
 {
-    List queryDesc;
     int i;
+    int groupid;
     extern int ShowExecutorStats;
 
     /* -----------------
@@ -249,7 +253,7 @@ SlaveMain()
      */
     if (ShowExecutorStats) {
 	char fname[30];
-	sprintf(fname, "/usr/tmp/slave%d.stat", MyPid);
+	sprintf(fname, "/usr/tmp/hong/slave%d.stat", MyPid);
         StatFp = fopen(fname, "w");
       }
     /* ----------------
@@ -259,15 +263,21 @@ SlaveMain()
      * ----------------
      */
     if (setjmp(SlaveRestartPoint) != 0) {
-	SlaveWarnings++;
-	SLAVE1_elog(DEBUG, "Slave Backend %d SlaveBackendsAbort()",
-		    MyPid);
+	if (RestartForParAdj) {
+	    /* restart for parallelism adjustment */
+	    RestartForParAdj = false;
+	  }
+	else {
+	    /* restart for transaction abort */
+	    SlaveWarnings++;
+	    SLAVE1_elog(DEBUG, "Slave Backend %d SlaveBackendsAbort()",
+		        MyPid);
 	
-	SlaveBackendsAbort();
-	
-	SLAVE1_elog(DEBUG, "Slave Backend %d SlaveBackendsAbort() done",
-		    MyPid);
-    }	
+	    SlaveBackendsAbort();
+	    SLAVE1_elog(DEBUG, "Slave Backend %d SlaveBackendsAbort() done",
+		        MyPid);
+	  }
+      }	
 
     signal(SIGHUP, SlaveRestart);
 
@@ -304,11 +314,11 @@ SlaveMain()
 	 * initialize slave local info
 	 * ------------------
 	 */
+	groupid = SlaveInfoP[MyPid].groupId;
 	SlaveLocalInfoD.startpage = SlaveInfoP[MyPid].groupPid +
 				    (SlaveInfoP[MyPid].isAddOnSlave ? 
-				     MasterDataP->data[0] : 0);
-	SlaveLocalInfoD.nparallel = 
-			    ProcGroupInfoP[SlaveInfoP[MyPid].groupId].nprocess;
+				     ProcGroupInfoP[groupid].paradjpage : 0);
+	SlaveLocalInfoD.nparallel = ProcGroupInfoP[groupid].nprocess;
 	SlaveLocalInfoD.paradjpending = false;
 	SlaveLocalInfoD.paradjpage = -1;
 	SlaveLocalInfoD.newparallel = -1;
@@ -320,15 +330,14 @@ SlaveMain()
 	 *  get the query descriptor to execute.
 	 * ----------------
 	 */
-	queryDesc = (List)CopyObject(
-		     (List)ProcGroupInfoP[SlaveInfoP[MyPid].groupId].queryDesc);
+	QueryDesc = (List)CopyObject((List)ProcGroupInfoP[groupid].queryDesc);
 
 	/* ----------------
 	 *  process the query descriptor
 	 * ----------------
 	 */
-	if (queryDesc != NULL)
-	    ProcessQueryDesc(queryDesc);
+	if (QueryDesc != NULL)
+	    ProcessQueryDesc(QueryDesc);
 
 	/* ---------------
 	 * it is important to set isDone to true before
@@ -359,7 +368,7 @@ SlaveMain()
 	 */
 	SLAVE1_elog(DEBUG, "Slave Backend %d task complete.", MyPid);
 	SlaveLocalInfoD.isworking = false;
-	V_Finished(SlaveInfoP[MyPid].groupId);
+	V_Finished(groupid, &(ProcGroupInfoP[groupid].scounter), FINISHED);
     }
 }
 
@@ -461,8 +470,6 @@ SlaveBackendsInit()
      * ----------------
      */
     MasterProcessIdP = (int*)ExecSMReserve(sizeof(int));
-    MasterDataP = 
-       (MasterCommunicationData*)ExecSMReserve(sizeof(MasterCommunicationData));
     SlaveAbortFlagP = (int*)ExecSMReserve(sizeof(int));
     SlaveInfoP = (SlaveInfo)ExecSMReserve(nslaves * sizeof(SlaveInfoData));
     ProcGroupInfoP = (ProcGroupInfo)ExecSMReserve(nslaves *
@@ -488,7 +495,6 @@ SlaveBackendsInit()
      */
     (*MasterProcessIdP) = getpid();
     (*SlaveAbortFlagP) = CONDITION_NORMAL;
-    InitMWaitOneLock(&(MasterDataP->m1lock));
     /* ----------------
      *	fork several slave processes and save the process id's
      * ----------------
@@ -508,15 +514,19 @@ SlaveBackendsInit()
 		SlaveInfoP[i].groupPid = -1;
 		SlaveInfoP[i].resultTmpRelDesc = NULL;
 #ifdef sequent
-		S_INIT_LOCK(&(SlaveInfoP[i].comdata.lock));
-		S_LOCK(&(SlaveInfoP[i].comdata.lock));
+		S_INIT_LOCK(&(SlaveInfoP[i].lock));
+		S_LOCK(&(SlaveInfoP[i].lock));
 #endif
 		ProcGroupInfoP[i].status = IDLE;
 		ProcGroupInfoP[i].queryDesc = NULL;
-		ProcGroupInfoP[i].countdown = 0;
+		ProcGroupInfoP[i].scounter.count = 0;
+		ProcGroupInfoP[i].dropoutcounter.count = 0;
 #ifdef sequent
-		S_INIT_LOCK(&(ProcGroupInfoP[i].lock));
+		S_INIT_LOCK(&(ProcGroupInfoP[i].scounter.exlock));
+		S_INIT_LOCK(&(ProcGroupInfoP[i].dropoutcounter.exlock));
 #endif
+		ProcGroupInfoP[i].paradjpage = NULLPAGE;
+		InitMWaitOneLock(&(ProcGroupInfoP[i].m1lock));
 	    } else {
 		MyPid = i;
 #ifdef sequent
@@ -562,6 +572,7 @@ SlaveBackendsInit()
 	    ProcGroupLocalInfoP[i].fragment = NULL;
 	    ProcGroupLocalInfoP[i].memberProc = NULL;
 	    ProcGroupLocalInfoP[i].nextfree = ProcGroupLocalInfoP + i + 1;
+	    ProcGroupLocalInfoP[i].resultTmpRelDescList = LispNil;
 	  }
 	ProcGroupLocalInfoP[nslaves - 1].nextfree = NULL;
       }
@@ -603,7 +614,7 @@ getFreeSlave()
  *	increments NumberOfFreeSlaves
  * ------------------------
  */
-static void
+void
 freeSlave(i)
 int i;
 {
@@ -691,6 +702,7 @@ int gid;
     ProcGroupInfoP[gid].status = IDLE;
     ProcGroupLocalInfoP[gid].fragment = NULL;
     ProcGroupLocalInfoP[gid].nextfree = FreeProcGroupP;
+    ProcGroupLocalInfoP[gid].resultTmpRelDescList = LispNil;
     FreeProcGroupP = ProcGroupLocalInfoP + gid;
 }
 
@@ -698,7 +710,7 @@ int gid;
  *	getFinishedProcGroup
  *
  *	walks the array of processes group and find the first
- *	process group with status = FINISHED
+ *	process group with status = FINISHED or PARADJPENDING
  * -----------------------------
  */
 int
@@ -707,7 +719,8 @@ getFinishedProcGroup()
     int i;
 
     for (i=0; i<GetNumberSlaveBackends(); i++) {
-	if (ProcGroupInfoP[i].status == FINISHED)
+	if (ProcGroupInfoP[i].status == FINISHED ||
+	    ProcGroupInfoP[i].status == PARADJPENDING)
 	    return i;
       }
     return -1;
@@ -904,16 +917,16 @@ getProcGroupMaxPage(groupid)
 int groupid;
 {
     ProcessNode *p;
-    int maxpage = -1;
+    int maxpage = NULLPAGE;
     int page;
 
     for (p = ProcGroupLocalInfoP[groupid].memberProc;
 	 p != NULL;
 	 p = p->next) {
 #ifdef HAS_TEST_AND_SET
-	S_LOCK(&(SlaveInfoP[p->pid].comdata.lock));
+	S_LOCK(&(SlaveInfoP[p->pid].lock));
 #endif
-	page = SlaveInfoP[p->pid].comdata.data;
+	page = SlaveInfoP[p->pid].curpage;
 	if (page == NOPARADJ)
 	    maxpage = NOPARADJ;
 	if (maxpage < page && maxpage != NOPARADJ)
@@ -935,6 +948,7 @@ paradj_handler()
     BlockNumber curpage;
     HeapTuple curtuple;
     ItemPointer tid;
+    int groupid;
 
     SLAVE1_elog(DEBUG, "slave %d got SIGPARADJ", MyPid);
     if (SlaveInfoP[MyPid].isDone) {
@@ -943,17 +957,17 @@ paradj_handler()
 	 * no adjustment to parallelism should be made
 	 * ------------------------
 	 */
-	SlaveInfoP[MyPid].comdata.data = NOPARADJ;
+	SlaveInfoP[MyPid].curpage = NOPARADJ;
 	curpage = NOPARADJ;
       }
     else
     if (!SlaveLocalInfoD.isworking || SlaveLocalInfoD.heapscandesc == NULL) {
 	if (SlaveInfoP[MyPid].isAddOnSlave) {
-	    SlaveInfoP[MyPid].comdata.data = SlaveLocalInfoD.startpage;
+	    SlaveInfoP[MyPid].curpage = SlaveLocalInfoD.startpage;
 	    curpage = SlaveLocalInfoD.startpage;
 	  }
 	else {
-	    SlaveInfoP[MyPid].comdata.data = NULLPAGE;
+	    SlaveInfoP[MyPid].curpage = NULLPAGE;
 	    curpage = NULLPAGE;
 	  }
       }
@@ -961,15 +975,16 @@ paradj_handler()
         curtuple = SlaveLocalInfoD.heapscandesc->rs_ctup;
         tid = &(curtuple->t_ctid);
         curpage = ItemPointerGetBlockNumber(tid);
-        SlaveInfoP[MyPid].comdata.data = curpage;
+        SlaveInfoP[MyPid].curpage = curpage;
       }
 #ifdef HAS_TEST_AND_SET
-    S_UNLOCK(&(SlaveInfoP[MyPid].comdata.lock));
+    S_UNLOCK(&(SlaveInfoP[MyPid].lock));
 #endif
     SLAVE2_elog(DEBUG, "slave %d sending back curpage = %d", MyPid, curpage);
-    MWaitOne(&(MasterDataP->m1lock));
+    groupid = SlaveInfoP[MyPid].groupId;
+    MWaitOne(&(ProcGroupInfoP[groupid].m1lock));
     SLAVE1_elog(DEBUG, "slave %d complete handshaking with master", MyPid);
-    if (MasterDataP->data[0] == NOPARADJ) {
+    if (ProcGroupInfoP[groupid].paradjpage == NOPARADJ) {
 	/* ----------------------
 	 * this means that the master changed his/her mind
 	 * no adjustment to parallelism will be done
@@ -978,7 +993,51 @@ paradj_handler()
 	return;
       }
     SlaveLocalInfoD.paradjpending = true;
-    SlaveLocalInfoD.paradjpage = MasterDataP->data[0];
-    SlaveLocalInfoD.newparallel = MasterDataP->data[1];
+    SlaveLocalInfoD.paradjpage = ProcGroupInfoP[groupid].paradjpage;
+    SlaveLocalInfoD.newparallel = ProcGroupInfoP[groupid].newparallel;
     return;
+}
+
+/* ------------------------------------
+ *	paradj_nextpage
+ *
+ *	check if parallelism adjustment point is reached, if so
+ *	figure out and return the next page to scan.
+ *	XXX only works for heapscan right now.
+ * -------------------------------------
+ */
+int
+paradj_nextpage(page, dir)
+int page;
+int dir;
+{
+    if (SlaveLocalInfoD.paradjpending) {
+        if (page >= SlaveLocalInfoD.paradjpage) {
+            SLAVE2_elog(DEBUG, "slave %d adjusting page skip to %d",
+                        MyPid, SlaveLocalInfoD.newparallel);
+            if (SlaveLocalInfoD.newparallel >= SlaveLocalInfoD.nparallel ||
+                SlaveInfoP[MyPid].groupPid < SlaveLocalInfoD.newparallel) {
+                SlaveLocalInfoD.nparallel = SlaveLocalInfoD.newparallel;
+                SlaveLocalInfoD.paradjpending = false;
+		if (dir < 0)
+                    return 
+			SlaveLocalInfoD.paradjpage-SlaveInfoP[MyPid].groupPid;
+		else
+                    return
+			SlaveLocalInfoD.paradjpage+SlaveInfoP[MyPid].groupPid;
+              }
+            else {
+                int groupid = SlaveInfoP[MyPid].groupId;
+		Plan plan = QdGetPlan(QueryDesc);
+		EState estate = get_state(plan);
+		EndPlan(plan, estate);
+                V_Finished(groupid, &(ProcGroupInfoP[groupid].dropoutcounter),
+                           PARADJPENDING);
+		RestartForParAdj = true;
+		SlaveRestart();
+              }
+          }
+      }
+    else
+	return NULLPAGE;
 }
