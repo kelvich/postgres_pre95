@@ -82,7 +82,7 @@ pfree_debug(file, line, pointer)
  *	ExceptionalCondition (frontend version)
  * ----------------
  */
-void
+int
 ExceptionalCondition(conditionName, exceptionP, detail, fileName, lineNumber)
     const String    conditionName;
     const Exception *exceptionP;

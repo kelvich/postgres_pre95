@@ -695,7 +695,7 @@ extern Exception	BadArg;
 extern Exception	BadState;
 
 extern
-void
+int
 ExceptionalCondition ARGS((
 	const String	conditionName,
 	const Exception	*exceptionP,
@@ -750,8 +750,7 @@ ExceptionalCondition ARGS((
     ((bool) ((! condition) || \
 	     (ExceptionalCondition(CppAsString(condition), \
 				  &(exception), \
-				  (String) NULL, __FILE__, __LINE__), \
-	      false)))
+				  (String) NULL, __FILE__, __LINE__))))
     
 #ifdef NO_ASSERT_CHECKING
 #define Assert(condition)
@@ -810,8 +809,7 @@ ExceptionalCondition ARGS((
     ((bool) ((! condition) || \
 	     (ExceptionalCondition(CppAsString(condition), \
 				   &(exception), \
-				   form printArgs, __FILE__, __LINE__), \
-	      false)))
+				   form printArgs, __FILE__, __LINE__))))
     
 #ifdef NO_ASSERT_CHECKING
 #define LogAssert(condition, printArgs)

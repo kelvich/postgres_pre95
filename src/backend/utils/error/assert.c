@@ -21,7 +21,7 @@ RcsId("$Header$");
 #include "excid.h"	// for FailedAssertion
  */
 
-void
+int
 ExceptionalCondition(conditionName, exceptionP, detail, fileName, lineNumber)
 	const String	conditionName;
 	const Exception	*exceptionP;
@@ -61,4 +61,6 @@ ExceptionalCondition(conditionName, exceptionP, detail, fileName, lineNumber)
 
 	/* XXX FIXME: detail is lost */
 	ExcRaise(exceptionP, (ExcDetail)0, (ExcData)NULL, conditionName);
+	/*NOTREACHED*/
+	return(0);
 }
