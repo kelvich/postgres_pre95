@@ -1788,13 +1788,16 @@ sjmaxseg(plid)
 	    }
 
 	    if (group->sjgd_plid == plid) {
-		if (group->sjgd_jboffset > last)
+		if (group->sjgd_jboffset > last || last == InvalidBlockNumber)
 		    last = group->sjgd_jboffset;
 	    }
 	} else {
 	    if (SJCache[i].sjc_plid == plid) {
-		if (SJCache[i].sjc_jboffset > last)
+		if (SJCache[i].sjc_jboffset > last
+		    || last == InvalidBlockNumber) {
+
 		    last = SJCache[i].sjc_jboffset;
+		}
 	    }
 	}
     }

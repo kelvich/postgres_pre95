@@ -348,11 +348,18 @@ _pgjb_findoffset(plname, plid, extentsz)
     bool n;
     ScanKeyEntryData skey;
 
-     if ((jbp = _pgjb_getplatdesc(plname, plid)) == (JBPlatDesc *) NULL)
+    if ((jbp = _pgjb_getplatdesc(plname, plid)) == (JBPlatDesc *) NULL)
 	return (InvalidBlockNumber);
 
-    /* check the mag disk cache for highest-numbered segment */
+    /*
+     *  check the mag disk cache for highest-numbered segment, and allocate
+     *  the segment following it.
+     */
     last = sjmaxseg(plid);
+    if (last != InvalidBlockNumber)
+	last += extentsz;
+    else
+	last = 0;
 
     /* see if there's a starting location stored in pg_platter */
     ScanKeyEntryInitialize(&skey, 0x0, ObjectIdAttributeNumber,
@@ -381,18 +388,13 @@ _pgjb_findoffset(plname, plid, extentsz)
     /*
      *  Starting at the first extent after the last known allocated extent,
      *  search for a free extent on the platter.  We must start at an integral
-     *  multiple of extentsz blocks on the platter, which is why the else
-     *  case of the condition below is doing so much math.
+     *  multiple of extentsz blocks on the platter.
      */
 
-    if (last == InvalidBlockNumber) {
-	last = 0;
-    } else {
-	extentno = last / extentsz;
+    extentno = last / extentsz;
 
-	if (extentno * extentsz != last)
-	    extentno++;
-
+    if (extentno * extentsz != last) {
+	extentno++;
 	last = extentno * extentsz;
     }
 
