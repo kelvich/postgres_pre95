@@ -27,14 +27,7 @@ The user who defines a type becomes its owner.
 is the name of the new type
 and must be unique within the types defined for this database. 
 .lp
-There are two ways to construct types.
-The first way allows a user to construct new base types by explicitly
-specifying a collection of information about the type.
-The second allows a user to construct composite types by using the
-query language.
-.lp
-The first form of 
-.i "define type"
+.i "Define type"
 requires the registration of two functions (using
 .b "define C function" )
 before defining the type.
