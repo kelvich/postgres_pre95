@@ -120,7 +120,7 @@ create real_city (pop = int4, cname = text, outline = path)
 \g
 create aggtest (a = int2, b = float4)
 \g
-create arrtest (a = int2[], b = int4[], c = char16[], d = text[])
+create arrtest (a = int2[], b = int4[][][], c = char16[], d = text[][], e = float8[])
 \g
 
 /*
@@ -283,11 +283,18 @@ append aggtest (a = 0, b = 0.09561)
 append aggtest (a = 42, b = 324.78)
 \g
 
-append arrtest (a = "{}", b = "{}", c = "{}", d = "{}")
+append arrtest (a[5] = "{1,2,3,4,5}", b[2][1][2] = "{{{},{1,2}}}", c = "{}", 
+					d = "{}", e[0:4] = "/floatarr")
 \g
-append arrtest (a = "{"1"}", b = "{"1"}", c = "{"foobar"}", d = "{"barfoo"}")
+replace arrtest (e[0] = "1.1")
 \g
-append arrtest (a = "{1,2}", b = "{3,4}", c = "{foo,bar}", d = "{bar,foo}")
+replace arrtest (e[1] = "2.2")
+\g
+append arrtest (a = "{11,12,23}", b[2][2][1] = "{{3,4},{4,5}}", c = "{"foobar"}", 
+				d = "{{"elt1", "elt2"}}", e = "{"3.4", "6.7"}")
+\g
+append arrtest (a = "{}", b[1][2][2] = "{3,4}", c = "{foo,bar}", 
+				d[2][1] = "{bar,foo}")
 \g
 
 create iportaltest (i = int4, d = float4, p = polygon)
