@@ -25,9 +25,17 @@ RcsId("$Header$");
 
 #include "utils/hsearch.h"
 #include "utils/log.h"
+#include "utils/rel.h"
 
 #include "storage/jbstruct.h"
 #include "storage/jblib.h"
+
+#include "access/htup.h"
+#include "access/relscan.h"
+#include "access/heapam.h"
+
+#include "catalog/pg_platter.h"
+#include "catalog/pg_proc.h"
 
 /*
  *  JBHashEntry -- In shared memory, we maintain a hash table with the number
@@ -327,15 +335,47 @@ _pgjb_findoffset(plname, plid, extentsz)
     int extentsz;
 {
     BlockNumber last;
+    BlockNumber platfirst;
     BlockNumber extentno;
     long blkno;
     JBPlatDesc *jbp;
+    Relation plat;
+    TupleDescriptor platdesc;
+    HeapScanDesc platscan;
+    HeapTuple plattup;
+    Datum d;
+    bool n;
+    ScanKeyEntryData skey;
+
+     if ((jbp = _pgjb_getplatdesc(plname, plid)) == (JBPlatDesc *) NULL)
+	return (InvalidBlockNumber);
 
     /* check the mag disk cache for highest-numbered segment */
     last = sjmaxseg(plid);
 
-    if ((jbp = _pgjb_getplatdesc(plname, plid)) == (JBPlatDesc *) NULL)
-	return (InvalidBlockNumber);
+    /* see if there's a starting location stored in pg_platter */
+    ScanKeyEntryInitialize(&skey, 0x0, ObjectIdAttributeNumber,
+			   ObjectIdEqualRegProcedure,
+			   ObjectIdGetDatum(plid));
+
+    plat = heap_openr(Name_pg_platter);
+    platdesc = RelationGetTupleDescriptor(plat);
+    platscan = heap_beginscan(plat, false, NowTimeQual, 1, &skey);
+    plattup = heap_getnext(platscan, false, (Buffer *) NULL);
+    if (!HeapTupleIsValid(plattup))
+	elog(WARN, "missing pg_platter tuple oid %ld", plid);
+
+    d = (Datum) heap_getattr(plattup, InvalidBuffer, Anum_pg_platter_plstart,
+			     platdesc, &n);
+
+    /* null means zero to us */
+    if (n)
+	platfirst = 0;
+    else
+	platfirst = DatumGetInt32(d);
+
+    if (platfirst > last)
+	last = platfirst;
 
     /*
      *  Starting at the first extent after the last known allocated extent,
@@ -359,7 +399,7 @@ _pgjb_findoffset(plname, plid, extentsz)
 	/* see if block 'last' is written */
 	blkno = jb_scanw(jbp->jbpd_platter, last, 1);
 
-	/* if so, skipt to next extent */
+	/* if so, skip to next extent */
 	if (blkno >= 0)
 	    last += extentsz;
     } while (blkno >= 0);
@@ -436,7 +476,7 @@ pgjb_wrtextent(item, buf)
     plname[sizeof(NameData)] = '\0';
 
     SpinAcquire(JBSpinLock);
-    jbp = _pgjb_getplatdesc(item->sjc_plid, plname);
+    jbp = _pgjb_getplatdesc(plname, item->sjc_plid);
     SpinRelease(JBSpinLock);
 
     pfree(plname);
@@ -486,8 +526,10 @@ pgjb_wrtextent(item, buf)
 				  group->sjgd_jboffset + low,
 				  (high - low) + 1);
 
-		if (status < 0)
+		if (status < 0) {
+		    elog(NOTICE, "_pgjb_wrtextent: write failed");
 		    return (SM_FAIL);
+		}
 
 		low = -1;
 	    }
@@ -496,7 +538,6 @@ pgjb_wrtextent(item, buf)
 
     return (SM_SUCCESS);
 }
-
 /*
  *  pgjb_rdextent() -- Read an extent off of a platter.
  *
@@ -534,7 +575,7 @@ pgjb_rdextent(item, buf)
     plname[sizeof(NameData)] = '\0';
 
     SpinAcquire(JBSpinLock);
-    jbp = _pgjb_getplatdesc(item->sjc_plid, plname);
+    jbp = _pgjb_getplatdesc(plname, item->sjc_plid);
     SpinRelease(JBSpinLock);
 
     pfree(plname);
