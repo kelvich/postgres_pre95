@@ -91,8 +91,7 @@ ComputeDataSize(numberOfAttributes, att, value, nulls)
 		 * must inclue the additional sizeof long.
 		 */
 		length = LONGALIGN(length)
-		       + PSIZE(DatumGetPointer(value[i]))
-		       + sizeof (long);
+		       + VARSIZE(DatumGetPointer(value[i]));
 		break;
 	    case sizeof(char):
 		length++;
@@ -163,8 +162,7 @@ DataFill(data, numberOfAttributes, att, value, nulls, infomask, bit)
 	    case -1:
 	        *infomask |= 0x2;
 	        data = (Pointer) LONGALIGN((char *) data);
-	        * (long *) data = length = PSIZE(DatumGetPointer(value[i]));
-		data += sizeof(long);
+	        length = VARSIZE(DatumGetPointer(value[i]));
 	        bcopy(DatumGetPointer(value[i]), data, length);
 	        data += length;
 		break;
@@ -667,6 +665,9 @@ fastgetattr(tup, attnum, att, isnull)
 
 	    switch(att[i]->attlen)
 	    {
+		long *debugl;
+		char *debugc;
+
 	        case sizeof(char):
 	            off++;
 	            break;
@@ -675,7 +676,7 @@ fastgetattr(tup, attnum, att, isnull)
 	            break;
 	        case -1:
 	            usecache = false;
-		    off += VARSIZE(tp + off) + sizeof(long);
+		    off += VARSIZE(tp + off);
 		    break;
 		default:
 		    off = off + att[i]->attlen;
