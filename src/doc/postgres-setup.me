@@ -40,7 +40,7 @@
 .fo ''%''
 .ce 99
 .ds PG "\\s-2POSTGRES\\s+2
-.ds PV 4.1
+.ds PV 4.2
 .ps 18
 .b
 POSTGRES INSTALLATION INSTRUCTIONS
@@ -125,16 +125,30 @@ software.
 .lp
 .sh 2 "Hardware"
 .lp
-\*(PG currently has been tested by the \*(PG development team on Sun
-Microsystems SPARC architecture machines running SunOS 4.1 (Solaris
-1.x).  (\*(PG will \fBnot\fP run on machines running SunOS 5 (Solaris
-2.x)).  \*(PG also runs on DECstation 3100s and 5000s running Ultrix
-4.1 and higher.  In order to use \*(PG, your machine should have at
-least 8 megabytes of memory and you will require at least 45 megabytes
-of disk space to hold source, binaries, and user databases.  If you
-choose to compile \*(PG for source-level debugging, you will need
-roughly twice as much disk space.  See the section on compilation for
-details.
+\*(PG currently has been tested by the \*(PG development team on the
+following systems:
+.bu
+Digital Equipment DECstation 3000 series (Alpha AXP architecture)
+machines running Alpha OSF/1 1.3 and higher.
+.bu
+Digital Equipment DECstation 3100 and 5000 series (MIPS architecture)
+machines running Ultrix 4.1 and higher.
+.bu
+Hewlett-Packard H-P 9000/700 series (PA-RISC architecture) machines
+running HP-UX 8.07 and higher.
+.bu
+International Business Machines RS/6000 (POWER architecture) machines
+running AIX 3.2.3 and higher.
+.bu
+Sun Microsystems (SPARC architecture) machines running SunOS 4.1.2
+(Solaris 1.0.1) and higher.  (\*(PG will \fBnot\fP run on machines
+running SunOS 5.x (Solaris 2.x)).
+.lp
+In order to use \*(PG, your machine should have at least 8 megabytes
+of memory and you will require at least 45 megabytes of disk space to
+hold source, binaries, and user databases.  If you choose to compile
+\*(PG for source-level debugging, you will need roughly twice as much
+disk space.  See the section on compilation for details.
 .lp
 The Ultrix version requires a kernel which allows 4 megabytes of
 shared memory.  Also, the original release of Ultrix 4.3 has a kernel
@@ -146,24 +160,19 @@ included in Ultrix 4.3a.)
 .sh 2 "Software"
 .sh 2 "Distribution Tape"
 .lp
-These instructions assume you have a \*(PG Version \*(PV
-distribution tape (in either 1600bpi 9-track, SCSI cartridge, or DEC TK50
-cartridge format)
-or a \*(PG tar file.
-This release comes with a pre-installed version of \*(PG ready to run
-for the two platforms we officially support.  
-This is a test to see
-if our users can run the pre-installed system to avoid compiling
-the sources from scratch.
-Should
-any problems arise with the pre-installed system, it is recommended
-that the sources be rebuilt from scratch to rule out any compatibility
-problems between the system we compiled on here and your own.  There
-are two potential releases you may want (same source, different binaries).
-The tar version of the Ultrix release is \f(CWpostgres-v4r1.ultrix.tar.Z\fP
-and the SPARC release is \f(CWpostgres-v4r1.sparc.tar.Z\fP available via
-anonymous ftp from \f(CWpostgres.berkeley.edu\fP.  No sources-only tar
-file is currently available.
+These instructions assume you have a \*(PG Version \*(PV distribution
+tape (in either 1600bpi 9-track, SCSI cartridge, or DEC TK50 cartridge
+format) or a \*(PG tar file.  This release comes with a pre-installed
+version of \*(PG ready to run for the platforms we officially support.
+This is a test to see if our users can run the pre-installed system to
+avoid compiling the sources from scratch.  Should any problems arise
+with the pre-installed system, it is recommended that the sources be
+rebuilt from scratch to rule out any compatibility problems between
+the system we compiled on here and your own.  There are two potential
+releases you may want (same source, different binaries).  The tar
+version of the Ultrix release is \f(CWpostgres-v4r1.ultrix.tar.Z\fP
+and the SPARC release is \f(CWpostgres-v4r1.sparc.tar.Z\fP available
+via anonymous ftp from \f(CWpostgres.berkeley.edu\fP.
 .sh 2 "Expertise"
 .lp
 Once a site is properly configured and \*(PG is installed,
@@ -207,11 +216,11 @@ If you run the pre-installed system, you only need 25 megabytes to
 hold the executables and sources.
 .sh 3 "Kernel"
 .lp
-\*(PG makes use of the optional System V shared memory operations
-provided by SunOS and DEC Ultrix
-which require a properly configured kernel which is in general different
-than the factory-shipped generic kernel.
-See the section on kernel configuration for details.
+\*(PG makes use of the System V inter-process communication (shared
+memory and semaphore) operations provided by the operating system.
+SunOS and Ultrix require a properly configured kernel which is in
+general different than the factory-shipped generic kernel.  See the
+section on kernel configuration for details.
 .\" ----------------
 .\"    Installation
 .\" ----------------
@@ -304,9 +313,8 @@ install the system and create the database directory, everything is
 owned by this \*(lqpostgres\*(rq user.  Then, we start the postmaster
 when logged in as this \*(lqpostgres\*(rq user, and all the backends
 are also started by the user \*(lqpostgres\*(rq and are able to access
-the databases.  Although you can make this work without creating a
-\*(lqpostgres\*(rq login, we provide no support for doing so (you are,
-as they say, \*(lqon your own\*(rq).
+the databases.  You can make this work without creating a
+\*(lqpostgres\*(rq login but this is highly discouraged.
 .lp
 Note that the restriction about having a \*(lqpostgres\*(rq login with
 UID 6 was removed in \*(PG Version 4.0.1.
@@ -396,7 +404,7 @@ file to get back the space.
 This step requires familiarity with configuring a UNIX kernel.
 If you are unfamiliar with this procedure,
 we advise you to read the
-section on configuring a kernel in the SunOS or DEC system administration
+section on configuring a kernel in the system administration
 manual carefully.
 This task requires superuser privilege and should
 probably not be done without the assistance of your system administrator.
@@ -408,16 +416,15 @@ kernel of the host which will act as the \*(PG server.
 If you try to run a \*(PG backend process on a machine without enough
 shared memory, the backend will abort with an error message.
 .lp
-This is by far the most complicated part of the installation
-so these steps should be performed by someone with system administration
-experience.  Again, we advise you to consult
-the system administration section of your manual
-before doing this step.
+This is by far the most complicated part of the installation so
+\fBthese steps should be performed by someone with system
+administration experience\fP.  Again, we advise you to consult the
+system administration section of your manual before doing this step.
 .lp
-For a brief discussion of shared memory,
-you may want to consult the manual pages for \f(CWshmget()\fP,
-\f(CWshmop()\fP, \f(CWshmctl()\fP, etc.  Now proceed to the appropriate
-section for your machine.
+For a brief discussion of shared memory, you may want to consult the
+manual pages for \f(CWshmget(3)\fP, \f(CWshmop(3)\fP,
+\f(CWshmctl(3)\fP, etc.  Now proceed to the appropriate section for
+your machine.
 .lp
 .sh 3 "Kernel reconfiguration for Sparcs"
 .lp
@@ -612,41 +619,88 @@ first step is to install the new \f(CWbmake\fP program.  By the way,
 you can look at the previous section entitled \*(lqRunning the
 pre-installed system\*(rq in the paragraph about \f(CWbmake\fP, and
 just copy the pre-compiled \f(CWbmake\fP to
-\f(CW/usr/local/{bin,lib}\fP if you want and skip step 2) in this
+\f(CW/usr/local/{bin,lib}\fP if you want and skip step (2) in this
 section.  What follows is a step by step list to compile and install
 this release from sources:
-.lp
-- build step 1: customization -
+.sh 3 "Build Step 1: Customization"
 .lp
 \f(CWCd\fP into the \f(CWsrc/\fP directory and edit the file
-\f(CWMakefile.global\fP.  By default the PORTNAME is \f(CWultrix4\fP.
-Change this to \f(CWsparc\fP if you are running on a SPARC-based
-machine.  Also, if you do not want \f(CWbmake\fP installed into
-\f(CW/usr/local/bin\fP and \f(CW/usr/local/lib\fP, change the values
-of TOOLSBINDIR and TOOLSLIBDIR and make sure these directories exist.
+\f(CWMakefile.global\fP.  You may change the various configuration
+options here, such as where the \*(PG executable files are installed
+and where it looks for the database directory.  The configuration
+switches are fairly self-explanatory, but we will go over some of the
+more commonly-changed options.
 .lp
-At this point you can also change where the \*(PG executable
-files are installed and where it looks for the database
-directory.
-In general the rest of the configuration switches
-are self-explanatory.  The only one which must be set is PORTNAME.
+The PORTNAME option \fBmust\fP be set correctly.  By default the
+PORTNAME is \f(CWultrix4\fP, but
+.(l
+aix
+alpha
+hpux
+sparc
+ultrix4
+.)l
+are all valid choices.
 .lp
-- build step 2: bootstrapping the new bmake program -
+The top-level directory where \*(PG binaries, documentation, header
+files, libraries, and databases are installed is controlled by the
+variable POSTGRESDIR.  This variable defaults to
+\f(CW/private/devel/postgres\fP.  Whether you change this variable or
+not, make sure that the directory to which POSTGRESDIR refers exists
+before proceeding.
+.lp
+If you do not want \f(CWbmake\fP installed into \f(CW/usr/local/bin\fP
+and \f(CW/usr/local/lib\fP, change the values of TOOLSBINDIR and
+TOOLSLIBDIR and make sure that these directories exist before
+proceeding.
+.lp
+Standards notwithstanding, every system has an \f(CWinstall\fP program
+with slightly different options and behavior.  Our Makefiles assume
+that \f(CWinstall\fP accepts BSD (as opposed to System V) options.
+For example, the \f(CWinstall\fP that comes with AIX, SunOS and Ultrix
+accept BSD options.  However, the default OSF/1 and HP-UX installation
+programs do not.  You can set the INSTALL variable to control which
+program is called.  On OSF/1, set INSTALL to \f(CW/bin/installbsd\fP.
+On HP-UX, you will have to find a BSD-compatible installation program
+and set INSTALL to the location of this program.  \f(CWbsdinst\fP,
+which comes with the MIT X Window System distribution (in
+\f(CWmit/util/scripts\fP), is widely available and works acceptably.
+The GNU \f(CWinstall\fP program does not.
+.lp
+If you are not installing \*(PG using superuser privileges, or you are
+installing \*(PG without creating a \*(lqpostgres\*(rq user, you may
+have to set the values of several variables that control the system
+ownership.  For example, \*(lqjaneuser\*(rq who is a member of group
+\*(lqusers\*(rq may have to set:
+.(l
+.ft CW
+BINGRP=         users
+BINOWN=         janeuser
+LIBGRP=         users
+LIBOWN=         janeuser
+MANGRP=         users
+MANOWN=         janeuser
+.ft
+.)l
+to prevent the \f(CWinstall\fP program from complaining.
+.sh 3 "Build Step 2: Bootstrapping \*(lqbmake\*(rq"
+.lp
+Before proceeding, make sure that the \f(CWmake\fP program in your
+PATH environment variable is the system-provided \f(CWmake\fP (usually
+\f(CW/bin/make\fP) and \fBNOT\fP GNU \f(CWmake\fP.  GNU \f(CWmake\fP
+is \fBguaranteed not to work\fP.
 .lp
 \f(CWCd\fP into \f(CWsrc/tools/bmake\fP and type
 .(l
-% \fBmake -f Makefile.boot\fP
+% \fB./Bootstrap\fP \fIportname\fP
 .)l
-You may get warning messages during this bootstrapping process about
-\*(lqillegal combination of pointer and integer\*(rq \(em just ignore
-them.  This should compile and install the \f(CWbmake\fP program and
-its supporting files, including the \*(PG-related Makefile templates.
-If all went well you will now be able to use the new make program by
-typing \f(CWbmake\fP, assuming you have \f(CW/usr/local/bin\fP in your
-shell path.  You may have to type \f(CWrehash\fP if you run
-\f(CWcsh\fP.
-.lp
-- build step 3: compile and install the world -
+where \fIportname\fP is the value of PORTNAME.  This should compile
+and install the \f(CWbmake\fP program and its supporting files,
+including the \*(PG-related Makefile templates.  If all went well you
+will now be able to use the new make program by typing \f(CWbmake\fP,
+assuming you have \f(CW/usr/local/bin\fP in your shell path.  You may
+have to type \f(CWrehash\fP if you run \f(CWcsh\fP.
+.sh 3 "Build Step 3: Compile and Install"
 .lp
 \f(CWCd\fP back to the \f(CWsrc/\fP directory (i.e., \f(CWcd ../..\fP)
 and type:
@@ -735,10 +789,10 @@ command:
 % \fBdiff sample.regress.out obj/regress.out\fP
 .)l
 Unfortunately you will see many differences corresponding to
-the timestamp lines and occasional lines where object id numbers (OID's)
+the timestamp lines and occasional lines where object id numbers (OIDs)
 are different.  We regret that we do not have a more sophisticated
 script for weeding out these innocuous differences at this time.  If
-you see any differences not corresponding to time stamps or OIDS,
+you see any differences not corresponding to timestamps or OIDs,
 there may be a problem.  Have your local \*(PG expert take a look
 at it.
 .sp
@@ -756,7 +810,7 @@ the postmaster,
 the terminal monitor,
 and
 .ip \0\0\0\(bu
-the backend.
+the backend server.
 .lp
 Users are expected to use the terminal monitor for direct access
 to the database.
@@ -1040,7 +1094,7 @@ This software is unsupported,
 public domain software.
 Although we are interested in feedback,
 it is impossible for us to make any
-commitment to support in a research environment. 
+commitment to provide support in a research environment. 
 .lp
 If you do want to talk directly to the \*(PG
 group, electronic mail is strongly preferred.
