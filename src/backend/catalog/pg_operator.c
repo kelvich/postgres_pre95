@@ -968,7 +968,7 @@ OperatorDefine(operatorName, leftTypeName, rightTypeName, procedureName,
 		    rightSortName,
 		    leftSortName);
     
-    if (!ObjectIdIsValid(negObjectId) && NameIsValid(negatorName))
+    if (NameIsValid(negatorName) && !ObjectIdIsValid(negObjectId))
 	OperatorDef(negatorName,
 		    definedOK,
 		    leftTypeName,
@@ -984,7 +984,7 @@ OperatorDefine(operatorName, leftTypeName, rightTypeName, procedureName,
 		    leftSortName,
 		    rightSortName);
 
-    if (!ObjectIdIsValid(leftSortObjectId) && NameIsValid(leftSortName))
+    if (NameIsValid(leftSortName) && !ObjectIdIsValid(leftSortObjectId))
 	OperatorDef(leftSortName,
 		    definedOK,
 		    leftTypeName,
@@ -1000,7 +1000,7 @@ OperatorDefine(operatorName, leftTypeName, rightTypeName, procedureName,
 		    operatorName,	/* left sort */
 		    rightSortName);
 
-    if (!ObjectIdIsValid(rightSortObjectId) && NameIsValid(rightSortName))
+    if (NameIsValid(rightSortName) && !ObjectIdIsValid(rightSortObjectId))
 	OperatorDef(rightSortName,
 		    definedOK,
 		    leftTypeName,
