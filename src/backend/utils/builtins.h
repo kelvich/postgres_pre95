@@ -309,7 +309,7 @@ extern struct varlena * byteaSetByte();
 extern int32 byteaGetBit();
 extern struct varlena * byteaSetBit();
 
-extern int32 user_fn_test();
+extern int32 userfntest();
 
 extern char *pg_username();
 
