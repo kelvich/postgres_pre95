@@ -118,6 +118,28 @@ bool hintFlag;
     AttributeNumber attributeNo;
 
     /*
+     * We can not use tuple level locks for "on append" rules
+     * or for "view" rules.
+     */
+    if (r->eventType == EventTypeAppend) {
+	if (hintFlag) {
+	    elog(WARN,
+	    "You can not use `instance-level locks' for `on append' rules");
+	} else {
+	    return(false);
+	}
+    }
+    if (r->actionType == ActionTypeRetrieveValue &&
+	    r->eventAttributeNumber == InvalidAttributeNumber) {
+	if (hintFlag) {
+	    elog(WARN,
+	    "You can not use `instance-level locks' for `view' rules");
+	} else {
+	    return(false);
+	}
+    }
+
+    /*
      * First find the constant qual, i.e.a qualification
      * that only involves constants & attributes of the
      * "current" tuple.
