@@ -26,6 +26,7 @@
  *	careful....
  */
 
+#include <errno.h>
 #include <sys/file.h>
 #include <strings.h>
 #include "context.h"
