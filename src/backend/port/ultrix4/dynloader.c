@@ -199,7 +199,7 @@ long *size;
 	}
 	else
 	{
-		retval = load_symbols(filename, load_address);
+		retval = load_symbols(temp_file_name, load_address);
 	}
 
 finish_up:
@@ -259,7 +259,7 @@ int entry_addr;
 		}
 
 		scanner->funcname= (char *)strcpy(malloc(strlen(funcname)+1),funcname);
-		scanner->func = (func_ptr) (func_addr + entry_addr);
+		scanner->func = (func_ptr) func_addr;
 		scanner->next = NULL;
 	}
 
