@@ -463,7 +463,8 @@ int	errType;
   /* assume that spinlock has been acquired */
 
   retProc = (PROC *) MAKE_PTR(proc->links.prev);
-  SHMQueueDelete(&(proc->links));
+  if (proc->links.next != INVALID_OFFSET)
+      SHMQueueDelete(&(proc->links));
   SHMQueueElemInit(&(proc->links));
 
   proc->errType = errType;
@@ -598,7 +599,8 @@ HandleDeadLock()
    * Get this process off the lock's wait queue
    * ------------------------
    */
-  SHMQueueDelete(&MyProc->links);
+  if (MyProc->links.next != INVALID_OFFSET)
+      SHMQueueDelete(&MyProc->links);
   SHMQueueElemInit(&(MyProc->links));
   lock->waitProcs.size--;
 

@@ -811,7 +811,8 @@ LOCKT	lockt;
    */
   if (! result->nHolding)
   {
-    SHMQueueDelete(&result->queue);
+    if (result->queue.next != INVALID_OFFSET)
+      SHMQueueDelete(&result->queue);
     if (! (result = (XIDLookupEnt *)
 	   hash_search(xidTable, (Pointer)&item, HASH_REMOVE_SAVED, &found)) ||
 	! found)
