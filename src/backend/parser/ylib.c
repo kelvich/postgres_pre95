@@ -382,6 +382,7 @@ ParseFunc ( funcname , fargs )
     LispValue retval;
     LispValue setup_base_tlist();
     bool retset;
+    bool exists;
 
     if (fargs)
      {
@@ -570,11 +571,16 @@ ParseFunc ( funcname , fargs )
      *  func_get_detail looks up the function in the catalogs, does
      *  disambiguation for polymorphic functions, handles inheritance,
      *  and returns the funcid and type and set or singleton status of
-     *  the function's return value.  if func_get_detail returns, the
-     *  function exists.
+     *  the function's return value.  if func_get_detail returns true,
+     *  the function exists.  otherwise, there was an error.
      */
 
-    func_get_detail(funcname, nargs, oid_array, &funcid, &rettype, &retset);
+    exists = func_get_detail(funcname, nargs, oid_array, &funcid,
+			     &rettype, &retset);
+    if (!exists)
+	elog(WARN, "no such attribute or function %s", funcname);
+
+    /* got it */
     funcnode = MakeFunc(funcid, rettype, false, 0, LispNil, 0, NULL, LispNil, LispNil);
 
     /*

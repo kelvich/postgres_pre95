@@ -21,6 +21,7 @@ extern Relation get_rdesc(), get_rgdesc();
 extern char *outstr(), *instr(), *instr1(), *instr2();
 extern Operator oper(), right_oper(), left_oper();
 extern Name tname();
+extern bool func_get_detail();
 
 
 

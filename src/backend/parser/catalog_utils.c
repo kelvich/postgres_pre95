@@ -527,7 +527,7 @@ funcname_get_funcargtypes ( function_name )
     return (oid_array);
 }
 
-void
+bool
 func_get_detail(funcname, nargs, oid_array, funcid, rettype, retset)
     char *funcname;
     int nargs;
@@ -545,7 +545,7 @@ func_get_detail(funcname, nargs, oid_array, funcid, rettype, retset)
     ftup = SearchSysCacheTuple(PRONAME, funcname, 0, 0, 0);
 
     if (!HeapTupleIsValid(ftup))
-	elog(WARN, "function %s is not defined", funcname);
+	return (false);
 
     /*
      *  If the function exists, we need to check the argument types
@@ -556,8 +556,9 @@ func_get_detail(funcname, nargs, oid_array, funcid, rettype, retset)
 
     pform = (Form_pg_proc)GETSTRUCT(ftup);
     if (pform->pronargs != nargs) {
-	elog(WARN, "argument count mismatch: %s takes %d, %d supplied",
-		   funcname, pform->pronargs, nargs);
+	elog(NOTICE, "argument count mismatch: %s takes %d, %d supplied",
+		     funcname, pform->pronargs, nargs);
+	return (false);
     }
 
     /* typecheck arguments */
@@ -571,8 +572,9 @@ func_get_detail(funcname, nargs, oid_array, funcid, rettype, retset)
 		    goto okay;
 	    }
 	    if (**oid_vector == InvalidObjectId)
-		elog(WARN, "type mismatch in invocation of function %s",
-			   funcname);
+		elog(NOTICE, "type mismatch in invocation of function %s",
+			     funcname);
+		return (false);
 	}
     }
 
@@ -581,6 +583,8 @@ okay:
     *funcid = ftup->t_oid;
     *rettype = (ObjectId) pform->prorettype;
     *retset = (ObjectId) pform->proretset;
+
+    return (true);
 }
 
 /*
@@ -835,8 +839,6 @@ typeid_get_relid(type_id)
         OID             infunc;
         typeTuple = SearchSysCacheTuple(TYPOID, (char *) type_id,
                   (char *) NULL, (char *) NULL, (char *) NULL);
-	if (typeTuple == NULL)
-	  elog(WARN, "Type %d not found!", type_id);
         type = (TypeTupleForm) GETSTRUCT(typeTuple);
         infunc = type->typrelid;
         return(infunc);
