@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH INTRODUCTION LIBPQ 02/12/94
+.TH INTRODUCTION LIBPQ 03/12/94
 .XA 0 "Section 5 \(em Libpq"
 .BH "SECTION 5 \(em LIBPQ"
 .SH DESCRIPTION
@@ -12,6 +12,16 @@ instances to return through an IPC channel.
 This version of the documentation is based on the C library.  Three
 short programs are listed at the end of this section as examples of
 \*(LI programming (though not necessarily of good programming).
+.PP
+There are several examples of \*(LI applications in the following
+directories:
+.(C
+\&.../src/regress/demo
+\&.../src/regress/regress
+\&.../src/regress/video
+\&.../src/bin/monitor
+\&.../src/bin/fsutils
+.)C
 .XA 1 "Control and Initialization"
 .SH "CONTROL AND INITIALIZATION"
 .XA 2 "Environment Variables"
@@ -165,7 +175,8 @@ returns a string containing the character \*(lqG\*(rq when a
 return-value has been loaded into 
 .IR result_buf ,
 or \*(lqV\*(rq if the function returned nothing.
-.IR PQfn returns
+.IR PQfn
+returns a
 .SM NULL
 pointer and loads
 .IR PQerrormsg
@@ -216,12 +227,6 @@ A string beginning with the character \*(lqI\*(rq indicates that the
 server has finished sending the results of a multi-query command
 (e.g., has finished processing an asynchronous portal command).
 .IP
-The protocol can return strings beginning with the character
-\*(lqA\*(rq.  However, this indicates that the backend server thinks
-that it is processing an asynchronous portal and indicates a serious
-bug (since asynchronous portals are not implemented in \*(PG Version
-\*(PV).
-.IP
 If a non-fatal error occurred during the execution of the query,
 .IR PQexec
 will return (for historical reasons) the character \*(lqR\*(rq and
@@ -234,6 +239,53 @@ returns the character \*(lqE\*(rq and loads an error message into
 .(C
 char *PQexec(query)
 	char *query;
+.)C
+.TP 15n
+.BR PQFlushI
+The frontend/backend protocol has a serious flaw in that the queries 
+executed when using
+.IR PQfn
+and
+.IR PQexec
+can cause several query responses to come back to the frontend.  For
+example, during the definition of a view, the server actually executes
+several queries on its own to modify the system catalogs.
+Unfortunately, the implementation of this was botched and these
+queries return status messages to the frontend of their own.  If the
+frontend application only reads one response and then goes on to
+execute more queries, these extra responses sit in the message queue
+and the frontend will read these leftovers instead of reading the
+responses from its latest queries.
+.IP
+If you aren't completely positive that a call to 
+.IR PQexec
+won't do something more complicated than a simple 
+.IR retrieve ,
+you should probably wrap it in a loop that processes \*(lqP\*(rq and
+\*(lqC\*(rq responses in the usual way, but also performs
+.(C
+result = PQexec(" "); /* dummy query */
+++dummies_sent;
+.)C
+after receiving each good protocol result.  When the first character
+of a 
+.IR PQexec
+result is \*(lqI\*(rq, you know you have received the last result and
+have started receiving responses to your dummy queries.  To get rid of
+the \*(lqI\*(rq protocol responses that are now stuffed into your
+message buffer, call 
+.IR PQFlushI
+with the number of dummy queries you sent.
+.IP
+This is horrendously complicated and should be fixed.  Meanwhile, you
+should look at
+.(C
+\&.../src/bin/monitor/monitor.c
+.)C
+to see an example of a program that handles this problem correctly.
+.(C
+int PQFlushI(i_count)
+    int i_count;
 .)C
 .XA 1 "Portal Functions"
 .SH "PORTAL FUNCTIONS"
@@ -534,7 +586,8 @@ issue a null (empty) query, i.e.,
 .(C
 PQexec(" ");
 .)C
-Then the frontend should check the variable, PQAsyncNotifyWaiting.
+Then the frontend should check the variable, 
+.IR PQAsyncNotifyWaiting .
 When this variable is non-zero, the frontend can retrieve the
 notification data held using 
 .IR PQNotifies .
@@ -735,8 +788,6 @@ void fe_setauthsvc(name)
 .SH BUGS
 The query buffer is 8192 bytes long, and queries over that length will
 be silently truncated.
-.PP
-Asynchronous portals are not implemented in Version \*(PV.
 .bp
 .XA 1 "Sample Programs"
 .SH "SAMPLE PROGRAM 1"
