@@ -17,6 +17,39 @@ int	Debug_file = -1;
 int	Err_file = -1;
 int	ElogDebugIndentLevel;
 
+
+void
+EnableELog(enable)
+int enable;
+{
+    static int numEnabled;
+#ifdef DOUBLECHECK
+    static int fault; 
+
+    Assert(!fault);
+#endif
+
+    if (!enable && --numEnabled)
+	return;
+    if (enable && numEnabled++)
+	return;
+
+#ifdef DOUBLECHECK
+    ++fault;
+#endif
+    if (enable) {
+	/* XXX */
+	;
+    } else {
+	/* XXX */
+	;
+    }
+#ifdef DOUBLECHECK
+    --fault;
+#endif
+}
+
+
 /*VARARGS2*/
 void
 elog(lev, fmt, p0, p1, p2, p3, p4, p5)
