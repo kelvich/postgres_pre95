@@ -440,6 +440,7 @@ DATA(insert OID = 657 (  char16gt          PGUID 11 f t f 2 f 16 "19 19" 100 0 0
 DATA(insert OID = 658 (  char16ge          PGUID 11 f t f 2 f 16 "19 19" 100 0 0 100  foo bar ));
 DATA(insert OID = 659 (  char16ne          PGUID 11 f t f 2 f 16 "19 19" 100 0 0 100  foo bar ));
 
+DATA(insert OID = 682 (  mktinterval       PGUID 11 f t f 2 f 704 "702 702" 100 0 0 100 foo bar ));
 BKI_BEGIN
 #if 0
 BKI_END

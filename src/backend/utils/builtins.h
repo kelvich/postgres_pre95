@@ -210,6 +210,7 @@ int32 abstimele ARGS((int32 t1 , int32 t2 ));
 int32 abstimege ARGS((int32 t1 , int32 t2 ));
 TimeInterval tintervalin ARGS((char *intervalstr ));
 char *tintervalout ARGS((TimeInterval interval ));
+TimeInterval mktinterval ARGS((AbsoluteTime t1, AbsoluteTime t2));
 int ininterval ARGS((int32 t , TimeInterval interval ));
 RelativeTime intervalrel ARGS((TimeInterval interval ));
 int32 intervaleq ARGS((TimeInterval i1 , TimeInterval i2 ));
