@@ -436,6 +436,36 @@ pg_eval( query_string )
 	} /* if unrewritten, then rewrite */
 
     } /* foreach parsetree in the list */
+    /*
+     * Fix time range quals
+     * this _must_ go here, because it must take place
+     * after rewrites ( if they take place )
+     * or even if no rewrite takes place
+     * so that time quals are usable by the executor
+     */
+
+    foreach ( i , parsetree_list ) {
+	List parsetree = CAR(i);
+	List l;
+	List rt = NULL;
+	extern List MakeTimeRange();
+	
+	if ( atom ( CAR(parsetree))) 
+	    continue;
+
+	rt = root_rangetable ( parse_root ( parsetree ));
+
+	foreach ( l , rt ) {
+	    List timequal = rt_time (CAR(l));
+	    if ( timequal && consp(timequal) ) {
+		rt_time ( CAR(l)) = 
+		  MakeTimeRange ( CAR(timequal),
+				 CADR(timequal),
+				 CInteger(CADDR(timequal)));
+	    }
+	}
+    }
+    
 
     if ( DebugPrintRewrittenParsetree == true ) {
 	List i;
