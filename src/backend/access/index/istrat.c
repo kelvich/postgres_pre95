@@ -7,14 +7,9 @@
  *	index strategy manipulation operator code.
  *
  *   INTERFACE ROUTINES
- *	StrategyNumberIsValid
- *	StrategyNumberIsInBounds
- *	StrategyMapIsValid
- *	IndexStrategyIsValid
  *	StrategyMapGetScanKeyEntry
  *	IndexStrategyGetStrategyMap
  *	AttributeNumberGetIndexStrategySize
- *	StrategyTransformMapIsValid
  *	StrategyOperatorIsValid
  *	StrategyTermIsValid
  *	StrategyExpressionIsValid
@@ -57,53 +52,15 @@ RcsId("$Header$");
  * ----------------------------------------------------------------
  */
 
-/* ----------------
+/* 
  *	StrategyNumberIsValid
- * ----------------
- */
-bool
-StrategyNumberIsValid(strategyNumber)
-    StrategyNumber	strategyNumber;
-{
-    return (bool)
-	(strategyNumber != InvalidStrategy);
-}
-
-/* ----------------
  *	StrategyNumberIsInBounds
- * ----------------
- */
-bool
-StrategyNumberIsInBounds(strategyNumber, maxStrategyNumber)
-    StrategyNumber	strategyNumber;
-    StrategyNumber	maxStrategyNumber;
-{
-    return (bool)
-	(InvalidStrategy < strategyNumber &&
-	 strategyNumber <= maxStrategyNumber);
-}
-
-/* ----------------
  *	StrategyMapIsValid
- * ----------------
- */
-bool
-StrategyMapIsValid(map)
-    StrategyMap	map;
-{
-    return (bool) PointerIsValid(map);
-}
-
-/* ----------------
+ *	StrategyTransformMapIsValid
  *	IndexStrategyIsValid
- * ----------------
+ *
+ *		... are now macros in istrat.h -cim 4/27/91
  */
-bool
-IndexStrategyIsValid(indexStrategy)
-    IndexStrategy indexStrategy;
-{
-    return (bool) PointerIsValid(indexStrategy);
-}
 
 /* ----------------
  *	StrategyMapGetScanKeyEntry
@@ -155,16 +112,9 @@ AttributeNumberGetIndexStrategySize(maxAttributeNumber, maxStrategyNumber)
 	maxAttributeNumber * maxStrategyNumber * sizeof (ScanKeyData);
 }
 
-/* ----------------
- *	StrategyTransformMapIsValid
- * ----------------
+/* 
+ * StrategyTransformMapIsValid is now a macro in istrat.h -cim 4/27/91
  */
-bool
-StrategyTransformMapIsValid(transform)
-    StrategyTransformMap	transform;
-{
-    return (bool) PointerIsValid(transform);
-}
 
 /* ----------------
  *	StrategyOperatorIsValid

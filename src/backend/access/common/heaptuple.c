@@ -17,8 +17,6 @@
  *	heap_formtuple 
  *	heap_modifytuple
  *	
- *	FormIsValid
- *	HeapTupleIsValid
  *	HeapTupleGetForm
  *
  *   OLD INTERFACE FUNCTIONS
@@ -86,29 +84,6 @@ RcsId("$Header$");
  *			misc support routines
  * ----------------------------------------------------------------
  */
-/* ----------------
- *	FormIsValid
- * ----------------
- */
-bool
-FormIsValid(form)
-    Form	form;
-{
-    return (bool)
-	PointerIsValid(form);
-}
-
-/* ----------------
- *	HeapTupleIsValid
- * ----------------
- */
-bool
-HeapTupleIsValid(tuple)
-    HeapTuple	tuple;
-{
-    return (bool)
-	PointerIsValid(tuple);
-}
 
 /* ----------------
  *	HeapTupleGetForm
@@ -127,11 +102,11 @@ HeapTupleGetForm(tuple)
  * ----------------
  */
 Size
-ComputeDataSize(numberOfAttributes, tupleDescriptor, value, null)
+ComputeDataSize(numberOfAttributes, tupleDescriptor, value, nulls)
     AttributeNumber	numberOfAttributes;
     TupleDescriptor	tupleDescriptor;
     Datum		value[];
-    char		null[];
+    char		nulls[];
 {
     register Attribute	*attributeP;
     register Datum	*valueP;
@@ -141,7 +116,7 @@ ComputeDataSize(numberOfAttributes, tupleDescriptor, value, null)
 
     attributeP = &tupleDescriptor->data[0];
     valueP = value;
-    nullP = null;
+    nullP = nulls;
     length = 0;
 
     for (i = numberOfAttributes;
@@ -152,7 +127,7 @@ ComputeDataSize(numberOfAttributes, tupleDescriptor, value, null)
 	    continue;
 
 	if (*nullP != ' ')
-	    elog(DEBUG, "ComputeDataSize called with '\\0%o' null[%d]",
+	    elog(DEBUG, "ComputeDataSize called with '\\0%o' nulls[%d]",
 		 *nullP, numberOfAttributes - i);
 
 	if ((*attributeP)->attlen < 0) {
@@ -178,12 +153,12 @@ ComputeDataSize(numberOfAttributes, tupleDescriptor, value, null)
  * ----------------
  */
 void
-DataFill(data, numberOfAttributes, tupleDescriptor, value, null, bit)
+DataFill(data, numberOfAttributes, tupleDescriptor, value, nulls, bit)
     Pointer		data;
     AttributeNumber	numberOfAttributes;
     TupleDescriptor	tupleDescriptor;
     Datum		value[];
-    char		null[];
+    char		nulls[];
     bits8		bit[];
 {
     Attribute	*attributeP;
@@ -199,7 +174,7 @@ DataFill(data, numberOfAttributes, tupleDescriptor, value, null, bit)
 
     attributeP = &tupleDescriptor->data[0];
     valueP = value;
-    nullP = null;
+    nullP = nulls;
     for (i = numberOfAttributes;
 	 i != 0;
 	 i -= 1, attributeP += 1, valueP += 1, nullP += 1) {
@@ -896,11 +871,11 @@ heap_copytuple(tuple, buffer, relation)
  * ----------------
  */
 HeapTuple
-heap_formtuple(numberOfAttributes, tupleDescriptor, value, null)
+heap_formtuple(numberOfAttributes, tupleDescriptor, value, nulls)
     AttributeNumber	numberOfAttributes;
     TupleDescriptor	tupleDescriptor;
     Datum		value[];
-    char		null[];
+    char		nulls[];
 {
     char	*tp;	/* tuple pointer */
     HeapTuple	tuple;	/* return tuple */
@@ -917,7 +892,7 @@ heap_formtuple(numberOfAttributes, tupleDescriptor, value, null)
     hoff = len;
     
     len += ComputeDataSize(numberOfAttributes, tupleDescriptor, value,
-			   null);
+			   nulls);
     
     tp = (char *) palloc(len);
     tuple = LintCast(HeapTuple, tp);
@@ -926,7 +901,7 @@ heap_formtuple(numberOfAttributes, tupleDescriptor, value, null)
     tuple->t_natts = numberOfAttributes;
     tp += tuple->t_hoff = hoff;
     
-    DataFill((Pointer)tp, numberOfAttributes, tupleDescriptor, value, null,
+    DataFill((Pointer)tp, numberOfAttributes, tupleDescriptor, value, nulls,
 	     tuple->t_bits);
     
     /*
@@ -958,7 +933,7 @@ heap_modifytuple(tuple, buffer, relation, replValue, replNull, repl)
     AttributeOffset	attoff;
     AttributeNumber	numberOfAttributes;
     Datum		*value;
-    char		*null;
+    char		*nulls;
     Boolean		isNull;
     HeapTuple		newTuple;
     int			madecopy;
@@ -990,12 +965,12 @@ heap_modifytuple(tuple, buffer, relation, replValue, replNull, repl)
     numberOfAttributes = RelationGetRelationTupleForm(relation)->relnatts;
 
     /* ----------------
-     *	allocate and fill value[] and null[] arrays from either
+     *	allocate and fill value[] and nulls[] arrays from either
      *  the tuple or the repl information, as appropriate.
      * ----------------
      */
     value = (Datum *)	palloc(numberOfAttributes * sizeof *value);
-    null =  (char *)	palloc(numberOfAttributes * sizeof *null);
+    nulls =  (char *)	palloc(numberOfAttributes * sizeof *nulls);
     
     for (attoff = 0;
 	 attoff < numberOfAttributes;
@@ -1009,25 +984,25 @@ heap_modifytuple(tuple, buffer, relation, replValue, replNull, repl)
 				RelationGetTupleDescriptor(relation),
 					      &isNull) );
 	    
-	    null[ attoff ] = (isNull) ? 'n' : ' ';
+	    nulls[ attoff ] = (isNull) ? 'n' : ' ';
 	    
 	} else if (repl[ attoff ] != 'r') {
 	    elog(WARN, "heap_modifytuple: repl is \\%3d", repl[ attoff ]);
 	    
 	} else { /* == 'r' */
 	    value[ attoff ] = replValue[ attoff ];
-	    null[ attoff ] =  replNull[ attoff ];
+	    nulls[ attoff ] =  replNull[ attoff ];
 	}
     }
 
     /* ----------------
-     *	create a new tuple from the values[] and null[] arrays
+     *	create a new tuple from the values[] and nulls[] arrays
      * ----------------
      */
     newTuple = heap_formtuple(numberOfAttributes,
 			     RelationGetTupleDescriptor(relation),
 			     value,
-			     null);
+			     nulls);
 	
     /* ----------------
      *	copy the header except for the initial t_len and final t_bits
@@ -1108,23 +1083,23 @@ palloctup(tuple, buffer, relation)
 }
 
 HeapTuple
-formtuple(numberOfAttributes, tupleDescriptor, value, null)
+formtuple(numberOfAttributes, tupleDescriptor, value, nulls)
     AttributeNumber	numberOfAttributes;	/* max domain index + 1 */
     TupleDescriptor	tupleDescriptor;	/* descriptions */
     Datum		value[];		/* pointers to data */
-    char		null[];			/* null domain value */
+    char		nulls[];			/* null domain value */
 {
-    return heap_formtuple(numberOfAttributes, tupleDescriptor, value, null);
+    return heap_formtuple(numberOfAttributes, tupleDescriptor, value, nulls);
 }
 
 HeapTuple
-FormHeapTuple(numberOfAttributes, tupleDescriptor, value, null)
+FormHeapTuple(numberOfAttributes, tupleDescriptor, value, nulls)
 	AttributeNumber	numberOfAttributes;
 	TupleDescriptor	tupleDescriptor;
 	Datum		value[];
-	char		null[];
+	char		nulls[];
 {
-    return heap_formtuple(numberOfAttributes, tupleDescriptor, value, null);
+    return heap_formtuple(numberOfAttributes, tupleDescriptor, value, nulls);
 }
 
 HeapTuple

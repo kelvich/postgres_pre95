@@ -90,17 +90,6 @@ RcsId("$Header$");
  */
 #undef delete
 
-/* ----------------
- *	IndexScanIsValid
- * ----------------
- */
-bool
-IndexScanIsValid(scan)
-    IndexScanDesc	scan;
-{
-    return ((bool) PointerIsValid(scan));
-}
-
 /* ----------------------------------------------------------------
  *		    macros used in index_ routines
  * ----------------------------------------------------------------

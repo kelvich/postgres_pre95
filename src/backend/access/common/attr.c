@@ -33,30 +33,6 @@
 RcsId("$Header$");
 
 /* ----------------
- *	AttributeIsValid
- * ----------------
- */
-bool
-AttributeIsValid(attribute)
-    Attribute	attribute;
-{
-    return (bool)
-	PointerIsValid(attribute);
-}
-
-/* ----------------
- *	AttributeNumberIsValid
- * ----------------
- */
-bool
-AttributeNumberIsValid(attributeNumber)
-    AttributeNumber	attributeNumber;
-{
-    return (bool)
-	(attributeNumber != InvalidAttributeNumber);
-}
-
-/* ----------------
  *	AttributeNumberIsForUserDefinedAttribute
  * ----------------
  */

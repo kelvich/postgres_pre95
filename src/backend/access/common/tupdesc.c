@@ -43,18 +43,9 @@ RcsId("$Header$");
 
 extern ObjectId TypeShellMake();
 
-/* ----------------------------------------------------------------
- *	TupleDescIsValid
- *
- *	XXX this should either do something real or go away.
- * ----------------------------------------------------------------
+/*
+ *	TupleDescIsValid is now a macro in tupdesc.h -cim 4/27/91
  */
-bool
-TupleDescIsValid(desc)
-    TupleDesc	desc;
-{
-    return(PointerIsValid(desc));
-}
 
 /* ----------------------------------------------------------------
  *	CreateTemplateTupleDesc

@@ -12,13 +12,13 @@
 
 #include <stdio.h>
 
-#include "tmp/c.h"
+#include "tmp/postgres.h"
+
 #include "utils/rel.h"
 #include "access/heapam.h"
 #include "utils/log.h"
 #include "nodes/pg_lisp.h"
 #include "commands/version.h"
-#include "tmp/tim.h"
 #include "access/xact.h"		/* for GetCurrentXactStartTime */
 
 #define MAX_QUERY_LEN 1024

@@ -588,17 +588,9 @@ doinsert(relation, tup)
     return ((RuleLock)NULL);
 }
 
-/* ----------------
- *	HeapScanIsValid
- * ----------------
+/* 
+ *	HeapScanIsValid is now a macro in relscan.h -cim 4/27/91
  */
-bool
-HeapScanIsValid(scan)
-    HeapScanDesc	scan;
-{
-    return (bool)
-	PointerIsValid(scan);
-}
 
 /* ----------------
  *	SetHeapAccessMethodImmediateInvalidation

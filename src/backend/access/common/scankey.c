@@ -21,99 +21,14 @@
 
 RcsId("$Header$");
 
-/* ----------------
- *	ScanDirectionIsValid
- * ----------------
+/*
+ *	ScanDirectionIsValid, ScanDirectionIsBackward
+ *	ScanDirectionIsNoMovement, ScanDirectionIsForward
+ *		.. are now macros in sdir.h
+ *
+ *	ScanKeyIsValid, ScanKeyEntryIsValid, ScanKeyEntryIsLegal
+ *		.. are now macros in skey.h -cim 4/27/91
  */
-bool
-ScanDirectionIsValid(direction)
-    ScanDirection	direction;
-{
-    return (bool)
-	(AsInt8(BackwardScanDirection) <= AsInt8(direction) &&
-	 AsInt8(direction) <= AsInt8(ForwardScanDirection));
-}
-
-/* ----------------
- *	ScanDirectionIsBackward
- * ----------------
- */
-bool
-ScanDirectionIsBackward(direction)
-    ScanDirection	direction;
-{
-    Assert(ScanDirectionIsValid(direction));
-
-    return (bool)
-	(AsInt8(direction) == AsInt8(BackwardScanDirection));
-}
-
-/* ----------------
- *	ScanDirectionIsNoMovement
- * ----------------
- */
-bool
-ScanDirectionIsNoMovement(direction)
-    ScanDirection	direction;
-{
-    Assert(ScanDirectionIsValid(direction));
-
-    return (bool)
-	(AsInt8(direction) == AsInt8(NoMovementScanDirection));
-}
-
-/* ----------------
- *	ScanDirectionIsForward
- * ----------------
- */
-bool
-ScanDirectionIsForward(direction)
-    ScanDirection	direction;
-{
-    Assert(ScanDirectionIsValid(direction));
-
-    return (bool)
-	(AsInt8(direction) == AsInt8(ForwardScanDirection));
-}
-
-/* ----------------
- *	ScanKeyIsValid
- * ----------------
- */
-bool
-ScanKeyIsValid(scanKeySize, key)
-    ScanKeySize	scanKeySize;
-    ScanKey		key;
-{
-    return (bool)
-	(scanKeySize == 0 || PointerIsValid(key));
-}
-
-/* ----------------
- *	ScanKeyEntryIsValid
- * ----------------
- */
-bool
-ScanKeyEntryIsValid(entry)
-    ScanKeyEntry	entry;
-{
-    return (bool) PointerIsValid(entry);
-}
-
-/* ----------------
- *	ScanKeyEntryIsLegal
- * ----------------
- */
-bool
-ScanKeyEntryIsLegal(entry)
-    ScanKeyEntry	entry;
-{
-    bool	legality;
-
-    Assert(ScanKeyEntryIsValid(entry));
-    legality = AttributeNumberIsValid(entry->attributeNumber);
-    return (legality);
-}
 
 /* ----------------
  *	ScanKeyEntrySetIllegal

@@ -40,6 +40,7 @@
 #include "utils/rel.h"
 #include "utils/log.h"
 
+#include "tmp/miscadmin.h"
 #include "catalog/catname.h"
 
 #include "access/transam.h"

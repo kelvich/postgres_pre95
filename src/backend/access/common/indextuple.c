@@ -42,13 +42,11 @@ RcsId("$Header$");
  *			index tuple predicates
  * ----------------------------------------------------------------
  */
-bool
-IndexTupleIsValid(tuple)
-    IndexTuple	tuple;
-{
-    return (bool)
-	PointerIsValid(tuple);
-}
+
+/* 
+ *	IndexTupleIsValid(tuple) is now a macro in itup.h -cim 4/27/91
+ */
+
 
 ItemPointer
 IndexTupleGetRuleLockItemPointer(tuple)
@@ -66,13 +64,10 @@ IndexTupleGetRuleLock(tuple)
     return (tuple->t_lock.l_lock);
 }
 
-bool
-IndexAttributeBitMapIsValid(bits)
-    IndexAttributeBitMap bits;
-{
-    return (bool)
-	PointerIsValid(bits);
-}
+
+/* 
+ *  IndexAttributeBitMapIsValid(bits) is now a macro in ibit.h -cim 4/27/91
+ */
 
 IndexAttributeBitMap
 IndexTupleGetIndexAttributeBitMap(tuple)
@@ -95,37 +90,15 @@ IndexTupleGetForm(tuple)
  *	      misc index result stuff (XXX OBSOLETE ME!)
  * ----------------------------------------------------------------
  */
-bool
-GeneralInsertIndexResultIsValid(result)
-    GeneralInsertIndexResult	result;
-{
-    return (bool)
-	PointerIsValid(result);
-}
 
-bool
-InsertIndexResultIsValid(result)
-    InsertIndexResult	result;
-{
-    return (bool)
-	PointerIsValid(result);
-}
-
-bool
-GeneralRetrieveIndexResultIsValid(result)
-    GeneralRetrieveIndexResult	result;
-{
-    return (bool)
-	PointerIsValid(result);
-}
-
-bool
-RetrieveIndexResultIsValid(result)
-    RetrieveIndexResult	result;
-{
-    return (bool)
-	PointerIsValid(result);
-}
+/* 
+ *	GeneralInsertIndexResultIsValid(result)
+ *	InsertIndexResultIsValid(result)
+ *	GeneralRetrieveIndexResultIsValid(result)
+ *	RetrieveIndexResultIsValid(result)
+ *
+ *		.. are all macros in itup.h -cim 4/27/91
+ */
 
 ItemPointer
 GeneralInsertIndexResultGetItemPointer(result)
