@@ -1107,7 +1107,11 @@ int
 BufferShmemSize()
 {
     int size;
+    int nbuckets;
+    int nsegs;
 
+    nbuckets = 1 << log2((NBuffers - 1) / DEF_FFACTOR + 1);
+    nsegs = 1 << log2((nbuckets - 1) / DEF_SEGSIZE + 1);
     size =  /* size of shmem binding table */
 	    log2(BTABLE_SIZE) + sizeof(HHDR)
 	    + DEF_SEGSIZE * sizeof(SEGMENT) + BUCKET_ALLOC_INCR * 
@@ -1118,7 +1122,7 @@ BufferShmemSize()
             + NBuffers * BLOCK_SIZE
 	    /* size of buffer hash table */
             + log2(NBuffers) + sizeof(HHDR)
-	    + DEF_SEGSIZE * sizeof(SEGMENT) + BUCKET_ALLOC_INCR * 
+	    + nsegs * DEF_SEGSIZE * sizeof(SEGMENT) + BUCKET_ALLOC_INCR * 
 	    (sizeof(BUCKET_INDEX) + sizeof(BufferTag) + sizeof(Buffer))
 	    /* extra space, just to make sure there is enough  */
             + 4096;
