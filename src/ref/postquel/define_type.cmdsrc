@@ -37,7 +37,9 @@ which converts the type's external representation to an internal
 representation usable by the operators and functions defined for the
 type.  Naturally,
 .IR "output"
-performs the reverse transformation.
+performs the reverse transformation.  Both the input and output
+functions must be declared to take one or two arguments of type 
+.IR any .
 .PP
 New base data types can be fixed length, in which case
 .IR "internal length"
