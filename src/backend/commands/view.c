@@ -79,6 +79,142 @@ DefineVirtualRelation ( relname , tlist )
     fflush(stdout);
 }    
 
+#ifdef BOGUS
+void 
+sprint_tlist ( addr_of_target, tlist, rt )
+     String *addr_of_target;
+     List tlist;
+     List rt;
+{
+    static char temp_buffer[8192];
+    char *index = 0;
+    List i = NULL;
+
+    foreach ( i , tlist ) {
+	List 	this_tle	= CAR(i);
+	Resdom 	this_resdom 	= NULL;
+	List	this_expr 	= NULL;
+	char	*this_resname 	= NULL;
+	char	*this_restype 	= NULL;
+
+	this_expr = tl_expr(tle);
+	this_resdom = (Resdom)tl_resdom(tle);
+
+	Assert ( IsA(this_resdom,Resdom));
+
+	this_resname = get_resname(this_resdom);
+	this_resexpr = expr_to_string ( );
+
+	sprintf ( (temp_buffer + index) , "%s = %s::%s",
+		  this_resname,
+		  this_resexpr,
+		  this_restype );
+
+    }
+}
+#endif BOGUS
+
+List
+my_find ( string, list )
+     char *string;
+     List list;
+{
+    List i = NULL;
+    List retval = NULL;
+
+    for( i = list ; i != NULL; i = CDR(i) ) {
+	if ( CAR(i) && IsA (CAR(i),LispList)) {
+	    retval = my_find ( string,CAR(i));
+	    if ( retval ) 
+	      break;
+	} else if ( CAR(i) && IsA(CAR(i),LispStr) && 
+		    !strcmp(CString(CAR(i)),string) ) {
+	    retval = i;
+	    break;
+	} 
+    }
+    return(retval);
+}
+static char *retrieve_rule_template =
+"(\"_r%s\" retrieve (\"%s\") nil 1 (((1 replace 1 ((\"*CURRENT*\" \"%s\" %d 0 nil nil)(\"*NEW*\" \"%s\" %d 0 nil nil) \"rtable\" ) \"tlist\" \"qual\" )))(1 . 0 ))";
+
+List
+FormViewRetrieveRule ( view_name,  view_tlist, view_rt, view_qual )
+     Name view_name;
+     List view_tlist;
+     List view_rt;
+     List view_qual;
+{
+    static char retrieve_rule_string[8192];
+    List retrieve_rule 		= NULL;
+    oid view_reloid 		= (oid)33376;
+    List retrieve_rule_rtable	;
+    List retrieve_rule_tlist	;
+    List retrieve_rule_qual	;
+
+    extern List StringToPlan ();
+
+    sprintf ( retrieve_rule_string ,
+	     retrieve_rule_template,
+	     view_name,
+	     view_name,
+	     view_name,
+	     view_reloid,
+	     view_name,
+	     view_reloid
+	     );
+
+    retrieve_rule = StringToPlan ( retrieve_rule_string );
+
+    retrieve_rule_rtable = my_find ( "rtable", retrieve_rule );
+    CAR(retrieve_rule_rtable) = view_rt;
+
+    retrieve_rule_tlist = my_find ( "tlist", retrieve_rule );
+    CAR(retrieve_rule_tlist) = view_tlist;
+
+    retrieve_rule_qual = my_find ( "qual", retrieve_rule );
+    CAR(retrieve_rule_qual) = view_qual;
+
+    return (retrieve_rule);
+    
+}
+
+
+static void
+DefineViewRules ( view_name,  view_tlist, view_rt, view_qual )
+     Name view_name;
+     List view_tlist;
+     List view_rt;
+     List view_qual;
+{
+    List retrieve_rule		= NULL;
+    List replace_rule		= NULL;
+    List append_rule		= NULL;
+    List delete_rule		= NULL;
+
+    retrieve_rule = 
+      FormViewRetrieveRule ( view_name, view_tlist , view_rt, view_qual );
+
+#ifdef NOTYET
+    
+    replace_rule =
+      FormViewReplaceRule ( view_name, view_tlist, view_rt, view_qual);
+    append_rule = 
+      FormViewAppendRule ( view_name, view_tlist, view_rt, view_qual);
+    delete_rule = 
+      FormViewDeleteRule ( view_name, view_tlist, view_rt, view_qual);
+
+#endif
+
+    DefineQueryRewrite ( retrieve_rule );
+#ifdef NOTYET
+    DefineQueryRewrite ( replace_rule );
+    DefineQueryRewrite ( append_rule );
+    DefineQueryRewrite ( delete_rule );
+#endif
+
+}     
+       
 /*	HandleView
  *	- takes a "viewname", "parsetree" pair and then
  *	1)	construct the "virtual" relation 
@@ -88,72 +224,18 @@ DefineVirtualRelation ( relname , tlist )
  *		over the "virtual" relation
  */
 
-DefineView ( viewname, parsetree )
-     String viewname;
-     List parsetree;
+DefineView ( view_name, view_parse )
+     String view_name;
+     List view_parse;
 {
-    List tlist = parse_targetlist(parsetree);
-    LispValue element;
-    extern LispValue p_rtable;
+    List view_tlist 	= parse_targetlist( view_parse );
+    List view_rt 	= root_rangetable ( parse_root ( view_parse ));
+    List view_qual 	= parse_qualification( view_parse );
 
-    int i;
+    if ( getreldesc (view_name) == NULL ) 
+      DefineVirtualRelation ( view_name , view_tlist );
 
-    if ( getreldesc (viewname) == NULL ) 
-      DefineVirtualRelation ( viewname , tlist );
-
-    if ( ! null ( tlist )) {
-	i = 0;
-	foreach ( element, tlist ) {
-	    TLE 	entry = get_entry((TL)element);
-	    Resdom 	res   = get_resdom(entry);
-	    Var		var   = get_expr(entry);
-	    int		varno = get_varno(var);
-	    Name	resname = get_resname(res);
-	    Name	varname;
-	    Name	varattname;
-	    LispValue	temp;
-
-	    temp = (LispValue)root_rangetable(parse_root(parsetree));
-	    for ( i = 1 ; i < varno ; i ++ )
-	      temp = CDR(temp);
-
-	    varname = (Name)CString(CAR(CAR(temp)));
-
-	    varattname = attname ( varname, get_varattno(var) );
-	    DefineViewRule ( viewname, resname, varname, varattname, i++ );
-
-	}
-    }	
+    DefineViewRules ( view_name, view_tlist, view_rt, view_qual );
 
 }
-
-DefineViewRule(viewname,viewattr,basename,baseattr,attrno)
-     String viewname;
-     String viewattr;
-     String basename;
-     String baseattr;
-     AttributeNumber attrno;
-{
-    static char rulebuffer[1024];
-    int i = 0;
-
-    for ( i = 0 ; i < 1024 ; i++ ) {
-	rulebuffer[i] = NULL;
-    }
-
-    sprintf(rulebuffer,
-    "define rule _r%s%d on retrieve to %s.%s do instead retrieve %s.%s",
-	    viewname,attrno,viewname,viewattr,basename,baseattr);
-    sprintf(rulebuffer,
-	    "define rule _a%s%d on append to %s.%s do instead",
-	    viewname,attrno,viewname,viewattr,basename,baseattr);
-    sprintf(rulebuffer,
-	    "define rule _d%s%d on delete to %s do instead",
-	    viewname,attrno,viewname,viewattr,basename,baseattr);
-    sprintf(rulebuffer,
-	    "define rule _i%s%d on replace to %s do instead", 
-	    viewname,attrno,viewname,viewattr,basename,baseattr);
-    
-}
-
 
