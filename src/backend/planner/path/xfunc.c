@@ -223,6 +223,7 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
     Rel newrel;
     Cost pulled_selec;
     Cost cost;
+    CInfo newinfo;
 
     /* remove clause from childpath */
     if (clausetype == XFUNC_LOCPRD)
@@ -266,15 +267,21 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
     cost = get_path_cost(newkid) + xfunc_get_path_cost(newkid);
     set_path_cost(newkid, cost);
 
+    /*
+    ** We copy the cinfo, since it may appear in other plans, and we're going
+    ** to munge it.  -- JMH, 7/22/92
+    */
+    newinfo = (CInfo)CopyObject(cinfo);
+
     /* 
     ** Fix all vars in the clause 
     ** to point to the right varno and varattno in parentpath 
     */
-    xfunc_fixvars(get_clause(cinfo), newrel, whichchild);
+    xfunc_fixvars(get_clause(newinfo), newrel, whichchild);
 
     /*  add clause to parentpath, and fix up its cost. */
     set_locclauseinfo(parentpath, 
-		      lispCons((LispValue)cinfo, 
+		      lispCons((LispValue)newinfo, 
 			       (LispValue)get_locclauseinfo(parentpath)));
     /* put new childpath into the path tree */
     if (whichchild == INNER)
@@ -888,9 +895,10 @@ void xfunc_fixvars(clause, rel, varno)
 	       ** so I just figured I'd use the ones in the clause.
 	       */
 
-	      /* Set the varno to be the original varno!!! */
+	      /* Set the varno to be the original varno! 
+		 -- NO!  THIS IS A BUG, NOT A BUGFIX!  -- JMH 7/22/92
 	      ((Var)clause)->varno = 
-		CInteger(CAR((LispValue)(((Var)clause)->varid)));
+		CInteger(CAR((LispValue)(((Var)clause)->varid))); */
 	      add_tl_element(rel, (Var)clause, clause_relids_vars(clause));
 	      tle = tlistentry_member((Var)clause, get_targetlist(rel));
 	  }
