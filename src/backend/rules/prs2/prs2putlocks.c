@@ -157,11 +157,13 @@ List hint;
     Prs2LockType lockType;
     AttributeNumber attributeNo;
     bool status;
+    bool hintFlag;
 
     switch (r->eventType) {
 	case EventTypeRetrieve:
 	case EventTypeDelete:
 	case EventTypeReplace:
+	case EventTypeAppend:
 	    if (!null(hint) && LISPVALUE_INTEGER(hint) == RELATION) {
 		/*
 		 * use relation level locks
@@ -171,19 +173,19 @@ List hint;
 		/*
 		 * first check if we can use tuple level locking.
 		 * If no, then use relation level locks...
+		 * Unless we explicitly specify that we want
+		 * to use tuple-level locks (in which case 'hintFlag'
+		 * must be set to true.
 		 */
-		status = prs2DefTupleLevelLockRule(r);
+		if (!null(hint) && LISPVALUE_INTEGER(hint) == P_TUPLE)
+		    hintFlag = true;
+		else
+		    hintFlag = false;
+		status = prs2DefTupleLevelLockRule(r, hintFlag);
 		if (!status) {
 		    prs2DefRelationLevelLockRule(r);
 		}
 	    }
-	    break;
-	case EventTypeAppend:
-	    /*
-	     * "On append" rules only use relation level locks for the time
-	     * being...
-	     */
-	    prs2DefRelationLevelLockRule(r);
 	    break;
 	default:
 	    elog(WARN,
