@@ -30,7 +30,7 @@ struct {
 
 #define SPECIALS (sizeof(special_attr)/sizeof(*special_attr))
   
-char *attnum_type[SPECIALS] = {
+static String attnum_type[SPECIALS] = {
     "tid",
     "tid",
     "oid",
