@@ -546,10 +546,13 @@ pg_checkretval(rettype, parselist)
 	tlist = CDR(tlist);
 	thenode = CADR(tle);
 
+	/* this is tedious */
 	if (IsA(thenode,Var))
 	    tletype = (ObjectId) get_vartype((Var)thenode);
 	else if (IsA(thenode,Const))
 	    tletype = (ObjectId) get_consttype((Const)thenode);
+	else if (IsA(thenode,Param))
+	    tletype = (ObjectId) get_paramtype((Param)thenode);
 	else
 	    elog(WARN, "function declared to return type %s does not retrieve (%s.all)", tname(typ), tname(typ));
 
