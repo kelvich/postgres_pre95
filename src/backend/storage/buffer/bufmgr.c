@@ -43,12 +43,6 @@
 #include "utils/hsearch.h"
 #include "utils/log.h"
 
-#ifdef PARALLELDEBUG
-#include <usclkc.h>
-usclk_t ReadBufferHitTime;
-usclk_t ReadBufferMissTime;
-#endif
-
 int		NBuffers = NDBUFS;  /* NDBUFS defined in miscadmin.h */
 int		Data_Descriptors;
 int		Free_List_Descriptor;
@@ -147,10 +141,6 @@ BlockNumber 	blockNum;
   int		extend;   /* extending the file by one block */
   int		status;
   Boolean	found;
-#ifdef PARALLELDEBUG
-  usclk_t       st;
-  st = getusclk();
-#endif
 
   ReadBufferCount++;
   extend = (blockNum == NEW_BLOCK);
@@ -169,9 +159,6 @@ BlockNumber 	blockNum;
       elog(NOTICE,"BufferAlloc: found new block in buf table");
     }
     BufferHitCount++;
-#ifdef PARALLELDEBUG
-    ReadBufferHitTime += getusclk() - st;
-#endif
     return(BufferDescriptorGetBuffer(bufHdr));
   }
 
@@ -220,9 +207,6 @@ BlockNumber 	blockNum;
 #endif
   SpinRelease(BufMgrLock);
     
-#ifdef PARALLELDEBUG
-  ReadBufferMissTime += getusclk() - st;
-#endif
   return(BufferDescriptorGetBuffer(bufHdr));
 } 
 
