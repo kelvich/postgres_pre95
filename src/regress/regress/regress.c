@@ -1,9 +1,11 @@
+/*
+ * $Header$
+ */
+
 #include <stdio.h>
 
 #include "utils/geo-decls.h"
 #include "tmp/libpq-fe.h"
-
-
 
 #define P_MAXDIG 12
 #define LDELIM		'('
@@ -64,7 +66,6 @@ regress_dist_ptpath(pt, path)
   exit:
     return(result);
 }
-
 
 /* this essentially does a cartesian product of the lsegs in the
    two paths, and finds the min distance between any two lsegs */
