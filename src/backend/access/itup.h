@@ -43,6 +43,7 @@ typedef struct IndexTupleData {
 		RuleLock	l_lock;		/* internal lock format */
 	}	t_lock;
 	ItemPointerData			t_tid;	/* reference TID to base tuple */
+	char t_infomask;
 	IndexAttributeBitMapData	bits;	/* bitmap of domains */
 } IndexTupleData;	/* MORE DATA FOLLOWS AT END OF STRUCT */
 
@@ -346,5 +347,8 @@ ItemPointerFormRetrieveIndexResult ARGS((
 	ItemPointer	heapItemPointer
 ));
 
+
+#define IndexTupleNoNulls(itup) (((IndexTuple) (itup))->t_infomask & 0x1) 
+#define IndexTupleAllFixed(itup) (((IndexTuple) (itup))->t_infomask & 0x2) 
 
 #endif	/* !defined(ITUP_H) */
