@@ -22,7 +22,7 @@ executed.
 In order to rename an attribute in each class in an entire inheritance
 hierarchy, use the 
 .IR classname
-of the superclass and append a \*(lq*\*rq.  (By default, the attribute
+of the superclass and append a \*(lq*\*(rq.  (By default, the attribute
 will not be renamed in any of the subclasses.)  This should
 .BR always
 be done when changing an attribute name in a superclass.  If it is
@@ -59,4 +59,4 @@ rename last_name in person* to family_name
 Execution of historical queries using classes and attributes whose
 names have changed will produce incorrect results in many situations.
 .PP
-Renaming of types, operators, rules, etc. should also be supported.
+Renaming of types, operators, rules, etc., should also be supported.
