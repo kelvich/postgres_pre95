@@ -62,8 +62,6 @@
  *    	(3) Target lists are not modified, but will be in another routine.
  *    
  *    	'best-path' is the best access path
- *    	'origtlist' is the original(unflattened) targetlist for the current
- *    		nesting level
  *    
  *    	Returns the optimal(?) access plan.
  *    
@@ -72,9 +70,8 @@
 /*  .. create_join_node, subplanner    */
 
 Plan
-create_plan(best_path,origtlist)
+create_plan(best_path)
      Path best_path;
-     List origtlist ;
 {
      List tlist;
      Plan plan_node = (Plan)NULL;
@@ -100,8 +97,7 @@ create_plan(best_path,origtlist)
 	case T_HashJoin :
 	case T_MergeJoin : 
 	case T_NestLoop:
-	  plan_node = (Plan)create_join_node((JoinPath)best_path,
-					     origtlist,tlist);
+	  plan_node = (Plan)create_join_node((JoinPath)best_path, tlist);
 	  break;
 	default: /* do nothing */
 	  break;
@@ -126,6 +122,8 @@ create_plan(best_path,origtlist)
 
      /*    Attach a SORT node to the path if a sort path is specified. */
 
+#if 0
+     /* this piece of code has been long dead -- Wei */
      if (get_pathsortkey(best_path) &&
 	(_query_max_level_ == 1)) {
 	  set_qptargetlist(plan_node,
@@ -136,6 +134,7 @@ create_plan(best_path,origtlist)
 						get_pathsortkey(best_path))));
      }
      else 
+#endif
        if(get_pathsortkey(best_path)) {
 	    sorted_plan_node = (Plan)make_temp(tlist,
 				      get_varkeys(get_pathsortkey(best_path)),
@@ -148,11 +147,7 @@ create_plan(best_path,origtlist)
 	  plan_node = sorted_plan_node;
 	  
      }
-     /*
-      * Destructively modify the query plan's targetlist to add fjoin
-      * lists to flatten functions that return sets of base types
-      */
-     set_qptargetlist(plan_node, generate_fjoin(get_qptargetlist(plan_node)));
+
      return(plan_node);
 
 } /* function end */
@@ -234,9 +229,9 @@ create_scan_node(best_path,tlist)
 /*  .. create_plan    */
 
 Join
-create_join_node(best_path,origtlist,tlist)
+create_join_node(best_path,tlist)
      JoinPath best_path;
-     List origtlist,tlist ;
+     List tlist ;
 {
      Plan 	outer_node;
      LispValue 	outer_tlist;
@@ -245,10 +240,10 @@ create_join_node(best_path,origtlist,tlist)
      LispValue 	clauses;
      Join 	retval;
 
-     outer_node = create_plan((Path)get_outerjoinpath(best_path),origtlist);
+     outer_node = create_plan((Path)get_outerjoinpath(best_path));
      outer_tlist  = get_qptargetlist(outer_node);
 
-     inner_node = create_plan((Path)get_innerjoinpath(best_path),origtlist);
+     inner_node = create_plan((Path)get_innerjoinpath(best_path));
      inner_tlist = get_qptargetlist(inner_node);
 
      clauses = get_actual_clauses(get_pathclauseinfo(best_path));
