@@ -333,9 +333,9 @@ CreateStmt:
 		     CDR(temp) = $4;
 		     /* $$ = nappend1 ( $$, $4 ); */
 		}
-	| CREATE NEWVERSION relation_name FROM relation_expr
+	| CREATE NEWVERSION relation_name FROM relation_name
 		{
-		    $$ = MakeList ( KW(version), $3, $5 );
+		    $$ = MakeList ( KW(version), $3, $5,-1 );
 		}
 	;
 
