@@ -328,11 +328,15 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
     if (final_relation) {
       if (testFlag) {
 	  List planlist = LispNil;
+	  List pathlist = LispNil;
+	  List prunePathListForTest();
 	  LispValue x;
 	  Path path;
 	  Plan plan;
 	  Choose chooseplan;
-	  foreach (x, get_pathlist(final_relation)) {
+	  pathlist = get_pathlist(final_relation);
+	  pathlist = prunePathListForTest(pathlist);
+	  foreach (x, pathlist) {
 	      path = (Path)CAR(x);
 	      plan = create_plan(path, original_tlist);
 	      planlist = nappend1(planlist, plan);
@@ -374,3 +378,65 @@ make_result( tlist,resrellevelqual,resconstantqual,left,right)
     
     return(node);
 } 
+
+bool
+pathShouldPruned(path, order_expected)
+Path path;
+bool order_expected;
+{
+    if (IsA(path,MergePath)) {
+	return pathShouldPruned(get_outerjoinpath(path), 
+				!get_outersortkeys(path)) ||
+	       pathShouldPruned(get_innerjoinpath(path), 
+				!get_innersortkeys(path));
+      }
+    if (IsA(path,HashPath)) {
+	return pathShouldPruned(get_outerjoinpath(path), false) ||
+	       pathShouldPruned(get_innerjoinpath(path), false);
+      }
+    if (IsA(path,JoinPath)) {
+	if (!IsA(get_innerjoinpath(path),IndexPath) &&
+	    !IsA(get_innerjoinpath(path),JoinPath) &&
+	    length(get_relids(get_parent(get_innerjoinpath(path)))) == 1)
+	   return true;
+	return pathShouldPruned(get_outerjoinpath(path), order_expected) ||
+	       pathShouldPruned(get_innerjoinpath(path), false);
+      }
+    if (IsA(path,IndexPath)) {
+	return lispNullp(get_indexqual(path)) && !order_expected;
+      }
+    return false;
+}
+
+List
+prunePathListForTest(pathlist)
+List pathlist;
+{
+    LispValue x, y;
+    Path path, path1;
+    List path_prune_list = LispNil;
+    List new_pathlist;
+
+    foreach (x, pathlist) {
+	path = (Path)CAR(x);
+	if (pathShouldPruned(path, false))
+	    path_prune_list = nappend1(path_prune_list, path);
+      }
+    new_pathlist = set_difference(pathlist, path_prune_list);
+    path_prune_list = LispNil;
+    foreach (x, new_pathlist) {
+	path = (Path)CAR(x);
+	if (IsA(path,MergePath)) {
+	    foreach (y, CDR(x)) {
+		path1 = (Path)CAR(y);
+		if (IsA(path1,MergePath) && 
+		    equal(get_outerjoinpath(path), get_innerjoinpath(path1)) &&
+		    equal(get_innerjoinpath(path), get_outerjoinpath(path1)))
+		    path_prune_list = nappend1(path_prune_list, path1);
+	      }
+	  }
+       }
+    new_pathlist = set_difference(new_pathlist, path_prune_list);
+	    
+    return new_pathlist;
+}
