@@ -325,6 +325,7 @@ ScanPgRelation(buildinfo)
      * ----------------
      */
     pg_relation_desc =  heap_openr(RelationRelationName);
+    RelationSetLockForRead(pg_relation_desc);
     pg_relation_scan =
 	heap_beginscan(pg_relation_desc, 0, NowTimeQual, 1, &key);
     pg_relation_tuple = heap_getnext(pg_relation_scan, 0, &buf);
@@ -350,6 +351,7 @@ ScanPgRelation(buildinfo)
 
     /* all done */
     heap_endscan(pg_relation_scan);
+    RelationUnsetLockForRead(pg_relation_desc);
     heap_close(pg_relation_desc);
 
     return return_tuple;
