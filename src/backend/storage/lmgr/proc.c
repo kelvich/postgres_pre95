@@ -150,6 +150,7 @@ IPCKey key;
    * Bump key val for next process
    * -------------
    */
+  MyProc->sem.semKey = ProcGlobal->currKey;
   ProcGlobal->currKey++;
 
   /* ----------------------
@@ -159,7 +160,6 @@ IPCKey key;
   SpinRelease(ProcStructLock);
 
   MyProc->sem.semNum = 0;
-  MyProc->sem.semKey = key;
   MyProc->backendId = MyBackendId;
 
   /* ----------------
@@ -200,16 +200,43 @@ ProcReleaseLocks()
   LockReleaseAll(1,&MyProc->lockQueue);
 }
 
+ProcSemaphoreKill(pid)
+int pid;
+{
+  SHMEM_OFFSET  location,ShmemPIDDestroy();
+  PROC *proc;
+
+  location = INVALID_OFFSET;
+
+  ShmemPIDLookup(pid,&location);
+  if (location == INVALID_OFFSET)
+    return(FALSE);
+
+  proc = (PROC *) MAKE_PTR(location);
+  IpcSemaphoreKill(proc->sem.semKey);
+  return(TRUE);
+}
+
 /*
  * ProcKill() -- Destroy the per-proc data structure for
- *	this process.
+ *	this process. Release any of its held spin locks.
  */
-ProcKill(pid)
+ProcKill(exitStatus, pid)
+int exitStatus;
 int pid;
 {
   PROC 		*proc;
   SHMEM_OFFSET	location,ShmemPIDDestroy();
   void ProcReleaseSpins();
+
+  /* -------------------- 
+   * If this is a FATAL exit the postmaster will have to kill all the existing
+   * backends and reinitialize shared memory.  So all we don't need to do
+   * anything here.
+   * --------------------
+   */
+  if (exitStatus != 0)
+    return(TRUE);
 
   if (! pid)
   {
@@ -226,9 +253,9 @@ int pid;
     Assert( pid != getpid() );
   else
     MyProc = NULL;
-
+    
   /* ---------------
-   * assume one lock table
+   * Assume one lock table.
    * ---------------
    */
   ProcReleaseSpins(proc);
@@ -238,7 +265,6 @@ int pid;
    * toss the wait queue
    * ----------------
    */
-  IpcSemaphoreKill((proc->sem.semKey));
   if (proc->links.next != INVALID_OFFSET)
     SHMQueueDelete(&(proc->links));
 
@@ -372,7 +398,7 @@ LOCK *		lock;
    * --------------
    */
   bzero(&timeval, sizeof(struct itimerval));
-  timeval.it_value.tv_sec = 15;
+  timeval.it_value.tv_sec = 60;
 
   if (setitimer(ITIMER_REAL, &timeval, &dummy))
 	elog(FATAL, "ProcSleep: Unable to set timer for process wakeup");
