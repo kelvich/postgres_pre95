@@ -3,6 +3,7 @@
 #
 
 SRCS+= dynamic_syms.c on_exit.c port.c sendannounce.c
+HEADERS+= machine.h
 
 # use dynloader.c in dld if USE_DLD defined
 .ifndef USE_DLD
