@@ -21,38 +21,18 @@
  * prs2Replace
  */
 Prs2Status
-prs2Replace(prs2EStateInfo, oldTuple, oldBuffer, newTuple, newBuffer,
+prs2Replace(prs2EStateInfo, explainRelation, oldTuple, oldBuffer,
+	    newTuple, newBuffer, rawTuple, rawBuffer,
 	    attributeArray, numberOfAttributes, relation,
 	    returnedTupleP, returnedBufferP)
 Prs2EStateInfo prs2EStateInfo;
+Relation explainRelation;
 HeapTuple oldTuple;
 Buffer oldBuffer;
 HeapTuple newTuple;
 Buffer newBuffer;
-AttributeNumberPtr attributeArray;
-int numberOfAttributes;
-Relation relation;
-HeapTuple *returnedTupleP;
-Buffer *returnedBufferP;
-{
-    return(PRS2_STATUS_TUPLE_UNCHANGED);
-}
-
-
-#ifdef NOT_YET
-/*-------------------------------------------------------------------
- *
- * prs2Replace
- */
-Prs2Status
-prs2Replace(prs2EStateInfo, oldTuple, oldBuffer, newTuple, newBuffer,
-	    attributeArray, numberOfAttributes, relation,
-	    returnedTupleP, returnedBufferP)
-Prs2EStateInfo prs2EStateInfo;
-HeapTuple oldTuple;
-Buffer oldBuffer;
-HeapTuple newTuple;
-Buffer newBuffer;
+HeapTuple rawTuple;
+Buffer rawBuffer;
 AttributeNumberPtr attributeArray;
 int numberOfAttributes;
 Relation relation;
@@ -61,7 +41,8 @@ Buffer *returnedBufferP;
 {
     RuleLock oldLocks, newLocks;
     int i;
-    AttributeValues oldAttrValues, newAttrValues;
+    AttributeValues oldAttrValues, newAttrValues, rawAttrValues;
+    AttributeNumber attr;
     int newTupleMade;
     Name relName;
     bool insteadRuleFound;
@@ -88,25 +69,29 @@ Buffer *returnedBufferP;
      */
     newAttrValues = attributeValuesCreate(newTuple, newBuffer, relation);
     oldAttrValues = attributeValuesCreate(oldTuple, oldBuffer, relation);
+    rawAttrValues = attributeValuesCreate(rawTuple, rawBuffer, relation);
 
     /*
      * First activate all the 'late evaluation' rules, i.e.
      * all the rules that try to update the fields of the 'new' tuple
      */
-    for(i=0; i<numberOfAttributes; i++) {
+    for(attr=1; attr <= RelationGetNumberOfAttributes(relation); attr++) {
 	prs2ActivateBackwardChainingRules(
 		    prs2EStateInfo,
+		    explainRelation,
 		    relation,
-		    attributeArray[i],
+		    attr,
 		    PRS2_NEW_TUPLE,
+		    oldTuple->t_oid,
+		    oldAttrValues,
+		    oldLocks,
+		    LockTypeRetrieveWrite,
 		    newTuple->t_oid,
 		    newAttrValues,
 		    newLocks,
 		    LockTypeReplaceWrite,
-		    oldTuple->t_oid,
-		    oldAttrValues,
-		    oldLocks,
-		    LockTypeRetrieveWrite);
+		    attributeArray,
+		    numberOfAttributes);
     }
 
     /*
@@ -118,6 +103,7 @@ Buffer *returnedBufferP;
     for(i=0; i<numberOfAttributes; i++) {
 	prs2ActivateForwardChainingRules(
 		    prs2EStateInfo,
+		    explainRelation,
 		    relation,
 		    attributeArray[i],
 		    LockTypeReplaceAction,
@@ -130,8 +116,9 @@ Buffer *returnedBufferP;
 		    newAttrValues,
 		    newLocks,
 		    LockTypeRetrieveWrite,
-		    LockTypeInvalid,
-		    &insteadRuleFoundThisTime);
+		    &insteadRuleFoundThisTime,
+		    attributeArray,
+		    numberOfAttributes);
 	if (insteadRuleFoundThisTime) {
 	    insteadRuleFound = true;
 	}
@@ -139,12 +126,16 @@ Buffer *returnedBufferP;
 
     /*
      * Now all the correct values 
-     * Create a new tuple with the correct values.
+     * Create a new tuple combining the 'raw' tuple, i.e. the
+     * tuple without any rules activated and the 'new' tuple.
      */
-    newTupleMade = attributeValuesMakeNewTuple(
-				newTuple, newBuffer,
-				newAttrValues, newLocks, LockTypeInvalid,
-				relation, returnedTupleP);
+    *returnedBufferP = InvalidBuffer;
+    *returnedTupleP = attributeValuesCombineNewAndOldTuple(
+				rawAttrValues,
+				newAttrValues,
+				relation,
+				attributeArray,
+				numberOfAttributes);
 
     prs2FreeLocks(newLocks);
     prs2FreeLocks(oldLocks);
@@ -153,13 +144,8 @@ Buffer *returnedBufferP;
 
     if (insteadRuleFound) {
 	return(PRS2_STATUS_INSTEAD);
+    } else {
+	return(PRS2_STATUS_TUPLE_CHANGED);
     }
 
-    if (newTupleMade) {
-	*returnedBufferP = InvalidBuffer;
-	return(PRS2_STATUS_TUPLE_CHANGED);
-    } else {
-	return(PRS2_STATUS_TUPLE_UNCHANGED);
-    }
 }
-#endif NOT_YET
