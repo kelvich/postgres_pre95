@@ -231,6 +231,16 @@ findnext(s, p, n, dir)
     po = (RTreePageOpaque) PageGetSpecialPointer(p);
     so = (RTreeScanOpaque) s->opaque;
 
+    /*
+     *  If we modified the index during the scan, we may have a pointer to
+     *  a ghost tuple, before the scan.  If this is the case, back up one.
+     */
+
+    if (so->s_flags & RTS_CURBEFORE) {
+	so->s_flags &= ~RTS_CURBEFORE;
+	n--;
+    }
+
     while (n >= 0 && n <= maxoff) {
 	it = (IndexTuple) PageGetItem(p, PageGetItemId(p, n));
 	if (po->flags & F_LEAF) {
