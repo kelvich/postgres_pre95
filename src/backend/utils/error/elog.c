@@ -134,7 +134,7 @@ va_dcl
 
 	if (Err_file > -1 && Debug_file != Err_file)
 		if (write(Err_file, line, len) < 0) {
-			write(open("/dev/console", O_WRONLY), line, len);
+			write(open("/dev/console", O_WRONLY, 0666), line, len);
 			fflush(stdout);
 			fflush(stderr);
 			exitpg(lev);
