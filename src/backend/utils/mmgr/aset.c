@@ -107,7 +107,8 @@ AllocSetInit(set, mode, limit)
 	Size		limit;
 {
 	AssertArg(AllocSetIsValid(set));
-	AssertArg(DynamicAllocMode <= mode && mode <= BoundedAllocMode);
+	AssertArg((int)DynamicAllocMode <= (int)mode);
+	AssertArg((int)mode <= (int)BoundedAllocMode);
 
 	/*
 	 * XXX mode is currently ignored and treated as DynamicAllocMode.
