@@ -136,9 +136,7 @@ SIBackendInit(segInOutP)
      */
     GetNewTransactionId(SIXid);
     
-    SILockTableId = LMLockTableCreate("multiLevel",
-				      MultiLevelLockTable,
-				      LockTableNormal);
+    SILockTableId = InitMultiLevelLockm();
 
     MyBackendId = SIAssignBackendId(segInOutP, MyBackendTag);
 
