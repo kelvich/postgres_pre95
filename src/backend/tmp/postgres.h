@@ -252,7 +252,6 @@ typedef NameData	*Name;
 /*
  * Identification:
  */
-#define DATUM_H	"$Header$"
 
 typedef struct AnyStruct {
 	char    character;
@@ -534,7 +533,8 @@ typedef uint32	RelativeTime;
     typedef struct CppConcat(FormData_,x)
 
 #define DATA(x)
-#define DEFINE_INDEX(x)
+#define DECLARE_INDEX(x)
+#define BUILD_INDICES
 #define BOOTSTRAP
 
 #define BKI_BEGIN
