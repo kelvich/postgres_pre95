@@ -52,7 +52,7 @@ struct attribute *	/* XXX */
 	void
 ));
 
-int	Quiet = 0;
+int		Quiet = 0;
 static	int	Warnings = 0;
 static	int	ShowTime = 0;
 #ifdef	EBUG
@@ -62,7 +62,8 @@ int		Userid;
 Relation	reldesc;		/* current relation descritor */
 char		relname[80];		/* current relation name */
 jmp_buf		Warn_restart;
-int		NBuffers = 2;		/* number of pages in buffer pool */
+int		NBuffers = 2;
+static	time_t	tim;
 
 bool override = false;
 
@@ -105,9 +106,6 @@ main(argc, argv)
     char	*getenv();
 
     char	parser_input[MAX_PARSE_BUFFER];
-    List	parser_output;
-
-    time_t	tim;
     
     /* ----------------
      *	process arguments
@@ -233,105 +231,21 @@ main(argc, argv)
 	}
 	StartTransactionCommand();
 
-	/* ----------------
-	 *	get and parse the input
-	 * ----------------
-	 */
-	/*
-	 * allocate a new "list" each time, since it is may be
-	 * stored in a named portal and should not suddenly its
-	 * contents
-	 *
-	 * I suspect that having the parser return the parse tree
-	 * given no arguments would be a cleaner interface.  Is
-	 * there any problem with doing this?
-	 *	-hirohama
-	 *
-	 *    It's possible that we may do stuff to the
-	 *    input before parsing.. (i.e. preprocessing)
-	 *    In any case keeping the I/O code and the parser
-	 *    code is better because they are orthogonal functions.
-	 *    -cim 9/18/89
-	 */
-	parser_output = lispList();
-	
 	if (IsUnderPostmaster == true) {
-	  if ( SocketBackend(parser_input, parser_output) == 'F') {
-	    if (! Quiet) {
-	      time(&tim);
-	      printf("\tCommitTransactionCommand() at %s\n", ctime(&tim));
+	    if ( SocketBackend(parser_input ) == 'F') {
+		if (! Quiet) {
+		    time(&tim);
+		    printf("\tCommitTransactionCommand() at %s\n", 
+			   ctime(&tim));
+		}
+		CommitTransactionCommand();
+		continue;
 	    }
-	    CommitTransactionCommand();
-	    continue;
-	  }
 	} else
-	    InteractiveBackend(parser_input, parser_output);
-
-	ValidateParse(parser_output);
-
-	/* ----------------
-	 *	display parse strings
-	 * ----------------
-	 */
-	if (! Quiet) {
-	    printf("\ninput string is %s\n",parser_input);
-	    printf("\n---- \tparser outputs :\n");
-	    lispDisplay(parser_output,0);
-	    printf("\n");
-	}
-	
-	/* ----------------
-	 *   process the request
-	 * ----------------
-	 */
-	if (lispIntegerp(CAR(parser_output))) {
-	    /* ----------------
-	     *   process utility functions (create, destroy, etc..)
-	     * ----------------
-	     */
-	    if (! Quiet) {
-		time(&tim);
-		printf("\tProcessUtility() at %s\n", ctime(&tim));
-	    }
-	    
-	    ProcessUtility(LISPVALUE_INTEGER(CAR(parser_output)),
-			   CDR(parser_output));
-	} else {
-	    /* ----------------
-	     *   process queries (retrieve, append, delete, replace)
-	     * ----------------
-	     */
-	    Node plan;
-	    extern Node planner();
-	    extern void init_planner();
-
-	    if (! Quiet)
-		puts("\tinit_planner()..");
-	    init_planner();
-	      
-	    /* ----------------
-	     *   generate the plan
-	     * ----------------
-	     */
-	    plan = planner(parser_output);
-	    if (! Quiet) {
-		printf("\nPlan is :\n");
-		(*(plan->printFunc))(stdout, plan);
-		printf("\n");
-	    }
-	    
-	    /* ----------------
-	     *   call the executor
-	     * ----------------
-	     */
-	    if (! Quiet) {
-		time(&tim);
-		printf("\tProcessQuery() at %s\n", ctime(&tim));
-	    }
-	    
-	    ProcessQuery(parser_output, plan);
-	}
+	  InteractiveBackend(parser_input);
     
+	pg_eval ( parser_input );
+
 	/* ----------------
 	 *   commit the current transaction
 	 * ----------------
@@ -340,7 +254,6 @@ main(argc, argv)
 	    time(&tim);
 	    printf("\tCommitTransactionCommand() at %s\n", ctime(&tim));
 	}
-	
 	CommitTransactionCommand();
     }
 }
@@ -392,7 +305,6 @@ SocketBackend(inBuf, parseList)
 	    AbortCurrentTransaction();
 	    exit(0);
 	}
-	parser(inBuf,parseList);
 	break;
     case 'F':	/* calling user/system functions */
         HandleFunctionRequest();
@@ -407,23 +319,111 @@ SocketBackend(inBuf, parseList)
 
 /*
  *  InteractiveBackend() Is called for user interactive connections
- *  MODIFIES:	parseList
+ *  MODIFIES:	inBuf
  */
 
-InteractiveBackend(inBuf, parseList)
+InteractiveBackend(inBuf)
      char *inBuf;
-     LispValue parseList;
 {
-	String	stuff;
-
-	printf("> ");
-	stuff = gets(inBuf);
-	if (!StringIsValid(stuff)) {
-		if (!Quiet) {
-			puts("EOF");
-		}
-		AbortCurrentTransaction();
-		exit(0);
+    String	stuff;
+    
+    printf("> ");
+    stuff = gets(inBuf);
+    if (!StringIsValid(stuff)) {
+	if (!Quiet) {
+	    puts("EOF");
 	}
-	parser(inBuf, parseList);
+	AbortCurrentTransaction();
+	exit(0);
+    }
 }
+
+/*	QueryEvaluate
+ *	
+ *	Takes a querystring, runs the parser/utilities or
+ *	parser/planner/executor over it as necessary
+ *	Begin Transaction Should have been called before this
+ *	and CommitTransaction After this is called
+ *	This is strictly because we do not allow for nested xactions.
+ *
+ *
+ *	NON-OBVIOUS-RESTRICTIONS
+ * 	this function _MUST_ allocate a new "parsetree" each time, 
+ * 	since it may be stored in a named portal and should not 
+ * 	change its value.
+ */
+
+pg_eval ( query_string )
+     String	query_string;
+{
+    LispValue parsetree = lispList();
+    
+    parser(query_string,parsetree);
+    
+    ValidateParse(parsetree);
+    
+    /* ----------------
+     *	display parse strings
+     * ----------------
+     */
+    if (! Quiet) {
+	printf("\ninput string is %s\n",query_string);
+	printf("\n---- \tparser outputs :\n");
+	lispDisplay(parsetree,0);
+	printf("\n");
+    }
+	
+    /* ----------------
+     *   process the request
+     * ----------------
+     */
+    if (atom (CAR(parsetree))) {
+	/* ----------------
+	 *   process utility functions (create, destroy, etc..)
+	 * ----------------
+	 */
+	if (! Quiet) {
+	    time(&tim);
+	    printf("\tProcessUtility() at %s\n", ctime(&tim));
+	}
+	
+	ProcessUtility(LISPVALUE_INTEGER(CAR(parsetree)),
+		       CDR(parsetree));
+    } else {
+	/* ----------------
+	 *   process queries (retrieve, append, delete, replace)
+	 * ----------------
+	 */
+	Node plan;
+	extern Node planner();
+	extern void init_planner();
+
+	if (! Quiet)
+	  puts("\tinit_planner()..");
+	init_planner();
+	
+	    /* ----------------
+	     *   generate the plan
+	     * ----------------
+	     */
+	plan = planner(parsetree);
+	    if (! Quiet) {
+		printf("\nPlan is :\n");
+		(*(plan->printFunc))(stdout, plan);
+		printf("\n");
+	    }
+	    
+	/* ----------------
+	 *   call the executor
+	 * ----------------
+	 */
+	if (! Quiet) {
+	    time(&tim);
+	    printf("\tProcessQuery() at %s\n", ctime(&tim));
+	}
+	
+	ProcessQuery(parsetree, plan);
+	}
+    
+}
+
