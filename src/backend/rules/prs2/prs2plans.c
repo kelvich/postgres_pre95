@@ -18,9 +18,9 @@
 #include "syscache.h"
 #include "log.h"
 #include "prs2.h"
-#include "ruleutil.h"		/* for StringToPlan(), MakeQueryDesc()
-				CreateExecutorState() */
 #include "executor.h"		/* for EState */
+
+extern EState CreateExecutorState();
 
 /*-------------------------------------------------------------------
  * prs2GetRulePlanFromCatalog
@@ -82,12 +82,12 @@ ParamListInfo *paramListP;
  *
  * NOTE: we are returning a pointer to a *copy* of the locks!
  */
-Prs2Locks
+RuleLock
 prs2GetLocksFromRelation(relationName)
 Name relationName;
 {
     HeapTuple relationTuple;
-    Prs2Locks relationLocks;
+    RuleLock relationLocks;
 
     /*
      * Search the system cache for the relation tuple
@@ -141,53 +141,57 @@ Prs2EStateInfo prs2EStateInfo;
 
 /*------------------------------------------------------------------
  *
+ * prs2RunActionPlans
+ *
+ */
+
+void
+prs2RunActionPlans(plans, paramList, prs2EStateInfo)
+LispValue plans;
+ParamListInfo paramList;
+Prs2EStateInfo prs2EStateInfo;
+{
+    LispValue onePlan;
+
+    foreach(onePlan, plans) {
+	prs2RunOnePlan(CAR(onePlan), paramList, prs2EStateInfo);
+    }
+	
+}
+
+/*------------------------------------------------------------------
+ *
  * prs2RunOnePlanAndGetValue
+ *
+ * Run a retrieve plan and return 1 if a tuple was found or 0 if there
+ * was no tuple.
+ * In the first case, the tuple must have only one attribute,
+ * and output arguments *valueP and *isNullP, contain the value and the
+ * isNull flag for this attribute.
  *
  */
 
 int
 prs2RunOnePlanAndGetValue(actionPlan, paramList, prs2EStateInfo,
-			valueP, isNullP)
+                        valueP, isNullP)
 LispValue actionPlan;
 ParamListInfo paramList;
 Prs2EStateInfo prs2EStateInfo;
 Datum *valueP;
 Boolean *isNullP;
 {
-    EState executorState;
-    LispValue queryDescriptor;
-    LispValue res1, res2, res3;
+    
+    LispValue res1, res2, res3, result;
     AttributeNumber numberOfAttributes;
     TupleDescriptor resultTupleDescriptor;
     HeapTuple resultTuple;
-    LispValue parseTree;
-    LispValue plan;
 
+    result = prs2RunOnePlan(actionPlan, paramList, prs2EStateInfo, EXEC_START);
 
-    /*
-     * the actionPlan must be a list containing the parsetree & the
-     * plan that has to be executed.
-     */
-    parseTree = prs2GetParseTreeFromOneActionPlan(actionPlan);
-    plan = prs2GetPlanFromOneActionPlan(actionPlan);
+    res1 = nth(0, result);
+    res2 = nth(1, result);
+    res3 = nth(2, result);
 
-    if (root_command_type(parse_root(parseTree)) != RETRIEVE) {
-	elog(WARN,"prs2RunPlanAndGetValue: plan is not a retrieve");
-    }
-    queryDescriptor = MakeQueryDesc(
-			    lispAtom("retrieve"),
-			    parseTree,
-			    plan,
-			    LispNil,
-			    LispNil);
-
-    executorState = CreateExecutorState();
-    set_es_param_list_info(executorState, paramList);
-    set_es_prs2_info(executorState, prs2EStateInfo);
-
-    res1 = ExecMain(queryDescriptor, executorState,
-		    lispCons(lispInteger(EXEC_START), LispNil));
-    
     /*
      * When the executor is called with EXEC_START it returns
      * "lispCons(LispInteger(n), lispCons(t, lispNil))"
@@ -198,12 +202,6 @@ Boolean *isNullP;
      */
     numberOfAttributes = (AttributeNumber) CInteger(CAR(res1));
     resultTupleDescriptor = (TupleDescriptor) CADR(res1);
-
-    res2 = ExecMain(queryDescriptor, executorState,
-		    lispCons(lispInteger(EXEC_RETONE), LispNil));
-
-    res3 = ExecMain(queryDescriptor, executorState,
-		    lispCons(lispInteger(EXEC_END), LispNil));
 
     if (res2 == LispNil) { 
 	/*
@@ -235,14 +233,60 @@ Boolean *isNullP;
 
 /*------------------------------------------------------------------
  *
- * prs2RunActionPlans
+ * prs2RunOnePlan
+ *
+ * Run one plan and return the executor's return values.
  *
  */
 
-void
-prs2RunActionPlans(plan, paramList, prs2EStateInfo)
-LispValue plan;
+LispValue
+prs2RunOnePlan(actionPlan, paramList, prs2EStateInfo, operation)
+LispValue actionPlan;
 ParamListInfo paramList;
 Prs2EStateInfo prs2EStateInfo;
+int operation;
 {
+    EState executorState;
+    LispValue queryDescriptor;
+    LispValue res1, res2, res3, result;
+    LispValue parseTree;
+    LispValue plan;
+    LispValue command;
+
+
+    /*
+     * the actionPlan must be a list containing the parsetree & the
+     * plan that has to be executed.
+     */
+    parseTree = prs2GetParseTreeFromOneActionPlan(actionPlan);
+    plan = prs2GetPlanFromOneActionPlan(actionPlan);
+
+    command = root_command_type_atom(parse_root(parseTree));
+
+    queryDescriptor = MakeQueryDesc(
+			    command,
+			    parseTree,
+			    plan,
+			    LispNil,
+			    LispNil);
+
+    executorState = CreateExecutorState();
+    set_es_param_list_info(executorState, paramList);
+    set_es_prs2_info(executorState, prs2EStateInfo);
+
+    res1 = ExecMain(queryDescriptor, executorState,
+		    lispCons(lispInteger(EXEC_START), LispNil));
+
+    res2 = ExecMain(queryDescriptor, executorState,
+		    lispCons(lispInteger(operation), LispNil));
+
+    res3 = ExecMain(queryDescriptor, executorState,
+		    lispCons(lispInteger(EXEC_END), LispNil));
+
+    
+    result = lispCons(res3, LispNil);
+    result = lispCons(res2, result);
+    result = lispCons(res1, result);
+
+    return(result);
 }
