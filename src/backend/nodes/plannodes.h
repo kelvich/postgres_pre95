@@ -115,7 +115,7 @@ extern bool	EqualHash();
  *	Plan node
  * ----------------
  */
-class (Plan) public (Node) { 
+class (Plan) public (Node) {
 #define PlanDefs \
 	inherits(Node); \
 	Cost			cost; \
@@ -224,7 +224,7 @@ class (Scan) public (Plan) {
 #define	ScanDefs \
 	inherits(Plan); \
 	Index			scanrelid; \
-   	ScanState		scanstate   
+   	ScanState		scanstate
  /* private: */
 	ScanDefs;
  /* public: */
@@ -328,7 +328,7 @@ class (Temp) public (Plan) {
  * ----------------
  */
 class (Material) public (Temp) {
-#define MaterialDefs \    
+#define MaterialDefs \
 	inherits(Temp); \
 	MaterialState		matstate
  /* private: */
