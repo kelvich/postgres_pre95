@@ -256,7 +256,9 @@ oid LOcreatOID(fname,mode)
 	basedirOID = FilenameToOID(fname);
     }
     if (basedirOID == InvalidObjectId) {
+#if NAMINGDB
 	elog(NOTICE,"LOcreat: %s doesn't exist",fname[0]?fname:root);
+#endif
 	return InvalidObjectId; /* directories don't exist */
     } else {
 	HeapTuple namingTuple;
