@@ -15,12 +15,12 @@ SRCS+= strdup.c
 
 .if ( ${PORTNAME} == "sparc" )
 CFLAGS+= -Dvoid="char *" -Dconst= -DUSE_RANLIB -DNEED_STRINGS
-LDFLAGS+= -assert nodefinitions
 SRCS+= strerror.c setenv.c
 .endif
 
 .if ( ${PORTNAME} == "alpha" )
 CFLAGS+= -D_BSD
+LDADD+= -lbsd
 .endif
 
 .if ( ${PORTNAME} == "linux" )
