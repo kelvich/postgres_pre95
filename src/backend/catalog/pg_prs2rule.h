@@ -69,11 +69,13 @@ typedef FormData_pg_prs2rule	*Form_pg_prs2rule;
 #define struct_prs2rule_Defined 1
 
 struct	prs2rule {
-	char	prs2name[16];
-	uint8	prs2eventtype;
-	OID	prs2eventrel;
-	uint16	prs2eventattr;
-	struct	varlena prs2text;
+	char		prs2name[16];
+	uint8		prs2eventtype;
+	OID		prs2eventrel;
+	uint16		prs2eventattr;
+	float64data	necessary;
+	float64data	sufficient;
+	struct	varlena	prs2text;
 }; /* VARIABLE LENGTH STRUCTURE */
 
 #endif struct_prs2rule_Defined
