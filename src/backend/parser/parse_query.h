@@ -20,5 +20,9 @@ extern LispValue setup_tlist ARGS((Func func, int attno, ObjectID typeid));
 /* defined in gram.y, used in ylib.c and gram.y */
 extern int NumLevels;
 
+/* define in parse_query.c, used in gram.y */
+ObjectId *param_type_info;
+int pfunc_num_args;
+
 /* useful macros */
 #define ISCOMPLEX(type) (typeid_get_relid((ObjectId)type) ? true : false)

@@ -135,13 +135,13 @@ bool Typecast_ok = true;
 
 queryblock:
 	query 
-		{ parser_init(); }
+		{ parser_init(param_type_info, pfunc_num_args); }
 	queryblock
 		{ parsetree = lispCons ( $1 , parsetree ) ; }
 	| query
 		{ 
 		    parsetree = lispCons($1,LispNil) ; 
-		    parser_init();
+		    parser_init(param_type_info, pfunc_num_args);
 		}
 	;
 query:

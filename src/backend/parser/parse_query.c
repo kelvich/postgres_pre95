@@ -36,9 +36,7 @@ RcsId("$Header$");
 extern LispValue parser_ppreserve();
 extern int Quiet;
 
-static ObjectId *param_type_info;
 static ObjectId param_type_relid;
-static int pfunc_num_args;
 
 LispValue
 ModifyQueryTree(query,priority,ruletag)
