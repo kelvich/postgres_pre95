@@ -13,6 +13,7 @@ RcsId("$Header$");
 
 #include "utils/excid.h"	/* for ExhaustedMemory */
 #include "utils/memutils.h"
+#include "utils/log.h"
 
 extern void bcopy();	/* XXX use header */
 
@@ -165,7 +166,10 @@ AllocSetAlloc(set, size)
 
 	/* allocate */
 	alloc = (AllocElem)malloc(sizeof (*alloc) + size);
-	Trap(!PointerIsValid(alloc), ExhaustedMemory);
+
+	if (!PointerIsValid(alloc)) {
+		elog (FATAL, "palloc failure: memory exhausted");
+	}
 
 	/* add to allocation list */
 	OrderedElemPushInto(&alloc->elemData, &set->setData);
@@ -194,7 +198,6 @@ AllocSetFree(set, pointer)
 
 	/* free storage */
 	delete(alloc);
-	/* pg_free(alloc); */
 }
 
 AllocPointer
