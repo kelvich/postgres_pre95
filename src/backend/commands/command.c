@@ -61,6 +61,7 @@ RcsId("$Header$");
 #include "utils/rel.h"
 
 #include "nodes/pg_lisp.h"
+#include "nodes/primnodes.h"
 #include "tcop/dest.h"
 #include "commands/command.h"
 
@@ -497,12 +498,12 @@ PerformAddAttribute(relationName, schema)
 
 	p = CString(CAR(CADR(CAR(element))));
 
-	q = index(p, '[');
-
-	if (q != NULL)
+	if (CDR(CADR(CAR(element))) && IsA(CDR(CADR(CAR(element))),Array))
 	{
-		*q = '\0'; q++;
-		attnelems = atoi(q);
+		Array array;
+
+		array = (Array) CDR(CADR(CAR(element)));
+		attnelems = get_arrayhigh(array) - get_arraylow(array);
 		sprintf(r, "_%s", p);
 		p = &r[0];
 	}
