@@ -132,6 +132,26 @@ class (Resdom) public (Node) {
  /* public: */
 };
 
+/* -------------
+ * Fjoin
+ *	nNodes		- The number of Iter nodes returning sets that the
+ *			  node will flatten
+ *	outerList	- 1 or more Iter nodes
+ *	inner		- exactly one Iter node.  We eval every node in the
+ *			  outerList once then eval the inner node to completion
+ *			  pair the outerList result vector with each inner
+ *			  result to form the full result.  When the inner has
+ *			  been exhausted, we get the next outer result vector
+ *			  and reset the inner.
+ *	results		- The complete (flattened) result vector
+ */
+class (Fjoin) public (Node) {
+	inherits0(Node);
+	int			nNodes;
+	List			innerNode;
+	DatumPtr		results;
+};
+
 /* ----------------
  * Expr
  * ----------------
