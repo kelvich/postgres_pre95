@@ -328,6 +328,13 @@ ValidateUtility(command, args)
 			AssertArg(lispStringp(CAR(args)));
 			AssertArg(listp(CDR(args)));
 			break;
+		case AGGREGATE:
+			args = CDR(args);
+
+			AssertArg(listp(args));
+			AssertArg(lispStringp(CAR(args)));
+			AssertArg(listp(CDR(args)));
+			break;
 		case RULE:
 			AssertArg(listp(args));
 			AssertArg(lispStringp(CADR(args)));
@@ -355,6 +362,7 @@ ValidateUtility(command, args)
 
 		switch(CInteger(CAR(args))) {
 		case FUNCTION:
+		case AGGREGATE:
 		case INDEX:
 		case RULE:
 		case P_TYPE:
