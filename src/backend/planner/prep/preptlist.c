@@ -78,8 +78,38 @@ preprocess_targetlist (tlist,command_type,result_relation,range_table)
 	  t_list = nappend1(t_list,fix_opids (CAR(temp)));
       }
      
+    /* ------------------
+     *  for "replace" or "delete" queries, add ctid of the result
+     *  relation into the target list so that the ctid can get
+     *  propogate through the execution and in the end ExecReplace()
+     *  will find the right tuple to replace or delete.  This
+     *  extra field will be removed in ExecReplace().
+     *  For convinient, we append this extra field to the end of
+     *  the target list.
+     * ------------------
+     */
+    if (command_type == REPLACE || command_type == DELETE) {
+       LispValue ctid;
+       ctid = lispCons(MakeResdom(length(t_list) + 1,
+                                  27,
+                                  6,
+                                  "ctid",
+                                  0,
+                                  0,
+				  1),  /* set resjunk to 1 */
+                        lispCons(MakeVar(CInteger(result_relation),
+                                          -1,
+                                          27,
+                                          LispNil,
+					  0,
+                                          lispCons(result_relation,
+                                                   lispCons(lispInteger(-1),
+                                                            LispNil)),
+                                         0), LispNil));
+        t_list = nappend1(t_list, ctid);
+      }
      return(t_list);
- }  /* function end  */
+}  /* function end  */
 
 /*     	====================
  *     	TARGETLIST EXPANSION
@@ -229,7 +259,7 @@ new_relation_targetlist (relid,rt_index,node_type)
 		 
 		 temp3 = MakeTLE (MakeResdom (CInteger(attno),atttype,
 					      typlen,
-					      attname,0,LispNil),
+					      attname,0,LispNil,0),
 				  temp2);
 		 t_list = nappend1(t_list,temp3);
 		 break;
@@ -248,7 +278,7 @@ new_relation_targetlist (relid,rt_index,node_type)
 						    LispNil)), 0);
 		 temp_list = MakeTLE (MakeResdom (CInteger(attno),atttype,
 					      typlen,
-					      attname,0,LispNil),
+					      attname,0,LispNil,0),
 				      temp_var);
 		 t_list = nappend1(t_list,temp_list);
 		 break;
