@@ -11,7 +11,6 @@ extern Pointer ExecStoreTuple ARGS((Pointer tuple, Pointer slot, Buffer buffer, 
 extern Pointer ExecStoreTupleDebug ARGS((String file, int line, Pointer tuple, Pointer slot, bool shouldFree));
 #endif EXEC_DEBUGSTORETUP
     
-extern Pointer ExecFetchTuple ARGS((Pointer slot));
 extern Pointer ExecClearTuple ARGS((Pointer slot));
 extern bool ExecNullSlot ARGS((Pointer slot));
 extern bool ExecSlotPolicy ARGS((Pointer slot));
