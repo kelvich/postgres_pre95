@@ -452,7 +452,6 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
 	 *  this page and it's time to move to the next..
 	 * ----------------
 	 */
-	ReleaseBuffer(*b);
 
 	page = nextpage(page, dir, parallel_ok);
 
