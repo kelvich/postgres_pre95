@@ -955,7 +955,11 @@ param:
 	;
 
 from_clause:
-	 From from_list 			{ $$ = $2 ; }
+	 From from_list 			{ $$ = $2 ; 
+			SkipBackToTlist();
+			yychar = -1;
+			/* goto yynewstate; */
+						}
 	| /*empty*/				{ NULLTREE ; }
 	;
 
@@ -988,9 +992,6 @@ from_val:
 				temp2 = CDR(temp2);
 			}
 
-			SkipBackToTlist();
-			yychar = -1;
-			/* goto yynewstate; */
 		}
 	;
 var_list:
