@@ -38,14 +38,14 @@ extern int testFlag;
 /*  .. find-join-paths, prune-joinrels    */
 
 LispValue
-prune_joinrels (rel_list)
+prune_joinrels(rel_list)
      LispValue rel_list ;
 {
      LispValue temp_list = LispNil;
-     if ( consp (rel_list) ) {
-	  temp_list = lispCons (CAR (rel_list),
-			    prune_joinrels (prune_joinrel(CAR (rel_list),
-							  CDR (rel_list))));
+     if( consp(rel_list) ) {
+	  temp_list = lispCons(CAR(rel_list),
+			    prune_joinrels(prune_joinrel(CAR(rel_list),
+							  CDR(rel_list))));
      } 
      return(temp_list);
 
@@ -67,7 +67,7 @@ prune_joinrels (rel_list)
 /*  .. prune-joinrels, merge_joinrels */
 
 LispValue
-prune_joinrel (rel,other_rels)
+prune_joinrel(rel,other_rels)
      LispValue rel,other_rels ;
 {
      /*  XXX was mapcan   */
@@ -79,10 +79,10 @@ prune_joinrel (rel,other_rels)
      
      foreach(i,other_rels) {
 	 other_rel = (Rel)CAR(i);
-	 if(same (get_relids (rel),get_relids (other_rel))) {
-	     set_pathlist (rel,add_pathlist (rel,
-					     get_pathlist (rel),
-					     get_pathlist (other_rel)));
+	 if(same(get_relids(rel),get_relids(other_rel))) {
+	     set_pathlist(rel,add_pathlist(rel,
+					     get_pathlist(rel),
+					     get_pathlist(other_rel)));
 	     t_list = nconc(t_list, LispNil);  /* XXX is this right ? */
 	 } 
 	 else {
@@ -108,31 +108,41 @@ prune_joinrel (rel,other_rels)
 /*  .. find-join-paths   */
 
 void
-prune_rel_paths (rel_list)
+prune_rel_paths(rel_list)
      List rel_list ;
 {
-    LispValue temp = LispNil;
-    LispValue temp2 = LispNil;
-    LispValue temp3 = LispNil;
+    LispValue x = LispNil;
+    LispValue y = LispNil;
+    Path path;
     Rel rel = (Rel)NULL;
     JoinPath cheapest = (JoinPath)NULL;
     
-    foreach (temp, rel_list) { 	/* XXX Lisp find_if_not function used  */
-	rel = (Rel)CAR(temp);
-	foreach (temp2,get_pathlist(rel)) {
-	    if (!get_p_ordering(CAR(temp2))) {
-		temp3 = CAR(temp2);
+    foreach(x, rel_list) {
+	rel = (Rel)CAR(x);
+	foreach(y, get_pathlist(rel)) {
+	    path = (Path)CAR(y);
+	    if(!get_p_ordering(path)) {
 		break;
-	    }	    
-	}
-	cheapest = (JoinPath)prune_rel_path (rel,temp3);
-	if (IsA(cheapest,JoinPath))
-	  set_size (rel,compute_joinrel_size (cheapest));
+	      }	    
+	  }
+	cheapest = (JoinPath)prune_rel_path(rel, path);
+	if(IsA(cheapest,JoinPath))
+	  set_size(rel,compute_joinrel_size(cheapest));
 	else
 	  printf( "WARN: non JoinPath called. \n");
     }
 }  /* function end  */
 
+/* ------------------------------
+ *	mergepath_contain_redundant_sorts
+ *
+ *	return true if path contains redundant sorts, i.e.,
+ *	a sort on an already ordered relation
+ *	note: current this routine is not used because
+ *	we forbidden any explicit sorts since hashjoins
+ *	can always do better.
+ * -------------------------------
+ */
 bool
 mergepath_contain_redundant_sorts(path)
 MergePath path;
@@ -142,7 +152,7 @@ MergePath path;
     List outerorder, innerorder;
     List outerkeys, innerkeys;
 
-    if (get_outersortkeys(path) || get_innersortkeys(path))
+    if(get_outersortkeys(path) || get_innersortkeys(path))
 	return true;  /* a temporary hack to reduce plan space */
     else return false;
 
@@ -151,7 +161,7 @@ MergePath path;
     outerpath = get_outerjoinpath(path);
     outerorder = get_p_ordering(outerpath);
     outerkeys = get_keys(outerpath);
-    if (outerorder && 
+    if(outerorder && 
 	get_left_operator(morder) ==
 	(IsA(outerorder,MergeOrder)?get_left_operator(outerorder):
 	 CInteger(CAR(outerorder))) &&
@@ -164,7 +174,7 @@ MergePath path;
     innerpath = get_innerjoinpath(path);
     innerorder = get_p_ordering(innerpath);
     innerkeys = get_keys(innerpath);
-    if (innerorder &&
+    if(innerorder &&
 	get_right_operator(morder) ==
 	(IsA(innerorder,MergeOrder)?get_right_operator(innerorder):
 	 CInteger(CAR(innerorder))) &&
@@ -178,18 +188,26 @@ MergePath path;
 #endif
 }
 
+/* --------------------------------------
+ *	path_contain_rotated_mergepaths
+ *
+ *	return true if two paths are virtually the same except on
+ *	the order of a mergejoin, such two paths should always
+ *	have the same cost.
+ * --------------------------------------
+ */
 bool
 path_contain_rotated_mergepaths(p1, p2)
 Path p1, p2;
 {
     Path p;
-    if (p1 == NULL || p2 == NULL) return NULL;
-    if (IsA(p1,MergePath) && IsA(p2,MergePath)) {
-       if (equal(get_outerjoinpath(p1), get_innerjoinpath(p2)) &&
+    if(p1 == NULL || p2 == NULL) return NULL;
+    if(IsA(p1,MergePath) && IsA(p2,MergePath)) {
+       if(equal(get_outerjoinpath(p1), get_innerjoinpath(p2)) &&
            equal(get_innerjoinpath(p1), get_outerjoinpath(p2)))
           return true;
       }
-    if (IsA(p1,JoinPath) && IsA(p2,JoinPath)) {
+    if(IsA(p1,JoinPath) && IsA(p2,JoinPath)) {
        return path_contain_rotated_mergepaths(get_outerjoinpath(p1),
                                               get_outerjoinpath(p2)) ||
               path_contain_rotated_mergepaths(get_innerjoinpath(p1),
@@ -198,25 +216,33 @@ Path p1, p2;
     return false;
 }
 
+
+/* --------------------------------------
+ *	path_contain_redundant_indexscans
+ *
+ *	return true if path contains obviously useless indexscans, i.e.,
+ *	if indxqual is nil and the order is not later utilized
+ * --------------------------------------
+ */
 bool
 path_contain_redundant_indexscans(path, order_expected)
 Path path;
 bool order_expected;
 {
-    if (IsA(path,MergePath)) {
+    if(IsA(path,MergePath)) {
         return path_contain_redundant_indexscans(get_outerjoinpath(path), 
 				!get_outersortkeys(path)) ||
                path_contain_redundant_indexscans(get_innerjoinpath(path), 
 				!get_innersortkeys(path));
       }
-    if (IsA(path,HashPath)) {
+    if(IsA(path,HashPath)) {
         return path_contain_redundant_indexscans(get_outerjoinpath(path), 
 						 false) ||
                path_contain_redundant_indexscans(get_innerjoinpath(path), 
 						 false);
       }
-    if (IsA(path,JoinPath)) {
-        if (!IsA(get_innerjoinpath(path),IndexPath) &&
+    if(IsA(path,JoinPath)) {
+        if(!IsA(get_innerjoinpath(path),IndexPath) &&
             !IsA(get_innerjoinpath(path),JoinPath) &&
             length(get_relids(get_parent(get_innerjoinpath(path)))) == 1)
            return true;
@@ -225,10 +251,56 @@ bool order_expected;
                path_contain_redundant_indexscans(get_innerjoinpath(path), 
 						 false);
       }
-    if (IsA(path,IndexPath)) {
+    if(IsA(path,IndexPath)) {
         return lispNullp(get_indexqual(path)) && !order_expected;
       }
     return false;
+}
+
+/* ----------------------------------------------
+ *	test_prune_unnecessary_paths
+ *
+ *	prune paths of rel for tests, only meant to be called with
+ *	testFlag is set.
+ * -----------------------------------------------
+ */
+void
+test_prune_unnecessary_paths(rel)
+Rel rel;
+{
+     LispValue x, y;
+     Path path, path1;
+     List newpathlist = LispNil;
+     List prunelist = LispNil;
+     /* done in path generation, match_unsorted_outer and match_unsorted_inner
+     foreach(x, get_pathlist(rel)) {
+	 path = (Path)CAR(x);
+	 if(IsA(path,MergePath)) {
+	     if(mergepath_contain_redundant_sorts(path))
+	     continue;
+	   }
+	 newpathlist = nappend1(newpathlist, path);
+      }
+     */
+     foreach(x, get_pathlist(rel)) {
+	 path = (Path)CAR(x);
+	 if(!path_contain_redundant_indexscans(path,
+			    (length(get_relids(get_parent(path))) !=
+			     length(_base_relation_list_)))) {
+	     newpathlist = nappend1(newpathlist, path);
+	   }
+       }
+     foreach(x, newpathlist) {
+	 path = (Path)CAR(x);
+	 foreach(y, CDR(x)) {
+	     path1 = (Path)CAR(y);
+	     if(equal(path, path1) ||
+		 path_contain_rotated_mergepaths(path, path1))
+		 prunelist = nappend1(prunelist, path1);
+	   }
+       }
+     newpathlist = nset_difference(newpathlist, prunelist);
+     set_pathlist(rel, newpathlist);
 }
 
 /*    
@@ -246,58 +318,25 @@ bool order_expected;
 /*  .. find-rel-paths, prune-rel-paths	 */
 
 Path
-prune_rel_path (rel,unorderedpath)
+prune_rel_path(rel,unorderedpath)
      Rel rel ;
      Path unorderedpath ;
 {
-     Path cheapest = set_cheapest (rel,get_pathlist (rel));
+     Path cheapest = set_cheapest(rel,get_pathlist(rel));
 
-     if (!(eq (unorderedpath,cheapest)) && !testFlag) {
+     if(!(eq(unorderedpath,cheapest)) && !testFlag) {
 
-	  set_unorderedpath (rel,LispNil);
-	  set_pathlist (rel,LispRemove(unorderedpath,get_pathlist (rel)));
+	  set_unorderedpath(rel,LispNil);
+	  set_pathlist(rel,LispRemove(unorderedpath,get_pathlist(rel)));
 
      } else {
 
-	  set_unorderedpath (rel,unorderedpath);
+	  set_unorderedpath(rel,unorderedpath);
 
      } 
 
-     if (testFlag) {
-	 LispValue x, y;
-	 Path path, path1;
-	 List newpathlist = LispNil;
-	 List prunelist = LispNil;
-	 List newlist;
-         foreach (x, get_pathlist(rel)) {
-	     path = (Path)CAR(x);
-	     if (IsA(path,MergePath)) {
-		 if (mergepath_contain_redundant_sorts(path))
-		 continue;
-	       }
-	     newpathlist = nappend1(newpathlist, path);
-	  }
-	 newlist = LispNil;
-	 foreach (x, newpathlist) {
-	     path = (Path)CAR(x);
-	     if (!path_contain_redundant_indexscans(path,
-				(length(get_relids(get_parent(path))) !=
-				 length(_query_relation_list_)))) {
-		 newlist = nappend1(newlist, path);
-	       }
-	   }
-	 newpathlist = newlist;
-	 foreach (x, newpathlist) {
-	     path = (Path)CAR(x);
-	     foreach (y, CDR(x)) {
-		 path1 = (Path)CAR(y);
-		 if (equal(path, path1) ||
-		     path_contain_rotated_mergepaths(path, path1))
-		     prunelist = nappend1(prunelist, path1);
-	       }
-	   }
-	 newpathlist = nset_difference(newpathlist, prunelist);
-	 set_pathlist(rel, newpathlist);
+     if(testFlag) {
+	 test_prune_unnecessary_paths(rel);
        }
      
      return(cheapest);
@@ -305,7 +344,6 @@ prune_rel_path (rel,unorderedpath)
 }  /* function end  */
 
 
-#ifdef _xprs_
 /*
  *      merge-joinrels
  *
@@ -321,16 +359,16 @@ prune_rel_path (rel,unorderedpath)
 /* .. find-join-paths
 */
 LispValue
-merge_joinrels (rel_list1,rel_list2)
+merge_joinrels(rel_list1,rel_list2)
 LispValue rel_list1, rel_list2;
 {
     LispValue xrel = LispNil;
 
-    foreach (xrel,rel_list1) {
+    foreach(xrel,rel_list1) {
         LispValue rel = CAR(xrel);
-        rel_list2 = prune_joinrel (rel,rel_list2);
+        rel_list2 = prune_joinrel(rel,rel_list2);
     }
-    return (append (rel_list1, rel_list2));
+    return(append(rel_list1, rel_list2));
 }
 
 /*
@@ -350,24 +388,23 @@ LispValue rel_list1, rel_list2;
 /* .. find_join_paths
 */
 LispValue
-prune_oldrels (old_rels)
+prune_oldrels(old_rels)
 LispValue old_rels;
 {
      Rel rel;
      LispValue joininfo_list, xjoininfo;
 
-     if (old_rels == LispNil)
-	  return (LispNil);
+     if(old_rels == LispNil)
+	  return(LispNil);
 
      rel = (Rel)CAR(old_rels);
      joininfo_list = get_joininfo(rel);
-     if (joininfo_list == LispNil)
-	 return (lispCons (rel, prune_oldrels (CDR(old_rels))));
-     foreach (xjoininfo, joininfo_list) {
+     if(joininfo_list == LispNil)
+	 return(lispCons(rel, prune_oldrels(CDR(old_rels))));
+     foreach(xjoininfo, joininfo_list) {
 	 JInfo joininfo = (JInfo)CAR(xjoininfo);
-	 if (!joininfo_inactive(joininfo))
-	      return (lispCons (rel, prune_oldrels (CDR(old_rels))));
+	 if(!joininfo_inactive(joininfo))
+	      return(lispCons(rel, prune_oldrels(CDR(old_rels))));
       }
      return(prune_oldrels(CDR(old_rels)));
 }
-#endif /* _xprs */

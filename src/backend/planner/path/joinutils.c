@@ -68,8 +68,9 @@
 /*  .. match-unsorted-inner, match-unsorted-outer    */
 
 LispValue
-match_pathkeys_joinkeys (pathkeys,joinkeys,joinclauses,which_subkey)
-     LispValue pathkeys,joinkeys,joinclauses,which_subkey ;
+match_pathkeys_joinkeys(pathkeys,joinkeys,joinclauses,which_subkey)
+     LispValue pathkeys,joinkeys,joinclauses;
+     int which_subkey ;
 {
      LispValue matched_joinkeys = LispNil;
      LispValue matched_joinclauses = LispNil;
@@ -78,14 +79,14 @@ match_pathkeys_joinkeys (pathkeys,joinkeys,joinclauses,which_subkey)
      LispValue i = LispNil;
      int matched_joinkey_index = -1;
 
-     foreach (i, pathkeys) {
+     foreach(i, pathkeys) {
 	 pathkey = CAR(i);
 	 matched_joinkey_index = 
-	   match_pathkey_joinkeys (pathkey,joinkeys,which_subkey);
+	   match_pathkey_joinkeys(pathkey,joinkeys,which_subkey);
 	 
 	 if(matched_joinkey_index != -1 ) {
-	     LispValue xjoinkey = nth (matched_joinkey_index,joinkeys);
-	     LispValue joinclause = nth (matched_joinkey_index,joinclauses);
+	     LispValue xjoinkey = nth(matched_joinkey_index,joinkeys);
+	     LispValue joinclause = nth(matched_joinkey_index,joinclauses);
 
 	     /* XXX was "push" function */
 	     
@@ -94,22 +95,23 @@ match_pathkeys_joinkeys (pathkeys,joinkeys,joinclauses,which_subkey)
 
 	     matched_joinclauses = nappend1(matched_joinclauses,joinclause);
 	     matched_joinclauses = nreverse(matched_joinclauses);
-	     joinkeys = LispRemove (xjoinkey,joinkeys);
+	     joinkeys = LispRemove(xjoinkey,joinkeys);
 	     
 	 } 
 	 else {
-	     return (LispNil);
+	     return(LispNil);
 	 } 
 		
      }
-     if ( length (matched_joinkeys) == length (pathkeys) ) {
-	 t_list = lispCons (nreverse (matched_joinkeys),
-			    lispCons(nreverse (matched_joinclauses),
+     if(!lispNullp(matched_joinkeys) &&
+	length(matched_joinkeys) == length(pathkeys)) {
+	 t_list = lispCons(nreverse(matched_joinkeys),
+			    lispCons(nreverse(matched_joinclauses),
 				     LispNil));
      } 
      return(t_list);
 
- }  /* function end  */
+}  /* function end  */
 
 /*    
  *    	match-pathkey-joinkeys
@@ -122,8 +124,9 @@ match_pathkeys_joinkeys (pathkeys,joinkeys,joinclauses,which_subkey)
 /*  .. match-pathkeys-joinkeys	 */
 
 int
-match_pathkey_joinkeys (pathkey,joinkeys,which_subkey)
-     LispValue pathkey,joinkeys,which_subkey ;
+match_pathkey_joinkeys(pathkey,joinkeys,which_subkey)
+     LispValue pathkey,joinkeys;
+     int which_subkey ;
 {
     LispValue path_subkey = LispNil;
     int pos;
@@ -136,12 +139,12 @@ match_pathkey_joinkeys (pathkey,joinkeys,which_subkey)
 	pos = 0;
 	foreach(x,joinkeys) {
 	    jk = (JoinKey)CAR(x);
-	    if (var_equal(path_subkey,extract_subkey(jk, which_subkey)))
+	    if(var_equal(path_subkey,extract_subkey(jk, which_subkey)))
 		return(pos);
 	    pos++;
 	}
     }
-    return (-1);    /* no index found   */
+    return(-1);    /* no index found   */
 
 }  /* function end   */
 
@@ -151,16 +154,16 @@ match_pathkey_joinkeys (pathkey,joinkeys,which_subkey)
  *    	Attempts to find a path in 'paths' whose keys match a set of join
  *    	keys 'joinkeys'.  To match,
  *    	1. the path node ordering must equal 'ordering'.
- *    	2. each subkey of a given path must match (i.e., be (var_equal) to) the
+ *    	2. each subkey of a given path must match(i.e., be(var_equal) to) the
  *    	   appropriate subkey of the corresponding join key in 'joinkeys',
  *    	   i.e., the Nth path key must match its subkeys against the subkey of
  *    	   the Nth join key in 'joinkeys'.
  *    
  *    	'joinkeys' is the list of key pairs to which the path keys must be 
  *    		matched
- *    	'ordering' is the ordering of the (outer) path to which 'joinkeys'
+ *    	'ordering' is the ordering of the(outer) path to which 'joinkeys'
  *    		must correspond
- *    	'paths' is a list of (inner) paths which are to be matched against
+ *    	'paths' is a list of(inner) paths which are to be matched against
  *    		each join key in 'joinkeys'
  *    	'which-subkey' is a flag that selects the desired subkey of a join key
  *    		in 'joinkeys'
@@ -171,8 +174,9 @@ match_pathkey_joinkeys (pathkey,joinkeys,which_subkey)
 
 /*  function used by match_paths_joinkeys */
 bool
-every_func (joinkeys, pathkey, which_subkey)
-     LispValue joinkeys, pathkey, which_subkey;
+every_func(joinkeys, pathkey, which_subkey)
+     LispValue joinkeys, pathkey;
+     int which_subkey;
 {
      LispValue xjoinkey = LispNil;
      LispValue temp = LispNil;
@@ -181,19 +185,19 @@ every_func (joinkeys, pathkey, which_subkey)
      LispValue i = LispNil;
      LispValue j = LispNil;
 
-     foreach (i,joinkeys) {
+     foreach(i,joinkeys) {
 	 xjoinkey = CAR(i);
 	 found = false;
 	 foreach(j,pathkey) {
 	     temp = CAR(CAR(j));
-	     if (temp == LispNil) continue;
+	     if(temp == LispNil) continue;
 	     tempkey = extract_subkey(xjoinkey,which_subkey);
-	     if (var_equal(tempkey,temp)) {
+	     if(var_equal(tempkey,temp)) {
 		 found = true;
 		 break;
 	     }
 	 }
-	 if (found == false)
+	 if(found == false)
 	   return(false);
      }
      return(found);
@@ -202,8 +206,9 @@ every_func (joinkeys, pathkey, which_subkey)
 /*  .. match-unsorted-outer	 */
 
 Path
-match_paths_joinkeys (joinkeys,ordering,paths,which_subkey)
-     LispValue joinkeys,ordering,paths,which_subkey ;
+match_paths_joinkeys(joinkeys,ordering,paths,which_subkey)
+     LispValue joinkeys,ordering,paths;
+     int which_subkey ;
 {
     Path path = (Path)NULL ;
     bool key_match = false;
@@ -212,12 +217,12 @@ match_paths_joinkeys (joinkeys,ordering,paths,which_subkey)
     foreach(i,paths) {
 	path = (Path)CAR(i);
 	key_match = every_func(joinkeys,
-			       get_keys (path),
+			       get_keys(path),
 			       which_subkey);
 
-	if (equal_path_path_ordering (ordering,
-				      get_p_ordering (path)) &&
-	    length (joinkeys) == length (get_keys (path)) &&
+	if(equal_path_path_ordering(ordering,
+				      get_p_ordering(path)) &&
+	    length(joinkeys) == length(get_keys(path)) &&
 	    key_match) {
 	    return(path);
 	}
@@ -247,7 +252,7 @@ match_paths_joinkeys (joinkeys,ordering,paths,which_subkey)
  *  .. sort-inner-and-outer
  */
 LispValue
-extract_path_keys (joinkeys,tlist,which_subkey)
+extract_path_keys(joinkeys,tlist,which_subkey)
      LispValue joinkeys,tlist;
      int which_subkey ;
 {
@@ -259,7 +264,7 @@ extract_path_keys (joinkeys,tlist,which_subkey)
     foreach(i,joinkeys) {
 	xjoinkey = (JoinKey)CAR(i);
 	temp_node =
-	  lispCons (matching_tlvar (extract_subkey (xjoinkey,
+	  lispCons(matching_tlvar(extract_subkey(xjoinkey,
 						    which_subkey),tlist),
 		    LispNil);
 	t_list = nappend1(t_list,temp_node);
@@ -295,25 +300,25 @@ extract_path_keys (joinkeys,tlist,which_subkey)
  *  .. sort-inner-and-outer
  */
 LispValue
-new_join_pathkeys (outer_pathkeys,join_rel_tlist,joinclauses)
+new_join_pathkeys(outer_pathkeys,join_rel_tlist,joinclauses)
      LispValue outer_pathkeys,join_rel_tlist,joinclauses ;
 {
     LispValue outer_pathkey = LispNil;
     LispValue t_list = LispNil;
+    LispValue x;
     LispValue temp_node = LispNil;
     LispValue i = LispNil;
 
     foreach(i,outer_pathkeys) {
 	outer_pathkey = CAR(i);
-	temp_node = 
-	  lispCons (new_join_pathkey (outer_pathkey,
-				      LispNil,
-				      join_rel_tlist,joinclauses),
-		    LispNil);
-	t_list = nconc(t_list,temp_node);
-    }
+	x = new_join_pathkey(outer_pathkey, LispNil, 
+			      join_rel_tlist,joinclauses);
+	if(!lispNullp(x)) {
+	    temp_node = lispCons(x, LispNil);
+	    t_list = nconc(t_list,temp_node);
+	  }
+      }
     return(t_list);
-     
 }
 
 /*    
@@ -331,14 +336,14 @@ new_join_pathkeys (outer_pathkeys,join_rel_tlist,joinclauses)
  *    	'considered-subkeys' is the current list of all subkeys corresponding
  *    		to a given pathkey
  *    
- *    	Returns a new pathkey (list of subkeys).
+ *    	Returns a new pathkey(list of subkeys).
  *    
  */
 
 /*  .. new-join-pathkeys  	 */
 
 LispValue
-new_join_pathkey (subkeys,considered_subkeys,join_rel_tlist,joinclauses)
+new_join_pathkey(subkeys,considered_subkeys,join_rel_tlist,joinclauses)
      LispValue subkeys,considered_subkeys,join_rel_tlist,joinclauses ;
 {
     LispValue t_list = LispNil;
@@ -350,16 +355,16 @@ new_join_pathkey (subkeys,considered_subkeys,join_rel_tlist,joinclauses)
 
     foreach(i,subkeys) {
 	subkey = CAR(i);
-	if (null(subkey))
+	if(null(subkey))
 	  break;    /* XXX something is wrong */
 	matched_subkeys = 
-	  new_matching_subkeys (subkey,considered_subkeys,
+	  new_matching_subkeys(subkey,considered_subkeys,
 				join_rel_tlist,joinclauses);
-	tlist_key = matching_tlvar (subkey,join_rel_tlist);
+	tlist_key = matching_tlvar(subkey,join_rel_tlist);
 	newly_considered_subkeys = LispNil;
 
-	if ( tlist_key ) {
-	    if (!member(tlist_key,matched_subkeys))
+	if( tlist_key ) {
+	    if(!member(tlist_key,matched_subkeys))
 	      newly_considered_subkeys = lispCons(tlist_key, matched_subkeys);
 	} 
 	else {
@@ -367,7 +372,7 @@ new_join_pathkey (subkeys,considered_subkeys,join_rel_tlist,joinclauses)
 	} 
 	
 	considered_subkeys = 
-	  append (considered_subkeys,newly_considered_subkeys);
+	  append(considered_subkeys,newly_considered_subkeys);
 	t_list = nconc(t_list,newly_considered_subkeys);
     }
     return(t_list);
@@ -396,7 +401,7 @@ new_join_pathkey (subkeys,considered_subkeys,join_rel_tlist,joinclauses)
 /*  .. new-join-pathkey */
 
 LispValue
-new_matching_subkeys (subkey,considered_subkeys,join_rel_tlist,joinclauses)
+new_matching_subkeys(subkey,considered_subkeys,join_rel_tlist,joinclauses)
      LispValue considered_subkeys,join_rel_tlist,joinclauses ;
      Var subkey;
 {
@@ -409,18 +414,18 @@ new_matching_subkeys (subkey,considered_subkeys,join_rel_tlist,joinclauses)
      foreach(i,joinclauses) {
 	 joinclause = CAR(i);
 	 tlist_other_var = 
-	   matching_tlvar (other_join_clause_var (subkey,joinclause),
+	   matching_tlvar(other_join_clause_var(subkey,joinclause),
 			   join_rel_tlist);
 
 	 if(tlist_other_var && 
-	    !(member (tlist_other_var,considered_subkeys))) {
+	    !(member(tlist_other_var,considered_subkeys))) {
 	     /* XXX was "push" function  */
 	     considered_subkeys = nappend1(considered_subkeys,
 					   tlist_other_var);
 	     /* considered_subkeys = nreverse(considered_subkeys); 
 		XXX -- I am not sure of this. */
 
-	     temp = lispCons (tlist_other_var,LispNil);
+	     temp = lispCons(tlist_other_var,LispNil);
 	     t_list = nconc(t_list,temp);
 	 } 
      }
