@@ -14,8 +14,8 @@
 # 	$Header$
 #----------------------------------------------------------------
 
-# cpp is usually in one of these two places...
-PATH=/usr/lib:/lib:$PATH
+# cpp is usually in one of these places...
+PATH=/usr/lib:/lib:/usr/ccs/lib:$PATH
 
 BKIOPTS=''
 if [ $? != 0 ]
@@ -95,6 +95,7 @@ cat > $HFILE <<FuNkYfMgRsTuFf
 #define FMgrIncluded	1
 
 #include "tmp/c.h"
+#include "tmp/postgres.h"		/* for some prototype typedefs */
 
 typedef char *	((*func_ptr)());	/* ptr to func returning (char *) */
 
@@ -121,8 +122,8 @@ extern char	*fmgr_c ARGS((
 	FmgrValues *values,
 	Boolean *isNull
 ));
-extern char	*fmgr ARGS((...));	/* XXX varargs */
-extern char	*fmgr_ptr ARGS((...));	/* XXX varargs */
+extern char	*fmgr(/* ObjectId procedureId, ... */);
+extern char	*fmgr_ptr(/* func_ptr user_fn, ObjectId func_id, ... */);
 extern char	*fmgr_array_args ARGS(( /* XXX this routine is going away */
 	ObjectId procedureId,
 	int nargs,
