@@ -75,7 +75,7 @@ renameatt(relname, oldattname, newattname)
 	int		issystem();
 
 	if (issystem(relname)) {
-		elog(WARN, "renameatt: system relation \"%-*s\" not modified",
+		elog(WARN, "renameatt: system relation \"%-.*s\" not modified",
 		     sizeof(NameData), relname);
 		return;
 	}
@@ -83,7 +83,7 @@ renameatt(relname, oldattname, newattname)
 	reltup = ClassNameIndexScan(relrdesc, relname);
 	if (!PointerIsValid(reltup)) {
 		heap_close(relrdesc);
-		elog(WARN, "renameatt: relation \"%-*s\" nonexistent",
+		elog(WARN, "renameatt: relation \"%-.*s\" nonexistent",
 		     sizeof(NameData), relname);
 		return;
 	}
@@ -93,11 +93,11 @@ renameatt(relname, oldattname, newattname)
 	oldatttup = AttributeNameIndexScan(attrdesc, reltup->t_oid, oldattname);
 	if (!PointerIsValid(oldatttup)) {
 		heap_close(attrdesc);
-		elog(WARN, "renameatt: attribute \"%-*s\" nonexistent",
+		elog(WARN, "renameatt: attribute \"%-.*s\" nonexistent",
 		     sizeof(NameData), oldattname);
 	}
 	if (((struct attribute *) GETSTRUCT(oldatttup))->attnum < 0) {
-		elog(WARN, "renameatt: system attribute \"%-*s\" not renamed",
+		elog(WARN, "renameatt: system attribute \"%-.*s\" not renamed",
 		     sizeof(NameData), oldattname);
 	}
 
@@ -105,7 +105,7 @@ renameatt(relname, oldattname, newattname)
 	if (PointerIsValid(newatttup)) {
 		pfree((char *) oldatttup);
 		heap_close(attrdesc);
-		elog(WARN, "renameatt: attribute \"%-*s\" exists", 
+		elog(WARN, "renameatt: attribute \"%-.*s\" exists", 
 		     sizeof(NameData), newattname);
 	}
 
@@ -156,12 +156,12 @@ renamerel(oldrelname, newrelname)
 	extern		rename();
 	
 	if (issystem(oldrelname)) {
-		elog(WARN, "renamerel: system relation \"%-*s\" not renamed",
+		elog(WARN, "renamerel: system relation \"%-.*s\" not renamed",
 		     sizeof(NameData), oldrelname);
 		return;
 	}
 	if (issystem(newrelname)) {
-		elog(WARN, "renamerel: Illegal class name: \"%-*s\" -- pg_ is reserved for system catalogs",
+		elog(WARN, "renamerel: Illegal class name: \"%-.*s\" -- pg_ is reserved for system catalogs",
 		     sizeof(NameData), newrelname);
 		return;
 	}
@@ -171,7 +171,7 @@ renamerel(oldrelname, newrelname)
 
 	if (!PointerIsValid(oldreltup)) {
 		heap_close(relrdesc);
-		elog(WARN, "renamerel: relation \"%-*s\" does not exist",
+		elog(WARN, "renamerel: relation \"%-.*s\" does not exist",
 		     sizeof(NameData), oldrelname);
 	}
 
@@ -179,7 +179,7 @@ renamerel(oldrelname, newrelname)
 	if (PointerIsValid(newreltup)) {
 		pfree((char *) oldreltup);
 		heap_close(relrdesc);
-		elog(WARN, "renamerel: relation \"%-*s\" exists", 
+		elog(WARN, "renamerel: relation \"%-.*s\" exists", 
 		     sizeof(NameData), newrelname);
 	}
 

@@ -110,7 +110,7 @@ ExecAgg(node)
 	aggTuple = SearchSysCacheTuple(AGGNAME, aggname, (char *) NULL,
 				       (char *) NULL, (char *) NULL);
 	if (!HeapTupleIsValid(aggTuple))
-		elog(WARN, "ExecAgg: cache lookup failed for \"%-*s\"",
+		elog(WARN, "ExecAgg: cache lookup failed for \"%-.*s\"",
 		     sizeof(NameData), aggname);
 	aggp = (Form_pg_aggregate) GETSTRUCT(aggTuple);
 	xfn1_oid = aggp->aggtransfn1;

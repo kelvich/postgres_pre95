@@ -150,7 +150,7 @@ check_permissions(command, dbname, dbIdP, userIdP)
 
     /* Check to make sure user has permission to use createdb */
     if (!use_createdb) {
-        elog(WARN, "%s: user \"%-*s\" is not allowed to create/destroy databases",
+        elog(WARN, "%s: user \"%-.*s\" is not allowed to create/destroy databases",
              sizeof(NameData), user);
     }
 
@@ -173,7 +173,7 @@ check_permissions(command, dbname, dbIdP, userIdP)
     dbrel = heap_openr(DatabaseRelationName);
 
     if (!RelationIsValid(dbrel))
-	elog(FATAL, "%s: cannot open relation \"%-*s\"",
+	elog(FATAL, "%s: cannot open relation \"%-.*s\"",
 	     command, DatabaseRelationName->data);
 
     /*

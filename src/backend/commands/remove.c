@@ -48,7 +48,7 @@ RemoveOperator(operatorName, typeName1, typeName2)
 
 	typeId1 = TypeGet(typeName1, &defined);
 	if (!ObjectIdIsValid(typeId1)) {
-		elog(WARN, "RemoveOperator: type \"%-*s\" does not exist",
+		elog(WARN, "RemoveOperator: type \"%-.*s\" does not exist",
 		     sizeof(NameData), typeName1);
 		return;
 	}
@@ -57,7 +57,7 @@ RemoveOperator(operatorName, typeName1, typeName2)
 	if (NameIsValid(typeName2)) {
 		typeId2 = TypeGet(typeName2, &defined);
 		if (!ObjectIdIsValid(typeId2)) {
-			elog(WARN, "RemoveOperator: type \"%-*s\" does not exist",
+			elog(WARN, "RemoveOperator: type \"%-.*s\" does not exist",
 			     sizeof(NameData), typeName2);
 			return;
 		}
@@ -86,19 +86,19 @@ RemoveOperator(operatorName, typeName1, typeName2)
 #ifndef NO_SECURITY
 		GetUserName(&user);
 		if (!pg_ownercheck(user.data, (char *) tup->t_oid, OPROID))
-			elog(WARN, "RemoveOperator: operator \"%-*s\": permission denied",
+			elog(WARN, "RemoveOperator: operator \"%-.*s\": permission denied",
 			     sizeof(NameData), operatorName);
 #endif
 		ItemPointerCopy(&tup->t_ctid, &itemPointerData);
 		RelationDeleteHeapTuple(relation, &itemPointerData);
 	} else {
 		if (ObjectIdIsValid(typeId2)) {
-			elog(WARN, "RemoveOperator: operator \"%-*s\" taking \"%-*s\" and \"%-*s\" does not exist",
+			elog(WARN, "RemoveOperator: operator \"%-.*s\" taking \"%-.*s\" and \"%-.*s\" does not exist",
 			     sizeof(NameData), operatorName,
 			     sizeof(NameData), typeName1,
 			     sizeof(NameData), typeName2);
 		} else {
-			elog(WARN, "RemoveOperator: operator \"%-*s\" taking \"%-*s\" does not exist",
+			elog(WARN, "RemoveOperator: operator \"%-.*s\" taking \"%-.*s\" does not exist",
 			     sizeof(NameData), operatorName,
 			     sizeof(NameData), typeName1);
 		}
@@ -241,7 +241,7 @@ RemoveType(typeName)
 #ifndef NO_SECURITY
 	GetUserName(&user);
 	if (!pg_ownercheck(user.data, typeName->data, TYPNAME))
-		elog(WARN, "RemoveType: type \"%-*s\": permission denied",
+		elog(WARN, "RemoveType: type \"%-.*s\": permission denied",
 		     sizeof(NameData), typeName);
 #endif
 
@@ -258,7 +258,7 @@ RemoveType(typeName)
 	if (!HeapTupleIsValid(tup)) {
 		HeapScanEnd(scan);
 		RelationCloseHeapRelation(relation);
-		elog(WARN, "RemoveOperator: type \"%-*s\" does not exist",
+		elog(WARN, "RemoveOperator: type \"%-.*s\" does not exist",
 		     sizeof(NameData), typeName);
 	}
 	typeOid = tup->t_oid;
@@ -281,7 +281,7 @@ RemoveType(typeName)
 
 	if (!HeapTupleIsValid(tup))
 	{
-	    elog(WARN, "RemoveType: type \"%-*s\": array stub not found",
+	    elog(WARN, "RemoveType: type \"%-.*s\": array stub not found",
 		 sizeof(NameData), typeName->data);
 	}
 	typeOid = tup->t_oid;
@@ -330,7 +330,7 @@ RemoveFunction(functionName, nargs, argNameList)
 		tup = SearchSysCacheTuple(TYPNAME, &typename, NULL, NULL, NULL);
 
 		if (!HeapTupleIsValid(tup)) {
-		    elog(WARN, "RemoveFunction: type \"%-*s\" not found",
+		    elog(WARN, "RemoveFunction: type \"%-.*s\" not found",
 			 sizeof(NameData), &typename);
 		}
 
@@ -346,7 +346,7 @@ RemoveFunction(functionName, nargs, argNameList)
 	GetUserName(&user);
 	if (!pg_func_ownercheck(user.data, (char *) functionName, 
 				nargs, argList)) {
-		elog(WARN, "RemoveFunction: function \"%-*s\": permission denied",
+		elog(WARN, "RemoveFunction: function \"%-.*s\": permission denied",
 		     sizeof(NameData), functionName);
 	}
 #endif
@@ -389,7 +389,7 @@ RemoveFunction(functionName, nargs, argNameList)
 #endif
 
 	if (the_proc->prolang == INTERNALlanguageId)
-		elog(WARN, "RemoveFunction: function \"%-*s\" is built-in",
+		elog(WARN, "RemoveFunction: function \"%-.*s\" is built-in",
 		     sizeof(NameData), functionName);
 
 	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
@@ -449,7 +449,7 @@ RemoveAggregate(aggName)
 	if (!HeapTupleIsValid(tup)) {
 		HeapScanEnd(scan);
 		RelationCloseHeapRelation(relation);
-		elog(WARN, "RemoveAggregate: aggregate \"%-*s\" does not exist",
+		elog(WARN, "RemoveAggregate: aggregate \"%-.*s\" does not exist",
 		     sizeof(NameData), aggName);
 	}
 	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
