@@ -120,7 +120,7 @@ extern char	*fmgr_c ARGS((
 	func_ptr user_fn,
 	ObjectId func_id,
 	int n_arguments,
-	char *values,
+	FmgrValues *values,
 	Boolean *isNull
 ));
 extern char	*fmgr ARGS((...));	/* XXX varargs */
