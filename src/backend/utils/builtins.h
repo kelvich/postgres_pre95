@@ -218,6 +218,19 @@ extern void		rtrescan();
 extern void		rtbuild();
 
 /*
+ *  Selectivity functions for rtrees in utils/adt/selfuncs.c
+ */
+extern float64		rtsel();
+extern float64		rtnpage();
+
+/* support routines for the rtree access method, by opclass */
+#ifdef FMGR_ADT
+extern BOX		*rt_box_union();
+extern BOX		*rt_box_inter();
+extern int		rt_box_size();
+#endif /* FMGR_ADT */
+
+/*
  *	Functional B-tree code.
  *	Defined in ftree/
  */
