@@ -556,18 +556,3 @@ get_andclauseargs (andclause)
 {
      return(CDR (andclause));
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
