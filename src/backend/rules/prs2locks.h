@@ -189,4 +189,43 @@ typedef Prs2LocksData	*RuleLock;
 
 #define InvalidRuleLock		((RuleLock) NULL)
 #define RuleLockIsValid(x)	PointerIsValid(x)
+
+
+/*------------------------------------------------------------------
+ * #defines to access/set Prs2Lock data...
+ * It is highly recommended that these routines are used instead
+ * of directly manipulating the various structures invloved..
+ *------------------------------------------------------------------
+ */
+
+#define prs2OneLockGetRuleId(l)			((l)->ruleId)
+#define prs2OneLockGetLockType(l)		((l)->lockType)
+#define prs2OneLockGetAttributeNumber(l)	((l)->attributeNumber)
+#define prs2OneLockGetPlanNumber(l)		((l)->planNumber)
+
+#define prs2OneLockSetRuleId(l, x)		((l)->ruleId = (x))
+#define prs2OneLockSetLockType(l, x)		((l)->lockType = (x))
+#define prs2OneLockSetAttributeNumber(l, x)	((l)->attributeNumber = (x))
+#define prs2OneLockSetPlanNumber(l, x)		((l)->planNumber = (x))
+
+/*------------------------------------------------------------------
+ * prs2LockSize
+ *    return the size needed for a 'Prs2LocksData' structure big enough
+ *    to hold 'n' of 'Prs2OneLockData' structures...
+ */
+#define prs2LockSize(n) (sizeof(Prs2LocksData) \
+			+ ((n)-1)*sizeof(Prs2OneLockData))
+
+/*------------------------------------------------------------------
+ * prs2GetNumberOfLocks
+ *    return the number of locks contained in a 'RuleLock' structure.
+ */
+#define prs2GetNumberOfLocks(x)	((x)==NULL ? 0 : (x)->numberOfLocks)
+
+/*------------------------------------------------------------------
+ * prs2RuleLockIsEmpty
+ * 	return true if this is an empty rule lock.
+ */
+#define prs2RuleLockIsEmpty(l)	(prs2GetNumberOfLocks(l) == 0)
+
 #endif Prs2LocksIncluded
