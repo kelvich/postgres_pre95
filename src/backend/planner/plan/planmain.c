@@ -94,7 +94,6 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 
      extern Plan subplanner();
      
-     
      /*    For the topmost nesting level, */
      /* 1. Pull out any non-variable qualifications so these can be put in */
      /*    the topmost result node.  The opids for the remaining */
@@ -442,8 +441,8 @@ make_aggplan(subplan, agg_tlist, aggidnum)
 
 	level_tlist = nconc(get_qptargetlist(subplan),
 					    get_qptargetlist(aggnode));
-	joinnode = make_nestloop(level_tlist, LispNil, subplan,
-							  aggnode);
+	joinnode = make_nestloop(level_tlist, LispNil, aggnode,
+							  subplan);
 	/* inner tree is the aggregate, outer tree is the rest of
 	 * the plan.  quals are nil here since we don't have aggregate
 	 * functions yet.
