@@ -159,9 +159,12 @@ get_attnum (relid,attname)
 	Attribute  att_tup = new(AttributeTupleFormD);
 
 	if(SearchSysCacheStruct (ATTNAME,att_tup,relid,attname,0,0) ) 
-	  return(att_tup->attnum);
+	  attnum = att_tup->attnum;
 	else
-	  return(InvalidAttributeNumber);
+	  attnum = InvalidAttributeNumber;
+
+	delete(att_tup);
+	return(attnum);
 }
 
 /*    
