@@ -126,6 +126,7 @@ struct varlena {
 
 #define	VARSIZE(PTR)	(((struct varlena *)(PTR))->vl_len)
 #define	VARDATA(PTR)    (((struct varlena *)(PTR))->vl_dat)
+#define	VARHDRSZ	sizeof(int32)
 
 /* ----------------
  *	aclitem
@@ -236,6 +237,9 @@ typedef NameData	*Name;
 #define InvalidName	((Name) NULL)
 #define	NameIsValid(name) PointerIsValid(name)
 
+/* maximum string length of a NameData */
+#define	NAMEDATALEN	16
+
 /* ----------------------------------------------------------------
  *	 	Section 4:  datum type + support macros
  * ----------------------------------------------------------------
@@ -290,7 +294,7 @@ typedef Datum *       DatumPtr;
 #define GET_4_BYTES(datum)  (((Datum) (datum)) & 0xffffffff)
 #define SET_1_BYTE(value)   (((Datum) (value)) & 0x000000ff)
 #define SET_2_BYTES(value)  (((Datum) (value)) & 0x0000ffff)
-#define SET_4_BYTES(datum)  (((Datum) (datum)) & 0xffffffff)
+#define SET_4_BYTES(value)  (((Datum) (value)) & 0xffffffff)
 
 /*
  * DatumGetChar --
@@ -391,122 +395,6 @@ typedef Datum *       DatumPtr;
 #define UInt32GetDatum(X) ((Datum) SET_4_BYTES(X))
 
 /*
- * DatumGetFloat32 --
- *	Returns 32-bit floating point value of a datum.
- */
-
-#define DatumGetFloat32(X) ((float32) GET_4_BYTES(X))
-
-/*
- * Float32GetDatum --
- *	Returns datum representation for a 32-bit floating point number.
- */
-
-#define Float32GetDatum(X) ((Datum) SET_4_BYTES(X))
-
-/*
- * DatumGetFloat64 --
- *	Returns 64-bit floating point value of a datum.
- */
-
-#define DatumGetFloat64(X) ((float64) GET_4_BYTES(X))
-
-/*
- * Float64GetDatum --
- *	Returns datum representation for a 64-bit floating point number.
- */
-
-#define Float64GetDatum(X) ((Datum) SET_4_BYTES(X))
-
-/*
- * DatumGetPointer --
- *	Returns pointer value of a datum.
- */
-
-#ifndef LONG64
-#define DatumGetPointer(X) ((Pointer) GET_4_BYTES(X))
-#else /* LONG64 */
-#define DatumGetPointer(X) ((Pointer) X)
-#endif /* LONG64 */
-
-/*
- * PointerGetDatum --
- *	Returns datum representation for a pointer.
- */
-
-#ifndef LONG64
-#define PointerGetDatum(X) ((Datum) SET_4_BYTES(X))
-#else /* LONG64 */
-#define PointerGetDatum(X) ((Datum) X)
-#endif /* LONG64 */
-
-/*
- * DatumGetPointerPointer --
- *	Returns pointer to pointer value of a datum.
- */
-
-#ifndef LONG64
-#define DatumGetPointerPointer(X) ((Pointer *) GET_4_BYTES(X))
-#else /* LONG64 */
-#define DatumGetPointerPointer(X) ((Pointer *) X)
-#endif /* LONG64 */
-
-/*
- * PointerPointerGetDatum --
- *	Returns datum representation for a pointer to pointer.
- */
-
-#ifndef LONG64
-#define PointerPointerGetDatum(X) ((Datum) SET_4_BYTES(X))
-#else /* LONG64 */
-#define PointerPointerGetDatum(X) ((Datum) X)
-#endif /* LONG64 */
-
-/*
- * DatumGetStructPointer --
- *	Returns pointer to structure value of a datum.
- */
-
-#ifndef LONG64
-#define DatumGetStructPointer(X) ((AnyStruct *) GET_4_BYTES(X))
-#else /* LONG64 */
-#define DatumGetStructPointer(X) ((AnyStruct *) X)
-#endif /* LONG64 */
-
-/*
- * StructPointerGetDatum --
- *	Returns datum representation for a pointer to structure.
- */
-
-#ifndef LONG64
-#define StructPointerGetDatum(X) ((Datum) SET_4_BYTES(X))
-#else /* LONG64 */
-#define StructPointerGetDatum(X) ((Datum) X)
-#endif /* LONG64 */
-
-/*
- * DatumGetName --
- *	Returns name value of a datum.
- */
-
-#ifndef LONG64
-#define DatumGetName(X) ((Name) GET_4_BYTES(X))
-#else /* LONG64 */
-#define DatumGetName(X) ((Name) X)
-#endif /* LONG64 */
-
-/*
- * NameGetDatum --
- *	Returns datum representation for a name.
- */
-
-#ifndef LONG64
-#define NameGetDatum(X) ((Datum) SET_4_BYTES(X))
-#else /* LONG64 */
-#define NameGetDatum(X) ((Datum) X)
-#endif /* LONG64 */
-
-/*
  * DatumGetObjectId --
  *	Returns object identifier value of a datum.
  */
@@ -519,6 +407,80 @@ typedef Datum *       DatumPtr;
  */
 
 #define ObjectIdGetDatum(X) ((Datum) SET_4_BYTES(X))
+
+/*
+ * DatumGetPointer --
+ *	Returns pointer value of a datum.
+ */
+
+#define DatumGetPointer(X) ((Pointer) X)
+
+/*
+ * PointerGetDatum --
+ *	Returns datum representation for a pointer.
+ */
+
+#define PointerGetDatum(X) ((Datum) X)
+
+/*
+ * DatumGetStructPointer --
+ *	Returns pointer to structure value of a datum.
+ */
+
+#define DatumGetStructPointer(X) ((AnyStruct *) X)
+
+/*
+ * StructPointerGetDatum --
+ *	Returns datum representation for a pointer to structure.
+ */
+
+#define StructPointerGetDatum(X) ((Datum) X)
+
+/*
+ * DatumGetName --
+ *	Returns name value of a datum.
+ */
+
+#define DatumGetName(X) ((Name) DatumGetPointer((Datum) X))
+
+/*
+ * NameGetDatum --
+ *	Returns datum representation for a name.
+ */
+
+#define NameGetDatum(X) PointerGetDatum((Pointer) X)
+
+/*
+ * DatumGetFloat32 --
+ *	Returns 32-bit floating point value of a datum.
+ *	This is really a pointer, of course.
+ */
+
+#define DatumGetFloat32(X) ((float32) DatumGetPointer((Datum) X))
+
+/*
+ * Float32GetDatum --
+ *	Returns datum representation for a 32-bit floating point number.
+ *	This is really a pointer, of course.
+ */
+
+#define Float32GetDatum(X) PointerGetDatum((Pointer) X)
+
+/*
+ * DatumGetFloat64 --
+ *	Returns 64-bit floating point value of a datum.
+ *	This is really a pointer, of course.
+ */
+
+#define DatumGetFloat64(X) ((float64) DatumGetPointer(X))
+
+/*
+ * Float64GetDatum --
+ *	Returns datum representation for a 64-bit floating point number.
+ *	This is really a pointer, of course.
+ */
+
+#define Float64GetDatum(X) PointerGetDatum((Pointer) X)
 
 #endif	/* !defined(DatumIncluded) */
 
