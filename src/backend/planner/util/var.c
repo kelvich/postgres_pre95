@@ -48,7 +48,12 @@ pull_agg_clause(clause)
 	      retval = nconc (retval,pull_agg_clause(CAR(temp)));
 	    }
 	else if (IsA(clause,ArrayRef)) {
-	    retval = pull_agg_clause(get_refindexpr((ArrayRef)clause));
+		LispValue temp;
+		foreach(temp, get_refupperindexpr((ArrayRef)clause))
+	      retval = nconc (retval,pull_agg_clause(CAR(temp)));
+		foreach(temp, get_reflowerindexpr((ArrayRef)clause))
+	      retval = nconc (retval,pull_agg_clause(CAR(temp)));
+	    retval = nconc (retval,pull_agg_clause(get_refassgnexpr((ArrayRef)clause)));
 	  }
 	else if (not_clause (clause))
 	    retval = pull_agg_clause(get_notclausearg(clause));
@@ -84,7 +89,11 @@ pull_varnos(me)
 		}
 		break;
 	case classTag(ArrayRef):
-		result = pull_varnos(get_refindexpr((ArrayRef) me));
+		foreach (i, get_refupperindexpr((ArrayRef) me)) 
+			result = nconc(result, pull_varnos(CAR(i)));
+		foreach (i, get_reflowerindexpr((ArrayRef) me))
+			result = nconc(result, pull_varnos(CAR(i)));
+		result = nconc(result, pull_varnos(get_refassgnexpr((ArrayRef) me)));
 		break;
 	case classTag(Var):
 		result = lispCons(lispInteger(get_varno((Var) me)),
@@ -130,8 +139,15 @@ pull_var_clause (clause)
 		foreach(temp,get_funcargs(clause)) 
 		  retval = nconc (retval,pull_var_clause(CAR(temp)));
 	} else if (IsA(clause,ArrayRef)) {
-	    retval = nconc(pull_var_clause(get_refindexpr((ArrayRef)clause)),
+		LispValue temp;
+		foreach(temp,get_refupperindexpr((ArrayRef)clause)) 
+		  retval = nconc (retval,pull_var_clause(CAR(temp)));
+		foreach(temp,get_reflowerindexpr((ArrayRef)clause)) 
+		  retval = nconc (retval,pull_var_clause(CAR(temp)));
+	    retval = nconc(retval,
 			   pull_var_clause(get_refexpr((ArrayRef)clause)));
+	    retval = nconc(retval,
+			   pull_var_clause(get_refassgnexpr((ArrayRef)clause)));
 	} else if (not_clause (clause))
 	  retval = pull_var_clause (get_notclausearg (clause));
 	else if (is_clause (clause)) 

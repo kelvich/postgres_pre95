@@ -572,15 +572,24 @@ flatten_tlistentry (tlistentry,flat_tlist)
 					temp_result));
 
      } else if (IsA(tlistentry,ArrayRef)) {
-       LispValue temp;
-       temp =
-           (LispValue)flatten_tlistentry(get_refindexpr((ArrayRef)tlistentry),
-                                         flat_tlist);
-       set_refindexpr((ArrayRef)tlistentry, temp);
+       LispValue temp = LispNil;
+	   LispValue elt = LispNil;
+
+	   foreach(elt, get_refupperindexpr((ArrayRef)tlistentry))
+		temp = nappend1(temp, flatten_tlistentry(CAR(elt), flat_tlist));
+       set_refupperindexpr((ArrayRef)tlistentry, temp);
+       temp = LispNil;
+	   foreach(elt, get_reflowerindexpr((ArrayRef)tlistentry))
+		temp = nappend1(temp, flatten_tlistentry(CAR(elt), flat_tlist));
+       set_reflowerindexpr((ArrayRef)tlistentry, temp);
        temp = (LispValue)
                flatten_tlistentry(get_refexpr((ArrayRef)tlistentry),
                                   flat_tlist);
        set_refexpr((ArrayRef)tlistentry, temp);
+       temp = (LispValue)
+               flatten_tlistentry(get_refassgnexpr((ArrayRef)tlistentry),
+                                  flat_tlist);
+       set_refassgnexpr((ArrayRef)tlistentry, temp);
        return(tlistentry);
     } else {
 	return((TLE)

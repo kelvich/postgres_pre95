@@ -298,8 +298,10 @@ fix_opid (clause)
 		fix_opids (get_funcargs (clause));
 	} 
 	else if (IsA(clause,ArrayRef)) {
-		fix_opid(get_refindexpr((ArrayRef)clause));
+		fix_opids(get_refupperindexpr((ArrayRef)clause));
+		fix_opids(get_reflowerindexpr((ArrayRef)clause));
 		fix_opid(get_refexpr((ArrayRef)clause));
+		fix_opid(get_refassgnexpr((ArrayRef)clause));
 	}
 	else if (not_clause (clause)) {
 		fix_opid (get_notclausearg (clause));
