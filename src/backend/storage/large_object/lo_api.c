@@ -165,6 +165,90 @@ XOOpen(object, open_mode)
     retval->object = object;
     return(retval);
 }
+
+/*
+ * These functions deal with ``Jaquith'' large objexts,
+ * These are stored on the device, and moved to unix when needed.
+ * the path name will be mirrored from unix to jaquith
+ */
+
+LargeObjectDesc *
+JOCreate(path, open_mode)
+char *path;
+int open_mode;
+
+{
+    LargeObjectDesc *retval = NULL;
+    LargeObject *newobj;
+    int fd, status, i;
+    oid oidf;
+
+    if (*path != '/') 
+	elog(WARN, "Jaquith file names must start with a '/' ");
+
+    /* Log this instance of large object into directory table. */
+    if ((oidf = FilenameToOID(path)) == InvalidObjectId) {
+	
+	/* enter it in system relation */
+	if ((oidf = LOpathOID(path,0)) == InvalidObjectId)
+	    elog(WARN, "%s: couldn't force path name", path);
+
+	/* call jaquith, to get the file into the specified path */
+	/* jaquith must already have the file in that exact same path */
+
+	/* remove any old file that is there.  FILE WILL BE LOST */
+	JO_clean(JO_path(path));
+
+	JO_get(path);
+	fd = (int) PathNameOpenFile(JO_path(path), O_CREAT | O_RDWR, 0666);
+	
+	if (fd == -1) return(NULL);
+
+	newobj = (LargeObject *) NewLargeObject(path, JAQUITH_FILE);
+	retval = (LargeObjectDesc *) palloc(sizeof(LargeObjectDesc));
+
+	retval->object = newobj;
+	retval->ofs.u_fs.fd = fd;
+	retval->ofs.u_fs.dirty = 0;;
+
+	/* enter cookie into table */
+	(void) LOputOIDandLargeObjDesc(oidf, Jaquith,
+				(struct varlena *) newobj);
+    }
+
+    return(retval);
+}
+
+LargeObjectDesc *
+JOOpen(object, open_mode)
+    LargeObject *object;
+    int open_mode;
+{
+    LargeObjectDesc *retval;
+    int fd;
+    char *path;
+
+    Assert(PointerIsValid(object));
+    Assert(object->lo_storage_type == JAQUITH_FILE);
+
+    path = JO_path(object->lo_ptr.filename);
+
+    /* remove any old file that is there.  FILE WILL BE LOST */
+    JO_clean(path);
+
+    JO_get(object->lo_ptr.filename);
+    fd = PathNameOpenFile(path, open_mode, 0666);
+
+    if (fd == -1) return(NULL);
+
+    retval = (LargeObjectDesc *) palloc(sizeof(LargeObjectDesc));
+
+    retval->ofs.u_fs.fd = fd;
+    retval->ofs.u_fs.dirty = 0;  /* keep track if file has been written to */
+    retval->object = object;
+    return(retval);
+}
+
 /*
  * Returns the number of blocks and the byte offset of the last block of
  * the file.  nblocks * LARGE_OBJECT_BLOCK + byte_offset should be equal to
@@ -181,7 +265,7 @@ LOStat(obj_desc, nblocks, byte_offset)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE) || (obj_desc->object->lo_storage_type == JAQUITH_FILE)));
 
     /* see where we are now */
 
@@ -213,7 +297,7 @@ LOBlockRead(obj_desc, buf, nblocks)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE) || (obj_desc->object->lo_storage_type == JAQUITH_FILE)));
 
     nbytes = LARGE_OBJECT_BLOCK * nblocks;
     bytes_read = FileRead(obj_desc->ofs.u_fs.fd, buf, nbytes);
@@ -234,6 +318,24 @@ LOClose(obj_desc)
     Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
 
     FileClose(obj_desc->ofs.u_fs.fd);
+    pfree(obj_desc);
+}
+
+/*  Jaquith close, just ends the stdout stream */
+
+void
+JOClose(obj_desc)
+    LargeObjectDesc *obj_desc;
+{
+    Assert(PointerIsValid(obj_desc));
+    Assert(PointerIsValid(obj_desc->object));
+    Assert((obj_desc->object->lo_storage_type == JAQUITH_FILE));
+
+    FileClose(obj_desc->ofs.u_fs.fd);
+    if (obj_desc->ofs.u_fs.dirty) 
+	JO_put(obj_desc->object->lo_ptr.filename);
+    
+    JO_clean(JO_path(obj_desc->object->lo_ptr.filename));
     pfree(obj_desc);
 }
 
@@ -258,7 +360,7 @@ XODestroy(object)
     LargeObject *object;
 {
     Assert(PointerIsValid(object));
-    Assert(object->lo_storage_type == EXTERNAL_FILE);
+    Assert((object->lo_storage_type == EXTERNAL_FILE) || (object->lo_storage_type == JAQUITH_FILE));
 
     pfree(object);
 }
@@ -284,7 +386,7 @@ XODestroyRef(object)
     LargeObject *object;
 {
     Assert(PointerIsValid(object));
-    Assert(object->lo_storage_type == EXTERNAL_FILE);
+    Assert((object->lo_storage_type == EXTERNAL_FILE) || (object->lo_storage_type == JAQUITH_FILE));
 }
 
 /*
@@ -317,7 +419,7 @@ LOUnixStat(obj_desc, stbuf)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE) || (obj_desc->object->lo_storage_type == JAQUITH_FILE)));
     Assert(stbuf != NULL);
 
     ret = FileStat(obj_desc->ofs.u_fs.fd,stbuf);
@@ -337,7 +439,7 @@ LOSeek(obj_desc,offset,whence)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
+    Assert((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE) || (obj_desc->object->lo_storage_type == JAQUITH_FILE));
 
     ret = FileSeek(obj_desc->ofs.u_fs.fd,offset,whence);
 
@@ -355,7 +457,7 @@ LOTell(obj_desc)
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE) || (obj_desc->object->lo_storage_type == JAQUITH_FILE)));
 
     ret = FileTell(obj_desc->ofs.u_fs.fd);
 
@@ -374,7 +476,7 @@ int LORead(obj_desc,buf,n)
     int ret;
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE) || (obj_desc->object->lo_storage_type == JAQUITH_FILE)));
     Assert(buf != NULL);
 
     ret = FileRead(obj_desc->ofs.u_fs.fd,buf,n);
@@ -394,10 +496,13 @@ int LOWrite (obj_desc,buf,n)
     int ret;
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE)));
+    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE) || (obj_desc->object->lo_storage_type == JAQUITH_FILE)));
     Assert(buf != NULL);
 
     ret = FileWrite(obj_desc->ofs.u_fs.fd,buf,n);
-
+    obj_desc->ofs.u_fs.dirty = 1;  /* only Jaquith will look at this */
+        
     return ret;
 }
+
+
