@@ -1860,7 +1860,7 @@ res_target_el:
 
 	     type_id = CInteger(CAR($3));
 
-	     if (ISCOMPLEX(CInteger(type_id)))
+	     if (ISCOMPLEX(type_id))
 		elog(WARN,
 		   "Cannot assign complex type to variable %s in target list",
 		   CString($1));
