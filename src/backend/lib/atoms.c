@@ -36,6 +36,7 @@ ScanKeyword	ScanKeywords[] = {
 	{ "arch_store",		ARCH_STORE	},
 	{ "archive",		ARCHIVE		},
 	{ "arg",		ARG		},
+        { "as",                 AS              },
 	{ "ascending",		ASCENDING	},
 	{ "attachas",		ATTACH_AS	},
 	{ "backward",		BACKWARD	},
