@@ -43,9 +43,9 @@ OBJSTRIPPREFIX?=        /usr/
 
 ${SHPROG}: ${SHPROG}.sh
 .if defined(SEDSCRIPT)
-	sed ${SEDSCRIPT} < ${.CURDIR}/${SHPROG}.sh > ${SHPROG}
+	sed ${SEDSCRIPT} < ${.ALLSRC} > ${SHPROG}
 .else
-	cp ${.CURDIR}/${SHPROG}.sh ${SHPROG}
+	cp ${.ALLSRC} ${SHPROG}
 .endif
 
 .if	!defined(MAN1) && !defined(MAN2) && !defined(MAN3) && \
