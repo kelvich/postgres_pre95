@@ -792,10 +792,11 @@ talking to the backend, so let's send a simple test
 query:  list the names and user ids of the postgres users.
 We terminate the query with a \eg \*- the ``go'' command
 to the terminal monitor.
-NOTE: On Ultrix, there is a bug in fork() which causes the monitor to hang
-on its first invocation.  To get around this problem on DECstations, start the
-monitor, type "\g <CR>" from the monitor prompt, wait a few seconds, and start
-it again.  It will work after this.
+
+NOTE: On DECstation 3100 Ultrix, there is a bug in fork() which causes the
+monitor to hang on its first invocation.  To get around this problem, start the
+monitor, type "\g <CR>" from the monitor prompt, wait a few seconds, kill the
+monitor with <CRTL>C, and start it again.  It will work after this.
 \fR
 
 *\fBretrieve (u.usename, u.usesysid) from u in pg_user
