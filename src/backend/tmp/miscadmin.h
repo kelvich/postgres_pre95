@@ -49,16 +49,28 @@
 #ifndef	GlobalsIncluded		/* Include this file only once */
 #define	GlobalsIncluded	1
 
-/*
- * Identification:
- */
+#include "storage/sinval.h"
 
-extern int Debugfile;
-extern int Ttyfile;
+/*
+ * from main/main.c
+ */
+extern char		*DataDir;
+
+/*
+ * from tcop/postgres.c
+ */
+extern bool		override;
+extern int		Quiet;
+
+/*
+ * from utils/init/globals.c
+ */
 extern int Portfd;
-extern int Packfd;
-extern int Pipefd;
 extern int Noversion;		/* moved from magic.c	*/
+
+extern char	    OutputFileName[];
+
+extern char	    *PG_username;
 
 /*
  * done in storage/backendid.h for now.
@@ -73,6 +85,7 @@ extern ObjectId	    MyDatabaseId;
 extern bool	    TransactionInitWasProcessed;
 
 extern bool	    IsUnderPostmaster;
+extern bool	    IsPostmaster;
 
 extern struct bcommon Ident;	/* moved from dlog */
 
