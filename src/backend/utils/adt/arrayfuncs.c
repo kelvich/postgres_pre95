@@ -139,11 +139,11 @@ ObjectId element_type;            /* type OID of an array element */
         bcopy(lBound, ARR_LBOUND(retval), ndim*sizeof(int));
         _CopyArrayEls(dataPtr, ARR_DATA_PTR(retval), nitems, typlen, typbyval);
     } else  {
-        int dummy, bytes;
+        int dummy, bytes, lobjtype;
         bool chunked = false;
         bool inversion = false;
 
-        dataPtr = _ReadLOArray(p, &bytes, &dummy, &chunked, &inversion, ndim, 
+        dataPtr = _ReadLOArray(p, &bytes, &dummy, &chunked, &lobjtype, ndim, 
                 dim, typlen );
         nbytes = bytes + ARR_OVERHEAD(ndim);
         retval = (ArrayType *) palloc(nbytes);
@@ -152,7 +152,7 @@ ObjectId element_type;            /* type OID of an array element */
         bcopy(&ndim, ARR_NDIM_PTR(retval), sizeof(int));
         SET_LO_FLAG (true, retval);
         SET_CHUNK_FLAG (chunked, retval);
-        SET_INV_FLAG (inversion, retval);
+        SET_OBJ_TYPE (lobjtype, retval);
         bcopy(dim, ARR_DIMS(retval), ndim*sizeof(int));
         bcopy(lBound, ARR_LBOUND(retval), ndim*sizeof(int));
         bcopy(dataPtr, ARR_DATA_PTR(retval), bytes);
@@ -352,17 +352,14 @@ bool typbyval;
  *--------------------------------------------------------------------------------
  */
 char *
-_ReadLOArray(str, nbytes, fd, chunkFlag, invFlag, ndim, dim, baseSize )
+_ReadLOArray(str, nbytes, fd, chunkFlag, lobjtype, ndim, dim, baseSize )
 char *str;
-int *nbytes, *fd;
-bool *chunkFlag, *invFlag;
+int *nbytes, *fd, *lobjtype;
+bool *chunkFlag;
 int ndim, dim[], baseSize;
 {
     char *inputfile, *accessfile = NULL, *chunkfile = NULL;
     char *retStr, *_AdvanceBy1word();
-    int fileFlag; 
-
-    *invFlag = 0;
 
     str = _AdvanceBy1word(str, &inputfile); 
 
@@ -383,27 +380,29 @@ int ndim, dim[], baseSize;
         }
 
         else if (!strcmp(word, "-invert"))
-            *invFlag = true;
+            *lobjtype = Inversion;
         else if (!strcmp(word, "-unix"))
-            *invFlag = false;
-        else 
+            *lobjtype = Unix;
+        else if (!strcmp(word, "-external"))
+            *lobjtype = External;
+        else if (!strcmp(word, "-jaquith"))
+            *lobjtype = Jaquith;
+        else {
+	    *lobjtype = Unix;
             elog(WARN, "usage: <input file> -chunk DEFAULT/<access pattern file> -invert/-native [-noreorg <chunk file>]");
+	}
     }
 
     if (inputfile == NULL) 
         elog(WARN, "array_in: missing file name"); 
     *fd = -1;
-    if (*invFlag)
-        fileFlag = Inversion;
-    else 
-        fileFlag = Unix;
     if (FilenameToOID(inputfile) == InvalidObjectId) {
         char * saveName = palloc(strlen(inputfile) + 2);
         strcpy (saveName, inputfile);
-        if (*invFlag)
-            *fd = LOcreat (saveName, INV_READ, fileFlag);
+        if (*lobjtype == Inversion)
+            *fd = LOcreat (saveName, INV_READ, *lobjtype);
         else 
-            *fd = LOcreat (saveName, 0600, fileFlag);
+            *fd = LOcreat (saveName, 0600, *lobjtype);
         if ( *fd < 0 )
                elog(WARN, "Large object create failed");
         pfree(saveName);
@@ -417,9 +416,10 @@ int ndim, dim[], baseSize;
             elog(WARN, "unable to open access pattern file");
         *chunkFlag = true;
         if (*fd == -1) 
-            if ((*fd = LOopen(inputfile, (*invFlag)?INV_READ:O_RDONLY)) < 0)
+            if ((*fd = LOopen(inputfile,
+			      (*lobjtype == Inversion)?INV_READ:O_RDONLY)) < 0)
                 elog(WARN, "array_in:Unable to open input file");
-        retStr = _ChunkArray(*fd, afd, ndim, dim, baseSize, nbytes, fileFlag, chunkfile);
+        retStr = _ChunkArray(*fd, afd, ndim, dim, baseSize, nbytes, *lobjtype, chunkfile);
     }    
     return(retStr);
 }

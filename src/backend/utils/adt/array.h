@@ -28,12 +28,13 @@ typedef struct {
  * bitmask of ArrayType flags field:
  * 1st bit - large object flag
  * 2nd bit - chunk flag (array is chunked if set)
- * 3rd bit - inversion flag (used only if bit 1 is set)
+ * 3rd,4th,&5th bit - large object type (used only if bit 1 is set)
  */
 #define	ARR_LOB_FLAG	(0x1)
 #define	ARR_CHK_FLAG	(0x2)
-#define	ARR_INV_FLAG	(0x4)
+#define	ARR_OBJ_MASK	(0x1c)
 
+#define ARR_FLAGS(a)		((ArrayType *) a)->flags
 #define	ARR_SIZE(a)		(((ArrayType *) a)->size)
 
 #define ARR_NDIM(a)		(((ArrayType *) a)->ndim)
@@ -49,10 +50,11 @@ typedef struct {
 #define SET_CHUNK_FLAG(f,a) \
 	(((ArrayType *) a)->flags |= ((f) ? ARR_CHK_FLAG : 0x0))
 
-#define ARR_IS_INV(a) \
-	(((ArrayType *) a)->flags & ARR_INV_FLAG)
-#define SET_INV_FLAG(f,a) \
-	(((ArrayType *) a)->flags |= ((f) ? ARR_INV_FLAG : 0x0))
+#define ARR_OBJ_TYPE(a) \
+	((ARR_FLAGS(a) & ARR_OBJ_MASK) >> 2)
+#define SET_OBJ_TYPE(f,a) \
+	((ARR_FLAGS(a)&= ~ARR_OBJ_MASK), (ARR_FLAGS(a)|=((f<<2)&ARR_OBJ_MASK)))
+#define ARR_IS_INV(a) (ARR_OBJ_TYPE(a) == Inversion)
 
 /*
  * ARR_DIMS returns a pointer to an array of array dimensions (number of
