@@ -81,14 +81,17 @@ Relation relation;
     /*
      * free all space (if any) occupied by datums generated
      * by "prs2RunOnePlanAndGetValue()"
-     * All these datums are creted via "copyDatum()"
+     * All these datums are creted via "datumCopy()"
      */
     tdesc = RelationGetTupleDescriptor(relation);
     natts = RelationGetNumberOfAttributes(relation);
     for(i=1; i<=natts; i++) {
 	if (a[i-1].isCalculated && a[i-1].isChanged) {
 	    if (!a[i-1].isNull)
-		freeDatum(a[i-1].value, tdesc->data[i-1]->atttypid);
+		datumFree(a[i-1].value,
+		    tdesc->data[i-1]->atttypid,		/* type */
+		    tdesc->data[i-1]->attbyval,		/* byVal */
+		    (Size) tdesc->data[i-1]->attlen);	/* type length */
 	}
     }
 
