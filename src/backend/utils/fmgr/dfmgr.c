@@ -293,7 +293,11 @@ char *filename;
     {
         file_scanner = file_list;
         file_list = file_list->next;
+#ifdef	USE_DLD
+	dld_unlink_by_file(file_scanner->filename, 1 /* force */);
+#else
         zero_loaded_file(file_scanner);
+#endif
         free((char *)file_scanner);
     }
     else if (file_list != NULL)
@@ -319,12 +323,18 @@ char *filename;
         {
             p = file_scanner->next;
             file_scanner->next = file_scanner->next->next;
+#ifdef USE_DLD
+	    dld_unlink_by_file(file_scanner->filename, 1 /* force */);
+#else
             zero_loaded_file(p);
+#endif
             free((char *)p);
         }
     }
     handle_load(filename, NULL);
 }
+
+#ifndef USE_DLD
 
 zero_loaded_file(file_data)
 
@@ -350,3 +360,5 @@ DynamicFileList *file_data;
     }
     free((char *)file_data->func_list);
 }
+
+#endif	/* ! USE_DLD */
