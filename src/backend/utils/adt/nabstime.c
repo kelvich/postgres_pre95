@@ -64,7 +64,7 @@ static short mdays[] = {
 };
 
 /* exports */
-extern int dtok_numparsed;
+static int dtok_numparsed;
 
 /*
  * parse and convert absolute date in timestr (the normal interface)
@@ -623,7 +623,7 @@ register struct tm *tp;
 }
 
 /* Globals */
-static int dtok_numparsed;
+/*static int dtok_numparsed;*/
 
 /* forwards */
 extern datetkn datetktbl[];
