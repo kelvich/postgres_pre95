@@ -356,6 +356,10 @@ class (JunkFilter) public (JunkFilter) {
  *	result_rel_ruleinfo		general information
  *					for the result relation needed
  *					by the rule manager.
+ *	refcount			local buffer refcounts used in
+ *					an ExecMain cycle.  this is introduced
+ *					to avoid ExecMain's unpinning each
+ *					other's buffers when called recursively
  * ----------------	
  */
 
@@ -387,6 +391,7 @@ class (EState) public (Node) {
       List		es_result_relation_info_list;
       List		es_junkFilter_list;
       RelationRuleInfo  es_result_rel_ruleinfo;
+      intPtr 		es_refcount;
 };
 
 /* ----------------
