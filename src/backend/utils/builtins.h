@@ -67,7 +67,8 @@ int32 *int44in ARGS((char *input_string ));
 char *int44out ARGS((int32 an_array []));
 int32 int4in ARGS((char *num ));
 char *int4out ARGS((int32 l ));
-int32 itoi ARGS((int32 arg1 ));
+int32 i2toi4 ARGS((int16 arg1 ));
+int16 i4toi2 ARGS((int32 arg1 ));
 int32 int4eq ARGS((int32 arg1 , int32 arg2 ));
 int32 int4ne ARGS((int32 arg1 , int32 arg2 ));
 int32 int4lt ARGS((int32 arg1 , int32 arg2 ));
@@ -93,26 +94,23 @@ int16 int2mi ARGS((int16 arg1 , int16 arg2 ));
 int16 int2mul ARGS((int16 arg1 , int16 arg2 ));
 int16 int2div ARGS((int16 arg1 , int16 arg2 ));
 int16 int2inc ARGS((int16 arg ));
-int32 int2larger ARGS((int16 arg1 , int16 arg2 ));
-int32 int2smaller ARGS((int16 arg1 , int16 arg2 ));
+int16 int2larger ARGS((int16 arg1 , int16 arg2 ));
+int16 int2smaller ARGS((int16 arg1 , int16 arg2 ));
 int32 int4larger ARGS((int32 arg1 , int32 arg2 ));
 int32 int4smaller ARGS((int32 arg1 , int32 arg2 ));
-
-extern int32		inteq();
-extern int32		intne();
-extern int32		intlt();
-extern int32		intle();
-extern int32		intgt();
-extern int32		intge();
-extern int32		intpl();
-extern int32		intmi();
-extern int32		intdiv();
-
 int32 int4mod ARGS((int32 arg1 , int32 arg2 ));
 int32 int2mod ARGS((int16 arg1 , int16 arg2 ));
 int32 int4fac ARGS((int32 arg1 ));
 int32 int2fac ARGS((int16 arg1 ));
-extern int32		intmod();
+
+/* XXX hack.  HP-UX has a ltoa (with different arguments) already. */
+#ifdef PORTNAME_hpux
+#define ltoa pg_ltoa
+#endif PORTNAME_hpux
+int itoa ARGS((int i , char *a ));
+int ltoa ARGS((long l , char *a ));
+int ftoa ARGS((double value, char *ascii, int width, int prec1, char format ));
+int atof1 ARGS((char *str , double *val ));
 
 /*
  *  	New btree code.
