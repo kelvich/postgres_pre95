@@ -94,10 +94,10 @@ _nobt_freestack(stack)
 	ostack = stack;
 	stack = stack->nobts_parent;
 	pfree(ostack->nobts_btitem);
-#ifdef	SHADOW
+#ifndef	NORMAL
 	if (ostack->nobts_nxtitem != (NOBTIItem) NULL)
 	    pfree(ostack->nobts_nxtitem);
-#endif	/* SHADOW */
+#endif	/* ndef NORMAL */
 	pfree(ostack);
     }
 }
@@ -350,10 +350,9 @@ _nobt_dumptup(rel, itupdesc, page, offind)
 #ifdef	SHADOW
 	printf("[%d/%d bytes] child %d [%d] %d\n", itemsz, tuplen,
 		blkno, oldblkno, tmpkey);
-#endif	/* SHADOW */
-#ifdef	NORMAL
+#else	/* SHADOW */
 	printf("[%d/%d bytes] child %d %d\n", itemsz, tuplen, blkno, tmpkey);
-#endif	/* NORMAL */
+#endif	/* SHADOW */
     }
 }
 

@@ -209,6 +209,9 @@ _nobt_getroot(rel, access)
 #ifdef	NORMAL
     if (!(rootopaque->nobtpo_flags & NOBTP_ROOT)) {
 #endif	/* NORMAL */
+#ifdef	REORG
+    if (!(rootopaque->nobtpo_flags & NOBTP_ROOT)) {
+#endif	/* REORG */
 
 	/* it happened, try again */
 	_nobt_relbuf(rel, rootbuf, access);

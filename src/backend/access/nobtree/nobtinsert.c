@@ -157,7 +157,20 @@ _nobt_insertonpg(rel, buf, stack, keysz, scankey, btvoid, afteritem)
 	itemsz = NOBTIItemGetSize(btiitem);
     }
 
+#ifdef	REORG
+#define SYNC_EVERYTHING()
+    /* can only split every page one time between syncs */
+    if (opaque->nobtpo_linktok == CurrentLinkToken && !NOBT_Building) {
+	/* have to flush dirty buffers, force everything down to disk */
+	SYNC_EVERYTHING();
+    }
+#endif	/* REORG */
+
+#ifndef	REORG
     if (PageGetFreeSpace(page) < itemsz) {
+#else	/* REORG */
+    if (PageGetFreeSpace(page) < ((2 * itemsz) + sizeof(uint16))) {
+#endif	/* REORG */
 
 	/* split the buffer into left and right halves */
 	NOBT_NSplits++;
@@ -167,6 +180,9 @@ _nobt_insertonpg(rel, buf, stack, keysz, scankey, btvoid, afteritem)
 	else
 	    rbuf = _nobt_nsplit(rel, &buf);
 #endif	/* SHADOW */
+#ifdef	REORG
+	rbuf = _nobt_bsplit(rel, buf);
+#endif	/* REORG */
 #ifdef	NORMAL
 	rbuf = _nobt_bsplit(rel, buf);
 #endif	/* NORMAL */
@@ -327,6 +343,12 @@ _nobt_bsplit(rel, buf)
     OffsetIndex firstright;
     OffsetIndex i;
     Size llimit;
+#ifdef	REORG
+    int save_left_ind;
+    LocationIndex save_left_lower;
+    LocationIndex save_left_upper;
+    PageHeader left_phdr;
+#endif	/* REORG */
 
     rbuf = _nobt_getbuf(rel, P_NEW, NOBT_WRITE);
     origpage = BufferGetPage(buf, 0);
@@ -348,6 +370,9 @@ _nobt_bsplit(rel, buf)
     ropaque->nobtpo_prev = BufferGetBlockNumber(buf);
     lopaque->nobtpo_next = BufferGetBlockNumber(rbuf);
     ropaque->nobtpo_next = oopaque->nobtpo_next;
+#ifndef	NORMAL
+    lopaque->nobtpo_linktok = CurrentLinkToken;
+#endif	/* ndef NORMAL */
 
     /*
      *  If the page we're splitting is not the rightmost page at its level
@@ -381,11 +406,31 @@ _nobt_bsplit(rel, buf)
 	iitem = (NOBTIItem) PageGetItem(origpage, itemid);
 
 	/* decide which page to put it on */
-	if (i < firstright)
+	if (i < firstright) {
 	    PageAddItem(leftpage, iitem, itemsz, nleft++, LP_USED);
-	else
+	} else {
+#ifdef	REORG
+	    /* for reorg, must add to left page, too */
+	    if (i == firstright) {
+		left_phdr = (PageHeader) leftpage;
+		save_left_ind = nleft;
+		save_left_lower = left_phdr->pd_lower;
+		save_left_upper = left_phdr->pd_upper;
+	    }
+	    PageAddItem(leftpage, iitem, itemsz, nleft++, LP_USED);
+#endif	/* REORG */
 	    PageAddItem(rightpage, iitem, itemsz, nright++, LP_USED);
+	}
     }
+#ifdef	REORG
+    /* need to clean out flags in the linp entries, reset free space */
+    for (i = save_left_ind; i < nleft; i++) {
+	left_phdr->pd_linp[i].lp_flags &= ~LP_USED;
+    }
+    lopaque->nobtpo_oldlow = left_phdr->pd_lower;
+    left_phdr->pd_lower = save_left_lower;
+    left_phdr->pd_upper = save_left_upper;
+#endif	/* REORG */
 
     /*
      *  Okay, page has been split, high key on right page is correct.  Now
@@ -450,7 +495,7 @@ _nobt_bsplit(rel, buf)
     return (rbuf);
 }
 
-#ifndef	NORMAL
+#ifdef	SHADOW
 /*
  *  _nobt_nsplit() -- split a page in the btree.
  *
@@ -785,7 +830,7 @@ _nobt_nsplit(rel, bufP)
     /* split's done */
     return (rbuf);
 }
-#endif	/* ndef NORMAL */
+#endif	/* SHADOW */
 
 /*
  *  _nobt_findsplitloc() -- find a safe place to split a page.

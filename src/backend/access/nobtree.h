@@ -6,8 +6,8 @@
 
 /* exactly one of these must be defined */
 #undef	SHADOW
-#define	NORMAL
-#undef	REORG
+#undef	NORMAL
+#define	REORG
 
 /*
  *  NOBTPageOpaqueData -- At the end of every page, we store a pointer to
@@ -36,7 +36,19 @@ typedef struct NOBTPageOpaqueData {
 	uint32		nobtpo_nexttok;
 	uint32		nobtpo_repltok;
 	PageNumber	nobtpo_replaced;
+	uint16		nobtpo_flags;
 #endif	/* SHADOW */
+#ifdef	REORG
+	uint32		nobtpo_linktok;	/* to guarantee one split/sync */
+	PageNumber	nobtpo_prev;
+	PageNumber	nobtpo_oldprev;
+	uint32		nobtpo_prevtok;
+	PageNumber	nobtpo_next;
+	PageNumber	nobtpo_oldnext;
+	uint32		nobtpo_nexttok;
+	LocationIndex	nobtpo_oldlow;
+	uint16		nobtpo_flags;
+#endif	/* REORG */
 #ifdef	NORMAL
 	PageNumber	nobtpo_prev;
 	PageNumber	nobtpo_next;
@@ -75,6 +87,10 @@ typedef struct NOBTIItemData {
 	unsigned short		nobtii_info;
 	unsigned short		nobtii_filler;	   /* must longalign key */
 #endif	/* SHADOW */
+#ifdef	REORG
+	PageNumber		nobtii_child;
+	unsigned short		nobtii_info;
+#endif	/* REORG */
 #ifdef	NORMAL
 	PageNumber		nobtii_child;
 	unsigned short		nobtii_info;
@@ -112,6 +128,9 @@ typedef struct NOBTStackData {
 	PageNumber		nobts_blkno;
 	OffsetIndex		nobts_offset;
 	NOBTIItem		nobts_btitem;
+#ifdef	REORG
+	NOBTIItem		nobts_nxtitem;
+#endif	/* REORG */
 #ifdef	SHADOW
 	NOBTIItem		nobts_nxtitem;
 #endif	/* SHADOW */

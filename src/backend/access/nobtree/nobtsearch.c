@@ -101,7 +101,7 @@ _nobt_searchr(rel, keysz, scankey, bufP, stack_in)
     stack->nobts_blkno = par_blkno;
     stack->nobts_btitem = item_save;
 
-#ifdef	SHADOW
+#ifndef	NORMAL
     /* if there's no "next" key on this page, use the high key */
     if (offind++ >= PageGetMaxOffsetIndex(page)) {
 	if (opaque->nobtpo_next == P_NONE) {
@@ -122,7 +122,7 @@ _nobt_searchr(rel, keysz, scankey, bufP, stack_in)
 	bcopy((char *) btitem, (char *) item_save, item_nbytes);
 	stack->nobts_nxtitem = item_save;
     }
-#endif	/* SHADOW */
+#endif	/* ndef NORMAL */
 
     stack->nobts_parent = stack_in;
 
@@ -196,7 +196,6 @@ _nobt_moveright(rel, buf, keysz, scankey, access, stack)
     else
 	isleaf = false;
 
-#ifdef	SHADOW
     /*
      *  For the no-overwrite implementation, here are the things that can
      *  cause us to have to move around in the tree:
@@ -217,6 +216,7 @@ _nobt_moveright(rel, buf, keysz, scankey, access, stack)
      *  any failure.
      */
 
+#ifdef	SHADOW
     /* first, if this page has been replaced, then move to the new page */
     while ((newpg = opaque->nobtpo_replaced) != P_NONE) {
 	_nobt_relbuf(rel, buf, access);
@@ -225,6 +225,7 @@ _nobt_moveright(rel, buf, keysz, scankey, access, stack)
 	opaque = (NOBTPageOpaque) PageGetSpecialPointer(page);
 	inconsistent = true;
     }
+#endif	/* SHADOW */
 
     /*
      *  If the key range on the parent doesn't match the key range on the
@@ -235,6 +236,7 @@ _nobt_moveright(rel, buf, keysz, scankey, access, stack)
      *  to avoid expensive updates.
      */
 
+#ifndef	NORMAL
     if (opaque->nobtpo_next == P_NONE) {
 	if (opaque->nobtpo_prev == P_NONE) {
 	    if (stack != (NOBTStack) NULL)
@@ -294,7 +296,7 @@ _nobt_moveright(rel, buf, keysz, scankey, access, stack)
 		inconsistent = true;
 	}
     }
-#endif	/* SHADOW */
+#endif	/* ndef NORMAL */
 
     /* XXX XXX XXX peer pointer check? */
 
