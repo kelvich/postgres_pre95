@@ -31,6 +31,7 @@ RcsId("$Header$");
 #include "utils/log.h"
 
 #include "commands/defrem.h"
+#include "planner/xfunc.h"
 
 /* ----------------
  *	external functions
@@ -119,6 +120,7 @@ DefineCFunction(name, parameters, fileName, languageName)
     bool	canCache;
     LispValue	argList;
     LispValue	entry;
+    int32 arch_pct, disk_pct, byte_pct, perbyte_cpu, percall_cpu, outin_ratio;
 
     /* ----------------
      * handle "[ iscachable ]"
@@ -137,7 +139,30 @@ DefineCFunction(name, parameters, fileName, languageName)
     /*
     ** Handle new parameters for expensive functions.  To be done by Joey.
     */
+    entry = DefineListRemoveOptionalAssignment(&parameters, "arch_pct");
+    if (null(entry)) arch_pct = ARCH_PCT;
+    else arch_pct = DefineEntryGetInteger(entry);
+
+    entry = DefineListRemoveOptionalAssignment(&parameters, "disk_pct");
+    if (null(entry)) disk_pct = DISK_PCT;
+    else disk_pct = DefineEntryGetInteger(entry);
 	 
+    entry = DefineListRemoveOptionalAssignment(&parameters, "byte_pct");
+    if (null(entry)) byte_pct = BYTE_PCT;
+    else byte_pct = DefineEntryGetInteger(entry);
+
+    entry = DefineListRemoveOptionalAssignment(&parameters, "perbyte_cpu");
+    if (null(entry)) perbyte_cpu = PERBYTE_CPU;
+    else perbyte_cpu = DefineEntryGetInteger(entry);
+
+    entry = DefineListRemoveOptionalAssignment(&parameters, "percall_cpu");
+    if (null(entry)) percall_cpu = PERCALL_CPU;
+    else percall_cpu = DefineEntryGetInteger(entry);
+
+    entry = DefineListRemoveOptionalAssignment(&parameters, "outin_ratio");
+    if (null(entry)) outin_ratio = OUTIN_RATIO;
+    else outin_ratio = DefineEntryGetInteger(entry);
+
     /* ----------------
      * handle "[ arg is (...) ]"
      * XXX fix optional arg handling below
@@ -177,6 +202,8 @@ DefineCFunction(name, parameters, fileName, languageName)
 		    "-",
 		    fileName,
 		    canCache,
+		    arch_pct, disk_pct, byte_pct, perbyte_cpu, percall_cpu, 
+		    outin_ratio,
 		    argList);
 }
 
