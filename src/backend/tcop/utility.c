@@ -348,14 +348,21 @@ ProcessUtility(command, args, commandString)
 	}
 	break;
 
-      case NEWVERSION:
+      case FORWARD:
 	commandTag = "VERSION";
 	CHECK_IF_ABORTED();
 
 	CreateVersion(CString(CAR(args)),    /* version name */
 		      CString(CADR(args)));  /* base name */
 	break;
-	
+      case BACKWARD:
+	commandTag = "VERSION";
+	CHECK_IF_ABORTED();
+#ifdef NOTYET
+	CreateBackwardDelta( CString(CAR(args)),
+			     CString(CADR(args)));
+	break;
+#endif
 	/* default */
       default:
 	elog(WARN, "ProcessUtility: command #%d unsupport", command);
