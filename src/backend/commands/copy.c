@@ -39,8 +39,12 @@ char *filename;
 
 {
     FILE *fp;
+	Relation rel, heap_openr();
 
     reading_from_input = pipe;
+
+	rel = heap_openr(relname);
+	if (rel == NULL) elog(WARN, "Copy: class %s does not exist.", relname);
 
     if (from)
     {
@@ -57,7 +61,7 @@ char *filename;
         {
             elog(WARN, "COPY: file %s could not be open for reading", filename);
         }
-        CopyFrom(relname, binary, fp);
+        CopyFrom(rel, binary, fp);
     }
     else
     {
@@ -74,7 +78,7 @@ char *filename;
         {
             elog(WARN, "COPY: file %s could not be open for writing", filename);
         }
-        CopyTo(relname, binary, fp);
+        CopyTo(rel, binary, fp);
     }
     if (!pipe)
     {
@@ -87,15 +91,15 @@ char *filename;
     }
 }
 
-CopyTo(relname, binary, fp)
+CopyTo(rel, binary, fp)
 
-char *relname;
+Relation rel;
 bool binary;
 FILE *fp;
 
 {
     HeapTuple tuple, heap_getnext();
-    Relation rel, heap_openr();
+    Relation heap_openr();
     HeapScanDesc scandesc, heap_beginscan();
 
     int32 attr_count, i;
@@ -111,8 +115,6 @@ FILE *fp;
     bool *byval;
     int32 ntuples;
 
-    rel = heap_openr(relname);
-    if (rel == NULL) elog(WARN, "%s: class %s does not exist", relname);
     scandesc = heap_beginscan(rel, 0, NULL, NULL, NULL);
 
     attr_count = rel->rd_rel->relnatts;
@@ -219,16 +221,16 @@ FILE *fp;
     heap_close(rel);
 }
 
-CopyFrom(relname, binary, fp)
+CopyFrom(rel, binary, fp)
 
-char *relname;
+Relation rel;
 bool binary;
 FILE *fp;
 
 {
     HeapTuple tuple, heap_formtuple();
     IndexTuple ituple, index_formtuple();
-    Relation rel, heap_openr();
+    Relation heap_openr();
     AttributeNumber attr_count;
     Attribute *attr;
     func_ptr *in_functions;
@@ -250,9 +252,6 @@ FILE *fp;
     Relation *index_relations;
     int28 *index_atts;
     int n_indices;
-
-    rel = heap_openr(relname);
-    if (rel == NULL) elog(WARN, "%s: class %s does not exist", relname);
 
     attr = (Attribute *) &rel->rd_att;
 
