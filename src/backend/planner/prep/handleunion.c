@@ -37,7 +37,7 @@
 #include "planner/semanopt.h"
 /* #include "planner/cfi.h" */
 
-/* #define LispRemove remove  */
+/*#define LispRemove remove */
 
 List
 handleunion (root,rangetable, tlist, qual)
@@ -79,10 +79,12 @@ handleunion (root,rangetable, tlist, qual)
 
   tlist_qual = SplitTlistQual (root,rangetable,tlist,qual);
 
+#ifdef VERBOSE
   num_plans = length(tlist_qual);
   printf("####################\n");
   printf("number of plans generated: %d\n", num_plans);
   printf("####################\n");
+#endif
   
   foreach (i, tlist_qual) {
     temp = CAR(i);
@@ -142,16 +144,17 @@ SplitTlistQual(root,rangetable,tlist, qual)
   List unionlist = LispNil;
   List mod_qual = LispNil;
   List varlist = LispNil;
+  List is_redundent = LispNil;
 
   unionlist = collect_union_sets(tlist,qual);
-
+#ifdef VERBOSE
   printf("##########################\n");
   printf("Union sets are: \n");
   lispDisplay(unionlist,0);
   printf("\n");
   fflush(stdout);
   printf("##########################\n");
-
+#endif
   /*
    *  If query is a delete, the tlist is null.
    */
@@ -188,15 +191,17 @@ SplitTlistQual(root,rangetable,tlist, qual)
    */
 
     varlist = find_allvars(root,rangetable, temp, CAR(qual_list));
-    mod_qual = SemantOpt(varlist,rangetable,CAR(qual_list));
-    tqlist = nappend1(tqlist,
-		      lispCons(temp, 
-			       lispCons(mod_qual,
-					LispNil)));
+    is_redundent = LispNil;
+    mod_qual = SemantOpt(varlist,rangetable,CAR(qual_list),&is_redundent,1);
+    if (is_redundent != LispTrue)  
+      tqlist = nappend1(tqlist,
+			lispCons(temp, 
+				 lispCons(mod_qual,
+					  LispNil)));
     qual_list = CDR(qual_list);
   }
 
-return (tqlist);
+  return (tqlist);
 
 }
 
@@ -427,103 +432,6 @@ flatten_union_list(ulist)
 
   return(retlist);
   
-}
-/*
- *  find_union_sets
- *  runs through the rangetable, and forms a list of all union
- *  sets.  Routine removes the union flag from the rte after
- *  it is done processing .  
- *  If there is > 1 union set, we are dealing with a union join.
- */
-
-List
-find_union_sets(rangetable)
-     List rangetable;
-{
-  List i = LispNil;
-  List x = LispNil;
-  List j = LispNil;
-  int varno = 0;
-  List rt_entry = LispNil;
-  List rt_vars = LispNil;
-  List retlist = LispNil;
-  List ulist = LispNil;
-  List u_set = LispNil;
-  List vlist = LispNil;
-  List varname = LispNil;
-  int In_List;
-  int position;
-
-  foreach(i,rangetable) {
-    rt_entry = CAR(i);
-    varno += 1;
-    if (member(lispAtom("union"),rt_flags(rt_entry))) {
-      rt_flags(rt_entry) = LispRemove(lispAtom("union"),
-				  rt_flags(rt_entry));
-    }
-    rt_vars = CAR(rt_entry);
-    if (consp(rt_vars)) {
-      foreach(x,rt_vars) {
-	varname = CAR(x);
-	In_List = 0;
-	position = 0;
-	if (ulist == LispNil) {
-	  ulist = nappend1(ulist, lispCons(varname,
-					   LispNil));
-	  vlist = nappend1(vlist, lispCons(lispInteger(varno),
-					   LispNil));
-	  In_List = 1;
-	} else
-	  foreach(j,ulist) {
-	    if (member(varname, CAR(j))) {
-	      u_set = nth(position,vlist);
-	      if (!member(lispInteger(varno), u_set))
-		u_set = nappend1(u_set,lispInteger(varno));
-	      In_List = 1;
-	      break;
-	    }
-	    position += 1;
-	  }
-	if (!In_List) {
-	  ulist = nappend1(ulist, lispCons(varname, LispNil));
-	  vlist = nappend1(vlist,lispCons(lispInteger(varno), LispNil));
-	}
-      } /* rt_vars */
-    } else {  /*  If it is a single var. */
-      varname = rt_vars;
-      In_List = 0;
-      position = 0;
-      if (ulist == LispNil) {
-	ulist = nappend1(ulist, lispCons(varname,
-					 LispNil));
-	vlist = nappend1(vlist, lispCons(lispInteger(varno),
-					 LispNil));
-	In_List = 1;
-      } else
-	foreach(j,ulist) {
-	  if (member(varname, CAR(j))) {
-	    u_set = nth(position,vlist);
-	    if (!member(lispInteger(varno), u_set))
-	      u_set = nappend1(u_set,lispInteger(varno));
-	    In_List = 1;
-	    break;
-	  }
-	  position += 1;
-	} /* ulist */
-      if (!In_List) {
-	ulist = nappend1(ulist, lispCons(varname, LispNil));
-	vlist = nappend1(vlist,lispCons(lispInteger(varno), LispNil));
-      }
-    }
-  }  /* rangetable */
-
-  foreach(i,vlist) {
-    if (length(CAR(i)) > 1) {  /* i.e a union set */
-      retlist = nappend1 (retlist, CAR(i));
-    }
-  }
-  retlist = remove_subsets(retlist);
-  return(retlist);
 }
 
 /*
