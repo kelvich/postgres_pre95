@@ -24,11 +24,15 @@
  *     		compute-joinrel-size
  */
 
+#include "c.h"
 #include "internal.h"
-
+#include "costsize.h"
+/*
 extern LispValue compute_targetlist_width();
 extern LispValue compute_attribute_width();
 extern LispValue page_size();
+*/
+
 extern int _cost_weirdness_;
 
 #define INNER 0
@@ -41,23 +45,23 @@ extern int _cost_weirdness_;
 int _disable_cost_ = 30000000;
 
 #ifndef _xprs_
-LispValue _enable_seqscan_ = 1 ; /* TRUE */
-LispValue _enable_indexscan_ = 0; /* FALSE */
-LispValue _enable_sort_ = 0;
-LispValue _enable_hash_ = 0;,
-LispValue _enable_nestloop_ = 1; /* XXX - true */
-LispValue _enable_mergesort_ = 0;
-LispValue _enable_hashjoin_ = 0;
+bool _enable_seqscan_ = true ;
+bool _enable_indexscan_ = false; 
+bool _enable_sort_ = false;
+bool _enable_hash_ = false;,
+bool _enable_nestloop_ = true; /* XXX - true */
+bool _enable_mergesort_ = false;
+bool _enable_hashjoin_ = false;
 #endif
 
 #ifdef _xprs_
-LispValue _enable_seqscan_ = 1;
-LispValue _enable_indexscan_ = 1;
-LispValue _enable_sort_ = 1;
-LispValue _enable_hash_ = 1;
-LispValue _enable_nestloop_ = 1;
-LispValue _enable_mergesort_ = 1;  /*   nil in production */
-LispValue _enable_hashjoin_ = 1; 
+bool _enable_seqscan_ = true;
+bool _enable_indexscan_ = true;
+bool _enable_sort_ = true;
+bool _enable_hash_ = true;
+bool _enable_nestloop_ = true;
+bool _enable_mergesort_ = true;  /*   nil in production */
+bool _enable_hashjoin_ = true; 
 #endif
 
 /*    
@@ -201,7 +205,6 @@ cost_sort (keys,tuples,width,noread)
 	  temp += 0;
 	else {
 		int pages = page_size (tuples,width);
-		
 		temp += pages * base_log (pages,2);
 		temp += _CPU_PAGE_WEIGHT_ * tuples *base_log (tuples,2);
 		if( !noread )
@@ -429,8 +432,8 @@ cost_hashjoin (outercost,innercost,outerkeys,innerkeys,outersize,
 
 /*  .. find-paths */
 
-LispValue
-compute_rel_size (rel)
+void
+*compute_rel_size (rel)
      LispValue rel ;
 {
 	int temp;
@@ -449,11 +452,11 @@ compute_rel_size (rel)
 
 /*  .. find-join-paths, find-paths */
 
-LispValue
+int
 compute_rel_width (rel)
      LispValue rel ;
 {
-	LispValue temp;
+	int temp;
 	compute_targetlist_width(get_actual_tlist(get_tlist (rel)));
 	return(temp);
 }
@@ -469,17 +472,16 @@ compute_rel_width (rel)
 
 /*  .. compute-rel-width, subplanner */
 
-LispValue
+int
 compute_targetlist_width (targetlist)
      LispValue targetlist ;
 {
 	LispValue temp_tl;
 	int tuple_width = 0;
-	for ( temp_tl = targetlist; temp_tl != LispNil; 
-	     temp_tl = cdr (temp_tl)) {
-		tuple_width = tuple_width + 
-		  compute_attribute_width(car(temp_tl));
-		/* XXX - may be wrong */
+	foreach ( temp_tl,targetlist) {
+	     tuple_width = tuple_width + 
+	       compute_attribute_width(CAR(temp_tl));
+	     /* XXX - may be wrong */
 	}
 	return(tuple_width);
 }
@@ -498,16 +500,15 @@ compute_targetlist_width (targetlist)
 
 /*  .. compute-targetlist-width  */
 
-LispValue
+int
 compute_attribute_width (tlistentry)
      LispValue tlistentry ;
 {
-	/* XXX - let form, maybe incorrect */
-	LispValue width = get_typlen (get_restype (tl_resdom (tlistentry)));
-	if ( width < 0 ) 
-		return(_DEFAULT_ATTRIBUTE_WIDTH_);
-	else 
-		return(width);
+     int width = get_typlen (get_restype (tl_resdom (tlistentry)));
+     if ( width < 0 ) 
+       return(_DEFAULT_ATTRIBUTE_WIDTH_);
+     else 
+       return(width);
 }
 
 /*    
@@ -521,7 +522,7 @@ compute_attribute_width (tlistentry)
 
 /*  .. prune-rel-paths */
 
-LispValue
+int
 compute_joinrel_size (joinrel)
      LispValue joinrel ;
 {
@@ -540,7 +541,7 @@ compute_joinrel_size (joinrel)
  *    	number of tuples of a given width (size in bytes).
  *    
  */
-LispValue
+int
 page_size (tuples,width)
      int tuples,width ;
 {
