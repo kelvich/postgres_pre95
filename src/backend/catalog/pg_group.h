@@ -21,10 +21,10 @@
  */
 #include "tmp/postgres.h"
 
-CATALOG(pg_group) {
+CATALOG(pg_group) BOOTSTRAP {
 	char16	groname;
 	int2	grosysid;
-	bytea	grolist;
+	int2	grolist[1];
 } FormData_pg_group;
 /* VARIABLE LENGTH STRUCTURE */
 

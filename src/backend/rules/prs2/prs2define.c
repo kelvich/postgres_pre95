@@ -30,6 +30,8 @@
 #include "catalog/pg_proc.h"
 #include "catalog/pg_prs2rule.h"
 #include "catalog/pg_prs2plans.h"
+#include "catalog/pg_relation.h"
+#include "catalog/syscache.h"
 
 extern LispValue planner();
 extern LispValue lispCopy();
@@ -79,6 +81,29 @@ char *ruleText;
 #ifdef PRS2_DEBUG
     printf("PRS2: --- DEFINE PRS2 RULE: Done.\n");
 #endif PRS2_DEBUG
+}
+
+/*-----------------------------------------------------------------------
+ * prs2GetRuleEventRel
+ *-----------------------------------------------------------------------
+ */
+Name
+prs2GetRuleEventRel(rulename)
+	char *rulename;
+{
+	HeapTuple htp;
+	ObjectId eventrel;
+
+	htp = SearchSysCacheTuple(PRS2RULEID, rulename, NULL, NULL, NULL);
+	if (!HeapTupleIsValid(htp))
+		elog(WARN, "prs2GetRuleEventRel: rule \"%s\" not found",
+		     rulename);
+	eventrel = ((Form_pg_prs2rule) GETSTRUCT(htp))->prs2eventrel;
+	htp = SearchSysCacheTuple(RELOID, eventrel, NULL, NULL, NULL);
+	if (!HeapTupleIsValid(htp))
+		elog(WARN, "prs2GetRuleEventRel: class %d not found",
+		     eventrel);
+	return(&((Form_pg_relation) GETSTRUCT(htp))->relname);
 }
 
 /*-----------------------------------------------------------------------

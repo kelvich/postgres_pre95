@@ -43,12 +43,11 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	Buffer			buffer;
 	HeapTuple		newTuple, oldTuple;
 	Time			currentTime;
-	char			*values[RelationRelationNumberOfAttributes];
-	char			nulls[RelationRelationNumberOfAttributes];
-	char			replace[RelationRelationNumberOfAttributes];
+	char			*values[Natts_pg_relation];
+	char			nulls[Natts_pg_relation];
+	char			replace[Natts_pg_relation];
 
 	Assert(NameIsValid(relationName));
-	/* XXX check: pg_user.usecatupd permission? */
 
 	if (PointerIsValid(absoluteTimeString)) {
 		if (!isabstime(absoluteTimeString, NULL)) {
@@ -114,8 +113,8 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 		elog(WARN, "%s: inconsistent times", cmdname);
 		return(0);
 	}
-	for (i = 0; i < RelationRelationNumberOfAttributes; ++i) {
-		nulls[i] = ' ';
+	for (i = 0; i < Natts_pg_relation; ++i) {
+		nulls[i] = heap_attisnull(oldTuple, i+1) ? 'n' : ' ';
 		values[i] = NULL;
 		replace[i] = ' ';
 	}

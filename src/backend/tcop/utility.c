@@ -41,6 +41,9 @@
 #include "tcop/dest.h"
 
 #include "tmp/globals.h"
+#include "tmp/acl.h"
+
+#include "rules/prs2.h" /* for GetRuleEventTargetFromParse() */
 
 /* ----------------
  *	CHECK_IF_ABORTED() is used to avoid doing unnecessary
@@ -67,6 +70,8 @@ ProcessUtility(command, args, commandString, dest)
     CommandDest dest;
 {
     String	commandTag = NULL;
+    String	relationName;
+    extern char *PG_username;	/* from postgres.c */
     
     switch (command) {
 	/* ********************************
@@ -155,10 +160,23 @@ ProcessUtility(command, args, commandString, dest)
 	CHECK_IF_ABORTED();
 	
 	{
-	    LispValue relationName;
-	    foreach (relationName, args) {
-		RemoveRelation(CString(CAR(relationName)));
-	    }
+		LispValue arg;
+		
+		foreach (arg, args) {
+			relationName = CString(CAR(arg));
+			if (NameIsSystemRelationName(relationName))
+				elog(WARN, "class \"%s\" is a system catalog",
+				     relationName);
+#ifndef NO_SECURITY
+			if (!pg_ownercheck(relationName, PG_username))
+				elog(WARN, "you do not own class \"%s\"",
+				     relationName);
+#endif
+		}
+		foreach (arg, args) {
+			relationName = CString(CAR(arg));
+			RemoveRelation(relationName);
+		}
 	}
 	break;
 	
@@ -196,7 +214,6 @@ ProcessUtility(command, args, commandString, dest)
 	CHECK_IF_ABORTED();
 	
 	{
-	    String	relationName;
 	    String	fileName;
 	    String	mapName = NULL;
 	    bool	isBinary;
@@ -215,10 +232,21 @@ ProcessUtility(command, args, commandString, dest)
 	    isFrom = (bool)(CAtom(CAAR(args)) == FROM);
 	    fileName = CString(CADR(CAR(args)));
 
-
-		/* Free up file descriptors - going to do a read... */
-
-		closeOneVfd();
+#ifndef NO_SECURITY
+	    if (isFrom) {
+		    if (!pg_aclcheck(relationName, PG_username, ACL_RD))
+			    elog(WARN, "read on \"%s\": permission denied",
+				 relationName);
+	    } else {
+		    if (!pg_aclcheck(relationName, PG_username, ACL_WR))
+			    elog(WARN, "write on \"%s\": permission denied",
+				 relationName);
+	    }
+#endif
+	    
+	    /* Free up file descriptors - going to do a read... */
+	    
+	    closeOneVfd();
 
             if (isFrom && !strcmp(fileName, "stdin"))
             {
@@ -230,18 +258,18 @@ ProcessUtility(command, args, commandString, dest)
             }
 
             /*
-		     * Insist on a full pathname
-		     */
+	     * Insist on a full pathname
+	     */
 
             else if (*fileName == '/')
             {
                 pipe = false;
             }
-			else
-			{
-				elog(WARN, "COPY: full pathname required for filename");
-			}
-
+	    else
+	    {
+		    elog(WARN, "COPY: full pathname required for filename");
+	    }
+	    
 	    /*
 	     * discard '(FROM/TO "filename")
 	     */
@@ -256,8 +284,17 @@ ProcessUtility(command, args, commandString, dest)
     case ADD_ATTR:
 	commandTag = "ADD";
 	CHECK_IF_ABORTED();
-	
-	PerformAddAttribute(CString(CAR(args)), CDR(args));
+
+	relationName = CString(CAR(args));
+#ifndef NO_SECURITY
+	if (!pg_ownercheck(relationName, PG_username))
+		elog(WARN, "you do not own class \"%s\"",
+		     relationName);
+#endif
+	if (NameIsSystemRelationName(relationName))
+		elog(WARN, "class \"%s\" is a system catalog",
+		     relationName);
+	PerformAddAttribute(relationName, CDR(args));
 	break;
 	
 	/*
@@ -268,14 +305,23 @@ ProcessUtility(command, args, commandString, dest)
 	CHECK_IF_ABORTED();
 	
 	{
-	    int	len;
-	    len = length(args);
+	    int	len = length(args);
 	    
 	    /*
 	     * skip unused "RELATION" or "ATTRIBUTE" tag
 	     */
 	    args = CDR(args);
-	    
+
+	    relationName = CString(CAR(args));
+	    if (NameIsSystemRelationName(relationName))
+		    elog(WARN, "class \"%s\" is a system catalog",
+			 relationName);
+#ifndef NO_SECURITY
+	    if (!pg_ownercheck(relationName, PG_username))
+		    elog(WARN, "you do not own class \"%s\"",
+			 relationName);
+#endif
+
 	    /* ----------------
 	     *	XXX using len == 3 to tell the difference
 	     *	    between "rename rel to newrel" and
@@ -307,7 +353,35 @@ ProcessUtility(command, args, commandString, dest)
 	    }
 	}
 	break;
-	
+    case CHANGE:
+	commandTag = "CHANGE";
+	CHECK_IF_ABORTED();
+
+	{
+		LispValue i;
+		AclItem *aip;
+		unsigned modechg;
+
+		args = CDR(args);
+		aip = (AclItem *) LISPVALUE_BYTEVECTOR(CAR(args));
+		args = CDR(args);
+		modechg = CInteger(CAR(args));
+		args = CDR(args);
+#ifndef NO_SECURITY
+		foreach (i, args) {
+			relationName = CString(CAR(i));
+			if (!pg_ownercheck(relationName, PG_username))
+				elog(WARN, "you do not own class \"%s\"",
+				     relationName);
+		}
+#endif
+		foreach (i, args) {
+			relationName = CString(CAR(i));
+			ChangeAcl(relationName, aip, modechg);
+		}
+	}
+	break;
+
 	/* ********************************
 	 *	object creation / destruction
 	 * ********************************
@@ -347,9 +421,22 @@ ProcessUtility(command, args, commandString, dest)
 		 "Sorry, the old rule system is not supported any more (yet!)");
 	    break;
 	case REWRITE:
-	    DefineQueryRewrite ( CDR( CDR (args ))) ; 
+	    args = CDR(CDR(args));
+#ifndef NO_SECURITY
+	    relationName = CString(CAR(nth(2, args)));
+	    if (!pg_aclcheck(relationName, PG_username, ACL_RU))
+		    elog(WARN, "define rule on %s: permission denied",
+			 relationName);
+#endif
+	    DefineQueryRewrite(args); 
 	    break;
 	case P_TUPLE:
+#ifndef NO_SECURITY
+	    relationName = CString(CAR(GetRuleEventTargetFromParse(args)));
+	    if (!pg_aclcheck(relationName, PG_username, ACL_RU))
+		    elog(WARN, "define rule on %s: permission denied",
+			 relationName);
+#endif
 	    prs2DefineTupleRule(args, commandString);
 	    break;
 	case P_TYPE:
@@ -377,7 +464,16 @@ ProcessUtility(command, args, commandString, dest)
 	    RemoveAggregate(CString(CADR(args)));
 	    break;
 	case INDEX:
-	    RemoveIndex(CString(CADR(args)));
+	    relationName = CString(CADR(args));
+	    if (NameIsSystemRelationName(relationName))
+		    elog(WARN, "class \"%s\" is a system catalog index",
+			 relationName);
+#ifndef NO_SECURITY
+	    if (!pg_ownercheck(relationName, PG_username))
+		    elog(WARN, "you do not own class \"%s\"",
+			 relationName);
+#endif
+	    RemoveIndex(relationName);
 	    break;
 	case OPERATOR:
 	    {
@@ -392,10 +488,30 @@ ProcessUtility(command, args, commandString, dest)
 	    }
 	    break;
 	case P_TUPLE:
-	    prs2RemoveTupleRule(CString(CADR(args)));
+	    {
+		    String rulename = CString(CADR(args));
+#ifndef NO_SECURITY
+		    extern Name prs2GetRuleEventRel();
+		    Name relationName = prs2GetRuleEventRel(rulename);
+		    if (!pg_aclcheck(relationName, PG_username, ACL_RU))
+			    elog(WARN, "remove rule on %s: permission denied",
+				 relationName);
+#endif
+		    prs2RemoveTupleRule(rulename);
+	    }
 	    break;
 	case REWRITE:
-	    RemoveRewriteRule(CString(CADR(args)));
+	    {
+		    String rulename = CString(CADR(args));
+#ifndef NO_SECURITY
+		    extern Name RewriteGetRuleEventRel();
+		    Name relationName = RewriteGetRuleEventRel(rulename);
+		    if (!pg_aclcheck(relationName, PG_username, ACL_RU))
+			    elog(WARN, "remove rule on %s: permission denied",
+				 relationName);
+#endif
+		    RemoveRewriteRule(rulename);
+	    }
 	    break;
 	case P_TYPE:
 	    RemoveType(CString(CADR(args)));

@@ -96,15 +96,15 @@ typedef FormData_pg_am	*Form_pg_am;
  * ----------------
  */
 
-DATA(insert OID = 400 (  oldbtree 6 "o" 5 0 btreegettuple btreeinsert btreedelete - - - - btreebeginscan btreerescan btreeendscan btreemarkpos btreerestrpos - - btreebuild - - ));
-DATA(insert OID = 401 (  fbtree 6 "o" 5 0 fbtreegettuple fbtreeinsert fbtreedelete - - - - - - - - - - - fbtreebuild - - ));
-DATA(insert OID = 402 (  rtree 6 "o" 8 3 rtgettuple rtinsert rtdelete - - - - rtbeginscan rtrescan rtendscan rtmarkpos rtrestrpos - - rtbuild - - ));
-DATA(insert OID = 403 (  btree 6 "o" 5 1 btgettuple btinsert btdelete - - - - btbeginscan btrescan btendscan btmarkpos btrestrpos - - btbuild - - ));
+DATA(insert OID = 400 (  oldbtree PGUID "o" 5 0 btreegettuple btreeinsert btreedelete - - - - btreebeginscan btreerescan btreeendscan btreemarkpos btreerestrpos - - btreebuild - - ));
+DATA(insert OID = 401 (  fbtree PGUID "o" 5 0 fbtreegettuple fbtreeinsert fbtreedelete - - - - - - - - - - - fbtreebuild - - ));
+DATA(insert OID = 402 (  rtree PGUID "o" 8 3 rtgettuple rtinsert rtdelete - - - - rtbeginscan rtrescan rtendscan rtmarkpos rtrestrpos - - rtbuild - - ));
+DATA(insert OID = 403 (  btree PGUID "o" 5 1 btgettuple btinsert btdelete - - - - btbeginscan btrescan btendscan btmarkpos btrestrpos - - btbuild - - ));
 
 BKI_BEGIN
 #ifdef NOBTREE
 BKI_END
-DATA(insert OID = 404 (  nobtree 6 "o" 5 1 nobtgettuple nobtinsert nobtdelete - - - - nobtbeginscan nobtrescan nobtendscan nobtmarkpos nobtrestrpos - - nobtbuild - - ));
+DATA(insert OID = 404 (  nobtree PGUID "o" 5 1 nobtgettuple nobtinsert nobtdelete - - - - nobtbeginscan nobtrescan nobtendscan nobtmarkpos nobtrestrpos - - nobtbuild - - ));
 BKI_BEGIN
 #endif NOBTREE
 BKI_END

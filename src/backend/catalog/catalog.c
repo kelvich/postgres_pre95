@@ -18,42 +18,7 @@ RcsId("$Header$");
 #include "catalog/pg_attribute.h"
 #include "catalog/pg_type.h"
 
-/*
- * XXX The global relation names should be merged with the ones defined
- * XXX in lib/catalog/catname.c, someday.
- */
-
-char	DATABASE_R[16] = 	"pg_database";
-char	DEFAULTS_R[16] = 	"pg_defaults";
-char	DEMON_R[16] = 		"pg_demon";
-char	LOG_R[16] = 		"pg_log";
-char	MAGIC_R[16] = 		"pg_magic";
-char	SERVER_R[16] = 		"pg_server";
-char	TIME_R[16] = 		"pg_time";
-char	TYPE_R[16] = 		"pg_type";
-char	USER_R[16] = 		"pg_user";
-char	VARIABLE_R[16] = 	"pg_variable";
-
-/* ----------------
- *	WARNING  WARNING  WARNING  WARNING  WARNING  WARNING
- *
- *	keep SharedSysRelns[] in SORTED order!  A binary search
- *	is done on it!
- *
- *	XXX this is a serious hack which should be fixed -cim 1/26/90
- * ----------------
- */
-static char *SharedSysRelns[] = {
-    DATABASE_R,
-    DEFAULTS_R,
-    DEMON_R,
-    LOG_R,
-    MAGIC_R,
-    SERVER_R,
-    TIME_R,
-    USER_R,
-    VARIABLE_R,
-};
+static n_shared = sizeof(SharedSystemRelationNames) / sizeof(Name);
 
 extern char		*DataDir;
 
@@ -87,6 +52,7 @@ char    relname[];
  *	with pg_ while user relns are forbidden to do so.  Make the test
  * 	trivial and instantaneous.
  *
+ *	XXX this is way bogus. -- pma
  */
 bool
 issystem(relname)
@@ -111,24 +77,19 @@ bool
 NameIsSharedSystemRelationName(relname)
 	Name	relname;
 {
-	register char	**spp;
-	register char	**mpp;
-	int		len;
+	register Name	*spp = SharedSystemRelationNames;
+	register Name	*mpp;
+	int		len = n_shared;
 	int		mid;
 	int		status;
 
-	spp = SharedSysRelns;
-
 	/*
-	 * Quick out: if its not a system reln it can't be a shared system reln.
+	 * Quick out: if it's not a system relation, it can't be a shared
+	 * system relation.
 	 */
 	if (!issystem(relname))
 		return FALSE;
-	/*
-	 * Total number of Shared System relations
-	 */
-	len = sizeof (SharedSysRelns) / sizeof (char *);
-
+	
 	/*
 	 * While there's more than 2 candidates remaining, run the
 	 * binary search algorithm
@@ -136,7 +97,8 @@ NameIsSharedSystemRelationName(relname)
 	while (len > 2) {
 		mid = len >> 1;
 		mpp = spp + mid;
-		if ((status = strncmp(relname, *mpp, 16)) == 0) {
+		if (!(status = strncmp(relname->data,
+				       (*mpp)->data, sizeof(NameData)))) {
 			return(TRUE);
 		}
 		else if (status < 0)
@@ -149,13 +111,15 @@ NameIsSharedSystemRelationName(relname)
 	if (len <= 0)
 		return(FALSE);
 	if (len == 2) {
-		if ((status = strncmp(relname, *spp, 16)) == 0) {
-			return(1);
+		if (!(status = strncmp(relname->data,
+				       (*spp)->data, sizeof(NameData)))) {
+			return(TRUE);
 		} else if (status < 0)
 			return(FALSE);
 		spp++;
 	}
-	return(strncmp(relname, *spp, 16) == 0);
+	return(!strncmp(relname->data,
+			(*spp)->data, sizeof(NameData)));
 }
 
 /*
@@ -177,13 +141,12 @@ NameIsSharedSystemRelationName(relname)
 ObjectId
 newoid()
 {
-    ObjectId	lastoid;
-    
-    GetNewObjectId(&lastoid);
-    if (! ObjectIdIsValid(lastoid))
-	elog(WARN, "newoid: GetNewObjectId returns invalid oid");
-
-    return lastoid;
+	ObjectId	lastoid;
+	
+	GetNewObjectId(&lastoid);
+	if (! ObjectIdIsValid(lastoid))
+		elog(WARN, "newoid: GetNewObjectId returns invalid oid");
+	return lastoid;
 }
 
 /*
@@ -203,34 +166,34 @@ newoid()
  */
 
 fillatt(natts, att)
-    int			natts;
-    AttributeTupleForm	att[];	/* tuple desc */
+	int			natts;
+	AttributeTupleForm	att[];	/* tuple desc */
 {
-    AttributeTupleForm		*attributeP;
-    register TypeTupleForm	typp;
-    HeapTuple			tuple;
-    int				i;
+	AttributeTupleForm	*attributeP;
+	register TypeTupleForm	typp;
+	HeapTuple		tuple;
+	int			i;
 
-    if (natts < 0 || natts > MaxHeapAttributeNumber)
-	elog(WARN, "fillatt: %d attributes is too large", natts);
-    if (natts == 0) {
-	elog(DEBUG, "fillatt: called with natts == 0");
-	return;
-    }
-
-    attributeP = &att[0];
-
-    for (i = 0; i < natts;) {
-	tuple = SearchSysCacheTuple(TYPOID, (*attributeP)->atttypid);
-	if (!HeapTupleIsValid(tuple)) {
-	    elog(WARN, "fillatt: unknown atttypid %ld",
-		 (*attributeP)->atttypid);
-	} else {
-	    typp = (TypeTupleForm) GETSTRUCT(tuple);  /* XXX */
-	    (*attributeP)->attlen = typp->typlen;
-	    (*attributeP)->attnum = (int16)++i;
-	    (*attributeP)->attbyval = typp->typbyval;
+	if (natts < 0 || natts > MaxHeapAttributeNumber)
+		elog(WARN, "fillatt: %d attributes is too large", natts);
+	if (natts == 0) {
+		elog(DEBUG, "fillatt: called with natts == 0");
+		return;
 	}
-	attributeP += 1;
-    }
+	
+	attributeP = &att[0];
+	
+	for (i = 0; i < natts;) {
+		tuple = SearchSysCacheTuple(TYPOID, (*attributeP)->atttypid);
+		if (!HeapTupleIsValid(tuple)) {
+			elog(WARN, "fillatt: unknown atttypid %ld",
+			     (*attributeP)->atttypid);
+		} else {
+			typp = (TypeTupleForm) GETSTRUCT(tuple);  /* XXX */
+			(*attributeP)->attlen = typp->typlen;
+			(*attributeP)->attnum = (int16)++i;
+			(*attributeP)->attbyval = typp->typbyval;
+		}
+		attributeP += 1;
+	}
 }

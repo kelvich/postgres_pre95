@@ -20,6 +20,7 @@ static	char ami_parser_y[] =
 #include "tmp/portal.h" 
 #include "storage/smgr.h" 
 #include "nodes/pg_lisp.h"
+#include "catalog/catname.h"
 
 #undef BOOTSTRAP
 
@@ -95,6 +96,7 @@ OpenStmt:
 		}	
 	| OPEN LPAREN typelist RPAREN AS ident
 		{ 
+		    if (!Quiet) putchar('\n');
 		    DO_START;
 		    createrel(LexIDStr($6));
 		    DO_END;
@@ -133,6 +135,7 @@ CreateStmt:
 		}
 	  typelist 
 		{ 
+		    if (!Quiet) putchar('\n');
 		    DO_END;
 		}
 	  RPAREN 
@@ -155,11 +158,17 @@ CreateStmt:
 			if (DebugMode)
 			    puts("bootstrap relation created ok");
 		    } else {
-		        heap_create(LexIDStr($3),
-				    'n',
-				    numattr,
-				    DEFAULT_SMGR,
-				    attrtypes);
+			ObjectId id;
+			extern ObjectId heap_create();
+
+			id = heap_create(LexIDStr($3),
+					 'n',
+					 numattr,
+					 DEFAULT_SMGR,
+					 attrtypes);
+			if (!Quiet)
+			    printf("CREATED relation %s with OID %d\n",
+				   LexIDStr($3), id);
 		    }
 		    DO_END;
 		    if (DebugMode)
@@ -195,6 +204,7 @@ InsertStmt:
 		    InsertOneTuple(objectid);
 		    if (DebugMode)
 			puts("Insert End");
+		    if (!Quiet) { putchar('\n'); }
 		    DO_END;
 		    if (DebugMode)
 			puts("Transaction End");
@@ -292,10 +302,9 @@ DisplayReln:
 	  DISPLAY RELATION
 		{
 		  DO_START;
-		  /* pg_relation is now called pg_class -cim 2/26/90 */
-		  boot_openrel("pg_class");
+		  boot_openrel(RelationRelationName->data);
 		  printrel();
-		  closerel("pg_class");
+		  closerel(RelationRelationName->data);
 		  DO_END;
 		}
 	| SHOW

@@ -194,7 +194,9 @@ aclitemout(aip)
 	static AclItem default_aclitem = { ACL_ID_WORLD,
 					   ACL_IDTYPE_WORLD,
 					   ACL_WORLD_DEFAULT };
-	extern char *int2out(), *get_groname();
+	extern char *int2out();
+	Name tmpname;
+	extern Name get_groname();
 
 	if (!aip)
 		aip = &default_aclitem;
@@ -211,7 +213,7 @@ aclitemout(aip)
 		if (!HeapTupleIsValid(htp)) {
 			char *tmp = int2out(aip->ai_id);
 
-			elog(NOTICE, "aclitemout: usesysid=%d not found",
+			elog(NOTICE, "aclitemout: usesysid %d not found",
 			     aip->ai_id);
 			(void) strcat(p, tmp);
 			pfree(tmp);
@@ -222,7 +224,9 @@ aclitemout(aip)
 		break;
 	case ACL_IDTYPE_GID:
 		(void) strcat(p, "group ");
-		(void) strncat(p, get_groname(aip->ai_id), sizeof(NameData));
+		tmpname = get_groname(aip->ai_id);
+		(void) strncat(p, tmpname, sizeof(NameData));
+		pfree(tmpname);
 		break;
 	case ACL_IDTYPE_WORLD:
 		break;
@@ -274,7 +278,7 @@ acldefault(ownerid)
 	AclItem *aip;
 	unsigned size;
 	
-	size = sizeof(VARSIZE(acl)) + (2 * sizeof(AclItem));
+	size = sizeof(VARSIZE(acl)) + sizeof(AclItem);
 	if (!(acl = (Acl *) palloc(size)))
 		elog(WARN, "acldefault: palloc failed");
 	VARSIZE(acl) = size;
@@ -282,9 +286,6 @@ acldefault(ownerid)
 	aip[0].ai_idtype = ACL_IDTYPE_WORLD;
 	aip[0].ai_id = ACL_ID_WORLD;
 	aip[0].ai_mode = ACL_WORLD_DEFAULT;
-	aip[1].ai_idtype = ACL_IDTYPE_UID;
-	aip[1].ai_id = ownerid;
-	aip[1].ai_mode = ACL_OWNER_DEFAULT;
 	return(acl);
 }
 

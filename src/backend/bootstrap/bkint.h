@@ -29,24 +29,11 @@ extern char *calloc();
 #define ALLOC(t, c)	(t *)calloc((unsigned)(c), sizeof(t))
 
 #define FIRST_TYPE_OID 16	/* OID of the first type */
-#define	MAXATTR 40		/* max. number of attributes in arelation */
-
-typedef	enum {
-	Q_OID, Q_LEN, Q_DYN, Q_IN, Q_OUT, Q_EQ, Q_LT
-} QUERY;
-
-/* types recognized */
-typedef	enum	{
-	TY_BOOL, TY_BYTEA, TY_CHAR, TY_CHAR16, TY_DT, TY_INT2, TY_INT28,
-	TY_INT4, TY_REGPROC, TY_TEXT, TY_OID, TY_TID, TY_XID, TY_IID,
-	TY_OID8, TY_SMGR
-} TYPE;
-#define	TY_LAST	TY_SMGR
+#define	MAXATTR 40		/* max. number of attributes in a relation */
 
 /* ami_lexer.l */
 #define STRTABLESIZE	10000
 #define HASHTABLESIZE	503
-#define	MAXSTRINGSIZE	128
 
 /* Hash function numbers */
 #define NUM	23

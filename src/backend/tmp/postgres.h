@@ -128,6 +128,12 @@ struct varlena {
 #define	VARDATA(PTR)    (((struct varlena *)(PTR))->vl_dat)
 
 /* ----------------
+ *	aclitem
+ * ----------------
+ */
+typedef int4 aclitem;
+
+/* ----------------
  *	bytea
  * ----------------
  */

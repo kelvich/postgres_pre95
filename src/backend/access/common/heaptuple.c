@@ -1017,6 +1017,7 @@ heap_modifytuple(tuple, buffer, relation, replValue, replNull, repl)
     bool		isNull;
     HeapTuple		newTuple;
     int			madecopy;
+    uint8		infomask;
     
     /* ----------------
      *	sanity checks
@@ -1085,13 +1086,14 @@ heap_modifytuple(tuple, buffer, relation, replValue, replNull, repl)
 			     nulls);
 	
     /* ----------------
-     *	copy the header except for the initial t_len and final t_bits
+     *	copy the header except for t_len, t_natts, t_hoff, t_bits, t_infomask
      * ----------------
      */
+    infomask = newTuple->t_infomask;
     bcopy((char *) &tuple->t_ctid,
 	  (char *) &newTuple->t_ctid,	/*XXX*/
 	  ((char *) &tuple->t_hoff - (char *) &tuple->t_ctid)); /*XXX*/
-	
+    newTuple->t_infomask = infomask;
     newTuple->t_natts = numberOfAttributes;	/* fix t_natts just in case */
 
     /* ----------------

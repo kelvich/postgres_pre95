@@ -30,6 +30,7 @@ oct     \\{D}{D}{D}
 Exp	[Ee][-+]?{D}+
 id      ([A-Za-z0-9_]|{oct}|\-)+
 sid     \"([^\"])*\"
+arrayid	[A-Za-z0-9_]+\[{D}*\]
 
 %%
 
@@ -86,7 +87,6 @@ add		{return(ADD);}
 "declare"	{return(XDECLARE);}
 "build"		{return(XBUILD);}
 "indices"	{return(INDICES);}
-"define"	{return(XDEFINE);}
 "macro"		{return(MACRO);}
 "index"		{return(INDEX);}
 "on"		{return(ON);}
@@ -100,6 +100,24 @@ add		{return(ADD);}
 		  *(out+1) = '\000';
 		  yylval=LookUpMacro(&(yytext[1]));
 		  return(ID);}
+{arrayid}	{
+			char last, this, *p;
+
+			/* XXX arrays of "basetype" are always "_basetype".
+			 *     this is an evil hack inherited from rel. 3.1.
+			 * XXX array dimension is thrown away because we
+			 *     don't support fixed-dimension arrays.  again,
+			 *     sickness from 3.1.
+			 */
+			for (p = yytext, last = '_'; *p && *p != '['; ++p) {
+				this = *p;
+				*p = last;
+				last = this;
+			}
+			*p++ = last;
+			*p = '\0';
+			yylval=EnterString(yytext); return(ID);
+		}
 {id}	 	 { 
 		  char *in, *out;
 		  for(in = out = yytext; *out = *in; out++)

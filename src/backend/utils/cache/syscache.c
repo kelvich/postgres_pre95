@@ -46,6 +46,7 @@ RcsId("$Header$");
 #include "catalog/pg_am.h"
 #include "catalog/pg_amop.h"
 #include "catalog/pg_attribute.h"
+#include "catalog/pg_group.h"
 #include "catalog/pg_index.h"
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_language.h"
@@ -341,6 +342,33 @@ static struct cachedesc cacheinfo[] = {
 			0,
 			0 },
 	      sizeof(FormData_pg_user),
+	      NULL,
+	      NULL  },
+    { &GroupRelationName,           		/* GRONAME */
+	      1,
+	      { Anum_pg_group_groname,
+			0,
+			0,
+			0 },
+	      sizeof(FormData_pg_group),
+	      NULL,
+	      NULL  },
+    { &GroupRelationName,           		/* GROSYSID */
+	      1,
+	      { Anum_pg_group_grosysid,
+			0,
+			0,
+			0 },
+	      sizeof(FormData_pg_group),
+	      NULL,
+	      NULL  },
+    { &RewriteRelationName,           		/* REWRITENAME */
+	      1,
+	      { Anum_pg_rewrite_rulename,
+			0,
+			0,
+			0 },
+	      sizeof(FormData_pg_group),
 	      NULL,
 	      NULL  }
 };

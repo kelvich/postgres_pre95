@@ -49,6 +49,9 @@
 #define LISTENREL       26
 #define USENAME		27
 #define USESYSID	28
+#define GRONAME		29
+#define GROSYSID	30
+#define	REWRITENAME	31
 
 /* ----------------
  *	struct cachedesc:	information needed for a call to InitSysCache()

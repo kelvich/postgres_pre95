@@ -19,6 +19,7 @@
 
 #include "tcop/slaves.h"
 #include "executor/executor.h"
+#include "tmp/acl.h"
 
  RcsId("$Header$");
 
@@ -355,6 +356,68 @@ InitPlan(operation, parseTree, plan, estate)
 	 */
 	set_es_result_relation_info(estate, NULL);
     }
+#ifndef NO_SECURITY
+    {
+	    int rr, i = 1;
+	    ObjectId o;
+	    HeapTuple htp;
+	    List lp;
+	    char rname[sizeof(NameData)+1];
+	    int32 ok = 1;
+	    char *opstr;
+	    extern char *PG_username; /* from postgres.c */
+
+#define CHECK(MODE)	pg_aclcheck(rname,PG_username,MODE)
+
+	    rname[16] = '\0';
+	    rr = integerp(resultRelation) ? CInteger(resultRelation) : 0;
+	    foreach (lp, rangeTable) {
+		    o = (ObjectId) CInteger(rt_relid(CAR(lp)));
+		    htp = SearchSysCacheTuple(RELOID, (char *) o,
+					      NULL, NULL, NULL);
+		    if (!HeapTupleIsValid(htp))
+			    elog(WARN, "InitPlan: bogus RT relid: %d", o);
+		    strncpy(rname,
+			    &((Form_pg_relation) GETSTRUCT(htp))->relname,
+			    sizeof(NameData));
+		    /* XXX NOTIFY?? */
+		    if (i == rr) {	/* this is the result relation */
+			    if (find_varno(parse_qualification(parseTree),
+					   rr) ||
+				find_varno(parse_targetlist(parseTree),
+					   rr)) {
+				    /* result relation is scanned */
+				    ok = CHECK(ACL_RD);
+				    opstr = "read";
+			    }
+			    if (ok) {
+				    switch (operation) {
+				    case APPEND:
+					    ok = CHECK(ACL_AP) ||
+						    CHECK(ACL_WR);
+					    opstr = "append";
+					    break;
+				    case DELETE:
+				    case REPLACE:
+					    ok = CHECK(ACL_WR);
+					    opstr = "write";
+					    break;
+				    default:
+					    elog(WARN, "InitPlan: bogus operation %d",
+						 operation);
+				    }
+			    }
+		    } else {
+			    ok = CHECK(ACL_RD);
+			    opstr = "read";
+		    }
+		    if (!ok)
+			    elog(WARN, "%s on \"%s\": permission denied",
+				 opstr, rname);
+		    ++i;
+	    }
+    }
+#endif
     
     relationRelationDesc = heap_openr(RelationRelationName);
     set_es_relation_relation_descriptor(estate, relationRelationDesc);

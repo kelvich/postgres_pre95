@@ -294,7 +294,7 @@ DATA(insert OID = 0 (  82 anchor           27 0 0 0  6  -9 0 f t 0 0 -1));
 DATA(insert OID = 0 (  82 tmax            702 0 0 0  4 -10 0 t t 0 0 -1));
 DATA(insert OID = 0 (  82 tmin            702 0 0 0  4 -11 0 t t 0 0 -1));
 DATA(insert OID = 0 (  82 vtype            18 0 0 0  1 -12 0 t t 0 0 -1));
-    
+        
 /* ----------------
  *	pg_user
  * ----------------
@@ -317,6 +317,26 @@ DATA(insert OID = 0 (  86 anchor           27 0 0 0  6  -9 0 f t 0 0 -1));
 DATA(insert OID = 0 (  86 tmax            702 0 0 0  4 -10 0 t t 0 0 -1));
 DATA(insert OID = 0 (  86 tmin            702 0 0 0  4 -11 0 t t 0 0 -1));
 DATA(insert OID = 0 (  86 vtype            18 0 0 0  1 -12 0 t t 0 0 -1));
+    
+/* ----------------
+ *	pg_group
+ * ----------------
+ */
+DATA(insert OID = 0 (  87 groname          19 0 0 0 16   1 0 f t 0 0 -1));
+DATA(insert OID = 0 (  87 grosysid         21 0 0 0  2   2 0 t t 0 0 -1));
+DATA(insert OID = 0 (  87 grolist        1005 0 0 0 -1   3 0 f t 0 0 -1));
+DATA(insert OID = 0 (  87 ctid             27 0 0 0  6  -1 0 f t 0 0 -1));
+DATA(insert OID = 0 (  87 lock             31 0 0 0 -1  -2 0 f t 0 0 -1));
+DATA(insert OID = 0 (  87 oid              26 0 0 0  4  -3 0 t t 0 0 -1));
+DATA(insert OID = 0 (  87 xmin             28 0 0 0  5  -4 0 f t 0 0 -1));
+DATA(insert OID = 0 (  87 cmin             29 0 0 0  1  -5 0 t t 0 0 -1));
+DATA(insert OID = 0 (  87 xmax             28 0 0 0  5  -6 0 f t 0 0 -1));
+DATA(insert OID = 0 (  87 cmax             29 0 0 0  1  -7 0 t t 0 0 -1));
+DATA(insert OID = 0 (  87 chain            27 0 0 0  6  -8 0 f t 0 0 -1));
+DATA(insert OID = 0 (  87 anchor           27 0 0 0  6  -9 0 f t 0 0 -1));
+DATA(insert OID = 0 (  87 tmax            702 0 0 0  4 -10 0 t t 0 0 -1));
+DATA(insert OID = 0 (  87 tmin            702 0 0 0  4 -11 0 t t 0 0 -1));
+DATA(insert OID = 0 (  87 vtype            18 0 0 0  1 -12 0 t t 0 0 -1));
     
 /* ----------------
  *	pg_attribute
@@ -382,9 +402,10 @@ DATA(insert OID = 0 (  75 vtype            18 0 0 0  1 -12 0 t t 0 0 -1));
 { 83l, "relkind",      18,  83l, 0l, 0l,  1, 10, 0, '\001', '\001', 0l, 0l, -1l }, \
 { 83l, "relarch",      18,  83l, 0l, 0l,  1, 11, 0, '\001', '\001', 0l, 0l, -1l }, \
 { 83l, "relnatts",     21,  83l, 0l, 0l,  2, 12, 0, '\001', '\001', 0l, 0l, -1l }, \
-{ 83l, "relsmgr",      210l,  83l, 0l, 0l,  2, 13, 0, '\001', '\001', 0l, 0l, -1l }, \
+{ 83l, "relsmgr",     210l, 83l, 0l, 0l,  2, 13, 0, '\001', '\001', 0l, 0l, -1l }, \
 { 83l, "relkey",       22,  83l, 0l, 0l, 16, 14, 0,   '\0', '\001', 0l, 0l, -1l }, \
-{ 83l, "relkeyop",     30,  83l, 0l, 0l, 32, 15, 0,   '\0', '\001', 0l, 0l, -1l }
+{ 83l, "relkeyop",     30,  83l, 0l, 0l, 32, 15, 0,   '\0', '\001', 0l, 0l, -1l }, \
+{ 83l, "relacl",     1034l, 83l, 0l, 0l, -1, 16, 0,   '\0', '\001', 0l, 0l, -1l }
 
 DATA(insert OID = 0 (  83 relname          19 0 0 0 16   1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  83 relowner         26 0 0 0  4   2 0 t t 0 0 -1));
@@ -401,6 +422,7 @@ DATA(insert OID = 0 (  83 relnatts         21 0 0 0  2  12 0 t t 0 0 -1));
 DATA(insert OID = 0 (  83 relsmgr         210 0 0 0  2  13 0 t t 0 0 -1));
 DATA(insert OID = 0 (  83 relkey           22 0 0 0 16  14 0 f t 0 0 -1));
 DATA(insert OID = 0 (  83 relkeyop         30 0 0 0 32  15 0 f t 0 0 -1));
+DATA(insert OID = 0 (  83 relacl         1034 0 0 0 -1  16 0 f t 0 0 -1));
 DATA(insert OID = 0 (  83 ctid             27 0 0 0  6  -1 0 f t 0 0 -1));
 DATA(insert OID = 0 (  83 lock             31 0 0 0 -1  -2 0 f t 0 0 -1));
 DATA(insert OID = 0 (  83 oid              26 0 0 0  4  -3 0 t t 0 0 -1));

@@ -97,6 +97,7 @@ DATA(insert OID = 0 ( pg_class PGUID 1 1 t b t \054 83 0 foo bar foo bar _null_)
 DATA(insert OID = 0 ( pg_database PGUID 1 1 t b t \054 88 0 foo bar foo bar _null_));
 DATA(insert OID = 0 ( pg_defaults PGUID 1 1 t b t \054 89 0 foo bar foo bar _null_));
 DATA(insert OID = 0 ( pg_demon PGUID 1 1 t b t \054 76 0 foo bar foo bar _null_));
+DATA(insert OID = 0 ( pg_group PGUID 1 1 t b t \054 87 0 foo bar foo bar _null_));
 DATA(insert OID = 0 ( pg_log PGUID 1 1 t b t \054 99 0 foo bar foo bar _null_));
 DATA(insert OID = 0 ( pg_magic PGUID 1 1 t b t \054 80 0 foo bar foo bar _null_));
 DATA(insert OID = 0 ( pg_proc PGUID 1 1 t b t \054 81 0 foo bar foo bar _null_));

@@ -179,8 +179,14 @@ inside == 1 {
 #  if we are inside the catalog definition, then keep sucking up
 #  attibute names and types
 # ----
-	atttype[ i ] = $1;
-	attname[ i ] = $2;
+	if ($2 ~ /\[.*\]/) {			# array attribute
+		idlen = index($2,"[") - 1;
+		atttype[ i ] = $1 "[]";		# variable-length only..
+		attname[ i ] = substr($2,1,idlen);
+	} else {
+		atttype[ i ] = $1;
+		attname[ i ] = $2;
+	}
 	i++;
 	next;
 }

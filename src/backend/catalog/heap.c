@@ -631,9 +631,10 @@ AddPgRelationTuple(pg_relation_desc, new_rel_desc, new_rel_oid, arch, natts)
 
     /* ----------------
      *	now form a tuple to add to pg_relation
+     *  XXX Natts_pg_relation_fixed is a hack - see pg_relation.h
      * ----------------
      */
-    tup = addtupleheader(Natts_pg_relation,
+    tup = addtupleheader(Natts_pg_relation_fixed,
 			 sizeof (struct relation),
 			 (char *) new_rel_reltup);
     tup->t_oid = new_rel_oid;

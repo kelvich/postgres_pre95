@@ -595,7 +595,8 @@ UpdateRelationRelation(indexRelation)
     
     pg_relation = heap_openr(RelationRelationName);
    
-    tuple = addtupleheader(RelationRelationNumberOfAttributes,
+    /* XXX Natts_pg_relation_fixed is a hack - see pg_relation.h */
+    tuple = addtupleheader(Natts_pg_relation_fixed,
 			   sizeof(*indexRelation->rd_rel),
 			   (char *) indexRelation->rd_rel);
 
@@ -1305,7 +1306,7 @@ UpdateStats(relid, reltuples, hasindex)
     whichRel->rd_rel->reltuples = reltuples;
 
     for (i = 0; i < Natts_pg_relation; i++) {
-	nulls[i] = ' ';
+	nulls[i] = heap_attisnull(htup, i+1) ? 'n' : ' ';
 	replace[i] = ' ';
 	values[i] = (Datum) NULL;
     }
@@ -1514,8 +1515,8 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
      *  by the vacuum daemon, but we update them here to make the index
      *  useful as soon as possible.
      */
-    UpdateStats(heapRelation, reltuples);
-    UpdateStats(indexRelation, indtuples);
+    UpdateStats(heapRelation->rd_id, reltuples, true);
+    UpdateStats(indexRelation->rd_id, indtuples, false);
 }
 
 /* ----------------

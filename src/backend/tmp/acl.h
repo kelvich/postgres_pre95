@@ -12,7 +12,8 @@
  *	meaning "no protection" (i.e., old catalogs get old semantics).
  *
  *	The AclItems in an ACL array are currently kept in sorted order.
- *	Things will break hard if you change that without fixing the code.
+ *	Things will break hard if you change that without changing the
+ *	code wherever this is included.
  *
  *   IDENTIFICATION
  *   	$Header$
@@ -57,7 +58,7 @@ typedef uint8 AclMode;
 #define	ACL_MODECHG_DEL		2
 #define	ACL_MODECHG_EQL		3
 
-#define	ACL_WORLD_DEFAULT	(ACL_RD)
+#define	ACL_WORLD_DEFAULT	(ACL_RD|ACL_WR|ACL_AP|ACL_RU)
 #define	ACL_OWNER_DEFAULT	(ACL_RD|ACL_WR|ACL_AP|ACL_RU)
 
 /*
@@ -92,6 +93,11 @@ typedef struct varlena Acl;
 typedef struct varlena IdList;
 #define	IDLIST_NUM(IDL)	((VARSIZE(IDL) - sizeof(VARSIZE(IDL))) / sizeof(AclId))
 #define	IDLIST_DAT(IDL)	((AclId *) VARDATA(IDL))
+
+/*
+ * Enable ACL execution tracing and table dumps
+ */
+/*#define ACLDEBUG_TRACE*/
 
 /*
  * routines used internally (parser, etc.) 

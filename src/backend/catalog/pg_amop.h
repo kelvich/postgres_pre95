@@ -24,6 +24,7 @@
  * ----------------
  */
 #include "tmp/postgres.h"
+#include "access/istrat.h"
 
 /* ----------------
  *	pg_amop definition.  cpp turns this into

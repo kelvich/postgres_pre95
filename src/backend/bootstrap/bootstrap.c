@@ -30,6 +30,8 @@ RcsId("$Header$");
 #include "storage/smgr.h"
 
 #include "catalog/pg_type.h"
+#include "catalog/catname.h"
+#include "catalog/indexing.h"
 
 #undef BOOTSTRAP
 
@@ -73,31 +75,45 @@ FILE		*source = NULL;
 static int	strtable_end = -1;    /* Tells us last occupied string space */
 static int	num_of_errs = 0;      /* Total number of errors encountered */
 
-static char *   (typestr[16]) = {
-	"bool", "bytea", "char", "char16", "dt", "int2", "int28",
-	"int4", "regproc", "text", "oid", "tid", "xid", "iid",
-	"oid8", "smgr"
+/*-
+ * Basic information associated with each type.  This is used before
+ * pg_type is created.
+ *
+ *	XXX several of these input/output functions do catalog scans
+ *	    (e.g., F_REGPROCIN scans pg_proc).  this obviously creates some order
+ *	    dependencies in the catalog creation process.
+ */
+struct typinfo {
+	char		name[16];
+	ObjectId	oid;
+	ObjectId	elem;
+	int16		len;
+	ObjectId	inproc;
+	ObjectId	outproc;
 };
 
-/* functions associated with each type */
-static	long	Procid[16][7] = {
-	{ 16, 1, 0, F_BOOLIN, F_BOOLOUT, F_BOOLEQ, NULL },
-	{ 17, -1, 1, F_BYTEAIN, F_BYTEAOUT, NULL, NULL },
-	{ 18, 1, 0, F_CHARIN, F_CHAROUT, F_CHAREQ, NULL },
-	{ 19, 16, 1, F_CHAR16IN, F_CHAR16OUT, F_CHAR16EQ, NULL },
-	{ 20, 4, 0, F_DATETIMEIN, F_DATETIMEOUT, NULL, NULL },
-	{ 21, 2, 0, F_INT2IN, F_INT2OUT, F_INT2EQ, F_INT2LT },
-	{ 22, 16, 1, F_INT28IN, F_INT28OUT, NULL, NULL },
-	{ 23, 4, 0, F_INT4IN, F_INT4OUT, F_INT4EQ, F_INT4LT },
-	{ 24, 4, 0, F_REGPROCIN, F_REGPROCOUT, NULL, NULL },
-	{ 25, -1, 1, F_TEXTIN, F_TEXTOUT, F_TEXTEQ, NULL },
-	{ 26, 4, 0, F_INT4IN, F_INT4OUT, F_INT4EQ, NULL },
-	{ 27, 6, 1, F_TIDIN, F_TIDOUT, NULL, NULL },
-	{ 28, 5, 1, F_XIDIN, F_XIDOUT, NULL, NULL },
-	{ 29, 1, 0, F_CIDIN, F_CIDOUT, NULL, NULL },
-	{ 30, 32, 1, F_OID8IN, F_OID8OUT, NULL, NULL },
-	{210, 2, 0, F_SMGRIN, F_SMGROUT, F_SMGREQ, NULL }
+static struct typinfo Procid[] = {
+	{ "bool",       16,    0,  1, F_BOOLIN,     F_BOOLOUT },
+	{ "bytea",      17,    0, -1, F_BYTEAIN,    F_BYTEAOUT },
+	{ "char",       18,    0,  1, F_CHARIN,     F_CHAROUT },
+	{ "char16",     19,    0, 16, F_CHAR16IN,   F_CHAR16OUT },
+	{ "dt",         20,    0,  4, F_DATETIMEIN, F_DATETIMEOUT },
+	{ "int2",       21,    0,  2, F_INT2IN,     F_INT2OUT },
+	{ "int28",      22,    0, 16, F_INT28IN,    F_INT28OUT },
+	{ "int4",       23,    0,  4, F_INT4IN,     F_INT4OUT },
+	{ "regproc",    24,    0,  4, F_REGPROCIN,  F_REGPROCOUT },
+	{ "text",       25,    0, -1, F_TEXTIN,     F_TEXTOUT },
+	{ "oid",        26,    0,  4, F_INT4IN,     F_INT4OUT },
+	{ "tid",        27,    0,  6, F_TIDIN,      F_TIDOUT },
+	{ "xid",        28,    0,  5, F_XIDIN,      F_XIDOUT },
+	{ "iid",        29,    0,  1, F_CIDIN,      F_CIDOUT },
+	{ "oid8",       30,    0, 32, F_OID8IN,     F_OID8OUT },
+	{ "smgr",      210,    0,  2, F_SMGRIN,     F_SMGROUT },
+	{ "_int2",    1005,   21, -1, F_ARRAY_IN,   F_ARRAY_OUT },
+	{ "_aclitem", 1034, 1033, -1, F_ARRAY_IN,   F_ARRAY_OUT }
 };
+
+static int n_types = sizeof(Procid) / sizeof(struct typinfo);
 
 struct	typmap {			/* a hack */
 	ObjectId	am_oid;
@@ -120,7 +136,7 @@ static TimeQual		StandardTimeQual = NowTimeQual;
 static TimeQualSpace	StandardTimeQualSpace;
 
 int		Userid;
-Relation	reldesc;		/* current relation descritor */
+Relation	reldesc;		/* current relation descriptor */
 char		relname[80];		/* current relation name */
 struct	attribute *attrtypes[MAXATTR];  /* points to attribute info */
 char		*values[MAXATTR];	/* cooresponding attribute values */
@@ -129,6 +145,7 @@ jmp_buf		Warn_restart;
 int		DebugMode;
 static int UseBackendParseY = 0;
 GlobalMemory	nogc = (GlobalMemory) NULL;	/* special no-gc mem context */
+static int Reboot = 0;
 
 extern bool override;
 
@@ -239,6 +256,10 @@ char *av[];
 	    case 'p':	/* started by postmaster */
 		IsUnderPostmaster = true;
 		ptr = "\0";	/* \0\0 */
+		break;
+	    case 'r':	/* -reboot */
+		Reboot = 1;
+		ptr = "\0";
 		break;
 	    case 'P':
 		portFd = atoi(ptr + 1);
@@ -378,7 +399,6 @@ boot_openrel(name)
     Relation	rdesc;
     HeapScanDesc	sdesc;
     HeapTuple	tup;
-    extern	char	TYPE_R[];
 	
     if(strlen(name) > 79) 
 	name[79] ='\000';
@@ -386,7 +406,7 @@ boot_openrel(name)
 	
     if (Typ == (struct typmap **)NULL) {
 	StartPortalAllocMode(DefaultAllocMode, 0);
-	rdesc = heap_openr(TYPE_R);
+	rdesc = heap_openr(TypeRelationName->data);
 	sdesc = heap_beginscan(rdesc, 0, NowTimeQual, 0, (ScanKey)NULL);
       for (i=0; PointerIsValid(tup=heap_getnext(sdesc,0,(Buffer *)NULL)); ++i);
 	heap_endscan(sdesc);
@@ -622,11 +642,13 @@ showtup(tuple, buffer, relation)
 		);
 		Assert(0);
 	    }
-	    printf("%s ", value = fmgr((*app)->am_typ.typoutput, value));
+	    printf("%s ", value = fmgr((*app)->am_typ.typoutput, value,
+				       (*app)->am_typ.typelem));
 	    pfree(value);
 	} else {
 	    typeindex = reldesc->rd_att.data[i]->atttypid - FIRST_TYPE_OID;
-	    printf("%s ", value = fmgr(Procid[typeindex][(int) Q_OUT], value));
+	    printf("%s ", value = fmgr(Procid[typeindex].outproc, value,
+				       Procid[typeindex].elem));
 	    pfree(value);
 	}
     }
@@ -739,14 +761,14 @@ DefineAttr(name, type, attnum)
     int  attnum;
 {
     int     attlen;
-    TYPE    t;
+    int     t;
 
     if (reldesc != NULL) {
 	fputs("Warning: no open relations allowed with 't' command.\n",stderr);
 	closerel(relname);
     }
 
-    t = (TYPE)gettype(type);
+    t = gettype(type);
     if (attrtypes[attnum] == (struct attribute *)NULL) 
 	attrtypes[attnum] = AllocateAttribute();
     if (Typ != (struct typmap **)NULL) {
@@ -757,11 +779,11 @@ DefineAttr(name, type, attnum)
 	attlen = attrtypes[attnum]->attlen = Ap->am_typ.typlen;
 	attrtypes[attnum]->attbyval = Ap->am_typ.typbyval;
     } else {
-	attrtypes[attnum]->atttypid = Procid[(int)t][(int)Q_OID];
+	attrtypes[attnum]->atttypid = Procid[t].oid;
 	strncpy(attrtypes[attnum]->attname,name, 16);
 	if (!Quiet) printf("<%s %s> ", attrtypes[attnum]->attname, type);
 	attrtypes[attnum]->attnum = 1 + attnum; /* fillatt */
-	attlen = attrtypes[attnum]->attlen = Procid[(int)t][(int)Q_LEN];
+	attlen = attrtypes[attnum]->attlen = Procid[t].len;
 	attrtypes[attnum]->attbyval = (attlen==1) || (attlen==2)||(attlen==4);
     }
 }
@@ -789,6 +811,33 @@ InsertOneTuple(objectid)
 	tuple->t_oid=objectid;
     }
     RelationInsertHeapTuple(reldesc,(HeapTuple)tuple,(double *)NULL);
+    if (Reboot) {
+	    Relation *idescs;
+	    int num = 0;
+	    char **name;
+
+#define LOOKING_AT(x) (!strncmp((x)->data, reldesc->rd_rel->relname.data, \
+				sizeof(NameData)))
+	
+	    if (LOOKING_AT(AttributeRelationName)) {
+		    num = Num_pg_attr_indices; name = Name_pg_attr_indices;
+	    } else if (LOOKING_AT(NamingRelationName)) {
+		    num = Num_pg_name_indices; name = Name_pg_name_indices;
+	    } else if (LOOKING_AT(ProcedureRelationName)) {
+		    num = Num_pg_proc_indices; name = Name_pg_proc_indices;
+	    } else if (LOOKING_AT(RelationRelationName)) {
+		    num = Num_pg_class_indices; name = Name_pg_class_indices;
+	    } else if (LOOKING_AT(TypeRelationName)) {
+		    num = Num_pg_type_indices; name = Name_pg_type_indices;
+	    }
+	    if (num) {
+		    idescs = (Relation *) palloc(num * sizeof(Relation));
+		    CatalogOpenIndices(num, name, idescs);
+		    CatalogIndexInsert(idescs, num, reldesc, tuple);
+		    CatalogCloseIndices(num, idescs);
+		    pfree(idescs);
+	    }
+    }
     pfree(tuple);
     if (DebugMode) {
 	printf("End InsertOneTuple\n", objectid);
@@ -838,18 +887,24 @@ InsertOneValue(objectid, value, i)
 	    );
 	    Assert(0);
 	}
+#if 0
 	if (!Quiet) printf("FMGR-IN/OUT %d, %d\n", ap->am_typ.typinput, 
 	    ap->am_typ.typoutput);
-	values[i] = fmgr(ap->am_typ.typinput, value);
-	prt = fmgr(ap->am_typ.typoutput, values[i]);
+#endif
+	values[i] = fmgr(ap->am_typ.typinput, value,
+			 ap->am_typ.typelem);
+	prt = fmgr(ap->am_typ.typoutput, values[i],
+		   ap->am_typ.typelem);
 	if (!Quiet) printf("%s ", prt);
 	pfree(prt);
     } else {
 	typeindex = attrtypes[i]->atttypid - FIRST_TYPE_OID;
 	if (DebugMode)
 	    printf("Typ == NULL, typeindex = %d idx = %d\n", typeindex, i);
-	values[i] = fmgr(Procid[typeindex][(int)Q_IN], value);
-	prt = fmgr(Procid[typeindex][(int) Q_OUT], values[i]);
+	values[i] = fmgr(Procid[typeindex].inproc, value,
+			 Procid[typeindex].elem);
+	prt = fmgr(Procid[typeindex].outproc, values[i],
+		   Procid[typeindex].elem);
 	if (!Quiet) printf("%s ", prt);
 	pfree(prt);
     }
@@ -1047,7 +1102,6 @@ gettype(type)
     HeapScanDesc	sdesc;
     HeapTuple	tup;
     struct	typmap	**app;
-    extern	char	TYPE_R[];
 
     if (Typ != (struct typmap **)NULL) {
 	for (app = Typ; *app != (struct typmap *)NULL; app++) {
@@ -1057,14 +1111,14 @@ gettype(type)
 	    }
 	}
     } else {
-	for (i = 0; i <= (int)TY_LAST; i++) {
-	    if (strcmp(type, typestr[i]) == 0) {
+	for (i = 0; i <= n_types; i++) {
+	    if (strcmp(type, Procid[i].name) == 0) {
 		return(i);
 	    }
 	}
 	if (DebugMode)
 	    printf("backendsup.c: External Type: %s\n", type);
-        rdesc = heap_openr(TYPE_R);
+        rdesc = heap_openr(TypeRelationName->data);
         sdesc = heap_beginscan(rdesc, 0, NowTimeQual, 0, (ScanKey)NULL);
 	i = 0;
 	while (PointerIsValid(tup = heap_getnext(sdesc, 0, (Buffer *)NULL)))
