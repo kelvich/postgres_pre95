@@ -140,7 +140,7 @@ match_pathkey_joinkeys(pathkey,joinkeys,which_subkey)
 	pos = 0;
 	foreach(x,joinkeys) {
 	    jk = (JoinKey)CAR(x);
-	    if(var_equal(path_subkey, (Var)extract_subkey(jk, which_subkey)))
+	    if(var_equal((LispValue)path_subkey, (LispValue)extract_subkey(jk, which_subkey), false))
 		return(pos);
 	    pos++;
 	}
@@ -193,7 +193,7 @@ every_func(joinkeys, pathkey, which_subkey)
 	     temp = (Var)CAR(CAR(j));
 	     if(temp == NULL) continue;
 	     tempkey = extract_subkey(xjoinkey,which_subkey);
-	     if(var_equal((Var)tempkey,temp)) {
+	     if(var_equal((LispValue)tempkey,(LispValue)temp, false)) {
 		 found = true;
 		 break;
 	     }
