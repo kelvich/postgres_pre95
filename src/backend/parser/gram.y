@@ -1568,7 +1568,7 @@ a_expr:
 		{ $$ = make_op (lispString(">"), $1, $3 ) ; }
 	| a_expr '=' a_expr
 		{ $$ = make_op (lispString("="), $1, $3 ) ; }
-	| a_expr TYPECAST Typename
+	| AexprConst TYPECAST Typename
 		{ 
 		    extern LispValue parser_typecast();
 		    $$ = parser_typecast ( $1, $3 );
