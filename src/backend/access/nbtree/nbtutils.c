@@ -11,6 +11,7 @@
 
 #include "fmgr.h"
 #include "utils/log.h"
+#include "utils/palloc.h"
 #include "utils/rel.h"
 #include "utils/excid.h"
 
@@ -89,7 +90,7 @@ _bt_orderkeys(relation, numberOfKeys, key)
     ScanKeyEntryData *cur;
     StrategyMap map;
     int nbytes;
-    int test;
+    long test;
     int i, j;
     int init[BTMaxStrategyNumber+1];
 
@@ -128,8 +129,8 @@ _bt_orderkeys(relation, numberOfKeys, key)
 	/* have we seen one of these before? */
 	if (init[j]) {
 	    /* yup, use the appropriate value */
-	    test = (int) FMGR_PTR2(cur->func, cur->procedure,
-				   cur->argument, xform->data[j].argument);
+	    test = (long) FMGR_PTR2(cur->func, cur->procedure,
+				    cur->argument, xform->data[j].argument);
 	    if (test)
 		xform->data[j].argument = cur->argument;
 	} else {
@@ -164,7 +165,7 @@ _bt_orderkeys(relation, numberOfKeys, key)
 	 *  in the correct way.
 	 */
 
-	test = (int) fmgr(le->procedure, le->argument, lt->argument);
+	test = (long) fmgr(le->procedure, le->argument, lt->argument);
 
 	if (test)
 	    init[BTLessEqualStrategyNumber - 1] = 0;
@@ -182,7 +183,7 @@ _bt_orderkeys(relation, numberOfKeys, key)
 	ge = &xform->data[BTGreaterEqualStrategyNumber - 1];
 
 	/* see note above on function cache */
-	test = (int) fmgr(ge->procedure, gt->argument, gt->argument);
+	test = (long) fmgr(ge->procedure, gt->argument, gt->argument);
 
 	if (test)
 	    init[BTGreaterStrategyNumber - 1] = 0;

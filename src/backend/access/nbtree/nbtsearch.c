@@ -10,6 +10,7 @@
 #include "storage/page.h"
 
 #include "utils/log.h"
+#include "utils/palloc.h"
 #include "utils/rel.h"
 #include "utils/excid.h"
 
@@ -486,13 +487,15 @@ _bt_compare(rel, itupdesc, page, keysz, scankey, offind)
      */
 
     for (i = 1; i <= keysz; i++) {
+	long tmpres;
+
 	entry = &(scankey->data[i - 1]);
 	attno = entry->attributeNumber;
 	datum = (Datum) IndexTupleGetAttributeValue(itup, attno,
 						    itupdesc, &null);
-	result = (int) FMGR_PTR2(entry->func, entry->procedure,
-				 entry->argument, datum);
-
+	tmpres = (long) FMGR_PTR2(entry->func, entry->procedure,
+				  entry->argument, datum);
+	result = tmpres;
 
 	/* if the keys are unequal, return the difference */
 	if (result != 0)
