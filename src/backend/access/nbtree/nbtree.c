@@ -194,6 +194,7 @@ btbeginscan(rel, fromEnd, keysz, scankey)
 {
     IndexScanDesc scan;
     StrategyNumber strat;
+    BTScanOpaque so;
 
     /* first order the keys in the qualification */
     if (keysz > 0)
@@ -201,6 +202,9 @@ btbeginscan(rel, fromEnd, keysz, scankey)
 
     /* now get the scan */
     scan = RelationGetIndexScan(rel, fromEnd, keysz, scankey);
+    so = (BTScanOpaque) palloc(sizeof(BTScanOpaqueData));
+    so->btso_curbuf = so->btso_mrkbuf = InvalidBuffer;
+    scan->opaque = (Pointer) so;
 
     /* finally, be sure that the scan exploits the tree order */
     scan->scanFromEnd = false;
@@ -216,6 +220,9 @@ btbeginscan(rel, fromEnd, keysz, scankey)
 	scan->scanFromEnd = true;
     }
 
+    /* register scan in case we change pages it's using */
+    _bt_regscan(scan);
+
     return ((char *) scan);
 }
 
@@ -230,18 +237,21 @@ btrescan(scan, fromEnd, scankey)
     ScanKey scankey;
 {
     ItemPointer iptr;
+    BTScanOpaque so;
+
+    so = (BTScanOpaque) scan->opaque;
 
     /* we hold a read lock on the current page in the scan */
     if (ItemPointerIsValid(iptr = &(scan->currentItemData))) {
-	_bt_unsetpagelock(scan->relation, ItemPointerGetBlockNumber(iptr, 0),
-			  BT_READ);
+	_bt_relbuf(scan->relation, so->btso_curbuf, BT_READ);
+	so->btso_curbuf = InvalidBuffer;
 	ItemPointerSetInvalid(iptr);
     }
 
     /* and we hold a read lock on the last marked item in the scan */
     if (ItemPointerIsValid(iptr = &(scan->currentMarkData))) {
-	_bt_unsetpagelock(scan->relation, ItemPointerGetBlockNumber(iptr, 0),
-			  BT_READ);
+	_bt_relbuf(scan->relation, so->btso_mrkbuf, BT_READ);
+	so->btso_mrkbuf = InvalidBuffer;
 	ItemPointerSetInvalid(iptr);
     }
 
@@ -263,19 +273,28 @@ btendscan(scan)
     IndexScanDesc scan;
 {
     ItemPointer iptr;
+    BTScanOpaque so;
+
+    so = (BTScanOpaque) scan->opaque;
 
     /* release any locks we still hold */
     if (ItemPointerIsValid(iptr = &(scan->currentItemData))) {
-	_bt_unsetpagelock(scan->relation, ItemPointerGetBlockNumber(iptr, 0),
-			  BT_READ);
+	_bt_relbuf(scan->relation, so->btso_curbuf, BT_READ);
+	so->btso_curbuf = InvalidBuffer;
 	ItemPointerSetInvalid(iptr);
     }
 
     if (ItemPointerIsValid(iptr = &(scan->currentMarkData))) {
-	_bt_unsetpagelock(scan->relation, ItemPointerGetBlockNumber(iptr, 0),
-			  BT_READ);
+	_bt_relbuf(scan->relation, so->btso_mrkbuf, BT_READ);
+	so->btso_mrkbuf = InvalidBuffer;
 	ItemPointerSetInvalid(iptr);
     }
+
+    /* don't need scan registered anymore */
+    _bt_dropscan(scan);
+
+    /* be tidy */
+    pfree (scan->opaque);
 }
 
 /*
@@ -287,19 +306,22 @@ btmarkpos(scan)
     IndexScanDesc scan;
 {
     ItemPointer iptr;
+    BTScanOpaque so;
+
+    so = (BTScanOpaque) scan->opaque;
 
     /* release lock on old marked data, if any */
     if (ItemPointerIsValid(iptr = &(scan->currentMarkData))) {
-	_bt_unsetpagelock(scan->relation, ItemPointerGetBlockNumber(iptr, 0),
-			  BT_READ);
+	_bt_relbuf(scan->relation, so->btso_mrkbuf, BT_READ);
+	so->btso_mrkbuf = InvalidBuffer;
 	ItemPointerSetInvalid(iptr);
     }
 
     /* bump lock on currentItemData and copy to currentMarkData */
-    if (ItemPointerIsValid(iptr = &(scan->currentItemData))) {
-	_bt_setpagelock(scan->relation,
-			ItemPointerGetBlockNumber(iptr, 0),
-			BT_READ);
+    if (ItemPointerIsValid(&(scan->currentItemData))) {
+	so->btso_mrkbuf = _bt_getbuf(scan->relation,
+				     BufferGetBlockNumber(so->btso_curbuf),
+				     BT_READ);
 	scan->currentMarkData = scan->currentItemData;
     }
 }
@@ -313,21 +335,36 @@ btrestrpos(scan)
     IndexScanDesc scan;
 {
     ItemPointer iptr;
+    BTScanOpaque so;
+
+    so = (BTScanOpaque) scan->opaque;
 
     /* release lock on current data, if any */
     if (ItemPointerIsValid(iptr = &(scan->currentItemData))) {
-	_bt_unsetpagelock(scan->relation, ItemPointerGetBlockNumber(iptr, 0),
-			  BT_READ);
+	_bt_relbuf(scan->relation, so->btso_curbuf, BT_READ);
+	so->btso_curbuf = InvalidBuffer;
 	ItemPointerSetInvalid(iptr);
     }
 
     /* bump lock on currentMarkData and copy to currentItemData */
-    if (ItemPointerIsValid(iptr = &(scan->currentMarkData))) {
-	_bt_setpagelock(scan->relation, ItemPointerGetBlockNumber(iptr, 0),
-			BT_READ);
+    if (ItemPointerIsValid(&(scan->currentMarkData))) {
+	so->btso_curbuf = _bt_getbuf(scan->relation,
+				     BufferGetBlockNumber(so->btso_mrkbuf),
+				     BT_READ);
+				     
 	scan->currentItemData = scan->currentMarkData;
     }
 }
 
 /* stubs */
-void btdelete() { ; }
+void
+btdelete(rel, tid)
+    Relation rel;
+    ItemPointer tid;
+{
+    /* adjust any active scans that will be affected by this deletion */
+    _bt_adjscans(rel, tid);
+
+    /* delete the data from the page */
+    _bt_pagedel(rel, tid);
+}

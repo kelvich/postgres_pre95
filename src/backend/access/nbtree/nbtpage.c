@@ -241,7 +241,7 @@ _bt_getbuf(rel, blkno, access)
     if (blkno != P_NEW) {
 	if (access == BT_WRITE)
 	    _bt_setpagelock(rel, blkno, BT_WRITE);
-	else if (access == BT_READ)
+	else
 	    _bt_setpagelock(rel, blkno, BT_READ);
 
 	buf = ReadBuffer(rel, blkno);
@@ -253,7 +253,7 @@ _bt_getbuf(rel, blkno, access)
 
 	if (access == BT_WRITE)
 	    _bt_setpagelock(rel, blkno, BT_WRITE);
-	else if (access == BT_READ)
+	else
 	    _bt_setpagelock(rel, blkno, BT_READ);
     }
 
@@ -275,9 +275,10 @@ _bt_relbuf(rel, buf, access)
 
     blkno = BufferGetBlockNumber(buf);
 
+    /* access had better be one of read or write */
     if (access == BT_WRITE)
 	_bt_unsetpagelock(rel, blkno, BT_WRITE);
-    else if (access == BT_READ)
+    else
 	_bt_unsetpagelock(rel, blkno, BT_READ);
 
     ReleaseBuffer(buf);
@@ -480,4 +481,25 @@ _bt_unsetpagelock(rel, blkno, access)
 	RelationUnsetLockForWritePage(rel, 0, &iptr);
     else
 	RelationUnsetLockForReadPage(rel, 0, &iptr);
+}
+
+void
+_bt_pagedel(rel, tid)
+    Relation rel;
+    ItemPointer tid;
+{
+    Buffer buf;
+    Page page;
+    BlockNumber blkno;
+    OffsetIndex offind;
+
+    blkno = ItemPointerGetBlockNumber(tid);
+    offind = ItemPointerGetOffsetNumber(tid, 0) - 1;
+
+    buf = _bt_getbuf(rel, blkno, BT_WRITE);
+    page = BufferGetPage(buf, 0);
+
+    PageIndexTupleDelete(page, offind);
+
+    _bt_relbuf(rel, buf, BT_WRITE);
 }
