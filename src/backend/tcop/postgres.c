@@ -10,8 +10,12 @@
 
 #include <signal.h>
 #include <stdio.h>
+#include <sys/file.h>
+#include <strings.h>
+#include <ctype.h>
 
 #include "catalog.h"		/* XXX to be obsoleted */
+#include "globals.h"
 
 #include "command.h"
 #include "exc.h"
@@ -20,9 +24,16 @@
 #include "pmod.h"
 #include "rel.h"
 #include "xcxt.h"
+#include "log.h"
 
 extern void die();
 extern void handle_warn();
+
+/* XXX - I'm not sure if these should be here, but the be/fe comms work 
+   when I do - jeff, maybe someone can figure out where they should go*/
+
+FILE	*Pfin, *Pfout;
+int 	Portfd = -1;
 
 RcsId("$Header$");
 
@@ -41,17 +52,6 @@ struct attribute *	/* XXX */
 	AllocateAttribute ARGS((
 	void
 ));
-
-/*
- * In the lexical analyzer, we need to get the reference number quickly from
- * the string, and the string from the reference number.  Thus we have
- * as our data structure a hash table, where the hashing key taken from
- * the particular string.  The hash table is chained.  One of the fields
- * of the hash table node is an index into the array of character pointers.
- * The unique index number that every string is assigned is simply the
- * position of its string pointer in the array of string pointers.
- */
-
 
 static	int	Quiet = 0;
 static	int	Warnings = 0;
@@ -115,20 +115,30 @@ main(argc, argv)
      * ----------------
      */
     flagC = flagQ = 0;
-    while ((flag = getopt(argc, argv, "CQO")) != EOF)
-	switch (flag) {
+    while ((flag = getopt(argc, argv, "CQOdpP:")) != EOF)
+      switch (flag) {
+	case 'd':	/* -debug mode */
+	  /* DebugMode = true; */
+	  flagQ = 0;
+	  break;
 	case 'C':
-	    flagC = 1;
-	    break;
+	  flagC = 1;
+	  break;
 	case 'Q':
-	    flagQ = 1;
-	    break;
+	  flagQ = 1;
+	  break;
 	case 'O':
-	    override = true;
-	    break;
+	  override = true;
+	  break;
+	case 'p':	/* started by postmaster */
+	  IsUnderPostmaster = true;
+	  break;
+	case 'P':
+          Portfd = atoi(optarg);
+	  break;
 	default:
-	    errs += 1;
-	}
+	  errs += 1;
+      }
 
     if (errs || argc - optind > 1) {
 	fputs("Usage: amiint [-C] [-O] [-Q] [datname]\n", stderr);
@@ -160,6 +170,14 @@ main(argc, argv)
 
     if (! Quiet && ! override)
 	puts("\t**** Transaction System Active ****");
+
+    if (IsUnderPostmaster == true && Portfd < 0) {
+	fprintf(stderr,"Postmaster flag set, but no port number specified\n");
+	exit(1);
+    }
+    if (IsUnderPostmaster == true) {
+	pinit();
+    }
     
     /* ----------------
      * 	initialize the dynamic function manager
@@ -215,9 +233,12 @@ main(argc, argv)
 	 *   get input from the user
 	 * ----------------
 	 */
-	printf("\n> ");
-	
-	parser_input = gets(parser_input);
+	if (IsUnderPostmaster == true)
+	  SocketBackend(parser_input, parser_output);
+	else {
+	    InteractiveBackend(parser_input, parser_output);
+	    lispDisplay(parser_output,0);
+	}
 	if (! Quiet)
 	    printf("\ninput string is %s\n",parser_input);
 
@@ -295,3 +316,113 @@ main(argc, argv)
 	CommitTransactionCommand();
      }
 }	
+
+/* XXX - begicommand belongs wherever endcommand is, but where
+   endcommand is seems like the wrong place - jeff */
+
+BeginCommand(pname,attinfo)
+     char *pname;
+     LispValue attinfo;
+{
+    struct attribute **attrs;
+    int nattrs;
+
+    nattrs = CInteger(CAR(attinfo));
+    attrs = (struct attribute **)CADR(attinfo);
+
+    if (IsUnderPostmaster == true) {
+	pflush();
+	initport(pname,nattrs,attrs);
+	pflush();
+    } else {
+	showatts(pname,nattrs,attrs);
+    }
+}
+
+#ifdef NOTYET
+  XXX - uncomment this eventually, - jeff
+
+   do not remove the following code.  It will be needed when
+   we are to test functions from the frontend (fastpath)
+
+ReturnToFrontEnd( data, fid, rettype)
+     char *data;
+     int fid, rettype;
+{
+    putnchar("V",1);
+    putint(fid,4);
+    
+    switch (rettype) {
+      case 0:
+	break; 
+      case 1:
+      case 2:
+      case 4:
+	putnchar("G",1);
+	putint(rettype,4);
+	putint( data, rettype);
+      case VAR_LENGTH_RES:
+	elog(WARN,"not done as yet, refer to lisp code");
+	putnchar("G",1);
+	putint( rettype, 4);
+	putstr(data);
+	break;
+      case PORTAL_RESULT:
+	elog(WARN,"portal results, not ready yet");
+	break;
+      default:
+	putnchar( "0", 1);
+	break;
+    }
+    putnchar ("0",1);
+}
+
+#endif
+/*
+ *  SocketBackend()	Is called for frontend-backend connections
+ */
+
+SocketBackend(inBuf, parseList)
+char *inBuf;
+LispValue parseList;
+{
+    char *qtype = "?";
+    int pq_qid;
+
+    getpchar(qtype,0,1);
+
+    switch(*qtype) {
+    case 'Q':
+	pq_qid = getpint(4);
+	getpstr(inBuf, 8192);
+	if (!Quiet)
+	    printf("Received Query: %s\n", inBuf);
+	parser(inBuf,parseList);
+	break;
+    case 'F':	/* function, not supported at the moment */
+	elog(WARN, "Socket command type 'F' not supported yet\n");
+	break;
+    default:
+	/* elog(FATAL, "Socket command type $%02x unknown\n", *qtype); */
+	elog(FATAL, "Socket command type %c unknown\n", *qtype);
+	break;
+    }
+}
+
+/*
+ *  InteractiveBackend() Is called for user interactive connections
+ */
+
+InteractiveBackend(inBuf, parseList)
+char *inBuf;
+LispValue parseList;
+{
+    printf ("> ");
+    gets(inBuf);
+    parser(inBuf, parseList);
+}
+
+
+
+
+
