@@ -1,11 +1,20 @@
-#ifndef ExecTupTableHIncluded
-#define ExecTupTableHIncluded 1
 /* ----------------------------------------------------------------
- *		      tuple table support stuff
+ *   FILE
+ *     	tuptable.h
+ *
+ *   DESCRIPTION
+ *     	tuple table support stuff
+ *
  *	$Header$
  * ----------------------------------------------------------------
  */
+#ifndef ExecTupTableHIncluded
+#define ExecTupTableHIncluded 1
 
+/* ----------------
+ *	tuple table data structure
+ * ----------------
+ */
 typedef struct TupleTableData {
     int		size;		/* size of the table */
     int		next;		/* next available slot number */
@@ -21,6 +30,12 @@ typedef TupleTableData *TupleTable;
  *	TableSlot		- gets address of a slot
  *	SlotContents		- gets contents of a slot
  *	SetSlotContents		- assigns slot's contents
+ *	SlotShouldFree		- flag: T if should call pfree() on contents
+ *	SetSlotShouldFree	- sets "should call pfree()" flag
+ *	SlotTupleDescriptor	- gets type info for contents of a slot
+ *	SetSlotTupleDescriptor	- assigns type info for contents of a slot
+ *	SlotTupleDescriptorIsNew -  flag: T when type info changes
+ *	SetSlotTupleDescriptorIsNew - sets "type info has changed" flag
  *	SlotSpecialInfo		- gets special information regarding slot
  *	SetSlotSpecialInfo	- assigns slot's special information
  *	NewTableSize		- calculates new size if old size was too small
@@ -49,6 +64,18 @@ typedef TupleTableData *TupleTable;
 #define SetSlotShouldFree(slot, shouldFree) \
     set_ttc_shouldFree(slot, shouldFree)
     
+#define SlotTupleDescriptor(slot) \
+    get_ttc_tupleDescriptor(slot)
+
+#define SetSlotTupleDescriptor(slot, desc) \
+    set_ttc_tupleDescriptor(slot, desc)
+        
+#define SlotTupleDescriptorIsNew(slot) \
+    get_ttc_descIsNew(slot)
+
+#define SetSlotTupleDescriptorIsNew(slot, isnew) \
+    set_ttc_descIsNew(slot, isnew)
+    
 #define SlotSpecialInfo(slot) \
     (Pointer) CDR((List) slot)
 
@@ -58,12 +85,6 @@ typedef TupleTableData *TupleTable;
 #define NewTableSize(oldsize) \
     (oldsize * 2 + 20)
 
-/* ----------------------------------------------------------------
- *	TupIsNull is a #define to the correct thing to use
- *	while the tuple table stuff is integrated..  It will
- *	go away once the tuple table stuff is robust.
- * ----------------------------------------------------------------
- */
 #define TupIsNull(x)	ExecNullSlot(x)
 
 #endif ExecTupTableHIncluded

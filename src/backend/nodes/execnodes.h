@@ -30,6 +30,7 @@
 #include "storage/item.h"
 #include "access/sdir.h"
 #include "access/htup.h"
+#include "access/tupdesc.h"
 #include "utils/rel.h"
 #include "access/relscan.h"
 #include "executor/hashjoin.h"
@@ -140,9 +141,15 @@ class (TupleCount) public (Node) {
 };
 
 /* ----------------
+ *	Note:  the executor tuple table is managed and manipulated by special
+ *	code and macros in executor/tuple.c and lib/H/executor/tuptable.h
+ *	-cim 1/18/90
+ *
  *	TupleTableSlot information
  *
  *	    shouldFree		boolean - should we call pfree() on tuple
+ *	    descIsNew		boolean - true when tupleDescriptor changes
+ *	    tupleDescriptor	type information kept regarding the tuple data
  *
  *	LispValue information
  *
@@ -154,12 +161,19 @@ class (TupleCount) public (Node) {
  *	are pointers to buffer pages and others are pointers to
  *	palloc'ed memory and the shouldFree variable tells us when
  *	we may call pfree() on a tuple.  -cim 9/23/90
+ *
+ *	In the implementation of nested-dot queries such as
+ *	"retrieve (EMP.hobbies.all)", a single scan may return tuples
+ *	of many types, so now we return pointers to tuple descriptors
+ *	along with tuples returned via the tuple table.  -cim 1/18/90
  * ----------------
  */
 class (TupleTableSlot) public (LispValue) {
       inherits(LispValue);
   /* private: */
-      bool	ttc_shouldFree;
+      bool		ttc_shouldFree;
+      bool		ttc_descIsNew;
+      TupleDescriptor	ttc_tupleDescriptor;
   /* public: */
 };
 
