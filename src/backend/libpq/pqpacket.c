@@ -190,7 +190,7 @@ Boolean		nonBlocking;
   hdr->len = htons(len);
 
   len = sendto(port->sock, (Addr) buf, totalLen, /* flags */ 0,
-	       (struct sockaddr *)port->addr, addrLen);
+	       &(port->addr), addrLen);
 
   if (len < totalLen) {
     fprintf(stderr,"PacketSend: couldn't send complete packet\n");
