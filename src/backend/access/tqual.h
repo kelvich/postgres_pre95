@@ -138,7 +138,7 @@ TimeQualIndicatesDisableValidityChecking ARGS((
  *	Assumes time qual is valid snapshot time qual.
  */
 extern
-Time
+AbsoluteTime
 TimeQualGetSnapshotTime ARGS((
 	TimeQual	qual
 ));
@@ -151,20 +151,20 @@ TimeQualGetSnapshotTime ARGS((
  *	Assumes time qual is valid ranged time qual.
  */
 extern
-Time
+AbsoluteTime
 TimeQualGetStartTime ARGS((
 	TimeQual	qual
 ));
 
 /*
- * TimeQualEndTime --
+ * TimeQualGetEndTime --
  *	Returns end time for a ranged time qual.
  *
  * Note:
  *	Assumes time qual is valid ranged time qual.
  */
 extern
-Time
+AbsoluteTime
 TimeQualGetEndTime ARGS((
 	TimeQual	qual
 ));

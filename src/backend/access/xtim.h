@@ -9,6 +9,8 @@
 #ifndef	XTimIncluded	/* Include this file only once. */
 #define XTimIncluded	1
 
+#include "utils/nabstime.h"
+
 /*
  * TransactionIdGetCommitTime --
  *	Returns commit time of transaction associated with an identifier.
@@ -17,7 +19,7 @@
  *	Assumes transaction identifier is valid.
  */
 extern
-Time
+AbsoluteTime
 TransactionIdGetCommitTime ARGS((
 	TransactionId	transactionId
 ));

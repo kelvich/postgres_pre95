@@ -1269,7 +1269,7 @@ heap_insert(relation, tup, off)
     tup->t_cmin = GetCurrentCommandId();
     PointerStoreInvalidTransactionId((Pointer)&(tup->t_xmax));
     tup->t_tmin = INVALID_ABSTIME;
-    tup->t_tmax = INVALID_ABSTIME;
+    tup->t_tmax = CURRENT_ABSTIME;
 
     returnMe = doinsert(relation, tup);
 
@@ -1482,7 +1482,7 @@ heap_replace(relation, otid, tup)
     tup->t_cmin = GetCurrentCommandId();
     PointerStoreInvalidTransactionId((Pointer)&(tup->t_xmax));
     tup->t_tmin = INVALID_ABSTIME;
-    tup->t_tmax = INVALID_ABSTIME;
+    tup->t_tmax = CURRENT_ABSTIME;
     ItemPointerSetInvalid(&tup->t_chain);
 
     /* ----------------

@@ -19,6 +19,7 @@
 #include "storage/part.h"  		/* just to reduce levels of #include */
 #include "storage/itemptr.h"
 #include "rules/rlock.h"
+#include "utils/nabstime.h"
 
 #define MinHeapTupleBitmapSize	32		/* 8 * 4 */
 
@@ -82,7 +83,7 @@ typedef struct HeapTupleData {
 	TransactionId	t_xmin;		/* insert XID stamp -- 4 bytes each */
 	TransactionId	t_xmax;		/* delete XID stamp */
 
-	ABSTIME		t_tmin, t_tmax;	/* time stamps -- 4 bytes each */
+	AbsoluteTime	t_tmin, t_tmax;	/* time stamps -- 4 bytes each */
 
 	AttributeNumber	t_natts;	/* number of attributes */
 

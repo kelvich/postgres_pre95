@@ -24,6 +24,7 @@
 #include "tmp/portal.h"
 #include "utils/log.h"
 #include "utils/mcxt.h"
+#include "utils/nabstime.h"
 
 /* ----------------
  *	transaction state structure
@@ -32,7 +33,7 @@
 typedef struct TransactionStateData {
     TransactionId	transactionIdData;
     CommandId		commandId;
-    Time		startTime;
+    AbsoluteTime		startTime;
     int			state;
     int			blockState;
 } TransactionStateData;
@@ -69,7 +70,7 @@ extern bool IsTransactionState ARGS(());
 extern void OverrideTransactionSystem ARGS((bool flag));
 extern TransactionId GetCurrentTransactionId ARGS(());
 extern CommandId GetCurrentCommandId ARGS(());
-extern Time GetCurrentTransactionStartTime ARGS(());
+extern AbsoluteTime GetCurrentTransactionStartTime ARGS(());
 extern bool TransactionIdIsCurrentTransactionId ARGS((TransactionId xid));
 extern bool CommandIdIsCurrentCommandId ARGS((CommandId cid));
 extern void ClearCommandIdCounterOverflowFlag ARGS(());

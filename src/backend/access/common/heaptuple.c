@@ -435,7 +435,7 @@ heap_getsysattr(tup, b, attnum)
      */
 
     case MinAbsoluteTimeAttributeNumber:
-	if (!AbsoluteTimeIsValid(tup->t_tmin) && 
+	if (!AbsoluteTimeIsValid(tup->t_tmin) &&
 	    TransactionIdDidCommit(tup->t_xmin))
 		tup->t_tmin = TransactionIdGetCommitTime(tup->t_xmin);
 	return ((char *)tup->t_tmin);
@@ -445,7 +445,7 @@ heap_getsysattr(tup, b, attnum)
 	    if (TransactionIdDidCommit(tup->t_xmax))
 		tup->t_tmax = TransactionIdGetCommitTime(tup->t_xmax);
 	    else
-		tup->t_tmax = EPOCH_ABSTIME;
+		tup->t_tmax = CURRENT_ABSTIME;
 	}
 	return ((char *)tup->t_tmax);
     case VersionTypeAttributeNumber:
@@ -974,7 +974,7 @@ heap_formtuple(numberOfAttributes, tupleDescriptor, value, nulls)
     tuple->t_natts = 	numberOfAttributes;
     tuple->t_hoff = hoff;
     tuple->t_tmin = INVALID_ABSTIME;
-    tuple->t_tmax = INVALID_ABSTIME;
+    tuple->t_tmax = CURRENT_ABSTIME;
     
     DataFill((Pointer) tuple + tuple->t_hoff,
 	     numberOfAttributes,
