@@ -19,8 +19,9 @@
 #include "prs2.h"
 #include "prs2stub.h"
 #include "catalog/pg_proc.h"
-#include "catalog/pg_relation.h"
+#include "catalog/pg_prs2stub.h"
 #include "lsyscache.h"
+#include "fmgr.h"
 
 
 /*-------------------------------------------------------------------
@@ -77,41 +78,78 @@ Prs2OneStub relstub;
 bool addFlag;
 {
 
-    Relation relationRelation;
+    Relation prs2stubRelation;
     HeapScanDesc scanDesc;
     ScanKeyData scanKey;
     HeapTuple tuple;
     Buffer buffer;
     HeapTuple newTuple;
     Prs2Stub currentStubs;
+    bool newTupleFlag;
 
     /*
      * Add a stub record a a relation
-     * Go to the RelationRelation (i.e. pg_relation), find the
+     * Go to the pg_prs2stub relation find the
      * appropriate tuple, and add the specified lock to it.
      */
-    relationRelation = RelationNameOpenHeapRelation(RelationRelationName);
+    prs2stubRelation = RelationNameOpenHeapRelation(Name_pg_prs2stub);
 
     scanKey.data[0].flags = 0;
-    scanKey.data[0].attributeNumber = ObjectIdAttributeNumber;
+    scanKey.data[0].attributeNumber = Anum_pg_prs2stub_prs2relid;
     scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
     scanKey.data[0].argument = ObjectIdGetDatum(relation->rd_id);
-    scanDesc = RelationBeginHeapScan(relationRelation,
+    scanDesc = RelationBeginHeapScan(prs2stubRelation,
 					0, NowTimeQual,
 					1, &scanKey);
     
     tuple = HeapScanGetNextTuple(scanDesc, 0, &buffer);
-    if (!HeapTupleIsValid(tuple)) {
-	elog(WARN, "AddStub: Invalid rel OID %ld", relation->rd_id);
+    if (HeapTupleIsValid(tuple)) {
+	newTupleFlag = false;
+    } else {
+	/*
+	 * We didn't find a tuple in pg_prs2stub for
+	 * this relation.
+	 * Is this a `delete stub' operation?
+	 * If yes complain!
+	 * Otherwise create a brand new tuple...
+	 */
+	if (!addFlag) {
+	    elog(WARN, "DeleteRuleStub: Invalid rel OID %ld",relation->rd_id);
+	} else {
+	    /*
+	     * We must create a new tuple
+	     * Initially its 'prs2stub' field will contain
+	     * an empty rule stub.
+	     */
+	    Datum values[Natts_pg_prs2stub];
+	    char null[Natts_pg_prs2stub];
+	    int i;
+	    for (i=0; i<Natts_pg_prs2stub; i++)
+		null[i] = 'n';
+	    values[Anum_pg_prs2stub_prs2relid-1] = 
+			ObjectIdGetDatum(relation->rd_id);
+	    null[Anum_pg_prs2stub_prs2relid-1] = ' ';
+	    values[Anum_pg_prs2stub_prs2stub-1] = 
+		    StructPointerGetDatum(prs2StubToRawStub(prs2MakeStub()));
+	    null[Anum_pg_prs2stub_prs2stub-1] = ' ';
+	    newTupleFlag = true;
+	    tuple = FormHeapTuple(Natts_pg_prs2stub,
+				RelationGetTupleDescriptor(prs2stubRelation),
+				values,
+				null);
+	}
     }
 
     /*
-     * We have found the appropriate tuple of the RelationRelation.
-     * Now find its old locks, and add the new one
+     * We have found the appropriate tuple of the pg_prs2stub relation.
+     * Now find its old stubs...
      */
-    currentStubs = prs2GetStubsFromRelationTuple(tuple, buffer,
-				RelationGetTupleDescriptor(relationRelation));
+    currentStubs = prs2GetStubsFromPrs2StubTuple(tuple, buffer,
+				RelationGetTupleDescriptor(prs2stubRelation));
 
+    /*
+     * Now add/delete the given stub from the current stubs
+     */
     if (addFlag) {
 	prs2AddOneStub(currentStubs, relstub);
     } else {
@@ -119,26 +157,31 @@ bool addFlag;
     }
 
     /*
-     * Create a new tuple (i.e. a copy of the old tuple
-     * with its stub field changed and replace the old
-     * tuple in the RelationRelation
+     * Create a new tuple (a copy of the current tuple)
+     * in the pg_prs2stub relation
      */
-    newTuple = prs2PutStubsInRelationTuple(tuple, buffer,
-		    RelationGetTupleDescriptor(relationRelation),
+    newTuple = prs2PutStubsInPrs2StubTuple(tuple, buffer,
+		    RelationGetTupleDescriptor(prs2stubRelation),
 		    currentStubs);
     
 #ifdef STUB_DEBUG
     if (STUB_DEBUG > 3) {
 	printf("prs2ChangeRelationStub (op=%s) NEW TUPLE=\n",
 		addFlag ? "add" : "delete");
-	debugtup(newTuple, RelationGetTupleDescriptor(relationRelation));
+	debugtup(newTuple, RelationGetTupleDescriptor(prs2stubRelation));
     }
 #endif STUB_DEBUG
 
-    RelationReplaceHeapTuple(relationRelation, &(tuple->t_ctid),
-			    newTuple, (double *)NULL);
+    if (newTupleFlag) {
+	double dummy;
+	pfree(tuple);
+	RelationInsertHeapTuple(prs2stubRelation, newTuple, &dummy);
+    } else {
+	RelationReplaceHeapTuple(prs2stubRelation, &(tuple->t_ctid),
+				newTuple, (double *)NULL);
+    }
     
-    RelationCloseHeapRelation(relationRelation);
+    RelationCloseHeapRelation(prs2stubRelation);
 
 }
 
@@ -159,38 +202,38 @@ ObjectId relOid;
 
     /*
      * find the Prs2RawStub of the relation
+     * If there is no entry for this relation in pg_prs2stub
+     * then `get_relstubs' will return NULL
      */
     rawStubs = get_relstub(relOid);
     if (rawStubs == NULL) {
-	elog(WARN,
-	    "prs2GetRelationStubs: cache lookup failed for relId = %ld",
-	    relOid);
+	relstub = prs2MakeStub();
+    } else {
+	/*
+	 * transform the Prs2RawStub to a Prs2Stub
+	 */
+	relstub = prs2RawStubToStub(rawStubs);
+	/*
+	 * free the Prs2RawStub
+	 * NOTE: we do that because get_relstub creates a COPY of
+	 * the raw relation stubs found in the tuple.
+	 */
+	pfree(rawStubs);
     }
 
-    /*
-     * now transform the Prs2RawStub to a Prs2Stub
-     */
-    relstub = prs2RawStubToStub(rawStubs);
-
-    /*
-     * free the Prs2RawStub
-     * NOTE: we do that because get_relstub creates a COPY of
-     * the raw relation stubs found in the tuple.
-     */
-    pfree(rawStubs);
 
     return(relstub);
 }
 
 /*======================================================================
  *
- * prs2GetStubsFromRelationTuple
+ * prs2GetStubsFromPrs2StubTuple
  *
- * given a tuple form the relation relation, return
- * the stubs stroed in this tuple
+ * given a tuple form the pg_prs2stub relation, return
+ * the rule stubs stored in this tuple
  */
 Prs2Stub
-prs2GetStubsFromRelationTuple(tuple, buffer, tupleDescriptor)
+prs2GetStubsFromPrs2StubTuple(tuple, buffer, tupleDescriptor)
 HeapTuple tuple;
 Buffer buffer;
 TupleDescriptor tupleDescriptor;
@@ -207,7 +250,7 @@ TupleDescriptor tupleDescriptor;
     datum = HeapTupleGetAttributeValue(
 			    tuple,
 			    buffer,
-			    RelationStubAttributeNumber,
+			    Anum_pg_prs2stub_prs2stub,
 			    tupleDescriptor,
 			    &isNull);
 
@@ -226,21 +269,21 @@ TupleDescriptor tupleDescriptor;
 
 /*======================================================================
  *
- * prs2PutStubsInRelationTuple
+ * prs2PutStubsInPrs2StubTuple
  *
- * Store the given stubs to a Relation relation tuple
+ * Store the given stubs to a pg_prs2stub relation tuple
  * return the new tuple
  *
  */
 HeapTuple
-prs2PutStubsInRelationTuple(tuple, buffer, tupleDescriptor, relstubs)
+prs2PutStubsInPrs2StubTuple(tuple, buffer, tupleDescriptor, relstubs)
 HeapTuple tuple;
 Buffer buffer;
 TupleDescriptor tupleDescriptor;
 Prs2Stub relstubs;
 {
-    Datum values[RelationRelationNumberOfAttributes];
-    char null[RelationRelationNumberOfAttributes];
+    Datum values[Natts_pg_prs2stub];
+    char null[Natts_pg_prs2stub];
     int i;
     HeapTuple newTuple;
     Datum datum;
@@ -250,7 +293,7 @@ Prs2Stub relstubs;
     /*
      * extract the values of the old tuple
      */
-    for (i=0; i<RelationRelationNumberOfAttributes; i++) {
+    for (i=0; i<Natts_pg_prs2stub; i++) {
 	values[i] = HeapTupleGetAttributeValue(
 				tuple,
 				buffer,
@@ -265,19 +308,113 @@ Prs2Stub relstubs;
      */
     rawStub = prs2StubToRawStub(relstubs);
     datum = PointerGetDatum(rawStub);
-    values[RelationStubAttributeNumber-1] = datum;
-    null[RelationStubAttributeNumber-1] = ' ';
-    pfree(rawStub);
+    values[Anum_pg_prs2stub_prs2stub-1] = datum;
+    null[Anum_pg_prs2stub_prs2stub-1] = ' ';
 
     /*
      * Now form the new tuple
      */
     newTuple = FormHeapTuple(
-		    RelationRelationNumberOfAttributes,
+		    Natts_pg_prs2stub,
 		    tupleDescriptor,
 		    values,
 		    null);
 
+    pfree(rawStub);
     return(newTuple);
 
 }
+
+/*-------------------------------------------------------------------
+ *
+ * prs2ReplaceRelationStub
+ *
+ *
+ */
+
+void
+prs2ReplaceRelationStub(relation, newStubs)
+Relation relation;
+Prs2Stub newStubs;
+{
+
+    Relation prs2stubRelation;
+    HeapScanDesc scanDesc;
+    ScanKeyData scanKey;
+    HeapTuple tuple;
+    Buffer buffer;
+    HeapTuple newTuple;
+    Prs2Stub currentStubs;
+    bool newTupleFlag;
+
+    /*
+     * Go to the pg_prs2stub relation (i.e. pg_relation), find the
+     * appropriate tuple, and add the specified lock to it.
+     */
+    prs2stubRelation = RelationNameOpenHeapRelation(Name_pg_prs2stub);
+
+    scanKey.data[0].flags = 0;
+    scanKey.data[0].attributeNumber = Anum_pg_prs2stub_prs2relid;
+    scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
+    scanKey.data[0].argument = ObjectIdGetDatum(relation->rd_id);
+    scanDesc = RelationBeginHeapScan(prs2stubRelation,
+					0, NowTimeQual,
+					1, &scanKey);
+    
+    tuple = HeapScanGetNextTuple(scanDesc, 0, &buffer);
+    if (HeapTupleIsValid(tuple)) {
+	newTupleFlag = false;
+    } else {
+	/*
+	 * We didn't find a tuple in pg_prs2stub for
+	 * this relation.
+	 * We must create a new tuple
+	 * Initially its 'prs2stub' field will contain
+	 * an empty rule stub.
+	 */
+	Datum values[Natts_pg_prs2stub];
+	char null[Natts_pg_prs2stub];
+	int i;
+	for (i=0; i<Natts_pg_prs2stub; i++)
+	    null[i] = 'n';
+	values[Anum_pg_prs2stub_prs2relid-1] = 
+		    ObjectIdGetDatum(relation->rd_id);
+	null[Anum_pg_prs2stub_prs2relid-1] = ' ';
+	values[Anum_pg_prs2stub_prs2stub-1] = 
+		StructPointerGetDatum(prs2StubToRawStub(prs2MakeStub()));
+	null[Anum_pg_prs2stub_prs2stub-1] = ' ';
+	newTupleFlag = true;
+	tuple = FormHeapTuple(Natts_pg_prs2stub,
+			    RelationGetTupleDescriptor(prs2stubRelation),
+			    values,
+			    null);
+    }
+
+    /*
+     * We have found the appropriate tuple of the pg_prs2stub relation.
+     * Now replace the current stubs with the given one
+     */
+    newTuple = prs2PutStubsInPrs2StubTuple(tuple, buffer,
+		    RelationGetTupleDescriptor(prs2stubRelation),
+		    newStubs);
+    
+#ifdef STUB_DEBUG
+    if (STUB_DEBUG > 3) {
+	printf("prs2ReplaceRelationStub NEW TUPLE=\n");
+	debugtup(newTuple, RelationGetTupleDescriptor(prs2stubRelation));
+    }
+#endif STUB_DEBUG
+
+    if (newTupleFlag) {
+	double dummy;
+	pfree(tuple);
+	RelationInsertHeapTuple(prs2stubRelation, newTuple, &dummy);
+    } else {
+	RelationReplaceHeapTuple(prs2stubRelation, &(tuple->t_ctid),
+				newTuple, (double *)NULL);
+    }
+    
+    RelationCloseHeapRelation(prs2stubRelation);
+
+}
+
