@@ -209,18 +209,18 @@ get_joinvar (relid,clauseinfo)
      ObjectId relid;
      CInfo clauseinfo ;
 {
-    Expr clause = get_clause (clauseinfo);
+    LispValue clause = get_clause (clauseinfo);
 
-    if( IsA (get_leftop ((LispValue)clause),Var) &&
-       (relid == get_varno( get_leftop( (LispValue)clause)))) {
+    if( IsA (get_leftop (clause),Var) &&
+       (relid == get_varno( get_leftop(clause)))) {
 
-	return(lispCons(lispInteger(get_varattno(get_leftop((LispValue)clause))),
+	return(lispCons(lispInteger(get_varattno(get_leftop(clause))),
 			  lispCons(lispString(""),
 				   lispCons(lispInteger
 					    (_SELEC_CONSTANT_RIGHT_),
 					    LispNil))));
      } else {
-	 return(lispCons (lispInteger(get_varattno(get_rightop( (LispValue)clause))),
+	 return(lispCons (lispInteger(get_varattno(get_rightop(clause))),
 			  lispCons(lispString(""),
 				   lispCons(lispInteger(_SELEC_CONSTANT_LEFT_),
 					    LispNil))));

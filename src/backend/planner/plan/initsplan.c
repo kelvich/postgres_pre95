@@ -176,7 +176,7 @@ add_clause_to_rels(clause)
       add_vars_to_rels(vars,LispNil);
     else {
 	CInfo clauseinfo = RMakeCInfo();
-	set_clause(clauseinfo,(Expr)clause);
+	set_clause(clauseinfo,clause);
 	set_notclause(clauseinfo,contains_not(clause));
 	set_selectivity(clauseinfo,0);
 	set_indexids(clauseinfo,LispNil);

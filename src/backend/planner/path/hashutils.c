@@ -60,9 +60,9 @@ group_clauses_by_hashop (clauseinfo_list,inner_relid)
 	
 	if (hashjoinop ) {
 	    HInfo xhashinfo = (HInfo)NULL;
-	    Expr clause = get_clause (clauseinfo);
-	    Var leftop = get_leftop((LispValue)clause);
-	    Var rightop = get_rightop((LispValue)clause);
+	    LispValue clause = get_clause (clauseinfo);
+	    Var leftop = get_leftop(clause);
+	    Var rightop = get_rightop(clause);
 	    JoinKey keys = (JoinKey)NULL;
 	    
 	    xhashinfo = 
@@ -85,7 +85,7 @@ group_clauses_by_hashop (clauseinfo_list,inner_relid)
 		set_jmkeys((JoinMethod)xhashinfo,LispNil);
 		set_clauses((JoinMethod)xhashinfo,LispNil);
 
-/*		set_clause(xhashinfo,(Expr)NULL);
+/*		set_clause(xhashinfo,NULL);
 		set_selectivity(xhashinfo,0);
 		set_notclause(xhashinfo,false);
 		set_indexids(xhashinfo,LispNil);
@@ -111,7 +111,7 @@ group_clauses_by_hashop (clauseinfo_list,inner_relid)
 		CAR(temp) = CAR(get_clauses((JoinMethod)xhashinfo));
 		CDR(temp) = CDR(get_clauses((JoinMethod)xhashinfo));
 		CDR(get_clauses((JoinMethod)xhashinfo)) = temp;
-		CAR(get_clauses((JoinMethod)xhashinfo)) = (LispValue)clause;
+		CAR(get_clauses((JoinMethod)xhashinfo)) = clause;
 	    }
 	    if (null(get_jmkeys((JoinMethod)xhashinfo)))
 	    {

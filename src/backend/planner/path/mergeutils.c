@@ -54,9 +54,9 @@ group_clauses_by_order (clauseinfo_list,inner_relid)
 	       /*    merge ordering. */
 	       MInfo xmergeinfo = 
 		 match_order_mergeinfo (merge_ordering,mergeinfo_list);
-	       Expr clause = get_clause (clauseinfo);
-	       Var leftop = get_leftop ((LispValue)clause);
-	       Var rightop = get_rightop ((LispValue)clause);
+	       LispValue clause = get_clause (clauseinfo);
+	       Var leftop = get_leftop (clause);
+	       Var rightop = get_rightop (clause);
 	       JoinKey keys;
 	       
 	       if(equal ((Node)inner_relid,
@@ -75,7 +75,7 @@ group_clauses_by_order (clauseinfo_list,inner_relid)
 	       }
 
 	       set_clauses((JoinMethod)xmergeinfo,
-	                push ((LispValue)clause,
+	                push (clause,
 			      joinmethod_clauses((JoinMethod)xmergeinfo)));
 	       set_jmkeys((JoinMethod)xmergeinfo, 
 			 push((LispValue)keys,

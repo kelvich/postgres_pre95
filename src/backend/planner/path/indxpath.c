@@ -467,13 +467,13 @@ match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
      CInfo clauseInfo;
      bool join;
 {
-    Expr clause	= get_clause (clauseInfo);
-    Var leftop	= get_leftop ((LispValue)clause);
-    Var rightop	= get_rightop ((LispValue)clause);
+    LispValue clause	= get_clause (clauseInfo);
+    Var leftop	= get_leftop (clause);
+    Var rightop	= get_rightop (clause);
     ObjectId join_op = InvalidObjectId;
     bool isIndexable = false;
 
-    if ( or_clause ((LispValue)clause))
+    if ( or_clause (clause))
 	return ((CInfo)NULL);
 
      /*
@@ -489,7 +489,7 @@ match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
 	 */
 	if (IsA(rightop,Const))
 	{
-	    restrict_op = get_opno((Oper)get_op((LispValue)clause));
+	    restrict_op = get_opno((Oper)get_op(clause));
 	    isIndexable =
 		( op_class(restrict_op, CInteger(xclass)) &&
 		  IndexScanableOperand((LispValue)leftop,indexkey,rel,index) );
@@ -500,7 +500,7 @@ match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
 	 */
 	else if (IsA(leftop,Const))
 	{
-	    restrict_op = get_commutator(get_opno((Oper)get_op((LispValue)clause)));
+	    restrict_op = get_commutator(get_opno((Oper)get_op(clause)));
 
 	    if ( (restrict_op != InvalidObjectId) &&
 		  op_class(restrict_op, CInteger(xclass)) &&
@@ -511,7 +511,10 @@ match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
 		 * In place list modification.
 		 * (op const var/func) -> (op var/func const)
 		 */
-		CommuteClause(clause, restrict_op);
+		/* BUG!  Old version:
+		   CommuteClause(clause, restrict_op);
+		*/
+		CommuteClause(clause);
 	    }
 	}
     } 
@@ -523,10 +526,10 @@ match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
     else
     {
 	if (match_index_to_operand (indexkey,rightop,rel,index))
-	    join_op = get_commutator(get_opno((Oper)get_op((LispValue)clause)));
+	    join_op = get_commutator(get_opno((Oper)get_op(clause)));
 
 	else if (match_index_to_operand (indexkey,leftop,rel,index))
-	    join_op = get_opno((Oper)get_op((LispValue)clause));
+	    join_op = get_opno((Oper)get_op(clause));
 
 	if ( join_op && op_class(join_op,CInteger(xclass)) &&
 	     join_clause_p(clause))
@@ -537,7 +540,7 @@ match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
 	     * If we're using the operand's commutator we must
 	     * commute the clause.
 	     */
-	    if ( join_op != get_opno((Oper)get_op((LispValue)clause)) )
+	    if ( join_op != get_opno((Oper)get_op(clause)) )
 		CommuteClause(clause);
 	}
     }
