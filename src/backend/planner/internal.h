@@ -144,3 +144,5 @@ extern void set_joinlist();
 extern int BushyPlanFlag;
 #define deactivate_joininfo(joininfo)	set_inactive(joininfo, true)
 #define joininfo_inactive(joininfo)	get_inactive(joininfo)
+
+extern Name planner_VarnoGetRelname ARGS((int vnum));
