@@ -587,14 +587,7 @@ then the INV_ARCHIVE bit should be set.
 The low-order sixteen bits of
 .CW mask
 are the storage manager number on which the large object
-should reside\**.
-.(f
-\**
-In the distributed version of \*(PP,
-only the magnetic disk storage manager is supported.
-For users running \*(PP at UC Berkeley,
-additional storage managers are available.
-.)f
+should reside.
 For sites other than Berkeley,
 these bits should always be zero.
 At Berkeley,
@@ -608,218 +601,235 @@ The Inversion large object is not archived,
 and is located on magnetic disk:
 .(b
 .ft C
-unix_fd = LOcreat("/my_unix_obj", 0600, Unix);
+unix_fd = p_creat("/my_unix_obj", 0600, Unix);
 .sp 0.5v
-inv_fd = LOcreat("/my_inv_obj", INV_READ|INV_WRITE, Inversion);
+inv_fd = p_creat("/my_inv_obj", INV_READ|INV_WRITE, Inversion);
 .ft
 .)b
-.uh "LARGE OBJECT INCLUDE FILE"
+.uh "Opening an Existing Large Object"
 .lp
-The include file
+To open an existing large object,
+call
+.(b
+.ft C
+int
+p_open(path, mode)
+    char *path;
+    int mode;
+.ft
+.)b
 .lp
-~postgres/src/lib/H/utils/large_object.h
+The
+.CW path
+argument specifies the large object pathname for the object to open.
+The mode bits control whether the object is opened for reading,
+writing,
+or both.
+For \*(UX large objects,
+the appropriate flags are
+O_CREAT,
+O_RDONLY,
+O_WRONLY,
+O_RDWR,
+and O_TRUNC.
+For Inversion large objects,
+only INV_READ and INV_WRITE are recognized.
 .lp
-defines constants and types which are used by the large object interface.
-User-defined functions using this interface should be sure to include this
-file.
+If a large object is opened before it is created,
+it is created by default using the \*(UX file implementation.
+.uh "Writing Data to a Large Object"
 .lp
-.uh "INTERNAL LARGE OBJECT INTERFACE"
+The routine
+.(b
+.ft C
+int
+p_write(fd, buf, len)
+    int fd;
+    char *buf;
+    int len;
+.ft
+.)b
+writes
+.CW len
+bytes from
+.CW buf
+to large object
+.CW fd .
+The
+.CW fd
+argument must have been returned by a previous
+.CW p_creat
+or
+.CW p_open .
 .lp
-The following functions define the \*(PP internal large object interface.
-These functions should be used by any dynamically loaded routine which is
-operating on a large object.
+The number of bytes actually written is returned.
+In the event of an error,
+the return value is negative.
+.uh "Reading Data from a Large Object"
 .lp
-.uh "Internal structures"
+The routine
+.(b
+.ft C
+int
+p_read(fd, buf, nbytes)
+    int fd;
+    char *buf;
+    int nbytes;
+.ft
+.)b
+reads
+.CW nbytes
+bytes into buffer
+.CW buf
+from the large object descriptor
+.CW fd .
+The number of bytes actually read is returned.
+In the event of an error,
+the return value is less than zero.
+.uh "Seeking on a Large Object"
 .lp
-.i LargeObject
+To change the current read or write location on a large object,
+call
+.(b
+.ft C
+int
+p_lseek(fd, offset, whence)
+    int fd;
+    int offset;
+    int whence;
+.ft
+.)b
+This routine moves the current location pointer for the large object
+described by
+.CW fd
+to the new location specified by
+.CW offset .
+For this release of \*(PG,
+only
+.CW L_SET
+is a legal value for
+.CW whence .
+.uh "Closing a Large Object"
 .lp
-LargeObject is the structure that is actually stored in \*(PP instances.
-It is what should be returned by any user function generating a large object,
-and it is what will be passed to a user function expecting a large object
-as a argument.
+A large object may be closed by calling
+.(b
+.ft C
+int
+p_close(fd)
+    int fd;
+.ft
+.)b
+where
+.CW fd
+is a large object descriptor returned by
+.CW p_creat
+or
+.CW p_open .
+On success,
+.CW p_close
+returns zero.
+On error,
+the return value is negative.
+.uh "SAMPLE LARGE OBJECT PROGRAMS"
 .lp
-.i LargeObjectDesc
+The \*(PP large object implementation serves as the basis
+for a file system (the
+.q Inversion
+file system)
+built on top of the data manager.
+This file system provides time travel,
+transaction protection,
+and fast crash recovery to clients of ordinary
+file system services.
+It uses the Inversion large object implementation to
+provide these services.
 .lp
-LargeObjectDesc is the structure that is used for manipulating an open
-large object.  It is analogous to (but not equal to) the Unix notion of a
-file descriptor.
+The programs that comprise the Inversion file system are
+included in the \*(PP source distribution,
+in directories
+.(b
+$POSTGRESHOME/test/postfs
+$POSTGRESHOME/test/postfs.usr.bin
+.)b
+These directories contain a set of programs for manipulating
+files and directories.
+These programs are based on the Berkeley Software Distribution
+NET-2 release.
 .lp
-The constant
+These programs are useful in manipulating inversion files,
+but they also serve as examples of how to code large object
+accesses in LIBPQ.
+All of the programs are LIBPQ clients,
+and all use the interfaces that have been described
+in this section.
 .lp
-.i LARGE_OBJECT_BLOCK
-.lp
-is defined in large_object.h and is useful for determining how many bytes
-to pass to the block-oriented interface.
-.lp
-.uh "Internal function interface"
-.lp
-.(1
+Interested readers should refer to the files in the postfs
+directories for in-depth examples of the use of large objects.
+Below,
+a more terse example is provided.
+This code fragment creates a new large object managed
+by Inversion,
+fills it with data from a \*(UX file,
+and closes it.
+.(b
+.ft C
+#include "tmp/c.h"
+#include "tmp/libpq-fe.h"
+#include "tmp/libpq-fs.h"
+#include "catalog/pg_lobj.h"
 
-LOCreate \*- Creates a new large object (owned by \*(PP)
+#define	MYBUFSIZ	1024
 
-LargeObjectDesc * LOCreate(open_mode)
+main()
+{
+	int inv_fd;
+	int fd;
+	char *qry_result;
+	char buf[MYBUFSIZ];
+	int nbytes;
 
-	int open_mode;
+	PQsetdb("mydatabase");
 
-LOOpen \*- Opens an existing large object. 
+	/* large object accesses must be transaction-protected */
+	qry_result = PQexec("begin");
 
-LargeObjectDesc * LOOpen (object, open_mode)
+	if (*qry_result == 'E')	/* error */
+		exit (1);
 
-	LargeObject *object;
-.lp
-	int open_mode;
+	/* open the unix file */
+	if ((fd = open("/my_unix_file", O_RDONLY, 0666)) < 0)	/* error */
+		exit (1);
 
-.)1
-.lp
-LOStat is useful for determining the present size of a large object.
-In bytes, this would be calculated as
-.lp
-nblocks * LARGE_OBJECT_BLOCK + byte_offset
-.lp
-.(1
+	/* open the inversion file */
+	inv_fd = p_open("/inv_file", INV_WRITE, Inversion);
+	if (inv_fd < 0)	/* error */
+		exit (1);
 
-LOStat \*- Returns useful info about a \*(PP large object.
+	/* copy the unix file to the inversion large object */
+	while ((nbytes = read(fd, buf, MYBUFSIZ)) > 0)
+		if (p_write(inv_fd, buf, nbytes) < nbytes)	/* error */
+			exit (1);
 
-void LOStat(obj_desc, nblocks, byte_offset) 
+	(void) close(fd);
+	(void) close(inv_fd);
 
-	LargeObjectDesc *obj_desc;
-.lp
-	unsigned int *nblocks, *byte_offset;
+	/* commit the transaction */
+	qry_result = PQexec("end");
 
-.)1
-.lp
-LOBlockRead reads nblocks blocks into buf.  It returns the number of bytes
-read in the last block.  If this number is less that LARGE_OBJECT_BLOCK, an
-incomplete block has been read, indicating that end of file has been
-encountered.
-.lp
-.(1
+	if (*qry_result == 'E')	/* error */
+		exit (1);
 
-LOBlockRead \*- Reads nblocks blocks
-
-int LOBlockRead(obj_desc, buf, nblocks)
-
-	LargeObjectDesc *obj_desc;
-.lp
-	char *buf;
-.lp
-	unsigned long nblocks;
-.)1
-.lp
-LOBlockWrite writes n_whole_blocks into the large object.  So that an
-incomplete block may be written, the "bytes_at_end" argument is be used to
-indicate the number of "valid" bytes to be written into an incomplete block.
-The incomplete block does not count in the number of blocks written with
-n_whole_blocks.  In other words, the number of bytes written
-to the object is computed by the following formula:
-.lp
-n_whole_blocks * LARGE_OBJECT_BLOCK + bytes_at_end
-.lp
-.(1
-
-LOBlockWrite \*- Writes buffer to large object.
-
-int LOBlockWrite (obj_desc, buf, n_whole_blocks, bytes_at_end)
-
-	LargeObjectDesc *obj_desc;
-.lp
-	char *buf;
-.lp
-	unsigned long n_whole_blocks, bytes_at_end;
-
-.)1
-.lp
-LOBlockSeek's arguments and return value are as in lseek(), except that
-they are in blocks instead of bytes.  (Note that LOStat() should be used to
-determine the size of a large object.)
-.lp
-.(1
-
-LOBlockSeek \*- seeks to a position in large object; similar to lseek()
-
-unsigned long LOBlockSeek (obj_desc, offset, whence)
-
-	LargeObjectDesc *obj_desc;
-.lp
-	unsigned long offset,
-.lp
-	int whence;
-
-.)1
-.lp
-LODescToObject gets the large object structure out of the large object
-descriptor.  It must be called BEFORE calling LOClose or LODestroy (see below)
-since LOClose frees memory associated with the large object descriptor.
-.lp
-Also, functions which create and return a large object will need to use
-LODescToObject to fetch the proper stored large object structure.
-.lp
-Note that LODescToObject does NOT close the object.
-.lp
-.(1
-
-LODescToObject \*- Gets a LargeObject structure from a LargeObjectDescriptor
-
-LargeObject * LODescToObject (obj_desc)
-
-	LargeObjectDesc *obj_desc;
-
-LOClose \*- closes a large object.
-
-void
-LOClose (obj_desc)
-
-	LargeObjectDesc *obj_desc;
-
-.)1
-.lp
-LODestroy deletes a large object and frees the memory associated with a
-LargeObject structure.  It is especially useful for "temporary files".
-.lp
-.(1
-
-LODestroy \*- destroys a large object
-
-void LODestroy (object)
-
-	LargeObject *object;
-.)1
-.lp
-.uh "\*(PP memory allocator"
-.lp
-All dynamically loaded user functions should use the \*(PP "palloc/pfree"
-memory managers.  Attempts to use other memory allocators such as malloc()
-will lead to bizarre behavior and a likely backend failure.
-.lp
-.(1
-
-palloc \*- \*(PP memory allocator
-
-char * palloc (nbytes)
-
-	unsigned long nbytes;
-
-pfree \*- Free memory allocated with palloc
-
-void pfree(memory)
-
-	char *memory;
-
-.)1
-.lp
+	/* by here, success */
+	exit (0);
+}
+.ft
+.)b
 .uh "BUGS"
 .lp
-The 3.0 implementation of large objects is purely a backend interface; it
-will be extended in Version 4 to include a LIBPQ interface so that large
-objects can be manipulated by application programs as well as user functions.
-.lp
-The 3.0 implementation of large objects does not support transaction
-semantics or crash recovery.
-.lp
-"Dead" large objects will be left on disk following a crash or user
-carelessness.  DBA's may need to occasionally purge dead large objects to
-avoid disk wastage.
-.lp
+Shouldn't have to distinguish between Inversion and \*(UX large
+objects when you open an existing large object.
+The system knows which implementation was used.
+The flags argument should be the same in these two cases.
 .uh "SEE ALSO"
 .lp
 define type (commands)
