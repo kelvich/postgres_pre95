@@ -328,6 +328,7 @@ make_var ( relname, attrname )
     LispValue vardotfields, vararrayindex ;
 	Type rtype;
     Relation rd;
+    Relation amopenr();
     extern LispValue p_rtable;
     extern int p_last_resno;
     
