@@ -6,11 +6,15 @@
  *    	$Header$
  */
 
-#include "c.h"
-#include "primnodes.h"
-#include "nodes.h"
-#include "pg_lisp.h"
-#include "nodeFuncs.h"
+#include "tmp/c.h"
+
+RcsId("$Header$");
+
+#include "nodes/primnodes.h"
+#include "nodes/nodes.h"
+#include "nodes/pg_lisp.h"
+#include "tmp/nodeFuncs.h"
+
 #include "planner/keys.h"
 
 /* XXX - find what this really means */

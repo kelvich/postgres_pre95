@@ -1,7 +1,7 @@
 /* $Header$ */
 
 #include <varargs.h>
-#include "pg_lisp.h"
+#include "nodes/pg_lisp.h"
 
 /*
  * lispList will take a list of "valid" lispValues
