@@ -20,17 +20,34 @@
  *
  *	Node Type		node information used by executor
  *
+ * control nodes
+ *
  *	Existential		ExistentialState	exstate;
  *	Result			ResultState		resstate;
  *	Append			AppendState		unionstate;
- *	NestLoop		NestLoopState		nlstate;
- *    	Scan ***		ScanState		scanstate;
- *      Sort			SortState		sortstate;
- *	MergeJoin		MergeJoinState		mergestate;
- *	HashJoin		HashJoinState		hashstate;
+ *	Parallel		ParallelState		parstate;
  *      Recursive               RecursiveState          recurstate;
  *
+ * scan nodes
+ *
+ *    	Scan ***		ScanState		scanstate;
+ *    	IndexScan		IndexScanState		indxstate;
+ *
  *	  (*** nodes which inherit Scan also inherit scanstate)
+ *
+ * join nodes
+ *
+ *	NestLoop		NestLoopState		nlstate;
+ *	MergeJoin		MergeJoinState		mergestate;
+ *	HashJoin		HashJoinState		hashjoinstate;
+ *
+ * materialize nodes
+ *
+ *	Material		MaterialState		matstate;
+ *      Sort			SortState		sortstate;
+ *      Unique			UniqueState		uniquestate;
+ *      Hash			HashState		hashstate;
+ *
  * ----------------
  */
 #include "execnodes.h"		/* XXX move executor types elsewhere */
@@ -94,6 +111,10 @@ extern bool	EqualTemp();
 extern bool	EqualSort();
 extern bool	EqualHash();
 
+/* ----------------
+ *	Plan node
+ * ----------------
+ */
 class (Plan) public (Node) { 
 #define PlanDefs \
 	inherits(Node); \
@@ -115,6 +136,10 @@ class (Plan) public (Node) {
  * ===============
  */
 
+/* ----------------
+ *	existential node
+ * ----------------
+ */
 class (Existential) public (Plan) {
 	inherits(Plan);
  /* private: */
@@ -122,6 +147,10 @@ class (Existential) public (Plan) {
  /* public: */
 };
 
+/* ----------------
+ *	result node
+ * ----------------
+ */
 class (Result) public (Plan) {
 	inherits(Plan);
  /* private: */
@@ -131,6 +160,10 @@ class (Result) public (Plan) {
  /* public: */
 };
 
+/* ----------------
+ *	append node
+ * ----------------
+ */
 class (Append) public (Plan) {
 	inherits(Plan);
  /* private: */
@@ -138,6 +171,17 @@ class (Append) public (Plan) {
 	Index			unionrelid;
 	List			unionrtentries;
 	AppendState		unionstate;
+ /* public: */
+};
+
+/* ----------------
+ *	parallel-append node
+ * ----------------
+ */
+class (Parallel) public (Plan) {
+	inherits(Plan);
+ /* private: */
+	ParallelState		parstate;
  /* public: */
 };
 
@@ -172,6 +216,45 @@ class (Recursive) public (Plan) {
 
 /*
  * ==========
+ * Scan nodes
+ * ==========
+ */
+
+class (Scan) public (Plan) {
+#define	ScanDefs \
+	inherits(Plan); \
+	Index			scanrelid; \
+   	ScanState		scanstate   
+ /* private: */
+	ScanDefs;
+ /* public: */
+};
+
+/* ----------------
+ *	sequential scan node
+ * ----------------
+ */
+class (SeqScan) public (Scan) {
+	inherits(Scan);
+ /* private: */
+ /* public: */
+};
+
+/* ----------------
+ *	index scan node
+ * ----------------
+ */
+class (IndexScan) public (Scan) {
+	inherits(Scan);
+ /* private: */
+	List			indxid;
+	List			indxqual;
+	IndexScanState		indxstate;
+ /* public: */
+};
+
+/*
+ * ==========
  * Join nodes
  * ==========
  */
@@ -184,6 +267,10 @@ class (Join) public (Plan) {
  /* public: */
 };
 
+/* ----------------
+ *	nest loop join node
+ * ----------------
+ */
 class (NestLoop) public (Join) {
 	inherits(Join);
  /* private: */
@@ -191,6 +278,10 @@ class (NestLoop) public (Join) {
  /* public: */
 };
 
+/* ----------------
+ *	merge join node
+ * ----------------
+ */
 class (MergeJoin) public (Join) {
 	inherits(Join);
  /* private: */
@@ -202,43 +293,16 @@ class (MergeJoin) public (Join) {
  /* public: */
 };
 
+/* ----------------
+ *	hash join (probe) node
+ * ----------------
+ */
 class (HashJoin) public (Join) {
 	inherits(Join);
  /* private: */
 	List			hashclauses;
 	ObjectId		hashjoinop;
-	HashJoinState		hashstate;
- /* public: */
-};
-
-/*
- * ==========
- * Scan nodes
- * ==========
- */
-
-class (Scan) public (Plan) {
-#define	ScanDefs \
-	inherits(Plan); \
-	Index			scanrelid; \
-	ScanState		scanstate
- /* private: */
-	ScanDefs;
- /* public: */
-};
-
-class (SeqScan) public (Scan) {
-	inherits(Scan);
- /* private: */
- /* public: */
-};
-
-class (IndexScan) public (Scan) {
-	inherits(Scan);
- /* private: */
-	List			indxid;
-	List			indxqual;
-	IndexScanState		indxstate;
+	HashJoinState		hashjoinstate;
  /* public: */
 };
 
@@ -259,16 +323,55 @@ class (Temp) public (Plan) {
  /* public: */
 };
 
-class (Sort) public (Temp) {
-	inherits(Temp);
+/* ----------------
+ *	materialization node
+ * ----------------
+ */
+class (Material) public (Temp) {
+#define MaterialDefs \    
+	inherits(Temp); \
+	MaterialState		matstate
  /* private: */
-	SortState		sortstate;
+	MaterialDefs;
  /* public: */
 };
 
-class (Hash) public (Temp) {
-	inherits(Temp);
+/* ----------------
+ *	sort node
+ * ----------------
+ */
+class (Sort) public (Temp) {
+#define	SortDefs \
+	inherits(Temp); \
+	SortState		sortstate
  /* private: */
+	SortDefs;
+ /* public: */
+};
+
+/* ----------------
+ *	unique node
+ * ----------------
+ */
+class (Unique) public (Temp) {
+#define UniqueDefs \
+	inherits(Temp); \
+	UniqueState		uniquestate
+ /* private: */
+	UniqueDefs;
+ /* public: */
+};
+
+/* ----------------
+ *	hash build node
+ * ----------------
+ */
+class (Hash) public (Temp) {
+#define HashDefs \
+	inherits(Temp); \
+	HashState		hashstate
+ /* private: */
+	HashDefs;
  /* public: */
 };
 

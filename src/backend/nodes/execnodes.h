@@ -1,9 +1,10 @@
-/*
+/* ----------------------------------------------------------------
  * ExecNodes.h --
  *	Definitions for executor nodes.
  *
  * Identification:
  *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef ExecNodesIncluded
@@ -36,11 +37,16 @@ extern bool	EqualEState();
 #include "rel.h"
 #include "relscan.h"
 
+/* ----------------------------------------------------------------
+ *			Executor Support Types
+ * ----------------------------------------------------------------
+ */
+
 #define abstime AbsoluteTime
 
 typedef int	*IntPtr;
 
-/* ----------------------------------------------------------------
+/* ----------------
  *    IndexInfo information
  *
  *	this class holds the information saying what attributes
@@ -48,7 +54,7 @@ typedef int	*IntPtr;
  *
  *	NumKeyAttributes	number of key attributes for this index
  *	KeyAttributeNumbers	array of attribute numbers used as keys
- * ----------------------------------------------------------------
+ * ----------------
  */
 
 class (IndexInfo) public (Node) {
@@ -59,7 +65,7 @@ class (IndexInfo) public (Node) {
 
 typedef IndexInfo	*IndexInfoPtr;
 
-/* ----------------------------------------------------------------
+/* ----------------
  *    RelationInfo information
  *
  *	whenever we update an existing relation, we have to
@@ -72,7 +78,7 @@ typedef IndexInfo	*IndexInfoPtr;
  *	NumIndices		number indices existing on result relation
  *	IndexRelationDescs	array of relation descriptors for indices
  *	IndexInfoPtr		array of key/attr info for indices
- * ----------------------------------------------------------------
+ * ----------------
  */
 
 class (RelationInfo) public (Node) {
@@ -84,7 +90,7 @@ class (RelationInfo) public (Node) {
     IndexInfoPtr	ri_IndexRelationInfo;
 };
 
-/* ----------------------------------------------------------------
+/* ----------------
  *	TupleCount node information
  *
  *	retrieved	number of tuples seen by ExecRetrieve
@@ -93,7 +99,7 @@ class (RelationInfo) public (Node) {
  *	replaced	number of tuples seen by ExecReplace
  *	inserted	number of index tuples inserted
  *	processed	number of tuples processed by the plan
- * ----------------------------------------------------------------
+ * ----------------
  */
 class (TupleCount) public (Node) {
       inherits(Node);
@@ -107,7 +113,7 @@ class (TupleCount) public (Node) {
   /* public: */
 };
 
-/* ----------------------------------------------------------------
+/* ----------------
  *    EState information
  *
  *	direction			direction of the scan
@@ -129,7 +135,7 @@ class (TupleCount) public (Node) {
  *	prs2_info			Information used by the rule
  *					manager (for loop detection
  *					etc.). Must be initialized to NULL
- * ----------------------------------------------------------------
+ * ----------------
  */
 
 class (EState) public (Node) {
@@ -178,7 +184,7 @@ class (EState) public (Node) {
  * ----------------
  */
 
-/* ----------------------------------------------------------------
+/* ----------------
  *    ExprContext
  *
  *	this class holds the "current context" information
@@ -193,7 +199,7 @@ class (EState) public (Node) {
  *	all executor state nodes which inherit from CommonState
  *	have ExprContexts although not all of them need it.
  *	
- * ----------------------------------------------------------------
+ * ----------------
  */
 class (ExprContext) public (Node) {
 #define ExprContextDefs \
@@ -215,7 +221,13 @@ class (ExprContext) public (Node) {
  /* public: */
 };
 
+
 /* ----------------------------------------------------------------
+ *		 Common Executor State Information
+ * ----------------------------------------------------------------
+ */
+
+/* ----------------
  *   CommonState information
  *
  *|	this is a bogus class used to hold slots so other
@@ -250,7 +262,7 @@ class (ExprContext) public (Node) {
  *      is created and initialized at ExecInit time.  Keeping these
  *	around reduces memory allocations and allows nodes to refer
  *	to tuples in other nodes (albeit in a gross fashion). -cim 10/30/89
- * ----------------------------------------------------------------
+ * ----------------
  */
 
 class (CommonState) public (Node) {
@@ -269,7 +281,37 @@ class (CommonState) public (Node) {
   /* public: */
 };
 
+
 /* ----------------------------------------------------------------
+ *		 Control Node State Information
+ * ----------------------------------------------------------------
+ */
+
+/* ----------------
+ *   ExistentialState information
+ *
+ *	SatState	   See if we have satisfied the left tree.
+ *
+ *   CommonState information
+ *
+ *	OuterTuple	   points to the current outer tuple
+ *  	TupType   	   attr type info of tuples from this node
+ *   	TupValue   	   array to store attr values for 'formtuple'
+ *   	Level      	   level of the left subplan
+ *	ScanType	   type of tuples in relation being scanned
+ *	ScanAttributes	   attribute numbers of interest in this tuple
+ *	NumScanAttributes  number of attributes of interest..
+ *	ExprContext	   node's current expression context
+ * ----------------
+ */
+class (ExistentialState) public (CommonState) {
+      inherits(CommonState);
+  /* private: */
+      List 	ex_SatState;
+  /* public: */
+};
+
+/* ----------------
  *   ResultState information
  *
  *   	Loop	 	   flag which tells us to quit when we
@@ -285,7 +327,7 @@ class (CommonState) public (Node) {
  *	ScanAttributes	   attribute numbers of interest in tuple (unused)
  *	NumScanAttributes  number of attributes of interest.. (unused)
  *	ExprContext	   node's current expression context
- * ----------------------------------------------------------------
+ * ----------------
  */
 
 class (ResultState) public (CommonState) {
@@ -293,7 +335,7 @@ class (ResultState) public (CommonState) {
    int	 	rs_Loop;
 };
 
-/* ----------------------------------------------------------------
+/* ----------------
  *   AppendState information
  *
  *	append nodes have this field "unionplans" which is this
@@ -304,7 +346,7 @@ class (ResultState) public (CommonState) {
  *   	nplans		how many plans are in the list
  *   	initialized	array of ExecInitNode() results
  *   	rtentries	range table for the current plan
- * ----------------------------------------------------------------
+ * ----------------
  */
 
 class (AppendState) public (Node) {
@@ -348,7 +390,36 @@ class (RecursiveState) public (Node) {
     bool	rcs_tempsSwapped;
 };
 
+/* ----------------
+ *   ParallelState information
+ *
+ *	XXX these fields will change! -cim 1/24/89
+ *
+ *	parallel nodes have this field "parallelplans" which is this
+ *	list of plans to execute in parallel..  these variables
+ *	keep track of things..
+ *
+ *   	whichplan	which plan is being executed
+ *   	nplans		how many plans are in the list
+ *   	initialized	array of ExecInitNode() results
+ *   	rtentries	range table for the current plan
+ * ----------------
+ */
+
+class (ParallelState) public (Node) {
+    inherits(Node);
+    int 	ps_whichplan;
+    int 	ps_nplans;
+    ListPtr 	ps_initialized;
+    List 	ps_rtentries;
+};
+
 /* ----------------------------------------------------------------
+ *		 Scan State Information
+ * ----------------------------------------------------------------
+ */
+
+/* ----------------
  *   CommonScanState information
  *
  *	CommonScanState is a class like CommonState, but is used more
@@ -368,7 +439,7 @@ class (RecursiveState) public (Node) {
  *	ScanAttributes	   attribute numbers of interest in this tuple
  *	NumScanAttributes  number of attributes of interest..
  *	ExprContext	   node's current expression context
- * ----------------------------------------------------------------
+ * ----------------
  */
 
 class (CommonScanState) public (CommonState) {
@@ -381,7 +452,7 @@ class (CommonScanState) public (CommonState) {
   /* public: */
 };
 
-/* ----------------------------------------------------------------
+/* ----------------
  *   ScanState information
  *
  *   	ProcOuterFlag	   need to process outer subtree
@@ -402,7 +473,7 @@ class (CommonScanState) public (CommonState) {
  *	ScanAttributes	   attribute numbers of interest in this tuple
  *	NumScanAttributes  number of attributes of interest..
  *	ExprContext	   node's current expression context
- * ----------------------------------------------------------------
+ * ----------------
  */
 
 class (ScanState) public (CommonScanState) {
@@ -413,7 +484,7 @@ class (ScanState) public (CommonScanState) {
   /* public: */
 };
 
-/* ----------------------------------------------------------------
+/* ----------------
  *   IndexScanState information
  *
  *|	index scans don't use CommonScanState because
@@ -439,7 +510,7 @@ class (ScanState) public (CommonScanState) {
  *	ScanAttributes	   attribute numbers of interest in this tuple
  *	NumScanAttributes  number of attributes of interest..
  *	ExprContext	   node's current expression context
- * ----------------------------------------------------------------
+ * ----------------
  */
 class (IndexScanState) public (CommonState) {
     inherits(CommonState);
@@ -452,7 +523,13 @@ class (IndexScanState) public (CommonState) {
     IndexScanDescPtr 	iss_ScanDescs;
 };
 
+
 /* ----------------------------------------------------------------
+ *		 Join State Information
+ * ----------------------------------------------------------------
+ */
+
+/* ----------------
  *   NestLoopState information
  *
  *   	PortalFlag	   Set to enable portals to work.
@@ -467,7 +544,7 @@ class (IndexScanState) public (CommonState) {
  *	ScanAttributes	   attribute numbers of interest in this tuple
  *	NumScanAttributes  number of attributes of interest..
  *	ExprContext	   node's current expression context
- * ----------------------------------------------------------------
+ * ----------------
  */
 
 class (NestLoopState) public (CommonState) {
@@ -477,7 +554,102 @@ class (NestLoopState) public (CommonState) {
   /* public: */
 };
 
+/* ----------------
+ *   MergeJoinState information
+ *
+ *   	OSortopI      	   outerKey1 sortOp innerKey1 ...
+ *  	ISortopO      	   innerkey1 sortOp outerkey1 ...
+ *	JoinState	   current "state" of join. see executor.h
+ *	MarkedTuple	   current marked inner tuple.
+ *
+ *   CommonState information
+ *
+ *	OuterTuple	   points to the current outer tuple
+ *  	TupType   	   attr type info of tuples from this node
+ *   	TupValue   	   array to store attr values for 'formtuple'
+ *   	Level      	   level of the left subplan
+ *	ScanType	   type of tuples in relation being scanned
+ *	ScanAttributes	   attribute numbers of interest in this tuple
+ *	NumScanAttributes  number of attributes of interest..
+ *	ExprContext	   node's current expression context
+ * ----------------
+ */
+
+class (MergeJoinState) public (CommonState) {
+      inherits(CommonState);
+  /* private: */
+      List 	mj_OSortopI;
+      List 	mj_ISortopO;
+      int	mj_JoinState;
+      List	mj_MarkedTuple;
+  /* public: */
+};
+
+/* ----------------
+ *   HashJoinState information
+ *
+ *   CommonState information
+ *
+ *	OuterTuple	   points to the current outer tuple
+ *  	TupType   	   attr type info of tuples from this node
+ *   	TupValue   	   array to store attr values for 'formtuple'
+ *   	Level      	   level of the left subplan
+ *	ScanType	   type of tuples in relation being scanned
+ *	ScanAttributes	   attribute numbers of interest in this tuple
+ *	NumScanAttributes  number of attributes of interest..
+ *	ExprContext	   node's current expression context
+ * ----------------
+ */
+
+class (HashJoinState) public (CommonState) {
+      inherits(CommonState);
+  /* private: */
+  /* public: */
+};
+
+
 /* ----------------------------------------------------------------
+ *		 Materialization State Information
+ * ----------------------------------------------------------------
+ */
+
+/* ----------------
+ *   MaterialState information
+ *
+ *	materialize nodes are used to materialize the results
+ *	of a subplan into a temporary relation.
+ *
+ *   	Flag	 	indicated whether subplan has been materialized
+ *	TempRelation	temporary relation containing result of executing
+ *			the subplan.
+ *
+ *   CommonScanState information
+ *
+ *	currentRelation    relation descriptor of sorted relation
+ *      currentScanDesc    current scan descriptor for scan
+ *
+ *   CommonState information
+ *
+ *	OuterTuple	   points to the current outer tuple
+ *  	TupType   	   attr type info of tuples from this node
+ *   	TupValue   	   array to store attr values for 'formtuple' (unused)
+ *   	Level      	   level of the left subplan (unused)
+ *	ScanType	   type of tuples in relation being scanned (unused)
+ *	ScanAttributes	   attribute numbers of interest in tuple (unused)
+ *	NumScanAttributes  number of attributes of interest.. (unused)
+ *	ExprContext	   node's current expression context
+ * ----------------
+ */
+
+class (MaterialState) public (CommonScanState) {
+      inherits(CommonScanState);
+  /* private: */
+      bool	mat_Flag;
+      Relation  mat_TempRelation;
+  /* public: */
+};
+
+/* ----------------
  *   SortState information
  *
  *|	sort nodes are really just a kind of a scan since
@@ -507,25 +679,51 @@ class (NestLoopState) public (CommonState) {
  *	ScanAttributes	   attribute numbers of interest in tuple (unused)
  *	NumScanAttributes  number of attributes of interest.. (unused)
  *	ExprContext	   node's current expression context
- * ----------------------------------------------------------------
+ * ----------------
  */
 
 class (SortState) public (CommonScanState) {
-      inherits(CommonScanState);
+#define SortStateDefs \
+      inherits(CommonScanState); \
+      bool	sort_Flag; \
+      Pointer 	sort_Keys; \
+      Relation  sort_TempRelation
   /* private: */
-      bool	sort_Flag;
-      Pointer 	sort_Keys;
-      Relation  sort_TempRelation;
+      SortStateDefs;
   /* public: */
 };
 
-/* ----------------------------------------------------------------
- *   MergeJoinState information
+/* ----------------
+ *   UniqueState information
  *
- *   	OSortopI      	   outerKey1 sortOp innerKey1 ...
- *  	ISortopO      	   innerkey1 sortOp outerkey1 ...
- *	JoinState	   current "state" of join. see executor.h
- *	MarkedTuple	   current marked inner tuple.
+ *	Unique nodes are used "on top of" sort nodes to discard
+ *	duplicate tuples returned from the sort phase.  Basically
+ *	all it does is compare the current tuple from the subplan
+ *	with the previously fetched tuple stored in OuterTuple and
+ *	if the two are identical, then we just fetch another tuple
+ *	from the sort and try again.
+ *
+ *   CommonState information
+ *
+ *	OuterTuple	   points to the current outer tuple
+ *  	TupType   	   attr type info of tuples from this node
+ *   	TupValue   	   array to store attr values for 'formtuple' (unused)
+ *   	Level      	   level of the left subplan (unused)
+ *	ScanType	   type of tuples in relation being scanned (unused)
+ *	ScanAttributes	   attribute numbers of interest in tuple (unused)
+ *	NumScanAttributes  number of attributes of interest.. (unused)
+ *	ExprContext	   node's current expression context
+ * ----------------
+ */
+
+class (UniqueState) public (CommonState) {
+      inherits(CommonState);
+  /* private: */
+  /* public: */
+};
+
+/* ----------------
+ *   HashState information
  *
  *   CommonState information
  *
@@ -537,62 +735,12 @@ class (SortState) public (CommonScanState) {
  *	ScanAttributes	   attribute numbers of interest in this tuple
  *	NumScanAttributes  number of attributes of interest..
  *	ExprContext	   node's current expression context
- * ----------------------------------------------------------------
+ * ----------------
  */
 
-class (MergeJoinState) public (CommonState) {
+class (HashState) public (CommonState) {
       inherits(CommonState);
   /* private: */
-      List 	mj_OSortopI;
-      List 	mj_ISortopO;
-      int	mj_JoinState;
-      List	mj_MarkedTuple;
-  /* public: */
-};
-
-/* ----------------------------------------------------------------
- *   HashJoinState information
- *
- *   CommonState information
- *
- *	OuterTuple	   points to the current outer tuple
- *  	TupType   	   attr type info of tuples from this node
- *   	TupValue   	   array to store attr values for 'formtuple'
- *   	Level      	   level of the left subplan
- *	ScanType	   type of tuples in relation being scanned
- *	ScanAttributes	   attribute numbers of interest in this tuple
- *	NumScanAttributes  number of attributes of interest..
- *	ExprContext	   node's current expression context
- * ----------------------------------------------------------------
- */
-
-class (HashJoinState) public (CommonState) {
-      inherits(CommonState);
-  /* private: */
-  /* public: */
-};
-
-/* ----------------------------------------------------------------
- *   ExistentialState information
- *
- *	SatState	   See if we have satisfied the left tree.
- *
- *   CommonState information
- *
- *	OuterTuple	   points to the current outer tuple
- *  	TupType   	   attr type info of tuples from this node
- *   	TupValue   	   array to store attr values for 'formtuple'
- *   	Level      	   level of the left subplan
- *	ScanType	   type of tuples in relation being scanned
- *	ScanAttributes	   attribute numbers of interest in this tuple
- *	NumScanAttributes  number of attributes of interest..
- *	ExprContext	   node's current expression context
- * ----------------------------------------------------------------
- */
-class (ExistentialState) public (CommonState) {
-      inherits(CommonState);
-  /* private: */
-      List 	ex_SatState;
   /* public: */
 };
 
