@@ -2,9 +2,6 @@
 #ifndef INCLUDE_TASKLOCK_H
 #define INCLUDE_TASKLOCK_H
 #include <sys/types.h>
-/*#include <sys/ipc.h>
- #include <sys/shm.h>
- */
 #include <stdio.h>
 #include <signal.h>
 

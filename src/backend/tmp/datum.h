@@ -16,8 +16,12 @@
 #include "c.h"
 #endif
 
+#ifndef NAME_H
 #include "name.h"
+#endif
+#ifndef OID_H
 #include "oid.h"
+#endif
 
 typedef struct AnyStructure {
 	char    character;
@@ -75,6 +79,57 @@ typedef union Datum {
 	} objectId;
 } Datum;
 #endif	/* defined(sun) */
+#ifdef sequent
+typedef union Datum {
+	struct character {
+		char	filler[3];	
+		char	value;
+	} character;
+	struct integer8 {
+		int8	filler[3];
+		int8	value;
+	} integer8;
+	struct unsignedInteger8 {
+		uint8	filler[3];
+		uint8	value;
+	} unsignedInteger8;
+	struct integer16 {
+		int16	filler[1];
+		int16	value;
+	} integer16;
+	struct unsignedInteger16 {
+		uint16	filler[1];
+		uint16	value;
+	} unsignedInteger16;
+	struct integer32 {
+		int32	value;
+	} integer32;
+	struct unsignedInteger32 {
+		uint32	value;
+	} unsignedInteger32;
+	struct smallFloat {
+		float32	value;
+	} smallFloat;
+	struct largeFloat {
+		float64	value;
+	} largeFloat;
+	struct pointer {
+		Pointer	value;
+	} pointer;
+	struct pointerPointer {
+		Pointer	*value;
+	} pointerPointer;
+	struct structurePointer {
+		AnyStructure	*value;
+	} structurePointer;
+	struct name {
+		Name	value;	
+	} name;
+	struct objectId {
+		ObjectId	value;	
+	} objectId;
+} Datum;
+#endif  /* defined(sequent) */
 
 /*
  * DatumGetChar --

@@ -12,7 +12,9 @@
 #endif
 #include "oid.h"
 
-#define	NULL	0
+#ifndef NULL
+#define	NULL	0L
+#endif
 #define	SIGNBIT	(0x8000)	/* msb for int/unsigned */
 #define	CSIGNBIT	(1 << 7)	/* msb for char */
 
@@ -37,7 +39,7 @@ typedef	char	XID[5];
 #define	ABSTIME	long
 #define	RELTIME	long
 
-#if defined(sun)
+#if defined(sun) || defined(sequent)
 typedef	char	*DATUM;
 #else
 typedef	union {

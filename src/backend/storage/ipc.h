@@ -13,6 +13,14 @@
 #include "c.h"
 #endif
 
+#ifdef sequent
+union semun {
+    int val;
+    struct semid_ds *buf;
+    unsigned short *array;
+};
+#endif
+
 typedef uint16	SystemPortAddress;
 
 
