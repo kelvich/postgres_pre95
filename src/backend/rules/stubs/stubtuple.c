@@ -21,6 +21,11 @@
 #include "utils/fmgr.h"
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
+#include "parser/parse.h"       /* for the AND, NOT, OR */
+
+/*==================== ROUTINES LOCAL TO THIS FILE ================*/
+static bool prs2SimpleQualTestTuple();
+
 
 /*--------------------------------------------------------------------
  *
@@ -28,6 +33,8 @@
  *
  * given a collection of stub records and a tuple, find all the locks
  * that the tuple must inherit.
+ *
+ *--------------------------------------------------------------------
  */
 RuleLock
 prs2StubGetLocksForTuple(tuple, buffer, tupDesc, stubs)
@@ -46,8 +53,8 @@ Prs2Stub stubs;
     resultLock = prs2MakeLocks();
 
     for (i=0; i<stubs->numOfStubs; i++) {
-	oneStub = &(stubs->stubRecords[i]);
-	if (prs2StubTestTuple(tuple, buffer, tupDesc, oneStub)) {
+	oneStub = stubs->stubRecords[i];
+	if (prs2StubTestTuple(tuple, buffer, tupDesc, oneStub->qualification)){
 	    temp = prs2LockUnion(resultLock, oneStub->lock);
 	    prs2FreeLocks(resultLock);
 	    resultLock = temp;
@@ -62,41 +69,93 @@ Prs2Stub stubs;
  *
  * prs2StubTestTuple
  *
- * test if a tuple satisfies all the qualifications of a given
+ * test if a tuple satisfies the given qualifications of a
  * stub record.
+ *--------------------------------------------------------------------
  */
 bool
-prs2StubTestTuple(tuple, buffer, tupDesc, stub)
+prs2StubTestTuple(tuple, buffer, tupDesc, qual)
 HeapTuple tuple;
 Buffer buffer;
 TupleDescriptor tupDesc;
-Prs2OneStub stub;
+Prs2StubQual qual;
 {
     int i;
-    Prs2SimpleQual oneQual;
 
-    for(i=0; i<stub->numQuals; i++) {
-	oneQual = & (stub->qualification[i]);
-	if (!prs2SimpleQualTestTuple(tuple, buffer, tupDesc, oneQual)) {
+    if (qual->qualType == PRS2_NULL_STUBQUAL) {
+	/*
+	 * NULL quals are ALWAYS true!
+	 */
+	return(true);
+    } else if (qual->qualType == PRS2_SIMPLE_STUBQUAL) {
+	if (prs2SimpleQualTestTuple(tuple,buffer,tupDesc,qual->qual.simple))
+	    return(true);
+	else
 	    return(false);
+    } else if (qual->qualType == PRS2_COMPLEX_STUBQUAL) {
+	switch (qual->qual.complex.boolOper) {
+	    case AND:
+		for (i=0; i<qual->qual.complex.nOperands; i++) {
+		    if (!prs2StubTestTuple(tuple,
+			    buffer,
+			    tupDesc,
+			    qual->qual.complex.operands[i])) {
+			/*
+			 * this is an AND, so if any subqualification
+			 * is false, then the whole thing is false
+			 */
+			return(false);
+		    }
+		}
+		return(true);
+		break;
+	    case OR:
+		for (i=0; i<qual->qual.complex.nOperands; i++) {
+		    if (prs2StubTestTuple(tuple,
+			    buffer,
+			    tupDesc,
+			    qual->qual.complex.operands[i])) {
+			/*
+			 * this is an AND, so if any subqualification
+			 * is true, then the whole thing is true
+			 */
+			return(true);
+		    }
+		}
+		return(false);
+		break;
+	    case NOT:
+		if (prs2StubTestTuple(tuple,
+			buffer,
+			tupDesc,
+			qual->qual.complex.operands[0])) {
+		    return(false);
+		} else {
+		    return(true);
+		}
+		break;
+	    default:
+		elog(WARN, "prs2StubTestTuple: Illegal boolOper");
 	}
+    } else {
+	elog(WARN, "prs2StubTestTuple: Illegal qualType");
     }
-
-    return(true);
 }
 
 /*--------------------------------------------------------------------
  *
  * prs2SimpleQualTestTuple
  *
- * test if a tuple satisfies the given 'Prs2SimpleQual'
+ * test if a tuple satisfies the given "simple qualification"
+ *--------------------------------------------------------------------
  */
+static
 bool
-prs2SimpleQualTestTuple(tuple, buffer, tupDesc, qual)
+prs2SimpleQualTestTuple(tuple, buffer, tupDesc, simplequal)
 HeapTuple tuple;
 Buffer buffer;
 TupleDescriptor tupDesc;
-Prs2SimpleQual qual;
+Prs2SimpleStubQualData simplequal;
 {
     Datum value;
     Boolean isNull;
@@ -109,7 +168,7 @@ Prs2SimpleQual qual;
     value = HeapTupleGetAttributeValue(
 		tuple,
 		buffer,
-		qual->attrNo,
+		simplequal.attrNo,
 		tupDesc,
 		&isNull);
     
@@ -125,7 +184,7 @@ Prs2SimpleQual qual;
      * Now call the function manager...
      */
     
-    result = (int) fmgr(qual->operator, value, qual->constData);
+    result = (int) fmgr(simplequal.operator, value, simplequal.constData);
 
     if (result) {
 	return(true);

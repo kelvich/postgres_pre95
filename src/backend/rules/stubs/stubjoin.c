@@ -13,6 +13,7 @@
 #include "nodes/plannodes.h"
 #include "nodes/plannodes.a.h"
 #include "utils/log.h"
+#include "tmp/datum.h"
 
 /*----------------------------------------------------------------
  *
@@ -22,6 +23,7 @@
  * of a Join node. For every tuple of the Outer relation, we have to
  * create (and insert in the inner relation) a rule stub.
  *
+ *----------------------------------------------------------------
  */
 Prs2OneStub
 prs2MakeStubForInnerRelation(ruleInfo, tuple, buffer, outerTupleDesc)
@@ -34,7 +36,7 @@ TupleDescriptor outerTupleDesc;
     ObjectId ruleId;
     Prs2StubId stubId;
     RuleLock lock;
-    Prs2SimpleQual qual;
+    Prs2StubQual qual;
     AttributeNumber innerAttrNo, outerAttrNo;
     ObjectId operator;
     Datum value;
@@ -49,7 +51,7 @@ TupleDescriptor outerTupleDesc;
     lock = get_jri_lock(ruleInfo);
 
     /*
-     * now form the 'Prs2SimpleQual'. This will correspond to
+     * now form the 'Prs2StubQual'. This will correspond to
      * the qualification:
      *    ( <operator> <innerAttrNo> <constant> )
      * where <constant> is the value of the "outerAttrno" of the
@@ -68,22 +70,32 @@ TupleDescriptor outerTupleDesc;
 	 */
 	return((Prs2OneStub)NULL);
     }
-    qual = prs2MakeSimpleQuals(1);
-    qual->attrNo = innerAttrNo;
-    qual->operator = operator;
-    qual->constType = outerTupleDesc->data[outerAttrNo-1]->atttypid;
-    qual->constByVal = get_typbyval(qual->constType);
-    qual->constLength = get_typlen(qual->constType);
-    qual->constData = value;
+    qual = prs2MakeStubQual();
+    qual->qualType = PRS2_SIMPLE_STUBQUAL;
+    qual->qual.simple.attrNo = innerAttrNo;
+    qual->qual.simple.operator = operator;
+    qual->qual.simple.constType = outerTupleDesc->data[outerAttrNo-1]->atttypid;
+    qual->qual.simple.constByVal = get_typbyval(qual->qual.simple.constType);
+    qual->qual.simple.constLength = get_typlen(qual->qual.simple.constType);
+    /*
+     * NOTE: make a "copy" of the datum (i.e. of the data pointed
+     * by, if any)... Beter be safe (and slow) then sorry...
+     */
+    qual->qual.simple.constData = datumCopy(
+				    qual->qual.simple.constType,
+				    qual->qual.simple.constByVal,
+				    qual->qual.simple.constLength,
+				    value);
 
     /*
      * OK, now form the 'Prs2OneStub'
      */
-    oneStub = prs2MakeOneStub(ruleId, stubId,
-				1,	/* count */
-				1,	/* numQuals */
-				lock,
-				qual);
+    oneStub = prs2MakeOneStub();
+    oneStub->ruleId = ruleId;
+    oneStub->stubId = stubId;
+    oneStub->counter = 1;
+    oneStub->lock = lock;
+    oneStub->qualification = qual;
     return(oneStub);
 }
 
@@ -95,14 +107,14 @@ TupleDescriptor outerTupleDesc;
  * by the given tuple, then add a rule lock and return true.
  * Otherwise return false.
  *
+ *----------------------------------------------------------------
  */
 bool
-prs2AddLocksAndReplaceTuple(tuple, buffer, relation, oneStub, lock)
+prs2AddLocksAndReplaceTuple(tuple, buffer, relation, oneStub)
 HeapTuple tuple;
 Buffer buffer;
 Relation relation;
 Prs2OneStub oneStub;
-RuleLock lock;
 {
     RuleLock oldLocks, newLocks;
     TupleDescriptor tupDesc;
@@ -111,9 +123,9 @@ RuleLock lock;
 
     tupDesc = RelationGetTupleDescriptor(relation);
 
-    if (prs2StubTestTuple(tuple, buffer, tupDesc, oneStub)) {
+    if (prs2StubTestTuple(tuple, buffer, tupDesc, oneStub->qualification)) {
 	oldLocks = prs2GetLocksFromTuple(tuple, buffer,tupDesc);
-	newLocks = prs2LockUnion(lock, oldLocks);
+	newLocks = prs2LockUnion(oneStub->lock, oldLocks);
 	newTuple = prs2PutLocksInTuple(tuple, buffer, relation, newLocks);
 
 	/*
@@ -131,7 +143,11 @@ RuleLock lock;
 /*----------------------------------------------------------------
  *
  * prs2UpdateStats
+ *
+ * Update statistics associated with rule stub records.
+ *----------------------------------------------------------------
  */
+void
 prs2UpdateStats(ruleInfo, operation)
 JoinRuleInfo ruleInfo;
 int operation;
