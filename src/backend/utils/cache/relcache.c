@@ -58,6 +58,7 @@ RcsId("$Header$");
 #include "utils/mcxt.h"
 #include "utils/rel.h"
 #include "utils/hsearch.h"
+#include "utils/palloc.h"
  
 #include "catalog/catname.h"
 #include "catalog/syscache.h"
@@ -76,12 +77,8 @@ RcsId("$Header$");
 
 #include "utils/relcache.h"
 
-#ifdef sprite
-#include "sprite_file.h"
-#else
 #include "storage/fd.h"
-#endif /* sprite */
- 
+
 /* ----------------
  *	defines
  * ----------------
@@ -379,7 +376,7 @@ scan_pg_rel_seq(buildinfo)
 	 *  this bug is discovered and killed by wei on 9/27/91.
 	 * -------------------
 	 */
-	return_tuple = (HeapTuple)palloc(pg_relation_tuple->t_len);
+	return_tuple = (HeapTuple) palloc(pg_relation_tuple->t_len);
 	bcopy(pg_relation_tuple, return_tuple, pg_relation_tuple->t_len);
 	ReleaseBuffer(buf);
     }
@@ -538,17 +535,18 @@ build_tupdesc_seq(buildinfo, relation, attp, natts)
     pg_attribute_tuple = heap_getnext(pg_attribute_scan, 0, (Buffer *) NULL);
     while (HeapTupleIsValid(pg_attribute_tuple) && need > 0) {
 
-	attp = (AttributeTupleForm)
-	    HeapTupleGetForm(pg_attribute_tuple);
+	attp = (AttributeTupleForm) HeapTupleGetForm(pg_attribute_tuple);
 
 	if (attp->attnum > 0) {
+	    char *newattp =
+		palloc(sizeof(RuleLock) + sizeof(*relation->rd_att.data[0]));
 
-	    relation->rd_att.data[attp->attnum - 1] = (Attribute)
-		palloc(sizeof (RuleLock) + sizeof *relation->rd_att.data[0]);
-
+	    bzero(newattp,	/* XXX PURIFY */
+		  sizeof(RuleLock) + sizeof(*relation->rd_att.data[0]));
+	    relation->rd_att.data[attp->attnum - 1] = (Attribute) newattp;
 	    bcopy((char *) attp,
-		  (char *) relation->rd_att.data[attp->attnum - 1],
-		  sizeof *relation->rd_att.data[0]);
+		  (char *) newattp,
+		  sizeof(*relation->rd_att.data[0]));
 
 	    need--;
 	}
