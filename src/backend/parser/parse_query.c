@@ -11,6 +11,7 @@
 
  **********************************************************************/
 
+#include <ctype.h>
 #include "rel.h" 		/* Relation stuff */
 #include "catalog_utils.h"
 #include "lispdep.h"
@@ -523,17 +524,20 @@ SkipForwardToFromList()
 	  tlist_buf[i]=0;
 	
 	end_tlist_buf = 0;
-	while ((next_token=(LispValue)yylex()) >
-	       0 && next_token != (LispValue)FROM ) {
+	while ((next_token=(LispValue)yylex()) > 0 && 
+	        next_token != (LispValue)FROM ) {
 		tlist_buf[end_tlist_buf++] = ' ';
 		fputc(' ',stdout);
-		switch( next_token ) {
+		switch( (int) next_token ) {
 		      case SCONST:
 			temp = (char *)CString(yylval);
 			tlist_buf[end_tlist_buf++] = '\"';
 			for (i = 0; i < strlen(temp) ; i ++) {
-				tlist_buf[end_tlist_buf++] = 
-				  temp[i];
+			  if (temp[i] == '\"' || isdigit(temp[i]))
+			    tlist_buf[end_tlist_buf++] =
+			      '\\';
+			  tlist_buf[end_tlist_buf++] = 
+			    temp[i];
 			}
 			tlist_buf[end_tlist_buf++] = '\"';
 			break;
