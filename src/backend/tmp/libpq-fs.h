@@ -1,8 +1,26 @@
 #ifndef libpq_fs_H
 #define libpq_fs_H
 
-#include <dirent.h>
 #include "tmp/simplelists.h"
+/* open(2) compatibility */
+#define O_RDONLY        0               /* +1 == FREAD */
+#define O_WRONLY        1               /* +1 == FWRITE */
+#define O_RDWR          2               /* +1 == FREAD|FWRITE */
+#define O_APPEND        _FAPPEND
+#define O_CREAT         _FCREAT
+#define O_TRUNC         _FTRUNC
+#define _FAPPEND        0x0008  /* append (writes guaranteed at the end) */
+#define _FCREAT         0x0200  /* open with file create */
+#define _FTRUNC         0x0400  /* open with truncation */
+
+struct  dirent {
+        off_t           d_off;          /* offset of next disk dir entry */
+        unsigned long   d_fileno;       /* file number of entry */
+        unsigned short  d_reclen;       /* length of this record */
+        unsigned short  d_namlen;       /* length of string in d_name */
+        char            d_name[255+1];  /* name (up to MAXNAMLEN + 1) */
+};
+#define d_ino d_fileno          /* this is meaningless */
 
 typedef struct Direntry_ {
     struct dirent d;
