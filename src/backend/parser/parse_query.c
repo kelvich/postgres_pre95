@@ -533,7 +533,7 @@ SkipForwardToFromList()
 			temp = (char *)CString(yylval);
 			tlist_buf[end_tlist_buf++] = '\"';
 			for (i = 0; i < strlen(temp) ; i ++) {
-			  if (temp[i] == '\"' || isdigit(temp[i]))
+			  if (temp[i] == '\"' )
 			    tlist_buf[end_tlist_buf++] =
 			      '\\';
 			  tlist_buf[end_tlist_buf++] = 
