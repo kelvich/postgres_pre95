@@ -169,7 +169,8 @@ Fragment rootFragment;
 		   foreach (y, tempRelDescs) {
 		       tempreldesc = (Relation)CAR(y);
 		       ReleaseTmpRelBuffers(tempreldesc);
-		       if (unlink(relpath(&(tempreldesc->rd_rel->relname))) < 0)
+		       if (FileNameUnlink(
+			      relpath(&(tempreldesc->rd_rel->relname))) < 0)
 			   elog(WARN, "ExecEndScanTemp: unlink: %m");
 		    }
 		 }
