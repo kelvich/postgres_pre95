@@ -577,8 +577,10 @@ create_mergejoin_node (best_path,tlist,clauses,
 				qpqual,
 				mergeclauses,
 				opcode,
-				outer_node,
-				inner_node);
+				inner_order,
+				outer_order, 
+				inner_node,
+				outer_node);
      set_cost (join_node,get_path_cost (best_path));
      if ( _watch_costs_) {
 	  printf ("MERGEJOIN COST = ");
@@ -960,9 +962,11 @@ make_hash (tlist,tempid,lefttree, keycount)
 }
 
 MergeJoin
-make_mergesort(tlist,qpqual,mergeclauses,opcode,righttree,lefttree)
+make_mergesort(tlist, qpqual, mergeclauses, opcode, rightorder, leftorder,
+	       righttree, lefttree)
      LispValue tlist, qpqual,mergeclauses;
      ObjectId opcode;
+     LispValue rightorder, leftorder;
      Plan righttree,lefttree;
 {
     MergeJoin node = CreateNode(MergeJoin);
@@ -976,6 +980,8 @@ make_mergesort(tlist,qpqual,mergeclauses,opcode,righttree,lefttree)
     set_righttree(node,righttree);
     set_mergeclauses(node,mergeclauses);
     set_mergesortop(node,opcode);
+    set_mergerightorder(node, rightorder);
+    set_mergeleftorder(node, leftorder);
 
     node->printFunc = PrintMergeJoin;
     /* node->equalFunc = EqualMergeJoin;  until function is defined */

@@ -402,6 +402,7 @@ ExecuteFragments(queryDesc, planFragments)
     feature = lispCons(lispInteger(EXEC_END), LispNil);
     (void) ExecMain(queryDesc, state, feature);
 
+#ifdef EXEC_TUPLECOUNT	    
     /* ----------------
      *	print tuple counts.. note this is only a temporary
      *  place for this because statistics are stored in the
@@ -409,9 +410,8 @@ ExecuteFragments(queryDesc, planFragments)
      *  someday -cim 10/16/89
      * ----------------
      */
-#ifdef TUPLECOUNT	    
     DisplayTupleCount(state);
-#endif TUPLECOUNT	    
+#endif EXEC_TUPLECOUNT	    
     
     /* ----------------
      *   not certain what this does.. -cim 8/29/89

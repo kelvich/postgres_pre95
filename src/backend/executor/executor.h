@@ -22,14 +22,18 @@
 #include "c.h"
 #include "pg_lisp.h"
 
+#include "access.h"
 #include "anum.h"
 #include "buf.h"
 #include "catalog.h"
 #include "catname.h"
+#include "fmgr.h"
 #include "ftup.h"
 #include "heapam.h"
+#include "htup.h"
 #include "itup.h"
 #include "log.h"
+#include "mcxt.h"
 #include "parse.h"
 #include "pmod.h"
 #include "rel.h"
@@ -46,8 +50,18 @@
 #include "execnodes.h"
 #include "parsetree.h"
 
-/*
+/* ----------------
+ * executor debugging definitions are kept in a separate file
+ * so people can customize what debugging they want to see and not
+ * have this information clobbered every time a new version of
+ * executor.h is checked in -cim 10/26/89
+ * ----------------
+ */
+#include "execdebug.h"
+
+/* ----------------
  * .h files made from running pgdecs over generated .c files in obj/lib/C
+ * ----------------
  */
 #include "primnodes.a.h"
 #include "plannodes.a.h"
@@ -59,56 +73,38 @@
  */
 
 /* ----------------
- *	TUPLECOUNT is a #define which, if set, will have the
- *	executor keep track of tuple counts.  This might be
- *	causing some problems with the decstation stuff so
- *	you might want to undefine this if you are doing work
- *	on the decs  - cim 10/20/89
- * ----------------
- */
-
-/* #define TUPLECOUNT 1 */
-#undef	TUPLECOUNT
-
-/*
  *     memory management defines
+ * ----------------
  */
 
 #define M_STATIC 		0 		/* Static allocation mode */
 #define M_DYNAMIC 		1 		/* Dynamic allocation mode */
 
+/* ----------------
+ *	executor scan direction definitions
+ * ----------------
+ */
 #define EXEC_FRWD		1		/* Scan forward */
 #define EXEC_BKWD		-1		/* Scan backward */
 
+/* ----------------
+ *	ExecutePlan() tuplecount definitions
+ * ----------------
+ */
 #define ALL_TUPLES		0		/* return all tuples */
 #define ONE_TUPLE		1		/* return only one tuple */
 
-/*
+/* ----------------
  *    boolean value returned by C routines
+ * ----------------
  */
-
 #define EXEC_C_TRUE 		1	/* C language boolean truth constant */
 #define EXEC_C_FALSE		0      	/* C language boolean false constant */
 
-/*
- *     attribute constants and definitions
- */
-
-#ifdef vax
-#define EXEC_MAXATTR		1584
-#endif
-#ifndef vax
-#define EXEC_MAXATTR		1600		/* Max # attributes */
-#endif
-
-#define EXEC_T_CTID		-1
-#define EXEC_I_TID		-3
-#define EXEC_T_LOCK		-2
-
-/*
+/* ----------------
  *	constants used by ExecMain
+ * ----------------
  */
-
 #define EXEC_START 			1
 #define EXEC_END 			2
 #define EXEC_DUMP			3
@@ -128,8 +124,22 @@
 #define EXEC_INSERT_CHECK_RULE 		16
 #define EXEC_DELETE_CHECK_RULE 		17
 
+/* ----------------
+ *	Merge Join states
+ * ----------------
+ */
+#define EXEC_MJ_INITIALIZE		1
+#define EXEC_MJ_JOINMARK		2
+#define EXEC_MJ_JOINTEST		3
+#define EXEC_MJ_JOINTUPLES		4
+#define EXEC_MJ_NEXTOUTER		5
+#define EXEC_MJ_TESTOUTER		6
+#define EXEC_MJ_NEXTINNER		7
+#define EXEC_MJ_SKIPINNER		8
+#define EXEC_MJ_SKIPOUTER		9
+
 /* ----------------------------------------------------------------
- *     #defines
+ *     #define macros
  * ----------------------------------------------------------------
  */
 
@@ -224,7 +234,6 @@
 #define ExecIsIndexScan(node)	IsA(node,IndexScan)
 #define ExecIsSort(node)	IsA(node,Sort)
 #define ExecIsHash(node)	IsA(node,Hash)
-
 
 
 /* ----------------------------------------------------------------

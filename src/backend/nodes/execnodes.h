@@ -120,9 +120,9 @@ class (TupleCount) public (Node) {
  *	relation_relation_descriptor	as it says
  *	into_relation_descriptor	relation being retrieved "into"
  *	result_relation_information	for update queries
+ *	tuplecount			summary of tuples processed
  *	param_list_info			information needed to transform
  *					Param nodes into Const nodes
- *	tuplecount			summary of tuples processed
  * ----------------------------------------------------------------
  */
 
@@ -140,8 +140,8 @@ class (EState) public (Node) {
       Relation		es_relation_relation_descriptor;
       Relation		es_into_relation_descriptor;
       RelationInfo	es_result_relation_info;
-      ParamListInfo	es_param_list_info;
       TupleCount	es_tuplecount;
+      ParamListInfo	es_param_list_info;
 };
 
 /* ----------------
@@ -151,7 +151,7 @@ class (EState) public (Node) {
  *|	      because our inheritance system only allows single inheritance
  *|	      and we have to have unique slot names.  Hence two or more
  *|	      classes which want to have a common slot must ALL inherit
- *|	      the slot from some other class.  (This is a big hacks to
+ *|	      the slot from some other class.  (This is a big hack to
  *|	      allow our classes to share slot names..)
  *|
  *|	Example:
@@ -172,6 +172,43 @@ class (EState) public (Node) {
  */
 
 /* ----------------------------------------------------------------
+ *    ExprContext
+ *
+ *	this class holds the "current context" information
+ *	needed to evaluate expressions.  For example, if an
+ *	expression refers to an attribute in the current inner tuple
+ *	then we need to know what the current inner tuple is and
+ *	so we look at the expression context.  Most of this
+ *	information was originally stored in global variables
+ *	in the Lisp system.
+ *
+ *	ExprContexts are stored in CommonState nodes and so
+ *	all executor state nodes which inherit from CommonState
+ *	have ExprContexts although not all of them need it.
+ *	
+ * ----------------------------------------------------------------
+ */
+class (ExprContext) public (Node) {
+#define ExprContextDefs \
+	inherits(Node); \
+	List	      ecxt_scantuple; \
+	AttributePtr  ecxt_scantype; \
+	Buffer	      ecxt_scan_buffer; \
+	List	      ecxt_innertuple; \
+	AttributePtr  ecxt_innertype; \
+	Buffer	      ecxt_inner_buffer; \
+	List	      ecxt_outertuple; \
+	AttributePtr  ecxt_outertype; \
+	Buffer	      ecxt_outer_buffer; \
+	Relation      ecxt_relation; \
+	Index	      ecxt_relid; \
+	ParamListInfo ecxt_param_list_info
+ /* private: */
+	ExprContextDefs;
+ /* public: */
+};
+
+/* ----------------------------------------------------------------
  *   CommonState information
  *
  *|	this is a bogus class used to hold slots so other
@@ -184,6 +221,7 @@ class (EState) public (Node) {
  *	ScanType	   type of tuples in relation being scanned
  *	ScanAttributes	   attribute numbers of interest in this tuple
  *	NumScanAttributes  number of attributes of interest..
+ *	ExprContext	   node's current expression context
  *
  *|	Currently the value of Level is ignored by almost everything
  *|	and since I don't understand it's purpose, it may go
@@ -200,6 +238,11 @@ class (EState) public (Node) {
  *|	that won't ever be inspected..
  *|
  *|	-cim 10/15/89
+ *
+ *	ExprContext contains the node's expression context which
+ *      is created and initialized at ExecInit time.  Keeping these
+ *	around reduces memory allocations and allows nodes to refer
+ *	to tuples in other nodes (albeit in a gross fashion). -cim 10/30/89
  * ----------------------------------------------------------------
  */
 
@@ -212,7 +255,8 @@ class (CommonState) public (Node) {
       int	   	  cs_Level; \
       AttributePtr 	  cs_ScanType; \
       AttributeNumberPtr  cs_ScanAttributes; \
-      int		  cs_NumScanAttributes
+      int		  cs_NumScanAttributes; \
+      ExprContext	  cs_ExprContext 
   /* private: */
       CommonStateDefs;
   /* public: */
@@ -233,6 +277,7 @@ class (CommonState) public (Node) {
  *	ScanType	   type of tuples in relation being scanned (unused)
  *	ScanAttributes	   attribute numbers of interest in tuple (unused)
  *	NumScanAttributes  number of attributes of interest.. (unused)
+ *	ExprContext	   node's current expression context
  * ----------------------------------------------------------------
  */
 
@@ -282,6 +327,7 @@ class (AppendState) public (Node) {
  *	ScanType	   type of tuples in relation being scanned
  *	ScanAttributes	   attribute numbers of interest in this tuple
  *	NumScanAttributes  number of attributes of interest..
+ *	ExprContext	   node's current expression context
  * ----------------------------------------------------------------
  */
 
@@ -315,6 +361,7 @@ class (CommonScanState) public (CommonState) {
  *	ScanType	   type of tuples in relation being scanned
  *	ScanAttributes	   attribute numbers of interest in this tuple
  *	NumScanAttributes  number of attributes of interest..
+ *	ExprContext	   node's current expression context
  * ----------------------------------------------------------------
  */
 
@@ -338,6 +385,7 @@ class (ScanState) public (CommonScanState) {
  *	NumIndices	   number of indices in this scan
  *   	ScanKeys	   Skey structures to scan index rels
  *   	NumScanKeys	   array of no of keys in each Skey struct
+ *	RuntimeKeyInfo	   array of array of flags for Skeys evaled at runtime
  *	RelationDescs	   ptr to array of relation descriptors
  *	ScanDescs	   ptr to array of scan descriptors
  *
@@ -350,6 +398,7 @@ class (ScanState) public (CommonScanState) {
  *	ScanType	   type of tuples in relation being scanned
  *	ScanAttributes	   attribute numbers of interest in this tuple
  *	NumScanAttributes  number of attributes of interest..
+ *	ExprContext	   node's current expression context
  * ----------------------------------------------------------------
  */
 class (IndexScanState) public (CommonState) {
@@ -358,6 +407,7 @@ class (IndexScanState) public (CommonState) {
     int			iss_IndexPtr;
     ScanKeyPtr		iss_ScanKeys;
     IntPtr		iss_NumScanKeys;
+    Pointer		iss_RuntimeKeyInfo;
     RelationPtr	     	iss_RelationDescs;
     IndexScanDescPtr 	iss_ScanDescs;
 };
@@ -376,6 +426,7 @@ class (IndexScanState) public (CommonState) {
  *	ScanType	   type of tuples in relation being scanned
  *	ScanAttributes	   attribute numbers of interest in this tuple
  *	NumScanAttributes  number of attributes of interest..
+ *	ExprContext	   node's current expression context
  * ----------------------------------------------------------------
  */
 
@@ -413,8 +464,9 @@ class (NestLoopState) public (CommonState) {
  *   	TupValue   	   array to store attr values for 'formtuple' (unused)
  *   	Level      	   level of the left subplan (unused)
  *	ScanType	   type of tuples in relation being scanned (unused)
- *	ScanAttributes	   attribute numbers of interest in this tuple (unused)
+ *	ScanAttributes	   attribute numbers of interest in tuple (unused)
  *	NumScanAttributes  number of attributes of interest.. (unused)
+ *	ExprContext	   node's current expression context
  * ----------------------------------------------------------------
  */
 
@@ -432,9 +484,8 @@ class (SortState) public (CommonScanState) {
  *
  *   	OSortopI      	   outerKey1 sortOp innerKey1 ...
  *  	ISortopO      	   innerkey1 sortOp outerkey1 ...
- *   	MarkFlag      	   'true' is inner and outer relations marked.
- *   	FrwdMarkPos   	   scan mark for forward scan
- *   	BkwdMarkPos	   scan mark for backward scan
+ *	JoinState	   current "state" of join. see executor.h
+ *	MarkedTuple	   current marked inner tuple.
  *
  *   CommonState information
  *
@@ -445,6 +496,7 @@ class (SortState) public (CommonScanState) {
  *	ScanType	   type of tuples in relation being scanned
  *	ScanAttributes	   attribute numbers of interest in this tuple
  *	NumScanAttributes  number of attributes of interest..
+ *	ExprContext	   node's current expression context
  * ----------------------------------------------------------------
  */
 
@@ -453,9 +505,8 @@ class (MergeJoinState) public (CommonState) {
   /* private: */
       List 	mj_OSortopI;
       List 	mj_ISortopO;
-      bool	mj_MarkFlag;
-      List 	mj_FrwdMarkPos;
-      List 	mj_BkwdMarkPos;
+      int	mj_JoinState;
+      List	mj_MarkedTuple;
   /* public: */
 };
 
@@ -471,6 +522,7 @@ class (MergeJoinState) public (CommonState) {
  *	ScanType	   type of tuples in relation being scanned
  *	ScanAttributes	   attribute numbers of interest in this tuple
  *	NumScanAttributes  number of attributes of interest..
+ *	ExprContext	   node's current expression context
  * ----------------------------------------------------------------
  */
 
@@ -494,6 +546,7 @@ class (HashJoinState) public (CommonState) {
  *	ScanType	   type of tuples in relation being scanned
  *	ScanAttributes	   attribute numbers of interest in this tuple
  *	NumScanAttributes  number of attributes of interest..
+ *	ExprContext	   node's current expression context
  * ----------------------------------------------------------------
  */
 class (ExistentialState) public (CommonState) {

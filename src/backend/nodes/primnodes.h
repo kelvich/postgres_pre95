@@ -94,29 +94,9 @@ class (Expr) public (Node) {
 
 /*
  * ==========
- * ExprContext nodes
+ * ExprContext nodes are now defined in execnodes.h -cim 11/1/89
  * ==========
  */
-
-class (ExprContext) public (Node) {
-#define ExprContextDefs \
-	inherits(Node); \
-	List	      ecxt_scantuple; \
-	AttributePtr  ecxt_scantype; \
-	Buffer	      ecxt_scan_buffer; \
-	List	      ecxt_innertuple; \
-	AttributePtr  ecxt_innertype; \
-	Buffer	      ecxt_inner_buffer; \
-	List	      ecxt_outertuple; \
-	AttributePtr  ecxt_outertype; \
-	Buffer	      ecxt_outer_buffer; \
-	Relation      ecxt_relation; \
-	Index	      ecxt_relid; \
-	ParamListInfo ecxt_param_list_info
- /* private: */
-	ExprContextDefs;
- /* public: */
-};
 
 /*
  * Var

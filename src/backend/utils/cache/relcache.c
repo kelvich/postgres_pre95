@@ -405,22 +405,24 @@ BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 
 	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	if (!HeapTupleIsValid(tuple)) {
-		elog(WARN, "getreldesc: %s relation nonexistent", errorName);
-		NO_DO_DB(puts("I'm here..."));
-		amendscan(sd);
-		amclose(rd);
-		RelationCacheHashByName = NameCacheSave;
-		RelationCacheHashById = IdCacheSave;
-		return (NULL);
+	    elog(NOTICE, "BuildRelation: %s relation nonexistent",
+		 errorName);
+	    NO_DO_DB(puts("I'm here..."));
+	    amendscan(sd);
+	    amclose(rd);
+	    RelationCacheHashByName = NameCacheSave;
+	    RelationCacheHashById = IdCacheSave;
+	    return (NULL);
 	}
 
 	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	fd = relopen(&((RelationTupleForm)GETSTRUCT(tuple))->relname, O_RDWR,
 		0666);
-	Assert(fd >= -1)
+
+	Assert(fd >= -1);
 	if (fd == -1) {
-		elog(WARN, "getreldesc: relopen(%s): %m",
-			&((RelationTupleForm)GETSTRUCT(tuple))->relname);
+	    elog(NOTICE, "BuildRelation: relopen(%s): %m",
+		 &((RelationTupleForm)GETSTRUCT(tuple))->relname);
 	}
 
 	relid = tuple->t_oid;
@@ -468,15 +470,16 @@ BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 		DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 		tuple = amgetnext(sd, 0, (Buffer *)NULL);
 		if (!HeapTupleIsValid(tuple)) {
-			elog(WARN, "getreldesc: %s: unknown AM %d", errorName,
-				relationTupleForm->relam);
+		    elog(NOTICE, "BuildRelation: %s: unknown AM %d",
+			 errorName,
+			 relationTupleForm->relam);
 /*
-			amendscan(sd);
-			amclose(rd);
-			return (NULL);
+                    amendscan(sd);
+                    amclose(rd);
+                    return (NULL);
 */
-			RelationCacheHashByName = NameCacheSave;
-			RelationCacheHashById = IdCacheSave;
+		    RelationCacheHashByName = NameCacheSave;
+		    RelationCacheHashById = IdCacheSave;
 		}
 		accessMethodTupleForm =
 			(AccessMethodTupleForm)palloc(sizeof *relation->rd_am);
@@ -581,11 +584,11 @@ BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	NO_DO_DB(puts("but now, I'm here again"));
 	while ((int)--natts >= 0) {
-		DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
-		if (!AttributeIsValid(relation->rd_att.data[natts])) {
-			elog(WARN, "getreldesc: ATTRIBUTE relation corrupted %s"
-				,errorName);
-		}
+	    DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
+	    if (!AttributeIsValid(relation->rd_att.data[natts])) {
+		elog(NOTICE, "getreldesc: ATTRIBUTE relation corrupted %s", 
+		     errorName);
+	    }
 	}
 	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	relation->rd_fd = fd;

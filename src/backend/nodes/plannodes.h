@@ -162,6 +162,8 @@ class (MergeJoin) public (Join) {
  /* private: */
 	List			mergeclauses;
 	ObjectId		mergesortop;
+	List			mergerightorder;
+	List			mergeleftorder;
 	MergeJoinState		mergestate;
  /* public: */
 };
