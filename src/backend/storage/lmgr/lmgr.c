@@ -402,22 +402,23 @@ void
 RelationUnsetLockForRead(relation)
     Relation relation;
 {
-    LRelId	lRelId;
-    int		status;		/* XXX style */
-    
+    LockInfo	linfo;
+
     /* ----------------
-     *	sanity checks
+     *	sanity check
      * ----------------
      */
     Assert(RelationIsValid(relation));
 
-    /* -----------------------
-     * Locks are only released at the eoxact
-     * we may be changing this as we need to implement better locking
-     * protocols for certain catalog relations so as not to keep them
-     * tied up for too long. -mer 17 July 1991
-     * -----------------------
+    /* -----------------
+     * We will no longer have this lock
+     * -----------------
      */
+    linfo = (LockInfo) relation->lockInfo;
+    linfo = (LockInfo) relation->lockInfo;
+    linfo->flags &= ~ReadRelationLock;
+
+    MultiReleaseReln(relation, READ_LOCK);
 }
 
 /* ----------------
@@ -488,6 +489,8 @@ void
 RelationUnsetLockForWrite(relation)
     Relation relation;
 {
+    LockInfo	linfo;
+
     /* ----------------
      *	sanity checks
      * ----------------
@@ -496,13 +499,14 @@ RelationUnsetLockForWrite(relation)
     if (LockingDisabled())
 	return;
 
-    /* -----------------------
-     * Locks are only released at the eoxact
-     * we may be changing this as we need to implement better locking
-     * protocols for certain catalog relations so as not to keep them
-     * tied up for too long. -mer 17 July 1991
-     * -----------------------
+    /* -----------------
+     * We will no longer have this lock
+     * -----------------
      */
+    linfo = (LockInfo) relation->lockInfo;
+    linfo->flags &= ~WriteRelationLock;
+
+    MultiReleaseReln(relation, WRITE_LOCK);
 }
 
 /* ----------------
@@ -689,13 +693,7 @@ RelationUnsetLockForReadPage(relation, partition, itemPointer)
     if (LockingDisabled())
 	return;
 
-    /* -----------------------
-     * Locks are only released at the eoxact
-     * we may be changing this as we need to implement better locking
-     * protocols for certain catalog relations so as not to keep them
-     * tied up for too long. -mer 17 July 1991
-     * -----------------------
-     */
+    MultiReleasePage(relation, itemPointer, READ_LOCK);
 }
 
 /* ----------------
@@ -725,13 +723,7 @@ RelationUnsetLockForWritePage(relation, partition, itemPointer)
     if (LockingDisabled())
 	return;
     
-    /* -----------------------
-     * Locks are only released at the eoxact
-     * we may be changing this as we need to implement better locking
-     * protocols for certain catalog relations so as not to keep them
-     * tied up for too long. -mer 17 July 1991
-     * -----------------------
-     */
+    MultiReleasePage(relation, itemPointer, WRITE_LOCK);
 }
 
 /* ----------------

@@ -284,6 +284,52 @@ LOCKT		lockt;
   return(retStatus);
 }
 
+/* ------------------
+ * Release a page in the multi-level lock table
+ * ------------------
+ */
+MultiReleasePage(reln, tidPtr, lockt)
+Relation	*reln;
+ItemPointer	tidPtr;
+LOCKT		lockt;		
+{
+  LOCKTAG tag;
+
+  /* ------------------
+   * LOCKTAG has two bytes of padding, unfortunately.  The
+   * hash function will return miss if the padding bytes aren't
+   * zero'd.
+   * ------------------
+   */
+  bzero(&tag, sizeof(LOCKTAG));
+
+  tag.relId = RelationGetRelationId(reln);
+  BlockIdCopy( ItemPointerBlockId(&tag.tupleId), ItemPointerBlockId(tidPtr) );
+
+  return (MultiRelease(MultiTableId, &tag, lockt, PAGE_LEVEL));
+}
+
+/* ------------------
+ * Release a relation in the multi-level lock table
+ * ------------------
+ */
+MultiReleaseReln(reln, lockt)
+Relation	*reln;
+LOCKT		lockt;		
+{
+  LOCKTAG tag;
+
+  /* ------------------
+   * LOCKTAG has two bytes of padding, unfortunately.  The
+   * hash function will return miss if the padding bytes aren't
+   * zero'd.
+   * ------------------
+   */
+  bzero(&tag, sizeof(LOCKTAG));
+  tag.relId = RelationGetRelationId(reln);
+
+  return (MultiRelease(MultiTableId, &tag, lockt, RELN_LEVEL));
+}
 
 /*
  * MultiRelease -- release a multi-level lock
@@ -327,38 +373,43 @@ LOCKT		lockt;
    * again, construct the tag on the fly.  This time, however,
    * we release the locks in the REVERSE order -- from lowest
    * level to highest level.  
+   *
+   * Must zero out the tag to set padding byes to zero and ensure
+   * hashing consistency.
    */
+  bzero(tmpTag,sizeof(*tmpTag));
   tmpTag->relId = tag->relId;
-  for (i=N_LEVELS;i;i--) {
-    switch (i) {
-    case RELN_LEVEL:
-      /* -------------
-       * Set the block # and offset to invalid
-       * -------------
-       */
-      BlockIdSet(ItemPointerBlockId(&tmpTag->tupleId),InvalidBlockNumber);
-      PositionIdSetInvalid(ItemPointerPositionId(&tmpTag->tupleId));
-      break;
-    case PAGE_LEVEL:
-      /* -------------
-       * Copy the block #, set the offset to invalid
-       * These long macros cannot have newlines in them or else... 8-0X
-       * -------------
-       */
-      BlockIdCopy(ItemPointerBlockId(&tmpTag->tupleId),ItemPointerBlockId(&tag->tupleId));
-
-      PositionIdSetInvalid(ItemPointerPositionId(&(tmpTag->tupleId)));
-      break;
-    case TUPLE_LEVEL:
-      ItemPointerCopy(&tmpTag->tupleId, &tag->tupleId);
-      break;
-    }
-    if (locks[i] == NO_LOCK) {
-      break;
-    } else {
-      status = LockRelease(tableId, tag, locks[i]);
+  for (i=(N_LEVELS-1); i>=0; i--) 
+  {
+    if (locks[i] != NO_LOCK) 
+    {
+      switch (i) 
+      {
+      case RELN_LEVEL:
+        /* -------------
+         * Set the block # and offset to invalid
+         * -------------
+         */
+        BlockIdSet(ItemPointerBlockId(&tmpTag->tupleId),InvalidBlockNumber);
+        PositionIdSetInvalid(ItemPointerPositionId(&tmpTag->tupleId));
+        break;
+      case PAGE_LEVEL:
+        /* -------------
+         * Copy the block #, set the offset to invalid
+         * These long macros cannot have newlines in them or else... 8-X
+         * -------------
+         */
+        BlockIdCopy(ItemPointerBlockId(&tmpTag->tupleId),ItemPointerBlockId(&tag->tupleId));
+  
+        PositionIdSetInvalid(ItemPointerPositionId(&(tmpTag->tupleId)));
+        break;
+      case TUPLE_LEVEL:
+        ItemPointerCopy(&tmpTag->tupleId, &tag->tupleId);
+        break;
+      }
+      status = LockRelease(tableId, tmpTag, locks[i]);
       if (! status) {
-	elog(WARN,"MultiAcquire: couldn't release after error");
+	elog(WARN,"MultiRelease: couldn't release after error");
       }
     }
   }
