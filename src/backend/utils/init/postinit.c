@@ -496,6 +496,15 @@ InitPostgres(name)
     EnablePortalManager(true);	/* memory for portal/transaction stuff */
 
     /* ----------------
+     *	initialize the backend local portal stack used by
+     *  internal PQ function calls.  see src/lib/libpq/be-dumpdata.c
+     *  This is different from the "portal manager" so this goes here.
+     *  -cim 2/12/91
+     * ----------------
+     */    
+    be_portalinit();
+
+    /* ----------------
      *   set ourselves to the proper user id and figure out our postgres
      *   user id.  If we ever add security so that we check for valid
      *   postgres users, we might do it here.
