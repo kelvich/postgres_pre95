@@ -2,6 +2,6 @@
 
 PROG= pcat
 
-SRCS= cat.c
+SRCS= pcat.c
 
 .include <postgres.prog.mk>

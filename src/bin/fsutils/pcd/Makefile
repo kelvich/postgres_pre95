@@ -2,6 +2,6 @@
 
 PROG= pcd
 
-SRCS= cd.c
+SRCS= pcd.c
 
 .include <postgres.prog.mk>
