@@ -161,6 +161,7 @@
  * ----------------------------------------------------------------
  */
 
+#include "tmp/postgres.h"
 #include "access/xact.h"
 
  RcsId("$Header$");
