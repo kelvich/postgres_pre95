@@ -612,7 +612,7 @@ AppendAttributeTuples(indexRelation, numatts)
     HeapTuple		newtuple;
     
     Datum		value[ AttributeRelationNumberOfAttributes ];
-    char		null[ AttributeRelationNumberOfAttributes ];
+    char		nullv[ AttributeRelationNumberOfAttributes ];
     char		replace[ AttributeRelationNumberOfAttributes ];
 
     TupleDescriptor	indexTupDesc;
@@ -629,7 +629,7 @@ AppendAttributeTuples(indexRelation, numatts)
      *	initialize null[], replace[] and value[]
      * ----------------
      */
-    (void) memset(null, ' ',    AttributeRelationNumberOfAttributes);
+    (void) memset(nullv, ' ',    AttributeRelationNumberOfAttributes);
     (void) memset(replace, ' ', AttributeRelationNumberOfAttributes);
 
     /* ----------------
@@ -653,7 +653,7 @@ AppendAttributeTuples(indexRelation, numatts)
 			    InvalidBuffer,
 			    pg_attribute,
 			    value,
-			    null,
+			    nullv,
 			    replace);
     
     heap_insert(pg_attribute, tuple, (double *)NULL);
@@ -680,7 +680,7 @@ AppendAttributeTuples(indexRelation, numatts)
 				   InvalidBuffer,
 				   pg_attribute,
 				   value,
-				   null,
+				   nullv,
 				   replace);
 	 
 	heap_insert(pg_attribute, newtuple, (double *)NULL);
@@ -1107,14 +1107,14 @@ index_destroy(indexId)
  */
 void
 FormIndexDatum(numberOfAttributes, attributeNumber, heapTuple, heapDescriptor,
-	       buffer, datum, null, fInfo)
+	       buffer, datum, nullv, fInfo)
     AttributeNumber	numberOfAttributes;
     AttributeNumber	attributeNumber[];
     HeapTuple		heapTuple;
     TupleDescriptor	heapDescriptor;
     Buffer		buffer;
     Datum		*datum;
-    char		*null;
+    char		*nullv;
     FuncIndexInfoPtr	fInfo;
 {
     AttributeNumber	i;
@@ -1140,7 +1140,7 @@ FormIndexDatum(numberOfAttributes, attributeNumber, heapTuple, heapDescriptor,
 					   &isNull,
 					   buffer) );
 
-	null[ offset ] = (isNull) ? 'n' : ' ';
+	nullv[ offset ] = (isNull) ? 'n' : ' ';
     }
 }
 
@@ -1259,7 +1259,7 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
     TupleDescriptor		heapDescriptor;
     TupleDescriptor		indexDescriptor;
     Datum			*datum;
-    char			*null;
+    char			*nullv;
     long			reltuples;
 
     GeneralInsertIndexResult	insertResult;
@@ -1284,7 +1284,7 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
      * ----------------
      */
     datum = (Datum *) palloc(numberOfAttributes * sizeof *datum);
-    null =  (char *)  palloc(numberOfAttributes * sizeof *null);
+    nullv =  (char *)  palloc(numberOfAttributes * sizeof *nullv);
 
     /* ----------------
      *	Ok, begin our scan of the base relation.
@@ -1319,13 +1319,13 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
 		       heapDescriptor,	    /* heap tuple's descriptor */
 		       buffer,		    /* buffer used in the scan */
 		       datum,		/* return: array of attributes */
-		       null,		/* return: array of char's */
+		       nullv,		/* return: array of char's */
 		       funcInfo);
 		
 	indexTuple = FormIndexTuple(numberOfAttributes,
 				    indexDescriptor,
 				    datum,
-				    null);
+				    nullv);
 
 	indexTuple->t_tid = heapTuple->t_ctid;
 
@@ -1339,7 +1339,7 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
 
     heap_endscan(scan);
 
-    pfree(null);
+    pfree(nullv);
     pfree((Pointer)datum);
 
     /*
