@@ -886,10 +886,10 @@ int whence;
 	        return sfdP->seekPos;
 	      }
             if ((lsize = fileSeek(sfdP->vfd[l], 0l, L_XTND)) < 0) {
-                BM_debug(FATAL, "lseek:%m");
+                elog(FATAL, "lseek:%m");
             }
             if ((hsize = fileSeek(sfdP->vfd[h], 0l, L_XTND)) < 0) {
-                BM_debug(FATAL, "lseek:%m");
+                elog(FATAL, "lseek:%m");
             }
             if (lsize == hsize)
                nf = 0;
@@ -897,7 +897,7 @@ int whence;
                 while (l + 1 != h) {
                     m = (l + h) / 2;
                 if ((msize = fileSeek(sfdP->vfd[m], 0l, L_XTND)) < 0) {
-                    BM_debug(FATAL, "lseek:%m");
+                    elog(FATAL, "lseek:%m");
                 }
                     if (msize > hsize)
                        l = m;
