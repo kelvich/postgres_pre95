@@ -76,8 +76,8 @@
  *	we distribute to other sites.
  * ----------------
  */
-#undef SONY_JUKEBOX
-#undef MAIN_MEMORY
+#define SONY_JUKEBOX
+#define MAIN_MEMORY
 
 /* ----------------
  *	allocation debugging stuff
