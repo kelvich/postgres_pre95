@@ -78,6 +78,7 @@
 #define	PrintTempExists
 #define	PrintSortExists
 #define	PrintHashExists
+#define PrintUniqueExists
 
 extern void	PrintPlan();
 extern void	PrintResult();
