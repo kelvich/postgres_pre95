@@ -5,7 +5,7 @@
 #
 
 #
-# Prints release.major.minor, e.g.: A.09.01
+# "uname -r" prints release.major.minor, e.g.: A.09.01
 #
 HPUX_VERS!=uname -r
 HPUX_MAJOR=${HPUX_VERS:R:E}
@@ -27,6 +27,12 @@ CFLAGS+= -DNEED_RINT
 CFLAGS+= -DHP_S500_ALIGN
 .  endif
 .elif (${HPUX_MAJOR} == "09")
+#
+# The #pragma trick required on 8.07 no longer works -- the #pragma
+# is thoroughly broken.  However, the +u flag has been extended to
+# handle alignment requirement arguments (defaulting to 2) for things 
+# other than struct references, so the #pragma is no longer needed.
+#
 .  if !defined(ENFORCE_ALIGNMENT)
 #CFLAGS+= -DHP_S500_ALIGN
 .  endif
@@ -40,4 +46,4 @@ CFLAGS+= +Obb600
 .endif
 
 SRCS+= dynloader.c port.c
-HEADERS+= machine.h port-protos.h
+HEADERS+= fixade.h machine.h port-protos.h
