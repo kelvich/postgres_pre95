@@ -48,6 +48,7 @@ extern LispValue parser_typecast();
 extern LispValue make_targetlist_expr();
 extern List MakeList();
 extern List FlattenRelationList();
+extern List ParseAgg();
 
 bool CurrentWasUsed = false;
 bool NewWasUsed = false;
@@ -1601,6 +1602,10 @@ opt_var_defs:
 	  var_defs
 	| {NULLTREE} ;
 
+agg_where_clause:
+	/* empty list */  {NULLTREE; }
+	| WHERE boolexpr  { $$ = $2; }
+	;
 
  /* 
   * expression grammar, still needs some cleanup
@@ -1723,6 +1728,53 @@ attr:
 		}
 	;
 
+agg_res_target_el:
+	   attr
+	   {
+		   LispValue varnode, temp;
+		   Resdom resnode;
+		   int type_id, type_len;
+
+		   temp = make_var ( CString(CAR($1)) ,
+						 CString(CADR($1)));
+		   type_id = CInteger(CAR(temp));
+		   type_len = tlen(get_id_type(type_id));
+		   resnode = MakeResdom ( p_last_resno++ ,
+			   type_id, type_len,
+			   CString(CAR(last ($1) ))
+			   , 0 , 0 , 0 );
+		   varnode = CDR(temp);
+		   if ( IsA(varnode,Var))
+		   set_vardotfields ( varnode , CDR(CDR($1)));
+		   else if ( CDR(CDR($1)) != LispNil )
+		       elog(WARN,"cannot mix procedures with unions");
+
+		   $$ = lispCons(resnode,lispCons(varnode,LispNil));
+	 }
+
+aggregate:
+	name  '{' agg_res_target_el agg_where_clause '}'
+	{
+		 LispValue query2;
+		 $3 = lispCons($3, LispNil);
+		 query2 = MakeRoot(1, KW(retrieve), LispNil,
+		 p_rtable, p_priority, p_ruleinfo, LispNil,
+		 LispNil,$3);
+		
+		 query2 = lispCons (query2, LispNil);
+		 query2 = nappend1 (query2, $3);
+		 query2 = nappend1 (query2, $4);
+		 /* query2 now retrieves the subquery within the
+		  * aggregate brackets.
+		  * this will be the aggregate node's outer child.
+		  */
+
+		  $$ = ParseAgg(CString($1), query2, $3);
+
+		  /*paramlist = search_quals($4, aggnode);*/
+		  /*$$ = nappend1($$, $4);*/
+		  /* (rettype, "aggregate",aggname, query, tlist, -1) */
+	}
 
 res_target_list:
 	  res_target_list ',' res_target_el	
@@ -1762,11 +1814,26 @@ res_target_list:
 	;
 
 res_target_el:
-	  Id '=' a_expr
-		{
-		    $$ = make_targetlist_expr ($1,$3);
-		}
+		Id '=' aggregate
+	{
+		 int type_id;
+		 int resdomno,  type_len;
+		 List temp = LispNil;
+	     type_id = CInteger(CAR($3));
+	     type_len = tlen(type_id);
+	     resdomno = p_last_resno++;
+	     temp = lispCons (MakeResdom(resdomno,
+					type_id,
+					type_len,
+					CString($1), 0, 0, 0) 
+				, lispCons(CDR($3), LispNil) );
+		$$ = temp;
+	}
 
+	| Id '=' a_expr
+	  {
+		$$ = make_targetlist_expr ($1,$3);
+	   } 
 	| attr
 		{
 		      LispValue varnode, temp;
