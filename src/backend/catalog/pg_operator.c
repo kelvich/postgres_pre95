@@ -29,9 +29,7 @@
  * ----------------
  */
 #include <strings.h>	/* XXX style */
-#include "cat.h"
 
-#include "anum.h"
 #include "catname.h"
 #include "fmgr.h"	/* for fmgr */
 #include "ftup.h"
@@ -41,11 +39,13 @@
 #include "name.h"
 #include "parse.h"	/* for ARG */
 #include "pg_lisp.h"
-#include "rproc.h"
 #include "syscache.h"
 #include "tqual.h"
 
 #include "defrem.h"
+
+#include "catalog/pg_operator.h"
+#include "catalog/pg_proc.h"
 
 /* ----------------
  *	support functions in pg_type.c
@@ -456,7 +456,7 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
     char	 	nulls[ OperatorRelationNumberOfAttributes ];
     char	 	replaces[ OperatorRelationNumberOfAttributes ];
     char 		*values[ OperatorRelationNumberOfAttributes ];
-    ObjectId 		oid;
+    ObjectId 		other_oid;
     ObjectId		operatorObjectId;
     ObjectId		leftTypeId = InvalidObjectId;
     ObjectId		rightTypeId = InvalidObjectId;
@@ -590,25 +590,25 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
 
     for (j = 0; j < 4; ++j) {
 	if (NameIsValid(name[j])) {
-	    oid = OperatorGet(name[j],
+	    other_oid = OperatorGet(name[j],
 			      leftTypeName,
 			      rightTypeName);
 	    
-	    if (ObjectIdIsValid(oid)) /* already in catalogs */
-		values[i++] = (char *) oid;
+	    if (ObjectIdIsValid(other_oid)) /* already in catalogs */
+		values[i++] = (char *) other_oid;
 	    else if (!NameIsEqual(operatorName, name[j])) {
 		/* not in catalogs, different from operator */
 		/* NOTE -- eventually should switch order   */
 		/* for commutator's types                   */
 
-		oid = OperatorShellMake(name[j],
+		other_oid = OperatorShellMake(name[j],
 					leftTypeName,
 					rightTypeName);
-		if (!ObjectIdIsValid(oid))
+		if (!ObjectIdIsValid(other_oid))
 		    elog(WARN,
 			 "OperatorDef: can't create %s",
 			 name[j]);     
-		values[i++] = (char *) oid;
+		values[i++] = (char *) other_oid;
 		
 	    } else /* not in catalogs, same as operator ??? */
 		values[i++] = (char *) InvalidObjectId;
@@ -650,7 +650,7 @@ OperatorDef(operatorName, definedOK, leftTypeName, rightTypeName,
 	    RelationReplaceHeapTuple(pg_operator_desc, &itemPointerData, tup);
 	    setheapoverride(false);
 	} else
-	    elog(WARN, "OperatorDef: no operator %d", oid);
+	    elog(WARN, "OperatorDef: no operator %d", other_oid);
 	
 	HeapScanEnd(pg_operator_scan);
 	

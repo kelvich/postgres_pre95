@@ -6,23 +6,16 @@ static	char ami_h[] = "$Header$";
 
  **********************************************************************/
 
-#ifndef	C_H
-#include "c.h"
-#endif
-
 #include <sys/file.h>
 #include <stdio.h>
 #include <strings.h>
 #include <signal.h>
 #include <ctype.h>
-/* #include "fmgr.h" */
-#include "cat.h"
 
-/* #include "postgres.h" */
+#include "postgres.h"
 
 #include "bufmgr.h"	/* for BufferManagerFlush */
 #include "buf.h"
-/* #include "defind.h" */
 #include "log.h"
 #include "htup.h"
 #include "portal.h"

@@ -2,13 +2,13 @@
 #define _P_CATALOG_UTILS_H \
   "$Header$"
 
-#include "c.h"
-#include "cat.h"
+#include "postgres.h"
 
 #include "htup.h"
 #include "rel.h"
-#include "oid.h"
-
+#include "catalog/pg_proc.h"
+#include "catalog/pg_type.h"
+    
 typedef struct tuple *Type;
 typedef struct tuple *Operator;
 

@@ -20,9 +20,6 @@
  *     #includes
  * ----------------------------------------------------------------
  */
-
-#include "c.h"
-
 #include <signal.h>
 #include <stdio.h>
 #include <sys/file.h>
@@ -30,11 +27,11 @@
 #include <strings.h>
 #include <ctype.h>
 
-#include "anum.h"
+#include "postgres.h"
+
 #include "aset.h"
 #include "attnum.h"
 #include "buf.h"
-#include "cat.h"
 #include "catname.h"
 #include "command.h"
 #include "defrem.h"
@@ -47,7 +44,6 @@
 #include "htup.h"
 #include "log.h"
 #include "name.h"
-#include "oid.h"
 #include "palloc.h"
 #include "params.h"
 #include "parse.h"
@@ -62,6 +58,10 @@
 #include "tim.h"
 #include "tupdesc.h"
 #include "xcxt.h"
+
+#include "catalog/pg_type.h"
+#include "catalog/pg_inherits.h"
+#include "catalog/pg_ipl.h"
 
 #include "tcopdebug.h"
 #include "execdebug.h"

@@ -32,10 +32,8 @@
 #include "execdebug.h"
 
 #include "skey.h"
-#include "anum.h"
 #include "align.h"
 #include "buf.h"
-#include "cat.h"
 #include "catname.h"
 #include "clib.h"
 #include "executor/execdefs.h"
@@ -52,11 +50,14 @@
 #include "recursion_a.h"
 #include "recursion.h"
 #include "rel.h"
-#include "rproc.h"
 #include "simplelists.h"
 #include "strings.h"
 #include "syscache.h"
 #include "tqual.h"
+
+#include "catalog/pg_index.h"
+#include "catalog/pg_proc.h"
+#include "catalog/pg_type.h"
 
 #include "printtup.h"
 #include "primnodes.h"

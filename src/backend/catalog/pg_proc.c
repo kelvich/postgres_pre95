@@ -23,9 +23,7 @@ RcsId("$Header$");
  * ----------------
  */
 #include <strings.h>
-#include "cat.h"
 
-#include "anum.h"
 #include "catname.h"
 #include "fmgr.h"
 #include "ftup.h"
@@ -35,11 +33,12 @@ RcsId("$Header$");
 #include "name.h"
 #include "parse.h"
 #include "pg_lisp.h"
-#include "rproc.h"
 #include "syscache.h"
 #include "tqual.h"
 
 #include "defrem.h"
+
+#include "catalog/pg_proc.h"
 
 /* ----------------
  *	support functions in pg_type.c

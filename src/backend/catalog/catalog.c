@@ -3,21 +3,23 @@
  *
  */
 
-#include "c.h"
+#include <strings.h>	/* XXX */
+
+#include "postgres.h"
 
 RcsId("$Header$");
 
-#include <strings.h>	/* XXX */
 #include "catname.h"	/* XXX for definitions of NameIs{,Shared}SystemRelationName */
 
 #include "buf.h"
-#include "cat.h"
 #include "htup.h"
 #include "log.h"
 #include "name.h"
-#include "oid.h"
 #include "syscache.h"
 #include "htup.h"
+
+#include "catalog/pg_attribute.h"
+#include "catalog/pg_type.h"
 
 /*
  * XXX The global relation names should be merged with the ones defined

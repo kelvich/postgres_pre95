@@ -11,25 +11,15 @@
  */
 #define REL_H	"$Header$"
 
-#ifndef C_H
-#include "c.h"
-#endif
+#include "postgres.h"
 
-#ifndef	CAT_H
-# include "cat.h"
-#endif
-#ifndef	FD_H
-# include "fd.h"
-#endif
-#ifndef	ISTRAT_H
-# include "istrat.h"
-#endif
-#ifndef	OID_H
-# include "oid.h"
-#endif
-#ifndef	TUPDESC_H
-# include "tupdesc.h"
-#endif
+#include "fd.h"
+#include "istrat.h"
+#include "tupdesc.h"
+
+#include "catalog/pg_am.h"
+#include "catalog/pg_operator.h"
+#include "catalog/pg_relation.h"
 
 typedef struct RelationData {
 	File			rd_fd;		/* open file descriptor */
