@@ -105,4 +105,4 @@ all: ${CREATEFILES}
 #
 # run the test
 #
-runtest: ${OUTFILES}
+runtest: regress.out
