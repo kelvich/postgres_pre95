@@ -56,9 +56,11 @@ RcsId("$Header$");
 extern double	atof();
 extern double   cbrt();
 
-float64		ftod();
-float32		dtof();
 
+char *float8outAd ARGS((float64 num , int precision , char format ));
+float64 float8inAd ARGS((char *num ));
+char *float4outAd ARGS((float32 num , int precision , char format ));
+float32 float4inAd ARGS((char *num ));
 
 	    /* ========== USER I/O ROUTINES ========== */
 
@@ -122,7 +124,7 @@ float4out(num)
 	float32	num;
 {
 	
-	char	*ascii = palloc(MAXFLOATWIDTH);	
+	char	*ascii = (char *)palloc(MAXFLOATWIDTH);	
 	
 	ftoa((double) *num, ascii, MAXFLOATWIDTH, FLOATPRECISION, FORMAT);
 	return(ascii);
@@ -148,7 +150,7 @@ float4outAd(num, precision, format)
 	int	precision;
 	char	format;
 {
-	char	*ascii = palloc(MAXFLOATWIDTH);	
+	char	*ascii = (char *)palloc(MAXFLOATWIDTH);	
 	
 	ftoa(*num, ascii, MAXFLOATWIDTH, precision, format);
 	return(ascii);
@@ -212,7 +214,7 @@ char *
 float8out(num)
 	float64	num;
 {
-	char	*ascii = palloc(MAXDOUBLEWIDTH);
+	char	*ascii = (char *)palloc(MAXDOUBLEWIDTH);
 	
 	ftoa(*num, ascii, MAXDOUBLEWIDTH, DOUBLEPRECISION, FORMAT);
 	return(ascii);
@@ -239,7 +241,7 @@ float8outAd(num, precision, format)
 	int	precision;
 	char	format;
 {
-	char	*ascii = palloc(MAXDOUBLEWIDTH);
+	char	*ascii = (char *)palloc(MAXDOUBLEWIDTH);
 	
 	ftoa(*num, ascii, MAXDOUBLEWIDTH, precision, format);
 	return(ascii);
