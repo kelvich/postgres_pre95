@@ -20,8 +20,6 @@
 
 /* dynloader.c */
 
-#define	del_shlibs random		/* until i can change postinit.c */
-
 /* pg_dl{open,close,sym} prototypes are in utils/dynamic_loader.h */
 
 /* port.c */
