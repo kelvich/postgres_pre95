@@ -84,6 +84,7 @@ clause_type (clause)
     } else
       return(LispNil);
 
+    return(LispNil);
 }
 /*  .. clause-subclauses
  */
@@ -105,6 +106,8 @@ clause_args (clause)
 	  return(CDR (clause));
     } else 
       return(LispNil);
+
+    return(LispNil);
 }
 
 
@@ -128,7 +131,9 @@ make_clause (type,args)
 
     } else
       return (args);
-} 
+
+    return (args);
+}
 
 
 /*  .. fix-indxqual-references
@@ -165,6 +170,8 @@ is_opclause (clause)
 {
     if (clause_head(clause))
       return((bool)IsA (clause_head (clause),Oper));
+
+    return(false);
 }
 
 /*    
@@ -272,6 +279,7 @@ is_funcclause (clause)
 {
     if (clause_head(clause))
       return((bool)IsA (clause_head (clause),Func));
+    return(false);
 }
 
 /*    
@@ -356,6 +364,7 @@ or_clause (clause)
     if (consp (clause))
       return(bool) ( equal(lispInteger(OR),clause_head(clause)));
    /*  return(equal ("OR",clause_head (clause))); */
+    return(false);
 }
 
 /*    
@@ -396,6 +405,8 @@ get_orclauseargs (orclause)
 {
     if ( consp (orclause))
       return(CDR (orclause));
+
+    return(NULL);
 }
 
 /*    	-------- NOT clause macros
@@ -420,6 +431,8 @@ not_clause (clause)
 {
     if (consp (clause))
       return(bool) ( equal(lispInteger(NOT),clause_head(clause)));
+
+    return(false);
 }
 
 /*    
@@ -480,6 +493,8 @@ and_clause (clause)
 {
     if (consp (clause))
       return(bool) ( equal(lispInteger(AND),clause_head(clause)));
+
+    return(false);
 }
 
 /*    		 
