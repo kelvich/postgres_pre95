@@ -1,3 +1,4 @@
+/* $Header$ */
 /*
  * oidchar16.c --
  *

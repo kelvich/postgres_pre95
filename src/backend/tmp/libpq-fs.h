@@ -1,3 +1,5 @@
+/* $Header$ */
+
 #ifndef libpq_fs_H
 #define libpq_fs_H
 

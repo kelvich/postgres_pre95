@@ -1,3 +1,5 @@
+/* $Header$ */
+
 #include "nodes/relation.h"
 
 /* command line arg flags */

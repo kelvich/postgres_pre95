@@ -1,3 +1,5 @@
+/* $Header$ */
+
 Relevant files:
 lib/libpq/be-fsstubs.c		back-end interface wrapper
 lib/H/tmp/libpq-fs.h 		Constants and datatypes for use in
