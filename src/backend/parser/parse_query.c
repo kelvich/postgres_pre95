@@ -131,7 +131,8 @@ MakeRoot(NumLevels,query_name,result,rtable,priority,ruleinfo,unique_flag,
 
 	one_sort_elt = find_tl_elt(CString(CAR(one_sort_clause)),targetlist );
 
-	Assert(! null (one_sort_elt));
+	if ( null (one_sort_elt))
+	  elog(WARN,"The field being sorted by must appear in the target list");
 
 	if ( ! null ( CADR ( one_sort_clause )))
 	  one_sort_op = CString(CADR(one_sort_clause));
