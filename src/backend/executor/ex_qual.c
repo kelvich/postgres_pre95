@@ -1386,7 +1386,6 @@ ExecFormComplexResult(tlist, natts, tdesc, values, nulls)
      * Be tidy and free up our constructed tuple descriptor and all slots
      * that we found.
      */
-#ifdef BETIDYMER
     for (flatInd = 0; flatInd < flatNatts; flatInd++)
 	pfree(flatTd->data[flatInd]);
     pfree (flatTd);
@@ -1398,7 +1397,6 @@ ExecFormComplexResult(tlist, natts, tdesc, values, nulls)
 	foundslots++;
     }
     pfree (slotbase);
-#endif
     return resultTup;
 }
  
