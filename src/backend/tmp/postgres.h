@@ -1,5 +1,5 @@
-#ifndef	_POSTGRES_H_
-#define	_POSTGRES_H_		"$Header$"
+#ifndef	POSTGRES_H
+#define	POSTGRES_H		"$Header$"
 
 /*
  *	postgres.h	- Central and misc definitions for POSTGRES
@@ -14,7 +14,9 @@
 #include "c.h"
 #endif
 
+#ifndef OID_H
 #include "oid.h"
+#endif
 
 #define	SIGNBIT	(0x8000)	/* msb for int/unsigned */
 #define	CSIGNBIT	(1 << 7)	/* msb for char */

@@ -18,10 +18,17 @@
  */
 #ifndef Prs2LocksIncluded
 #define Prs2LocksIncluded
+#define PRS2LOCKS_H
 
+#ifndef C_H
 #include "c.h"
+#endif
+#ifndef POSTGRES_H
 #include "postgres.h"
+#endif
+#ifndef ATTNUM_H
 #include "attnum.h"
+#endif
 
 #define PRS2_DEBUG 1
 

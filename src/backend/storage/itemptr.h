@@ -24,6 +24,9 @@
 #ifndef	PAGENUM_H
 # include "pagenum.h"
 #endif
+#ifndef PAGE_H
+# include "page.h"
+#endif
 #ifndef	PART_H
 # include "part.h"
 #endif
