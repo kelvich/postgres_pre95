@@ -78,7 +78,7 @@ int  PQAsyncNotifyWaiting = 0; /* 1 if one or more asynchronous
                                   notifications have been
                                   triggered */
 
-char *PQerrormsg;       /* null-delimited string containing the
+char PQerrormsg[];       /* null-delimited string containing the
                            error message (usually from the backend)
                            when the execution of a query or function 
                            fails */
