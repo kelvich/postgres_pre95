@@ -18,63 +18,76 @@ int	errcode;	/* true if errors occured */
 char	*strcpy(), *malloc(), *realloc();
 extern char *getenv();
 
+void usage();
+
 main(argc, argv)
 	char *argv[];
 {
 	register char *arg;
 	char *dbname;
+	int ch,dflag;
+	extern int optind;
+	extern char *optarg;
+	extern char *PQhost, *PQport;
 
-	if ((dbname = getenv("DATABASE")) == (char *) NULL) {
-	    fprintf(stderr, "no database specified in env var DATABASE\n");
-	    fflush(stderr);
-	    exit (1);
-	}
-
-	PQsetdb(dbname);
-
+	dflag = 0;
 	fflg = !isatty(0);
 	iflg = 0;
 	rflg = 0;
-	while (argc > 1 && argv[1][0] == '-') {
-		arg = *++argv;
-		argc--;
+	while ((ch = getopt(argc, argv, "H:P:D:fiRr")) != EOF)
+	  switch(ch) {
+	    case 'H':
+	      PQhost = optarg;
+	      break;
+	    case 'P':
+	      PQport = optarg;
+	      break;
+	    case 'D':
+	      PQsetdb(optarg);
+	      dflag = 1;
+	      break;
+	    case 'f':
+	      fflg++;
+	      break;
+	    case 'i':
+	      iflg++;
+	      break;
+	    case 'R':
+	    case 'r':
+	      rflg++;
+	      break;
+	    case '?':
+	    default:
+	      usage();
+	  }
 
-		/*
-		 *  all files following a null option are considered file names
-		 */
-		if (arg[1] == '\0')
-			break;
-
-		while (*++arg != '\0')
-			switch(*arg) {
-			case 'f':
-				fflg++;
-				break;
-
-			case 'i':
-				iflg++;
-				break;
-
-			case 'R':
-			case 'r':
-				rflg++;
-				break;
-
-			default:
-				fprintf(stderr, "usage: rm [-rif] file ...\n");
-				PQfinish();
-				exit(1);
-			}
+	if (!dflag) {
+	    if ((dbname = getenv("DATABASE")) == (char *) NULL) {
+		fprintf(stderr, "no database specified with -D option or in env var DATABASE\n");
+		fflush(stderr);
+		exit (1);
+	    }
+	    PQsetdb(dbname);
 	}
-
-	if (argc < 2 && !fflg) {
-		fprintf(stderr, "usage: rm [-rif] file ...\n");
+	{
+	    extern int p_attr_caching;
+	    p_attr_caching = 0;
+	}
+	if ((argc-optind) > 0 && argv[optind][0] == '-') {
+	    optind++;
+	}
+	
+	if ((argc-optind) < 1 && !fflg) {
 		PQfinish();
-		exit(1);
+		usage();
 	}
 
-	while (--argc > 0)
-		(void) rm(*++argv, 0);
+
+
+	while ((optind < argc) > 0) {
+	    (void) rm(argv[optind], 0);
+	    optind++;
+	}
 	PQfinish();
 	exit(errcode != 0);
 	/* NOTREACHED */
@@ -274,4 +287,10 @@ append(name)
 		*pathp++ = '/';
 	strcpy(pathp, name);
 	pathp += n;
+}
+
+void
+usage() {
+    fprintf(stderr, "usage: rm [-rif] file ...\n");
+    exit(1);
 }
