@@ -8,9 +8,9 @@
  *	C code should call SearchSysCacheTuple -- it's slightly more efficient.
  */
 
-#include <stdio.h>
+#include "c.h"
 
-#include "postgres.h"
+RcsId("$Header$");
 
 #include "anum.h"
 #include "catalog.h"		/* for struct amop, ... */
@@ -18,9 +18,12 @@
 #include "catcache.h"
 #include "catname.h"
 #include "heapam.h"
-#include "pg_lisp.h"
 #include "log.h"
+#include "palloc.h"
+#include "pg_lisp.h"
 #include "tuple.h"
+
+#ifdef	USE_UNUSED
 /* #include "var-access.h"	/* XXX for AMI_OVERRIDE */
 extern bool	AMI_OVERRIDE;	/* XXX style */
 
@@ -29,9 +32,10 @@ extern bool	AMI_OVERRIDE;	/* XXX style */
 /*#define LITTLEENDIAN		/* e.g.: VAX, i386 */
 #endif /* !PG_STANDALONE */
 
+#endif /* !defined(USE_UNUSED) */
+
 #include "syscache.h"
 
-RcsId("$Header$");
 
 static struct cachedesc cacheinfo[] = {
 	{ &AccessMethodOperatorRelationName,	/* AMOPOPID */
@@ -409,7 +413,11 @@ SearchSysCacheGetAttribute(cacheId, attributeNumber,
 	RelationCloseHeapRelation(relation);
 	return(returnValue);
 }
-
+
+#ifdef	USE_UNUSED
+/*
+ * DANGER!!!  Bizarre byte-ordering hacks follow.  -hirohama
+ */
 /*
  *	TypeDefaultRetrieve
  *
@@ -523,5 +531,6 @@ lvTypeDefaultRetrieve(index)
 }
 
 #endif
+#endif	/* defined(USE_UNUSED) */
 
 #endif /* !PG_STANDALONE */
