@@ -273,7 +273,7 @@ ExtendIndex(indexRelationName, predicate)
 		if (!HeapTupleIsValid(tuple))
 			elog(WARN, "ExtendIndex: index procedure not found");
 		strncpy(FIgetname(funcInfo), 
-			((Form_pg_proc) GETSTRUCT(tuple))->proname,
+			((Form_pg_proc) GETSTRUCT(tuple))->proname.data,
 			sizeof(NameData));
 		FIgetProcOid(funcInfo) = tuple->t_oid;
 	}
