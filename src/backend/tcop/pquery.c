@@ -85,6 +85,7 @@ CreateExecutorState()
     Relation        	relationRelationDesc;
     RelationInfo       	resultRelationInfo;
     ParamListInfo	paramListInfo;
+    TupleCount		tuplecount;
     
     /* ----------------
      *	These are just guesses.. Someone should tell me if
@@ -111,6 +112,17 @@ CreateExecutorState()
     paramListInfo = 		NULL;
 
     /* ----------------
+     *	 initialize tuple count
+     * ----------------
+     */
+    tuplecount = MakeTupleCount(0, 	/* retrieved */
+				0, 	/* appended */
+				0, 	/* deleted */
+				0, 	/* replaced */
+				0, 	/* inserted */
+				0); 	/* processed */
+    
+    /* ----------------
      *	create the Executor State structure
      * ----------------
      */
@@ -125,7 +137,8 @@ CreateExecutorState()
 		       qualTupleID,
 		       relationRelationDesc,
 		       resultRelationInfo,
-		       paramListInfo);
+		       paramListInfo,
+		       tuplecount);
 
     return state;
 }
@@ -381,6 +394,15 @@ ExecuteFragments(queryDesc, planFragments)
     feature = lispCons(lispInteger(EXEC_END), LispNil);
     (void) ExecMain(queryDesc, state, feature);
 
+    /* ----------------
+     *	print tuple counts.. note this is only a temporary
+     *  place for this because statistics are stored in the
+     *  execution state.. it should be moved someplace else
+     *  someday -cim 10/16/89
+     * ----------------
+     */
+    DisplayTupleCount(state);
+    
     /* ----------------
      *   not certain what this does.. -cim 8/29/89
      *
