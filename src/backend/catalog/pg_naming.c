@@ -1,4 +1,3 @@
-/*#define NAMINGDB 1*/
 /* ----------------------------------------------------------------
  *   FILE
  *      pg_naming.c
@@ -82,6 +81,8 @@
 #include "access/heapam.h"
 #include "tmp/libpq-fs.h"
 
+/*#define NAMINGDB 1*/
+
 #define RootOID         0        /* arbitrary. */
 #define RootFileName   "/"
 
@@ -102,30 +103,29 @@ oid FilenameToOID(fname)
     char *cp;
     OID parentOID;
     struct naming *namingStruct;
+    NameData comp;
 
     /* get root directory tuple */
     namingTuple = SearchSysCacheTuple(NAMEREL,RootOID,RootFileName);
-
     if (namingTuple == NULL)
 	elog(WARN, "root directory \"%s\" does not exist", RootFileName);
-
     namingStruct = (struct naming *) GETSTRUCT(namingTuple);
-    strcpy(pathcomponents,fname);
 
     /* strtok must not be used by more than one active function at a time */
+    strcpy(pathcomponents,fname);
     cp = strtok(pathcomponents,"/");
 
     /* look up a component at a time */
     while (cp != NULL) {
+	(void) namestrcpy(&comp, cp);
 	parentOID = namingStruct->ourid;
-	namingTuple = SearchSysCacheTuple(NAMEREL,parentOID, cp);
+	namingTuple = SearchSysCacheTuple(NAMEREL, parentOID, &comp);
 
 	if (namingTuple == NULL) {
 	    /* component does not exist */
 	    return InvalidObjectId;
-	} else {
-	    namingStruct = (struct naming *) GETSTRUCT(namingTuple);
 	}
+	namingStruct = (struct naming *) GETSTRUCT(namingTuple);
 	cp = strtok(NULL,"/");
     }
 
@@ -313,11 +313,13 @@ int LOisemptydir(path)
     oid pathOID;
     int result;
 
-    if (path[0] == '/' && path[1] == '\0')
+    if (path[0] == '/' && path[1] == '\0') {
 	return (0);
+    }
 
-    if ((pathOID = FilenameToOID(path)) == InvalidObjectId)
+    if ((pathOID = FilenameToOID(path)) == InvalidObjectId) {
 	return (0);
+    }
 
     namreln = heap_openr(Name_pg_naming);
     RelationSetLockForRead(namreln);
@@ -346,12 +348,11 @@ int LOisdir(path)
 {
     oid oidf;
     int ignoretype;
-    oidf = FilenameToOID(path);
 
-    if (oidf == InvalidObjectId)
-      return 0;
-    else
-      return (LOassocOIDandLargeObjDesc(&ignoretype,oidf) == NULL);
+    if ((oidf = FilenameToOID(path)) == InvalidObjectId) {
+	return(0);
+    }
+    return(LOassocOIDandLargeObjDesc(&ignoretype,oidf) == NULL);
 }
 
 int LOrename(path,newpath)
