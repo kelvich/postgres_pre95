@@ -22,12 +22,12 @@
  * Create an empty prs2 locks, i.e. return a pointer to a 'Prs2LocksData'
  * with numberOfLocks = 0;
  */
-Prs2Locks
+RuleLock
 prs2MakeLocks()
 {
-    Prs2Locks t;
+    RuleLock t;
 
-    t = (Prs2Locks) palloc(sizeof(Prs2LocksData));
+    t = (RuleLock) palloc(sizeof(Prs2LocksData));
 
     if (t==NULL) {
 	elog(WARN, "prs2MakeLocks: palloc failed.");
@@ -45,9 +45,9 @@ prs2MakeLocks()
  * Note that this frees the space occupied by 'prs2Locks' and reallocates
  * some other. So this routine should be used with caution!
  */
-Prs2Locks
+RuleLock
 prs2AddLock(oldLocks, ruleId, lockType, attributeNumber, planNumber)
-Prs2Locks	oldLocks;
+RuleLock	oldLocks;
 ObjectId	ruleId;
 Prs2LockType	lockType;
 AttributeNumber attributeNumber;
@@ -55,14 +55,14 @@ Prs2PlanNumber	planNumber;
 {
     long oldSize;
     long newSize;
-    Prs2Locks newLocks;
+    RuleLock newLocks;
     Prs2OneLock theNewLock;
 
     /*
      * allocate enough space to hold the old locks + the new one..
      */
     newSize = prs2LockSize(oldLocks->numberOfLocks + 1);
-    newLocks = (Prs2Locks) palloc(newSize);
+    newLocks = (RuleLock) palloc(newSize);
     if (newLocks == NULL) {
 	elog(WARN,"prs2AddLock: palloc failed");
     }
@@ -95,12 +95,12 @@ Prs2PlanNumber	planNumber;
  *
  * prs2GetOneLockFromLocks
  *
- * Given a 'Prs2Locks' return a pointer to its Nth lock..
+ * Given a 'RuleLock' return a pointer to its Nth lock..
  * (the first locks is lock number 0).
  */
 Prs2OneLock
 prs2GetOneLockFromLocks(lock, n)
-Prs2Locks lock;
+RuleLock lock;
 int n;
 {
     Prs2OneLock t;
@@ -119,14 +119,14 @@ int n;
  *
  * prs2GetLocksFromTuple
  *
- * Extract the locks from a tuple. It returns a 'Prs2Locks',
+ * Extract the locks from a tuple. It returns a 'RuleLock',
  * (NOTE:it will never return NULL! Even if the tuple has no
- * locks in it, it will return a 'Prs2Locks' with 'numberOfLocks'
+ * locks in it, it will return a 'RuleLock' with 'numberOfLocks'
  * equal to 0.
  *
  */
 
-Prs2Locks
+RuleLock
 prs2GetLocksFromTuple(tuple, buffer, tupleDescriptor)
 HeapTuple tuple;
 Buffer buffer;
@@ -135,8 +135,8 @@ TupleDescriptor tupleDescriptor;
     
     Datum lockDatum;
     Boolean isNull;
-    Prs2Locks locks;
-    Prs2Locks t;
+    RuleLock locks;
+    RuleLock t;
     Size size;
 
     lockDatum = HeapTupleGetAttributeValue(
@@ -151,12 +151,12 @@ TupleDescriptor tupleDescriptor;
          */
         locks = prs2MakeLocks();
     } else {
-	t = (Prs2Locks) DatumGetPointer(lockDatum);
+	t = (RuleLock) DatumGetPointer(lockDatum);
 	/*
 	 * Make a copy of the locks
 	 */
 	size = prs2LockSize(prs2GetNumberOfLocks(t));
-	locks = (Prs2Locks) palloc(size);
+	locks = (RuleLock) palloc(size);
 	if (locks == NULL) {
 	    elog(WARN,"prs2MakeLocks: palloc(%d) failed",size);
 	}
@@ -180,7 +180,7 @@ prs2PutLocksInTuple(tuple, buffer, relation, newLocks)
 HeapTuple   tuple;
 Buffer      buffer;
 Relation    relation;
-Prs2Locks   newLocks;
+RuleLock   newLocks;
 {
     HeapTuple newTuple;
     HeapTuple palloctup();
@@ -191,9 +191,9 @@ Prs2Locks   newLocks;
      * (No need to store the empty lock header...)
      */
     if (prs2GetNumberOfLocks(newLocks) == 0) {
-	newTuple->t_lock.l_lock = (Prs2Locks) NULL;
+	newTuple->t_lock.l_lock = (RuleLock) NULL;
     } else {
-	newTuple->t_lock.l_lock = (Prs2Locks) newLocks;
+	newTuple->t_lock.l_lock = (RuleLock) newLocks;
     }
 
     return(newTuple);
@@ -208,7 +208,7 @@ Prs2Locks   newLocks;
 
 void
 prs2PrintLocks(locks)
-Prs2Locks   locks;
+RuleLock   locks;
 {
     int i;
     int nlocks;
@@ -240,11 +240,11 @@ Prs2Locks   locks;
  *
  * Make a copy of a prs2 lock..
  */
-Prs2Locks
+RuleLock
 prs2CopyLocks(locks)
-Prs2Locks locks;
+RuleLock locks;
 {
-    Prs2Locks newLocks;
+    RuleLock newLocks;
     int numberOfLocks;
     int i;
     Prs2OneLock oneLock;
@@ -276,13 +276,13 @@ Prs2Locks locks;
  *
  * prs2RemoveOneLockInPlace
  *
- * This is a routine that removes one lock form a 'Prs2Locks'.
+ * This is a routine that removes one lock form a 'RuleLock'.
  * Note that the removal is done in place, i.e. no copy of the
  * original locks is made
  */
 void
 prs2RemoveOneLockInPlace(locks, n)
-Prs2Locks locks;
+RuleLock locks;
 int n;
 {
 
@@ -313,16 +313,16 @@ int n;
  * prs2RemoveAllLocksOfRule
  *
  * remove all the locks that have a ruleId equal to the given.
- * the old `Prs2Locks' is destroyed and should never be
+ * the old `RuleLock' is destroyed and should never be
  * referenced again.
  * The new lock is returned.
  */
-Prs2Locks
+RuleLock
 prs2RemoveAllLocksOfRule(oldLocks, ruleId)
-Prs2Locks oldLocks;
+RuleLock oldLocks;
 ObjectId ruleId;
 {
-    Prs2Locks newLocks;
+    RuleLock newLocks;
     int numberOfLocks;
     int i;
     Prs2OneLock oneLock;
@@ -360,12 +360,12 @@ ObjectId ruleId;
  *
  * Create the union of two locks.
  */
-Prs2Locks
+RuleLock
 prs2LockUnion(lock1, lock2)
-Prs2Locks lock1;
-Prs2Locks lock2;
+RuleLock lock1;
+RuleLock lock2;
 {
-    Prs2Locks result;
+    RuleLock result;
     Prs2OneLock oneLock;
     int nlocks;
     int i;
