@@ -1,6 +1,10 @@
 /*
  * oset.c --
  *	Fixed format ordered set definitions.
+ *
+ * Note:
+ *	XXX This is a preliminary implementation which lacks fail-fast
+ *	XXX validity checking of arguments.
  */
 
 #include "c.h"
@@ -102,6 +106,15 @@ OrderedElemPop(elem)
 	/* assignments used only for error detection */
 	elem->next = NULL;
 	elem->prev = NULL;
+}
+
+void
+OrderedElemPushInto(elem, set)
+	OrderedElem	elem;
+	OrderedSet	set;
+{
+	OrderedElemInit(elem, set);
+	OrderedElemPush(elem);
 }
 
 void
