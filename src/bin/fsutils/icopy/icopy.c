@@ -457,6 +457,7 @@ build_inlist(srcfname, destfname)
     struct dirent *entry;
     char *newsrc, *newdest;
     struct stat stbuf;
+    int namlen;
 
     if (stat(srcfname, &stbuf) < 0) {
 	fprintf(stderr, "%s: ", ProgName);
@@ -494,9 +495,10 @@ build_inlist(srcfname, destfname)
 	    if (strcmp(entry->d_name, ".") == 0
 		|| strcmp(entry->d_name, "..") == 0)
 		continue;
-	    newsrc = (char *) palloc(strlen(srcfname) + entry->d_namlen + 2);
+	    namlen = D_NAMLEN(entry);
+	    newsrc = (char *) palloc(strlen(srcfname) + namlen + 2);
 	    sprintf(newsrc, "%s/%s", srcfname, entry->d_name);
-	    newdest = (char *) palloc(strlen(destfname) + entry->d_namlen + 2);
+	    newdest = (char *) palloc(strlen(destfname) + namlen + 2);
 	    sprintf(newdest, "%s/%s", destfname, entry->d_name);
 	    tail->cl_next = build_inlist(newsrc, newdest);
 	    while (tail->cl_next != (COPYLIST *) NULL)
