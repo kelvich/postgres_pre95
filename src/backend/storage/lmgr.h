@@ -25,6 +25,8 @@ typedef struct LockInfoData  {
 } LockInfoData;
 typedef LockInfoData    *LockInfo;
 
+#define LockInfoIsValid(linfo) \
+	((PointerIsValid(linfo)) &&  ((LockInfo) linfo)->initialized)
 /*
  * RelationGetLRelId --
  *	Returns "lock" relation identifier for a relation.
