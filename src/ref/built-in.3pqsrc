@@ -26,7 +26,7 @@ User-defined types are not described in this section.
 center;
 l l l
 l l c.
-Name of Built-In Type	Meaning	Required
+\fBBuilt-In Type\fP	\fBMeaning\fP	\fBRequired\fP
 _
 abstime	absolute date and time	*
 bool	boolean	*
@@ -161,19 +161,18 @@ retrieve (argtype = t1.typname, o.oprname, t0.typname, p.proname,
 	      and p.pronargs = 2
 	      and o.oprleft = t1.oid and o.oprright = t2.oid
 .)b
-The list is sorted by the type of the first operand.
+The list is sorted by the built-in type name of the first operand.
 The
 .i "function prototype"
-column gives the return type,
-function name,
+column gives the return type, function name,
 and argument types for the procedure that implements the operator.
 (Note that these function prototypes are POSTGRES function prototypes and they
-are NOT EQUIVALENT to C function prototypes.)
+are \fBnot equivalent\fP to C function prototypes.)
 .TS
 center expand;
-l l l l
+l l c l
 c l l lw(2i).
-Type	Operator	POSTGRES Function Prototype	Operation
+\fBType\fP	\fBOperator\fP	\fBPOSTGRES Function Prototype\fP	\fBOperation\fP
 _
 abstime	!\(eq	bool abstimene(abstime, abstime)	inequality
 	+	abstime timepl(abstime, reltime)	addition
@@ -430,9 +429,9 @@ Right Unary Operators
 .ft
 .TS
 center expand;
-l l l l
+l l c l
 c l l lw(2i).
-Type	Operator	POSTGRES Function Prototype	Operation
+\fBType\fP	\fBOperator\fP	\fBPOSTGRES Function Prototype\fP	\fBOperation\fP
 _
 float8	%	float8 dround(float8)	round to nearest integer
 .TE
@@ -443,9 +442,9 @@ Left Unary Operators
 .ft
 .TS
 center expand;
-l l l l
+l l c l
 c l l lw(2i).
-Type	Operator	POSTGRES Function Prototype	Operation
+\fBType\fP	\fBOperator\fP	\fBPOSTGRES Function Prototype\fP	\fBOperation\fP
 _
 box	@@	point box_center(box)	center of box
 _
@@ -460,6 +459,9 @@ float8	@	float8 float8abs(float8)	absolute value
 _
 tinterval	|	abstime intervalstart(tinterval)	start of interval
 .TE
+.uh "SEE ALSO"
+.lp
+For examples on specifying literals of built-in types, see postquel(commands).
 .uh BUGS
 .lp
 The lists of types, functions, and operators are
