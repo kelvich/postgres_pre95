@@ -415,7 +415,8 @@ int		pid;
   result = (BindingEnt *) 
     hash_search(BindingTable,&item, HASH_REMOVE, &found);
 
-  location = result->location;
+  if (found)
+    location = result->location;
   SpinRelease(BindingLock);
 
   if (! result) {
@@ -428,7 +429,6 @@ int		pid;
   if (found)
     return (location);
   else {
-    elog(NOTICE,"ShmemPIDDestroy: PID table entry missing");
     return(INVALID_OFFSET);
   }
 }
