@@ -167,8 +167,25 @@ find_all_join_paths(joinrels,previous_level_rels,nest_level)
  */
 	  temp_list = get_pathlist(innerrel);
 	  foreach(path, temp_list) {
+
+/*
+ * XXX
+ * 
+ * This gross hack is to get around an apparent optimizer bug on Sparc
+ * (or maybe it is a bug of ours?) that causes really wierd behavior.
+ */
+
+#ifdef _PROTOTYPES_
+#define UNDEF_PROTOS
+#undef _PROTOTYPES_
+#endif
 	      if(IsA(path,JoinPath))
-		set_outerjoincost((Path)CAR(path),(Cost)0);
+                 set_outerjoincost((Path)CAR(path), LispNil); /* XXX */
+
+#ifdef UNDEF_PROTOS
+#define _PROTOTYPES_
+#endif
+
 	      /* do it iff it is a join path, which is not always
 		 true, esp since the base level */
 	  }
