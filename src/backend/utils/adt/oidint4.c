@@ -40,7 +40,7 @@ oidint4out(o)
 	char *r;
 
 	r = (char *) palloc(20);
-	sprintf(r, "%d/%ud", o->oi_oid, o->oi_int4);
+	sprintf(r, "%d/%ld", o->oi_oid, o->oi_int4);
 
 	return (r);
 }
