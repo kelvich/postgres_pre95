@@ -10,7 +10,9 @@
 #define SInvalIncluded	1
 
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "ipci.h"
 #include "itemptr.h"

@@ -9,7 +9,9 @@
 #ifndef	RelCacheIncluded	/* Include this file only once. */
 #define RelCacheIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "oid.h"
 #include "rel.h"

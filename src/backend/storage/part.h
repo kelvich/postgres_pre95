@@ -9,7 +9,9 @@
 #ifndef	PartIncluded	/* Include this file only once. */
 #define PartIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "page.h"
 

@@ -29,7 +29,9 @@
 #ifndef	FDIncluded	/* Include this file only once */
 #define FDIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 typedef String	FileName;
 

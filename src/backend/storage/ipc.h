@@ -9,7 +9,9 @@
 #ifndef	IPCIncluded	/* Include this file only once */
 #define IPCIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 typedef uint16	SystemPortAddress;
 

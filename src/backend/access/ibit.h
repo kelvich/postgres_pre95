@@ -9,7 +9,9 @@
 #ifndef	IBitIncluded	/* Include this file only once. */
 #define IBitIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "limit.h"
 

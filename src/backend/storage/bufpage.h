@@ -6,10 +6,12 @@
  *	$Header$
  */
 
-#ifndef	BufPageIncluded	/* Include this file only once. */
-#define BufPageIncluded	1
+#ifndef BUFPAGE_H
+#define BUFPAGE_H
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "status.h"
 
@@ -399,4 +401,4 @@ PageGetMaxItemIndex ARGS((
 ));
 */
 
-#endif	/* !defined(BufPageIncluded) */
+#endif	/* !defined(BUFPAGE_H) */

@@ -9,7 +9,9 @@
 #ifndef	RelIncluded	/* Include this file only once. */
 #define RelIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "os.h"
 

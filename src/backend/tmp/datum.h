@@ -12,7 +12,9 @@
 #ifndef	DatumIncluded	/* Include this file only once. */
 #define DatumIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "name.h"
 #include "oid.h"

@@ -9,7 +9,9 @@
 #ifndef	PosIncluded	/* Include this file only once. */
 #define PosIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "part.h"
 #include "pagenum.h"

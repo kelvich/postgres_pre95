@@ -9,7 +9,9 @@
 #ifndef	PageIncluded	/* Include this file only once. */
 #define PageIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 typedef Pointer	Page;
 

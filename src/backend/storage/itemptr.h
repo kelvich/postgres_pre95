@@ -9,7 +9,9 @@
 #ifndef	ObjPtrIncluded	/* Include this file only once. */
 #define ObjPtrIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "block.h"
 #include "off.h"

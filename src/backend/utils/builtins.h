@@ -14,7 +14,9 @@
 #ifndef BuiltinsIncluded
 #define BuiltinsIncluded
 
+#ifndef C_H
 #include "c.h"
+#endif
 #include "postgres.h"
 #include "oid.h"
 #include "tim.h"

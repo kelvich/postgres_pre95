@@ -15,7 +15,9 @@
 #include <sys/ipc.h>
 #endif
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "ipc.h"
 #include "pladt.h"

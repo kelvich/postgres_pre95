@@ -7,7 +7,9 @@
  *	This is bound to grow without bound.
  */
 
+#ifndef C_H
 #include "c.h"
+#endif
 #include "oid.h"
 
 #define	NULL	0

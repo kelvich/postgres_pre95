@@ -12,7 +12,9 @@
 #ifndef	HRndIncluded	/* Include this file only once */
 #define HRndIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "block.h"
 #include "oid.h"

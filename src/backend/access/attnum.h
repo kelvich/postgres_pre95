@@ -9,7 +9,9 @@
 #ifndef	AttNumIncluded	/* Include this file only once. */
 #define AttNumIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 typedef int16	AttributeNumber;
 

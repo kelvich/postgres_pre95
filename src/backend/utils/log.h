@@ -9,7 +9,9 @@
 #ifndef	LogIncluded	/* Include this file only once. */
 #define LogIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #define NOTICE	0	/* random info - no special action */
 #define WARN	-1	/* Warning error - return to known state */

@@ -9,7 +9,9 @@
 #ifndef	RAcIncluded	/* Include this file only once. */
 #define RAcIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "block.h"
 #include "buf.h"

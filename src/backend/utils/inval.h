@@ -9,7 +9,9 @@
 #ifndef	InvalIncluded	/* Include this file only once */
 #define InvalIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "htup.h"
 #include "oid.h"

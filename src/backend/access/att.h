@@ -11,7 +11,9 @@
 
 #include "cat.h"
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 typedef AttributeTupleForm	Attribute;
 

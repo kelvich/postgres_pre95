@@ -9,7 +9,9 @@
 #ifndef	AttValIncluded	/* Include this file only once. */
 #define AttValIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "datum.h"
 #include "attnum.h"

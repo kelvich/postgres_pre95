@@ -9,7 +9,9 @@
 #ifndef	BlockIncluded	/* Include this file only once */
 #define BlockIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 /* XXX this should be called BlockIndex -hirohama */
 typedef uint32	BlockNumber;	/* page number */

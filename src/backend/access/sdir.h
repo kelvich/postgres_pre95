@@ -9,7 +9,9 @@
 #ifndef	SDirIncluded	/* Include this file only once. */
 #define SDirIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 typedef int8	ScanDirection;
 

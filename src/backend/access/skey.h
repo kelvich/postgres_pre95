@@ -12,7 +12,9 @@
 #ifndef	SKey	/* Include this file only once. */
 #define SKey	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "attnum.h"
 #include "datum.h"

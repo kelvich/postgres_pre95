@@ -9,7 +9,9 @@
 #ifndef	TupDescIncluded	/* Include this file only once. */
 #define TupDescIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "att.h"
 

@@ -9,7 +9,9 @@
 #ifndef	ItemPosIncluded	/* Include this file only once. */
 #define ItemPosIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "buf.h"
 #include "itemid.h"

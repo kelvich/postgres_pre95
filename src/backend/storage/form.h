@@ -9,7 +9,9 @@
 #ifndef	FormIncluded	/* Include this file only once. */
 #define FormIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 /*
  * FormData --

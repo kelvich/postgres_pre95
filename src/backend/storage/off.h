@@ -9,7 +9,9 @@
 #ifndef	OffIncluded	/* Include this file only once. */
 #define OffIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 typedef uint16	OffsetNumber;	/* offset number */
 typedef uint16	OffsetIndex;	/* offset index */

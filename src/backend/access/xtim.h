@@ -9,7 +9,9 @@
 #ifndef	XTimIncluded	/* Include this file only once. */
 #define XTimIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "tim.h"
 #include "xid.h"

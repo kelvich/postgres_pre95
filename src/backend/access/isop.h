@@ -9,7 +9,9 @@
 #ifndef	ISOpIncluded	/* Include this file only once */
 #define ISOpIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "istrat.h"
 

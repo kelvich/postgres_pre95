@@ -7,7 +7,9 @@
 
 #include <tuple.h>
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "htup.h"
 

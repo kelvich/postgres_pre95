@@ -9,7 +9,9 @@
 #ifndef	IStratIncluded	/* Include this file only once. */
 #define IStratIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "attnum.h"
 #include "skey.h"

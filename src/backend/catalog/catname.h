@@ -9,7 +9,9 @@
 #ifndef	CatNameIncluded	/* Include this file only once. */
 #define CatNameIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "name.h"
 

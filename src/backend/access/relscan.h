@@ -9,7 +9,9 @@
 #ifndef	RelScanIncluded	/* Include this file only once. */
 #define RelScanIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "buf.h"
 #include "htup.h"

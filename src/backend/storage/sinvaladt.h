@@ -8,7 +8,9 @@
 
 #include "postgres.h"	/* XXX */
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "ipc.h"
 #include "itemptr.h"

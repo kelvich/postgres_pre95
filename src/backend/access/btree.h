@@ -22,7 +22,9 @@
  * ----------------------------------------------------------------
  */
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "align.h"
 #include "attnum.h"

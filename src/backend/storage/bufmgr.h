@@ -6,10 +6,12 @@
  *	$Header$
  */
 
-#ifndef	BufMgrIncluded	/* Include this file only once. */
-#define BufMgrIncluded	1
+#ifndef BUFMGR_H
+#define BUFMGR_H
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "postgres.h"
 #include "rel.h"
@@ -176,4 +178,4 @@ BufferIsLocked ARGS((
 ));
 */
 
-#endif	/* !defined(BufMgrIncluded) */
+#endif	/* !defined(BUFMGR_H) */

@@ -11,7 +11,9 @@
 
 #include "postgres.h"
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "attnum.h"
 #include "form.h"

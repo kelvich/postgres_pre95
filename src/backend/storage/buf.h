@@ -9,7 +9,9 @@
 #ifndef	BufIncluded	/* Include this file only once. */
 #define BufIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "block.h"
 

@@ -13,7 +13,9 @@
 #ifndef	TQualIncluded	/* Include this file only once */
 #define TQualIncluded	1
 
+#ifndef C_H
 #include "c.h"
+#endif
 
 #include "htup.h"
 #include "tim.h"
