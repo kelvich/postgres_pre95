@@ -82,7 +82,9 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
      List 	level_tlist = LispNil;
      List	result_of_flatten_tlist = LispNil;
      List	agg_tlist = LispNil;
+     List	all_but_agg_tlist = LispNil;
      int	aggidnum = -17; /* okay, a hack on uniquness */
+     Plan	thePlan = (Plan)NULL;
      Plan	subplan = (Plan)NULL;
      List	subtlist = LispNil;
      Plan 	restplan = (Plan)NULL;
@@ -136,14 +138,34 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	 agg_tlist = CADR(result_of_flatten_tlist);
 
 	 result_of_flatten_tlist = CDR(result_of_flatten_tlist);
+	 all_but_agg_tlist = CADR(result_of_flatten_tlist);
 	 if (flattened_tlist)
 	   level_tlist = flattened_tlist;
 	 else if (tlist)
-	   level_tlist = CADR(result_of_flatten_tlist);
+	   level_tlist = all_but_agg_tlist;
 	   /* orig_tlist minus the aggregates */
 	 else
 	   level_tlist = (List)NULL;
      }
+
+  if(agg_tlist) {
+     if(all_but_agg_tlist) {
+	thePlan = query_planner(command_type,
+		all_but_agg_tlist, qual, currentlevel, maxlevel);
+     }
+     else {
+	 /* all we have are aggregates */
+	 thePlan = (Plan)make_agg(CAR(agg_tlist), --aggidnum);
+	 /* also, there should never be a case by now where we neither 
+	  * have aggs nor all_but_aggs
+	  */
+	  agg_tlist = CDR(agg_tlist);
+     }
+     if(agg_tlist != NULL) {  /* are there any aggs left */
+	   thePlan = (Plan)make_aggplan(thePlan, agg_tlist, aggidnum);
+      }
+      return(thePlan);
+   }
 
      /*    A query may have a non-variable target list and a non-variable */
      /*    qualification only under certain conditions: */
@@ -151,7 +173,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
      /*   - the query is a replace (a scan must still be done in this case). */
 
      if ((0 == maxlevel || 
-	  (1 == currentlevel && null (result_of_flatten_tlist))) &&
+	  (1 == currentlevel && null (flattened_tlist))) &&
 	 null (qual)) {
 	  switch (command_type) {
 	       
@@ -194,28 +216,12 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 /*    and destructively modify the target list of the newly created */
 /*    subplan to contain the appropriate join references. */
 	  
-     if(level_tlist != NULL) {
-	 subplan = subplanner (level_tlist,
+     subplan = subplanner (level_tlist,
 				tlist,
 				qual,
 				currentlevel,
 				sortkeys);
-     }
-     else if(agg_tlist != NULL) {
-     /* level_tlist was null in this case so our base plan is the aggnode */
-
-        subplan = (Plan)make_agg(CAR(agg_tlist), --aggidnum);
-
-	/* this calls the planner on the inner query, builds the Agg node,
-	 * sets the appropriate fields, and returns the Agg node.
-	 */
-        agg_tlist = CDR(agg_tlist);
-     }
-     /* we're assuming we Have a targetlist at this point */
-     if(agg_tlist != NULL) {
-	/* are there any aggs left...*/
-	subplan = (Plan)make_aggplan(subplan, agg_tlist, aggidnum);
-     }
+     
      subtlist = get_qptargetlist (subplan);
      set_tlist_references (subplan);
 
