@@ -106,7 +106,7 @@ DATA(insert OID = 28 (  xid        6  5  12 f b t 0   0 xidin xidout xidin xidou
 DATA(insert OID = 29 (  cid        6  1   3 t b t 0   0 cidin cidout cidin cidout - ));
 DATA(insert OID = 30 (  oid8       6 32  89 f b t 0  26 oid8in oid8out oid8in oid8out - ));
 DATA(insert OID = 31 (  lock       6 -1  -1 f b t 0  -1 lockin lockout lockin lockout - ));
-DATA(insert OID = 32 (  RELATION   6 -1  -1 f r t 0  -1 textin textout textin textout - ));
+DATA(insert OID = 32 (  SET        6 -1  -1 f r t 0  -1 textin textout textin textout - ));
 DATA(insert OID = 33 (  stub       6 -1  -1 f b t 0  -1 stubin stubout stubin stubout - ));
     
 DATA(insert OID = 591 (  ref 	   6  8   1 f b t 0   0 refn refout refin refout - ));
