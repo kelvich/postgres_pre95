@@ -892,7 +892,7 @@ OptStmtList:
 		}
 	| OptimizableStmt
 		{ $$ = lispCons ( $1, LispNil ); }
-	| '{' OptStmtBlock '}'
+	| '[' OptStmtBlock ']'
 		{ $$ = $2; }
         ;
 
