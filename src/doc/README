@@ -1,0 +1,46 @@
+Directories:
+
+    papers/
+
+        Technical reports about Postgres
+
+    implementation/
+
+        bufmgr.doc        - buffer manager
+        amiint.doc      - "backend" program protocol
+
+        executor/*      - old executor implementation notes
+        planner/*       - old planner implementation notes
+
+    psdump/
+
+        Postscript dump of papers using illustrations.  You will need to use
+        these if you do not have GRN.  If these do not work or you do not have a
+        Postscript printer, use the "eatgrn" script in place of GRN in the
+        print scripts - this will get rid of the GRN data and allow you to
+        print these files without the illustrations.  The Postscript versions
+        of these files are printed on an Apple Laserwriter.
+
+    tutorials/
+
+        Postgres tutorials
+
+To print these files, use the print script in this directory.
+Set the PRINTER="-P <printer>" variable to the name of your site's printer,
+or you may use 
+
+% print -P <printer> filename
+
+Papers with pictures in them are available in Postscript format in the
+directory psdump.
+
+File Name Conventions:
+
+<name>.me  - Standard TROFF file using me macros.  This is all we use.
+             These files may include calls to deqn, dtbl, and ideal.
+
+<name>.grn - Same as above, but with embedded GRN pictures.  Postscript dumps
+             are distributed for the convienence of those who do not have
+             access to GRN (a GREMLIN preprocessor for TROFF).
+
+<name>.doc - Flat ASCII files - just send directly to your line printer.

@@ -1,0 +1,1165 @@
+.\" 
+.\" POSTGRES Data Base Management System
+.\" 
+.\" Copyright (c) 1988 Regents of the University of California
+.\" 
+.\" Permission to use, copy, modify, and distribute this software and its
+.\" documentation for educational, research, and non-profit purposes and
+.\" without fee is hereby granted, provided that the above copyright
+.\" notice appear in all copies and that both that copyright notice and
+.\" this permission notice appear in supporting documentation, and that
+.\" the name of the University of California not be used in advertising
+.\" or publicity pertaining to distribution of the software without
+.\" specific, written prior permission.  Permission to incorporate this
+.\" software into commercial products can be obtained from the Campus
+.\" Software Office, 295 Evans Hall, University of California, Berkeley,
+.\" Ca., 94720.  The University of California makes no representations
+.\" about the suitability of this software for any purpose.  It is
+.\" provided "as is" without express or implied warranty.
+.\" 
+.\" ----------------------------------------------------------------
+.\"	POSTGRES version 2 setup instructions
+.\"
+.\" ----------------------------------------------------------------
+.de RV
+.ie "\\$2"" \
+\{\
+.	ds VT "<No Title>
+.	ds VN "<Unaudited Revision>
+.	ds VD \*(td
+.\}
+.el \
+\{\
+.	ds VT \\$7
+.	ds VD \\$4
+.	ds VN \\$3
+.\}
+..
+.hx
+.fo ''%''
+.ce 99
+.ps 18
+.b
+POSTGRES INSTALLATION INSTRUCTIONS
+.r
+.ps 14
+.sp 0.25v
+C-Only Release 2.0
+.sp 0.25v
+.ce 0
+.sp
+.\" ----------------
+.tm    Document Overview
+.\" ----------------
+.ds PG "\\s-2POSTGRES\\s+2
+.sh 0 "Document Overview"
+.(l
+    Document Overview
+    Introduction
+    Site Requirements
+	Hardware
+	Software
+	Distribution Tape
+	Expertise
+	Configuration
+	    Operating System
+	    Disk Partition
+	    Swap Partition
+	    Kernel
+	    Lisp
+    Installing \*(PG
+	Overview
+	Preparation
+	    Finding Space for \*(PG
+	    Creating /usr/postgres
+	    Creating the \*(lqpostgres\*(rq user
+	Loading
+	    Loading \*(PG
+	Configuration
+	    Kernel reconfiguration
+	    Configuring \*(PG
+	Compiling
+	    Compiling \*(PG
+	    Creating the initial database
+	Testing
+	    Testing \*(PG
+    Running \*(PG
+	The \*(PG Postmaster
+	The \*(PG Terminal Monitor
+	The \*(PG Backend
+	\*(PG Support Programs
+    Periodic Maintenance
+    Optional Installation
+	Installing LIBPQ, the \*(PG frontend library
+	Performance Tuning
+	Demo Database
+	Minimal Installation
+    Miscellaneous
+	Bug Reports
+	Consulting
+	Postgres BBS
+.)l
+.bp
+.\" ----------------
+.tm    Introduction
+.\" ----------------
+.sh 1 "Introduction"
+.pp
+This document gives installation instructions for the \*(PG
+database system under development at the University of
+California, Berkeley.
+\*(PG is distributed in source code format and is the
+property of the Regents of the University of California.
+However, the University will grant unlimited commercialization
+rights for any derived work on the condition that it
+obtain an educational license to the derived work.
+For further information, consult the Berkeley Campus
+Software Office, 295 Evans Hall, University of
+California, Berkeley, CA 94720.
+.pp
+The University and the \*(PG development group
+provide no warranty as to the fitness of the code for
+any purpose whatsoever,
+and cannot guarantee to assist in fixing problems.
+This is *unsupported* software.
+.\" ----------------
+.tm    Site Requirements
+.\" ----------------
+.sh 1 "Site Requirements"
+.pp
+.sh 2 "Hardware"
+.pp
+\*(PG currently has been tested by the Postgres development team on Sun
+Microsystems 3/xx family of
+processors with SunOS 3.4 or 3.5, as well as Digital
+Equipment Corporation DECstation 3100 computers running
+Ultrix 2.0 Rev 7.  Ports for Sparcstation 1, SunOS 4.0 on
+Sun 3's, and Sequent Symmetry minicomputers are also included in the
+distribution, although these have not been completely tested due to
+inaccessability.
+In order to use \*(PG,
+your machine should have at least 8 megabytes of memory
+and you will require at least 25 megabytes of disk space
+to hold source,
+binaries,
+and user databases.
+If you choose to compile \*(PG for source-level debugging,
+you will need roughly twice as much disk space.
+See the section on compilation for details.
+.pp
+The DECstation version requires a kernel which allows 4 megabytes of
+shared memory.
+A Sequent Symmetry port is available, except that you will have to obtain
+a System V Release 3 compatible "make" in order to compile \*(PG.
+.sh 2 "Software"
+.pp
+This implementation of \*(PG is completely in C.
+The distribution contains no Lisp or C++ code.
+.sh 2 "Distribution tape"
+.pp
+These instructions assume you have a \*(PG Version 2
+distribution tape (in either 9 track, SCSI cartridge, or TK50 cartridge
+format)
+or a \*(PG tar file.
+.sh 2 "Expertise"
+.pp
+Once a site is properly configured and \*(PG is properly installed,
+very little UNIX expertise is required to maintain things.
+However,
+initially setting things up for your site to run \*(PG
+may be difficult and we advise that the person installing
+\*(PG be familiar with the various system administration
+procedures.
+Also note that various
+steps require superuser authority on the system,
+so we advise
+that your site's system administrator read this document also.
+.sh 2 "Configuration"
+.pp
+This section briefly describes the configuration you
+need to run \*(PG.
+Read this to familiarize
+yourself with the procedure.
+Detailed instructions for making
+appropriate modifications to your system are given later in this
+document.
+.sh 3 "Operating System"
+.pp
+\*(PG expects things to be configured for BSD by default.
+If the default on your site is to use the SunOS SysV compiler
+and libraries then you may have to make some changes to this
+procedure before compiling \*(PG.
+.pp
+One exception to this rule is that we use Sun's SysV-compatible
+.i make
+to build the system.
+This is the version of
+.i make
+that is installed in both the BSD and SysV environments on Suns,
+so this should pose no problems on these platforms.  We have no
+problems on DECstations either.  However, we have had a great deal
+of difficulty on Sequent Symmetry machines, so we advise that you
+obtain a Sun-compatible make for these platforms.
+.sh 3 "Disk Partition"
+.pp
+\*(PG requires 25 megabytes of disk space,
+preferably on a single partition.
+If you don't have enough space,
+it is still possible to compile and run \*(PG but you will have to
+modify the installation scripts.
+.sh 3 "Kernel"
+.pp
+\*(PG makes use of the optional System V shared memory operations
+provided by SunOS, DEC Ultrix, and Dynix,
+which require a properly configured kernel which is in general different
+than the factory-shipped "generic" kernel.
+See the section on kernel configuration for details.
+.\" ----------------
+.tm    Installation
+.\" ----------------
+.sh 1 "Installing \*(PG"
+.pp
+\*(PG installation consists of the following steps:
+.ip \0\0\0\(bu
+Preparation
+.ip \0\0\0\(bu
+Loading
+.ip \0\0\0\(bu
+Configuration
+.ip \0\0\0\(bu
+Compilation
+.ip \0\0\0\(bu
+Testing
+.ip \0\0\0\(bu
+Cleanup
+.lp
+Each of these steps is described below.
+It is advised that you read over
+each of these steps carefully before beginning the installation.
+.\" ----------------
+.tm    Preparation
+.\" ----------------
+.sh 2 "Step 1 \- Preparation"
+.pp
+Some of the tasks involved in this step normally fall in
+the domain of the site's system administrator and may require
+superuser authority.
+If possible,
+we advise you to have your
+system administrator perform these steps.
+.sh 3 "Find a good place for \*(PG"
+.pp
+You should locate a disk partition with
+at least 20 megabytes of free space available for \*(PG.
+If you haven't any single partition with 20 megabytes free,
+you might have to spread apart the \*(PG directories across several
+partitions,
+and glue them together with symbolic links.
+.sh 3 "Creating the \*(PG directory"
+.pp
+Once you have located a partition with enough space,
+create a directory called
+.q postgres
+someplace on this partition.
+Then \fBcd\fR to this directory and type \fBpwd\fR.
+This is the full
+path of the directory you will install postgres in.
+Write it down in preparation for the next step.
+For example:
+.sp
+.(l
+# \fBdf\fR
+Filesystem	kbytes	used	avail	capacity  Mounted on
+/dev/xy0a	  8421	  6703	  875	   88%	    /
+/dev/xy0f	 10829	  6743	 3003	   69%      /pub.MC68020
+/dev/xy2h	110811   81181  18548	   81%      /usr3
+/dev/xy2g	221279  167405  31746	   84%      /b
+/dev/xy1g	221279  138365  60786	   69%      /public
+/dev/xy1a	  8179	   944	 6417	   13%      /tmp
+/dev/xy0h	119999  101623	 6376	   94%      /usr.MC68020
+/dev/xy0g	156033  135499	 4930	   96%      /usr2
+/dev/rf0d	539421  465026  20452	   96%      /a
+.i
+	/public looks like a good place (it has 60 megs free) so we decide
+	to create the postgres directory there...
+.r
+# \fBcd /public\fR
+# \fBmkdir postgres\fR
+# \fBcd postgres\fR
+# \fBpwd\fR
+/public/postgres
+#
+.)l
+.sh 2 "Creating /usr/postgres"
+.pp
+\*(PG expects to be
+.i logically
+installed in a directory
+called
+.q /usr/postgres ,
+so you must create a symbolic link
+from /usr/postgres to whatever directory you created in the
+previous step.
+In our example,
+we would now type:
+.sp
+.(l
+# \fBln -s  /public/postgres  /usr/postgres\fR
+.)l
+.sh 2 "Creating the \*(lqpostgres\*(rq user"
+.pp
+Finally, we need to create a user called \*(lqpostgres\*(rq whose
+shell is /bin/csh and whose home directory is /usr/postgres.
+This can be done using the "adduser" procedures particular to your
+platform and site.  See your system administration manual for details.
+.\" ----------------
+.tm    Loading
+.\" ----------------
+.sh 2 "Step 2 - Loading \*(PG"
+.pp
+After completing step 1 (Preparation),
+you should be ready to load
+the \*(PG files onto your system.
+To do this,
+you will need either
+a distribution tape or a \*(PG tar file.
+.pp
+If you are loading \*(PG from a tape, follow these instructions;
+if you are loading from an FTP tar file, skip to the
+section "Loading \*(PG from a Tar File".
+.sh 3 "Loading \*(PG from a Tape"
+.pp
+Login as postgres.
+.pp
+3.  Run "tar" with the "extract, verbose, file" options:
+.pp
+% tar xvf <tape-device>
+.sp
+where <tape-device> is the name for your tape device, i.e.,
+/dev/rmt0, /dev/rst8, etc.
+.pp
+The file "postgres-v2r0.tar.Z" will appear in your \*(PG home directory.
+You may need to re-wind your tape to get it out of your tape
+drive - see your system administrator for instructions.
+.pp
+Please proceed to the section "Loading \*(PG from a Tar File".
+.pp
+.sh 2 "Loading \*(PG from a Tar File"
+.pp
+If you are not logged in as \*(PG already, log in as \*(PG.
+Make sure your current working directory is the \*(PG home
+directory, and that the \*(PG tar file is there.
+the purpose of this discussion, the \*(PG tar file will be called
+.pp
+postgres-v2r0.tar.Z
+.pp
+Uncompress the tar file.
+.pp
+% uncompres postgres-v2r0.tar.Z
+.pp
+A larger file should now be in the \*(PG home directory, and the '.Z'
+ending should be gone, so it is now named
+.pp
+postgres-v2r0.tar
+.pp
+Extract \*(PG from the tar file, using the "extract, verbose, file"
+options:
+.pp
+% tar xvf postgres-v2r0.tar
+.pp
+Large numbers of file names and such should appear on the screen.
+This step may take several minutes.
+.pp
+Now do an "ls":
+.pp
+The output of the ls should look something like:
+.(l
+COPYRIGHT	demo/	newconf/	src/
+README	doc/	ref/
+
+.)l
+.pp
+At this point you have loaded the \*(PG files.
+Other directories will be created by the installation process.
+Proceed now to the Configuration section.
+.sp
+.\" ----------------
+.tm    Configuration
+.\" ----------------
+.sh 2 "Step 3 - Configuration"
+.pp
+.sh 3 "Kernel reconfiguration for Suns and Sparcs"
+.pp
+This step requires familiarity with configuring a UNIX kernel.
+If you are unfamiliar with this procedure,
+we advise you to read the
+section on configuring a kernel in the SunOS or DEC system administration
+manual carefully.
+This task requires superuser authority and should
+probably not be done without the assistance of your system administrator.
+We assume that whoever undergoes this procedure has an understanding
+of the process and procedures involved.
+.pp
+\*(PG uses shared memory segments which must be compiled into the
+kernel of the host which will act as the \*(PG server.
+If you
+try to run a postgres backend process on a machine without enough
+shared memory,
+the backend will abort with an error message.
+.pp
+In order to reconfigure your kernel,
+you will have to become root
+and add some lines to /usr/sys/conf (your kernel config file)
+and /usr/sys/conf/param.c (your kernel parameters file).
+A copy of the lines listed below can be found in the files
+~postgres/misc/config.add and ~postgres/misc/param.add\**
+.(f
+\**
+This document assumes that you are running under a BSD
+environment using the C shell.
+In the C shell ~postgres is
+the home directory of the user \*(lqpostgres\*(rq.
+If you are using the Bourne shell,
+then substitute $HOME for occurrences of ~postgres
+and
+.q $
+for the
+.q %
+shell prompt.
+.)f
+respectively.
+We
+.i strongly
+advise you to make a spare copy of your system's original config
+and parameter files before you make any changes.
+.lp
+The following lines should be added to /usr/sys/conf/KERNEL:
+.sp
+.(l
+options		IPCMESSAGE		# SystemV IPC Message Facility 
+options		IPCSEMAPHORE	# SystemV IPC Semaphore Facility
+options		IPCSHMEM		# SystemV IPC Shared-Memory Facility
+options		EMOREIPCS	# more semaphores and shared memory (for 8M)
+.)l
+.sp
+.lp
+At Berkeley, we substitute the line: 
+.(l 
+options		EMOREIPCS	# more semaphores and shared memory (for 8M)
+.)l
+.lp
+with the line:
+.(l
+options		TTMOREIPCS	# more semaphores and shared memory (for 32M)
+.)l
+.lp
+to allocate more shared memory so that we can run more \*(PG backends
+at the same time.
+Either of the lines will result in a kernel that
+has enough shared memory allocated.
+.lp
+Also add the following lines to the \fItop\fR of /usr/sys/conf/param.c:
+.sp
+.(l
+/*
+ * LOCAL DEFINITIONS START
+ */
+
+#ifdef	EMORESEMS
+#define EMOREIPCS
+#endif	/* defined(EMORESEMS) */
+
+#ifdef	TTMORESEMS
+#define TTMOREIPCS
+#endif	/* defined(TTMORESEMS) */
+
+#ifdef	EMOREIPCS
+#define SEMMNI		30	/* # of semaphore identifiers */
+#define SEMMNS		180	/* # of semaphores in system */
+#define SEMUME		10	/* max # of undo entries per process */
+#define SEMMNU		30	/* # of undo structures in system */
+
+#define SHMPOOL 	1536		/* max total shared memory system wide (in Kbytes) */
+#define SHMSEG		6	/* max attached shared memory segments per process */
+#define SHMMNI		100	/* # of shared memory identifiers */
+#endif	/* defined(EMOREIPCS) */
+
+#ifdef	TTMOREIPCS
+#define SEMMNI		60	/* # of semaphore identifiers */
+#define SEMMNS		384	/* # of semaphores in system */
+#define SEMUME		10	/* max # of undo entries per process */
+#define SEMMNU		30	/* # of undo structures in system */
+
+#define SHMPOOL 	8192		/* max total shared memory system wide (in Kbytes) */
+#define SHMSEG		6	/* max attached shared memory segments per process */
+#define SHMMNI		100	/* # of shared memory identifiers */
+#endif				/* defined(TTMOREIPCS) */
+
+/*
+ * LOCAL DEFINITIONS END
+ */
+.)l
+.pp
+After adding these lines,
+run config over the config file,
+install the new kernel,
+and reboot.
+This is by far the most complicated part of the installation
+so these steps should be performed by someone experienced.
+Again, 
+we advise you to consult
+the system administration section of your SunOS manual
+before doing this step.
+.pp
+For a brief discussion of shared memory, 
+you may want to consult the section 2 man pages for \fIshmget()\fR,
+\fIshmop()\fR, \fIshmctl()\fR, etc. 
+.sp
+.sh 3 "Kernel reconfiguration for DECs"
+.pp
+This step requires familiarity with configuring a UNIX kernel.
+If you are unfamiliar with this procedure,
+we advise you to read the
+section on configuring a kernel in the DEC system administration
+manual carefully.
+This task requires superuser authority and should
+probably not be done without the assistance of your system admistrator.
+We assume that whoever undergoes this procedure has an understanding
+of the process and procedures involved.
+.pp
+\*(PG uses shared memory segments which must be compiled into the
+kernel of the host which will act as the \*(PG server.
+If you
+try to run a postgres backend process on a machine without enough
+shared memory,
+the backend will abort with an error message.
+.pp
+In order to reconfigure your kernel,
+you will have to become root
+and add some lines to /usr/sys/conf (your kernel config file)
+and /usr/sys/conf/param.c (your kernel parameters file).
+.sp
+The following lines should be added to /usr/sys/conf/KERNEL:
+.sp
+.(l
+smmax           256
+smseg           12
+smbrk           1024
+.)l
+.pp
+After adding these lines,
+run config over the config file,
+install the new kernel,
+and reboot.
+This is by far the most complicated part of the installation
+so these steps should be performed by someone experienced.
+Again, 
+we advise you to consult
+the system administration section of your DEC manual
+before doing this step.
+.pp
+For a brief discussion of shared memory, 
+you may want to consult the Man pages for \fIshmget()\fR,
+\fIshmop()\fR, \fIshmctl()\fR, etc. 
+.sp
+.sh 3 "Kernel reconfiguration for Sequent Symmetrys"
+.pp
+This step requires familiarity with configuring a UNIX kernel.
+If you are unfamiliar with this procedure,
+we advise you to read the
+section on configuring a kernel in the DYNIX system administration
+manual carefully.
+This task requires superuser authority and should
+probably not be done without the assistance of your system admistrator.
+We assume that whoever undergoes this procedure has an understanding
+of the process and procedures involved.
+.pp
+\*(PG uses shared memory segments which must be compiled into the
+kernel of the host which will act as the \*(PG server.
+If you
+try to run a postgres backend process on a machine without enough
+shared memory,
+the backend will abort with an error message.
+.pp
+In order to reconfigure your kernel,
+you will have to become root
+and add some lines to /usr/sys/conf (your kernel config file)
+.sp
+The following line should be added to /sys/conf/KERNEL:
+.sp
+.(l
+options         SVSEMA
+.)l
+.pp
+After adding this line,
+run config over the config file,
+install the new kernel,
+and reboot.
+This is by far the most complicated part of the installation
+so these steps should be performed by someone experienced.
+Again, 
+we advise you to consult
+the system administration section of your DYNIX manual
+before doing this step.
+.pp
+For a brief discussion of shared memory,
+you may want to consult the Man pages for \fIshmget()\fR,
+\fIshmop()\fR, \fIshmctl()\fR, etc. 
+.sp
+.\" ----------------
+.tm    Compiling
+.\" ----------------
+.sh 2 "Configuring \*(PG"
+.pp
+This release of \*(PG
+may require some configuration.
+If you did not unpack the source in /usr/postgres,
+and you have not created a symbolic link from /usr/postgres to
+the directory that
+.i does
+contain the code,
+you will have to edit the configuration file.
+Also,
+if you have a floating-point coprocessor on your machine,
+you should set the \-f68881 flag for the Sun C compiler.
+This is not necessary,
+but will substantially improve the performance of the system.
+.pp
+To do this,
+.(l
+.i
+	Change to the configuration directory in the directory
+	that contains the unpacked system.
+.r
+.sp 0.5v
+% \fBcd newconf\fP
+.sp 0.5v
+.i
+	Now make the necessary changed to config.mk.  The file newconf/README
+	explains what the various entries in config.mk mean.
+.r
+.sp 0.5v
+% \fBvi config.mk\fP
+.)l
+.pp
+Look in the README file,
+and in config.mk,
+for instructions on what to change.
+The
+.i only
+thing we recommend changing is the
+GCFLAGS variable.
+If you have a floating-point coprocessor,
+use \-f68881.
+.pp
+By default,
+\*(PG will be compiled without the \-g flag
+for source-level debugging.
+The system is large,
+and using \-g is very expensive.
+If you intend to do debugging,
+you should change GCFLAGS in config.mk to \-g.
+We do not recommend doing this for casual users.
+Without \-g,
+the \*(PG tree consumes about 25 Mbytes of disk space.
+With \-g,
+the number doubles.
+.sh 2 "Step 3 - Compiling \*(PG"
+.sh 3 "Compiling"
+.pp
+Once you have configured \*(PG,
+you can perform a complete compilation with the following
+sequence of commands:
+.(l
+% \fBcd ~postgres/newconf\fR
+% \fB./newport (see below)\fR
+% \fB./Make everything\fR
+.)l
+.pp
+When running 
+.i newport
+you will be asked which distribution you are installing.
+For a DEC installation, type "dec", for a Sun 3 installation running
+SunOS 3.4 or 3.5, type "sun",
+for a Sun 3 installation running SunOS 4.0, 
+type "sunos4", for a Sequent Symmetry installation type "seq", and
+for a Sparcstation type "sparc".
+Also, use the default object directory name for the object
+tree.
+.lp
+To install the code,
+run
+.(l
+% \fB./Make install\fR
+.)l
+in the same directory.
+.pp
+.i Make
+is a C shell script that runs
+.i make
+with Makefiles that are constructed on the fly.
+If you have problems at this point,
+it is possible that your
+.i \&.cshrc
+file does strange things \*-
+changes directories,
+sets or unsets environment variables,
+and so on.
+.pp
+You should see no errors during this phase.
+.sh 3 "Creating the initial database"
+.pp
+\*(PG databases are stored in the directory ~postgres/data.
+After you have compiled \*(PG,
+you will need to create the
+initial database.
+To do this,
+type 
+.(l
+% \fsetenv POSTGRESHOME ~postgres
+% ~postgres/bin/createdb \-v off postgres\fR
+.)l
+This will create the bootstrap template database, from which
+the database 
+.q postgres
+will be generated.
+If several users wish to use \*(PG,
+we advise you to create additional databases,
+one for each user.
+This can be done by running createdb with the username as the first argument.
+For example,
+to create a database for the user \*(lqbill\*(rq,
+type
+.(l
+% \fB~postgres/bin/createdb bill\fR
+.)l
+.\" ----------------
+.tm    Testing
+.\" ----------------
+.sh 2 "Step 4 - Testing"
+.sh 3 "Testing \*(PG"
+.pp
+After compiling the \*(PG backend and support programs and
+creating the initial database,
+you should test your compilation
+with the following.
+Commands you should type appear in \fBboldface\fP.
+.(l
+\fB% ~postgres/bin/postgres\fR
+.ft CW
+	---debug info---
+	Quiet =        f
+	Noversion =    f
+	override  =    f
+	DatabaseName = [postgres]
+	----------------
+
+	**** Transaction System Active ****
+	InitPostgres()..
+
+POSTGRES backend interactive interface
+$Revision$ $Date$
+	StartTransactionCommand() at Thu Nov  2 15:43:35 1989
+.ft
+> \fBretrieve (pg_user.all)\fP
+.ft CW
+ now in make_Var
+relation = pg_user, attr = usecatupd
+vnum = 1
+	...
+.ft
+	\fIlots of debugging output...\fP
+.ft CW
+
+---- 	parser outputs :
+((1 retrieve nil (("pg_user" 86 0 nil nil ))0 nil )((#S(resdom :resno 1
+:restype 19 :reslen 16 :resname "usename" :reskey 0 :reskeyop 0)#S(var
+	...
+.ft
+	\fIlots more debugging output...\fP
+
+.ft CW
+	ProcessQuery() at Thu Nov  2 15:43:50 1989
+
+blank
+	 1: usename	(typeid = 19, len = 16, byval = f)
+	 2: usesysid	(typeid = 21, len = 2, byval = t)
+	 3: usecreatedb	(typeid = 16, len = 1, byval = t)
+	 4: usetrace	(typeid = 16, len = 1, byval = t)
+	 5: usesuper	(typeid = 16, len = 1, byval = t)
+	 6: usecatupd	(typeid = 16, len = 1, byval = t)
+	----
+	 1: usename = "postgres"	(typeid = 19, len = 16, byval = f)
+	 2: usesysid = "6"	(typeid = 21, len = 2, byval = t)
+	 3: usecreatedb = "t"	(typeid = 16, len = 1, byval = t)
+	 4: usetrace = "t"	(typeid = 16, len = 1, byval = t)
+	 5: usesuper = "t"	(typeid = 16, len = 1, byval = t)
+	 6: usecatupd = "t"	(typeid = 16, len = 1, byval = t)
+	----
+	 1: usename = "goh"	(typeid = 19, len = 16, byval = f)
+	 2: usesysid = "234"	(typeid = 21, len = 2, byval = t)
+	 3: usecreatedb = "t"	(typeid = 16, len = 1, byval = t)
+	 4: usetrace = "t"	(typeid = 16, len = 1, byval = t)
+	 5: usesuper = "t"	(typeid = 16, len = 1, byval = t)
+	 6: usecatupd = "t"	(typeid = 16, len = 1, byval = t)
+	----
+	 ...
+
+	CommitTransactionCommand() at Thu Nov  2 15:43:51 1989
+
+	StartTransactionCommand() at Thu Nov  2 15:43:51 1989
+.ft
+	\fIIt works!\fP
+
+\fI
+	The above response is an example of the raw output
+	generated by the backend.  Your actual output may be slightly
+	different.  Normally, you would use a
+	terminal monitor to talk to the backend instead.
+	To leave the backend, type <ctrl-D>:
+\fR
+> ^D
+%
+.)l
+.sp
+.\" ----------------
+.tm    Running
+.\" ----------------
+.sh 1 "Running \*(PG"
+.pp
+\*(PG is designed to be a multiuser system.
+In practice,
+\*(PG consists of three (or more) processes:
+.ip \0\0\0\(bu
+the postmaster,
+.ip \0\0\0\(bu
+the terminal monitor,
+and
+.ip \0\0\0\(bu
+the backend.
+.lp
+Users are expected to use the terminal monitor.
+The terminal monitor
+sends commands to the postmaster which forwards commands to a backend.
+If you just completed step 4,
+then you have already been introduced to the \*(PG backend,
+so we'll talk about the other two processes now.
+.sh 2 "The \*(PG Postmaster"
+.pp
+The postmaster is a process which manages communication between the
+user's terminal monitor and a \*(PG backend.
+Without a running postmaster,
+the terminal monitor will not be able to connect to a backend.
+To start the postmaster, type:
+.(l
+% \fBcd ~postgres/bin\fR
+% \fBsetenv POSTGRESHOME ~postgres\fR
+% \fBpostmaster &\fR
+.)l
+Here we are using the default parameters for the postmaster.  For more
+details, consult the Reference Manual.
+number you use for \fIport\fR.
+.sh 2 "The \*(PG Terminal Monitor"
+.pp
+The \*(PG terminal monitor is a front-end user interface to the
+\*(PG backend.
+To start a terminal monitor,
+type
+.(l
+% \fB~postgres/bin/monitor database\fR
+.)l
+.pp
+\fIDatabase\fR is the name of the database you want to use. 
+Now we will run the monitor:
+.ft CW
+Welcome to the C POSTGRES terminal monitor
+
+Go 
+*
+.ft
+
+.ft I
+	The ``*'' is the terminal monitor prompt.  We are now
+	talking to the backend, so let's send a simple test
+	query:  list the names and user ids of the postgres users.
+	We terminate the query with a \eg \*- the ``go'' command
+	to the terminal monitor.
+.ft R
+
+*\fBretrieve (u.usename, u.usesysid) from u in pg_user
+\eg\fP
+
+.ft CW
+Query sent to backend is "retrieve (u.usename, u.usesysid) from u in pg_user"
+-----------------------------
+| usename     | usesysid    |
+-----------------------------
+| postgres    | 6           |
+-----------------------------
+| mike        | 799         |
+-----------------------------
+| sp          | 1511        |
+-----------------------------
+| jhingran    | 943         |
+-----------------------------
+| cimarron    | 2359        |
+-----------------------------
+| goh         | 1994        |
+-----------------------------
+| ong         | 2802        |
+-----------------------------
+| hong        | 2469        |
+-----------------------------
+| mao         | 1806        |
+-----------------------------
+| margo       | 2697        |
+-----------------------------
+| sullivan    | 1517        |
+-----------------------------
+| kemnitz     | 3491        |
+-----------------------------
+| choi        | 3898        |
+-----------------------------
+| plai        | 3665        |
+-----------------------------
+
+Go 
+.ft
+.ft I
+	Okay, this worked, too.  Now we'll quit.
+*\fB\eq\fP
+.ft CW
+Bye 
+.ft
+%
+.)l
+.sh 2 "The \*(PG Backend"
+.pp
+The \*(PG backend is the process which does all the \*(lqreal\*(rq
+work.
+This process is started by the postmaster when the postmaster
+receives a connection from a terminal monitor,
+so you should not normally need to start up the backend yourself.
+Should you wish to
+start the backend and talk to it directly (without a terminal monitor)
+you can do this by typing:
+.(l
+% \fB~postgres/bin/postgres\fR \fIdatabase\fR
+.)l
+.lp
+where \fIdatabase\fR is the name of the database you wish to use.
+If you run a backend in this manner,
+you will be talking to the backend parser directly.
+We recommend using the terminal monitor; if you are using Postgres as a
+multiuser system, running the backend can result in locking failures
+and corrupt databases.
+In addition, returned tuples are displayed more usefully
+and input is buffered better.  
+The backend is used interactively primarily during debugging.
+Not that the program called "backend" is not really the backend; it is
+a program used by createdb to initialize databases.
+.sh 2 "\*(PG Support Programs"
+.pp
+Included in \*(PG are a handful of support programs.
+Most of these are used internally by the system but here is a list of
+them for your information.
+.(l
+backend		\- used by createdb to create system relations
+createdb		\- creates new postgres databases
+destroydb	\- destroys postgres databases
+ipcclean		\- frees up garbage shared memory
+vacuumd	\- vacuum cleaner daemon
+.)l
+.\" ----------------
+.tm    Periodic Maintenance
+.\" ----------------
+.sh 2 "Periodic Maintenance"
+.pp
+The database log files in ~postgres/data/base/*/PG_DBLOG and 
+~postgres/data/PG_SYSLOG can grow in size.
+Periodic truncation of these files is recommended.
+.pp
+.sh 1 "Optional Installation"
+.sh 2 "Installing LIBPQ, the \*(PG frontend library"
+.pp
+The file ~postgres/O/libpq.a is created when you
+compile the system.
+This library contains various 
+routines intended for use by frontend programs.
+You use this library if you want to execute Postgres queries
+from a C program.  If you plan on doing software development,
+you may wish to copy this file to
+/usr/lib so that the C compiler can reference it with -lpq.
+To do this,
+type:
+.(l
+# \fBcp ~postgres/O/libpq.a   /usr/lib\fR
+.)l
+.sh 2 "Performance Tuning"
+.pp
+Initial performance tuning can be achieved by tuning various
+system parameters.
+The file ~postgres/doc/bufmgr.doc
+describes the parameters that can be used to change the buffer pool
+size to tune buffer manager performance.
+The parameter NDBUFS,
+the number of buffers,
+is in the file ~postgres/src/storage/buffer/internal.h.
+Meanwhile,
+the file ~postgres/src/lib/H/sinvaladt.h contains
+parameters to tune the invalidation cache. 
+The file plparm.h contains parameters to tune the lock manager.
+The appropriate paramater to tune are NMAXSEM,
+the maximum number of semaphores to be handled,
+NMAXXIDHASH,
+the maximum number of transactions that can be run in parallel,
+and NMAXLTABLE,
+the number of tables handled by the lock manager. 
+.sh 2 "Demo Database"
+.pp
+In ~postgres/demo are files to be included by the terminal monitor
+to setup a demo database.
+Additional files demonstrate inheritance,
+historical queries,
+abstract data types,
+and various other features
+of \*(PG.
+A description of the demo database can be found
+in ~postgres/demo/DEMO-README.
+.pp
+.sh 2 "Minimal Installation"
+.pp
+The directories (in ~postgres) necessary
+for a minimal running system are:
+.(l
+bin/		the binary programs comprising \*(PG
+data/		support files and user created databases
+files/		database initialization scripts
+newconf/	the \*(PG configuration directory
+O/		compiled \*(PG object files
+src/		\*(PG source files
+.)l
+.pp
+Several additional directories are also created as the
+\*(PG distribution is extracted from tape:
+.(l
+demo/		demo database scripts
+doc/		postgres technical reports and tutorials
+ref/		\*(PG Reference Manual source
+.)l
+.pp
+If space is limited on your system,
+you can delete these additional directories.
+Additionally,
+if you do not wish to use \*(PG for development,
+you can delete the following directories
+\fIafter compiling and testing is done\fR:
+.(l
+O/		compiled \*(PG object files and libraries
+src/		\*(PG source files
+newconf/ 	make utilities
+.)l
+.pp
+We do not recommend deleting these unless absolutely necessary.
+.\" ----------------
+.tm    Miscellaneous
+.\" ----------------
+.sh 1 "Miscellaneous"
+.sh 2 "Printing the Reference Manual"
+.pp
+You can print the Postgres reference manual by changing directory to the
+.(l
+\fBref\fR
+.)l
+directory.  There you will find a /bin/sh script called "genref".  Set all the
+appropriate parameters for printing at your site in this script, and then
+run it by typing
+.(l
+% \fBgenref\fR
+.)l
+This script will not actually try to send the job to the printer - rather
+it will create an output file called "ref.t".  You can then print the
+manual by sending this file directly to the printer with the "lpr" command.
+The manual is about 80 pages of single-sided text.  If you do not have the
+GRN preprocessor for troff, substitute the GRN command in the script
+with the name "eatgrn", which is a script which is in the same directory, or
+print the Postscript file "ref.t" which is provided in the "postscript"
+subdirectory.  The "grn" program allows pictures drawn in the GREMLIN graphics
+editor to be printed using a "troff" command, so if you use "eatgrn", the
+illustrations in the manual will not be printed.
+.pp
+.sh 3 "If you do not have a Postscript printer"
+If you do not have a Postscript printer, change the "psroff" command to the
+nroff command you use at your site, typically "nroff", "troff", or "ditroff".
+As stated above, use the eatgrn script if you do not have GRN.  Output suitable
+for a line-printer can be created using "nroff".  
+.pp
+.sh 2 "Printing the Technical Reports and Tutorials"
+You can print the Postgres technical reports and tutorials by changing
+directory to the
+.(l
+\fBdoc\fR
+.)l
+subdirectory.  There you will find a /bin/sh script called "print".  After
+you change the site-specific parameters in this script, you can print most
+of these files, with the exception of those requiring "make", by typing
+.(l
+% \fBprint <filename>\fR
+.)l
+from this directory.  Unlike the "genref" script described above, this
+script will send the job directly to the printer.  If you do not have the
+"grn" utility described above, you should use the "eatgrn" script here
+as well.  For technical reports which require "make", go to the following
+section.
+.sh 3 "If the directory has a makefile"
+A couple of the technical reports use makefiles rather than the "print"
+script.  If the subdirectory has a makefile, you will have
+to change the site-specific parameters in the
+makefile, run 
+.(l
+% \fBmake\fR
+.)l
+and then it will either print or create a printable file.  Note that if the
+makefile uses GRN, you can use the eatgrn script here as well.
+.sh 2 "Bug reports"
+.pp
+If you find a bug with \*(PG,
+please send mail to
+.(l
+\0\0\0\0\0bug-postgres@postgres.Berkeley.EDU
+or
+\0\0\0\0\0(ucbvax!postgres!bug-postgres)
+.)l
+describing as precisely as possible the command that caused
+the problem,
+instructions on how to repeat the bug,
+and a script showing the bug. 
+.sh 2 "Consulting"
+.pp
+This software is unsupported,
+public domain software.
+Although we are interested in feedback,
+it is impossible for us to make any
+commitment to support in a research environment. 
+.pp
+If you do want to talk directly to the Postgres
+group, electronic mail is strongly preferred.
+We can be reached via the Internet as
+.q "post_questions@postgres.Berkeley.EDU"
+and via UUCP as
+.q "ucbvax!postgres!post_questions" .
+We can also be reached at (415) 642-7520,
+Monday through Friday,
+between 1 and 4 PM Pacific Time.
+.pp
+.sh 2 "Postgres BBS"
+A mailing list for Postgres announcements and discussion
+is available for anyone who is interested.  If you wish
+to subscribe to this mailing list, send mail to
+.q postgres-request@postgres.berkeley.edu
+with "Add" as the subject.
+.pp
+The mailing list itself is called 
+.q postgres@postgres.berkeley.edu
+and all mail sent to this address will be 
+will be routed to the mailing list membership.
