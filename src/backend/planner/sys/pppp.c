@@ -7,6 +7,8 @@
  *
  */
 
+#ifdef NOT_FOR_DEMO
+
 #include "c.h"
 #include "postgres.h"
 
@@ -525,3 +527,5 @@ print_param (param)
 	 if (get_paramname(param) != (char *) NULL)
 		printf("(\"%s\")", get_paramname(param));
 }
+
+#endif /* NOT_FOR_DEMO */
