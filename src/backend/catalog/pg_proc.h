@@ -24,6 +24,8 @@
  * ----------------
  */
 #include "tmp/postgres.h"
+#include "nodes/pg_lisp.h"
+#include "tcop/dest.h"
 
 /* ----------------
  *	pg_proc definition.  cpp turns this into
