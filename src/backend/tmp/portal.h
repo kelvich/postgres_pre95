@@ -180,7 +180,7 @@ CreatePortal ARGS((
 extern
 void
 PortalDestroy ARGS((
-	Portal	portal
+	Portal	*portalP
 ));
 
 /*

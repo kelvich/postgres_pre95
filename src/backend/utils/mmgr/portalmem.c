@@ -469,7 +469,7 @@ CollectNamedPortals(portalP, destroy)
 	int i;
 
 	for (i = 0; i < listIndex; i++)
-	    PortalDestroy(portalList[i]);
+	    PortalDestroy(&portalList[i]);
 	listIndex = 0;
     }
     else
@@ -506,13 +506,13 @@ AtEOXact_portals()
  * ----------------
  */
 static void
-PortalDump(this)
-    Portal	this;
+PortalDump(thisP)
+    Portal	*thisP;
 {
     /* XXX state/argument checking here */
     
-    PortalVariableMemoryDump(PortalGetVariableMemory(this));
-    PortalHeapMemoryDump(PortalGetHeapMemory(this));
+    PortalVariableMemoryDump(PortalGetVariableMemory(*thisP));
+    PortalHeapMemoryDump(PortalGetHeapMemory(*thisP));
 }
 
 /* ----------------
@@ -564,7 +564,7 @@ EnablePortalManager(on)
 	
     } else {	/* cleanup */
 	if (PortalIsValid(BlankPortal)) {
-	    PortalDestroy(BlankPortal);
+	    PortalDestroy(&BlankPortal);
 	    MemoryContextFree((MemoryContext)PortalMemory,
 			      (Pointer)BlankPortal);
 	    BlankPortal = NULL;
@@ -761,9 +761,11 @@ CreatePortal(name)
  * ----------------
  */
 void
-PortalDestroy(portal)
-    Portal	portal;
+PortalDestroy(portalP)
+    Portal	*portalP;
 {
+    Portal portal = *portalP;
+
     AssertState(PortalManagerEnabled);
     AssertArg(PortalIsValid(portal));
     

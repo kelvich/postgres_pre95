@@ -264,7 +264,7 @@ PerformPortalClose(name, dest)
      *	Note: PortalCleanup is called as a side-effect
      * ----------------
      */
-    PortalDestroy(portal);
+    PortalDestroy(&portal);
 }
 
 /* --------------------------------

@@ -146,7 +146,7 @@ _vc_vacuum()
 
     _vc_free(p, vrl);
 
-    PortalDestroy(p);
+    PortalDestroy(&p);
 }
 
 VRelList
