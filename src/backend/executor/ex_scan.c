@@ -110,11 +110,9 @@ ExecScan(node, accessMtd)
     bool		madeBogusScanAtts = false;
     
     TupleTableSlot	slot;
-    TupleTableSlot	rawTupleSlot;
     TupleTableSlot	resultSlot;
     HeapTuple 		newTuple;
     HeapTuple		changedTuple;
-    HeapTuple		rawTuple;
     HeapTuple		viewTuple;
 
     int			status;
@@ -145,7 +143,6 @@ ExecScan(node, accessMtd)
     econtext = 		get_cs_ExprContext(scanstate);
     prs2EStateInfo = 	get_es_prs2_info(estate);
     relRuleInfo = 	get_css_ruleInfo(scanstate);
-    rawTupleSlot = 	(TupleTableSlot) get_css_RawTupleSlot(scanstate);
     
     /* ----------------
      *	initialize fields in ExprContext which don't change
@@ -297,8 +294,6 @@ ExecScan(node, accessMtd)
 	     *      -cim 3/15/90
 	     * ----------------
 	     */
-	    rawTuple = (HeapTuple)
-		ExecFetchTuple(slot); /* raw tuple with no rules applied*/
 	
 	    status = prs2Main(estate,
 			      relRuleInfo,
@@ -309,7 +304,7 @@ ExecScan(node, accessMtd)
 			      ExecSlotBuffer(slot), 	/* tuple's buffer */
 			      NULL,			/* update tuple */
 			      InvalidBuffer,	/* update tuple buffer */
-			      rawTuple,		/* 'raw' tuple */
+			      (HeapTuple) NULL,	/* 'raw' tuple */
 			      InvalidBuffer,
 			      scanAtts,		/* atts of interest */
 			      scanNumAtts, 	/* number of atts */
@@ -329,23 +324,11 @@ ExecScan(node, accessMtd)
 		 *  should change the variable names.
 		 * ----------------
 		 */
-		ExecStoreTuple(rawTuple,
-			       rawTupleSlot,
-			       ExecSlotBuffer(slot),
-			       ExecSlotPolicy(slot));
-		
 		ExecStoreTuple(changedTuple,
 			       slot,
 			       InvalidBuffer,
 			       true);
-	    } else {
-		/* ----------------
-		 *  leave original tuple alone and clear the
-		 *  "raw" tuple slot.
-		 * ----------------
-		 */
-		ExecClearTuple(rawTupleSlot);
-	    } 
+	    }
 	} /* if rerel != NULL */
 	
 	/* ----------------
