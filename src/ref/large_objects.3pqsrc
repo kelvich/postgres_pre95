@@ -699,6 +699,13 @@ Shouldn't have to distinguish between Inversion and \*(UU large
 objects when you open an existing large object.  The system knows
 which implementation was used.  The flags argument should be the same
 in these two cases.
+.PP
+All large object file names (paths) are limited to 256 characters.
+.PP
+In the Inversion file system, file name components (the sections
+of the path preceding, following or in between \*(lq/\*(rq) are 
+limited to 16 characters each.  The maximum path length is still 256
+characters.
 .SH "SEE ALSO"
 introduction(commands),
 define function(commands),
