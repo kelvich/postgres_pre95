@@ -10,8 +10,44 @@
 #define RelationIncluded
 
 #include "c.h"
+#include "pg_lisp.h"
 #include "primnodes.h"
 #include "nodes.h"
+
+/*
+ *  These #defines indicate that we have supplied print routines for the
+ *  named classes.  The routines are in lib/C/printfuncs.c; interface routines
+ *  are automatically generated from this .h file.  When time permits, this
+ *  system ought to be redesigned.
+ */
+
+#define	PrintRelExists
+/*#define	PrintTLEExists
+#define	PrintTLExists
+*/
+#define	PrintSortKeyExists
+#define	PrintPathExists
+#define	PrintIndexPathExists
+#define	PrintJoinPathExists
+#define	PrintMergePathExists
+#define	PrintHashPathExists
+#define	PrintOrderKeyExists
+#define	PrintJoinKeyExists
+#define	PrintMergeOrderExists
+#define	PrintCInfoExists
+#define	PrintJInfoExists
+
+extern void	PrintSortKey();
+extern void	PrintPath();
+extern void	PrintIndexPath();
+extern void	PrintJoinPath();
+extern void	PrintMergePath();
+extern void	PrintHashPath();
+extern void	PrintOrderKey();
+extern void	PrintJoinKey();
+extern void	PrintMergeOrder();
+extern void	PrintCInfo();
+extern void	PrintJInfo();
 
 /*
  * Relid
@@ -90,17 +126,12 @@ class (Rel) public (Node) {
 };
 #undef Path
 
-class (TLE) public (Node) {
-	inherits(Node);
-	Resdom	resdom;
-	Node	expr;
-};
-
-class (TL) public (Node) {
-	inherits(Node);
-	TLE		entry;
-	List		joinlist;
-};
+#define TLE LispValue
+#define TL LispValue
+#define get_expr(foo) CADR((TLE)foo)
+#define get_resdom(foo) CAR((TLE)foo)
+#define get_entry(foo) CAR((TL)foo)
+#define get_joinlist(foo) CADR((TL)foo)
 
 class (SortKey) public (Node) {
 	inherits(Node);
@@ -113,15 +144,15 @@ class (SortKey) public (Node) {
 
 
 class (Path) public (Node) {
-	inherits(Node);
-#define PathDefs \
+#define	PathDefs \
+	inherits(Node); \
 	int32		pathtype; \
 	Rel		parent; \
-	Cost		cost; \
+	Cost		path_cost; \
 	List		p_ordering; \
 	List		keys; \
 	SortKey		sortpath
- /* private: */
+/* private: */
 	PathDefs;
  /* public: */
 };
@@ -136,8 +167,8 @@ class (IndexPath) public (Path) {
 };
 
 class (JoinPath) public (Path) {
-	inherits(Path);
 #define JoinPathDefs \
+	inherits(Path); \
 	List		pathclauseinfo; \
 	struct path	*outerjoinpath; \
 	struct path	*innerjoinpath; \
@@ -151,7 +182,7 @@ class (JoinPath) public (Path) {
 class (MergePath) public (JoinPath) {
 	inherits(JoinPath);
  /* private: */
-	List		mergeclauses;
+	List		path_mergeclauses;
 	List		outersortkeys;
 	List		innersortkeys;
  /* public: */
@@ -160,7 +191,7 @@ class (MergePath) public (JoinPath) {
 class (HashPath) public (JoinPath) {
 	inherits(JoinPath);
  /* private: */
-	List		hashclauses;
+	List		path_hashclauses;
 	List		outerhashkeys;
 	List		innerhashkeys;
  /* public: */

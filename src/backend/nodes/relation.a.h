@@ -1,3 +1,4 @@
+#include "pg_lisp.h"
 extern void set_relids ARGS((Rel node, Relid value));
 extern Relid get_relids ARGS((Rel node));
 extern void set_indexed ARGS((Rel node, bool value));
@@ -26,14 +27,6 @@ extern void set_joininfo ARGS((Rel node, List value));
 extern List get_joininfo ARGS((Rel node));
 extern void set_innerjoin ARGS((Rel node, List value));
 extern List get_innerjoin ARGS((Rel node));
-extern void set_resdom ARGS((TLE node, Resdom value));
-extern Resdom get_resdom ARGS((TLE node));
-extern void set_expr ARGS((TLE node, Node value));
-extern Node get_expr ARGS((TLE node));
-extern void set_entry ARGS((TL node, TLE value));
-extern TLE get_entry ARGS((TL node));
-extern void set_joinlist ARGS((TL node, List value));
-extern List get_joinlist ARGS((TL node));
 extern void set_varkeys ARGS((SortKey node, List value));
 extern List get_varkeys ARGS((SortKey node));
 extern void set_sortkeys ARGS((SortKey node, List value));

@@ -12,12 +12,12 @@
 #include "pg_lisp.h"
 
 
-#define parse_root(parse)                       CAR(parse)
-#define parse_targetlist(parse)                 CADR(parse)
-#define parse_qualification(parse)              CADDR(parse)
-#define root_numlevels(root)                    CAR(root)
-#define root_command_type(root)                  CADR(root)
-#define root_result_relation(root)               CADDR(root)
+#define parse_root(parse)                   CAR(parse)
+#define parse_targetlist(parse)             CADR(parse)
+#define parse_qualification(parse)          CADDR(parse)
+#define root_numlevels(root)                CInteger(CAR(root))
+#define root_command_type(root)             ((int)CAtom(CADR(root)))
+#define root_result_relation(root)          CADDR(root)
 
 /* .. subst-rangetable */
 #define root_rangetable(root)                   CADDR(CDR(root))
@@ -86,8 +86,7 @@ setf (nth (inhrelid -1,rangetable) ,rt_entry)
  * .. relation-sortkeys, set-join-tlist-references, tlist-temp-references
  * .. update-relations 
  */
-/* #define tl_expr(tl_entry)             CADR(tl_entry)
-extern LispValue tl_expr();
+#define tl_expr(tl_entry)             CADR(tl_entry)
 
 /* .. exec-make-intermediate-locks, exec-set-lock */
 #define ruleinfo_ruleid(ruleinfo)     CAR(ruleinfo)
@@ -182,7 +181,7 @@ setf (nth (rangetable_index - 1,rangetable) ,rt)
   * .. index_innerjoin, parameterize, preprocess_targetlist, print_var
   * .. relation_info, translate_relid, write_decorate
   */
-#define getrelid(rangeindex,rangetable)  rt_relid ( (nth (rangeindex -1), rangetable))
+#define getrelid(rangeindex,rangetable)  rt_relid ( (nth ((rangeindex -1), rangetable)))
 
 
 /* .. GetIDFromRangeTbl, print_subplan, print_var */
