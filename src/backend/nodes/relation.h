@@ -312,7 +312,7 @@ class (MergeOrder) public (Node) {
 
 class (CInfo) public (Node) {
 	inherits0(Node);
-	Expr		clause;
+	LispValue	clause;
 	Cost		selectivity;
 	bool		notclause;
 	List		indexids;
