@@ -146,7 +146,7 @@ find_rel_paths(rels,level,sortkeys)
 	     processing */
 	  foreach(tmppath, get_pathlist(rel))
 	    set_locclauseinfo((Path)CAR(tmppath),
-			      CopyObject(get_clauseinfo(rel)));
+			      (List)CopyObject(get_clauseinfo(rel)));
        }
      foreach(temp, rels) {
 	 rel = (Rel)CAR(temp);
