@@ -70,6 +70,7 @@ int fragmentNo;
           set_frag_parallel(fragment, 1);
           set_frag_subtrees(fragment, LispNil);
 	  set_frag_parsetree(fragment, parsetree);
+	  set_frag_is_inprocess(fragment, false);
           subFragments = nappend1(subFragments, fragment);
         }
        else {
@@ -87,6 +88,7 @@ int fragmentNo;
           set_frag_parallel(fragment, 1);
           set_frag_subtrees(fragment, LispNil);
 	  set_frag_parsetree(fragment, parsetree);
+	  set_frag_is_inprocess(fragment, false);
           subFragments = nappend1(subFragments, fragment);
          }
        else {
@@ -126,6 +128,7 @@ List parsetree;
     set_frag_subtrees(rootFragment, LispNil);
     set_frag_parent_frag(rootFragment, NULL);
     set_frag_parsetree(rootFragment, parsetree);
+    set_frag_is_inprocess(rootFragment, false);
 
     fragmentlist = lispCons(rootFragment, LispNil);
 
@@ -189,7 +192,8 @@ Fragment fragments;
     List readyFragments = LispNil;
     List readyFrags;
 
-    if (lispNullp(get_frag_subtrees(fragments)))
+    if (lispNullp(get_frag_subtrees(fragments)) && 
+	!get_frag_is_inprocess(fragments))
        return lispCons(fragments, LispNil);
     foreach (x, get_frag_subtrees(fragments)) {
 	frag = (Fragment)CAR(x);
@@ -260,6 +264,7 @@ int memsize;
     List fireFragments;
 
     readyFragments = GetReadyFragments(fragments);
+    if (lispNullp(readyFragments)) return LispNil;
     fitFragments = GetFitFragments(readyFragments, memsize);
     if (lispNullp(fitFragments)) {
 	fitFragments = DecomposeFragments(fitFragments, memsize);
@@ -351,17 +356,35 @@ List fragmentlist;
     float loadAvg;
     List fireFragments;
     List fireFragmentList;
+    int nfreeslaves;
+    List parsetree;
+    LispValue k;
+    int parallel;
 
     fireFragmentList = LispNil;
+    nfreeslaves = NumberOfFreeSlaves;
     foreach (x, fragmentlist) {
 	fragment = (Fragment)CAR(x);
+	parsetree = get_frag_parsetree(fragment);
+	k = parse_parallel(parsetree);
+	if (lispNullp(k)) {
+	    if (lispNullp(CDR(x)))
+		parallel = nfreeslaves;
+	    else
+	        parallel = 1;
+	  }
+	else {
+	    parallel = CInteger(k);
+	    if (parallel > nfreeslaves || parallel == 0)
+		parallel = nfreeslaves;
+	  }
         memAvail = GetCurrentMemSize();
         loadAvg = GetCurrentLoadAverage();
         fireFragments = ChooseFragments(fragment, memAvail);
-        SetParallelDegree(fireFragments, NumberOfFreeSlaves);
-	fireFragmentList = fireFragments;
-	break;
-	fireFragmentList = nconc(fireFragmentList, fireFragments);
+        SetParallelDegree(fireFragments, parallel);
+	nfreeslaves -= parallel;
+	if (parallel > 0)
+	    fireFragmentList = nconc(fireFragmentList, fireFragments);
       }
     return fireFragmentList;
 }
@@ -514,6 +537,7 @@ CommandDest	destination;
 	   ProcGroupSMEndAlloc();
 	   ProcGroupInfoP[groupid].countdown = nparallel;
 	   wakeupProcGroup(groupid);
+	   set_frag_is_inprocess(fragment, true);
 	   /* ---------------
 	    * restore the original result relation descriptor
 	    * ---------------
