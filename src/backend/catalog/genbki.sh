@@ -44,12 +44,15 @@ awk '
 #	nc is the number of catalogs
 #	inside is a variable set to 1 when we are scanning the
 #	   contents of a catalog definition.
+#	inserting_data is a flag indicating when we are processing DATA lines.
+#		(i.e. have a relation open and need to close it)
 # ----------------
 BEGIN {
 	inside = 0;
 	raw = 0;
 	bootstrap = 0;
 	nc = 0;
+	reln_open = 0;
 }
 
 # ----------------
@@ -70,16 +73,31 @@ raw == 1 	{ print; next; }
 	next;
 }
 
+/^DEFINE_INDEX\(/ {
+# ----
+#  end any prior catalog data insertions before starting a define index
+# ----
+	if (reln_open == 1) {
+		print "show";
+		print "close " catalog;
+		reln_open = 0;
+	}
+
+	data = substr($0, 14, length($0) - 14);
+	print "define index " data
+}
+	
 # ----------------
 #	CATALOG() definitions take some more work.
 # ----------------
 /^CATALOG\(/ { 
 # ----
-#  end any prior catalog definitions before starting a new one..
+#  end any prior catalog data insertions before starting a new one..
 # ----
-	if (nc > 0) {
+	if (reln_open == 1) {
 		print "show";
 		print "close " catalog;
+		reln_open = 0;
 	}
 
 # ----
@@ -133,6 +151,7 @@ inside == 1 {
 		}
 
 		i = 1;
+		reln_open = 1;
 		inside = 0;
 		bootstrap = 0;
 		next;
@@ -149,8 +168,11 @@ inside == 1 {
 }
 
 END {
-	print "show";
-	print "close " catalog;
+	if (reln_open == 1) {
+		print "show";
+		print "close " catalog;
+		reln_open = 0;
+	}
 }
 ' | \
 /lib/cpp | \
