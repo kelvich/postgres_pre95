@@ -331,6 +331,8 @@ new_join_tlist (tlist,other_relids,first_resdomno)
 	in_final_tlist = null (join_list);
 	if ( join_list ) 
 	  future_join_list = set_difference (join_list,other_relids);
+	else
+	  future_join_list = LispNil;
 	if ( in_final_tlist || future_join_list)  {
 	    resdomno += 1;
 	    temp_node = 
