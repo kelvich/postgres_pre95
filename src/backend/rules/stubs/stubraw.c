@@ -15,12 +15,17 @@
 
 #include <stdio.h>
 #include "tmp/postgres.h"
-
+#include "parser/parse.h"       /* for the AND, NOT, OR */
 #include "utils/log.h"
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
+#include "tmp/datum.h"
 
 char *palloc();
+
+/*--------- static routines local to this file ---------------*/
+static int prs2StubQualToRawStubQual();
+static Prs2StubQual prs2RawStubQualToStubQual();
 
 /*-----------------------------------------------------------------------
  *
@@ -29,15 +34,15 @@ char *palloc();
  * given a 'Prs2Stub' (which is a spaghetti of pointers)
  * transform it to a stream of bytes suitable for disk storage
  *
+ *-----------------------------------------------------------------------
  */
 Prs2RawStub
 prs2StubToRawStub(relstub)
 Prs2Stub relstub;
 {
-    long size;
+    Size size;
     Prs2RawStub res;
     Prs2OneStub oneStub;
-    Prs2SimpleQual qual;
     int i,j;
     char *s;
 
@@ -53,41 +58,22 @@ Prs2Stub relstub;
 	 * and add it ti the total size.
 	 * Start with the fixed size part of the struct.
 	 */
-	oneStub = &(relstub->stubRecords[i]);
+	oneStub = relstub->stubRecords[i];
 	size = size +
 		sizeof(oneStub->ruleId) +
 		sizeof(oneStub->stubId) +
-		sizeof(oneStub->counter) +
-		sizeof(oneStub->numQuals);
+		sizeof(oneStub->counter);
 	/*
 	 * now add the rule lock size
 	 */
 	size = size +
 		prs2LockSize( prs2GetNumberOfLocks(oneStub->lock));
 	/*
-	 * finally add the size of each one of the
-	 * `PrsSimpleQualData'
+	 * finally add the size of the stub's qualification.
+	 * NOTE: the first argument to 'prs2StubQualToRawStubQual'
+	 * is NULL, so this routine will only return the size.
 	 */
-	for (j=0; j<oneStub->numQuals; j++) {
-	    qual = &(oneStub->qualification[j]);
-	    /*
-	     * first the fixed size part of 'Prs2SimpleQualData' struct.
-	     */
-	    size = size +
-		    sizeof(qual->attrNo) +
-		    sizeof(qual->operator) +
-		    sizeof(qual->constType) +
-		    sizeof(qual->constByVal) +
-		    sizeof(qual->constLength);
-	    /*
-	     * then the variable length size (the actual value of
-	     * the constant)
-	     */
-	    size += prs2GetDatumSize(qual->constType,
-				qual->constByVal,
-				qual->constLength,
-				qual->constData);
-	}
+	size = size + prs2StubQualToRawStubQual(NULL, oneStub->qualification);
     }
 
     /*
@@ -114,7 +100,7 @@ Prs2Stub relstub;
     s += sizeof(relstub->numOfStubs);
 
     for (i=0; i< relstub->numOfStubs; i++) {
-	oneStub = &(relstub->stubRecords[i]);
+	oneStub = relstub->stubRecords[i];
 	/*
 	 * copy the fixed size part of the record
 	 */
@@ -124,47 +110,17 @@ Prs2Stub relstub;
 	s += sizeof(oneStub->stubId);
 	bcopy((char *)&(oneStub->counter), s, sizeof(oneStub->counter));
 	s += sizeof(oneStub->counter);
-	bcopy((char *)&(oneStub->numQuals), s, sizeof(oneStub->numQuals));
-	s += sizeof(oneStub->numQuals);
 	/*
 	 * now copy the rule lock
 	 */
 	size = prs2LockSize(prs2GetNumberOfLocks(oneStub->lock));
-	bcopy((char *) relstub->stubRecords[i].lock, s, size);
+	bcopy((char *) oneStub->lock, s, size);
 	s+=size;
 	/*
-	 * finally copy each one of the
-	 * `PrsSimpleQualData'
+	 * finally copy the qualification
 	 */
-	for (j=0; j<relstub->stubRecords[i].numQuals; j++) {
-	    qual = &(oneStub->qualification[j]);
-	    /*
-	     * fixed part first...
-	     */
-	    bcopy((char *)&(qual->attrNo), s, sizeof(qual->attrNo));
-	    s += sizeof(qual->attrNo);
-	    bcopy((char *)&(qual->operator), s, sizeof(qual->operator));
-	    s += sizeof(qual->operator);
-	    bcopy((char *)&(qual->constType), s, sizeof(qual->constType));
-	    s += sizeof(qual->constType);
-	    bcopy((char *)&(qual->constByVal), s, sizeof(qual->constByVal));
-	    s += sizeof(qual->constByVal);
-	    bcopy((char *)&(qual->constLength), s, sizeof(qual->constLength));
-	    s += sizeof(qual->constLength);
-	    /*
-	     * now the value of the constant iteslf
-	     */
-	    size = prs2GetDatumSize(qual->constType,
-				qual->constByVal,
-				qual->constLength,
-				qual->constData);
-	    if (qual->constByVal) {
-		bcopy((char *)&(qual->constData), s, size);
-	    } else {
-		bcopy((char *)DatumGetPointer(qual->constData), s, size);
-	    }
-	    s += size;
-	}
+	size = prs2StubQualToRawStubQual(s, oneStub->qualification);
+	s += size;
     }
 
     /* 
@@ -173,6 +129,142 @@ Prs2Stub relstub;
     return(res);
 }
 
+/*-------------------------------------------------------------------------
+ *
+ * prs2StubQualToRawStubQual
+ *
+ * Given a stub qualification (a 'Prs2StubQual') transform it
+ * to a "flat" stream of bytes and return its size..
+ *
+ * If the pointer "s" is NULL, then this routine does no copying and
+ * returns the number of bytes needed to hold the raw (flat)
+ * representation of the qual.
+ *
+ * If "s" is non-NULL, then we also copy the flat representation there.
+ *
+ * 'Prs2StubQual' is a tree and we do a depth-first traversal...
+ *-------------------------------------------------------------------------
+ */
+static
+int 
+prs2StubQualToRawStubQual(s, qual)
+char *s;
+Prs2StubQual qual;
+{
+    int i;
+    Size size;
+    Size tempsize;
+    Prs2SimpleStubQualData *simple;
+    Prs2ComplexStubQualData *complex;
+
+    /*
+     * first the fixed part of "Prs2StubQual"
+     */
+    size = sizeof(qual->qualType);
+    if (s!=NULL) {
+	bcopy((char*)&(qual->qualType), s, sizeof(qual->qualType));
+	s += sizeof(qual->qualType);
+    }
+
+    /*
+     * Now take care of the union. This contains either
+     * a "Prs2SimpleQualData" (a leaf node) or a "Prs2ComplexQualData"
+     * (non-leaf node)
+     */
+    if (qual->qualType == PRS2_COMPLEX_STUBQUAL) {
+	/*
+	 * We have a non leaf node.
+	 * First take care of the fixed length part.
+	 */
+	complex = &(qual->qual.complex);
+	size += sizeof(complex->boolOper);
+	size += sizeof(complex->nOperands);
+	if (s!=NULL) {
+            bcopy((char *)&(complex->boolOper), s, sizeof(complex->boolOper));
+            s += sizeof(complex->boolOper);
+            bcopy((char *)&(complex->nOperands), s, sizeof(complex->nOperands));
+            s += sizeof(complex->nOperands);
+	}
+	/*
+	 * Now recursively copy its children.
+	 */
+	for (i=0; i<complex->nOperands; i++) {
+	    tempsize = prs2StubQualToRawStubQual(s, complex->operands[i]);
+	    size += tempsize;
+	    if (s!=NULL) {
+		s += tempsize;
+	    }
+	}
+    } else if (qual->qualType == PRS2_SIMPLE_STUBQUAL) {
+	/*
+	 * this is a leaf node, so the union "qual" contains a
+	 * "Prs2SimpleQualData" struct. Find its size & copy it.
+	 * First start with the fixed size part.
+	 */
+	simple = &(qual->qual.simple);
+	size = size +
+		sizeof(simple->attrNo) +
+		sizeof(simple->operator) +
+		sizeof(simple->constType) +
+		sizeof(simple->constByVal) +
+		sizeof(simple->constLength);
+	if (s!=NULL) {
+            bcopy((char *)&(simple->attrNo), s, sizeof(simple->attrNo));
+            s += sizeof(simple->attrNo);
+            bcopy((char *)&(simple->operator), s, sizeof(simple->operator));
+            s += sizeof(simple->operator);
+            bcopy((char *)&(simple->constType), s, sizeof(simple->constType));
+            s += sizeof(simple->constType);
+            bcopy((char *)&(simple->constByVal), s, sizeof(simple->constByVal));
+            s += sizeof(simple->constByVal);
+            bcopy((char *)&(simple->constLength),s,sizeof(simple->constLength));
+            s += sizeof(simple->constLength);
+	}
+	/*
+	 * now take care of the variable length part
+	 * (i.e. the actual value of the constant
+	 *
+	 * First copy the "real length" of the value. This is NOT
+	 * always equal to constLength, because the later can be
+	 * -1 (i.e. variable length type).
+	 *
+	 * Then copy one by one the bytes...
+	 */
+	tempsize = datumGetSize(simple->constType,
+			    simple->constByVal,
+			    simple->constLength,
+			    simple->constData);
+	size += tempsize + sizeof(Size);
+	if (s!=NULL) {
+            if (simple->constByVal) {
+		bcopy((char *)&tempsize, s, sizeof(Size));
+		s += sizeof(Size);
+                bcopy((char *)&(simple->constData), s, tempsize);
+		s += tempsize;
+            } else {
+		bcopy((char *)&tempsize, s, sizeof(Size));
+		s += sizeof(Size);
+                bcopy((char *)DatumGetPointer(simple->constData), s, tempsize);
+		s += tempsize;
+            }
+	}
+    } else if (qual->qualType == PRS2_NULL_STUBQUAL) {
+	/*
+	 * Do nothing!
+	 */
+    } else {
+	/*
+	 * Oooops! a bad-bad-bad thing to happen...
+	 */
+	elog(WARN, "Prs2StubQualToRawStubQual: Bad qual type!");
+    }
+
+
+    /*
+     * we are done, return the size.
+     */
+    return(size);
+}
 
 /*----------------------------------------------------------------------
  *
@@ -188,8 +280,7 @@ Prs2RawStub rawStub;
 {
     Prs2Stub relstub;
     Prs2OneStub oneStub;
-    Prs2SimpleQual qual;
-    long size;
+    Size size;
     int i,j;
     char *data;
     char *s;
@@ -198,7 +289,7 @@ Prs2RawStub rawStub;
     /*
      * create a new stub record
      */
-    relstub = (Prs2Stub) palloc(sizeof(Prs2StubData));
+    relstub = prs2MakeStub();
     if (relstub == NULL) {
 	elog(WARN, "prs2RawStubToStub: Out of memory");
     }
@@ -215,8 +306,8 @@ Prs2RawStub rawStub;
      *type 'Prs2OneStubData'
      */
     if (relstub->numOfStubs > 0 ) {
-	size = relstub->numOfStubs * sizeof(Prs2OneStubData);
-	relstub->stubRecords = (Prs2OneStub) palloc(size);
+	size = relstub->numOfStubs * sizeof(Prs2OneStub);
+	relstub->stubRecords = (Prs2OneStub *) palloc(size);
 	if (relstub->stubRecords == NULL) {
 	    elog(WARN, "prs2RawStubToStub: Out of memory");
 	}
@@ -225,7 +316,8 @@ Prs2RawStub rawStub;
     }
     
     for (i=0; i< relstub->numOfStubs; i++) {
-	oneStub = & (relstub->stubRecords[i]);
+	oneStub = prs2MakeOneStub();
+	relstub->stubRecords[i] = oneStub;
 	/*
 	 * copy the fixed part of the 'Prs2OneStub' first.
 	 */
@@ -235,8 +327,6 @@ Prs2RawStub rawStub;
         data += sizeof(oneStub->stubId);
         bcopy(data, (char *)&(oneStub->counter), sizeof(oneStub->counter));
         data += sizeof(oneStub->counter);
-        bcopy(data, (char *)&(oneStub->numQuals), sizeof(oneStub->numQuals));
-        data += sizeof(oneStub->numQuals);
 
 	/*
 	 * now copy the rule lock
@@ -258,54 +348,11 @@ Prs2RawStub rawStub;
 	data += size;
 
 	/*
-	 * now allocate space for the qualification(s)
+	 * now recreate the qualification
+	 * NOTE: we passe a pointer to 'data', so that 'data'
+	 * will advance accordingly as bytes are read.
 	 */
-	if (oneStub->numQuals > 0) {
-	    size = oneStub->numQuals * sizeof(Prs2SimpleQualData);
-	    oneStub->qualification = (Prs2SimpleQual) palloc(size);
-	    if (oneStub->qualification == NULL) {
-		elog(WARN, "prs2RawStubToStub: Out of memory");
-	    }
-	}
-	for (j=0; j<oneStub->numQuals; j++) {
-	    /*
-	     * copy the qualifications one by one
-	     */
-	    qual = & (oneStub->qualification[j]);
-
-	    /*
-	     * fixed part first
-	     */
-            bcopy(data, (char *)&(qual->attrNo), sizeof(qual->attrNo));
-            data += sizeof(qual->attrNo);
-            bcopy(data, (char *)&(qual->operator), sizeof(qual->operator));
-            data += sizeof(qual->operator);
-            bcopy(data, (char *)&(qual->constType), sizeof(qual->constType));
-            data += sizeof(qual->constType);
-            bcopy(data, (char *)&(qual->constByVal), sizeof(qual->constByVal));
-            data += sizeof(qual->constByVal);
-            bcopy(data, (char *)&(qual->constLength),sizeof(qual->constLength));
-            data += sizeof(qual->constLength);
-
-            size = prs2GetDatumSize(qual->constType,
-                                qual->constByVal,
-                                qual->constLength,
-                                qual->constData);
-	    if (qual->constByVal) {
-		bcopy(data, (char *) &(qual->constData), size);
-		data += size;
-	    } else {
-		if (size > 0) {
-		    s = palloc(size);
-		    if (s == NULL) {
-			elog(WARN, "prs2RawStubToStub: Out of memory");
-		    }
-		}
-		bcopy(data, s, size);
-		data+=size;
-		qual->constData = PointerGetDatum(s);
-	    }
-	}
+	oneStub->qualification = prs2RawStubQualToStubQual(&data);
     }
 
     /*
@@ -313,3 +360,137 @@ Prs2RawStub rawStub;
      */
     return(relstub);
 }
+
+/*-------------------------------------------------------------------------
+ *
+ * prs2RawStubQualToStubQual
+ *
+ * This is the inverse of "prs2StubQualToRawStubQual". Given a stream
+ * of bytes recreate the stub's qualification.
+ *
+ * NOTE: XXX XXX XXX !!! !!! !!! SOS SOS SOS !!! !!! !!! XXX XXX XXX
+ *
+ * The argument 's' is a POINTER to a char POINTER !
+ * The value of the char pointer (i.e. '*s') because the pointer is
+ * advanced as we read the bytes. Make SURE that you make a copy of the
+ * pointer if you want to use it after the call to this routine !!!!!
+ *
+ * NOTE 2 : we traverse the qualification tree in depth first order.
+ *
+ *-------------------------------------------------------------------------
+ */
+static
+Prs2StubQual
+prs2RawStubQualToStubQual(s)
+char **s;
+{
+
+    int i;
+    Size size;
+    char *ptr;
+    Prs2StubQual qual;
+    Prs2SimpleStubQualData *simple;
+    Prs2ComplexStubQualData *complex;
+
+    /*
+     * Create a "Prs2StubQual" struct
+     */
+    qual = prs2MakeStubQual();
+
+    /*
+     * Now read the fixed part of "Prs2StubQual"
+     */
+    bcopy(*s, (char*)&(qual->qualType), sizeof(qual->qualType));
+    *s += sizeof(qual->qualType);
+
+    /*
+     * Now take care of the union. This contains either
+     * a "Prs2SimpleQualData" (a leaf node) or a "Prs2ComplexQualData"
+     * (non-leaf node)
+     */
+    if (qual->qualType == PRS2_COMPLEX_STUBQUAL) {
+	/*
+	 * We have a non leaf node.
+	 * First take care of the fixed length part.
+	 */
+	complex = &(qual->qual.complex);
+	bcopy(*s, (char *)&(complex->boolOper), sizeof(complex->boolOper));
+	*s += sizeof(complex->boolOper);
+	bcopy(*s, (char *)&(complex->nOperands), sizeof(complex->nOperands));
+	*s += sizeof(complex->nOperands);
+	/*
+	 * Now recursively recreate the children.
+	 * First allocate the array of pointers to "Pr2StubQualData"
+	 * structures (i.e. an array of "Prs2StubQual").
+	 */
+	if (complex->nOperands <= 0) {	/* better be safe than sorry... */
+	    elog(WARN,"prs2RawStubQualToStubQual: nOperands<=0!!!");
+	}
+	size = complex->nOperands * sizeof(Prs2StubQual);
+	complex->operands = (Prs2StubQual *)palloc(size);
+	if (complex->operands == NULL) {
+	    elog(WARN, "Prs2RawStubQualToStubQual: Out of memory!");
+	}
+	for (i=0; i<complex->nOperands; i++) {
+	    complex->operands[i] = prs2RawStubQualToStubQual(s);
+	}
+    } else if (qual->qualType == PRS2_SIMPLE_STUBQUAL) {
+	/*
+	 * this is a leaf node, so the union "qual" contains a
+	 * "Prs2SimpleQualData" struct. Find its size & copy it.
+	 * First start with the fixed size part.
+	 */
+	simple = &(qual->qual.simple);
+	bcopy(*s, (char *)&(simple->attrNo), sizeof(simple->attrNo));
+	*s += sizeof(simple->attrNo);
+	bcopy(*s, (char *)&(simple->operator), sizeof(simple->operator));
+	*s += sizeof(simple->operator);
+	bcopy(*s, (char *)&(simple->constType), sizeof(simple->constType));
+	*s += sizeof(simple->constType);
+	bcopy(*s, (char *)&(simple->constByVal), sizeof(simple->constByVal));
+	*s += sizeof(simple->constByVal);
+	bcopy(*s, (char *)&(simple->constLength),sizeof(simple->constLength));
+	*s += sizeof(simple->constLength);
+	/*
+	 * now take care of the variable length part
+	 * (i.e. the actual value of the constant)
+	 * First exctract its "real" size (which is not always
+	 * equal to constLengt,h because teh later can be -1
+	 * to indicate a variable length type....)
+	 */
+	bcopy(*s, (char *)&(size), sizeof(Size));
+	*s += sizeof(Size);
+	if (simple->constByVal) {
+	    bcopy(*s, (char *)&(simple->constData), size);
+	    *s += size;
+	} else {
+	    if (size > 0) {
+		/*
+		 * allocate memory for the constant value
+		 */
+		ptr = palloc(size);
+		if (ptr == NULL) {
+		    elog(WARN, "Prs2RawStubQualToStubQual:Out of memory");
+		}
+	    }
+	    bcopy(*s, ptr, size);
+	    *s += size;
+	    simple->constData = PointerGetDatum(ptr);
+	}
+    } else if (qual->qualType == PRS2_NULL_STUBQUAL) {
+	/*
+	 * Do nothing
+	 */
+    } else {
+	/*
+	 * Oooops! a bad-bad-bad thing to happen...
+	 */
+	elog(WARN, "Prs2RawStubQualToStubQual: Bad qual type!");
+    }
+
+    /*
+     * we are done, return the "Prs2StubQual"
+     */
+    return(qual);
+}
+
