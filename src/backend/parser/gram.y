@@ -1886,9 +1886,15 @@ make_targetlist_expr ( name , expr )
 	attrlen = tlen(get_id_type(attrtype)); 
 
 	if(Input_is_string && Typecast_ok){
+              Datum val;
+              if (CInteger(CAR(expr)) == typeid(type("unknown"))){
+                val = textout(get_constvalue(CDR(expr)));
+              }else{
+                val = get_constvalue(CDR(expr));
+              }
               CDR(expr) = (LispValue) MakeConst(attrtype, attrlen,
-                fmgr(typeid_get_retinfunc(attrtype), get_constvalue(CDR(expr))),
-		0);
+                fmgr(typeid_get_retinfunc(attrtype), val),
+                0);
 	} else if (attrtype != type_id)
 		elog(WARN, "unequal type in tlist : %s \n", CString(name));
 	Input_is_string = false;
