@@ -15,9 +15,15 @@
  */
 
 #include "pg_lisp.h"
+#include "internal.h"
+#include "relation.h"
+#include "allpaths.h"
+#include "indxpath.h"
+#include "orindxpath.h"
+#include "joinrels.h"
+#include "prune.h"
 
-extern LispValue find_rel_paths();
-extern LispValue find_join_paths();
+
 
 /*    
  *    	find-paths
@@ -37,36 +43,36 @@ LispValue
 find_paths (rels,nest_level,sortkeys)
      LispValue rels,nest_level,sortkeys ;
 {
-  if ( and (length (rels) > 0,nest_level > 0) ) {
-    /* Set the number of join (not nesting) levels yet to be processed. */
-    /* XXX - let form, maybe incorrect */
-    LispValue levels_left = length (rels);
+     if ( and (length (rels) > 0,nest_level > 0) ) {
+  /* Set the number of join (not nesting) levels yet to be processed. */
+	  
+	  int levels_left = length (rels);
 
-    /* Find the base relation paths. */
-    find_rel_paths (rels,nest_level,sortkeys);
-    if ( and ( not (sortkeys), (1 == levels_left))) {
-      /* Unsorted single relation, no more processing is required. */
-      rels;       /* returns rels */
-    } 
-    else {
-      
-      /* Joins or sorts are required. */
-      /* Compute the sizes, widths, and selectivities required for */
-      /* further join processing and/or sorts. */
-      LispValue rel;
-      set_rest_relselec (rels);
-      for (rel = car(rels); rels != LispNil; rels = cdr(rels)) {
-	set_size (rel,compute_rel_size (rel));
-	set_width (rel,compute_rel_width (rel));
-      }
-      if(1 == levels_left) {
-	rels;         /* returns rels */
-      } 
-      else {
-	find_join_paths (rels,levels_left - 1,nest_level);
-      }
-    }
-  }
+	  /* Find the base relation paths. */
+	  find_rel_paths (rels,nest_level,sortkeys);
+	  if ( and ( not (sortkeys), (1 == levels_left))) {
+	       /* Unsorted single relation, no more processing is required. */
+	       return (rels);   
+	  } 
+	  else {
+	       
+	       /* Joins or sorts are required. */
+	       /* Compute the sizes, widths, and selectivities required for */
+	       /* further join processing and/or sorts. */
+	       LispValue rel;
+	       set_rest_relselec (rels);
+	       foreach (rel,rels) {
+		    set_size (rel,compute_rel_size (rel));
+		    set_width (rel,compute_rel_width (rel));
+	       }
+	       if(1 == levels_left) {
+		    return(rels); 
+	       } 
+	       else {
+		    return (find_join_paths (rels,levels_left - 1,nest_level));
+	       }
+	  }
+     }
 }  /* end find_paths */
 
 /*    
@@ -84,44 +90,48 @@ find_paths (rels,nest_level,sortkeys)
  *    
  */
 
-/*  .. find-paths
- */
+/*  .. find-paths      */
+
 LispValue
 find_rel_paths (rels,level,sortkeys)
-     LispValue rels,level,sortkeys ;
+     LispValue rels,sortkeys ;
+     int level;
 {
-  LispValue rel;
-  /* XXX Lisp Dolist - may be wrong. need to return rels */
-  for (rel = car(rels) ; rels != LispNil ; rels = cdr(rels)) {
-    /* XXX - let form, maybe incorrect */
-    LispValue sequential_scan_list = list (create_seqscan_path (rel));
-    if (level > 1) {
-      set_pathlist (rel,sequential_scan_list);
-      set_unordered_path (rel,sequential_scan_list);
-      set_cheapest_path (rel,sequential_scan_list);
-      
-    } 
-    else {
-      
-      /* XXX Because these routines destructively modify the */
-      /* relation data structures, the "let*" here is significant. */
-      /* XXX - let form, may be incorrect */
+     LispValue rel;
 
-      LispValue rel_index_scan_list = 
-	find_index_paths (rel,find_relation_indices(rel),get_clause_info(rel),
-			  get_join_info(rel),sortkeys);
-      LispValue or_index_scan_list = 
-	create_or_index_paths (rel,get_clause_info (rel));
+     foreach (rel,rels) {
+	  LispValue sequential_scan_list = list (create_seqscan_path (rel));
+	  if (level > 1) {
+	       set_pathlist (rel,sequential_scan_list);
+	       set_unordered_path (rel,sequential_scan_list);
+	       set_cheapest_path (rel,sequential_scan_list);
+	  } 
+	  else {
+	       
+	       /* XXX Because these routines destructively modify the 
+		* relation data structures, the "let*" here is significant. 
+		*/
+	       LispValue rel_index_scan_list = 
+		 find_index_paths (rel,find_relation_indices(rel),
+				   get_clause_info(rel),
+				   get_join_info(rel),sortkeys);
+	       LispValue or_index_scan_list = 
+		 create_or_index_paths (rel,get_clause_info (rel));
 
-      set_pathlist (rel,add_pathlist (rel,sequential_scan_list,
-		    append (rel_index_scan_list,or_index_scan_list)));
-    } 
+	       set_pathlist (rel,add_pathlist (rel,sequential_scan_list,
+					       append (rel_index_scan_list,
+						       or_index_scan_list)));
+	  } 
     
-    /* The unordered path is always the last in the list.  If it is not */
-    /* the cheapest path, prune it. */
+	  /* The unordered path is always the last in the list.  
+	   * If it is not 
+	   * the cheapest path, prune it.
+	   */
     
-    prune_rel_path (rel,last_element (get_pathlist (rel)));
-  }
+	  prune_rel_path (rel,last_element (get_pathlist (rel)));
+     }
+     return(rels);   /* it should have been destructively modified above */
+
 }  /* end find_rel_path */
 
 /*    
@@ -144,7 +154,8 @@ find_rel_paths (rels,level,sortkeys)
  */
 LispValue
 find_join_paths (outer_rels,levels_left,nest_level)
-     LispValue outer_rels,levels_left,nest_level ;
+     LispValue outer_rels;
+     int levels_left, nest_level;
 {
   LispValue rel;
 
@@ -161,7 +172,7 @@ find_join_paths (outer_rels,levels_left,nest_level)
   /* Compute cost and sizes, then go on to next level of join processing. */
 
   prune_rel_paths (new_rels);
-  for (rel= car(new_rels); new_rels != LispNil; new_rels = cdr(new_rels)) {
+  for (rel= CAR(new_rels); new_rels != LispNil; new_rels = CDR(new_rels)) {
     set_width (rel,compute_rel_width (rel));
   }
   if(levels_left == 1) {
