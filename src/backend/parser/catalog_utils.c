@@ -52,8 +52,8 @@ static String attnum_type[SPECIALS] = {
     "iid",
     "tid",
     "tid",
-    "dt",
-    "dt",
+    "abstime",
+    "abstime",
     "char"
   };
 
