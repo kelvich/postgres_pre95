@@ -56,24 +56,24 @@
  */
 
 /* ----------------
- *	Node Print Function declarations
+ *	Node Out Function declarations
  * ----------------
  */
-#define	PrintResdomExists
-#define	PrintExprExists
-#define	PrintParamExists
-#define	PrintFuncExists
-#define	PrintOperExists
-#define PrintConstExists
-#define PrintVarExists
+#define	OutResdomExists
+#define	OutExprExists
+#define	OutParamExists
+#define	OutFuncExists
+#define	OutOperExists
+#define OutConstExists
+#define OutVarExists
 
-extern void	PrintResdom();
-extern void	PrintExpr();
-extern void	PrintParam();
-extern void	PrintFunc();
-extern void	PrintOper();
-extern void	PrintConst();
-extern void	PrintVar();
+extern void	OutResdom();
+extern void	OutExpr();
+extern void	OutParam();
+extern void	OutFunc();
+extern void	OutOper();
+extern void	OutConst();
+extern void	OutVar();
 
 /* ----------------
  *	Node Equal Function declarations

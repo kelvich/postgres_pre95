@@ -22,7 +22,9 @@
 #define	LispDepIncluded
 
 #include <stdio.h>
+#include "tmp/c.h"
 #include "nodes/nodes.h"
+#include "tmp/stringinfo.h"
 
 /* ----------------------------------------------------------------
  *	Node Function Declarations
@@ -289,5 +291,54 @@ extern int CInteger();
 /* temporary functions */
 
 extern LispValue mapcar();
+
+/*===============================
+ * in/out print/read functions...
+ *===============================
+ */
+
+/*---------------------------
+ * lispDisplayFp
+ * print a lisp structure in the given file.
+ */
+extern 
+void
+lispDisplayFp ARGS((
+	FILE		*fp;
+	LispValue	lispObject
+));
+
+/*---------------------------
+ * lispDisplay
+ * print a lisp structure in stdout, & flush it!
+ */
+extern
+void
+lispDisplay ARGS((
+	LispValue	lispObject
+));
+
+/*---------------------------
+ * lispOut
+ * given a lisp structure create & return a string holding
+ * its ascii representation
+ */
+extern
+char *
+lispOut ARGS((
+	LispValue	lispObject
+));
+
+/*---------------------------
+ * lispToStringInfo
+ * given a lisp structure, fill the given 'StringInfo' with its
+ * ascii representation.
+ */
+extern
+void
+_outLispValue  ARGS((
+	StringInfo	str,
+	LispValue	lispObject
+));
 
 #endif /* !LispDepIncluded */

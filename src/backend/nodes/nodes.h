@@ -83,7 +83,7 @@ extern TypeId			_InvalidTypeId;
 class (Node) {
 #define	NodeDefs \
 	NodeTag			type;	\
-	void			(*printFunc)();	\
+	void			(*outFunc)();	\
 	bool			(*equalFunc)(); \
 	bool			(*copyFunc)()
  /* private: */

@@ -58,9 +58,9 @@
  * ----------------------------------------------------------------
  */
 
-#define PrintEStateExists
+#define OutEStateExists
 
-extern void     PrintEState();
+extern void     OutEState();
 extern bool     EqualEState();
 
 /* ----------------------------------------------------------------

@@ -91,45 +91,45 @@
  */
 
 /* ----------------
- *	Node Print Function declarations
+ *	Node Out Function declarations
  * ----------------
  */
-#define	PrintPlanExists
-#define	PrintResultExists
-#define	PrintExistentialExists
-#define	PrintAppendExists
-#define	PrintRecursiveExists
-#define	PrintJoinExists
-#define	PrintNestLoopExists
-#define	PrintMergeJoinExists
-#define	PrintHashJoinExists
-#define	PrintScanExists
-#define	PrintSeqScanExists
-#define	PrintIndexScanExists
-#define	PrintTempExists
-#define	PrintSortExists
-#define	PrintHashExists
-#define PrintUniqueExists
-#define PrintFragmentExists
-#define PrintScanTempsExists
+#define	OutPlanExists
+#define	OutResultExists
+#define	OutExistentialExists
+#define	OutAppendExists
+#define	OutRecursiveExists
+#define	OutJoinExists
+#define	OutNestLoopExists
+#define	OutMergeJoinExists
+#define	OutHashJoinExists
+#define	OutScanExists
+#define	OutSeqScanExists
+#define	OutIndexScanExists
+#define	OutTempExists
+#define	OutSortExists
+#define	OutHashExists
+#define OutUniqueExists
+#define OutFragmentExists
+#define OutScanTempsExists
 
-extern void	PrintPlan();
-extern void	PrintResult();
-extern void	PrintExistential();
-extern void	PrintAppend();
-extern void	PrintRecursive();
-extern void	PrintJoin();
-extern void	PrintNestLoop();
-extern void	PrintMergeJoin();
-extern void	PrintHashJoin();
-extern void	PrintScan();
-extern void	PrintSeqScan();
-extern void	PrintIndexScan();
-extern void	PrintTemp();
-extern void	PrintSort();
-extern void	PrintHash();
-extern void     PrintScanTemps();
-extern void     PrintFragment();
+extern void	OutPlan();
+extern void	OutResult();
+extern void	OutExistential();
+extern void	OutAppend();
+extern void	OutRecursive();
+extern void	OutJoin();
+extern void	OutNestLoop();
+extern void	OutMergeJoin();
+extern void	OutHashJoin();
+extern void	OutScan();
+extern void	OutSeqScan();
+extern void	OutIndexScan();
+extern void	OutTemp();
+extern void	OutSort();
+extern void	OutHash();
+extern void     OutScanTemps();
+extern void     OutFragment();
 
 /* ----------------
  *	Node Equal Function declarations
