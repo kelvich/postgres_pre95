@@ -206,7 +206,7 @@ check_permissions(command, dbname, dbIdP, userIdP)
     bool dbfound;
 
     utup = get_pg_usertup(command, PG_username);
-    *userIdP = utup->t_oid;
+    *userIdP = ((Form_pg_user)GETSTRUCT(utup))->usesysid;
 
     /* need the reldesc to get attributes out of the pg_user tuple */
     urel = heap_openr(Name_pg_user);
