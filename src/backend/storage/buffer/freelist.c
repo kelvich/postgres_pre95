@@ -18,6 +18,7 @@
 #include "storage/spin.h"
 #include "utils/log.h"
 /* #include "storage/buf_protos.h" */
+#include "storage/bufmgr.h"
 
 static
 BufferDesc 	*SharedFreeList;
