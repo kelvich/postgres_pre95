@@ -64,6 +64,7 @@ typedef uint32	IPCKey;
 #ifdef SONY_JUKEBOX
 #define IPCKeyGetSJWaitSemaphoreKey(key) \
 	((key == PrivateIPCKey) ? key : 13 + (key))
+#endif /* SONY_JUKEBOX */
 
 /* --------------------------
  * NOTE: This macro must always give the highest numbered key as every backend
@@ -74,19 +75,6 @@ typedef uint32	IPCKey;
  */
 #define IPCGetProcessSemaphoreInitKey(key) \
 	((key == PrivateIPCKey) ? key : 14 + (key))
-
-#else /* SONY_JUKEBOX */
-/* --------------------------
- * NOTE: This macro must always give the highest numbered key as every backend
- * process forked off by the postmaster will be trying to acquire a semaphore
- * with a unique key value starting at key+13 and incrementing up.  Each
- * backend uses the current key value then increments it by one.
- * --------------------------
- */
-#define IPCGetProcessSemaphoreInitKey(key) \
-	((key == PrivateIPCKey) ? key : 13 + (key))
-
-#endif /* SONY_JUKEBOX */
 
 extern LockTableId	PageLockTableId;
 extern LockTableId	MultiLevelLockTableId;
