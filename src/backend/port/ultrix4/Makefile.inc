@@ -10,7 +10,7 @@ LDADD+= -ldl -lln
 # The YACC grammar is too big..
 #
 .if !defined(CDEBUG)
-CFLAGS+= -Olimit 1300
+CFLAGS+= -Olimit 2000
 .endif
 
 HEADERS+= machine.h 
