@@ -1,36 +1,33 @@
-/*     
- * utility.c --
- *     
- *      DESCRIPTION
+/* ----------------------------------------------------------------
+ *   FILE
+ *	utility.c
+ *	
+ *   DESCRIPTION
  *     	Contains functions which control the execution of the
- *     	POSTGRES utility commands.  Acts as an interface between
- *     	the Lisp and C systems.
- *     
+ *     	POSTGRES utility commands.  At one time acted as an
+ *	interface between the Lisp and C systems.
+ *	
+ *   INTERFACE ROUTINES
+ *	
+ *   NOTES
+ *	
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
-#include "c.h"
+#include "tcop.h"
+ RcsId("$Header$");
 
-RcsId("$Header$");
-
-#include "creatinh.h"
-#include "defrem.h"
-#include "pg_lisp.h"		/* lisp-compat package */
-#include "xcxt.h"		/* for {Start,Commit,Abort}TransactionBlock */
-
-#include "parse.h"		/* y.tab.h, created by yacc'ing gram.y */
-#include "log.h"		/* error logging */
-
-#include "command.h"
-
-/*    
- *     general utility function invoker
- *    
+/* ----------------
+ *	general utility function invoker
+ * ----------------
  */
 void
 ProcessUtility(command, args, commandString)
-	int		command;	/* "tag" */
-	LispValue	args;
-	char 		*commandString;
+    int		command;	/* "tag" */
+    LispValue	args;
+    char 	*commandString;
 {
     String	commandTag = NULL;
     
@@ -40,12 +37,14 @@ ProcessUtility(command, args, commandString)
 	 */
       case BEGIN_TRANS:
 	commandTag = "BEGIN";
-	StartTransactionBlock();
+	BeginTransactionBlock();
 	break;
+	
       case END_TRANS:
 	commandTag = "END";
-	CommitTransactionBlock();
+	EndTransactionBlock();
 	break;
+	
       case ABORT_TRANS:
 	commandTag = "ABORT";
 	AbortTransactionBlock();
@@ -59,6 +58,7 @@ ProcessUtility(command, args, commandString)
 	PerformPortalClose((null(CAR(args))) ? NULL :
 			   CString(CAR(args)));
 	break;
+	
       case FETCH:
 	commandTag = "FETCH";
 	{
@@ -84,6 +84,7 @@ ProcessUtility(command, args, commandString)
 	    PerformPortalFetch(portalName, forward, count);
 	}
 	break;
+	
       case MOVE:
 	commandTag = "MOVE";
 	elog(WARN, "MOVE: unimplemented in Version 1");
@@ -91,6 +92,7 @@ ProcessUtility(command, args, commandString)
 	/*
 	 * relation and attribute manipulation
 	 */
+	
       case CREATE:
 	commandTag = "CREATE";
 	DefineRelation(CString(CAR(args)),	/*  relation name */
@@ -233,7 +235,7 @@ ProcessUtility(command, args, commandString)
 	    "Sorry, the old rule system is not supported any more (yet!)");
 	    break;
 	  case REWRITE:
-	    DefineQueryRewrite ( CDR (args )) ; 
+	    DefineQueryRewrite ( CDR( CDR (args ))) ; 
 	    break;
 	  case P_TUPLE:
 	    prs2DefineTupleRule(args, commandString);
