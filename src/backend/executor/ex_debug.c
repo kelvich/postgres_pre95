@@ -325,7 +325,6 @@ DebugVariableFileSet(filename)
  */
 #ifdef PARALLELDEBUG
 #include "executor/paralleldebug.h"
-extern FILE *StatFp;
 struct paralleldebuginfo ParallelDebugInfo[] = {
 /* 0 */ {"SharedLock", 0, 0, 0},
 /* 1 */ {"ExclusiveLock", 0, 0, 0},
@@ -334,12 +333,13 @@ struct paralleldebuginfo ParallelDebugInfo[] = {
 };
 #define NPARALLELDEBUGINFO      4
 
-PrintParallelDebugInfo()
+PrintParallelDebugInfo(statfp)
+FILE *statfp;
 {
     int i;
     for (i=0; i<NPARALLELDEBUGINFO; i++) {
 	if (ParallelDebugInfo[i].count > 0)
-	   fprintf(StatFp, "!\t%sCount %d %sTime %.6f\n",
+	   fprintf(statfp, "!\t%sCount %d %sTime %.6f\n",
 		ParallelDebugInfo[i].name, ParallelDebugInfo[i].count,
 		ParallelDebugInfo[i].name, ParallelDebugInfo[i].time/1e6);
       }
