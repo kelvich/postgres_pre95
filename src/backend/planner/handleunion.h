@@ -6,6 +6,8 @@ extern List SplitTlist ARGS((List unionlist, List tlist));
 extern List find_union_vars ARGS((List tlist));
 extern List find_union_sets ARGS((List tlist));
 extern List collect_union_sets ARGS((List tlist, List qual));
+extern List collect_tlist_uset ARGS((List args));
+extern void split_tlexpr ARGS((List clauses, List varnum));
 extern List find_qual_union_sets ARGS((List qual));
 extern List flatten_union_list ARGS((List ulist));
 extern List remove_subsets ARGS((List usets));
