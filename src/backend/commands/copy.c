@@ -19,6 +19,7 @@
 #include "utils/log.h"
 #include "tmp/daemon.h"
 #include "utils/fmgr.h"
+#include "machine.h"
 
 /*
  * New copy code.
@@ -318,6 +319,11 @@ FILE *fp;
                 else
                 {
                     values[i] = (Datum) (in_functions[i]) (string, elements[i]);
+		    if (attr[i]->attlen < 0 && values[i])
+		    {
+			if (VARSIZE(values[i]) > BLCKSZ)
+			    elog(WARN, "attribute %d too long", i+1);
+		    }
                 }
             }
         }
@@ -613,7 +619,7 @@ int28 **index_atts;
 }
 
 
-#define ATTLEN 8192 /* need to fix if attributes ever get very long */
+#define EXT_ATTLEN 2*8192
 
 /*
  * Reads input from fp until eof is seen.  If we are reading from standard
@@ -630,7 +636,7 @@ FILE *fp;
 Boolean *isnull;
 
 {
-    static char attribute[ATTLEN];
+    static char attribute[EXT_ATTLEN];
     char c;
     int done = 0;
     int i = 0;
@@ -682,7 +688,7 @@ Boolean *isnull;
             done = 1;
         }
         if (!done) attribute[i++] = c;
-        if (i == ATTLEN - 1)
+        if (i == EXT_ATTLEN - 1)
             elog(WARN, "CopyReadAttribute - attribute length too long");
     }
     attribute[i] = '\0';
