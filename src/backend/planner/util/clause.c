@@ -388,7 +388,7 @@ fix_opid (clause)
      LispValue clause ;
 {
 
-	if(single_node (clause)) {
+	if(null(clause) || single_node (clause)) {
 		;
 	} 
 	else if (or_clause (clause)) {
