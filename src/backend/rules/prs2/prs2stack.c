@@ -60,9 +60,9 @@
  *===================================================================
  */
 
-#include "c.h"
-#include "log.h"
-#include "prs2.h"
+#include "tmp/c.h"
+#include "utils/log.h"
+#include "rules/prs2.h"
 
 #define PRS2_INCREMENT_STACKSIZE 1
 
