@@ -54,6 +54,8 @@ extern int	bufdescs();
 extern int	buffer();
 extern int	linp();
 extern int	sony();
+extern int	scache();
+extern int	sfreelist();
 extern int	tuple();
 
 Cmd	CmdList[] = {
@@ -63,9 +65,11 @@ Cmd	CmdList[] = {
     "help",		0,	help,
     "linp",		2,	linp,
     "quit",		0,	quit,
+    "scache",		1,	scache,
     "semset",		2,	semset,
     "semstat",		0,	semstat,
     "setbase",		1,	setbase,
+    "sfreelist",	0,	sfreelist,
     "shmemstat",	0,	shmemstat,
     "sony",		0,	sony,
     "tuple",		3,	tuple,
@@ -112,6 +116,7 @@ typedef struct BufferDesc {
     unsigned		refcount;
     char		sb_dbname[16];
     char		sb_relname[16];
+    char		sb_pad[60];
 #ifdef HAS_TEST_AND_SET
     slock_t		io_in_progress_lock;
 #endif /* HAS_TEST_AND_SET */
@@ -561,6 +566,10 @@ help()
     printf("setbase val\t\tuse val as the logical shmem base address\n");
     printf("shmemstat\t\tprint shared memory layout and stats\n");
     printf("whatis ptr\t\twhat shared memory object is ptr?\n");
+    printf("\n");
+    printf("sony\t\t\tprint sony jukebox cache and state\n");
+    printf("scache n\t\tprint entry n of sony jukebox cache\n");
+    printf("sfreelist\t\tshow short version of sony cache freelist\n");
     printf("\n");
     printf("help\t\t\tprint this command summary\n");
     printf("quit\t\t\texit\n");
@@ -1231,4 +1240,77 @@ sony()
 		cache[i].sjc_plname,
 		cache[i].sjc_jboffset);
     }
+}
+
+int
+sfreelist()
+{
+    int i;
+    SJCacheItem *cache;
+    SJCacheHeader *cachehdr;
+    int entry, nxtentry;
+
+    cachehdr = (SJCacheHeader *) SJHeader;
+    cache = (SJCacheItem *) SJCache;
+
+    entry = cachehdr->sjh_freehead;
+    i = 0;
+
+    while (entry != -1) {
+
+	if (i++ % 10 == 0)
+	    printf("\n\t");
+	printf("%2d", entry);
+
+	if ((nxtentry = cache[entry].sjc_freenext) != -1) {
+	    if (cache[nxtentry].sjc_freeprev != entry)
+		printf("\n\t*** broken link between %d and %d\n",
+			entry, nxtentry);
+	    printf(" -> ");
+	} else {
+	    if (cachehdr->sjh_freetail != entry)
+		printf("\n\t*** freetail doesn't point at last entry\n");
+	}
+
+	entry = nxtentry;
+    }
+
+    if (i != 64 - cachehdr->sjh_nentries)
+	printf("\n\t*** expected %d entries, got %d\n",
+		64 - cachehdr->sjh_nentries, i);
+
+    printf("\n\n");
+
+    return (0);
+}
+
+int
+scache(line)
+    char *line;
+{
+    int cacheline;
+    SJCacheItem *cache;
+
+    cache = (SJCacheItem *) SJCache;
+    cacheline = atoi(line);
+
+    if (cacheline < 0 || cacheline > 63) {
+	printf("%d is out of range (0 - 63)\n", cacheline);
+	return (1);
+    }
+
+    printf("  [%2d]  <%d,%d,%d> prev %d next %d refcnt %d oid %ld\n",
+	    cacheline, cache[cacheline].sjc_tag.sjct_dbid,
+	    cache[cacheline].sjc_tag.sjct_relid,
+	    cache[cacheline].sjc_tag.sjct_base,
+	    cache[cacheline].sjc_freeprev,
+	    cache[cacheline].sjc_freenext,
+	    cache[cacheline].sjc_refcount,
+	    cache[cacheline].sjc_oid);
+    printf("\tplatter %ld (%.16s) @ %ld\n",
+	    cache[cacheline].sjc_plid,
+	    cache[cacheline].sjc_plname,
+	    cache[cacheline].sjc_jboffset);
+
+    return (0);
 }
