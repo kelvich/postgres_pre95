@@ -42,6 +42,7 @@ RcsId("$Header$");
 #include "utils/mcxt.h"
 #include "utils/palloc.h"
 #include "utils/rel.h"
+#include "utils/relcache.h"
 #include "utils/log.h"
 
 #include "catalog/catname.h"
@@ -54,10 +55,11 @@ RcsId("$Header$");
 #include "catalog/indexing.h"
 
 #include "lib/heap.h"
-#include "lib/index.h"
 
 #include "nodes/execnodes.h"
 #include "nodes/plannodes.h"
+
+#include "lib/index.h"
 
 #include "executor/x_qual.h"
 #include "executor/x_tuples.h"
@@ -143,7 +145,8 @@ FindIndexNAtt(first, indrelid, isarchival)
 	{ 0, IndexHeapRelationIdAttributeNumber, ObjectIdEqualRegProcedure }
     };
 
-	fmgr_info(ObjectIdEqualRegProcedure, &indexKey[0].func, &indexKey[0].nargs);
+	fmgr_info(ObjectIdEqualRegProcedure, (func_ptr *) &indexKey[0].func,
+		  &indexKey[0].nargs);
 
     /* Find an index on the given relation */
     if (first == 0) {
@@ -210,7 +213,8 @@ RelationNameGetObjectId(relationName, pg_relation, setHasIndexAttribute)
      */
 
     if (!IsBootstrapProcessingMode()) {
-	pg_relation_tuple = ClassNameIndexScan(pg_relation, relationName);
+	pg_relation_tuple = ClassNameIndexScan(pg_relation, 
+					       (char *) relationName);
 	if (HeapTupleIsValid(pg_relation_tuple)) {
 	    relationObjectId = pg_relation_tuple->t_oid;
 	    pfree(pg_relation_tuple);
@@ -364,9 +368,7 @@ BuildFuncTupleDesc(funcInfo)
     /*
      * make the attributes name the same as the functions
      */
-    strncpy(&funcTupDesc->data[0]->attname, 
-	    funcname,
-	    sizeof(funcTupDesc->data[0]->attname));
+    namecpy(&funcTupDesc->data[0]->attname, (Name) funcname);
 
     return (funcTupDesc);
 }
@@ -530,7 +532,7 @@ AccessMethodObjectIdGetAccessMethodTupleForm(accessMethodObjectId)
      */
     form = (AccessMethodTupleForm)
 	palloc(sizeof *form);
-    memcpy(form, getstruct(pg_am_tuple), sizeof *form);
+    memcpy(form, GETSTRUCT(pg_am_tuple), sizeof *form);
 
     heap_endscan(pg_am_scan);
     heap_close(pg_am_desc);
@@ -733,7 +735,7 @@ AppendAttributeTuples(indexRelation, numatts)
 	 *  process the remaining attributes...
 	 * ----------------
 	 */
-	memcpy(getstruct(tuple), 		/* to */
+	memcpy(GETSTRUCT(tuple), 		/* to */
 	       (char *)indexTupDesc->data[i],   /* from */
 	       sizeof (AttributeTupleForm));    /* size */
 	 
@@ -1357,7 +1359,8 @@ UpdateStats(relid, reltuples, hasindex)
     char 	nulls[Natts_pg_relation];
     char 	replace[Natts_pg_relation];
 
-    fmgr_info(ObjectIdEqualRegProcedure, &key[0].func, &key[0].nargs);
+    fmgr_info(ObjectIdEqualRegProcedure, (func_ptr *) &key[0].func,
+	      &key[0].nargs);
 
     /* ----------------
      * This routine handles updates for both the heap and index relation
@@ -1377,7 +1380,7 @@ UpdateStats(relid, reltuples, hasindex)
      * ----------------
      */
 
-    whichRel = (Relation) RelationIdGetRelation(relid);
+    whichRel = RelationIdGetRelation(relid);
 
     if (!RelationIsValid(whichRel))
 	elog(WARN, "UpdateStats: cannot open relation id %d", relid);
