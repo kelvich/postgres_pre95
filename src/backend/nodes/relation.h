@@ -22,9 +22,6 @@
  */
 
 #define	PrintRelExists
-/*#define	PrintTLEExists
-#define	PrintTLExists
-*/
 #define	PrintSortKeyExists
 #define	PrintPathExists
 #define	PrintIndexPathExists
@@ -36,7 +33,10 @@
 #define	PrintMergeOrderExists
 #define	PrintCInfoExists
 #define	PrintJInfoExists
+#define PrintHInfoExists
+#define PrintJoinMethodExists
 
+extern void     PrintRel();
 extern void	PrintSortKey();
 extern void	PrintPath();
 extern void	PrintIndexPath();
@@ -48,7 +48,17 @@ extern void	PrintJoinKey();
 extern void	PrintMergeOrder();
 extern void	PrintCInfo();
 extern void	PrintJInfo();
+extern void     PrintHInfo();
+extern void     PrintJoinMethod();
 
+#define EqualCInfoExists 1
+#define EqualJInfoExists 1
+#define EqualHInfoExists 1
+#define EqualJoinMethodExists 1
+#define EqualHashPathExists 1
+#define EqualIndexScanExists 1
+
+extern bool     EqualRel();
 extern bool	EqualSortKey();
 extern bool	EqualPath();
 extern bool	EqualIndexPath();
@@ -60,6 +70,9 @@ extern bool	EqualJoinKey();
 extern bool	EqualMergeOrder();
 extern bool	EqualCInfo();
 extern bool	EqualJInfo();
+extern bool     EqualIndexScan();
+extern bool     EqualHInfo();
+extern bool     EqualJoinmethod();
 
 /*
  * Relid
@@ -249,6 +262,26 @@ class (CInfo) public (Node) {
 	MergeOrder	mergesortorder;
 /* hashjoin only */
 	ObjectId	hashjoinoperator;
+};
+
+class (JoinMethod) public (Node) {
+#define JoinMethodDefs \
+	inherits(Node); \
+	List            jmkeys; \
+	List            clauses
+ /* private: */
+        JoinMethodDefs;
+ /* public: */
+};
+
+class (HInfo) public (Node) {
+    inherits(JoinMethod);
+    ObjectId        hashop;
+};
+
+class (MInfo) public (Node) {
+    inherits(JoinMethod);
+    List         m_ordering;
 };
 
 class (JInfo) public (Node) {
