@@ -19,6 +19,7 @@
 #include "itup.h"		/* for T_LOCK */
 #include "primnodes.a.h"
 
+/* $Header$ */
 
 extern LispValue TheseLocksWereTriggered ( /* RuleLock, LispValue */ );
 extern RuleLock RelationGetRelationLocks ();
