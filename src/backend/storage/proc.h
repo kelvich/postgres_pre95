@@ -42,7 +42,7 @@ typedef struct proc {
 
   int               prio;	/* priority for sleep queue */
 
-  TransactionIdData xid;	/* transaction currently being executed
+  TransactionId     xid;	/* transaction currently being executed
 				 * by this proc
 				 */
 

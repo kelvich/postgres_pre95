@@ -28,7 +28,7 @@ typedef struct LRelId {
 typedef struct LockInfoData  {
         bool                    initialized;
         LRelId                  lRelId;
-        TransactionIdData       transactionIdData;
+        TransactionId           transactionIdData;
         uint16                  flags;
 } LockInfoData;
 typedef LockInfoData    *LockInfo;

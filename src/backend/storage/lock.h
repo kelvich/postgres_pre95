@@ -128,7 +128,7 @@ typedef struct ltable {
 typedef struct XIDTAG {
   SHMEM_OFFSET		lock;
   int			pid;
-  TransactionIdData	xid;
+  TransactionId		xid;
 } XIDTAG;
 
 typedef struct XIDLookupEnt {
