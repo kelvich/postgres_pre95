@@ -9,8 +9,10 @@
  *	$Header$
  */
 
-#ifndef	C_H		/* Include this file only once */
-#define C_H	1
+#ifndef	CIncluded		/* Include this file only once */
+#define CIncluded	1
+
+#define C_H	"$Header$"
 
 /*
  * Begin COMPILER DEPENDENT section
@@ -606,4 +608,4 @@ form ARGS((
 
 #define SccsId(id)	RevisionId(_SccsId_, id)
 #define RcsId(id)	RevisionId(_RcsId_, id)
-#endif	/* !defined(C_H) */
+#endif	/* !defined(CIncluded) */
