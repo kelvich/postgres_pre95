@@ -48,20 +48,26 @@ EOF
 #	set up CTMP1
 # ----------------
 $CAT > $CTMP1 << 'EOF'
-#define _SHARP_	#	/* Ansi braindeath - no way to quote # in macro replacement */
+/*
+ * duplicated from tmp/c.h
+ */
+#ifdef __STDC__
+#define CppConcat(a,b)	a##b
+#else
 #define CppIdentity(a)a
 #define CppConcat(a,b)CppIdentity(a)b
+#endif
 
 #define	SETACCESSOR(_nodetype_,_fieldname_,_fieldtype_)\
 _SHARP_ define \
-CppConcat(set_,_fieldname_)(node, value) \
+CppConcat(set_,_fieldname_(node, value)) \
     { \
 	NODEAssertArg(IsA(node,_nodetype_)); \
 	(node)->_fieldname_ = (value); \
     }
 
 #define	GETACCESSOR(_nodetype_,_fieldname_,_fieldtype_)\
-_SHARP_ define CppConcat(get_,_fieldname_)(node) ((node)->_fieldname_)
+_SHARP_ define CppConcat(get_,_fieldname_(node)) ((node)->_fieldname_)
 EOF
 
 # ----------------
@@ -88,7 +94,7 @@ $EGREP -v '(^#|^[ 	/]*\*|typedef|Defs|inherits|})' < $SRC | \
 $SED -f $SEDTMP | \
 $CAT $CTMP1 - | \
 $CPP -P | \
-$SED 's/T_ /T_/' | \
+$SED 's/^_SHARP_/#/' | \
 $CB | \
 $EGREP -v '^$'
 
