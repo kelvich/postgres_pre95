@@ -16,7 +16,7 @@ Diagram 1 shows how pages in both normal POSTGRES relations and
 POSTGRES index relations (eg., a B-tree index) are structured.
 User-defined access methods need not use this page format.
 .(z
-.so /usr/postgres/ref/files/page.tr
+.so ./files/page.tr
 .ce
 \fBDiagram 1:  Sample Page Layout\fP
 .)z
