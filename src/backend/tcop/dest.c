@@ -156,7 +156,7 @@ NullCommand(dest)
 	   it can send null queries to call this function.
 	   */
 	PQNotifyList *nPtr;
-	extern MemoryContext notifyContext;
+	extern GlobalMemory notifyContext;
 	MemoryContext orig;
 
 	if (notifyContext == NULL) {
