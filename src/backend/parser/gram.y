@@ -1247,7 +1247,7 @@ Relation:
 	;
 
 opt_time_range:
-	  '[' opt_date ',' opt_date ']'
+	  '[' opt_range_start ',' opt_range_end ']'
         	{ 
 		    /* printf ("time range\n");fflush(stdout); */
 		    $$ = MakeTimeRange($2,$4,1); 
@@ -1266,7 +1266,13 @@ opt_time_range:
 		}
 	;
 
-opt_date:
+opt_range_start:
+	  /* no date, default to nil */
+		{ $$ = lispString("epoch"); }
+	| date
+	;
+
+opt_range_end:
 	  /* no date, default to nil */
 		{ $$ = lispString("now"); }
 	| date
