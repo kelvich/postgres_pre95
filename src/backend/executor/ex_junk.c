@@ -110,8 +110,8 @@ ExecInitJunkFilter(targetList)
 	    resdom = (Resdom) CAR(get_fj_innerNode(fjNode));
 	    expr =   CADR(get_fj_innerNode(fjNode));
 	    cleanResdom = (Resdom) CopyObject(resdom);
-	    cleanResno++;
 	    set_resno(cleanResdom, cleanResno);
+	    cleanResno++;
 	    tle = (List) MakeTLE(cleanResdom, expr);
 	    set_fj_innerNode(cleanFjoin, tle);
 
