@@ -26,6 +26,7 @@
 #include "tqual.h"
 
 extern LispValue parser_ppreserve();
+extern int Quiet;
 
 LispValue
 ModifyQueryTree(query,priority,ruletag)
@@ -46,6 +47,42 @@ VarnoGetRelname( vnum )
     return((Name)CString(CAR(CDR(CAR(temp)))));
 }
 
+LispValue
+any_ordering_op( varnode )
+	Var varnode;
+{
+    int vartype;
+    Operator order_op;
+    OID order_opid;
+
+    Assert(! null(varnode));
+
+    vartype = get_vartype(varnode);
+    order_op = oper("<",get_vartype(varnode),vartype,vartype);
+    order_opid = oprid(order_op);
+
+    return(lispInteger(order_opid));
+
+}
+
+Var
+find_tl_elt ( varname ,tlist )
+     char *varname;
+{
+    LispValue i = LispNil;
+
+    foreach ( i, tlist ) {
+	Resdom resnode = (Resdom)CAAR(i);
+	Var tvarnode = (Var) CADR(CAR(i));
+	Name resname = get_resname(resnode );
+
+	if ( strcmp ( resname, varname ) ) {
+	    return ( tvarnode );
+	} 
+    }
+    return ( (Var) NULL );
+}
+
 /**************************************************
   MakeRoot
   
@@ -60,20 +97,78 @@ VarnoGetRelname( vnum )
   **************************************************/
 
 LispValue
-MakeRoot(NumLevels,query_name,result,rtable,priority,ruleinfo)
+MakeRoot(NumLevels,query_name,result,rtable,priority,ruleinfo,unique_flag,
+	 sort_clause,targetlist)
      int NumLevels;
      LispValue query_name,result;
      LispValue rtable,priority,ruleinfo;
+     LispValue unique_flag,sort_clause;
+     LispValue targetlist;
 {
     LispValue newroot = LispNil;
-    
-    newroot = lispCons( ruleinfo , LispNil );
+    LispValue new_sort_clause = LispNil;
+    LispValue sort_clause_elts = LispNil;
+    LispValue sort_clause_ops = LispNil;
+    LispValue i = LispNil;
+
+    foreach (i, sort_clause) {
+
+	LispValue 	one_sort_clause = CAR(i);
+	Var  		one_sort_elt = NULL;
+	String	 	one_sort_op = NULL;
+	int 		sort_elt_type = 0;
+
+	Assert ( consp (one_sort_clause) );
+
+	one_sort_elt = find_tl_elt(one_sort_clause,targetlist );
+
+	Assert(! null (one_sort_elt));
+
+	one_sort_op = CString(CADR(one_sort_clause));
+
+	/* Assert ( tlelementP (one_sort_elt) ); */
+
+	sort_clause_elts = nappend1( sort_clause_elts, one_sort_elt );
+	sort_elt_type = get_vartype(one_sort_elt);
+
+	if (CADR(one_sort_clause) == LispNil ) {
+	    sort_clause_ops = nappend1( sort_clause_elts, 
+					any_ordering_op(one_sort_elt) );
+	} else {
+	    sort_clause_ops = nappend1( sort_clause_elts,
+				lispInteger(oprid( oper(one_sort_op,
+					             sort_elt_type,
+					             sort_elt_type ) )));
+	}
+    }
+        
+    if ( unique_flag != LispNil ) {
+	/* concatenate all elements from target list
+	   that are not already in the sortby list */
+        foreach (i,targetlist) {
+	    LispValue tlelt = CAR(i);
+	    if ( ! member ( CADR(tlelt) , sort_clause_elts ) ) {
+		sort_clause_elts = nappend1 ( sort_clause_elts, CADR(tlelt)); 
+		sort_clause_ops = nappend1 ( sort_clause_ops, 
+			any_ordering_op(CADR(tlelt) ));
+	    }
+	}    
+    }
+
+    new_sort_clause = lispCons ( lispAtom("sort"),
+			         lispCons (sort_clause_elts, 
+			                   lispCons (sort_clause_ops, 
+						     LispNil ))); 
+
+    newroot = lispCons (new_sort_clause,LispNil);
+    newroot = lispCons (unique_flag,newroot );
+    newroot = lispCons( ruleinfo , newroot );
     newroot = lispCons( priority , newroot );
     newroot = lispCons( rtable , newroot );
     newroot = lispCons( result , newroot );
     newroot = lispCons( query_name, newroot );
     newroot = lispCons( lispInteger( NumLevels ) , newroot );
-    
+
     return (newroot) ;
 }
 
@@ -85,13 +180,17 @@ MakeRoot(NumLevels,query_name,result,rtable,priority,ruleinfo)
   <relname>
   OUTPUT:
   ( <relname> <relnum> <time> <flags> <rulelocks> )
-  
+
+  NOTES:
+    (eq CAR(options) , Trange)
+    (eq CDR(optioons) , flags )
+
  **************************************************/
 
 LispValue
 MakeRangeTableEntry( relname , options , refname)
      Name relname;
-     int options;
+     List options;
      Name refname;
 {
     LispValue entry 	= LispNil,
@@ -107,8 +206,7 @@ MakeRangeTableEntry( relname , options , refname)
     /*printf("relname is : %s\n",(char *)relname); 
       fflush(stdout);*/
     
-    index = RangeTablePosn (relname,(options & 0x01),
-			    (CInteger(p_trange) != 0 )); 
+    index = RangeTablePosn (relname,options);
     
     relation = amopenr( relname );
     if ( relation == NULL ) {
@@ -119,17 +217,16 @@ MakeRangeTableEntry( relname , options , refname)
     }
     /* RuleLocks - for now, always empty, since preplanner fixes */
     
-    /* Flags - zero or more from archive,inheritance,union,version */
-    
-    if(options & 0x01 ) /* XXX - fix this */
-      Flags = nappend1(Flags, lispAtom ("inherits"));
+    /* Flags - zero or more from archive,inheritance,union,version
+               or recursive (transitive closure) */
 
-    /* if(options & 0x02 )
-      Flags = nappend1(Flags,lispAtom("recursive")); */
-
-    /* TimeRange */
-    
-    TRange = p_trange; /* default is lispInteger(0) */
+    if (consp(options)) { 
+      Flags = CDR(options);
+      TRange = CAR(options);
+    } else {
+      Flags = LispNil;
+      TRange = lispInteger(0);
+    }
 
     /* RelOID */
     RelOID = lispInteger ( RelationGetRelationId (relation ));
@@ -317,8 +414,6 @@ make_op(op,ltree,rtree)
   to get just the varnode, strip the type off (use CDR(make_var ..) )
  **********************************************************************/
 
-extern int Quiet;
-
 LispValue
 make_var ( relname, attrname )
      Name relname, attrname;
@@ -328,20 +423,19 @@ make_var ( relname, attrname )
     LispValue vardotfields, vararrayindex ;
 	Type rtype;
     Relation rd;
-    Relation amopenr();
     extern LispValue p_rtable;
     extern int p_last_resno;
-    
-    if (!Quiet) {
-    printf (" now in make_Var\n"); 
-    printf ("relation = %s, attr = %s\n",relname,
-	    attrname); 
-    fflush(stdout);
-    }
-    
+
+    /* if (!Quiet) {
+	printf (" now in make_Var\n"); 
+	printf ("relation = %s, attr = %s\n",relname,
+		attrname); 
+	fflush(stdout);
+    } */
+
     vnum = RangeTablePosn ( relname,0,0) ;
-    if (!Quiet)
-    printf("vnum = %d\n",vnum); 
+    /* if (!Quiet)
+      printf("vnum = %d\n",vnum);  */
     if (vnum == 0) {
 	p_rtable = nappend1 (p_rtable ,
 			     MakeRangeTableEntry ( relname , 0 , relname) );
@@ -352,8 +446,8 @@ make_var ( relname, attrname )
 	relname = VarnoGetRelname( vnum );
     }
     
-    if (!Quiet)
-    printf("relname to open is %s",relname);
+    /* if (!Quiet)
+      printf("relname to open is %s",relname); */
     
     rd = amopenr ( relname );
     attid = varattno (rd , attrname );
@@ -476,8 +570,6 @@ make_const( value )
 	Type tp;
 	LispValue temp;
 	Datum val;
-	float dummy;
-	float32 address_of_dummy;
 
 /*	printf("in make_const\n");*/
 	fflush(stdout);
@@ -494,11 +586,15 @@ make_const( value )
 	    break;
 	    
 	  case PGLISP_FLOAT:
-	    tp = type("float4");
-		address_of_dummy = (float *) palloc(sizeof(float));
-		*address_of_dummy = (float) (value->val.flonum);
-		printf("make_const: dummy is %f\n", dummy);
-	    val = Float32GetDatum(address_of_dummy);
+	    {
+		/* float *dummy_float; */
+		tp = type("float4");
+		/* 
+		dummy_float = (float *)palloc(sizeof(float));
+		*dummy_float = (float)(value->val.flonum);
+		*/
+		val = Float32GetDatum(&value->val.flonum);
+	    }
 	    break;
 	    
 	  case PGLISP_STR:
@@ -524,7 +620,7 @@ make_const( value )
 	temp = lispCons (lispInteger ( typeid (tp)) ,
 			  MakeConst(typeid( tp ), tlen( tp ),
 				    val , 0 ));
-	lispDisplay( temp , 0 );
+/*	lispDisplay( temp , 0 );*/
 	return (temp);
 	
 }

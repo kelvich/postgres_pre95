@@ -54,6 +54,7 @@ struct attribute *	/* XXX */
 int		Quiet = 0;
 static	int	Warnings = 0;
 static	int	ShowTime = 0;
+static  bool	query_rewrite_is_enabled = false;
 #ifdef	EBUG
 static	int	ShowLock = 0;
 #endif
@@ -278,86 +279,116 @@ char ReadCommand(inBuf)
 pg_eval( query_string )
     String	query_string;
 {
-    LispValue parsetree = lispList();
+    LispValue parsetree_list = lispList();
+    LispValue i;
+    bool unrewritten = true;
 
     /* ----------------
      *	(1) parse the request string
      * ----------------
      */
-    parser(query_string,parsetree);
-    
-    ValidateParse(parsetree);
-    
-    /* ----------------
-     *	display parse strings
-     * ----------------
-     */
-    if (! Quiet) {
-	printf("\ninput string is %s\n",query_string);
-	printf("\n---- \tparser outputs :\n");
-	lispDisplay(parsetree,0);
-	printf("\n");
-    }
+    parser(query_string,parsetree_list);
+
+    foreach (i, parsetree_list ) {
+	LispValue parsetree = CAR(i);
+	ValidateParse(parsetree);
 	
-    /* ----------------
-     *   (2) process the request
-     * ----------------
-     */
-    if (atom(CAR(parsetree))) {
 	/* ----------------
-	 *   process utility functions (create, destroy, etc..)
+	 *	display parse strings
 	 * ----------------
 	 */
 	if (! Quiet) {
-	    time(&tim);
-	    printf("\tProcessUtility() at %s\n", ctime(&tim));
-	}
-	ProcessUtility(LISPVALUE_INTEGER(CAR(parsetree)),
-		       CDR(parsetree),
-		       query_string);
-	
-    } else {
-	/* ----------------
-	 *   process optimisable queries (retrieve, append, delete, replace)
-	 * ----------------
-	 */
-	Node plan;
-	extern Node planner();
-	extern void init_planner();
-
-	/* ----------------
-	 *   initialize the planner
-	 * ----------------
-	 */
-	if (! Quiet)
-	    puts("\tinit_planner()..");
-	
-	init_planner();
-	
-	/* ----------------
-	 *   generate the plan
-	 * ----------------
-	 */
-	plan = planner(parsetree);
-
-	if (! Quiet) {
-	    printf("\nPlan is :\n");
-	    (*(plan->printFunc))(stdout, plan);
+	    printf("\ninput string is %s\n",query_string);
+	    printf("\n---- \tparser outputs :\n");
+	    lispDisplay(parsetree,0);
 	    printf("\n");
 	}
-	    
+	
 	/* ----------------
-	 *   execute the plan
+	 *   (2) process the request
 	 * ----------------
 	 */
-	if (! Quiet) {
-	    time(&tim);
-	    printf("\tProcessQuery() at %s\n", ctime(&tim));
-	}
+	if (atom(CAR(parsetree))) {
+	    /* ----------------
+	     *   process utility functions (create, destroy, etc..)
+	     * ----------------
+	     */
+	    if (! Quiet) {
+		time(&tim);
+		printf("\tProcessUtility() at %s\n", ctime(&tim));
+	    }
+	    ProcessUtility(LISPVALUE_INTEGER(CAR(parsetree)),
+			   CDR(parsetree),
+			   query_string);
+	    
+	} else {
+	    /* ----------------
+	     *   rewrite queries (retrieve, append, delete, replace)
+	     * ----------------
+	     */
+	    Node plan  	= NULL;
+	    List rewritten  = LispNil;
+	    
+	    extern Node planner();
+	    extern void init_planner();
+	    extern List QueryRewrite();
+	    
+	    /* ----------------
+	     *   process queries (retrieve, append, delete, replace)
+	     * ----------------
+	     */
+	    
+	    if ( unrewritten == true && query_rewrite_is_enabled ) {
+		if (!Quiet) {
+		    printf("rewriting query if needed ...\n");
+		    fflush(stdout);
+		}
+		if (( rewritten = QueryRewrite ( parsetree )) != NULL  ) {
+		    parsetree_list = nconc ( parsetree_list , rewritten );
+		    unrewritten = false;
+		continue;
+		}
+		
+		unrewritten = false;	
+		
+	    } /* if unrewritten, then rewrite */
+	    
+	    
+	    /* ----------------
+	     *   initialize the planner
+	     * ----------------
+	     */
+	    if (! Quiet)
+	    puts("\tinit_planner()..");
+	    
+	    init_planner();
+	    
+	    /* ----------------
+	     *   generate the plan
+	     * ----------------
+	     */
+	    plan = planner(parsetree);
+	    
+	    if (! Quiet) {
+		printf("\nPlan is :\n");
+	    (*(plan->printFunc))(stdout, plan);
+		printf("\n");
+	    }
+	    
+	    /* ----------------
+	     *   execute the plan
+	     * ----------------
+	     */
+	    if (! Quiet) {
+		time(&tim);
+		printf("\tProcessQuery() at %s\n", ctime(&tim));
+	    }
 	ProcessQuery(parsetree, plan);
-    }
-}
+	}
+    } /* foreach parsetree in parsetree_list */
 
+} /* pg_eval */
+    
 
 
 /* ----------------------------------------------------------------

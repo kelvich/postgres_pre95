@@ -24,8 +24,8 @@ letter_or_digit	[_A-Za-z0-9]
 
 identifier	{letter}{letter_or_digit}*
 
-self		[,()\[\].;$\:]
-operator	[\!\@\#\%\^\&\*\-\=\+\|\`\|\<\>\/\?]+
+self		[,()\[\].;$\:\+\-\*\/\<\>\=]
+operator	[\!\@\#\%\^\&\|\`\|\?]+
 
 string		\"
 character	"'"
@@ -50,7 +50,7 @@ other		.
 			return (ICONST);
 		}
 {real}		{
-			yylval = lispFloat((double) atof(yytext));
+			yylval = lispFloat(atof(yytext));
 			return (FCONST);
 		}
 {string}	{

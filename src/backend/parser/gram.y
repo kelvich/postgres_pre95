@@ -50,8 +50,10 @@ extern Relation amopenr();
 #define NULLTREE	yyval = LispNil ; 
 #define LAST(lv)        lispCons ( lv , LispNil )
 
-#define INC_NUM_LEVELS(x)	if (NumLevels < x ) NumLevels = x;
+#define INC_NUM_LEVELS(x)	{ if (NumLevels < x ) NumLevels = x; }
 #define KW(keyword)		lispAtom(CppAsString(keyword))
+
+#define ADD_TO_RT(rt_entry)     p_rtable = nappend1(p_rtable,rt_entry) 
 
 #define YYSTYPE LispValue
 extern YYSTYPE parsetree;
@@ -100,54 +102,36 @@ static bool QueryIsRule = false;
 
 /* add tokens here */
 
-%token   	INHERITANCE VERSION CURRENT NEW ON THEN DO INSTEAD
-
-
-
+%token   	INHERITANCE VERSION CURRENT NEW THEN DO INSTEAD VIEW
+		REWRITE P_TUPLE
 
 /* precedence */
-%right '='
-%left  '+' '-'
-%left  '*' '/'
-%left  '(' ')' '[' ']' 
+%nonassoc Op
+%right 	'='
+%left  	'+' '-'
+%left  	'*' '/'
+%right   UMINUS
+%left  	'[' ']' 
 %left	'.'
+%nonassoc  '<' '>'
+%right 	':'
+%nonassoc REDUCE
 
 %%
 
+queryblock:
+	query 
+		{ parser_init(); }
+	queryblock
+		{ parsetree = lispCons ( $1 , parsetree ) ; }
+	| query
+		{ 
+		    parsetree = lispCons($1,LispNil) ; 
+		    parser_init();
+		}
+	;
 query:
 	stmt 
-		{ $$ = $1;  parsetree=$$; }
-	| experiment
-	;
-
-experiment: 
-	ON RETRIEVE TO relation_name opt_qual
-	THEN DO opt_instead 
-	{ 
-	    QueryIsRule = true;
-	} 
-	OptimizableStmt
-	{
-	    HandleRetrieveRuleDef(CString($4),$5,$7,$10);
-	}
-	| ON REPLACE TO relation_name opt_qual
-	THEN DO opt_instead 
-	{
-	    QueryIsRule = true;
-	}
-	OptimizableStmt
-	{
-	    HandleReplaceRuleDef($2,$4,$5,$7,$10);
-	}
-	;
-
-opt_qual:
-					{ NULLTREE }
-	;
-
-opt_instead:
-	INSTEAD
-	| /* EMPTY */			{ NULLTREE }
 	;
 
 stmt :
@@ -169,7 +153,8 @@ stmt :
 	| RenameStmt
 	| OptimizableStmt		
 	| RuleStmt			
-	| TransactionStmt		
+	| TransactionStmt
+  	| ViewStmt
 	;
 
  /**********************************************************************
@@ -291,7 +276,7 @@ copy_spec:
 
 copy_eq:
 	  /*EMPTY*/				{ NULLTREE }
-	| equals Id				{ $$ = $2 ; }
+	| '=' Id				{ $$ = $2 ; }
 	;
  
 copy_char:
@@ -353,7 +338,7 @@ dom_name_list:		name_list;
 
 OptArchiveType:
 	/*EMPTY*/				{ NULLTREE }
-	| Archive equals archive_type		{$$ = lispCons ($1 , $3); }
+	| Archive '=' archive_type		{$$ = lispCons ($1 , $3); }
 	;
 
 archive_type:	  
@@ -439,7 +424,7 @@ definition:
 	;
 
 def_elem:
-	  def_name equals def_arg
+	  def_name '=' def_arg
 		{ $$ = lispCons($1, lispCons($3, LispNil)); }
 	| def_name
 		{ $$ = lispCons($1, LispNil); }
@@ -501,6 +486,31 @@ OptFetchPname:
 	;
 
  /************************************************************
+
+	define index:
+	
+	define [archive] index <indexname> on <relname>
+	  using <access> "(" (<col> with <op>)+ ")" with
+	  <target_list>
+
+  ************************************************************/
+
+
+IndexStmt:
+	  Define opt_archive Index index_name On relation_name
+	    Using access_method '(' index_list ')' with_clause
+		{
+		    $12 = lispCons($12,LispNil);
+		    $10 = lispCons($10,$12);
+		    $8  = lispCons($8,$10);
+		    $4  = lispCons($4,$8);
+		    $6  = lispCons($6,$4);
+		    $3  = lispCons($3,$6);
+		    $$  = lispCons($1,$3);
+		}
+	;
+
+ /************************************************************
 	QUERY:
 		merge <rel1> into <rel2>
 	TREE:
@@ -546,7 +556,7 @@ opt_move_where:
 	/*EMPTY*/				{ NULLTREE }
 	| NumConst				/* $$ = $1 */
 	| TO NumConst				
-		{ $$ = lispCons ( KW($1) , lispCons( $2, LispNil )); }
+		{ $$ = lispCons ( KW(to) , lispCons( $2, LispNil )); }
 	| TO record_qual			
 		{ $$ = lispString("record quals unimplemented") ; }
 	;
@@ -665,47 +675,92 @@ RenameStmt :
 	;
 
 
+ /* ADD : Define Rewrite Rule , Define Tuple Rule 
+          Define Rule <old rules >
+  */
 
- /**************************************************
-	
-	Rules:
-	define rule <rulename> is <ruletag> <rulequery> 
-	  <priority>
-		(DEFINE RULE "rulename" (rulequery))
-
-	- <ruletag> is one of always,never,once
-	- <priority> is between 0 and 7
-	- <rulequery> is one of 5 query stmts
-	  (retrieve,replace,append,execute)
-
-  **************************************************/
-
-RuleStmt: 
-	  Define Rule name opt_priority		
-	  Is rule_tag
-		{ p_ruleinfo = lispCons(lispInteger(0),$6); p_priority = $4; }
-	  OptimizableStmt 
+RuleStmt:
+          Define Rule name opt_priority
+          Is rule_tag
+                { p_ruleinfo = lispCons(lispInteger(0),$6); p_priority = $4; }
+          OptimizableStmt
+                {
+                  $3 = lispCons($3,LispNil);    /* name */
+                  $2 = lispCons($2,$3);         /* rule */
+                  $$ = lispCons($1,$2);         /* define */
+                  $$ = nappend1($$,$8 );        /* rule query */
+                }
+	| Define newruleTag Rule name Is 
 		{
-		  $3 = lispCons($3,LispNil);	/* name */
-		  $2 = lispCons($2,$3);		/* rule */
-		  $$ = lispCons($1,$2); 	/* define */
-		  $$ = nappend1($$,$8 );	/* rule query */
+		    p_ruleinfo = lispCons(lispInteger(0),LispNil);
+		    p_priority = lispInteger(0) ;
+		}
+	RuleBody
+		{
+	 	    $$ = lispCons ( $3, $6 );	/* CADR(args) = 
+						   CADDR(tree) = name */
+		    $$ = lispCons ( $2, $$ );	/* tag = CADR(tree) = 'rule */
+		    $$ = lispCons ( $1, $$ );	/* CAR(tree) = 'define */
 		}
 	;
 
-rule_tag:	  
-	ALWAYS 
-		{ $$ = KW(always); }
-  	| ONCE
-		{ $$ = KW(once); }
-	| NEVER 
-		{ $$ = KW(never); }
-	;
+rule_tag:
+        ALWAYS
+                { $$ = KW(always); }
+        | ONCE
+                { $$ = KW(once); }
+        | NEVER
+                { $$ = KW(never); }
+        ;
 
 opt_priority:
-	  /*EMPTY*/				{ $$ = lispInteger(0); }
-	| PRIORITY Iconst			{ $$ = $2 ; }
+          /*EMPTY*/                             { $$ = lispInteger(0); }
+        | PRIORITY Iconst                       { $$ = $2 ; }
+        ;
+
+
+newruleTag: P_TUPLE 
+		{ $$ = KW(tuple); }
+	| REWRITE 
+		{ $$ = KW(rewrite); }
 	;
+
+RuleBody: 
+	ON event TO event_object opt_qual
+	DO opt_instead 
+	{ 
+	    QueryIsRule = true;
+	} 
+	OptimizableStmt
+	{
+	    $$ = lispCons($9,LispNil);		/* action */
+	    $$ = lispCons($7,$$);		/* instead */
+	    $$ = lispCons($5,$$);		/* event-qual */
+	    $$ = lispCons($4,$$);		/* event-object */
+	    $$ = lispCons($2,$$);		/* event-type */
+	}
+	;
+
+event_object: 
+	relation_name '.' att_name
+		{ $$ = lispCons ( $1, lispCons ( $3, LispNil)) ; }
+	| relation_name
+		{ $$ = lispCons ( $1, LispNil ); }
+  	;
+event:
+  	RETRIEVE | REPLACE | DELETE | APPEND ;
+
+opt_qual:
+					{ NULLTREE }
+	;
+
+opt_instead:
+  	INSTEAD				{ $$ = lispInteger((int)true); }
+	| /* EMPTY */			{ $$ = lispInteger((int)false); }
+	;
+
+
+
 
  /**************************************************
 
@@ -733,32 +788,23 @@ TransactionStmt:
 	| End
 		{ $$ = lispCons ( $1, LispNil ) ; } 
 	;
-  
- /************************************************************
 
-	define index:
-	
-	define [archive] index <indexname> on <relname>
-	  using <access> "(" (<col> with <op>)+ ")" with
-	  <target_list>
+ /**************************************************
 
-  ************************************************************/
+	View Stmt  
+	define view <viewname> '('target-list ')' [where <quals> ]
 
+   **************************************************/
 
-IndexStmt:
-	  Define opt_archive Index index_name On relation_name
-	    Using access_method '(' index_list ')' with_clause
-		{
-		    $12 = lispCons($12,LispNil);
-		    $10 = lispCons($10,$12);
-		    $8  = lispCons($8,$10);
-		    $4  = lispCons($4,$8);
-		    $6  = lispCons($6,$4);
-		    $3  = lispCons($3,$6);
-		    $$  = lispCons($1,$3);
+ViewStmt:
+	Define VIEW name { SkipForwardToFromList(); }
+	RetrieveSubStmt
+		{ 
+		    $3 = lispCons ( $3 , $5 );
+		    $2 = lispCons ( KW(view) , $3 );
+		    $$ = lispCons ( $1 , $2 );
 		}
 	;
-
 
  /**********************************************************************
   **********************************************************************
@@ -796,11 +842,12 @@ AppendStmt:
           opt_star relation_name
                 {
                    int x = 0;
-                   if((x=RangeTablePosn(CString($5),0,0)) == 0)
-                      p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-                                           (CString($5),0,CString($5)));
+                   if((x=RangeTablePosn(CString($5),LispNil)) == 0)
+		     ADD_TO_RT( MakeRangeTableEntry(CString($5),
+						    LispNil,
+						    CString($5)));
                   if (x==0)
-                    x = RangeTablePosn(CString($5),0,0);
+                    x = RangeTablePosn(CString($5),LispNil);
                   CurrentRelationPtr = amopenr(VarnoGetRelname(x));
                   if (CurrentRelationPtr == NULL)
                         elog(WARN,"invalid relation name");
@@ -810,9 +857,16 @@ AppendStmt:
           where_clause
                 {
                         LispValue root;
-                        int x = RangeTablePosn(CString($5),0,0);
+			LispValue command;
+                        int x = RangeTablePosn(CString($5),LispNil);
                         StripRangeTable();
-                        root = MakeRoot(1, KW(append), lispInteger(x),
+
+			if ( $4 == LispNil )
+			  command = KW(append);
+			else
+			  command = lispCons( lispInteger('*'),KW(append));
+
+                        root = MakeRoot(1, command , lispInteger(x),
                                         p_rtable,
                                         p_priority, p_ruleinfo);
                         $$ = lispCons ( root , LispNil );
@@ -838,32 +892,47 @@ DeleteStmt:
           from_clause
           opt_star var_name
                 {
-                   int x = 0;
-                   if((x=RangeTablePosn(CString($5),0,0)) == 0)
-                      p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-                                           (CString($5),0,CString($5)));
-                  if (x==0)
-                    x = RangeTablePosn(CString($5),0,0);
-                  CurrentRelationPtr = amopenr(VarnoGetRelname(x));
-                  if (CurrentRelationPtr == NULL)
-                        elog(WARN,"invalid relation name");
-                  ResdomNoIsAttrNo = 1; }
+		    int x = 0;
+		    
+		    if((x=RangeTablePosn(CString($5),LispNil)) == 0 )
+                      ADD_TO_RT (MakeRangeTableEntry (CString($5),
+						      LispNil,
+						      CString($5)));
+		    
+		    if (x==0)
+		      x = RangeTablePosn(CString($5),LispNil);
+		    
+		    CurrentRelationPtr = amopenr(VarnoGetRelname(x));
+		    if (CurrentRelationPtr == NULL)
+		      elog(WARN,"invalid relation name");
+		    ResdomNoIsAttrNo = 1; 
+		}
           where_clause
                 {
-                        LispValue root;
-                        int x;
-                        x= RangeTablePosn(CString($5),0,0);
-                        if (x == 0)
-                          p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-                                               (CString($5),0,CString($5)));
-                        StripRangeTable();
-                        root = MakeRoot(NumLevels,KW(delete),
-                                        lispInteger ( x ) ,
-                                        p_rtable, p_priority, p_ruleinfo);
-                        $$ = lispCons ( root , LispNil );
-                        /* check that var_name is in the relation */
-                        $$ = nappend1 ( $$ , LispNil ); /* (eq p_target $5) */
-                        $$ = nappend1 ( $$ , $7 ); /* (eq p_qual $7 */
+		    LispValue root = LispNil;
+		    LispValue command = LispNil;
+		    int x = 0;
+
+		    x= RangeTablePosn(CString($5),LispNil);
+		    if (x == 0)
+		      ADD_TO_RT(MakeRangeTableEntry (CString ($5),
+						     LispNil,
+						     CString($5)));
+		    StripRangeTable();
+		    if ( $4 == LispNil )
+		      command = KW(delete);
+		    else
+		      command = lispCons( lispInteger('*'),KW(delete));
+		    
+		    root = MakeRoot(1,command,
+				    lispInteger ( x ) ,
+				    p_rtable, p_priority, p_ruleinfo);
+		    $$ = lispCons ( root , LispNil );
+
+		    /* check that var_name is in the relation */
+
+		    $$ = nappend1 ( $$ , LispNil ); 	/* no target list */
+		    $$ = nappend1 ( $$ , $7 ); 		/* (eq p_qual $7 */
                 }
         ;
 
@@ -879,7 +948,7 @@ ExecuteStmt:
 	  EXECUTE opt_star opt_portal '(' res_target_list ')'
             from_clause with_clause where_clause
 		{ 
-			$$ = KW($1); 
+			$$ = KW(execute);
 		  	elog(WARN, "execute does not work in Version 1");
 		}
 	;
@@ -899,11 +968,12 @@ ReplaceStmt:
         opt_star relation_name
                 {
                    int x = 0;
-                   if((x=RangeTablePosn(CString($5),0,0)) == 0)
-                      p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-                                           (CString($5),0,CString($5)));
+                   if((x=RangeTablePosn(CString($5),LispNil) ) == 0 )
+		     ADD_TO_RT( MakeRangeTableEntry (CString($5),
+						     LispNil,
+						     CString($5)));
                   if (x==0)
-                    x = RangeTablePosn(CString($5),0,0);
+                    x = RangeTablePosn(CString($5),LispNil);
                   CurrentRelationPtr = amopenr(VarnoGetRelname(x));
                    fflush(stdout);
                   if (CurrentRelationPtr == NULL)
@@ -912,11 +982,17 @@ ReplaceStmt:
         '(' res_target_list ')' where_clause
                 {
                     LispValue root;
-                    int result = RangeTablePosn(CString($5),0,0);
+		    LispValue command = LispNil;
+                    int result = RangeTablePosn(CString($5),LispNil);
                     if (result < 1)
                       elog(WARN,"parser internal error , bogus relation");
                     StripRangeTable();
-                    root = MakeRoot(1, KW(replace), lispInteger(result),
+		    if ( $4 == LispNil )
+		      command = KW(replace);
+		    else
+		      command = lispCons( lispInteger('*'),KW(replace));
+
+                    root = MakeRoot(1, command , lispInteger(result),
                                     p_rtable,
                                     p_priority, p_ruleinfo);
 
@@ -941,8 +1017,13 @@ ReplaceStmt:
   ************************************************************/
 
 RetrieveStmt:
-	  RETRIEVE 
+	RETRIEVE 
 		{ SkipForwardToFromList(); }
+	RetrieveSubStmt
+		{ $$ = $3 ; }
+	;
+
+RetrieveSubStmt:
 	  from_clause 
 	  opt_star result opt_unique 
 	  '(' res_target_list ')'
@@ -951,14 +1032,21 @@ RetrieveStmt:
 		/* XXX - what to do with opt_unique, from_clause
 		 */	
 		    LispValue root;
-	
+		    LispValue command;
+
 		    StripRangeTable();
-		    root = MakeRoot(NumLevels,KW(retrieve), $5, p_rtable,
-				    p_priority, p_ruleinfo);
+		    if ( $2 == LispNil )
+		      command = KW(retrieve);
+		    else
+		      command = lispCons( lispInteger('*'),KW(retrieve));
+
+		    root = MakeRoot(NumLevels,command, $3, p_rtable,
+				    p_priority, p_ruleinfo,$4,$9,$6);
+		    
 
 		    $$ = lispCons( root , LispNil );
-		    $$ = nappend1 ( $$ , p_target );	/* (eq p_target $8) */
-		    $$ = nappend1 ( $$ , $10 );	        /* (eq p_qual $10) */
+		    $$ = nappend1 ( $$ , $6 );	/* (eq p_target $8) */
+		    $$ = nappend1 ( $$ , $8 );	        /* (eq p_qual $10) */
 		}
 
  /**************************************************
@@ -987,7 +1075,7 @@ opt_unique:
 	/*EMPTY*/
 		{ NULLTREE }
 	| UNIQUE
-		{ $$ = KW($1); }
+		{ $$ = KW(unique); }
 	;
 
 ret_opt2: 
@@ -1030,7 +1118,7 @@ opt_class:
 	;
 
 star:
-	  Op			
+	  '*'			
 	;
 		
   
@@ -1068,7 +1156,7 @@ param_list:
 	;
 
 param: 			
-	  Id equals string 
+	  Id '=' string 
 		{ $$ = lispCons ( $1 , lispCons ($3 , LispNil ));  }
 	;
 
@@ -1098,7 +1186,7 @@ from_val:
 
 			temp = p_rtable;
 			while(! lispNullp(CDR (temp))) {
-				temp = CDR(temp); /* move to last elt */
+				temp = CDR(temp); 
 			}
 			frelname = CAR(CDR(CAR(temp)));
 			/*printf("from relname = %s\n",CString(frelname));
@@ -1108,7 +1196,7 @@ from_val:
 			temp2 = CDR($1);
 			while(! lispNullp(temp2)) {
 				temp3 = lispCons(CAR(temp2),CDR(CAR(temp)));
-				p_rtable = nappend1(p_rtable,temp3);
+				ADD_TO_RT(temp3);
 				temp2 = CDR(temp2);
 			}
 
@@ -1147,37 +1235,63 @@ OptUseOp:
 
 from_rel_name:
 	  Relation	
-	| le_op Iconst gt_op		{ $$ = $2; }
+	| '<' Iconst '>'		{ $$ = $2; } 
 	;
 
 Relation:
-	  relation_name opt_time_range opt_star
+	  relation_name opt_time_range star
 		{
-			int inherit_flag = 0;
-			int trange_flag = (int)$2;
-			 
-			printf("timerange flag = %d",(int)$2);
+		    List options = LispNil;
 
-			if ($3 != LispNil )	/* inheritance query*/
-				inherit_flag = 1;
-			if( !RangeTablePosn(CString($1),inherit_flag,p_trange))
-				p_rtable = nappend1 (p_rtable, 
-					MakeRangeTableEntry (CString($1),
-						inherit_flag | trange_flag,
-						CString($1) ));
+		    /* printf("timerange flag = %d",(int)$2); */
+		    
+		    if ($3 != LispNil )	/* inheritance query*/
+		      options = lispCons(lispAtom("inherits"),options);
+
+		    if ($2 != LispNil ) /* time range query */
+		      options = lispCons($2, options );
+
+		    if( !RangeTablePosn(CString($1),options ))
+		      ADD_TO_RT (MakeRangeTableEntry (CString($1),
+						      options,
+						      CString($1) ));
+		}
+	  | relation_name opt_time_range %PREC REDUCE
+		{
+		    List options = LispNil;
+
+		    /* printf("timerange flag = %d",(int)$2); */
+		    
+		    if ($2 != LispNil ) /* time range query */
+		      options = lispCons($2, options );
+
+		    if( !RangeTablePosn(CString($1),options ))
+		      ADD_TO_RT (MakeRangeTableEntry (CString($1),
+						      options,
+						      CString($1) ));
 		}
 	;
 
 opt_time_range:
 	  '[' opt_date ',' opt_date ']'
-		{ printf ("time range\n");fflush(stdout);
-		  p_trange = MakeTimeRange($2,$4,1); $$ = (LispValue)2; }
+        	{ 
+		    /* printf ("time range\n");fflush(stdout); */
+		    $$ = MakeTimeRange($2,$4,1); 
+		    p_trange = $$ ; 
+		}
 	| '[' date ']'
-		{ printf("snapshot\n"); fflush(stdout);
-		p_trange = MakeTimeRange($2,LispNil,0); $$ = (LispValue)2; }
+		{ 
+		    /* printf("snapshot\n"); fflush(stdout); */
+		    $$ = MakeTimeRange($2,LispNil,0); 
+		    p_trange = $$ ; 
+		}
 	| /*EMPTY*/
-		{ p_trange = lispInteger(0); $$ = lispInteger(0); }
+		{ 
+		    $$ = lispInteger(0); 
+		    p_trange = $$; 
+		}
 	;
+
 opt_date:
 	  /* no date, default to nil */
 		{ $$ = lispString("now"); }
@@ -1219,7 +1333,7 @@ dom_list:
 	;
 
 dom: 	
-	  dom_name equals adt
+	  dom_name '=' adt
 		{ 
 		    $3 = lispCons($3,LispNil); 
 		    $$ = lispCons($1,$3);
@@ -1232,15 +1346,70 @@ a_expr:
 		{
 		$$ = make_var ( CString(CAR ($1)) , CString(CDR($1)));
 		}
+	| attr '[' Iconst ']'
+		{ 
+		     Var temp = (Var)NULL;
+		     temp = (Var)make_var ( CString(CAR($1)),
+				       CString(CDR($1)) );
+		     $$ = (LispValue)MakeArrayRef( temp , $3 );
+		}
 	| AexprConst		
-	| adt_name '[' adt_const ']'
-		{
+	/* | AexprConst ':' ':' adt_name */
+	| spec 
+	| '-' a_expr %prec UMINUS
+  		{ $$ = make_op(lispString("-"),$2, LispNil); }
+	| a_expr '+' a_expr
+		{ $$ = make_op (lispString("+"), $1, $3 ) ; }
+	| a_expr '-' a_expr
+		{ $$ = make_op (lispString("-"), $1, $3 ) ; }
+	| a_expr '/' a_expr
+		{ $$ = make_op (lispString("/"), $1, $3 ) ; }
+	| a_expr '*' a_expr
+		{ $$ = make_op (lispString("*"), $1, $3 ) ; }
+	| a_expr '<' a_expr
+		{ $$ = make_op (lispString("<"), $1, $3 ) ; }
+	| a_expr '>' a_expr
+		{ $$ = make_op (lispString(">"), $1, $3 ) ; }
+	| a_expr '=' a_expr
+		{ $$ = make_op (lispString("="), $1, $3 ) ; }
+	| a_expr ':' ':' Id 
+		{ 
 			/* check for passing non-ints */
 		        Const adt;
 			Datum lcp;
-			Type tp = type(CString($1));
+			Type tp = type(CString($4));
 			int32 len = tlen(tp);
-			char *cp = instr2 (tp, CString($3));
+			char *cp = NULL;
+			char *const_string = palloc(256);
+
+			switch ( CInteger(CAR($1)) ) {
+				case 23: /* int4 */
+					sprintf(const_string,"%d",
+						get_constvalue(CDR($1)));
+					break;
+				case 19: /* char16 */
+					sprintf(const_string,"%s",
+						get_constvalue(CDR($1)));
+					break;
+				case 18: /* char */
+					sprintf(const_string,"%c",
+						get_constvalue(CDR($1)));
+					break;
+				case 700:/* float4 */
+					sprintf(const_string,"%f",
+						get_constvalue(CDR($1)));
+					break;
+				case 25: /* text */
+					const_string = 
+					DatumGetPointer(
+					   get_constvalue(CDR($1)) );
+				default:
+					elog(WARN,"unknown type%d ",
+					     CInteger(CAR($1)) );
+			}
+			
+			cp = instr2 (tp, const_string);
+
 
 			if (!tbyvalue(tp)) {
 			    if (len >= 0 && len != PSIZE(cp)) {
@@ -1273,51 +1442,23 @@ a_expr:
 			       len,cp);
 			       */
 			$$ = lispCons  ( lispInteger (typeid(tp)) , adt );
+		    
 		}
-	| spec 
-	| a_expr Op a_expr
-		{ 
-		    $$ = make_op ($2, $1, $3 ) ; 
-		}
-	| a_expr Op
-		{ $$ = make_op($2,LispNil, $1); }
-	| Op a_expr
-  		{ $$ = make_op($1,$2, LispNil); }
 	| '(' a_expr ')'
 		{$$ = $2;}
 	/* XXX Or other stuff.. */
+	| a_expr Op a_expr
+		{ $$ = make_const ( $2, $1 , $3 ); }
 	;
-
-equals:
-	  Op
-		{if (strcmp(CString(yylval), "=") != 0) {
-			yyerror("syntax error (expected '=')");
-			/*YYABORT;*/
-		} }
-le_op:
-	  Op
-		{ if (strcmp(CString(yylval), "<") != 0) {
-			yyerror("syntax error ('<' should be used)");
-			/*YYABORT;*/
-		 }
-		}
-
-gt_op:
-	  Op
-		{if (strcmp(CString(yylval), ">") != 0) {
-			yyerror("syntax error ('>' should be used)");
-			/*YYABORT;*/
-		 }
-		}
 
 attr:
 	  relation_name '.' att_name
 		{    
 		    INC_NUM_LEVELS(1);		
-		    if( RangeTablePosn ( CString ($1),0,0 ) == 0 ) 
-		      p_rtable = nappend1 (p_rtable ,
-					   MakeRangeTableEntry( CString($1) ,
-							       0, CString($1)));
+		    if( RangeTablePosn ( CString ($1),LispNil ) == 0 )
+		      ADD_TO_RT( MakeRangeTableEntry (CString($1) ,
+						      LispNil, 
+						      CString($1)));
 		    $$ = lispCons ( $1 , $3 );
 		}
 	;
@@ -1361,7 +1502,7 @@ res_target_list:
 	;
 
 res_target_el:
-	  Id equals a_expr
+	  Id '=' a_expr
 		{
 		    int type_id,type_len, attrtype, attrlen;
 		    int resdomno;
@@ -1440,7 +1581,7 @@ adt:			Id		/*$$=$1*/;
 
 date:			Sconst		/*$$=$1*/;
 file_name:		SCONST		{$$ = new_filestr($1); };
-adt_const:		Sconst		/*$$=$1*/;
+ /* adt_const:		Sconst		/*$$=$1*/;
 attach_args:		Sconst		/*$$=$1*/;
 			/* XXX should be converted by fmgr? */
 spec:
