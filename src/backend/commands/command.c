@@ -1,6 +1,25 @@
-/*
- * command.c --
- *	POSTGRES utility command code.
+/* ----------------------------------------------------------------
+ *   FILE
+ *	command.c
+ *	
+ *   DESCRIPTION
+ *	random postgres portal and utility support code
+ *
+ *   INTERFACE ROUTINES
+ *	PortalCleanup
+ *	PerformPortalFetch
+ *	PerformPortalClose
+ *	PerformAddAttribute
+ *	PerformRelationFilter
+ *
+ *   NOTES
+ *	The PortalExecutorHeapMemory crap needs to be eliminated
+ *	by designing a better executor / portal processing memory
+ *	interface.
+ *	
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #include "c.h"
@@ -27,6 +46,7 @@ RcsId("$Header$");
 #include "name.h"	/* for NameIsEqual */
 #include "oid.h"
 #include "pg_lisp.h"
+#include "palloc.h"
 #include "portal.h"
 #include "rel.h"
 #include "relscan.h"
@@ -36,172 +56,174 @@ RcsId("$Header$");
 
 #include "command.h"
 
-/*
- * FixDomainList --
- *	Puts relation transform domain list into canonical form.
+/* ----------------
+ * 	PortalExecutorHeapMemory stuff
+ *
+ *	This is where the XXXSuperDuperHacky code was. -cim 3/15/90
+ * ----------------
  */
-static
-List
-FixDomainList ARGS((
-	List	domains
-));
+MemoryContext PortalExecutorHeapMemory  = NULL;
 
-/*
- * Public
+/* --------------------------------
+ * 	PortalCleanup
+ * --------------------------------
  */
-
-void
-EndCommand(commandTag)
-	String	commandTag;
-{
-	if (IsUnderPostmaster) {
-		putnchar("C", 1);
-		putint(0, 4);
-		putstr(commandTag);
-		pflush();
-	}
-}
-
-#include "palloc.h"
-MemoryContext XXXExecutionPortalHeapMemory = NULL;
-
-void XXXSuperDuperHackyFree(pointer) Pointer pointer;
-{
-	if (PointerIsValid(XXXExecutionPortalHeapMemory)) {
-		MemoryContextFree(XXXExecutionPortalHeapMemory, pointer);
-	} else {
-		pfree(pointer);
-	}
-}
-Pointer XXXSuperDuperHackyAlloc(length) int length;
-{
-	if (PointerIsValid(XXXExecutionPortalHeapMemory)) {
-		return (MemoryContextAlloc(XXXExecutionPortalHeapMemory,
-			length));
-	} else {
-		return (palloc(length));
-	}
-}
-
 void
 PortalCleanup(portal)
-	Portal	portal;
+    Portal	portal;
 {
-	LispValue	feature;
-	MemoryContext	context;
+    LispValue	feature;
+    MemoryContext	context;
 
-	AssertArg(PortalIsValid(portal));
-	AssertArg((Pointer)portal->cleanup == (Pointer)PortalCleanup);
-	/*
-	 * switch into the portal context
-	 */
-	context = MemoryContextSwitchTo(
-		(MemoryContext)PortalGetHeapMemory(portal));
-	feature = lispCons(lispInteger(EXEC_END), LispNil);
+    /* ----------------
+     *	sanity checks
+     * ----------------
+     */
+    AssertArg(PortalIsValid(portal));
+    AssertArg((Pointer)portal->cleanup == (Pointer)PortalCleanup);
 
-	XXXExecutionPortalHeapMemory =
-		(MemoryContext)PortalGetHeapMemory(portal);
-	ExecMain(PortalGetQueryDesc(portal), PortalGetState(portal), feature);
-	/*
-	 * switch back to previous context
-	 */
-	(void)MemoryContextSwitchTo(context);
+    /* ----------------
+     *	set proper portal-executor context before calling ExecMain.
+     * ----------------
+     */
+    context = MemoryContextSwitchTo(PortalGetHeapMemory(portal));
+    PortalExecutorHeapMemory = (MemoryContext)
+	PortalGetHeapMemory(portal);
+
+    /* ----------------
+     *	tell the executor to shutdown the query
+     * ----------------
+     */
+    feature = lispCons(lispInteger(EXEC_END), LispNil);
+
+    ExecMain(PortalGetQueryDesc(portal), PortalGetState(portal), feature);
+    
+    /* ----------------
+     *	switch back to previous context
+     * ----------------
+     */
+    (void)MemoryContextSwitchTo(context);
 }
 
+/* --------------------------------
+ * 	PerformPortalFetch
+ * --------------------------------
+ */
 void
 PerformPortalFetch(name, forward, count)
-	String	name;
-	bool	forward;
-	Count	count;
+    String	name;
+    bool	forward;
+    Count	count;
 {
-	Portal		portal;
-	LispValue	feature;
-	List		queryDesc;
-	extern List	QueryDescGetTypeInfo();		/* XXX style */
-	MemoryContext	context;
+    Portal		portal;
+    LispValue		feature;
+    List		queryDesc;
+    extern List		QueryDescGetTypeInfo();		/* XXX style */
+    MemoryContext	context;
 
-	if (name == NULL) {
-		elog(WARN, "PerformPortalFetch: blank portal unsupported");
-	}
+    /* ----------------
+     *	sanity checks
+     * ----------------
+     */
+    if (name == NULL) {
+	elog(NOTICE, "PerformPortalFetch: blank portal unsupported");
+	return;
+    }
+    
+    /* ----------------
+     * 	switch into the portal context
+     * ----------------
+     */
+    portal = GetPortalByName(name);
+    if (! PortalIsValid(portal)) {
+	elog(NOTICE, "PerformPortalFetch: %s not found", name);
+	return;
+    }
+    
+    context = MemoryContextSwitchTo(PortalGetHeapMemory(portal));
 
-	/*
-	 * switch into the portal context
-	 */
-	portal = GetPortalByName(name);
-	if (!PortalIsValid(portal)) {
-		elog(WARN, "PerformPortalFetch: %s not found", name);
-	}
-#ifndef	DISABLE_PORTALS_OUTSIDE_X_BLOCKS
-#endif
-	/*
-	 * running this is WHAT?
-	 */
-	context = MemoryContextSwitchTo(
-		(MemoryContext)PortalGetHeapMemory(portal));
-	AssertState(context == (MemoryContext)PortalGetHeapMemory(GetPortalByName(NULL)));
-
-	/*
-	 * setup "feature"--there must be a cleaner interface to the executor
-	 */
-	feature = lispCons(lispInteger(EXEC_END), LispNil);
-	if (forward) {
-		feature = lispInteger((IsUnderPostmaster) ?
-			EXEC_FOR : EXEC_FDEBUG);
-	} else {
-		feature = lispInteger((IsUnderPostmaster) ?
-			EXEC_BACK : EXEC_BDEBUG);
-	}
-	feature = lispCons(feature, lispCons(lispInteger(count), LispNil));
-
-	/*
-	 * execute
-	 */
-	queryDesc = PortalGetQueryDesc(portal);
-	BeginCommand(name, QueryDescGetTypeInfo(queryDesc));
-	XXXExecutionPortalHeapMemory =
-		(MemoryContext)PortalGetHeapMemory(portal);
-	ExecMain(queryDesc, PortalGetState(portal), feature);
-	/*
-	 * The "end-of-command" tag is returned by higher-level utility code
-	 */
-
-	/*
-	 * Return blank portal for now.
-	 * Otherwise, this named portal will be cleaned.
-	 * Note: portals will only be supported within a BEGIN...END
-	 * block in the near future.  Later, someone will fix it to
-	 * do what is possible across transaction boundries.
-	 */
-	(void)MemoryContextSwitchTo((MemoryContext)
+    AssertState(context == (MemoryContext) \
 		PortalGetHeapMemory(GetPortalByName(NULL)));
+
+    /* ----------------
+     *  setup "feature" to tell the executor what direction and
+     *  how many tuples to fetch.
+     *
+     *  there must be a cleaner interface to the executor -hirohama
+     * ----------------
+     */
+    feature = lispCons(lispInteger(EXEC_END), LispNil);
+    if (forward) {
+	feature = lispInteger((IsUnderPostmaster) ?
+			      EXEC_FOR : EXEC_FDEBUG);
+    } else {
+	feature = lispInteger((IsUnderPostmaster) ?
+			      EXEC_BACK : EXEC_BDEBUG);
+    }
+    feature = lispCons(feature, lispCons(lispInteger(count), LispNil));
+
+    /* ----------------
+     *	execute the query
+     * ----------------
+     */
+    queryDesc = PortalGetQueryDesc(portal);
+    BeginCommand(name, QueryDescGetTypeInfo(queryDesc));
+    
+    PortalExecutorHeapMemory = (MemoryContext)
+	PortalGetHeapMemory(portal);
+    
+    ExecMain(queryDesc, PortalGetState(portal), feature);
+
+    /* ----------------
+     * Note: the "end-of-command" tag is returned by higher-level
+     *	     utility code
+     *
+     * Return blank portal for now.
+     * Otherwise, this named portal will be cleaned.
+     * Note: portals will only be supported within a BEGIN...END
+     * block in the near future.  Later, someone will fix it to
+     * do what is possible across transaction boundries.
+     * ----------------
+     */
+    (void) MemoryContextSwitchTo(PortalGetHeapMemory(GetPortalByName(NULL)));
 }
 
+/* --------------------------------
+ * 	PerformPortalClose
+ * --------------------------------
+ */
 void
 PerformPortalClose(name)
-	String	name;
+    String	name;
 {
-	Portal	portal;
+    Portal	portal;
 
-	if (name == NULL) {
-		elog(WARN, "PerformPortalClose: blank portal unsupported");
-	}
+    /* ----------------
+     *	sanity checks
+     * ----------------
+     */
+    if (name == NULL) {
+	elog(NOTICE, "PerformPortalClose: blank portal unsupported");
+	return;
+    }
 
-	/*
-	 * Check that memory context is sane here.
-	 */
-	portal = GetPortalByName(name);
-	if (!PortalIsValid(portal)) {
-		elog(WARN, "PerformPortalClose: %s not found", name);
-	}
+    portal = GetPortalByName(name);
+    if (! PortalIsValid(portal)) {
+	elog(NOTICE, "PerformPortalClose: %s not found", name);
+	return;
+    }
 
-	/*
-	 * PortalCleanup is called as a side-effect
-	 */
-	PortalDestroy(portal);
+    /* ----------------
+     *	Note: PortalCleanup is called as a side-effect
+     * ----------------
+     */
+    PortalDestroy(portal);
 }
 
-/*
- *	addattribute	- adds an additional attribute to a relation
+/* ----------------
+ *	PerformAddAttribute	(was formerly addattribute())
+ *
+ *	adds an additional attribute to a relation
  *
  *	Adds attribute field(s) to a relation.  Each new attribute
  *	is given attnums in sequential order and is added to the
@@ -226,6 +248,7 @@ PerformPortalClose(name)
  *	create new relation tuple
  *	insert new relation in relation catalog
  *	delete original relation from relation catalog
+ * ----------------
  */
 void
 PerformAddAttribute(relationName, schema)
@@ -317,12 +340,12 @@ PerformAddAttribute(relationName, schema)
 	key[1].sk_data = (DATUM) NULL;	/* set in each iteration below */
 
 	attributeD.attrelid = reltup->t_oid;
-	attributeD.attdefrel = InvalidObjectId;		/* XXX temporary */
-	attributeD.attnvals = 1;			/* XXX temporary */
-	attributeD.atttyparg = InvalidObjectId;		/* XXX temporary */
-	attributeD.attbound = 0;			/* XXX temporary */
-	attributeD.attcanindex = 0;			/* XXX need this info */
-	attributeD.attproc = InvalidObjectId;		/* XXX tempoirary */
+	attributeD.attdefrel = InvalidObjectId;	/* XXX temporary */
+	attributeD.attnvals = 1;		/* XXX temporary */
+	attributeD.atttyparg = InvalidObjectId;	/* XXX temporary */
+	attributeD.attbound = 0;		/* XXX temporary */
+	attributeD.attcanindex = 0;		/* XXX need this info */
+	attributeD.attproc = InvalidObjectId;	/* XXX tempoirary */
 
 	attributeTuple = addtupleheader(AttributeRelationNumberOfAttributes,
 		sizeof attributeD, (Pointer)&attributeD);
@@ -381,35 +404,11 @@ PerformAddAttribute(relationName, schema)
 	amclose(relrdesc);
 }
 
-void
-PerformRelationFilter(relationName, isBinary, noNulls, isFrom, fileName,
-		mapName, domains)
-	Name	relationName;
-	bool	isBinary;
-	bool	noNulls;
-	bool	isFrom;
-	String	fileName;
-	Name	mapName;
-	List	domains;
-{
-	AttributeNumber	numberOfAttributes;
-	Domain		domainDesc;
-	Count		domainCount;
 
-	numberOfAttributes = length(domains);
-	domains = FixDomainList(domains);
-	domainDesc = createdomains(relationName, isBinary, noNulls, isFrom,
-		domains, &domainCount);
-
-	copyrel(relationName, isFrom, fileName, mapName, domainCount,
-		domainDesc);
-}
-
-/*
- * Private
+/* --------------------------------
+ * 	FixDomainList
+ * --------------------------------
  */
-
-static
 List
 FixDomainList(domains)
 	List	domains;
@@ -461,4 +460,32 @@ FixDomainList(domains)
 		result = lispCons(fixedFirst, result);
 	}
 	return (result);
+}
+
+/* --------------------------------
+ * 	PerformRelationFilter
+ * --------------------------------
+ */
+void
+PerformRelationFilter(relationName, isBinary, noNulls, isFrom, fileName,
+		mapName, domains)
+	Name	relationName;
+	bool	isBinary;
+	bool	noNulls;
+	bool	isFrom;
+	String	fileName;
+	Name	mapName;
+	List	domains;
+{
+	AttributeNumber	numberOfAttributes;
+	Domain		domainDesc;
+	Count		domainCount;
+
+	numberOfAttributes = length(domains);
+	domains = FixDomainList(domains);
+	domainDesc = createdomains(relationName, isBinary, noNulls, isFrom,
+		domains, &domainCount);
+
+	copyrel(relationName, isFrom, fileName, mapName, domainCount,
+		domainDesc);
 }
