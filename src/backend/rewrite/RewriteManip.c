@@ -7,6 +7,9 @@
 #include "nodes/primnodes.a.h"
 #include "parser/parsetree.h"
 #include "parser/parse.h"
+#include "utils/lsyscache.h"
+
+extern Const RMakeConst();
 
 void
 OffsetVarNodes ( qual_or_tlist , offset ) 
@@ -124,15 +127,44 @@ FindMatchingNew ( user_tlist , attno )
  *	(a) varnos get offset by magnitude "offset"
  *	(b) (varno = 1) => *CURRENT* , set varno to "trigger_varno"
  *	(c) (varno = 2) => *NEW*, replace varnode with matching RHS
- *	    of user_tlist, or *CURRENT* if no such match occurs
+ *	    of user_tlist, or *CURRENT* or a NULL value 
+ *	    if no such match occurs (see discussion below).
+ *
+ * There is a tricky case here. Sometimes we can not find a match in the
+ * user parsetree for "*NEW*".
+ * This can happen when we have an append or replace command that
+ * does not specify new values for ALL the attributes of the tuple.
+ *
+ * For example if we have a relation "foo(a=int4, b=int4)"
+ * the command "append foo(b=3)" and the command
+ * "replace foo(a=1) where ...." specify new values for only one of
+ * the two attributes of "foo".
+ *
+ * In the case of append we want to replace the reference to the
+ * `NEW' with a null value, i.e. the "append foo(b=3)"
+ * will be equivalent to "append foo(a=<nil>, b=3)"
+ *
+ * In case of teh replace however, we want to replace the refernce
+ * to `NEW' with a reference to `CURRENT'. I.e the 
+ * command "replace foo(a=1) where ..." is equivalent
+ * to "replace foo(a=1, b=foo.b) where ...."
+ *
+ * Of course one way to do that is to expand the target list of the
+ * user parsetree so that it specifies the correct values for all the
+ * attributes (null in append, the "current" values for replace).
+ *
+ * Another way is to do this substitution on the fly, in this routine.
+ *
  */
 
 void
-HandleVarNodes ( parse_subtree , user_parsetree , trigger_varno, offset )
+HandleVarNodes (parse_subtree , user_parsetree , trigger_varno, offset,
+		command)
      List parse_subtree;
      List user_parsetree;
      int trigger_varno;
      int offset;
+     int command;
 {
     List i = NULL;
 
@@ -157,7 +189,29 @@ HandleVarNodes ( parse_subtree , user_parsetree , trigger_varno, offset )
 		    CDR(i) = CDR(matched_new);
 		    break;
 		}
-		/* if no match, then fall thru to current */
+		/*
+		 * No match for 'new' was found.
+		 * if this is an APPEND command, substitute
+		 * NEW with a null const node.
+		 */
+		if (command == APPEND) {
+		    Const c;
+		    ObjectId typid;
+		    c = RMakeConst();
+		    typid = get_vartype(thisnode);
+		    set_consttype(c, typid);
+		    set_constlen(c, (Size) get_typlen(typid));
+		    set_constvalue(c, PointerGetDatum(NULL));
+		    set_constisnull(c, true);
+		    set_constbyval(c, get_typbyval(typid));
+		    CAR(i) = (List) c;
+		    CDR(i) = LispNil;
+		    break;
+		}
+		/*
+		 * else it is a replace commanf, fall through
+		 * to the "CURRENT" case...
+		 */
 	      case 1:
 		/* *CURRENT* */
 		set_varno ( thisnode, trigger_varno );
@@ -174,7 +228,7 @@ HandleVarNodes ( parse_subtree , user_parsetree , trigger_varno, offset )
 	} /* is a Var */
 	if ( thisnode && thisnode->type == PGLISP_DTPR )
 	  HandleVarNodes( (List)thisnode, user_parsetree, 
-			  trigger_varno,offset);
+			  trigger_varno,offset, command);
     }
 }
 
@@ -228,7 +282,6 @@ AddNotEventQualifications ( parsetree, qual )
 	 * Create a dummy qual which is always false:
 	 */
 	Const c1;
-	Const RMakeConst();
 
 	c1 = RMakeConst();
 	set_consttype(c1, (ObjectId) 16);	/* bool */

@@ -240,7 +240,7 @@ FixResdom ( targetlist )
 List
 ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	        to_be_rewritten , user_tl , user_rt ,user_parsetree,
-		drop_user_query)
+		drop_user_query, command)
      List retrieve_locks;
      int user_rt_length;
      int current_varno;
@@ -249,6 +249,7 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
      List user_rt;
      List user_parsetree;
      bool *drop_user_query;
+     int command;
 {
     List i			= NULL;
     List j			= NULL;
@@ -322,7 +323,8 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	    HandleVarNodes ( ruleparse,
 			     user_parsetree,
 			     current_varno,
-			     length(user_rt) - 2 );
+			     length(user_rt) - 2,
+			     command);
 
 	    switch ( Action(this_lock)) {
 	      case DoReplaceCurrentOrNew:
@@ -563,17 +565,17 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 		case REPLACE:
 		case APPEND:
 		    HandleVarNodes ( rule_tlist , user_parsetree,
-				     offset_trigger, -2 );
+				     offset_trigger, -2 , APPEND );
 		    root_result_relation(rule_root) =
 			lispInteger ( CInteger(root_result_relation(rule_root))
 				      - 2 );
 		    HandleVarNodes ( rule_qual, user_parsetree,
 				     offset_trigger,
-				     -2 );
+				     -2 , APPEND );
 		    break;
 		case RETRIEVE:
 		    HandleVarNodes ( rule_tlist , user_parsetree,
-				     offset_trigger, -2 );
+				     offset_trigger, -2 , RETRIEVE );
 		    /*
 		     * reset the result relation
 		     * to point to the right one,
@@ -587,17 +589,17 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 		    }
 		    HandleVarNodes ( rule_qual, user_parsetree,
 				     offset_trigger,
-				     -2 );
+				     -2 , RETRIEVE );
 		    break;
 		case DELETE:
 		    HandleVarNodes ( rule_tlist , user_parsetree,
-				     offset_trigger, -2 );
+				     offset_trigger, -2 , DELETE);
 		    root_result_relation(rule_root) =
 			lispInteger ( CInteger(root_result_relation(rule_root))
 				      - 2 );
 		    HandleVarNodes ( rule_qual, user_parsetree,
 				     offset_trigger,
-				     -2 );
+				     -2 , DELETE);
 		    break;
 		default:
 		    elog(DEBUG,"unsupported action");
@@ -774,7 +776,8 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
 						 user_tlist,
 						 user_rangetable,
 						 user_parsetree,
-						 drop_user_query
+						 drop_user_query,
+						 command
 						 );
 	}
 	
