@@ -27,6 +27,7 @@
 
 #include "pg_lisp.h"
 #include "c.h"
+#include "log.h"
 
 /*     	=================
  *     	GENERAL UTILITIES
@@ -85,10 +86,11 @@ collect (pred,list)
     LispValue retval  = LispNil;
     LispValue temp = LispNil;
 
-    for (temp = list; temp != LispNil; temp = CDR(temp)) {
-	if (pred(temp))
+    foreach (temp,list) {
+	if ((* pred)(CAR(temp)))
 	  retval = nappend1(retval,temp);
     }
+    return(retval);
 }
 
 /*    
@@ -105,6 +107,7 @@ LispValue
 same (list1,list2)
      LispValue list1,list2 ;
 {
+    elog(WARN,"'same' is an unsuppported function");
 /*
     if ((length(list1) == length(list2)) &&
 	(length(list1) == subset(list1,list2)))
@@ -144,6 +147,8 @@ LispValue
 copy_seq_tree (seqtree)
      LispValue seqtree;
 {
+    elog(WARN,"bogus function 'copy-seq-tree' called");
+    /* XXX - needs a copy command */
     return(seqtree);
 }
 
