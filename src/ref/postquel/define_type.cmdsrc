@@ -30,7 +30,7 @@ and must be unique within the types defined for this database.
 .lp
 .i "Define type"
 requires the registration of two functions (using
-.b "define C function" )
+.b "define function <C>" )
 before defining the type.
 The representation of a new base type is determined by the function
 .i input ,
@@ -162,7 +162,7 @@ meaning the internallength for large objects is always -1.
 
 .uh "SEE ALSO"
 .lp
-define C function(commands),
+define function <C> (commands),
 define operator(commands),
 remove type(commands),
 Large Object Backend Interface.
