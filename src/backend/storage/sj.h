@@ -58,7 +58,7 @@ typedef struct SJGroupDesc {
 } SJGroupDesc;
 
 #define SJGDMAGIC	0x060362
-#define	SJGDVERSION	0
+#define	SJGDVERSION	2
 #define JBBLOCKSZ	1024
 
 /* size of SJCacheBuf */
@@ -155,9 +155,8 @@ typedef struct SJCacheItem {
     uint8		sjc_flags[SJGRPSIZE];	/* flag bytes, 1 per block */
 
 #define SJC_CLEAR	(uint8) 0x0
-#define	SJC_DIRTY	(1 << 0)
-#define SJC_MISSING	(1 << 1)
-#define SJC_ONPLATTER	(1 << 2)
+#define SJC_MISSING	(1 << 0)
+#define SJC_ONPLATTER	(1 << 1)
 #define	SJC_IOINPROG	(1 << 7)
 
 #ifdef HAS_TEST_AND_SET
@@ -167,5 +166,7 @@ typedef struct SJCacheItem {
 #endif /* HAS_TEST_AND_SET */
 
 } SJCacheItem;
+
+#define MUST_FLUSH(f)	(!(((f) & SJC_ONPLATTER) || ((f) & SJC_MISSING)))
 
 #endif /* SONY_JUKEBOX */
