@@ -9,7 +9,7 @@ libpq \*- programmer's interface to \*(PP
 .lp
 LIBPQ is the programmer's interface to Postgres.  LIBPQ is a set of
 library routines which allow queries to pass to the Postgres back-end
-and tuples returned through an IPC channel.
+and instances returned through an IPC channel.
 .lp
 This version of the documentation is based on the C library.  A similar
 package exists for Common Lisp.
@@ -104,7 +104,7 @@ PQexec (query)
 This function returns a status indicator or an error message.
 .uh PORTAL FUNCTIONS
 .lp
-A portal is a POSTGRES buffer from which tuples can be fetched.
+A portal is a POSTGRES buffer from which instances can be fetched.
 Each portal has a string name (currently limited to 16 bytes).
 A portal is initialized by submitting a retrieve statement
 using the PQexec function, for example:
@@ -122,26 +122,26 @@ by executing a \fIfetch\fR statement, e.g:
 .lp
 If no portal name is specified in a query, the default
 portal name is the empty string, known as the "blank portal."
-All qualifying tuples in a blank portal are fetched
+All qualifying instances in a blank portal are fetched
 immediately, without the need for the programmer to issue a
 seperate fetch command.
 .lp
 Data fetched from a portal into LIBPQ is moved into a portal
 buffer.  Portal names are mapped to portal buffers through
-an internal table.  Each tuple in a portal buffer has
+an internal table.  Each instance in a portal buffer has
 an index number locating its position in the buffer.  In addition,
-each field in a tuple has a name and a field number.
+each field in an instance has a name and a field number.
 .lp
 A single retrieve command can return multiple types
-of tuples.
+of instances.
 This can happen if a \*(PP function is executed
 in the evaluation of a query or if the query
-returns multiple record types from an inheritance
+returns multiple instance types from an inheritance
 hierarchy.
-Consequently, the tuples in a portal are set up
+Consequently, the instances in a portal are set up
 in groups.
-Tuples in the same group are guaranteed to have the
-same record format.
+Instances in the same group are guaranteed to have the
+same instance format.
 .lp
 Portals that are associated with normal user commands
 are called synchronous.
@@ -177,22 +177,22 @@ PQrulep \*- Return 1 if an asynchronous portal.
 int PQrulep	(portal)
 	PortalBuffer	*portal;
 
-PQntuples \*- Return the number of tuples in a portal buffer.
+PQntuples \*- Return the number of instances in a portal buffer.
 
 int PQntuples (portal)
 	PortalBuffer	*portal;
 
-PQngroups \*- Return the number of tuple groups in a portal buffer.
+PQngroups \*- Return the number of instance groups in a portal buffer.
 
 int PQngroups (portal)
 	PortalBuffer *portal
 
-PQntuplesGroup \*- Return the number of tuples in a tuple group.
+PQntuplesGroup \*- Return the number of instances in an instance group.
 int PQntuplesGroup (portal, group_index)
 	PortalBuffer	*portal;
 	int	group_index;
 
-PQnfieldsGroup \*- Return the number of fields in a tuple group.
+PQnfieldsGroup \*- Return the number of fields in an instance group.
 
 int PQnfieldsGroup ( portal, group_index)
 	PortalBuffer	*portal;
@@ -212,19 +212,19 @@ int PQfnumberGroup (portal, group_index, field_name)
 	int	group_index;
 	char	*field_name;
 
-PQgetgroup \*- Returns the index of the group that a particular tuple is in.
+PQgetgroup \*- Returns the index of the group that a particular instance is in.
 
 int PQgetgroup ( portal, tuple_index )
 	PortalBuffer	*portal;
 	int	tuple_index;
 
-PQnfields \*- Return the number of fields in a tuple.
+PQnfields \*- Return the number of fields in an instance.
 
 int PQnfields (portal, tuple_index )
 	PortalBuffer	*portal;
 	int	tuple_index;
 
-PQfnumber \*- Return the field index of a given field name within a tuple.
+PQfnumber \*- Return the field index of a given field name within an instance.
 
 int PQfnumber ( portal, tuple_index, field_name)
 	PortalBuffer	*portal;
@@ -247,7 +247,7 @@ int PQftype ( portal, tuple_index, field_number )
 
 The type returned is an internal coding of a type.
 
-PQsametype \*- Return 1 if two tuples have the same attributes.
+PQsametype \*- Return 1 if two instances have the same attributes.
 
 int PQsametype ( portal, tuple_index1, tuple_index2 )
 	PortalBuffer	*portal;
@@ -306,17 +306,17 @@ main ()
     /* Specify the database to access. */
     PQsetdb ("Pic-Demo");
 
-    /* Fetch tuples from the EMP table. */
+    /* Fetch instances from the EMP class. */
     PQexec ("retrieve portal eportal (EMP.all)");
     PQexec ("fetch all in eportal");
 
-    /* Examine all the tuples fetched. */
+    /* Examine all the instances fetched. */
     p = PQparray ("eportal");
     g = PQngroups (p);
     t = 0;
     
     for (k = 0; k < g; k++) {
-	printf ("\nA new tuple group:\en");
+	printf ("\nA new instance group:\en");
 	n = PQntuplesGroup (p, k);
 	m = PQnfieldsGroup (p, k);
 
@@ -325,7 +325,7 @@ main ()
 	    printf ("%-15s", PQfnameGroup (p, k, i));
 	printf ("\en");
     
-	/* Print out the tuples. */
+	/* Print out the instances. */
 	for (i = 0; i < n; i++) {
 	    for (j = 0; j < m; j++)
 		printf ("%-15s", PQgetvalue (p, t+i, j));
@@ -339,7 +339,7 @@ main ()
 
     /* Try out some other functions. */
     
-    /* Print out the nubmer of portals. */
+    /* Print out the number of portals. */
     printf ("\nNumber of portals open: %d.\en", PQnportals ());
 
     /* If any tuples are returned by rules, print out the portal name. */
