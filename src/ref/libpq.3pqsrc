@@ -156,17 +156,13 @@ char *	PQexec (query)
 .)1
 .fi
 .lp
-This function returns a status indicator or an error message.  If the
-query submitted was a retrieve then PQexec returns a string consisting
-of a 'P' followed by the portal name.  If no portal was specified the
-portal name will be "blank".  When the query was not a retrieve PQexec
+This function returns a status indicator or an error message.  If the query
+returns data (e.g. fetch), PQexec returns a string consisting of 'P' followed
+by the name of the portal buffer.  
+When the query does not return instances, PQexec
 will return a string consisting of 'C' followed by the command tag (e.g.
 "CREPLACE").  If an error occured during the execution of the query 
-PQexec will return "R".  You might be wondering "why an 'R'?"  The answer
-is that this stems from libpq's history.  It used to be the case that
-when libpq received an error message from the backend it would attempt
-to \fIreset\fR communications.  Thus it returned (and still returns) an 'R' 
-to the application program.
+PQexec will return (for historical reasons) an "R".
 
 .uh "PORTAL FUNCTIONS"
 .lp
