@@ -327,11 +327,13 @@ ParseFunc ( funcname , fargs )
     extern List p_rtable;
 
     first_arg_type = CAR(CAR(fargs));
-    relname = CString(CDR(CAR(fargs)));
+
+#ifdef RELATIONAL_FN
 
     if ( CAtom(first_arg_type) == RELATION ) {
 	Var newvar = NULL;
 
+	relname = CString(CDR(CAR(fargs)));
 	/* this is really a method */
 
 	if( RangeTablePosn ( relname ,LispNil ) == 0 )
@@ -344,7 +346,7 @@ ParseFunc ( funcname , fargs )
 	return ( make_var ( relname, funcname ));
 
     } else {
-
+#endif
 	/* is really a function */
 
 	funcid = funcname_get_funcid ( funcname );
@@ -361,7 +363,9 @@ ParseFunc ( funcname , fargs )
 
 	return ( lispCons (lispInteger(rettype) ,
 			   lispCons ( funcnode , fargs )));
+#ifdef RELATIONAL_FN
     } /* was a function */
+#endif
 	    
 }
 
