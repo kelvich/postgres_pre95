@@ -1,12 +1,5 @@
 #	@(#)bsd.lib.mk	5.35 (Berkeley) 7/29/92
 
-.if exists(${.CURDIR}/../Makefile.inc)
-.include "${.CURDIR}/../Makefile.inc"
-.endif
-.if exists(Makefile.local)
-.include "Makefile.local"
-.endif
-
 LIBDIR?=	/usr/lib
 LINTLIBDIR?=	/usr/libdata/lint
 LIBGRP?=	bin

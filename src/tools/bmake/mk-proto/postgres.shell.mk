@@ -1,11 +1,5 @@
 # No man pages for now
 NOMAN= true
-#
-# Pull in a Makefile.private in the obj directory
-#
-.if !defined(NOINCLUDE) && exists(Makefile.private)
-.include "Makefile.private"
-.endif
 
 .SUFFIXES: .sh .8 .7 .6 .5 .4 .3 .2 .1 .0
 
