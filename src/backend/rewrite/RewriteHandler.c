@@ -297,6 +297,7 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 #ifdef REWRITE_DEBUG
 		elog(NOTICE,"Possibly retrieving procedure result fields");
 #endif REWRITE_DEBUG
+		saved_parsetree = lispCopy ( user_parsetree );
 		ReplaceVarWithMulti ( current_varno,
 				     this_lock->attributeNumber,
 				     user_tl,
@@ -717,7 +718,7 @@ QRS ( parsetree , already_handled )
     if ((consp(command_type)) && (CInteger(CAR(command_type)) == '*'))
 	user_command = (int) CAtom(CDR(command_type));
     else
-        user_command = (int) CAtom(command_type);
+        user_command = root_command_type(user_root);
 
 #ifdef REWRITE_DEBUG
     printf("\nQueryRewrite being called with :\n");
