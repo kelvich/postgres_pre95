@@ -8,9 +8,7 @@ retrieve \*- retrieve instances from a class
 .uh SYNTAX
 .lp
 .b retrieve \c
-[ \c
-.b * \c
-] [ (
+[ (
 .b into
 classname [ archive_mode ]
 |
@@ -113,18 +111,27 @@ tag is appended, in which case the instances in the res_target_list
 are sorted according to the sort clause and duplicates are
 removed before being returned.
 .lp
+Instances retrieved into a portal may be fetched in subsequent
+queries by using the
+.b fetch
+command.
+Since the results of a
+.b "retrieve portal"
+span queries,
+.b "retrieve portal"
+may only be executed inside of a
+\fBbegin\fP/\fBend\fP
+transaction block.
+Attempts to use named portals outside of a transaction
+block will result in a warning message from the parser,
+and the query will be discarded.
+.lp
 The
 .b sort
 clause allows a user to specify that he wishes the instances sorted
 according to the corresponding operator.
 This operator must be a binary one returning a boolean.
 Multiple sort fields are allowed and are applied from left to right.
-.lp
-The
-.q *
-indicates a transitive closure,
-and \*(PP will
-run the command until it produces no effect.
 .uh EXAMPLE
 .lp
 .nf
@@ -157,19 +164,25 @@ run the command until it produces no effect.
 /* construct a new class, raise, containing 1.1 times all employee's salaries  */
 
    retrieve into raise (salary = 1.1 * emp.salary)
+
+   /* do a retrieve into a portal */
+   begin
+   retrieve portal myportal (pg_user.all)
+   fetch 2 from myportal
+   fetch all from myportal
+   close myportal
+   end
+
 .uh "SEE ALSO"
 .lp
 postquel(postquel),
+fetch(postquel),
+close(postquel),
 create(commands).
 .uh BUGS
 .lp
 .q "Retrieve into"
-does not delete duplicates in Version 2.1.
+does not delete duplicates in Version 3.0.
 .lp
 .q Archive_mode 
-is not implemented in Version 2.1.
-.lp
-The code to support 
-.q * 
-is very buggy.
-
+is not implemented in Version 3.0.

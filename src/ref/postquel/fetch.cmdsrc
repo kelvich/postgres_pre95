@@ -45,9 +45,21 @@ because mapping portal updates back to base classes is impossible
 in general as with view updates.
 Consequently, users must issue
 explicit replace commands to update data.
+.lp
+Portals may only be used inside of
+\fBbegin\fP/\fBend\fP transaction blocks,
+since the data that they store spans multiple user queries.
 .uh EXAMPLE
 .lp
 .nf
+/* set up and use a portal */
+   begin
+   retrieve portal myportal (pg_user.all)
+   fetch 2 in myportal
+   fetch all in myportal
+   close myportal
+   end
+
 /* Fetch all the instances available in the portal FOO */
    fetch all in FOO
 	
