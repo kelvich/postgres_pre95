@@ -156,7 +156,7 @@ Boolean init;
 
   if (init) {
       /* we only do this once, normally the postmaster */
-      SharedFreeList->data = NULL;
+      SharedFreeList->data = INVALID_OFFSET;
       SharedFreeList->flags = 0;
       SharedFreeList->flags &= ~(BM_VALID | BM_DELETED | BM_FREE);
       SharedFreeList->id = Free_List_Descriptor;

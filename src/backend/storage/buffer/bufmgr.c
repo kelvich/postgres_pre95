@@ -698,7 +698,7 @@ IPCKey key;
       buf->freePrev = i-1;
 
       CLEAR_BUFFERTAG(&(buf->tag));
-      buf->data = (BufferBlock) block;
+      buf->data = MAKE_OFFSET(block);
       buf->flags = (BM_DELETED | BM_FREE | BM_VALID);
       buf->refcount = 0;
       buf->id = i;
@@ -1063,7 +1063,7 @@ BufferGetBlock(buffer)
 {
     Assert(BufferIsValid(buffer));
 
-    return((Block)(BufferDescriptors[buffer-1].data));
+    return((Block)MAKE_PTR(BufferDescriptors[buffer-1].data));
 }
 
 /* ---------------------------------------------------------------------
