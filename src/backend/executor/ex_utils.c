@@ -102,6 +102,7 @@ int	NIndexTupleInserted;
 extern int NIndexTupleProcessed;  /* have to be defined in the access
 			             method level so that the cinterface.a
 			             will link ok. */
+extern FILE *StatFp;
 
 /* ----------------------------------------------------------------
  *		    	statistic functions
@@ -131,31 +132,31 @@ void
 DisplayTupleCount()
 {
     if (NTupleProcessed > 0)
-	fprintf(stderr, "!\t%d tuple%s processed, ", NTupleProcessed,
+	fprintf(StatFp, "!\t%d tuple%s processed, ", NTupleProcessed,
 	       (NTupleProcessed == 1) ? "" : "s");
     else {
-	fprintf(stderr, "!\tno tuples processed.\n");
+	fprintf(StatFp, "!\tno tuples processed.\n");
 	return;
       }
     if (NIndexTupleProcessed > 0)
-	fprintf(stderr, "%d indextuple%s processed, ", NIndexTupleProcessed,
+	fprintf(StatFp, "%d indextuple%s processed, ", NIndexTupleProcessed,
 	       (NIndexTupleProcessed == 1) ? "" : "s");
     if (NIndexTupleInserted > 0)
-	fprintf(stderr, "%d indextuple%s inserted, ", NIndexTupleInserted,
+	fprintf(StatFp, "%d indextuple%s inserted, ", NIndexTupleInserted,
 	       (NIndexTupleInserted == 1) ? "" : "s");
     if (NTupleRetrieved > 0)
-	fprintf(stderr, "%d tuple%s retrieved. ", NTupleRetrieved,
+	fprintf(StatFp, "%d tuple%s retrieved. ", NTupleRetrieved,
 	       (NTupleRetrieved == 1) ? "" : "s");
     if (NTupleAppended > 0)
-	fprintf(stderr, "%d tuple%s appended. ", NTupleAppended,
+	fprintf(StatFp, "%d tuple%s appended. ", NTupleAppended,
 	       (NTupleAppended == 1) ? "" : "s");
     if (NTupleDeleted > 0)
-	fprintf(stderr, "%d tuple%s deleted. ", NTupleDeleted,
+	fprintf(StatFp, "%d tuple%s deleted. ", NTupleDeleted,
 	       (NTupleDeleted == 1) ? "" : "s");
     if (NTupleReplaced > 0)
-	fprintf(stderr, "%d tuple%s replaced. ", NTupleReplaced,
+	fprintf(StatFp, "%d tuple%s replaced. ", NTupleReplaced,
 	       (NTupleReplaced == 1) ? "" : "s");
-    fprintf(stderr, "\n");
+    fprintf(StatFp, "\n");
 }
 
 /* ----------------------------------------------------------------
