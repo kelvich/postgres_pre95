@@ -11,15 +11,13 @@
 
 #include "tmp/c.h"
 
-#if defined(sequent) || defined(sparc) || defined(m68k) || defined(mc68020)
-#define HAS_TEST_AND_SET
-#endif
-
-/*
- * for these, use the mc68020 tas instruction
- */
-
-#if defined(mc68030) || defined(mc68040) || defined(amiga)
+#if defined(sequent) || \
+    defined(sparc) || \
+    defined(m68k) || \
+    defined(mc68020) || \
+    defined(mc68030) || \
+    defined(mc68040) || \
+    defined(amiga)
 #define HAS_TEST_AND_SET
 #endif
 
@@ -27,7 +25,10 @@
 typedef unsigned char   slock_t;
 #endif
 
-#if defined(sequent) || defined(mips) || defined(PORTNAME_bsd44)
+#if defined(sequent) || \
+    defined(PORTNAME_alpha) || \
+    defined(PORTNAME_ultrix4) || \
+    defined(PORTNAME_bsd44)
 union semun {
     int val;
     struct semid_ds *buf;
