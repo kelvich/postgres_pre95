@@ -75,6 +75,8 @@ RcsId("$Header$");
 #include "executor/execdefs.h"
 #include "executor/execdesc.h"
 
+extern List MakeList();
+
 /* ----------------
  * 	PortalExecutorHeapMemory stuff
  *
@@ -113,7 +115,7 @@ PortalCleanup(portal)
      *	tell the executor to shutdown the query
      * ----------------
      */
-    feature = lispCons(lispInteger(EXEC_END), LispNil);
+    feature = MakeList(lispInteger(EXEC_END), -1);
 
     ExecMain(PortalGetQueryDesc(portal), PortalGetState(portal), feature);
     
@@ -173,12 +175,10 @@ PerformPortalFetch(name, forward, count, dest)
      *  how many tuples to fetch.
      * ----------------
      */
-    if (forward) {
-	feature = lispInteger(EXEC_FOR);
-    } else {
-	feature = lispInteger(EXEC_BACK);
-    }
-    feature = lispCons(feature, lispCons(lispInteger(count), LispNil));
+    if (forward)
+	feature = MakeList(lispInteger(EXEC_FOR), lispInteger(count), -1);
+    else
+	feature = MakeList(lispInteger(EXEC_BACK), lispInteger(count), -1);
 
     /* ----------------
      *	tell the destination to prepare to recieve some tuples
@@ -190,7 +190,7 @@ PerformPortalFetch(name, forward, count, dest)
 		 CAtom(GetOperation(queryDesc)),
 		 false,		/* portal fetches don't end up in relations */
 		 dest);
-    
+
     /* ----------------
      *	execute the portal fetch operation
      * ----------------
@@ -263,32 +263,33 @@ FixDomainList(domains)
     List		fixedFirst;
     List		result;
     
-    if (null(domains)) {
+    if (null(domains))
 	return (LispNil);
-    }
     
     first = CAR(domains);
     fixedFirst = LispNil;
     
     if (lispStringp(first)) {
-	fixedFirst = lispCons(first,
-		       lispCons(lispInteger(-1),
-			 lispCons(lispInteger(strlen(CString(first))),
-				  LispNil)));
+	fixedFirst = MakeList(first,
+			      lispInteger(-1),
+			      lispInteger(strlen(CString(first))),
+			      -1);
     } else {
 	int len;
 	
 	len = length(first);
 	switch (len) {
 	case 1:
-	    fixedFirst = lispCons(CAR(first),
-			   lispCons(lispInteger(0),
-			     lispCons(lispInteger(-1), LispNil)));
+	    fixedFirst = MakeList(CAR(first),
+				  lispInteger(0),
+				  lispInteger(-1),
+				  -1);
 	    break;
 	case 2:
-	    fixedFirst = lispCons(CAR(first),
-			   lispCons(CADR(first),
-			     lispCons(lispInteger(-1), LispNil)));
+	    fixedFirst = MakeList(CAR(first),
+				  CADR(first),
+				  lispInteger(-1)
+				  -1);
 	    break;
 	case 3:
 	    fixedFirst = first;
@@ -302,9 +303,10 @@ FixDomainList(domains)
      * return result of processing entire list
      */
     result = FixDomainList(CDR(domains));
-    if (!null(fixedFirst)) {
+    if (! null(fixedFirst)) {
 	result = lispCons(fixedFirst, result);
     }
+    
     return (result);
 }
 
