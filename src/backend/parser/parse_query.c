@@ -370,6 +370,7 @@ make_op(op,ltree,rtree)
 	Operator temp;
 	OperatorTupleForm opform;
 	Oper newop;
+
 	LispValue left,right;
 	LispValue t1;
 	
@@ -395,10 +396,19 @@ make_op(op,ltree,rtree)
 		temp = oper(CString(op),typeid(ltype), typeid ( rtype ));
 	}
 	opform = (OperatorTupleForm) GETSTRUCT(temp);
+
+#ifdef PLANNER_FIX_OPIDS
 	newop = MakeOper ( oprid(temp),    /* operator id */
 			    0 ,       	     /* operator relation level */
 			    opform->         /* operator result type */
 			    oprresult );
+#else
+	newop = MakeOper ( opform->oprcode,
+			   0,
+			   opform->oprresult,
+			   0 );
+#endif
+
 	t1 = lispCons ( newop , lispCons (left ,
 					     lispCons (right,LispNil)));
 	return ( lispCons (lispInteger ( opform->oprresult ) ,
