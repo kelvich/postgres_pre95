@@ -7,10 +7,6 @@
 #include <sys/stat.h>
 #include <stdio.h>
 
-#ifdef PORTNAME_hpux
-#include <dl.h>
-#endif /* PORTNAME_hpux */
-
 #include "tmp/c.h"
 
 #include "fmgr.h"
@@ -124,17 +120,11 @@ handle_load(filename, funcname)
     char *filename, *funcname;
 {
     DynamicFileList     *file_scanner = (DynamicFileList *) NULL;
-    DynamicFunctionList *func_scanner;
-    DynamicFunctionList	*func_tail = (DynamicFunctionList *) NULL;
     func_ptr            retval = (func_ptr) NULL;
     char                *load_error;
     char                *start_addr;
     long                size;
     struct stat		stat_buf;
-#ifdef PORTNAME_hpux
-    char		*libname = (char *) NULL;
-    shl_t		shl_handle;
-#endif /* PORTNAME_hpux */
 
     /*
      * Do this because loading files may screw up the dynamic function
@@ -200,15 +190,8 @@ handle_load(filename, funcname)
         file_scanner->inode = stat_buf.st_ino;
         file_scanner->next = (DynamicFileList *) NULL;
 
-#ifdef PORTNAME_hpux
-	func_scanner = dynamic_file_load(&load_error, filename,
-					 &libname, &shl_handle);
-	
-#else /* PORTNAME_hpux */
-        func_scanner = dynamic_file_load(&load_error, filename,
-					 &start_addr, &size);
-#endif /* PORTNAME_hpux */
-        if (func_scanner == (DynamicFunctionList *) NULL) {
+	file_scanner->handle = pg_dlopen(filename, &load_error);
+        if (file_scanner->handle == (void *)NULL) {
             if (file_scanner == file_list) {
                 file_list = (DynamicFileList *) NULL;
             } else {
@@ -219,15 +202,6 @@ handle_load(filename, funcname)
             elog(WARN, "Load of file %s failed: %s", filename, load_error);
         }
 
-        file_scanner->func_list = func_scanner;
-        file_scanner->address = start_addr;
-        file_scanner->size = size;
-#ifdef PORTNAME_hpux
-	file_scanner->handle = shl_handle;
-	(void) strcpy(file_scanner->shlib, libname);
-	free(libname);
-#endif /* PORTNAME_hpux */
-
 /*
  * Just load the file - we are done with that so return.
  */
@@ -235,32 +209,14 @@ handle_load(filename, funcname)
 
         if (funcname == (char *) NULL)
 	    return((func_ptr) NULL);
-
-        for (;
-	     func_scanner != (DynamicFunctionList *) NULL
-	     && strcmp(func_scanner->funcname, funcname);
-             func_scanner = func_scanner->next);
-
-        if (func_scanner == (DynamicFunctionList *) NULL) {
-            elog(WARN, "Cant find function %s in file %s", funcname, filename);
-        } else {
-            retval = func_scanner->func;
-        }
-    } else {
-        for (func_scanner = file_scanner->func_list;
-             func_scanner != (DynamicFunctionList *) NULL
-             && strcmp(func_scanner->funcname, funcname);
-             func_scanner = func_scanner->next) {
-            if (func_scanner->next == (DynamicFunctionList *) NULL)
-		func_tail = func_scanner;
-        }
-	
-        if (func_scanner == (DynamicFunctionList *) NULL) {
-            elog(WARN, "Function %s is not in file %s", funcname, filename);
-        } else {
-            retval = func_scanner->func;
-        }
     }
+
+    retval = pg_dlsym(file_scanner->handle, funcname);
+	
+    if (retval == (func_ptr) NULL) {
+	elog(WARN, "Can't find function %s in file %s", funcname, filename);
+    }
+
     return(retval);
 }
 
@@ -284,18 +240,14 @@ load_file(filename)
     int done = 0;
 
     if (stat(filename, &stat_buf) == -1) {
-        elog(WARN, "load of file %s failed", filename);
+        elog(WARN, "stat failed on file %s", filename);
     }
 
     if (file_list != (DynamicFileList *) NULL
 	&& !NOT_EQUAL(stat_buf, *file_list)) {
         file_scanner = file_list;
         file_list = file_list->next;
-#ifdef	USE_DLD
-	dld_unlink_by_file(file_scanner->filename, 1 /* force */);
-#else
-        zero_loaded_file(file_scanner);
-#endif
+	pg_dlclose(file_scanner->handle);
         free((char *) file_scanner);
     } else if (file_list != (DynamicFileList *) NULL) {
         file_scanner = file_list;
@@ -312,47 +264,11 @@ load_file(filename)
         if (file_scanner->next != (DynamicFileList *) NULL) {
             p = file_scanner->next;
             file_scanner->next = file_scanner->next->next;
-#ifdef USE_DLD
-	    dld_unlink_by_file(p->filename, 1 /* force */);
-#else
-            zero_loaded_file(p);
-#endif
+	    pg_dlclose(file_scanner->handle);
             free((char *)p);
         }
     }
     handle_load(filename, (char *) NULL);
-}
-
-#ifndef USE_DLD
-
-zero_loaded_file(file_data)
-    DynamicFileList *file_data;
-{
-    DynamicFunctionList *func_scanner, *throw_away;
-    
-#ifdef PORTNAME_hpux
-    shl_unload(file_data->handle);
-    unlink(file_data->shlib);
-#else /* PORTNAME_hpux */
-    bzero(file_data->address, file_data->size);
-#endif /* PORTNAME_hpux */
-
-#if !defined(OLD_DEC) && !defined(PORTNAME_hpux)
-    /*
-     * Some dynamic loaders use brk/sbrk - DON'T TRY TO FREE THIS SPACE.
-     */
-    free((char *) file_data->address);
-#endif /* !OLD_DEC && !PORTNAME_hpux */
-
-    func_scanner = file_data->func_list;
-    for (throw_away = func_scanner->next;
-	 throw_away != (DynamicFunctionList *) NULL;) {
-        throw_away = func_scanner->next;
-	free((char *) func_scanner->funcname);
-        free((char *) func_scanner);
-        func_scanner = throw_away;
-    }
-    free((char *) file_data->func_list);
 }
 
 #ifdef PORTNAME_hpux
@@ -377,5 +293,3 @@ del_shlibs(code)
 }
 
 #endif /* PORTNAME_hpux */
-
-#endif /* !USE_DLD */
