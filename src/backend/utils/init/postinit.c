@@ -87,7 +87,7 @@ extern bool		MyDatabaseIdIsInitialized;
 extern ObjectId		MyDatabaseId;
 extern bool		TransactionInitWasProcessed;
 
-extern struct	bcommon	Ident;	/* moved to dlog */
+/* extern struct	bcommon	Ident;	No longer needed */
 
 extern int	Debug_file, Err_file, Noversion;
 
@@ -412,16 +412,22 @@ InitStdio()
 	if (!ValidPgVersion(".") || !ValidPgVersion("../.."))
 	    elog(FATAL, "InitStdio: !ValidPgVersion");
 	
-	Slog = Err_file = 3;
+	Slog = Err_file = SYSLOG_FD;
 	Portfd = 4;
-	Packfd = 5;
-	Dblog = 6;
+/*	Packfd = 5; 	Packfd not used see below */
+	Dblog = DBLOG_FD;
 	Pipefd = 7;
 	
 	pq_init(Portfd);
 	    
-	read(Packfd, (char *)&pack, sizeof(pack));
-	bcopy(pack.data, (char *)&Ident, sizeof(Ident));
+/* ---------------------------
+ *  It looks like Packfd was used to allow comm. between the postmaster
+ *  and the backend, since this never really happens we don't really need
+ *  it.... -mer 2/20/91
+ * ---------------------------
+ *	read(Packfd, (char *)&pack, sizeof(pack));
+ *	bcopy(pack.data, (char *)&Ident, sizeof(Ident));
+ */
     } 
 
     if (!isatty(fileno(stdout)) && !isatty(fileno(stderr))) {
