@@ -28,7 +28,7 @@ extern List lispCopyList();
 extern List lispCopy();
 extern List FindUsageRTE();
 extern List MatchLocks();
-
+extern List RuleIdGetActionInfo();
 List FireRules();
 /*
  * Gather meta information about parsetree, and rule
@@ -36,8 +36,8 @@ List FireRules();
  * with the parsetree and maintain semantic validity
  */
 int query_rewrite_debug = true;
-RewriteInfo *GatherRewriteMeta(parsetree, rule, rt_index, event, instead_flag)
-     List parsetree,rule;
+RewriteInfo *GatherRewriteMeta(parsetree, rule_action, rule_qual, rt_index, event, instead_flag)
+     List parsetree,rule_action, rule_qual;
      int rt_index, event, *instead_flag;
 {
     RewriteInfo *info;    
@@ -48,17 +48,10 @@ RewriteInfo *GatherRewriteMeta(parsetree, rule, rt_index, event, instead_flag)
     info->rt_index = rt_index;
     info->event = event;
     info->instead_flag = *instead_flag;
-    if (!null(rule)) {
-	info->rule_action = CDR(rule);
-	info->rule_qual = CAR(rule);
-	info->nothing = FALSE;
-	info->action = root_command_type(parse_root(info->rule_action));
-    }
-    else {
-	info->nothing = TRUE;
-	info->rule_action = NULL;
-	info->rule_qual = NULL;
-    }
+    info->rule_action = rule_action;
+    info->rule_qual = rule_qual;
+    info->nothing = FALSE;
+    info->action = root_command_type(parse_root(info->rule_action));
     if (info->rule_action == LispNil) info->nothing = TRUE;
     if (info->nothing) return info;
     info->current_varno = rt_index;
@@ -191,13 +184,15 @@ List FireRetrieveRulesAtQuery(parsetree, rt_index, relation,instead_flag)
 
 ApplyRetrieveRule(parsetree, rule, rt_index,relation_level, attr_num,modified)
      List parsetree,rule;
-     int relation_level, attr_num, *modified;
+     int relation_level, attr_num, rt_index, *modified;
 {
     List rule_action;
     List rule_qual, rt;
     int nothing,rt_length;
     if (!null(rule)) {
-	rule_action = CDR(rule);
+	if (length(CDR(rule)) > 1)
+	    elog(WARN, "Multiple action retrieve rules are prohibited");
+	rule_action = CAR(CDR(rule));
 	rule_qual = CAR(rule);
 	nothing = FALSE;
     }
@@ -317,70 +312,82 @@ List FireRules(parsetree, rt_index, event,  instead_flag, locks)
        List saved_query = LispNil;
        List rule;
        List qual;
+       List event_qual, actions;
+       List r;
        int foo;
        *instead_flag = FALSE;
        rule = RuleIdGetActionInfo (prs2OneLockGetRuleId(rule_lock),
 				   instead_flag);
        
-       /* save range table information 
-        * possibly shift current/new to end of rangetable 
-        * Step 1
-        * Rewrite current.attribute or current to tuple variable
-	* this appears to be done in parser?
-	*/
+       /* multiple rule action time */
+       if (null(rule)) return LispNil;
+       event_qual = CAR(rule);
+       actions = CDR(rule);
+       foreach (r, actions) {
+	   List rule_action  = CAR(r);
+	   List rule_qual = lispCopy(event_qual);
+	   
+	   /* save range table information 
+	    * possibly shift current/new to end of rangetable 
+	    * Step 1
+	    * Rewrite current.attribute or current to tuple variable
+	    * this appears to be done in parser?
+	    */
 
-       info = GatherRewriteMeta(parsetree, rule,rt_index,event,instead_flag);
-       
-       /* handle escapable cases, or those handled by other code */
-
-       if (info->nothing && *instead_flag) return LispNil;
-       if (info->nothing) continue;
-       if (info->action == info->event == RETRIEVE) continue;
-       /*
-	* Event Qualification forces copying of parsetree --- XXX
-	* and splitting into two queries one w/rule_qual, one w/NOT rule_qual
-	*/
-       if (info->rule_qual != LispNil) {
-	   saved_query = lispCopy(parsetree);
-	   qual = parse_qualification(saved_query);
-	   AddNotQual(saved_query,info->rule_qual);
-	   AddQual(parsetree, info->rule_qual);
-	   results = nappend1(results, saved_query);
+	   info = GatherRewriteMeta(parsetree, rule_action,
+				    rule_qual,rt_index,event,instead_flag);
+	   
+	   /* handle escapable cases, or those handled by other code */
+	   
+	   if (info->nothing && *instead_flag) return LispNil;
+	   if (info->nothing) continue;
+	   if (info->action == info->event == RETRIEVE) continue;
+	   /*
+	    * Event Qualification forces copying of parsetree --- XXX
+	    * and splitting into two queries one w/rule_qual, one w/NOT rule_qual
+	    */
+	   /*       if (info->rule_qual != LispNil) {
+		    saved_query = lispCopy(parsetree);
+		    qual = parse_qualification(saved_query);
+		    AddNotQual(saved_query,info->rule_qual);
+		    AddQual(parsetree, info->rule_qual);
+		    results = nappend1(results, saved_query);
+		    }*/
+	   /*
+	    * Also add user query qual onto rule action
+	    *
+	    */
+	   qual = parse_qualification(parsetree);
+	   AddQual(info->rule_action, qual);
+	   
+	   /* Step 2
+	    * Rewrite new.attribute w/ right hand side of
+	    * target-list entry for appropriate field name in append/replace
+	    *
+	    */  
+	   if ((info->event == APPEND) || (info->event == REPLACE)) {
+	       FixNew(info, parsetree);
+	   }
+	   
+	   /* Step 3
+	    *
+	    *  rewriting due to retrieve rules 
+	    */
+	   
+	   (void) ProcessRetrieveQuery(info->rule_action, info->rt, &foo,TRUE);
+	   
+	   /* Step 4
+	    *  
+	    * Simplify?
+	    * hey, bastard left out the algorithm....
+	    */
+	   root_rangetable(parse_root(info->rule_action)) = info->rt;       
+	   results = nappend1(results,info->rule_action);
        }
-       /*
-	* Also add user query qual onto rule action
-	*
-	*/
-       qual = parse_qualification(parsetree);
-       AddQual(info->rule_action, qual);
-
-       /* Step 2
-	* Rewrite new.attribute w/ right hand side of
-	* target-list entry for appropriate field name in append/replace
-	*
-	*/  
-       if ((info->event == APPEND) || (info->event == REPLACE)) {
-	   FixNew(info, parsetree);
-       }
- 
-       /* Step 3
-	*
-	*  rewriting due to retrieve rules 
-	*/
-
-       (void) ProcessRetrieveQuery(info->rule_action, info->rt, &foo,TRUE);
-
-       /* Step 4
-  	*  
-	* Simplify?
-	* hey, bastard left out the algorithm....
-	*/
-       root_rangetable(parse_root(info->rule_action)) = info->rt;       
-       results = nappend1(results,info->rule_action);
        if (*instead_flag) break;
    }
     return results;
-} 
+}
 List ProcessUpdateNode(parsetree, rt_index, event,
 			 instead_flag,relation_locks)
      List parsetree;
@@ -479,8 +486,11 @@ List RewriteQuery(parsetree,instead_flag)
 	return product_queries;
     }
     else {			/* XXX */
+	char *temp;
 	List new_pt;
-	new_pt = lispCopy(parsetree);
+	temp = PlanToString(parsetree);
+	
+	new_pt = (List)StringToPlan(temp);
 	return ProcessRetrieveQuery(new_pt, rt, instead_flag,FALSE);
     }
 }
@@ -518,3 +528,13 @@ QueryRewrite ( parsetree )
     }
     return rewritten;
 }
+
+
+
+
+
+
+
+
+
+
