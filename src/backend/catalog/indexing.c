@@ -237,9 +237,10 @@ CatalogHasIndex(catName, catId)
 
 
 HeapTuple
-AttributeNameIndexScan(heapRelation, relid, relname)
+AttributeNameIndexScan(heapRelation, relid, attname)
+    Relation heapRelation;
     ObjectId relid;
-    char *relname;
+    char *attname;
 {
     Relation idesc;
     IndexScanDesc sd;
@@ -249,7 +250,7 @@ AttributeNameIndexScan(heapRelation, relid, relname)
     HeapTuple tuple;
     Buffer buffer;
 
-    keyarg = mkoidchar16(relid, relname);
+    keyarg = mkoidchar16(relid, attname);
     ScanKeyEntryInitialize(&skey,
 			   (bits16)0x0,
 			   (AttributeNumber)1,
