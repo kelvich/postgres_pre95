@@ -26,7 +26,7 @@ LispValue lisp_qsort(lispList,    /* the list to be sorted */
     /* find size of list */
     for (num = 0, tmp = lispList; tmp != LispNil; tmp = CDR(tmp))
       num ++;
-    if (num < 2) return(lispList);
+    if (num < 2) return(lispCopy(lispList));
 
     /* copy elements of the list into an array */
     nodearray = (LispValue *) palloc(num * sizeof(LispValue));
