@@ -98,7 +98,7 @@ ExecEvalFjoin(tlist, econtext, isNullVect, fj_isDone)
 	/*
 	 * Mark the Fjoin as initialized now.
 	 */
-	set_fj_initialized(fjNode, true)
+	set_fj_initialized(fjNode, true);
 
 	/*
 	 * If the inner node is always done, then we are done for now
