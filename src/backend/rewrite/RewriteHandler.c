@@ -8,6 +8,7 @@
 
 #include "tmp/postgres.h"
 #include "utils/log.h"
+#include "utils/rel.h"
 #include "nodes/pg_lisp.h"		/* for LispValue and lisp support */
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"		/* for accessors to varnodes etc */
