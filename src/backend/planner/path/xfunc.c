@@ -870,6 +870,10 @@ void xfunc_fixvars(clause, rel, varno)
 	       ** anyway.  It's definitely supposed to be a list of relids,
 	       ** so I just figured I'd use the ones in the clause.
 	       */
+
+	      /* Set the varno to be the original varno!!! */
+	      ((Var)clause)->varno = 
+		CInteger(CAR((LispValue)(((Var)clause)->varid)));
 	      add_tl_element(rel, (Var)clause, clause_relids_vars(clause));
 	      tle = tlistentry_member((Var)clause, get_targetlist(rel));
 	  }
