@@ -157,8 +157,29 @@ typedef struct varlena Prs2RawStubData;
 typedef Prs2RawStubData *Prs2RawStub;
 
 /*------------------------------------------------------------------------
- *		VARIOUS ROUTINES
+ *		Prs2StubStats
+ * used to keep some statistics (about rule stubs & rule locks
+ * added/deleted.
  *------------------------------------------------------------------------
+ */
+
+#define PRS2_ADDSTUB		1
+#define PRS2_DELETESTUB		2
+#define PRS2_ADDLOCK		3
+#define PRS2_DELETELOCK		4
+
+typedef struct Prs2StubStatsData {
+    int stubsAdded;
+    int stubsDeleted;
+    int locksAdded;
+    int locksDeleted;
+} Prs2StubStatsData;
+
+typedef Prs2StubStatsData *Prs2StubStats;
+
+/*========================================================================
+ *		VARIOUS ROUTINES
+ *========================================================================
  */
 
 /*-------------------------
@@ -472,4 +493,4 @@ prs2SimpleQualTestTuple ARGS((
 ));
 
 Prs2OneStub prs2MakeStubForInnerRelation();
-void prs2AddLocksAndReplaceTuple();
+bool prs2AddLocksAndReplaceTuple();
