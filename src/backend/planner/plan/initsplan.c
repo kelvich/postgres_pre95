@@ -23,14 +23,27 @@
  */
 
 #include "internal.h"
+#include "c.h"
+#include "clause.h"
+#include "relation.h"
+#include "relation.a.h"
+#include "plannodes.h"
+#include "plannodes.a.h"
+#include "relnode.h"
+#include "joininfo.h
+#include "initsplan.h"
+#include "pg_lisp.h"
+#include "lsyscache.h"
+#include "tlist.h"
 
-#define TRUE  1
-
+/*
 extern void *add_clause_to_rels();
 extern void *add_join_clause_info_to_rels();
 extern void *add_vars_to_rels();
 extern LispValue hashjoinop();
 extern LispValue mergesortop();
+*/
+extern LispValue create_mergeorder(); /* XXX - where is this from ? */
 
 extern Boolean _enable_mergesort_;
 extern Boolean _enable_hashjoin_;
@@ -138,8 +151,7 @@ void
 
 	  add_vars_to_rels (vars,LispNil);
      else {
-	  /* XXX - let form, maybe incorrect */
-	  LispValue clauseinfo = create_node ("ClauseInfo");
+	  CInfo clauseinfo = CreateNode(CInfo);
 	  set_clause (clauseinfo,clause);
 	  set_notclause (clauseinfo,contains_not (clause));
 	  if(1 == length (relids)) {
@@ -147,7 +159,7 @@ void
 	       /* There is only one relation participating in 'clause', */
 	       /* so 'clause' must be a restriction clause. */
 	       /* XXX - let form, maybe incorrect */
-	       LispValue rel = get_rel (car (relids));
+	       Rel rel = get_rel (CAR (relids));
 	       set_clause_info (rel,cons (clauseinfo,get_clause_info (rel)));
 	  } 
 	  else {
@@ -185,9 +197,9 @@ void
      LispValue join_relid = LispNil;
      foreach (join_relid, join_relids) {
 	  /* XXX - let form, maybe incorrect */
-	  LispValue joininfo = 
-	    find_joininfo_node (get_rel (join_relid),
-				remove (join_relid,join_relids));
+	 JInfo joininfo = 
+	   find_joininfo_node (get_rel (join_relid),
+			       remove (join_relid,join_relids));
 	  set_clause_info (joininfo,
 			   cons (clauseinfo,
 				 get_clause_info (joininfo)));
@@ -217,12 +229,12 @@ void
  
 void
 *add_vars_to_rels (vars,join_relids)
-     LispValue vars,join_relids ;
+     List vars,join_relids ;
 {
      LispValue var = LispNil;
      foreach (var, vars) {
-	  LispValue rel = get_rel (get_varno (var));
-	  LispValue tlistentry = tlistentry_member (var,get_tlist (rel));
+	  Rel rel = get_rel (get_varno (var));
+	  LispValue  tlistentry = tlistentry_member (var,get_tlist (rel));
 	  LispValue other_join_relids = remove (get_varno (var),
 						join_relids);
 	  if(null (tlistentry))
@@ -265,13 +277,12 @@ void
      LispValue joininfo = LispNil;
      LispValue clauseinfo = LispNil;
      foreach (rel, rel_list) {
-	  foreach (joininfo, get_join_info (rel)) {
-	       foreach (clauseinfo, get_clause_info (joininfo)) {
-		    /* XXX - let form, maybe incorrect */
-		    LispValue clause = get_clause (clauseinfo);
+	  foreach (joininfo, get_joininfo (rel)) {
+	       foreach (clauseinfo, get_clauseinfo (joininfo)) {
+		    Expr clause = get_clause (clauseinfo);
 		    if ( join_clause_p (clause) ) {
 			 LispValue sortop = LispNil;
-			 LispValue hashop = LispNil;
+			 ObjectId hashop;
 
 			 if ( _enable_mergesort_ ) 
 			   sortop = mergesortop (clause);
@@ -280,11 +291,11 @@ void
 
 			 if ( sortop) {
 			      set_mergesortorder (clauseinfo,sortop);
-			      set_mergesortable (joininfo,TRUE);
+			      set_mergesortable (joininfo,true);
 			 }
 			 if ( hashop) {
 			      set_hashjoinoperator (clauseinfo,hashop);
-			      set_hashjoinable (joininfo,TRUE);
+			      set_hashjoinable (joininfo,true);
 			 }
 		    }
 	       }
@@ -304,7 +315,6 @@ LispValue
 mergesortop (clause)
      LispValue clause ;
 {
-     /* XXX - let form, maybe incorrect */
      LispValue sortops = op_mergesortable (get_opno (get_op (clause)),
 					   get_vartype(get_leftop(clause)),
 					   get_vartype (get_rightop (clause)));
@@ -330,7 +340,7 @@ mergesortop (clause)
 
 /*  .. initialize-join-clause-info   */
  
-LispValue
+ObjectId
 hashjoinop (clause)
      LispValue clause ;
 {
