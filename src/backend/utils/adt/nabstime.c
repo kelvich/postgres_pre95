@@ -291,15 +291,20 @@ tryabsdate(fields, nf, tm, tzp)
 	register long flg = 0, ty;
 	int mer = HR24, bigval = -1;
 #ifndef USE_POSIX_TIME
-	struct timeb now;
+	struct timeb now;		/* the old V7-ism */
 
 	(void) ftime(&now);
 	*tzp = now.timezone;
 #else /* USE_POSIX_TIME */
+#if defined(PORTNAME_hpux) || defined(PORTNAME_aix)
+	tzset();
+	*tzp = timezone / 60;		/* this is an X/Open-ism */
+#else /* PORTNAME_hpux || PORTNAME_aix */
 	time_t now = time((time_t *) NULL);
 	struct tm *tmnow = localtime(&now);
 
-	*tzp = - tmnow->tm_gmtoff / 60;
+	*tzp = - tmnow->tm_gmtoff / 60;	/* tm_gmtoff is Sun/DEC-ism */
+#endif /* PORTNAME_hpux || PORTNAME_aix */
 #endif /* USE_POSIX_TIME */
 
 	tm->tm_mday = tm->tm_mon = tm->tm_year = -1;	/* mandatory */
