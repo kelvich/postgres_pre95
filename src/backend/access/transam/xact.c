@@ -278,6 +278,10 @@ IsTransactionState()
     case TRANS_ABORT:		return true;
     case TRANS_DISABLED:	return false;
     }
+    /*
+     * Shouldn't get here, but lint is not happy with this...
+     */
+    return(false);
 }
 
 /* --------------------------------

@@ -178,6 +178,11 @@ TransactionLogTest(transactionId, status)
      * ----------------
      */
     elog(WARN, "TransactionLogTest: failed to get xidstatus");
+
+    /*
+     * so lint is happy...
+     */
+    return(false);
 }
 
 /* --------------------------------

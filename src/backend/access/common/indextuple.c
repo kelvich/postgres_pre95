@@ -380,6 +380,7 @@ index_getsysattr(tuple, attributeNumber)
 	elog(WARN, "IndexTupleGetAttributeValue: undefined attnum %d",
 	     attributeNumber);
     }
+    return((AttributeValue) NULL);
 }
 
 /* ----------------
