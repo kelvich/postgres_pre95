@@ -79,10 +79,6 @@ Prs2RuleData r;
      */
     r->ruleId = prs2InsertRuleInfoInCatalog(r);
 
-    elog(DEBUG,
-	"Rule %s (id=%ld) will be implemented with a relation level lock",
-	r->ruleName, r->ruleId);
-
     actionPlans = prs2GenerateActionPlans(r);
     prs2InsertRulePlanInCatalog(r->ruleId, ActionPlanNumber, actionPlans);
 
@@ -189,8 +185,6 @@ prs2UndefRelationLevelLockRule(ruleId, relationId)
 ObjectId ruleId;
 ObjectId relationId;
 {
-
-    elog(DEBUG, "Removing relation-level-lock rule %ld", ruleId);
 
     /*
      * first remove the relation level lock

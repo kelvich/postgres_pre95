@@ -202,9 +202,6 @@ bool hintFlag;
      * Start with 'pg_prs2rule'... This will give us back the rule oid.
      */
     r->ruleId = prs2InsertRuleInfoInCatalog(r);
-    elog(DEBUG,
-	"Rule %s (id=%ld) will be implemented using tuple-level-locks",
-	r->ruleName, r->ruleId);
 
     /*
      * Now generate & append the appropriate rule plans in the
@@ -648,8 +645,6 @@ ObjectId ruleId;
 ObjectId relationOid;
 {
     
-    elog(DEBUG, "Removing tuple-level-lock rule %ld", ruleId);
-
     /*
      * remove all its locks/stubs
      */
@@ -707,7 +702,7 @@ int nrules;
 	     * that means that the rule didnt have any stubs,
 	     * so it wasn't a tuple-level-lock rule...
 	     */
-	    elog(DEBUG,
+	    elog(WARN,
 	"prs2RemoveTupleLevelLocksOfManyRules: rule %d is not tuple-level-lock"
 	    ,ruleIds[i]);
 	}

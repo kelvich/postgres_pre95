@@ -62,7 +62,7 @@ ParamListInfo *paramListP;
 	/*
 	 * No such rule exist! Complain!
 	 */
-	elog(DEBUG,
+	elog(WARN,
 	"prs2GetRulePlanFromCatalog: plan NOT found (rulid=%ld,planno=%d)\n",
 	ruleId, planNumber);
 	return(LispNil);
