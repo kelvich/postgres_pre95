@@ -1541,6 +1541,7 @@ _copyFunc(from, to, alloc)
     newnode->functype = 	from->functype;
     newnode->funcisindex = 	from->funcisindex;
     newnode->funcsize = 	from->funcsize;
+    newnode->func_fcache = 	from->func_fcache;
     
     (*to) = newnode;
     return true;
