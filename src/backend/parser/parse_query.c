@@ -368,7 +368,7 @@ make_op(op,ltree,rtree)
 {
 	Type ltype,rtype;
 	Operator temp;
-	OperatorTupleForm opform;
+	OperatorTupleForm opform, optemp;
 	Oper newop;
 	LispValue left,right;
 	LispValue t1;
@@ -393,7 +393,24 @@ make_op(op,ltree,rtree)
 		temp = left_oper( CString( op ), typeid(ltype) );
 	} else {
 		/* binary operator */
-		temp = oper(CString(op),typeid(ltype), typeid ( rtype ));
+                if (typeid(rtype) == typeid(type("unknown")))
+                {
+                  /* trying to find default type for the right arg... */
+                  temp = (Operator) oper_default(CString(op),typeid(ltype));
+                  /* now, we have the default type, typecast */
+                  if(temp){
+                      Datum val;
+                      val = textout(get_constvalue(right));
+                      optemp = (OperatorTupleForm) GETSTRUCT(temp);
+                      right = (LispValue) MakeConst(optemp->oprright,
+                            tlen(get_id_type(optemp->oprright)),
+                            fmgr(typeid_get_retinfunc(optemp->oprright),
+                                 val),
+                            0);
+                  }
+                }
+                else
+                   temp = oper(CString(op),typeid(ltype), typeid ( rtype ));
 	}
 	opform = (OperatorTupleForm) GETSTRUCT(temp);
 
@@ -721,17 +738,9 @@ make_const( value )
 	    break;
 	    
 	  case PGLISP_STR:
-	    if( strlen ( CString (value)) > 16 )
-		{
-	      tp = type("text");
-	      val = PointerGetDatum(textin(value->val.str));
-		}
-	    else 
-		{
-	      tp = type("char16");
-	      val = PointerGetDatum(value->val.str);
-		}
-	    break;
+              tp = type("unknown"); /* unknown for now, will be type coerced */
+              val = PointerGetDatum(textin(value->val.str));
+            break;
 	    
 	  default: 
 	    elog(NOTICE,"unknown type : %d\n", value->type );

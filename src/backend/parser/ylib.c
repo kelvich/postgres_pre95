@@ -193,6 +193,12 @@ parser_typecast ( expr, typename )
 			  get_constvalue(CDR(expr)) );
 	  const_string = (char *) textout(const_string);
 	break;
+      case 705: /* unknown */
+        const_string =
+          DatumGetPointer(
+                          get_constvalue(CDR(expr)) );
+          const_string = (char *) textout(const_string);
+        break;
       default:
 	elog(WARN,"unknown type%d ",
 	     CInteger(CAR(expr)) );
