@@ -47,7 +47,7 @@ attname ( relname , attnum )
  */
   
 DefineVirtualRelation ( relname , tlist )
-     char *relname;
+     Name relname;
      List tlist;
 {
     LispValue element;
@@ -189,9 +189,11 @@ DefineViewRules ( view_name,  view_tlist, view_rt, view_qual )
      List view_qual;
 {
     List retrieve_rule		= NULL;
+#ifdef NOTYET
     List replace_rule		= NULL;
     List append_rule		= NULL;
     List delete_rule		= NULL;
+#endif
 
     OffsetVarNodes ( view_tlist, 2 );
     OffsetVarNodes ( view_qual, 2 );
@@ -229,7 +231,7 @@ DefineViewRules ( view_name,  view_tlist, view_rt, view_qual )
  */
 
 DefineView ( view_name, view_parse )
-     String view_name;
+     Name view_name;
      List view_parse;
 {
     List view_tlist 	= parse_targetlist( view_parse );
