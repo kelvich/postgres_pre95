@@ -14,6 +14,7 @@
 #include <ctype.h>
 #include "rel.h" 		/* Relation stuff */
 #include "catalog_utils.h"
+#include "syscache.h"
 #include "datum.h"
 #include "pg_lisp.h"
 #include "log.h"
@@ -480,12 +481,14 @@ make_array_ref_var( relname, attrname, vararrayindex)
      Index vararrayindex;
 {
     Var varnode;
-    int vnum, attid, vartype;
+    int vnum, attid, typearray, typelem;
     LispValue vardotfields;
 	Type rtype;
     Relation rd;
     extern LispValue p_rtable;
     extern int p_last_resno;
+	HeapTuple type_tuple;
+	TypeTupleForm type_struct;
 
     vnum = RangeTablePosn ( relname,0,0) ;
     if (vnum == 0) {
@@ -499,12 +502,33 @@ make_array_ref_var( relname, attrname, vararrayindex)
     
     rd = amopenr ( relname );
     attid = varattno (rd , attrname );
-    vartype = att_typeid ( rd , attid );
-    rtype = get_id_type(vartype);
+    typearray = att_typeid ( rd , attid );
+
+	type_tuple = SearchSysCacheTuple(TYPOID,
+					typearray,
+					NULL,
+					NULL,
+					NULL);
+    
+	if (!HeapTupleIsValid(type_tuple)) {
+	    elog(WARN, "make_array_ref_var: Cache lookup failed for type %d\n",
+		 typearray);
+	    return LispNil;
+	}
+
+
+	/* ----------------
+	 *   get the element type from the type tuple
+	 * ----------------
+	 */
+	type_struct = (TypeTupleForm) GETSTRUCT(type_tuple);
+	typelem = (type_struct)->typelem;
+
+    rtype = get_id_type(typelem);
     vardotfields = LispNil;                          /* XXX - fix this */
     
     varnode = MakeVar (vnum , attid ,
-		       vartype , vardotfields , vararrayindex ,
+		       typelem , vardotfields , vararrayindex ,
 		       lispCons(lispInteger(vnum),
 				lispCons(lispInteger(attid),LispNil)));
     

@@ -1498,7 +1498,7 @@ a_expr:
                                                             CString(CDR($1)),
                                                             CInteger($3));
 
-		     $$ = (LispValue) lispCons ( lispInteger ( 23 ), CDR(tmp));
+		     $$ = tmp; 
 		}
 	| AexprConst		
 	| spec 
