@@ -30,6 +30,7 @@
 #define parse_root(parse)                   CAR(parse)
 #define parse_targetlist(parse)             CADR(parse)
 #define parse_qualification(parse)          CADDR(parse)
+#define parse_parallel(parse)	((length(parse)<4)?LispNil:CAR(nthCdr(3,parse)))
 
 /* eliminate this when tcop/pquery.c is unlocked */
 #define parse_tree_root(parse)              parse_root(parse)
