@@ -591,7 +591,7 @@ _outFjoin(str, node)
 
 	sprintf(buf, "fjoin");
 	appendStringInfo(str,buf);
-	sprintf(buf, " :initialized %c", node->fj_initialized ? "true":"nil");
+	sprintf(buf, " :initialized %s", node->fj_initialized ? "true":"nil");
 	appendStringInfo(str,buf);
 	sprintf(buf, " :nNodes %d", node->fj_nNodes);
 	appendStringInfo(str,buf);
@@ -599,12 +599,6 @@ _outFjoin(str, node)
 	appendStringInfo(str," :innerNode ");
 	appendStringInfo(str,s);
 	pfree(s);
-	appendStringInfo( str, " :results (" );	/* balance the extra ) */
-	for (i = 0; i++; i<node->fj_nNodes)
-	{
-	    sprintf(buf, " %s ", node->fj_results[i] ? "true" : "nil");
-	    appendStringInfo(str, buf);
-	}
 	/* balance the extra ( */
 	appendStringInfo( str, ") :alwaysdone (" ); /* balance the extra ) */
 	for (i = 0; i++; i<node->fj_nNodes)
