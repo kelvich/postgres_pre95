@@ -1,6 +1,8 @@
 #
 # $Header$
 #
+
+#
 # The following turns on intermediate linking of big objects to speed
 # the link cycle during development.  It's on by default.  You can
 # disable it by commenting out the line in your local copy, or by
@@ -11,6 +13,13 @@
 BIGOBJS= true
 
 .include <postgres.global.mk>
+
+#
+# these systems have fast linkers and don't need the BIGOBJ stuff.
+#
+.if (${PORTNAME} == "aix" && ${PORTNAME} == "linux")
+.undef BIGOBJS
+.endif
 
 PROG= postgres
 
@@ -194,10 +203,16 @@ LDADD+=	-lm
 # == BEGIN MACHINE-SPECIFIC SECTION ==
 #
 
-.if defined(OLD_MKDIR)
 beforeinstall:
+.if defined(OLD_MKDIR)
+	@-if test ! -d ${DESTDIR}${LIBDIR}; \
+		then mkdir ${DESTDIR}${LIBDIR}; fi
 	@-if test ! -d ${DESTDIR}${BINDIR}; \
 		then mkdir ${DESTDIR}${BINDIR}; fi
+	@-if test ! -d ${DESTDIR}${DATADIR}; \
+		then mkdir ${DESTDIR}${DATADIR}; fi
+	@-if test ! -d ${DESTDIR}${DATADIR}/files; \
+		then mkdir ${DESTDIR}${DATADIR}/files; fi
 .endif
 
 #
@@ -213,12 +228,6 @@ beforeinstall:
 afterinstall: pg_id
 	${INSTALL} ${STRIP} -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
 		postmaster ${DESTDIR}${BINDIR}/postmaster
-.if defined(OLD_MKDIR)
-	@-if test ! -d ${DESTDIR}${DATADIR}; \
-		then mkdir ${DESTDIR}${DATADIR}; fi
-	@-if test ! -d ${DESTDIR}${DATADIR}/files; \
-		then mkdir ${DESTDIR}${DATADIR}/files; fi
-.endif
 	-PG_UID=`./pg_id ${POSTGRESLOGIN}`; \
 	case $$PG_UID in "NOUSER") \
 		echo "Warning: no account named ${POSTGRESLOGIN}, using yours";\
@@ -232,16 +241,6 @@ afterinstall: pg_id
 		${INSTALL} -c -o ${BINOWN} -g ${BINGRP} -m 444 \
 		    $$bki ${DESTDIR}${DATADIR}/files/$$bki.source; \
 	done
-
-#
-# so we can get the UID of the postgres owner (w/o moving pg_id to
-# src/tools)
-#
-.PATH: ${.CURDIR}/../bin/pg_id
-pg_id:	pg_id.c
-	${CC} ${LDFLAGS} -o ${.TARGET} ${.ALLSRC} 
-
-CLEANFILES+= pg_id
 
 
 #
@@ -285,6 +284,23 @@ OBJS= ${SUBOBJS}
 ${PROG}: ${SUBOBJS}
 .endif
 
+
+#
+# Support creation of symbol export files
+#
+.if defined(MAKE_EXPORTS)
+${PROG}: ${EXPORTS}
+
+installexp: ${EXPORTS}
+	for i in ${EXPORTS}; do \
+		${INSTALL} -o ${BINOWN} -g ${BINGRP} -m 444 \
+			$$i ${DESTDIR}${LIBDIR}/$$i; \
+	done
+
+afterinstall: installexp
+.endif
+
+
 #
 # To use Purify (SunOS only), define PURIFY to be the path (and
 # options) with which to invoke the Purify loader.  Only the executable
@@ -297,6 +313,18 @@ ${PROG}: ${SUBOBJS}
 ${PROG}: ${OBJS} ${LIBC} ${DPADD}
 	${PURIFY} ${CC} ${LDFLAGS} -o ${.TARGET} ${OBJS} ${LDADD}
 .endif
+
+
+#
+# so we can get the UID of the postgres owner (w/o moving pg_id to
+# src/tools)
+#
+.PATH: ${.CURDIR}/../bin/pg_id
+pg_id:	pg_id.c
+	${CC} ${LDFLAGS} -o ${.TARGET} ${.ALLSRC} 
+
+CLEANFILES+= pg_id
+
 
 #
 # We have to set this after the .include so target "all" gets defined.
