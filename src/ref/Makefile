@@ -75,6 +75,7 @@ SOURCES= \
 	${.CURDIR}/unix/initdb${PROG_SRC_EXT} \
 	${.CURDIR}/unix/ipcclean${PROG_SRC_EXT} \
 	${.CURDIR}/unix/monitor${PROG_SRC_EXT} \
+	${.CURDIR}/unix/newbki${PROG_SRC_EXT} \
 	${.CURDIR}/unix/pagedoc${PROG_SRC_EXT} \
 	${.CURDIR}/unix/pcat${PROG_SRC_EXT} \
 	${.CURDIR}/unix/pcd${PROG_SRC_EXT} \
@@ -185,6 +186,7 @@ PROG_MAN_OBJS= \
 	initdb${PROG_MAN_EXT} \
 	ipcclean${PROG_MAN_EXT} \
 	monitor${PROG_MAN_EXT} \
+	newbki${PROG_MAN_EXT} \
 	pagedoc${PROG_MAN_EXT} \
 	pcat${PROG_MAN_EXT} \
 	pcd${PROG_MAN_EXT} \
