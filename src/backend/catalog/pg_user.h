@@ -72,19 +72,8 @@ BKI_BEGIN
 BKI_END
 
 DATA(insert OID =  799 ( mike 799 t t t t ));
-DATA(insert OID = 1511 ( sp 1511 t t t t ));
-DATA(insert OID = 2359 ( cimarron 2359 t t t t ));
-DATA(insert OID = 2469 ( hong 2469 t t t t ));
 DATA(insert OID = 1806 ( mao 1806 t t t t ));
-DATA(insert OID = 2697 ( margo 2697 t t t t ));
-DATA(insert OID = 1517 ( sullivan 1517 t t t t ));
-DATA(insert OID = 3491 ( kemnitz 3491 t t t t ));
-DATA(insert OID = 3898 ( choi 3898 t t t t ));
 DATA(insert OID = 3918 ( glass 3918 t t t t ));
-DATA(insert OID = 4613 ( mer 4613 t t t t ));
-DATA(insert OID = 4616 ( dpassage 4616 t t t t ));
-DATA(insert OID = 5059 ( caetta 5059 t t t t ));
-DATA(insert OID = 5209 ( joey 5209 t t t t ));
 DATA(insert OID = 1089 ( hellers 1089 t t t t ));
 DATA(insert OID = 5568 ( clarsen 5568 t t t t ));
 DATA(insert OID = 5443 ( jolly 5443 t t t t ));
