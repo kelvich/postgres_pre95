@@ -624,14 +624,6 @@ InitPostgres(name)
     PostgresIsInitialized = true;
     on_exitpg(DestroyLocalRelList, (caddr_t) NULL);
 
-#ifdef PORTNAME_hpux
-    /* ----------------
-     *	arrange to clear shared library files on exit
-     * ----------------
-     */
-    on_exitpg(del_shlibs, (caddr_t) NULL);
-#endif /* PORTNAME_hpux */
-
     /* ----------------
      *  Done with "InitPostgres", now change to NormalProcessing unless
      *  we're in BootstrapProcessing mode.
