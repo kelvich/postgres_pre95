@@ -198,9 +198,9 @@ int PQnportals ( rule_p )
 
 If rule_p is not 0, then only return the number of asynchronous portals.
 
-PQnames \*- Return all portal names.
+PQpnames \*- Return all portal names.
 
-void PQnames  ( pnames, rule_p)
+void PQpnames  ( pnames, rule_p)
 	char	*pnames [MAXPORTALS];
 	int	rule_p ;
 
