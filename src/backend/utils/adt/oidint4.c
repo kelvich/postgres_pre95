@@ -1,6 +1,6 @@
 /*
- *  oidseq.c --
- * 	Functions for the built-in type "oidseq".
+ *  oidint4.c --
+ * 	Functions for the built-in type "oidint4".
  */
 
 #include "tmp/c.h"
@@ -11,107 +11,108 @@ RcsId("$Header$");
 #include "utils/palloc.h"
 
 
-OidSeq
-oidseqin(o)
+OidInt4
+oidint4in(o)
 	char *o;
 {
-	OidSeq os;
+	OidInt4 oi;
 	char *p;
 
-	os = (OidSeq) palloc(sizeof(OidSeqData));
+	oi = (OidInt4) palloc(sizeof(OidInt4Data));
 
 	for (p = o; *p != '\0' && *p != '/'; p++)
 		continue;
     
-	os->os_oid = atoi(o);
+	oi->oi_oid = atoi(o);
 	if (*p == '\0') {
-		os->os_seq = 0;
+		oi->oi_int4 = 0;
 	} else {
-		os->os_seq = atoi(++p);
+		oi->oi_int4 = atoi(++p);
 	}
 
-	return (os);
+	return (oi);
 }
 
 char *
-oidseqout(o)
-	OidSeq o;
+oidint4out(o)
+	OidInt4 o;
 {
 	char *r;
 
 	r = (char *) palloc(20);
-	sprintf(r, "%d/%ud", o->os_oid, o->os_seq);
+	sprintf(r, "%d/%ud", o->oi_oid, o->oi_int4);
 
 	return (r);
 }
 
 bool
-oidseqlt(o1, o2)
-	OidSeq o1, o2;
+oidint4lt(o1, o2)
+	OidInt4 o1, o2;
 {
-	return ((bool) (o1->os_oid < o2->os_oid ||
-		       (o1->os_oid == o2->os_oid && o1->os_seq < o2->os_seq)));
+	return
+	    ((bool) (o1->oi_oid < o2->oi_oid ||
+	            (o1->oi_oid == o2->oi_oid && o1->oi_int4 < o2->oi_int4)));
 }
 
 bool
-oidseqle(o1, o2)
-	OidSeq o1, o2;
+oidint4le(o1, o2)
+	OidInt4 o1, o2;
 {
-	return ((bool) (o1->os_oid < o2->os_oid ||
-		       (o1->os_oid == o2->os_oid && o1->os_seq <= o2->os_seq)));
+	return ((bool) (o1->oi_oid < o2->oi_oid ||
+		       (o1->oi_oid == o2->oi_oid && o1->oi_int4 <= o2->oi_int4)));
 }
 
 bool
-oidseqeq(o1, o2)
-	OidSeq o1, o2;
+oidint4eq(o1, o2)
+	OidInt4 o1, o2;
 {
-	return ((bool) (o1->os_oid == o2->os_oid && o1->os_seq == o2->os_seq));
+	return ((bool) (o1->oi_oid == o2->oi_oid && o1->oi_int4 == o2->oi_int4));
 }
 
 bool
-oidseqge(o1, o2)
-	OidSeq o1, o2;
+oidint4ge(o1, o2)
+	OidInt4 o1, o2;
 {
-	return ((bool) (o1->os_oid > o2->os_oid ||
-		       (o1->os_oid == o2->os_oid && o1->os_seq >= o2->os_seq)));
+	return ((bool) (o1->oi_oid > o2->oi_oid ||
+		       (o1->oi_oid == o2->oi_oid && o1->oi_int4 >= o2->oi_int4)));
 }
 
 bool
-oidseqgt(o1, o2)
-	OidSeq o1, o2;
+oidint4gt(o1, o2)
+	OidInt4 o1, o2;
 {
-	return ((bool) (o1->os_oid > o2->os_oid ||
-		       (o1->os_oid == o2->os_oid && o1->os_seq > o2->os_seq)));
+	return ((bool) (o1->oi_oid > o2->oi_oid ||
+		       (o1->oi_oid == o2->oi_oid && o1->oi_int4 > o2->oi_int4)));
 }
 
 bool
-oidseqne(o1, o2)
-	OidSeq o1, o2;
+oidint4ne(o1, o2)
+	OidInt4 o1, o2;
 {
-	return ((bool) (o1->os_oid != o2->os_oid || o1->os_seq != o2->os_seq));
+	return ((bool) (o1->oi_oid != o2->oi_oid || o1->oi_int4 != o2->oi_int4));
 }
 
 bool
-oidseqcmp(o1, o2)
-	OidSeq o1, o2;
+oidint4cmp(o1, o2)
+	OidInt4 o1, o2;
 {
-	if (oidseqlt(o1, o2))
+	if (oidint4lt(o1, o2))
 		return (-1);
-	else if (oidseqeq(o1, o2))
+	else if (oidint4eq(o1, o2))
 		return (0);
 	else
 		return (1);
 }
 
-OidSeq
-mkoidseq(v_oid, v_seq)
+OidInt4
+mkoidint4(v_oid, v_int4)
 	ObjectId v_oid;
-	uint32 v_seq;
+	uint32 v_int4;
 {
-	OidSeq o;
+	OidInt4 o;
 
-	o = (OidSeq) palloc(sizeof(OidSeqData));
-	o->os_oid = v_oid;
-	o->os_seq = v_seq;
+	o = (OidInt4) palloc(sizeof(OidInt4Data));
+	o->oi_oid = v_oid;
+	o->oi_int4 = v_int4;
 	return (o);
 }
