@@ -335,11 +335,19 @@ ProcessUtility(command, args, commandString, dest)
 			    CString(CADR(args)),/*aggregate name */
 			    CDR(CDR(args)));   /* rest */
 	    break;
+
+#ifdef PRE-JMH
 	case C_FUNCTION:
 	    DefineFunction(
-			   CString(CADR(args)),	/* function name */
-			   CDR(CDR(args)));	/* rest */
+			   CString(CADR(args)),	 /* function name  */
+			   CDR(CDR(args)));	 /* rest */
 	    break;
+#endif
+        case FUNCTION:
+	    DefineFunction(CDR(args));      /* everything */
+	    break;
+
+#ifdef PRE-JMH
 	case P_FUNCTION:
 	    DefinePFunction(CString(CADR(args)), /* function name */
 			    CString(CADDR(args)), /* relation name */
@@ -348,6 +356,8 @@ ProcessUtility(command, args, commandString, dest)
 	case POSTQUEL:
 	    DefineRealPFunction(CDR(args));
 	    break;
+#endif
+
         case RULE:
 	    elog(WARN,
 		 "Sorry, the old rule system is not supported any more (yet!)");
