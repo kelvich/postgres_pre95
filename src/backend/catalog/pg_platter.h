@@ -32,6 +32,7 @@
 
 CATALOG(pg_platter) {
      char16 	plname;
+     int4	plstart;
 } FormData_pg_platter;
 
 /* ----------------
@@ -47,8 +48,9 @@ typedef FormData_pg_platter	*Form_pg_platter;
  */
 #define Name_pg_platter			"pg_platter"
 
-#define Natts_pg_platter		1
+#define Natts_pg_platter		2
 #define Anum_pg_platter_plname		1
+#define Anum_pg_platter_plstart		2
 
 /* ----------------
  *	initial contents of pg_platter
