@@ -35,6 +35,11 @@ void *pg_dlopen( filename, err )
 	    *err = dl_error();
 	    return NULL;
 	}
+	/*
+	 * if there are undefined symbols, we want dl to search from the
+	 * following libraries also.
+	 */
+	dl_setLibraries("/usr/lib/libm_G0.a:/usr/lib/libc_G0.a");
 	dl_initialized= 1;
     }
 
