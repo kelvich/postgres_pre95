@@ -149,23 +149,19 @@ get_pg_usertup(command, username)
 }
 
 HeapTuple
-get_pg_dbtup(command, dbname)
+get_pg_dbtup(command, dbname, dbrel)
     char *command;
     char *dbname;
-{
     Relation dbrel;
+{
     HeapTuple dbtup;
     HeapTuple tup;
     Buffer buf;
     HeapScanDesc scan;
-	ScanKeyData scanKey;
+    ScanKeyData scanKey;
 
-    dbrel = heap_openr("pg_database");
-    if (!RelationIsValid(dbrel))
-	elog(FATAL, "%s: cannot open %s.", command, Name_pg_database);
-
-	ScanKeyEntryInitialize(&scanKey.data[0], 0, Anum_pg_database_datname,
-						   NameEqualRegProcedure, NameGetDatum(dbname));
+    ScanKeyEntryInitialize(&scanKey.data[0], 0, Anum_pg_database_datname,
+				NameEqualRegProcedure, NameGetDatum(dbname));
 
     scan = heap_beginscan(dbrel, 0, NowTimeQual, 1, &scanKey);
     if (!HeapScanIsValid(scan))
@@ -184,7 +180,6 @@ get_pg_dbtup(command, dbname)
 	dbtup = tup;
 
     heap_endscan(scan);
-    heap_close(dbrel);
     return (dbtup);
 }
 
@@ -239,21 +234,36 @@ check_permissions(command, dbname, dbIdP, userIdP)
     }
 
     /* Check to make sure database is owned by this user */
-    dbtup = get_pg_dbtup(command, dbname);
+
+    /* 
+     * need the reldesc to get the database owner out of dbtup 
+     * and to set a write lock on it.
+     */
+    dbrel = heap_openr(Name_pg_database);
+
+    if (!RelationIsValid(dbrel))
+	elog(FATAL, "%s: cannot open %s.", command, Name_pg_database);
+
+    /*
+     * Acquire a write lock on pg_database from the beginning to avoid 
+     * upgrading a read lock to a write lock.  Upgrading causes long delays 
+     * when multiple 'createdb's or 'destroydb's are run simult. -mer 7/3/91
+     */
+    RelationSetLockForWrite(dbrel);
+    dbtup = get_pg_dbtup(command, dbname, dbrel);
     dbfound = HeapTupleIsValid(dbtup);
 
     if (dbfound) {
-	/* need the reldesc to get the database owner out of dbtup */
-	dbrel = heap_openr(Name_pg_database);
 	dbowner = (ObjectId) heap_getattr(dbtup, InvalidBuffer,
 				          Anum_pg_database_datdba,
 				          &(dbrel->rd_att),
 				          (char *) NULL);
 	*dbIdP = dbtup->t_oid;
-	heap_close(dbrel);
     } else {
 	*dbIdP = InvalidObjectId;
     }
+
+    heap_close(dbrel);
 
     /*
      *  Now be sure that the user is allowed to do this.
