@@ -1,4 +1,3 @@
-/*#define FSDB 1*/
 /*
  * inv_api.c - routines for manipulating inversion fs large objects
  *
@@ -98,8 +97,8 @@ int flags;
         file_oid = LOcreatOID(path,0);
 
 	/* come up with some table names */
-	sprintf(&(objname.data[0]), ",inv%d", file_oid);
-	sprintf(&(indname.data[0]), ",inx%d", file_oid);
+	sprintf(&(objname.data[0]), "Xinv%d", file_oid);
+	sprintf(&(indname.data[0]), "Xinx%d", file_oid);
 
 	newobj = NewLargeObject(&(objname.data[0]), CLASS_FILE);
 
@@ -126,7 +125,14 @@ int flags;
     (void) heap_create(&(objname.data[0]), (int) archchar, 2, smgr,
 		       (struct attribute **) tupdesc);
 
-    pfree(tupdesc);
+    /* make the relation visible in this transaction */
+    CommandCounterIncrement();
+    r = heap_openr(&objname);
+
+    if (!RelationIsValid(r)) {
+	elog(WARN, "cannot create %s on %s under inversion",
+		   path, smgrout(smgr));
+    }
 
     /*
      *  Now create a btree index on the relation's olastbyte attribute to
@@ -136,20 +142,13 @@ int flags;
      */
 
     attNums[0] = 1;
-    classObjectId[0] = 23; /* XXX 23 == int4 */
+    classObjectId[0] = 426; /* XXX 426 == int4_ops */
     index_create(&objname, &indname, NULL, 403 /* XXX 403 == btree */,
 		 1, &attNums[0], &classObjectId[0],
 		 0, (Datum) NULL, (LispValue) NULL);
 
-    /* make the new relations visible in this transaction */
+    /* make the index visible in this transaction */
     CommandCounterIncrement();
-    r = heap_openr(&objname);
-
-    if (!RelationIsValid(r)) {
-	elog(WARN, "cannot create %s on %s under inversion",
-		   path, smgrout(smgr));
-    }
-
     indr = index_openr(&indname);
 
     if (!RelationIsValid(indr)) {
@@ -163,6 +162,7 @@ int flags;
     retval->ofs.i_fs.index_r = indr;
     retval->ofs.i_fs.iscan = (IndexScanDesc) NULL;
     retval->ofs.i_fs.hdesc = RelationGetTupleDescriptor(r);
+    retval->ofs.i_fs.idesc = RelationGetTupleDescriptor(indr);
     retval->ofs.i_fs.offset = retval->ofs.i_fs.lowbyte = retval->ofs.i_fs.hibyte = 0;
     ItemPointerSetInvalid(&(retval->ofs.i_fs.htid));
 
@@ -217,6 +217,7 @@ inv_open(object, flags)
     retval->ofs.i_fs.index_r = indrel;
     retval->ofs.i_fs.iscan = (IndexScanDesc) NULL;
     retval->ofs.i_fs.hdesc = RelationGetTupleDescriptor(r);
+    retval->ofs.i_fs.idesc = RelationGetTupleDescriptor(indrel);
     retval->ofs.i_fs.offset = retval->ofs.i_fs.lowbyte = retval->ofs.i_fs.hibyte = 0;
     ItemPointerSetInvalid(&(retval->ofs.i_fs.htid));
 
@@ -429,8 +430,17 @@ inv_write(obj_desc, buf, nbytes)
     /* write a block at a time */
     while (nwritten < nbytes) {
 
-	/* fetch an inversion file system block */
-	htup = inv_fetchtup(obj_desc, &b);
+	/*
+	 *  Fetch the current inverstion file system block.  If the
+	 *  class storing the inversion file is empty, we don't want
+	 *  to do an index lookup, since index lookups choke on empty
+	 *  files (should be fixed someday).
+	 */
+
+	if (obj_desc->ofs.i_fs.heap_r->rd_nblocks == 0)
+	    htup = (HeapTuple) NULL;
+	else
+	    htup = inv_fetchtup(obj_desc, &b);
 
 	/* either append or replace a block, as required */
 	if (!HeapTupleIsValid(htup)) {
@@ -591,12 +601,19 @@ inv_wrnew(obj_desc, buf, nbytes)
      */
 
     nwritten = IFREESPC(page);
-    if (nwritten < nbytes && nwritten < IMINBLK) {
-       nwritten = IMAXBLK;
-       ReleaseBuffer(buffer);
-       buffer = ReadBuffer(hr, P_NEW);
-       page = BufferSimpleGetPage(buffer);
-       BufferSimpleInitPage(buffer);
+    if (nwritten < nbytes) {
+	if (nwritten < IMINBLK) {
+            ReleaseBuffer(buffer);
+            buffer = ReadBuffer(hr, P_NEW);
+            page = BufferSimpleGetPage(buffer);
+            BufferSimpleInitPage(buffer);
+	    if (nwritten > IMAXBLK)
+		nwritten = IMAXBLK;
+	    else
+		nwritten = nbytes;
+	}
+    } else {
+	nwritten = nbytes;
     }
 
     /*
@@ -707,7 +724,7 @@ inv_wrold(obj_desc, dbuf, nbytes, htup, buffer)
      */
 
     ntup = inv_newtuple(obj_desc, newbuf, newpage, (char *) NULL, tupbytes);
-    dptr = ((char *) ntup) + ntup->t_hoff + sizeof(int4)
+    dptr = ((char *) ntup) + ntup->t_hoff - sizeof(ntup->t_bits) + sizeof(int4)
 		+ sizeof(fsblock->vl_len);
 
     if (obj_desc->ofs.i_fs.offset > obj_desc->ofs.i_fs.lowbyte) {
@@ -761,11 +778,13 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
     int lower, upper;
     int tupsize;
     ItemId itemId;
-    struct varlena *fsblock;
+    char *attptr;
 
-    /* compute tuple size */
-    tupsize = sizeof(HeapTupleData) + sizeof(struct varlena) + sizeof(int4);
-    tupsize += nwrite;
+    /* compute tuple size -- no nulls */
+    tupsize = sizeof(HeapTupleData) - sizeof(ntup->t_bits);
+
+    /* add in olastbyte, varlena.vl_len, varlena.vl_dat */
+    tupsize = sizeof(int32) + sizeof(int32) + nwrite;
     tupsize = LONGALIGN(tupsize);
 
     /*
@@ -800,7 +819,8 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
     ph->pd_lower = lower;
     ph->pd_upper = upper;
 
-    ntup = (HeapTuple) (((char *) page) + upper);
+    attptr = ((char *) page) + upper;
+    ntup = (HeapTuple) attptr;
 
     /*
      *  Tuple is now allocated on the page.  Next, fill in the tuple
@@ -815,7 +835,7 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
     TransactionIdStore(GetCurrentTransactionId(), (Pointer)ntup->t_xmin);
     ntup->t_cmin = GetCurrentCommandId();
     PointerStoreInvalidTransactionId((Pointer)ntup->t_xmax);
-    ntup->t_cmin = 0;
+    ntup->t_cmax = 0;
     ntup->t_tmin = ntup->t_tmax = InvalidTime;
     ntup->t_natts = 2;
     ntup->t_locktype = 'd';
@@ -829,10 +849,10 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
      *  the tuple and class abstractions.
      */
 
-    *((int32 *) (((char *)ntup)+ntup->t_hoff)) =
-	obj_desc->ofs.i_fs.offset + nwrite - 1;
-    fsblock = (struct varlena *) ((char *)ntup) + ntup->t_hoff + sizeof(int32);
-    fsblock->vl_len = nwrite + sizeof(fsblock->vl_len);
+    *((int32 *) attptr) = obj_desc->ofs.i_fs.offset + nwrite - 1;
+    attptr += sizeof(int32);
+    *((int32 *) attptr) = nwrite + sizeof(int32);
+    attptr += sizeof(int32);
 
     /*
      *  If a data buffer was passed in, then copy the data from the buffer
@@ -842,7 +862,7 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
      */
 
     if (dbuf != (char *) NULL)
-	bcopy(dbuf, fsblock->vl_dat, nwrite);
+	bcopy(dbuf, attptr, nwrite);
 
     /* new tuple is filled -- return it */
     return (ntup);
@@ -852,5 +872,19 @@ inv_indextup(obj_desc, htup)
     LargeObjectDesc *obj_desc;
     HeapTuple htup;
 {
-    return;
+    IndexTuple itup;
+    GeneralInsertIndexResult res;
+    Datum v[1];
+    char n[1];
+
+    n[0] = ' ';
+    v[0] = Int32GetDatum(obj_desc->ofs.i_fs.hibyte);
+    itup = index_formtuple(1, obj_desc->ofs.i_fs.idesc, &v[0], &n[0]);
+    bcopy(&(htup->t_ctid), &(itup->t_tid), sizeof(ItemPointerData));
+    res = index_insert(obj_desc->ofs.i_fs.index_r, itup, (double *) NULL);
+
+    if (res)
+	pfree ((char *) res);
+
+    pfree ((char *) itup);
 }
