@@ -349,6 +349,11 @@ MergeAttributes(schema, supers)
 	 * grab tuple descriptor for next superclass relation
 	 */
 	relation =  heap_openr(CString(name));
+	if (null(relation)) {
+	    elog(WARN,
+		 "MergeAttr: Can't inherit from non-existent superclass '%s'",
+		 CString(name));
+	}
 	tupleDesc = RelationGetTupleDescriptor(relation);
 	
 	for (attributeNumber = RelationGetNumberOfAttributes(relation);
