@@ -42,13 +42,14 @@ heap_keytest ARGS((
 ));		   
 
 /* 
- *  heap_satisifies
+ *  heap_satisfies
  *    -- test if item on page satisifies scan key
  */
 extern
 bool
-heap_satisifies ARGS((
+heap_satisfies ARGS((
     ItemId	itemId,
+	Relation relation,
     Buffer	buffer,
     TimeQual	qual,
     ScanKeySize	nKeys,
@@ -65,27 +66,6 @@ bool
 TupleUpdatedByCurXactAndCmd ARGS((
 	HeapTuple	tuple
 ));
-
-/* ----------------
- *	old interface macros
- * ----------------
- */
-/*
- * ItemIdHasValidHeapTupleForQualification --
- *	True iff a heap tuple associated with an item identifier satisfies
- *	both a time range and a scan key qualification.
- *
- * Note:
- *	Assumes item identifier is valid.
- *	Assumes buffer is locked appropriately.
- *	Assumes time range is valid.
- *	Assumes scan qualification (key) is valid.
- */
-#define ItemIdHasValidHeapTupleForQualification(itemId, buffer, qual, nKeys, key) \
-    heap_satisifies(itemId, buffer, qual, nKeys, key)
-
-#define amvalidtup(b, lp, nkeys, key) \
-    ((int) heap_satisifies(lp, b, NowTimeQual, nkeys, key))
 
 /* 
  * keytest_tupdesc
