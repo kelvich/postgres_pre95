@@ -244,7 +244,7 @@ SIComputeSize(segSize)
     totalSize = B - A;
     *segSize = totalSize;
     
-    oP = new(SISegOffsets);
+    oP = (SISegOffsets *) palloc(sizeof(SISegOffsets));
     oP->startSegment = A;
     oP->offsetToFirstEntry = a; /* relatiove to A */
     oP->offsetToEndOfSegemnt = totalSize; /* relative to A */
@@ -596,7 +596,7 @@ SIEntryOffset(segP, entryP)
 bool
 SISetDataEntry(segP, data)
     SISeg *segP;
-    SharedInvalidData  data;
+    SharedInvalidData  *data;
 {
     Offset  	    offsetToNewData;
     SISegEntry 	    *eP, *lastP;
@@ -615,7 +615,7 @@ SISetDataEntry(segP, data)
     eP = SIGetNextDataEntry(segP, offsetToNewData); /* it's a free one */
     SISetStartFreeSpace(segP, eP->next);
     /* fill it up */
-    eP->entryData = data;
+    eP->entryData = *data;
     eP->isfree = false;
     eP->next = InvalidOffset;
     
@@ -823,6 +823,10 @@ SISegInit(segP)
     	                     (MAXNUMMESSAGES - 1) * sizeof(SISegEntry));
     eP->isfree = true;
     eP->next = InvalidOffset;  /* it's the end of the chain !! */
+    /*
+     * Be tidy
+     */
+    pfree(oP);
     	                     
 }
    
@@ -883,6 +887,7 @@ SISegmentInit(killExistingSegment, key)
     bool    killExistingSegment;
     IPCKey  key;
 { 
+    SISegOffsets	*oP;
     int     	    	status, segSize;
     IpcMemoryId	    	shmId;
     bool    	    	create;
@@ -894,7 +899,12 @@ SISegmentInit(killExistingSegment, key)
     	
         /* Get a shared segment */
          
-        (void) SIComputeSize(&segSize);
+        oP = SIComputeSize(&segSize);
+	/*
+	 * Be tidy
+	 */
+	pfree(oP);
+
         create = true;
         shmId = SISegmentGet(key,segSize, create);
         if (shmId < 0) {
