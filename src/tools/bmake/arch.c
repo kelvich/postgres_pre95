@@ -91,7 +91,12 @@ static char sccsid[] = "@(#)arch.c	5.7 (Berkeley) 12/28/90";
 #include    <sys/time.h>
 #include    <ctype.h>
 #include    <ar.h>
+#ifndef __alpha		/* $%#$% OSF: ar.h also defines ranlib structure */
 #include <ranlib.h>
+#endif
+#ifndef RANLIBMAG
+#define RANLIBMAG	"__.SYMDEF"	/* archive file name */
+#endif
 #include    <stdio.h>
 #include    "make.h"
 #include    "hash.h"
