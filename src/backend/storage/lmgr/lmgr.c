@@ -451,7 +451,7 @@ RelationUnsetLockForRead(relation)
 		 RelationGetRelationName(relation),
 		 lRelId.dbId, lRelId.relId);
 	}
-	elog(FATAL, "RelationUnsetLockForRead(%s[%d,%d]: failed",
+	elog(NOTICE, "RelationUnsetLockForRead(%s[%d,%d]: failed",
 	     RelationGetRelationName(relation),
 	     lRelId.dbId, lRelId.relId);
     }
