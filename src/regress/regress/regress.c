@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 
-#include "utils/geo-decls.h"
+#include "utils/geo-decls.h"	/* includes <math.h> */
 #include "tmp/libpq-fe.h"
 
 #define P_MAXDIG 12
@@ -190,7 +190,7 @@ CIRCLE *
 circle_in(str)
 char	*str;
 {
-	double	atof(), tmp;
+	double	tmp;
 	char	*p, *coord[NARGS], buf2[1000];
 	int	i, fd;
 	CIRCLE	*result;
