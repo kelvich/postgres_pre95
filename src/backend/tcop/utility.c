@@ -234,7 +234,7 @@ ProcessUtility(command, args)
 	  case REWRITE:
 	    DefineQueryRewrite ( CDR (args )) ; 
 	    break;
-	  case TUPLE:
+	  case P_TUPLE:
 	    /* XXX - Spyros, can you add your stuff here */
 	    break;
 	  case P_TYPE:
