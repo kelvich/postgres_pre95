@@ -27,6 +27,12 @@ CFLAGS+= -DNEED_RINT -DNEED_CBRT
 # rint(3m) is broken in the 9.01 math library.
 #
 CFLAGS+= -DNEED_RINT
+#
+# 9.00 on the 800s seems to be missing cbrt(3m)
+#
+.if (${HPUX_MINOR} == "00")
+CFLAGS+= -DNEED_CBRT
+.endif
 
 #
 # The #pragma trick required on 8.07 no longer works -- the #pragma
