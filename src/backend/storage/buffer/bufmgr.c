@@ -40,6 +40,8 @@
 #include <sys/file.h>
 #include <stdio.h>
 #include <math.h>
+#include <signal.h>
+
 #include "storage/buf_internals.h"
 #include "storage/bufmgr.h"
 
@@ -1595,8 +1597,6 @@ okay:
     *CurTraceBuf = (start + 1) % BMT_LIMIT;
 }
 
-#include <signal.h>
-
 _bm_die(dbId, relId, blkNo, bufNo, allocType, start, cur)
     long dbId;
     long relId;
@@ -1617,8 +1617,8 @@ _bm_die(dbId, relId, blkNo, bufNo, allocType, start, cur)
 
     fprintf(fp, "buffer alloc trace detected the following error:\n\n");
     fprintf(fp, "    buffer %d being %s inconsistently with a previous %s\n\n",
-	    bufNo, (allocType == BMT_ALLOC ? "allocated" : "deallocated"),
-	    (tb->bmt_op == BMT_ALLOC ? "allocation" : "deallocation"));
+	    bufNo, (allocType == BMT_DEALLOC ? "deallocated" : "allocated"),
+	    (tb->bmt_op == BMT_DEALLOC ? "deallocation" : "allocation"));
 
     fprintf(fp, "the trace buffer contains:\n");
 
@@ -1626,11 +1626,28 @@ _bm_die(dbId, relId, blkNo, bufNo, allocType, start, cur)
     for (;;) {
 	tb = &TraceBuf[i];
 	if (tb->bmt_op != BMT_NOTUSED) {
-	    fprintf(fp, "     [%3d]%spid %d buf %2d for <%d,%d,%d> %s\n",
+	    fprintf(fp, "     [%3d]%spid %d buf %2d for <%d,%d,%d> ",
 		    i, (i == cur ? " ---> " : "\t"),
 		    tb->bmt_pid, tb->bmt_buf,
-		    tb->bmt_dbid, tb->bmt_relid, tb->bmt_blkno,
-		    (tb->bmt_op == BMT_ALLOC ? "allocate" : "deallocate"));
+		    tb->bmt_dbid, tb->bmt_relid, tb->bmt_blkno);
+
+	    switch (tb->bmt_op) {
+	      case BMT_ALLOCFND:
+		fprintf(fp, "allocate (found)\n");
+		break;
+
+	      case BMT_ALLOCNOTFND:
+		fprintf(fp, "allocate (not found)\n");
+		break;
+
+	      case BMT_DEALLOC:
+		fprintf(fp, "deallocate\n");
+		break;
+
+	      default:
+		fprintf(fp, "unknown op type %d\n", tb->bmt_op);
+		break;
+	    }
 	}
 
 	i = (i + 1) % BMT_LIMIT;
@@ -1639,9 +1656,26 @@ _bm_die(dbId, relId, blkNo, bufNo, allocType, start, cur)
     }
 
     fprintf(fp, "\noperation causing error:\n");
-    fprintf(fp, "\tpid %d buf %d for <%d,%d,%d> %s\n",
-	    getpid(), bufNo, dbId, relId, blkNo,
-	    (allocType == BMT_ALLOC ? "allocate" : "deallocate"));
+    fprintf(fp, "\tpid %d buf %d for <%d,%d,%d> ",
+	    getpid(), bufNo, dbId, relId, blkNo);
+
+    switch (allocType) {
+      case BMT_ALLOCFND:
+	fprintf(fp, "allocate (found)\n");
+	break;
+
+      case BMT_ALLOCNOTFND:
+	fprintf(fp, "allocate (not found)\n");
+	break;
+
+      case BMT_DEALLOC:
+	fprintf(fp, "deallocate\n");
+	break;
+
+      default:
+	fprintf(fp, "unknown op type %d\n", allocType);
+	break;
+    }
 
     (void) fclose(fp);
 
