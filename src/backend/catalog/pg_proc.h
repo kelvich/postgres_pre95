@@ -715,6 +715,8 @@ struct	proc {
     Natts_pg_proc
 
 #include "nodes/pg_lisp.h"
+
 /* pg_proc.c */
-ObjectId ProcedureDefine ARGS((Name procedureName , bool returnsSet , Name returnTypeName , Name languageName , char *prosrc , char *probin , Boolean canCache , int32 byte_pct , int32 perbyte_cpu , int32 percall_cpu , int32 outin_ratio , List argList , CommandDest dest));
-#endif PgProcIncluded
+extern ObjectId ProcedureDefine ARGS((Name procedureName, bool returnsSet, Name returnTypeName, Name languageName, char *prosrc, char *probin, Boolean canCache, Boolean trusted, int32 byte_pct, int32 perbyte_cpu, int32 percall_cpu, int32 outin_ratio, List argList, CommandDest dest));
+
+#endif /* PgProcIncluded */
