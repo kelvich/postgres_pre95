@@ -30,6 +30,7 @@
 
 #include <strings.h>
 #include <ctype.h>
+#include <float.h>
 #include <math.h>
 
 #include "tmp/postgres.h"
@@ -40,13 +41,9 @@
 RcsId("$Header$");
 
 
-#define FORMAT 		'e'	/* use "E" output format as standard format */
-#define	MAXFLOATWIDTH 	12	/* "n.nnnnnE+nn\0" format */
-#define FLOATPRECISION	5  	/* number of significant digits */
-				/*    after decimal point */
-#define MAXDOUBLEWIDTH	24	/* "n.nnnnnnnnnnnnnnnnnE+nn\0" format */
-#define DOUBLEPRECISION	17	/* number of significant digits */
-				/*    after decimal point */
+#define FORMAT 		'g'	/* use "g" output format as standard format */
+#define	MAXFLOATWIDTH 	12
+#define MAXDOUBLEWIDTH	24
 
 extern double	atof();
 extern double   cbrt();
@@ -124,7 +121,7 @@ float4out(num)
 	if (!num)
 		return strcpy(ascii, "(null)");
 
-	ftoa((double) *num, ascii, MAXFLOATWIDTH, FLOATPRECISION, FORMAT);
+	sprintf(ascii, "%.*g", FLT_DIG, *num);
 	return(ascii);
 }
 
@@ -220,7 +217,7 @@ float8out(num)
 	if (!num)
 		return strcpy(ascii, "(null)");
 
-	ftoa(*num, ascii, MAXDOUBLEWIDTH, DOUBLEPRECISION, FORMAT);
+	sprintf(ascii, "%.*g", DBL_DIG, *num);
 	return(ascii);
 }
 
