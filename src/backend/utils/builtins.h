@@ -208,12 +208,43 @@ extern char		*tidout();
 extern char		*btreeinsert();
 extern char		*btreedelete();
 extern char		*btreegetnext();
-extern char		*btbeginscan();
+extern char		*btreebeginscan();
 extern void		btreeendscan();
 extern void		btreebuild();
 extern void		btreemarkpos();
 extern void		btreerestrpos();
 extern void		btreerescan();
+
+/*
+ *  	New btree code.
+ *	Defined in nbtree/
+ */
+extern char		*btgettuple();
+extern char		*btinsert();
+extern char		*btdelete();
+extern char		*btgetnext();
+extern char		*btbeginscan();
+extern void		btendscan();
+extern void		btbuild();
+extern void		btmarkpos();
+extern void		btrestrpos();
+extern void		btrescan();
+
+/*
+ *	Per-opclass comparison functions for new btrees.  These are
+ *	stored in pg_amproc and defined in nbtree/
+ */
+extern int32		btint2cmp();
+extern int32		btint4cmp();
+extern int32		btint24cmp();
+extern int32		btint42cmp();
+extern int32		btfloat4cmp();
+extern int32		btfloat8cmp();
+extern int32		btoidcmp();
+extern int32		btabstimecmp();
+extern int32		btcharcmp();
+extern int32		btchar16cmp();
+extern int32		bttextcmp();
 
 /*
  *  Selectivity functions for btrees in utils/adt/selfuncs.c
