@@ -418,7 +418,7 @@ or_normalize (orlist)
 		 distributable = LispTrue;
 	  }
 	  if (distributable == LispTrue) 
-	    new_orlist = remove(distributable,orlist);
+	    new_orlist = LispRemove(distributable,orlist);
 	  
 	  if(new_orlist) 
 	    return (or_normalize (lispCons (distribute_args 

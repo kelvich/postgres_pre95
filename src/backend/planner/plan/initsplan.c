@@ -227,7 +227,7 @@ add_join_clause_info_to_rels (clauseinfo,join_relids)
     foreach (join_relid, join_relids) {
 	JInfo joininfo = 
 	  find_joininfo_node (get_rel (CAR(join_relid)),
-			      remove (CAR(join_relid),join_relids));
+			      LispRemove (CAR(join_relid),join_relids));
 	set_jinfoclauseinfo (joininfo,
 			     lispCons (clauseinfo,
 				   get_jinfoclauseinfo (joininfo)));
@@ -269,7 +269,7 @@ add_vars_to_rels (vars,join_relids)
 	var = CAR(temp);
 	rel = get_rel (lispInteger(get_varno (var)));
 	tlistentry = tlistentry_member (var,get_targetlist (rel));
-	other_join_relids = remove (lispInteger(get_varno (var)),
+	other_join_relids = LispRemove (lispInteger(get_varno (var)),
 				    join_relids);
 	if(null (tlistentry))
 	  /*   add a new entry */
