@@ -1203,7 +1203,7 @@ sjopen(reln)
     int fd;
     extern char *relpath();
 
-    path = relpath(reln->rd_rel->relname);
+    path = relpath(&(reln->rd_rel->relname.data[0]));
 
     fd = FileNameOpenFile(path, O_RDWR, 0666);
 
