@@ -91,7 +91,7 @@ op_class (opid,opclass)
      LispValue opid,opclass ;
 {
     AccessMethodOperatorTupleForm amoptup = 
-      ALLOCATE(AccessMethodOperatorTupleForm);
+      new(AccessMethodOperatorTupleFormD);
 
     if (SearchSysCacheStruct (AMOPOPID,amoptup,opclass,opid,0,0))
       return(true);
@@ -119,7 +119,7 @@ get_attname (relid,attnum)
      ObjectId relid;
      AttributeNumber attnum;
 {
-    Attribute att_tup = ALLOCATE(Attribute);
+    Attribute att_tup = new(AttributeTupleFormD);
 
     if( SearchSysCacheStruct (ATTNUM,att_tup,relid,attnum,0,0)) 
 	return(AttributeGetAttName (att_tup));
@@ -143,7 +143,7 @@ get_attnum (relid,attname)
      ObjectId relid;
      NameData attname ;
 {
-	Attribute  att_tup = ALLOCATE(Attribute);
+	Attribute  att_tup = new(AttributeTupleFormD);
 
 	if(SearchSysCacheStruct (ATTNAME,att_tup,relid,attname,0,0) ) 
 	  return(att_tup->attnum);
@@ -201,7 +201,7 @@ RegProcedure
 get_opcode (opid)
      ObjectId opid;
 {
-    OperatorTupleForm optup = ALLOCATE(OperatorTupleForm);
+    OperatorTupleForm optup = new(OperatorTupleFormD);
 
     if( SearchSysCacheStruct (OPROID,optup,opid,0,0,0) ) 
       return(optup->oprcode);
@@ -225,7 +225,7 @@ op_mergesortable (opid,ltype,rtype)
      ObjectId opid;
      ObjectId ltype,rtype ;
 {
-    OperatorTupleForm optup = ALLOCATE(OperatorTupleForm);
+    OperatorTupleForm optup = new(OperatorTupleFormD);
 
     if(SearchSysCacheStruct (OPROID,optup,opid,0,0,0) &&
        optup->oprlsortop &&
@@ -251,7 +251,7 @@ ObjectId
 op_hashjoinable (opid,ltype,rtype)
      ObjectId opid,ltype,rtype ;
 {
-    OperatorTupleForm optup = ALLOCATE(OperatorTupleForm);
+    OperatorTupleForm optup = new(OperatorTupleFormD);
 
     if (SearchSysCacheStruct (OPROID,optup,opid,0,0,0) && 
 	optup->oprcanhash  &&
@@ -297,7 +297,7 @@ ObjectId
 get_negator (opid)
      ObjectId opid ;
 {
-    OperatorTupleForm optup = ALLOCATE(OperatorTupleForm);
+    OperatorTupleForm optup = new(OperatorTupleFormD);
 
     if(SearchSysCacheStruct (OPROID,optup,opid,0,0,0))
       return(optup->oprnegate);
@@ -318,7 +318,7 @@ RegProcedure
 get_oprrest (opid)
      ObjectId opid ;
 {
-    OperatorTupleForm optup = ALLOCATE(OperatorTupleForm);
+    OperatorTupleForm optup = new(OperatorTupleFormD);
 
     if(SearchSysCacheStruct (OPROID,optup,opid,0,0,0))
       return(optup->oprrest );
@@ -340,7 +340,7 @@ RegProcedure
 get_oprjoin (opid)
      ObjectId opid ;
 {
-    OperatorTupleForm optup = ALLOCATE(OperatorTupleForm);
+    OperatorTupleForm optup = new(OperatorTupleFormD);
 
     if(SearchSysCacheStruct (OPROID,optup,opid,0,0,0))
       return(optup->oprjoin);
@@ -383,7 +383,7 @@ AttributeNumber
 get_relnatts (relid)
      ObjectId relid ;
 {
-    RelationTupleForm reltup = ALLOCATE(RelationTupleForm);
+    RelationTupleForm reltup = new(RelationTupleFormD);
 
     if(SearchSysCacheStruct (RELOID,reltup,relid,0,0,0))
       return(reltup->relnatts);
@@ -405,7 +405,7 @@ Name
 get_rel_name (relid)
      ObjectId relid ;
 {
-    RelationTupleForm reltup = ALLOCATE(RelationTupleForm);
+    RelationTupleForm reltup = new(RelationTupleFormD);
 
     if(SearchSysCacheStruct (RELOID,reltup,relid,0,0,0))
       return(RelationGetRelationName (reltup));
@@ -431,7 +431,7 @@ int16
 get_typlen (typid)
      ObjectId typid;
 {
-    TypeTupleForm typtup = ALLOCATE(TypeTupleForm);
+    TypeTupleForm typtup = new(TypeTupleFormD);
 
     if (SearchSysCacheStruct (TYPOID,typtup,typid,0,0,0))
       return(typtup->typlen);
@@ -454,7 +454,7 @@ bool
 get_typbyval (typid)
      ObjectId typid ;
 {
-    TypeTupleForm typtup = ALLOCATE(TypeTupleForm);
+    TypeTupleForm typtup = new(TypeTupleFormD);
     if(SearchSysCacheStruct (TYPOID,typtup,typid,0,0,0))
       return((bool)typtup->typbyval);
     else

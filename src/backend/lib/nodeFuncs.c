@@ -33,7 +33,7 @@ bool
 single_node (node)
      Node node ;
 {
-    if(atom (node) || constant_p (node) || var_p (node))
+    if(atom (node) || IsA(node,Const) || IsA(node,Var))
       return(true);
     else
       return(false);
@@ -123,14 +123,11 @@ varid_indexes_into_array (var)
 
 /*  .. add_tl_element, replace-nestvar-refs
  */
-bool
+List
 varid_array_index (var)
-LispValue var ;
+     LispValue var ;
 {
-    if ( CAR (last_element (get_varid (var))))
-      return(true);
-    else
-      return(false);
+    return(CAR (last_element (get_varid (var))));
 }
 
 /*  .. add_tl_element, replace-nestvar-refs
@@ -213,7 +210,7 @@ bool
 constant_p (node)
      Expr node ;
 {
-    if ( const_p (node) || param_p (node) )
+    if ( IsA(node,Const) || IsA(node,Param) )
       return(true);
     else
       return(false);
@@ -234,10 +231,11 @@ bool
 non_null (const)
      Expr const ;
 {
-    if (const_p (const) && !get_constisnull (const) )
+/*    if ( IsA(const,Const) && !get_constisnull (const) )
       return(true);
     else
       return(false);
+*/
 }
 
 /*    
@@ -273,7 +271,7 @@ bool
 join_p (node)
      Node node ;
 {
-    if(nestloop_p (node) || hashjoin_p (node) || mergesort_p (node))
+    if( IsA(node,NestLoop) || IsA(node,HashJoin) || IsA(node,MergeSort))
       return(true);
     else
       return(false);
@@ -286,7 +284,7 @@ bool
 scan_p (node)
      Node node ;
 {
-    if(seqscan_p (node) || indexscan_p (node))
+    if( IsA(node,SeqScan) || IsA(node,IndexScan))
       return(true);
     else
       return(false);
@@ -298,7 +296,7 @@ bool
 temp_p (node)
      Node node ;
 {
-    if (sort_p (node) || hash_p (node))
+    if ( IsA(node,Sort) || IsA(node,Hash))
       return(true);
     else
       return(false);
@@ -308,7 +306,7 @@ bool
 plan_p (node)
      Node node ;
 {
-    if (result_p (node) || existential_p (node))
+    if ( IsA(node,Result) || IsA(node,Existential))
       return(true);
     else
       return(false);
