@@ -110,8 +110,9 @@ int p_open(fname,mode)
 	p_errno = fd>=0 ? 0 : -fd;
 
 	/* have to do this to reset offset in shared fd cache */
-	if (p_lseek(fd, 0L, L_SET) < 0)
-	    return -1;
+	/* but only if fd is valid */
+	if (fd >= 0 && p_lseek(fd, 0L, L_SET) < 0)
+		return -1;
 
 	return fd;
     }
@@ -363,11 +364,12 @@ int p_stat(path,statbuf)
     argv[0].len = VAR_LENGTH_ARG;
     argv[0].u.ptr = (int *)resolve_path(path);
 
-    vstatlen = sizeof(struct pgstat) + sizeof(int);
-    statres = (struct varlena *) palloc(vstatlen);
-    pqret = PQfn(F_LOSTAT,(int *)statres,vstatlen,&stlen,2,argv,1);
-    bcopy((char *) VARDATA(statres), (char *) statbuf, sizeof(struct pgstat));
-    pfree(statres);
+/* PQfn deals with >4byte return values fine. */
+/*    vstatlen = sizeof(struct pgstat) + sizeof(int);
+    statres = (struct varlena *) palloc(vstatlen); */
+    pqret = PQfn(F_LOSTAT,(int *)statbuf,sizeof(struct pgstat),&stlen,2,argv,1);
+/*    bcopy((char *) VARDATA(statres), (char *) statbuf, sizeof(struct pgstat));
+    pfree(statres); */
 
     if (stlen == 5) {
 	p_errno = PENOENT;
@@ -412,9 +414,11 @@ PDIR *p_opendir(path)
 	char query[512];
 	char *res;
 
+#if 0
 	if ((res == NULL) || (*res != 'C')) { /* CBEGIN */
 	    return NULL;
 	}
+#endif
 	sprintf(query,"retrieve (pg_naming.filename,pg_naming.ourid) where pg_naming.parentid = \"%d\"::oid",pathOID);
 	res = PQexec(query);
 	if ((res != NULL) && (*res == 'P')) /* CRETRIEVE */
