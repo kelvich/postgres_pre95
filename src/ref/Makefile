@@ -241,14 +241,14 @@ OBJS= \
 
 ${OBJS}: ${NR_MAC_SOURCES}
 
-ref.nr: ${SOURCES} ${NR_OBJS} ${KW_OBJS} ${NR_MAC_SOURCES}
+ref.cat: ${SOURCES} ${NR_OBJS} ${KW_OBJS} ${NR_MAC_SOURCES}
 	${NROFF} ${NROFFOPTS} ${NR_MAC_SOURCES} ${SOURCES} > ${.TARGET}
 
 
 ref.ps: ${SOURCES} ${NR_OBJS} ${KW_OBJS} ${TR_MAC_SOURCES}
 	${GROFF} ${GROFFOPTS} ${TR_MAC_SOURCES} ${SOURCES} > ${.TARGET}
 
-all: ref.nr ref.ps ${OBJS}
+all: ref.cat ref.ps ${OBJS}
 
 CLEANFILES+= ${NR_OBJS} ${KW_OBJS}
 
