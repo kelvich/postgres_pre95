@@ -201,7 +201,6 @@ MakeRangeTableEntry( relname , options , refname)
     RelOID	= LispNil;
     Relation relation;
     extern Relation amopenr();
-    extern LispValue p_trange;
     int index;
     
     /*printf("relname is : %s\n",(char *)relname); 
@@ -272,10 +271,10 @@ ExpandAll(relname,this_resno)
 		p_rtable = nappend1 ( p_rtable,
 				     MakeRangeTableEntry (relname, 
 							  0 ,  relname));
-		physical_relname = VarnoGetRelname(1);
-		/* printf("first item in range table"); */
-	} else 
-		physical_relname = VarnoGetRelname(vnum);
+		vnum = RangeTablePosn (relname,0,0);
+	}
+
+	physical_relname = VarnoGetRelname(vnum);
 
 
 	rdesc = amopenr(physical_relname);
@@ -571,7 +570,7 @@ SkipForwardToFromList()
                 Ch = temp;
         }
         if (next_token == (LispValue) FROM ) {
-            /*  printf("FROM found\n"); */
+              /* printf("FROM found\n");  */
                 fflush(stdout);
                 Ch -= 4;
                 from_list_place = Ch;
