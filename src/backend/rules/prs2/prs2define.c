@@ -15,12 +15,12 @@
 #include "relcache.h"	/* RelationNameGetRelation() defined here...*/
 #include "prs2.h"
 #include "anum.h"	/* RuleRelationNumberOfAttributes etc. defined here */
-#include "ruledef.h"	/* PlanToString() defined here... */
 #include "skey.h"	/* 'ScanKeyEntryData' defined here... */
 #include "tqual.h"	/* 'NowTimeQual' defined here.. */
 #include "heapam.h"	/* heap AM calls defined here */
 #include "lsyscache.h"	/* get_attnum()  defined here...*/
 #include "parse.h"	/* RETRIEVE, APPEND etc defined here.. */
+#include "parsetree.h"
 #include "catname.h"	/* names of various system relations defined here */
 #include "rproc.h"	/* for ObjectIdEqualRegProcedure etc. */
 #include "fmgr.h"	/* for F_CHAR16EQ, F_CHAR16IN etc. */
@@ -41,8 +41,8 @@ LispValue parseTree;
 char *ruleText;
 {
     NameData ruleName;
-    int	eventTypeInt;
     EventType eventType;
+    ActionType actionType;
     LispValue eventTarget;
     NameData eventTargetRelationNameData;
     Relation eventTargetRelation;
@@ -65,37 +65,13 @@ char *ruleText;
 #endif PRS2_DEBUG
 
     strcpy(ruleName.data, CString(GetRuleNameFromParse(parseTree)));
-    eventTypeInt = CInteger(GetRuleEventTypeFromParse(parseTree));
     eventTarget = GetRuleEventTargetFromParse(parseTree);
     ruleQual = GetRuleQualFromParse(parseTree);
     isRuleInstead = CInteger(GetRuleInsteadFromParse(parseTree));
     ruleAction = GetRuleActionFromParse(parseTree);
 
-    /*
-     * Note that the event type as stored in the parse tree is one of
-     * RETRIEVE, REPLACE, APPEND or DELETE. All these symbols are
-     * defined in "parse.h". So, we have to change them
-     * into the appropriate "EventType" type.
-     */
-    switch (eventTypeInt) {
-	case RETRIEVE:
-	    eventType = EventTypeRetrieve;
-	    break;
-	case REPLACE:
-	    eventType = EventTypeReplace;
-	    break;
-	case APPEND:
-	    eventType = EventTypeAppend;
-	    break;
-	case DELETE:
-	    eventType = EventTypeDelete;
-	    break;
-	default:
-	    eventType = EventTypeInvalid;
-	    elog(WARN, "prs2DefineTupleRule: Illegal event type (int) %d",
-		eventTypeInt);
-    } /* switch*/
-    
+    eventType = prs2FindEventTypeFromParse(parseTree);
+    actionType = prs2FindActionTypeFromParse(parseTree);
 
     /*
      * 
@@ -188,17 +164,9 @@ char *ruleText;
     
     /*
      * Now set the appropriate locks.
-     *
-     * Try first to findthe appropriate type of lock.
-     * Normally if the rule updates the current tuple
-     * we must put a LockTypeWrite lock.
      */
-
-    /* XXX Thsi wil not work! */
-    lockType = LockTypeWrite;
-    prs2PutLocks(ruleId, lockType,
-		    eventTargetRelationOid,
-		    eventTargetAttributeNumber);
+    prs2PutLocks(ruleId, eventTargetRelationOid,
+		eventTargetAttributeNumber, eventType, actionType);
 
 #ifdef PRS2_DEBUG
     printf("--- DEFINE PRS2 RULE: Done.\n");
@@ -207,7 +175,7 @@ char *ruleText;
 }
 
 /*-----------------------------------------------------------------------
- * prs2PutLocks
+ * prs2PutLocksInRelation
  *
  * Put the appropriate locks for the rule. For the time
  * being we just put a relation level lock in pg_relation.
@@ -215,7 +183,7 @@ char *ruleText;
  */
 
 void
-prs2PutLocks(ruleId, lockType, eventRelationOid, eventAttributeNumber)
+prs2PutLocksInRelation(ruleId, lockType, eventRelationOid, eventAttributeNumber)
 ObjectId ruleId;
 Prs2LockType lockType;
 ObjectId eventRelationOid;
@@ -228,7 +196,7 @@ AttributeNumber eventAttributeNumber;
     HeapTuple tuple;
     Buffer buffer;
     HeapTuple newTuple;
-    Prs2Locks currentLock;
+    RuleLock currentLock;
 
     /*
      * Lock a relation given its ObjectId.
@@ -650,7 +618,7 @@ ObjectId eventRelationOid;
     Buffer buffer;
     HeapTuple newTuple;
     HeapTuple newTuple2;
-    Prs2Locks currentLocks;
+    RuleLock currentLocks;
     Boolean isNull;
     int i;
     int numberOfLocks;
@@ -707,4 +675,194 @@ ObjectId eventRelationOid;
     
     RelationCloseHeapRelation(relationRelation);
 
+}
+
+/*------------------------------------------------------------------
+ *
+ * prs2FindEventTypeFromParse
+ *
+ * Given a rule's parse tree find its event type.
+ */
+EventType
+prs2FindEventTypeFromParse(parseTree)
+LispValue parseTree;
+{
+
+    int eventTypeInt;
+    EventType eventType;
+
+    eventTypeInt = CInteger(GetRuleEventTypeFromParse(parseTree));
+
+    /*
+     * Note that the event type as stored in the parse tree is one of
+     * RETRIEVE, REPLACE, APPEND or DELETE. All these symbols are
+     * defined in "parse.h". So, we have to change them
+     * into the appropriate "EventType" type.
+     */
+    switch (eventTypeInt) {
+	case RETRIEVE:
+	    eventType = EventTypeRetrieve;
+	    break;
+	case REPLACE:
+	    eventType = EventTypeReplace;
+	    break;
+	case APPEND:
+	    eventType = EventTypeAppend;
+	    break;
+	case DELETE:
+	    eventType = EventTypeDelete;
+	    break;
+	default:
+	    eventType = EventTypeInvalid;
+	    elog(WARN, "prs2DefineTupleRule: Illegal event type (int) %d",
+		eventTypeInt);
+    } /* switch*/
+
+    return(eventType);
+}
+
+/*------------------------------------------------------------------
+ *
+ * prs2FindActionTypeFromParse
+ *
+ * find the ActionType of a rule.
+ */
+ActionType
+prs2FindActionTypeFromParse(parseTree)
+LispValue parseTree;
+{
+    
+    LispValue ruleActions;
+    LispValue t, oneRuleAction;
+    LispValue root;
+    int commandType;
+    LispValue resultRelation;
+    LispValue rangeTable;
+    ActionType actionType;
+    Name relationName;
+
+    ruleActions = GetRuleActionFromParse(parseTree);
+
+    foreach(t, ruleActions) {
+	oneRuleAction = CAR(t);
+	/*
+	 * find the type of query (retrieve, delete etc...)
+	 */
+	root = parse_root(oneRuleAction);
+	commandType = root_command_type(root);
+	resultRelation = root_result_relation(root);
+	rangeTable = root_rangetable(root);
+	if (!null(rangeTable)) {
+	    strcpy(relationName,CString(rt_relname(CAR(rangeTable))));
+	} else {
+	    relationName = InvalidName;
+	}
+	if (commandType == RETRIEVE && !null(resultRelation)) {
+	    /*
+	     * this is a retrieve (NOT a retrieve into...)
+	     */
+	    actionType = ActionTypeRetrieveValue;
+	    break; 	/* exit 'foreach' loop */
+	} else if (commandType == REPLACE &&
+		    NameIsEqual("CURRENT", relationName)) {
+	    /*
+	     * this is a replace CURRENT(...)
+	     */
+	    actionType = ActionTypeReplaceCurrent;
+	    break; 	/* exit 'foreach' loop */
+	} else {
+	    actionType = ActionTypeOther;
+	}
+    } /* foreach */
+
+    if (actionType == ActionTypeRetrieveValue) {
+	/*
+	 * then this must be the ONLY statement in the rule actions!
+	 */
+	if (length(ruleActions) != 1) {
+	    elog(WARN,
+	    "a 'retrieve (..)' must be the only action of a PRS2 rule!");
+	}
+    }
+	
+    if (actionType == ActionTypeReplaceCurrent) {
+	/*
+	 * then this must be the ONLY statement in the rule actions!
+	 */
+	if (length(ruleActions) != 1) {
+	    elog(WARN,
+	    "a 'replace CURRENT(..)' must be the only action of a PRS2 rule!");
+	}
+    }
+
+    return(actionType);
+}
+
+/*------------------------------------------------------------------
+ *
+ * prs2PutLocks
+ *
+ * Put the appropriate rule locks.
+ * NOTE: currently only relation level locking is implemented
+ */
+prs2PutLocks(ruleId, relationOid, attributeNo, eventType, actionType)
+ObjectId ruleId;
+ObjectId relationOid;
+AttributeNumber attributeNo;
+EventType eventType;
+ActionType actionType;
+{
+    Prs2LockType lockType;
+
+    /*
+     * find the lock type
+     */
+    lockType = LockTypeInvalid;
+
+    if (actionType == ActionTypeRetrieveValue ||
+	actionType == ActionTypeReplaceCurrent) {
+	switch (eventType) {
+	    case EventTypeRetrieve:
+		lockType = LockTypeRetrieveWrite;
+		break;
+	    case EventTypeReplace:
+		lockType = LockTypeReplaceWrite;
+		break;
+	    case EventTypeAppend:
+		lockType = LockTypeAppendWrite;
+		break;
+	    case EventTypeDelete:
+		lockType = LockTypeDeleteWrite;
+		elog(WARN, "ON DELETE rules can not update CURRENT tuple");
+		break;
+	    default:
+		elog(WARN, "prs2PutLocks: Illegal Event type: %c", eventType);
+	}
+    } else if (actionType == ActionTypeOther) {
+	switch (eventType) {
+	    case EventTypeRetrieve:
+		lockType = LockTypeRetrieveAction;
+		break;
+	    case EventTypeReplace:
+		lockType = LockTypeReplaceAction;
+		break;
+	    case EventTypeAppend:
+		lockType = LockTypeAppendAction;
+		break;
+	    case EventTypeDelete:
+		lockType = LockTypeDeleteAction;
+		break;
+	    default:
+		elog(WARN, "prs2PutLocks: Illegal Event type: %c", eventType);
+	}
+    } else {
+	elog(WARN, "prs2PutLocks: Illegal Action type: %c", actionType);
+    }
+
+#ifdef PRS2DEBUG
+    printf("prs2PutLocks: (ACTION='%c', EVENT='%c', LOCK='%c'\n",
+	    actionType, eventType, lockType);
+#endif PRS2DEBUG
+
+    prs2PutLocksInRelation(ruleId, lockType, relationOid, attributeNo);
 }
