@@ -124,8 +124,8 @@ find_rel_paths(rels,level,sortkeys)
 	  if(level > 1) {
 	       set_pathlist(rel,sequential_scan_list);
 	       /* XXX casting a list to a Path */
-	       set_unorderedpath(rel, (Path)sequential_scan_list);
-	       set_cheapestpath(rel, (Path)sequential_scan_list);
+	       set_unorderedpath(rel, (PathPtr)sequential_scan_list);
+	       set_cheapestpath(rel, (PathPtr)sequential_scan_list);
 	    } 
 	  else {
 	       LispValue rel_index_scan_list = 

@@ -595,9 +595,13 @@ ExecMergeJoin(node)
 	    MJ_DEBUG_QUAL(mergeclauses, qualResult);
 	    
 	    if (qualResult)
+	    {
 		set_mj_JoinState(mergestate, EXEC_MJ_JOINTUPLES);
+	    }
 	    else 
+	    {
 		set_mj_JoinState(mergestate, EXEC_MJ_NEXTOUTER);
+	    }
 	    break;
 	    
 	/* ********************************
@@ -648,9 +652,13 @@ ExecMergeJoin(node)
 	    set_ecxt_innertuple(econtext, innerTupleSlot);
 	    
 	    if (TupIsNull((Pointer) innerTupleSlot))
+	    {
 		set_mj_JoinState(mergestate, EXEC_MJ_NEXTOUTER);
+	    }
 	    else
+	    {
 		set_mj_JoinState(mergestate, EXEC_MJ_JOINTEST);
+	    }
 	    break;
 	    
 	/* ********************************
@@ -874,9 +882,13 @@ ExecMergeJoin(node)
 	    MJ_DEBUG_MERGE_COMPARE(innerSkipQual, compareResult);
 
 	    if (compareResult)
+	    {
 		set_mj_JoinState(mergestate, EXEC_MJ_SKIPINNER);
+	    }
 	    else
+	    {
 		set_mj_JoinState(mergestate, EXEC_MJ_JOINMARK);
+	    }
 	    break;
 
 	/* ********************************
@@ -997,9 +1009,13 @@ ExecMergeJoin(node)
 	    MJ_DEBUG_MERGE_COMPARE(outerSkipQual, compareResult);
 	    
 	    if (compareResult)
+	    {
 		set_mj_JoinState(mergestate, EXEC_MJ_SKIPOUTER);
+	    }
 	    else
+	    {
 		set_mj_JoinState(mergestate, EXEC_MJ_JOINMARK);
+	    }
 	    
 	    break;
 	    
@@ -1056,7 +1072,7 @@ ExecInitMergeJoin(node, estate, parent)
      *	get the range table and direction from it
      * ----------------
      */
-    set_state((Plan) node, estate);
+    set_state((Plan) node, (EStatePtr)estate);
     
     /* ----------------
      *	create new merge state for node

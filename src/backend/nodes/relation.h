@@ -14,6 +14,11 @@
 #include "nodes/primnodes.h"
 #include "nodes/nodes.h"
 
+#define TLE LispValue
+#define TL LispValue
+
+#include "nodes/relation.gen"
+
 /*
  *  These #defines indicate that we have supplied print routines for the
  *  named classes.  The routines are in lib/C/printfuncs.c; interface routines
@@ -149,9 +154,6 @@ class (Rel) public (Node) {
 	List	superrels;
 };
 #undef Path
-
-#define TLE LispValue
-#define TL LispValue
 
 extern Var get_expr ARGS(( TLE foo));
 extern Resdom get_resdom ARGS(( TLE foo));

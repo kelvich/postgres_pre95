@@ -359,11 +359,11 @@ MergeOrder
 mergesortop(clause)
      LispValue clause;
 {
-     LispValue sortops = op_mergesortable(get_opno(get_op(clause)),
+     LispValue sortops = op_mergesortable(get_opno((Oper)get_op(clause)),
 					   get_vartype(get_leftop(clause)),
 					   get_vartype(get_rightop(clause)));
      if( consp(sortops) ) {
-	  return(MakeMergeOrder(get_opno(get_op(clause)),
+	  return(MakeMergeOrder(get_opno((Oper)get_op(clause)),
 				(ObjectId)nth(0,sortops),
 				(ObjectId)nth(1,sortops),
 				get_vartype(get_leftop(clause)),
@@ -388,7 +388,7 @@ ObjectId
 hashjoinop(clause)
      LispValue clause ;
 {
-     return(op_hashjoinable(get_opno(get_op(clause)),
+     return(op_hashjoinable(get_opno((Oper)get_op(clause)),
 			      get_vartype(get_leftop(clause)),
 			      get_vartype(get_rightop(clause))));
 }

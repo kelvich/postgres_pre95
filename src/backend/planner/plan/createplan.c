@@ -224,10 +224,10 @@ create_join_node(best_path,origtlist,tlist)
      LispValue 	clauses;
      Join 	retval;
 
-     outer_node = create_plan(get_outerjoinpath(best_path),origtlist);
+     outer_node = create_plan((Path)get_outerjoinpath(best_path),origtlist);
      outer_tlist  = get_qptargetlist(outer_node);
 
-     inner_node = create_plan(get_innerjoinpath(best_path),origtlist);
+     inner_node = create_plan((Path)get_innerjoinpath(best_path),origtlist);
      inner_tlist = get_qptargetlist(inner_node);
 
      clauses = get_actual_clauses(get_pathclauseinfo(best_path));
@@ -841,11 +841,11 @@ make_seqscan(qptlist,qpqual,scanrelid,lefttree)
 
     set_cost((Plan)node , 0.0 );
     set_fragment((Plan)node, 0 );
-    set_state((Plan)node, (EState)NULL);
+    set_state((Plan)node, (EStatePtr)NULL);
     set_qptargetlist((Plan)node, qptlist);
     set_qpqual((Plan)node , qpqual);
-    set_lefttree((Plan)node, lefttree);
-    set_righttree((Plan)node , (Plan) NULL);
+    set_lefttree((Plan)node, (PlanPtr)lefttree);
+    set_righttree((Plan)node , (PlanPtr) NULL);
     set_scanrelid((Scan)node , scanrelid);
     set_scanstate((Scan)node, (ScanState)NULL);
 
@@ -863,11 +863,11 @@ make_indexscan(qptlist, qpqual, scanrelid,indxid,indxqual)
 
     set_cost((Plan)node , 0.0 );
     set_fragment((Plan)node, 0 );
-    set_state((Plan)node, (EState)NULL);
+    set_state((Plan)node, (EStatePtr)NULL);
     set_qptargetlist((Plan)node, qptlist);
     set_qpqual((Plan)node , qpqual);
-    set_lefttree((Plan)node,(Plan)NULL);
-    set_righttree((Plan)node,(Plan)NULL);
+    set_lefttree((Plan)node,(PlanPtr)NULL);
+    set_righttree((Plan)node,(PlanPtr)NULL);
     set_scanrelid((Scan)node,scanrelid);
     set_indxid(node,indxid);
     set_indxqual(node,indxqual);
@@ -888,13 +888,13 @@ make_nestloop(qptlist,qpqual,lefttree,righttree)
 
     set_cost((Plan)node , 0.0 );
     set_fragment((Plan)node, 0 );
-    set_state((Plan)node, (EState)NULL);
+    set_state((Plan)node, (EStatePtr)NULL);
     set_qptargetlist((Plan)node, qptlist);
     set_qpqual((Plan)node , qpqual);
-    set_lefttree((Plan)node, lefttree);
-    set_righttree((Plan)node , righttree);
+    set_lefttree((Plan)node, (PlanPtr)lefttree);
+    set_righttree((Plan)node , (PlanPtr)righttree);
     set_nlstate((NestLoop)node, (NestLoopState)NULL);
-    set_ruleinfo((Join)node, (JoinRuleInfo)NULL);
+    set_ruleinfo((Join)node, (JoinRuleInfoPtr)NULL);
 
     return(node);
 }
@@ -908,12 +908,12 @@ make_hashjoin(tlist,qpqual,hashclauses,lefttree,righttree)
     
     set_cost((Plan)node , 0.0 );
     set_fragment((Plan)node, 0 );
-    set_state((Plan)node, (EState)NULL);
+    set_state((Plan)node, (EStatePtr)NULL);
     set_qpqual((Plan)node,qpqual);
     set_qptargetlist((Plan)node,tlist);
-    set_lefttree((Plan)node,lefttree);
-    set_righttree((Plan)node,righttree);
-    set_ruleinfo((Join)node, (JoinRuleInfo) NULL);
+    set_lefttree((Plan)node,(PlanPtr)lefttree);
+    set_righttree((Plan)node,(PlanPtr)righttree);
+    set_ruleinfo((Join)node, (JoinRuleInfoPtr) NULL);
     set_hashclauses(node,hashclauses);
     set_hashjointable(node, NULL);
     set_hashjointablekey(node, 0);
@@ -934,11 +934,11 @@ make_hash(tlist, hashkey, lefttree)
     set_cost((Plan)node , 0.0 );
     set_fragment((Plan)node, 0 );
     set_parallel((Plan)node, 1);
-    set_state((Plan)node, (EState)NULL);
+    set_state((Plan)node, (EStatePtr)NULL);
     set_qpqual((Plan)node,LispNil);
     set_qptargetlist((Plan)node,tlist);
-    set_lefttree((Plan)node,lefttree);
-    set_righttree((Plan)node,(Plan)NULL);
+    set_lefttree((Plan)node,(PlanPtr)lefttree);
+    set_righttree((Plan)node,(PlanPtr)NULL);
     set_hashkey(node, hashkey);
     set_hashtable(node, NULL);
     set_hashtablekey(node, 0);
@@ -959,12 +959,12 @@ make_mergesort(tlist, qpqual, mergeclauses, opcode, rightorder, leftorder,
     
     set_cost((Plan)node , 0.0 );
     set_fragment((Plan)node, 0 );
-    set_state((Plan)node, (EState)NULL);
+    set_state((Plan)node, (EStatePtr)NULL);
     set_qpqual((Plan)node,qpqual);
     set_qptargetlist((Plan)node,tlist);
-    set_lefttree((Plan)node,lefttree);
-    set_righttree((Plan)node,righttree);
-    set_ruleinfo((Join)node, (JoinRuleInfo) NULL);
+    set_lefttree((Plan)node,(PlanPtr)lefttree);
+    set_righttree((Plan)node,(PlanPtr)righttree);
+    set_ruleinfo((Join)node, (JoinRuleInfoPtr) NULL);
     set_mergeclauses(node,mergeclauses);
     set_mergesortop(node,opcode);
     set_mergerightorder(node, rightorder);
@@ -986,11 +986,11 @@ make_sort(tlist,tempid,lefttree, keycount)
     set_cost((Plan)node , 0.0 );
     set_fragment((Plan)node, 0 );
     set_parallel((Plan)node, 1);
-    set_state((Plan)node, (EState)NULL);
+    set_state((Plan)node, (EStatePtr)NULL);
     set_qpqual((Plan)node,LispNil);
     set_qptargetlist((Plan)node,tlist);
-    set_lefttree((Plan)node,lefttree);
-    set_righttree((Plan)node,(Plan)NULL);
+    set_lefttree((Plan)node,(PlanPtr)lefttree);
+    set_righttree((Plan)node,(PlanPtr)NULL);
     set_tempid((Temp)node,tempid);
     set_keycount((Temp)node,keycount);
 
@@ -1009,11 +1009,11 @@ make_material(tlist,tempid,lefttree, keycount)
     set_cost((Plan)node , 0.0 );
     set_fragment((Plan)node, 0 );
     set_parallel((Plan)node, 1);
-    set_state((Plan)node, (EState)NULL);
+    set_state((Plan)node, (EStatePtr)NULL);
     set_qpqual((Plan)node,LispNil);
     set_qptargetlist((Plan)node,tlist);
-    set_lefttree((Plan)node,lefttree);
-    set_righttree((Plan)node,(Plan)NULL);
+    set_lefttree((Plan)node,(PlanPtr)lefttree);
+    set_righttree((Plan)node,(PlanPtr)NULL);
     set_tempid((Temp)node,tempid);
     set_keycount((Temp)node,keycount);
 
@@ -1040,15 +1040,15 @@ make_agg(arglist, aggidnum)
      set_cost((Plan)node, 0.0);
      set_fragment((Plan)node, 0);
      set_parallel((Plan)node, 1);
-     set_state((Plan)node, (EState)NULL);
+     set_state((Plan)node, (EStatePtr)NULL);
      set_qpqual((Plan)node, LispNil);
      set_qptargetlist((Plan)node, 
 		      lispCons(MakeList((LispValue)resdom, 
 					varnode,
 					-1),
 			       LispNil));
-     set_lefttree((Plan)node, planner(query));
-     set_righttree((Plan)node, (Plan)NULL);
+     set_lefttree((Plan)node, (PlanPtr)planner(query));
+     set_righttree((Plan)node, (PlanPtr)NULL);
      set_tempid((Temp)node, aggidnum);
      set_aggname(node, aggname);
      return(node);
@@ -1068,11 +1068,11 @@ make_unique(tlist,lefttree)
     set_cost((Plan)node , 0.0 );
     set_fragment((Plan)node, 0 );
     set_parallel((Plan)node, 1);
-    set_state((Plan)node, (EState)NULL);
+    set_state((Plan)node, (EStatePtr)NULL);
     set_qpqual((Plan)node,LispNil);
     set_qptargetlist((Plan)node,tlist);
-    set_lefttree((Plan)node,lefttree);
-    set_righttree((Plan)node,(Plan)NULL);
+    set_lefttree((Plan)node,(PlanPtr)lefttree);
+    set_righttree((Plan)node,(PlanPtr)NULL);
     set_tempid((Temp)node,-1);
     set_keycount((Temp)node,0);
 

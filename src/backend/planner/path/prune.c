@@ -128,7 +128,9 @@ prune_rel_paths(rel_list)
 	  }
 	cheapest = (JoinPath)prune_rel_path(rel, path);
 	if(IsA(cheapest,JoinPath))
+	{
 	  set_size(rel,compute_joinrel_size(cheapest));
+	}
 	else
 	  printf( "WARN: non JoinPath called. \n");
     }
@@ -247,7 +249,7 @@ bool order_expected;
     if(IsA(path,JoinPath)) {
         if(!IsA(get_innerjoinpath((JoinPath)path),IndexPath) &&
             !IsA(get_innerjoinpath((JoinPath)path),JoinPath) &&
-            length(get_relids(get_parent(get_innerjoinpath((JoinPath)path)))) == 1)
+            length(get_relids(get_parent((Path)get_innerjoinpath((JoinPath)path)))) == 1)
            return true;
         return path_contain_redundant_indexscans(get_outerjoinpath((JoinPath)path), 
 						 order_expected) ||
@@ -329,13 +331,13 @@ prune_rel_path(rel,unorderedpath)
 
      if(!(eq(unorderedpath,cheapest)) && !testFlag) {
 
-	  set_unorderedpath(rel,(Path)NULL);
+	  set_unorderedpath(rel,(PathPtr)NULL);
 	  set_pathlist(rel,LispRemove((LispValue)unorderedpath,
 				      get_pathlist(rel)));
 
      } else {
 
-	  set_unorderedpath(rel,unorderedpath);
+	  set_unorderedpath(rel,(PathPtr)unorderedpath);
 
      } 
 

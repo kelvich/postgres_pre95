@@ -472,7 +472,7 @@ ExecInitHashJoin(node, estate, parent)
      *  assign the node's execution state
      * ----------------
      */
-    set_state((Plan)node, (EState) estate);
+    set_state((Plan)node, (EStatePtr) estate);
     
     /* ----------------
      * create state structure
@@ -553,9 +553,13 @@ ExecInitHashJoin(node, estate, parent)
      * ----------------
      */
     if (IsMaster && ParallelExecutorEnabled())
+    {
         set_hj_HashTable(hjstate, get_hashjointable(node));
+    }
     else
+    {
         set_hj_HashTable(hjstate, NULL);
+    }
     
     set_hashdone(node, false);
     

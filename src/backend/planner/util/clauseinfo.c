@@ -249,7 +249,7 @@ get_opnos (clauseinfo_list)
 	 temp = (CInfo)CAR(i);
 	  result =
 	    nappend1(result,
-		     (LispValue)get_opno(get_op( (LispValue)get_clause(temp))));
+		     (LispValue)get_opno((Oper)get_op( (LispValue)get_clause(temp))));
      }
     return(result);
 }

@@ -163,7 +163,7 @@ ExecInitScanTemps(node, estate, parent)
     ScanDirection	dir;
     List		tempRelDescs;
 
-    set_state((Plan) node, estate);
+    set_state((Plan) node, (EStatePtr)estate);
 
     scantempstate = MakeScanTempState(0,0);
     set_scantempState(node, scantempstate);

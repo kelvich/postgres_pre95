@@ -199,8 +199,8 @@ init_join_rel(outer_rel,inner_rel,joininfo)
     set_width(joinrel,0);
     set_targetlist(joinrel,LispNil);
     set_pathlist(joinrel,LispNil);
-    set_unorderedpath(joinrel,(Path)NULL);
-    set_cheapestpath(joinrel,(Path)NULL);
+    set_unorderedpath(joinrel,(PathPtr)NULL);
+    set_cheapestpath(joinrel,(PathPtr)NULL);
     set_classlist(joinrel,(List)NULL);
     set_ordering(joinrel,LispNil);
     set_clauseinfo(joinrel,LispNil);
@@ -324,9 +324,9 @@ new_joininfo_list(joininfo_list,join_relids)
       if (nonoverlap_sets(new_otherrels,join_relids)) {
          other_joininfo = joininfo_member(new_otherrels,current_joininfo_list);
          if(other_joininfo)
-            set_jinfoclauseinfo(other_joininfo,
-                            LispUnion((LispValue)get_jinfoclauseinfo(joininfo),
-                                   (LispValue)get_jinfoclauseinfo(other_joininfo)));
+	 {
+            set_jinfoclauseinfo(other_joininfo, LispUnion((LispValue)get_jinfoclauseinfo(joininfo), (LispValue)get_jinfoclauseinfo(other_joininfo)));
+	 }
          else {
             other_joininfo = MakeJInfo(get_otherrels(joininfo),
                                         get_jinfoclauseinfo(joininfo),
@@ -392,8 +392,7 @@ LispValue joinrels,outerrels ;
 						    mergesortable,
 						    hashjoinable,
 						    false);
-	        set_joininfo(rel,nappend1(get_joininfo(rel),
-					  (LispValue)new_joininfo));
+	        set_joininfo(rel,nappend1(get_joininfo(rel), (LispValue)new_joininfo));
 		foreach(xsuper_rel, super_rels) {
 		    Rel super_rel = (Rel)CAR(xsuper_rel);
 		    if( nonoverlap_rels(super_rel,joinrel) ) {
@@ -402,18 +401,14 @@ LispValue joinrels,outerrels ;
 				  joininfo_member(new_relids,
 						   get_joininfo(joinrel));
 			if( other_joininfo ) {
-			    set_jinfoclauseinfo(other_joininfo,
-				  LispUnion(clause_info, 
-				         get_jinfoclauseinfo(other_joininfo)));
+			    set_jinfoclauseinfo(other_joininfo, LispUnion(clause_info, get_jinfoclauseinfo(other_joininfo)));
 			} else {
 			    JInfo new_joininfo = MakeJInfo(new_relids,
 								clause_info,
 								mergesortable,
 								hashjoinable,
 								false);
-			    set_joininfo(joinrel,
-					 nappend1 (get_joininfo(joinrel),
-						   (LispValue)new_joininfo));
+			    set_joininfo(joinrel, nappend1 (get_joininfo(joinrel), (LispValue)new_joininfo));
 			}
 		    }
 		}

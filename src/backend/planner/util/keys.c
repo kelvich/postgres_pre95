@@ -289,7 +289,7 @@ equal_sortkey_pathkey (relid,sortkey,pathkey)
      bool retval = false;
 
      foreach(subkey,pathkey) {
-	  if (equal ((Node)relid,(Node)get_varno (CAR(subkey))) &&
+	  if (equal ((Node)relid,(Node)get_varno ((Var)CAR(subkey))) &&
 	      equal_indexkey_var (sortkey,(Var)CAR(subkey)))
 	    retval = true;
      }

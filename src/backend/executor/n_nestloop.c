@@ -420,7 +420,7 @@ ExecInitNestLoop(node, estate, parent)
      *	assign execution state to node
      * ----------------
      */
-    set_state((Plan) node, estate);
+    set_state((Plan) node, (EStatePtr)estate);
     
     /* ----------------
      *    create new nest loop state

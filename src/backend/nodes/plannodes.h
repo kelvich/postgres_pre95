@@ -26,6 +26,7 @@
 #include "nodes/nodes.h"		/* bogus inheritance system */
 #include "nodes/pg_lisp.h"
 #include "nodes/primnodes.h"
+#include "nodes/plannodes.gen"
 #include "rules/prs2stub.h"
 
 /* ----------------------------------------------------------------

@@ -285,7 +285,7 @@ make_sortplan(tlist,sortkeys,sortops,plannode)
        */
       
       set_reskey (resdom,keyno);
-      set_reskeyop (resdom,get_opcode (CInteger(CAR(sortops))));      
+      set_reskeyop (resdom,(OperatorTupleForm)get_opcode (CInteger(CAR(sortops))));      
 
       keyno += 1;
       sortops = CDR(sortops);
@@ -403,7 +403,7 @@ make_existential(left,right)
 {
     Existential node = RMakeExistential();
 
-    set_lefttree(node,left);
-    set_righttree(node,right);
+    set_lefttree(node,(PlanPtr)left);
+    set_righttree(node,(PlanPtr)right);
     return(node);
 }

@@ -237,7 +237,7 @@ ExecInitResult(node, estate, parent)
      *	assign execution state to node
      * ----------------
      */
-    set_state( node, estate);
+    set_state( node, (EStatePtr)estate);
     
     /* ----------------
      *	create new ResultState for node

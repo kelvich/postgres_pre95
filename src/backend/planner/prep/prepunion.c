@@ -408,11 +408,8 @@ fix_parsetree_attnums (rt_index,old_relid,new_relid,parsetree)
       foreach(i,parsetree) {
 	  foo = (Node)CAR(i);
 	  if (!null(foo) && IsA(foo,Var) && 
-	       (get_varno (foo) == rt_index)) {
-	      set_varattno ((Var)foo, 
-			    get_attnum (new_relid,
-					get_attname(old_relid,
-						    get_varattno(foo))));
+	       (get_varno ((Var)foo) == rt_index)) {
+	      set_varattno ((Var)foo, get_attnum (new_relid, get_attname(old_relid, get_varattno((Var)foo))));
 	  } 
 	  if (!null(foo) && IsA(foo,LispList)) {
 	      foo = (Node)fix_parsetree_attnums(rt_index,old_relid,
@@ -472,11 +469,11 @@ make_append (unionplans,rt_index,union_rt_entries, tlist)
   set_unionrtentries(node,union_rt_entries);
   set_cost((Plan)node,0.0);
   set_fragment((Plan)node,0);
-  set_state((Plan)node,(EState)NULL);
+  set_state((Plan)node,(EStatePtr)NULL);
   set_qptargetlist((Plan)node,tlist);
   set_qpqual((Plan)node,LispNil);
-  set_lefttree((Plan)node,(Plan)NULL);
-  set_righttree((Plan)node,(Plan)NULL);
+  set_lefttree((Plan)node,(PlanPtr)NULL);
+  set_righttree((Plan)node,(PlanPtr)NULL);
 
   return(node);
 }

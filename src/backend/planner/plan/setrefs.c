@@ -535,7 +535,7 @@ set_tlist_references (plan)
 	  else if (IsA(plan,Result))
 		set_result_tlist_references((Result)plan);
 	    else if (IsA(plan,Hash))
-		set_tlist_references(get_lefttree(plan));
+		set_tlist_references((Plan)get_lefttree(plan));
 	    else if (IsA(plan,Choose)) {
 		LispValue x;
 		foreach (x, get_chooseplanlist((Choose)plan)) {

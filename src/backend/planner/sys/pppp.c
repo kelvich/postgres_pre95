@@ -147,14 +147,14 @@ print_plan(plan, levelnum)
 		if (get_lefttree((Plan)plan)) {
 			INDENT(levelnum);
 			printf("\nExistential Plan %d\n", levelnum);
-			print_plan (get_lefttree (plan), 
+			print_plan ((Plan)get_lefttree (plan), 
 				    levelnum + 1);
 		};
 
 		if (get_righttree((Plan)plan)) {
 			INDENT(levelnum);
 			printf("\nQuery Plan %d\n", levelnum);
-			print_plan (get_righttree (plan),
+			print_plan ((Plan)get_righttree (plan),
 				    levelnum + 1);
 		};
 
@@ -182,7 +182,7 @@ print_plan(plan, levelnum)
 		};
 
 		if (get_righttree(plan)) {
-			print_plan(get_righttree(plan), (levelnum + 1));
+			print_plan((Plan)get_righttree(plan), (levelnum + 1));
 		};
 	} else {
 
@@ -612,7 +612,7 @@ Plan plan;
 				  _query_range_table_)));
 	  }
 	else {
-	    pplan(get_lefttree(plan));
+	    pplan((Plan)get_lefttree(plan));
 	  }
 	break;
     case classTag(ScanTemps):
@@ -626,20 +626,20 @@ Plan plan;
     case classTag(MergeJoin):
     case classTag(HashJoin):
     case classTag(NestLoop):
-	pplan(get_lefttree(plan));
+	pplan((Plan)get_lefttree(plan));
 	fprintf(stderr, " ");
-	pplan(get_righttree(plan));
+	pplan((Plan)get_righttree(plan));
 	break;
     case classTag(Hash):
     case classTag(Sort):
     case classTag(Material):
     case classTag(Result):
-	pplan(get_lefttree(plan));
+	pplan((Plan)get_lefttree(plan));
 	break;
     case classTag(Existential):
-	pplan(get_lefttree(plan));
+	pplan((Plan)get_lefttree(plan));
 	fprintf(stderr, " ");
-	pplan(get_righttree(plan));
+	pplan((Plan)get_righttree(plan));
 	break;
     case classTag(Append):
 	{  LispValue saved_rt;
@@ -717,30 +717,30 @@ Path path;
     case classTag(HashPath):
 	ppath((Path)get_outerjoinpath((JoinPath)path));
 	fprintf(stderr, " (Hash ");
-	ppath(get_innerjoinpath((JoinPath)path));
+	ppath((Path)get_innerjoinpath((JoinPath)path));
 	fprintf(stderr, ")");
 	break;
     case classTag(MergePath):
 	if (get_outersortkeys((MergePath)path)) {
 	    fprintf(stderr, "(SeqScan (Sort ");
-	    ppath(get_outerjoinpath((JoinPath)path));
+	    ppath((Path)get_outerjoinpath((JoinPath)path));
 	    fprintf(stderr, "))");
 	  }
 	else
-	    ppath(get_outerjoinpath((JoinPath)path));
+	    ppath((Path)get_outerjoinpath((JoinPath)path));
 	fprintf(stderr, " ");
 	if (get_innersortkeys((MergePath)path)) {
 	    fprintf(stderr, "(SeqScan (Sort ");
-	    ppath(get_innerjoinpath((JoinPath)path));
+	    ppath((Path)get_innerjoinpath((JoinPath)path));
 	    fprintf(stderr, "))");
 	  }
 	else
-	    ppath(get_innerjoinpath((JoinPath)path));
+	    ppath((Path)get_innerjoinpath((JoinPath)path));
 	break;
     case classTag(JoinPath):
-	ppath(get_outerjoinpath((JoinPath)path));
+	ppath((Path)get_outerjoinpath((JoinPath)path));
 	fprintf(stderr, " ");
-	ppath(get_innerjoinpath((JoinPath)path));
+	ppath((Path)get_innerjoinpath((JoinPath)path));
 	break;
     case classTag(IndexPath):
     case classTag(Path):
@@ -784,9 +784,9 @@ Rel rel;
     fprintf(stderr, "\npathlist:\n");
     p_paths(get_pathlist(rel));
     fprintf(stderr, "unorderedpath:\n");
-    p_path(get_unorderedpath(rel));
+    p_path((Path)get_unorderedpath(rel));
     fprintf(stderr, "cheapestpath:\n");
-    p_path(get_cheapestpath(rel));
+    p_path((Path)get_cheapestpath(rel));
 }
 
 void

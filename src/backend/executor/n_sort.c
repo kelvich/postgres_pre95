@@ -119,6 +119,7 @@ ExecSort(node)
     HeapTuple      heapTuple;
     TupleTableSlot slot;
     Buffer	   buffer;
+    int		   tupCount = 0;
     
     /* ----------------
      *	get state info from node
@@ -180,6 +181,8 @@ ExecSort(node)
 
 	    if (TupIsNull((Pointer) slot))
 		break;
+
+	    tupCount++;
 	    
 	    heapTuple = (HeapTuple) ExecFetchTuple((Pointer)slot);
 	    
@@ -204,6 +207,14 @@ ExecSort(node)
 	SO1_printf("ExecSort: %s\n",
 		   "calling psort");
 	
+	/*
+	 * If no tuples were fetched from the proc node return NULL now
+	 * psort dumps it if 0 tuples are in the relation and I don't want
+	 * to try to debug *that* routine!!
+	 */
+	if (tupCount == 0)
+	    return NULL;
+
 	psort(tempRelation,	/* old relation */
 	      currentRelation,	/* new relation */
 	      keycount,		/* number keys */
@@ -312,7 +323,7 @@ ExecInitSort(node, estate, parent)
      *  assign the node's execution state
      * ----------------
      */
-    set_state((Plan)node, estate);
+    set_state((Plan)node, (EStatePtr)estate);
     
     /* ----------------
      * create state structure

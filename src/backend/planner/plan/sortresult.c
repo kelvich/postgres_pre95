@@ -240,8 +240,8 @@ int width ;
 		    set_cheapest (rel,get_pathlist (rel));
 	       } 
 	       else 
-		 if (newcost < get_path_cost (get_cheapestpath (rel))) {
-		      set_cheapestpath (rel,path);
+		 if (newcost < get_path_cost ((Path)get_cheapestpath (rel))) {
+		      set_cheapestpath (rel,(PathPtr)path);
 		 } 
 	  }
      }

@@ -38,10 +38,10 @@ equal_path_path_ordering (path_ordering1,path_ordering2)
 	(!IsA(path_ordering1,MergeOrder) && !IsA(path_ordering2,MergeOrder)))
 	return equal((Node)path_ordering1, (Node)path_ordering2);
     if (IsA(path_ordering1,MergeOrder) && !IsA(path_ordering2,MergeOrder))
-	return path_ordering2 && get_left_operator(path_ordering1) == 
+	return path_ordering2 && get_left_operator((MergeOrder)path_ordering1) == 
 				 CInteger(CAR(path_ordering2));
     return path_ordering1 && CInteger(CAR(path_ordering1)) ==
-			     get_left_operator(path_ordering2);
+			     get_left_operator((MergeOrder)path_ordering2);
 }
 
 /*    
@@ -63,8 +63,8 @@ equal_path_merge_ordering (path_ordering,merge_ordering)
 	/* XXX - let form, maybe incorrect */
 	LispValue path_sortop = CAR (path_ordering);
 	if (merge_ordering == LispNil) return(false);
-	if ((CInteger(path_sortop) == get_left_operator(merge_ordering)) ||
-	    (CInteger(path_sortop) == get_right_operator(merge_ordering)))
+	if ((CInteger(path_sortop) == get_left_operator((MergeOrder)merge_ordering)) ||
+	    (CInteger(path_sortop) == get_right_operator((MergeOrder)merge_ordering)))
 	  return(true);
 	else
 	  return(false);

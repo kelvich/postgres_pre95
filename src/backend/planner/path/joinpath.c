@@ -128,7 +128,7 @@ find_all_join_paths(joinrels,previous_level_rels,nest_level)
 						       outerrel,
 						       innerrel,
 						       get_pathlist(outerrel),
-						       get_cheapestpath 
+						       (Path)get_cheapestpath 
 						                  (innerrel),
 						       bestinnerjoin,
 						       mergeinfo_list));
@@ -307,8 +307,8 @@ sort_inner_and_outer(joinrel,outerrel,innerrel,mergeinfo_list)
 					    get_size(innerrel),
 					    get_width(outerrel),
 					    get_width(innerrel),
-					    get_cheapestpath(outerrel),
-					    get_cheapestpath(innerrel),
+					    (Path)get_cheapestpath(outerrel),
+					    (Path)get_cheapestpath(innerrel),
 					    merge_pathkeys,
 					    (List)get_m_ordering(xmergeinfo),
 					    joinmethod_clauses((JoinMethod)xmergeinfo),
@@ -612,7 +612,7 @@ match_unsorted_inner(joinrel,outerrel,innerrel,innerpath_list,mergeinfo_list)
 	/*    (match-unsorted-outer) if it is applicable. */
 	/*    'OuterJoinCost was set above in  */
 	if( clauses && keyquals) {
-	    temp1 = get_path_cost(get_cheapestpath(outerrel)) + 
+	    temp1 = get_path_cost((Path)get_cheapestpath(outerrel)) + 
 	      cost_sort(nth(0,keyquals), get_size(outerrel),
 			get_width(outerrel), false);
 	    
@@ -655,8 +655,7 @@ match_unsorted_inner(joinrel,outerrel,innerrel,innerpath_list,mergeinfo_list)
 							   get_size(innerrel),
 							   get_width(outerrel),
 							   get_width(innerrel),
-							   get_cheapestpath
-							   (outerrel),
+							   (Path)get_cheapestpath (outerrel),
 							   innerpath,merge_pathkeys,
 						     (List)get_m_ordering(xmergeinfo),
 							   nth(1,keyquals),
@@ -744,8 +743,8 @@ hash_inner_and_outer(joinrel,outerrel,innerrel,hashinfo_list)
 					 get_size(innerrel),
 					 get_width(outerrel),
 					 get_width(innerrel),
-					 get_cheapestpath(outerrel),
-					 get_cheapestpath(innerrel),
+					 (Path)get_cheapestpath(outerrel),
+					 (Path)get_cheapestpath(innerrel),
 					 hash_pathkeys,
 					 get_hashop(xhashinfo),
 					 get_clauses((JoinMethod)xhashinfo),

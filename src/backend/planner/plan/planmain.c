@@ -381,7 +381,7 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 	  set_qptargetlist((Plan)chooseplan, get_qptargetlist(plan));
 	  return (Plan)chooseplan;
 	}
-      return (create_plan (get_cheapestpath (final_relation),
+      return (create_plan ((Path)get_cheapestpath (final_relation),
 			   original_tlist));
      }
     else {
@@ -404,8 +404,8 @@ make_result( tlist,resrellevelqual,resconstantqual,left,right)
     set_state((Plan) node, NULL);
     set_qptargetlist((Plan)node, tlist);
     set_qpqual((Plan) node, LispNil);
-    set_lefttree((Plan)node, left);
-    set_righttree((Plan)node, right);
+    set_lefttree((Plan)node, (PlanPtr)left);
+    set_righttree((Plan)node, (PlanPtr)right);
 
     set_resrellevelqual(node, resrellevelqual); 
     set_resconstantqual(node, resconstantqual); 
@@ -662,7 +662,7 @@ Plan plan;
 	return false;
     if (IsA(plan,HashJoin)) {
 	outerplan = (Plan) get_lefttree(plan);
-	innerplan = (Plan) get_lefttree(get_righttree(plan));
+	innerplan = (Plan) get_lefttree((Plan)get_righttree(plan));
 	outerpages = page_size(get_plan_size(outerplan), 
 			       get_plan_width(outerplan));
 	innerpages = page_size(get_plan_size(innerplan),

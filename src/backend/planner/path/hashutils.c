@@ -103,8 +103,9 @@ group_clauses_by_hashop (clauseinfo_list,inner_relid)
 	     */
 	    
 	    if (null(get_clauses((JoinMethod)xhashinfo)))
-	      set_clauses((JoinMethod)xhashinfo,lispCons((LispValue)clause,
-							 LispNil));
+	    {
+	      set_clauses((JoinMethod)xhashinfo,lispCons((LispValue)clause, LispNil));
+	    }
 	    else {
 		temp = lispList();
 		CAR(temp) = CAR(get_clauses((JoinMethod)xhashinfo));
@@ -113,8 +114,9 @@ group_clauses_by_hashop (clauseinfo_list,inner_relid)
 		CAR(get_clauses((JoinMethod)xhashinfo)) = (LispValue)clause;
 	    }
 	    if (null(get_jmkeys((JoinMethod)xhashinfo)))
-	      set_jmkeys((JoinMethod)xhashinfo,lispCons((LispValue)keys,
-							LispNil));
+	    {
+	      set_jmkeys((JoinMethod)xhashinfo,lispCons((LispValue)keys, LispNil));
+	    }
 	    else {
 		temp2 = lispList();
 	    

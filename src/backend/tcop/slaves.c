@@ -1035,7 +1035,7 @@ int dir;
             else {
                 int groupid = SlaveInfoP[MyPid].groupId;
 		Plan plan = QdGetPlan(QueryDesc);
-		EState estate = get_state(plan);
+		EState estate = (EState)get_state(plan);
 		EndPlan(plan, estate);
                 V_Finished(groupid, &(ProcGroupInfoP[groupid].dropoutcounter),
                            PARADJPENDING);

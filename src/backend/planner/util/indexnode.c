@@ -95,8 +95,8 @@ find_secondary_index (notfirst,relid)
 	set_width(indexnode,0);
 	set_targetlist(indexnode,LispNil);
 	set_pathlist(indexnode,LispNil);
-	set_unorderedpath(indexnode,(Path)NULL);
-	set_cheapestpath(indexnode,(Path)NULL);
+	set_unorderedpath(indexnode,(PathPtr)NULL);
+	set_cheapestpath(indexnode,(PathPtr)NULL);
 	set_clauseinfo(indexnode,LispNil);
 	set_joininfo(indexnode,LispNil);
 	set_innerjoin(indexnode,LispNil);

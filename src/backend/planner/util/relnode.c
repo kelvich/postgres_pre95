@@ -58,8 +58,8 @@ get_rel(relid)
 	    set_width(rel,0);
 	    set_targetlist(rel,LispNil);
 	    set_pathlist(rel,LispNil);
-	    set_unorderedpath(rel,(Path)NULL);
-	    set_cheapestpath(rel,(Path)NULL);
+	    set_unorderedpath(rel,(PathPtr)NULL);
+	    set_cheapestpath(rel,(PathPtr)NULL);
 	    set_classlist(rel,(List)NULL);
 	    set_ordering(rel,LispNil);
 	    set_clauseinfo(rel,LispNil);
@@ -116,7 +116,7 @@ rel_member(relid, rels)
     
     if(consp(relid) && consp(rels)) {
 	foreach(temp,rels) {
-	    temprelid = (LispValue)get_relids(CAR(temp));
+	    temprelid = (LispValue)get_relids((Rel)CAR(temp));
 	    if(same(temprelid, relid))   
 	      return((Rel)(CAR(temp)));
 	  }

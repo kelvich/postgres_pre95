@@ -113,7 +113,7 @@ set_cheapest (parent_rel,pathlist)
 	 cheapest_so_far = cheaper_path(path,cheapest_so_far);
      }
 
-     set_cheapestpath (parent_rel,cheapest_so_far);
+     set_cheapestpath (parent_rel,(PathPtr)cheapest_so_far);
 
      return(cheapest_so_far);
 }
@@ -398,8 +398,8 @@ create_nestloop_path (joinrel,outer_rel,outer_path,inner_path,keys)
      
      set_pathtype((Path)pathnode,T_NestLoop);
      set_parent ((Path)pathnode,joinrel);
-     set_outerjoinpath (pathnode,outer_path);
-     set_innerjoinpath (pathnode,inner_path);
+     set_outerjoinpath (pathnode,(pathPtr)outer_path);
+     set_innerjoinpath (pathnode,(pathPtr)inner_path);
      set_pathclauseinfo (pathnode,get_clauseinfo (joinrel));
      set_keys ((Path)pathnode,keys);
      set_pathsortkey ((Path)pathnode,(SortKey)NULL);
@@ -458,8 +458,8 @@ create_mergesort_path (joinrel,outersize,innersize,outerwidth,
 
      set_pathtype ((Path)pathnode,T_MergeJoin);
      set_parent ((Path)pathnode,joinrel);
-     set_outerjoinpath ((JoinPath)pathnode,outer_path);
-     set_innerjoinpath ((JoinPath)pathnode,inner_path);
+     set_outerjoinpath ((JoinPath)pathnode,(pathPtr)outer_path);
+     set_innerjoinpath ((JoinPath)pathnode,(pathPtr)inner_path);
      set_pathclauseinfo ((JoinPath)pathnode,get_clauseinfo (joinrel));
      set_keys ((Path)pathnode,keys);
      set_p_ordering ((Path)pathnode,order);
@@ -516,8 +516,8 @@ create_hashjoin_path (joinrel,outersize,innersize,outerwidth,
 
     set_pathtype ((Path)pathnode,T_HashJoin); 
     set_parent ((Path)pathnode,joinrel);
-    set_outerjoinpath ((JoinPath)pathnode,outer_path);
-    set_innerjoinpath ((JoinPath)pathnode,inner_path);
+    set_outerjoinpath ((JoinPath)pathnode,(pathPtr)outer_path);
+    set_innerjoinpath ((JoinPath)pathnode,(pathPtr)inner_path);
     set_pathclauseinfo ((JoinPath)pathnode,get_clauseinfo (joinrel));
     set_keys ((Path)pathnode,keys);
     set_pathsortkey ((Path)pathnode,(SortKey)NULL);

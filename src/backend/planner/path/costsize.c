@@ -476,7 +476,7 @@ int
 compute_attribute_width (tlistentry)
      LispValue tlistentry ;
 {
-     int width = get_typlen (get_restype (tl_resdom (tlistentry)));
+     int width = get_typlen (get_restype ((Resdom)tl_resdom (tlistentry)));
      if ( width < 0 ) 
        return(_DEFAULT_ATTRIBUTE_WIDTH_);
      else 
@@ -501,8 +501,8 @@ compute_joinrel_size (joinpath)
     double temp = 1.0;
     Count temp1 = 0;
 
-    CostMultiplyCount(temp, get_size(get_parent(get_outerjoinpath(joinpath))));
-    CostMultiplyCount(temp, get_size(get_parent(get_innerjoinpath(joinpath))));
+    CostMultiplyCount(temp, get_size(get_parent((Path)get_outerjoinpath(joinpath))));
+    CostMultiplyCount(temp, get_size(get_parent((Path)get_innerjoinpath(joinpath))));
     temp = temp * product_selec(get_pathclauseinfo(joinpath));  
 
     temp1 = floor(temp);

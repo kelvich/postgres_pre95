@@ -32,6 +32,7 @@
 
 #include "nodes/nodes.h"	/* bogus inheritance system */
 #include "nodes/pg_lisp.h"
+#include "nodes/primnodes.gen"
 
 /* ----------------------------------------------------------------
  *	Node Function Declarations

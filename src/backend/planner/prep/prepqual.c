@@ -286,13 +286,13 @@ push_nots (qual)
 
     if(is_clause (qual)) {
 	LispValue oper = get_op (qual);
-	ObjectId negator = get_negator (get_opno (oper));
+	ObjectId negator = get_negator (get_opno ((Oper)oper));
 	if(negator) 
 	{
 	  Oper op = (Oper) MakeOper (negator,
 				     InvalidObjectId,
-				     get_oprelationlevel (oper),
-				     get_opresulttype (oper), NULL, NULL);
+				     get_oprelationlevel ((Oper)oper),
+				     get_opresulttype ((Oper)oper), NULL, NULL);
 	  op->op_fcache = (FunctionCache *) NULL;
 	  return (lispCons((LispValue)op, lispCons((LispValue)get_leftop (qual),
 				    lispCons((LispValue)get_rightop (qual),

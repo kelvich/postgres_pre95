@@ -1086,7 +1086,7 @@ ExecInitIndexScan(node, estate, parent)
      *	assign execution state to node
      * ----------------
      */
-    set_state((Plan) node, estate);
+    set_state((Plan) node, (EStatePtr)estate);
     
     /* --------------------------------
      *  Part 1)  initialize scan state
@@ -1418,7 +1418,9 @@ ExecInitIndexScan(node, estate, parent)
      * ----------------
      */
     if (have_runtime_keys)
+    {
 	set_iss_RuntimeKeyInfo(indexstate, (Pointer) runtimeKeyInfo);
+    }
     else {
 	set_iss_RuntimeKeyInfo(indexstate, NULL);
 	for (i=0; i < numIndices; i++) {

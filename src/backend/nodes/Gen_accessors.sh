@@ -29,8 +29,10 @@ $CAT > $SEDTMP << 'EOF'
 #undef XXXXXX
 	s/class (\([A-Za-z_][A-Za-z0-9_]*\)).*/#define XXXXXX \1/
 }
-s/^ \([A-Za-z_][A-Za-z0-9_]*\) \([A-Za-z_][A-Za-z0-9_]*\)[; \\]*$/ACCESSORS(XXXXXX,\2,\1)/
-s/^ \([A-Za-z_][A-Za-z0-9_ ]*\) \(\*\)\([A-Za-z_][A-Za-z0-9_]*\)[; \\]*$/ACCESSORS(XXXXXX,\3,\1 \2)/
+s/^ \([A-Za-z_][A-Za-z0-9_]*\) \([A-Za-z_][A-Za-z0-9_]*\)[; \\]*$/GETACCESSOR(XXXXXX,\2,\1)\
+SETACCESSOR(XXXXXX,\2,\1)/
+s/^ \([A-Za-z_][A-Za-z0-9_ ]*\) \(\*\)\([A-Za-z_][A-Za-z0-9_]*\)[; \\]*$/GETACCESSOR(XXXXXX,\3,\1 \2)\
+SETACCESSOR(XXXXXX,\3,\1 \2)/
 EOF
 
 # ----------------
@@ -40,24 +42,16 @@ $CAT > $CTMP1 << 'EOF'
 #define CppIdentity(a)a
 #define CppConcat(a,b)CppIdentity(a)b
 
-#define	ACCESSORS(_nodetype_,_fieldname_,_fieldtype_) \
-extern void CppConcat(set_,_fieldname_) ARGS((_nodetype_ node, _fieldtype_ value)); \
-void \
+#define	SETACCESSOR(_nodetype_,_fieldname_,_fieldtype_) \
+#define \
 CppConcat(set_,_fieldname_)(node, value) \
-	_nodetype_	node; \
-	_fieldtype_	value; \
-{ \
+    { \
 	NODEAssertArg(IsA(node,_nodetype_)); \
-	node->_fieldname_ = value; \
-} \
-extern _fieldtype_ CppConcat(get_,_fieldname_) ARGS((_nodetype_ node)); \
-_fieldtype_ \
-CppConcat(get_,_fieldname_)(node) \
-	_nodetype_	node; \
-{ \
-	NODEAssertArg(IsA(node,_nodetype_)); \
-	return(node->_fieldname_); \
-} \
+	(node)->_fieldname_ = (value); \
+    }
+
+#define	GETACCESSOR(_nodetype_,_fieldname_,_fieldtype_) \
+#define CppConcat(get_,_fieldname_)(node) ((node)->_fieldname_)
 EOF
 
 # ----------------
@@ -72,7 +66,6 @@ echo " * 	and Gen_creator.sh scripts as part of the initial node"
 echo " * 	generation process."
 echo " * ---------------------------------------------------------------- "
 echo " */"
-echo "#include \"$SRC\""
 echo " "
 echo "#ifdef NO_NODE_CHECKING"
 echo "#define NODEAssertArg(x)"

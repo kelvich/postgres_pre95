@@ -808,7 +808,7 @@ function_index_operand(funcOpnd, rel, index)
      */
     foreach (arg, funcargs) 
     {
-	if (heapRelid != get_varno(CAR(arg)))
+	if (heapRelid != get_varno((Var)CAR(arg)))
 	    return false;
     }
 
@@ -824,7 +824,7 @@ function_index_operand(funcOpnd, rel, index)
 
 	curKey = CInteger(CAR(indexKeys));
 	indexKeys = CDR (indexKeys);
-	if (get_varattno(CAR(arg)) != curKey)
+	if (get_varattno((Var)CAR(arg)) != curKey)
 	    return (false);
     }
 

@@ -1858,7 +1858,9 @@ agg_res_target_el:
 					 0 );
 		   varnode = CDR(temp);
 		   if ( IsA(varnode,Var))
-		   set_vardotfields ( (Var)varnode , CDR(CDR($1)));
+		   {
+		       set_vardotfields ( (Var)varnode , CDR(CDR($1)));
+		   }
 		   else if ( CDR(CDR($1)) != LispNil )
 		       elog(WARN,"cannot mix procedures with unions");
 
@@ -1966,7 +1968,9 @@ res_target_el:
 					    0 );
 		      varnode = CDR(temp);
 		      if ( IsA(varnode,Var))
+		      {
 			set_vardotfields ( (Var)varnode , CDR(CDR($1)));
+		      }
 		      else if ( CDR(CDR($1)) != LispNil )
 			elog(WARN,"cannot mix procedures with unions");
 
@@ -1989,7 +1993,9 @@ res_target_el:
 					    , 0 , 0 , 0 );
 		      varnode = CDR(temp);
 		      if ( IsA(varnode,Var))
+		      {
 			set_vardotfields ( (Var)varnode , CDR(CDR($1)));
+		      }
 		      else if ( CDR(CDR($1)) != LispNil )
 			elog(WARN,"cannot mix procedures with unions");
 

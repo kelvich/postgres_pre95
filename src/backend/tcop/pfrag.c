@@ -76,7 +76,7 @@ int fragmentNo;
 	   * -----------------------------
 	   */
           fragment = RMakeFragment();
-          set_frag_root(fragment, get_lefttree(node));
+          set_frag_root(fragment, (Plan)get_lefttree(node));
           set_frag_parent_op(fragment, node);
           set_frag_parallel(fragment, 1);
           set_frag_subtrees(fragment, LispNil);
@@ -95,7 +95,7 @@ int fragmentNo;
 	   * -----------------------------
 	   */
           fragment = RMakeFragment();
-          set_frag_root(fragment, get_righttree(node));
+          set_frag_root(fragment, (Plan)get_righttree(node));
           set_frag_parent_op(fragment, node);
           set_frag_parallel(fragment, 1);
           set_frag_subtrees(fragment, LispNil);
@@ -226,7 +226,7 @@ List parsetree;
 	   set_frag_subtrees(fragment, subFragments);
 	   foreach (y, subFragments) {
 	      frag = (Fragment)CAR(y);
-	      set_frag_parent_frag(frag, fragment);
+	      set_frag_parent_frag(frag, (FragmentPtr)fragment);
 	     }
 	   newFragmentList = nconc(newFragmentList, subFragments);
 	  }
@@ -990,7 +990,7 @@ CommandDest	destination;
 	   nparallel = get_frag_parallel(fragment);
 	   plan = get_frag_root(fragment);
 	   parsetree = get_frag_parsetree(fragment);
-	   parentFragment = get_frag_parent_frag(fragment);
+	   parentFragment = (Fragment)get_frag_parent_frag(fragment);
 	   finalResultRelation = parse_tree_result_relation(parsetree);
 	   dest = destination;
 	   dest = None; /* WWW */
@@ -1193,7 +1193,7 @@ MasterWait:
        nparallel = get_frag_parallel(fragment);
        plan = get_frag_root(fragment);
        parentPlan = get_frag_parent_op(fragment);
-       parentFragment = get_frag_parent_frag(fragment);
+       parentFragment = (Fragment)get_frag_parent_frag(fragment);
        /* ---------------
 	* delete the finished fragment from the subtree list of its
 	* parent fragment
@@ -1279,11 +1279,11 @@ MasterWait:
 		 set_frag_iorate(fragment, 0.0);
 		}
 	      else {
-	      if (plan == get_lefttree(parentPlan)) {
-		 set_lefttree(parentPlan, (Plan)scantempNode);
+	      if (plan == (Plan)get_lefttree(parentPlan)) {
+		 set_lefttree(parentPlan, (PlanPtr)scantempNode);
 		}
 	      else {
-		 set_righttree(parentPlan, (Plan)scantempNode);
+		 set_righttree(parentPlan, (PlanPtr)scantempNode);
 		}
 	      set_fragment((Plan)scantempNode, get_fragment(parentPlan));
 	      }
