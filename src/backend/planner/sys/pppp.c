@@ -93,7 +93,7 @@ print_root (root)
  */
 void
 print_plan(plan, levelnum)
-	LispValue plan;
+	Plan plan;
 	int levelnum;
 {
 	int i;
@@ -645,6 +645,13 @@ Plan plan;
       }
      fprintf(stderr, ")");
      return;
+}
+
+void
+set_query_range_table(parsetree)
+List parsetree;
+{
+    _query_range_table_ = root_rangetable(parse_root(parsetree));
 }
 
 void
