@@ -244,6 +244,7 @@ compute_selec (clauses,or_selectivities)
 
 	LispValue relattvals = get_relattval (clause);
 	ObjectId opno = get_opno ((Oper)get_op (clause));
+	RegProcedure oprrest = get_oprrest (opno);
 	LispValue relid = LispNil;
 	
 	if (translate_relid (CAR(relattvals)))
@@ -251,8 +252,16 @@ compute_selec (clauses,or_selectivities)
 	else
 	  relid = lispInteger(_SELEC_VALUE_UNKNOWN_);
 	
-	s1 = (double)restriction_selectivity (get_oprrest (opno),
-					      opno,
+	/*
+	** If there's no operator associated with this function, we guess
+	** at the selectivity.  THIS IS A HACK TO GET V4 OUT THE DOOR.
+	**     -- JMH 7/9/92
+	*/
+	if (oprrest == (RegProcedure) NULL) 
+	  s1 = 0.5;
+	else /* There is an operator associated, so get its selectivity */
+	  s1 = (double)restriction_selectivity (oprrest,
+						opno,
 					      CInteger(relid),
 					      CInteger(CADR (relattvals)),
 					      (char*)CInteger((CADDR(relattvals))),
