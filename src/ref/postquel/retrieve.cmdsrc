@@ -186,3 +186,13 @@ does not delete duplicates in Version 3.0.
 .lp
 .q Archive_mode 
 is not implemented in Version 3.0.
+.lp
+If the backend crashes in the course of executing a 
+.q "Retrieve into,"
+the class file will remain on disk.  It can be safely removed by the
+database DBA, but a subsequent 
+.b retrieve
+.b into
+to the same name will fail with a cryptic error message about "BlockExtend".
+A solution to this problem is being investigated and will be released in
+Version 4.
