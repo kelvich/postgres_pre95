@@ -52,7 +52,7 @@ struct attribute *	/* XXX */
 	void
 ));
 
-static	int	Quiet = 0;
+int	Quiet = 0;
 static	int	Warnings = 0;
 static	int	ShowTime = 0;
 #ifdef	EBUG
