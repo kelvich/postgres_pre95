@@ -124,7 +124,7 @@ FindIndexNAtt(first, indrelid, isarchival)
 	
 	indexKey[0].argument = ObjectIdGetDatum(indrelid);
 	pg_index =
-	    heap_open(IndexRelationName);
+	    heap_openr(IndexRelationName);
 	
 	pg_index_scan =
 	    heap_beginscan(pg_index, 0, NowTimeQual, 1, (ScanKey)indexKey);
@@ -971,7 +971,7 @@ index_destroy(indexId)
      * fix INDEX relation
      * ----------------
      */
-    catalogRelation = heap_open(IndexRelationName);
+    catalogRelation = heap_openr(IndexRelationName);
 
     entry[0].attributeNumber = IndexRelationIdAttributeNumber;
 
