@@ -371,11 +371,12 @@ init_query_planner (root,tlist,qual)
 
      } else {
 
+	 char *globals;
 	 int temp = _query_command_type_;
 	 Plan existential_plan;
 
 	 /* with saved globals */
-	 save_globals();
+	 globals = save_globals();
 
 	 _query_command_type_ = RETRIEVE;
 	 existential_plan = query_planner(temp,LispNil,existential_qual,1,
@@ -387,7 +388,7 @@ init_query_planner (root,tlist,qual)
 						       1,
 						       _query_max_level_));
 
-	 restore_globals();
+	 restore_globals(globals);
 	 return((Plan)exist_plan);
 }
 
