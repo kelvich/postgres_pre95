@@ -297,6 +297,9 @@ main(argc, argv)
 	Noversion = flagC;
 	Quiet = flagQ;
 
+	/* initialize the dynamic function manager */
+	DynamicLinkerInit(argv[0]);
+
 	/* various initiailization routines */
 
 	signal(SIGHUP, die);
