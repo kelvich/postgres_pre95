@@ -39,6 +39,7 @@
 
 #include "access/xact.h"
 #include "utils/log.h"
+#include "catalog/syscache.h"
 
 /* ----------------
  *	parallel state variables
@@ -371,6 +372,35 @@ SlaveBackendsInit()
      * ----------------
      */
     nslaves = GetNumberSlaveBackends();
+
+    /* -----------------
+     * the following calls to SearchSysCacheTuple() are total hacks
+     * what they do is to pre-initialize all the caches so that
+     * performance numbers will look better.  they can be removed at
+     * any time.
+     * -----------------
+     */
+    SearchSysCacheTuple(AMOPOPID, NULL, NULL, NULL, NULL);
+    SearchSysCacheTuple(AMOPSTRATEGY, NULL, NULL, NULL, NULL);
+    SearchSysCacheTuple(ATTNAME, "");
+    SearchSysCacheTuple(ATTNUM, NULL, NULL, NULL, NULL);
+    SearchSysCacheTuple(INDEXRELID, NULL, NULL, NULL, NULL);
+    SearchSysCacheTuple(LANNAME, "");
+    SearchSysCacheTuple(OPRNAME, "");
+    SearchSysCacheTuple(OPROID, NULL, NULL, NULL, NULL);
+    SearchSysCacheTuple(PRONAME, "");
+    SearchSysCacheTuple(PROOID, NULL, NULL, NULL, NULL);
+    SearchSysCacheTuple(RELNAME, "");
+    SearchSysCacheTuple(RELOID, NULL, NULL, NULL, NULL);
+    SearchSysCacheTuple(TYPNAME, "");
+    SearchSysCacheTuple(TYPOID, NULL, NULL, NULL, NULL);
+    SearchSysCacheTuple(AMNAME, "");
+    SearchSysCacheTuple(CLANAME, "");
+    SearchSysCacheTuple(INDRELIDKEY, NULL, NULL, NULL, NULL);
+    SearchSysCacheTuple(INHRELID, NULL, NULL, NULL, NULL);
+    SearchSysCacheTuple(PRS2PLANCODE, NULL, NULL, NULL, NULL);
+    SearchSysCacheTuple(RULOID, NULL, NULL, NULL, NULL);
+    SearchSysCacheTuple(PRS2STUB, NULL, NULL, NULL, NULL);
     
     /* ----------------
      *	initialize Start, Finished, and Abort semaphores
