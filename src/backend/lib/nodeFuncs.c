@@ -33,7 +33,7 @@ bool
 single_node (node)
      Node node ;
 {
-    if(atom (node) || IsA(node,Const) || IsA(node,Var))
+    if(atom (node) || IsA(node,Const) || IsA(node,Var) || IsA(node,Param))
       return(true);
     else
       return(false);
