@@ -5,6 +5,7 @@ extern bool var_is_outer ARGS((Var var));
 extern bool var_is_inner ARGS((Var var));
 extern bool var_is_mat ARGS((Var var));
 extern bool var_is_rel ARGS((Var var));
+extern bool var_is_array ARGS((Var var));
 extern bool var_is_nested ARGS((Var var));
 extern bool varid_indexes_into_array ARGS((Var var));
 extern List varid_array_index ARGS((LispValue var));
