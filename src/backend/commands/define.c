@@ -37,6 +37,7 @@ RcsId("$Header$");
 extern	ObjectId TypeDefine();
 extern	void	 ProcedureDefine();
 extern	void	 OperatorDefine();
+extern  void	 AggregateDefine();
 
 /* ----------------
  *	this is used by the DefineXXX functions below.
@@ -372,6 +373,57 @@ DefineOperator(name, parameters)
 		   canHash,		/* operator hashes */
 		   sortName1,		/* optional first sort operator */
 		   sortName2);		/* optional second sort operator */
+}
+
+/* -------------------
+ *  DefineAggregate
+ * ------------------
+ */
+void
+DefineAggregate(name, parameters)
+    Name name;
+    LispValue parameters;
+{
+    LispValue entry;
+    Name  stepfunc1Name;
+    Name  stepfunc2Name;
+    Name  finalfuncName;
+    int32 InitPrimValue;
+    int32 InitSecValue;
+
+  /* sanity checks...name validity */
+
+  AssertArg(NameIsValid(name));
+  AssertArg(listp(parameters));
+
+  /* handle "stepfunc = proname" */
+  entry = DefineListRemoveRequiredAssignment(&parameters, "sfunc1");
+  stepfunc1Name = DefineEntryGetName(entry);
+   
+   /* handle "countfunc = proname " */
+  entry = DefineListRemoveRequiredAssignment(&parameters, "sfunc2");
+  stepfunc2Name = DefineEntryGetName(entry);
+
+  /* handle "finalfunc = proname */
+  entry = DefineListRemoveRequiredAssignment(&parameters, "finalfunc");
+  finalfuncName = DefineEntryGetName(entry);
+
+  /* handle InitStepCond = number */
+  entry = DefineListRemoveRequiredAssignment(&parameters, "initcond1");
+  InitPrimValue = DefineEntryGetInteger(entry);
+
+  /* handle InitSecCond = number */
+  entry = DefineListRemoveRequiredAssignment(&parameters, "initcond2");
+  InitSecValue = DefineEntryGetInteger(entry);
+
+  DefineListAssertEmpty(parameters);
+
+  AggregateDefine(name,  		/* aggregate name */
+		  stepfunc1Name,	/* first step function name */
+		  stepfunc2Name,	/* second step function name */
+		  finalfuncName,	/* final function name */
+		  InitPrimValue,	/* first initial condition */
+		  InitSecValue);	/* second initial condition */
 }
 
 /* --------------------------------
