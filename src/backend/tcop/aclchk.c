@@ -315,7 +315,9 @@ aclcheck(acl, id, idtype, mode)
 	 * is assumed to mean "=arwR", which always succeeds.
 	 */
 	if (!acl) {
+#ifdef ACLDEBUG_TRACE
 		elog(NOTICE, "aclcheck: null ACL, returning 1");
+#endif
 		return(1);
 	}
 
