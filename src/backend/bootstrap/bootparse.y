@@ -77,7 +77,16 @@ Query :
 	| DestroyStmt
 	| InsertStmt 
 	| QuitStmt
-	| DefineIndexStmt
+	  /*
+	   * Process all indices as one transaction block to avoid
+	   * non-functional update error which occurs as a result of
+	   * xactid's not being incremented during bootstrap processing.
+	   * What a pain.
+	   */
+	| DefineIndices
+		{
+		    DO_END;
+		}
 	| RenameRelnStmt
 	| RenameAttrStmt
 	| DisplayStmt
@@ -208,12 +217,24 @@ QuitStmt:
 		}
 	;
 
+DefineIndices:
+	  DefineIndexStmt
+	| DefineIndices DefineIndexStmt
+	;
+
 DefineIndexStmt:
-	  XDEFINE INDEX ident ON ident USING ident
+	  XDEFINE INDEX ident ON ident USING ident LPAREN ident ident RPAREN
 		{ 
+		  /*
+		   * DO_START but don't DO_END. We need all define index
+		   * commands in the same block!!
+		   */
 		  DO_START;
-		  defineindex(LexIDStr($5), LexIDStr($3), LexIDStr($7));
-		  DO_END;
+		  defineindex(LexIDStr($5), 
+			      LexIDStr($3), 
+			      LexIDStr($7),
+			      LexIDStr($9),
+			      LexIDStr($10));
 		}
 	;
     

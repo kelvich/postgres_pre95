@@ -859,21 +859,24 @@ InsertOneNull(i)
  * ----------------
  */
 void
-defineindex(heapName, indexName, accessMethodName)
+defineindex(heapName, indexName, accessMethodName, attname, opsname)
     char  *heapName;
     char  *indexName;
     char  *accessMethodName;
+    char  *attname;
+    char  *opsname;
 {
     List  attributeList;
     List  parameterList;
     List  predicate;
 
-    attributeList = nappend1(LispNil, lispName("oid"));
-    attributeList = nappend1(attributeList, lispName("oid_ops"));
+    attributeList = nappend1(LispNil, lispName(attname));
+    attributeList = nappend1(attributeList, lispName(opsname));
     attributeList = lispCons(attributeList, LispNil);
     
     parameterList = predicate = LispNil;
 
+    if (heapName) return;	/*for now always return doesn't yet work*/
     DefineIndex(heapName,
 		indexName,
 		accessMethodName,
