@@ -74,6 +74,7 @@
  * ----------------
  */
 #define SONY_JUKEBOX
+#define MAIN_MEMORY
 
 /* ----------------
  *	allocation debugging stuff
