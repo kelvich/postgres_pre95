@@ -16,7 +16,7 @@ LIBPQ= ${L2}
 LIBPQ= ${L3}
 .elif exists(${L4})
 LIBPQ= ${L4}
-.else
+.elif target(all) || target(runtest)
 .BEGIN:
 	echo 'Error: can't find where you installed libpq.a,'
 	echo 'try running "bmake all install" again.'
