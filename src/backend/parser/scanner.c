@@ -2,6 +2,9 @@ static char *scanner_c = "$Header$";
 
 #include <ctype.h>
 
+#define false 0
+#define true !false
+
 /*
  *	Support routines for the scanner.
  *	Includes: comment, character constant,
@@ -145,13 +148,23 @@ int len;
 		     counter;  /* counts matching '{' and '}'.  */
 			       /* stop scanning when unmatched '}' */
 			       /* is encounterd. */
+	int in_string = false;
 
 	cspec = 0;
-	counter = 0;
+	/*
+	 * counter counts {'s, so we can do nested arrays properly.
+	 * It starts from 1 (not zero) because the first thing we encountered
+	 * was a {.
+	 */
 
-	while (!(((c = input()) == delimiter) && (counter  == 0))) {
-		if ( c == '\{' ) counter++;
-		if ( c == '\}' ) counter--;
+	counter = 1;
+
+	*cp++ = '{'; /* array funcs assume that there is a proper nesting */
+
+	while (counter != 0) {
+		c = input();
+		if ( c == '\{' && !in_string) counter++;
+		if ( c == '\}' && !in_string) counter--;
 		if (cp - buf > len - 1) {
 			serror("String/char constant too large");
 			cp = buf;
@@ -163,7 +176,7 @@ int len;
 
 		case 0:
 		case '\n':
-			serror("Unterminated char/string constant");
+			serror("Unterminated array constant");
 			goto out;
 
 		case '\\':
@@ -191,6 +204,9 @@ int len;
 				}
 				*cp++ = c;
 			}
+			break;
+		case '\"':
+			in_string = !in_string;
 			break;
 		}
 		cspec++;
