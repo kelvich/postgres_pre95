@@ -5,6 +5,9 @@
  *	adt for multiple key indices involving oid and char16.  Used for cache
  *	index scans (could also be used in the general case with char16).
  */
+
+#include <strings.h>
+
 #include "tmp/postgres.h"
 #include "utils/oidcompos.h"
 #include "utils/log.h"
@@ -26,7 +29,7 @@ oidchar16in(inStr)
     if (*inptr)
     {
 	oc->id = atoi(inStr);
-	strncpy(&(oc->name.data[0]), ++inptr, sizeof(char16));
+	(void) strncpy(oc->name.data, ++inptr, sizeof(char16));
     }
     else
 	elog(WARN, "Bad input data for type oidchar16");
@@ -38,22 +41,15 @@ char *
 oidchar16out(oidname)
     OidChar16 oidname;
 {
-    char *outStr;
-    char *result = (char*) palloc(sizeof(char16) + 1);
+    /*
+     * 4294967295,char16identifier
+     * 0        1         2
+     * 1234567890123456789012345678
+     */
+    char *s, buf[28];
 
-    if (oidname->name.data[0] != '\0')
-      {
-	strncpy(result, oidname->name.data, sizeof(char16));
-	result[sizeof(char16)]='\0';
-      }
-    else
-      result = '\0';
-	
-    outStr = (char *)palloc(sizeof(OidChar16Data) + sizeof(ObjectId) + 2);
-
-    sprintf(outStr, "%d,%s", oidname->id, result);
-
-    return (outStr);
+    sprintf(buf, "%d,%.*s", oidname->id, sizeof(char16), oidname->name.data);
+    return(strcpy(palloc(strlen(buf) + 1), buf));
 }
 
 bool
@@ -136,6 +132,6 @@ mkoidchar16(id, name)
     oidchar16 = (OidChar16) palloc(sizeof(ObjectId)+sizeof(char16));
 
     oidchar16->id = id;
-    strncpy(&oidchar16->name.data[0], name, sizeof(char16));
+    (void) strncpy(oidchar16->name.data, name, sizeof(char16));
     return oidchar16;
 }
