@@ -47,6 +47,8 @@
 extern int on_exitpg();
 extern void BufferManagerFlush();
 
+/* #define TIMINGS */		/* show resource usage stats after queries */
+
 /* ----------------
  *	global variables
  * ----------------
@@ -968,7 +970,13 @@ PostgresMain(argc, argv)
 		 *  otherwise, process the input string.
 		 * ----------------
 		 */
+#ifdef TIMINGS
+		ResetUsage();
+#endif /* TIMINGS */
 		pg_eval(parser_input);
+#ifdef TIMINGS
+		ShowUsage();
+#endif /* TIMINGS */
 	    }
 	    break;
 	    
@@ -996,6 +1004,79 @@ PostgresMain(argc, argv)
 
     }
 }
+
+#ifdef TIMINGS
+
+/*
+ *  should #include <sys/time.h>, but naturally postgres has a bad decl
+ *  for a library function in it somewhere (ctime), and time.h redecl's
+ *  it, and the ultrix compiler pukes.
+ */
+struct timeval {
+	long	tv_sec;		/* seconds */
+	long	tv_usec;	/* and microseconds */
+};
+
+#include <sys/resource.h>
+
+struct rusage Save_r;
+
+ResetUsage()
+{
+	getrusage(RUSAGE_SELF, &Save_r);
+}
+
+ShowUsage()
+{
+	struct rusage r;
+
+	getrusage(RUSAGE_SELF, &r);
+	if (r.ru_utime.tv_usec < Save_r.ru_utime.tv_usec) {
+		r.ru_utime.tv_sec--;
+		r.ru_utime.tv_usec += 1000000;
+	}
+	if (r.ru_stime.tv_usec < Save_r.ru_stime.tv_usec) {
+		r.ru_stime.tv_sec--;
+		r.ru_stime.tv_usec += 1000000;
+	}
+
+	/*
+	 *  the only stat we don't show here are for memory usage -- i can't
+	 *  figure out how to interpret the relevant fields in the rusage
+	 *  struct, and they change names across o/s platforms, anyway.
+	 *  if you can figure out what the entries mean, you can somehow
+	 *  extract resident set size, shared text size, and unshared data
+	 *  and stack sizes.
+	 */
+
+	printf("usage stats:\n");
+	printf("\t%ld.%06ld user %ld.%06ld system sec\n",
+		r.ru_utime.tv_sec - Save_r.ru_utime.tv_sec,
+		r.ru_utime.tv_usec - Save_r.ru_utime.tv_usec,
+		r.ru_stime.tv_sec - Save_r.ru_stime.tv_sec,
+		r.ru_stime.tv_usec - Save_r.ru_stime.tv_usec);
+	printf("\t%d/%d filesystem blocks in/out\n",
+		r.ru_inblock - Save_r.ru_inblock,
+#ifdef (sun||sequent)
+		r.ru_outblock - Save_r.ru_outblock);
+#endif
+#ifdef ultrix
+		/* they only drink coffee at dec? */
+		r.ru_oublock - Save_r.ru_oublock);
+#endif
+	printf("\t%d/%d page reclaims/faults, %d swaps\n",
+		r.ru_minflt - Save_r.ru_minflt,
+		r.ru_majflt - Save_r.ru_majflt,
+		r.ru_nswap - Save_r.ru_nswap);
+	printf("\t%d signals received, %d/%d messages sent/received\n",
+		r.ru_nsignals - Save_r.ru_nsignals,
+		r.ru_msgsnd - Save_r.ru_msgsnd,
+		r.ru_msgrcv - Save_r.ru_msgrcv);
+	printf("\t%d/%d voluntary/involuntary context switches\n",
+		r.ru_nvcsw - Save_r.ru_nvcsw,
+		r.ru_nivcsw - Save_r.ru_nivcsw);
+}
+#endif /* TIMINGS */
 
 get_pathname(argv)
 
