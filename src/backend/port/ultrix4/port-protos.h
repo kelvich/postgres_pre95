@@ -5,8 +5,13 @@
 #include "utils/dynamic_loader.h"
 
 /* dynloader.c */
-DynamicFunctionList *dynamic_file_load ARGS((char **err , char *filename , char **start_addr , long *size ));
 DynamicFunctionList *load_symbols ARGS((char *filename , int entry_addr ));
+
+typedef struct dfHandle {
+    DynamicFunctionList *func_list;
+    char		*load_address;
+    long		size;
+} dfHandle;
 
 /* on_exit.c */
 int on_exit ARGS((void (*)(), caddr_t arg ));
