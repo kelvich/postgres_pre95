@@ -5,7 +5,9 @@
 **     	xfunc
 **     
 **      DESCRIPTION
-**     	Routines to handle expensive function optimization
+**     	Utility routines to handle expensive function optimization.
+**      Includes xfunc_trypullup(), which attempts early pullup of predicates
+**      to allow for maximal pruning.
 **     
 */
 
@@ -54,8 +56,8 @@
 
 /*
 ** xfunc_trypullup --
-**    Main entry point to expensive function optimization.
-** Given a relation, check each of its paths and see if it should 
+**    Preliminary pullup of predicates, to allow for maximal pruning.
+** Given a relation, check each of its paths and see if you can
 ** pullup clauses from its inner and outer.
 */
 
@@ -67,7 +69,6 @@ void xfunc_trypullup(rel)
 			       xfunc_shouldpull() */
     JoinPath curpath;       /* current path in list */
     int progress;           /* has progress been made this time through? */
-    LispValue form_relid();
     int clausetype;
 
     do {
@@ -106,6 +107,20 @@ void xfunc_trypullup(rel)
 		   }
 		  else break;
 	      }
+	     
+	     /* 
+	     ** make sure the unpruneable flag bubbles up, i.e.
+	     ** if anywhere below us in the path pruneable is false,
+	     ** then pruneable should be false here
+	     */
+	     if (get_pruneable(get_parent(curpath)) &&
+		 (!get_pruneable(get_parent
+				 ((Path)get_innerjoinpath(curpath))) ||
+		  !get_pruneable(get_parent((Path)get_outerjoinpath(curpath)))))
+		{
+		    set_pruneable(get_parent(curpath),false);
+		    progress = true;
+		}
 	 }
     } while(progress);
 }
@@ -116,6 +131,8 @@ void xfunc_trypullup(rel)
 ** from child to parent.  Currently we only pullup secondary join clauses
 ** that are in the pathclauseinfo.  Secondary hash and sort clauses are
 ** left where they are.
+**    If we find an expensive function but decide *not* to pull it up,
+** we'd better set the unpruneable flag.  -- JMH, 11/11/92
 **
 ** Returns:  0 if nothing left to pullup
 **           XFUNC_LOCPRD if a local predicate is to be pulled up
@@ -159,8 +176,7 @@ int xfunc_shouldpull(childpath, parentpath, maxcinfopt)
     ** see if any join clause has even higher rank than the highest
     ** local predicate 
     */
-    if (length((get_parent(childpath))->relids) > 1
-	&& xfunc_num_join_clauses((JoinPath)childpath) > 1)
+    if (is_join(childpath) && xfunc_num_join_clauses((JoinPath)childpath) > 1)
       for (tmplist = get_pathclauseinfo((JoinPath)childpath);
 	   tmplist != LispNil;
 	   tmplist = CDR(tmplist))
@@ -176,7 +192,8 @@ int xfunc_shouldpull(childpath, parentpath, maxcinfopt)
       return(0);
 
     /*
-    ** Pullup over join if clause is higher rank than join.
+    ** Pullup over join if clause is higher rank than join, or if 
+    ** join is nested loop that uses index from current path.
     ** Note that the cost of a secondary join clause is only what's
     ** calculated by xfunc_expense(), since the actual joining 
     ** (i.e. the usual path_cost) is paid for by the primary join clause.
@@ -184,26 +201,21 @@ int xfunc_shouldpull(childpath, parentpath, maxcinfopt)
     if (primjoinclause != LispNil)
      {
 	 joinselec = compute_clause_selec(primjoinclause, LispNil);
-
-	 /*
-	 ** local cost of join is local cost of its clause plus cost of joining.
-	 ** Then we divide that by the cards of unreferenced relations to
-	 ** get global cost
-	 */
-	 joincost = 
-	   (xfunc_expense_per_tuple(parentpath) + 
-	    xfunc_local_expense(primjoinclause))
-	     / xfunc_card_unreferenced(primjoinclause);
+	 joincost = xfunc_join_expense(parentpath);
 	 
-	 if ((joincost != 0 &&
-	      xfunc_rank(get_clause(maxcinfo)) > 
-	      ((joinselec - 1.0) / joincost))
-	     || (joincost == 0 && joinselec < 1))
+	 if (XfuncMode != XFUNC_NOPRUNE &&
+	     ((joincost != 0 &&
+	       (maxrank = xfunc_rank(get_clause(maxcinfo))) > 
+	       ((joinselec - 1.0) / joincost))
+	      || (joincost == 0 && joinselec < 1)
+	      || IsA(childpath,IndexPath) && IsA(parentpath,JoinPath)))
 	  {
 	      *maxcinfopt = maxcinfo;
 	      return(retval);
 	  }
-	 else			/* drop through */;
+	 else if (maxrank != -(HUGE_VAL))
+	   set_pruneable(get_parent(parentpath), false);
+	 /* else drop through */
      }
 
     return(0);
@@ -219,8 +231,10 @@ int xfunc_shouldpull(childpath, parentpath, maxcinfopt)
 ** although this Rel will not be added to the list of Rels to be joined up
 ** in the query; it's merely a parent for the new childpath.
 **    We also have to fix up the path costs of the child and parent.
+**
+** Now returns a pointer to the new pulled-up CInfo. -- JMH, 11/18/92
 */
-void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
+CInfo xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
      Path childpath;
      JoinPath parentpath;
      CInfo cinfo;         /* clause to pull up */
@@ -234,16 +248,15 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
     CInfo newinfo;
 
     /* remove clause from childpath */
+    newkid = (Path)CopyObject(childpath);
     if (clausetype == XFUNC_LOCPRD)
      {
-	 newkid = (Path)CopyObject(childpath);
 	 set_locclauseinfo(newkid, 
 			   xfunc_LispRemove((LispValue)cinfo, 
 					    (List)get_locclauseinfo(newkid)));
      }
-    else
+    else 
      {
-	 newkid = (Path)CopyObject(childpath);
 	 set_pathclauseinfo
 	   ((JoinPath)newkid,
 	    xfunc_LispRemove((LispValue)cinfo, 
@@ -307,6 +320,8 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
     */
     cost = xfunc_total_path_cost(parentpath);
     set_path_cost(parentpath, cost);
+
+    return(newinfo);
 }
 
 /*
@@ -336,10 +351,39 @@ Cost xfunc_expense(clause)
     
     if (cost)
      {
-	 Count card = xfunc_card_unreferenced(clause);
+	 Count card = xfunc_card_unreferenced(clause, LispNil);
 	 if (card)
 	   cost /= card;
      }
+
+    return(cost);
+}
+
+/*
+** xfunc_join_expense --
+**    Find global expense of a join clause
+*/
+Cost xfunc_join_expense(path)
+     JoinPath path;
+{
+    LispValue primjoinclause = xfunc_primary_join(path);
+
+    /*
+    ** the second argument to xfunc_card_unreferenced reflects all the
+    ** relations involved in the join clause, i.e. all the relids in the Rel
+    ** of the join clause
+    */
+    Count card = 0;
+    Cost cost = xfunc_expense_per_tuple(path);
+
+    if (primjoinclause)
+     {
+	 card = xfunc_card_unreferenced(primjoinclause, 
+					get_relids(get_parent(path)));
+	 cost += xfunc_local_expense(primjoinclause);
+     }
+    
+    if (card) cost /= card;
 
     return(cost);
 }
@@ -635,11 +679,16 @@ int xfunc_width(clause)
 ** xfunc_card_unreferenced:
 **   find all relations not referenced in clause, and multiply their 
 ** cardinalities.  Ignore relation of cardinality 0.
+** User may pass in referenced list, if they know it (useful
+** for joins).
 */
-Count xfunc_card_unreferenced(clause)
+Count xfunc_card_unreferenced(clause, referenced)
      LispValue clause;
+     Relid referenced;
 {
-    List unreferenced, referenced, allrelids = LispNil;
+    Relid unreferenced, allrelids = LispNil;
+    Rel currel;
+    LispValue cinfonode;
     LispValue temp;
     Cost tuples;
     Count retval = 0;
@@ -652,16 +701,28 @@ Count xfunc_card_unreferenced(clause)
      }
 	 
     /* find all relids referenced in query but not in clause */
-    referenced = xfunc_find_references(clause);
+    if (!referenced)
+      referenced = xfunc_find_references(clause);
     unreferenced = set_difference(allrelids, referenced);
 			
 	 
     /* multiply up cardinalities of each unreferenced nonempty relation */
     foreach(temp,unreferenced)
      {
-	 tuples = get_tuples(get_rel(CAR(temp)));
+	 currel = get_rel(CAR(temp));
+	 tuples = get_tuples(currel);
+
 	 if (tuples)  /* not of cardinality 0 */
 	  {
+	      /* factor in the selectivity of all zero-cost clauses */
+	      foreach (cinfonode, get_clauseinfo(currel))
+	       {
+		   if (!xfunc_expense(get_clause((CInfo)CAR(cinfonode))))
+		     tuples *= 
+		       compute_clause_selec(get_clause((CInfo)CAR(cinfonode)),
+					    LispNil);
+	       }
+	      
 	      if (retval == 0) retval = tuples;
 	      else retval *= tuples;
 	  }
@@ -989,8 +1050,8 @@ void xfunc_fixvars(clause, rel, varno)
 	      add_tl_element(rel, (Var)clause, clause_relids_vars(clause));
 	      tle = tlistentry_member((Var)clause, get_targetlist(rel));
 	  }
-	 ((Var)clause)->varno = varno;
-	 ((Var)clause)->varattno = get_resno(get_resdom(get_entry(tle)));
+	 set_varno(((Var)clause), varno);
+	 set_varattno(((Var)clause), get_resno(get_resdom(get_entry(tle))));
      }
     else if (IsA(clause,Iter))
       xfunc_fixvars(get_iterexpr((Iter)clause), rel, varno);
@@ -1046,20 +1107,10 @@ int xfunc_clause_compare(arg1, arg2)
     LispValue clause2 = *(LispValue *) arg2;
     Cost rank1,             /* total xfunc rank of clause1 */ 
            rank2;             /* total xfunc rank of clause2 */
-    int infty1 = 0, infty2 = 0;  /* divide by zero is like infinity */
 
     rank1 = xfunc_rank(clause1);
-    if (rank1 == -1.0) infty1 = 1;
     rank2 = xfunc_rank(clause2);
-    if (rank2 == -1.0) infty2 = 1;
 
-    if (infty1 || infty2)
-     {
-	 if (!infty1) return(-1);
-	 else if (infty1 && infty2) return(0);
-	 else return(1);
-     }
-    
     if ( rank1 < rank2) 
       return(-1);
     else if (rank1 == rank2)
