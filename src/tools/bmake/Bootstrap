@@ -4,6 +4,7 @@
 #
 SEDFILE=/usr/tmp/Makefile.sed.$$
 CONFFILE=/usr/tmp/Makefile.config.$$
+MOREMAKEFLAGS=""
 #
 if [ -z "$1" ]; then
 	echo "Usage: $0 portname"
@@ -52,16 +53,29 @@ s/^PORTNAME=.*/PORTNAME=linux/
 s/^OLD_CC=.*/OLD_CC=/
 s/^AR_TYPE=.*/AR_TYPE=/
 s/^NEED_STRINGS=.*/NEED_STRINGS=/
-s/^BSD_WAIT3.*=/BSD_WAIT3=-D__USE_BSD -D__USE_BSD_SIGNAL/
+s%^BSD_WAIT3.*=%BSD_WAIT3=-D_BSD_SOURCE -I/usr/include/bsd%
 s/^MORESRCS=.*/MORESRCS=/
 s/^MOREOBJS=.*/MOREOBJS=/
 s/^MORELIBS=.*/MORELIBS=-lbsd/
 EOF
 		;;
+	solaris_sparc)
+		cat > $SEDFILE << 'EOF'
+s/^PORTNAME=.*/PORTNAME=solaris_sparc/
+s/^OLD_CC=.*/OLD_CC=-BSD -notraditional -Dd_fileno=d_ino/
+s/^AR_TYPE=.*/AR_TYPE=/
+s/^NEED_STRINGS=.*/NEED_STRINGS=-DNEED_STRINGS/
+s/^BSD_WAIT3.*=/BSD_WAIT3=/
+s/^MORESRCS=.*/MORESRCS=setenv.c/
+s/^MOREOBJS=.*/MOREOBJS=setenv.o/
+s/^MORELIBS=.*/MORELIBS=/
+EOF
+		CC=bsdcc; export CC
+		;;
 	sparc)
 		cat > $SEDFILE << 'EOF'
 s/^PORTNAME=.*/PORTNAME=sparc/
-s/^OLD_CC=.*/OLD_CC=-Dvoid="char *" -Dconst= -assert nodefinitions/
+s/^OLD_CC=.*/OLD_CC=-Dvoid="char *" -Dconst=/
 s/^AR_TYPE=.*/AR_TYPE=-DUSE_RANLIB/
 s/^NEED_STRINGS=.*/NEED_STRINGS=-DNEED_STRINGS/
 s/^BSD_WAIT3.*=/BSD_WAIT3=/
@@ -84,10 +98,11 @@ EOF
 		;;
 	*)
 		echo "$0: invalid port name:" $1
-		echo "$0: valid port names are: aix alpha hpux linux sparc ultrix4"
+		echo "$0: valid port names are:"
+		echo "$0: aix alpha hpux linux solaris_sparc sparc ultrix4"
 		exit 1;
 		;;
 esac
 sed -f $SEDFILE < Makefile.boot > $CONFFILE
-make -f $CONFFILE
+make $MOREMAKEFLAGS -f $CONFFILE
 rm -f $SEDFILE $CONFFILE

@@ -8,23 +8,14 @@
 # ################# BEGIN OS-DEPENDENT SECTION #################
 #
 
-.if ( ${PORTNAME} == "ultrix4" )
-CFLAGS+= -Dvoid="char *" -Dconst= -DUSE_RANLIB
-SRCS+= strdup.c
-.endif
-
-.if ( ${PORTNAME} == "sparc" )
-CFLAGS+= -Dvoid="char *" -Dconst= -DUSE_RANLIB -DNEED_STRINGS
-SRCS+= strerror.c setenv.c
+.if ( ${PORTNAME} == "aix" )
+CFLAGS+= -DUSE_AIA -D_BSD
+SRCS+= setenv.c
+LDADD+= -lbsd
 .endif
 
 .if ( ${PORTNAME} == "alpha" )
 CFLAGS+= -D_BSD
-LDADD+= -lbsd
-.endif
-
-.if ( ${PORTNAME} == "linux" )
-CFLAGS+= -D__USE_BSD -D__USE_BSD_SIGNAL
 LDADD+= -lbsd
 .endif
 
@@ -33,10 +24,25 @@ CFLAGS+= -Dconst= -DUSE_RANLIB -D_BSD
 SRCS+= setenv.c
 .endif
 
-.if ( ${PORTNAME} == "aix" )
-CFLAGS+= -DUSE_AIA -D_BSD
-SRCS+= setenv.c
+.if ( ${PORTNAME} == "linux" )
+CFLAGS+= -D_BSD_SOURCE -I/usr/include/bsd
 LDADD+= -lbsd
+.endif
+
+.if ( ${PORTNAME} == "sparc" )
+CFLAGS+= -Dvoid="char *" -Dconst= -DUSE_RANLIB -DNEED_STRINGS
+SRCS+= strerror.c setenv.c
+.endif
+
+.if ( ${PORTNAME} == "solaris_sparc" )
+CFLAGS+= -BSD -notraditional -Dd_fileno=d_ino
+SRCS+= setenv.c
+LDADD+= -BSD
+.endif
+
+.if ( ${PORTNAME} == "ultrix4" )
+CFLAGS+= -Dvoid="char *" -Dconst= -DUSE_RANLIB
+SRCS+= strdup.c
 .endif
 
 #
