@@ -30,6 +30,8 @@ LIBRPC?=	/usr/lib/sunrpc.a
 LIBTERM?=	/usr/lib/libterm.a
 LIBUTIL?=	/usr/lib/libutil.a
 
+INSTALL?=	install
+
 OBJDEST?=       /private/obj/
 OBJSTRIPPREFIX?=        /usr/
 

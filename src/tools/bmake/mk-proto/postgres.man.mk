@@ -6,6 +6,8 @@ MANMODE?=	444
 
 MANDIR?=	/usr/share/man/cat
 
+INSTALL?=	install
+
 MINSTALL=	${INSTALL} -c -o ${MANOWN} -g ${MANGRP} -m ${MANMODE}
 
 maninstall:

@@ -35,6 +35,8 @@ LIBUTIL?=	/usr/lib/libutil.a
 OBJDEST?=       /private/obj/
 OBJSTRIPPREFIX?=        /usr/
 
+INSTALL?=	install
+
 .if defined(SHAREDSTRINGS)
 CLEANFILES+=strings
 .c.o:
