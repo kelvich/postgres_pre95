@@ -214,7 +214,7 @@ f262seek(f, loc)
     /* oh well */
     f->f_seqno = loc / FBLKSIZ;
     f->f_offset = loc % FBLKSIZ;
-    (void) index_endscan(f->f_index);
+    (void) index_endscan(f->f_iscan);
 
     /* initialize the scan key */
     if (f->f_oslow != (OidSeq) NULL)
@@ -282,8 +282,10 @@ f262read(f, dbuf, nbytes)
 	}
 	d = (Datum) heap_getattr(htup, b, 3, f->f_hdesc, &n);
 	fdata = (struct varlena *) DatumGetPointer(d);
-	fbytes = MIN((fdata->vl_len - sizeof(fdata->vl_len)), nbytes);
-	bcopy(VARDATA(fdata), dbuf, fbytes);
+	fbytes = fdata->vl_len - sizeof(fdata->vl_len) - f->f_offset;
+	if (fbytes > nbytes)
+	    fbytes = nbytes;
+	bcopy(&fdata->vl_dat[f->f_offset], dbuf, fbytes);
 	ReleaseBuffer(b);
 	dbuf += fbytes;
 	nread += fbytes;
@@ -309,9 +311,9 @@ int
 f262close(f)
     f262desc *f;
 {
-    index_endscan(f->f_iscan);
-    index_close(f->f_index);
-    heap_close(f->f_heap);
+    (void) index_endscan(f->f_iscan);
+    (void) index_close(f->f_index);
+    (void) heap_close(f->f_heap);
 
     if (f->f_oslow != (OidSeq) NULL)
 	pfree(f->f_oslow);
@@ -381,6 +383,16 @@ fexport(name, foid)
     return (nread);
 }
 
+/*
+ *  fabstract -- create an abstraction from a large object.
+ *
+ *	The disk file 'name' is opened for writing, and is filled with
+ *	chunks from large object 'foid'.  The chunks are constructed
+ *	in the following way:  For every blksize block in the file,
+ *	size bytes starting at offset within the block are copied to the
+ *	disk file from the large object.
+ */
+
 int32
 fabstract(name, foid, blksize, offset, size)
     struct varlena *name;
@@ -396,7 +408,7 @@ fabstract(name, foid, blksize, offset, size)
     int nbytes;
 
     /* open the disk file for writing */
-    if (vfd = f262file(name, O_WRONLY|O_CREAT|O_TRUNC, 0666) < 0)
+    if ((vfd = f262file(name, O_WRONLY|O_CREAT|O_TRUNC, 0666)) < 0)
 	return (0);
 
     /* allocate a buffer for abstraction chunks */
@@ -417,7 +429,7 @@ fabstract(name, foid, blksize, offset, size)
 	    break;
 
 	/* write to disk file */
-	if (FileWrite(vfd, buf, size) < size) {
+	if ((nbytes = FileWrite(vfd, buf, size)) < size) {
 	    elog(NOTICE, "fabstract() cannot write to disk file");
 	    break;
 	}
