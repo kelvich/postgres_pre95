@@ -379,10 +379,15 @@ HeapTuple tuple;
 	itemId = PageGetItemId((Page)pageHeader, offsetIndex);
 	item = PageGetItem((Page)pageHeader, itemId);
 
+	lastblock = BufferGetBlockNumber(buffer);
+
 	ItemPointerSimpleSet(&LintCast(HeapTuple, item)->t_ctid,
-			     BufferGetBlockNumber(buffer), 1 + offsetIndex);
+			     lastblock, 1 + offsetIndex);
 
 	HeapTupleStoreRuleLock(LintCast(HeapTuple, item), buffer);
+
+	/* return an accurate tuple */
+	ItemPointerSimpleSet(&tuple->t_ctid, lastblock, 1 + offsetIndex);
 
 	BufferPut(buffer, L_UN | L_EX | L_WRITE);
 }
