@@ -80,8 +80,8 @@ List tlist;
 	    resname = get_resname(res);
 	    restype = get_restype(res);
 	    restypename = tname(get_id_type(restype));
-	    element = lispCons(lispString(restypename), LispNil);
-	    element = lispCons(lispString(resname), element);
+	    element = lispCons(lispString(&restypename->data[0]), LispNil);
+	    element = lispCons(lispString(&resname->data[0]), element);
 	    attrList = nappend1(attrList, element);
 	}
     } else {
@@ -287,7 +287,8 @@ List view_parse;
     makeRetrieveViewRuleName(&rname, view_name);
     p = nappend1(p, lispString(&(rname.data[0])));           /* rulename   */
     p = nappend1(p,lispAtom("retrieve"));                    /* event_type */
-    p = nappend1(p,lispCons(lispString(view_name),LispNil)); /* event_obj  */
+                                                             /* event_obj  */
+    p = nappend1(p,lispCons(lispString(&view_name->data[0]),LispNil));
     p = nappend1(p,lispCons(LispNil,LispNil));               /* event_qual */
     p = nappend1(p,lispInteger(1));                          /* is_instead */
     q = nappend1(LispNil, view_parse);
@@ -473,5 +474,5 @@ Name view_name;
     /*
      * now remove the relation.
      */
-    RelationNameDestroyHeapRelation(view_name);
+    RelationNameDestroyHeapRelation(view_name->data);
 }
