@@ -5,6 +5,8 @@
 #
 #	sed files are HACK CITY! - redo...
 #
+# $Header$
+#
 BD= ${.CURDIR}/bootstrap
 
 .PATH: ${BD}
@@ -15,13 +17,13 @@ SRCS+= socket.c bootstrap.c bootparse.c bootscanner.c
 
 ${BOOTYACCS}: bootparse.y
 	${YACC} ${YFLAGS} ${BD}/bootparse.y; \
-	sed -f ${BD}/yacc.sed < y.tab.c > bootparse.c; \
+	sed -f ${BD}/boot.sed < y.tab.c > bootparse.c; \
 	mv y.tab.h bootstrap.h; \
 	rm -f y.tab.c
 
 bootscanner.c: bootscanner.lex
 	lex ${BD}/bootscanner.lex; \
-	sed -f ${BD}/lex.sed < lex.yy.c > bootscanner.c; \
+	sed -f ${BD}/boot.sed < lex.yy.c > bootscanner.c; \
 	rm -f lex.yy.c
 
 #
