@@ -449,7 +449,9 @@ LOCKT		lockt;
   }
 
   Assert(result->nHolding <= lock->nActive);
+
   status = LockResolveConflicts(ltable, lock, lockt, myXid, MyBackendId);
+
   if (status == STATUS_OK)
   {
     GrantLock(lock, lockt);
@@ -617,8 +619,12 @@ LOCKT		lockt;
   {
     /* -------------------
      * This could have happend as a result of a deadlock, see HandleDeadLock()
+     * Decrement the lock nHolding and holders fields as we are no longer 
+     * waiting on this lock.
      * -------------------
      */
+    lock->nHolding--;
+    lock->holders[lockt]--;
     SpinRelease(ltable->ctl->masterLock);
     elog(WARN,"WaitOnLock: error on wakeup - Aborting this transaction");
 
@@ -737,7 +743,6 @@ LOCKT	lockt;
    */
   if (! result->nHolding)
   {
-    LOCK_PRINT("Deleting xid",(&lock->tag),lockt);
     SHMQueueDelete(&result->queue);
     if (! (result = (XIDLookupEnt *)
 	   hash_search(xidTable, (Pointer)&item, HASH_REMOVE, &found)) ||
@@ -758,7 +763,6 @@ LOCKT	lockt;
      * Delete it from the lock table.
      * ------------------
      */
-    LOCK_PRINT("Release: deleting lock", (&lock->tag), lockt);
     Assert( ltable->lockHash->hash == tag_hash);
     lock = (LOCK *)
       hash_search(ltable->lockHash,(Pointer)&(lock->tag),HASH_REMOVE, &found);
