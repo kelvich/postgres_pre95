@@ -1,3 +1,12 @@
+$Header$
+
+There are two sections to this file:
+	- Juergen Schoenwaelder's original README file
+	- Comments added by people in the POSTGRES group.
+
+----------------------------------------------------------------------------
+Juergen Schoenwaelder's original README file
+----------------------------------------------------------------------------
 This directory contains the source to spog, a simple replacement
 for the postgres monitor. spog uses the readline library written
 by the GNU people. Using spog, you can easily edit your last query
@@ -32,3 +41,15 @@ Juergen Schoenwaelder   (schoenw@ibr.cs.tu-bs.de)
 Technische Universitaet Braunschweig, Inst. f. Betriebssysteme & Rechnerverbund
 Bueltenweg 74/75,  3300 Braunschweig, Germany, Tel. +49 531 / 391-3249
 
+----------------------------------------------------------------------------
+POSTGRES group comments
+----------------------------------------------------------------------------
+spog has been successfully tested on 
+	DEC MIPS machines running Ultrix 4.2 
+	Sun SPARC machines running SunOS 4.1.2
+using readline 1.2 and POSTGRES 4.1.
+
+I decided against installing the scripts by default since Juergen
+recommends against their use (well, in the case of pg_edit, anyway).
+
+		-- Paul M. Aoki (aoki@postgres.Berkeley.EDU), 03/04/93
