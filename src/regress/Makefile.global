@@ -1,1 +1,15 @@
-# exists to maintain Makefile.global continuity
+#
+# $Header$
+#
+CFLAGS+= -I${.CURDIR}/../../backend
+
+.if ${PORTNAME} == "ultrix4"
+CFLAGS+= -G 0 -DNOFIXADE
+.endif
+
+.SUFFIXES: .source .pq
+
+.source.pq:
+	rm -f $*.pq;
+	C=`pwd`; sed -e "s:_CWD_:$$C/${.CURDIR}:g" \
+		     -e "s/_USER_/$$USER/g" < ${.CURDIR}/$*.source > $*.pq
