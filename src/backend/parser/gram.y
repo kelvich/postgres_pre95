@@ -834,7 +834,7 @@ result:
 		{
 			$2=lispCons($2 , LispNil );
 			/* should check for archive level */
-			$$=lispCons( KW(NONE) , $2 ); 
+			$$=lispCons( KW(RELATION) , $2 ); 
 		}
 	| opt_portal
 		/* takes care of the null case too */
