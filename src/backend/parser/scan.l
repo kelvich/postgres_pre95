@@ -9,7 +9,7 @@ static char *scan_l =
 #include "parse.h"
 /*#include "catalog_utils.h"*/
 /*#include "global.h"*/
-#include "lispdep.h"
+#include "pg_lisp.h"
 #include "ctype.h"
 
 #undef input
