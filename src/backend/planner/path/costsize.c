@@ -55,8 +55,6 @@
 #define	CostMultiplyCount(_cost_, _count_) \
 	{ Cost cost = _count_; _cost_ *= cost; }
 
-#define MIN(X, Y)	((X) > (Y) ? (Y): (X))
-
 int _disable_cost_ = 30000000;
  
 bool _enable_seqscan_ =     true;
