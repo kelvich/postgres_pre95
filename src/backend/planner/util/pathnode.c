@@ -30,6 +30,7 @@
 #include "planner/cfi.h"
 #include "planner/costsize.h"
 #include "planner/keys.h"
+#include "planner/xfunc.h"
 
 extern int testFlag;
 
@@ -252,6 +253,10 @@ create_seqscan_path (rel)
     set_p_ordering (pathnode,LispNil);
     set_pathsortkey (pathnode,(SortKey)NULL);
     set_keys (pathnode,LispNil);
+    /* copy clauseinfo list into path for expensive function processing 
+        -- JMH, 7/7/92 */
+    set_locclauseinfo(pathnode,
+		      (List)CopyObject(get_clauseinfo(rel)));
 
     relid = get_relids(rel);
     if (!null(relid))
@@ -259,6 +264,9 @@ create_seqscan_path (rel)
 
     set_path_cost (pathnode,cost_seqscan (relid,
 					  get_pages (rel),get_tuples (rel)));
+    /* add in expensive functions cost!  -- JMH, 7/7/92 */
+    set_path_cost(pathnode, get_path_cost(pathnode)
+		  + xfunc_get_path_cost(pathnode));
     return(pathnode);
 }
 
@@ -296,6 +304,12 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
     set_keys ((Path)pathnode,get_indexkeys (index));
     set_pathsortkey((Path)pathnode, (SortKey)NULL);
     set_indexqual(pathnode, LispNil);
+    /* copy clauseinfo list into path for expensive function processing 
+       -- JMH, 7/7/92 */
+    set_locclauseinfo(pathnode,
+		      set_difference(CopyObject(get_clauseinfo(rel)),
+				     restriction_clauses,
+				     LispNil));
 
     /*    The index must have an ordering for the
 	  path to have (ordering) keys, 
@@ -326,6 +340,9 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 				    get_tuples (rel),
 				    get_pages (index),
 				    get_tuples(index), false));
+	/* add in expensive functions cost!  -- JMH, 7/7/92 */
+	set_path_cost(pathnode, get_path_cost(pathnode)
+		      + xfunc_get_path_cost(pathnode));
     } 
     else  {
 	/*    Compute scan cost for the case when 'index' is used with a 
@@ -358,6 +375,10 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 				    get_pages (rel),
 				    get_tuples (rel),get_pages (index),
 				    get_tuples (index), false));
+	/* add in expensive functions cost!  -- JMH, 7/7/92 */
+	set_path_cost(pathnode, get_path_cost(pathnode)
+		      + xfunc_get_path_cost(pathnode));
+
 	/*    Set selectivities of clauses used with index to 
 	      the selectivity of this index, subdividing the 
 	      selectivity equally over each of 
@@ -406,6 +427,7 @@ create_nestloop_path (joinrel,outer_rel,outer_path,inner_path,keys)
      set_joinid((Path)pathnode,LispNil);
      set_outerjoincost((Path)pathnode,(Cost)NULL);
      set_p_ordering((Path)pathnode,LispNil);
+     set_locclauseinfo((Path)pathnode,LispNil);
 
      if /*when */ ( keys) {
 	  set_p_ordering ((Path)pathnode,get_p_ordering (outer_path));
@@ -418,6 +440,9 @@ create_nestloop_path (joinrel,outer_rel,outer_path,inner_path,keys)
 				   page_size( get_size(outer_rel),
 					      get_width(outer_rel)),
 				   IsA(inner_path,IndexPath)));
+     /* add in expensive function costs -- JMH 7/7/92 */
+     set_path_cost(pathnode, get_path_cost(pathnode)
+		   + xfunc_get_path_cost(pathnode));
      return(pathnode);
 }
 
@@ -464,6 +489,7 @@ create_mergesort_path (joinrel,outersize,innersize,outerwidth,
      set_keys ((Path)pathnode,keys);
      set_p_ordering ((Path)pathnode,order);
      set_path_mergeclauses (pathnode,mergeclauses);
+     set_locclauseinfo((Path)pathnode,LispNil);
      set_outersortkeys (pathnode,outersortkeys);
      set_innersortkeys (pathnode,innersortkeys);
      set_path_cost ((Path)pathnode, cost_mergesort( get_path_cost (outer_path),
@@ -474,6 +500,9 @@ create_mergesort_path (joinrel,outersize,innersize,outerwidth,
 						    innersize,
 						    outerwidth,
 						    innerwidth));
+     /* add in expensive function costs -- JMH 7/7/92 */
+     set_path_cost(pathnode, get_path_cost(pathnode)
+		   + xfunc_get_path_cost(pathnode));
      return(pathnode);
 }
 
@@ -519,6 +548,7 @@ create_hashjoin_path (joinrel,outersize,innersize,outerwidth,
     set_outerjoinpath ((JoinPath)pathnode,(pathPtr)outer_path);
     set_innerjoinpath ((JoinPath)pathnode,(pathPtr)inner_path);
     set_pathclauseinfo ((JoinPath)pathnode,get_clauseinfo (joinrel));
+    set_locclauseinfo((Path)pathnode,LispNil);
     set_keys ((Path)pathnode,keys);
     set_pathsortkey ((Path)pathnode,(SortKey)NULL);
     set_p_ordering((Path)pathnode,LispNil);
@@ -534,6 +564,9 @@ create_hashjoin_path (joinrel,outersize,innersize,outerwidth,
 						 innerkeys,
 						 outersize,innersize,
 						 outerwidth,innerwidth));
+    /* add in expensive function costs -- JMH 7/7/92 */
+    set_path_cost(pathnode, get_path_cost(pathnode)
+		  + xfunc_get_path_cost(pathnode));
     return(pathnode);
 }
 
