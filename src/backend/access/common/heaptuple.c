@@ -1233,3 +1233,12 @@ heap_addheader(natts, structlen, structure)
     
     return (tup);
 }
+
+/* 
+   for debugging purpose only.  will only be called in dbx
+*/
+int
+heapTupleHeaderSize()
+{
+    return(sizeof(HeapTupleData));
+}

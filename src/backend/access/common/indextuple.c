@@ -551,3 +551,12 @@ IndexTuple source, *target;
 
     bcopy(source, ret, size);
 }
+
+/*
+    for debugging purpose only.  will only be called in dbx.
+*/
+int
+indexTupleHeaderSize()
+{
+    return(sizeof(IndexTupleData));
+}
