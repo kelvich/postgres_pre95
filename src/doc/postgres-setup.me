@@ -44,7 +44,7 @@ POSTGRES INSTALLATION INSTRUCTIONS
 .r
 .ps 14
 .sp 0.25v
-C-Only Release 4.1
+Release 4.1
 .sp 0.25v
 .ce 0
 .sp
@@ -66,17 +66,17 @@ C-Only Release 4.1
 	    Kernel
     Installing \*(PG
 	Preparation
-	    Finding a good place for \*(PG
-	    Creating the postgres directory
-	    Creating the \*(lqpostgres\*(rq user
-	Loading \*(PG from tape
-	Loading \*(PG from a tar file
+	    Finding a Good Place for \*(PG
+	    Creating the \*(PG Directory
+	    Creating the \*(PG User
+	Loading \*(PG From Tape
+	Loading \*(PG From a Tar File
 	Configuration
-	    Kernel reconfiguration for sparcs
-	    Kernel reconfiguration for DEC's
-	Running the pre-installed \*(PG system
-	Compiling and installing \*(PG
-	Creating the initial database
+	    Kernel Reconfiguration for Sparcs
+	    Kernel Reconfiguration for DEC's
+	Running the Pre-installed \*(PG System
+	Compiling and Installing \*(PG
+	Creating the Initial Database
 	Testing
     Running \*(PG
 	The \*(PG Postmaster
@@ -84,15 +84,15 @@ C-Only Release 4.1
 	The \*(PG Backend
 	\*(PG Support Programs
     Optional Installation
-	Installing LIBPQ, the \*(PG frontend library
-	\*(PG header files
-	Wisconson benchmark database
+	Installing LIBPQ, the \*(PG Frontend Library
+	\*(PG Header Files
+	Wisconsin Benchmark Database
 	Minimal Installation
     Documentation
     Miscellaneous
 	Bug Reports
 	Consulting
-	Postgres BBS
+	\*(PG BBS
 .)l
 .bp
 .\" ----------------
@@ -106,8 +106,8 @@ California, Berkeley.
 \*(PG is distributed in source code format and is the
 property of the Regents of the University of California.
 However, the University will grant unlimited commercialization
-rights for any derived work on the condition that it
-obtain an educational license to the derived work.
+rights for any derived work on the condition that an
+educational license to the derived work is obtained.
 For further information, consult the Berkeley Campus
 Software Office, 295 Evans Hall, University of
 California, Berkeley, CA 94720.
@@ -116,7 +116,7 @@ The University and the \*(PG development group
 provide no warranty as to the fitness of the code for
 any purpose whatsoever,
 and cannot guarantee to assist in fixing problems.
-This is *unsupported* software.
+This is \fIunsupported\fP software.
 .\" ----------------
 .\"    Site Requirements
 .\" ----------------
@@ -124,9 +124,9 @@ This is *unsupported* software.
 .lp
 .sh 2 "Hardware"
 .lp
-\*(PG currently has been tested by the Postgres development team on Sun
+\*(PG currently has been tested by the \*(PG development team on Sun
 Microsystems Sparc architecture machines
-running SunOS 4.1 and higher.  Postgres is also
+running SunOS 4.1 and higher.  \*(PG is also
 supported on DECstations 3100's and 5000's running Ultrix 4.1 and higher.
 In order to use \*(PG,
 your machine should have at least 8 megabytes of memory
@@ -138,31 +138,32 @@ If you choose to compile \*(PG for source-level debugging,
 you will need roughly twice as much disk space.
 See the section on compilation for details.
 .lp
-The DECstation version requires a kernel which allows 4 megabytes of
+The Ultrix version requires a kernel which allows 4 megabytes of
 shared memory.
-.lp
-The original release of Ultrix 4.2 has a kernel bug that causes
+Also, the original release of Ultrix 4.3 has a kernel bug that causes
 the operating system to hang when running \*(PG.  The bug is in the
 shared memory module in the kernel, and a patch is available from
 DEC which fixes the bug.  Contact your DEC representative for the
 patch.
 .sh 2 "Software"
-.sh 2 "Distribution tape"
+.sh 2 "Distribution Tape"
 .lp
 These instructions assume you have a \*(PG Version 4.1
 distribution tape (in either 9 track, SCSI cartridge, or TK50 cartridge
 format)
 or a \*(PG tar file.
 This release comes with a pre-installed version of \*(PG ready to run
-for the two platforms we officially support.  This is a test to see
-if our users can make use of the pre-installed system, thus avoiding having
-to compile from scratch for those in a rush to get things going.  Should
+for the two platforms we officially support.  
+This is a test to see
+if our users can run the pre-installed system to avoid compiling
+the sources from scratch.
+Should
 any problems arise with the pre-installed system, it is recommended
 that the sources be rebuilt from scratch to rule out any compatability
 problems between the system we compiled on here and your own.  There
 are two potential releases you may want (same source, different binaries).
-The tar version of the ultrix release is "postgres-v4r1.ultrix.tar.Z"
-and the sparc release is "postgres-v4r1.sparc.tar.Z" available via
+The tar version of the ultrix release is \f(CWpostgres-v4r1.ultrix.tar.Z\fP
+and the sparc release is \f(CWpostgres-v4r1.sparc.tar.Z\fP available via
 anonymous ftp from postgres.cs.berkeley.edu.
 .sh 2 "Expertise"
 .lp
@@ -171,7 +172,7 @@ very little UNIX expertise is required to maintain things.
 However,
 initially setting things up for your site to run \*(PG
 may be difficult and we advise that the person installing
-\*(PG be familiar with the various system administration
+\*(PG be familiar with system administration
 procedures.
 Also note that various
 steps require superuser privilege on the system,
@@ -197,7 +198,7 @@ To compile this release from sources requires a new version of
 make which comes from the latest BSD release.  A bootstrapping
 version of the make sources is included with this release, as is
 a precompiled binary with its configuration files.  The make program
-is installed using the name "bmake" to avoid any conflict with
+is installed using the name \f(CWbmake\fP to avoid any conflict with
 your native make.
 .sh 3 "Disk Requirements"
 .lp
@@ -210,7 +211,7 @@ hold the executables and sources.
 \*(PG makes use of the optional System V shared memory operations
 provided by SunOS and DEC Ultrix
 which require a properly configured kernel which is in general different
-than the factory-shipped "generic" kernel.
+than the factory-shipped generic kernel.
 See the section on kernel configuration for details.
 .\" ----------------
 .\"    Installation
@@ -246,14 +247,14 @@ system administrator perform these steps.
 You should locate a disk partition with
 at least 50 megabytes of free space available for \*(PG.
 If you plan to run the pre-installed system, it would be best
-if you loaded the release into the directory "/usr/local/postgres",
+if you loaded the release into the directory \f(CW/usr/local/postgres\fP,
 as that is what the release was configured for.  It is not mandatory,
 though, as the only relevent dependency is that the programs are
-setup to look for the database directory in "/usr/local/postgres/data",
+setup to look for the database directory in \f(CW/usr/local/postgres/data\fP,
 but that can be changed by setting the environment variable PGDATA
 somwhere else before starting the postmaster.  Also note that you
 can install the system anywhere, and then make a symbolic link
-from /usr/local/postgres to the place you really loaded the system.
+from \f(CW/usr/local/postgres\fP to the place you really loaded the system.
 If you are compiling the system from scratch, it doesn't matter
 where you load the system at all (as long as there is space).
 .sh 3 "Creating the \*(PG directory"
@@ -262,7 +263,7 @@ Once you have decided,
 create the directory to hold the release if it doesn't already exist.
 Then \fBcd\fR to this directory and type \fBpwd\fR.
 This is the full
-path of the directory you will install postgres in.
+path of the directory you will install \*(PG in.
 For example:
 .sp
 .(l
@@ -279,7 +280,7 @@ Filesystem	kbytes	used	avail	capacity  Mounted on
 /dev/rf0d	539421  465026  20452	   96%      /a
 .i
 	/usr/local looks like a good place (it has 60 megs free)
-	so we decide to create the postgres directory there...
+	so we decide to create the \*(PG directory there...
 .r
 # \fBcd /usr/local\fR
 # \fBmkdir postgres\fR
@@ -288,11 +289,11 @@ Filesystem	kbytes	used	avail	capacity  Mounted on
 /usr/local/postgres
 #
 .)l
-.sh 2 "Creating the \*(lqpostgres\*(rq user"
+.sh 2 "Creating the \*(PG user"
 .lp
-Finally, we need to create a user called \*(lqpostgres\*(rq whose
-shell is /bin/csh.  Though not necessary, it is convenient to
-make the home directory of the \*(lqpostgres\*(rq user
+Finally, we need to create a user called \*(PG whose
+shell is \f(CW/bin/csh\fP.  Though not necessary, it is convenient to
+make the home directory of the \*(PG user
 the pathname where we install the system. 
 This can be done using the "adduser" procedures particular to your
 platform and site.  See your system administration manual for details.
@@ -342,11 +343,9 @@ Proceed to the next section "Loading \*(PG from a Tar File".
 .lp
 .sh 2 "Loading \*(PG from a Tar File"
 .lp
-If you are not logged in as \*(PG already, log in as \*(PG.
-Make sure your current working directory is the \*(PG directory
-that was created, and put the \*(PG tar file there if it is not already.
+If you are not logged in as \f(CWpostgres\fP already, do so now.
 For the purpose of this discussion, the \*(PG tar file will be called
-postgres-v4r1.XXX.tar.Z
+\f(CWpostgres-v4r1.XXX.tar.Z\fP
 .lp
 Uncompress the tar file.
 .(l
@@ -402,7 +401,7 @@ of the process and procedures involved.
 .lp
 \*(PG uses shared memory segments which must be compiled into the
 kernel of the host which will act as the \*(PG server.
-If you try to run a postgres backend process on a machine without enough
+If you try to run a \*(PG backend process on a machine without enough
 shared memory, the backend will abort with an error message.
 .lp
 This is by far the most complicated part of the installation
@@ -516,7 +515,7 @@ After adding these lines, run
 over the configuration file,
 install the new kernel, and reboot.
 .lp
-Also, remember that Ultrix 4.2 has a kernel bug that causes the
+Also, remember that Ultrix 4.3 has a kernel bug that causes the
 operating system to hang when running \*(PG.  You should apply
 the DEC supplied patch at this point if you have not already.
 .sp
@@ -541,11 +540,11 @@ Now run the following command
 .(l
 % newbki
 .)l
-This will reset the userid of the special postgres user of the database to
+This will reset the userid of the special \*(PG user of the database to
 have the proper value.  Even though newbki allows you to enter a login
-name, you should select the default value of "postgres".  It allows a
+name, you should select the default value of \f(CWpostgres\fP.  It allows a
 different name because at some point we plan to remove the restriction
-that a special user called "postgres" even exists -- but not yet...
+that a special user called \f(CWpostgres\fP even exists -- but not yet...
 .lp
 After doing this, you may wish to install the precompiled version of
 bmake into /usr/local/bin.  This will allow you to recompile \*(PG
@@ -559,11 +558,11 @@ Become the superuser and do the following:
 # cp lib/mk/* /usr/local/lib/mk
 .)l
 .lp
-If you installed postgres somewhere other than /usr/local/postgres, everything
+If you installed \*(PG somewhere other than /usr/local/postgres, everything
 can still work right if you set the environment variable PGDATA for
-the special postgres login.  Lets assume you installed postgres in
+the special \*(PG user.  Lets assume you installed \*(PG in
 the directory "/private/packages/postgres".  If you run csh, put 
-the following in the .login for the postgres user
+the following in the .login for the \*(PG user
 .(l
 setenv PGDATA /private/packages/postgres/data
 .)l
@@ -599,7 +598,7 @@ want "bmake" installed into /usr/local/bin and /usr/local/lib,
 change the values of TOOLSBINDIR and TOOLSLIBDIR and make sure
 these directories exist.  
 .lp
-At this point you can also change where the postgres executable
+At this point you can also change where the \*(PG executable
 files are installed and where it looks for the database
 directory.
 In general the rest of the configuration switches
@@ -614,7 +613,7 @@ Cd into src/tools/bmake and type
 You may get warning messages during this bootstapping process
 about "illegal combination of pointer and integer" -- just ignore them.
 This should compile and install the "bmake" program and
-its supporting files, including the postgres related
+its supporting files, including the \*(PG related
 makefile templates.  If all went well you will now be able
 to use the new make program by typing "bmake", assuming you
 have /usr/local/bin in your shell path.  You may have to
@@ -625,7 +624,7 @@ know new executables have been placed in its path.
 .lp
 Cd back to the src/ directory (i.e. cd ../..) and type
 .(l
-% bmake install
+% bmake all install
 .)l
 This builds and installs the entire system.  The Makefiles
 contain directives for running all the underlying Makefiles
@@ -634,11 +633,11 @@ compile beautifully and install to the target directory.  Should
 this not be the case, it would be a good idea to save the results
 of the compile in a file.  If you run csh(1), you could type
 .(l
-% bmake install >& mk.log
+% bmake all install >& mk.log
 .)l
 and if you run ksh(1) or sh(1), type
 .(l
-% bmake install > mk.log 2>&1
+% bmake all install > mk.log 2>&1
 .)l
 This will save the results in the file "mk.log" so you
 can inspect it later.  This would be an ideal opportunity to get
@@ -650,12 +649,12 @@ some donuts and coffee.
 After you have compiled \*(PG, you will need to create the
 initial database.  If you haven't already put the path to the \*(PG
 executable programs in the shell path, do the following (assuming
-postgres was loaded into /usr/local/postgres).
+\*(PG was loaded into /usr/local/postgres).
 If you run csh, you would put
 .(l
 set path=(/usr/local/postgres/bin $path)
 .)l
-in the .login for the postgres user.  Or if you run sh or ksh, put
+in the .login for the \*(PG user.  Or if you run sh or ksh, put
 .(l
 PATH=/usr/local/postgres/bin:$PATH
 export PATH
@@ -704,7 +703,7 @@ the timestamp lines and occasional lines where object id numbers (OID's)
 are different.  We regret that we do not have a more sophisticated
 script for weeding out these innocuous differences at this time.  If
 you see any differences not corresponding to time stamps or OIDS,
-there may be a problem.  Have your local postgres expert take a look
+there may be a problem.  Have your local \*(PG expert take a look
 at it.
 .sp
 .\" ----------------
@@ -734,7 +733,7 @@ user's terminal monitor and a \*(PG backend.
 Without a running postmaster,
 the terminal monitor will not be able to connect to a backend.
 In general, the postmaster must be running for you (or others) to
-run any of the normal postgres commands.  Always start the postmaster when
+run any of the normal \*(PG commands.  Always start the postmaster when
 logged in as the special "postgres" user, otherwise the system will
 not be able to access the database files. To start it, type
 .(l
@@ -772,7 +771,7 @@ Go
 \fI
 The ``*'' is the terminal monitor prompt.  We are now
 talking to the backend, so let's send a simple test
-query:  list the names and user ids of the postgres users.
+query:  list the names and user ids of the \*(PG users.
 We terminate the query with a \eg \*- the ``go'' command
 to the terminal monitor.
 \fR
@@ -861,9 +860,9 @@ them for your information.
 .(l
 initdb		\- creates the initial template database
 cleardbdir	\- totally destroys the data/ directory, allowing a new initdb
-createdb	\- creates new postgres databases
-createuser	\- add a new user to the postgres system
-destroydb	\- destroys postgres databases
+createdb	\- creates new \*(PG databases
+createuser	\- add a new user to the \*(PG system
+destroydb	\- destroys \*(PG databases
 destroyuser	\- delete a user from the datasbe system
 ipcclean	\- frees up garbage shared memory from failed backends
 newbki		\- adjust userid of "postgres" in the database
@@ -889,7 +888,7 @@ The file .../lib/libpq.a is created when you
 install the system (or on the pre-installed system).
 This library contains various 
 routines intended for use by frontend programs.
-You use this library if you want to execute Postgres queries
+You use this library if you want to execute \*(PG queries
 from a C program.  If you plan on doing software development,
 you may wish to copy this file to
 /usr/lib so that the C compiler can reference it with -lpq.
