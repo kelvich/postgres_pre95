@@ -87,15 +87,15 @@ heap_keytest(t, tupdesc, nkeys, keys)
  * ----------------
  */
 bool
-heap_satisifies(itemId, buffer, qual, nKeys, key)
+heap_satisfies(itemId, relation, buffer, qual, nKeys, key)
     ItemId	itemId;
+	Relation relation;
     Buffer	buffer;
     TimeQual	qual;
     ScanKeySize	nKeys;
     struct skey	*key;
 {
     HeapTuple	tuple;
-    Relation	relation = BufferGetRelation(buffer);
 
     if (! ItemIdIsUsed(itemId) ||
 	ItemIdIsContinuation(itemId) || ItemIdIsLock(itemId))
@@ -108,8 +108,8 @@ heap_satisifies(itemId, buffer, qual, nKeys, key)
 	return (bool)
 	    keytest(tuple, relation, nKeys, key);
 
-    if (! HeapTupleSatisfiesTimeQual(tuple, qual) ||
-	! keytest(tuple, relation, nKeys, key))
+    if (! (keytest(tuple, relation, nKeys, key)
+		&& HeapTupleSatisfiesTimeQual(tuple, qual)))
 	return false;
     
     return true;
