@@ -67,8 +67,6 @@ typedef struct mcro {
 
 char		*strcpy(), *strncpy(), *strcat(), *strncat();
 char		*sprintf();
-char		*emalloc();
-hashnode	*FindStr(), *AddStr();
 extern          int Int_yylval;
 
 /* ami_sup.c */
@@ -81,38 +79,42 @@ extern struct attribute *attrtypes[MAXATTR];
 
 extern Portal BlankPortal;
 
-extern void createrel	ARGS((char *));
-extern void openrel	ARGS((char *));
-extern void closerel	ARGS((char *));
-extern void printrel	ARGS((void));
-extern void randomprintrel ARGS((void));
-extern void showtup	ARGS((HeapTuple, Buffer, Relation));
 
-extern void showtime	ARGS((Time));
-extern void DefineAttr ARGS((char *, char *, int));
-extern void InsertOneTuple ARGS((ObjectId));
-extern void InsertOneValue ARGS((ObjectId, int, char *));
-extern void handletime ARGS((void));
-extern void cleanup	ARGS((void));
-extern int gettype	ARGS((char *));
-extern struct attribute * AllocateAttribute ARGS((void));
-extern void err	ARGS((void));
-extern void handle_warn ARGS((void));
-extern void die		ARGS((void));
-extern void ExcAbort 	ARGS((Exception *, ExcDetail, ExcData, ExcMessage));
-extern unsigned char MapEscape ARGS((char **));
-extern int  EnterString ARGS((char *));
-extern char *LexIDStr	ARGS((int));
-extern int  CompHash	ARGS((char *, int));
-extern hashnode *FindStr ARGS((char *, int, hashnode *));
-extern hashnode *AddStr ARGS((char *, int, int));
-extern void printhashtable ARGS((void));
-extern void printstrtable ARGS((void));
-extern char *emalloc	ARGS((unsigned));
-extern int LookUpMacro ARGS((char *));
-extern void printmacros ARGS((void));
-extern void DefineMacro ARGS((int, int));
-extern void AddAttr	ARGS((char *));
-extern int  LexIDLen	ARGS((int));
-extern char LexIDChar	ARGS((int, int));
-
+/* 
+ * bootstrap.c - prototypes
+ */
+void err ARGS((void ));
+void BootstrapMain ARGS((int ac , char *av []));
+void createrel ARGS((char *name ));
+void boot_openrel ARGS((char *name ));
+void closerel ARGS((char *name ));
+void printrel ARGS((void ));
+void randomprintrel ARGS((void ));
+void showtup ARGS((HeapTuple tuple , Buffer buffer , Relation relation ));
+void showtime ARGS((Time time ));
+void DefineAttr ARGS((char *name , char *type , int attnum ));
+void InsertOneTuple ARGS((ObjectId objectid ));
+void InsertOneValue ARGS((ObjectId objectid , char *value , int i ));
+void InsertOneNull ARGS((int i ));
+void defineindex ARGS((char *heapName , char *indexName , char *accessMethodName ));
+void handletime ARGS((void ));
+void cleanup ARGS((void ));
+int gettype ARGS((char *type ));
+struct attribute *AllocateAttribute ARGS((void ));
+unsigned char MapEscape ARGS((char **s ));
+int EnterString ARGS((char *str ));
+char *LexIDStr ARGS((int ident_num ));
+int CompHash ARGS((char *str , int len ));
+hashnode *FindStr ARGS((char *str , int length , hashnode *mderef ));
+hashnode *AddStr ARGS((char *str , int strlength , int mderef ));
+void printhashtable ARGS((void ));
+void printstrtable ARGS((void ));
+char *emalloc ARGS((unsigned size ));
+int LookUpMacro ARGS((char *xmacro ));
+void DefineMacro ARGS((int indx1 , int indx2 ));
+void printmacros ARGS((void ));
+/*
+ * after sed runs on the lexer's output these funcs are defined
+ */
+int Int_yywrap ARGS((void));
+int Int_yyerror ARGS((char *str));
