@@ -516,10 +516,7 @@ typedef uint16			CommandId;
  * ----------------------------------------------------------------
  */
 
-typedef uint32	Time;			/* XXX this will disappear */
-
-typedef uint32	RelativeTime;
-#define InvalidRelativeTime	0
+/* XXX These have all been moved to nabstime.h - avi 07/07/93 */
 
 /* ----------------------------------------------------------------
  *		Section 7: genbki macros used by the
@@ -543,8 +540,6 @@ typedef uint32	RelativeTime;
  */
 typedef	int32	XID;
 #define	CID	uint16
-#define	ABSTIME	uint32
-#define	RELTIME	uint32
 
 #define OID	oid
 #define	REGPROC	oid		/* for now */
