@@ -34,6 +34,7 @@
 #include "pmod.h"
 #include "rel.h"
 #include "rproc.h"
+#include "rulemgr.h"
 #include "strings.h"
 #include "syscache.h"
 #include "tqual.h"

@@ -143,7 +143,8 @@ class (StateNode) public (Node) {
 /* ----------------------------------------------------------------
  *    ResultState information
  *
- *   	Loop	 	see if we have been her before.
+ *   	Loop	 	   flag which tells us to quit when we
+ *			   have already returned a constant tuple.
  *
  *   StateNode information
  *
@@ -187,9 +188,9 @@ class (AppendState) public (Node) {
 /* ----------------------------------------------------------------
  *   CommonState information
  *
- *   	PortalFlag	Set to enable portals to work.
- *	currentRelation relation being scanned
- *      currentScanDesc current scan descriptor for scan
+ *   	PortalFlag	   set to enable portals to work (??? -cim)
+ *	currentRelation    relation being scanned
+ *      currentScanDesc    current scan descriptor for scan
  *
  *   StateNode information
  *
@@ -303,6 +304,41 @@ class (NestLoopState) public (CommonState) {
 };
 
 /* ----------------------------------------------------------------
+ *   SortState information
+ *
+ *   	Flag	 	indicated whether relation has been sorted
+ *   	Keys	      	scan key structures used to keep info on sort keys
+ *	TempRelation	temporary relation containing result of executing
+ *			the subplan.
+ *
+ *   CommonState information
+ *
+ *   	PortalFlag	   Set to enable portals to work. (unused)
+ *	currentRelation    relation descriptor of sorted relation
+ *      currentScanDesc    current scan descriptor for scan
+ *
+ *   StateNode information
+ *
+ *	OuterTuple	   points to the current outer tuple
+ *  	TupType   	   attr type info of tuples from this node
+ *   	TupValue   	   array to store attr values for 'formtuple' (unused)
+ *   	Level      	   level of the left subplan (unused)
+ *	ScanType	   type of tuples in relation being scanned (unused)
+ *	ScanAttributes	   attribute numbers of interest in this tuple (unused)
+ *	NumScanAttributes  number of attributes of interest.. (unused)
+ * ----------------------------------------------------------------
+ */
+
+class (SortState) public (CommonState) {
+      inherits(CommonState);
+  /* private: */
+      bool	sort_Flag;
+      Pointer 	sort_Keys;
+      Relation  sort_TempRelation;
+  /* public: */
+};
+
+/* ----------------------------------------------------------------
  *    MergeJoinState information
  *
  *   	OSortopI      	   outerKey1 sortOp innerKey1 ...
@@ -337,23 +373,6 @@ class (MergeJoinState) public (CommonState) {
       bool	mj_MarkFlag;
       List 	mj_FrwdMarkPos;
       List 	mj_BkwdMarkPos;
-  /* public: */
-};
-
-/* ----------------------------------------------------------------
- *    SortState
- *
- *   	Flag	 	indicated whether relation has been sorted
- *   	Keys	      	structures keeping info on sort keys
- *
- * ----------------------------------------------------------------
- */
-
-class (SortState) public (Node) {
-      inherits(Node);
-  /* private: */
-      bool	sort_Flag;
-      List 	sort_Keys;
   /* public: */
 };
 
