@@ -110,7 +110,7 @@ local_heap_insert(relation, tup)
 
     TransactionIdStore(GetCurrentTransactionId(), &(tup->t_xmin));
     tup->t_cmin = GetCurrentCommandId();
-    PointerStoreInvalidTransactionId(&(tup->t_xmax));
+    PointerStoreInvalidTransactionId((Pointer)&(tup->t_xmax));
     tup->t_tmin = InvalidTime;
     tup->t_tmax = InvalidTime;
 
