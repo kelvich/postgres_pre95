@@ -215,7 +215,7 @@ MakeRangeTableEntry( relname , options , refname)
     
     relation = heap_openr(relname);
     if (relation == NULL) {
-	elog(WARN,"heap_openr on %s failed\n",relname);
+	elog(WARN,"%s: no such class\n",relname);
     }
     
     /* RuleLocks - for now, always empty, since preplanner fixes */
