@@ -14,10 +14,10 @@
  *===================================================================
  */
 
-#include "c.h"
-#include "log.h"
-#include "prs2.h"
-#include "rulescan.h"
+#include "tmp/c.h"
+#include "utils/log.h"
+#include "rules/prs2.h"
+#include "access/rulescan.h"
 
 /*-------------------------------------------------------------------
  *
@@ -97,7 +97,7 @@ Buffer *returnedBufferP;
 		    tuple->t_oid,
 		    attrValues,
 		    locks,
-		    LockTypeRetrieveWrite,
+		    LockTypeTupleRetrieveWrite,
 		    InvalidObjectId,
 		    InvalidAttributeValues,
 		    InvalidRuleLock,
@@ -116,12 +116,12 @@ Buffer *returnedBufferP;
 		    explainRelation,
 		    relation,
 		    attributeArray[i],
-		    LockTypeRetrieveAction,
+		    LockTypeTupleRetrieveAction,
 		    PRS2_OLD_TUPLE,
 		    tuple->t_oid,
 		    attrValues,
 		    locks,
-		    LockTypeRetrieveWrite,
+		    LockTypeTupleRetrieveWrite,
 		    InvalidObjectId,
 		    InvalidAttributeValues,
 		    InvalidRuleLock,
@@ -140,7 +140,7 @@ Buffer *returnedBufferP;
      */
     newTupleMade = attributeValuesMakeNewTuple(
 				tuple, buffer,
-				attrValues, locks, LockTypeRetrieveWrite,
+				attrValues, locks, LockTypeTupleRetrieveWrite,
 				relation, returnedTupleP);
 
     /*

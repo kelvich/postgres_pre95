@@ -17,14 +17,14 @@
  *     		get_opnos
  */
 
-#include "c.h"
+#include "tmp/c.h"
+
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+
 #include "planner/internal.h"
-#include "relation.h"
-#include "relation.a.h"
 #include "planner/clauses.h"
 #include "planner/clauseinfo.h"
-
-
 
 /*    
  *    	valid-or-clause
@@ -121,15 +121,15 @@ get_relattvals (clauseinfo_list)
 
      foreach(i,relattvals) {
 	 temp2 = CAR(i);
-	 result1 = nappend1(result1,CAR(temp2));
+	 result1 = nappend1(result1,CADR(temp2));
      }
      foreach(i,relattvals) {
 	 temp2 = CAR(i);
-	 result2 = nappend1(result2,CADR(temp2));
+	 result2 = nappend1(result2,CADDR(temp2));
      }
      foreach(i,relattvals) {
 	 temp2 = CAR(i);
-	 result3 = nappend1(result3,CADR(CDR(temp2)));
+	 result3 = nappend1(result3,CADDR(CDR(temp2)));
      }
      return(lispCons(result1,
 		     lispCons(result2,
