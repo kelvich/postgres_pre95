@@ -446,7 +446,12 @@ Boolean *isnull;
     {
         c = getc(fp);
 
-        if (reading_from_input && attno == 0 && i == 0 && c == '.') 
+    	if (feof(fp))
+    	{
+        	*isnull = (Boolean) false;
+        	return(NULL);
+    	}
+		else if (reading_from_input && attno == 0 && i == 0 && c == '.') 
         {
             attribute[0] = c;
             c = getc(fp);
