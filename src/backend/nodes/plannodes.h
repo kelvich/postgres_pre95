@@ -9,9 +9,28 @@
 #ifndef PlanNodesIncluded
 #define	PlanNodesIncluded
 
-#include "nodes.h"	/* bogus inheritance system */
+#include "nodes.h"		/* bogus inheritance system */
 #include "pg_lisp.h"
 #include "oid.h"
+
+/* ----------------
+ *  Executor State types are used in the plannode structures
+ *  so we have to include their definitions too.
+ *
+ *	Node Type		node information used by executor
+ *
+ *	Existential		ExistentialState	exstate;
+ *	Result			ResultState		resstate;
+ *	Append			AppendState		unionstate;
+ *	NestLoop		NestLoopState		nlstate;
+ *    	Scan ***		ScanState		scanstate;
+ *      Sort			SortState		sortstate;
+ *
+ *	  (*** nodes which inherit Scan also inherit scanstate)
+ * ----------------
+ */
+#include "execnodes.h"		/* XXX move executor types elsewhere */
+
 
 /*
  *  All of these #defines indicate that we have written print support
@@ -92,6 +111,7 @@ class (Plan) public (Node) {
 class (Existential) public (Plan) {
 	inherits(Plan);
  /* private: */
+	ExistentialState	exstate;
  /* public: */
 };
 
@@ -100,6 +120,7 @@ class (Result) public (Plan) {
  /* private: */
 	List			resrellevelqual;
 	List			resconstantqual;
+	ResultState		resstate;
  /* public: */
 };
 
@@ -109,6 +130,7 @@ class (Append) public (Plan) {
 	List			unionplans;
 	Index			unionrelid;
 	List			unionrtentries;
+	AppendState		unionstate;
  /* public: */
 };
 
@@ -129,6 +151,7 @@ class (Join) public (Plan) {
 class (NestLoop) public (Join) {
 	inherits(Join);
  /* private: */
+	NestLoopState		nlstate;
  /* public: */
 };
 
@@ -157,7 +180,8 @@ class (HashJoin) public (Join) {
 class (Scan) public (Plan) {
 #define	ScanDefs \
 	inherits(Plan); \
-	Index			scanrelid
+	Index			scanrelid; \
+   	ScanState		scanstate   
  /* private: */
 	ScanDefs;
  /* public: */
@@ -197,6 +221,7 @@ class (Temp) public (Plan) {
 class (Sort) public (Temp) {
 	inherits(Temp);
  /* private: */
+	SortState		sortstate;
  /* public: */
 };
 
