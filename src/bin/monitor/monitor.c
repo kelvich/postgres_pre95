@@ -86,6 +86,7 @@ void argsetup ARGS((int *argcP, char ***argvP));
  */
 
 #define DEFAULT_EDITOR "/usr/ucb/vi"
+#define COPYBUFSIZ	8192
 static char *user_editor;     /* user's desired editor  */
 static int tmon_temp;         /* file descriptor for temp. buffer file */
 static char *pid_string;
@@ -720,7 +721,7 @@ handle_execution(query)
 	    
         case 'B':
             {
-                char s[100];
+                char s[COPYBUFSIZ];
 		
                 s[0] = ' ';
 		
@@ -729,7 +730,7 @@ handle_execution(query)
 		
                 while (s[0] != '.')
 		    {
-			PQgetline(s, 100);
+			PQgetline(s, COPYBUFSIZ);
 			if (s[0] != '.') fprintf(stdout, "%s\n", s);
 		    }
             }
@@ -738,7 +739,7 @@ handle_execution(query)
 	    break;
 	case 'D':
 	    {
-                char s[8192];
+                char s[COPYBUFSIZ];
 		char c;
 		
                 s[0] = ' ';
