@@ -10,11 +10,13 @@
  * char *char_address;
  *
  * {
- *     while (test_and_set(char_address) != *char_address);
+ *     while (test_and_set(char_address));
  * }
  *
  * If this is not done, Postgres will default to using System V semaphores,
  * which result in a 100% degradation of performance.
+ *
+ * RcsId("$Header$");
  */
 
 /*
@@ -22,6 +24,52 @@
  */
  
 #if defined(sun3)
+
+    
+S_LOCK(lock)
+slock_t *lock;
+{
+    while (tas(lock));
+}
+
+S_UNLOCK(lock)
+slock_t *lock;
+{
+    *lock = 0;
+}
+
+S_INIT_LOCK(lock)
+slock_t *lock;
+{
+    s_unlock(lock);
+}
+
+S_CLOCK(lock)
+slock_t *lock;
+{
+    return(tas(lock));
+}
+
+static
+tas_dummy()
+{
+asm("LLA0:");
+asm("	.data");
+asm("	.text");
+asm("|#PROC# 04");
+asm("	.globl	_tas");
+asm("_tas:");
+asm("|#PROLOGUE# 1");
+asm("	movel   sp@(0x4),a0");
+asm("	tas	a0@");
+asm("	beq	LLA1");
+asm("	moveq   #-128,d0");
+asm("	rts");
+asm("LLA1:");
+asm("	moveq   #0,d0");
+asm("	rts");
+asm("	.data");
+}
 
 #endif
 
