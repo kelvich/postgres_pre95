@@ -5,19 +5,17 @@
 
 #include <strings.h>	/* XXX */
 
-#include "postgres.h"
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 
-#include "catname.h"	/* XXX for definitions of NameIs{,Shared}SystemRelationName */
+#include "access/htup.h"
+#include "storage/buf.h"
+#include "utils/log.h"
+#include "tmp/name.h"
 
-#include "buf.h"
-#include "htup.h"
-#include "log.h"
-#include "name.h"
-#include "syscache.h"
-#include "htup.h"
-
+#include "catalog/syscache.h"
+#include "catalog/catname.h"	/* NameIs{,Shared}SystemRelationName */
 #include "catalog/pg_attribute.h"
 #include "catalog/pg_type.h"
 

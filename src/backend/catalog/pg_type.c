@@ -14,30 +14,21 @@
  * ----------------------------------------------------------------
  */
 
-#include "c.h"
+#include "tmp/postgres.h"
+
  RcsId("$Header$");
 
-/* ----------------
- *	these blindly taken from commands/define.c
- *	XXX clean these up!
- * ----------------
- */
-#include <strings.h>
+#include "access/ftup.h"
+#include "access/heapam.h"
+#include "access/relscan.h"
+#include "access/skey.h"
+#include "utils/rel.h"
+#include "utils/fmgr.h"
+#include "utils/log.h"
+#include "tmp/name.h"
 
-#include "catname.h"
-#include "fmgr.h"
-#include "ftup.h"
-#include "heapam.h"
-#include "htup.h"
-#include "log.h"
-#include "name.h"
-#include "parse.h"
-#include "pg_lisp.h"
-#include "syscache.h"
-#include "tqual.h"
-
-#include "defrem.h"
-
+#include "catalog/catname.h"
+#include "catalog/syscache.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
 
