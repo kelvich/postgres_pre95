@@ -71,8 +71,7 @@ Relation relation;
     relName = RelationGetRelationName(relation);
     tupDesc = RelationGetTupleDescriptor(relation);
 
-    l1 = prs2GetLocksFromTuple (rawTuple, rawBuffer,
-			RelationGetTupleDescriptor(relation));
+    l1 = prs2GetLocksFromTuple (rawTuple, rawBuffer);
     l2 = prs2GetLocksFromRelation(relName);
     locks = prs2LockUnion(l1, l2);
     prs2FreeLocks(l1);

@@ -115,15 +115,7 @@ Name relationName;
 	relationName);
     }
 
-    /*
-     * I hope that this is gonna work! (tupleDescriptor == NULL !!!!)
-     * (Yes, it is going to work, actually prs2GetLocksFromTuple
-     * does not even use the tupdesc...
-     */
-    relationLocks = prs2GetLocksFromTuple(
-			    relationTuple,
-			    InvalidBuffer,
-			    (TupleDescriptor) NULL);
+    relationLocks = prs2GetLocksFromTuple(relationTuple, InvalidBuffer);
 
     return(relationLocks);
 }
@@ -161,7 +153,7 @@ Name relationName;
     scanKey.data[0].argument = NameGetDatum(relationName);
     scanDesc = RelationBeginHeapScan(rel, false, NowTimeQual, 1, &scanKey);
     tuple = HeapScanGetNextTuple(scanDesc, false, &buffer);
-    locks = prs2GetLocksFromTuple( tuple, buffer, (TupleDescriptor) NULL);
+    locks = prs2GetLocksFromTuple(tuple, buffer);
     RelationCloseHeapRelation(rel);
 
     return(locks);

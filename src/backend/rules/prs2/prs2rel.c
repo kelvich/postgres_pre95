@@ -305,7 +305,7 @@ RuleLock newLocks;
     {
 	RuleLock l;
 
-	l = prs2GetLocksFromTuple(tuple, buffer, (TupleDescriptor) NULL);
+	l = prs2GetLocksFromTuple(tuple, buffer);
 	printf(
 	    "PRS2:prs2SetRelationLevelLocks: Updating locks of relation %d\n",
 	    relationId);
