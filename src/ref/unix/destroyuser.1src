@@ -1,7 +1,7 @@
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP CREATEDB UNIX 6/14/90
-.XA 1 Createuser
+.SP DESTROYUSER UNIX 6/14/90
+.XA 1 Destroyuser
 .uh NAME
 .lp
 destroyuser \*- destroy a \*(PP user
@@ -33,6 +33,7 @@ running on the database server
 The defaults are to the local machine (localhost) and to the default port
 (4321).
 .uh "INTERACTIVE QUESTIONS"
+.lp
 Once invoked with the above options
 .b destroyuser
 will warn the person destroying the \*(PP user about the databases that will
@@ -41,17 +42,15 @@ be destroyed in the process.  If the databases should not be destroyed,
 can be aborted.
 .uh "SEE ALSO"
 .lp
-adduser(unix),
+createuser(unix),
 .uh DIAGNOSTICS
 .lp
 You are not a valid \*(PP user
-.pp
+.lp
 You do not have a users file entry, and can
 not do anything with \*(PP at all.
 .sp
 .lp
 <user> does not exist
-.pp
-The user does not exist.
 .lp
-You don't have permission to destroy users.
+The user does not exist.
