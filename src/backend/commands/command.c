@@ -40,6 +40,30 @@ EndCommand(commandId)
 }
 
 void
+PerformPortalFetch(name, forward, count)
+	String	name;
+	bool	forward;
+	Count	count;
+{
+	Portal	portal;
+
+	if (name == NULL) {
+		elog(WARN, "PerformPortalFetch: blank portal unsupported");
+	}
+
+	portal = GetPortalByName(name);
+	if (!PortalIsValid(portal)) {
+		elog(WARN, "PerformPortalFetch: %s not found", name);
+	}
+
+	/*
+	 * START HERE
+	 */
+	elog(NOTICE, "Fetch: %s %s %d unimplemented",
+		name, (forward) ? "forw" : "back", count);
+}
+
+void
 PerformPortalClose(name)
 	String	name;
 {
@@ -58,27 +82,6 @@ PerformPortalClose(name)
 	}
 
 	PortalDestroy(portal);
-}
-
-void
-PerformPortalFetch(name, forward, count)
-	String	name;
-	bool	forward;
-	Count	count;
-{
-	Portal	portal;
-
-	if (name == NULL) {
-		elog(WARN, "PerformPortalFetch: blank portal unsupported");
-	}
-	portal = GetPortalByName(name);
-	if (!PortalIsValid(portal)) {
-		elog(WARN, "PerformPortalFetch: %s not found", name);
-	}
-
-	/*
-	 * START HERE
-	 */
 }
 
 /*
