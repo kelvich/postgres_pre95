@@ -82,10 +82,6 @@ extern	ExcFrame*	ExcCurFrameP;
 		}							\
 	}
 
-#define raise(exception)	raise2((exception), 0)
-#define raise2(x, detail)	raise3((x), (detail), 0)
-#define raise3(x, t, data)	raise4((x), (t), (data), 0)
-
 #define raise4(x, t, d, message) \
 	ExcRaise(&(x), (ExcDetail)(t), (ExcData)(d), (ExcMessage)(message))
 
