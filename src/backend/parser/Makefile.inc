@@ -1,3 +1,6 @@
+#
+# $Header$
+#
 PARSED= ${.CURDIR}/parser
 
 .PATH: ${PARSED}
