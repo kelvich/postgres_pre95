@@ -631,6 +631,122 @@ append1(list, lispObject)
 	return(retval);
     }
 
+    for (p = list; p != LispNil; p = CDR(p)) {
+
+	return(dottedPair);
+}
+
+ *      append   - appends lisp obj to the end of the lisp. 
+ *                 non-destructive. XXX needs to be extended to 
+	LispValue	dottedPair, newValue;
+{
+ *      nthCdr   - returns a list where the car of the list 
+	return(dottedPair);
+}
+
+/* XXX fix lispList and get rid of this ... */
+init_list(list, newValue)
+	LispValue	list, newValue;
+{
+	CAR(list) = newValue;
+append(list,lispobj)
+}
+
+     LispValue	p;
+
+     
+  consp
+	  newlist = lispList();
+	  CAR(newlist) = lispObject;
+	  CDR(newlist) = LispNil;
+	  return(newlist);
+consp(foo)
+     LispValue foo;
+{
+    if (foo)
+      return((bool)(foo->type == PGLISP_DTPR));
+     return(newlist); 
+      return(false);
+}
+
+/*
+ *      More Manipulation routines
+ *
+ *      append   - appends lisp obj to the end of the lisp.
+ *                 non-destructive. XXX needs to be extended to
+     int count = 0;     
+     For (temp = list; CDR(temp) != LispNil; temp = CDR(temp))
+ *      nthCdr   - returns a list where the car of the list
+ *                 is the indexed element.  Used to implement the
+ *                 nth function.
+ *      nconc    - returns the concatenation of *2* lists.
+ *                 destructive modification.
+ */
+
+
+LispValue
+append(list,lispObject)
+     LispValue list, lispObject;
+     int i;
+
+     if (index > length(list))
+       return (LispNil);
+
+     for (i= 1; i <= index; i++)
+       list = CDR (list);
+
+     return(list);
+	     return (lispObject);  /* XXX should copy  */
+	 }
+#define nth(index,list)         CAR(nthCdr(index,list))
+
+
+     }
+     for (p = newlist; CDR(p) != LispNil; p = CDR(p))
+       ;
+     CDR(p) = lispList();
+     CAR(CDR(p)) = lispObject;
+     return(newlist);
+
+}
+
+int
+length (list)
+     LispValue list;
+{
+     LispValue temp;
+     int count = 0;
+     for (temp = list; temp != LispNil; temp = CDR(temp))
+     for (temp = list1; CDR(temp) != LispNil; temp = CDR(temp))
+
+
+LispValue
+nthCdr (index, list)
+     LispValue list;
+     int index;
+{
+    int i;
+    LispValue temp = list;
+    for (i= 1; i <= index; i++) {
+	if (temp != LispNil)
+	  temp = CDR (temp);
+	else 
+	  return(LispNil);
+    }
+    return(temp);
+}
+       return(false);
+	  if (last) {
+	       last = false;
+	       rlist = lispCons(CAR(p),LispNil);
+	  }
+	  else
+	    rlist = lispCons (CAR(p),rlist);
+
+LispValue
+     list = rlist;    
+{
+     LispValue temp;
 LispValue
 find_if(pred,bar)
      bool (*pred )();
