@@ -186,24 +186,10 @@ ProcessPortal(operation, portalName, parseTree, plan, state, attinfo)
     Portal		portal;
     MemoryContext 	portalContext;
 
-    /* ----------------
-     *   report the query's result type information
-     *
-     *   XXX this should be cleaned up (I have no idea
-     *	     what the putxxxx functions are doing)
-     *	     -cim 9/18/89
-     * ----------------
-     */
-    if (operation == RETRIEVE) {
-	BeginCommand(portalName, attinfo);
-    } else {
-	if (IsUnderPostmaster) {
-	    putnchar("P",1);
-	    putint(0,4);
-	    putstr("blank");
-	} else
-	    BeginCommand("blank",attinfo);
-    }
+	AssertArg(operation == RETRIEVE);
+	/*
+	 * Note:  "BeginCommand" is not called since no tuples are returned.
+	 */
 
     /* ----------------
      *   initialize the portal
@@ -211,11 +197,8 @@ ProcessPortal(operation, portalName, parseTree, plan, state, attinfo)
      */
     portal = BlankPortalAssignName(portalName);
 
-    PortalSetQuery(portal,
-		   parseTree,
-		   plan,
-		   state,
-		   PortalCleanup);
+	PortalSetQuery(portal, CreateQueryDesc(parseTree, plan), state,
+		PortalCleanup);
 
     /* ----------------
      * Return blank portal for now.
@@ -322,7 +305,7 @@ ExecuteFragments(queryDesc, planFragments)
 		      state,
 		      attinfo);
 	EndCommand(tag);
-	return;
+		return (NULL);
     }
 
     /* ----------------
