@@ -128,7 +128,6 @@ int LateWrite = TRUE;
 int ReadBufferCount;
 int BufferHitCount;
 int BufferFlushCount;
-extern FILE *StatFp;
 
 /*
  * ReadBuffer -- returns a buffer containing the requested
@@ -929,7 +928,8 @@ int NDirectFileRead;	/* some I/O's are direct file access.  bypass bufmgr */
 int NDirectFileWrite;   /* e.g., I/O in psort and hashjoin.		     */
 
 void
-PrintBufferUsage()
+PrintBufferUsage(statfp)
+FILE *statfp;
 {
 	float hitrate;
 
@@ -938,7 +938,7 @@ PrintBufferUsage()
 	else
 	    hitrate = (float)BufferHitCount * 100.0/ReadBufferCount;
 
-	fprintf(StatFp, "!\t%d blocks read, %d blocks written, buffer hit rate = %.2f%%\n", 
+	fprintf(statfp, "!\t%d blocks read, %d blocks written, buffer hit rate = %.2f%%\n", 
 		ReadBufferCount - BufferHitCount + NDirectFileRead,
 		BufferFlushCount + NDirectFileWrite,
 		hitrate);
