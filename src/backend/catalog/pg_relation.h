@@ -45,7 +45,6 @@ CATALOG(pg_relation) BOOTSTRAP {
      int2 	relnatts;
      int28 	relkey;
      oid8	relkeyop;
-     stub	relstub;
 } FormData_pg_relation;
 
 /* ----------------
@@ -60,7 +59,7 @@ typedef FormData_pg_relation	*Form_pg_relation;
  * ----------------
  */
 #define Name_pg_relation		"pg_relation"
-#define Natts_pg_relation		15
+#define Natts_pg_relation		14
 #define Anum_pg_relation_relname	1
 #define Anum_pg_relation_relowner	2
 #define Anum_pg_relation_relam		3
@@ -75,26 +74,25 @@ typedef FormData_pg_relation	*Form_pg_relation;
 #define Anum_pg_relation_relnatts	12
 #define Anum_pg_relation_relkey		13
 #define Anum_pg_relation_relkeyop	14
-#define Anum_pg_relation_relstub	15
 
 /* ----------------
  *	initial contents of pg_relation
  * ----------------
  */
 
-DATA(insert OID =  71 (  pg_type           6 0 0 0 0 0 f f r n 14 - - - ));
-DATA(insert OID =  88 (  pg_database       6 0 0 0 0 0 f t r n 3 - - - ));
-DATA(insert OID =  76 (  pg_demon          6 0 0 0 0 0 f t r n 4 - - - ));
-DATA(insert OID =  81 (  pg_proc           6 0 0 0 0 0 f f r n 10 - - - ));
-DATA(insert OID =  82 (  pg_server         6 0 0 0 0 0 f t r n 3 - - - ));
-DATA(insert OID =  86 (  pg_user           6 0 0 0 0 0 f t r n 6 - - - ));
-DATA(insert OID =  75 (  pg_attribute      6 0 0 0 0 0 f f r n 12 - - - ));
-DATA(insert OID =  83 (  pg_relation       6 0 0 0 0 0 f f r n 15 - - - ));
-DATA(insert OID =  80 (  pg_magic          6 0 0 0 0 0 f t r n 2 - - - ));
-DATA(insert OID =  89 (  pg_defaults       6 0 0 0 0 0 f t r n 2 - - - ));
-DATA(insert OID =  90 (  pg_variable       6 0 0 0 0 0 f t s n 2 - - - ));
-DATA(insert OID =  99 (  pg_log            6 0 0 0 0 0 f t s n 1 - - - ));
-DATA(insert OID = 100 (  pg_time           6 0 0 0 0 0 f t s n 1 - - - ));
+DATA(insert OID =  71 (  pg_type           6 0 0 0 0 0 f f r n 14 - - ));
+DATA(insert OID =  88 (  pg_database       6 0 0 0 0 0 f t r n 3 - - ));
+DATA(insert OID =  76 (  pg_demon          6 0 0 0 0 0 f t r n 4 - - ));
+DATA(insert OID =  81 (  pg_proc           6 0 0 0 0 0 f f r n 10 - - ));
+DATA(insert OID =  82 (  pg_server         6 0 0 0 0 0 f t r n 3 - - ));
+DATA(insert OID =  86 (  pg_user           6 0 0 0 0 0 f t r n 6 - - ));
+DATA(insert OID =  75 (  pg_attribute      6 0 0 0 0 0 f f r n 12 - - ));
+DATA(insert OID =  83 (  pg_relation       6 0 0 0 0 0 f f r n 14 - - ));
+DATA(insert OID =  80 (  pg_magic          6 0 0 0 0 0 f t r n 2 - - ));
+DATA(insert OID =  89 (  pg_defaults       6 0 0 0 0 0 f t r n 2 - - ));
+DATA(insert OID =  90 (  pg_variable       6 0 0 0 0 0 f t s n 2 - - ));
+DATA(insert OID =  99 (  pg_log            6 0 0 0 0 0 f t s n 1 - - ));
+DATA(insert OID = 100 (  pg_time           6 0 0 0 0 0 f t s n 1 - - ));
 
 /* ----------------
  *	XXX well known relation identifiers put here for now.
@@ -127,7 +125,6 @@ typedef struct RelationTupleFormD {
 	AttributeNumber	relnatts;
 	AttributeNumber	relkey[8];
 	ObjectId	relkeyop[8];
-	struct varlena	relstub;
 /*	LOCK	rellock; */
 /*	SPQUEL	reldesc; */
 } RelationTupleFormD;
@@ -158,7 +155,6 @@ struct	relation {
 	uint16	relnatts;
 	int16	relkey[8];
 	OID	relkeyop[8];
-	struct varlena	relstub;
 /*	LOCK	rellock; */
 /*	SPQUEL	reldesc; */
 };

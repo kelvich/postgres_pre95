@@ -226,7 +226,6 @@ DATA(insert OID = 0 (  83 relarch          18 0 0 0  1  11 0 t t 0 ));
 DATA(insert OID = 0 (  83 relnatts         21 0 0 0  2  12 0 t t 0 ));
 DATA(insert OID = 0 (  83 relkey           22 0 0 0 16  13 0 f t 0 ));
 DATA(insert OID = 0 (  83 relkeyop         30 0 0 0 32  14 0 f t 0 ));
-DATA(insert OID = 0 (  83 relstub          33 0 0 0 -1  15 0 f t 0 ));
 DATA(insert OID = 0 (  83 ctid             27 0 0 0  6  -1 0 f t 0 ));
 DATA(insert OID = 0 (  83 lock             31 0 0 0 -1  -2 0 f t 0 ));
 DATA(insert OID = 0 (  83 oid              26 0 0 0  4  -3 0 t t 0 ));
