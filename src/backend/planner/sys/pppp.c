@@ -28,6 +28,8 @@ RcsId("$Header$");
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
 #include "nodes/execnodes.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
 #include "tags.h"
 
 #include "planner/internal.h"
@@ -643,4 +645,122 @@ Plan plan;
     fprintf(stderr, "\n");
     pplan(plan);
     fprintf(stderr, "\n");
+}
+
+void
+p_plans(plans)
+List plans;
+{
+    LispValue x;
+
+    foreach (x, plans) {
+	p_plan(CAR(x));
+      }
+}
+
+char *
+path_type(path)
+Path path;
+{
+	switch (NodeType(path)) {
+	case classTag(HashPath): return "HashJoin";
+	case classTag(MergePath): return "MergeJoin";
+	case classTag(JoinPath): return "NestLoop";
+	case classTag(IndexPath): return "IndexScan";
+	case classTag(Path): return "SeqScan";
+	default: return "???";
+	}
+}
+
+void
+ppath(path)
+Path path;
+{
+    if (path == NULL) return;
+    fprintf(stderr, "(%s ", path_type(path));
+    switch (NodeType(path)) {
+    case classTag(HashPath):
+	ppath(get_outerjoinpath(path));
+	fprintf(stderr, " (Hash ");
+	ppath(get_innerjoinpath(path));
+	fprintf(stderr, ")");
+	break;
+    case classTag(MergePath):
+	if (get_outersortkeys(path)) {
+	    fprintf(stderr, "(SeqScan (Sort ");
+	    ppath(get_outerjoinpath(path));
+	    fprintf(stderr, "))");
+	  }
+	else
+	    ppath(get_outerjoinpath(path));
+	fprintf(stderr, " ");
+	if (get_innersortkeys(path)) {
+	    fprintf(stderr, "(SeqScan (Sort ");
+	    ppath(get_innerjoinpath(path));
+	    fprintf(stderr, "))");
+	  }
+	else
+	    ppath(get_innerjoinpath(path));
+	break;
+    case classTag(JoinPath):
+	ppath(get_outerjoinpath(path));
+	fprintf(stderr, " ");
+	ppath(get_innerjoinpath(path));
+	break;
+    case classTag(IndexPath):
+    case classTag(Path):
+	fprintf(stderr, "%s", 
+	  CString(getrelname(CInteger(CAR(get_relids(get_parent(path)))),
+			     _query_range_table_)));
+	break;
+    default:
+	fprintf(stderr, "unknown plan type.\n");
+	break;
+      }
+    fprintf(stderr, ")");
+    return;
+}
+
+void
+p_path(path)
+Path path;
+{
+    ppath(path);
+    fprintf(stderr, "\n");
+}
+
+void
+p_paths(paths)
+List paths;
+{
+    LispValue x;
+
+    foreach (x, paths) {
+	p_path(CAR(x));
+      }
+}
+
+void
+p_rel(rel)
+Rel rel;
+{
+    fprintf(stderr, "relids: ");
+    lispDisplay(get_relids(rel));
+    fprintf(stderr, "\npathlist:\n");
+    p_paths(get_pathlist(rel));
+    fprintf(stderr, "unorderedpath:\n");
+    p_path(get_unorderedpath(rel));
+    fprintf(stderr, "cheapestpath:\n");
+    p_path(get_cheapestpath(rel));
+}
+
+void
+p_rels(rels)
+List rels;
+{
+    LispValue x;
+
+    foreach (x, rels) {
+	p_rel(CAR(x));
+      }
 }
