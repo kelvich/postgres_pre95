@@ -374,9 +374,9 @@ FILE *fp;
                     {
                         if (attr[i]->attlen < 0)
                         {
-                            values[i] = (Datum) (ptr + 4);
+                            values[i] = (Datum) ptr;
                             ptr = (char *)
-                                  LONGALIGN(ptr + * (unsigned long *) ptr + 4);
+                                  LONGALIGN(ptr + * (unsigned long *) ptr);
                         }
                         else
                         {
