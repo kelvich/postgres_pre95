@@ -1,0 +1,31 @@
+.\" This is -*-nroff-*-
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.TH REINDEXDB UNIX 02/04/94
+.XA 1 Reindexdb
+.SH NAME
+reindexdb \- reconstruct damaged system catalog indices
+.SH SYNOPSIS
+.BR reindexdb
+dbname
+.SH DESCRIPTION
+In normal processing mode, \*(PG requires secondary indices on certain
+system catalog classes.  It is possible that these indices can be
+damaged during updates, e.g., if the backend server is killed during a
+query that creates a new class.  Once the indices are damaged, it
+becomes impossible to access the database.
+.BR Reindexdb
+removes the old indices and attempts to reconstruct them from the base
+class data.
+.PP
+Before running 
+.BR reindexdb ,
+make sure that the
+.IR postmaster
+process is not running on the database server host.
+.PP
+.BR Reindexdb
+can only be executed by the \*(PG superuser.
+.SH "SEE ALSO"
+initdb(unix),
+postmaster(unix).
