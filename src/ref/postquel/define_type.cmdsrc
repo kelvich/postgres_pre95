@@ -12,6 +12,7 @@ define type \*- define a new base data type
 	[ externallength = (number | variable), ]
 	input = function, output = function
 	[ , element = typename]
+	[ , delimiter = <character>]
 	[ , default = \*(lqstring\*(rq ]
 	[ , send = procedure ] [ , receive = procedure ]
 	[ , passedbyvalue])
@@ -65,6 +66,10 @@ attribute.  For example, to define an array of 4 byte integers (int4), set the
 attribute equal to
 .b "int4".
 .lp
+To indicate the delimiter to be used on arrays of this type, the 
+.i "delimiter"
+attribute can be set to a specific character.  The default delimiter is
+the comma (``,'') character.
 A
 .i "default"
 value is optionally available in case a user wants some specific bit
@@ -108,16 +113,17 @@ using the appropriate facilities described in this section.
 Two generalized builtin functions,
 .b array_in
 and
-.b array_out
+.b array_out,
 exist for quick creation of variable length array types.  These functions
 operate on any existing Postgres type.
 .lp
 .uh "LARGE OBJECT TYPES"
+.lp
 A "regular" Postgres type can only be 8K bytes in length.  If you need
 a larger type, then you will want to create a Large Object type.  The
 interface for these types is discussed at length in Section 7, the Large
 Object Backend Interface.  The length of all large object types is always
-.b variable
+.b variable,
 meaning the internallength for large objects is always -1.
 .lp
 .uh EXAMPLES
