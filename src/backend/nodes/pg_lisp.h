@@ -209,27 +209,27 @@ class (LispStr) public (Node) {
     ((bool) lispNullp(p))
 
 #define consp(x) \
-    ((bool) (x) ? (bool)(LISP_TYPE(x) == PGLISP_DTPR) : false)
+    ((x) ? (bool)(LISP_TYPE(x) == PGLISP_DTPR) : false)
 
 #define listp(x) consp(x)
 
 #define lispStringp(x) \
-    ((bool) (x) ? (bool)(LISP_TYPE(x) == PGLISP_STR) : false)
+    ((x) ? (bool)(LISP_TYPE(x) == PGLISP_STR) : false)
 
 #define stringp(foo) lispStringp(foo)
 
 #define lispIntegerp(x) \
-    ((bool) (x) ? ((bool)LISP_TYPE(x) == PGLISP_INT) : false)
+    ((x) ? ((bool)LISP_TYPE(x) == PGLISP_INT) : false)
 
 #define integerp(foo) lispIntegerp(foo)
 
 #define lispAtomp(x) \
-    ((bool) (x) ? (bool)(LISP_TYPE(x) == PGLISP_ATOM) : false)
+    ((x) ? (bool)(LISP_TYPE(x) == PGLISP_ATOM) : false)
 
 #define atom(foo) lispAtomp(foo)
 
 #define floatp(x) \
-    ((bool) (x) ? (bool)(LISP_TYPE(x) == PGLISP_FLOAT) : false)
+    ((x) ? (bool)(LISP_TYPE(x) == PGLISP_FLOAT) : false)
 
 #define numberp(foo) \
    ((bool) (integerp(foo) || floatp(foo)))
