@@ -442,8 +442,10 @@ ProcessQuery(parserOutput, originalPlan, dest)
     Plan 	newPlan;
     Fragment	planFragments;
     List	currentFragments;
+    extern int	testFlag;
     
     currentPlan = originalPlan;
+    if (testFlag) dest = None;
     queryDesc = CreateQueryDesc(parserOutput, currentPlan, dest);
     
     if (ParallelExecutorEnabled()) {
