@@ -8,8 +8,6 @@
  * DESCRIPTION:
  *
  *   Code for putting/removing relation level locks:
- *	prs2PutRelationLevelLocks
- *	prs2RemoveRelationLevelLocks
  *   Relation level locks are stored in pg_relation. All the
  *   tuples of the coresponding relation are assumed to be locked by
  *   these locks.
@@ -27,41 +25,244 @@
 #include "utils/log.h"
 #include "utils/relcache.h"	/* RelationNameGetRelation() defined here...*/
 #include "rules/prs2.h"
+#include "rules/prs2stub.h"
 #include "access/skey.h"	/* 'ScanKeyEntryData' defined here... */
 #include "access/tqual.h"	/* 'NowTimeQual' defined here.. */
 #include "access/heapam.h"	/* heap AM calls defined here */
-#include "utils/lsyscache.h"	/* get_attnum()  defined here...*/
+#include "utils/lsyscache.h"	/* for get_attnum(), get_rel_name() ...*/
 #include "parser/parse.h"	/* RETRIEVE, APPEND etc defined here.. */
 #include "parser/parsetree.h"
 #include "catalog/catname.h"	/* names of various system relations */
 #include "utils/fmgr.h"	/* for F_CHAR16EQ, F_CHAR16IN etc. */
 #include "access/ftup.h"	/* for FormHeapTuple() */
+#include "utils/palloc.h"
 
 #include "catalog/pg_proc.h"
 #include "catalog/pg_prs2rule.h"
 #include "catalog/pg_prs2plans.h"
 
 extern HeapTuple palloctup();
+Prs2Stub prs2FindStubsThatDependOnAttribute();
 
 /*-----------------------------------------------------------------------
- * prs2PutRelationLevelLocks
+ * prs2DefRelationLevelLockRule
  *
- * Put the appropriate relation level locks. 
+ * Put the appropriate locks for a tuple-system rule that is implemented
+ * with a relation level lock.
+ *
+ * We have to do two things:
+ * a) put the relation level lock for this rule (easy!)
+ * b) If this is a "on retrieve ... do retrieve" rule, i.e.
+ * if it places a "write" lock to an attribute, then we must find all
+ * the tuple-level-lock rules that reference this attribute in their
+ * qualification and change them to relation-level-lock rules too.
+ * (see the discussion in the comments in "prs2putlocks.c"...)
+ *-----------------------------------------------------------------------
+ */
+void
+prs2DefRelationLevelLockRule(r)
+Prs2RuleData r;
+{
+    RuleLock oldLocks, newLocks;
+    LispValue actionPlans;
+    Name relationName;
+    Prs2Stub relstubs, stubs, newstubs;
+    ObjectId *ruleoids;
+    int nrules;
+    int i;
+    AttributeNumber attributeNo;
+    Prs2LockType lockType;
+
+
+    /*
+     * insert the appropriate info in the system catalogs.
+     * (and find the rule oid)
+     */
+    r->ruleId = prs2InsertRuleInfoInCatalog(r);
+
+    elog(DEBUG,
+	"Rule %s (id=%ld) will be implemented with a relation level lock",
+	r->ruleName, r->ruleId);
+
+    actionPlans = prs2GenerateActionPlans(r);
+    prs2InsertRulePlanInCatalog(r->ruleId, ActionPlanNumber, actionPlans);
+
+    /*
+     * find the loc type and the attribute that must be locked
+     */
+    prs2FindLockTypeAndAttrNo(r, &lockType, &attributeNo);
+
+
+    /*
+     * Find the relation level locks of the relation
+     */
+    relationName = get_rel_name(r->eventRelationOid);
+    oldLocks = prs2GetLocksFromRelation(relationName);
+
+    /*
+     * now claculate the new locks
+     */
+    newLocks = prs2CopyLocks(oldLocks);
+    newLocks = prs2AddLock(newLocks,
+		    r->ruleId,
+		    lockType,
+		    attributeNo,
+		    ActionPlanNumber);	/* 'ActionPlanNumber' is a constant */
+    
+    /*
+     * if this is a "write" lock, we might have to change some other
+     * rules too (from tuple-level-lock to relation-level-lock).
+     */
+    if (lockType == LockTypeTupleRetrieveWrite) {
+	/*
+	 * find all the tuple-level-lock rules that must be changed
+	 * to relation-level-lock...
+	 * Look at the (relation level) stubs of this relation.
+	 * and find all the stubs that "depend" on "attributeNo"
+	 * (the attribute to be locked by a "write" lock).
+	 */
+	relstubs = prs2GetRelationStubs(r->eventRelationOid);
+	stubs = prs2FindStubsThatDependOnAttribute(relstubs, attributeNo);
+	/*
+	 * now get the rule oids from the stubs & store them in an
+	 * array.
+	 */
+	nrules = stubs->numOfStubs;
+	if (nrules>0) {
+	    ruleoids = (ObjectId *) palloc(nrules * sizeof(ObjectId));
+	    if (ruleoids==NULL) {
+		elog(WARN,"prs2DefRelationLevelLockRule: out of memory!");
+	    }
+	}
+	for (i=0; i<nrules; i++) {
+	    ruleoids[i] = stubs->stubRecords[i]->ruleId;
+	}
+
+#ifdef PRS2_DEBUG
+	{
+	    int k;
+
+	    printf(
+	    "PRS2: the following rules will change from TupLev to RelLev\n");
+	    printf("PRS2:");
+	    for (k=0; k<nrules; k++) {
+		printf(" %ld", ruleoids[k]);
+	    }
+	    printf("\n");
+	}
+#endif PRS2_DEBUG
+
+	/*
+	 * now remove their tuple level locks and stubs..
+	 */
+	prs2RemoveTupleLeveLocksAndStubsOfManyRules(r->eventRelationOid,
+						    ruleoids,
+						    nrules);
+	/*
+	 * finally, these rules must be implemented with a relation
+	 * level lock, so add the appropriate locks to 'newLocks'
+	 */
+	for (i=0; i<nrules; i++) {
+	    newLocks = prs2LockUnion(newLocks, stubs->stubRecords[i]->lock);
+	}
+    }
+
+    /*
+     * OK, now update the relation-level-locks of the relation.
+     */
+    prs2SetRelationLevelLocks(r->eventRelationOid, newLocks);
+
+}
+
+/*--------------------------------------------------------------
+ *
+ * prs2UndefRelationLevelLockRule
+ *
+ * remove a rule that uses relation level locks...
+ * delete its relation level lock & all the info from the
+ * system catalogs.
+ *--------------------------------------------------------------
+ */
+void
+prs2UndefRelationLevelLockRule(ruleId, relationId)
+ObjectId ruleId;
+ObjectId relationId;
+{
+
+    elog(DEBUG, "Removing relation-level-lock rule %ld", ruleId);
+
+    /*
+     * first remove the relation level lock
+     */
+    prs2RemoveRelationLevelLocksOfRule(ruleId, relationId);
+
+    /*
+     * Finally remove the system catalog info...
+     */
+    prs2DeleteRulePlanFromCatalog(ruleId);
+    prs2DeleteRuleInfoFromCatalog(ruleId);
+
+}
+
+/*-----------------------------------------------------------------------
+ * prs2RemoveRelationLevelLocksOfRule
+ *
+ * remove the relation level locks of the given rule
+ *
+ *-----------------------------------------------------------------------
+ */
+void
+prs2RemoveRelationLevelLocksOfRule(ruleId, relationId)
+ObjectId ruleId;
+ObjectId relationId;
+{
+    RuleLock currentLocks;
+    RuleLock newLocks;
+    Name relationName;
+
+    /*
+     * first find the current locks of the relation
+     */
+    relationName = get_rel_name(relationId);
+    if (relationName == NULL) {
+	elog(WARN, "prs2RemoveRelationLevelLocksOfRule: can not find rel %d",
+	    relationId);
+    }
+
+    currentLocks = prs2GetLocksFromRelation(relationName);
+#ifdef PRS2_DEBUG
+    printf("PRS2: Remove RelationLevelLock of rule %d from rel=%s\n",
+	ruleId, relationName);
+#endif PRS2_DEBUG
+
+    /*
+     * Now calculate the new locks
+     */
+    newLocks = prs2RemoveAllLocksOfRule(currentLocks, ruleId);
+
+    /*
+     * Now, update the locks of the relation
+     */
+    prs2SetRelationLevelLocks(relationId, newLocks);
+}
+
+/*-----------------------------------------------------------------------
+ * prs2SetRelationLevelLocks
+ *
+ * Set the relation level locks for a relation to the given ones.
  * These locks are stored in the appropriate tuple of pg_relation.
  * All the tuples of the target relation are assumed to be locked
  *
  * Relation level locks are used by both the tuple-level system and
  * the query rewrite system.
+ *
  *-----------------------------------------------------------------------
  */
 
 void
-prs2PutRelationLevelLocks(ruleId, lockType, eventRelationOid,
-				    lockedAttrNo)
-ObjectId ruleId;
-Prs2LockType lockType;
-ObjectId eventRelationOid;
-AttributeNumber lockedAttrNo;
+prs2SetRelationLevelLocks(relationId, newLocks)
+ObjectId relationId;
+RuleLock newLocks;
 {
 
     Relation relationRelation;
@@ -70,14 +271,6 @@ AttributeNumber lockedAttrNo;
     HeapTuple tuple;
     Buffer buffer;
     HeapTuple newTuple;
-    RuleLock currentLock;
-
-#ifdef PRS2_DEBUG
-	printf(
-	    "Putting relation level locks (ruleId=%ld, relId=%ld, attr=%hd)\n",
-	    ruleId, eventRelationOid, lockedAttrNo);
-#endif PRS2_DEBUG
-
 
     /*
      * Lock a relation given its ObjectId.
@@ -89,43 +282,33 @@ AttributeNumber lockedAttrNo;
     scanKey.data[0].flags = 0;
     scanKey.data[0].attributeNumber = ObjectIdAttributeNumber;
     scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
-    scanKey.data[0].argument = ObjectIdGetDatum(eventRelationOid);
+    scanKey.data[0].argument = ObjectIdGetDatum(relationId);
     scanDesc = RelationBeginHeapScan(relationRelation,
-					0, NowTimeQual,
+					false, NowTimeQual,
 					1, &scanKey);
     
-    tuple = HeapScanGetNextTuple(scanDesc, 0, &buffer);
+    tuple = HeapScanGetNextTuple(scanDesc, false, &buffer);
     if (!HeapTupleIsValid(tuple)) {
-	elog(WARN, "Invalid rel OID %ld", eventRelationOid);
+	elog(WARN, "prs2SetRelationLevelLocks: Invalid rel OID %ld",
+		relationId);
     }
 
-    /*
-     * We have found the appropriate tuple of the RelationRelation.
-     * Now find its old locks, and add the new one
-     */
-    currentLock = prs2GetLocksFromTuple(tuple, buffer,
-					relationRelation->rd_att);
-
 #ifdef PRS2_DEBUG
-    /*-- DEBUG --*/
-    printf("previous Relation Level Lock:");
-    prs2PrintLocks(currentLock);
-    printf("\n");
-#endif /* PRS2_DEBUG */
+    {
+	RuleLock l;
 
-    currentLock = prs2AddLock(currentLock,
-			ruleId,
-			lockType,
-			lockedAttrNo,
-			ActionPlanNumber);	/* ActionPlanNumber is
-						   a constant.  */
-
-#ifdef PRS2_DEBUG
-    /*-- DEBUG --*/
-    printf("new Relation Level Lock:");
-    prs2PrintLocks(currentLock);
-    printf("\n");
-#endif /* PRS2_DEBUG */
+	l = prs2GetLocksFromTuple(tuple, buffer, (TupleDescriptor) NULL);
+	printf(
+	    "PRS2:prs2SetRelationLevelLocks: Updating locks of relation %d\n",
+	    relationId);
+	printf("PRS2: Old RelLev Locks = ");
+	prs2PrintLocks(l);
+	printf("\n");
+	printf("PRS2: New RelLev Locks = ");
+	prs2PrintLocks(newLocks);
+	printf("\n");
+    }
+#endif PRS2_DEBUG
 
     /*
      * Create a new tuple (i.e. a copy of the old tuple
@@ -134,7 +317,7 @@ AttributeNumber lockedAttrNo;
      * NOTE: XXX ??? do we really need to make that copy ????
      */
     newTuple = palloctup(tuple, buffer, relationRelation);
-    prs2PutLocksInTuple(newTuple, buffer, relationRelation, currentLock);
+    prs2PutLocksInTuple(newTuple, InvalidBuffer, relationRelation, newLocks);
 
     RelationReplaceHeapTuple(relationRelation, &(tuple->t_ctid),
 			    newTuple, (double *)NULL);
@@ -144,92 +327,55 @@ AttributeNumber lockedAttrNo;
 }
 
 
-/*--------------------------------------------------------------
+/*-------------------------------------------------------------------
+ * prs2AddRelationLevelLock
  *
- * prs2RemoveRelationLevelLocks
+ * create & add a new relation level lock to the given relation.
  *
- * Unlock a relation given its ObjectId and the Objectid of the rule
- * Go to the RelationRelation (i.e. pg_relation), find the
- * appropriate tuple, and remove all locks of this rule from it.
- *
- * Relation level locks are used by both the tuple-level system and
- * the query rewrite system.
- *--------------------------------------------------------------
+ *-------------------------------------------------------------------
  */
-
 void
-prs2RemoveRelationLevelLocks(ruleId, eventRelationOid)
+prs2AddRelationLevelLock(ruleId, lockType, relationId, attrNo)
 ObjectId ruleId;
-ObjectId eventRelationOid;
+Prs2LockType lockType;
+ObjectId relationId;
+AttributeNumber attrNo;
 {
-
-    Relation relationRelation;
-    HeapScanDesc scanDesc;
-    ScanKeyData scanKey;
-    HeapTuple tuple;
-    Buffer buffer;
-    HeapTuple newTuple;
-    HeapTuple newTuple2;
     RuleLock currentLocks;
-    Boolean isNull;
-    int i;
-    int numberOfLocks;
-    Prs2OneLock oneLock;
-
-    relationRelation = RelationNameOpenHeapRelation(RelationRelationName);
-
-    scanKey.data[0].flags = 0;
-    scanKey.data[0].attributeNumber = ObjectIdAttributeNumber;
-    scanKey.data[0].procedure = ObjectIdEqualRegProcedure;
-    scanKey.data[0].argument = ObjectIdGetDatum(eventRelationOid);
-    scanDesc = RelationBeginHeapScan(relationRelation,
-					0, NowTimeQual,
-					1, &scanKey);
-    
-    tuple = HeapScanGetNextTuple(scanDesc, 0, &buffer);
-    if (!HeapTupleIsValid(tuple)) {
-	elog(NOTICE, "Could not find relation with id %ld\n", eventRelationOid);
-    } else {
-	/*
-	 * "calculate" the new locks...
-	 */
-	currentLocks = prs2GetLocksFromTuple(
-				tuple,
-				buffer,
-				&(relationRelation->rd_att));
-#ifdef PRS2_DEBUG
-	printf("previous Lock:");
-	prs2PrintLocks(currentLocks);
-	printf("\n");
-#endif PRS2_DEBUG
-
-	/*
-	 * find all the locks with the given rule id and remove them
-	 */
-	currentLocks = prs2RemoveAllLocksOfRule(currentLocks, ruleId);
-
-#ifdef PRS2_DEBUG
-	printf("new Lock:");
-	prs2PrintLocks(currentLocks);
-	printf("\n");
-#endif PRS2_DEBUG
-
-	/*
-	 * Create a new tuple (i.e. a copy of the old tuple
-	 * with its rule lock field changed and replace the old
-	 * tuple in the RelationRelation
-	 * NOTE: XXX ??? do we really need to make that copy ????
-	 */
-	newTuple = palloctup(tuple, buffer, relationRelation);
-	prs2PutLocksInTuple(tuple, buffer, relationRelation, currentLocks);
-	RelationReplaceHeapTuple(relationRelation, &(tuple->t_ctid),
-				newTuple, (double *)NULL);
-	
-    }
+    RuleLock newLocks;
+    Name relationName;
 
     /*
-     * we are done, close the RelationRelation...
+     * first find the current locks of the relation
      */
-    RelationCloseHeapRelation(relationRelation);
+    relationName = get_rel_name(relationId);
+    currentLocks = prs2GetLocksFromRelation(relationName);
+#ifdef PRS2_DEBUG
+    printf("previous Lock:");
+    prs2PrintLocks(currentLocks);
+    printf("\n");
+#endif PRS2_DEBUG
+
+    /*
+     * Now calculate the new locks
+     */
+    newLocks = prs2AddLock(currentLocks,
+			ruleId,
+			lockType,
+			attrNo,
+			ActionPlanNumber);	/* ActionPlanNumber is
+						   a constant.  */
+
+#ifdef PRS2_DEBUG
+    printf("new Lock:");
+    prs2PrintLocks(newLocks);
+    printf("\n");
+#endif PRS2_DEBUG
+    
+    /*
+     * Now, update the locks of the relation
+     */
+    prs2SetRelationLevelLocks(relationId, newLocks);
 
 }
+

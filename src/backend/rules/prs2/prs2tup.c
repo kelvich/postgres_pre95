@@ -17,202 +17,659 @@
 #include "utils/fmgr.h"
 #include "executor/execdefs.h"	/* for the EXEC_RESULT */
 #include "rules/prs2.h"
+#include "rules/prs2stub.h"
+#include "rules/rac.h"
 #include "parser/parsetree.h"
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
 #include "utils/lsyscache.h"
+#include "utils/palloc.h"
 
-extern LispValue MakeRangeTableEntry();
-extern LispValue MakeRoot();
-extern LispValue planner();
+extern HeapTuple palloctup();
 extern LispValue cnfify();
+extern bool IsPlanUsingCurrentAttr();
+extern LispValue FindVarNodes();
+Prs2Stub prs2FindStubsThatDependOnAttribute();
 
 /*--------------------------------------------------------------------
  *
- * prs2PutTupleLevelLocks
+ * prs2DefTupleLevelLockRule
  *
- * This routines puts "tuple-level" locks to the tuple of a relation.
+ * Read the following at your own risk... If you are not me, then
+ * you have my sympathy.
+ * 
+ * This routine puts "tuple-level" locks to the tuple of a relation.
  *
- * The relation is specified by its oid "relationOid".
- * "ruleId", "lockType" and "attributeNo" are the rule oid, the type
- * of lock and the attribute number to be locked.
- *
- * Finally, "constQual" is a qualification which involves only
- * attributes og the CURRENT relation (i.e. of the relation to be locked)
+ * "constQual" is a qualification which involves only
+ * attributes of the CURRENT relation (i.e. of the relation to be locked)
  * and constants. (i.e. it has no joins, etc.).
  *
- * This routine locks all the
- * tuples of the relation that satisfy this 'constQual'.
- * It first creates the appropriate parse tree, calls the planner
- * to create the plan, and then executes it.
+ * Now the tricky part... Which tuples to lock ????
+ * Yes, I know, you think that's a trivial question, right?
+ * We only need to lock the tuples that satisfy the `constQual', eh?
+ * Well, I have bad news for you, my dear hacker, who were naive enough
+ * to be dragged into the gloomy world of rules.
+ * Consider the following example:
+ *
+ * RULE 1:	on retrieve to EMP.salary
+ *		where current.name = "spyros"
+ *		do instead retrieve (salary=1)
+ *
+ * RULE 2:	on retrieve to EMP.desk
+ *		where current.salary = 1
+ *		do instead retrieve (desk = "what desk?")
+ *
+ * Lets say that we have a tuple:
+ *   [ NAME	SALARY	DESK  ]
+ *   [ spyros	2	steel ]
+ * Well, if we define RULE_1 first and RULE_2 second, everything is
+ * OK. However, if we define RULE_2 first, then we will NOT put
+ * a lock to spyros' tuple, because his salary is 2.
+ * So, when later on we define RULE_1 we must put in spyros' tuple not
+ * only the locks of RULE_1, but also the locks for RULE_2!
+ *
+ * To make things even worse, lets rewrite rule 1:
+ * RULE 1:	on retrieve to EMP.salary
+ *		where current.name = "spyros"
+ *		do instead retrieve (E.salary) where E.name = "mike"
+ * And lets say that initially mike has a salary equal to 2.
+ * Now even if we define RULE_1 first and RULE_2 second, still
+ * spyros' tuple will not get any locks. If later on we change mike's
+ * salary from 2 to 1, then we are in trouble....
+ *
+ * So, to cut a long story longer:
+ * a) we have to lock all the tuples that satisfy 'constQual' OR
+ *    have a "write" lock in any attribute referenced by this 'constQual'
+ * b) when we put a lock to a tuple, then if this lock is a "write"
+ *    lock (i.e. if our new rule is something like "on retrieve ... do
+ *    retrieve" we have also to check all the relation level stub records.
+ *    For every stub if its qualification references the attribute
+ *    we are currently putting this "write" lock on, then we have also to
+ *    add to this tuple the stub's lock...
+ *
+ * NOTE: we do not update the rules system catalogs (prs2_plans &
+ * prs2_rule).
  *
  *--------------------------------------------------------------------
  */
 
-void
-prs2PutTupleLevelLocks(ruleId, lockType, relationOid, attributeNo, constQual)
-ObjectId ruleId;
-Prs2LockType lockType;
-ObjectId relationOid;
-AttributeNumber attributeNo;
-LispValue constQual;
+bool
+prs2DefTupleLevelLockRule(r)
+Prs2RuleData r;
+{
+    LispValue actionPlans;
+    LispValue constQual, planQual;
+    Relation rel;
+    RuleLock relLocks;
+    TupleDescriptor tdesc;
+    HeapScanDesc scanDesc;
+    HeapTuple tuple, newTuple;
+    Buffer buffer;
+    Prs2Stub oldStubs;
+    RuleLock newLocks, thislock, tlocks, newtlocks;
+    AttributeNumber *attrList;
+    int attrListSize;
+    Prs2OneStub oneStub;
+    Prs2LockType lockType;
+    AttributeNumber attributeNo;
+
+    /*
+     * First find the constant qual, i.e.a qualification
+     * that only involves constants & attributes of the
+     * "current" tuple.
+     * NOTE: we assume that the varno of the current tuple
+     * is a constant (this is hardcoded in the parser).
+     */
+    constQual = prs2FindConstantQual(r->ruleQual, PRS2_CURRENT_VARNO);
+
+    /*
+     * If this qual is null, then use relation level locks.
+     * Return 'false' to indicate that it is not a good idea to
+     * use tuple level locks.
+     */
+    if (null(constQual)) {
+	return(false);
+    }
+
+    /*
+     * Find all the attributes of the CURRENT tupel 
+     * referenced by the the constant qual.
+     */
+    prs2FindAttributesOfQual(constQual, PRS2_CURRENT_VARNO, 
+			    &attrList, &attrListSize);
+
+    /*
+     * Another reason we should use relation level locks, is if the
+     * 'constQual' references an attribute which is calculated by
+     * a rule using a relation-level lock. (i.e. if the attribute
+     * has a relation level "LockTypeTupleRetrieveWrite" lock.
+     */
+    rel = ObjectIdOpenHeapRelation(r->eventRelationOid);
+    relLocks = prs2GetLocksFromRelation(RelationGetRelationName(rel));
+
+    if (prs2LockWritesAttributes(relLocks, attrList, attrListSize)) {
+	/*
+	 * ooops! we have to use a relation level lock.
+	 */
+	RelationCloseHeapRelation(rel);
+	return(false);
+    }
+
+    /*
+     * OK, go ahead & use tuple level locks....
+     *
+     * First add the appropriate info to the system catalogs
+     * Start with 'pg_prs2rule'... This will give us back the rule oid.
+     */
+    r->ruleId = prs2InsertRuleInfoInCatalog(r);
+    elog(DEBUG,
+	"Rule %s (id=%ld) will be implemented using tuple-level-locks",
+	r->ruleName, r->ruleId);
+
+    /*
+     * Now generate & append the appropriate rule plans in the
+     * 'pg_prs2plans' relation.
+     * NOTE: 'ActionPlanNUmber' is a constant...
+     */
+    actionPlans = prs2GenerateActionPlans(r);
+    prs2InsertRulePlanInCatalog(r->ruleId, ActionPlanNumber, actionPlans);
+
+    /*
+     * Find what type of lock to use and in which attribute to put it
+     */
+    prs2FindLockTypeAndAttrNo(r, &lockType, &attributeNo);
+
+    /*
+     * OK, start putting the rule locks in the tuples of the relation.
+     * Yes, yes, we are going to do a sequential scan of the
+     * relation, checking ALL the tuples one by one, and if you don't
+     * like it, so what? It works and no planner can do better
+     * (remember, it is not enough to test the 'constQual'!)
+     */
+    tdesc = RelationGetTupleDescriptor(rel);
+    scanDesc = RelationBeginHeapScan(rel, false, NowTimeQual, 0, NULL);
+
+    /*
+     * create the new lock (for the new rule).
+     */
+    thislock = prs2MakeLocks();
+    thislock = prs2AddLock(thislock, r->ruleId, lockType,
+			attributeNo, ActionPlanNumber);
+
+    /*
+     * Find the locks that we must put to the tuple.
+     * These locks include of course the 'newLock' but they might also
+     * inlcude the locks of all the stubs that "depend" on the
+     * attribute locked by 'newlock' iff of course this is a
+     * "write" lock...
+     */
+    oldStubs = prs2GetRelationStubs(r->eventRelationOid);
+    newLocks = prs2FindLocksThatWeMustPut(oldStubs, thislock, attributeNo);
+    prs2FreeLocks(thislock);
+
+    /*
+     * Now scan one by one the tuples & put locks to all the
+     * tuples that satisfy the qualification, or have a "write"
+     * tuple level lock to an attribute referenced by the current
+     * "constQual"
+     *
+     * NOTE: the 'constQual' is the qualification in a 'parsetree'
+     * format. In order to call 'prs2StubQualTestTuple' (which in turns
+     * calls the executor) we must change it to 'plan' format.
+     */
+    planQual = cnfify(constQual,true);
+    fix_opids(planQual);
+
+    while((tuple = HeapScanGetNextTuple(scanDesc, false, &buffer)) != NULL) {
+	/*
+	 * shall we put a lock to this tuple?
+	 */
+	tlocks = HeapTupleGetRuleLock(tuple, buffer);
+	if (prs2LockWritesAttributes(tlocks, attrList, attrListSize)
+	   || prs2StubQualTestTuple(tuple, buffer, tdesc, planQual)) {
+	    /*
+	     * yes!
+	     * Create a new tuple (i.e. a copy of the old tuple with the
+	     * new lock, and replace the old tuple).
+	     * NOTE: do we really need to make that copy ???
+	     */
+	    newTuple = palloctup(tuple, buffer, rel);
+	    newtlocks = prs2LockUnion(tlocks, newLocks);
+	    prs2PutLocksInTuple(newTuple, InvalidBuffer, rel, newtlocks);
+	    RelationReplaceHeapTuple(rel, &(tuple->t_ctid),
+					newTuple, (double *)NULL);
+	    prs2FreeLocks(newtlocks);
+	    pfree(tuple);
+	    pfree(newTuple);
+	}
+    }
+
+    /*
+     * But don't forget to put the relation level stub !
+     * NOTE: we can not use the qualification as produced by the
+     * parser. We have to preprocess it a little bit...
+     */
+    oneStub = prs2MakeOneStub();
+    oneStub->ruleId = r->ruleId;
+    oneStub->stubId = (Prs2StubId) 0;
+    oneStub->counter = 1;
+    oneStub->lock = newLocks;
+    oneStub->qualification = planQual;
+    prs2AddRelationStub(rel, oneStub);
+
+    /*
+     * OK, we are done, cleanup & return true...
+     */
+    RelationCloseHeapRelation(rel);
+    pfree(attrList);
+    return(true);
+}
+
+/*----------------------------------------------------------------------
+ * prs2FindLocksThatWeMustPut
+ *
+ * (I like that name.... I couldn't find a better one though...)
+ *
+ * Given some relation stubs and that the given attribute
+ * is going to be locked by a 'LockTypeReplaceWrite' lock,
+ * find all the new locks that the tuple must get.
+ * 
+ * More precisely when we add such a lock to an attribute,
+ * we have to find all the stubs that their qualification
+ * references this attribute, and add their locks to the se
+ * of the new locks for that tuple.
+ * As these locks can be of 'LockTypeReplaceWrite' we have
+ * to repeat this procedure for every such new lock.
+ *
+ *----------------------------------------------------------------------
+ */
+RuleLock
+prs2FindLocksThatWeMustPut(stubs, newlock, attrno)
+Prs2Stub stubs;
+RuleLock newlock;
+AttributeNumber attrno;
+{
+    RuleLock resultLocks;
+    RuleLock thisLock;
+    Prs2Stub s;
+    int i;
+
+
+    /*
+     * find the stubs that depend on this 'attrno'
+     */
+    s = prs2FindStubsThatDependOnAttribute(stubs, attrno);
+
+    /*
+     * the locks that we must finally put is the 'newlock'
+     * and all the locks of the stubs that depend on this
+     * attribute.
+     */
+    resultLocks = prs2CopyLocks(newlock);
+    for (i=0; i<s->numOfStubs; i++) {
+	thisLock = s->stubRecords[i]->lock;
+	resultLocks = prs2LockUnion(resultLocks, thisLock);
+    }
+
+    return(resultLocks);
+}
+	
+/*------------------------------------------------------------------------
+ * prs2FindStubsThatDependOnAttribute
+ *
+ * Given some stub records, return all the stubs that "depend" on the
+ * given attribute.
+ * A stub "depends" on the attribute if
+ * a) it references in its qualification this attribute
+ * b) refernces an attribute, where another second stub might place
+ * a "write" lock, and this second stub "depends" on the original
+ * attribute.
+ *------------------------------------------------------------------------
+ */
+Prs2Stub
+prs2FindStubsThatDependOnAttribute(stubs, attrno)
+Prs2Stub stubs;
+AttributeNumber attrno;
 {
     
-    RuleLock newlock;
-    Const newlockConst;
-    Var var;
-    Func func;
-    Resdom resdom;
-    LispValue planQual;
-    LispValue root;
-    LispValue tlist, expr;
-    LispValue rtable, rtentry;
-    LispValue parseTree, plan;
-    Name relname;
-    NameData lockName;
-    Relation relation;
-    Prs2OneStub oneStub;
-
-    /* ---------------------
-     * The parsetree we want to create corresponds to a query
-     * of the form:
-     *
-     * 		replace REL(lock = prs2LockUnion(REL.lock, <newlock>))
-     *		where <constQual>
-     * ---------------------
-     */
+    bool *stubUsed;
+    int i, j;
+    Prs2OneStub thisStub;
+    RuleLock thisStubLock;
+    Prs2Stub result;
+    List attrlist;
+    AttributeNumber thisattrno;
 
     /*
-     * Create the range table.
-     * The range table has only one entry, corresponding to the
-     * given relation.
-     *
-     * NOTE: XXX!!!!!!!!
-     * Currently all the "Var" nodes of "consQual" correspond to the CURRENT
-     * relation and have "varno" = 1. (the parser always puts
-     * the CURRENT relation at the beginning of the range table).
-     * If this changes, then we would probably have to add some
-     * dummy range table entries or change the "varno"s of all the
-     * Var nodes of the qualification.
+     * 'stubUsed' is an array whith one entry per stub record.
+     * If the entry is true, then we have already used this
+     * stub record, so there is no need to 
+     * check it again....
      */
-    relation = ObjectIdOpenHeapRelation(relationOid);
-    relname = RelationGetRelationName(relation);
-    rtentry = MakeRangeTableEntry(relname, LispNil, relname);
-    rtable = lispCons(rtentry, LispNil);
+    if (stubs->numOfStubs > 0) {
+	stubUsed = (bool *) palloc(sizeof(bool) * stubs->numOfStubs);
+	for (i=0; i<stubs->numOfStubs; i++) {
+	    stubUsed[i] = false;
+	}
+    }
 
     /*
-     * now create the target list.
-     * This corresponds to something like:
-     * (lock = prs2LockUnion(REL.lock, newlock)
-     *
-     * First create the newlock.
-     * NOTE: 'ActionPlanNumber' is a #defined constant...
-     *
-     * Then create a constant containing the new lock.
-     * NOTE: Rule locks are of type "lock" (oid = 31) registered in
-     * pg_type. They have a length of -1 (i.e. variable length type).
+     * 'result' is the stubs that depend on "attrno"
+     * 'attrList' is a list of the attributes to be examined.
      */
-    newlock = prs2MakeLocks();
-    newlock = prs2AddLock(newlock, ruleId, lockType,
-			attributeNo, ActionPlanNumber);
-    newlockConst = MakeConst(
-			PRS2_LOCK_TYPEID,	/* type of "lock" */
-			(Size) -1,		/* length of "lock" */
-			PointerGetDatum(newlock),	/* lock data */
-			(bool) false,		/* constisnull */
-			(bool) false);		/* constbyVal */
-    /*
-     * Now create a Func node, coresponding to the
-     * function call:
-     *		lockadd(REL.lock, newlock)
-     */
-    var = MakeVar(
-	    (Index) 1,		/* varno = index of relation in rtable */
-	    RuleLockAttributeNumber,	/* attr no of rule lock */
-	    PRS2_LOCK_TYPEID,		/* vartype */
-	    LispNil,			/* vardotfields */
-	    (Index) 0,			/* vararrayindex */
-	    lispCons(lispInteger(1),
-		    lispCons(lispInteger(RuleLockAttributeNumber), LispNil)),
-					/* varid */
-	    (ObjectId) 0);		/* varelemtype */
-    func = MakeFunc(
-	    (ObjectId) F_LOCKADD,	/* funcid - PG_PROC.oid */
-	    PRS2_LOCK_TYPEID,		/* functype - return type */
-	    (bool) false,		/* funcisindex - set by planner */
-	    0,				/* funcsize - set by executor */
-	    NULL);			/* func_fcache - set by executor */
-    expr = lispCons(func, lispCons(var, lispCons(newlockConst, LispNil)));
+    result = prs2MakeStub();
 
     /*
-     * the target list is a list containing a list consisting of
-     * a Resdom node and the expression calculated before.
+     * I hate that, but I had to use a lisp list!
      */
-    bzero((char*) (&(lockName.data[0])), sizeof(lockName.data));
-    strcpy((char *)(&(lockName.data[0])), "lock");
-    resdom = MakeResdom(
-		RuleLockAttributeNumber,	/* resno */
-		PRS2_LOCK_TYPEID,		/* restype */
-		(Size) -1,			/* reslen */
-		&(lockName.data[0]),		/* resname */
-		(Index) 0,			/* reskey */
-		0,				/* reskeyop */
-		0);				/* resjunk */
-    tlist = lispCons(lispCons(resdom,lispCons(expr,LispNil)), LispNil);
+    attrlist = lispCons(lispInteger((int)attrno), LispNil);
 
     /*
-     * Finally create the parse tree...
+     * now the loop... One by one examine all the stubs.
+     * and add the appropriate stubs to "result".
      */
-    root = MakeRoot(1,				/* NumLevels */
-		    lispAtom("replace"),	/* command name */
-		    lispInteger(1),		/* index in range table */
-		    rtable,			/* range table */
-		    lispInteger(0),		/* priority */
-		    LispNil,			/* rule info */
-		    LispNil,			/* unique flag */
-		    LispNil,			/* sort flag */
-		    tlist);			/* target list */
-    
-    parseTree = lispCons(root, LispNil);
-    parseTree = nappend1(parseTree, tlist);
-    parseTree = nappend1(parseTree, lispCopy(constQual));
+    while (!null(attrlist)) {
+	/*
+	 * get the first attribute to be examined, & remove it
+	 * from the list
+	 */
+	thisattrno = (AttributeNumber) CInteger(CAR(attrlist));
+	attrlist = CDR(attrlist);
+	for (i=0; i<stubs->numOfStubs; i++) {
+	    if (!stubUsed[i]) {
+		/*
+		 * does this stub depend on the attribute
+		 * we are currently examining ?
+		 */
+		thisStub = stubs->stubRecords[i];
+		thisStubLock = thisStub->lock;
+		if (prs2DoesStubDependsOnAttribute(thisStub, thisattrno)) {
+		    /*
+		     * add this stub to the 'result'
+		     */
+		    prs2AddOneStub(result, thisStub);
+		    stubUsed[i] = true;
+		    /*
+		     * if the stub locks contain a  "write" lock,
+		     * add the locked attribute to the list
+		     * of attributes to be examined...
+		     */
+		    for (j=0; j<prs2GetNumberOfLocks(thisStubLock); j++){
+			Prs2OneLock l;
+			Prs2LockType lt;
+			AttributeNumber a;
+			l = prs2GetOneLockFromLocks(thisStubLock,j);
+			lt = prs2OneLockGetLockType(l);
+			a = prs2OneLockGetAttributeNumber(l);
+			if (lt==LockTypeTupleRetrieveWrite) {
+			    attrlist = lispCons(lispInteger((int)a),attrlist);
+			}
+		    }/*for*/
+		}/*if*/
+	    }/*if*/
+	} /* for */
+    } /* while */
 
     /*
-     * Now call the planner to plan the parse tree
+     * clean up...
      */
-    plan = planner(parseTree);
+    if (stubs->numOfStubs > 0) 
+	pfree(stubUsed);
 
-    /*
-     * finally execute the plan.
-     * NOTE: 'prs2RunOnePlan' takes as argument a list of the
-     * parsetree and plan...
-     */
-    prs2RunOnePlan(lispCons(parseTree, lispCons(plan,LispNil)),
-		    NULL,
-		    NULL,			/* prs2EstateInfo */
-		    EXEC_RESULT);		/* feature */
-    
-    /*
-     * BTW, don't forget to put the (relation level) stub record too!
-     *
-     * NOTE: we can not use the qualification as produced by the parser.
-     * We have to pre-process it a little bit.
-     */
-     oneStub = prs2MakeOneStub();
-     oneStub->ruleId = ruleId;
-     oneStub->stubId = (Prs2StubId) 0;
-     oneStub->counter = 1;
-     oneStub->lock = newlock;
-
-     planQual = cnfify(constQual,true);
-     fix_opids(planQual);
-     oneStub->qualification = planQual;
-
-     prs2AddRelationStub(relation, oneStub);
-
-    /*
-     * And there is no need to leave that poor relation open for
-     * too long, now, is it?
-     */
-    RelationCloseHeapRelation(relation);
+     /*
+      * return the result stubs
+      */
+    return(result);
 }
+	
+
+/*------------------------------------------------------------------------
+ * prs2DoesStubDependsOnAttribute
+ * 
+ * return true iff 'stub' "depends" on attribute 'attrno', i.e. 
+ * if this attribute is used in the stub's qualification.
+ *------------------------------------------------------------------------
+ */
+bool
+prs2DoesStubDependsOnAttribute(onestub, attrno)
+Prs2OneStub onestub;
+AttributeNumber attrno;
+{
+    LispValue qual;
+    AttributeNumber *attrList;
+    int attrListSize;
+    int i;
+    bool res;
+
+    qual = onestub->qualification;
+
+    prs2FindAttributesOfQual(qual, PRS2_CURRENT_VARNO,
+			&attrList, &attrListSize);
+
+    res = false;
+    for (i=0; i<attrListSize; i++) {
+	if (attrList[i] == attrno) {
+	    res = true;
+	    break;
+	}
+    }
+		    
+    pfree(attrList);
+    return(res);
+
+}
+
+/*------------------------------------------------------------------------
+ * prs2LockWritesAttributes
+ *
+ * return true if among the rule locks is a "write" lock that
+ * "writes" any of the attributes given.
+ *------------------------------------------------------------------------
+ */
+bool
+prs2LockWritesAttributes(locks, attrList, attrListSize)
+RuleLock locks;
+AttributeNumber *attrList;
+int attrListSize;
+{
+
+    register int i, j;
+    register AttributeNumber attrno;
+    Prs2OneLock oneLock;
+
+    for (i=0; i< prs2GetNumberOfLocks(locks); i++) {
+	oneLock = prs2GetOneLockFromLocks(locks, i);
+	if (prs2OneLockGetLockType(oneLock) == LockTypeTupleRetrieveWrite) {
+	    attrno = prs2OneLockGetAttributeNumber(oneLock);
+	    for (j=0; j<attrListSize; j++) {
+		if (attrno == attrList[j]) {
+		    return(true);
+		}
+	    }/*foreach*/
+	}/*if*/
+    }/*for*/
+
+    return(false);
+}
+
+/*------------------------------------------------------------------------
+ * prs2FindAttributesOfQual
+ *
+ * Given a qualification, return a lsit of all the attributes
+ * of the given "varno" used in this qual.
+ * This list is actually a "palloced" array of AttributeNumbers.
+ *
+ * NOTE: duplicates are not removed...
+ *------------------------------------------------------------------------
+ */
+void
+prs2FindAttributesOfQual(qual, varno, attrListP, attrListSizeP)
+LispValue qual;
+int varno;
+AttributeNumber **attrListP;
+int *attrListSizeP;
+{
+    LispValue varnodes, t;
+    Var v;
+    int i,n;
+    AttributeNumber *a;
+    
+    /*
+     * first find the Var nodes of the qual
+     */
+    varnodes = FindVarNodes(qual);
+
+    /*
+     * first count the attributes
+     */
+    n = 0;
+    foreach(t, varnodes) {
+	v = (Var) CAR(t);
+	if (get_varno(v) == varno)
+	    n++;
+    }
+
+    /*
+     * allocate memory for the array.
+     */
+    a = (AttributeNumber *) palloc(n * sizeof(AttributeNumber));
+    if (a==NULL) {
+	elog(WARN, "prs2FindAttributesOfQual: Out of memory");
+    }
+
+    /*
+     * Now fill-in the array...
+     */
+    i=0;
+    foreach(t, varnodes) {
+	v = (Var) CAR(t);
+	if (get_varno(v) == varno) {
+	    a[i] = get_varattno(v);
+	    i++;
+	}
+    }
+
+    /*
+     * now return the right values...
+     */
+    *attrListP = a;
+    *attrListSizeP = n;
+}
+
+/*------------------------------------------------------------------------
+ * prs2UndefTupleLevelLockRule
+ *
+ * remove all the locks & stubs a rule implemented with a tuple level
+ * lock. Remove all system catalog info too...
+ *------------------------------------------------------------------------
+ */
+void
+prs2UndefTupleLevelLockRule(ruleId, relationOid)
+ObjectId ruleId;
+ObjectId relationOid;
+{
+    
+    elog(DEBUG, "Removing tuple-level-lock rule %ld", ruleId);
+
+    /*
+     * remove all its locks/stubs
+     */
+    prs2RemoveTupleLeveLocksAndStubsOfManyRules(relationOid, &ruleId, 1);
+
+    /*
+     * remove info from the system catalogs
+     */
+    prs2DeleteRulePlanFromCatalog(ruleId);
+    prs2DeleteRuleInfoFromCatalog(ruleId);
+
+}
+
+/*------------------------------------------------------------------------
+ * prs2RemoveTupleLevelLocksAndStubsOfManyRules
+ *
+ * remove all the locks & stubs of the rules specified.
+ * Do NOT update the system catalogs...
+ *
+ * We have this routine because sometimes we might to change
+ * many tuple-level-lock rules to relation-level-lock.
+ * If we do it separatelly for every rule we have two problmes:
+ *
+ * a) efficiency (one scan versus one scan per rule)
+ * b) all these scans run under the same Xid & Cid, therefore we
+ * are screwed, because we can not see the previous updates!
+ *------------------------------------------------------------------------
+ */
+void
+prs2RemoveTupleLeveLocksAndStubsOfManyRules(relationOid, ruleIds, nrules)
+ObjectId relationOid;
+ObjectId *ruleIds;
+int nrules;
+{
+    
+    bool status;
+    Relation rel;
+    HeapTuple tuple, newTuple;
+    Buffer buffer;
+    TupleDescriptor tdesc;
+    HeapScanDesc scanDesc;
+    RuleLock tlocks;
+    Prs2Stub stubs;
+    int i;
+
+    /*
+     * OK, first remove all the stubs for these rules
+     */
+    stubs = prs2GetRelationStubs(relationOid);
+    for (i=0; i<nrules; i++) {
+	status =  prs2RemoveStubsOfRule(stubs, ruleIds[i]);
+	if (!status) {
+	    /*
+	     * something smells fishy here...
+	     * that means that the rule didnt have any stubs,
+	     * so it wasn't a tuple-level-lock rule...
+	     */
+	    elog(DEBUG,
+	"prs2RemoveTupleLevelLocksOfManyRules: rule %d is not tuple-level-lock"
+	    ,ruleIds[i]);
+	}
+    }
+
+    /*
+     * Now update the stub records for the relation.
+     */
+    prs2ReplaceRelationStub(relationOid, stubs);
+
+    /*
+     * now remove all locks for this rule from the tuples of the
+     * relation...
+     */
+    rel = ObjectIdOpenHeapRelation(relationOid);
+    tdesc = RelationGetTupleDescriptor(rel);
+    scanDesc = RelationBeginHeapScan(rel, false, NowTimeQual, 0, NULL);
+
+    while((tuple = HeapScanGetNextTuple(scanDesc, false, &buffer)) != NULL) {
+	tlocks = HeapTupleGetRuleLock(tuple, buffer);
+	status = false;
+	for (i=0; i<nrules;  i++) {
+	    if (prs2RemoveAllLocksOfRuleInPlace(tlocks, ruleIds[i]))
+		status = true;
+	}
+	if (status) {
+	    /*
+	     * the locks of this tuple have changed.
+	     * replace it...
+	     */
+	    newTuple = palloctup(tuple, buffer, rel);
+	    prs2PutLocksInTuple(newTuple, InvalidBuffer, rel, tlocks);
+
+	    RelationReplaceHeapTuple(rel, &(tuple->t_ctid),
+					newTuple, (double *)NULL);
+	    prs2FreeLocks(tlocks);
+	    pfree(tuple);
+	    pfree(newTuple);
+	}
+    }
+
+    RelationCloseHeapRelation(rel);
+}
+    
