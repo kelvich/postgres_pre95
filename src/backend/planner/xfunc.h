@@ -15,9 +15,9 @@ extern int XfuncMode;  /* defined in tcop/postgres.c */
 
 /* defaults for function attributes used for expensive function calculations */
 #define BYTE_PCT 100
-#define PERBYTE_CPU 10
-#define PERCALL_CPU 100
-#define OUTIN_RATIO 1
+#define PERBYTE_CPU 0
+#define PERCALL_CPU 0
+#define OUTIN_RATIO 100
 
 /* default width assumed for variable length attributes */
 #define VARLEN_DEFAULT 128;
