@@ -190,11 +190,13 @@ char **err, *filename;
 		bzero(bss_offset + load_address, size_bss);
 	}
 
+#ifdef NEWDEC
 	if (cachectl(load_address, PAGE_ROUND(image_size), UNCACHEABLE))
 	{
 		*err = "dynamic_file_load: Cachectl failed!";
 	}
 	else
+#endif
 	{
 		retval = load_symbols(filename, load_address);
 	}
