@@ -73,7 +73,7 @@ void closerel ARGS((char *name ));
 void printrel ARGS((void ));
 void randomprintrel ARGS((void ));
 void showtup ARGS((HeapTuple tuple , Buffer buffer , Relation relation ));
-void showtime ARGS((Time time ));
+void showtime ARGS((AbsoluteTime time ));
 void DefineAttr ARGS((char *name , char *type , int attnum ));
 void InsertOneTuple ARGS((ObjectId objectid ));
 void InsertOneValue ARGS((ObjectId objectid , char *value , int i ));
