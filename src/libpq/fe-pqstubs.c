@@ -45,9 +45,10 @@ palloc(size)
     Pointer p;
 
     p = malloc(size);
+    if (!p)
+	return((Pointer) NULL);
     bzero(p, size);
-
-    return (p);
+    return(p);
 }
 
 void
@@ -133,7 +134,8 @@ elog(va_alist)
     fmt = va_arg(ap, char *);
     va_end(ap);
     fprintf(stderr, "FATAL: error level %d: %s\n", lev, fmt);
-    exit(1);
+    if (lev == FATAL)
+	exit(1);
 }
 
 /* ----------------
