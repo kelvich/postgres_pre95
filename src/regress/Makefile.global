@@ -12,11 +12,10 @@ SHCMD= PATH=${BINDIR}:$$PATH sh
 .if (${PORTNAME} == "ultrix4")
 CFLAGS+= -G 0
 .elif (${PORTNAME} == "sparc")
-#CFLAGS+=
-#SLSUFF=.so
-#.SUFFIXES: ${SLSUFF}
-#.o.sl:
-#	${LD} -o ${.TARGET} ${.ALLSRC}
+SLSUFF=.so
+.SUFFIXES: ${SLSUFF}
+.o.so:
+	${LD} -Bdynamic -o ${.TARGET} ${.ALLSRC}
 .elif (${PORTNAME} == "alpha")
 SLSUFF=.so
 .SUFFIXES: ${SLSUFF}
@@ -56,9 +55,3 @@ SLSUFF?=.o
 	    -e "s:_OBJWD_:$$C${.CURDIR}/${MAKEOBJDIR}:g" \
 	    -e "s:_SLSUFF_:${SLSUFF}:g" \
 	    -e "s/_USER_/$$USER/g" < ${.CURDIR}/$*.source > $*.sh
-
-#if (${PORTNAME} == "hpux")
-#endif
-
-#if (${PORTNAME} == "alpha")
-#endif
