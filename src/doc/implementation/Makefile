@@ -2,15 +2,16 @@
 
 .MAIN: all
 
-.SUFFIXES: .cat .ps .me
+.SUFFIXES: .cat .ps .me .ms
 
-DOCSRCS= am.me smgr.me fmgr.me
+DOCSRCS= am.me smgr.me fmgr.me libpq.me fastpath.me parse-tree.me query-tree.me
 
 NROFF=nroff
 
-GROFF=groff -spte
+GROFF=groff -set
 
-DOCOBJS= ${DOCSRCS:S/.me/.cat/g} ${DOCSRCS:S/.me/.ps/g}
+#DOCOBJS= ${DOCSRCS:S/.me/.cat/g} ${DOCSRCS:S/.me/.ps/g}
+DOCOBJS= ${DOCSRCS:S/.me/.ps/g} README
 
 .me.cat:
 	${GROFF} -me -Tascii ${.IMPSRC} > ${.TARGET}
@@ -20,5 +21,15 @@ DOCOBJS= ${DOCSRCS:S/.me/.cat/g} ${DOCSRCS:S/.me/.ps/g}
 
 all: ${DOCOBJS}
 
-.include <postgres.prog.mk>
+install: all
+	@-if [ ! -d ${POSTDOCDIR} ]; then \
+		mkdir ${POSTDOCDIR}; \
+	fi
+	@-if [ ! -d ${POSTDOCDIR}/implementation ]; then \
+		mkdir ${POSTDOCDIR}/papers; \
+	fi
+	for i in ${DOCOBJS}; do \
+		${INSTALL} -m 444 $$i ${POSTDOCDIR}/implementation/$$i; \
+	done
 
+.include <postgres.prog.mk>

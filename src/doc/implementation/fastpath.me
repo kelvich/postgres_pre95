@@ -52,32 +52,32 @@ is used throughout the \*(PG documentation to denote two
 different ideas.  The first is the notion of being able to
 call a \*(PG backend function directly from a frontend application.
 The second is the notion of being able to directly access a major
-subsystem of the postgres backend from within a user defined function
+subsystem of the postgres backend from within a user\-defined function
 which is itself loaded into the backend.  These are really two very
-different ideas and unfortunatly the same term is sometimes used
+different ideas and unfortunately the same term is sometimes used
 to describe both.  This document describes the latter: accessing
 the major subsystems of postgres from within a backend resident
-user defined function.  Details of the former can be found in
+user\-defined function.  Details of the former can be found in
 the LIBPQ documentation describing
 the
 .CW PQfn()
-function, but it should be noted that this is by far the less
-frequent and is certainly of limited capability (constrained mainly
+function, but it should be noted that this is by far
+less frequently used and is certainly of limited capability (constrained mainly
 by the fact that the frontend and backend applications are running
 in completely different address spaces).
 .pp
-A user defined function (that is not defined as "untrusted") is loaded
+A user\-defined function (that is not defined as "untrusted") is loaded
 into the \*(PG backend and shares the address space with it.  Because
-of this it is possible for a user defined function to access any and every
+of this it is possible for a user\-defined function to access any and every
 routine resident in the backend.  So at a low level, strictly speaking,
-the user defined function can do anything including step on random memory
+the user\-defined function can do anything including step on random memory
 and call functions that should not be called.  At this low level
-there is no "interface", per se, as the user defined function just calls
+there is no "interface" as the user\-defined function just calls
 other functions that happen to reside in the \*(PG backend.  The purpose of the
 .i "Fast Path"
 interface, then, is conceptual. It is to document at a higher level 
 just what the major subsystems in the \*(PG backend are and what routines
-a user defined function can call and get predictable and usable results.
+a user\-defined function can call and get predictable and usable results.
 There are six functional levels that can be accessed.  They are
 .(E
 
@@ -105,10 +105,10 @@ There are six functional levels that can be accessed.  They are
 
 .)E
 .pp
-By far the most common levels for a function to access are 1) and 5).
-Level 1) allows the function to perform postquel queries almost as if
-it were a frontend application and level 5) allows a function to directly
-access and manipulate tuples in a relation.
+The most common levels for a function to access are 1 and 5.
+Level 1 allows the function to perform postquel queries almost as if
+it were a frontend application and level 5 allows a function to
+access and manipulate tuples in a relation directly.
 .\"
 .sh 1 "Level 1) Postquel interface"
 .pp
@@ -123,7 +123,7 @@ and is similar to the
 function that a frontend application using LIBPQ would call except for
 some important restrictions on what you can do and
 how data is retrieved.  In addition, the following LIBPQ functions
-are not available from a user defined function in the backend.
+are not available from a user\-defined function in the backend.
 .(E
 PQsetdb()
 PQdb()
@@ -140,14 +140,14 @@ The environment variables discussed in the LIBPQ document (PGHOST,
 PGDATABASE, PGPORT, etc) are also not used in the backend.
 .sh 2 "Retrieving data"
 .pp
-In a frontend application using LIBPQ a user can do a retrive
+In a frontend application using LIBPQ a user can do a retrieve
 into a named portal using the "retrieve portal ..." syntax.  This 
 does not work in the backend because the backend 
 .CW PQexec()
 interface
 manages portals in a different way and also because you cannot
 issue LIBPQ "begin" or "end" statements.  When issuing a POSTQUEL
-query that returns tuples, 
+query that returns tuples, the
 .CW PQexec() 
 function will
 return a string that starts with "P" and the remainder of which
@@ -170,13 +170,13 @@ backend function to call the
 function to deallocate the portal after you are finished accessing the 
 data in it.
 .pp
-While this inconsistany between the frontend and
+While this inconsistency between the frontend and
 backend handling of portals may seem like a bug at first glance,
 it is necessary because it is possible in the
-backend to have one user defined function that uses 
+backend to have one user\-defined function that uses 
 .CW PQexec()
 call another
-user defined function that also uses 
+user\-defined function that also uses 
 .CW PQexec() .  
 If PQexec() overwrites
 the same buffer, the second call to PQexec() might overwrite the data
@@ -186,14 +186,14 @@ problem, but for now it is wise to just call PQclear() on the
 portal after you are finished with the data.
 .sh 2 "Other Restrictions"
 .pp
-The backend PQexec() interface is meant to be used by a user defined
-function.  In general, a user defined function might be called during
+The backend PQexec() interface is meant to be used by a user\-defined
+function.  In general, a user\-defined function might be called during
 the course of executing a single POSTQUEL command, and so certain
 semantics concerning atomicity and visibility of updates may make
 the POSTQUEL command that is executed by the backend function behave
 differently than if it were executed from the frontend LIBPQ interface.
 Specifically, it is not supposed to be possible for a single command
-to see it's own updates.  For example, consider the following
+to see its own updates.  For example, consider the following
 POSTQUEL fragment:
 .(E
 	The function "sal" returns the salary of the employee
@@ -230,35 +230,37 @@ order listed above, then the results would be:
 .)E
 and this would be wrong.  So the normal semantics are that a single
 command cannot see its own updates.  The reason we metion this here
-is that in a front end LIBPQ application, each postquel command
+is that in a front\-end LIBPQ application, each POSTQUEL command
 is indeed a separate command (and each can see the results of the
 previous command, but not its own), however, in the backend the
-postquel commands called through PQexec() from a user defined function
+POSTQUEL commands called through PQexec() from a user\-defined function
 are all in the \fIsame\fP command, and so cannot see the updates they
-make.  If they could, then the instantiation of the user defined function 
-that was running these POSTQUEL command would itself span more than
-command and would break the visibility samantics.  
-<WHAT ABOUT USER DEFINED POSTQUEL FUNCTIONS)
+make.  If they could, then the instantiation of the user\-defined function 
+that was running this POSTQUEL command would itself span more than one
+command and would break the visibility semantics.  
+.br
+<WHAT ABOUT USER DEFINED POSTQUEL FUNCTIONS>
+.br
 This can be very confusing since the function could retrieve
 tuples into another relation, and then try to retrieve them out
 of the new relation (in the same instantiation of the function) and
 not find anything.  Because there may be a very real and practical
-need for a user defined function to see the results of updates
+need for a user\-defined function to see the results of updates
 made during the course of its execution, we have provided a new
-function that temporarily disables the visiability semantics that were
+function that temporarily disables the visibility semantics that were
 just discussed.  It is important to understand that when using these
 functions you are temporarily breaking the visibility semantics
-in \*(PG and be aware of any side effects, such as in the example cited
+in \*(PG and you must be aware of any side effects, such as in the example cited
 above, that this may have.  The side effects could be more serious
-than just wrong answers.  <give exmaple that crashs backend>
+than just wrong answers.
 .nf
 The following function turns off the visibililty rules:
 
-	blah() 
+	blah() 		# name to be decided
 
 The following function turns back on the visibililty rules:
 
-	blahblah()
+	blahblah()	# name to be decided
 .fi
 .pp
 Another restriction is that since the command that calls the user 
@@ -275,7 +277,7 @@ routine, then the call to PQexec() never returns.  This is a restriction
 that we consider a bug and hope we can fix for the next release (5.0).
 .sh 2 "Examples"
 .pp
-The following code fragment shows a user defined function called xconnect
+The following code fragment shows a user\-defined function called xconnect
 that issues a POSTQUEL command to retrieve all the tuples from a relation.
 .(E
 
@@ -294,13 +296,13 @@ int4 *xconnect (arg)
     char *portal;
     
     /*
-     * Here we send issue a POSTQUEL command to retrieve
+     * Here we issue a POSTQUEL command to retrieve
      * all the instances from relation I
      */
     retval = (char *) PQexec ("retrieve (I.all)");
 
     /*
-     * Lets print the return code and portal name.  Note that the
+     * Let's print the return code and portal name.  Note that the
      * portal name is not "blank", as it would be if this code were
      * run in the frontend.
      */
@@ -363,10 +365,10 @@ int4 *xconnect (arg)
     
 }
 .)E
-.sh 1 "Level 2) Parser"
+.sh 1 "Level 2 Parser"
 .pp
-The parser can be used to convert a POSTQEUL query string into a parse
-tree. The parse tree will be needed for both the planner and executer.
+The parser can be used to convert a POSTQUEL query string into a parse
+tree. The parse tree will be needed for both the planner and executor.
 The following routine is used to get a parse tree
 (from .../src/backend/parser/ylib.c  ... made by gram.y):
 .(E
@@ -382,7 +384,7 @@ will be stored.
 <typev and nargs apply to the arguments (????) usually typecast NULLS ???>
 Note that the function has no return type, the result is the second argument.
 .pp
-Once the parse tree is obtained, it be filtered through the rewrite rules
+Once the parse tree is obtained, it can be filtered through the rewrite rules
 and some other time routines.  There is no single routine to call
 to do this.  Please refer to the following section entitled "Parser and
 Planner Combined Call".  It has all the code to do this.
@@ -393,7 +395,7 @@ rewritten_tree = QueryRewrite (parse_tree)
 .)E
 This takes the initial parse-tree and applies the current rules to re-write the
 query.
-It is important to note that utilities should not be rewritten <why???> so they must be
+It is important to note that utilities should not be rewritten so they must be
 moved to a seperate parse-tree list, and then re-combined after the re-write.
 This function is called for every non-utility parse tree.
 .sh 1 "Level 3) Query Optimizer (Planner)"
@@ -405,7 +407,7 @@ in .../src/backend/planner/util/internal.c):
 .(E
 init_planner()
 .)E
-Then it is ready to recieve a parse-tree with the following command
+Then it is ready to receive a parse-tree with the following command
 (code in .../src/backend/planner/plan/planner.c):
 .(E
 Plan planner(parse-tree)
@@ -433,7 +435,8 @@ List pg_plan(query_string, typev, nargs, parsetreeP, dest)
 This returns a list of plans.
 query_string is a postquel query.
 typev, nargs are arguments  (???)
-parsetreeP is a pointer to the parse tree which will be created in the process
+parsetreeP is a pointer to the parse tree which will 
+    be created in the process
 dest is the location for the output
   (used for ending transactions)
 
@@ -455,7 +458,7 @@ the "dest" argument which is passed to many of these functions is:
  *    - a remote portal buffer is the destination when we are
  *      running a backend with a frontend and the frontend executes
  *      PQexec() or PQfn().  In this case, the results are sent
- *      to the frontend via the pq_ functions.
+ *      to the frontend via the pq_ functions (in tcop/dest.c).
  *
  *    - None is the destination when the system executes
  *      a query internally.  This is not used now but it may be
@@ -468,21 +471,23 @@ so dest can be
     Debug,              /* results go to debugging output */
     Local,              /* results go in local portal buffer */
     Remote,             /* results sent to frontend process */
-        CopyBegin,      /* results sent to frontend process but are strings */
-        CopyEnd         /* results sent to frontend process but are strings */
-   ,RemoteInternal      /* results sent to frontend process in internal
+        CopyBegin,      /* results sent to frontend process 
+			   but are strings */
+        CopyEnd,         /* results sent to frontend process 
+			   but are strings */
+   RemoteInternal      /* results sent to frontend process in internal
                            (binary) form */
 .)E
 .sh 1 "Level 4) Executor"
 .pp
 The executor is called once the parse-tree-list and plan-list have
 been obtained.  It works off both lists to produce the desired action.
-The user must seperate the two different kinds of actions, utilities and
+The user must separate the two different kinds of actions, utilities and
 regular commands.  The executor must be called for each parse-tree in the
 parse-tree-list.  Note that there is no plan for a utility parse-tree.
 Also, no matter which type you execute, you must call CommandCounterIncrement()
-if you have more parse-trees to execute.  This makes the results visable
-to future querys.
+if you have more parse-trees to execute.  This makes the results visible
+to future queries.
 To check whether a parse-tree represents a utility, use:
 .(E
 if (atom(CAR(parse_tree))) (then utility) (else normal)
@@ -538,7 +543,7 @@ the ability to open relations directly and manipulate, as well
 as retrieve, the tuples within.
 The actual interface to the access methods is explained in great
 detail in the document entitled "The Postgres Access Methods".
-All of the relavent functions are described there.  Rather than
+All of the relevent functions are described there.  Rather than
 duplicate that information here, it is recommended that you use
 that document as your reference, and instead we will provide a number
 of examples as a small tutorial here.  From here on it is assumed that
