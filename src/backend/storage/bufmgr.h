@@ -128,6 +128,18 @@ ReadBuffer ARGS((
 ));
 
 /*
+ * ReadBufferWithBufferLock
+ *
+ */
+extern
+Buffer
+ReadBufferWithBufferLock ARGS((
+	Relation	relation,
+	BlockNumber	blockNum,
+	bool		bufferLockHeld
+));
+
+/*
  * WriteBuffer --
  *
  */
@@ -155,6 +167,18 @@ extern
 ReturnStatus
 ReleaseBuffer ARGS((
 	Buffer	buffer
+));
+
+/*
+ * ReleaseAndReadBuffer
+ *
+ */
+extern
+Buffer
+ReleaseAndReadBuffer ARGS((
+	Buffer buffer,
+	Relation relation,
+	BlockNumber blockNum
 ));
 
 /*
