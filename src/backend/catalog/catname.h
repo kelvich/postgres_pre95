@@ -47,6 +47,8 @@ extern Name	TypeRelationName;
 extern Name	UserRelationName;
 extern Name	VariableRelationName;
 extern Name	VersionRelationName;
+extern Name	Prs2RuleRelationName;
+extern Name	Prs2PlansRelationName;
 
 /*
  * NameIsSystemRelationName --
