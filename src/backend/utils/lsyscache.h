@@ -1,3 +1,5 @@
+$Header$
+
 extern Name AttributeGetAttName ARGS((Attribute attribute));
 extern bool op_class ARGS((LispValue opid, LispValue opclass));
 extern Name get_attname ARGS((ObjectId relid, AttributeNumber attnum));

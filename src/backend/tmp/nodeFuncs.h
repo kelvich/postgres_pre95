@@ -1,3 +1,5 @@
+$Header$
+
 extern bool single_node ARGS((Node node));
 extern bool var_is_outer ARGS((Var var));
 extern bool var_is_inner ARGS((Var var));
