@@ -34,7 +34,6 @@
 
 #include "catalog/catname.h"
 #include "catalog/pg_relation.h"
-#include "storage/lmgr.h"
 
 RcsId("$Header$");
 
