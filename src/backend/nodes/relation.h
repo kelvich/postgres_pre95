@@ -74,7 +74,7 @@ extern void     PrintJoinMethod();
 #define EqualRelationExists 1
 #define EqualLispValueExists 1
 #define EqualIterExists 1
-
+#define EqualStreamExists 1
 
 /* copy funcs that exist in lib/C/copyfunc.c and aren't defined elsewhere*/
 #define CopyNodeExists 1
@@ -95,6 +95,7 @@ extern void     PrintJoinMethod();
 #define CopyMInfoExists 1
 #define CopyJInfoExists 1
 #define CopyIterExists 1
+#define CopyStreamExists 1
 
 /* out funcs from lib/C/outfuncs.c that aren't defined elsewhere */
 #define OutPlanInfoExists 1
@@ -116,6 +117,7 @@ extern void     PrintJoinMethod();
 #define OutJInfoExists 1
 #define OutDatumExists 1
 #define OutIterExists 1
+#define OutStreamExists 1
 
 
 /*
@@ -148,6 +150,8 @@ typedef	List	Relid;
  *			sequential scan path, e.g., scanning with a hash index
  *			leaves the tuples unordered)
  *	cheapestpath -  least expensive Path (regardless of final order)
+ *      pruneable - flag to let the planner know whether it can prune the plan
+ *                  space of this Rel or not.  -- JMH, 11/11/92
  *
  *   * If the relation is a (secondary) index it will have the following
  *	three fields:
@@ -191,6 +195,7 @@ class (Rel) public (Node) {
 	List	pathlist;
 	PathPtr	unorderedpath;
 	PathPtr	cheapestpath;
+	bool    pruneable;
   /* used solely by indices: */
 	List	classlist;
 	List	indexkeys;
@@ -355,5 +360,37 @@ class (JInfo) public (Node) {
 class (Iter) public (Node) {
         inherits0(Node);
 	LispValue            iterexpr;
+};
+
+/*
+** Stream:
+**   A stream represents a root-to-leaf path in a plan tree (i.e. a tree of
+** JoinPaths and Paths).  The stream includes pointers to all Path nodes,
+** as well as to any clauses that reside above Path nodes.  This structure
+** is used to make Path nodes and clauses look similar, so that Predicate
+** Migration can run.
+**
+**     pathptr -- pointer to the current path node
+**       cinfo -- if NULL, this stream node referes to the path node.  Otherwise
+**              this is a pointer to the current clause.
+**  clausetype -- whether cinfo is in locclauseinfo or pathclauseinfo in the 
+**                path node
+**    upstream -- linked list pointer upwards
+**  downstream -- ditto, downwards
+**     groupup -- whether or not this node is in a group with the node upstream
+**   groupcost -- total cost of the group that node is in
+**    groupsel -- total selectivity of the group that node is in
+*/
+typedef struct Stream *StreamPtr;
+class (Stream) public (Node) {
+        inherits0(Node);
+	pathPtr pathptr;
+	CInfo cinfo;
+	int clausetype;
+        StreamPtr upstream;
+	StreamPtr downstream;
+	bool groupup;
+	Cost groupcost;
+	Cost groupsel;
 };
 #endif /* RelationIncluded */
