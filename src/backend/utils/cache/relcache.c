@@ -585,9 +585,9 @@ IndexedAccessMethodInitialize(relation)
     relamstrategies = relation->rd_am->amstrategies;
     stratSize = AttributeNumberGetIndexStrategySize(natts, relamstrategies);
     strategy = (IndexStrategy) palloc(stratSize);
+    relamsupport = relation->rd_am->amsupport;
 
     if (relamsupport > 0) {
-	relamsupport = relation->rd_am->amsupport;
 	supportSize = natts * (relamsupport * sizeof (RegProcedure));
 	support = (RegProcedure *) palloc(supportSize);
     } else {
