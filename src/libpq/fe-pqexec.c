@@ -69,8 +69,8 @@ int 	PQportset = 0;		/* 1 if the communication with backend
 				   is set */
 int	PQxactid = 0;		/* the transaction id of the current 
 				   transaction */
-char	*PQinitstr = NULL;	/* the initialization string passed 
-				   to backend */
+/*char	*PQinitstr = NULL;	/* the initialization string passed 
+				   to backend (obsolete 2/21/91 -mer) */
 
 extern char *getenv();
 
@@ -81,6 +81,9 @@ extern char *getenv();
 
 /* ----------------
  *	read_initstr
+ *
+ *	This is now a misnomer. PQinistr is no longer used and this routine
+ *	really just initializes the PQ global variables if they need it.
  *
  * 	Read in the initialization string to be passed to the POSTGRES backend.
  * 	The initstr has the format of
@@ -116,10 +119,13 @@ read_initstr()
 	else PQport = getenv("PGPORT");
     }
     
-    PQinitstr = pbuf_addValues(initstr_length);
-    
-    sprintf(PQinitstr, "%s,%s,%s,%s\n",
-	    getenv("USER"), PQdatabase, PQtty, PQoption);
+/* The function of PQinitstr is now done via a message to the postmaster
+ *
+ *  PQinitstr = addValues(initstr_length);
+ *  
+ *  sprintf(PQinitstr, "%s,%s,%s,%s\n",
+ *	    getenv("USER"), PQdatabase, PQtty, PQoption);
+ */
 }
 
 /* ----------------
@@ -146,16 +152,24 @@ static
 void
 EstablishComm()
 {
-    if (!PQportset) {
-	if (PQinitstr == NULL)
-	    read_initstr();
-	if (pq_connect(PQhost, PQport) == -1) 
+    if (!PQportset) { 
+	read_initstr();
+
+	if ( pq_connect( PQdatabase, 
+		getenv("USER"), 
+		PQoption, 
+		PQhost, 
+		(short)atoi(PQport) ) == -1 ) {
 	    libpq_raise(ProtocolError,
 	      form("Failed to connect to backend (host=%s, port=%s)",
 		   PQhost, PQport));
+	}
 	
-	pqdebug("\nInitstr sent to the backend: %s", PQinitstr);
-	pq_putstr(PQinitstr);
+/*	Now a message.
+ *
+ *	pqdebug("\nInitstr sent to the backend: %s", PQinitstr);
+ *	pq_putstr(PQinitstr);
+ */
 	pq_flush();
 	PQportset = 1;
     }
@@ -293,16 +307,25 @@ InitVacuumDemon(host, database, terminal, option, port, vacuum)
     StringPointerSet(&PQport, port, "PGPORT", DefaultPort);
     StringPointerSet(&path, vacuum, "PGVACUUM", DefaultVacuum);
     
-    PQinitstr = pbuf_addValues(initstr_length);
-    sprintf(PQinitstr, "%s,%s,%s,%s,%s\n", getenv ("USER"),
-	    PQdatabase, PQtty, PQoption, path);
+/*    
+ *  PQinitstr = pbuf_addValues(initstr_length);
+ *  sprintf(PQinitstr, "%s,%s,%s,%s,%s\n", getenv ("USER"),
+ *	    PQdatabase, PQtty, PQoption, path);
+ */
     
-    if (pq_connect (PQhost, PQport) == -1) 
-	libpq_raise(ProtocolError,
+    if ( pq_connect( PQdatabase, 
+	getenv("USER"), 
+	PQoption, 
+	PQhost, 
+	(short)atoi(PQport) ) == -1 ) {
+	    libpq_raise(ProtocolError,
 		    form("Fatal Error -- No POSTGRES backend to connect to"));
+    }
     
-    pqdebug("\nInitstr sent to the backend: %s", PQinitstr);
-    pq_putstr(PQinitstr);
+/*
+ *  pqdebug("\nInitstr sent to the backend: %s", PQinitstr);
+ *  pq_putstr(PQinitstr);
+ */
     pq_flush();
     PQportset = 1;
 }
@@ -343,10 +366,12 @@ PQreset()
 {
     pq_close();
     PQportset = 0;
-    if (PQinitstr != NULL)
-        pbuf_free(PQinitstr);
-    
-    PQinitstr = NULL;
+/*
+ *  if (PQinitstr != NULL)
+ *      pq_free(PQinitstr);
+ *
+ *  PQinitstr = NULL;
+ */
 }
 
 /* ----------------
@@ -494,7 +519,7 @@ PQexec(query)
     char PQcommand[command_length+1];
     void EstablishComm();
 
-    /* If the communication is not established, send PQinitstr to backend. */
+    /* If the communication is not established, establish it. */
     if (!PQportset)
 	EstablishComm();
 
@@ -565,15 +590,9 @@ PQexec(query)
 	    
     	default:
 	    /* The backend violates the protocol. */
-	    PQreset ();
-	    fprintf(stdout,
-	      "Unexpected Identifier. Trying to reestablish communication\n");
-	    fprintf(stdout, "Identifier is : %c \n", id[0]);
-	    
-	    fflush(stdout);
-	    PQportset = 0;
-	    EstablishComm();
-	    return "R";
+	    libpq_raise(ProtocolError, 
+		form("Fatal errors in the backend, exitting...\n"));
+	    exit(1);
     	}
     }
 }
