@@ -62,7 +62,7 @@ RcsId("$Header$");
 #include "utils/mcxt.h"
 #include "tcop/pquery.h"
 #include "tcop/utility.h"
-#include "tcop/fastpath.h"
+/* #include "tcop/fastpath.h" - marc */
 #include "tcop/parsev.h"
 
 #ifdef PARALLELDEBUG
