@@ -243,6 +243,9 @@ class (Oper) public (Expr) {
  *		if passed by value.  If true, then all the information
  *		is stored in the datum. If false, then the datum
  *		contains a pointer to the information.
+ *      constisset - whether the const represents a set.  The const
+ *              value corresponding will be the query that defines
+ *              the set.
  * ----------------
  */
 class (Const) public (Expr) {
@@ -253,6 +256,7 @@ class (Const) public (Expr) {
 	Datum			constvalue;
 	bool			constisnull;
 	bool			constbyval;
+	bool                    constisset;
  /* public: */
 };
 
@@ -302,7 +306,10 @@ class (Param) public (Expr) {
  *	funcisindex 	- the function can be evaluated by scanning an index
  *			  (set during query optimization)
  *	funcsize 	- size of return result (cached by executor)
- *	func_fcache 	- XXX comment me.
+ *	func_fcache 	- runtime state while running this function.  Where
+ *                        we are in the execution of the function if it
+ *                        returns more than one value, etc.
+ *                        See utils/fcache.h
  *      func_tlist      - projection of functions returning tuples
  *      func_planlist   - result of planning this func, if it's a PQ func
  * ----------------
