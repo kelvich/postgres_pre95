@@ -1915,7 +1915,7 @@ attach_args:		Sconst		/*$$=$1*/;
 			/* XXX should be converted by fmgr? */
 spec:
 	  adt_name '[' '$' spec_tail ']'
-		{ $$ = (LispValue)MakeParam( (int)$4,(AttributeNumber)0,(Name)0,(ObjectId)0 ) ; }
+		{ $$ = (LispValue)MakeParam( (int)$4,(AttributeNumber)0,(Name)0,(ObjectId)0, (List) NULL ) ; }
 	;
 
 spec_tail:

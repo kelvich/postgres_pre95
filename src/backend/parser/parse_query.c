@@ -876,7 +876,8 @@ char *attrName;
     paramNode = MakeParam(paramKind,	/* paramkind */
 			attrNo,		/* paramid - i.e. attrno */
 			name,		/* paramname */
-			attrType);	/* paramtype */
+			attrType,	/* paramtype */
+			(List) NULL);	/* param_tlist */
     
     /*
      * close the relation - we're done with it now
@@ -1041,7 +1042,8 @@ SubstituteParamForNewOrCurrent ( parsetree, relid )
 		CAR(i) = (List)MakeParam (PARAM_OLD,
 				    attrno,
 				    attrname,
-				    get_vartype((Var)temp));
+				    get_vartype((Var)temp),
+				    (List) NULL);
 	    } 
 	    if ( get_varno((Var)temp) == 2) {
 		/* replace with make_param(new) */
@@ -1050,7 +1052,8 @@ SubstituteParamForNewOrCurrent ( parsetree, relid )
 		CAR(i) = (List)MakeParam(PARAM_NEW,
 				   attrno,
 				   attrname,
-				   get_vartype((Var)temp) );
+				   get_vartype((Var)temp),
+				   (List) NULL);
 	    }
 	} 
 	if (  temp && temp->type == PGLISP_DTPR ) 
