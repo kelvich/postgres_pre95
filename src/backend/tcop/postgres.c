@@ -36,6 +36,7 @@
  * ----------------
  */
 #include "executor/execdebug.h"
+#include "planner/costsize.h"
 #include "tcop/tcopdebug.h"
 
 #include "utils/fmgr.h"
@@ -72,6 +73,7 @@ time_t		tim;
 bool 		override = false;
 int		EchoQuery = 0;		/* default don't echo */
 char pg_pathname[256];
+int		testFlag = 0;
 
 /* ----------------
  *	people who want to use EOF should #define DONTUSENEWLINE in
@@ -553,6 +555,7 @@ pg_eval( query_string )
 	     *	       by a DEBUG command.
 	     * ----------------
 	     */
+	    if (testFlag) ResetUsage();
 	    for (j = 0; j < _exec_repeat_; j++) {
 		if (! Quiet) {
 		    time(&tim);
@@ -560,6 +563,7 @@ pg_eval( query_string )
 		}
 		ProcessQuery(parsetree, plan);
 	    }
+	    if (testFlag) ShowUsage();
 	    
 	} /* if atom car */
 
@@ -643,7 +647,7 @@ PostgresMain(argc, argv)
     numslaves = 0;
     flagC = flagQ = flagM = flagS = ShowStats = flagE = 0;
     
-    while ((flag = getopt(argc, argv, "B:b:CdEMNnOP:pQSs")) != EOF)
+    while ((flag = getopt(argc, argv, "B:b:CdEMNnOP:pQSsTf:")) != EOF)
 	
       switch (flag) {
 	  
@@ -771,6 +775,42 @@ PostgresMain(argc, argv)
 	   */
 	  ShowStats = 1;
 	  break;
+      case 'T':
+          /* ----------------
+           *    Testing mode -- execute all the possible plans instead
+           *    of just the optimal one
+	   *    XXX not implemented yet,  currently it will just print
+	   *    the statistics of the executor, like the -s option
+	   *	but does not include parsing and planning time.
+           * ---------------
+           */
+          testFlag = 1;
+          break;
+      case 'f':
+          /* -----------------
+           *    to forbidden certain plans to be generated
+           * -----------------
+           */
+          switch (optarg[0]) {
+          case 's': /* seqscan */
+                _enable_seqscan_ = false;
+                break;
+          case 'i': /* indexscan */
+                _enable_indexscan_ = false;
+                break;
+          case 'n': /* nestloop */
+                _enable_nestloop_ = false;
+                break;
+          case 'm': /* mergejoin */
+                _enable_mergesort_ = false;
+                break;
+          case 'h': /* hashjoin */
+                _enable_hashjoin_ = false;
+                break;
+          default:
+                errs++;
+          }
+	  break;
 
       default:
 	  errs++;
@@ -781,6 +821,8 @@ PostgresMain(argc, argv)
 	fputs("	-C   =  ??? \n", stderr);
 	fputs(" -M # =  Enable Parallel Query Execution\n", stderr);
 	fputs("          (# is number of slave backends)\n", stderr);
+	fputs(" -B # =  Set Buffer Pool Size\n", stderr);
+	fputs("          (# is number of buffer pages)\n", stderr);
 	fputs(" -O   =  Override Transaction System\n", stderr);
 	fputs(" -S   =  assume Stable Main Memory\n", stderr);
 	fputs(" -Q   =  Quiet mode (less debugging output)\n", stderr);
@@ -812,6 +854,7 @@ PostgresMain(argc, argv)
 	printf("\tstable    =    %c\n", flagS     ? 't' : 'f');
 	printf("\tparallel  =    %c\n", flagM     ? 't' : 'f');
 	printf("\ttimings   =    %c\n", ShowStats ? 't' : 'f');
+	printf("\tbufsize   =    %d\n", NBuffers);
 	if (flagM)
 	    printf("\t# slaves  =    %d\n", numslaves);
 	
@@ -1024,23 +1067,38 @@ struct timeval {
 	long	tv_usec;	/* and microseconds */
 };
 
+struct timezone {
+        int     tz_minuteswest; /* minutes west of Greenwich */
+        int     tz_dsttime;     /* type of dst correction */
+};
+
 #include <sys/resource.h>
 
 struct rusage Save_r;
+struct timeval Save_t;
 
 ResetUsage()
 {
+        struct timezone tz;
 	getrusage(RUSAGE_SELF, &Save_r);
+        gettimeofday(&Save_t, &tz);
 }
 
 ShowUsage()
 {
 	struct rusage r;
 	struct timeval user, sys;
+        struct timeval elapse_t;
+        struct timezone tz;
 
 	getrusage(RUSAGE_SELF, &r);
+	gettimeofday(&elapse_t, &tz);
 	bcopy(&r.ru_utime, &user, sizeof(user));
 	bcopy(&r.ru_stime, &sys, sizeof(sys));
+        if (elapse_t.tv_usec < Save_t.tv_usec) {
+                elapse_t.tv_sec--;
+                elapse_t.tv_usec += 1000000;
+        }
 	if (r.ru_utime.tv_usec < Save_r.ru_utime.tv_usec) {
 		r.ru_utime.tv_sec--;
 		r.ru_utime.tv_usec += 1000000;
@@ -1059,15 +1117,18 @@ ShowUsage()
 	 *  and stack sizes.
 	 */
 
-	printf("usage stats:\n");
-	printf("\t%ld.%06ld user %ld.%06ld system sec\n",
+	fprintf(stderr, "usage stats:\n");
+        fprintf(stderr, 
+		"\t%ld.%06ld elapse %ld.%06ld user %ld.%06ld system sec\n",
+                elapse_t.tv_sec - Save_t.tv_sec,
+                elapse_t.tv_usec - Save_t.tv_usec,
 		r.ru_utime.tv_sec - Save_r.ru_utime.tv_sec,
 		r.ru_utime.tv_usec - Save_r.ru_utime.tv_usec,
 		r.ru_stime.tv_sec - Save_r.ru_stime.tv_sec,
 		r.ru_stime.tv_usec - Save_r.ru_stime.tv_usec);
-	printf("\t[%ld.%06ld user %ld.%06ld sys total]\n",
+	fprintf(stderr, "\t[%ld.%06ld user %ld.%06ld sys total]\n",
 		user.tv_sec, user.tv_usec, sys.tv_sec, sys.tv_usec);
-	printf("\t%d/%d [%d/%d] filesystem blocks in/out\n",
+	fprintf(stderr, "\t%d/%d [%d/%d] filesystem blocks in/out\n",
 		r.ru_inblock - Save_r.ru_inblock,
 #ifdef sun
 		r.ru_outblock - Save_r.ru_outblock,
@@ -1077,19 +1138,21 @@ ShowUsage()
 		r.ru_oublock - Save_r.ru_oublock,
 		r.ru_inblock, r.ru_oublock);
 #endif /* sun */
-	printf("\t%d/%d [%d/%d] page faults/reclaims, %d [%d] swaps\n",
+	fprintf(stderr, "\t%d/%d [%d/%d] page faults/reclaims, %d [%d] swaps\n",
 		r.ru_majflt - Save_r.ru_majflt,
 		r.ru_minflt - Save_r.ru_minflt,
 		r.ru_majflt, r.ru_minflt,
 		r.ru_nswap - Save_r.ru_nswap,
 		r.ru_nswap);
-	printf("\t%d [%d] signals rcvd, %d/%d [%d/%d] messages rcvd/sent\n",
+	fprintf(stderr, 
+		"\t%d [%d] signals rcvd, %d/%d [%d/%d] messages rcvd/sent\n",
 		r.ru_nsignals - Save_r.ru_nsignals,
 		r.ru_nsignals,
 		r.ru_msgrcv - Save_r.ru_msgrcv,
 		r.ru_msgsnd - Save_r.ru_msgsnd,
 		r.ru_msgrcv, r.ru_msgsnd);
-	printf("\t%d/%d [%d/%d] voluntary/involuntary context switches\n",
+	fprintf(stderr, 
+		"\t%d/%d [%d/%d] voluntary/involuntary context switches\n",
 		r.ru_nvcsw - Save_r.ru_nvcsw,
 		r.ru_nivcsw - Save_r.ru_nivcsw,
 		r.ru_nvcsw, r.ru_nivcsw);
