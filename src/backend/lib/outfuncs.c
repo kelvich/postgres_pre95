@@ -57,7 +57,7 @@ _outPlanInfo(str, node)
 	appendStringInfo(str,buf);
 	sprintf(buf, " :parallel %d", node->parallel);
 	appendStringInfo(str,buf);
-	sprintf(buf, " :state %s", (node->state == (struct EState *) NULL ?
+	sprintf(buf, " :state %s", (node->state == (EStatePtr) NULL ?
 				"nil" : "non-NIL"));
 	appendStringInfo(str,buf);
 	sprintf(buf, " :qptargetlist ");
