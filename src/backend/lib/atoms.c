@@ -3,7 +3,6 @@
  * - string,atom lookup thingy, reduces strcmp traffic greatly
  * in the bowels of the system
  *
- * $Header$
  */
 
 /*
@@ -13,6 +12,10 @@
  *	 search is used to locate entries.
  */
 
+#include "c.h"
+
+RcsId("$Header$");
+
 #include "pg_lisp.h"
 #include "atoms.h"
 #include "ctype.h"
@@ -20,6 +23,7 @@
 
 ScanKeyword	ScanKeywords[] = {
 	/* name			value		*/
+	{ "NULL",		PNULL		},
 	{ "abort",		ABORT_TRANS	},
 	{ "addattr",		ADD_ATTR	},
 	{ "after",		AFTER		},
@@ -87,15 +91,14 @@ ScanKeyword	ScanKeywords[] = {
 	{ "rule",		RULE		},
 	{ "sort",		SORT		},
 	{ "to",			TO		},
-	{ "type",		P_TYPE		},
 	{ "transaction",	TRANSACTION	},
+	{ "type",		P_TYPE		},
 	{ "union",		UNION		},
 	{ "unique",		UNIQUE		},
 	{ "using",		USING		},
 	{ "version",		NEWVERSION	},
 	{ "where",		WHERE		},
 	{ "with",		WITH		},
-	{ "NULL",		PNULL		},
 };
 
 ScanKeyword *
@@ -120,5 +123,3 @@ ScanKeywordLookup(text)
 
 	return (NULL);
 }
-
-
