@@ -636,7 +636,7 @@ and
 defined in
 .FI catalog/pg_attribute.h .
 .pp
-These data structure for
+The data structure for
 .SE AttributeTupleFormData
 is the same as a
 .SE Form_pg_attribute ,
@@ -705,6 +705,7 @@ The
 .SE atttyparg
 entry is for something I don't understand.
 .\" XXX
+.pp
 The
 .SE attlen
 entry is the length of this attribute, in bytes,
@@ -1643,9 +1644,13 @@ The data structures that describe open scans are
 .SE HeapScan s
 and
 .SE IndexScan s,
-and are declared in the source files
+and are declared in the source file
 .FI access/relscan.h .
-The declarations are
+.sh 4 "The Heap Scan Descriptor"
+.pp
+The declaration for
+.SE HeapScanDescData
+is
 .(E
 typedef struct HeapScanDescData {
 	Relation		rs_rd;
@@ -1671,6 +1676,128 @@ typedef struct HeapScanDescData {
 
 typedef HeapScanDescData *HeapScanDesc;
 .)E
+.pp
+The
+.SE rs_rd
+entry is a pointer to the reldesc for the relation on
+which this scan has been opened.
+.pp
+The
+.SE rs_ptup ,
+.SE rs_ctup ,
+and
+.SE rs_ntup
+entries are,
+respectively,
+the previous tuple,
+current tuple,
+and next tuple visited in this scan.
+The scan code caches these because it was originally thought
+that scans would change direction frequently.
+In fact,
+that is not the case,
+and maintaining the previous and next tuple pointers has turned out
+to be pure overhead.
+Getting rid of the previous and next tuple pointers everywhere that
+they appear in the scandesc would speed up scan processing.
+.pp
+The
+.SE rs_pbuf ,
+.SE rs_cbuf ,
+and
+.SE rs_nbuf
+entries are the buffers on which the previous,
+current,
+and next tuple are stored.
+These buffers are kept pinned,
+which guarantees that they will not be evicted from the
+shared buffer cache by any backend.
+Pinning the buffers allows the backend to reference them
+directly,
+without reacquiring a pointer to the buffer every time
+data on it is used.
+The shared buffer cache is protected by mutual exclusion.
+Some \*(PG ports use System V semaphores to implement exclusion.
+Acquiring and releasing these semaphores is slow,
+so pinning the buffers during a scan improves performance significantly.
+.pp
+The
+.SE rs_dc
+entry is intended to support tuple differencing,
+which is not supported in the current version of the system.
+.pp
+The
+.SE rs_mptid ,
+.SE rs_mctid ,
+and
+.SE rs_mntid
+entries support marking of positions in scans.
+While processing some join strategies,
+the executor marks a location so that it can return to it later.
+When such a mark is made,
+the tids of the
+.SE rs_ptup ,
+.SE rs_ctup ,
+and
+.SE rs_ntup
+tuples are copied to the
+.SE rs_mptid ,
+.SE rs_mctid ,
+and
+.SE rs_mntid
+entries.
+.pp
+The
+.SE rs_mcd
+entry is intended to support tuple differencing,
+and is not used in the current system.
+.pp
+The
+.SE rs_atend
+entry indicates whether the scan should begin at the end of the
+relation.
+Some attempt is made to store a sensible value here,
+but it is ignored by much of the code and should not be relied on.
+.pp
+The
+.SE rs_tr
+entry is a time range or snapshot time qualification
+that indicates what historical tuples are of interest.
+The special constant value
+.SE NowTimeQual
+indicates that only current data is of interest.
+.pp
+The entry
+.SE rs_cdelta
+is intended to support tuple differencing,
+and is not used at present.
+.pp
+The structure entry
+.SE rs_parallel_ok
+was added to support parallelization of \*(PG for shared-memory
+architectures by Wei Hong,
+whose doctoral dissertation was on that topic.
+This entry is no longer used.
+.pp
+The entry
+.SE rs_nkeys
+stores the number of
+.SE ScanKeyEntryData
+structures that are stored in the
+.SE rs_key
+entry that follows.
+.pp
+The
+.SE rs_key
+entry stores a variable-length vector of
+.SE ScanKeyEntryData
+structures,
+one per scan key that are to be applied for the scan.
+.sh 4 "The Index Scan Descriptor"
+.pp
+The declaration for
+.SE IndexScanDescData
+is
 .(E
 typedef struct IndexScanDescData {
 	Relation		relation;
@@ -1690,5 +1817,101 @@ typedef struct IndexScanDescData {
 
 typedef IndexScanDescData	*IndexScanDesc;
 .)E
+.pp
+The
+.SE relation
+entry points at the reldesc for the relation being scanned.
+.pp
+The
+.SE opaque
+entry is for use by the indexed access method,
+and is assigned no meaning by higher-level scan processing code.
+The btree code uses it to store a pointer to a
+.SE BTScanOpaque
+structure,
+defined in
+.FI access/nbtree.h .
+The
+.SE BTScanOpaque
+structure stores,
+among other things,
+the current buffer in use by the scan.
+This is equivalent to the
+.SE rs_cbuf
+entry of the
+.SE HeapScanDescData
+structure.
+.pp
+The
+.SE previousItemData ,
+.SE currentItemData ,
+and
+.SE nextItemData
+entries store the tids of the previous,
+current,
+and next index tuples
+(\fInot\fP heap tuples!)
+returned by the scan.
+As was the case for heap scans,
+it was originally believed that index scans would change direction
+frequently,
+making it useful to cache these values.
+In fact,
+this never happens,
+and the
+previous and next tuple tids could be removed from this structure.
+.pp
+The
+.SE previousMarkData ,
+.SE currentMarkData ,
+and
+.SE nextMarkData
+entries serve the same purpose as
+.SE rs_mptid ,
+.SE rs_mctid ,
+and
+.SE rs_mntid
+in the
+.SE HeapScanDescData
+structure.
+.pp
+The
+.SE flags
+entry is used to encode the direction of the scan
+(forwards, backwards, or no movement).
+The constants for these three values are declared in
+.FI access/sdir.h ,
+and are
+.SE BackwardScanDirection ,
+.SE NoMovementScanDirection ,
+and
+.SE ForwardScanDirection .
+.pp
+The
+.SE scanFromEnd
+flag is
+.i true
+if the scan should begin at an endpoint,
+and false otherwise.
+For example,
+in the btree code,
+a scan for all values greater than 500 could begin at 500 and
+move forward,
+or at the end of the relation and move backward.
+.pp
+The
+.SE numberOfKeys
+entry records the number of keys stored in the
+.SE keyData
+entry that follows.
+.pp
+The
+.SE keyData
+entry stores a vector of
+.SE ScanKeyEntryData
+structures that describe the scan key in use on the index.
+.sh 3 "Using Scans"
+.\" buffer pinning
+.\" sample code, scan some index catalog two ways
 .sh 2 "The \*(PG Access Method Interface"
 .sh 2 "Page Layout"
