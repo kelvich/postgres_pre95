@@ -90,6 +90,13 @@ heap_keytest(t, tupdesc, nkeys, keys)
  *	Complete check of validity including LP_CTUP and keytest.
  *	This should perhaps be combined with valid somehow in the
  *	future.  (Also, additional rule tests/time range tests.)
+ *
+ *  on 8/21/92 mao says:  i rearranged the tests here to do keytest before
+ *  SatisfiesTimeQual.  profiling indicated that even for vacuumed relations,
+ *  time qual checking was more expensive than key testing.  time qual is
+ *  least likely to fail, too.  we should really add the time qual test to
+ *  the restriction and optimize it in the normal way.  this has interactions
+ *  with joey's expensive function work.
  * ----------------
  */
 
@@ -103,21 +110,21 @@ heap_tuple_satisfies(itemId, relation, disk_page, qual, nKeys, key)
     ScanKey key;
 {
     HeapTuple	tuple;
+    bool res;
 
-    if (! ItemIdIsUsed(itemId) ||
-	ItemIdIsContinuation(itemId) || ItemIdIsLock(itemId))
+    if (! ItemIdIsUsed(itemId) || ItemIdIsLock(itemId))
 	return NULL;
 
     tuple = (HeapTuple) PageGetItem((Page) disk_page, itemId);
 
-    if (relation->rd_rel->relkind == 'u'
-     || HeapTupleSatisfiesTimeQual(tuple,qual))
-    {
-        if (key == NULL)
-	    return tuple;
-	else if (keytest(tuple, relation, nKeys, (struct skey *) key))
-	    return tuple;
-    }
+    if (key != NULL)
+	res = keytest(tuple, relation, nKeys, (struct skey *) key);
+    else
+	res = TRUE;
+
+    if (res && (relation->rd_rel->relkind == 'u'
+		|| HeapTupleSatisfiesTimeQual(tuple,qual)))
+	return tuple;
 
     return (HeapTuple) NULL;
 }
