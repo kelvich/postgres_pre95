@@ -486,10 +486,10 @@ OperatorRelationFillScanKeyEntry(operatorRelation, operatorObjectId, entry)
     ScanKeyData		scanKeyData;
     HeapTuple		tuple;
 
-	ScanKeyEntryInitialize(&scanKeyData.data[0], 0, 
-						   ObjectIdAttributeNumber,
-						   ObjectIdEqualRegProcedure,
-						   ObjectIdGetDatum(operatorObjectId));
+    ScanKeyEntryInitialize(&scanKeyData.data[0], 0, 
+			   ObjectIdAttributeNumber,
+			   ObjectIdEqualRegProcedure,
+			   ObjectIdGetDatum(operatorObjectId));
 
     scan = heap_beginscan(operatorRelation, false, NowTimeQual,
 			  1, &scanKeyData);
@@ -610,7 +610,7 @@ IndexSupportInitialize(indexStrategy, indexSupport,
 		ObjectIdGetDatum(operatorClassObjectId[attributeNumber - 1]);
 
 	    scan = heap_beginscan(relation, false, NowTimeQual, 2,
-				  (ScanKey)entry);
+				  (ScanKey) entry);
 
 	    while (tuple = heap_getnext(scan, false, (Buffer *)NULL),
 		   HeapTupleIsValid(tuple)) {
@@ -624,13 +624,13 @@ IndexSupportInitialize(indexStrategy, indexSupport,
 	heap_close(relation);
     }
 
-	ScanKeyEntryInitialize(&entry[0], 0, 
-	                       AccessMethodOperatorAccessMethodIdAttributeNumber,
+    ScanKeyEntryInitialize(&entry[0], 0, 
+			   AccessMethodOperatorAccessMethodIdAttributeNumber,
                            ObjectIdEqualRegProcedure,
                            ObjectIdGetDatum(accessMethodObjectId));
 
-	ScanKeyEntryInitialize(&entry[1], 0, 
-	                       AccessMethodOperatorOperatorClassIdAttributeNumber,
+    ScanKeyEntryInitialize(&entry[1], 0, 
+			   AccessMethodOperatorOperatorClassIdAttributeNumber,
                            ObjectIdEqualRegProcedure, 0);
 
     relation = heap_openr(AccessMethodOperatorRelationName);
@@ -654,8 +654,7 @@ IndexSupportInitialize(indexStrategy, indexSupport,
 	scan = heap_beginscan(relation, false, NowTimeQual, 2, (ScanKey)entry);
 
 	while (tuple = heap_getnext(scan, false, (Buffer *)NULL),
-	       HeapTupleIsValid(tuple)) {
-
+		HeapTupleIsValid(tuple)) {
 	    AccessMethodOperatorTupleForm form;
 
 	    form = (AccessMethodOperatorTupleForm) HeapTupleGetForm(tuple);
