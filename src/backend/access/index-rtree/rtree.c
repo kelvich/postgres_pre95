@@ -828,7 +828,7 @@ choose(r, p, it)
 	pfree(ud);
 	if (which_grow < 0 || *usize - *dsize < which_grow) {
 	    which = i;
-	    which_grow = usize - dsize;
+	    which_grow = *usize - *dsize;
 	    if (which_grow == 0)
 		break;
 	}
