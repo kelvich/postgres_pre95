@@ -119,3 +119,15 @@ _bt_getstrat(rel, attno, proc)
 
     return (strat);
 }
+
+bool
+_bt_invokestrat(rel, attno, strat, left, right)
+    Relation rel;
+    AttributeNumber attno;
+    StrategyNumber strat;
+    Datum left;
+    Datum right;
+{
+    return (RelationInvokeStrategy(rel, &BTEvaluationData, attno, strat, 
+				   left, right));
+}
