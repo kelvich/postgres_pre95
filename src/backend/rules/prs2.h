@@ -336,7 +336,7 @@ prs2CopyLocks ARGS((
 extern
 RuleLock
 prs2GetLocksFromRelation ARGS((
-    Relation relation
+    Name relationName
 ));
 
 /*------------------------------------------------------------------
