@@ -1,4 +1,6 @@
-RcsId("$Header$");
+/*
+ * $Header$
+ */
 
 /* dynamic_syms.c */
 
