@@ -270,14 +270,6 @@ CFLAGS+= -DSEQUOIA
 
 
 #
-# Every port we have supports <stdlib.h> and <stddef.h>.
-# (If you don't, you're basically doomed.  Look at "tmp/c.h" for
-# the right place to stick your own definitions.)
-#
-CFLAGS+= -DHAVE_STD_HDRS
-
-
-#
 # SVID and POSIX signal(2) semantics differ from BSD signal(2) semantics.
 # These systems are SVID or POSIX based by default.
 #

@@ -183,7 +183,9 @@ typedef void	*Pointer;
 #endif	/* !defined(NULL) */
 
 #define	HAVE_ANSI_CPP	/* all ANSI C compilers must have this! */
-#define	HAVE_STD_HDRS	/* all ANSI systems must have stddef/stdlib */
+#if defined(NEED_STD_HDRS)
+#undef NEED_STD_HDRS	/* all ANSI systems must have stddef/stdlib */
+#endif /* NEED_STD_HDRS */
 
 #else	/* !defined(__STDC__) */ /* NOT ANSI C */
 
@@ -276,17 +278,17 @@ typedef char	*Pointer;
 #define ARGS(args)	(/*args*/)
 #endif /* PROTOTYPES */
 
-#ifdef HAVE_STD_HDRS
-#include <stddef.h>
-#include <stdlib.h>
-#else /* HAVE_STD_HDRS */
+#if defined(NEED_STD_HDRS)
 /*
  * You're doomed.  We've removed almost all of our own C library 
  * extern declarations because they conflict on the different
  * systems.  You'll have to write your own stdlib.h.
  */
 #include "stdlib.h"
-#endif /* HAVE_STD_HDRS */
+#else /* NEED_STD_HDRS */
+#include <stddef.h>
+#include <stdlib.h>
+#endif /* NEED_STD_HDRS */
 
 /* ----------------------------------------------------------------
  *		Section 4:  standard system types
