@@ -918,8 +918,10 @@ PostgresMain(argc, argv)
 	  case 'n':  set_palloc_debug(true, false);  break;
 	  case 'r':  set_palloc_debug(false, true);  break;
 	  case 'b':  set_palloc_debug(true, true);   break;
-	  case 'Q':  query_tuple_max = atoi(&optarg[1]); break;
-	  case 'X':  xact_tuple_max = atoi(&optarg[1]); break;
+	  case 'Q':  set_palloc_debug(false, true);
+		     query_tuple_max = atoi(&optarg[1]); break;
+	  case 'X':  set_palloc_debug(false, true);
+		     xact_tuple_max = atoi(&optarg[1]); break;
 	  default:   errs++; break;
 	  } 
 	  break;
