@@ -15,6 +15,10 @@
 #include "c.h"
 #endif
 
+#ifndef SKEY_H
+#include "skey.h"   /* just to reduce levels of #include */
+#endif
+
 #ifndef	CAT_H
 #include "cat.h"
 #endif

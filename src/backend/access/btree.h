@@ -26,43 +26,117 @@
 #include "c.h"
 #endif
 
+#ifndef ALIGN_H
 #include "align.h"
+#endif
+#ifndef ATTNUM_H
 #include "attnum.h"
+#endif
+#ifndef ATTVAL_H
 #include "attval.h"
+#endif
+#ifndef BLOCK_H
 #include "block.h"
+#endif
+#ifndef BUF_H
 #include "buf.h"
+#endif
+#ifndef BUFMGR_H
 #include "bufmgr.h"
+#endif
+#ifndef BUFPAGE_H
 #include "bufpage.h"
+#endif
+#ifndef CLIB_H
 #include "clib.h"
+#endif
+#ifndef DATUM_H
 #include "datum.h"
+#endif
+#ifndef FORM_H
 #include "form.h"
+#endif
+#ifndef FTUP_H
 #include "ftup.h"
+#endif
+#ifndef GENAM_H
 #include "genam.h"
+#endif
+#ifndef GLOBALS_H
 #include "globals.h"
+#endif
+#ifndef HEAPAM_H
 #include "heapam.h"
+#endif
+#ifndef IBIT_H
 #include "ibit.h"
+#endif
+#ifndef IMARK_H
 #include "imark.h"
+#endif
+#ifndef IQUAL_H
 #include "iqual.h"
+#endif
+#ifndef ISOP_H
 #include "isop.h"
+#endif
+#ifndef ISTRAT_H
 #include "istrat.h"
+#endif
+#ifndef ITEM_H
 #include "item.h"
+#endif
+#ifndef ITEMID_H
 #include "itemid.h"
+#endif
+#ifndef ITEMPTR_H
 #include "itemptr.h"
+#endif
+#ifndef ITUP_H
 #include "itup.h"
+#endif
+#ifndef LOG_H
 #include "log.h"
+#endif
+#ifndef MISC_H
 #include "misc.h"
+#endif
+#ifndef NAME_H
 #include "name.h"
+#endif
+#ifndef PAGE_H
 #include "page.h"
+#endif
+#ifndef PAGENUM_H
 #include "pagenum.h"
+#endif
+#ifndef PART_H
 #include "part.h"
+#endif
+#ifndef POSTGRES_H
 #include "postgres.h"
+#endif
+#ifndef REGPROC_H
 #include "regproc.h"
+#endif
+#ifndef REL_H
 #include "rel.h"
+#endif
+#ifndef RELSCAN_H
 #include "relscan.h"
+#endif
+#ifndef RLOCK_H
 #include "rlock.h"
+#endif
+#ifndef SDIR_H
 #include "sdir.h"
+#endif
+#ifndef SKEY_H
 #include "skey.h"
+#endif
+#ifndef TQUAL_H
 #include "tqual.h"
+#endif
 
 /* ----------------------------------------------------------------
  *	B-Tree constants

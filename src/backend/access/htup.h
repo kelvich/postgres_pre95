@@ -15,13 +15,21 @@
 #include "c.h"
 #endif
 
+#ifndef POSTGRES_H
 #include "postgres.h"		/* XXX obsolete, for XID, etc. */
+#endif
 
 #ifndef	ATTNUM_H
 # include "attnum.h"
 #endif
 #ifndef	FORM_H
 # include "form.h"
+#endif
+#ifndef PAGE_H
+#include "page.h"  /* just to reduce levels of #include */
+#endif
+#ifndef PART_H
+#include "part.h"  /* just to reduce levels of #include */
 #endif
 #ifndef	ITEMPTR_H
 # include "itemptr.h"

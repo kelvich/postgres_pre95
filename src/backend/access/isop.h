@@ -13,7 +13,9 @@
 #include "c.h"
 #endif
 
+#ifndef ISTRAT_H
 #include "istrat.h"
+#endif
 
 typedef struct StrategyTransformMapData {
 	StrategyNumber	strategy[1];	/* VARIABLE LENGTH ARRAY */
