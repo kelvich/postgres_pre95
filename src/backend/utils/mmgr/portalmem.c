@@ -19,6 +19,7 @@ RcsId("$Header$");
 #include "nodes.h"
 #include "pg_lisp.h"
 #include "plannodes.h"	/* for Plan */
+#include "tags.h"
 
 #include "portal.h"
 
@@ -427,14 +428,14 @@ BlankPortalAssignName(name)
 
 void
 PortalSetQuery(portal, parse, plan, state)
-	Portal		portal;
-	LispValue	parse;
-	Plan		plan;
-	EState		state;
+	Portal	portal;
+	List	parse;
+	Plan	plan;
+	EState	state;
 {
 	AssertState(PortalManagerEnabled);
 	AssertArg(PortalIsValid(portal));
-	AssertArg(NodeIsType((Node)parse, classTag(LispValue)));
+	AssertArg(NodeIsType((Node)parse, classTag(LispList)));
 	AssertArg(NodeIsType((Node)plan, classTag(Plan)));
 	AssertArg(NodeIsType((Node)state, classTag(EState)));
 
