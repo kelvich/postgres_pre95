@@ -343,7 +343,7 @@ _bt_dumptup(rel, itupdesc, page, offind)
     iptr = &(itup->t_tid);
     blkno = (iptr->blockData.data[0] << 16) + (uint16) iptr->blockData.data[1];
     pgno = 0;
-    offno = (OffsetNumber) (pointer->positionData & 0xffff);
+    offno = (OffsetNumber) (iptr->positionData & 0xffff);
 
     idatum = IndexTupleGetAttributeValue(itup, 1, itupdesc, &null);
     tmpkey = DatumGetInt32(idatum);
