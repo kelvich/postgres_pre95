@@ -33,8 +33,11 @@ List OrderRules ARGS((List locks));
 List FireRetrieveRulesAtQuery ARGS((List parsetree, int rt_index, Relation relation,int *instead_flag));
 ApplyRetrieveRule ARGS((List parsetree, List rule, int rt_index,int relation_level, int attr_num,int *modified));
 List ProcessRetrieveQuery ARGS((List parsetree, List rt,int *instead_flag, int rule));
-List FireRules ARGS((List parsetree, int rt_index, int event, int *instead_flag, List locks));
-List ProcessUpdateNode ARGS((List parsetree, int rt_index, int event, int *instead_flag,RuleLock relation_locks));
-List RewriteQuery ARGS((List parsetree,int *instead_flag));
+List FireRules ARGS((List parsetree, int rt_index, int event, int *instead_flag, List locks, List *products));
+List ProcessUpdateNode ARGS((List parsetree, int rt_index, int event, int *instead_flag,RuleLock relation_locks, List *products));
+List RewriteQuery ARGS((List parsetree,int *instead_flag, List *products));
 List QueryRewrite ARGS(( List parsetree ));
+List CopyAndAddQual ARGS((List parsetree, List actions, List rule_qual, int rt_index, int event));
+
+
 

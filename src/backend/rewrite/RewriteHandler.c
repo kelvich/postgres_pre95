@@ -35,7 +35,7 @@ List FireRules();
  * Fix rule body and qualifier so that they can be mixed
  * with the parsetree and maintain semantic validity
  */
-int query_rewrite_debug = true;
+extern int DebugLvl;
 RewriteInfo *GatherRewriteMeta(parsetree, rule_action, rule_qual, rt_index, event, instead_flag)
      List parsetree,rule_action, rule_qual;
      int rt_index, event, *instead_flag;
@@ -49,7 +49,7 @@ RewriteInfo *GatherRewriteMeta(parsetree, rule_action, rule_qual, rt_index, even
     info->event = event;
     info->instead_flag = *instead_flag;
     info->rule_action = rule_action;
-    info->rule_qual = rule_qual;
+    info->rule_qual = (List) CopyObject(rule_qual);
     info->nothing = FALSE;
     info->action = root_command_type(parse_root(info->rule_action));
     if (info->rule_action == LispNil) info->nothing = TRUE;
@@ -166,6 +166,7 @@ List FireRetrieveRulesAtQuery(parsetree, rt_index, relation,instead_flag)
 			      &modified);
 	    if (modified) {
 		*instead_flag = TRUE;
+/*		FixResdomTypes(parse_targetlist(parsetree));*/
 		return parsetree;
 	    }
 	}
@@ -274,6 +275,35 @@ List ProcessRetrieveQuery(parsetree, rt,instead_flag,rule)
     return product_queries;
 }
 
+List CopyAndAddQual(parsetree, actions, rule_qual,
+		    rt_index,event)
+     List parsetree,rule_qual,actions;
+     int event, rt_index;
+{
+    List new_pt = (List) CopyObject(parsetree);
+    List new_qual = LispNil;
+    List rule_action = LispNil;
+
+    if (actions)
+	rule_action = CAR(actions);
+    if (rule_qual != LispNil)
+	new_qual = (List) CopyObject(rule_qual);
+    if (rule_action != LispNil) {
+	List rt;
+	int rt_length;
+
+	rt = root_rangetable(parse_root(new_pt));
+	rt_length = length(rt);
+	rt = append(rt,
+		    lispCopyList(root_rangetable(parse_root(rule_action))));
+	root_rangetable(parse_root(new_pt)) = rt;
+	OffsetVarNodes(new_qual, rt_length);
+	ChangeVarNodes(new_qual, PRS2_CURRENT_VARNO+rt_length, rt_index);
+    }
+    /* XXX -- where current doesn't work for instead nothing.... yet*/
+    AddNotQual(new_pt, new_qual);
+    return new_pt;
+}
 
 
 /*
@@ -287,10 +317,11 @@ List ProcessRetrieveQuery(parsetree, rt,instead_flag,rule)
  *
  */
 
-List FireRules(parsetree, rt_index, event,  instead_flag, locks)
+List FireRules(parsetree, rt_index, event,  instead_flag, locks,qual_products)
      List parsetree;
      int event, *instead_flag, rt_index;
      List locks;
+     List *qual_products;
 {
     RewriteInfo *info;
     List results = LispNil;
@@ -323,6 +354,11 @@ List FireRules(parsetree, rt_index, event,  instead_flag, locks)
        if (null(rule)) return LispNil;
        event_qual = CAR(rule);
        actions = CDR(rule);
+       if (event_qual != LispNil && *instead_flag)
+	   *qual_products =
+	       nappend1(*qual_products,
+			CopyAndAddQual(parsetree,actions,event_qual,
+				       rt_index,event));
        foreach (r, actions) {
 	   List rule_action  = CAR(r);
 	   List rule_qual = lispCopy(event_qual);
@@ -344,15 +380,9 @@ List FireRules(parsetree, rt_index, event,  instead_flag, locks)
 	   if (info->action == info->event == RETRIEVE) continue;
 	   /*
 	    * Event Qualification forces copying of parsetree --- XXX
-	    * and splitting into two queries one w/rule_qual, one w/NOT rule_qual
+	    * and splitting into two queries one w/rule_qual, one
+	    * w/NOT rule_qual
 	    */
-	   /*       if (info->rule_qual != LispNil) {
-		    saved_query = lispCopy(parsetree);
-		    qual = parse_qualification(saved_query);
-		    AddNotQual(saved_query,info->rule_qual);
-		    AddQual(parsetree, info->rule_qual);
-		    results = nappend1(results, saved_query);
-		    }*/
 	   /*
 	    * Also add user query qual onto rule action
 	    *
@@ -360,6 +390,9 @@ List FireRules(parsetree, rt_index, event,  instead_flag, locks)
 	   qual = parse_qualification(parsetree);
 	   AddQual(info->rule_action, qual);
 	   
+	   if (info->rule_qual != LispNil) 
+	       AddQual(info->rule_action, info->rule_qual);
+
 	   /* Step 2
 	    * Rewrite new.attribute w/ right hand side of
 	    * target-list entry for appropriate field name in append/replace
@@ -389,10 +422,11 @@ List FireRules(parsetree, rt_index, event,  instead_flag, locks)
     return results;
 }
 List ProcessUpdateNode(parsetree, rt_index, event,
-			 instead_flag,relation_locks)
+			 instead_flag,relation_locks,qual_products)
      List parsetree;
      int event, *instead_flag, rt_index;
      RuleLock relation_locks;
+     List *qual_products;
 {
     List locks = LispNil;
     Prs2LockType locktype;
@@ -414,14 +448,15 @@ List ProcessUpdateNode(parsetree, rt_index, event,
     if (relation_locks != NULL)
 	locks = MatchLocks(locktype,relation_locks,rt_index,parsetree);
     return FireRules(parsetree, rt_index, event,
-		    instead_flag, locks);
+		    instead_flag, locks,qual_products);
 }
 
 	
 	
-List RewriteQuery(parsetree,instead_flag)
+List RewriteQuery(parsetree,instead_flag,qual_products)
      List parsetree;
      int *instead_flag;
+     List *qual_products;
 {
     List root              = NULL;
     List command_type      = NULL;
@@ -450,7 +485,7 @@ List RewriteQuery(parsetree,instead_flag)
     else
         event = root_command_type(root);
 
-    if (query_rewrite_debug) {
+    if (DebugLvl) {
 	printf("\nRewriteQuery being called with :\n");
 	Print_parse ( parsetree );
     }
@@ -460,7 +495,7 @@ List RewriteQuery(parsetree,instead_flag)
      */
     if ( event != DELETE ) {
 	tl = parse_targetlist(parsetree);
-	Assert ( tl != NULL );
+ 	Assert ( tl != NULL );
     }
 
     result_relation = root_result_relation(parse_root(parsetree));
@@ -482,15 +517,17 @@ List RewriteQuery(parsetree,instead_flag)
 			      CInteger(result_relation),
 			      event,
 			      instead_flag,
-			      rt_entry_locks);
+			      rt_entry_locks,qual_products);
 	return product_queries;
     }
     else {			/* XXX */
 	char *temp;
 	List new_pt;
+	List other;
 	temp = PlanToString(parsetree);
 	
 	new_pt = (List)StringToPlan(temp);
+	other = (List) CopyObject(parsetree);
 	return ProcessRetrieveQuery(new_pt, rt, instead_flag,FALSE);
     }
 }
@@ -507,10 +544,10 @@ QueryRewrite ( parsetree )
     List rewritten = LispNil;
     List result = LispNil;
     int instead;
-
+    List qual_products = LispNil;
 
     instead = FALSE;
-    result = RewriteQuery(parsetree, &instead);
+    result = RewriteQuery(parsetree, &instead,&qual_products);
     if (!instead) rewritten = nappend1(rewritten, parsetree);
     foreach(n, result) {
         List pt = CAR(n);
@@ -519,7 +556,9 @@ QueryRewrite ( parsetree )
         newstuff = QueryRewrite(pt);
         if (newstuff != LispNil) rewritten = append(rewritten, newstuff);
     }
-    if (query_rewrite_debug) {
+    if (qual_products != LispNil)
+	rewritten = append(rewritten,qual_products);
+    if (DebugLvl) {
 	puts("printing resulting queries:");
 	foreach(n, rewritten) {
 	    List pt = CAR(n);
