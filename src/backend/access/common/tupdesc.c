@@ -22,6 +22,8 @@
  * ----------------------------------------------------------------
  */
 
+#include <ctype.h>
+
 #include "tmp/postgres.h"
 
 RcsId("$Header$");
@@ -94,11 +96,12 @@ CreateTemplateTupleDesc(natts)
  * ----------------------------------------------------------------
  */
 bool
-TupleDescInitEntry(desc, attributeNumber, attributeName, typeName)
+TupleDescInitEntry(desc, attributeNumber, attributeName, typeName, attdim)
     TupleDesc		desc;
     AttributeNumber	attributeNumber;
     Name		attributeName;
     Name		typeName;
+    int			attdim;
 {
     HeapTuple		tuple;
     TypeTupleForm	typeForm;
@@ -128,7 +131,7 @@ TupleDescInitEntry(desc, attributeNumber, attributeName, typeName)
      */
     strncpy(&(att->attname), attributeName, 16);
     att->attnum = attributeNumber;
-	att->attnelems = 0;
+    att->attnelems = attdim;
 
     /* ----------------
      *	search the system cache for the type tuple of the attribute
@@ -220,6 +223,7 @@ BuildDesc(schema)
     TupleDesc		desc;
     char 		*attname;
     char 		*typename;
+    int			attdim;
     
     /* ----------------
      *	allocate a new tuple descriptor
@@ -243,7 +247,9 @@ BuildDesc(schema)
 	attname = 	CString(CAR(entry));
 	typename = 	CString(CADR(entry));
 
-	if (!TupleDescInitEntry(desc, attnum, attname, typename)) {
+	TupleDescHandleArray(&attdim, typename);
+
+	if (!TupleDescInitEntry(desc, attnum, attname, typename, attdim)) {
 	    /* ----------------
 	     *	if TupleDescInitEntry() fails, it means there is
 	     *  no type in the system catalogs, so we signal an
@@ -285,7 +291,10 @@ BuildDescForRelation(schema, relname)
     TupleDesc		desc;
     char 		*attname;
     char 		*typename;
-    
+    char		typename2[16];
+    char		*pp, *pp2;
+    int			attdim;
+
     /* ----------------
      *	allocate a new tuple descriptor
      * ----------------
@@ -294,7 +303,7 @@ BuildDescForRelation(schema, relname)
     desc = 	CreateTemplateTupleDesc(natts);
 
     attnum = 0;
-    
+
     foreach(p, schema) {
 	/* ----------------
 	 *	for each entry in the list, get the name and type
@@ -308,7 +317,9 @@ BuildDescForRelation(schema, relname)
 	attname = 	CString(CAR(entry));
 	typename = 	CString(CADR(entry));
 
-	if (! TupleDescInitEntry(desc, attnum, attname, typename)) {
+	TupleDescHandleArray(&attdim, typename);
+
+	if (! TupleDescInitEntry(desc, attnum, attname, typename, attdim)) {
 	    /* ----------------
 	     *	if TupleDescInitEntry() fails, it means there is
 	     *  no type in the system catalogs.  So now we check if
@@ -322,6 +333,60 @@ BuildDescForRelation(schema, relname)
 		elog(WARN, "DefineRelation: no such type %s", typename);
 	}
     }
-
     return desc;
+}
+
+/*
+ *  If the type in typname is in the form <name>[len] or <name>[],
+ *  it is an array.  TupleDescHandleArray gets len and returns it in
+ *  arraydim, and handles the renaming of types.
+ */
+
+TupleDescHandleArray(arraydim, typename)
+
+int *arraydim;
+char *typename;
+
+{
+    char *p, *q, *index();
+    char true_name[16];
+
+    if ((p = index(typename, '[')) != NULL)
+    {
+    	*p = '\0'; /* get rid of '[' */
+    	p++;	    /* get past null */
+
+    	while (!isdigit(*p) && *p != ']') p++;
+
+    	if (*p == ']') /* att is a variable length array */
+    	{
+    	    *arraydim = -1;
+    	}
+    	else	/* fixed length array */
+    	{
+    	    q = index(p, ']');
+    	    if (q == NULL)
+    	    	elog(WARN, "TupleDescHandleArray: bad array declaration");
+    	    *q = '\0';
+    	    *arraydim = atoi(p);
+    	}
+
+	/*
+	 * the type of an array is proceeded by an underscore "_".  That is,
+	 * int4[4] is turned into _int4 with attarraysize equal to 4.
+	 *
+	 * We have to make sure we are not going to run off the end of the
+	 * char16 array here.
+	 */
+
+	if (strlen(typename) > 15) 
+	    elog(WARN, "TupleDescHandleArray: type name too long");
+
+	sprintf(true_name, "_%s", typename);
+	strcpy(typename, true_name);
+    }
+    else
+    {
+	*arraydim = 0;
+    }
 }
