@@ -12,6 +12,9 @@
 #include <sys/file.h>
 #include "tmp/c.h"
 #include "utils/large_object.h"
+#include "catalog/pg_naming.h"
+#include "catalog/pg_lobj.h"
+#include "utils/log.h"
 
 LargeObject *NewLargeObject();
 
@@ -31,8 +34,8 @@ LargeObject *NewLargeObject();
  */
 
 LargeObjectDesc *
-LOCreate(open_mode)
-
+LOCreate(path, open_mode)
+char *path;
 int open_mode;
 
 {
@@ -41,6 +44,7 @@ int open_mode;
     LargeObjectDesc *retval;
     LargeObject *newobj;
     int fd;
+    int obj_len, filename_len;
 
     file_oid = newoid();
     sprintf(filename, "LO%d", file_oid);
@@ -52,6 +56,17 @@ int open_mode;
 
     retval->object = newobj;
     retval->fd = fd;
+
+    /* Log this instance of large object into directory table. */
+    {
+      oid oidf;
+      if ((oidf = FilenameToOID(path)) == InvalidObjectId) { /* new file */
+        oidf = LOcreatOID(path,0); /* enter it in system relation */
+        /* enter cookie into table */
+        if (LOputOIDandLargeObjDesc(oidf,newobj) < 0)
+          elog(NOTICE,"LOputOIDandLargeObjDesc failed");
+      }
+    }
 
     return(retval);
 }
@@ -136,13 +151,16 @@ unsigned long nblocks;
 
     nbytes = LARGE_OBJECT_BLOCK * nblocks;
     bytes_read = FileRead(obj_desc->fd, buf, nbytes);
-
+    /* bogus because this assumes that all but one block is read. */
+/*
     if (bytes_read == 0) return(0);
 
     if (bytes_read % LARGE_OBJECT_BLOCK != 0)
         return(bytes_read % LARGE_OBJECT_BLOCK);
     else
         return(LARGE_OBJECT_BLOCK);
+*/
+    return bytes_read;
 }
 
 /*
@@ -160,6 +178,7 @@ unsigned long n_whole_blocks, bytes_at_end;
 
 {
     unsigned long totalbytes;
+    int ret;
 
     Assert(PointerIsValid(obj_desc));
     Assert(PointerIsValid(obj_desc->object));
@@ -167,7 +186,12 @@ unsigned long n_whole_blocks, bytes_at_end;
 
     totalbytes = LARGE_OBJECT_BLOCK * n_whole_blocks + bytes_at_end;
 
-    return(FileWrite(obj_desc->fd, buf, totalbytes));
+    ret = FileWrite(obj_desc->fd, buf, totalbytes);
+    if (ret < 0) {
+	perror ("NOTICE: write");
+    } else {
+	return ret;
+    }
 }
 
 /*
@@ -191,7 +215,7 @@ int whence;
 
     retval = FileSeek(obj_desc->fd, offset * LARGE_OBJECT_BLOCK, whence);
 
-    return(retval * LARGE_OBJECT_BLOCK);
+    return(retval / LARGE_OBJECT_BLOCK);
 }
 
 /*
@@ -249,4 +273,29 @@ LargeObjectDesc *obj_desc;
 
     retval = obj_desc->object;
     return(retval);
+}
+
+/*
+ * Returns your standard unix stat(2) information.
+ */
+int
+LOUnixStat(obj_desc, stbuf)
+
+LargeObjectDesc *obj_desc;
+struct stat *stbuf;
+{
+    int ret;
+
+    Assert(PointerIsValid(obj_desc));
+    Assert(PointerIsValid(obj_desc->object));
+    Assert(obj_desc->object->lo_storage_type == PURE_FILE);
+    Assert(stbuf != NULL);
+
+    ret = stat(obj_desc->object->lo_ptr.filename,stbuf);
+#if 0
+    elog(NOTICE,"LOUnixStat: fd %d, ret %d, size %d blocks %d",obj_desc->fd,
+         ret, stbuf->st_size,stbuf->st_blocks);
+#endif
+
+    return ret;
 }
