@@ -9,7 +9,6 @@ RcsId("$Header$");
 
 #include "utils/mcxt.h"
 #include "utils/log.h"
-#include "tmp/simplelists.h"
 
 #include "nodes/mnodes.h"
 
@@ -22,6 +21,13 @@ RcsId("$Header$");
 
 #undef palloc
 #undef pfree
+#undef MemoryContextAlloc
+#undef MemoryContextFree
+#undef malloc
+#undef free
+
+extern Pointer MemoryContextAlloc();
+extern void MemoryContextFree();
 
 Pointer
 palloc(size)
@@ -64,17 +70,10 @@ pcontext()
 	MemoryContextGetName(CurrentMemoryContext);
 }	
 
-typedef struct PallocDebugData {
-    Pointer	pointer;
-    Size	size;
-    String	file;
-    int		line;
-    String	context;
-    SLNode 	Link;
-} PallocDebugData;
-
-
 SLList PallocDebugList;
+SLList *PallocList = NULL;
+SLList *PfreeList = NULL;
+int PallocDiffTag = 0;
 
 bool   PallocRecord;
 bool   PallocNoisy;
@@ -97,7 +96,7 @@ palloc_record(file, line, size, context)
     String context;
 {
     Pointer p;
-    PallocDebugData *d;
+    PallocDebugData *d, *d1;
 
     p = (Pointer) palloc(size);
     
@@ -117,6 +116,16 @@ palloc_record(file, line, size, context)
     
     SLNewNode(&(d->Link));
     SLAddTail(&PallocDebugList, &(d->Link));
+    if (PallocDiffTag) {
+        d1 = (PallocDebugData *) malloc(sizeof(PallocDebugData));
+        d1->pointer = p;
+        d1->size    = size;
+        d1->line    = line;
+        d1->file    = file;
+        d1->context = context;
+	SLNewNode(&(d1->Link));
+	SLAddTail(PallocList, &(d1->Link));
+      }
     return p;
 }
 
@@ -145,7 +154,10 @@ pfree_remove(file, line, pointer)
      * ----------------
      */
     if (d != NULL) {
-	free(d); /* can't use pfree, see palloc_record -cim  */
+	if (PallocDiffTag)
+	    SLAddTail(PfreeList, &(d->Link));
+	else
+	    free(d); /* can't use pfree, see palloc_record -cim  */
     } else
 	elog(NOTICE, "pfree_remove l:%d f:%s p:0x%x %s",
 	     line, file, pointer, "** not on list **");
@@ -257,3 +269,178 @@ alloc_set_message(file, line, pointer, set)
 	pfree_remove(file, line, pointer);
 }
  
+void
+free_palloc_list(list)
+SLList *list;
+{
+    PallocDebugData *d;
+    PallocDebugData *d1;
+
+    d = (PallocDebugData*)SLGetHead(list);
+    while (d != NULL) {
+	d1 = d;
+	d = (PallocDebugData*)SLGetSucc(&(d->Link));
+	free(d1);
+      }
+    free(list);
+}
+
+void
+start_palloc_list()
+{
+    if (PallocRecord)
+        free_palloc_list(&PallocDebugList);
+    SLNewList(&PallocDebugList, offsetof(PallocDebugData, Link));
+    PallocRecord = 1;
+}
+
+void
+start_palloc_diff_list()
+{
+    if (PallocList)
+       free_palloc_list(PallocList);
+    if (PfreeList)
+       free_palloc_list(PfreeList);
+    PallocList = (SLList*)malloc(sizeof(SLList));
+    PfreeList = (SLList*)malloc(sizeof(SLList));
+    SLNewList(PallocList, offsetof(PallocDebugData, Link));
+    SLNewList(PfreeList, offsetof(PallocDebugData, Link));
+    PallocDiffTag = 1;
+}
+
+void
+end_palloc_diff_list()
+{
+    if (PallocList)
+       free_palloc_list(PallocList);
+    if (PfreeList)
+       free_palloc_list(PfreeList);
+    PallocList = NULL;
+    PfreeList = NULL;
+    PallocDiffTag = 0;
+}
+
+void
+dump_palloc_diff_list()
+{
+    PallocDebugData *d, *d1, *tempd;
+    int i, total;
+
+    d = (PallocDebugData *) SLGetHead(PallocList);
+    total = 0;
+    i = 0;
+    while (d != NULL) {
+	printf("!! f: %s l: %d p: 0x%x s: %d %s\n",
+	       d->file, d->line, d->pointer, d->size, d->context);
+	i++;
+	total += d->size;
+	d = (PallocDebugData *) SLGetSucc(&(d->Link));
+    }
+    printf("\n!! new pallocs: items: %d totalsize: %d\n\n", i, total);
+    d = (PallocDebugData *) SLGetHead(PfreeList);
+    total = 0;
+    i = 0;
+    while (d != NULL) {
+	printf("!! f: %s l: %d p: 0x%x s: %d %s\n",
+	       d->file, d->line, d->pointer, d->size, d->context);
+	i++;
+	total += d->size;
+	d = (PallocDebugData *) SLGetSucc(&(d->Link));
+    }
+    printf("\n!! new pfrees: items: %d totalsize: %d\n\n", i, total);
+    total = 0;
+    i = 0;
+    d = (PallocDebugData *) SLGetHead(PallocList);
+    while (d !=NULL) {
+	d1 = (PallocDebugData *) SLGetHead(PfreeList);
+	while (d1 != NULL) {
+	    if (strcmp(d->file, d1->file) == 0 && d->line == d1->line &&
+		d->size == d1->size) {
+		SLRemove(&(d1->Link));
+		free(d1);
+		SLRemove(&(d->Link));
+		tempd = d;
+		break;
+	      }
+	    d1 = (PallocDebugData *) SLGetSucc(&(d1->Link));
+	  }
+       if (d1 == NULL) {
+	   printf("!! f: %s l: %d p: 0x%x s: %d %s\n",
+		  d->file, d->line, d->pointer, d->size, d->context);
+	   i++;
+	   total += d->size;
+	 }
+       d = (PallocDebugData *) SLGetSucc(&(d->Link));
+       if (d1 != NULL)
+	   free(tempd);
+     }
+    printf("\n!! unfreed allocs: items: %d totalsize: %d\n\n", i, total);
+}
+
+char *
+malloc_debug(file, line, size)
+String file;
+int line;
+int size;
+{
+    char *p;
+    PallocDebugData *d, *d1;
+
+    p = (char*)malloc(size);
+    if (PallocRecord) {
+	d = (PallocDebugData*)malloc(sizeof(PallocDebugData));
+	d->pointer = (Pointer)p;
+	d->size = size;
+	d->line = line;
+	d->file = file;
+	d->context = "** Direct Malloc **";
+	SLNewNode(&(d->Link));
+	SLAddTail(&PallocDebugList, &(d->Link));
+	if (PallocDiffTag) {
+	    d1 = (PallocDebugData*)malloc(sizeof(PallocDebugData));
+	    d1->pointer = p;
+	    d1->size = size;
+	    d1->line = line;
+	    d1->file = file;
+	    d1->context = "** Direct Malloc **";
+	    SLNewNode(&(d1->Link));
+	    SLAddTail(PallocList, &(d1->Link));
+	  }
+       }
+    if (PallocNoisy)
+	printf("!+ f: %s l: %d p: 0x%x s: %d ** Direct Malloc **\n",
+	       file, line, p, size);
+    return p;
+}
+
+free_debug(file, line, p)
+String file;
+int line;
+char *p;
+{
+    PallocDebugData *d;
+
+    if (PallocRecord) {
+	d = (PallocDebugData*)SLGetHead(&PallocDebugList);
+	while (d != NULL) {
+	    if (d->pointer == (Pointer)p) {
+		SLRemove(&(d->Link));
+		break;
+	      }
+	    d = (PallocDebugData*)SLGetSucc(&(d->Link));
+	  }
+	if (d != NULL) {
+	    if (PallocDiffTag)
+		SLAddTail(PfreeList, &(d->Link));
+	    else
+		free(d);
+	  }
+	else
+	    elog(NOTICE, "pfree_remove l:%d f:%s p:0x%x %s",
+		 line, file, p, "** not on list **");
+      }
+    if (PallocNoisy)
+	printf("!- f: %s l: %d p: 0x%x ** Direct Malloc **\n",
+	       file, line, p);
+    free(p);
+}
