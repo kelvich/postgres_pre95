@@ -138,7 +138,7 @@ printcol(dp)
 	DISPLAY *dp;
 {
 	extern int termwidth;
-	static FTSENT **array;
+	static FTSENT **array = NULL;
 	static int lastentries = -1;
 	register FTSENT *p;
 	register int base, chcnt, cnt, col, colwidth, num;
@@ -150,8 +150,13 @@ printcol(dp)
 	 */
 	if (dp->entries > lastentries) {
 		lastentries = dp->entries;
-		if ((array = (FTSENT **)
-		    realloc(array, dp->entries * sizeof(FTSENT *))) == NULL) {
+		if (array == (FTSENT **) NULL) {
+		    array = (FTSENT **) malloc(dp->entries * sizeof(FTSENT *));
+		} else {
+		    array = (FTSENT **) realloc(array, dp->entries * sizeof(FTSENT *));
+		}
+
+		if (array == (FTSENT **) NULL) {
 			err(0, "%s", strerror(errno));
 			printscol(dp);
 		}

@@ -208,6 +208,7 @@ fts_close(sp)
 	FTS *sp;
 {
 	register FTSENT *freep, *p;
+	int result;
 	int saved_errno;
 
 	/*
@@ -238,15 +239,17 @@ fts_close(sp)
 		(void)close(sp->fts_rfd);
 	}
 #endif
-	/* Free up the stream pointer. */
-	free(sp);
-
 	/* Set errno and return. */
 	if (!ISSET(FTS_NOCHDIR) && saved_errno) {
 		errno = saved_errno;
-		return (-1);
+		result = -1;
 	}
-	return (0);
+	result = 0;
+
+	/* Free up the stream pointer. */
+	free(sp);
+
+	return (result);
 }
 
 /*
@@ -604,6 +607,7 @@ fts_build(sp, type)
 	 * needed sorted entries or stat information, they had better be
 	 * checking FTS_NS on the returned nodes.
 	 */
+	cderrno = 0;
 	if (nlinks || type == BREAD)
 		if (FCHDIR(sp, dirfd(dirp))) {
 			if (nlinks && type == BREAD)
@@ -613,7 +617,6 @@ fts_build(sp, type)
 			cderrno = errno;
 		} else {
 			descend = 1;
-			cderrno = 0;
 		}
 	else
 		descend = 0;
@@ -862,23 +865,20 @@ fts_alloc(sp, name, namelen)
 
 	/*
 	 * The file name is a variable length array and no stat structure is
-	 * necessary if the user has set the nostat bit.  Allocate the FTSENT
-	 * structure, the file name and the stat structure in one chunk, but
-	 * be careful that the stat structure is reasonably aligned.  Since the
-	 * fts_name field is declared to be of size 1, the fts_name pointer is
-	 * namelen + 2 before the first possible address of the stat structure.
+	 * necessary if the user has set the nostat bit.
 	 */
 	len = sizeof(FTSENT) + namelen;
-	if (!ISSET(FTS_NOSTAT))
-		len += sizeof(struct pgstat) + /*ALIGNBYTES*/ 8;
 	if ((p = (FTSENT *)malloc(len)) == NULL)
 		return (NULL);
 
 	/* Copy the name plus the trailing NULL. */
 	bcopy(name, p->fts_name, namelen + 1);
-#define ALIGN(x) x
+
 	if (!ISSET(FTS_NOSTAT))
-		p->fts_statp = (struct pgstat *)ALIGN(p->fts_name + namelen + 2);
+		p->fts_statp = (struct pgstat *) malloc(sizeof(struct pgstat));
+	else
+		p->fts_statp = (struct pgstat *) NULL;
+
 	p->fts_namelen = namelen;
 	p->fts_path = sp->fts_path;
 	p->fts_errno = 0;
@@ -913,8 +913,15 @@ fts_palloc(sp, more)
 	FTS *sp;
 	size_t more;
 {
-	sp->fts_pathlen += more + 256;
-	sp->fts_path = (char *)realloc(sp->fts_path, (size_t)sp->fts_pathlen);
+	if (sp->fts_path == (char *) NULL) {
+	    sp->fts_pathlen = more;
+	    sp->fts_path = (char *) malloc((size_t)sp->fts_pathlen);
+	    bzero(sp->fts_path, sp->fts_pathlen);
+	} else {
+	    sp->fts_pathlen += more + 256;
+	    sp->fts_path = (char *)realloc(sp->fts_path, (size_t)sp->fts_pathlen);
+	}
+
 	return (sp->fts_path == NULL);
 }
 

@@ -487,6 +487,7 @@ display(p, list)
 	if (!entries)
 		return;
 
+	bzero((char *) &d, sizeof(d));
 	d.list = list;
 	d.entries = entries;
 	d.maxlen = maxlen;
