@@ -26,6 +26,7 @@
 #include "clauseinfo.h"
 #include "relation.a.h"
 #include "relation.h"
+#include "parse.h"
 #include "setrefs.h"
 #include "lsyscache.h"
 
@@ -37,7 +38,7 @@
 #define NESTLOOP   22
 #define HASHJOIN   23
 #define MERGESORT  24
-#define SORT       25
+/*  #define SORT       25  */
 #define HASH       26
 
 /*
