@@ -29,7 +29,7 @@
 #include "executor/x_hash.h"
 #include "tcop/dest.h"
 #include "parser/parsetree.h"
-#include "utils/lmgr.h"
+#include "storage/lmgr.h"
 #include "catalog/pg_relation.h"
 
  RcsId("$Header$");
@@ -38,6 +38,15 @@ extern ScanTemps RMakeScanTemps();
 extern Fragment RMakeFragment();
 extern Relation CopyRelDescUsing();
 
+/* ------------------------------------
+ *	FingFragments
+ *
+ *	find all the plan fragments under plan node, mark the fragments starting
+ *	with fragmentNo
+ *	plan fragments are obtained by decomposing the plan tree across all
+ *	blocking edges, i.e., edges out of Hash nodes and Sort nodes
+ * ------------------------------------
+ */
 List
 FindFragments(parsetree, node, fragmentNo)
 List parsetree;
@@ -51,6 +60,10 @@ int fragmentNo;
     set_fragment(node, fragmentNo);
     if (get_lefttree(node) != NULL) 
        if (ExecIsHash(get_lefttree(node)) || ExecIsSort(get_lefttree(node))) {
+	  /* -----------------------------
+	   * detected a blocking edge, fragment boundary
+	   * -----------------------------
+	   */
           fragment = RMakeFragment();
           set_frag_root(fragment, get_lefttree(node));
           set_frag_parent_op(fragment, node);
@@ -60,10 +73,14 @@ int fragmentNo;
           subFragments = nappend1(subFragments, fragment);
         }
        else {
-          subFragments = FindFragments(get_lefttree(node), fragmentNo);
+          subFragments = FindFragments(parsetree,get_lefttree(node),fragmentNo);
         }
     if (get_righttree(node) != NULL)
        if (ExecIsHash(get_righttree(node)) || ExecIsSort(get_righttree(node))) {
+	  /* -----------------------------
+	   * detected a blocking edge, fragment boundary
+	   * -----------------------------
+	   */
           fragment = RMakeFragment();
           set_frag_root(fragment, get_righttree(node));
           set_frag_parent_op(fragment, node);
@@ -73,16 +90,25 @@ int fragmentNo;
           subFragments = nappend1(subFragments, fragment);
          }
        else {
-         newFragments = FindFragments(get_righttree(node), fragmentNo);
+         newFragments = FindFragments(parsetree,get_righttree(node),fragmentNo);
          subFragments = nconc(subFragments, newFragments);
         }
     
     return subFragments;
 }
 
+/* --------------------------------
+ *	InitialPlanFragments
+ *
+ *	calls FindFragments() recursively to obtain the initial set of
+ *	plan fragments -- the largest possible, further decomposition
+ *	might be necessary in DecomposeFragments().
+ * --------------------------------
+ */
 Fragment
 InitialPlanFragments(parsetree, plan)
 Plan plan;
+List parsetree;
 {
     Plan node;
     LispValue x, y;
@@ -123,18 +149,37 @@ Plan plan;
 
 extern int NBuffers;
 
+/* -----------------------------
+ *	GetCurrentMemSize
+ *
+ *	get the current amount of available memory
+ * -----------------------------
+ */
 int
 GetCurrentMemSize()
 {
    return NBuffers;  /* YYY functionalities to be added later */
 }
 
+/* -----------------------------
+ *	GetCurrentLoadAverage
+ *
+ *	get the current load average of the system
+ * -----------------------------
+ */
 float
 GetCurrentLoadAverage()
 {
     return 0.0;  /* YYY functionalities to be added later */
 }
 
+/* ------------------------------
+ *	GetReadyFragments
+ *
+ *	get the set of fragments that are ready to fire, i.e., those that
+ *	have no children
+ * ------------------------------
+ */
 List
 GetReadyFragments(fragments)
 Fragment fragments;
@@ -154,6 +199,12 @@ Fragment fragments;
     return readyFragments;
 }
 
+/* ---------------------------------
+ *	GetFitFragments
+ *
+ *	get the set of fragments that can fit in the current available memory
+ * ---------------------------------
+ */
 List
 GetFitFragments(fragmentlist, memsize)
 List fragmentlist;
@@ -162,6 +213,13 @@ int memsize;
     return fragmentlist; /* YYY functionalities to be added later */
 }
 
+/* ----------------------------------
+ *	DecomposeFragments
+ *
+ *	decompose fragments into smaller fragments to fit in memsize amount
+ *	of memory
+ * ----------------------------------
+ */
 List
 DecomposeFragments(fragmentlist, memsize)
 List fragmentlist;
@@ -170,6 +228,13 @@ int memsize;
     return fragmentlist;  /* YYY functionalities to be added later */
 }
 
+/* -----------------------------------
+ *	ChooseToFire
+ *
+ *	choose among all the ready-to-fire fragments which
+ *	to execute in parallel
+ * -----------------------------------
+ */
 List
 ChooseToFire(fragmentlist, memsize)
 List fragmentlist;
@@ -179,6 +244,12 @@ int memsize;
     /* YYY functionalities to be added later */
 }
 
+/* ----------------------------------
+ *	ChooseFragments
+ *
+ *	choose the fragments to execute in parallel
+ * -----------------------------------
+ */
 List
 ChooseFragments(fragments, memsize)
 Fragment fragments;
@@ -199,6 +270,12 @@ int memsize;
     return fireFragments;
 }
 
+/* -----------------------------
+ *	set_plan_parallel
+ *
+ *	set the degree of parallelism for each node in plan
+ * -----------------------------
+ */
 void
 set_plan_parallel(plan, nparallel)
 Plan plan;
@@ -207,6 +284,10 @@ int nparallel;
     if (plan == NULL)
        return;
     if (ExecIsNestLoop(plan))  {
+       /* --------------------
+	* inner path of nestloop join plan should have parallelism 1
+	* --------------------
+	*/
        set_parallel(plan, nparallel);
        set_plan_parallel(get_outerPlan(plan), nparallel);
        set_plan_parallel(get_innerPlan(plan), 1);
@@ -218,6 +299,12 @@ int nparallel;
       }
 }
 
+/* ------------------------------
+ *	SetParallelDegree
+ *
+ *	set the degree of parallelism for fragments in fragmentlist
+ * ------------------------------
+ */
 void
 SetParallelDegree(fragmentlist, nfreeslaves)
 List fragmentlist;
@@ -272,6 +359,8 @@ List fragmentlist;
         loadAvg = GetCurrentLoadAverage();
         fireFragments = ChooseFragments(fragment, memAvail);
         SetParallelDegree(fireFragments, NumberOfFreeSlaves);
+	fireFragmentList = fireFragments;
+	break;
 	fireFragmentList = nconc(fireFragmentList, fireFragments);
       }
     return fireFragmentList;
@@ -280,6 +369,12 @@ List fragmentlist;
 #define MINHASHTABLEMEMORYKEY	1000
 static IpcMemoryKey nextHashTableMemoryKey = 0;
 
+/* -------------------------
+ *	getNextHashTableMemoryKey
+ *
+ *	get the next hash table key
+ * -------------------------
+ */
 IpcMemoryKey
 getNextHashTableMemoryKey()
 {
@@ -287,6 +382,12 @@ getNextHashTableMemoryKey()
     return (nextHashTableMemoryKey++ + MINHASHTABLEMEMORYKEY + MasterPid);
 }
 
+/* ------------------------
+ *	sizeofTmpRelDesc
+ *
+ *	calculate the size of reldesc of the temporary relation of plan
+ * ------------------------
+ */
 static int
 sizeofTmpRelDesc(plan)
 Plan plan;
