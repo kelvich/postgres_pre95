@@ -240,7 +240,7 @@ int arg1;       /* typeid */
     return((Operator) tup);
 }
 
-/* Given unary right-side operator (argument on right), return oper struct */
+/* Given unary right-side operator (operator on right), return oper struct */
 Operator
 right_oper(op, arg)
 char *op;
@@ -261,7 +261,7 @@ int arg; /* type id */
     return((Operator) tup);
 }
 
-/* Given unary left-side operator (argument on left), return oper struct */
+/* Given unary left-side operator (operator on left), return oper struct */
 Operator
 left_oper(op, arg)
      char *op;
