@@ -136,8 +136,8 @@ DATA(insert OID = 525 (  ">="      6 0 b t f  23  23  16 523  97  0  0 int4ge in
 DATA(insert OID = 526 (  "*"       6 0 b t f  21  21  21 526   0  0  0 int2mul intltsel intltjoinsel ));
 DATA(insert OID = 527 (  "/"       6 0 b t f  21  21  21   0   0  0  0 int2div intltsel intltjoinsel ));
 DATA(insert OID = 528 (  "/"       6 0 b t f  23  23  23   0   0  0  0 int4div intltsel intltjoinsel ));
-DATA(insert OID = 529 (  "%"       0 b 0 t f  21  21  21   6   0  0  0 int2mod intltsel intltjoinsel ));
-DATA(insert OID = 530 (  "%"       0 b 0 t f  23  23  23   6   0  0  0 int4mod intltsel intltjoinsel ));
+DATA(insert OID = 529 (  "%"       6 0 b t f  21  21  21   6   0  0  0 int2mod intltsel intltjoinsel ));
+DATA(insert OID = 530 (  "%"       6 0 b t f  23  23  23   6   0  0  0 int4mod intltsel intltjoinsel ));
 DATA(insert OID = 531 (  "!="      6 0 b t f  25  25  16 531  98   0   0 textne neqsel neqjoinsel ));
 DATA(insert OID = 532 (  "="       6 0 b t t  21  23  16 533 538  95  97 int24eq eqsel eqjoinsel ));
 DATA(insert OID = 533 (  "="       6 0 b t t  23  21  16 532 539  97  95 int42eq eqsel eqjoinsel ));
