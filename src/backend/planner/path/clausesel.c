@@ -226,7 +226,7 @@ compute_selec (clauses,or_selectivities)
     Cost s1 = 0;
     LispValue clause = CAR (clauses);
 
-    if(null (clauses)) 
+    if(null (clauses) || IsA(clause,Const)) 
      {
 	 s1 = 1.0;
      }
