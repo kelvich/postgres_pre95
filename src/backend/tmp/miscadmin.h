@@ -87,8 +87,6 @@ extern bool	    IsPostmaster;
 
 extern short	    DebugLvl;
 
-extern struct bcommon Ident;	/* moved from dlog */
-
 extern ObjectId	    LastOidProcessed;	/* for query rewrite */
 
 #define MAX_PARSE_BUFFER 8192
@@ -115,12 +113,6 @@ extern ObjectId	    LastOidProcessed;	/* for query rewrite */
 #define	PG_RELEASE	1
 #define PG_VERSION	1
 #define	PG_VERFILE	"PG_VERSION"
-
-#define	M_RELATION_R	0
-#define	M_ADT_R		1
-#define	M_INT4_EQ_F	2
-
-/* #define	NMAGIC		3*/
 
 #endif
 
