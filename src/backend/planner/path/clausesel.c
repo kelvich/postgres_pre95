@@ -18,6 +18,7 @@
  */
 
 #include "internal.h"
+#include "clause.h"
 #include "pg_lisp.h"
 
 extern void *set_rest_selec();
@@ -220,7 +221,7 @@ compute_selec (clauses,or_selectivities)
     (or_selectivities) {
       s1 = CAR (or_selectivities);
     } 
-  else if (1 == clause_relids (clause)) {
+  else if (1 == NumRelids (clause)) {
 
     /* ...otherwise, calculate s1 from 'clauses'. 
      *    The clause is not a join clause, since there is 
