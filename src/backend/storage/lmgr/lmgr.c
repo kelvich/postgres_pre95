@@ -34,6 +34,7 @@
 
 #include "catalog/catname.h"
 #include "catalog/pg_relation.h"
+#include "storage/lmgr.h"
 
 RcsId("$Header$");
 
@@ -289,8 +290,36 @@ void
 RelationUnsetLockForRead(relation)
 	Relation relation;
 {
-	/* XXX mao will implement this function asap */
-	return;
+	LRelId		lRelId;
+	int		status;		/* XXX style */
+
+	Assert(RelationIsValid(relation));
+
+	if (LockingIsDisabled) {
+		return;
+	}
+
+	lRelId = RelationGetLRelId(relation);
+
+#ifdef	LOCKDEBUG
+	elog(DEBUG, "RelationUnsetLockForRead(%s[%d,%d]) called",
+		RelationGetRelationName(relation), lRelId.dbId, lRelId.relId);
+#endif	/* defined(LOCKDEBUG) */
+
+	status = LMLock(MultiLevelLockTableId, LockUnlock, &lRelId,
+		(ObjectId *)NULL, (ObjectId *)NULL, GetCurrentTransactionId(),
+		MultiLevelLockRequest_ReadRelation);
+
+	if (status != L_DONE) {
+		if (status == L_ERROR) {
+			elog(WARN, "RelationUnsetLockForRead(%s[%d,%d]: error",
+				RelationGetRelationName(relation),
+				lRelId.dbId, lRelId.relId);
+		}
+		elog(FATAL, "RelationUnsetLockForRead(%s[%d,%d]: failed",
+			    RelationGetRelationName(relation),
+			    lRelId.dbId, lRelId.relId);
+	}
 }
 
 void
@@ -348,8 +377,36 @@ void
 RelationUnsetLockForWrite(relation)
 	Relation relation;
 {
-	/* XXX mao will implement this function asap */
-	return;
+	LRelId		lRelId;
+	int		status;		/* XXX style */
+
+	Assert(RelationIsValid(relation));
+
+	if (LockingIsDisabled) {
+		return;
+	}
+
+	lRelId = RelationGetLRelId(relation);
+
+#ifdef	LOCKDEBUG
+	elog(DEBUG, "RelationUnsetLockForWrite(%s[%d,%d]) called",
+		RelationGetRelationName(relation), lRelId.dbId, lRelId.relId);
+#endif	/* defined(LOCKDEBUG) */
+
+	status = LMLock(MultiLevelLockTableId, LockUnlock, &lRelId,
+		(ObjectId *)NULL, (ObjectId *)NULL, GetCurrentTransactionId(),
+		MultiLevelLockRequest_WriteRelation);
+
+	if (status != L_DONE) {
+		if (status == L_ERROR) {
+			elog(WARN, "RelationUnsetLockForRead(%s[%d,%d]: error",
+				RelationGetRelationName(relation),
+				lRelId.dbId, lRelId.relId);
+		}
+		elog(FATAL, "RelationUnsetLockForRead(%s[%d,%d]: failed",
+			    RelationGetRelationName(relation),
+			    lRelId.dbId, lRelId.relId);
+	}
 }
 
 void
@@ -603,7 +660,7 @@ RelationUnsetLockForReadPage(relation, partition, itemPointer)
 		(ObjectId *)NULL, GetCurrentTransactionId(),
 		PageLockRequest_Share);
 
-	while (status != L_DONE) {
+	if (status != L_DONE) {
 		if (status == L_ERROR) {
 			elog(WARN,
 				"RelationUnsetLockForReadPage: locking error");
