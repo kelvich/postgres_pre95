@@ -324,7 +324,6 @@ Boolean *isNullP;
 	 * has only one attribute!
 	 */
 	Datum val;
-	ObjectId type;
 
 	if (valueP != NULL && isNullP != NULL) {
 	    val = HeapTupleGetAttributeValue(
@@ -333,8 +332,11 @@ Boolean *isNullP;
 			(AttributeNumber) 1,
 			resultTupleDescriptor,
 			isNullP);
-	    type = resultTupleDescriptor->data[0]->atttypid;
-	    *valueP = copyDatum(val, type);
+	    *valueP = datumCopy(val,
+			resultTupleDescriptor->data[0]->atttypid,
+			resultTupleDescriptor->data[0]->attbyval,
+			(Size) resultTupleDescriptor->data[0]->attlen);
+
 	}
 	status = 1;
     }
