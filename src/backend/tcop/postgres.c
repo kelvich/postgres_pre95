@@ -1544,10 +1544,10 @@ ShowUsage()
 		r.ru_nivcsw - Save_r.ru_nivcsw,
 		r.ru_nvcsw, r.ru_nivcsw);
 	fprintf(StatFp, "! postgres usage stats:\n");
-	PrintBufferUsage();
-	DisplayTupleCount();
+	PrintBufferUsage(StatFp);
+	DisplayTupleCount(StatFp);
 #ifdef PARALLELDEBUG
-        PrintParallelDebugInfo();
+        PrintParallelDebugInfo(StatFp);
 #endif
-	ShowPrs2Stats();
+	ShowPrs2Stats(StatFp);
 }
