@@ -1,0 +1,212 @@
+.\" $Copyright:	$
+...
+.V= $Header$
+.TH ICOPY 1 "\*(V)" "POSTGRES"
+.SH NAME
+icopy \- copy files between Unix and Inversion file systems
+.SH SYNOPSIS
+.B icopy
+.I direction
+[
+.I "\-h host"
+] [
+.I "\-p portnum"
+]
+.I "\-d dbname"
+.I "\-s smgr"
+[
+.I "\-a"
+] [ 
+.I "\-v"
+] [ 
+.I "\-R"
+]
+.I srcfile
+.I destfile
+.SH DESCRIPTION
+.B Icopy
+copies files between the Inversion file system and the Unix file system.
+This program is a \s-2POSTGRES\s0
+.I libpq
+client program,
+and the Inversion file system is a transaction-protected file
+system used by the Sequoia 2000 research project at UC Berkeley.
+Inversion provides the same file system services provided by
+the Unix fast file system,
+but does not support an NFS interface at present.
+In order to make it easier to use Inversion,
+a suite of utility programs,
+including
+.IR icopy ,
+has been written to manage files.
+.PP
+The user specifies the host and port on which \s-2POSTGRES\s0 is
+running,
+and the database and storage manager to use for file storage.
+The
+.i direction
+of the copy specifies whether files should be copied from Unix
+to Inversion
+(\fIin\fP),
+or from Inversion to Unix (\fIout\fP).
+The user also supplies two file names,
+for the source and destination of the copy.
+.SH ARGUMENTS
+.TP 10
+.I direction
+The direction of the copy.
+If the direction is
+.BR in ,
+then the file is copied from Unix into Inversion.
+If the direction is
+.BR out ,
+then the file is copied out of Inversion to Unix.
+The
+.I direction
+argument affects the interpretation of the source and destination
+file names,
+and may make some other flags (such as
+.IR \-s )
+optional
+(see below).
+This argument must immediately follow the program name.
+.TP 10
+.I "\-h host"
+The host on which the \s-2POSTGRES\s0
+.B postmaster
+is running.
+If the host is not specified,
+it is be obtained from the environment variable PGHOST.
+.TP 10
+.I "\-p port"
+The TCP port number on which to establish a connection to the
+\s-2POSTGRES\s0
+.BR postmaster .
+If the port number is not supplied,
+it is obtained from the environment variable PGPORT.
+.TP 10
+.I "\-d dbname"
+The database to use for file storage.
+The user should have permission to create objects in
+.IR dbname .
+The database name must be supplied;
+there is no default.
+.TP 10
+.I "\-s smgr"
+Use
+.I smgr
+as the
+.B "storage manager"
+for the file.
+Storage managers in \s-2POSTGRES\s0 manage physical devices,
+so this flag gives the user a way of controlling the device
+on which his file should be stored.
+If the direction of the copy is
+.IR in ,
+then the storage manager must be specified.
+If the direction of the copy is
+.IR out ,
+then the storage manager flag is optional,
+and is ignored if it is supplied.
+.IP ""
+The list of available storage managers may be obtained by typing
+.RS
+.B icopy
+.RE
+with no options;
+the resulting usage message includes a list of storage managers
+supported.
+.TP 10
+.I "\-R"
+Copy a directory tree recursively.
+Rather than copying a single file,
+the tree rooted at
+.I srcfile
+is copied to a tree rooted at
+.I destfile .
+.TP 10
+.I "\-a"
+Copy all files,
+including those beginning with a dot.
+This flag is useful only in conjunction with
+.IR \-R .
+Normally,
+recursive copies of a directory tree will not copy files
+or directories whose names begin with a dot.
+.TP 10
+.I "\-v"
+Turn verbose mode on.
+.B Icopy
+will report its progress as it moves files to or from Inversion.
+.TP 10
+.I srcfile
+The file from which to copy.
+If
+.I direction
+is
+.IR in ,
+then this is the name of a file or directory on the Unix file system.
+If
+.I direction
+is
+.IR out ,
+then this is the name of a file or directory on the Inversion file system.
+.IP ""
+If
+.I srcfile
+is a directory
+and the
+.I \-R
+flag is supplied,
+then the tree rooted at
+.I srcfile
+is copied.
+It is an error to specify a directory to copy without supplying the
+.I \-R
+flag.
+.TP 10
+.I destfile
+The file to which to copy.
+If
+.I direction
+is
+.IR in ,
+then this is the name of an Inversion file or directory.
+If
+.I direction
+is
+.IR out ,
+then
+.I destfile
+is the name of a Unix file or directory.
+.IP ""
+If
+.I destfile
+already exists and is a directory,
+then
+.I srcfile
+will be created in the directory
+.IR destfile .
+.SH EXAMPLES
+The command
+.RS
+.PP
+icopy in \-h myhost \-p 4321 \-d mydb \-s d /vmunix /inv_vmunix
+.RE
+.PP
+copies the Unix file /vmunix to the Inversion file /inv_vmunix.
+The Inversion file is stored in the database mydb
+by the \s-2POSTGRES\s0 backend running on machine myhost
+and listening on port number 4321.
+.pp
+The command
+.RS
+.PP
+icopy out \-h myhost \-p 4321 \-d mydb /inv_vmunix /vmunix.dup
+.RE
+.PP
+copies it back out again,
+putting the copy in the Unix file /vmunix.dup.
+.SH BUGS
+The \s-2POSTGRES\s0 file system code should support operations via NFS,
+so this program actually has no right to exist.
