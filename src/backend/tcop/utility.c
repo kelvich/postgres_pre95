@@ -17,7 +17,8 @@
  */
 
 #include "tcop.h"
- RcsId("$Header$");
+
+RcsId("$Header$");
 
 /* ----------------
  *	general utility function invoker
@@ -119,16 +120,16 @@ ProcessUtility(command, args, commandString)
 	    
 	    tags = CADR(args);
 	    switch (length(tags)) {
-	      case 0:
-		break;
 	      case 1:
+		break;
+	      case 2:
 		if (CInteger(CAR(CAR(tags))) == BEFORE) {
 		    beforeString = CString(CADR(CAR(tags)));
 		} else {
 		    afterString = CString(CADR(CAR(tags)));
 		}
 		break;
-	      case 2:
+	      case 3:
 		beforeString = CString(CADR(CAR(tags)));
 		afterString = CString(CADR(CADR(tags)));
 		break;
