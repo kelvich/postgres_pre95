@@ -58,17 +58,17 @@ VarnoGetRelname( vnum )
 }
 
 LispValue
-any_ordering_op( varnode )
-	Var varnode;
+any_ordering_op( resdom )
+	Resdom resdom;
 {
-    int vartype;
+    int restype;
     Operator order_op;
     OID order_opid;
 
-    Assert(! null(varnode));
+    Assert(! null(resdom));
 
-    vartype = get_vartype(varnode);
-    order_op = oper("<",vartype,vartype);
+    restype = get_restype(resdom);
+    order_op = oper("<",restype,restype);
     order_opid = (OID)oprid(order_op);
 
     return(lispInteger(order_opid));
@@ -160,7 +160,7 @@ MakeRoot(NumLevels,query_name,result,rtable,priority,ruleinfo,unique_flag,
 	    if ( ! member ( CAR(tlelt) , sort_clause_elts ) ) {
 		sort_clause_elts = nappend1 ( sort_clause_elts, CAR(tlelt)); 
 		sort_clause_ops = nappend1 ( sort_clause_ops, 
-			any_ordering_op((Var)CADR(tlelt) ));
+			any_ordering_op((Resdom)CAR(tlelt) ));
 	    }
 	}    
     }
