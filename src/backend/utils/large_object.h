@@ -94,6 +94,7 @@ typedef struct
 		Relation index_r;	/* index relation on seqno attribute */
 		IndexScanDesc iscan;	/* index scan we're using */
 		TupleDescriptor hdesc;	/* heap relation tuple desc */
+		TupleDescriptor idesc;	/* index relation tuple desc */
 		uint32 lowbyte;		/* low byte on the current page */
 		uint32 hibyte;		/* high byte on the current page */
 		uint32 offset;		/* current seek pointer */
