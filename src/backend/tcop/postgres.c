@@ -717,7 +717,7 @@ PostgresMain(argc, argv)
     ShowParserStats = ShowPlannerStats = ShowExecutorStats = 0;
     MasterPid = getpid();
     
-    while ((flag = getopt(argc, argv, "A:B:b:Cd:EM:NnOP:pQSsLt:Tf:")) != EOF)
+    while ((flag = getopt(argc, argv, "A:B:b:Cd:EGM:NnOP:pQSsLt:Tf:")) != EOF)
       switch (flag) {
 	  	  
       case 'A':
@@ -777,6 +777,14 @@ PostgresMain(argc, argv)
 	   * ----------------
 	   */
 	  flagE = 1;
+	  break;
+	  	  
+      case 'G':
+	  /* ----------------
+	   *	G - use cacheoffgetattr instead of fastgetattr
+	   * ----------------
+	   */
+	  set_use_cacheoffgetattr(1);
 	  break;
 	  	  
       case 'M':

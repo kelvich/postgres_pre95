@@ -80,6 +80,62 @@ CreateTemplateTupleDesc(natts)
 }
 
 /* ----------------------------------------------------------------
+ *	TupleDescHandleArray
+ *
+ *  If the type in typname is in the form <name>[len] or <name>[],
+ *  it is an array.  TupleDescHandleArray gets len and returns it in
+ *  arraydim, and handles the renaming of types.
+ * ----------------------------------------------------------------
+ */
+void
+TupleDescHandleArray(arraydim, typename)
+    int *arraydim;
+    char *typename;
+{
+    char *p, *q, *index();
+    char true_name[16];
+
+    if ((p = index(typename, '[')) != NULL) {
+    	*p = '\0';  /* get rid of '[' */
+    	p++;	    /* get past null */
+
+    	while (!isdigit(*p) && *p != ']')
+	    p++;
+
+    	if (*p == ']') /* att is a variable length array */
+    	{
+    	    *arraydim = -1;
+    	}
+    	else	/* fixed length array */
+    	{
+    	    q = index(p, ']');
+    	    if (q == NULL)
+    	    	elog(WARN, "TupleDescHandleArray: bad array declaration");
+    	    *q = '\0';
+    	    *arraydim = atoi(p);
+    	}
+
+	/*
+	 * the type of an array is proceeded by an underscore "_".  That is,
+	 * int4[4] is turned into _int4 with attarraysize equal to 4.
+	 *
+	 * We have to make sure we are not going to run off the end of the
+	 * char16 array here.
+	 */
+
+	if (strlen(typename) > 15) 
+	    elog(WARN, "TupleDescHandleArray: type name too long");
+
+	sprintf(true_name, "_%s", typename);
+	strcpy(typename, true_name);
+    }
+    else
+    {
+	*arraydim = 0;
+    }
+}
+
+/* ----------------------------------------------------------------
  *	TupleDescInitEntry
  *
  *	This function initializes a single attribute structure in
@@ -120,7 +176,18 @@ TupleDescInitEntry(desc, attributeNumber, attributeName, typeName, attdim)
      *	initialize some of the attribute fields
      * ----------------
      */
+    att->attrelid  = 0;				/* dummy value */
+    
     strncpy(&(att->attname), attributeName, 16);
+    
+    att->attdefrel = 	0;			/* dummy value */
+    att->attnvals  = 	0;			/* dummy value */
+    att->atttyparg = 	0;			/* dummy value */
+    att->attbound = 	0;			/* dummy value */
+    att->attcanindex = 	0;			/* dummy value */
+    att->attproc = 	0;			/* dummy value */
+    att->attcacheoff = 	-1;
+    
     att->attnum = attributeNumber;
     att->attnelems = attdim;
 
@@ -189,7 +256,7 @@ TupleDescMakeSelfReference(desc, attnum, relname)
     att->atttypid = TypeShellMake(relname);
     att->attlen   = -1;			/* for now, relation-types are */
     att->attbyval = (Boolean) 0; 	/* actually "text" internally. */
-	att->attnelems = 0;
+    att->attnelems = 0;
 }
 
 /* ----------------------------------------------------------------
@@ -327,57 +394,3 @@ BuildDescForRelation(schema, relname)
     return desc;
 }
 
-/*
- *  If the type in typname is in the form <name>[len] or <name>[],
- *  it is an array.  TupleDescHandleArray gets len and returns it in
- *  arraydim, and handles the renaming of types.
- */
-
-TupleDescHandleArray(arraydim, typename)
-
-int *arraydim;
-char *typename;
-
-{
-    char *p, *q, *index();
-    char true_name[16];
-
-    if ((p = index(typename, '[')) != NULL)
-    {
-    	*p = '\0'; /* get rid of '[' */
-    	p++;	    /* get past null */
-
-    	while (!isdigit(*p) && *p != ']') p++;
-
-    	if (*p == ']') /* att is a variable length array */
-    	{
-    	    *arraydim = -1;
-    	}
-    	else	/* fixed length array */
-    	{
-    	    q = index(p, ']');
-    	    if (q == NULL)
-    	    	elog(WARN, "TupleDescHandleArray: bad array declaration");
-    	    *q = '\0';
-    	    *arraydim = atoi(p);
-    	}
-
-	/*
-	 * the type of an array is proceeded by an underscore "_".  That is,
-	 * int4[4] is turned into _int4 with attarraysize equal to 4.
-	 *
-	 * We have to make sure we are not going to run off the end of the
-	 * char16 array here.
-	 */
-
-	if (strlen(typename) > 15) 
-	    elog(WARN, "TupleDescHandleArray: type name too long");
-
-	sprintf(true_name, "_%s", typename);
-	strcpy(typename, true_name);
-    }
-    else
-    {
-	*arraydim = 0;
-    }
-}
