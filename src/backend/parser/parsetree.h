@@ -53,6 +53,8 @@
 #define root_priority(root)                 CADDR(CDR(CDR(root)))
 #define root_ruleinfo(root)                 CADDR(CDR(CDR(CDR(root))))
 #define root_nestdotinfo(root)              CADDR(CDR(CDR(CDR(CDR(root)))))
+#define root_uniqueflag(root)		    nth(6, root)
+#define root_sortclause(root)		    nth(7, root)
 
 /* ----------------
  *	result relation macros
