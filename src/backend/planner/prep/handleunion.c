@@ -262,7 +262,7 @@ find_union_sets(rangetable)
     rt_entry = CAR(i);
     varno += 1;
     if (member(lispAtom("union"),rt_flags(rt_entry))) {
-      rt_flags(rt_entry) = remove(lispAtom("union"),
+      rt_flags(rt_entry) = LispRemove(lispAtom("union"),
 				  rt_flags(rt_entry));
     }
     rt_vars = CAR(rt_entry);
@@ -391,69 +391,6 @@ remove_subsets(usets)
   return(retlist);
 
 }
-
-/*
- *  Routine is not used.
- *  find_union_vars
- *  runs through the rangetable, and forms a list of all the 
- *  relations that are unioned. It will also remove the union
- *  flag from the rangetable entries after it is done processing
- *  them.
- *  REturns a list of varnos.
- */
-
-List
-find_union_vars (rangetable)
-     List rangetable;
-{
-  
-  List i = LispNil;
-  List unionlist = LispNil;
-  List rt_entry = LispNil;
-  Index uvarno = 0;
-
-  /*
-   * XXX what about the case when there are 2 emps in the rangetable, and
-   * both are union relations?
-   * Currently, both would appear in the unionlist.
-   */
-
-  foreach( i, rangetable) {
-    rt_entry = CAR(i);
-    uvarno += 1;
-    if (member(lispAtom("union"),rt_flags(rt_entry))) {
-      unionlist = nappend1(unionlist, lispInteger(uvarno));
-      rt_flags(rt_entry) = LispRemove(lispAtom("union"), 
-				  rt_flags(rt_entry)); 
-    }     
-  }
-  return(unionlist);
-}
-
-/*
-  List tle = LispNil;
-  List expr = LispNil;
-  List x = LispNil;
-  List varlist = LispNil;
-  Var unionvar = (Var)NULL;
-
-  foreach (i,tlist) {
-    tle = CAR(i);
-    expr = tl_expr(tle);
-
-    if (CAtom(CAR(expr)) == UNION ) {
-      varlist = CDR(expr);
-      foreach (x, varlist) {
-	unionvar = (Var)CAR(x);
-	uvarno = get_varno(unionvar);
-	if (!(member(lispInteger(uvarno), unionlist)))
-	  unionlist = nappend1(unionlist,
-			       lispInteger(uvarno));
-      }
-    }
-  }
-*/
-
 
 /*
  *  SplitQual:
@@ -619,3 +556,42 @@ match_union_clause (unionlist, leftarg, rightarg)
   }
 
 }
+#ifdef NOT_USED
+/*
+ *  Routine is not used.
+ *  find_union_vars
+ *  runs through the rangetable, and forms a list of all the 
+ *  relations that are unioned. It will also remove the union
+ *  flag from the rangetable entries after it is done processing
+ *  them.
+ *  REturns a list of varnos.
+ */
+
+List
+find_union_vars (rangetable)
+     List rangetable;
+{
+  
+  List i = LispNil;
+  List unionlist = LispNil;
+  List rt_entry = LispNil;
+  Index uvarno = 0;
+
+  /*
+   * XXX what about the case when there are 2 emps in the rangetable, and
+   * both are union relations?
+   * Currently, both would appear in the unionlist.
+   */
+
+  foreach( i, rangetable) {
+    rt_entry = CAR(i);
+    uvarno += 1;
+    if (member(lispAtom("union"),rt_flags(rt_entry))) {
+      unionlist = nappend1(unionlist, lispInteger(uvarno));
+      rt_flags(rt_entry) = LispRemove(lispAtom("union"), 
+				  rt_flags(rt_entry)); 
+    }     
+  }
+  return(unionlist);
+}
+#endif
