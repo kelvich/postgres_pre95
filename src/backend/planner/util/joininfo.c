@@ -14,7 +14,9 @@
  */
 
 #include "internal.h"
-
+#include "relation.h"
+#include "relation.a.h"
+#include "clauses.h"
 
 /*    
  *    	joininfo-member
@@ -34,12 +36,12 @@
 
 /*  .. find-joininfo-node, new-joininfo-list
  */
-LispValue
+JInfo
 joininfo_member (join_relids,joininfo_list)
      LispValue join_relids,joininfo_list ;
 {
      /* XXX - fix me */
-     return(find (join_relids,joininfo_list,"same","get_other_rels"));
+     return((JInfo)find (join_relids,joininfo_list,"same","get_other_rels"));
 }
 
 
@@ -57,18 +59,19 @@ joininfo_member (join_relids,joininfo_list)
 
 /*  .. add-join-clause-info-to-rels
  */
-LispValue
+
+JInfo
 find_joininfo_node (this_rel,join_relids)
      LispValue this_rel,join_relids ;
 {
-     LispValue joininfo = joininfo_member (join_relids,
-					   get_join_info (this_rel));
-     if /*when */ ( null (joininfo)) {
-	  joininfo = create_node ("JoinInfo");
-	  set_join_info (this_rel,cons (joininfo,get_join_info (this_rel)));
-	  set_other_rels (joininfo,join_relids);
-     }
-     return(joininfo);
+    JInfo joininfo = joininfo_member (join_relids,
+				     get_join_info (this_rel));
+    if ( joininfo == NULL ) {
+	joininfo = CreateNode (JInfo);
+	set_join_info (this_rel,cons (joininfo,get_join_info (this_rel)));
+	set_other_rels (joininfo,join_relids);
+    }
+    return(joininfo);
 }
 
 /*    
@@ -83,12 +86,13 @@ find_joininfo_node (this_rel,join_relids)
 
 /*  .. new-matching-subkeys
  */
-LispValue
+Var
 other_join_clause_var (var,clause)
-LispValue var,clause ;
+     LispValue clause ;
+     Var var;
 {
-     LispValue retval = LispNil;
-     if ( var != LispNil && join_clause_p (clause)) {
+     Var retval;
+     if ( var != NULL  && join_clause_p (clause)) {
 	  if(var_equal (var,get_leftop (clause))) {
 	       retval = get_rightop (clause);
 	  } 
