@@ -150,15 +150,19 @@ int p_read(fd,buf,len)
     argv[1].len = 4;
     argv[1].u.integer = len;
 
-    pqret = PQfn(F_LOREAD,(int *)buf,len,&readlen,2,argv,2);
+    /*
+     *  'len+4' is because LOread returns a varlena, so user MUST have
+     *  allocated one.  this is an interface botch.
+     */
+    pqret = PQfn(F_LOREAD,(int *)buf,len+4,&readlen,2,argv,2);
 
     if (pqret == NULL)
       return -1;
     else if (*pqret == 'V')
       return -1;
     else {
-/*	readlen = ((struct varlena *)buf)->vl_len;
-	bcopy(((struct varlena *)buf)->vl_dat,buf, readlen);*/
+	/* LOread returns a varlena, user expects byte count */
+	readlen -= sizeof(int32);
 	p_errno = readlen>=0 ? 0 : -readlen;
 	return readlen;
     }
