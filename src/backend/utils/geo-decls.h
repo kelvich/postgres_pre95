@@ -32,11 +32,6 @@
 #define	FPgt(A,B)		((A) - (B) > EPSILON)
 #define	FPge(A,B)		((B) - (A) <= EPSILON)
 
-#ifndef MAX
-#define	MAX(A,B)		((A) > (B) ? (A) : (B))
-#define	MIN(A,B)		((A) < (B) ? (A) : (B))
-#endif !MAX
-
 #define	HYPOT(A, B)		sqrt((A) * (A) + (B) * (B))
 
 /*--------------------------------------------------------------------
