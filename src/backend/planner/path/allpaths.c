@@ -197,7 +197,7 @@ find_join_paths(outer_rels,levels_left,nest_level)
 
     /* for each expensive predicate in each path in each rel, consider 
        doing pullup  -- JMH */
-    if (XfuncMode != XFUNC_OFF)
+    if (XfuncMode != XFUNC_NOPULL && XfuncMode != XFUNC_OFF)
       foreach(x, new_rels)
 	xfunc_trypullup((Rel)CAR(x));
 
