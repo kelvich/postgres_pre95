@@ -1432,11 +1432,12 @@ ExecInitIndexScan(node, estate, parent)
     RelationSetLockForRead(currentRelation);
     
     /* ----------------
-     *	get the return type from the relation descriptor.
+     *	get the scan type from the relation descriptor.
      * ----------------
      */
-    ExecAssignResultType(scanstate, &currentRelation->rd_att);
-    
+    ExecAssignScanType(scanstate, &currentRelation->rd_att);
+    ExecAssignResultTypeFromTL(node, scanstate);
+	
     /* ----------------
      *	index scans don't have subtrees..
      * ----------------
