@@ -7,6 +7,125 @@
  *
  * DESCRIPTION:
  *
+ * Take a deeeeeeep breath & read. If you can avoid hacking the code
+ * below (i.e. if you have not been "volunteered" by the boss to do this
+ * dirty job) avoid it at all costs. Try to do something less dangerous
+ * for your (mental) health. Go home and watch horror movies on TV.
+ * Read some Lovecraft. Join the Army. Go and spend a few nights in
+ * people's park. Commit suicide...
+ * Hm, you keep reading, eh? Oh, well, then you deserve what you get.
+ * Welcome to the gloomy labyrinth of the tuple level rule system, my
+ * poor hacker...
+ *
+ * This code is responsible for putting the rule locks and rule stubs.
+ * for tuple-level-system rules.
+ * For the time being we support the following implementations:
+ *
+ * ------------------------
+ * A) Relation Level Locks:
+ * ------------------------
+ * All we do is to put a "relation level lock",
+ * i.e. a lock to the appropriate pg_relation tuple. No rule stubs involved.
+ * ALL the tuples of the relation are assumed locked by this lock.
+ * This is the easiest implementation & it is quaranteed to work,
+ * iff we use it for ALL rules we define.
+ * If we use it for some rules only and for the others we use tuple level
+ * locks, then read the discussion below....
+ *
+ * -----------------------------
+ * B) (simple) Tuple Level Locks
+ * -----------------------------
+ * We start with the original rule qualification, and we extract a
+ * "constant" qualification. This qualifications must satisfy
+ * the following criteria:
+ *	1) all tuples satisfying the original qualiifcation will
+ *	satisfy the "constant" qual too (altohgou the opposite
+ *	might not be true in general)
+ *	2) the constan qualification will only reference attributes
+ * 	of the CURRENT (locked) relation, i.e. it won't have any joins.
+ * For example if the rule's qual is :
+ *	where CURRENT.name = Mike 
+ *	and CURRENT.dept = DEPT.dname
+ *	and DEPT.floor = 1
+ *	and CURRENT.age > 30
+ *
+ * the constant qual would be:
+ *	where CURRENT.name = Mike and CURRENT.age>30
+ *
+ * We then add locks to all the tuples that satisfy the constant
+ * qualification. We also add a stub record (which contains this
+ * constant qualification, the rule locks and other misc info).
+ * Every time we append/replace a tuple, we check one by one all the
+ * stub records. If the new tuple satisfies the qualification of
+ * such a stub record, we add the appropriate locks to it.
+ * 
+ * Simple, isn't it? Well, as the philosopher said, "if everything
+ * seems to go right, then you have overlooked something".
+ * Assume the rules:
+ * 
+ *		RULE 1:
+ *		on retrieve to EMP.salary
+ *		where current.name = "spyros"
+ *		do instead retrieve (salary=1)
+ *
+ *		RULE 2:
+ *		on retrieve to EMP.desk
+ *		where current.salary = 1
+ *		do instead retrieve (desk = "what desk?")
+ *
+ * Lets say that we have a tuple:
+ *   [ NAME	SALARY	DESK  ]
+ *   [ spyros	2	steel ]
+ * Well, if we define RULE_1 first and RULE_2 second, everything is
+ * OK. However, if we define RULE_2 first, then we will NOT put
+ * a lock to spyros' tuple, because his salary is 2.
+ * So, when later on we define RULE_1 we must put in spyros' tuple not
+ * only the locks of RULE_1, but also the locks for RULE_2!
+ *
+ * To make things even worse, lets rewrite rule 1:
+ * RULE 1:	on retrieve to EMP.salary
+ *		where current.name = "spyros"
+ *		do instead retrieve (E.salary) where E.name = "mike"
+ * And lets say that initially mike has a salary equal to 2.
+ * Now even if we define RULE_1 first and RULE_2 second, still
+ * spyros' tuple will not get any locks. If later on we change mike's
+ * salary from 2 to 1, then we are in trouble....
+ *
+ * So, to cut a long story longer:
+ * a) we have to lock all the tuples that satisfy the constant qual OR
+ *    have a "write" lock in any attribute referenced by this qual.
+ *    Note that if such a "write" lock is a "relation level lock" (i.e
+ *    it -implicitly- locks ALL the tuples of the relation), then we
+ *    have to lock all the tuples of the relation too, so it
+ *    would be better if we use a relation level lock too.
+ * b) when we put a lock to a tuple, then if this lock is a "write"
+ *    lock (i.e. if our new rule is something like "on retrieve ... do
+ *    retrieve" we have also to check all the relation level stub records.
+ *    For every stub if its qualification references the attribute
+ *    we are currently putting this "write" lock on, then we have also to
+ *    add to this tuple the stub's lock... And of course if this stub's
+ *    lock is a "write" lock too, we have to repeat the process, until
+ *    there are no more new "write" locks added.
+ *
+ * OK, you say, yes things do look bad, but anyway, we will survive...
+ * Take a 5 minute (or hour or day or -even better- year) break, relax,
+ * think about the good things in life (if any - remember you are just
+ * a graduate student) and when you feel ready start reading again....
+ *
+ * If we have the rules RULE_1 & RULE_2 defined above, and RULE_1
+ * was for some reason implemented with a relation level lock, then
+ * all the tuples of EMP have a lock on salary, so RULE_2 would
+ * end up locking all the tuples too, i.e. it would be better
+ * to implement it with a relation level lock too.
+ * If we define first RULE_2 (using tuple level locks) and then
+ * we define RULE_1, then we have to delete RULE_1 (and all other rules
+ * that use EMP.salary) and redefine it using relation level locks.
+ *
+ * OK, I said whatever I had to say. But before you say something
+ * stupid like "well, at least it's over", remember that it took me
+ * sometime to discover the problems above. Who know how many other
+ * problems remain to be discovered too...
+ *
  *=====================================================================
  */
 #include "tmp/postgres.h"
@@ -18,72 +137,84 @@
 #include "nodes/primnodes.a.h"
 #include "planner/clause.h"
 #include "planner/clauses.h"
-
-
-LispValue prs2FindConstantClause();
-void prs2FindLockTypeAndAttrNo();
-void prs2TupleSystemPutLocks();
-LispValue prs2FindConstantQual();
-LispValue prs2FindConstantClause();
-
-extern Name get_attname();
-extern AttributeNumber get_attnum();
+#include "utils/lsyscache.h"
 
 /*------------------------------------------------------------------
+ * prs2AddTheNewRule
  *
- * prs2TupleSystemPutLocks
+ * put all the apropriate rule locks/stubs & update the system relations.
  *
- * Put the appropriate rule locks.
- * NOTE: currently only relation level locking is implemented
- * NOTE: isTupleLevel is true if this routine is used by the tuple
- * level system, otherwise (if it is used by the query rewrite
- * system) it is false.
+ * First try to implement this rule as a tuple-level-lock rule,
+ * and if that fails, try a relation-level-lock.
  *
  *------------------------------------------------------------------
  */
 void
-prs2TupleSystemPutLocks(ruleId, relationOid, eventAttributeNo,
-			    updatedAttributeNo, eventType, actionType,
-			    ruleQual)
-ObjectId ruleId;
-ObjectId relationOid;
-AttributeNumber eventAttributeNo;
-AttributeNumber updatedAttributeNo;
-EventType eventType;
-ActionType actionType;
-LispValue ruleQual;
+prs2AddTheNewRule(r)
+Prs2RuleData r;
 {
     Prs2LockType lockType;
     AttributeNumber attributeNo;
-    LispValue constQual;
+    bool status;
 
-    prs2FindLockTypeAndAttrNo(eventType, actionType, eventAttributeNo,
-			updatedAttributeNo, &lockType, &attributeNo);
+    switch (r->eventType) {
+	case EventTypeRetrieve:
+	case EventTypeDelete:
+	case EventTypeReplace:
+	    /*
+	     * first check if we can use tuple level locking.
+	     * If no, then use relation level locks...
+	     */
+	    status = prs2DefTupleLevelLockRule(r);
+	    if (!status) {
+		prs2DefRelationLevelLockRule(r);
+	    }
+	    break;
+	case EventTypeAppend:
+	    /*
+	     * "On append" rules only use relation level locks for the time
+	     * being...
+	     */
+	    prs2DefRelationLevelLockRule(r);
+	    break;
+	default:
+	    elog(WARN,
+		"prs2TupleSystemPutLocks: Illegal event type %c",
+		r->eventType);
+    }
+}
+
+/*------------------------------------------------------------------
+ * prs2DeleteTheOldRule
+ *
+ * delete a rule given its oid...
+ *------------------------------------------------------------------
+ */
+void prs2DeleteTheOldRule(ruleId)
+ObjectId ruleId;
+{
+
+    ObjectId relationId;
 
     /*
-     * Given the rule's qualification, try to extract a
-     * constant subqualification (involving only attributes of the CURRENT
-     * relation and contstants).
-     *
-     * NOTE: XXX!
-     * We assume the the "varno" of the CURRENT relation is 1
+     * find the relation locked by the rule
      */
-#ifdef NEW_RULE_SYSTEM
-    constQual = prs2FindConstantQual(ruleQual, 1);
-
-    if (constQual == LispNil) {
+    relationId = get_eventrelid(ruleId);
+    if (relationId == InvalidObjectId) {
 	/*
-	 * No such qual exists, use relation level locks
+	 * This should not happen!
 	 */
-	prs2PutRelationLevelLocks(ruleId, lockType, relationOid, attributeNo);
-    } else {
-	prs2PutTupleLevelLocks(ruleId, lockType, relationOid, attributeNo,
-			    constQual);
+	elog(WARN, "Can not find 'event' relation for rule %d", ruleId);
     }
-#else NEW_RULE_SYSTEM
-    prs2PutRelationLevelLocks(ruleId, lockType, relationOid, attributeNo);
-#endif NEW_RULE_SYSTEM
 
+    /*
+     * Is it a tuple level lock rule ?
+     */
+    if (prs2IsATupleLevelLockRule(ruleId, relationId)) {
+	prs2UndefTupleLevelLockRule(ruleId, relationId);
+    } else {
+	prs2UndefRelationLevelLockRule(ruleId, relationId);
+    }
 }
 
 /*------------------------------------------------------------------
@@ -103,12 +234,8 @@ LispValue ruleQual;
  *------------------------------------------------------------------
  */
 void
-prs2FindLockTypeAndAttrNo(eventType, actionType, eventAttributeNo,
-			updatedAttributeNo, lockTypeResult, attributeNoResult)
-AttributeNumber eventAttributeNo;
-AttributeNumber updatedAttributeNo;
-EventType eventType;
-ActionType actionType;
+prs2FindLockTypeAndAttrNo(r, lockTypeResult, attributeNoResult)
+Prs2RuleData r;
 Prs2LockType *lockTypeResult;
 AttributeNumber *attributeNoResult;
 {
@@ -118,34 +245,34 @@ AttributeNumber *attributeNoResult;
     lockType = LockTypeInvalid;
     attributeNo = InvalidAttributeNumber;
 
-    if (actionType == ActionTypeRetrieveValue &&
-	eventAttributeNo == InvalidAttributeNumber) {
+    if (r->actionType == ActionTypeRetrieveValue &&
+	r->eventAttributeNumber == InvalidAttributeNumber) {
 	/*
 	 * this is a "view" rule....
 	 */
 	lockType = LockTypeTupleRetrieveRelation;
 	attributeNo = InvalidAttributeNumber;
-    } else if (actionType == ActionTypeRetrieveValue ||
-	actionType == ActionTypeReplaceCurrent ||
-	actionType == ActionTypeReplaceNew) {
+    } else if (r->actionType == ActionTypeRetrieveValue ||
+	r->actionType == ActionTypeReplaceCurrent ||
+	r->actionType == ActionTypeReplaceNew) {
 	/*
 	 * In this case the attribute to be locked is the updated
 	 * attribute...
 	 */
-	attributeNo = updatedAttributeNo;
-	switch (eventType) {
+	attributeNo = r->updatedAttributeNumber;
+	switch (r->eventType) {
 	    case EventTypeRetrieve:
 		lockType = LockTypeTupleRetrieveWrite;
 		break;
 	    case EventTypeReplace:
 		lockType = LockTypeTupleReplaceWrite;
-		if (actionType == ActionTypeReplaceCurrent) {
+		if (r->actionType == ActionTypeReplaceCurrent) {
 		    elog(WARN, "ON REPLACE rules can not update CURRENT tuple");
 		}
 		break;
 	    case EventTypeAppend:
 		lockType = LockTypeTupleAppendWrite;
-		if (actionType == ActionTypeReplaceCurrent) {
+		if (r->actionType == ActionTypeReplaceCurrent) {
 		    elog(WARN, "ON APPEND rules can not update CURRENT tuple");
 		}
 		break;
@@ -155,15 +282,15 @@ AttributeNumber *attributeNoResult;
 		break;
 	    default:
 		elog(WARN,
-		    "prs2FindLockType: Illegal Event type: %c", eventType);
+		    "prs2FindLockType: Illegal Event type: %c", r->eventType);
 	}
-    } else if (actionType == ActionTypeOther) {
+    } else if (r->actionType == ActionTypeOther) {
 	/*
 	 * In this case the attribute to be locked is the 'event'
 	 * attribute...
 	 */
-	attributeNo = eventAttributeNo;
-	switch (eventType) {
+	attributeNo = r->eventAttributeNumber;
+	switch (r->eventType) {
 	    case EventTypeRetrieve:
 		lockType = LockTypeTupleRetrieveAction;
 		break;
@@ -178,17 +305,12 @@ AttributeNumber *attributeNoResult;
 		break;
 	    default:
 		elog(WARN,
-		    "prs2FindLockType: Illegal Event type: %c", eventType);
+		    "prs2FindLockType: Illegal Event type: %c", r->eventType);
 	}
     } else {
-	elog(WARN, "prs2FindLockType: Illegal Action type: %c", actionType);
+	elog(WARN, "prs2FindLockType: Illegal Action type: %c", r->actionType);
     }
 
-#ifdef PRS2DEBUG
-    printf("prs2FindLockType: (ACTION='%c', EVENT='%c', LOCK='%c')\n",
-	    actionType, eventType, lockType);
-#endif PRS2DEBUG
-    
     /*
      * OK, we found them! update the output attributes.
      */
@@ -472,3 +594,39 @@ bool *isConstant;
 	return(LispNil);
     }
 }
+
+/*----------------------------------------------------------------------
+ * prs2IsATupleLevelLockRule
+ *
+ * return true if this is a tuple-level-lock rule.
+ * Check the stubs of the relation and if you find a stub for this rule
+ * there, then it is a tuple-level-lock rule, otherwise not!
+ *
+ *----------------------------------------------------------------------
+ */
+bool
+prs2IsATupleLevelLockRule(ruleId, relationId)
+ObjectId ruleId;
+ObjectId relationId;
+{
+    Prs2Stub stubs;
+    int i;
+    bool res;
+
+    stubs = prs2GetRelationStubs(relationId);
+
+    res = false;
+
+    for (i=0; i<stubs->numOfStubs; i++) {
+	if (stubs->stubRecords[i]->ruleId == ruleId) {
+	    res = true;
+	    break;
+	}
+    }
+
+    prs2FreeStub(stubs);
+
+    return(res);
+}
+
+
