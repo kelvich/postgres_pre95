@@ -344,7 +344,7 @@ void Async_Listen(relname, pid)
 			 nulls);
     heap_insert(lDesc,tup,(double *)NULL);
     
-    pfree(tup);
+    pfree((Pointer)tup);
     if (alreadyListener) {
 	elog(NOTICE,"Async_Listen: already one listener on %s (possibly dead)",relname);
     }
