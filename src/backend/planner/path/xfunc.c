@@ -38,7 +38,8 @@
 **
 **  modifies: clauselist for each Rel
 */
-void xfunc_rellist_sortprds(LispValue rels)
+void xfunc_rellist_sortprds(rels)
+    LispValue rels;
 {
     LispValue temp;
     int i;
@@ -51,7 +52,9 @@ void xfunc_rellist_sortprds(LispValue rels)
 }
 
 /* arg1 and arg2 should really be of type (CInfo *)  */
-int xfunc_cinfo_compare(void *arg1, void *arg2)
+int xfunc_cinfo_compare(arg1, arg2)
+    void *arg1;
+    void *arg2;
 {
     CInfo info1 = *(CInfo *) arg1;
     CInfo info2 = *(CInfo *) arg2;
@@ -68,7 +71,9 @@ int xfunc_cinfo_compare(void *arg1, void *arg2)
 ** arg1 and arg2 are really pointers to clauses.
 ** !!! WILL THIS NEED TO DISTINGUISH BETWEEN LOCAL AND JOIN PRD's??
 */
-int xfunc_clause_compare(void *arg1, void *arg2)
+int xfunc_clause_compare(arg1, arg2)
+    void *arg1;
+    void *arg2;
 {
     LispValue clause1 = *(LispValue *) arg1;
     LispValue clause2 = *(LispValue *) arg2;
@@ -108,7 +113,8 @@ int xfunc_clause_compare(void *arg1, void *arg2)
 /*
 ** Recursively find expense of a clause
 */
-double xfunc_expense(LispValue clause)
+double xfunc_expense(clause)
+    LispValue clause;
 {
     HeapTuple tupl; /* the pg_proc tuple for each function */
     Form_pg_proc proc; /* a data structure to hold the pg_proc tuple */
@@ -185,7 +191,10 @@ double xfunc_expense(LispValue clause)
 ** xfunc_dopullup --
 **    move a particular clause from child to parent
 */
-int xfunc_dopullup(LispValue child, LispValue parent, LispValue clause)
+int xfunc_dopullup(child, parent, clause)
+    LispValue child;
+    LispValue parent;
+    LispValue clause;
 {
 
 }
@@ -194,7 +203,10 @@ int xfunc_dopullup(LispValue child, LispValue parent, LispValue clause)
 ** xfunc_shouldpull --
 **    decide whether to pull up a clause from parent to child.
 */
-int xfunc_shouldpull(LispValue child, LispValue parent, LispValue clause)
+int xfunc_shouldpull(child, parent, clause)
+    LispValue child;
+    LispValue parent;
+    LispValue clause;
 {
 
 
@@ -206,7 +218,8 @@ int xfunc_shouldpull(LispValue child, LispValue parent, LispValue clause)
 **   (this assumes the predicates have been converted to Conjunctive NF)
 **   Modifies the clause list!
 */
-void xfunc_disjunct_sort(LispValue clause_list)
+void xfunc_disjunct_sort(clause_list)
+    LispValue clause_list;
 {
     LispValue temp;
 
@@ -221,7 +234,9 @@ void xfunc_disjunct_sort(LispValue clause_list)
 ** disjuncts based on expense
 ** arg1 and arg2 are really pointers to disjuncts
 */
-int xfunc_disjunct_compare(void *arg1, void *arg2)
+int xfunc_disjunct_compare(arg1, arg2)
+    void *arg1;
+    void *arg2;
 {
     LispValue disjunct1 = *(LispValue *) arg1;
     LispValue disjunct2 = *(LispValue *) arg2;
