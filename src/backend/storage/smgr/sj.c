@@ -389,7 +389,7 @@ _sjcacheinit()
      *  than the six special cases I used to have here.
      */
 
-    start = nentries;
+    start = nentries % SJCACHESIZE;
     stop = ((nentries - 1) + SJCACHESIZE) % SJCACHESIZE;
 
     i = start;
@@ -1012,7 +1012,7 @@ _sjfetchgrp(dbid, relid, blkno, grpno)
 	    if (item->sjc_gflags & SJC_IOINPROG) {
 		_sjunpin(item);
 		_sjwait_io(item);
-		return (_sjfetchgrp(dbid, relid, blkno));
+		return (_sjfetchgrp(dbid, relid, blkno, grpno));
 	    }
 
 	    SpinRelease(SJCacheLock);
