@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH REINDEXDB UNIX 02/04/94
+.TH REINDEXDB UNIX 02/14/94
 .XA 1 Reindexdb
 .SH NAME
 reindexdb \- reconstruct damaged system catalog indices
@@ -29,3 +29,13 @@ can only be executed by the \*(PG superuser.
 .SH "SEE ALSO"
 initdb(unix),
 postmaster(unix).
+.SH "CAVEATS"
+Should only be used as a last resort.  Many problems are better
+solved by simply shutting down the 
+.IR postmaster
+process and restarting it.
+.PP
+If the base system catalog classes are damaged, 
+.BR reindexdb
+will generally print a cryptic message and fail.  In this case, 
+there is very little recourse but to reload the data.
