@@ -87,6 +87,7 @@ extern void AtAbort_Cache ARGS(());
 extern void AtAbort_Locks ARGS(());
 extern void AtAbort_Memory ARGS(());
 extern void StartTransaction ARGS(());
+extern bool CurrentXactInProgress ARGS(());
 extern void CommitTransaction ARGS(());
 extern void AbortTransaction ARGS(());
 extern void StartTransactionCommand ARGS(());
