@@ -174,17 +174,30 @@ typedef struct varlena text;
 typedef struct varlena stub;
 
 /* ----------------
- *	oidseq
+ *	oidint4
  *
  *	this is a new system type used by the file interface.
  * ----------------
  */
-typedef struct OidSeqData {
-	ObjectId	os_oid;
-	uint32		os_seq;
-} OidSeqData;
+typedef struct OidInt4Data {
+	ObjectId	oi_oid;
+	int32		oi_int4;
+} OidInt4Data;
 
-typedef struct OidSeqData	*OidSeq;
+typedef struct OidInt4Data	*OidInt4;
+
+/* ----------------
+ *	oidchar16
+ *
+ *	this is a new system type used to define indices on two attrs.
+ * ----------------
+ */
+typedef struct OidChar16Data {
+	ObjectId	id;
+	char16		name;
+} OidChar16Data;
+
+typedef struct OidChar16Data	*OidChar16;
 
 /* ----------------------------------------------------------------
  *		Section 3:  name type + support macros
@@ -525,6 +538,7 @@ typedef uint32	RelativeTime;
     typedef struct CppConcat(FormData_,x)
 
 #define DATA(x)
+#define DEFINE_INDEX(x)
 #define BOOTSTRAP
 
 #define BKI_BEGIN
