@@ -138,6 +138,9 @@ DefineQueryRewrite ( args )
     int event_attno 		= 0;
     int j			= 0;		/* save index */
     int k			= 0;		/* actual lock placement */
+    ObjectId event_attype	= 0;
+    
+    extern ObjectId att_typeid();
 
 #ifdef FUZZY
     List support 		= nth (6 , args );
@@ -164,11 +167,13 @@ DefineQueryRewrite ( args )
     }
     ev_relid = RelationGetRelationId (event_relation);
     
-    if ( eslot_string == NULL ) 
+    if ( eslot_string == NULL ) {
       event_attno = -1;
-    else
-      event_attno = varattno ( event_relation, eslot_string );
-
+      event_attype = -1; /* XXX - don't care */
+    } else {
+	event_attno = varattno ( event_relation, eslot_string );
+	event_attype = att_typeid(event_relation,event_attno);
+    }
     foreach ( i , action ) {
 	List 	this_action 		= CAR(i);
 	int 	this_action_is_instead 	= 0;
@@ -185,7 +190,7 @@ DefineQueryRewrite ( args )
 	if ( action_type == REPLACE ) {
 	    action_result_index = CInteger(action_result);
 	}
-	if ( action_type == RETRIEVE && event_attno == -1 ) {
+	if ( action_type == RETRIEVE && event_attype != 32 ) {
 	    /* transform to replace current */
 	    ModifyActionToReplaceCurrent ( this_action );
 	    action_type = REPLACE;
