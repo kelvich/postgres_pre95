@@ -447,7 +447,7 @@ QueryRewrite ( parsetree )
     
     foreach ( i , rangetable ) {
 	List entry = CAR(i);
-	Name varname = (Name)CString(CAR(entry));
+	Name varname = (Name)CString(rt_relname(entry));
 	Relation to_be_rewritten = amopenr ( varname );
 
 	if ( to_be_rewritten == NULL ) {
