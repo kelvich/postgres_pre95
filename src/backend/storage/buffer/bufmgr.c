@@ -184,7 +184,7 @@ bool		bufferLockHeld;
   if (found) {
     if (extend) {
       /* I don't think this is an error, but should be careful */
-      elog(NOTICE,"BufferAlloc: found new block in buf table");
+      /* elog(DEBUG,"BufferAlloc: found new block in buf table"); */
     }
     BufferHitCount++;
 	if (!bufferLockHeld) SpinRelease(BufMgrLock);
