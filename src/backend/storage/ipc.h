@@ -15,6 +15,10 @@
 #define HAS_TEST_AND_SET
 #endif
 
+#if defined(HAS_TEST_AND_SET) && !defined(sequent)
+typedef unsigned char   slock_t;
+#endif
+
 #if defined(sequent) || defined(mips)
 #if !sprite
 union semun {
