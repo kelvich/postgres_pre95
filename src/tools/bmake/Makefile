@@ -18,8 +18,7 @@ CFLAGS+= -D_PATH_DEFSYSMK='"${PROTODIR}/sys.mk"'  \
 CFLAGS+= -Dvoid="char *"
 .endif
 
-# DEC OSF on alpha
-.if (${PORTNAME} == "alpha")
+.if ( ${PORTNAME} == "alpha" || ${PORTNAME} == "hpux" )
 CFLAGS+= -D_BSD
 .endif
 
@@ -37,6 +36,10 @@ SRCS+=	strdup.c
 SRCS+= strerror.c setenv.c
 .endif
 
+.if ( ${PORTNAME} == "hpux" )
+SRCS+= setenv.c
+.endif
+
 .PATH:	${.CURDIR}/lst.lib
 
 beforeinstall: installproto
@@ -47,7 +50,7 @@ installproto::
 .endif
 	for i in ${.CURDIR}/mk-proto/*.mk ; \
 	do \
-	    install -c -o ${BINOWN} -g ${BINGRP} -m 444 $$i ${PROTODIR}/`basename $$i`; \
+	    ${INSTALL} -c -o ${BINOWN} -g ${BINGRP} -m 444 $$i ${PROTODIR}/`basename $$i`; \
 	done
 
 .include <postgres.prog.mk>
