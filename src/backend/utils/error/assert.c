@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "c.h"
+#include "trace.h"
 
 RcsId("$Header$");
 
@@ -52,6 +53,8 @@ ExceptionalCondition(conditionName, exceptionP, detail, fileName, lineNumber)
 	 * XXX want to stop here immediately and maybe dump core.
 	 * XXX This may be especially true for Assert(), etc.
 	 */
+
+	TraceDump();	/* dump the trace stack */
 
 	/* XXX FIXME: detail is lost */
 	ExcRaise(exceptionP, (ExcDetail)0, (ExcData)NULL, conditionName);
