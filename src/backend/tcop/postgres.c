@@ -40,6 +40,8 @@ time_t		tim;
 bool 		override = false;
 int		NStriping = 1;  /* default no striping */
 
+int UseNewLine = 0;  /* Use newlines instead of EOF as query delimiters */
+
 /* ----------------
  *	this is now defined by the executor
  * ----------------
@@ -116,6 +118,7 @@ InteractiveBackend(inBuf)
 {
     String stuff = inBuf;
     char c;
+	int end = 0;
 
     /* ----------------
      *	display a prompt and obtain input from the user
@@ -126,26 +129,29 @@ InteractiveBackend(inBuf)
 	char s[1024];
 	int v;
 
-	if(Quiet){
-		while ( (c = (char)getc(stdin)) != '\n') {
-		    *stuff++ = c;
-		}
-		AbortCurrentTransaction();
-		exitpg(0);
-	}
-	else{
-		printf("> ");
+		if (!Quiet) printf("> ");
 
-		while ( (c = (char)getc(stdin)) != EOF ) {
-		    *stuff++ = c;
+		if (!UseNewLine)
+		{
+			while ( (c = (char)getc(stdin)) != EOF ) {
+				*stuff++ = c;
+			}
+			if ( stuff == inBuf ) end = 1;
 		}
+		else
+		{
+			while ( (c = (char)getc(stdin)) != EOF && c != '\n') {
+				*stuff++ = c;
+			}
+			if (c == EOF) end = 1;
+		}
+
     
-		if ( stuff == inBuf ) {
-		    puts("EOF");
+		if (end) {
+		    if (!Quiet) puts("EOF");
 		    AbortCurrentTransaction();
 		    exitpg(0);
 		}
-	}
 
 #ifdef EXEC_DEBUGINTERACTIVE
 
@@ -153,19 +159,19 @@ InteractiveBackend(inBuf)
 	 *  now see if it's a debugging command...
 	 * ----------------
 	 */
-	if (sscanf(inBuf, "DEBUG %s", s) == 1) {
-	    if (!DebugVariableProcessCommand(inBuf))
-		printf("DEBUG [%s] not recognised\n", inBuf);
+		if (sscanf(inBuf, "DEBUG %s", s) == 1) {
+	    	if (!DebugVariableProcessCommand(inBuf))
+			printf("DEBUG [%s] not recognised\n", inBuf);
 		
-	    continue;
-	}
+	    	continue;
+		}
 #endif EXEC_DEBUGINTERACTIVE
 	/* ----------------
 	 *  otherwise we have a user query so process it.
 	 * ----------------
 	 */
-	break;
-    }
+		break;
+	}
     
     return('Q');
 }
@@ -497,7 +503,7 @@ main(argc, argv)
     numslaves = 0;
     flagC = flagQ = flagM = flagS = 0;
     
-    while ((flag = getopt(argc, argv, "CQOM:dnpP:B:b:D:S")) != EOF)
+    while ((flag = getopt(argc, argv, "CQONM:dnpP:B:b:D:S")) != EOF)
       switch (flag) {
 	  
       case 'd':
@@ -588,6 +594,9 @@ main(argc, argv)
 	   */
 	  /* DebugMode = false; */
 	  break;
+	  case 'N':
+	  UseNewLine = 1;
+	  break;
 	  
       case 'S':
 	  /* ----------------
@@ -604,13 +613,14 @@ main(argc, argv)
       }
 
     if (errs || argc - optind > 1) {
-	fputs("Usage: postgres [-C] [-M #] [-O] [-Q] [datname]\n", stderr);
+	fputs("Usage: postgres [-C] [-M #] [-O] [-Q] [-N] [datname]\n", stderr);
 	fputs("	-C   =  ??? \n", stderr);
 	fputs(" -M # =  Enable Parallel Query Execution\n", stderr);
 	fputs("          (# is number of slave backends)\n", stderr);
 	fputs(" -O   =  Override Transaction System\n", stderr);
 	fputs(" -S   =  assume Stable Main Memory\n", stderr);
 	fputs(" -Q   =  Quiet mode (less debugging output)\n", stderr);
+	fputs(" -N   =  Newline mode (newline as query delimiter)\n", stderr);
 	exitpg(1);
     } else if (argc - optind == 1) {
 	DatabaseName = argv[optind];
