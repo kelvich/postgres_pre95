@@ -116,7 +116,7 @@ bool Typecast_ok = true;
 
 %token   	INHERITANCE VERSION CURRENT NEW THEN DO INSTEAD VIEW
 		REWRITE P_TUPLE TYPECAST P_FUNCTION C_FUNCTION C_FN
-		POSTQUEL RELATION RETURNS INTOTEMP LOAD
+		POSTQUEL RELATION RETURNS INTOTEMP LOAD CREATEDB DESTROYDB
 
 /* precedence */
 %nonassoc Op
@@ -174,6 +174,8 @@ stmt :
 	| TransactionStmt
   	| ViewStmt
 	| LoadStmt
+	| CreatedbStmt
+	| DestroydbStmt
 	;
 
 
@@ -963,6 +965,30 @@ LoadStmt:
                 {  $$ = MakeList ( KW(load), $2, -1 ); }
         ;
 
+ /**************************************************
+
+        Createdb Stmt
+        createdb dbname
+
+   **************************************************/
+
+CreatedbStmt:
+        CREATEDB database_name
+                {  $$ = MakeList ( KW(createdb), $2, -1 ); }
+        ;
+
+ /**************************************************
+
+        Destroydb Stmt
+        destroydb dbname
+
+   **************************************************/
+
+DestroydbStmt:
+        DESTROYDB database_name
+                {  $$ = MakeList ( KW(destroydb), $2, -1 ); }
+        ;
+
  /**********************************************************************
   **********************************************************************
 
@@ -1709,6 +1735,7 @@ relation_name:
 	| Id		/* $$ = $1 */;
 	;
 
+database_name:	Id	/*$$=$1*/;
 access_method: 		Id 		/*$$=$1*/;
 adt_name:		Id		/*$$=$1*/;
 attr_name: 		Id		/*$$=$1*/;
