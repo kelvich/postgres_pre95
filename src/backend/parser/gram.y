@@ -563,7 +563,7 @@ opt_move_pname:
 	  or
 	purge <relname>  [after<date>][before <date>] 
 	
-		(PURGE "relname" ((BEFORE . date)(AFTER . date)))
+		(PURGE "relname" ((BEFORE date) (AFTER date)))
 
   **********************************************************************/
 
@@ -589,8 +589,8 @@ purge_quals:
 		{$$ = nappend1(LispNil,$2);$$=nappend1($$,$1);}
 	;
 
-before_clause:	BEFORE date		{ $$ = lispCons($1,$2); } ;
-after_clause:	AFTER date		{ $$ = lispCons($1,$2); } ;
+before_clause:	BEFORE date	{ $$ = lispCons($1, cons($2, LispNil)); } ;
+after_clause:	AFTER date	{ $$ = lispCons($1, cons($2, LispNil)); } ;
 
  /**********************************************************************
 
