@@ -11,6 +11,7 @@
  */
 #ifndef INDEX_H
 #define INDEX_H
+#include "pg_lisp.h"
 int FindIndexNAtt ARGS((int32 first , ObjectId indrelid , Boolean isarchival ));
 ObjectId RelationNameGetObjectId ARGS((Name relationName , Relation pg_relation , bool setHasIndexAttribute ));
 int GetHeapRelationOid ARGS((Name heapRelationName , Name indexRelationName ));
