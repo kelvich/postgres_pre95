@@ -64,7 +64,10 @@ static bool	EnableRewrite = true;
 int		ShowLock = 0;
 #endif
 
-int		Userid;
+/* User info  */
+
+int		PG_username;
+
 Relation	reldesc;		/* current relation descritor */
 char		relname[80];		/* current relation name */
 jmp_buf		Warn_restart;
@@ -816,6 +819,8 @@ PostgresMain(argc, argv)
 	  errs++;
       }
 
+	GetUserName();
+
     if (errs || argc - optind > 1) {
 	fputs("Usage: postgres [-C] [-M #] [-O] [-Q] [-N] [datname]\n", stderr);
 	fputs("	-C   =  ??? \n", stderr);
@@ -831,12 +836,13 @@ PostgresMain(argc, argv)
 	exitpg(1);
     } else if (argc - optind == 1) {
 	DBName = DatabaseName = argv[optind];
-    } else if ((DBName = DatabaseName = getenv("USER")) == NULL) {
+    } else if ((DBName = DatabaseName = PG_username) == NULL) {
 	fputs("amiint: failed getenv(\"USER\") and no database specified\n");
 	exitpg(1);
     }
 
     get_pathname(argv);
+
 
     Noversion = flagC;
     Quiet = flagQ;
@@ -1171,5 +1177,30 @@ get_pathname(argv)
 	{
 		getwd(buffer);
 		sprintf(pg_pathname, "%s/%s", buffer, argv[0]);
+	}
+}
+
+/*
+ * If we are running under the Postmaster, we cannot in general be sure that
+ * USER is set to the actual name of the user.  (After all, in theory there
+ * may be Postgres users that don't exist as Unix users on the database server
+ * machine.)  Therefore, the Postmaster sets the PG_USER environment variable
+ * so that the actual user can be determined.
+ */
+
+GetUserName()
+
+{
+	if (IsUnderPostmaster)
+	{
+		PG_username = (char *) getenv("PG_USER");
+		if (PG_username == NULL)
+		{
+			elog(FATAL, "GetUserName(): Can\'t get PG_USER environment name");
+		}
+	}
+	else
+	{
+		PG_username = (char *) getenv("USER");
 	}
 }
