@@ -157,7 +157,9 @@ typedef bool	*BoolPtr;
 
 #ifdef	__STDC__ /* ANSI C */
 
+#if PORTNAME != bsd44
 #define PROTOTYPES
+#endif
 /*
  * Pointer --
  *	Variable holding address of any memory resident object.
@@ -171,12 +173,6 @@ typedef void	*Pointer;
  */
 #define NULL	((void *) 0)
 #endif	/* !defined(NULL) */
-
-/*
- * CppIdentity --
- *	C preprocessor identity macro, returns the argument.
- */
-#define CppIdentity(x)x
 
 /*
  * CppAsString --
@@ -212,10 +208,14 @@ typedef char	*Pointer;
 #endif	/* !defined(NULL) */
 
 /*
- * CppIdentity --
- *	C preprocessor identity macro, returns the argument.
+ * CppIdentity -- On Reiser based cpp's this is used to concatenate
+ *	two tokens.  That is
+ *		CppIdentity(A)B	==> AB
+ *	We renamed it to _private_CppIdentity because it should not
+ *	be referenced outside this file.  On other cpp's it
+ *	produces  A  B.
  */
-#define CppIdentity(x)x
+#define _private_CppIdentity(x)x
 
 /*
  * CppAsString --
@@ -235,12 +235,12 @@ typedef char	*Pointer;
 #define CppConcat3(x, y)        x/**/y
 #define CppConcat4(x, y)        x/**/y
 #else
-#define CppConcat(x, y)		CppIdentity(x)y
-#define CppConcat0(x, y)	CppIdentity(x)y
-#define CppConcat1(x, y)	CppIdentity(x)y
-#define CppConcat2(x, y)	CppIdentity(x)y
-#define CppConcat3(x, y)	CppIdentity(x)y
-#define CppConcat4(x, y)	CppIdentity(x)y
+#define CppConcat(x, y)		_priv_CppIdentity(x)y
+#define CppConcat0(x, y)	_priv_CppIdentity(x)y
+#define CppConcat1(x, y)	_priv_CppIdentity(x)y
+#define CppConcat2(x, y)	_priv_CppIdentity(x)y
+#define CppConcat3(x, y)	_priv_CppIdentity(x)y
+#define CppConcat4(x, y)	_priv_CppIdentity(x)y
 #endif /* sprite */
 
 /*
@@ -471,6 +471,9 @@ free_debug ARGS((
         char    *p
 ));
 #else /* PALLOC_DEBUG */
+#if PORTNAME == bsd44
+#include <stdlib.h>
+#else
 extern
 char *	/* as defined in /usr/lib/lint/llib-lc */
 malloc ARGS((
@@ -481,6 +484,7 @@ extern
 free ARGS((
         char    *p
 ));
+#endif /* ! PORTNAME == bsd44 */
 #endif /* PALLOC_DEBUG */
 
 /*
