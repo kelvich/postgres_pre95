@@ -822,9 +822,10 @@ and
 In this section we will cover \*(PQ functions; programming language
 functions will be covered below with the discussion on user-defined types.
 .lp
-Any collection of commands in the \*(PQ query language can be packaged
-together and defined as a function, usually returning either a set of
-instances or a set of base types.  For example, the following function
+Any collection of commands in the \*(PQ
+query language can be packaged together and defined as a
+function, usually returning either a set of instances or a set of base types.
+For example, the following function
 .cW high_pay
 returns all employees in class
 .cW EMP
@@ -861,7 +862,7 @@ class with a
 .cW manager
 field.
 That is, for each instance of
-.cW EMP
+.cW EMP ,
 we want to associate another
 instance of
 .cW EMP 
@@ -880,7 +881,8 @@ define a \*(PQ function
 The function
 .cW manager
 takes an instance as its only argument, so \*(PQ allows referencing
-into it with the use of the nested dot notation.  Whenever such a
+into it with the use of the nested dot notation.
+Whenever such a
 function is defined over a class, a user can utilize the cascaded dot
 notation to reference into (i.e. access the fields of) the objects
 returned by the function.
@@ -936,7 +938,8 @@ Note that
 is defined as returning a single instance of
 .cW EMP.
 We can also write a \*(PQ function that returns sets of
-instances.  For example, consider the function
+instances.
+For example, consider the function
 .(C
 * define function children
       (language = "postquel", returntype = setof KIDS)
@@ -948,20 +951,25 @@ instances.  For example, consider the function
 The
 .cW children
 function is defined as returning a set of instances, rather than a
-single instance.  Given the query
+single instance.
+Given the query
 .(C
 * retrieve(emp.name, emp.children.name)
 .)C
 if the query in the body of the
 .cW children
 function returns many instances, the retrieve query will return all of
-them, in a "flattened" form.  If the query in the body of
+them, in a
+.q flattened
+form.
+If the query in the body of
 .cW manager
 returns more than one instance,
 the
 .cW manager
 function will return only one instance, arbitrarily chosen from the
-set returned by the query in the function's body.  See the \*(PP
+set returned by the query in the function's body.
+See the \*(PP
 Reference Manual's entry on the 
 .cW "define function"
 command for further details and examples.
@@ -1476,7 +1484,8 @@ In using a function of an instance in qualifying an instance,
 \*(PP defines the
 .q "current instance"
 to be the instance being qualified at the moment your function is
-called.  The instance itself will be passed in your function's
+called.
+The instance itself will be passed in your function's
 parameter list as an opaque structure of type TUPLE, and you will use
 \*(PP library routines to access the data in the object as described
 below.\**
@@ -1517,7 +1526,8 @@ It has two arguments: the argument of type TUPLE passed into the function,
 and the name of the desired attribute.
 .cW GetAttributeByName
 will align data properly so you can cast its return value to
-the desired type.  For example, if you have an attribute
+the desired type.
+For example, if you have an attribute
 .cW name
 which is of the \*(PQ type
 .cW char16 ,
@@ -1545,7 +1555,8 @@ You can have additional complex, base or user-defined types as
 arguments to the inheritable function.
 Thus,
 .(C
-* retrieve (EMP.all) where overpaid2(EMP, DEPT, "bill", 8) \\g
+* retrieve (EMP.all)
+      where overpaid2(EMP, DEPT, "bill", 8) \\g
 .)C
 could be written, and
 .cW overpaid2
@@ -1553,9 +1564,9 @@ would be declared:
 .(C
 bool
 overpaid2(emp, dept, name, number)
-TUPLE emp, dept;
-char *name;
-long number;
+    TUPLE emp, dept;
+    char *name;
+    long number;
 .)C
 .\"------------------------------------
 .sh 2 "Arrays of types"
