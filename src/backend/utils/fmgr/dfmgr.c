@@ -13,6 +13,9 @@
 #include "utils/fmgr.h"
 #include "utils/log.h"
 
+#include "tmp/c.h"
+#include "port-protos.h"     /* system specific function prototypes */
+
 #include "catalog/catname.h"
 #include "catalog/syscache.h"
 #include "catalog/pg_proc.h"
@@ -116,7 +119,6 @@ char *filename, *funcname;
 {
     DynamicFileList     *file_scanner = NULL;
     DynamicFunctionList *func_scanner, *func_tail = NULL;
-    DynamicFunctionList    *dynamic_file_load();
     func_ptr            retval = NULL;
     char                *load_error;
     char                *start_addr;
@@ -205,7 +207,7 @@ char *filename, *funcname;
                 file_tail->next = NULL;
             }
 
-            free(file_scanner);
+            free((char *)file_scanner);
             elog(WARN,
                  "Load of file %s failed: %s", filename, load_error);
         }
@@ -287,7 +289,7 @@ char *filename;
         file_scanner = file_list;
         file_list = file_list->next;
         zero_loaded_file(file_scanner);
-        free(file_scanner);
+        free((char *)file_scanner);
     }
     else if (file_list != NULL)
     {
@@ -313,7 +315,7 @@ char *filename;
             p = file_scanner->next;
             file_scanner->next = file_scanner->next->next;
             zero_loaded_file(p);
-            free(p);
+            free((char *)p);
         }
     }
     handle_load(filename, NULL);
@@ -332,14 +334,14 @@ DynamicFileList *file_data;
  */
 
 #ifndef OLD_DEC
-    free(file_data->address);
+    free((char *)file_data->address);
 #endif
     func_scanner = file_data->func_list;
     for (throw_away = func_scanner->next; throw_away != NULL;)
     {
         throw_away = func_scanner->next;
-        free(func_scanner);
+        free((char *)func_scanner);
         func_scanner = throw_away;
     }
-    free(file_data->func_list);
+    free((char *)file_data->func_list);
 }
