@@ -54,7 +54,7 @@ typedef struct ltag {
   ItemPointerData	tupleId;
 } LOCKTAG;
 
-#define TAGSIZE (sizeof(oid)+sizeof(ItemPointerData))
+#define TAGSIZE (sizeof(LOCKTAG))
 
 /* This is the control structure for a lock table.  It
  * lives in shared memory:
