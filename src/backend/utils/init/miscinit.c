@@ -270,7 +270,7 @@ SetUserId()
     GetUserName(&user);
     userTup = SearchSysCacheTuple(USENAME, user.data, NULL, NULL, NULL);
     if (!HeapTupleIsValid(userTup))
-	elog(FATAL, "SetUserId: user \"%-*s\" is not in \"%-*s\"",
+	elog(FATAL, "SetUserId: user \"%-.*s\" is not in \"%-.*s\"",
 	     sizeof(NameData), user.data, sizeof(NameData), UserRelationName);
     UserId = (ObjectId) ((Form_pg_user) GETSTRUCT(userTup))->usesysid;
 }
