@@ -66,8 +66,6 @@ bool NewWasUsed = false;
 #define YYSTYPE LispValue
 extern YYSTYPE parsetree;
 
-#define MAX_ID_LENGTH   16   /* id cannot be more than 16 char long */
-
 LispValue NewOrCurrentIsReally = (LispValue)NULL;
 bool ResdomNoIsAttrNo = false;
 extern YYSTYPE parser_ppreserve();
@@ -1744,14 +1742,8 @@ Iconst: 	ICONST			{ $$ = yylval; }
 Sconst:		SCONST			{ $$ = yylval; }
 
 Id:
-	IDENT           { /* check that Id does not exceed */
-                          /* MAX_ID_LENGTH */
-                          if (strlen(yyval->val) <= MAX_ID_LENGTH)
-                             $$ = yylval;
-                          else
-                             elog(WARN,"Id exceeds maximum id length %d",
-                                        MAX_ID_LENGTH);
-                        }
+	IDENT           { $$ = yylval; }
+	;
 
 SpecialRuleRelation:
 	CURRENT
