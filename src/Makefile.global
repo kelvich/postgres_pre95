@@ -2,7 +2,7 @@
 # A Makefile.global is seen by the Makefile in the current
 # directory and any Makefiles in any subdirectories (assuming
 # they .include <postgres.global.mk>).  Also, if there is
-# a Makefile.global in the "obj" directory it is first included.
+# a Makefile.global in the "obj" directory it is included after.
 # This allows machines to tailor Makefiles and override default
 # setting when sharing a source tree between a number of
 # machines.  Note that since the "obj" directories themselves
@@ -20,18 +20,22 @@
 # since no dependecies are created for these.
 #
 
-POSTGRESHOME?=	/private/postgres/devel
-PORTNAME?=	ultrix4
+POSTGRESDIR=	/private/devel/postgres
+DATADIR=	${POSTGRESDIR}/data
+PORTNAME=	ultrix4
 MACHINE!=	machine
-BINDIR?=	${POSTGRESHOME}/bin
-POSTGRESDATA?=	${POSTGRESHOME}/data
+BINDIR=		${POSTGRESDIR}/bin
+LIBDIR=		${POSTGRESDIR}/lib
 
-#
-# PG_SRCDIR is where this src tree is rooted.  Hopefully
-# we won't end up needing this.
-#
-PG_SRCDIR?=	/usr/local/dev/postgres/newtree/src
-
+# XXX - to get alpha going
 .if (${MACHINE} == "alpha")
-CFLAGS+= -Dlong=int
+# so free doesn't get defined (bletch)
+CFLAGS+= -Dlong=int -D_NLCTYPE_H_
 .endif
+
+#
+# globally turn on debugging
+#
+CFLAGS= -g
+LDFLAGS= -g
+STRIP=
