@@ -689,6 +689,7 @@ heap_create(relname, arch, natts, tupdesc)
 			      -1,		/* internal size (varlena) */
 			      -1,		/* external size (varlena) */
 			      'c', 		/* type-type (catalog) */
+				  ',',		/* default array delimiter */
 			      "textin",		/* input procedure */
 			      "textout",	/* output procedure */
 			      "textin",		/* send procedure */
