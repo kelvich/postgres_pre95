@@ -472,8 +472,7 @@ RelationBuildTupleDesc(buildinfo, relation, attp, natts)
 
     if (need > 0)
 	elog(WARN, "catalog is missing %d attribute%s for relid %d",
-		natts - need, ((natts - need) == 1 ? "" : "s"),
-		relation->rd_id);
+		need, (need == 1 ? "" : "s"), relation->rd_id);
 
     /* ----------------
      *	end the scan and close the attribute relation
