@@ -295,6 +295,7 @@ tryAgain:
 		    FreeFd = 0;
 		    errno = 0;
 		    AssertLruRoom();
+		    goto tryAgain;
 		} else {
 		    close(tmpfd);
 		}
@@ -588,7 +589,7 @@ fileClose(file)
 }
 
 void
-FileUnlink(file)
+fileUnlink(file)
 	FileNumber	file;
 {
 
@@ -608,6 +609,7 @@ FileUnlink(file)
 		/*
 		 * Close the file
 		 */
+		close(VfdCache[file].fd);
 		--nfile;
 	}
 	/*
@@ -1007,4 +1009,17 @@ File file;
 
     len = FileSeek(file, 0L, L_XTND) - 1;
     return((BlockNumber)((len < 0) ? 0 : 1 + len / BLCKSZ));
+}
+
+void
+FileUnlink(file)
+File file;
+{
+    int i;
+    Sfd *sfdP;
+
+    sfdP = &(SfdCache[file]);
+
+    for (i=0; i<NStriping; i++)
+       fileUnlink(sfdP->vfd[i]);
 }
