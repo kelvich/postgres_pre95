@@ -35,6 +35,7 @@
 CATALOG(pg_index) {
     oid 	indexrelid;
     oid 	indrelid;
+	oid		indproc; /* registered procedure for functional index */
     int28 	indkey;
     oid8 	indclass;
     bool 	indisclustered;
@@ -56,10 +57,11 @@ typedef FormData_pg_index	*Form_pg_index;
 #define Natts_pg_index			6
 #define Anum_pg_index_indexrelid	1
 #define Anum_pg_index_indrelid		2
-#define Anum_pg_index_indkey		3
-#define Anum_pg_index_indclass		4
-#define Anum_pg_index_indisclustered	5
-#define Anum_pg_index_indisarchived	6
+#define Anum_pg_index_indproc		3
+#define Anum_pg_index_indkey		4
+#define Anum_pg_index_indclass		5
+#define Anum_pg_index_indisclustered	6
+#define Anum_pg_index_indisarchived	7
 
 /* ----------------
  *	old definition of IndexTupleForm
@@ -71,6 +73,7 @@ typedef FormData_pg_index	*Form_pg_index;
 typedef struct IndexTupleFormD {
 	ObjectId	indexrelid;
 	ObjectId	indrelid;
+	ObjectId	indproc;
 	AttributeNumber	indkey[8];
 	ObjectId	indclass[8];
 	Boolean		indisclustered;

@@ -148,7 +148,7 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 		}
 	}
 
-	RelationNameCreateIndexRelation(heapRelationName, indexRelationName,
+	index_create(heapRelationName, indexRelationName, NULL,
 		accessMethodId, numberOfAttributes, attributeNumberA,
 		classObjectId, parameterCount, parameterA);
 }
@@ -171,5 +171,5 @@ RemoveIndex(name)
 			((RelationTupleForm)GETSTRUCT(tuple))->relkind);
 	}
 
-	DestroyIndexRelationById(tuple->t_oid);
+	index_destroy(tuple->t_oid);
 }
