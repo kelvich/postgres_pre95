@@ -325,7 +325,9 @@ AttributeNumber numberOfAttributes;
 			newTupleOid,
 			newAttributeValues,
 			newTupleLocks,
-			newTupleLockType);
+			newTupleLockType,
+			attributeArray,
+			numberOfAttributes);
 	    Prs2Stats_rulesTested +=1;	/* update statistics */
 	    if (prs2CheckQual(planQual, paramList, prs2EStateInfo)) {
 		Prs2Stats_rulesActivated +=1;	/* update statistics */
