@@ -249,7 +249,7 @@ cost_sort (keys,tuples,width,noread)
     if (tuples == 0 || null(keys) )
       return(temp);
 #ifdef _xprs_
-    temp += pages * base_log(pages, NBuffers);
+    temp += pages * base_log(pages, (double)NBuffers);
     temp += _CPU_PAGE_WEIGHT_ * numTuples * base_log(pages, 2.0);
 #else /* _xprs_ */
 	temp += pages * base_log(pages, 2.0);
