@@ -236,7 +236,7 @@ varattno ( rd , a)
 		}
 	}
 
-	elog(NOTICE,"Relation %s does not have attribute %s\n", 
+	elog(WARN,"Relation %s does not have attribute %s\n", 
 	     RelationGetRelationName(rd), a );
 	return(-1);
 }
