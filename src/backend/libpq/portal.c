@@ -483,13 +483,13 @@ PQcleanNotify()
 	 nPtr = (PQNotifyList *)SLGetSucc(&nPtr->Node)) {
 	if (last != NULL && last->valid == 0) {
 	    SLRemove(&last->Node);
-	    pbuf_free(last);
+	    pbuf_free((caddr_t)last);
 	}
 	last = nPtr;
     }
     if (last != NULL && last->valid == 0) {
 	SLRemove(&last->Node);
-	pbuf_free(last);
+	pbuf_free((caddr_t)last);
     }
 }
 
