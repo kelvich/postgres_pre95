@@ -219,23 +219,15 @@ main(argc, argv)
 	    /*utility_invoke(CAR(parser_output),CDR(parser_output));*/
 	    ;
 	  else {
+	      Node plan;
 	      extern Node planner();
+	      extern void init_planner();
 
-	      Node plan = planner(parser_output);
+	      init_planner();
+	      plan = planner(parser_output);
 	      printf("\nPlan is :\n");
-	      switch (NodeGetTag(plan)) {
-		case T_Result:
-		  _printResult(plan);
-		  break;
-		case T_Append:
-		case T_Existential:
-		case T_HashJoin:
-		case T_NestLoop:
-		  
-		default:
-		  elog(WARN,"unknown node type ");
-	      }
-	      printf ("\n");
+	      (*(plan->printFunc))(plan);
+	      printf("\n");
 	  }
 	  CommitTransactionCommand(); 
      }
