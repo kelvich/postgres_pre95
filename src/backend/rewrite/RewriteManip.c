@@ -160,7 +160,6 @@ HandleVarNodes ( parse_subtree , user_parsetree , trigger_varno, offset )
 		/* if no match, then fall thru to current */
 	      case 1:
 		/* *CURRENT* */
-		printf("replacing *CURRENT* or unmatch *NEW*");
 		set_varno ( thisnode, trigger_varno );
 		CAR ( get_varid (thisnode) ) =
 		  lispInteger ( trigger_varno );
