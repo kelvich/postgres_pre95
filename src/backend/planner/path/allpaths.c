@@ -320,7 +320,7 @@ Path p;
 		printf("\n%sJoinId:	",indent);
 		lispDisplay (get_joinid (p),0);
 		break;
-	case T_MergeSort:
+	case T_MergeJoin:
 		printf("\n%sClauseInfo: \n",indent);
                 printclauseinfo (xStrcat (indent,"       "),get_pathclauseinfo (p
 ));

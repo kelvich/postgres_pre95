@@ -41,7 +41,10 @@ typedef int	*IntPtr;
 /* ----------------------------------------------------------------
  *    IndexInfo information
  *
- *	NumKeyAttributes	number of key attributes
+ *	this class holds the information saying what attributes
+ *	are the key attributes for this index. -cim 10/15/89
+ *
+ *	NumKeyAttributes	number of key attributes for this index
  *	KeyAttributeNumbers	array of attribute numbers used as keys
  * ----------------------------------------------------------------
  */
@@ -57,11 +60,16 @@ typedef IndexInfo	*IndexInfoPtr;
 /* ----------------------------------------------------------------
  *    RelationInfo information
  *
+ *	whenever we update an existing relation, we have to
+ *	update indices on the relation.  The RelationInfo class
+ *	is used to hold all the information on result relations,
+ *	including indices.. -cim 10/15/89
+ *
  *	RangeTableIndex		result relation's range table index
  *	RelationDesc		relation descriptor for result relation
  *	NumIndices		number indices existing on result relation
  *	IndexRelationDescs	array of relation descriptors for indices
- *	IndexInfoPtr		array
+ *	IndexInfoPtr		array of key/attr info for indices
  * ----------------------------------------------------------------
  */
 
@@ -114,11 +122,36 @@ class (EState) public (Node) {
 
 /* ----------------
  *	Executor Type information needed by plannodes.h
+ *
+ *|	Note: the bogus classes CommonState and CommonScanState exist only
+ *|	      because our inheritance system only allows single inheritance
+ *|	      and we have to have unique slot names.  Hence two or more
+ *|	      classes which want to have a common slot must ALL inherit
+ *|	      the slot from some other class.  (This is a big hacks to
+ *|	      allow our classes to share slot names..)
+ *|
+ *|	Example:
+ *|	      the class Result and the class NestLoop nodes both want
+ *|	      a slot called "OuterTuple" so they both have to inherit
+ *|	      it from some other class.  In this case they inherit
+ *|	      it from CommonState.  "CommonState" and "CommonScanState" are
+ *|	      the best names I could come up with for this sort of
+ *|	      stuff.
+ *|
+ *|	      As a result, many classes have extra slots which they
+ *|	      don't use.  These slots are denoted (unused) in the
+ *|	      comment preceeding the class definition.  If you
+ *|	      comes up with a better idea of a way of doing things
+ *|	      along these lines, then feel free to make your idea
+ *|	      known to me.. -cim 10/15/89
  * ----------------
  */
 
 /* ----------------------------------------------------------------
- *   StateNode information
+ *   CommonState information
+ *
+ *|	this is a bogus class used to hold slots so other
+ *|	nodes can inherit them...
  *
  *	OuterTuple	   points to the current outer tuple
  *  	TupType   	   attr type info of tuples from this node
@@ -127,49 +160,65 @@ class (EState) public (Node) {
  *	ScanType	   type of tuples in relation being scanned
  *	ScanAttributes	   attribute numbers of interest in this tuple
  *	NumScanAttributes  number of attributes of interest..
+ *
+ *|	Currently the value of Level is ignored by almost everything
+ *|	and since I don't understand it's purpose, it may go
+ *|	away soon.
+ *|
+ *|	ScanType should probably mean the type of tuples
+ *|	in the subplan being scanned for nodes without underlying
+ *|	relations.
+ *|
+ *|	ScanAttributes and NumScanAttributes are new -- they are
+ *|	used to keep track of the attribute numbers of attributes
+ *|	which are actually inspected by the query so the rule manager
+ *|	doesn't have to needlessluy check for rules on attributes
+ *|	that won't ever be inspected..
+ *|
+ *|	-cim 10/15/89
  * ----------------------------------------------------------------
  */
 
-class (StateNode) public (Node) {
-#define StateNodeDefs \
+class (CommonState) public (Node) {
+#define CommonStateDefs \
       inherits(Node); \
-      List 	   	  sn_OuterTuple; \
-      AttributePtr 	  sn_TupType; \
-      Pointer 	   	  sn_TupValue; \
-      int	   	  sn_Level; \
-      AttributePtr 	  sn_ScanType; \
-      AttributeNumberPtr  sn_ScanAttributes; \
-      int		  sn_NumScanAttributes
+      List 	   	  cs_OuterTuple; \
+      AttributePtr 	  cs_TupType; \
+      Pointer 	   	  cs_TupValue; \
+      int	   	  cs_Level; \
+      AttributePtr 	  cs_ScanType; \
+      AttributeNumberPtr  cs_ScanAttributes; \
+      int		  cs_NumScanAttributes
   /* private: */
-      StateNodeDefs;
+      CommonStateDefs;
   /* public: */
 };
 
 /* ----------------------------------------------------------------
- *    ResultState information
+ *   ResultState information
  *
  *   	Loop	 	   flag which tells us to quit when we
  *			   have already returned a constant tuple.
  *
- *   StateNode information
+ *   CommonState information
  *
  *	OuterTuple	   points to the current outer tuple
  *  	TupType   	   attr type info of tuples from this node
  *   	TupValue   	   array to store attr values for 'formtuple'
  *   	Level      	   level of the outer subplan
- *	ScanType	   type of tuples in relation being scanned
- *	ScanAttributes	   attribute numbers of interest in this tuple
- *	NumScanAttributes  number of attributes of interest..
+ *	ScanType	   type of tuples in relation being scanned (unused)
+ *	ScanAttributes	   attribute numbers of interest in tuple (unused)
+ *	NumScanAttributes  number of attributes of interest.. (unused)
  * ----------------------------------------------------------------
  */
 
-class (ResultState) public (StateNode) {
-   inherits(StateNode);
+class (ResultState) public (CommonState) {
+   inherits(CommonState);
    int	 	rs_Loop;
 };
 
 /* ----------------------------------------------------------------
- *    AppendState information
+ *   AppendState information
  *
  *	append nodes have this field "unionplans" which is this
  *	list of plans to execute in sequence..  these variables
@@ -191,13 +240,16 @@ class (AppendState) public (Node) {
 };
 
 /* ----------------------------------------------------------------
- *   CommonState information
+ *   CommonScanState information
  *
- *   	PortalFlag	   set to enable portals to work (??? -cim)
+ *	CommonScanState is a class like CommonState, but is used more
+ *	by the nodes like SeqScan and Sort which want to
+ *	keep track of an underlying relation.
+ *
  *	currentRelation    relation being scanned
  *      currentScanDesc    current scan descriptor for scan
  *
- *   StateNode information
+ *   CommonState information
  *
  *	OuterTuple	   points to the current outer tuple
  *  	TupType   	   attr type info of tuples from this node
@@ -209,30 +261,28 @@ class (AppendState) public (Node) {
  * ----------------------------------------------------------------
  */
 
-class (CommonState) public (StateNode) {
-#define CommonStateDefs \
-      inherits(StateNode); \
-      bool 	   cs_PortalFlag; \
-      Relation     cs_currentRelation; \
-      HeapScanDesc cs_currentScanDesc
+class (CommonScanState) public (CommonState) {
+#define CommonScanStateDefs \
+      inherits(CommonState); \
+      Relation     css_currentRelation; \
+      HeapScanDesc css_currentScanDesc
   /* private: */
-      CommonStateDefs;
+      CommonScanStateDefs;
   /* public: */
 };
 
 /* ----------------------------------------------------------------
- *    ScanState information
+ *   ScanState information
  *
  *   	ProcOuterFlag	   need to process outer subtree
  *   	OldRelId	   need for compare for joins if result relid.
  *
- *   CommonState information
+ *   CommonScanState information
  *
- *   	PortalFlag	   Set to enable portals to work.
  *	currentRelation    relation being scanned
  *      currentScanDesc    current scan descriptor for scan
  *
- *   StateNode information
+ *   CommonState information
  *
  *	OuterTuple	   points to the current outer tuple
  *  	TupType   	   attr type info of tuples from this node
@@ -244,16 +294,21 @@ class (CommonState) public (StateNode) {
  * ----------------------------------------------------------------
  */
 
-class (ScanState) public (CommonState) {
-      inherits(CommonState);
+class (ScanState) public (CommonScanState) {
+      inherits(CommonScanState);
   /* private: */
-      bool 			ss_ProcLeftFlag;
+      bool 			ss_ProcOuterFlag;
       Index 			ss_OldRelId;
   /* public: */
 };
 
 /* ----------------------------------------------------------------
- *    IndexScanState information
+ *   IndexScanState information
+ *
+ *|	index scans don't use CommonScanState because
+ *|	the underlying AM abstractions for heap scans and
+ *|	index scans are too different..  It would be nice
+ *|	if the current abstraction was more useful but ... -cim 10/15/89
  *
  *   	IndexPtr	   current index in use
  *	NumIndices	   number of indices in this scan
@@ -262,7 +317,7 @@ class (ScanState) public (CommonState) {
  *	RelationDescs	   ptr to array of relation descriptors
  *	ScanDescs	   ptr to array of scan descriptors
  *
- *   StateNode information
+ *   CommonState information
  *
  *	OuterTuple	   points to the current outer tuple
  *  	TupType   	   attr type info of tuples from this node
@@ -273,8 +328,8 @@ class (ScanState) public (CommonState) {
  *	NumScanAttributes  number of attributes of interest..
  * ----------------------------------------------------------------
  */
-class (IndexScanState) public (StateNode) {
-    inherits(StateNode);
+class (IndexScanState) public (CommonState) {
+    inherits(CommonState);
     int		     	iss_NumIndices;
     int			iss_IndexPtr;
     ScanKeyPtr		iss_ScanKeys;
@@ -284,13 +339,11 @@ class (IndexScanState) public (StateNode) {
 };
 
 /* ----------------------------------------------------------------
- *    NestLoopState information
+ *   NestLoopState information
  *
  *   	PortalFlag	   Set to enable portals to work.
- *	currentRelation    relation being scanned
- *      currentScanDesc    current scan descriptor for scan
  *
- *   StateNode information
+ *   CommonState information
  *
  *	OuterTuple	   points to the current outer tuple
  *  	TupType   	   attr type info of tuples from this node
@@ -305,24 +358,31 @@ class (IndexScanState) public (StateNode) {
 class (NestLoopState) public (CommonState) {
       inherits(CommonState);
   /* private: */
+      bool 	   nl_PortalFlag;
   /* public: */
 };
 
 /* ----------------------------------------------------------------
  *   SortState information
  *
+ *|	sort nodes are really just a kind of a scan since
+ *|	we implement sorts by retrieveing the entire subplan
+ *|	into a temp relation, sorting the temp relation into
+ *|	another sorted relation, and then preforming a simple
+ *|	unqualified sequential scan on the sorted relation..
+ *|	-cim 10/15/89
+ *
  *   	Flag	 	indicated whether relation has been sorted
  *   	Keys	      	scan key structures used to keep info on sort keys
  *	TempRelation	temporary relation containing result of executing
  *			the subplan.
  *
- *   CommonState information
+ *   CommonScanState information
  *
- *   	PortalFlag	   Set to enable portals to work. (unused)
  *	currentRelation    relation descriptor of sorted relation
  *      currentScanDesc    current scan descriptor for scan
  *
- *   StateNode information
+ *   CommonState information
  *
  *	OuterTuple	   points to the current outer tuple
  *  	TupType   	   attr type info of tuples from this node
@@ -334,8 +394,8 @@ class (NestLoopState) public (CommonState) {
  * ----------------------------------------------------------------
  */
 
-class (SortState) public (CommonState) {
-      inherits(CommonState);
+class (SortState) public (CommonScanState) {
+      inherits(CommonScanState);
   /* private: */
       bool	sort_Flag;
       Pointer 	sort_Keys;
@@ -344,7 +404,7 @@ class (SortState) public (CommonState) {
 };
 
 /* ----------------------------------------------------------------
- *    MergeJoinState information
+ *   MergeJoinState information
  *
  *   	OSortopI      	   outerKey1 sortOp innerKey1 ...
  *  	ISortopO      	   innerkey1 sortOp outerkey1 ...
@@ -353,12 +413,6 @@ class (SortState) public (CommonState) {
  *   	BkwdMarkPos	   scan mark for backward scan
  *
  *   CommonState information
- *
- *   	PortalFlag	   Set to enable portals to work.
- *	currentRelation    relation being scanned
- *      currentScanDesc    current scan descriptor for scan
- *
- *   StateNode information
  *
  *	OuterTuple	   points to the current outer tuple
  *  	TupType   	   attr type info of tuples from this node
@@ -382,11 +436,9 @@ class (MergeJoinState) public (CommonState) {
 };
 
 /* ----------------------------------------------------------------
- *    ExistentialState information
+ *   HashJoinState information
  *
- *	SatState	   See if we have satisfied the left tree.
- *
- *   StateNode information
+ *   CommonState information
  *
  *	OuterTuple	   points to the current outer tuple
  *  	TupType   	   attr type info of tuples from this node
@@ -397,9 +449,34 @@ class (MergeJoinState) public (CommonState) {
  *	NumScanAttributes  number of attributes of interest..
  * ----------------------------------------------------------------
  */
-class (ExistentialState) public (StateNode) {
-   inherits(StateNode);
-   List 	ex_SatState;
+
+class (HashJoinState) public (CommonState) {
+      inherits(CommonState);
+  /* private: */
+  /* public: */
+};
+
+/* ----------------------------------------------------------------
+ *   ExistentialState information
+ *
+ *	SatState	   See if we have satisfied the left tree.
+ *
+ *   CommonState information
+ *
+ *	OuterTuple	   points to the current outer tuple
+ *  	TupType   	   attr type info of tuples from this node
+ *   	TupValue   	   array to store attr values for 'formtuple'
+ *   	Level      	   level of the left subplan
+ *	ScanType	   type of tuples in relation being scanned
+ *	ScanAttributes	   attribute numbers of interest in this tuple
+ *	NumScanAttributes  number of attributes of interest..
+ * ----------------------------------------------------------------
+ */
+class (ExistentialState) public (CommonState) {
+      inherits(CommonState);
+  /* private: */
+      List 	ex_SatState;
+  /* public: */
 };
 
 

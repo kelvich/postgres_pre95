@@ -107,6 +107,7 @@
 #define EXEC_DEBUG   			8
 #define EXEC_RETONE  			9
 #define EXEC_RESULT  			10
+
 #define EXEC_INSERT_RULE 		11
 #define EXEC_DELETE_RULE 		12
 #define EXEC_DELETE_REINSERT_RULE 	13
@@ -114,38 +115,6 @@
 #define EXEC_MAKE_RULE_LATE 		15
 #define EXEC_INSERT_CHECK_RULE 		16
 #define EXEC_DELETE_CHECK_RULE 		17
-
-#ifdef NOTYET
-/*
- *	index scan constants
- *
- * 	Offset definitions to access fields in 'states' of index nodes.
- */
-
-#define EXEC_INDEXSCAN_IndexPtr 	0
-#define EXEC_INDEXSCAN_RuleFlag 	1
-#define EXEC_INDEXSCAN_RuleDesc 	2
-
-/*
- *	seqscan constants
- *
- *    	The folowing offsets are used to access state information from the
- *    	'states' field of the seqscan nodes
- */
-
-#define EXEC_SEQSCAN_RuleFlag 	0
-#define EXEC_SEQSCAN_RuleDesc 	1
-
-/*
- *	rule lock constants
- */
-
-#define EXEC_EARLY 	0
-#define EXEC_LATE 	1
-#define EXEC_REFUSE 	2
-#define EXEC_ALWAYS 	3
-
-#endif NOTYET
 
 /* ----------------------------------------------------------------
  *     #defines
@@ -237,72 +206,12 @@
 #define ExecIsExistential(node)	IsA(node,Existential)
 #define ExecIsAppend(node)	IsA(node,Append)
 #define ExecIsNestLoop(node)	IsA(node,NestLoop)
-#define ExecIsMergeJoin(node)	IsA(node,MergeSort)
+#define ExecIsMergeJoin(node)	IsA(node,MergeJoin)
 #define ExecIsHashJoin(node)	IsA(node,HashJoin)
 #define ExecIsSeqScan(node)	IsA(node,SeqScan)
 #define ExecIsIndexScan(node)	IsA(node,IndexScan)
 #define ExecIsSort(node)	IsA(node,Sort)
 #define ExecIsHash(node)	IsA(node,Hash)
-
-
-
-#ifdef NOTYET
-/* ----------------
- *    Merge Join Macros
- * ----------------
- */
-
-#define MJGetOuterTuple(node)		GetMJOuterTuple(get_state(node))
-#define MJSetOuterTuple(node,value)	setf(MJGetOuterTuple(node),value)
-
-#define MJGetTupType(node)		GetMJTupType(get_state(node))
-#define MJSetTupType(node,value)	setf(MJGetTupType(node),value)
-
-#define MJGetTupValue(node)		GetMJTupValue(get_state(node))
-#define MJSetTupValue(node,value)	setf(MJGetTupValue(node),value)
-
-#define MJGetBufferPage(node)		GetMJBufferPage(get_state(node))
-#define MJSetBufferPage(node,value)	setf(MJGetBufferPage(node),value)
-
-#define MJGetOSortopI(node)		GetMJOSortopI(get_state(node))
-#define MJSetOSortopI(node,value)	setf(MJGetOSortopI(node),value)
-
-#define MJGetISortopO(node)		GetMJISortopO(get_state(node))
-#define MJSetISortopO(node,value)	setf(MJGetISortopO(node),value)
-
-#define MJGetMarkFlag(node)		GetMJMarkFlag(get_state(node))
-#define MJSetMarkFlag(node,value)	setf(MJGetMarkFlag(node),value)
-
-#define MJGetFrwdMarkPos(node)		GetMJFrwdMarkPos(get_state(node))
-#define MJSetFrwdMarkPos(node,value)	setf(MJGetFrwdMarkPos(node),value)
-
-#define MJGetBkwdMarkPos(node)		GetMJBkwdMarkPos(get_state(node))
-#define MJSetBkwdMarkPos(node,value)    setf(MJGetBkwdMarkPos(node),value)
-
-#define MJGetMarkPos(node) \
-    (execDirection == EXEC_FRWD ? \
-     MJGetFrwdMarkPos(node) : MJGetBkwdMarkPos(node))
-
-#define MJSetMarkPos(node,scanPos) \
-    (execDirection == EXEC_FRWD  ? \
-     MJSetFrwdMarkPos(node,scanPos) : MJSetBkwdMarkPos(node,scanPos))
-#endif NOTYET
-
-
-
-
-#ifdef NOTYET
-/* ----------------
- *	sort node defines
- * ----------------
- */
-
-#define SortGetSortedFlag(node)		GetSortFlag(get_state(node))
-#define SortSetSortedFlag(node,value)	setf(SortGetSortedFlag (node),value)
-#define SortGetSortKeys(node)		GetSortKeys(get_state(node))
-#define SortSetSortKeys(node,value)	setf(SortGetSortKeys(node),value)
-#endif NOTYET
-
 
 
 
@@ -362,6 +271,97 @@ extern Const		ConstFalse;
  */
 
 #ifdef TIMETODIE
+
+#ifdef NOTYET
+/* ----------------
+ *    Merge Join Macros
+ * ----------------
+ */
+
+#define MJGetOuterTuple(node)		GetMJOuterTuple(get_state(node))
+#define MJSetOuterTuple(node,value)	setf(MJGetOuterTuple(node),value)
+
+#define MJGetTupType(node)		GetMJTupType(get_state(node))
+#define MJSetTupType(node,value)	setf(MJGetTupType(node),value)
+
+#define MJGetTupValue(node)		GetMJTupValue(get_state(node))
+#define MJSetTupValue(node,value)	setf(MJGetTupValue(node),value)
+
+#define MJGetBufferPage(node)		GetMJBufferPage(get_state(node))
+#define MJSetBufferPage(node,value)	setf(MJGetBufferPage(node),value)
+
+#define MJGetOSortopI(node)		GetMJOSortopI(get_state(node))
+#define MJSetOSortopI(node,value)	setf(MJGetOSortopI(node),value)
+
+#define MJGetISortopO(node)		GetMJISortopO(get_state(node))
+#define MJSetISortopO(node,value)	setf(MJGetISortopO(node),value)
+
+#define MJGetMarkFlag(node)		GetMJMarkFlag(get_state(node))
+#define MJSetMarkFlag(node,value)	setf(MJGetMarkFlag(node),value)
+
+#define MJGetFrwdMarkPos(node)		GetMJFrwdMarkPos(get_state(node))
+#define MJSetFrwdMarkPos(node,value)	setf(MJGetFrwdMarkPos(node),value)
+
+#define MJGetBkwdMarkPos(node)		GetMJBkwdMarkPos(get_state(node))
+#define MJSetBkwdMarkPos(node,value)    setf(MJGetBkwdMarkPos(node),value)
+
+#define MJGetMarkPos(node) \
+    (execDirection == EXEC_FRWD ? \
+     MJGetFrwdMarkPos(node) : MJGetBkwdMarkPos(node))
+
+#define MJSetMarkPos(node,scanPos) \
+    (execDirection == EXEC_FRWD  ? \
+     MJSetFrwdMarkPos(node,scanPos) : MJSetBkwdMarkPos(node,scanPos))
+#endif NOTYET
+
+
+
+
+#ifdef NOTYET
+/* ----------------
+ *	sort node defines
+ * ----------------
+ */
+
+#define SortGetSortedFlag(node)		GetSortFlag(get_state(node))
+#define SortSetSortedFlag(node,value)	setf(SortGetSortedFlag (node),value)
+#define SortGetSortKeys(node)		GetSortKeys(get_state(node))
+#define SortSetSortKeys(node,value)	setf(SortGetSortKeys(node),value)
+#endif NOTYET
+
+
+#ifdef NOTYET
+/*
+ *	index scan constants
+ *
+ * 	Offset definitions to access fields in 'states' of index nodes.
+ */
+
+#define EXEC_INDEXSCAN_IndexPtr 	0
+#define EXEC_INDEXSCAN_RuleFlag 	1
+#define EXEC_INDEXSCAN_RuleDesc 	2
+
+/*
+ *	seqscan constants
+ *
+ *    	The folowing offsets are used to access state information from the
+ *    	'states' field of the seqscan nodes
+ */
+
+#define EXEC_SEQSCAN_RuleFlag 	0
+#define EXEC_SEQSCAN_RuleDesc 	1
+
+/*
+ *	rule lock constants
+ */
+
+#define EXEC_EARLY 	0
+#define EXEC_LATE 	1
+#define EXEC_REFUSE 	2
+#define EXEC_ALWAYS 	3
+
+#endif NOTYET
+
 /* ----------------
  *   	index scan accessor macros
  *

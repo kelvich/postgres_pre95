@@ -77,7 +77,7 @@ create_plan (best_path,origtlist)
 	  plan_node = (Plan)create_scan_node (best_path,tlist);
 	  break;
 	case T_HashJoin :
-	case T_MergeSort : 
+	case T_MergeJoin : 
 	case T_NestLoop:
 	  plan_node = (Plan)create_join_node (best_path,origtlist,tlist);
 	  break;
@@ -200,7 +200,7 @@ create_join_node (best_path,origtlist,tlist)
      
      switch (get_pathtype (best_path)) {
 	 
-       case T_MergeSort : 
+       case T_MergeJoin : 
 	 retval = (Join)create_mergejoin_node (best_path,
 					       tlist,clauses,
 					       outer_node,outer_tlist,
@@ -508,7 +508,7 @@ create_nestloop_node (best_path,tlist,clauses,
 /*  .. create_join_node     */
 
 
-MergeSort
+MergeJoin
 create_mergejoin_node (best_path,tlist,clauses,
 		       outer_node,outer_tlist,
 		       inner_node,inner_tlist)
@@ -547,7 +547,7 @@ create_mergejoin_node (best_path,tlist,clauses,
      LispValue inner_order = 
        lispCons (get_right_operator (get_p_ordering (best_path)), LispNil);
      
-     MergeSort join_node;
+     MergeJoin join_node;
      
      /*    Create explicit sort paths for the outer and inner join paths if 
       *    necessary.  The sort cost was already accounted for in the path. 
@@ -959,13 +959,13 @@ make_hash (tlist,tempid,lefttree, keycount)
     return(node);
 }
 
-MergeSort
+MergeJoin
 make_mergesort(tlist,qpqual,mergeclauses,opcode,righttree,lefttree)
      LispValue tlist, qpqual,mergeclauses;
      ObjectId opcode;
      Plan righttree,lefttree;
 {
-    MergeSort node = CreateNode(MergeSort);
+    MergeJoin node = CreateNode(MergeJoin);
     
     set_cost ( node , 0.0 );
     set_fragment ( node, 0 );
@@ -977,8 +977,8 @@ make_mergesort(tlist,qpqual,mergeclauses,opcode,righttree,lefttree)
     set_mergeclauses(node,mergeclauses);
     set_mergesortop(node,opcode);
 
-    node->printFunc = PrintMergeSort;
-    /* node->equalFunc = EqualMergeSort;  until function is defined */
+    node->printFunc = PrintMergeJoin;
+    /* node->equalFunc = EqualMergeJoin;  until function is defined */
     return(node);
 
 }

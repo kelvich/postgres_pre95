@@ -274,7 +274,7 @@ bool
 join_p (node)
      Node node ;
 {
-    if( IsA(node,NestLoop) || IsA(node,HashJoin) || IsA(node,MergeSort))
+    if( IsA(node,NestLoop) || IsA(node,HashJoin) || IsA(node,MergeJoin))
       return(true);
     else
       return(false);

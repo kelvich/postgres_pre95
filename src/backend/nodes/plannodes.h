@@ -25,6 +25,8 @@
  *	NestLoop		NestLoopState		nlstate;
  *    	Scan ***		ScanState		scanstate;
  *      Sort			SortState		sortstate;
+ *	MergeJoin		MergeJoinState		mergestate;
+ *	HashJoin		HashJoinState		hashstate;
  *
  *	  (*** nodes which inherit Scan also inherit scanstate)
  * ----------------
@@ -48,7 +50,7 @@
 #define	PrintAppendExists
 #define	PrintJoinExists
 #define	PrintNestLoopExists
-#define	PrintMergeSortExists
+#define	PrintMergeJoinExists
 #define	PrintHashJoinExists
 #define	PrintScanExists
 #define	PrintSeqScanExists
@@ -63,7 +65,7 @@ extern void	PrintExistential();
 extern void	PrintAppend();
 extern void	PrintJoin();
 extern void	PrintNestLoop();
-extern void	PrintMergeSort();
+extern void	PrintMergeJoin();
 extern void	PrintHashJoin();
 extern void	PrintScan();
 extern void	PrintSeqScan();
@@ -78,7 +80,7 @@ extern bool	EqualExistential();
 extern bool	EqualAppend();
 extern bool	EqualJoin();
 extern bool	EqualNestLoop();
-extern bool	EqualMergeSort();
+extern bool	EqualMergeJoin();
 extern bool	EqualHashJoin();
 extern bool	EqualScan();
 extern bool	EqualSeqScan();
@@ -155,11 +157,12 @@ class (NestLoop) public (Join) {
  /* public: */
 };
 
-class (MergeSort) public (Join) {
+class (MergeJoin) public (Join) {
 	inherits(Join);
  /* private: */
 	List			mergeclauses;
 	ObjectId		mergesortop;
+	MergeJoinState		mergestate;
  /* public: */
 };
 
@@ -168,6 +171,7 @@ class (HashJoin) public (Join) {
  /* private: */
 	List			hashclauses;
 	ObjectId		hashjoinop;
+	HashJoinState		hashstate;
  /* public: */
 };
 

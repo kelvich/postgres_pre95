@@ -218,7 +218,7 @@ print_subplan (subplan, levels)
 		print_qual(get_qpqual(subplan), (levels + 1));
 	}
 
-	if (IsA(subplan,MergeSort)) {
+	if (IsA(subplan,MergeJoin)) {
 		INDENT (levels);
 		printf("MergeSortOp: %ld\n", get_mergesortop(subplan));
 

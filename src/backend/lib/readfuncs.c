@@ -228,17 +228,17 @@ NestLoop _readNestLoop()
 }
 
 /*
- *  MergeSort is a subclass of Join
+ *  MergeJoin is a subclass of Join
  */
 
-MergeSort _readMergeSort(node)
+MergeJoin _readMergeJoin(node)
 
 {
-	MergeSort	local_node;
+	MergeJoin	local_node;
 	char		*token;
 	int length;
 
-	local_node = (MergeSort) palloc(sizeof(struct _MergeSort));
+	local_node = (MergeJoin) palloc(sizeof(struct _MergeJoin));
 
 	_getJoin(local_node);
 	token = lsptok(NULL, &length);    		/* eat :mergeclauses */
@@ -251,8 +251,8 @@ MergeSort _readMergeSort(node)
 
 	local_node->mergesortop = atoi(token);
 
-	local_node->printFunc = PrintMergeSort;
-	local_node->equalFunc = EqualMergeSort;
+	local_node->printFunc = PrintMergeJoin;
+	local_node->equalFunc = EqualMergeJoin;
 	
 	return( local_node );
 }
@@ -1639,10 +1639,10 @@ LispValue parsePlanString()
 		return_value = (LispValue) _readNestLoop();
 		return_value->type = T_NestLoop;
 	}
-	else if (!strncmp(token, "mergesort", 9))
+	else if (!strncmp(token, "mergejoin", 9))
 	{
-		return_value = (LispValue) _readMergeSort();
-		return_value->type = T_MergeSort;
+		return_value = (LispValue) _readMergeJoin();
+		return_value->type = T_MergeJoin;
 	}
 	else if (!strncmp(token, "hashjoin", 8))
 	{

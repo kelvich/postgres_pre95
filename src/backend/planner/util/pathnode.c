@@ -448,7 +448,7 @@ create_mergesort_path (joinrel,outersize,innersize,outerwidth,
      pathnode->printFunc = PrintMergePath;
      pathnode->equalFunc = EqualMergePath;
 
-     set_pathtype (pathnode,T_MergeSort);
+     set_pathtype (pathnode,T_MergeJoin);
      set_parent (pathnode,joinrel);
      set_outerjoinpath (pathnode,outer_path);
 		set_innerjoinpath (pathnode,inner_path);
