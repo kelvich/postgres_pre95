@@ -1,30 +1,3 @@
-
-/*
- * 
- * POSTGRES Data Base Management System
- * 
- * Copyright (c) 1988 Regents of the University of California
- * 
- * Permission to use, copy, modify, and distribute this software and its
- * documentation for educational, research, and non-profit purposes and
- * without fee is hereby granted, provided that the above copyright
- * notice appear in all copies and that both that copyright notice and
- * this permission notice appear in supporting documentation, and that
- * the name of the University of California not be used in advertising
- * or publicity pertaining to distribution of the software without
- * specific, written prior permission.  Permission to incorporate this
- * software into commercial products can be obtained from the Campus
- * Software Office, 295 Evans Hall, University of California, Berkeley,
- * Ca., 94720 provided only that the the requestor give the University
- * of California a free licence to any derived software for educational
- * and research purposes.  The University of California makes no
- * representations about the suitability of this software for any
- * purpose.  It is provided "as is" without express or implied warranty.
- * 
- */
-
-
-
 /*
  * int.c --
  * 	Functions for the built-in integer types.
@@ -211,75 +184,45 @@ itoi(arg1)
  *	intgt		- returns 1 iff arg1 > arg2
  *	intge		- returns 1 iff arg1 >= arg2
  */
-int32
-inteq(arg1, arg2)
-	int32	arg1, arg2;
-{ return(arg1 == arg2); }
+int32 int4eq(arg1, arg2)	int32	arg1, arg2; { return(arg1 == arg2); }
+int32 int4ne(arg1, arg2) 	int32	arg1, arg2; { return(arg1 != arg2); }
+int32 int4lt(arg1, arg2) 	int32	arg1, arg2; { return(arg1 < arg2); }
+int32 int4le(arg1, arg2) 	int32	arg1, arg2; { return(arg1 <= arg2); }
+int32 int4gt(arg1, arg2)	int32	arg1, arg2; { return(arg1 > arg2); } 
+int32 int4ge(arg1, arg2)	int32	arg1, arg2; { return(arg1 >= arg2); }
 
-int32
-intne(arg1, arg2)
-	int32	arg1, arg2;
-{ return(arg1 != arg2); }
-
-int32
-intlt(arg1, arg2)
-	int32	arg1, arg2;
-{ return(arg1 < arg2); }
-
-int32
-intle(arg1, arg2)
-	int32	arg1, arg2;
-{ return(arg1 <= arg2); }
-
-int32
-intgt(arg1, arg2)
-	int32	arg1, arg2;
-{ return(arg1 > arg2); }
-
-int32
-intge(arg1, arg2)
-	int32	arg1, arg2;
-{ return(arg1 >= arg2); }
+int32 int2eq(arg1, arg2)	int16	arg1, arg2; { return(arg1 == arg2); }
+int32 int2ne(arg1, arg2)	int16	arg1, arg2; { return(arg1 != arg2); }
+int32 int2lt(arg1, arg2)	int16	arg1, arg2; { return(arg1 < arg2); }
+int32 int2le(arg1, arg2)	int16	arg1, arg2; { return(arg1 <= arg2); }
+int32 int2gt(arg1, arg2)	int16	arg1, arg2; { return(arg1 > arg2); } 
+int32 int2ge(arg1, arg2)	int16	arg1, arg2; { return(arg1 >= arg2); }
 
 /*
- *	intpl	- returns arg1 + arg2
- *	intmi	- returns arg1 - arg2
- *	int4mul	- returns arg1 * arg2
- *	intdiv	- returns arg1 / arg2
+ *	int[24]pl	- returns arg1 + arg2
+ *	int[24]mi	- returns arg1 - arg2
+ *	int[24]mul	- returns arg1 * arg2
+ *	int[24]div	- returns arg1 / arg2
  */
-int32
-intpl(arg1, arg2)
-	int32	arg1, arg2;
-{ return(arg1 + arg2); }
+int32 int4pl(arg1, arg2) 	int32	arg1, arg2; { return(arg1 + arg2); }
+int32 int4mi(arg1, arg2)	int32	arg1, arg2; { return(arg1 - arg2); }
+int32 int4mul(arg1, arg2)	int32	arg1, arg2; { return(arg1 * arg2); }
+int32 int4div(arg1, arg2)	int32	arg1, arg2; { return(arg1 / arg2); }
 
-int32
-intmi(arg1, arg2)
-	int32	arg1, arg2;
-{ return(arg1 - arg2); }
-
-int32
-int4mul(arg1, arg2)
-	int32 	arg1, arg2;
-{ return(arg1 * arg2); }
-
-int32
-intdiv(arg1, arg2)
-	int32	arg1, arg2;
-{ return(arg1 / arg2); }
+int32 int2pl(arg1, arg2)	int16	arg1, arg2; { return(arg1 + arg2); }
+int32 int2mi(arg1, arg2)	int16	arg1, arg2; { return(arg1 - arg2); }
+int32 int2mul(arg1, arg2)	int16	arg1, arg2; { return(arg1 * arg2); }
+int32 int2div(arg1, arg2)	int16	arg1, arg2; { return(arg1 / arg2); }
 
 #ifdef FMGR_MATH
 /*
- *	intmod	- returns arg1 mod arg2
+ *	int[24]mod	- returns arg1 mod arg2
  */
-int32
-intmod(arg1, arg2)
-	int32	arg1, arg2;
-{
-	return(arg1 % arg2);
-}
+int32 int4mod(arg1, arg2)	int32	arg1, arg2; { return(arg1 % arg2); }
+int32 int2mod(arg1, arg2)	int16	arg1, arg2; { return(arg1 % arg2); }
 
 /*
- *	int4fac	- returns arg1!
+ *	int[24]fac	- returns arg1!
  */
 int32
 int4fac(arg1)
@@ -294,6 +237,21 @@ int4fac(arg1)
 			result *= arg1;
 	return(result);
 }
+
+int32
+int2fac(arg1)
+	int16 	arg1;
+{
+	int16	result;
+
+	if (arg1 < 1)
+		result = 0;
+	else 
+		for (result = 1; arg1 > 0; --arg1)
+			result *= arg1;
+	return(result);
+}
+
 #endif FMGR_MATH
 
 
@@ -301,4 +259,3 @@ int4fac(arg1)
 
 
 			     /* (none) */
-
