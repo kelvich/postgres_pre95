@@ -15,8 +15,8 @@
  * ----------------------------------------------------------------
  */
 
-#include "tcop.h"
-#include "executor.h"         /* XXX a catch-all include */
+#include "tcop/tcop.h"
+#include "executor/executor.h"         /* XXX a catch-all include */
 
  RcsId("$Header$");
 
@@ -146,8 +146,7 @@ CreateExecutorState()
 		       prs2EStateInfo,
 		       explainRelation,
 		       baseid);
-
-    return state;
+       return state;
 }
 
 /* ----------------------------------------------------------------
@@ -443,144 +442,14 @@ ProcessQueryDesc(queryDesc)
 }
 
 /* ----------------------------------------------------------------
- *	ExecuteFragments
- *
- *	Read the comments for ProcessQuery() below...
- *
- *	Since we do no parallism, planFragments is totally
- *	ignored for now.. -cim 9/18/89
- * ----------------------------------------------------------------
- */
-extern Pointer *SlaveQueryDescsP;
-
-Plan
-ExecuteFragments(queryDesc, planFragments)
-    List 	queryDesc;
-    Pointer 	planFragments;	/* haven't determined proper type yet */
-{
-    int		nslaves;
-    int		i;
-    
-    /* ----------------
-     *	execute the query appropriately if we are running one or
-     *  several backend processes.
-     * ----------------
-     */
-    
-    if (! ParallelExecutorEnabled()) {
-	/* ----------------
-	 *   single-backend case. just execute the query
-	 *   and return NULL.
-	 * ----------------
-	 */
-	ProcessQueryDesc(queryDesc);
-	return NULL;
-    } else {
-	/* ----------------
-	 *   parallel-backend case.  place each plan fragment
-	 *   in shared memory and signal slave-backend execution.
-	 *   When slave execution is completed, form a new plan
-	 *   representing the query with some of the work materialized
-	 *   and return this to ProcessQuery().
-	 *
-	 *	this will be implemented soon -cim 3/9/90
-	 * ----------------
-	 */
-	nslaves = GetNumberSlaveBackends();
-
-	/* ----------------
-	 *	place fragments in shared memory here.  
-	 * ----------------
-	 */
-	/* ----------------
-	 *	For now we just place the entire query desc in
-	 *	shared memory and let only let the first slave
-	 *	execute it..
-	 * ----------------
-	 */
-	SlaveQueryDescsP[0] = (Pointer)
-	    CopyObjectUsing(queryDesc, ExecSMAlloc);
-
-	/* ----------------
-	 *      Currently I'm debugging the copy function so
-	 *
-	 *	Print the query plan we copied and 
-	 *	try and execute the copied plan locally.
-	 * ----------------
-	 */
-	lispDisplay(SlaveQueryDescsP[0], 0);
-
-	ProcessQueryDesc(SlaveQueryDescsP[0]);
-	
-#if 0	
-	/* ----------------
-	 *	signal slave execution start
-	 * ----------------
-	 */
-	for (i=0; i<nslaves; i++) {
-	    elog(DEBUG, "Master Backend: signaling slave %d", i);
-	    V_Start(i);
-	}
-
-	/* ----------------
-	 *	wait for slaves to complete execution
-	 * ----------------
-	 */
-	elog(DEBUG, "Master Backend: waiting for slaves...");
-	P_Finished();
-	elog(DEBUG, "Master Backend: slaves execution complete!");
-#endif
-	/* ----------------
-	 *	Clean Shared Memory used during the query
-	 * ----------------
-	 */
-	ExecSMClean();
-	
-	/* ----------------
-	 *	replace fragments with materialized results and
-	 *	return new plan to ProcessQuery.
-	 * ----------------
-	 */
-	return NULL;
-    } 
-}
-
-/* ----------------------------------------------------------------
- *	ParallelOptimise
- *	
- *	this analyzes the plan in the query descriptor and determines
- *	which fragments to execute based on available virtual
- *	memory resources...
- *	
- *	Wei Hong will add functionality to this module. -cim 9/18/89
- * ----------------------------------------------------------------
- */
-Pointer
-ParallelOptimise(queryDesc)
-    List queryDesc;
-{
-    return NULL;
-}
-
-/* ----------------------------------------------------------------
  *	ProcessQuery
  *
- *	ProcessQuery takes the output from the parser and
- *	planner, builds a query descriptor, passes it to the
- *	parallel optimiser which returns an array of pointers
- *	to plan fragments.  These plan fragements are then
- *	distributed to backends which execute the plans
- *	in parallel.  After these backends are completed,
- *	the plan is replaced by a new plan which contains
- *	result nodes where the plan fragments were..  The
- *	new plan is then processed.  The cycle ends when
- *	the entire plan has been processed in this manner
- *	in which case ExecuteFragments returns NULL.
- *
- *	At present, almost all of the above is bogus, but will
- *	become truth very soon now -cim 3/9/90
  * ----------------------------------------------------------------
  */
+
+extern List ParallelOptimize();
+extern Fragment InitialPlanFragments();
+extern Fragment ExecuteFragments();
 
 void
 ProcessQuery(parserOutput, originalPlan)
@@ -590,19 +459,24 @@ ProcessQuery(parserOutput, originalPlan)
     List 	queryDesc;
     Plan 	currentPlan;
     Plan 	newPlan;
-    Pointer	planFragments;		/* haven't decided on type yet */
+    Fragment	planFragments;
+    List	currentFragments;
     
     currentPlan = originalPlan;
-
-    for (;;) {
-	queryDesc = 	CreateQueryDesc(parserOutput, currentPlan);
-	planFragments = ParallelOptimise(queryDesc);
-	newPlan =	ExecuteFragments(queryDesc, planFragments);
-
-	if (newPlan == NULL)
-	    return;
-
-	currentPlan = newPlan;
-    }
+    queryDesc = CreateQueryDesc(parserOutput, currentPlan);
+    if (ParallelExecutorEnabled()) {
+       planFragments = InitialPlanFragments(originalPlan);
+       for (;;) {
+	   currentFragments = ParallelOptimize(queryDesc, planFragments);
+	   planFragments = ExecuteFragments(queryDesc, 
+					    currentFragments, 
+					    planFragments);
+	   if (planFragments == NULL)
+	      return;
+         }
+       }
+    else {
+	ExecuteFragments(queryDesc, LispNil, NULL);
+	return;
+      }
 }
-
