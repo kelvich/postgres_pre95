@@ -30,7 +30,7 @@ typedef struct AnyStruct {
 	double  largeFloat;
 } AnyStruct;
 
-#ifdef	sun
+#if defined(sun) 
 typedef union Datum {
 	struct character {
 		char	filler[3];	
@@ -81,7 +81,8 @@ typedef union Datum {
 	} objectId;
 } Datum;
 #endif	/* defined(sun) */
-#if defined(sequent) || defined(mips)
+
+#if defined(sequent) || defined(mips) 
 typedef union Datum {
 	struct character {
 		char	value;
