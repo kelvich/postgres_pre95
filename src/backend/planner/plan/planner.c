@@ -1,7 +1,4 @@
- 
-/*     
- *      FILE
- *     	planner
+/*     *      FILE *     	planner
  *     
  *      DESCRIPTION
  *     	The query optimizer external interface.
@@ -22,6 +19,11 @@
 #include "relation.h"
 #include "relation.a.h"
 #include "parse.h"
+
+/*** JJJ ***/
+#include "recursion.h"
+extern Plan	RecursiveQueryPlan();
+/*** JJJ ***/
 
 /*    
  *    	*** Module loading ***
@@ -167,13 +169,36 @@ planner (parse)
     LispValue tlist = parse_targetlist (parse);
     LispValue qual = parse_qualification (parse);
     LispValue rangetable = root_rangetable (root);
+    LispValue commandType = root_command_type_atom (root);
     List special_plans = LispNil;
     LispValue flag = LispNil;
     List plan_list = LispNil;
+    bool isRecursiveQuery = false;
 
+    if ( (consp(commandType)) && (CInteger(CAR(commandType)) == '*') ) {
+      printf(" *** JJJ *** Planner.c -- recursive flag \n");
+      isRecursiveQuery = true;
+      commandType = CDR(commandType);
+      root = lispCons(CAR(root),
+                      lispCons(commandType,
+                               CDR(CDR(root))));
+	/* the following is a dangerous hack, solves tcop error ******** */
+      rplaca(parse, root);
+    }
+/* else, don't touch the command type list -- it is supposed to be there */
+/* JJJ - the star IS removed */
+
+/*** JJJ ***/
+    if ( isRecursiveQuery ) {
+      printf(" *** JJJ *** Planner.c -- recursive flag seconded \n");
+      special_plans = (List)RecursiveQueryPlan (parse);
+    }
+      /* JJJ fall through with NULL means not recursive, planned below */
+/*** JJJ ***/
+    
     plan_list = lispCons(lispAtom("inherits"),
-		       lispCons(lispAtom("union"),
-				lispCons(lispAtom("archive"),LispNil)));
+		   lispCons(lispAtom("union"),
+			    lispCons(lispAtom("archive"),LispNil)));
     foreach (flag,plan_list) {
 	int rt_index = first_matching_rt_entry (rangetable,CAR(flag));
 	if ( rt_index != -1 )
@@ -189,7 +214,6 @@ planner (parse)
 
       return(init_query_planner (root,tlist,qual));
 
-    
 } /* function end  */
 
 /*    
