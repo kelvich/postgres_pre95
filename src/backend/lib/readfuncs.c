@@ -2017,6 +2017,11 @@ parsePlanString()
 		return_value = (LispValue) _readJInfo();
 		return_value->type = T_JInfo;
 	}
+	else if (!strncmp(token, "array", 5))
+	{
+		return_value = (LispValue) _readArray();
+		return_value->type = T_Array;
+	}
 	else
 	{
 		fprintf(stderr, "badly formatted planstring\n");
