@@ -494,7 +494,51 @@ make_concat_var ( list_of_varnos , attid , vartype, vardotfields,
     return(retval);
 }
 
-    
+LispValue
+fix_param(l)
+     LispValue l;
+{
+    Param p;
+    ObjectId relid;
+    Name attrname;
+
+    p = (Param)CAR(l);
+    relid = get_paramtype(p);
+    attrname = (Name)CString(CADR(l));
+
+    return (lispCons(lispInteger(find_atttype(relid, attrname)),
+		       (LispValue) l));
+}
+
+find_atttype(relid, attrname)
+    ObjectId relid;
+    Name attrname;
+{
+    int attid, vartype;
+    Relation rd;
+
+    rd = heap_open(relid);
+    if (!RelationIsValid(rd)) {
+	rd = heap_openr(tname(get_id_type(relid)));
+	if (!RelationIsValid(rd))
+	    elog(WARN, "cannot compute type of att %s for relid %d",
+			attrname, relid);
+    }
+
+    attid =  nf_varattno(rd, (char *) attrname);
+
+    if (attid == InvalidAttributeNumber) 
+        elog(WARN, "Invalid attribute %s\n", attrname);
+
+    vartype = att_typeid(rd , attid);
+
+    /*
+     * close relation we're done with it now
+     */
+    amclose(rd);
+
+    return (vartype);
+}
 
 /**********************************************************************
   make_var
@@ -929,63 +973,29 @@ char *attrName;
  *
  * keep enough information around fill out the type of param nodes
  * used in postquel functions
- * 
- * NOTE: the rule system uses param nodes for something totally different.
- *       hopefully we won't collide
  */
 
-void param_type_init(def_list)
-    List def_list;
+void param_type_init(typev, nargs)
+    ObjectId *typev;
+    int nargs;
 {
     int nargs,y=0,z;
     List i,x,args = LispNil;
 
-    nargs = length(def_list);
-    def_list = (List) lispCopy(def_list);
-
-    if (nargs)
-	param_type_info = (ObjectId *) palloc(sizeof(ObjectId)*nargs);
-
-    else {
-	    pfunc_num_args = 0;
-	    param_type_info = NULL;
-	    return;
-	}
-    foreach (i, def_list) {
-	List t = CAR(i);
-
-	if (!lispStringp(t))
-	    elog(WARN, "DefinePFunction: arg type = ?");
-	args = nappend1(args, t);
-    }
-    z =0;
-    foreach (x, args) {
-	List t = CAR(x);
-	ObjectId toid;
-	int defined;
-	toid = TypeGet(CString(t), &defined);
-	if (!ObjectIdIsValid(toid)) {
-	    elog(WARN, "ProcedureDefine: arg type '%s' is not defined",
-		 CString(t));
-	}
-	if (z <1) {
-	    param_type_relid = typeid_get_relid(toid);
-	}	    
-	param_type_info[y++]= toid;
-	z++;
-    }
     pfunc_num_args = nargs;
+    param_type_info = typev;
 }
+
 ObjectId param_type(t)
      int t;
 {
     if ((t >pfunc_num_args) ||(t ==0)) return InvalidObjectId;
     return param_type_info[t-1];
 }
+
 ObjectId param_type_complex(n)
      Name n;
 {
-
     if (!param_type_relid) return InvalidObjectId;
     return get_atttype(param_type_relid, get_attnum(param_type_relid, n));
 }
