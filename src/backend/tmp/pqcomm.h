@@ -1,14 +1,28 @@
-/*
- * comm.h -- parameters for the communication module
+/* ----------------------------------------------------------------
+ *   FILE
+ *	pqcomm.h
+ *	
+ *   DESCRIPTION
+ *	Parameters for the communication module
  *
- * $Header$
+ *   NOTES
+ *	Some of this should move to libpq.h
+ *	I think the (unused) UDP stuff should go away.. -- pma
  *
- * Some of this should move to pqlib.h
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
+#ifndef PqcommIncluded		/* Include this file only once */
+#define	PqcommIncluded
+
+#include <sys/types.h>
+#include <netinet/in.h>
 #include "catalog/pg_user.h"
+
 /*
- * startup msg paramters: path length, argument string length
+ * startup msg parameters: path length, argument string length
  */
 #define PATH_SIZE	64
 #define ARGV_SIZE	64
@@ -28,10 +42,12 @@ typedef enum MsgType {
   NET_ERROR=4,		/* error in net system call */
   FUNCTION_MSG=5,	/* fastpath call (unused) */
   QUERY_MSG=6,		/* client query to server */
-
   STARTUP_MSG=7,	/* initialize a connection with a backend */
   DUPLICATE_MSG=8,/* duplicate message arrived (errors msg only) */
   INVALID_MSG=9,	/* for some control functions */
+  STARTUP_KRB4_MSG=10,	/* krb4 session follows startup packet */
+  STARTUP_KRB5_MSG=11,	/* krb5 session follows startup packet */
+  /* insert new values here -- DO NOT REORDER OR DELETE ENTRIES */
 } MsgType;
 
 typedef char *Addr;
@@ -87,12 +103,14 @@ typedef struct PacketBuf {
 
 /*
  * socket descriptor port 
+ *	we need addresses of both sides to do authentication calls
  */
 typedef struct Port {
   int			sock;	/* file descriptor */
   int			mask;	/* select mask */
   int   		nBytes;	/* nBytes read in so far */
-  struct sockaddr_in	addr;	/* addr of sender */
+  struct sockaddr_in	laddr;	/* local addr (us) */
+  struct sockaddr_in	raddr;	/* remote addr (them) */
   PacketBufId		id;	/* id of packet buf currently in use */
   PacketBuf		buf;	/* stream implementation (curr pack buf) */
 } Port;
@@ -121,3 +139,5 @@ typedef struct Connection {
 
 #define INITIAL_SEQNO		1
 #define	DEFAULT_STRING		""
+
+#endif /* !defined(PqcommIncluded) */
