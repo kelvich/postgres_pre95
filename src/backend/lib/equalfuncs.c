@@ -149,6 +149,27 @@ _equalIter(a, b)
 	return (equal((Node)a->iterexpr, (Node)b->iterexpr));
 }
 
+bool
+_equalStream(a, b)
+     Stream a,b;
+{
+    if (a->clausetype != b->clausetype)
+      return(false);
+    if (a->groupup != b->groupup)
+      return(false);
+    if (a->groupcost != b->groupcost)
+      return(false);
+    if (a->groupsel != b->groupsel)
+      return(false);
+    if (!equal((Node)a->pathptr, (Node)b->pathptr))
+      return(false);
+    if (!equal((Node)a->cinfo, (Node)b->cinfo))
+      return(false);
+    if (!equal((Node)a->upstream, (Node)b->upstream))
+      return(false);
+    return(equal((Node)a->downstream, (Node)b->downstream));
+}
+
 /*
  *  Var is a subclass of Expr.
  */

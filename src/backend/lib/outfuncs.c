@@ -935,6 +935,9 @@ _outRel(str, node)
 	sprintf(buf, " :cheapestpath @ 0x%x", node->cheapestpath);
 	appendStringInfo(str,buf);
 
+	sprintf(buf, " :pruneable %s", (node->pruneable ? "true" : "nil"));
+	appendStringInfo(str,buf);
+	
 	sprintf(buf, " :classlist ");
 	appendStringInfo(str,buf);
 	_outLispValue(str, node->classlist);
@@ -1592,3 +1595,37 @@ _outIter(str, node)
 
 	pfree(s);
 }
+
+void _outStream(str, node)
+     StringInfo str;
+     Stream node;
+{
+    char *s;
+    char buf[500];
+
+    appendStringInfo(str,"stream");
+    
+    sprintf(buf, " :pathptr @ 0x%x", node->pathptr);
+    appendStringInfo(str,buf);
+
+    sprintf(buf, " :cinfo @ 0x%x", node->cinfo);
+    appendStringInfo(str,buf);
+
+    sprintf(buf, " :clausetype %ld", node->clausetype);
+    appendStringInfo(str,buf);
+
+    sprintf(buf, " :upstream @ 0x%x", node->upstream);
+    appendStringInfo(str,buf);
+
+    sprintf(buf, " :downstream @ 0x%x", node->downstream);
+    appendStringInfo(str,buf);
+    
+    sprintf(buf, " :groupup %ld", node->groupup);
+    appendStringInfo(str,buf);
+
+    sprintf(buf, " :groupcost %ld", node->groupcost);
+    appendStringInfo(str,buf);
+
+    sprintf(buf, " :groupsel %ld", node->groupsel);
+    appendStringInfo(str,buf);
+}    
