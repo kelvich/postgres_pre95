@@ -46,20 +46,20 @@ Buffer *returnedBufferP;
 
     /*
      * Find the locks of the tuple.
-     * Use both the locks stored in the tuple
-     * and the locks found in the RelationRelation
+     *
+     * XXX: Hmm... for the time being only use the locks
+     * that are on the RelationRelation...
      * XXX: note this only happens in a retrieve operation.
      * in delete/replce/append we only use the locks stored in
      * the tuple. So, this routine must put the right locks
      * back to the tuple returned.
      */
+    /*
     locksInTuple = prs2GetLocksFromTuple(tuple, buffer,
 				RelationGetTupleDescriptor(relation));
+    */
     relName = & ((RelationGetRelationTupleForm(relation))->relname);
-    locksInRelation = prs2GetLocksFromRelation(relName);
-    locks = prs2LockUnion(locksInTuple, locksInRelation);
-    prs2FreeLocks(locksInTuple);
-    prs2FreeLocks(locksInRelation);
+    locks = prs2GetLocksFromRelation(relName);
 
     /*
      * now extract from the tuple the array of the attribute values.
@@ -117,8 +117,8 @@ Buffer *returnedBufferP;
      */
     newTupleMade = attributeValuesMakeNewTuple(
 				tuple, buffer,
-				attrValues,
-				locks, relation, returnedTupleP);
+				attrValues, locks, LockTypeRetrieveWrite,
+				relation, returnedTupleP);
 
     prs2FreeLocks(locks);
     attributeValuesFree(attrValues);
