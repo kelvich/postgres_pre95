@@ -18,6 +18,7 @@ RcsId("$Header$");
 #include "utils/palloc.h"
 #include "utils/log.h"
 #include "utils/memutils.h"
+#include "utils/nabstime.h"
 
 /* ----------------------------------------------------------------
  *	transaction system constants
@@ -272,11 +273,11 @@ TransactionIdAdd(xid, value)
  * ----------------------------------------------------------------
  */
 
-Time
+AbsoluteTime
 TransactionIdGetApproximateTime(transactionId)
 	TransactionId	*transactionId;
 {
-	Time temp;
+	AbsoluteTime temp;
 	temp = (*transactionId) / TransactionsPerSecondAdjustment;
 	return(temp);
 }

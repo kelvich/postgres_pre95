@@ -28,6 +28,7 @@
  * ----------------
  */
 #include "tmp/postgres.h"
+#include "utils/nabstime.h"
 
 /* ----------------
  *	pg_relation definition.  cpp turns this into
@@ -172,8 +173,8 @@ typedef struct RelationTupleFormD {
 	ObjectId	relam;
 	uint32		relpages;
 	uint32		reltuples;
-	ABSTIME		relexpires;
-	RELTIME		relpreserved;
+	AbsoluteTime	relexpires;
+	RelativeTime	relpreserved;
 	Boolean		relhasindex;
 	Boolean		relisshared;
 	char		relkind;
@@ -198,23 +199,23 @@ typedef RelationTupleFormD	*RelationTupleForm;
 #define struct_relation_Defined 1
 
 struct	relation {
-	char	relname[16];
-	OID	relowner;
-	OID	relam;
-	uint32	relpages;
-	uint32	reltuples;
-	ABSTIME	relexpires;
-	RELTIME	relpreserved;
-	Boolean	relhasindex;
-	Boolean	relisshared;
-	char	relkind;
-	char	relarch;
-	uint16	relnatts;
-	int2	relsmgr;
-	int16	relkey[8];
-	OID	relkeyop[8];
-/*	LOCK	rellock; */
-/*	SPQUEL	reldesc; */
+	char		relname[16];
+	OID		relowner;
+	OID		relam;
+	uint32		relpages;
+	uint32		reltuples;
+	AbsoluteTime	relexpires;
+	RelativeTime	relpreserved;
+	Boolean		relhasindex;
+	Boolean		relisshared;
+	char		relkind;
+	char		relarch;
+	uint16		relnatts;
+	int2		relsmgr;
+	int16		relkey[8];
+	OID		relkeyop[8];
+/*	LOCK		rellock; */
+/*	SPQUEL		reldesc; */
 };
 
 #endif struct_relation_Defined

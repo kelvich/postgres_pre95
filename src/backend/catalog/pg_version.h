@@ -24,6 +24,7 @@
  * ----------------
  */
 #include "tmp/postgres.h"
+#include "utils/nabstime.h"
 
 /* ----------------
  *	pg_version definition.  cpp turns this into
@@ -63,7 +64,7 @@ typedef FormData_pg_version	*Form_pg_version;
 typedef struct VersionTupleFormD {
 	ObjectId	verrelid;
 	ObjectId	verbaseid;
-	ABSTIME		vertime;
+	AbsoluteTime	vertime;
 } VersionTupleFormD;
 
 typedef VersionTupleFormD	*VersionTupleForm;
@@ -78,9 +79,9 @@ typedef VersionTupleFormD	*VersionTupleForm;
 #define struct_version_Defined 1
 
 struct	version {
-	OID	verrelid;
-	OID	verbaseid;
-	ABSTIME	vertime;
+	OID		verrelid;
+	OID		verbaseid;
+	AbsoluteTime	vertime;
 };
 #endif struct_version_Defined
 

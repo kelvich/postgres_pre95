@@ -132,12 +132,12 @@ static	struct	attribute a9 = {
     };
 
 static	struct	attribute a10 = {
-    -1l, "tmin", 20l, 0l, 0l, 0l, sizeof (ABSTIME),
+    -1l, "tmin", 20l, 0l, 0l, 0l, sizeof (AbsoluteTime),
     MinAbsoluteTimeAttributeNumber, 0, '\001', '\001', 0l
     };
 
 static	struct	attribute a11 = {
-    -1l, "tmax", 20l, 0l, 0l, 0l, sizeof (ABSTIME),
+    -1l, "tmax", 20l, 0l, 0l, 0l, sizeof (AbsoluteTime),
     MaxAbsoluteTimeAttributeNumber, 0, '\001', '\001', 0l
     };
 
