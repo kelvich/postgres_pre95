@@ -3,14 +3,14 @@
  *	POSTGRES inter-process communication initialization code.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
-#include "ipc.h"
-#include "log.h"
-#include "pladt.h"
-#include "sinval.h"
+#include "storage/ipc.h"
+#include "utils/log.h"
+#include "storage/pladt.h"
+#include "storage/sinval.h"
 
-#include "ipci.h"
+#include "storage/ipci.h"
 
 RcsId("$Header$");
 
