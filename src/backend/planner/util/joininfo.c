@@ -105,18 +105,25 @@ find_joininfo_node (this_rel,join_relids)
  */
 Var
 other_join_clause_var (var,clause)
-     LispValue clause ;
      Var var;
+     LispValue clause ;
 {
      Var retval;
+     Var l, r;
+
+     retval = (Var) NULL;
+
      if ( var != NULL  && join_clause_p (clause)) {
-	  if(var_equal (var,get_leftop (clause))) {
-	       retval = get_rightop (clause);
-	  } 
-	  else if (var_equal (var,get_rightop (clause))) {
-	       retval = get_leftop (clause);
-	  } 
+
+	  l = (Var) get_leftop(clause);
+	  r = (Var) get_rightop(clause);
+
+	  if (var_equal(var, l)) {
+	       retval = r;
+	  } else if (var_equal (var, r)) {
+	       retval = l;
+	  }
      }
+
      return(retval);
 }
-
