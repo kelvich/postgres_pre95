@@ -72,12 +72,13 @@ and extended incrementally (see the \fBextend index\fR command).
 \*(PG Version \*(PV provides btree and rtree access methods for
 secondary indices.  The operator classes defined on btrees are
 .(C
-int2_ops	char_ops
-int4_ops	char16_ops
-int24_ops	oid_ops
-int42_ops	text_ops
-float4_ops	abstime_ops
-float8_ops
+int2_ops	char2_ops
+int4_ops	char4_ops
+int24_ops	char8_ops
+int42_ops	char16_ops
+float4_ops 	id_ops
+float8_ops 	ext_ops
+char_ops 	bstime_ops
 .)C
 The
 .IR int24_ops
