@@ -32,11 +32,11 @@ typedef struct ltag {
 
 #define TAGSIZE (sizeof(oid)+sizeof(ItemPointerData))
 
-/*
 #define LOCK_PRINT(where,tag)
-*/
 
+/*
 #define LOCK_PRINT(where,tag)\
   printf("%s: rel (%d) tid (%d,%d)\n",where,\
 	 tag->relId,\
 	 tag->tupleId.blockData,tag->tupleId.positionData);
+*/
