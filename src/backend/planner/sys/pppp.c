@@ -267,6 +267,7 @@ print_subplan (subplan, levels)
 		printf ("\n");
 	};
 	if (IsA(subplan,Join)) {
+		printf("\n");
 		INDENT(levels);
 		printf("Outer Path:\n");
 		print_subplan(get_lefttree(subplan), (levels + 1));
