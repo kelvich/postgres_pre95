@@ -34,10 +34,6 @@
 #define L_UNPIN	(L_UN | L_PIN)	/* unpin */
 #define L_UNLOCK	(L_UN | L_LOCKS)	/* unlock */
 
-#define BufferGetBufferDescriptor(buffer) ((BufferDesc *)&BufferDescriptors[buffer-1])
-
-/* MOVED TO $OD/lib/H/installinfo.h */
-/* #define BLCKSZ	8192*/	/* static not to be >= 65536 */ /* > ??? */
 typedef struct BlockData {
 	char	data[BLCKSZ];
 } BlockData;
@@ -55,6 +51,22 @@ typedef bits16	BufferLock;
   the rest is function defns in the bufmgr that are externally callable
 
  **********************************************************************/
+
+/*
+ * These routines are beaten on quite heavily, hence the macroization.
+ * See buf_internals.h for a related comment.
+ *
+ * XXX macro assumes ANSI semantics for pointer subtraction.
+ */
+#ifdef NO_ASSERT_CHECKING
+#define BufferGetBufferDescriptor(buffer) \
+	((BufferDesc *) &BufferDescriptors[buffer-1])
+#define BufferDescriptorGetBuffer(bdesc) \
+	(1 + (((BufferDesc *) bdesc) - ((BufferDesc *) BufferDescriptors)))
+#else /* !NO_ASSERT_CHECKING */
+extern BufferDesc	*BufferGetBufferDescriptor ARGS((Buffer buffer));
+extern Buffer		BufferDescriptorGetBuffer ARGS((BufferDesc *bdesc));
+#endif /* !NO_ASSERT_CHECKING */
 
 /*
  * BufferIsPinned --
