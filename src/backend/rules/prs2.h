@@ -862,5 +862,16 @@ extern RuleLock prs2FindNewExportLocksFromLocks();
 extern RuleLock prs2GetExportLockFromCatalog();
 extern void prs2ActivateExportLockRulePlan();
 
+/*============== RULE STATISTICS ============================*/
+/*
+ * the following variables/routines are used to print stats about
+ * the tuple level system usage.
+ * (all this stuff is defined in "rules/prs2/prs2main.c")
+ */
+extern int Prs2Stats_rulesActivated;
+extern int Prs2Stats_rulesTested;
+extern void ResetPrs2Stats();
+extern void ShowPrs2Stats();
+
 #endif Prs2Included
 
