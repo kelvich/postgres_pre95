@@ -145,25 +145,44 @@ class (TupleCount) public (Node) {
  *	locks				?
  *	subplan_info			?
  *	error_message			?
+ *
  *	range_table			array of scan relation information
+ *
  *	qualification_tuple		tuple satisifying qualification
+ *
  *	qualification_tuple_id		tid of qualification_tuple
+ *
  *	raw_qualification_tuple		tuple satsifying qualification
  *					but with no rules activated.
+ *
  *	relation_relation_descriptor	as it says
+ *
  *	into_relation_descriptor	relation being retrieved "into"
+ *
  *	result_relation_information	for update queries
+ *
  *	tuplecount			summary of tuples processed
+ *
  *	param_list_info			information needed to transform
  *					Param nodes into Const nodes
  *
  *	prs2_info			Information used by the rule
  *					manager (for loop detection
  *					etc.). Must be initialized to NULL
+ *
  *	explain_relation		The relation descriptor of the
  *					result relation of an 'explain'
  *					command. NULL if this is not
  *					an explain command.
+ * 
+ *	BaseId				during InitPlan, each node is
+ *					given a number.  this is the next
+ *					number to be assigned.
+ *
+ * SOON:
+ *	tupleTable			this is a pointer to an array
+ *					of pointers to tuples currently
+ *					used by the executor.
  * ----------------
  */
 
@@ -188,6 +207,8 @@ class (EState) public (Node) {
       Relation		es_explain_relation;
       int		es_BaseId;
 };
+/* SOON: TupleTable	es_tupleTable	see comment above. -cim 6/20/90 */
+
 
 /* ----------------
  *	Executor Type information needed by plannodes.h
@@ -231,6 +252,10 @@ class (EState) public (Node) {
  *	all executor state nodes which inherit from CommonState
  *	have ExprContexts although not all of them need it.
  *	
+ *  SOON: ExprContext will contain indexes of tuples in the tupleTable
+ *	  stored in the EState, rather than pointers which it now stores.
+ *	  It might still be used to store type/buffer information though.
+ *	  (I haven't thought that out yet) -cim 6/20/90
  * ----------------
  */
 class (ExprContext) public (Node) {
@@ -354,6 +379,10 @@ class (BaseNode) public (Node) {
  *      is created and initialized at ExecInit time.  Keeping these
  *	around reduces memory allocations and allows nodes to refer
  *	to tuples in other nodes (albeit in a gross fashion). -cim 10/30/89
+ *
+ *  SOON: ExprContext will contain indexes of tuples in the tupleTable
+ *	  stored in the EState, rather than pointers which it now stores.
+ *	  -cim 6/20/90
  * ----------------
  */
 
