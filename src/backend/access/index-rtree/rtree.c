@@ -33,6 +33,8 @@ typedef struct SPLITVEC {
     char		*spl_rdatum;
 } SPLITVEC;
 
+static int MaoDebugRT = 0;
+
 void
 rtbuild(heap, index, natts, attnum, istrat, pcount, params)
     Relation heap;
@@ -53,6 +55,9 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params)
     Datum *d;
     Boolean *null;
     int n;
+
+    if (MaoDebugRT)
+	return;
 
     /* rtrees only know how to do stupid locking now */
     RelationSetLockForWrite(index);
@@ -102,9 +107,13 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params)
 	     */
 
 	    attoff = AttributeNumberGetAttributeOffset(i);
+	    /*
 	    d[attoff] = HeapTupleGetAttributeValue(htup, buffer,
-			attnum[attoff], hd, &attnull);
+	    */
+	    d[attoff] = (Datum) heap_getattr(htup, buffer,
+					     attnum[attoff], hd, &attnull);
 	    null[attoff] = (attnull ? 'n' : ' ');
+	    box_maodebug(d[attoff]);
 	}
 
 	/* form an index tuple and point it at the heap tuple */
@@ -550,6 +559,7 @@ picksplit(r, page, v, itup)
 		waste = size_waste;
 		seed_1 = i;
 		seed_2 = j;
+		firsttime = false;
 	    }
 	}
     }
@@ -711,7 +721,83 @@ freestack(s)
 }
 
 char *
-rtdelete()
+rtdelete(r, tid)
+    Relation r;
+    ItemPointer tid;
 {
-    return (char *) NULL;
+    BlockNumber blkno;
+    OffsetIndex offind;
+    Buffer buf;
+    Page page;
+
+    /* must write-lock on delete */
+    RelationSetLockForWrite(r);
+
+    blkno = ItemPointerGetBlockNumber(tid);
+    offind = ItemPointerGetOffsetNumber(tid, 0) - 1;
+
+    /* adjust any scans that will be affected by this deletion */
+    rtadjscans(r, RTOP_DEL, blkno, offind);
+
+    /* delete the index tuple */
+    buf = ReadBuffer(r, blkno);
+    page = BufferGetPage(buf, 0);
+
+    PageIndexTupleDelete(page, offind + 1);
+
+    WriteBuffer(buf);
+
+    /* XXX -- two-phase locking, don't release the write lock */
+    return ((char *) NULL);
 }
+
+#define RTDEBUG
+#ifdef RTDEBUG
+
+_rtdump(r)
+    Relation r;
+{
+    Buffer buf;
+    Page page;
+    OffsetIndex offind, maxoff;
+    BlockNumber blkno;
+    BlockNumber nblocks;
+    RTreePageOpaque po;
+    IndexTuple itup;
+    BlockNumber itblkno;
+    PageNumber itpgno;
+    OffsetNumber itoffno;
+    char *datum;
+    char *itkey;
+    Boolean null;
+
+    nblocks = RelationGetNumberOfBlocks(r);
+    for (blkno = 0; blkno < nblocks; blkno++) {
+	buf = RelationGetBuffer(r, blkno);
+	page = BufferGetPage(buf, 0);
+	po = (RTreePageOpaque) PageGetSpecialPointer(page);
+	maxoff = PageGetMaxOffsetIndex(page);
+	printf("Page %d maxoff %d <%s>\n", blkno, maxoff,
+		(po->flags & F_LEAF ? "LEAF" : "INTERNAL"));
+
+	if (PageIsEmpty(page)) {
+	    ReleaseBuffer(buf);
+	    continue;
+	}
+
+	for (offind = 0; offind <= maxoff; offind++) {
+	    itup = (IndexTuple) PageGetItem(page, PageGetItemId(page, offind));
+	    itblkno = ItemPointerGetBlockNumber(&(itup->t_tid));
+	    itpgno = ItemPointerGetPageNumber(&(itup->t_tid), 0);
+	    itoffno = ItemPointerGetOffsetNumber(&(itup->t_tid), 0);
+	    datum = ((char *) itup);
+	    datum += sizeof(IndexTupleData);
+	    printf("\t[%d] size %d heap <%d,%d,%d> key:",
+		   offind + 1, itup->t_size, itblkno, itpgno, itoffno);
+	    box_maodebug(datum);
+	}
+
+	ReleaseBuffer(buf);
+    }
+}
+#endif /* defined RTDEBUG */
