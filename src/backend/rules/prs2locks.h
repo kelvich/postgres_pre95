@@ -253,5 +253,11 @@ typedef Prs2LocksData	*RuleLock;
  */
 #define PRS2_LOCK_TYPEID	((ObjectId) 31)
 #define PRS2_BOOL_TYPEID	((ObjectId) 16)
+/*---
+ * varnos for the NEW & CURRENT tuple.
+ * these are hardwired in the parser code...
+ */
+#define PRS2_CURRENT_VARNO	1
+#define PRS2_NEW_VARNO		2
 
 #endif Prs2LocksIncluded
