@@ -35,8 +35,8 @@ string		\"
 specialstr	\`
 character	"'"
 
-integer		{digit}+
-real		{digit}+\.{digit}+([Ee][-+]?{digit}+)?
+integer		-?{digit}+
+real		-?{digit}+\.{digit}+([Ee][-+]?{digit}+)?
 
 param		\${integer}
 
