@@ -15,8 +15,8 @@
  *     		find-index-paths
  */
 
-#include "internal.h";
 #include "pg_lisp.h";
+#include "internal.h";
 #include "relation.h"
 #include "relation.a.h"
 #include "indxpath.h"
@@ -82,7 +82,7 @@ find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
 
 	     if ( 1 == length (get_indexkeys (CAR (indices)))) {
 		  match_index_orclauses (rel,CAR (indices),
-					 CAR ((LispValue) get_indexkeys 
+					 CAR ( get_indexkeys 
 					      (CAR (indices))),
 					 CAR ((LispValue)get_class 
 					      (CAR (indices))),
