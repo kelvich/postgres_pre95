@@ -82,6 +82,8 @@ ReplaceVarWithMulti(varno, attno, parser_subtree, replacement, modified, ruleId)
     Resdom rule_resdom;
     List rule_tlexpr;
     char *var_dotfields_firstname;
+    Const RMakeConst();
+    Resdom RMakeResdom();
 
     foreach ( i , parser_subtree ) {
 	Node temp = (Node)CAR(i);
@@ -103,6 +105,7 @@ ReplaceVarWithMulti(varno, attno, parser_subtree, replacement, modified, ruleId)
 		Name this_rule_resdom_name;
 
 		var_dotfields_firstname = CString ( CAR ( vardotfields ) );
+		rule_resdom = (Resdom) LispNil;
 		foreach ( j , replacement ) {
 		    this_rule_tlentry = CAR(j);
 		    this_rule_resdom = (Resdom)CAR(this_rule_tlentry);
@@ -117,6 +120,23 @@ ReplaceVarWithMulti(varno, attno, parser_subtree, replacement, modified, ruleId)
 			break;
 		    }
 		} /* foreach */
+		if (null(rule_resdom)) {
+		    /*
+		     * no rule for this attribute.
+		     * create a dummy Resdom node and a null Const
+		     */
+		    Const c1;
+		    rule_resdom = RMakeResdom();
+		    set_restype(rule_resdom, (ObjectId) 25);	/* ignored */
+		    set_reslen(rule_resdom, (Size) -1);
+		    c1 = RMakeConst();
+		    set_consttype(c1, (ObjectId) 25);	/* ignored */
+		    set_constlen(c1, (Size) -1);
+		    set_constvalue(c1, PointerGetDatum(NULL));
+		    set_constisnull(c1, true);
+		    set_constbyval(c1, false);
+		    rule_tlexpr = lispCons(c1, LispNil);
+		}
 	    } else {
 		/*
 		 * retrieve the "text" of the rule...
@@ -126,8 +146,6 @@ ReplaceVarWithMulti(varno, attno, parser_subtree, replacement, modified, ruleId)
 		 */
 		Const c1;
 		Resdom r1;
-		Const RMakeConst();
-		Resdom RMakeResdom();
 		char buf[100];
 		struct varlena *vl;
 		int size;
@@ -776,11 +794,11 @@ QRS ( parsetree , already_handled )
      List parsetree;
      List already_handled;
 {
-    List user_root;
-    List user_rangetable;
-    List command_type;
-    List user_qual;
-    int  user_command;
+    List user_root		= NULL;
+    List user_rangetable	= NULL;
+    List command_type		= NULL;
+    List user_qual		= NULL;
+    int  user_command		= NULL;
     List new_parsetree 		= NULL;
     List new_rewritten 		= NULL;
     List output_parselist	= NULL;
