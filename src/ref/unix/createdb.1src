@@ -7,7 +7,9 @@
 createdb \*- create a database
 .uh SYNOPSIS
 .lp
-.b createdb dbname
+.b createdb 
+[-p port -h host]
+.b dbname
 .uh DESCRIPTION
 .lp
 .b Createdb
@@ -28,18 +30,17 @@ to be created.
 The name must be unique
 among all \*(PP databases.
 .sp
-After issuing this command, the program will usually respond
-with a diagnostic message in the following format:
-.nf
-.(l
-.q "created directory .../data/base/dbname"
-.q "creating database dbname"
-.)l
-.fi
-Then the \*(UU shell prompt will reappear.
-.lp
-Createdb will place
-all new databases in a directory named \&.../data/base/dbname.
+The argument 
+.i port
+and
+.i hostname
+are the same as in the terminal monitor - they are used to connect to the
+postmaster using the TCP/IP port
+.i port
+running on the database server
+.i hostname.
+The defaults are to the local machine (localhost) and to the default port
+(4321).
 .uh "SEE ALSO"
 .lp
 destroydb(unix).
