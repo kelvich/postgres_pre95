@@ -14,7 +14,7 @@ define index \*- construct a secondary index
 .b index
 index-name
 .b on
-relname
+classname
 .b using
 am-name
 .b (
@@ -37,16 +37,16 @@ If the
 .b archive
 keyword is absent,
 the
-.i relname
-relation is indexed.
+.i classname
+class is indexed.
 In contrast,
 when
 .b archive
 is present,
 an index is created
-on the archive relation associated with the
-.i relname
-relation.
+on the archive class associated with the
+.i classname
+class.
 .lp
 .i Am-name
 is the name of the access method which is used for the index.
@@ -65,8 +65,8 @@ area_ops	oid_ops
 All are defined for the normal comparison operators ( <, <=, =, >, >=).
 .lp
 New classes can be added dynamically by making an insertion in the
-pg_opclass relation in the system catalogs.
-Operators can be associated with a class by making insertions in the pg_amop relation
+pg_opclass class in the system catalogs.
+Operators can be associated with a class by making insertions in the pg_amop class
 in the system catalogs.
 .lp
 The
@@ -77,8 +77,8 @@ when loading the pages of the index
 or the minimum and maximum number of
 pages to allocate.
 .lp
-Version 2 of \*(PP comes with a standard B-tree access method;
-and other access methods will be added in the near future.
+Version 2.1 of \*(PP comes with a standard B-tree access method, a linear hashing
+access method and a R-tree access method.
 In addition, users are encouraged to
 write their own.
 To define a new access method, the functions indicated in the pg_am relation
@@ -87,16 +87,16 @@ an access method writer; hence he should look carefully at the source code
 for the B-tree access method included with POSTGRES. 
 .uh EXAMPLE
 .lp
-Create a btree index on the emp relation using the age attribute.
+Create a btree index on the emp class using the age attribute.
 .(b
 define index emp-index on emp using btree (age int4_ops)
 .)b
 .uh BUGS
 .lp
-Archives are not supported in Version 2.
+Archives are not supported in Version 2.1.
 .lp
 There should be an access method designers guide.
 .lp
 The 
 .i parameter-list
-is not supported in Version 2.
+is not supported in Version 2.1.
