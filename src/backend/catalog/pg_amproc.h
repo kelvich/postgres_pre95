@@ -1,0 +1,67 @@
+/* ----------------------------------------------------------------
+ *   FILE
+ *	pg_amproc.h
+ *
+ *   DESCRIPTION
+ *	definition of the system "amproc" relation (pg_amproce)
+ *	along with the relation's initial contents.  The amproc
+ *	catalog is used to store procedures used by indexed access
+ *	methods that aren't associated with operators.
+ *
+ *   NOTES
+ *	the genbki.sh script reads this file and generates .bki
+ *	information from the DATA() statements.
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
+ */
+#ifndef PgAmprocIncluded
+#define PgAmprocIncluded 1	/* include this only once */
+
+/* ----------------
+ *	postgres.h contains the system type definintions and the
+ *	CATALOG(), BOOTSTRAP and DATA() sugar words so this file
+ *	can be read by both genbki.sh and the C compiler.
+ * ----------------
+ */
+#include "tmp/postgres.h"
+
+/* ----------------
+ *	pg_amproc definition.  cpp turns this into
+ *	typedef struct FormData_pg_amproc
+ * ----------------
+ */ 
+CATALOG(pg_amproc) {
+    oid 	amid;
+    oid 	amopclaid;
+    oid 	amproc;
+    int2 	amprocnum;
+} FormData_pg_amproc;
+
+/* ----------------
+ *	Form_pg_amproc corresponds to a pointer to a tuple with
+ *	the format of pg_amproc relation.
+ * ----------------
+ */
+typedef FormData_pg_amproc	*Form_pg_amproc;
+
+/* ----------------
+ *	compiler constants for pg_amproc
+ * ----------------
+ */
+#define Name_pg_amproc			"pg_amproc"
+#define Natts_pg_amproc			4
+#define Anum_pg_amproc_amid		1
+#define Anum_pg_amproc_amopclaid	2
+#define Anum_pg_amproc_amproc		3
+#define Anum_pg_amproc_amprocnum	4
+
+/* ----------------
+ *	initial contents of pg_amproc
+ * ----------------
+ */
+
+DATA(insert OID = 0 (  400 421  95 1 btreesel btreenpage ));
+
+#endif PgAmprocIncluded
