@@ -28,6 +28,7 @@
 
 extern void die();
 extern void handle_warn();
+extern bool InteractiveBackend();
 
 /* XXX - I'm not sure if these should be here, but the be/fe comms work 
    when I do - jeff, maybe someone can figure out where they should go*/
@@ -236,19 +237,23 @@ main(argc, argv)
 	if (IsUnderPostmaster == true)
 	  SocketBackend(parser_input, parser_output);
 	else {
-	    InteractiveBackend(parser_input, parser_output);
+	    /*
+	     *  InteractiveBackend returns false on EOF.
+	     */
+	    if (!InteractiveBackend(parser_input, parser_output)) {
+
+	        if (! Quiet)
+		    puts("EOF");
+
+		AbortCurrentTransaction();
+		exit (0);
+	    }
 	    lispDisplay(parser_output,0);
 	}
+
 	if (! Quiet)
 	    printf("\ninput string is %s\n",parser_input);
 
-	if (parser_input == NULL) {
-	    if (! Quiet)
-		puts("EOF");
-	    AbortCurrentTransaction();
-	    exit(0);
-	}
-	    
 	/* ----------------
 	 *   parse the input
 	 * ----------------
@@ -413,13 +418,16 @@ LispValue parseList;
  *  InteractiveBackend() Is called for user interactive connections
  */
 
+bool
 InteractiveBackend(inBuf, parseList)
 char *inBuf;
 LispValue parseList;
 {
     printf ("> ");
-    gets(inBuf);
+    if (gets(inBuf) == (char *) NULL)
+	return (false);
     parser(inBuf, parseList);
+    return (true);
 }
 
 
