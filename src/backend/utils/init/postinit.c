@@ -76,7 +76,7 @@ String	PostgresPath = NULL;
 String	PostgresDatabase = NULL;
 
 extern int Debugfile, Ttyfile, Dblog, Slog;
-extern int Portfd, Packfd, Slog, Pipefd;
+extern int Portfd, Packfd, Pipefd;
 
 extern BackendId	MyBackendId;
 extern BackendTag	MyBackendTag;
@@ -412,13 +412,17 @@ InitStdio()
 	if (!ValidPgVersion(".") || !ValidPgVersion("../.."))
 	    elog(FATAL, "InitStdio: !ValidPgVersion");
 	
-	Slog = Err_file = SYSLOG_FD;
-	Portfd = 4;
+	Slog = SYSLOG_FD;
 /*	Packfd = 5; 	Packfd not used see below */
 	Dblog = DBLOG_FD;
 	Pipefd = 7;
 	
-	pq_init(Portfd);
+/*
+ *	Already done after postgres command line args processing
+ *
+ *	Portfd = 4;
+ *	pq_init(Portfd);
+ */
 	    
 /* ---------------------------
  *  It looks like Packfd was used to allow comm. between the postmaster
@@ -436,7 +440,7 @@ InitStdio()
     }
 
     Dblog = dup(Debugfile);
-    Slog = Err_file = ErrorFileOpen();
+    Err_file = ErrorFileOpen();
 }
 
 /* --------------------------------
