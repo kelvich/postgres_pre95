@@ -82,24 +82,24 @@ typedef union Datum {
 #if defined(sequent) || defined(mips)
 typedef union Datum {
 	struct character {
-		char	filler[3];	
 		char	value;
+		char	filler[3];	
 	} character;
 	struct integer8 {
-		int8	filler[3];
 		int8	value;
+		int8	filler[3];
 	} integer8;
 	struct unsignedInteger8 {
-		uint8	filler[3];
 		uint8	value;
+		uint8	filler[3];
 	} unsignedInteger8;
 	struct integer16 {
-		int16	filler[1];
 		int16	value;
+		int16	filler[1];
 	} integer16;
 	struct unsignedInteger16 {
-		uint16	filler[1];
 		uint16	value;
+		uint16	filler[1];
 	} unsignedInteger16;
 	struct integer32 {
 		int32	value;

@@ -1,4 +1,10 @@
 
+/*
+ *  TASLOCK.H
+ *
+ *  included by pladt.h
+ */
+
 #ifndef INCLUDE_TASKLOCK_H
 #define INCLUDE_TASKLOCK_H
 #include <sys/types.h>
@@ -6,13 +12,20 @@
 #include <signal.h>
 
 #define NUMPROCS	64
-#define NUMTASLOCKS	(NMAXSEM+NEXTRASEM)
+
+#ifndef sequent
+CauseCompilerError();
+#endif
+
+#ifdef sequent
+#include <parallel/parallel.h>
+#endif
 
 typedef unsigned char ubyte;
 
 typedef struct {
-    ubyte MasterLock;	/* lock is in use for read or write 	*/
-    ubyte MinorLock;	/* spin-lock (monitor access)		*/
+    slock_t MasterLock;	/* lock is in use for read or write 	*/
+    slock_t MinorLock;	/* spin-lock (monitor access)		*/
     int  NHeld;		/* number of (read) locks held		*/
     int  NWait;		/* number of processes waiting for lock */
 } TasLock;
