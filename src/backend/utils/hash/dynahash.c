@@ -34,9 +34,12 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.10  1991/11/12 20:20:29  mer
-    prototyping changes
+    Revision 1.11  1992/03/05 23:25:29  mer
+    feeble attempt at speed up
 
+ * Revision 1.10  91/11/12  20:20:29  mer
+ * prototyping changes
+ * 
  * Revision 1.9  1991/09/06  12:30:29  hong
  * added a new function, hash_seq(), which sequentially scans a hash table
  *
@@ -498,15 +501,13 @@ Boolean	*foundPtr;
 	int segment_num;
 	int segment_ndx;
 	SEGMENT segp;
-	ELEMENT *curr;
+	register ELEMENT *curr;
 	HHDR	*hctl;
 	BUCKET_INDEX	currIndex;
 	BUCKET_INDEX	*prevIndexPtr;
 	char *		destAddr;
 
-	if ((hashp == NULL) || (keyPtr == NULL)) {
-	  return(NULL);
-	}
+	Assert((hashp && keyPtr));
 	Assert((action == HASH_FIND)||(action == HASH_REMOVE)||(action==HASH_ENTER));
 
 	hctl = hashp->hctl;
@@ -521,8 +522,7 @@ Boolean	*foundPtr;
 
 	segp = GET_SEG(hashp,segment_num);
 
-	if (segp == NULL)
-	  return(NULL);
+	Assert(segp);
 
 	prevIndexPtr = &segp[segment_ndx];
 	currIndex = *prevIndexPtr;
@@ -575,7 +575,7 @@ Boolean	*foundPtr;
 	  if (currIndex != INVALID_INDEX)
 	    return(&(curr->key));
 	  return((int *)TRUE);
-	defaults:
+	default:
 	  /* can't get here */
 	  return (NULL);
 	}
