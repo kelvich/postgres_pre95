@@ -120,7 +120,7 @@ private Size	SizeSfdCache = 100;
  * Minimun number of file descriptors known to be free
  */
 
-FreeFd = 0;
+private FreeFd = 0;
 
 private	nfile = 0;
 
@@ -347,7 +347,7 @@ tryAgain:
 	return 0;
 }
 
-inline void
+private inline void
 AssertLruRoom()
 {
 	DO_DB(printf("DEBUG:	AssertLruRoom (FreeFd = %d)\n",FreeFd));
@@ -1084,4 +1084,19 @@ char *cmd;
     closeAllVfds();
 #endif
     return system(cmd);
+}
+
+void
+closeOneVfd()
+{
+    int tmpfd;
+
+    tmpfd = open("/dev/null", O_CREAT | O_RDWR, 0666);
+    if (tmpfd < 0) {
+       FreeFd = 0;
+       AssertLruRoom();
+       FreeFd = 0;
+     }
+    else
+       close(tmpfd);
 }
