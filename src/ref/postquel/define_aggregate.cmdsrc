@@ -8,8 +8,11 @@ define aggregate \(em define a new aggregate
 .SH SYNOPSIS
 .(l M
 \fBdefine aggregate\fR agg-name [\fBas\fR]
-	\fB(\fP[\fBsfunc1\fR \fB=\fR state-transition-function-1]
-	 [\fB,\fP \fBsfunc2\fR \fB=\fR state-transition-function-2]
+	\fB(\fP[\fBsfunc1\fR \fB=\fR state-transition-function-1
+	  ,\fP \fBbasetype\fR \fB=\fR data-type
+	  ,\fP \fBstype1\fR \fB=\fR sfunc1-return-type]
+	 [\fB,\fP \fBsfunc2\fR \fB=\fR state-transition-function-2
+	  ,\fP \fBstype2\fR \fB=\fR sfunc2-return-type]
 	 [\fB,\fP \fBfinalfunc\fR \fB=\fR final-function]
 	 [\fB,\fP \fBinitcond1\fR \fB=\fR initial-condition-1]
 	 [\fB,\fP \fBinitcond2\fR \fB=\fR initial-condition-2]\fB)\fR
@@ -28,17 +31,22 @@ function, F:
 .(l
 F(internal-state1, internal-state2) ---> aggregate-value
 .)l
-These functions are required to have the following three properties:
+These functions are required to have the following properties:
 .IP
-The return type of each state-transition-function and the arguments
-of the final-calculation-function must be the same type (\fIt\fP).
+The arguments to state-transition-function-1 must be
+.BR ( stype1 , basetype ) ,
+and its return value must be stype1.
 .IP
-The return type of the final-calculation-function must be a \*(PG base
-type.
+The argument and return value of state-transition-function-2 must be
+.BR stype2 .
 .IP
-The first argument to state-transition-function1 must be of type \fIt\fP,
-while the second argument must match the data type of the object
-being aggregated.
+The arguments to the final-calculation-function must be
+.BR ( stype1 , stype2 ) ,
+and its return value must be a POSTGRES base type (not
+necessarily the same as basetype.
+.IP
+The final-calculation-function should be specified if and only if both
+state-transition functions are specified.
 .PP
 Note that it is possible to specify aggregate functions that have
 varying combinations of state and final functions.  For example, the
@@ -78,7 +86,8 @@ final answer.
 /*
  * Define an aggregate for int4 average
  */
-define aggregate avg (sfunc1 = int4add, sfunc2 = int4inc,
+define aggregate avg (sfunc1 = int4add, basetype = int4,
+     stype1 = int4, sfunc2 = int4inc, stype2 = int4,
      finalfunc = int4div, initcond1 = "0", initcond2 = "0")
 .)C
 .SH "SEE ALSO"
