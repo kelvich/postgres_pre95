@@ -143,6 +143,13 @@ regprocout(proid)
 
 	     /* ========== PUBLIC ROUTINES ========== */
 
+ObjectId
+RegprocToOid(rp)
+    RegProcedure rp;
+{
+    return (ObjectId)rp;
+}
+
 	 /* (see int.c for comparison/operation routines) */
 
 
