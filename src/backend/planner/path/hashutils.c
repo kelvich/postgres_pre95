@@ -16,9 +16,13 @@
  */
 
 #include "pg_lisp.h"
-#include "internal.h"
+#include "internal.h
+#include "relation.h"
+#include "relation.a.h"
+#include "hashutils.h"
+#include "clauses.h"
 
-extern LispValue match_hashop_hashinfo();
+/* extern LispValue match_hashop_hashinfo(); */
 
 /*    
  *    	group-clauses-by-hashop
@@ -40,45 +44,47 @@ LispValue
 group_clauses_by_hashop (clauseinfo_list,inner_relid)
      LispValue clauseinfo_list,inner_relid ;
 {
-	/* XXX - let form, maybe incorrect */
-	LispValue hashinfo_list = LispNil;
-	LispValue clauseinfo;
-	for (clauseinfo = car(clauseinfo_list); clauseinfo_list != LispNil;
-	     clauseinfo_list = cdr(clauseinfo_list)) {
-		/* XXX - let form, maybe incorrect */
+     /* XXX - let form, maybe incorrect */
+     LispValue hashinfo_list = LispNil;
+     LispValue clauseinfo = LispNil;
+     foreach (clauseinfo,clauseinfo_list) {
+	  
+	  ObjectId hashjoinop = get_hashjoinoperator(clauseinfo);
+	  
+	  /*    Create a new hashinfo node and add it to */
+	  /*    'hashinfo-list' if one does not yet */
+	  /*    exist for this hash operator.   */
 
-		LispValue hashjoinop = get_hashjoinoperator(clauseinfo);
-
-		/*    Create a new hashinfo node and add it to */
-		/*    'hashinfo-list' if one does not yet */
-		/*    exist for this hash operator.   */
-
-		if (hashjoinop == LispTrue ) {
-			LispValue hashinfo = 
-			  match_hashop_hashinfo (hashjoinop,hashinfo_list);
-			LispValue clause = get_clause (clauseinfo);
-			LispValue leftop = get_leftop (clause);
-			LispValue rightop = get_rightop (clause);
-			LispValue keys = LispNil;
-			if (equal(inner_relid,get_varno (leftop))) {
-				keys = make_joinkey(outer(rightop),
-						    inner(leftop));
-			}
-			else {
-				keys = make_joinkey(outer(leftop),
-						    inner(rightop));
-			}
-			
-			if ( null(hashinfo)) {
-				hashinfo = make_hashinfo(op(hashjoinop));
-				push (hashinfo,hashinfo_list);
-			}
-			push (clause,joinmethod_clauses (hashinfo));
-			push (keys,joinmethod_keys (hashinfo));
-
+	  if (hashjoinop ) {
+	       CInfo xhashinfo;
+	       Expr clause = get_clause (clauseinfo);
+	       LispValue leftop = get_leftop (clause);
+	       LispValue rightop = get_rightop (clause);
+	       JoinKey keys;
+	       xhashinfo = 
+		 match_hashop_hashinfo (hashjoinop,hashinfo_list);
+	       
+	       if (equal(inner_relid,get_varno (leftop))) {
+		    keys = MakeJoinKey(rightop,
+					leftop);
+	       }
+	       else {
+		    keys = MakeJoinKey(leftop,
+					rightop);
+	       }
+		     
+	       if ( null(xhashinfo)) {
+		    xhashinfo = CreateNode(CInfo);
+		    set_hashjoinoperator(xhashinfo,
+					 make_hashinfo(op(hashjoinop)));
+		    push (xhashinfo,hashinfo_list);
+	       }
+	       push (clause,joinmethod_clauses (xhashinfo));
+	       push (keys,joinmethod_keys (xhashinfo));
+	       
 		}
-	}
-	return(hashinfo_list);
+     }
+     return(hashinfo_list);
 } /* function end */
 
 
@@ -94,20 +100,19 @@ group_clauses_by_hashop (clauseinfo_list,inner_relid)
 
 /*  .. group-clauses-by-hashop */
 
-LispValue
+CInfo
 match_hashop_hashinfo (hashop,hashinfo_list)
      LispValue hashop,hashinfo_list ;
 {
-	LispValue key = LispNil;
-	LispValue hashinfo = LispNil;
+     ObjectId key ;
+     LispValue xhashinfo;
 
 	/* XXX -- Lisp find and lambda function --- maybe wrong */
-	for( hashinfo = car(hashinfo_list); hashinfo_list != LispNil;
-	    hashinfo_list = cdr (hashinfo_list)) {
-		key = hashinfo_op(hashinfo);
-		if (equal(hashop,key)) {  /* found */
-			return(hashinfo);    /* should be a hashinfo node ! */
+     foreach( xhashinfo, hashinfo_list) {
+	  key = get_hashjoinoperator((CInfo)xhashinfo);
+	  if (equal(hashop,key)) {  /* found */
+	       return((CInfo)xhashinfo);    /* should be a hashinfo node ! */
 		}
 	}
-	return(LispNil);
+	return((CInfo)LispNil);
 }
