@@ -206,7 +206,7 @@ GetAttrList(bname)
 			     attr_list);
     }
 
-    heap_close(bname);
+    heap_close(rdesc);
 
     return(attr_list);
 }
