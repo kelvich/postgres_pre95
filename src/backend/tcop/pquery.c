@@ -1,29 +1,24 @@
 /* ----------------------------------------------------------------
- * pquery.c --
- *	POSTGRES process query command code.
+ *   FILE
+ *	pquery.c
+ *	
+ *   DESCRIPTION
+ *	POSTGRES process query command code
+ *
+ *   INTERFACE ROUTINES
+ *	ProcessQuery
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
  * ----------------------------------------------------------------
  */
 
-#include "c.h"
+#include "tcop.h"
+#include "executor.h"         /* XXX a catch-all include */
 
-RcsId("$Header$");
-
-#include "aset.h"		/* for DefaultAllocMode */
-#include "executor.h"		/* XXX a catch-all include */
-#include "globals.h"		/* for IsUnderPostmaster */
-#include "heapam.h"
-#include "htup.h"
-#include "log.h"
-#include "oid.h"
-#include "parse.h"
-#include "pg_lisp.h"
-#include "portal.h"
-#include "rel.h"
-#include "sdir.h"
-#include "tim.h"
-#include "params.h"
-#include "prs2.h"		/* for the Prs2EStateInfo */
-#include "command.h"
+ RcsId("$Header$");
 
 /* ----------------------------------------------------------------
  *	MakeQueryDesc is a utility used by ProcessQuery and
@@ -459,13 +454,24 @@ ExecuteFragments(queryDesc, planFragments)
     List 	queryDesc;
     Pointer 	planFragments;	/* haven't determined proper type yet */
 {
+    int		nslaves;
+    int		i;
+    
     /* ----------------
      *	execute the query appropriately if we are running one or
      *  several backend processes.
      * ----------------
      */
     
-    if (ParallelExecutorEnabled()) {
+    if (! ParallelExecutorEnabled()) {
+	/* ----------------
+	 *   single-backend case. just execute the query
+	 *   and return NULL.
+	 * ----------------
+	 */
+	ProcessQueryDesc(queryDesc);
+	return NULL;
+    } else {
 	/* ----------------
 	 *   parallel-backend case.  place each plan fragment
 	 *   in shared memory and signal slave-backend execution.
@@ -476,17 +482,36 @@ ExecuteFragments(queryDesc, planFragments)
 	 *	this will be implemented soon -cim 3/9/90
 	 * ----------------
 	 */
-	ProcessQueryDesc(queryDesc);
-	return NULL;
-    } else {
+	nslaves = GetNumberSlaveBackends();
+
 	/* ----------------
-	 *   single-backend case. just execute the query
-	 *   and return NULL.
+	 *	place fragments in shared memory here
 	 * ----------------
 	 */
-	ProcessQueryDesc(queryDesc);
+	/* ----------------
+	 *	signal slave execution start
+	 * ----------------
+	 */
+	for (i=0; i<nslaves; i++) {
+	    elog(DEBUG, "Master Backend: signaling slave %d", i);
+	    V_Start(i);
+	}
+
+	/* ----------------
+	 *	wait for slaves to complete execution
+	 * ----------------
+	 */
+	elog(DEBUG, "Master Backend: waiting for slaves...");
+	P_Finished();
+	elog(DEBUG, "Master Backend: slaves execution complete!");
+
+	/* ----------------
+	 *	replace fragments with materialized results and
+	 *	return new plan to ProcessQuery.
+	 * ----------------
+	 */
 	return NULL;
-    }
+    } 
 }
 
 /* ----------------------------------------------------------------
