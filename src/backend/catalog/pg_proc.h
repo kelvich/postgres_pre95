@@ -480,6 +480,9 @@ DATA(insert OID = 962 (  lomkdir             6 11 f t f 2  23 "0 0" foo bar ));
 DATA(insert OID = 963 (  lormdir             6 11 f t f 1  23 "0" foo bar ));
 DATA(insert OID = 964 (  lounlink            6 11 f t f 1  23 "0" foo bar ));
 
+DATA(insert OID = 970 (  pftp_read           6 11 f t f 3  23 "25 23 26" foo bar ));
+DATA(insert OID = 971 (  pftp_write          6 11 f t f 2  26 "25 23" foo bar ));
+
 /* ----------------
  *	old definition of struct proc
  * ----------------
