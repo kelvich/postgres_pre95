@@ -1179,16 +1179,20 @@ closeOneVfd()
 }
 
 int FileStat(file,stbuf)
-     FileNumber file;
+     File file;
      struct pgstat *stbuf;
 {
     int ret;
     struct stat ustatbuf;
-    ret = stat(file,&ustatbuf);
+    ret = fstat(VfdCache[file].fd,&ustatbuf);
     if (ret >= 0) {
 	stbuf->st_mode = ustatbuf.st_mode;
 	stbuf->st_uid = ustatbuf.st_uid;
 	stbuf->st_size = ustatbuf.st_size;
+	stbuf->st_sizehigh = 0;
+	stbuf->st_atime = ustatbuf.st_atime;
+	stbuf->st_ctime = ustatbuf.st_ctime;
+	stbuf->st_mtime = ustatbuf.st_mtime;
     }
     return ret;
 }
