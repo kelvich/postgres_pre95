@@ -289,4 +289,10 @@ extern int32		char16le();
 extern int32		char16gt();
 extern int32		char16ge();
 
+extern int32 byteaGetSize();
+extern int32 byteaGetByte();
+extern struct varlena * byteaSetByte();
+extern int32 byteaGetBit();
+extern struct varlena * byteaSetBit();
+
 #endif !BuiltinsIncluded
