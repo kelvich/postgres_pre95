@@ -1,0 +1,137 @@
+.\" $Header$
+.SP SHMEMDOC UNIX 8/11/92
+.uh NAME
+.lp
+shmemdoc \- \*(PP shared memory doctor
+.uh SYNOPSIS
+.ip
+.b shmemdoc
+[
+.i "\-p port"
+] [
+.i "\-B nbuffers"
+]
+.uh DESCRIPTION
+.lp
+The
+.b shmemdoc
+program understands the layout of \*(PP data in shared memory,
+and can be used to examine shared structures.
+This program is intended only for debugging \*(PP,
+and should not be used in normal operation.
+.lp
+When some backend dies abnormally,
+the postmaster normally reinitializes shared memory and semaphores,
+and forces all peers of the dead backend to exit.
+If the postmaster is started with the \fI\-n\fP flag,
+then shared memory will not be reinitialized,
+and
+.b shmemdoc
+can be used to examine shared state after the crash.
+.lp
+A simple command interpreter reads user commands from standard
+input and prints results on standard output.
+The available commands,
+and their actions,
+are:
+.ip "\fBsemstat\fP"
+Show the status of system semaphores.
+Status includes semaphore names and values,
+the process id of the last process to change each semaphore,
+and a count of processes sleeping on each semaphore.
+.ip "\fBsemset\fP \fIn\fP \fIval\fP"
+Set the value of semaphore number \fIn\fP (with zero being the first semaphore
+named by
+.b semstat )
+to
+.i val .
+This is really only useful for resetting system state maually after a crash,
+and you don't want to do it.
+.ip "\fBbufdescs\fP"
+Print the contents of the shared buffer descriptor table.
+.ip "\fBbufdesc\fP \fIn\fP"
+Print the shared buffer descriptor table entry for buffer
+.i n .
+.ip "\fBbuffer\fP \fIn\fP \fItype\fP \fIlevel\fP"
+Print the contents of buffer number
+.i n
+in the shared buffer table.
+The buffer is interpreted as a page from a
+.i type
+relation,
+where
+.i type
+may be
+.i heap ,
+.i btree ,
+or
+.i rtree .
+The
+.i level
+argument controls the amount of detail presented.
+Level zero prints only page headers,
+level one prints page headers and line pointer tables,
+and level two (or higher) prints headers,
+line pointer tables,
+and tuples.
+.ip "\fBsetbase\fP \fIptr\fP"
+Set the logical base address of shared memory for
+.i shmemdoc
+to
+.i ptr .
+Normally,
+.i shmemdoc
+uses the address of each structure in its own address space
+when interpreting commands and printing results.
+If
+.i setbase
+is used,
+then on input and output,
+addresses are translated so that the shared memory segment appears
+to start at address
+.i ptr .
+.ip
+This is useful when a debugger is examining a core file produced by
+\*(PP and you want to use the shared memory addresses that appear
+in the core file.
+The base of shared memory in \*(PP is stored in the variable
+.i ShmemBase ,
+which may be examined by a debugger.
+.ip
+.i Ptr
+may be expressed in octal (leading zero),
+decimal,
+or hexadecimal
+(leading 0x).
+.ip "\fBshmemstat\fP"
+Print shared memory layout and allocation statistics.
+.ip "\fBwhatis\fP \fIptr\P"
+Identify the shared memory structure pointed at by
+.i ptr .
+.ip \fBhelp\fP
+Print a brief command summary.
+.ip \fBquit\fP
+Exit
+.i shmemdoc .
+.uh ARGUMENTS
+.ip "\fI\-B nbuffers\fP"
+The number of buffers used by the backend.
+This value is ignored in the present implementation of
+.i shmemdoc ,
+but is important if you choose to change the number
+allocated by \*(PP.
+In that case,
+you're out of luck for now.
+.ip "\fI\-p port\fP"
+The port on which the postmaster was listening.
+This value is used to compute the shared memory key used by the
+postmaster when shared memory was initialized.
+.uh BUGS
+.lp
+Probably doesn't work on anything but DECstations.
+.lp
+All of the sizes, offsets, and values for shared data are hardwired
+into this program;
+it shares no code with the ordinary \*(PP system,
+so changes to shared memory layout will require changes to this program,
+as well.

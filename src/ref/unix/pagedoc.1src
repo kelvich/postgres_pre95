@@ -1,0 +1,86 @@
+.\" $Header$
+.SP PAGEDOC 8 "\*(V)" "POSTGRES"
+.uh NAME
+.lp
+pagedoc \- \*(PP page doctor
+.uh SYNOPSIS
+.ip
+.b pagedoc
+[
+.i "\-h|b|r"
+] [
+.i "\-d level"
+]
+.i filename
+.uh DESCRIPTION
+.lp
+The
+.b pagedoc
+program understands the layout of data on POSTGRES pages,
+and can be used to view contents of relations in case a database
+gets corrupted.
+Contents are printed to standard output,
+and probable errors are flagged with four asterisks (``****'')
+and a description of the problem.
+.lp
+Several levels of detail are available.
+Level zero prints only a single summary line per data page in
+the relation.
+The summary line includes the number of items on the page,
+some allocation information,
+and whatever additional detail is appropriate for the relation
+type being examined.
+Level one also prints a single summary line for each tuple that
+appears on each page.
+The tuple summary includes the tuple's position on the page,
+its length,
+and some allocation information.
+Level two (or higher)
+prints all of the information printed by level one,
+and prints tuple headers for every tuple on the page.
+The header information displayed depends on the type of relation
+being viewed;
+either HeapTuple or IndexTuple structure entries are possible.
+.lp
+If the relation's contents are badly damaged,
+then only level zero is likely to work.
+Finer levels of detail assume that more page structure is correct,
+and so are more sensitive to corruption.
+.uh ARGUMENTS
+.ip "\fI\-h|b|r\fP"
+The type of the relation.
+Type
+.i h
+is heap,
+.i b
+is btree,
+and 
+.i r
+is rtree.
+The default is
+.i h .
+.ip "\fI\-d level\fP"
+The detail level to use in displaying pages.
+.ip \fIfilename\fP
+The name of the file containing the relation.
+.uh EXAMPLES
+.lp
+To print page and line pointer summaries and tuple headers for
+a btree index named
+.i pg_typeidind ,
+.(b
+pagedoc \-b \-d2 pg_typeidind
+.)b
+.lp
+To show the default (level zero) summary of a heap relation named
+.i pg_user ,
+.(b
+pagedoc pg_user
+.)b
+.uh BUGS
+.lp
+Finer levels of detail produce a lot of output.
+.lp
+There's no way to skip forward to a page that shows some corruption.
+.lp
+You can only examine contents, you can't actually fix them.
