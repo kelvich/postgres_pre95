@@ -27,6 +27,9 @@
 
 #define ELOG_MAXLEN 4096
 
+#define SYSLOG_FD	5	/* file descriptor for system log file */
+#define DBLOG_FD	6	/* file descriptor for dblog file */
+
 extern int	Cline;
 extern char	*Cfile;
 extern int	ElogDebugIndentLevel;
