@@ -504,6 +504,7 @@ int	*fdP;
 
   bzero((char *)&sin, sizeof sin);
 
+#ifdef NOTDEF
   if ((hp = gethostbyname(hostName)) && hp->h_addrtype == AF_INET)
     bcopy(hp->h_addr, (char *)&(sin.sin_addr), hp->h_length);
   else {
@@ -512,6 +513,7 @@ int	*fdP;
         hostName);
     return(STATUS_ERROR);
   }
+#endif
 
   if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     fprintf(stderr,
