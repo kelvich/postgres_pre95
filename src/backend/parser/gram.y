@@ -1649,7 +1649,7 @@ a_expr:
 	   }
 	| AexprConst		
 	| '-' a_expr %prec UMINUS
-		  { $$ = make_op(lispString("-"), LispNil, $2, 'r');
+		  { $$ = make_op(lispString("-"), LispNil, $2, 'l');
 		  Typecast_ok = false; }
 	| a_expr '+' a_expr
 		{ $$ = make_op (lispString("+"), $1, $3, 'b' ) ;
@@ -1693,10 +1693,10 @@ a_expr:
 		{ $$ = make_op ( $2, $1 , $3, 'b' );
 		  Typecast_ok = false; }
 	| Op a_expr
-	  	{ $$ = make_op ( $1, LispNil, $2, 'r');
+	  	{ $$ = make_op ( $1, LispNil, $2, 'l');
 		  Typecast_ok = false; }
 	| a_expr Op
-	  	{ $$ = make_op ( $2, $1, LispNil, 'l');
+	  	{ $$ = make_op ( $2, $1, LispNil, 'r');
 		  Typecast_ok = false; }
 	| relation_name
 		{ $$ = lispCons ( KW(relation), $1 );
