@@ -61,8 +61,8 @@ RelationAllocate ARGS((
 
 extern File
 relopen ARGS((
-	char	relationName[];
-	int	flags;
+	char	*relationName,
+	int	flags,
 	int	mode
 ));
 
@@ -85,7 +85,7 @@ RelationRegisterTempRel ARGS((
 
 extern void
 RelationFlushRelation ARGS((
-	Relation        relation;
+	Relation        relation,
 	bool            onlyFlushReferenceCountZero
 ));
 
@@ -95,7 +95,7 @@ RelationFlushRelation ARGS((
 extern
 void
 RelationIdInvalidateRelationCacheByRelationId ARGS((
-	ObjectId	relationId;
+	ObjectId	relationId
 ));
 
 /*
@@ -104,7 +104,7 @@ RelationIdInvalidateRelationCacheByRelationId ARGS((
 extern
 void
 RelationIdInvalidateRelationCacheByAccessMethodId ARGS((
-	ObjectId	accessMethodId;
+	ObjectId	accessMethodId
 ));
 
 /*

@@ -40,8 +40,6 @@ void LockTypeInit ARGS((
 extern int MyPid;		/* For parallel backends w/same xid */
 SPINLOCK LockMgrLock;		/* in Shmem or created in CreateSpinlocks() */
 
-typedef int MASK;
-
 /* This is to simplify/speed up some bit arithmetic */
 
 static MASK	BITS_OFF[MAX_LOCKTYPES];

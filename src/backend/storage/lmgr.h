@@ -162,7 +162,7 @@ RelationUnsetLockForWrite ARGS((
 extern
 void
 RelationSetLockForTupleRead ARGS((
-	Relation	relation
+	Relation	relation,
 	ItemPointer	itemPointer
 ));
 

@@ -252,7 +252,7 @@ _bt_split(rel, buf)
     Buffer sbuf;
     Page spage;
     BTPageOpaque sopaque;
-    int itemsz;
+    Size itemsz;
     ItemId itemid;
     BTItem item;
     int nleft, nright;
@@ -301,7 +301,7 @@ _bt_split(rel, buf)
 	itemid = PageGetItemId(origpage, 0);
 	itemsz = ItemIdGetLength(itemid);
 	item = (BTItem) PageGetItem(origpage, itemid);
-	PageAddItem(rightpage, item, itemsz, nright++, LP_USED);
+	PageAddItem(rightpage, (Item) item, itemsz, nright++, LP_USED);
     } else {
 	start = 0;
     }
@@ -316,9 +316,9 @@ _bt_split(rel, buf)
 
 	/* decide which page to put it on */
 	if (i < firstright)
-	    PageAddItem(leftpage, item, itemsz, nleft++, LP_USED);
+	    PageAddItem(leftpage, (Item) item, itemsz, nleft++, LP_USED);
 	else
-	    PageAddItem(rightpage, item, itemsz, nright++, LP_USED);
+	    PageAddItem(rightpage, (Item) item, itemsz, nright++, LP_USED);
     }
 
     /*
@@ -343,7 +343,7 @@ _bt_split(rel, buf)
      */
 
     PageManagerModeSet(OverwritePageManagerMode);
-    PageAddItem(leftpage, item, itemsz, 1, LP_USED);
+    PageAddItem(leftpage, (Item) item, itemsz, 1, LP_USED);
     PageManagerModeSet(ShufflePageManagerMode);
 
     /*
@@ -508,7 +508,7 @@ _bt_newroot(rel, lbuf, rbuf)
     BTPageOpaque rootopaque;
     ItemId itemid;
     BTItem item;
-    int itemsz;
+    Size itemsz;
     BTItem new_item;
 
     /* get a new root page */
@@ -538,7 +538,7 @@ _bt_newroot(rel, lbuf, rbuf)
     ItemPointerSet(&(new_item->bti_itup.t_tid), 0, lbkno, 0, 1);
 
     /* insert the left page pointer */
-    PageAddItem(rootpage, new_item, itemsz, 1, LP_USED);
+    PageAddItem(rootpage, (Item) new_item, itemsz, 1, LP_USED);
     pfree(new_item);
 
     itemid = PageGetItemId(rpage, 0);
@@ -548,7 +548,7 @@ _bt_newroot(rel, lbuf, rbuf)
     ItemPointerSet(&(new_item->bti_itup.t_tid), 0, rbkno, 0, 1);
 
     /* insert the right page pointer */
-    PageAddItem(rootpage, new_item, itemsz, 2, LP_USED);
+    PageAddItem(rootpage, (Item) new_item, itemsz, 2, LP_USED);
     pfree (new_item);
 
     /* write and let go of the root buffer */
@@ -576,7 +576,7 @@ _bt_pgaddtup(rel, buf, keysz, itup_scankey, itemsize, btitem, afteritem)
     Buffer buf;
     int keysz;
     ScanKey itup_scankey;
-    int itemsize;
+    Size itemsize;
     BTItem btitem;
     BTItem afteritem;
 {
@@ -613,7 +613,7 @@ _bt_pgaddtup(rel, buf, keysz, itup_scankey, itemsize, btitem, afteritem)
 	itup_off++;
     }
 
-    PageAddItem(page, btitem, itemsize, itup_off, LP_USED);
+    PageAddItem(page, (Item) btitem, itemsize, itup_off, LP_USED);
 
     /* write the buffer, but hold our lock */
     _bt_wrtnorelbuf(rel, buf);

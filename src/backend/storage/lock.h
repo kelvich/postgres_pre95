@@ -11,6 +11,7 @@
 #include "utils/hsearch.h"
 
 extern SPINLOCK LockMgrLock;
+typedef int MASK;
 
 #define INIT_TABLE_SIZE		100
 #define MAX_TABLE_SIZE 		1000
@@ -194,17 +195,17 @@ typedef struct Lock {
 void InitLocks();
 void GrantLock ARGS((LOCK *lock, LOCKT lockt));
 void LockDisable ARGS((int status));
-bool LockAcquire ARGS((TableId tableId, LOCKTAG *lockName, LOCKT lockt));
-bool LockRelease ARGS((TableId tableId, LOCKTAG *lockName, LOCKT lockt));
-bool LockReleaseAll ARGS((TableId tableId, SHM_QUEUE *lockQueue));
+bool LockAcquire ARGS((LockTableId tableId, LOCKTAG *lockName, LOCKT lockt));
+bool LockRelease ARGS((LockTableId tableId, LOCKTAG *lockName, LOCKT lockt));
+bool LockReleaseAll ARGS((LockTableId tableId, SHM_QUEUE *lockQueue));
 bool LockingDisabled();
-LockTableId LockTabRename ARGS((TableId tableId));
+LockTableId LockTabRename ARGS((LockTableId tableId));
 int LockShmemSize();
 
 int WaitOnLock ARGS((
 	LOCKTAB *ltable, 
 	LOCK *lock, 
-	TableId tableId, 
+	LockTableId tableId, 
 	LOCKT lockt
 ));
 

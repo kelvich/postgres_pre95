@@ -19,6 +19,7 @@
 #include "access/itup.h"
 #include "access/relscan.h"
 #include "access/skey.h"
+#include "access/sdir.h"
 
 /* ----------------
  *	generalized index_ interface routines

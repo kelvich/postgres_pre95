@@ -22,6 +22,9 @@
 #include "access/skey.h"
 #include "storage/buf.h"
 #include "access/tqual.h"
+#include "access/tupdesc.h"
+#include "utils/rel.h"
+#include "storage/bufpage.h"
 
 /* ----------------
  *	extern decl's
@@ -54,7 +57,7 @@ heap_tuple_satisfies ARGS((
     PageHeader  disk_page,
     TimeQual	qual,
     ScanKeySize	nKeys,
-    struct skey	*key
+    ScanKey key
 ));
 
 /*

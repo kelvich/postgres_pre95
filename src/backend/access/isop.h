@@ -62,7 +62,7 @@ extern
 bool
 StrategyOperatorMapIsValid ARGS((
 	StrategyOperator	operator,
-	Strategy		maxStrategy
+	StrategyNumber		maxStrategy
 ));
 
 /*
@@ -73,7 +73,7 @@ extern
 bool
 StrategyTermIsValid ARGS((
 	StrategyTerm	term,
-	Strategy	maxStrategy
+	StrategyNumber	maxStrategy
 ));
 
 /*
@@ -83,8 +83,8 @@ StrategyTermIsValid ARGS((
 extern
 bool
 StrategyExpressionIsValid ARGS((
-	StrategyExpression	expression
-	Strategy		maxStrategy
+	StrategyExpression	expression,
+	StrategyNumber		maxStrategy
 ));
 
 /*
@@ -114,10 +114,7 @@ StrategyNumber
 RelationGetStrategy ARGS((
 	Relation		relation,
 	AttributeNumber		attributeNumber,
-	StrategyNumber		maxStrategy,
-	StrategyTransformMap	negateTransform,
-	StrategyTransformMap	commuteTransform,
-	StrategyTransformMap	negateCommuteTransform,
+	StrategyEvaluation	evaluation,
 	RegProcedure		procedure
 ));
 

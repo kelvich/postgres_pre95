@@ -17,6 +17,7 @@ RcsId("$Header$");
 #include "access/heapam.h"
 #include "access/hio.h"
 #include "access/htup.h"
+#include "access/xact.h"
 
 #include "storage/block.h"
 #include "storage/buf.h"
@@ -34,7 +35,7 @@ typedef struct l_rellist
 {
     Relation relation;
 
-    PageHeader read_page, write_page;
+    Page read_page, write_page;
     BlockNumber read_blocknum, write_blocknum;
 
     OffsetIndex offset_index;
@@ -252,7 +253,7 @@ HeapTuple tuple;
 
     if (rel_info->write_page == NULL)
     {
-        rel_info->write_page = (PageHeader) palloc(BLCKSZ);
+        rel_info->write_page = (Page) palloc(BLCKSZ);
         PageInit(rel_info->write_page, BLCKSZ, 0);
     }
 

@@ -386,7 +386,8 @@ PageRepairFragmentation ARGS((
 extern
 Page
 PageGetTempPage ARGS((
-	Page	oldPage
+	Page	oldPage,
+	Size	specialSize
 ));
 
 /*

@@ -161,8 +161,8 @@ TransBlockGetLastTransactionIdStatus(tblock, baseXid, returnXid)
     maxIndex = TP_NumXidStatusPerBlock;
     for (index = maxIndex-1; index>=0; index--) {
 	offset =  BitIndexOf(index);
-	bit1 =    ((bits8) BitArrayBitIsSet(tblock, offset++)) << 1;
-	bit2 =    (bits8)  BitArrayBitIsSet(tblock, offset);
+	bit1 =    ((bits8) BitArrayBitIsSet((BitArray) tblock, offset++)) << 1;
+	bit2 =    (bits8)  BitArrayBitIsSet((BitArray) tblock, offset);
 	
 	xstatus =  (bit1 | bit2) ;
 
@@ -174,7 +174,7 @@ TransBlockGetLastTransactionIdStatus(tblock, baseXid, returnXid)
 	 */
 	if (xstatus != XID_INPROGRESS) {
 	    if (returnXid != NULL) {
-		TransactionIdStore(baseXid, returnXid);
+		TransactionIdStore(baseXid, (Pointer) returnXid);
 		TransactionIdAdd(returnXid, index);
 	    }
 	    break;
@@ -190,7 +190,7 @@ TransBlockGetLastTransactionIdStatus(tblock, baseXid, returnXid)
      */
     if (index == 0) {
 	if (returnXid != NULL)
-	    TransactionIdStore(baseXid, returnXid);
+	    TransactionIdStore(baseXid, (Pointer) returnXid);
     }
 
     /* ----------------
@@ -250,8 +250,8 @@ TransBlockGetXidStatus(tblock, transactionId)
      * ----------------
      */
     offset =    BitIndexOf(index);
-    bit1 =      ((bits8)   BitArrayBitIsSet(tblock, offset++)) << 1;
-    bit2 =      (bits8)    BitArrayBitIsSet(tblock, offset);
+    bit1 =      ((bits8)   BitArrayBitIsSet((BitArray) tblock, offset++)) << 1;
+    bit2 =      (bits8)    BitArrayBitIsSet((BitArray) tblock, offset);
     
     /* ----------------
      *	return the transaction status to the caller
@@ -311,16 +311,16 @@ TransBlockSetXidStatus(tblock, transactionId, xstatus)
      */
     switch(xstatus) {
     case XID_COMMIT:             /* set 10 */
-	BitArraySetBit(tblock, offset);
-	BitArrayClearBit(tblock, offset + 1);
+	BitArraySetBit((BitArray) tblock, offset);
+	BitArrayClearBit((BitArray) tblock, offset + 1);
 	break;
     case XID_ABORT:             /* set 01 */
-	BitArrayClearBit(tblock, offset);
-	BitArraySetBit(tblock, offset + 1);
+	BitArrayClearBit((BitArray) tblock, offset);
+	BitArraySetBit((BitArray) tblock, offset + 1);
 	break;
     case XID_INPROGRESS:        /* set 00 */
-	BitArrayClearBit(tblock, offset);
-	BitArrayClearBit(tblock, offset + 1);
+	BitArrayClearBit((BitArray) tblock, offset);
+	BitArrayClearBit((BitArray) tblock, offset + 1);
 	break;
     default:
 	elog(NOTICE,

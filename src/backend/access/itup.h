@@ -377,8 +377,7 @@ ItemPointerFormRetrieveIndexResult ARGS((
 								   && IndexTupleNoRule(itup))
 
 extern Size IndexInfoFindDataOffset ARGS((
-	 unsigned short t_info,
-	 Attribute att
+	 unsigned short t_info
 ));
 
 #endif

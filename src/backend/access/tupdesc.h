@@ -63,7 +63,8 @@ TupleDescInitEntry ARGS((
 	TupleDesc	desc,
 	AttributeNumber	attributeNumber,
 	Name		attributeName,
-	Name		typeName
+	Name		typeName,
+	int         attdim
 ));
 
 #endif	/* !defined(TupDescIncluded) */
