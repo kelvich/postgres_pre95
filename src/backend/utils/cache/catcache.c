@@ -254,6 +254,7 @@ comphash(l, v)
     }
     if (l == 16) {
 	extern etext;
+#ifdef notdef
 	if (v < (char *) &etext) {
 	    /*
 	     * XXX int2, v, is first element of int16[8] key
@@ -262,6 +263,26 @@ comphash(l, v)
 	     * XXX this -hirohama
 	     */
 
+	    return((int16) v);
+#endif /* notdef */
+	/*
+	 *  The ouzo fix -- this is the WRONG thing to do, and the thinking
+	 *  man might wonder WHAT hirohama was thinking about here, but a bet
+	 *  is a bet...  it's now Tue Jan  8 16:24:52 PST 1991, meaning i
+	 *  can beat my five o'clock deadline by a half hour if i do a
+	 *  quick-and-dirty hack here.  the real fix will be installed
+	 *  asap.
+	 *
+	 *  What hirohama wanted was some way to tell the difference between
+	 *  an integer and an address.  In principle, there's no way to do
+	 *  this at this depth in the code.  I happen to know that unless
+	 *  we're really unlucky, and the user is running a single database
+	 *  for a very long time, OIDs are going to stay relatively small,
+	 *  and program addresses will be larger than 2^16.  That's the
+	 *  nasty hack.  In the long term, DON'T SAY THE ARGUMENT IS SIXTEEN
+	 *  BYTES LONG IF IT ISN'T!!!
+	 */
+	if (v < (char *) 32768) {
 	    return((int16) v);
 	} else {
 	    /* XXX char16 special handling */
