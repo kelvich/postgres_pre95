@@ -1566,7 +1566,13 @@ opt_range_end:
 
 boolexpr:
 	  a_expr
-		{ $$ = CDR($1); }
+	    {
+		if (CInteger(CAR($1)) != BOOLOID)
+		    elog(WARN,
+			 "where clause must return type bool, not %s",
+			 tname(get_id_type(CInteger(CAR($1)))));
+		$$ = CDR($1);
+	    }
 	| boolexpr AND boolexpr
 		{ $$ = MakeList ( lispInteger(AND) , $1 , $3 , -1 ); }
 	| boolexpr OR boolexpr
