@@ -15,26 +15,15 @@
 #  purpose. It is provided "as is" without express or implied warranty. 
 #
 
+.include <postgres.global.mk>
+
 #
 #  this package should also compile under gcc with no problem.
 #
-CC = cc
-CFLAGS = -G 0 -g
+CFLAGS+= -G 0
 
-LIBS = dlRef.o dlReloc.o dlInterf.o dlArch.o 
+SRCS= dlRef.c dlReloc.c dlInterf.c dlArch.c
 
-all:	libdl.a 
+LIB=dl
 
-libdl.a: ${LIBS}
-	rm -f libdl.a
-	ar q libdl.a ${LIBS}
-	ranlib libdl.a
-
-clean:
-	rm -f libdl.a $(LIBS)
-
-install:
-	install -m 555 -o bin -g bin libdl.a /usr/local/lib/libdl.a
-
-
-
+.include <postgres.lib.mk>
