@@ -183,19 +183,25 @@ CopyStmt:
 	  relation_name '(' copy_list ')' copy_dirn file_name copy_map
 	
 		{
+		  LispValue temp;
 			$$ = lispCons($1,LispNil);
-			if(! lispNullp($4))
+			/* if(! lispNullp($4)) */
+		          $4 = lispCons($4,LispNil);
+			/* if(! lispNullp($2)) */
+			  $4 = nappend1($4,$2);
+			/* if(! lispNullp($3)) */
+			  $4 = nappend1($4,$3);
 			  $$ = nappend1($$,$4);
-			if(! lispNullp($2))
-			  $$ = nappend1($$,$2);
-			if(! lispNullp($3))
-			  $$ = nappend1($$,$3);
 			$$ = nappend1($$,$8);
 			$$ = nappend1($$,$9);
 			if(! lispNullp($10))
 			  $10 = lispCons($10,LispNil);
 			$$ = nappend1 ($$ , lispCons( KW(USING),$10 ));
-			$$ = nappend1 ($$ , $6 ); /* copy_list */
+			temp = $$;
+			while(temp != LispNil && CDR(temp) != LispNil )
+			  temp = CDR(temp);
+		        CDR(temp) = $6;
+			/* $$ = nappend1 ($$ , $6 ); /* copy_list */
 		}
 	;
 
@@ -297,7 +303,7 @@ archive_type:	  Heavy	| Light	| None	;
 
 OptInherit:
 	  /*EMPTY */				{ NULLTREE }
-	| Inherits '(' relation_name_list ')'	{ lispCons ( $1, $3 ) ; }
+	| Inherits '(' relation_name_list ')'	{ $$ = lispCons ( $1, $3 ) ; }
 	;
 
 
