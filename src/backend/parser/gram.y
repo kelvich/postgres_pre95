@@ -1204,7 +1204,6 @@ ReplaceStmt:
                   if (x==0)
                     x = RangeTablePosn(CString($5),LispNil);
                   parser_current_rel = amopenr(VarnoGetRelname(x));
-                   fflush(stdout);
                   if (parser_current_rel == NULL)
                         elog(WARN,"invalid relation name");
                   ResdomNoIsAttrNo = true; }
@@ -1418,10 +1417,7 @@ where_clause:
 	/* empty - no qualifiers */
 	        { NULLTREE } 
 	| WHERE boolexpr
-		{ 
-		  /*printf("now processing where_clause\n");*/
-		  fflush(stdout);
-		  $$ = $2; p_qual = $$; }
+		{ $$ = $2; p_qual = $$; }
 	;
 opt_portal:
   	/* common to retrieve, execute */

@@ -64,7 +64,6 @@ RuleIdGetActionInfo ( ruleoid )
 #endif
 	}
     }
-    fflush(stdout);
 
     amclose ( ruleRelation );
     return (lispCons(rule_evqual,ruleparse));

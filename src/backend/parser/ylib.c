@@ -39,8 +39,6 @@ parser(str, l)
  */
 
     /* Set things up to read from the string, if there is one */
-    /* DB_PARSE("parser got : %s\n",str);  
-    fflush(stdout); */
     if (strlen(str) != 0) {
 	StringInput = 1;
 	TheString = (char *) palloc(strlen(str) + 1);
@@ -51,15 +49,9 @@ parser(str, l)
       parser_init();
       yyresult = yyparse();
       
-      /* DB_PARSE("parse_string is %s\n",str); */
-      
-      fflush(stdout);
       clearerr(stdin);
       
       if (yyresult) {	/* error */
-	/* DB_PARSE("parser error\n");
-	   printf("parse_string is %s\n",str); */
-	fflush(stdout);
 	CAR(l) = LispNil;
 	CDR(l) = LispNil;
 	return(-1);

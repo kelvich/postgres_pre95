@@ -209,11 +209,6 @@ MakeRangeTableEntry( relname , options , refname)
     Relation relation;
     extern Relation amopenr();
     
-    /*printf("relname is : %s\n",(char *)relname); 
-      fflush(stdout);*/
-    
-    /* index = RangeTablePosn (relname,options); */
-    
     relation = amopenr( relname );
     if ( relation == NULL ) {
 	elog(WARN,"amopenr on %s failed\n",relname);
@@ -293,8 +288,6 @@ ExpandAll(relname,this_resno)
 
 	for ( i = maxattrs-1 ; i > -1 ; --i ) {
 		char *attrname = (char *)(&rdesc->rd_att.data[i]->attname);
-		/* printf("%s\n",attrname);
-		fflush(stdout);*/
 		temp = make_var ( relname, attrname );
 		varnode = (Var)CDR(temp);
 		type_id = CInteger(CAR(temp));
@@ -715,9 +708,6 @@ make_const( value )
 	LispValue temp;
 	Datum val;
 
-/*	printf("in make_const\n");*/
-	fflush(stdout);
-
 	switch( value->type ) {
 	  case PGLISP_INT:
 	    tp = type("int4");
@@ -748,15 +738,11 @@ make_const( value )
 	    
 	  default: 
 	    elog(NOTICE,"unknown type : %d\n", value->type );
-	    fflush (stdout);
 	    /* null const */
 	    return ( lispCons (LispNil , 
 			       MakeConst ( 0 , 0 , 
 					  LispNil , 1 )) );
 	}
-
-/*	printf("tid = %d , tlen = %d\n",typeid(tp),tlen(tp));*/
-	fflush(stdout);
 
 	temp = lispCons (lispInteger ( typeid (tp)) ,
 			  MakeConst(typeid( tp ), tlen( tp ),

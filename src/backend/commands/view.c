@@ -80,9 +80,7 @@ DefineVirtualRelation ( relname , tlist )
 	
     } else
 	elog ( WARN, "attempted to define virtual relation with no attrs");
-    printf("\n%s\n\n",querybuf);
     pg_eval(querybuf);
-    fflush(stdout);
 }    
 
 #ifdef BOGUS

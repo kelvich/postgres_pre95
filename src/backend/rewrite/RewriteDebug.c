@@ -49,11 +49,6 @@ Print_quals ( quals )
     printf("where ");
     Print_expr(quals);
     printf("\n");
-#ifdef OLDCODE
-    printf("\nQualifications = \n");
-    lispDisplay(quals,0);
-    fflush(stdout);
-#endif
 }
 /*
  * expressions can consist of varnodes, constnodes, opnodes, 
@@ -146,7 +141,6 @@ Print_targetlist ( tlist )
 	  printf(", ");
     }
     printf(" )\n");
-    fflush(stdout);
 }
 #define rt_refname(rt_entry) CAR(rt_entry)
 #undef rt_relname(rt_entry)

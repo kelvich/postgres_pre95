@@ -313,8 +313,6 @@ RangeTablePosn ( rangevar , options )
 	int inherit = 0;
 	int timerange = 0;
 
-	/*printf("Looking for relation : %s\n",rangevar);
-	fflush(stdout);*/
 	index = 1;
 	temp = p_rtable;
 	while ( ! lispNullp (temp )) {
