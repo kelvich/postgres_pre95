@@ -270,6 +270,9 @@ DATA(insert OID = 207 (  float4abs         6 11 f t f 1 f 700 "700 700" 100 0 0 
 DATA(insert OID = 208 (  float4inc         6 11 f t f 1 f 700 "700 700" 100 0 0 100  foo bar ));
 DATA(insert OID = 209 (  float4larger      6 11 f t f 2 f 700 "700 700" 100 0 0 100  foo bar ));
 DATA(insert OID = 211 (  float4smaller     6 11 f t f 2 f 700 "700 700" 100 0 0 100  foo bar ));
+
+DATA(insert OID = 212 (  int4um            6 11 f t f 1 f 23 "23" 100 0 0 100  foo bar ));
+DATA(insert OID = 213 (  int2um            6 11 f t f 1 f 21 "21" 100 0 0 100  foo bar ));
     
 DATA(insert OID = 214 (  float8in          6 11 f t f 1 f 701 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 215 (  float8out         6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));

@@ -165,6 +165,8 @@ DATA(insert OID = 554 (  "-"       6 0 b t f  21  21  21   0   0   0   0 int2mi 
 DATA(insert OID = 555 (  "-"       6 0 b t f  23  23  23   0   0   0   0 int4mi intltsel intltjoinsel ));
 DATA(insert OID = 556 (  "-"       6 0 b t f  21  23  23   0   0   0   0 int24mi intltsel intltjoinsel ));
 DATA(insert OID = 557 (  "-"       6 0 b t f  23  21  23   0   0   0   0 int42mi intltsel intltjoinsel ));
+DATA(insert OID = 0   (  "-"       6 0 l t f   0  23  23  0   0   0   0 int4um intltsel intltjoinsel ));
+DATA(insert OID = 0   (  "-"       6 0 l t f   0  21  21  0   0   0   0 int2um intltsel intltjoinsel ));
 DATA(insert OID = 558 (  "="       6 0 b t t  26  26  16 558 559   0   0 oideq intltsel intltjoinsel ));
 DATA(insert OID = 559 (  "!="      6 0 b t f  26  26  16 559 558   0   0 oidneq neqsel neqjoinsel ));
 DATA(insert OID = 560 (  "="       6 0 b t t 702 702  16 560 561 562 562 abstimeeq eqsel eqjoinsel ));
