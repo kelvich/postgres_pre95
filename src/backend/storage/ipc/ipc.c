@@ -733,8 +733,8 @@ IPCKey key;
 				    0700);
     AttachSLockMemory(key);
     *FreeSLockPP = NULL;
-    *UnusedSLockIP = (SLock) FIRSTFREELOCKID;
-    for (id=0; id<(LockId)FIRSTFREELOCKID; id++) {
+    *UnusedSLockIP = (int)FIRSTFREELOCKID;
+    for (id=0; id<(int)FIRSTFREELOCKID; id++) {
 	slckP = &(SLockArray[id]);
 	S_INIT_LOCK(&(slckP->locklock));
 	slckP->flag = NOLOCK;
