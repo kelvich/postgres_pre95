@@ -7,13 +7,13 @@ purge \*- discard historical data
 .uh SYNOPSIS
 .lp
 .b purge
-relname [
+classname [
 .b before
 abstime ] 
 .uh DESCRIPTION
 .lp
 .b Purge
-allows a user to specify the historical retention properties of a relation.
+allows a user to specify the historical retention properties of a class.
 The date specified is an absolute time such as 
 Jan 1 1987, and
 \*(PP will discard tuples whose validity expired before the indicated time.
@@ -23,16 +23,16 @@ with no
 clause is equivalent to
 .q "purge before now."
 Until specified with a purge command,
-tuple preservation defaults to
+instance preservation defaults to
 .q "forever."
 .lp
-The user may purge a relation at any time as long
+The user may purge a class at any time as long
 as the purge date never decreases.
 \*(PP will enforce this restriction, silently.
 .uh EXAMPLE
 .lp
 .nf
-\* Always discard data in the EMP relation prior to January 1, 1989 \*
+\* Always discard data in the EMP class prior to January 1, 1989 \*
 
    purge EMP before "January 1, 1989"
 	

@@ -4,12 +4,12 @@
 .XA 2 Delete
 .uh NAME
 .lp
-delete \*- delete tuples from a relation
+delete \*- delete instances from a class
 .uh SYNOPSIS
 .lp
 .b delete [\c
 .b * ]
-tuple_variable [ 
+instance_variable [ 
 .b from
 from_list ] [
 .b where
@@ -17,18 +17,18 @@ qual ]
 .uh DESCRIPTION
 .lp
 .b Delete
-removes tuples which satisfy the qualification,
+removes instances which satisfy the qualification,
 .i qual ,
 from the
-relation specified by
-.i tuple_variable .
-.i Tuple_variable
-is either a relation name or a variable assigned by
+class specified by
+.i instance_variable .
+.i Instance_variable
+is either a class name or a variable assigned by
 .i from_list .
 If the qualification is absent,
 the effect is to delete all
-tuples in the relation.
-The result is a valid, but empty relation.
+instances in the class.
+The result is a valid, but empty class.
 .sp
 The
 .q *
@@ -42,7 +42,7 @@ will run the command until it produces no further effect.
    delete emp where emp.sal > 30000
 .fi
 .sp
-/* Clear the hobbies relation */
+/* Clear the hobbies class */
 
    delete hobbies
 .uh "SEE ALSO"
