@@ -41,6 +41,7 @@
 #include "cat.h"
 #include "att.h"
 #include "rel.h"
+#include "attnum.h"
 
 /* 
 require ("cstructs");
@@ -147,14 +148,14 @@ get_attname (relid,attnum)
 AttributeNumber
 get_attnum (relid,attname)
      ObjectId relid;
-     NameData attname ;
+     Name attname ;
 {
 	Attribute  att_tup = new(AttributeTupleFormD);
 
 	if(SearchSysCacheStruct (ATTNAME,att_tup,relid,attname,0,0) ) 
 	  return(att_tup->attnum);
 	else
-	  return((AttributeNumber)NULL);
+	  return(InvalidAttributeNumber);
 }
 
 /*    
