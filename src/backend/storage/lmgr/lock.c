@@ -1034,7 +1034,7 @@ LOCKTAG	*l1,*l2;
   int	c1,c2;
   int	i;
 
-  if (l2->tupleId.positionData != -10) return;
+  if (l2->tupleId.positionData != (unsigned short) (-10)) return;
 
   res1 = (char *) l1;
   res2 = (char *) l2;
