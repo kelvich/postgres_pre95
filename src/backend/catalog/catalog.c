@@ -26,6 +26,7 @@ RcsId("$Header$");
 char	AGGREGATE_R[16] = 	"pg_aggregate";
 char	AM_R[16] = 		"pg_am";
 char	AMOP_R[16] = 		"pg_amop";
+char	AMPROC_R[16] = 		"pg_amproc";
 char	ATTRIBUTE_R[16] = 	"pg_attribute";
 char	DATABASE_R[16] = 	"pg_database";
 char	DEFAULTS_R[16] = 	"pg_defaults";
@@ -68,6 +69,7 @@ static char *SystemRelname[] = {
     AGGREGATE_R,
     AM_R,
     AMOP_R,
+    AMPROC_R,
     ATTRIBUTE_R,
     DATABASE_R,
     DEFAULTS_R,
@@ -108,6 +110,7 @@ static	char	IsDbdb[] = {
     '\0',	    /* AGGREGATE_R, 	*/
     '\0',	    /* AM_R,            */
     '\0',	    /* AMOP_R,          */
+    '\0',	    /* AMPROC_R,        */
     '\0',	    /* ATTRIBUTE_R,     */
     '\001',	    /* DATABASE_R,      */
     '\001',	    /* DEFAULTS_R,      */
