@@ -42,7 +42,7 @@ typedef PositionIdData	*PositionId;	/* position identifier */
  * PositionIdSetInValid --
  *      Make an invalid postion.
  */
-#define PositionIdSetInvalid(positionId) *(positionId) & 0x0
+#define PositionIdSetInvalid(positionId) *(positionId) = *(positionId) & 0x0
 
 /*
  * PositionIdSet --
