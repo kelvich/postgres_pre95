@@ -21,6 +21,7 @@
 #include "oid.h"
 #include "tim.h"
 #include "xid.h"
+#include "prs2locks.h"
 
 #ifdef FMGR_ADT
 #include "geo-decls.h"
@@ -268,5 +269,9 @@ extern long	char16regexeq();
 
 extern bool int4notin();
 extern bool oidnotin();
+
+/* rule locks */
+extern RuleLock		StringToRuleLock();
+extern char		*RuleLockToString();
 
 #endif !BuiltinsIncluded
