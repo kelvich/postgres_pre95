@@ -339,26 +339,13 @@ _sjcacheinit()
      */
     bzero((char *) SJNBlockCache, SJNBLKSIZE * sizeof(SJCacheTag));
 
-    /*
-     *  Add every group that appears in the cache to the hash table.  Since
-     *  we have no references to any of these groups yet, they all appear on
-     *  the free list.
-     */
-
+    /* add every group that appears in the cache to the hash table */
     for (i = 0; i < nentries; i++) {
 	cur = &(SJCache[i]);
 	result = _sjhashop(&(cur->sjc_tag), HASH_ENTER, &found);
 
 	/* store the group number for this key in the hash table */
 	result->sjhe_groupno = i;
-
-	/* link up free list -- no info yet, so just link groups in order */
-	cur->sjc_freeprev = i - 1;
-	if (i == SJCACHESIZE - 1) {
-	    cur->sjc_freenext = -1;
-	} else {
-	    cur->sjc_freenext = i + 1;
-	}
 
 	/* no io in progress */
 	cur->sjc_gflags &= ~SJC_IOINPROG;
@@ -370,25 +357,67 @@ _sjcacheinit()
     }
 
     /*
-     *  Put the rest of the cache entries on the free list, marking them as
-     *  missing by setting the oid entry to InvalidObjectId.
+     *  Now construct the LRU list (free list).  Extents will be nominated
+     *  for reuse in this order.  Since we have no usage information, we
+     *  adopt the following policy:  any extents not yet allocated in the
+     *  cache are come first in the list, in order.  These are followed by
+     *  the allocated extents, in order.  The free list head is the first
+     *  unallocated extent, and its tail is the last allocated one.  This
+     *  list is doubly-linked and is not circular.
      */
 
-    for (i = nentries; i < SJCACHESIZE; i++) {
+    if (nentries == SJCACHESIZE || nentries == 0) {
 	cur = &(SJCache[i]);
-	cur->sjc_oid = InvalidObjectId;
 	cur->sjc_freeprev = i - 1;
+
 	if (i == SJCACHESIZE - 1) {
 	    cur->sjc_freenext = -1;
 	} else {
 	    cur->sjc_freenext = i + 1;
 	}
+
+	/* list head, tail pointers */
+	SJHeader->sjh_freehead = 0;
+	SJHeader->sjh_freetail = SJCACHESIZE - 1;
+    } else {
+	for (i = 0; i < nentries; i++) {
+	    cur = &(SJCache[i]);
+
+	    if (i == 0)
+		cur->sjc_freeprev = SJCACHESIZE - 1;
+	    else
+		cur->sjc_freeprev = i - 1;
+
+	    if (i == nentries - 1)
+		cur->sjc_freenext = -1;
+	    else
+		cur->sjc_freenext = i + 1;
+	}
+
+	for (i = nentries; i < SJCACHESIZE; i++) {
+	    cur = &(SJCache[i]);
+
+	    /* mark this as unused by setting oid to invalid object id */
+	    cur->sjc_oid = InvalidObjectId;
+
+	    if (i == nentries)
+		cur->sjc_freeprev = -1;
+	    else
+		cur->sjc_freeprev = i - 1;
+
+	    if (i == SJCACHESIZE - 1)
+		cur->sjc_freenext = 0;
+	    else
+		cur->sjc_freenext = i + 1;
+	}
+
+	/* list head, tail pointers */
+	SJHeader->sjh_freehead = nentries;
+	SJHeader->sjh_freetail = nentries - 1;
     }
 
     /* set up cache metadata header struct */
     SJHeader->sjh_nentries = 0;
-    SJHeader->sjh_freehead = 0;
-    SJHeader->sjh_freetail = SJCACHESIZE - 1;
     SJHeader->sjh_flags = SJH_INITED;
 }
 
@@ -1973,7 +2002,15 @@ sjmaxseg(plid)
     last = InvalidBlockNumber;
     group = (SJGroupDesc *) &(SJCacheBuf[0]);
 
-    for (i = 0; i < SJHeader->sjh_nentries; i++) {
+    /*
+     *  Walk backwards along the free list.  If we ever hit an unallocated
+     *  block, we can stop searching.  Otherwise, we'll hit the head of the
+     *  list when freeprev == -1.
+     */
+
+    for (i = SJHeader->sjh_freetail;
+	 i != -1 && SJCache[i].sjc_oid != InvalidObjectId;
+	 i = SJCache[i].sjc_freeprev) {
 
 	/* if IO_IN_PROG is set, we need to look at the group desc on disk */
 	if (SJCache[i].sjc_gflags & SJC_IOINPROG) {
