@@ -200,6 +200,89 @@ ExecEvalArrayRef(arrayRef, econtext, isNull, isDone)
     }
 }
 
+Datum
+ExecExtractResult(slot, attnum, isNull)
+    TupleTableSlot  slot;
+    AttributeNumber attnum;
+    Boolean         *isNull;
+{
+    ExecTupDescriptor	execTd;
+    TupleDescriptor	td;
+    HeapTuple		tuple;
+    Buffer		buffer;
+    DatumPtr		values;
+    char		*nullVect;  
+    int			count;
+    int			subTupNatts;
+    AttributeNumber	subTupAtt;
+    TupleTableSlot	resultSlot;
+
+    execTd = SlotExecTupDescriptor(slot);
+
+    if (execTd->data[attnum-1]->tag == ATTVAL)
+    {
+	return (Datum)
+	    heap_getattr(ExecFetchTuple(slot),
+		         ExecSlotBuffer(slot),
+		         attnum,
+		         ExecSlotDescriptor(slot),
+		         isNull);
+    }
+
+    *isNull = false;
+    subTupNatts = execTd->data[attnum-1]->len;
+    td = ExecSlotDescriptor(slot);
+    tuple = (HeapTuple)ExecFetchTuple(slot);
+    buffer = ExecSlotBuffer(slot);
+
+    values = (DatumPtr)palloc(subTupNatts*sizeof(Datum));
+    nullVect = (char *)palloc(subTupNatts*sizeof(char));
+
+    /*
+     * Figure out where in the context of the larger tuple to begin
+     * searching for the sub tuples attributes.  Note that attribute
+     * numbers are 1 based.
+     */
+    count = 0;
+    subTupAtt = 1;
+    while (count < (attnum-1))
+	subTupAtt += execTd->data[count++]->len;
+
+    count = 0;
+    while (count < subTupNatts)
+    {
+	bool attrIsNull;
+
+	values[count] = (Datum)
+	    heap_getattr(tuple,
+			 buffer,
+			 subTupAtt,
+			 (struct attribute **)&td->data[0],
+			 &attrIsNull);
+	
+	if (attrIsNull)
+	    nullVect[count] = 'n';
+	else
+	    nullVect[count] = ' ';
+	
+	count++;
+	subTupAtt++;
+    }
+
+    td = execTd->data[attnum-1]->attdesc;
+    tuple = heap_formtuple(subTupNatts, td, values, nullVect);
+    resultSlot = MakeTupleTableSlot(false,
+				    true,
+				    ExecCopyTupType(td, subTupNatts),
+				    NULL,
+				    InvalidBuffer,
+				    -1);
+    return (Datum)
+	ExecStoreTuple((Pointer) tuple,
+		       (Pointer) resultSlot,
+		       InvalidBuffer,
+		       true);
+}
 /* ----------------------------------------------------------------
  *    	ExecEvalVar
  *    
@@ -221,6 +304,7 @@ ExecEvalVar(variable, econtext, isNull)
     TupleTableSlot  	slot;
     AttributeNumber 	attnum;
     TupleDescriptor    	tupType;
+    ExecTupDescriptor	execTupDesc;
     Buffer	    	tupBuffer;
     List	    	array_info;
     
@@ -262,22 +346,50 @@ ExecEvalVar(variable, econtext, isNull)
 	    
     /*
      * If the attribute number is invalid, then we are supposed to
-     * return the entire tuple, we give back the whole slot so that
+     * return the entire tuple, we give back a whole slot so that
      * callers know what the tuple looks like.
      */
     if (attnum == InvalidAttributeNumber)
-	return (Datum) slot;
+    {
+	TupleTableSlot  tempSlot;
+	TupleDescriptor td;
+	HeapTuple       tup;
+
+	tempSlot = MakeTupleTableSlot(false,
+				      true,
+				      (TupleDescriptor)NULL,
+				      (TupleDescriptor)NULL,
+				      InvalidBuffer,
+				      -1);
+
+	tup = (HeapTuple)heap_copysimple(ExecFetchTuple(slot));
+	td = (TupleDescriptor)
+		ExecCopyTupType(ExecSlotDescriptor(slot), tup->t_natts);
+	ExecSetSlotDescriptor(tempSlot, td);
+
+	ExecStoreTuple(tup, tempSlot, InvalidBuffer, true);
+	return (Datum) tempSlot;
+    }
 
     /* ----------------
-     *	get the attribute our of the tuple.
+     *	get the attribute our of the tuple.  Note that
+     *  now the attribute could be much more than a simple datum.
      * ----------------
      */
-    result =  (Datum)
-	heap_getattr(heapTuple,	 /* tuple containing attribute */
-		     buffer,	 /* buffer associated with tuple */
-		     attnum,	 /* attribute number of desired attribute */
-		     tuple_type, /* tuple descriptor of tuple */
-		     isNull);	 /* return: is attribute null? */
+    execTupDesc = SlotExecTupDescriptor(slot);
+    if (execTupDesc->data[attnum-1]->tag == ATTTUP)
+    {
+	result = ExecExtractResult(slot, attnum, isNull);
+    }
+    else
+    {
+	result =  (Datum)
+	    heap_getattr(heapTuple,  /* tuple containing attribute */
+		         buffer,     /* buffer associated with tuple */
+		         attnum,     /* attribute number of desired attribute */
+		         tuple_type, /* tuple descriptor of tuple */
+		         isNull);    /* return: is attribute null? */
+    }
 
     /* ----------------
      *	return null if att is null
@@ -1144,6 +1256,133 @@ ExecQual(qual, econtext)
     
     return true;
 }
+
+HeapTuple
+ExecFormComplexResult(tlist, natts, tdesc, values, nulls)
+    List            tlist;
+    int             natts;
+    TupleDescriptor tdesc;
+    Datum           *values;
+    char            *nulls;
+{
+    TupleDescriptor flatTd;
+    Datum           *flatValues;
+    char            *flatNulls;
+    int             flatInd;
+    int             flatNatts;
+    int             complexInd;
+    TupleTableSlot  *foundslots;
+    TupleTableSlot  *slotbase;
+    TupleTableSlot  slot;
+    HeapTuple       resultTup;
+    List            tlistP;
+
+    slotbase = (TupleTableSlot *)palloc ((natts+1)*sizeof(TupleTableSlot));
+    bzero(slotbase, ((natts+1)*sizeof(TupleTableSlot)));
+    foundslots = slotbase;
+
+    /*
+     * we make two passes through the target list - one to figure
+     * out just how many attributes we are dealing with and another
+     * to get all the aforementioned attributes.
+     */
+    flatNatts = 0;
+    complexInd = 0;
+    foreach(tlistP, tlist)
+    {
+	List tle = CAR(tlistP);
+	/*
+	 * Since we are dealing with a complex result we know that we
+	 * are not at the top of the plan tree and therefore we know
+	 * that we have only resdoms and expressions (i.e. no Fjoins)
+	 */
+	if ( get_rescomplex((Resdom)tl_resdom(tle)) )
+	{
+	    HeapTuple      tuple;
+
+	    slot  = (TupleTableSlot)values[complexInd];
+	    tuple =  (HeapTuple)ExecFetchTuple(slot);
+	    flatNatts += tuple->t_natts;
+	}
+	else
+	    flatNatts++;
+
+	complexInd++;
+    }
+    flatTd = CreateTemplateTupleDesc(flatNatts);
+    flatValues = (Datum *)palloc(flatNatts*sizeof(Datum));
+    flatNulls = (char *)palloc(flatNatts*sizeof(char));
+
+    complexInd = flatInd = 0;
+    foreach(tlistP, tlist)
+    {
+	
+	List tle = CAR(tlistP);
+	/*
+	 * Since we are dealing with a complex result we know that we
+	 * are not at the top of the plan tree and therefore we know
+	 * that we have only resdoms and expressions (i.e. no Fjoins)
+	 */
+	if ( get_rescomplex((Resdom)tl_resdom(tle)) )
+	{
+	    int             i;
+	    HeapTuple       tuple;
+	    TupleDescriptor subDesc;
+	    Resdom          res   = (Resdom)tl_resdom(tle);
+
+	    slot  = (TupleTableSlot)values[complexInd];
+	    tuple =  (HeapTuple)ExecFetchTuple(slot);
+	    subDesc = ExecSlotDescriptor(slot);
+	    heap_deformtuple(tuple,
+			     subDesc,
+			     &flatValues[flatInd],
+			     &flatNulls[flatInd]);
+	    *foundslots++ = slot;
+	    for (i = 0; i < tuple->t_natts; i++, flatInd++)
+	    {
+		flatTd->data[flatInd] = (AttributeTupleForm)
+		    palloc(sizeof(AttributeTupleFormD));
+		bcopy(subDesc->data[i],
+		      flatTd->data[flatInd],
+		      sizeof(AttributeTupleFormD));
+	    }
+	}
+	else
+	{
+	    flatTd->data[flatInd] = (AttributeTupleForm)
+		    palloc(sizeof(AttributeTupleFormD));
+
+	    bcopy(tdesc->data[complexInd],
+		  flatTd->data[flatInd],
+		  sizeof(AttributeTupleFormD));
+
+	    flatValues[flatInd] = values[complexInd];
+	    flatInd++;
+	}
+	complexInd++;
+    }
+
+    resultTup = (HeapTuple)heap_formtuple(flatNatts,
+					  flatTd,
+					  flatValues,
+					  flatNulls);
+    /*
+     * Be tidy and free up our constructed tuple descriptor and all slots
+     * that we found.
+     */
+#ifdef BETIDYMER
+    for (flatInd = 0; flatInd < flatNatts; flatInd++)
+	pfree(flatTd->data[flatInd]);
+    pfree (complexTd);
+    while ((slot = *slotbase) != (TupleTableSlot)NULL)
+    {
+	pfree(ExecFetchTuple(slot));
+	pfree(slot);
+	slotbase++;
+    }
+#endif
+    return resultTup;
+}
  
 int
 ExecTargetListLength(targetlist)
@@ -1200,6 +1439,7 @@ ExecTargetList(targetlist, nodomains, targettype, values, econtext, isDone)
     HeapTuple 		newTuple;
     MemoryContext	oldContext;
     GlobalMemory  	tlContext;
+    Boolean		complexResult;
     Boolean 		isNull;
 
     /* ----------------
@@ -1256,6 +1496,7 @@ ExecTargetList(targetlist, nodomains, targettype, values, econtext, isDone)
     EV_printf("ExecTargetList: setting target list values\n");
 
     *isDone = true;
+    complexResult = false;
     foreach (tl, targetlist) {
 	/* ----------------
 	 *    remember, a target list is a list of lists:
@@ -1281,6 +1522,9 @@ ExecTargetList(targetlist, nodomains, targettype, values, econtext, isDone)
 
 	    if ((ExactNodeType(expr,Iter)) && (*isDone))
 		return (HeapTuple)NULL;
+
+	    if (get_rescomplex(resdom))
+		complexResult = true;
 
 	    ExecSetTLValues(resind, values, constvalue);
 	
@@ -1340,8 +1584,15 @@ ExecTargetList(targetlist, nodomains, targettype, values, econtext, isDone)
      * 	form the new result tuple (in the "normal" context)
      * ----------------
      */
-    newTuple = (HeapTuple)
-	heap_formtuple(nodomains, targettype, values, null_head);
+    if (complexResult)
+	newTuple = (HeapTuple) ExecFormComplexResult(targetlist,
+						     nodomains,
+						     targettype,
+						     values,
+						     null_head);
+    else
+	newTuple = (HeapTuple)
+	    heap_formtuple(nodomains, targettype, values, null_head);
 
     /* ----------------
      *	free the nulls array if we allocated one..
@@ -1352,7 +1603,7 @@ ExecTargetList(targetlist, nodomains, targettype, values, econtext, isDone)
     return
 	newTuple;
 }
- 
+
 /* ----------------------------------------------------------------
  *    	ExecProject
  *    
@@ -1373,6 +1624,7 @@ ExecProject(projInfo, isDone)
 {
     TupleTableSlot	slot;
     List 	 	targetlist;
+    List 	 	tle;
     int 	 	len;
     TupleDescriptor 	tupType;
     Pointer 	 	tupValue;
