@@ -1,7 +1,6 @@
 
 /*     
- *      FILE
- *     	utility.l
+ * utility.c --
  *     
  *      DESCRIPTION
  *     	Contains functions which control the execution of the
@@ -9,23 +8,18 @@
  *     	the Lisp and C systems.
  *     
  */
-/*
-require ("nodeDefs");
-require ("parsetree");
-require ("pgmacs");
-*/
+
+#include "c.h"
+
+RcsId("$Header$");
 
 #include "creatinh.h"
-#include "pg_lisp.h"
-
-/* temporary stuff */
-#define declare(x) /* x */
+#include "defrem.h"
+#include "pg_lisp.h"		/* lisp-compat package */
 
 extern int PG_INTERACTIVE;
 
 #include "parse.h"		/* y.tab.h, created by yacc'ing gram.y */
-#include "pg_lisp.h"		/* lisp-compat package */
-#include "c.h"			/* generic defns, needed for bools here */
 #include "log.h"		/* error logging */
 
 /*   
@@ -43,9 +37,9 @@ LispValue
 utility_end (name)
 LispValue name ;
 {
+#if 0
 	declare (special (PG_INTERACTIVE));
 	/* XXX unless interactive?  why not always? */
-#if 0
 	if (!PG_INTERACTIVE) {
 		endportal(name);
 	}
@@ -63,66 +57,63 @@ utility_invoke (command, args)
 {
 	switch (command) {
 #if 0
-	  /*    transactions */
+		/* transactions */
 	case BEGIN_TRANS:
-	  if ( null (args) ) {
-	       start_transaction_block ();
-	  } else {
-	       cons (command,args);
-	  }
-	  break;
-
+		if ( null (args) ) {
+			start_transaction_block ();
+		} else {
+			cons (command,args);
+		}
+		break;
 	case END_TRANS:
-	  if ( null (args) ) {
-	       commit_transaction_block ();
-	  } else {
-	       cons (command,args);
-	  };
-	  break;
-	  
+		if ( null (args) ) {
+			commit_transaction_block ();
+		} else {
+			cons (command,args);
+		};
+		break;
 	case ABORT_TRANS:
-	  if ( null (args) ) {
-	       abort_transaction_block ();
-	  } else {
-	       cons (command,args);
-	  }
-	  break;
+		if ( null (args) ) {
+			abort_transaction_block ();
+		} else {
+			cons (command,args);
+		}
+		break;
 #endif
 #if 0
-	  /*    portal manipulation */
+		/* portal manipulation */
 	case CLOSE:
-	  {
-	       LispValue portal_name;
-	       foreach (portal_name, args) {
-		    if (! lispStringp(portal_name))
-		      elog(WARN,"portal list not strings");
-		    else
-		      portal_close (CString(portal_name));
-	       }
-	  }
-	  break;
-	  
+	{
+		LispValue portal_name;
+		foreach (portal_name, args) {
+			if (! lispStringp(portal_name))
+				elog(WARN,"portal list not strings");
+			else
+				portal_close (CString(portal_name));
+		}
+	}
+		break;
 	case FETCH:
 
-	  portal_fetch (CString(CAR (args)),     	/*  portal name */
+		portal_fetch(CString(CAR(args)),     	/* portal name */
 			((CInteger(CADR(args)) ==  FORWARD) ?
-			 true : false ),		/* forward ? */
+				true : false ),		/* forward ? */
 			CInteger(CADDR (args)));	/* ntups to scan 
 							   -1 means "ALL" */
-	  break;
+		break;
 
 	case MOVE:
-	  portal_move (CAR (args),
-		       ((CInteger(CADR(args)) ==  FORWARD) ?
-			 true : false ),		/* forward ? */
-		       CInteger(CADDR (args)));	/* ntups to scan 
-						   -1 means "ALL" */
-	  break;
+		portal_move (CAR (args),
+			((CInteger(CADR(args)) ==  FORWARD) ?
+				true : false ),		/* forward ? */
+			CInteger(CADDR (args)));	/* ntups to scan 
+							   -1 means "ALL" */
+		break;
 #endif
 
-	/*
-	 * relation and attribute manipulation
-	 */
+		/*
+		 * relation and attribute manipulation
+		 */
 	case CREATE:
 		DefineRelation(CAR(args),	/*  relation name */
 			CADR(args),		/*  parameters */
@@ -144,110 +135,191 @@ utility_invoke (command, args)
 
 #if 0	  
 	case PURGE:
-	  relation_purge (CAR(args),		/*  relation name */
-			  CADR(args));
-	  break;
+		relation_purge (CAR(args),		/* relation name */
+			CADR(args));
+		break;
 
-	  /*  tags/date alist */
-	  
+		/* tags/date alist */
 	case COPY:
-	  /*
-	  relation_transform (CAR(CARargs),
-			      CADR(CAR(args)),
-			      nth (2,nth (0,args))
-			      ,nth (0,nth (1,args))
-			      ,nth (1,nth (1,args))
-			      ,nth (1,nth (2,args))
-			      ,nthcdr (3,args));
-			      */
-	  break;
+		relation_transform (CAR(CARargs),
+			CADR(CAR(args)),
+			nth (2,nth (0,args))
+			,nth (0,nth (1,args))
+			,nth (1,nth (1,args))
+			,nth (1,nth (2,args))
+			,nthcdr (3,args));
+		break;
 
-	  /*  domain list */
+		/* domain list */
 
 	case ADD_ATTR:
-	  relation_add_attribute (CAR (args),	       /*  relation name */
-				  CDR (args));
-	  break;
+		relation_add_attribute (CAR (args),	/* relation name */
+			CDR (args));
+		break;
 
-	  /*  schema */
-	  
+		/* schema */
 	case RENAME:
-	  rename_utility_invoke (CAR (args),cdr (args));
-	  break;
+		rename_utility_invoke (CAR (args),cdr (args));
+		break;
 #endif
-#if 0
-	  /*    object creation */
-
+		/* object creation */
 	case DEFINE:
-		switch(CInteger(CAR(args))) {
-		case INDEX:
-			index_define(CString(CAR(args)), /* relation name */
-				CADR(args),		/* index name */
-				CADDR (args),		/* am name */
-				cadddr (args),		/* parameters */
-				caddddr (args));
+#ifndef	PERFECTPARSER
+		AssertArg(listp(args));
+		/*
+		 * Index is an integer; Type, etc. are atoms?!?
+		 */
+		AssertArg(atom(CAR(args)) || integerp(CAR(args)));
+#endif
+		switch(LISPVALUE_INTEGER(CAR(args))) {
+		case INDEX:	/* XXX no support for ARCHIVE indices, yet */
+			args = CDR(args);	/* skip "INDEX" token */
+#ifndef	PERFECTPARSER
+			AssertArg(listp(args));
+			AssertArg(lispStringp(CAR(args)));
+			AssertArg(listp(CDR(args)));
+			AssertArg(lispStringp(CADR(args)));
+			AssertArg(listp(CDR(CDR(args))));
+			AssertArg(lispStringp(CADDR(args)));
+			AssertArg(listp(CDR(CDR(CDR(args)))));
+			AssertArg(listp(CDR(CDR(CDR(CDR(args))))));
+#endif
+			DefineIndex(CString(CAR(args)), /* relation name */
+				CString(CADR(args)),	/* index name */
+				CString(CADDR(args)),	/* am name */
+				CADDR(CDR(args)),	/* parameters */
+				CADDR(CDR(CDR(args))));	/* with */
 			break;
 		case OPERATOR:
-			operator_define (CAR (args)
-				/*  operator name */
-				,cdr (args));
-			/*  remaining arguments */
+			args = CDR(args);	/* skip "OPERATOR" token */
+#ifndef	PERFECTPARSER
+			AssertArg(listp(args));
+			AssertArg(lispStringp(CAR(args)));
+			AssertArg(listp(CDR(args)));
+#endif
+			DefineOperator(
+				CString(CAR(args)),	/* operator name */
+				CDR(args));		/* rest */
 			break;
 		case FUNCTION:
-			function_define (CAR (args)
-				/*  function name */
-				,cdr (args));
-			/*  remaining arguments */
+			args = CDR(args);	/* skip "FUNCTION" token */
+#ifndef	PERFECTPARSER
+			AssertArg(listp(args));
+			AssertArg(lispStringp(CAR(args)));
+			AssertArg(listp(CDR(args)));
+#endif
+			DefineFunction(
+				CString(CAR(args)),	/* function name */
+				CDR(args));		/* rest */
 			break;
+
 		case RULE:
-			rule_define (CAR(args),		    /*  rule name */
-				CADR(args));
+			elog(DEBUG,
+				"InvokeUtility: DEFINE RULE now unsupported");
+#if 0
+			rule_define(CAR(args),		/* rule name */
+				CADR(args));		/* parsed rule query */
+#endif
 			break;
-			/*  rule command parses */
+
 		case P_TYPE:
-			type_define (CAR (args),CDR (args));
+			args = CDR(args);	/* skip "TYPE" token */
+#ifndef	PERFECTPARSER
+			AssertArg(listp(args));
+			AssertArg(lispStringp(CAR(args)));
+			AssertArg(listp(CDR(args)));
+#endif
+			DefineType(
+				CString(CAR(args)),	/* type name */
+				CDR(args));		/* rest */
+			break;
+		default:
+			elog(WARN, "unknown DEFINE parse type %d",
+				CInteger(CAR(args)));
 			break;
 		}
-	  break;
-#endif
-#if 0
-	  /*    object destruction */
+		break;
 
+		/*
+		 * object destruction
+		 */
 	case REMOVE:
-	  switch(CInteger(CAR(args))) {
-	     case FUNCTION:
-	       function_remove(CDR(args));
-	       break;
-	     case INDEX:
-	       index_remove(CDR(args));
-	     case OPERATOR:
-	       operator_remove(CDR(args));
-	     case RULE:
-	       rule_remove(CDR(args));
-	     case P_TYPE:
-	       type_remove(CDR(args));
-	     default:
-	       elog(WARN,"parser generates unknown remove request");
-	  }
-	  break;
+#ifndef	PERFECTPARSER
+		AssertArg(consp(args));
 #endif
+		switch(CInteger(CAR(args))) {
+		case FUNCTION:
+#ifndef	PERFECTPARSER
+			AssertArg(lispStringp(CADR(args)));
+#endif
+			RemoveFunction(CString(CADR(args)));
+			break;
+		case INDEX:
+#ifndef	PERFECTPARSER
+			AssertArg(lispStringp(CADR(args)));
+#endif
+			RemoveIndex(CString(CADR(args)));
+			break;
+		case OPERATOR:
+		{
+			int	argCount;
+			String	type2;
+#ifndef	PERFECTPARSER
+			AssertArg(consp(CADR(args)));
+			AssertArg(null(CDR(CDR(args))));
+#endif
+			args = CADR(args);
+			argCount = length(args);
+#ifndef	PERFECTPARSER
+			AssertArg(lispStringp(CAR(args)));
+			AssertArg(2 <= argCount && argCount <= 3);
+			AssertArg(lispStringp(CADR(args)));
+			if (argCount == 3) {
+				AssertArg(lispStringp(CADR(CDR(args))));
+			}
+#endif
+			type2 = NULL;
+			if (argCount == 3) {
+				type2 = CString(CADR(CDR(args)));
+			}
+			RemoveOperator(CString(CAR(args)), CString(CADR(args)),
+				type2);
+		}
+			break;
+		case RULE:
+			elog(DEBUG,
+				"InvokeUtility: REMOVE RULE now unsupported");
 #if 0
-	  /*    portal retrieve */
-	  /*    XXX Can this be generalized to more than a single retrieve? */
-	  /*        Should it? */
-	case PORTAL:
-	  /*    check validity */
-	  portal_retrieve (CAR (args),	       		/*  portal name */
-			   CADR (args),		/*  command */
-			   CADDR (args));
-	  break;
-     
-	  /*  default */
+			rule_remove(CDR(args));
 #endif
+		case P_TYPE:
+#ifndef	PERFECTPARSER
+			AssertArg(lispStringp(CADR(args)));
+#endif
+			RemoveType(CString(CADR(args)));
+			break;
+		default:
+			elog(WARN, "unknown REMOVE parse type %d",
+				CInteger(CAR(args)));
+		}
+		break;
+#if 0
+		/* portal retrieve */
+		/* XXX Can this be generalized to more than a single retrieve? */
+		/* Should it? */
+	case PORTAL:
+		/*    check validity */
+		portal_retrieve (CAR (args),		/* portal name */
+			CADR (args),			/* command */
+			CADDR (args));
+		break;
+
+#endif
+		/* default */
 	default:
-	  cons (command,args);
-	  break;
-     }
+		cons (command,args);
+		break;
+	}
 }
 
 
