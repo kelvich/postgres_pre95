@@ -229,7 +229,7 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
 	      case UNION :
 		  union_plans = handleunion(root,rangetable,tlist,qual);
 		  return (make_append (union_plans,
-				       rt_index, rangetable,
+				       -1, rangetable,
 				       get_qptargetlist (CAR(union_plans))));
 		break;
 		
