@@ -16,9 +16,10 @@ Directories:
 
 	Installation instructions.
 
-    release_notes/
+    old_releasenotes/
 
 	Old release notes.  For historical interest.
+	(current release notes are in file release4.2.me)
 
     useful/
 

@@ -3,7 +3,7 @@
 
 Q:  What Is Postgres?
 
-    Postgres is a database research project under Prof. Michael Stonebraker
+    Postgres was a database research project under Prof. Michael Stonebraker
     at U. C. Berkeley.  To facilitate research efforts, a software test-bed was
     created; this is the "Postgres" DBMS software.  The Postgres DBMS
     is extended relational or object oriented, depending on the buzzword du
@@ -14,7 +14,10 @@ Q:  What Is Postgres?
     Several graduate students, staff members, as well as undergraduate
     programmers have been working on the implementation of the Postgres
     software.  After this paragraph, all references to "Postgres" refer to the
-    software itself.
+    software itself.  As of this writing, Postgres is no longer an official
+    research effort at U.C. Berkeley.  At some time in the future, a new
+    group that is working on distributed database research may announce
+    their existance.
 
 Postgres Is:
 
@@ -45,10 +48,11 @@ Q.  How do I get the Postgres software package?
 
 A.  In one of two ways:
 
-    1.  Via anonymous FTP from postgres.berkeley.edu (Internet 128.32.149.1);
-        the directory that contains relevent files is
+    1.  Via anonymous FTP from the host s2k-ftp.CS.Berkeley.EDU 
+	(IP address as of this writing: 128.32.149.157)
+        The directory that contains relevent files is
 
-        pub/postgres/postgres-v4r1
+        pub/postgres/postgres-v4r2
 	(Note: transmit .Z  files in BINARY mode.)
 
     2.  If you don't have Internet access, you can get Postgres by sending
@@ -80,8 +84,9 @@ A.  We do not support SQL at this time.
 
 Q.  What does Postgres run on?
 
-A.  Postgres 4.1 is supported on Sparc, and DECstations running Ultrix
-    4.2 or higher.  
+A.  Postgres 4.2 was supported on Sparc, DECstations running Ultrix
+    4.2 or higher, HP PA-RISC on HP-UX 9.00 or 9.0, DEC Alpha AXP on OSF/1 1.3,
+    and the IBM POWER on AIX 3.2.5.
 
     The experience of outside developers indicates that Postgres is relatively
     easy to port to any system that supports:
@@ -100,10 +105,10 @@ Q.  How do I get papers about Postgres?
 
 A.  The documents and manpages are available directly in the POSTGRES source.
     At the top level there are pre-formatted manual pages and a reference
-    manual.  There a re a number of other documents in the src/old_doc directory
+    manual.  There are a number of other documents in the src/doc directory
     and there is a directory in there that has pre-formatted postscript files.
     To order hard-copies of technical reports individually; for more details,
-    send e-mail or call Sarah Burke at (510) 642-3417; her e-mail address
+    send e-mail or call Elisa Kwon at (510) 642-3417; her e-mail address
     is 
     
         elisa@postgres.berkeley.edu
@@ -156,15 +161,15 @@ A.  If you find a bug, send a description of your database schema, queries,
 
 Q.  How do I find out about known bugs?
 
-A.  The known bug list for version 4.1 does not exist yet, but will
+A.  The known bug list for version 4.2 does not exist yet, but will
     be placed in the file
 
-        pub/postgres/postgres-v4r1/postgres.bugs
+        pub/postgres/postgres-v4r2/postgres.bugs
     as soon as we start getting feedback on the release.
 
 Q.  Please summarize the important files on postgres.berkeley.edu
 
-A.  Please see pub/postgres/postgres-v4r1/README
+A.  Please see pub/postgres/postgres-v4r2/README
 
 Q.  Please summarize the important Postgres mailing aliases
 
@@ -174,16 +179,11 @@ A.  Mailing Address              Purpose
     postgres-request@postgres    Administrative requests (ADD/DEL)
     bug-postgres@postgres        Postgres bug reports
     postgres-questions@postgres  Questions to the developers of Postgres
+				 (see response to the next question)
 
 Q.  Please summarize the main contacts at the Postgres group
 
-A.  Address/Phone                 Role
-
-    Marc Teitelbaum		  Postgres Chief Programmer 
-    marc@postgres.berkeley.edu    
-    (510) 643-6448
-
-    Michelle Mattera 		  Assistant to the Postgres group
-    michelle@postgres.berkeley.edu
-    (510) 642-3417
-
+A.  Unfortunately Postgres is no longer an active research project
+    at U.C. Berkeley so there is no longer a Postgres group.  Some of
+    the developers will probably be staying in touch on the previousely
+    mentioned mailing lists, so that is your best bet.

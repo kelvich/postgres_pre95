@@ -28,8 +28,8 @@
 \\fC\\$1\\fP\\$2
 ..
 .RV $Header$
-.ds PG "\\s-2POSTGRES\\s0
-.ds PQ "\\s-2POSTQUEL\\s0
+.ds PG \\s-2POSTGRES\\s0
+.ds PQ \\s-2POSTQUEL\\s0
 .ce 99
 .ft B
 .ps 14
@@ -44,76 +44,677 @@ Release Notes
 .sp 2
 .sh 1 "Introduction"
 .pp
-These are the release notes for version 4.2
-of the \*(PG database system from UC Berkeley.
-The database system and its installation procedure
-are covered in detail in the setup document for this release,
-which can be found in the file ~postgres/doc/postgres-setup.me.
-Here, we cover only the most important differences from release
-4.1 and earlier versions of the system.
-.sh 1 "Existing 4.1 Databases"
+These are the release notes for version 4.2 of the \*(PG database
+system from the University of California at Berkeley.  The database
+system and its installation procedure are covered in detail in the
+setup document for this release, which can be found in the file
+.CW "doc/postgres-setup.{cat,ps}" .
+Here, we cover only the most important differences from release 4.1
+and earlier versions of the system.
+.sh 1 "Aim"
 .pp
-You are hosed.
-.sh 1 "Known Bugs"
+This is the last release of \*(PG from the \*(PG group at Berkeley.
+This release supports a few more platforms than the previous release,
+has a few more features, has many bug fixes, and has a bit better
+documentation.  The aim was to increase the reliability as much as
+possible before closing up shop, while providing a few more features
+that some of our users needed.
+.sh 1 "Compatibility With Existing 4.1 Databases"
 .pp
-There are a few known bugs that we did not fix in this release.  
-.sh 2 "Hash Joins"
+There have been some changes to the the system catalogs since \*(PG
+Version 4.1.  Because of this, if you want to migrate your data from
+Version 4.1 you must copy all your databases out to flat ASCII files
+and then reload them into the 4.2 database directory.  See the
+\f(CWcopy\fP command in the reference manual for details about how to
+copy data out of a class into a flat ASCII file.  Note that this
+procedure does not preserve rules or large objects; rules must simply
+be redefined and large objects copied out separately.
+.sh 1 "New Platforms"
 .pp
+This release supports the following platforms in addition to the Sun
+SparcStation and Ultrix DECstation 3100/5000 ports already supported
+in the past:
+.(l
+H-P 9000 Series 700/800 (PA-RISC) on HP-UX 9.00 or 9.01
+DECstation 3000 (Alpha AXP) on DEC OSF/1 1.3
+IBM RS/6000 (POWER) on AIX 3.2.5
+.)l
+.sh 1 "New Features"
+.pp
+This section highlights some of the new features.  For complete
+documentation of these features refer to the \*(PG User Manual and
+Reference Manual in the appropriate sections.
+.sh 2 "Function Overloading"
+.pp
+Function overloading is now allowed.  That is, the same function name
+may be used for functions that take different argument lists.  The
+syntax for \f(CWdefine function\fP is still the same; however, the
+\f(CWremove function\fP command has changed slightly.  The argument
+types must now be specified, as in 
+.(l
+\f(CWremove function distance(point, point)\fP
+.)l
+Note that the restriction that dynamically-loaded C functions must
+have the same C name and \*(PG name has not been removed, which limits
+the usefulness of this feature to the extent that duplicate symbol
+names cause dynamic loading problems on some systems.  The main
+restriction we know about is that you can't define a dynamically-loaded
+function with the same name as a function that's already built into
+\*(PG under OSF/1.  This and most other examples involving duplicate 
+function names should work more-or-less as expected on other operating 
+systems.
+.sh 2 "Automatic Constant Coercion"
+.pp
+In most cases, constants are cast to the correct type as long as there
+is no ambiguity and the explicit typecast \*(lq::type\*(rq should not
+have to be used quite as often.  However, additional typecasts may
+become necessary in a few cases due to the removal of some
+undocumented, buggy and inconsistent default typecasting (mostly
+having to do with
+.CW char16
+and
+.CW text ).
+In addition, there are a few commands (notably 
+.CW "define function" )
+where parsing is handled in special (broken) ways and type coercion 
+doesn't work correctly.
+.sh 2 "Time Data Type Changes"
+.pp
+Times prior to January 1, 1970 are now allowed.  In addition, the
+special abstime values \f(CWinfinity\fP, \f(CW-infinity\fP, and
+\f(CWcurrent\fP have been added.  The new built-in function
+\f(CWmktinterval\fP takes two abstime arguments and returns the
+.CW tinterval
+with those times as its endpoints.
+.sh 2 "Hash Access Method"
+.pp
+This release of \*(PG includes a hashed access method for creating
+secondary indices. The \*(PG query optimizer will consider using a
+hashed index whenever an indexed attribute is involved in an equality
+comparison.
+.pp
+The operator classes defined on hash indices are:
+.(l
+\f(CWint2_ops        float8_ops      char2_ops       char16_ops
+int4_ops        oid_ops         char4_ops       text_ops.
+float4_ops      char_ops        char8_ops\fP
+.)l
+The syntax is similar to that for creating a B-tree or R-tree
+index. For example, the following \*(PQ command defines an index on
+the class 
+.CW EMP
+using the salary attribute:
+.(l
+\f(CWdefine index EMP_SALARIES on emp using hash (salary int4_ops)\fP
+.)l
+Hashing of large objects is not supported.
+.sh 2 "External Large Objects"
+.pp
+A user may now access files external to the database by the same
+mechanisms employed for private large objects.  Application writers
+using the LIBPQ interface can now issue a call
+.(l
+\f(CWfd = p_create(pathname, mode, External)\fP
+.)l
+to \*(lqimport\*(rq an external file into the database frame of
+reference.  The other calls, such as \f(CWp_open\fP, \f(CWp_read\fP
+and \f(CWp_write\fP, continue to work exactly as before on
+\*(lqUnix\*(rq or \*(lqInversion\*(rq files but will now work also on
+other files imported in this fashion.  External files may be accessed
+according to common permissions of both the user for whom the backend
+is running and the backend's user id itself.  Plainly, if you do not
+grant the postgres uid access to your files, you cannot
+.CW p_open
+or
+.CW p_creat
+them.
+.pp
+Importing a file will automatically create shadow directory entries
+in the Inversion file system, and the existence of an Inversion file
+(as regular file) which has the same pathname as an intervening host
+system directory will abort the inclusion.  However, doing a 
+.CW p_unlink
+operation (or the 
+.CW prm
+command) will not actually remove the host system file; it will only
+make the database forget about its existence.
+.pp
+We have made this extension configurable by the compile time option
+\f(CW-DEXTERNAL_LO\fP because it represents some security risk.  If an
+application connects to a backend on a remote system masquerading as a
+user on that system, the application gains access to files according to
+the constraints mentioned above.  Malicious applications could clobber
+database system catalogs, or obtain copies of the password file for
+cracking purposes, for example.
+.pp
+An even greater level of risk is exposed if your computer is set up in
+such a way that allows outside users to place a file where the \*(PG
+backend could load it as a user-defined function, as the user-defined
+function could issue direct calls to
+.CW read
+and
+.CW write
+and circumvent even the additional checks imposed by the external
+large object system.  Users who have no account on your machine may be
+able to place files in your file system using any number of
+mechanisms, including anonymous FTP and possibly
+.CW automount
+and
+.CW alex .
+.pp
+\*(PG should always be run with the Kerberos network authentication
+system turned on wherever external large objects are to be accessed or
+user-defined functions may be loaded.
+.sh 2 "Array Changes"
+.pp
+This version provides a flexible support for multi-dimensional arrays
+of any base type. It supports two kinds of arrays: \*(lqlarge object
+arrays\*(rq that are stored as postgres large objects and \*(lqsmall
+arrays\*(rq that are stored in the same page as the tuple. The
+inclusion of large object arrays means that arrays can span multiple
+pages. The implementation allows update and retrieval of single array
+elements or sub parts of the array. See the reference manual under
+\f(CWcreate\fP, \f(CWappend\fP, \f(CWretrieve\fP and \f(CWreplace\fP
+for details.
+.pp
+For optimizing the retrieval of large arrays we provide optional
+support for chunking the array as described in the paper [SARA94]. A
+copy of the paper is available with the source in
+.CW src/doc/papers/arrays/paper.ps .
+.ip [SARA94]
+S. Sarawagi and M. Stonebraker, 
+.q "Efficient Organization of Large Multidimensional arrays,"
+.i "Proc. Tenth Int. Conference on Data Engineering" ,
+Feb. 1994.
+.sh 2 "Asynchronous Portals"
+.pp
+This release has support for asynchronous portals.  See the section in
+the reference manual under LIBPQ entitled \*(lqASYNCHRONOUS PORTALS
+AND NOTIFICATION\*(rq.
+.sh 2 "Dynamic Loader Changes"
+.pp
+The user defined function facility has been changed to use the common
+\f(CWdlopen\fP interface available on most systems to support shared
+libraries.  For the Ultrix platform (which does not have a
+\f(CWdlopen\fP interface), a version has been provided in
+.CW src/tools/libdl .
+See the installation notes for details.
+.sh 2 "Error Message Cleanups"
+.pp
+An attempt was made to change some of the more arcane error messages
+into something more useful.
+.sh 1 "Documentation"
+.pp
+An attempt was made to document how major subsystems in \*(PG work.
+This will be of some help to people attempting to modify (or debug) parts
+of \*(PG internals. The document is available in 
+.CW src/doc/implementation .
+We cannot guarantee that this document is either complete or entirely
+accurate (as the code may have changed even since the writing of the
+doc) but it should nevertheless be very useful to someone attempting
+to understand the code.  The document on the access method interface 
+(\f(CWam.me\fP) is particularly useful.
+.pp
+In addition to the internals documentation, a pass was made over the
+User Manual and Reference Manual to clean things up.  The User Manual
+is now more than twice as long and contains important information
+about creation of dynamically-loaded object code.  We have actually
+tried all of the \*(PQ queries.
+.sh 1 "Bug Fixes and Overdue Improvements"
+.sh 2 "Portability Improvements"
+.pp
+Substantial effort has been invested in fixing bad prototypes
+and making the code more portable.  It should now be easier
+to build \*(PG using pedantic compilers such as
+.CW gcc
+(on CISC platforms, anyway, for alignment reasons) and it is
+somewhat less dependent on non-POSIX library routines.
+.sh 2 "User Programs"
+.ip icopy
+.bu
+Defaulted to Unix large objects instead of the documented Inversion
+large objects.
+.ip initdb
+.bu
+Now runs
+.CW vacuum
+on the template database by default.  This makes queries on the system
+catalogs much faster.
+.ip monitor
+.bu
+Silently truncated
+.CW "copy in"
+and
+.CW "copy out"
+lines at 100 characters.
+.ip newbki
+.bu
+Changed the \*(PG superuser's UID, but did not change the name of the
+\*(PG superuser if no user named
+.q postgres
+existed.
+.ip pcat
+.bu
+Treated command-line switches as filenames as well as switches.
+.ip pmkdir
+.bu
+Would often fail while executing
+.CW p_stat
+on files and directories.
+.ip postmaster
+.bu
+Would occasionally leak shared memory segments or exit while
+attempting to reacquire shared memory after reinitialization.  (This
+appears to be fixed, feedback is desired.)
+.bu
+Never detached from its original controlling terminal, resulting in
+error messages being printed to that tty.  Now has a command-line
+option (-S) that causes it to detach and operate silently.
+.ip reindexdb
+.bu
+Now provided to assist in disaster recovery.  See the Reference
+Manual.
+.ip vacuum
+.bu
+Now works.  (The \*(PQ command worked, but the script didn't.)
+.sh 2 "Contributed Programs"
+.pp
+Most of the stuff that couldn't be compiled anymore (because it
+required out-of-date external software) or is currently being
+maintained outside Berkeley has been removed.  The most current
+version of
+.CW tkmonitor ,
+a Tcl/Tk-based replacement for the terminal monitor, is incorporated
+in the Lassen information retrieval system and can be retrieved as:
+.(l
+\f(CWpub/sequoia/src/lassen.tar.Z\fP
+.)l
+from s2k-ftp.CS.Berkeley.EDU (128.32.149.157).  The latest version of 
+.CW pgbrowse ,
+a Tcl/Tk-based tool for querying a \*(PG database that contains hooks
+for user extensions, is located in:
+.(l
+\f(CWpub/pgbrowse\fP
+.)l
+on crseo.ucsb.edu (128.111.100.50).
+.sh 2 "General Bug Fixes"
+.bu
+A pass was made through the code to find and fix places where 
+.CW char16
+was improperly used.  Identifiers that are actually 16 characters long
+are more likely to work.
+.bu
+Several serious memory leaks were fixed, increasing the number of
+queries that can be run in a single transaction.
+.sh 2 "Access Methods"
+.ip B-tree
+.bu
+Insertion of a new minimal (lowest) value would fail under certain
+circumstances, causing queries that used the index to return incorrect
+results.  Tuples would be visible using a non-index scan (e.g., one
+with no qualification) but would not be returned by a query with a
+qualification that caused an index scan.
+.ip R-tree
+.bu
+Variable-length index keys (e.g., polygons) didn't work at all.
+.bu
+The calculation for estimating the growth of a bounding box
+corresponding to the union of two bounding boxes produced garbage
+values, leading to poor tree layout.
+.bu
+Use of uninitialized variables caused several problems (e.g.,
+nested-loop joins with an R-tree on the inner relation crashed).
+.sh 2 "Query Parser"
+.bu
+Negative 
+.CW int2
+and
+.CW float4
+constants should now work normally, without being entered like:
+.(l
+\f(CW"-3.14159"::float4
+.)l
+.bu
+Queries that contained multiple commands, such as those specified when
+defining new rules or \*(PQ functions, would sometimes have their 
+.q from
+clauses parsed incorrectly.
+.sh 2 "Query Executor"
+.bu
+Now attempts to do a better job of detecting non-functional updates
+(repeated updates to the same tuple in the same transaction).
+.bu
+Failed to do adequate pinning of buffers, meaning that buffers still
+in use could be flushed to disk and reused.  This caused corruption of
+relations.  This occurred not only in multiuser operation but also
+when certain operations were performed on large relations (e.g.,
+mergejoin).
+.bu
+.CW replace 
+queries now acquire write locks before beginning their read
+operations, reducing concurrency somewhat but preventing many
+bogus deadlocks.
+.bu
+Projecting more than one attribute from the result of a \*(PQ function
+would crash the system if the attributes were of different types.
+.sh 2 "Query Optimizer"
+.bu
+Due to a botch in the system catalogs, the optimizer would never use
+an index on an
+.CW oid 
+attribute of the inner join relation.
+.bu
+The optimizer generated invalid query plans if existential
+qualifications (clauses that are totally disconnected from relations
+that are actually retrieved in the target list) were joined by an 
+.q or
+clause.  This caused the executor to crash.
+.bu
+Various optimizer cost functions causes floating point underflow and
+divide-by-zero, which works better on some machines than others. 
+.bu
+Fixed various memory management bugs in the optimization of expensive
+functions.
+.bu
+Archival (time travel) queries on a relation crashed the optimizer if
+you modified the schema of a relation (e.g., using
+.CW addattr ).
+.bu
+Applying
+.q not
+to the result of a function crashed the optimizer.
+.sh 2 "System Catalogs"
+.bu
+.CW pg_class.relnatts
+was wrong for some system catalogs.
+.bu
+.CW pg_group
+is now correctly created at initialization time.
+.bu
+Many function/operator entries contained invalid argument types.  For
+example, the 
+.CW >
+operator between 
+.CW int2
+and 
+.CW int4
+was not usable.
+.bu
+The system thought it could hashjoin using the 
+.CW "!="
+operator for the
+.CW bool
+type, sometimes leading to incorrect results when joining
+.CW bool
+attributes.
+.sh 2 "\*(PQ Utilities"
+.ip addattr
+.bu
+Now accepts a 
+.CW *
+option.  Changing only a superclass in a hierarchy without changing
+the children caused traversals of the inheritance hierarchy to crash.
+.ip "define aggregate"
+.bu
+Now does substantially more error-checking.
+.bu
+Current operation is closer to the definition used in 4.0.1.  This is
+not what was originally designed or documented, but (for example)
+allows the aggregates used in the Sequoia 2000 benchmark to be defined
+again. 
+.ip "define operator"
+.bu
+Made incorrect system catalog entries for unary operators.
+.ip "extend index"
+.bu
+Consecutive 
+.CW extend s
+didn't work.
+.ip load
+.bu
+No longer requires absolute pathnames.
+.bu
+Object files that contained symbol names longer than 16 characters
+would often not be correctly loaded.
+.ip purge
+.bu
+Now does something besides crash.  See the Reference Manual.
+.ip rename
+.bu
+Would allow you to rename your classes with the prefix
+.CW pg_ ,
+which then prevented other operations (such as destroying them).
+.bu
+Now accepts a 
+.CW *
+option.  Changing only a superclass in a hierarchy without changing
+the children caused traversals of the inheritance hierarchy to crash.
+.sh 2 "Transaction System"
+.bu
+Multiple versions of the same tuple would become visible during an
+update transaction.
+.bu
+The following error was caused by a race condition that has been
+fixed:
+.(l
+\f(CWNOTICE:Jan 20 10:26:35:LockReplace: xid table corrupted\fP
+.)l
+.bu
+Backends that aborted due to deadlock timeouts would often corrupt
+shared memory, causing other running backends to crash.
+.bu
+If one backend sat idle while another backend performed many commands
+that modified the system catalogs, the mostly-idle backend would (in
+some circumstances) crash when it tried to begin a new transaction due
+to a bug in the shared cache invalidation code.
+.sh 2 "Storage System"
+.bu
+Race conditions within the buffer manager would cause lost updates.
+.bu
+On SunOS 4, the backend would crash after about 60 files had been
+opened due to a miscalculation of the number of available file
+descriptors.
+.sh 2 "Inversion File System/Large Objects"
+.bu
+The current Inversion working directory was not always initialized in
+the frontend library routines.
+.bu
+Appending 0-4 bytes using the
+.CW p_write
+interface failed, sometimes causing crashes.
+.bu
+Executing
+.CW p_stat
+on an empty Inversion file caused the system to crash.
+.sh 2 "LIBPQ"
+.bu
+No longer calls
+.CW exit
+for most errors, returning 
+.q R
+and
+.q E
+(or 
+.CW NULL ,
+depending on the documented interface) more often.
+.bu
+Now sets 
+.CW PQErrorMsg
+more consistently.
+.bu
+In the absence of authentication, now uses
+.CW getuid
+to figure out who the user is instead of the USER environment
+variable.
+.bu
+.CW PQexec
+sometimes returned a pointer to an automatic variable as its return
+value.  This would sometimes cause the frontend application to crash 
+or get garbage.
+.bu
+The number of open portals now grows dynamically (instead of being
+hardcoded to a maximum of 10).
+.bu
+Retrieval of variable-length attributes through binary portals would
+return objects that were four bytes too large.  This was often
+relatively innocuous unless the user code estimated values from the
+size of the variable-length attribute or the out-of-bounds read in the
+server happened to cause a segmentation violation.
+.sh 2 "Abstract Data Types"
+.bu
+Error-checking in input/output routines has been improved in general.
+.bu
+Insufficient space was allocated for many output routines, causing
+mysterious errors when out-of-bounds writes occurred.
+.bu
+The time types were overhauled.  For example, time subtraction didn't
+work.
+.bu
+Polygons with 0 points were not correctly handled in many routines.
+.sh 1 "Known Bugs and Problems"
+.pp
+There are several known bugs that we did not fix in this release.
+Note that unimplemented features and limitations in existing
+implementations are, for the most part, documented in the Reference
+Manual rather than here.
+.pp
+A list of known bugs and suggested work-arounds (as we find them) will
+be made available for anonymous FTP.  This list will be kept in the
+file
+.(l
+\f(CWpub/postgres/postgres-v4r2/bugs\fP
+.)l
+on s2k-ftp.CS.Berkeley.EDU (128.32.149.157).
+.sh 2 "User Programs"
+.ip shmemdoc
+.bu
+This program has become out of date and should not be used.  It is
+provided in case someone needs the functionality so badly that they
+are willing to fix it.
+.sh 2 "Query Executor"
+.bu
 The current implementation of hash joins in \*(PG attempts to put the
-entire hash table in virtual memory.  If the hash table is too big
-to fit into memory the transaction will be aborted.  The planner tries
-to take relation size into account when deciding whether or not to
-plan a hash join, but it is dependent on the most recent database
-statistics.  If these are out of date \*(PG might still exhibit
-this unfriendly behavior.  To avoid this problem you should vacuum your
-database after any and all large append/copy commands.
-.sh 2 "Cache Invalidation"
+entire hash table in virtual memory.  If the hash table is too big to
+fit into memory the transaction will be aborted.  The planner tries to
+take relation size into account when deciding whether or not to plan a
+hash join, but it is dependent on the most recent database statistics.
+If these are out of date \*(PG might still exhibit this unfriendly
+behavior.  To avoid this problem you should 
+.CW vacuum
+your database after any and all large 
+.CW append
+or 
+.CW copy
+commands.
+.bu
+If a backend fails while in the course of executing a 
+.CW "retrieve into"
+query, a spurious file, with the same name as the target class of the
+.CW "retrieve into" ,
+will be left in the database directory.  This file can be safely
+deleted by the database DBA.
+.sh 2 "Crash Recovery"
+.bu
+This isn't really so much a bug as a warning.  \*(PG does not
+implement standard crash recovery techniques such as write-ahead
+logging.  The \*(PG storage architecture permits fast crash recovery
+in the sense that the system can restart instantly without having to
+go through a lengthy analysis of disk blocks and a log file.  However,
+\*(PG requires that the data still be readable.  This implies that if
+(1) a bug in \*(PG scrambles the contents of a relation or (2) a disk
+block goes bad, there is no way of fixing the relation.  You may be
+able to read some of the contents out or you may not (for example, if
+one of the shared relations goes bad, the entire database may be
+unusable).  Do frequent offline backups.  You are warned.
+.sh 2 "Transaction System"
+.bu
+There is a subtle bug relating to cache invalidation that can cause
+\*(PG to violate transaction semantics in transactions/queries
+involving multiple commands.  If the backend has a relation open that
+needs to be invalidated when one command is finished the invalidation
+message is ignored.  Thus the relation descriptor can become out of
+date, and won't be updated until the next time it is invalidated.  At
+the time of writing we believe that the odds you will ever notice this
+bug are small.
+.sh 2 "Rule System"
+.bu
+As ever, the instance rule system essentially ignores indices, so if
+you are defining a rule on an indexed attribute, you should use the
+query rewrite rule system.
+.bu
+The instance rule system does not handle array references correctly.
+Don't use arrays in rules.
+.sh 2 "Inversion File System/Large Objects"
+.bu
+If a backend fails while it is manipulating large objects, spurious
+large object files will be left in the database directory.  Also,
+there is no mechanism for getting rid of large objects which are
+returned by functions but not stored in instances.
+.bu
+Attempting to overwrite Inversion large objects doesn't work reliably.
+This is due to a major design flaw and hasn't been fixed.  If you need
+rewritable large objects, you must use Unix large objects.
+.sh 2 "LIBPQ"
+.bu
+Again, this is more of a warning than a bug.  Several 
+mysterious-looking errors, such as:
+.(l
+\f(CWWARN:Nov  4 14:49:09:init_fcache: Cache lookup
+  failed for procedure 0\fP
+.)l
+are occasionally caused by a \*(PQ command returning more return
+values than the frontend application expects.  (In other words, the
+frontend and backend get out-of-sync in the protocol.)  See the LIBPQ
+section of the Reference Manual under 
+.CW PQFlushI
+for details.
+.sh 2 "Abstract Data Types"
+.bu
+While input/output routines have improved error-checking, many numeric
+operators and functions do not check for underflow, overflow and other
+exceptions.
+.sh 1 "Machine-Dependent Caveats"
 .pp
-There is a subtle bug relating to cache invalidation that can cause \*(PG
-to violate transaction semantics in transactions/queries involving multiple
-commands.  If the backend has a relation open that needs to be invalidated
-when one command is finished the invalidation message is ignored.  Thus
-the relation descriptor can become out of date, and won't be updated until the
-next time it is invalidated.   At the time of writing we believe that
-the odds you will ever notice this bug are small.
-.sh 2 "Indices and the Instance Level Rule System"
-.pp
-As ever, the Instance Level Rule System essentially ignores indices, so if
-you are
-defining a rule on an indexed attribute, you should use the Query Rewrite
-rule system.
-.sh 2 "Retrieve Into and failed backends"
-.pp
-If a backend fails while in the course of executing a Retrieve Into query,
-a spurious file, with the same name as the target class of the Retrieve Into,
-will be left in the database directory.  This file can be safely deleted by the
-database DBA. 
-.sh 2 "Large Objects and failed backends"
-.pp
-If a backend fails while it is manipulating large objects, spurious large
-object files will be left in the database directory.  Also, there is no
-mechanism for getting rid of large objects which are returned by functions
-but not stored in instances.
-.sh 1 "Known bugs list"
-.pp
-A list of known bugs and suggested work-arounds can be anonymously
-ftp'ed.  This list is kept in the file ~ftp/pub/postgres/postgres-v4r2/bugs.
-We will make every attempt to keep this list up to date.
-.sh 1 "Machine-dependent Problems"
-.pp
+.sh 2 "DEC OSF/1"
+.bu
+As previously discussed, you should not define a dynamically-loaded
+C function with the same name as a function that is already built into
+the \*(PG server.  Any calls to such a function will actually call the
+\*(PG built-in function.
 .sh 2 "HP-UX"
-.pp
+.bu
 We could not test the H-P port on HP-UX 8.07 because all of the
-machines we had access to were upgraded to HP-UX 9.0.  However,
-the system did work prior to that point.  If you find that some
-minor changes are required to build the system under 8.07, please
-let us know.
-.pp
+machines to which we had access were upgraded to HP-UX 9.0.  However,
+the system did work prior to that point.  If you find that some minor
+changes are required to build the system under 8.07, please let us
+know and we will archive your patch file on our FTP server.
+.bu
 The standard HP-UX C compiler does not have the -M (make dependencies)
-option.  If you want dependencies, you will need to use the GNU C
-compiler.
-.pp
-HP-UX does not provide a version of the BSD install program.
-We have provided a copy of the 
-.i bsdinst
+option.  If you want dependencies, you will need to install the GNU C
+compiler, 
+.CW gcc .
+(That is, if you attempt to build dependencies, the 
+.CW mkdep
+script will try to invoke 
+.CW gcc ).
+.bu
+HP-UX does not provide a version of the BSD 
+.CW install
+program.  We have provided a copy of the
+.CW bsdinst
 script from the MIT X11R5 distribution, which works acceptably.
+.bu
+The HP-UX library doesn't handle timezones on dates before Jan. 1,
+1970 correctly.
+.bu
+Alpha-test users have reported that it's not hard to overflow the
+HP-UX kernel file table on a busy machine.  Each \*(PG server can use
+up to
+.CW NOFILE
+(60) file descriptors.  If you find a workaround or a kernel parameter
+that works acceptably for you, again, let us know and we'll pass on
+the information.
+.sh 2 "SunOS 4"
+.bu
+The SunOS library doesn't handle timezones on dates before Jan. 1,
+1970 correctly.
