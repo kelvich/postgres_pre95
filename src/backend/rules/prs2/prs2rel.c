@@ -40,6 +40,7 @@
 #include "catalog/pg_proc.h"
 #include "catalog/pg_prs2rule.h"
 #include "catalog/pg_prs2plans.h"
+#include "catalog/indexing.h"
 
 Prs2Stub prs2FindStubsThatDependOnAttribute();
 
@@ -267,11 +268,9 @@ RuleLock newLocks;
 {
 
     Relation relationRelation;
-    HeapScanDesc scanDesc;
-    ScanKeyData scanKey;
     HeapTuple tuple;
-    Buffer buffer;
     HeapTuple newTuple;
+    Relation idescs[Num_pg_class_indices];
 
     /*
      * Lock a relation given its ObjectId.
@@ -279,37 +278,7 @@ RuleLock newLocks;
      * appropriate tuple, and add the specified lock to it.
      */
     relationRelation = RelationNameOpenHeapRelation(RelationRelationName);
-
-	ScanKeyEntryInitialize(&scanKey.data[0], 0, ObjectIdAttributeNumber,
-						   ObjectIdEqualRegProcedure, 
-						   ObjectIdGetDatum(relationId));
-
-    scanDesc = RelationBeginHeapScan(relationRelation,
-					false, NowTimeQual,
-					1, &scanKey);
-    
-    tuple = HeapScanGetNextTuple(scanDesc, false, &buffer);
-    if (!HeapTupleIsValid(tuple)) {
-	elog(WARN, "prs2SetRelationLevelLocks: Invalid rel OID %ld",
-		relationId);
-    }
-
-#ifdef PRS2_DEBUG
-    {
-	RuleLock l;
-
-	l = prs2GetLocksFromTuple(tuple, buffer);
-	printf(
-	    "PRS2:prs2SetRelationLevelLocks: Updating locks of relation %d\n",
-	    relationId);
-	printf("PRS2: Old RelLev Locks = ");
-	prs2PrintLocks(l);
-	printf("\n");
-	printf("PRS2: New RelLev Locks = ");
-	prs2PrintLocks(newLocks);
-	printf("\n");
-    }
-#endif PRS2_DEBUG
+    tuple = ClassOidIndexScan(relationRelation, relationId);
 
     /*
      * Create a new tuple (i.e. a copy of the old tuple
@@ -317,15 +286,22 @@ RuleLock newLocks;
      * tuple in the RelationRelation
      * NOTE: XXX ??? do we really need to make that copy ????
      */
-    newTuple = palloctup(tuple, buffer, relationRelation);
+    newTuple = palloctup(tuple, InvalidBuffer, relationRelation);
     prs2PutLocksInTuple(newTuple, InvalidBuffer, relationRelation, newLocks);
 
     RelationReplaceHeapTuple(relationRelation, &(tuple->t_ctid),
 			    newTuple, (double *)NULL);
-    
-    RelationCloseHeapRelation(relationRelation);
-    HeapScanEnd(scanDesc);
 
+    /* keep the catalog indices up to date */
+    CatalogOpenIndices(Num_pg_class_indices, Name_pg_class_indices, idescs);
+    CatalogIndexInsert(idescs, Num_pg_class_indices, relationRelation, newTuple);
+    CatalogCloseIndices(Num_pg_class_indices, idescs);
+
+    /* be tidy */
+    pfree(tuple);
+    pfree(newTuple);
+
+    RelationCloseHeapRelation(relationRelation);
 }
 
 
