@@ -321,47 +321,8 @@ ExecEvalVar(variable, econtext, isNull)
 	byval = tuple_type->data[ attnum-1 ]->attbyval ? true : false ;
     }
 
-    /* ----------------
-     * Here we process array indirections.  How it works is ExecEvalArrayRef
-     * continuously "refines" result until it is what we really want.  IE,
-     * if you have a "text[]" attribute, the call to amgetattr above will
-     * get you a attribute of type text[] (or _text).  If we are expanding
-     *
-     * a[1][2]
-     *
-     * where the type of a is text[], the first call to ExecEvalArrayRef
-     * will return something of type text, which will be a[1].  The next
-     * call will return something of type char, which will be a[1][2].
-     *
-     * A "null result" is if we go off the end of the array.  Note that doing
-     * an elog(WARN) is NOT correct behavior - we may be indirecting on a
-     * variable length array.
-     * ----------------
-     */
-    array_info = get_vararraylist(variable);
-    if (array_info != NULL) {
-	List ind_cons;
-	Array indirection;
-	
-        /* -----------------
-         * note: ExecEvalArrayRef sets execConstByVal and execConstLen.
-         * -----------------
-         */
-        foreach (ind_cons, array_info) {
-	    indirection = (Array) CAR(ind_cons);
-            result = ExecEvalArrayRef(result,
-                                      get_arraylow(indirection),
-                                      get_arraylen(indirection),
-                                      get_arrayelemlength(indirection),
-                                      get_arrayelembyval(indirection),
-                                      isNull);
-            if (*isNull)
-		return(NULL);
-        }
-    } else {
-        execConstByVal = byval;
-        execConstLen = 	 len;
-    }
+    execConstByVal = byval;
+    execConstLen =   len;
 
     return result;
 }
@@ -505,16 +466,22 @@ ExecEvalParam(expression, econtext, isNull)
  * ----------------------------------------------------------------
  */
  
+/*
+ * These are no longer used and should be torched altogether.
+ */
 static HeapTuple  	currentTuple;
 static TupleDescriptor 	currentExecutorDesc;
 static Buffer      	currentBuffer;
 static Relation 	currentRelation;
 
 /* ----------------
-  *	ArgumentIsRelation
+ *	ArgumentIsRelation
  *
  *	used in ExecMakeFunctionResult() to see if we need to
  *	call SetCurrentTuple().
+ *
+ *  This routine has been made obsolete in the "brave new world" of
+ *  postgres.
  * ----------------
  */
 bool
@@ -535,7 +502,10 @@ ArgumentIsRelation(arg)
  *	SetCurrentTuple
  *
  *	used in ExecMakeFunctionResult() to set the current values
- *	for calls to GetAttribute()
+ *	for calls to the GetAttribute routines
+ *
+ *  This routine has been made obsolete in the "brave new world" of
+ *  postgres.
  * ----------------
  */
 void
@@ -573,39 +543,84 @@ SetCurrentTuple(econtext)
 }
 
 /* ----------------
- *	GetAttribute
+ *	GetAttributeByName
+ *	GetAttributeByNum
  *
- *	This is a function which returns the value of the
- *	named attribute out of the "current" tuple.  User defined
+ *	These are functions which return the value of the
+ *	named attribute out of the tuple from the arg slot.  User defined
  *	C functions which take a tuple as an argument are expected
- *	to use this.  Ex: overpaid(EMP) might call GetAttribute().
- *
- *	The "current" tuple and it's schema information is set by
- *	the executor in advance of any function calls.
+ *	to use this.  Ex: overpaid(EMP) might call GetAttributeByNum().
  * ----------------
  */
-Datum
-GetAttribute(attname)
-    char *attname;
-{
-    Datum 		retval;
-    AttributeNumber 	attno;
-    Boolean 		isnull = (Boolean) false;
 
-    /* ----------------
-     *	get attribute number from attname and use it to get
-     *  attr value from the "current" tuple.
-     * ----------------
-     */
-    attno = varattno(currentRelation, attname);
-    
+GetAttributeByNum(slot, attrno, isNull)
+    TupleTableSlot slot;
+    AttributeNumber attrno;
+    Boolean *isNull;
+{
+    Datum retval;
+
+    if (!AttributeNumberIsValid(attrno))
+	elog(WARN, "GetAttributeByNum: Invalid attribute number");
+
     retval = (Datum)
-	heap_getattr(currentTuple,
-		     currentBuffer,
-		     attno,
-		     currentExecutorDesc,
-		     &isnull);
-    if (isnull)
+	heap_getattr(ExecFetchTuple(slot),
+		     ExecSlotBuffer(slot),
+		     attrno,
+		     ExecSlotDescriptor(slot),
+		     isNull);
+    if (*isNull)
+	return NULL;
+    else
+	return retval;
+}
+
+GetAttributeByName(slot, attname, isNull)
+    TupleTableSlot slot;
+    Name    attname;
+    Boolean *isNull;
+{
+    AttributeNumber attrno;
+    TupleDescriptor tupdesc;
+    ObjectId relid;
+    Datum retval;
+    int i;
+
+    if (attname == (Name)NULL)
+	elog(WARN, "GetAttributeByName: Invalid attribute name");
+    
+    tupdesc = ExecSlotDescriptor(slot);
+    relid = tupdesc->data[0]->attrelid;
+
+    i = 0;
+    while (true)
+    {
+	/*
+	 * Given a slot we really don't know how many attributes
+	 * we have in the tuple, so I chose to use a completely
+	 * bogus check looking right into bogus memory.  I can't
+	 * think of a reasonable way to do this and it is getting
+	 * late. I apologize to future post-boys and post-girls -mer
+	 */
+	if (!(tupdesc->data[i]) || relid != tupdesc->data[i]->attrelid)
+	    elog(WARN, "GetAttributeByName: attribute name not found");
+	if (strncmp(attname,
+		    &(tupdesc->data[i]->attname),
+		    sizeof(NameData)) == 0)
+	{
+	    attrno = tupdesc->data[i]->attnum;
+	    break;
+	}
+	i++;
+    }
+	
+    retval = (Datum)
+	heap_getattr(ExecFetchTuple(slot),
+		     ExecSlotBuffer(slot),
+		     attrno,
+		     tupdesc,
+		     isNull);
+    if (*isNull)
 	return NULL;
     else
 	return retval;
@@ -689,22 +704,6 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
     }
 
     /* ----------------
-     *  We need to check CAR(arg) to see if it is a RELATION type, in which
-     *  case we need to call the stuff to set up GetAttribute as well as
-     *  shift the argument list to handle the special case for tuple arguments.
-     *
-     *  XXX this *has* to go away soon.  The executor's attempt at AI is
-     *      miserable at best.  Once we figure out how c functions will
-     *      take tuple args we are home free.
-     * ----------------
-     */
-    if (ArgumentIsRelation(arguments)) {
-	arguments = CDR(arguments);
-  	SetCurrentTuple(econtext);
-    }
-
-
-    /* ----------------
      *	arguments is a list of expressions to evaluate
      *  before passing to the function manager.
      *  We collect the results of evaluating the expressions
@@ -733,7 +732,7 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
 	    ExecEvalFuncArgs(fcache, econtext, arguments, argv, &argDone);
 
 	if ((fcache->hasSetArg) && (argDone)) {
-	    *isDone = true;
+	    if (isDone) *isDone = true;
 	    return (Datum)NULL;
 	}
     }
@@ -761,6 +760,7 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
 	    ExecEvalFuncArgs(fcache, econtext, arguments, argv, &argDone);
 
 	    if (argDone) {
+	        fcache->setArg = (char *)NULL;
 		*isDone = true;
 		result = (Datum)NULL;
 	    }
@@ -775,7 +775,7 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
     }
     else 
     {
-	*isDone = true;
+	if (isDone) *isDone = true;
 	return (Datum)
 	    fmgr_by_ptr_array_args(fcache->func, fcache->nargs, argv, isNull);
     }
@@ -866,6 +866,7 @@ ExecEvalFunc(funcClause, econtext, isNull, isDone)
 {
     Func	func;
     List	argList;
+    Boolean	dummyDone;
     FunctionCachePtr fcache;
     
     /* ----------------
@@ -890,6 +891,12 @@ ExecEvalFunc(funcClause, econtext, isNull, isDone)
     if (fcache == NULL) {
     	set_fcache(func, get_funcid(func));
     	fcache = get_func_fcache(func);
+    }
+
+    if (isDone == (Boolean *)NULL)
+    {
+	fcache->oneResult = true;
+	isDone = &dummyDone;
     }
 
     return
@@ -1036,7 +1043,13 @@ ExecEvalExpr(expression, econtext, isNull, isDone)
     Datum retDatum;
 
     *isNull = false;
-    *isDone = true;
+
+    /*
+     * Some callers don't care about is done and only want 1 result.  They
+     * indicate this by passing NULL
+     */
+    if (isDone)
+	*isDone = true;
 
     /* ----------------
      *	here we dispatch the work to the appropriate type
@@ -1211,6 +1224,23 @@ ExecQual(qual, econtext)
     return true;
 }
  
+int
+ExecTargetListLength(targetlist)
+{
+    int len;
+    List tl;
+
+    len = 0;
+    foreach (tl, targetlist) {
+	List curTle = CAR(tl);
+
+	if (tl_is_resdom(curTle))
+	    len++;
+	else
+	    len += get_fj_nNodes((Fjoin)tl_node(curTle));
+    }
+    return len;
+}
 /* ----------------------------------------------------------------
  *    	ExecTargetList
  *    
@@ -1235,13 +1265,15 @@ ExecTargetList(targetlist, nodomains, targettype, values, econtext, isDone)
     bool		*isDone;
 {
     char		nulls_array[64];
+    bool		fjNullArray[64];
+    bool		*fjIsNull;
     char		*np, *null_head;
     List 		tl;
     List 		tle;
     int			len;
     Expr 		expr;
     Resdom    	  	resdom;
-    AttributeNumber	resno;
+    AttributeNumber	resind;
     Const 		expr_value;
     Datum 		constvalue;
     HeapTuple 		newTuple;
@@ -1283,20 +1315,14 @@ ExecTargetList(targetlist, nodomains, targettype, values, econtext, isDone)
      *  the stack.
      * ----------------
      */
-    len = 0;
-    foreach (tl, targetlist) {
-	List curTle = CAR(tl);
-
-	if (tl_is_resdom(curTle))
-	    len++;
-	else
-	    len += get_fj_nNodes((Fjoin)tl_node(curTle));
-    }
+    len = ExecTargetListLength(targetlist);
 	
     if (len > 64) {
         np = (char *) palloc(len+1);
+	fjIsNull = (bool *) palloc(len+1);
     } else {
 	np = &nulls_array[0];
+	fjIsNull = &fjNullArray[0];
     }
     
     null_head = np;
@@ -1326,7 +1352,7 @@ ExecTargetList(targetlist, nodomains, targettype, values, econtext, isDone)
 	if (tl_is_resdom(tle)) {
 	    expr       = (Expr)   tl_expr(tle);
 	    resdom     = (Resdom) tl_resdom(tle);
-	    resno      = get_resno(resdom);
+	    resind     = get_resno(resdom) - 1;
 	    constvalue = (Datum) ExecEvalExpr((Node)expr,
 					      econtext,
 					      &isNull,
@@ -1335,36 +1361,55 @@ ExecTargetList(targetlist, nodomains, targettype, values, econtext, isDone)
 	    if ((ExactNodeType(expr,Iter)) && (*isDone))
 		return (HeapTuple)NULL;
 
-	    ExecSetTLValues(resno - 1, values, constvalue);
+	    ExecSetTLValues(resind, values, constvalue);
 	
 	    if (!isNull)
-		*np++ = ' ';
+		null_head[resind] = ' ';
 	    else
-		*np++ = 'n';
+		null_head[resind] = 'n';
 	}
 	else {
 	    int      curNode;
+	    Resdom   fjRes;
 	    List     fjTlist   = CDR(tle);
 	    Fjoin    fjNode    = (Fjoin)tl_node(tle);
  	    int      nNodes    = get_fj_nNodes(fjNode);
 	    DatumPtr results   = get_fj_results(fjNode);
- 	    bool     *fjIsNull = (bool *)palloc(nNodes*sizeof(bool));
  
 	    ExecEvalFjoin(tle, econtext, fjIsNull, isDone);
+	    if (*isDone)
+		return (HeapTuple)NULL;
 
-	    for (curNode = 0;
+	    /*
+	     * get the result from the inner node
+	     */
+	    fjRes = (Resdom)CAR(get_fj_innerNode(fjNode));
+	    resind = get_resno(fjRes) - 1;
+	    if (fjIsNull[0])
+		null_head[resind] = 'n';
+	    else
+	    {
+		null_head[resind] = ' ';
+		ExecSetTLValues(resind, values, results[0]);
+	    }
+
+	    /*
+	     * Get results from all of the outer nodes
+	     */
+	    for (curNode = 1;
 		 curNode < nNodes;
 		 curNode++, fjTlist = CDR(fjTlist))
 	    {
-		Resdom fjRes = (Resdom)CAAR(tle);
+		fjRes = (Resdom)CAAR(fjTlist);
 
+		resind = get_resno(fjRes) - 1;
 		if (fjIsNull[curNode]) {
-		    null_head[get_resno(fjRes)-1] = 'n';
+		    null_head[resind] = 'n';
 		}
 		else
 		{
-		    resno = get_resno(fjRes);
-	    	    ExecSetTLValues(resno-1, values, results[curNode]);
+		    null_head[resind] = ' ';
+	    	    ExecSetTLValues(resind, values, results[curNode]);
 		}
 	    }
 	}
