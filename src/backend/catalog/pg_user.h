@@ -30,6 +30,8 @@
  *	typedef struct FormData_pg_user
  * ----------------
  */ 
+#define USER_NAMESIZE 16
+
 CATALOG(pg_user) BOOTSTRAP {
     char16 	usename;
     int2 	usesysid;
