@@ -26,6 +26,7 @@
 #include "catalog/pg_type.h"
 #include "catalog/pg_user.h"
 #include "catalog/syscache.h"
+#include "parser/catalog_utils.h"
 
 RcsId("$Header$");
 
@@ -492,6 +493,41 @@ pg_ownercheck(usename, value, cacheid)
 		     cacheid);
 		break;
 	}
+	
+	return(user_id == owner_id);
+}
+
+int32
+pg_func_ownercheck(usename, funcname, nargs, arglist)
+     char 	 *usename; /* string, not Name */
+     char 	 *funcname;
+     int  	 nargs;
+     ObjectId *arglist;
+{
+	HeapTuple htp;
+	AclId user_id, owner_id;
+
+	htp = SearchSysCacheTuple(USENAME, usename, NULL, NULL, NULL);
+	if (!HeapTupleIsValid(htp))
+		elog(WARN, "pg_func_ownercheck: user \"%-*s\" not found",
+		     sizeof(NameData), usename);
+	user_id = (AclId) ((Form_pg_user) GETSTRUCT(htp))->usesysid;
+
+	/* Superusers bypass all permission-checking.
+	 */
+	if (((Form_pg_user) GETSTRUCT(htp))->usesuper) {
+#ifdef ACLDEBUG_TRACE
+		elog(DEBUG, "pg_ownercheck: user \"%-*s\" is superuser",
+		     sizeof(NameData), usename);
+#endif
+		return(1);
+	}
+
+	htp = SearchSysCacheTuple(PRONAME, funcname, nargs, arglist, NULL);
+	if (!HeapTupleIsValid(htp))
+	        func_error("pg_func_ownercheck", funcname, nargs, arglist);
+
+	owner_id = ((Form_pg_proc) GETSTRUCT(htp))->proowner;
 	
 	return(user_id == owner_id);
 }
