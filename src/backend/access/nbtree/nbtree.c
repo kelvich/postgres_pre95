@@ -306,6 +306,25 @@ btrescan(scan, fromEnd, scankey)
     }
 }
 
+void
+btmovescan(scan, v)
+    IndexScanDesc scan;
+    Datum v;
+{
+    ItemPointer iptr;
+    BTScanOpaque so;
+
+    so = (BTScanOpaque) scan->opaque;
+
+    /* release any locks we still hold */
+    if (ItemPointerIsValid(iptr = &(scan->currentItemData))) {
+	_bt_relbuf(scan->relation, so->btso_curbuf, BT_READ);
+	so->btso_curbuf = InvalidBuffer;
+	ItemPointerSetInvalid(iptr);
+    }
+
+    scan->keyData.data[0].argument = v;
+}
 /*
  *  btendscan() -- close down a scan
  */
