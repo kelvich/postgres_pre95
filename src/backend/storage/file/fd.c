@@ -707,6 +707,10 @@ fileWrite (file, buffer, amount)
 	FileAccess(file);
 	returnCode = write(VfdCache[file].fd, buffer, amount);
 
+	if (returnCode > 0) {  /* changed by Boris with Mao's advice */
+	    VfdCache[file].seekPos += returnCode;
+	}
+    
 	/* record the write */
 	VfdCache[file].fdstate |= FD_DIRTY;
 
@@ -759,7 +763,7 @@ fileTell (file)
 	FileNumber	file;
 {
 	DO_DB(printf("DEBUG: FileTell %d (%s)\n",file,VfdCache[file].fileName));
-	return FileSeek(file, 0, L_INCR);
+	return VfdCache[file].seekPos;
 }
 
 int
@@ -881,23 +885,38 @@ Sfd *sfdP;
 {   int l=0, h=NStriping-1, m, nf;
     long lsize, hsize, msize;
     long size;
+    long current_pos[10];
+    
+    /*  Fixed code so FileSize no longer puts the seekpos at the end of file
+	now it puts it back to where it was origanally -- B.L. */
+
     if (h == 0) {
+	current_pos[0] = fileTell(sfdP->vfd[0]);
 	size = fileSeek(sfdP->vfd[0], 0l, L_XTND);
+	fileSeek(sfdP->vfd[0], current_pos[0], L_SET);
 	return size;
       }
+
+    current_pos[1] = fileTell(sfdP->vfd[1]);
+    current_pos[h] = fileTell(sfdP->vfd[h]);
+
     if ((lsize = fileSeek(sfdP->vfd[l], 0l, L_XTND)) < 0) {
 	elog(FATAL, "lseek:%m");
     }
+    fileSeek(sfdP->vfd[1], current_pos[1], L_SET);
     if ((hsize = fileSeek(sfdP->vfd[h], 0l, L_XTND)) < 0) {
 	elog(FATAL, "lseek:%m");
     }
+    fileSeek(sfdP->vfd[h], current_pos[h], L_SET);
     if (lsize == hsize)
        nf = 0;
     else {
 	while (l + 1 != h) {
 	    m = (l + h) / 2;
+	    current_pos[m] = fileTell(sfdP->vfd[m]);
 	if ((msize = fileSeek(sfdP->vfd[m], 0l, L_XTND)) < 0) {
 	    elog(FATAL, "lseek:%m");
+	    fileSeek(sfdP->vfd[m], current_pos[m], L_SET);
 	}
 	    if (msize > hsize)
 	       l = m;
@@ -1093,6 +1112,8 @@ Amount amount;
         if (sfdP->seekPos >= sfdP->endPos)
 	    sfdP->endPos = sfdP->seekPos + amount;
         ret = fileWrite(sfdP->vfd[sfdP->curStripe], buffer, amount);
+	if (ret > 0) /* added by Boris with Mao's advice */
+	    sfdP->seekPos += ret;
         sfdP->curStripe = (sfdP->curStripe + 1) % NStriping;
 	break;
     case 1:
@@ -1100,6 +1121,8 @@ Amount amount;
 	    sfdP->endPos = sfdP->seekPos + amount;
         ret = fileWrite(sfdP->vfd[sfdP->curStripe], buffer, amount);
         ret = fileWrite(sfdP->vfd[sfdP->curStripe+NStriping], buffer, amount);
+	if (ret > 0) /* Added by Boris with Mao's advice */
+	    sfdP->seekPos += ret;
 	break;
     case 5:
 	{
@@ -1162,6 +1185,8 @@ Amount amount;
 	    printf("write new block at stripe %d row %d\n", sfdP->curStripe, VfdCache[sfdP->vfd[sfdP->curStripe]].seekPos/BLCKSZ);
 	    */
             ret = fileWrite(sfdP->vfd[sfdP->curStripe], buffer, amount);
+	    if (ret > 0) /* added by Boris with mao's advice */
+		sfdP->seekPos += ret;
 	 }
        }
 #ifdef PARALLELDEBUG
