@@ -48,13 +48,18 @@ static char
 
 #include "access/skey.h"
 #include "storage/buf.h"
-#include "storage/fd.h"
 #include "tmp/miscadmin.h"
 #include "utils/lmgr.h"
 #include "utils/log.h"
 #include "utils/mcxt.h"
 
 #include "internal.h"
+
+#ifdef sprite
+#include "sprite_file.h"
+#else
+#include "storage/fd.h"
+#endif /* sprite */
 
 /*#undef        LATEWRITE       /* LATEWRITE requires reldesc caching */
 
