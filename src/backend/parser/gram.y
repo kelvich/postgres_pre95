@@ -32,6 +32,7 @@ static char *gram_y ="$Header$";
 #include <pwd.h>
 
 extern LispValue new_filestr();
+extern Relation amopenr();
 
 #define MAXPATHLEN 1024
 #define ELEMENT 	yyval = nappend1( LispNil , yypvt[-0] )
@@ -46,6 +47,7 @@ extern LispValue new_filestr();
 
 #define YYSTYPE LispValue
 extern YYSTYPE parsetree;
+static ResdomNoIsAttrNo = 0;
 
 static YYSTYPE temp;
 static int NumLevels = 0;
@@ -60,6 +62,7 @@ YYSTYPE	       p_trange,
 	       p_rtable;
 
 static int p_numlevels,p_last_resno;
+static Relation CurrentRelationPtr = NULL;
 
 %}
 
@@ -694,9 +697,11 @@ OptimizableStmt:
 
 AppendStmt:
 	  Append 
-		{ SkipForwardToFromList(); }
+		{ ResdomNoIsAttrNo = 1; SkipForwardToFromList(); }
 	  from_clause
-	  opt_star  relation_name '(' res_target_list ')'
+	  opt_star  relation_name 
+		{ CurrentRelationPtr = amopenr(CString($5)); }
+	  '(' res_target_list ')'
 	  where_clause
 		{
 			LispValue root;
@@ -708,8 +713,9 @@ AppendStmt:
 					p_rtable,
 					p_priority, p_ruleinfo);
 			$$ = lispCons ( root , LispNil );
-			$$ = nappend1 ( $$ , $7 ); /* (eq p_target $5) */
-			$$ = nappend1 ( $$ , $9 ); /* (eq p_qual $8 */
+			$$ = nappend1 ( $$ , $8 ); /* (eq p_target $5) */
+			$$ = nappend1 ( $$ , $10 ); /* (eq p_qual $8 */
+			ResdomNoIsAttrNo = 0;
 		}
 	;
 
@@ -773,9 +779,12 @@ ReplaceStmt:
 		{ SkipForwardToFromList(); }
 	from_clause 
 	opt_star opt_rep_duration var_name 
+		{ CurrentRelationPtr = amopenr(CString($6)); }
 	'(' res_target_list ')' where_clause
   		{
 		    LispValue root;
+
+		    ResdomNoIsAttrNo = 1;
 		    if(RangeTablePosn(CString($6),0,0) == 0)
 		      p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
 					   ($6,0,$6));
@@ -786,9 +795,9 @@ ReplaceStmt:
 				    p_priority, p_ruleinfo);
 
 		    $$ = lispCons( root , LispNil );
-		    $$ = nappend1 ( $$ , $8 );		/* (eq p_target $6) */
-		    $$ = nappend1 ( $$ , $10 );	        /* (eq p_qual $9) */
-	
+		    $$ = nappend1 ( $$ , $9 );		/* (eq p_target $6) */
+		    $$ = nappend1 ( $$ , $11 );	        /* (eq p_qual $9) */
+		    ResdomNoIsAttrNo = 0;
 		}
 	;
 		 
@@ -1210,13 +1219,22 @@ res_target_list:
 res_target_el:
 	  Id equals a_expr
 		{
-			int type_id,type_len;
+		    int type_id,type_len;
+		    int resdomno;
+		    Relation rd;
+		    if (ResdomNoIsAttrNo) {
+			rd = CurrentRelationPtr;
+			resdomno = varattno(rd,CString($1));
+		    } else {
+			resdomno = p_last_resno++;
 			type_id = CInteger(CAR($3));
 			type_len = tlen(get_id_type(type_id));
-			$$ = lispCons (lispMakeResdom (  p_last_resno++ ,
-						       type_id, 
-						       type_len , $1, 0 , 0 ) ,
-				       lispCons (CDR($3) , LispNil) );
+		    }
+		    $$ = lispCons (lispMakeResdom (  resdomno,
+						   type_id, 
+						   type_len , 
+						   $1, 0 , 0 ) ,
+					   lispCons (CDR($3) , LispNil) );
 		}
 
 	| attr
@@ -1394,6 +1412,7 @@ parser_init()
 	p_trange = lispInteger(0);
 	p_last_resno = 1;
 	p_numlevels = 0;
+	ResdomNoIsAttrNo = 0;
 }
 
 char *
