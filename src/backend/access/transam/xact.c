@@ -730,17 +730,6 @@ StartTransaction()
     s->startTime = 		GetCurrentTime();
 
     /* ----------------
-     *	XXX where should we do this? someplace around transaction
-     *      initialization but I don't understand its real purpose.
-     *	    -cim 3/19/90
-     * ----------------
-     */
-    if (! TransactionInitWasProcessed) {
-	InitMyDatabaseId();
-	TransactionInitWasProcessed = true;
-    }
-
-    /* ----------------
      *	initialize the various transaction subsystems
      * ----------------
      */
