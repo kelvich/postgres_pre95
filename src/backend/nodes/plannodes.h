@@ -166,6 +166,7 @@ class (Plan) public (Node) {
 	Cost			cost; \
 	Count			plan_size; \
 	Count			plan_width; \
+	Count			plan_tupperpage; \
 	int			fragment; \
 	int			parallel; \
 	EStatePtr		state; \
@@ -198,7 +199,8 @@ class (Fragment) public (Node) {
         List           	frag_subtrees; \
         FragmentPtr    	frag_parent_frag; \
 	List		frag_parsetree; \
-	bool		frag_is_inprocess
+	bool		frag_is_inprocess; \
+	float		frag_iorate
  /* private: */
         FragmentDefs;
  /* public: */
