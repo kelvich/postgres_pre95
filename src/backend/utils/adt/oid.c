@@ -58,12 +58,14 @@ oid8out(oidArray)
 	extern int		ltoa();
 
 	if (oidArray == NULL) {
-		result = palloc(2);
+		result = (char *) palloc(2);
 		result[0] = '-';
 		result[1] = '\0';
 		return(result);
 	}
-	rp = result = palloc(8 * 12);	/* assumes sign, 10 digits, ' ' */
+
+	/* assumes sign, 10 digits, ' ' */
+	rp = result = (char *) palloc(8 * 12);
 	sp = *oidArray;
 	for (num = 8; num != 0; num--) {
 		ltoa((long) *sp++, rp);

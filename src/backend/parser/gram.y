@@ -644,7 +644,7 @@ ProcedureStmt:
 						    LispNil,
 						    "*NEW*" ));
 		   p_last_resno = 4;
-		   bogus = palloc(x+1);
+		   bogus = (char *) palloc(x+1);
 		   bogus = strcpy ( bogus, Ch );
 		   $10 = lispString(bogus);
 		}
@@ -1546,7 +1546,7 @@ opt_array_bounds:
 #ifdef REAL_ARRAYS
 		    $$ = lispCons ($2, LispNil);
 #else
-		    char *bogus = palloc(20);
+		    char *bogus = (char *) palloc(20);
 		    int retval;
 		    retval = (int) sprintf (bogus, "[%d]", CInteger($2));
 		    $$ = (LispValue)bogus;
@@ -1562,7 +1562,7 @@ Typename:
 #ifdef REAL_ARRAYS
 		    $$ = lispCons($1,$2);
 #else
-		    char *bogus = palloc(40);
+		    char *bogus = (char *) palloc(40);
 		    int retval;
 		    if ($2 != (LispValue)NULL) {
 		      retval = (int) sprintf(bogus,"%s%s", CString($1), $2);

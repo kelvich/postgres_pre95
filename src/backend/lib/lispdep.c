@@ -222,7 +222,7 @@ lispName(string)
 	    elog(WARN,"Name %s was longer than %d",string,sizeof(NameData));
 	    /* NOTREACHED */
 	}
-	newstr = palloc(sizeof(NameData)+1);
+	newstr = (char *) palloc(sizeof(NameData)+1);
 	newstr = strcpy(newstr,string);
     } else
       newstr = (char *)NULL;
@@ -250,7 +250,7 @@ lispString(string)
     newobj->cdr = LispNil;
 
     if(string) {
-	newstr = palloc(strlen(string)+1);
+	newstr = (char *) palloc(strlen(string)+1);
 	newstr = strcpy(newstr,string);
     } else
       newstr = (char *)NULL;

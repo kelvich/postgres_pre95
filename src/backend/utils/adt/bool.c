@@ -31,7 +31,7 @@ char *
 boolout(b)
 	long	b;
 {
-	char	*result = palloc(2);
+	char	*result = (char *) palloc(2);
 
 	*result = (b) ? 't' : 'f';
 	result[1] = '\0';

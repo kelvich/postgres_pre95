@@ -43,7 +43,7 @@ parser(str, l)
     fflush(stdout); */
     if (strlen(str) != 0) {
 	StringInput = 1;
-	TheString = palloc(strlen(str) + 1);
+	TheString = (char *) palloc(strlen(str) + 1);
 	bcopy(str,TheString,strlen(str)+1);
     }
 
@@ -164,25 +164,25 @@ parser_typecast ( expr, typename )
     
     switch ( CInteger(CAR(expr)) ) {
       case 23: /* int4 */
-	  const_string = palloc(256);
+	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%d",
 		get_constvalue(CDR(expr)));
 	break;
       case 19: /* char16 */
-	  const_string = palloc(256);
+	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%s",
 		get_constvalue(CDR(expr)));
 	break;
       case 18: /* char */
-	  const_string = palloc(256);
+	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%c",
 		get_constvalue(CDR(expr)));
 	break;
       case 701:/* float8 */
-	  const_string = palloc(256);
+	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%f",
 		get_constvalue(CDR(expr)));
@@ -210,7 +210,7 @@ parser_typecast ( expr, typename )
     if (!tbyvalue(tp)) {
 	if (len >= 0 && len != PSIZE(cp)) {
 	    char *pp;
-	    pp = palloc(len);
+	    pp = (char *) palloc(len);
 	    bcopy(cp, pp, len);
 	    cp = pp;
 	}
@@ -257,25 +257,25 @@ parser_typecast2 ( expr, tp)
     
     switch ( CInteger(CAR(expr)) ) {
       case 23: /* int4 */
-	  const_string = palloc(256);
+	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%d",
 		get_constvalue(CDR(expr)));
 	break;
       case 19: /* char16 */
-	  const_string = palloc(256);
+	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%s",
 		get_constvalue(CDR(expr)));
 	break;
       case 18: /* char */
-	  const_string = palloc(256);
+	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%c",
 		get_constvalue(CDR(expr)));
 	break;
       case 701:/* float8 */
-	  const_string = palloc(256);
+	  const_string = (char *) palloc(256);
 	  string_palloced = true;
 	sprintf(const_string,"%f",
 		get_constvalue(CDR(expr)));
@@ -303,7 +303,7 @@ parser_typecast2 ( expr, tp)
     if (!tbyvalue(tp)) {
 	if (len >= 0 && len != PSIZE(cp)) {
 	    char *pp;
-	    pp = palloc(len);
+	    pp = (char *) palloc(len);
 	    bcopy(cp, pp, len);
 	    cp = pp;
 	}

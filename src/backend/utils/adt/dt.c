@@ -40,7 +40,7 @@ dtout(datetime)
 	char		*result;
 	extern int	ltoa();
 
-	result = palloc(12);	/* assumes sign, 10 digits max, '\0' */
+	result = (char *) palloc(12);	/* assumes sign, 10 digits max, '\0' */
 	ltoa((long) datetime, result);
 	return(result);
 }

@@ -761,7 +761,7 @@ heap_addheader(natts, structlen, structure)
     len += bitmasklen;
     hoff = len;
     len += structlen;
-    tp = palloc(len);
+    tp = (char *) palloc(len);
     tup = (HeapTuple)tp;
     bzero(tp, (int)len);			/* probably unneeded */
     tup->t_len = (short)len;			/* XXX */
@@ -922,7 +922,7 @@ heap_formtuple(numberOfAttributes, tupleDescriptor, value, null)
     len += ComputeDataSize(numberOfAttributes, tupleDescriptor, value,
 			   null);
     
-    tp = palloc(len);
+    tp = (char *) palloc(len);
     tuple = LintCast(HeapTuple, tp);
     bzero(tp, (int)len);
     tuple->t_len = (short)len;			/* XXX */
@@ -1285,7 +1285,7 @@ slowgetattr(tup, b, attnum, att, isnull)
 	if (b == opos->op_db && PNOBREAK(opos, (unsigned)size[1]))
 	    tp = opos->op_cp;
 	else {
-	    tp = palloc(size[1]);
+	    tp = (char *) palloc(size[1]);
 	    if (pfill(opos, tp) < 0)
 		elog(WARN, "slowgetattr: failed pfill$");
 	}
@@ -1293,7 +1293,7 @@ slowgetattr(tup, b, attnum, att, isnull)
 	if (b == opos->op_db && PNOBREAK(opos, (unsigned)(*ap)->attlen))
 	    tp = opos->op_cp;
 	else {
-	    tp = palloc((*ap)->attlen);
+	    tp = (char *) palloc((*ap)->attlen);
 	    if (pfill(opos, tp) < 0)
 		elog(WARN, "slowgetattr: failed pfill$2");
 	}

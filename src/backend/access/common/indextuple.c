@@ -285,7 +285,7 @@ index_formtuple(numberOfAttributes, tupleDescriptor, value, null)
     
     size += ComputeDataSize(numberOfAttributes, tupleDescriptor, value, null);
     
-    tp = palloc(size);
+    tp = (char *) palloc(size);
     tuple = (IndexTuple) tp;
     bzero(tp, (int)size);
     

@@ -116,7 +116,7 @@ HeapTupleGetRuleLock(tuple, buffer)
 	itemId = PageGetItemId(page,
 		ItemPointerSimpleGetOffsetIndex(&tuple->t_lock.l_ltid));
 	item = PageGetItem(page, itemId);
-	returnItem = palloc(itemId->lp_len);	/* XXX */
+	returnItem = (Item) palloc(itemId->lp_len);	/* XXX */
 	bcopy(item, returnItem, (int)itemId->lp_len);	/* XXX Clib-copy */
 	BufferPut(buffer, L_UNPIN);
 	return (LintCast(RuleLock, returnItem));

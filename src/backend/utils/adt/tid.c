@@ -96,7 +96,7 @@ tidout(itemPtr)
     
     sprintf(buf, "(%d,%d,%d)", blockNumber, pageNumber, offsetNumber);
 
-    str = palloc(strlen(buf)+1);
+    str = (char *) palloc(strlen(buf)+1);
     strcpy(str, buf);
 
     return str;

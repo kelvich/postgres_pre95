@@ -210,7 +210,7 @@ HandleFunctionRequest()
 	arg_length[i] = pq_getint(4);
 	
 	if (arg_length[i] == VAR_LENGTH_ARG ) {
-	    char *data = palloc(MAX_STRING_LENGTH);
+	    char *data = (char *) palloc(MAX_STRING_LENGTH);
 	    pq_getstr(data,MAX_STRING_LENGTH);
 	    arg[i] = external_to_internal(data,MAX_STRING_LENGTH,PASS_BY_REF);
 	} else if (arg_length[i] > 4)  {

@@ -42,7 +42,7 @@ char *
 charout(ch)
 	int32	ch;
 {
-	char	*result = palloc(2);
+	char	*result = (char *) palloc(2);
 
 	result[0] = (char) ch;
 	result[1] = '\0';
@@ -63,7 +63,7 @@ char16in(s)
 
 	if (s == NULL)
 		return(NULL);
-	result = palloc(16);
+	result = (char *) palloc(16);
 	strncpy(result, s, 16);
 	return(result);
 }
@@ -75,7 +75,7 @@ char *
 char16out(s)
 	char	*s;
 {
-	char	*result = palloc(17);
+	char	*result = (char *) palloc(17);
 
 	if (s == NULL) {
 		result[0] = '-';
