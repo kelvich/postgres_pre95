@@ -123,7 +123,7 @@ SISetActiveProcess(segInOutP, backendId)
 /****************************************************************************/
 /* SIBackendInit()  initializes a backend to operate on the buffer  	    */
 /****************************************************************************/
-void
+int
 SIBackendInit(segInOutP)
     SISeg 		*segInOutP;
 {
@@ -133,6 +133,8 @@ SIBackendInit(segInOutP)
     Assert(MyBackendTag > 0);
 
     MyBackendId = SIAssignBackendId(segInOutP, MyBackendTag);
+    if (MyBackendId == InvalidBackendTag)
+	return 0;
 
 #ifdef	INVALIDDEBUG
     elog(DEBUG, "SIBackendInit: backend tag %d; backend id %d.",
@@ -141,6 +143,7 @@ SIBackendInit(segInOutP)
 
     SISetActiveProcess(segInOutP, MyBackendId);
     on_exitpg(CleanupInvalidationState, segInOutP);
+    return 1;
 }
 
 /* ----------------
@@ -192,8 +195,10 @@ SIAssignBackendId(segInOutP, backendTag)
 	    elog(NOTICE, "SIAssignBackendId: reusing tag %d",
 		 backendTag);
 	} else {
-	    elog(NOTICE, "SIAssignBackendId: discarding tag %d",
+	    elog(NOTICE,
+		 "SIAssignBackendId: discarding tag %d",
 		 stateP->tag);
+	    return InvalidBackendTag;
 	}
     }
 

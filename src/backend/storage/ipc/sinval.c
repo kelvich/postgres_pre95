@@ -82,7 +82,13 @@ AttachSharedInvalidationState(key)
 void
 InitSharedInvalidationState()
 {
-	SIBackendInit(shmInvalBuffer);
+	SpinAcquire(SInvalLock);
+	if (!SIBackendInit(shmInvalBuffer))
+	{
+	    SpinRelease(SInvalLock);
+	    elog(FATAL, "Backend cache invalidation initialization failed");
+	}
+	SpinRelease(SInvalLock);
 }
 
 /****************************************************************************/
