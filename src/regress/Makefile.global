@@ -25,6 +25,7 @@ CFLAGS+= +z
 		C=""; \
 	fi; \
 	sed -e "s:_CWD_:$$C${.CURDIR}:g" \
+	    -e "s:_OBJWD_:$$C${.CURDIR}/${MAKEOBJDIR}:g" \
 	    -e "s/_USER_/$$USER/g" < ${.CURDIR}/$*.source > $*.pq
 
 .source.sh:
@@ -35,4 +36,5 @@ CFLAGS+= +z
 		C=""; \
 	fi; \
 	sed -e "s:_CWD_:$$C${.CURDIR}:g" \
+	    -e "s:_OBJWD_:$$C${.CURDIR}/${MAKEOBJDIR}:g" \
 	    -e "s/_USER_/$$USER/g" < ${.CURDIR}/$*.source > $*.sh
