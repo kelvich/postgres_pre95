@@ -613,6 +613,19 @@ MergeStmt:
 		}
 	;
 
+Executable:     OptimizableStmt 
+               {
+		   $$ = $1;
+		   if (!is_postquel_function)
+		       elog(WARN,
+		      "non-postquel functions don't use queries, you lose!");
+ 	       }
+| SCONST
+               {
+		   $$ = $1;
+	       };
+		    
+
  /************************************************************
 	QUERY:
                 define function <fname>
@@ -628,19 +641,6 @@ MergeStmt:
                         as <filename or code in language as appropriate>
 
   ************************************************************/
-
-Executable:     OptimizableStmt 
-               {
-		   $$ = $1;
-		   if (!is_postquel_function)
-		       elog(WARN,
-		      "non-postquel functions don't use queries, you lose!");
- 	       }
-| SCONST
-               {
-		   $$ = $1;
-	       };
-		    
 
 ProcedureStmt:
 
@@ -1870,8 +1870,8 @@ attr:
           relation_name '.' nested_func '.' nested_dots
                 {
 		    attr_is_nested_dots = true;
-		    $$ = MakeList($1, $3);
-		    $$ = nconc($$, $5);
+		    $$ = MakeList($1, $3, -1);
+		    $$ = nappend1($$, $5);
 		}
         | relation_name '.' attr_name
 		{
