@@ -34,9 +34,12 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.7  1991/08/06 10:44:13  mer
-    fix compile bug
+    Revision 1.8  1991/08/12 20:54:11  mao
+    make macro name unique
 
+ * Revision 1.7  1991/08/06  10:44:13  mer
+ * fix compile bug
+ *
  * Revision 1.6  91/07/31  23:00:03  mer
  * fixes for expanding tables
  * 
@@ -159,7 +162,7 @@ SEG_OFFSET seg_alloc();
 #define GET_BUCKET(hp,bucket_offs)\
   (ELEMENT *) (((unsigned int) (hp)->segbase) + bucket_offs)
 
-#define MAKE_OFFSET(hp,ptr)\
+#define MAKE_HASHOFFSET(hp,ptr)\
   ( ((unsigned int) ptr) - ((unsigned int) (hp)->segbase) )
 
 # if HASH_STATISTICS
@@ -735,7 +738,7 @@ HTAB * hashp;
   bzero((char *)segp,
 	(int) sizeof(SEGMENT)*hashp->hctl->ssize);
 
-  segOffset = MAKE_OFFSET(hashp,segp);
+  segOffset = MAKE_HASHOFFSET(hashp,segp);
   return(segOffset);
 }
 
@@ -766,7 +769,7 @@ HTAB *hashp;
     return(0);
   }
 
-  tmpIndex = MAKE_OFFSET(hashp,tmpBucket);
+  tmpIndex = MAKE_HASHOFFSET(hashp,tmpBucket);
 
   /* set the freebucket list to point to the first bucket */
   lastIndex = hashp->hctl->freeBucketIndex;
