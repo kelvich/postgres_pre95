@@ -50,8 +50,6 @@ extern char pg_pathname[];
 
 #include "utils/dynamic_loader.h"
 
-static char partial_symbol_table[50] = "";
-
 /* 
  *
  *   ld -N -x -A SYMBOL_TABLE -o TEMPFILE FUNC -lc
@@ -60,92 +58,73 @@ static char partial_symbol_table[50] = "";
  *
  */
 
-DynamicFunctionList *
-dynamic_file_load(err, filename)
+static char *temp_file_name = NULL;
+static char *path = "/usr/tmp/postgresXXXXXX";
 
-char *err, *filename;
+DynamicFunctionList *
+dynamic_file_load(err, filename, address, size)
+
+char **err, *filename, **address;
+long *size;
 
 {
 	extern end;
 	extern char *mktemp();
 	extern char *valloc();
 
-	char *path;
 	int nread;
-	struct exec header;
+	struct exec ld_header, header;
 	unsigned long image_size, zz;
 	char *load_address = NULL;
-	char *temp_file_name = NULL;
 	FILE *temp_file = NULL;
 	char command[256];
-	DynamicFunctionList *retval, *load_symbols();
+	DynamicFunctionList *retval = NULL, *load_symbols();
+	int fd;
 
-	if (!strlen(partial_symbol_table))
-		strcpy(partial_symbol_table,pg_pathname);
-	path = "/usr/tmp/postgresXXXXXX";
-	temp_file_name = (char *)malloc(strlen(path) + 1);
-	strcpy(temp_file_name,path);
-	mktemp(temp_file_name);
 
 /* commented out -lc */
 
-	sprintf(command,"ld -N  -A %s -o  %s %s ",
-	    partial_symbol_table,
-	    temp_file_name, filename);
+	fd = open(filename, O_RDONLY);
 
-	if(system(command))
-	{
-		err = "link failed!";
-		goto finish_up;
-	}
+	read(fd, &ld_header, sizeof(struct exec));
 
-	/* printf("command 1 executed\n"); */
-
-	if(!(temp_file = fopen(temp_file_name,"r")))
-	{
-		err = "unable to open temp file";
-		goto finish_up;
-	}
-	nread = fread(&header, sizeof(header), 1, temp_file);
-	if (nread != 1)
-	{
-		err = "cant read header";
-		goto finish_up;
-	}
-		
-	image_size = header.a_text + header.a_data + header.a_bss;
-	fclose(temp_file);
-	temp_file = NULL;
+	image_size = ld_header.a_text + ld_header.a_data + ld_header.a_bss;
 
 	if (!(load_address = valloc(zz=image_size)))
 	{
-		err = "unable to allocate memory";
+		*err = "unable to allocate memory";
 		goto finish_up;
 	}
 
-/* commented out -lc */
+	if (temp_file_name == NULL)
+	{
+		temp_file_name = (char *)malloc(strlen(path) + 1);
+	}
 
-	sprintf(command,"ld -N  -A %s -T %lx -o %s  %s ",
-	    partial_symbol_table,
+	strcpy(temp_file_name,path);
+	mktemp(temp_file_name);
+
+	sprintf(command,"ld -N  -A %s -T %lx -o %s  %s -lc -lm -ll",
+	    pg_pathname,
 	    load_address,
 	    temp_file_name,  filename);
 
 	if(system(command))
 	{
-		err = "link failed!";
+		*err = "link failed!";
 		goto finish_up;
 	}
 
 	if(!(temp_file = fopen(temp_file_name,"r")))
 	{
-		err = "unable to open tmp file";
+		*err = "unable to open tmp file";
 		goto finish_up;
 	}
 	nread = fread(&header, sizeof(header), 1, temp_file);
 	image_size = header.a_text + header.a_data + header.a_bss;
 	if (zz<image_size)
 	{
-		err = "loader out of phase!";
+		*err = "loader out of phase!";
 		goto finish_up;
 	}
 
@@ -155,14 +134,15 @@ char *err, *filename;
 	while (zz<image_size)
 		load_address[zz++] = 0;
 
-	retval = load_symbols(filename, header.a_entry);
+	retval = load_symbols(fd, &ld_header, load_address);
 
 	fclose(temp_file);
+	unlink(temp_file_name);
+	*address = load_address;
+	*size = image_size;
+
 	temp_file = NULL;
 	load_address = NULL;
-
-	/* Prepare for future loads wrt. this one. */
-	strcpy(partial_symbol_table,temp_file_name);
 
 finish_up:
 	if (temp_file != NULL) fclose(temp_file);
@@ -171,34 +151,30 @@ finish_up:
 }
 
 DynamicFunctionList *
-load_symbols(filename, entry_addr)
+load_symbols(fd, hdr, entry_addr)
 
-char *filename;
+int fd;
+struct exec *hdr;
 int entry_addr;
 
 {
 	char *strings, *symb_table, *p, *q;
-	int fd, symtab_offset, string_offset, string_size, nsyms, i;
+	int symtab_offset, string_offset, string_size, nsyms, i;
 	struct nlist *table_entry;
-	struct exec hdr;
 	int entering = 1;
 	DynamicFunctionList *head, *scanner;
 
-	fd = open(filename, O_RDONLY);
-
-	read(fd, &hdr, sizeof(struct exec));
-
-	symtab_offset = N_SYMOFF(hdr);
-	string_offset = N_STROFF(hdr);
+	symtab_offset = N_SYMOFF(*hdr);
+	string_offset = N_STROFF(*hdr);
 
 	lseek(fd, string_offset, 0);
 	read(fd, &string_size, sizeof(string_size));
 	strings = (char *) malloc(string_size - 4);
 	read(fd, strings, string_size - 4);
-	nsyms = hdr.a_syms / sizeof(struct nlist);
+	nsyms = hdr->a_syms / sizeof(struct nlist);
 	lseek(fd, symtab_offset, 0);
-	symb_table = (char *) malloc(hdr.a_syms);
-	read(fd, symb_table, hdr.a_syms);
+	symb_table = (char *) malloc(hdr->a_syms);
+	read(fd, symb_table, hdr->a_syms);
 
 	p = symb_table;
 	for (i = 0; i < nsyms; i++)
@@ -242,9 +218,9 @@ int entry_addr;
 func_ptr
 dynamic_load(err)
 
-char *err;
+char **err;
 
 {
-	err = "Dynamic load: Should not be here!";
+	*err = "Dynamic load: Should not be here!";
 	return(NULL);
 }

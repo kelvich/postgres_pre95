@@ -68,9 +68,10 @@ static char *path = "/usr/tmp/postgresXXXXXX";
 #define PAGE_ROUND(X) ((X) % 512 == 0 ? (X) : (X) - (X) % 512 + 512)
 
 DynamicFunctionList *
-dynamic_file_load(err, filename)
+dynamic_file_load(err, filename, start_addr, size)
 
-char **err, *filename;
+char **err, *filename, **start_addr;
+long *size;
 
 {
 	extern etext, edata, end;
@@ -204,6 +205,8 @@ char **err, *filename;
 finish_up:
 	fclose(temp_file);
 	unlink(temp_file_name);
+	*start_address = load_address;
+	*size = true_image_size;
 	return retval;
 }
 
