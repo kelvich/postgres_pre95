@@ -21,6 +21,12 @@ SLOTFILE=slots
 EGREP=egrep
 RM=rm
 SED=sed
+if [ -x /usr/ucb/gawk ]
+then
+	AWK=/usr/ucb/gawk
+else
+	AWK=awk
+fi
 
 echo "/* ---------------------------------------------------------------- "
 echo " * 	node file generated from $SRC"
@@ -46,7 +52,7 @@ $EGREP -v '(^#|^[ 	/]*\*|typedef|Defs|inherits)' < $SRC | \
 $SED -e 's/;//' \
      -e '/\/\*/,/\*\//D' \
      -e 's/\\//' | \
-awk '
+$AWK '
 # ----------------
 #	initialize variables
 # ----------------
