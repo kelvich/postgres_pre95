@@ -56,7 +56,7 @@ typedef FormData_pg_opclass	*Form_pg_opclass;
  */
 
 DATA(insert OID = 421 (    int2_ops ));
-DATA(insert OID = 422 (    area_ops ));
+DATA(insert OID = 422 (    box_ops ));
 DATA(insert OID = 423 (    float8_ops ));
 DATA(insert OID = 424 (    int24_ops ));
 DATA(insert OID = 425 (    int42_ops ));
