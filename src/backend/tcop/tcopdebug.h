@@ -35,6 +35,13 @@
  */
 #undef TCOP_SHOWSTATS
 
+/* ----------------
+ *	TCOP_DONTUSENEWLINE controls the default setting of
+ *	the UseNewLine variable in postgres.c
+ * ----------------
+ */
+#undef TCOP_DONTUSENEWLINE
+
 /* ----------------------------------------------------------------
  *	#defines controlled by above definitions
  * ----------------------------------------------------------------
