@@ -67,6 +67,8 @@ RcsId("$Header$");
 #include "planner/clauses.h"
 #include "planner/prepqual.h"
 
+#include "parser/catalog_utils.h"
+
 #include "machine.h"
 
 extern ExprContext RMakeExprContext();
@@ -320,7 +322,9 @@ BuildFuncTupleDesc(funcInfo)
     HeapTuple 		tuple, SearchSysCacheTuple();
     TupleDescriptor 	funcTupDesc;
     ObjectId  		retType;
-    int4 		nArgs;
+    char		*funcname;
+    int4 		nargs;
+    ObjectId		*argtypes;
 
     /*
      * Allocate and zero a tuple descriptor.
@@ -330,23 +334,17 @@ BuildFuncTupleDesc(funcInfo)
     bzero(funcTupDesc->data[0], AFSIZE);
 
     /*
-     * Lookup the function for the return type and number of args.
+     * Lookup the function for the return type.
      */
-    tuple = SearchSysCacheTuple(PRONAME,FIgetname(funcInfo),0,0,0);
+    funcname = FIgetname(funcInfo);
+    nargs = FIgetnArgs(funcInfo);
+    argtypes = FIgetArglist(funcInfo);
+    tuple = SearchSysCacheTuple(PRONAME, funcname, nargs, argtypes, 0);
+
     if (!HeapTupleIsValid(tuple))
-	elog(WARN, "Function name %s does not exist", FIgetname(funcInfo));
+	  func_error("BuildFuncTupleDesc", funcname, nargs, argtypes);
 
     retType = ((Form_pg_proc)GETSTRUCT(tuple))->prorettype;
-    nArgs = ((Form_pg_proc)GETSTRUCT(tuple))->pronargs;
-
-    /*
-     * verify arg count
-     */
-    if (nArgs != FIgetnArgs(funcInfo))
-    {
-	elog(WARN, 
-	     "Defined functional index with an incorrect number of arguments");
-    }
 
     /*
      * Look up the return type in pg_type for the type length.
@@ -368,7 +366,7 @@ BuildFuncTupleDesc(funcInfo)
      * make the attributes name the same as the functions
      */
     strncpy(&funcTupDesc->data[0]->attname, 
-	    FIgetname(funcInfo), 
+	    funcname,
 	    sizeof(funcTupDesc->data[0]->attname));
 
     return (funcTupDesc);
@@ -1136,11 +1134,16 @@ index_create(heapRelationName, indexRelationName, funcInfo,
     {
 	HeapTuple proc_tup, SearchSysCacheTuple();
 	
-	proc_tup = SearchSysCacheTuple(PRONAME,FIgetname(funcInfo),0,0,0);
+	proc_tup = SearchSysCacheTuple(PRONAME,
+				       FIgetname(funcInfo),
+				       FIgetnArgs(funcInfo),
+				       FIgetArglist(funcInfo),
+				       0);
 
-	if (!HeapTupleIsValid(proc_tup))
-	     elog (WARN, "function named %s does not exist",
-		   FIgetname(funcInfo));
+	if (!HeapTupleIsValid(proc_tup)) {
+	     func_error(index_create, FIgetname(funcInfo),
+			FIgetnArgs(funcInfo), FIgetArglist(funcInfo));
+        }
 	FIgetProcOid(funcInfo) = proc_tup->t_oid;
     }
 
@@ -1714,3 +1717,5 @@ index_build(heapRelation, indexRelation,
 		     funcInfo,
 		     predInfo);
 }
+
+
