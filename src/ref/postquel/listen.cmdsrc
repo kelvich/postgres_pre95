@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH "LISTEN" COMMANDS 02/12/94
+.TH "LISTEN" COMMANDS 03/12/94
 .XA 2 "Listen"
 .SH NAME
 listen \(em listen for notification on a relation
@@ -12,7 +12,7 @@ listen \(em listen for notification on a relation
 .SH DESCRIPTION
 .BR listen
 is used to register the current backend as a listener on the relation
-.BR class_name.
+.IR class_name .
 When the command 
 .BI notify " class_name"
 is called either from within a rule or at the query level, the
@@ -23,7 +23,7 @@ is cleared.
 This event notification is performed through the \*(LI protocol
 and frontend application interface.  The application program 
 must explicitly poll a \*(LI global variable, 
-.IR PQAsyncNotifyWaiting
+.IR PQAsyncNotifyWaiting ,
 and call the routine
 .IR PQnotifies
 in order to find out the name of the class to which a given 
@@ -36,9 +36,9 @@ notify(commands),
 retrieve(commands),
 libpq.
 .SH BUGS
-There is no way to un-
+There is no way to un-\c
 .BR listen
-except to drop the connection (restart the backend server).
+except to drop the connection (i.e., restart the backend server).
 .PP
 The
 .IR monitor (unix)

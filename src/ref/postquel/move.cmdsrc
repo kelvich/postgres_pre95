@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH MOVE COMMANDS 01/23/93
+.TH MOVE COMMANDS 02/12/94
 .XA 2 Move
 .SH NAME
 move \(em move the pointer in a portal
@@ -51,6 +51,6 @@ retrieve(commands).
 .SH BUGS
 .BR Move
 is not implemented in Version \*(PV.  The portal pointer may be moved
-using the
-.BR fetch
-command and ignoring its return values.
+using 
+.IR fetch (commands)
+and ignoring its return values.

@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH "NOTIFY" COMMANDS 02/14/94
+.TH "NOTIFY" COMMANDS 03/14/94
 .XA 2 "Notify"
 .SH NAME
 notify \(em signal all frontends and backends listening on a class
@@ -12,9 +12,9 @@ notify \(em signal all frontends and backends listening on a class
 .SH DESCRIPTION
 .BR notify
 is used to awaken all backends and consequently all frontends
-that have executed the
-.BR listen
-command on
+that have executed 
+.IR listen (commands)
+on
 .IR class_name .
 This can be used either within an instance-level rule as part of the
 action body or from a normal query.  When used from within a normal
@@ -36,7 +36,7 @@ in some application-specific way.
 This event notification is performed through the \*(LI protocol
 and frontend application interface.  The application program
 must explicitly poll a \*(LI global variable,
-.IR PQAsyncNotifyWaiting
+.IR PQAsyncNotifyWaiting ,
 and call the routine
 .IR PQnotifies
 in order to find out the name of the class to which a given
