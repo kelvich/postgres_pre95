@@ -1097,7 +1097,6 @@ _inv_getsize(hreln, hdesc, ireln)
     Relation ireln;
 {
     IndexScanDesc iscan;
-    ScanKeyData skey;
     RetrieveIndexResult res;
     Buffer buf;
     HeapTuple htup;
@@ -1105,10 +1104,8 @@ _inv_getsize(hreln, hdesc, ireln)
     long size;
     bool isNull;
 
-    ScanKeyEntryInitialize(&skey, 0x0, 1, Int4GEProcedure, Int32GetDatum(-1));
-
     /* scan backwards from end */
-    iscan = index_beginscan(ireln, (Boolean) 1, (uint16) 1, (ScanKey) &skey);
+    iscan = index_beginscan(ireln, (Boolean) 1, 0, (ScanKey) NULL);
 
     buf = InvalidBuffer;
 
