@@ -31,19 +31,16 @@ ExecEvalIter(iterNode, econtext, resultIsNull, iterIsDone)
     bool		*iterIsDone;
     bool		*resultIsNull;
 {
-    Expr expression;
+    List expression;
 
-    /*
-     * Do we need a CAR() here ????
-     */
-    expression = (Expr)get_iterexpr(iterNode);
+    expression = get_iterexpr(iterNode);
 
     /*
      * Really Iter nodes are only needed for C functions, postquel function
      * by their nature return 1 result at a time.  For now we are only worrying
      * about postquel functions, c functions will come later.
      */
-    return ExecEvalExpr(expression, econtext, resultIsNull, iterIsDone);
+    return ExecEvalExpr((Node)expression, econtext, resultIsNull, iterIsDone);
 }
 
 void
