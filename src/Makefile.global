@@ -345,5 +345,5 @@ MAKE_EXPORTS=
 # everything to compile.  :-/
 #
 .if (${PORTNAME} == "aix")
-CFLAGS+= -qchars=signed -DHAVE_ANSI_CPP -DUSE_POSIX_TIME
+CFLAGS+= -qchars=signed -DHAVE_ANSI_CPP
 .endif
