@@ -1,30 +1,30 @@
-$Header$
-
-Path: senator-bedfellow.mit.edu!bloom-beacon.mit.edu!pad-thai.aktis.com!suan-la-chow-show.aktis.com!not-for-mail
-From: bjaspan@GZA.COM (Barry Jaspan)
+From bjaspan@security.ov.com Sun Nov 07 18:03:23 PST 1993
+Article: 2419 of comp.protocols.kerberos
+Path: agate!howland.reston.ans.net!noc.near.net!pad-thai.aktis.com!suan-la-chow-show.aktis.com!not-for-mail
+From: bjaspan@security.ov.com (Barry Jaspan)
 Newsgroups: comp.protocols.kerberos,news.answers
-Subject: Kerberos Users' Frequently Asked Questions 1.6
-Supersedes: <kerberos-faq/user_741543191@GZA.COM>
+Subject: Kerberos Users' Frequently Asked Questions 1.7
+Supersedes: <kerberos-faq/user_746287123@GZA.COM>
 Followup-To: poster
-Date: 25 Aug 1993 09:58:44 -0400
-Organization: Geer Zolot Associates
-Lines: 638
+Date: 7 Nov 1993 13:04:18 -0500
+Organization: OpenVision Technologies
+Lines: 664
 Approved: news-answers-request@mit.edu
-Expires: 22 Sep 1993 13:58:43 GMT
-Message-ID: <kerberos-faq/user_746287123@GZA.COM>
+Expires: 5 Dec 1993 18:04:17 GMT
+Message-ID: <kerberos-faq/user_752695457@GZA.COM>
 NNTP-Posting-Host: suan-la-chow-show.aktis.com
 Summary: This document answers Frequently Asked Questions about the
 	Kerberos authentication system.  Read this before you post a
 	question to comp.protocols.kerberos or kerberos@athena.mit.edu.
-Xref: senator-bedfellow.mit.edu comp.protocols.kerberos:2265 news.answers:11773
+Xref: agate comp.protocols.kerberos:2419 news.answers:14250
 
 Archive-name: kerberos-faq/user
-Version: 1.6
+Version: 1.7
 
 Kerberos Users' Frequently Asked Questions
-August 25, 1993
-Compiled by: Barry Jaspan, <bjaspan@gza.com>
-             OpenVision Technologies / Geer Zolot Associates
+November 7, 1993
+Compiled by: Barry Jaspan, <bjaspan@security.ov.com>
+             OpenVision Technologies
 
      Kerberos; also spelled Cerberus.  n.  The watch dog of
      Hades, whose duty it was to guard the entrance--against
@@ -35,8 +35,8 @@ Compiled by: Barry Jaspan, <bjaspan@gza.com>
 
 This document answers Frequently Asked Questions about the Kerberos
 authentication system.  It is freely distributable.  Direct all
-responses and questions to bjaspan@gza.com.  Most of the information
-presented here has been collected from postings to the
+responses and questions to bjaspan@security.ov.com.  Most of the
+information presented here has been collected from postings to the
 comp.protocols.kerberos newsgroup (gatewayed to the mailing list
 kerberos@athena.mit.edu).
 
@@ -46,8 +46,10 @@ is" without express or implied warranty.  In particular, this document
 is not intended as legal advice for exporting Kerberos, DES, or any
 other encryption software.
 
-Release Notes: This release contains the first cut at an answer to
-question 1.7 (DCE Security/Kerberos interoperability.)
+Release Notes: A new question and answer, 3.3, has been added, and
+minor improvements have been made to the Kerberos Ports List.  Note
+that the Kerberos Ports List is not currently being maintained, and so
+it is certain to be out of date.
 
 Questions addressed in this release:
 
@@ -86,6 +88,7 @@ Questions addressed in this release:
 (3.1)	Why do I get an error message from ld when make_commands is
 	executed?
 (3.2)	Why doesn't KRB5_defs.h exist when I build version 5?
+(3.3)	What is libkrb.a, and why can't ld find it?
 
 4.  Miscellaneous
 ----------------------------------------------------------------------
@@ -485,7 +488,8 @@ Alternatively, you use Kerberos V5, which has forwardable tickets.
 (2.7)	What operating systems has Kerberos been ported to?
 	What vendors provide commercial support for Kerberos?
 
-Note: This was written by Greg Edwards, edwardsg@iscnvx.is.lmsc.lockheed.com.
+Note: This list is extremely out of date and is not currently being
+maintained.
 
 The following is a list on Kerberos Ports that I know of as of 23 
 October 1992. If you have additional information please send it to me. 
@@ -551,9 +555,9 @@ Convex		-  -  -  -  -  -  -  -   -  -  -  -  -  4
 							LMSC partial port of K4
 Cray		-  -  -  -  -  -  -  -   -  -  -  -  4d 4
 							LLNL partial port of K4
-HP		-  A  -  -  H  -  -  hT  -  -  -  -  -  d
+HP		4  A  -  -  H  -  -  hT  -  -  -  -  -  d
 Intel Sv.4	-  -  -  -  H  -  4  H   -  -  -  -  -  d
-Irix 4.0.3	4  -  -  -  -  -  -  -   -  -  -  -  -  p
+Irix 4.x	4  -  -  -  -  -  -  -   -  -  -  -  -  p
 Mac 6.x		p  -  -  -  -  -  4  4H  -  -  -  -  -  -
 Mac 7.x		p  -  -  -  -  -  4  4H  -  -  -  -  -  -
 MsDos		-  -  4  4  -  -  4  4H  -  -  -  -  -  -
@@ -561,15 +565,15 @@ MVS		-  -  -  -  -  4  -  pP  -  -  -  -  4d -
 NCR		-  -  -  -  -  -  -  pH  -  -  -  -  -  -
 NCSATelnetPC	-  -  -  -  -  -  -  t   -  -  -  -  -  -
 NCSATelnetMac	-  -  -  -  -  -  -  t   -  -  -  -  -  -
-NeXT		-  -  -  -  5  -  4  4H  -  -  -  -  -  -
+NeXT		4  -  -  -  5  -  4  4H  -  -  -  -  -  -
 who		c  d  e  f  g  i  m  o   p  r  t  w  z  other
 Novell		-  -  -  -  -  -  -  H   -  -  -  -  d  -
 OS/2		-  -  4  -  H  4d -  -   -  -  -  -  4  -
 Pyramid		-  -  -  -  H  -  -  H   -  -  -  -  p  -
-SCO		p  -  -  -  -  -  -  -   -  -  -  -  -  -
+SCO		4  -  -  -  -  -  -  -   -  -  -  -  -  -
 SecDynamics	-  -  -  -  -  -  -  tH  -  -  -  -  -  -
 Sequent		-  -  -  -  -  -  -  4H  -  -  -  -  -  -
-Solaris 2.0	p  -  -  -  H  -  -  4T  -  -  -  -  d  4 Cray has a K4 port
+Solaris 2.x	4  -  -  -  H  -  -  4T  -  -  -  -  d  4 Cray has a K4 port
 SunOS 4.0.1	4  A  -  -  5  -  4  4T  -  -  -  -  -  -  
 SunOS 4.1	4  A  -  -  5  -  4  4T  -  -  -  -  -  -
 Telebit		-  -  -  -  -  -  -  -   -  -  -  -  4  -  
@@ -595,12 +599,34 @@ correct for all systems.  To fix the problem, examine the call and
 determine the correct arguments for your environment; once you know
 the correct arguments, the change to the source code will be obvious.
 
-(3.2)	Why doesn't KRB5-types.h exist when I build version 5?
+(3.2)	Why doesn't KRB5_defs.h exist when I build version 5?
 
-There's a bug in Sun's imake/cpp setup, so the Makefile that is
-generated in lib/asn.1 is broken.  KRB5-types.h is generated by the
+KRB5_defs.h, and other files like KRB5_tables.c, KRB5-types.h, and
+KRB5_pre_defs.h are created by the ISODE ASN.1 compiler, pepsy, from
+KRB5.py.  You therefore need to have ISODE built and you have to
+configure your site.def file so that the Makefiles know how to run the
+pepsy compiler.
+
+Note that there's a bug in Sun's imake/cpp setup, so the Makefile that
+is generated in lib/asn.1 is broken.  KRB5-types.h is generated by the
 ISODE program pepsy; look in the makefile just before pepsy is called.
 It's fairly obvious where a tab character is missing.
+
+(3.3)	What is libkrb.a, and why can't ld find it?
+
+The MIT Kerberos V5 server (krb5kdc) can operate in a V4 compatibility
+mode in which it accepts and responds to standard V4 requests (see
+question 1.5).  In order to do so, it needs the V4 Kerberos library,
+libkrb.a.  That library is not part of the V5 distribution.  It is
+assumed that if you want V4 compatibility you already have V4 built
+and installed; see question 1.2 for information on obtaining V4.
+
+To get krb5kdc to link properly, set the KRB4LIB variable in site.def
+to the path of your V4 library.  If you do not need V4 backwards
+compability, comment out the definition of Krb4KDCCompat in site.def.
+(Be sure to run "make clean" after changing anything in site.def to
+make sure everything is rebuilt correctly according to the new
+parameters.)
 
 4.  Miscellaneous
 ----------------------------------------------------------------------
@@ -654,5 +680,7 @@ Authentication System," USENIX Jan 1991.
 Service (V5)," April 1992.  Currently released as an Internet Draft.
 
 -- 
-Barry Jaspan, bjaspan@gza.com
-Geer Zolot Associates
+Barry Jaspan, bjaspan@security.ov.com
+OpenVision Technologies
+
+
