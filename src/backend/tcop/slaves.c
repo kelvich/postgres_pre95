@@ -56,6 +56,7 @@ ProcGroupLocalInfo	ProcGroupLocalInfoP; /* process group local info */
 static ProcGroupLocalInfo FreeProcGroupP;
 extern SlaveLocalInfoData SlaveLocalInfoD;  /* defined in execipc.c */
 extern int AdjustParallelismEnabled;
+FILE *StatFp;
 
 /*
  *	shared data structures
@@ -235,12 +236,22 @@ SlaveMain()
 {
     List queryDesc;
     int i;
+    extern int ShowExecutorStats;
 
     /* -----------------
      * set the flag to false in case the SIGPARADJ is received
      * -----------------
      */
     SlaveLocalInfoD.isworking = false;
+    /* ------------------
+     * set stat file pointer if required
+     * ------------------
+     */
+    if (ShowExecutorStats) {
+	char fname[30];
+	sprintf(fname, "/usr/tmp/slave%d.stat", MyPid);
+        StatFp = fopen(fname, "w");
+      }
     /* ----------------
      *  before we begin processing we have to register a SIGHUP
      *  handler so that if a problem occurs in one slave backend,
@@ -287,6 +298,8 @@ SlaveMain()
 	
 	SLAVE1_elog(DEBUG, "Slave Backend %d starting task.", MyPid);
 
+	if (ShowExecutorStats)
+	    ResetUsage();
 	/* ------------------
 	 * initialize slave local info
 	 * ------------------
@@ -317,6 +330,16 @@ SlaveMain()
 	if (queryDesc != NULL)
 	    ProcessQueryDesc(queryDesc);
 
+	/* ---------------
+	 * it is important to set isDone to true before
+	 * SlaveCommitTransaction(), because it may
+	 * free the memory of SlaveInfoP[MyPid].heapscandesc
+	 * ---------------
+	 */
+	SlaveInfoP[MyPid].isDone = true;
+
+	if (ShowExecutorStats)
+	    ShowUsage();
 	/* ----------------
 	 *  clean caches, lock tables and memory stuff just
 	 *  as if we were running within a transaction.
@@ -336,7 +359,6 @@ SlaveMain()
 	 */
 	SLAVE1_elog(DEBUG, "Slave Backend %d task complete.", MyPid);
 	SlaveLocalInfoD.isworking = false;
-	SlaveInfoP[MyPid].isDone = true;
 	V_Finished(SlaveInfoP[MyPid].groupId);
     }
 }
@@ -379,6 +401,7 @@ SlaveBackendsInit()
     int i;			/* counter */
     int p;			/* process id returned by fork() */
     int paradj_handler(); 	/* intr handler for adjusting parallelism */
+    extern int ProcessAffinityOn; /* process affinity on flag */
     
     /* ----------------
      *  first initialize shared memory and get the number of
@@ -496,7 +519,20 @@ SlaveBackendsInit()
 #endif
 	    } else {
 		MyPid = i;
-		
+#ifdef sequent
+		if (ProcessAffinityOn && GetNumberSlaveBackends() <= 12) {
+		    int prev;
+		    /* ----------------------
+		     * bind slave to a specific processor
+		     * ----------------------
+		     */
+		    prev = tmp_affinity(MyPid);
+		    if (prev == -1) {
+			fprintf(stderr, "slave %d ", MyPid);
+			perror("tmp_affinity");
+		      }
+		  }
+#endif
 		SLAVE1_elog(DEBUG, "Slave Backend %d alive!", MyPid);
 	    }
 	}
@@ -529,8 +565,9 @@ SlaveBackendsInit()
 	  }
 	ProcGroupLocalInfoP[nslaves - 1].nextfree = NULL;
       }
-    else
+    else {
 	SlaveMain();
+      }
 
     /* ----------------
      *	here we're in the master and we've completed initialization
