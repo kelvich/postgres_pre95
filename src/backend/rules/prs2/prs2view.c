@@ -100,7 +100,7 @@ Relation relation;
     scanStateRuleInfo->relationLocks = locks;
     scanStateRuleInfo->relationStubs =
 	prs2GetRelationStubs(RelationGetRelationId(relation));
-    scanStateRuleInfo->relationStubsHaveChanged = true;
+    scanStateRuleInfo->relationStubsHaveChanged = false;
 
     return(scanStateRuleInfo);
 
