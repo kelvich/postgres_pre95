@@ -1213,8 +1213,8 @@ int whence;
 	case 1:
             blknum = sfdP->endPos / BLCKSZ;
             sfdP->curStripe = nf = blknum % NStriping;
-	    offset = sfdP->seekPos = sfdP->endPos;
-	    fileSeek(sfdP->vfd[nf], 0L, L_XTND);
+	    offset = fileSeek(sfdP->vfd[nf], 0L, L_XTND);
+	    sfdP->seekPos = sfdP->endPos = offset;
 	    if (StripingMode == 1) {
 		fileSeek(sfdP->vfd[nf+NStriping], 0L, L_XTND);
 	      }
