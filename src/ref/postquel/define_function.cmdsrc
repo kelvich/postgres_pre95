@@ -551,6 +551,5 @@ separate query, e.g.:
 replace pg_proc (proistrusted = "f"::bool)
 	where pg_proc.proname = "mynewfunction"
 .)C
-Untrusted functions will become the default in a future release.
 .PP
 C functions cannot return a set of values.
