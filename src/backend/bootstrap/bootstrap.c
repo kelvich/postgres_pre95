@@ -44,10 +44,6 @@ RcsId("$Header$");
  */
 #include "bootstrap/bkint.h"
 
-extern int setjmp();
-extern int chdir();
-extern char *getenv();
-
 void SocketBackend ARGS((char *, LispValue));
 void InteractiveBackend ARGS((char *, LispValue));
 void EvalLine ARGS((char *, LispValue));
