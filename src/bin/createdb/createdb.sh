@@ -15,7 +15,7 @@
 # find postgres tree
 #
 
-if (test -z "$POSTGRESHOME")
+if (test -n "$POSTGRESHOME")
 then
 	PG=$POSTGRESHOME
 else
