@@ -406,7 +406,11 @@ create_nestloop_path (joinrel,outer_rel,outer_path,inner_path,keys)
      }
      set_path_cost (pathnode,cost_nestloop (get_path_cost (outer_path),
 					    get_path_cost (inner_path),
-					    get_size (outer_rel)));
+					    get_size (outer_rel),
+					    get_size (get_parent(inner_path)),
+					    page_size (get_size(outer_rel),
+						       get_width(outer_rel)),
+					    IsA(inner_path,IndexPath)));
      return(pathnode);
 }
 
