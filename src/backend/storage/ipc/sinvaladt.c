@@ -949,7 +949,7 @@ SISyncInit(key)
     IPCKey	key;
 {
 #ifdef sequent
-    SharedInvalidationLockId = 2;  /* a fixed lock */
+    SharedInvalidationLockId = SINVALLOCKID;  /* a fixed lock */
 #else /* sequent */
     int status;
     SharedInvalidationSemaphore =
