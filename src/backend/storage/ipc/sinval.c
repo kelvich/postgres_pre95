@@ -97,8 +97,8 @@ RegisterSharedInvalid(cacheId, hashIndex, pointer)
     Index   	hashIndex;
     ItemPointer	pointer;
 {
-    SharedInvalid   newInvalid;
-    int	    	    status;
+    SharedInvalidData   newInvalid;
+    int	    	        status;
 
 /*
  * This code has been hacked to accept two types of messages.  This might
@@ -115,21 +115,17 @@ RegisterSharedInvalid(cacheId, hashIndex, pointer)
  *	pointer= null
  */
 
-    newInvalid = new(SharedInvalidData);
-    if (!PointerIsValid(newInvalid)) {
-    	elog(WARN, "malloc failed");
-    }
-    newInvalid->cacheId = cacheId;
-    newInvalid->hashIndex = hashIndex;
+    newInvalid.cacheId = cacheId;
+    newInvalid.hashIndex = hashIndex;
 
     if (ItemPointerIsValid(pointer)) {
-	ItemPointerCopy(pointer, &newInvalid->pointerData);
+	ItemPointerCopy(pointer, &newInvalid.pointerData);
     } else {
-	ItemPointerSetInvalid(&newInvalid->pointerData);
+	ItemPointerSetInvalid(&newInvalid.pointerData);
     }
    
     SpinAcquire(SInvalLock);
-    if (!SISetDataEntry(shmInvalBuffer, *newInvalid)) {
+    if (!SISetDataEntry(shmInvalBuffer, newInvalid)) {
     	/* buffer full */
     	/* release a message, mark process cache states to be invalid */
     	SISetProcStateInvalid(shmInvalBuffer);
@@ -141,7 +137,7 @@ RegisterSharedInvalid(cacheId, hashIndex, pointer)
     	}
 
     	/* write again */
-    	(void) SISetDataEntry(shmInvalBuffer, *newInvalid);
+    	(void) SISetDataEntry(shmInvalBuffer, newInvalid);
     }
     SpinRelease(SInvalLock);
 }
