@@ -116,7 +116,7 @@ HEADERDIR=	${POSTGRESDIR}/include
 
 # Comment out USE_DLD if you do not use the GNU DLD package for
 # dynamic loading.
-USE_DLD=
+#USE_DLD=
 
 #
 # == END OF NORMAL CONFIGURATION SECTION ==
@@ -207,6 +207,11 @@ KRBLIBS+= -lkrb5 -lcrypto -lcom_err -lisode
 # Globally pass PORTNAME
 #
 CFLAGS+= -DPORTNAME=${PORTNAME} -DPORTNAME_${PORTNAME}
+
+#
+# Globally pass the default TCP port for postmaster(1)
+#
+CFLAGS+= -DPOSTPORT=4321
 
 #
 # Globally define SEQUOIA for development at Berkeley and other
