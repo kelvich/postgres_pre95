@@ -315,34 +315,6 @@ _equalCInfo(a,b)
 }
 
 bool
-_equalHashPath(a,b)
-     register HashPath a,b;
-{
-    Assert(IsA(a,HashPath));
-    Assert(IsA(b,HashPath));
-    
-    if (!equal(a->path_hashclauses,b->path_hashclauses))
-      return(false);
-
-    if(!equal(a->outerhashkeys,b->outerhashkeys))
-      return(false);
-    
-    if(!equal(a->innerhashkeys,b->innerhashkeys))
-      return(false);
-
-    if(!equal(a->pathclauseinfo,b->pathclauseinfo))
-      return(false);
-
-    if (a->outerjoincost != b->outerjoincost)
-      return(false);
-
-    if (!equal(a->joinid,b->joinid))
-      return(false);
-
-    return(true);
-}
-
-bool
 _equalJoinMethod(a,b)
      register JoinMethod a,b;
 {
@@ -367,16 +339,20 @@ register Path a,b;
 	return(false);
     if (a->parent != b->parent)
 	return(false);
+    /*
     if (a->path_cost != b->path_cost)
         return(false);
+    */
     if (!equal(a->p_ordering, b->p_ordering))
 	return(false);
     if (!equal(a->keys, b->keys))
 	return(false);
     if (!equal(a->sortpath, b->sortpath))
 	return(false);
+    /*
     if (a->outerjoincost != b->outerjoincost)
 	return(false);
+    */
     if (!equal(a->joinid, b->joinid))
 	return(false);
     return(true);
@@ -430,6 +406,24 @@ register MergePath a,b;
     if (!equal(a->outersortkeys, b->outersortkeys))
 	return(false);
     if (!equal(a->innersortkeys, b->innersortkeys))
+	return(false);
+    return(true);
+}
+
+bool
+_equalHashPath(a,b)
+register HashPath a,b;
+{
+    Assert(IsA(a,HashPath));
+    Assert(IsA(b,HashPath));
+
+    if (!_equalJoinPath(a,b))
+	return(false);
+    if (!equal(a->path_hashclauses, b->path_hashclauses))
+	return(false);
+    if (!equal(a->outerhashkeys, b->outerhashkeys))
+	return(false);
+    if (!equal(a->innerhashkeys, b->innerhashkeys))
 	return(false);
     return(true);
 }
