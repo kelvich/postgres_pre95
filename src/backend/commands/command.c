@@ -14,6 +14,7 @@ RcsId("$Header$");
 #include "anum.h"
 #include "buf.h"
 #include "catname.h"
+#include "executor.h"	/* for EXEC_{FOR,BACK,FDEBUG,BDEBUG} */
 #include "globals.h"	/* for IsUnderPostmaster */
 #include "itemptr.h"
 #include "heapam.h"
@@ -28,15 +29,32 @@ RcsId("$Header$");
 #include "command.h"
 
 void
-EndCommand(commandId)
-	String	commandId;
+EndCommand(commandTag)
+	String	commandTag;
 {
 	if (IsUnderPostmaster) {
 		putnchar("C", 1);
 		putint(0, 4);
-		putstr(commandId);
+		putstr(commandTag);
 		pflush();
 	}
+}
+
+static
+List
+PortalMakeQueryDesc(portal, feature)
+	Portal	portal;
+	List	feature;
+{
+	LispValue	parse;
+
+	parse = PortalGetParse(portal);
+
+	return ((List)lispCons(CAR(CDR(CAR(parse))),
+		lispCons(parse,
+			lispCons(PortalGetPlan(portal),
+				lispCons(PortalGetState(portal),
+					lispCons(feature, LispNil))))));
 }
 
 void
@@ -45,7 +63,9 @@ PerformPortalFetch(name, forward, count)
 	bool	forward;
 	Count	count;
 {
-	Portal	portal;
+	Portal		portal;
+	LispValue	queryDesc;
+	LispValue	feature;
 
 	if (name == NULL) {
 		elog(WARN, "PerformPortalFetch: blank portal unsupported");
@@ -56,11 +76,30 @@ PerformPortalFetch(name, forward, count)
 		elog(WARN, "PerformPortalFetch: %s not found", name);
 	}
 
+	if (forward) {
+		feature = lispInteger((IsUnderPostmaster) ?
+			EXEC_FOR : EXEC_FDEBUG);
+	} else {
+		feature = lispInteger((IsUnderPostmaster) ?
+			EXEC_BACK : EXEC_BDEBUG);
+	}
+	feature = lispCons(feature, lispCons(lispInteger(count), LispNil));
+
+	queryDesc = PortalMakeQueryDesc(portal, feature);
+
 	/*
-	 * START HERE
+	 * execute
 	 */
-	elog(NOTICE, "Fetch: %s %s %d unimplemented",
-		name, (forward) ? "forw" : "back", count);
+	ExecMain(queryDesc);
+
+	/*
+	 * Return blank portal for now.
+	 * Otherwise, this named portal will be cleaned.
+	 * Note: portals will only be supported within a BEGIN...END
+	 * block in the near future.  Later, someone will fix it to
+	 * do what is possible across transaction boundries.
+	 */
+	(void)GetPortalByName(NULL);
 }
 
 void
@@ -81,6 +120,10 @@ PerformPortalClose(name)
 		elog(WARN, "PerformPortalClose: %s not found", name);
 	}
 
+	/*
+	 * START HERE
+	 * need to close down the portal first.  steal code from fetch, above.
+	 */
 	PortalDestroy(portal);
 }
 
