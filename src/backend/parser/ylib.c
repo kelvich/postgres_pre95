@@ -380,7 +380,7 @@ ParseFunc ( funcname , fargs )
     Func funcnode = (Func)NULL;
     LispValue i = LispNil;
     List first_arg_type = NULL;
-    Name relname;
+    Name relname, oldname;
     extern List p_rtable;
     extern Var make_relation_var();
     Relation rd;
@@ -416,12 +416,14 @@ ParseFunc ( funcname , fargs )
 		ADD_TO_RT( MakeRangeTableEntry ((Name)relname,
 						LispNil, 
 						(Name)relname ));
+	      oldname = relname;
+	      relname = VarnoGetRelname(RangeTablePosn(oldname,0));
 	      rd = heap_openr(relname);
 	      relid = RelationGetRelationId(rd);
 	      heap_close(rd);
 	      if ((attnum = get_attnum(relid, (Name) funcname)) 
 		  != InvalidAttributeNumber)
-		return((LispValue)(make_var(relname, funcname)));
+		return((LispValue)(make_var(oldname, funcname)));
 	      else		/* drop through */;
 	  }
 	 else if (complexType(first_arg_type) &&
