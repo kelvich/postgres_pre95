@@ -255,6 +255,10 @@ NameIsSharedSystemRelationName(name)
 /*
  *	newoid		- returns a unique identifier across all catalogs.
  *
+ *	Object Id allocation is now done by GetNewObjectID in
+ *	access/transam/varsup.c.  oids are now allocated correctly.
+ *
+ * old comments:
  *	This needs to change soon, it fails if there are too many more
  *	than one call per second when postgres restarts after it dies.
  *
@@ -267,12 +271,13 @@ NameIsSharedSystemRelationName(name)
 ObjectId
 newoid()
 {
-	static ObjectId	lastoid = InvalidObjectId;
-	long		time();			/* XXX lint */
+    ObjectId	lastoid;
+    
+    GetNewObjectId(&lastoid);
+    if (! ObjectIdIsValid(lastoid))
+	elog(WARN, "newoid: GetNewObjectId returns invalid oid");
 
-	if (lastoid != InvalidObjectId)
-		return(++lastoid);
-	return(lastoid = time((long *)0));
+    return lastoid;
 }
 
 /*
