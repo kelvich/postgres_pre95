@@ -55,6 +55,9 @@ Buffer *returnedBufferP;
     prs2FreeLocks(locksInTuple);
     prs2FreeLocks(locksInRelation);
 
+    if (locks == NULL || prs2GetNumberOfLocks(locks)==0) {
+	return(PRS2_STATUS_TUPLE_UNCHANGED);
+    }
 
     /*
      * now extract from the tuple the array of the attribute values.

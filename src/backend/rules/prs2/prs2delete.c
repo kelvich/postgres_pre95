@@ -60,6 +60,13 @@ Relation relation;
 			RelationGetTupleDescriptor(relation));
 
     /*
+     * if there are no rules, then return immediatelly
+     */
+    if (locks == NULL || prs2GetNumberOfLocks(locks) == 0) {
+	return(PRS2_STATUS_TUPLE_UNCHANGED);
+    }
+
+    /*
      * now extract from the tuple the array of the attribute values.
      */
     attrValues = attributeValuesCreate(tuple, buffer, relation);

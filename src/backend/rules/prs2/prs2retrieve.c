@@ -74,7 +74,7 @@ Buffer *returnedBufferP;
     /*
      * If there are no rules, then return immediatelly...
      */
-    if (locks == NULL) {
+    if (locks == NULL || prs2GetNumberOfLocks(locks)==0) {
 	return(PRS2_STATUS_TUPLE_UNCHANGED);
     }
 
