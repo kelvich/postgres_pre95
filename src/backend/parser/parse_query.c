@@ -815,15 +815,29 @@ SkipBackToTlist()
 	extern LispValue yychar;
 	extern int yyleng;
         extern char *Ch;
-        char *temp = yytext;
 	int i;
 
 	/* need to put the token after the target_list back first */
-	temp = yytext;
-	if((yychar == (LispValue)WHERE) || (yychar == (LispValue)SORT)){ 
+	switch ((int) yychar) {
+	/*
+	 * by examination of gram.y, these seem to be the only clauses
+	 * that can follow the "from_clause" non-terminal.  at least,
+	 * someone else thought so.
+	 */
+	case WHERE:
+	case SORT:
+	/*
+	 * these can also follow "from_clause" if we have multiple 
+	 * queries, with some empty "from_clause"s.. 
+	 */
+	case APPEND:
+	case DELETE:
+	case REPLACE:
+	case RETRIEVE:
 		for (i = yyleng; i > -1 ; -- i ) {
 			unput (yytext[i]);
 		}
+		break;
 	}
 
 	bcopy(Ch,from_list_place,strlen(Ch) + 1 );
