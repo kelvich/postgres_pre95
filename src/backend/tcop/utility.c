@@ -86,9 +86,7 @@ ProcessUtility(command, args, commandString, dest)
 	
     case ABORT_TRANS:
 	commandTag = "ABORT";
-	CHECK_IF_ABORTED();
-	
-	AbortTransactionBlock();
+	UserAbortTransactionBlock();
 	break;
 	
 	/* ********************************

@@ -18,6 +18,39 @@
  *	SlaveCommitTransaction
  *	SlaveAbortTransaction
  *	
+ *   NEW CODE
+ *	* UserAbortTransactionBlock
+ *
+ *	Transaction aborts can now occur two ways:
+ *
+ *	1)  system dies from some internal cause  (Assert, etc..)
+ *	2)  user types abort
+ *
+ *	These two cases used to be treated identically, but now
+ *	we need to distinguish them.  Why?  consider the following
+ *	two situatuons:
+ *
+ *		case 1				case 2
+ *		------				------
+ *	1) user types BEGIN		1) user types BEGIN
+ *	2) user does something		2) user does something
+ *	3) user does not like what	3) system aborts for some reason
+ *	   she shes and types ABORT	   
+ *
+ *	In case 1, we want to abort the transaction and return to the
+ *	default state.  In case 2, there may be more commands coming
+ *	our way which are part of the same transaction block and we have
+ *	to ignore these commands until we see an END transaction.
+ *
+ *	Internal aborts are now handled by AbortTransactionBlock(), just as
+ *	they always have been, and user aborts are now handled by
+ *	UserAbortTransactionBlock().  Both of them rely on AbortTransaction()
+ *	to do all the real work.  The only difference is what state we
+ *	enter after AbortTransaction() does it's work:
+ *	
+ *	* AbortTransactionBlock() leaves us in TBLOCK_ABORT and
+ *	* UserAbortTransactionBlock() leaves us in TBLOCK_ENDABORT
+ *	
  *   NOTES
  *	This file is an attempt at a redesign of the upper layer
  *	of the V1 transaction system which was too poorly thought
@@ -46,6 +79,7 @@
  *		StartTransaction
  *		CommitTransaction
  *		AbortTransaction
+ *		UserAbortTransaction
  *
  *	are provided to do the lower level work like recording
  *	the transaction status in the log and doing memory cleanup.
@@ -1270,12 +1304,11 @@ AbortTransactionBlock()
     
     if (s->blockState == TBLOCK_INPROGRESS) {
 	/* ----------------
-	 *  here we were inside a transaction block and we
-	 *  got an abort command from the user, so we move to
-	 *  the abort state, do the abort processing and
-	 *  then return.   We remain in the abort state until
-	 *  the user explicitly gives us an END TRANSACTION.
-	 *  Hence, BEGIN and END will always match.
+	 *  here we were inside a transaction block something
+	 *  screwed up inside the system so we enter the abort state,
+	 *  do the abort processing and then return.
+	 *  We remain in the abort state until we see the upcoming
+	 *  END TRANSACTION command.
 	 * ----------------
 	 */
 	s->blockState = TBLOCK_ABORT;
@@ -1301,127 +1334,57 @@ AbortTransactionBlock()
     s->blockState = TBLOCK_ENDABORT;
 }
 
-/* ----------------------------------------------------------------
- *	traps to catch routines using these old routines --
- *	anything using these should be rewritten.
- * ----------------------------------------------------------------
+/* --------------------------------
+ *	UserAbortTransactionBlock
+ * --------------------------------
  */
-
 void
-UserErrorEndWithoutBegin()
+UserAbortTransactionBlock()
 {
-    elog(DEBUG, "UserErrorEndWithoutBegin obsoleted");
-    abort();
-}
+    TransactionState s = CurrentTransactionState;
 
-void
-UserErrorBeginAfterBegin()
-{
-    elog(DEBUG, "UserErrorBeginAfterBegin obsoleted");
-    abort();
-}
+    /* ----------------
+     *	check the current transaction state
+     * ----------------
+     */
+    if (s->state == TRANS_DISABLED)
+	return;
+    
+    if (s->blockState == TBLOCK_INPROGRESS) {
+	/* ----------------
+	 *  here we were inside a transaction block and we
+	 *  got an abort command from the user, so we move to
+	 *  the abort state, do the abort processing and
+	 *  then change to the ENDABORT state so we will end up
+	 *  in the default state after the upcoming
+	 *  CommitTransactionCommand().
+	 * ----------------
+	 */
+	s->blockState = TBLOCK_ABORT;
+    
+	/* ----------------
+	 *  do abort processing
+	 * ----------------
+	 */
+	AbortTransaction();
+	
+	/* ----------------
+	 *  change to the end abort state and return
+	 * ----------------
+	 */
+	s->blockState = TBLOCK_ENDABORT;
+	return;
+    }
 
-void
-UserErrorAbortWithoutBegin()
-{
-    elog(DEBUG, "UserErrorAbortWithoutBegin obsoleted");
-    abort();
-}
-
-void
-InternalErrorIllegalStateTransition()
-{
-    elog(DEBUG, "InternalErrorIllegalStateTransition obsoleted");
-    abort();
-}
-
-void
-FsaMachine() 
-{
-    elog(DEBUG, "FsaMachine( obsoleted");
-    abort();
-}
-
-void
-InitializeTransactionState()
-{
-    elog(DEBUG, "InitializeTransactionState obsoleted");
-    abort();
-}
-
-void
-OverrideTransactionState()
-{
-    elog(DEBUG, "OverrideTransactionState obsoleted");
-    abort();
-}
-
-bool
-IsBlockTransactionState()
-{
-    elog(DEBUG, "IsBlockTransactionState obsoleted");
-    abort();
-}
-
-bool
-IsOverrideTransactionState()
-{
-    elog(DEBUG, "IsOverrideTransactionState obsoleted");
-    abort();
-}
-
-void
-StartTransactionStateBlock()
-{
-    elog(DEBUG, "StartTransactionStateBlock obsoleted");
-    abort();
-}
-
-void
-StartTransactionStateCommand()
-{
-    elog(DEBUG, "StartTransactionStateCommand obsoleted");
-    abort();
-}
-
-void
-CommitTransactionStateCommand()
-{
-    elog(DEBUG, "CommitTransactionStateCommand obsoleted");
-    abort();
-}
-
-void
-CommitTransactionStateBlock()
-{
-    elog(DEBUG, "CommitTransactionStateBlock obsoleted");
-    abort();
-}
-
-void
-AbortCurrentTransactionState()
-{
-    elog(DEBUG, "AbortCurrentTransactionState obsoleted");
-    abort();
-}
-
-void
-AbortTransactionStateBlock()
-{
-    elog(DEBUG, "AbortTransactionStateBlock obsoleted");
-    abort();
-}
-
-void
-StartTransactionBlock()
-{
-    elog(DEBUG, "StartTransactionBlock obsoleted");
-    abort();
-}
-
-void
-CommitTransactionBlock()
-{	
-    elog(DEBUG, "CommitTransactionBlock obsoleted");
-    abort();
+    /* ----------------
+     *	this case should not be possible, because it would mean
+     *  the user entered an "abort" from outside a transaction block.
+     *  So we print an error message, abort the transaction and
+     *  enter the "ENDABORT" state so we will end up in the default
+     *  state after the upcoming CommitTransactionCommand().
+     * ----------------
+     */
+    elog(NOTICE, "UserAbortTransactionBlock and not inprogress state");
+    AbortTransaction();
+    s->blockState = TBLOCK_ENDABORT;
 }
