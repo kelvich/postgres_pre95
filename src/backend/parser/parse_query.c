@@ -657,8 +657,9 @@ make_array_ref(expr, indexpr)
 
     type_struct_element = (TypeTupleForm) GETSTRUCT(type_tuple);
 
-    aref = (ArrayRef) MakeArrayRef(type_struct_array->typelem,
+    aref = (ArrayRef) MakeArrayRef(type_struct_array->typlen,
 				   type_struct_element->typlen,
+				   type_struct_array->typelem,
 				   type_struct_element->typbyval,
 				   CDR(indexpr),
 				   CDR(expr));
