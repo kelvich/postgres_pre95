@@ -1493,7 +1493,11 @@ ObjectId type;
 	    sprintf(buf, " 0 { } ");
 	appendStringInfo(str,buf);
 	} else {
-	    if (length <= -1) {
+	    /*
+	     * length is unsigned - very bad to do < comparison to -1 without
+	     * casting it to int first!! -mer 8 Jan 1991
+	     */
+	    if (((int)length) <= -1) {
 		length = PSIZE(s);
 	    }
 	    sprintf(buf, " %d { ", length);
