@@ -76,14 +76,14 @@ OBJS+=	${SRCS:R:S/$/.o/g}
 lib${LIB}.a:: ${OBJS}
 	@echo building standard ${LIB} library
 	@rm -f lib${LIB}.a
-	@${AR} cq lib${LIB}.a `lorder ${OBJS} | tsort` ${LDADD}
+	@${AR} cq lib${LIB}.a `lorder ${OBJS} | tsort`
 	ranlib lib${LIB}.a
 
 POBJS+=	${OBJS:.o=.po}
 lib${LIB}_p.a:: ${POBJS}
 	@echo building profiled ${LIB} library
 	@rm -f lib${LIB}_p.a
-	@${AR} cq lib${LIB}_p.a `lorder ${POBJS} | tsort` ${LDADD}
+	@${AR} cq lib${LIB}_p.a `lorder ${POBJS} | tsort`
 	ranlib lib${LIB}_p.a
 
 llib-l${LIB}.ln: ${SRCS}
