@@ -145,6 +145,13 @@ Relation explainRel;
 			    scanStateRuleInfo->ruleList->data.ruleId.planNumber,
 			    &paramList);
 		/*
+		 * It is possible that plan = nil (an obsolete rule?)
+		 * In this case ignore the rule.
+		 */
+		if (null(plan)) {
+		    break;
+		}
+		/*
 		 * NOTE: the `paramList' must be empty!
 		 * because we do not allow 'NEW' & 'OLD' in 'view-like' rules.
 		 * Note though, that the rule qualification might not
