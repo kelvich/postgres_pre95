@@ -31,35 +31,36 @@
 #include <strings.h>
 /* XXX check above includes */
 
-#include "postgres.h"
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 
-#include "os.h"
-#include "clib.h"
+#include "tmp/os.h"
+#include "tmp/clib.h"
 
-#include "att.h"
-#include "attnum.h"
-#include "buf.h"
-#include "catname.h"
-#include "mcxt.h"
-#include "fd.h"
-#include "genam.h"
-#include "hashlib.h"
-#include "hasht.h"
-#include "heapam.h"
-#include "htup.h"
-#include "itup.h"
-#include "istrat.h"
-#include "lmgr.h"
-#include "log.h"
-#include "rel.h"
-#include "rlock.h"
-#include "skey.h"
-#include "syscache.h"
-#include "tqual.h"	/* for NowTimeQual */
-#include "tupdesc.h"
+#include "access/att.h"
+#include "access/attnum.h"
+#include "access/genam.h"
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "access/istrat.h"
+#include "access/itup.h"
+#include "access/skey.h"
+#include "access/tqual.h"	/* for NowTimeQual */
+#include "access/tupdesc.h"
 
+#include "rules/rlock.h"
+#include "storage/buf.h"
+#include "storage/fd.h"
+#include "tmp/hashlib.h"
+#include "tmp/hasht.h"
+#include "utils/lmgr.h"
+#include "utils/log.h"
+#include "utils/mcxt.h"
+#include "utils/rel.h"
+
+#include "catalog/catname.h"
+#include "catalog/syscache.h"
 #include "catalog/pg_attribute.h"
 #include "catalog/pg_index.h"
 #include "catalog/pg_proc.h"
@@ -67,7 +68,7 @@ RcsId("$Header$");
 
 extern bool	AMI_OVERRIDE;	/* XXX style */
 
-#include "relcache.h"
+#include "utils/relcache.h"
 
 extern HeapTuple	GetHeapTuple();	/* XXX use include file */
 
