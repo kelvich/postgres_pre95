@@ -1711,7 +1711,8 @@ AexprConst:
 	| CCONST			{ $$ = make_const ( $1 ) ; }
 	| Sconst 			{ $$ = make_const ( $1 ) ; 
 					  Input_is_string = true; }
-	| Pnull			 	{ $$ = make_const( LispNil ); }
+	| Pnull			 	{ $$ = LispNil; 
+					  Typecast_ok = false; }
 	;
 
 NumConst:
@@ -1788,9 +1789,36 @@ make_targetlist_expr ( name , expr )
     int type_id,type_len, attrtype, attrlen;
     int resdomno;
     Relation rd;
+
+    if(ResdomNoIsAttrNo && (expr == LispNil) && !Typecast_ok){
+       /* expr is NULL, and the query is append or replace */
+       /* append, replace work only on one relation,
+          so multiple occurence of same resdomno is bogus */
+       rd = parser_current_rel;
+       Assert(rd != NULL);
+       resdomno = varattno(rd,CString(name));
+       attrtype = att_typeid(rd,resdomno);
+       attrlen = tlen(get_id_type(attrtype));
+       expr = lispCons( lispInteger(attrtype),
+                MakeConst(attrtype, attrlen, LispNil, 1));
+       Input_is_string = false;
+       Typecast_ok = true;
+       if( lispAssoc( lispInteger(resdomno),p_target_resnos)
+          != -1 ) {
+           elog(WARN,"two or more occurence of same attr");
+       } else {
+           p_target_resnos = lispCons( lispInteger(resdomno),
+                                     p_target_resnos);
+       }
+       return  ( lispCons (MakeResdom (resdomno,
+                                         attrtype,
+                                        attrlen ,
+                                         CString(name), 0 , 0 ) ,
+                             lispCons((Var)CDR(expr),LispNil)) );
+     }
+ 
     type_id = CInteger(CAR(expr));
     type_len = tlen(get_id_type(type_id));
-    
     if (ResdomNoIsAttrNo) { /* append or replace query */
 	/* append, replace work only on one relation,
 	   so multiple occurence of same resdomno is bogus */
