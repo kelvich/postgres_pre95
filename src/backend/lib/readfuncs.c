@@ -3,9 +3,14 @@
  *
  *	These routines read in and allocate space for plans.
  *	The main function is at the bottom and figures out what particular
- *  function to use.
+ *  	function to use.
  *
- *  All these functions assume that lsptok already has its string.
+ *  	All these functions assume that lsptok already has its string.
+ *
+ *	XXX many of these functions have never been tested because
+ *	    the nodes they support never appear in plans..  also there
+ *	    are some nodes which greg needs to finish (they are missing
+ *	    or incomplete).  -cim 5/31/90
  */
 
 
@@ -39,11 +44,55 @@ extern LispValue lispRead();
 extern char *lsptok ARGS((char *string, int *length));
 extern Datum readValue();
 
+/* ----------------
+ *	node creator declarations
+ * ----------------
+ */
+extern Append 		RMakeAppend();
+extern CInfo 		RMakeCInfo();
+extern Const 		RMakeConst();
+extern EState 		RMakeEState();
+extern Existential 	RMakeExistential();
+extern Expr 		RMakeExpr();
+extern Func 		RMakeFunc();
+extern HInfo 		RMakeHInfo();
+extern Hash 		RMakeHash();
+extern HashJoin 	RMakeHashJoin();
+extern HashPath 	RMakeHashPath();
+extern IndexPath 	RMakeIndexPath();
+extern IndexScan 	RMakeIndexScan();
+extern JInfo 		RMakeJInfo();
+extern Join 		RMakeJoin();
+extern JoinKey 		RMakeJoinKey();
+extern JoinMethod 	RMakeJoinMethod();
+extern JoinPath 	RMakeJoinPath();
+extern MergeJoin 	RMakeMergeJoin();
+extern MergeOrder 	RMakeMergeOrder();
+extern MergePath 	RMakeMergePath();
+extern NestLoop 	RMakeNestLoop();
+extern Oper 		RMakeOper();
+extern OrderKey 	RMakeOrderKey();
+extern Param 		RMakeParam();
+extern Path 		RMakePath();
+extern Plan 		RMakePlan();
+extern Recursive 	RMakeRecursive();
+extern Rel 		RMakeRel();
+extern Resdom 		RMakeResdom();
+extern Result 		RMakeResult();
+extern Scan 		RMakeScan();
+extern SeqScan 		RMakeSeqScan();
+extern Sort 		RMakeSort();
+extern SortKey 		RMakeSortKey();
+extern Temp 		RMakeTemp();
+extern Var 		RMakeVar();
+
+/* ----------------
+ *	_getPlan
+ * ----------------
+ */
 void
 _getPlan(node)
-
-Plan node;
-
+    Plan node;
 {
 	char *token;
 	int length;
@@ -87,33 +136,40 @@ Plan node;
  *  Stuff from plannodes.h
  */
 
-Plan _readPlan()
+/* ----------------
+ *	_readPlan
+ * ----------------
+ */
+Plan
+_readPlan()
 {
 	char *token;
 	int length;
 	Plan local_node;
 
-	local_node = (Plan) palloc(sizeof(struct _Plan));
+	local_node = RMakePlan();
+	
 	_getPlan(local_node);
-	local_node->printFunc = PrintPlan;
-	local_node->equalFunc = EqualPlan;
-
+	
 	return( local_node );
 }
 
-
-/*
- * Does some obscene, possibly unportable, magic with sizes of things.
+/* ----------------
+ *	_readResult
+ *
+ * 	Does some obscene, possibly unportable, magic with
+ *	sizes of things.
+ * ----------------
  */
-
-Result _readResult()
-
+Result
+_readResult()
 {
 	Result	local_node;
 	char *token;
 	int length;
 
-	local_node = (Result) palloc(sizeof(struct _Result));
+	local_node = RMakeResult();
+	
 	_getPlan(local_node);
 
 	token = lsptok(NULL, &length);    	/* eat :resrellevelqual */
@@ -123,51 +179,58 @@ Result _readResult()
 	token = lsptok(NULL, &length);    	/* eat :resconstantqual */
 
 	local_node->resconstantqual = lispRead(true);	/* now read it */
-	local_node->printFunc = PrintResult;
-	local_node->equalFunc = EqualResult;
 
 	return( local_node );
 }
 
-/*
- *  Existential is a subclass of Plan.
+/* ----------------
+ *	_readExistential
  *
+ *  Existential is a subclass of Plan.
  *  In fact, it is identical.
+ * 
+ *| Wrong! an Existential inherits Plan and has a field called exstate
+ *| -cim 5/31/90
+ * ----------------
  */
 
-Existential _readExistential()
-
+Existential
+_readExistential()
 {
 	Existential	local_node;
 
-	local_node = (Existential) palloc(sizeof(struct _Existential));
+	local_node = RMakeExistential();
 
+	/* ----------------
+	 *	XXX this doesn't read the exstate field... -cim
+	 * ----------------
+	 */
 	_getPlan(local_node);
-
-	local_node->printFunc = PrintExistential;
-	local_node->equalFunc = EqualExistential;
-
+	
 	return( local_node );
 }
 
-/*
+/* ----------------
+ *	_readAppend
+ *
  *  Append is a subclass of Plan.
+ * ----------------
  */
 
-Append _readAppend()
-
+Append
+_readAppend()
 {
 	Append local_node;
 	char *token;
 	int length;
 
-	local_node = (Append) palloc(sizeof(struct _Append));
+	local_node = RMakeAppend();
 
 	_getPlan(local_node);
 
 	token = lsptok(NULL, &length);    		/* eat :unionplans */
 
-	local_node->unionplans = lispRead(true); 		/* now read it */
+	local_node->unionplans = lispRead(true); 	/* now read it */
 	
 	token = lsptok(NULL, &length);    		/* eat :unionrelid */
 	token = lsptok(NULL, &length);    		/* get unionrelid */
@@ -178,23 +241,24 @@ Append _readAppend()
 
 	local_node->unionrtentries = lispRead(true);	/* now read it */
 
-	local_node->printFunc = PrintAppend;
-	local_node->equalFunc = EqualAppend;
 	return(local_node);
 }
 
-/*
+
+/* ----------------
+ *	_readRecursive
+ *
  *  Recursive is a subclass of Plan.
+ * ----------------
  */
-
-Recursive _readRecursive()
-
+Recursive
+_readRecursive()
 {
         Recursive local_node;
         char *token;
         int length;
 
-        local_node = (Recursive) palloc(sizeof(struct _Recursive));
+        local_node = RMakeRecursive();
 
         _getPlan(local_node);
 
@@ -211,83 +275,89 @@ Recursive _readRecursive()
         token = lsptok(NULL, &length);               /* eat :recurLoopPlans */
         local_node->recurLoopPlans = lispRead(true); /* now read it */
 
-        token = lsptok(NULL, &length);          /* eat :recurCleanupPlans */
+        token = lsptok(NULL, &length);		/* eat :recurCleanupPlans */
         local_node->recurCleanupPlans = lispRead(true); /* now read it */
 
-        token = lsptok(NULL, &length);               /* eat :recurCheckpoints */
+        token = lsptok(NULL, &length);       	/* eat :recurCheckpoints */
         local_node->recurCheckpoints = lispRead(true); /* now read it */
 
         token = lsptok(NULL, &length);       /* eat :recurResultRelationName */
         local_node->recurResultRelationName = lispRead(true); /* now read it */
 
-        local_node->printFunc = PrintRecursive;
-        local_node->equalFunc = EqualRecursive;
         return(local_node);
 }
 
-/*
+/* ----------------
+ *	_getJoin
+ *
  * In case Join is not the same structure as Plan someday.
+ * ----------------
  */
-
-void _getJoin(node)
-
-Join node;
-
+void
+_getJoin(node)
+    Join node;
 {
 	_getPlan(node);
 }
 
-/*
+
+/* ----------------
+ *	_readJoin
+ *
  *  Join is a subclass of Plan
+ * ----------------
  */
-
-Join _readJoin()
-
+Join
+_readJoin()
 {
 	Join	local_node;
 
-	local_node = (Join) palloc(sizeof(struct _Join));
+	local_node = RMakeJoin();
 
 	_getJoin(local_node);
-	local_node->printFunc = PrintJoin;
-	local_node->equalFunc = EqualJoin;
+	
 	return( local_node );
 }
 
-/*
+/* ----------------
+ *	_readNestLoop
+ *	
  *  NestLoop is a subclass of Join
+ * ----------------
  */
 
-NestLoop _readNestLoop()
-
+NestLoop
+_readNestLoop()
 {
 	NestLoop	local_node;
 
-	local_node = (NestLoop) palloc(sizeof(struct _NestLoop));
+	local_node = RMakeNestLoop();
 
 	_getJoin(local_node);
-	local_node->printFunc = PrintNestLoop;
-	local_node->equalFunc = EqualNestLoop;
+	
 	return( local_node );
 }
 
-/*
+/* ----------------
+ *	_readMergeJoin
+ *	
  *  MergeJoin is a subclass of Join
+ * ----------------
  */
 
-MergeJoin _readMergeJoin(node)
-
+MergeJoin
+_readMergeJoin()
 {
 	MergeJoin	local_node;
 	char		*token;
 	int length;
 
-	local_node = (MergeJoin) palloc(sizeof(struct _MergeJoin));
+	local_node = RMakeMergeJoin();
 
 	_getJoin(local_node);
 	token = lsptok(NULL, &length);    		/* eat :mergeclauses */
 	
-	local_node->mergeclauses = lispRead(true);		/* now read it */
+	local_node->mergeclauses = lispRead(true);	/* now read it */
 
 	token = lsptok(NULL, &length);    		/* eat :mergesortop */
 
@@ -295,56 +365,53 @@ MergeJoin _readMergeJoin(node)
 
 	local_node->mergesortop = atoi(token);
 
-	local_node->printFunc = PrintMergeJoin;
-	local_node->equalFunc = EqualMergeJoin;
-	
 	return( local_node );
 }
 
-/*
+/* ----------------
+ *	_readHashJoin
+ *	
  *  HashJoin is a subclass of Join.
+ * ----------------
  */
 
-HashJoin _readHashJoin()
-
+HashJoin
+_readHashJoin()
 {
 	HashJoin	local_node;
 	char 		*token;
 	int length;
 
-	local_node = (HashJoin) palloc(sizeof(struct _HashJoin));
+	local_node = RMakeHashJoin();
 
 	_getJoin(local_node);
 
 	token = lsptok(NULL, &length);    		/* eat :hashclauses */
 	
-	local_node->hashclauses = lispRead(true);	 	/* now read it */
+	local_node->hashclauses = lispRead(true);	/* now read it */
 
 	token = lsptok(NULL, &length);    		/* eat :hashjoinop */
 
 	token = lsptok(NULL, &length);    		/* get hashjoinop */
 
 	local_node->hashjoinop = atoi(token);
-	local_node->printFunc = PrintHashJoin;
-	local_node->equalFunc = EqualHashJoin;
 	
 	return( local_node );
 }
 
-/*
+/* ----------------
+ *	_getScan
+ *
  *  Scan is a subclass of Node
  *  (Actually, according to the plannodes.h include file, it is a
  *  subclass of Plan.  This is why _getPlan is used here.)
+ *
+ *  Scan gets its own get function since stuff inherits it.
+ * ----------------
  */
-
-/*
- * Scan gets its own get function since stuff inherits it.
- */
-
-void _getScan(node)
-
-Scan node;
-
+void
+_getScan(node)
+    Scan node;
 {
 	char *token;
 	int length;
@@ -358,58 +425,59 @@ Scan node;
 	node->scanrelid = atoi(token);
 }
 
-/*
+/* ----------------
+ *	_readScan
+ *	
  * Scan is a subclass of Plan (Not Node, see above).
+ * ----------------
  */
-
-Scan _readScan()
-
+Scan
+_readScan()
 {
-	Scan 		local_node;
+	Scan 	local_node;
 
-	local_node = (Scan) palloc(sizeof(struct _Scan));
+	local_node = RMakeScan();
 
 	_getScan(local_node);
-	local_node->printFunc = PrintScan;
-	local_node->equalFunc = EqualScan;
 
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readSeqScan
+ *	
  *  SeqScan is a subclass of Scan
+ * ----------------
  */
-
-SeqScan _readSeqScan()
-
+SeqScan
+_readSeqScan()
 {
 	SeqScan 	local_node;
 
-	local_node = (SeqScan) palloc(sizeof(struct _SeqScan));
+	local_node = RMakeSeqScan();
 
 	_getScan(local_node);
-	local_node->printFunc = PrintSeqScan;
-	local_node->equalFunc = EqualSeqScan;
 
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readIndexScan
+ *	
  *  IndexScan is a subclass of Scan
+ * ----------------
  */
-
-IndexScan _readIndexScan()
-
+IndexScan
+_readIndexScan()
 {
 	IndexScan	local_node;
 	char		*token;
 	int length;
 
-	local_node = (IndexScan) palloc(sizeof(struct _IndexScan));
+	local_node = RMakeIndexScan();
 
 	_getScan(local_node);
 
-	
 	token = lsptok(NULL, &length);    		/* eat :indxid */
 
 	local_node->indxid = lispRead(true);		/* now read it */
@@ -417,24 +485,24 @@ IndexScan _readIndexScan()
 	token = lsptok(NULL, &length);    		/* eat :indxqual */
 
 	local_node->indxqual = lispRead(true); 		/* now read it */
-	local_node->printFunc = PrintIndexScan;
-	local_node->equalFunc = EqualIndexScan;
 
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readTemp
+ *	
  *  Temp is a subclass of Plan
+ * ----------------
  */
-
-Temp _readTemp()
-
+Temp
+_readTemp()
 {
 	Temp		local_node;
 	char		*token;
 	int length;
 
-	local_node = (Temp) palloc(sizeof(struct _Temp));
+	local_node = RMakeTemp();
 
 	_getPlan(local_node);
 
@@ -449,22 +517,23 @@ Temp _readTemp()
 
 	local_node->keycount = atoi(token);
 
-	local_node->printFunc = PrintTemp;
-	local_node->equalFunc = EqualTemp;
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readSort
+ *	
  *  Sort is a subclass of Temp
+ * ----------------
  */
-Sort _readSort()
-
+Sort
+_readSort()
 {
 	Sort		local_node;
 	char		*token;
 	int length;
 
-	local_node = (Sort) palloc(sizeof(struct _Sort));
+	local_node = RMakeSort();
 
 	_getPlan(local_node);
 
@@ -478,24 +547,24 @@ Sort _readSort()
 	token = lsptok(NULL, &length);    		/* get keycount */
 
 	local_node->keycount = atoi(token);
-	local_node->printFunc = PrintSort;
-	local_node->equalFunc = EqualSort;
 
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readHash
+ *	
  *  Hash is a subclass of Temp
+ * ----------------
  */
-
-Hash _readHash()
-
+Hash
+_readHash()
 {
 	Hash		local_node;
 	char		*token;
 	int length;
 
-	local_node = (Hash) palloc(sizeof(struct _Hash));
+	local_node = RMakeHash();
 
 	_getPlan(local_node);
 
@@ -509,28 +578,28 @@ Hash _readHash()
 	token = lsptok(NULL, &length);    		/* get keycount */
 
 	local_node->keycount = atoi(token);
-	local_node->printFunc = PrintHash;
-	local_node->equalFunc = EqualHash;
 
 	return(local_node);
 }
 
-/*
- *  Stuff from primnodes.h.
-*/
-
 /*
- *  Resdom is a subclass of Node
+ *  Stuff from primnodes.h.
  */
 
-Resdom _readResdom()
-
+/* ----------------
+ *	_readResdom
+ *	
+ *  Resdom is a subclass of Node
+ * ----------------
+ */
+Resdom
+_readResdom()
 {
 	Resdom		local_node;
 	char		*token;
 	int length;
 
-	local_node = (Resdom) palloc(sizeof(struct _Resdom));
+	local_node = RMakeResdom();
 
 	token = lsptok(NULL, &length);    		/* eat :resno */
 	token = lsptok(NULL, &length);    		/* get resno */
@@ -578,40 +647,40 @@ Resdom _readResdom()
 	token = lsptok(NULL, &length);    		/* get reskeyop */
 
 	local_node->reskeyop = (OperatorTupleForm) atoi(token);
-	local_node->printFunc = PrintResdom;
-	local_node->equalFunc = EqualResdom;
 
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readExpr
+ *	
  *  Expr is a subclass of Node
+ * ----------------
  */
-
-Expr _readExpr()
-
+Expr
+_readExpr()
 {
 	Expr local_node;
 
-	local_node = (Expr) palloc(sizeof(struct _Expr));
+	local_node = RMakeExpr();
 
-	local_node->printFunc = PrintExpr;
-	local_node->equalFunc = EqualExpr;
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readVar
+ *	
  *  Var is a subclass of Expr
+ * ----------------
  */
-
-Var _readVar()
-
+Var
+_readVar()
 {
 	Var		local_node;
 	char		*token;
 	int length;
 
-	local_node = (Var) palloc(sizeof(struct _Var));
+	local_node = RMakeVar();
 
 	token = lsptok(NULL, &length);    		/* eat :varno */
 	token = lsptok(NULL, &length);    		/* get varno */
@@ -635,7 +704,7 @@ Var _readVar()
 
 	local_node->vardotfields = lispRead(true); 	/* now read it */
 
-	token = lsptok(NULL, &length);    		/* eat :vararrayindex */
+	token = lsptok(NULL, &length);    	       /* eat :vararrayindex */
 	token = lsptok(NULL, &length);    		/* get vararrayindex */
 	
 	local_node->vararrayindex = atoi(token);
@@ -643,30 +712,25 @@ Var _readVar()
 	token = lsptok(NULL, &length);    		/* eat :varid */
 
 	local_node->varid = lispRead(true); 		/* now read it */
-
-	token = lsptok(NULL, &length);			/* eat :varelemtype */
-
-	token = lsptok(NULL, &length);    		/* get varelemtype */
-	local_node->varelemtype = atoi(token);
-	/* token = lsptok(NULL, &length); */    		/* eat last ) */
-	local_node->printFunc = PrintVar;
-	local_node->equalFunc = EqualVar;
+	/* token = lsptok(NULL, &length); */    	/* eat last ) */
 
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readConst
+ *	
  *  Const is a subclass of Expr
+ * ----------------
  */
-
-Const _readConst()
-
+Const
+_readConst()
 {
 	Const	local_node;
 	char *token;
 	int length;
 
-	local_node = (Const) palloc(sizeof(struct _Const));
+	local_node = RMakeConst();
 
 	token = lsptok(NULL, &length);      /* get :consttype */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -698,23 +762,36 @@ Const _readConst()
 	{
 		local_node->constisnull = false;
 	}
-	local_node->printFunc = PrintConst;
-	local_node->equalFunc = EqualConst;
+
+	token = lsptok(NULL, &length);      /* get :constbyval */
+	token = lsptok(NULL, &length);      /* now read it */
+
+	if (!strncmp(token, "true", 4))
+	{
+		local_node->constbyval = true;
+	}
+	else
+	{
+		local_node->constbyval = false;
+	}
+	
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readFunc
+ *	
  *  Func is a subclass of Expr
+ * ----------------
  */
-
-Func _readFunc()
-
+Func
+_readFunc()
 {
 	Func	local_node;
 	char *token;
 	int length;
 
-	local_node = (Func) palloc(sizeof(struct _Func));
+	local_node = RMakeFunc();
 
 	token = lsptok(NULL, &length);      /* get :funcid */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -737,23 +814,24 @@ Func _readFunc()
 	{
 		local_node->funcisindex = false;
 	}
-	local_node->printFunc = PrintFunc;
-	local_node->equalFunc = EqualFunc;
+	
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readOper
+ *	
  *  Oper is a subclass of Expr
+ * ----------------
  */
-
-Oper _readOper()
-
+Oper
+_readOper()
 {
 	Oper	local_node;
 	char 	*token;
 	int length;
 
-	local_node = (Oper) palloc(sizeof(struct _Oper));
+	local_node = RMakeOper();
 
 	token = lsptok(NULL, &length);      /* get :opno */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -777,23 +855,23 @@ Oper _readOper()
 
 	local_node->opresulttype = atoi(token);
 
-	local_node->printFunc = PrintOper;
-	local_node->equalFunc = EqualOper;
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readParam
+ *	
  *  Param is a subclass of Expr
+ * ----------------
  */
-
-Param _readParam()
-
+Param
+_readParam()
 {
 	Param	local_node;
 	char 	*token;
 	int length;
 
-	local_node = (Param) palloc(sizeof(struct _Param));
+	local_node = RMakeParam();
 
 	token = lsptok(NULL, &length);      /* get :paramkind */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -818,8 +896,7 @@ Param _readParam()
 	token = lsptok(NULL, &length);      /* now read it */
 
 	local_node->paramtype = atoi(token);
-	local_node->printFunc = PrintParam;
-	local_node->equalFunc = EqualParam;
+	
 	return(local_node);
 }
 
@@ -827,18 +904,20 @@ Param _readParam()
  *  Stuff from execnodes.h
  */
 
-/*
+/* ----------------
+ *	_readEState
+ *	
  *  EState is a subclass of Node.
+ * ----------------
  */
-
-EState _readEState()
-
+EState
+_readEState()
 {
 	EState	local_node;
 	char *token;
 	int length;
 
-	local_node = (EState) palloc(sizeof(struct _EState));
+	local_node = RMakeEState();
 
 	token = lsptok(NULL, &length);      /* get :direction */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -889,7 +968,7 @@ EState _readEState()
 
 	sscanf(token, "%x", &local_node->es_qualification_tuple_id);
 
-	token = lsptok(NULL, &length);      /* get :relation_relation_descriptor */
+	token = lsptok(NULL, &length); /* get :relation_relation_descriptor */
 	token = lsptok(NULL, &length);      /* get @ */
 	token = lsptok(NULL, &length);      /* now read it */
 
@@ -900,8 +979,7 @@ EState _readEState()
 	token = lsptok(NULL, &length);      /* now read it */
 
 	sscanf(token, "%x", &local_node->es_result_relation_info);
-	local_node->printFunc = PrintEState;
-	local_node->equalFunc = EqualEState;
+	
 	return(local_node);
 }
 
@@ -909,14 +987,18 @@ EState _readEState()
  *  Stuff from relation.h
  */
 
-Rel _readRel()
-
+/* ----------------
+ *	_readRel
+ * ----------------
+ */
+Rel
+_readRel()
 {
 	Rel	local_node;
 	char 	*token;
 	int length;
 
-	local_node = (Rel) palloc(sizeof(struct _Rel));
+	local_node = RMakeRel();
 
 	token = lsptok(NULL, &length);      /* get :relids */
 	local_node->relids = lispRead(true);/* now read it */
@@ -994,62 +1076,25 @@ Rel _readRel()
 
 	token = lsptok(NULL, &length);      /* get :innerjoin */
 	local_node->innerjoin = lispRead(true); /* now read it */
-	local_node->printFunc = PrintRel;
-	local_node->equalFunc = EqualRel;
+	
 	return(local_node);
 }
 
-/*
- *  TLE is a subclass of Node.
- */
-/*
-TLE _readTLE()
-
-{
-	TLE	local_node;
-	char	*token;
-	int length;
-
-	local_node = (TLE) palloc(sizeof(struct _TLE));
-
-	token = lsptok(NULL, &length);      
-
-	local_node->resdom = _readResdom();
-
-	token = lsptok(NULL, &length);     
-	local_node->expr = _readExpr();
-	return(local_node);
-}
-*/
-/*
- *  TL is a subclass of Node.
- */
-/*
-void
-_readTL(node)
-	TL	node;
-{
-	printf("tl ");
-	printf(" :entry ");
-	node->entry->printFunc(node->entry);
-
-	printf(" :joinlist ");
-	lispDisplay(node->joinlist,0);
-}
-*/
-
-/*
+/* ----------------
+ *	_readSortKey
+ *	
  *  SortKey is a subclass of Node.
+ * ----------------
  */
 
-SortKey _readSortKey()
-
+SortKey
+_readSortKey()
 {
 	SortKey		local_node;
 	char		*token;
 	int length;
 
-	local_node = (SortKey) palloc(sizeof(struct _SortKey));
+	local_node = RMakeSortKey();
 	token = lsptok(NULL, &length);      /* get :varkeys */
 	local_node->varkeys = lispRead(true); /* now read it */
 
@@ -1062,23 +1107,23 @@ SortKey _readSortKey()
 	token = lsptok(NULL, &length);      /* get :sortorder */
 	local_node->sortorder = lispRead(true);      /* now read it */
 	
-	local_node->printFunc = PrintSortKey;
-	local_node->equalFunc = EqualSortKey;
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readPath
+ *	
  *  Path is a subclass of Node.
+ * ----------------
  */
-
-Path _readPath()
-
+Path
+_readPath()
 {
 	Path	local_node;
 	char 	*token;
 	int length;
 
-	local_node = (Path) palloc(sizeof(struct _Path));
+	local_node = RMakePath();
 
 	token = lsptok(NULL, &length);      /* get :pathtype */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -1098,24 +1143,24 @@ Path _readPath()
 
 	token = lsptok(NULL, &length);      /* get :sortpath */
 	local_node->sortpath = (SortKey) lispRead(true);
-	local_node->printFunc = PrintPath;
-	local_node->equalFunc = EqualPath;
 
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readIndexPath
+ *	
  *  IndexPath is a subclass of Path.
+ * ----------------
  */
-
-IndexPath _readIndexPath()
-
+IndexPath
+_readIndexPath()
 {
 	IndexPath	local_node;
 	char		*token;
 	int length;
 
-	local_node = (IndexPath) palloc(sizeof(struct _IndexPath));
+	local_node = RMakeIndexPath();
 
 	token = lsptok(NULL, &length);      /* get :pathtype */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -1143,25 +1188,25 @@ IndexPath _readIndexPath()
 
 	token = lsptok(NULL, &length);      /* get :indexqual */
 	local_node->indexqual = lispRead(true);      /* now read it */
-	local_node->printFunc = PrintIndexPath;
-	local_node->equalFunc = EqualIndexPath;
 
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readJoinPath
+ *	
  *  JoinPath is a subclass of Path
+ * ----------------
  */
-
-JoinPath _readJoinPath()
-
+JoinPath
+_readJoinPath()
 {
 	JoinPath	local_node;
 	char		*token;
 	int length;
 
 
-	local_node = (JoinPath) palloc(sizeof(struct _JoinPath));
+	local_node = RMakeJoinPath();
 
 	token = lsptok(NULL, &length);      /* get :pathtype */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -1183,7 +1228,7 @@ JoinPath _readJoinPath()
 	local_node->sortpath = (SortKey) lispRead(true);
 
 	token = lsptok(NULL, &length);      /* get :pathclauseinfo */
-	local_node->pathclauseinfo = lispRead(true);           /* now read it */
+	local_node->pathclauseinfo = lispRead(true);         /* now read it */
 
 	/*
 	 *  Not sure if these are nodes; they're declared as "struct path *".
@@ -1213,23 +1258,24 @@ JoinPath _readJoinPath()
 	token = lsptok(NULL, &length);      /* get :joinid */
 	local_node->joinid = lispRead(true);          /* now read it */
 
-	local_node->printFunc = PrintJoinPath;
-	local_node->equalFunc = EqualJoinPath;
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readMergePath
+ *	
  *  MergePath is a subclass of JoinPath.
+ * ----------------
  */
 
-MergePath _readMergePath()
-
+MergePath
+_readMergePath()
 {
 	MergePath	local_node;
 	char 		*token;
 	int length;
 
-	local_node = (MergePath) palloc(sizeof(struct _MergePath));
+	local_node = RMakeMergePath();
 
 	token = lsptok(NULL, &length);      /* get :pathtype */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -1251,7 +1297,7 @@ MergePath _readMergePath()
 	local_node->sortpath = (SortKey) lispRead(true);
 
 	token = lsptok(NULL, &length);      /* get :pathclauseinfo */
-	local_node->pathclauseinfo = lispRead(true);           /* now read it */
+	local_node->pathclauseinfo = lispRead(true);        /* now read it */
 
 	/*
 	 *  Not sure if these are nodes; they're declared as "struct path *".
@@ -1282,7 +1328,7 @@ MergePath _readMergePath()
 	local_node->joinid = lispRead(true);          /* now read it */
 
 	token = lsptok(NULL, &length);      /* get :path_mergeclauses */
-	local_node->path_mergeclauses = lispRead(true);           /* now read it */
+	local_node->path_mergeclauses = lispRead(true);      /* now read it */
 
 	token = lsptok(NULL, &length);      /* get :outersortkeys */
 	local_node->outersortkeys = lispRead(true);           /* now read it */
@@ -1290,23 +1336,23 @@ MergePath _readMergePath()
 	token = lsptok(NULL, &length);      /* get :innersortkeys */
 	local_node->innersortkeys = lispRead(true);           /* now read it */
 
-	local_node->printFunc = PrintMergePath;
-	local_node->equalFunc = EqualMergePath;
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readHashPath
+ *	
  *  HashPath is a subclass of JoinPath.
+ * ----------------
  */
-
-HashPath _readHashPath()
-
+HashPath
+_readHashPath()
 {
 	HashPath	local_node;
 	char 		*token;
 	int length;
 
-	local_node = (HashPath) palloc(sizeof(struct _HashPath));
+	local_node = RMakeHashPath();
 
 	token = lsptok(NULL, &length);      /* get :pathtype */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -1366,24 +1412,24 @@ HashPath _readHashPath()
 
 	token = lsptok(NULL, &length);      /* get :innerhashkeys */
 	local_node->innerhashkeys = lispRead(true); /* now read it */
-	local_node->printFunc = PrintHashPath;
-	local_node->equalFunc = EqualHashPath;
 
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readOrderKey
+ *	
  *  OrderKey is a subclass of Node.
+ * ----------------
  */
-
-OrderKey _readOrderKey()
-
+OrderKey
+_readOrderKey()
 {
 	OrderKey	local_node;
 	char		*token;
 	int length;
 
-	local_node = (OrderKey) palloc(sizeof(struct _OrderKey));
+	local_node = RMakeOrderKey();
 
 	token = lsptok(NULL, &length);      /* get :attribute_number */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -1395,23 +1441,24 @@ OrderKey _readOrderKey()
 
 	local_node->array_index = atoi(token);
 
-	local_node->printFunc = PrintOrderKey;
-	local_node->equalFunc = EqualOrderKey;
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readJoinKey
+ *	
  *  JoinKey is a subclass of Node.
+ * ----------------
  */
 
-JoinKey _readJoinKey()
-
+JoinKey
+_readJoinKey()
 {
 	JoinKey		local_node;
 	char		*token;
 	int length;
 
-	local_node = (JoinKey) palloc(sizeof(struct _JoinKey));
+	local_node = RMakeJoinKey();
 
 	token = lsptok(NULL, &length);      /* get :outer */
 	local_node->outer = lispRead(true);      /* now read it */
@@ -1419,23 +1466,23 @@ JoinKey _readJoinKey()
 	token = lsptok(NULL, &length);      /* get :inner */
 	local_node->inner = lispRead(true);      /* now read it */
 	
-	local_node->printFunc = PrintJoinKey;
-	local_node->equalFunc = EqualJoinKey;
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readMergeOrder
+ *	
  *  MergeOrder is a subclass of Node.
+ * ----------------
  */
-
-MergeOrder _readMergeOrder()
-
+MergeOrder
+_readMergeOrder()
 {
 	MergeOrder	local_node;
 	char		*token;
 	int length;
 
-	local_node = (MergeOrder) palloc(sizeof(struct _MergeOrder));
+	local_node = RMakeMergeOrder();
 	token = lsptok(NULL, &length);      /* get :join_operator */
 	token = lsptok(NULL, &length);      /* now read it */
 
@@ -1461,23 +1508,23 @@ MergeOrder _readMergeOrder()
 
 	local_node->right_type = atoi(token);
 
-	local_node->printFunc = PrintMergeOrder;
-	local_node->equalFunc = EqualMergeOrder;
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readCInfo
+ *	
  *  CInfo is a subclass of Node.
+ * ----------------
  */
-
-CInfo _readCInfo()
-
+CInfo
+_readCInfo()
 {
 	CInfo	local_node;
 	char 	*token;
 	int length;
 
-	local_node = (CInfo) palloc(sizeof(struct _CInfo));
+	local_node = RMakeCInfo();
 
 	token = lsptok(NULL, &length);      /* get :clause */
 	local_node->clause = (Expr) lispRead(true); /* now read it */
@@ -1510,23 +1557,23 @@ CInfo _readCInfo()
 
 	local_node->hashjoinoperator = atoi(token);
 
-	local_node->printFunc = PrintCInfo;
-	local_node->equalFunc = EqualCInfo;
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readJoinMethod
+ *	
  *  JoinMethod is a subclass of Node.
+ * ----------------
  */
-
-JoinMethod _readJoinMethod()
-
+JoinMethod
+_readJoinMethod()
 {
      	JoinMethod 	local_node;
 	char		*token;
 	int length;
 
-	local_node = (JoinMethod) palloc(sizeof(struct _JoinMethod));
+	local_node = RMakeJoinMethod();
 
 	token = lsptok(NULL, &length);      /* get :jmkeys */
 	local_node->jmkeys = lispRead(true);/* now read it */
@@ -1534,23 +1581,23 @@ JoinMethod _readJoinMethod()
 	token = lsptok(NULL, &length);      /* get :clauses */
 	local_node->clauses = lispRead(true); /* now read it */
 
-	local_node->printFunc = PrintJoinMethod;
-	local_node->equalFunc = NULL; /* EqualJoinMethod; */
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readHInfo
+ *	
  * HInfo is a subclass of JoinMethod.
+ * ----------------
  */
-
-HInfo _readHInfo()
-
+HInfo
+_readHInfo()
 {
 	HInfo 	local_node;
 	char 	*token;
 	int length;
 
-	local_node = (HInfo) palloc(sizeof(struct _HInfo));
+	local_node = RMakeHInfo();
 
 	token = lsptok(NULL, &length);      /* get :hashop */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -1563,23 +1610,23 @@ HInfo _readHInfo()
 	token = lsptok(NULL, &length);      /* get :clauses */
 	local_node->clauses = lispRead(true);           /* now read it */
 
-	local_node->printFunc = PrintHInfo;
-	local_node->equalFunc = EqualHInfo;
 	return(local_node);
 }
 
-/*
+/* ----------------
+ *	_readJInfo()
+ *	
  *  JInfo is a subclass of Node.
+ * ----------------
  */
-
-JInfo _readJInfo()
-
+JInfo
+_readJInfo()
 {
 	JInfo	local_node;
 	char	*token;
 	int length;
 
-	local_node = (JInfo) palloc(sizeof(struct _JInfo));
+	local_node = RMakeJInfo();
 
 	token = lsptok(NULL, &length);      /* get :otherrels */
 	local_node->otherrels = lispRead(true); /* now read it */
@@ -1608,22 +1655,22 @@ JInfo _readJInfo()
 	{
 		local_node->hashjoinable = false;
 	}
-	local_node->printFunc = PrintJInfo;
-	local_node->equalFunc = EqualJInfo;
+
 	return(local_node);
 }
 
 
-/* 
+/* ----------------
+ *	parsePlanString
+ *
  * Given a character string containing a plan, parsePlanString sets up the
  * plan structure representing that plan.
  *
  * The string passed to parsePlanString must be null-terminated.
+ * ----------------
  */
-
-LispValue parsePlanString()
-
-
+LispValue
+parsePlanString()
 {
 	char *token;
 	int length;
@@ -1820,22 +1867,25 @@ LispValue parsePlanString()
 }
 /*------------------------------------------------------------*/
 
-/*
+/* ----------------
+ *	readValue
+ *
  * given a string representation of the value of the given type,
  * create the appropriate Datum
+ * ----------------
  */
 Datum
 readValue(type)
-ObjectId type;
+    ObjectId type;
 {
-    int length;
-    int tokenLength;
-    char *token;
-    Boolean byValue;
-    HeapTuple typeTuple;
-    Datum res;
-    char *s;
-    int i;
+    int 	length;
+    int 	tokenLength;
+    char 	*token;
+    Boolean	 byValue;
+    HeapTuple 	typeTuple;
+    Datum 	res;
+    char 	*s;
+    int 	i;
 
     typeTuple = SearchSysCacheTuple(TYPOID,
 				    (char *) type,
@@ -1848,9 +1898,10 @@ ObjectId type;
 
     /*---- this is the length as storedin pg_type. But it might noy
      * be the actual length (e.g. variable length types...
-    length	= ((ObjectId) ((TypeTupleForm)
-			GETSTRUCT(typeTuple))->typlen);
-    */
+     *  length	= ((ObjectId) ((TypeTupleForm)
+     *		        GETSTRUCT(typeTuple))->typlen);
+     */
+    
     byValue	= ((ObjectId) ((TypeTupleForm)
 			GETSTRUCT(typeTuple))->typbyval);
 
