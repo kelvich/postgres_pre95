@@ -93,7 +93,7 @@ NameIsEqual(name1, name2)
 	if (! PointerIsValid(name1) || ! PointerIsValid(name2)) {
 		return(false);
 	}
-	return((bool)(strncmp(name1, name2, NAMEDATALEN) == 0));
+	return((bool)(strncmp(name1->data, name2->data, NAMEDATALEN) == 0));
 }
 
 uint32
