@@ -4,6 +4,7 @@
  *
  *  A do-nothing routine?
  */
+#define RcsId(a)
 
 RcsId("$Header$");
 
