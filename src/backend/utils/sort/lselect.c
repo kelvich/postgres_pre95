@@ -19,7 +19,6 @@ static	char	lselect_c[] = "$Header$";
 #include "utils/lselect.h"
 
 extern	Relation	SortRdesc;		/* later static */ 
-extern	char			*fmgr();
 
 /*
  *	PUTTUP		- writes the next tuple
@@ -228,7 +227,6 @@ FILE	*file;
  *	Returns:
  *		1 if left < right ;0 otherwise
  *	Assumtions:
- *		fmgr(left, right) returns "true" iff left < right
  */
 
 tuplecmp(ltup, rtup)
@@ -241,7 +239,7 @@ struct	tuple	*rtup;
 	extern	struct	skey	*Key;
 	int		result = 0;
 	Boolean		isnull;
-	char		*amgetattr(), *fmgr();
+	char		*amgetattr();
 
 	if (ltup == (struct tuple *)NULL)
 		return(0);
@@ -257,13 +255,10 @@ struct	tuple	*rtup;
 		if (isnull)
 			return(1);
 		if (Key[nkey].sk_flags & SK_COMMUTE) {
-			if (!(result = (long)fmgr(Key[nkey].sk_opr, rattr,
-					lattr)))
-				result = -(long)fmgr(Key[nkey].sk_opr, lattr,
-					rattr);
-		} else if (!(result = (long)fmgr(Key[nkey].sk_opr, lattr,
-					rattr)))
-			result = -(long)fmgr(Key[nkey].sk_opr, rattr, lattr);
+			if (!(result = (long) (*Key[nkey].func) (rattr, lattr)))
+				result = -(long) (*Key[nkey].func) (lattr, rattr);
+		} else if (!(result = (long) (*Key[nkey].func) (lattr, rattr)))
+			result = -(long) (*Key[nkey].func) (rattr, lattr);
 		nkey++;
 	}
 	return (result == 1);
