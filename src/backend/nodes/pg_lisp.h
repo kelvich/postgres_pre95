@@ -106,5 +106,8 @@ extern LispValue find();
 extern LispValue nconc();
 
 extern int length();
+extern LispValue remove();
+extern LispValue remove_duplicates();
+extern LispValue setf();
 
 #endif /* !LispDepIncluded */
