@@ -1202,41 +1202,44 @@ ShowUsage()
 	 *  and stack sizes.
 	 */
 
-	fprintf(stderr, "system usage stats:\n");
+	fprintf(stderr, "! system usage stats:\n");
         fprintf(stderr, 
-		"\t%ld.%06ld elapse %ld.%06ld user %ld.%06ld system sec\n",
+		"!\t%ld.%06ld elapse %ld.%06ld user %ld.%06ld system sec\n",
                 elapse_t.tv_sec - Save_t.tv_sec,
                 elapse_t.tv_usec - Save_t.tv_usec,
 		r.ru_utime.tv_sec - Save_r.ru_utime.tv_sec,
 		r.ru_utime.tv_usec - Save_r.ru_utime.tv_usec,
 		r.ru_stime.tv_sec - Save_r.ru_stime.tv_sec,
 		r.ru_stime.tv_usec - Save_r.ru_stime.tv_usec);
-	fprintf(stderr, "\t[%ld.%06ld user %ld.%06ld sys total]\n",
+	fprintf(stderr,
+		"!\t[%ld.%06ld user %ld.%06ld sys total]\n",
 		user.tv_sec, user.tv_usec, sys.tv_sec, sys.tv_usec);
-	fprintf(stderr, "\t%d/%d [%d/%d] filesystem blocks in/out\n",
+	fprintf(stderr, 
+		"!\t%d/%d [%d/%d] filesystem blocks in/out\n",
 		r.ru_inblock - Save_r.ru_inblock,
 		/* they only drink coffee at dec */
 		r.ru_oublock - Save_r.ru_oublock,
 		r.ru_inblock, r.ru_oublock);
-	fprintf(stderr, "\t%d/%d [%d/%d] page faults/reclaims, %d [%d] swaps\n",
+	fprintf(stderr, 
+		"!\t%d/%d [%d/%d] page faults/reclaims, %d [%d] swaps\n",
 		r.ru_majflt - Save_r.ru_majflt,
 		r.ru_minflt - Save_r.ru_minflt,
 		r.ru_majflt, r.ru_minflt,
 		r.ru_nswap - Save_r.ru_nswap,
 		r.ru_nswap);
 	fprintf(stderr, 
-		"\t%d [%d] signals rcvd, %d/%d [%d/%d] messages rcvd/sent\n",
+		"!\t%d [%d] signals rcvd, %d/%d [%d/%d] messages rcvd/sent\n",
 		r.ru_nsignals - Save_r.ru_nsignals,
 		r.ru_nsignals,
 		r.ru_msgrcv - Save_r.ru_msgrcv,
 		r.ru_msgsnd - Save_r.ru_msgsnd,
 		r.ru_msgrcv, r.ru_msgsnd);
 	fprintf(stderr, 
-		"\t%d/%d [%d/%d] voluntary/involuntary context switches\n",
+		"!\t%d/%d [%d/%d] voluntary/involuntary context switches\n",
 		r.ru_nvcsw - Save_r.ru_nvcsw,
 		r.ru_nivcsw - Save_r.ru_nivcsw,
 		r.ru_nvcsw, r.ru_nivcsw);
-	fprintf(stderr, "postgres usage stats:\n");
+	fprintf(stderr, "! postgres usage stats:\n");
 	PrintBufferUsage();
 	DisplayTupleCount();
 #ifdef PARALLELDEBUG

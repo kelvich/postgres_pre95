@@ -731,10 +731,17 @@ int NDirectFileWrite;   /* e.g., I/O in psort and hashjoin.		     */
 void
 PrintBufferUsage()
 {
-	fprintf(stderr, "\t%d blocks read, %d blocks written, buffer hit rate = %.2f%%\n", 
+	float hitrate;
+
+	if (ReadBufferCount==0)
+	    hitrate = 0.0;
+	else
+	    hitrate = (float)BufferHitCount * 100.0/ReadBufferCount;
+
+	fprintf(stderr, "!\t%d blocks read, %d blocks written, buffer hit rate = %.2f%%\n", 
 		ReadBufferCount - BufferHitCount + NDirectFileRead,
 		BufferFlushCount + NDirectFileWrite,
-	       (float)BufferHitCount * 100.0/ReadBufferCount);
+		hitrate);
 }
 
 void
