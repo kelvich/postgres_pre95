@@ -48,6 +48,9 @@
 
 #include <sys/types.h>
 #include <string.h>
+#ifdef NEED_STRINGS
+#include <strings.h>
+#endif /* NEED_STRINGS */
 #include <ctype.h>
 #include "sprite.h"
 #include "lst.h"
