@@ -52,15 +52,16 @@ CFLAGS+= -DNEED_XMALLOC
 CFLAGS+= -DNEED_STRDUP
 
 #
-# set POSTGRESTOP to the top directory of postgres (one above src/).
+# set POSTGRESDIR to the top directory of postgres (one above src/).
 #	spog will be installed in BINDIR.
-#	INCDIR and LIBDIR should point to the install libpq.
+#	HEADERDIR and LIBDIR should point to the install libpq.
 #
-POSTGRESTOP=${.CURDIR}/../../..
-BINDIR= ${POSTGRESTOP}/bin
-INCDIR= ${POSTGRESTOP}/include
-LIBDIR= ${POSTGRESTOP}/lib
-CFLAGS+= -I${INCDIR}
+#POSTGRESDIR=${.CURDIR}/../../..
+POSTGRESDIR= /private/devel/postgres
+BINDIR= ${POSTGRESDIR}/bin
+HEADERDIR= ${POSTGRESDIR}/include
+LIBDIR= ${POSTGRESDIR}/lib
+CFLAGS+= -I${HEADERDIR}
 LDADD+= -L${LIBDIR}
 
 #
