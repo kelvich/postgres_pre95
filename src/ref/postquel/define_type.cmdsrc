@@ -70,6 +70,7 @@ To indicate the delimiter to be used on arrays of this type, the
 .i "delimiter"
 attribute can be set to a specific character.  The default delimiter is
 the comma (``,'') character.
+.lp
 A
 .i "default"
 value is optionally available in case a user wants some specific bit
