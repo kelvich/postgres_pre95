@@ -587,8 +587,8 @@ Plan plan;
     if (plan == NULL)
 	return false;
     if (IsA(plan,HashJoin)) {
-	outerplan = get_lefttree(get_lefttree(plan));
-	innerplan = get_righttree(plan);
+	outerplan = (Plan) get_lefttree(get_lefttree(plan));
+	innerplan = (Plan) get_righttree(plan);
 	outerpages = page_size(get_plan_size(outerplan), 
 			       get_plan_width(outerplan));
 	innerpages = page_size(get_plan_size(innerplan),
