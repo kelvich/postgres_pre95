@@ -78,7 +78,7 @@ DefineFunction(nameargsexe, dest)
     String	returnTypeName;
     char        blankstring[2];
     bool	canCache;
-    bool        trusted;
+    bool        trusted = true;
     String      trusted_str;
     LispValue	argList;
     int32       byte_pct, perbyte_cpu, percall_cpu, outin_ratio;
