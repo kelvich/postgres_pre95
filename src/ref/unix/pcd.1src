@@ -58,3 +58,7 @@ If no database is given on the command line, the environment variable
 is checked.  If no environment variable
 .SM DATABASE
 is present, the command exits with an error status.
+.SH BUGS
+See
+.IR "introduction" "(large objects)"
+for filename and path limitations imposed by the Inversion file system.

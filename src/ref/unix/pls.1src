@@ -42,3 +42,7 @@ The database name, port number, and host name to use for database
 accesses should be passed on the command line.  Unfortunately, almost
 all the available option letters are already used by
 .IR ls .
+.PP
+See
+.IR "introduction" "(large objects)"
+for filename and path limitations imposed by the Inversion file system.

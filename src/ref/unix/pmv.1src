@@ -74,3 +74,7 @@ The environment variable
 .SM PFCWD
 is used for the current directory if the pathname specified is
 relative.
+.SH BUGS
+See
+.IR "introduction" "(large objects)"
+for filename and path limitations imposed by the Inversion file system.

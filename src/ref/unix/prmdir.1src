@@ -67,3 +67,10 @@ The environment variable
 .SM PFCWD
 is used for the current directory if the pathname specified is
 relative.
+.SH BUGS
+It is not possible to remove files stored on write-once storage
+managers (e.g., the Sony optical disk jukebox at Berkeley).
+.PP
+See
+.IR "introduction" "(large objects)"
+for filename and path limitations imposed by the Inversion file system.

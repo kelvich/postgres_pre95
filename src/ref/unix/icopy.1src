@@ -200,3 +200,7 @@ copies it back out again, putting the copy in the \*(UU file
 .SH BUGS
 The \*(PG file system code should support operations via NFS, so this
 program actually has no right to exist.
+.PP
+See
+.IR "introduction" "(large objects)"
+for filename and path limitations imposed by the Inversion file system.
