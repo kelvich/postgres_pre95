@@ -6,40 +6,29 @@
 # ################# BEGIN OS-DEPENDENT SECTION #################
 #
 
-#PORTNAME=alpha
-#PORTNAME=hpux
-#PORTNAME=linux
-#PORTNAME=sparc
 PORTNAME=ultrix4
 
 # void/const are broken in some compilers
-#	define this on Ultrix, SunOS4 and HP-UX
 OLD_CC=-Dvoid="char *" -Dconst=
 
 # has __.SYMDEF in ranlibs
-#	define this on Ultrix or SunOS4
 HAS_RANLIB=-DHAS_SYMDEF
 
 # <string.h> doesn't contain <strings.h>
-#	define this on SunOS4
-#NEED_STRINGS=-DNEED_STRINGS
+NEED_STRINGS=
 
 # needs BSD mode turned on in headers for wait3(3) compatibility
 # if "egrep -i bsd /usr/include/sys/wait.h" prints anything, you
 # probably need that.  (you want "union wait" to be defined.)
-#	define this on Alpha OSF/1 or HP-UX ...
-#BSD_WAIT3=-D_BSD
-#	... but define this on Linux or other gnulib-based systems
-#	... also needs BSD signals
-#BSD_WAIT3=-D__USE_BSD -D__USE_BSD_SIGNAL
+BSD_WAIT3=
 
-# needs random stuff, most of which is in most POSIXy libraries
-#	define this on nearly everything except Linux
-NEED_POSIX_SRC= setenv.c strdup.c strerror.c
-NEED_POSIX_OBJ= setenv.o strdup.o strerror.o
+CONFIGS= ${OLD_CC} ${HAS_RANLIB} ${NEED_STRINGS} ${BSD_WAIT3}
 
 #
-CONFIGS= ${OLD_CC} ${HAS_RANLIB} ${NEED_STRINGS} ${BSD_WAIT3}
+# stuff missing from the library
+#
+MORESRCS=strdup.c
+MOREOBJS=strdup.o
 
 #
 # ################# END OS-DEPENDENT SECTION #################
@@ -51,11 +40,11 @@ CFLAGS = ${CONFIGS} \
 
 CFILES= arch.c buf.c compat.c cond.c dir.c hash.c job.c main.c make.c \
 	parse.c str.c suff.c targ.c var.c \
-	${NEED_POSIX_SRC}
+	${MORESRCS}
 
 OFILES= arch.o buf.o compat.o cond.o dir.o hash.o job.o main.o make.o \
 	parse.o str.o suff.o targ.o var.o \
-	${NEED_POSIX_OBJ}
+	${MOREOBJS}
 
 LSTCFILES= lstAppend.c lstAtEnd.c lstAtFront.c lstClose.c lstConcat.c \
 	lstDatum.c lstDeQueue.c lstDestroy.c lstDupl.c lstEnQueue.c \
