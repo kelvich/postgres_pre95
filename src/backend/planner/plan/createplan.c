@@ -35,8 +35,10 @@
 #include "planner/setrefs.h"
 #include "planner/tlist.h"
 #include "planner/planner.h"
+#include "planner/xfunc.h"
 
 #include "lib/lisplist.h"
+#include "lib/lispsort.h"
 
 #define TEMP_SORT	1
 #define TEMP_MATERIAL	2
@@ -180,6 +182,15 @@ create_scan_node(best_path,tlist)
 		     get_pathtype(best_path));
 	  break;
      }
+     if (XfuncMode != XFUNC_OFF)
+      {
+	  /* sort clauses by cost/(1-selectivity) -- JMH 2/26/92 */
+	  set_qpqual(node, lisp_qsort(get_qpqual(node), xfunc_clause_compare));
+	  if (XfuncMode != XFUNC_NOR)
+	    /* sort the disjuncts within each clause by cost -- JMH 3/4/92 */
+	    xfunc_disjunct_sort(node->qpqual);
+      }
+
      set_parallel((Plan)node, 1);
      return node;
 
