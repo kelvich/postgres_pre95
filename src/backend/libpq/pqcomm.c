@@ -20,6 +20,7 @@
  *	pq_getinserv 	- initialize address from host and service name
  *	pq_connect 	- create remote input / output connection
  *	pq_accept 	- accept remote input / output connection
+ *      pq_async_notify - receive notification from backend.
  *
  *   NOTES
  * 	These functions are used by both frontend applications and
@@ -36,6 +37,7 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <signal.h>
 
 #include "tmp/pqcomm.h"
 #include "tmp/c.h"
@@ -52,8 +54,15 @@ char **ep;
 char *dp;
 
 FILE *Pfout, *Pfin;
+int PQAsyncNotifyWaiting;	/* for async. notification */
 
 char *strcpy(), *ttyname();
+
+/* forward declarations */
+void pq_regoob ARGS((void (*fptr )()));
+void pq_unregoob ARGS((void ));
+void pq_async_notify ARGS((void ));
+
 
 /* --------------------------------
  *	pq_init - open portal file descriptors
@@ -65,6 +74,7 @@ pq_init(fd)
 {
     Pfin = fdopen(fd, "r");
     Pfout = fdopen(dup(fd), "w");
+    PQnotifies_init();
 }
 
 /* --------------------------------
@@ -114,6 +124,9 @@ pq_close()
 	fclose(Pfout);
 	Pfout = NULL;
     }
+    PQAsyncNotifyWaiting = 0;
+    PQnotifies_init();
+    pq_unregoob();
 }
 
 /* --------------------------------
@@ -309,6 +322,34 @@ pq_putint(i, b)
     }
 }
 
+/* ---
+ *     pq_sendoob - send a string over the out-of-band channel
+ *     pq_recvoob - receive a string over the oob channel
+ *  NB: Fortunately, the out-of-band channel doesn't conflict with
+ *      buffered I/O because it is separate from regular com. channel.
+ * ---
+ */
+int
+pq_sendoob(msg,len)
+     char *msg;
+     int len;
+{
+    int fd = fileno(Pfout);
+    return send(fd,msg,len,MSG_OOB);
+}
+
+int
+pq_recvoob(msgPtr,lenPtr)
+     char *msgPtr;
+     int *lenPtr;
+{
+    int fd = fileno(Pfout);
+    int len = 0, n;
+    len = recv(fd,msgPtr+len,*lenPtr,MSG_OOB);
+    *lenPtr = len;
+    return len;
+}
+
 /* --------------------------------
  *	pq_getinaddr - initialize address from host and port number
  * --------------------------------
@@ -380,6 +421,7 @@ pq_getinserv(sin, host, serv)
  *	otherwise.
  *
  * SIDE_EFFECTS: initiates connection.  
+ *               SIGURG handler is set (async notification)
  *
  * NOTE: we don't wait for any error messages from the backend/postmaster.
  *	That means that if the fork fails or the startup message is corrupted,
@@ -457,6 +499,10 @@ short	portName;
   /* set up streams over which communic. will flow */
   Pfout = fdopen(sock, "w");
   Pfin = fdopen(dup(sock), "r");
+  
+  PQAsyncNotifyWaiting = 0;
+  PQnotifies_init();
+  pq_regoob(pq_async_notify);
 
   if (status != STATUS_OK)
     return(STATUS_ERROR);
@@ -492,6 +538,38 @@ pq_accept()
     return(0);
 }
 
+/*
+ * register an out-of-band listener proc--at most one allowed.
+ * This is used for receiving async. notification from the backend.
+ */
+void 
+pq_regoob(fptr)
+     void (*fptr)();
+{
+    int fd = fileno(Pfout);
+    fcntl(fd,F_SETOWN,getpid());
+    (void) signal(SIGURG,fptr);
+}
+
+void pq_unregoob()
+{
+    signal(SIGURG,SIG_DFL);
+}
+
+
+void pq_async_notify() {
+    char msg[20];
+    int len = sizeof(msg);
+    if (pq_recvoob(msg,&len) >= 0) {
+	/* debugging */
+	printf("received notification: %s\n",msg);
+	PQAsyncNotifyWaiting = 1;
+/*	PQappendNotify(msg+1);*/
+    } else {
+	extern int errno;
+	printf("SIGURG but no data: len = %d, err=%d\n",len,errno);
+    }
+}
 
 /*
  * Streams -- wrapper around Unix socket system calls

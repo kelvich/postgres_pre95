@@ -876,7 +876,11 @@ PostgresMain(argc, argv)
     signal(SIGINT, die);
     signal(SIGTERM, die);
     signal(SIGUSR1, quickdie);
-    
+    {				/* asynchronous notification */
+	extern void Async_NotifyFrontEnd();
+	signal(SIGUSR2, Async_NotifyFrontEnd);
+    }
+
 #ifdef PARALLELDEBUG
     usclk_init();
 #endif

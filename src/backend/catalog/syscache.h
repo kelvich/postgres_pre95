@@ -47,6 +47,7 @@
 #define AGGNAME		23
 #define NAMEREL         24
 #define LOBJREL         25
+#define LISTENREL       26
 
 /* ----------------
  *	struct cachedesc:	information needed for a call to InitSysCache()

@@ -26,6 +26,7 @@ RcsId("$Header$");
 
 #include "parser/parse.h"
 #include "access/htup.h"
+#include "tmp/simplelists.h"
 #include "tmp/libpq-be.h"
 #include "access/printtup.h"
 #include "tmp/portal.h"
@@ -35,6 +36,7 @@ RcsId("$Header$");
 #include "tcop/dest.h"
 
 #include "catalog/pg_type.h"
+#include "utils/mcxt.h"
 
 /* ----------------
  *	output functions
@@ -149,7 +151,32 @@ NullCommand(dest)
     CommandDest	dest;
 {
     switch (dest) {
-    case Remote:
+    case Remote: {
+	/* Do any asynchronous notification.  If front end wants to poll,
+	   it can send null queries to call this function.
+	   */
+	PQNotifyList *nPtr;
+	extern MemoryContext notifyContext;
+	MemoryContext orig;
+
+	if (notifyContext == NULL) {
+	    notifyContext = CreateGlobalMemory("notify");
+	}
+	orig = MemoryContextSwitchTo((MemoryContext)notifyContext);
+
+	for (nPtr = PQnotifies() ;
+	     nPtr != NULL;
+	     nPtr = (PQNotifyList *)SLGetSucc(&nPtr->Node)) {
+	    pq_putnchar("A",1);
+	    pq_putint(0, 4);
+	    pq_putstr(nPtr->relname);
+	    pq_putint(nPtr->be_pid,4);
+	    PQremoveNotify(nPtr);
+	}
+	pq_flush();
+	PQcleanNotify();	/* garbage collect */
+	(void) MemoryContextSwitchTo(orig);
+
 	/* ----------------
 	 *	tell the fe that the last of the queries has finished
 	 * ----------------
@@ -157,6 +184,7 @@ NullCommand(dest)
 	pq_putnchar("I", 1);
 	pq_putint(0, 4);
 	pq_flush();
+    }
 	break;
 
     case Local:

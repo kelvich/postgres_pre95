@@ -20,6 +20,7 @@ static NameData	InheritsRelationNameData = { "pg_inherits" };
 static NameData	InheritancePrecidenceListRelationNameData = { "pg_ipl" };
 static NameData	LanguageRelationNameData = { "pg_language" };
 static NameData LargeObjectAssocRelationNameData = { "pg_large_object" };
+static NameData ListenerRelationNameData = { "pg_listener" };
 static NameData LogRelationNameData = { "pg_log" };
 static NameData	MagicRelationNameData = { "pg_magic" };
 static NameData NamingRelationNameData = { "pg_naming" };
@@ -58,6 +59,7 @@ Name	InheritancePrecidenceListRelationName =
 	&InheritancePrecidenceListRelationNameData;
 Name	LanguageRelationName = &LanguageRelationNameData;
 Name    LargeObjectAssocRelationName = &LargeObjectAssocRelationNameData;
+Name	ListenerRelationName = &ListenerRelationNameData;
 Name    LogRelationName = &LogRelationNameData;
 Name	MagicRelationName = &MagicRelationNameData;
 Name    NamingRelationName = &NamingRelationNameData;

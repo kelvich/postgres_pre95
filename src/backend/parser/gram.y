@@ -121,7 +121,8 @@ bool is_postquel_function = false;
 %token   	INHERITANCE VERSION CURRENT NEW THEN DO INSTEAD VIEW
 		REWRITE P_TUPLE TYPECAST P_FUNCTION C_FUNCTION C_FN
 		POSTQUEL RELATION RETURNS INTOTEMP LOAD CREATEDB DESTROYDB
-		STDIN STDOUT VACUUM PARALLEL AGGREGATE
+		STDIN STDOUT VACUUM PARALLEL AGGREGATE NOTIFY LISTEN
+                
 
 /* precedence */
 %nonassoc Op
@@ -174,12 +175,14 @@ stmt :
 	| IndexStmt
 	| MergeStmt
 	| MoveStmt
+        | ListenStmt
+        | NotifyStmt
 	| ProcedureStmt
 	| PurgeStmt			
 	| RemoveOperatorStmt
 	| RemoveStmt
 	| RenameStmt
-	| OptimizableStmt		
+	| OptimizableStmt	
 	| RuleStmt			
 	| TransactionStmt
   	| ViewStmt
@@ -833,8 +836,8 @@ RuleStmt:
 			SubstituteParamForNewOrCurrent ( $8 );
 			 *====
 			 */
-			$$ = lispCons ( $8, lispCons ( p_rtable, NULL ));
-			$$ = lispCons ( $4, $$ );
+			$$ = lispCons ( $8, lispCons ( p_rtable, NULL )); 
+			$$ = lispCons ( $4, $$ ); 
 			if (null(CDR($2))) {
 			    List t;
 			    t = lispCons(LispNil, LispNil);
@@ -842,18 +845,18 @@ RuleStmt:
 			    $$ = lispCons(t, $$);
 			} else {
 			    List t;
-			    t = lispCons(CADR($2), LispNil);
-			    t = lispCons(KW(rule), t);
-			    $$ = lispCons(t, $$);
+			    t = lispCons(CADR($2), LispNil); 
+			    t = lispCons(KW(rule), t); 
+			    $$ = lispCons(t, $$); 
 			}
-			$$ = lispCons ( CAR($2), $$ );	
-			$$ = lispCons ( KW(define), $$ );	
+			$$ = lispCons ( CAR($2), $$ );
+			$$ = lispCons ( KW(define), $$ ); 
 		    } else {
-			$$ = nappend1 ( $8, $5 ); 
+			$$ = nappend1 ( $8, $5 );
 			$$ = lispCons ( $4, $$ );
-			$$ = lispCons ( KW(rule), $$ );
-			$$ = lispCons ( CAR($2), $$ );	
-			$$ = lispCons ( KW(define), $$ );	
+			$$ = lispCons ( KW(rule), $$ );	
+			$$ = lispCons ( CAR($2), $$ ); 
+			$$ = lispCons ( KW(define), $$ );
 		    }
 		}
 	;
@@ -967,7 +970,51 @@ opt_instead:
 	;
 
 
+/* NOTIFY <relation_name>  can appear both in rule bodies and
+  as a query-level command */
+NotifyStmt: NOTIFY relation_name
+	    {
+		$$ = MakeList(KW(notify),$2,-1);
+	    }
+;
 
+NotifyOptStmt: NOTIFY relation_name 
+            {
+		LispValue root;
+		int x = 0;
+		    
+		if((x=RangeTablePosn(CString($2),LispNil)) == 0 )
+		  ADD_TO_RT (MakeRangeTableEntry ((Name)CString($2),
+						  LispNil,
+						  (Name)CString($2)));
+		    
+		if (x==0)
+		  x = RangeTablePosn(CString($2),LispNil);
+		
+		parser_current_rel = heap_openr(VarnoGetRelname(x));
+		if (parser_current_rel == NULL)
+		  elog(WARN,"invalid relation name");
+
+		root = MakeRoot(1,
+				KW(notify),
+				lispInteger(x), /* result relation */
+				p_rtable, /* range table */
+				p_priority, /* priority */
+				p_ruleinfo, /* rule info */
+				LispNil, /* unique flag */
+				LispNil, /* sort clause */
+				LispNil); /* target list */
+		$$ = lispCons ( root , LispNil );
+		$$ = nappend1 ( $$ , LispNil ); /*  */
+		$$ = nappend1 ( $$ , LispNil ); /*  */
+	    }
+;
+
+ListenStmt: LISTEN relation_name 
+            {
+		$$ = MakeList(KW(listen),$2,-1);
+	    }
+;
 
  /**************************************************
 
@@ -1074,12 +1121,14 @@ VacuumStmt:
   **********************************************************************
   **********************************************************************/
 
+
 OptimizableStmt:	
 	  RetrieveStmt
 	| ExecuteStmt
 	| ReplaceStmt
 	| AppendStmt
-	| DeleteStmt			/* by default all are $$=$1 */
+        | NotifyOptStmt
+        | DeleteStmt			/* by default all are $$=$1 */
 	;
 
  /**************************************************

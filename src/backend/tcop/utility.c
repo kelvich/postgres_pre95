@@ -458,6 +458,28 @@ ProcessUtility(command, args, commandString, dest)
 	}
 	break;
 
+		/* Query-level asynchronous notification */
+    case NOTIFY:
+	commandTag = "NOTIFY";
+	CHECK_IF_ABORTED();
+	{
+	    char *relname;
+	    relname = CString(CAR(args));
+	    Async_Notify(relname);
+	}
+        break;
+
+    case LISTEN:
+	commandTag = "LISTEN";
+	CHECK_IF_ABORTED();
+	{
+	    extern int MasterPid;
+	    char *relname;
+	    relname = CString(CAR(args));
+	    Async_Listen(relname,MasterPid);
+	}
+	break;
+
 	/* ********************************
 	 *	dynamic loader
 	 * ********************************

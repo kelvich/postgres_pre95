@@ -33,6 +33,9 @@
  *	PQsametype 	- Return 1 if the two tuples have the same type
  *	PQgetvalue 	- Return an attribute (field) value
  *	PQclear		- free storage claimed by named portal
+ *      PQnotifies      - Return a list of relations on which notification 
+ *                        has occurred.
+ *      PQremoveNotify  - Remove this notification from the list.
  *
  *   NOTES
  *	These functions may be used by both frontend routines which
@@ -53,6 +56,7 @@
 #include <string.h>
 
 #include "tmp/c.h"
+#include "tmp/simplelists.h"
 #include "tmp/libpq.h"
 #include "utils/exc.h"
 
@@ -458,4 +462,83 @@ PQclear(pname)
     char *pname;
 {    
     pbuf_close(pname);
+}
+
+/*
+ * async notification.
+ * This is going away with pending rewrite of comm. code...
+ */
+
+SLList pqNotifyList;
+static int initialized = 0;	/* statics in this module initialized? */
+
+/* remove invalid notifies before returning */
+void
+PQcleanNotify()
+{
+    PQNotifyList *last = NULL;
+    PQNotifyList *nPtr;
+    for (nPtr = (PQNotifyList *)SLGetHead(&pqNotifyList);
+	 nPtr != NULL;
+	 nPtr = (PQNotifyList *)SLGetSucc(&nPtr->Node)) {
+	if (last != NULL && last->valid == 0) {
+	    SLRemove(&last->Node);
+	    pbuf_free(last);
+	}
+	last = nPtr;
+    }
+    if (last != NULL && last->valid == 0) {
+	SLRemove(&last->Node);
+	pbuf_free(last);
+    }
+}
+
+
+void
+PQnotifies_init() {
+    PQNotifyList *nPtr;
+
+    if (! initialized) {
+	initialized = 1;
+	SLNewList(&pqNotifyList,offsetof(PQNotifyList,Node));
+    } else {			/* clean all notifies */
+	for (nPtr = (PQNotifyList *)SLGetHead(&pqNotifyList) ;
+	     nPtr != NULL;
+	     nPtr = (PQNotifyList *)SLGetSucc(&nPtr->Node)) {
+	    nPtr->valid = 0;
+	}
+	PQcleanNotify();
+    }
+}
+
+PQNotifyList *
+PQnotifies()
+{
+    PQcleanNotify();
+    return (PQNotifyList *)SLGetHead(&pqNotifyList);
+}
+
+void
+PQremoveNotify(nPtr)
+     PQNotifyList *nPtr;
+{
+    nPtr->valid = 0;		/* remove later */
+}
+
+void 
+PQappendNotify(relname,pid)
+     char *relname;
+     int pid;
+{
+    PQNotifyList *nPtr;
+    if (! initialized) {
+	initialized = 1;
+	SLNewList(&pqNotifyList,offsetof(PQNotifyList,Node));
+    }
+    nPtr = (PQNotifyList *)pbuf_alloc(sizeof(PQNotifyList));
+    strcpy(nPtr->relname,relname);
+    nPtr->be_pid = pid;
+    nPtr->valid = 1;
+    SLNewNode(&nPtr->Node);
+    SLAddTail(&pqNotifyList,&nPtr->Node);
 }

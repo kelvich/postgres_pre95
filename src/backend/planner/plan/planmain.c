@@ -109,7 +109,12 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	 /* except for "delete foo". */
 	 
 	 if (null (tlist) && null (qual)) {
-	     if ( command_type == DELETE ) {
+	     if ( command_type == DELETE ||
+	     /* Total hack here. I don't know how to handle
+		statements like notify in action bodies.
+		Notify doesn't return anything but
+		scans a system table. */
+		 command_type == NOTIFY) {
 		 return ((Plan)make_seqscan(LispNil, LispNil,
 				       (Index)CInteger(_query_result_relation_),
 				       (Plan)NULL));
@@ -166,7 +171,6 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	  (1 == currentlevel && null (flattened_tlist))) &&
 	 null (qual)) {
 	  switch (command_type) {
-	       
 	     case RETRIEVE : 
 	     case APPEND :
 	       return ((Plan)make_result (tlist,

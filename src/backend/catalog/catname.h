@@ -26,6 +26,7 @@ extern Name	InheritsRelationName;
 extern Name	InheritancePrecidenceListRelationName;
 extern Name	LanguageRelationName;
 extern Name     LargeObjectAssocRelationName;
+extern Name	ListenerRelationName;
 extern Name	LogRelationName;
 extern Name	MagicRelationName;
 extern Name     NamingRelationName;

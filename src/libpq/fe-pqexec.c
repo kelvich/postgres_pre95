@@ -31,6 +31,7 @@
 
 #include "tmp/c.h"
 
+#include "tmp/simplelists.h"
 #include "tmp/libpq-fe.h"
 #include "tmp/fastpath.h"
 #include "utils/exception.h"
@@ -588,14 +589,24 @@ PQexec(query)
 	    pqdebug("%s notice encountered.", errormsg);
 	    fprintf(stdout,"%s \n", errormsg);
 	    break;
+
+    	case 'A': {
+	    char relname[16];
+	    extern int PQAsyncNotifyWaiting;
+	    int pid;
+	    PQAsyncNotifyWaiting = 0;
 	    
-    	case 'A':
 	    /* Asynchronized portal. */
+	    /* No tuple transfer at this stage. */
 	    pqdebug("%s portal encountered.", "Asynchronized");
 	    /* Processed the same way as synchronized portal. */
-	    return
-		process_portal(1);
-	    
+/*	    return
+		process_portal(1);*/
+	    pq_getstr(relname,16);
+	    pid =pq_getint(4);
+	    PQappendNotify(relname,pid);
+	}
+	    break;
     	case 'P':
 	    /* Synchronized (normal) portal. */
 	    return

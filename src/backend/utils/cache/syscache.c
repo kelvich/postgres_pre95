@@ -62,6 +62,7 @@ RcsId("$Header$");
 #include "catalog/pg_naming.h"
 #include "utils/large_object.h"
 #include "catalog/pg_lobj.h"
+#include "catalog/pg_listener.h"
  
 extern bool	AMI_OVERRIDE;	/* XXX style */
  
@@ -286,7 +287,15 @@ static struct cachedesc cacheinfo[] = {
             0,
             0 },
         sizeof (FormData_pg_large_object),
-        NULL }
+        NULL },
+    { &ListenerRelationName,                  /* LISTENREL */
+	2,
+	{  Anum_pg_listener_relname,
+	     Anum_pg_listener_pid,
+	     0,
+	     0 },
+	sizeof(FormData_pg_listener),
+	NULL }
 };
  
 static struct catcache	*SysCache[lengthof(cacheinfo)];

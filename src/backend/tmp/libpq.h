@@ -112,6 +112,16 @@ typedef struct PortalEntry {
 extern PortalEntry *portals[];
 
 /*
+ *  Asynchronous notification
+ */
+typedef struct PQNotifyList {
+    char relname[16];		/* name of relation containing data */
+    int be_pid;			/* process id of backend */
+    int valid;			/* has this already been handled by user. */
+    SLNode Node;
+} PQNotifyList;
+
+/*
  * Exceptions.
  */
 
@@ -158,6 +168,12 @@ extern int PQftype ARGS((PortalBuffer *portal, int tuple_index, int field_number
 extern int PQsametype ARGS((PortalBuffer *portal, int tuple_index1, int tuple_index2));
 extern char *PQgetvalue ARGS((PortalBuffer *portal, int tuple_index, int field_number));
 extern void PQclear ARGS((char *pname));
+void PQcleanNotify ARGS((void ));
+void PQnotifies_init ARGS((void ));
+PQNotifyList *PQnotifies ARGS((void ));
+void PQremoveNotify ARGS((PQNotifyList *nPtr ));
+void PQappendNotify ARGS((char *relname , int pid ));
+
 extern caddr_t pbuf_alloc ARGS((size_t size));
 extern void pbuf_free ARGS((caddr_t pointer));
 extern PortalBuffer *pbuf_addPortal ARGS(());

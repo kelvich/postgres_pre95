@@ -20,6 +20,7 @@
 
 #include "tmp/c.h"
 
+#include "tmp/simplelists.h"
 #include "tmp/libpq-fe.h"
 #include "utils/exc.h"
 
@@ -205,7 +206,7 @@ dump_data(portal_name, rule_p)
 	    ntuples++;
 	    tuples->tuple_index++;
 	    break;
-
+#if 0
 	case 'A':
 	    /* Tuples returned by alerters. */
 	    /* Finish up with the current portal. */
@@ -226,6 +227,7 @@ dump_data(portal_name, rule_p)
 	    nfields = 0;
 	    tuples = NULL;
 	    break;
+#endif
 
 	case 'C':
 	    /* Command, end of the data stream. */
