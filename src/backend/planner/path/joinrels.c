@@ -15,16 +15,24 @@
  *     		find-join-rels
  */
 
-#include "internal.h"
 #include "pg_lisp.h"
+#include "internal.h"
+#include "relation.h"
+#include "relation.a.h"
+#include "joinrels.h"
+#include "joininfo.h"
 
-extern LispValue find_clause_joins();
-extern LispValue find_clauseless_joins();
-extern LispValue init_join_rel();
-extern LispValue new_join_tlist();
-extern LispValue new_joininfo_list();
 
-
+/*  These are functions defined in relation.l but not in relation.c.
+ *  They need to either be converted, or replaced by their 
+ *  equivalent new functions.
+ */
+extern LispValue get_other_rels();  /*
+				     * The OtherRels field is a list of 
+				     * relids used in the join clause
+				     */
+extern LispValue get_join_list();    /* returns a list of relids to which
+				      
 /*    
  *    	find-join-rels
  *    
@@ -52,8 +60,10 @@ find_join_rels (outer_rels)
      LispValue t_list = LispNil;
      
      foreach (outer_rel,outer_rels) {
-	  temp = find_clause_joins (outer_rel,get_join_info (outer_rel))
-	    || find_clauseless_joins (outer_rel,_query_relation_list_);
+	  if (find_clause_joins (outer_rel,get_join_info (outer_rel)))
+	    temp = find_clause_joins (outer_rel,get_join_info (outer_rel));
+	  else
+	    temp = find_clauseless_joins (outer_rel,_query_relation_list_);
 	  t_list = nconc(t_list,temp);   /*  XXX is this right?  */
      }
      return(t_list);
@@ -85,7 +95,7 @@ find_clause_joins (outer_rel,joininfo_list)
 LispValue outer_rel,joininfo_list ;
 {
      /*  XXX  was mapcan   */
-     LispValue joininfo = LispNil ;
+     LispValue joininfo;
      LispValue temp_node = LispNil;
      LispValue t_list = LispNil;
      
@@ -158,11 +168,11 @@ find_clauseless_joins (outer_rel,inner_rels)
 
 /*  .. find-clause-joins, find-clauseless-joins   */
 
-LispValue
+Rel
 init_join_rel (outer_rel,inner_rel,joininfo)
      LispValue outer_rel,inner_rel,joininfo ;
 {
-     LispValue joinrel = create_node ("Rel");
+     Rel joinrel = CreateNode (Rel);
      LispValue joinrel_joininfo_list;
 
 	/*    Create a new tlist by removing irrelevant elements from both */
@@ -230,7 +240,7 @@ new_join_tlist (tlist,other_relids,first_resdomno)
 	LispValue t_list = LispNil;
 
 	LispValue join_list = get_join_list (xtl);
-	LispValue in_final_tlist = null (join_list);
+	bool in_final_tlist = null (join_list);
 	LispValue future_join_list = LispNil;
 	if ( join_list ) {
 	     future_join_list = set_difference (join_list,other_relids);
@@ -281,7 +291,7 @@ new_joininfo_list (current_joininfo_list,joininfo_list,join_relids)
 	foreach (joininfo, joininfo_list) {
 	     LispValue new_otherrels = 
 	       set_difference (get_other_rels (joininfo),join_relids);
-	     LispValue other_joininfo = LispNil;
+	     JInfo other_joininfo;
 	     if ( new_otherrels ) {
 		  other_joininfo = 
 		    joininfo_member (new_otherrels,current_joininfo_list);
@@ -293,7 +303,7 @@ new_joininfo_list (current_joininfo_list,joininfo_list,join_relids)
 					  get_clause_info (other_joininfo)));
 	     } 
 	     else {
-		  other_joininfo = create_node ("JoinInfo");
+		  other_joininfo = CreateNode (JInfo);
 		  set_other_rels (other_joininfo,new_otherrels);
 		  set_clause_info (other_joininfo,get_clause_info (joininfo));
 		  set_mergesortable (other_joininfo,
