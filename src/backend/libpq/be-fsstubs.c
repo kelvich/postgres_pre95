@@ -106,20 +106,19 @@ int LOTell ARGS((void *obj_desc ));
 int LORead ARGS((void *obj_desc , char *buf , int n ));
 int LOWrite ARGS((void *obj_desc , char *buf , int n ));
 
-/* ftype.c */
+/* inv_api.c */
 void *inv_create ARGS((char *name, int mode ));
-void  *inv_open ARGS((ObjectId foid ));
+void  *inv_open ARGS((struct varlena *object, int flags ));
 int inv_read ARGS((void *f , char *dbuf , int nbytes ));
 int inv_write ARGS((void *f , char *dbuf , int nbytes ));
 void inv_close ARGS((void *f ));
 int inv_seek ARGS((void *f , int loc ));
+int inv_tell ARGS((void *obj_desc ));
+int inv_stat ARGS((void *obj_desc , struct pgstat *stbuf ));
 
 static int noaction() { return  -1; } /* error */
 static void *noactionnull() { return (void *) NULL; } /* error */
 /* These should be easy to code */
-static int inv_seekwhence() {return -1;}
-static int inv_tell() {return -1;}
-static int inv_unixstat() {return -1;}
 
 /* This is ordered upon objtype values.  Make sure that entries are sorted
    properly. */
@@ -138,8 +137,8 @@ static struct {
     int (*LOunixstat) ARGS((void *,struct pgstat *)); /* rt-cookie,stat ->errorcode*/
 } LOprocs[] = {
     /* Inversion */
-    { SMALL_INT,noactionnull, inv_open, inv_close, inv_read, noaction,
-	inv_seekwhence, inv_tell, inv_unixstat},
+    { BIG, inv_create, inv_open, inv_close, inv_read, inv_write,
+	inv_seek, inv_tell, inv_stat},
     /* Unix */
     { BIG, LOCreate, LOOpen, LOClose, LORead, LOWrite,
 	LOSeek, LOTell, LOUnixStat}
@@ -280,7 +279,7 @@ LOread(fd,len)
 
     retval = (struct varlena *)palloc(sizeof(int32) + len);
     totalread = LOprocs[lotype[fd]].LOread(cookies[fd],VARDATA(retval),len);
-    VARSIZE(retval) = totalread;
+    VARSIZE(retval) = totalread + sizeof(int32);
 
     return retval;
 }
@@ -292,7 +291,7 @@ int LOwrite(fd,wbuf)
     int totalwritten;
     int bytestowrite;
 
-    bytestowrite = VARSIZE(wbuf);
+    bytestowrite = VARSIZE(wbuf) - sizeof(int32);
     totalwritten = LOprocs[lotype[fd]].LOwrite(cookies[fd],VARDATA(wbuf),
 					       bytestowrite);
     return totalwritten;
@@ -375,7 +374,7 @@ LOstat(path)
     int pathOID;
     len = sizeof(struct pgstat);
     ret = (struct varlena *) palloc(len+sizeof(int32));
-    VARSIZE(ret) = len;
+    VARSIZE(ret) = len + sizeof(int32);
     st = (struct pgstat *)VARDATA(ret);
     bzero(st,len);	/* default values of 0 */
 
@@ -393,7 +392,7 @@ LOstat(path)
 	st->st_uid = getuid(); /* fake uid */
 	st->st_mode |= S_IRUSR|S_IWUSR|S_IXUSR;
     } else {
-	VARSIZE(ret) = 5;
+	VARSIZE(ret) = 9;
     }
 
     return ret;
