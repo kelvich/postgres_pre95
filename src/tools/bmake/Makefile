@@ -15,7 +15,7 @@ SRCS+= strdup.c
 
 .if ( ${PORTNAME} == "sparc" )
 CFLAGS+= -Dvoid="char *" -Dconst= -DHAS_SYMDEF -DNEED_STRINGS
-#LDFLAGS+= -assert nodefinitions
+LDFLAGS+= -assert nodefinitions
 SRCS+= strerror.c setenv.c
 .endif
 
