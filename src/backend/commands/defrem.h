@@ -26,7 +26,8 @@ DefineIndex ARGS((
 	Name		indexRelationName,
 	Name		accessMethodName,
 	LispValue	attributeList,
-	LispValue	parameterList
+	LispValue	parameterList,
+	LispValue	predicate
 ));
 
 /*

@@ -19,18 +19,21 @@ RcsId("$Header$");
 #include "utils/palloc.h"
 
 #include "commands/defrem.h"
+#include "planner/prepqual.h"
+#include "planner/clause.h"
 
 #define IsFuncIndex(ATTR_LIST) (listp(CAAR(ATTR_LIST)))
 
 void
 DefineIndex(heapRelationName, indexRelationName, accessMethodName,
-		attributeList, parameterList)
+		attributeList, parameterList, predicate)
 
 	Name		heapRelationName;
 	Name		indexRelationName;
 	Name		accessMethodName;
 	LispValue	attributeList;
 	LispValue	parameterList;
+	LispValue	predicate;
 {
 	ObjectId	*classObjectId;
 	ObjectId	accessMethodId;
@@ -42,6 +45,7 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 	Datum		*parameterA = NULL;
 	Datum		*nextP;
 	FuncIndexInfo	fInfo;
+	LispValue	cnfPred = LispNil;
 
 	AssertArg(NameIsValid(heapRelationName));
 	AssertArg(NameIsValid(indexRelationName));
@@ -102,6 +106,15 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 		}
 	}
 
+	/*
+	 * Convert the partial-index predicate from parsetree form to plan
+	 * form, so it can be readily evaluated during index creation
+	 */
+	if (predicate != LispNil) {
+	    cnfPred = cnfify(lispCopy(predicate), true);
+	    fix_opids(cnfPred);
+	}
+
 	if (IsFuncIndex(attributeList))
 	{
 		int nargs;
@@ -130,7 +143,7 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 		index_create(heapRelationName, indexRelationName,
 			&fInfo, accessMethodId, 
 			numberOfAttributes, attributeNumberA,
-			classObjectId, parameterCount, parameterA);
+			classObjectId, parameterCount, parameterA, cnfPred);
 	}
 	else
 	{
@@ -144,7 +157,7 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 
 		index_create(heapRelationName, indexRelationName, NULL,
 			accessMethodId, numberOfAttributes, attributeNumberA,
-			classObjectId, parameterCount, parameterA);
+			classObjectId, parameterCount, parameterA, cnfPred);
 	}
 }
 

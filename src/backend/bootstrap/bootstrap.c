@@ -866,18 +866,20 @@ defineindex(heapName, indexName, accessMethodName)
 {
     List  attributeList;
     List  parameterList;
+    List  predicate;
 
     attributeList = nappend1(LispNil, lispName("oid"));
     attributeList = nappend1(attributeList, lispName("oid_ops"));
     attributeList = lispCons(attributeList, LispNil);
     
-    parameterList = LispNil;
+    parameterList = predicate = LispNil;
 
     DefineIndex(heapName,
 		indexName,
 		accessMethodName,
 		attributeList,
-		parameterList);
+		parameterList,
+		predicate);
 }
 
 /* ----------------
