@@ -18,11 +18,27 @@
 #include "utils/log.h"
 #include "nodes/pg_lisp.h"
 #include "commands/version.h"
+#include "tmp/tim.h"
+#include "access/xact.h"		/* for GetCurrentXactStartTime */
 
 #define MAX_QUERY_LEN 1024
 
 char rule_buf[MAX_QUERY_LEN];
 static char attr_list[MAX_QUERY_LEN];
+
+/*
+ *  This is needed because the rule system only allows 
+ *  *1* rule to be defined per transaction.
+ */
+
+void
+eval_as_new_xact ( query )
+     char *query;
+{
+  CommitTransactionCommand();
+  StartTransactionCommand();
+  pg_eval(query);
+}
 
 void
 CreateVersion (name, bname)
@@ -35,6 +51,11 @@ CreateVersion (name, bname)
   char *attrname;
   LispValue i, temp;
   static char temp_buf[512];
+  static char saved_basename[sizeof(NameData)];
+  static char saved_vname[ sizeof(NameData) ];
+
+  bcopy ( bname , saved_basename, sizeof(NameData));
+  bcopy ( name, saved_vname, sizeof(NameData));
 
    /*
    * Calls the routine ``GetAttrList'' get the list of attributes
@@ -59,11 +80,11 @@ CreateVersion (name, bname)
   }
 
   length = strlen(attr_list) + 1;
-  VersionCreate (name, bname);
-  VersionAppend (name, bname);
-  VersionDelete (name, bname);
-  VersionReplace (name, bname);
-  VersionRetrieve (name, bname);
+  VersionCreate (saved_vname, saved_basename);
+  VersionAppend (saved_vname, saved_basename);
+  VersionDelete (saved_vname, saved_basename);
+  VersionReplace (saved_vname, saved_basename);
+  VersionRetrieve (saved_vname, saved_basename);
   bzero(attr_list,length);
 
 }
@@ -88,7 +109,7 @@ VersionCreate (vname, bname)
    * Creating the ``v_added'' relation 
    */
   sprintf (query_buf, "retrieve into %s_added (%s.all) where 1 = 2", vname, bname);
-  pg_eval (query_buf); 
+  eval_as_new_xact (query_buf); 
 
 /*  printf ("%s\n",query_buf); */
 
@@ -98,8 +119,7 @@ VersionCreate (vname, bname)
    */
   sprintf (query_buf, "create %s_del(DOID = oid)", vname);
 
-  pg_eval (query_buf); 
-
+  eval_as_new_xact (query_buf); 
 }
 
 
@@ -148,7 +168,7 @@ VersionAppend (vname,bname)
 %s_added(%s)",
 	  vname, vname, vname, attr_list);
 
-  pg_eval(rule_buf); 
+  eval_as_new_xact(rule_buf); 
 /*  printf("%s\n",rule_buf); */
 
  
@@ -171,10 +191,10 @@ VersionRetrieve(vname,bname)
 
   sprintf(rule_buf, 
 	  "define rewrite rule %s_retrieve is on retrieve to %s do instead\n\
-retrieve (%s_1.all) from %sb in %s, %s_1 in (%s_added | %sb) where %sb.oid !!= \"%s_del.DOID\"",
-	  vname, vname, vname, bname, bname, vname, vname, bname,bname,vname);
+retrieve (%s_1.oid,%s_1.all) from %sb in %s, %s_1 in (%s_added | %sb) where %sb.oid !!= \"%s_del.DOID\"",
+	  vname, vname, vname, vname, bname, bname, vname, vname, bname,bname,vname);
 
-  pg_eval(rule_buf); 
+  eval_as_new_xact(rule_buf); 
 
 /*  printf("%s\n",rule_buf); */
 
@@ -202,7 +222,9 @@ VersionDelete(vname,bname)
 delete %s_added where current.oid = %s_added.oid\n",
 	  vname,vname,vname,vname);
 
-  pg_eval(rule_buf); 
+  eval_as_new_xact(rule_buf); 
+  CommitTransactionCommand();
+  StartTransactionCommand();
 
 /*  printf("%s\n",rule_buf); */
 
@@ -211,7 +233,7 @@ delete %s_added where current.oid = %s_added.oid\n",
 append %s_del(DOID = %s.oid) where current.oid = %s.oid \n",
 	  vname,vname,vname,bname,bname);
 
-  pg_eval(rule_buf); 
+  eval_as_new_xact(rule_buf); 
 
 /*  printf("%s\n",rule_buf); */
 
@@ -241,7 +263,7 @@ replace %s_added(%s) where current.oid = %s_added.oid \n",
 	  vname,vname,
 	  vname,attr_list,vname);
 
-  pg_eval(rule_buf); 
+  eval_as_new_xact(rule_buf); 
 
 /*  printf("%s\n",rule_buf); */
 
@@ -250,7 +272,7 @@ replace %s_added(%s) where current.oid = %s_added.oid \n",
 append %s_del(DOID = %s.oid) where current.oid = %s.oid\n",
 	  vname,vname,vname,bname,bname);
 
-  pg_eval(rule_buf); 
+  eval_as_new_xact(rule_buf); 
 
 /*  printf("%s\n",rule_buf); */
 
@@ -260,8 +282,42 @@ append %s_added(%s) where current.oid !!= \"%s_added.oid\" and current.oid = \
 %s.oid\n",
 	  vname,vname, vname,attr_list,vname,bname);
 
-  pg_eval(rule_buf); 
+  eval_as_new_xact(rule_buf); 
 
 
 }
 
+CreateBVersion(vname,bname)
+     Name bname,vname;
+{
+    AbsoluteTime now	= NULL;
+    char *timestring 	= NULL;
+    static char query_buf[MAX_QUERY_LEN];
+
+    now = GetCurrentTransactionStartTime();
+    timestring = (char *)abstimeout(now);
+
+
+    /*
+     *  Rename the base relation to the version name.
+     */
+    sprintf(query_buf, "rename %s to %s", bname,vname);
+    eval_as_new_xact(query_buf); 
+
+    /*
+     *  Create a dummy base relation from which the 
+     *  retrieve rule can be triggered.
+     */
+    sprintf(query_buf, "retrieve into %s(%s.all) where 1 = 2",
+	    bname, vname);
+    eval_as_new_xact(query_buf); 
+
+    /* Now to define the retrieve rule. */
+
+    sprintf(query_buf,"define rewrite rule b%s_retrieve is \n\
+on retrieve to %s do instead retrieve (%s_.all) from %s_ in %s[\"%s\"]\n",
+	    vname, bname, vname,vname,vname,timestring);
+
+    eval_as_new_xact(query_buf); 
+
+}
