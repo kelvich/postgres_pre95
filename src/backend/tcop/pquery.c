@@ -307,18 +307,18 @@ ProcessQueryDesc(queryDesc)
     
     if (operation == RETRIEVE) {
 	List	resultDesc;
-	int	dest;
+	int	resultDest;
 
 	parseRoot = parse_tree_root(parseTree);
 	resultDesc = root_result_relation(parseRoot);
 	if (!lispNullp(resultDesc)) {
-	    dest = CAtom(CAR(resultDesc));
-	    if (dest == PORTAL) {
+	    resultDest = CAtom(CAR(resultDesc));
+	    if (resultDest == PORTAL) {
 		isIntoPortal = true;
 		intoName = CString(CADR(resultDesc));
-	    } else if (dest == INTO || dest == INTOTEMP) {
+	    } else if (resultDest == INTO || resultDest == INTOTEMP) {
 		isIntoRelation = true;
-		if (dest == INTOTEMP)
+		if (resultDest == INTOTEMP)
 		   isIntoTemp = true;
 	    }
 	}
