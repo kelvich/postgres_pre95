@@ -471,7 +471,7 @@ free_debug ARGS((
         char    *p
 ));
 #else /* PALLOC_DEBUG */
-#if defined(PORTNAME_bsd44)
+#if defined(PORTNAME_bsd44) || defined(PORTNAME_alpha)
 #include <stdlib.h>
 #else
 extern
