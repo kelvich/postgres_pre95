@@ -440,5 +440,8 @@ oid FilenameToOID ARGS((char *fname ));
 oid LOcreatOID ARGS((char *fname , int mode ));
 int LOrename ARGS((char *path , char *newpath ));
 
+int pftp_read ARGS((struct varlena *host, int port, oid foid));
+oid pftp_write ARGS((struct varlena *host, int port));
+
 #endif !BuiltinsIncluded
 
