@@ -18,6 +18,26 @@
 #include "parse.h"		/* for NONE, LIGHT, HEAVY archive modes */
  RcsId("$Header$");
 
+/* ----------------
+ *	external functions
+ * ----------------
+ */
+/*
+ * BuildDescForRelation --
+ *	Returns new tuple descriptor given schema.
+ */
+extern
+TupleDesc
+BuildDescForRelation ARGS((
+	List	schema,
+	Name	relationName
+));
+
+/* ----------------
+ *	local stuff
+ * ----------------
+ */
+
 #define private
 
 LispValuePtr	InstalledNameP = &LispNil;
@@ -58,17 +78,6 @@ MergeAttributes ARGS((
 ));
 
 /*
- * BuildDesc --
- *	Returns new tuple descriptor given schema.
- */
-private
-TupleDesc
-BuildDesc ARGS((
-	List	
-	List	supers
-));
-
-/*
  * StoreCatalogInheritance --
  *	Updates the system catalogs with proper inheritance information.
  */
@@ -99,100 +108,126 @@ StoreCatalogInheritance ARGS((
  * 			archive		is one of 'HEAVY, 'LIGHT, or 'NONE
  * ----------------------------------------------------------------
  */
-
+/* ----------------------------------------------------------------
+ *	DefineRelation
+ *
+ * ----------------------------------------------------------------
+ */
 void
 DefineRelation(relationName, parameters, schema)
-	Name		relationName;
-	LispValue	parameters;
-	LispValue	schema;
+    Name	relationName;
+    LispValue	parameters;
+    LispValue	schema;
 {
-	AttributeNumber	numberOfAttributes;
-	AttributeNumber	attributeNumber;
-	LispValue	rest;
-	ObjectId	relationId;
-	List		arch;
-	char		archChar;
-	List		inheritList = LispNil;
-	Name		archiveName;
-	TupleDesc	descriptor;
+    AttributeNumber	numberOfAttributes;
+    AttributeNumber	attributeNumber;
+    LispValue		rest;
+    ObjectId		relationId;
+    List		arch;
+    char		archChar;
+    List		inheritList = LispNil;
+    Name		archiveName;
+    TupleDesc		descriptor;
 
+    /* ----------------
+     *	minimal argument checking follows
+     * ----------------
+     */
+    AssertArg(NameIsValid(relationName));
+    AssertArg(listp(parameters));
+    AssertArg(listp(schema));
+
+    /* ----------------
+     * 	Handle parameters
+     * 	XXX parameter handling missing below.
+     * ----------------
+     */
+    if (!lispNullp(CAR(parameters))) {
+	elog(WARN, "RelationCreate: KEY not yet supported");
+    }
+    if (!lispNullp(CADR(parameters))) {
+	inheritList = CDR(CADR(parameters));
+    }
+    if (!lispNullp(CADDR(parameters))) {
+	elog(WARN, "RelationCreate: INDEXABLE not yet supported");
+    }
+
+    /* ----------------
+     *	determine archive mode
+     * 	XXX use symbolic constants...
+     * ----------------
+     */
+    archChar = 'n';
+
+    if (!lispNullp(arch = CADDR(CDR(parameters)))) {
+	switch (LISPVALUE_INTEGER(CDR(arch))) {
+	case NONE:
+	    archChar = 'n';
+	    break;
+
+	case LIGHT:
+	    archChar = 'l';
+	    break;
+
+	case HEAVY:
+	    archChar = 'h';
+	    break;
+
+	default:
+	    elog(NOTICE, "Botched archive mode %d, ignoring",
+		 LISPVALUE_INTEGER(CDR(arch)));
+	    archChar = 'n';
+	    break;
+	}
+    }
+
+    /* ----------------
+     *	generate relation schema, including inherited attributes.
+     * ----------------
+     */
+    schema = MergeAttributes(schema, inheritList);
+
+    numberOfAttributes = length(schema);
+    if (numberOfAttributes <= 0) {
+	elog(WARN, "DefineRelation: %s",
+	     "please inherit from a relation or define an attribute");
+    }
+
+    /* ----------------
+     *	create a relation descriptor from the relation schema
+     *  and create the relation.  
+     * ----------------
+     */
+    descriptor = BuildDescForRelation(schema, relationName);
+    relationId = RelationNameCreateHeapRelation(relationName,
+						archChar,
+						numberOfAttributes,
+						descriptor);
+
+    StoreCatalogInheritance(relationId, inheritList);
+
+    /* ----------------
+     *	create an archive relation if necessary
+     * ----------------
+     */
+    if (archChar != 'n') {
 	/*
-	 * minimal argument checking follows
+	 *  Need to create an archive relation for this heap relation.
+	 *  We cobble up the command by hand, and increment the command
+	 *  counter ourselves.
 	 */
-	AssertArg(NameIsValid(relationName));
-	AssertArg(listp(parameters));
-	AssertArg(listp(schema));
 
-	/*
-	 * Handle parameters
-	 * XXX parameter handling missing below.
-	 */
-	if (!lispNullp(CAR(parameters))) {
-		elog(WARN, "RelationCreate: KEY not yet supported");
-	}
-	if (!lispNullp(CADR(parameters))) {
-		inheritList = CDR(CADR(parameters));
-	}
-	if (!lispNullp(CADDR(parameters))) {
-		elog(WARN, "RelationCreate: INDEXABLE not yet supported");
-	}
-	/* XXX use symbolic constants... */
-	archChar = 'n';
-
-	if (!lispNullp(arch = CADDR(CDR(parameters)))) {
-
-		switch (LISPVALUE_INTEGER(CDR(arch))) {
-		case NONE:
-			archChar = 'n';
-			break;
-
-		case LIGHT:
-			archChar = 'l';
-			break;
-
-		case HEAVY:
-			archChar = 'h';
-			break;
-
-		default:
-			elog(NOTICE, "Botched archive mode %d, ignoring",
-				LISPVALUE_INTEGER(CDR(arch)));
-			archChar = 'n';
-			break;
-		}
-	}
-
-	schema = MergeAttributes(schema, inheritList);
-
-	numberOfAttributes = length(schema);
-	if (numberOfAttributes <= 0) {
-		elog(WARN,
-"DefineRelation: please inherit from a relation or define an attribute");
-	}
-
-	relationId = RelationNameCreateHeapRelation(relationName,
-		archChar,
-		numberOfAttributes, descriptor = BuildDesc(schema));
-
-	StoreCatalogInheritance(relationId, inheritList);
-
-	if (archChar != 'n') {
-
-		/*
-		 *  Need to create an archive relation for this heap relation.
-		 *  We cobble up the command by hand, and increment the command
-		 *  counter ourselves.
-		 */
-
-		CommandCounterIncrement();
-		archiveName = (Name) palloc(sizeof(NameData));
-		sprintf(&archiveName->data[0], "a,%ld", relationId);
-		relationId = RelationNameCreateHeapRelation(archiveName,
-			'n',			/* archive isn't archived */
-			numberOfAttributes,
-			descriptor);
-		pfree(archiveName);
-	}
+	CommandCounterIncrement();
+	archiveName = (Name) palloc(sizeof(NameData));
+	sprintf(&archiveName->data[0], "a,%ld", relationId);
+	
+	relationId =
+	    RelationNameCreateHeapRelation(archiveName,
+					   'n', /* archive isn't archived */
+					   numberOfAttributes,
+					   descriptor);
+	pfree(archiveName);
+    }
 }
 
 void
@@ -330,31 +365,6 @@ MergeAttributes(schema, supers)
 	}
 
 	return (schema);
-}
-
-private
-TupleDesc
-BuildDesc(schema)
-	List	schema;
-{
-	AttributeNumber	numberOfAttributes;
-	AttributeNumber	attributeNumber;
-	List		entry;
-	TupleDesc	desc;
-
-	numberOfAttributes = length(schema);
-
-	desc = CreateTemplateTupleDesc(numberOfAttributes);
-
-	attributeNumber = 0;
-	foreach(entry, schema) {
-		attributeNumber += 1;
-
-		TupleDescInitEntry(desc, attributeNumber,
-			CString(CAR(CAR(entry))), CString(CADR(CAR(entry))));
-	}
-
-	return (desc);
 }
 
 /*

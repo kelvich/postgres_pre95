@@ -293,33 +293,34 @@ newoid()
  */
 
 fillatt(natts, att)
-	int			natts;
-	AttributeTupleForm	att[];	/* tuple desc */
+    int			natts;
+    AttributeTupleForm	att[];	/* tuple desc */
 {
-	AttributeTupleForm	*attributeP;
-	register TypeTupleForm	typp;
-	HeapTuple		tuple;
-	int			i;
+    AttributeTupleForm		*attributeP;
+    register TypeTupleForm	typp;
+    HeapTuple			tuple;
+    int				i;
 
-	if (natts < 0 || natts > MAXATTS)
-		elog(WARN, "fillatt: %d attributes is too large", natts);
-	if (natts == 0) {
-		elog(DEBUG, "fillatt: called with natts == 0");
-		return;
+    if (natts < 0 || natts > MAXATTS)
+	elog(WARN, "fillatt: %d attributes is too large", natts);
+    if (natts == 0) {
+	elog(DEBUG, "fillatt: called with natts == 0");
+	return;
+    }
+
+    attributeP = &att[0];
+
+    for (i = 0; i < natts;) {
+	tuple = SearchSysCacheTuple(TYPOID, (*attributeP)->atttypid);
+	if (!HeapTupleIsValid(tuple)) {
+	    elog(WARN, "fillatt: unknown atttypid %ld",
+		 (*attributeP)->atttypid);
+	} else {
+	    typp = (TypeTupleForm) GETSTRUCT(tuple);  /* XXX */
+	    (*attributeP)->attlen = typp->typlen;
+	    (*attributeP)->attnum = (int16)++i;
+	    (*attributeP)->attbyval = typp->typbyval;
 	}
-
-	attributeP = &att[0];
-
-	for (i = 0; i < natts;) {
-		tuple = SearchSysCacheTuple(TYPOID, (*attributeP)->atttypid);
-		if (!HeapTupleIsValid(tuple)) {
-			elog(WARN, "fillatt: unknown atttypid %ld",
-				(*attributeP)->atttypid);
-		}
-		typp = (TypeTupleForm)GETSTRUCT(tuple);  /* XXX */
-		(*attributeP)->attlen = typp->typlen;
-		(*attributeP)->attnum = (int16)++i;
-		(*attributeP)->attbyval = typp->typbyval;
-		attributeP += 1;
-	}
+	attributeP += 1;
+    }
 }

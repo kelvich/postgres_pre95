@@ -23,7 +23,6 @@
  *	global variables
  * ----------------
  */
-int		Quiet = 0;
 int		Warnings = 0;
 int		ShowTime = 0;
 bool		query_rewrite_is_enabled = false;
@@ -40,6 +39,12 @@ int		NBuffers = 2;
 time_t		tim;
 bool 		override = false;
 int		NStriping = 1;  /* default no striping */
+
+/* ----------------
+ *	this is now defined by the executor
+ * ----------------
+ */
+extern int Quiet;
 
 /* ----------------------------------------------------------------
  *			support functions
@@ -257,12 +262,14 @@ char ReadCommand(inBuf)
  * 	change its value.
  * ----------------------------------------------------------------
  */
+extern int _exec_repeat_;
 
 pg_eval( query_string )
     String	query_string;
 {
     LispValue parsetree_list = lispList();
     LispValue i;
+    int j;
     bool unrewritten = true;
 
     /* ----------------
@@ -377,13 +384,18 @@ pg_eval( query_string )
 	    
 	    /* ----------------
 	     *   execute the plan
+	     *
+	     *   Note: _exec_repeat_ defaults to 1 but may be changed
+	     *	       by a DEBUG command.
 	     * ----------------
 	     */
-	    if (! Quiet) {
-		time(&tim);
-		printf("\tProcessQuery() at %s\n", ctime(&tim));
+	    for (j = 0; j < _exec_repeat_; j++) {
+		if (! Quiet) {
+		    time(&tim);
+		    printf("\tProcessQuery() at %s\n", ctime(&tim));
+		}
+		ProcessQuery(parsetree, plan);
 	    }
-	    ProcessQuery(parsetree, plan);
 	    
 	}
     } /* foreach parsetree in parsetree_list */

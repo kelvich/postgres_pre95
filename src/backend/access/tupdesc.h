@@ -66,11 +66,13 @@ CreateTemplateTupleDesc ARGS((
  *	BadArg if desc is invalid.
  *	BadArg if attributeNumber is non-positive.
  *	BadArg if typeName is invalid.
- *	BadArg if attributeName is invalid.
  *	BadArg if "entry" is already initialized.
+ *
+ * returns true if attribute is valid or false if attribute information
+ * is empty (this is the case when the type name does not exist)
  */
 extern
-void
+bool
 TupleDescInitEntry ARGS((
 	TupleDesc	desc,
 	AttributeNumber	attributeNumber,
