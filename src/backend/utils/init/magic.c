@@ -13,13 +13,15 @@
 #include "magic.h"
 #include "postgres.h"
 #include "log.h"
+#include "globals.h"
 
 RcsId("$Header$");
 
 static char	Pg_verfile[] = PG_VERFILE;
 
-/* Noversion is used as a global variable to disable checking. */
-int		Noversion = 0;
+/*
+ *  Noversion moved to globals.c
+ */
 
 /*
  * DatabaseMetaGunkIsConsistent
