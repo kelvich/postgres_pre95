@@ -312,7 +312,7 @@ RemoveFunction(functionName, nargs, argNameList)
 	Relation         relation;
 	HeapScanDesc         scan;
 	HeapTuple        tup;
-	Buffer           buffer;
+	Buffer           buffer = InvalidBuffer;
 	bool		 bufferUsed = FALSE;
 	ObjectId	 argList[8];
 	Form_pg_proc	 the_proc;
@@ -378,7 +378,7 @@ RemoveFunction(functionName, nargs, argNameList)
 		        ReleaseBuffer(buffer);
 			bufferUsed = FALSE;
 		}
-	        tup = HeapScanGetNextTuple(scan, 0, (Buffer *) 0);
+	        tup = HeapScanGetNextTuple(scan, 0, (Buffer *) &buffer);
 		if (!HeapTupleIsValid(tup))
 		        break;
 		bufferUsed = TRUE;
