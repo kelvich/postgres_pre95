@@ -312,7 +312,7 @@ main(argc, argv)
     }
 
     if (errs) {
-	fprintf("usage: %s [-p port]\n", *argv);
+	fprintf(stderr, "usage: %s [-p port]\n", *argv);
 	fflush(stderr);
 	exit (1);
     }
@@ -661,7 +661,7 @@ int
 setbase(addr)
     char *addr;
 {
-    Base = (char *) strtol(addr, (char *) NULL, 0);
+    Base = (char *) strtol(addr, (char **) NULL, 0);
     return (0);
 }
 
@@ -673,7 +673,7 @@ whatis(addr)
     char *base;
     int off;
 
-    locn = (char *) strtol(addr, (char *) NULL, 0);
+    locn = (char *) strtol(addr, (char **) NULL, 0);
     locn = (locn - Base) + SharedRegion;
 
     if (locn >= BindingTable && locn < (char *) BufferDescriptors) {

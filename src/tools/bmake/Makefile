@@ -25,6 +25,7 @@ LDADD+= -lbsd
 
 .if ( ${PORTNAME} == "linux" )
 CFLAGS+= -D__USE_BSD -D__USE_BSD_SIGNAL
+LDADD+= -lbsd
 .endif
 
 .if ( ${PORTNAME} == "hpux" )
