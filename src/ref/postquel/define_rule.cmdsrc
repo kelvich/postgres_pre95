@@ -24,7 +24,8 @@ clause]
 action
 .uh DESCRIPTION
 .lp
-.b Define rule
+.b Define
+.b rule
 is used to define a new rule.
 Here, event is one of:
 .(l
