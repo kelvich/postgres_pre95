@@ -1,9 +1,13 @@
+#
+# $Header$
+#
+
 BINDIR=	${TOOLSBINDIR}
 LIBDIR=	${TOOLSLIBDIR}
 
 CFLAGS= -O
 LDFLAGS=
-INSTALL= -s
+STRIP= -s
 #
 # Normally MACHINE gets set by a parent Makefile.global, but if the
 # tools subtree is detached to bootstrap, we'll dummy it up here.
