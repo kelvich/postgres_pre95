@@ -38,6 +38,8 @@ Here is 'loader.c':
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
+#include <sys/file.h>
+
 #ifndef MAXPATHLEN
 # define MAXPATHLEN 1024
 #endif
@@ -58,10 +60,11 @@ static char partial_symbol_table[50] = "";
  *
  */
 
-func_ptr
-dynamic_load(err, filename, funcname)
-char *filename, *funcname;
-int err;
+DynamicFunctionList *
+dynamic_file_load(err, filename)
+
+char *err, *filename;
+
 {
 	extern end;
 	extern char *mktemp();
@@ -74,7 +77,8 @@ int err;
 	char *load_address = NULL;
 	char *temp_file_name = NULL;
 	FILE *temp_file = NULL;
-	char command[5000];
+	char command[256];
+	DynamicFunctionList *retval, *load_symbols();
 
 	if (!strlen(partial_symbol_table))
 		strcpy(partial_symbol_table,pg_pathname);
@@ -89,24 +93,23 @@ int err;
 	    partial_symbol_table,
 	    temp_file_name, filename);
 
-	printf("command=%s\n",command);
-
 	if(system(command))
 	{
-		fprintf(stderr,"{ERROR: link failed: %s}\n", command);
+		err = "link failed!";
 		goto finish_up;
 	}
-	printf("command 1 executed\n");
+
+	/* printf("command 1 executed\n"); */
 
 	if(!(temp_file = fopen(temp_file_name,"r")))
 	{
-		fprintf(stderr,"{ERROR: unable to open %s}\n", temp_file_name);
+		err = "unable to open temp file";
 		goto finish_up;
 	}
 	nread = fread(&header, sizeof(header), 1, temp_file);
 	if (nread != 1)
 	{
-		fprintf(stderr,"{ERROR: cant read header}\n");
+		err = "cant read header";
 		goto finish_up;
 	}
 		
@@ -114,10 +117,9 @@ int err;
 	fclose(temp_file);
 	temp_file = NULL;
 
-	if (!(load_address = valloc(zz=image_size))
-	    )
+	if (!(load_address = valloc(zz=image_size)))
 	{
-		fprintf(stderr,"{ERROR: unable to allocate memory}\n");
+		err = "unable to allocate memory";
 		goto finish_up;
 	}
 
@@ -128,41 +130,32 @@ int err;
 	    load_address,
 	    temp_file_name,  filename);
 
-	printf("command 2=%s\n",command);
 	if(system(command))
 	{
-		fprintf(stderr,"{ERROR: link failed: %s}\n", command);
+		err = "link failed!";
 		goto finish_up;
 	}
-	printf("command2 executed\n");
+
 	if(!(temp_file = fopen(temp_file_name,"r")))
 	{
-		fprintf(stderr,"{ERROR: unable to open %s}\n", temp_file_name);
+		err = "unable to open tmp file";
 		goto finish_up;
 	}
 	nread = fread(&header, sizeof(header), 1, temp_file);
-	if (nread != 1) 
-	{
-		fprintf(stderr,"{ERROR: cant read header}\n");
-		goto finish_up;
-	}
 	image_size = header.a_text + header.a_data + header.a_bss;
 	if (zz<image_size)
 	{
-		fprintf(stderr,"{ERROR}\n");
+		err = "loader out of phase!";
 		goto finish_up;
 	}
 
 	fseek(temp_file, N_TXTOFF(header), 0);
 	nread = fread(load_address, zz=(header.a_text + header.a_data),1,temp_file);
-	if (nread != 1)
-	{
-		fprintf(stderr,"{ERROR: cant read file}\n");
-		goto finish_up;
-	}
 	/* zero the BSS segment */
 	while (zz<image_size)
 		load_address[zz++] = 0;
+
+	retval = load_symbols(filename, header.a_entry);
 
 	fclose(temp_file);
 	temp_file = NULL;
@@ -174,41 +167,84 @@ int err;
 finish_up:
 	if (temp_file != NULL) fclose(temp_file);
 	if (load_address != NULL) free(load_address);
-	return (func_ptr)header.a_entry;
+	return retval;
 }
 
+DynamicFunctionList *
+load_symbols(filename, entry_addr)
 
+char *filename;
+int entry_addr;
 
-
-
-/*
-Here is tst.c (note that it has initialized and uninitialized variables,
-and even prints something out):
- */
-
-/*
-#include <stdio.h>
-int tst(x)
-int x;
 {
-int u,v;
-int z=1;
-printf("This was printed in the routine. par=%d\n",x);
-return 2*x;
+	char *strings, *symb_table, *p, *q;
+	int fd, symtab_offset, string_offset, string_size, nsyms, i;
+	struct nlist *table_entry;
+	struct exec hdr;
+	int entering = 1;
+	DynamicFunctionList *head, *scanner;
+
+	fd = open(filename, O_RDONLY);
+
+	read(fd, &hdr, sizeof(struct exec));
+
+	symtab_offset = N_SYMOFF(hdr);
+	string_offset = N_STROFF(hdr);
+
+	lseek(fd, string_offset, 0);
+	read(fd, &string_size, sizeof(string_size));
+	strings = (char *) malloc(string_size - 4);
+	read(fd, strings, string_size - 4);
+	nsyms = hdr.a_syms / sizeof(struct nlist);
+	lseek(fd, symtab_offset, 0);
+	symb_table = (char *) malloc(hdr.a_syms);
+	read(fd, symb_table, hdr.a_syms);
+
+	p = symb_table;
+	for (i = 0; i < nsyms; i++)
+	{
+		table_entry = (struct nlist *) p;
+		p += sizeof(struct nlist);
+	    if (! ((table_entry->n_type & N_EXT) == 0
+			|| (table_entry->n_type & N_TYPE) != N_TEXT))
+		{
+			if (entering)
+			{
+				head = (DynamicFunctionList *)
+					   malloc(sizeof(DynamicFunctionList));
+				scanner = head;
+				entering = 0;
+			}
+			else
+			{
+				scanner->next = (DynamicFunctionList *)
+								malloc(sizeof(DynamicFunctionList));
+				scanner = scanner->next;
+			}
+			/*
+			 * Add one for "_", ie
+			 * overpaid() will be _overpaid
+			 */
+
+			q = strings + (table_entry->n_un.n_strx - 4) + 1;
+
+			strcpy(scanner->funcname, q);
+			scanner->func = (func_ptr) (table_entry->n_value + entry_addr);
+			scanner->next = NULL;
+		}
+	}
+
+	free(symb_table);
+	free(strings);
+	return(head);
 }
- */
 
-/*
+func_ptr
+dynamic_load(err)
 
-
-You probably won't have any trouble converting this into a dynamic
-loader program for postgres (I will work on that myself if I can find
-the time).
-
-*/
-
-foob()
+char *err;
 
 {
-	printf("foob: got here!!!!!!!!!\n");
+	err = "Dynamic load: Should not be here!";
+	return(NULL);
 }
