@@ -11,9 +11,11 @@
  */
 #include "c.h"
 #include "postgres.h"
+#include "log.h"
 #include "pg_lisp.h"
 #include "nodes.h"
 #include "params.h"
+#include "palloc.h"
 
 /*-------------------------------------------------
  *
@@ -49,4 +51,76 @@ StringToPlanWithParams (string, paramListP)
 
 }
 
- 
+
+/*--------------------------------------------------------------
+ *
+ * PlanToString
+ *
+ * Given a plan (a lisp list, i.e. a LispValue) transform it
+ * into a string.
+ */
+char *
+PlanToString(l)
+LispValue l;
+{
+    char fileName[100];
+    FILE *fp;
+    int fd;
+    Size count;
+    int c;
+    char *s;
+
+    /*
+     * generate a unique file name in /tmp
+     */
+    sprintf(fileName, "/tmp/rule.%d", getpid() );
+
+    AllocateFile();
+    fp = fopen(fileName, "w");
+    if (fp==NULL) {
+	perror("PlanToString");
+	FreeFile();
+	elog(WARN, "PlanToString: Could not open file %s\n", fileName);
+    }
+
+    /*
+     * print the string representation of the plan in the temp file
+     */
+    lispDisplayFp(fp, l, 0);
+
+    /*
+     * Now read the filename and count the number of characters.
+     */
+    fclose(fp);
+    fp = fopen(fileName, "r");
+    count = 0;
+    while (getc(fp) != EOF)
+	count += 1;
+    
+    s = palloc(count+1);
+    if (s==NULL) {
+	FreeFile();
+	elog(WARN, "string_to_plan: could no palloc(%d)\n", count);
+    }
+
+    /*
+     * now read the plan & store it into the string
+     */
+    count = 0;
+    rewind(fp);
+    while ((c = getc(fp)) != EOF) {
+	s[count] = c;
+	count += 1;
+    }
+    s[count] = '\0';
+
+    /*
+     * Now close & remove the temp file
+     */
+    fclose(fp);
+    FreeFile();
+    unlink(fileName);
+
+    return(s);
+
+}
