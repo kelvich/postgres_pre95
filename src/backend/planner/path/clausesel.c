@@ -268,6 +268,7 @@ compute_selec (clauses,or_selectivities)
 	  */
 	 LispValue relsatts = get_relsatts (clause);
 	 ObjectId opno = get_opno((Oper)get_op (clause));
+	 RegProcedure oprjoin = get_oprjoin (opno);
 	 LispValue relid1 = LispNil;
 	 LispValue relid2 = LispNil;
 	 
@@ -279,13 +280,21 @@ compute_selec (clauses,or_selectivities)
 	    relid2 = translate_relid(CADDR(relsatts));
 	 else
 	   relid2 =  lispInteger(_SELEC_VALUE_UNKNOWN_);
-	 
-	 s1 = (double)join_selectivity (get_oprjoin (opno),
-					opno,
-					CInteger(relid1),
-					CInteger(CADR (relsatts)),
-					CInteger(relid2),
-					CInteger(CADDR (CDR (relsatts))));
+
+	 /*
+	 ** If there's no operator associated with this function, we guess
+	 ** at the selectivity.  THIS IS A HACK TO GET V4 OUT THE DOOR.
+	 **     -- JMH 7/9/92
+	 */
+	 if (oprjoin == (RegProcedure) NULL) 
+	   s1 = 0.5;
+	 else /* There is an operator associated, so get its selectivity */
+	   s1 = (double)join_selectivity (oprjoin,
+					  opno,
+					  CInteger(relid1),
+					  CInteger(CADR (relsatts)),
+					  CInteger(relid2),
+					  CInteger(CADDR (CDR (relsatts))));
      }
     
     /*    A null clause list eliminates no tuples, so return a selectivity 
