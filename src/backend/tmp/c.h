@@ -620,4 +620,31 @@ form ARGS((
 
 #define ALLOCATE(foo) (foo)palloc(sizeof(struct CppConcat(_,foo)))
 
+/*
+ * SymbolDecl --
+ * ExternDecl --
+ *	Dynamic function and data symbol declaration macros.
+ *
+ * Sample usage:
+ *
+ *	extern int fooValue;
+ *	extern void foo ARGS((void));
+ *	// more declarations ...
+ *
+ *	#define yourfilename_SYMBOLS \
+ *		ExternDecl(fooValue, "_fooValue"), \
+ *		SymbolDecl(foo, "_foo")
+ *
+ *	// DO *NOT* INCLUDE A TRAILING ^ COMMA
+ */
+#define SymbolDecl(_symbol_, _string_) \
+	{ (func_ptr)_symbol_, _string_ }
+
+#define ExternDecl(_external_, _string_) \
+	{ (data_ptr)&(_external_), _string_ }
+
+#define C_SYMBOLS \
+	SymbolDecl(ExceptionalCondition, "_ExceptionalCondition"), \
+	SymbolDecl(form, "_form")
+
 #endif	/* !defined(CIncluded) */
