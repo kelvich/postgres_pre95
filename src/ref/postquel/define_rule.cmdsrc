@@ -4,7 +4,7 @@
 .XA 2 "Define Rule"
 .uh NAME
 .lp
-define rule \*(- Define a new rule
+define rule \(em Define a new rule
 .uh SYNOPSIS
 .lp
 .b "define [instance | rewrite] rule"
@@ -69,8 +69,8 @@ action are respectively normal POSTQUEL
 FROM clauses, WHERE clauses 
 and collections of POSTQUEL commands
 with the following change:
-.in+6
-.ll-6
+.in +6
+.ll -6
 
 .b new
 or
@@ -78,8 +78,8 @@ or
 can appear instead of 
 an instance variable whenever an instance 
 variable is permissible in POSTQUEL.
-.in-6
-.ll+6
+.in -6
+.ll +6
 .lp
 The semantics of a rule is that at the time an individual instance is
 accessed, updated, inserted or deleted, there is a current instance (for
@@ -192,11 +192,3 @@ is not retrieve.
 The query rewrite rule system now supports most rule semantics, and closely
 parallels the tuple system.  It also attempts to avoid odd semantics by
 running instead rules before non-instead rules.
-
-
-
-
-
-
-
-
