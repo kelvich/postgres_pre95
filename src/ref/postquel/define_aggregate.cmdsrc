@@ -58,8 +58,9 @@ passed correct initialization values.  The final calculation
 then divides the sum by the count to produce the final
 answer.
 .lp
-/* Define an aggregate for average */
+/* Define an aggregate for int4average */
 .lp
-define aggregate avg ( sfunc1 = add-new-value-function,  sfunc2 =incrementer-function,
-finalfunc = divide-by-total-function, initcond1 =  initial-condition-for-sum,
-initcond2 = initial-condition-for-incrementer)
+define aggregate avg ( sfunc1 = int4add,  sfunc2 = int4inc,
+finalfunc = int4div, initcond1 =  initial-condition-for-sum,
+initcond1 = "0",
+initcond2 = "0")
