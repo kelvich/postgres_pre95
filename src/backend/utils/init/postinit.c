@@ -485,6 +485,7 @@ InitPostgres(name)
     String	name;		/* database name */
 {
     bool	bootstrap;	/* true if BootstrapProcessing */
+    extern int	testFlag;
 
     /* ----------------
      *	see if we're running in BootstrapProcessing mode
@@ -668,6 +669,8 @@ InitPostgres(name)
      */
     if (!bootstrap)
 	SetProcessingMode(NormalProcessing);
+    if (testFlag)
+	LockingIsDisabled = true;
 }
 
 /* --------------------------------
