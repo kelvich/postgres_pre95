@@ -16,13 +16,13 @@
 #include <stdio.h>
 #include <strings.h>
 #include "utils/log.h"
+#include "utils/palloc.h"
 #include "tmp/datum.h"
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
 
-extern char *palloc();
 extern Node CopyObject();
 extern bool _equalLispValue();
 
@@ -311,3 +311,46 @@ Prs2Stub relstub;
 #endif STUB_DEBUG
     pfree(relstub);
 }
+
+/*----------------------------------------------------------------------
+ * prs2RemoveStubsOfRule
+ *
+ * Remove the stubs of the given rule (in place).
+ * If no stubs of this rule were found return false, else true.
+ *----------------------------------------------------------------------
+ */
+bool
+prs2RemoveStubsOfRule(stubs, ruleId)
+Prs2Stub stubs;
+ObjectId ruleId;
+{
+    int i;
+    Prs2OneStub thisStub;
+    bool result;
+
+    result = false;
+    i=0;
+    while (i<stubs->numOfStubs) {
+	thisStub = stubs->stubRecords[i];
+	if (thisStub->ruleId == ruleId) {
+	    /*
+	     * remove this stub by copying over it the last stub
+	     * The result is more or less similar to moving all the
+	     * stubs above the one to be deleted, one place down.
+	     * So, we must NOT increment 'i' !
+	     */
+	    result = true;
+	    stubs->stubRecords[i] = stubs->stubRecords[stubs->numOfStubs-1];
+	    pfree(thisStub);
+	    stubs->numOfStubs -=1;
+	} else {
+	    /*
+	     * examine the next stub...
+	     */
+	    i++;
+	}
+    }
+
+    return(result);
+}
+
