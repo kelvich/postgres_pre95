@@ -49,12 +49,15 @@ extern void	PrintVar();
 #define EqualVarExists
 
 #include "nodes.h"	/* bogus inheritance system */
+#include "pg_lisp.h"
+
 #include "att.h"
 #include "attnum.h"
+#include "buf.h"
+#include "rel.h"
 #include "oid.h"
 #include "name.h"
 #include "cat.h"
-#include "pg_lisp.h"
 
 /*
  * ============
