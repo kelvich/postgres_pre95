@@ -101,6 +101,8 @@ long *size;
 		size_data = scn_struct.s_size;
 	}
 
+	close(fd);
+
 /*
  * add 10000 for fudge factor to account for data areas that appear in
  * the linking process (yes, there are such beasts!).
@@ -168,7 +170,7 @@ long *size;
 		fclose(temp_file);
 		unlink(temp_file_name);
 		load_address = (char *) valloc(true_image_size);
-		sprintf(command,"ld -N -A %s -T %lx -o %s  %s -lc -lm -ll",
+		sprintf(command,"ld -x -N -A %s -T %lx -o %s  %s -lc -lm -ll",
 	    		pg_pathname,
 	    		load_address,
 	    		temp_file_name,  filename);
@@ -189,13 +191,11 @@ long *size;
 		bzero(bss_offset + load_address, size_bss);
 	}
 
-#ifdef NEWDEC
-	if (cachectl(load_address, PAGE_ROUND(image_size), UNCACHEABLE))
+	if (cachectl(load_address, PAGE_ROUND(true_image_size), UNCACHEABLE))
 	{
 		*err = "dynamic_file_load: Cachectl failed!";
 	}
 	else
-#endif
 	{
 		retval = load_symbols(filename, load_address);
 	}
@@ -203,7 +203,6 @@ long *size;
 finish_up:
 	fclose(temp_file);
 	unlink(temp_file_name);
-	close(fd);
 	*start_addr = load_address;
 	*size = true_image_size;
 	return retval;
