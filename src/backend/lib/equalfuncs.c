@@ -105,6 +105,28 @@ _equalResdom(a, b)
 	return (true);
 }
 
+bool
+_equalFjoin(a, b)
+	Fjoin a;
+	Fjoin b;
+{
+	int nNodes;
+
+	if (a->fj_initialized != b->fj_initialized)
+		return (false);
+	if (a->fj_nNodes != b->fj_nNodes)
+		return (false);
+	if (!equal(a->fj_innerNode, b->fj_innerNode))
+		return (false);
+	
+	nNodes = a->fj_nNodes;
+	if (bcmp(a->fj_results, b->fj_results, nNodes*sizeof(Datum)) != 0)
+		return (false);
+	if (bcmp(a->fj_alwaysDone, b->fj_alwaysDone, nNodes*sizeof(bool)) != 0)
+		return (false);
+
+	return(true);
+}
 /*
  *  Expr is a subclass of Node.
  */
@@ -115,6 +137,14 @@ _equalExpr(a, b)
 {
 	/* no private data */
 	return (true);
+}
+
+bool
+_equalIter(a, b)
+	Iter	a;
+	Iter	b;
+{
+	return (equal((Node)a->iterexpr, (Node)b->iterexpr));
 }
 
 /*
@@ -278,6 +308,10 @@ _equalFunc(a, b)
 	if (a->functype != b->functype)
 		return (false);
 	if (a->funcisindex != b->funcisindex)
+		return (false);
+	if (a->funcsize != b->funcsize)
+		return (false);
+	if (!equal(a->func_tlist, b->func_tlist))
 		return (false);
 
 	return (true);
