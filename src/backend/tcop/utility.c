@@ -397,13 +397,39 @@ ProcessUtility(command, args, commandString)
 	commandTag = "LOAD";
 	CHECK_IF_ABORTED();
 	{
+		FILE *fp, *fopen();
+
 		char *filename;
 		filename = CString(CAR(args));
 		if (*filename != '/')
 		{
 			elog(WARN, "Use full pathname for LOAD command.");
 		}
+		else if ((fp = fopen(filename, "r")) == NULL)
+		{
+			elog(WARN, "LOAD: file %s does not exist", filename);
+		}
+
+		fclose(fp);
 		load_file(filename);
+	}
+	break;
+      case CREATEDB:
+	commandTag = "CREATEDB";
+	CHECK_IF_ABORTED();
+	{
+		char *dbname;
+		dbname = CString(CAR(args));
+		elog(NOTICE, "createdb %s detected", dbname);
+	}
+	break;
+      case DESTROYDB:
+	commandTag = "DESTROYDB";
+	CHECK_IF_ABORTED();
+	{
+		char *dbname;
+		dbname = CString(CAR(args));
+		elog(NOTICE, "destroydb %s detected", dbname);
 	}
 	break;
 	/* default */
