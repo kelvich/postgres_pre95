@@ -496,21 +496,16 @@ typedef unsigned long Datum;
  *	TransactionId definition
  */
 
-typedef struct TransactionIdData {
-	uint8	data[5];
-} TransactionIdData;
+typedef unsigned long		TransactionId;
+#define TransactionIdDataSize	sizeof(long)
 
-#define TransactionIdDataSize	5
+#define InvalidTransactionId	0
+#define NullTransactionIdValue	0
 
-typedef TransactionIdData	*TransactionId;
+typedef unsigned long		TransactionIdValueData;
+typedef unsigned long		TransactionIdValue;
 
-#define InvalidTransactionId	NULL
-#define NullTransactionIdValue	0.0
-
-typedef double			TransactionIdValueData;
-typedef TransactionIdValueData	*TransactionIdValue;
-
-typedef uint8	CommandId;
+typedef unsigned short		CommandId;
 
 #define FirstCommandId	0
 
@@ -548,8 +543,8 @@ typedef uint32	RelativeTime;
  *		Section 8: old types being obsoleted
  * ----------------------------------------------------------------
  */
-typedef	char	XID[5];
-#define	CID	unsigned char
+typedef	long	XID;
+#define	CID	unsigned short
 #define	ABSTIME	long
 #define	RELTIME	long
 
@@ -635,20 +630,14 @@ extern void GetNewTransactionId ARGS((TransactionId xid));
 extern TransactionId StringFormTransactionId ARGS((String representation));
 extern String TransactionIdFormString ARGS((TransactionId transactionId));
 extern void TransactionIdStore
-    ARGS((TransactionId	transactionId, Pointer destination));
+    ARGS((TransactionId	transactionId, TransactionId *destination));
 extern void PointerStoreInvalidTransactionId ARGS((Pointer destination));
 extern bool TransactionIdEquals ARGS((TransactionId id1,TransactionId id2));
 extern bool TransactionIdIsLessThan 
     ARGS((TransactionId	id1, TransactionId id2));
 extern bool TransactionIdValueIsValid ARGS((TransactionIdValue value));
-extern void StringSetTransactionIdValue
-    ARGS((String representation, TransactionIdValue value));
-extern String TransactionIdValueFormString ARGS((TransactionIdValue value));
-extern void TransactionIdValueSetTransactionId
-    ARGS((TransactionIdValue idValue, TransactionId id));
-extern void TransactionIdSetTransactionIdValue
-    ARGS((TransactionId id, TransactionIdValue idValue));
-extern void TransactionIdIncrement ARGS((TransactionId transactionId));
+
+extern void TransactionIdIncrement ARGS((TransactionId *transactionId));
     
 /* ----------------
  *	end of postgres.h
