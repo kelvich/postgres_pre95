@@ -410,6 +410,9 @@ ParseFunc ( funcname , fargs )
      {
 	 if (lispAtomp(first_arg_type) && CAtom(first_arg_type) == RELATION)
 	  {
+	      /* arg is a relation, so set NumLevels */
+	      if (NumLevels < 1 ) NumLevels = 1;
+
 	      /* this is could be a projection */
 	      relname = (Name) CString(CDR(CAR(fargs)));
 	      if( RangeTablePosn ( relname ,LispNil ) == 0 )
@@ -462,10 +465,13 @@ ParseFunc ( funcname , fargs )
 	      else		/* drop through */;
 	  }
 	 else if (complexType(first_arg_type) &&
-		  IsA(CADR(CAR(fargs)),Param))
+		  IsA(CDR(CAR(fargs)),Param))
 	  {
+	      /* arg is a relation, so set NumLevels */
+	      if (NumLevels < 1 ) NumLevels = 1;
+
 	      /* If the Param is a complex type, this could be a projection */
-	      f = (Param)CADR(CAR(fargs));
+	      f = (Param)CDR(CAR(fargs));
 	      rd = heap_openr(tname(get_id_type(get_paramtype(f))));
 	      if (RelationIsValid(rd)) 
 	       {
@@ -514,6 +520,10 @@ ParseFunc ( funcname , fargs )
 	  {
 	      toid = typeid(type(CString(CDR(pair))));
 
+	      if(complexType(lispInteger(toid)))
+		/* arg is a relation, so set NumLevels */
+		if (NumLevels < 1 ) NumLevels = 1;
+
 	      relname = (Name)CString(CDR(pair));
 	      rd = heap_openr(relname);
 	      relid = RelationGetRelationId(rd);
@@ -545,6 +555,10 @@ ParseFunc ( funcname , fargs )
 	  }
 	 else
 	  {
+	      if (IsA(CDR(pair),Param) && complexType(CAR(pair)))
+		/* arg is a relation, so set NumLevels */
+		if (NumLevels < 1 ) NumLevels = 1;
+
 	      toid = CInteger(CAR(pair));
 	      CAR(i) = CDR(pair);
 	  }
@@ -857,9 +871,9 @@ LispValue HandleNestedDots(dots)
     if (IsA(CAR(dots),Param))
       retval = 
 	ParseFunc(CString(CADR(dots)),
-		  lispCons(MakeList
+		  lispCons(lispCons
 			   (lispInteger(get_paramtype((Param)CAR(dots))),
-			    CAR(dots), -1),
+			    CAR(dots)),
 			   LispNil));
     else
       retval = ParseFunc(CString(CADR(dots)), 
