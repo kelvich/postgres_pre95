@@ -66,7 +66,7 @@ extern char		*DataDir;
  *	Perhaps this should be in-line code in relopen().
  */
 
-char    *
+char *
 relpath(relname)
 char    relname[];
 {
@@ -75,6 +75,7 @@ char    relname[];
         if (NameIsSharedSystemRelationName((Name)relname)) {
 		path = (char *) palloc(strlen(DataDir) + sizeof(NameData) + 2);
 		sprintf(path, "%s/%.16s", DataDir, relname);
+		return (path);
         }
         return(relname);
 }
