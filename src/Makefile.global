@@ -25,16 +25,45 @@
 #
 
 #
+# CONFIGURATION SECTION
+#
 # Remember again, the following values may be overridden in the
 # obj/Makefile.global in this directory.
+
 #
+#  The name of the port.  Valid choices are:
+#	ultrix4	-	ultrix 4.?
+#	sparc	-	SUN sparc
+#  or add your own.
+#
+PORTNAME=	ultrix4
+
+# The following should be self explanatory
 POSTGRESDIR=	/private/devel/postgres
 DATADIR=	${POSTGRESDIR}/data
-PORTNAME=	ultrix4
-MACHINE!=	machine
 BINDIR=		${POSTGRESDIR}/bin
 LIBDIR=		${POSTGRESDIR}/lib
+MACHINE!=	machine
 STRIP=
+
+#
+# FEATURES: 
+# To disable a feature comment out the definition
+# ( that is, prepend '#', don't set it to "0" ).
+#
+
+#
+# Man pages don't live with sources this release (coming soon)
+#
+NOMAN=
+
+#
+# If this is set, then target "install" depends on "all", which
+# makes "make install" clutzy since it makes two passes over the
+# hierarchy, once to check "all", twice to do the install - but
+# some people like this.
+#
+ALLINSTALL=
 
 # comment out CDEBUG to turn off debugging and sanity-checking
 #	XXX on MIPS, use -g3 if you want to compile with -O
