@@ -272,5 +272,5 @@ define C function(commands)
 .uh BUGS
 .lp
 Operator names cannot be composed of alphabetic
-characters in Version 2.1.
-Operator precedence and associativity are not implemented in Version 2.1.
+characters in Version 3.0.
+Operator precedence and associativity are not implemented in Version 3.0.
