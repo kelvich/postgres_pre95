@@ -782,6 +782,7 @@ OptStmtList:
 	| OptimizableStmt
 		{ $$ = lispCons ( $1, LispNil ); }
 	| '{' OptStmtBlock '}'
+		{ $$ = $2; }
         ;
 
 OptStmtBlock:
