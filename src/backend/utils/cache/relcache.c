@@ -737,7 +737,23 @@ formrdesc(relationName, natts, att)
     bzero(relation->rd_rel, sizeof(struct RelationTupleFormD));
 
     strncpy(&relation->rd_rel->relname, relationName, sizeof(NameData));
-    relation->rd_rel->relowner = InvalidObjectId;	/* XXX incorrect */
+
+    /*
+     *  For debugging purposes, it's important to distinguish between
+     *  shared and non-shared relations, even at bootstrap time.  There's
+     *  code in the buffer manager that traces allocations that has to
+     *  know about this.
+     */
+
+    if (issystem(relationName)) {
+	relation->rd_rel->relowner = 6;			/* XXX use sym const */
+	relation->rd_rel->relisshared =
+		NameIsSharedSystemRelationName(relationName);
+    } else {
+	relation->rd_rel->relowner = InvalidObjectId;	/* XXX incorrect*/
+	relation->rd_rel->relisshared = false;
+    }
+
     relation->rd_rel->relpages = 1;			/* XXX */
     relation->rd_rel->reltuples = 1;			/* XXX */
     relation->rd_rel->relkind = 'r';
