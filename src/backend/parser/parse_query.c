@@ -756,7 +756,7 @@ make_const( value )
 
 	temp = lispCons (lispInteger ( typeid (tp)) ,
 			  MakeConst(typeid( tp ), tlen( tp ),
-				    val , 0 ));
+				    val , tbyval(tp) ));
 /*	lispDisplay( temp , 0 );*/
 	return (temp);
 	
