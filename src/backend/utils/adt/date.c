@@ -117,11 +117,48 @@ static	int	unit_max_quantity[] = {
 	827, 827, 68, 68 };
 
 
-	    /* ========== USER I/O ROUTINES ========== */
-
 struct timeb *TimeDifferenceFromGMT = NULL;
 static bool TimeDiffIsInited = false;
 static char *timezonename = NULL;
+
+/*
+ * Function prototypes -- internal to this file only
+ */
+
+int isabstime ARGS((char *datestring , struct tm *brokentime ));
+int correct_month ARGS((char month [], int *num ));
+int isleap ARGS((int year ));
+int timeinsec ARGS((struct tm *t , AbsoluteTime *seconds ));
+int isreltime ARGS((char *timestring , int *sign , long *quantity , int *unitnr ));
+int correct_unit ARGS((char unit [], int *unptr ));
+int correct_dir ARGS((char direction [], int *signptr ));
+int istinterval ARGS((char *i_string , AbsoluteTime *i_start , AbsoluteTime *i_end ));
+char *timenowout ARGS((void ));
+AbsoluteTime timenow ARGS((void ));
+RelativeTime intervalrel ARGS((TimeInterval interval ));
+int ininterval ARGS((int32 t , TimeInterval interval ));
+AbsoluteTime timemi ARGS((AbsoluteTime AbsTime_t1 , RelativeTime RelTime_t2 ));
+char *tintervalout ARGS((TimeInterval interval ));
+TimeInterval tintervalin ARGS((char *intervalstr ));
+int32 reltimeeq ARGS((RelativeTime t1 , RelativeTime t2 ));
+int32 reltimene ARGS((RelativeTime t1 , RelativeTime t2 ));
+int32 reltimelt ARGS((int32 t1 , int32 t2 ));
+int32 reltimegt ARGS((int32 t1 , int32 t2 ));
+int32 reltimele ARGS((int32 t1 , int32 t2 ));
+int32 reltimege ARGS((int32 t1 , int32 t2 ));
+int32 intervaleq ARGS((TimeInterval i1 , TimeInterval i2 ));
+int32 intervalleneq ARGS((TimeInterval i , RelativeTime t ));
+int32 intervallenne ARGS((TimeInterval i , RelativeTime t ));
+int32 intervallenlt ARGS((TimeInterval i , RelativeTime t ));
+int32 intervallengt ARGS((TimeInterval i , RelativeTime t ));
+int32 intervallenle ARGS((TimeInterval i , RelativeTime t ));
+int32 intervallenge ARGS((TimeInterval i , RelativeTime t ));
+int32 intervalct ARGS((TimeInterval i1 , TimeInterval i2 ));
+int32 intervalov ARGS((TimeInterval i1 , TimeInterval i2 ));
+AbsoluteTime intervalstart ARGS((TimeInterval i ));
+AbsoluteTime intervalend ARGS((TimeInterval i ));
+
+	    /* ========== USER I/O ROUTINES ========== */
 
 /*
  *	abstimein	- converts a time string to an internal format
@@ -133,8 +170,6 @@ AbsoluteTime
 abstimein(datetime)
 	char	*datetime;
 {
-	extern	int		timeinsec();
-
 	int		which;
 	AbsoluteTime	time;
 	struct tm	brokentime;
@@ -480,7 +515,6 @@ AbsoluteTime
 timenow()
 {
 	extern	int		gettimeofday();
-	extern	int		timeinsec();
 	extern	struct tm 	*localtime();
 
 	struct timeval *tp;
@@ -634,8 +668,6 @@ intervalleneq(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {
-	extern	RelativeTime	intervalrel();
-
 	Assert(0);	/* XXX */
 
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
@@ -652,8 +684,6 @@ intervallenne(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {
-	extern	RelativeTime	intervalrel();
-
 	Assert(0);	/* XXX */
 
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
@@ -670,8 +700,6 @@ intervallenlt(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {
-	extern	RelativeTime	intervalrel();
-
 	Assert(0);	/* XXX */
 
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
@@ -688,8 +716,6 @@ intervallengt(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {
-	extern	RelativeTime	intervalrel();
-
 	Assert(0);	/* XXX */
 
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
@@ -706,8 +732,6 @@ intervallenle(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {	
-	extern	RelativeTime	intervalrel();
-
 	Assert(0);	/* XXX */
 
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
@@ -723,8 +747,7 @@ int32
 intervallenge(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
-{	extern	RelativeTime	intervalrel();
-
+{
 	Assert(0);	/* XXX */
 
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
