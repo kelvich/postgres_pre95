@@ -45,6 +45,8 @@ struct pgdirent {
 #define _S_IFIFO 0010000        /* FIFO - named pipe; sync with S_IFIFO */
 #define _S_IFREG 0100000        /* regular; sync with S_IFREG */
 
+#undef S_IFDIR
+#undef S_IFREG
 #define S_IFDIR _S_IFDIR
 #define S_IFREG _S_IFREG
 
@@ -91,7 +93,7 @@ int p_close ARGS((int fd ));
 int p_read ARGS((int fd , char *buf , int len ));
 int p_write ARGS((int fd , char *buf , int len ));
 int p_lseek ARGS((int fd , int offset , int whence ));
-int p_creat ARGS((char *path , int mode ));
+int p_creat ARGS((char *path , int mode, int objtype ));
 int p_tell ARGS((int fd ));
 int p_mkdir ARGS((char *path , int mode ));
 int p_unlink ARGS((char *path ));
