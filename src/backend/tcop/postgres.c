@@ -312,7 +312,8 @@ pg_eval( query_string )
 	    printf("\tProcessUtility() at %s\n", ctime(&tim));
 	}
 	ProcessUtility(LISPVALUE_INTEGER(CAR(parsetree)),
-		       CDR(parsetree));
+		       CDR(parsetree),
+		       query_string);
 	
     } else {
 	/* ----------------
