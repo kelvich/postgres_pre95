@@ -373,15 +373,16 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
 	values[i] = (char *) NULL; 	/* redundant, but nice */
     }
 
-	/*
-	 * XXX
-	 *
-	 * Do this so that user-defined types have size -1 instead of zero if
-	 * they are variable-length - this is so that everything else in the
-	 * backend works.
-	 */
-
-	if (internalSize == 0) internalSize = -1; 
+    /*
+     * XXX
+     *
+     * Do this so that user-defined types have size -1 instead of zero if
+     * they are variable-length - this is so that everything else in the
+     * backend works.
+     */
+    
+    if (internalSize == 0)
+	internalSize = -1; 
 
     /* ----------------
      *	initialize the values[] information
@@ -454,9 +455,10 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
 	  }
     }
     else {
-	  /* relation type - no input or output procedures */
-	  for (j=0; j<4; ++j)
-		nulls[i++] = 'n';
+	/* relation type - no input or output procedures */
+	for (j = 0; j < 4; ++j) {
+	    values[i++] = InvalidObjectId;
+	}
     }
 
 
