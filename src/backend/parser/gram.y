@@ -1229,8 +1229,8 @@ opt_portal:
 
 OptUseOp:
 	  /*EMPTY*/			{ NULLTREE }
-	| USING Op			{ $$ = $2; }
-	| USING Id			{ $$ = $2; }
+	| USING '<'			{ $$ = $2; }
+	| USING '>'			{ $$ = $2; }
 	;
 
 from_rel_name:
