@@ -18,6 +18,7 @@
 #include "parse.h"
 #include "tim.h"
 #include "trange.h"
+#include "parse_query.h"
 
 int MAKE_RESDOM,MAKE_VAR,MAKE_ADT,MAKE_CONST,MAKE_PARAM,MAKE_OP;
 
@@ -27,7 +28,8 @@ lispMakeResdom(resno,restype,reslen,attrname,reskey,reskeyop)
      int resno,restype,reslen,reskey,reskeyop;
 {
 #ifdef ALLEGRO
-	return ( lisp_call (MAKE_RESDOM, resno,a,b,attrname,c,d ));
+	return ( lisp_call (MAKE_RESDOM, resno,restype,
+		 	    reslen,attrname,reskey,reskeyop ));
 #endif
 #ifdef FRANZ43
 	LispValue l = lispCons( lispInteger(reskeyop), LispNil);
@@ -83,6 +85,14 @@ lispMakeVar(vnum,attid,vartype,vardotfields,vararrayindex)
 #endif       
 }
 
+/**********************************************************************
+
+  lispMakeOp
+  returns
+  #S(oper :opno <opid> :oprelationlevel <oprel> :opresulttype <opresult> )
+
+ **********************************************************************/
+
 LispValue 
 lispMakeOp (opid,oprel,opresult)
      int opid,oprel,opresult;
@@ -91,10 +101,14 @@ lispMakeOp (opid,oprel,opresult)
 	return(lisp_call (MAKE_OP,opid,oprel,opresult));
 #endif
 #ifdef FRANZ43
-	LispValue l = lispCons ( lispInteger (oprel) , LispNil );
-	l = lispCons (lispInteger (oprel) , l );
+	LispValue l = lispCons ( lispInteger (opresult) , LispNil );
+	if ( oprel != 0 )
+	  l = lispCons (lispInteger (oprel) , l );
+	else
+	  l = lispCons (LispNil , l );
+	  
 	l = lispCons (lispInteger (opid) , l );
-	l = lispCons (lispAtom ("make_op") , l );
+	l = lispCons (lispAtom ("make_oper") , l );
 	return (evalList(l));
 #endif
 #ifdef PG_LISP
@@ -122,7 +136,9 @@ lispMakeParam (paramval )
 	return(lisp_call (MAKE_PARAM,paramval));
 #endif
 #ifdef FRANZ43
-	return(LispNil);
+	LispValue l = lispCons ( lispInteger(paramval), LispNil );
+	
+	l = lispCons ( lispAtom ("make_param") , LispNil );
 #endif
 #ifdef PG_LISP
 	return(LispNil);
@@ -242,7 +258,7 @@ MakeRangeTableEntry( relname , options , refname)
 	extern LispValue p_trange;
 	int index;
 
-	printf("relname is : %s\n",(char *)relname);
+	/* printf("relname is : %s\n",(char *)relname); */
 	fflush(stdout);
 
 	index = RangeTablePosn (CString(relname)); 
@@ -299,28 +315,53 @@ ExpandAll(relname,this_resno)
      int *this_resno;
 {
 	Relation rdesc;
-	extern LispValue p_target;
-	int i;
+	LispValue tall = LispNil;
+	LispValue resnode = LispNil;
+	LispValue varnode = LispNil;
+	LispValue temp = LispNil;
+	int i,maxattrs,first_resno;
+	int type_id,type_len,vnum;
+
+	first_resno = *this_resno;
+
+	printf("\nExpanding %s.all\n",CString(relname));
+
+	if ((vnum= RangeTablePosn (CString(relname))) == 0 ) {
+		p_rtable = nappend1 ( p_rtable,
+				     MakeRangeTableEntry (relname, 
+							  0 ,  relname));
+		relname = VarnoGetRelname(1);
+	} else 
+		relname = VarnoGetRelname(vnum);
+
 
 	rdesc = amopenr(CString(relname));
+	
 	if (rdesc == NULL ) {
 		elog(WARN,"Unable to expand all -- amopenr failed ");
 		return( LispNil );
 	}
-#ifndef PGLISP
-	for ( i = 0 ; i < rdesc->rd_rel->relnatts; i++ ) {
-		printf("%s\n",&rdesc->rd_att.data[i]->attname);
+	maxattrs = RelationGetNumberOfAttributes(rdesc);
+
+	for ( i = maxattrs-1 ; i > -1 ; --i ) {
+		char *attrname = (char *)(&rdesc->rd_att.data[i]->attname);
+		printf("%s\n",attrname);
 		fflush(stdout);
-		nappend1(p_target,
-			 lispCons(
-				  lispMakeResdom( this_resno , 0, 0,
-				      lispString(&rdesc->rd_att.data[i]->
-						   attname), 0, 0 ),
-			   LispNil)); /* XXX should be expr node */
-		*this_resno++;
+		temp = make_var ( relname,
+				  lispString(attrname) );
+		varnode = CDR(temp);
+		type_id = CInteger(CAR(temp));
+		type_len = tlen(get_id_type(type_id));
+		
+		resnode = lispMakeResdom( i + first_resno, type_id, type_len,
+					 lispString(attrname), 0, 0 );
+
+		tall = lispCons(lispCons(resnode, lispCons(varnode, LispNil)),
+				tall);
 	}
-#endif
-	return(p_target);
+
+	*this_resno = first_resno + maxattrs;
+	return(tall);
 }
 
 LispValue
@@ -419,19 +460,26 @@ make_var ( relname, attrname )
 	extern LispValue p_rtable;
 	extern int p_last_resno;
 
-	printf (" now in make_Var\n");
+	/*
+	printf (" now in make_Var\n"); 
+	printf ("relation = %s, attr = %s\n",CString(relname),
+		CString(attrname)); 
+		*/
 	fflush(stdout);
 
 	vnum = RangeTablePosn ( CString (relname)) ;
+	printf("vnum = %d\n",vnum);
 	if (vnum == 0) {
-		nappend1 (p_rtable ,
+		p_rtable = nappend1 (p_rtable ,
 			  MakeRangeTableEntry ( relname , 0 , relname) );
 		vnum = RangeTablePosn (CString (relname));
+		printf("vnum = %d\n",vnum);
 		relname = VarnoGetRelname(vnum);
 	} else {
 	  	relname = VarnoGetRelname( vnum );
-		printf("relname to open is %s",CString(relname));
 	}
+
+	printf("relname to open is %s",CString(relname));
 
 	rd = amopenr ( CString (relname ));
 	attid = varattno (rd , CString(attrname) );
@@ -455,108 +503,116 @@ make_var ( relname, attrname )
 
  **********************************************************************/
 
-static char tlist_buf[1024];
+static char *tlist_buf = 0;
 static int end_tlist_buf = 0;
 
 LispValue
 SkipForwardToFromList()
 {
-	char c;
+	extern LispValue yylval;
+	extern char yytext[];
+	extern int yyleng;
+	LispValue next_token;
 	int i;
+	char *temp;
+
+	if (tlist_buf == 0 )
+	  tlist_buf = (char*) malloc(1024);
+	
+	for(i=0;i<1024;i++)
+	  tlist_buf[i]=0;
+	
 	end_tlist_buf = 0;
-	for(i=0;i<1024;i++) {
-		c = input();
-		fputc(c,stdout);
-		fflush(stdout);
-		switch (c) {
-	        case 0:
-			/* eos, so backup */
-			while (end_tlist_buf != -1) {
-				unput(tlist_buf[--end_tlist_buf]);
+	while ((next_token=(LispValue)yylex()) >
+	       0 && next_token != (LispValue)FROM ) {
+		tlist_buf[end_tlist_buf++] = ' ';
+		fputc(' ',stdout);
+		switch( next_token ) {
+		      case SCONST:
+			temp = (char *)CString(yylval);
+			tlist_buf[end_tlist_buf++] = '\"';
+			for (i = 0; i < strlen(temp) ; i ++) {
+				tlist_buf[end_tlist_buf++] = 
+				  temp[i];
 			}
-			return(LispNil);
-		case 'f':
-			/* possibly a from ? */
-			unput(c);
-			return(LispNil);
-		default:
-			/* gobble up text */
-			if(end_tlist_buf == 1023 )
-			  elog(NOTICE,"overflowed tlist buffer ");
-			else {
-				tlist_buf[end_tlist_buf] = c;
-				end_tlist_buf++;
-		        }
+			tlist_buf[end_tlist_buf++] = '\"';
+			break;
+		      case CCONST:
+			temp = (char *)CString(yylval);
+			tlist_buf[end_tlist_buf++] = '\'';
+			tlist_buf[end_tlist_buf++] = 
+			  temp[0];
+			tlist_buf[end_tlist_buf++] = '\'';
+			break;
+		      default:
+			for (i = 0; i < yyleng; i ++) {
+				tlist_buf[end_tlist_buf++] =
+				  yytext[i];
+				fputc(yytext[i],stdout);
+			}
+			break;
 		}
+
+	} /* while */
+	fflush(stdout);
+	if (next_token <= 0 ) {
+		printf("%d\n",(LispValue)0);
+		printf("EOS, no from found\n");
+		fflush(stdout);
+		for (i = end_tlist_buf; i > -1 ;--i ) {
+			unput(tlist_buf[i] );
+			fputc(tlist_buf[i],stdout);
+		}
+		end_tlist_buf = 0;
+		fflush(stdout);
 	}
-}
+	if (next_token == (LispValue) FROM ) {
+		printf("FROM found\n");
+		fflush(stdout);
+		for (i = yyleng ; i > -1; --i ) {
+			unput(yytext[i] );
+			fputc(yytext[i],stdout);
+		}
+		fflush(stdout);
+	}
+} /* Skip */
+
 
 LispValue
 SkipBackToTlist()
 {
-	extern int yyleng,yymorfg;
 	extern char yytext[];
-	char *temp;
+	extern LispValue yychar;
+	char *temp = yytext;
+	extern int yyleng;
 	int i;
 
-	printf("length = %d, text = %s\n", yyleng,yytext);
-	fflush(stdout);
-	
-	if(!strcmp (yytext,"where")) {
-		temp = yytext;
-		for ( i = yyleng; i > -1 ; i -- ) {
-			unput(yytext[i] );
-			fputc (yytext[i], stdout );
-			fflush (stdout);
+	/* need to put the token after the target_list back first */
+	temp = yytext;
+	if(yychar == (LispValue)WHERE) {
+		printf("putting the where back\n");
+		for (i = yyleng; i > -1 ; -- i ) {
+			unput (yytext[i]);
+			fputc (yytext[i],stdout);
 		}
 	}
-
-	while(end_tlist_buf != -1 ) {
-	        fputc(tlist_buf[end_tlist_buf],stdout);
-		fflush(stdout);
-		unput(tlist_buf[end_tlist_buf]);
-		--end_tlist_buf;
+	fflush(stdout);
+	
+	if(end_tlist_buf == 0 )
+	  return(LispNil);
+	printf("Moving back to target list\n");
+	while( end_tlist_buf > 0 ) {
+		unput(tlist_buf[--end_tlist_buf] );
+		fputc(tlist_buf[end_tlist_buf],stdout);
 	}
+	fflush(stdout);
 	return(LispNil);
 }
 
 LispValue
 SkipForwardPastFromList()
 {
-	static LispValue yychar;
-	char c;
-	int i;
-	extern int yyleng;
-	extern char yytext[];
-
-	for(;;) {
-		c = input();
-		fputc(c,stdout);
-		fflush(stdout);
-		switch (c) {
-	        case 0:
-			/* eos, so done */
-		        end_tlist_buf = 0;
-			return(LispNil);
-		case 'w':
-			/* possibly a where ? */
-			unput(c);
-			(LispValue)yychar = (LispValue)yylex();
-			if (yychar == (LispValue)WHERE )
-			  for ( i=yyleng; i-- ; i > -1 )
-			    unput(yytext[i]);
-			end_tlist_buf = 0;
-			return(LispNil);
-		default:
-			/* gobble up text */
-			if(end_tlist_buf == 1023 )
-			  elog(NOTICE,"overflowed tlist buffer ");
-			else {
-				tlist_buf[end_tlist_buf] = c;
-				end_tlist_buf++;
-		        }
-		}
-	}
+	
 }
 
 StripRangeTable()
@@ -590,7 +646,7 @@ make_const( value )
 	Type tp;
 	LispValue temp;
 
-	printf("in make_const\n");
+/*	printf("in make_const\n");*/
 	fflush(stdout);
 #ifdef ALLEGRO
 	switch( GetType( value )) {
@@ -654,7 +710,7 @@ make_const( value )
 					       LispNil , 1 )) );
 	}
 #endif
-	printf("tid = %d , tlen = %d\n",typeid(tp),tlen(tp));
+/*	printf("tid = %d , tlen = %d\n",typeid(tp),tlen(tp));*/
 	fflush(stdout);
 
 	temp = lispCons (lispInteger ( typeid (tp)) ,
