@@ -245,7 +245,7 @@ aclitemout(aip)
 	if (!aip)
 		aip = &default_aclitem;
 	
-	p = out = palloc(sizeof("group char16identifier=arwR "));
+	p = out = palloc(sizeof("group =arwR ") + NAMEDATALEN);
 	if (!out)
 		elog(WARN, "aclitemout: palloc failed");
 	*p = '\0';
@@ -269,8 +269,8 @@ aclitemout(aip)
 	case ACL_IDTYPE_GID:
 		(void) strcat(p, "group ");
 		tmpname = get_groname(aip->ai_id);
-		(void) strncat(p, tmpname, sizeof(NameData));
-		pfree(tmpname);
+		(void) strncat(p, tmpname->data, sizeof(NameData));
+		pfree((char *) tmpname);
 		break;
 	case ACL_IDTYPE_WORLD:
 		break;
