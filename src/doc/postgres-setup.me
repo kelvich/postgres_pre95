@@ -135,8 +135,7 @@ processors with SunOS 3.4 or 3.5, as well as Digital
 Equipment Corporation DECstation 3100 computers running
 Ultrix 2.0 Rev 7.  Ports for Sparcstation 1, SunOS 4.0 on
 Sun 3's, and Sequent Symmetry minicomputers are also included in the
-distribution, although these have not been completely tested due to
-inaccessability.
+distribution.
 In order to use \*(PG,
 your machine should have at least 8 megabytes of memory
 and you will require at least 25 megabytes of disk space
@@ -635,6 +634,21 @@ To do this,
 % \fBcd newconf\fP
 .sp 0.5v
 .i
+	Now make the new port directories and create the config.mk appropriate
+	for this machine.
+.r
+% \fBnewport\fP
+When running 
+.i newport
+you will be asked which distribution you are installing.
+For a DEC installation, type "dec", for a Sun 3 installation running
+SunOS 3.4 or 3.5, type "sun",
+for a Sun 3 installation running SunOS 4.0, 
+type "sunos4", for a Sequent Symmetry installation type "seq", and
+for a Sparcstation type "sparc".
+.pp
+.sp 0.5v
+.i
 	Now make the necessary changed to config.mk.  The file newconf/README
 	explains what the various entries in config.mk mean.
 .r
@@ -649,8 +663,6 @@ The
 .i only
 thing we recommend changing is the
 GCFLAGS variable.
-If you have a floating-point coprocessor,
-use \-f68881.
 .pp
 By default,
 \*(PG will be compiled without the \-g flag
@@ -661,7 +673,7 @@ If you intend to do debugging,
 you should change GCFLAGS in config.mk to \-g.
 We do not recommend doing this for casual users.
 Without \-g,
-the \*(PG tree consumes about 25 Mbytes of disk space.
+the \*(PG tree consumes about 20 Mbytes of disk space.
 With \-g,
 the number doubles.
 .sh 2 "Step 3 - Compiling \*(PG"
@@ -672,20 +684,9 @@ you can perform a complete compilation with the following
 sequence of commands:
 .(l
 % \fBcd ~postgres/newconf\fR
-% \fB./newport (see below)\fR
 % \fB./Make everything\fR
 .)l
 .pp
-When running 
-.i newport
-you will be asked which distribution you are installing.
-For a DEC installation, type "dec", for a Sun 3 installation running
-SunOS 3.4 or 3.5, type "sun",
-for a Sun 3 installation running SunOS 4.0, 
-type "sunos4", for a Sequent Symmetry installation type "seq", and
-for a Sparcstation type "sparc".
-Also, use the default object directory name for the object
-tree.
 .lp
 To install the code,
 run
@@ -716,7 +717,7 @@ initial database.
 To do this,
 type 
 .(l
-% \fsetenv POSTGRESHOME ~postgres
+% \fBsetenv POSTGRESHOME ~postgres
 % ~postgres/bin/createdb \-v off postgres\fR
 .)l
 This will create the bootstrap template database, from which
@@ -891,37 +892,37 @@ Go
 
 .ft CW
 Query sent to backend is "retrieve (u.usename, u.usesysid) from u in pg_user"
------------------------------
-| usename     | usesysid    |
------------------------------
-| postgres    | 6           |
------------------------------
-| mike        | 799         |
------------------------------
-| sp          | 1511        |
------------------------------
-| jhingran    | 943         |
------------------------------
-| cimarron    | 2359        |
------------------------------
-| goh         | 1994        |
------------------------------
-| ong         | 2802        |
------------------------------
-| hong        | 2469        |
------------------------------
-| mao         | 1806        |
------------------------------
-| margo       | 2697        |
------------------------------
-| sullivan    | 1517        |
------------------------------
-| kemnitz     | 3491        |
------------------------------
-| choi        | 3898        |
------------------------------
-| plai        | 3665        |
------------------------------
+ -----------------------------
+ | usename     | usesysid    |
+ -----------------------------
+ | postgres    | 6           |
+ -----------------------------
+ | mike        | 799         |
+ -----------------------------
+ | sp          | 1511        |
+ -----------------------------
+ | jhingran    | 943         |
+ -----------------------------
+ | cimarron    | 2359        |
+ -----------------------------
+ | goh         | 1994        |
+ -----------------------------
+ | ong         | 2802        |
+ -----------------------------
+ | hong        | 2469        |
+ -----------------------------
+ | mao         | 1806        |
+ -----------------------------
+ | margo       | 2697        |
+ -----------------------------
+ | sullivan    | 1517        |
+ -----------------------------
+ | kemnitz     | 3491        |
+ -----------------------------
+ | choi        | 3898        |
+ -----------------------------
+ | plai        | 3665        |
+ -----------------------------
 
 Go 
 .ft
