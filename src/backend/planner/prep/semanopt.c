@@ -78,66 +78,67 @@ SemantOpt(varlist,rangetable, qual)
     return(LispNil);
   else
     if (is_clause(qual)) {
-      op = get_opno(get_op(qual));
-      if (op == 627) {
-	leftvarno = get_varno(get_leftop(qual));
-	rightvarno = ConstVarno(rangetable, get_rightop(qual));
-	/*
-	 *  test for existential clauses first 
-	 */
-	if (!member(lispInteger(leftvarno),varlist) &&
-	    !member(lispInteger(rightvarno),varlist))
-	  retqual = MakeTClause();
-	else 
-	  if (leftvarno == rightvarno)
-	    retqual = MakeFClause();
-      } else 
-	if (op == 558) {  /* oid = */
-	  AttributeNumber leftattno;
-	  AttributeNumber rightattno;
-	  List rte1 = LispNil;
-	  List rte2 = LispNil;
-
+      /* At this stage, union vars are existential */
+      if (consp(get_leftop(qual)))
+	retqual = MakeTClause();
+      else {
+	op = get_opno(get_op(qual));
+	if (op == 627) {
 	  leftvarno = get_varno(get_leftop(qual));
-	  rightvarno = get_varno(get_rightop(qual));
-	  leftattno = get_varattno(get_leftop(qual));
-	  rightattno = get_varattno(get_rightop(qual));
-
+	  rightvarno = ConstVarno(rangetable, get_rightop(qual));
+	  /*
+	   *  test for existential clauses first 
+	   */
 	  if (!member(lispInteger(leftvarno),varlist) &&
 	      !member(lispInteger(rightvarno),varlist))
-	    retqual = MakeTClause();	
-	  else {
-	    if (leftattno < 0 && rightattno < 0) {
-	      /* Comparing the oid field of 2 rels */
-	      if (leftvarno == rightvarno)
-		retqual = MakeTClause();
-	      else {
-		rte1 = nth (leftvarno -1, rangetable);
-		rte2 = nth (rightvarno -1, rangetable);
-		
-		if (strcmp(CString(CADR(rte1)),
-			   CString(CADR(rte2))) != 0)
-		  retqual = MakeFClause();
+	    retqual = MakeTClause();
+	  else 
+	    if (leftvarno == rightvarno)
+	      retqual = MakeFClause();
+	} else 
+	  if (op == 558) {  /* oid = */
+	    AttributeNumber leftattno;
+	    AttributeNumber rightattno;
+	    List rte1 = LispNil;
+	    List rte2 = LispNil;
+	  
+	    leftvarno = get_varno(get_leftop(qual));
+	    rightvarno = get_varno(get_rightop(qual));
+	    leftattno = get_varattno(get_leftop(qual));
+	    rightattno = get_varattno(get_rightop(qual));
+	    
+	    if (!member(lispInteger(leftvarno),varlist) &&
+		!member(lispInteger(rightvarno),varlist))
+	      retqual = MakeTClause();	
+	    else {
+	      if (leftattno < 0 && rightattno < 0) {
+		/* Comparing the oid field of 2 rels */
+		if (leftvarno == rightvarno)
+		  retqual = MakeTClause();
+		else {
+		  rte1 = nth (leftvarno -1, rangetable);
+		  rte2 = nth (rightvarno -1, rangetable);
+		  
+		  if (strcmp(CString(CADR(rte1)),
+			     CString(CADR(rte2))) != 0)
+		    retqual = MakeFClause();
+		}
 	      }
 	    }
-	  }
-	} else 
-	  /* Just a normal op clause, check to see if it is existential */
-	  if (IsA(get_leftop(qual),Var)) {
-	    leftvarno = get_varno(get_leftop(qual));
-	    if (IsA(get_rightop(qual),Var)) {
-	      rightvarno = get_varno(get_rightop(qual));
-	      if (!member(lispInteger(leftvarno),varlist) &&
-		  !member(lispInteger(rightvarno),varlist))
-		retqual = MakeTClause();       /* this is true only for ANDS */
+	  } else 
+	    /* Just a normal op clause, check to see if it is existential */
+	    if (IsA(get_leftop(qual),Var)) {
+	      leftvarno = get_varno(get_leftop(qual));
+	      if (IsA(get_rightop(qual),Var)) {
+		rightvarno = get_varno(get_rightop(qual));
+		if (!member(lispInteger(leftvarno),varlist) &&
+		    !member(lispInteger(rightvarno),varlist))
+		  retqual = MakeTClause();    /* this is true only for ANDS */
+	      }
+	      if (!member(lispInteger(leftvarno),varlist))
+		retqual = MakeTClause();
 	    }
-	    if (!member(lispInteger(leftvarno),varlist))
-	      retqual = MakeTClause();
-	  }
-	  else {    /* At this stage, union vars are existential */
-	    if (consp(get_leftop(qual))) 
-	      retqual = MakeTClause();
-	  }
+      }
     } else  
       if (and_clause (qual)) {
 	foreach(i,get_andclauseargs(qual)) {
@@ -244,34 +245,36 @@ update_vars(rangetable,varlist,qual)
   else 
     if (is_clause(qual)) {
       op = get_opno(get_op(qual));
-      if (op == 627) {  /* Greg's horrendous not-in op */
-	leftvarno = get_varno(get_leftop(qual));
-	rightvarno = ConstVarno(rangetable,get_rightop(qual));
+      if (!consp(get_leftop(qual))) { /* ignore union vars at this point */
+	if (op == 627) {  /* Greg's horrendous not-in op */
+	  leftvarno = get_varno(get_leftop(qual));
+	  rightvarno = ConstVarno(rangetable,get_rightop(qual));
 
-	if (member(lispInteger(leftvarno),varlist)) {
-	  if (rightvarno != 0 && !member(lispInteger(rightvarno),varlist))
-	    varlist = nappend1(varlist,lispInteger(rightvarno));
-	}
-	else
-	  if (member(lispInteger(rightvarno),varlist))
-	    if (!member(lispInteger(leftvarno),varlist))
-	      varlist = nappend1(varlist,lispInteger(leftvarno));	
-      } else {
-	leftop = (List)get_leftop(qual);
-	rightop = (List)get_rightop(qual);
-	if (IsA(leftop,Var)) {
-	  if (IsA(rightop,Var)) {
-	    if (member(lispInteger(get_varno(leftop)),varlist)) {
-	      if (!member(lispInteger(get_varno(rightop)),varlist))
-		varlist = nappend1(varlist,lispInteger(get_varno(rightop)));
-	    }
-	    else
-	      if (member(lispInteger(get_varno(rightop)),varlist))
-		if (!member(lispInteger(get_varno(leftop)),varlist))
-		  varlist = nappend1(varlist,lispInteger(get_varno(leftop)));
+	  if (member(lispInteger(leftvarno),varlist)) {
+	    if (rightvarno != 0 && !member(lispInteger(rightvarno),varlist))
+	      varlist = nappend1(varlist,lispInteger(rightvarno));
 	  }
-	} /* leftop var */
-      } /*else */
+	  else
+	    if (member(lispInteger(rightvarno),varlist))
+	      if (!member(lispInteger(leftvarno),varlist))
+		varlist = nappend1(varlist,lispInteger(leftvarno));	
+	} else {
+	  leftop = (List)get_leftop(qual);
+	  rightop = (List)get_rightop(qual);
+	  if (IsA(leftop,Var)) {
+	    if (IsA(rightop,Var)) {
+	      if (member(lispInteger(get_varno(leftop)),varlist)) {
+		if (!member(lispInteger(get_varno(rightop)),varlist))
+		  varlist = nappend1(varlist,lispInteger(get_varno(rightop)));
+	      }
+	      else
+		if (member(lispInteger(get_varno(rightop)),varlist))
+		  if (!member(lispInteger(get_varno(leftop)),varlist))
+		    varlist = nappend1(varlist,lispInteger(get_varno(leftop)));
+	    }
+	  } /* leftop var */
+	} /*else */
+      }
     } else  /* is_clause */
       if (and_clause(qual)) {
 	foreach(tmp, get_andclauseargs(qual))
@@ -317,7 +320,7 @@ ConstVarno(rangetable,constnode)
   else {
     ptr = DatumGetPointer(get_constvalue(constnode));
     strcpy (tmpstring, ptr);
-    relname = strtok(tmpstring, ".");
+    relname = (char *)strtok(tmpstring, ".");
     
     foreach (i, rangetable) {
       position += 1;
