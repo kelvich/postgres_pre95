@@ -47,6 +47,7 @@ Relation relation;
     RuleLock locks;
     AttributeValues attrValues;
     bool insteadRuleFound;
+    Name relName;
 
     /*
      * Find the locks of the tuple.
@@ -56,8 +57,19 @@ Relation relation;
      * called as part of a retrieve operation in the lower
      * scan nodes opf the plan.
      */
+#ifdef NO
     locks = prs2GetLocksFromTuple (tuple, buffer,
 			RelationGetTupleDescriptor(relation));
+#else
+    /*
+     * XXX
+     * in the current implementation, "tuple" has just been
+     * retrieved from disk and as all locks are currently "relation level"
+     * locks, no locks are actually stored in the tuple!
+     */
+    relName = & ((RelationGetRelationTupleForm(relation))->relname);
+    locks = prs2GetLocksFromRelation(relName);
+#endif
 
     /*
      * if there are no rules, then return immediatelly
@@ -100,7 +112,7 @@ Relation relation;
      * free allocated stuff...
      */
     prs2FreeLocks(locks);
-    attributeValuesFree(attrValues);
+    attributeValuesFree(attrValues, relation);
 
     /*
      * Was this rule an 'instead' rule ???
