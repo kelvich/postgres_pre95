@@ -20,6 +20,46 @@
 #include "nodes/primnodes.a.h"
 #include "planner/clauses.h"
 
+LispValue
+pull_agg_clause(temp)
+	 TLE temp;
+{
+	LispValue clause = LispNil;
+	LispValue retval = LispNil;
+	   clause = CADR(temp);
+	/* XXX breakable hack */
+	if(null(clause))
+	    retval=LispNil;
+	else if(agg_clause(clause))
+	    retval = lispCons(CDR(clause), LispNil);
+	    /* this brings the clause down to
+	     * (aggname, query, tlist, -1)
+	     */
+        else if (single_node (clause)) 
+	    retval = LispNil;
+	else if (or_clause(clause)) {
+		LispValue temp;
+		LispValue result = LispNil;
+		/* mapcan */
+		foreach (temp,get_orclauseargs(clause) )
+		  retval = nconc(retval, pull_agg_clause(CAR(temp)));
+	    }
+	else if (is_funcclause (clause)) {
+	    LispValue temp;
+	    /* mapcan */
+	    foreach(temp,get_funcargs(clause))
+	      retval = nconc (retval,pull_agg_clause(CAR(temp)));
+	    }
+	else if (not_clause (clause))
+	    retval = pull_agg_clause(get_notclausearg(clause));
+	else if (is_clause(clause))
+	    retval = nconc (pull_agg_clause (get_leftop (clause)),
+			pull_agg_clause (get_rightop (clause)));
+	else
+	    retval=  LispNil;
+	return (retval);
+}
+
 /*    
  *    	pull_var_clause
  *    
@@ -58,6 +98,7 @@ pull_var_clause (clause)
 	else if (is_clause (clause)) 
 	  retval = nconc (pull_var_clause (get_leftop (clause)),
 			  pull_var_clause (get_rightop (clause)));
+	else retval = LispNil;
 	return (retval);
 }
 
