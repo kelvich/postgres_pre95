@@ -970,18 +970,35 @@ form ARGS(( int, ... ));
 
 /* HP-UX */
 
-/*
- * This cheesy hack turns ON unaligned-access fixup on H-P PA-RISC;
- * the resulting object files contain code that explicitly handles
- * realignment on reference, so it slows memory access down by a 
- * considerable factor.  It must be used in conjunction with the +u 
- * flag to cc.  The #pragma is included in c.h to be safe since EVERY 
- * source file that performs unaligned access must contain the #pragma.
+#if defined(PORTNAME_hpux) 
+#if !defined(NOFIXADE)
+/* ----------------
+ *	This cheesy hack turns ON unaligned-access fixup on H-P PA-RISC;
+ *	the resulting object files contain code that explicitly handles
+ *	realignment on reference, so it slows memory access down by a 
+ *	considerable factor.  It must be used in conjunction with the +u 
+ *	flag to cc.  The #pragma is included in c.h to be safe since EVERY 
+ *	source file that performs unaligned access must contain the #pragma.
+ * ----------------
  */
-#if defined(PORTNAME_hpux) && !defined(NOFIXADE)
-/* permit unaligned access */
 #pragma HP_ALIGN HPUX_NATURAL_S500
-#endif /* PORTNAME_hpux && !NOFIXADE */
+#endif /* !NOFIXADE */
+/* ----------------
+ *	This is so bogus.  The HP-UX 9.01 compiler has totally broken
+ *	struct initialization code.  It actually length-checks ALL 
+ *	array initializations within structs against the FIRST one that 
+ *	it sees (when #pragma HP_ALIGN HPUX_NATURAL_S500 is defined).. 
+ *	we have to throw in this unused structure before struct varlena
+ *	is defined.
+ * ----------------
+ */
+struct HP_WAY_BOGUS {
+	char	hpwb_bogus[8192];
+};
+struct HP_TOO_BOGUS {
+	int	hptb_bogus[8192];
+};
+#endif /* PORTNAME_hpux */
 
 /* ----------------
  *	end of c.h
