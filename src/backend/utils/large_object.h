@@ -102,6 +102,7 @@ typedef struct
 
 #define IFS_RDLOCK	(1 << 0)
 #define IFS_WRLOCK	(1 << 1)
+#define IFS_ATEOF	(1 << 2)
 
 		u_long flags;		/* locking info, etc */
 
