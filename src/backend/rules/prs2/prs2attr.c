@@ -56,6 +56,7 @@ Relation relation;
 				RelationGetTupleDescriptor(relation),
 				&isNull);
 	attrValues[i-1].isCalculated = (Boolean) 0;
+	attrValues[i-1].isChanged = (Boolean) 0;
 	attrValues[i-1].isNull = isNull;
     }
 
@@ -69,9 +70,28 @@ Relation relation;
  * Free a previously allocated 'AttributeValues' array.
  */
 void
-attributeValuesFree(a)
+attributeValuesFree(a, relation)
 AttributeValues a;
+Relation relation;
 {
+    int i;
+    AttributeNumber natts;
+    TupleDescriptor tdesc;
+
+    /*
+     * free all space (if any) occupied by datums generated
+     * by "prs2RunOnePlanAndGetValue()"
+     * All these datums are creted via "copyDatum()"
+     */
+    tdesc = RelationGetTupleDescriptor(relation);
+    natts = RelationGetNumberOfAttributes(relation);
+    for(i=1; i<=natts; i++) {
+	if (a[i-1].isCalculated && a[i-1].isChanged) {
+	    if (!a[i-1].isNull)
+		freeDatum(a[i-1].value, tdesc->data[i-1]->atttypid);
+	}
+    }
+
     pfree(a);
 }
 

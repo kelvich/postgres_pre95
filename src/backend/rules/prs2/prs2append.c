@@ -128,7 +128,7 @@ Buffer *returnedBufferP;
 				relation, returnedTupleP);
 
     prs2FreeLocks(locks);
-    attributeValuesFree(attrValues);
+    attributeValuesFree(attrValues, relation);
 
     if (insteadRuleFound) {
 	return(PRS2_STATUS_INSTEAD);
