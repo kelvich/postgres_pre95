@@ -19,6 +19,7 @@ static	char ami_parser_y[] =
 #include "support/bkint.h"
 #include "tmp/portal.h" 
 #include "storage/smgr.h" 
+#include "nodes/pg_lisp.h"
 
 #undef BOOTSTRAP
 #include "y.tab.h"
@@ -209,18 +210,48 @@ QuitStmt:
 	;
 
 DefineIndexStmt:
-	  XDEFINE INDEX ident ON ident USING ident LPAREN ident ident RPAREN
-		{ 
+	  XDEFINE INDEX ident ON ident USING ident LPAREN index_params RPAREN
+		{
+		  List params;
+
 		  DO_START;
+
+		  params = nappend1(LispNil, (List)$9);
 		  defineindex(LexIDStr($5), 
 			      LexIDStr($3), 
 			      LexIDStr($7),
-			      LexIDStr($9),
-			      LexIDStr($10));
+			      params);
 		  DO_END;
 		}
 	;
-    
+
+index_params:
+	index_on ident
+		{
+		  $$ = (YYSTYPE)nappend1(LispNil, (List)$1);
+		  nappend1((List)$$, lispString(LexIDStr($2)));
+		}
+
+index_on:
+	  ident
+		{
+		  $$ = (YYSTYPE)lispString(LexIDStr($1));
+		}
+	| ident LPAREN arg_list RPAREN
+		{
+		  $$ = (YYSTYPE)nappend1(LispNil, lispString(LexIDStr($1)));
+		  rplacd((List)$$, (List)$3);
+		}
+
+arg_list:
+	  ident
+		{
+		  $$ = (YYSTYPE)nappend1(LispNil, lispString(LexIDStr($1)));
+		}
+	| arg_list COMMA ident
+		{
+		  $$ = (YYSTYPE)nappend1((List)$1, lispString(LexIDStr($3)));
+		}
 
 RenameRelnStmt:
 	  XRENAME RELATION ident AS ident

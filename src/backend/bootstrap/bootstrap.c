@@ -860,30 +860,20 @@ InsertOneNull(i)
  * ----------------
  */
 void
-defineindex(heapName, indexName, accessMethodName, attname, opsname)
+defineindex(heapName, indexName, accessMethodName, attributeList)
     char  *heapName;
     char  *indexName;
     char  *accessMethodName;
-    char  *attname;
-    char  *opsname;
-{
     List  attributeList;
-    List  parameterList;
-    List  predicate;
+{
     Relation    cur_relation;
-
-    attributeList = nappend1(LispNil, lispName(attname));
-    attributeList = nappend1(attributeList, lispName(opsname));
-    attributeList = lispCons(attributeList, LispNil);
-    
-    parameterList = predicate = LispNil;
 
     DefineIndex(heapName,
 		indexName,
 		accessMethodName,
 		attributeList,
-		parameterList,
-		predicate);
+		LispNil,
+		LispNil);
     /*
      * All of the rest of this routine is needed only because in bootstrap
      * processing we don't increment xact id's.  The normal DefineIndex
@@ -904,7 +894,7 @@ defineindex(heapName, indexName, accessMethodName, attname, opsname)
             elog(WARN, "defineindex: could not open %s relation", heapName);
 
     if (!BootstrapAlreadySeen(cur_relation->rd_id))
-	UpdateStats(cur_relation);
+	UpdateStats(cur_relation, 0);
 }
 
 #define MORE_THAN_THE_NUMBER_OF_CATALOGS 256
@@ -927,7 +917,6 @@ BootstrapAlreadySeen(id)
 	    seenthis = true;
 	    break;
 	}
-	i++;
     }
     if (!seenthis)
     {
