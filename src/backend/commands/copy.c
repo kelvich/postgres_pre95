@@ -46,6 +46,7 @@ char *filename;
     {
         if (IsUnderPostmaster)
         {
+			ReceiveCopyBegin();
             fp = pipe ? Pfin : fopen(filename, "r");
         }
         else
@@ -62,6 +63,7 @@ char *filename;
     {
         if (IsUnderPostmaster)
         {
+			SendCopyBegin();
             fp = pipe ? Pfout : fopen(filename, "w");
         }
         else
@@ -81,6 +83,7 @@ char *filename;
     else if (!from && !binary)
     {
         fputs(".\n", fp);
+		if (IsUnderPostmaster) fflush(Pfout);
     }
 }
 
