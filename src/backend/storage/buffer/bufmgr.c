@@ -1380,8 +1380,22 @@ PrintBufferDescs()
 
     for (i=0; i<NBuffers; i++) {
 	buf = &(BufferDescriptors[i]);
-	printf("(freeNext=%d, freePrev=%d, relname=%s, blockNum=%d, flags=0x%x, refcount=%d %d)\n", buf->freeNext, buf->freePrev, &(buf->sb_relname), buf->tag.blockNum, buf->flags, buf->refcount, PrivateRefCount[i]);
+	printf("[%02d] (freeNext=%d, freePrev=%d, relname=%s, ",
+		i, buf->freeNext, buf->freePrev, &(buf->sb_relname));
+	printf("blockNum=%d, flags=0x%x, refcount=%d %d)\n",
+		buf->tag.blockNum, buf->flags, buf->refcount,
+		PrivateRefCount[i]);
      }
+}
+
+void
+GetPageAddr(bufno)
+	int bufno;
+{
+	int p;
+
+	p = ShmemBase + BufferDescriptors[bufno].data;
+	printf("0x%lx (%ld)\n", p, p);
 }
 
 void
