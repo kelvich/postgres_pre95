@@ -29,7 +29,6 @@ ObjectId OperatorShellMake ARGS((Name operatorName , Name leftTypeName , Name ri
 int OperatorDef ARGS((Name operatorName , int definedOK , Name leftTypeName , Name rightTypeName , Name procedureName , uint16 precedence , Boolean isLeftAssociative , Name commutatorName , Name negatorName , Name restrictionName , Name joinName , Boolean canHash , Name leftSortName , Name rightSortName ));
 int OperatorUpd ARGS((ObjectId baseId , ObjectId commId , ObjectId negId ));
 void OperatorDefine ARGS((Name operatorName , Name leftTypeName , Name rightTypeName , Name procedureName , uint16 precedence , Boolean isLeftAssociative , Name commutatorName , Name negatorName , Name restrictionName , Name joinName , Boolean canHash , Name leftSortName , Name rightSortName ));
-HeapTuple FindDefaultType ARGS((char *operatorName , int leftTypeId ));
 
 /* protoypes for functions in lib/catalog/pg_type.c */
 ObjectId TypeGetWithOpenRelation ARGS((Relation pg_type_desc , Name typeName , bool *defined ));
