@@ -212,7 +212,7 @@ Buffer *returnedBufferP;
      */
     explocks = prs2FindNewExportLocksFromLocks(newLocks);
     for (i=0; i<prs2GetNumberOfLocks(explocks); i++) {
-	oneLock = prs2GetOneLockFromLocks(explocks);
+	oneLock = prs2GetOneLockFromLocks(explocks, i);
 	if (!prs2OneLockIsMemberOfLocks(oneLock, oldLocks)) {
 	    /*
 	     * a brand new export lock !
@@ -227,7 +227,7 @@ Buffer *returnedBufferP;
 	}
     }
     for (i=0; i<prs2GetNumberOfLocks(oldLocks); i++) {
-	oneLock = prs2GetOneLockFromLocks(explocks);
+	oneLock = prs2GetOneLockFromLocks(oldLocks, i);
 	if (prs2OneLockGetLockType(oneLock) != LockTypeExport)
 	    continue;
 	if (!prs2OneLockIsMemberOfLocks(oneLock, oldLocks)) {
@@ -243,7 +243,7 @@ Buffer *returnedBufferP;
 	}
     }
     for (i=0; i<prs2GetNumberOfLocks(explocks); i++) {
-	oneLock = prs2GetOneLockFromLocks(explocks);
+	oneLock = prs2GetOneLockFromLocks(explocks, i);
 	if (prs2OneLockIsMemberOfLocks(oneLock, oldLocks)) {
 	    /*
 	     * this lock existed before & still exists now...
