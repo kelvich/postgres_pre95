@@ -1,12 +1,12 @@
 extern int cost_seqscan ARGS((LispValue relid, int relpages, int reltuples));
-extern int cost_index ARGS((LispValue indexid, int expected_indexpages, int selec, LispValue relpages, int reltuples, LispValue indexpages, int indextuples));
+extern int cost_index ARGS((ObjectId indexid, int expected_indexpages, int selec, int relpages, int reltuples, int indexpages, int indextuples));
 extern int cost_sort ARGS((LispValue keys, int tuples, LispValue width, LispValue noread));
 extern int cost_hash ARGS((LispValue keys, int tuples, LispValue width, LispValue which_rel));
 extern int cost_result ARGS((int tuples, LispValue width));
 extern int cost_nestloop ARGS((int outercost, int innercost, int outertuples));
 extern int cost_mergesort ARGS((int outercost, int innercost, LispValue outersortkeys, LispValue innersortkeys, int outersize, int innersize, LispValue outerwidth, LispValue innerwidth));
 extern int cost_hashjoin ARGS((int outercost, int innercost, LispValue outerkeys, LispValue innerkeys, LispValue outersize, LispValue innersize, LispValue outerwidth, LispValue innerwidth));
-extern void *compute_rel_size ARGS((LispValue rel));
+extern int compute_rel_size ARGS((LispValue rel));
 extern int compute_rel_width ARGS((LispValue rel));
 extern int compute_targetlist_width ARGS((LispValue targetlist));
 extern int compute_attribute_width ARGS((LispValue tlistentry));
