@@ -88,7 +88,7 @@ extern LastOidProcessed;	/* for query rewrite */
  *	default number of buffers in buffer pool
  * 
  */
-#define NDBUFS 16
+#define NDBUFS 64
 
 #endif	/* !defined(GlobalsIncluded) */
 
