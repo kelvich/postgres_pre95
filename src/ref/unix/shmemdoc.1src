@@ -1,6 +1,6 @@
 .\" This is -*-nroff-*-
 .\" $Header$
-.TH SHMEMDOC UNIX 01/23/93
+.TH SHMEMDOC UNIX 02/12/94
 .XA 1 "Shmemdoc"
 .SH NAME
 shmemdoc \(em \*(PG shared memory editor
@@ -153,9 +153,10 @@ Exit
 .SH "SEE ALSO"
 ipcclean(unix).
 .SH BUGS
-Probably doesn't work on anything but DECstations.
-.PP
 All of the sizes, offsets, and values for shared data are hardwired
 into this program; it shares no code with the ordinary \*(PG system,
 so changes to shared memory layout will require changes to this
-program, as well.
+program, as well.  This hasn't been done recently, so as of Version
+\*(PV this program doesn't work correctly for many structures
+(most notably the shared memory buffer pool).  Use of this command
+is highly discouraged.
