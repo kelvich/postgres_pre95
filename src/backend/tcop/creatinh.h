@@ -38,4 +38,6 @@ RemoveRelation ARGS((
 	Name	name
 ));
 
+extern List lispCopyList ARGS((List list));
+
 #endif CreatinhHIncluded
