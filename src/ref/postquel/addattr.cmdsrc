@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH ADDATTR COMMANDS 01/23/93
+.TH ADDATTR COMMANDS 01/25/94
 .XA 2 "Addattr"
 .SH NAME
 addattr \(em add attributes to a class
@@ -23,13 +23,17 @@ in the same style and with the the same restrictions as in
 The new attributes will not be added to any classes which inherit
 attributes from
 .IR classname ,
-unless the \*(lq*\*(rq is present.
+unless the \*(lq*\*(rq is present.  Neglecting to add the attribute 
+to all inheriting classes will cause many queries involving
+inheritance (i.e., queries using clauses of the form \*(lqfrom a in 
+b*\*(rq) to fail.
 .PP
 The initial value of each added attribute for all instances is
 \*(lqnull\*(rq.
 .PP
 For efficiency reasons, default values for added attributes are not
-placed in existing instances of a class.  If default values are
+placed in existing instances of a class.  That is, existing instances
+will have NULL values in the new attributes.  If default values are
 desired, a subsequent
 .IR replace (commands)
 query should be run.
