@@ -32,19 +32,19 @@ using an AMI template script,
 but the database state can be
 tuned interactively.
 .lp
-The system catalogs consist of relations of two types:  global and local.
-There is one copy of each global relation that is shared
+The system catalogs consist of classes of two types:  global and local.
+There is one copy of each global class that is shared
 among all databases at a site.
-Local relations, on the other hand, are not accessible
+Local classes, on the other hand, are not accessible
 except from their own database.
 .lp
 \&.../files/global1.bki specifies the
-process used in the creation of global (shared) relations
+process used in the creation of global (shared) classes
 by
 .b createdb .
 Similarly, the
 \&.../files/local1_XXX.bki files specify the
-process used in the creation of local (unshared) catalog relations
+process used in the creation of local (unshared) catalog classes
 for the
 .q XXX
 template database.
@@ -54,7 +54,7 @@ If no template is specified in a
 .b createdb command,
 then the template in .../files/local1_template1.bki is used.
 .lp
-The .bki files are generated from C source code in Version 2.
+The .bki files are generated from C source code in Version 2.1.
 .lp
 .uh "SEE ALSO"
 .lp
