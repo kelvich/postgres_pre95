@@ -16,6 +16,7 @@
 #include "catalog/pg_proc.h"
 #include "utils/fcache.h"
 #include "utils/log.h"
+#include "nodes/primnodes.h"
 
 /*-----------------------------------------------------------------
  *
@@ -23,7 +24,7 @@
  *
  *-----------------------------------------------------------------
  */
-FunctionCache *
+FunctionCachePtr
 init_fcache(foid)
 ObjectId foid;
 {
@@ -31,7 +32,7 @@ ObjectId foid;
 	HeapTuple	typeTuple;
 	struct proc	*procedureStruct;
 	Form_pg_type	typeStruct;
-	FunctionCache *retval;
+	FunctionCachePtr retval;
 	
 	/* ----------------
 	 *   get the procedure tuple corresponding to the given
@@ -86,11 +87,40 @@ ObjectId foid;
 	 * This must persist throughout the duration of the query.
 	 */
 
-	retval = (FunctionCache *) palloc(sizeof(FunctionCache));
+	retval = (FunctionCachePtr) palloc(sizeof(FunctionCache));
 
 	fmgr_info(foid, &(retval->func), &(retval->nargs));
 	retval->typlen = (typeStruct)->typlen;
 	retval->typbyval = (typeStruct)->typbyval ? true : false ;
 
 	return(retval);
+}
+
+void
+set_fcache(node, foid)
+
+Node node;
+ObjectId foid;
+
+{
+	Func fnode;
+	Oper onode;
+	FunctionCachePtr fcache, init_fcache();
+
+	fcache = init_fcache(foid);
+
+	if (IsA(node,Oper))
+	{
+		onode = (Oper) node;
+		onode->op_fcache = fcache;
+	}
+	else if (IsA(node,Func))
+	{
+		fnode = (Func) node;
+		fnode->func_fcache = fcache;
+	}
+	else
+	{
+		elog(WARN, "init_fcache: node must be Oper or Func!");
+	}
 }
