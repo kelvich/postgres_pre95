@@ -34,6 +34,7 @@
 #include "planner/clauses.h"
 #include "planner/var.h"
 #include "c.h"
+#include "log.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
 #include "planner/setrefs.h"
@@ -517,6 +518,9 @@ set_tlist_references (plan)
 	else 
 	  if (IsA (plan,Sort))
 	    set_temp_tlist_references (plan);
+	  else
+	    if (IsA(plan,Result))
+		set_result_tlist_references(plan);
 
 }   /* function end  */
 
@@ -889,5 +893,113 @@ tlist_temp_references (tempid,tlist)
      return(t_list);
  }  /* function end  */
 
+/*---------------------------------------------------------
+ *
+ * set_result_tlist_references
+ *
+ * Change the target list of a Result node, so that it correctly
+ * addresses the tuples returned by its left tree subplan.
+ *
+ * NOTE:
+ *  1) we ignore the right tree! (in the current implementation
+ *     it is always nil
+ *  2) this routine will probably *NOT* work with nested dot
+ *     fields....
+ */
+void
+set_result_tlist_references(resultNode)
+Result resultNode;
+{
+    Plan subplan;
+    List resultTargetList;
+    List subplanTargetList;
+    LispValue t;
+    TLE entry;
+    Expr expr;
 
+    resultTargetList= get_qptargetlist(resultNode);
 
+    /*
+     * NOTE: we only consider the left tree subplan.
+     * This is usually a seq scan.
+     */
+    subplan = (Plan) get_lefttree(resultNode);
+    if (subplan != NULL) {
+	subplanTargetList = get_qptargetlist(subplan);
+    } else {
+	subplanTargetList = LispNil;
+    }
+
+    /*
+     * now for traverse all the entris of the target list.
+     * These should be of the form (Resdom_Node Expression).
+     * For every expression clause, call "replace_result_clause()"
+     * to appropriatelly change all the Var nodes.
+     */
+    foreach (t, resultTargetList) {
+	entry = (TLE) CAR(t);
+	expr = (Expr) get_expr(entry);
+	replace_result_clause(expr, subplanTargetList);
+    }
+
+}
+
+/*---------------------------------------------------------
+ *
+ * replace_result_clause
+ *
+ * This routine is called from set_result_tlist_references().
+ * and modifies the expressions of the target list of a Result
+ * node so that all Var nodes reference the target list of its subplan.
+ * 
+ */
+
+void
+replace_result_clause(clause, subplanTargetList)
+LispValue clause;
+List subplanTargetList;		/* target list of the subplan */
+{
+    
+    Expr subExpr;
+    LispValue t;
+    List subClause;
+    LispValue subplanVar;
+
+    if (IsA(clause,Var)) {
+	/*
+	 * Ha! A Var node!
+	 */
+	subplanVar = match_varid(get_varid(clause), subplanTargetList);
+	/*
+	 * Change the varno & varattno fields of the
+	 * var node.
+	 *
+	 */
+	set_varno(clause,(Index) OUTER);
+	set_varattno(clause, get_resno(tl_resdom(subplanVar)));
+	set_vardotfields(clause,LispNil);
+    } else if (is_funcclause(clause)) {
+	/*
+	 * This is a function. Recursively call this routine
+	 * for its arguments...
+	 */
+	subClause = get_funcargs(clause);
+	replace_result_clause(subClause,subplanTargetList);
+    } else if (is_clause(clause)) {
+	/*
+	 * This is an operator. Recursively call this routine
+	 * for both its left and right operands
+	 */
+	subClause = (List)get_leftop(clause);
+	replace_result_clause(subClause,subplanTargetList);
+	subClause = (List)get_rightop(clause);
+	replace_result_clause(subClause,subplanTargetList);
+    } else if (IsA(clause,Param) || IsA(clause,Const)) {
+	/* do nothing! */
+    } else {
+	/*
+	 * Ooops! we can not handle that!
+	 */
+	elog(WARN,"replace_result_clause: Can not handle this tlist!\n");
+    }
+}
