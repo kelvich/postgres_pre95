@@ -35,7 +35,7 @@ int		Userid;
 Relation	reldesc;		/* current relation descritor */
 char		relname[80];		/* current relation name */
 jmp_buf		Warn_restart;
-int		NBuffers = 2;
+int		NBuffers = 16;
 time_t		tim;
 bool 		override = false;
 int		NStriping = 1;  /* default no striping */
