@@ -317,6 +317,7 @@ CFLAGS+= -DNOFIXADE
 .  if (${PORTNAME} == "hpux")
 HPUX_VERS!=uname -r
 HPUX_MAJOR=${HPUX_VERS:R:E}
+HPUX_MINOR=${HPUX_VERS:E}
 .    if (${HPUX_MAJOR} == "08")
 CFLAGS+= +u -DHP_S500_ALIGN
 LDFLAGS+= +u
