@@ -46,6 +46,7 @@ RcsId("$Header$");
 #include "access/skey.h"
 #include "access/tqual.h"	/* for NowTimeQual */
 #include "access/tupdesc.h"
+#include "access/tupmacs.h"
  
 #include "rules/rlock.h"
 #include "storage/buf.h"
@@ -536,25 +537,26 @@ build_tupdesc_seq(buildinfo, relation, attp, natts)
     need = natts;
     pg_attribute_tuple = heap_getnext(pg_attribute_scan, 0, (Buffer *) NULL);
     while (HeapTupleIsValid(pg_attribute_tuple) && need > 0) {
-
-	attp = (AttributeTupleForm) HeapTupleGetForm(pg_attribute_tuple);
-
-	if (attp->attnum > 0) {
-	    char *newattp =
-		palloc((Size) (sizeof(RuleLock) +
-			       sizeof(*relation->rd_att.data[0])));
-
-	    bzero(newattp,	/* XXX PURIFY */
-		  sizeof(RuleLock) + sizeof(*relation->rd_att.data[0]));
-	    relation->rd_att.data[attp->attnum - 1] = (Attribute) newattp;
-	    bcopy((char *) attp,
-		  (char *) newattp,
-		  sizeof(*relation->rd_att.data[0]));
-
-	    need--;
-	}
-	pg_attribute_tuple = heap_getnext(pg_attribute_scan,
-					  0, (Buffer *) NULL);
+	 attp = (AttributeTupleForm) HeapTupleGetForm(pg_attribute_tuple);
+	 
+	 if (attp->attnum > 0) {
+	      char *newattp =
+		   palloc((Size) (sizeof(RuleLock) +
+				  sizeof(*relation->rd_att.data[0])));
+	      
+	      bzero(newattp,	/* XXX PURIFY */
+		    sizeof(RuleLock) + sizeof(*relation->rd_att.data[0]));
+	      if (heap_attisnull(pg_attribute_tuple,Anum_pg_attribute_attisset))
+		   ((Attribute)newattp)->attisset = false;
+	      relation->rd_att.data[attp->attnum - 1] = (Attribute) newattp;
+	      bcopy((char *) attp,
+		    (char *) newattp,
+		    sizeof(*relation->rd_att.data[0]));
+	      
+	      need--;
+	 }
+	 pg_attribute_tuple = heap_getnext(pg_attribute_scan,
+					   0, (Buffer *) NULL);
     }
 
     if (need > 0)
@@ -579,6 +581,7 @@ build_tupdesc_ind(buildinfo, relation, attp, natts)
     Relation attrel;
     HeapTuple atttup;
     int i;
+    char *bp;   /* bitmap of nulls in the tuple */
 
     attrel = heap_openr(Name_pg_attribute);
 
@@ -589,7 +592,7 @@ build_tupdesc_ind(buildinfo, relation, attp, natts)
 	if (!HeapTupleIsValid(atttup))
 	    elog(WARN, "cannot find attribute %d of relation %.16s", i,
 			&(relation->rd_rel->relname.data[0]));
-
+	bp = atttup->t_bits;
 	attp = (AttributeTupleForm) HeapTupleGetForm(atttup);
 
 	relation->rd_att.data[i - 1] = (Attribute)
@@ -599,6 +602,8 @@ build_tupdesc_ind(buildinfo, relation, attp, natts)
 	bcopy((char *) attp,
 	      (char *) relation->rd_att.data[i - 1],
 	      sizeof *relation->rd_att.data[0]);
+	if (att_isnull(Anum_pg_attribute_attisset, bp))
+	     relation->rd_att.data[i-1]->attisset = false;
     }
 
     heap_close(attrel);
