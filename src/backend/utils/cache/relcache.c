@@ -250,8 +250,10 @@ RelationIdGetRelation(relationId)
 	HeapScan	sd;
 	ScanKeyData	key;
 	char 		errorName[50];
-	extern	struct context *CacheCxt;
-	struct context *oldcxt;
+
+	extern	GlobalMemory CacheCxt;
+	MemoryContext	oldcxt;
+	
 	HeapTuple	tuple;
 	HashTable	NameCacheSave;
 	HashTable	IdCacheSave;
@@ -277,7 +279,7 @@ RelationIdGetRelation(relationId)
 	RelationCacheHashByName = PrivateRelationCacheHashByName;
 	RelationCacheHashById = PrivateRelationCacheHashById;
 
-	oldcxt = switchcontext(CacheCxt);
+	oldcxt = MemoryContextSwitchTo(CacheCxt);
 
 	rd = amopenr(RelationRelationName);
 
@@ -297,7 +299,7 @@ RelationIdGetRelation(relationId)
 			relationId);
 	}
 
-	rd = BuildRelation(rd, sd, errorName,oldcxt, tuple, 
+	rd = BuildRelation(rd, sd, errorName, oldcxt, tuple, 
 		NameCacheSave, IdCacheSave);
 
 	return rd;
@@ -318,8 +320,10 @@ getreldesc(relationName)
 	Relation	rd;
 	HeapScan	sd;
 	ScanKeyData	key;
-	extern	struct context *CacheCxt;
-	struct context *oldcxt;
+
+	extern	GlobalMemory CacheCxt;
+	MemoryContext	oldcxt;
+	
 	HeapTuple	tuple;
 	HashTable	NameCacheSave;
 	HashTable	IdCacheSave;
@@ -354,7 +358,7 @@ getreldesc(relationName)
 	RelationCacheHashByName = PrivateRelationCacheHashByName;
 	RelationCacheHashById = PrivateRelationCacheHashById;
 
-	oldcxt = switchcontext(CacheCxt);
+	oldcxt = MemoryContextSwitchTo(CacheCxt);
 
 	rd = amopenr(RelationRelationName);
 
@@ -374,12 +378,14 @@ getreldesc(relationName)
 }
 
 private Relation
-BuildRelation(rd, sd, errorName,oldcxt, tuple, NameCacheSave, IdCacheSave)
+BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 	Relation	rd;
 	HeapScan	sd;
 	String		errorName;
-	struct context *oldcxt;
-	HeapTuple	tuple;
+
+	MemoryContext	oldcxt;
+
+        HeapTuple	tuple;
 	HashTable	NameCacheSave;
 	HashTable	IdCacheSave;
 {
@@ -629,7 +635,8 @@ BuildRelation(rd, sd, errorName,oldcxt, tuple, NameCacheSave, IdCacheSave)
 	RelationInitLockInfo(relation);
 
 	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
-	(void)switchcontext(oldcxt);
+
+	MemoryContextSwitchTo(oldcxt);
 
 	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	RelationInitLockInfo(relation);
@@ -849,9 +856,10 @@ void
 RelationRegisterRelation(relation)
 	Relation	relation;
 {
-	struct context	*oldcxt;
-
-	oldcxt = switchcontext(CacheCxt);
+	extern	GlobalMemory CacheCxt;
+	MemoryContext   oldcxt;
+   
+	oldcxt = MemoryContextSwitchTo(CacheCxt);
 
 	if (oldcxt != CacheCxt) 
 		elog(NOIND,"RelationRegisterRelation: WARNING: Context != CacheCxt");
@@ -861,7 +869,8 @@ RelationRegisterRelation(relation)
 
 	RelationInitLockInfo(relation);
 
-	(void)switchcontext(oldcxt);
+	MemoryContextSwitchTo(oldcxt);
+
 }
 
 /*
