@@ -29,6 +29,7 @@
 #include "catalog/pg_prs2plans.h"
 
 extern EState CreateExecutorState();
+RuleLock prs2SLOWGetLocksFromRelation();
 
 /*-------------------------------------------------------------------
  * prs2GetRulePlanFromCatalog
@@ -98,6 +99,8 @@ Name relationName;
     HeapTuple relationTuple;
     RuleLock relationLocks;
 
+    return(prs2SLOWGetLocksFromRelation(relationName));
+
     /*
      * Search the system cache for the relation tuple
      */
@@ -163,6 +166,42 @@ Name relationName;
     return(relationLocks);
 }
 
+/*------------------------------------------------------------------
+ * prs2SLOWGetLocksFromRelation
+ *
+ * get the locks but without using the sys cache.
+ * Do a scan in the pg_class...
+ *
+ *------------------------------------------------------------------
+ */
+RuleLock
+prs2SLOWGetLocksFromRelation(relationName)
+Name relationName;
+{
+    Relation rel;
+    TupleDescriptor tdesc;
+    ScanKeyData scanKey;
+    HeapScanDesc scanDesc;
+    HeapTuple tuple;
+    Buffer buffer;
+    RuleLock locks;
+
+    rel = RelationNameOpenHeapRelation(Name_pg_relation);
+    tdesc = RelationGetTupleDescriptor(rel);
+    /*----
+     * Scan pg_relation
+     */
+    scanKey.data[0].flags = 0;
+    scanKey.data[0].attributeNumber = Anum_pg_relation_relname;
+    scanKey.data[0].procedure = F_CHAR16EQ;
+    scanKey.data[0].argument = NameGetDatum(relationName);
+    scanDesc = RelationBeginHeapScan(rel, false, NowTimeQual, 1, &scanKey);
+    tuple = HeapScanGetNextTuple(scanDesc, false, &buffer);
+    locks = prs2GetLocksFromTuple( tuple, buffer, (TupleDescriptor) NULL);
+    RelationCloseHeapRelation(rel);
+
+    return(locks);
+}
 /*------------------------------------------------------------------
  *
  * prs2CheckQual
