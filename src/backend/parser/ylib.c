@@ -428,11 +428,7 @@ MakeFromClause ( from_list, base_rel )
     if ( length ( base_rel ) > 1 ) {
 	IsConcatenation = true;
     }
-    elog(NOTICE, "the pseudo relations are:");
-    lispDisplay ( from_list , 0 );
-    elog(NOTICE, "the real relations are:");
-    lispDisplay ( base_rel , 0 );
-    
+
     foreach ( i , from_list ) {
         List temp = CAR(i);
 	
