@@ -18,7 +18,6 @@ RcsId("$Header$");
 #include "mnodes.h"
 #include "nodes.h"
 #include "pg_lisp.h"
-#include "plannodes.h"	/* for Plan */
 #include "tags.h"
 
 #include "portal.h"
@@ -427,43 +426,30 @@ BlankPortalAssignName(name)
 }
 
 void
-PortalSetQuery(portal, parse, plan, state, cleanup)
+PortalSetQuery(portal, queryDesc, state, cleanup)
 	Portal	portal;
-	List	parse;
-	Plan	plan;
+	List	queryDesc;
 	EState	state;
 	void	(*cleanup) ARGS((Portal portal));
 {
 	AssertState(PortalManagerEnabled);
 	AssertArg(PortalIsValid(portal));
-	AssertArg(NodeIsType((Node)parse, classTag(LispList)));
-	AssertArg(NodeIsType((Node)plan, classTag(Plan)));
+	AssertArg(NodeIsType((Node)queryDesc, classTag(LispList)));
 	AssertArg(NodeIsType((Node)state, classTag(EState)));
 
-	portal->parse = parse;
-	portal->plan = plan;
+	portal->queryDesc = queryDesc;
 	portal->state = state;
 	portal->cleanup = cleanup;
 }
 
-LispValue	/* Parse */
-PortalGetParse(portal)
+List	/* QueryDesc */
+PortalGetQueryDesc(portal)
 	Portal		portal;
 {
 	AssertState(PortalManagerEnabled);
 	AssertArg(PortalIsValid(portal));
 
-	return (portal->parse);
-}
-
-Plan
-PortalGetPlan(portal)
-	Portal		portal;
-{
-	AssertState(PortalManagerEnabled);
-	AssertArg(PortalIsValid(portal));
-
-	return (portal->plan);
+	return (portal->queryDesc);
 }
 
 EState
@@ -514,8 +500,7 @@ CreatePortal(name)
 	strncpy(portal->name, name, length);
 
 	/* initialize portal query */
-	portal->parse = LispNil;
-	portal->plan = NULL;
+	portal->queryDesc = LispNil;
 	portal->state = NULL;
 	portal->cleanup = NULL;
 
@@ -723,8 +708,7 @@ CreateNewBlankPortal()
 	portal->name = "** Blank Portal **";
 
 	/* initialize portal query */
-	portal->parse = LispNil;
-	portal->plan = NULL;
+	portal->queryDesc = LispNil;
 	portal->state = NULL;
 	portal->cleanup = NULL;
 
