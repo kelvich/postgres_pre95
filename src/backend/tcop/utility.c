@@ -216,17 +216,8 @@ ProcessUtility(command, args, commandString, dest)
 	     * discard '(FROM/TO "filename")
 	     */
 	    args = CDR(args);
-	    
-	    if (!null(CDR(CAR(args)))) {
-		mapName = CString(CADR(CAR(args)));
-	    }
-	    /*
-	     * discard '(USING ["mapName"])
-	     */
-	    args = CDR(args);
-	    
-	    PerformRelationFilter(relationName, isBinary, noNulls, isFrom,
-				  fileName, mapName, args);
+
+		DoCopy(relationName, isBinary, isFrom, 0, fileName);
 	}
 	break;
 	

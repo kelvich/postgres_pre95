@@ -9,7 +9,6 @@
  *	PortalCleanup
  *	PerformPortalFetch
  *	PerformPortalClose
- *	PerformRelationFilter
  *	PerformAddAttribute
  *
  *   NOTES
@@ -312,34 +311,6 @@ FixDomainList(domains)
     
     return (result);
 }
-
-/* --------------------------------
- * 	PerformRelationFilter
- * --------------------------------
- */
-void
-PerformRelationFilter(relationName, isBinary, noNulls, isFrom, fileName,
-		mapName, domains)
-    Name	relationName;
-    bool	isBinary;
-    bool	noNulls;
-    bool	isFrom;
-    String	fileName;
-    Name	mapName;
-    List	domains;
-{
-    AttributeNumber	numberOfAttributes;
-    Domain		domainDesc;
-    Count		domainCount;
-    
-    numberOfAttributes = length(domains);
-    domains = FixDomainList(domains);
-    domainDesc = createdomains(relationName, isBinary, noNulls, isFrom,
-			       domains, &domainCount);
-    
-    copyrel(relationName, isFrom, fileName, mapName, domainCount, domainDesc);
-}
-
 
 /* ----------------
  *	PerformAddAttribute
