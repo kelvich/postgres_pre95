@@ -20,12 +20,10 @@ function with the given name and argument types will be romoved.
 /*
  * this command removes the square root function
  */
-remove function sqrt
+remove function sqrt(int4)
 .)C
 .SH "SEE ALSO"
 define function(commands).
 .SH BUGS
-No support is currently provided for removing \*(PQ functions.
-.PP
 No checks are made to ensure that types, operators or access methods
 that rely on the function have been removed first.
