@@ -150,9 +150,15 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
 	    fret = xret1;
     } else {
 	/* both transition functions */
+#if 0
+	/*
+	 * this was in the original definition but gets in the way
+	 * of the s2k benchmark
+	 */
 	if (xret1 != xret2)
 	    elog(WARN, "AggregateDefine: transition function 1 type (%d) != transition function 2 type (%d)",
 		 xret1, xret2);
+#endif
 	if (ObjectIdIsValid(farg) && (farg != xret1))
 	    elog(WARN, "AggregateDefine: final function argument type (%d) != transition function type (%d)",
 		 farg, xret1);
