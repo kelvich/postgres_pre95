@@ -1746,8 +1746,13 @@ bool CopyPathFields(from, newnode, alloc)
     char *	(*alloc)();
 {
     newnode->pathtype =  	from->pathtype;
-    
-    Node_Copy(from, newnode, alloc, parent);
+    /* Modify the next line, since it causes the copying to cycle
+       (i.e. the parent points right back here! 
+       -- JMH, 7/7/92.
+       Old version:
+       Node_Copy(from, newnode, alloc, parent);
+       */
+    newnode->parent =           from->parent;
     
     newnode->path_cost = 	from->path_cost;
     
@@ -1758,7 +1763,7 @@ bool CopyPathFields(from, newnode, alloc)
     newnode->outerjoincost = 	from->outerjoincost;
     
     Node_Copy(from, newnode, alloc, joinid);
-	
+    Node_Copy(from, newnode, alloc, locclauseinfo);
     return true;
 }
 
@@ -2078,7 +2083,7 @@ _copyCInfo(from, to, alloc)
     
     Node_Copy(from, newnode, alloc, indexids);
     Node_Copy(from, newnode, alloc, mergesortorder);
-    Node_Copy(from, newnode, alloc, hashjoinoperator);
+    newnode->hashjoinoperator = from->hashjoinoperator;
     Node_Copy(from, newnode, alloc, cinfojoinid);
     
     (*to) = newnode;
