@@ -37,14 +37,4 @@ typedef ItemSubpositionData	*ItemSubposition;
 #define PSKIP(OBJP, LEN)\
 	{ (OBJP)->op_cp += (LEN); (OBJP)->op_len -= (LEN); }
 
-/*
- * ItemPositionIsValid --
- *	True iff disk item identifier is valid.
- */
-extern
-bool
-ItemPositionIsValid ARGS((
-	ItemPosition	position
-));
-
 #endif	/* !defined(ItemPosIncluded) */
