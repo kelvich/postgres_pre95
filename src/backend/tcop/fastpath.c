@@ -45,69 +45,54 @@
 #include "utils/log.h"
 
 #include "catalog/syscache.h"
+#include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
 
 #include "tmp/fastpath.h"
-
-/* ----------------
- *	external_to_internal
- * ----------------
- */
-static int
-external_to_internal( string )
-     char *string;
-{
-    return((int)string);
-}
-
-/* ----------------
- *	internal_to_external
- * ----------------
- */
-static char * 
-internal_to_external( string )
-     char *string;
-{
-    return(string);
-}
 
 /* ----------------
  *	SendFunctionResult
  * ----------------
  */
 static void
-SendFunctionResult ( fid, retval, rettype )
+SendFunctionResult ( fid, retval, retsize )
      int fid;
      char *retval;
-     int rettype;
+     int retsize;
 {
     char *retdata;
 
 #if 0    
-    printf("Sending results %d, %d, %d",fid,retval,rettype);
+    printf("Sending results %d, %d, %d",fid,retval,retsize);
 #endif    
     
     pq_putnchar("V",1);
     pq_putint(fid,4);
     
-    switch (rettype) {
+    switch (retsize) {
 
       case 0: 			/* void retval */
         break;
       case PORTAL_RESULT:
 	break;
 
+      /*
+       *  XXX 10/27/92:  mao says this is bogus, and predicts that this code
+       *  never gets executed.  retdata may contain nulls.  the caller always
+       *  passes the real length of the return value, and never -1, to this
+       *  routine.
+       */
+
       case VAR_LENGTH_RESULT:
-	retdata = internal_to_external(retval, MAX_STRING_LENGTH, 0);
 	pq_putnchar("G", 1);
-	pq_putint(rettype, 4);
+	pq_putint(retsize, 4);
 	pq_putstr(retdata);
 	break;
 
       case 1: case 2: case 4:
 	pq_putnchar("G",1);
-	pq_putint(rettype,4);
-	pq_putint(retval, rettype);
+	pq_putint(retsize,4);
+	pq_putint(retval, retsize);
 	break;
 
       default:
@@ -115,29 +100,10 @@ SendFunctionResult ( fid, retval, rettype )
 	pq_putint(VARSIZE(retval)-4,4);
 	pq_putnchar(retval+4, VARSIZE(retval)-4);
     }
+
     pq_putnchar("0", 1);
     pq_flush();
-} /* SendFunctionResult */
-
-/* 
-    {
-	Datum sendproc;
-	bool attr_is_null;
-
-	tuple = SearchSysCacheTuple (TYPOID,rettype);
-	if (HeapTupleIsValid(tuple)) {
-
-
-	    sendproc = HeapTupleGetAttributeValue(tuple,
-						  InvalidBuffer,
-						  13,
-						  tupledesc,
-						  attr_is_null);
-						  
-	    if ( RegProcedureIsValid ( sendproc )  == false )
-	      elog(WARN,"invalid sending procedure");
-
-    } */
+}
 
 /* ---------------
  * 
@@ -181,16 +147,21 @@ HandleFunctionRequest()
     int fid;
     char function_name[MAX_FUNC_NAME_LENGTH+1];
     char *retval;		/* XXX - should be datum, maybe ? */
+    HeapTuple protup;
+    HeapTuple typtup;
+    Form_pg_proc proform;
+    Form_pg_type typform;
+    bool byval;
     int  arg[8];
     int  arg_length[8];
-    int  rettype;
+    int  retsize;
     int  nargs;
     int  i;
     unsigned char palloced;
 
     xactid = pq_getint(4);
     fid = pq_getint(4);
-    rettype = pq_getint(4);
+    retsize = pq_getint(4);
     nargs = pq_getint(4);
 
     /*
@@ -207,7 +178,7 @@ HandleFunctionRequest()
 	    char *data = (char *) palloc(MAX_STRING_LENGTH);
 	    palloced |= (1 << i);
 	    pq_getstr(data,MAX_STRING_LENGTH);
-	    arg[i] = external_to_internal(data,MAX_STRING_LENGTH,PASS_BY_REF);
+	    arg[i] = (int) data;
 	} else if (arg_length[i] > 4)  {
 	    char *vl;
 /*	    elog(WARN,"arg_length of %dth argument too long",i);*/
@@ -221,27 +192,48 @@ HandleFunctionRequest()
 	}
     }
 
-    /* lookup rettype in type catalog, and check send function */
-
-    if (rettype == PORTAL_RESULT) {
+    if (retsize == PORTAL_RESULT) {
 	/* fake it out by putting the stuff out first */
 	pq_putnchar("V",1);
 	pq_putint(0,4);
     }
 
-#if 0    
-    printf("\n arguments are %d %d %d \n",fid,arg[0],arg[1]);
-    printf("rettype = %d\n",rettype);
-#endif 
-    
+    /*
+     *  Figure out the return type for this function, and remember whether
+     *  it's pass-by-value or pass-by-reference.  Pass-by-ref values need
+     *  to be pfree'd before we exit this routine.
+     */
+
+    protup = SearchSysCacheTuple(PROOID, (char *) fid, NULL, NULL, NULL);
+    if (!HeapTupleIsValid(protup))
+	elog(WARN, "fastpath: procedure id %d does not exist", fid);
+    proform = (Form_pg_proc) GETSTRUCT(protup);
+    typtup = SearchSysCacheTuple(TYPOID, (char *) proform->prorettype,
+					 NULL, NULL, NULL);
+    if (!HeapTupleIsValid(typtup))
+	elog(WARN, "fastpath: return type %d for procedure %d does not exist",
+		   proform->prorettype, fid);
+    typform = (Form_pg_type) GETSTRUCT(typtup);
+    byval = typform->typbyval;
+
     retval = fmgr (fid, arg[0],arg[1],arg[2],arg[3],
 		   arg[4],arg[5],arg[6],arg[7] );
 
+    /* release palloc'ed arguments */
     for (i = 0; i < nargs; i++) {
 	if (palloced & (1 << i))
 	    pfree((Pointer)arg[i]);
     }
 
-    if (rettype != PORTAL_RESULT)
-	SendFunctionResult ( fid, retval, rettype );
+    /*
+     *  If this is an ordinary query (not a retrieve portal p ...), then
+     *  we return the data to the user.  If the return value was palloc'ed,
+     *  then it must also be freed.
+     */
+
+    if (retsize != PORTAL_RESULT) {
+	SendFunctionResult ( fid, retval, retsize );
+	if (!byval)
+	    pfree(retval);
+    }
 }
