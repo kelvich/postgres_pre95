@@ -318,13 +318,18 @@ make_result( tlist,resrellevelqual,left,right)
     extern bool EqualResult();
     Result node = New_Node(Result);
     
-    set_cost ((Plan)node,0.0);
-    set_qptargetlist ((Plan)node, tlist);
-    set_lefttree((Plan)node,left);
-    set_righttree((Plan)node,right);
-    set_resrellevelqual( node ,resrellevelqual); 
-    set_resconstantqual( node ,LispNil); 
+    set_cost((Plan) node, 0.0);
+    set_fragment((Plan) node, 0);
+    set_state((Plan) node, NULL);
+    set_qptargetlist((Plan)node, tlist);
+    set_qpqual((Plan) node, LispNil);
+    set_lefttree((Plan)node, left);
+    set_righttree((Plan)node, right);
 
+    set_resrellevelqual(node, resrellevelqual); 
+    set_resconstantqual(node, LispNil); 
+    set_resstate(node, NULL);
+    
     node->printFunc = PrintResult; 
     node->equalFunc = EqualResult;
     return(node);
