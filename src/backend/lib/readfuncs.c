@@ -26,7 +26,6 @@ RcsId("$Header$");
 #include "access/htup.h"
 #include "utils/fmgr.h"
 #include "utils/log.h"
-#include "utils/fcache.h"
 
 #include "catalog/syscache.h"
 #include "catalog/pg_type.h"
@@ -934,7 +933,7 @@ _readFunc()
 	{
 		local_node->funcisindex = false;
 	}
-	local_node->func_fcache = (FunctionCache *) init_fcache(local_node->funcid);
+	local_node->func_fcache = (FunctionCache *) NULL;
 	
 	return(local_node);
 }
@@ -975,7 +974,7 @@ _readOper()
 	token = lsptok(NULL, &length);      /* now read it */
 
 	local_node->opresulttype = atol(token);
-	local_node->op_fcache = (FunctionCache *) init_fcache(local_node->opno);
+	local_node->op_fcache = (FunctionCache *) NULL;
 
 	return(local_node);
 }

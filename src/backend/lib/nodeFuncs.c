@@ -181,7 +181,7 @@ replace_opid (oper)
      Oper oper ;
 {
     set_opno (oper,get_opcode (get_opno (oper)));
-	set_op_fcache(oper, init_fcache(get_opno(oper)));
+    set_op_fcache(oper, NULL); 
     return(oper);
 }
 
