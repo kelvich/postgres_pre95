@@ -76,20 +76,24 @@ initialize_targetlist (tlist)
     List xtl = LispNil;
     List tvar = LispNil;
     
+#ifdef NO_PLEASE
     if (!Quiet) {
     lispDisplay(tlist,0);
     printf("\n");
     fflush(stdout);
     }
+#endif NO_PLEASE
 
     foreach (xtl,tlist) {
 	TLE entry;
 	(LispValue)entry = CAR(xtl);
 
+#ifdef NO_PLEASE
         if (!Quiet) {
 	lispDisplay(entry,0);
 	fflush(stdout);
 	}
+#endif NO_PLEASE
 	tlist_vars = nconc(tlist_vars,pull_var_clause(get_expr(entry)));
     }
 
