@@ -28,6 +28,7 @@
 #include "access/itup.h"
 #include "access/tupdesc.h"
 #include "access/attval.h"
+#include "access/tupmacs.h"
 
 #include "storage/form.h"
 #include "storage/itemptr.h"
@@ -91,106 +92,233 @@ index_formtuple(numberOfAttributes, tupleDescriptor, value, null)
 
 /* ----------------
  *	fastgetiattr
+ *
+ *	This is a newer version of fastgetattr which attempts to be
+ *	faster by caching attribute offsets in the attribute descriptor.
+ *
+ *	an alternate way to speed things up would be to cache offsets
+ *	with the tuple, but that seems more difficult unless you take
+ *	the storage hit of actually putting those offsets into the
+ *	tuple you send to disk.  Yuck.
+ *
+ *	This scheme will be slightly slower than that, but should
+ *	preform well for queries which hit large #'s of tuples.  After
+ *	you cache the offsets once, examining all the other tuples using
+ *	the same attribute descriptor will go much quicker. -cim 5/4/91
  * ----------------
  */
-AttributeValue
-fastgetiattr(tuple, attributeNumber, tupleDescriptor, isNullOutP)
-    IndexTuple		tuple;
-    int			attributeNumber;
-    TupleDescriptor	tupleDescriptor;
-    Boolean		*isNullOutP;
+
+char *
+fastgetiattr(tup, attnum, att, isnull)
+    IndexTuple	tup;
+    unsigned	attnum;
+    struct	attribute *att[];
+    bool	*isnull;
 {
-    int			bitmask;
-    bits8		bitMap;
-    Attribute		*ap;	/* attribute pointer */
-    char		*tp;	/* tuple pointer */
-    int			finalbit;
-    int			bitrange;
-    AttributeValue	value;
-    AttributeNumber	attributeOffset;
+    register char		*tp;		/* ptr to att in tuple */
+    register char		*bp;		/* ptr to att in tuple */
+    int 			slow;		/* do we have to walk nulls? */
 
-    /* XXX quick hack to clear garbage in filler */
-    bzero(&value, sizeof(AttributeValue));
+    /* ----------------
+     *	sanity checks
+     * ----------------
+     */
+
+    Assert(PointerIsValid(isnull));
+    Assert(attnum > 0);
+
+    /* ----------------
+	 *   Three cases:
+	 * 
+	 *   1: No nulls and no variable length attributes.
+	 *   2: Has a null or a varlena AFTER att.
+	 *   3: Has nulls or varlenas BEFORE att.
+	 * ----------------
+	 */
+
+    *isnull =  false;
+
+    if (IndexTupleNoNulls(tup))
+    {
+	/* first attribute is always at position zero */
+
+	if (attnum == 1)
+	{
+ 	    return(fetchatt(att, (Pointer) tup + sizeof(*tup)));
+	}
+	attnum--;
+
+	if (att[attnum]->attcacheoff > 0)
+	{
+	    return(fetchatt(att + attnum, (Pointer) tup
+				+ sizeof(*tup) + att[attnum]->attcacheoff));
+	}
+
+	tp = (Pointer) tup + sizeof(*tup);
+
+	slow = 0;
+    }
+    else /* there's a null somewhere in the tuple */
+    {
+	bp = (char *) tup->bits.bits;
+	slow = 0;
+        /* ----------------
+         *	check to see if desired att is null
+         * ----------------
+         */
+
+	attnum--;
+	{
+	    if (att_isnull(attnum, bp)) 
+	    {
+		*isnull = true;
+		return NULL;
+	    }
+	}
+        /* ----------------
+	 *      Now check to see if any preceeding bits are null...
+         * ----------------
+	 */
+	{
+	    register int  i = 0; /* current offset in bp */
+	    register int  mask;	 /* bit in byte we're looking at */
+	    register char n;	 /* current byte in bp */
+	    register int byte, finalbit;
 	
-    /* ----------------
-     *	check for null attributes
-     * ----------------
-     */
-    attributeOffset = attributeNumber - 1;
-    finalbit = 1 << attributeOffset;
-    bitMap = tuple->bits.bits[0];
-    if (! (bitMap & finalbit)) {
-	if (PointerIsValid(isNullOutP))
-	    *isNullOutP = (Boolean)1;
-	value = PointerGetDatum(NULL); 
-	return (value);
-    }
-    
-    /* ----------------
-     *	now walk the tuple descriptor until we get to the attribute
-     *  we want.  we advance tp the length of each attribute we advance
-     *  so tp points to our attribute when we're done.
-     * ----------------
-     */
-    *isNullOutP = (Boolean)0;
-    ap = &tupleDescriptor->data[0];
-    tp = (char *)tuple + sizeof *tuple;
+	    byte = attnum >> 3;
+	    finalbit = attnum & 0x07;
 
-    bitrange = finalbit >> 1;
-    for (bitmask = 1; bitmask <= bitrange; bitmask <<= 1) {
-	if (bitMap & bitmask)
-	    if ((*ap)->attlen < 0) {
-		tp = (char *) LONGALIGN(tp) + sizeof (long);
-		tp += PSIZE(tp);
-	    } else if ((*ap)->attlen >= 3) {
-		tp = (char *) LONGALIGN(tp);
-		tp += (*ap)->attlen;
-	    } else if ((*ap)->attlen == 2)
-		tp = (char *) SHORTALIGN(tp + 2);
-	    else if (!(*ap)->attlen)
-		elog(WARN, "amgetattr: 0 attlen");
-	    else
-		tp++;
-	ap++;
+	    for (; i <= byte; i++) {
+	        n = bp[i];
+	        if (i < byte) {
+		    /* check for nulls in any "earlier" bytes */
+		    if ((~n) != 0) {
+		        slow++;
+		        break;
+		    }
+	        } else {
+		    /* check for nulls "before" final bit of last byte*/
+		    mask = (finalbit << 1) - 1;
+		    if ((~n) & mask)
+		        slow++;
+	        }
+	    }
+        }
     }
 
-    /* ----------------
-     *	handle variable length attributes
-     * ----------------
-     */
-    if ((*ap)->attlen < 0) {
-	value = PointerGetDatum((char *)LONGALIGN(tp + sizeof (long)));
-	return (value);
+    /* now check for any non-fixed length attrs before our attribute */
+
+    if (!slow)
+    {
+	if (att[attnum]->attcacheoff > 0)
+	{
+	    return(fetchatt(att + attnum, tp + att[attnum]->attcacheoff));
+	}
+	else if (!IndexTupleAllFixed(tup))
+	{
+	    register int j = 0;
+
+	    for (j = 0; j < attnum && !slow; j++)
+		if (att[j]->attlen < 1) slow = 1;
+	}
     }
 
-    if (!(*ap)->attbyval) {
-	/* ----------------
-	 *  by value attributes
-	 * ----------------
+    /*
+     * if slow is zero, and we got here, we know that we have a tuple with
+     * no nulls.  We also know that we have to initialize the remainder of
+     * the attribute cached offset values.
+     */
+
+    if (!slow)
+    {
+	register int j = 1;
+	register long off;
+
+	/*
+	 * need to set cache for some atts
 	 */
-	if ((*ap)->attlen >= 3) {
-	    value = PointerGetDatum((char *)LONGALIGN(tp));
-	} else if ((*ap)->attlen == 2) {
-	    value = PointerGetDatum((char *)SHORTALIGN(tp));
-	} else {
-	    value = PointerGetDatum(tp);
-	   }
-    } else {
-	/* ----------------
-	 *  by reference attributes
-	 *
-	 *  We can't assume that ptr alignment is correct or that casting
-	 *  will work right; we used bcopy() to write the datum, so we
-	 *  use bcopy() to read it.
-	 * ----------------
-	 */
-	bcopy(tp, (char *) &value, sizeof value);
-    }
 
-    return (value);
+	att[0]->attcacheoff = 0;
+
+	while (att[j]->attcacheoff > 0) j++;
+
+	off = att[j-1]->attcacheoff + att[j-1]->attlen;
+
+	for (; j < attnum + 1; j++)
+	{
+	    /*
+	     * Fix me when going to a machine with more than a four-byte
+	     * word!
+	     */
+
+	    switch(att[j]->attlen)
+	    {
+		case sizeof(char) : break;
+		case sizeof(short): off = SHORTALIGN(off); break;
+		default           : off = LONGALIGN(off); break;
+	    }
+
+	    att[j]->attcacheoff = off;
+	    off += att[j]->attlen;
+	}
+
+	return(fetchatt(att + attnum, tp + att[attnum]->attcacheoff));
+    }
+    else
+    {
+	register bool usecache = true;
+	register int off = 0;
+	register int savelen;
+	register int i;
+
+	/*
+	 * Now we know that we have to walk the tuple CAREFULLY.
+	 */
+	
+	for (i = 0; i < attnum; i++)
+	{
+	    if (!IndexTupleNoNulls(tup))
+	    {
+		if (att_isnull(i, bp))
+		{
+		    usecache = false;
+		    continue;
+		}
+	    }
+
+	    if (usecache && att[i]->attcacheoff > 0)
+	    {
+		off = att[i]->attcacheoff;
+		if (att[i]->attlen == -1)
+		{
+		    usecache = false;
+		}
+		else continue;
+	    }
+
+	    if (usecache) att[i]->attcacheoff = off;
+	    switch(att[i]->attlen)
+	    {
+	        case sizeof(char):
+	            off++;
+	            break;
+	        case sizeof(short):
+	            off = SHORTALIGN(off + sizeof(short));
+	            break;
+	        case -1:
+	            usecache = false;
+		    off = LONGALIGN(off) + sizeof(long);
+	    	    off += PSIZE(tp + off);
+		    break;
+		default:
+		    off = LONGALIGN(off + att[i]->attlen);
+		    break;
+	    }
+	}
+
+	return(fetchatt(att + attnum, tp + off));
+    }
 }
-
-
 /* ----------------
  *	index_getsysattr
  * ----------------
@@ -243,6 +371,7 @@ IndexTupleGetAttributeValue(tuple, attNum, tupleDescriptor, isNullOutP)
      */
     if (attNum > 0)
 	return
+		(AttributeValue)
 	    fastgetiattr(tuple, attNum, tupleDescriptor, isNullOutP);
 
     /* ----------------
