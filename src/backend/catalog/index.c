@@ -62,9 +62,17 @@ RcsId("$Header$");
 #include "executor/x_tuples.h"
 #include "executor/tuptable.h"
 
+#include "machine.h"
+
 extern ExprContext RMakeExprContext();
 
 void	 index_build();
+
+/*
+ * macros used in guessing how many tuples are on a page.
+ */
+#define AVG_TUPLE_SIZE 8
+#define NTUPLES_PER_PAGE(natts) (BLCKSZ/((natts)*AVG_TUPLE_SIZE))
 
 /* ----------------------------------------------------------------
  *    sysatts is a structure containing attribute tuple forms
@@ -1238,6 +1246,13 @@ UpdateStats(whichRel, reltuples)
 
     replace[Anum_pg_relation_relpages - 1] = 'r';
     values[Anum_pg_relation_relpages - 1] = (Datum)relpages;
+
+    /*
+     * If reltuples wasn't supplied take an educated guess.
+     */
+    if (reltuples == 0)
+	reltuples = relpages*NTUPLES_PER_PAGE(whichRel->rd_rel->relnatts);
+
     replace[Anum_pg_relation_reltuples - 1] = 'r';
     values[Anum_pg_relation_reltuples - 1] = (Datum)reltuples;
     replace[Anum_pg_relation_relhasindex - 1] = 'r';
