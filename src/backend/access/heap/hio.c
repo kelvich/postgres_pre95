@@ -288,7 +288,7 @@ RelationPutLongHeapTuple(relation, tuple)
  * zero when a BlockExtend operation is performed. 
  */
 
-#define PageIsBrandNew(page) ((page)->pd_upper == 0)
+#define PageIsNew(page) ((page)->pd_upper == 0)
 
 /*
  * This routine is another in the series of attempts to reduce the number
@@ -328,7 +328,6 @@ HeapTuple tuple;
 	unsigned	len;
 	ItemId		itemId;
 	Item		item;
-	bool		init = false;
 
 	/* ----------------
 	 *	increment access statistics
@@ -349,44 +348,33 @@ HeapTuple tuple;
 
 	lastblock = RelationGetNumberOfBlocks(relation);
 
-	/*
-	 * If the above returns zero, we have not yet written any tuples to
-	 * this relation.  We need to initialize things here.
-	 */
-
 	if (lastblock == 0)
 	{
-		buffer = ReadBuffer(relation, 0);
-		pageHeader = LintCast(PageHeader, BufferSimpleGetPage(buffer));
-
-		if (PageIsBrandNew(pageHeader))
-		{
-			BufferSimpleInitPage(buffer);
-			init = true;
-		}
-
-		len = (unsigned)LONGALIGN(tuple->t_len);
-	}
-	else
-	{
-		lastblock--;
 		buffer = ReadBuffer(relation, lastblock);
 		pageHeader = LintCast(PageHeader, BufferSimpleGetPage(buffer));
-		len = (unsigned)LONGALIGN(tuple->t_len);
+		if (PageIsNew(pageHeader))
+		{
+			buffer = ReleaseAndReadBuffer(buffer, relation, P_NEW);
+			pageHeader = LintCast(PageHeader, BufferSimpleGetPage(buffer));
+			BufferSimpleInitPage(buffer);
+		}
 	}
+	else
+		buffer = ReadBuffer(relation, lastblock - 1);
+
+	pageHeader = LintCast(PageHeader, BufferSimpleGetPage(buffer));
+	len = (unsigned)LONGALIGN(tuple->t_len);
+
+	/*
+	 * Note that this is true if the above returned a bogus page, which
+	 * it will do for a completely empty relation.
+	 */
 
 	if (len > PageGetFreeSpace(pageHeader))
 	{
-		buffer = ReleaseAndReadBuffer(buffer, relation, ++lastblock);
+		buffer = ReleaseAndReadBuffer(buffer, relation, P_NEW);
 		pageHeader = LintCast(PageHeader, BufferSimpleGetPage(buffer));
-
-		if (PageIsBrandNew(pageHeader))
-		{
-			init = true;
-			BufferSimpleInitPage(buffer);
-		}
-		else
-			elog(FATAL, "doinsert: Page info is corrupted");
+		BufferSimpleInitPage(buffer);
 
 		if (len > PageGetFreeSpace(pageHeader))
 			elog(WARN, "Tuple is too big: size %d", len);
@@ -398,23 +386,10 @@ HeapTuple tuple;
 	itemId = PageGetItemId((Page)pageHeader, offsetIndex);
 	item = PageGetItem((Page)pageHeader, itemId);
 
-	ItemPointerSimpleSet(&LintCast(HeapTuple, item)->t_ctid, lastblock,
-		1 + offsetIndex);
+	ItemPointerSimpleSet(&LintCast(HeapTuple, item)->t_ctid,
+			     BufferGetBlockNumber(buffer), 1 + offsetIndex);
 
 	HeapTupleStoreRuleLock(LintCast(HeapTuple, item), buffer);
 
-	/*
-	 * XXX We have to do this in order to make RelationGetNumberOfBlocks
-	 * do the right thing for us.  Until RelationGetNumberOfBlocks is
-	 * actually working, we'll have to do this incredibly crufty thing.
-	 */
-
-	if (init)
-	{
-		FlushBuffer(buffer);
-	}
-	else
-	{
-		BufferPut(buffer, L_UN | L_EX | L_WRITE);
-	}
+	BufferPut(buffer, L_UN | L_EX | L_WRITE);
 }
