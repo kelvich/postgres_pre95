@@ -341,9 +341,9 @@ _bt_dumptup(rel, itupdesc, page, offind)
     itup = &(btitem->bti_itup);
     tuplen = IndexTupleSize(itup);
     iptr = &(itup->t_tid);
-    blkno = ItemPointerGetBlockNumber(iptr);
-    pgno = ItemPointerGetPageNumber(iptr, 0);
-    offno = ItemPointerGetOffsetNumber(iptr, 0);
+    blkno = (iptr->blockData.data[0] << 16) + (uint16) iptr->blockData.data[1];
+    pgno = 0;
+    offno = (OffsetNumber) (pointer->positionData & 0xffff);
 
     idatum = IndexTupleGetAttributeValue(itup, 1, itupdesc, &null);
     tmpkey = DatumGetInt32(idatum);
