@@ -1,5 +1,18 @@
 /* $Header$ */
 
+#include <stdio.h>
+#include "tmp/oid.h"
+
+#include "rules/prs2locks.h"		/* temporarily */
+#include "utils/rel.h"			/* for Relation stuff */
+#include "access/heapam.h"		/* access methods like amopenr */
+#include "utils/log.h"			/* for elog */
+#include "nodes/pg_lisp.h"		/* for Lisp support */
+#include "parser/parse.h"		/* lisp atom database */
+#include "parser/parsetree.h"		/* for parsetree manip defines */
+
+#ifdef BOGUS
+
 #include "tmp/postgres.h"
 
 #include "access/ftup.h";
@@ -19,6 +32,8 @@
 #include "utils/fmgr.h"
 #include "utils/log.h"
 #include "utils/rel.h"		/* for Relation stuff */
+
+#endif
 
 ObjectId LastOidProcessed = InvalidObjectId;
 
@@ -81,9 +96,10 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
       evslot_index = varattno ( eventrel,evslot );
 
     sprintf(rulebuf,
-"	    append pg_prs2rule (prs2name=\"%s\",prs2eventtype=\"%d2\"::char,\
+	    "append pg_prs2rule (prs2name=\"%s\",prs2eventtype=\"%d2\"::char,\
 	    prs2eventrel=%d::oid,prs2eventattr= %d::int2,\
 	    prs2text= `%s`::text , \
+            prs2eventqual= `%s`::text , \
             necessary = %f , sufficient = %f )",
 	    rulname,
 	    AtomValueGetString(evtype),
