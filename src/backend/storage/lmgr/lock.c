@@ -30,23 +30,40 @@
 #include "utils/log.h"
 #include "access/xact.h"
 
+/*#define LOCK_MGR_DEBUG*/
+
 #ifndef LOCK_MGR_DEBUG
 
 #define LOCK_PRINT(where,tag,type)
+#define LOCK_DUMP(where,lock,type)
 #define XID_PRINT(where,xidentP)
 
 #else LOCK_MGR_DEBUG
 
 #define LOCK_PRINT(where,tag,type)\
-  elog(DEBUG, "%s: rel (%d) dbid (%d) tid (%d,%d) type (%d)\n",where, \
+  elog(NOTICE, "%s: rel (%d) dbid (%d) tid (%d,%d) type (%d)\n",where, \
 	 tag->relId, tag->dbId, \
 	 ( (tag->tupleId.blockData.data[0] >= 0) ? \
 		BlockIdGetBlockNumber(&tag->tupleId.blockData) : -1 ), \
 	 tag->tupleId.positionData, \
 	 type);
 
+#define LOCK_DUMP(where,lock,type)\
+  elog(NOTICE, "%s: rel (%d) dbid (%d) tid (%d,%d) nHolding (%d) holders (%d,%d,%d,%d,%d) type (%d)\n",where, \
+       lock->tag.relId, lock->tag.dbId, \
+       ((lock->tag.tupleId.blockData.data[0] >= 0) ? \
+	BlockIdGetBlockNumber(&lock->tag.tupleId.blockData) : -1 ), \
+       lock->tag.tupleId.positionData, \
+       lock->nHolding,\
+       lock->holders[1],\
+       lock->holders[2],\
+       lock->holders[3],\
+       lock->holders[4],\
+       lock->holders[5],\
+       type);
+
 #define XID_PRINT(where,xidentP)\
-  elog(DEBUG,\
+  elog(NOTICE,\
        "%s:xid (%d) pid (%d) lock (%x) nHolding (%d) holders (%d,%d,%d,%d,%d)",\
        where,\
        xidentP->tag.xid,\
@@ -439,7 +456,7 @@ LOCKT		lockt;
   result = (XIDLookupEnt *)hash_search(xidTable, (Pointer)&item, HASH_ENTER, &found);
   if (!result)
   {
-    elog(NOTICE,"LockResolveConflicts: xid table corrupted");
+    elog(NOTICE,"LockAcquire: xid table corrupted");
     return(STATUS_ERROR);
   }
   if (!found)
@@ -641,7 +658,7 @@ LOCKT		lockt;
    * will not be true if/when people can be deleted from
    * the queue by a SIGINT or something.
    */
-  LOCK_PRINT("WaitOnLock: sleeping on lock", (&lock->tag), lockt);
+  LOCK_DUMP("WaitOnLock: sleeping on lock", lock, lockt);
   if (ProcSleep(waitQueue,
 		ltable->ctl->masterLock,
                 lockt,
@@ -656,13 +673,9 @@ LOCKT		lockt;
      */
     lock->nHolding--;
     lock->holders[lockt]--;
+    LOCK_DUMP("WaitOnLock: aborting on lock", lock, lockt);
     SpinRelease(ltable->ctl->masterLock);
     elog(WARN,"WaitOnLock: error on wakeup - Aborting this transaction");
-
-    /* -------------
-     * There is no return from elog(WARN, ...)
-     * -------------
-     */
   }
 
   return(STATUS_OK);
@@ -976,7 +989,7 @@ SHM_QUEUE	*lockQueue;
 int
 LockShmemSize()
 {
-	int size;
+	int size = 0;
 	int nLockBuckets, nLockSegs;
 	int nXidBuckets, nXidSegs;
 
@@ -986,15 +999,23 @@ LockShmemSize()
 	nXidBuckets = 1 << (int)my_log2((NLOCKS_PER_XACT-1) / DEF_FFACTOR + 1);
 	nXidSegs = 1 << (int)my_log2((nLockBuckets - 1) / DEF_SEGSIZE + 1);
 
-	size =	NLOCKENTS*sizeof(LOCK) +
-		NBACKENDS*sizeof(XIDLookupEnt) +
-		NBACKENDS*sizeof(PROC) +
-		sizeof(LOCKCTL) +
-		sizeof(PROC_HDR) +
-		nLockSegs*DEF_SEGSIZE*sizeof(SEGMENT) +
-		my_log2(NLOCKENTS) + sizeof(HHDR) +
-		nXidSegs*DEF_SEGSIZE*sizeof(SEGMENT) +
-		my_log2(NBACKENDS) + sizeof(HHDR);
+	size += MAXALIGN(NBACKENDS * sizeof(PROC));	/* each MyProc */
+	size += MAXALIGN(NBACKENDS * sizeof(LOCKCTL));	/* each ltable->ctl */
+	size += MAXALIGN(sizeof(PROC_HDR));		/* ProcGlobal */
+
+	size += MAXALIGN(my_log2(NLOCKENTS) * sizeof(void *));
+	size += MAXALIGN(sizeof(HHDR));
+	size += nLockSegs * MAXALIGN(DEF_SEGSIZE * sizeof(SEGMENT));
+	size += NLOCKENTS * /* XXX not multiple of BUCKET_ALLOC_INCR? */
+	    (MAXALIGN(sizeof(BUCKET_INDEX)) +
+	     MAXALIGN(sizeof(LOCK))); /* contains hash key */
+	
+	size += MAXALIGN(my_log2(NBACKENDS) * sizeof(void *));
+	size += MAXALIGN(sizeof(HHDR));
+	size += nXidSegs * MAXALIGN(DEF_SEGSIZE * sizeof(SEGMENT));
+	size += NBACKENDS * /* XXX not multiple of BUCKET_ALLOC_INCR? */
+	    (MAXALIGN(sizeof(BUCKET_INDEX)) +
+	     MAXALIGN(sizeof(XIDLookupEnt))); /* contains hash key */
 
 	return size;
 }
