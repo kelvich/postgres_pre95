@@ -57,7 +57,7 @@ ProcessQuery(parser_output, plan)
 	int		commandType;
 	String		tag;
 	ObjectId	intoRelationId;
-	String		intoRelationName;
+	String		intoName;
 	int		numatts;
 	AttributePtr	tupleDesc;
 
@@ -112,7 +112,6 @@ ProcessQuery(parser_output, plan)
 			switch (destination) {
 			case INTO:
 				isInto = true;
-				intoRelationName = CString(CADR(resultDesc));
 				break;
 			case PORTAL:
 				isPortal = true;
@@ -121,6 +120,7 @@ ProcessQuery(parser_output, plan)
 				elog(WARN, "ProcessQuery: bad result %d",
 					destination);
 			}
+			intoName = CString(CADR(resultDesc));
 		}
 	}
 
@@ -187,7 +187,7 @@ ProcessQuery(parser_output, plan)
 	 * ----------------
 	 */
 
-	BeginCommand("blank",attinfo);
+	BeginCommand("blank", attinfo);
 
 	/* ----------------
 	 *   now how in the hell is this ever supposed to work?
@@ -203,7 +203,20 @@ ProcessQuery(parser_output, plan)
 	 * ----------------
 	 */
 	if (isPortal) {
-		BlankPortalAssignName(intoRelationName);
+		Portal	portal;
+
+		portal = BlankPortalAssignName(intoName);
+		PortalSetQuery(portal, parser_output, plan, state);
+
+		/*
+		 * Return blank portal for now.
+		 * Otherwise, this named portal will be cleaned.
+		 * Note: portals will only be supported within a BEGIN...END
+		 * block in the near future.  Later, someone will fix it to
+		 * do what is possible across transaction boundries.
+		 */
+		(void)GetPortalByName(NULL);
+
 		return;			/* XXX see previous comment */
 	}
 
@@ -222,8 +235,8 @@ ProcessQuery(parser_output, plan)
 		 */
 		archiveMode = 'n';
 
-		intoRelationId = RelationNameCreateHeapRelation(
-			intoRelationName, archiveMode, numatts, tupleDesc);
+		intoRelationId = RelationNameCreateHeapRelation(intoName,
+			archiveMode, numatts, tupleDesc);
 
 		setheapoverride(true);	/* XXX change "amopen" args instead */
 
