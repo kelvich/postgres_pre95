@@ -30,7 +30,7 @@ lo_filein(filename)
 char *filename;
 
 {
-	return((char *) NewLargeObject(filename, PURE_FILE));
+	return((char *) NewLargeObject(filename, EXTERNAL_FILE));
 }
 
 char *
