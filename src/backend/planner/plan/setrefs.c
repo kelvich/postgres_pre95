@@ -175,41 +175,48 @@ replace_clause_resultvar_refs (clause,ltlist,rtlist,levelnum)
 {
     if(IsA (clause,Var) && (get_varattno ((Var)clause) == 0))
       return(clause);
-    else 
-      if (IsA (clause,Var)) 
-	return ((Expr)replace_resultvar_refs((Var)clause,
+    else if (IsA (clause,Var)) 
+      return ((Expr)replace_resultvar_refs((Var)clause,
 					ltlist,
 					rtlist,
 					levelnum));
-      else 
-	if (single_node ((Node)clause)) 
-	  return (clause);
-	else 
-	  if (or_clause ((LispValue)clause)) 
-	    return ((Expr)make_orclause (replace_subclause_resultvar_refs 
+    else if (single_node ((Node)clause)) 
+      return (clause);
+    else if (or_clause ((LispValue)clause)) 
+      return ((Expr)make_orclause (replace_subclause_resultvar_refs 
 				   (get_orclauseargs ((LispValue)clause),
 				    ltlist,
 				    rtlist,
 				    levelnum)));
-	   else 
-	     if (is_funcclause ((LispValue)clause)) 
-	       return ((Expr)make_funcclause (get_function ((LispValue)clause),
+    else if (IsA(clause,ArrayRef)) {
+      Expr temp;
+      temp = replace_clause_resultvar_refs(get_refindexpr((ArrayRef)clause),
+					      ltlist,
+					      rtlist,
+					      levelnum);
+      set_refindexpr((ArrayRef)clause,(LispValue)temp);
+      temp = replace_clause_resultvar_refs(get_refexpr((ArrayRef)clause),
+					      ltlist,
+					      rtlist,
+					      levelnum);
+      set_refexpr((ArrayRef)clause,(LispValue)temp);
+      return(clause);
+    }
+    else if (is_funcclause ((LispValue)clause)) 
+      return ((Expr)make_funcclause (get_function ((LispValue)clause),
 					replace_subclause_resultvar_refs 
 					(get_funcargs ((LispValue)clause),
 					 ltlist,
 					 rtlist,
 					 levelnum)));
-	     else 
-	       if (not_clause ((LispValue)clause))
-		 return((Expr)make_notclause((List)replace_clause_resultvar_refs
+    else if (not_clause ((LispValue)clause))
+      return((Expr)make_notclause((List)replace_clause_resultvar_refs
 				   ((Expr)get_notclausearg ((LispValue)clause),
 					  ltlist,
 					  rtlist,
 					  levelnum)));
-	       else
-		    /*   operator clause */
-		    return((Expr)make_opclause(replace_opid(
-					       (Oper)get_op((LispValue)clause)),
+     else /*   operator clause */
+      return((Expr)make_opclause(replace_opid((Oper)get_op((LispValue)clause)),
 					(Var)replace_clause_resultvar_refs 
 					((Expr)get_leftop((LispValue)clause),
 					 ltlist,
@@ -544,44 +551,49 @@ replace_clause_joinvar_refs (clause,outer_tlist,inner_tlist)
      LispValue clause,outer_tlist,inner_tlist ;
 {
     LispValue temp = LispNil;
-    if(IsA (clause,Var) && get_varattno((Var)clause)) {
+    if(IsA (clause,Var)) {
 	if(temp = (LispValue)
 	   replace_joinvar_refs((Var)clause,outer_tlist,inner_tlist))
-	  return(temp);
+	   return(temp);
 	else
 	  if (clause != LispNil)
 	    return(clause);
 	  else
 	    return(LispNil);
     }
-    else 
-      if (single_node ((Node)clause))
+    else if (single_node ((Node)clause))
 	return (clause);
-      else 
-	if (or_clause (clause)) 
-	  return (make_orclause (replace_subclause_joinvar_refs 
+    else if (or_clause (clause)) 
+	return (make_orclause (replace_subclause_joinvar_refs 
 				 (get_orclauseargs (clause),
 				  outer_tlist,
 				  inner_tlist)));
-	else 
-	  if (is_funcclause (clause))
-	  {
-	      return (make_funcclause (get_function (clause),
+    else if (IsA(clause,ArrayRef)) {
+	LispValue temp;
+	temp = replace_clause_joinvar_refs(get_refindexpr((ArrayRef)clause),
+					      outer_tlist,
+					      inner_tlist);
+	set_refindexpr((ArrayRef)clause,temp);
+	temp = replace_clause_joinvar_refs(get_refexpr((ArrayRef)clause),
+					      outer_tlist,
+					      inner_tlist);
+	set_refexpr((ArrayRef)clause,temp);
+	return(clause);
+      }
+    else if (is_funcclause (clause)) {
+	return (make_funcclause (get_function (clause),
 				       replace_subclause_joinvar_refs 
 						(get_funcargs (clause),
 						outer_tlist,
 						inner_tlist)));
-	  }
-	  else 
-	    if (not_clause (clause)) 
-	      
-	      return (make_notclause (replace_clause_joinvar_refs 
+       }
+    else if (not_clause (clause)) 
+	 return (make_notclause (replace_clause_joinvar_refs 
 				      (get_notclausearg (clause),
 					outer_tlist,
 				       inner_tlist)));
-	    else 
-	      if (is_clause (clause)) 
-		return (make_opclause(replace_opid((Oper)get_op(clause)),
+    else if (is_clause (clause)) 
+	 return (make_opclause(replace_opid((Oper)get_op(clause)),
 				     (Var)replace_clause_joinvar_refs 
 				     ((LispValue)get_leftop (clause),
 				       outer_tlist,
@@ -783,7 +795,18 @@ List subplanTargetList;		/* target list of the subplan */
 	 * for its arguments...
 	 */
 	subClause = get_funcargs(clause);
-	replace_result_clause(subClause,subplanTargetList);
+	foreach (t, subClause) {
+	    replace_result_clause(CAR(t),subplanTargetList);
+	   }
+    } else if (IsA(clause,ArrayRef)) {
+	/*
+	 * This is an arrayref. Recursively call this routine
+	 * for its expression and its index expression...
+	 */
+	replace_result_clause(get_refindexpr((ArrayRef)clause),
+			      subplanTargetList);
+	replace_result_clause(get_refexpr((ArrayRef)clause),
+			      subplanTargetList);
     } else if (is_clause(clause)) {
 	/*
 	 * This is an operator. Recursively call this routine

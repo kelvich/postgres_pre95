@@ -47,6 +47,9 @@ pull_agg_clause(clause)
 	    foreach(temp,get_funcargs(clause))
 	      retval = nconc (retval,pull_agg_clause(CAR(temp)));
 	    }
+	else if (IsA(clause,ArrayRef)) {
+	    retval = pull_agg_clause(get_refindexpr((ArrayRef)clause));
+	  }
 	else if (not_clause (clause))
 	    retval = pull_agg_clause(get_notclausearg(clause));
 	else if (is_clause(clause))
@@ -92,6 +95,9 @@ pull_var_clause (clause)
 		/* mapcan */
 		foreach(temp,get_funcargs(clause)) 
 		  retval = nconc (retval,pull_var_clause(CAR(temp)));
+	} else if (IsA(clause,ArrayRef)) {
+	    retval = nconc(pull_var_clause(get_refindexpr((ArrayRef)clause)),
+			   pull_var_clause(get_refexpr((ArrayRef)clause)));
 	} else if (not_clause (clause))
 	  retval = pull_var_clause (get_notclausearg (clause));
 	else if (is_clause (clause)) 

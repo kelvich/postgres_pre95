@@ -297,6 +297,10 @@ fix_opid (clause)
 	else if (is_funcclause (clause)) {
 		fix_opids (get_funcargs (clause));
 	} 
+	else if (IsA(clause,ArrayRef)) {
+		fix_opid(get_refindexpr((ArrayRef)clause));
+		fix_opid(get_refexpr((ArrayRef)clause));
+	}
 	else if (not_clause (clause)) {
 		fix_opid (get_notclausearg (clause));
 	} 

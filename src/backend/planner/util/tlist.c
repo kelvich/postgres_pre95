@@ -175,7 +175,7 @@ create_tl_element (var,resdomno,joinlist)
     
     set_entry (tlelement,
 	       MakeTLE (MakeResdom (resdomno, get_vartype (var),
-				    ((typeid_get_relid(var)) ? true : false),
+				    ((typeid_get_relid(get_vartype(var))) ? true : false),
 				    get_typlen (get_vartype (var)),
 				    (Name)LispNil,
 				    (Index)0,
@@ -473,7 +473,8 @@ flatten_tlist (tlist)
 	    new_tlist = (LispValue)append1(new_tlist,
 				MakeTLE (MakeResdom(++last_resdomno,
 						    get_vartype((Var)CAR(var)),
-						    ((typeid_get_relid(var)) ? 
+						    ((typeid_get_relid(
+						  get_vartype((Var)CAR(var)))) ?
 						     true : false),
 						    get_typlen 
 						    (get_vartype 
@@ -570,6 +571,17 @@ flatten_tlistentry (tlistentry,flat_tlist)
 	return((TLE)make_funcclause (get_function (tlistentry),
 					temp_result));
 
+     } else if (IsA(tlistentry,ArrayRef)) {
+       LispValue temp;
+       temp =
+           (LispValue)flatten_tlistentry(get_refindexpr((ArrayRef)tlistentry),
+                                         flat_tlist);
+       set_refindexpr((ArrayRef)tlistentry, temp);
+       temp = (LispValue)
+               flatten_tlistentry(get_refexpr((ArrayRef)tlistentry),
+                                  flat_tlist);
+       set_refexpr((ArrayRef)tlistentry, temp);
+       return(tlistentry);
     } else {
 	return((TLE)
 	    make_opclause( (Oper)get_op (tlistentry),
