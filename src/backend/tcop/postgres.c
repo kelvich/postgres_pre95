@@ -92,6 +92,7 @@ bool IsEmptyQuery = false;
 extern int	testFlag;
 extern int	lockingOff;
 static int	confirmExecute = 0;
+int		ProcessAffinityOn = 0;
 
 Relation	reldesc;		/* current relation descritor */
 char		relname[80];		/* current relation name */
@@ -104,7 +105,8 @@ char pg_pathname[256];
 int		MasterPid;
 static int	ShowParserStats;
 static int	ShowPlannerStats;
-static int	ShowExecutorStats;
+int	ShowExecutorStats;
+extern FILE	*StatFp;
 
 
 /* ----------------
@@ -902,7 +904,7 @@ PostgresMain(argc, argv)
     ShowParserStats = ShowPlannerStats = ShowExecutorStats = 0;
     MasterPid = getpid();
     
-    while ((flag = getopt(argc, argv, "A:B:b:Cd:EGM:NnOP:pQSsLit:Tf:")) != EOF)
+    while ((flag = getopt(argc, argv, "aA:B:b:Cd:EGM:NnOP:pQSsLit:Tf:")) != EOF)
       switch (flag) {
 	  	  
       case 'A':
@@ -1060,6 +1062,7 @@ PostgresMain(argc, argv)
            * ----------------
            */
           ShowStats = 1;
+	  StatFp = stderr;
           break;
 
       case 't':
@@ -1073,6 +1076,7 @@ PostgresMain(argc, argv)
 	   *	caution: -s can not be used together with -t.
 	   * ----------------
 	   */
+	  StatFp = stderr;
 	  switch (optarg[0]) {
 	  case 'p':  if (optarg[1] == 'a')
 			ShowParserStats = 1;
@@ -1133,14 +1137,27 @@ PostgresMain(argc, argv)
 	  lockingOff = 1;
 	  break;
 
+      case 'i':
+	  confirmExecute = 1;
+	  break;
+      case 'a':
+	  /* ----------------
+	   *	turn on process affinity: bind processes to processors
+	   *	this is a sequent-specific option
+	   * ----------------
+	   */
+#ifdef sequent
+          ProcessAffinityOn = 1;
+#else
+          fprintf(stderr, "-a is a sequent-specific flag.\n");
+          errs++;
+#endif
+          break;
+      default:
 	  /* ----------------
 	   *	default: bad command line option
 	   * ----------------
 	   */
-      case 'i':
-	  confirmExecute = 1;
-	  break;
-      default:
 	  errs++;
       }
 
@@ -1454,7 +1471,6 @@ ResetUsage()
 #ifdef PARALLELDEBUG
         ResetParallelDebugInfo();
 #endif
-	ResetPrs2Stats();
 }
 
 ShowUsage()
@@ -1490,8 +1506,8 @@ ShowUsage()
 	 *  and stack sizes.
 	 */
 
-	fprintf(stderr, "! system usage stats:\n");
-        fprintf(stderr, 
+	fprintf(StatFp, "! system usage stats:\n");
+        fprintf(StatFp, 
 		"!\t%ld.%06ld elapse %ld.%06ld user %ld.%06ld system sec\n",
                 elapse_t.tv_sec - Save_t.tv_sec,
                 elapse_t.tv_usec - Save_t.tv_usec,
@@ -1499,35 +1515,35 @@ ShowUsage()
 		r.ru_utime.tv_usec - Save_r.ru_utime.tv_usec,
 		r.ru_stime.tv_sec - Save_r.ru_stime.tv_sec,
 		r.ru_stime.tv_usec - Save_r.ru_stime.tv_usec);
-	fprintf(stderr,
+	fprintf(StatFp,
 		"!\t[%ld.%06ld user %ld.%06ld sys total]\n",
 		user.tv_sec, user.tv_usec, sys.tv_sec, sys.tv_usec);
-	fprintf(stderr, 
+	fprintf(StatFp, 
 		"!\t%d/%d [%d/%d] filesystem blocks in/out\n",
 		r.ru_inblock - Save_r.ru_inblock,
 		/* they only drink coffee at dec */
 		r.ru_oublock - Save_r.ru_oublock,
 		r.ru_inblock, r.ru_oublock);
-	fprintf(stderr, 
+	fprintf(StatFp, 
 		"!\t%d/%d [%d/%d] page faults/reclaims, %d [%d] swaps\n",
 		r.ru_majflt - Save_r.ru_majflt,
 		r.ru_minflt - Save_r.ru_minflt,
 		r.ru_majflt, r.ru_minflt,
 		r.ru_nswap - Save_r.ru_nswap,
 		r.ru_nswap);
-	fprintf(stderr, 
+	fprintf(StatFp, 
 		"!\t%d [%d] signals rcvd, %d/%d [%d/%d] messages rcvd/sent\n",
 		r.ru_nsignals - Save_r.ru_nsignals,
 		r.ru_nsignals,
 		r.ru_msgrcv - Save_r.ru_msgrcv,
 		r.ru_msgsnd - Save_r.ru_msgsnd,
 		r.ru_msgrcv, r.ru_msgsnd);
-	fprintf(stderr, 
+	fprintf(StatFp, 
 		"!\t%d/%d [%d/%d] voluntary/involuntary context switches\n",
 		r.ru_nvcsw - Save_r.ru_nvcsw,
 		r.ru_nivcsw - Save_r.ru_nivcsw,
 		r.ru_nvcsw, r.ru_nivcsw);
-	fprintf(stderr, "! postgres usage stats:\n");
+	fprintf(StatFp, "! postgres usage stats:\n");
 	PrintBufferUsage();
 	DisplayTupleCount();
 #ifdef PARALLELDEBUG
