@@ -1,1092 +1,330 @@
 /*
- * copy.c --
- *	the POSTGRES copy command
- *
- * Notes:
- *	createdomains() is incredibly ugly
- *	efficiency - too many fread()s and fwrite()s
+ * "$Header$"
  */
 
 #include <stdio.h>
-#include <pwd.h>
-#include <strings.h>
-#include <sys/file.h>
-#include <sys/param.h>
 
 #include "tmp/postgres.h"
-
-RcsId("$Header$");
-
-#include "access/heapam.h"
-#include "access/tqual.h"
 #include "catalog/syscache.h"
-#include "commands/copy.h"
-#include "nodes/pg_lisp.h"
-#include "tmp/portal.h"		/* for StartPortalAllocMode, etc. */
-#include "utils/fmgr.h"
-#include "utils/log.h"
-#include "utils/mcxt.h"
-#include "utils/palloc.h"
-
 #include "catalog/pg_type.h"
 
-#if sprite
-#include "sprite_file.h"
-#else
-#include "storage/fd.h"
-#endif /* sprite */
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "access/relscan.h"
+#include "utils/rel.h"
+#include "utils/log.h"
+#include "utils/dynamic_loader.h"
+#include "tmp/daemon.h"
 
-#define	NON_NULL_ATT	(' ')
-#define	NULL_ATT	('n')
-#define	DUMMY_ATT	((AttributeNumber) 0)
-#define	CHARN_PAD_CHAR	(' ')
+void
+DoCopy(relname, binary, from, pipe, filename)
 
-#define	B_TRUE			((Boolean) 1)
-#define	B_FALSE			((Boolean) 0)
-#define	BooleanIsTrue(BOOLEAN)	((BOOLEAN) == B_TRUE)
-#define	BooleanIsFalse(BOOLEAN)	((BOOLEAN) == B_FALSE)
-#define	BooleanIsValid(BOOLEAN)	((BOOLEAN) == B_TRUE || (BOOLEAN) == B_FALSE)
+char *relname;
+bool binary, from, pipe;
+char *filename;
 
-#define	DelimIsValid(DELIM)	((DELIM) >= 0)
-#define	AttrIsVarLen(ATTR)	((ATTR)->attlen < 0)
-#define	DomainIsVarLen(DOMAIN) 	((DOMAIN)->domlen < 0)
-#define	DomainIsValid(DOMAIN)	PointerIsValid(DOMAIN)
-
-/* Internal routines */
-extern Domain		createdomainsAlloc();
-extern			createdomainsIsCharType();
-extern AttributeNumber	createdomainsMatchAttName();
-extern Boolean		copyWriteString();
-extern Boolean		copyWriteExternal();
-extern Boolean		copyWriteChar0();
-extern Boolean		copyWriteCharN();
-extern Boolean		copyWriteBinary();
-extern			copyReadDummy();
-extern char		*copyReadExternal();
-extern char		*copyReadChar0();
-extern char		*copyReadCharN();
-extern char		*copyReadBinary();
-extern char		*copyAlloc();
-extern 			copyCleanup();
-
-/* #define COPYDEBUG	/* for my own use */
-
-
-/*
- *	createdomains
- *
- *	Expects:
- *		(char *) relation_name,
- *		(int) isbinary
- *		(int) nonulls
- *		(int) isfrom
- *		(int) number_of_domains,
- * 		{ (char *) domain_name, (char *) domain_type, (char) delim }
- *
- *	Returns:
- *		array of domain descriptors
- */
-/*VARARGS*/
-Domain
-createdomains(relationName, isBinary, noNulls, isFrom, domains, domainCountOutP)
-	Name	relationName;		/* relation name */
-	bool	isBinary;		/* all-binary file format? */
-	bool	noNulls;		/* INGRES-style binary fmt */
-	bool	isFrom;			/* copy direction */
-	List	domains;
-	Count	*domainCountOutP;	/* final # of domains */
 {
-	register		i;
-	int			ndoms;		/* # of argument domains */
-	Relation		rdesc;
-	AttributeNumber		relnatts;
-	TupleDescriptor		rdatt;
-	Boolean			att_defined;
-	Domain			doms;
-	char			*domname;	/* not necessarily the name */
-	char			*domtype;	/* not necessarily the type */
-	char			domdelim;	/* not necessarily the delim */
-	AttributeNumber		attnum;
-	HeapTuple		typtup;
-	TypeTupleForm		tp;
-	List			rest;
+	FILE *fp;
 
-	/*
-	 * argument checking missing
-	 */
-	ndoms = length(domains);
-
-	/*
-	 * We need the information in a Relation structure, so open the
-	 * relation.  The relation MUST already exist.
-	 */
-	rdesc = RelationNameOpenHeapRelation(relationName);
-	if (!RelationIsValid(rdesc)) {
-		elog(WARN, "createdomains: Can't open relation \"%s\"",
-			relationName);
-		return((Domain) NULL);
+	if (from)
+	{
+		fp = pipe ? stdin : fopen(filename, "r");
+		if (fp == NULL) 
+		{
+			elog(WARN, "COPY: file %s could not be open for reading", filename);
+		}
+		CopyFrom(relname, binary, fp);
 	}
-	rdatt = RelationGetTupleDescriptor(rdesc);
-	relnatts = (RelationGetRelationTupleForm(rdesc))->relnatts;
-
-	/* If no domains are specified, then range over the whole relation */
-	if (ndoms == 0) {
-		ndoms = (int) relnatts;
-		att_defined = B_FALSE;
-	} else
-		att_defined = B_TRUE;
-
-	doms = createdomainsAlloc(ndoms);
-
-	/*
-	 * Allocate and initialize each domain element and attribute,
-	 * then load it with the appropriate values.
-	 */
-	rest = domains;
-	for (i = 0; i < ndoms; ++i) {
-
-		if (noNulls) {
-			DomainSetNoNulls(&doms[i]);
-		}
-		/*
-		 * Determine the domain name, type, and delimitor.
-		 * If a domain is defined and it exists in the relation
-		 * (e.g. it isn't a dummy), then the atts entry is that
-		 * of the attribute it names.
-		 */
-		if (att_defined) {
-			domname = CString(CAAR(rest));
-			domtype = CString(CADR(CAR(rest)));
-			domdelim = CInteger(CADDR(CAR(rest)));
-			attnum = createdomainsMatchAttName(rdatt->data,
-							   relnatts,
-							   (Name) domname);
-			rest = CDR(rest);
-		} else {
-			domname = NULL;
-			domtype = NULL;
-			domdelim = NO_DELIM;
-			attnum = (AttributeNumber) (i + 1);
-		}
-
-		/*
-		 * Handle dummy strings (to be written to the file).
-		 */
-		if (domtype == STRING_TYPE) {
-			if (isFrom) {
-				copyCleanup(rdesc, (FILE *) NULL, doms);
-				elog(WARN,
-				     "createdomains: No strings in 'from'");
-				return((Domain) NULL);
-			}
-			DomainSetString(&doms[i]);
-			doms[i].domlen = domdelim;
-			doms[i].string = domname;
-#ifdef COPYDEBUG
-			printf("%d: string, value=%s\n", i, domname);
-#endif
-			continue;
-		}
-
-		/*
-		 * Determine the size of the domain, as specified by 'domtype'
-		 * (Even dummies have to have a type of some sort).
-		 * XXX The default output type is text.
-		 */
-		if (!PointerIsValid(domtype))
-			domtype = "text";
-		typtup = SearchSysCacheTuple(TYPNAME,
-					     domtype, NULL, NULL, NULL);
-		if (!HeapTupleIsValid(typtup)) {
-			copyCleanup(rdesc, (FILE *) NULL, doms);
-			elog(WARN, "createdomains: Unknown type %s", domtype);
-			return((Domain) NULL);
-		}
-		doms[i].domlen = ((TypeTupleForm) GETSTRUCT(typtup))->typlen;
-		if (createdomainsIsCharType((Name) domtype))
-			DomainSetExternal(&doms[i]);
-
-		/*
-		 * Deal with dummy domains.
-		 */
-		if (attnum == DUMMY_ATT) {
-			if (isFrom) {
-				copyCleanup(rdesc, (FILE *) NULL, doms);
-				elog(WARN,
-				     "createdomains: No dummies in 'to'");
-				return((Domain) NULL);
-			}
-			DomainSetDummy(&doms[i]);
-			doms[i].delim = domdelim;
-			if (DelimIsValid(domdelim))
-				DomainSetDelimited(&doms[i]);
-#ifdef COPYDEBUG
-			printf("%d: dummy, type=%s\n", i, domtype);
-#endif
-			continue;
-		}
-
-		/*
-		 * At this point, the domain must be a normal attribute.
-		 */
-		typtup = SearchSysCacheTuple(TYPOID,
-					     (char *)
-					     rdatt->data[attnum-1]->atttypid,
-					     NULL, NULL, NULL);
-		if (!HeapTupleIsValid(typtup)) {
-			copyCleanup(rdesc, (FILE *) NULL, doms);
-			elog(WARN, "createdomains: Unknown attribute type %d",
-			     rdatt->data[attnum]->atttypid);
-			return((Domain) NULL);
-		}
-		tp = (TypeTupleForm) GETSTRUCT(typtup);
-		doms[i].typoutput = tp->typoutput;
-		doms[i].typinput = tp->typinput;
-		if (doms[i].domlen == 0)
-			doms[i].domlen = tp->typlen;
-		doms[i].attnum = attnum;
-		DomainSetAttribute(&doms[i]);
-
-		if (isBinary || !DomainIsVarLen(&doms[i])) {
-			continue;
-		}
-		if ((DomainIsDummy(&doms[i]) || DomainIsExternal(&doms[i])) &&
-		    DelimIsValid(domdelim)) {
-			DomainSetDelimited(&doms[i]);
-			doms[i].delim = domdelim;
-		} else if (DomainIsExternal(&doms[i])) {
-			DomainSetDelimited(&doms[i]);
-			doms[i].delim = (i == ndoms - 1) ? '\n' : '\t';
-		}
-	}
-	*domainCountOutP = ndoms;
-#ifdef COPYDEBUG
-	print_domains(ndoms, doms);
-#endif
-	return(doms);
-}
-
-Domain
-createdomainsAlloc(ndoms)
-	int	ndoms;
-{
-	register	i;
-	Domain		doms;
-
-	doms = (Domain) palloc(sizeof(DomainData) * ndoms);
-	for (i = 0; i < ndoms; ++i) {
-		doms[i].domnum = i;
-		doms[i].attnum = DUMMY_ATT;
-		doms[i].domlen = 0;
-		doms[i].domtype = 0;
-		doms[i].delim = NO_DELIM;
-		doms[i].string = NULL;
-		doms[i].typoutput = doms[i].typinput = (ObjectId) 0;
-	}
-	return(doms);
-}
-
-int
-createdomainsIsCharType(typename)
-	Name	typename;
-{
-	/* XXX This will get more complicated when we have character arrays */
-	static NameData	textname = { "text" };
-
-	return(!strncmp(typename->data, textname.data, sizeof(NameData)));
-}
-
-AttributeNumber
-createdomainsMatchAttName(atts, natts, attname)
-	AttributeTupleForm	atts[];
-	AttributeNumber		natts;
-	Name			attname;
-{
-	register	i;
-
-	for (i = 0; i < (int) natts; ++i)
-		if (!strncmp(attname->data, atts[i]->attname.data,
-			     sizeof(NameData)))
-			return(i + 1);
-	return(DUMMY_ATT);
-}
-
-/*
- *	copyrel
- *
- */
-copyrel(relname, isfrom, filename, maprelname, ndoms, doms)
-	char		*relname;
-	Boolean		isfrom;
-	char		*filename;
-	char		*maprelname;
-	int		ndoms;
-	DomainData	doms[];
-{
-	Relation	rdesc = (Relation) NULL;
-	Relation	maprdesc = (Relation) NULL;
-	FILE		*fp = (FILE *) NULL;
-
-	if (!PointerIsValid(relname) ||
-	    !BooleanIsValid(isfrom) ||
-	    !PointerIsValid(filename) ||
-	    ndoms <= 0 ||
-	    !DomainIsValid(doms)) {
-		copyCleanup(rdesc, fp, doms);
-		elog(WARN, "copyrel: Bad arg(s) - \"%s\" %d \"%s\" %d %x",
-		     relname, isfrom, filename, ndoms, doms);
-		return;
-	}
-
-	/*
-	 * XXX Security - should check:
-	 *	Source/target relation retrieve/update permission
-	 *	Catalog 'usecatupd' permission
-	 */
-
-	rdesc = RelationNameOpenHeapRelation(relname);
-	if (!RelationIsValid(rdesc)) {
-		copyCleanup(rdesc, fp, doms);
-		elog(WARN, "copyrel: Can't open relation %s", relname);
-		return;
-	}
-
-	if (PointerIsValid(maprelname)) {
-		maprdesc = RelationNameOpenHeapRelation(maprelname);
-		if (!RelationIsValid(maprdesc)) {
-			copyCleanup(rdesc, fp, doms);
-			elog(WARN, "copyrel: Can't open map relation %s",
-			     maprelname);
-			return;
-		}
-	}
-
-	AllocateFile();
-	fp = fopen(filename, BooleanIsFalse(isfrom) ? "w" : "r");
-	if (fp == (FILE *) NULL) {
-		perror("copyrel");
-		copyCleanup(rdesc, fp, doms);
-		elog(WARN, "copyrel: Could not open file %s in %c mode",
-		     filename, BooleanIsFalse(isfrom) ? 'w' : 'r');
-		return;
-	}
-
-	StartPortalAllocMode(DynamicAllocMode, (Size)0);
-	if (BooleanIsFalse(isfrom))
-		copyWrite(rdesc, maprdesc, fp, ndoms, doms);
 	else
-		copyRead(rdesc, maprdesc, fp, ndoms, doms);
-	EndPortalAllocMode();
-
-	copyCleanup(rdesc, fp, doms);
-
-	if (RelationIsValid(maprdesc))
-		RelationCloseHeapRelation(maprdesc);
-}
-
-/*
- *	copyWrite
- *
- *	Write a relation into a UNIX file.
- */
-/*ARGSUSED*/
-copyWrite(rdesc, maprdesc, fp, ndoms, doms)
-	Relation	rdesc;		/* relation to write from */
-	Relation	maprdesc;	/* relation to write map info to */
-	FILE		*fp;		/* file to write to */
-	int		ndoms;		/* number of domains */
-	DomainData 	doms[];		/* domain descriptors */
-{
-	register 		i;
-	AttributeTupleForm	*atts;
-	HeapScanDesc		relscan;
-	Boolean			ioerr = B_FALSE;
-	HeapTuple		htp;
-	Buffer			bufp;		/* buffer page of tuple */
-	char			*attr;		/* result from amgetattr */
-	Boolean			isnull;		/* whether attr is null */
-
-	atts = (RelationGetTupleDescriptor(rdesc))->data;
-
-	relscan = RelationBeginHeapScan(rdesc, 0, NowTimeQual, (unsigned) 0,
-					(ScanKey) NULL);
-
-	while (BooleanIsFalse(ioerr) &&
-	       HeapTupleIsValid(htp =
-				HeapScanGetNextTuple(relscan, 0, &bufp))) {
-#ifdef COPYDEBUG
-		printf("writing");
-#endif
-		for (i = 0; i < ndoms; ++i) {
-			if (DomainIsString(&doms[i])) {
-				ioerr = copyWriteString(fp, &doms[i]);
-				continue;
-			}
-			if (!DomainIsAttribute(&doms[i])) {
-				elog(WARN,
-				     "copyWrite: Bad domain, domtype=0x%x\n",
-				     doms[i].domtype);
-				ioerr = B_TRUE;
-				break;
-			}
-			attr = amgetattr(htp, bufp, (int) doms[i].attnum,
-					 atts, &isnull);
-			if (DomainIsExternal(&doms[i]))
-				ioerr = copyWriteExternal(attr, isnull, rdesc,
-							  fp, &doms[i]);
-			else 
-				ioerr = copyWriteBinary(attr, isnull, rdesc,
-							fp, &doms[i]);
-		} /* attribute */
-#ifdef COPYDEBUG
-		printf("\n");
-#endif
-		if (BooleanIsTrue(ioerr)) {
-			elog(WARN, "copyWrite: Bailing out!\n");
-			break;
+	{
+		fp = pipe ? stdout : fopen(filename, "w");
+		if (fp == NULL) 
+		{
+			elog(WARN, "COPY: file %s could not be open for writing", filename);
 		}
-
-		/* XXX Write the mapping information here */
-	} /* tuple */
-
-	if (!HeapScanIsValid(relscan))
-		HeapScanEnd(relscan);
-}
-
-/*
- *	copyWriteString
- *
- *	Write a dummy string to a file.
- */
-Boolean
-copyWriteString(fp, dom)
-	FILE	*fp;
-	Domain	dom;
-{
-	int	wbytes;
-
-	wbytes = fwrite(dom->string, sizeof(char), dom->domlen, fp);
-	if (wbytes != dom->domlen) {
-		elog(WARN, "copyWriteString: fwrite() error, dom%d",
-		     dom->domnum);
-		return(B_TRUE);
+		CopyTo(relname, binary, fp);
 	}
-#ifdef COPYDEBUG
-	printf(", dom%d=\"%s\"",
-	       dom->domnum,
-	       PointerIsValid(dom->string) ? dom->string : "NULL");
-#endif
-	return(B_FALSE);
+	if (from && pipe) fflush(stdin);
 }
 
-/*
- *	copyWriteExternal
- *
- *	Write an attribute to a file as an ASCII character string containing
- *	the attribute value in external format.
- *	If the attribute is variable length, it will always be delimited.
- *	If it is not, dom->domlen characters are written (including padding,
- *	if necessary).
- */
-/*ARGSUSED*/
-Boolean
-copyWriteExternal(attr, isnull, rdesc, fp, dom)
-	char		*attr;		/* attribute to write */
-	Boolean		isnull;		/* whether 'attr' is null or not */
-	Relation	rdesc;		/* relation to write from */
-	FILE		*fp;		/* file to write to */
-	Domain	 	dom;		/* domain descriptor */
+CopyTo(relname, binary, fp)
+
+char *relname;
+bool binary;
+FILE *fp;
+
 {
-	char		*out;			/* output string from fmgr */
-	int		outlen;			/* length of out */
-	Boolean		ioerr = B_FALSE;
+	HeapTuple tuple, amgetnext();
+    Relation rel, amopenr();
+    HeapScanDesc scandesc, ambeginscan();
+	AttributeNumber attr_count;
+	Attribute *attr;
+	func_ptr *out_functions;
+	int i, dummy, entering = 1;
+	oid out_func_oid;
+	Datum value;
+	Boolean isnull = (Boolean) true;
+	char *string;
 
-	outlen = -1;
-	out = NULL;
-	if (BooleanIsFalse(isnull)) {
-		out = fmgr(dom->typoutput, attr);
-		if (!PointerIsValid(out)) {
-			elog(WARN,
-			     "copyWriteExternal: fmgr() error in calling %d",
-			     dom->typoutput);
-			return(B_TRUE);
-		} else
-			outlen = strlen(out);
-	}
-	if (outlen >= 0)
-		if (DomainIsVarLen(dom))
-			ioerr = copyWriteChar0(out, isnull, outlen, fp, dom);
-		else
-			ioerr = copyWriteCharN(out, isnull, outlen, fp, dom);
-#ifdef COPYDEBUG
-	printf(", dom%d=\"%s\"",
-	       dom->domnum, PointerIsValid(out) ? out : "NULL");
-#endif
-	return(ioerr);
-}
-
-/*
- *	copyWriteChar0
- *
- *	Write an attribute to a file as a delimited ASCII string containing
- *	the attribute value in external format.
- */
-Boolean
-copyWriteChar0(chars, isnull, nchars, fp, dom)
-	char		*chars;
-	Boolean		isnull;
-	int		nchars;
-	FILE		*fp;
-	Domain		dom;
-{
-	register	i, j, k;
-	Boolean		ioerr = B_FALSE;
-	static char	buf[2 * BUFSIZ + 1];	/* fixed-length buffer */
-	int		writelen;
+    rel = amopenr(relname);
+    if (rel == NULL) elog(WARN, "%s: class %s does not exist", relname);
+    scandesc = ambeginscan(rel, 0, NULL, NULL, NULL);
 
-	/*
-	 * If the attribute is null, simply print a zero-length record.
-	 *	XXX "" ends up as a NULL text value
-	 */
-	if (BooleanIsTrue(isnull)) {
-		if (fwrite(&dom->delim, sizeof(char), 1, fp) != 1) {
-			elog(WARN, "copyWriteChar0: fwrite() error on dom%d[]",
-			     dom->domnum);
-			ioerr = B_TRUE;
-		}
-		return(ioerr);
-	}
+	attr_count = rel->rd_rel->relnatts;
+	attr = (Attribute *) &rel->rd_att;
 
-	/*
-	 * Copy 'chars' into 'buf', escaping instances of the delim character
-	 * which are found within 'chars' (at worst, every character in each
-	 * BUFSIZ-byte fragment of 'chars' will need escaping, thus
-	 * doubling the string length) and then write 'buf'.
-	 */
-	for (i = 0; i < nchars; i += writelen) {
-		writelen = Min(nchars - i, BUFSIZ);
-		for (j = i, k = 0; j < writelen; ++j, ++k) {
-			if (chars[j] == '\\' || chars[j] == dom->delim)
-				buf[k++] = '\\';
-			buf[k] = chars[j];
-		}
-		if (i + writelen >= nchars)	/* finished! */
-			buf[k++] = dom->delim;
-		if (fwrite(buf, sizeof(char), k, fp) != k) {
-			elog(WARN,
-			     "copyWriteChar0: fwrite() error on dom%d[%d+%d]",
-			     dom->domnum, i, k);
-			ioerr = B_TRUE;
-			break;
+	if (!binary)
+	{
+		out_functions = (func_ptr *)
+						 palloc(attr_count * sizeof(func_ptr));
+    	for (i = 0; i < attr_count; i++) {
+			out_func_oid = (oid) GetOutputFunction(attr[i]->atttypid);
+			fmgr_info(out_func_oid, &out_functions[i], &dummy);
 		}
 	}
-	return(ioerr);
-}
-
-/*
- *	copyWriteCharN
- *
- *	Write an attribute to a file as a fixed-length ASCII string containing
- *	the attribute value in external format.
- *	If the string is too long, it is truncated; if it is too short,
- *	it is right-padded with CHARN_PAD_CHAR.
- */
-Boolean
-copyWriteCharN(chars, isnull, nchars, fp, dom)
-	char		*chars;
-	Boolean		isnull;
-	int		nchars;
-	FILE		*fp;
-	Domain		dom;
-{
-	register	i;
-	Boolean		ioerr = B_FALSE;
-	int		padlen, writelen;
-	static char	padbuf[BUFSIZ];
-	static Boolean	padinit = B_FALSE;
 
-	if (BooleanIsFalse(padinit)) {
-		for (i = 0; i < BUFSIZ; ++i)
-			padbuf[i] = CHARN_PAD_CHAR;
-		padinit = B_TRUE;
-	}
-	if (BooleanIsTrue(isnull)) {
-		padlen = dom->domlen;
-	} else {
-		padlen = dom->domlen - nchars;
-		if (padlen < 0) {	/* requires truncation, not padding */
-			if (fwrite(chars, sizeof(char), dom->domlen, fp)
-			    != dom->domlen) {
-				elog(WARN,
-				     "copyWriteCharN: fwrite() error on dom%d",
-				     dom->domnum);
-				ioerr = B_TRUE;
-			}
-			return(ioerr);
-		}
-		if (fwrite(chars, sizeof(char), nchars, fp) != nchars) {
-			elog(WARN,
-			     "copyWriteCharN: fwrite() error on dom%d",
-			     dom->domnum);
-			return(ioerr);
-		}
-	}
-	for (i = 0; i < padlen; i += writelen) {
-		writelen = Min(padlen, BUFSIZ);
-		if (fwrite(padbuf, sizeof(char), writelen, fp) != writelen) {
-			elog(WARN, "copyWriteCharN: fwrite error on dom%d",
-			     dom->domnum);
-			ioerr = B_TRUE;
-			break;
-		}
-	}
-	return(ioerr);
-}
-
-/*
- *	copyWriteBinary
- *
- *	Write an attribute to a file as raw host-order bytes.  Unless the
- *	NONULLS flag has been set, fixed-length data is preceded by the length
- *	in bytes, written as a host-order int4 (nulls are assigned a length
- *	of 0); variable-length fields are always preceded by their length.
- */
-Boolean
-copyWriteBinary(attr, isnull, rdesc, fp, dom)
-	char		*attr;		/* attribute to write */
-	Boolean		isnull;		/* whether attr is null or not */
-	Relation	rdesc;		/* relation to write from */
-	FILE		*fp;		/* file to write to */
-	Domain		dom;		/* domain descriptor */
-{
-	AttributeTupleForm	att;
-	int			attrlen;
-	Boolean			ioerr = B_FALSE;
-	int			wbytes;
-	char			*out;
-
-	att = (RelationGetTupleDescriptor(rdesc))->data[dom->attnum - 1];
-
-	/*
-	 * In standard POSTGRES mode, precede all attributes with their length
-	 * (written as a long integer).  In NONULLS mode, only variable-length
-	 * attributes have a preceding length word.
-	 * XXX A length of zero is assumed to mean a null attribute.
-	 *     This is wasteful, but how else can null values be represented?
-	 */
-	if (BooleanIsTrue(isnull))
-		attrlen = 0;
-	else if (AttrIsVarLen(att))
-		attrlen = PSIZE(attr);
-	else
-		attrlen = att->attlen;
-	if (!DomainIsNoNulls(dom) || AttrIsVarLen(att))
-		if (fwrite((char *) &attrlen, 1, sizeof(long), fp) != 1) {
-			elog(WARN,
-			     "copyWriteBinary: fwrite(%d) error, dom%d length",
-			     attrlen, dom->domnum);
-			return(B_TRUE);
-		}
-
-	out = BooleanIsTrue(att->attbyval) ? (char *) &attr : attr;
-	wbytes = fwrite(out, sizeof(char), attrlen, fp);
-	if (wbytes != attrlen) {
-		elog(WARN,
-		     "copyWriteBinary: fwrite() error, dom%d[%d/%d]",
-		     dom->domnum, wbytes, attrlen);
-		ioerr = B_TRUE;
-	}
-#ifdef COPYDEBUG
-	if (BooleanIsTrue(att->attbyval))
-		printf(", dom%d=%x", dom->domnum, attr);
-	else
-		printf(", dom%d=<%x>", dom->domnum, attr);
-#endif
-	return(ioerr);
-}
-
-/*
- *	copyRead
- *
- *	Read a relation from a text file.
- */
-/*ARGSUSED*/
-copyRead(rdesc, maprdesc, fp, ndoms, doms)
-	Relation	rdesc;		/* relation to write to */
-	Relation	maprdesc;	/* relation to write map info to */
-	FILE		*fp;		/* file to read from */
-	int		ndoms;		/* number of domains */
-	DomainData	doms[];		/* domain descriptor */
-{
-	register		i, attindex;
-	int			relnatts;
-	char			*p;
-	char			*nullmap;
-	char			**vals;
-	TupleDescriptor		rdatt;
-	HeapTuple 		tup;
-	Boolean			isnull, eof;
-	HeapTuple		formtuple();	/* XXX */
-
-	/*
-	 * Allocate a pointer vector and a bytemap of domains for formtuple()
-	 * and initialize them.
-	 */
-	relnatts = (int) (RelationGetRelationTupleForm(rdesc))->relnatts;
-	vals = (char **) palloc(sizeof(char *) * relnatts);
-	nullmap = palloc(relnatts);
-
-	rdatt = RelationGetTupleDescriptor(rdesc);
-
-	/* Read in a file, a tuple at a time. */
-	for (eof = B_FALSE; BooleanIsFalse(eof); ) {
-
-		for (i = 0; i < relnatts; ++i) {
-			vals[i] = NULL;
-			nullmap[i] = NULL_ATT;
-		}
-
-		/* Read in a tuple, an attribute at a time. */
-#ifdef COPYDEBUG
-		printf("reading");
-#endif
-		for (i = 0; i < ndoms && BooleanIsFalse(eof); ++i)  {
-			if (DomainIsDummy(&doms[i])) {
-				copyReadDummy(fp, &doms[i], &isnull, &eof);
-				if (BooleanIsTrue(eof))
-					break;
+	for (tuple = amgetnext(scandesc, NULL, NULL);
+		 tuple != NULL; 
+		 tuple = amgetnext(scandesc, NULL, NULL))
+	{
+		for (i = 0; i < attr_count; i++)
+		{
+			value = (Datum) 
+					amgetattr(tuple, InvalidBuffer, i+1, attr, &isnull);
+			if (!binary)
+			{
+				string = (char *) (out_functions[i]) (value);
+				CopyAttributeOut(fp, string);
+				if (i == attr_count - 1)
+				{
+					fputc('\n', fp);
+				}
 				else
-					continue;
+				{
+					fputc('\t', fp);
+				}
+				pfree(string);
 			}
+		}
+	}
 
-			attindex = doms[i].attnum - 1;
-			if (!DomainIsAttribute(&doms[i])) {
-				elog(WARN, "copyRead: Invalid domain %x",
-				     doms[i].domtype);
-				goto exit_copyRead;
+	amendscan(scandesc);
+	pfree(out_functions);
+	amclose(rel);
+	fclose(fp);
+}
+
+CopyFrom(relname, binary, fp)
+
+char *relname;
+bool binary;
+FILE *fp;
+
+{
+	HeapTuple tuple, formtuple();
+    Relation rel, amopenr();
+	AttributeNumber attr_count = 1;
+	Attribute *attr, *ptr;
+	func_ptr *in_functions;
+	int i, dummy, entering = 1;
+	oid in_func_oid;
+	Datum *values;
+	char *nulls;
+	bool *byval;
+	Boolean isnull;
+	int done = 0;
+	char *string, *CopyReadAttribute();
+
+    rel = amopenr(relname);
+    if (rel == NULL) elog(WARN, "%s: class %s does not exist", relname);
+
+	attr = (Attribute *) &rel->rd_att;
+
+	attr_count = rel->rd_rel->relnatts;
+
+	if (!binary)
+	{
+		in_functions = (func_ptr *) palloc(attr_count * sizeof(func_ptr));
+   		for (i = 0; i < attr_count; i++)
+		{
+			in_func_oid = (oid) GetInputFunction(attr[i]->atttypid);
+			fmgr_info(in_func_oid, &in_functions[i], &dummy);
+		}
+	}
+
+	values = (Datum *) palloc(sizeof(Datum) * attr_count);
+	nulls = (char *) palloc(attr_count);
+	byval = (bool *) palloc(attr_count * sizeof(bool));
+
+	for (i = 0; i < attr_count; i++) 
+	{
+		nulls[i] = ' ';
+		byval[i] = (bool) IsTypeByVal(attr[i]->atttypid);
+	}
+
+	while (!done)
+	{
+
+		for (i = 0; i < attr_count; i++)
+		{
+			string = CopyReadAttribute(fp, &isnull);
+			if (isnull)
+			{
+				values[i] = NULL;
+				nulls[i] = 'n';
 			}
-			if (DomainIsExternal(&doms[i]))
-				p = copyReadExternal(fp, &doms[i],
-						     &isnull, &eof);
+			else if (string == NULL)
+			{
+				done = 1;
+			}
 			else
-				p = copyReadBinary(fp, &doms[i],
-						   &isnull, &eof);
-			if (BooleanIsTrue(eof))
-				break;
-			if (BooleanIsFalse(isnull)) {
-				nullmap[attindex] = NON_NULL_ATT;
-				if (DomainIsExternal(&doms[i]))
-					vals[attindex] =
-						fmgr(doms[i].typinput, p);
-				else
-					vals[attindex] = p;
+			{
+				values[i] = (Datum) (in_functions[i]) (string);
 			}
-#ifdef COPYDEBUG			
-			printf(", att%d=\"%s\"/%x[%c]",
-			       i, p, vals[attindex], nullmap[attindex]);
-#endif
-		} /* attribute */
-#ifdef COPYDEBUG
-		printf("\n");
-#endif
-		/*
-		 * This should only happen on EOF or system failure, so we
-		 * will halt the read completely.
-		 */
-		if (i != ndoms) {
-			if (i != 0)
-				elog(DEBUG, "copyRead: Stopped at dom%d", i);
-			break;
 		}
 
-		/*
-		 * Form a tuple using the master atts (i.e., actual
-		 * atts in relation) and data array filled above, then
-		 * insert the newly formed tuple into the relation.
-		 *
-		 * XXX Ignore locks for now.
-		 */
-		tup = formtuple(relnatts, rdatt->data, vals, nullmap);
-		(void) RelationInsertHeapTuple(rdesc, tup, (double *) NULL);
-		pfree((char *) tup);
-		for (i = 0; i < relnatts; ++i) {
-			attindex = doms[i].attnum - 1;
-			if (nullmap[attindex] == NON_NULL_ATT &&
-			    BooleanIsFalse(rdatt->data[doms[i].attnum]->attbyval))
-				pfree(vals[attindex]);
-		}
-	} /* tuple */
+		if (done) continue;
 
- exit_copyRead:
-	if (PointerIsValid(nullmap))
-		pfree(nullmap);
-	if (PointerIsValid(vals))
-		pfree((char *) vals);
+		tuple = formtuple(attr_count, attr, values, nulls);
+		aminsert(rel, tuple, NULL);
+		for (i = 0; i < attr_count; i++) 
+		{
+			if (!byval[i] && nulls[i] != 'n')
+			{
+				pfree(values[i]);
+			}
+			else if (nulls[i] == 'n')
+			{
+				nulls[i] = ' ';
+			}
+		}
+		pfree(tuple);
+	}
+	pfree(values);
+	pfree(in_functions);
+	pfree(nulls);
+	pfree(byval);
+	amclose(rel);
 }
-
-/*
- *	copyReadDummy
- *
- *	Returns nothing.
- */
-copyReadDummy(fp, dom, isnull, eof)
-	FILE		*fp;		/* file to read from */
-	Domain 		dom;		/* domain descriptor */
-	Boolean		*isnull;	/* return value: is the attr null? */
-	Boolean		*eof;		/* return value: have we read EOF? */
+
+GetOutputFunction(type)
+    ObjectId	type;
 {
-	char	*p;
+    HeapTuple	typeTuple;
 
-	if (DomainIsVarLen(dom)) {
-		if (DomainIsDelimited(dom)) {
-			(void) copyReadChar0(fp, dom, isnull, eof);
-		} else {
-			p = copyReadBinary(fp, dom, isnull, eof);
-			if (PointerIsValid(p))
-				pfree(p);
-		}
-	} else
-		(void) fseek(fp, (long) dom->domlen, 1);
+    typeTuple = SearchSysCacheTuple(TYPOID,
+				    (char *) type,
+				    (char *) NULL,
+				    (char *) NULL,
+				    (char *) NULL);
+
+    if (HeapTupleIsValid(typeTuple))
+	return((int) ((TypeTupleForm) GETSTRUCT(typeTuple))->typoutput);
+
+    elog(WARN, "GetOutputFunction: Cache lookup of type %d failed", type);
+    return(InvalidObjectId);
 }
 
-/*
- *	copyReadExternal
- *
- *	Returns a pointer to a static character buffer containing the external
- *	format of a data type.
- *
- *	Return variables:
- *		BooleanIsTrue(isnull) 	iff no valid attribute was read
- *		BooleanIsTrue(eof)	iff EOF or a fatal error occurred
- */
+GetInputFunction(type)
+    ObjectId	type;
+{
+    HeapTuple	typeTuple;
+
+    typeTuple = SearchSysCacheTuple(TYPOID,
+				    (char *) type,
+				    (char *) NULL,
+				    (char *) NULL,
+				    (char *) NULL);
+
+    if (HeapTupleIsValid(typeTuple))
+	return((int) ((TypeTupleForm) GETSTRUCT(typeTuple))->typinput);
+
+    elog(WARN, "GetInputFunction: Cache lookup of type %d failed", type);
+    return(InvalidObjectId);
+}
+
+IsTypeByVal(type)
+    ObjectId	type;
+{
+    HeapTuple	typeTuple;
+
+    typeTuple = SearchSysCacheTuple(TYPOID,
+				    (char *) type,
+				    (char *) NULL,
+				    (char *) NULL,
+				    (char *) NULL);
+
+    if (HeapTupleIsValid(typeTuple))
+	return((int) ((TypeTupleForm) GETSTRUCT(typeTuple))->typbyval);
+
+    elog(WARN, "GetInputFunction: Cache lookup of type %d failed", type);
+    return(InvalidObjectId);
+}
+
+#define ATTLEN 2048 /* need to fix if attributes ever get very long */
+
 char *
-copyReadExternal(fp, dom, isnull, eof)
-	FILE		*fp;		/* file to read from */
-	Domain	 	dom;		/* domain descriptor */
-	Boolean		*isnull;	/* return value: is the attr null? */
-	Boolean		*eof;		/* return value: have we read EOF? */
+CopyReadAttribute(fp, isnull)
+
+FILE *fp;
+Boolean *isnull;
+
 {
-	char	*inbuf;
+	static char attribute[ATTLEN];
+	char c;
+	int done = 0;
+	int i = 0;
+	int length = 0;
 
-	*eof = B_TRUE;
-	*isnull = B_TRUE;
-
-	if (DomainIsDelimited(dom))
-		inbuf = copyReadChar0(fp, dom, isnull, eof);
-	else
-		inbuf = copyReadCharN(fp, dom, isnull, eof);
-	return(inbuf);
-}
-
-char *
-copyReadCharN(fp, dom, isnull, eof)
-	FILE		*fp;		/* file to read from */
-	Domain	 	dom;		/* domain descriptor */
-	Boolean		*isnull;	/* return value: is the attr null? */
-	Boolean		*eof;		/* return value: have we read EOF? */
-{
-	register	rbytes;
-	unsigned	morebuf;
-	static char	*inbuf = NULL;
-	static unsigned	inbuflen = 0;
-
-	morebuf = dom->domlen - inbuflen + 1;
-	if (morebuf > 0) {
-		inbuf = copyAlloc(inbuf, &inbuflen, morebuf);
-		if (!PointerIsValid(inbuf)) {
-			elog(WARN, "copyReadExternal: copyAlloc() failure");
+	while (!done)
+	{
+		c = getc(fp);
+		if (feof(fp))
+		{
+			done = 1;
+			*isnull = (Boolean) false;
 			return(NULL);
 		}
-	}
-	rbytes = fread(inbuf, sizeof(char), dom->domlen, fp);
-	if (rbytes != dom->domlen) {
-		elog(WARN, "copyReadExternal: fread() error, dom%d[%d/%d]",
-		     rbytes, dom->domlen, dom->domnum);
-		return(NULL);
-	}
-	*eof = B_FALSE;
-	*isnull = B_FALSE;
-	inbuf[rbytes] = '\0';
-	return(inbuf);
-}
-
-char *
-copyReadChar0(fp, dom, isnull, eof)
-	FILE		*fp;		/* file to read from */
-	Domain	 	dom;		/* domain descriptor */
-	Boolean		*isnull;	/* return value: is the attr null? */
-	Boolean		*eof;		/* return value: have we read EOF? */
-{
-	register	c, rbytes;
-	Boolean		escaped;
-	static char	*inbuf = NULL;
-	static unsigned	inbuflen = 0;
-
-	rbytes = 0;
-	escaped = B_FALSE;
-	/* Read in an attribute, a character at a time. */
-	while ((c = getc(fp)) != EOF &&
-	       (c != dom->delim || BooleanIsTrue(escaped))) {
-		if (rbytes >= inbuflen) {
-			inbuf = copyAlloc(inbuf, &inbuflen, BUFSIZ);
-			if (!PointerIsValid(inbuf)) {
-				elog(WARN,
-				     "copyReadExternal: copyAlloc() failure");
-				return(NULL);
-			}
+		else if (c == '\\') 
+		{
+			c = getc(fp);
 		}
-		if (c != '\\' || BooleanIsTrue(escaped)) {
-			inbuf[rbytes++] = c;
-			escaped = B_FALSE;
-		} else
-			escaped = B_TRUE;
-	}
-	*eof = (Boolean) (c == EOF);
-	if (rbytes <= 0)		/* XXX "" is read as a NULL field */
-		return(NULL);
-	*isnull = B_FALSE;
-	inbuf[rbytes] = '\0';
-	return(inbuf);
-}
-
-/*
- *	copyReadBinary
- *
- *	Returns a pointer to a palloc'ed character buffer, suitable for
- *	direct use in a fmgr() call.
- *
- *	Return variables:
- *		BooleanIsTrue(isnull) 	iff no valid attribute was read
- *		BooleanIsTrue(eof)	iff EOF or a fatal error occurred
- */
-char *
-copyReadBinary(fp, dom, isnull, eof)
-	FILE		*fp;		/* file to read from */
-	Domain	 	dom;		/* domain descriptor */
-	Boolean		*isnull;	/* return value: is the attr null? */
-	Boolean		*eof;		/* return value: have we read EOF? */
-{
-	int		rbytes;
-	uint32		attrlen;
-	char	 	*inbuf;
-
-	*isnull = B_TRUE;
-	*eof = B_FALSE;
-
-	/*
-	 * Attributes are preceded by their length in bytes unless the
-	 * NONULLS flag is set.
-	 * Allocate at least this much space to hold the attribute.
-	 */
-	if (!DomainIsNoNulls(dom) || DomainIsVarLen(dom)) {
-		rbytes = fread((char *) &attrlen, sizeof(long), 1, fp);
-		if (rbytes != 1) {
-			if (rbytes == 0)
-				*eof = B_TRUE;
-			else
-				elog(WARN,
-				     "copyReadBinary: fread() error, attrlen");
-			return(NULL);
+		else if (c == '\t' || c == '\n')
+		{
+			done = 1;
 		}
-	} else
-		attrlen = dom->domlen;
-	if (attrlen <= 0) {
-		if (attrlen < 0)
-			elog(WARN, "copyReadBinary: Bad vl_len %d", attrlen);
+		if (!done) attribute[i++] = c;
+		if (i == ATTLEN - 1)
+			elog(WARN, "CopyReadAttribute - attribute length too long");
+	}
+	attribute[i] = '\0';
+	if (i == 0) 
+	{
+		*isnull = (Boolean) true;
 		return(NULL);
 	}
-	inbuf = palloc((int) attrlen);
-
-	rbytes = fread(inbuf, sizeof(char), (int) attrlen, fp);
-	if (rbytes != (int) attrlen) {
-		if (rbytes == 0)
-			*eof = B_TRUE;
-		else
-			elog(WARN,
-			     "copyReadBinary: fread() error, read %d/%d",
-			     rbytes, attrlen);
-		pfree(inbuf);
-		return(NULL);
+	else
+	{
+		*isnull = (Boolean) false;
+		return(&attribute[0]);
 	}
-	*isnull = B_FALSE;
-	return(inbuf);
 }
-
-/*
- *	copyCleanup
- *
- *	Deallocate the argument objects.
- */
-int
-copyCleanup(rdesc, fp, doms)
-	Relation	rdesc;
-	FILE 		*fp;
-	DomainData	doms[];
+
+CopyAttributeOut(fp, string)
+
+FILE *fp;
+char *string;
+
 {
-	if (RelationIsValid(rdesc))
-		RelationCloseHeapRelation(rdesc);
-	if (fp != (FILE *) NULL) {
-		FreeFile();		/* XXX race condition */
-		if (fclose(fp) == EOF) {
-			elog(WARN, "copyCleanup: Can't close file");
+	int i;
+	int len = strlen(string);
+
+	for (i = 0; i < len; i++)
+	{
+		if (string[i] == '\t' || string[i] == '\\')
+		{
+			fputc('\\', fp);
 		}
+		fputc(string[i], fp);
 	}
-	if (DomainIsValid(doms))
-		pfree((char *) doms);
-}
-
-/*
- *	copyAlloc
- *
- *	Grab at least 'more' more bytes for a static buffer.
- */
-char *
-copyAlloc(p, plen, more)
-	char		*p;
-	unsigned	*plen;
-	unsigned	more;
-{
-	char		*tmpp;
-	unsigned 	newlen;
-	extern char 	*malloc(), *realloc();		/* XXX style */
-
-	if (PointerIsValid(p)) {
-		newlen = *plen + Max(more, BUFSIZ);
-		p = realloc(p,newlen);
-	} else {
-		newlen = Max(more, BUFSIZ);
-		p = malloc(newlen);
-	}
-	if (!PointerIsValid(p)) {
-		elog(WARN, "copyAlloc: malloc() failure");
-		newlen = 0;
-	}
-	*plen = newlen;
-	return(p);
-}
-
-/*
- *	*** DEBUGGING CODE ***
- */
-
-/*
- *	print_domains
- */
-print_domains(ndoms, doms)
-	int		ndoms;
-	DomainData	doms[];
-{
-	int	i;
-
-	for (i = 0; i < ndoms; ++i)
-		printf("doms[%d] = %d %d %d 0x%x %d %s %d %d\n",
-		       i,
-		       doms[i].domnum,
-		       doms[i].attnum,
-		       doms[i].domlen,
-		       doms[i].domtype,
-		       doms[i].delim,
-		       doms[i].string ? doms[i].string : "NULL",
-		       doms[i].typoutput,
-		       doms[i].typinput);
 }
