@@ -76,6 +76,7 @@
 #include "catalog/syscache.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_naming.h"
+#include "catalog/indexing.h"
 #include "utils/rel.h"
 #include "utils/log.h"
 #include "access/heapam.h"
@@ -98,63 +99,37 @@ oid FilenameToOID(fname)
     char pathcomponents[MAXPATHNAME];
     int n_comps;
     int i;
-
+    char *cp;
+    OID parentOID;
     struct naming *namingStruct;
 
     /* get root directory tuple */
-
     namingTuple = SearchSysCacheTuple(NAMEREL,RootOID,RootFileName);
-    if (namingTuple == NULL) {
-	/* complain about Root directory not existing */
-/*	elog(DEBUG,"FilenameToOID: \"/\" NOT found\n");*/
-	return InvalidObjectId;
-    }
+
+    if (namingTuple == NULL)
+	elog(WARN, "root directory \"%s\" does not exist", RootFileName);
+
     namingStruct = (struct naming *) GETSTRUCT(namingTuple);
+    strcpy(pathcomponents,fname);
 
-    /*
-     * get the tuple from the system cache
-     */
-     strcpy(pathcomponents,fname);
-    /* iterating over path components, lookup oids */
-     {
-	 char *cp;
-	 /* be very careful, strtok must not be used by more than one active
-	    function at a time */
-	 cp = strtok(pathcomponents,"/");
-	 while (cp != NULL) {
-	     OID parentOID;
-	     parentOID = namingStruct->ourid;
-#if NAMINGDB
-	     elog(NOTICE,"FilenameToOID: looking up \"%s\"\n",cp);
-#endif
-	     namingTuple = SearchSysCacheTuple(NAMEREL,parentOID,
-					       cp);
-	     if (namingTuple == NULL) {
-		 /* complain about directory not existing */
-		 return InvalidObjectId;
-	     } else {
-		 namingStruct = (struct naming *) GETSTRUCT(namingTuple);
-	     }
-	     cp = strtok(NULL,"/");
-	 }
-     }
-#if 0
-    for (i = 0; i < n_comps; i++) {
-	OID parentOID;
+    /* strtok must not be used by more than one active function at a time */
+    cp = strtok(pathcomponents,"/");
+
+    /* look up a component at a time */
+    while (cp != NULL) {
 	parentOID = namingStruct->ourid;
+	namingTuple = SearchSysCacheTuple(NAMEREL,parentOID, cp);
 
-	namingTuple = SearchSysCacheTuple(NAMEREL,parentOID,
-					  pathcomponents[i]);
 	if (namingTuple == NULL) {
-	    /* complain about directory not existing */
+	    /* component does not exist */
 	    return InvalidObjectId;
 	} else {
 	    namingStruct = (struct naming *) GETSTRUCT(namingTuple);
 	}
+	cp = strtok(NULL,"/");
     }
-#endif
-    /* we have the tuple corresponding to the last component in namingStruct
-     */
+
+    /* we have the tuple corresponding to the last component in namingStruct */
     return namingStruct->ourid;
 }
 
@@ -167,6 +142,8 @@ void CreateNameTuple(parentID,name,ourid)
     HeapTuple tup;
     Relation namingDesc;
     int i;
+    bool hasindex;
+    Relation idescs[Num_pg_name_indices];
     
     for (i = 0 ; i < Natts_pg_naming; i++) {
 	nulls[i] = ' ';
@@ -183,15 +160,23 @@ void CreateNameTuple(parentID,name,ourid)
 #endif
 
     namingDesc = heap_openr(Name_pg_naming);
+    if (hasindex = RelationGetRelationTupleForm(namingDesc)->relhasindex)
+	CatalogOpenIndices(Num_pg_name_indices, Name_pg_name_indices,
+			   &idescs[0]);
+
     tup = heap_formtuple(Natts_pg_naming,
 			 &namingDesc->rd_att,
 			 values,
 			 nulls);
     heap_insert(namingDesc,tup,(double *)NULL);
 
+    if (hasindex) {
+	CatalogIndexInsert(idescs, Num_pg_name_indices, namingDesc, tup);
+	CatalogCloseIndices(Num_pg_name_indices, &idescs[0]);
+    }
+
     pfree(tup);
     heap_close(namingDesc);
-
 }
 
 oid CreateNewNameTuple(parentID,name)
