@@ -363,10 +363,10 @@ actually supported.
 .SH "Set Expressions"
 .BR "Generalized set expressions are not supported in Version \*(PV."
 For information on sets as attributes, see the manual pages for the
-.IR create (postquel),
-.IR append (postquel)
+.IR create (commands),
+.IR append (commands)
 and
-.IR retrieve (postquel)
+.IR retrieve (commands)
 commands.
 .PP
 A
@@ -392,10 +392,10 @@ below.
 .SH "Class Expression"
 .BR "Generalized class expressions are not supported in Version \*(PV."
 For information on classes as attributes, see the manual pages for the
-.IR create (postquel),
-.IR append (postquel)
+.IR create (commands),
+.IR append (commands)
 and 
-.IR retrieve (postquel)
+.IR retrieve (commands)
 commands.
 .PP
 A 
