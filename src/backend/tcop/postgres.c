@@ -38,6 +38,7 @@ RcsId("$Header$");
 #include "tcop/tcopdebug.h"
 
 #include "tcop/dest.h"
+#include "tcop/slaves.h"
 #include "parser/parsetree.h"
 #include "executor/execdebug.h"
 #include "executor/x_execstats.h"
@@ -404,10 +405,14 @@ pg_eval(query_string, dest)
     CommandDest dest;		/* where results should go */
 {
     LispValue parsetree_list = lispList();
-    LispValue i;
+    List plan_list = LispNil;
+    Plan plan;
+    List parsetree;
+    LispValue i, x;
     int j;
     bool unrewritten = true;
     MemoryContext oldcontext;
+    extern Plan planner();
 
     /*
     if (testFlag) {
@@ -443,7 +448,6 @@ pg_eval(query_string, dest)
 	LispValue parsetree = CAR(i);
 	List rewritten  = LispNil;
 	
-	extern Node planner();
 	extern void init_planner();
 	extern List QueryRewrite();
 
@@ -532,14 +536,17 @@ pg_eval(query_string, dest)
     }
 
     /* ----------------
-     *	(3) for each parse tree, plan and execute the query or process
-     *      the utility reqyest.
+     *	(3) for each parse tree, plan the query or process
+     *      the utility request.
+     *      we now plan all the queries in parsetree_list
+     *      and get plan_list.  this gives you the possibility
+     *      of inter-query parallelism.
      * ----------------
      */
+	    
     foreach(i, parsetree_list) {
 	int 	  which_util;
 	LispValue parsetree = CAR(i);
-	Node plan = NULL;
 
 	if (atom(CAR(parsetree))) {
 	    /* ----------------
@@ -610,114 +617,144 @@ pg_eval(query_string, dest)
 		fprintf(stderr, "! Planner Stats:\n");
 		ShowUsage();
 	    }
+	    plan_list = nappend1(plan_list, plan);
+	  }
+      }
+    /* ----------------
+     *	(4) execute plans in plan_list sequentially or in parallel
+     * ----------------
+     */
+    if (ParallelExecutorEnabled()) {
+	/* -----------------
+	 *  execute the plans in plan_list in parallel
+	 * -----------------
+	 */
+	if (ShowExecutorStats)
+	    ResetUsage();
+	ParallelProcessQueries(parsetree_list, plan_list, dest);
+	if (ShowExecutorStats) {
+	    fprintf(stderr, "! Executor Stats:\n");
+	    ShowUsage();
+	}
+	return;
+      }
+	
+    /* ------------------
+     *  parallel executor is not enabled, execute the plans in plan_list
+     *  one after another
+     * ------------------
+     */
+    x = parsetree_list;
+    foreach (i, plan_list) {
+	plan = (Plan)CAR(i);
+	parsetree = CAR(x);
+	x = CDR(x);
 
-	    /* ----------------
-	     *	print plan if debugging
-	     * ----------------
-	     */
-	    if ( DebugPrintPlan == true ) {
-		printf("\nPlan is :\n");
-		lispDisplay(plan, 0);
-		printf("\n");
-	    }
+	/* ----------------
+	 *	print plan if debugging
+	 * ----------------
+	 */
+	if ( DebugPrintPlan == true ) {
+	    printf("\nPlan is :\n");
+	    lispDisplay(plan, 0);
+	    printf("\n");
+	}
 
 #if 0	    
-	    /* ----------------
-	     *	expand nested dots for attributes of type "set".
-	     *  i.e. "retrieve (x.y.z) where a.b.c > x.w" where x.y and
-	     *  a.b are sets might produce a simple join:
-	     *
-	     *		Join				   Join
-	     *		/  \	    this turns		 /      \
-	     *	     Scan   Scan    into ---->	     Join        Join
-	     *      "x.y"   "a.b"		     /  \	 /  \
-	     *					  Scan  Proc  Scan  Proc
-	     *					  "x"  "x.y"   "a"  "a.b"
-	     *
-	     *  after this is done, the executor can process the procedures
-	     *  stored in x.y and a.b and decide how to do the query
-	     *  dynamically. -cim 6/7/91
-	     * ----------------
-	     */
-	    ReplaceNestedDots(parsetree, &plan);
+	/* ----------------
+	 *	expand nested dots for attributes of type "set".
+	 *  i.e. "retrieve (x.y.z) where a.b.c > x.w" where x.y and
+	 *  a.b are sets might produce a simple join:
+	 *
+	 *		Join				   Join
+	 *		/  \	    this turns		 /      \
+	 *	     Scan   Scan    into ---->	     Join        Join
+	 *      "x.y"   "a.b"		     /  \	 /  \
+	 *					  Scan  Proc  Scan  Proc
+	 *					  "x"  "x.y"   "a"  "a.b"
+	 *
+	 *  after this is done, the executor can process the procedures
+	 *  stored in x.y and a.b and decide how to do the query
+	 *  dynamically. -cim 6/7/91
+	 * ----------------
+	 */
+	ReplaceNestedDots(parsetree, &plan);
 #endif	    
-		
+	    
+	if (testFlag && IsA(plan,Choose)) {
 	    /* ----------------
-	     *	XXX comment me.
+	     *	 this is my experiment stuff, will be taken away soon.
+	     *   ignore it. -- Wei
 	     * ----------------
 	     */
-	    if (testFlag && IsA(plan,Choose)) {
-		Plan 	  p;
-		List 	  planlist;
-		LispValue x;
-		List 	  setRealPlanStats();
-		List 	  pruneHashJoinPlans();
+	    Plan 	  p;
+	    List 	  planlist;
+	    LispValue x;
+	    List 	  setRealPlanStats();
+	    List 	  pruneHashJoinPlans();
 
-		planlist = get_chooseplanlist(plan);
-		planlist = setRealPlanStats(parsetree, planlist);
-		planlist = pruneHashJoinPlans(planlist);
+	    planlist = get_chooseplanlist(plan);
+	    planlist = setRealPlanStats(parsetree, planlist);
+	    planlist = pruneHashJoinPlans(planlist);
+	    
+	    /*
+	    MemoryContextSwitchTo(oldcontext);
+	    */
+	    
+	    foreach (x, planlist) {
+		char s[10];
+		p = (Plan) CAR(x);
+		p_plan(p);
+		if (confirmExecute) {
+		    printf("execute (y/n/q)? ");
+		    scanf("%s", s);
+		    if (s[0] == 'n') continue;
+		    if (s[0] == 'q') break;
+		}
+		BufferPoolBlowaway();
 		
 		/*
-		MemoryContextSwitchTo(oldcontext);
+		CommitTransactionCommand();
+		StartTransactionCommand();
 		*/
 		
-		foreach (x, planlist) {
-		    char s[10];
-		    p = (Plan) CAR(x);
-		    p_plan(p);
-		    if (confirmExecute) {
-		        printf("execute (y/n/q)? ");
-		        scanf("%s", s);
-		        if (s[0] == 'n') continue;
-			if (s[0] == 'q') break;
-		    }
-		    BufferPoolBlowaway();
-		    
-		    /*
-		    CommitTransactionCommand();
-		    StartTransactionCommand();
-		    */
-		    
-		    ResetUsage();
-		    ProcessQuery(parsetree, p, dest);
-		    ShowUsage();
+		ResetUsage();
+		ProcessQuery(parsetree, p, dest);
+		ShowUsage();
+	    }
+	    /*
+	     GlobalMemoryDestroy(ParserPlannerContext);
+	     */
+	} else {
+	    /* ----------------
+	     *   execute the plan
+	     *
+	     *   Note: _exec_repeat_ defaults to 1 but may be changed
+	     *	   by a DEBUG command.   If you set this to a large
+	     *	   number N, run a single query, and then set it
+	     *	   back to 1 and run N queries, you can get an idea
+	     *	   of how much time is being spent in the parser and
+	     *	   planner b/c in the first case this overhead only
+	     *	   happens once.  -cim 6/9/91
+	     * ----------------
+	     */
+	    if (ShowExecutorStats)
+		ResetUsage();
+	    
+	    for (j = 0; j < _exec_repeat_; j++) {
+		if (! Quiet) {
+		    time(&tim);
+		    printf("\tProcessQuery() at %s\n", ctime(&tim));
 		}
-		/*
-		 GlobalMemoryDestroy(ParserPlannerContext);
-		 */
-	    } else {
-		/* ----------------
-		 *   execute the plan
-		 *
-		 *   Note: _exec_repeat_ defaults to 1 but may be changed
-		 *	   by a DEBUG command.   If you set this to a large
-		 *	   number N, run a single query, and then set it
-		 *	   back to 1 and run N queries, you can get an idea
-		 *	   of how much time is being spent in the parser and
-		 *	   planner b/c in the first case this overhead only
-		 *	   happens once.  -cim 6/9/91
-		 * ----------------
-		 */
-		if (ShowExecutorStats)
-		    ResetUsage();
-		
-		for (j = 0; j < _exec_repeat_; j++) {
-		    if (! Quiet) {
-			time(&tim);
-			printf("\tProcessQuery() at %s\n", ctime(&tim));
-		    }
-		    ProcessQuery(parsetree, plan, dest);
-		}
-		
-		if (ShowExecutorStats) {
-		    fprintf(stderr, "! Executor Stats:\n");
-		    ShowUsage();
-		}
+		ProcessQuery(parsetree, plan, dest);
 	    }
 	    
-	} /* if atom car */
-
-    } /* foreach parsetree in parsetree_list */
+	    if (ShowExecutorStats) {
+		fprintf(stderr, "! Executor Stats:\n");
+		ShowUsage();
+	    }
+	}
+      } /* foreach plan in plan_list */
 
 } /* pg_eval */
     

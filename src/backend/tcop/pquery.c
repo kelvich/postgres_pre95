@@ -7,6 +7,7 @@
  *
  *   INTERFACE ROUTINES
  *	ProcessQuery
+ *	ParallelProcessQueries
  *
  *   NOTES
  *
@@ -424,40 +425,54 @@ ProcessQueryDesc(queryDesc)
 /* ----------------------------------------------------------------
  *	ProcessQuery
  *
+ *	Execute a plan, the non-parallel version
  * ----------------------------------------------------------------
  */
 
-extern List ParallelOptimize();
-extern Fragment InitialPlanFragments();
-extern Fragment ExecuteFragments();
-
 void
-ProcessQuery(parserOutput, originalPlan, dest)
-    List 	parserOutput;
-    Plan 	originalPlan;
+ProcessQuery(parsertree, plan, dest)
+    List        parsertree;
+    Plan        plan;
     CommandDest dest;
 {
-    List 	queryDesc;
-    Plan 	currentPlan;
-    Plan 	newPlan;
-    Fragment	planFragments;
-    List	currentFragments;
+    List queryDesc;
     extern int	testFlag;
-    
-    currentPlan = originalPlan;
+
     if (testFlag) dest = None;
-    queryDesc = CreateQueryDesc(parserOutput, currentPlan, dest);
+    queryDesc = CreateQueryDesc(parsertree, plan, dest);
+    ProcessQueryDesc(queryDesc);
+}
+
+/* ----------------------------------------------------
+ *	ParallelProcessQuery
+ *
+ *	The parallel version of ProcessQuery().  Also tries to
+ *	explore inter-query parallelism.
+ * ----------------------------------------------------
+ */
+extern Fragment InitialPlanFragments();
+extern void OptimizeAndExecuteFragments();
+
+void
+ParallelProcessQueries(parsetree_list, plan_list, dest)
+    List 	parsetree_list;
+    List 	plan_list;
+    CommandDest dest;
+{
+    Fragment	rootFragment;
+    List	fragmentList;
+    LispValue	x, plist;
+    List	parsetree;
+    Plan	plan;
     
-    if (ParallelExecutorEnabled()) {
-	planFragments = InitialPlanFragments(originalPlan);
-	for (;;) {
-	    currentFragments = ParallelOptimize(queryDesc, planFragments);
-	    planFragments =    ExecuteFragments(queryDesc,
-						currentFragments, 
-						planFragments);
-	    if (planFragments == NULL)
-		return;
-	}
-    } else
-	ExecuteFragments(queryDesc, LispNil, NULL);
+    plist = plan_list;
+    fragmentList = LispNil;
+    foreach (x, parsetree_list) {
+	parsetree = CAR(x);
+	plan = (Plan)CAR(plist);
+	rootFragment = InitialPlanFragments(parsetree, plan);
+	fragmentList = nappend1(fragmentList, rootFragment);
+      }
+
+    OptimizeAndExecuteFragments(fragmentList, dest);
 }
