@@ -179,7 +179,7 @@ Buffer *returnedBufferP;
     for (i=0; i<prs2GetNumberOfLocks(explocks); i++) {
 	Prs2OneLock oneLock;
 	AttributeNumber attrno;
-	oneLock = prs2GetOneLockFromLocks(explocks);
+	oneLock = prs2GetOneLockFromLocks(explocks,i);
 	attrno = prs2OneLockGetAttributeNumber(oneLock);
 	if (!attrValues[attrno-1].isNull)
 	    prs2ActivateExportLockRulePlan(oneLock,
