@@ -63,8 +63,10 @@ CreateSharedMemoryAndSemaphores(key)
      *	kill and create the buffer manager buffer pool (and semaphore)
      * ----------------
      */
-    CreateBufferSemaphore(IPCKeyGetBufferSemaphoreKey(key));
-    CreateBufferPoolMemory(IPCKeyGetBufferMemoryKey(key));
+    CreateSpinlocks(IPCKeyGetSpinLockSemaphoreKey(key));
+    ShmemCreate(IPCKeyGetBufferMemoryKey(key), 0);
+    InitShmem(key, 0);
+    InitBufferPool(key);
 
     /* ----------------
      *	create and initialize the executor shared segment (and semaphore)
@@ -129,9 +131,8 @@ AttachSharedMemoryAndSemaphores(key)
      *	attach the buffer manager buffer pool (and semaphore)
      * ----------------
      */
-    InitBufferSemaphore(IPCKeyGetBufferSemaphoreKey(key));
-    InitBufferPoolMemory(IPCKeyGetBufferMemoryKey(key), false);
-    AttachSharedBuffers(IPCKeyGetBufferMemoryKey(key));
+    InitShmem(key, 0);
+    InitBufferPool(key);
 
     /* ----------------
      *	attach the parallel executor memory (and semaphore)
