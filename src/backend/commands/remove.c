@@ -17,6 +17,7 @@ RcsId("$Header$");
 #include "utils/log.h"
 
 #include "catalog/pg_operator.h"
+#include "catalog/pg_aggregate.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
 
@@ -310,3 +311,38 @@ RemoveFunction(functionName)
 	RelationCloseHeapRelation(relation);
 #endif
 }
+
+void
+RemoveAggregate(aggName)
+	Name	aggName;
+{
+	Relation 	relation;
+	HeapScanDesc	scan;
+	HeapTuple	tup;
+	Buffer		buffer;
+	ItemPointerData	  itemPointerData;
+	static ScanKeyEntryData key[3] = {
+		{ 0, AggregateNameAttributeNumber, NameEqualRegProcedure }
+	};
+
+	Assert(NameIsValid(aggName));
+	key[0].argument = NameGetDatum(aggName);
+
+	fmgr_info(key[0].procedure, &key[0].func, &key[0].nargs);
+	relation = RelationNameOpenHeapRelation(AggregateRelationName);
+	scan = RelationBeginHeapScan(relation, 0, NowTimeQual, 1,
+		 (ScanKey)key);
+	tup = HeapScanGetNextTuple(scan, 0, (Buffer *) 0);
+	if (!HeapTupleIsValid(tup)) {
+		HeapScanEnd(scan);
+		RelationCloseHeapRelation(relation);
+		elog(WARN, "Remove: aggregate %s nonexistant", aggName);
+	}
+	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
+	RelationDeleteHeapTuple(relation, &itemPointerData);
+	HeapScanEnd(scan);
+	RelationCloseHeapRelation(relation);
+
+}
+
+
