@@ -34,6 +34,7 @@
 #include "storage/ipci.h"		/* for PrivateIPCKey XXX */
 #include "storage/ipc.h"
 #include "storage/plparam.h"
+#include "tmp/align.h"
 #include "utils/log.h"
 
 int UsePrivateMemory = 0;
@@ -712,7 +713,7 @@ IpcMemoryKill(memKey)
  *  supply of locks.
  * ------------------
  */
-static SLock *SLockArray;
+static SLock *SLockArray = NULL;
 static SLock **FreeSLockPP;
 static int *UnusedSLockIP;
 static slock_t *SLockMemoryLock;
@@ -761,7 +762,7 @@ IPCKey key;
     UnusedSLockIP = (int*)(FreeSLockPP + 1);
     SLockMemoryLock = (slock_t*)(UnusedSLockIP + 1);
     S_INIT_LOCK(SLockMemoryLock);
-    SLockArray = (SLock*)(SLockMemoryLock + 1);
+    SLockArray = (SLock*)LONGALIGN((SLockMemoryLock + 1));
     return;
 }
 
