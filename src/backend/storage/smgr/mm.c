@@ -297,7 +297,6 @@ mmextend(reln, buffer)
 	elog(FATAL, "mmextend: rel cache hash table corrupt");
     }
 
-    (rentry->mmrhe_nblocks)++;
     tag.mmct_blkno = rentry->mmrhe_nblocks;
 
     entry = (MMHashEntry *) hash_search(MMCacheHT, &tag, ENTER, &found);
@@ -310,6 +309,9 @@ mmextend(reln, buffer)
     MMBlockTags[i].mmct_dbid = reldbid;
     MMBlockTags[i].mmct_relid = reln->rd_id;
     MMBlockTags[i].mmct_blkno = rentry->mmrhe_nblocks;
+
+    /* page numbers are zero-based, so we increment this at the end */
+    (rentry->mmrhe_nblocks)++;
 
     /* write the extended page */
     offset = (i * BLCKSZ);
@@ -428,9 +430,8 @@ mmwrite(reln, blocknum, buffer)
     }
 
     if (!found) {
-	/* reading nonexistent pages is defined to fill them with zeroes */
 	SpinRelease(MMCacheLock);
-	elog(FATAL, "mmread: hash table missing requested page");
+	elog(FATAL, "mmwrite: hash table missing requested page");
     }
 
     offset = (entry->mmhe_bufno * BLCKSZ);
@@ -596,6 +597,12 @@ RcsId("$Header$");
 int
 mminit(key)
     IPCKey key;
+{
+    return (SM_SUCCESS);
+}
+
+int
+mmshutdown()
 {
     return (SM_SUCCESS);
 }
