@@ -41,4 +41,4 @@ HEADERS+= builtins.h catcache.h dynamic_loader.h \
 	 exc.h exception.h excid.h fcache.h fmgr.h geo-decls.h hsearch.h \
 	 inval.h large_object.h log.h lselect.h lsyscache.h \
 	 mcxt.h memutils.h module.h nabstime.h oidcompos.h palloc.h \
-	 params.h pg_malloc.h psort.h rel.h relcache.h syms.h
+	 params.h pg_malloc.h psort.h rel.h relcache.h sets.h
