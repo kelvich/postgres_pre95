@@ -286,6 +286,19 @@ ${PROG}: ${SUBOBJS}
 .endif
 
 #
+# To use Purify (SunOS only), define PURIFY to be the path (and
+# options) with which to invoke the Purify loader.  Only the executable
+# needs to be loaded with Purify.
+#
+# (This has to be after <postgres.prog.mk>, which unconditionally
+#  redefines the PROG target :-P)
+#
+.if defined(PURIFY)
+${PROG}: ${OBJS} ${LIBC} ${DPADD}
+	${PURIFY} ${CC} ${LDFLAGS} -o ${.TARGET} ${OBJS} ${LDADD}
+.endif
+
+#
 # We have to set this after the .include so target "all" gets defined.
 # This is a bit of a hack.  Could redo the .mk files to handle multiple
 # program targets based on a common or overlapping set of sources.
