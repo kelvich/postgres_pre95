@@ -24,6 +24,7 @@ RcsId("$Header$");
 #include "storage/shmem.h"
 #include "storage/spin.h"
 #include "storage/sj.h"
+#include "storage/bufpage.h"
 
 #include "utils/hsearch.h"
 #include "utils/log.h"
