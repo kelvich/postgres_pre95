@@ -69,7 +69,9 @@ tlistentry_member (var,targetlist)
     if ( var) {
 	LispValue temp = LispNil;
 	foreach (temp,targetlist) {
-	    if ( var_equal(var, get_expr(get_entry(CAR(temp)))))
+	    if ( var_equal((LispValue)var,
+		 (LispValue)get_expr(get_entry(CAR(temp))),
+		 false))
 	      return(CAR(temp));
 	}
     }
@@ -251,7 +253,9 @@ tlist_member (var,tlist)
     if ( var) {
 	foreach (i,tlist) {
 	    temp_tle = (TLE)CAR(i);
-	    if (var_equal(var,get_expr(temp_tle))) {
+	    if (var_equal((LispValue)var,
+			  (LispValue)get_expr(temp_tle),
+			  false)) {
 		tl_elt = temp_tle;
 		break;
 	    }
