@@ -317,6 +317,8 @@ make_op(op,ltree,rtree)
   to get just the varnode, strip the type off (use CDR(make_var ..) )
  **********************************************************************/
 
+extern int Quiet;
+
 LispValue
 make_var ( relname, attrname )
      Name relname, attrname;
@@ -329,12 +331,15 @@ make_var ( relname, attrname )
     extern LispValue p_rtable;
     extern int p_last_resno;
     
+    if (!Quiet) {
     printf (" now in make_Var\n"); 
     printf ("relation = %s, attr = %s\n",relname,
 	    attrname); 
     fflush(stdout);
+    }
     
     vnum = RangeTablePosn ( relname,0,0) ;
+    if (!Quiet)
     printf("vnum = %d\n",vnum); 
     if (vnum == 0) {
 	p_rtable = nappend1 (p_rtable ,
@@ -346,6 +351,7 @@ make_var ( relname, attrname )
 	relname = VarnoGetRelname( vnum );
     }
     
+    if (!Quiet)
     printf("relname to open is %s",relname);
     
     rd = amopenr ( relname );

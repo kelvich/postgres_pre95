@@ -39,6 +39,7 @@
 
 extern bool _enable_mergesort_;
 extern bool _enable_hashjoin_;
+extern int Quiet;
 
 /*     	============
  *     	TARGET LISTS
@@ -67,16 +68,20 @@ initialize_targetlist (tlist)
     List xtl = LispNil;
     List tvar = LispNil;
     
+    if (!Quiet) {
     lispDisplay(tlist,0);
     printf("\n");
     fflush(stdout);
+    }
 
     foreach (xtl,tlist) {
 	TLE entry;
 	(LispValue)entry = CAR(xtl);
 
+        if (!Quiet) {
 	lispDisplay(entry,0);
 	fflush(stdout);
+	}
 	tlist_vars = nconc(tlist_vars,pull_var_clause(get_expr(entry)));
     }
 
