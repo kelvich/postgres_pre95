@@ -534,17 +534,21 @@ AttributeNumber updatedAttributeNumber;
 	LispValue root, targetList;
 	Resdom resdom;
 	Const constant;
-	NameData nameData;
+	Name name;
 	Datum value;
 
 	/*
 	 * construct the target list
 	 */
-	strcpy(nameData.data,"foo");
+	name = (Name) palloc(sizeof(NameData));
+	if (name == NULL) {
+	    elog(WARN, "prs2GenerateActionPlans: Out of memory");
+	}
+	strcpy(name->data,"foo");
 	resdom = MakeResdom((AttributeNumber)1,
 			    (ObjectId) 23,
 			    (Size) 4,
-			    &(nameData.data[0]),
+			    name,
 			    (Index) 0,
 			    (OperatorTupleForm) 0,
 			    0);
