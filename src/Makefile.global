@@ -193,7 +193,7 @@ CDEBUG= -g
 # Comment out OLD_MKDIR if your mkdir has the -p flag or your install
 # creates all intermediate directories.
 #
-.if (${PORTNAME} == "sparc" || ${PORTNAME} == "hpux" || ${PORTNAME} == "linux")
+.if (${PORTNAME} == "sparc" || ${PORTNAME} == "hpux" || ${PORTNAME} == "linux" || ${PORTNAME} == "alpha")
 OLD_MKDIR=
 .endif
 
