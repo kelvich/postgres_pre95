@@ -1,16 +1,18 @@
-#ifndef lint
-static char order_buf_c[] =
-	"$Header$";
-#endif
-
 /*
+ * order.c --
  *	Routines to order the writing of buffers to disk.
  */
 
-#include "internal.h"
-#include "log.h"
-#include "postgres.h"
+#include "c.h"
 
+RcsId("$Header$");
+
+#include "log.h"
+
+#include "internal.h"
+
+extern char *calloc();
+#define ALLOC(t, c)	(t *)calloc((unsigned)(c), sizeof(t))
 
 static Stack		*adjlist[NDBUFS];
 static Lbufdesc 	*datlist[NDBUFS];
