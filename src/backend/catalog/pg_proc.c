@@ -25,6 +25,8 @@
 #include "utils/rel.h"
 #include "fmgr.h"
 #include "utils/log.h"
+#include "utils/builtins.h"
+#include "utils/sets.h"
 
 #include "nodes/pg_lisp.h"
 
@@ -42,7 +44,7 @@
  */
 
 /*ARGSUSED*/
-void
+ObjectId
 ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
 		prosrc, probin, canCache, trusted, byte_pct, perbyte_cpu, 
 		percall_cpu, outin_ratio, argList, dest)
@@ -75,6 +77,7 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
     ObjectId relid;
     List t;
     ObjectId toid;
+    text *prosrctext;
 
     /* ----------------
      *	sanity checks
@@ -129,6 +132,24 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
     if (HeapTupleIsValid(tup))
 	elog(WARN, "ProcedureDefine: procedure %s already exists with same arguments",
 	     procedureName);
+
+    if (!strcmp((char *)languageName, "postquel"))  {
+	 /* If this call is defining a set, check if the set is already
+	  * defined by looking to see whether this call's function text
+	  * matches a function already in pg_proc.  If so just return the 
+	  * OID of the existing set.
+	  */
+	 if (!strcmp((char*)procedureName, GENERICSETNAME)) {
+	      prosrctext = textin(prosrc);
+	      tup = SearchSysCacheTuple(PROSRC,
+					(char *) prosrctext,
+					(char *) NULL,
+					(char *) NULL,
+					(char *) NULL);
+	      if (HeapTupleIsValid(tup))
+		   return tup->t_oid;
+	 }
+    }
 
     tup = SearchSysCacheTuple(LANNAME,
 			      (char *) languageName,
@@ -250,4 +271,8 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
 	CatalogCloseIndices(Num_pg_proc_indices, idescs);
     }
     RelationCloseHeapRelation(rdesc);
+    return tup->t_oid;
 }
+
+
+
