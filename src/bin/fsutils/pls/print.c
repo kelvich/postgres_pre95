@@ -51,9 +51,6 @@ static char sccsid[] = "@(#)print.c	5.37 (Berkeley) 7/20/92";
 #include <pwd.h>
 #include <utmp.h>
 #include <unistd.h>
-#ifndef PORTNAME_hpux
-#include <tzfile.h>
-#endif /* PORTNAME_hpux */
 #include <stdio.h>
 #include <string.h>
 
