@@ -45,7 +45,6 @@ InitBufTable()
   int hash_flags;
 
   /* assume lock is held */
-  is_LOCKED(BufMgrLock);
 
   /* BufferTag maps to Buffer */
   info.keysize = sizeof(BufferTag);
@@ -75,8 +74,6 @@ BufferTag *tagPtr;
 
   if (tagPtr->blockNum == NEW_BLOCK)
       return(NULL);
-  is_LOCKED(BufMgrLock);
-
 
   result = (LookupEnt *) 
     hash_search(SharedBufHash,tagPtr,FIND,&found);

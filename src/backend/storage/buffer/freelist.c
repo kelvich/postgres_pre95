@@ -66,8 +66,6 @@ BufferDesc *bf;
 PinBuffer(buf)
     BufferDesc *buf;
 {
-  is_LOCKED(BufMgrLock);
-
   /* Assert (buf->refcount < 25); */
 
   if (buf->refcount == 0) {
@@ -94,8 +92,6 @@ PinBuffer(buf)
 UnpinBuffer(buf)
     BufferDesc *buf;
 {
-  is_LOCKED(BufMgrLock);
-
   Assert (buf->refcount);
   Assert (PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1]);
   buf->refcount--;
@@ -119,9 +115,6 @@ BufferDesc *
 GetFreeBuffer()
 {
     BufferDesc *buf;
-
-    is_LOCKED(BufMgrLock);
-
 
     if (Free_List_Descriptor == SharedFreeList->freeNext) {
 
