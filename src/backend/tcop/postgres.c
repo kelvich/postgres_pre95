@@ -219,8 +219,6 @@ main(argc, argv)
     puts("\nPOSTGRES backend interactive interface");
     puts("$Revision$ $Date$");
 
-    parser_output = lispList();
-
     for (;;) {
 	/* ----------------
 	 *   start the current transaction
@@ -234,6 +232,13 @@ main(argc, argv)
 	 *   get input from the user
 	 * ----------------
 	 */
+		/*
+		 * allocate a new "list" each time, since it is may be
+		 * stored in a named portal and should not suddenly its
+		 * contents
+		 */
+		parser_output = lispList();
+
 	if (IsUnderPostmaster == true)
 	  SocketBackend(parser_input, parser_output);
 	else {
