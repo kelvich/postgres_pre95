@@ -750,6 +750,9 @@ LispValue HandleNestedDots(dots)
     LispValue retval = LispNil;
     TLE tle;
     LispValue tlist;
+    ObjectId funcid;
+    ObjectId functype;
+    OID funcrettype;
 
     /* 
     ** Get the range table slot for the relation.
@@ -765,8 +768,9 @@ LispValue HandleNestedDots(dots)
     rd = amopenr ( relname );
     relid = RelationGetRelationId(rd);
 
+    retval = (LispValue) rd;
     /* 
-    ** The producer is the relation associated with the last nesting we've 
+    ** the producer is the relation associated with the last nesting we've 
     ** examined. At this point it's the relation at the head of the list
     */
     producer_relid = relid;
@@ -796,10 +800,10 @@ LispValue HandleNestedDots(dots)
 
 	      /*
 	      ** We build a TLIST for the highest Func in the retval structure
-	      ** that.  The TLIST contains one element which projects to this
+	      ** The TLIST contains one element which projects to this
 	      ** attribute.
 	      */
-	      tle = lispAtom(NULL);
+	      tle = lispList();
 	      CAR(tle) = 
 		(LispValue)MakeResdom(0, producer_type, 
 				      tlen(get_id_type(producer_type)), 
@@ -811,10 +815,11 @@ LispValue HandleNestedDots(dots)
 		MakeVar(producer_relid, attnum, producer_type,
 			LispNil /* vardotfields */,
 			LispNil /* vararraylist */,
-			LispNil /* varid -- ask Wei */,
+			lispCons(lispInteger(producer_relid),
+				 lispCons(lispInteger(attnum),LispNil)),
 			0 /* varslot */);
 	      Assert(retval != LispNil);
-	      tlist = lispAtom(NULL);
+	      tlist = lispList();
 	      CAR(tlist) = tle;
 	      set_func_tlist((Func)CAR(get_iterexpr((Iter)retval)), tlist);
 
@@ -823,9 +828,9 @@ LispValue HandleNestedDots(dots)
 	 else  
 	  {
 	      /* this attribute is a PQfunction */
-	      ObjectId funcid;
-	      ObjectId functype;
+	
 	      funcid = funcname_get_funcid(mutator);
+	      funcrettype = funcname_get_rettype(mutator);
 	      if (funcid) 
 	       {
 		   ObjectId *oid_array,input_type;
@@ -841,7 +846,7 @@ LispValue HandleNestedDots(dots)
 		   nargs = funcname_get_funcnargs(mutator);
 		   if (nargs != 1)
 		     elog(WARN,
-			  "Functions must take only one complex argument");
+			  "Functions in nested dot expressions must take only one argument");
 		   oid_array = funcname_get_funcargtypes(mutator);
 		   if (oid_array[0] != input_type)
 		     elog(WARN,
@@ -849,11 +854,13 @@ LispValue HandleNestedDots(dots)
 
 		   
 		   /* put func and an iter onto the retval structure */
-		   MakeIter
-		     (lispCons(MakeFunc(funcid, functype, 0, tlen(functype),
-					LispNil /* func_fcache -- ask Wei */,
-					LispNil /* func_tlist */), 
-			       retval));
+		   retval = (LispValue) 
+		     MakeIter(MakeList
+			      (MakeFunc(funcid, functype, 0, 
+					tlen(get_id_type(funcrettype)),
+					LispNil /* func_fcache */,
+					LispNil /* func_tlist */),
+			       retval, -1));
 	       }
 	      else
 		elog(WARN,
