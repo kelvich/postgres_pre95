@@ -22,11 +22,9 @@
  *   INTERFACE ROUTINES
  *	the following are used by the executor proper:
  *	
- *	ExecGetExecutorSharedMemory()	- get the start of shared mem
- *	ExecGetExecutorSharedMemorySize()- get the size of shared segment
  *	ParallelExecutorEnabled()	- has become a macro defined in slaves.h
  *	SetParallelExecutorEnabled()	- assign parallel status
- *	GetNumberSlaveBackends()	- return parallel information
+ *	GetNumberSlaveBackends()	- has become a macro defined in slaves.h
  *	SetNumberSlaveBackends()	- assign parallel information
  *
  *	I_xxx()			- initialize the specified semaphore
@@ -117,17 +115,6 @@ int    	ExecutorSlaveSemStart;
  * ----------------------------------------------------------------
  */
 
-char *
-ExecGetExecutorSharedMemory()
-{
-    return ExecutorSharedMemory;
-}
-
-int
-ExecGetExecutorSharedMemorySize()
-{
-    return ExecutorSharedMemorySize;
-}
 
 void
 SetParallelExecutorEnabled(state)
@@ -141,12 +128,6 @@ SetNumberSlaveBackends(numslaves)
     int numslaves;
 {
     NumberSlaveBackends = numslaves;
-}
-
-int
-GetNumberSlaveBackends()
-{
-    return NumberSlaveBackends;
 }
 
 /* ----------------------------------------------------------------
