@@ -102,10 +102,12 @@ typedef struct vfd {
  *
  */
 int NStriping = 1;		/* degree of striping, default as 1 */
+int StripingMode = 0;		/* default striping mode to RAID 0 */
 typedef struct sfd {
         FileNumber vfd[NDISKS];
         int curStripe;
         long seekPos;
+	long endPos;
         FileNumber nextFree;
 } Sfd;
 
@@ -666,7 +668,8 @@ fileSeek (file, offset, whence)
 
 		  case L_XTND:
 			FileAccess(file);
-			returnCode = lseek(VfdCache[file].fd, offset, whence);
+			returnCode = VfdCache[file].seekPos = 
+				lseek(VfdCache[file].fd, offset, whence);
 			return returnCode;
 
 		  default:
@@ -674,7 +677,9 @@ fileSeek (file, offset, whence)
 			break;
 		}
 	} else {
-		return lseek(VfdCache[file].fd, offset, whence);
+		returnCode = VfdCache[file].seekPos = 
+			lseek(VfdCache[file].fd, offset, whence);
+		return returnCode;
 	}
 
 	elog(WARN,"should not be here in FileSeek #2");
@@ -802,6 +807,41 @@ FreeFiles(fileCount)
 	DO_DB(printf("DEBUG: FreeFiles %d, FreeFd now %d\n",fileCount,FreeFd));
 }
 
+static long
+FileSize(sfdP)
+Sfd *sfdP;
+{   int l=0, h=NStriping-1, m, nf;
+    long lsize, hsize, msize;
+    long size;
+    if (h == 0) {
+	size = fileSeek(sfdP->vfd[0], 0l, L_XTND);
+	return size;
+      }
+    if ((lsize = fileSeek(sfdP->vfd[l], 0l, L_XTND)) < 0) {
+	elog(FATAL, "lseek:%m");
+    }
+    if ((hsize = fileSeek(sfdP->vfd[h], 0l, L_XTND)) < 0) {
+	elog(FATAL, "lseek:%m");
+    }
+    if (lsize == hsize)
+       nf = 0;
+    else {
+	while (l + 1 != h) {
+	    m = (l + h) / 2;
+	if ((msize = fileSeek(sfdP->vfd[m], 0l, L_XTND)) < 0) {
+	    elog(FATAL, "lseek:%m");
+	}
+	    if (msize > hsize)
+	       l = m;
+	    else
+	       h = m;
+	  }
+	nf = h;
+      }
+    size = hsize * NStriping + nf * BLCKSZ;
+    return size;
+}
+
 File
 FileNameOpenFile(fileName, fileFlags, fileMode)
 FileName fileName;
@@ -809,6 +849,7 @@ int fileFlags;
 int fileMode;
 {
     int i;
+    int n;
     File sfd;
     Sfd *sfdP;
     char *fname, *filepath();
@@ -833,12 +874,16 @@ int fileMode;
       }
     SfdCache[0].nextFree = SfdCache[sfd].nextFree;
     sfdP = &(SfdCache[sfd]);
-    for (i=0; i<NStriping; i++) {
+    n = NStriping;
+    if (StripingMode == 1) n *= 2;
+    for (i=0; i<n; i++) {
 	fname = filepath(fileName, i);
 	if ((sfdP->vfd[i] = fileNameOpenFile(fname, fileFlags, fileMode)) < 0)
 	    return ((File) sfdP->vfd[i]);
     }
     sfdP->curStripe = 0;
+    sfdP->seekPos = 0;
+    sfdP->endPos = FileSize(sfdP);
     return(sfd);
 }
 
@@ -849,6 +894,7 @@ int fileFlags;
 int fileMode;
 {
     int i;
+    int n;
     File sfd;
     Sfd *sfdP;
     char *fname, *filepath();
@@ -873,11 +919,15 @@ int fileMode;
       }
     SfdCache[0].nextFree = SfdCache[sfd].nextFree;
     sfdP = &(SfdCache[sfd]);
-    for (i=0; i<NStriping; i++) {
+    n = NStriping;
+    if (StripingMode == 1) n *= 2;
+    for (i=0; i<n; i++) {
 	if ((sfdP->vfd[i] = fileNameOpenFile(fileName, fileFlags, fileMode)) < 0)
 	    return ((File) sfdP->vfd[i]);
     }
     sfdP->curStripe = 0;
+    sfdP->seekPos = 0;
+    sfdP->endPos = FileSize(sfdP);
     return(sfd);
 }
 
@@ -886,14 +936,18 @@ FileClose(file)
 File file;
 {
     int i;
+    int n = NStriping;
     Sfd *sfdP;
 
     sfdP = &(SfdCache[file]);
-    for (i=0; i<NStriping; i++)
+    if (StripingMode == 1) n *= 2;
+    for (i=0; i<n; i++)
 	fileClose(sfdP->vfd[i]);
     sfdP->nextFree = SfdCache[0].nextFree;
     SfdCache[0].nextFree = file;
 }
+
+extern int MyPid;
 
 Amount
 FileRead(file, buffer, amount)
@@ -907,12 +961,44 @@ Amount amount;
    BeginParallelDebugInfo(PDI_FILEREAD);
 #endif
    sfdP = &(SfdCache[file]);
-   ret = fileRead(sfdP->vfd[sfdP->curStripe], buffer, amount);
-   sfdP->curStripe = (sfdP->curStripe + 1) % NStriping;
+   switch (StripingMode) {
+   case 0:
+       ret = fileRead(sfdP->vfd[sfdP->curStripe], buffer, amount);
+       sfdP->curStripe = (sfdP->curStripe + 1) % NStriping;
+       break;
+   case 1:
+       if (MyPid % 2 == 0)
+           ret = fileRead(sfdP->vfd[sfdP->curStripe], buffer, amount);
+       else
+           ret = fileRead(sfdP->vfd[sfdP->curStripe+NStriping], buffer, amount);
+       break;
+    case 5:
+    /*
+       printf("READ %s stripe %d row %d amount %d\n", VfdCache[sfdP->vfd[0]].fileName, sfdP->curStripe, VfdCache[sfdP->vfd[sfdP->curStripe]].seekPos/BLCKSZ, amount);
+       */
+       ret = fileRead(sfdP->vfd[sfdP->curStripe], buffer, amount);
+       break;
+      }
 #ifdef PARALLELDEBUG
    EndParallelDebugInfo(PDI_FILEREAD);
 #endif
    return(ret);
+}
+
+#define XOR(X, Y) (~(X) & (Y) | (X) & ~(Y))
+static char *
+blkxor(blk1, blk2, blk3, resblk)
+char *blk1, *blk2, *blk3, *resblk;
+{
+    int i;
+    char c1, c2, c3;
+    for (i=0; i<BLCKSZ; i++) {
+	c1 = (blk1 == NULL)?0:blk1[i];
+	c2 = (blk2 == NULL)?0:blk2[i];
+	c3 = (blk3 == NULL)?0:blk3[i];
+	resblk[i] = XOR(XOR(c1, c2), c3);
+      }
+    return resblk;
 }
 
 Amount
@@ -923,9 +1009,94 @@ Amount amount;
 {
     Sfd *sfdP;
     Amount ret;
+    bool extend;
+
+#ifdef PARALLELDEBUG
+   BeginParallelDebugInfo(PDI_FILEWRITE);
+#endif
     sfdP = &(SfdCache[file]);
-    ret = fileWrite(sfdP->vfd[sfdP->curStripe], buffer, amount);
-    sfdP->curStripe = (sfdP->curStripe + 1) % NStriping;
+    /*
+    printf("WRITE %s offset %d amount %d\n", VfdCache[sfdP->vfd[0]].fileName, sfdP->seekPos, amount);
+    */
+    switch (StripingMode) {
+    case 0:
+        if (sfdP->seekPos >= sfdP->endPos)
+	    sfdP->endPos = sfdP->seekPos + amount;
+        ret = fileWrite(sfdP->vfd[sfdP->curStripe], buffer, amount);
+        sfdP->curStripe = (sfdP->curStripe + 1) % NStriping;
+	break;
+    case 1:
+        if (sfdP->seekPos >= sfdP->endPos)
+	    sfdP->endPos = sfdP->seekPos + amount;
+        ret = fileWrite(sfdP->vfd[sfdP->curStripe], buffer, amount);
+        ret = fileWrite(sfdP->vfd[sfdP->curStripe+NStriping], buffer, amount);
+	break;
+    case 5:
+	{
+            char oldblk[BLCKSZ], oldparblk[BLCKSZ], newparblk[BLCKSZ];
+	    char *parblk = NULL;
+	    int blknum, rownum, parstripe;
+	    long parPos;
+
+	    blknum = sfdP->seekPos/BLCKSZ;
+	    rownum = blknum/NStriping;
+	    parstripe = NStriping - 1 - rownum % NStriping;
+	    if ((sfdP->seekPos >= sfdP->endPos) && 
+		(sfdP->curStripe == 0 ||
+		 (parstripe == 0 && sfdP->curStripe == 1))) {
+	        parblk = buffer;
+		if (parstripe == 0)
+		    sfdP->endPos = sfdP->seekPos + BLCKSZ;
+		else {
+		    parstripe = 1;
+		    sfdP->endPos = sfdP->seekPos + 2 * BLCKSZ;
+		  }
+	      }
+	    else {
+	        parPos = (rownum * NStriping + parstripe) * BLCKSZ;
+	        if (parPos >= sfdP->endPos) {
+		    parPos = sfdP->endPos - BLCKSZ;
+		    parstripe = (parPos/BLCKSZ) % NStriping;
+	          }
+		ret = fileSeek(sfdP->vfd[parstripe],(long)rownum*BLCKSZ,L_SET);
+		/*
+		printf("read old parity at stripe %d row %d\n", parstripe, VfdCache[sfdP->vfd[parstripe]].seekPos/BLCKSZ);
+		*/
+		ret = fileRead(sfdP->vfd[parstripe], oldparblk, BLCKSZ);
+		if (sfdP->seekPos >= sfdP->endPos ||
+		    sfdP->seekPos == parPos) {
+		    parblk = blkxor(oldparblk, NULL, buffer, newparblk);
+		  }
+		else {
+		/*
+		    printf("read old block at stripe %d row %d\n", sfdP->curStripe, VfdCache[sfdP->vfd[sfdP->curStripe]].seekPos/BLCKSZ);
+		    */
+	            ret = fileRead(sfdP->vfd[sfdP->curStripe], oldblk, BLCKSZ);
+		    parblk = blkxor(oldparblk, oldblk, buffer, newparblk);
+		  }
+	        if (sfdP->seekPos >= sfdP->endPos) {
+		    sfdP->endPos = sfdP->seekPos + BLCKSZ;
+	          }
+		else if (sfdP->seekPos == parPos) {
+		    parstripe++;
+		    sfdP->endPos += BLCKSZ;
+		  }
+	      }
+	    ret = fileSeek(sfdP->vfd[parstripe],(long)rownum*BLCKSZ,L_SET);
+	    /*
+	    printf("write parity at stripe %d row %d\n", parstripe, VfdCache[sfdP->vfd[parstripe]].seekPos/BLCKSZ);
+	    */
+	    ret = fileWrite(sfdP->vfd[parstripe], parblk, BLCKSZ);
+	    ret =fileSeek(sfdP->vfd[sfdP->curStripe],(long)rownum*BLCKSZ,L_SET);
+	    /*
+	    printf("write new block at stripe %d row %d\n", sfdP->curStripe, VfdCache[sfdP->vfd[sfdP->curStripe]].seekPos/BLCKSZ);
+	    */
+            ret = fileWrite(sfdP->vfd[sfdP->curStripe], buffer, amount);
+	 }
+       }
+#ifdef PARALLELDEBUG
+   EndParallelDebugInfo(PDI_FILEWRITE);
+#endif
     return(ret);
 }
 
@@ -937,79 +1108,105 @@ int whence;
 {
     int blknum;
     long blkoff;
-    BlockNumber bnum;
-    int nf;
+    BlockNumber rownum;
+    int nf, endstripe, parstripe;
     Sfd *sfdP;
+    int ret;
 #ifdef PARALLELDEBUG
     BeginParallelDebugInfo(PDI_FILESEEK);
 #endif
 
     sfdP = &(SfdCache[file]);
-
+    /*
+    printf("SEEK %s to offset %d whence %d\n", VfdCache[sfdP->vfd[0]].fileName, offset, whence);
+    */
     switch(whence) {
     case L_SET:
-	sfdP->seekPos = offset;
-        blknum = offset / BLCKSZ;
-        blkoff = offset % BLCKSZ;
-        bnum = blknum / NStriping;
-        sfdP->curStripe = nf = blknum % NStriping;
-	fileSeek(sfdP->vfd[nf], bnum * BLCKSZ + blkoff, whence);
+	switch (StripingMode) {
+	case 0:
+	case 1:
+	    sfdP->seekPos = offset;
+	    blknum = offset / BLCKSZ;
+	    blkoff = offset % BLCKSZ;
+	    rownum = blknum / NStriping;
+	    sfdP->curStripe = nf = blknum % NStriping;
+	    fileSeek(sfdP->vfd[nf], rownum * BLCKSZ + blkoff, whence);
+	    if (StripingMode == 1)
+		fileSeek(sfdP->vfd[nf+NStriping],rownum*BLCKSZ+blkoff,whence);
+	    break;
+	case 5:
+	    blknum = offset / BLCKSZ;
+	    blkoff = offset % BLCKSZ;
+	    rownum = blknum / (NStriping - 1);
+	    nf = blknum % (NStriping - 1);
+	    parstripe = NStriping - 1 - rownum % NStriping;
+	    if (nf >= parstripe) nf++;
+	    sfdP->curStripe = nf;
+	    fileSeek(sfdP->vfd[nf],rownum*BLCKSZ+blkoff,whence);
+	    /*
+	    printf("seek stripe %d to row %d\n", nf, rownum);
+	    */
+	    sfdP->seekPos = (rownum * NStriping + nf) * BLCKSZ + blkoff;
+	    break;
+	  }
 #ifdef PARALLELDEBUG
 	EndParallelDebugInfo(PDI_FILESEEK);
 #endif
 	return offset;
     case L_INCR:
-	sfdP->seekPos += offset;
-        blknum = sfdP->seekPos / BLCKSZ;
-        blkoff = sfdP->seekPos % BLCKSZ;
-        bnum = blknum / NStriping;
-        sfdP->curStripe = nf = blknum % NStriping;
-	fileSeek(sfdP->vfd[nf], bnum * BLCKSZ + blkoff, whence);
+	sfdP->seekPos = FileSeek(file, sfdP->seekPos + offset, L_SET);
 #ifdef PARALLELDEBUG
 	EndParallelDebugInfo(PDI_FILESEEK);
 #endif
 	return sfdP->seekPos;
     case L_XTND:
-	{   int l=0, h=NStriping-1, m;
-            long lsize, hsize, msize;
-	    if (h == 0) {
-	        sfdP->curStripe = 0;
-                sfdP->seekPos = fileSeek(sfdP->vfd[0], offset, whence);
-#ifdef PARALLELDEBUG
-		EndParallelDebugInfo(PDI_FILESEEK);
-#endif
-	        return sfdP->seekPos;
+	switch (StripingMode) {
+	case 0:
+	case 1:
+            blknum = sfdP->endPos / BLCKSZ;
+            sfdP->curStripe = nf = blknum % NStriping;
+	    offset = sfdP->seekPos = sfdP->endPos;
+	    fileSeek(sfdP->vfd[nf], 0L, L_XTND);
+	    if (StripingMode == 1) {
+		fileSeek(sfdP->vfd[nf+NStriping], 0L, L_XTND);
 	      }
-            if ((lsize = fileSeek(sfdP->vfd[l], 0l, L_XTND)) < 0) {
-                elog(FATAL, "lseek:%m");
-            }
-            if ((hsize = fileSeek(sfdP->vfd[h], 0l, L_XTND)) < 0) {
-                elog(FATAL, "lseek:%m");
-            }
-            if (lsize == hsize)
-               nf = 0;
-            else {
-                while (l + 1 != h) {
-                    m = (l + h) / 2;
-                if ((msize = fileSeek(sfdP->vfd[m], 0l, L_XTND)) < 0) {
-                    elog(FATAL, "lseek:%m");
-                }
-                    if (msize > hsize)
-                       l = m;
-                    else
-                       h = m;
-                  }
-                nf = h;
-              }
-	    sfdP->curStripe = nf;
-            sfdP->seekPos = hsize * NStriping + nf * BLCKSZ + offset;
-	    fileSeek(sfdP->vfd[nf], offset, whence);
+	    break;
+	case 5:
+	    sfdP->seekPos = sfdP->endPos;
+	    blknum = sfdP->endPos / BLCKSZ;
+	    rownum = blknum / NStriping;
+	    endstripe = blknum % NStriping;
+	    if (endstripe == 0)
+		offset = rownum * (NStriping - 1) * BLCKSZ;
+	    else
+	        offset = (rownum * (NStriping - 1) + endstripe - 1) * BLCKSZ;
+	    parstripe = NStriping - 1 - rownum % NStriping;
+	    if (endstripe > 0 && parstripe >= endstripe) {
+		sfdP->seekPos -= BLCKSZ;
+		sfdP->curStripe = endstripe - 1;
+		fileSeek(sfdP->vfd[endstripe - 1], rownum*BLCKSZ, L_SET);
+		/*
+		printf("seek stripe %d to row %d\n", endstripe-1, rownum);
+		*/
+	      }
+	    else {
+		if (endstripe == parstripe && endstripe == 0) {
+		    sfdP->seekPos += BLCKSZ;
+		    endstripe++;
+		  }
+		sfdP->curStripe = endstripe;
+	        ret = fileSeek(sfdP->vfd[endstripe], 0L, L_XTND);
+		/*
+		printf("seek stripe %d to row %d\n", endstripe, ret/BLCKSZ);
+		*/
+	      }
+	    break;
+	  }
 #ifdef PARALLELDEBUG
 	EndParallelDebugInfo(PDI_FILESEEK);
 #endif
-	    return sfdP->seekPos;
-	}
-    }
+	return offset;
+      }
 
     /*
      * probably never gets here, but to keep lint happy...
@@ -1096,11 +1293,14 @@ FileUnlink(file)
 File file;
 {
     int i;
+    int n;
     Sfd *sfdP;
 
     sfdP = &(SfdCache[file]);
 
-    for (i=0; i<NStriping; i++)
+    n = NStriping;
+    if (StripingMode == 1) n *= 2;
+    for (i=0; i<n; i++)
        fileUnlink(sfdP->vfd[i]);
 }
 
