@@ -1779,8 +1779,8 @@ _sjfindnblocks(tag)
     cachetag = SJNBlockCache;
     i = 0;
     while (i < SJNBLKSIZE && cachetag->sjct_relid != (ObjectId) 0) {
-	if (cachetag->sjct_dbid == tag.sjct_dbid
-	    && cachetag->sjct_relid == tag.sjct_relid) {
+	if (cachetag->sjct_dbid == tag->sjct_dbid
+	    && cachetag->sjct_relid == tag->sjct_relid) {
 	    return (cachetag->sjct_base);
 	}
 	i++;
@@ -1827,11 +1827,11 @@ _sjregnblocks(tag)
     SJCacheTag *cachetag;
     SJCacheTag mytag;
 
-    cachetag = SJNBlockCache;
+    cachetag = &(SJNBlockCache[0]);
     i = 0;
     while (i < SJNBLKSIZE && cachetag->sjct_relid != (ObjectId) 0) {
-	if (cachetag->sjct_dbid == tag.sjct_dbid
-	    && cachetag->sjct_relid == tag.sjct_relid)
+	if (cachetag->sjct_dbid == tag->sjct_dbid
+	    && cachetag->sjct_relid == tag->sjct_relid)
 	    break;
 
 	i++;
@@ -1839,13 +1839,13 @@ _sjregnblocks(tag)
     }
 
     if (i == SJNBLKSIZE) {
-	i = tag.sjct_relid % SJNBLKSIZE;
-	cachetag = &(SJCacheTag[i]);
+	i = tag->sjct_relid % SJNBLKSIZE;
+	cachetag = &(SJNBlockCache[i]);
     }
 
-    cachetag->sjct_dbid = tag.sjct_dbid;
-    cachetag->sjct_relid = tag.sjct_relid;
-    cachetag->sjct_base = tag.sjct_base;
+    cachetag->sjct_dbid = tag->sjct_dbid;
+    cachetag->sjct_relid = tag->sjct_relid;
+    cachetag->sjct_base = tag->sjct_base;
 
     /* update block count file */
     if (FileSeek(SJBlockVfd, 0L, L_SET) < 0) {
