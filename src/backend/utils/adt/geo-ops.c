@@ -166,8 +166,8 @@ long
 box_same(box1, box2)
 	BOX	*box1, *box2;
 {
-	return((box1->xh == box2->xh && box1->xl == box2->xh) &&
-	       (box1->yh == box2->yh && box1->yl == box2->yh));
+	return((box1->xh == box2->xh && box1->xl == box2->xl) &&
+	       (box1->yh == box2->yh && box1->yl == box2->yl));
 }
 
 /*	box_overlap	-	does box1 overlap box2?
