@@ -327,9 +327,6 @@ match_unsorted_outer (joinrel,outerrel,innerrel,outerpath_list,
     Path outerpath = (Path)NULL;
     LispValue jp_list = LispNil;
     LispValue temp_node = LispNil;
-    MInfo xmergeinfo = (MInfo)NULL;
-    List clauses = LispNil;
-    LispValue keyquals = LispNil;
     LispValue merge_pathkeys = LispNil;
     Path nestinnerpath =(Path)NULL;
     LispValue paths = LispNil;
@@ -337,6 +334,9 @@ match_unsorted_outer (joinrel,outerrel,innerrel,outerpath_list,
     LispValue outerpath_ordering = LispNil;
 
     foreach(i,outerpath_list) {
+	List clauses = LispNil;
+	LispValue keyquals = LispNil;
+        MInfo xmergeinfo = (MInfo)NULL;
 	outerpath = (Path)CAR(i);
 	outerpath_ordering = get_p_ordering (outerpath);
 	
@@ -425,7 +425,7 @@ match_unsorted_outer (joinrel,outerrel,innerrel,outerpath_list,
 						       outerpath,
 						       mergeinnerpath,
 						       merge_pathkeys,
-						       outerpath_ordering,
+						     get_m_ordering(xmergeinfo),
 						       nth (1,keyquals),
 							   LispNil,varkeys),
 				 paths);
@@ -477,16 +477,16 @@ match_unsorted_inner (joinrel,outerrel,innerrel,innerpath_list,mergeinfo_list)
     Path innerpath = (Path)NULL;
     LispValue mp_list = LispNil;
     LispValue temp_node = LispNil;
-    MInfo xmergeinfo = (MInfo)NULL;
     LispValue innerpath_ordering = LispNil;
-    List clauses = LispNil;
-    LispValue keyquals = LispNil;
     Cost temp1  = 0.0;
     bool temp2 = false;
     LispValue i = LispNil;
 
     
     foreach (i,innerpath_list) {
+        MInfo xmergeinfo = (MInfo)NULL;
+        List clauses = LispNil;
+        LispValue keyquals = LispNil;
 	innerpath = (Path)CAR(i);
 	innerpath_ordering = get_p_ordering (innerpath);
 	if ( innerpath_ordering ) {
@@ -533,7 +533,7 @@ match_unsorted_inner (joinrel,outerrel,innerrel,innerpath_list,mergeinfo_list)
 							   get_cheapestpath
 							   (outerrel),
 							   innerpath,merge_pathkeys,
-						       innerpath_ordering,
+						     get_m_ordering(xmergeinfo),
 							   nth (1,keyquals),
 							   outerkeys,LispNil),
 				     LispNil);
