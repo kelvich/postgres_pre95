@@ -1195,19 +1195,25 @@ BufferReplace(bufHdr)
      * don't bother to build the reldesc from scratch, just do
      * a blind write.
      */
-    reln = RelationIdCacheGetRelation(LRelIdGetRelationId(bufHdr->tag.relId));
 
-    if (reln == (Relation) NULL) {
-	bufdb = bufHdr->tag.relId.dbId;
-	bufrel = bufHdr->tag.relId.relId;
-	status = smgrblindwrt(bufHdr->bufsmgr, &bufHdr->sb_dbname, 
+    bufdb = bufHdr->tag.relId.dbId;
+    bufrel = bufHdr->tag.relId.relId;
+
+    if (bufdb == MyDatabaseId || bufdb == (OID) NULL)
+	reln = RelationIdCacheGetRelation(bufrel);
+    else
+	reln = (Relation) NULL;
+
+    if (reln != (Relation) NULL) {
+	status = smgrflush(bufHdr->bufsmgr, reln, bufHdr->tag.blockNum,
+			   (char *) MAKE_PTR(bufHdr->data));
+    } else {
+
+	/* blind write always flushes */
+	status = smgrblindwrt(bufHdr->bufsmgr, &bufHdr->sb_dbname,
 			      &bufHdr->sb_relname, bufdb, bufrel,
 			      bufHdr->tag.blockNum,
 			      (char *) MAKE_PTR(bufHdr->data));
-    } else {
-	status = smgrwrite(bufHdr->bufsmgr, reln,
-			   bufHdr->tag.blockNum,
-			   (char *) MAKE_PTR(bufHdr->data));
     }
 
     if (status == SM_FAIL)
