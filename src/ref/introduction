@@ -100,7 +100,6 @@ Jennifer Caetta,
 Philip Chang,
 Jolly Chen,
 Ron Choi,
-Bob Devine,
 Matt Dillon,
 Zelaine Fong,
 Adam Glass,
@@ -117,6 +116,7 @@ Greg Kemnitz,
 Case Larsen,
 Boris Livshitz,
 Jeff Meredith,
+Ginger Ogle,
 Michael Olson,
 Nels Olson,
 Lay-Peng Ong,
@@ -125,6 +125,7 @@ Avi Pfeffer,
 Spyros Potamianos,
 Sunita Sarawagi,
 David Muir Sharnoff,
+Mark Sullivan,
 Cimarron Taylor,
 Marc Teitelbaum,
 Yongdong Wang,
@@ -143,8 +144,13 @@ Marc Teitelbaum served as chief programmer for Version \*(PV and was
 responsible for overall coordination of the project.
 .PP
 This reference was collectively written by the above implementation
-team, assisted by Michael Stonebraker, Chandra Ghosh, Claire Mosher
-and Jim Frew.
+team, assisted by 
+Bob Devine,
+Jim Frew,
+Chandra Ghosh,
+Claire Mosher
+and
+Michael Stonebraker.
 .SH "FOOTNOTES"
 \*(UU is a trademark of
 .SM AT&T .
