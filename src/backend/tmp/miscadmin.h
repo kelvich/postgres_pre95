@@ -85,7 +85,7 @@ extern LastOidProcessed;	/* for query rewrite */
 #define MAX_PARSE_BUFFER 8192
 
 /* 
- *	number of buffers in buffer pool
+ *	default number of buffers in buffer pool
  * 
  */
 #define NDBUFS 16
