@@ -25,17 +25,14 @@
 #
 
 #
-# CONFIGURATION SECTION
+# == CONFIGURATION SECTION ==
 #
-# If you're working off a shared or readonly source, you can still
-# override these setting by placing new definitions in a Makefile.global
-# in the obj/ directory in this directory.
 
 # Following is where the tools necessary to build postgres
 # get installed.
 # It is necessary to have the TOOLSBINDIR, whatever that may be,
 # in your PATH before attempting to bootstrap the build.  To
-# bootstrap (that is, if bmake(1) is not instaleld on your system)
+# bootstrap (that is, if bmake(1) is not installed on your system)
 # you should cd(1) to the src/tools/bmake directory and type
 #
 #       make -f Makefile.boot
@@ -50,7 +47,7 @@ TOOLSLIBDIR= /usr/local/lib
 # Following are settings pertaining to the postgres build
 # and installation.  The most important one is obviously
 # the name of the port.
-#
+
 #  The name of the port.  Valid choices are:
 #	ultrix4	-	ultrix 4.?
 #	sparc	-	SUN sparc
@@ -58,8 +55,13 @@ TOOLSLIBDIR= /usr/local/lib
 #
 #PORTNAME=	sparc
 PORTNAME=	ultrix4
-
-# The following should be self explanatory
+#
+# POSTGRESUSER is the login name of the user who gets special
+# privilige over the databases.  By default it is "postgres", but
+# you can change it to any existing login name (such as your own 
+# login if you are compiling a private version or don't have root
+# access).
+POSTGRESLOGIN= postgres
 
 POSTGRESDIR=	/private/devel/postgres
 #
@@ -90,8 +92,8 @@ STRIP=
 
 #
 # FEATURES: 
-# To disable a feature comment out the definition
-# ( that is, prepend '#', don't set it to "0" ).
+# To disable a feature, comment out the definition
+# (that is, prepend '#', don't set it to "0" or "no").
 #
 
 #
