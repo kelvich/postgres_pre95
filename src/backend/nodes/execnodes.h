@@ -13,6 +13,7 @@
 #include "pg_lisp.h"
 #include "nodes.h"	/* bogus inheritance system */
 #include "params.h"	/* parameterized plan stuff... */
+#include "prs2.h"	/* for the prs2_info field of EState */
 
 /*
  *  This #define means that we have supplied a print function for EState
@@ -125,8 +126,9 @@ class (TupleCount) public (Node) {
  *	param_list_info			information needed to transform
  *					Param nodes into Const nodes
  *
- *	recursion_depth			nesting level of recursive
- *					ExecMain/rule manager calls
+ *	prs2_info			Information used by the rule
+ *					manager (for loop detection
+ *					etc.). Must be initialized to NULL
  * ----------------------------------------------------------------
  */
 
@@ -146,7 +148,7 @@ class (EState) public (Node) {
       RelationInfo	es_result_relation_info;
       TupleCount	es_tuplecount;
       ParamListInfo	es_param_list_info;
-      int		es_recursion_depth;
+      Prs2EStateInfo	es_prs2_info;
 };
 
 /* ----------------
