@@ -657,4 +657,53 @@ form ARGS((
 #define ExternDecl(_external_) \
 	{ (data_ptr)&(_external_), symstring(_external_) }
 
+/* ----------------
+ *	stuff added from status.h
+ * ----------------
+ */
+/*
+ * status.h --
+ *	POSTGRES library function return status.
+ * 	$Header$
+ */
+
+#ifndef	StatusIncluded	/* Include this file only once. */
+#define StatusIncluded	1
+
+/*
+ * ReturnStatus --
+ *	Return status from POSTGRES library functions.
+ *
+ * Note:
+ *	Most POSTGRES functions will not return a status.
+ *	In the future, there should be a global variable
+ *	which indicates the reason for the failure--the
+ *	identifier of an error message in the ERROR relation.
+ */
+typedef int	ReturnStatus;
+
+/*
+ * ReturnStatusIsValid --
+ *	True iff return status is valid.
+ *
+ * Note:
+ *	Assumes that a library function can only indicate
+ *	sucess or failure.
+ */
+#define ReturnStatusIsValid(status) \
+	((-1) <= (status) && (status) <= 0)
+
+/*
+ * ReturnStatusIsSucess --
+ *	True iff return status indicates a sucessful call.
+ */
+#define SucessfulReturnStatus(status) \
+	((status) >= 0)
+
+#endif	/* !defined(StatusIncluded) */
+
+/* ----------------
+ *	end of c.h
+ * ----------------
+ */
 #endif	/* !defined(CIncluded) */
