@@ -748,6 +748,200 @@ RelationUnsetLockForWritePage(relation, partition, itemPointer)
     MultiReleasePage(relation->lockInfo, itemPointer, WRITE_LOCK);
 }
 
+/*
+ * Set a single level write page lock.  Assumes that you already
+ * have a write intent lock on the relation.
+ */
+RelationSetSingleWLockPage(relation, partition, itemPointer)
+    Relation relation;
+    PagePartition       partition;
+    ItemPointer         itemPointer;
+{
+
+    /* ----------------
+     *	sanity checks
+     * ----------------
+     */
+    Assert(RelationIsValid(relation));
+    if (LockingDisabled())
+	return;
+    
+    if (!LockInfoIsValid(relation->lockInfo))
+        elog(WARN, 
+            "Releasing a lock on %s with invalid lock information",
+            RelationGetRelationName(relation));
+
+    SingleLockPage(relation->lockInfo, itemPointer, WRITE_LOCK, !UNLOCK);
+}
+
+/*
+ * Unset a single level write page lock
+ */
+RelationUnsetSingleWLockPage(relation, partition, itemPointer)
+    Relation relation;
+    PagePartition       partition;
+    ItemPointer         itemPointer;
+{
+
+    /* ----------------
+     *	sanity checks
+     * ----------------
+     */
+    Assert(RelationIsValid(relation));
+    if (LockingDisabled())
+	return;
+    
+    if (!LockInfoIsValid(relation->lockInfo))
+        elog(WARN, 
+            "Releasing a lock on %s with invalid lock information",
+            RelationGetRelationName(relation));
+
+    SingleLockPage(relation->lockInfo, itemPointer, WRITE_LOCK, UNLOCK);
+}
+
+/*
+ * Set a single level read page lock.  Assumes you already have a read
+ * intent lock set on the relation.
+ */
+RelationSetSingleRLockPage(relation, partition, itemPointer)
+    Relation relation;
+    PagePartition       partition;
+    ItemPointer         itemPointer;
+{
+
+    /* ----------------
+     *	sanity checks
+     * ----------------
+     */
+    Assert(RelationIsValid(relation));
+    if (LockingDisabled())
+	return;
+    
+    if (!LockInfoIsValid(relation->lockInfo))
+        elog(WARN, 
+            "Releasing a lock on %s with invalid lock information",
+            RelationGetRelationName(relation));
+
+    SingleLockPage(relation->lockInfo, itemPointer, READ_LOCK, !UNLOCK);
+}
+
+/* 
+ * Unset a single level read page lock.
+ */
+RelationUnsetSingleRLockPage(relation, partition, itemPointer)
+    Relation relation;
+    PagePartition       partition;
+    ItemPointer         itemPointer;
+{
+
+    /* ----------------
+     *	sanity checks
+     * ----------------
+     */
+    Assert(RelationIsValid(relation));
+    if (LockingDisabled())
+	return;
+    
+    if (!LockInfoIsValid(relation->lockInfo))
+        elog(WARN, 
+            "Releasing a lock on %s with invalid lock information",
+            RelationGetRelationName(relation));
+
+    SingleLockPage(relation->lockInfo, itemPointer, READ_LOCK, UNLOCK);
+}
+
+/*
+ * Set a read intent lock on a relation.
+ *
+ * Usually these are set in a multi-level table when you acquiring a
+ * page level lock.  i.e. To acquire a lock on a page you first acquire
+ * an intent lock on the entire relation.  Acquiring an intent lock along
+ * allows one to use the single level locking routines later.  Good for
+ * index scans that do a lot of page level locking.
+ */
+RelationSetRIntentLock(relation)
+    Relation relation;
+{
+    /* -----------------
+     * Sanity check
+     * -----------------
+     */
+    Assert(RelationIsValid(relation));
+    if (LockingDisabled())
+	return;
+
+    if (!LockInfoIsValid(relation->lockInfo))
+	RelationInitLockInfo(relation);
+
+    SingleLockReln(relation->lockInfo, READ_LOCK+INTENT, !UNLOCK);
+}
+
+/*
+ * Unset a read intent lock on a relation
+ */
+RelationUnsetRIntentLock(relation)
+    Relation relation;
+{
+    /* -----------------
+     * Sanity check
+     * -----------------
+     */
+    Assert(RelationIsValid(relation));
+    if (LockingDisabled())
+	return;
+
+    if (!LockInfoIsValid(relation->lockInfo))
+	RelationInitLockInfo(relation);
+
+    SingleLockReln(relation->lockInfo, READ_LOCK+INTENT, UNLOCK);
+}
+
+/*
+ * Set a write intent lock on a relation. For a more complete explanation
+ * see RelationSetRIntentLock()
+ */
+RelationSetWIntentLock(relation)
+    Relation relation;
+{
+    /* -----------------
+     * Sanity check
+     * -----------------
+     */
+    Assert(RelationIsValid(relation));
+    if (LockingDisabled())
+	return;
+
+    if (!LockInfoIsValid(relation->lockInfo))
+	RelationInitLockInfo(relation);
+
+    SingleLockReln(relation->lockInfo, WRITE_LOCK+INTENT, !UNLOCK);
+}
+
+/*
+ * Unset a write intent lock.
+ */
+RelationUnsetWIntentLock(relation)
+    Relation relation;
+{
+    /* -----------------
+     * Sanity check
+     * -----------------
+     */
+    Assert(RelationIsValid(relation));
+    if (LockingDisabled())
+	return;
+
+    if (!LockInfoIsValid(relation->lockInfo))
+	RelationInitLockInfo(relation);
+
+    SingleLockReln(relation->lockInfo, WRITE_LOCK+INTENT, UNLOCK);
+}
+
+/*
+ * Extend locks are used primarily in tertiary storage devices such as
+ * a WORM disk jukebox.  Sometimes need exclusive access to extend a 
+ * file by a block.
+ */
 RelationSetLockForExtend(relation)
     Relation relation;
 {
