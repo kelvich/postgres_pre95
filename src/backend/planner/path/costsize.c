@@ -34,6 +34,7 @@
 #include "planner/costsize.h"
 #include "planner/keys.h"
 #include "planner/clausesel.h"
+#include "planner/tlist.h"
 #include "storage/bufmgr.h"	/* for BLCKSZ */
 
 /*
@@ -183,8 +184,10 @@ cost_index (indexid,expected_indexpages,selec,relpages,
  */
 Cost
 cost_sort (keys,tuples,width,noread)
-     LispValue keys,width,noread ;
+     LispValue keys;
      int tuples;
+     int width;
+     bool noread;
 {
     Cost temp = 0;
     int npages = page_size (tuples,width);
@@ -264,8 +267,8 @@ cost_hash (keys,tuples,width,which_rel)
  */
 Cost
 cost_result (tuples,width)
-     LispValue width ;
      int tuples;
+     int width ;
 {
     Cost temp =0;
     temp = temp + page_size(tuples,width);
@@ -336,8 +339,8 @@ cost_mergesort (outercost,innercost,outersortkeys,innersortkeys,
 	
     temp += outercost;
     temp += innercost;
-    temp += cost_sort(outersortkeys,outersize,outerwidth,LispNil);
-    temp += cost_sort(innersortkeys,innersize,innerwidth,LispNil);
+    temp += cost_sort(outersortkeys,outersize,outerwidth,false);
+    temp += cost_sort(innersortkeys,innersize,innerwidth,false);
     temp += _CPU_PAGE_WEIGHT_ * (outersize + innersize);
     return(temp);
 }
@@ -364,7 +367,7 @@ Cost
 cost_hashjoin (outercost,innercost,outerkeys,innerkeys,outersize,
 	       innersize,outerwidth,innerwidth)
      LispValue outerkeys,innerkeys;
-     Count outersize, innersize, outerwidth, innerwidth;
+     int outersize, innersize, outerwidth, innerwidth;
      Cost outercost,innercost;
 {
     Cost temp = 0;
@@ -492,15 +495,15 @@ compute_attribute_width (tlistentry)
 /*  .. prune-rel-paths */
 
 int
-compute_joinrel_size (joinrel)
-     Join joinrel ;
+compute_joinrel_size (joinpath)
+     JoinPath joinpath ;
 {
     double temp = 1.0;
     Count temp1 = 0;
 
-    CostMultiplyCount(temp, get_size(get_parent(get_outerjoinpath(joinrel))));
-    CostMultiplyCount(temp, get_size(get_parent(get_innerjoinpath(joinrel))));
-    temp = temp * product_selec(get_pathclauseinfo(joinrel));  
+    CostMultiplyCount(temp, get_size(get_parent(get_outerjoinpath(joinpath))));
+    CostMultiplyCount(temp, get_size(get_parent(get_innerjoinpath(joinpath))));
+    temp = temp * product_selec(get_pathclauseinfo(joinpath));  
 
     temp1 = floor(temp);
     return(temp1);

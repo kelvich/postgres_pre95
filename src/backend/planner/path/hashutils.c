@@ -23,12 +23,6 @@
 #include "planner/hashutils.h"
 #include "planner/clauses.h"
 
-/* ----------------
- *	HInfo creator declaration
- * ----------------
- */
-extern HInfo RMakeHInfo();
-
 /*    
  *    	group-clauses-by-hashop
  *    
@@ -67,20 +61,20 @@ group_clauses_by_hashop (clauseinfo_list,inner_relid)
 	if (hashjoinop ) {
 	    HInfo xhashinfo = (HInfo)NULL;
 	    Expr clause = get_clause (clauseinfo);
-	    Var leftop = get_leftop (clause);
-	    Var rightop = get_rightop (clause);
+	    Var leftop = get_leftop((LispValue)clause);
+	    Var rightop = get_rightop((LispValue)clause);
 	    JoinKey keys = (JoinKey)NULL;
 	    
 	    xhashinfo = 
 	      match_hashop_hashinfo (hashjoinop,hashinfo_list);
 	    
 	    if (CInteger(inner_relid) == get_varno (leftop)){
-		keys = MakeJoinKey(rightop,
-				   leftop);
+		keys = MakeJoinKey((LispValue)rightop,
+				   (LispValue)leftop);
 	    }
 	    else {
-		keys = MakeJoinKey(leftop,
-				   rightop);
+		keys = MakeJoinKey((LispValue)leftop,
+				   (LispValue)rightop);
 	    }
 	    
 	    if ( null(xhashinfo)) {
@@ -88,8 +82,8 @@ group_clauses_by_hashop (clauseinfo_list,inner_relid)
 		set_hashop(xhashinfo,
 			   hashjoinop);
 
-		set_jmkeys(xhashinfo,LispNil);
-		set_clauses(xhashinfo,LispNil);
+		set_jmkeys((JoinMethod)xhashinfo,LispNil);
+		set_clauses((JoinMethod)xhashinfo,LispNil);
 
 /*		set_clause(xhashinfo,(Expr)NULL);
 		set_selectivity(xhashinfo,0);
@@ -108,24 +102,24 @@ group_clauses_by_hashop (clauseinfo_list,inner_relid)
 	     *  push (keys,joinmethod_keys (xhashinfo));
 	     */
 	    
-	    if (null(get_clauses(xhashinfo)))
-	      set_clauses(xhashinfo,lispCons(clause,LispNil));
+	    if (null(get_clauses((JoinMethod)xhashinfo)))
+	      set_clauses((JoinMethod)xhashinfo,lispCons(clause,LispNil));
 	    else {
 		temp = lispList();
-		CAR(temp) = CAR(get_clauses(xhashinfo));
-		CDR(temp) = CDR(get_clauses(xhashinfo));
-		CDR(get_clauses(xhashinfo)) = temp;
-		CAR(get_clauses(xhashinfo)) = (LispValue)clause;
+		CAR(temp) = CAR(get_clauses((JoinMethod)xhashinfo));
+		CDR(temp) = CDR(get_clauses((JoinMethod)xhashinfo));
+		CDR(get_clauses((JoinMethod)xhashinfo)) = temp;
+		CAR(get_clauses((JoinMethod)xhashinfo)) = (LispValue)clause;
 	    }
-	    if (null(get_jmkeys(xhashinfo)))
-	      set_jmkeys(xhashinfo,lispCons(keys,LispNil));
+	    if (null(get_jmkeys((JoinMethod)xhashinfo)))
+	      set_jmkeys((JoinMethod)xhashinfo,lispCons(keys,LispNil));
 	    else {
 		temp2 = lispList();
 	    
-		CAR(temp2) = CAR(get_jmkeys(xhashinfo));
-		CDR(temp2) = CDR(get_jmkeys(xhashinfo));
-		CDR(get_jmkeys(xhashinfo)) = temp2;
-		CAR(get_jmkeys(xhashinfo)) = (LispValue)keys;
+		CAR(temp2) = CAR(get_jmkeys((JoinMethod)xhashinfo));
+		CDR(temp2) = CDR(get_jmkeys((JoinMethod)xhashinfo));
+		CDR(get_jmkeys((JoinMethod)xhashinfo)) = temp2;
+		CAR(get_jmkeys((JoinMethod)xhashinfo)) = (LispValue)keys;
 	    }
 
 /*	    temp2 = get_jmkeys(xhashinfo);

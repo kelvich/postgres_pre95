@@ -24,13 +24,6 @@
 #include "planner/joininfo.h"
 #include "planner/relnode.h"
 
-/* ----------------
- *	node creator declarations
- * ----------------
- */
-extern JInfo RMakeJInfo();
-extern Rel RMakeRel();
-
 /*    
  *    	find-join-rels
  *    
@@ -53,13 +46,13 @@ LispValue
 find_join_rels(outer_rels)
      LispValue outer_rels ;
 {
-    LispValue outer_rel = LispNil;
+    Rel outer_rel;
     LispValue temp = LispNil;
     LispValue t_list = LispNil;
     LispValue i = LispNil;
 
     foreach(i,outer_rels) {
-	outer_rel = CAR(i);
+	outer_rel = (Rel)CAR(i);
 	if(!(temp = find_clause_joins(outer_rel,get_joininfo(outer_rel))))
 	  if (BushyPlanFlag)
 	      temp = find_clauseless_joins(outer_rel,outer_rels);
@@ -93,7 +86,8 @@ find_join_rels(outer_rels)
 
 LispValue
 find_clause_joins(outer_rel,joininfo_list)
-     LispValue outer_rel,joininfo_list ;
+     Rel outer_rel;
+     List joininfo_list ;
 {
      LispValue temp_node = LispNil;
      LispValue t_list = LispNil;
@@ -138,19 +132,19 @@ find_clause_joins(outer_rel,joininfo_list)
 
 LispValue
 find_clauseless_joins(outer_rel,inner_rels)
-     LispValue outer_rel,inner_rels ;
+     Rel outer_rel;
+     List inner_rels ;
 {
      /*  XXX was mapcan   */
-     LispValue inner_rel = LispNil;
+     Rel inner_rel;
      LispValue t_list = LispNil;
      LispValue temp_node = LispNil;
      LispValue i = LispNil;
-     bool nonoverlap_rels();
 
      foreach(i,inner_rels) {
-	 inner_rel = CAR(i);
+	 inner_rel = (Rel)CAR(i);
          if(nonoverlap_rels(inner_rel,outer_rel)) {
-	     temp_node = lispCons(init_join_rel(outer_rel, inner_rel, LispNil),
+	     temp_node = lispCons(init_join_rel(outer_rel, inner_rel, (JInfo)NULL),
 				   LispNil);
 	     t_list = nconc(t_list,temp_node);
 	 } 
@@ -321,7 +315,6 @@ new_joininfo_list(joininfo_list,join_relids)
    LispValue new_otherrels = LispNil;
    JInfo other_joininfo = (JInfo)NULL;
    LispValue xjoininfo = LispNil;
-   bool nonoverlap_sets();
 
    foreach(xjoininfo, joininfo_list) {
       JInfo joininfo = (JInfo)CAR(xjoininfo);
@@ -329,9 +322,9 @@ new_joininfo_list(joininfo_list,join_relids)
       if (nonoverlap_sets(new_otherrels,join_relids)) {
          other_joininfo = joininfo_member(new_otherrels,current_joininfo_list);
          if(other_joininfo)
-            set_clauseinfo(other_joininfo,
-                            LispUnion(get_jinfoclauseinfo(joininfo),
-                                   get_jinfoclauseinfo(other_joininfo)));
+            set_jinfoclauseinfo(other_joininfo,
+                            LispUnion((LispValue)get_jinfoclauseinfo(joininfo),
+                                   (LispValue)get_jinfoclauseinfo(other_joininfo)));
          else {
             other_joininfo = MakeJInfo(get_otherrels(joininfo),
                                         get_jinfoclauseinfo(joininfo),
@@ -369,11 +362,9 @@ LispValue joinrels,outerrels ;
     LispValue xrelid = LispNil;
     LispValue xrel = LispNil;
     LispValue xjoininfo = LispNil;
-    bool nonoverlap_rels();
-    void add_superrels();
 
     foreach(xjoinrel, joinrels) {
-	LispValue joinrel = CAR(xjoinrel);
+	Rel joinrel = (Rel)CAR(xjoinrel);
         foreach(xrelid, get_relids(joinrel)) {
 	    Relid relid = (Relid)CAR(xrelid);
 	    Rel rel = get_rel(relid);
@@ -381,9 +372,9 @@ LispValue joinrels,outerrels ;
 	}
     }
     foreach(xjoinrel, joinrels) {
-	LispValue joinrel = CAR(xjoinrel);
+	Rel joinrel = (Rel)CAR(xjoinrel);
 	foreach(xjoininfo, get_joininfo(joinrel)) {
-	    LispValue joininfo = CAR(xjoininfo);
+	    JInfo joininfo = (JInfo)CAR(xjoininfo);
 	    LispValue other_rels = get_otherrels(joininfo);
 	    LispValue clause_info = get_jinfoclauseinfo(joininfo);
 	    bool mergesortable = get_mergesortable(joininfo);
@@ -398,9 +389,9 @@ LispValue joinrels,outerrels ;
 						    mergesortable,
 						    hashjoinable,
 						    false);
-	        set_joininfo(rel,append1 (get_joininfo(rel),new_joininfo));
+	        set_joininfo(rel,nappend1(get_joininfo(rel), new_joininfo));
 		foreach(xsuper_rel, super_rels) {
-		    LispValue super_rel = CAR(xsuper_rel);
+		    Rel super_rel = (Rel)CAR(xsuper_rel);
 		    if( nonoverlap_rels(super_rel,joinrel) ) {
 			LispValue new_relids = get_relids(super_rel);
 			JInfo other_joininfo = 
@@ -417,7 +408,7 @@ LispValue joinrels,outerrels ;
 								hashjoinable,
 								false);
 			    set_joininfo(joinrel,
-			      append1 (get_joininfo(joinrel),new_joininfo));
+			      nappend1 (get_joininfo(joinrel),new_joininfo));
 			}
 		    }
 		}
@@ -425,7 +416,7 @@ LispValue joinrels,outerrels ;
 	 }
     }
     foreach(xrel, outerrels)  {
-	LispValue rel = CAR(xrel);
+	Rel rel = (Rel)CAR(xrel);
 	set_superrels(rel,LispNil);
     }
 }
@@ -455,11 +446,11 @@ LispValue join_rel_list ;
 /*    find the relations that has no further joins, */
 /*    i.e., its joininfos all have otherrels nil. */
     foreach(xrel,join_rel_list)  {
-	LispValue rel = CAR(xrel);
+	Rel rel = (Rel)CAR(xrel);
 	LispValue xjoininfo = LispNil;
 	bool final = true;
-	foreach(xjoininfo,get_joininfo(rel)) {
-	    LispValue joininfo = CAR(xjoininfo);
+	foreach (xjoininfo,get_joininfo(rel)) {
+	    JInfo joininfo = (JInfo)CAR(xjoininfo);
 	    if(get_otherrels(joininfo) != LispNil)  {
 	       final = false;
 	       break;
@@ -489,9 +480,9 @@ LispValue join_rel_list ;
  */
 void
 add_superrels(rel,super_rel)
-LispValue rel,super_rel ;
+Rel rel,super_rel ;
 {
-    set_superrels(rel, append1 (get_superrels(rel), super_rel));
+    set_superrels(rel, nappend1(get_superrels(rel), super_rel));
 }
 
 /*
@@ -510,9 +501,8 @@ LispValue rel,super_rel ;
  */
 bool
 nonoverlap_rels(rel1,rel2)
-LispValue rel1,rel2 ;
+Rel rel1,rel2 ;
 {
-    bool nonoverlap_sets();
     return(nonoverlap_sets(get_relids(rel1),get_relids(rel2)));
 }
 

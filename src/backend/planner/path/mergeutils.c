@@ -24,12 +24,6 @@
 #include "planner/mergeutils.h"
 #include "planner/clauses.h"
 
-/* ----------------
- *	MInfo creator declaration
- * ----------------
- */
-extern MInfo RMakeMInfo();
-
 /*    
  *    	group-clauses-by-order
  *    
@@ -61,15 +55,15 @@ group_clauses_by_order (clauseinfo_list,inner_relid)
 	       MInfo xmergeinfo = 
 		 match_order_mergeinfo (merge_ordering,mergeinfo_list);
 	       Expr clause = get_clause (clauseinfo);
-	       Var leftop = get_leftop (clause);
-	       Var rightop = get_rightop (clause);
+	       Var leftop = get_leftop ((LispValue)clause);
+	       Var rightop = get_rightop ((LispValue)clause);
 	       JoinKey keys;
 	       
 	       if(equal (inner_relid,lispInteger(get_varno (leftop)))) {
-		    keys = MakeJoinKey (rightop,leftop);
+		    keys = MakeJoinKey ((LispValue)rightop,(LispValue)leftop);
 	       } 
 	       else {
-		    keys = MakeJoinKey (leftop,rightop);
+		    keys = MakeJoinKey ((LispValue)leftop,(LispValue)rightop);
 	       } 
 
 	       if ( null (xmergeinfo)) {
@@ -78,9 +72,10 @@ group_clauses_by_order (clauseinfo_list,inner_relid)
 		    mergeinfo_list = push (xmergeinfo,mergeinfo_list);
 	       }
 
-	       set_clauses(xmergeinfo,
-	                push (clause,joinmethod_clauses (xmergeinfo)));
-	       set_jmkeys(xmergeinfo, push(keys,joinmethod_keys (xmergeinfo)));
+	       set_clauses((JoinMethod)xmergeinfo,
+	                push (clause,joinmethod_clauses((JoinMethod)xmergeinfo)));
+	       set_jmkeys((JoinMethod)xmergeinfo, 
+			 push(keys,joinmethod_keys((JoinMethod)xmergeinfo)));
 	  }
      }
      return(mergeinfo_list);
@@ -120,7 +115,8 @@ Rel rel;
  */
 MInfo
 match_order_mergeinfo (ordering,mergeinfo_list)
-     LispValue ordering,mergeinfo_list ;
+     MergeOrder ordering;
+     List mergeinfo_list ;
 {
      MergeOrder xmergeorder;
      LispValue xmergeinfo = LispNil;

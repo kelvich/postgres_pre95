@@ -25,6 +25,7 @@
 
 #include "planner/internal.h"
 #include "planner/clause.h"
+#include "planner/clauses.h"
 #include "planner/clausesel.h"
 #include "planner/plancat.h"
 #include "parser/parsetree.h"
@@ -50,11 +51,12 @@ set_clause_selectivities (clauseinfo_list,new_selectivity)
      LispValue clauseinfo_list; 
      Cost new_selectivity ;
 {
-    LispValue temp,clausenode;
+    LispValue temp;
+    CInfo clausenode;
     double cost_clause;
 
     foreach (temp,clauseinfo_list) {
-	clausenode = CAR(temp);
+	clausenode = (CInfo)CAR(temp);
 	cost_clause = get_selectivity(clausenode);
 	if ( FLOAT_IS_ZERO(cost_clause) || new_selectivity < cost_clause) {
 	    set_selectivity (clausenode,new_selectivity);
@@ -83,7 +85,7 @@ product_selec (clauseinfo_list)
 	  double temp;
 
 	  foreach(xclausenode,clauseinfo_list) {
-	       temp = get_selectivity(CAR(xclausenode));
+	       temp = get_selectivity((CInfo)CAR(xclausenode));
 	       result = result * temp;
 	  }
      }
@@ -107,11 +109,13 @@ void
 set_rest_relselec (rel_list)
      LispValue rel_list ;
 {
-    LispValue rel = LispNil;
-     foreach (rel,rel_list) {
-	 set_rest_selec (get_clauseinfo (CAR(rel)));
+     Rel rel;
+     LispValue x;
+     foreach (x,rel_list) {
+	 rel = (Rel)CAR(x);
+	 set_rest_selec(get_clauseinfo(rel));
      }
- }
+}
 
 /*    
  *    	set_rest_selec
@@ -142,8 +146,9 @@ LispValue clauseinfo_list ;
 
 	if (valid_or_clause(clausenode) || FLOAT_IS_ZERO(cost_clause)) {
 	    set_selectivity (clausenode,
-			     compute_clause_selec (get_clause (clausenode),
-						   cost_clause));
+			     compute_clause_selec((List)get_clause(clausenode),
+						   lispCons(cost_clause, 
+			/* XXX this bogus */		    LispNil)));
 	}
     }
 } /* end set_rest_selec */
@@ -237,7 +242,7 @@ compute_selec (clauses,or_selectivities)
 	 */
 
 	LispValue relattvals = get_relattval (clause);
-	ObjectId opno = get_opno (get_op (clause));
+	ObjectId opno = get_opno ((Oper)get_op (clause));
 	LispValue relid = LispNil;
 	
 	if (translate_relid (CAR(relattvals)))
@@ -249,7 +254,7 @@ compute_selec (clauses,or_selectivities)
 					      opno,
 					      CInteger(relid),
 					      CInteger(CADR (relattvals)),
-					      CInteger((CADDR (relattvals))),
+					      (char*)CInteger((CADDR(relattvals))),
 					      CInteger(CADDR 
 						       (CDR(relattvals))));
     }
@@ -261,7 +266,7 @@ compute_selec (clauses,or_selectivities)
 	  *    on. 
 	  */
 	 LispValue relsatts = get_relsatts (clause);
-	 ObjectId opno = get_opno (get_op (clause));
+	 ObjectId opno = get_opno((Oper)get_op (clause));
 	 LispValue relid1 = LispNil;
 	 LispValue relid2 = LispNil;
 	 

@@ -33,8 +33,6 @@
 #include "planner/costsize.h"
 #include "planner/pathnode.h"
 
-extern IndexPath RMakeIndexPath();
-
 /*    
  *    	find-index-paths
  *    
@@ -157,15 +155,16 @@ find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
     if ( valid_sortkeys(sortkeys)
 	 && null(scanclausegroups)
 	 && null(joinclausegroups)
-	 && (get_relid(sortkeys) == get_relid(rel))
-	 && equal_path_path_ordering(get_sortorder(sortkeys),
+	 && (CInteger(get_relid((SortKey)sortkeys)) == 
+	     CInteger(CAR(get_relids(rel))))
+	 && equal_path_path_ordering(get_sortorder((SortKey)sortkeys),
 				     get_ordering(index))
-	 && equal (get_sortkeys(sortkeys), get_indexkeys (index)) )
+	 && equal (get_sortkeys((SortKey)sortkeys), get_indexkeys (index)) )
     {
 	sortpath = lispCons(create_index_path(rel,
 					      index,
 					      LispNil,
-					      LispNil),
+					      false),
 			    LispNil);
     }
 	
@@ -220,14 +219,15 @@ find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
 
 void
 match_index_orclauses (rel,index,indexkey,xclass,clauseinfo_list)
-LispValue rel,index,indexkey,xclass,clauseinfo_list ;
+Rel rel,index;
+LispValue indexkey,xclass,clauseinfo_list ;
 {
     CInfo clauseinfo = (CInfo)NULL;
     LispValue i = LispNil;
 
     foreach (i, clauseinfo_list) {
 	clauseinfo = (CInfo)CAR(i);
-	if ( valid_or_clause (clauseinfo)) {
+	if ( valid_or_clause((LispValue)clauseinfo)) {
 	    
 	    /* Mark the 'or' clause with a list of indices which 
 	     * match each of its subclauses.  The list is
@@ -238,7 +238,7 @@ LispValue rel,index,indexkey,xclass,clauseinfo_list ;
 			  match_index_orclause (rel,index,indexkey,
 						xclass,
 						get_orclauseargs
-						(get_clause(clauseinfo)),
+						((List)get_clause(clauseinfo)),
 						get_indexids (clauseinfo)));
 	}
    }
@@ -297,7 +297,8 @@ match_index_to_operand(indexkey, operand, rel, index)
 LispValue
 match_index_orclause (rel,index,indexkey,xclass,
 		      or_clauses,other_matching_indices)
-     LispValue rel,index,indexkey,xclass,or_clauses,other_matching_indices ;
+     Rel rel,index;
+     LispValue indexkey,xclass,or_clauses,other_matching_indices ;
 {
     /* XXX - lisp mapCAR  -- may be wrong. */
     LispValue clause = LispNil;
@@ -315,7 +316,7 @@ match_index_orclause (rel,index,indexkey,xclass,
     {
 	clause = CAR(clist);
 	if (is_clause (clause) && 
-	    op_class(get_opno(get_op (clause)),CInteger(xclass)) && 
+	    op_class(get_opno((Oper)get_op(clause)),CInteger(xclass)) && 
 	    match_index_to_operand (indexkey,
 				    get_leftop(clause),
 				    rel,
@@ -465,12 +466,12 @@ match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
      bool join;
 {
     Expr clause	= get_clause (clauseInfo);
-    Var leftop	= get_leftop (clause);
-    Var rightop	= get_rightop (clause);
+    Var leftop	= get_leftop ((LispValue)clause);
+    Var rightop	= get_rightop ((LispValue)clause);
     ObjectId join_op = InvalidObjectId;
     bool isIndexable = false;
 
-    if ( or_clause (clause))
+    if ( or_clause ((LispValue)clause))
 	return ((CInfo)NULL);
 
      /*
@@ -486,10 +487,10 @@ match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
 	 */
 	if (IsA(rightop,Const))
 	{
-	    restrict_op = get_opno(get_op(clause));
+	    restrict_op = get_opno((Oper)get_op((LispValue)clause));
 	    isIndexable =
 		( op_class(restrict_op, CInteger(xclass)) &&
-		  IndexScanableOperand(leftop,indexkey,rel,index) );
+		  IndexScanableOperand((LispValue)leftop,indexkey,rel,index) );
 	}
 
 	/*
@@ -497,11 +498,11 @@ match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
 	 */
 	else if (IsA(leftop,Const))
 	{
-	    restrict_op = get_commutator(get_opno(get_op(clause)));
+	    restrict_op = get_commutator(get_opno((Oper)get_op((LispValue)clause)));
 
 	    if ( (restrict_op != InvalidObjectId) &&
 		  op_class(restrict_op, CInteger(xclass)) &&
-		  IndexScanableOperand(rightop,indexkey,rel,index) )
+		  IndexScanableOperand((LispValue)rightop,indexkey,rel,index) )
 	    {
 		isIndexable = true;
 		/*
@@ -520,10 +521,10 @@ match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
     else
     {
 	if (match_index_to_operand (indexkey,rightop,rel,index))
-	    join_op = get_commutator (get_opno (get_op (clause)));
+	    join_op = get_commutator(get_opno((Oper)get_op((LispValue)clause)));
 
 	else if (match_index_to_operand (indexkey,leftop,rel,index))
-	    join_op = get_opno (get_op (clause));
+	    join_op = get_opno((Oper)get_op((LispValue)clause));
 
 	if ( join_op && op_class(join_op,CInteger(xclass)) &&
 	     join_clause_p(clause))
@@ -534,7 +535,7 @@ match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
 	     * If we're using the operand's commutator we must
 	     * commute the clause.
 	     */
-	    if ( join_op != get_opno(get_op(clause)) )
+	    if ( join_op != get_opno((Oper)get_op((LispValue)clause)) )
 		CommuteClause(clause);
 	}
     }
@@ -567,7 +568,8 @@ match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
 
 LispValue
 indexable_joinclauses (rel,index,joininfo_list)
-     LispValue rel,index,joininfo_list ;
+     Rel rel,index;
+     List joininfo_list ;
 {
 	/*  XXX Lisp Mapcan -- may be wrong  */
 
@@ -587,7 +589,7 @@ indexable_joinclauses (rel,index,joininfo_list)
 				     true);
 
 	if ( consp (clausegroups)) {
-	    set_cinfojoinid (CAAR(clausegroups),
+	    set_cinfojoinid((CInfo)CAAR(clausegroups),
 			get_otherrels(joininfo));
 	}
 	cg_list = nconc(cg_list,clausegroups);
@@ -645,16 +647,17 @@ index_innerjoin (rel,clausegroup_list,index)
 			      CADDR (relattvals),
 			      length (clausegroup));
 	  
-	 set_pathtype (pathnode,T_IndexScan);
-	 set_parent (pathnode,rel);
-	 set_indexid (pathnode,get_relids (index));
-	 set_indexqual (pathnode,clausegroup);
-	 set_joinid (pathnode,get_cinfojoinid (CAR (clausegroup)));
+	 set_pathtype((Path)pathnode,T_IndexScan);
+	 set_parent((Path)pathnode,rel);
+	 set_indexid(pathnode,get_relids (index));
+	 set_indexqual(pathnode,clausegroup);
+	 set_joinid((Path)pathnode,get_cinfojoinid((CInfo)CAR(clausegroup)));
 
 	 temp_pages = (int)CDouble(CAR(pagesel));
 	 temp_selec = CDouble(CADR(pagesel));
 
-	 set_path_cost (pathnode,cost_index (CInteger(CAR(get_relids (index))),
+	 set_path_cost ((Path)pathnode,cost_index(
+					(ObjectId)CInteger(CAR(get_relids (index))),
 					temp_pages,
 					temp_selec,
 					get_pages (rel),
@@ -700,18 +703,14 @@ create_index_paths (rel,index,clausegroup_list,join)
      IndexPath  temp_path;
 
      foreach(i,clausegroup_list) {
-	 LispValue clauseinfo = LispNil;
+	 CInfo clauseinfo;
 	 LispValue temp_node = LispNil;
 	 bool temp = true;
 
 	 clausegroup = CAR(i);
 
 	 foreach (j,clausegroup) {
-	     clauseinfo = CAR(j); 
-/*
-	     if (consp (clauseinfo))       
-	       clauseinfo = CAR(clauseinfo);
-*/
+	     clauseinfo = (CInfo)CAR(j); 
 	     if ( !(join_clause_p(get_clause(clauseinfo))
 		    && equal_path_merge_ordering
 		    ( get_ordering(index),

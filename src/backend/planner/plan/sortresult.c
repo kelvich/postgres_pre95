@@ -22,6 +22,8 @@
 #include "nodes/primnodes.a.h"
 #include "nodes/relation.h"
 #include "nodes/relation.a.h"
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
 
 #include "planner/internal.h"
 #include "parser/parsetree.h"
@@ -61,7 +63,7 @@
 /*  .. query_planner     */
 
 LispValue
-  relation_sortkeys (tlist)
+relation_sortkeys (tlist)
 LispValue tlist ;
 {
     LispValue xtl = LispNil;
@@ -71,22 +73,22 @@ LispValue tlist ;
     LispValue sort_ops = LispNil;
     List	varkeys = LispNil;
     List	keys = LispNil;
-    LispValue resdom = LispNil;
-    LispValue expr = LispNil;
+    Resdom resdom;
+    Expr expr;
     
     foreach (xtl,tlist) {
-	resdom = tl_resdom (CAR(xtl));
-	expr = tl_expr(CAR(xtl));
+	resdom = (Resdom)tl_resdom (CAR(xtl));
+	expr = (Expr)tl_expr(CAR(xtl));
 	
 	if (0 != get_reskey (resdom)) {
 	    if(!(IsA (expr,Var)) ||
-	       var_is_nested (expr) || 
-	       (relid && relid != get_varno (expr)))
+	       var_is_nested((Var)expr) || 
+	       (relid && relid != get_varno((Var)expr)))
 	      allsame = false;
 	    else 
 	      if (allsame) {
 		  if (relid == 0) 
-		    relid = get_varno(expr);
+		    relid = get_varno((Var)expr);
 		  push (lispCons(lispInteger(get_reskey(resdom)),
 		                 lispCons(lispCons(lispInteger
 						   (get_reskeyop(resdom)), 
@@ -97,25 +99,26 @@ LispValue tlist ;
 				  lispCons(lispCons(expr,LispNil),
 					   LispNil)),
 			varkeys);
-		  if (get_vararraylist(expr))
+		  if (get_vararraylist((Var)expr))
 		    push (lispCons(lispInteger(get_reskey (resdom)),
 		                   lispCons(lispCons (lispInteger
-						      (get_varattno (expr)),
+						      (get_varattno((Var)expr)),
 				                      lispCons
-						      (
-						       get_vararraylist(expr),
+						   (get_vararraylist((Var)expr),
 						       LispNil
 						      )),
 					    LispNil)),
 			  keys);
 		  else 
 		    push (lispCons (lispInteger(get_reskey (resdom)),
-				    lispCons(lispInteger(get_varattno (expr)),
+				    lispCons(lispInteger(get_varattno((Var)expr)),
 				             LispNil)),
 			  keys);
 	      } 
 	    numkeys++;
-	    set_reskeyop (resdom,get_opcode (get_reskeyop (resdom)));
+	    /* XXX this is wrong.  reskeyop should be OperatorTupleForm.
+	    set_reskeyop(resdom,get_opcode(get_reskeyop(resdom)));
+	    */
 	}
     }
     
@@ -125,10 +128,10 @@ LispValue tlist ;
       if (relid == 0) 
 	return (LispNil);
       else 
-	return ((LispValue)MakeSortKey (sort_list_car (varkeys),
-					sort_list_car (keys),
-					relid,
-					sort_list_car (sort_ops)));
+	return ((LispValue)MakeSortKey(sort_list_car (varkeys),
+				       sort_list_car (keys),
+				       (Relid)LispInteger(relid),
+				       sort_list_car (sort_ops)));
 }  /* function end   */
 
 /*    
@@ -191,11 +194,14 @@ sort_list_car(list)
 /*  .. subplanner     */
  
 void
-*sort_relation_paths (pathlist,sortkeys,rel,width)
-LispValue pathlist,sortkeys,rel,width ;
+sort_relation_paths (pathlist,sortkeys,rel,width)
+LispValue pathlist,sortkeys;
+Rel rel;
+int width ;
 {
-     LispValue path = LispNil;
-     foreach (path, pathlist) {
+     LispValue x;
+     Path path;
+     foreach (x, pathlist) {
 	  
 	  /* For paths that require sorting, set 'newcost' to the additional */
 	  /* sorting cost incurred.  If the ordering and keys don't match, */
@@ -206,15 +212,16 @@ LispValue pathlist,sortkeys,rel,width ;
                          	    (1 == _query_max_level_);
 	  int newcost = 0;
 
-	  if(!equal_path_path_ordering (get_sortorder(sortkeys),
+	  path = (Path)CAR(x);
+	  /* XXX casting sortkeys to SortKey, does not make sense. */
+	  if(!equal_path_path_ordering (get_sortorder((SortKey)sortkeys),
 					get_p_ordering (path)) ||
-	     !(match_sortkeys_pathkeys (get_relid (sortkeys),
-					get_sortkeys (sortkeys),
+	     !(match_sortkeys_pathkeys (get_relid((SortKey)sortkeys),
+					get_sortkeys((SortKey)sortkeys),
 					get_keys (path)))) {
-	       set_sortpath (path,sortkeys);
+	       set_pathsortkey (path,(SortKey)sortkeys);
 	       newcost = get_path_cost (path) + 
-		 cost_sort (lispCons(lispInteger(1),LispNil),
-			    get_size (rel),width,final_result);
+		 cost_sort(sortkeys, get_size(rel),width,false);
 	  } 
 	  else 
 	    if (final_result) {
@@ -285,8 +292,8 @@ sort_level_result (plan,numkeys)
 					   numkeys));
 
      foreach (xtl, new_tlist) 
-       set_resname (tl_resdom (xtl),LispNil);
-     set_qptargetlist (plan,new_tlist);
+       set_resname ((Resdom)tl_resdom(xtl), (Name)NULL);
+     set_qptargetlist(plan,new_tlist);
      return (new_plan);
 }  /* function end  */
 

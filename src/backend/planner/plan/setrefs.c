@@ -1,4 +1,3 @@
-
 /*     
  *      FILE
  *     	setrefs
@@ -69,7 +68,8 @@
 
 LispValue
 new_level_tlist (tlist,prevtlist,prevlevel)
-     LispValue tlist,prevtlist,prevlevel ;
+     LispValue tlist,prevtlist;
+     int prevlevel ;
 {
     LispValue new_tlist = LispNil;
     int last_resdomno = 0;
@@ -79,13 +79,13 @@ new_level_tlist (tlist,prevtlist,prevlevel)
     foreach (xtl, tlist) {
 	entry = CAR(xtl);
 	if ( var_is_nested (get_expr (entry))) {
-	    push (MakeTLE (MakeResdom (last_resdomno += 1,
+	    push (MakeTLE (MakeResdom (++last_resdomno,
 					  _UNION_TYPE_ID_,
 				       0,
-					  LispNil,
+					  (Name)NULL,
 				       0,
-				       LispNil, 0),
-			   replace_nestvar_refs (get_expr (entry),
+				       (OperatorTupleForm)NULL, 0),
+			   replace_nestvar_refs ((Var)get_expr (entry),
 						 prevtlist,
 						 prevlevel)),
 		  new_tlist);
@@ -118,7 +118,8 @@ new_level_tlist (tlist,prevtlist,prevlevel)
 
 LispValue
 new_level_qual (quals,prevtlist,prevlevel)
-     LispValue quals,prevtlist,prevlevel ;
+     LispValue quals,prevtlist;
+     int prevlevel ;
 {
      LispValue temp = LispNil;
      LispValue t_list = LispNil;
@@ -164,12 +165,13 @@ new_level_qual (quals,prevtlist,prevlevel)
  */
 LispValue
 replace_clause_nestvar_refs (clause,prevtlist,prevlevel)
-     LispValue clause,prevtlist,prevlevel ;
+     LispValue clause,prevtlist;
+     int prevlevel ;
 {
      if(IsA (clause,Var))
-       return ((LispValue)replace_nestvar_refs (clause,prevtlist,prevlevel));
+       return((LispValue)replace_nestvar_refs((Var)clause,prevtlist,prevlevel));
      else 
-       if (single_node (clause)) 
+       if (single_node ((Node)clause)) 
 	 return(clause);
        else 
 	 if (or_clause (clause)) 
@@ -188,13 +190,13 @@ replace_clause_nestvar_refs (clause,prevtlist,prevlevel)
 				       (get_notclausearg (clause),
 					prevtlist,prevlevel)));
 		else
-		  return(make_opclause (get_op (clause),
-					replace_clause_nestvar_refs 
-					(get_leftop (clause),
+		  return(make_opclause((Oper)get_op (clause),
+					(Var)replace_clause_nestvar_refs 
+					((LispValue)get_leftop(clause),
 					 prevtlist,
 					 prevlevel),
-					replace_clause_nestvar_refs 
-					(get_rightop (clause),
+					(Var)replace_clause_nestvar_refs 
+					((LispValue)get_rightop(clause),
 					 prevtlist,
 					 prevlevel)));
 }  /* function end  */
@@ -204,7 +206,8 @@ replace_clause_nestvar_refs (clause,prevtlist,prevlevel)
 
 LispValue
 replace_subclause_nestvar_refs (clauses,prevtlist,prevlevel)
-     LispValue clauses,prevtlist,prevlevel ;
+     LispValue clauses,prevtlist;
+     int prevlevel ;
 {
      LispValue t_list = LispNil;
      LispValue clause = LispNil;
@@ -225,12 +228,12 @@ Var
 replace_nestvar_refs (var,prevtlist,prevlevel)
      Var var;
      List prevtlist;
-     int prevlevel ; /* XXX - ??? is this right */
+     int prevlevel ;
 {
     ObjectId var1 = -1;
     List var2 = LispNil;
 
-    if(null (get_varattno (var)) && ! (var_is_nested (var))) {
+    if((get_varattno(var) == 0) && ! (var_is_nested (var))) {
 	return (var);
     } else {
 	/*    Nested vars are of UNION (unknown) type. */
@@ -244,11 +247,12 @@ replace_nestvar_refs (var,prevtlist,prevlevel)
 	else
 	  var2 = get_varid(var);
 
-/* XXX This MakeVar call is bogus - it only has one argument!! */
+/* XXX This MakeVar call is bogus - it only has one argument!!
+   but I am not going to try to figure out what to do here!  -- Wei
 
 	return ((Var)MakeVar (lispCons (lispInteger(prevlevel - 1),
 					lispCons (get_resno 
-					 (tlist_member (var,   /* resno */
+					 (tlist_member (var, 
 							prevtlist,
 							LispNil)),
 					 lispCons(CAR (get_vardotfields (var)),
@@ -260,10 +264,12 @@ replace_nestvar_refs (var,prevtlist,prevlevel)
 							     lispCons(var2,
 								      LispNil))
 							   )))),0)); 
+*/
+       return NULL;
 
       }
     
-  }  /* function end  */
+}  /* function end  */
 
 /*     
  *     	RESULT REFERENCES
@@ -293,7 +299,9 @@ replace_nestvar_refs (var,prevtlist,prevlevel)
 
 LispValue
 new_result_tlist (tlist,ltlist,rtlist,levelnum,sorted)
-     LispValue tlist,ltlist,rtlist,levelnum,sorted ;
+     LispValue tlist,ltlist,rtlist;
+     int levelnum;
+     bool sorted;
 {
     LispValue t_list = LispNil;
     
@@ -306,13 +314,13 @@ new_result_tlist (tlist,ltlist,rtlist,levelnum,sorted)
 	      foreach(xtl,tlist) {
 		  entry = CAR(xtl);
 		  if ( sorted) {
-		      set_reskey (tl_resdom (entry),0);
-		      set_reskeyop (tl_resdom (entry),0);
+		      set_reskey ((Resdom)tl_resdom(entry),0);
+		      set_reskeyop ((Resdom)tl_resdom(entry),0);
 		  }
 		  temp = lispCons(tl_resdom (entry),
 				  lispCons 
 				  (replace_clause_resultvar_refs 
-				   (get_expr(entry),
+				   ((Expr)get_expr(entry),
 				    ltlist,
 				    rtlist,
 				    levelnum),
@@ -348,7 +356,8 @@ new_result_tlist (tlist,ltlist,rtlist,levelnum,sorted)
 
 LispValue
 new_result_qual (clauses,ltlist,rtlist,levelnum)
-     LispValue clauses,ltlist,rtlist,levelnum ;
+     LispValue clauses,ltlist,rtlist;
+     int levelnum ;
 {
      return (replace_subclause_resultvar_refs (clauses,
 					       ltlist,
@@ -386,49 +395,50 @@ replace_clause_resultvar_refs (clause,ltlist,rtlist,levelnum)
      List ltlist,rtlist;
      int levelnum ;
 {
-    if(IsA (clause,Var) && null (get_varattno (clause)))
+    if(IsA (clause,Var) && (get_varattno ((Var)clause) == 0))
       return(clause);
     else 
       if (IsA (clause,Var)) 
-	return ((Expr)replace_resultvar_refs (clause,
+	return ((Expr)replace_resultvar_refs((Var)clause,
 					ltlist,
 					rtlist,
 					levelnum));
       else 
-	if (single_node (clause)) 
+	if (single_node ((Node)clause)) 
 	  return (clause);
 	else 
-	  if (or_clause (clause)) 
+	  if (or_clause ((LispValue)clause)) 
 	    return ((Expr)make_orclause (replace_subclause_resultvar_refs 
-				   (get_orclauseargs (clause),
+				   (get_orclauseargs ((LispValue)clause),
 				    ltlist,
 				    rtlist,
 				    levelnum)));
 	   else 
-	     if (is_funcclause (clause)) 
-	       return ((Expr)make_funcclause (get_function (clause),
+	     if (is_funcclause ((LispValue)clause)) 
+	       return ((Expr)make_funcclause (get_function ((LispValue)clause),
 					replace_subclause_resultvar_refs 
-					(get_funcargs (clause),
+					(get_funcargs ((LispValue)clause),
 					 ltlist,
 					 rtlist,
 					 levelnum)));
 	     else 
-	       if (not_clause (clause))
-		 return ((Expr)make_notclause (replace_clause_resultvar_refs 
-					 (get_notclausearg (clause),
+	       if (not_clause ((LispValue)clause))
+		 return((Expr)make_notclause((List)replace_clause_resultvar_refs
+				   ((Expr)get_notclausearg ((LispValue)clause),
 					  ltlist,
 					  rtlist,
 					  levelnum)));
 	       else
 		    /*   operator clause */
-		    return((Expr)make_opclause (replace_opid (get_op (clause)),
-					replace_clause_resultvar_refs 
-					(get_leftop (clause),
+		    return((Expr)make_opclause(replace_opid(
+					       (Oper)get_op((LispValue)clause)),
+					(Var)replace_clause_resultvar_refs 
+					((Expr)get_leftop((LispValue)clause),
 					 ltlist,
 					 rtlist,
 					 levelnum),
-					replace_clause_resultvar_refs 
-					(get_rightop (clause),
+					(Var)replace_clause_resultvar_refs 
+					((Expr)get_rightop((LispValue)clause),
 					 ltlist,
 					 rtlist,
 					 levelnum)));
@@ -438,14 +448,15 @@ replace_clause_resultvar_refs (clause,ltlist,rtlist,levelnum)
 
 LispValue
 replace_subclause_resultvar_refs (clauses,ltlist,rtlist,levelnum)
-     LispValue clauses,ltlist,rtlist,levelnum ;
+     LispValue clauses,ltlist,rtlist;
+     int levelnum ;
 {
      LispValue t_list = LispNil;
      LispValue clause = LispNil;
      LispValue temp = LispNil;
 
      foreach(clause,clauses) {
-	 temp = (LispValue)replace_clause_resultvar_refs (CAR(clause),
+	 temp = (LispValue)replace_clause_resultvar_refs ((Expr)CAR(clause),
 							  ltlist,
 							  rtlist,
 							  levelnum);
@@ -466,21 +477,21 @@ replace_resultvar_refs (var,ltlist,rtlist,levelnum)
      
      if (levelnum == numlevels (var)) 
 	  varno = lispCons (lispInteger(levelnum - 1),
-			    lispCons(get_resno (tl_resdom 
+			    lispCons(get_resno ((Resdom)tl_resdom 
 						(match_varid (var, ltlist))),
 				     LispNil));
      else
        varno = lispCons (lispInteger(levelnum),
-			 lispCons (get_resno (tl_resdom 
+			 lispCons (get_resno ((Resdom)tl_resdom 
 					  (match_varid (var, rtlist))),
 				   LispNil));
      
-     return (MakeVar (varno,
-		      LispNil,
+     return (MakeVar ((Index)varno,  /* XXX casting a list to an int */
+		      0,
 		      get_vartype (var),
 		      LispNil,
 		      LispNil,
-		      get_varid (var), 0));
+		      get_varid (var), (Pointer)NULL));
      
  } /* function end */
 
@@ -506,29 +517,29 @@ replace_resultvar_refs (var,ltlist,rtlist,levelnum)
 
 void
 set_tlist_references (plan)
-     LispValue plan ;
+     Plan plan ;
 {
     if(null (plan)) 
       LispNil;
     else 
       if (IsA (plan,Join)) 
-	set_join_tlist_references (plan);
+	set_join_tlist_references ((Join)plan);
       else 
 	if (IsA(plan,SeqScan) &&
 	    get_lefttree (plan) && 
-	    IsA (get_lefttree (plan),Temp))
-	  set_tempscan_tlist_references (plan);
+	    IsA (get_lefttree(plan),Temp))
+	  set_tempscan_tlist_references((SeqScan)plan);
 	else 
 	  if (IsA (plan,Sort))
-	    set_temp_tlist_references (plan);
+	    set_temp_tlist_references ((Temp)plan);
 	  else if (IsA(plan,Result))
-		set_result_tlist_references(plan);
+		set_result_tlist_references((Result)plan);
 	    else if (IsA(plan,Hash))
 		set_tlist_references(get_lefttree(plan));
 	    else if (IsA(plan,Choose)) {
 		LispValue x;
-		foreach (x, get_chooseplanlist(plan)) {
-		    set_tlist_references(CAR(x));
+		foreach (x, get_chooseplanlist((Choose)plan)) {
+		    set_tlist_references((Plan)CAR(x));
 		  }
 	      }
 
@@ -558,15 +569,15 @@ void
 set_join_tlist_references (join)
      Join join ;
 {
-    Plan 	outer = (Plan)get_lefttree (join);
-    Plan	inner = (Plan)get_righttree (join);
+    Plan 	outer = (Plan)get_lefttree ((Plan)join);
+    Plan	inner = (Plan)get_righttree ((Plan)join);
     List 	new_join_targetlist = LispNil;
     TLE		temp = (TLE)NULL;
     LispValue  	entry = LispNil;
     List	inner_tlist = NULL;
     List	outer_tlist = NULL;
     TLE	xtl = 	(TLE)NULL;
-    List	qptlist = get_qptargetlist(join);
+    List	qptlist = get_qptargetlist((Plan)join);
 
      foreach(entry,qptlist) {
 	 xtl = (TLE)CAR(entry);
@@ -574,14 +585,14 @@ set_join_tlist_references (join)
 	 outer_tlist = ( null(outer) ? LispNil : get_qptargetlist(outer));
 
 	 temp = MakeTLE(tl_resdom (xtl),
-			replace_clause_joinvar_refs (get_expr (xtl),
+			replace_clause_joinvar_refs((LispValue)get_expr(xtl),
 						     outer_tlist,
 						     inner_tlist)
 			);
 	 new_join_targetlist = nappend1(new_join_targetlist,temp);
      }
 	
-    set_qptargetlist (join,new_join_targetlist);
+    set_qptargetlist ((Plan)join,new_join_targetlist);
     if ( ! null (outer))
       set_tlist_references (outer);
     if ( ! null (inner))
@@ -608,10 +619,10 @@ set_tempscan_tlist_references (tempscan)
      SeqScan tempscan ;
 {
 
-     Plan temp = (Plan)get_lefttree (tempscan);
-     set_qptargetlist (tempscan,
+     Temp temp = (Temp)get_lefttree((Plan)tempscan);
+     set_qptargetlist ((Plan)tempscan,
 		       tlist_temp_references(get_tempid(temp),
-					     get_qptargetlist (tempscan)));
+					     get_qptargetlist((Plan)tempscan)));
      set_temp_tlist_references (temp);
 
 }  /* function end  */
@@ -635,12 +646,12 @@ void
 set_temp_tlist_references (temp)
      Temp temp ;
 {
-     Plan source = (Plan)get_lefttree (temp);
+     Plan source = (Plan)get_lefttree ((Plan)temp);
 
      if (!null(source)) {
 	 set_tlist_references (source);
-	 set_qptargetlist (temp,
-			   copy_vars (get_qptargetlist (temp),
+	 set_qptargetlist ((Plan)temp,
+			   copy_vars (get_qptargetlist ((Plan)temp),
 				      get_qptargetlist (source)));
      }
      else
@@ -696,7 +707,7 @@ join_references (clauses,outer_tlist,inner_tlist)
 LispValue
 index_outerjoin_references (inner_indxqual,outer_tlist,inner_relid)
      LispValue inner_indxqual,outer_tlist;
-     int inner_relid ;
+     Index inner_relid ;
 {
     LispValue t_list = LispNil;
     LispValue temp = LispNil;
@@ -708,22 +719,22 @@ index_outerjoin_references (inner_indxqual,outer_tlist,inner_relid)
 	/*
 	 * if inner scan on the right.
 	 */
-	if(OperandIsInner(get_rightop(clause), inner_relid)) {
-	    temp = make_opclause (replace_opid (get_op (clause)),
-				  replace_clause_joinvar_refs 
-				  (get_leftop (clause),
+	if(OperandIsInner((LispValue)get_rightop(clause), inner_relid)) {
+	    temp = make_opclause(replace_opid((Oper)get_op (clause)),
+				 (Var)replace_clause_joinvar_refs 
+				  ((LispValue)get_leftop (clause),
 				   outer_tlist,
 				   LispNil),
 				  get_rightop (clause));
 	    t_list = nappend1(t_list,temp);
 	} 
 	else {   /*   inner scan on left */
-	    temp = make_opclause (replace_opid (get_op (clause)),
+	    temp = make_opclause(replace_opid((Oper)get_op(clause)),
 				get_leftop (clause),
-				replace_clause_joinvar_refs (get_rightop 
-							     (clause),
-								outer_tlist,
-							     LispNil));
+				(Var)replace_clause_joinvar_refs(
+						(LispValue)get_rightop(clause),
+						outer_tlist,
+						LispNil));
 	    t_list = nappend1(t_list,temp);
 	} 
 	
@@ -757,9 +768,9 @@ replace_clause_joinvar_refs (clause,outer_tlist,inner_tlist)
      LispValue clause,outer_tlist,inner_tlist ;
 {
     LispValue temp = LispNil;
-    if(IsA (clause,Var) && get_varattno (clause)) {
+    if(IsA (clause,Var) && get_varattno((Var)clause)) {
 	if(temp = (LispValue)
-	   replace_joinvar_refs (clause,outer_tlist,inner_tlist))
+	   replace_joinvar_refs((Var)clause,outer_tlist,inner_tlist))
 	  return(temp);
 	else
 	  if (clause != LispNil)
@@ -768,7 +779,7 @@ replace_clause_joinvar_refs (clause,outer_tlist,inner_tlist)
 	    return(LispNil);
     }
     else 
-      if (single_node (clause))
+      if (single_node ((Node)clause))
 	return (clause);
       else 
 	if (or_clause (clause)) 
@@ -794,13 +805,13 @@ replace_clause_joinvar_refs (clause,outer_tlist,inner_tlist)
 				       inner_tlist)));
 	    else 
 	      if (is_clause (clause)) 
-		return (make_opclause (replace_opid (get_op (clause)),
-				     replace_clause_joinvar_refs 
-				     (get_leftop (clause),
+		return (make_opclause(replace_opid((Oper)get_op(clause)),
+				     (Var)replace_clause_joinvar_refs 
+				     ((LispValue)get_leftop (clause),
 				       outer_tlist,
 				      inner_tlist),
-				     replace_clause_joinvar_refs 
-				     (get_rightop (clause),
+				     (Var)replace_clause_joinvar_refs 
+				     ((LispValue)get_rightop (clause),
 				      outer_tlist,
 				      inner_tlist)));
 }  /* function end  */
@@ -834,7 +845,7 @@ replace_joinvar_refs (var,outer_tlist,inner_tlist)
 {
     Resdom outer_resdom =(Resdom)NULL;
 
-    outer_resdom= tlist_member (var,outer_tlist,LispNil);
+    outer_resdom= tlist_member(var,outer_tlist);
 
     if ( !null(outer_resdom) && IsA (outer_resdom,Resdom) ) {
 	 return (MakeVar (OUTER,
@@ -847,7 +858,7 @@ replace_joinvar_refs (var,outer_tlist,inner_tlist)
      } 
     else {
 	Resdom inner_resdom;
-	inner_resdom = tlist_member (var,inner_tlist,LispNil);
+	inner_resdom = tlist_member(var,inner_tlist);
 	if ( !null(inner_resdom) && IsA (inner_resdom,Resdom) ) {
 	    return (MakeVar (INNER,
 			     get_resno (inner_resdom),
@@ -900,8 +911,8 @@ tlist_temp_references (tempid,tlist)
 	 
 	 temp = (TLE)MakeTLE (tl_resdom (xtl),
 			      MakeVar(tempid,
-				      get_resno (tl_resdom (xtl)),
-				  get_restype (tl_resdom (xtl)),
+				      get_resno((Resdom)tl_resdom (xtl)),
+				  get_restype ((Resdom)tl_resdom (xtl)),
 				      LispNil,
 				      LispNil,
 				      var1,
@@ -936,13 +947,13 @@ Result resultNode;
     TLE entry;
     Expr expr;
 
-    resultTargetList= get_qptargetlist(resultNode);
+    resultTargetList= get_qptargetlist((Plan)resultNode);
 
     /*
      * NOTE: we only consider the left tree subplan.
      * This is usually a seq scan.
      */
-    subplan = (Plan) get_lefttree(resultNode);
+    subplan = (Plan)get_lefttree((Plan)resultNode);
     if (subplan != NULL) {
 	subplanTargetList = get_qptargetlist(subplan);
     } else {
@@ -958,7 +969,7 @@ Result resultNode;
     foreach (t, resultTargetList) {
 	entry = (TLE) CAR(t);
 	expr = (Expr) get_expr(entry);
-	replace_result_clause(expr, subplanTargetList);
+	replace_result_clause((LispValue)expr, subplanTargetList);
     }
 
 }
@@ -988,15 +999,15 @@ List subplanTargetList;		/* target list of the subplan */
 	/*
 	 * Ha! A Var node!
 	 */
-	subplanVar = match_varid(clause, subplanTargetList);
+	subplanVar = match_varid((Var)clause, subplanTargetList);
 	/*
 	 * Change the varno & varattno fields of the
 	 * var node.
 	 *
 	 */
-	set_varno(clause,(Index) OUTER);
-	set_varattno(clause, get_resno(tl_resdom(subplanVar)));
-	set_vardotfields(clause,LispNil);
+	set_varno((Var)clause,(Index) OUTER);
+	set_varattno((Var)clause, get_resno((Resdom)tl_resdom(subplanVar)));
+	set_vardotfields((Var)clause,LispNil);
     } else if (is_funcclause(clause)) {
 	/*
 	 * This is a function. Recursively call this routine
@@ -1036,7 +1047,7 @@ OperandIsInner(opnd, inner_relid)
      * in a functional index are from the same relation).
      */
     if ( IsA (opnd,Var) && 
-	 (inner_relid == get_varno(opnd)) )
+	 (inner_relid == get_varno((Var)opnd)) )
     {
 	return true;
     }
@@ -1045,7 +1056,7 @@ OperandIsInner(opnd, inner_relid)
 	LispValue firstArg = CAR(get_funcargs(opnd));
 
 	if ( IsA (firstArg,Var) &&
-	     (inner_relid == get_varno(firstArg)) )
+	     (inner_relid == get_varno((Var)firstArg)) )
 	{
 		return true;
 	}

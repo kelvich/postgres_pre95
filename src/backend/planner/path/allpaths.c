@@ -17,6 +17,9 @@
 
 #include "nodes/pg_lisp.h"
 #include "nodes/relation.h"
+#include "nodes/relation.a.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
 
 #include "planner/allpaths.h"
 #include "planner/internal.h"
@@ -24,6 +27,9 @@
 #include "planner/orindxpath.h"
 #include "planner/joinrels.h"
 #include "planner/prune.h"
+#include "planner/indexnode.h"
+#include "planner/pathnode.h"
+#include "planner/clauses.h"
 
 /*    
  *    	find-paths
@@ -114,8 +120,9 @@ find_rel_paths(rels,level,sortkeys)
 
 	  if(level > 1) {
 	       set_pathlist(rel,sequential_scan_list);
-	       set_unorderedpath(rel,sequential_scan_list);
-	       set_cheapestpath(rel,sequential_scan_list);
+	       /* XXX casting a list to a Path */
+	       set_unorderedpath(rel, (Path)sequential_scan_list);
+	       set_cheapestpath(rel, (Path)sequential_scan_list);
 	    } 
 	  else {
 	       LispValue rel_index_scan_list = 
@@ -133,7 +140,7 @@ find_rel_paths(rels,level,sortkeys)
 	  /* The unordered path is always the last in the list.  
 	   * If it is not the cheapest path, prune it.
 	   */
-	  prune_rel_path(rel, last_element(get_pathlist(rel))); 
+	  prune_rel_path(rel, (Path)last_element(get_pathlist(rel))); 
 
        }
      return(rels);
@@ -261,11 +268,11 @@ List cl;
        CInfo c = (CInfo)CAR(xc);
        if(c == (CInfo)NULL) continue;
        printf("\n%sClauseInfo:	CInfo%lx",indent,(long)c);
-       printf("\n%sOp:		%u",indent,get_opno(get_op(get_clause(c))));
+       printf("\n%sOp:		%u",indent,get_opno((Oper)get_op((List)get_clause(c))));
        printf("\n%sLeftOp:	",indent);
-       lispDisplay(get_varid(get_leftop(get_clause(c))),0);
+       lispDisplay(get_varid(get_leftop((List)get_clause(c))));
        printf("\n%sRightOp:	",indent);
-       lispDisplay(get_varid(get_rightop(get_clause(c))),0);
+       lispDisplay(get_varid(get_rightop((List)get_clause(c))));
        printf("\n%sSelectivity:	%lg\n",indent,get_selectivity(c));
     }
 }
@@ -277,14 +284,13 @@ List jl;
 {
     LispValue xj;
     char indent[100];
-    bool joininfo_inactive();
     strcpy(indent, ind);
     foreach(xj,jl) {
 	JInfo j = (JInfo)CAR(xj);
 	if(joininfo_inactive(j)) continue;
 	printf("\n%sJoinInfo:	JInfo%lx",indent,(long)j);
 	printf("\n%sOtherRels:	",indent);
-	lispDisplay(get_otherrels(j),0);
+	lispDisplay(get_otherrels(j));
 	printf("\n%sClauseInfo:	",indent);
 	printclauseinfo(xStrcat(indent, "	"),get_jinfoclauseinfo(j));
     }
@@ -300,62 +306,58 @@ Path p;
 	if(p == (Path)NULL) return;
 	printf("%sPath:	0x%lx",indent,(long)p);
 	printf("\n%sParent:	",indent);
-	lispDisplay(get_relids(get_parent(p)),0);
+	lispDisplay(get_relids(get_parent(p)));
 	printf("\n%sPathType:	%ld",indent,get_pathtype(p));
 	printf("\n%sCost:	%lg",indent,get_path_cost(p));
 	switch(get_pathtype(p))  {
 	case T_NestLoop:
 		printf("\n%sClauseInfo:	\n",indent);
-		printclauseinfo(xStrcat(indent,"	"),get_pathclauseinfo(p));
+		printclauseinfo(xStrcat(indent,"	"),get_pathclauseinfo((JoinPath)p));
 		printf("%sOuterJoinPath:	\n",indent);
-		printpath(xStrcat(indent,"	"),get_outerjoinpath(p));
+		printpath(xStrcat(indent,"	"),get_outerjoinpath((JoinPath)p));
 		printf("%sInnerJoinPath:	\n",indent);
-		printpath(xStrcat(indent,"	"),get_innerjoinpath(p));
+		printpath(xStrcat(indent,"	"),get_innerjoinpath((JoinPath)p));
 		printf("%sOuterJoinCost:	%lg",indent,get_outerjoincost(p));
 		printf("\n%sJoinId:	",indent);
-		lispDisplay(get_joinid(p),0);
+		lispDisplay(get_joinid(p));
 		break;
 	case T_MergeJoin:
 		printf("\n%sClauseInfo: \n",indent);
-                printclauseinfo(xStrcat(indent,"       "),get_pathclauseinfo(p
-));
+                printclauseinfo(xStrcat(indent,"       "),get_pathclauseinfo((JoinPath)p));
                 printf("%sOuterJoinPath:        \n",indent);
-                printpath(xStrcat(indent," "),get_outerjoinpath(p));
+                printpath(xStrcat(indent," "),get_outerjoinpath((JoinPath)p));
                 printf("%sInnerJoinPath:        \n",indent);
-                printpath(xStrcat(indent," "),get_innerjoinpath(p));
-                printf("%sOuterJoinCost:        %lg",indent,get_outerjoincost(p
-));
+                printpath(xStrcat(indent," "),get_innerjoinpath((JoinPath)p));
+                printf("%sOuterJoinCost:        %lg",indent,get_outerjoincost(p));
                 printf("\n%sJoinId:     ",indent);
-                lispDisplay(get_joinid(p),0);
+                lispDisplay(get_joinid(p));
 		printf("\n%sMergeClauses:	",indent);
-		lispDisplay(get_path_mergeclauses(p),0);
+		lispDisplay(get_path_mergeclauses((MergePath)p));
 		printf("\n%sOuterSortKeys:	",indent);
-		lispDisplay(get_outersortkeys(p),0);
+		lispDisplay(get_outersortkeys((MergePath)p));
 		printf("\n%sInnerSortKeys:	",indent);
-		lispDisplay(get_innersortkeys(p),0);
+		lispDisplay(get_innersortkeys((MergePath)p));
 		break;
 	case T_HashJoin:
                 printf("\n%sClauseInfo: \n",indent);
-                printclauseinfo(xStrcat(indent,"       "),get_pathclauseinfo(p
-));
+                printclauseinfo(xStrcat(indent,"       "),get_pathclauseinfo((JoinPath)p));
                 printf("%sOuterJoinPath:        \n",indent);
-                printpath(xStrcat(indent," "),get_outerjoinpath(p));
-                printf("%sInnerJoinPath:        \n",indent);
-                printpath(xStrcat(indent," "),get_innerjoinpath(p));
-                printf("%sOuterJoinCost:        %lg",indent,get_outerjoincost(p
-));
+                printpath(xStrcat(indent," "),get_outerjoinpath((JoinPath)p));
+		printf("%sInnerJoinPath:        \n",indent);
+                printpath(xStrcat(indent," "),get_innerjoinpath((JoinPath)p));
+                printf("%sOuterJoinCost:        %lg",indent,get_outerjoincost(p));
                 printf("\n%sJoinId:     ",indent);
-                lispDisplay(get_joinid(p),0);
+                lispDisplay(get_joinid(p));
 		printf("\n%sHashClauses:	",indent);
-		lispDisplay(get_path_hashclauses(p),0);
+		lispDisplay(get_path_hashclauses((HashPath)p));
 		printf("\n%sOuterHashKeys:	",indent);
-		lispDisplay(get_outerhashkeys(p),0);
+		lispDisplay(get_outerhashkeys((HashPath)p));
 		printf("\n%sInnerHashKeys:	",indent);
-		lispDisplay(get_innerhashkeys(p),0);
+		lispDisplay(get_innerhashkeys((HashPath)p));
 		break;
 	case T_IndexScan:
 		printf("\n%sIndexQual:	",indent);
-		lispDisplay(get_indexqual(p),0);
+		lispDisplay(get_indexqual((IndexPath)p));
 		break;
 	}
 	printf("\n");
@@ -388,7 +390,7 @@ List rl;
 	if(r == (Rel)NULL) continue;
 	printf("\n%sRel:	Rel%lx",indent,(long)r);
 	printf("\n%sRelid:	",indent);
-	lispDisplay(get_relids(r),0);
+	lispDisplay(get_relids(r));
 	printf("\n%sSize:	%u",indent,get_size(r));
 	printf("\n%sPathlist:	\n",indent);
 	printpathlist(xStrcat(indent,"	"),get_pathlist(r));

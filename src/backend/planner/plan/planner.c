@@ -178,8 +178,8 @@ planner (parse)
     LispValue sortclause = nth(7,root);
     LispValue sortkeys = LispNil;
     LispValue sortops = LispNil;
-    List special_plans = LispNil;
-    Plan regular_plans = (Plan) NULL;
+    Plan special_plans = (Plan)NULL;
+    Plan regular_plans = (Plan)NULL;
     LispValue flag = LispNil;
     List plan_list = LispNil;
 
@@ -187,9 +187,9 @@ planner (parse)
 		   lispCons(lispAtom("union"),
 			    lispCons(lispAtom("archive"),LispNil)));
     foreach (flag,plan_list) {
-	int rt_index = first_matching_rt_entry (rangetable,CAR(flag));
+	Index rt_index = first_matching_rt_entry (rangetable,CAR(flag));
 	if ( rt_index != -1 )
-	  special_plans = (List)plan_union_queries (rt_index,
+	  special_plans = (Plan)plan_union_queries (rt_index,
 						    CAtom(CAR(flag)),
 						    root,
 						    tlist,
@@ -259,7 +259,7 @@ make_sortplan(tlist,sortkeys,sortops,plannode)
      List tlist;
      List sortkeys;
      List sortops;
-     List plannode;
+     Plan plannode;
 
 {
   Plan sortplan = (Plan)NULL;
@@ -346,7 +346,7 @@ init_query_planner (root,tlist,qual)
 
      if ( DebugPrintPlan ) {
 	 printf("after preprocessing, qual is :\n");
-	 lispDisplay(qual,0);
+	 lispDisplay(qual);
 	 printf("\n");
 	 fflush(stdout);
      }

@@ -188,7 +188,8 @@ is_opclause (clause)
  */
 LispValue
 make_opclause (op,leftop,rightop)
-     LispValue op,leftop,rightop ;
+     Oper op;
+     Var leftop,rightop ;
 {
      if(rightop) {
 	  return(lispCons (op,

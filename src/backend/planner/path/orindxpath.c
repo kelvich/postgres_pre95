@@ -32,12 +32,6 @@
 
 #define INDEX_SCAN 1
 
-/* ----------------
- *	IndexPath creator declaration
- * ----------------
- */
-extern IndexPath RMakeIndexPath();
-
 /*    
  *    	create-or-index-paths
  *    
@@ -54,7 +48,8 @@ extern IndexPath RMakeIndexPath();
 
 LispValue
 create_or_index_paths (rel,clauses)
-     LispValue rel,clauses ;
+     Rel rel;
+     List clauses ;
 {
      LispValue t_list = LispNil;
 
@@ -84,17 +79,17 @@ create_or_index_paths (rel,clauses)
 		    LispValue indexinfo = 
 		      best_or_subclause_indices (rel,
 						 get_orclauseargs
-					          (get_clause (clausenode)),
+					         ((LispValue)get_clause(clausenode)),
 						 get_indexids (clausenode),
 						 LispNil,(double)0,
 						 LispNil);
 
-		    set_pathtype (pathnode,INDEX_SCAN);
-		    set_parent (pathnode,rel);
+		    set_pathtype((Path)pathnode,INDEX_SCAN);
+		    set_parent ((Path)pathnode,rel);
 		    set_indexqual (pathnode,lispCons(clausenode,LispNil));
 		    set_indexid (pathnode,nth (0,indexinfo));
-		    set_path_cost (pathnode,nth (1,indexinfo));
-		    set_selectivity (clausenode,nth (2,indexinfo));
+		    set_path_cost ((Path)pathnode,(Cost)CDouble(nth (1,indexinfo)));
+		    set_selectivity(clausenode,(Cost)CDouble(nth(2,indexinfo)));
 		    t_list = 
 		      lispCons (pathnode,
 				create_or_index_paths (rel,CDR (clauses)));
@@ -136,8 +131,8 @@ create_or_index_paths (rel,clauses)
 LispValue
 best_or_subclause_indices (rel,subclauses,indices,
 			   examined_indexids,subcost,selectivities)
-     LispValue rel,subclauses,indices,examined_indexids,
-     selectivities ;
+     Rel rel;
+     List subclauses,indices,examined_indexids, selectivities ;
      double subcost;
 {
      LispValue t_list = LispNil;
@@ -197,11 +192,11 @@ best_or_subclause_index (rel,subclause,indices)
 	  LispValue 	bestrest = LispNil;
 	  Rel	 	index = (Rel)CAR (indices);
 	  AttributeNumber attno = get_varattno (get_leftop (subclause));
-	  ObjectId 	opno = get_opno (CAR(subclause));
-	  bool 		constant_on_right = non_null (get_rightop (subclause));
+	  ObjectId 	opno = get_opno((Oper)CAR(subclause));
+	  bool 		constant_on_right = non_null((Expr)get_rightop(subclause));
 
 	  if(constant_on_right) {
-	       value = get_constvalue (get_rightop (subclause));
+	       value = get_constvalue((Const)get_rightop (subclause));
 	  } 
 	  else {
 	       value = NameGetDatum("");
@@ -223,7 +218,7 @@ best_or_subclause_index (rel,subclause,indices)
 				       lispCons (lispInteger(flag),LispNil),
 				       1);
 
-	  subcost = cost_index (CInteger(nth (0,get_indexid (index))),
+	  subcost = cost_index((ObjectId)CInteger(nth (0,get_relids(index))),
 				(Count)CDouble(CAR(pagesel)),
 				(Cost)CDouble(CADR(pagesel)),
 				get_pages (rel),

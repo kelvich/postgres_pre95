@@ -43,14 +43,14 @@ extern JInfo RMakeJInfo();
 /*  .. find-joininfo-node, new-joininfo-list
  */
 JInfo
-joininfo_member (join_relids,joininfo_list)
+joininfo_member(join_relids,joininfo_list)
      LispValue join_relids,joininfo_list ;
 {
     LispValue i = LispNil;
     List other_rels = LispNil;
-    foreach (i,joininfo_list) {
+    foreach(i,joininfo_list) {
 	other_rels = CAR(i);
-	if (same(join_relids,get_otherrels(other_rels)))
+	if(same(join_relids,get_otherrels(other_rels)))
 	  return((JInfo)other_rels);
     }
     return((JInfo)NULL);
@@ -73,19 +73,20 @@ joininfo_member (join_relids,joininfo_list)
  */
 
 JInfo
-find_joininfo_node (this_rel,join_relids)
-     LispValue this_rel,join_relids ;
+find_joininfo_node(this_rel,join_relids)
+     Rel this_rel;
+     List join_relids ;
 {
-    JInfo joininfo = joininfo_member (join_relids,
-				     get_joininfo (this_rel));
-    if ( joininfo == NULL ) {
+    JInfo joininfo = joininfo_member(join_relids,
+				     get_joininfo(this_rel));
+    if( joininfo == NULL ) {
 	joininfo = RMakeJInfo();
-	set_otherrels (joininfo,join_relids);
-	set_jinfoclauseinfo (joininfo,LispNil);
-	set_mergesortable (joininfo,false);
-	set_hashjoinable (joininfo,false);
-	set_inactive (joininfo,false);
-	set_joininfo (this_rel, lispCons (joininfo,get_joininfo (this_rel)));
+	set_otherrels(joininfo,join_relids);
+	set_jinfoclauseinfo(joininfo,LispNil);
+	set_mergesortable(joininfo,false);
+	set_hashjoinable(joininfo,false);
+	set_inactive(joininfo,false);
+	set_joininfo(this_rel, lispCons(joininfo,get_joininfo(this_rel)));
 
     }
     return(joininfo);
@@ -95,7 +96,7 @@ find_joininfo_node (this_rel,join_relids)
  *    	other-join-clause-var
  *    
  *    	Determines whether a var node is contained within a joinclause
- *    	of the form (op var var).
+ *    	of the form(op var var).
  *    
  *    	Returns the other var node in the joinclause if it is, nil if not.
  *    
@@ -104,7 +105,7 @@ find_joininfo_node (this_rel,join_relids)
 /*  .. new-matching-subkeys
  */
 Var
-other_join_clause_var (var,clause)
+other_join_clause_var(var,clause)
      Var var;
      LispValue clause ;
 {
@@ -113,14 +114,14 @@ other_join_clause_var (var,clause)
 
      retval = (Var) NULL;
 
-     if ( var != NULL  && join_clause_p (clause)) {
+     if( var != NULL  && join_clause_p(clause)) {
 
 	  l = (Var) get_leftop(clause);
 	  r = (Var) get_rightop(clause);
 
-	  if (var_equal(var, l)) {
+	  if(var_equal(var, l)) {
 	       retval = r;
-	  } else if (var_equal (var, r)) {
+	  } else if(var_equal(var, r)) {
 	       retval = l;
 	  }
      }

@@ -44,7 +44,7 @@ prune_joinrels(rel_list)
      LispValue temp_list = LispNil;
      if( consp(rel_list) ) {
 	  temp_list = lispCons(CAR(rel_list),
-			    prune_joinrels(prune_joinrel(CAR(rel_list),
+			    prune_joinrels(prune_joinrel((Rel)CAR(rel_list),
 							  CDR(rel_list))));
      } 
      return(temp_list);
@@ -68,7 +68,8 @@ prune_joinrels(rel_list)
 
 LispValue
 prune_joinrel(rel,other_rels)
-     LispValue rel,other_rels ;
+     Rel rel;
+     List other_rels ;
 {
      /*  XXX was mapcan   */
      
@@ -203,15 +204,15 @@ Path p1, p2;
     Path p;
     if(p1 == NULL || p2 == NULL) return NULL;
     if(IsA(p1,MergePath) && IsA(p2,MergePath)) {
-       if(equal(get_outerjoinpath(p1), get_innerjoinpath(p2)) &&
-           equal(get_innerjoinpath(p1), get_outerjoinpath(p2)))
+       if(equal(get_outerjoinpath((JoinPath)p1), get_innerjoinpath((JoinPath)p2)) &&
+           equal(get_innerjoinpath((JoinPath)p1), get_outerjoinpath((JoinPath)p2)))
           return true;
       }
     if(IsA(p1,JoinPath) && IsA(p2,JoinPath)) {
-       return path_contain_rotated_mergepaths(get_outerjoinpath(p1),
-                                              get_outerjoinpath(p2)) ||
-              path_contain_rotated_mergepaths(get_innerjoinpath(p1),
-                                              get_innerjoinpath(p2));
+       return path_contain_rotated_mergepaths(get_outerjoinpath((JoinPath)p1),
+                                              get_outerjoinpath((JoinPath)p2)) ||
+              path_contain_rotated_mergepaths(get_innerjoinpath((JoinPath)p1),
+                                              get_innerjoinpath((JoinPath)p2));
       }
     return false;
 }
@@ -230,29 +231,29 @@ Path path;
 bool order_expected;
 {
     if(IsA(path,MergePath)) {
-        return path_contain_redundant_indexscans(get_outerjoinpath(path), 
-				!get_outersortkeys(path)) ||
-               path_contain_redundant_indexscans(get_innerjoinpath(path), 
-				!get_innersortkeys(path));
+        return path_contain_redundant_indexscans(get_outerjoinpath((JoinPath)path), 
+				!get_outersortkeys((MergePath)path)) ||
+               path_contain_redundant_indexscans(get_innerjoinpath((JoinPath)path), 
+				!get_innersortkeys((MergePath)path));
       }
     if(IsA(path,HashPath)) {
-        return path_contain_redundant_indexscans(get_outerjoinpath(path), 
+        return path_contain_redundant_indexscans(get_outerjoinpath((JoinPath)path), 
 						 false) ||
-               path_contain_redundant_indexscans(get_innerjoinpath(path), 
+               path_contain_redundant_indexscans(get_innerjoinpath((JoinPath)path), 
 						 false);
       }
     if(IsA(path,JoinPath)) {
-        if(!IsA(get_innerjoinpath(path),IndexPath) &&
-            !IsA(get_innerjoinpath(path),JoinPath) &&
-            length(get_relids(get_parent(get_innerjoinpath(path)))) == 1)
+        if(!IsA(get_innerjoinpath((JoinPath)path),IndexPath) &&
+            !IsA(get_innerjoinpath((JoinPath)path),JoinPath) &&
+            length(get_relids(get_parent(get_innerjoinpath((JoinPath)path)))) == 1)
            return true;
-        return path_contain_redundant_indexscans(get_outerjoinpath(path), 
+        return path_contain_redundant_indexscans(get_outerjoinpath((JoinPath)path), 
 						 order_expected) ||
-               path_contain_redundant_indexscans(get_innerjoinpath(path), 
+               path_contain_redundant_indexscans(get_innerjoinpath((JoinPath)path), 
 						 false);
       }
     if(IsA(path,IndexPath)) {
-        return lispNullp(get_indexqual(path)) && !order_expected;
+        return lispNullp(get_indexqual((IndexPath)path)) && !order_expected;
       }
     return false;
 }
@@ -326,7 +327,7 @@ prune_rel_path(rel,unorderedpath)
 
      if(!(eq(unorderedpath,cheapest)) && !testFlag) {
 
-	  set_unorderedpath(rel,LispNil);
+	  set_unorderedpath(rel,(Path)NULL);
 	  set_pathlist(rel,LispRemove(unorderedpath,get_pathlist(rel)));
 
      } else {
@@ -365,7 +366,7 @@ LispValue rel_list1, rel_list2;
     LispValue xrel = LispNil;
 
     foreach(xrel,rel_list1) {
-        LispValue rel = CAR(xrel);
+        Rel rel = (Rel)CAR(xrel);
         rel_list2 = prune_joinrel(rel,rel_list2);
     }
     return(append(rel_list1, rel_list2));

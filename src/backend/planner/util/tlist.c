@@ -239,12 +239,10 @@ get_actual_tlist (tlist)
  */
 
 Resdom
-tlist_member (var,tlist,dots,key,test)
+tlist_member (var,tlist)
      Var var;
-     List tlist,dots,key;
-     bool (*test)();
+     List tlist;
 {
-    /* declare (special (dots)); */
     LispValue i = LispNil;
     TLE 	temp_tle = (TLE)NULL;
     TLE		tl_elt = (TLE)NULL;

@@ -21,6 +21,8 @@
 #include "nodes/plannodes.a.h"
 #include "nodes/relation.h"
 #include "nodes/relation.a.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
 
 #include "utils/log.h"
 #include "utils/lsyscache.h"
@@ -32,25 +34,11 @@
 #include "planner/createplan.h"
 #include "planner/setrefs.h"
 #include "planner/tlist.h"
+#include "planner/planner.h"
 
 #define TEMP_SORT	1
 #define TEMP_MATERIAL	2
 /* "Print out the total cost at each query processing operator"  */
-
-#define _watch_costs_  LispNil
-
-/* ----------------
- *	node creator declarations
- * ----------------
- */
-extern Unique RMakeUnique();
-extern Sort RMakeSort();
-extern MergeJoin RMakeMergeJoin();
-extern HashJoin RMakeHashJoin();
-extern NestLoop RMakeNestLoop();
-extern IndexScan RMakeIndexScan();
-extern SeqScan RMakeSeqScan();
-extern Agg RMakeAgg();
 
 /*    	================
  *    	GENERIC ROUTINES
@@ -104,7 +92,8 @@ create_plan(best_path,origtlist)
 	case T_HashJoin :
 	case T_MergeJoin : 
 	case T_NestLoop:
-	  plan_node = (Plan)create_join_node(best_path,origtlist,tlist);
+	  plan_node = (Plan)create_join_node((JoinPath)best_path,
+					     origtlist,tlist);
 	  break;
 	default: /* do nothing */
 	  break;
@@ -116,34 +105,25 @@ create_plan(best_path,origtlist)
 
      /*    Attach a SORT node to the path if a sort path is specified. */
 
-     if(get_sortpath(best_path) &&
+     if (get_pathsortkey(best_path) &&
 	(_query_max_level_ == 1)) {
 	  set_qptargetlist(plan_node,
-			    fix_targetlist(origtlist,
+			    (List)fix_targetlist(origtlist,
 					   get_qptargetlist(plan_node)));
 	  sorted_plan_node = (Plan)sort_level_result(plan_node,
-						length(get_varkeys
-						       (get_sortpath(best_path)
-							)));
-
+					length(get_varkeys(
+						get_pathsortkey(best_path))));
      }
      else 
-       if(get_sortpath(best_path)) {
+       if(get_pathsortkey(best_path)) {
 	    sorted_plan_node = (Plan)make_temp(tlist,
-					 get_varkeys(get_sortpath(best_path)),
-					 get_p_ordering
-					         (get_sortpath(best_path)),
-					 plan_node,TEMP_SORT);
+				      get_varkeys(get_pathsortkey(best_path)),
+				      get_sortorder(get_pathsortkey(best_path)),
+				      plan_node,TEMP_SORT);
 
        } 
 
      if(sorted_plan_node) {
-	  set_cost(sorted_plan_node,get_path_cost(get_sortpath(best_path)));
-	  if( _watch_costs_) {
-	       printf("SORTED PLAN COST =");
-	       lispDisplay(get_cost(sorted_plan_node),0);
-	       printf("\n");
-	  }
 	  plan_node = sorted_plan_node;
 	  
      }
@@ -183,7 +163,8 @@ create_scan_node(best_path,tlist)
 	  break;
 
 	case T_IndexScan:
-	  node = (Scan)create_indexscan_node(best_path,tlist,scan_clauses);
+	  node = (Scan)create_indexscan_node((IndexPath)best_path,
+					     tlist,scan_clauses);
 	  break;
 	  
 	  default :
@@ -191,7 +172,7 @@ create_scan_node(best_path,tlist)
 		     get_pathtype(best_path));
 	  break;
      }
-     set_parallel(node, 1);
+     set_parallel((Plan)node, 1);
      return node;
 
 }  /* function end  */
@@ -213,7 +194,7 @@ create_scan_node(best_path,tlist)
 
 Join
 create_join_node(best_path,origtlist,tlist)
-     Path best_path;
+     JoinPath best_path;
      List origtlist,tlist ;
 {
      Plan 	outer_node;
@@ -231,30 +212,30 @@ create_join_node(best_path,origtlist,tlist)
 
      clauses = get_actual_clauses(get_pathclauseinfo(best_path));
      
-     switch(get_pathtype(best_path)) {
+     switch(get_pathtype((Path)best_path)) {
 	 
        case T_MergeJoin : 
-	 retval = (Join)create_mergejoin_node(best_path,
+	 retval = (Join)create_mergejoin_node((MergePath)best_path,
 					       tlist,clauses,
 					       outer_node,outer_tlist,
 					       inner_node,inner_tlist);
 	 break;
        case T_HashJoin : 
-	 retval = (Join)create_hashjoin_node(best_path,tlist,
+	 retval = (Join)create_hashjoin_node((HashPath)best_path,tlist,
 					      clauses,outer_node,outer_tlist,
 					      inner_node,inner_tlist);
 	 break;
        case T_NestLoop : 
-	 retval = (Join)create_nestloop_node(best_path,tlist,
+	 retval = (Join)create_nestloop_node((JoinPath)best_path,tlist,
 					      clauses,outer_node,outer_tlist,
 					      inner_node,inner_tlist);
 	 set_parallel(inner_node, 0);
 	 break;
        default: /* do nothing */
 	  elog(WARN,"create_join_node: unknown node type",
-		get_pathtype(best_path));
+		get_pathtype((Path)best_path));
      } 
-     set_parallel(retval, 1);
+     set_parallel((Plan)retval, 1);
      return(retval);
 
 }  /* function end  */
@@ -292,15 +273,10 @@ create_seqscan_node(best_path,tlist,scan_clauses)
     scan_node = make_seqscan(tlist,
 			      scan_clauses,
 			      scan_relid,
-			      LispNil);
+			      (Plan)NULL);
     
-    set_cost(scan_node,get_path_cost(best_path));
+    set_cost((Plan)scan_node,get_path_cost(best_path));
     
-    if( _watch_costs_) {
-	printf("BASE SEQSCAN COST = ");
-	lispDisplay(get_cost(scan_node));
-	printf("\n");
-    }
     return(scan_node);
 
 } /* function end  */
@@ -317,7 +293,7 @@ create_seqscan_node(best_path,tlist,scan_clauses)
 
 IndexScan
 create_indexscan_node(best_path,tlist,scan_clauses)
-     Path best_path;
+     IndexPath best_path;
      List tlist;
      List scan_clauses ;
 {
@@ -335,11 +311,11 @@ create_indexscan_node(best_path,tlist,scan_clauses)
      /*   indxqual will simply contain one conjunctive qualification: ((a)). */
 	
      if(!null(get_indexqual(best_path)))
-	  index_clause = get_clause(CAR(get_indexqual(best_path)));
-     if(or_clause_p(index_clause)) {
+	  index_clause = get_clause((CInfo)CAR(get_indexqual(best_path)));
+     if(or_clause_p((LispValue)index_clause)) {
 	  LispValue temp = LispNil;
 	
-	  foreach(temp,get_orclauseargs(index_clause)) 
+	  foreach(temp,get_orclauseargs((LispValue)index_clause)) 
 	    indxqual = nappend1(indxqual,lispCons(CAR(temp),LispNil));
       } 
      else {
@@ -348,7 +324,7 @@ create_indexscan_node(best_path,tlist,scan_clauses)
      } 
      /*    The qpqual field contains all restrictions except the indxqual. */
 
-     if(or_clause(index_clause))
+     if(or_clause((LispValue)index_clause))
        qpqual = set_difference(scan_clauses,
 				lispCons(index_clause,LispNil));
      else 
@@ -361,17 +337,12 @@ create_indexscan_node(best_path,tlist,scan_clauses)
      scan_node = make_indexscan(tlist,
 				 qpqual,
 				 CInteger(CAR(get_relids 
-					      (get_parent(best_path)))),
+					      (get_parent((Path)best_path)))),
 				 get_indexid(best_path),
 				 fixed_indxqual);
      
-     set_cost(scan_node,get_path_cost(best_path));
+     set_cost((Plan)scan_node,get_path_cost((Path)best_path));
 
-     if( _watch_costs_) {
-	  printf("BASE INDEXSCAN COST = ");
-	  lispDisplay(get_cost(scan_node));
-	  printf("\n");
-     }
      return(scan_node);
 
 }  /* function end  */
@@ -386,10 +357,10 @@ fix_indxqual_references(clause,index_path)
     LispValue newclause;
     if(IsA(clause,Var) && 
        CInteger(CAR(get_relids(get_parent(index_path)))) ==
-       get_varno(clause)) {
+       get_varno((Var)clause)) {
 	int pos = 0;
 	LispValue x = LispNil;
-	int varatt = get_varattno(clause);
+	int varatt = get_varattno((Var)clause);
 	foreach(x,get_indexkeys(get_parent(index_path))) {
 	    int att = CInteger(CAR(x));
 	    if(varatt == att) {
@@ -398,7 +369,7 @@ fix_indxqual_references(clause,index_path)
 	    pos++;
 	}
 	newclause = (LispValue)CopyObject(clause);
-	set_varattno(newclause, pos + 1);
+	set_varattno((Var)newclause, pos + 1);
 	return(newclause);
     } 
     else 
@@ -406,23 +377,20 @@ fix_indxqual_references(clause,index_path)
 	return(clause);
     else 
       if(is_opclause(clause) && 
-	  is_funcclause(get_leftop(clause)) && 
-	  get_funcisindex(get_function(get_leftop(clause)))) {
+	  is_funcclause((LispValue)get_leftop(clause)) && 
+	  get_funcisindex((Func)get_function((LispValue)get_leftop(clause)))) {
 
 	  /* 	 (set_opno(get_op clause) 
 	   *   (get_funcisindex(get_function(get_leftop clause))))
 	   * 	 (make_opclause(replace_opid(get_op clause))
 	   */
-	  return(make_opclause(get_op(clause),
-				 MakeVar(CInteger(CAR(get_relids
-					  (get_parent(index_path)))),
-					  1, /* func indices have one key */
-					  get_functype 
-					  (get_function(clause)),
-					  LispNil,
-					  LispNil,
-					  LispNil),
-				 get_rightop(clause)));
+	  return(make_opclause((Oper)get_op(clause),
+			       MakeVar((Index)CInteger(CAR(get_relids
+				       (get_parent(index_path)))),
+				       1, /* func indices have one key */
+				       get_functype((Func)get_function(clause)),
+				       LispNil, LispNil, LispNil, (Pointer)NULL),
+			       get_rightop(clause)));
 
       } 
       else {
@@ -479,7 +447,7 @@ fix_indxqual_references(clause,index_path)
 NestLoop
 create_nestloop_node(best_path,tlist,clauses,
 		      outer_node,outer_tlist,inner_node,inner_tlist)
-     Path best_path;
+     JoinPath best_path;
      List tlist,clauses;
      Plan outer_node;
      List outer_tlist;
@@ -497,7 +465,7 @@ create_nestloop_node(best_path,tlist,clauses,
 	 *    qualifications in indxqual. 
 	 */
 
-	List inner_indxqual = CAR(get_indxqual(inner_node));
+	List inner_indxqual = CAR(get_indxqual((IndexScan)inner_node));
 	List inner_qual = (inner_indxqual == LispNil)? LispNil:CAR(inner_indxqual);
 
 	/* If we have in fact found a join index qualification, remove these
@@ -514,8 +482,8 @@ create_nestloop_node(best_path,tlist,clauses,
 							 get_qptargetlist 
 							 (outer_node),
 							 get_scanrelid 
-							 (inner_node));
-	    set_indxqual(inner_node,lispCons(new_inner_qual,LispNil));
+							 ((Scan)inner_node));
+	    set_indxqual((IndexScan)inner_node,lispCons(new_inner_qual,LispNil));
 	  }
       }
     else if (IsA(inner_node,Join)) {
@@ -529,13 +497,7 @@ create_nestloop_node(best_path,tlist,clauses,
 			       outer_node,
 			       inner_node);
 
-    set_cost(join_node,get_path_cost(best_path));
-
-    if( _watch_costs_) {
-	printf("NESTLOOP COST = ");
-	lispDisplay(get_cost(join_node));
-	printf("\n");
-    }
+    set_cost((Plan)join_node,get_path_cost((Path)best_path));
 
     return(join_node);
 
@@ -556,7 +518,7 @@ MergeJoin
 create_mergejoin_node(best_path,tlist,clauses,
 		       outer_node,outer_tlist,
 		       inner_node,inner_tlist)
-     Path best_path;
+     MergePath best_path;
      List tlist,clauses;
      Plan outer_node;
      List outer_tlist;
@@ -583,13 +545,15 @@ create_mergejoin_node(best_path,tlist,clauses,
 				      outer_tlist,
 				      inner_tlist));
      RegProcedure opcode = 
-       get_opcode(get_join_operator(get_p_ordering(best_path)));
+     get_opcode(get_join_operator((MergeOrder)get_p_ordering((Path)best_path)));
      
      LispValue outer_order = 
-       lispCons(get_left_operator(get_p_ordering(best_path)), LispNil);
+       lispCons(get_left_operator((MergeOrder)get_p_ordering((Path)best_path)),
+		LispNil);
      
      LispValue inner_order = 
-       lispCons(get_right_operator(get_p_ordering(best_path)), LispNil);
+       lispCons(get_right_operator((MergeOrder)get_p_ordering((Path)best_path)),
+		LispNil);
      
      MergeJoin join_node;
      
@@ -603,7 +567,7 @@ create_mergejoin_node(best_path,tlist,clauses,
 					     outer_order,
 					     outer_node,
 					     TEMP_SORT);
-	 set_cost(sorted_outer_node,get_cost(outer_node));
+	 set_cost((Plan)sorted_outer_node,get_cost(outer_node));
 	 outer_node = (Plan)sorted_outer_node;
      }
 
@@ -613,7 +577,7 @@ create_mergejoin_node(best_path,tlist,clauses,
 						   (best_path),
 						   inner_order,
 						   inner_node,TEMP_SORT);
-	  set_cost(sorted_inner_node,get_cost(inner_node));
+	  set_cost((Plan)sorted_inner_node,get_cost(inner_node));
 	  inner_node = (Plan)sorted_inner_node;
      }
 
@@ -625,12 +589,7 @@ create_mergejoin_node(best_path,tlist,clauses,
 				outer_order, 
 				inner_node,
 				outer_node);
-     set_cost(join_node,get_path_cost(best_path));
-     if( _watch_costs_) {
-	  printf("MERGEJOIN COST = ");
-	  lispDisplay(get_cost(join_node));
-	  printf("\n");
-     }
+     set_cost((Plan)join_node,get_path_cost((Path)best_path));
      return(join_node);
 
 } /* function end  */
@@ -689,7 +648,7 @@ switch_outer(clauses)
 HashJoin
 create_hashjoin_node(best_path,tlist,clauses,outer_node,outer_tlist,
 		      inner_node,inner_tlist)
-     Path best_path;
+     HashPath best_path;
      List tlist,clauses;
      Plan outer_node;
      List outer_tlist;
@@ -722,13 +681,8 @@ create_hashjoin_node(best_path,tlist,clauses,outer_node,outer_tlist,
 			       qpqual,
 			       hashclauses,
 			       outer_node,
-			       hash_node);
-    set_cost(join_node,get_path_cost(best_path));
-    if( _watch_costs_) {
-	printf("HASHJOIN COST = ");
-	lispDisplay(get_cost(join_node));
-	printf("\n");
-    }
+			       (Plan)hash_node);
+    set_cost((Plan)join_node,get_path_cost((Path)best_path));
     return(join_node);
     
 } /* function end  */
@@ -775,20 +729,20 @@ make_temp(tlist,keys,operators,plan_node,temptype)
 	 retval = (Temp)make_seqscan(tlist,
 				     LispNil,
 				     _TEMP_RELATION_ID_,
-				     make_sort(temp_tlist,
-						_TEMP_RELATION_ID_,
-						plan_node,
-						length(keys)));
+				     (Plan)make_sort(temp_tlist,
+						     _TEMP_RELATION_ID_,
+						     plan_node,
+						     length(keys)));
 	 break;
 	 
        case TEMP_MATERIAL : 
 	 retval = (Temp)make_seqscan(tlist,
 				     LispNil,
 				     _TEMP_RELATION_ID_,
-				     make_material(temp_tlist,
-						   _TEMP_RELATION_ID_,
-						   plan_node,
-						   length(keys)));
+				     (Plan)make_material(temp_tlist,
+						         _TEMP_RELATION_ID_,
+						         plan_node,
+						         length(keys)));
 	 break;
 	 
        default: 
@@ -833,16 +787,15 @@ set_temp_tlist_operators(tlist,pathkeys,operators)
 
      foreach(i,pathkeys) {
 	 keys = CAR(CAR(i));
-	 resdom = tlist_member(keys,
-				tlist,
-				LispNil);
+	 resdom = tlist_member((Var)keys,
+				tlist);
 	 if( resdom) {
 
 	     /* Order the resdom keys and replace the operator OID for each 
 	      *    key with the regproc OID. 
 	      */
 	     set_reskey(resdom,keyno);
-	     set_reskeyop(resdom,get_opcode(CAR(ops)));
+	     set_reskeyop(resdom,(OperatorTupleForm)get_opcode((ObjectId)CAR(ops))); /* XXX */
 	 }
 	 keyno += 1;
 	 /*
@@ -864,15 +817,15 @@ make_seqscan(qptlist,qpqual,scanrelid,lefttree)
     if(!null(lefttree))
       Assert(IsA(lefttree,Plan));
 
-    set_cost( node , 0.0 );
-    set_fragment( node, 0 );
-    set_state(node, (EState)NULL);
-    set_qptargetlist(node, qptlist);
-    set_qpqual(node , qpqual);
-    set_lefttree(node, lefttree);
-    set_righttree(node , (Plan) NULL);
-    set_scanrelid(node , scanrelid);
-    set_scanstate(node, (ScanState)NULL);
+    set_cost((Plan)node , 0.0 );
+    set_fragment((Plan)node, 0 );
+    set_state((Plan)node, (EState)NULL);
+    set_qptargetlist((Plan)node, qptlist);
+    set_qpqual((Plan)node , qpqual);
+    set_lefttree((Plan)node, lefttree);
+    set_righttree((Plan)node , (Plan) NULL);
+    set_scanrelid((Scan)node , scanrelid);
+    set_scanstate((Scan)node, (ScanState)NULL);
 
     return(node);
 }
@@ -886,17 +839,17 @@ make_indexscan(qptlist, qpqual, scanrelid,indxid,indxqual)
 {
     IndexScan node = RMakeIndexScan();
 
-    set_cost( node , 0.0 );
-    set_fragment( node, 0 );
-    set_state(node, (EState)NULL);
-    set_qptargetlist(node, qptlist);
-    set_qpqual(node , qpqual);
-    set_lefttree(node,(Plan)NULL);
-    set_righttree(node,(Plan)NULL);
-    set_scanrelid(node,scanrelid);
+    set_cost((Plan)node , 0.0 );
+    set_fragment((Plan)node, 0 );
+    set_state((Plan)node, (EState)NULL);
+    set_qptargetlist((Plan)node, qptlist);
+    set_qpqual((Plan)node , qpqual);
+    set_lefttree((Plan)node,(Plan)NULL);
+    set_righttree((Plan)node,(Plan)NULL);
+    set_scanrelid((Scan)node,scanrelid);
     set_indxid(node,indxid);
     set_indxqual(node,indxqual);
-    set_scanstate(node, (ScanState)NULL);
+    set_scanstate((Scan)node, (ScanState)NULL);
 
     return(node);
 }
@@ -911,15 +864,15 @@ make_nestloop(qptlist,qpqual,lefttree,righttree)
 {
     NestLoop node = RMakeNestLoop();
 
-    set_cost( node , 0.0 );
-    set_fragment( node, 0 );
-    set_state(node, (EState)NULL);
-    set_qptargetlist(node, qptlist);
-    set_qpqual(node , qpqual);
-    set_lefttree(node, lefttree);
-    set_righttree(node , righttree);
-    set_nlstate(node, (NestLoopState)NULL);
-    set_ruleinfo(node, (JoinRuleInfo)NULL);
+    set_cost((Plan)node , 0.0 );
+    set_fragment((Plan)node, 0 );
+    set_state((Plan)node, (EState)NULL);
+    set_qptargetlist((Plan)node, qptlist);
+    set_qpqual((Plan)node , qpqual);
+    set_lefttree((Plan)node, lefttree);
+    set_righttree((Plan)node , righttree);
+    set_nlstate((NestLoop)node, (NestLoopState)NULL);
+    set_ruleinfo((Join)node, (JoinRuleInfo)NULL);
 
     return(node);
 }
@@ -931,14 +884,14 @@ make_hashjoin(tlist,qpqual,hashclauses,lefttree,righttree)
 {
     HashJoin node = RMakeHashJoin();
     
-    set_cost( node , 0.0 );
-    set_fragment( node, 0 );
-    set_state(node, (EState)NULL);
-    set_qpqual(node,qpqual);
-    set_qptargetlist(node,tlist);
-    set_lefttree(node,lefttree);
-    set_righttree(node,righttree);
-    set_ruleinfo(node, (JoinRuleInfo) NULL);
+    set_cost((Plan)node , 0.0 );
+    set_fragment((Plan)node, 0 );
+    set_state((Plan)node, (EState)NULL);
+    set_qpqual((Plan)node,qpqual);
+    set_qptargetlist((Plan)node,tlist);
+    set_lefttree((Plan)node,lefttree);
+    set_righttree((Plan)node,righttree);
+    set_ruleinfo((Join)node, (JoinRuleInfo) NULL);
     set_hashclauses(node,hashclauses);
     set_hashjointable(node, NULL);
     set_hashjointablekey(node, 0);
@@ -954,21 +907,20 @@ make_hash(tlist, hashkey, lefttree)
      Var hashkey;
      Plan lefttree;
 {
-    extern Hash RMakeHash();
     Hash node = RMakeHash();
 
-    set_cost( node , 0.0 );
-    set_fragment( node, 0 );
-    set_parallel(node, 1);
-    set_state(node, (EState)NULL);
-    set_qpqual(node,LispNil);
-    set_qptargetlist(node,tlist);
+    set_cost((Plan)node , 0.0 );
+    set_fragment((Plan)node, 0 );
+    set_parallel((Plan)node, 1);
+    set_state((Plan)node, (EState)NULL);
+    set_qpqual((Plan)node,LispNil);
+    set_qptargetlist((Plan)node,tlist);
+    set_lefttree((Plan)node,lefttree);
+    set_righttree((Plan)node,(Plan)NULL);
     set_hashkey(node, hashkey);
     set_hashtable(node, NULL);
     set_hashtablekey(node, 0);
     set_hashtablesize(node, 0);
-    set_lefttree(node,lefttree);
-    set_righttree(node,LispNil);
 
     return(node);
 }
@@ -983,14 +935,14 @@ make_mergesort(tlist, qpqual, mergeclauses, opcode, rightorder, leftorder,
 {
     MergeJoin node = RMakeMergeJoin();
     
-    set_cost( node , 0.0 );
-    set_fragment( node, 0 );
-    set_state(node, (EState)NULL);
-    set_qpqual(node,qpqual);
-    set_qptargetlist(node,tlist);
-    set_lefttree(node,lefttree);
-    set_righttree(node,righttree);
-    set_ruleinfo(node, (JoinRuleInfo) NULL);
+    set_cost((Plan)node , 0.0 );
+    set_fragment((Plan)node, 0 );
+    set_state((Plan)node, (EState)NULL);
+    set_qpqual((Plan)node,qpqual);
+    set_qptargetlist((Plan)node,tlist);
+    set_lefttree((Plan)node,lefttree);
+    set_righttree((Plan)node,righttree);
+    set_ruleinfo((Join)node, (JoinRuleInfo) NULL);
     set_mergeclauses(node,mergeclauses);
     set_mergesortop(node,opcode);
     set_mergerightorder(node, rightorder);
@@ -1009,16 +961,16 @@ make_sort(tlist,tempid,lefttree, keycount)
 {
     Sort node = RMakeSort();
 
-    set_cost( node , 0.0 );
-    set_fragment( node, 0 );
-    set_parallel(node, 1);
-    set_state(node, (EState)NULL);
-    set_qpqual(node,LispNil);
-    set_qptargetlist(node,tlist);
-    set_lefttree(node,lefttree);
-    set_righttree(node,LispNil);
-    set_tempid(node,tempid);
-    set_keycount(node,keycount);
+    set_cost((Plan)node , 0.0 );
+    set_fragment((Plan)node, 0 );
+    set_parallel((Plan)node, 1);
+    set_state((Plan)node, (EState)NULL);
+    set_qpqual((Plan)node,LispNil);
+    set_qptargetlist((Plan)node,tlist);
+    set_lefttree((Plan)node,lefttree);
+    set_righttree((Plan)node,(Plan)NULL);
+    set_tempid((Temp)node,tempid);
+    set_keycount((Temp)node,keycount);
 
     return(node);
 }
@@ -1032,16 +984,16 @@ make_material(tlist,tempid,lefttree, keycount)
 {
     Material node = RMakeMaterial(); 
 
-    set_cost( node , 0.0 );
-    set_fragment( node, 0 );
-    set_parallel(node, 1);
-    set_state(node, (EState)NULL);
-    set_qpqual(node,LispNil);
-    set_qptargetlist(node,tlist);
-    set_lefttree(node,lefttree);
-    set_righttree(node,LispNil);
-    set_tempid(node,tempid);
-    set_keycount(node,keycount);
+    set_cost((Plan)node , 0.0 );
+    set_fragment((Plan)node, 0 );
+    set_parallel((Plan)node, 1);
+    set_state((Plan)node, (EState)NULL);
+    set_qpqual((Plan)node,LispNil);
+    set_qptargetlist((Plan)node,tlist);
+    set_lefttree((Plan)node,lefttree);
+    set_righttree((Plan)node,(Plan)NULL);
+    set_tempid((Temp)node,tempid);
+    set_keycount((Temp)node,keycount);
 
     return(node);
 }
@@ -1049,29 +1001,30 @@ make_material(tlist,tempid,lefttree, keycount)
 Agg
 make_agg(arglist, aggidnum)
      List arglist;
-     int aggidnum;
+     ObjectId aggidnum;
 {
      /* arglist is(Resnode((interesting stuff), NULL)) */
      Agg node = RMakeAgg();
      Resdom resdom = (Resdom)CAR(arglist);
-     LispValue aggname = LispNil; 
+     Name aggname = NULL; 
      LispValue query = LispNil;
      List varnode = LispNil;
      arglist = CADR(arglist);
-     aggname = CAR(arglist);
+     aggname = (Name)CAR(arglist);
      arglist = CDR(arglist);
      query = CAR(arglist);
      arglist = CDR(arglist);
      varnode = CAR(arglist);
-     set_cost(node, 0.0);
-     set_fragment(node, 0);
-     set_parallel(node, 1);
-     set_state(node, (EState)NULL);
-     set_qpqual(node, LispNil);
-     set_qptargetlist(node, lispCons(MakeList(resdom, varnode, -1), LispNil));
-     set_lefttree(node, planner(query));
-     set_righttree(node, LispNil);
-     set_tempid(node, aggidnum);
+     set_cost((Plan)node, 0.0);
+     set_fragment((Plan)node, 0);
+     set_parallel((Plan)node, 1);
+     set_state((Plan)node, (EState)NULL);
+     set_qpqual((Plan)node, LispNil);
+     set_qptargetlist((Plan)node, 
+		      lispCons(MakeList(resdom, varnode, -1), LispNil));
+     set_lefttree((Plan)node, planner(query));
+     set_righttree((Plan)node, (Plan)NULL);
+     set_tempid((Temp)node, aggidnum);
      set_aggname(node, aggname);
      return(node);
 }
@@ -1087,16 +1040,16 @@ make_unique(tlist,lefttree)
 {
     Unique node = RMakeUnique();
 
-    set_cost( node , 0.0 );
-    set_fragment( node, 0 );
-    set_parallel(node, 1);
-    set_state(node, (EState)NULL);
-    set_qpqual(node,LispNil);
-    set_qptargetlist(node,tlist);
-    set_lefttree(node,lefttree);
-    set_righttree(node,LispNil);
-    set_tempid(node,-1);
-    set_keycount(node,0);
+    set_cost((Plan)node , 0.0 );
+    set_fragment((Plan)node, 0 );
+    set_parallel((Plan)node, 1);
+    set_state((Plan)node, (EState)NULL);
+    set_qpqual((Plan)node,LispNil);
+    set_qptargetlist((Plan)node,tlist);
+    set_lefttree((Plan)node,lefttree);
+    set_righttree((Plan)node,(Plan)NULL);
+    set_tempid((Temp)node,-1);
+    set_keycount((Temp)node,0);
 
     return(node);
 }

@@ -27,7 +27,9 @@
 #include "planner/allpaths.h"
 #include "planner/clause.h"
 #include "planner/createplan.h"
+#include "planner/keys.h"
 #include "planner/planmain.h"
+#include "planner/setrefs.h"
 #include "planner/sortresult.h"
 #include "planner/sortresult.h"
 #include "planner/tlist.h"
@@ -37,12 +39,6 @@
 #include "utils/mcxt.h"
 
 extern int testFlag;
-/* ----------------
- *	Result creator declaration
- * ----------------
- */
-extern Result RMakeResult();
-extern Choose RMakeChoose();
 
 /*    
  *    	query_planner
@@ -91,8 +87,6 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
      List	relation_level_clauses = LispNil;
      Plan 	plan = (Plan)NULL;
 
-     extern Plan subplanner();
-     
      /*    For the topmost nesting level, */
      /* 1. Pull out any non-variable qualifications so these can be put in */
      /*    the topmost result node.  The opids for the remaining */
@@ -116,11 +110,9 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	 
 	 if (null (tlist) && null (qual)) {
 	     if ( command_type == DELETE ) {
-		 return ((Plan)make_seqscan((List) NULL, 
-					     (List) NULL,
-					     (Index) CInteger(
-						_query_result_relation_),
-					     (Node) NULL ));
+		 return ((Plan)make_seqscan(LispNil, LispNil,
+				       (Index)CInteger(_query_result_relation_),
+				       (Plan)NULL));
 	     } else
 	       return((Plan)NULL);
 	 }
@@ -160,7 +152,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	  agg_tlist = CDR(agg_tlist);
      }
      if(agg_tlist != NULL) {  /* are there any aggs left */
-	   thePlan = (Plan)make_aggplan(thePlan, agg_tlist, aggidnum);
+	   thePlan = make_aggplan(thePlan, agg_tlist, aggidnum);
       }
       return(thePlan);
    }
@@ -180,8 +172,8 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	       return ((Plan)make_result (tlist,
 				    LispNil,
 				    constant_qual,
-				    LispNil,
-				    LispNil));
+				    (Plan)NULL,
+				    (Plan)NULL));
 	       break;
 
 	     case DELETE :
@@ -190,15 +182,15 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 		    /* XXX - let form, maybe incorrect */
 		   SeqScan scan = make_seqscan (tlist,
 					       LispNil,
-					       (Index) CInteger(
+					       (Index)CInteger(
 						   _query_result_relation_),
-					       LispNil);
+					       (Plan)NULL);
 		   if ( consp (constant_qual) ) {
 		       return ((Plan)make_result (tlist,
 						 LispNil,
 						 constant_qual,
-						 scan,
-						 LispNil));
+						 (Plan)scan,
+						 (Plan)NULL));
 		   } 
 		   else {
 		       return ((Plan)scan);
@@ -271,10 +263,10 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	  /*
 	   * Change all varno's of the Result's node target list.
 	   */
-	  set_result_tlist_references(plan);
+	  set_result_tlist_references((Result)plan);
 
 	  if ( valid_numkeys (sortkeys) ) 
-	    return (sort_level_result (plan,sortkeys));
+	    return (sort_level_result (plan, CInteger(sortkeys)));
 	  else 
 	    return (plan);
      }
@@ -297,7 +289,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	/*    	indices were not considered in planning the sort. */
 
      if ( valid_numkeys (sortkeys) ) 
-       return (sort_level_result (subplan,sortkeys));
+       return (sort_level_result (subplan,CInteger(sortkeys)));
      else 
        return (subplan);
 
@@ -324,7 +316,8 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 
 Plan
 subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
-     LispValue flat_tlist,original_tlist,qual,level,sortkeys ;
+     LispValue flat_tlist,original_tlist,qual,sortkeys ;
+     int level;
 {
     Rel final_relation;
     List final_relation_list;
@@ -381,7 +374,7 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 	    }
 	  chooseplan = RMakeChoose();
 	  set_chooseplanlist(chooseplan, planlist);
-	  set_qptargetlist(chooseplan, get_qptargetlist(plan));
+	  set_qptargetlist((Plan)chooseplan, get_qptargetlist(plan));
 	  return (Plan)chooseplan;
 	}
       return (create_plan (get_cheapestpath (final_relation),
@@ -389,7 +382,7 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
      }
     else {
 	printf(" Warn: final relation is nil \n");
-	return(create_plan (LispNil,original_tlist));
+	return(create_plan ((Path)NULL, original_tlist));
     }
     
 }  /* function end  */
@@ -421,8 +414,8 @@ make_result( tlist,resrellevelqual,resconstantqual,left,right)
  * we know that there are aggregates in the tlist*/
 Plan
 make_aggplan(subplan, agg_tlist, aggidnum)
-    LispValue agg_tlist;
     Plan subplan;
+    List agg_tlist;
     int aggidnum;
 {
      List agg_tl_entry = LispNil;
@@ -438,8 +431,8 @@ make_aggplan(subplan, agg_tlist, aggidnum)
 	aggnode = make_agg(agg_tl_entry, --aggidnum);
 
 	level_tlist = nconc(get_qptargetlist(subplan),
-					    get_qptargetlist(aggnode));
-	joinnode = make_nestloop(level_tlist, LispNil, aggnode,
+					 get_qptargetlist((Plan)aggnode));
+	joinnode = make_nestloop(level_tlist, LispNil, (Plan)aggnode,
 							  subplan);
 	/* inner tree is the aggregate, outer tree is the rest of
 	 * the plan.  quals are nil here since we don't have aggregate
@@ -448,7 +441,7 @@ make_aggplan(subplan, agg_tlist, aggidnum)
 
 	if(CDR(agg_tlist)) {  /* is this the last agg_tlist entry? */
 	   /* if not */
-	   return make_aggplan(joinnode, CDR(agg_tlist), aggidnum);
+	   return make_aggplan((Plan)joinnode, CDR(agg_tlist), aggidnum);
             /* XXX jc.  type problem with joinnode and Plan subplan? */
          }
 	 else { /* if so */
@@ -470,22 +463,22 @@ Plan p1, p2;
 	        plan_isomorphic(get_righttree(p1), get_righttree(p2)));
       }
     if (IsA(p1,Scan) && IsA(p2,Scan)) {
-	if (get_scanrelid(p1) == get_scanrelid(p2))
-	    if (get_scanrelid(p1) == _TEMP_RELATION_ID_)
+	if (get_scanrelid((Scan)p1) == get_scanrelid((Scan)p2))
+	    if (get_scanrelid((Scan)p1) == _TEMP_RELATION_ID_)
 		return plan_isomorphic(get_lefttree(p1), get_lefttree(p2));
 	    else
 		return true;
-	else if (get_scanrelid(p1) == _TEMP_RELATION_ID_)
+	else if (get_scanrelid((Scan)p1) == _TEMP_RELATION_ID_)
 	    return plan_isomorphic(get_lefttree(p1), p2);
-	else if (get_scanrelid(p2) == _TEMP_RELATION_ID_)
+	else if (get_scanrelid((Scan)p2) == _TEMP_RELATION_ID_)
 	    return plan_isomorphic(p1, get_lefttree(p2));
 	return false;
       }
     if (IsA(p1,Temp) || IsA(p1,Hash) ||
-	(IsA(p1,Scan) && get_scanrelid(p1) == _TEMP_RELATION_ID_))
+	(IsA(p1,Scan) && get_scanrelid((Scan)p1) == _TEMP_RELATION_ID_))
 	return plan_isomorphic(get_lefttree(p1), p2);
     if (IsA(p2,Temp) || IsA(p2,Hash) ||
-	(IsA(p2,Scan) && get_scanrelid(p2) == _TEMP_RELATION_ID_))
+	(IsA(p2,Scan) && get_scanrelid((Scan)p2) == _TEMP_RELATION_ID_))
 	return plan_isomorphic(p1, get_lefttree(p2));
     return false;
 }
@@ -521,7 +514,7 @@ Plan	plan;
 {
     if (plan == NULL) return true;
     if (IsA(plan,Temp) ||
-	(IsA(plan,Scan) && get_scanrelid(plan) == _TEMP_RELATION_ID_))
+	(IsA(plan,Scan) && get_scanrelid((Scan)plan) == _TEMP_RELATION_ID_))
 	return allNestLoop(get_lefttree(plan));
     if (IsA(plan,NestLoop)) {
 	return allNestLoop(get_lefttree(plan)) &&
@@ -562,12 +555,12 @@ Plan p1, p2;
 	return;
       }
     if (IsA(p1,Temp) || IsA(p1,Hash) ||
-	(IsA(p1,Scan) && get_scanrelid(p1) == _TEMP_RELATION_ID_)) {
+	(IsA(p1,Scan) && get_scanrelid((Scan)p1) == _TEMP_RELATION_ID_)) {
 	setPlanStats(get_lefttree(p1), p2);
 	return;
       }
     if (IsA(p2,Temp) || IsA(p2,Hash) ||
-	(IsA(p2,Scan) && get_scanrelid(p2) == _TEMP_RELATION_ID_)) {
+	(IsA(p2,Scan) && get_scanrelid((Scan)p2) == _TEMP_RELATION_ID_)) {
 	set_plan_size(p2, get_plan_size(p1));
 	setPlanStats(p1, get_lefttree(p2));
 	return;
@@ -591,7 +584,7 @@ Plan p;
 	return;
       }
     if (IsA(p,Scan)) {
-	if (get_scanrelid(p) == _TEMP_RELATION_ID_)
+	if (get_scanrelid((Scan)p) == _TEMP_RELATION_ID_)
 	   resetPlanStats(get_lefttree(p));
 	return;
       }
@@ -677,7 +670,7 @@ Plan plan;
 	return plan_contain_redundant_hashjoin(get_lefttree(plan)) ||
 	       plan_contain_redundant_hashjoin(get_righttree(plan));
     if (IsA(plan,Temp) || IsA(plan,Hash) ||
-	(IsA(plan,Scan) && get_scanrelid(plan) == _TEMP_RELATION_ID_))
+	(IsA(plan,Scan) && get_scanrelid((Scan)plan) == _TEMP_RELATION_ID_))
 	return plan_contain_redundant_hashjoin(get_lefttree(plan));
     return false;
 }

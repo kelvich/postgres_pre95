@@ -29,6 +29,7 @@
 #include "planner/var.h"
 #include "planner/keys.h"
 #include "planner/tlist.h"
+#include "planner/joininfo.h"
 
 
 /*     	===============
@@ -128,18 +129,18 @@ match_pathkey_joinkeys(pathkey,joinkeys,which_subkey)
      LispValue pathkey,joinkeys;
      int which_subkey ;
 {
-    LispValue path_subkey = LispNil;
+    Var path_subkey;
     int pos;
     LispValue i = LispNil;
     LispValue x = LispNil;
     JoinKey jk;
 
     foreach(i,pathkey) {
-	path_subkey = CAR(i);
+	path_subkey = (Var)CAR(i);
 	pos = 0;
 	foreach(x,joinkeys) {
 	    jk = (JoinKey)CAR(x);
-	    if(var_equal(path_subkey,extract_subkey(jk, which_subkey)))
+	    if(var_equal(path_subkey, (Var)extract_subkey(jk, which_subkey)))
 		return(pos);
 	    pos++;
 	}
@@ -178,21 +179,21 @@ every_func(joinkeys, pathkey, which_subkey)
      LispValue joinkeys, pathkey;
      int which_subkey;
 {
-     LispValue xjoinkey = LispNil;
-     LispValue temp = LispNil;
+     JoinKey xjoinkey;
+     Var temp;
      LispValue tempkey = LispNil;
      bool found = false;
      LispValue i = LispNil;
      LispValue j = LispNil;
 
      foreach(i,joinkeys) {
-	 xjoinkey = CAR(i);
+	 xjoinkey = (JoinKey)CAR(i);
 	 found = false;
 	 foreach(j,pathkey) {
-	     temp = CAR(CAR(j));
-	     if(temp == LispNil) continue;
+	     temp = (Var)CAR(CAR(j));
+	     if(temp == NULL) continue;
 	     tempkey = extract_subkey(xjoinkey,which_subkey);
-	     if(var_equal(tempkey,temp)) {
+	     if(var_equal((Var)tempkey,temp)) {
 		 found = true;
 		 break;
 	     }
@@ -264,7 +265,7 @@ extract_path_keys(joinkeys,tlist,which_subkey)
     foreach(i,joinkeys) {
 	xjoinkey = (JoinKey)CAR(i);
 	temp_node =
-	  lispCons(matching_tlvar(extract_subkey(xjoinkey,
+	  lispCons(matching_tlvar((Var)extract_subkey(xjoinkey,
 						    which_subkey),tlist),
 		    LispNil);
 	t_list = nappend1(t_list,temp_node);
@@ -347,15 +348,15 @@ new_join_pathkey(subkeys,considered_subkeys,join_rel_tlist,joinclauses)
      LispValue subkeys,considered_subkeys,join_rel_tlist,joinclauses ;
 {
     LispValue t_list = LispNil;
-    LispValue subkey = LispNil;
+    Var subkey;
     LispValue i = LispNil;
     LispValue matched_subkeys = LispNil;
     Expr tlist_key = (Expr)NULL;
     LispValue newly_considered_subkeys = LispNil;
 
     foreach(i,subkeys) {
-	subkey = CAR(i);
-	if(null(subkey))
+	subkey = (Var)CAR(i);
+	if(subkey == NULL)
 	  break;    /* XXX something is wrong */
 	matched_subkeys = 
 	  new_matching_subkeys(subkey,considered_subkeys,
