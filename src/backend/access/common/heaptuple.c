@@ -840,14 +840,7 @@ heap_copytuple(tuple, buffer, relation)
     newTuple = (HeapTuple) palloc(tuple->t_len);
     
     /* ----------------
-     *	fill in the rule lock information
-     * ----------------
-     */
-    newTuple->t_lock.l_lock = ruleLock;
-    newTuple->t_locktype = MEM_RULE_LOCK;
-
-    /* ----------------
-     *	copy the rest of the tuple
+     *	copy the tuple
      * ----------------
      */
     if ((! BufferIsValid(buffer)) || tuple->t_len < MAXTUPLEN) {
@@ -871,6 +864,13 @@ heap_copytuple(tuple, buffer, relation)
 	pfill(opos, (Pointer)newTuple);
 	endpskip();
     }
+
+    /* ----------------
+     *	fill in the rule lock information
+     * ----------------
+     */
+    newTuple->t_lock.l_lock = ruleLock;
+    newTuple->t_locktype = MEM_RULE_LOCK;
     
     /* ----------------
      *	return the new copy
