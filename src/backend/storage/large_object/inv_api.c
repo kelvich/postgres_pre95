@@ -875,8 +875,14 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
     attptr = ((char *) ntup) + hoff;
     *((int32 *) attptr) = obj_desc->ofs.i_fs.offset + nwrite - 1;
     attptr += sizeof(int32);
-    *((int32 *) attptr) = nwrite + sizeof(int32);
-    attptr += sizeof(int32);
+
+    /*
+    **	mer fixed disk layout of varlenas to get rid of the need for this.
+    **
+    **	*((int32 *) attptr) = nwrite + sizeof(int32);
+    **	attptr += sizeof(int32);
+    */
+
     *((int32 *) attptr) = nwrite + sizeof(int32);
     attptr += sizeof(int32);
 
