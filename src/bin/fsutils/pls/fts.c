@@ -207,8 +207,6 @@ fts_close(sp)
 	FTS *sp;
 {
 	register FTSENT *freep, *p;
-	int result;
-	int saved_errno;
 
 	/*
 	 * This still works if we haven't read anything -- the dummy structure
@@ -231,24 +229,10 @@ fts_close(sp)
 		free(sp->fts_array);
 	free(sp->fts_path);
 
-	/* Return to original directory, save errno if necessary. */
-#ifdef notdef
-	if (!ISSET(FTS_NOCHDIR)) {
-		saved_errno = fchdir(sp->fts_rfd) ? errno : 0;
-		(void)close(sp->fts_rfd);
-	}
-#endif
-	/* Set errno and return. */
-	if (!ISSET(FTS_NOCHDIR) && saved_errno) {
-		errno = saved_errno;
-		result = -1;
-	}
-	result = 0;
-
 	/* Free up the stream pointer. */
 	free(sp);
 
-	return (result);
+	return (0);
 }
 
 /*
