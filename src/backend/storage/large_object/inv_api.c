@@ -641,9 +641,21 @@ inv_wrnew(obj_desc, buf, nbytes)
 
     hr = obj_desc->ofs.i_fs.heap_r;
 
-    /* get the last block in the relation */
+    /*
+     *  Get the last block in the relation.  If there's no data in the
+     *  relation at all, then we just get a new block.  Otherwise, we
+     *  check the last block to see whether it has room to accept some
+     *  or all of the data that the user wants to write.  If it doesn't,
+     *  then we allocate a new block.
+     */
+
     nblocks = RelationGetNumberOfBlocks(hr);
-    buffer = ReadBuffer(hr, nblocks);
+
+    if (nblocks > 0)
+	buffer = ReadBuffer(hr, nblocks - 1);
+    else
+	buffer = ReadBuffer(hr, P_NEW);
+
     page = BufferSimpleGetPage(buffer);
 
     /*
@@ -751,7 +763,12 @@ inv_wrold(obj_desc, dbuf, nbytes, htup, buffer)
 	 */
 
 	nblocks = RelationGetNumberOfBlocks(hr);
-	newbuf = ReadBuffer(hr, nblocks);
+
+	if (nblocks > 0)
+	    newbuf = ReadBuffer(hr, nblocks - 1);
+	else
+	    newbuf = ReadBuffer(hr, P_NEW);
+
         newpage = BufferSimpleGetPage(newbuf);
 	freespc = IFREESPC(newpage);
 
