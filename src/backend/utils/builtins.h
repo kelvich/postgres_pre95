@@ -1,30 +1,3 @@
-
-; /*
-; * 
-; * POSTGRES Data Base Management System
-; * 
-; * Copyright (c) 1988 Regents of the University of California
-; * 
-; * Permission to use, copy, modify, and distribute this software and its
-; * documentation for educational, research, and non-profit purposes and
-; * without fee is hereby granted, provided that the above copyright
-; * notice appear in all copies and that both that copyright notice and
-; * this permission notice appear in supporting documentation, and that
-; * the name of the University of California not be used in advertising
-; * or publicity pertaining to distribution of the software without
-; * specific, written prior permission.  Permission to incorporate this
-; * software into commercial products can be obtained from the Campus
-; * Software Office, 295 Evans Hall, University of California, Berkeley,
-; * Ca., 94720 provided only that the the requestor give the University
-; * of California a free licence to any derived software for educational
-; * and research purposes.  The University of California makes no
-; * representations about the suitability of this software for any
-; * purpose.  It is provided "as is" without express or implied warranty.
-; * 
-; */
-
-
-
 /*
  * builtins.h --
  *	Declarations for operations on built-in types.
@@ -47,13 +20,14 @@
 #include "tim.h"
 #include "xid.h"
 
-#ifdef FMGR_ADT
 /*
  *	This is a gentle reminder that the files in useradt/ have to be 
  *	moved or linked to adt/ before compilation will work (see fmgr.h).
  */
-#include "utils/adt/geo-decls.h"
-#endif FMGR_ADT
+#ifdef FMGR_ADT
+#include "../adt/geo-decls.h"
+#include "../ftree/kwlist.h"
+#endif /* FMGR_ADT */
 
 
 /*
@@ -63,10 +37,31 @@ extern int32		boolin();
 extern char 		*boolout();
 extern int32		charin();
 extern char		*charout();
+extern int32		chareq();
 extern char		*char16in();
 extern char		*char16out();
 extern int32		char16eq();
 extern int32		char16ne();
+extern int32		int2eq();
+extern int32		int2lt();
+extern int32		int4eq();
+extern int32		int4lt();
+extern int32		int4ne();
+extern int32		int2ne();
+extern int32		int2gt();
+extern int32		int4gt();
+extern int32		int2le();
+extern int32		int4le();
+extern int32		int4ge();
+extern int32		int2ge();
+extern int32		int2mul();
+extern int32		int2div();
+extern int32		int4div();
+extern int32		int2mod();
+extern int32		int2pl();
+extern int32		int4pl();
+extern int32		int2mi();
+extern int32		int4mi();
 extern Time		abstimein();
 extern char		*abstimeout();
 extern Time		reltimein();
@@ -132,7 +127,7 @@ extern int32		float84lt();
 extern int32		float84le();
 extern int32		float84gt();
 extern int32		float84ge();
-#endif FMGR_MATH
+#endif /* FMGR_MATH */
 extern int32		int2in();
 extern char		*int2out();
 extern int16		*int28in();
@@ -152,8 +147,10 @@ extern int32		int4mul();
 extern int32		intdiv();
 #ifdef FMGR_MATH
 extern int32		intmod();
+extern int32		int4mod();
 extern int32		int4fac();
-#endif FMGR_MATH
+extern int32		int2fac();
+#endif /* FMGR_MATH */
 extern ObjectId		*oid8in();
 extern char		*oid8out();
 extern int32		regprocin();
@@ -174,17 +171,24 @@ extern int32		texteq();
 extern int32		textne();
 
 /*
+ *	B-tree code.
  *	Defined in btree/
- *
- * XXX These belong to an ancient interface (and don't belong here),
- *     but since the new interface doesn't exist yet, these are here
- *     temporarily.
  */
-
 extern char		*btreeinsert();
 extern char		*btreedelete();
 extern char		*btreegetnext();
 extern void		btreebuild();
+
+/*
+ *	Functional B-tree code.
+ *	Defined in ftree/
+ */
+#ifdef FMGR_ADT
+extern char		*ftreeinsert();
+extern char		*ftreedelete();
+extern char		*ftreegetnext();
+extern void		ftreebuild();
+#endif /* FMGR_ADT */
 
 /*
  *	Defined in useradt/
@@ -220,6 +224,6 @@ extern long	pointdist();
 
 extern long	textregexeq();
 extern long	char16regexeq();
-#endif FMGR_ADT
+#endif /* FMGR_ADT */
 
 #endif !BuiltinsIncluded
