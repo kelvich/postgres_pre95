@@ -6,6 +6,7 @@
  * RcsId("$Header$");
  */
 
+#include <ctype.h>
 #include "tmp/postgres.h"
 #include "tmp/align.h"
 
