@@ -96,9 +96,8 @@ bool
 var_is_rel (var)
      Var var ;
 {
-    return ((bool) (atom (get_varno (var)) && 
-		    ! (var_is_inner (var) || 
-		       var_is_outer (var))));
+    return (bool)
+	! (var_is_inner (var) ||  var_is_outer (var));
 }
 
 /*  .. consider_vararrayindex, nested-clause-p, new-level-tlist
