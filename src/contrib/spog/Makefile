@@ -3,12 +3,7 @@
 #
 # $Id$
 #
-# $Log$
-# Revision 1.2  1993/02/20 04:40:41  aoki
-# removed installation of scripts
-#
-# Revision 1.1  1993/02/18  23:27:32  aoki
-# Initial revision
+# $Log: Makefile,v
 #
 # Revision 2.3  1992/08/13  11:47:33  schoenw
 # scripts using spog added
@@ -34,38 +29,53 @@
 
 #
 # I decided not to install the shell programs, seeing as how Juergen
-# himself doesn't recommend casual use of them ...  -- pma 2/19/93
+# doesn't recommend casual use of them ...  -- pma 2/19/93
 #
 .include <postgres.global.mk>
 
 NOMAN=
 
-# some readline libraries have xmalloc and xrealloc, some don't.
-# define NEED_XMALLOC if your readline library lacks xmalloc and xrealloc.
-# some versions of UNIX have strdup, some don't.
-# define NEED_STRDUP if your standard library lacks strdup.
-CFLAGS= -O -DNEED_XMALLOC -DNEED_STRDUP #-DDEBUG
+LDFLAGS= -g
 
+CFLAGS= -g  #-DDEBUG
+
+#
+# some readline libraries have xmalloc and xrealloc, some don't.
+# comment out this line if your readline library has xmalloc and xrealloc.
+#
+CFLAGS+= -DNEED_XMALLOC
+
+#
+# some versions of UNIX have strdup, some don't.
+# comment out this line if your standard library has strdup.
+#
+CFLAGS+= -DNEED_STRDUP
+
+#
 # set POSTGRESTOP to the top directory of postgres (one above src/).
+#	spog will be installed in BINDIR.
+#	INCDIR and LIBDIR should point to the install libpq.
+#
 POSTGRESTOP=${.CURDIR}/../../..
 BINDIR= ${POSTGRESTOP}/bin
-CFLAGS+= -I$(POSTGRESTOP)/src/backend
-LDADD+= -L$(POSTGRESTOP)/src/libpq/obj
+INCDIR= ${POSTGRESTOP}/include
+LIBDIR= ${POSTGRESTOP}/lib
+CFLAGS+= -I${INCDIR}
+LDADD+= -L${LIBDIR}
 
-# this points to the include files of gnu readline.
-# comment this out if they're in a standard place (e.g., /usr/include).
-CFLAGS+= -I/usr/local/devel
+#
+# these lines should point to the GNU readline library.
+# comment them out if the GNU readline library is in a standard place.
+#
+CFLAGS+= -I/usr/sww/include
+LDADD+= -L/usr/sww/lib
 
-# this points to the gnu readline library.
-# comment this out if it's in a standard place (e.g., /usr/local/lib).
-LDADD+= -L/usr/local/devel/readline
+LDADD+= -lpq -lreadline -ltermcap
 
 .MAIN: ${PROG}
 
 PROG= spog
 
 SRCS= spog.c query.c command.c
-
-LDADD+= -lpq -lreadline -ltermcap
 
 .include <postgres.prog.mk>
