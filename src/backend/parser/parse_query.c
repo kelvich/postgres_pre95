@@ -293,6 +293,7 @@ ExpandAll(relname,this_resno)
 
 	for ( i = maxattrs-1 ; i > -1 ; --i ) {
 		char *attrname;
+		bool attrisset;
 
 		attrname = (char *) palloc (sizeof(NameData)+1);
 		strcpy(attrname, (char *)(&rdesc->rd_att.data[i]->attname));
@@ -300,10 +301,13 @@ ExpandAll(relname,this_resno)
 		varnode = (Var)CDR(temp);
 		type_id = CInteger(CAR(temp));
 		type_len = (int)tlen(get_id_type(type_id));
+		attrisset = rdesc->rd_att.data[i]->attisset;
+		/* Even if the elements making up a set are complex, the
+		 * set itself is not. */
 		
 		resnode = MakeResdom((AttributeNumber) i + first_resno, 
 				     (ObjectId)type_id, 
-				     ISCOMPLEX(type_id),
+				     attrisset ? false : ISCOMPLEX(type_id),
 				     (Size)type_len,
 				     (Name) attrname, 
 				     (Index)0, (OperatorTupleForm)0, 0 );
@@ -412,13 +416,13 @@ int orig_typeId, true_typeId;
 	    result = (LispValue)MakeConst(true_typeId,
 					  tlen(true_type),
 					  (Datum)fmgr(infunc, val),
-					  false, true);
+					  false, true, false /* not a set */);
 	}
     }
     else {
 	result = (LispValue) MakeConst(true_typeId, 0,
 				       (Datum)(struct varlena *)NULL,
-				       true, true );
+				       true, true, false /* not a set */ );
     }
 
     return result;
@@ -594,8 +598,7 @@ make_var ( relname, attrname)
      Name relname, attrname;
 {
     Var varnode;
-    int vnum, attid, vartype;
-    Type rtype;
+    int vnum, attid, vartypeid;
     Relation rd;
     extern int p_last_resno;
     extern List RangeTablePositions();
@@ -619,11 +622,10 @@ make_var ( relname, attrname)
     attid =  nf_varattno(rd, (char *) attrname);
     if (attid == InvalidAttributeNumber) 
       elog(WARN, "Invalid attribute %s\n", attrname);
-    vartype = att_typeid ( rd , attid );
-    rtype = get_id_type(vartype);
+    vartypeid = att_typeid ( rd , attid );
 
     varnode = MakeVar (vnum , attid ,
-                       vartype ,
+                       vartypeid,
                        lispCons(lispInteger(vnum),
                                 lispCons(lispInteger(attid),LispNil)), 0);
 
@@ -638,10 +640,10 @@ make_var ( relname, attrname)
      */
 
     if ( length ( multi_varnos ) > 1 )
-      return ( lispCons ( lispInteger ( typeid (rtype)),
-			 make_concat_var ( multi_varnos , attid , vartype)));
+      return ( lispCons ( lispInteger (vartypeid),
+			 make_concat_var ( multi_varnos , attid , vartypeid)));
 
-    return ( lispCons ( lispInteger ( typeid (rtype ) ),
+    return ( lispCons ( lispInteger (vartypeid),
 		       (LispValue)varnode ));
 }
 /*
@@ -783,16 +785,24 @@ SkipForwardToFromList()
         char *temp = Ch;
 
         while ((int)(next_token=(LispValue)yylex()) > 0 &&
-                next_token != (LispValue)FROM )
-          ; /* empty while */
-
-        if ((int)next_token <= 0 )
-                Ch = temp;
+	       (next_token != (LispValue) FROM &&
+		/*
+		 * Stop at the beginning of any statement that can have 
+		 * a "from" clause (i.e., all optimizable statements --
+		 * "execute" doesn't really exist).
+		 */
+		next_token != (LispValue) APPEND &&
+		next_token != (LispValue) DELETE &&
+		next_token != (LispValue) REPLACE &&
+		next_token != (LispValue) RETRIEVE))
+	     ; /* empty while */
 
         if (next_token == (LispValue) FROM ) {
                 Ch -= 4;
                 from_list_place = Ch;
                 target_list_place = temp;
+        } else {
+	     Ch = temp;
         }
 }
 
@@ -900,12 +910,13 @@ make_const( value )
 	    /* null const */
 	    return ( lispCons (LispNil , 
 			       (LispValue)MakeConst ( (ObjectId)0 , (Size)0 , 
-					  (Datum)LispNil , 1, 0/*ignored*/ )) );
+					  (Datum)LispNil , 1, 0/*ignored*/,
+                                           0 /* assume it's not a set */ )) );
 	}
 
 	temp = lispCons (lispInteger ( typeid (tp)) ,
 			  (LispValue)MakeConst(typeid( tp ), tlen( tp ),
-				    val , false, tbyval(tp) ));
+				    val , false, tbyval(tp), false /*not a set */ ));
 /*	lispDisplay( temp , 0 );*/
 	return (temp);
 	
