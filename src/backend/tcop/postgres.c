@@ -42,7 +42,16 @@ time_t		tim;
 bool 		override = false;
 int		NStriping = 1;  /* default no striping */
 
-int UseNewLine = 0;  /* Use newlines instead of EOF as query delimiters */
+/* ----------------
+ *	people who want to use EOF should #define DONTUSENEWLINE in
+ *	tcop/tcopdebug.h
+ * ----------------
+ */
+#ifndef TCOP_DONTUSENEWLINE
+int UseNewLine = 0;  /* Use EOF as query delimiters */
+#else
+int UseNewLine = 1;  /* Use newlines query delimiters (the default) */
+#endif TCOP_DONTUSENEWLINE
 
 /* ----------------
  *	this is now defined by the executor
@@ -135,62 +144,91 @@ char
 InteractiveBackend(inBuf)
     char *inBuf;
 {
-    String stuff = inBuf;
-    char c;
-	int end = 0;
+    String stuff = inBuf;		/* current place in input buffer */
+    char c;				/* character read from getc() */
+    bool end = false;			/* end-of-input flag */
+    bool backslashSeen = false;		/* have we seen a \ ? */
 
     /* ----------------
      *	display a prompt and obtain input from the user
      * ----------------
      */
-
-    for (;;) {
-	char s[1024];
-	int v;
-
-		if (!Quiet) printf("> ");
-
-		if (!UseNewLine)
-		{
-			while ( (c = (char)getc(stdin)) != EOF ) {
-				*stuff++ = c;
-			}
-			if ( stuff == inBuf ) end = 1;
-		}
-		else
-		{
-			while ( (c = (char)getc(stdin)) != EOF && c != '\n') {
-				*stuff++ = c;
-			}
-			if (c == EOF) end = 1;
-		}
-
+    printf("> ");
     
-		if (end) {
-		    if (!Quiet) puts("EOF");
-		    AbortCurrentTransaction();
-		    exitpg(0);
-		}
+    for (;;) {
+	if (UseNewLine) {
+	    /* ----------------
+	     *	if we are using \n as a delimiter, then read
+	     *  characters until the \n.
+	     * ----------------
+	     */
+	    while ( (c = (char) getc(stdin)) != EOF) {
+		if (c == '\n') {
+		    if (backslashSeen) {
+			stuff--;
+			continue;
+		    } else {
+			*stuff++ = '\0';
+			break;
+		    }
+		} else if (c == '\\')
+		    backslashSeen = true;
+		else
+		    backslashSeen = false;
 
-#ifdef EXEC_DEBUGINTERACTIVE
+		*stuff++ = c;
+	    }
+	    
+	    if (c == EOF)
+		end = true;
+	} else {
+	    /* ----------------
+	     *	otherwise read characters until EOF.
+	     * ----------------
+	     */
+	    while ( (c = (char)getc(stdin)) != EOF )
+		*stuff++ = c;
+
+	    if ( stuff == inBuf )
+		end = true;
+	}
 
 	/* ----------------
-	 *  now see if it's a debugging command...
+	 *  "end" is true when there are no more queries to process.
 	 * ----------------
 	 */
-		if (sscanf(inBuf, "DEBUG %s", s) == 1) {
-	    	if (!DebugVariableProcessCommand(inBuf))
-			printf("DEBUG [%s] not recognised\n", inBuf);
+	if (end) {
+	    if (!Quiet) puts("EOF");
+	    AbortCurrentTransaction();
+	    exitpg(0);
+	}
+
+#ifdef EXEC_DEBUGINTERACTIVE
+	/* ----------------
+	 *  We have some input, now see if it's a debugging command...
+	 * ----------------
+	 */
+	{
+	    char s[1024];
+	
+	    if (sscanf(inBuf, "DEBUG %s", s) == 1) {
+		if (!DebugVariableProcessCommand(inBuf))
+		    printf("DEBUG [%s] not recognised\n", inBuf);
+		else
+		    stuff = inBuf;
 		
-	    	continue;
-		}
+		printf("> ");
+		continue;
+	    }
+	}
 #endif EXEC_DEBUGINTERACTIVE
+	
 	/* ----------------
 	 *  otherwise we have a user query so process it.
 	 * ----------------
 	 */
-		break;
-	}
+	break;
+    }
     
     return('Q');
 }
@@ -356,7 +394,7 @@ pg_eval( query_string )
 
     } /* foreach parsetree in the list */
 
-    {
+    if (!Quiet) {
 	List i;
 	printf("\n=================\n");
 	printf("  After Rewriting\n");
@@ -582,6 +620,7 @@ PostgresMain(argc, argv)
 	   * ----------------
 	   */
 	  IsUnderPostmaster = true;
+	  
 	  break;
 	  
       case 'P':
@@ -608,8 +647,13 @@ PostgresMain(argc, argv)
 	   */
 	  /* DebugMode = false; */
 	  break;
-	  case 'N':
-	  UseNewLine = 1;
+
+      case 'N':
+	  /* ----------------
+	   *	Don't use newline as a query delimiter
+	   * ----------------
+	   */
+	  UseNewLine = 0;
 	  break;
 	  
       case 'S':
@@ -634,7 +678,7 @@ PostgresMain(argc, argv)
 	fputs(" -O   =  Override Transaction System\n", stderr);
 	fputs(" -S   =  assume Stable Main Memory\n", stderr);
 	fputs(" -Q   =  Quiet mode (less debugging output)\n", stderr);
-	fputs(" -N   =  Newline mode (newline as query delimiter)\n", stderr);
+	fputs(" -N   =  use ^D as query delimiter\n", stderr);
 	exitpg(1);
     } else if (argc - optind == 1) {
 	DatabaseName = argv[optind];
