@@ -16,7 +16,11 @@ delim %%
 .ps 11
 .ds PG "\\s-2POSTGRES\\s0
 .ds PQ "\\s-2POSTQUEL\\s0
+.ds UX "\\s-2UNIX\\s0
 .de RN
+\\fC\\$1\\fP\\$2
+..
+.de CW
 \\fC\\$1\\fP\\$2
 ..
 .de SE
@@ -515,6 +519,11 @@ in general,
 that every device manager must use some subset of these
 values as a unique key for finding the proper location
 to write a data block.
+.pp
+In general,
+the blind write routine is slower than the ordinary write routine,
+since it must assemble enough information to synchronously open
+the relation and write the data.
 .pp
 The interface for this routine is
 .(E
