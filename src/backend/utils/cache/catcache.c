@@ -816,8 +816,6 @@ SearchSysCache(cache, v1, v2, v3, v4)
 	heap_close(relation);
 #endif CACHEDEBUG
 	
-	heap_close(relation);
-	
 	return
 	    (ct->ct_tup);
     }
