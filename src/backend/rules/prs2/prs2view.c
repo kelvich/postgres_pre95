@@ -1,16 +1,4 @@
-#include <stdio.h>
-#include "utils/log.h"
-#include "executor/execdefs.h"
-#include "rules/prs2locks.h"
-#include "rules/prs2.h"
-#include "rules/prs2stub.h"
-#include "nodes/execnodes.h"
-
-extern EState CreateExecutorState();
-extern LispValue ExecMain();
-extern HeapTuple palloctup();
-
-/*------------------------------------------------------------------------
+/*========================================================================
  *
  * IDENTIFICATION:
  * 	$Header$
@@ -25,7 +13,21 @@ extern HeapTuple palloctup();
  * otherwise it might be partially materialized)
  *
  *
+ *========================================================================
  */
+
+#include <stdio.h>
+#include "utils/log.h"
+#include "executor/execdefs.h"
+#include "rules/prs2locks.h"
+#include "rules/prs2.h"
+#include "rules/prs2stub.h"
+#include "nodes/execnodes.h"
+#include "utils/palloc.h"
+
+extern EState CreateExecutorState();
+extern LispValue ExecMain();
+extern HeapTuple palloctup();
 
 /*-----------------------------------------------------------------------
  * prs2MakeScanStateRuleInfo(relation)
