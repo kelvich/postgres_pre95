@@ -150,6 +150,7 @@ class (TupleCount) public (Node) {
  *	    shouldFree		boolean - should we call pfree() on tuple
  *	    descIsNew		boolean - true when tupleDescriptor changes
  *	    tupleDescriptor	type information kept regarding the tuple data
+ *	    buffer		the buffer for tuples pointing to disk pages
  *
  *	LispValue information
  *
@@ -174,6 +175,7 @@ class (TupleTableSlot) public (LispValue) {
       bool		ttc_shouldFree;
       bool		ttc_descIsNew;
       TupleDescriptor	ttc_tupleDescriptor;
+      Buffer		ttc_buffer;
   /* public: */
 };
 
@@ -316,7 +318,12 @@ class (JunkFilter) public (JunkFilter) {
  *	junkFilter			contains information used to
  *					extract junk attributes from a tuple.
  *					(see JunkFilter above)
- * ----------------
+ *
+ *	result_rel_scanstate		points to the scanstate for the
+ *					result relation, if there is one.
+ *					this should be a ScanState but it's
+ *					a Pointer because of order conflicts.
+ * ----------------	
  */
 
 class (EState) public (Node) {
@@ -342,6 +349,7 @@ class (EState) public (Node) {
       int               es_BaseId;
       TupleTable        es_tupleTable;
       JunkFilter	es_junkFilter;
+      Pointer		es_result_rel_scanstate;
 };
 
 /* ----------------

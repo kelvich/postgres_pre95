@@ -5,6 +5,10 @@
  *   DESCRIPTION
  *     	tuple table support stuff
  *
+ *   NOTES
+ *	The tuple table interface is getting pretty ugly.
+ *	It should be redesigned soon.
+ *
  *	$Header$
  * ----------------------------------------------------------------
  */
@@ -75,6 +79,12 @@ typedef TupleTableData *TupleTable;
 
 #define SetSlotTupleDescriptorIsNew(slot, isnew) \
     set_ttc_descIsNew(slot, isnew)
+
+#define SlotBuffer(slot) \
+    get_ttc_buffer(slot)
+
+#define SetSlotBuffer(slot, b) \
+    set_ttc_buffer(slot, b)
     
 #define SlotSpecialInfo(slot) \
     (Pointer) CDR((List) slot)
