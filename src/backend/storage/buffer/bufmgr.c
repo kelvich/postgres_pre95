@@ -447,7 +447,7 @@ bool		bufferLockHeld;
 	   * first; since no one had it pinned (it just came off the
 	   * free list), no one else can have this lock.
 	   */
-	  Assert(!buf->io_in_progress_lock);
+	  Assert(S_LOCK_FREE(&(buf->io_in_progress_lock)));
 	  S_LOCK(&(buf->io_in_progress_lock));
 #endif /* HAS_TEST_AND_SET */
 	  
@@ -546,7 +546,7 @@ bool		bufferLockHeld;
   if (!inProgress) {
       buf->flags |= BM_IO_IN_PROGRESS; 
 #ifdef HAS_TEST_AND_SET
-      Assert(!buf->io_in_progress_lock);
+      Assert(S_LOCK_FREE(&(buf->io_in_progress_lock)));
       S_LOCK(&(buf->io_in_progress_lock));
 #endif /* HAS_TEST_AND_SET */
   }
