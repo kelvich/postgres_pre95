@@ -44,18 +44,16 @@ static char
 */
 #include <sys/file.h>
 
-#include "postgres.h"
-#include "skey.h"
+#include "tmp/postgres.h"
 
-#include "c.h"
-#include "os.h"
-
-#include "buf.h"
-#include "fd.h"
-#include "log.h"
-#include "status.h"
-#include "lmgr.h"
-#include "mcxt.h"
+#include "access/skey.h"
+#include "storage/buf.h"
+#include "storage/fd.h"
+#include "tmp/os.h"
+#include "tmp/status.h"
+#include "utils/lmgr.h"
+#include "utils/log.h"
+#include "utils/mcxt.h"
 
 #include "internal.h"
 

@@ -36,7 +36,7 @@ extern errno;
 
 #define	MAXFILES	(NOFILE-RESERVEFORLISP)
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
@@ -55,8 +55,8 @@ RcsId("$Header$");
 
 #define FileClosed -1
 
-#include "fd.h"
-#include "log.h"
+#include "storage/fd.h"
+#include "utils/log.h"
 
 #define FileIsNotOpen(file) (VfdCache[file].fd == FileClosed)
 
