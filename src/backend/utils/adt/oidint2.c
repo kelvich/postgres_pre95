@@ -90,7 +90,7 @@ oidint2ne(o1, o2)
 	return ((bool) (o1->oi_oid != o2->oi_oid || o1->oi_int2 != o2->oi_int2));
 }
 
-bool
+int
 oidint2cmp(o1, o2)
 	OidInt2 o1, o2;
 {
