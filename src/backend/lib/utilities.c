@@ -147,16 +147,51 @@ LispValue
 copy_seq_tree (seqtree)
      LispValue seqtree;
 {
-    elog(WARN,"bogus function 'copy-seq-tree' called");
-    /* XXX - needs a copy command */
-    return(seqtree);
+    LispValue new_seq = LispNil;
+    LispValue new_elem = LispNil;
+    LispValue elem = LispNil;
+
+    if (IsA(seqtree,LispList))
+      foreach (i,seqtree) {
+	  LispValue elem = CAR(i);
+	  switch(elem->type) {
+	    case PGLISP_ATOM:
+	      new_elem = lispAtom(CAtom(elem));
+	      break;
+	    case PGLISP_DTPR:
+	      elog(NOTICE,"sequence is more than one deep !");
+	      new_elem = copy_seq_tree(elem);
+	      break;
+	    case PGLISP_VECI:
+	      elog(WARN,"copying vectors unsupported");
+	      break;
+	    case PGLISP_FLOAT:
+	      elog(WARN,"copying floats unsupported");
+	      break;
+	    case PGLISP_INT:
+	      new_elem = lispInteger(CInteger(elem));
+	      break;
+	    case PGLISP_STR:
+	      new_elem = lispString(CString(elem));
+	      break;
+	    default:
+	      elog(NOTICE,"copying non-lisp type");
+	      new_elem = (LispValue)palloc(sizeof(*elem));
+	      bcopy(new_elem,elem,sizeof(*elem));
+	      break;
+	  }
+	  new_seq = nappend1(new_seq,new_elem);
+      }
+
+    return(new_seq);
 }
 
 
 base_log(foo)
      double foo;
 {
-    return(0);
+    elog(NOTICE,"base_log, unsupported function returns 0");
+    return(0.0);
 }
 
 max(foo,bar)
