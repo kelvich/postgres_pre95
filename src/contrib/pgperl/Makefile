@@ -28,7 +28,7 @@ CFLAGS= $(CCFLAGS) -I$(PERLDIR) $(PGINCS)
 all: pgperl
 
 pgperl: $(PERLDIR)/uperl.o usersub.o pg-libpq.o
-	$(CC) $(CCFLAGS) $(.ALLSRC) $(LIBS) $(PERLLIBS) -o $(.TARGET)
+	$(CC) $(CCFLAGS) ${.ALLSRC} $(LIBS) $(PERLLIBS) -o ${.TARGET}
 	@echo
 	@echo Remember to start the postmaster before running the test script.
 	@echo
@@ -37,7 +37,7 @@ pg-libpq.c: pg-libpq.mus
 	$(MUS) pg-libpq.mus > pg-libpq.c
 
 testlibpq.out: pgperl testlibpq.pl
-	./pgperl testlibpq.pl > $(.TARGET)
+	./pgperl testlibpq.pl > ${.TARGET}
 
 runtest: testlibpq.out
 
