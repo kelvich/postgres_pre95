@@ -129,7 +129,6 @@ handle_load(filename, funcname)
     /*
      * Do this because loading files may screw up the dynamic function
      * manager otherwise.
-     *
      */
 
 #ifndef UFP
@@ -270,26 +269,3 @@ load_file(filename)
     }
     handle_load(filename, (char *) NULL);
 }
-
-#ifdef PORTNAME_hpux
-
-/* Function to delete shared libraries on exit */
-/*
- * XXX	this has to go here instead of dynloader.c because it refers
- *	to static variables.. :-P
- */
-void 
-del_shlibs(code)
-    int code;
-{
-    DynamicFileList	*file_scanner = (DynamicFileList *) NULL;
-
-    file_scanner = file_list;
-    while (file_scanner != (DynamicFileList *) NULL) {
-	shl_unload(file_scanner->handle);
-	unlink(file_scanner->shlib);
-	file_scanner = file_scanner->next;
-    }
-}
-
-#endif /* PORTNAME_hpux */
