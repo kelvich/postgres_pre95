@@ -141,15 +141,56 @@ ProcessUtility(command, args)
 	}
 		break;
 
-#if 0
 	case PURGE:
 		commandTag = "PURGE";
-		relation_purge (CAR(args),		/* relation name */
-			CADR(args));
+	{
+		List	tags;
+		String	beforeString = NULL;	/* absolute time string */
+		String	afterString = NULL;	/* relative time string */
+#ifndef	PERFECTPARSER
+		AssertArg(listp(args));
+		AssertArg(length(args) == 2);
+#endif
+		tags = CADR(args);
+		switch (length(tags)) {
+		case 0:
+			break;
+		case 1:
+#ifndef	PERFECTPARSER
+			AssertArg(lispIntegerp(CAR(CAR(tags))));
+			AssertArg(lispStringp(CADR(CAR(tags))));
+#endif
+			if (CInteger(CAR(CAR(tags))) == BEFORE) {
+				beforeString = CString(CADR(CAR(tags)));
+			} else {
+				afterString = CString(CADR(CAR(tags)));
+#ifndef	PERFECTPARSER
+				AssertArg(CInteger(CAR(CAR(tags))) == AFTER);
+#endif
+			}
+			break;
+		case 2:
+#ifndef	PERFECTPARSER
+			AssertArg(lispIntegerp(CAR(CAR(tags))));
+			AssertArg(CInteger(CAR(CAR(tags))) == BEFORE);
+			AssertArg(lispStringp(CADR(CAR(tags))));
+			AssertArg(lispIntegerp(CAR(CADR(tags))));
+			AssertArg(CInteger(CAR(CADR(tags))) == AFTER);
+			AssertArg(lispStringp(CADR(CADR(tags))));
+#endif
+			beforeString = CString(CADR(CAR(tags)));
+			afterString = CString(CADR(CADR(tags)));
+			break;
+		default:
+#ifndef	PERFECTPARSER
+			AssertArg(false);
+#endif
+		}
+		RelationPurge(CString(CAR(args)), beforeString, afterString);
+	}
 		break;
 
 		/* tags/date alist */
-#endif
 	case COPY:
 		commandTag = "COPY";
 	{
