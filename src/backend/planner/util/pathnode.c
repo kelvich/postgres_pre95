@@ -438,22 +438,24 @@ MergePath
 create_mergesort_path (joinrel,outersize,innersize,outerwidth,
 		       innerwidth,outer_path,inner_path,keys,order,
 		       mergeclauses,outersortkeys,innersortkeys)
-     LispValue joinrel,outersize,innersize,outerwidth,innerwidth,
-     outer_path,inner_path,keys,order,mergeclauses,outersortkeys,
-     innersortkeys ;
+     Rel joinrel;
+     int outersize,innersize,outerwidth,innerwidth;
+     Path outer_path,inner_path;
+     LispValue keys,order,mergeclauses,outersortkeys,innersortkeys ;
 {
      MergePath pathnode = CreateNode(MergePath);
 
      pathnode->printFunc = PrintMergePath;
      pathnode->equalFunc = EqualMergePath;
 
+     set_pathtype (pathnode,T_MergeSort);
      set_parent (pathnode,joinrel);
      set_outerjoinpath (pathnode,outer_path);
 		set_innerjoinpath (pathnode,inner_path);
      set_pathclauseinfo (pathnode,get_clauseinfo (joinrel));
      set_keys (pathnode,keys);
-     set_ordering (pathnode,order);
-     set_mergeclauses (pathnode,mergeclauses);
+     set_p_ordering (pathnode,order);
+     set_path_mergeclauses (pathnode,mergeclauses);
      set_outersortkeys (pathnode,outersortkeys);
      set_innersortkeys (pathnode,innersortkeys);
      set_path_cost (pathnode,cost_mergesort (get_path_cost (outer_path),

@@ -73,6 +73,7 @@ clause_type (clause)
     
     if ( consp (clause) ) {
 	LispValue type = clause_head (clause);
+	if (type == LispNil) return(LispNil);
 	if ( member (type,lispCons(clauseand,
 				   lispCons(clauseor,
 					    lispCons(clausenot,

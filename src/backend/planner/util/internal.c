@@ -83,16 +83,16 @@ restore_globals()
 
 List
 joinmethod_clauses(method)
-     joinmethod method;
+     JoinMethod method;
 {
   return(method->clauses);
 }
 
 List
 joinmethod_keys(method)
-     joinmethod method;
+     JoinMethod method;
 {
-    return(method->keys);
+    return(method->jmkeys);
 }
      
 /* XXX - these should go away once spyros turns in some code */
