@@ -7,7 +7,7 @@ CONFFILE=/usr/tmp/Makefile.config.$$
 MOREMAKEFLAGS=""
 #
 if [ -z "$1" ]; then
-	echo "Usage: $0 portname"
+	echo "Usage: $0 portname [compiler]"
 	exit 1
 fi
 case $1 in
@@ -59,9 +59,18 @@ s/^MOREOBJS=.*/MOREOBJS=/
 s/^MORELIBS=.*/MORELIBS=-lbsd/
 EOF
 		;;
-	solaris_sparc)
-		cat > $SEDFILE << 'EOF'
-s/^PORTNAME=.*/PORTNAME=solaris_sparc/
+	sparc_solaris)
+		if [ -z "$2" ]; then
+			CC=cc
+		else
+			CC=$2
+		fi
+		echo "$0: using $CC"
+		export CC
+		case $CC in
+		solcc)
+			cat > $SEDFILE << 'EOF'
+s/^PORTNAME=.*/PORTNAME=sparc_solaris/
 s/^OLD_CC=.*/OLD_CC=-BSD -notraditional -Dd_fileno=d_ino/
 s/^AR_TYPE=.*/AR_TYPE=/
 s/^NEED_STRINGS=.*/NEED_STRINGS=-DNEED_STRINGS/
@@ -70,7 +79,20 @@ s/^MORESRCS=.*/MORESRCS=setenv.c/
 s/^MOREOBJS=.*/MOREOBJS=setenv.o/
 s/^MORELIBS=.*/MORELIBS=/
 EOF
-		CC=bsdcc; export CC
+			;;
+		cc)
+			cat > $SEDFILE << 'EOF'
+s/^PORTNAME=.*/PORTNAME=sparc_solaris/
+s%^OLD_CC=.*%OLD_CC=-Dd_fileno=d_ino -I/usr/ucbinclude%
+s/^AR_TYPE=.*/AR_TYPE=/
+s/^NEED_STRINGS=.*/NEED_STRINGS=-DNEED_STRINGS/
+s/^BSD_WAIT3.*=/BSD_WAIT3=/
+s/^MORESRCS=.*/MORESRCS=setenv.c/
+s/^MOREOBJS=.*/MOREOBJS=setenv.o/
+s%^MORELIBS=.*%MORELIBS=-R/usr/ucblib -L/usr/ucblib -lucb%
+EOF
+			;;
+		esac
 		;;
 	sparc)
 		cat > $SEDFILE << 'EOF'
@@ -99,7 +121,7 @@ EOF
 	*)
 		echo "$0: invalid port name:" $1
 		echo "$0: valid port names are:"
-		echo "$0: aix alpha hpux linux solaris_sparc sparc ultrix4"
+		echo "$0: aix alpha hpux linux sparc_solaris sparc ultrix4"
 		exit 1;
 		;;
 esac

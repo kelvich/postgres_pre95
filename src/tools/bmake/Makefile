@@ -34,10 +34,14 @@ CFLAGS+= -Dvoid="char *" -Dconst= -DUSE_RANLIB -DNEED_STRINGS
 SRCS+= strerror.c setenv.c
 .endif
 
-.if ( ${PORTNAME} == "solaris_sparc" )
-CFLAGS+= -BSD -notraditional -Dd_fileno=d_ino
+.if ( ${PORTNAME} == "sparc_solaris" )
+CFLAGS+= -Dd_fileno=d_ino -I/usr/ucbinclude
 SRCS+= setenv.c
+LDADD+= -R/usr/ucblib -L/usr/ucblib -lucb
+.  if ( ${CC} != "cc" )
+CFLAGS+= -BSD -notraditional 
 LDADD+= -BSD
+.  endif
 .endif
 
 .if ( ${PORTNAME} == "ultrix4" )
