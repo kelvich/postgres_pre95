@@ -198,6 +198,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	  if ( restplan ) 
 	    resttlist = get_qptargetlist (restplan);
 	  subtlist = get_qptargetlist (subplan);
+	  
 	  plan = (Plan)make_result (new_result_tlist (tlist,
 						      subtlist,
 						      resttlist,
@@ -210,7 +211,9 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 				    constant_qual,
 				   subplan,
 				   restplan);
-
+	  if ( constant_qual ) {
+	    set_join_tlist_references ( plan ); 
+	  }
 	  if ( valid_numkeys (sortkeys) ) 
 	    return (sort_level_result (plan,sortkeys));
 	  else 

@@ -459,13 +459,13 @@ replace_resultvar_refs (var,ltlist,rtlist,levelnum)
      LispValue varno = LispNil;
      
      if (levelnum == numlevels (var)) 
-	  varno = lispCons (levelnum - 1,
+	  varno = lispCons (lispInteger(levelnum - 1),
 			    lispCons(get_resno (tl_resdom 
 						(match_varid (get_varid (var),
 							      ltlist))),
 				     LispNil));
      else
-       varno = lispCons (levelnum,
+       varno = lispCons (lispInteger(levelnum),
 			 lispCons (get_resno (tl_resdom 
 					  (match_varid (get_varid (var),
 							rtlist))),
@@ -549,22 +549,29 @@ set_join_tlist_references (join)
     List 	new_join_targetlist = LispNil;
     TLE		temp = (TLE)NULL;
     LispValue  	entry = LispNil;
+    List	inner_tlist = NULL;
+    List	outer_tlist = NULL;
     TLE	xtl = 	(TLE)NULL;
-    
-     foreach(entry,get_qptargetlist(join)) {
-	 
+    List	qptlist = get_qptargetlist(join);
+
+     foreach(entry,qptlist) {
 	 xtl = (TLE)CAR(entry);
+	 inner_tlist = ( null(inner) ? LispNil : get_qptargetlist(inner));
+	 outer_tlist = ( null(outer) ? LispNil : get_qptargetlist(outer));
+
 	 temp = MakeTLE(tl_resdom (xtl),
 			replace_clause_joinvar_refs (get_expr (xtl),
-						     get_qptargetlist(outer),
-						     get_qptargetlist(inner))
+						     outer_tlist,
+						     inner_tlist)
 			);
 	 new_join_targetlist = nappend1(new_join_targetlist,temp);
      }
 	
     set_qptargetlist (join,new_join_targetlist);
-    set_tlist_references (outer);
-    set_tlist_references (inner);
+    if ( ! null (outer))
+      set_tlist_references (outer);
+    if ( ! null (inner))
+      set_tlist_references (inner);
     
 } /* function end  */
 
