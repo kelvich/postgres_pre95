@@ -155,17 +155,13 @@ ObjectId tupleOid;
     /*
      * find the rule's name
      */
-    strcpy(ruleName.data, "No-Name");
+    (void) strcpy(ruleName.data, "No-Name");
 
     /*
      * find the scan relation's name
      */
-    /*
-     *  XXX - relname is a char16, which is a "struct".  How did this
-     *    ever work??? - marc
-     */
-    strncpy(relName.data,
-	(char *)&RelationGetRelationTupleForm(relation)->relname, 16);
+    (void) strncpy(relName.data,
+		   RelationGetRelationTupleForm(relation)->relname.data, 16);
     
     
     /*
@@ -182,13 +178,13 @@ ObjectId tupleOid;
 
     explainTupleDesc = RelationGetTupleDescriptor(explainRelation);
     explainTuple = FormHeapTuple((AttributeNumber) 4,
-				    explainTupleDesc,
-				    data,
-				    null);
+				 explainTupleDesc,
+				 data,
+				 null);
     
     /*
      * Insert the tuple
      */
     (void) RelationInsertHeapTuple(explainRelation, explainTuple,
-				    (double *) NULL);
+				   (double *) NULL);
 }
