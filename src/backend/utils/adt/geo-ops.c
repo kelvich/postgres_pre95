@@ -12,6 +12,7 @@ static char rcs_id[] =
 #include <strings.h>
 
 #include "utils/geo-decls.h"
+#include "utils/log.h"
 
 #define LDELIM		'('
 #define RDELIM		')'
@@ -108,7 +109,7 @@ box_construct(x1, x2, y1, y2)
 	BOX	*box_fill();
 
 	result = PALLOCTYPE(BOX);
-	return( box_fill(result, x1, y1, x2, y2) );
+	return( box_fill(result, x1, x2, y1, y2) );
 }
 
 
@@ -1797,4 +1798,305 @@ inter_lb(line, box)
 	BOX	*box;
 {
 	return(0);
+}
+
+/*------------------------------------------------------------------
+ * The following routines define a data type and operator class for
+ * POLYGONS .... Part of which (the polygon's bounding box is built on 
+ * top of the BOX data type.
+ *
+ * make_bound_box - create the bounding box for the input polygon
+ *------------------------------------------------------------------*/
+
+	/* Maximum number of output digits printed */
+#define P_MAXDIG 10
+
+double poly_min();
+double poly_max();
+
+BOX *
+make_bound_box(poly)
+POLYGON *poly;
+{
+	return box_construct(poly_min(poly->xpts, poly->npts),
+						poly_max(poly->xpts, poly->npts),
+						poly_min(poly->ypts, poly->npts),
+						poly_max(poly->ypts, poly->npts));
+}
+	
+/*------------------------------------------------------------------
+ * polygon_in - read in the polygon from a string specification
+ *              the string is of the form "(f8,f8,f8,f8,...,f8)"
+ *------------------------------------------------------------------*/
+POLYGON *
+poly_in(s)
+char *s;
+{
+	POLYGON *poly;
+	long points;
+	double *xp, *yp, strtod();
+	int i;
+
+	if((points = poly_pt_count(s, ',')) < 0)
+		elog(WARN, "Bad input polyon");
+
+	poly = PALLOCTYPE(POLYGON);
+	if (!PointerIsValid(poly))
+		elog(WARN, "Memory allocation failed, can't input polygon");
+
+	poly->xpts = (double *)PALLOC(points*sizeof(double));
+	poly->ypts = (double *)PALLOC(points*sizeof(double));
+
+	if (!(PointerIsValid(poly->xpts) && PointerIsValid(poly->ypts)))
+		elog(WARN, "Memory allocation failed, can't input polygon");
+
+	poly->npts = points;
+
+	xp = poly->xpts;
+	yp = poly->ypts;
+	s++;				/* skip LDELIM */
+
+	for (i=0; i<points; i++,xp++,yp++)
+	{
+		*xp = strtod(s, &s);
+		s++;					/* skip delimiter */
+		*yp = strtod(s, &s);
+		s++;					/* skip delimiter */
+	}
+	poly->boundbox = make_bound_box(poly);
+	return (poly);
+}
+
+/*-------------------------------------------------------------
+ * poly_pt_count - count the number of points specified in the
+ *                 polygon.
+ *-------------------------------------------------------------*/
+long
+poly_pt_count(s, delim)
+char *s;
+char delim;
+{
+	long total = 0;
+
+	if (*s++ != LDELIM)		/* no left delimeter */
+		return (long) -1;
+
+	while (*s && (*s != RDELIM))
+	{
+		while (*s && (*s != delim))
+			s++;
+		total++;	/* found one */
+		if (*s)
+			s++;	/* bump s past the delimiter */
+	}
+
+	/* if there was no right delimiter OR an odd number of points */
+
+	if ((*(s-1) != RDELIM) || ((total%2) != 0))
+		return (long) -1;
+
+	return (total/2);
+}
+
+/*---------------------------------------------------------------
+ * poly_out - convert internal POLYGON representation to the 
+ *            character string format "(f8,f8,f8,f8,...f8)"
+ *---------------------------------------------------------------*/
+char *
+poly_out(poly)
+POLYGON *poly;
+{
+	int i;
+	double *xp, *yp;
+	char *output, *outptr;
+
+	/*-----------------------------------------------------
+	 * Get enough space for "(f8,f8,f8,f8,...,f8)"
+	 * which P_MAXDIG+1 for each coordinate plus 2
+	 * for parens and 1 for the null
+	 *-----------------------------------------------------*/
+	output = (char *)PALLOC(2*(P_MAXDIG+1)*poly->npts + 3);
+	outptr = output;
+
+	if (!output)
+		elog(WARN, "Memory allocation failed, can't output polygon");
+
+	*outptr++ = LDELIM;
+	for (i=0,xp=poly->xpts,yp=poly->ypts; i<poly->npts; i++,xp++,yp++)
+	{
+		sprintf(outptr, "%-*.*e", P_MAXDIG, P_MAXDIG-6, *xp);
+		outptr += P_MAXDIG;
+		sprintf(outptr, "%-*.*e", P_MAXDIG, P_MAXDIG-6, *yp);
+		outptr += P_MAXDIG;
+	}
+	*outptr++ = RDELIM;
+	*outptr = '\0';
+	return (output);
+}
+
+/*-------------------------------------------------------
+ * Find the largest coordinate out of n coordinates
+ *-------------------------------------------------------*/
+double
+poly_max(coords, ncoords)
+double *coords;
+int ncoords;
+{
+	double max;
+
+	max = *coords++;
+	ncoords--;
+	while (ncoords--)
+	{
+		if (*coords > max)
+			max = *coords;
+		coords++;
+	}
+	return max;
+}
+
+/*-------------------------------------------------------
+ * Find the smallest coordinate out of n coordinates
+ *-------------------------------------------------------*/
+double
+poly_min(coords, ncoords)
+double *coords;
+int ncoords;
+{
+	double min;
+
+	min = *coords++;
+	ncoords--;
+	while (ncoords--)
+	{
+		if (*coords < min)
+			min = *coords;
+		coords++;
+	}
+	return min;
+}
+
+/*-------------------------------------------------------
+ * Is polygon A strictly left of polygon B? i.e. is
+ * the right most point of A left of the left most point
+ * of B?
+ *-------------------------------------------------------*/
+long
+poly_left(polya, polyb)
+POLYGON *polya, *polyb;
+{
+	double right, left;
+
+	right = poly_max(polya->xpts, polya->npts);
+	left = poly_min(polyb->xpts, polyb->npts);
+
+	return (right < left);
+}
+
+/*-------------------------------------------------------
+ * Is polygon A overlapping or left of polygon B? i.e. is
+ * the left most point of A left of the right most point
+ * of B?
+ *-------------------------------------------------------*/
+long
+poly_overleft(polya, polyb)
+POLYGON *polya, *polyb;
+{
+	double left, right;
+
+	left = poly_min(polya->xpts, polya->npts);
+	right = poly_max(polyb->xpts, polyb->npts);
+
+	return (left <= right);
+}
+
+/*-------------------------------------------------------
+ * Is polygon A strictly right of polygon B? i.e. is
+ * the left most point of A right of the right most point
+ * of B?
+ *-------------------------------------------------------*/
+long
+poly_right(polya, polyb)
+POLYGON *polya, *polyb;
+{
+	double right, left;
+
+	left = poly_min(polya->xpts, polya->npts);
+	right = poly_max(polyb->xpts, polyb->npts);
+
+	return (left > right);
+}
+
+/*-------------------------------------------------------
+ * Is polygon A overlapping or right of polygon B? i.e. is
+ * the right most point of A right of the left most point
+ * of B?
+ *-------------------------------------------------------*/
+long
+poly_overright(polya, polyb)
+POLYGON *polya, *polyb;
+{
+	double right, left;
+
+	right = poly_max(polya->xpts, polya->npts);
+	left = poly_min(polyb->xpts, polyb->npts);
+
+	return (right > left);
+}
+
+/*-------------------------------------------------------
+ * Is polygon A the same as polygon B? i.e. are all the
+ * points the same?
+ *-------------------------------------------------------*/
+long
+poly_same(polya, polyb)
+POLYGON *polya, *polyb;
+{
+	int i;
+	double *axp, *bxp; /* point to x coordinates for a and b */
+
+	if (polya->npts != polyb->npts)
+		return 0;
+
+	for (	i=0, axp=polya->xpts, bxp=polyb->xpts; 
+			i<polya->npts; 
+			axp++, bxp++, i++)
+	{
+		if (*axp != *bxp)
+			return 0;
+	}
+	return 1;
+}
+
+/*-----------------------------------------------------------------
+ * Determine if polygon A overlaps polygon B by determining if
+ * their bounding boxes overlap.
+ *-----------------------------------------------------------------*/
+long
+poly_overlap(polya, polyb)
+POLYGON *polya, *polyb;
+{
+	return box_overlap(polya->boundbox, polyb->boundbox);
+}
+
+/*-----------------------------------------------------------------
+ * Determine if polygon A contains polygon B by determining if A's
+ * bounding box contains B's bounding box.
+ *-----------------------------------------------------------------*/
+long
+poly_contain(polya, polyb)
+POLYGON *polya, *polyb;
+{
+	return box_contain(polya->boundbox, polyb->boundbox);
+}
+
+/*-----------------------------------------------------------------
+ * Determine if polygon A is contained by polygon B by determining 
+ * if A's bounding box is contained by B's bounding box.
+ *-----------------------------------------------------------------*/
+long
+poly_contained(polya, polyb)
+POLYGON *polya, *polyb;
+{
+	return box_contain(polya->boundbox, polyb->boundbox);
 }
