@@ -82,7 +82,6 @@ $SED 's/T_ /T_/' | \
 $CB | \
 $EGREP -v '^$'
 #$EGREP -v '^$' > $SRC.a.c
-$RM -f $SEDTMP $CTMP1
 
 #$EGREP -v '(^#|^[ 	/]*\*|typedef|Defs|inherits|})' < $SRC.h | \
 #$SED -f $SED2 | \
@@ -91,4 +90,4 @@ $RM -f $SEDTMP $CTMP1
 #$CB | \
 #$EGREP -v '^$' > $SRC.a.h
 
-$RM -f $SEDTMP $HTMP1
+$RM -f $SEDTMP $SED2 $HTMP1 $CTMP1
