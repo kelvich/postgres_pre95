@@ -7,14 +7,9 @@
  */
 
 #include "tmp/postgres.h"
+#include "utils/builtins.h"
 
 RcsId("$Header$");
-
-int itoa ARGS((int i , char *a ));
-int ltoa ARGS((long l , char *a ));
-int ftoa ARGS((double value, char *ascii, int width, int prec1, char format ));
-int atof1 ARGS((char *str , double *val ));
-
 
 /*
  *	itoa		- converts a short int to its string represention
