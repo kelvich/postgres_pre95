@@ -219,7 +219,7 @@ class (LispStr) public (Node) {
 #define stringp(foo) lispStringp(foo)
 
 #define lispIntegerp(x) \
-    ((x) ? ((bool)LISP_TYPE(x) == PGLISP_INT) : false)
+    ((x) ? (bool)(LISP_TYPE(x) == PGLISP_INT) : false)
 
 #define integerp(foo) lispIntegerp(foo)
 
