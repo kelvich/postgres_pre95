@@ -466,7 +466,7 @@ InitStdio()
  *	Be very careful with the order of calls in the InitPostgres function.
  * --------------------------------
  */
-static bool	PostgresIsInitialized = false;
+bool	PostgresIsInitialized = false;
 extern int NBuffers;
 
 /*
