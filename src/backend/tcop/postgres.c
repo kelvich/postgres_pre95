@@ -372,11 +372,16 @@ pg_eval( query_string )
     bool unrewritten = true;
 
     /* ----------------
-     *	(1) parse the request string
+     *	(1) parse the request string into a set of plans
      * ----------------
      */
     parser(query_string, parsetree_list);
 
+
+    /* ----------------
+     *	(2) rewrite the queries, as necessary
+     * ----------------
+     */
     foreach (i, parsetree_list ) {
 	LispValue parsetree = CAR(i);
 	List rewritten  = LispNil;
@@ -437,32 +442,21 @@ pg_eval( query_string )
 	lispDisplay(parsetree_list,0);
     }
 
+    /* ----------------
+     *	(3) for each parse tree, plan and execute the query or process
+     *      the utility reqyest.
+     * ----------------
+     */
     foreach(i,parsetree_list )   {
 	LispValue parsetree = CAR(i);
 	Node plan  	= NULL;
 
-	if (IsAbortedTransactionBlockState()) {
-	    /* ----------------
-	     *   the EndCommand() stuff is to tell the frontend
-	     *   that the command ended. -cim 6/1/90
-	     * ----------------
-	     */
-	    char *tag = "*ABORT STATE*";
-	    EndCommand(tag);
-	    
-	    elog(NOTICE, "(transaction aborted): %s",
-		 "queries ignored until END");
-	    
-	    return;
-	}
-	
-	/* ----------------
-	 *   process utility requests
-	 * ----------------
-	 */
 	if (atom(CAR(parsetree))) {
 	    /* ----------------
 	     *   process utility functions (create, destroy, etc..)
+	     *
+	     *   Note: we do not check for the transaction aborted state
+	     *   because that is done in ProcessUtility.
 	     * ----------------
 	     */
 	    if (! Quiet) {
@@ -474,10 +468,31 @@ pg_eval( query_string )
 			   query_string);
 	    
 	} else {
-
-  	    
 	    /* ----------------
 	     *   process queries (retrieve, append, delete, replace)
+	     *
+	     *	 Note: first check the abort state to avoid doing
+	     *   unnecessary work if we are in an aborted transaction
+	     *   block.
+	     * ----------------
+	     */
+	    if (IsAbortedTransactionBlockState()) {
+		/* ----------------
+		 *   the EndCommand() stuff is to tell the frontend
+		 *   that the command ended. -cim 6/1/90
+		 * ----------------
+		 */
+		char *tag = "*ABORT STATE*";
+		EndCommand(tag);
+	    
+		elog(NOTICE, "(transaction aborted): %s",
+		     "queries ignored until END");
+	    
+		return;
+	    }
+
+	    /* ----------------
+	     *	initialize the planner
 	     * ----------------
 	     */
 	    if (! Quiet)
@@ -573,8 +588,7 @@ PostgresMain(argc, argv)
     int		setjmp(), chdir();
     char	*getenv();
     char	parser_input[MAX_PARSE_BUFFER];
-	int	empty_buffer = 0;	
-
+    int		empty_buffer = 0;	
     
     /* ----------------
      * 	register signal handlers.
@@ -895,55 +909,63 @@ PostgresMain(argc, argv)
 	 *   (2) read and process a command. 
 	 * ----------------
 	 */
+	for (i=0; i< MAX_PARSE_BUFFER; i++) 
+	    parser_input[i] = 0;
+
 	switch (ReadCommand(parser_input)) {
 	    /* ----------------
 	     *	'F' incicates a fastpath call.
 	     *      XXX HandleFunctionRequest
 	     * ----------------
 	     */
-	  case 'F':
+	case 'F':
 	    HandleFunctionRequest();
 	    break;
+	    
 	    /* ----------------
 	     *	'Q' indicates a user query
 	     * ----------------
 	     */
-	  case 'Q':
+	case 'Q':
 	    fflush(stdout);
-	    if ( parser_input[0] ==  ' ' && parser_input[1] == '\0' )
-		{
-			empty_buffer = 1;
+
+	    if ( parser_input[0] ==  ' ' && parser_input[1] == '\0' ) {
+		/* ----------------
+		 *  if there is nothing in the input buffer, don't bother
+		 *  trying to parse and execute anything..
+		 * ----------------
+		 */
+		empty_buffer = 1;
 	    } else {
+		/* ----------------
+		 *  otherwise, process the input string.
+		 * ----------------
+		 */
 		pg_eval(parser_input);
 	    }
-		break;
-	  default:
+	    break;
+	    
+	default:
 	    elog(WARN,"unknown frontend message was recieved");
 	}
 
 	/* ----------------
 	 *   (3) commit the current transaction
+	 *
+	 *   Note: if we had an empty input buffer, then we didn't
+	 *   call pg_eval, so we don't bother to commit this transaction.
 	 * ----------------
 	 */
-	if (! Quiet) {
-	    time(&tim);
-	    printf("\tCommitTransactionCommand() at %s\n", ctime(&tim));
+	if (! empty_buffer) {
+	    if (! Quiet) {
+		time(&tim);
+		printf("\tCommitTransactionCommand() at %s\n", ctime(&tim));
+	    }
+	    CommitTransactionCommand();
+	} else {
+	    empty_buffer = 0;
+	    NullCommand();
 	}
-	if (!empty_buffer)
-		CommitTransactionCommand();
-	else
-	{
-		empty_buffer = 0;
-		NullCommand();
-	}
-
-	/*
-	 * clear the parse buffer
-	 */
-
-	for ( i = 0 ; i < MAX_PARSE_BUFFER ; i++) 
-	  parser_input[i] = 0;
-
 
 #ifdef TCOP_SHOWSTATS
 	/* ----------------
