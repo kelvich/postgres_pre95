@@ -550,7 +550,7 @@ index_innerjoin (rel,clausegroup_list,index)
 	 relattvals =                
 	   get_joinvars (CAR(get_relids(rel)),clausegroup);
 	 pagesel = 
-	   index_selectivity (CAR((LispValue)get_relids (index)),
+	   index_selectivity (CInteger(CAR(get_relids (index))),
 			      get_classlist (index),
 			      get_opnos (clausegroup),
 			      CInteger(getrelid (CInteger(CAR
