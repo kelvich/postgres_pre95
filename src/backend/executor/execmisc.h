@@ -169,7 +169,7 @@ typedef ExecSMHeaderData *ExecSMHeader;
 #define ExecIsSort(node)	IsA(node,Sort)
 #define ExecIsUnique(node)	IsA(node,Unique)
 #define ExecIsHash(node)	IsA(node,Hash)
-#define ExecIsScanTemp(node)    IsA(node,ScanTemp)
+#define ExecIsScanTemps(node)    IsA(node,ScanTemps)
 
 /* ----------------------------------------------------------------
  *	debugging structures
