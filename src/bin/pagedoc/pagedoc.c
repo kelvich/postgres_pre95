@@ -482,7 +482,16 @@ showindextup(itup)
     IndexTupleData *itup;
 {
 #ifdef TUPDEBUG
+#ifdef INT4VALUE
     int *dataptr;
+#endif
+#ifdef CHAR16VALUE
+    char *dataptr;
+#endif
+#ifdef OIDINT4VALUE
+    int *oidptr;
+    int *int4ptr;
+#endif
 #endif
     printf("heap tid <%d,0,%d> info [",
 	   ItemPointerGetBlockNumber(itup->t_tid.block), itup->t_tid.offset);
@@ -494,10 +503,19 @@ showindextup(itup)
 	printf(" HASRULES");
 #ifdef TUPDEBUG
     printf(" ] length %d", itup->t_info & ITUP_LENMASK);
+#ifdef INT4VALUE
     dataptr = (int *) (((char *) itup) + sizeof(*itup));
-
-    /* this should be changed for the appropriate datatype */
     printf("\t%d\n", *dataptr);
+#endif
+#ifdef CHAR16VALUE
+    dataptr = (char *) (((char *) itup) + sizeof(*itup));
+    printf("\t%.16s\n", *dataptr);
+#endif
+#ifdef OIDINT4VALUE
+    oidptr = (int *) (((char *) itup) + sizeof(*itup));
+    int4ptr = (int *) (((char *) itup) + sizeof(*itup) + sizeof(int));
+    printf("\t%d/%d\n", *oidptr, *int4ptr);
+#endif
 #else
     printf(" ] length %d\n", itup->t_info & ITUP_LENMASK);
 #endif
