@@ -744,7 +744,7 @@ LispValue HandleNestedDots(dots)
     ObjectId producer_relid, producer_type, first_func;
     List mutator_lisp,mutator_iter,nest,newfunc;
     int attnum;
-    Name relname = (Name)CString(CAR(dots));
+    Name relname;
     Relation rd;
     char *mutator;
     LispValue retval = LispNil;
@@ -753,28 +753,47 @@ LispValue HandleNestedDots(dots)
     ObjectId funcid;
     ObjectId functype;
     OID funcrettype;
+    LispValue first;
 
-    /* 
-    ** Get the range table slot for the relation.
-    ** Code copied from make_var()
-    */
+    /*
+     *  If this nested dot expression is hanging off a param node,
+     *  then we need to resolve the type of the parameter before
+     *  we go any further.  Otherwise, it must be hanging off a
+     *  relation name.
+     */
+
+    first = CAR(dots);
+    if (IsA(first,Param)) {
+	rd = heap_open(get_paramtype((Param)first));
+	if (!RelationIsValid(rd)) {
+	    elog(WARN,
+		 "$%d is not a complex type; illegal nested dot expression",
+		 get_paramid((Param)first));
+	}
+	relname = RelationGetRelationName(rd);
+	relid = RelationGetRelationId(rd);
+	retval = first;
+    } else {
+	relname = (Name)CString(first);
+	rd = heap_openr(relname);
+	relid = RelationGetRelationId(rd);
+	retval = (LispValue) NULL;
+    }
+
     vnum = RangeTablePosn(relname, 0);
-    if (vnum == 0)
-     {
+    if (vnum == 0) {
 	 p_rtable = nappend1 (p_rtable ,
 			      MakeRangeTableEntry ( relname , 0 , relname) );
 	 vnum = RangeTablePosn (relname, 0);
-     } 
-    rd = amopenr ( relname );
-    relid = RelationGetRelationId(rd);
+    }
 
-    retval = (LispValue) rd;
+
     /* 
     ** the producer is the relation associated with the last nesting we've 
     ** examined. At this point it's the relation at the head of the list
     */
     producer_relid = relid;
-    producer_type = relid+1;
+    producer_type = typeid(type(relname));
     nest = LispNil;
     first_func = 0;
 
@@ -869,6 +888,9 @@ LispValue HandleNestedDots(dots)
      }
     if (producer_relid != 0)
       elog(WARN, "nested dot must return a base type [temporarily]");
+
+    /* be tidy */
+    heap_close(rd);
 
     return(retval);
 }

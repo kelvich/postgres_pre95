@@ -97,7 +97,6 @@ static bool QueryIsRule = false;
 bool Input_is_string = false;
 bool Input_is_integer = false;
 bool Typecast_ok = true;
-static bool Params_ok = false;
 bool is_postquel_function = false;
 %}
 
@@ -147,7 +146,7 @@ bool is_postquel_function = false;
 %left  	'[' ']' 
 %nonassoc TYPECAST
 %nonassoc REDUCE
-%token PARAM AS BASE COMPLEX
+%token PARAM AS
 %%
 
 queryblock:
@@ -478,8 +477,6 @@ def_arg:
 	| Op
 	| NumConst
       	| Sconst
-        | BASE
-        | COMPLEX
 	;
 
 definition:
@@ -630,7 +627,6 @@ Executable:     OptimizableStmt
 	QUERY:
                 define function <fname>
                        (language = <lang>, returntype = <typename> 
- 		       finput = BASE|COMPLEX, foutput = BASE|COMPLEX,
                         [, arch_pct = <percentage | pre-defined>]
                         [, disk_pct = <percentage | pre-defined>]
                         [, byte_pct = <percentage | pre-defined>]
@@ -654,19 +650,7 @@ ProcedureStmt:
 
 		    is_postquel_function = false;
 		    if(is_postquel_func($3)) {
- 			Params_ok = true;
 			is_postquel_function = true;
-#ifdef foo
-			pfa = postquel_func_arg($3);
-			NewOrCurrentIsReally = lispString((char *)$4);
-		ADD_TO_RT ( MakeRangeTableEntry ( (Name)pfa, 
-					     LispNil,
-					     (Name)"*CURRENT*" ) );
-		ADD_TO_RT ( MakeRangeTableEntry ( (Name)pfa, 
-					     LispNil,
-					     (Name)"*NEW*" ));
-
-#endif foo
 			args = func_arg_list($3);
 			param_type_init(args);
 		    }
@@ -1883,23 +1867,24 @@ attr:
 						      (Name)CString($1)));
 		    $$ = MakeList ( $1, $3, -1 );
 		}
+	| ParamNo '.' nested_func '.' nested_dots	{
+		attr_is_nested_dots = true;
+		$$ = MakeList($1, $3, -1);
+		$$ = nappend1($$, $5);
+	    }
+        | ParamNo '.' attr_name				{
+		attr_is_nested_dots = false;
+		INC_NUM_LEVELS(1);		
+		$$ = MakeList ( $1, $3, -1 );
+	    }
 	;
 
 nested_func:
-        name
-                {
-		    $$ = $1;
-		}
+        attr_name			{ $$ = $1; }
+
 nested_dots:
-        attr_name
-                {
-		    $$ = $1;
-		}
-      | name '.' nested_dots
-                {
-		    /* check that first nested dot is valid */
-		    $$ = MakeList($1, $3, -1);
-		}
+        attr_name			{ $$ = $1; }
+      | attr_name '.' nested_dots	{ $$ = MakeList($1, $3, -1); }
       ;
 
 agg_res_target_el:
@@ -1964,7 +1949,7 @@ agg:
 
 res_target_list:
 	  res_target_list ',' res_target_el	
-		{ p_target = nappend1(p_target,$3); $$ = p_target;}
+		{ p_target = nappend1(p_target,$3); $$ = p_target; }
 	| res_target_el 			
 		{ p_target = lispCons ($1,LispNil); $$ = p_target;}
 	| relation_name '.' ALL
@@ -2138,42 +2123,27 @@ AexprConst:
 	| CCONST			{ $$ = make_const ( $1 ) ; }
 	| Sconst 			{ $$ = make_const ( $1 ) ; 
 					  Input_is_string = true; }
-        | PARAM                         {
-	    if (Params_ok) {
-		ObjectId toid;
-		int aid;
-		char temp[8];
-		
-		if (lispIntegerp($1)) {
-		    aid = CInteger($1);
-		    toid = param_type(aid);
-		    if (!ObjectIdIsValid(toid)) {
-			elog(WARN, "Parameter '$%d' is out of range",
-			     aid);
-		    }
-		    $$ = (List) lispCons(lispInteger(toid), (LispValue)
-				 MakeParam(PARAM_NUM, (AttributeNumber)aid,
-					   (Name)"foop", (ObjectId)toid));
-		} else {
-		    toid = param_type_complex(CString($1));
-		    if (!ObjectIdIsValid(toid)) {
-			elog(WARN,
-			     "'$%s' is not an attribute of current relation",
-			     CString($1));
-		    }
-		    $$ = (List) lispCons(lispInteger(toid), (LispValue)
-					 MakeParam(PARAM_NAMED, 0, CString($1),
-						   toid));
-		    
-		}
+	| ParamNo			{
+		$$ = MakeList(lispInteger(get_paramtype((Param)$1)),
+			      $1, -1);
 	    }
-	    else {
-		Params_ok = false;
-		elog(WARN, "Can't use parameters here");
-            }
-	}
 	| Pnull			 	{ $$ = LispNil; 
 					  Typecast_ok = false; }
+	;
+
+ParamNo: PARAM				{
+	    ObjectId toid;
+	    int paramno;
+	    
+	    paramno = CInteger($1);
+	    toid = param_type(paramno);
+	    if (!ObjectIdIsValid(toid)) {
+		elog(WARN, "Parameter '$%d' is out of range",
+		     paramno);
+	    }
+	    $$ = (LispValue) MakeParam(PARAM_NUM, (AttributeNumber) paramno,
+				       (Name)"<unnamed>", (ObjectId)toid);
+	  }
 	;
 
 NumConst:
@@ -2239,7 +2209,6 @@ parser_init()
 	Input_is_string = false;
 	Input_is_integer = false;
 	Typecast_ok = true;
-	Params_ok = false;
 }
 
 

@@ -27,7 +27,6 @@ letter_or_digit	[_A-Za-z0-9]
 identifier	{letter}{letter_or_digit}*
 
 param		\${digit}
-param_named	\$\.{identifier}
 self		[,()\[\].;$\:\+\-\*\/\<\>\=\|]
 op_and_self	[\~\!\@\#\%\^\&\|\`\?\$\:\+\-\*\/\<\>\=]
 op_only		[\~\!\@\#\%\^\&\`\?]
@@ -61,9 +60,6 @@ other		.
 		}
 {param}	        {       yylval = lispInteger(atoi(&yytext[1]));		
 	                return (PARAM);
-                }
-{param_named}   {       yylval = lispString(&yytext[2]);
-			return (PARAM);
                 }
 {integer}	{
 			yylval = lispInteger(atoi(yytext));		
