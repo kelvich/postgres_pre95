@@ -40,6 +40,7 @@
 #define	CLANAME		16
 #define INDRELIDKEY	17
 #define INHRELID	18
+#define PRS2PLANCODE	19
 
 /*
  *	struct cachedesc:	information needed for a call to InitSysCache()
