@@ -31,7 +31,7 @@
 #include <sys/param.h>
 #include <errno.h>
 #include <sys/stat.h>
-#if PORTNAME == bsd44
+#if defined(PORTNAME_bsd44)
 	/* 
 	 * XXX truely bogus move on 44's part - st_?time are now #defined.
 	 * So we do the expansion so as not to screw up pgstat structure.
@@ -1439,7 +1439,7 @@ int FileStat(file,stbuf)
 	stbuf->st_uid = ustatbuf.st_uid;
 	stbuf->st_size = ustatbuf.st_size;
 	stbuf->st_sizehigh = 0;
-#if PORTNAME == bsd44
+#if defined(PORTNAME_bsd44)
 	/* 
 	 * XXX truely bogus move on 44's part - st_?time are now #defined.
 	 * So we do the expansion.
