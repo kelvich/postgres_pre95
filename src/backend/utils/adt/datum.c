@@ -31,6 +31,12 @@
 #include "catalog/pg_type.h"
 #include "utils/log.h"
 
+/* datum.c */
+Size datumGetSize ARGS((Datum value , ObjectId type , bool byVal , Size len ));
+Datum datumCopy ARGS((Datum value , ObjectId type , bool byVal , Size len ));
+void datumFree ARGS((Datum value , ObjectId type , bool byVal , Size len ));
+bool datumIsEqual ARGS((Datum value1 , Datum value2 , ObjectId type , bool byVal , Size len ));
+
 /*-------------------------------------------------------------------------
  * datumGetSize
  *
