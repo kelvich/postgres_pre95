@@ -91,7 +91,7 @@ extern PortalEntry *portals[];
  * Exceptions.
  */
 
-#define libpq_raise(X, Y)	raise4((X), 0, NULL, (Y))
+#define libpq_raise(X, Y) ExcRaise((X), (Y))
 
 extern Exception MemoryError, PortalError, PostquelError, ProtocolError;
 
