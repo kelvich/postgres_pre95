@@ -10,7 +10,7 @@
 #	.undef BIGOBJS
 # in the file obj/Makefile.global in your main tree.
 #
-BIGOBJS= true
+#BIGOBJS= true
 
 .include <postgres.global.mk>
 
@@ -97,7 +97,7 @@ SRCS:=
 .endif
 .include "${.CURDIR}/port/Makefile.inc"
 .if defined (BIGOBJS)
-OBJS_PORT:= ${SRCS:S/.c/.o/g}
+OBJS_PORT:= ${SRCS:S/.c/.o/g:S/.s/.o/g}
 SRCS_PORT:= ${SRCS}
 SRCS:=
 .endif
