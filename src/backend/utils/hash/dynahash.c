@@ -34,9 +34,18 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.1  1991/01/18 22:32:39  hong
-    Initial revision
+    Revision 1.2  1991/01/19 14:31:31  cimarron
+    made some corrections to memory allocation routines --
+    added a DynaHashCxt so that allocations not associated with
+    the caches clutter up the cache context and changed MEM_ALLOC
+    and MEM_FREE macros appropriately.  Note: the old code explicitly
+    allocated things in the CacheCxt but then used pfree() -- this
+    is an error unless you are in the CacheCxt when you call pfree()
+    because it uses the current memory context..  
 
+ * Revision 1.1  91/01/18  22:32:39  hong
+ * Initial revision
+ * 
  * Revision 3.1  90/02/23  15:02:24  margo
  * New version -- tests hash interface.  Turns off debug statements but still 
  * collects hash statistics.
@@ -70,41 +79,50 @@
  * external routines
  */
 
-/*  can't use these in postgres */
-/* 
-extern int *malloc();
-extern int free();
-*/
-
-extern char *palloc();
-extern GlobalMemory CacheCxt, CreateGlobalMemory();
-/* for postgres: all hash elements have to be in
+/* ----------------
+ * memory allocation routines
+ *
+ * for postgres: all hash elements have to be in
  * the global cache context.  Otherwise the postgres
- * garbage collector is going to corrupt them.
+ * garbage collector is going to corrupt them. -wei
+ *
+ * ??? the "cache" memory context is intended to store only
+ *     system cache information.  The user of the hashing
+ *     routines should specify which context to use or we
+ *     should create a separate memory context for these
+ *     hash routines.  For now I have modified this code to
+ *     do the latter -cim 1/19/91
+ * ----------------
  */
+extern Pointer 		MemoryContextAlloc();
+extern void    		MemoryContextFree();
+extern GlobalMemory 	CreateGlobalMemory();
+GlobalMemory DynaHashCxt = (GlobalMemory) NULL;
+
 int *
-CacheAlloc(size)
-unsigned int size;
+DynaHashAlloc(size)
+    unsigned int size;
 {
-  int *tmp;
-  MemoryContext         oldcxt;
+    if (! DynaHashCxt)
+	DynaHashCxt = CreateGlobalMemory("DynaHash");
 
-  if (!CacheCxt)
-     CacheCxt = CreateGlobalMemory("Cache");
-  oldcxt = MemoryContextSwitchTo(CacheCxt);
-
-  tmp = (int*)palloc(size);
-
-  (void) MemoryContextSwitchTo(oldcxt);
-  return(tmp);
-
+    return (int *)
+	MemoryContextAlloc(DynaHashCxt, size);
 }
 
-#define MEM_ALLOC	CacheAlloc
-#define MEM_FREE	pfree
+void
+DynaHashFree(ptr)
+    Pointer ptr;
+{
+    MemoryContextFree(DynaHashCxt, ptr);
+}
 
-/*
+#define MEM_ALLOC	DynaHashAlloc
+#define MEM_FREE	DynaHashFree
+
+/* ----------------
  * Internal routines
+ * ----------------
  */
 
 int string_hash();
