@@ -15,6 +15,7 @@
 #include <strings.h>
 #include "rules/prs2.h"
 #include "utils/log.h"
+#include "utils/palloc.h"
 
 /*-------------------------------------------------------------
  * these routines are local to this file.
