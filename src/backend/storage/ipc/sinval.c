@@ -5,13 +5,12 @@
 
 /* #define INVALIDDEBUG	1 */
 
-#include "postgres.h"	    /* XXX */
+#include "tmp/postgres.h"
 
-#include "log.h"
-#include "sinvaladt.h"
-#include "plm.h"
-
-#include "sinval.h"
+#include "storage/sinval.h"
+#include "storage/sinvaladt.h"
+#include "storage/plm.h"
+#include "utils/log.h"
 
 RcsId("$Header$");
 

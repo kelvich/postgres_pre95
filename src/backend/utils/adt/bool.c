@@ -3,11 +3,11 @@
  * 	Functions for the built-in type "bool".
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "palloc.h"
+#include "utils/palloc.h"
 
 	    /* ========== USER I/O ROUTINES ========== */
 

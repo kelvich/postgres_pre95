@@ -4,12 +4,13 @@
  * 	Functions for the built-in type "char16".
  */
 
-#include "c.h"
+#include <strings.h>
+
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include <strings.h>
-#include "palloc.h"
+#include "utils/palloc.h"
 
 	    /* ========== USER I/O ROUTINES ========== */
 
