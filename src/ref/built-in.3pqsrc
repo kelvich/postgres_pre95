@@ -36,6 +36,7 @@ described in this section.
 	char	character	*
 	char16	array of 16 characters	*
 	cid	command identifier type	*
+	filename	large object filename	*
 	int2	two-byte signed integer	*
 	int28	array of 8 int2	*
 	int4	four-byte signed integer	*
@@ -44,15 +45,17 @@ described in this section.
 	lseg	2-dimensional line segment
 	oid	object identifier type	*
 	oid8	array of 8 oid	*
+	oidchar16	oid and char16 composed	*
+	oidint4	oid and int4 composed	*
 	path	variable-length array of lseg
 	point	2-dimensional geometric point
+	polygon	2-dimensional polygon
 	regproc	registered procedure	*
 	reltime	relative date and time	*
+	smgr	storage manager	*
 	text	variable length array of characters	*
 	tid	tuple identifier type	*
 	tinterval	time interval	*
-	uint2	two-byte unsigned integer	*
-	uint4	four-byte unsigned integer	*
 	xid	transaction identifier type	*
 .fi
 .in
