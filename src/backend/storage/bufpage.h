@@ -128,7 +128,7 @@ PageIsUsed ARGS((
  *	Initializes the logical pages associated with a buffer.
  */
 extern
-PagePartition
+void
 BufferInitPage ARGS((
 	Buffer		buffer,
 	PageSize	pageSize
@@ -205,6 +205,28 @@ PageInit ARGS((
 	Page		page,
 	PageSize	pageSize,
 	SpecialSize	specialSize
+));
+
+/*
+ * PageGetTempPage --
+ *	Get a temporary page in local memory for special processing
+ */
+extern
+Page
+PageGetTempPage ARGS((
+	Page	oldPage
+));
+
+/*
+ * PageRestoreTempPage --
+ *	Copy temporary page back to permanent page after special processing
+ *	and release the temporary page.
+ */
+extern
+void
+PageRestoreTempPage ARGS((
+	Page	tempPage,
+	Page	oldPage
 ));
 
 /*
