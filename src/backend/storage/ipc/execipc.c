@@ -364,6 +364,9 @@ V_FinishedAbort()
     Exec_V(ExecutorMasterSemaphore, value);
 }
 
+ProcGroupInfo ProcGroupInfoP;  /* have to define it here for postmaster to
+				  be happy to link, dumb!  */
+
 void
 V_Finished(groupid)
 int groupid;
@@ -371,9 +374,16 @@ int groupid;
     if (ProcGroupInfoP[groupid].countdown <= 0) {
 	elog(WARN, "Process group countdown to negative. \n");
       }
+#ifdef sequent
     S_LOCK(&(ProcGroupInfoP[groupid].lock));
+#else
+    Assert(0); /* you are not supposed to call this routine if you are not
+		  running on sequent */
+#endif
     ProcGroupInfoP[groupid].countdown--;
+#ifdef sequent
     S_UNLOCK(&(ProcGroupInfoP[groupid].lock));
+#endif
     if (ProcGroupInfoP[groupid].countdown == 0) {
 	/* ----------------
 	 *  the last slave wakes up the master
