@@ -17,24 +17,27 @@
  *     		fix-targetlist
  */
 
-#include "c.h"
+#include "tmp/c.h"
+
+#include "nodes/nodes.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/execnodes.h"
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+
+#include "parser/parse.h"
+#include "parser/parsetree.h"
+#include "tmp/utilities.h"
+#include "utils/log.h"
+#include "utils/lsyscache.h"
+
 #include "planner/internal.h"
-#include "pg_lisp.h"
-#include "relation.h"
-#include "relation.a.h"
-#include "planner/prepunion.h"
-#include "planner/planner.h"
-#include "plannodes.h"
-#include "plannodes.a.h"
-#include "parsetree.h"
-#include "parse.h"
-#include "lsyscache.h"
-#include "utilities.h"
 #include "planner/cfi.h"
 #include "planner/plancat.h"
-#include "execnodes.h"
-#include "nodes.h"
-#include "log.h"
+#include "planner/planner.h"
+#include "planner/prepunion.h"
 
 /* ----------------
  *	Append creator declaration
