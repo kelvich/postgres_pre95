@@ -167,8 +167,8 @@ VersionRetrieve(vname,bname)
 
   sprintf(rule_buf, 
 	  "define rule %s_retrieve is on retrieve to %s do instead\n\
-retrieve (%s_1.all) from %s_1 in (%s_added | %s) where %s.oid !!= \"%s_del.DOID\"",
-	  vname, vname, vname, vname, vname, bname,vname,vname);
+retrieve (%s_1.all) from %sb in %s, %s_1 in (%s_added | %sb) where %sb.oid !!= \"%s_del.DOID\"",
+	  vname, vname, vname, bname, bname, vname, vname, bname,vname,vname);
 
   printf("%s\n",rule_buf);
 
