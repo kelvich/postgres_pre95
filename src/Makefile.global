@@ -315,6 +315,7 @@ CFLAGS+= -DPOSTPORT='"4321"'
 # are supported outside of UC Berkeley.
 #
 CFLAGS+= -DSEQUOIA
+ALLOW_PG_GROUP=
 
 
 #

@@ -28,8 +28,9 @@ HEADERS+= catname.h indexing.h pg_aggregate.h \
 #  (not sure if i got this right - which do i need - or should i 
 #   burn the whole damned thing)
 #
-CFLAGS+= -DALLOW_PG_GROUP
+.if defined(ALLOW_PG_GROUP)
 BKIOPTS= -DALLOW_PG_GROUP
+.endif
 
 GENBKI= ${CATD}/genbki.sh
 BKIFILES= global1.bki local1_template1.bki 
