@@ -221,14 +221,11 @@ done:
     (void) close(dbfd);
     pfree(pg);
 
-    /* ----------------
-     *	don't know why this is here -- historical artifact.  --mao 
-     * ----------------
-     */
-    if (ObjectIdIsValid(MyDatabaseId))
-	LockDisable(false);
-    else
-	LockDisable(true);
+    if (!ObjectIdIsValid(MyDatabaseId))
+	elog(FATAL,
+	     "Database %s does not exist in %s",
+	     MyDatabaseName,
+	     &DatabaseRelationName->data[0]);
 }
 
 /* ----------------
@@ -599,6 +596,13 @@ InitPostgres(name)
     AmiTransactionOverride(IsBootstrapProcessingMode());
     LockDisable(true);
 
+    /*
+     * Part of the initialization processing done here sets a read
+     * lock on pg_log.  Since locking is disabled the set doesn't have
+     * intended effect of locking out writers, but this is ok, since
+     * we only lock it to examine AMI transaction status, and this is
+     * never written after initdb is done. -mer 15 June 1992
+     */
     RelationInitialize();	   /* pre-allocated reldescs created here */
     InitializeTransactionSystem(); /* pg_log,etc init/crash recovery here */
     
