@@ -9,7 +9,7 @@
  */
 
 #include <stdio.h>
-#include <strings.h>
+#include <string.h>
 
 #include "access/heapam.h"
 #include "access/tqual.h"	/* for NowTimeQual */
@@ -97,7 +97,6 @@ intltsel(opid, relid, attno, value, flag)
 	float64 	result;
 	char		*highchar, *lowchar;
 	long		val, high, low, top, bottom;
-	extern long	atol();
 
 	result = (float64) palloc(sizeof(float64data));
 	if (NONVALUE(attno) || NONVALUE(relid))
