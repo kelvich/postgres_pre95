@@ -5,15 +5,16 @@
  *	optical disk jukebox.
  */
 
-#include <sys/file.h>
-
 #include "tmp/c.h"
 #include "tmp/postgres.h"
 
 #ifdef SONY_JUKEBOX
 
+#include <sys/file.h>
 #include <math.h>
 #include "machine.h"
+
+#include "tmp/miscadmin.h"
 
 #include "storage/ipc.h"
 #include "storage/ipci.h"
@@ -121,7 +122,6 @@ static void		_sjdump();
 extern HTAB	*ShmemInitHash();
 extern int	*ShmemInitStruct();
 extern int	tag_hash();
-extern char	*getenv();
 extern Relation	RelationIdGetRelation();
 
 /*
@@ -228,9 +228,7 @@ sjinit()
     /* don't need exclusive access anymore */
     SpinRelease(SJCacheLock);
 
-    if ((pghome = getenv("POSTGRESHOME")) == (char *) NULL)
-	pghome = "/usr/postgres";
-
+    pghome = GetPGHome();
     sprintf(path, "%s/data/%s", pghome, SJCACHENAME);
 
     SJCacheVfd = PathNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0600);
