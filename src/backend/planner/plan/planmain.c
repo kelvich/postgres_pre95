@@ -274,19 +274,23 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	  else 
 	    return (plan);
      }
-	/*    Remodify the target list of the subplan so it no longer is */
-	/*    'flattened', unless this has already been done in create_plan */
-	/*    for a path that had to be explicitly sorted. */
 
-     if ( 1 == maxlevel &&
-	 !(IsA(subplan,Temp) || 
-	   (IsA(subplan,SeqScan) && 
-	    get_lefttree(subplan) && 
-	    IsA (get_lefttree (subplan),Temp)))) {
-	  set_qptargetlist (subplan,
-			    flatten_tlist_vars (tlist,
+     /*
+      * fix up the flattened target list of the plan root node so that
+      * expressions are evaluated.  this forces expression evaluations
+      * that may involve expensive function calls to be delayed to
+      * the very last stage of query execution.  this could be bad.
+      * but it is joey's responsibility to optimally push these
+      * expressions down the plan tree.  -- Wei
+      */
+     set_qptargetlist (subplan, flatten_tlist_vars (tlist,
 						get_qptargetlist (subplan)));
-	}
+     /*
+      * Destructively modify the query plan's targetlist to add fjoin
+      * lists to flatten functions that return sets of base types
+      */
+     set_qptargetlist(subplan, generate_fjoin(get_qptargetlist(subplan)));
+
 	/*    If a sort is required, explicitly sort this subplan since: */
 	/*    there is only one level of attributes in this query, and */
 	/*the sort spans across expressions and/or multiple relations and so */
@@ -373,7 +377,7 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 	  pathlist = get_pathlist(final_relation);
 	  foreach (x, pathlist) {
 	      path = (Path)CAR(x);
-	      plan = create_plan(path, original_tlist);
+	      plan = create_plan(path);
 	      planlist = nappend1(planlist, (LispValue)plan);
 	    }
 	  chooseplan = RMakeChoose();
@@ -381,12 +385,11 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 	  set_qptargetlist((Plan)chooseplan, get_qptargetlist(plan));
 	  return (Plan)chooseplan;
 	}
-      return (create_plan ((Path)get_cheapestpath (final_relation),
-			   original_tlist));
+      return (create_plan ((Path)get_cheapestpath (final_relation)));
      }
     else {
 	printf(" Warn: final relation is nil \n");
-	return(create_plan ((Path)NULL, original_tlist));
+	return(create_plan ((Path)NULL));
     }
     
 }  /* function end  */
