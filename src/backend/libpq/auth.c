@@ -56,6 +56,7 @@
 #include <stdio.h>
 #include <strings.h>
 #include <sys/param.h>	/* for MAX{HOSTNAME,PATH}LEN, NOFILE */
+#include <pwd.h>
 
 #include "libpq/auth.h"
 #include "tmp/pqcomm.h"
@@ -710,7 +711,21 @@ fe_getauthname()
 		break;
 #endif
 	case STARTUP_MSG:
-		name = getenv("USER");	/* getpwnam(getuid()) maybe??? */
+#if 0
+		/*
+		 * mao thinks of this as a convenience.
+		 * marc thinks it's a crock.  whatever...
+		 */
+		name = getenv("USER");
+#endif
+		{
+		    struct passwd *pw = getpwuid(getuid());
+		    if (pw &&
+			pw->pw_name &&
+			(name = (char *) malloc(strlen(pw->pw_name) + 1))) {
+			(void) strcpy(name, pw->pw_name);
+		    }
+		}
 		break;
 	default:
 		fprintf(stderr, "fe_getauthname: invalid authentication system: %d\n",
