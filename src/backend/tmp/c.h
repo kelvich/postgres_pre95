@@ -80,6 +80,7 @@
 #ifdef SEQUOIA
 #define SONY_JUKEBOX
 #define MAIN_MEMORY
+#define JAQUITH
 #endif
 
 /* ----------------
