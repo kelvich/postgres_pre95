@@ -322,6 +322,8 @@ void
 createrel(name)
     char *name;
 {
+    ObjectId toid;
+
     if (strlen(name) > 79) 
 	name[79] ='\000';
     
@@ -338,6 +340,10 @@ createrel(name)
 	    elog(WARN,"Warning: cannot create relation %s.\n", relname);
 	    elog(WARN,"         Probably should delete old %s.\n", relname);
 	}
+	toid = TypeDefine(relname, reldesc->rd_id, -1, -1, 'c', ',',
+			  "textin", "textout", "textin", "textout",
+			  NULL, "-", (Boolean) 0);
+
     }
 }
 
