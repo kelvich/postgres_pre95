@@ -23,6 +23,8 @@ typedef struct ScanKeyEntryData {
 	bits16		flags;
 	AttributeNumber	attributeNumber;
 	RegProcedure	procedure;
+	int (*func) ();
+	int32 nargs;
 	Datum		argument;
 } ScanKeyEntryData;
 
@@ -118,6 +120,8 @@ struct	skey {
 	int16	sk_flags;	/* flags */
 	int16	sk_attnum;	/* domain number */
 	OID	sk_opr;		/* procedure OID */
+	int (*func) ();
+	int32 nargs;
 	DATUM	sk_data;	/* data to compare */
 };
 
