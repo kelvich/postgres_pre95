@@ -101,6 +101,7 @@ extern int OidGenLockId;
  * ----------------
  */
 extern bool	BuildingBtree;
+extern bool	VacuumRunning;
 
 /* ----------------
  *	recovery checking accessors
@@ -639,6 +640,9 @@ TransactionIdAbort(transactionId)
     TransactionId transactionId;
 {
     BuildingBtree = false;
+
+    if (VacuumRunning)
+	vc_abort();
 
     if (AMI_OVERRIDE)
 	return;
