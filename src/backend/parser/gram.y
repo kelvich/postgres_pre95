@@ -65,7 +65,18 @@ static YYSTYPE temp;
 
 int NumLevels = 0;
 
+#ifndef PORTNAME_hpux
 YYSTYPE yylval;
+#else /* PORTNAME_hpux */
+/*
+ * HPUX yacc kindly redefines yylval for us later in the file.
+ *
+ * if you need access to certain yacc-generated variables and find that 
+ * they're static by default, uncomment the next line.  (this is not a
+ * problem, yet.)
+ */
+/*#define __YYSCLASS*/
+#endif /* PORTNAME_hpux */
 
 YYSTYPE p_target,
         p_qual,
