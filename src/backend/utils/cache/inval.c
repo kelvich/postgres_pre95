@@ -1,6 +1,8 @@
 /* ----------------------------------------------------------------
  * inval.c --
  *	POSTGRES cache invalidation dispatcher code.
+ *
+ * Note - this code is real crufty...
  * ----------------------------------------------------------------
  */
 #include "tmp/postgres.h"
@@ -80,7 +82,7 @@ InvalidationEntryAllocate(size)
 {
     InvalidationEntryData	*entryDataP;
     entryDataP = (InvalidationEntryData *)
-	malloc(sizeof entryDataP->nextP + size);	/* XXX alignment */
+	malloc(sizeof (*char) + size);	/* XXX alignment */
     entryDataP->nextP = NULL;
     return ((Pointer) &entryDataP->userData);
 }
