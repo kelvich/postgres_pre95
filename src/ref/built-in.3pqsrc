@@ -72,7 +72,7 @@ where	Month is Jan, Feb, ..., Dec
 	Hour is 01, 02, ..., 24
 	Minute is 00, 01, ..., 59
 	Second is 00, 01, ..., 59
-	Year is 1902, 1903, ..., 2038
+	Year is 1970, 1971, ..., 2038
 .)l
 .lp
 Valid dates are, therefore, Jan 1 00:00:00 1970 GMT to Jan 1 00:00:00 2038 GMT.
