@@ -83,6 +83,7 @@
 
 #include "tmp/c.h"
 #include "tmp/postgres.h"
+#include "tmp/simplelists.h"
 #include "tmp/libpq.h"
 #include "tmp/libpq-fs.h"
 /*#include "utils/large_object.h"*/
