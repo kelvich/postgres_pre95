@@ -143,59 +143,58 @@ SendFunctionResult ( fid, retval, retsize )
 int
 HandleFunctionRequest()
 {
-    int xactid;
-    int fid;
-    char function_name[MAX_FUNC_NAME_LENGTH+1];
-    char *retval;		/* XXX - should be datum, maybe ? */
-    HeapTuple protup;
-    HeapTuple typtup;
-    Form_pg_proc proform;
-    Form_pg_type typform;
-    bool byval;
-    int  arg[8];
-    int  arg_length[8];
-    int  retsize;
-    int  nargs;
-    int  i;
-    unsigned char palloced;
+    ObjectId		fid;
+    char		function_name[MAX_FUNC_NAME_LENGTH+1];
+    HeapTuple		htp;
+    ObjectId		prorettype;
+    bool		typbyval;
+    Count		nargs;
+    char		*arg[8];
+    char		*retval;
+    Size		retsize;
+    int			i;
+    uint32		palloced;
+    char		*p;
 
-    xactid = pq_getint(4);
-    fid = pq_getint(4);
-    retsize = pq_getint(4);
-    nargs = pq_getint(4);
+    (void) pq_getint(4);		/* xactid */
+    fid = (ObjectId) pq_getint(4);	/* function oid */
+    retsize = (Size) pq_getint(4);	/* size of return value */
+    nargs = (Count) pq_getint(4);	/* # of arguments */
 
     /*
      *  Copy arguments into arg vector.  If we palloc() an argument, we need
-     *  to remember, so that we pfree() it after the call.  Elsewhere, we
-     *  hardwire nargs <= 8, so palloced is an eight-bit flag vector.
+     *  to remember, so that we pfree() it after the call.
      */
-
     palloced = 0x0;
-    for (i = 0 ; i < nargs ; i++ ) {
-	arg_length[i] = pq_getint(4);
-	
-	if (arg_length[i] == VAR_LENGTH_ARG ) {
-	    char *data = (char *) palloc(MAX_STRING_LENGTH);
-	    palloced |= (1 << i);
-	    pq_getstr(data,MAX_STRING_LENGTH);
-	    arg[i] = (int) data;
-	} else if (arg_length[i] > 4)  {
-	    char *vl;
-/*	    elog(WARN,"arg_length of %dth argument too long",i);*/
-	    vl = palloc(arg_length[i]);
-	    palloced |= (1 << i);
-	    VARSIZE(vl) = arg_length[i]+4;
-	    pq_getnchar(VARDATA(vl),0,arg_length[i]);
-	    arg[i] = (int)vl;
+    for (i = 0; i < MAXFMGRARGS; ++i) {
+	if (i >= nargs) {
+	    arg[i] = (char *) NULL;
 	} else {
-	    arg[i] = pq_getint ( arg_length[i]);
+	    Size argsize = (Size) pq_getint(4);
+	    
+	    if (argsize == VAR_LENGTH_ARG) {	/* string */
+		if (!(p = palloc(MAX_STRING_LENGTH)))
+		    elog(WARN, "HandleFunctionRequest: palloc failed");
+		palloced |= (1 << i);
+		pq_getstr(p, MAX_STRING_LENGTH);
+		arg[i] = p;
+	    } else if (argsize > 4)  {		/* by-reference */
+		if (!(p = palloc(argsize + sizeof(VARSIZE(p)))))
+		    elog(WARN, "HandleFunctionRequest: palloc failed");
+		palloced |= (1 << i);
+		VARSIZE(p) = argsize + sizeof(VARSIZE(p));
+		pq_getnchar(VARDATA(p), 0, argsize);
+		arg[i] = p;
+	    } else {				/* by-value */
+		arg[i] = (char *) pq_getint(argsize);
+	    }
 	}
     }
 
     if (retsize == PORTAL_RESULT) {
 	/* fake it out by putting the stuff out first */
-	pq_putnchar("V",1);
-	pq_putint(0,4);
+	pq_putnchar("V", 1);
+	pq_putint(0, 4);
     }
 
     /*
@@ -203,26 +202,27 @@ HandleFunctionRequest()
      *  it's pass-by-value or pass-by-reference.  Pass-by-ref values need
      *  to be pfree'd before we exit this routine.
      */
+    htp = SearchSysCacheTuple(PROOID, (char *) fid,
+			      (char *) NULL, (char *) NULL, (char *) NULL);
+    if (!HeapTupleIsValid(htp))
+	elog(WARN, "HandleFunctionRequest: procedure id %d does not exist",
+	     fid);
+    prorettype = ((Form_pg_proc) GETSTRUCT(htp))->prorettype;
+    htp = SearchSysCacheTuple(TYPOID, (char *) prorettype,
+			      (char *) NULL, (char *) NULL, (char *) NULL);
+    if (!HeapTupleIsValid(htp))
+	elog(WARN, "HandleFunctionRequest: return type %d for procedure %d does not exist",
+	     prorettype, fid);
+    typbyval = ((Form_pg_type) GETSTRUCT(htp))->typbyval;
+    
+    retval = fmgr(fid,
+		  arg[0], arg[1], arg[2], arg[3],
+		  arg[4], arg[5], arg[6], arg[7]);
 
-    protup = SearchSysCacheTuple(PROOID, (char *) fid, NULL, NULL, NULL);
-    if (!HeapTupleIsValid(protup))
-	elog(WARN, "fastpath: procedure id %d does not exist", fid);
-    proform = (Form_pg_proc) GETSTRUCT(protup);
-    typtup = SearchSysCacheTuple(TYPOID, (char *) proform->prorettype,
-					 NULL, NULL, NULL);
-    if (!HeapTupleIsValid(typtup))
-	elog(WARN, "fastpath: return type %d for procedure %d does not exist",
-		   proform->prorettype, fid);
-    typform = (Form_pg_type) GETSTRUCT(typtup);
-    byval = typform->typbyval;
-
-    retval = fmgr (fid, arg[0],arg[1],arg[2],arg[3],
-		   arg[4],arg[5],arg[6],arg[7] );
-
-    /* release palloc'ed arguments */
-    for (i = 0; i < nargs; i++) {
+    /* free palloc'ed arguments */
+    for (i = 0; i < nargs; ++i) {
 	if (palloced & (1 << i))
-	    pfree((Pointer)arg[i]);
+	    pfree(arg[i]);
     }
 
     /*
@@ -230,10 +230,9 @@ HandleFunctionRequest()
      *  we return the data to the user.  If the return value was palloc'ed,
      *  then it must also be freed.
      */
-
     if (retsize != PORTAL_RESULT) {
-	SendFunctionResult ( fid, retval, retsize );
-	if (!byval)
+	SendFunctionResult(fid, retval, retsize);
+	if (!typbyval)
 	    pfree(retval);
     }
 }
