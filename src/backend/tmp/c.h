@@ -656,8 +656,10 @@ ExceptionalCondition ARGS((
  * NO_ASSERT_CHECKING, if defined, turns off all the assertions.
  * - plai  9/5/90
  *
+ * It should _NOT_ be undef'ed in releases or in benchmark copies
+ * 
+ * #undef NO_ASSERT_CHECKING
  */
-#undef NO_ASSERT_CHECKING
 
 /*
  * Trap --
