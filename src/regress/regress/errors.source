@@ -164,13 +164,13 @@ remove aggregate nonesuch
  * REMOVE FUNCTION
  */
 /* missing function name */
-remove function
+remove function ()
 \g
 /* bad function name */
-remove function 314159
+remove function 314159()
 \g
 /* no such function */
-remove function nonesuch
+remove function nonesuch()
 \g
 
 /*

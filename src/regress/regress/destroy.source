@@ -7,35 +7,35 @@
 /*
  * FUNCTION REMOVAL
  */
-remove function hobbies
+remove function hobbies(person)
 \g
-remove function hobby_construct
+remove function hobby_construct(text,text)
 \g
-remove function equipment
+remove function equipment(hobbies_r)
 \g
-remove function user_relns
+remove function user_relns()
 \g
-remove function circle_in
+remove function circle_in(char16)
 \g
-remove function circle_out
+remove function circle_out(circle)
 \g
-remove function pt_in_circle
+remove function pt_in_circle(point,circle)
 \g
-remove function overpaid
+remove function overpaid(emp)
 \g
-remove function boxarea
+remove function boxarea(box)
 \g
-remove function interpt_pp
+remove function interpt_pp(path,path)
 \g
-remove function reverse_c16
+remove function reverse_c16(char16)
 \g
-remove function ufp0
+remove function ufp0()
 \g
-remove function ufp1
+remove function ufp1(int4)
 \g
-remove function ufp2
+remove function ufp2(char16,char16)
 \g
-remove function ufp3
+remove function ufp3(text,char)
 \g
 
 /*
