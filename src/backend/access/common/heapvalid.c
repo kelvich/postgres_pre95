@@ -33,6 +33,7 @@
 
 #include "storage/buf.h"
 #include "storage/bufmgr.h"
+#include "storage/bufpage.h"
 #include "storage/itemid.h"
 #include "storage/page.h"
 #include "utils/fmgr.h"
@@ -82,8 +83,8 @@ heap_keytest(t, tupdesc, nkeys, keys)
  *	heap_tuple_satisfies
  *
  *  Returns a valid HeapTuple if it satisfies the timequal and keytest.
- *  Returns NULL otherwise.  Used to be heap_satisifies which returned a
- *  boolean.  It now returns a tuple so that we can avoid doing two
+ *  Returns NULL otherwise.  Used to be heap_satisifies (sic) which
+ *  returned a boolean.  It now returns a tuple so that we can avoid doing two
  *  PageGetItem's per tuple.
  *
  *	Complete check of validity including LP_CTUP and keytest.
@@ -93,10 +94,10 @@ heap_keytest(t, tupdesc, nkeys, keys)
  */
 
 HeapTuple
-heap_tuple_satisfies(itemId, relation, buffer, qual, nKeys, key)
+heap_tuple_satisfies(itemId, relation, disk_page, qual, nKeys, key)
     ItemId	itemId;
     Relation relation;
-    Buffer	buffer;
+    PageHeader disk_page;
     TimeQual	qual;
     ScanKeySize	nKeys;
     struct skey	*key;
@@ -105,10 +106,9 @@ heap_tuple_satisfies(itemId, relation, buffer, qual, nKeys, key)
 
     if (! ItemIdIsUsed(itemId) ||
 	ItemIdIsContinuation(itemId) || ItemIdIsLock(itemId))
-	return false;
+	return NULL;
 
-    tuple = (HeapTuple)
-	PageGetItem(BufferGetBlock(buffer), itemId);
+    tuple = (HeapTuple) PageGetItem(disk_page, itemId);
 
     if (relation->rd_rel->relkind == 'u'
      || HeapTupleSatisfiesTimeQual(tuple,qual))
