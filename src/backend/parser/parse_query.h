@@ -8,9 +8,9 @@ extern LispValue ExpandAll ARGS((Name relname, int *this_resno));
 extern LispValue MakeTimeRange ARGS((LispValue datestring1, LispValue datestring2, int timecode));
 extern LispValue make_op ARGS((LispValue op, LispValue ltree, LispValue rtree));
 extern LispValue make_var  ARGS((Name relname, Name attrname));
-/* LispValue SkipForwardToFromList ARGS((void)); */
-/* LispValue SkipBackToTlist ARGS((void)); */
-/* LispValue SkipForwardPastFromList ARGS((void)); */
+SkipForwardToFromList ARGS((void));
+LispValue SkipBackToTlist ARGS((void));
+LispValue SkipForwardPastFromList ARGS((void));
 StripRangeTable ARGS((void));
 extern LispValue make_const ARGS((LispValue value));
 extern LispValue make_param ARGS((int paramKind, char * relationName, char *attrName));
