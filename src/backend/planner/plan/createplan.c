@@ -930,6 +930,8 @@ make_hashjoin(tlist,qpqual,hashclauses,lefttree,righttree)
     set_righttree(node,righttree);
     set_ruleinfo(node, (JoinRuleInfo) NULL);
     set_hashclauses(node,hashclauses);
+    set_hashjointable(node, NULL);
+    set_hashdone(node, false);
 
     return(node);
 }
@@ -945,10 +947,12 @@ make_hash (tlist, hashkey, lefttree)
 
     set_cost ( node , 0.0 );
     set_fragment ( node, 0 );
+    set_parallel (node, 1);
     set_state (node, (EState)NULL);
     set_qpqual (node,LispNil);
     set_qptargetlist (node,tlist);
     set_hashkey(node, hashkey);
+    set_hashtable(node, NULL);
     set_lefttree(node,lefttree);
     set_righttree(node,LispNil);
 
@@ -993,6 +997,7 @@ make_sort (tlist,tempid,lefttree, keycount)
 
     set_cost ( node , 0.0 );
     set_fragment ( node, 0 );
+    set_parallel (node, 1);
     set_state (node, (EState)NULL);
     set_qpqual (node,LispNil);
     set_qptargetlist (node,tlist);
@@ -1018,6 +1023,7 @@ make_unique(tlist,lefttree)
 
     set_cost ( node , 0.0 );
     set_fragment ( node, 0 );
+    set_parallel (node, 1);
     set_state (node, (EState)NULL);
     set_qpqual (node,LispNil);
     set_qptargetlist (node,tlist);
