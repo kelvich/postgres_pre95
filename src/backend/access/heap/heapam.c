@@ -662,6 +662,8 @@ Relation
 heap_open(relationId)
     ObjectId	relationId;
 {
+    Relation r;
+
     /* ----------------
      *	increment access statistics
      * ----------------
@@ -669,8 +671,18 @@ heap_open(relationId)
     IncrHeapAccessStat(local_open);
     IncrHeapAccessStat(global_open);
     
-    return (Relation)
-	RelationIdGetRelation(relationId);
+    r = (Relation) RelationIdGetRelation(relationId);
+
+    if (RelationIsValid(r) && r->rd_rel->relkind != 'r') {
+	if (r->rd_rel->relkind == 'i')
+	    elog(WARN, "%.16s is an index relation",
+		 &(r->rd_rel->relname.data[0]));
+	else
+	    elog(WARN, "%.16s is not a heap relation",
+		 &(r->rd_rel->relname.data[0]));
+    }
+
+    return (r);
 }
 
 /* ----------------
@@ -684,6 +696,8 @@ Relation
 heap_openr(relationName)
     Name relationName;
 {
+    Relation r;
+
     /* ----------------
      *	increment access statistics
      * ----------------
@@ -691,8 +705,18 @@ heap_openr(relationName)
     IncrHeapAccessStat(local_openr);
     IncrHeapAccessStat(global_openr);
     
-    return (Relation)
-	RelationNameGetRelation(relationName);
+    r = (Relation) RelationNameGetRelation(relationName);
+
+    if (RelationIsValid(r) && r->rd_rel->relkind != 'r') {
+	if (r->rd_rel->relkind == 'i')
+	    elog(WARN, "%.16s is an index relation",
+		 &(r->rd_rel->relname.data[0]));
+	else
+	    elog(WARN, "%.16s is not a heap relation",
+		 &(r->rd_rel->relname.data[0]));
+    }
+
+    return (r);
 }
 
 /* ----------------
