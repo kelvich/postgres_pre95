@@ -271,6 +271,11 @@ plan_union_query (relids,rt_index,rt_entry,root,tlist,qual,rangetable)
 	LispValue new_tlist = copy_seq_tree(tlist);
 	LispValue new_qual = copy_seq_tree(qual);
 
+	/* reset the uniqueflag and sortclause in parse tree root, so that
+	 * sorting will only be done once after append
+	 */
+	root_uniqueflag(new_root) = LispNil;
+	root_sortclause(new_root) = LispNil;
 	if ( listp(rt_relid(rt_entry))) 
 	  new_parsetree = fix_parsetree_attnums (rt_index, 
 					     /* XX temporary for inheritance */
