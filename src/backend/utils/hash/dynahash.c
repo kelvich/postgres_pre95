@@ -34,9 +34,12 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.3  1991/03/07 21:56:57  kemnitz
-    Fixed log2() problem.
+    Revision 1.4  1991/04/01 08:49:32  hong
+    for debugging memory leaks.
 
+ * Revision 1.3  91/03/07  21:56:57  kemnitz
+ * Fixed log2() problem.
+ * 
  * Revision 1.2  91/01/19  14:31:31  cimarron
  * made some corrections to memory allocation routines --
  * added a DynaHashCxt so that allocations not associated with
@@ -97,9 +100,6 @@
  *     do the latter -cim 1/19/91
  * ----------------
  */
-extern Pointer 		MemoryContextAlloc();
-extern void    		MemoryContextFree();
-extern GlobalMemory 	CreateGlobalMemory();
 GlobalMemory DynaHashCxt = (GlobalMemory) NULL;
 
 int *

@@ -421,7 +421,6 @@ struct	tape	*dest;
 	int		outdummy;	/* complete dummy runs */
 	short		fromtape;
 	long		tuplen;
-	extern	char	*malloc();
 
 	lasttp = dest->tp_prev;
 	times = lasttp->tp_fib;
@@ -509,7 +508,6 @@ FILE			*file;
 	register struct	tape	*tp;
 	register HeapTuple	tup;
 	long		tuplen;
-	char		*malloc();
 
 	if (! feof(file))
 		while (GETLEN(tuplen, file) && tuplen != 0) {
@@ -560,7 +558,7 @@ gettape()
 	register struct	tapelst	*tp;
 	FILE		*file;
 	static	int	tapeinit = 0;
-	char		*malloc(), *mktemp();
+	char		*mktemp();
 
 	tp = (struct tapelst *)malloc((unsigned)sizeof (struct tapelst));
 	if (!tapeinit) {
