@@ -604,8 +604,9 @@ switch_outer (clauses)
 	clause = CAR(i);
 	if(var_is_outer (get_rightop (clause))) {
 	    temp = make_clause (get_op (clause),
-				get_rightop (clause),
-				get_leftop (clause));
+				lispCons(get_rightop (clause),
+					 lispCons(get_leftop (clause),
+						  LispNil)));
 	    t_list = nappend1(t_list,temp);
 	} 
 	else 
