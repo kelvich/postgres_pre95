@@ -8,7 +8,7 @@
 #include "access/itup.h"		/* for T_LOCK */
 #include "catalog/catname.h"
 #include "catalog/syscache.h"		/* for SearchSysCache ... */
-#include "catalog_utils.h"
+/* #include "catalog_utils.h" */
 #include "nodes/pg_lisp.h"
 #include "nodes/relation.h"
 #include "nodes/primnodes.h"

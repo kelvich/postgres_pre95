@@ -4,10 +4,12 @@
 #include "utils/log.h"
 #include "nodes/relation.h"
 #include "nodes/relation.a.h"
-#include "catalog_utils.h"
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
 #include "parser/parsetree.h"
+
+/* #include "catalog_utils.h" */ 
+extern Name tname();
 
 Name
 attname ( relname , attnum )
