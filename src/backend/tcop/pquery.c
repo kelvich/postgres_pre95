@@ -83,6 +83,7 @@ CreateExecutorState()
     ParamListInfo	paramListInfo;
     TupleCount		tuplecount;
     Prs2EStateInfo	prs2EStateInfo;
+    Relation	 	explainRelation;
     int			baseid;
     
     /* ----------------
@@ -97,6 +98,7 @@ CreateExecutorState()
     qualTuple =		NULL;
     qualTupleID =	0;
     prs2EStateInfo = NULL;
+    explainRelation = NULL;
     baseid =		0;
     
     /* ----------------
@@ -142,6 +144,7 @@ CreateExecutorState()
 		       tuplecount,
 		       paramListInfo,
 		       prs2EStateInfo,
+		       explainRelation,
 		       baseid);
 
     return state;
