@@ -86,6 +86,7 @@ SOURCES= \
 	${.CURDIR}/unix/ppwd${PROG_SRC_EXT} \
 	${.CURDIR}/unix/prm${PROG_SRC_EXT} \
 	${.CURDIR}/unix/prmdir${PROG_SRC_EXT} \
+	${.CURDIR}/unix/reindexdb${PROG_SRC_EXT} \
 	${.CURDIR}/unix/s2kutils${PROG_SRC_EXT} \
 	${.CURDIR}/unix/shmemdoc${PROG_SRC_EXT} \
 	${.CURDIR}/built-in${LIB_SRC_EXT} \
@@ -138,7 +139,6 @@ SOURCES= \
 	${.CURDIR}/files/bki${FILE_SRC_EXT} \
 	${.CURDIR}/files/page${FILE_SRC_EXT} \
 	${.CURDIR}/files/template${FILE_SRC_EXT} \
-	${.CURDIR}/files/unfsd_exports${FILE_SRC_EXT} \
 	${.CURDIR}/references \
 	${.CURDIR}/toc
 
@@ -196,6 +196,7 @@ PROG_MAN_OBJS= \
 	ppwd${PROG_MAN_EXT} \
 	prm${PROG_MAN_EXT} \
 	prmdir${PROG_MAN_EXT} \
+	reindexdb${PROG_MAN_EXT} \
 	s2kutils${PROG_MAN_EXT} \
 	shmemdoc${PROG_MAN_EXT}
 
