@@ -778,6 +778,9 @@ pg_eval(query_string, dest)
  *	handle_warn() is used to catch kill(getpid(),1) which
  *	occurs when elog(WARN) is called.
  *
+ *      quickdie() occurs when signalled by the postmaster, some backend
+ *      has bought the farm we need to stop what we're doing and exit.
+ *
  *	die() preforms an orderly cleanup via ExitPostgres()
  * --------------------------------
  */
@@ -786,6 +789,18 @@ void
 handle_warn()
 {
     longjmp(Warn_restart,1);
+}
+
+void
+quickdie()
+{
+  elog(NOTICE, "I have been signalled by the postmaster.");
+  elog(NOTICE, "Some backend process has died unexpectedly and possibly");
+  elog(NOTICE, "corrupted shared memory.  The current transaction was");
+  elog(NOTICE, "aborted, and I am going to exit.  Please resend the");
+  elog(NOTICE, "last query. -- The postgres backend");
+  AbortCurrentTransaction();
+  exit(71169);
 }
 
 void
@@ -833,6 +848,7 @@ PostgresMain(argc, argv)
     signal(SIGHUP, die);
     signal(SIGINT, die);
     signal(SIGTERM, die);
+    signal(SIGUSR1, quickdie);
     
 #ifdef PARALLELDEBUG
     usclk_init();
