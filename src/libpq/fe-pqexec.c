@@ -198,7 +198,10 @@ process_portal(rule_p)
     switch (id[0]) {
     case 'T':
 	/* Tuples are returned, dump data into a portal buffer. */
-	dump_data(pname, rule_p);
+	if (dump_data(pname, rule_p) == -1)
+	{
+		return("R");
+	}
 	sprintf(PQcommand, "P%s", pname);
 	strcpy(retbuf, PQcommand);
 	return(retbuf);
@@ -226,7 +229,7 @@ process_portal(rule_p)
 	    return
 		retbuf;
 	}
-	
+
     default:
 	{
 	    char s[45];
