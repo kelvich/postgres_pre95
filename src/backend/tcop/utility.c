@@ -21,6 +21,19 @@
 RcsId("$Header$");
 
 /* ----------------
+ *	CHECK_IF_ABORTED() is used to avoid doing unnecessary
+ *	processing within an aborted transaction block.
+ * ----------------
+ */
+#define CHECK_IF_ABORTED() \
+if (IsAbortedTransactionBlockState()) { \
+    elog(NOTICE, "(transaction aborted): %s", \
+	 "queries ignored until END"); \
+    commandTag = "*ABORT STATE*"; \
+    break; \
+} \
+	    
+/* ----------------
  *	general utility function invoker
  * ----------------
  */
@@ -38,6 +51,8 @@ ProcessUtility(command, args, commandString)
 	 */
       case BEGIN_TRANS:
 	commandTag = "BEGIN";
+	CHECK_IF_ABORTED();
+	
 	BeginTransactionBlock();
 	break;
 	
@@ -48,6 +63,8 @@ ProcessUtility(command, args, commandString)
 	
       case ABORT_TRANS:
 	commandTag = "ABORT";
+	CHECK_IF_ABORTED();
+	
 	AbortTransactionBlock();
 	break;
 	
@@ -56,12 +73,16 @@ ProcessUtility(command, args, commandString)
 	 */
       case CLOSE:
 	commandTag = "CLOSE";
+	CHECK_IF_ABORTED();
+	
 	PerformPortalClose((null(CAR(args))) ? NULL :
 			   CString(CAR(args)));
 	break;
 	
       case FETCH:
 	commandTag = "FETCH";
+	CHECK_IF_ABORTED();
+	
 	{
 	    String	portalName = NULL;
 	    bool	forward;
@@ -88,7 +109,10 @@ ProcessUtility(command, args, commandString)
 	
       case MOVE:
 	commandTag = "MOVE";
-	elog(WARN, "MOVE: unimplemented in Version 1");
+	CHECK_IF_ABORTED();
+	
+	elog(NOTICE, "MOVE: unimplemented in Version 1");
+	break;
 	
 	/*
 	 * relation and attribute manipulation
@@ -96,6 +120,8 @@ ProcessUtility(command, args, commandString)
 	
       case CREATE:
 	commandTag = "CREATE";
+	CHECK_IF_ABORTED();
+	
 	DefineRelation(CString(CAR(args)),	/*  relation name */
 		       CADR(args),		/*  parameters */
 		       CDR(CDR(args)));	/*  schema */
@@ -103,6 +129,8 @@ ProcessUtility(command, args, commandString)
 	
       case DESTROY:
 	commandTag = "DESTROY";
+	CHECK_IF_ABORTED();
+	
 	{
 	    LispValue relationName;
 	    foreach (relationName, args) {
@@ -113,6 +141,8 @@ ProcessUtility(command, args, commandString)
 	
       case PURGE:
 	commandTag = "PURGE";
+	CHECK_IF_ABORTED();
+	
 	{
 	    List	tags;
 	    String	beforeString = NULL;	/* absolute time string */
@@ -140,6 +170,8 @@ ProcessUtility(command, args, commandString)
 	
       case COPY:
 	commandTag = "COPY";
+	CHECK_IF_ABORTED();
+	
 	{
 	    String	relationName;
 	    String	fileName;
@@ -178,7 +210,8 @@ ProcessUtility(command, args, commandString)
 	
       case ADD_ATTR:
 	commandTag = "ADD";
-	
+	CHECK_IF_ABORTED();
+		
 	PerformAddAttribute(CString(CAR(args)), CDR(args));
 	break;
 	
@@ -187,6 +220,8 @@ ProcessUtility(command, args, commandString)
 	 */
       case RENAME:
 	commandTag = "RENAME";
+	CHECK_IF_ABORTED();
+	
 	{
 	    int	len;
 		
@@ -210,7 +245,8 @@ ProcessUtility(command, args, commandString)
 	 */
       case DEFINE:
 	commandTag = "DEFINE";
-	
+	CHECK_IF_ABORTED();
+		
 	switch(LISPVALUE_INTEGER(CAR(args))) {
 	  case INDEX:	/* XXX no support for ARCHIVE indices, yet */
 	    args = CDR(args);	/* skip "INDEX" token */
@@ -259,7 +295,8 @@ ProcessUtility(command, args, commandString)
 	 */
       case REMOVE:
 	commandTag = "REMOVE";
-	
+	CHECK_IF_ABORTED();
+		
 	switch(CInteger(CAR(args))) {
 	  case FUNCTION:
 	    RemoveFunction(CString(CADR(args)));
