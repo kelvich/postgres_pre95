@@ -150,6 +150,7 @@ LispValue argList;
     retval->setArg     = NULL;
     retval->hasSetArg  = false;
     retval->oneResult  = ! procedureStruct->proretset;
+    retval->istrusted  = procedureStruct->proistrusted;
 
     /*
      * If we are returning exactly one result then we have to copy
@@ -239,21 +240,31 @@ LispValue argList;
 	retval->src = (char *) textout(&(procedureStruct->prosrc));
 	retval->bin = (char *) NULL;
     }
-    else
+    else 
     {
-#if 0
+
 	/*
 	 * I'm not sure that we even need to do this at all.
 	 */
-        tmp = (char *)
+
+        /*
+         * We do for untrusted functions.
+         */
+
+	if (procedureStruct->proistrusted)
+	    retval->bin = (char *) NULL;
+	else {
+	    tmp = (char *)
 		SearchSysCacheGetAttribute(PROOID,
 					   Anum_pg_proc_probin,
 					   foid);
-        retval->bin = (char *) textout(tmp);
-#endif 
-        retval->bin = (char *) NULL;
+	    retval->bin = (char *) textout(tmp);
+	}
 	retval->src = (char *) NULL;
     }
+
+	    
+     
 
     if (retval->language != POSTQUELlanguageId)
 	fmgr_info(foid, &(retval->func), &(retval->nargs));

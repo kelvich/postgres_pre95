@@ -41,6 +41,8 @@ typedef struct
 			       * Nested dot expressions mean we have funcs
 			       * whose argument is a set of tuples
 			       */
+
+	bool     istrusted;   /* trusted fn? */
 }
 FunctionCache, *FunctionCachePtr;
 
