@@ -119,6 +119,9 @@ DATA(insert OID = 18 (  char       PGUID  1   1 t b t \054 0   0 charin charout 
 DATA(insert OID = 19 (  char16     PGUID 16  16 f b t \054 0  18 char16in char16out char16in char16out _null_ ));
 DATA(insert OID = 20 (  dt         PGUID  4  10 t b t \054 0   0 dtin dtout dtin dtout _null_ ));
 DATA(insert OID = 21 (  int2       PGUID  2   5 t b t \054 0   0 int2in int2out int2in int2out _null_ ));
+
+#define INT2OID		21
+
 DATA(insert OID = 22 (  int28      PGUID 16  50 f b t \054 0  21 int28in int28out int28in int28out _null_ ));
 DATA(insert OID = 23 (  int4       PGUID  4  10 t b t \054 0   0 int4in int4out int4in int4out _null_ ));
 
@@ -127,6 +130,9 @@ DATA(insert OID = 23 (  int4       PGUID  4  10 t b t \054 0   0 int4in int4out 
 DATA(insert OID = 24 (  regproc    PGUID  4  16 t b t \054 0   0 regprocin regprocout regprocin regprocout _null_ ));
 DATA(insert OID = 25 (  text       PGUID -1  -1 f b t \054 0  18 textin textout textin textout _null_ ));
 DATA(insert OID = 26 (  oid        PGUID  4  10 t b t \054 0   0 int4in int4out int4in int4out _null_ ));
+
+#define OIDOID		26
+
 DATA(insert OID = 27 (  tid        PGUID  6  19 f b t \054 0   0 tidin tidout tidin tidout _null_ ));
 DATA(insert OID = 28 (  xid        PGUID  4  12 t b t \054 0   0 xidin xidout xidin xidout _null_ ));
 DATA(insert OID = 29 (  cid        PGUID  2   3 t b t \054 0   0 cidin cidout cidin cidout _null_ ));
@@ -147,6 +153,7 @@ DATA(insert OID = 702 (  abstime   PGUID  4  20 t b t \054 0   0 nabstimein nabs
 DATA(insert OID = 703 (  reltime   PGUID  4  20 t b t \054 0   0 reltimein reltimeout reltimein reltimeout _null_ ));
 DATA(insert OID = 704 (  tinterval PGUID 12  47 f b t \054 0   0 tintervalin tintervalout tintervalin tintervalout _null_ ));
 DATA(insert OID = 705 (  unknown PGUID -1  -1 f b t \054 0   18 textin textout textin textout _null_ ));
+DATA(insert OID = 810 (  oidint2    PGUID  6  20 f b t \054 0   0 oidint2in oidint2out oidint2in oidint2out _null_ ));
 DATA(insert OID = 910 (  oidint4    PGUID  8  20 f b t \054 0   0 oidint4in oidint4out oidint4in oidint4out _null_ ));
 DATA(insert OID = 911 (  oidchar16  PGUID  20 20 f b t \054 0   0 oidchar16in oidchar16out oidchar16in oidchar16out _null_ ));
 DATA(insert OID = 1000 (  _bool      PGUID -1  -1 f b t \054 0  16 array_in array_out array_in array_out _null_ ));
