@@ -1,3 +1,4 @@
+/*#define NAMINGDB 1*/
 /* ----------------------------------------------------------------
  *   FILE
  *      pg_naming.c
@@ -76,18 +77,23 @@
 #include "utils/rel.h"
 #include "utils/log.h"
 #include "access/heapam.h"
+#include "tmp/libpq-fs.h"
 
 #define RootOID         0        /* arbitrary. */
 #define RootFileName   "/"
 
 #define MAX_PATH_COMP 256
 
+#ifndef MAXPATHNAME
+#define MAXPATHNAME 1024
+#endif
+
 
 oid FilenameToOID(fname)
      char *fname;
 {
     HeapTuple namingTuple;
-    char *pathcomponents[MAX_PATH_COMP];
+    char pathcomponents[MAXPATHNAME];
     int n_comps;
     int i;
 
@@ -106,10 +112,31 @@ oid FilenameToOID(fname)
     /*
      * get the tuple from the system cache
      */
-    n_comps = path_parse(fname,pathcomponents,
-			 sizeof(pathcomponents)/sizeof(char *));
-
+     strcpy(pathcomponents,fname);
     /* iterating over path components, lookup oids */
+     {
+	 char *cp;
+	 /* be very careful, strtok must not be used by more than one active
+	    function at a time */
+	 cp = strtok(pathcomponents,"/");
+	 while (cp != NULL) {
+	     OID parentOID;
+	     parentOID = namingStruct->ourid;
+#if NAMINGDB
+	     elog(NOTICE,"FilenameToOID: looking up \"%s\"\n",cp);
+#endif
+	     namingTuple = SearchSysCacheTuple(NAMEREL,parentOID,
+					       cp);
+	     if (namingTuple == NULL) {
+		 /* complain about directory not existing */
+		 return InvalidObjectId;
+	     } else {
+		 namingStruct = (struct naming *) GETSTRUCT(namingTuple);
+	     }
+	     cp = strtok(NULL,"/");
+	 }
+     }
+#if 0
     for (i = 0; i < n_comps; i++) {
 	OID parentOID;
 	parentOID = namingStruct->ourid;
@@ -123,7 +150,7 @@ oid FilenameToOID(fname)
 	    namingStruct = (struct naming *) GETSTRUCT(namingTuple);
 	}
     }
-
+#endif
     /* we have the tuple corresponding to the last component in namingStruct
      */
     return namingStruct->ourid;
@@ -148,8 +175,10 @@ void CreateNameTuple(parentID,name,ourid)
     values[i++] = (char *) name;
     values[i++] = (char *) ourid;
     values[i++] = (char *)parentID;
+#if NAMINGDB
     elog(NOTICE,"CreateNameTuple: parent = %d,oid = %d,name = %s",
 	 parentID,ourid,name);
+#endif
 
     namingDesc = heap_openr(Name_pg_naming);
     tup = heap_formtuple(Natts_pg_naming,
@@ -175,7 +204,7 @@ oid CreateNewNameTuple(parentID,name)
     return thisoid;
 }
 
-int DeleteNameTuple(parentID,name)
+oid DeleteNameTuple(parentID,name)
      oid parentID;
      char *name;
 {
@@ -184,21 +213,24 @@ int DeleteNameTuple(parentID,name)
     HeapTuple tup;
     Relation namingDesc;
     HeapTuple namingTuple;
+    struct naming *namingStruct;
     int i;
     oid thisoid;
 
     namingTuple = SearchSysCacheTuple(NAMEREL,parentID,name);
     if (namingTuple == NULL)
-      return -1;
+      return InvalidObjectId;
     namingDesc = heap_openr(Name_pg_naming);
+#if NAMINGDB
     elog(NOTICE,"DeleteNameTuple: parent = %d,name = %s",
 	 parentID,name);
-    
+#endif 
+
     heap_delete(namingDesc,&namingTuple->t_ctid);
+    namingStruct = (struct naming *) GETSTRUCT(namingTuple);
 
     heap_close(namingDesc);
-
-    return 0;
+    return namingStruct->ourid;
 }
 
 /*
@@ -210,7 +242,7 @@ oid LOcreatOID(fname,mode)
 {
     char *tailname;
     oid basedirOID;
-    void to_basename ARGS((char*,char*,char*));
+    /*void to_basename ARGS((char*,char*,char*));*/
     char *root = "/";
 
 /*    to_basename(fname,basename,tailname);*/
@@ -249,6 +281,9 @@ int LOunlinkOID(fname)
 {
     char *tailname;
     oid basedirOID;
+    if (fname[0]=='/' && fname[1] == '\0') {
+	return InvalidObjectId;
+    }
     tailname = rindex(fname,'/');
     Assert(tailname != NULL);
     *tailname++ = '\0';
@@ -266,16 +301,19 @@ int LOisemptydir(path)
     return 1; /* allow unlinking of non-empty directories for now */
 }
 
+/*XXX: This primitive is skew, since there are two possibilities: !exist, !dir
+  --case */
 int LOisdir(path)
      char *path;
 {
     oid oidf;
+    char ignoretype;
     oidf = FilenameToOID(path);
 
     if (oidf == InvalidObjectId)
       return 0;
     else
-      return (LOassocOIDandLargeObjDesc(oidf) == NULL);
+      return (LOassocOIDandLargeObjDesc(&ignoretype,oidf) == NULL);
 }
 
 int LOrename(path,newpath)
@@ -289,9 +327,12 @@ int LOrename(path,newpath)
 
     pathOID = FilenameToOID(path);
     if (pathOID == InvalidObjectId) /* file doesn't exist */
-      return -1;
+      return -PENOENT;
 
     newpathOID = FilenameToOID(newpath);
+#if NAMINGDB
+    elog(NOTICE,"rename %d to %d",pathOID,newpathOID);
+#endif    
     if (newpathOID != InvalidObjectId) {
 	if (!LOisdir(newpath))	/* newpath already exists, unlink it. */
 	  LOunlinkOID(newpath);
@@ -303,7 +344,7 @@ int LOrename(path,newpath)
 	if (newpathtail != newpath) { /* "/a/b" */
 	    *newpathtail = '\0';
 	    if (!LOisdir(newpath))	/* above directories don't exist */
-	      return -1;
+	      return -PENOENT;
 	    CreateNameTuple(FilenameToOID(newpath),newpathtail+1,pathOID);
 	    LOunlinkOID(path);
 	    *newpathtail = '/';
@@ -320,7 +361,7 @@ int LOrename(path,newpath)
  * Support functions for this file
  *
  */
-
+#if 0
 /* break a filename into its path components */
 /* Careful because buffer is shared */
 int path_parse(pathname,pathcomp,n_comps)
@@ -381,3 +422,4 @@ void to_basename(fname,bname,tname)
     }
     *tname = '\0';
 }
+#endif
