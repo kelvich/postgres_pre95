@@ -187,6 +187,7 @@ int type;
 	case T_IndexScan:	return("IndexScan");
 	case T_Sort:	return("Sort");
 	case T_Hash:	return("Hash");
+	case T_Material:return("Material");
 	case T_Temp:	return("Temp");
 	case T_Append:	return("Append");
 	case T_Result:	return("Result");
@@ -576,3 +577,70 @@ print_param (param)
 		printf("(\"%s\")", get_paramname(param));
 }
 
+void
+pplan(plan)
+Plan plan;
+{
+    if (plan == NULL) return;
+    fprintf(stderr, "(%s ", subplan_type(plan->type));
+    switch (NodeType(plan)) {
+    case classTag(SeqScan):
+    case classTag(IndexScan):
+	if (_TEMP_RELATION_ID_ != get_scanrelid(plan)) {
+	    fprintf(stderr,  "%s", CString(getrelname(get_scanrelid(plan),
+				  _query_range_table_)));
+	  }
+	else {
+	    pplan(get_lefttree(plan));
+	  }
+	break;
+    case classTag(MergeJoin):
+    case classTag(HashJoin):
+    case classTag(NestLoop):
+	pplan(get_lefttree(plan));
+	fprintf(stderr, " ");
+	pplan(get_righttree(plan));
+	break;
+    case classTag(Hash):
+    case classTag(Sort):
+    case classTag(Material):
+    case classTag(Result):
+	pplan(get_lefttree(plan));
+	break;
+    case classTag(Existential):
+	pplan(get_lefttree(plan));
+	fprintf(stderr, " ");
+	pplan(get_righttree(plan));
+	break;
+    case classTag(Append):
+	{  LispValue saved_rt;
+	   extern LispValue copy_seq_tree();
+	   extern LispValue fix_rangetable();
+	   int i;
+
+	   saved_rt = copy_seq_tree(_query_range_table_);
+	   for (i=0; i<(length(get_unionplans(plan))); i++) {
+	       _query_range_table_ = fix_rangetable(_query_range_table_,
+					 get_unionrelid(plan),
+					 nth(i,get_unionrtentries(plan)));
+	       pplan(nth(i, get_unionplans(plan)));
+	     }
+	    _query_range_table_ = saved_rt;
+	    break;
+	 }
+     default:
+	 fprintf(stderr, "unknown plan type.\n");
+	 break;
+      }
+     fprintf(stderr, ")");
+     return;
+}
+
+void
+p_plan(plan)
+Plan plan;
+{
+    fprintf(stderr, "\n");
+    pplan(plan);
+    fprintf(stderr, "\n");
+}
