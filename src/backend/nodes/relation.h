@@ -142,8 +142,8 @@ class (Rel) public (Node) {
   /* materialization information */
 	List	targetlist;
 	List	pathlist;
-	struct Path	*unorderedpath; 
-	struct Path 	*cheapestpath;  
+	struct Path	*unorderedpath;
+	struct Path 	*cheapestpath;
   /* used solely by indices: */
 	List	classlist;
 	List	indexkeys;
@@ -233,24 +233,24 @@ class (HashPath) public (JoinPath) {
  ******/
 
 class (OrderKey) public (Node) {
-    inherits(Node);
-    int 	attribute_number;
-    Index	array_index;
+	inherits(Node);
+	int 	attribute_number;
+	Index	array_index;
 };
 
 class (JoinKey) public (Node) {
-    inherits(Node);
-    LispValue outer;
-    LispValue  inner;
+	inherits(Node);
+	LispValue outer;
+	LispValue  inner;
 };
 
 class (MergeOrder) public (Node) {
-    inherits(Node);
-    ObjectId join_operator;
-    ObjectId left_operator;
-    ObjectId right_operator;
-    ObjectId left_type;
-    ObjectId right_type;
+	inherits(Node);
+	ObjectId join_operator;
+	ObjectId left_operator;
+	ObjectId right_operator;
+	ObjectId left_type;
+	ObjectId right_type;
 };
 
 /*******
@@ -276,18 +276,18 @@ class (JoinMethod) public (Node) {
 	List            jmkeys; \
 	List            clauses
  /* private: */
-        JoinMethodDefs;
+	JoinMethodDefs;
  /* public: */
 };
 
 class (HInfo) public (JoinMethod) {
-    inherits(JoinMethod);
-    ObjectId        hashop;
+	inherits(JoinMethod);
+	ObjectId        hashop;
 };
 
 class (MInfo) public (JoinMethod) {
-    inherits(JoinMethod);
-    MergeOrder         m_ordering;
+	inherits(JoinMethod);
+	MergeOrder         m_ordering;
 };
 
 class (JInfo) public (Node) {
@@ -300,12 +300,12 @@ class (JInfo) public (Node) {
 };
 
 class (RuleLockNode) public (Node) {
-        inherits(Node);
-        LockType        rltype;
-        Index           rlrelation;
-        AttributeNumber rlattribute;
-        Var             rlvar;
-        List            rlplan;
+	inherits(Node);
+	LockType        rltype;
+	Index           rlrelation;
+	AttributeNumber rlattribute;
+	Var             rlvar;
+	List            rlplan;
 };
 
 #endif /* RelationIncluded */
