@@ -416,6 +416,9 @@ DATA(insert OID = 761 (  smgrout	   6 11 f t f 1   23 foo bar ));
 DATA(insert OID = 762 (  smgreq		   6 11 f t f 2   16 foo bar ));
 DATA(insert OID = 763 (  smgrne		   6 11 f t f 2   16 foo bar ));
 
+DATA(insert OID = 764 (  lo_filein         6 11 f t f 1  605 foo bar ));
+DATA(insert OID = 765 (  lo_fileout        6 11 f t f 1  19 foo bar ));
+
 BKI_BEGIN
 #ifdef NOBTREE
 BKI_END

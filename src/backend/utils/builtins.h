@@ -363,6 +363,9 @@ extern char *array_out();
 extern char *filename_in();
 extern char *filename_out();
 
+extern char *lo_filein();
+extern char *lo_fileout();
+
 extern int2 smgrin();
 extern char *smgrout();
 extern bool smgreq();
