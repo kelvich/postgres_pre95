@@ -19,11 +19,10 @@
 #define	EXPBUFSZ	256
 #define	PCHARLEN	16
 
-#ifdef sprite
-#include "regexp.h"
-#else
+#if defined(PORTNAME_alpha)
+#undef _XOPEN_SOURCE
+#endif /* PORTNAME_alpha */
 #include <regexp.h>
-#endif /* sprite */
 
 /*
  *  interface routines called by the function manager
