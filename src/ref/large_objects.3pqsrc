@@ -275,12 +275,7 @@ avoid disk wastage.
 .lp
 define type (commands)
 .lp
-define C function (commands)
+define function (commands)
 .lp
 load (commands)
 .lp
-The tutorial
-.b "Defining User Defined Types, Operators, and Functions"
-in
-.lp
-~postgres/doc/tutorials/advanced/adt.me
