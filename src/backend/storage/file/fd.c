@@ -90,7 +90,7 @@ private	Size	SizeVfdCache = 0;
  * Minimun number of file descriptors known to be free
  */
 
-private	FreeFd = 0;
+FreeFd = 0;
 
 private	nfile = 0;
 
@@ -167,7 +167,6 @@ LruInsert ARGS((
 	FileNumber	file
 ));
 
-private
 void
 AssertLruRoom();
 
@@ -317,7 +316,7 @@ tryAgain:
 	return 0;
 }
 
-private inline void
+inline void
 AssertLruRoom()
 {
 	DO_DB(printf("DEBUG:	AssertLruRoom (FreeFd = %d)\n",FreeFd));
@@ -489,6 +488,49 @@ tryAgain:
 
 	return file;
 }
+
+#ifdef _xprs_
+FileNumber
+FileOpen(fileName, fileFlags, fileMode) 
+	FileName	fileName;
+	int		fileFlags;
+	int		fileMode;
+{
+	static int osRanOut = 0;
+	FileNumber	file;
+	Vfd	*vfdP;
+	int     tmpfd;
+	
+	DO_DB(printf("DEBUG: FileOpen: %s %x %o\n",fileName,fileFlags,fileMode));
+
+	file = AllocateVfd();
+	vfdP = &VfdCache[file];
+
+	vfdP->fd = FileClosed;
+
+	vfdP->fileName = malloc(strlen(fileName)+1);
+	strcpy(vfdP->fileName,fileName);
+
+	vfdP->seekPos = 0;
+	vfdP->fileFlags = fileFlags & ~(O_TRUNC|O_EXCL);
+	vfdP->fileMode = fileMode;
+
+	return file;
+}
+
+void
+ReOpenFiles()
+{
+    FileNumber file;
+    Vfd *fileP;
+
+    for (file = VfdCache[0].lruMoreRecently; file != 0; file = VfdCache[file].lruMoreRecently) {
+	fileP = &VfdCache[file];
+	close(fileP->fd);
+	fileP->fd = open(fileP->fileName, fileP->fileFlags, fileP->fileMode);
+	}
+}
+#endif /* _xprs_ */
 
 void
 FileClose(file)
