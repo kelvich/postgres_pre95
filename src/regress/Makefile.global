@@ -51,6 +51,9 @@ SLSUFF?=.o
 .SUFFIXES: .source .pq .sh
 
 .source.pq:
+	[ -z "$$USER" ] && USER=$$LOGNAME; \
+	[ -z "$$USER" ] && USER=`whoami`; \
+	[ -z "$$USER" ] && exit 1; \
 	rm -f $*.pq; \
 	if [ "${.CURDIR}" = ".." ]; then \
 		C="`pwd`/"; \
@@ -63,6 +66,9 @@ SLSUFF?=.o
 	    -e "s/_USER_/$$USER/g" < ${.CURDIR}/$*.source > $*.pq
 
 .source.sh:
+	[ -z "$$USER" ] && USER=$$LOGNAME; \
+	[ -z "$$USER" ] && USER=`whoami`; \
+	[ -z "$$USER" ] && exit 1; \
 	rm -f $*.sh; \
 	if [ "${.CURDIR}" = ".." ]; then \
 		C="`pwd`/"; \
