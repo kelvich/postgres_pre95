@@ -31,6 +31,7 @@ extern bool	EqualEState();
 #include "htup.h"
 #include "tim.h"
 #include "rel.h"
+#include "relscan.h"
 
 #define abstime AbsoluteTime
 
