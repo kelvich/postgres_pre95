@@ -226,9 +226,13 @@ compute_selec (clauses,or_selectivities)
     Cost s1 = 0;
     LispValue clause = CAR (clauses);
 
-    if(null (clauses) || IsA(clause,Const)) 
+    if(null (clauses)) 
      {
 	 s1 = 1.0;
+     }
+    else if (IsA(clause,Const))
+     {
+	 s1 = ((bool)get_constvalue((Const)clause)) ? 1.0 : 0.0;
      }
     /* If s1 has already been assigned by an index, use that value. */ 
     else if (or_selectivities)
