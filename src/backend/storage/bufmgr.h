@@ -212,6 +212,18 @@ BufferWriteInOrder ARGS((
 ));
 
 extern
+void
+FlushBufferPool ARGS((int StableMainmemoryFlag));
+
+extern
+void
+ResetBufferPool ARGS(());
+
+extern
+void
+BufferPoolCheckLeak ARGS(());
+
+extern
 int
 BufferShmemSize ARGS(());
 

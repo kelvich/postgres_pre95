@@ -45,6 +45,7 @@
 #include "storage/sinval.h"
 #include "storage/sinvaladt.h"
 #include "storage/lmgr.h"
+#include "storage/bufmgr.h"
 #include "support/master.h"
 
 #include "tmp/miscadmin.h"
@@ -92,7 +93,6 @@ extern bool		TransactionInitWasProcessed;
 extern int	Debug_file, Err_file, Noversion;
 
 extern int on_exitpg();
-extern void BufferManagerFlush();
 
 #ifndef	private
 #ifndef	EBUG
@@ -575,7 +575,7 @@ InitPostgres(name)
     InitStdio();
 
     if (!TransactionFlushEnabled())
-        on_exitpg(BufferManagerFlush, (caddr_t) 0);
+        on_exitpg(FlushBufferPool, (caddr_t) 0);
 
     /* ----------------
      *	check for valid "meta gunk" (??? -cim 10/5/90) and change to
