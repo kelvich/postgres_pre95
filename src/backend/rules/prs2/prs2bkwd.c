@@ -120,6 +120,7 @@
 void
 prs2ActivateBackwardChainingRules(
 	    prs2EStateInfo,
+	    explainRelation,
 	    relation,
 	    attributeNumber,
 	    oldOrNewTuple,
@@ -130,8 +131,11 @@ prs2ActivateBackwardChainingRules(
 	    newTupleOid,
 	    newAttributeValues,
 	    newTupleLocks,
-	    newTupleLockType)
+	    newTupleLockType,
+	    attributeArray,
+	    numberOfAttributes)
 Prs2EStateInfo prs2EStateInfo;
+Relation explainRelation;
 Relation relation;
 AttributeNumber attributeNumber;
 int oldOrNewTuple;
@@ -143,6 +147,8 @@ ObjectId newTupleOid;
 AttributeValues newAttributeValues;
 RuleLock newTupleLocks;
 Prs2LockType newTupleLockType;
+AttributeNumberPtr attributeArray;
+AttributeNumber numberOfAttributes;
 {
     Prs2OneLock oneLock;
     int nlocks;
@@ -160,6 +166,9 @@ Prs2LockType newTupleLockType;
     ObjectId tupleOid;
     RuleLock locks;
     Prs2LockType lockTypeToBeUsed;
+    AttributeNumber eventAttr;
+    AttributeNumber a;
+    Boolean changed;
 
 
     if (oldOrNewTuple == PRS2_OLD_TUPLE) {
@@ -210,7 +219,7 @@ Prs2LockType newTupleLockType;
 				ruleId, tupleOid, attributeNumber)) {
 		/*
 		 * Ooops! a rule loop was found.
-		 * Currently we decide just to ignore the rule.
+		 * Currently we decide to ignore the rule.
 		 */
 		continue;	/* the for loop... */
 	    }
@@ -232,11 +241,73 @@ Prs2LockType newTupleLockType;
 	    planAction = prs2GetActionsFromRulePlan(plan);
 
 	    /*
+	     * in the case of a rule of the form:
+	     * ON REPLACE TO REL.Y THEN DO REPLACE CURRENT(X=...)
+	     * activate this rule only if the attribute 'Y' has been
+	     * replaced by either the user or another ON REPLACE rule.
+	     */
+	    if (lockType==LockTypeReplaceWrite
+		&& oldOrNewTuple == PRS2_NEW_TUPLE) {
+		eventAttr = prs2GetEventAttributeNumberFromRuleInfo(ruleInfo);
+		/*
+		 * try to calculate this attribute, in order to see if
+		 * it is calculated by another rule
+		 */
+		prs2ActivateBackwardChainingRules(
+			    prs2EStateInfo,
+			    explainRelation,
+			    relation,
+			    eventAttr,
+			    PRS2_NEW_TUPLE,
+			    oldTupleOid,
+			    oldAttributeValues,
+			    oldTupleLocks,
+			    oldTupleLockType,
+			    newTupleOid,
+			    newAttributeValues,
+			    newTupleLocks,
+			    newTupleLockType,
+			    attributeArray,
+			    numberOfAttributes);
+		/*
+		 * Now check if this attribute has been updated by
+		 * another rule (in which case its 'isChanged' field
+		 * would be True) or by the user (in which case this
+		 * attribute must be among the attributes of the 
+		 * 'attributeArray'
+		 */
+		changed = (Boolean) 0;
+		if (numberOfAttributes == 0) {
+		    /*
+		     * that means 'all the attributes of the tuple'
+		     */
+		    changed = (Boolean) 1;
+		}
+		for (a=0; a<numberOfAttributes; a++) {
+		    if (attributeArray[a] == eventAttr) {
+			changed = (Boolean) 1;
+			break;
+		    }
+		}
+		if (attributeValues[eventAttr-1].isChanged)
+		    changed = (Boolean) 1;
+		if (!changed) {
+		    /*
+		     * this attribute has not been updated by the user
+		     * or by another `on replace' rule.
+		     * So the current rule does not
+		     * apply, and we have to ignore it.
+		     */
+		    continue;	/* the for loop... */
+		}
+	    }
+	    /*
 	     * Now try to calculate all the parameters needed to fill in
 	     * the plan
 	     */
 	    prs2CalculateAttributesOfParamNodes(
 			prs2EStateInfo,
+			explainRelation,
 			relation,
 			paramList,
 			oldTupleOid,
@@ -270,6 +341,12 @@ Prs2LockType newTupleLockType;
 		     */
 		    attributeValues[attributeNumber-1].isCalculated=(Boolean)1;
 		    attributeValues[attributeNumber-1].isChanged=(Boolean)1;
+		    if (explainRelation != NULL) {
+			storeExplainInfo(explainRelation,
+					ruleId,
+					relation,
+					tupleOid);
+		    }
 		} 
 	    /*
 	     * OK, now pop the rule stack information
@@ -282,7 +359,8 @@ Prs2LockType newTupleLockType;
     if (!attributeValues[attributeNumber-1].isCalculated) {
 	/*
 	 * no rule was applicable. Use the value stored in the tuple
-	 * (NOTE: this value has already been put in the attributeValues,
+	 * (NOTE: this value has already been stored in the attributeValues,
+	 * (when the 'attributeValues' array was first created)
 	 * so we only need to change the flags.
 	 */
 	attributeValues[attributeNumber-1].isCalculated = (Boolean)1;
@@ -302,6 +380,7 @@ Prs2LockType newTupleLockType;
 void
 prs2CalculateAttributesOfParamNodes(
 		prs2EStateInfo,
+		explainRelation,
 		relation,
 		paramList,
 		oldTupleOid,
@@ -311,8 +390,11 @@ prs2CalculateAttributesOfParamNodes(
 		newTupleOid,
 		newTupleAttributeValues,
 		newTupleRuleLock,
-		newTupleLockType)
+		newTupleLockType,
+		attributeArray,
+		numberOfAttributes)
 Prs2EStateInfo prs2EStateInfo;
+Relation explainRelation;
 Relation relation;
 ParamListInfo paramList;
 ObjectId oldTupleOid;
@@ -323,6 +405,8 @@ ObjectId newTupleOid;
 AttributeValues newTupleAttributeValues;
 RuleLock newTupleRuleLock;
 Prs2LockType newTupleLockType;
+AttributeNumberPtr attributeArray;
+AttributeNumber numberOfAttributes;
 {
 
     Name attributeName;
@@ -352,6 +436,7 @@ Prs2LockType newTupleLockType;
 	     */
 	    prs2ActivateBackwardChainingRules(
 			prs2EStateInfo,
+			explainRelation,
 			relation,
 			attributeNumber,
 			PRS2_OLD_TUPLE,
@@ -362,7 +447,9 @@ Prs2LockType newTupleLockType;
 			newTupleOid,
 			newTupleAttributeValues,
 			newTupleRuleLock,
-			newTupleLockType);
+			newTupleLockType,
+			attributeArray,
+			numberOfAttributes);
 	    /*
 	     * store information about this attribute (type, value etc)
 	     * in the paramList
@@ -382,6 +469,7 @@ Prs2LockType newTupleLockType;
 	     */
 	    prs2ActivateBackwardChainingRules(
 			prs2EStateInfo,
+			explainRelation,
 			relation,
 			attributeNumber,
 			PRS2_NEW_TUPLE,
@@ -392,7 +480,9 @@ Prs2LockType newTupleLockType;
 			newTupleOid,
 			newTupleAttributeValues,
 			newTupleRuleLock,
-			newTupleLockType);
+			newTupleLockType,
+			attributeArray,
+			numberOfAttributes);
 	    /*
 	     * store information about this attribute (type, value etc)
 	     * in the paramList
@@ -422,6 +512,7 @@ Prs2LockType newTupleLockType;
 void
 prs2ActivateForwardChainingRules(
 	    prs2EStateInfo,
+	    explainRelation,
 	    relation,
 	    attributeNumber,
 	    actionLockType,
@@ -434,8 +525,11 @@ prs2ActivateForwardChainingRules(
 	    newAttributeValues,
 	    newTupleLocks,
 	    newTupleLockType,
-	    insteadRuleFoundP)
+	    insteadRuleFoundP,
+	    attributeArray,
+	    numberOfAttributes)
 Prs2EStateInfo prs2EStateInfo;
+Relation explainRelation;
 Relation relation;
 AttributeNumber attributeNumber;
 int oldOrNewTuple;
@@ -449,6 +543,8 @@ AttributeValues newAttributeValues;
 RuleLock newTupleLocks;
 Prs2LockType newTupleLockType;
 bool *insteadRuleFoundP;
+AttributeNumberPtr attributeArray;
+AttributeNumber numberOfAttributes;
 {
     Prs2OneLock oneLock;
     int nlocks;
@@ -514,6 +610,7 @@ bool *insteadRuleFoundP;
 	     */
 	    prs2CalculateAttributesOfParamNodes(
 			prs2EStateInfo,
+			explainRelation,
 			relation,
 			paramList,
 			oldTupleOid,
@@ -523,7 +620,9 @@ bool *insteadRuleFoundP;
 			newTupleOid,
 			newAttributeValues,
 			newTupleLocks,
-			newTupleLockType);
+			newTupleLockType,
+			attributeArray,
+			numberOfAttributes);
 	    if (prs2CheckQual(planQual, paramList, prs2EStateInfo)) {
 		/*
 		 * the qualification is true. Execute the action
@@ -532,6 +631,12 @@ bool *insteadRuleFoundP;
 		prs2RunActionPlans(planActions, paramList, prs2EStateInfo);
 		if (prs2IsRuleInsteadFromRuleInfo(ruleInfo)) {
 		    *insteadRuleFoundP = true;
+		}
+		if (explainRelation != NULL) {
+		    storeExplainInfo(explainRelation,
+				    ruleId,
+				    relation,
+				    tupleOid);
 		}
 	    }
 	}
