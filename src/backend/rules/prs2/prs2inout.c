@@ -13,8 +13,8 @@
 
 #include <stdio.h>
 #include <strings.h>
-#include "prs2.h"
-#include "log.h"
+#include "rules/prs2.h"
+#include "utils/log.h"
 
 char *palloc();
 
@@ -51,9 +51,19 @@ RuleLock locks;
     Prs2OneLock oneLock;
 
 
-    maxLength = 0;
-    res = NULL;
+    /*
+     * Initialize `maxLength' and `res'
+     */
+    maxLength = 100;
+    res = palloc(maxLength);
+    if (res==NULL) {
+	elog(WARN, "RuleLockToString: Out of memeory!");
+    }
+    res[0] = '\0';
 
+    /*
+     * empty locks are a special case...
+     */
     if (locks == NULL) {
 	/*
 	 * a NULL lock is assumed to be an empty lock
@@ -62,6 +72,9 @@ RuleLock locks;
 	return(res);
     }
 
+    /*
+     * Deal with a non empty lock...
+     */
     sprintf(s1, "(numOfLocks: %d", locks->numberOfLocks);
     res = appendString(res, s1, &maxLength);
 
@@ -149,7 +162,7 @@ char *s;
 	lock = prs2AddLock(lock, ruleId, lockType, attrNo, planNo);
     }
 
-    skipToken("(", s, &index);
+    skipToken(")", s, &index);
     return(lock);
 }
 
@@ -249,7 +262,7 @@ int *index;
     }
 
     res = 0;
-    while (s[*index] <'9' && s[*index] > '0') {
+    while (s[*index] <='9' && s[*index] >= '0') {
 	res = 10*res + s[*index] - '0';
 	(*index)++;
     }
