@@ -4,6 +4,8 @@
 # $Header$
 #
 
+CFLAGS+= -DUSE_POSIX_TIME
+
 LDADD+= -lln -ldl
 
 #
