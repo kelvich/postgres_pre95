@@ -184,6 +184,48 @@ Append _readAppend()
 }
 
 /*
+ *  Recursive is a subclass of Plan.
+ */
+
+Recursive _readRecursive()
+
+{
+        Recursive local_node;
+        char *token;
+        int length;
+
+        local_node = (Recursive) palloc(sizeof(struct _Recursive));
+
+        _getPlan(local_node);
+
+        token = lsptok(NULL, &length);               /* eat :recurMethod */
+        token = lsptok(NULL, &length);               /* get recurMethod */
+        local_node->recurMethod = (RecursiveMethod) atoi(token);
+
+        token = lsptok(NULL, &length);               /* eat :recurCommand */
+        local_node->recurCommand = lispRead(true); /* now read it */
+
+        token = lsptok(NULL, &length);               /* eat :recurInitPlans */
+        local_node->recurInitPlans = lispRead(true); /* now read it */
+
+        token = lsptok(NULL, &length);               /* eat :recurLoopPlans */
+        local_node->recurLoopPlans = lispRead(true); /* now read it */
+
+        token = lsptok(NULL, &length);          /* eat :recurCleanupPlans */
+        local_node->recurCleanupPlans = lispRead(true); /* now read it */
+
+        token = lsptok(NULL, &length);               /* eat :recurCheckpoints */
+        local_node->recurCheckpoints = lispRead(true); /* now read it */
+
+        token = lsptok(NULL, &length);       /* eat :recurResultRelationName */
+        local_node->recurResultRelationName = lispRead(true); /* now read it */
+
+        local_node->printFunc = PrintRecursive;
+        local_node->equalFunc = EqualRecursive;
+        return(local_node);
+}
+
+/*
  * In case Join is not the same structure as Plan someday.
  */
 
