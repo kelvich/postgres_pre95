@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH VACUUM UNIX 01/23/93
+.TH VACUUM UNIX 02/08/94
 .XA 1 Vacuum
 .SH NAME
 vacuum \(em vacuum a database
@@ -18,8 +18,8 @@ host]
 port]
 [dbname]
 .SH DESCRIPTION
-.BR Vacuum
-vacuums a POSTGRES database.
+.IR Vacuum
+vacuums a \*(PG database.
 Vacuuming a database moves deleted records to an archive
 (for archived classes; see 
 .IR create (commands)),
@@ -104,3 +104,34 @@ have obtained the required authentication credentials.
 You do not have a valid entry in the relation \*(lqpg_user\*(rq and
 cannot do anything with \*(PG at all; contact your \*(PG site
 administrator.
+.TP 
+.BI "can't create lock file -- another vacuum cleaner running?"
+Although 
+.IR vacuum
+uses standard \*(PG locking to prevent problems with concurrent 
+access to data, \*(PG attempts to prevent more than one 
+.IR vacuum
+process from running at once (which is guaranteed to cause
+deadlock, since both processes write to the entire database)
+by creating the file
+.(C
+\&.../data/base/<database>/pg_vlock
+.)C
+If the 
+.IR vacuum
+process crashes before removing this file, future 
+.IR vacuum
+processes will be unable to start.  If you see this message and
+you know for certain that no other 
+.IR vacuum
+process is running, contact your \*(PG database administrator
+in order to have the lock file removed.
+.SH BUGS
+\*(PG does not reclaim space in the classes that have been
+vacuumed.  Furthermore, new tuples are always placed at the
+end of a heap class.  Consequently, contrary to what you 
+might expect, classes never shrink and the
+.BR vacuum
+command does not slow down the rate of growth.  However, it 
+does update statistics and speed up scans of the classes
+(by removing invalid instances) as advertised.
