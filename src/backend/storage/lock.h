@@ -183,5 +183,5 @@ typedef struct Lock {
 		BlockIdGetBlockNumber(&tag->tupleId.blockData) : -1 ), \
 	 tag->tupleId.positionData, \
 	 type);
-#endif /* ndef _LOCK_H_ */
 */
+#endif /* ndef _LOCK_H_ */
