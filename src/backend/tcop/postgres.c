@@ -1206,6 +1206,11 @@ PostgresMain(argc, argv)
 	  parser_input[i] = 0;
 
 	AbortCurrentTransaction();
+
+#ifdef SYSV_SIGNAL
+	/* reinstall signal handler */
+   	signal(SIGHUP, handle_warn);
+#endif /* SYSV_SIGNAL */
     }
     
     /* ----------------
