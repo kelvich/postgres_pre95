@@ -153,7 +153,18 @@ va_dcl
 		kill(getpid(), 1);	/* abort to traffic cop */
 	}
 
-	if (lev >= FATAL) {
+	if (lev == FATAL) {
+		/*
+		 * Assume that if we have detected the failure we can
+		 * exit with a normal exit status.  This will prevent
+		 * the postmaster from cleaning up when it's not needed.
+		 */
+		fflush(stdout);
+		fflush(stderr);
+		exitpg(0);
+	}
+
+	if (lev > FATAL) {
 		fflush(stdout);
 		fflush(stderr);
 		exitpg(lev);
