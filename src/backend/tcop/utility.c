@@ -66,40 +66,42 @@ ProcessUtility(command, args, commandString, dest)
     String	commandTag = NULL;
     
     switch (command) {
-	/*
-	 * transactions
+	/* ********************************
+	 *	transactions
+	 * ********************************
 	 */
-      case BEGIN_TRANS:
+    case BEGIN_TRANS:
 	commandTag = "BEGIN";
 	CHECK_IF_ABORTED();
 	
 	BeginTransactionBlock();
 	break;
 	
-      case END_TRANS:
+    case END_TRANS:
 	commandTag = "END";
 	EndTransactionBlock();
 	break;
 	
-      case ABORT_TRANS:
+    case ABORT_TRANS:
 	commandTag = "ABORT";
 	CHECK_IF_ABORTED();
 	
 	AbortTransactionBlock();
 	break;
 	
-	/*
-	 * portal manipulation
+	/* ********************************
+	 *	portal manipulation
+	 * ********************************
 	 */
-      case CLOSE:
+    case CLOSE:
 	commandTag = "CLOSE";
 	CHECK_IF_ABORTED();
 	
-	PerformPortalClose((null(CAR(args))) ? NULL :
-			   CString(CAR(args)));
+	PerformPortalClose((null(CAR(args))) ? NULL : CString(CAR(args)),
+			   dest);
 	break;
 	
-      case FETCH:
+    case FETCH:
 	commandTag = "FETCH";
 	CHECK_IF_ABORTED();
 	
@@ -123,22 +125,22 @@ ProcessUtility(command, args, commandString, dest)
 		    break;
 		}
 	    }
-	    PerformPortalFetch(portalName, forward, count);
+	    PerformPortalFetch(portalName, forward, count, dest);
 	}
 	break;
 	
-      case MOVE:
+    case MOVE:
 	commandTag = "MOVE";
 	CHECK_IF_ABORTED();
 	
-	elog(NOTICE, "MOVE: unimplemented in Version 1");
+	elog(NOTICE, "MOVE: curently unimplemented");
 	break;
 	
-	/*
-	 * relation and attribute manipulation
+	/* ********************************
+	 *	relation and attribute manipulation
+	 * ********************************
 	 */
-	
-      case CREATE:
+    case CREATE:
 	commandTag = "CREATE";
 	CHECK_IF_ABORTED();
 	
@@ -147,7 +149,7 @@ ProcessUtility(command, args, commandString, dest)
 		       CDR(CDR(args)));	/*  schema */
 	break;
 	
-      case DESTROY:
+    case DESTROY:
 	commandTag = "DESTROY";
 	CHECK_IF_ABORTED();
 	
@@ -159,7 +161,7 @@ ProcessUtility(command, args, commandString, dest)
 	}
 	break;
 	
-      case PURGE:
+    case PURGE:
 	commandTag = "PURGE";
 	CHECK_IF_ABORTED();
 	
@@ -170,16 +172,16 @@ ProcessUtility(command, args, commandString, dest)
 	    
 	    tags = CAR(CADR(args));
 	    switch (length(tags)) {
-	      case 1:
+	    case 1:
 		break;
-	      case 2:
+	    case 2:
 		if (CInteger(CAR(tags)) == BEFORE) {
 		    beforeString = CString(CADR(tags));
 		} else {
 		    afterString = CString(CADR(tags));
 		}
 		break;
-	      case 3:
+	    case 3:
 		beforeString = CString(CADR(tags));
 		afterString = CString(CADR(tags));
 		break;
@@ -188,7 +190,7 @@ ProcessUtility(command, args, commandString, dest)
 	}
 	break;
 	
-      case COPY:
+    case COPY:
 	commandTag = "COPY";
 	CHECK_IF_ABORTED();
 	
@@ -228,17 +230,17 @@ ProcessUtility(command, args, commandString, dest)
 	}
 	break;
 	
-      case ADD_ATTR:
+    case ADD_ATTR:
 	commandTag = "ADD";
 	CHECK_IF_ABORTED();
-		
+	
 	PerformAddAttribute(CString(CAR(args)), CDR(args));
 	break;
 	
 	/*
 	 * schema
 	 */
-      case RENAME:
+    case RENAME:
 	commandTag = "RENAME";
 	CHECK_IF_ABORTED();
 	
@@ -283,15 +285,16 @@ ProcessUtility(command, args, commandString, dest)
 	}
 	break;
 	
-	/*
-	 * object creation
+	/* ********************************
+	 *	object creation / destruction
+	 * ********************************
 	 */
-      case DEFINE:
+    case DEFINE:
 	commandTag = "DEFINE";
 	CHECK_IF_ABORTED();
-		
+	
 	switch(LISPVALUE_INTEGER(CAR(args))) {
-	  case INDEX:	/* XXX no support for ARCHIVE indices, yet */
+	case INDEX:	/* XXX no support for ARCHIVE indices, yet */
 	    args = CDR(args);	/* skip "INDEX" token */
 	    
 	    DefineIndex(CString(CAR(args)), /* relation name */
@@ -299,60 +302,57 @@ ProcessUtility(command, args, commandString, dest)
 			CString(CADDR(args)),	/* am name */
 			CADDR(CDR(args)),	/* parameters */
 			CADDR(CDR(CDR(args))));	/* with */
-		break;
-	  case OPERATOR:
+	    break;
+	case OPERATOR:
 	    DefineOperator(
-			       CString(CADR(args)),	/* operator name */
+			   CString(CADR(args)),	/* operator name */
 			   CDR(CDR(args)));	/* rest */
-		break;
-	  case C_FUNCTION:
+	    break;
+	case C_FUNCTION:
 	    DefineFunction(
 			   CString(CADR(args)),	/* function name */
 			   CDR(CDR(args)));	/* rest */
 	    break;
-	  case P_FUNCTION:
+	case P_FUNCTION:
 	    DefinePFunction(CString(CADR(args)), /* function name */
 			    CString(CADDR(args)), /* relation name */
 			    CString(nth(3,args)));  /* query string */
 	    break;
-	  case RULE:
+	case RULE:
 	    elog(WARN,
-	    "Sorry, the old rule system is not supported any more (yet!)");
+		 "Sorry, the old rule system is not supported any more (yet!)");
 	    break;
-	  case REWRITE:
+	case REWRITE:
 	    DefineQueryRewrite ( CDR( CDR (args ))) ; 
 	    break;
-	  case P_TUPLE:
+	case P_TUPLE:
 	    prs2DefineTupleRule(args, commandString);
 	    break;
-	  case P_TYPE:
+	case P_TYPE:
 	    DefineType (CString(CADR(args)),	/* type name */
 			CDR(CDR(args)));	/* rest */
 	    break;
-	  case VIEW:
+	case VIEW:
 	    DefineView (CString(CADR(args)),	/* view name */
 			CDR(CDR(args)) );	/* retrieve parsetree */
 	    break;
-	  default:
+	default:
 	    elog(WARN, "unknown object type in define statement");
 	} /* switch for define statements */
 	break;
 	
-	/*
-	 * object destruction
-	 */
-      case REMOVE:
+    case REMOVE:
 	commandTag = "REMOVE";
 	CHECK_IF_ABORTED();
-		
+	
 	switch(CInteger(CAR(args))) {
-	  case FUNCTION:
+	case FUNCTION:
 	    RemoveFunction(CString(CADR(args)));
 	    break;
-	  case INDEX:
+	case INDEX:
 	    RemoveIndex(CString(CADR(args)));
 	    break;
-	  case OPERATOR:
+	case OPERATOR:
 	    {
 		String	type2 = NULL;
 		
@@ -364,78 +364,82 @@ ProcessUtility(command, args, commandString, dest)
 			       type2);
 	    }
 	    break;
-	  case P_TUPLE:
+	case P_TUPLE:
 	    prs2RemoveTupleRule(CString(CADR(args)));
 	    break;
-	  case REWRITE:
+	case REWRITE:
 	    RemoveRewriteRule(CString(CADR(args)));
 	    break;
-	  case P_TYPE:
+	case P_TYPE:
 	    RemoveType(CString(CADR(args)));
 	    break;
 	}
 	break;
-
-      case FORWARD:
+	
+    case FORWARD:
 	commandTag = "VERSION";
 	CHECK_IF_ABORTED();
-
+	
 	CreateVersion(CString(CAR(args)),    /* version name */
 		      CString(CADR(args)));  /* base name */
 	break;
-      case BACKWARD:
+	
+    case BACKWARD:
 	commandTag = "VERSION";
 	CHECK_IF_ABORTED();
 #ifdef NOTYET
 	CreateBackwardDelta( CString(CAR(args)),
-			     CString(CADR(args)));
+			    CString(CADR(args)));
 	break;
 #endif
-
-/*
- * Exec the dynamic loader.
- */
-      case LOAD:
-	commandTag = "LOAD";
-	CHECK_IF_ABORTED();
-	{
-		FILE *fp, *fopen();
-
-		char *filename;
-		filename = CString(CAR(args));
-		if (*filename != '/')
-		{
-			elog(WARN, "Use full pathname for LOAD command.");
-		}
-		else if ((fp = fopen(filename, "r")) == NULL)
-		{
-			elog(WARN, "LOAD: file %s does not exist", filename);
-		}
-
-		fclose(fp);
-		load_file(filename);
-	}
-	break;
-      case CREATEDB:
+	
+    case CREATEDB:
 	commandTag = "CREATEDB";
 	CHECK_IF_ABORTED();
 	{
-		char *dbname;
-		dbname = CString(CAR(args));
-		createdb(dbname);
+	    char *dbname;
+	    dbname = CString(CAR(args));
+	    createdb(dbname);
 	}
 	break;
-      case DESTROYDB:
+    case DESTROYDB:
 	commandTag = "DESTROYDB";
 	CHECK_IF_ABORTED();
 	{
-		char *dbname;
-		dbname = CString(CAR(args));
-		destroydb(dbname);
+	    char *dbname;
+	    dbname = CString(CAR(args));
+	    destroydb(dbname);
 	}
 	break;
-	/* default */
-      default:
+
+	/* ********************************
+	 *	dynamic loader
+	 * ********************************
+	 */
+    case LOAD:
+	commandTag = "LOAD";
+	CHECK_IF_ABORTED();
+	{
+	    FILE *fp, *fopen();
+	    
+	    char *filename;
+	    filename = CString(CAR(args));
+	    if (*filename != '/') {
+		elog(WARN, "Use full pathname for LOAD command.");
+	    } else if ((fp = fopen(filename, "r")) == NULL) {
+		elog(WARN, "LOAD: could not open file %s", filename);
+	    }
+	    
+	    fclose(fp);
+	    load_file(filename);
+	}
+	break;
+	
+	/* ********************************
+	 *	default
+	 * ********************************
+	 */
+    default:
 	elog(WARN, "ProcessUtility: command #%d unsupport", command);
 	break;
     }
