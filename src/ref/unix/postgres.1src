@@ -25,7 +25,7 @@ much of this.
 .sp
 \fIdatabasename\fR is the name of the database to be used.  If this
 is not specified, databasename defaults to the value of the environment
-varuable USER.
+variable USER.
 .sp
 .uh "UNDOCUMENTED COMMAND OPTIONS"
 .lp
@@ -40,13 +40,10 @@ see the results of prior commands.
 .lp
 \fI-M nnn\fR indicates that the backend should fork \fInnn\fR slave
 backend processes and then execute queries in parallel.  This is only
-useful on multiprocessor systems (e.g. Sequent).  Presently the slave
-processes are not used, so don't do this.  Full support for heavyweight
-query parallism is not expected until Version 4.
-.sp
-.lp
-\fI-D nnn\fR indicates the degree of disk striping the backend should
-use.  Again this functionality is only experimental at this stage.
+useful on shared-memory multiprocessor systems (e.g. Sequent) and is still in
+experimental and research stage.  It is especially unreliable for
+large joins.  Full support for intra-query as well inter-query parallelism
+have been planned for Version 4.
 .sp
 .lp
 \fI-S\fR indicates that the transaction system can run with the assumption
@@ -64,6 +61,13 @@ for use in tuning the number of buffers.
 .lp
 \fI-B nnn\fR indicates the number of shared buffers to use.  The default
 number of buffers is 64.
+.sp
+.lp
+\fI-s\fR postgres will report execution statistics such as elapse time,
+buffer hit rate, etc for each query execution.
+.sp
+.lp
+\fI-L\fR this flag will turn off locking.
 .lp
 .sp
 .uh "DIAGNOSTICS"
