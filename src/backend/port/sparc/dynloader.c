@@ -36,6 +36,7 @@
 
 RcsId("$Header$");
 
+#ifdef NOTDEF
 typedef struct reloc_info_sparc	Reloc;
 typedef struct nlist		NList;
 
@@ -46,6 +47,7 @@ char *Align();
 #define	IN_RANGE(v,n)   ((-(1<<((n)-1))) <=(v) && (v) < (1<<((n)-1)))
 
 static struct exec hdr;
+#endif
 
 func_ptr
 dynamic_load(err, filename, funcname)
@@ -53,6 +55,11 @@ char **err;
 char *filename;
 char *funcname;
 {
+	err = "Dynamic loading not supported on Sparcs";
+	return(NULL);
+}
+
+#ifdef NOTDEF
     int fd;
     int n;
     int a_strsize;
@@ -410,3 +417,4 @@ char *padr;
     long adr = ((long)padr + 3) & ~3;
     return((char *)adr);
 }
+#endif
