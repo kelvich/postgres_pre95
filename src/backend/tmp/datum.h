@@ -3,6 +3,23 @@
  *	POSTGRES abstract data type datum representation definitions.
  *
  * Note:
+ *
+ * Port Notes:
+ *  Postgres makes the following assumption about machines:
+ *
+ *  sizeof(Datum) == sizeof(char *) == sizeof(long) == 4
+ *
+ *  Postgres also assumes that
+ *
+ *  sizeof(char) == 1
+ *
+ *  and that 
+ *
+ *  sizeof(short) == 2
+ *
+ *  If your machine meets these requirements, Datums should also be checked
+ *  to see if the positioning is correct.
+ *
  *	This file is MACHINE AND COMPILER dependent!!!
  */
 
@@ -30,360 +47,230 @@ typedef struct AnyStruct {
 	double  largeFloat;
 } AnyStruct;
 
-#if defined(sun) 
-typedef union Datum {
-	struct character {
-		char	filler[3];	
-		char	value;
-	} character;
-	struct integer8 {
-		int8	filler[3];
-		int8	value;
-	} integer8;
-	struct unsignedInteger8 {
-		uint8	filler[3];
-		uint8	value;
-	} unsignedInteger8;
-	struct integer16 {
-		int16	filler[1];
-		int16	value;
-	} integer16;
-	struct unsignedInteger16 {
-		uint16	filler[1];
-		uint16	value;
-	} unsignedInteger16;
-	struct integer32 {
-		int32	value;
-	} integer32;
-	struct unsignedInteger32 {
-		uint32	value;
-	} unsignedInteger32;
-	struct smallFloat {
-		float32	value;
-	} smallFloat;
-	struct largeFloat {
-		float64	value;
-	} largeFloat;
-	struct pointer {
-		Pointer	value;
-	} pointer;
-	struct pointerPointer {
-		Pointer	*value;
-	} pointerPointer;
-	struct structPointer {
-		AnyStruct	*value;
-	} structPointer;
-	struct name {
-		Name	value;	
-	} name;
-	struct objectId {
-		ObjectId	value;	
-	} objectId;
-} Datum;
-#endif	/* defined(sun) */
+typedef unsigned long Datum;
 
-#if defined(sequent) || defined(mips) 
-typedef union Datum {
-	struct character {
-		char	value;
-		char	filler[3];	
-	} character;
-	struct integer8 {
-		int8	value;
-		int8	filler[3];
-	} integer8;
-	struct unsignedInteger8 {
-		uint8	value;
-		uint8	filler[3];
-	} unsignedInteger8;
-	struct integer16 {
-		int16	value;
-		int16	filler[1];
-	} integer16;
-	struct unsignedInteger16 {
-		uint16	value;
-		uint16	filler[1];
-	} unsignedInteger16;
-	struct integer32 {
-		int32	value;
-	} integer32;
-	struct unsignedInteger32 {
-		uint32	value;
-	} unsignedInteger32;
-	struct smallFloat {
-		float32	value;
-	} smallFloat;
-	struct largeFloat {
-		float64	value;
-	} largeFloat;
-	struct pointer {
-		Pointer	value;
-	} pointer;
-	struct pointerPointer {
-		Pointer	*value;
-	} pointerPointer;
-	struct structPointer {
-		AnyStruct	*value;
-	} structPointer;
-	struct name {
-		Name	value;	
-	} name;
-	struct objectId {
-		ObjectId	value;	
-	} objectId;
-} Datum;
-#endif  /* defined(sequent) */
+/*
+ * We want to pad to the right on Sun computers and to the right on
+ * the others.
+ * 
+ */
+
+#ifdef NOTDEF
+
+#define GET_1_BYTE(datum)   ((((long) (datum)) & 0xff000000) >> 24)
+#define GET_2_BYTES(datum)  ((((long) (datum)) & 0xffff0000) >> 16)
+#define GET_4_BYTES(datum)  (datum)
+#define SET_1_BYTE(value)   (((long) (value)) << 24)
+#define SET_2_BYTES(value)  (((long) (value)) << 16)
+#define SET_4_BYTES(value)  (value)
+
+#endif
+
+#if defined(sequent) || defined(mips) || defined(sun) || defined(sparc)
+
+#define GET_1_BYTE(datum)   (((Datum) (datum)) & 0x000000ff)
+#define GET_2_BYTES(datum)  (((Datum) (datum)) & 0x0000ffff)
+#define GET_4_BYTES(datum)  ((Datum) (datum))
+#define SET_1_BYTE(value)   (((Datum) (value)) & 0x000000ff)
+#define SET_2_BYTES(value)  (((Datum) (value)) & 0x0000ffff)
+#define SET_4_BYTES(value)  ((Datum) (value))
+
+#endif
 
 /*
  * DatumGetChar --
  *	Returns character value of a datum.
  */
-char
-DatumGetChar ARGS((
-	Datum	datum
-));
+
+#define DatumGetChar(X) ((char) GET_1_BYTE(X))
 
 /*
  * CharGetDatum --
  *	Returns datum representation for a character.
  */
-Datum
-CharGetDatum ARGS((
-	char	character
-));
+
+#define CharGetDatum(X) ((Datum) SET_1_BYTE(X))
 
 /*
  * DatumGetInt8 --
  *	Returns 8-bit integer value of a datum.
  */
-int8
-DatumGetInt8 ARGS((
-	Datum	datum
-));
+
+#define DatumGetInt8(X) ((int8) GET_1_BYTE(X))
 
 /*
  * Int8GetDatum --
  *	Returns datum representation for an 8-bit integer.
  */
-Datum
-Int8GetDatum ARGS((
-	int8	integer8
-));
+
+#define Int8GetDatum(X) ((Datum) SET_1_BYTE(X))
 
 /*
  * DatumGetUInt8 --
  *	Returns 8-bit unsigned integer value of a datum.
  */
-uint8
-DatumGetUInt8 ARGS((
-	Datum	datum
-));
+
+#define DatumGetUInt8(X) ((uint8) GET_1_BYTE(X))
 
 /*
  * UInt8GetDatum --
  *	Returns datum representation for an 8-bit unsigned integer.
  */
-Datum
-UInt8GetDatum ARGS((
-	uint8	unsignedInteger8
-));
+
+#define UInt8GetDatum(X) ((Datum) SET_1_BYTE(X))
 
 /*
  * DatumGetInt16 --
  *	Returns 16-bit integer value of a datum.
  */
-int16
-DatumGetInt16 ARGS((
-	Datum	datum
-));
+
+#define DatumGetInt16(X) ((int16) GET_2_BYTES(X))
 
 /*
  * Int16GetDatum --
  *	Returns datum representation for a 16-bit integer.
  */
-Datum
-Int16GetDatum ARGS((
-	int16	integer16
-));
+
+#define Int16GetDatum(X) ((Datum) SET_2_BYTES(X))
 
 /*
  * DatumGetUInt16 --
  *	Returns 16-bit unsigned integer value of a datum.
  */
-uint16
-DatumGetUInt16 ARGS((
-	Datum	datum
-));
+
+#define DatumGetUInt16(X) ((uint16) GET_2_BYTES(X))
 
 /*
  * UInt16GetDatum --
  *	Returns datum representation for a 16-bit unsigned integer.
  */
-Datum
-UInt16GetDatum ARGS((
-	uint16	unsignedInteger16
-));
+
+#define UInt16GetDatum(X) ((Datum) SET_2_BYTES(X))
 
 /*
  * DatumGetInt32 --
  *	Returns 32-bit integer value of a datum.
  */
-int32
-DatumGetInt32 ARGS((
-	Datum	datum
-));
+
+#define DatumGetInt32(X) ((int32) GET_4_BYTES(X))
 
 /*
  * Int32GetDatum --
  *	Returns datum representation for a 32-bit integer.
  */
-Datum
-Int32GetDatum ARGS((
-	int32	integer32
-));
+
+#define Int32GetDatum(X) ((Datum) SET_4_BYTES(X))
 
 /*
  * DatumGetUInt32 --
  *	Returns 32-bit unsigned integer value of a datum.
  */
-uint32
-DatumGetUInt32 ARGS((
-	Datum	datum
-));
+
+#define DatumGetUInt32(X) ((uint32) GET_4_BYTES(X))
 
 /*
  * UInt32GetDatum --
  *	Returns datum representation for a 32-bit unsigned integer.
  */
-Datum
-UInt32GetDatum ARGS((
-	uint32	unsignedInteger32
-));
+
+#define UInt32GetDatum(X) ((Datum) SET_4_BYTES(X))
 
 /*
  * DatumGetFloat32 --
  *	Returns 32-bit floating point value of a datum.
  */
-float32
-DatumGetFloat32 ARGS((
-	Datum	datum
-));
+
+#define DatumGetFloat32(X) ((float32) GET_4_BYTES(X))
 
 /*
  * Float32GetDatum --
  *	Returns datum representation for a 32-bit floating point number.
  */
-Datum
-Float32GetDatum ARGS((
-	float32	smallFloat
-));
+
+#define Float32GetDatum(X) ((Datum) SET_4_BYTES(X))
 
 /*
  * DatumGetFloat64 --
  *	Returns 64-bit floating point value of a datum.
  */
-float64
-DatumGetFloat64 ARGS((
-	Datum	datum
-));
+
+#define DatumGetFloat64(X) ((float64) GET_4_BYTES(X))
 
 /*
  * Float64GetDatum --
  *	Returns datum representation for a 64-bit floating point number.
  */
-Datum
-Float64GetDatum ARGS((
-	float64	largeFloat
-));
+
+#define Float64GetDatum(X) ((Datum) SET_4_BYTES(X))
 
 /*
  * DatumGetPointer --
  *	Returns pointer value of a datum.
  */
-Pointer
-DatumGetPointer ARGS((
-	Datum	datum
-));
+
+#define DatumGetPointer(X) ((Pointer) GET_4_BYTES(X))
 
 /*
  * PointerGetDatum --
  *	Returns datum representation for a pointer.
  */
-Datum
-PointerGetDatum ARGS((
-	Pointer	pointer
-));
+
+#define PointerGetDatum(X) ((Datum) SET_4_BYTES(X))
 
 /*
  * DatumGetPointerPointer --
  *	Returns pointer to pointer value of a datum.
  */
-Pointer *
-DatumGetPointerPointer ARGS((
-	Datum	datum
-));
+
+#define DatumGetPointerPointer(X) ((Pointer *) GET_4_BYTES(X))
 
 /*
  * PointerPointerGetDatum --
  *	Returns datum representation for a pointer to pointer.
  */
-Datum
-PointerPointerGetDatum ARGS((
-	Pointer	*pointerPointerInP
-));
+
+#define PointerPointerGetDatum(X) ((Datum) SET_4_BYTES(X))
 
 /*
  * DatumGetStructPointer --
  *	Returns pointer to structure value of a datum.
  */
-AnyStruct *
-DatumGetStructPointer ARGS((
-	Datum	datum
-));
+
+#define DatumGetStructPointer(X) ((AnyStruct *) GET_4_BYTES(X))
 
 /*
  * StructPointerGetDatum --
  *	Returns datum representation for a pointer to structure.
  */
-Datum
-StructPointerGetDatum ARGS((
-	AnyStruct	*structPointerInP
-));
+
+#define StructPointerGetDatum(X) ((Datum) SET_4_BYTES(X))
 
 /*
  * DatumGetName --
  *	Returns name value of a datum.
  */
-Name
-DatumGetName ARGS((
-	Datum	datum
-));
+
+#define DatumGetName(X) ((Name) GET_4_BYTES(X))
 
 /*
  * NameGetDatum --
  *	Returns datum representation for a name.
  */
-Datum
-NameGetDatum ARGS((
-	Name	name
-));
+
+#define NameGetDatum(X) ((Datum) SET_4_BYTES(X))
 
 /*
  * DatumGetObjectId --
  *	Returns object identifier value of a datum.
  */
-ObjectId
-DatumGetObjectId ARGS((
-	Datum	datum
-));
+
+#define DatumGetObjectId(X) ((ObjectId) GET_4_BYTES(X))
 
 /*
  * ObjectIdGetDatum --
  *	Returns datum representation for an object identifier.
  */
-Datum
-ObjectIdGetDatum ARGS((
-	ObjectId	objectId
-));
+
+#define ObjectIdGetDatum(X) ((Datum) SET_4_BYTES(X))
 
 #endif	/* !defined(DatumIncluded) */
