@@ -119,22 +119,22 @@ typedef FormData_pg_relation	*Form_pg_relation;
  * ----------------
  */
 
-DATA(insert OID =  71 (  pg_type           PGUID 0 0 0 0 0 f f r n 15 "magnetic disk" - - _null_ ));
-DATA(insert OID =  88 (  pg_database       PGUID 0 0 0 0 0 f t r n 3 "magnetic disk" - - _null_ ));
-DATA(insert OID =  76 (  pg_demon          PGUID 0 0 0 0 0 f t r n 4 "magnetic disk" - - _null_ ));
-DATA(insert OID =  81 (  pg_proc           PGUID 0 0 0 0 0 f f r n 16 "magnetic disk" - - _null_ ));
-DATA(insert OID =  82 (  pg_server         PGUID 0 0 0 0 0 f t r n 3 "magnetic disk" - - _null_ ));
-DATA(insert OID =  86 (  pg_user           PGUID 0 0 0 0 0 f t r n 6 "magnetic disk" - - _null_ ));
-DATA(insert OID =  75 (  pg_attribute      PGUID 0 0 0 0 0 f f r n 14 "magnetic disk" - - _null_ ));
+DATA(insert OID =  71 (  pg_type           PGUID 0 0 0 0 0 f f r n 15 0 - - _null_ ));
+DATA(insert OID =  88 (  pg_database       PGUID 0 0 0 0 0 f t r n 3 0 - - _null_ ));
+DATA(insert OID =  76 (  pg_demon          PGUID 0 0 0 0 0 f t r n 4 0 - - _null_ ));
+DATA(insert OID =  81 (  pg_proc           PGUID 0 0 0 0 0 f f r n 16 0 - - _null_ ));
+DATA(insert OID =  82 (  pg_server         PGUID 0 0 0 0 0 f t r n 3 0 - - _null_ ));
+DATA(insert OID =  86 (  pg_user           PGUID 0 0 0 0 0 f t r n 6 0 - - _null_ ));
+DATA(insert OID =  75 (  pg_attribute      PGUID 0 0 0 0 0 f f r n 14 0 - - _null_ ));
 /* pg_relation is now called pg_class -cim 2/26/90 */
-DATA(insert OID =  83 (  pg_class          PGUID 0 0 0 0 0 f f r n 16 "magnetic disk" - - _null_ ));
+DATA(insert OID =  83 (  pg_class          PGUID 0 0 0 0 0 f f r n 16 0 - - _null_ ));
     
-DATA(insert OID =  80 (  pg_magic          PGUID 0 0 0 0 0 f t r n 2 "magnetic disk" - - _null_ ));
-DATA(insert OID =  89 (  pg_defaults       PGUID 0 0 0 0 0 f t r n 2 "magnetic disk" - - _null_ ));
-DATA(insert OID =  90 (  pg_variable       PGUID 0 0 0 0 0 f t s n 2 "magnetic disk" - - _null_ ));
-DATA(insert OID =  99 (  pg_log            PGUID 0 0 0 0 0 f t s n 1 "magnetic disk" - - _null_ ));
-DATA(insert OID = 100 (  pg_time           PGUID 0 0 0 0 0 f t s n 1 "magnetic disk" - - _null_ ));
-DATA(insert OID =  87 (  pg_group          PGUID 0 0 0 0 0 f t s n 3 "magnetic disk" - - _null_ ));
+DATA(insert OID =  80 (  pg_magic          PGUID 0 0 0 0 0 f t r n 2 0 - - _null_ ));
+DATA(insert OID =  89 (  pg_defaults       PGUID 0 0 0 0 0 f t r n 2 0 - - _null_ ));
+DATA(insert OID =  90 (  pg_variable       PGUID 0 0 0 0 0 f t s n 2 0 - - _null_ ));
+DATA(insert OID =  99 (  pg_log            PGUID 0 0 0 0 0 f t s n 1 0 - - _null_ ));
+DATA(insert OID = 100 (  pg_time           PGUID 0 0 0 0 0 f t s n 1 0 - - _null_ ));
+DATA(insert OID =  87 (  pg_group          PGUID 0 0 0 0 0 f t s n 3 0 - - _null_ ));
 
 #define RelOid_pg_type		71
 #define RelOid_pg_database    	88   
