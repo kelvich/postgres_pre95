@@ -221,6 +221,7 @@ DefineIndexStmt:
 			      LexIDStr($7),
 			      LexIDStr($9),
 			      LexIDStr($10));
+		  DO_START;
 		}
 	;
     
