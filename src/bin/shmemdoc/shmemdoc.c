@@ -361,7 +361,19 @@ int
 getsize()
 {
     /* XXX compute this, someday */
+#ifdef PORTNAME_alpha
+    return(897220);
+#else
+#ifdef PORTNAME_sparc
+    return(837920);
+#else
+    return(837720);
+#endif /* sparc */
+#endif /* alpha */
+
+#if 0
     return(833820);
+#endif
 }
 
 void
