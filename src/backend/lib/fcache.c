@@ -128,6 +128,9 @@ Boolean use_syscache;
         retval->bin = ( char *) textout(tmp);
 
         retval->func_state = (char *)NULL;
+	retval->setArg = NULL;
+	retval->hasSetArg  = false;
+
 	nargs = procedureStruct->pronargs;
 	retval->nargs = nargs;
 
