@@ -68,7 +68,7 @@ static struct {
     void (*LOdestroy)ARGS((void *));
 } LOprocs[] = {
     /* Inversion */
-    { SMALL_INT, noaction }, /* not defined yet, probably destroy class */
+    { BIG, noaction }, /* not defined yet, probably destroy class */
     /* Unix */
     { BIG, LODestroyRef }
 };
@@ -109,7 +109,6 @@ int CreateLOBJTuple(objOID,objtype,desc)
     lobjDesc = heap_openr(Name_pg_large_object);
     for (i = 0 ; i < Natts_pg_large_object; i++) {
 	nulls[i] = ' ';
-	values[i] = NULL;
     }
 
     i = 0;
