@@ -44,7 +44,7 @@ POSTGRES INSTALLATION INSTRUCTIONS
 .r
 .ps 14
 .sp 0.25v
-C-Only Release 2.1
+C-Only Release 3.0
 .sp 0.25v
 .ce 0
 .sp
@@ -88,7 +88,6 @@ C-Only Release 2.1
 	The \*(PG Terminal Monitor
 	The \*(PG Backend
 	\*(PG Support Programs
-    Periodic Maintenance
     Optional Installation
 	Installing LIBPQ, the \*(PG frontend library
 	Performance Tuning
@@ -143,7 +142,7 @@ on the
 Sequent Symmetry cannot compile Postgres.  
 In order to use \*(PG,
 your machine should have at least 8 megabytes of memory
-and you will require at least 30 megabytes of disk space
+and you will require at least 45 megabytes of disk space
 to hold source,
 binaries,
 and user databases.
@@ -164,7 +163,7 @@ This implementation of \*(PG is completely in C.
 The distribution contains no Lisp or C++ code.
 .sh 2 "Distribution tape"
 .pp
-These instructions assume you have a \*(PG Version 2
+These instructions assume you have a \*(PG Version 3
 distribution tape (in either 9 track, SCSI cartridge, or TK50 cartridge
 format)
 or a \*(PG tar file.
@@ -209,7 +208,7 @@ of difficulty on Sequent Symmetry machines, so we advise that you
 obtain a Sun-compatible make for these platforms.
 .sh 3 "Disk Partition"
 .pp
-\*(PG requires 30 megabytes of disk space,
+\*(PG requires 45 megabytes of disk space,
 preferably on a single partition.
 If you don't have enough space,
 it is still possible to compile and run \*(PG but you will have to
@@ -255,7 +254,7 @@ system administrator perform these steps.
 .sh 3 "Find a good place for \*(PG"
 .pp
 You should locate a disk partition with
-at least 30 megabytes of free space available for \*(PG.
+at least 45 megabytes of free space available for \*(PG.
 If you haven't any single partition with 25 megabytes free,
 you might have to spread apart the \*(PG directories across several
 partitions,
@@ -343,7 +342,7 @@ Login as postgres.
 where <tape-device> is the name for your tape device, i.e.,
 /dev/rmt0, /dev/rst8, etc.
 .pp
-The file "postgres-v2r1.tar.Z" will appear in your \*(PG home directory.
+The file "postgres-v3r0.tar.Z" will appear in your \*(PG home directory.
 You may need to re-wind your tape to get it out of your tape
 drive - see your system administrator for instructions.
 .pp
@@ -356,21 +355,21 @@ Make sure your current working directory is the \*(PG home
 directory, and that the \*(PG tar file is there.
 For the purpose of this discussion, the \*(PG tar file will be called
 .pp
-postgres-v2r1.tar.Z
+postgres-v3r0.tar.Z
 .pp
 Uncompress the tar file.
 .pp
-% uncompres postgres-v2r1.tar.Z
+% uncompres postgres-v3r0.tar.Z
 .pp
 A larger file should now be in the \*(PG home directory, and the '.Z'
 ending should be gone, so it is now named
 .pp
-postgres-v2r1.tar
+postgres-v3r0.tar
 .pp
 Extract \*(PG from the tar file, using the "extract, verbose, file"
 options:
 .pp
-% tar xvf postgres-v2r1.tar
+% tar xvf postgres-v3r0.tar
 .pp
 Lots of file names and such should appear on the screen.
 This step may take several minutes.
@@ -379,8 +378,8 @@ Now do an "ls":
 .pp
 The output of the ls should look something like:
 .(l
-COPYRIGHT	demo/	newconf/	src/
-README	doc/	ref/
+COPYRIGHT	bench/	demo/	newconf/	src/
+README	doc/	ref/	test/	sample/	video/
 .)l
 .pp
 At this point you have loaded the \*(PG files.
@@ -541,20 +540,14 @@ and reboot.
 .pp
 This release of \*(PG
 may require some configuration.
-For performance reasons, you may want to compile Postgres with the optimizer
-enabled, floating point coprocessors enabled, etc.  The default is to use
-the default options.  Also, if you plan to modify Postgres, you may want to
-enable debugging (note that this will take Postgres up to about 50 megs from
-about 30 megs otherwise).
-.pp
-\fB
-WARNING!!  DO NOT ENABLE COMPILER OPTIMIZATION ON SUN 4's OR SPARCS - POSTGRES
-WILL CRASH YOUR MACHINE IF COMPILED THIS WAY!!  (This appears to be due to
-a kernel problem with the shared memory functions.)
-\fR
+For performance reasons, Postgres is by default compiled with the optimizer
+enabled and internal debugging assertions disabled.  If you plan to modify
+Postgres, you may want to enable debugging (note that this will take Postgres
+up to about 50 megs from about 45 megs otherwise), and enable internal
+debugging assertions.
 .pp
 To enable compiler directives, 
-look in the file ./newconf/CONFIG/README
+read the file ./newconf/CONFIG/README
 for instructions on what to change.
 Now to edit the configuration file,
 .(l
@@ -568,9 +561,9 @@ where
 .i <port> is the following:
 .(l
 dec	\- DS3100 running Ultrix LOWER than 4.0
-ultrix4	\- DS3100 running Ultrix 4.0
+ultrix4	\- DS3100, 5000, 5500, etc. running Ultrix 4.0 or higher
 sun	\- Sun 3 running SunOS 3.4 or 3.5
-sunos4	\- Sun 3 running SunOS 4.0
+sunos4	\- Sun 3 running SunOS 4.0 or higher
 seq	\- Sequent Symmetry running Dynix
 sparc	\- Sparcstation or Sun 4
 .)l
@@ -584,6 +577,7 @@ Now you are ready to install Postgres.  To do so,
 simply execute the following commands:
 .(l
 % \fBcd ~postgres/newconf\fR
+% \fBsetenv POSTGRESHOME ~postgres\fR
 % \fB./Make install\fR
 .)l
 .pp
@@ -593,8 +587,15 @@ simply execute the following commands:
 will ask you for the port you wish to use.  Use the same port as
 in Step 2.  You will also be asked for the name of the object tree directory;
 the default is ~postgres/obj.<port>.  (throughout the rest of this document
-obj.<port> refers to the object tree directory).  This step will take at least
-an hour and may take several hours on Sun 3's.
+obj.<port> refers to the object tree directory).  This step will take from
+about 40 minutes on Sparc II or DEC 5000 class machines to several hours
+on Sun 3's.
+The POSTGRESHOME environment variable is the home directory of the Postgres
+user.  In the course of the installation process, the Postgres
+.b bin
+and 
+.b data
+directories will be created and populated.
 .pp
 .i Make
 is a C shell script that runs
@@ -622,10 +623,10 @@ initial database.
 To do this,
 type 
 .(l
-% \fBsetenv POSTGRESHOME ~postgres
-% ~postgres/bin/postmaster &
-% ~postgres/bin/createdb postgres\fR
-% kill %~postgres/bin/postmaster
+% \fBsetenv POSTGRESHOME ~postgres\fR
+% \fB~postgres/bin/postmaster &\fR
+% \fB~postgres/bin/createdb postgres\fR
+% \fBkill %~postgres/bin/postmaster\fR
 .)l
 This will create the bootstrap template database, from which
 the database 
@@ -833,7 +834,7 @@ Query sent to backend is "retrieve (u.usename, u.usesysid) from u in pg_user"
  -----------------------------
  | choi        | 3898        |
  -----------------------------
- | plai        | 3665        |
+ | mer         | 3665        |
  -----------------------------
 
 Go 
@@ -886,19 +887,9 @@ createdb		\- creates new postgres databases
 createdb.sh		\- creates new postgres databases - old version
 destroydb	\- destroys postgres databases
 ipcclean		\- frees up garbage shared memory from failed backends
-vacuumd	\- vacuum cleaner daemon
 pg_version	\- make version numbers for createdb
 pg_id		\- gets user id's for createdb
 .)l
-.\" ----------------
-.tm    Periodic Maintenance
-.\" ----------------
-.sh 2 "Periodic Maintenance"
-.pp
-The database log files in ~postgres/data/base/*/PG_DBLOG and 
-~postgres/data/PG_SYSLOG can grow in size.
-Periodic truncation of these files is recommended.
-.pp
 .sh 1 "Optional Installation"
 .sh 2 "Installing LIBPQ, the \*(PG frontend library"
 .pp
@@ -918,7 +909,7 @@ type:
 .sh 2 "Demo Database"
 .pp
 In ~postgres/demo are files to be included by the terminal monitor
-to setup a demo database.
+to set up a demo database.
 Additional files demonstrate inheritance,
 historical queries,
 abstract data types,
@@ -926,6 +917,18 @@ and various other features
 of \*(PG.
 A description of the demo database can be found
 in ~postgres/demo/DEMO-README.
+.sh 2 "Video Demo Database"
+In ~postgres/video are files that were used in the 1991 Postgres SIGMOD
+video.  These files demonstrate both the instance level and query rewrite
+rule systems, views, versions, and spatial queries using R-Tree indices.
+A description of the video database can be found in
+~postgres/video/VIDEO-README.
+.sh 2 "Wisconsin Benchmark Database"
+In ~postgres/bench are files which are the queries used in the Postgres
+version of the Wisconsin benchmark.  The Wisconsin benchmark illustrates
+"basic" relational performance using B-Tree indices on nontrivial amounts
+of data.  Instructions for running the benchmark are in
+~postgres/bench/WISC-README.
 .pp
 .sh 2 "Minimal Installation"
 .pp
@@ -936,8 +939,8 @@ bin/		the binary programs comprising \*(PG
 data/		support files and user created databases
 files/		database initialization scripts
 .)l
-When compiled using the "defaults", (ie no optimization and no debugging),
-these directories will take up about 8 Mbytes.
+When compiled using the "default" compilation options as shipped, (ie
+optimization and no debugging), these directories will take up about 5 Mbytes.
 The following directories are necessary if Postgres is to ever be recompiled.
 .(l
 newconf/	the \*(PG configuration directory
@@ -950,12 +953,15 @@ Mbytes.
 Additional Postgres directories are as follows:
 .(l
 demo/		demo database scripts
+video/		video demo database scripts
+bench/		Wisconsin benchmark database scripts
+sample/		Sample LIBPQ application
 doc/		postgres technical reports and tutorials
 ref/		\*(PG Reference Manual source
 .)l
 .pp
 These directories take up about 2 Mbytes, and can be reduced to about
-200 Kbytes if the Postscript files are deleted. 
+200 Kbytes if the Postscript files in doc and ref are deleted. 
 .pp
 We do not recommend deleting these unless absolutely necessary.
 .\" ----------------
