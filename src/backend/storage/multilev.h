@@ -6,6 +6,8 @@
  * for single.c and multi.c and their clients
  */
 
+#include "storage/lock.h"
+
 #define READ_LOCK  	2
 #define WRITE_LOCK 	1
 
