@@ -58,11 +58,10 @@
  */
 
 List
-SemantOpt(root,rangetable,tlist, qual)
-     List root,rangetable,tlist, qual;
+SemantOpt(varlist,rangetable, qual)
+     List varlist,rangetable, qual;
 {
   List retqual = LispNil;
-  List varlist = LispNil;
   Index leftvarno = 0;
   Index rightvarno = 0;
   ObjectId op = 0;
@@ -73,12 +72,6 @@ SemantOpt(root,rangetable,tlist, qual)
    *   NOTE:  Routine doesn't handle func clauses.
    */
 
-  /*
-   *  Varlist contains the list of varnos of relations that participate
-   *  in the current query.  It is used to detect existential clauses.
-   *  Initially, varlist contains the list of target relations (varnos).
-   */
-  varlist = find_allvars(root,rangetable,tlist,qual);
   retqual = qual;
 
   if (null(qual))
@@ -148,28 +141,25 @@ SemantOpt(root,rangetable,tlist, qual)
     } else  
       if (and_clause (qual)) {
 	foreach(i,get_andclauseargs(qual)) {
-	  tmp_list = nappend1(tmp_list,SemantOpt(root,
-						     rangetable, 
-						     tlist, 
-						     CAR(i)));
+	  tmp_list = nappend1(tmp_list,SemantOpt(varlist,
+						 rangetable, 
+						 CAR(i)));
 	}
 	retqual = make_andclause(tmp_list);
       }
       else
 	if (or_clause (qual)) {
 	  foreach(i,get_orclauseargs(qual)) {
-	    tmp_list = nappend1(tmp_list,SemantOpt(root,
+	    tmp_list = nappend1(tmp_list,SemantOpt(varlist,
 						   rangetable, 
-						   tlist, 
 						   CAR(i)));
 	  }
 	  retqual = make_orclause(tmp_list);
 	}
 	else
 	  if (not_clause (qual))
-	    retqual = make_notclause(SemantOpt(root,
+	    retqual = make_notclause(SemantOpt(varlist, 
 					       rangetable, 
-					       tlist, 
 					       get_notclausearg(qual)));
   
   return (retqual);
@@ -247,6 +237,7 @@ update_vars(rangetable,varlist,qual)
   ObjectId op = 0;
   Index leftvarno = 0;
   Index rightvarno = 0;
+  List tmp = LispNil;
 
   if (null(qual))
     return(varlist);
@@ -282,17 +273,21 @@ update_vars(rangetable,varlist,qual)
 	} /* leftop var */
       } /*else */
     } else  /* is_clause */
-      if (and_clause(qual))
-	varlist = update_vars(rangetable,
-			      varlist,
-			      get_andclauseargs(qual));
+      if (and_clause(qual)) {
+	foreach(tmp, get_andclauseargs(qual))
+	  varlist =  update_vars(rangetable,
+				 varlist,
+				 CAR(tmp));
+      }
       else
-	if (or_clause(qual))
-	  varlist = update_vars(rangetable,
-				varlist,
-				get_orclauseargs(qual));
+	if (or_clause(qual)) {
+	  foreach (tmp, get_orclauseargs(qual))
+	    varlist = update_vars(rangetable,
+				  varlist,
+				  CAR(tmp));
+	}
 	else
-	  if (not_clause(qual))
+	  if (not_clause(qual)) 
 	    varlist = update_vars(rangetable,
 				  varlist,
 				  get_notclausearg(qual));
