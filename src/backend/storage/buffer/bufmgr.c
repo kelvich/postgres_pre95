@@ -510,8 +510,10 @@ FindLocalBuffer(relation,blknum)
                         IncrSharedRefCount(local->sh_buf);
                     local->refcount ++;
                 }
+#if 0
                 if (!BufferIsValid(i))
                     elog(WARN,"something mighty strange");
+#endif
 
                 return(BufferGetBufferDescriptor(i));
                 
@@ -815,8 +817,10 @@ BufferPut(buffer,lockLevel)
     if (lockLevel & L_UN) {
         switch(lockLevel & L_LOCKS) {
         case L_PIN:
+#ifndef NO_BUFFERISVALID
             if (!BufferIsValid(buffer))
                 BM_debug(WARN,"BufferPut called with invalid buffer");
+#endif
             ReleaseBuffer(buffer);
             return(0);
             
@@ -824,8 +828,10 @@ BufferPut(buffer,lockLevel)
 #ifdef BUFMGR_DEBUG
             BM_debug(BUFDEB,"BufferPut called with UN_LOCKS, unsupported");
 #endif
+#ifndef NO_BUFFERISVALID
             if (!BufferIsValid(buffer))
                 BM_debug(WARN,"BufferPut called with invalid buffer");
+#endif
             IncrSharedRefCount(BufferGetBufferDescriptor(buffer)->sh_buf);
             BufferGetBufferDescriptor(buffer)->refcount ++;
             WriteBuffer(buffer);
@@ -875,8 +881,10 @@ BufferPut(buffer,lockLevel)
 #ifdef BUFMGR_DEBUG
         BM_debug(BUFDEB,"BufferPut: repinning buffer? bad flag L_PIN");
 #endif
+#ifndef NO_BUFFERISVALID
         if (!BufferIsValid(buffer))
           elog(WARN,"BufferPut: trying to pin invalid buffer");
+#endif
         if (lockLevel & L_WRITE) {
             IncrSharedRefCount(BufferGetBufferDescriptor(buffer)->sh_buf);
             BufferGetBufferDescriptor(buffer)->refcount++;
