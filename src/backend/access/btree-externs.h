@@ -9,6 +9,7 @@
 #ifndef	BTreeExternsDefined
 #define	BTreeExternsDefined
 
+#ifdef NOTDEF 
 /*   
    btdata.c
    ================
@@ -374,4 +375,5 @@ extern StrategyNumber
 extern bool    
     RelationInvokeBTreeStrategy();
 
+#endif /* NOTDEF */
 #endif /* !BTreeExternsDefined */
