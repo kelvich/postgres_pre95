@@ -124,10 +124,36 @@ List OrderRules(locks)
     }
     return append(regular, instead_rules);
 }
-List FireRetrieveRulesAtQuery(parsetree, rt_index, relation,instead_flag)
+int AllRetrieve(actions)
+     List actions;
+{
+    List n;
+
+    foreach(n, actions) {
+        List pt = CAR(n);
+	int event;
+	List command_type;
+	List root = parse_root(pt);
+
+	command_type = root_command_type_atom(root);
+	if ((consp(command_type)) && (CInteger(CAR(command_type)) == '*'))
+	    event = (int) CAtom(CDR(command_type));
+	else
+	    event = root_command_type(root);
+	if (event != RETRIEVE) return false;
+    }
+    return true;
+}
+List StupidUnionRetrieveHack(parsetree, actions)
+     List parsetree, actions;
+{
+    return actions;
+}
+List FireRetrieveRulesAtQuery(parsetree, rt_index, relation,instead_flag,
+			      rule_flag)
      List parsetree;
      Relation relation;
-     int rt_index, *instead_flag;
+     int rt_index, *instead_flag, rule_flag;
 {
     List i;
     List work   =  LispNil;
@@ -161,13 +187,23 @@ List FireRetrieveRulesAtQuery(parsetree, rt_index, relation,instead_flag)
 					&foo);
 	    if (null(rule)) continue;
 	    relation_level = (prs2OneLockGetAttributeNumber(rule_lock) == -1);
+	    if (!CDR(rule)) {
+		*instead_flag = TRUE;
+		return LispNil;
+	    }
+	    if (!rule_flag &&
+		length(CDR(rule)) >= 2
+		&& AllRetrieve(CDR(rule))) {
+		*instead_flag = TRUE;
+		return StupidUnionRetrieveHack(parsetree, CDR(rule));
+	    }
 	    ApplyRetrieveRule(parsetree, rule,rt_index,relation_level,
 			      prs2OneLockGetAttributeNumber(rule_lock),
 			      &modified);
 	    if (modified) {
 		*instead_flag = TRUE;
 		FixResdomTypes(parse_targetlist(parsetree));
-		return parsetree;
+		return lispCons(parsetree,LispNil);
 	    }
 	}
     }
@@ -190,9 +226,9 @@ ApplyRetrieveRule(parsetree, rule, rt_index,relation_level, attr_num,modified)
     List rule_action;
     List rule_qual, rt;
     int nothing,rt_length;
-    if (!null(rule)) {
+    if (!null(rule) && CDR(rule)) {
 	if (length(CDR(rule)) > 1)
-	    elog(WARN, "Multiple action retrieve rules are prohibited");
+	    return;
 	rule_action = CAR(CDR(rule));
 	rule_qual = CAR(rule);
 	nothing = FALSE;
@@ -209,13 +245,14 @@ ApplyRetrieveRule(parsetree, rule, rt_index,relation_level, attr_num,modified)
     if (relation_level) {
 	HandleViewRule(parsetree, rt, parse_targetlist(rule_action),rt_index
 		       ,modified);
-	/* do something about quals (rule and event)*/
     }
     else {
 	HandleRIRAttributeRule(parsetree, rt,
 			       parse_targetlist(rule_action),
 			       rt_index, attr_num,modified);
     }
+    if (*modified)
+	AddQual(parsetree,parse_qualification(rule_action));
 }
 List ProcessRetrieveQuery(parsetree, rt,instead_flag,rule)
      List parsetree,rt;
@@ -241,9 +278,10 @@ List ProcessRetrieveQuery(parsetree, rt,instead_flag,rule)
 	rt_entry_relation = amopenr(rt_entry_relname);
 	result = 
 	    FireRetrieveRulesAtQuery(parsetree, rt_index, rt_entry_relation,
-				     instead_flag);
-	if (*instead_flag) return nappend1(LispNil, result);
+				     instead_flag,rule);
 	amclose(rt_entry_relation);
+	if (*instead_flag && result) return result;
+	if (*instead_flag) return LispNil;
     }
     if (rule) return LispNil;
     foreach (rt_entry_ptr, rt) {
@@ -406,15 +444,15 @@ List FireRules(parsetree, rt_index, event,  instead_flag, locks,qual_products)
 	    *
 	    *  rewriting due to retrieve rules 
 	    */
-	   
+	   root_rangetable(parse_root(info->rule_action)) = info->rt;       	   
 	   (void) ProcessRetrieveQuery(info->rule_action, info->rt, &foo,TRUE);
 	   
 	   /* Step 4
 	    *  
 	    * Simplify?
-	    * hey, bastard left out the algorithm....
+	    * hey, no algorithm for simplification...let the planner do it.
 	    */
-	   root_rangetable(parse_root(info->rule_action)) = info->rt;       
+
 	   results = nappend1(results,info->rule_action);
        }
        if (*instead_flag) break;
