@@ -149,9 +149,6 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 	RelationNameCreateIndexRelation(heapRelationName, indexRelationName,
 		accessMethodId, numberOfAttributes, attributeNumberA,
 		classObjectId, parameterCount, parameterA);
-#if 0
-	EndUtility("DEFINE");
-#endif
 }
 
 void
@@ -160,7 +157,6 @@ RemoveIndex(name)
 {
 	/* delete-index(name); */
 	/* am-destroy(name); */
-	/* utility-end("REMOVE"); */
 
 	RelationNameDestroyIndexRelation(name);
 }
