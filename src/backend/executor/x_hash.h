@@ -1,5 +1,5 @@
 /* $Header$ */
-extern List ExecHash ARGS((Hash node));
+extern TupleTableSlot ExecHash ARGS((Hash node));
 extern List ExecInitHash ARGS((Hash node, EState estate, int level, Plan parent));
 extern void ExecEndHash ARGS((Hash node));
 extern HashJoinTable ExecHashTableCreate ARGS((Plan node, int nbatch));

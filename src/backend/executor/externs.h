@@ -91,7 +91,7 @@ extern TupleDescriptor ExecGetTupType ARGS((Plan node));
 extern Attribute ExecGetTypeInfo ARGS((Relation relDesc));
 extern List ExecGetVarAttlistFromExpr ARGS((Node expr, List relationNum));
 extern List ExecGetVarAttlistFromTLE ARGS((List tle, List relationNum));
-extern List ExecHash ARGS((Hash node));
+extern TupleTableSlot ExecHash ARGS((Hash node));
 extern int ExecHashGetBucket ARGS((HashJoinTable hashtable, ExprContext econtext, Var hashkey));
 extern TupleTableSlot ExecHashJoin ARGS((HashJoin node));
 extern int ExecHashJoinGetBatch ARGS((int bucketno, HashJoinTable hashtable, int nbatch));
