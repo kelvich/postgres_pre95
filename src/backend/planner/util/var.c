@@ -60,6 +60,44 @@ pull_agg_clause(clause)
 	return (retval);
 }
 
+/*
+ *	find_varno
+ *
+ *	Descends down part of a parsetree (qual or tlist), looking for a VAR
+ *	node that contains 'varno'.
+ *
+ *	Returns 1 if one is found, 0 if not.
+ *
+ *	XXX this is actually called by the executor, in InitPlan().
+ */
+find_varno(me, varno)
+	LispValue me;
+{
+	LispValue i;
+	int result = 0;
+	
+	if (lispNullp(me))
+		return(0);
+
+	switch (NodeType(me)) {
+	case classTag(LispList):
+		foreach (i, me) {
+			if (find_varno(CAR(i), varno)) {
+				result = 1;
+				break;
+			}
+		}
+		break;
+	case classTag(ArrayRef):
+		result = find_varno(get_refindexpr((ArrayRef) me), varno);
+		break;
+	case classTag(Var):
+		result = (get_varno((Var) me) == varno);
+		break;
+	}
+	return(result);
+}
+
 /*    
  *    	pull_var_clause
  *    
