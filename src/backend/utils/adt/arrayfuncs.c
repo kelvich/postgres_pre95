@@ -33,6 +33,7 @@ ObjectId element_type;
     static bool typbyval;
     static char typdelim;
     static ObjectId typinput;
+    static ObjectId typelem;
 
     char *string_save, *p, *q;
     char **values;
@@ -42,19 +43,19 @@ ObjectId element_type;
     char *retval;
 
     string_save = (char *) palloc(strlen(string) + 3);
-	if (*string != '{')
+    if (*string != '{')
     {
-		sprintf(string_save, "{%s}", string);
+        sprintf(string_save, "{%s}", string);
     }
-	else
+    else
     {
         strcpy(string_save, string);
     }
 
     if (element_type_save != element_type)
     {
-        system_cache_lookup(element_type, true,
-                            &typlen, &typbyval, &typdelim, &typinput);
+        system_cache_lookup(element_type, true, &typlen, &typbyval,
+                            &typdelim, &typelem, &typinput);
         element_type_save = element_type;
     }
 
@@ -77,14 +78,14 @@ ObjectId element_type;
     {
         while (*q != typdelim) q++;   /* Get to end of next string */
         *q = '\0';                    /* Put a null at the end of it */
-        values[i] = (*inputproc) (p); /* p points to head of string we want */
+        values[i] = (*inputproc) (p, typelem);
         p = q + 1; q++;               /* p goes past q */
     }
 
     while (*q != '}') q++;
     *q = '\0';
 
-    values[nitems - 1] = (*inputproc) (p);
+    values[nitems - 1] = (*inputproc) (p, typelem);
 
     if (typlen > 0)
     {
@@ -146,6 +147,7 @@ ObjectId element_type;
     static bool typbyval;
     static char typdelim;
     static ObjectId typoutput;
+    static ObjectId typelem;
 
     char *p;
     char *retval;
@@ -157,8 +159,8 @@ ObjectId element_type;
 
     if (element_type != element_type_save)
     {
-        system_cache_lookup(element_type, false,
-                            &typlen, &typbyval, &typdelim, &typoutput);
+        system_cache_lookup(element_type, false, &typlen, &typbyval,
+                            &typdelim, &typelem, &typoutput);
         element_type_save = element_type;
     }
 
@@ -208,21 +210,21 @@ ObjectId element_type;
             switch(typlen)
             {
                 case 1:
-                    values[i] = (*outputproc) (*items);
+                    values[i] = (*outputproc) (*items, typelem);
                     break;
                 case 2:
-                    values[i] = (*outputproc) (* (int16 *) items);
+                    values[i] = (*outputproc) (* (int16 *) items, typelem);
                     break;
                 case 3:
                 case 4:
-                    values[i] = (*outputproc) (* (int32 *) items);
+                    values[i] = (*outputproc) (* (int32 *) items, typelem);
                     break;
             }
             items += typlen;
         }
         else
         {
-            values[i] = (*outputproc) (items);
+            values[i] = (*outputproc) (items, typelem);
             if (typlen > 0)
                 items += typlen;
             else
@@ -258,13 +260,15 @@ string_in(a1, a2) {}
 char *
 string_out(a1, a2) {}
 
-system_cache_lookup(element_type, input, typlen, typbyval, typdelim, proc)
+system_cache_lookup(element_type, input, typlen, typbyval, typdelim,
+                    typelem, proc)
 
 ObjectId element_type;
 Boolean input;
 int *typlen;
 bool *typbyval;
 char *typdelim;
+ObjectId *typelem;
 ObjectId *proc;
 
 {
@@ -280,9 +284,10 @@ ObjectId *proc;
         return NULL;
     }
     typeStruct = (TypeTupleForm) GETSTRUCT(typeTuple);
-    *typlen = typeStruct->typlen;
-    *typbyval = typeStruct->typbyval;
-    *typdelim = typeStruct->typdelim;
+    *typlen    = typeStruct->typlen;
+    *typbyval  = typeStruct->typbyval;
+    *typdelim  = typeStruct->typdelim;
+    *typelem   = typeStruct->typelem;
     if (input)
     {
         *proc = typeStruct->typinput;
