@@ -159,46 +159,49 @@ Fragment rootFragment;
 	   plan = get_frag_root(fragment);
 	   parentPlan = get_frag_parent_op(fragment);
 	   parentFragment = get_frag_parent_frag(fragment);
-	   subtrees = get_frag_subtrees(parentFragment);
-	   set_frag_subtrees(parentFragment, set_difference(subtrees,
+	   if (parentFragment == NULL)
+	      subtrees = LispNil;
+	   else {
+	      subtrees = get_frag_subtrees(parentFragment);
+	      set_frag_subtrees(parentFragment, set_difference(subtrees,
 	                                     lispCons(fragment, LispNil)));
+	    }
 	   if (ExecIsHash(plan)) {
 	       /* set_hashjointable(parentPlan, hashtable);  */
 	       /* YYY more info. needed. */
 	      }
    	   else {
 	       List unionplans = LispNil;
-	       for (i=0; i<nparallel; i++) {
-		  shmPlan = QdGetPlan((List)SlaveQueryDescsP[nproc+i]);
-		  /* YYY require EState be put in shared memory */
-		  tempRelationDesc=get_resultTmpRelDesc(get_retstate(shmPlan));
-		  scantempNode = RMakeScanTemp();
-		  set_temprelDesc(scantempNode, tempRelationDesc);
-		  unionplans = nappend1(unionplans, scantempNode);
-		  }
-	       appendNode = RMakeAppend();
-	       set_unionplans(appendNode, unionplans);
-	       if (parentPlan == NULL) {
-		   if (nparallel == 1)
-		      rootFragment = NULL;
-		   else {
-		      set_frag_root(rootFragment, appendNode);
-		      set_frag_subtrees(rootFragment, LispNil);
-		      set_fragment(appendNode, 0);
+	       if (parentPlan == NULL && nparallel == 1)
+		  rootFragment = NULL;
+	       else {
+		  for (i=0; i<nparallel; i++) {
+		     shmPlan = QdGetPlan((List)SlaveQueryDescsP[nproc+i]);
+		     tempRelationDesc=get_resultTmpRelDesc(get_retstate(shmPlan));
+		     scantempNode = RMakeScanTemp();
+		     set_temprelDesc(scantempNode, tempRelationDesc);
+		     unionplans = nappend1(unionplans, scantempNode);
+		     }
+		  appendNode = RMakeAppend();
+		  set_unionplans(appendNode, unionplans);
+		  if (parentPlan == NULL) {
+		     set_frag_root(rootFragment, appendNode);
+		     set_frag_subtrees(rootFragment, LispNil);
+		     set_fragment(appendNode,-1); /* means end of parallelism */
 		    }
-		  }
-	       else {
-	       if (plan == (Plan)get_lefttree(parentPlan)) {
-		  set_lefttree(parentPlan, appendNode);
-		 }
-	       else {
-		  set_righttree(parentPlan, appendNode);
-		 }
-	       set_fragment(appendNode, get_fragment(parentPlan));
+	          else {
+	          if (plan == (Plan)get_lefttree(parentPlan)) {
+		     set_lefttree(parentPlan, appendNode);
+		    }
+	          else {
+		     set_righttree(parentPlan, appendNode);
+		    }
+	          set_fragment(appendNode, get_fragment(parentPlan));
+	          }
 	       }
-	     }
 	   nproc += nparallel;
 	 }
+       }
 	    
 	/* ----------------
 	 *	Clean Shared Memory used during the query
@@ -400,14 +403,22 @@ float loadavg;
     Fragment fragment;
     int nslaves;
     Plan plan;
+    int fragmentno;
 
     nslaves = GetNumberSlaveBackends();
     /* YYY more functionalities to be added later */
     foreach (x,fragmentlist) {
        fragment = (Fragment)CAR(x);
        plan = get_frag_root(fragment);
-       set_frag_parallel(fragment, 1);  /* YYY */
-       set_plan_parallel(plan, nslaves);
+       fragmentno = get_fragment(plan);
+       if (fragmentno < 0) {
+           set_frag_parallel(fragment, 1);  /* YYY */
+           set_plan_parallel(plan, 1);
+	  }
+       else {
+           set_frag_parallel(fragment, nslaves);  /* YYY */
+           set_plan_parallel(plan, nslaves);
+	 }
      }
 }
 
