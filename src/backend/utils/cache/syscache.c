@@ -41,11 +41,9 @@ RcsId("$Header$");
  
 extern bool	AMI_OVERRIDE;	/* XXX style */
  
-#ifndef PG_STANDALONE
 #define BIGENDIAN		/* e.g.: 68000, MIPS, Tahoe */
 /*#define LITTLEENDIAN		/* e.g.: VAX, i386 */
-#endif /* !PG_STANDALONE */
-    
+
 #include "catalog/syscache.h"
     
 /* ----------------
@@ -351,7 +349,6 @@ SearchSysCacheStruct(cacheId, returnStruct, key1, key2, key3, key4)
  *
  *	XXX These are really ugly.
  */
-#ifndef PG_STANDALONE
 static int32 heapTupleAttributeLength[] = {
     0,
     sizeof(ItemPointerData),				/* T_CTID */
@@ -590,4 +587,3 @@ TypeDefaultRetrieve(typId)
     return(returnValue);
 }
  
-#endif /* !PG_STANDALONE */
