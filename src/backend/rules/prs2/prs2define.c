@@ -9,29 +9,31 @@
  *   All the routines needed to define a (tuple level) PRS2 rule
  */
 
-#include "c.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
-#include "datum.h"
-#include "pg_lisp.h"
-#include "log.h"
-#include "relcache.h"	/* RelationNameGetRelation() defined here...*/
-#include "prs2.h"
-#include "anum.h"	/* RuleRelationNumberOfAttributes etc. defined here */
-#include "skey.h"	/* 'ScanKeyEntryData' defined here... */
-#include "tqual.h"	/* 'NowTimeQual' defined here.. */
-#include "heapam.h"	/* heap AM calls defined here */
-#include "lsyscache.h"	/* get_attnum()  defined here...*/
-#include "parse.h"	/* RETRIEVE, APPEND etc defined here.. */
-#include "parsetree.h"
-#include "catname.h"	/* names of various system relations defined here */
-#include "rproc.h"	/* for ObjectIdEqualRegProcedure etc. */
-#include "fmgr.h"	/* for F_CHAR16EQ, F_CHAR16IN etc. */
-#include "ftup.h"	/* for FormHeapTuple() */
+#include "tmp/postgres.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
+#include "nodes/pg_lisp.h"
+#include "utils/log.h"
+#include "utils/relcache.h"	/* RelationNameGetRelation() defined here...*/
+#include "rules/prs2.h"
+#include "access/skey.h"	/* 'ScanKeyEntryData' defined here... */
+#include "access/tqual.h"	/* 'NowTimeQual' defined here.. */
+#include "access/heapam.h"	/* heap AM calls defined here */
+#include "utils/lsyscache.h"	/* get_attnum()  defined here...*/
+#include "parser/parse.h"	/* RETRIEVE, APPEND etc defined here.. */
+#include "parser/parsetree.h"
+#include "catalog/catname.h"	/* names of various system relations */
+#include "utils/fmgr.h"	/* for F_CHAR16EQ, F_CHAR16IN etc. */
+#include "access/ftup.h"	/* for FormHeapTuple() */
+
+#include "catalog/pg_proc.h"
+#include "catalog/pg_prs2rule.h"
+#include "catalog/pg_prs2plans.h"
 
 extern HeapTuple palloctup();
 extern LispValue planner();
 void changeReplaceToRetrieve();
+bool prs2AttributeIsOfBasicType();
 
 /*-----------------------------------------------------------------------
  *
@@ -63,11 +65,6 @@ char *ruleText;
 
 
     LispValue prs2ReadRule();
-
-/* #define NO_PARSER_SUPPORT */
-#ifdef NO_PARSER_SUPPORT
-    parseTree = prs2ReadRule("/users/spyros/postgres/O/support/RULE");
-#endif
 
 #ifdef PRS2_DEBUG
     printf("---prs2DefineTupleRule called, with argument =");
@@ -113,6 +110,16 @@ char *ruleText;
 	if (eventTargetAttributeNumber == InvalidAttributeNumber) {
 	    elog(WARN,"Illegal attribute in event target list");
 	}
+	/*
+	 * XXX currently we only allow tuple-level rules to
+	 * be defined in attributes of basic types (i.e. not of type
+	 * relation etc....)
+	 */
+	if (!prs2AttributeIsOfBasicType(eventTargetRelationOid,
+					eventTargetAttributeNumber)) {
+		elog(WARN,
+		"Can not define tuple rules in non-base type attributes");
+	}
     }
 
     /*
@@ -123,7 +130,17 @@ char *ruleText;
      */
     actionType = prs2FindActionTypeFromParse(parseTree,
 			eventTargetAttributeNumber,
-			&updatedAttributeNumber);
+			&updatedAttributeNumber,
+			eventType);
+    /*
+     * Hm... for the time being we do NOT allow 
+     *     ON RETRIEVE ... DO RETRIEVE ....
+     * rules without an INSTEAD
+     */
+    if (!isRuleInstead && actionType == ActionTypeRetrieveValue) {
+	elog(WARN,
+	"`on retrieve ... do retrieve' tuple rules must have an `instead'");
+    }
 
     
 
@@ -173,9 +190,10 @@ char *ruleText;
      * Now generate the plans for the action part of the rule
      */
     ruleActionPlans = prs2GenerateActionPlans(isRuleInstead,
-					    ruleQual,ruleAction,
-					    eventTargetAttributeNumber,
-					    updatedAttributeNumber);
+					ruleQual,ruleAction,
+					GetRuleRangeTableFromParse(parseTree),
+					eventTargetAttributeNumber,
+					updatedAttributeNumber);
 
     /*
      * Store the plans generated above in the system 
@@ -188,10 +206,10 @@ char *ruleText;
     /*
      * Now set the appropriate locks.
      */
-    prs2PutLocks(ruleId, eventTargetRelationOid,
+    prs2PutTupleOrRewriteLocks(ruleId, eventTargetRelationOid,
 		eventTargetAttributeNumber,
 		updatedAttributeNumber,
-		eventType, actionType);
+		eventType, actionType, true);
 
 #ifdef PRS2_DEBUG
     printf("--- DEFINE PRS2 RULE: Done.\n");
@@ -309,8 +327,8 @@ char * ruleText;
     register		i;
     Relation		prs2RuleRelation;
     HeapTuple		heapTuple;
-    char		*values[RuleRelationNumberOfAttributes];
-    char		nulls[RuleRelationNumberOfAttributes];
+    char		*values[Prs2RuleRelationNumberOfAttributes];
+    char		nulls[Prs2RuleRelationNumberOfAttributes];
     ObjectId		objectId;
     HeapScanDesc	heapScan;
     ScanKeyEntryData	ruleNameKey[1];
@@ -453,11 +471,13 @@ LispValue	rulePlan;
  */
 LispValue
 prs2GenerateActionPlans(isRuleInstead, ruleQual,ruleAction,
+			rangeTable,
 			eventTargetAttributeNumber,
 			updatedAttributeNumber)
 int isRuleInstead;
 LispValue ruleQual;
 LispValue ruleAction;
+LispValue rangeTable;
 AttributeNumber eventTargetAttributeNumber;
 AttributeNumber updatedAttributeNumber;
 {
@@ -502,7 +522,6 @@ AttributeNumber updatedAttributeNumber;
     if (null(ruleQual)) {
 	oneEntry = LispNil;
     } else {
-#ifdef NOT_YET
 	/*
 	 * the 'ruleQual' is just a qualification.
 	 * Transform it into a query of the form:
@@ -511,22 +530,21 @@ AttributeNumber updatedAttributeNumber;
 	 * a tuple returned, then we know that the qual is true,
 	 * otherwise we know it is false
 	 */
+	LispValue MakeRoot();
 	LispValue root, targetList;
 	Resdom resdom;
 	Const constant;
 	NameData nameData;
 	Datum value;
 
-	root = lispCons(lispInteger(1),
-		lispCons(lispAtom("retrieve"),
-		    lispCons(LispNil,
-			lispCons(LispNil,
-			    lispCons(lispCons(0,LispNil),LispNil)))));
+	/*
+	 * construct the target list
+	 */
 	strcpy(nameData.data,"foo");
 	resdom = MakeResdom((AttributeNumber)1,
 			    (ObjectId) 23,
 			    (Size) 4,
-			    &nameData,
+			    &(nameData.data[0]),
 			    (Index) 0,
 			    (OperatorTupleForm) 0);
 	value = Int32GetDatum(1);
@@ -538,12 +556,26 @@ AttributeNumber updatedAttributeNumber;
 	targetList = lispCons(
 			lispCons(resdom, lispCons(constant, LispNil)),
 			LispNil);
+	/*
+	 * now the root
+	 * XXX NumLevels == 1 ??? IS THIS CORRECT ????
+	 */
+	root = MakeRoot(
+			1,			/* num levels */
+			lispAtom("retrieve"),	/* command */
+			LispNil,		/* result relation */
+			rangeTable,		/* range table */
+			lispInteger(0),		/* priority */
+			LispNil,		/* rule info */
+			LispNil,		/* unique flag */
+			LispNil,		/* sort_clause */
+			targetList);		/* targetList */
+	/*
+	 * Finally, construct the parse tree...
+	 */
 	qualQuery = lispCons(root,
 			lispCons(targetList,
 			    lispCons(ruleQual, LispNil)));
-#else /* NOT_YET*/
-	qualQuery = ruleQual;
-#endif /* NOT_YET */
 	onePlan = planner(qualQuery);
 	oneEntry = lispCons(onePlan, LispNil);
 	oneEntry = lispCons(qualQuery, oneEntry);
@@ -730,43 +762,48 @@ ObjectId eventRelationOid;
     
     tuple = HeapScanGetNextTuple(scanDesc, 0, &buffer);
     if (!HeapTupleIsValid(tuple)) {
-	elog(WARN, "Invalid rel Oid %ld\n", eventRelationOid);
+	elog(NOTICE, "Could not find relation with id %ld\n", eventRelationOid);
+    } else {
+	/*
+	 * "calculate" the new locks...
+	 */
+	currentLocks = prs2GetLocksFromTuple(
+				tuple,
+				buffer,
+				&(relationRelation->rd_att));
+#ifdef PRS2_DEBUG
+	printf("previous Lock:");
+	prs2PrintLocks(currentLocks);
+	printf("\n");
+#endif PRS2_DEBUG
+
+	/*
+	 * find all the locks with the given rule id and remove them
+	 */
+	currentLocks = prs2RemoveAllLocksOfRule(currentLocks, ruleId);
+
+#ifdef PRS2_DEBUG
+	printf("new Lock:");
+	prs2PrintLocks(currentLocks);
+	printf("\n");
+#endif PRS2_DEBUG
+
+	/*
+	 * Create a new tuple (i.e. a copy of the old tuple
+	 * with its rule lock field changed and replace the old
+	 * tuple in the RelationRelation
+	 */
+	newTuple = prs2PutLocksInTuple(tuple, buffer,
+				    relationRelation,
+				    currentLocks);
+	RelationReplaceHeapTuple(relationRelation, &(tuple->t_ctid),
+				newTuple, (double *)NULL);
+	
     }
 
-    currentLocks = prs2GetLocksFromTuple(
-			    tuple,
-			    buffer,
-			    &(relationRelation->rd_att));
-
-#ifdef PRS2_DEBUG
-    printf("previous Lock:");
-    prs2PrintLocks(currentLocks);
-    printf("\n");
-#endif PRS2_DEBUG
-    
     /*
-     * find all the locks with the given rule id and remove them
+     * we are done, close the RelationRelation...
      */
-    currentLocks = prs2RemoveAllLocksOfRule(currentLocks, ruleId);
-
-#ifdef PRS2_DEBUG
-    printf("new Lock:");
-    prs2PrintLocks(currentLocks);
-    printf("\n");
-#endif PRS2_DEBUG
-
-    /*
-     * Create a new tuple (i.e. a copy of the old tuple
-     * with its rule lock field changed and replace the old
-     * tuple in the RelationRelation
-     */
-    newTuple = prs2PutLocksInTuple(tuple, buffer,
-				relationRelation,
-				currentLocks);
-
-    RelationReplaceHeapTuple(relationRelation, &(tuple->t_ctid),
-			    newTuple, (double *)NULL);
-    
     RelationCloseHeapRelation(relationRelation);
 
 }
@@ -828,10 +865,12 @@ LispValue parseTree;
 ActionType
 prs2FindActionTypeFromParse(parseTree,
 			    eventTargetAttributeNumber,
-			    updatedAttributeNumberP)
+			    updatedAttributeNumberP,
+			    eventType)
 LispValue parseTree;
 AttributeNumber eventTargetAttributeNumber;
 AttributeNumberPtr updatedAttributeNumberP;
+EventType eventType;
 {
     
     LispValue ruleActions;
@@ -844,17 +883,30 @@ AttributeNumberPtr updatedAttributeNumberP;
     Name relationName;
     NameData nameData;
     LispValue targetList;
+    int resultRelationNo;
+    LispValue resultRelationEntry;
 
     *updatedAttributeNumberP = InvalidAttributeNumber;
 
     ruleActions = GetRuleActionFromParse(parseTree);
 
     if (null(ruleActions)) {
-	/*
-	 * then this is probably an `instead' rule with no action
-	 * specified, e.g. "ON delete to DEPT WHERE ... DO INSTEAD"
-	 */
-	return(ActionTypeOther);
+	if (eventType != EventTypeRetrieve) {
+	    /*
+	     * then this is probably an `instead' rule with no action
+	     * specified, e.g. "ON delete to DEPT WHERE ... DO INSTEAD"
+	     */
+	    return(ActionTypeOther);
+	} else {
+	    /*
+	     * However, if we have something like:
+	     * ON RETRIEVE THEN DO INSTEAD NOTHING
+	     * we assume that this means do NOT retrieve a value,
+	     * i.e. return a null attribute.
+	     */
+	    *updatedAttributeNumberP = eventTargetAttributeNumber;
+	    return(ActionTypeRetrieveValue);
+	}
     }
 
     foreach(t, ruleActions) {
@@ -866,8 +918,11 @@ AttributeNumberPtr updatedAttributeNumberP;
 	commandType = root_command_type(root);
 	resultRelation = root_result_relation(root);
 	rangeTable = root_rangetable(root);
-	if (!null(rangeTable)) {
-	    strcpy(&(nameData.data[0]), CString(rt_relname(CAR(rangeTable))));
+	if (!null(resultRelation)) {
+	    resultRelationNo = CInteger(resultRelation);
+	    resultRelationEntry = nth(resultRelationNo-1, rangeTable);
+	    strcpy(&(nameData.data[0]),
+		    CString(rt_relname(resultRelationEntry)));
 	    relationName = &nameData;
 	} else {
 	    relationName = InvalidName;
@@ -889,8 +944,9 @@ AttributeNumberPtr updatedAttributeNumberP;
 	     */
 	    actionType = ActionTypeRetrieveValue;
 	    break; 	/* exit 'foreach' loop */
+
 	} else if (commandType == REPLACE &&
-		    NameIsEqual("CURRENT", relationName)) {
+		    NameIsEqual("*CURRENT*", relationName)) {
 	    /*
 	     * this is a replace CURRENT(...)
 	     */
@@ -902,6 +958,22 @@ AttributeNumberPtr updatedAttributeNumberP;
 	    if (length(targetList) != 1) {
 		elog(WARN,
 		" a 'replace CURRENT(...)' must replace ONLY 1 attribute");
+	    }
+	    *updatedAttributeNumberP = get_resno(tl_resdom(CAR(targetList)));
+	    break; 	/* exit 'foreach' loop */
+	} else if (commandType == REPLACE &&
+		    NameIsEqual("*NEW*", relationName)) {
+	    /*
+	     * this is a replace NEW(...)
+	     */
+	    actionType = ActionTypeReplaceNew;
+	    /*
+	     * find the updated attribute number...
+	     */
+	    targetList = parse_targetlist(oneRuleAction);
+	    if (length(targetList) != 1) {
+		elog(WARN,
+		" a 'replace NEW(...)' must replace ONLY 1 attribute");
 	    }
 	    *updatedAttributeNumberP = get_resno(tl_resdom(CAR(targetList)));
 	    break; 	/* exit 'foreach' loop */
@@ -931,6 +1003,16 @@ AttributeNumberPtr updatedAttributeNumberP;
 	}
     }
 
+    if (actionType == ActionTypeReplaceNew) {
+	/*
+	 * then this must be the ONLY statement in the rule actions!
+	 */
+	if (length(ruleActions) != 1) {
+	    elog(WARN,
+	    "a 'replace NEW(..)' must be the only action of a PRS2 rule!");
+	}
+    }
+
     return(actionType);
 }
 
@@ -938,17 +1020,41 @@ AttributeNumberPtr updatedAttributeNumberP;
  *
  * prs2PutLocks
  *
- * Put the appropriate rule locks.
- * NOTE: currently only relation level locking is implemented
+ * (used by the query rewrite system)
  */
-prs2PutLocks(ruleId, relationOid, eventAttributeNo, updatedAttributeNo,
-			eventType, actionType)
+prs2PutLocks(ruleId, relationOid, eventAttributeNo,
+	    updatedAttributeNo, eventType, actionType)
 ObjectId ruleId;
 ObjectId relationOid;
 AttributeNumber eventAttributeNo;
 AttributeNumber updatedAttributeNo;
 EventType eventType;
 ActionType actionType;
+{
+    prs2PutTupleOrRewriteLocks(ruleId, relationOid, eventAttributeNo,
+		updatedAttributeNo, eventType, actionType, false);
+}
+
+/*------------------------------------------------------------------
+ *
+ * prs2PutTupleOrRewriteLocks
+ *
+ * Put the appropriate rule locks.
+ * NOTE: currently only relation level locking is implemented
+ * NOTE: isTupleLevel is true if this routine is used by the tuple
+ * level system, otherwise (if it is used by the query rewrite
+ * system) it is false.
+ */
+prs2PutTupleOrRewriteLocks(ruleId, relationOid, eventAttributeNo,
+			    updatedAttributeNo,
+			    eventType, actionType, isTupleLevel)
+ObjectId ruleId;
+ObjectId relationOid;
+AttributeNumber eventAttributeNo;
+AttributeNumber updatedAttributeNo;
+EventType eventType;
+ActionType actionType;
+bool isTupleLevel;
 {
     Prs2LockType lockType;
     AttributeNumber attributeNo;
@@ -963,10 +1069,15 @@ ActionType actionType;
 	/*
 	 * this is a "view" rule....
 	 */
-	lockType = LockTypeRetrieveRelation;
+	if (isTupleLevel) {
+	    lockType = LockTypeTupleRetrieveRelation;
+	} else {
+	    lockType = LockTypeRetrieveRelation;
+	}
 	attributeNo = InvalidAttributeNumber;
     } else if (actionType == ActionTypeRetrieveValue ||
-	actionType == ActionTypeReplaceCurrent) {
+	actionType == ActionTypeReplaceCurrent ||
+	actionType == ActionTypeReplaceNew) {
 	/*
 	 * In this case the attribute to be locked is the updated
 	 * attribute...
@@ -974,16 +1085,38 @@ ActionType actionType;
 	attributeNo = updatedAttributeNo;
 	switch (eventType) {
 	    case EventTypeRetrieve:
-		lockType = LockTypeRetrieveWrite;
+		if (isTupleLevel) {
+		    lockType = LockTypeTupleRetrieveWrite;
+		} else {
+		    lockType = LockTypeRetrieveWrite;
+		}
 		break;
 	    case EventTypeReplace:
-		lockType = LockTypeReplaceWrite;
+		if (isTupleLevel) {
+		    lockType = LockTypeTupleReplaceWrite;
+		} else {
+		    lockType = LockTypeReplaceWrite;
+		}
+		if (actionType == ActionTypeReplaceCurrent) {
+		    elog(WARN, "ON REPLACE rules can not update CURRENT tuple");
+		}
 		break;
 	    case EventTypeAppend:
-		lockType = LockTypeAppendWrite;
+		if (isTupleLevel) {
+		    lockType = LockTypeTupleAppendWrite;
+		} else {
+		    lockType = LockTypeAppendWrite;
+		}
+		if (actionType == ActionTypeReplaceCurrent) {
+		    elog(WARN, "ON APPEND rules can not update CURRENT tuple");
+		}
 		break;
 	    case EventTypeDelete:
-		lockType = LockTypeDeleteWrite;
+		if (isTupleLevel) {
+		    lockType = LockTypeTupleDeleteWrite;
+		} else {
+		    lockType = LockTypeDeleteWrite;
+		}
 		elog(WARN, "ON DELETE rules can not update CURRENT tuple");
 		break;
 	    default:
@@ -997,16 +1130,32 @@ ActionType actionType;
 	attributeNo = eventAttributeNo;
 	switch (eventType) {
 	    case EventTypeRetrieve:
-		lockType = LockTypeRetrieveAction;
+		if (isTupleLevel) {
+		    lockType = LockTypeTupleRetrieveAction;
+		} else {
+		    lockType = LockTypeRetrieveAction;
+		}
 		break;
 	    case EventTypeReplace:
-		lockType = LockTypeReplaceAction;
+		if (isTupleLevel) {
+		    lockType = LockTypeTupleReplaceAction;
+		} else {
+		    lockType = LockTypeReplaceAction;
+		}
 		break;
 	    case EventTypeAppend:
-		lockType = LockTypeAppendAction;
+		if (isTupleLevel) {
+		    lockType = LockTypeTupleAppendAction;
+		} else {
+		    lockType = LockTypeAppendAction;
+		}
 		break;
 	    case EventTypeDelete:
-		lockType = LockTypeDeleteAction;
+		if (isTupleLevel) {
+		    lockType = LockTypeTupleDeleteAction;
+		} else {
+		    lockType = LockTypeDeleteAction;
+		}
 		break;
 	    default:
 		elog(WARN, "prs2PutLocks: Illegal Event type: %c", eventType);
@@ -1091,7 +1240,8 @@ char *fname;
  *
  * changeReplaceToRetrieve
  *
- * Ghange the parse tree of a 'REPLACE CURRENT(X = ...)' command to a
+ * Ghange the parse tree of a 'REPLACE CURRENT(X = ...)'
+ * or 'REPLACE NEW(X = ...)' command to a
  * 'RETRIEVE (X = ...)'
  */
 void
@@ -1106,14 +1256,19 @@ LispValue parseTree;
     LispValue rangeTable;
     Name relationName;
     NameData nameData;
+    int resultRelationNo;
+    LispValue resultRelationEntry;
 
 
     root = parse_root(parseTree);
     commandType = root_command_type(root);
     resultRelation = root_result_relation(root);
     rangeTable = root_rangetable(root);
-    if (!null(rangeTable)) {
-	strcpy(&(nameData.data[0]), CString(rt_relname(CAR(rangeTable))));
+    if (!null(resultRelation)) {
+	resultRelationNo = CInteger(resultRelation);
+	resultRelationEntry = nth(resultRelationNo-1, rangeTable);
+	strcpy(&(nameData.data[0]),
+		CString(rt_relname(resultRelationEntry)));
 	relationName = &nameData;
     } else {
 	relationName = InvalidName;
@@ -1122,9 +1277,11 @@ LispValue parseTree;
     /*
      * Is this a REPLACE CURRENT command?
      */
-    if (commandType!=REPLACE || !NameIsEqual("CURRENT", relationName)) {
+    if (commandType!=REPLACE ||
+       (!NameIsEqual("*CURRENT*", relationName) &&
+       !NameIsEqual("*NEW*", relationName))) {
 	/*
-	 * NO, this is not a REPLACE CURRENT command
+	 * NO, this is not a REPLACE CURRENT or a REPLACE NEW command
 	 */
 	return;
     }
@@ -1147,4 +1304,31 @@ LispValue parseTree;
      */
     targetList = parse_targetlist(parseTree);
     set_resno(tl_resdom(CAR(targetList)), (AttributeNumber)1);
+}
+
+/*-----------------------------------------------------------------
+ *
+ * prs2AttributeIsOfBasicType
+ *
+ * check if the given attribute is of a "basic" type.
+ */
+bool
+prs2AttributeIsOfBasicType(relOid, attrNo)
+ObjectId relOid;
+AttributeNumber attrNo;
+{
+    ObjectId typeId;
+    char typtype;
+
+    typeId = get_atttype(relOid, attrNo);
+    typtype = get_typtype(typeId);
+    if (typtype == '\0') {
+	elog(WARN, "Cache lookup for type %ld failed...", typeId);
+    }
+
+    if (typtype == 'b') {
+	return(true);
+    } else {
+	return(false);
+    }
 }
