@@ -12,16 +12,16 @@
 
 
 #include <stdio.h>
-#include "catname.h"
-#include "tupdesc.h"
-#include "ftup.h"
-#include "log.h"
-#include "prs2.h"
-#include "prs2stub.h"
+#include "catalog/catname.h"
+#include "access/tupdesc.h"
+#include "access/ftup.h"
+#include "utils/log.h"
+#include "rules/prs2.h"
+#include "rules/prs2stub.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_prs2stub.h"
-#include "lsyscache.h"
-#include "fmgr.h"
+#include "utils/lsyscache.h"
+#include "utils/fmgr.h"
 
 
 /*-------------------------------------------------------------------

@@ -13,13 +13,13 @@
 
 
 #include <stdio.h>
-#include "datum.h"
-#include "log.h"
-#include "tupdesc.h"
-#include "heapam.h"
-#include "fmgr.h"
-#include "prs2.h"
-#include "prs2stub.h"
+#include "tmp/datum.h"
+#include "utils/log.h"
+#include "access/tupdesc.h"
+#include "access/heapam.h"
+#include "utils/fmgr.h"
+#include "rules/prs2.h"
+#include "rules/prs2stub.h"
 
 /*--------------------------------------------------------------------
  *

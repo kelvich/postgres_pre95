@@ -1,13 +1,27 @@
 /*=======================================================================
  *
+ * FILE: stubjoin.c
+ *
+ * IDENTIFICATION:
  * $Header$
+ *
+ * Routines used when the executor runs in 'rule lock set/remove' mode.
  *
  */
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
-#include "plannodes.h"
-#include "plannodes.a.h"
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
 
+/*----------------------------------------------------------------
+ *
+ * prs2MakeStubForInnerRelation
+ *
+ * Create a `PrsOneStub'. This routine is called during the proccessing
+ * of a Join node. For every tuple of the Outer relation, we have to
+ * create (and insert in the inner relation) a rule stub.
+ *
+ */
 Prs2OneStub
 prs2MakeStubForInnerRelation(ruleInfo, tuple, buffer, relation)
 JoinRuleInfo ruleInfo;
@@ -73,6 +87,11 @@ Relation relation;
 }
 
 /*----------------------------------------------------------------
+ *
+ * prs2AddLocksAndReplaceTuple
+ *
+ * Add the given lock to a tuple, if the qualification associated
+ * with the `oneStub' is satisfied.
  *
  */
 void

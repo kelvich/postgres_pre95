@@ -22,9 +22,9 @@
 
 #include <stdio.h>
 #include <strings.h>
-#include "prs2.h"
-#include "prs2stub.h"
-#include "log.h"
+#include "rules/prs2.h"
+#include "rules/prs2stub.h"
+#include "utils/log.h"
 
 char *palloc();
 

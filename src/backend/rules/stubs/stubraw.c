@@ -14,10 +14,10 @@
  */
 
 #include <stdio.h>
-#include "log.h"
-#include "datum.h"
-#include "prs2.h"
-#include "prs2stub.h"
+#include "utils/log.h"
+#include "tmp/datum.h"
+#include "rules/prs2.h"
+#include "rules/prs2stub.h"
 
 char *palloc();
 
