@@ -74,7 +74,7 @@
  *	local defines and stuff
  * ----------------
  */
-#define EXEC_SHM_SIZE		65535
+#define EXEC_SHM_SIZE		1024*1024
 #define EXEC_SHM_PERMISSION	0700
 
 IpcMemoryId 	ExecutorMemoryId = -1;
