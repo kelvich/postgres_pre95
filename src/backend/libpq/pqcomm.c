@@ -152,6 +152,56 @@ pq_getstr(s, maxlen)
 	return !EOF;
 }
 
+/*
+ * USER FUNCTION - gets a newline-terminated string from the backend.
+ * 
+ * Chiefly here so that applications can use "COPY <rel> () from stdin"
+ * and read the output string.  Returns a null-terminated string in s and
+ * EOF if it is detected.
+ */
+
+int
+PQgetline(s, maxlen)
+
+char *s;
+int maxlen;
+
+{
+	int c;
+    while (maxlen-- && (c = getc(Pfin)) != '\n' && c != EOF)
+	{
+		*s++ = c;
+	}
+    *s = '\0';
+
+    /* -----------------
+     *     If EOF reached let caller know
+     * -----------------
+     */
+    if (c == EOF)
+	return EOF;
+    else
+	return !EOF;
+}
+
+/*
+ * USER FUNCTION - sends a string to the backend.
+ * 
+ * Chiefly here so that applications can use "COPY <rel> () to stdout"
+ * and read the output string.  Returns a null-terminated string in s and
+ * EOF if it is detected.
+ */
+
+int
+PQputline(s)
+
+char *s;
+
+{
+	(void) fputs(s, Pfout);
+	fflush(Pfout);
+}
+
 /* --------------------------------
  *	pq_getnchar - get n characters from connection
  * --------------------------------
