@@ -106,6 +106,7 @@ typedef struct hashctl {
 /* entry points */
 HTAB *hash_create();
 int *hash_search();
+int *hash_seq();
 void hash_destroy();
 void hash_stats();
 
