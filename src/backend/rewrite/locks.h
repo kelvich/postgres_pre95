@@ -29,6 +29,7 @@
 #define Action(lock)		(lock->lockType & LockActionMask)
 #define IsActive(lock)		(lock->lockType & LockActiveMask)
 #define IsRewrite(lock)		(lock->lockType & LockIsRewrite )
+#define IsInstead(lock)		(lock->lockType & DoInstead )
 
 #define LockEventIsRetrieve(lock) 	(Event(lock)==EventIsRetrieve)
 #define LockEventIsAppend(lock) 	(Event(lock)==EventIsAppend)

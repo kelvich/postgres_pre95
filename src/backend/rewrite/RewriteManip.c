@@ -174,3 +174,45 @@ HandleVarNodes ( parse_subtree , user_parsetree , trigger_varno, offset )
     }
 }
 
+
+/*
+ * take a parsetree and stick on the qual
+ * we assume that the varnos in the qual have
+ * already been appropriately munged
+ */
+AddEventQualifications ( parsetree, qual )
+     List parsetree;
+     List qual;
+{
+
+
+    if ( parse_qualification(parsetree) == NULL )
+      parse_qualification(parsetree) = qual;
+    else
+      parse_qualification ( parsetree ) =
+	lispCons ( lispInteger(AND),  
+		  lispCons ( parse_qualification( parsetree),
+			    lispCons ( qual, LispNil )));    
+
+    
+}
+
+
+/*
+ * take a parsetree and stick on the inverse qual
+ * we assume that the varnos in the qual have
+ * already been appropriately munged
+ */
+
+AddNotEventQualifications ( parsetree, qual )
+     List parsetree;
+     List qual;
+{
+    Assert ( qual != NULL );
+    
+    AddEventQualifications ( parsetree, 
+			     lispCons ( lispInteger(NOT), 
+				       lispCons ( copy_seq_tree (qual),
+						  LispNil )));
+
+}

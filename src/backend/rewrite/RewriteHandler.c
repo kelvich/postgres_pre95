@@ -25,6 +25,8 @@
 #include "./RewriteHandler.h"
 #include "./locks.h"
 
+extern List lispCopy();
+
 /*****************************************************/
 
 /*
@@ -198,8 +200,16 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	int result_rtindex = 0 ;
 	char *result_relname =  NULL;
 	List result_rte = NULL;
-	
+	List saved_parsetree = NULL;
+	List ev_qual = NULL;
+
 	action_info = RuleIdGetActionInfo ( this_lock->ruleId );
+
+	/* is_instead is always false for replace current
+	 * and retrieve-retrieve , so don't need to check
+	 */
+
+	ev_qual = CAR(action_info);
 	ruletrees = CDR(action_info);
 
 	{
@@ -245,6 +255,9 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		result_relname = CString ( CAR ( result_rte ));
 		if ( strcmp ( result_relname,"*CURRENT*")) 
 		  elog(WARN,"a on-retr-do-repl rulelock with bogus result");
+		if ( ev_qual ) {
+		    saved_parsetree = lispCopy ( user_parsetree );
+		}
 		foreach ( k , rule_tlist ) {
 		    List tlist_entry = CAR(k);
 		    Resdom tlist_resdom = (Resdom)CAR(tlist_entry);
@@ -305,7 +318,6 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		AddQualifications ( user_parsetree , 
 				   rule_qual ,
 				   0 );
-
 		CDR(last(user_rt)) = 
 		  CDR(CDR(rule_rangetable));
 
@@ -313,6 +325,20 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		 * because planner will ignore them
 		 */
 	    
+		if ( ev_qual ) {
+		    /* XXX - offset varnodes so that current and new
+		     * point correctly here
+		     */
+		    AddEventQualifications ( user_parsetree,
+					     ev_qual );
+		    AddNotEventQualifications ( saved_parsetree,
+					        ev_qual );
+					     
+		    Print_parse ( saved_parsetree );
+		    additional_queries = lispCons ( saved_parsetree,
+						   additional_queries );
+
+		}
 		printf ("\n");
 		printf ("*************************\n");
 		printf (" Modified User Parsetree\n");
@@ -383,9 +409,9 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 	  return ( new_queries );
 	}
 
-	*drop_user_query = (bool)CAR(action_info); /* cheated by not sticking
-						    * it into a lispint
-						    */
+	if ( IsInstead(this_lock) ) {
+	    *drop_user_query = true;
+	}
 	
 	{
 	    List rule_action = ruletrees;
@@ -594,6 +620,7 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
 	     * n event quals generate sq(n) "user_parsetrees" ?
 	     * or n+1 parsetrees ?
 	     */
+	    
 	    additional_queries = ModifyVarNodes ( retrieve_locks,
 						 length ( user_rangetable ),
 						 current_varno,

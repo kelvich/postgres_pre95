@@ -16,9 +16,10 @@
 #include "utils/builtins.h"		/* for textout */
 
 /* 
- * RuleIdGetRuleParsetrees
+ * RuleIdGetActionInfo
  *
- * given a rule oid, look it up and return the prs2text
+ * given a rule oid, look it up and return 
+ * '(rule-event-qual rule-parsetree)
  *
  */
 
@@ -33,23 +34,26 @@ RuleIdGetActionInfo ( ruleoid )
     Relation 		ruleRelation = NULL;
     TupleDescriptor	ruleTupdesc = NULL;
     List    		ruleparse = NULL;
+    char		*rule_evqual_string = NULL;
+    List		rule_evqual = NULL;
     List		i = NULL;
-    bool		is_instead = false;
 
     ruleRelation = amopenr ("pg_rewrite");
     ruleTupdesc = RelationGetTupleDescriptor(ruleRelation);
     ruletuple = SearchSysCacheTuple ( RULOID,  ruleoid );
 
-    ruleaction = amgetattr ( ruletuple, InvalidBuffer , Anum_pg_rewrite_action, 
+    ruleaction = amgetattr ( ruletuple, InvalidBuffer, Anum_pg_rewrite_action, 
 			    ruleTupdesc , &action_is_null ) ;
+    rule_evqual_string = amgetattr (ruletuple, InvalidBuffer, 
+				    Anum_pg_rewrite_ev_qual, 
+				    ruleTupdesc , &action_is_null ) ;
 
-    is_instead = (bool)amgetattr ( ruletuple, InvalidBuffer , 
-				  Anum_pg_rewrite_is_instead, ruleTupdesc,
-				  &instead_is_null );
-    
     ruleaction = textout (ruleaction );
+    rule_evqual_string = textout(rule_evqual_string);
+
     ruleparse = (List)StringToPlan(ruleaction);
-    
+    rule_evqual = (List)StringToPlan(rule_evqual_string);
+
     if ( action_is_null ) {
 	printf ("action is empty !!!\n");
 	return ( LispNil );
@@ -63,7 +67,7 @@ RuleIdGetActionInfo ( ruleoid )
     fflush(stdout);
 
     amclose ( ruleRelation );
-    return (lispCons(is_instead,ruleparse));
+    return (lispCons(rule_evqual,ruleparse));
 }
 
 char *
