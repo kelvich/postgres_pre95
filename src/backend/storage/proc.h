@@ -1,6 +1,11 @@
 /*
  * proc.h 
+ * 
+ * $Header$
  */
+
+#ifndef _PROC_H
+#define _PROC_H
 
 #include "storage/shmem.h"
 #include "storage/ipci.h"
@@ -35,3 +40,4 @@ typedef struct {
   IpcSemaphoreId	semId;
   IpcSemaphoreKey	semKey;
 } SEMA;
+#endif _PROC_H
