@@ -754,7 +754,7 @@ _sjchoose(item)
     done = false;
     do {
 	/* get platter OID, name */
-	plmdata->plid = plattup->t_oid;
+	plid = plmdata->plid = plattup->t_oid;
 	d = (Datum) heap_getattr(plattup, buf, Anum_pg_platter_plname,
 				 platdesc, &isnull);
 	platname = DatumGetName(d);
