@@ -53,7 +53,7 @@ typedef FormData_pg_plmap	*Form_pg_plmap;
 #define Name_pg_plmap			"pg_plmap"
 
 #define Natts_pg_plmap			6
-#define Anum_pg_plmap_ploid		1
+#define Anum_pg_plmap_plid		1
 #define Anum_pg_plmap_pldbid		2
 #define Anum_pg_plmap_plrelid		3
 #define Anum_pg_plmap_plblkno		4
