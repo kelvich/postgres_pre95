@@ -1229,8 +1229,8 @@ opt_portal:
 
 OptUseOp:
 	  /*EMPTY*/			{ NULLTREE }
-	| USING '<'			{ $$ = $2; }
-	| USING '>'			{ $$ = $2; }
+	| USING '<'			{ $$ = lispString("<"); }
+	| USING '>'			{ $$ = lispString(">"); }
 	;
 
 from_rel_name:
