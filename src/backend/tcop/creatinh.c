@@ -1,6 +1,6 @@
 /*
  * creatinh.c --
- *	POSTGRES create and destroy relation with inheritance utility code.
+ *	POSTGRES create/destroy relation with inheritance utility code.
  */
 
 #include "c.h"
@@ -9,9 +9,9 @@ RcsId("$Header$");
 
 #include "attnum.h"
 #include "log.h"
+#include "name.h"
 #include "pg_lisp.h"
 #include "tupdesc.h"
-
 
 /*
  * CREATE relation_name '(' dom_list ')' [KEY '(' dom_name [USING operator] 
@@ -136,17 +136,19 @@ DefineRelation(relationName, parameters, schema)
   (utility-end "CREATE"))
 #endif
 
-#if 0
-;; NOTE:  If the relation has indices defined on it, then the index
-;;        relations will also be destroy, along with the base
-;;        relation.
+void
+RemoveRelation(name)
+	Name	name;
+{
+	AssertArg(NameIsValid(name));
 
-(defun relation-remove (relation-name)
-  (delete-inheritance relation-name)
-  (check-indices relation-name)
-  (am-destroy relation-name)
-  (utility-end "DESTROY"))
+	/* (delete-inheritance relation-name) */
+	/* (check-indices relation-name) */
+	RelationNameDestroyHeapRelation(name);
+#if 0
+	EndUtility("DESTROY");
 #endif
+}
 
 #if 0
 (defun index-remove (relation-name)

@@ -14,12 +14,13 @@ require ("nodeDefs");
 require ("parsetree");
 require ("pgmacs");
 */
+
+#include "creatinh.h"
 #include "pg_lisp.h"
 
 /* temporary stuff */
-
 #define declare(x) /* x */
-#define foreach(x,y) for(x=y;x!=LispNil;x=CDR(x))
+
 extern int PG_INTERACTIVE;
 
 #include "parse.h"		/* y.tab.h, created by yacc'ing gram.y */
@@ -125,19 +126,23 @@ utility_invoke (command, args)
 	case CREATE:
 		DefineRelation(CAR(args),	/*  relation name */
 			CADR(args),		/*  parameters */
-			CDR(CDR(args)));
+			CDR(CDR(args)));	/*  schema */
 		break;
-	  
-	  /*  schema */
-#if 0	  
+
 	case DESTROY:
-	  {
-	       LispValue relation_name;
-	       foreach (relation_name, args) {
-		    relation_remove (relation_name);
-	       }
-	       break;
-	  }
+	{
+		LispValue relationName;
+		foreach (relationName, args) {
+#ifndef	PERFECTPARSER
+			AssertArg(listp(relationName));
+			AssertArg(lispStringp(CAR(relationName)));
+#endif
+			RemoveRelation(CString(CAR(relationName)));
+		}
+	}
+		break;
+
+#if 0	  
 	case PURGE:
 	  relation_purge (CAR(args),		/*  relation name */
 			  CADR(args));
