@@ -318,7 +318,7 @@ HeapTupleStoreRuleLock(tuple, buffer)
 	if (PageGetFreeSpace(page) >= lockSize) {
 
 		blockNumber = BufferGetBlockNumber(buffer);
-		offsetNumber = PageAddItem(page, lock, lockSize,
+		offsetNumber = PageAddItem(page, (Item) lock, lockSize,
 			InvalidOffsetNumber, LP_USED | LP_LOCK);
 	} else {
 		Assert(lockSize < BLCKSZ); /* XXX cannot handle this yet */
@@ -335,7 +335,7 @@ HeapTupleStoreRuleLock(tuple, buffer)
 		BufferSimpleInitPage(buffer);
 		blockNumber = BufferGetBlockNumber(buffer);
 		offsetNumber = PageAddItem(BufferSimpleGetPage(buffer),
-			lock, lockSize, InvalidOffsetNumber,
+			(Item) lock, lockSize, InvalidOffsetNumber,
 			LP_USED | LP_LOCK);
 		BufferPut(buffer, L_UN | L_EX | L_WRITE);
 	}

@@ -89,6 +89,7 @@ RcsId("$Header$");
 #include "access/tqual.h"
 #include "access/valid.h"
 #include "access/xcxt.h"
+#include "access/xact.h"
 
 #include "catalog/catname.h"
 #include "rules/rac.h"
@@ -253,12 +254,12 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
     int			dir;
     Buffer		*b;
     TimeQual		timeQual;
-    uint32		nkeys;
+    ScanKeySize		nkeys;
     ScanKey		key;
     bool		parallel_ok;
 {
     ItemId		lpp;
-    PageHeader		dp;
+    Page		dp;
     int			page;
     int			lineoff;
     int			pages;
@@ -336,13 +337,13 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
 	}
 #endif
 	
-	dp = (PageHeader) BufferSimpleGetPage(*b);
+	dp = (Page) BufferSimpleGetPage(*b);
 	offsetIndex = ItemPointerSimpleGetOffsetIndex(tid);
 	lpp = PageGetItemId(dp, offsetIndex);
 
 	Assert(!ItemIdIsLock(lpp));
 
-	rtup = (HeapTuple)PageGetItem(dp, lpp);
+	rtup = (HeapTuple)PageGetItem((Page) dp, lpp);
 	if (BufferPut(*b, L_PIN) < 0)
 	    elog(WARN, "heapgettup: failed BufferPut");
 	return (rtup);
@@ -370,7 +371,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
 	}
 #endif
 	
-	dp = (PageHeader) BufferSimpleGetPage(*b);
+	dp = (Page) BufferSimpleGetPage(*b);
 	lines = 1 + PageGetMaxOffsetIndex(dp);
 	lineoff = (tid == NULL) ?
 	    lines - 1 : ItemPointerSimpleGetOffsetIndex(tid) - 1;
@@ -403,7 +404,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
 	}
 #endif
 	
-	dp = (PageHeader) BufferSimpleGetPage(*b);
+	dp = (Page) BufferSimpleGetPage(*b);
 	lines = 1 + PageGetMaxOffsetIndex(dp);
     }
 
@@ -429,7 +430,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
 	     *	if current tuple qualifies, return it.
 	     * ----------------
 	     */
-	    if ((rtup = heap_tuple_satisfies(lpp, relation, dp,
+	    if ((rtup = heap_tuple_satisfies(lpp, relation, (PageHeader) dp,
 					     timeQual, nkeys, key)) != NULL) {
 		if (BufferPut(*b, L_PIN) < 0)
 		    elog(WARN, "heap_fetch: failed BufferPut");
@@ -452,7 +453,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
 	 */
 	if (BufferPut(*b, L_UN | L_SH) < 0) {
 	    elog(WARN, "heapgettup: failed BufferPut");
-	}	
+	}
 
 	page = nextpage(page, dir, parallel_ok);
 
@@ -474,8 +475,8 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
 	    elog(WARN, "heapgettup: failed RelationGetBuffer");
 	}
 #endif
-	dp = (PageHeader) BufferSimpleGetPage(*b);
-	lines = 1 + PageGetMaxOffsetIndex(dp);
+	dp = (Page) BufferSimpleGetPage(*b);
+	lines = 1 + PageGetMaxOffsetIndex((Page) dp);
 	lineoff = lines - 1;
 	if (dir < 0) {
 	    lpp = PageGetItemId(dp, lineoff);
@@ -609,7 +610,7 @@ doinsert_old(relation, tup)
 #endif
 	
 	dp = (PageHeader)BufferSimpleGetPage(b);
-	if ((int)tup->t_len > PageGetFreeSpace(dp)) {
+	if ((int)tup->t_len > PageGetFreeSpace((Page) dp)) {
 	    if (BufferPut(b, L_UN | L_UP) < 0)
 		elog(WARN, "aminsert: failed BufferPut");
 	    /* XXX there is a window in which the status can change */
@@ -1390,7 +1391,7 @@ heap_replace(relation, otid, tup)
 {
     ItemId		lp;
     HeapTuple		tp;
-    PageHeader		dp;
+    Page		dp;
     Buffer		buffer;
     BlockIndexList	list;
     BlockNumber		blockIndex;
@@ -1426,15 +1427,15 @@ heap_replace(relation, otid, tup)
     }	
 #endif NO_BUFFERISVALID
     
-    dp = (PageHeader) BufferSimpleGetPage(buffer);
+    dp = (Page) BufferSimpleGetPage(buffer);
     lp = PageGetItemId(dp, ItemPointerSimpleGetOffsetIndex(otid));
 
     /* ----------------
      *	check that we're replacing a valid item
      * ----------------
      */
-    if (!(tp = heap_tuple_satisfies(lp, relation, dp, NowTimeQual, 0,
-	 (ScanKey) NULL))) {
+    if (!(tp = heap_tuple_satisfies(lp, relation, (PageHeader) dp, NowTimeQual,
+									(ScanKeySize) 0, (ScanKey) NULL))) {
 
 	/* XXX call something else */
 	if (BufferPut(buffer, L_UN | L_UP) < 0)
@@ -1477,7 +1478,7 @@ heap_replace(relation, otid, tup)
      *	insert new item
      * ----------------
      */
-    if ((int)tup->t_len <= PageGetFreeSpace(dp)) {
+    if ((int)tup->t_len <= PageGetFreeSpace((Page) dp)) {
 	RelationPutHeapTuple(relation, BufferGetBlockNumber(buffer), tup);
     } else {
 	/* ----------------
