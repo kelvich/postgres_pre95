@@ -559,5 +559,5 @@ struct	proc {
 
 #include "nodes/pg_lisp.h"
 /* pg_proc.c */
-void ProcedureDefine ARGS((Name procedureName , Name returnTypeName , Name languageName , char *prosrc , char *probin , Boolean canCache , int32 arch_pct , int32 disk_pct , int32 perbyte_cpu , int32 percall_cpu , int32 outin_ratio , List argList ));
+void ProcedureDefine ARGS((Name procedureName , Name returnTypeName , Name languageName , char *prosrc , char *probin , Boolean canCache , int32 arch_pct , int32 disk_pct , int32 byte_pct , int32 perbyte_cpu , int32 percall_cpu , int32 outin_ratio , List argList ));
 #endif PgProcIncluded
