@@ -7,10 +7,10 @@
 monitor \*- run the interactive terminal monitor
 .uh SYNOPSIS
 .lp
-.b monitor
-[-h hostname] [-p port] [-t tty_device] [-N] [-T] [-c query] [-d path] [-q]
-[-o options] 
-dbname
+.(l
+\fBmonitor\fP [-h hostname] [-p port] [-t tty_device] [-N] [-T]
+	[-c query] [-d path] [-q] [-o options] dbname
+.)l
 .uh DESCRIPTION
 .lp
 The interactive terminal monitor is a simple frontend to \*(PP.
@@ -36,7 +36,7 @@ The terminal monitor requires that the postmaster be running, and the ports
 must be identical to those specified to the postmaster.
 .uh "COMMAND OPTIONS"
 .lp
-\fI-h host\fR specifies host machine on which the POSTGRES backend
+\fI-h host\fR specifies host machine on which the \*(PP backend
 is running; default is your local machine (localhost).
 .sp
 \fI-p port\fR specifies the well known TCP/IP port used for network 
@@ -60,7 +60,7 @@ This is useful for shell scripts, typically in conjunction with the
 .b -N
 and
 .b -T
-options.  Examples of shell scripts in the POSTGRES distribution using 
+options.  Examples of shell scripts in the \*(PP distribution using 
 .b monitor -c
 are createdb, destroydb, createuser, and destroyuser.
 .sp
@@ -75,8 +75,8 @@ and the queries it sends to the backend.
 If the \fI-q\fP flag is used,
 none of this happens.
 .sp
-\fI-o options\fR specifies additonal options for the postgres backend.
-This is only intended for use by postgres developers.
+\fI-o options\fR specifies additonal options for the \*(PP backend.
+This is only intended for use by \*(PP developers.
 .lp
 You may set environment variables to avoid typing the above options.
 See the \fBENVIRONMENT VARIABLES\fR section below.
@@ -105,7 +105,7 @@ go		The query buffer is empty and the terminal monitor is ready
 .sp
  \\e		Enter the editor to edit the query buffer
 
- \\g		Submit query buffer to POSTGRES for execution
+ \\g		Submit query buffer to \*(PP for execution
 
  \\h		Get on-line help
 

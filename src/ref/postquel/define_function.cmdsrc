@@ -21,7 +21,7 @@ define function \*- define a new function
 .)l
 .uh "DESCRIPTION"
 .lp
-With this command, a POSTGRES user can register a function with POSTGRES.
+With this command, a \*(PP user can register a function with \*(PP.
 Subsequently, this user is treated as the owner of the function.
 .lp
 When defining the function, the input data types,
@@ -49,11 +49,12 @@ modifier indicates that the function will return a set of items,
 rather than a single item.
 The
 .i as
-clause of the command is treated differently for C and Postquel
+clause of the command is treated differently for C and \*(PQ
 functions, as explained below.
 .lp
-.uh "C Functions" 
-Functions written in C can be defined to POSTGRES, which will
+.uh "C FUNCTIONS"
+.lp
+Functions written in C can be defined to \*(PP, which will
 dynamically load them into its address space.  The loading happens
 either via the \fBload\fP command, or automatically the
 first time the function is necessary for execution. Repeated execution
@@ -114,50 +115,71 @@ the object.  The default value is 100.
 The body of a C function following 
 .i as
 should be the FULL PATH of the object code (.o file) for the function,
-bracketed by quotation marks.  (POSTGRES will not compile a function
+bracketed by quotation marks.  (\*(PP will not compile a function
 automatically -- it must be compiled before it is used in a define
 function command.)
 .lp
 C functions with base type arguments can be written in a
-straightforward fashion.  The C equivalents of builtin POSTGRES types
-are accessible in a C file if $POSTGRESHOME/src/lib/H/utils/builtins.h
+straightforward fashion.  The C equivalents of built-in \*(PP types
+are accessible in a C file if 
+.ft C
+$POSTGRESHOME/src/lib/H/utils/builtins.h
+.ft
 is included as a header file.  This can be achieved by having
 .(l
+.ft C
 #include <utils/builtins.h>
+.ft
 .)l
 at the top of the C source file and by compiling all C files with the
 following include options:
 .(l
+.ft C
  -I$POSTGRESHOME/src/lib/H
  -I$POSTGRESHOME/src/port/$PORTNAME
  -I$POSTGRESHOME/O/lib/H
+.ft
 .)l
 before any ".c" programs in the "cc" command line, e.g.:
 .(l
+.ft C
 cc -I$POSTGRESHOME/src/lib/H \\
         -I$POSTGRESHOME/src/port/$PORTNAME \\
         -I$POSTGRESHOME/O/lib/H \\
         -c progname.c
+.ft
 .)l
-The directory $POSTGRESHOME/O/lib/H contains "tags.h", which is generated in the
-build process.  The directory $POSTGRESHOME/src/port/$PORTNAME contains
+The directory
+.ft C
+$POSTGRESHOME/O/lib/H contains
+.ft
+"tags.h", which is generated in the
+build process.  The directory
+.ft C
+$POSTGRESHOME/src/port/$PORTNAME
+.ft
+contains
 "machine.h".  Typical values for PORTNAME are sunos4 and ultrix4.
 .lp
 The convention for passing arguments to and from the user's C functions is
 to use pass-by-value for data types that are 32 bits (4 bytes) or
 smaller, and pass-by-reference for data types that require more than 32 bits.
 The following table gives the C type required for parameters in the C
-functions that will be loaded into POSTGRES.  The "Defined In" column
-gives the actual header file (in $POSTGRESHOME/src/lib/H) that the equivalent
+functions that will be loaded into \*(PP.  The "Defined In" column
+gives the actual header file (in the
+.ft C
+$POSTGRESHOME/src/lib/H
+.ft
+directory) that the equivalent
 C type is defined.  However, if you include "utils/builtins.h", these
 files will automatically be included.
-.uh "Equivalent C Types for Builtin POSTGRES Types"
+.uh "Equivalent C Types for Built-In \*(PP Types"
 .lp
 .TS
 center;
-c c c
+l l l
 l l l.
-\fIBuiltin Type\fP	\fIC Type\fP	\fIDefined In\fP
+\fBBuilt-In Type\fP	\fBC Type\fP	\fBDefined In\fP
 _
 abstime 	AbsoluteTime	utils/nabstime.h
 bool	bool	tmp/c.h
@@ -189,12 +211,20 @@ xid	(XID *) 	tmp/postgres.h
 
 Complex arguments to C functions are passed into the C function as a
 special C type, TUPLE, defined in
-$POSTGRESHOME/src/lib/H/tmp/libpq-fe.h.  Given a variable t of this
+.ft C
+$POSTGRESHOME/src/lib/H/tmp/libpq-fe.h.
+.ft
+Given a variable t of this
 type, the C function may extract attributes from the function by name,
 or by number (starting at 1), using the function calls:
 .(l
-GetAttributeByName(t, "fieldname", &isnull), or
+.ft C
+GetAttributeByName(t, "fieldname", &isnull)
+.ft
+\fIor\fR
+.ft C
 GetAttributeByNum(t, fieldnum, &isnull)
+.ft
 .)l
 where 
 .i isnull
@@ -202,9 +232,9 @@ is a pointer to a bool, which the function sets to \fItrue\fP if the
 field is null.  The result of these functions should be cast
 appropriately as shown in the examples below.
 .lp
-.uh "Postquel Functions"
-Postquel functions execute an arbitrary list of Postquel queries,
-returning the results of the last query in the list.  Postquel
+.uh "POSTQUEL FUNCTIONS"
+\*(PQ functions execute an arbitrary list of \*(PQ queries,
+returning the results of the last query in the list.  \*(PQ
 functions in general return sets.  If their returntype is not
 specified as a \fIsetof\fP, then an arbitrary element of the last
 query's result will be returned.  The expensive function parameters
@@ -213,17 +243,17 @@ query's result will be returned.  The expensive function parameters
 .i outin_ratio,
 and
 .i byte_pct
-are not used for Postquel functions; their costs are determined
+are not used for \*(PQ functions; their costs are determined
 dynamically by the planner.
 .lp
-The body of a Postquel function following
+The body of a \*(PQ function following
 .i as
 should be a list of queries separated by
 whitespace characters and bracketed within quotation marks.  Note that
 quotation marks used in the queries must be escaped, by preceding them
 with two backslashes (i.e. \\").
 .lp
-Arguments to the Postquel function may be referenced in the queries
+Arguments to the \*(PQ function may be referenced in the queries
 using a $n syntax: $1 refers to the first argument, $2 to the second,
 and so on.  If an argument is complex, then a "dot" notation may be used to
 access attributes of the argument (e.g. $1.emp), or to invoke
@@ -231,15 +261,19 @@ functions via a nested dot syntax.
 .lp
 .uh "EXAMPLES: C Functions"
 .lp
-The following command defines a C function, overpaid, of two basetype arguments.
+The following command defines a C function, overpaid, of two basetype
+arguments.
 .(l
+.ft C
 define function overpaid
         (language = "c", returntype = bool)
         arg is (float8, int4)
         as "/usr/postgres/src/adt/overpaid.o"
+.ft
 .)l
 The C file "overpaid.c" might look something like:
 .(l
+.ft C
 #include <utils/builtins.h>
 
 bool overpaid(salary, age)
@@ -252,120 +286,146 @@ bool overpaid(salary, age)
                 return(TRUE);
         return(FALSE)
 }
+.ft
 .)l
-The overpaid function can 
-be used in a query, e.g:
+The overpaid function can be used in a query, e.g:
 .(l
-retrieve (EMP.name) where overpaid(EMP.salary, EMP.age)
+.ft C
+retrieve (EMP.name)
+    where overpaid(EMP.salary, EMP.age)
+.ft
 .)l
 .lp
 One can also write this as a function of a single argument of type
 EMP:
 .(l
+.ft C
 define function overpaid_2
         (language = "c", returntype = bool)
         arg is (EMP)
         as "/usr/postgres/src/adt/overpaid_2.o"
+.ft
 .)l
 The following query is now accepted:
 .(l
+.ft C
 retrieve (EMP.name) where overpaid_2(EMP) 
+.ft
 .)l
 In this case, in the body of the overpaid_2 function, the fields in the EMP
 record must be extracted.  The C file "overpaid_2.c" might look
 something like:
 .(l
+.ft C
 #include <utils/builtins.h>
 #include <tmp/libpq-fe.h>
 
 bool overpaid_2(t)
 TUPLE t;
 {
-        float8 *salary;
-        int4    age;
-        bool    salnull, agenull;
+    float8 *salary;
+    int4    age;
+    bool    salnull, agenull;
 
-        salary = (float8 *)GetAttributeByName(t, "salary", &salnull);
-        age    = (int4)GetAttributeByName(t, "age", &agenull);
-        if (!salnull && *salary > 200000.00)
-                return(TRUE);
-        if (!agenull && (age < 30) && (*salary > 100000.00))
-                return(TRUE);
-        return(FALSE)
+    salary = (float8 *)GetAttributeByName(t, "salary",
+                                          &salnull);
+    age = (int4)GetAttributeByName(t, "age", &agenull);
+    if (!salnull && *salary > 200000.00)
+        return(TRUE);
+    if (!agenull && (age<30) && (*salary > 100000.00))
+        return(TRUE);
+    return(FALSE)
 }
+.ft
 .)l
 .lp
-.uh "EXAMPLES: Postquel Functions"
+.uh "EXAMPLES: \*(PQ Functions"
 .lp
-To illustrate a simple Postquel function, consider the following,
+To illustrate a simple \*(PQ function, consider the following,
 which might be used to debit a bank account:
 .(l
+.ft C
 define function TP1
         (language = "postquel", returntype = int4)
         arg is (int4, float8)
         as "replace BANK (balance = balance - $2)
               where BANK.accountno = $1
             retrieve(x = 1)"
+.ft
 .)l
 A user could execute this function to debit account 17 by $100.00 as follows:
 .(l
+.ft C
 retrieve (x = TP1( 17,100.0))
+.ft
 .)l
 .lp
 The following more interesting examples take a single argument of type
 EMP, and retrieve multiple results:
 .(l
+.ft C
 define function hobbies
-        (language = "postquel", returntype = setof HOBBIES)
-        arg is (EMP)
-        as "retrieve (HOBBIES.all)
-               where $1.name = HOBBIES.person"
+    (language = "postquel", returntype = setof HOBBIES)
+    arg is (EMP)
+    as "retrieve (HOBBIES.all)
+          where $1.name = HOBBIES.person"
 
 define function children
-        (language = "postquel", returntype = setof KIDS)
-        arg is (EMP)
-        as "retrieve (KIDS.all)
-               where $1.name = KIDS.dad
-                  or $1.name = KIDS.mom"
+    (language = "postquel", returntype = setof KIDS)
+    arg is (EMP)
+    as "retrieve (KIDS.all)
+          where $1.name = KIDS.dad
+             or $1.name = KIDS.mom"
+.ft
 .)l
 .lp
 Then the following query retrieves overpaid employees, their hobbies, and
 their children:
 .lp
 .(l
-retrieve (name(EMP), hobby=name(hobbies(EMP)), kid=name(children(EMP)))
-   where overpaid_2(EMP)
+.ft C
+retrieve (name(EMP), hobby=name(hobbies(EMP)),
+	kid=name(children(EMP)))
+    where overpaid_2(EMP)
+.ft
 .)l
 Note that attributes can be projected using function syntax (e.g.
 name(EMP)), as well as the traditional dot syntax (e.g. EMP.name).
 .lp
 An equivalent expression of the previous query is:
 .(l
-retrieve (EMP.name, hobby=EMP.hobbies.name, kid=EMP.children.name)
-   where overpaid_2(EMP)
+.ft C
+retrieve (EMP.name, hobby=EMP.hobbies.name,
+	kid=EMP.children.name)
+    where overpaid_2(EMP)
+.ft
 .)l
 This "nested dot" notation for functions can be used to cascade
 functions of single arguments.  Note that the function after a dot
 must have only one argument, of the type returned by the function
 before the dot.
 .lp
-POSTGRES 
+\*(PP 
 .i flattens
 the target list of the queries above.  That is, it produces the cross-product
 of the hobbies and the children of the employees.  For example, given
 the schema:
 .(l
+.ft C
 create BANK (accountno = int4, balance = float8) 
 append BANK (accountno = 17, balance = "10000.00"::float8) 
-create EMP (name = char16, salary = float8, dept = char16, age = int4) 
+create EMP (name = char16, salary = float8,
+            dept = char16, age = int4)
 create HOBBIES (name = char16, person = char16) 
 create KIDS (name = char16, dad = char16, mom = char16) 
-append EMP (name = "joey", salary = "100000.01"::float8, dept = "toy", age = 24) 
-append EMP (name = "jeff", salary = "100000.01"::float8, dept = "shoe", age = 23)
-
-append EMP (name = "wei", salary = "100000"::float8, dept = "tv", age = 30) 
-append EMP (name = "mike", salary = "500000"::float8, dept = "appliances", age =
-30) 
+append EMP (name = "joey", salary = "100000.01"::float8,
+            dept = "toy", age = 24) 
+append EMP (name = "jeff", salary = "100000.01"::float8,
+            dept = "shoe", age = 23)
+append EMP (name = "wei", salary = "100000"::float8,
+            dept = "tv", age = 30) 
+append EMP (name = "mike", salary = "500000"::float8,
+            dept = "appliances", age = 30) 
 append HOBBIES (name = "biking", person = "jeff" ) 
 append HOBBIES (name = "jamming", person = "joey" ) 
 append HOBBIES (name = "basketball", person = "wei") 
@@ -373,23 +433,25 @@ append HOBBIES (name = "swimming", person = "mike")
 append HOBBIES (name = "philately", person = "mike") 
 append KIDS (name = "matthew", dad = "mike", mom = "teresa") 
 append KIDS (name = "calvin", dad = "mike", mom = "teresa") 
+.ft
 .)l
 .sp
-the query above 
-returns
+the query above returns
 .lp
 .TS
 center;
 l l l
 l l l.
-\fIname\fP	\fIhobby\fP	\fIkid\fP
+\fBname\fP	\fBhobby\fP	\fBkid\fP
 _
+.ft C
 jeff	biking	(null)
 joey	jamming	(null)
 mike	swimming	matthew
 mike	philately	matthew
 mike	swimming	calvin
 mike	philately	calvin
+.ft
 .TE
 .lp
 Note that flattening preserves the name and hobby fields even when the kid
@@ -412,8 +474,12 @@ described above.  This allows a finer grain of distinction between
 function costs, but is not encouraged since such distinctions are
 difficult to estimate accurately.
 .lp
-On Ultrix, all .o files that POSTGRES is expected to load dynamically must
-be compiled under \f2cc\fP with the "-G 0" option turned on.
+On Ultrix, all .o files that \*(PP is expected to load dynamically must
+be compiled under \f2cc\fP with the
+.ft C
+"-G 0"
+.ft
+option turned on.
 .uh "RESTRICTIONS"
 .lp
 The name of the C function must be a legal C function name, and the name of

@@ -6,9 +6,10 @@
 .lp
 begin \*- begins a transaction
 .uh SYNOPSIS
-.sp
-.in .5i
-.b begin
+.lp
+.(l
+\fBbegin\fR
+.)l
 .uh DESCRIPTION
 .lp
 This command begins a user transaction which \*(PP will guarantee

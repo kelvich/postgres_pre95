@@ -4,7 +4,7 @@
 .XA 2 "Remove Rule"
 .uh NAME
 .lp
-remove rule \- removes a current rule from POSTGRES 
+remove rule \- removes a current rule from \*(PP 
 .uh SYNOPSIS
 .lp
 .b "remove [instance | rewrite] rule"
@@ -12,8 +12,8 @@ rule_name
 .uh DESCRIPTION
 .lp
 This command drops the rule named rule_name
-from the specified POSTGRES rule system.
-POSTGRES will immediately cease enforcing
+from the specified \*(PP rule system.
+\*(PP will immediately cease enforcing
 it and will purge its definition from the system catalogs.
 .uh EXAMPLE
 .sp

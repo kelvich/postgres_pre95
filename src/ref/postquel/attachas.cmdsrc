@@ -7,8 +7,9 @@
 attachas \*- reestablish communication using an exising portal
 .uh SYNOPSIS
 .lp
-.b attachas
-name
+.(l
+\fBattachas\fR name
+.)l
 .uh DESCRIPTION
 .lp
 This command allows application programs to use a logical name,

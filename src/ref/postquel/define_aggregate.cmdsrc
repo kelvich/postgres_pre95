@@ -7,14 +7,14 @@
 define aggregate \*- define a new aggregate
 .uh SYNOPSIS
 .lp
-.b "define aggregate"
-agg-name [
-.b as
-]
-.b ( sfunc1 = state-transition-function1, sfunc2 = state-transition-func2,
- finalfunc =  final-function, initcond1 = initial-condition1, 
- initcond2 = initial-condition2
-.b )
+.(l
+\fBdefine aggregate\fR agg-name [\fBas\fR]
+	\fB(\fR\fBsfunc1\fR \fB=\fR state-transition-function1,
+	 \fBsfunc2\fR \fB=\fR state-transition-func2,
+	 \fBfinalfunc\fR \fB=\fR final-function,
+	 \fBinitcond1\fR \fB=\fR initial-condition1,
+	 \fBinitcond2\fR \fB=\fR initial-condition2 \fB)\fR
+.)l
 .uh DESCRIPTION
 .lp
 An aggregate requires three functions, two
@@ -63,5 +63,7 @@ answer.
 .lp
 /* Define an aggregate for int4average */
 .lp
+.ft C
 define aggregate avg (sfunc1 = int4add, sfunc2 = int4inc
      finalfunc = int4div, initcond1 = "0", initcond2 = "0")
+.fn

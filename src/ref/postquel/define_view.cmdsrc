@@ -5,28 +5,14 @@
 .uh NAME
 .lp
 define view \*- construct a virtual class
-.uh SYNTAX
+.uh SYNOPSIS
 .lp
-.b "define view"
-view_name
-[ dom_name_1
-.b =
-] expression_1 {
-.b ,
-[
-dom_name_i
-.b =
-]
-.r expression_i
-}
-.b )
-.br
-\0\0\0[
-.b from
-from_list ] 
-[
-.b where
-qual ] 
+.(l
+\fBdefine view\fR view_name \fB(\fR [ dom_name_1 \fB=\fR] expression_1
+	{\fB,\fR [dom_name_i \fB=\fR] expression_i} \fB)\fR
+    [ \fBfrom\fR from_list ]
+    [ \fBwhere\fR qual ]
+.)l
 .sp
 .uh DESCRIPTION
 .lp

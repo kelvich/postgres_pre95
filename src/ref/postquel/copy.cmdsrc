@@ -7,11 +7,9 @@
 copy \*- copy data to or from a class from or to a \*(UU file.
 .uh SYNOPSIS
 .lp
-.b copy
-[
-.b binary
-] classname
-direction "filename" | stdin | stdout
+.(l
+\fBcopy\fR [\fBbinary\fR] classname direction { "filename" | stdin | stdout }
+.)l
 .uh DESCRIPTION
 .lp
 .b Copy
@@ -50,7 +48,7 @@ is used without the
 .b binary
 keyword, the file generated will have each instance on a line, with each
 attribute separated by tabs (\t).  Embedded tabs will be preceeded by a
-backslash character (\).  The attribute values themselves are strings generated
+backslash character (\\).  The attribute values themselves are strings generated
 by the output function associated with each attribute type.  The output
 function for a type should not try to generate the backslash character - this
 will be handled by 

@@ -7,9 +7,9 @@
 createuser \*- create a \*(PP user
 .uh SYNOPSIS
 .lp
-.b createuser 
-[-p port] [-h host]
-.b username
+.(l
+\fBcreateuser\fR [\fB-p\fR port] [\fB-h\fR host] username
+.)l
 .uh DESCRIPTION
 .lp
 .b Createuser

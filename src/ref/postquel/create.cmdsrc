@@ -7,14 +7,15 @@
 create \*- create a new class
 .uh SYNOPSIS
 .lp
-.b create
-classname (attributename = type
-{ , attributename = type})
-[key (attributename [[using] operator] { , attributename [[using] operator])]}
-[inherits (classname { , classname} )]
-[archive = archive_mode]
-[store = ``smgr name'']
-[arch_store = ``smgr name'']
+.(l
+\fBcreate\fR classname (attributename = type { , attributename = type})
+	[\fBkey\fR (attributename [[\fBusing\fR] \fBoperator\fR]
+		 { , attributename [[\fBusing\fR] \fBoperator\fR] } )]
+	[\fBinherits\fR \fB(\fR classname {\fB,\fR classname} \fB)\fR]
+	[\fBarchive\fR \fB=\fR archive_mode]
+	[\fBstore\fR \fB=\fR ``smgr name'']
+	[\fBarch_store\fR \fB=\fR ``smgr name'']
+.)l
 .uh DESCRIPTION
 .lp
 .b Create
@@ -78,7 +79,7 @@ and
 .i arch_store
 keywords may be used to specify a storage manager to use
 for the new class.
-The released version of POSTGRES supports only ``magnetic disk''
+The released version of \*(PP supports only ``magnetic disk''
 as a storage manager name;
 the research system at Berkeley provides additional storage managers.
 .i Store
@@ -122,22 +123,28 @@ Once the archive status is set, there is no way to change it.
 .uh EXAMPLE
 .lp
 .nf
+.ft C
+.sp
 /* Create class emp with attributes name, sal and bdate */
-
-   create emp (name = char16, salary = float4, bdate = abstime)
+create emp (name = char16, salary = float4, bdate = abstime)
+.ft
 .lp
 .nf
-/* Create class permemp with pension information inheriting
-   all fields of emp */
-
-   create permemp (plan = char16)
-   inherits (emp)
+.ft C
+.sp
+/* Create class permemp with pension information
+   inheriting all fields of emp */
+create permemp (plan = char16) inherits (emp)
+.ft
 .lp
 .nf
-/* create a class foo on mag disk, and archive historical data */
-
+.ft C
+.sp
+/* Create a class foo on mag disk,
+   and archive historical data */
 create foo (bar = int4) archive = heavy
-  store = ``magnetic disk''
+    store = "magnetic disk"
+.ft
 .fi
 .uh "SEE ALSO"
 .lp
@@ -146,9 +153,5 @@ destroy(commands)
 .lp
 Key is not implemented in Version \*(PV.
 .lp
-Optional specifications
-(inherits,
-archive,
-store)
-must be supplied in the order given above,
-if they are supplied at all.
+Optional specifications (inherits, archive, store)
+must be supplied in the order given above, if they are supplied at all.

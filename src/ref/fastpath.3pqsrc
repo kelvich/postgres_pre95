@@ -12,7 +12,9 @@
 fast path \*- trap door into system internals
 .uh SYNOPSIS
 .lp
+.(l
 .q "retrieve (retval = function([ arg { , arg } ] )"
+.)l
 .uh DESCRIPTION
 .lp
 \*(PP allows any valid \*(PP function to be called in this way.  Prior

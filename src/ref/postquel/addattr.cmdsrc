@@ -7,21 +7,10 @@
 addattr \*- add attributes to a class
 .uh SYNOPSIS
 .lp
-.b addattr
-.b (
-attname1
-.b =
-type1
-{ ,
-.r attname \c
-.i i
-.b =
-.r type \c
-.i i
-}
-.b )
-.b TO
-.r classname{*}
+.(l
+\fBaddattr\fR \fB(\fR attname1 \fB=\fR type1 {\fB,\fR attname-i \fB=\fR type-i} \fB)\fR
+	\fBto\fR classname{*}
+.)l
 .uh DESCRIPTION
 .lp
 The
@@ -62,4 +51,4 @@ create(commands).
 .uh "BUGS"
 .lp
 .q *
-is not supported in Version 3.
+is not supported in Version \*(PV.

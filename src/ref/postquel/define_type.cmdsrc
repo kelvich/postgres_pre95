@@ -8,14 +8,16 @@ define type \*- define a new base data type
 .uh SYNOPSIS
 .lp
 .nf
-\fBdefine type\fP typename (internallength = (number | variable),
-	[ externallength = (number | variable), ]
-	input = function, output = function
-	[ , element = typename]
-	[ , delimiter = <character>]
-	[ , default = \*(lqstring\*(rq ]
-	[ , send = procedure ] [ , receive = procedure ]
-	[ , passedbyvalue])
+\fBdefine type\fP typename \fB(\fR\fBexternallength\fR = (\fBnumber\fR | \fBvariable\fR),
+	[ \fBexternallength\fR = (\fBnumber\fR | \fBvariable\fR)\fB,\fR ]
+	\fBinput\fR = input_function,
+	\fBoutput\fR = output_function
+	[\fB,\fR \fBelement\fR = typename]
+	[\fB,\fR \fBdelimiter\fR = <character>]
+	[\fB,\fR \fBdefault\fR = "string" ]
+	[\fB,\fR \fBsend\fR = procedure ]
+	[\fB,\fR \fBreceive\fR = procedure ]
+	[\fB,\fR \fBpassedbyvalue\fR]\fB)\fR
 
 .\" \fBdefine type\fP typename as postquel_commands
 .uh DESCRIPTION
@@ -30,7 +32,7 @@ and must be unique within the types defined for this database.
 .lp
 .i "Define type"
 requires the registration of two functions (using
-.b "define function <C>" )
+.b "define function" )
 before defining the type.
 The representation of a new base type is determined by the function
 .i input ,
@@ -44,8 +46,7 @@ performs the reverse transformation.
 New base data types can be fixed length, 
 in which case
 .i "internal length"
-is a positive integer,
-or variable length,
+is a positive integer, or variable length,
 in which case \*(PP assumes that the new type has the same format
 as the \*(PP-supplied data type, 
 .b "text".
@@ -130,9 +131,10 @@ meaning the internallength for large objects is always -1.
 .uh EXAMPLES
 .lp
 .nf
+.ft C
 /*
- * This command creates the box data type and then uses the type in a
- * class definition
+ * This command creates the box data type and then uses the
+ * type in a class definition
  */
 
    define type box (internallength = 8,
@@ -141,28 +143,31 @@ meaning the internallength for large objects is always -1.
    create MYBOXES (id = int4, description = box)
 
 /*
- * This command creates a variable length array type with integer
- * elements.
+ * This command creates a variable length array type with
+ * integer elements.
  */
  
    define type int4array
-   (input = array_in, output = array_out, internallength = variable, element = int4)
+   (input = array_in, output = array_out,
+    internallength = variable, element = int4)
 
    create MYARRAYS (id = int4, numbers = int4array)
 
 /*
- * This command creates a large object type and uses it in a class
- * definition.
+ * This command creates a large object type and uses it in
+ * a class definition.
  */
 
    define type bigobj
-   (input = lo_filein, output = lo_fileout, internallength = variable)
+   (input = lo_filein, output = lo_fileout,
+    internallength = variable)
 
    create BIG_OBJS (id = int4, obj = bigobj)
+.ft
 
 .uh "SEE ALSO"
 .lp
-define function <C> (commands),
+define function(commands),
 define operator(commands),
 remove type(commands),
-Large Object Backend Interface.
+Large Object Backend Interface(large objects).

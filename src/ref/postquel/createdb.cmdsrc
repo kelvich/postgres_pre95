@@ -7,14 +7,15 @@
 createdb \*- create a new database
 .uh SYNOPSIS
 .lp
-.b createdb
-dbname
+.(l
+\fBcreatedb\fR dbname
+.)l
 .uh DESCRIPTION
 .lp
 .b Createdb
-creates a new POSTGRES database.
+creates a new \*(PP database.
 The creator becomes the administrator of the new database.
-This command was added to postquel in version 3.0 and is intended
+This command was added to \*(PQ in Version \*(PV and is intended
 to be used by the createdb script.
 .lp
 .uh "SEE ALSO"

@@ -31,7 +31,9 @@ bounded on the left by
 and on the right by
 ``*/'', e.g:
 .(l
+.ft C
 /* This is a comment */
+.ft
 .)l
 .uh "Names"
 .lp
@@ -137,7 +139,9 @@ consist of an integer part, a decimal point, and
 a fraction part or scientific notation
 of the following format:
 .(l
+.ft C
 {<dig>} .{<dig>} [e [+-] {<dig>}]
+.ft
 .)l
 .lp
 Where <dig> is a digit.
@@ -159,7 +163,9 @@ A constant of an
 .i arbitrary
 type can be entered using the notation:
 .(l
-\*(lqstring\*(rq  :: type-name
+.ft C
+\*(lqstring\*(rq::type-name
+.ft
 .)l
 In this case the value inside the string is passed to the input conversion
 routine for the type called type-name. The result is a constant of the
@@ -171,13 +177,17 @@ indicated type.
 are arrays of any \*(PP type, including other arrays, string constants,
 etc.  The general format of an array constant is the following:
 .(l
+.ft C
 "{<val1><delim><val2<delim>}"
+.ft
 .)l
 .lp
 An example of an array constant is
 .lp
 .(l
+.ft C
 "{{1,2,3},{4,5},{6,7,8,9}}"
+.ft
 .)l
 .lp
 This constant is an array consisting of three sub-arrays of integers.
@@ -188,7 +198,8 @@ A
 .i field
 is one of the following:
 .(l
-attribute name in a given class
+\fIattribute name in a given class\fR
+.ft C
 all
 oid
 tmin
@@ -198,6 +209,7 @@ xmax
 cmin
 cmax
 vtype
+.ft
 .)l
 As in \*(II, 
 .i all
@@ -229,7 +241,9 @@ An
 .i attribute
 is a construct of the form:
 .(l
+.ft C
 Instance-variable{.composite_field}.field `['number`]'
+.ft
 .)l
 .i Instance-variable 
 identifies a particular class and can be thought of
@@ -279,18 +293,19 @@ An
 .i expression
 is one of the following:
 .(l
+.ft C
 ( a_expr )
 constant
 attribute
 a_expr  binary_operator  a_expr
 .\" a_expr right_unary_operator
 left_unary_operator  a_expr
-
 parameter
 functional expressions 
 aggregate expressions
 set expressions
-class expression (not in Version \*(PV)
+class expression \fP(not in Version \*(PV)\fR
+.ft
 .)l
 We have already discussed constants and attributes.
 The two kinds
@@ -306,15 +321,19 @@ is used to indicate a parameter in a \*(PQ function.  Typically this
 is used in \*(PQ function definition statement.
 The form of a parameter is:
 .(l
+.ft C
 \'$' number
+.ft
 .)l
 .lp
 For example, consider the definition of a function, DEPT, as
 .(l
+.ft C
 define function DEPT 
-   (language="postquel", returntype = dept)
-arg is (char16) as 
-retrieve (dept.all) where dept.name = $1
+	(language="postquel", returntype = dept)
+    arg is (char16) as 
+    retrieve (dept.all) where dept.name = $1
+.ft
 .)l
 .uh "Functional Expressions"
 .lp
@@ -324,11 +343,15 @@ A
 is the name of a legal \*(PQ function,
 followed by its argument list enclosed in parentheses, e.g.:
 .(l 
+.ft C
 fn-name (a_expr{ , a_expr})
+.ft
 .)l	
 For example, the following computes the square root of an employee salary.
 .(l
+.ft C
 sqrt(emp.salary)
+.ft
 .)l
 .uh "Aggregate Expression"
 .lp
@@ -341,8 +364,11 @@ computes a set
 of values).
 The syntax is the following:
 .(l
-aggregate_name `{' [unique [using] opr] a_expr [from from_list]
-[where qualification]`}'
+.ft C
+aggregate_name `{' [unique [using] opr] a_expr
+		[from from_list]
+		[where qualification]`}'
+.ft
 .)l
 Here, 
 .i aggregate_name 
@@ -364,13 +390,16 @@ are defined in the from list, a simple aggregate has been defined.  For
 example, to sum employee salaries whose age is greater than 30, one would
 write:
 .(l
+.ft C
 retrieve (total = sum {e.salary from e in emp
-where e.age > 30})
+	    where e.age > 30} )
+.ft
 .)l
 or
 .(l
-retrieve (total = sum {EMP.salary
-where emp.age > 30})
+.ft C
+retrieve (total = sum {EMP.salary where emp.age > 30})
+.ft
 .)l
 In either case, \*(PP is instructed to find 
 the instances in the from_list which
@@ -380,15 +409,19 @@ indicated.
 On the other hand, if there are variables used in the aggregate expression that
 are not defined in the from list, e.g:
 .(l
+.ft C
 avg {emp.salary where emp.age = e.age}
+.ft
 .)l
 then this aggregate has a value for each possible value taken on by 
 e.age.  For example, the following complete query finds the
 average salary of each possible employee age over 18:
 .(l
+.ft C
 retrieve (e.age, avg {emp.salary where emp.age = e.age})
-   from e in emp 
-   where e.age > 18
+	from e in emp 
+	where e.age > 18
+.ft
 .)l
 Such aggregate functions are not supported in Version \*(PV. Furthermore,
 in this version, only the a_expr and the where-qualification clause 
@@ -408,11 +441,15 @@ A
 defines a collection of instances from some class
 and uses the following syntax:
 .(l
+.ft C
  {target_list from from_list where qualification}
+.ft
 .)l
 For example, the set of all employee names over 40 is:
 .(l
+.ft C
 {emp.name where emp.age > 40}
+.ft
 .)l
 .fi
 In addition, it is legal to construct set expressions which
@@ -420,7 +457,9 @@ have an instance variable which is defined outside the scope of
 the expression.  For example, the following expression is the
 set of employees in each department:
 .(l
+.ft C
 {emp.name where emp.dept = dept.dname}
+.ft
 .)l
 .in .5i
 Set expressions can be used in class expressions which
@@ -463,8 +502,10 @@ An example of a query with a class expression is
 one to find all the departments with no employees:
 .in .5i
 .(l
+.ft C
 retrieve (dept.dname)
-   where empty {emp.name where emp.dept = dept.dname}
+    where empty {emp.name where emp.dept = dept.dname}
+.ft
 .)l  
 .uh "Target_list"
 .lp
@@ -473,7 +514,9 @@ A
 is a parenthesized, comma-separated list of one
 or more elements, each of which must be of the form:
 .(l
+.ft C
 [result_attname  =] a_expr
+.ft
 .)l
 Here, result_attname 
 is the name of the attribute to be created (or an
@@ -489,9 +532,11 @@ A
 consists of any number of clauses connected
 by the logical operators:
 .(l
+.ft C
 not
 and
 or
+.ft
 .)l
 A clause is an a_expr that evaluates to a Boolean over a set of instances.
 .uh "From List"
@@ -508,13 +553,18 @@ Each
 .i expression
 is of the form:
 .(l
-instance_variable-1 {, instance_variable-2} in class_reference
+.ft C
+instance_variable-1 {, instance_variable-2}
+	in class_reference
+.ft
 .)l
 where 
 .i class_reference
 is of the form
 .(l
+.ft C
 class_name [time_expression] [*]
+.ft
 .)l
 The 
 .i from
@@ -533,8 +583,10 @@ A
 .i expression
 is in one of two forms:
 .(l
+.ft C
  [date]
  [date-1, date-2]
+.ft
 .)l
 The first case requires instances that are valid
 at the indicated time.
@@ -543,11 +595,11 @@ the date range specified.
 If no time expression is indicated, the
 default is \*(lqnow\*(rq.  
 .lp
-In each case,
-the date is a character string
-of the form
+In each case, the date is a character string of the form
 .(b
-[MON-FRI] ``MMM DD [HH:MM:SS] YYYY'' [Timezone]
+.ft C
+[MON-FRI] "MMM DD [HH:MM:SS] YYYY" [Timezone]
+.fn
 .)b
 where MMM is the month (Jan \- Dec),
 DD is a legal day number in the specified month,
@@ -560,8 +612,10 @@ all times are interpreted as GMT.
 .lp
 For example,
 .(b
-[``Jan 1 1990'']
-[``Mar 3 00:00:00 1980'', ``Mar 3 23:59:59 1981'']
+.ft C
+["Jan 1 1990"]
+["Mar 3 00:00:00 1980", "Mar 3 23:59:59 1981"]
+.fn
 .)b
 are valid time specifications.
 .uh "SEE ALSO"
@@ -576,6 +630,8 @@ monitor(unix).
 .lp
 The following constructs are not available in Version \*(PV:
 .(l
+.ft C
 class expressions
 set expressions
+.ft
 .)l

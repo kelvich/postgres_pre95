@@ -187,17 +187,17 @@ Multiple sort fields are allowed and are applied from left to right.
 
 .uh "SEE ALSO"
 .lp
-postquel(postquel),
-fetch(postquel),
-close(postquel),
+postquel(commands),
+fetch(commands),
+close(commands),
 create(commands).
 .uh BUGS
 .lp
 .q "Retrieve into"
-does not delete duplicates in Version 3.0.
+does not delete duplicates in Version \*(PV.
 .lp
 .q Archive_mode 
-is not implemented in Version 3.0.
+is not implemented in Version \*(PV.
 .lp
 If the backend crashes in the course of executing a 
 .q "Retrieve into,"

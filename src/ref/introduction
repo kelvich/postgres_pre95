@@ -40,7 +40,7 @@ software.
 .uh "\*(PP DISTRIBUTION"
 .sp
 This reference describes Version \*(PV of \*(PP.  The \*(PP software is
-about 190,000 lines of C code, and is available for 
+about 200,000 lines of C code, and is available for 
 SUN 4 class machines, for DECstation 3100 and 5000 machines and for
 the SEQUENT Symmetry machine.
 Information on obtaining the source code for these computers is
@@ -50,7 +50,7 @@ Chandra Ghosh
 Computer Science Division
 521 Evans Hall
 University of Califiornia
-Berkeley, Ca. 94720
+Berkeley, CA 94720
 (510) 642-4662
 .)l
 .sp
@@ -73,30 +73,28 @@ the low-level call-oriented application program interface,
 LIBPQ.
 .lp
 The remainder of this reference is structured as follows.
-In Section 2,
+In Section 2 (UNIX),
 we discuss the \*(PP capabilities that are available directly
 from the operating system.
-Section 3 describes \*(PP internal data types, functions, and
+Section 3 (BUILT-INS) describes \*(PP internal data types, functions, and
 operators.
-Section 4 then describes \*(PQ,
+Section 4 (COMMANDS) then describes \*(PQ,
 the language by which a user interacts with a
 \*(PP database.
 Then,
-Section 5 describes
+Section 5 (LIBPQ) describes
 a library of low level routines through which a user can
 formulate \*(PQ queries from a
 C program and get appropriate
 return information back to his program.
 Next,
-Section 6 continues with a description of
+Section 6 (FAST PATH) continues with a description of
 a method by which applications may execute functions in \*(PP
 with very high performance.
-Section 7 describes the internal \*(PP interface for accessing
+Section 7 (LARGE OBJECTS) describes the internal \*(PP interface for accessing
 large objects. 
-The reference concludes with Section 8,
-a collection of
-file format descriptions
-for files used by \*(PP.
+The reference concludes with Section 8 (FILES), a collection of file format
+descriptions for files used by \*(PP.
 .lp
 .uh ACKNOWLEDGEMENTS
 .lp

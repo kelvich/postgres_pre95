@@ -7,9 +7,9 @@
 createdb \*- create a database
 .uh SYNOPSIS
 .lp
-.b createdb 
-[-p port][-h host]
-.b dbname
+.(l
+\fBcreatedb\fR [\fB-p\fR port] [\fB-h\fR host] username
+.)l
 .uh DESCRIPTION
 .lp
 .b Createdb

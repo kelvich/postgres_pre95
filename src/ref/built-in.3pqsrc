@@ -63,7 +63,9 @@ explained below.
 .lp
 Absolute time is specified using the following syntax:
 .(l
+.ft C
 Month  Day [ Hour : Minute : Second ]  Year [ Timezone ]
+.ft
 
 where	Month is Jan, Feb, ..., Dec
 	Day is 1, 2, ..., 31
@@ -74,40 +76,40 @@ where	Month is Jan, Feb, ..., Dec
 .)l
 .lp
 Valid dates are, therefore, Jan 1 00:00:00 1970 GMT to Jan 1 00:00:00 2038 GMT.
-As of version 3.0,
-times are no longer read and written using Greenwich mean time;
-the input and output routines default to the local time zone.
+As of Version 3.0, times are no longer read and written using Greenwich mean
+time; the input and output routines default to the local time zone.
 .lp
 The special absolute time
 .q now
 is provided as a convenience.
-The special absolute time ``epoch'' means
-Jan 1 00:00:00 1970 GMT.
+The special absolute time ``epoch'' means Jan 1 00:00:00 1970 GMT.
 .uh "RELATIVE TIME"
 .lp
 Relative time is specified with the following syntax:
 .(l
+.ft C
 @ Quantity Unit [Direction]
+.ft
 
 where 	Quantity is `1', `2', ...
-	Unit is `second', `minute', `hour', `day', `week',
-	`month' (30-days), or `year' (365-days),
+	Unit is ``second'', ``minute'', ``hour'', ``day'', ``week'',
+	``month'' (30-days), or ``year'' (365-days),
 	or PLURAL of these units.
-	Direction is `ago'
-
- 	(\fBNote\fR: Valid relative times are less than or equal to 68 years)
+	Direction is ``ago''
+(\fBNote\fR: Valid relative times are less than or equal to 68 years)
 .)l
 .sp
-In addition,
-the special relative time ``Undefined RelTime'' is provided.
+In addition, the special relative time ``Undefined RelTime'' is provided.
 .uh "TIME RANGES"
 .lp
 Time ranges are specified as:
 .(l
+.ft C
 [abstime, abstime]
 [ , abstime]
 [abstime, \*(lq\*(rq]
 [\*(lq\*(rq, \*(lq\*(rq]
+.ft
 .)l
 where \fIabstime\fR is a time in the absolute time format.
 .q ""
@@ -128,16 +130,20 @@ of the procedure that implements the operator.
 .lp
 Users may invoke operators using the operator name,
 as in
-.(b
+.(l
+.ft C
 retrieve (emp.all) where emp.salary < 40000
-.)b
+.ft
+.)l
 Alternatively,
 users may call the functions that implement the operators directly.
 In this case,
 the query above would be expressed as
-.(b
+.(l
+.ft C
 retrieve (emp.all) where int4lt(emp.salary, 40000)
-.)b
+.ft
+.)l
 .lp
 The rest of this section provides a list of the built-in operators
 and the functions that implement them.
@@ -153,26 +159,31 @@ Binary Operators
 This list was generated from the \*(PP system catalogs with the
 query
 .(b
-retrieve (argtype = t1.typname, o.oprname, t0.typname, p.proname,
-	  ltype=t1.typname, rtype=t2.typname)
-	from p in pg_proc, t0 in pg_type, t1 in pg_type,
-	     t2 in pg_type, o in pg_operator
-	where p.prorettype = t0.oid and RegprocToOid(o.oprcode) = p.oid
-	      and p.pronargs = 2
-	      and o.oprleft = t1.oid and o.oprright = t2.oid
+.ft C
+retrieve (argtype = t1.typname, o.oprname,
+	t0.typname, p.proname,
+	ltype=t1.typname, rtype=t2.typname)
+    from p in pg_proc, t0 in pg_type, t1 in pg_type,
+	t2 in pg_type, o in pg_operator
+    where p.prorettype = t0.oid
+	and RegprocToOid(o.oprcode) = p.oid
+	and p.pronargs = 2
+	and o.oprleft = t1.oid
+	and o.oprright = t2.oid
+.ft
 .)b
 The list is sorted by the built-in type name of the first operand.
 The
 .i "function prototype"
 column gives the return type, function name,
 and argument types for the procedure that implements the operator.
-(Note that these function prototypes are POSTGRES function prototypes and they
+(Note that these function prototypes are \*(PP function prototypes and they
 are \fBnot equivalent\fP to C function prototypes.)
 .TS
 center expand;
 l l c l
 c l l lw(2i).
-\fBType\fP	\fBOperator\fP	\fBPOSTGRES Function Prototype\fP	\fBOperation\fP
+\fBType\fP	\fBOperator\fP	\fB\*(PP Function Prototype\fP	\fBOperation\fP
 _
 abstime	!\(eq	bool abstimene(abstime, abstime)	inequality
 	+	abstime timepl(abstime, reltime)	addition
@@ -398,30 +409,32 @@ T}
 	\(eq	bool intervaleq(tinterval, tinterval)	equality
 .TE
 .sp
+.sp
 .XA 2 "Unary operators"
 .ft B
 .ce
 Unary Operators
 .ft
 .lp
-Due to a bug in the \*(PP release 3.0 parser,
-it is impossible to invoke unary operators by giving the operator
-name.
-Users must invoke them by function name.
-For example,
-to find the square root of 3.0,
-use
+Due to a bug in the \*(PP release \*(PV parser, it is impossible to invoke
+unary operators by giving the operator name.  Users must invoke them by
+function name.  For example, to find the square root of 8.0, use
 .(b
-retrieve (x = dsqrt("3.0"::float8))
+.ft C
+retrieve (x = dsqrt("8.0"::float8))
+.ft
 .)b
 rather than
 .(b
-retrieve (x = |/ "3.0"::float8)
+.ft C
+retrieve (x = |/ "8.0"::float8)
+.ft
 .)b
 .lp
 The tables below give right and left unary operators.
 Left unary operators have the operator precede the operand;
 right unary operators have the operator follow the operand.
+.sp
 .sp
 .ft B
 .ce
@@ -431,7 +444,7 @@ Right Unary Operators
 center expand;
 l l c l
 c l l lw(2i).
-\fBType\fP	\fBOperator\fP	\fBPOSTGRES Function Prototype\fP	\fBOperation\fP
+\fBType\fP	\fBOperator\fP	\fB\*(PP Function Prototype\fP	\fBOperation\fP
 _
 float8	%	float8 dround(float8)	round to nearest integer
 .TE
@@ -444,7 +457,7 @@ Left Unary Operators
 center expand;
 l l c l
 c l l lw(2i).
-\fBType\fP	\fBOperator\fP	\fBPOSTGRES Function Prototype\fP	\fBOperation\fP
+\fBType\fP	\fBOperator\fP	\fB\*(PP Function Prototype\fP	\fBOperation\fP
 _
 box	@@	point box_center(box)	center of box
 _
@@ -464,7 +477,6 @@ tinterval	|	abstime intervalstart(tinterval)	start of interval
 For examples on specifying literals of built-in types, see postquel(commands).
 .uh BUGS
 .lp
-The lists of types, functions, and operators are
-accurate only for Version 3.0.
-The lists will be incomplete and contain extraneous
+The lists of types, functions, and operators are accurate only for
+Version \*(PV.  The lists will be incomplete and contain extraneous
 entries in future versions of \*(PP.

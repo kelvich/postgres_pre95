@@ -7,7 +7,9 @@
 ipcclean \*- clean up shared memory and semaphores from aborted backends
 .uh SYNOPSIS
 .lp
-.b ipcclean
+.(l
+\fBipcclean\fR
+.)l
 .uh DESCRIPTION
 .lp
 Ipcclean cleans up shared memory and semaphore space from aborted backends.

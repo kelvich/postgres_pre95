@@ -73,5 +73,5 @@ close(commands),
 move(commands).
 .uh BUGS
 .lp
-Currently, the smallest transaction in POSTGRES is a single
-POSTQUEL command.  It should be possible for a single fetch to be a transaction.
+Currently, the smallest transaction in \*(PP is a single
+\*(PQ command.  It should be possible for a single fetch to be a transaction.

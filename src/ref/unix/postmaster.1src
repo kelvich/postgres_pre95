@@ -7,7 +7,9 @@
 postmaster \*- run the \*(PP postmaster
 .uh "SYNOPSIS"
 .lp
-postmaster [ -p port ] [ -b backend_pathname ] [ -d debug_level ] &
+.(l
+\fBpostmaster\fR [ -p port ] [ -b backend_pathname ] [ -d debug_level ] &
+.)l
 .uh "DESCRIPTION"
 .lp
 The postmaster manages the communication between frontends and backends,
@@ -34,7 +36,9 @@ a few terse debugging output messages to the tty on which it was started.
 .sp
 .uh "EXAMPLES"
 .lp
-\fBpostmaster &\fR
+.ft C
+postmaster &
+.ft
 .lp
 This command will start up a postmaster on the default port (4321) and 
 will expect to use the default path to the 
@@ -42,7 +46,9 @@ will expect to use the default path to the
 This is the simplest and most common way to start the postmaster.
 .sp
 .lp
-\fBpostmaster -p 1234 -b /a/postgres/bin/postgres &\fR
+.ft C
+postmaster -p 1234 -b /a/postgres/bin/postgres &
+.ft
 .lp
 This command will start up a postmaster communicating through the port
 1234, and will expect to use the backend located at

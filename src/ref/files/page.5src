@@ -8,9 +8,9 @@
 .uh DESCRIPTION
 .lp
 This section provides an overview of the page format used
-by POSTGRES classes.
-Diagram 1 shows how pages in both normal POSTGRES classes and
-POSTGRES index classes (eg., a B-tree index) are structured.
+by \*(PP classes.
+Diagram 1 shows how pages in both normal \*(PP classes and
+\*(PP index classes (eg., a B-tree index) are structured.
 User-defined access methods need not use this page format.
 .lp
 In the following explanation, a
@@ -20,7 +20,7 @@ to contain 8 bits.
 In addition, the term
 .q item
 refers
-to data which is stored in POSTGRES classes.
+to data which is stored in \*(PP classes.
 Diagram 1 shows a sample page layout.
 Running
 .q .../bin/dumpbpages
@@ -78,7 +78,7 @@ its index may be used to indicate the location of an item on a page.
 In fact, every pointer to an item
 .r ( \c
 .b ItemPointer)
-created by POSTGRES consists of a frame number
+created by \*(PP consists of a frame number
 and an index of an item identifier.
 An item identifier contains a byte-offset to the start of
 an item, its length in bytes, and a set of attribute bits

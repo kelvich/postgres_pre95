@@ -7,8 +7,9 @@
 initdb \*- initalize the database templates and primary directories
 .uh SYNOPSIS
 .lp
-.b initdb 
-[-v]
+.(l
+\fBinitdb\fP [-v]
+.)l
 .uh DESCRIPTION
 .lp
 .b initdb

@@ -7,12 +7,9 @@
 cluster \*- give storage clustering advice to \*(PP
 .uh SYNOPSIS
 .lp
-.b cluster
-classname
-.b on
-attname [
-.b using
-operator ]
+.(l
+\fBcluster\fR classname \fBon\fR attname [\fBusing\fR operator ]
+.)l
 .uh DESCRIPTION
 .lp
 This command instructs \*(PP to keep the class specified by
@@ -44,9 +41,11 @@ then this command will have no effect.
 .uh EXAMPLE
 .lp
 .nf
+.ft C
 /* cluster employees in salary order */
 .sp
    cluster emp on salary
+.ft
 .fi
 .uh BUGS
 .lp

@@ -41,27 +41,34 @@ the programmer:
 .lp
 .(1
 .nf
-char	*PQhost ;	/* the server on which \*(PP back-end
-			   is running. */
+.ft C
+char *PQhost;           /* the server on which \*(PP
+                           back-end is running. */
 
-char	*PQport = NULL ;	/* The communication port with the
-				   \*(PP back-end. */
+char *PQport = NULL;    /* The communication port with the
+                           \*(PP back-end. */
 
-char	*PQtty;		/* The tty on the PQhost back-end on which
-			   back-end messages are displayed. */
+char *PQtty;            /* The tty on the PQhost back-end on
+                           which back-end messages are
+                           displayed. */
 
-char	*PQoption ;	/* Optional arguements to the back-end */
+char *PQoption;         /* Optional arguements to the back-end */
 
-char	*PQdatabase ;	/* Back-end database to access */
+char *PQdatabase;       /* Back-end database to access */
 
-int	PQportset = 0;	/* 1 if communication with back-end is established */
+int  PQportset = 0;     /* 1 if communication with
+                           back-end is established */
 
-int	PQxactid = 0 ;	/* Transaction ID of the current transaction */
+int  PQxactid = 0;      /* Transaction ID of the current
+                           transaction */
 
-int	PQtracep = 0 ;	/* 1 to print out front-end debugging messages */
+int  PQtracep = 0;      /* 1 to print out front-end
+                           debugging messages */
 
-int     PQAsyncNotifyWaiting = 0; /* 1 if one or more asynchronous 
-				     notifications have been triggered */
+int  PQAsyncNotifyWaiting = 0; /* 1 if one or more asynchronous
+                                  notifications have been
+                                  triggered */
+.ft
 .)1
 .fi
 .uh "QUERY EXECUTION FUNCTIONS"
@@ -73,14 +80,18 @@ from a C program.
 PQsetdb \*- Make the specified database the current database, 
 
 .nf
+.ft C
 void PQsetdb ( dbname )
 	char	*dbname;
+.ft
 
 PQsetdb also resets communication via PQreset (see below).
 
 PQdb \*- Return the current database being accessed.
 
+.ft C
 char * PQdb ()
+.ft
 .)1
 .fi
 .lp
@@ -93,7 +104,9 @@ name is a string limited to 16 characters.
 .(1
 PQreset \*- Reset the communication port with the back-end in case of errors.
 
+.ft C
 void PQreset()
+.ft
 
 .fi
 This function will close the IPC socket connection to the backend thereby
@@ -104,7 +117,9 @@ postmaster is asked for the new connection it will start a new back-end.
 
 PQfinish \*- Close communication ports with the back-end.
 
+.ft C
 void PQfinish ()
+.ft
 .)1
 .fi
 .lp
@@ -115,13 +130,16 @@ by the libpq buffer.
 .(1
 PQfn \*- Send a function call to the \*(PP backend.
 
-char *PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
+.ft C
+char *PQfn(fnid, result_buf, result_len,
+           result_is_int, args, nargs)
 	int fnid;
-	int *result_buf;    /* can't use void, the compiler complains */
-	int result_len;
+	int *result_buf;    /* can't use void, the */
+	int result_len;     /* compiler complains  */
 	int result_is_int;
 	PQArgBlock *args;
 	int nargs;
+.ft
 
 .fi
 PQfn provides access to the \*(PP fastpath facility, a trapdoor into
@@ -131,8 +149,10 @@ the system internals.  See \fBFASTPATH\fR.
 .(1
 PQexec \*- Submit a query to \*(PP.  
 
+.ft C
 char *	PQexec (query)
 	char	* query;
+.ft
 .)1
 .fi
 .lp
@@ -155,15 +175,21 @@ Each portal has a string name (currently limited to 16 bytes).
 A portal is initialized by submitting a retrieve statement
 using the PQexec function, for example:
 .(l
-\fBretrieve portal\fR foo ( EMP.all )
+.ft C
+retrieve portal foo ( EMP.all )
+.ft
 .)l
 .lp
 The programmer can then move data from the portal into LIBPQ
 by executing a \fIfetch\fR statement, e.g:
 .(l
-\fBfetch 10 in \fIfoo\fR
+.ft C
+fetch 10 in \fIfoo\fR
+.ft
 
-\fBfetch all in \fIfoo\fR
+.ft C
+fetch all in \fIfoo\fR
+.ft
 .)l
 .lp
 If no portal name is specified in a query, the default
@@ -199,123 +225,162 @@ manipulate data in the portal.
 .(l
 PQnportals \*- Return the number of open portals.
 
+.ft C
 int PQnportals ( rule_p )
 	int	rule_p ;
+.ft
 
 If rule_p is not 0, then only return the number of asynchronous portals.
 
 PQpnames \*- Return all portal names.
 
+.ft C
 void PQpnames  ( pnames, rule_p)
 	char	*pnames [MAXPORTALS];
 	int	rule_p ;
+.ft
 
 If rule_p is not 0, then only return the names of asynchronous
 portals.
 
 PQparray \*- Return the portal buffer given a portal name.
 
+.ft C
 PortalBuffer * PQparray ( pname )
 	char	*pname;
+.ft
 
 PQclear \*- free storage claimed by named portal.
 
+.ft C
 void PQclear ( pname )
 	char	*pname;
+.ft
 
 PQntuples \*- Return the number of instances in a portal buffer.
 
+.ft C
 int PQntuples (portal)
 	PortalBuffer	*portal;
+.ft
 
 PQngroups \*- Return the number of instance groups in a portal buffer.
 
+.ft C
 int PQngroups (portal)
 	PortalBuffer *portal
+.ft
 
 PQntuplesGroup \*- Return the number of instances in an instance group.
 
+.ft C
 int PQntuplesGroup (portal, group_index)
 	PortalBuffer	*portal;
 	int	group_index;
+.ft
 
 PQnfieldsGroup \*- Return the number of fields in an instance group.
 
+.ft C
 int PQnfieldsGroup ( portal, group_index)
 	PortalBuffer	*portal;
 	int	group_index;
+.ft
 
 PQfnameGroup \*- Return the field name given the group and field index.
 
+.ft C
 char * PQfnameGroup (portal, group_index, field_number )
 	PortalBuffer	*portal;
 	int	group_index;
 	int	field_number;
+.ft
 
 PQfnumberGroup \*- Return the field number (index) given the group index and field name.
 
+.ft C
 int PQfnumberGroup (portal, group_index, field_name)
 	PortalBuffer	*portal;
 	int	group_index;
 	char	*field_name;
+.ft
 
 PQgetgroup \*- Returns the index of the group that a particular instance is in.
 
+.ft C
 int PQgetgroup ( portal, tuple_index )
 	PortalBuffer	*portal;
 	int	tuple_index;
+.ft
 
 PQnfields \*- Return the number of fields in an instance.
 
+.ft C
 int PQnfields (portal, tuple_index )
 	PortalBuffer	*portal;
 	int	tuple_index;
+.ft
 
 PQfnumber \*- Return the field index of a given field name within an instance.
 
+.ft C
 int PQfnumber ( portal, tuple_index, field_name)
 	PortalBuffer	*portal;
 	int	tuple_index;
 	char	*field_name;
+.ft
 
 PQfname \*- Return the name of a field.
 
+.ft C
 char * PQfname ( portal, tuple_index, field_number )
 	PortalBuffer	*portal;
 	int	tuple_index;
 	int	field_number;
+.ft
 
 PQftype \*- Return the type of a field.  
 
+.ft C
 int PQftype ( portal, tuple_index, field_number )
 	PortalBuffer	*portal;
 	int	tuple_index;
 	int	field_number;
+.ft
 
 The type returned is an internal coding of a type.
 
 PQsametype \*- Return 1 if two instances have the same attributes.
 
+.ft C
 int PQsametype ( portal, tuple_index1, tuple_index2 )
 	PortalBuffer	*portal;
 	int	tuple_index1, tuple_index2;
+.ft
 
 PQgetvalue \*- Return an attribute (field) value.  
+
+.ft C
 char * PQgetvalue ( portal, tuple_index, field_number )
 	PortalBuffer	*portal;
 	int	tuple_index;
 	int	field_number;
+.ft
 
 PQNotifies \*- Return the list of relations on which notification has occurred.
 
+.ft C
 PQNotifyList *PQNotifies()
+.ft
 
 PQRemoveNotify \*- Remove the notification from the list of unhandled 
 		   notifications.
 
+.ft C
 PQNotifyList *PQRemoveNotify(pqNotify)
 	PQNotifyList *pqNotify;
-.)1
+.ft
+.)l
 .lp
 If the portal is blank, or specified with the
 .b portal 
@@ -331,7 +396,8 @@ function specified through the
 command.  Again, it is the programmer's responsibility to convert the
 data to the correct type.
 
-.uh "ASYNCHRONOUS PORTALS/NOTIFICATION" 
+.uh "ASYNCHRONOUS PORTALS/NOTIFICATION"
+.lp
 Asynchronous portals, query results of rules, are implemented using
 two mechanisms: relations and notification.  The query result is
 transferred through a relation.  The notification is done with special
@@ -358,21 +424,34 @@ of this capability.
 .lp
 For more information about the 
 .i copy
-command, see copy(postquel).
+command, see copy(commands).
 .lp
 
 .(1
-PQgetline(string, length) \*- Reads a null-terminated line into string.
+.ft C
+PQgetline(string, length)
+.ft
+\*- Reads a null-terminated line into string.
 
+.ft C
 char *string;
 int length
+.ft
 
-PQputline(string) \*- Sends a null-terminated string.
+.ft C
+PQputline(string)
+.ft
+\*- Sends a null-terminated string.
 
+.ft C
 char *string;
+.ft
 
+.ft C
 int
-PQendcopy() \*- Syncs with the back-end.
+PQendcopy()
+.ft
+\*- Syncs with the back-end.
 
 This function waits until the backend has finished processing the copy.
 It should either be issued when the last string has been sent to the
@@ -386,6 +465,7 @@ The return value is 0 on successful completion, nonzero otherwise.
 \fBFor Example:\fR
 
 .nf
+.ft C
 PQexec("create foo (a=int4, b=char16, d=float8)");
 PQexec("copy foo from stdin");
 PQputline("3<TAB>hello world<TAB>4.5\n");
@@ -393,6 +473,7 @@ PQputline("4<TAB>goodbye world<TAB>7.11");
 ...
 PQputline(".\en");
 PQendcopy();
+.ft
 .fi
 .)1
 
@@ -401,7 +482,9 @@ PQendcopy();
 .(1
 PQtrace \*- Enable tracing.
 
+.ft C
 void PQtrace ()
+.ft
 
 The routine sets the PQtracep variable to 1 which causes debug messages to
 be printed.  You should note that the
@@ -410,7 +493,9 @@ behavior you must set the variable FILE *debug_port to the appropriate stream.
 
 PQuntrace \*- Disable tracing.
 
+.ft C
 void PQuntrace ()
+.ft
 .)1
 .uh BUGS
 .lp
@@ -421,6 +506,7 @@ length will be silently truncated.
 .lp
 .(1
 .nf
+.ft C
 /*
  * testlibpq.c \*-
  * 	Test the C version of Libpq, the \*(PP frontend library.
@@ -462,7 +548,7 @@ main ()
 	/* Print out the instances. */
 	for (i = 0; i < n; i++) {
 	    for (j = 0; j < m; j++)
-		printf ("%-15s", PQgetvalue (p, t+i, j));
+		printf("%-15s", PQgetvalue(p, t+i, j));
 	    printf ("\en");
 	}
 	t += n;
@@ -477,9 +563,11 @@ main ()
     /* Try out some other functions. */
     
     /* Print out the number of portals. */
-    printf ("\enNumber of portals open: %d.\en", PQnportals ());
+    printf ("\enNumber of portals open: %d.\en",
+            PQnportals ());
 
-    /* If any tuples are returned by rules, print out the portal name. */
+    /* If any tuples are returned by rules, print out
+     * the portal name. */
     if (PQnportals (1)) {
 	printf ("Tuples are returned by rules. \en");
 	PQpnames (pnames, 1);
@@ -491,12 +579,14 @@ main ()
     /* finish execution. */
     PQfinish ();
 }
+.ft
 .)1
 
 .uh "SAMPLE PROGRAM 2"
 .lp
 .(1
 .nf
+.ft C
 /*
  * Testing of asynchronous portal interface.
  * 
@@ -539,7 +629,8 @@ void main()
             PQexec(" ");
             l = PQnotifies();
             if (l != NULL) {
-                printf("notification on relation %s\n",l->relname);
+                printf("notification on relation %s\n",
+		       l->relname);
                 res = PQexec("retrieve (test1a.i)");
                 if (*res == 'E') {
                     fprintf(stderr,"%s\nfailed",++res);
@@ -552,13 +643,17 @@ void main()
                 portalbuf = PQparray(++res);
                 ngroups = PQngroups(portalbuf);
                 for (grpno = 0; grpno < ngroups; grpno++) {
-                    ntups = PQntuplesGroup(portalbuf, grpno);
-                    if ((nflds = PQnfieldsGroup(portalbuf, grpno)) != 1) {
-                        fprintf(stderr, "expected 1 attributes, got %d\n", nflds);
+                    ntups = PQntuplesGroup(portalbuf,grpno);
+		    nflds = PQnfieldsGroup(portalbuf,grpno);
+                    if (nflds != 1) {
+                        fprintf(stderr,
+			  "expected 1 attributes, got %d\n",
+			  nflds);
                         goto exit_error;
                     }
                     for (tupno = 0; tupno < ntups; tupno++) {
-                        printf ("got i=%s\n",PQgetvalue(portalbuf,tupno,0));
+                        printf("got i=%s\n",
+			  PQgetvalue(portalbuf,tupno,0));
                     }
                 }
                 break;
@@ -573,12 +668,14 @@ void main()
     exit(1);
 
 }
+.ft
 .)1
 
 .uh "SAMPLE PROGRAM 3"
 .lp
 .(1
 .nf
+.ft C
 /*
  * Testing of binary portal interface.
  * 
@@ -605,7 +702,8 @@ void main()
     PQsetdb(getenv("USER"));
 
     PQexec("begin");
-    res = (char *)PQexec("retrieve iportal junk (test1.all)");
+    res = (char *)
+	  PQexec("retrieve iportal junk (test1.all)");
     if (*res == 'E') {
         fprintf(stderr,"%s\nfailed",++res);
         goto exit_error;
@@ -620,8 +718,11 @@ void main()
     ngroups = PQngroups(portalbuf);
     for (grpno = 0; grpno < ngroups; grpno++) {
         ntups = PQntuplesGroup(portalbuf, grpno);
-        if ((nflds = PQnfieldsGroup(portalbuf, grpno)) != 2) {
-            fprintf(stderr, "expected 2 attributes, got %d\n", nflds);
+	nflds = PQnfieldsGroup(portalbuf, grpno);
+        if (nflds != 2) {
+            fprintf(stderr,
+		"expected 2 attributes, got %d\n",
+		nflds);
             goto exit_error;
         }
         for (tupno = 0; tupno < ntups; tupno++) {
@@ -630,8 +731,10 @@ void main()
             bla1 = (int *)PQgetvalue(portalbuf,tupno,0);
             bla2 = PQgetvalue(portalbuf,tupno,1);
 
-            printf ("got i=%d, d=(%f)|%x|%x|%x|%x\n", *bla1,*((float *)bla2),
-                    *bla2,*(bla2+1),*(bla2+2),*(bla2+3));
+            printf ("got i=%d, d=(%f)|%x|%x|%x|%x\n",
+		    *bla1,*((float *)bla2),
+                    *bla2,*(bla2+1),*(bla2+2),
+		    *(bla2+3));
         }
     }
 
@@ -644,5 +747,5 @@ void main()
     exit(1);
 
 }
-
+.ft
 .)1

@@ -7,22 +7,11 @@
 define index \*- construct a secondary index
 .uh SYNOPSIS
 .lp
-.b define
-[
-.b archive
-]
-.b index
-index-name
-.b on
-classname
-.b using
-am-name
-.b (
-attname\-1
-type_class\-1
-{ , attname\-i
-type_class\-i }
-.b )
+.(l
+\fBdefine\fR [\fBarchive\fR] \fBindex\fR index-name
+	\fBon\fR classname \fBusing\fR am-name
+	\fB(\fR attname\-1 type_class\-1 { , attname\-i type_class\-i } \fB)\fR
+.)l
 .uh DESCRIPTION
 .lp
 This command constructs an index
@@ -57,16 +46,18 @@ class;
 this operator class includes comparison functions for
 four-byte integers.
 .lp
-\*(PP release 3.0 provides btree and rtree access methods
+\*(PP Version \*(PV provides btree and rtree access methods
 for secondary indices.
 The operator classes defined on btrees are
 .(l
+.ft C
 int2_ops	char_ops
 int4_ops	char16_ops
 int24_ops	oid_ops
 int42_ops	text_ops
 floag4_ops	abstime_ops
 float8_ops
+.ft
 .)l
 The
 .i int24_ops
@@ -81,13 +72,17 @@ The \*(PP query optimizer will consider using b-tree indices
 in a scan whenever an indexed attribute is involved in a comparison
 using one of
 .(b
+.ft C
 <    <=    =    >=    >
+.ft
 .)b
 .lp
 The operator classes defined on rtrees are
 .(l
+.ft C
 box_ops	poly_ops
 bigbox_ops
+.ft
 .)l
 Both of these support indices on the
 .q box
@@ -113,23 +108,33 @@ The \*(PP query optimizer will consider using an r-tree index
 whenever an indexed attribute is involved in a comparison using
 one of
 .(b
+.ft C
 <<    &<    &>    >>    @    ~=    &&
+.ft
 .)b
 .uh EXAMPLES
 .lp
 Create a btree index on the emp class using the age attribute.
 .(b
+.ft C
 define index empindex on emp using btree (age int4_ops)
+.ft
 .)b
 .lp
 Create a btree index on employee name.
 .(b
-define index empname on emp using btree (name char16_ops)
+.ft C
+define index empname
+	on emp using btree (name char16_ops)
+.ft
 .)b
 .lp
 Create an rtree index on the bounding rectangle of cities.
 .(b
-define index cityrect on city using rtree (boundbox box_ops)
+.ft C
+define index cityrect
+	on city using rtree (boundbox box_ops)
+.ft
 .)b
 .uh BUGS
 .lp

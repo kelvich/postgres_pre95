@@ -63,33 +63,22 @@ from
 .b untrusted
 to
 .b trusted
-as explained in
-.b "define function <C>"
-(commands),
-and
-maintain a set of template databases
-for use by
-.b createdb
-(unix).
+as explained in \fBdefine function\fR(commands), and maintain a set of
+template databases for use by \fBcreatedb\fR(unix).
 .lp
 The
 .ul
-postmaster
-is a process which acts as a clearing house
-for requests to the POSTGRES system.
-Basically,
-frontend applications connect
-with the postmaster
-which keeps tracks of any system
-errors and communication between the backend processes.
-The postmaster (POSTMASTER (UNIX)) takes from zero to seven arguments
-to tune its behavior.
+postmaster is a process which acts as a clearing house for requests to
+the \*(PP system.  Basically, frontend applications connect with the postmaster
+which keeps tracks of any system errors and communication between the backend
+processes.  The postmaster (POSTMASTER (UNIX)) takes from zero to seven
+arguments to tune its behavior.
 Supplying arguments is necessary only if you intend to run multiple sites
 or a non-default site.
 .lp
 The
 .ul
-POSTGRES backend
+\*(PP backend
 (.../bin/postgres) may
 be executed directly from the shell by
 the postgres super user (with the database name as an argument).
@@ -102,12 +91,12 @@ so this is not recommended in a multiuser site.
 .q .../
 at the front of file names is used to represent the path
 to the postgres user's home directory.
-Anything in brackets ([ and ]) is optional.
-Anything in braces ({ and }) can be repeated 0 or more times.
-Parentheses are used to group boolean expressions.
-| is the boolean operator
+Anything in brackets (\*(lq[\*(rq and \*(lq]\*(rq) is optional.
+Anything in braces (\*(lq{\*(rq and \*(lq}\*(rq) can be repeated 0 or more
+times.  Parentheses ( \*(lq(\*(rq and \*(lq)\*(rq ) are used to group boolean
+expressions.  \*(lq|\*(rq is the boolean operator
 .A OR .
-.uh "USING POSTGRES FROM UNIX"
+.uh "USING \*(PP FROM UNIX"
 .lp
 All \*(PP commands which are executed directly from a UNIX shell
 are found in the directory

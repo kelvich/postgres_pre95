@@ -57,8 +57,7 @@ The .bki files are generated from C source code by an inscrutable
 set of C preprocessor macros.
 .uh BUGS
 .lp
-Release 3.0 does not permit users to have separate template
-databases.
+\*(PP Version \*(PV does not permit users to have separate template databases.
 .uh "SEE ALSO"
 .lp
 bki(files),

@@ -7,47 +7,26 @@
 define operator \*- define a new user operator
 .uh SYNOPSIS
 .lp
-.b "define operator"
-operator_name
-.b "( arg1 ="
-type-1
-.b "[, arg2 ="
-type-2 ]
-.b " procedure ="
-func_name
-[
-.b ", precedence ="
-number ] [
-.b ", associativity ="
-(
-.b left
-|
-.b right
-|
-.b none
-|
-.b any
-) ] [
-.b ", commutator ="
-com_op ] [
-.b ", negator ="
-neg_op ] [
-.b ", restrict ="
-res_proc ] [
-.b ", hashes"
-] [
-.b ", join ="
-join_proc ] [
-.b ", sort ="
-sor_op1 {
-.b ,
-sor_op2 } ]
-.b )
-.\" .b "arg is ("
+.(l
+\fBdefine operator\fR operator_name
+	\fB(\fR \fBarg1\fR \fB=\fR type-1
+	 [ \fB,\fR \fBarg2\fR \fB=\fR type-2 ]
+	 , \fBprocedure =\fR func_name
+	 [\fB, precedence =\fR number ]
+	 [\fB, associativity =\fR \fB(left | right | none | any)\fR ]
+	 [\fB, commutator =\fR com_op ]
+	 [\fB, negator =\fR neg_op ]
+	 [\fB, restrict =\fR res_proc ]
+	 [\fB, hashes\fR]
+	 [\fB, join =\fR join_proc ]
+	 [\fB, sort =\fR sor_op1 {\fB,\fR sor_op2 } ]
+	\fB)\fR
+.\" \fB"arg is ("
 .\" type [
-.\" .b ,
+.\" \fB,
 .\" type ]
-.\" .b )
+.\" \fB)
+.)l
 .uh DESCRIPTION
 .lp
 This command defines a new user operator,
@@ -120,12 +99,16 @@ would have a commutator operator, area-greater-than, <<<.
 Suppose that an operator, area-equal, ===, exists, as well as an area
 not equal, !==.  Hence, the query optimizer could freely convert:
 .(l
-\*(lq0,0,1,1\*(rq::box >>> MYBOXES.description
+.ft C
+"0,0,1,1"::box >>> MYBOXES.description
+.ft
 .)l
 .in .5i
 to
 .(l
-MYBOXES.description <<< \*(lq0,0,1,1\*(rq::box
+.ft C
+MYBOXES.description <<< "0,0,1,1"::box
+.ft
 .)l
 .in .5i
 This allows the execution code to always use the latter representation
@@ -133,17 +116,21 @@ and simplifies the query optimizer somewhat.
 .sp
 The negator operator allows the query optimizer to convert
 .(l
-not MYBOXES.description === \*(lq0,0,1,1\*(rq::box
+.ft C
+not MYBOXES.description === "0,0,1,1"::box
+.ft
 .)l
 .in .5i
 to
 .(l
-MYBOXES.description !== \*(lq0,0,1,1\*(rq::box
+.ft C
+MYBOXES.description !== "0,0,1,1"::box
+.ft
 .)l
 .in .5i
 .sp
 If a commutator operator name is supplied,
-POSTGRES searches for it in the catalog.
+\*(PP searches for it in the catalog.
 If it is found and it does not yet have a commutator itself,
 then the commutator's entry is updated to have the
 current (new) operator as its commutator.
@@ -169,12 +156,16 @@ algorithm along the lines of [SHAP86]; however, it must know whether this
 strategy is applicable.  For example, a hash-join algorithm is usable for
 a clause of the form:
 .(l
+.ft C
 MYBOXES.description === MYBOXES2.description
+.ft
 .)l
 .in .5i
 but not for a clause of the form:
 .(l
+.ft C
 MYBOXES.description <<< MYBOXES2.description.
+.ft
 .)l
 .in .5i
 The
@@ -192,7 +183,9 @@ For the === clause above, the optimizer must
 sort both relations using the operator, <<<.
 On the other hand, merge-sort is not usable with the clause: 
 .(l
+.ft C
 MYBOXES.description <<< MYBOXES2.description
+.ft
 .)l
 If other join strategies are found to be practical,
 \*(PP will change
@@ -206,7 +199,9 @@ be worth the complexity involved.
 The last two pieces of the specification are present so the query 
 optimizer can estimate result sizes.  If a clause of the form:
 .(l
-MYBOXES.description <<< \*(lq0,0,1,1\*(rq::box
+.ft C
+MYBOXES.description <<< "0,0,1,1"::box
+.ft
 .)l
 .in .5i
 is present in the qualification, 
@@ -218,9 +213,12 @@ be a registered function (meaning it is already defined using
 )
 which accepts one argument of the correct
 data type and returns a floating point number.  The query optimizer
-simply calls this function, passing the parameter \*(lq0,0,1,1\*(rq and
-multiplies the result by the relation size to get the desired expected number
-of instances.
+simply calls this function, passing the parameter
+.ft C
+"0,0,1,1"
+.ft
+and multiplies the result by the relation size to get the desired expected
+number of instances.
 .sp
 Similarly, when the operands of the operator both contain instance variables,
 the query optimizer must estimate the size of the resulting join.
@@ -230,12 +228,16 @@ classes involved to compute the desired expected result size.
 .sp
 The difference between the function
 .(l
-my_procedure_1 (MYBOXES.description, \*(lq0,0,1,1\*(rq::box)
+.ft C
+my_procedure_1 (MYBOXES.description, "0,0,1,1"::box)
+.ft
 .)l
 .in .5i
 and the operator
 .(l
-MYBOXES.description === \*(lq0,0,1,1\*(rq::box
+.ft C
+MYBOXES.description === "0,0,1,1"::box
+.ft
 .)l
 .in .5i
 is that \*(PP attempts to optimize operators and can decide to 
@@ -248,6 +250,7 @@ while operators are restricted to one or two.
 .uh EXAMPLE
 .lp
 .nf
+.ft C
 /* The following command defines a new operator, area-equality,
    for the BOX data type. */
 
@@ -264,13 +267,14 @@ define operator === (
 	join = area-join-procedure,
 	sort = <<<, <<<)
 .\"	arg is (box, box)
+.ft
 .)b
 .uh "SEE ALSO"
 .lp
-remove operator(commands)
-define function(commands)
+remove operator(commands),
+define function(commands).
 .uh BUGS
 .lp
-Operator names cannot be composed of alphabetic
-characters in Version 3.0.
-Operator precedence and associativity are not implemented in Version 3.0.
+Operator names cannot be composed of alphabetic characters in Version \*(PV.
+.lp
+Operator precedence and associativity are not implemented in Version \*(PV.

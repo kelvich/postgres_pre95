@@ -7,12 +7,9 @@
 delete \*- delete instances from a class
 .uh SYNOPSIS
 .lp
-.b delete 
-instance_variable [ 
-.b from
-from_list ] [
-.b where
-qual ]
+.(l
+\fBdelete\fR instance_variable [ \fBfrom\fR from_list ] [ \fBwhere\fR qual ]
+.)l
 .uh DESCRIPTION
 .lp
 .b Delete

@@ -7,9 +7,9 @@
 destroyuser \*- destroy a \*(PP user
 .uh SYNOPSIS
 .lp
-.b destroyuser 
-[-p port] [-h host]
-.b username
+.(l
+\fBdestroyuser\fR [\fB-p\fR port] [\fB-h\fR host] username
+.)l
 .uh DESCRIPTION
 .lp
 .b Destroyuser
@@ -18,7 +18,7 @@ Only users with ``usesuper'' set in the pg_user class can destroy
 \*(PP users.  As shipped, the user ``postgres'' can destroy users.
 .sp
 .i Username
-is the name of the POSTGRES user
+is the name of the \*(PP user
 to be destroyed.
 .sp
 The argument 
