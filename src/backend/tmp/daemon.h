@@ -28,19 +28,19 @@
 extern
 void
 DBNameStartVacuumDaemon ARGS((
-	char	*dbname;
+	char	*dbname
 ));
 
 extern
 void
 DBNameStopVacuumDaemon ARGS((
-	char	*dbname;
+	char	*dbname
 ));
 
 extern
 void
 DBNameCleanupVacuumDaemon ARGS((
-	char	*dbname;
+	char	*dbname
 ));
 
 extern

@@ -73,11 +73,8 @@ RegisterSharedInvalid ARGS((
 extern
 void
 InvalidateSharedInvalid ARGS((
-    void    (*function)(
-    	int 	cacheId,
-    	Index	    hashIndex,
-    	ItemPointer pointer
-    )
+    void    (*invalFunction)(),
+    void    (*resetFunction)()
 ));
 
 #endif	/* !defined(SInvalIncluded) */
