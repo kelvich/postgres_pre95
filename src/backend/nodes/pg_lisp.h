@@ -318,11 +318,6 @@ extern int CAtom ARGS((LispValue lv ));
 extern double CDouble ARGS((LispValue lval ));
 extern long CInteger ARGS((LispValue lval ));
 
-extern LispValue ppreserve ARGS((char *pallocObject ));
-extern LispValue lppreserve ARGS((LispValue pallocObject ));
-extern char *prestore ARGS((char *ppreservedObject ));
-extern LispValue lprestore ARGS((LispValue ppreservedObject ));
-
 /*===============================
  * in/out print/read functions...
  *===============================
