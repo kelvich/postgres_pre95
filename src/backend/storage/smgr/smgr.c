@@ -86,20 +86,17 @@ static int NSmgr = lengthof(smgrsw);
  *  smgrinit(), smgrshutdown() -- Initialize or shut down all storage
  *				  managers.
  *
- *	The init routine takes a key suitable for initializing shared
- *	memory and semaphores.
  */
 
 int
-smgrinit(key)
-    IPCKey key;
+smgrinit()
 {
     int i;
     extern char *smgrout();
 
     for (i = 0; i < NSmgr; i++) {
 	if (smgrsw[i].smgr_init) {
-	    if ((*(smgrsw[i].smgr_init))(key) == SM_FAIL)
+	    if ((*(smgrsw[i].smgr_init))() == SM_FAIL)
 		elog(FATAL, "initialization failed on %s", smgrout(i));
 	}
     }

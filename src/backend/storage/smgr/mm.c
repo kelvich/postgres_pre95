@@ -82,8 +82,7 @@ static HTAB		*MMRelCacheHT;
 extern int	tag_hash();
 
 int
-mminit(key)
-    IPCKey key;
+mminit()
 {
     char *mmcacheblk;
     int mmsize;
