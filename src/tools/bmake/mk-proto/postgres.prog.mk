@@ -225,9 +225,19 @@ _maketags: ${HEADERS} ${SRCS} _PROGSUBDIR
 # tags file from any source subdirectory below.  Wheww...  There
 # must be a better way...
 #
+# If we are using local obj dirs (${.CURDIR} == "..") it becomes
+# marginally easier.
+#
+.if ${.CURDIR} == ".."
+        -rm -f tags; \
+        ctags -t ${.ALLSRC}; \
+        HERE=`pwd`/; \
+        sed "s, ,       $$HERE," < tags > ../tags; \
+        rm -f tags;
+.else
 	-cd ${.CURDIR}; \
 	    rm -f tags; \
-	    ctags `echo  ${.ALLSRC:S,${.CURDIR}/,,g} | \
+	    ctags -t `echo  ${.ALLSRC:S,${.CURDIR}/,,g} | \
 		tr ' ' '\012' | awk '! /\// {print "obj/"$$1; } {print}'` 2> /dev/null ; \
 	    mv tags tags.tmp; \
 	    TOPDIR=`pwd`/; \
