@@ -139,14 +139,25 @@ clause_relids_vars (clause)
  *    	Returns the number of different relations referenced in 'clause'.
  */
 
-/*  .. compute_selec
- */
+/*  .. compute_selec   */
+
 int
 NumRelids (clause)
-     LispValue clause ;
+     Expr clause ;
 {
-	return(length (remove_duplicates (mapcar (get_varno,
-					   pull_var_clause (clause)))));
+    LispValue t_list = LispNil;
+    LispValue temp = LispNil;
+    Var var = (Var)NULL;
+    LispValue i = LispNil;
+
+    foreach (i,pull_var_clause(clause)) {
+	var = (Var)CAR(i);
+	t_list = nappend1(t_list,get_varno(var));
+    }
+    t_list = remove_duplicates(t_list,equal);
+
+    return(length(t_list));
+
 }
 
 /*    
@@ -548,18 +559,10 @@ is_clause(clause)
     if (consp (clause)) {
 	LispValue oper = clause_head(clause);
 
-	if (IsA(oper,LispInt)) 
-	  if (CInteger(oper) == AND ||
-	      CInteger(oper) == OR ||
-	      CInteger(oper) == NOT )
-	    return(true);
-
-	if (IsA(oper,Oper) || 
-	    IsA(oper,Func) )
+	if (IsA(oper,Oper))
 	  return(true);
-	
     }
     
     return(false);
-
+    
 }
