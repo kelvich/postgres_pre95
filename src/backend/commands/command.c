@@ -393,7 +393,7 @@ PerformAddAttribute(relationName, userName, schema)
 	elog(WARN, "PerformAddAttribute: class \"%-.*s\" is a system catalog",
 	     NAMEDATALEN, relationName);
 #ifndef NO_SECURITY
-    if (!pg_ownercheck(userName->data, relationName, RELNAME))
+    if (!pg_ownercheck(userName->data, relationName->data, RELNAME))
 	elog(WARN, "PerformAddAttribute: you do not own class \"%-.*s\"",
 	     NAMEDATALEN, relationName);
 #endif
@@ -468,7 +468,7 @@ PerformAddAttribute(relationName, userName, schema)
     newAttributes = length(schema);
     
     relrdesc = heap_openr(RelationRelationName);
-    reltup = ClassNameIndexScan(relrdesc, relationName);
+    reltup = ClassNameIndexScan(relrdesc, (char *) relationName);
 
     if (!PointerIsValid(reltup)) {
 	heap_close(relrdesc);
@@ -579,7 +579,8 @@ PerformAddAttribute(relationName, userName, schema)
 	else
 		attnelems = 0;
 
-	typeTuple = SearchSysCacheTuple(TYPNAME,p);
+	typeTuple = SearchSysCacheTuple(TYPNAME, (char *) p, (char *) NULL,
+					(char *) NULL, (char *) NULL);
 	form = (TypeTupleForm)GETSTRUCT(typeTuple);
 	
 	if (!HeapTupleIsValid(typeTuple)) {

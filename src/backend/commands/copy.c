@@ -16,6 +16,7 @@
 #include "access/relscan.h"
 #include "access/funcindex.h"
 #include "nodes/execnodes.h"
+#include "nodes/plannodes.h"
 #include "nodes/pg_lisp.h"
 #include "executor/tuptable.h"
 #include "executor/x_qual.h"
@@ -23,6 +24,7 @@
 #include "utils/rel.h"
 #include "utils/log.h"
 #include "utils/memutils.h"
+#include "utils/palloc.h"
 #include "tmp/daemon.h"
 #include "fmgr.h"
 #include "machine.h"
@@ -297,9 +299,13 @@ FILE *fp;
 	    econtext = NULL;
 	    for (i = 0; i < n_indices; i++) {
 		itupdesc[i] = RelationGetTupleDescriptor(index_rels[i]);
-		pgIndexTup = (HeapTuple)SearchSysCacheTuple(INDEXRELID,
-							index_rels[i]->rd_id,
-							NULL, NULL, NULL);
+		pgIndexTup =
+		    SearchSysCacheTuple(INDEXRELID,
+					(char *)
+					ObjectIdGetDatum(index_rels[i]->rd_id),
+					(char *) NULL,
+					(char *) NULL,
+					(char *) NULL);
 		Assert(pgIndexTup);
 		pgIndexP[i] = (Form_pg_index)GETSTRUCT(pgIndexTup);
 		for (attnumP = &(pgIndexP[i]->indkey.data[0]), natts = 0;
@@ -342,7 +348,7 @@ FILE *fp;
 			 * partial indexes on "lock", which wouldn't be useful
 			 * anyway. --Nels, Nov '92
 			 */
-			SetSlotBuffer(slot, NULL);
+			SetSlotBuffer(slot, (Buffer) NULL);
 			SetSlotShouldFree(slot, false);
 		    }
 		} else {
@@ -391,7 +397,7 @@ FILE *fp;
                 string = CopyReadAttribute(i, fp, &isnull);
                 if (isnull)
                 {
-                    values[i] = NULL;
+                    values[i] = PointerGetDatum(NULL);
                     nulls[i] = 'n';
                 }
                 else if (string == NULL)
@@ -515,7 +521,7 @@ FILE *fp;
         {
             if (!byval[i] && nulls[i] != 'n')
             {
-                if (!binary) pfree(values[i]);
+                if (!binary) pfree((Pointer) values[i]);
             }
             else if (nulls[i] == 'n')
             {
@@ -544,7 +550,7 @@ GetOutputFunction(type)
     HeapTuple    typeTuple;
 
     typeTuple = SearchSysCacheTuple(TYPOID,
-                    (char *) type,
+                    (char *) ObjectIdGetDatum(type),
                     (char *) NULL,
                     (char *) NULL,
                     (char *) NULL);
@@ -562,7 +568,7 @@ GetTypeElement(type)
     HeapTuple    typeTuple;
 
     typeTuple = SearchSysCacheTuple(TYPOID,
-                    (char *) type,
+                    (char *) ObjectIdGetDatum(type),
                     (char *) NULL,
                     (char *) NULL,
                     (char *) NULL);
@@ -580,7 +586,7 @@ GetInputFunction(type)
     HeapTuple    typeTuple;
 
     typeTuple = SearchSysCacheTuple(TYPOID,
-                    (char *) type,
+                    (char *) ObjectIdGetDatum(type),
                     (char *) NULL,
                     (char *) NULL,
                     (char *) NULL);
@@ -598,7 +604,7 @@ IsTypeByVal(type)
     HeapTuple    typeTuple;
 
     typeTuple = SearchSysCacheTuple(TYPOID,
-                    (char *) type,
+                    (char *) ObjectIdGetDatum(type),
                     (char *) NULL,
                     (char *) NULL,
                     (char *) NULL);
@@ -657,16 +663,15 @@ Relation **index_rels;
          tuple != NULL; 
          tuple = heap_getnext(scandesc, NULL, NULL))
     {
-        index_relation_oid = (ObjectId)
-                         heap_getattr(tuple, InvalidBuffer, 2, attr, &isnull);
+        index_relation_oid =
+	    (ObjectId) DatumGetInt32(heap_getattr(tuple, InvalidBuffer, 2,
+						  attr, &isnull));
         if (index_relation_oid == main_relation_oid)
         {
-            scan->index_rel_oid = (ObjectId) 
-                heap_getattr(tuple,
-			     InvalidBuffer,
-			     Anum_pg_index_indexrelid,
-			     attr,
-			     &isnull);
+            scan->index_rel_oid =
+		(ObjectId) DatumGetInt32(heap_getattr(tuple, InvalidBuffer,
+						      Anum_pg_index_indexrelid,
+						      attr, &isnull));
             (*n_indices)++;
             scan->next = (RelationList *) palloc(sizeof(RelationList));
             scan = scan->next;

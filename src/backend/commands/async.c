@@ -421,7 +421,7 @@ void Async_Listen(relname, pid)
     elog(DEBUG,"Async_Listen: %s",relname);
     for (i = 0 ; i < Natts_pg_listener; i++) {
         nulls[i] = ' ';
-        values[i] = NULL;
+        values[i] = PointerGetDatum(NULL);
     }
     
     i = 0;
@@ -440,7 +440,7 @@ void Async_Listen(relname, pid)
 	relnamei = DatumGetPointer(d);
 	if (!strncmp(relnamei,relname, NAMEDATALEN)) {
 	    d = (Datum) heap_getattr(htup,b,Anum_pg_listener_pid,tdesc,&isnull);
-	    pid = (int) DatumGetPointer(d);
+	    pid = DatumGetInt32(d);
 	    if (pid == ourPid) {
 		alreadyListener = 1;
 	    }
@@ -493,7 +493,10 @@ void Async_Unlisten(relname,pid)
 {
     Relation lDesc;
     HeapTuple lTuple;
-    lTuple = SearchSysCacheTuple(LISTENREL,relname,pid);
+
+    lTuple = SearchSysCacheTuple(LISTENREL, (char *) relname,
+				 (char *) Int32GetDatum(pid),
+				 (char *) NULL, (char *) NULL);
     lDesc = heap_openr(Name_pg_listener);
     if (lTuple != NULL) {
 	heap_delete(lDesc,&lTuple->t_ctid);
