@@ -61,9 +61,9 @@ char *buf;
 int len;
 {
 	register char *cp = buf;
-	register int c, dc, cc;
+	register int c, dc, cspec;
 
-	cc = 0;
+	cspec = 0;
 	while ((c = input()) != delimiter) {
 		if (cp - buf > len - 1) {
 			serror("String/char constant too large");
@@ -106,11 +106,11 @@ int len;
 			}
 			break;
 		}
-		cc++;
+		cspec++;
 	}
 
 out:
 	*cp = 0;
-	return(cc);
+	return(cspec);
 }
 
