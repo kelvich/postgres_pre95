@@ -13,14 +13,23 @@
 #ifdef SONY_JUKEBOX
 
 #include "machine.h"
+
 #include "storage/ipc.h"
 #include "storage/ipci.h"
 #include "storage/smgr.h"
 #include "storage/shmem.h"
 #include "storage/spin.h"
+
 #include "utils/hsearch.h"
 #include "utils/rel.h"
 #include "utils/log.h"
+
+#include "access/relscan.h"
+#include "access/heapam.h"
+
+#include "catalog/pg_platter.h"
+#include "catalog/pg_plmap.h"
+#include "catalog/pg_proc.h"
 
 RcsId("$Header$");
 
@@ -148,6 +157,7 @@ typedef struct SJCacheItem {
     SJCacheTag		sjc_tag;		/* dbid, relid, group triple */
     int			sjc_lruprev;		/* LRU list pointer */
     int			sjc_lrunext;		/* LRU list pointer */
+    int			sjc_refcount;		/* number of active refs */
     ObjectId		sjc_oid;		/* OID of group */
 
     uint8		sjc_gflags;		/* flags for entire group */
@@ -169,6 +179,21 @@ typedef struct SJCacheItem {
 
 } SJCacheItem;
 
+/*
+ *  SJNBlock -- Linked list of count of blocks in relations.
+ *
+ *	Computing a block count is so expensive that we cache the count
+ *	in local space when we've done the work.  This is really a stupid
+ *	way to do it -- we'd rather do it in shared memory and have the
+ *	computed count survive transactions -- but this will work for now.
+ */
+
+typedef struct SJNBlock {
+    ObjectId		sjnb_relid;
+    int			sjnb_nblocks;
+    struct SJNBlock	*sjnb_next;
+} SJNBlock;
+
 /* globals used in this file */
 SPINLOCK		SJCacheLock;	/* lock for cache metadata */
 extern bool		IsPostmaster;	/* is this the postmaster running? */
@@ -180,6 +205,7 @@ static File		SJMetaVfd;	/* vfd for cache metadata file */
 static SJCacheHeader	*SJHeader;	/* pointer to cache header in shmem */
 static HTAB		*SJCacheHT;	/* pointer to hash table in shmem */
 static SJCacheItem	*SJCache;	/* pointer to cache metadata in shmem */
+static SJNBlock		*SJNBlockList;	/* linked list of nblocks by relid */
 
 #ifndef	HAS_TEST_AND_SET
 
@@ -205,11 +231,19 @@ static char	SJCacheBuf[(BLCKSZ * SJGRPSIZE) + JBBLOCKSZ];
 static int	SJBufSize = ((BLCKSZ * SJGRPSIZE) + JBBLOCKSZ);
 
 /* routines declared here */
-extern void	sjcacheinit();
-extern void	sjwait_init();
-extern void	sjunwait_init();
-extern void	sjwait_io();
-extern void	sjunwait_io();
+extern void		sjcacheinit();
+extern void		sjwait_init();
+extern void		sjunwait_init();
+extern void		sjwait_io();
+extern void		sjunwait_io();
+extern void		sjtouch();
+extern void		sjunpin();
+extern void		sjregister();
+extern void		sjregnblocks();
+extern int		sjfindnblocks();
+extern ObjectId		sjchoose();
+extern SJCacheItem	*sjallocgrp();
+extern SJCacheItem	*sjfetchgrp();
 
 /* routines declared elsewhere */
 extern HTAB	*ShmemInitHash();
@@ -385,6 +419,9 @@ sjinit(key)
 	}
     }
 
+    /* haven't computed block counts for any relations yet */
+    SJNBlockList = (SJNBlock *) NULL;
+
     /*
      *  Finally, if it's our responsibility to initialize the shared-memory
      *  cache metadata, then go do that.  sjcacheinit() will elog(FATAL, ...)
@@ -469,8 +506,9 @@ sjcacheinit()
 	else
 	    cur->sjc_lrunext = i + 1;
 
-	/* not waiting on I/O or anything */
+	/* not waiting on I/O or anything, no active references to this guy */
 	cur->sjc_gflags = SJG_CLEAR;
+	cur->sjc_refcount = 0;
 
 #ifdef HAS_TEST_AND_SET
 	S_UNLOCK(&(cur->sjc_iolock));
@@ -664,8 +702,7 @@ sjcreate(reln)
      *  metadata.  Allocate a group in the cache.
      */
 
-    grpno = sjallocgrp();
-    item = &SJCache[grpno];
+    item = sjallocgrp(&grpno);
 
     if (reln->rd_rel->relisshared)
 	item->sjc_tag.sjct_dbid = (ObjectId) 0;
@@ -723,7 +760,7 @@ sjcreate(reln)
     group->sjgd_relid = reln->rd_id;
     group->sjgd_relblkno = 0;
     group->sjgd_jboffset = -1;
-    group->sjgd_extentsz = -1;
+    group->sjgd_extentsz = (SJBufSize / JBBLOCKSZ);
     item->sjc_oid = group->sjgd_groupoid = newoid();
 
     if (sjwritegrp(item, grpno) == SM_FAIL) {
@@ -731,8 +768,14 @@ sjcreate(reln)
 	return (-1);
     }
 
+    /* record presence of new extent in system catalogs */
+    sjregister(item, group->sjgd_jboffset, group->sjgd_extentsz);
+
     /* can now release i/o lock on the item we just added */
     sjunwait_io(item);
+
+    /* no longer need the reference */
+    sjunpin(item);
 
     /* last thing to do is to create the mag-disk file to hold last page */
     if (group->sjgd_dbid == (ObjectId) 0)
@@ -743,6 +786,87 @@ sjcreate(reln)
     vfd = FileNameOpenFile(path, O_CREAT|O_RDWR|O_EXCL, 0600);
 
     return (vfd);
+}
+
+/*
+ *  sjregister() -- Make catalog entry for a new extent
+ *
+ *	When we create a new jukebox relation, or when we add a new extent
+ *	to an existing relation, we need to make the appropriate entry in
+ *	pg_plmap().  This routine does that.
+ *
+ *	On entry, we have item pinned; on exit, it's still pinned, and the
+ *	system catalogs have been updated to reflect the presence of the
+ *	new extent.
+ */
+
+void
+sjregister(item, jboffset, extentsz)
+    SJCacheItem *item;
+    int32 jboffset;
+    int32 extentsz;
+{
+    Relation plmap;
+    ObjectId plid;
+    Form_pg_plmap plmdata;
+    HeapTuple plmtup;
+
+    plmap = heap_openr(Name_pg_plmap);
+    RelationSetLockForWrite(plmap);
+
+    plmdata = (Form_pg_plmap) palloc(sizeof(FormData_pg_plmap));
+
+    /* choose a platter to put the new extent on */
+    plmdata->plid = sjchoose(item);
+
+    /* init the rest of the fields */
+    plmdata->pldbid = item->sjc_tag.sjct_dbid;
+    plmdata->plrelid = item->sjc_tag.sjct_relid;
+    plmdata->plblkno = item->sjc_tag.sjct_base;
+    plmdata->ploffset = jboffset;
+    plmdata->plextentsz = extentsz;
+
+    plmtup = (HeapTuple) heap_addheader(Natts_pg_plmap,
+					sizeof(FormData_pg_plmap),
+					(char *) plmdata);
+
+    heap_insert(plmap, plmtup, (double *) NULL);
+
+    pfree((char *) plmtup);
+    heap_close(plmap);
+}
+
+/*
+ *  sjchoose() -- Choose a platter to receive a new extent.
+ *
+ *	For now, this makes a really stupid choice.  Need to think about
+ *	the right way to go about this.
+ */
+
+ObjectId
+sjchoose(item)
+    SJCacheItem *item;
+{
+    Relation plat;
+    HeapScanDesc platscan;
+    HeapTuple plattup;
+    Buffer buf;
+    ObjectId plid;
+
+    plat = heap_openr(Name_pg_platter);
+    platscan = heap_beginscan(plat, false, NowTimeQual, 0, NULL);
+    plattup = heap_getnext(platscan, false, &buf);
+
+    if (!HeapTupleIsValid(plattup))
+	elog(WARN, "sjchoose: no platters in pg_plmap");
+
+    plid = plattup->t_oid;
+    ReleaseBuffer(buf);
+
+    heap_endscan(platscan);
+    heap_close(plat);
+
+    return (plid);
 }
 
 /*
@@ -758,34 +882,115 @@ sjcreate(reln)
  *	group we're kicking out, if indeed we're doing that.
  */
 
-int
-sjallocgrp()
+SJCacheItem *
+sjallocgrp(grpno)
+    int *grpno;
 {
-    int grpno;
     SJCacheItem *item;
 
     /* see if we can avoid doing any work here */
     if (SJHeader->sjh_nentries < SJCACHESIZE) {
-	grpno = SJHeader->sjh_nentries;
+	*grpno = SJHeader->sjh_nentries;
 	SJHeader->sjh_nentries++;
     } else {
 	/* XXX here, need to kick someone out */
 	elog(FATAL, "hey mao, your cache appears to be full.");
     }
 
-    item = &SJCache[grpno];
+    item = &SJCache[*grpno];
 
     item->sjc_lruprev = -1;
     item->sjc_lrunext = SJHeader->sjh_lruhead;
     if (SJHeader->sjh_lruhead == -1) {
-	SJHeader->sjh_lruhead = grpno;
-	SJHeader->sjh_lrutail = grpno;
+	SJHeader->sjh_lruhead = *grpno;
+	SJHeader->sjh_lrutail = *grpno;
     } else {
-	SJCache[SJHeader->sjh_lruhead].sjc_lruprev = grpno;
-	SJHeader->sjh_lruhead = grpno;
+	SJCache[SJHeader->sjh_lruhead].sjc_lruprev = *grpno;
+	SJHeader->sjh_lruhead = *grpno;
     }
 
-    return (grpno);
+    /* bump ref count */
+    sjtouch(item);
+
+    return (item);
+}
+
+SJCacheItem *
+sjfetchgrp(dbid, relid, blkno)
+    ObjectId dbid;
+    ObjectId relid;
+    int blkno;
+{
+    SJCacheItem *item;
+    SJHashEntry *entry;
+    bool found;
+    SJCacheTag tag;
+
+    SpinAcquire(SJCacheLock);
+
+    tag.sjct_dbid = dbid;
+    tag.sjct_relid = relid;
+    tag.sjct_base = blkno;
+
+    entry = (SJHashEntry *) hash_search(SJCacheHT, &tag, FIND, &found);
+
+    if (entry == (SJHashEntry *) NULL) {
+	SpinRelease(SJCacheLock);
+	elog(FATAL, "sjfetchgrp: hash table corrupted");
+    }
+
+    if (found) {
+	item = &(SJCache[entry->sjhe_groupno]);
+
+	if (item->sjc_gflags & SJG_IOINPROG) {
+	    sjwait_io(item);
+	    return (sjfetchgrp(dbid, relid, blkno));
+	}
+
+	sjtouch(item, entry->sjhe_groupno);
+
+	SpinRelease(SJCacheLock);
+    } else {
+	SpinRelease(SJCacheLock);
+	elog(FATAL, "sjfetchgrp: hey mao: can't find <%d,%d,%d>",
+		    dbid, relid, blkno);
+    }
+
+    return (item);
+}
+
+void
+sjtouch(item, grpno)
+    SJCacheItem *item;
+    int grpno;
+{
+    /* first bump the ref count */
+    (item->sjc_refcount)++;
+
+    /* now move it to the top of the lru list */
+    if (item->sjc_lruprev == -1)
+	return;
+
+    if (item->sjc_lrunext == -1)
+	SJHeader->sjh_lrutail = item->sjc_lruprev;
+    else
+	SJCache[item->sjc_lrunext].sjc_lruprev = item->sjc_lruprev;
+
+    SJCache[item->sjc_lruprev].sjc_lrunext = item->sjc_lrunext;
+
+    item->sjc_lruprev = -1;
+    item->sjc_lrunext = SJHeader->sjh_lruhead;
+    SJHeader->sjh_lruhead = grpno;
+}
+
+void
+sjunpin(item)
+    SJCacheItem *item;
+{
+    SpinAcquire(SJCacheLock);
+    if (item->sjc_refcount <= 0)
+	elog(FATAL, "sjunpin: illegal reference count");
+    (item->sjc_refcount)--;
 }
 
 int
@@ -903,22 +1108,184 @@ sjblindwrt(dbstr, relstr, dbid, relid, blkno, buffer)
     return (SM_FAIL);
 }
 
+/*
+ *  sjnblocks() -- Return the number of blocks that appear in this relation.
+ *
+ *	This is an unbelievably expensive operation.  We should cache this
+ *	number in shared memory once we compute it.
+ */
+
+#define	RelationSetLockForExtend(r)
+
 int
 sjnblocks(reln)
     Relation reln;
 {
+    Relation plmap;
+    TupleDescriptor plmdesc;
+    HeapScanDesc plmscan;
+    HeapTuple plmtup;
+    Buffer buf;
+    ObjectId reldbid;
+    Datum d;
+    Boolean n;
+    int32 v;
+    int32 maxblkno;
+    int i;
+    SJCacheItem *item;
+    ScanKeyEntry plmkey[2];
+
+    /* need to guarantee reln doesn't change size while we're thinking */
+    RelationSetLockForExtend(reln);
+
+    /* see if we've already figured this out */
+    if ((maxblkno = sjfindnblocks(reln->rd_id)) >= 0)
+	return (maxblkno);
+
+    if (reln->rd_rel->relisshared)
+	reldbid = (ObjectId) 0;
+    else
+	reldbid = MyDatabaseId;
+
+    ScanKeyEntryInitialize(&plmkey[0], 0x0, Anum_pg_plmap_pldbid,
+			   ObjectIdEqualRegProcedure,
+			   ObjectIdGetDatum(reldbid));
+
+    ScanKeyEntryInitialize(&plmkey[1], 0x0, Anum_pg_plmap_plrelid,
+			   ObjectIdEqualRegProcedure,
+			   ObjectIdGetDatum(reln->rd_id));
+
+    plmap = heap_openr(Name_pg_plmap);
+    plmdesc = RelationGetTupleDescriptor(plmap);
+    plmscan = heap_beginscan(plmap, false, NowTimeQual, 2, &plmkey[0]);
+
+    maxblkno = 0;
+
+    /*
+     *  Find the highest-numbered group in the relation by scanning
+     *  pg_plmap.
+     */
+
+    while (HeapTupleIsValid(plmtup = heap_getnext(plmscan, false, &buf))) {
+	d = (Datum) heap_getattr(plmtup, buf, Anum_pg_plmap_plblkno,
+				 plmdesc, &n);
+	ReleaseBuffer(buf);
+	v = DatumGetInt32(d);
+	if (v > maxblkno)
+	    maxblkno = v;
+    }
+
+    heap_endscan(plmscan);
+    heap_close(plmap);
+
+    /*
+     *  Get the highest-numbered group, and count the number of blocks
+     *  that are actually present in the group.
+     */
+
+    item = sjfetchgrp(reldbid, reln->rd_id, maxblkno);
+
+    for (i = 0; i < SJGRPSIZE; i++) {
+	if (item->sjc_flags[i] & SJC_MISSING)
+	    break;
+    }
+
+    /* don't need the reference anymore */
+    sjunpin(item);
+
+    /* adjust the count of blocks and remember it for next time */
+    maxblkno += i;
+    sjregnblocks(reln->rd_id, maxblkno);
+
+    return(maxblkno);
+}
+
+/*
+ *  sjfindnblocks() -- Find a precomputed block count for the given relid.
+ *
+ *	We should really do something smarter here.
+ */
+
+int
+sjfindnblocks(relid)
+    ObjectId relid;
+{
+    SJNBlock *l;
+
+    l = SJNBlockList;
+
+    while (l != (SJNBlock *) NULL) {
+	if (l->sjnb_relid == relid)
+	    return (l->sjnb_nblocks);
+
+	l = l->sjnb_next;
+    }
+
     return (-1);
 }
 
+/*
+ *  sjregnblocks() -- Remember the count of blocks for this relid.
+ *
+ *	Should really do something smarter here.
+ */
+
+void
+sjregnblocks(relid, nblocks)
+    ObjectId relid;
+    int nblocks;
+{
+    SJNBlock *l;
+
+    l = SJNBlockList;
+
+    /* overwrite old value, if one exists */
+    while (l != (SJNBlock *) NULL) {
+
+	if (l->sjnb_relid == relid) {
+	    l->sjnb_nblocks = nblocks;
+	    return;
+	}
+
+	l = l->sjnb_next;
+    }
+
+    /* otherwise, allocate new slot and write new value */
+    l = (SJNBlock *) palloc(sizeof(SJNBlock));
+    l->sjnb_relid = relid;
+    l->sjnb_nblocks = nblocks;
+    l->sjnb_next = SJNBlockList;
+    SJNBlockList = l;
+}
 int
 sjcommit()
 {
+    SJNBlock *l;
+
+    while (SJNBlockList != (SJNBlock *) NULL) {
+	l = SJNBlockList;
+	SJNBlockList = SJNBlockList->sjnb_next;
+	pfree(l);
+    }
+
+    SJNBlockList = (SJNBlock *) NULL;
+
     return (SM_SUCCESS);
 }
 
 int
 sjabort()
 {
+    SJNBlock *l;
+
+    while (SJNBlockList != (SJNBlock *) NULL) {
+	l = SJNBlockList;
+	SJNBlockList = SJNBlockList->sjnb_next;
+	pfree(l);
+    }
+
+    SJNBlockList = (SJNBlock *) NULL;
+
     return (SM_SUCCESS);
 }
 
