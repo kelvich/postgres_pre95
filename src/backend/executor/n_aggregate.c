@@ -19,6 +19,7 @@
 
 #include "executor/executor.h"
 #include "catalog/pg_protos.h"
+#include "lib/catalog.h"
 
 RcsId("$Header$");
 
@@ -159,7 +160,8 @@ ExecAgg(node)
 
 			if (ObjectIdIsValid(xfn2_oid)) {
 				xfn2_val = fmgr_c(xfn2_ptr, xfn2_oid,
-						  xfn2_nargs, &xfn2_val,
+						  xfn2_nargs, 
+						  (FmgrValues *) &xfn2_val,
 						  &isNull2);
 				Assert(!isNull2);
 			}
@@ -183,13 +185,14 @@ ExecAgg(node)
 			args[0] = xfn1_val;
 			args[1] = theNewVal;
 			xfn1_val = fmgr_c(xfn1_ptr, xfn1_oid,
-					  xfn1_nargs, args, &isNull1);
+					  xfn1_nargs, (FmgrValues *) args,
+					  &isNull1);
 			Assert(!isNull1);
 		}
 		if (ObjectIdIsValid(xfn2_oid) &&
 		    !(isNull && ObjectIdIsValid(xfn1_oid))) {
 			xfn2_val = fmgr_c(xfn2_ptr, xfn2_oid,
-					  xfn2_nargs, &xfn2_val,
+					  xfn2_nargs, (FmgrValues *) &xfn2_val,
 					  &isNull2);
 			Assert(!isNull2);
 		}
@@ -211,7 +214,8 @@ ExecAgg(node)
 		} else
 			elog(WARN, "ExecAgg: no valid transition functions??");
 		finalfn_val = fmgr_c(finalfn_ptr, finalfn_oid,
-				     finalfn_nargs, args, &isNull1);
+				     finalfn_nargs, (FmgrValues *) args,
+				     &isNull1);
 	} else if (ObjectIdIsValid(xfn1_oid)) {
 		finalfn_val = xfn1_val;
 	} else if (ObjectIdIsValid(xfn2_oid)) {
@@ -270,9 +274,7 @@ ExecInitAgg(node, estate, parent)
 	 * create state structure
 	 */
 
-	aggstate = MakeAggState(false,NULL,NULL); /* values will be squished
-						   *  anyway
-						   */
+	aggstate = MakeAggState(false, (Relation) NULL);
 	set_aggstate(node, aggstate);
 
 	/*
@@ -374,8 +376,7 @@ ExecEndAgg(node)
 	   for sort nodes */
 
 	ReleaseTmpRelBuffers(tempRelation);
-	if (FileNameUnlink((char *)
-			   relpath((char *) &tempRelation->rd_rel->relname)) < 0)
+	if (FileNameUnlink(relpath((char *) &tempRelation->rd_rel->relname)) < 0)
 		elog(WARN, "ExecEndSort: unlink: %m");
 	amclose(tempRelation);
 
