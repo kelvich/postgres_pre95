@@ -9,8 +9,6 @@
 #ifndef	XLogIncluded	/* Include this file only once. */
 #define XLogIncluded	1
 
-#include "tmp/postgres.h"
-
 /*
  * InitializeTransactionLog --
  *	Initializes transaction logging.

@@ -9,8 +9,6 @@
 #ifndef	XTimIncluded	/* Include this file only once. */
 #define XTimIncluded	1
 
-#include "tmp/postgres.h"
-
 /*
  * TransactionIdGetCommitTime --
  *	Returns commit time of transaction associated with an identifier.

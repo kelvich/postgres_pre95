@@ -17,8 +17,6 @@
 
 #include <signal.h>
 
-#include "tmp/postgres.h"
-
 #include "access/xcxt.h"
 #include "access/xlog.h"
 #include "storage/ipci.h"
