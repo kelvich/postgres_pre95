@@ -68,19 +68,16 @@ typedef FormData_pg_user	*Form_pg_user;
 DATA(insert OID =    6 ( postgres 6 t t t t ));
 DATA(insert OID =  799 ( mike 799 t t t t ));
 DATA(insert OID = 1511 ( sp 1511 t t t t ));
-DATA(insert OID =  943 ( jhingran 943 t t t t ));
 DATA(insert OID = 2359 ( cimarron 2359 t t t t ));
-DATA(insert OID = 1994 ( goh 1994 t t t t ));
-DATA(insert OID = 2802 ( ong 2802 t t t t ));
 DATA(insert OID = 2469 ( hong 2469 t t t t ));
 DATA(insert OID = 1806 ( mao 1806 t t t t ));
 DATA(insert OID = 2697 ( margo 2697 t t t t ));
 DATA(insert OID = 1517 ( sullivan 1517 t t t t ));
 DATA(insert OID = 3491 ( kemnitz 3491 t t t t ));
 DATA(insert OID = 3898 ( choi 3898 t t t t ));
-DATA(insert OID = 3665 ( plai 3665 t t t t ));
 DATA(insert OID = 3918 ( glass 3918 t t t t ));
 DATA(insert OID = 4613 ( mer 4613 t t t t ));
+DATA(insert OID = 5059 ( caetta 5059 t t t t ));
 
 /* ----------------
  *	old definition of struct user
