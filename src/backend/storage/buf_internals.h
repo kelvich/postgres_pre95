@@ -128,7 +128,12 @@ struct sbufdesc {
 
     NameData		sb_dbname;	/* name of db in which buf belongs */
     NameData		sb_relname;	/* name of reln */
-#ifdef mips
+#ifdef HAS_TEST_AND_SET
+    /* can afford a dedicated lock if test-and-set locks are available */
+    slock_t	io_in_progress_lock;
+#endif /* HAS_TEST_AND_SET */
+
+#if defined(PORTNAME_ultrix4)
     /*
      * I padded this structure to a power of 2 (128 bytes on a MIPS) because
      * BufferDescriptorGetBuffer is called a billion times and it does an
@@ -141,11 +146,10 @@ struct sbufdesc {
      */
     char		sb_pad[60];
 #endif /* mips */
-
-#ifdef HAS_TEST_AND_SET
-    /* can afford a dedicated lock if test-and-set locks are available */
-    slock_t	io_in_progress_lock;
-#endif
+#if defined(PORTNAME_sparc) || \
+    defined(PORTNAME_alpha)
+    char		sb_pad[56];	/* 4 bytes less - has slock_t */
+#endif /* sparc */
 };
 
 /*
