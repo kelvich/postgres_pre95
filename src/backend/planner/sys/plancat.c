@@ -119,7 +119,7 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 
 	fmgr_info(F_OIDEQ, &indexKey[0].func, &indexKey[0].nargs);
 
-	bzero((char *) indexCatalogInfo, (unsigned) (27 * sizeof(int32)));
+	bzero((char *) indexCatalogInfo, (unsigned) (28 * sizeof(int32)));
 
 	/* Find an index on the given relation */
 	if (notFirst == 0) {
@@ -151,6 +151,9 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 	for (i = 0; i < 8; ++i)					/* 19-26 */
 		indexCatalogInfo[i+19] = index->indclass[i];
 	
+	/* functional index ?? */
+	indexCatalogInfo[27] = index->indproc;			/* 27 */
+
 	/* Extract info from the relation descriptor for the index */
 	indexRelation = ObjectIdOpenHeapRelation(index->indexrelid);
 #ifdef notdef
@@ -265,13 +268,23 @@ IndexSelectivity(indexrelid, indrelid, nIndexKeys,
 	npages = 0.0;
 	select = 1.0;
 	for (n = 0; n < nIndexKeys; ++n) {
-		/* Find the AM class for this key. */
-		indclass = InvalidObjectId;
-		for (i = 0; i < 8; ++i)
+		/* 
+		 * Find the AM class for this key. 
+		 *
+		 * If the first attribute number is invalid then we have a
+		 * functional index, and AM class is the first one defined
+		 * since functional indices have exactly one key.
+		 */
+		indclass = (varAttributeNumbers[0] == InvalidAttributeNumber) ?
+			index->indclass[0] : InvalidObjectId;
+		i = 0;
+		while ((i < nIndexKeys) && (indclass == InvalidObjectId)) {
 			if (varAttributeNumbers[n] == index->indkey[i]) {
 				indclass = index->indclass[i];
 				break;
 			}
+			i++;
+		}
 		if (!ObjectIdIsValid(indclass)) {
 			/*
 			 * Presumably this means that we are using a functional
