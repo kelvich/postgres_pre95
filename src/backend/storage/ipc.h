@@ -13,7 +13,7 @@
 #include "c.h"
 #endif
 
-#ifdef sequent
+#if defined(sequent) || defined(mips)
 union semun {
     int val;
     struct semid_ds *buf;
