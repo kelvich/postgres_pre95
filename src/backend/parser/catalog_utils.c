@@ -271,7 +271,8 @@ left_oper(op, arg)
 	
 	if (!(tup = SearchSysCacheTuple(OPRNAME, op, 0, arg, (char *) 'l'))) {
 		elog (WARN ,
-			"Can't find left op: %s for type %d", op, arg);
+			"Can't find left op: %s for type %s",
+			op, tname(get_id_type(arg)));
 		return(NULL);
 	}
 	return ((Operator) tup);
