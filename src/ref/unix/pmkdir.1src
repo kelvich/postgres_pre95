@@ -59,8 +59,8 @@ The command
 .(C
 pmkdir /a/b/c/d
 .)C
-creates a new directory \*(lqd\*(rq as a child of \*(lq/a/b/c\*(rq,
-which must exist.
+creates a new directory \*(lqd\*(rq as a child of \*(lq/a/b/c\*(rq.
+\*(lq/a/b/c\*(rq must already exist.
 .SH ENVIRONMENT
 If no database is given on the command line, the environment variable
 .SM DATABASE
