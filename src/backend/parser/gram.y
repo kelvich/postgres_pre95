@@ -1246,7 +1246,7 @@ a_expr:
 			  }
 			  lcp = parser_ppreserve(cp);
 			} else {
-			  lcp = lispInteger((long) cp);
+			  lcp =  cp;
 			}
 
 			adt = MakeConst ( typeid(tp), len, lcp , 0 );
