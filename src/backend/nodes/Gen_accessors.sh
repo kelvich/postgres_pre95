@@ -39,11 +39,12 @@ EOF
 #	set up CTMP1
 # ----------------
 $CAT > $CTMP1 << 'EOF'
+#define _SHARP_	#	/* Ansi braindeath - no way to quote # in macro replacement */
 #define CppIdentity(a)a
 #define CppConcat(a,b)CppIdentity(a)b
 
 #define	SETACCESSOR(_nodetype_,_fieldname_,_fieldtype_) \
-#define \
+_SHARP_ define \
 CppConcat(set_,_fieldname_)(node, value) \
     { \
 	NODEAssertArg(IsA(node,_nodetype_)); \
@@ -51,7 +52,7 @@ CppConcat(set_,_fieldname_)(node, value) \
     }
 
 #define	GETACCESSOR(_nodetype_,_fieldname_,_fieldtype_) \
-#define CppConcat(get_,_fieldname_)(node) ((node)->_fieldname_)
+_SHARP_ define CppConcat(get_,_fieldname_)(node) ((node)->_fieldname_)
 EOF
 
 # ----------------
