@@ -191,7 +191,7 @@ bool read_car_only;
 				this_value->cdr = lispRead(false);
 				if (this_value->cdr == (LispValue) -1)
 				{
-					this_value->cdr = lispRead(false);
+					this_value->cdr = CAR(lispRead(false));
 				}
 			}
 			else
