@@ -123,7 +123,11 @@ SemantOpt(root,rangetable,tlist, qual)
 	    }
 	    if (!member(lispInteger(leftvarno),varlist))
 	      retqual = MakeTClause();
-	  }	      
+	  }
+	  else {    /* At this stage, union vars are existential */
+	    if (consp(get_leftop(qual))) 
+	      retqual = MakeTClause();
+	  }
     } else  
       if (and_clause (qual)) {
 	foreach(i,get_andclauseargs(qual)) {
