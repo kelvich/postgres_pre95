@@ -18,4 +18,4 @@ extern List func_arg_list ARGS((List parameters));
 extern LispValue HandleNestedDots ARGS((List dots));
 extern LispValue setup_tlist ARGS((Func func, int attno, ObjectID typeid));
 extern bool complexType ARGS((LispValue typenode));
-extern LispValue HandleParam ARGS((Param param, char *attrname));
+
