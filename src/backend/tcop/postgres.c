@@ -33,6 +33,7 @@
  *	6) extern files come last.
  * ----------------
  */
+#include "executor/execdebug.h"
 #include "tcop/tcopdebug.h"
 
 #include "utils/fmgr.h"
@@ -66,7 +67,8 @@ jmp_buf		Warn_restart;
 int		NBuffers = 16;
 time_t		tim;
 bool 		override = false;
-int		NStriping = 1;  /* default no striping */
+int		NStriping = 1;  	/* default no striping */
+int		EchoQuery = 0;		/* default don't echo */
 
 /* ----------------
  *	people who want to use EOF should #define DONTUSENEWLINE in
@@ -248,7 +250,7 @@ InteractiveBackend(inBuf)
 	    }
 	}
 #endif EXEC_DEBUGINTERACTIVE
-	
+
 	/* ----------------
 	 *  otherwise we have a user query so process it.
 	 * ----------------
@@ -256,6 +258,13 @@ InteractiveBackend(inBuf)
 	break;
     }
     
+    /* ----------------
+     *	if the query echo flag was given, print the query..
+     * ----------------
+     */
+    if (EchoQuery)
+	printf("query is: %s\n", inBuf);
+	
     return('Q');
 }
 
@@ -549,6 +558,7 @@ PostgresMain(argc, argv)
     int			flagQ;
     int			flagM;
     int			flagS;
+    int			flagE;
     int			flag;
 
     int			numslaves;
@@ -579,9 +589,9 @@ PostgresMain(argc, argv)
      * ----------------
      */
     numslaves = 0;
-    flagC = flagQ = flagM = flagS = 0;
+    flagC = flagQ = flagM = flagS = flagE = 0;
     
-    while ((flag = getopt(argc, argv, "CQONM:dnpP:B:b:D:S")) != EOF)
+    while ((flag = getopt(argc, argv, "CQONM:dnpP:B:b:D:SE")) != EOF)
       switch (flag) {
 	  
       case 'd':
@@ -691,7 +701,15 @@ PostgresMain(argc, argv)
 	  flagS = 1;
 	  SetTransactionFlushEnabled(false);
 	  break;
-	  
+
+      case 'E':
+	  /* ----------------
+	   *	E - echo the query the user entered
+	   * ----------------
+	   */
+	  flagE = 1;
+	  break;
+	  	  
       default:
 	  errs += 1;
       }
@@ -705,6 +723,7 @@ PostgresMain(argc, argv)
 	fputs(" -S   =  assume Stable Main Memory\n", stderr);
 	fputs(" -Q   =  Quiet mode (less debugging output)\n", stderr);
 	fputs(" -N   =  use ^D as query delimiter\n", stderr);
+	fputs(" -E   =  echo the query entered\n", stderr);
 	exitpg(1);
     } else if (argc - optind == 1) {
 	DatabaseName = argv[optind];
@@ -714,7 +733,8 @@ PostgresMain(argc, argv)
     }
     Noversion = flagC;
     Quiet = flagQ;
-
+    EchoQuery = flagE;
+    
     /* ----------------
      * 	print flags
      * ----------------
@@ -729,6 +749,7 @@ PostgresMain(argc, argv)
 	if (flagM)
 	    printf("\t# slaves  =    %d\n", numslaves);
 	
+	printf("\tquery echo =   %c\n", EchoQuery ? 't' : 'f');
 	printf("\tDatabaseName = [%s]\n", DatabaseName);
 	puts("\t----------------\n");
     }
