@@ -204,18 +204,12 @@ check_permissions(command, dbname, dbIdP, userIdP)
     ObjectId dbid;
     char use_createdb;
     bool dbfound;
+    bool use_super;
 
     utup = get_pg_usertup(command, PG_username);
     *userIdP = ((Form_pg_user)GETSTRUCT(utup))->usesysid;
-
-    /* need the reldesc to get attributes out of the pg_user tuple */
-    urel = heap_openr(Name_pg_user);
-
-    use_createdb = (char) heap_getattr(utup, InvalidBuffer,
-				       Anum_pg_user_usecreatedb,
-				       &(urel->rd_att),
-				       (char *) NULL);
-    heap_close(urel);
+    use_super = ((Form_pg_user)GETSTRUCT(utup))->usesuper;
+    use_createdb = ((Form_pg_user)GETSTRUCT(utup))->usecreatedb;
 
     /* Check to make sure user has permission to use createdb */
     if (!use_createdb) {
@@ -223,14 +217,14 @@ check_permissions(command, dbname, dbIdP, userIdP)
              PG_username);
     }
 
-    /* Check to make sure database is not the currently open database */
-    if (!strcmp(dbname, DBName)) {
-        elog(WARN, "%s cannot be executed on an open database", command);
-    }
-
     /* Make sure we are not mucking with the template database */
     if (!strcmp(dbname, "template1")) {
         elog(WARN, "%s cannot be executed on the template database.", command);
+    }
+
+    /* Check to make sure database is not the currently open database */
+    if (!strcmp(dbname, DBName)) {
+        elog(WARN, "%s cannot be executed on an open database", command);
     }
 
     /* Check to make sure database is owned by this user */
@@ -278,7 +272,7 @@ check_permissions(command, dbname, dbIdP, userIdP)
         elog(WARN, "destroydb: database %s does not exist.", dbname);
 
     } else if (dbfound && !strcmp(command, "destroydb")
-	       && dbowner != *userIdP) {
+	       && dbowner != *userIdP && use_super == false) {
 
         elog(WARN, "%s: database %s is not owned by you.", command, dbname);
 
