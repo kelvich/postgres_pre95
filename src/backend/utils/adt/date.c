@@ -87,6 +87,7 @@ static	char 	*unit_tab[] = {
 	"hour", "hours", "day", "days", "week", "weeks",
 	"month", "months", "year", "years"};
 #define UNITMAXLEN 7	/* max length of a unit name */
+#define NUNITS 14	/* number of different units */
 
 /* table of seconds per unit (month = 30 days, year = 365 days)  */
 static	int	sec_tab[] = { 
@@ -847,7 +848,7 @@ correct_unit(unit, unptr)
 {
 	int	j = 0;
 
-	while (j >= 0) {
+	while (j < NUNITS) {
 		if (strncmp(unit, unit_tab[j], strlen(unit_tab[j])) == 0) {
 			*unptr = j;
 			return(1);
