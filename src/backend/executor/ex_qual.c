@@ -35,7 +35,7 @@
 #include "nodes/mnodes.h"
 #include "catalog/pg_language.h"
 #include "executor/executor.h"
- RcsId("$Header$");
+RcsId("$Header$");
 /* ----------------
  *	externs and constants
  * ----------------
@@ -308,17 +308,11 @@ ExecEvalVar(variable, econtext, isNull)
     Datum	    	result;
     TupleTableSlot  	slot;
     AttributeNumber 	attnum;
-    TupleDescriptor    	tupType;
     ExecTupDescriptor	execTupDesc;
-    Buffer	    	tupBuffer;
-    List	    	array_info;
-    
     HeapTuple		heapTuple;
     TupleDescriptor	tuple_type;
     Buffer 		buffer;
-    ObjectId		typeoid;
     bool		byval;
-    Pointer		value;
     int16   		len;
 
     /* ----------------
@@ -619,6 +613,15 @@ GetAttributeByNum(slot, attrno, isNull)
 	return retval;
 }
 
+/* XXX char16 name for catalogs */
+att_by_num(slot, attrno, isNull)
+    TupleTableSlot slot;
+    AttributeNumber attrno;
+    Boolean *isNull;
+{
+	return(GetAttributeByNum(slot, attrno, isNull));
+}
+
 GetAttributeByName(slot, attname, isNull)
     TupleTableSlot slot;
     Name    attname;
@@ -683,6 +686,15 @@ GetAttributeByName(slot, attname, isNull)
 	return NULL;
     else
 	return retval;
+}
+
+/* XXX char16 name for catalogs */
+att_by_name(slot, attname, isNull)
+    TupleTableSlot slot;
+    Name    attname;
+    Boolean *isNull;
+{
+	return(GetAttributeByName(slot, attname, isNull));
 }
 
 void
@@ -841,14 +853,8 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
 	for (i = 0; i < fcache->nargs; i++) 
 	    if (fcache->nullVect[i] == true) *isNull = true;
 
-	if (fcache->func == (func_ptr) NULL)
-		return((Datum) fmgr_array_args(fcache->foid,
-					       fcache->nargs,
-					       argv,
-					       isNull));
-
-	return (Datum)
-	    fmgr_by_ptr_array_args(fcache->func, fcache->nargs, argv, isNull);
+	return((Datum) fmgr_c(fcache->func, fcache->foid, fcache->nargs,
+			      argv, isNull));
     }
 }
 
@@ -1513,11 +1519,11 @@ int
 ExecTargetListLength(targetlist)
 {
     int len;
-    List tl;
+    List tl, curTle;
 
     len = 0;
     foreach (tl, targetlist) {
-	List curTle = CAR(tl);
+	curTle = CAR(tl);
 
 	if (tl_is_resdom(curTle))
 	    len++;
