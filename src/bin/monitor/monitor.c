@@ -8,7 +8,8 @@
 #include <stdio.h>
 #include <strings.h>
 #include <sys/file.h>
-#include <sys/param.h>	/* for MAXHOSTNAMELEN */
+#include <sys/param.h>	/* for MAXHOSTNAMELEN on most */
+#include <netdb.h>	/* for MAXHOSTNAMELEN on some */
 #include <sys/types.h>
 #include <sys/uio.h>
 
@@ -17,6 +18,7 @@
 #include "tmp/libpq-fe.h"
 #include "tmp/pqcomm.h"
 #include "utils/log.h"
+#include "storage/fd.h"	/* for SEEK_ */
 
 RcsId("$Header$");
 
@@ -529,29 +531,21 @@ print_tuples ( pname)
 	t += temp;
 	
 	for (x = 0; x < n; x++) {
-
-	    for(j = 0; j < m; j++) 
-		{
-			if (!TerseOutput)
-			{
-				fprintf (stdout, "| %-12s", PQgetvalue(p,t+x,j));
-			}
-			else
-			{
-				fprintf (stdout, " %-12s", PQgetvalue(p,t+x,j));
-			}
+	    for(j = 0; j < m; j++) {
+		char *pval = PQgetvalue(p,t+x,j);
+		if (!TerseOutput) {
+		    fprintf(stdout, "| %-12s", pval ? pval : "");
+		} else {
+		    fprintf(stdout, " %-12s", pval ? pval : "");
 		}
-				
-
-		if (!TerseOutput)
-		{
+	    }
+	    
+	    if (!TerseOutput) {
 	    	fprintf (stdout, "|\n");
 	    	fprintf(stdout,"%s\n",tborder);
-		}
-		else
-		{
-			fprintf(stdout, "\n");
-		}
+	    } else {
+		fprintf(stdout, "\n");
+	    }
 	}
     }
 }
@@ -576,7 +570,7 @@ handle_send()
     int i = 0;
     bool InAComment = false;
 
-    pos = lseek(tmon_temp,(off_t)0,L_SET);
+    pos = lseek(tmon_temp, (off_t) 0, SEEK_SET);
 
     if (pos != 0)
 	fprintf(stderr, "Bogus file position\n");
@@ -589,7 +583,7 @@ handle_send()
 	continue;
 
     if ( cc != 0 ) {
-	pos = lseek(tmon_temp,(off_t)-1,L_INCR);
+	pos = lseek(tmon_temp, (off_t) -1, SEEK_CUR);
     }
     query_buffer[0] = 0;
 
@@ -786,7 +780,7 @@ handle_print()
     off_t pos;
     int cc;
     
-    pos = lseek(tmon_temp,(off_t)0,L_SET);
+    pos = lseek(tmon_temp, (off_t) 0, SEEK_SET);
     
     if (pos != 0 )
 	fprintf(stderr, "Bogus file position\n");
