@@ -840,7 +840,7 @@ LispValue HandleNestedDots(dots)
     Name relname;
     Relation rd;
     char *mutator;
-    LispValue retval = LispNil;
+    LispValue retval = LispNil, oldval = LispNil;
     ObjectId funcid;
     ObjectId functype;
     OID funcrettype;
@@ -964,12 +964,15 @@ LispValue HandleNestedDots(dots)
 		elog(WARN, "Type incompatibility in nested dot");
 
 	    /* put func and an iter onto the retval structure */
-	    retval = (LispValue) 
-		MakeIter(MakeList(MakeFunc(funcid, functype, 0, 
-					   tlen(get_id_type(funcrettype)),
-					   LispNil /* func_fcache */,
-					   LispNil /* func_tlist */),
-				  retval, -1));
+	    oldval = retval;
+	    retval = (LispValue) MakeIter(lispDottedPair());
+	    CAR(get_iterexpr((Iter)retval)) = (LispValue)
+	      MakeFunc(funcid, functype, 0, 
+		       tlen(get_id_type(funcrettype)),
+		       LispNil /* func_fcache */,
+		       LispNil /* func_tlist */),
+	      CDR(get_iterexpr((Iter)retval)) = oldval;
+	
 	}
     }
 
