@@ -162,7 +162,7 @@ add_pathlist (parent_rel,unique_paths,new_paths)
 	 else if (IsA(old_path,Path)) {
 	     set_parent (CAR(new_path),parent_rel);
 	     unique_paths = lispCons (CAR(new_path),
-				      remove(old_path,unique_paths));
+				      LispRemove(old_path,unique_paths));
 	 }
      }
      return(unique_paths);
