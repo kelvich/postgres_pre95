@@ -857,23 +857,28 @@ RuleStmt:
  *		This option is used for debugging...
  * 'tuple tuple' i.e. it must be implemented with a tuple level
  *		lock.
+ *
+ *  25 feb 1991:  stonebraker is objectifying our terminology.  as a
+ *		  result, 'tuples' no longer exist.  they've been replaced
+ *		  by 'instances'.  we still use the old terminology inside
+ *		  the system, but the visible interface has been changed.
  */
 newruleTag: P_TUPLE 
-		{ $$ = lispCons(KW(tuple), LispNil); }
+		{ $$ = lispCons(KW(instance), LispNil); }
 	| REWRITE 
 		{ $$ = lispCons(KW(rewrite), LispNil); }
 	| RELATION P_TUPLE
 		{
 		    $$ = lispCons(KW(relation), LispNil);
-		    $$ = lispCons(KW(tuple), $$);
+		    $$ = lispCons(KW(instance), $$);
 		}
 	| P_TUPLE P_TUPLE
 		{
-		    $$ = lispCons(KW(tuple), LispNil);
-		    $$ = lispCons(KW(tuple), $$);
+		    $$ = lispCons(KW(instance), LispNil);
+		    $$ = lispCons(KW(instance), $$);
 		}
 	| /* EMPTY */
-		{ $$ = lispCons(KW(tuple), LispNil); }
+		{ $$ = lispCons(KW(instance), LispNil); }
 	;
 
 OptStmtList:
