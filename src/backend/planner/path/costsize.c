@@ -63,7 +63,6 @@ int _disable_cost_ = 30000000;
  
 #ifdef _xprs_
 #define _xprs_	1
-bool _cost_weirdness_ = false;
 bool _enable_seqscan_ =     true;
 bool _enable_indexscan_ =   true;
 bool _enable_sort_ =        true;
@@ -73,7 +72,6 @@ bool _enable_mergesort_ =   true;
 bool _enable_hashjoin_ =    true;
 #else /* _xprs_ */
 #define _xprs_	0
-bool _cost_weirdness_ = false;
 bool _enable_seqscan_ =     true;
 bool _enable_indexscan_ =   true; 
 bool _enable_sort_ =        true;
@@ -113,17 +111,8 @@ cost_seqscan (relid,relpages,reltuples)
      int reltuples, relpages;
 {
     Cost temp = 0;
-    if ( _cost_weirdness_ ) {
-	if ( _enable_seqscan_ ) {
-	    temp += 100;
-	} 
-	else {
-	    temp += _disable_cost_;
-	} 
-    }
-    else {
-	temp += 0;
-    } 
+    if ( !_enable_seqscan_ )
+	temp += _disable_cost_;
     if(consp (relid)) {
 	temp += _TEMP_SCAN_COST_; 	 /*   is this right??? */
     } 
@@ -177,14 +166,8 @@ cost_index (indexid,expected_indexpages,selec,relpages,
 {
     Cost temp = 0;
     Cost temp2 = 0;
-    if ( _cost_weirdness_ ) {
-	if ( _enable_indexscan_ ) {
-	    temp += 200;
-	} 
-	else {
+	if (!_enable_indexscan_)
 	    temp += _disable_cost_;
-	} 
-    }
 
 	CostAddCount(temp, expected_indexpages);
 				/*   expected index relation pages */
@@ -233,12 +216,8 @@ cost_sort (keys,tuples,width,noread)
     double pages = npages;
     double numTuples = tuples;
     
-    if ( _cost_weirdness_ ) {
-	if ( _enable_sort_ ) 
-	  temp += 300;
-	else
-	  temp += _disable_cost_ ;
-	}
+    if ( !_enable_sort_ ) 
+      temp += _disable_cost_ ;
     if (tuples == 0 || null(keys) )
       return(temp);
 #ifdef _xprs_
@@ -281,17 +260,8 @@ cost_hash (keys,tuples,width,which_rel)
      int tuples, width, which_rel;  /* which_rel is a #defined const */
 {
     Cost temp = 0;
-    if ( _cost_weirdness_ ) {
-	if ( _enable_hash_ ) {
-	    temp += 400;
-		} 
-	else {
-	    temp += _disable_cost_;
-	} 
-    } 
-    else 
-      temp += 0;
-    
+    if ( !_enable_hash_ )
+	temp += _disable_cost_;
     if(tuples == 0 || null(keys)) {
 	temp += 0;
     } 
@@ -357,14 +327,8 @@ cost_nestloop (outercost,innercost,outertuples,innertuples,outerpages,is_indexjo
 {
     Cost temp =0;
 
-    if ( _cost_weirdness_ ) {
-	if ( _enable_nestloop_ ) 
-	  temp += 1000;
-	else 
-	  temp += _disable_cost_;
-    } 
-    else 
-      temp += 0;
+    if ( !_enable_nestloop_ ) 
+       temp += _disable_cost_;
 #ifdef _xprs_
     if (is_indexjoin)
        temp +=  outercost + outertuples * innercost;
@@ -407,14 +371,8 @@ cost_mergesort (outercost,innercost,outersortkeys,innersortkeys,
      int outersize,innersize,outerwidth,innerwidth;
 {
     Cost temp = 0;
-    if ( _cost_weirdness_ ) {
-	if ( _enable_mergesort_ ) 
-	  temp += 2000;
-	else
-	  temp += _disable_cost_;
-    } 
-    else 
-      temp += 0;
+    if ( !_enable_mergesort_ ) 
+      temp += _disable_cost_;
 	
     temp += outercost;
     temp += innercost;
@@ -457,12 +415,8 @@ cost_hashjoin (outercost,innercost,outerkeys,innerkeys,outersize,
 
     if (outerpages < innerpages)
        return _disable_cost_;
-    if ( _cost_weirdness_ ) {
-	if ( _enable_hashjoin_ ) 
-	  temp += 3000;
-	else 
-	  temp += _disable_cost_;
-    } 
+    if ( !_enable_hashjoin_ ) 
+       temp += _disable_cost_;
 #ifdef _xprs_
     temp += outercost + nrun * innercost;
     temp += _CPU_PAGE_WEIGHT_ * (outersize + nrun * innersize);
