@@ -27,23 +27,65 @@
 #
 # CONFIGURATION SECTION
 #
-# Remember again, the following values may be overridden in the
-# obj/Makefile.global in this directory.
+# If you're working off a shared or readonly source, you can still
+# override these setting by placing new definitions in a Makefile.global
+# in the obj/ directory in this directory.
 
+# Following is where the tools necessary to build postgres
+# get installed.
+# It is necessary to have the TOOLSBINDIR, whatever that may be,
+# in your PATH before attempting to bootstrap the build.  To
+# bootstrap (that is, if bmake(1) is not instaleld on your system)
+# you should cd(1) to the src/tools/bmake directory and type
+#
+#       make -f Makefile.boot
+#
+# This will install bmake(1) in the TOOLSBINDIR and supporting
+# postgres configuration files in TOOLSLIBDIR.  Then you can
+# go back up to the src/ directory and run "bmake".
+#
+TOOLSBINDIR= /usr/local/bin
+TOOLSLIBDIR= /usr/local/lib
+
+# Following are settings pertaining to the postgres build
+# and installation.  The most important one is obviously
+# the name of the port.
 #
 #  The name of the port.  Valid choices are:
 #	ultrix4	-	ultrix 4.?
 #	sparc	-	SUN sparc
-#  or add your own.
+#  or add your own - :)
 #
+#PORTNAME=	sparc
 PORTNAME=	ultrix4
 
 # The following should be self explanatory
+
 POSTGRESDIR=	/private/devel/postgres
+#
+# where the database lives (changeable at run time by setting PGDATA
+# in your environment
+#
 DATADIR=	${POSTGRESDIR}/data
+#
+# where the postgres executables live (changeable by just putting them
+# else and putting that directory in your shell PATH
+#
 BINDIR=		${POSTGRESDIR}/bin
+#
+# where libpq.a gets installed.  You must put it where your loader will
+# look for it if you wish to use the -lpq.a convention.  Otherwise you
+# can just put the absolute pathname to the libraray at the end of your
+# compile line.
 LIBDIR=		${POSTGRESDIR}/lib
+
+# == END OF NORMAL CONFIGURATION SECTION ==
+
+.if (${PORTNAME} != "sparc")
 MACHINE!=	machine
+.else
+MACHINE=	sun
+.endif
 STRIP=
 
 #
