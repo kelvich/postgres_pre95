@@ -20,7 +20,7 @@ static	char ami_h[] = "$Header$";
 
 #include "bufmgr.h"	/* for BufferManagerFlush */
 #include "buf.h"
-#include "defind.h"
+/* #include "defind.h" */
 #include "log.h"
 #include "htup.h"
 #include "portal.h"
