@@ -307,7 +307,7 @@ inv_stat(obj_desc, stbuf)
     }
 
     stbuf->st_ino = obj_desc->ofs.i_fs.heap_r->rd_id;
-    stbuf->st_mode = 0666;
+    stbuf->st_mode = 100666; /* IFREG|rw-rw-rw- */
     stbuf->st_size = _inv_getsize(obj_desc->ofs.i_fs.heap_r,
 				  obj_desc->ofs.i_fs.hdesc,
 				  obj_desc->ofs.i_fs.index_r);
