@@ -512,7 +512,7 @@ MakeTClause()
   ObjectId rettype = 16;
   int opsize = 0;
   
-  newop = MakeOper(objid, 0,rettype,opsize,NULL);
+  newop = MakeOper(objid, InvalidObjectId, 0,rettype,opsize,NULL);
   leftconst = MakeConst(23, 4, Int32GetDatum(1), 0, 1);
   rightconst = MakeConst(23, 4, Int32GetDatum(1), 0, 1);
 
@@ -533,7 +533,7 @@ MakeFClause()
   ObjectId rettype = 16;
   int opsize = 0;
   
-  newop = MakeOper(objid, 0,rettype,opsize,NULL);
+  newop = MakeOper(objid, InvalidObjectId, 0,rettype,opsize,NULL);
   leftconst = MakeConst(23, 4, Int32GetDatum(1), 0);
   rightconst = MakeConst(23, 4,Int32GetDatum(2), 0);
 

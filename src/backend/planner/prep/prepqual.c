@@ -281,6 +281,7 @@ push_nots (qual)
 	if(negator) 
 	{
 	  Oper op = (Oper) MakeOper (negator,
+				     InvalidObjectId,
 				     get_oprelationlevel (oper),
 				     get_opresulttype (oper), NULL, NULL);
 	  op->op_fcache = (FunctionCache *) NULL;

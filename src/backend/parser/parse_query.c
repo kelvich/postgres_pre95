@@ -397,10 +397,11 @@ make_op(op,ltree,rtree)
 	}
 	opform = (OperatorTupleForm) GETSTRUCT(temp);
 
-	newop = MakeOper ( oprid(temp),    /* operator id */
+	newop = MakeOper ( oprid(temp),    /* opno */
+			    InvalidObjectId,	/* opid */
 			    0 ,       	     /* operator relation level */
-			    opform->         /* operator result type */
-			    oprresult, NULL, NULL);
+			    opform->oprresult, /* operator result type */
+			    NULL, NULL);
 	t1 = lispCons ( newop , lispCons (left ,
 					     lispCons (right,LispNil)));
 	return ( lispCons (lispInteger ( opform->oprresult ) ,
