@@ -103,6 +103,7 @@ RcsId("$Header$");
 #include "storage/lmgr.h"
 
 #include "tcop/slaves.h"
+#include "tcop/tcopdebug.h"
 #include "tmp/miscadmin.h"
 
 #include "utils/memutils.h"
@@ -227,6 +228,8 @@ bool parallel_ok;
 	return((dir<0)?page-1:page+1);
     if (SlaveLocalInfoD.paradjpending)
 	if (page >= SlaveLocalInfoD.paradjpage) {
+	    SLAVE2_elog(DEBUG, "slave %d adjusting page skip to %d", 
+			MyPid, SlaveLocalInfoD.newparallel);
 	    SlaveLocalInfoD.nparallel = SlaveLocalInfoD.newparallel;
 	    SlaveLocalInfoD.paradjpending = false;
 	    return(SlaveLocalInfoD.paradjpage + SlaveInfoP[MyPid].groupPid);
