@@ -12,6 +12,7 @@ RcsId("$Header$");
 #include "enbl.h"
 #include "excid.h"	/* for Unimplemented */
 #include "hasht.h"
+#include "log.h"
 #include "mcxt.h"
 #include "mnodes.h"
 #include "nodes.h"
@@ -28,6 +29,8 @@ static Count PortalManagerEnableCount = 0;
 static HashTable	PortalHashTable = NULL;
 static GlobalMemory	PortalMemory = NULL;
 static char		PortalMemoryName[] = "Portal";
+
+static Portal		BlankPortal = NULL;
 
 /*
 Portal	CurrentPortal = NULL;
@@ -46,6 +49,12 @@ typedef HeapMemoryBlockData	*HeapMemoryBlock;
 
 #define PortalHeapMemoryGetBlock(context) \
 	((HeapMemoryBlock)(context)->block)
+
+/*
+ * CreateNewBlankPortal --
+ *	Creates a new "blank portal."
+ */
+static void CreateNewBlankPortal ARGS((void));
 
 /*
  * ComputePortalNameHashIndex --
@@ -322,8 +331,15 @@ EnablePortalManager(on)
 			PortalHasPortalName,
 			NULL,
 			(Size)21 /* est:  7 open portals or less per user */);
+		CreateNewBlankPortal();
 
 	} else {	/* cleanup */
+		if (PortalIsValid(BlankPortal)) {
+			PortalDestroy(BlankPortal);
+			MemoryContextFree((MemoryContext)PortalMemory,
+				(Pointer)BlankPortal);
+			BlankPortal = NULL;
+		}
 		/*
 		 * Each portal must free its non-memory resources specially.
 		 */
@@ -355,9 +371,53 @@ GetPortalByName(name)
 	Portal	portal;
 
 	AssertState(PortalManagerEnabled);
+
+	if (PointerIsValid(name)) {	/* XXX PortalNameIsValid */
+		portal = (Portal)KeyHashTableLookup(PortalHashTable, name);
+	} else {
+		if (!PortalIsValid(BlankPortal)) {
+			CreateNewBlankPortal();
+		}
+		portal = BlankPortal;
+	}
+
+	return (portal);
+}
+
+Portal
+BlankPortalAssignName(name)
+	String	name;	/* XXX PortalName */
+{
+	Portal	portal;
+	uint16	length;
+
+	AssertState(PortalManagerEnabled);
+	AssertState(PortalIsValid(BlankPortal));
 	AssertArg(PointerIsValid(name));	/* XXX PortalName */
 
-	portal = (Portal)KeyHashTableLookup(PortalHashTable, name);
+	portal = GetPortalByName(name);
+	if (PortalIsValid(portal)) {
+		elog(WARN, "BlankPortalAssignName: portal %s existant", name);
+	}
+
+	/*
+	 * remove blank portal
+	 */
+	portal = BlankPortal;
+	BlankPortal = NULL;
+
+	/*
+	 * initialize portal name
+	 */
+	length = 1 + strlen(name);
+	portal->name = (String)MemoryContextAlloc(
+		(MemoryContext)&portal->variable, length);
+	strncpy(portal->name, name, length);
+
+	/*
+	 * put portal in table
+	 */
+	HashTableInsert(PortalHashTable, (Pointer)portal);
 
 	return (portal);
 }
@@ -372,6 +432,10 @@ CreatePortal(name)
 	AssertState(PortalManagerEnabled);
 	AssertArg(PointerIsValid(name));	/* XXX PortalName */
 
+	portal = GetPortalByName(name);
+	if (PortalIsValid(portal)) {
+		elog(WARN, "CreatePortal: portal %s existant", name);
+	}
 
 	/* make new portal structure */
 	portal = (Portal)MemoryContextAlloc((MemoryContext)PortalMemory,
@@ -409,16 +473,23 @@ PortalDestroy(portal)
 	AssertState(PortalManagerEnabled);
 	AssertArg(PortalIsValid(portal));
 
-	/* remove portal from table */
-	HashTableDelete(PortalHashTable, (Pointer)portal);
-
-	/* reset portal */
+	if (portal != BlankPortal) {
+		/*
+		 * remove portal from table
+		 */
+		HashTableDelete(PortalHashTable, (Pointer)portal);
+	}
+	/*
+	 * reset portal
+	 */
 	PortalResetHeapMemory(portal);
 	MemoryContextFree((MemoryContext)&portal->variable,
 		(Pointer)portal->name);
 	AllocSetReset(&portal->variable.setData);	/* XXX log */
 
-	MemoryContextFree((MemoryContext)PortalMemory, (Pointer)portal);
+	if (portal != BlankPortal) {
+		MemoryContextFree((MemoryContext)PortalMemory, (Pointer)portal);
+	}
 }
 
 /*
@@ -551,6 +622,48 @@ PortalHeapMemoryGetVariableMemory(context)
 /*
  * Private
  */
+
+static
+void
+CreateNewBlankPortal()
+{
+	Portal	portal;
+	uint16	length;
+
+	AssertState(!PortalIsValid(BlankPortal));
+
+	/*
+	 * make new portal structure
+	 */
+	portal = (Portal)MemoryContextAlloc((MemoryContext)PortalMemory,
+		sizeof *portal);
+
+	/*
+	 * initialize portal variable context
+	 */
+	NodeSetTag((Node)&portal->variable, classTag(PortalVariableMemory));
+	AllocSetInit(&portal->variable.setData, DynamicAllocMode, (Size)0);
+	portal->variable.method = &PortalVariableContextMethodsData;
+
+	/*
+	 * initialize portal heap context
+	 */
+	NodeSetTag((Node)&portal->heap, classTag(PortalHeapMemory));
+	portal->heap.block = NULL;
+	FixedStackInit(&portal->heap.stackData,
+		offsetof (HeapMemoryBlockData, itemData));
+	portal->heap.method = &PortalHeapContextMethodsData;
+
+	/*
+	 * set bogus portal name
+	 */
+	portal->name = "** Blank Portal **";
+
+	/*
+	 * install blank portal
+	 */
+	BlankPortal = portal;
+}
 
 static
 Index
