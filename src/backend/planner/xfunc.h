@@ -36,7 +36,7 @@ extern int XfuncMode;  /* defined in tcop/postgres.c */
 int xfunc_cinfo_compare ARGS((void *arg1 , void *arg2 ));
 extern int xfunc_clause_compare ARGS((void *arg1 , void *arg2 ));
 Cost xfunc_expense ARGS((LispValue clause ));
-Cost xfunc_join_expense ARGS((JoinPath path));
+Cost xfunc_join_expense ARGS((JoinPath path, int whichchild));
 Cost xfunc_local_expense ARGS((LispValue clause ));
 Cost xfunc_func_expense ARGS((LispValue node, LispValue args));
 List xfunc_find_references ARGS((LispValue clause));
@@ -45,7 +45,7 @@ extern void xfunc_disjunct_sort ARGS((LispValue clause_list ));
 int xfunc_disjunct_compare ARGS((void *arg1 , void *arg2 ));
 int xfunc_width ARGS((LispValue clause));
 extern void xfunc_trypullup ARGS((Rel rel));
-int xfunc_shouldpull ARGS((Path childpath, JoinPath parentpath, CInfo *maxclausept));
+int xfunc_shouldpull ARGS((Path childpath, JoinPath parentpath, int whichchild, CInfo *maxclausept));
 CInfo xfunc_pullup ARGS((Path childpath, JoinPath parentpath, LispValue clause, int whichrel, int clausetype));
 void xfunc_fixvars ARGS((LispValue clause, Path path, int varno));
 LispValue xfunc_primary_join ARGS((JoinPath pathnode));
@@ -55,8 +55,9 @@ LispValue xfunc_LispRemove ARGS((LispValue foo, List bar));
 int xfunc_func_width ARGS((regproc funcid, LispValue args));
 int xfunc_tuple_width ARGS((Relation rd));
 Cost xfunc_total_path_cost ARGS((Path pathnode));
-Cost xfunc_expense_per_tuple ARGS((JoinPath joinnode));
+Cost xfunc_expense_per_tuple ARGS((JoinPath joinnode, int whichchild));
 Count xfunc_card_unreferenced ARGS((LispValue clause));
+Count xfunc_card_product ARGS((Relid relids));
 
 
 /* protos from planner/path/predmig.c */
