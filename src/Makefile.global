@@ -179,7 +179,7 @@ INSTALL=/bin/installbsd
 # in src/tools/bsdinst if you don't already have it installed.
 INSTALL=bsdinst
 .endif
-.if (${PORTNAME} == "linux")
+.if (${PORTNAME} == "ultrix4" || ${PORTNAME} == "sparc" || ${PORTNAME} == "linux")
 INSTALL=/usr/bin/install
 .endif
 
