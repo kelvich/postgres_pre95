@@ -750,6 +750,11 @@ PostgresMain(argc, argv)
     signal(SIGTERM, die);
     signal(SIGPIPE, die);
     signal(SIGUSR1, quickdie);
+    {
+      extern void Async_NotifyHandler(void);
+      
+      signal(SIGUSR2, Async_NotifyHandler);
+    }
     /*
      * Turn off async portals for 4.0.1
      */
