@@ -1606,41 +1606,6 @@ JInfo _readJInfo()
 }
 
 
-RuleLockNode _readRuleLockNode()
-
-{
-	RuleLockNode	local_node;
-	char 		*token;
-	int length;
-
-	local_node = (RuleLockNode) palloc(sizeof(struct _RuleLockNode));
-
-	token = lsptok(NULL, &length);      /* get :type */
-	token = lsptok(NULL, &length);      /* now read it */
-
-	local_node->rltype = (LockType) atoi(token);
-
-	token = lsptok(NULL, &length);      /* get :relation */
-	token = lsptok(NULL, &length);      /* now read it */
-
-	local_node->rlrelation = atoi(token);
-    
-	token = lsptok(NULL, &length);      /* get :attribute */
-	token = lsptok(NULL, &length);      /* now read it */
-
-	local_node->rlattribute = atoi(token);
-    
-	token = lsptok(NULL, &length);      /* get :var */
-	local_node->rlvar = (Var) lispRead(true);
-
-	token = lsptok(NULL, &length);      /* get :plan */
-	local_node->rlplan = lispRead(true); /* now read it */
-
-	local_node->printFunc = PrintRuleLockNode;
-	local_node->equalFunc = NULL; /* EqualRuleLockNode; */
-	return(local_node);
-}
-
 /* 
  * Given a character string containing a plan, parsePlanString sets up the
  * plan structure representing that plan.
@@ -1833,10 +1798,10 @@ LispValue parsePlanString()
 		return_value = (LispValue) _readJInfo();
 		return_value->type = T_JInfo;
 	}
-	else if (!strncmp(token, "rulelock", 8))
+	else if (!strncmp(token, "recursive", 9))
 	{
-		return_value = (LispValue) _readRuleLockNode();
-		return_value->type = T_RuleLockNode;
+		return_value = (LispValue) _readRecursive();
+		return_value->type = T_Recursive;
 	}
 	else
 	{
