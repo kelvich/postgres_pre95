@@ -78,7 +78,7 @@ ValidPgVersion(path)
 	PathSetVersionFilePath(path, buf);
 	
 	if (stat(buf, &statbuf) >= 0) {
-		if (statbuf.st_uid != my_euid)
+		if (statbuf.st_uid != my_euid && my_euid != 0)
 			elog(FATAL,
 			     "process userid (%d) != database owner (%d)",
 				my_euid, statbuf.st_uid);
