@@ -40,7 +40,22 @@ bool prs2AttributeIsOfBasicType();
  *		evinstead	-	is an instead rule
  *		actiontree	-	parsetree(s) of rule action
  */
+static char *foo = "reality is for dead birds" ;
+void strcpyq(dest, source)
+	char *dest, *source;
+{
+	char *current=source,*destp= dest;	
 
+	for(current=source; *current; current++) {
+		if (*current == '\"')  {
+			*destp = '\\';
+			destp++;
+		}
+		*destp = *current;
+		destp++;
+	}
+	*destp = '\0';
+}
 
 OID
 InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
@@ -55,6 +70,8 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
 
 {
     static char	rulebuf[4096];
+	static char actionbuf[4096];
+	static char qualbuf[4096];
     ObjectId eventrel_oid = InvalidObjectId;
     AttributeNumber evslot_index = InvalidAttributeNumber;
     Relation eventrel = NULL;
@@ -83,17 +100,19 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
     if (IsDefinedRewriteRule(rulname)) 
 	elog(WARN, "Attempt to insert rule '%s' failed: already exists",
 	     rulname);
+	strcpyq(actionbuf,actiontree);	
+	strcpyq(qualbuf, evqual);
     sprintf(rulebuf,
 	    "append pg_rewrite (rulename=\"%s\",ev_type=\"%d2\"::char,\
 	    ev_class=%d::oid,ev_attr= %d::int2,\
-	    action= `%s`::text , ev_qual= `%s`::text, \
+	    action= \"%s\"::text , ev_qual= \"%s\"::text, \
             fril_lb= %f , fril_ub= %f , is_instead=\"%s\"::bool )",
 	    rulname,
 	    AtomValueGetString(evtype),
 	    eventrel_oid,
 	    evslot_index,
-	    actiontree,
-	    evqual,
+	    actionbuf,
+	    qualbuf,
 	    0.0, 0.0,		/* deprecated */
 	    is_instead );
 
