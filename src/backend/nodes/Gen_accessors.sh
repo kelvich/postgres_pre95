@@ -8,12 +8,13 @@
 # ----------------
 # 	initial definitions
 # ----------------
-CAT=/bin/cat
-CB=/usr/bin/cb
-CPP=/lib/cpp
-EGREP=/usr/bin/egrep
-RM=/bin/rm
-SED=/bin/sed
+CAT=cat
+CB=cb
+CPP=cpp
+PATH=/usr/lib:$PATH	# to find cpp if not in /usr/bin
+EGREP=egrep
+RM=rm
+SED=sed
 SEDTMP=/tmp/sedtmp.$$
 CTMP1=/tmp/ctmp1.$$
 SRC=$1
