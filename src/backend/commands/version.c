@@ -81,21 +81,24 @@ VersionCreate (vname, bname)
    *  Creating the dummy version relation for triggering rules.
    */
   sprintf(query_buf, "retrieve into %s ( %s.all) where 1 =2", vname,bname);
-/*  pg_eval (query_buf); */
+
+  pg_eval (query_buf); 
 
   /* 
    * Creating the ``v_added'' relation 
    */
   sprintf (query_buf, "retrieve into %s_added (%s.all) where 1 = 2", vname, bname);
-  printf ("%s\n",query_buf);
-/*  pg_eval (query_buf); */
+  pg_eval (query_buf); 
+
+/*  printf ("%s\n",query_buf); */
+
 
   /* 
    * Creating the ``v_deleted'' relation. 
    */
   sprintf (query_buf, "create %s_del(DOID = oid)", vname);
-  printf ("%s\n", query_buf);
-/*  pg_eval (query_buf); */
+
+  pg_eval (query_buf); 
 
 }
 
@@ -145,8 +148,9 @@ VersionAppend (vname,bname)
 %s_added(%s)",
 	  vname, vname, vname, attr_list);
 
-  printf("%s\n",rule_buf);
-/*  pg_eval(rule_buf); */
+  pg_eval(rule_buf); 
+/*  printf("%s\n",rule_buf); */
+
  
 }
 
@@ -170,9 +174,9 @@ VersionRetrieve(vname,bname)
 retrieve (%s_1.all) from %sb in %s, %s_1 in (%s_added | %sb) where %sb.oid !!= \"%s_del.DOID\"",
 	  vname, vname, vname, bname, bname, vname, vname, bname,bname,vname);
 
-  printf("%s\n",rule_buf);
+  pg_eval(rule_buf); 
 
-/*  pg_eval(rule_buf); */
+/*  printf("%s\n",rule_buf); */
 
 }
 
@@ -198,17 +202,18 @@ VersionDelete(vname,bname)
 delete %s_added where current.oid = %s_added.oid\n",
 	  vname,vname,vname,vname);
 
-  printf("%s\n",rule_buf);
-/*  pg_eval(rule_buf);  */
+  pg_eval(rule_buf); 
+
+/*  printf("%s\n",rule_buf); */
 
   sprintf(rule_buf,
 	  "define rewrite rule %s_delete2 is on delete to %s do instead \n \
 append %s_del(DOID = %s.oid) where current.oid = %s.oid \n",
 	  vname,vname,vname,bname,bname);
 
-  printf("%s\n",rule_buf);
+  pg_eval(rule_buf); 
 
-/*  pg_eval(rule_buf); */
+/*  printf("%s\n",rule_buf); */
 
 }
 
@@ -236,17 +241,18 @@ replace %s_added(%s) where current.oid = %s_added.oid \n",
 	  vname,vname,
 	  vname,attr_list,vname);
 
-  printf("%s\n",rule_buf);
-/*  pg_eval(rule_buf);  */
+  pg_eval(rule_buf); 
+
+/*  printf("%s\n",rule_buf); */
 
   sprintf(rule_buf,
 	  "define rewrite rule %s_replace2 is on replace to %s do \n\
 append %s_del(DOID = %s.oid) where current.oid = %s.oid\n",
 	  vname,vname,vname,bname,bname);
 
-  printf("%s\n",rule_buf);
+  pg_eval(rule_buf); 
 
-/*  pg_eval(rule_buf);  */
+/*  printf("%s\n",rule_buf); */
 
   sprintf(rule_buf,
 	  "define rewrite rule %s_replace3 is on replace to %s do instead\n\
@@ -254,10 +260,8 @@ append %s_added(%s) where current.oid !!= \"%s_added.oid\" and current.oid = \
 %s.oid\n",
 	  vname,vname, vname,attr_list,vname,bname);
 
-  printf("%s\n",rule_buf);
+  pg_eval(rule_buf); 
 
-/*  pg_eval(rule_buf);  */
 
 }
-
 
