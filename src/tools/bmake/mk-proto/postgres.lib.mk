@@ -41,9 +41,9 @@ OBJSTRIPPREFIX?=	/usr/
 	@${LD} -X -r ${.TARGET}
 	@mv a.out ${.TARGET}
 
-.if (${MACHINE} == "mips")
-NOPROFILE=1
-.endif
+#.if (${MACHINE} == "mips")
+#NOPROFILE=1
+#.endif
 
 .s.o:
 	${CPP} -E ${CFLAGS:M-[ID]*} ${AINC} ${.IMPSRC} | \
@@ -117,15 +117,17 @@ beforeinstall:
 .endif
 
 realinstall: beforeinstall
-	ranlib lib${LIB}.a
-	install -o ${LIBOWN} -g ${LIBGRP} -m ${LIBMODE} lib${LIB}.a \
-	    ${DESTDIR}${LIBDIR}
-	${RANLIB} -t ${DESTDIR}${LIBDIR}/lib${LIB}.a
+	install -c -o ${LIBOWN} -g ${LIBGRP} -m 664 lib${LIB}.a \
+	    ${DESTDIR}${LIBDIR}/lib${LIB}.a; \
+	cd ${DESTDIR}${LIBDIR}; \
+	ranlib lib${LIB}.a; \
+	chmod ${LIBMODE} lib${LIB}.a
 .if !defined(NOPROFILE)
-	ranlib lib${LIB}_p.a
-	install -o ${LIBOWN} -g ${LIBGRP} -m ${LIBMODE} \
-	    lib${LIB}_p.a ${DESTDIR}${LIBDIR}
-	${RANLIB} -t ${DESTDIR}${LIBDIR}/lib${LIB}_p.a
+	install -c -o ${LIBOWN} -g ${LIBGRP} -m 664 \
+	    lib${LIB}_p.a ${DESTDIR}${LIBDIR}/lib${LIB}_p.a; \
+	cd ${DESTDIR}${LIBDIR}; \
+	ranlib lib${LIB}_p.a; \
+	chmod ${LIBMODE} lib${LIB}_p.a
 .endif
 #	install -c -o ${LIBOWN} -g ${LIBGRP} -m ${LIBMODE} \
 #	    llib-l${LIB}.ln ${DESTDIR}${LINTLIBDIR}
@@ -164,7 +166,7 @@ tags: ${SRCS}
 #	    sed "s;\${.CURDIR}/;;" > tags
 .endif
 
-.include <bsd.man.mk>
+.include <postgres.man.mk>
 .if !target(obj)
 .if defined(NOOBJ)
 obj:
@@ -180,3 +182,31 @@ obj:
 	fi;
 .endif
 .endif
+
+.if !target(objdir)
+.if defined(NOOBJ)
+objdir:
+.else
+objdir:
+	@cd ${.CURDIR}; \
+	dest=`ls -ld obj | awk '{print $$NF}'`; \
+	if test ! -d $$dest; then \
+		bmkdir -p $$dest; \
+	else \
+		true; \
+	fi;
+.endif
+.endif
+
+.if !target(localobj)
+.if defined(NOOBJ)
+localobj:
+.else
+localobj:
+	@-cd ${.CURDIR}; \
+	rm -f obj >/dev/null 2>&1; \
+	mkdir obj 2>/dev/null; \
+	true
+.endif
+.endif
+

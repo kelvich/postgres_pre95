@@ -71,17 +71,9 @@ lint: _SUBDIRUSE
 .endif
 
 #
-# Try building objs for subdirs too (so users can put local
+# Build objs for subdirs too (so users can put local
 # Makefiles in them)
 # 
-#.if !target(obj)
-#obj: _SUBDIRUSE
-#.endif
-#
-#.if !target(objdir)
-#objdir: _SUBDIRUSE
-#.endif
-#
 .if !target(obj)
 .if defined(NOOBJ)
 obj: _SUBDIRUSE
@@ -104,12 +96,24 @@ objdir: _SUBDIRUSE
 .else
 objdir: _SUBDIRUSE
 	@cd ${.CURDIR}; \
-	here=`pwd`; dest=${OBJDEST}`echo $$here | sed 's,${OBJSTRIPPREFIX},,'`; \
+	dest=`ls -ld obj | awk '{print $$NF}'`; \
 	if test ! -d $$dest; then \
 		bmkdir -p $$dest; \
 	else \
 		true; \
 	fi;
+.endif
+.endif
+
+.if !target(localobj)
+.if defined(NOOBJ)
+localobj: _SUBDIRUSE
+.else
+localobj: _SUBDIRUSE
+	@-cd ${.CURDIR}; \
+	rm -f obj >/dev/null 2>&1; \
+	mkdir obj 2>/dev/null; \
+	true
 .endif
 .endif
 

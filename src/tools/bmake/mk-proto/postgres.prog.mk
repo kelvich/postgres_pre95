@@ -130,11 +130,7 @@ afterinstall:
 realinstall: _PROGSUBDIR
 .if defined(PROG)
 	install ${STRIP} -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
-	    ${PROG} ${DESTDIR}${BINDIR}
-.endif
-.if defined(HIDEGAME)
-	(cd ${DESTDIR}/usr/games; rm -f ${PROG}; ln -s dm ${PROG}; \
-	    chown games.bin ${PROG})
+	    ${PROG} ${DESTDIR}${BINDIR}/${PROG}
 .endif
 .if defined(LINKS) && !empty(LINKS)
 	@set ${LINKS}; \
@@ -183,7 +179,7 @@ objdir: _PROGSUBDIR
 .else
 objdir: _PROGSUBDIR
 	@cd ${.CURDIR}; \
-	here=`pwd`; dest=${OBJDEST}`echo $$here | sed 's,${OBJSTRIPPREFIX},,'`; \
+	dest=`ls -ld obj | awk '{print $$NF}'`; \
 	if test ! -d $$dest; then \
 		bmkdir -p $$dest; \
 	else \
@@ -191,6 +187,19 @@ objdir: _PROGSUBDIR
 	fi;
 .endif
 .endif
+
+.if !target(localobj)
+.if defined(NOOBJ)
+localobj:
+.else
+localobj:
+	@-cd ${.CURDIR}; \
+	rm -f obj >/dev/null 2>&1; \
+	mkdir obj 2>/dev/null; \
+	true
+.endif
+.endif
+
 
 .if !target(tags)
 tags: _linktags _maketags
@@ -234,7 +243,7 @@ _linktags::
 	-cd ${.CURDIR};\
 		TAGFILE=`pwd`/tags; \
 		find * -name tags -exec rm -f {} \; ; \
-		find * -type d -exec ln -s $$TAGFILE {} \; ;
+		find * ! -name RCS -type d -exec ln -s $$TAGFILE {} \; ;
 .endif
 .endif
 
@@ -242,8 +251,4 @@ _linktags::
 .include <postgres.man.mk>
 .else
 maninstall:
-.endif
-
-.if exists("./Makefile.local")
-.include "./Makefile.local"
 .endif

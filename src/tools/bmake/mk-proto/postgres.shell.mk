@@ -151,12 +151,24 @@ objdir: _PROGSUBDIR
 .else
 objdir: _PROGSUBDIR
 	@cd ${.CURDIR}; \
-	here=`pwd`; dest=${OBJDEST}`echo $$here | sed 's,${OBJSTRIPPREFIX},,'`; \
+	dest=`ls -ld obj | awk '{print $$NF}'`; \
 	if test ! -d $$dest; then \
 		bmkdir -p $$dest; \
 	else \
 		true; \
 	fi;
+.endif
+.endif
+
+.if !target(localobj)
+.if defined(NOOBJ)
+localobj:
+.else
+localobj:
+	@-cd ${.CURDIR}; \
+	rm -f obj >/dev/null 2>&1; \
+	mkdir obj 2>/dev/null; \
+	true
 .endif
 .endif
 
