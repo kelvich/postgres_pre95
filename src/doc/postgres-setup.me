@@ -19,7 +19,7 @@
 .\" provided "as is" without express or implied warranty.
 .\" 
 .\" ----------------------------------------------------------------
-.\"	POSTGRES version 4.1 setup instructions
+.\"	POSTGRES version 4.2 setup instructions
 .\"
 .\" ----------------------------------------------------------------
 .de RV
@@ -58,12 +58,11 @@ Release \*(PV
 .(l
     Introduction
     Site Requirements
-	Hardware
-	Software
+	Hardware and Software
 	Distribution Tape
 	Expertise
 	Configuration
-	    Operating System
+	    Programming Environment
 	    Disk Requirements
 	    Kernel
     Installing \*(PG
@@ -71,12 +70,23 @@ Release \*(PV
 	    Finding a Good Place for \*(PG
 	    Creating the \*(PG Directory
 	    Creating the \*(PG User
-	Loading \*(PG From Tape
-	Loading \*(PG From a Tar File
-	Configuration
-	    Kernel Reconfiguration for Sparcs
-	    Kernel Reconfiguration for DEC's
+	Loading \*(PG
+	    Loading \*(PG From Tape
+	    Loading \*(PG From a Tar File
+	Kernel Configuration
+	    Kernel Reconfiguration for SPARCs
+	    Kernel Reconfiguration for DECs (Ultrix only)
+	Compiler Configuration
+	    Setup for Solaris 2
+	    Setup for HP-UX
 	Compiling and Installing \*(PG
+	    Customization
+	    Installing \*(lqbsdinst\*(rq (HP-UX only)
+	    Installing \*(lqsolcc\*(rq (Solaris only)
+	    Bootstrapping \*(lqbmake\*(rq
+	    Building and installing \*(lqlibdl\*(rq (Ultrix only)
+	    Installing \*(lqmkldexport\*(rq (AIX only)
+	    Compile and Install
 	Creating the Initial Database
 	Testing
     Running \*(PG
@@ -122,53 +132,41 @@ software.
 .\" ----------------
 .sh 1 "Site Requirements"
 .lp
-.sh 2 "Hardware"
+.sh 2 "Hardware and Software"
 .lp
 \*(PG currently has been tested by the \*(PG development team on the
 following systems:
 .bu
 Digital Equipment DECstation 3000 series (Alpha AXP architecture)
-machines running Alpha OSF/1 1.3.
+machines running DEC OSF/1 1.3 and 2.0.
 .bu
 Digital Equipment DECstation 3100 and 5000 series (MIPS architecture)
 machines running Ultrix 4.2A and 4.3A.
 .bu
 Hewlett-Packard H-P 9000 Series 700 and 800 (PA-RISC architecture) 
-machines running HP-UX 9.00 and 9.01.
+machines running HP-UX 9.00, 9.01 and 9.03.
 .bu
 International Business Machines RS/6000 (POWER architecture) machines
 running AIX 3.2.5.
 .bu
-Sun Microsystems (SPARC architecture) machines running SunOS 4.1.2
-(Solaris 1.0.1) and 4.1.3.  (\*(PG will \fBnot\fP run on machines
-running SunOS 5.x (Solaris 2.x)).
+Sun Microsystems (SPARC architecture) machines running SunOS 4.1.3,
+(Solaris 1.0.1), SunOS 4.1.3_U1 and Solaris 2.3.
 .lp
 In order to use \*(PG, your machine should have at least 8 megabytes
 of memory and you will require at least 45 megabytes of disk space to
 hold source, binaries, and user databases.  If you choose to compile
 \*(PG for source-level debugging, you will need roughly twice as much
 disk space.  See the section on compilation for details.
-.lp
-The Ultrix version requires a kernel which allows 4 megabytes of
-shared memory.  Also, the original release of Ultrix 4.3 has a kernel
-bug that causes the operating system to hang when running \*(PG.  The
-bug is in the shared memory module in the kernel, and a patch is
-available from DEC which fixes the bug.  Contact your DEC
-representative for patch number CLD-CXO09447.  (This patch has been
-included in Ultrix 4.3a.)
-.sh 2 "Software"
 .sh 2 "Distribution Tape"
 .lp
 These instructions assume you have a \*(PG Version \*(PV distribution
-tape (in either SCSI cartridge or DEC TK50 cartridge
-format) or a \*(PG tar file.  
-The previous version of \*(PG came with pre-compiled binaries for
-the SPARC and Ultrix platforms, however this release is a source
-distribution only.  The source code is available in tar format over
-the Internet via anonymous ftp from the site s2k-ftp.CS.Berkeley.EDU.
-Look in the directory \f(CWpub/postgres/postgres-v4r2\fP.  The 
-compressed tar file containing the complete source distribution 
-is named \f(CWpostgres-v4r2.tar.Z\fP.
+tape (in either SCSI cartridge or DEC TK50 cartridge format) or a
+\*(PG tar file.  This release is a source distribution only.  The
+source code is available in tar format over the Internet via anonymous
+ftp from the site \f(CWs2k-ftp.CS.Berkeley.EDU\fP.  Look in the
+directory \f(CWpub/postgres/postgres-v4r2\fP.  The compressed tar file
+containing the complete source distribution is named
+\f(CWpostgres-v4r2.tar.Z\fP.
 .sh 2 "Expertise"
 .lp
 Once a site is properly configured and \*(PG is installed,
@@ -191,30 +189,40 @@ yourself with the procedure.
 Detailed instructions for making
 appropriate modifications to your system are given later in this
 document.
-.sh 3 "Operating System"
+.sh 3 "Programming Environment"
 .lp
-\*(PG expects things to be configured for BSD by default.
-If the default on your site is to use the SunOS System V compiler
-and libraries then you may have to make some changes to this
-procedure before compiling \*(PG.
+Some compiler environments must be modified in certain ways.  For
+example, under SunOS 4.x, \*(PG expects things to be configured for
+BSD by default.  If the default on your site is to use the SunOS 4.x
+System V compiler and libraries then you may have to make some changes
+to this procedure before compiling \*(PG.  Under other systems, you
+may have to apply patches to your compiler.  We will describe such
+modifications later.
 .lp
 To compile this release from sources requires a new version of
-make which comes from the latest BSD release.  A bootstrapping
-version of the make sources is included with this release.
-The make program
-is installed using the name \f(CWbmake\fP to avoid any conflict with
-your native make.
+\f(CWmake\fP which comes from the latest BSD release.  A bootstrapping
+version of the \f(CWmake\fP sources is included with this release and
+additional instructions are provided below.  The new \f(CWmake\fP
+program is installed as \f(CWbmake\fP to avoid any conflict with your
+native \f(CWmake\fP.
 .sh 3 "Disk Requirements"
 .lp
-\*(PG requires 50 megabytes of disk space,
-preferably on a single partition, to compile and install from sources.
+\*(PG requires 50 megabytes of disk space, preferably on a single
+partition, to compile and install from sources.  (As with any program,
+it may require 2-3 times as much space if you compile the system with
+optimization turned off and compiler debugging support turned on.)
 .sh 3 "Kernel"
 .lp
 \*(PG makes use of the System V inter-process communication (shared
 memory and semaphore) operations provided by the operating system.
-SunOS and Ultrix require a properly configured kernel which is in
-general different than the factory-shipped generic kernel.  See the
-section on kernel configuration for details.
+Ultrix requires a properly configured kernel which is in general
+different than the factory-shipped generic kernel.  See the section on
+kernel configuration for details.  Also, the original release of
+Ultrix 4.3 has a kernel bug that causes the operating system to hang
+when running \*(PG.  The bug is in the shared memory module in the
+kernel, and a patch is available from DEC which fixes the bug.
+Contact your DEC representative for patch number CLD-CXO09447.  (This
+patch has been included in Ultrix 4.3a.)
 .\" ----------------
 .\"    Installation
 .\" ----------------
@@ -305,7 +313,7 @@ UID 6 was removed in \*(PG Version 4.0.1.
 .\" ----------------
 .\"    Loading
 .\" ----------------
-.sh 2 "Step 2 - Loading \*(PG"
+.sh 2 "Step 2 \- Loading \*(PG"
 .lp
 Now you are ready to load
 the \*(PG files onto your system.
@@ -335,7 +343,7 @@ system administrator for instructions.
 .lp
 Proceed to the next section \*(lqLoading \*(PG from a Tar File.\*(rq
 .lp
-.sh 2 "Loading \*(PG from a Tar File"
+.sh 3 "Loading \*(PG from a Tar File"
 .lp
 If you are not logged in as \f(CWpostgres\fP already, do so now.
 .lp
@@ -379,7 +387,7 @@ file to get back the space.
 .\" ----------------
 .\"    Configuration
 .\" ----------------
-.sh 2 "Step 3 - Kernel Configuration"
+.sh 2 "Step 3 \- Kernel Configuration"
 .lp
 This step requires familiarity with configuring a UNIX kernel.
 If you are unfamiliar with this procedure,
@@ -406,14 +414,14 @@ manual pages for \f(CWshmget(3)\fP, \f(CWshmop(3)\fP,
 \f(CWshmctl(3)\fP, etc.  Now proceed to the appropriate section for
 your machine.
 .lp
-.sh 3 "Kernel reconfiguration for Sparcs"
+.sh 3 "Kernel reconfiguration for SPARCs"
 .lp
 We previously suggested that you reconfigure your kernel under
 SunOS.  However, the parameters in the generic kernel of current
 releases of SunOS ought to suffice.  (We never reconfigure our
 kernels and have not noticed any problems while running several
 \f(CWpostmaster\fPs at once.)
-.sh 3 "Kernel reconfiguration for DECs"
+.sh 3 "Kernel reconfiguration for DECs (Ultrix only)"
 .lp
 In order to reconfigure your DECstation 3100 or 5000 Ultrix kernel,
 you will have to become the superuser and add some lines to
@@ -421,7 +429,7 @@ you will have to become the superuser and add some lines to
 .lp
 Remember that Ultrix 4.3 has a kernel bug that causes the
 operating system to hang when running \*(PG.  You should apply
-the DEC supplied patch at this point if you have not already.
+the DEC-supplied patch at this point if you have not already.
 .lp
 The following lines should be added to \f(CW/usr/sys/conf/KERNEL\fP:
 .sp
@@ -438,9 +446,67 @@ file, install the new kernel (saving a copy of the old kernel first!)
 and reboot.
 .sp
 .\" ----------------
+.\"    
+.\" ----------------
+.sh 2 "Step 4 \- Compiler Configuration"
+.lp
+.sh 3 "Setup for Solaris 2"
+.lp
+\*(PG should build without problems using the SunPro SPARCompiler (we
+used version 3.0).  If you do not have the SunPro compiler, you must
+use a version of the GNU C compiler that fully implements the
+\f(CW-munaligned-doubles\fP option.  You may FTP a suitable set of
+binaries from \f(CWs2k-ftp.CS.Berkeley.EDU\fP in the directory
+\f(CWpub/postgres/useful\fP, or you can rebuild your own copy of the
+GNU C compiler with the required change.  The current version as of
+this writing is 2.5.8, which must be modified with the following
+one-line patch:
+.(l M
+.ft CW
+--- 1,19 ----
++ *** config/sparc/sparc.c      Thu Apr  7 09:30:30 1994
++ --- config/sparc/sparc.c.orig Thu Apr  7 09:31:35 1994
++ ***************
++ *** 1067,1073 ****
++        is true, in which case we can only assume that an access is aligned if
++        it is to an aggregate, it is to a constant address, or the address
++        involves a LO_SUM.  */
++ !   else if (! TARGET_UNALIGNED_DOUBLES /* || MEM_IN_STRUCT_P (mem) */
++          || CONSTANT_P (addr) || GET_CODE (addr) == LO_SUM)
++       return 1;
++   
++ --- 1067,1073 ----
++        is true, in which case we can only assume that an access is aligned if
++        it is to an aggregate, it is to a constant address, or the address
++        involves a LO_SUM.  */
++ !   else if (! TARGET_UNALIGNED_DOUBLES || MEM_IN_STRUCT_P (mem)
++          || CONSTANT_P (addr) || GET_CODE (addr) == LO_SUM)
++       return 1;
++   
+.ft P
+.)l
+We have been told that a later version of the GNU C compiler may
+incorporate this change (this patch has been sent to both Cygnus
+Support and the FSF).
+.sh 3 "Setup for HP-UX"
+.lp
+You cannot build \*(PG without the unbundled C compiler.  Neither the
+GNU C compiler nor the (crippled) C compiler that comes with stock
+HP-UX will work, as both are missing critical compiler options.
+.lp
+If you are running HP-UX 9.03, you 
+.b must
+apply patch PHSS_4307 (or a cumulative patch that supercedes this
+patch) to your system, as the C preprocessor for HP-UX 9.03 has severe
+problems.  We cannot provide you with this patch; you must obtain it
+from your H-P support representative.  Note that \*(PG should build
+without problems on 9.01, so you can always build the binaries on a
+9.01 system and use them on a 9.03 system.
+.sp
+.\" ----------------
 .\"    Compiling and installing postgres
 .\" ----------------
-.sh 2 "Compiling and Installing \*(PG"
+.sh 2 "Step 5 \- Compiling and Installing \*(PG"
 .lp
 The sources for \*(PG are all under the directory \f(CWsrc/\fP.  
 .sh 3 "Build Step 1: Customization"
@@ -459,6 +525,7 @@ aix
 alpha
 hpux
 sparc
+sparc_solaris
 ultrix4
 .)l
 are all valid choices.
@@ -478,17 +545,13 @@ proceeding.
 Standards notwithstanding, every system has an \f(CWinstall\fP program
 with slightly different options and behavior.  Our Makefiles assume
 that \f(CWinstall\fP accepts BSD (as opposed to System V) options.
-For example, the \f(CWinstall\fP that comes with SunOS and Ultrix
-accept BSD options.  However, the default OSF/1, HP-UX and AIX installation
-programs do not.  You can set the INSTALL variable to control which
-program is called.  On OSF/1, set INSTALL to \f(CW/bin/installbsd\fP.
-On AIX, use \f(CW/usr/ucb/install\fP instead of \f(CW/bin/install\fP.
-On HP-UX, you will have to find a BSD-compatible installation program
-and set INSTALL to the location of this program.  \f(CWbsdinst\fP,
-which comes with the MIT X Window System distribution (in
-\f(CWmit/util/scripts\fP), is widely available (we include it in
-the \f(CWsrc/tools\fP directory) and works acceptably.
-The GNU \f(CWinstall\fP program does not.
+Where possible, we set the INSTALL variable to ensure that the BSD
+program is called.  However, on HP-UX you will have to find a
+BSD-compatible installation program and set INSTALL to the location of
+this program.  \f(CWbsdinst\fP, which comes with the MIT X Window
+System distribution (in \f(CWmit/util/scripts\fP), is widely available
+(we even include it in the \f(CWsrc/tools\fP directory) and works
+acceptably.  The GNU \f(CWinstall\fP program does not.
 .lp
 If you are not installing \*(PG using superuser privileges, or you are
 installing \*(PG without creating a \*(lqpostgres\*(rq user, you may
@@ -510,13 +573,27 @@ to prevent the \f(CWinstall\fP program from complaining.
 If you absolutely insist on having a \*(PG user other than
 .q postgres ,
 set the variable POSTGRESLOGIN to the name of that user.
-.sh 3 "On HP-UX only: installing bsdinst"
+.sh 3 "Installing \*(lqbsdinst\*(rq (HP-UX only)"
 .lp
 We told you about this above, but in case you missed it, you will 
 have to install \f(CWbsdinst\fP from \f(CWsrc/tools/bsdinst\fP
 if you don't have it installed already.  You can just copy the 
 shell script \f(CWbsdinst.sh\fP into some convenient place (probably 
 \f(CW/usr/local/bin\fP) as \f(CWbsdinst\fP.
+.sh 3 "Installing \*(lqsolcc\*(rq (Solaris only)"
+.lp
+If you are using the GNU C compiler under Solaris 2.3, you must now
+install the small wrapper in \f(CWsrc/tools/solcc\fP into some
+convenient place (probably \f(CW/usr/local/bin\fP).  You will have to
+edit this wrapper, changing the line 
+.(l
+GCCBINDIR=/opt/gnu/bin
+.)l
+to point to the directory where you have your (modified) version of
+\f(CWgcc\fP installed.
+.lp
+If you are using the SunPro SPARCompiler, you do not have to install
+\f(CWsolcc\fP.
 .sh 3 "Build Step 2: Bootstrapping \*(lqbmake\*(rq"
 .lp
 Because the \f(CWbmake\fP program is normally installed into
@@ -537,13 +614,18 @@ reported problems getting old versions of GNU \f(CWmake\fP to work).
 % \fB./Bootstrap\fP \fIportname\fP
 .)l
 where \fIportname\fP is the value of PORTNAME (ultrix4, sparc, etc).
-This should compile
+If you are using the GNU C compiler under Solaris 2.3, type
+.(l
+% \fB./Bootstrap\fP \fIportname\fP \fBsolcc\fP
+.)l
+to specify the correct compiler.
+This script should compile
 and install the \f(CWbmake\fP program and its supporting files,
 including the \*(PG-related Makefile templates.  If all went well you
-will now be able to use the new make program by typing \f(CWbmake\fP,
+will now be able to use the new program by typing \f(CWbmake\fP,
 assuming you have \f(CW/usr/local/bin\fP in your shell path.  You may
 have to type \f(CWrehash\fP if you run \f(CWcsh\fP.
-.sh 3 "On Ultrix only: building and installing libdl"
+.sh 3 "Building and installing \*(lqlibdl\*(rq (Ultrix only)"
 .lp
 This version of \*(PG uses the \f(CWdlopen(3)\fP interface to 
 implement dynamic function loading.  Since there is no such 
@@ -565,7 +647,7 @@ TOOLSLIBDIR (this is \f(CW/usr/local/lib\fP by default).
 If your linker/loader
 doesn't search here by default (it usually does), you may have to 
 \f(CWranlib(1)\fP on it.
-.sh 3 "On AIX only: installing mkldexport"
+.sh 3 "Installing \*(lqmkldexport\*(rq (AIX only)"
 .lp
 \f(CWCd\fP into \f(CWsrc/tools/mkldexport\fP and type
 .(l
@@ -595,7 +677,7 @@ This will save the results in the file \f(CWmk.log\fP so you
 can inspect it later.  This would be an ideal opportunity to get
 some doughnuts and coffee.
 .sp
-.sh 2 "Creating the initial database"
+.sh 2 "Step 5 \- Creating the initial database"
 .lp
 \*(PG databases are stored in the directory \f(CW.../postgres/data\fP.
 After you have compiled \*(PG, you will need to create the
@@ -630,7 +712,7 @@ The section after \*(lqTesting\*(rq discusses this.
 .\" ----------------
 .\"    Testing
 .\" ----------------
-.sh 2 "Step 4 - Testing"
+.sh 2 "Step 6 \- Testing"
 .lp
 We suggest you run the regression tests to make sure the release
 was installed successfully.  
@@ -639,12 +721,12 @@ running to run the test, so type the following:
 .(l
 % \fBTZ=GMT0\fP
 % \fBexport TZ\fP
-% \fBpostmaster &\fP
+% \fBpostmaster -S\fP
 .)l
 if you use \f(CWsh\fP or \f(CWksh\fP.  If you use \f(CWcsh\fP, type
 .(l
 % \fBsetenv TZ GMT0\fP
-% \fBpostmaster &\fP
+% \fBpostmaster -S\fP
 .)l
 instead.  The bit about 
 .q TZ
@@ -679,15 +761,14 @@ command:
 .(l
 % \fBsh checkdiff\fP
 .)l
-It may take a little while to run as the regression results are
-quite large.
-There will be many differences corresponding to
-the timestamp lines and occasional lines where object id numbers (OIDs)
-are different.  The \f(CWcheckdiff\fP program attempts to
-weed out these innocuous differences.
-If you see any differences not corresponding to timestamps or OIDs,
-there may be a problem.  Have your local \*(PG expert take a look
-at it.
+It may take a little while to run as the regression results are quite
+large.  There will be many differences corresponding to the timestamp
+lines and occasional lines where object id numbers (OIDs) are
+different.  The \f(CWcheckdiff\fP program attempts to weed out these
+innocuous differences.  If you see any differences not corresponding
+to timestamps, OIDs or very small differences between floating-point
+numbers, there may be a problem.  Have your local \*(PG expert take a
+look at it.
 .sp
 .\" ----------------
 .\"    Running
@@ -873,7 +954,7 @@ you may wish to copy this file to \f(CW/usr/local/lib\fP or
 \f(CW-lpq\fP.  If you do not, you will have to use the \f(CW-L\fP
 directive to the \f(CWcc\fP and \f(CWld\fP commands so that they can
 find \f(CWlibpq.a\fP.
-.sh 2 "Postgres header files"
+.sh 2 "Postgres Header Files"
 .lp
 The directory \f(CW.../include\fP contains copies of most of the header
 files that front-end applications might need.  You can compile
@@ -884,7 +965,7 @@ as illustrated in the following example:
 .)l
 .lp
 Occassionally a front-end program source might reference header files
-from the postgres source that were not copied into the include
+from the \*(PG source that were not copied into the \f(CWinclude\fP
 directory.
 If your front-end program
 complains about not being able to find header files, either
@@ -983,7 +1064,7 @@ showing the bug.  If possible, a stack trace (generated using a
 debugger such as \f(CWdbx\fP or \f(CWgdb\fP) should also be provided.
 (The backend program will leave its core dumps in the directory
 PGDATA\f(CW/base/your_database\fP, where \*(lqyour_database\*(rq is
-the name of your database.)
+the name of your database.)  However, see the next section.
 .sh 2 "Consulting"
 .lp
 This software is unsupported,

@@ -247,29 +247,28 @@ c|c|c
 l|l|l.
 architecture|processor|operating system
 =
-DECstation 3000|Alpha AXP|OSF/1 1.3
-DECstation 3100 and 5000|MIPS|ULTRIX 4.2, 4.3A
-Sun4|SPARC|SunOS 4.1.3
-H-P 9000/700 and 800|PA-RISC|HP-UX 9.00, 9.01
+DECstation 3000|Alpha AXP|OSF/1 1.3, 2.0
+DECstation 3100 and 5000|MIPS|ULTRIX 4.2A, 4.3A
+Sun4|SPARC|SunOS 4.1.3, 4.1.3_U1; Solaris 2.3
+H-P 9000/700 and 800|PA-RISC|HP-UX 9.00, 9.01, 9.03
 IBM RS/6000|POWER|AIX 3.2.5
 .TE
 .(f
-\*(UU is a trademark of Unix Systems Laboratories.  Sun4, SPARC, SunOS
-and Solaris are trademarks of Sun Microsystems, Inc.  DEC, DECstation,
-Alpha AXP and ULTRIX are trademarks of Digital Equipment Corp.
-PA-RISC and HP-UX are trademarks of Hewlett-Packard Co.  RS/6000,
-POWER and AIX are trademarks of International Business Machines Corp.
-OSF/1 is a trademark of the Open Systems Foundation.  NeXTSTEP is a
-trademark of NeXT Computer, Inc.  MIPS and IRIX are trademarks of
-Silicon Graphics, Inc.
+\*(UU is a trademark of X/Open, Ltd.  Sun4, SPARC, SunOS and Solaris
+are trademarks of Sun Microsystems, Inc.  DEC, DECstation, Alpha AXP
+and ULTRIX are trademarks of Digital Equipment Corp.  PA-RISC and
+HP-UX are trademarks of Hewlett-Packard Co.  RS/6000, POWER and AIX
+are trademarks of International Business Machines Corp.  OSF/1 is a
+trademark of the Open Systems Foundation.  NeXTSTEP is a trademark of
+NeXT Computer, Inc.  MIPS and IRIX are trademarks of Silicon Graphics,
+Inc.
 .)f
 Previous versions of \*(PP ran on Sun Microsystems Sun3 and Sequent
-Symmetry machines.  \*(PP no longer runs on these systems, nor does it
-currently run on Sun Microsystems computers running the Solaris 2
-(SunOS 5) operating system.  Outside users have ported previous
-releases of \*(PP to many platforms, including 
+Symmetry machines.  \*(PP no longer runs on these systems.  Outside
+users have ported previous releases of \*(PP to many platforms,
+including
 .sm NeXTSTEP ,
-Solaris 2.2, IRIX, Intel System V Release 4, Linux and NetBSD.
+IRIX 5.2, Intel System V Release 4, Linux, FreeBSD and NetBSD.
 .lp
 Version \*(PV has been tuned modestly.  On the Wisconsin benchmark,
 one should expect performance about twice that of the public domain,
@@ -4882,10 +4881,11 @@ to do the link-editing automatically if both the object file and the
 shared object file end in
 .cW ".o" !
 .)f
-.uh "SunOS 4 and HP-UX"
+.uh "SunOS 4.x, Solaris 2.x and HP-UX"
 .lp
-Under both SunOS 4 and HP-UX, the simple object file must be created
-by compiling the source file with special compiler flags
+Under both SunOS 4.x, Solaris 2.x and HP-UX, the simple object file
+must be created by compiling the source file with special compiler
+flags
 .i and
 a shared library must be produced.
 .lp
@@ -4915,11 +4915,19 @@ must give it the location of the shared library, or
 .cW ".sl"
 file).
 .lp
-Under SunOS 4, the commands look like:
+Under SunOS 4.x, the commands look like:
 .(C
-	# simple SunOS 4 example
+	# simple SunOS 4.x example
 	% cc -PIC -c foo.c
 	% ld -dc -dp -Bdynamic -o foo.so foo.o
+.)C
+and the equivalent lines under Solaris 2.x are:
+.(C
+	# simple Solaris 2.x example
+	% cc -K PIC -c foo.c
+		or
+	% gcc -fPIC -c foo.c
+	% ld -G -Bdynamic -o foo.so foo.o
 .)C
 When linking shared libraries, you may have to specify some additional
 shared libraries (typically system libraries, such as the C and math

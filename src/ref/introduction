@@ -57,16 +57,17 @@ based on
 .SM MIPS
 R2000 and R3000 processors (under Ultrix 4.2A and 4.3A), Digital
 Equipment Corporation computers based on Alpha AXP (DECchip 21064)
-processors (under OSF/1 1.3), Sun Microsystems computers based on
+processors (under OSF/1 1.3 and 2.0), Sun Microsystems computers based
+on
 .SM SPARC
-processors (under SunOS 4.1.3), Hewlett-Packard Model 9000 Series 700
-and 800 computers based on PA-RISC processors (under HP-UX 9.00 and
-9.01), and International Business Machines RS/6000 computers based on
-POWER processors (under AIX 3.2.5).  \*(PG users have ported previous
-releases of the system to many other architectures and operating
-systems, including
+processors (under SunOS 4.1.3 and Solaris 2.3), Hewlett-Packard Model
+9000 Series 700 and 800 computers based on PA-RISC processors (under
+HP-UX 9.00, 9.01 and 9.03), and International Business Machines
+RS/6000 computers based on POWER processors (under AIX 3.2.5).  \*(PG
+users have ported previous releases of the system to many other
+architectures and operating systems, including
 .SM NeXTSTEP ,
-Solaris 2.2, IRIX, Intel System V Release 4, Linux and NetBSD.
+IRIX 5.1, Intel System V Release 4, Linux, FreeBSD and NetBSD.
 .SH "\*(PG DOCUMENTATION"
 This reference manual describes the functionality of Version \*(PV and
 contains notations where appropriate to indicate which features are
@@ -172,11 +173,11 @@ Office, 295 Evans Hall, University of California, Berkeley, Ca.,
 the suitability of this software for any purpose.  It is provided
 \*(lqas is\*(rq without express or implied warranty.
 .PP
-\*(UU is a trademark of Unix Systems Laboratories.  Sun4, SPARC, SunOS
-and Solaris are trademarks of Sun Microsystems, Inc.  DEC, DECstation,
-Alpha AXP and ULTRIX are trademarks of Digital Equipment Corp.
-PA-RISC and HP-UX are trademarks of Hewlett-Packard Co.  RS/6000,
-POWER and AIX are trademarks of International Business Machines Corp.
-OSF/1 is a trademark of the Open Systems Foundation.  NeXTSTEP is a
-trademark of NeXT Computer, Inc.  MIPS and IRIX are trademarks of
-Silicon Graphics, Inc.
+\*(UU is a trademark of X/Open, Ltd.  Sun4, SPARC, SunOS and Solaris
+are trademarks of Sun Microsystems, Inc.  DEC, DECstation, Alpha AXP
+and ULTRIX are trademarks of Digital Equipment Corp.  PA-RISC and
+HP-UX are trademarks of Hewlett-Packard Co.  RS/6000, POWER and AIX
+are trademarks of International Business Machines Corp.  OSF/1 is a
+trademark of the Open Systems Foundation.  NeXTSTEP is a trademark of
+NeXT Computer, Inc.  MIPS and IRIX are trademarks of Silicon Graphics,
+Inc.

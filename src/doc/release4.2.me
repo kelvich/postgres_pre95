@@ -72,12 +72,13 @@ be redefined and large objects copied out separately.
 .sh 1 "New Platforms"
 .pp
 This release supports the following platforms in addition to the Sun
-SparcStation and Ultrix DECstation 3100/5000 ports already supported
-in the past:
+SparcStation (SunOS 4) and DECstation 3100/5000 (Ultrix) ports already
+supported in the past:
 .(l
-H-P 9000 Series 700/800 (PA-RISC) on HP-UX 9.00 or 9.01
-DECstation 3000 (Alpha AXP) on DEC OSF/1 1.3
+H-P 9000 Series 700/800 (PA-RISC) on HP-UX 9.00, 9.01 and 9.03
+DECstation 3000 (Alpha AXP) on DEC OSF/1 1.3 and 2.0
 IBM RS/6000 (POWER) on AIX 3.2.5
+Sun SparcStation (SPARC) on Solaris 2.3
 .)l
 .sh 1 "New Features"
 .pp
@@ -114,7 +115,7 @@ having to do with
 .CW char16
 and
 .CW text ).
-In addition, there are a few commands (notably 
+vIn addition, there are a few commands (notably 
 .CW "define function" )
 where parsing is handled in special (broken) ways and type coercion 
 doesn't work correctly.
@@ -136,7 +137,7 @@ comparison.
 The operator classes defined on hash indices are:
 .(l
 \f(CWint2_ops        float8_ops      char2_ops       char16_ops
-int4_ops        oid_ops         char4_ops       text_ops.
+int4_ops        oid_ops         char4_ops       text_ops
 float4_ops      char_ops        char8_ops\fP
 .)l
 The syntax is similar to that for creating a B-tree or R-tree
@@ -714,7 +715,28 @@ up to
 (60) file descriptors.  If you find a workaround or a kernel parameter
 that works acceptably for you, again, let us know and we'll pass on
 the information.
+.bu
+To compile the system on HP-UX 9.03, you 
+.b must
+first apply patch PHSS_4307.  The C preprocessor for this version of
+HP-UX has severe problems.  As an alternative, build \*(PG on a
+machine running 9.01 and use it with 9.03.
 .sh 2 "SunOS 4"
 .bu
 The SunOS library doesn't handle timezones on dates before Jan. 1,
 1970 correctly.
+.sh 2 "SunOS 5"
+.bu
+We have built and tested \*(PG using both the GNU C compiler and the
+SunPro C compiler.  We used a version of the GNU C compiler modified
+to emulate the Sun compiler in its handling of values of type
+.CW double .
+Use of an unmodified GNU C compiler
+.b "will not work" .
+You may obtain a binary copy of the modified 
+.CW gcc
+binary from our FTP server (located in
+.CW pub/postgres/useful )
+or you may apply the following one-line change shown in the
+installation instructions to your own copy of 
+.CW gcc .
