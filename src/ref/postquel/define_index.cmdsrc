@@ -161,9 +161,7 @@ is about 20,000 units square or larger, you should use
 .IR bigbox_ops .
 The
 .IR poly_ops
-operator class supports rtree indices on
-.q polygon
-data.
+operator class supports rtree indices on \*(lqpolygon\*(rq data.
 .PP
 The \*(PG query optimizer will consider using an rtree index whenever
 an indexed attribute is involved in a comparison using one of
