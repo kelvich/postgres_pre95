@@ -58,6 +58,7 @@ RcsId("$Header$");
 #include "catalog/pg_relation.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_rewrite.h"
+#include "catalog/pg_aggregate.h"
  
 extern bool	AMI_OVERRIDE;	/* XXX style */
  
@@ -258,7 +259,15 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	  sizeof(FormData_pg_prs2rule),
-      NULL }
+      NULL },
+    { &AggregateRelationName,			/*AGGNAME*/
+	  1,
+	  { AggregateNameAttributeNumber,
+	        0,
+		0,
+		0 },
+	   sizeof(FormData_pg_aggregate),
+       NULL }
 };
  
 static struct catcache	*SysCache[lengthof(cacheinfo)];
@@ -525,7 +534,8 @@ SearchSysCacheGetAttribute(cacheId, attributeNumber, key1, key2, key3, key4)
 }
  
 /*
- * DANGER!!!  Bizarre byte-ordering hacks follow.  -hirohama
+ * DANGER!!!  Bizarre byte-ordering hacks follow.-hirohama
+ *				(nest ten miles) -jc
  */
 /*
  *	TypeDefaultRetrieve
