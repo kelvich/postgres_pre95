@@ -5,17 +5,18 @@ static char *ylib_c = "$Header$";
 #include <strings.h>
 #include <stdio.h>
 #include <pwd.h>
-#include "log.h"
+
+#include "utils/log.h"
 #include "catalog_utils.h"
-#include "pg_lisp.h"
-#include "exc.h"
-#include "excid.h"
+#include "nodes/pg_lisp.h"
+#include "utils/exc.h"
+#include "utils/excid.h"
 #include "io.h"
-#include "palloc.h"
+#include "utils/palloc.h"
 #include "parse_query.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
-#include "parse.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
+#include "parser/parse.h"
 
 LispValue parsetree;
 

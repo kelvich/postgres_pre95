@@ -6,11 +6,13 @@ static char *scan_l =
   lexical scanner for POSTGRES 
  **********************************************************************/
 
-#include "parse.h"
-#include "pg_lisp.h"
-#include "ctype.h"
-#include "math.h"
-#include "atoms.h"
+#include <ctype.h>
+#include <math.h>
+
+#include "parser/parse.h"
+#include "nodes/pg_lisp.h"
+#include "parser/atoms.h"
+
 
 #undef input
 #undef unput
