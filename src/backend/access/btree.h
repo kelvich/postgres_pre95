@@ -98,9 +98,6 @@
 #ifndef LOG_H
 #include "log.h"
 #endif
-#ifndef MISC_H
-#include "misc.h"
-#endif
 #ifndef NAME_H
 #include "name.h"
 #endif
@@ -137,6 +134,16 @@
 #ifndef TQUAL_H
 #include "tqual.h"
 #endif
+
+/* ----------------
+ *   dependencies from obsoleted misc.h
+ * ----------------
+ */
+#define forever for (;;)
+
+#define FUNCTION  /* empty macro used for cross referencing */
+
+#define OFFSET(type,mem)	((int) &(((type *) NULL)->mem))
 
 /* ----------------------------------------------------------------
  *	B-Tree constants
