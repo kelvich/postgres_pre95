@@ -179,6 +179,8 @@ extern char		*btreegetnext();
 extern void		btreebuild();
 extern void		btreemarkpos();
 extern void		btreerestrpos();
+extern void		btreerescan();
+extern void		btreeendscan();
 
 /*
  *	Functional B-tree code.
