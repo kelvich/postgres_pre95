@@ -219,16 +219,6 @@ ExecExtractResult(slot, attnum, isNull)
 
     execTd = SlotExecTupDescriptor(slot);
 
-    if (execTd->data[attnum-1]->tag == ATTVAL)
-    {
-	return (Datum)
-	    heap_getattr(ExecFetchTuple(slot),
-		         ExecSlotBuffer(slot),
-		         attnum,
-		         ExecSlotDescriptor(slot),
-		         isNull);
-    }
-
     *isNull = false;
     subTupNatts = execTd->data[attnum-1]->len;
     td = ExecSlotDescriptor(slot);
@@ -589,6 +579,18 @@ GetAttributeByNum(slot, attrno, isNull)
 
     if (!AttributeNumberIsValid(attrno))
 	elog(WARN, "GetAttributeByNum: Invalid attribute number");
+    
+    if (!AttributeNumberIsForUserDefinedAttribute(attrno))
+	elog(WARN, "GetAttributeByNum: cannot access system attributes here");
+
+    if (isNull == (Boolean *)NULL)
+	elog(WARN, "GetAttributeByNum: a NULL isNull flag was passed");
+    
+    if (TupIsNull(slot))
+    {
+    	*isNull = true;
+	return;
+    }
 
     retval = (Datum)
 	heap_getattr(ExecFetchTuple(slot),
@@ -618,8 +620,14 @@ GetAttributeByName(slot, attname, isNull)
     if (attname == (Name)NULL)
 	elog(WARN, "GetAttributeByName: Invalid attribute name");
     
+    if (isNull == (Boolean *)NULL)
+	elog(WARN, "GetAttributeByName: a NULL isNull flag was passed");
+    
     if (TupIsNull(slot))
-    	elog(WARN, "GetAttributeByName: Invalid tuple argument");
+    {
+    	*isNull = true;
+	return;
+    }
 
     tupdesc = ExecSlotDescriptor(slot);
     tuple = (HeapTuple)ExecFetchTuple(slot);
@@ -1381,13 +1389,15 @@ ExecFormComplexResult(tlist, natts, tdesc, values, nulls)
 #ifdef BETIDYMER
     for (flatInd = 0; flatInd < flatNatts; flatInd++)
 	pfree(flatTd->data[flatInd]);
-    pfree (complexTd);
-    while ((slot = *slotbase) != (TupleTableSlot)NULL)
+    pfree (flatTd);
+    foundslots = slotbase;
+    while ((slot = *foundslots) != (TupleTableSlot)NULL)
     {
 	pfree(ExecFetchTuple(slot));
 	pfree(slot);
-	slotbase++;
+	foundslots++;
     }
+    pfree (slotbase);
 #endif
     return resultTup;
 }
