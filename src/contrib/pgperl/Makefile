@@ -28,16 +28,18 @@ CFLAGS+= -I${HEADERDIR} -I${PERLDIR}
 	${MUS} $< > ${.TARGET}
 
 SRCS= pg-libpq.mus usersub.c
-
+TESTOBJ= testlibpq.out
 PROG= pgperl
 
 .MAIN: ${PROG}
 
 ${PROG}: ${PERLDIR}/uperl.o
 
-testlibpq.out: ${PROG} testlibpq.pl
+${TESTOBJ}: ${PROG} testlibpq.pl
 	./${PROG} testlibpq.pl 2>&1 | tee ${.TARGET}
 
-runtest: testlibpq.out
+runtest: ${TESTOBJ}
+
+CLEANFILES+= ${TESTOBJ}
 
 .include <postgres.prog.mk>
