@@ -2,6 +2,6 @@
 
 PROG= pmv
 
-SRCS= mv.c
+SRCS= pmv.c
 
 .include <postgres.prog.mk>
