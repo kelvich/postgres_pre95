@@ -178,6 +178,14 @@ main(argc, argv)
     */
 
     /* ----------------
+     * 	initialize the dynamic function manager
+     * ----------------
+     */
+    if (! Quiet)
+	puts("\tDynamicLinkerInit()..");
+    DynamicLinkerInit(argv[0]);
+
+    /* ----------------
      * 	various initalization stuff
      * ----------------
      */
@@ -410,9 +418,11 @@ InteractiveBackend(inBuf, parseList)
      char *inBuf;
      LispValue parseList;
 {
+    String stuff;
+
     printf ("> ");
-    gets(inBuf);
-    if (inBuf == NULL) {
+    stuff = gets(inBuf);
+    if (stuff == NULL) {
 	if (! Quiet)
 	  puts("EOF");
 	AbortCurrentTransaction();
