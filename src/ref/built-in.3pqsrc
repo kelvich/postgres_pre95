@@ -416,21 +416,6 @@ T}
 Unary Operators
 .ft
 .lp
-Due to a bug in the \*(PP release \*(PV parser, it is impossible to invoke
-unary operators by giving the operator name.  Users must invoke them by
-function name.  For example, to find the square root of 8.0, use
-.(b
-.ft C
-retrieve (x = dsqrt("8.0"::float8))
-.ft
-.)b
-rather than
-.(b
-.ft C
-retrieve (x = |/ "8.0"::float8)
-.ft
-.)b
-.lp
 The tables below give right and left unary operators.
 Left unary operators have the operator precede the operand;
 right unary operators have the operator follow the operand.
