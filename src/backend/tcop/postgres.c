@@ -17,6 +17,8 @@
  */
 
 #include "tcop.h"
+extern int on_exitpg();
+extern void BufferManagerFlush();
  RcsId("$Header$");
 
 /* ----------------
@@ -777,6 +779,15 @@ PostgresMain(argc, argv)
 	puts("\nPOSTGRES backend interactive interface");
 	puts("$Revision$ $Date$");
     }
+
+    /* ----------------
+     * if stable main memory is assumed (-S flag is set), it is necessary
+     * to flush all dirty shared buffers before exit
+     * plai 8/7/90
+     * ----------------
+     */
+    if (!TransactionFlushEnabled())
+        on_exitpg(BufferManagerFlush, (caddr_t) 0);
 
     for (;;) {
 	/* ----------------
