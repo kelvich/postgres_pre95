@@ -62,7 +62,7 @@ displayed at the end of each query.  This is useful for benchmarking or
 for use in tuning the number of buffers.
 .sp
 .lp
-\f-B nnn\fR indicates the number of shared buffers to use.  The default
+\fI-B nnn\fR indicates the number of shared buffers to use.  The default
 number of buffers is 64.
 .lp
 .sp
