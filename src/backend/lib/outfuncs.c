@@ -907,11 +907,11 @@ _outEState(str, node)
 	sprintf(buf, " :qualification_tuple_id @ 0x%x",
 			node->es_qualification_tuple_id);
 	appendStringInfo(str,buf);
-	sprintf(str, " :relation_relation_descriptor @ 0x%x",
+	sprintf(buf, " :relation_relation_descriptor @ 0x%x",
 			node->es_relation_relation_descriptor);
 	appendStringInfo(str,buf);
 
-	sprintf(str, " :result_relation_info @ 0x%x",
+	sprintf(buf, " :result_relation_info @ 0x%x",
 			node->es_result_relation_info);
 	appendStringInfo(str,buf);
 
