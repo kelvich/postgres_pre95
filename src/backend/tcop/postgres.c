@@ -803,21 +803,6 @@ PostgresMain(argc, argv)
     SetProcessingMode((override) ? BootstrapProcessing : InitProcessing);
     
     /* ----------------
-     *	if fmgr() is called and the desired function is not
-     *  in the builtin table, then we call the desired function using
-     *  the routine registered in EnableDynamicFunctionManager().
-     *  That routine (fmgr_dynamic) is expected to dynamically
-     *  load the desired function and then call it.
-     *
-     *  dynamic loading only works after EnableDynamicFunctionManager()
-     *  is called.
-     * ----------------
-     */
-    if (! Quiet)
-	puts("\tEnableDynamicFunctionManager()..");
-    EnableDynamicFunctionManager(fmgr_dynamic);
-    
-    /* ----------------
      *	InitPostgres()
      * ----------------
      */
