@@ -35,6 +35,7 @@ CFLAGS+= -DNEED_RINT -DNEED_CBRT
 # The YACC grammar is too big..
 # (HP-UX 9.01 added basic block limits for +O2.)
 #
+.if (${HPUX_MAJOR} == "09")
 .  if !defined(CDEBUG)
 CFLAGS+= +Obb600
 .  endif
