@@ -64,38 +64,48 @@ void xfunc_trypullup(rel)
     CInfo maxcinfo;         /* The CInfo to pull up, as calculated by
 			       xfunc_shouldpull() */
     JoinPath curpath;       /* current path in list */
+    int progress;           /* has progress been made this time through? */
     LispValue form_relid();
     int clausetype;
 
-    foreach(y, get_pathlist(rel))
-     {
-	 curpath = (JoinPath)CAR(y);
+    do {
+	progress = false;  /* no progress yet in this iteration */
+	foreach(y, get_pathlist(rel))
+	 {
+	     curpath = (JoinPath)CAR(y);
 	 
-	 /*
-	 ** for each operand, attempt to pullup predicates until first 
-	 ** failure.
-	 */
-	 for(ever)
-	  {
-	      /* No, the following should NOT be '=='  !! */
-	      if (clausetype = 
-		  xfunc_shouldpull((Path)get_innerjoinpath(curpath),
-				   curpath, INNER, &maxcinfo))
-		xfunc_pullup((Path)get_innerjoinpath(curpath),
-			     curpath, maxcinfo, INNER, clausetype);
-	      else break;
-	  }
-	 for(ever)
-	  {
-	      /* No, the following should NOT be '=='  !! */
-	      if (clausetype = 
-		  xfunc_shouldpull((Path)get_outerjoinpath(curpath), 
-				   curpath, OUTER, &maxcinfo))
-		xfunc_pullup((Path)get_outerjoinpath(curpath),
-			     curpath, maxcinfo, OUTER, clausetype);
-	      else break;
-	  }
-     }
+	     /*
+	      ** for each operand, attempt to pullup predicates until first 
+	      ** failure.
+	      */
+	     for(ever)
+	      {
+		  /* No, the following should NOT be '=='  !! */
+		  if (clausetype = 
+		      xfunc_shouldpull((Path)get_innerjoinpath(curpath),
+				       curpath, INNER, &maxcinfo))
+		   {
+		       xfunc_pullup((Path)get_innerjoinpath(curpath),
+				    curpath, maxcinfo, INNER, clausetype);
+		       progress = true;
+		   }
+		  else break;
+	      }
+	     for(ever)
+	      {
+		  /* No, the following should NOT be '=='  !! */
+		  if (clausetype = 
+		      xfunc_shouldpull((Path)get_outerjoinpath(curpath), 
+				       curpath, OUTER, &maxcinfo))
+		   {
+		       xfunc_pullup((Path)get_outerjoinpath(curpath),
+				    curpath, maxcinfo, OUTER, clausetype);
+		       progress = true;
+		   }
+		  else break;
+	      }
+	 }
+    } while(progress);
 }
 
 /*
