@@ -22,56 +22,32 @@ master=/usr/local/devel/postgres
 M=
 getmaster=0
 
-# a set of interesting rcs flags that we'll pass on to 'ci'
-u=
-l=
-f=
-
-getarg=0
-m=
-s=
-n=
-N=
-
-cicmd=ci
+ulf=
+msgs=
 files=
 
 # parse the argument list
-for i in $*
+while [ $# -gt 0 ]
 do
-	if [ $getmaster -ne 0 ]
-	then
-		master=$i
-		getmaster=0
-	elif [ $getarg -ne 0 ]
-	then
-		cicmd="$cicmd \'$i\'"
-		getmmsg=0
-	else
-		case $i in
-
-			-v)		verbose=1;;
-			-M)		getmaster=1;;
-			-M*)		master=`echo $i | sed -e 's/-M//'`;;
-
-			-[ulf])		cicmd="$cicmd $i";;
-
-			-[mnNs]) 	cicmd="$cicmd $i";getarg=1;;
-
-			-[mnNs]*)	cicmd="$cicmd \'$i\'";;
-
-			*)		files="$files $i";;
-		esac
-	fi
+	case $1 in
+	-v)		verbose=1;;
+	-M)		master=$2;shift;;
+	-M*)		master=`echo $2 | sed -e "s/-M//"`;;
+	-[ulf])		ulf="$ulf $1";;
+	-[mnNst])	msgs="$msgs $1 ""'""$2""'";shift;;
+	-[mnNs]t*)	msgs="$msgs ""'""$1""'";;
+	*)		files="$files $1";;
+	esac
+	shift
 done
 
 # tell them what they've won, don pardo...
 if [ $verbose -ne 0 ]
 then
-	echo $cicmd $files
+	echo ci $ulf $msgs $files
 fi
 
-$cicmd $files
+ci $ulf $msgs $files
 
 if [ $? -ne 0 ]
 then
