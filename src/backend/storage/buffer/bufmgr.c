@@ -1,5 +1,5 @@
 /*
- * buf.c -- buffer manager interface routines
+ * bufmgr.c -- buffer manager interface routines
  *
  * Identification:
  *	$Header$
@@ -724,11 +724,36 @@ BufPrintUsage()
 }
 
 
+void
 BufferManagerFlush(StableMainMemoryFlag)
 int StableMainMemoryFlag;
 {
-  if (!StableMainMemoryFlag)
-     BufferSync();
+    register int i;
+    
+    /* XXX
+     * the following piece of code is completely bogus, unfortunately it has to
+     * be preserved from the past for postgres to work.  what happens is
+     * that postgres seldom bothers to release a buffer after it finishes
+     * using it.  as a last resort, it has to have the following code to
+     * blow away the whole buffer at the end of every transaction, otherwise
+     * we will just keep losing buffers until we run out of them.
+     * the fix for this is to look at every place buffer manager gets called
+     * and carefully watch the use of the buffer pages and release them
+     * at proper times. -- Wei
+     */
+    for (i=1; i<=NUM_DATA_BUFS; i++) {
+        if (BufferIsValid(i)) {
+            WriteBuffer(i); 
+            while(BufferIsValid(i))
+                ReleaseBuffer(i);
+        }
+    }
+    
+    /* flush dirty shared memory only when main memory is not stable */
+    /* plai 8/7/90                                                   */
+ 
+    if (!StableMainMemoryFlag)
+        BufferSync();
 }
 
 /**************************************************
@@ -745,7 +770,7 @@ BufferDescriptorIsValid(bufdesc)
     Assert(PointerIsValid(bufdesc));
     
     temp = (bufdesc-BufferDescriptors)/sizeof(BufferDesc);
-    if (temp >= 0 && temp<NDBUFS)
+    if (temp >= 0 && temp<NUM_DATA_BUFS)
         return(true);
     else
         return(false);
@@ -761,7 +786,7 @@ bool
 BufferIsValid(bufnum)
     Buffer bufnum;
 {
-    if (bufnum <= 0 || bufnum > NDBUFS) {
+    if (BAD_BUFFER_ID(bufnum)) {
         return(false);
     }
     return((bool)(BufferDescriptors[bufnum - 1].refcount > 0));
@@ -845,6 +870,9 @@ Buffer buffer;
   Done under extreme protest. -jeff goh
 
   Remove ASAP.
+
+  Unfortunately, this function is called everywhere,
+  so it still gets preversed from the past. -- Wei
  **************************************************/
 
 ReturnStatus
@@ -1019,8 +1047,8 @@ BufferGetBlock(buffer)
  *      this function unmarks all the dirty pages of a temporary
  *      relation in the buffer pool so that at the end of transaction
  *      these pages will not be flushed.
- *      XXX currently it sequentially searches the buffer pool, will be
- *      changed to hashing.
+ *      XXX currently it sequentially searches the buffer pool, should be
+ *      changed to more clever ways of searching.
  * --------------------------------------------------------------------
  */
 void
@@ -1029,11 +1057,31 @@ Relation tempreldesc;
 {
     register int i;
 
-    for (i=0; i<NDBUFS; i++)
+    for (i=0; i<NUM_DATA_BUFS; i++)
         if (BufferIsDirty(i) &&
             BufferDescriptors[i].tag.relId.relId == tempreldesc->rd_id) {
             BufferDescriptors[i].flags &= ~BM_DIRTY;
             if (!(BufferDescriptors[i].flags & BM_FREE))
                ReleaseBuffer(i);
         }
+}
+
+/* -----------------------------------------------------------------
+ *	PrintBufferDescs
+ *
+ *	this function prints all the buffer descriptors, for debugging
+ *	use only.
+ * -----------------------------------------------------------------
+ */
+
+void
+PrintBufferDescs()
+{
+    register int i;
+    BufferDesc *buf;
+
+    for (i=0; i<NUM_DATA_BUFS; i++) {
+	buf = &(BufferDescriptors[i]);
+	printf("(freeNext=%d, freePrev=%d, relname=%s, blockNum=%d, flags=0x%x, refcount=%d)\n", buf->freeNext, buf->freePrev, &(buf->sb_relname), buf->tag.blockNum, buf->flags, buf->refcount);
+     }
 }
