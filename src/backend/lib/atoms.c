@@ -75,6 +75,7 @@ ScanKeyword	ScanKeywords[] = {
 	{ "key",		KEY		},
 	{ "leftouter",		LEFTOUTER	},
 	{ "light",		LIGHT		},
+	{ "load",               LOAD            },
 	{ "merge",		MERGE		},
 	{ "move",		MOVE		},
 	{ "never",		NEVER		},
