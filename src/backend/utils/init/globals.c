@@ -12,20 +12,23 @@
 #include <strings.h>
 #include <sys/file.h>
 #include <sys/types.h>
-/* #include <signal.h> */
-#include "catname.h"
-#include "heapam.h"
-#include "lmgr.h"
-#include "log.h"
-#include "master.h"
-#include "postgres.h"
-#include "rproc.h"
-#include "sinval.h"
-#include "sinvaladt.h"
-#include "tqual.h"
 #include <math.h>
 
+/* #include <signal.h> */
+
+#include "tmp/postgres.h"
+
 RcsId("$Header$");
+
+#include "access/heapam.h"
+#include "access/tqual.h"
+#include "storage/sinval.h"
+#include "storage/sinvaladt.h"
+#include "support/master.h"
+#include "utils/lmgr.h"
+#include "utils/log.h"
+
+#include "catalog/catname.h"
 
 int Debugfile, Ttyfile, Dblog, Slog;
 int Portfd, Packfd, Slog, Pipefd;

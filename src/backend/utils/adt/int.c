@@ -18,9 +18,8 @@
  *	 intmod, int4fac
  */
 
-#include "c.h"
-#include "postgres.h"
-#include "fmgr.h"
+#include "tmp/postgres.h"
+#include "utils/fmgr.h"
 
 RcsId("$Header$");
 
@@ -45,7 +44,7 @@ int2in(num)
  */
 char *
 int2out(sh)
-	int32	sh;
+	int16	sh;
 {
 	char		*result;
 	extern int	itoa();
