@@ -30,6 +30,9 @@ RcsId("$Header$");
 
 #include "access/hrnd.h"
 
+#include "fmgr.h"		/* for port-protos */
+#include "port-protos.h"	/* for random/srandom */
+
 static bool		DisableHeapRandomization = false;
 static BlockNumber	RandomBlockIndexList[1 + MaxLengthOfBlockIndexList];
 static bool		ClusterIsEnabled;
