@@ -134,15 +134,10 @@ MakeRoot(NumLevels,query_name,result,rtable,priority,ruleinfo,unique_flag,
 	sort_clause_elts = nappend1( sort_clause_elts, one_sort_elt );
 	sort_elt_type = get_vartype(one_sort_elt);
 
-	if (CADR(one_sort_clause) == LispNil ) {
-	    sort_clause_ops = nappend1( sort_clause_elts, 
-					any_ordering_op(one_sort_elt) );
-	} else {
-	    sort_clause_ops = nappend1( sort_clause_elts,
-				lispInteger(oprid( oper(one_sort_op,
-					             sort_elt_type,
-					             sort_elt_type ) )));
-	}
+	sort_clause_ops = nappend1( sort_clause_ops,
+				   lispInteger(oprid( oper(one_sort_op,
+							   sort_elt_type,
+							   sort_elt_type ) )));
     }
         
     if ( unique_flag != LispNil ) {
