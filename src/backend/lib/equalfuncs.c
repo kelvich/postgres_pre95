@@ -6,6 +6,7 @@
 #include "primnodes.h"
 #include "relation.h"
 #include "execnodes.h"
+#include "plannodes.h"
 
 extern bool	_equalLispValue();
 extern bool	_equalHeapTuple();
