@@ -624,7 +624,7 @@ Const _readConst()
 	token = lsptok(NULL, &length);      /* get :constisnull */
 	token = lsptok(NULL, &length);      /* now read it */
 
-	if (strncmp(token, "true", 4))
+	if (!strncmp(token, "true", 4))
 	{
 		local_node->constisnull = true;
 	}
