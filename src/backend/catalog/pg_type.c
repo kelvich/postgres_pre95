@@ -433,7 +433,14 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
      * ----------------
      */
     pg_type_desc = heap_openr(TypeRelationName);
-    
+
+    /* -----------------
+     * Set a write lock initially so as not upgrade a read to a write
+     * when the heap_insert() or heap_replace() is called.
+     * -----------------
+     */
+    RelationSetLockForWrite(pg_type_desc);
+
     typeKey[0].argument = NameGetDatum(typeName);
     pg_type_scan = heap_beginscan(pg_type_desc,
 				  0,
@@ -480,7 +487,10 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
      * ----------------
      */
     heap_endscan(pg_type_scan);
+
+    RelationUnsetLockForWrite(pg_type_desc);
     heap_close(pg_type_desc);
+
 
     return
 	typeObjectId;
