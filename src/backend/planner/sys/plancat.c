@@ -4,24 +4,26 @@
  *	system catalogs).
  */
 
-#include "c.h"
+#include <stdio.h>
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 
-#include <stdio.h>
-#include "pg_lisp.h"
-#include "postgres.h"
-#include "htup.h"
-#include "anum.h"
-#include "cat.h"
-#include "catname.h"
-#include "fmgr.h"
-#include "heapam.h"
-#include "log.h"
-#include "parsetree.h"
-#include "syscache.h"
-#include "tqual.h"
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "access/tqual.h"
+#include "parser/parsetree.h"
+#include "utils/fmgr.h"
+#include "utils/log.h"
 
+#include "nodes/pg_lisp.h"
+
+#include "catalog/catname.h"
+#include "catalog/syscache.h"
+#include "catalog/pg_amop.h"
+#include "catalog/pg_index.h"
+#include "catalog/pg_inherits.h"
+#include "catalog/pg_version.h"
 
 /*
  *	RelationCatalogInformation
