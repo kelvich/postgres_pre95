@@ -80,7 +80,7 @@ int p_unlink ARGS((char *path ));
 int p_rmdir ARGS((char *path ));
 int p_ferror ARGS((int fd ));
 int p_rename ARGS((char *path , char *pathnew ));
-int p_stat ARGS((char *path , struct stat *statbuf ));
+int p_stat ARGS((char *path , struct pgstat *statbuf ));
 PDIR *p_opendir ARGS((char *path ));
 struct pgdirent *p_readdir ARGS((PDIR *dirp ));
 void p_rewinddir ARGS((PDIR *dirp ));
