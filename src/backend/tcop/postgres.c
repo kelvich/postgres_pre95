@@ -7,8 +7,9 @@ static	char	amiint_c[] = "$Header$";
 
  **********************************************************************/
 
-#include <signal.h>
+#include "c.h"
 
+#include <signal.h>
 
 #include <sys/file.h>
 #include <stdio.h>
@@ -16,9 +17,8 @@ static	char	amiint_c[] = "$Header$";
 #include <signal.h>
 #include <ctype.h>
 
-#include "einternal.h"
+#include "executor.h"
 
-#include "c.h"
 #include "pg_lisp.h"
 #include "parse.h"
 
