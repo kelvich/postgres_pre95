@@ -175,7 +175,7 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
 
     i = 0;
     values[i++] = (char *) procedureName;
-    values[i++] = (char *) (ObjectId) getuid();
+    values[i++] = (char *) (ObjectId) GetUserId();
     values[i++] = (char *) languageObjectId;
 
     /* XXX isinherited is always false for now */
