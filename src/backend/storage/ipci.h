@@ -56,6 +56,10 @@ typedef uint32	IPCKey;
 #define IPCKeyGetSLockSharedMemoryKey(key) \
 	((key == PrivateIPCKey) ? key : 10 + (key))
 #endif
+#define IPCKeyGetSpinLockSemaphoreKey(key) \
+	((key == PrivateIPCKey) ? key : 11 + (key))
+#define IPCKeyGetWaitIOSemaphoreKey(key) \
+	((key == PrivateIPCKey) ? key : 12 + (key))
 
 extern LockTableId	PageLockTableId;
 extern LockTableId	MultiLevelLockTableId;
