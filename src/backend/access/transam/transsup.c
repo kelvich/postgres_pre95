@@ -33,8 +33,8 @@
 
 #include "utils/rel.h"
 #include "utils/log.h"
+#include "utils/memutils.h"
 #include "utils/nabstime.h"
-#include "tmp/bit.h"
 
 #include "access/transam.h"
 

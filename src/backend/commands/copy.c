@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "tmp/postgres.h"
-#include "tmp/globals.h"
+#include "tmp/miscadmin.h"
 #include "tmp/align.h"
 #include "catalog/syscache.h"
 #include "catalog/pg_type.h"
