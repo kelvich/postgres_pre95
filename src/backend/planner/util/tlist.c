@@ -30,11 +30,15 @@ static char *rcsid = "$Header$";
 #include "relation.a.h"
 #include "internal.h"
 #include "var.h"
+#include "tlist.h"
+#include "clauses.h"
 
+/* XXX - find these references */
+extern LispValue copy_seq_tree();
+extern LispValue tlist_varsnreverse();
+extern Var make_var();
 
-extern LispValue flatten_tlistentry();
-extern LispValue tl_expr();
-extern LispValue create_tl_element();
+static LispValue flatten_tlistentry();
 
 /*    	---------- RELATION node target list routines ----------
  */
@@ -115,30 +119,34 @@ LispValue
 add_tl_element (rel,var,joinlist)
      LispValue rel,var,joinlist ;
 {
-	LispValue oldvar;
-
-	oldvar = matching_tlvar (var,get_tlist (rel));
-
-	/* If 'var' is not already in 'rel's target list, add a new node. 
-	 * Otherwise, put the var with fewer nestings into the target list. 
-	 */
-
-	if ( null( oldvar ) ) {
-		LispValue newvar = make_var (get_varno (var),
-					     get_varattno (var),
-					     get_vartype (var),LispNil,
-					     (consider_vararrayindex(var) ?
+    LispValue oldvar;
+    
+    oldvar = matching_tlvar (var,get_tlist (rel));
+    
+    /* If 'var' is not already in 'rel's target list, add a new node. 
+     * Otherwise, put the var with fewer nestings into the target list. 
+     */
+    
+    if ( null( oldvar ) ) {
+	Var newvar = make_var (get_varno (var),
+			       get_varattno (var),
+			       get_vartype (var),LispNil,
+			       (consider_vararrayindex(var) ?
 					      varid_array_index(var) :
-					      LispNil ),
-					     get_varid (var));
-		set_tlist (rel,append1 (get_tlist (rel),
-					create_tl_element (newvar,
-							   tlist_size(rel) -1,
-							   joinlist)));
-	} else if (length (get_varid (oldvar)) > length (get_varid (var))) {
-		set_vartype (oldvar,get_vartype (var));
-		set_varid (oldvar,get_varid (var));
-	} 
+				0 ),
+			       get_varid (var));
+
+	set_tlist (rel,append1 (get_tlist (rel),
+				create_tl_element (newvar,
+						   tlist_size(rel) -1,
+						   joinlist)));
+
+    } else if (length (get_varid (oldvar)) > length (get_varid (var))) {
+
+	set_vartype (oldvar,get_vartype (var));
+	set_varid (oldvar,get_varid (var));
+
+    } 
 }
 
 /*    
@@ -154,18 +162,22 @@ add_tl_element (rel,var,joinlist)
 
 /*  .. add_tl_element, new-join-tlist
  */
-LispValue
-create_tl_element (var,resdomno,joinlist)
-     LispValue var,resdomno,joinlist ;
-{
-	LispValue tlelement;
-	tlelement = create_node ("TargetList");
 
-	set_tlelement (tlelement,
+TL
+create_tl_element (var,resdomno,joinlist)
+     Var var;
+     Resdom resdomno;
+     List joinlist;
+{
+	TL tlelement;
+	tlelement = CreateNode(TL);
+
+	set_entry (tlelement,
 		       list (make_resdom (resdomno, get_vartype (var),
 					  get_typlen (get_vartype (var)),
 					  LispNil,0,LispNil),var));
-	set_join_list (tlelement,joinlist);
+	set_joinlist (tlelement,joinlist);
+
 	return(tlelement);
 }
 
@@ -217,7 +229,6 @@ tlist_member (var,tlist,dots,key,test)
      LispValue var,tlist,dots,key;
      bool (*test)();
 {
-	static LispValue dots;
 	/* declare (special (dots)); */
 
 	if ( var != LispNil ) {
@@ -274,12 +285,12 @@ match_varid (varid,tlist,key)
 
 /*  .. make_temp, sort-level-result
  */
-LispValue
+List
 new_unsorted_tlist (targetlist)
-     LispValue targetlist ;
+     List targetlist ;
 {
-	LispValue new_targetlist = copy_seq_tree (targetlist);
-	LispValue x = LispNil;
+	List new_targetlist = copy_seq_tree (targetlist);
+	List x = NULL;
 
 	foreach (x, new_targetlist) {
 		set_reskey (tl_resdom (x),0);
@@ -358,26 +369,25 @@ LispValue
 flatten_tlist (tlist)
      LispValue tlist ;
 {
-	int last_resdomno = 0;
-	LispValue new_tlist = LispNil;
-	LispValue tlist_vars = LispNil;
-	LispValue temp;
-	LispValue var;
-
-	foreach(temp,tlist)
-	  pull_var_clause (tl_expr(temp));
-
-	for (var = tlist_varsnreverse (new_tlist); var != LispNil;
-	     var = CDR(var)) {
-		if ( !(tlist_member (var,new_tlist,1 /* XXX - true */))) {
-				push (new_tl (make_resdom(last_resdomno++ ,
-							  get_vartype (var),
-					  get_typlen (get_vartype (var)),
-					  LispNil,0,LispNil),var),new_tlist);
-			}
+    int last_resdomno = 0;
+    List new_tlist = LispNil;
+    LispValue tlist_vars = LispNil;
+    LispValue temp;
+    LispValue var;
+    
+    foreach(temp,tlist)
+      pull_var_clause (tl_expr(temp));
+    
+    foreach (var,tlist_varsnreverse (new_tlist)) {
+	if ( !(tlist_member (var,new_tlist,1 /* XXX - true */))) {
+	    push (new_tl (make_resdom(last_resdomno++ ,
+				      get_vartype (var),
+				      get_typlen (get_vartype (var)),
+				      LispNil,0,LispNil),var),new_tlist);
 	}
+    }
 }
-
+    
 /*    
  *    	flatten-tlist-vars
  *    
