@@ -224,7 +224,6 @@ class (Plan) public (Node) {
 	int			fragment; \
 	int			parallel; \
 	EStatePtr		state; \
-	ReturnStatePtr		retstate; \
 	List			qptargetlist; \
 	List			qpqual; \
 	PlanPtr			lefttree; \

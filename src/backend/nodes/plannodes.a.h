@@ -13,8 +13,6 @@ extern void set_lefttree ARGS((Plan node, struct Plan *value));
 extern struct Plan *get_lefttree ARGS((Plan node));
 extern void set_righttree ARGS((Plan node, struct Plan *value));
 extern struct Plan *get_righttree ARGS((Plan node));
-extern void set_retstate ARGS((Plan node, ReturnState value));
-extern ReturnState get_retstate ARGS((Plan node));
 extern void set_frag_root ARGS((Fragment node, Plan value));
 extern Plan get_frag_root ARGS((Fragment node));
 extern void set_frag_parent_op ARGS((Fragment node, Plan value));
