@@ -11,4 +11,4 @@ LDADD+= -N
 
 HEADERS+= machine.h 
 
-SRCS+= dynloader.c
+SRCS+= dynloader.c port.c
