@@ -415,7 +415,7 @@ ParseFunc ( funcname , fargs )
 		return((LispValue)(make_var(oldname, funcname)));
 	      else		/* drop through */;
 	  }
-	 else if (complexType(first_arg_type) &&
+	 else if (ISCOMPLEX(CInteger(first_arg_type)) &&
 		  IsA(CDR(CAR(fargs)),Iter) && 
 		  (argrelid = typeid_get_relid
 		   ((int)(argtype=funcid_get_rettype
@@ -447,7 +447,7 @@ ParseFunc ( funcname , fargs )
 	       }
 	      else		/* drop through */;
 	  }
-	 else if (complexType(first_arg_type) &&
+	 else if (ISCOMPLEX(CInteger(first_arg_type)) &&
 		  IsA(CADR(CAR(fargs)),Func) && 
 		  (argrelid = typeid_get_relid
 		   ((int)(argtype=funcid_get_rettype
@@ -480,7 +480,7 @@ ParseFunc ( funcname , fargs )
 	       }
 	      else		/* drop through */;
 	  }
-	 else if (complexType(first_arg_type) &&
+	 else if (ISCOMPLEX(CInteger(first_arg_type)) &&
 		  IsA(CADR(CAR(fargs)),Param))
 	  {
 	      /* If the Param is a complex type, this could be a projection */
@@ -575,7 +575,7 @@ ParseFunc ( funcname , fargs )
      */
 
     func_get_detail(funcname, nargs, oid_array, &funcid, &rettype, &retset);
-    funcnode = MakeFunc(funcid, rettype, false, 0, LispNil, 0, NULL);
+    funcnode = MakeFunc(funcid, rettype, false, 0, LispNil, 0, NULL, LispNil, LispNil);
 
     /*
      *  for functons returning base types, we want to project out the
@@ -832,7 +832,7 @@ LispValue setup_tlist(attname, relid)
 
     attno = get_attnum(relid, attname);
     typeid = find_atttype(relid, attname);
-    resnode = MakeResdom(1, typeid,
+    resnode = MakeResdom(1, typeid, ISCOMPLEX(typeid),
 			 tlen(get_id_type(typeid)),
 			 get_attname(relid, attno),
 			 NULL	/* reskey   */,
@@ -861,7 +861,8 @@ setup_base_tlist(typeid)
     Resdom resnode;
     Var varnode;
 
-    resnode = MakeResdom(1, typeid, tlen(get_id_type(typeid)),
+    resnode = MakeResdom(1, typeid, ISCOMPLEX(typeid), 
+			 tlen(get_id_type(typeid)),
 			 (Name) "<noname>", NULL, NULL, 0);
     varnode = MakeVar(-1, 1, typeid,
 			lispCons(lispInteger(-1),
@@ -870,13 +871,4 @@ setup_base_tlist(typeid)
 
     tle = (LispValue)MakeList(resnode, varnode, -1);
     return (MakeList(tle, -1));
-}
-
-
-bool complexType(typenode)
-LispValue typenode;
-{
-    if (typeid_get_relid(CInteger(typenode)) == 0)
-      return(false);
-    else return(true);
 }
