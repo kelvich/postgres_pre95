@@ -260,10 +260,11 @@ char *platter_id;
 char *format;
 int flags;
 {
-    JBPLATTER *jbp, *hold;
+    JBPLATTER *jbp;
+    long hold;
     char req[JB_DATA_START + 4 + JB_MAX_NAME+1 + JB_MAX_FORMAT+1];
     char reply[JB_DATA_START + 8];
-	char *r = &reply[0]; /* necessary for below casts to work on Sparcstation */
+    char *r = &reply[0]; /* necessary for casts to work on Sparcstation */
     int size, len;
     short type;
 
@@ -279,7 +280,7 @@ int flags;
 	return (NULL);
 
     /* what a mess */
-	hold = (JBPLATTER *) (r+JB_DATA_START+4);
+    hold = *((long *)(r+JB_DATA_START+4));
     jbp = (JBPLATTER *) ntohl(hold);
 
     return (jbp);
@@ -295,6 +296,10 @@ long blockno, nblocks;
     char req[JB_DATA_START + 12], *reply;
     int size, len;
     short type;
+
+    /* skip over label blocks */
+    if (blockno >= 0)
+	blockno += JB_MAX_LABELS;
 
     server.error = 0;
     if (blockno < 0 || nblocks < 0) {
@@ -336,6 +341,10 @@ long blockno, nblocks;
     char *req, reply[JB_DATA_START+4];
     int size, len, data_len;
     short type;
+
+    /* skip over label blocks */
+    if (blockno >= 0)
+	blockno += JB_MAX_LABELS;
 
     server.error = 0;
     if (blockno < 0 || nblocks < 0) {
@@ -453,10 +462,14 @@ JBPLATTER *platter;
 long start_block, search_max;
 {
     char req[JB_DATA_START +12];
-    char *reply = req;		/* only need JDS+8 for reply */
+    char *reply = &req[0];		/* only need JDS+8 for reply */
     short type;
     int size;
     long result;
+
+    /* skip over label blocks */
+    if (start_block >= 0)
+	start_block += JB_MAX_LABELS;
 
     server.error = 0;
     *((long *) (req+JB_DATA_START+0)) = htonl((long) platter);
@@ -472,6 +485,10 @@ long start_block, search_max;
 
     if (result < 0)
 	return (-2L);
+
+    /* restore the user's notion of block zero */
+    result -= JB_MAX_LABELS;
+
     return (result);
 }
 
@@ -482,10 +499,14 @@ JBPLATTER *platter;
 long start_block, search_max;
 {
     char req[JB_DATA_START +12];
-    char *reply = req;		/* only need JDS+8 for reply */
+    char *reply = &req[0];		/* only need JDS+8 for reply */
     short type;
     int size;
     long result;
+
+    /* skip over label blocks */
+    if (start_block >= 0)
+	start_block += JB_MAX_LABELS;
 
     server.error = 0;
     *((long *) (req+JB_DATA_START+0)) = htonl((long) platter);
@@ -501,6 +522,10 @@ long start_block, search_max;
 
     if (result < 0)
 	return (-2L);
+
+    /* restore the user's notion of block zero */
+    result -= JB_MAX_LABELS;
+
     return (result);
 }
 
