@@ -1,10 +1,22 @@
 #!/bin/sh
 #
+# mkldexport
+#	create an AIX exports file from an object file
+#
+# Usage:
+#	mkldexport objectfile [location]
+# where
+#	objectfile is the current location of the object file.
+#	location is the eventual (installed) location of the 
+#		object file (if different from the current
+#		working directory).
+#
 # $Header$
 #
 CMDNAME=`basename $0`
 if [ -z "$1" ]; then
 	echo "Usage: $CMDNAME object [location]"
+	exit 1
 fi
 OBJNAME=`basename $1`
 if [ "`basename $OBJNAME`" != "`basename $OBJNAME .o`" ]; then
