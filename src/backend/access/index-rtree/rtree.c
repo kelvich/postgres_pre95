@@ -383,7 +383,18 @@ rttighten(r, stk, datum, att_size)
     newd_size = (float *) fmgr(size_proc, datum);
 
     if (*newd_size != *old_size) {
-	bcopy(datum, oldud, att_size);
+	TupleDescriptor td = RelationGetTupleDescriptor(r);
+
+	if (td->data[0]->attlen < 0) {
+	    /*
+	     * This is an internal page, so 'oldud' had better be a
+	     * union (constant-length) key, too.  (See comment below.)
+	     */
+	    Assert(VARSIZE(datum) == VARSIZE(oldud));
+	    bcopy(datum, oldud, VARSIZE(datum));
+	} else {
+	    bcopy(datum, oldud, att_size);
+	}
 	WriteBuffer(b);
 
 	/*
@@ -641,7 +652,7 @@ picksplit(r, page, v, itup)
     float size_waste, waste;
     float *size_l, *size_r;
     int nbytes;
-    OffsetNumber seed_1, seed_2;
+    OffsetNumber seed_1 = 0, seed_2 = 0;
     OffsetNumber *left, *right;
 
     union_proc = index_getprocid(r, 1, RT_UNION_PROC);
