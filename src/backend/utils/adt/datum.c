@@ -64,7 +64,7 @@ Size len;
 		(long) type, len);
 	}
     } else { /*  not byValue */
-	if (len <= -1) {
+	if (len == -1) {
 	    /*
 	     * variable length type
 	     * Look at the varlena struct for its real length...
