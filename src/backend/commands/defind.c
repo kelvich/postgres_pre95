@@ -112,7 +112,8 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 		tuple = SearchSysCacheTuple(ATTNAME, relationId,
 			CString(CAR(attribute)));
 		if (!HeapTupleIsValid(tuple)) {
-			elog(WARN, "DefineIndex: %s attribute not found");
+			elog(WARN, "DefineIndex: attribute \"%s\" not found",
+				CString(CAR(attribute)));
 		}
 		attributeNumberA[attributeNumber - 1] =
 			((Attribute)GETSTRUCT(tuple))->attnum;
