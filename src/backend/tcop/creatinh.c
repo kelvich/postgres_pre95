@@ -106,9 +106,6 @@ DefineRelation(relationName, parameters, schema)
 	/*
 	 * Catalog inherited attribute information.
 	 */
-#if 0
-	EndUtility("CREATE");
-#endif
 }
 
 #if 0
@@ -145,9 +142,6 @@ RemoveRelation(name)
 	/* (delete-inheritance relation-name) */
 	/* (check-indices relation-name) */
 	RelationNameDestroyHeapRelation(name);
-#if 0
-	EndUtility("DESTROY");
-#endif
 }
 
 #if 0
