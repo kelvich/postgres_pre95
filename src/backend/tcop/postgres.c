@@ -275,7 +275,7 @@ InteractiveBackend(inBuf)
 char SocketBackend(inBuf)
     char *inBuf;
 {
-    char *qtype = "?";
+    char qtype[2] = { '?', '\0' };
     int pq_qid;
 
     /* ----------------
