@@ -327,6 +327,12 @@ extern int32 userfntest();
 
 extern char *pg_username();
 
+extern char *array_in();
+extern char *array_out();
+
+extern char *string_in();
+extern char *string_out();
+
 extern int32 pqtest();
 
 #endif !BuiltinsIncluded
