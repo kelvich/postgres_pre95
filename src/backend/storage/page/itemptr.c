@@ -3,14 +3,13 @@
  *	POSTGRES disk item pointer code.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
-#include "block.h"
-#include "off.h"
+#include "storage/block.h"
+#include "storage/off.h"
+#include "storage/page.h"
+#include "storage/itemptr.h"
 
-#include "page.h"
-
-#include "itemptr.h"
 #include "internal.h"
 
 RcsId("$Header$");
