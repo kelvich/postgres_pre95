@@ -86,17 +86,17 @@ bool addFlag;
     HeapTuple newTuple;
     Prs2Stub currentStubs;
     bool newTupleFlag;
-	Name relname; /* Added so we can pass Name_pg_prs2stub to
-					 RelationNameOpenHeapRelation */
+	NameData relname; /* Added so we can pass Name_pg_prs2stub to
+					     RelationNameOpenHeapRelation */
 
     /*
      * Add a stub record a a relation
      * Go to the pg_prs2stub relation find the
      * appropriate tuple, and add the specified lock to it.
      */
-	strcpy(relname, Name_pg_prs2stub);
+	strcpy(relname.data, Name_pg_prs2stub);
 
-    prs2stubRelation = RelationNameOpenHeapRelation(relname);
+    prs2stubRelation = RelationNameOpenHeapRelation(&relname);
 
     scanKey.data[0].flags = 0;
     scanKey.data[0].attributeNumber = Anum_pg_prs2stub_prs2relid;
@@ -350,16 +350,16 @@ Prs2Stub newStubs;
     HeapTuple newTuple;
     Prs2Stub currentStubs;
     bool newTupleFlag;
-	Name relname;
+	NameData relname;
 
     /*
      * Go to the pg_prs2stub relation (i.e. pg_relation), find the
      * appropriate tuple, and add the specified lock to it.
      */
 
-	strcpy(relname, Name_pg_prs2stub);
+	strcpy(relname.data, Name_pg_prs2stub);
 
-    prs2stubRelation = RelationNameOpenHeapRelation(relname);
+    prs2stubRelation = RelationNameOpenHeapRelation(&relname);
 
     scanKey.data[0].flags = 0;
     scanKey.data[0].attributeNumber = Anum_pg_prs2stub_prs2relid;
