@@ -478,7 +478,12 @@ make_op(op,ltree,rtree, optype)
 			    0 ,       	     /* operator relation level */
 			    opform->oprresult, /* operator result type */
 			    NULL, NULL);
-	t1 = lispCons ( (LispValue)newop , lispCons (left ,
+	if (!left)
+	    t1 = lispCons ( (LispValue)newop , lispCons (right,LispNil) );
+	else if (!right)
+	    t1 = lispCons ( (LispValue)newop , lispCons (left,LispNil) );
+	else
+	    t1 = lispCons ( (LispValue)newop , lispCons (left ,
 					     lispCons (right,LispNil)));
 	return ( lispCons (lispInteger ( opform->oprresult ) ,
 			   t1 ));
