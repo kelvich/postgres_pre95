@@ -219,10 +219,10 @@ DATA(insert OID = 626 (  "!!="     6 0 b t f  23   19   16 0   0    0   0   int4
 DATA(insert OID = 627 (  "!!="     6 0 b t f  26   19   16 0   0    0   0   oidnotin "-"     "-"));
 DATA(insert OID = 630 (  "!="      6 0 b t f  18  18  16 630  92  0 0 charne eqsel eqjoinsel ));
     
-DATA(insert OID = 631 (  "<"       6 0 b t f  18  18  16 633 634  0 0 charlt eqsel eqjoinsel ));
-DATA(insert OID = 632 (  "<="      6 0 b t f  18  18  16 634 633  0 0 charle eqsel eqjoinsel ));
-DATA(insert OID = 633 (  ">"       6 0 b t f  18  18  16 631 632  0 0 chargt eqsel eqjoinsel ));
-DATA(insert OID = 634 (  ">="      6 0 b t f  18  18  16 632 631  0 0 charge eqsel eqjoinsel ));
+DATA(insert OID = 631 (  "<"       6 0 b t f  18  18  16 633 634  0 0 charlt intltsel intltjoingsel ));
+DATA(insert OID = 632 (  "<="      6 0 b t f  18  18  16 634 633  0 0 charle intltsel intltjoingsel ));
+DATA(insert OID = 633 (  ">"       6 0 b t f  18  18  16 631 632  0 0 chargt intltsel intltjoingsel ));
+DATA(insert OID = 634 (  ">="      6 0 b t f  18  18  16 632 631  0 0 charge intltsel intltjoingsel ));
     
 DATA(insert OID = 635 (  "+"       6 0 b t f  18  18  16 0 0  0 0 charpl eqsel eqjoinsel ));
 DATA(insert OID = 636 (  "-"       6 0 b t f  18  18  16 0 0  0 0 charmi eqsel eqjoinsel ));
