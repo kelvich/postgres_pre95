@@ -11,6 +11,7 @@ RcsId("$Header$");
 
 #include "rules/rac.h"
 #include "rules/prs2locks.h"
+#include "rules/prs2.h"
 
 #include "storage/block.h"
 #include "storage/buf.h"
@@ -31,6 +32,21 @@ RcsId("$Header$");
  */
 
 /*-------------------------------------------------------------------
+ * HeapTupleFreeRuleLock
+ *
+ * Frees a lock, but only if it is a main memory lock.
+ *
+ */
+void
+HeapTupleFreeRuleLock(tuple)
+HeapTuple tuple;
+{
+        if (tuple->t_locktype == MEM_RULE_LOCK) {
+	    prs2FreeLocks(tuple->t_lock.l_lock);
+	}
+}
+
+/*-------------------------------------------------------------------
  *
  * HeapTupleGetRuleLock
  *
@@ -39,6 +55,11 @@ RcsId("$Header$");
  * This routine always return the main memory representation (if necessary
  * it makes the conversion)
  *
+ * NOTE: When we save the tuple on disk, if the rule lock is empty
+ * (i.e. a "(numOfLocks: 0)"::lock, which must not be confused with
+ * an 'InvalidRuleLock') then we store an InvalidItemPointer.
+ * So, if the disk representation of the tuple's lock is such an
+ * InvalidItemPointer we have to create & return an empty lock.
  */
 RuleLock
 HeapTupleGetRuleLock(tuple, buffer)
@@ -64,10 +85,11 @@ HeapTupleGetRuleLock(tuple, buffer)
         }
 
 	/*
-	 * no, it is a disk lock. Check if it is invalid
+	 * no, it is a disk lock. Check if it the item pointer is
+	 * invalid and if yes, return an empty lock.
 	 */
 	if (!ItemPointerIsValid(&tuple->t_lock.l_ltid)) {
-		return (InvalidRuleLock);
+		return (prs2MakeLocks());
 	}
 
 	/*
@@ -132,9 +154,7 @@ HeapTupleSetRuleLock(tuple, buffer, lock)
                 tuple->t_locktype, tuple->t_locktype);
         }
 
-	if (tuple->t_locktype == MEM_RULE_LOCK) {
-	    prs2FreeLocks(tuple->t_lock.l_lock);
-	}
+	HeapTupleFreeRuleLock(tuple);
 
         tuple->t_locktype = MEM_RULE_LOCK;
 	tuple->t_lock.l_lock = lock;
@@ -151,6 +171,9 @@ HeapTupleSetRuleLock(tuple, buffer, lock)
  * the lock is already there! In the second case, add the lock data
  * somewhere in the disk page & update the tuple->t_lock stuff...
  *
+ * NOTE: When we save the tuple on disk, if the rule lock is empty
+ * (i.e. a "(numOfLocks: 0)"::lock, which must not be confused with
+ * an 'InvalidRuleLock') then we store an InvalidItemPointer.
  */
 void
 HeapTupleStoreRuleLock(tuple, buffer)
@@ -237,10 +260,17 @@ HeapTupleStoreRuleLock(tuple, buffer)
 	 * Rec.puzzles yet...)
 	 *
 	 * Shall we free the old memory locks or not ????
-	 * "I say yes! It is safe to pfree them..." (Spyros said just before
+	 * "I say yes! It is safe to pfree them..." (Spyros said, just before
 	 * the lights went out...)
+	 *
+	 * ---
+	 * The lights went out, so DO NOT FREE the locks! I think the
+	 * problem is that when 'RelationPutHeapTuple' calls this routine
+	 * it passes to it an item pointer, i.e. a "disk" tuple, and
+	 * not the main memory tuple. So finally when the executor does
+	 * its cleanup, it ends up freeing this lock twice!
 	 */
-	prs2FreeLocks(lock);
+	/* prs2FreeLocks(lock); */
 
 	/*
 	 * And our last question for $200!
