@@ -153,5 +153,10 @@ extern int CAtom();
 /* temporary functions */
 
 extern LispValue mapcar();
+#define foreach(elt,list)	for(elt=list;elt!=LispNil;elt=CDR(elt))
+
+/* sigh, used so often, I'm lazy to do global search & replace */
+#define cons(x,y) lispCons(x,y)
+
 
 #endif /* !LispDepIncluded */
