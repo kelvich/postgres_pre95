@@ -66,9 +66,9 @@ POSTGRESLOGIN= postgres
 
 #
 # For convenience, POSTGRESDIR is where DATADIR, BINDIR, and LIBDIR 
-# are rooted.  Of course, each of those is changable separately.  This
-# is usually "/usr/local" but may be different for the postgres development
-# team and sequoia users.
+# and other target destinations are rooted.  Of course, each of these is 
+# changable separately.  This is usually "/usr/local/postgres" but may be 
+# different for the postgres development team and sequoia users.
 #
 POSTGRESDIR=	/private/devel/postgres
 #
@@ -84,13 +84,39 @@ DATADIR=	${POSTGRESDIR}/data
 BINDIR=		${POSTGRESDIR}/bin
 
 #
-# where libpq.a gets installed.  You must put it where your loader will
+# Where libpq.a gets installed.  You must put it where your loader will
 # look for it if you wish to use the -lpq.a convention.  Otherwise you
 # can just put the absolute pathname to the libraray at the end of your
 # compile line.
 LIBDIR=		${POSTGRESDIR}/lib
 
+#
+# Where the man pages get installed.
+#
+POSTMANDIR=	${POSTGRESDIR}/man
+
+#
+# Where the formatted documents get installed.
+#
+POSTDOCDIR=	${POSTGRESDIR}/doc
+
+#
+# Where the header files necessary to build frontend
+# programs get installed.
+#
+HEADERDIR=	${POSTGRESDIR}/include
+
+#
+# If you plan to use Kerberos for authentication.
+#
+# Comment out KRBVERS if you do not use Kerberos.
+# 	Set KRBVERS to "4" for Kerberos v4, "5" for Kerberos v5.
+#	XXX Edit the default Kerberos variables below!
+#KRBVERS=	5
+
+#
 # == END OF NORMAL CONFIGURATION SECTION ==
+#
 
 .if (${PORTNAME} != "sparc")
 MACHINE!=	machine
@@ -126,11 +152,6 @@ CDEBUG=		-g
 #	XXX define on MIPS if you want to be able to use pixie.
 #	    note that this disables dynamic loading!
 #PROFILE=
-
-# Comment out KRBVERS if you do not use Kerberos.
-# 	Set KRBVERS to "4" for Kerberos v4, "5" for Kerberos v5.
-#	XXX Edit the default Kerberos variables below!
-#KRBVERS=	5
 
 #
 # Globally pass debugging flags
