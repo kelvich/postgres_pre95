@@ -29,6 +29,8 @@
 #include "planner/clause.h"
 
 
+#define ISCOMPLEX(type) (typeid_get_relid(type) ? true : false)
+
 /*    
  *    	preprocess-targetlist
  *    
@@ -99,6 +101,7 @@ preprocess_targetlist (tlist,command_type,result_relation,range_table)
        strcpy(&nameTemp->data[0], "ctid");
        ctid = lispCons((LispValue)MakeResdom(length(t_list) + 1,
                                              27,
+					     false,
                                              6,
                                              nameTemp,
                                              0,
@@ -296,6 +299,7 @@ new_relation_targetlist (relid,rt_index,node_type)
 				    false);
 		 
 		 temp3 = MakeTLE (MakeResdom (CInteger(attno),atttype,
+					      ISCOMPLEX(atttype),
 					      typlen,
 					      attname,
 					      0,
@@ -318,6 +322,7 @@ new_relation_targetlist (relid,rt_index,node_type)
 						    LispNil)), 0);
 		 temp_list = MakeTLE (MakeResdom( CInteger(attno),
 						  atttype,
+						  ISCOMPLEX(atttype),
 						  typlen,
 						  attname,
 						  0,

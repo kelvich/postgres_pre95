@@ -658,6 +658,7 @@ Prs2RuleData r;
 	strcpy(name->data,"foo");
 	resdom = MakeResdom((AttributeNumber)1,
 			    (ObjectId) 23,
+			    false,
 			    (Size) 4,
 			    name,
 			    (Index) 0,

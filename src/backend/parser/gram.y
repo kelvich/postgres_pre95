@@ -1757,7 +1757,8 @@ agg_res_target_el:
 	        type_id = CInteger(CAR(temp));
 	        type_len = tlen(get_id_type(type_id));
 	        resnode = MakeResdom ( (AttributeNumber)1,
-				     (ObjectId)type_id, (Size)type_len,
+				     (ObjectId)type_id, ISCOMPLEX(type_id),
+				     (Size)type_len,
 				     (Name)CString(CAR(last ($1) )),
 				     (Index)0 , (OperatorTupleForm)0 ,
 				     0 );
@@ -1839,6 +1840,7 @@ res_target_el:
 	     resdomno = p_last_resno++;
 	     temp = lispCons ((LispValue)MakeResdom((AttributeNumber)resdomno,
 					 (ObjectId)type_id,
+					 ISCOMPLEX(type_id),
 					 (Size)type_len,
 					 (Name)CString($1),
 					 (Index)0, (OperatorTupleForm)0, 0) 
@@ -1864,7 +1866,8 @@ res_target_el:
 		 type_id = CInteger(CAR(temp));
 		 type_len = tlen(get_id_type(type_id));
 		 resnode = MakeResdom ( (AttributeNumber)p_last_resno++ ,
-					(ObjectId)type_id, (Size)type_len, 
+					(ObjectId)type_id, ISCOMPLEX(type_id),
+				        (Size)type_len, 
 					(Name)CString(CAR(last ($1) )),
 					(Index)0 , (OperatorTupleForm)0,
 					0 );
@@ -2056,6 +2059,7 @@ make_targetlist_expr ( name , expr )
        }
        return  ( lispCons ((LispValue)MakeResdom ((AttributeNumber)resdomno,
 				       (ObjectId) attrtype,
+				       ISCOMPLEX(attrtype),
 				       (Size)attrlen ,
 				       (Name)CString(name),
 				       (Index) 0 ,
@@ -2108,6 +2112,7 @@ make_targetlist_expr ( name , expr )
     }
     return  ( lispCons ((LispValue)MakeResdom ((AttributeNumber)resdomno,
 				    (ObjectId)  attrtype,
+				    ISCOMPLEX(attrtype),
 				    (Size)  attrlen , 
 				    (Name)  CString(name), (Index)0 ,
 				    (OperatorTupleForm)0 , 0 ) ,

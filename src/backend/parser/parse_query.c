@@ -302,8 +302,12 @@ ExpandAll(relname,this_resno)
 		type_id = CInteger(CAR(temp));
 		type_len = (int)tlen(get_id_type(type_id));
 		
-		resnode = MakeResdom((AttributeNumber) i + first_resno, (ObjectId)type_id, (Size)type_len,(Name)
-					 attrname, (Index)0, (OperatorTupleForm)0, 0 );
+		resnode = MakeResdom((AttributeNumber) i + first_resno, 
+				     (ObjectId)type_id, 
+				     ISCOMPLEX(type_id),
+				     (Size)type_len,
+				     (Name) attrname, 
+				     (Index)0, (OperatorTupleForm)0, 0 );
 /*
 		tall = lispCons(lispCons(resnode, lispCons(varnode, LispNil)),
 				tall);
