@@ -52,7 +52,7 @@ DECstations.
 .PP
 On DECstations, you must use 
 .IR /bin/cc
-with the \*(lq-G O\*(rq option when compiling object files to be
+with the \*(lq-G 0\*(rq option when compiling object files to be
 loaded.
 .PP
 Note that if you are porting \*(PG to a new platform, the
