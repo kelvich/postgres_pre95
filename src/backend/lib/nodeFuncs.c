@@ -225,7 +225,7 @@ non_null (c)
      Expr c;
 {
 
-    if ( IsA(c,Const) && !get_constisnull (c) )
+    if ( IsA(c,Const) && !get_constisnull ((Const)c) )
       return(true);
     else
       return(false);
