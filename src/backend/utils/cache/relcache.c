@@ -1127,14 +1127,15 @@ RelationClose(relation)
  *           RelationFlushIndexes
  ****/
 void
-RelationFlushRelation(relation, onlyFlushReferenceCountZero)
-    Relation	relation;
+RelationFlushRelation(relationPtr, onlyFlushReferenceCountZero)
+    Relation	*relationPtr;
     bool	onlyFlushReferenceCountZero;
 {
     int			i;
     Attribute		*p;
     MemoryContext	oldcxt;
-    
+    Relation		relation = *relationPtr;
+
     if (relation->rd_isnailed) {
 	/* this is a nailed special relation for bootstraping */
 	return;
@@ -1162,7 +1163,7 @@ RelationFlushRelation(relation, onlyFlushReferenceCountZero)
 	MemoryContextSwitchTo(oldcxt);
     }
 }
- 
+
 /* --------------------------------
  *	RelationIdInvalidateRelationCacheByRelationId
  * --------------------------------
@@ -1186,7 +1187,7 @@ RelationIdInvalidateRelationCacheByRelationId(relationId)
 	 * counter and to false when we are starting a new xaction.  This
 	 * can be determined by checking the current xaction status.
 	 */
-	RelationFlushRelation(relation, CurrentXactInProgress());
+	RelationFlushRelation(&relation, CurrentXactInProgress());
     }
 }
  
@@ -1212,7 +1213,7 @@ RelationFlushIndexes(r, accessMethodId)
 	(!ObjectIdIsValid(accessMethodId) ||
 	 relation->rd_rel->relam == accessMethodId))
 	{
-	    RelationFlushRelation(relation, false);
+	    RelationFlushRelation(&relation, false);
 	}
 }
 
@@ -1251,8 +1252,17 @@ void
 RelationCacheInvalidate(onlyFlushReferenceCountZero)
     bool onlyFlushReferenceCountZero;
 {
-    HashTableWalk(RelationNameCache, (hasht_func) RelationFlushRelation, 
+    HashTableWalk(RelationNameCache, (hasht_func) RelationFlushRelation,
 		  onlyFlushReferenceCountZero);
+
+    /*
+     * nailed-in reldescs will still be in the cache...
+     * 7 hardwired heaps + 3 hardwired indices == 10 total.
+     */
+    if (!onlyFlushReferenceCountZero) {
+	Assert(RelationNameCache->hctl->nkeys == 10);
+	Assert(RelationIdCache->hctl->nkeys == 10);
+    }
 }
  
 /* --------------------------------
