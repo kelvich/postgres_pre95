@@ -17,31 +17,20 @@
  *     		fix-targetlist
  */
 
+#include "c.h"
 #include "internal.h"
 #include "pg_lisp.h"
+#include "prepunion.h"
+#include "planner.h"
+#include "plannodes.h"
+#include "plannodes.a.h"
+#include "parsetree.h"
 
-extern LispValue find_all_inheritors();
-extern LispValue plan_union_queries();
-extern LispValue plan_union_query();
-extern LispValue new_rangetable_entry();
-extern LispValue subst_rangetable();
-extern LispValue fix_parsetree_attnums();
+/* XXX - remove these when we find the right files to inclde */
+extern LispValue copy_seq_tree();
+extern LispValue get_rel_name();
 
-/*    		=======
- *    		ARCHIVE
- *    		=======
- */
-
-#define ARCHIVE 1
-
-/*    		===========
- *    		INHERITANCE
- *    		===========
- */
-
-#define INHERITANCE 2
-#define VERSION 3
-#define UNION 4
+extern List find_version_parents(); /* #include "cfi.c" */
 
 /*    
  *    	find-all-inheritors
@@ -113,7 +102,7 @@ find_all_inheritors (unexamined_relids,examined_relids)
 
 /*  .. planner    */
 
-LispValue
+int
 first_matching_rt_entry (rangetable,flag)
      LispValue rangetable,flag ;
 {
@@ -162,110 +151,111 @@ first_matching_rt_entry (rangetable,flag)
  *    
  *    	Returns a list containing a list of plans and a list of rangetable
  *    	entries to be inserted into an APPEND node.
- *    
+ *     XXX - what exactly does this mean, look for make_append
  */
 
 /*  .. planner     */
 
-LispValue
+Append
 plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
      LispValue rt_index,flag,root,tlist,qual,rangetable ;
 {
-     switch (flag) {
+    switch (flag) {
+	
+	/*    Most queries require us to iterate over a list of relids. */
+	/*    Archives are handled differently.  */
+	/*	Instead of a list of different */
+	/*    relids, we need to plan the same query  */
+	/*    twice in different modes. */
+	
+      case ARCHIVE :
+	{ /* XXX - let form, maybe incorrect */
+	    LispValue primary_plan = LispNil;
+	    LispValue archive_plan = LispNil;
 
-	  /*    Most queries require us to iterate over a list of relids. */
-	  /*    Archives are handled differently.  */
-	  /*	Instead of a list of different */
-	  /*    relids, we need to plan the same query  */
-	  /*    twice in different modes. */
-
-	case ARCHIVE :
-	  { /* XXX - let form, maybe incorrect */
-	       LispValue primary_plan = LispNil;
-	       LispValue archive_plan = LispNil;
-	       _query_is_archival_ = LispNil;
-	       primary_plan = init_query_planner (root,tlist,qual);;
-	       _query_is_archival_ = 1 ;
-	       archive_plan = init_query_planner (root,tlist,qual);;
-	       return (make_append (list (primary_plan,archive_plan),
-				    rt_index,
-				    list (rt_fetch (rt_index,rangetable),
-					  rt_fetch (rt_index,rangetable)),
-				    get_qptargetlist (primary_plan)));
-	       
-	  }
-	  break;
-	  
-	default:
-	  { 
-	       LispValue rt_entry = rt_fetch (rt_index,rangetable);
-	       LispValue union_relids = LispNil;
-
-	       LispValue union_info = LispNil;
-	       LispValue union_plans = LispNil;
-	       LispValue union_rt_entries = LispNil;
-	       LispValue temp = LispNil;
-
-	       switch (flag) {
-		    
-		  case INHERITANCE :
-		    union_relids = 
-		      find_all_inheritors (list (rt_relid (rt_entry)),
-						LispNil);
-		    break;
-
-		  case UNION :
-		    /*    XXX What goes here?? */
-		    union_relids = LispNil;
-		    break;
-
-		  case VERSION :
-		    union_relids = 
-		      find_version_parents (rt_relid (rt_entry));
-		    break;
-		    
-		  default: 
-		    /* do nothing */
-		    break;
-		  }
-
-	       /*    XXX temporary for inheritance: */
-	       /*     relid is listified by the parser. */
-	       
-	       /*    	   (case flag
-		*    		 (inheritance
-		*    		  (setf (rt_relid (rt_fetch rt-index 
-		*                                  rangetable))
-		*    			(CAR (rt_relid 
-                *                         (rt_fetch rt-index rangetable))))))
-		*/
-
-	       /*    Remove the flag for this relation, */
-	       /*     since we're about to handle it */
-	       /*    (do it before recursing!). */
-	       /*    XXX destructive parse tree change */
-	       /*   was setf -- is this right?  */
-
-	       rt_flags (rt_fetch (rt_index,rangetable)) = 
-		 remove (flag,rt_flags (rt_fetch (rt_index,rangetable)));
-
-	       union_info = plan_union_query (sort (union_relids, <),
-					      rt_index,rt_entry,
-					      root,tlist,qual,rangetable);
-	       
-	       foreach(temp,union_info) {
-		 union_plans = nappend1(union_plans,CAR (temp));
-		 union_rt_entries = nappend1(union_rt_entries,
-					     CADR (temp));
-	       }
-	       
-	       return (make_append (union_plans,
-				    rt_index,union_rt_entries,
-				    get_qptargetlist (CAR (union_plans))));
-	     }
+	    _query_is_archival_ = false;
+	    primary_plan = init_query_planner (root,tlist,qual);
+	    _query_is_archival_ = true;
+	    archive_plan = init_query_planner (root,tlist,qual);
+	    return (MakeAppend (list (primary_plan,archive_plan),
+				rt_index,
+				list (rt_fetch (rt_index,rangetable),
+				      rt_fetch (rt_index,rangetable)),
+				get_qptargetlist (primary_plan)));
+	    
 	}
-     
-   }   /* function end  */
+	break;
+	
+      default:
+	{ 
+	    LispValue rt_entry = rt_fetch (rt_index,rangetable);
+	    LispValue union_relids = LispNil;
+
+	    LispValue union_info = LispNil;
+	    LispValue union_plans = LispNil;
+	    LispValue union_rt_entries = LispNil;
+	    LispValue temp = LispNil;
+	    
+	    switch (flag) {
+		    
+	      case INHERITANCE :
+		union_relids = 
+		      find_all_inheritors (list (rt_relid (rt_entry)),
+					   LispNil);
+		break;
+
+	      case UNION :
+		/*    XXX What goes here?? */
+		union_relids = LispNil;
+		break;
+		
+	      case VERSION :
+		union_relids = 
+		  find_version_parents (rt_relid (rt_entry));
+		break;
+		
+	      default: 
+		/* do nothing */
+		break;
+	    }
+	    
+	    /*    XXX temporary for inheritance: */
+	    /*     relid is listified by the parser. */
+	    
+	    /*    	   (case flag
+	     *    		 (inheritance
+	     *    		  (setf (rt_relid (rt_fetch rt-index 
+	     *                                  rangetable))
+	     *    			(CAR (rt_relid 
+	     *                         (rt_fetch rt-index rangetable))))))
+	     */
+	    
+	    /*    Remove the flag for this relation, */
+	    /*     since we're about to handle it */
+	    /*    (do it before recursing!). */
+	    /*    XXX destructive parse tree change */
+	    /*   was setf -- is this right?  */
+	    
+	    rt_flags (rt_fetch (rt_index,rangetable)) = 
+		 remove (flag,rt_flags (rt_fetch (rt_index,rangetable)));
+	    
+	    union_info = plan_union_query (sort (union_relids, "<"),
+					   rt_index,rt_entry,
+					   root,tlist,qual,rangetable);
+	    
+	    foreach(temp,union_info) {
+		union_plans = nappend1(union_plans,CAR (temp));
+		union_rt_entries = nappend1(union_rt_entries,
+					    CADR (temp));
+	    }
+	    
+	    return (MakeAppend (union_plans,
+				rt_index,union_rt_entries,
+				get_qptargetlist (CAR (union_plans))));
+	}
+    }
+    
+}   /* function end  */
 
 
 /*    
@@ -353,7 +343,7 @@ subst_rangetable (root,index,new_entry)
   /* XXX - let form, maybe incorrect */
   LispValue new_root = copy_seq_tree (root);
   /* XXX - setf  */
-  rt_fetch (index,root_rangetable (new_root)) = new_entry;
+  rt_store (index,root_rangetable (new_root),new_entry)
   return (new_root);
 
 }
@@ -399,14 +389,16 @@ parsetree;
 
 /*  .. print_plan    */
 
-LispValue
+List
 fix_rangetable (rangetable,index,new_entry)
-     LispValue rangetable,index,new_entry ;
+     List rangetable;
+     int index;
+     List new_entry ;
 {
-  /* XXX - let form, maybe incorrect */
   LispValue new_rangetable = copy_seq_tree (rangetable);
   /* XXX was setf  */
-  rt_fetch (index,new_rangetable) = new_entry;
+  rt_store (index,new_rangetable,new_entry);
+
   return (new_rangetable);
 
 }
