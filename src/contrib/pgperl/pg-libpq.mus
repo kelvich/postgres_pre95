@@ -47,6 +47,12 @@ the following ways:
 #include "tmp/libpq.h"
 #include "tmp/libpq-fe.h"	/* superset of ones also in libpq-be.h */
 
+#ifdef PORTNAME_ultrix4
+#include "config.h"
+#undef HAS_MEMCPY
+#undef HAS_MEMSET
+#endif /* PORTNAME_ultrix4 */
+
 #include "EXTERN.h"
 #include "perl.h"
 
@@ -400,23 +406,29 @@ END
 	if (items != 1)
 	    fatal("Usage: &PQpnames($rule_p)");
 	else {
-	    int nnames;
-	    char portalnames[MAXPORTALS][PortalNameLength];
-	    char *pnames[MAXPORTALS];
-	    int		rule_p =	(int)		str_gnum(st[1]);
+	    int i, nnames, nportals;
+	    char *p, *portalnames, **pnames;
+	    int rule_p = (int) str_gnum(st[1]);
+
+	    /* Figure out how many open portals there are */
+	    nportals = PQnportals(rule_p);
+	    pnames = (char **) calloc(nportals, sizeof(char *));
+	    portalnames = (char *) calloc(nportals, PortalNameLength + 1);
 
 	    /* Fill in the pname array */
-            {
-	      int i;
-              for (i = 0; i < MAXPORTALS; i += 1) {
-                pnames[i] = portalnames[i];
-              }
-            }
+	    for (i = 0, p = portalnames; i < nportals;
+		 ++i, p += PortalNameLength + 1) {
+		pnames[i] = p;
+	    }
 
-	    (void)PQpnames(pnames, rule_p);
+	    PQpnames(pnames, rule_p);
 
 	    /* Count the number of strings */
-	    for (nnames = 0; pnames[nnames] != NULL; nnames += 1);
+	    nnames = 0;
+	    for (i = 0; i < nportals; ++i) {
+		if (pnames[i] && *pnames[i])
+		    ++nnames;
+	    }
 
 	    /* Return an array of strings */
 	    if (nnames <= 0) {
