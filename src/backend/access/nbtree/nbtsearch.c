@@ -90,7 +90,7 @@ _bt_searchr(rel, keysz, scankey, bufP, stack_in)
     itemid = PageGetItemId(page, offind);
     btitem = (BTItem) PageGetItem(page, itemid);
     itup = &(btitem->bti_itup);
-    blkno = ItemPointerGetBlockNumber(&(itup->t_tid));
+    blkno = ItemPointerGetBlockNumber(&(itup->t_tid), 0);
 
     /*
      *  We need to save the bit image of the index entry we chose in the
@@ -559,6 +559,7 @@ _bt_next(scan, dir)
 	so->btso_curbuf = buf;
     } else {
 	ItemPointerSetInvalid(current);
+	so->btso_curbuf = InvalidBuffer;
 	_bt_relbuf(rel, buf, BT_READ);
 	res = (RetrieveIndexResult) NULL;
     }
@@ -607,6 +608,7 @@ _bt_first(scan, dir)
     rel = scan->relation;
     itupdesc = RelationGetTupleDescriptor(scan->relation);
     current = &(scan->currentItemData);
+    so = (BTScanOpaque) scan->opaque;
 
     /*
      *  Okay, we want something more complicated.  What we'll do is use
@@ -680,6 +682,7 @@ _bt_first(scan, dir)
       case BTEqualStrategyNumber:
 	if (result != 0) {
 	  _bt_relbuf(scan->relation, buf, BT_READ);
+	  so->btso_curbuf = InvalidBuffer;
 	  ItemPointerSetInvalid(&(scan->currentItemData));
 	  return ((RetrieveIndexResult) NULL);
 	}
@@ -724,10 +727,10 @@ _bt_first(scan, dir)
 	res = ItemPointerFormRetrieveIndexResult(current, iptr);
 
 	/* remember which buffer we have pinned */
-	so = (BTScanOpaque) scan->opaque;
 	so->btso_curbuf = buf;
     } else {
 	ItemPointerSetInvalid(current);
+	so->btso_curbuf = InvalidBuffer;
 	_bt_relbuf(rel, buf, BT_READ);
 	res = (RetrieveIndexResult) NULL;
     }
@@ -756,6 +759,7 @@ _bt_step(scan, bufP, dir)
     OffsetIndex start;
     BlockNumber blkno;
     BlockNumber obknum;
+    BTScanOpaque so;
     ItemPointer current;
     Relation rel;
 
@@ -764,6 +768,7 @@ _bt_step(scan, bufP, dir)
     offind = ItemPointerGetOffsetNumber(current, 0) - 1;
     page = BufferGetPage(*bufP, 0);
     opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+    so = (BTScanOpaque) scan->opaque;
     maxoff = PageGetMaxOffsetIndex(page);
 
     /* get the next tuple */
@@ -776,6 +781,7 @@ _bt_step(scan, bufP, dir)
 	    if ((blkno = opaque->btpo_next) == P_NONE) {
 		_bt_relbuf(rel, *bufP, BT_READ);
 		ItemPointerSetInvalid(current);
+		so->btso_curbuf = InvalidBuffer;
 		return (false);
 	    } else {
 
@@ -797,6 +803,7 @@ _bt_step(scan, bufP, dir)
 			blkno = opaque->btpo_next;
 			_bt_relbuf(rel, *bufP, BT_READ);
 			if (blkno == P_NONE) {
+			    so->btso_curbuf = InvalidBuffer;
 			    ItemPointerSetInvalid(current);
 			    return (false);
 			}
@@ -820,6 +827,7 @@ _bt_step(scan, bufP, dir)
 	    /* if we're at end of scan, release the buffer and return */
 	    if ((blkno = opaque->btpo_prev) == P_NONE) {
 		_bt_relbuf(rel, *bufP, BT_READ);
+		so->btso_curbuf = InvalidBuffer;
 		ItemPointerSetInvalid(current);
 		return (false);
 	    } else {
@@ -864,6 +872,7 @@ _bt_step(scan, bufP, dir)
 			obknum = BufferGetBlockNumber(*bufP);
 			_bt_relbuf(rel, *bufP, BT_READ);
 			if (blkno == P_NONE) {
+			    so->btso_curbuf = InvalidBuffer;
 			    ItemPointerSetInvalid(current);
 			    return (false);
 			}
@@ -1035,7 +1044,7 @@ _bt_endpoint(scan, dir)
 	btitem = (BTItem) PageGetItem(page, PageGetItemId(page, offind));
 	itup = &(btitem->bti_itup);
 
-	blkno = ItemPointerGetBlockNumber(&(itup->t_tid));
+	blkno = ItemPointerGetBlockNumber(&(itup->t_tid), 0);
 
 	_bt_relbuf(rel, buf, BT_READ);
 	buf = _bt_getbuf(rel, blkno, BT_READ);
