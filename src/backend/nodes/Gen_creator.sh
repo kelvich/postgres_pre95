@@ -90,6 +90,8 @@ FILENAME != "-" && /{/, /}/ {
 	print "\n *    that relies on this behaviour.";
 	print "\n * ----------------";
 	print "\n */";
+	print "\nextern ", class, " Make", class, "();";
+	print "\n";
 	print "\n", class, "\nMake", class, "(";
 	i = 0;
 }
@@ -145,6 +147,8 @@ FILENAME != "-" && /{/, /}/ {
 	print "\n *    Print function for ", class;
 	print "\n * ----------------";
 	print "\n */";
+	print "\nextern void Print", class, "();";
+	print "\n;";
 	print "\nvoid \nPrint", class, "(fp, node)"
 	print "\n\tFILE *fp;\n\t", class, "\tnode;"
 	print "\n{"
@@ -164,16 +168,18 @@ FILENAME != "-" && /{/, /}/ {
 	print "\n *    Equal function for ", class;
 	print "\n * ----------------";
 	print "\n */";
-	print "\nbool\nEqual", class, "(a, b)"
-	print "\n\t", class, "\ta, b;"
-	print "\n{"
-	print "\n#ifdef\tEqual", class, "Exists"
-	print "\n\treturn ((bool) _equal", class, "(a, b));"
-	print "\n\n#else\t/* Equal", class, "Exists */"
-	print "\n\tprintf(\"Equal", class, " does not exist!\");\n"
-	print "\n\treturn (false);"
-	print "\n#endif\t/* Equal", class, "Exists */"
-	print "\n}\n"
+	print "\nextern bool Equal", class, "();";
+	print "\n";
+	print "\nbool\nEqual", class, "(a, b)";
+	print "\n\t", class, "\ta, b;";
+	print "\n{";
+	print "\n#ifdef\tEqual", class, "Exists";
+	print "\n\treturn ((bool) _equal", class, "(a, b));";
+	print "\n\n#else\t/* Equal", class, "Exists */";
+	print "\n\tprintf(\"Equal", class, " does not exist!\");\n";
+	print "\n\treturn (false);";
+	print "\n#endif\t/* Equal", class, "Exists */";
+	print "\n}\n";
 
 # ----
 #   generate Copy function
@@ -182,18 +188,20 @@ FILENAME != "-" && /{/, /}/ {
 	print "\n *    Copy function for ", class;
 	print "\n * ----------------";
 	print "\n */";
-	print "\nbool\nCopy", class, "(from, to, alloc)"
-	print "\n\t", class, "\tfrom;"
-	print "\n\t", class, "\t*to;\t/* return */"
-	print "\n\tchar *\t(*alloc)();"
-	print "\n{"
-	print "\n#ifdef\tCopy", class, "Exists"
-	print "\n\treturn ((bool) _copy", class, "(from, to, alloc));"
-	print "\n\n#else\t/* Copy", class, "Exists */"
-	print "\n\tprintf(\"Copy", class, " does not exist!\");\n"
-	print "\n\treturn (false);"
-	print "\n#endif\t/* Copy", class, "Exists */"
-	print "\n}\n"
+	print "\nextern bool Copy", class, "();";
+	print "\n";
+	print "\nbool\nCopy", class, "(from, to, alloc)";
+	print "\n\t", class, "\tfrom;";
+	print "\n\t", class, "\t*to;\t/* return */";
+	print "\n\tchar *\t(*alloc)();";
+	print "\n{";
+	print "\n#ifdef\tCopy", class, "Exists";
+	print "\n\treturn ((bool) _copy", class, "(from, to, alloc));";
+	print "\n\n#else\t/* Copy", class, "Exists */";
+	print "\n\tprintf(\"Copy", class, " does not exist!\");\n";
+	print "\n\treturn (false);";
+	print "\n#endif\t/* Copy", class, "Exists */";
+	print "\n}\n";
 
 # ----
 #   generate IMake creator
@@ -206,6 +214,8 @@ FILENAME != "-" && /{/, /}/ {
 	print "\n *    in all inherited classes.";
 	print "\n * ----------------";
 	print "\n */";
+	print "\nextern ", class, " IMake", class, "();";
+	print "\n";
 	print "\n", class, "\n", "IMake", class, "(";
 
 	n = numslots[ class ];
@@ -250,6 +260,8 @@ FILENAME != "-" && /{/, /}/ {
 	print "\n *    calling routine.";
 	print "\n * ----------------";
 	print "\n */";
+	print "\nextern ", class, " RMake", class, "();";
+	print "\n";
 	print "\n", class, "\n", "RMake", class, "()";
 	print "\n{";
 	print "\n\textern void Print", class, "();";
