@@ -315,7 +315,10 @@ section on \*(LP if you intend to build a client application around
 If you are not already familiar with relational databases, you should
 probably find a good introductory text on the subject.  This manual
 assumes that you already have some knowledge of the relational model,
-and it doesn't hurt to know a query language such as QUEL or SQL.
+and it doesn't hurt to know a query language such as 
+.sm QUEL
+or
+.sm SQL .
 .\"---------------------------------------------------------------------------
 .bp
 .HL
@@ -4102,8 +4105,8 @@ retrieve (EMP.all) where EMP.salary = 5000
 .)C
 then you should consider defining a hash index on 
 .cW salary .
-It doesn't hurt to define both (though it will use more disk space).
-Scans using indices are
+You can define both, though it will use more disk space and may slow 
+down updates a bit.  Scans using indices are
 .b much
 faster than sequential scans of the entire class.
 .np
