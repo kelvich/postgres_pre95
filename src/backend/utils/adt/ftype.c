@@ -32,8 +32,8 @@ typedef struct _f262desc {
     uint32 f_offset;
     Relation f_heap;
     Relation f_index;
-    OidSeq f_oslow;
-    OidSeq f_oshigh;
+    OidInt4 f_oslow;
+    OidInt4 f_oshigh;
     TupleDescriptor f_hdesc;
     ItemPointerData f_htid;
     IndexScanDesc f_iscan;
@@ -50,8 +50,8 @@ typedef struct _f262desc {
 #define FBLKSIZ	8092
 #define PGFILES "mao_files"
 #define INDNAME "mao_index"
-#define OidSeqLTProcedure	922
-#define OidSeqGEProcedure	925
+#define OidInt4LTProcedure	922
+#define OidInt4GEProcedure	925
 
 File f262file ARGS((struct varlena *name , int flags , int mode ));
 f262desc *f262open ARGS((ObjectId foid ));
@@ -101,7 +101,7 @@ pftp_write(host, port)
     IndexTuple itup;
     GeneralInsertIndexResult res;
     struct varlena *fdata;
-    OidSeq os;
+    OidInt4 os;
     Datum values[3];
     Datum ivalues[1];
     char nulls[3];
@@ -152,7 +152,7 @@ pftp_write(host, port)
 	(void) heap_insert(r, htup, (double *) NULL);
 
 	/* index heap tuple by foid, fseqno */
-	os = (OidSeq) mkoidseq(foid, fseqno);
+	os = (OidInt4) mkoidint4(foid, fseqno);
 	ivalues[0] = PointerGetDatum(os);
 	itup = index_formtuple(1, itupdesc, &ivalues[0], &nulls[0]);
 	bcopy(&(htup->t_ctid), &(itup->t_tid), sizeof(ItemPointerData));
@@ -288,7 +288,7 @@ fimport(name)
     IndexTuple itup;
     GeneralInsertIndexResult res;
     struct varlena *fdata;
-    OidSeq os;
+    OidInt4 os;
     Datum values[3];
     Datum ivalues[1];
     char nulls[3];
@@ -342,7 +342,7 @@ fimport(name)
 	(void) heap_insert(r, htup, (double *) NULL);
 
 	/* index heap tuple by foid, fseqno */
-	os = (OidSeq) mkoidseq(foid, fseqno);
+	os = (OidInt4) mkoidint4(foid, fseqno);
 	ivalues[0] = PointerGetDatum(os);
 	itup = index_formtuple(1, itupdesc, &ivalues[0], &nulls[0]);
 	bcopy(&(htup->t_ctid), &(itup->t_tid), sizeof(ItemPointerData));
@@ -383,11 +383,11 @@ f262open(foid)
     (void) bzero((char *) &(f->f_htid), sizeof(f->f_htid));
 
     /* initialize the scan key */
-    f->f_oslow = (OidSeq) mkoidseq(foid, 0);
-    ScanKeyEntryInitialize(&fkey[0], 0x0, 1, OidSeqGEProcedure,
+    f->f_oslow = (OidInt4) mkoidint4(foid, 0);
+    ScanKeyEntryInitialize(&fkey[0], 0x0, 1, OidInt4GEProcedure,
 			   PointerGetDatum(f->f_oslow));
-    f->f_oshigh = (OidSeq) mkoidseq(foid + 1, 0);
-    ScanKeyEntryInitialize(&fkey[1], 0x0, 1, OidSeqLTProcedure,
+    f->f_oshigh = (OidInt4) mkoidint4(foid + 1, 0);
+    ScanKeyEntryInitialize(&fkey[1], 0x0, 1, OidInt4LTProcedure,
 			   PointerGetDatum(f->f_oshigh));
 
     f->f_iscan = index_beginscan(f->f_index, (Boolean)0x0, 
@@ -401,7 +401,7 @@ f262seek(f, loc)
     f262desc *f;
     int loc;
 {
-    OidSeq os;
+    OidInt4 os;
     ScanKeyEntryData fkey[2];
 
     /* try to avoid advancing the seek pointer */
@@ -416,15 +416,15 @@ f262seek(f, loc)
     (void) index_endscan(f->f_iscan);
 
     /* initialize the scan key */
-    if (f->f_oslow != (OidSeq) NULL)
+    if (f->f_oslow != (OidInt4) NULL)
 	pfree((char *)f->f_oslow);
-    if (f->f_oshigh != (OidSeq) NULL)
+    if (f->f_oshigh != (OidInt4) NULL)
 	pfree((char *)f->f_oshigh);
-    f->f_oslow = (OidSeq) mkoidseq(f->f_oid, f->f_seqno);
-    ScanKeyEntryInitialize(&fkey[0], 0x0, 1, OidSeqGEProcedure,
+    f->f_oslow = (OidInt4) mkoidint4(f->f_oid, f->f_seqno);
+    ScanKeyEntryInitialize(&fkey[0], 0x0, 1, OidInt4GEProcedure,
 			   PointerGetDatum(f->f_oslow));
-    f->f_oshigh = (OidSeq) mkoidseq(f->f_oid + 1, 0);
-    ScanKeyEntryInitialize(&fkey[1], 0x0, 1, OidSeqLTProcedure,
+    f->f_oshigh = (OidInt4) mkoidint4(f->f_oid + 1, 0);
+    ScanKeyEntryInitialize(&fkey[1], 0x0, 1, OidInt4LTProcedure,
 			   PointerGetDatum(f->f_oshigh));
 
     /* reinit the index scan */
@@ -515,9 +515,9 @@ f262close(f)
     (void) index_close(f->f_index);
     (void) heap_close(f->f_heap);
 
-    if (f->f_oslow != (OidSeq) NULL)
+    if (f->f_oslow != (OidInt4) NULL)
 	pfree((char *)f->f_oslow);
-    if (f->f_oshigh != (OidSeq) NULL)
+    if (f->f_oshigh != (OidInt4) NULL)
 	pfree((char *)f->f_oshigh);
 
     pfree((char *)f);
