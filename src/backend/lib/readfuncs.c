@@ -128,11 +128,11 @@ _getPlan(node)
 
 	if (!strncmp(token, "nil", 3))
 	{
-		node->state = (struct EState *) NULL;
+		node->state = (EStatePtr) NULL;
 	} 
 	else /* Disgusting hack until I figure out what to do here */
 	{
-		node->state = (struct EState *) ! NULL;
+		node->state = (EStatePtr) ! NULL;
 	}
 
 	token = lsptok(NULL, &length);    	/* eat :qptargetlist */
@@ -145,11 +145,11 @@ _getPlan(node)
 
 	token = lsptok(NULL, &length);    	/* eat :lefttree */
 
-	node->lefttree = (struct Plan *) lispRead(true);
+	node->lefttree = (PlanPtr) lispRead(true);
 
 	token = lsptok(NULL, &length);    	/* eat :righttree */
 
-	node->righttree = (struct Plan *) lispRead(true);
+	node->righttree = (PlanPtr) lispRead(true);
 
 }
 
@@ -340,7 +340,7 @@ _getJoin(node)
 	_getPlan(node);
 
 	token = lsptok(NULL, &length);	/* skip ruleinfo: */
-	node->ruleinfo = (struct JoinRuleInfo *) lispRead(true);
+	node->ruleinfo = (JoinRuleInfoPtr) lispRead(true);
 
 }
 
