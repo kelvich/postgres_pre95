@@ -33,6 +33,7 @@
 
 #include "tmp/c.h"
 #include "catalog_utils.h"
+#include "catalog/catname.h"
 #include "access/heapam.h"
 #include "utils/log.h"
 #include "utils/palloc.h"
@@ -1938,7 +1939,20 @@ opt_id:
 
 relation_name:
 	SpecialRuleRelation
-	| Id		/* $$ = $1 */;
+	| Id
+	  {
+		/*
+		 * Catch references to pg_log and disallow them.
+		 * XXX There are probably other system relations that
+		 *     we should add to this list.
+		 */
+		if (strncmp(CString($1), LogRelationName, 16) == 0)
+		    elog(WARN,
+			 "%s cannot be accessed by users",
+			 LogRelationName);
+		else
+		    $$ = $1;
+	  }
 	;
 
 database_name:	Id	/*$$=$1*/;
