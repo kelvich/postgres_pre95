@@ -248,10 +248,10 @@ RangeTablePosn ( rangevar )
 	extern LispValue p_rtable;
 	LispValue temp = p_rtable;
 	
-	printf("Looking for relation : %s\n",rangevar);
-	fflush(stdout);
+	/*printf("Looking for relation : %s\n",rangevar);
+	fflush(stdout);*/
 	while ( ! lispNullp (temp )) {
-		printf("%s\n",CString ( CAR(CAR (temp ))));
+		/*printf("%s\n",CString ( CAR(CAR (temp ))));*/
 		fflush (stdout );
 		if ( ! strcmp ( CString ( CAR( CAR (temp ))),
 			        rangevar ))

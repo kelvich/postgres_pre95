@@ -324,7 +324,7 @@ ExpandAll(relname,this_resno)
 
 	first_resno = *this_resno;
 
-	printf("\nExpanding %s.all\n",CString(relname));
+	/* printf("\nExpanding %s.all\n",CString(relname)); */
 
 	if ((vnum= RangeTablePosn (CString(relname))) == 0 ) {
 		p_rtable = nappend1 ( p_rtable,
@@ -345,8 +345,8 @@ ExpandAll(relname,this_resno)
 
 	for ( i = maxattrs-1 ; i > -1 ; --i ) {
 		char *attrname = (char *)(&rdesc->rd_att.data[i]->attname);
-		printf("%s\n",attrname);
-		fflush(stdout);
+		/* printf("%s\n",attrname);
+		fflush(stdout);*/
 		temp = make_var ( relname,
 				  lispString(attrname) );
 		varnode = CDR(temp);
@@ -464,22 +464,21 @@ make_var ( relname, attrname )
 	printf (" now in make_Var\n"); 
 	printf ("relation = %s, attr = %s\n",CString(relname),
 		CString(attrname)); 
-		*/
 	fflush(stdout);
-
+	*/
 	vnum = RangeTablePosn ( CString (relname)) ;
-	printf("vnum = %d\n",vnum);
+	/* printf("vnum = %d\n",vnum); */
 	if (vnum == 0) {
 		p_rtable = nappend1 (p_rtable ,
 			  MakeRangeTableEntry ( relname , 0 , relname) );
 		vnum = RangeTablePosn (CString (relname));
-		printf("vnum = %d\n",vnum);
+		/* printf("vnum = %d\n",vnum); */
 		relname = VarnoGetRelname(vnum);
 	} else {
 	  	relname = VarnoGetRelname( vnum );
 	}
 
-	printf("relname to open is %s",CString(relname));
+	/* printf("relname to open is %s",CString(relname));*/
 
 	rd = amopenr ( CString (relname ));
 	attid = varattno (rd , CString(attrname) );
@@ -556,9 +555,9 @@ SkipForwardToFromList()
 	} /* while */
 	fflush(stdout);
 	if (next_token <= 0 ) {
-		printf("%d\n",(LispValue)0);
+/*		printf("%d\n",(LispValue)0);
 		printf("EOS, no from found\n");
-		fflush(stdout);
+		fflush(stdout);*/
 		for (i = end_tlist_buf; i > -1 ;--i ) {
 			unput(tlist_buf[i] );
 			fputc(tlist_buf[i],stdout);
@@ -567,8 +566,9 @@ SkipForwardToFromList()
 		fflush(stdout);
 	}
 	if (next_token == (LispValue) FROM ) {
-		printf("FROM found\n");
+/*		printf("FROM found\n");
 		fflush(stdout);
+*/
 		for (i = yyleng ; i > -1; --i ) {
 			unput(yytext[i] );
 			fputc(yytext[i],stdout);
@@ -590,7 +590,7 @@ SkipBackToTlist()
 	/* need to put the token after the target_list back first */
 	temp = yytext;
 	if(yychar == (LispValue)WHERE) {
-		printf("putting the where back\n");
+		/*printf("putting the where back\n");*/
 		for (i = yyleng; i > -1 ; -- i ) {
 			unput (yytext[i]);
 			fputc (yytext[i],stdout);
@@ -600,7 +600,7 @@ SkipBackToTlist()
 	
 	if(end_tlist_buf == 0 )
 	  return(LispNil);
-	printf("Moving back to target list\n");
+	/* printf("Moving back to target list\n");*/
 	while( end_tlist_buf > 0 ) {
 		unput(tlist_buf[--end_tlist_buf] );
 		fputc(tlist_buf[end_tlist_buf],stdout);
@@ -702,7 +702,7 @@ make_const( value )
 		break;
 
 	      default: 
-		printf("unknown type : %d\n", TYPE(value) );
+		elog(NOTICE,"unknown type : %d\n", TYPE(value) );
 		fflush (stdout);
 		/* null const */
 		return ( lispCons (LispNil , 
