@@ -1140,9 +1140,9 @@ generate_fjoin(tlist)
     }
 
     /*
-     * if we have more than 1 Iter node then we need to flatten.
+     * if we have an Iter node then we need to flatten.
      */
-    if (nIters > 1)
+    if (nIters > 0)
     {
 	LispValue inner;
 	List      tempList;
@@ -1160,10 +1160,6 @@ generate_fjoin(tlist)
 	tempList = lispCons(fjoinNode, LispNil);
 	tempList = nconc(tempList, fjoinList);
 	newTlist = nappend1(newTlist, tempList);
-    }
-    else if (nIters == 1)
-    {
-	newTlist = nappend1(newTlist, CAR(fjoinList));
     }
     return newTlist;
 }
