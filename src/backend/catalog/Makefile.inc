@@ -4,7 +4,7 @@
 CATD= ${.CURDIR}/catalog
 .PATH: ${CATD}
 
-SRCS+= cat.c catalog.c catname.c heap.c index.c indexing.c \
+SRCS+= catalog.c catname.c heap.c index.c indexing.c \
 	pg_aggregate.c pg_lobj.c pg_naming.c pg_operator.c \
 	pg_proc.c pg_type.c
 
