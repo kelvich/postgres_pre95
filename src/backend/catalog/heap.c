@@ -240,7 +240,7 @@ heap_creatr(relname, natts, smgr, att)
      * ----------------
      */
     len = sizeof *rdesc + (int)(natts - 1) * sizeof rdesc->rd_att;
-    len += sizeof (IndexStrategy);
+    len += sizeof (IndexStrategy) + sizeof(RegProcedure *);
 
     rdesc = (Relation) palloc(len);
     bzero((char *)rdesc, len);
