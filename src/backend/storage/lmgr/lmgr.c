@@ -382,6 +382,9 @@ RelationUnsetLockForRead(relation)
      * ----------------
      */
     Assert(RelationIsValid(relation));
+    if (LockingDisabled())
+	return;
+    
     linfo = (LockInfo) relation->lockInfo;
 
     /* ----------------
