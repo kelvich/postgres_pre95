@@ -77,8 +77,8 @@
 .\" .A acronym concatenation
 .\"    display acronym in standard acronym format with concatenation
 .\"
-.\" Defines II, PP, UU, LL, PQ, LQ, OF, AM, +- for
-.\"    INGRES, POSTGRES, UNIX, LISP, \*(PQ, LIBPQ, PICASSO, "AM Guide," +-.
+.\" Defines II, PP, UU, LL, PQ, LQ, OF, AM, PV +- for
+.\"    INGRES, POSTGRES, UNIX, LISP, \*(PQ, LIBPQ, PICASSO, "AM Guide," 4.0 +-.
 .\"
 .if t \
 \{\
@@ -91,6 +91,7 @@
 .    ds LL \s-1LISP\s0
 .    ds PQ \s-1POSTQUEL\s0
 .    ds LP \s-1LIBPQ\s0
+.    ds PV \s-14.0\s0
 .\}
 .if n \
 \{\
@@ -103,6 +104,7 @@
 .    ds LL LISP
 .    ds PQ \*(PQ
 .    ds LP LIBPQ
+.    ds PV "4.0
 .\}
 .\"
 .    ds OF Picasso
@@ -133,7 +135,7 @@ The \*(PP User Manual
 .sz \n(pp
 .sp 1
 .i
-Edited by Jon Rhein and Greg Kemnitz
+Edited by Jon Rhein, Greg Kemnitz and The Postgres Group
 EECS Dept.
 University of California, Berkeley
 .sp
@@ -152,14 +154,14 @@ Foundation (NSF), and ESL, Inc.
 
 .sh 2 "DISTRIBUTION"
 
-This manual describes Version 3.0 of \*(PP.  \*(PP
-Software is available for SUN 3 and SUN 4 class machines, for
+This manual describes Version \*(PV of \*(PP.  \*(PP
+Software is available for SUN 4 class machines, for
 DECstation 3100 and 5000 machines, and for the SEQUENT Symmetry
 machine.
 
 .sh 2 "PERFORMANCE"
 
-Version 3.0 has been tuned modestly.  Hence, on the
+Version \*(PV has been tuned modestly.  Hence, on the
 Wisconsin benchmark, one should expect performance about twice
 that of the public domain, University of California version of
 Ingres, a relational prototype from the late 1970's.
@@ -167,14 +169,14 @@ Ingres, a relational prototype from the late 1970's.
 .sh 2 "ACKNOWLEDGEMENTS"
 
 \*(PP has been constructed by a team of undergraduate,
-graduate, and staff programmers.  The Version 3 contributors (in
-alphabetical order) consisted of James Bell, Jennifer Caetta, Ron
-Choi, Adam Glass, Jeffrey Goh, Wei Hong, Anant Jhingran, Greg
-Kemnitz, Jeff Meredith, Michael Olson, Lay-Peng Ong, Spyros
-Potamianos, and Cimarron Taylor.
+graduate, and staff programmers.  The contributors (in
+alphabetical order) consisted of James Bell, Jennifer Caetta, Jolly Chen
+Ron Choi, Adam Glass, Jeffrey Goh, Joey Hellerstein, Wei Hong,
+Anant Jhingran, Greg Kemnitz, Case Larsen, Jeff Meredith, Michael Olson,
+Lay-Peng Ong, Spyros Potamianos, Sunita Sarawagi and Cimarron Taylor.
 .lp
-Greg Kemnitz served as chief programmer and was responsible
-for overall coordination of the project and for individually
+For version \*(PV Jeff Meredith served as chief programmer and was
+responsible for overall coordination of the project and for individually
 implementing the "everything else" portion of the system.
 .lp
 The above implementation team contributed significantly to
@@ -184,7 +186,7 @@ this manual, as did Claire Mosher.
 .lp
 The POSTGRES project undertook to build a next generation
 DBMS whose purpose was to rectify the known deficiencies in
-current relational DBMSs.  This system, constructed over a four
+current relational DBMSs.  This system, constructed over a five
 year period by one full time programmer and 3-4 part time
 students, is about 200,000 lines of code in the C programming language.
 \*(PP is available free of charge, and is being used by approximately
@@ -228,7 +230,7 @@ storage manager concepts are detailed in [STON87].  The first
 \*(PP to a few external users in June 1989.  A critique of
 version 1 of \*(PP appears in [STON90].  Version 2 followed in
 June 1990, and it included a new rule system documented in
-[STON90B].  We are now delivering version 3, which is the subject
+[STON90B].  We are now delivering version \*(PV, which is the subject
 of this manual.
 .lp
 .sh 1 "ORGANIZATION"
@@ -293,7 +295,8 @@ This facility is described in the Reference under "Fast Path".
 Lastly, \*(PP is accessible from the PICASSO programming
 environment.  PICASSO is a graphical user interface (GUI) toolkit
 that allows a user to build sophisticated DBMS-oriented
-applications.  PICASSO is described in a collection of reports
+applications.  PICASSO is a separate research project and is described
+in a collection of reports
 [WANG88, SCHA90] and is not treated further in this manual.
 .lp
 The terminal monitor can be activated for any database by
@@ -331,6 +334,7 @@ and it can be passed to \*(PP for execution by typing:
 .(l
 
         * \\g
+
 .)l
 If you make a typing mistake, you can invoke the vi text editor
 by typing:
@@ -345,6 +349,7 @@ vi, type
 .(l
 
         % man vi
+
 .)l
 Once you exit vi, your edited query will be in the monitor's query
 buffer and you can submit it to postgres by using the "\\g" command
@@ -360,9 +365,7 @@ and the monitor will respond:
 .lp
 .(l
 
-        * I live to serve you.
-
-        * GoodBye
+        I live to serve you.
 
         %
 
@@ -396,7 +399,7 @@ monitor.  The fundamental notion in \*(PP is that of a class,
 which is a named collection of instances of objects.  Each
 instance has the same collection of named attributes, and each
 attribute is of a specific type.  Furthermore, each instance has
-a unique (never-changing) identifier (OID).
+an installation wide unique (never-changing) identifier (OID).
 .lp
 .sh 3 "Creating a New Class"
 .lp
@@ -404,15 +407,14 @@ A user can create a new class by specifying the class name,
 along with all attribute names and their types, for example:
 .lp
 .(l
-    * create EMP (name=char[12], salary=float8, age=int4, dept=char[12])
+
+    * create EMP (name=text, salary=int4, age=int4, dept=char16) \\g
     
-    * create DEPT (dname=c[12], floor=int4)
-    
-    * \\g
+    * create DEPT (dname=char16, floor=int4) \\g
 
 .)l
 So far, the create command looks exactly like the create
-statement in a relational system.  However, we will presently see
+statement in a traditional relational system.  However, we will presently see
 that classes have properties that are extensions of the
 relational model, so we use a different word to describe them.
 .sh 3 "Populating a Class with Instances"
@@ -422,13 +424,11 @@ To populate a class with instances, one can use the append
 command as follows:
 .(l
 
-    * append EMP (name="Joe",salary=1400.0,age=40,dept="shoe")
+    * append EMP (name="Joe",salary=1400,age=40,dept="shoe") \\g
 
-    * append EMP (name="sam",salary=1200.0,age=29,dept="toy")
+    * append EMP (name="Sam",salary=1200,age=29,dept="toy") \\g
 
-    * append EMP (name="Bill",salary=1600.0,age=36,dept="candy")
-
-    * \\g
+    * append EMP (name="Bill",salary=1600,age=36,dept="candy") \\g
 
 .)l
 This will add 3 instances to EMP, one for each command.
@@ -443,7 +443,7 @@ one would type:
 
     * retrieve (EMP.name) where EMP.age<35
 
-    * \\g
+    \\g
 
 .)l
 Notice that parentheses are required around the target list of
@@ -452,9 +452,10 @@ computations in the target list as long as they are given a name,
 e.g:
 .(l
 
-    * retrieve (result=EMP.salary/EMP.age) where EMP.name="Bill"
+    * retrieve (result=EMP.salary/EMP.age)
+      where EMP.name="Bill"
 
-    * \\g
+    \\g
 
 .)l
 .sh 3 "Redirecting retrieve queries"
@@ -462,12 +463,13 @@ e.g:
 
 Moreover, like Quel, any retrieve query can be redirected to a
 new class in the database and arbitrary boolean operators (and,
-or, not) are allowed in any query:
+or, not) are allowed in the qualification of any query:
 .(l
 
-     * retrieve into temp (EMP.name) where EMP.age<35 and EMP.salary>1000
-
-     * \\g
+     * retrieve into temp (EMP.name)
+       where EMP.age<35 and EMP.salary>1000
+       
+     \\g
 
 .)l
 .sh 3 "Joins"
@@ -479,11 +481,11 @@ could write:
 .(l
 
         * retrieve (E1.name, E2.name)
-              from E1 in EMP, E2 in EMP
-              where E1.age=E2.age
-              and E1.name != E2.name
+          from E1 in EMP, E2 in EMP
+          where E1.age=E2.age and E1.name != E2.name
 
-        * \\g
+        \\g
+
 .)l
 In this case both E1 and E2 are surrogates for an instance of the
 class EMP and range over all instances of the class.  A \*(PQ
@@ -503,10 +505,11 @@ statement, e.g:
 .(l
 
         * replace EMP (salary=E.salary)
-               from E in EMP
-               where EMP.name="Joe" and E.name="Sam"
+          from E in EMP
+          where EMP.name="Joe" and E.name="Sam"
 
-        * \\g
+        \\g
+
 .)l
 This command replaces the salary of Joe by that of Sam.  
 
@@ -520,7 +523,8 @@ follows:
 
         * delete EMP where EMP.salary > 0
 
-        * \\g
+        \\g
+
 .)l
 .lp
 Since all employees have positive salaries, this command will
@@ -531,7 +535,7 @@ leave the EMP class empty.
 illustrate their use.  First, we create a class with an array type.
 .(l
 
-        * create SAL_EMP (name = char[], pay_by_quarter = int4[4])
+        * create SAL_EMP (name = char[], pay_by_quarter = int4[4]) \\g
 
 .)l
 The above query will create a class named SAL_EMP with a variable length
@@ -546,14 +550,16 @@ within {curly brackets} and separate them by commas.
 
         * append SAL_EMP (name = "bill",
                pay_by_quarter = "{10000, 10000, 10000, 10000}")
+        \\g
 
         * append SAL_EMP (name = "jack",
                pay_by_quarter = "{10000, 15000, 15000, 15000}")
+        \\g
 
         * append SAL_EMP (name = "joe",
                pay_by_quarter = "{20000, 25000, 25000, 25000}")
+        \\g
 
-        * \\g
 .)l
 \*(PP uses the FORTRAN numbering convention for arrays - that is, \*(PP
 arrays start with array[1] and end with array[n].  Now, we can run some
@@ -561,9 +567,11 @@ queries on SAL_EMP:
 .(l
 
         * retrieve (SAL_EMP.name)
-               where SAL_EMP.pay_by_quarter[1] != SAL_EMP.pay_by_quarter[2]
+          where SAL_EMP.pay_by_quarter[1] !=
+                SAL_EMP.pay_by_quarter[2]
 
-        * \\g
+        \\g
+
 .)l
 This query retrieves the names of the employees whose pay changed in the
 second quarter.
@@ -571,7 +579,7 @@ second quarter.
 
         * retrieve (SAL_EMP.pay_by_quarter[3])
 
-        * \\g
+        \\g
 
 .)l
 This query retrieves the third quarter pay of all employees.
@@ -579,7 +587,8 @@ This query retrieves the third quarter pay of all employees.
 
         * delete SAL_EMP where SAL_EMP.name[1] = 'j'
 
-        * \\g
+        \\g
+
 .)l
 This query deletes everyone from SAL_EMP whose name begins with the letter
 "j".  SAL_EMP should now contain only bill.
@@ -588,15 +597,17 @@ This query deletes everyone from SAL_EMP whose name begins with the letter
 arrays", as in the following example:
 .(l
 
-        * create manager (name = char[], employees = text[])
+        * create manager (name = char[], employees = text[]) \\g
 
-        * append manager (name = "mike", employees = "{"wei", "greg", "jeff"}")
+        * append manager (name = "mike",
+              employees = "{"wei", "greg", "jeff"}") \\g
 
-        * append manager (name = "alice", employees = "{"bill", "joe"}")
+        * append manager (name = "alice",
+              employees = "{"bill", "joe"}") \\g
 
-        * append manager (name = "marge", employees = "{"mike", "alice"}")
+        * append manager (name = "marge",
+              employees = "{"mike", "alice"}") \\g
 
-        * \\g
 .)l
 This creates a class "manager", and provides a list of employees.  Note that
 the 
@@ -604,25 +615,27 @@ the
 type in \*(PP is defined as an array of character, so queries like
 .(l
 
-        * retrieve (manager.name) where manager.employees[1][1] = 'b'
+        * retrieve (manager.name)
+          where manager.employees[1][1] = 'b' \\g
 
-        * retrieve (manager.name) where manager.employees[3] = "jeff"
+        * retrieve (manager.name)
+          where manager.employees[3] = "jeff" \\g
 
-        * retrieve (manager.employees[3][2])
+        * retrieve (manager.employees[3][2]) \\g
 
-        * delete manager where manager.employees[2][1] = 'g'
+        * delete manager where manager.employees[2][1] = 'g' \\g
 
-        * \\g
 .)l
-will all work.
+will all work.  However, in general \*(PP currently only supports arrays of
+one dimension.
 .lp
 .sh 2 "Advanced \*(PQ"
 .lp
 
 Now we have covered the basics of using \*(PQ to access your data.
-In this section, we will discuss those features of \*(PP which
+In this section we will discuss those features of \*(PP which
 distinguish it from other data managers, such as inheritance and time
-travel.  In the next section, we will cover how the user can extend
+travel.  In the next section we will cover how the user can extend
 the query language via query language functions and composite objects, as well
 as additional extensions to \*(PP using
 user defined types, operators, and programming language functions.
@@ -631,39 +644,48 @@ user defined types, operators, and programming language functions.
 .lp
 
 Starting with the 
-.b foo
+.b EMP
 class from the previous section, reappend the three
 persons who were just deleted.
 .lp
-Now create a second class STUD_EMP, as follows:
+Now create a second class STUD_EMP, and populate it as follows:
 .(l
 
         * create STUD_EMP (location=point) inherits (EMP)
 
-        * \\g
+        \\g
+
+        * append STUD_EMP (name = "Sunita", age = 41,
+              salary=1300, dept="electronics", location="(3,5)")
+
+        \\g
+
 .)l
 In this case, an instance of STUD_EMP inherits all data fields
 from its parent, EMP, to wit: name, salary, age, and dept. 
 Furthermore, student employees have an extra field, location,
 that shows their address as a (longitude, latitude) pair.  In
 \*(PP a class can inherit from zero or more other classes, and
-the inheritance hierarchy is thereby a directed graph in general. 
+the inheritance hierarchy is generally a directed acyclic graph. 
 Additionally, in \*(PQ a query can either reference all
 instances of a class or all instances of a class plus all of its
 descendants.  For example, the following query finds the
-employees over 40:
+employees over 39:
 .lp
 .(l
 
-        * retrieve (E.name) from E in EMP where E.age > 40
+        * retrieve (E.name) from E in EMP where E.age > 39
 
-        * \\g
+        \\g
+
 .)l
-On the other hand, if one wanted the names of all student
-employees and employees over 40, the notation is:
+On the other hand, to find the names of all student
+employees and employees over 40, the query is:
 .(l
 
-        * retrieve (E.name) from E in EMP* where E.age > 40
+        * retrieve (E.name) from E in EMP* where E.age > 39
+
+        \\g
 
 .)l
 Here the * after EMP indicates that the query should be run over
@@ -672,9 +694,8 @@ use of * allows a user to easily run queries over a class and all
 its descendent classes.
 .lp
 Notice that location in STUD_EMP is not a traditional
-relational data type.  A \*(PP installation can be customized
-with an arbitrary number of user-defined data types; this will be discussed
-later.
+relational data type.  As we will see later, a \*(PP installation can be
+customized with an arbitrary number of user-defined data types.
 .lp
 .sh 3 "Time Travel"
 .lp
@@ -684,13 +705,32 @@ feature allows a user to run historical queries.  For example, to
 find the salary of Sam at time T one would query:
 .(l
 
-    * retrieve (EMP.salary) using EMP[T] where EMP.name="Sam"
+    * retrieve (E.salary) from E in EMP["now"] where E.name="Sam"
 
-    * \\g
+    \\g
 
 .)l
 \*(PP will automatically find the version of Sam's record
-valid at the correct time and get the appropriate salary.
+valid at the correct time and get the appropriate salary.  One can also
+give a time range.  For example to see all of the salaries that Sam has
+ever earned one would query:
+.(l
+
+    * retrieve (E.salary)
+      from E in EMP["Jan 1 00:00:00 1970 GMT","now"]
+      where E.name = "Sam"
+
+    \\g
+
+.)l
+A short hand notation for the above time range can be given as:
+.(l
+
+    * retrieve (E.salary) from E in EMP[,] where E.name = "Sam"
+
+    \\g
+
+.)l
 .lp
 .sh 1 "User Extensions to \*(PQ"
 .lp
@@ -718,7 +758,8 @@ employees:
                as
                retrieve (EMP.all) where EMP.salary>50000
 
-        * \\g
+        \\g
+
 .)l
 \*(PQ functions can also have parameters, for example:
 .lp
@@ -729,7 +770,7 @@ employees:
                arg is (int4) as
                retrieve (EMP.all) where EMP.salary>$1
 
-        * \\g
+        \\g
 
 .)l
 \*(PQ functions are useful for creating composite types, as described
@@ -744,9 +785,9 @@ types.  For example, consider extending the EMP class with a
 manager field:
 .(l
 
-        * addattr EMP (manager=EMP)
+        * addattr (manager=EMP) to EMP
 
-        * \\g
+        \\g
 
 .)l
 Here, we have added an attribute to the EMP class which is of
@@ -764,7 +805,7 @@ will define the function mgr_lookup:
             arg is (char16) as
             retrieve (EMP.all) where EMP.name=DEPT.manager and DEPT.name=$1
 
-       * \\g
+       \\g
 
 .)l
 This function can be used to assign values to the manager
@@ -775,7 +816,7 @@ attribute in the EMP class, for example:
          (name="Sam",salary=1000.0 ,age=40,dept="shoe",
           manager=mgr_lookup("shoe"))
 
-       * \\g
+       \\g
 
 .)l
 Since EMP.manager is a composite object, \*(PQ allows
@@ -795,7 +836,7 @@ define a second \*(PQ function, lookup_mgr, as follows:
                retrieve (E.all) from E in EMP
                where E.name=DEPT.manager and DEPT.name=EMP.dept
 
-        * \\g
+        \\g
 
 .)l
 In this case, the function lookup_mgr has an argument which is an
@@ -814,7 +855,7 @@ Joe:
 
         * retrieve (EMP.name) where EMP.manager.name="Joe"
 
-        * \\g
+        \\g
 
 .)l
 The same query is also available in functional notation:
@@ -822,7 +863,7 @@ The same query is also available in functional notation:
     
         * retrieve (EMP.name) where lookup_mgr(EMP).name="Joe"
 
-        * \\g
+        \\g
 
 .)l
 .lp
