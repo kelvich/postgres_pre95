@@ -113,6 +113,7 @@ RelationGetIndexScan(relation, scanFromEnd, numberOfKeys, key)
 	palloc(sizeof *scan + (numberOfKeys - 1) * sizeof key->data[0]);
 
     scan->relation = relation;
+    scan->opaque = (Pointer) NULL;
     scan->numberOfKeys = numberOfKeys;
 
     ItemPointerSetInvalid(&scan->previousItemData);
