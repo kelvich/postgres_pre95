@@ -32,15 +32,14 @@
 #define FD_H	"$Header$"
 
 #include "tmp/c.h"
+#include "storage/block.h"
 
 typedef String	FileName;
 
-#ifdef _xprs_
-#define NSTRIPING	5	/* no. of disks hermes has */
-typedef struct { int fd[NSTRIPING]; bool is_sys; } File;
-#else /* _xprs_ */
+#define NDISKS        5       /* no. of disks we have */
+#define MAXNOFILES      100
+
 typedef int	File;
-#endif /* _xprs_ */
 typedef int	FileNumber;
 typedef int	Amount;
 
@@ -50,11 +49,25 @@ typedef int	Amount;
  */
 /* VARARGS2 */
 extern
-FileNumber
+File
 FileNameOpenFile ARGS((
 	FileName	fileName,
 	int		flags,
 	int		mode
+));
+
+
+extern
+int
+FileNameUnlink ARGS((
+        FileName        fileName
+));
+
+
+extern
+BlockNumber
+FileGetNumberOfBlocks ARGS((
+        File    file
 ));
 
 /*
@@ -64,7 +77,7 @@ FileNameOpenFile ARGS((
 extern
 void
 FileClose ARGS((
-	FileNumber	file
+	File	file
 ));
 
 /*
@@ -74,7 +87,7 @@ FileClose ARGS((
 extern
 void
 FileUnlink ARGS((
-	FileNumber	file
+	File	file
 ));
 
 /*
@@ -84,7 +97,7 @@ FileUnlink ARGS((
 extern
 Amount
 FileRead ARGS((
-	FileNumber	file,
+	File	file,
 	String	buffer,
 	Size	amount
 ));
@@ -96,7 +109,7 @@ FileRead ARGS((
 extern
 Amount
 FileWrite ARGS((
-	FileNumber	file,
+	File	file,
 	String	buffer,
 	Size	amount
 ));
@@ -110,7 +123,7 @@ FileWrite ARGS((
 extern
 long		/* XXX FilePosition? */
 FileSeek ARGS((
-	FileNumber	file,
+	File	file,
 	long	offset,
 	int	whence
 ));
@@ -123,7 +136,7 @@ FileSeek ARGS((
 extern
 long		/* XXX FilePosition? */
 FileTell ARGS((
-	FileNumber	file
+	File	file
 ));
 
 /*
@@ -135,7 +148,7 @@ FileTell ARGS((
 extern
 int
 FileSync ARGS((
-	FileNumber	file
+	File	file
 ));
 
 /*
