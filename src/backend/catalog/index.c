@@ -319,7 +319,7 @@ BuildFuncTupleDesc(funcInfo)
     funcTupDesc->data[0]->attlen = ((Form_pg_type)GETSTRUCT(tuple))->typlen;
     funcTupDesc->data[0]->atttypid = retType;
     funcTupDesc->data[0]->attnum = 1;
-    funcTupDesc->data[0]->attbyval = 't';
+    funcTupDesc->data[0]->attbyval = ((Form_pg_type)GETSTRUCT(tuple))->typbyval;
     funcTupDesc->data[0]->attcanindex = 'f';
 
     /*
