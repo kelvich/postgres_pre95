@@ -33,10 +33,10 @@ or
 is the \*(UU pathname of the file.  In place of a filename, stdin and stdout
 can be used so that input to
 .b copy
-can be written by an application and 
+can be written by a LIBPQ application and 
 output from the
 .b copy
-command can be read by an application.
+command can be read by a LIBPQ application.
 The 
 .b binary
 keyword will force all data to be stored/read as binary objects rather than
@@ -79,7 +79,7 @@ is reading from standard input, it will expect a period (.) followed by a
 newline (\n), as the first two characters on a line, to denote end-of-file.
 However,
 .b copy
-will do the right thing if a true EOF is encountered.
+will terminate (followed by the backend itself) if a true EOF is encountered.
 .lp
 .b NULL
 attributes are handled simply as null strings, that is, consecutive tabs in
@@ -112,9 +112,9 @@ and output, it is not recommended.
 .lp
 .uh "SEE ALSO"
 .lp
-append(commands),
-create(commands),
-introduction(commands).
+append(postquel),
+create(postquel),
+libpq(commands).
 .uh BUGS
 .lp
 .A Files 
