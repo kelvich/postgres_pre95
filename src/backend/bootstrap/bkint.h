@@ -24,6 +24,7 @@ static	char ami_h[] = "$Header$";
 #include "defind.h"
 #include "log.h"
 #include "htup.h"
+#include "portal.h"
 #include "rel.h"
 #include "relscan.h"
 #include "skey.h"
@@ -84,3 +85,5 @@ extern unsigned char MapEscape();
 extern int numattr;          /* number of attributes for the new reln */
 
 extern struct attribute *attrtypes[MAXATTR];
+
+extern Portal BlankPortal;
