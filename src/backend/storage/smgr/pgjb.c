@@ -14,6 +14,7 @@
 RcsId("$Header$");
 
 #include <math.h>
+#include <sys/file.h>
 #include "machine.h"
 
 #include "storage/block.h"
@@ -97,6 +98,7 @@ static void		_pgjb_connect();
 static JBPlatDesc	*_pgjb_getplatdesc();
 static JBHashEntry	*_pgjb_hashget();
 static BlockNumber	_pgjb_findoffset();
+static int		_pgjb_mdblock();
 
 /* routines declared elsewhere */
 extern HTAB		*ShmemInitHash();
@@ -494,7 +496,7 @@ pgjb_wrtextent(item, buf)
 
     group = (SJGroupDesc *) buf;
 
-    if (item->sjc_gflags & SJC_DIRTY) {
+    if (!(item->sjc_gflags & SJC_ONPLATTER)) {
 	item->sjc_gflags &= ~SJC_DIRTY;
 	item->sjc_gflags |= SJC_ONPLATTER;
 	nblocks = 1;
@@ -518,11 +520,11 @@ pgjb_wrtextent(item, buf)
     for (i = 0; i < SJGRPSIZE; i++) {
 	if (item->sjc_flags[i] & SJC_DIRTY) {
 	    if (nblocks == 0) {
-		startblk = i;
-		startoff = (BLCKSZ * i) + JBBLOCKSZ;
+		startblk = (i * (BLCKSZ / JBBLOCKSZ)) + 1;
+		startoff = (i * BLCKSZ) + JBBLOCKSZ;
 	    }
 
-	    nblocks += 8;
+	    nblocks += (BLCKSZ / JBBLOCKSZ);
 
 	    item->sjc_flags[i] &= ~SJC_DIRTY;
 	    item->sjc_flags[i] |= SJC_ONPLATTER;
@@ -585,9 +587,11 @@ pgjb_rdextent(item, buf)
 {
     JBPlatDesc *jbp;
     SJGroupDesc *group;
+    Relation reln;
     char *plname;
     int i;
     int status;
+    int nblocks;
 
     /* be sure we have a connection */
     VRFY_CONNECT();
@@ -616,26 +620,57 @@ pgjb_rdextent(item, buf)
      */
 
     if (status < 0) {
-	for (i = 0; i <= SJGRPSIZE; i++) {
+
+	/* first read the group descriptor */
+	status = jb_read(jbp->jbpd_platter, &buf[0], item->sjc_jboffset, 1);
+	if (status < 0) {
+	    elog(NOTICE, "pgjb_rdextent: group descriptor missing <%d>@%d",
+			 item->sjc_plid, item->sjc_jboffset);
+	    return (SM_FAIL);
+	}
+
+	/* group descriptor block is out there already */
+	item->sjc_gflags |= SJC_ONPLATTER;
+
+	/*
+	 *  For each block in the extent, try to read the data off the
+	 *  platter.  If the read fails, we assume that the block is
+	 *  missing.
+	 */
+
+	for (i = 0; i < SJGRPSIZE; i++) {
+
 	    status = jb_read(jbp->jbpd_platter,
-			     &(buf[i * JBBLOCKSZ]),
-			     item->sjc_jboffset + i, 1);
+			     &(buf[(i * BLCKSZ) + JBBLOCKSZ]),
+			     item->sjc_jboffset + (i * SJGRPSIZE) + 1,
+			     SJGRPSIZE);
+
 	    if (status < 0) {
-		if (i == 0) {
-		    /* block zero is the group descriptor, has to be there */
-		    elog(NOTICE, "pgjb_rdextent: groupdesc missing <%d>@%d",
-				 item->sjc_plid, item->sjc_jboffset);
-		    return (SM_FAIL);
-		} else {
-		    item->sjc_flags[i - 1] = SJC_MISSING;
-		}
+		item->sjc_flags[i] = SJC_MISSING;
 	    } else {
-		if (i == 0)
-		    item->sjc_gflags |= SJC_ONPLATTER;
-		else
-		    item->sjc_flags[i - 1] = SJC_ONPLATTER;
+		item->sjc_flags[i] = SJC_ONPLATTER;
 	    }
 	}
+
+	/*
+	 *  If the entire extent wasn't on the platter, it's possible that
+	 *  this is the last extent in the relation, and the last block
+	 *  lives on magnetic disk.  Figure out if this is the case, and
+	 *  if so, instantiate the block.
+	 */
+
+	reln = (Relation) RelationIdGetRelation(item->sjc_tag.sjct_relid);
+
+	if (reln == (Relation) NULL)
+	    elog(WARN, "_pgjb_mdblock: can't find reldesc for %d",
+		       item->sjc_tag.sjct_relid);
+
+	nblocks = sjnblocks(reln);
+	if (nblocks >= (item->sjc_tag.sjct_base + SJGRPSIZE + 1)) {
+	    if (_pgjb_mdblock(reln, item, buf, nblocks - 1) == SM_FAIL)
+		return (SM_FAIL);
+	}
+
     } else {
 	/* the entire extent is on the platter */
 	item->sjc_gflags |= SJC_ONPLATTER;
@@ -650,6 +685,43 @@ pgjb_rdextent(item, buf)
     /* sanity check */
     if (group->sjgd_magic != SJGDMAGIC || group->sjgd_version != SJGDVERSION)
 	return (SM_FAIL);
+
+    return (SM_SUCCESS);
+}
+
+/*
+ *  _pgjb_mdblock -- Get a particular block off of magnetic disk.
+ *
+ *	The highest-numbered block for any relation is always stored on
+ *	magnetic disk.  This routine reads it in.
+ */
+
+static int
+_pgjb_mdblock(reln, item, buf, blkno)
+    Relation reln;
+    SJCacheItem *item;
+    char *buf;
+    int blkno;
+{
+    int which;
+    int offset;
+
+    which = blkno % SJGRPSIZE;
+    offset = (which * BLCKSZ) + JBBLOCKSZ;
+
+    if (FileSeek(reln->rd_fd, 0L, L_SET) != 0L) {
+	elog(NOTICE, "_pgjb_mdblock: cannot seek");
+	return (SM_FAIL);
+    }
+
+
+    if (FileRead(reln->rd_fd, &(buf[offset]), BLCKSZ) <= 0) {
+	elog(NOTICE, "_pgjb_mdblock: can't get block off mag disk");
+	return (SM_FAIL);
+    }
+
+    /* it's heeeere... */
+    item->sjc_flags[which] &= SJC_CLEAR;
 
     return (SM_SUCCESS);
 }

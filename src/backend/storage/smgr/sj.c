@@ -108,6 +108,7 @@ static void		_sjregister();
 static void		_sjregnblocks();
 static void		_sjnewextent();
 static void		_sjrdextent();
+static void		_sjdirtylast();
 static int		_sjfindnblocks();
 static int		_sjwritegrp();
 static int		_sjreadgrp();
@@ -846,9 +847,11 @@ _sjgetgrp()
 	}
     }
 
+    nblocks = _sjfindnblocks(&(item->sjc_tag));
+
     /* if necessary, put the highest block in the relation on mag disk */
-    if ((item->sjc_tag.sjct_base + SJGRPSIZE) >= nblocks) {
-	grpoffset = (nblocks % SJGRPSIZE) - 1;
+    if ((item->sjc_tag.sjct_base + SJGRPSIZE + 1) >= nblocks) {
+	grpoffset = ((nblocks - 1) % SJGRPSIZE);
 
 	if (item->sjc_flags[grpoffset] & SJC_DIRTY) {
 
@@ -901,7 +904,7 @@ _sjfetchgrp(dbid, relid, blkno, grpno)
 
 	if (item->sjc_gflags & SJC_IOINPROG) {
 	    _sjwait_io(item);
-	    return (_sjfetchgrp(dbid, relid, blkno));
+	    return (_sjfetchgrp(dbid, relid, blkno, grpno));
 	}
 
 	_sjtouch(item);
@@ -1060,6 +1063,21 @@ _sjrdextent(item)
 		   item->sjc_tag.sjct_dbid, item->sjc_tag.sjct_relid,
 		   item->sjc_tag.sjct_base, item->sjc_plid);
     }
+
+    /* XXX debug */
+    {
+	int i;
+	char *p;
+
+	p = &(SJCacheBuf[JBBLOCKSZ]);
+
+	for (i = 0; i < SJGRPSIZE; i++) {
+	    if (!(item->sjc_flags[i] & SJC_MISSING))
+		_sjbuftrap(item->sjc_tag.sjct_base + i, p);
+
+	    p += BLCKSZ;
+	}
+    }
 }
 
 /*
@@ -1181,6 +1199,21 @@ _sjwritegrp(item, grpno)
     if ((loc = FileSeek(SJCacheVfd, seekpos, L_SET)) != seekpos)
 	return (SM_FAIL);
 
+    /* XXX debug */
+    {
+	int i;
+	char *p;
+
+	p = &(SJCacheBuf[JBBLOCKSZ]);
+
+	for (i = 0; i < SJGRPSIZE; i++) {
+	    if (!(item->sjc_flags[i] & SJC_MISSING))
+		_sjbuftrap(item->sjc_tag.sjct_base + i, p);
+
+	    p += BLCKSZ;
+	}
+    }
+
     nbytes = SJBUFSIZE;
     buf = &(SJCacheBuf[0]);
     while (nbytes > 0) {
@@ -1194,56 +1227,6 @@ _sjwritegrp(item, grpno)
     FileSync(SJCacheVfd);
 
     return (SM_SUCCESS);
-}
-
-static int
-_sjreadgrp(item, grpno)
-    SJCacheItem *item;
-    int grpno;
-{
-    long seekpos;
-    long loc;
-    int nbytes, i;
-    char *buf;
-    SJGroupDesc *gdesc;
-
-    /* get the group from the cache file */
-    seekpos = grpno * SJBUFSIZE;
-    if ((loc = FileSeek(SJCacheVfd, seekpos, L_SET)) != seekpos) {
-	elog(NOTICE, "_sjreadgrp: cannot seek");
-	return (SM_FAIL);
-    }
-
-    nbytes = SJBUFSIZE;
-    buf = &(SJCacheBuf[0]);
-    while (nbytes > 0) {
-	i = FileRead(SJCacheVfd, buf, nbytes);
-	if (i < 0) {
-	    elog(NOTICE, "_sjreadgrp: read failed");
-	    return (SM_FAIL);
-	}
-	nbytes -= i;
-	buf += i;
-    }
-
-    gdesc = (SJGroupDesc *) &(SJCacheBuf[0]);
-
-    if (gdesc->sjgd_magic != SJGDMAGIC
-	|| gdesc->sjgd_version != SJGDVERSION
-	|| gdesc->sjgd_groupoid != item->sjc_oid) {
-
-	elog(NOTICE, "_sjreadgrp: trashed cache");
-	return (SM_FAIL);
-    }
-
-    return (SM_SUCCESS);
-}
-
-int
-sjunlink(reln)
-    Relation reln;
-{
-    return (SM_FAIL);
 }
 
 /*
@@ -1343,8 +1326,55 @@ sjextend(reln, buffer)
      *  until end of transaction, since no one will be able to see the new
      *  block until then.
      */
+
     item->sjc_flags[grpoffset] |= SJC_DIRTY;
 
+    /*
+     *  Since we just added a new block to the relation, the old highest-
+     *  numbered block is about to become a candidate for movement to the
+     *  optical disk jukebox.  Until now, it's been cached on magnetic
+     *  disk.  We need to mark it dirty.
+     *
+     *  There are two possibilities:  if the old block is in the same
+     *  extent as the new block, then we can just mark it dirty directly,
+     *  since we have that group already.  If this is a brand-new extent,
+     *  then we need to instantiate the extent that precedes it, and mark
+     *  the highest-numbered block in that extent dirty.
+     */
+
+    if (grpoffset == 0) {
+
+	/*
+	 *  Hard case -- we just allocated a new extent.  We need to
+	 *  instantiate the previous extent and mark the block dirty
+	 *  there.  This is complicated enough to wrap up in a separate
+	 *  routine.
+	 */
+
+	if (nblocks > 0)
+	    _sjdirtylast(tag.sjct_dbid, tag.sjct_relid, nblocks - 1);
+
+    } else {
+
+	/*
+	 *  Easy case -- old block is in this extent.  Decrement the
+	 *  offset and mark the block dirty.  It is bad news if the
+	 *  old highest-numbered block is on a platter or missing; these
+	 *  should never happen.
+	 */
+
+	grpoffset--;
+	if (item->sjc_flags[grpoffset] & SJC_MISSING
+	    || item->sjc_flags[grpoffset] & SJC_ONPLATTER) {
+
+	    elog(WARN, "sjextend: old 'last block' not writable");
+	}
+
+	/* okay, mark it dirty */
+	item->sjc_flags[grpoffset] |= SJC_DIRTY;
+    }
+
+    /* finally, write out the extent with the new block in it */
     if (_sjwritegrp(item, grpno) == SM_FAIL) {
 	_sjunwait_io(item);
 	return (SM_FAIL);
@@ -1357,6 +1387,147 @@ sjextend(reln, buffer)
     _sjregnblocks(&tag);
 
     return (SM_SUCCESS);
+}
+
+/*
+ *  _sjdirtyblock() -- Mark the requested block in a relation dirty.
+ *
+ *	When we extend a relation, it gets a new last block.  The last
+ *	block of every relation is always stored on magnetic disk, so
+ *	when we do an extend, we need to mark the old last block dirty.
+ *	This will guarantee that it gets kicked out to the optical
+ *	platter later, and that the new last block can be safely written
+ *	to the magnetic disk file for caching the relation's last block.
+ */
+
+static void
+_sjdirtylast(dbid, relid, blkno)
+    ObjectId dbid;
+    ObjectId relid;
+    int blkno;
+{
+    OffsetNumber base;
+    int grpno;
+    int i;
+    long seekpos;
+    long loc;
+    int nbytes;
+    char *buf;
+    int which;
+    SJCacheItem *item;
+
+    base = ((blkno / SJGRPSIZE) * SJGRPSIZE);
+    which = (blkno % SJGRPSIZE);
+    item = _sjfetchgrp(dbid, relid, base, &grpno);
+
+    SpinAcquire(SJCacheLock);
+    SET_IO_LOCK(item);
+
+    /* mark it dirty */
+    if ((item->sjc_flags[which] & SJC_MISSING)
+	|| (item->sjc_flags[which] & SJC_ONPLATTER)) {
+
+	_sjunwait_io(item);
+	_sjunpin(item);
+
+	elog(WARN, "_sjdirtyblock: old 'last block' not writable");
+    }
+
+    item->sjc_flags[which] |= SJC_DIRTY;
+
+    /* just need to update the metadata file */
+    seekpos = grpno * sizeof(*item);
+
+    if ((loc = FileSeek(SJMetaVfd, seekpos, L_SET)) != seekpos) {
+	_sjunwait_io(item);
+	_sjunpin(item);
+	elog(WARN, "_sjdirtyblock: cache metadata file seek failed");
+    }
+
+    nbytes = sizeof(*item);
+    buf = (char *) item;
+    while (nbytes > 0) {
+	i = FileWrite(SJMetaVfd, buf, nbytes);
+
+	if (i < 0) {
+	    _sjunwait_io(item);
+	    _sjunpin(item);
+	    elog(WARN, "_sjdirtyblock: cache metadata file write failed");
+	}
+
+	nbytes -= i;
+	buf += i;
+    }
+
+    _sjunwait_io(item);
+    _sjunpin(item);
+
+    FileSync(SJMetaVfd);
+}
+
+static int
+_sjreadgrp(item, grpno)
+    SJCacheItem *item;
+    int grpno;
+{
+    long seekpos;
+    long loc;
+    int nbytes, i;
+    char *buf;
+    SJGroupDesc *gdesc;
+
+    /* get the group from the cache file */
+    seekpos = grpno * SJBUFSIZE;
+    if ((loc = FileSeek(SJCacheVfd, seekpos, L_SET)) != seekpos) {
+	elog(NOTICE, "_sjreadgrp: cannot seek");
+	return (SM_FAIL);
+    }
+
+    nbytes = SJBUFSIZE;
+    buf = &(SJCacheBuf[0]);
+    while (nbytes > 0) {
+	i = FileRead(SJCacheVfd, buf, nbytes);
+	if (i < 0) {
+	    elog(NOTICE, "_sjreadgrp: read failed");
+	    return (SM_FAIL);
+	}
+	nbytes -= i;
+	buf += i;
+    }
+
+    gdesc = (SJGroupDesc *) &(SJCacheBuf[0]);
+
+    if (gdesc->sjgd_magic != SJGDMAGIC
+	|| gdesc->sjgd_version != SJGDVERSION
+	|| gdesc->sjgd_groupoid != item->sjc_oid) {
+
+	elog(NOTICE, "_sjreadgrp: trashed cache");
+	return (SM_FAIL);
+    }
+
+    /* XXX debug */
+    {
+	int i;
+	char *p;
+
+	p = &(SJCacheBuf[JBBLOCKSZ]);
+
+	for (i = 0; i < SJGRPSIZE; i++) {
+	    if (!(item->sjc_flags[i] & SJC_MISSING))
+		_sjbuftrap(item->sjc_tag.sjct_base + i, p);
+
+	    p += BLCKSZ;
+	}
+    }
+
+    return (SM_SUCCESS);
+}
+
+int
+sjunlink(reln)
+    Relation reln;
+{
+    return (SM_FAIL);
 }
 
 /*
@@ -1556,6 +1727,8 @@ sjread(reln, blocknum, buffer)
     offset = ((blocknum % SJGRPSIZE) * BLCKSZ) + JBBLOCKSZ;
     bcopy(&(SJCacheBuf[offset]), buffer, BLCKSZ);
 
+    _sjbuftrap(blocknum, buffer);
+
     _sjunwait_io(item);
     _sjunpin(item);
 
@@ -1574,6 +1747,8 @@ sjwrite(reln, blocknum, buffer)
     int offset;
     int grpno;
     int which;
+
+    _sjbuftrap(blocknum, buffer);
 
     if (reln->rd_rel->relisshared)
 	reldbid = (ObjectId) 0;
@@ -1936,4 +2111,25 @@ SJInitSemaphore(key)
 #endif /* ndef HAS_TEST_AND_SET */
 }
 
+#include "storage/bufpage.h"
+
+_sjbuftrap(blkno, page)
+    OffsetNumber blkno;
+    Page page;
+{
+    HeapTuple htup;
+
+    if (PageIsEmpty(page) || ((PageHeader) page)->pd_lower == 0)
+	return;
+
+    htup = (HeapTuple) PageGetItem(page, PageGetItemId(page, 0));
+
+    if (ItemPointerGetBlockNumber(&(htup->t_ctid)) != blkno)
+	_sjtrap();
+}
+
+_sjtrap()
+{
+    elog(NOTICE, "got that puppy");
+}
 #endif /* SONY_JUKEBOX */
