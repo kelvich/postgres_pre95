@@ -1,6 +1,9 @@
-
 /*
- *  simplelists.h
+ * simplelists.h --
+ *	Linked list primitives.
+ *
+ * Identification:
+ *	$Header$
  */
 
 #ifndef SimpleListsIncluded
