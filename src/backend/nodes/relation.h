@@ -17,7 +17,7 @@
 #define TLE LispValue
 #define TL LispValue
 
-#include "nodes/relation.gen"
+#include "relation.gen"
 
 /*
  *  These #defines indicate that we have supplied print routines for the
