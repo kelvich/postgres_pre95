@@ -841,12 +841,6 @@ quickdie()
   elog(NOTICE, "corrupted shared memory.  The current transaction was");
   elog(NOTICE, "aborted, and I am going to exit.  Please resend the");
   elog(NOTICE, "last query. -- The postgres backend");
-  /*
-   * The last thing we send should *never* be a NOTICE.  This causes the
-   * front-end to sometimes go into an inifinite loop reading bogus NOTICE
-   * messages from an undead socket connection.
-   */
-  pq_putnchar("I", 1);
   exit(0);
 }
 
