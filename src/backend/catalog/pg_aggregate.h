@@ -33,7 +33,6 @@
  */ 
 CATALOG(pg_aggregate) {
     char16 		aggname;
-    oid 		aggowner;
     regproc	 	xitionfunc1;	
     regproc		xitionfunc2;
     regproc 		finalfunc;	
@@ -57,16 +56,15 @@ typedef FormData_pg_aggregate	*Form_pg_aggregate;
  * ----------------
  */
 #define Name_pg_aggregate		"pg_aggregate"
-#define Natts_pg_aggregate		9
+#define Natts_pg_aggregate		8
 #define Anum_pg_aggregate_aggname	1
-#define Anum_pg_aggregate_aggowner	2
-#define Anum_pg_aggregate_xitionfunc1	3
-#define Anum_pg_aggregate_xitionfunc2	4
-#define Anum_pg_aggregate_finalfunc	5
-#define Anum_pg_aggregate_inttype	6
-#define Anum_pg_aggregate_fintype	7
-#define Anum_pg_aggregate_initaggval	8
-#define Anum_pg_aggregate_initsecval	9
+#define Anum_pg_aggregate_xitionfunc1	2
+#define Anum_pg_aggregate_xitionfunc2	3
+#define Anum_pg_aggregate_finalfunc	4
+#define Anum_pg_aggregate_inttype	5
+#define Anum_pg_aggregate_fintype	6
+#define Anum_pg_aggregate_initaggval	7
+#define Anum_pg_aggregate_initsecval	8
 
 
 /* ----------------
@@ -74,8 +72,8 @@ typedef FormData_pg_aggregate	*Form_pg_aggregate;
  * ---------------
  */
 
-DATA(insert OID = 1028 ( int4ave   6  int4pl  int4inc  int4div  23  23 0  0));
-DATA(insert OID = 1029 ( int2ave   6  int2pl  int2inc  int2div  21  21 0  0));
+DATA(insert OID = 1028 ( int4ave   int4pl  int4inc  int4div  23  23 0  0));
+DATA(insert OID = 1029 ( int2ave   int2pl  int2inc  int2div  21  21 0  0));
 
 /* ----------------
  *	old definition of struct aggregate
@@ -86,7 +84,6 @@ DATA(insert OID = 1029 ( int2ave   6  int2pl  int2inc  int2div  21  21 0  0));
 
 struct	aggregate {
 	char	aggname[16];
-	OID	aggowner;
 	OID	xitionfunc1;
 	OID	xitionfunc2;
 	OID	finalfunc;
