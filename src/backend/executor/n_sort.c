@@ -120,7 +120,7 @@ ExecSort(node)
     TupleTableSlot slot;
     Buffer	   buffer;
     int		   tupCount = 0;
-    
+
     /* ----------------
      *	get state info from node
      * ----------------
@@ -284,10 +284,18 @@ ExecSort(node)
 						/* bkwd flag */
 			  &buffer); 		/* return: buffer */
 
+    /* Increase the pin count on the buffer page, because the tuple stored in 
+       the slot also points to it (as well as the scan descriptor). If we 
+       don't, ExecStoreTuple will decrease the pin count on the next iteration.
+       - 01/09/93 */
+
+    if (buffer != InvalidBuffer) 
+        IncrBufferRefCount(buffer);
+
     return (TupleTableSlot)
-	ExecStoreTuple((Pointer) heapTuple,   	/* tuple to store */
+	ExecStoreTuple((Pointer) heapTuple,  	/* tuple to store */
 		       (Pointer) slot,   	/* slot to store in */
-		       buffer,		/* this tuple's buffer */
+		       buffer,			/* this tuple's buffer */
 		       false); 		/* don't free stuff from amgetnext */
 }
  
