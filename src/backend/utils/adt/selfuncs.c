@@ -96,13 +96,40 @@ intltsel(opid, relid, attno, value, flag)
 	if (NONVALUE(attno) || NONVALUE(relid))
 		*result = 1.0 / 3;
 	else {
-		int nvals;
-
-		nvals = getattnvals(relid, (int) attno);
-		if (nvals == 0)
-			*result = 1.0 / 3.0;
-		else
-			*result = 3.0 / nvals;
+/* XXX          val = atol(value);*/
+                val = value;
+                gethilokey(relid, (int) attno, opid, &highchar, &lowchar);
+                if (*highchar == 'n' || *lowchar == 'n') {
+                        *result = 1.0/3.0;
+                        return (result);
+                }
+                high = atol(highchar);
+                low = atol(lowchar);
+                if ((flag & SEL_RIGHT && val < low) ||
+                    (!(flag & SEL_RIGHT) && val > high)) {
+                   int nvals;
+                   nvals = getattnvals(relid, (int) attno);
+                   if (nvals == 0)
+                        *result = 1.0 / 3.0;
+                   else
+                        *result = 3.0 / nvals;
+	          }
+                else {
+                        bottom = high - low;
+                        if (bottom == 0)
+                                ++bottom;
+                        if (flag & SEL_RIGHT)
+                                top = val - low;
+                        else
+                                top = high - val;
+                        if (top > bottom)
+                                *result = 1.0;
+                        else {
+                                if (top == 0)
+                                   ++top;
+                                *result = ((1.0 * top) / bottom);
+                        }
+	            }
 	}
 	return(result);
 }
@@ -302,8 +329,8 @@ gethilokey(relid, attnum, opid, high, low)
 				      3, (ScanKey) key);
 	tuple = amgetnext(sdesc, 0, (Buffer *) NULL);
 	if (!HeapTupleIsValid(tuple)) {
-		*high = "0";
-		*low = "0";
+		*high = "n";
+		*low = "n";
 /* XXX 		elog(WARN, "gethilokey: statistic tuple not found");*/
 		return;
 	}
