@@ -1,0 +1,1694 @@
+.EQ
+delim %%
+.EN
+.nr pp 11
+.nr tp 11
+.ps 11
+.ds PG "\\s-2POSTGRES\\s0
+.ds PQ "\\s-2POSTQUEL\\s0
+.de RN
+\\fC\\$1\\fP\\$2
+..
+.de SE
+\\fC\\$1\\fP\\$2
+..
+.de FI
+\\fC\\$1\\fP\\$2
+..
+.de BU
+.ip \0\0\(bu
+..
+.de (E
+.(b
+.ft C
+.ta 0.5i 1i 1.5i 2i 2.5i 3i 3.5i 4i 4.5i 5i 5.5i
+..
+.de )E
+.ft
+.)b
+..
+.sh 1 "The \*(PG Access Methods"
+.pp
+This section describes the \*(PG access methods in detail.
+The major concepts covered here are
+.BU
+the relation descriptor and its contents,
+.BU
+the differences between heap and index relations,
+.BU
+scan keys, scan descriptors, and the scan interface,
+.BU
+the \*(PG access method interface routines,
+and
+.BU
+the layout of a \*(PG page.
+.pp
+These topics are covered in detail in the subsections below.
+.sh 2 "The Relation Descriptor"
+.pp
+The relation descriptor,
+or
+.i reldesc ,
+is the in-memory data structure that describes an open relation.
+The reldesc is the argument to most of the procedures that operate
+on relations.
+Relations may be opened by name or by relation ID \*-
+either of these will uniquely identify the relation to which
+they correspond.
+A relation's ID,
+or
+.i relid ,
+is the object ID of the tuple in
+.RN pg_class
+that describes it.
+.pp
+The structure that stores a reldesc is declared in the source file
+.FI utils/rel.h .
+The structure definition is
+.(E
+typedef struct RelationData {
+	File				rd_fd;
+	int				rd_nblocks;
+	uint16			rd_refcnt;
+	bool				rd_ismem;
+	bool				rd_isnailed;
+	AccessMethodTupleForm	rd_am;
+	RelationTupleForm	rd_rel;
+	ObjectId			rd_id;
+	Pointer			lockInfo;
+	TupleDescriptorData	rd_att;
+	/* VARIABLE LENGTH ARRAY AT END OF STRUCT */
+} RelationData;
+
+typedef RelationData		*Relation;
+.)E
+.pp
+The meaning of the
+.SE rd_fd
+entry depends on the storage manager that stores the relation.
+For the magnetic disk storage manager,
+this is the \*(PG virtual file descriptor (VFD) for the open
+file that stores the relation.
+On the Sony jukebox,
+this entry is meaningless,
+and is simply set to a positive value if the jukebox relation is
+successfully opened.
+.pp
+The
+.SE rd_nblocks
+entry is the number of blocks in the relation,
+but this number is not reliable.
+This field is used by the executor during scans of heap relations
+to avoid scanning past the end of the relation.
+For index relations,
+and during scans of heap relations,
+the value stored here will be wrong.
+It should not be used outside of the executor.
+.pp
+The entry
+.SE rd_refcount
+reflects the number of currently active references to this reldesc
+inside the backend.
+Every backend manages a private cache of relation descriptors.
+When the cache is full,
+reldescs with
+.SE rd_refcount
+equal to zero may be evicted to make room for new descriptors.
+If a single relation is opened by a single backend more than once,
+every open request returns a pointer to the same reldesc,
+and
+.SE rd_refcount
+is incremented to keep track of each reference.
+When the relation is closed,
+the reference count is decremented.
+.pp
+The structure entry
+.SE rd_ismem
+is unused in the current system.
+It is intended to support in-memory-only relations,
+changes for which need not be flushed to stable storage at transaction
+boundaries.
+.pp
+The private cache of relation descriptors contains several
+reldescs that cannot be evicted,
+in order to guarantee that the cache continues to work.
+For example,
+in order to instantiate the relation descriptor for a user relation
+.RN user_reln ,
+\*(PG must open and scan
+.RN pg_class
+and
+.RN pg_attribute
+for its relation and attribute data.
+If the reldesc for
+.RN pg_class
+is not in the cache,
+then no relation
+(including
+.RN pg_class )
+can ever be instantiated in the cache.
+.pp
+To keep track of which relations may not be evicted from the
+private reldesc cache,
+every reldesc contains an
+.SE rd_isnailed
+entry.
+If this entry is set to
+.i true ,
+then the reldesc is nailed and may not be evicted from the cache,
+even if its
+.SE rd_refcount
+drops to zero.
+.pp
+The
+.SE rd_am
+entry stores a pointer to the access method tuple for the access method
+that manages this relation.
+Currently,
+\*(PG supports a heap access method for storing user and system data,
+and btree and rtree indexed access methods for storing indices on
+data.
+Support for a hashed indexed access method will be added in the near future.
+Because these access methods have different implementations,
+\*(PG must know what actual routine to call to dispatch general
+access method interface calls for a particular access method.
+For indexed access methods,
+this information is stored in the access method tuple.
+Since there is only one access method for user and system data (the heap),
+the
+.SE rd_am
+entry is NULL for reldescs describing heap relations.
+.pp
+The access method tuple contents will be described in the next subsection.
+.\" XXX fix up this section reference
+.pp
+The structure entry
+.SE rd_rel
+stores a pointer to the
+.RN pg_class
+tuple that describes this relation.
+The
+.RN pg_class
+tuple is copied to a safe place in memory when the relation is entered
+into the reldesc cache.
+The tuple contains,
+among other things,
+the relation's name and the user id of its owner.
+The complete contents of the tuple pointed to by
+.SE rd_rel
+are supplied later in this section.
+.\" XXX fix up this section reference
+.pp
+The entry
+.SE rd_id
+stores the relid of the open relation.
+The relid is the object ID of the
+.RN pg_class
+tuple describing the relation.
+This does not appear in the tuple pointed to by the
+.SE rd_rel
+entry,
+because that tuple includes only the ordinary attributes,
+and not the system attributes,
+from the
+.RN pg_class
+tuple.
+.pp
+The structure entry
+.SE lockInfo
+points to an in-memory representation of the lock data associated
+with this relation.
+When the PRS-II rule system is used to declare a rule that operates
+on a relation,
+the
+.RN pg_class
+tuple for the relation is modified to include a
+.i "rule lock"
+describing the rule to fire.
+When a rule on a given relation is fired,
+the on-disk rule lock is converted into an in-memory format,
+and a pointer to the rule lock is included in the reldesc.
+The data stored in the rule lock are beyond the scope of this section.
+.pp
+The final entry in the reldesc is
+.SE rd_att ,
+a vector of attribute descriptor data for the relation.
+This vector stores one entry for every user-level (that is,
+non-system) attribute that the relation stores.
+This vector is initialized when the reldesc is loaded into the cache.
+The data in the vector come from a scan of
+.RN pg_attribute .
+The contents of the vector are described below.
+.\" XXX fix this section ref
+.sh 3 "The Access Method Tuple Form (rd_am)"
+.pp
+The
+.SE rd_am
+entry in a reldesc points at an access method tuple form
+describing the access method that manages the relation.
+This tuple has one attribute for each of
+the routines that implement the standard
+access method interface for the particular access method.
+Details of the interface routines appear later in this section.
+.\" XXX fix this section ref
+Here,
+we list only the contents of the access method tuple form.
+This declaration appears in the source file
+.FI catalog/pg_am.h ,
+and describes the tuples stored in the
+.RN pg_am
+system catalog.
+.(E
+typedef struct AccessMethodTupleFormD {
+	NameData		amname;
+	ObjectId		amowner;
+	char			amkind;
+	uint16		amstrategies;
+	uint16		amsupport;
+	RegProcedure	amgettuple;
+	RegProcedure	aminsert;
+	RegProcedure	amdelete;
+	RegProcedure	amgetattr;
+	RegProcedure	amsetlock;
+	RegProcedure	amsettid;
+	RegProcedure	amfreetuple;
+	RegProcedure	ambeginscan;
+	RegProcedure	amrescan;
+	RegProcedure	amendscan;
+	RegProcedure	ammarkpos;
+	RegProcedure	amrestrpos;
+	RegProcedure	amopen;
+	RegProcedure	amclose;
+	RegProcedure	ambuild;
+	RegProcedure	amcreate;
+	RegProcedure	amdestroy;
+} AccessMethodTupleFormD;
+
+typedef AccessMethodTupleFormD	*AccessMethodTupleForm;
+.)E
+.pp
+The structure entry
+.SE amname
+is the name of the access method.
+In the current system,
+this is one of
+.i btree ,
+or
+.i rtree .
+Support for
+.i hash
+is forthcoming.
+.pp
+The
+.SE amowner
+entry is the object ID of the
+.RN pg_user
+tuple for the owner of this access method.
+For all existing access methods,
+this is the OID for the user
+.i postgres .
+.pp
+The
+.SE amkind
+entry is unused in the current system.
+.pp
+The structure entry
+.SE amstrategies
+is the number of strategies (operators) that can be used in searches
+on this index.
+.BU
+For btrees, this is 5:
+<, \(<=, =, \(>=, and >.
+.BU
+For rtrees,
+this is 8,
+corresponding to the operators for
+left, left-or-overlap, overlap, right-or-overlap, right, same,
+contains, and contained-by.
+.BU
+When hash tables are supported,
+the number of operators will be 1, for equality searches.
+.pp
+There is one such set of operators for each operator class defined
+on an index.
+Roughly speaking,
+an operator class corresponds to the set of operators for a particular type
+(for example, floats or char strings) that can be stored in an index.
+Operator class information is stored in
+.RN pg_amop .
+.pp
+The structure entry
+.SE amsupport
+is the number of support routines required by this access method.
+For example,
+when inserting keys into a btree,
+the btree access method requires a routine that compares two keys
+and returns negative, zero, or positive,
+depending on whether the first key is less than, equal to, or greater than
+the second,
+respectively.
+Similarly,
+rtrees require routines that compute the size,
+intersection,
+and union of two rectangles.
+These are not operators that are available to users for index searches,
+so they are stored separately from the strategies.
+These routines are stored in the relation
+.RN pg_amsupport .
+.pp
+The rest of the
+.SE AccessMethodTupleForm
+structure stores the object IDs of functions that support
+the standard access method interface for this access method.
+Those routines are summarized in the table below.
+.TS
+center allbox;
+cfI cfI
+lfC l.
+Entry name	routine description
+amgettuple	Get the next tuple in a scan.
+aminsert	Insert a new tuple into the index.
+amdelete	Delete a particular \fItid\fP from the index.
+amgetattr	Get a particular attribute from the index tuple.
+amsetlock	Unsupported.
+amsettid	Unsupported.
+amfreetuple	Unsupported.
+ambeginscan	Start a scan with a qualification on the index key.
+amrescan	Reset an active scan to the beginning.
+amendscan	End an active scan.
+ammarkpos	Mark the current position in an index scan.
+amrestrpos	Restore the scan to the previously-marked position.
+amopen	Open the index relation.
+amclose	Close an open index relation.
+ambuild	Define an index on an existing heap relation.
+amcreate	Create a new, empty, index relation.
+amdestroy	Destroy an existing index relation.
+.TE
+.pp
+In general,
+the programmer need not worry about how function dispatch via the
+.SE AccessMethodTupleForm
+works.
+This is handled properly for all indexed access methods by code in
+.FI access/common .
+.sh 3 "The Relation Tuple Form (rd_rel)"
+.pp
+The reldesc for a relation includes a pointer to the
+.RN pg_class
+tuple for the relation.
+When a reldesc is instantiated into the cache,
+it is initialized from the data for the relation from
+.RN pg_class .
+The user-level (that is, non-system) attributes for the
+.RN pg_class
+tuple are the
+.i "relation tuple form" .
+This structure is declared in
+.RN catalog/pg_relation.h \\**.
+.(f
+\**
+The class
+.RN pg_class
+was previously called
+.RN pg_relation .
+In all user-visible parts of the system,
+the name was converted in 1990,
+but internally
+(as in the names of system header files),
+the name was not always changed.
+.)f
+The declaration is
+.(E
+CATALOG(pg_relation) BOOTSTRAP {
+     char16 	relname;
+     oid 		relowner;
+     oid 		relam;
+     int4 		relpages;
+     int4 		reltuples;
+     dt 		relexpires;
+     dt 		relpreserved;
+     bool 		relhasindex;
+     bool 		relisshared;
+     char 		relkind;
+     char 		relarch;
+     int2 		relnatts;
+     int2		relsmgr;
+     int28 	relkey;
+     oid8		relkeyop;
+     aclitem	relacl[1];
+} FormData_pg_relation;
+
+typedef FormData_pg_relation	*Form_pg_relation;
+.)E
+The notation
+.(E
+CATALOG(pg_relation) BOOTSTRAP {
+.)E
+is turned into a structure declaration by cpp macros at compile time.
+A separate set of cpp macros produces initialization statements
+in the
+.i bki
+files for this relation to allow bootstrapping of the
+.i template1
+database .
+.pp
+The structure entry
+.SE relname
+is the name of the relation.
+.pp
+The
+.SE relowner
+entry is the object ID of the
+.RN pg_user
+tuple describing the relation's owner.
+.pp
+The
+.SE relam
+entry is the object ID of the
+.RN pg_am
+tuple for the access method that manages this relation.
+For heap relations,
+this is zero,
+an invalid object ID.
+.pp
+The
+.SE relpages
+and
+.SE reltuples
+entries are,
+respectively,
+the approximate number of pages and tuples in this relation.
+These numbers are set by the vacuum cleaner and when an index
+is defined on a heap relation,
+and so are wrong in general.
+They are not changed when tuples are inserted into or deleted from
+the relation.
+When the relation is initially created,
+both are zero.
+Both
+.SE reltuples
+and
+.SE relpages
+are used by the planner to estimate plan costs during query optimization.
+.pp
+The
+.SE relexpires
+entry is the amount of history that should be saved for this relation.
+.\" XXX bullshit -- check this out when you get back.
+.pp
+The
+.SE relpreserved
+index is the date and time at which the relation was last vacuumed.
+This is used by the planner when it produces query plans for historical
+queries.
+If the historical query extends to before the time at which the relation
+was last vacuumed,
+then the archive must be scanned.
+Otherwise,
+it need not be.
+.pp
+The
+.SE relhasindex
+entry is
+.i true
+if an index exists on the relation.
+When an index is destroyed,
+this flag is not changed,
+and so an entry of
+.i true
+may mean that there was recently an index on the relation,
+but that there no longer is.
+The vacuum cleaner restores this to the correct value when it runs,
+and defining an index on a heap relation always sets this entry to
+.i true
+for the heap.
+.pp
+The
+.SE relisshared
+entry is
+.i true
+for some shared system catalogs.
+Most relations for database
+.i relname
+reside in the directory
+\fC$PGDATA/base/\fP\fIrelname\fP.
+However,
+some relations,
+such as
+.RN pg_user
+and
+.RN pg_database ,
+must be visible to users of all databases simultaneously.
+These relations are stored in the directory
+.FI $PGDATA ,
+and the
+.SE relisshared
+entry in the
+.RN pg_class
+tuple for these relations is set to
+.i true .
+.pp
+The
+.SE relkind
+entry has one of three values:
+.BU
+.i r
+means that the relation is an ordinary heap.
+.BU
+.i i
+means that the relation is an index.
+.BU
+.i u
+means that the relation is an uncatalogued (that is, temporary)
+heap relation
+which will be automatically destroyed when the transaction ends.
+.pp
+The
+.SE relarch
+entry describes the frequency with which the relation should be archived.
+Although three levels exist,
+only two are actually supported.
+The three levels are
+.BU
+.i h ,
+for heavy update traffic and frequent archival;
+.BU
+.i l ,
+for light update traffic and infrequent archival;
+and
+.BU
+.i n ,
+for no archival.
+.pp
+The only levels actually supported are
+.i h
+and
+.i n .
+If the
+.SE relarch
+entry is
+.i n ,
+then the vacuum cleaner discards all historical data from the relation
+when it runs.
+.pp
+The
+.SE relnatts
+entry is the number of attributes in the relation.
+.pp
+The
+.SE relsmgr
+entry identifies the storage manager that manages storage for this
+relation.
+Storage manager zero is magnetic disk.
+On the system installed at UC Berkeley,
+storage managers one and two are,
+respectively,
+for the Sony optical disk jukebox and main memory relations.
+The storage manager code is called from the \*(PG buffer manager,
+and is of no concern to access method implementors.
+.pp
+The
+.SE relkey
+entry is a vector of attribute numbers that define the unique key for
+this relation.
+This is not supported in the current system.
+.pp
+The structure ends with a variable-length vector of access control list
+information,
+stored in the
+.SE relacl
+entry.
+.sh 3 "The Tuple Descriptor Data (rd_att)"
+.pp
+The reldesc ends with a vector of attribute data that describe the
+tuples stored in the relation.
+This is a variable-length entry;
+different relations have different numbers of attributes,
+and so their
+.SE rd_att
+vectors are of different length.
+The data structures of interest are
+.SE "struct TupleDescriptorData" ,
+defined in
+.FI access/tupdesc.h ,
+and
+.SE "struct AttributeTupleFormData" ,
+defined in
+.FI catalog/pg_attribute.h .
+.pp
+These data structure for
+.SE AttributeTupleFormData
+is the same as a
+.SE Form_pg_attribute ,
+which is
+.(E
+CATALOG(pg_attribute) BOOTSTRAP {
+    oid  		attrelid;
+    char16  	attname;
+    oid  		atttypid;
+    oid  		attdefrel;
+    int4  		attnvals;
+    oid  		atttyparg;
+    int2 		attlen;
+    int2  		attnum;
+    int2 		attbound;
+    bool  		attbyval;
+    bool 		attcanindex;
+    oid 		attproc;
+    int4		attnelems;
+    int4		attcacheoff;
+} FormData_pg_attribute;
+
+typedef FormData_pg_attribute	*Form_pg_attribute;
+.)E
+.pp
+As above, the
+.(E
+CATALOG(pg_attribute) BOOTSTRAP
+.)E
+line is converted to a struct declaration by cpp macros at compile time.
+.pp
+The
+.SE attrelid
+entry is the object ID of the
+.RN pg_class
+tuple for the class that contains this attribute.
+.pp
+The
+.SE attname
+entry is the name of the attribute.
+.pp
+The
+.SE atttypid
+entry is the object ID of the
+.RN pg_type
+tuple for the type of this attribute.
+.pp
+The
+.SE attdefrel
+is used for object-oriented type management by \*(PG.
+When a class is declared that inherits from some other class,
+the new class implicitly has all the attributes that the original
+class had.
+In this case,
+the
+.SE attdefrel
+entry is the object ID of the relation from which this attribute is inherited.
+.\" XXX check this
+.pp
+The
+.SE attnvals
+entry is for something I don't understand.
+.\" XXX
+.pp
+The
+.SE atttyparg
+entry is for something I don't understand.
+.\" XXX
+The
+.SE attlen
+entry is the length of this attribute, in bytes,
+for fixed-length attributes,
+or \(mi\|1,
+for variable-length attributes.
+.pp
+The
+.SE attbound
+entry is for something I don't understand.
+.\" XXX
+.pp
+The
+.SE attbyval
+entry is
+.i true
+if this is a pass-by-value attribute,
+and
+.i false
+if it is pass-by-reference.
+This entry is set by looking at the
+.SE typbyval
+entry in the
+.RN pg_type
+tuple for the type of this attribute.
+.pp
+The
+.SE attcanindex
+entry is
+.i true
+if this entry can be indexed,
+and false otherwise.
+Array attributes cannot be indexed.
+.pp
+The
+.SE attproc
+entry is for something I don't understand.
+.pp
+The
+.SE attnelems
+entry is used for array attributes,
+to record the number of elements that may be stored in the attribute.
+.pp
+The
+.SE attcacheoff
+entry is never maintained on disk,
+but is set in memory to allow fast attribute lookups.
+The first time an attribute is fetched from a tuple,
+its offset is computed by summing the lengths of the attributes
+that precede it.
+If all of the preceding attributes are fixed-length,
+and none are NULL,
+then the computed offset may be cached for use on subsequent lookups.
+The offset is stored in
+.SE attcacheoff .
+.pp
+The
+.SE "AttributeTupleFormData"
+structure stores information on a single attribute.
+The vector that describes all of the attributes in a relation,
+.SE rd_att ,
+contains pointers to in-memory
+.SE AttributeTupleFormData
+structures for each attribute.
+The vector is stored in
+the
+.SE TupleDescriptorData
+structure,
+whose declaration is
+.(E
+typedef struct TupleDescriptorData {
+	AttributeTupleForm	data[1];
+	/* VARIABLE LENGTH ARRAY */
+} TupleDescriptorData;
+
+typedef TupleDescriptorData	*TupleDescriptor;
+.)E
+.sh 3 "The Strategy Map and Support Routines for Index Reldescs"
+.pp
+The sections above describe the contents of a reldesc that are common
+to the heap and indexed access methods.
+The indexed access methods store some additional information at the
+end of the reldesc.
+This information is used to select operators to apply during scans,
+and to find the support routines that are required by particular
+indexed access methods.
+These data structures,
+their layout,
+and their purposes are obscure.
+They reflect poor design of the indexed access methods.
+This section is difficult to understand,
+and may be safely ignored by everyone except the maintainer of the
+\*(PG access methods.
+.pp
+Immediately following the TupleDescriptorData vector,
+the indexed access methods have two additional pieces of data.
+The first is a pointer to the
+.SE IndexStrategyData
+structure for this access method.
+The second is a pointer to the vector of support routines for
+the access method.
+Neither of these is a named entry of any data structure;
+their existence is assumed
+(and,
+at least so far,
+correctly maintained)
+by the code that manages reldescs for the indexed access methods.
+.pp
+The problem with this design is that it makes it impossible to name
+these entries from the debugger.
+The following cumbersome GDB statements will print out the contents
+of these entries:
+.(E
+print (IndexStrategy)(&reldesc->rd_att[
+	reldesc->rd_rel->relnatts])
+print (RegProcedure *)(((char *)
+	&reldesc->rd_att[reldesc->rd_rel->relnatts])
+	+ sizeof(IndexStrategy))
+.)E
+The first statement prints the pointer
+to the vector of index strategy map data;
+the second prints the pointer to the vector of support procedure IDs.
+These pointers must be dereferenced in order to examine the contents
+of the vectors.
+Lines have been broken so that the commands fit across the page;
+the statements should be typed on a single line.
+.pp
+The strategy map is a vector of scan key entries.
+There is one entry in the vector for every operator that is supported by
+the access method.
+For example,
+btrees have a vector composed of five entries:
+one each for <, \(<=, =, \(>=, and >.
+Each of these entries includes
+the procedure ID, which is the object ID of the
+.RN pg_proc
+tuple,
+for the procedure that should be called to execute this operator.
+All of the other entries in the scan key entry data structure are
+ignored.
+The strategy map is constructed automatically by the system when
+the index relation is opened.
+The contents are read from the
+.RN pg_amop
+relation,
+which is keyed by operator class and access method.
+.pp
+Finally,
+the vector of support procedures is simply an array of procedure IDs,
+or
+.RN pg_proc
+tuple OIDs,
+for the support routines required by the access method.
+This vector is initialized when the index relation is opened by scanning
+the
+.RN pg_amsupport
+relation.
+\*(PG assigns no meaning to the entries in this vector;
+they are intended for use by the access method.
+The btree access method uses a single support routine,
+which compares two keys and returns less than zero,
+zero,
+and greater than zero,
+respectively,
+if the first key is less than, equal to, or greater than the second.
+The rtree access method uses three support routines,
+which compute the size of a rectangle in standard units,
+the intersection of two rectangles,
+and the union of two rectangles.
+.sh 3 "Summary of the Relation Descriptor Data Structure"
+.pp
+The reldesc describes an open relation,
+and is the argument that is passed to most of the routines
+that operate on relations.
+\*(PG manages a private cache of reldescs,
+and at most one copy of the reldesc for a given relation appears
+in the cache at a time.
+The reldesc includes pointers to the relation tuple form
+and a vector of information that describes the attributes
+that appear in tuples of the relation.
+For indexed access methods,
+the reldesc also includes a pointer to the access method tuple form,
+a pointer to a vector of strategy information that describes the
+operators supported by the access method for the operator class,
+and a pointer to a vector of access method-specific support routines.
+.sh 2 "Heap and Index Relations"
+.pp
+Heap relations are the primary \*(PG storage structure;
+all user relations and all the system catalog information is stored
+in heaps.
+The \*(PG heap is logically an unordered set of tuples.
+Heaps consist of zero or more 8192-byte blocks,
+each of which contains zero or more tuples.
+.sh 3 "Tuple Identifiers"
+.pp
+Tuples are identified by
+.i "tuple identifiers" ,
+or tids.
+A tid is a triple of the form (\fIblockno\fP, \fIpageno\fP, \fIoffset\fP).
+The original design of the system allowed for more than one page to
+be stored on a single block of a relation,
+but this feature has never been used.
+As a result,
+the middle value (\fIpageno\fP) is always zero.
+To confuse things further,
+the term
+.q page
+is used interchangeably with the term
+.q block
+in the code and by programmers talking about the system.
+Since the original usage of
+.q page
+was never implemented,
+it has come to mean exactly the same thing as
+.q block. \|
+.pp
+Thus a tid is a triple of the form (\fIblockno\fP, 0, \fIoffset\fP).
+.pp
+The
+.i blockno
+is the number of the block in the relation;
+blocks are numbered sequentially from zero.
+When a new block is allocated to a relation,
+it is given the next available block number.
+.pp
+The
+.i offset
+stored in a tid is the offset of the tuple within the block.
+Blocks store zero or more tuples,
+and tuples are numbered sequentially from one within a block.
+The number of tuples that fit in a block depend on the schema of
+the relation that the block stores,
+and the number may vary for a given relation
+(for example,
+if the relation includes variable-length attributes).
+.pp
+The physical layout of a \*(PG page appears in a later section.
+.\" XXX fix this section ref
+.pp
+A tid uniquely identifies a single tuple in a relation.
+In the current version of the system,
+relations are not compressed when they are vacuumed,
+so tuples do not move around inside a relation.
+Thus the tid is a valid identifier for the tuple until the tuple
+is replaced or deleted,
+at which point it (logically) vanishes from the relation.
+Note that other tuples on the same page as a deleted tuple do not
+change their tids when the tuple is deleted;
+the available slot is reserved for subsequent reuse.
+In fact,
+the available slot is never subsequently reused,
+but that may change sometime in the future.
+.sh 3 "Data Stored in Heap Tables"
+.pp
+Every heap tuple begins with a
+.SE HeapTupleData
+structure.
+The declaration for this structure appears in the source file
+.FI access/htup.h ,
+and is
+.(E
+typedef struct HeapTupleData {
+	Size			t_len;
+	ItemPointerData	t_ctid;
+	ItemPointerData	t_chain;
+	union {
+		ItemPointerData	l_ltid;
+		RuleLock		l_lock;
+	}			t_lock;
+	ObjectId		t_oid;
+	CommandId		t_cmin;
+	CommandId		t_cmax;
+	TransactionId	t_xmin;
+	TransactionId	t_xmax;
+	ABSTIME		t_tmin, t_tmax;
+	AttributeNumber	t_natts;
+	char			t_vtype;
+	char			t_infomask;
+	char			t_locktype;
+	uint8			t_hoff;
+	char			t_bits[MinHeapTupleBitmapSize / 8];
+} HeapTupleData;	/* MORE DATA FOLLOWS AT END OF STRUCT */
+
+typedef HeapTupleData	*HeapTuple;
+.)E
+This structure includes a variable-length bitmap vector at its end,
+and is followed by the data for the user relation.
+.pp
+The
+.SE t_len
+entry is the length of the entire tuple,
+including the
+.SE HeapTupleData
+structure and the user data that follows it.
+This is used to allocate sufficient space in memory and on disk pages
+for the tuple.
+.pp
+The
+.SE t_ctid
+entry is the tid of this tuple.
+This must be stored in the tuple so that when copies of it are passed
+around in memory,
+the page and offset from which the tuple came are recoverable.
+.pp
+When a tuple is replaced,
+\*(PG maintains a pointer from the old version of the tuple
+to the new version.
+This pointer is stored in the
+.SE t_chain
+entry.
+When the new version of the tuple is successfully inserted,
+the page containing the old version is fetched,
+and the original tuple's
+.SE t_chain
+entry is set to the
+.SE t_ctid
+entry of the new version.
+This was originally intended to support tuple differencing,
+which would allow \*(PG to store only the changed values for the
+new version in most cases,
+rather than the entire new tuple.
+Tuple differencing is not supported in the current system.
+.pp
+The
+.SE t_lock
+entry stores a rule lock for the tuple.
+A rule lock is a tag that identifies a rule that should be
+run whenever this tuple is manipulated.
+The mechanism is beyond the scope of this section.
+The value stored in
+.SE t_lock
+is a tid when the tuple is on disk,
+and is swizzled to an in-memory pointer when the tuple is
+copied into memory.
+.pp
+The
+.SE t_oid
+entry of the
+.SE HeapTupleData
+structure is the object ID that uniquely identifies this tuple.
+Although tids will currently uniquely identify a tuple for its lifetime,
+this may change someday,
+when tuple differencing and space reclamation are implemented.
+The OID will is guaranteed by design never to change.
+Furthermore,
+when a tuple is replaced,
+its tid will change,
+but its OID is guaranteed not to.
+This means that the OID is a safe,
+globally unique,
+eternal identifier for the tuple.
+.pp
+The
+.SE t_cmin
+and
+.SE t_cmax
+entries
+are,
+respectively,
+the command IDs that inserted and deleted this tuple.
+In every transaction,
+the user may run up to 32768 individual commands.
+Any of these commands may update the database.
+The command ID is stored in every tuple to allow the system
+to keep track of which command inside a single transaction
+made a change.
+The reason that this is necessary is to allow subsequent commands
+inside the same transaction to see the effects of changes made
+by earlier commands in the transaction,
+even though those changes are not visible to other users running
+concurrently in other transactions.
+.pp
+The
+.SE t_xmin
+and
+.SE t_xmax
+entries are,
+respectively,
+the transaction IDs of the transactions that inserted and deleted
+this tuple.
+These transaction IDs are used by \*(PG to check at runtime whether
+the transaction that made the changes ever committed.
+Changes made by uncommitted transactions may be safely ignored.
+.pp
+The
+.SE t_tmin
+and
+.SE t_tmax
+entries are,
+respectively,
+the commit times of the inserting and deleting transactions that
+operated on this tuple.
+When \*(PG inserts a tuple,
+it writes the inserting command and transaction IDs,
+but leaves the
+.SE t_tmin
+entry empty.
+When the transaction commits,
+a special entry is written to the
+.FI pg_time
+relation.
+This entry contains the time at which the transaction committed.
+Later,
+the vacuum cleaner
+(or,
+in some cases,
+a \*(PG backend in normal operation)
+will fill in the commit time for the inserting transaction.
+Once this time is filled in,
+\*(PG does not need to check the transaction log in order to
+see whether the transaction ever committed.
+This substantially speeds up processing,
+since the transaction log check generally requires disk accesses.
+.pp
+The
+.SE t_natts
+entry is the number of attributes that are stored in this tuple.
+The number of attributes may not be the same as the number stored
+by the relation,
+since the relation schema may change over time as a result of the
+.i addattr
+command.
+Any references to attributes beyond the end of the tuple will return
+the special database value NULL
+(note that database NULL is not the same as the zero value used by C).
+.pp
+The
+.SE t_vtype
+entry is for something called the version type,
+whose purpose has been lost to history.
+This is unused by the current system.
+The value stored here is typically zero,
+although the header file
+.FI access/htup.h
+claims that only
+.i i ,
+.i r ,
+and
+.i d
+are supported.
+.pp
+The
+.SE t_infomask
+entry is used to encode information about the tuple to speed up
+fetching of attributes.
+The information encoded here includes flags indicating whether
+the tuple contains any null values or any variable-length attributes.
+.pp
+The
+.SE t_locktype
+entry indicates whether the value stored in the
+.SE t_lock
+union is an on-disk (tid) or in-memory (pointer) lock representation.
+This is stored far from the union in order to keep the data structure
+tightly packed.
+.pp
+The
+.SE t_hoff
+entry is the number of bytes occupied by the tuple header
+(that is,
+by the
+.SE HeapTupleData
+structure).
+This may vary from tuple to tuple,
+because if the tuple contains no nulls values,
+then the bitmap of null values
+(stored in
+.SE t_bits ,
+below)
+is not necessary,
+and does not appear in the tuple.
+For any tuple,
+the address of the
+.SE HeapTupleData
+structure that stores it,
+plus the value stored in
+.SE t_hoff ,
+is the address of the first byte of user data stored in the tuple.
+.pp
+The
+.SE t_bits
+vector contains one bit for every attribute in the tuple
+if the tuple contains nulls.
+For each attribute,
+the corresponding bit is set if the attribute is null,
+and is clear otherwise.
+Nulls are not actually stored in the tuple;
+just the
+.SE t_bits
+bit for the null value appear.
+This keeps tuples containing null values small.
+If the tuple contains no null values,
+then the
+.SE t_bits
+vector is left off the end of the structure,
+and user data begins immediately after the
+.SE t_hoff
+entry.
+.pp
+Collectively,
+the values stored in the
+.SE HeapTupleData
+structure are referred to as the
+tuple header.
+These values are accessible from the query language as
+.i "system attributes" .
+Every heap tuple has the same
+system attributes,
+but the
+.i "user attributes"
+they store vary from relation to relation,
+and possibly even within a relation.
+.pp
+The names of the system attributes are
+.i anchor ,
+.i chain ,
+.i cmax ,
+.i cmin ,
+.i ctid ,
+.i oid ,
+.i rlock ,
+.i tmax ,
+.i tmin ,
+.i xmax ,
+.i xmin ,
+and
+.i vtype .
+These attributes are all assigned attributes less than zero
+internally by the system.
+User-defined attributes all have attribute numbers greater than zero.
+.sh 3 "Data Stored in Index Tables"
+.pp
+All \*(PG indices are secondary \*-
+that is,
+ordinary system and user data are stored in heap tables,
+and indices store pointers into the heaps.
+All of the indexed access methods store index tuples,
+which are much smaller than heap tuples.
+In general,
+the indexed access methods also store other data on \*(PG pages;
+what data are stored depends on the indexed access method.
+For the rtree and btree access methods,
+some pages are designated as
+.i internal
+pages,
+and only store pointers to other pages in the same index.
+.i Leaf
+pages,
+on the other hand,
+store pointers into the heap.
+.pp
+A particular index is defined on a single heap table,
+and all the heap tids that the index stores refer to that table.
+Since indices support fast keyed lookup,
+the indices also store key data,
+which are typically either an attribute from the heap or
+some function of an attribute or attributes from the heap.
+For example,
+if the
+.RN EMP
+class stored employee records,
+and included a
+.RN salary
+attribute,
+then a btree index on
+.RN EMP.salary
+would store the salaries from
+.RN EMP
+together with the tids of the tuples with each particular salary.
+.pp
+The index tuple format is defined in
+.FI access/itup.h ,
+and is
+.(E
+typedef struct IndexTupleData {
+	ItemPointerData			t_tid;
+	unsigned short			t_info;
+} IndexTupleData;	/* MORE DATA FOLLOWS */
+
+typedef IndexTupleData	*IndexTuple;
+.)E
+.pp
+The
+.SE t_tid
+entry is the tid of the heap tuple that corresponds to this index tuple.
+.pp
+The
+.SE t_info
+entry encodes some information about the index tuple.
+This is a sixteen-bit quantity whose layout is as follows:
+.BU
+Bit fifteen (the leftmost bit) is set if the index tuple contains
+null values,
+and is clear otherwise.
+.BU
+Bit fourteen is set if the index tuple contains variable-length
+attributes,
+and is clear otherwise.
+.BU
+Bit thirteen is set if there are rules associated with the index
+tuple,
+and is clear otherwise.
+Rules on index tuples are not supported by the current system.
+.BU
+Bits twelve through zero are the size of the tuple, in bytes.
+.pp
+Immediately following the
+.SE t_bits
+entry is the index key.
+The index key is the set of all attributes from the heap tuple
+that form the search key for this index.
+The current implementations of the btree and rtree access methods
+support only a single index key.
+This may change,
+at least for btrees,
+in the near future.
+.sh 3 "How the Relations are Managed"
+.pp
+When the user issues an update to a heap relation
+(either inserting or deleting data),
+all of the corresponding indices are automatically updated,
+as well.
+\*(PG stores,
+for every heap relation,
+the index relations defined on it,
+and for every index relation,
+the attributes from the heap that form the index key.
+These data are stored in
+.RN pg_index .
+.pp
+When the user issues a query against a heap relation that requires
+the relation to be scanned,
+\*(PG checks to see whether any of the indices defined on the heap
+will permit the scan to be executed more quickly.
+For example,
+if a btree index is defined on the
+.RN salary
+attribute of the
+.RN EMP
+relation,
+then a query for all employees with salaries between $30,000 and $50,000
+can be satisfied by scanning the btree index,
+and only selecting out the heap tuples with the correct salaries.
+This allows the scan to be completed more quickly than would a sequential
+scan of all of the tuples in the
+.RN EMP
+relation.
+.sh 2 "Scan Keys, Scan Descriptors, and Scans"
+.pp
+A
+.i scan
+is the abstraction used in \*(PG to search a heap or index relation
+for tuples that satisfy some qualification.
+A
+.i "scan descriptor" ,
+or scandesc,
+is the data structure that describes an open scan.
+The qualification is stored in the scandesc in data structures called
+.i "scan keys" .
+Each key consists of a procedure
+.i p ,
+an attribute number
+.i k ,
+and a value
+.i v .
+Logically, every tuple
+.i t
+in the relation is checked to see whether
+its
+.i k th
+attribute,
+%t sub k%,
+passes the qualification stored in the scan key.
+The tuple passes the qualification if
+%p({t sub k}, v)%
+returns true.
+In order for the tuple to satisfy the entire qualification,
+it must pass this test for every scan key stored in the scandesc.
+This means that a scandesc stores a conjunctive qualification
+on the relation.
+Disjunctive qualifications may be handled by using more than one
+scan,
+and suppressing duplicate tuples,
+or by using a scan with no keys,
+and applying the disjunctive tests manually.
+.pp
+Once a scan is opened,
+it returns tuples one at a time.
+Every tuple that the scan returns is guaranteed to satisfy the qualification,
+and the scan is guaranteed to return all qualifying tuples.
+.pp
+The rest of this section describes the data structures associated
+with scans,
+scandescs,
+and scan keys.
+.sh 3 "Scan Keys"
+.pp
+A scan is a conjunction of zero or more qualifications on single
+attributes in the relation.
+Every single-attribute qualification is stored in a scan key.
+The data structure used to store scan keys appears in the source file
+.FI access/skey.h .
+Its declaration is
+.(E
+typedef struct ScanKeyEntryData {
+	bits16		flags;
+	AttributeNumber	attributeNumber;
+	RegProcedure	procedure;
+	int 			(*func) ();
+	int32 		nargs;
+	Datum			argument;
+} ScanKeyEntryData;
+
+#define CheckIfNull		0x1
+#define UnaryProcedure	0x2
+#define NegateResult		0x4
+#define CommuteArguments	0x8
+
+typedef ScanKeyEntryData	*ScanKeyEntry;
+.)E
+The
+.SE flags
+entry is a sixteen-bit bitmask describing the function to be called
+and its return values.
+The flag values appear in the
+\fC#define\fPs that follow the data structure.
+If the
+\fCCheckIfNull\fP flag is set,
+then the scan code should check for null attributes and return null
+for them without calling the function.
+However,
+this behavior is not implemented in the current system.
+If the
+\fCUnaryProcedure\fP bit is set,
+then this procedure takes a single argument
+(the appropriate attribute from the tuple),
+rather than an attribute and a constant.
+If the
+\fCNegateResult\fP bit is set,
+then the scan code will negate the logical value returned by the
+procedure when checking for tuples that satisfy the qualification.
+Finally,
+if the \fPCommuteArguments\fP flag is set,
+then the scan code will call the procedure with the supplied value
+and the attribute from the tuple,
+rather than the opposite order.
+.pp
+The
+.SE attributeNumber
+entry is the attribute number in the tuple to check.
+.pp
+The
+.SE procedure
+entry is the object ID of the
+.RN pg_proc
+tuple that describes the procedure to call.
+When the procedure is called for the first time,
+the
+.RN pg_proc
+table is scanned and the appropriate function is dynamically loaded,
+if necessary.
+.pp
+The
+.SE func
+entry is a pointer to a function that returns type \fCbool\fP.
+This function pointer is initialized by the scan key from the
+.RN pg_proc
+tuple for the desired
+.SE procedure ,
+and need not be set by the caller.
+The function pointer is cached to save repeated scans of
+.RN pg_proc .
+.pp
+The
+.SE nargs
+entry is the number of arguments that are required by the function.
+This is filled in from the
+.RN pg_proc
+tuple,
+and need not be set by the caller.
+However,
+it should always be either one or two.
+.pp
+Finally,
+the
+.SE argument
+entry is the additional argument to the function.
+This must be set by the caller.
+.sh 3 "Setting up Scan Keys"
+.pp
+In order to properly set up a scan key,
+the caller must know which attributes in the tuple are of interest,
+the object IDs of the procedures that should be used to test the attributes,
+and what values they should be tested against.
+In order to simplify scan key setup,
+a number of conventions have been adopted in the \*(PG source code.
+.pp
+First,
+the schemas for all of the system catalogs are defined in header files
+in the
+.FI catalog
+directory.
+The header files are named
+.i relname .h,
+where
+.i relname
+is the name of the catalog of interest.
+For example,
+the schema of the
+.RN pg_user
+relation appears in the header file
+.FI catalog/pg_user.h .
+The lone exception to this rule is that the schema for the
+.RN pg_class
+relation appears in the file
+.RN catalog/pg_relation.h .
+This is an artifact of the terminology change (relations became classes)
+that swept the project in the early 1990s.
+.pp
+Second,
+the header files described above include standard
+.SE #define s
+for the relations that they describe.
+The relation's name,
+as a string,
+is
+\fCName_\fP\fIrelname\fP;
+for example,
+\fCName_pg_user\fP.
+The number of attributes in the relation is
+\fCNatts_\fP\fIrelname\fP
+(\fCNatts_pg_user\fP).
+Every attribute may be referenced as
+\fCAnum_\fP\fIrelname\fP\fC_\fP\fIattname\fP
+(for example,
+the
+.RN usename
+attribute of the
+.RN pg_user
+relation is
+.SE Anum_pg_user_usename .
+These conventions permit programmers to use symbolic names,
+rather than embedded constants,
+to set up scans and open relations.
+.pp
+Similar conventions have not been adopted for user relations,
+so programmers who want to set up and use scans on them
+must already know their schemas.
+.pp
+Third,
+there exist some
+.SE #define d
+constants for procedures that are frequently used in scans on the
+system catalogs.
+These procedure IDs appear in the source file
+.FI catalog/pg_proc.h ,
+and generally take the form
+\fIOperationOfInterest\fP\fCRegProcedure\fP \*-
+for example,
+.SE CharacterEqualRegProcedure
+and
+.SE ObjectIdEqualRegProcedure .
+.pp
+Finally,
+the constant values used by \*(PG in scans are of type
+.SE Datum .
+A number of macros have been defined that convert embedded
+constants to values of type
+.SE Datum .
+These macros are defined in the source file
+.FI tmp/datum.h ,
+and are
+.TS
+center allbox;
+cI cI cI
+l l l.
+convert type	from Datum	to Datum
+=
+one-byte char	DatumGetChar(\fIv\fP)	CharGetDatum(\fIv\fP)
+one-byte integer	DatumGetInt8(\fIv\fP)	Int8GetDatum(\fIv\fP)
+unsigned one-byte integer	DatumGetUInt8(\fIv\fP)	UInt8GetDatum(\fIv\fP)
+two-byte integer	DatumGetInt16(\fIv\fP)	Int16GetDatum(\fIv\fP)
+unsigned two-byte integer	DatumGetUInt16(\fIv\fP)	UInt16GetDatum(\fIv\fP)
+four-byte integer	DatumGetInt32(\fIv\fP)	Int32GetDatum(\fIv\fP)
+unsigned four-byte integer	DatumGetUInt32(\fIv\fP)	UInt32GetDatum(\fIv\fP)
+four-byte float	DatumGetFloat32(\fIv\fP)	Float32GetDatum(\fIv\fP)
+eight-byte double	DatumGetFloat64(\fIv\fP)	Float64GetDatum(\fIv\fP)
+void *	DatumGetPointer(\fIv\fP)	PointerGetDatum(\fIv\fP)
+pointer to struct	DatumGetStructPointer(\fIv\fP)	StructPointerGetDatum(\fIv\fP)
+16-byte char string name	DatumGetName(\fIv\fP)	NameGetDatum(\fIv\fP)
+object ID	DatumGetObjectId(\fIv\fP)	ObjectIdGetDatum(\fIv\fP)
+.TE
+In \*(PG,
+four-byte floating point values are passed by reference,
+not by value.
+All other four-byte quantities are pass-by-value.
+A very common programming error in \*(PG is to use values of type
+.SE Name
+as if they were pointers.
+In fact,
+.SE Name
+is a structure containing a sixteen-byte character array,
+and so will be passed on the stack if its address is not explicitly used.
+These facts should be documented elsewhere,
+but are worth mentioning here.
+.pp
+The following code fragment shows how to set up a scan key on the
+.RN pg_user
+relation for all tuples that have
+.SE usename
+equal to
+.q mao
+and an object ID of 1806:
+.(E
+NameData name;
+ScanKeyEntryData skey[2];
+
+bzero(&name, sizeof(name));
+bcopy(name.data[0], "mao", strlen("mao"));
+
+ScanKeyEntryInitialize(&skey[0], (bits16)0x0,
+	Anum_pg_user_usename,
+	(RegProcedure)NameEqualRegProcedure,
+	NameGetDatum(name));
+ScanKeyEntryInitialize(&skey[1], (bits16)0x0,
+	ObjectIdAttributeNumber,
+	(RegProcedure)ObjectIdEqualsRegProcedure,
+	ObjectIdGetDatum(1806));
+.)E
+.sh 3 "The Scan Descriptor"
+.pp
+Once the scan keys are properly initialized,
+they may be used to open a scan on a relation.
+An open scan is described by a scandesc.
+The data structures that describe open scans are
+.SE HeapScan s
+and
+.SE IndexScan s,
+and are declared in the source files
+.FI access/relscan.h .
+The declarations are
+.(E
+typedef struct HeapScanDescData {
+	Relation		rs_rd;
+	HeapTuple		rs_ptup;
+	HeapTuple		rs_ctup;
+	HeapTuple		rs_ntup;
+	Buffer		rs_pbuf;
+	Buffer		rs_cbuf;
+	Buffer		rs_nbuf;
+	struct dchain	*rs_dc;
+	ItemPointerData	rs_mptid;
+	ItemPointerData	rs_mctid;
+	ItemPointerData	rs_mntid;
+	ItemPointerData	rs_mcd;
+	Boolean		rs_atend;
+	TimeQual		rs_tr;
+	uint16		rs_cdelta;
+	bool			rs_parallel_ok;
+	uint16		rs_nkeys;
+	ScanKeyData	rs_key;
+	/* VARIABLE LENGTH ARRAY AT END OF STRUCT */
+} HeapScanDescData;
+
+typedef HeapScanDescData *HeapScanDesc;
+.)E
+.(E
+typedef struct IndexScanDescData {
+	Relation		relation;
+	Pointer		opaque;
+	ItemPointerData	previousItemData;
+	ItemPointerData	currentItemData;
+	ItemPointerData	nextItemData;
+	MarkData		previousMarkData;
+	MarkData		currentMarkData;
+	MarkData		nextMarkData;
+	uint8			flags;
+	Boolean		scanFromEnd;
+	uint16		numberOfKeys;
+	ScanKeyData	keyData;
+	/* VARIABLE LENGTH ARRAY AT END OF STRUCT */
+} IndexScanDescData;
+
+typedef IndexScanDescData	*IndexScanDesc;
+.)E
+.sh 2 "The \*(PG Access Method Interface"
+.sh 2 "Page Layout"
