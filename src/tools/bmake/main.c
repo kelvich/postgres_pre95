@@ -415,7 +415,9 @@ main(argc, argv)
 	Var_Set("MAKE", argv[0], VAR_GLOBAL);
 	Var_Set(MAKEFLAGS, "", VAR_GLOBAL);
 	Var_Set("MFLAGS", "", VAR_GLOBAL);
+#ifdef MACHINE	/* XXX - need way to set this */
 	Var_Set("MACHINE", MACHINE, VAR_GLOBAL);
+#endif
 
 	/*
 	 * First snag any flags out of the MAKE environment variable.
