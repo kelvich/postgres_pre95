@@ -40,6 +40,22 @@ typedef struct BTMetaPageData {
 extern bool	BuildingBtree;
 
 /*
+ *  We use high-concurrency locking on btrees.  There are two cases in
+ *  which we don't do locking.  One is when we're building the btree.
+ *  Since the creating transaction has not committed, no one can see
+ *  the index, and there's no reason to share locks.  The second case
+ *  is when we're just starting up the database system.  We use some
+ *  special-purpose initialization code in the relation cache manager
+ *  (see utils/cache/relcache.c) to allow us to do indexed scans on
+ *  the system catalogs before we'd normally be able to.  This happens
+ *  before the lock table is fully initialized, so we can't use it.
+ *  Strictly speaking, this violates 2pl, but we don't do 2pl on the
+ *  system catalogs anyway, so I declare this to be okay.
+ */
+
+#define USELOCKING	(!BuildingBtree && !IsInitProcessingMode())
+
+/*
  *  _bt_metapinit() -- Initialize the metadata page of a btree.
  */
 
@@ -52,7 +68,7 @@ _bt_metapinit(rel)
     BTMetaPageData metad;
 
     /* can't be sharing this with anyone, now... */
-    if (!BuildingBtree)
+    if (USELOCKING)
 	RelationSetLockForWrite(rel);
 
     if ((nblocks = RelationGetNumberOfBlocks(rel)) != 0) {
@@ -73,7 +89,7 @@ _bt_metapinit(rel)
     WriteBuffer(buf);
 
     /* all done */
-    if (!BuildingBtree)
+    if (USELOCKING)
 	RelationUnsetLockForWrite(rel);
 }
 
@@ -210,7 +226,7 @@ _bt_getroot(rel, access)
 
 	/* it happened, try again */
 	_bt_relbuf(rel, rootbuf, access);
-	return (_bt_getroot(rel));
+	return (_bt_getroot(rel, access));
     }
 
     /*
@@ -461,7 +477,7 @@ _bt_setpagelock(rel, blkno, access)
 {
     ItemPointerData iptr;
 
-    if (!BuildingBtree) {
+    if (USELOCKING) {
 	ItemPointerSet(&iptr, 0, blkno, 0, 1);
 
 	if (access == BT_WRITE)
@@ -478,7 +494,7 @@ _bt_unsetpagelock(rel, blkno, access)
 {
     ItemPointerData iptr;
 
-    if (!BuildingBtree) {
+    if (USELOCKING) {
 	ItemPointerSet(&iptr, 0, blkno, 0, 1);
 
 	if (access == BT_WRITE)
