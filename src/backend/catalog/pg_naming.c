@@ -72,6 +72,7 @@
 
 #include <stdio.h>
 #include <strings.h>
+#include <string.h>
 #include "catalog/syscache.h"
 #include "catalog/pg_naming.h"
 #include "utils/rel.h"
