@@ -1014,6 +1014,7 @@ heap_fetch(relation, timeQual, tid, b)
     PageHeader	dp;
     HeapTuple	tuple;
     OffsetIndex	offsetIndex;
+    HeapTuple	heap_copytuple();
 
     /* ----------------
      *	increment access statistics
