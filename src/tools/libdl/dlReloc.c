@@ -139,7 +139,13 @@ int _dl_relocateSections(dlfile)
 		*addr += relocAddr;
 		break;
 	    case R_JMPADDR:
-		patchLongjump(dlfile, addr, relocAddr, relocEnt->r_vaddr);
+		/*
+		 * relocAddr has the absolute address when referenced symbol
+		 * is external; otherwise, need to add the most significant
+		 * 4 bits of the address of the instruction to the jump target.
+		 */
+		patchLongjump(dlfile, addr, relocAddr, 
+			      (relocEnt->r_extern)?0:relocEnt->r_vaddr);
 		break;
 	    case R_REFHI: {
 		RELOC *nxtRent= relocEnt+1;
@@ -267,11 +273,9 @@ static void patchLongjump( dlfile, addr, relocAddr, vaddr )
 	if ((*addr)&0x3ffffff) {
 	    relocAddr+= (*addr & 0x3ffffff)<<2;
 	}
-#if 0
 	if (vaddr) {
 	    relocAddr+= (vaddr & 0xf0000000);
 	}
-#endif
 	if (relocAddr&0x3) {
 	    fprintf(stderr,"dl: relocation address not word-aligned!\n");
 	}
