@@ -23,6 +23,10 @@
 
 #include "tmp/miscadmin.h"
 
+#include "catalog/pg_user.h"
+#include "catalog/pg_proc.h"
+#include "access/skey.h"
+#include "utils/rel.h"
 /*
  * EnableAbortEnvVarName --
  *	Enables system abort iff set to a non-empty string in environment.
@@ -223,14 +227,35 @@ GetUserId()
 
 /* ----------------
  *	SetUserId
- *
- *  XXX perform lookup in USER relation
  * ----------------
  */
+
+extern Name UserRelationName;
+extern char     *PG_username;
+
 void
 SetUserId()
 {
-    UserId = getuid();
+    HeapScanDesc s;
+    ScanKeyData  key;
+    Relation userRel = heap_openr(UserRelationName);
+    HeapTuple userTup;
+
+    ScanKeyEntryInitialize(&key.data[0],
+			   (bits16)0x0,
+			   Anum_pg_user_usename,
+			   Character16EqualRegProcedure,
+			   (Datum)PG_username);
+
+    s = heap_beginscan(userRel,0,NowTimeQual,1,(ScanKey)&key);
+    userTup = heap_getnext(s, 0, (Buffer *)NULL);
+    if (!HeapTupleIsValid(userTup))
+    {
+	elog(FATAL, "User %s is not in %s", PG_username, UserRelationName);
+    }
+    UserId = (ObjectId) ((Form_pg_user)GETSTRUCT(userTup))->usesysid;
+    heap_endscan(s);
+    heap_close(userRel);
 }
 
 /* ----------------

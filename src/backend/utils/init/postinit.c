@@ -559,14 +559,6 @@ InitPostgres(name)
     be_portalinit();
 
     /* ----------------
-     *   set ourselves to the proper user id and figure out our postgres
-     *   user id.  If we ever add security so that we check for valid
-     *   postgres users, we might do it here.
-     * ----------------
-     */
-    InitUserid();
-
-    /* ----------------
      *	 attach to shared memory and semaphores, and initialize our
      *   input/output/debugging file descriptors.
      * ----------------
@@ -679,6 +671,14 @@ InitPostgres(name)
      */
     zerocaches();
     InitCatalogCache();
+
+    /* ----------------
+     *   set ourselves to the proper user id and figure out our postgres
+     *   user id.  If we ever add security so that we check for valid
+     *   postgres users, we might do it here.
+     * ----------------
+     */
+    InitUserid();
 
     /* ----------------
      *	ok, all done, now let's make sure we don't do it again.
