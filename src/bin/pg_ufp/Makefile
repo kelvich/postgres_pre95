@@ -22,7 +22,9 @@ CFLAGS+= -DUFP
 # (minus the lex/yacc libraries).
 # Unfortunately, it must be sync'd by hand.
 #
-.if (${PORTNAME} == "ultrix4" || ${PORTNAME} == "sparc")
+.if (${PORTNAME} == "ultrix4" || \
+     ${PORTNAME} == "sparc" || \
+     ${PORTNAME} == "sparc_solaris")
 LDADD+= -ldl
 .elif (${PORTNAME} == "alpha")
 # nothing

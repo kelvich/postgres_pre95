@@ -31,6 +31,7 @@
 #if defined(PORTNAME_aix) || \
     defined(PORTNAME_alpha) || \
     defined(PORTNAME_sparc) || \
+    defined(PORTNAME_sparc_solaris) || \
     defined(sequent) || \
     defined(m68k) || \
     defined(mc68020) || \
@@ -86,16 +87,16 @@ typedef unsigned char   slock_t;
 
 /*
  * On architectures for which we have not implemented spinlocks (or
- * cannot do so), we use System V semaphores.  For some reason union
- * semun is never defined in the System V header files so we must
- * do it ourselves.
+ * cannot do so), we use System V semaphores.  We also use them for 
+ * long locks.  For some reason union semun is never defined in the 
+ * System V header files so we must do it ourselves.
  */
 #if defined(sequent) || \
     defined(PORTNAME_aix) || \
     defined(PORTNAME_alpha) || \
     defined(PORTNAME_hpux) || \
-    defined(PORTNAME_ultrix4) || \
-    defined(PORTNAME_bsd44)
+    defined(PORTNAME_sparc_solaris) || \
+    defined(PORTNAME_ultrix4)
 union semun {
     int val;
     struct semid_ds *buf;

@@ -8,7 +8,7 @@
 
 .if (${PORTNAME} == "ultrix4" || ${PORTNAME} == "hpux")
 IPCCLEANPATH=/bin:/usr/bin:/usr/ucb
-.elif (${PORTNAME} == "sparc" || ${PORTNAME} == "alpha" || ${PORTNAME} == "aix")
+.elif (${PORTNAME} == "sparc" || ${PORTNAME} == "sparc_solaris" || ${PORTNAME} == "alpha" || ${PORTNAME} == "aix")
 IPCCLEANPATH=/bin:/sbin:/usr/ucb
 .endif
 

@@ -148,7 +148,7 @@ struct sbufdesc {
     defined(PORTNAME_hpux)
     char		sb_pad[60];	/* no slock_t */
 #endif /* mips */
-#if defined(PORTNAME_sparc)
+#if defined(PORTNAME_sparc) || defined(PORTNAME_sparc_solaris)
     char		sb_pad[56];	/* has slock_t */
 #endif /* sparc */
 #if defined(PORTNAME_alpha)
@@ -157,7 +157,7 @@ struct sbufdesc {
 #else /* HAS_TEST_AND_SET */
     char		sb_pad[48];	/* no slock_t */
 #endif /* HAS_TEST_AND_SET */
-#endif /* sparc */
+#endif /* alpha */
 };
 
 /*

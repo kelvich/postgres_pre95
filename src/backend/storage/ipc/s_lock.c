@@ -26,9 +26,9 @@
  *	spinlocks might be faster but using cs(3) still speeds up the 
  *	regression test suite by about 25%.
  *
- *	None of the TAS code we've written is likely to work on shared-
+ *	Some of the TAS code we've written is unlikely to work on shared-
  *	memory multiprocessors (at least, those that require explicit
- *	memory barriers or such, like the Alpha).
+ *	memory barriers, like the Alpha).
  *
  *   IDENTIFICATION
  *	$Header$
@@ -44,13 +44,16 @@ RcsId("$Header$");
 
 /*
  * OSF/1 (Alpha AXP)
+ * Solaris 2
  *
- * Note that slock_t is long instead of char (see storage/ipc.h).
+ * Note that slock_t on the Alpha AXP is long instead of char
+ * (see storage/ipc.h).
  */
 
-#if defined(PORTNAME_alpha)
+#if defined(PORTNAME_alpha) || \
+    defined(PORTNAME_sparc_solaris)
 
-/* defined in port/alpha/tas.s */
+/* defined in port/.../tas.s */
 extern int tas ARGS((slock_t *lock));
 
 S_LOCK(lock)
@@ -77,7 +80,8 @@ S_INIT_LOCK(lock)
 /*
  * AIX (POWER)
  *
- * Note that slock_t is int instead of char (see storage/ipc.h).
+ * Note that slock_t on POWER/POWER2/PowerPC is int instead of char
+ * (see storage/ipc.h).
  */
 
 #if defined(PORTNAME_aix)
@@ -152,10 +156,10 @@ asm("	.data");
 #endif
 
 /*
- * Sparc or sun4
+ * SPARC (SunOS 4)
  */
 
-#if defined(sparc) || defined(sun4)
+#if defined(PORTNAME_sparc)
 
 static
 tas_dummy()
@@ -220,7 +224,7 @@ unsigned char *addr;
 	*addr = 0;
 }
 
-#endif /* sparc */
+#endif /* PORTNAME_sparc */
 
 /*
  * Linux and friends
@@ -239,7 +243,7 @@ tas(lock)
 S_LOCK(lock)
     slock_t *lock;
 {
-    while (tas(addr))
+    while (tas(lock))
 	;
 }
 
