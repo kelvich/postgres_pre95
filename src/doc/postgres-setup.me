@@ -44,7 +44,7 @@ POSTGRES INSTALLATION INSTRUCTIONS
 .r
 .ps 14
 .sp 0.25v
-C-Only Release 2.01
+C-Only Release 2.03
 .sp 0.25v
 .ce 0
 .sp
@@ -133,11 +133,11 @@ This is *unsupported* software.
 Microsystems 3/xx family of
 processors with SunOS 3.4, or 3.5, and 4.0, and Sparc architecture machines
 (Sparcstation and Sun 4) running SunOS 4.0 and higher.  Postgres is also
-supported on DECstations running Ultrix LOWER than 4.0.  Unsupported
-ports for DECstation Ultrix 4.0 and Sequent Symmetry machines running Dynix
-are included.  These ports are unsupported for the following reasons: we are
-having various problems porting to Ultrix 4.0 but Postgres mostly works (see
-the release notes), and the standard
+supported on DECstations 3100's and 5000's running Ultrix 4.0 and higher.
+Tested but unsupported ports for DECstation Ultrix lower than 4.0 and Sequent
+Symmetry machines running Dynix are included.  These ports are unsupported for
+the following reasons: the old Ultrix dynamic loader is quite buggy, and the
+standard
 .i make
 on the
 Sequent Symmetry cannot compile Postgres.  
@@ -343,7 +343,7 @@ Login as postgres.
 where <tape-device> is the name for your tape device, i.e.,
 /dev/rmt0, /dev/rst8, etc.
 .pp
-The file "postgres-v2r01.tar.Z" will appear in your \*(PG home directory.
+The file "postgres-v2r03.tar.Z" will appear in your \*(PG home directory.
 You may need to re-wind your tape to get it out of your tape
 drive - see your system administrator for instructions.
 .pp
@@ -356,21 +356,21 @@ Make sure your current working directory is the \*(PG home
 directory, and that the \*(PG tar file is there.
 For the purpose of this discussion, the \*(PG tar file will be called
 .pp
-postgres-v2r01.tar.Z
+postgres-v2r03.tar.Z
 .pp
 Uncompress the tar file.
 .pp
-% uncompres postgres-v2r01.tar.Z
+% uncompres postgres-v2r03.tar.Z
 .pp
 A larger file should now be in the \*(PG home directory, and the '.Z'
 ending should be gone, so it is now named
 .pp
-postgres-v2r01.tar
+postgres-v2r03.tar
 .pp
 Extract \*(PG from the tar file, using the "extract, verbose, file"
 options:
 .pp
-% tar xvf postgres-v2r01.tar
+% tar xvf postgres-v2r03.tar
 .pp
 Lots of file names and such should appear on the screen.
 This step may take several minutes.
@@ -500,7 +500,7 @@ and reboot.
 .sp
 .sh 3 "Kernel reconfiguration for DECs"
 .pp
-In order to reconfigure your DECstation 3100 Ultrix kernel,
+In order to reconfigure your DECstation 3100 or 5000 Ultrix kernel,
 you will have to become root and add some lines to /usr/sys/conf
 (your kernel config file).
 .sp
