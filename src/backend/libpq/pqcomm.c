@@ -74,6 +74,8 @@ pq_init(fd)
 {
     Pfin = fdopen(fd, "r");
     Pfout = fdopen(dup(fd), "w");
+    if (!Pfin || !Pfout)
+	elog(FATAL, "Couldn't initialize socket connection");
     PQnotifies_init();
 }
 
@@ -152,7 +154,10 @@ pq_getstr(s, maxlen)
     int	c;
     
     if (Pfin == (FILE *) NULL)
+    {
+	elog(DEBUG, "Input descriptor is null");
 	return (EOF);
+    }
 
     while (maxlen-- && (c = getc(Pfin)) != EOF && c)
 	*s++ = c;
@@ -236,7 +241,10 @@ pq_getnchar(s, off, maxlen)
     int	c;
     
     if (Pfin == (FILE *) NULL)
+    {
+	elog(DEBUG, "Input descriptor is null");
 	return (EOF);
+    }
 
     s += off;
     while (maxlen-- && (c = getc(Pfin)) != EOF)
@@ -247,7 +255,9 @@ pq_getnchar(s, off, maxlen)
      * -----------------
      */
     if (c == EOF)
+    {
 	return EOF;
+    }
     else
 	return !EOF;
 }
@@ -263,7 +273,10 @@ pq_getint(b)
     int	n, c, p;
     
     if (Pfin == (FILE *) NULL)
+    {
+	elog(DEBUG, "Input descriptor is null");
 	return (EOF);
+    }
 
     n = p = 0;
     while (b-- && (c = getc(Pfin)) != EOF && p < 32) {
@@ -282,9 +295,19 @@ void
 pq_putstr(s)
     char *s;
 {
+    int status;
+
     if (Pfout) {
-	fputs(s, Pfout);
-	fputc('\0', Pfout);
+	status = fputs(s, Pfout);
+	if (status == EOF)
+	{
+	    fprintf(stderr, "pq_putstr: write to backend failed\n");
+	}
+	status = fputc('\0', Pfout);
+	if (status == EOF)
+	{
+	    fprintf(stderr, "pq_putstr: write to backend failed\n");
+	}
     }
 }
 
@@ -297,9 +320,17 @@ pq_putnchar(s, n)
     char *s;
     int n;
 {
+    int status;
+
     if (Pfout) {
 	while (n--)
-	    fputc(*s++, Pfout);
+	{
+	    status = fputc(*s++, Pfout);
+	    if (status == EOF)
+	    {
+		fprintf(stderr, "pq_putnchar: write to backend failed\n");
+	    }
+	}
     }
 }
 
@@ -311,13 +342,19 @@ void
 pq_putint(i, b)
     int	i, b;
 {
+    int status;
+
     if (b > 4)
 	b = 4;
     
     if (Pfout) {
 	while (b--) {
-	    fputc(i & 0xff, Pfout);
+	    status = fputc(i & 0xff, Pfout);
 	    i >>= 8;
+	    if (status == EOF)
+	    {
+		fprintf(stderr, "pq_putint: write to backend failed\n");
+	    }
 	}
     }
 }
@@ -499,6 +536,11 @@ short	portName;
   /* set up streams over which communic. will flow */
   Pfout = fdopen(sock, "w");
   Pfin = fdopen(dup(sock), "r");
+  if (!Pfout && !Pfin)
+  {
+    fprintf(stderr, "Couldn't fdopen the socket descriptor\n");
+    return(STATUS_ERROR);
+  }
   
   PQAsyncNotifyWaiting = 0;
   PQnotifies_init();
