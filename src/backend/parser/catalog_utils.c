@@ -183,8 +183,7 @@ int arg1, arg2;	/* typeids */
     }
     */
     if (!(tup = SearchSysCacheTuple(OPRNAME, op, arg1, arg2, (char *) 'b'))) {
-	elog ( WARN , "Can't find binary op: %s for types %d and %d",
-	      op, arg1, arg2);
+	op_error(op, arg1, arg2);
 	return(NULL);
     }
     return((Operator) tup);
@@ -517,4 +516,30 @@ char *typename;
 
     delim = type->typdelim;
     return (delim);
+}
+
+/*
+ * Give a somewhat useful error message when the operator for two types
+ * is not found.
+ */
+
+op_error(op, arg1, arg2)
+
+char *op;
+int arg1, arg2;
+
+{
+	Type tp, get_id_type();
+	char p1[16], p2[16];
+
+	tp = get_id_type(arg1);
+	strncpy(p1, tname(tp), 16);
+
+	tp = get_id_type(arg2);
+	strncpy(p2, tname(tp), 16);
+
+	elog(NOTICE, "there is no operator %s for types %s and %s", op, p1, p2);
+	elog(NOTICE, "You will either have to retype this query using an");
+	elog(NOTICE, "explicit cast, or you will have to define the operator");
+	elog(WARN, "%s for %s and %s using DEFINE OPERATOR", op, p1, p2);
 }
