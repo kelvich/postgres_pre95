@@ -160,6 +160,42 @@ aclparse(s, aip, modechg)
 	return(s);
 }
 
+/*
+ * makeacl
+ *	Allocates storage for a new Acl with 'n' entries.
+ *
+ * RETURNS:
+ *	the new Acl
+ */
+Acl *
+makeacl(n)
+    int n;
+{
+    Acl *new_acl;
+    Size size;
+
+    if (n < 0)
+	elog(WARN, "makeacl: invalid size: %d\n", n);
+    size = ACL_N_SIZE(n);
+    if (!(new_acl = (Acl *) palloc(size)))
+	elog(WARN, "makeacl: palloc failed on %d\n", size);
+    bzero((char *) new_acl, size);
+    new_acl->size = size;
+    new_acl->ndim = 1;
+    new_acl->flags = 0;
+    ARR_LBOUND(new_acl)[0] = 0;
+    ARR_DIMS(new_acl)[0] = n;
+    return(new_acl);
+}
+
+/*
+ * aclitemin
+ *	Allocates storage for, and fills in, a new AclItem given a string
+ *	's' that contains an ACL specification.  See aclparse for details.
+ *
+ * RETURNS:
+ *	the new AclItem
+ */
 AclItem *
 aclitemin(s)
 	char *s;
@@ -183,6 +219,14 @@ aclitemin(s)
 	return(aip);
 }
 
+/*
+ * aclitemout
+ *	Allocates storage for, and fills in, a new null-delimited string
+ *	containing a formatted ACL specification.  See aclparse for details.
+ *
+ * RETURNS:
+ *	the new string
+ */
 char *
 aclitemout(aip)
 	AclItem *aip;
@@ -245,6 +289,16 @@ aclitemout(aip)
 	return(out);
 }
 
+/*
+ * aclitemeq
+ * aclitemgt
+ *	AclItem equality and greater-than comparison routines.
+ *	Two AclItems are equal iff they are both NULL or they have the
+ *	same identifier (and identifier type).
+ *
+ * RETURNS:
+ *	a boolean value indicating = or >
+ */
 static
 int32
 aclitemeq(a1, a2)
@@ -262,7 +316,7 @@ int32
 aclitemgt(a1, a2)
 	AclItem *a1, *a2;
 {
-	if (!a1 && !a2)
+	if (a1 && !a2)
 		return(1);
 	if (!a1 || !a2)
 		return(0);
@@ -278,10 +332,7 @@ acldefault(ownerid)
 	AclItem *aip;
 	unsigned size;
 	
-	size = sizeof(VARSIZE(acl)) + sizeof(AclItem);
-	if (!(acl = (Acl *) palloc(size)))
-		elog(WARN, "acldefault: palloc failed");
-	VARSIZE(acl) = size;
+	acl = makeacl(1);
 	aip = ACL_DAT(acl);
 	aip[0].ai_idtype = ACL_IDTYPE_WORLD;
 	aip[0].ai_id = ACL_ID_WORLD;
@@ -299,21 +350,21 @@ aclinsert3(old_acl, mod_aip, modechg)
 	AclItem *old_aip, *new_aip;
 	unsigned src, dst, num;
 	
-	if (!old_acl || VARSIZE(old_acl) < 1) {
-		new_acl = (Acl *) palloc(sizeof(VARSIZE(new_acl)));
-		VARSIZE(new_acl) = sizeof(VARSIZE(new_acl));
+	if (!old_acl || ACL_NUM(old_acl) < 1) {
+		new_acl = makeacl(0);
 		return(new_acl);
 	}
 	if (!mod_aip) {
-		new_acl = (Acl *) palloc(VARSIZE(old_acl));
-		bcopy((char *) old_acl, (char *) new_acl, VARSIZE(old_acl));
+		new_acl = makeacl(ACL_NUM(old_acl));
+		bcopy((char *) old_acl, (char *) new_acl, ACL_SIZE(old_acl));
 		return(new_acl);
 	}
 		
 	num = ACL_NUM(old_acl);
 	old_aip = ACL_DAT(old_acl);
 	
-	/* Search the ACL for an existing entry for 'id'.  If one exists,
+	/*
+	 * Search the ACL for an existing entry for 'id'.  If one exists,
 	 * just modify the entry in-place (well, in the same position, since
 	 * we actually return a copy); otherwise, insert the new entry in
 	 * sort-order.
@@ -323,17 +374,12 @@ aclinsert3(old_acl, mod_aip, modechg)
 		;
 	if (dst < num && aclitemeq(mod_aip, old_aip+dst)) {
 							/* modify in-place */
-		new_acl = (Acl *) palloc(VARSIZE(old_acl));
-		if (!new_acl)
-			elog(WARN, "ChangeAcl: palloc failed");
-		bcopy(old_acl, new_acl, VARSIZE(old_acl));
+		new_acl = makeacl(ACL_NUM(old_acl));
+		bcopy((char *) old_acl, (char *) new_acl, ACL_SIZE(old_acl));
 		new_aip = ACL_DAT(new_acl);
 		src = dst;
 	} else {
-		new_acl = (Acl *) palloc(VARSIZE(old_acl) + sizeof(AclItem));
-		if (!new_acl)
-			elog(WARN, "ChangeAcl: palloc failed");
-		VARSIZE(new_acl) = VARSIZE(old_acl) + sizeof(AclItem);
+		new_acl = makeacl(ACL_NUM(old_acl) + 1);
 		new_aip = ACL_DAT(new_acl);
 		if (dst == 0) {				/* start */
 			elog(WARN, "aclinsert3: insertion before world ACL??");
@@ -367,7 +413,8 @@ aclinsert3(old_acl, mod_aip, modechg)
 	return(new_acl);
 }
 
-/* aclinsert
+/*
+ * aclinsert
  *
  */
 Acl *
@@ -387,14 +434,13 @@ aclremove(old_acl, mod_aip)
 	AclItem *old_aip, *new_aip;
 	unsigned dst, old_num, new_num;
 	
-	if (!old_acl || VARSIZE(old_acl) < 1) {
-		new_acl = (Acl *) palloc(sizeof(VARSIZE(new_acl)));
-		VARSIZE(new_acl) = sizeof(VARSIZE(new_acl));
+	if (!old_acl || ACL_NUM(old_acl) < 1) {
+		new_acl = makeacl(0);
 		return(new_acl);
 	}
 	if (!mod_aip) {
-		new_acl = (Acl *) palloc(VARSIZE(old_acl));
-		bcopy((char *) old_acl, (char *) new_acl, VARSIZE(old_acl));
+		new_acl = makeacl(ACL_NUM(old_acl));
+		bcopy((char *) old_acl, (char *) new_acl, ACL_SIZE(old_acl));
 		return(new_acl);
 	}
 	
@@ -404,16 +450,11 @@ aclremove(old_acl, mod_aip)
 	for (dst = 0; dst < old_num && !aclitemeq(mod_aip, old_aip+dst); ++dst)
 		;
 	if (dst >= old_num) {			/* not found or empty */
-		new_acl = (Acl *) palloc(VARSIZE(old_acl));
-		if (!new_acl)
-			elog(WARN, "aclremove: palloc failed");
-		bcopy(old_acl, new_acl, VARSIZE(old_acl));
+		new_acl = makeacl(ACL_NUM(old_acl));
+		bcopy((char *) old_acl, (char *) new_acl, ACL_SIZE(old_acl));
 	} else {
 		new_num = old_num - 1;
-		new_acl = (Acl *) palloc(VARSIZE(old_acl) - sizeof(AclItem));
-		if (!new_acl)
-			elog(WARN, "ChangeAcl: palloc failed");
-		VARSIZE(new_acl) = VARSIZE(old_acl) - sizeof(AclItem);
+		new_acl = makeacl(ACL_NUM(old_acl) - 1);
 		new_aip = ACL_DAT(new_acl);
 		if (dst == 0) {			/* start */
 			elog(WARN, "aclremove: removal of the world ACL??");
