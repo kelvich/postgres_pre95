@@ -261,6 +261,27 @@ prs2LockUnion ARGS((
     RuleLock	lock1
 ));
 
+/*------------------------------------------------------------------
+ * RuleLockToString
+ *   greate a string containing a representation of the given
+ *   lock, more suitable for the human brain & eyes than a
+ *   sequence of bytes.
+ */
+extern
+char *
+RuleLockToString ARGS((
+    RuleLock	lock
+));
+
+/*------------------------------------------------------------------
+ * StringToRuleLock
+ *   the opposite of 'RuleLockToString()'
+ */
+extern
+RuleLock
+StringToRuleLock ARGS((
+    char 	*string
+));
 
 /*==================================================================
  * Routine to extract rule info from the ParseTree
