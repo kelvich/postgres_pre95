@@ -1453,10 +1453,13 @@ heap_replace(relation, otid, tup)
      *  more than once within the same command and same transaction.
      *  He will have to introduce a new flag to override the following check.
      *  -- Wei
+     *
+     * mer has introduced a disabling flag -- don't do it during bootstrap,
+     * it screws up index definition.
      * -----------------
      */
 
-    if (TupleUpdatedByCurXactAndCmd(tp)) {
+    if (IsNormalProcessingMode() && TupleUpdatedByCurXactAndCmd(tp)) {
 	elog(NOTICE, "Non-functional update, only first update is performed");
 	if ( issystem(RelationGetRelationName(relation)) )
 	    RelationUnsetLockForWrite(relation);
