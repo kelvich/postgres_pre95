@@ -1462,21 +1462,6 @@ PostgresMain(argc, argv)
     }
 }
 
-/*
- *  should #include <sys/time.h>, but naturally postgres has a bad decl
- *  for a library function in it somewhere (ctime), and time.h redecl's
- *  it, and the ultrix compiler pukes.
- */
-struct timeval {
-	long	tv_sec;		/* seconds */
-	long	tv_usec;	/* and microseconds */
-};
-
-struct timezone {
-        int     tz_minuteswest; /* minutes west of Greenwich */
-        int     tz_dsttime;     /* type of dst correction */
-};
-
 #include <sys/resource.h>
 
 struct rusage Save_r;
