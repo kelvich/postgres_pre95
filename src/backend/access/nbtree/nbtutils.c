@@ -297,8 +297,11 @@ _bt_checkqual(scan, itup)
     IndexScanDesc scan;
     IndexTuple itup;
 {
-    return (ikeytest(itup, scan->relation,
-		     scan->numberOfKeys, &(scan->keyData)));
+    if (scan->numberOfKeys > 0)
+	return (ikeytest(itup, scan->relation,
+			 scan->numberOfKeys, &(scan->keyData)));
+    else
+	return (true);
 }
 
 BTItem
