@@ -142,19 +142,22 @@ InitMyDatabaseId()
     char	*dbfname;
     Form_pg_database	tup_db;
 
-    /* ----------------
-     *  If we're unable to open pg_database, we're not running in the
-     *  data/base/dbname directory.  This happens only when we're
-     *  creating the first database.  In that case, just use
-     *  InvalidObjectId as the dbid, since we're not using shared memory.
-     * ----------------
+    /*
+     *  At bootstrap time, we don't need to check the oid of the database
+     *  in use, since we're not using shared memory.  This is lucky, since
+     *  the database may not be in the tables yet.
      */
-    dbfname = (char *) palloc(strlen(DataDir) + strlen("pg_database") + 2);
-    sprintf(dbfname, "%s/pg_database", DataDir);
-    if ((dbfd = open(dbfname, O_RDONLY, 0666)) < 0) {
+
+    if (IsBootstrapProcessingMode()) {
 	LockDisable(true);
 	return;
     }
+
+    dbfname = (char *) palloc(strlen(DataDir) + strlen("pg_database") + 2);
+    sprintf(dbfname, "%s/pg_database", DataDir);
+    if ((dbfd = open(dbfname, O_RDONLY, 0666)) < 0)
+	elog(FATAL, "Cannot open %s", dbfname);
+
     pfree(dbfname);
 
     /* ----------------
