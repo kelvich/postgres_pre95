@@ -155,6 +155,40 @@ DefineFunction(name, parameters)
 		    argList);
 }
 
+/*
+ *  Utility to handle definition of postquel procedures.
+ */
+
+void
+DefinePFunction(pname,relname,qstring)
+     Name  pname;
+     Name  relname;
+     char  *qstring;
+{
+  static char query_buf[1024];
+
+  /*
+   *  First we have to add a column to the relation.
+   */
+
+  /* XXX Fix this after catalogs fix to get relation type. */
+
+  sprintf(query_buf, "addattr (%s = int4) to %s", pname, relname); 
+  /*  printf( "Query is : %s\n", query_buf); */
+  pg_eval(query_buf); 
+
+  /*
+   * Now we have to define the appropriate rule for the Postquel
+   * function(procedure).
+   */
+
+  sprintf(query_buf, "define rule %s_rule is on retrieve to %s.%s do instead %s", pname, relname, pname, qstring);
+
+  /*  printf("Rule defined is: %s\n", query_buf); */
+  pg_eval(query_buf); 
+}
+
+
 /* --------------------------------
  *	DefineOperator
  *
