@@ -380,6 +380,7 @@ ParseFunc ( funcname , fargs )
     Param f;
     int vnum;
     LispValue retval;
+    LispValue setup_base_tlist();
     bool retset;
 
     if (fargs)
@@ -574,9 +575,19 @@ ParseFunc ( funcname , fargs )
      */
 
     func_get_detail(funcname, nargs, oid_array, &funcid, &rettype, &retset);
-    retval = lispCons((LispValue) MakeFunc(funcid, rettype, false,
-					   0, LispNil, 0, NULL),
-		      fargs);
+    funcnode = MakeFunc(funcid, rettype, false, 0, LispNil, 0, NULL);
+
+    /*
+     *  for functons returning base types, we want to project out the
+     *  return value.  set up a target list to do that.  the executor
+     *  will ignore these for c functions, and do the right thing for
+     *  postquel functions.
+     */
+
+    if (typeid_get_relid(rettype) == InvalidObjectId)
+	set_func_tlist(funcnode, (LispValue)setup_base_tlist(rettype));
+
+    retval = lispCons((LispValue) funcnode, fargs);
 
     /*
      *  if the function returns a set of values, then we need to iterate
@@ -834,6 +845,31 @@ LispValue setup_tlist(attname, relid)
 
     tle = (LispValue)MakeList(resnode, varnode, -1);
     return(MakeList(tle, -1));
+}
+
+/*
+** setup_base_tlist --
+**	Build a tlist that extracts a base type from the tuple
+**	returned by the executor.
+*/
+LispValue
+setup_base_tlist(typeid)
+    ObjectId typeid;
+{
+    TLE tle;
+    LispValue tlist;
+    Resdom resnode;
+    Var varnode;
+
+    resnode = MakeResdom(1, typeid, tlen(get_id_type(typeid)),
+			 (Name) "<noname>", NULL, NULL, 0);
+    varnode = MakeVar(-1, 1, typeid,
+			lispCons(lispInteger(-1),
+				 lispCons(lispInteger(1), LispNil)),
+			0);
+
+    tle = (LispValue)MakeList(resnode, varnode, -1);
+    return (MakeList(tle, -1));
 }
 
 
