@@ -34,10 +34,10 @@ typedef struct {
 } TimeIntervalData;
 typedef TimeIntervalData *TimeInterval;
 
-#define EPOCH_ABSTIME 0
-#define INVALID_ABSTIME 2147483647	/* 2^31 - 1 */
-#define CURRENT_ABSTIME 2147483646	/* 2^31 - 2 */
-#define NOEND_ABSTIME	2147483645	/* 2^31 - 3 */
+#define EPOCH_ABSTIME	((AbsoluteTime) 0)
+#define INVALID_ABSTIME ((AbsoluteTime) 2147483647)	/* 2^31 - 1 */
+#define CURRENT_ABSTIME ((AbsoluteTime) 2147483646)	/* 2^31 - 2 */
+#define NOEND_ABSTIME	((AbsoluteTime) 2147483645)	/* 2^31 - 3 */
 #if defined(PORTNAME_aix)
 /*
  * AIX considers 2147483648 == -2147483648 (since they have the same bit
@@ -46,12 +46,12 @@ typedef TimeIntervalData *TimeInterval;
  * or not!
  */
 #include <values.h>
-#define NOSTART_ABSTIME	HIBITI		/* - 2^31 */
+#define NOSTART_ABSTIME	((AbsoluteTime) HIBITI)		/* - 2^31 */
 #else
-#define NOSTART_ABSTIME 2147483648	/* - 2^31 */
+#define NOSTART_ABSTIME ((AbsoluteTime) 2147483648)	/* - 2^31 */
 #endif /* PORTNAME_aix */
 
-#define INVALID_RELTIME 2147483647	/* 2^31 - 1 */
+#define INVALID_RELTIME ((RelativeTime) 2147483647)	/* 2^31 - 1 */
 
 /* ----------------
  *	time support macros (from tim.h)
@@ -62,18 +62,21 @@ typedef TimeIntervalData *TimeInterval;
     ((bool) ((time) != INVALID_ABSTIME))
 
 #define AbsoluteTimeIsReal(time) \
-    ((bool) ((time) < NOEND_ABSTIME && (time) > NOSTART_ABSTIME))
+    ((bool) (((AbsoluteTime) time) < NOEND_ABSTIME && \
+	     ((AbsoluteTime) time) > NOSTART_ABSTIME))
 
 /* have to include this because EPOCH_ABSTIME used to be invalid - yuk */
 #define AbsoluteTimeIsBackwardCompatiblyValid(time) \
-    ((bool) ((time) != INVALID_ABSTIME && (time) > EPOCH_ABSTIME))
+    ((bool) (((AbsoluteTime) time) != INVALID_ABSTIME && \
+	     ((AbsoluteTime) time) > EPOCH_ABSTIME))
 
 #define AbsoluteTimeIsBackwardCompatiblyReal(time) \
-    ((bool) ((time) < NOEND_ABSTIME && (time) > NOSTART_ABSTIME \
-             && (time) > EPOCH_ABSTIME))
+    ((bool) (((AbsoluteTime) time) < NOEND_ABSTIME && \
+	     ((AbsoluteTime) time) > NOSTART_ABSTIME && \
+             ((AbsoluteTime) time) > EPOCH_ABSTIME))
 
 #define RelativeTimeIsValid(time) \
-    ((bool) ((time) != INVALID_RELTIME))
+    ((bool) (((RelativeTime) time) != INVALID_RELTIME))
 
 #define GetCurrentAbsoluteTime() \
     ((AbsoluteTime) GetSystemTime())
