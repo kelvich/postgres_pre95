@@ -750,7 +750,7 @@ PostgresMain(argc, argv)
 	exitpg(1);
     }
 
-	get_pathname(argv, pg_pathname);
+	get_pathname(argv);
 
     Noversion = flagC;
     Quiet = flagQ;
@@ -985,14 +985,20 @@ PostgresMain(argc, argv)
     }
 }
 
-get_pathname(argv, bufp)
+get_pathname(argv)
 
 char **argv;
-char *bufp;
 
 {
+	char buffer[256];
 
-	getwd(bufp);
-	sprintf(bufp, "%s/%s", bufp, argv[0]);
-	printf("%s\n", bufp);
+	if (argv[0][0] == '/') /* ie, from execve in postmaster */
+	{
+		strcpy(pg_pathname, argv[0]);
+	}
+	else
+	{
+		getwd(buffer);
+		sprintf(pg_pathname, "%s/%s", buffer, argv[0]);
+	}
 }
