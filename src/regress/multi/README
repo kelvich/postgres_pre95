@@ -45,16 +45,19 @@ pgcook.pl
 	handling code and there are likely many more.
 
 	The output of each monitor is placed in 
-		./pgcook$$.n
+		./hostname.$$.pgcook.n
 	where '$$' is the process id of the PERL script and 'n' is 
 	the number [0..m-1] of the monitor.  Everything the script 
 	throws at a monitor is logged in
-		./pgcook$$.out
+		./hostname.$$.pgcook.out
 
 lookcook.awk
 	This script summarizes how many transactions of each type
 	were aborted due to deadlock.  Run it as
-		% cat pgcook12345.[0-9]* | awk -f lookcook.awk
+		% cat foo.1234.pgcook.[0-9]* | awk -f lookcook.awk
+	This should get the same total number of aborted 
+	transactions as
+		% egrep -i abort foo.1234.pgcook.[0-9]* | wc
 
 sinval.pl
 	This is a very simple PERL script that tests the shared
