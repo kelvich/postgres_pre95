@@ -608,7 +608,7 @@ make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
     	type_struct2 = (TypeTupleForm) GETSTRUCT(type_tuple);
         vararraylist = lispCons(MakeArray (  (type_struct)->typelem,
 					(type_struct2)->typlen,
-					(type_struct)->typbyval,
+					(type_struct2)->typbyval,
 					(int) vararrayindex,
 					0,
 					(type_struct)->typlen),
@@ -633,7 +633,7 @@ make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
 		vararraylist = lispCons(vararraylist,
 					MakeArray ((type_struct)->typelem,
        	                        		 (type_struct2)->typlen,
-       	                        		 (type_struct)->typbyval,
+       	                        		 (type_struct2)->typbyval,
        	                        		 lispInteger(CAR(indirect_list)),
        	                      			 0, 
 					 	 (type_struct)->typlen));
@@ -658,7 +658,7 @@ make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
 		vararraylist = lispCons(vararraylist,
 					MakeArray ((type_struct)->typelem,
        	                        		 (type_struct2)->typlen,
-       	                        		 (type_struct)->typbyval,
+       	                        		 (type_struct2)->typbyval,
        	                        		 lispInteger(CAR(indirect_list)),
        	                			 0, 
 					 	 (type_struct)->typlen));
@@ -679,7 +679,7 @@ make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
     	type_struct2 = (TypeTupleForm) GETSTRUCT(type_tuple);
         vararraylist = lispCons(MakeArray (  (type_struct)->typelem,
 					(type_struct2)->typlen,
-					(type_struct)->typbyval,
+					(type_struct2)->typbyval,
 					(int) vararrayindex,
 					0,
 					(type_struct)->typlen),
