@@ -620,11 +620,11 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 		    elog(NOTICE,"unsupported action");
 	    }
 
-	    FixRangeTable ( rule_root, user_rt );
-
 	    AddQualifications(rule_action, 
 			     parse_qualification(user_parsetree),
-			     length(rule_rt) );
+			     length(rule_rt) -2 );
+
+	    FixRangeTable ( rule_root, user_rt );
 
 	    new_queries = nappend1 ( new_queries, rule_action );
 	}
