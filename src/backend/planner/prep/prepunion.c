@@ -300,10 +300,11 @@ plan_union_query (relids,rt_index,rt_entry,root,tlist,qual,rangetable)
 							    LispNil))));
 
 
-	union_plans = nappend1(union_plans,
-			       lispCons((LispValue)planner(new_parsetree),
-					 lispCons(new_rt_entry,
-						  LispNil)));
+	union_plans =
+	    nappend1(union_plans,
+		     lispCons((LispValue)planner(CopyObject(new_parsetree)),
+			      lispCons(new_rt_entry,
+				       LispNil)));
     }
     return(union_plans);
 
