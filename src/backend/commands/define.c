@@ -466,7 +466,7 @@ DefineType(name, parameters)
 	 * ----------------
 	 */
 
-    entry = DefineListRemoveOptionalAssignment(&parameters, "send");
+    entry = DefineListRemoveOptionalAssignment(&parameters, "delimiter");
     delimiter = ',';
     if (!null(entry)) {
 	delimiter = CAtom(CADR(entry));
