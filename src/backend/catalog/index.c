@@ -1141,7 +1141,7 @@ index_create(heapRelationName, indexRelationName, funcInfo,
 				       0);
 
 	if (!HeapTupleIsValid(proc_tup)) {
-	     func_error(index_create, FIgetname(funcInfo),
+	     func_error("index_create", FIgetname(funcInfo),
 			FIgetnArgs(funcInfo), FIgetArglist(funcInfo));
         }
 	FIgetProcOid(funcInfo) = proc_tup->t_oid;
