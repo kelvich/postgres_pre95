@@ -30,7 +30,7 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	int32 /* XXX */		absoluteTime = 0, relativeTime = 0;
 	bits8			dateTag;
 	Relation		relation;
-	HeapScan		scan;
+	HeapScanDesc		scan;
 	static ScanKeyEntryData	key[1] = {
 		{ 0, RelationNameAttributeNumber, F_CHAR16EQ }
 	};

@@ -48,7 +48,7 @@ TypeGet(typeName, defined)
 	bool 	*defined; 	/* has the type been defined? */
 {
 	Relation	relation;
-	HeapScan	scan;
+	HeapScanDesc	scan;
 	HeapTuple	tup;
 	static ScanKeyEntryData	typeKey[1] = {
 		{ 0, TypeNameAttributeNumber, F_CHAR16EQ }
@@ -85,7 +85,7 @@ OperatorGet(operatorName, leftTypeName, rightTypeName)
 	Name 	rightTypeName;	/* righthand type */
 {
 	Relation		relation;
-	HeapScan		scan;
+	HeapScanDesc		scan;
 	HeapTuple 		tup;
 	ObjectId 		leftObjectId = InvalidObjectId;
 	ObjectId		rightObjectId = InvalidObjectId;
@@ -258,7 +258,7 @@ TypeDefine(typeName, internalSize, externalSize,
 {
 	register		i, j;
 	Relation 		rdesc;
-	HeapScan 		sdesc;
+	HeapScanDesc 		sdesc;
 	static ScanKeyEntryData	typeKey[1] = {
 		{ 0, TypeNameAttributeNumber, F_CHAR16EQ }
 	};
@@ -456,7 +456,7 @@ OperatorDef(operatorName, definedOK,
 		{ 0, OperatorLeftAttributeNumber, F_OIDEQ },
 		{ 0, OperatorRightAttributeNumber, F_OIDEQ }
 	};
-	HeapScan 		sdesc;
+	HeapScanDesc 		sdesc;
 	HeapTuple 		tup;
 	Buffer 			buffer;
 	ItemPointerData		itemPointerData;

@@ -207,7 +207,7 @@ initialrun(rdesc)
 {
 /*	register struct	tuple	*tup; */
 	register struct	tape	*tp;
-	HeapScan	sdesc;
+	HeapScanDesc	sdesc;
 	int		baseruns;		/* D:(a) */
 	int		morepasses;		/* EOF */
 
@@ -273,7 +273,7 @@ initialrun(rdesc)
 
 bool
 createrun(sdesc, file)
-HeapScan	sdesc;
+HeapScanDesc	sdesc;
 FILE		*file;
 {
 	register HeapTuple	lasttuple;

@@ -207,7 +207,7 @@ private
 Relation
 BuildRelation ARGS((
 	Relation	rd,
-	HeapScan	sd,
+	HeapScanDesc	sd,
 	String		errorName,
 	struct context *oldcx
 	HashTable	NameCacheSave;
@@ -246,7 +246,7 @@ RelationIdGetRelation(relationId)
 	ObjectId	relationId;
 {
 	Relation	rd;
-	HeapScan	sd;
+	HeapScanDesc	sd;
 	ScanKeyData	key;
 	char 		errorName[50];
 
@@ -317,7 +317,7 @@ getreldesc(relationName)
 	Name	relationName;
 {
 	Relation	rd;
-	HeapScan	sd;
+	HeapScanDesc	sd;
 	ScanKeyData	key;
 
 	extern	GlobalMemory CacheCxt;
@@ -379,7 +379,7 @@ getreldesc(relationName)
 private Relation
 BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 	Relation	rd;
-	HeapScan	sd;
+	HeapScanDesc	sd;
 	String		errorName;
 
 	MemoryContext	oldcxt;
@@ -516,7 +516,7 @@ BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 		/*
 		 * indexed scan of Attribute Relation 
 		 */
-		IndexScan			scan;
+		IndexScanDesc			scan;
 		GeneralRetrieveIndexResult	result;
 		Relation			attrd;
 		Relation			attrird;

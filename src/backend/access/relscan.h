@@ -22,7 +22,7 @@
 
 typedef ItemPointerData	MarkData;
 
-typedef struct HeapScanData {
+typedef struct HeapScanDescData {
 	Relation	rs_rd;		/* pointer to relation descriptor */
 	HeapTuple	rs_ptup;	/* previous tuple in scan */
 	HeapTuple	rs_ctup;	/* current tuple in scan */
@@ -41,11 +41,11 @@ typedef struct HeapScanData {
 	uint16		rs_nkeys;	/* number of attributes in keys */
 	ScanKeyData	rs_key;		/* key descriptors */
 	/* VARIABLE LENGTH ARRAY AT END OF STRUCT */
-} HeapScanData;
+} HeapScanDescData;
 
-typedef HeapScanData		*HeapScan;
+typedef HeapScanDescData *HeapScanDesc;
 
-typedef struct IndexScanData {
+typedef struct IndexScanDescData {
 	Relation	relation;		/* relation descriptor */
 	ItemPointerData	previousItemData;	/* previous index pointer */
 	ItemPointerData	currentItemData;	/* current index pointer */
@@ -58,9 +58,9 @@ typedef struct IndexScanData {
 	uint16		numberOfKeys;		/* number of key attributes */
 	ScanKeyData	keyData;			/* key descriptor */
 	/* VARIABLE LENGTH ARRAY AT END OF STRUCT */
-} IndexScanData;
+} IndexScanDescData;
 
-typedef IndexScanData	*IndexScan;
+typedef IndexScanDescData	*IndexScanDesc;
 
 /*
  * HeapScanIsValid --
@@ -69,7 +69,7 @@ typedef IndexScanData	*IndexScan;
 extern
 bool
 HeapScanIsValid ARGS ((
-	HeapScan	scan
+	HeapScanDesc	scan
 ));
 
 /*
@@ -79,7 +79,7 @@ HeapScanIsValid ARGS ((
 extern
 bool
 IndexScanIsValid ARGS ((
-	IndexScan	scan
+	IndexScanDesc	scan
 ));
 
 #endif	/* !defined(RelScanIncluded) */

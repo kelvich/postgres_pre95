@@ -289,7 +289,7 @@ amgetattr ARGS((
  *	General access method initialize heap scan routine.
  */
 extern
-HeapScan
+HeapScanDesc
 RelationBeginHeapScan ARGS((
 	Relation	relation,
 	Boolean		startScanAtEnd,
@@ -299,7 +299,7 @@ RelationBeginHeapScan ARGS((
 ));
 
 extern
-HeapScan
+HeapScanDesc
 ambeginscan ARGS((
 	Relation	relation,
 	Boolean		startScanAtEnd,
@@ -315,7 +315,7 @@ ambeginscan ARGS((
 extern
 void
 HeapScanRestart ARGS((
-	HeapScan	scan,
+	HeapScanDesc	scan,
 	bool		restartScanAtEnd,
 	ScanKey		key
 ));
@@ -323,7 +323,7 @@ HeapScanRestart ARGS((
 extern
 void
 amrescan ARGS((
-	HeapScan	scan,
+	HeapScanDesc	scan,
 	bool		restartScanAtEnd,
 	ScanKey		key
 ));
@@ -335,13 +335,13 @@ amrescan ARGS((
 extern
 void
 HeapScanEnd ARGS((
-	HeapScan	scan
+	HeapScanDesc	scan
 ));
 
 extern
 void
 amendscan ARGS((
-	HeapScan	scan
+	HeapScanDesc	scan
 ));
 
 /*
@@ -351,13 +351,13 @@ amendscan ARGS((
 extern
 void
 HeapScanMarkPosition ARGS((
-	HeapScan	scan
+	HeapScanDesc	scan
 ));
 
 extern
 void
 ammarkpos ARGS((
-	HeapScan	scan
+	HeapScanDesc	scan
 ));
 
 /*
@@ -367,13 +367,13 @@ ammarkpos ARGS((
 extern
 void
 HeapScanRestorePosition ARGS((
-	HeapScan	scan
+	HeapScanDesc	scan
 ));
 
 extern
 void
 amrestrpos ARGS((
-	HeapScan	scan
+	HeapScanDesc	scan
 ));
 
 /*
@@ -383,7 +383,7 @@ amrestrpos ARGS((
 extern
 HeapTuple
 HeapScanGetNextTuple ARGS((
-	HeapScan	scan,
+	HeapScanDesc	scan,
 	Boolean		backwards,
 	Buffer		*bufferOutP
 ));
@@ -391,7 +391,7 @@ HeapScanGetNextTuple ARGS((
 extern
 HeapTuple
 amgetnext ARGS((
-	HeapScan	scan,
+	HeapScanDesc	scan,
 	Boolean		backwards,
 	Buffer		*bufferOutP
 ));

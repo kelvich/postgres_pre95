@@ -231,7 +231,7 @@ DATUM				v1, v2, v3, v4;
     Buffer		buffer;
     HeapTuple		palloctup();
     struct catctup	*nct;
-    HeapScan		sd;
+    HeapScanDesc		sd;
     Relation		relation;
     MemoryContext	oldcxt;
 

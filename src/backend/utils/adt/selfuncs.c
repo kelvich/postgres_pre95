@@ -288,7 +288,7 @@ gethilokey(relid, attnum, opid, high, low)
 	char		**low;
 {
 	register Relation	rdesc;
-	register HeapScan	sdesc;
+	register HeapScanDesc	sdesc;
 	static ScanKeyEntryData	key[3] = {
 		{ 0, StatisticRelationIdAttributeNumber, F_OIDEQ },
 		{ 0, StatisticAttributeNumberAttributeNumber, F_INT2EQ },

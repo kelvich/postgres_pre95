@@ -27,7 +27,7 @@ RcsId("$Header$");
 
 bool
 HeapScanIsValid(scan)
-	HeapScan	scan;
+	HeapScanDesc	scan;
 {
 	return ((bool)PointerIsValid(scan));
 }
@@ -201,7 +201,7 @@ HeapTupleGetAttributeValue(tuple, buffer, attributeNumber, tupleDescriptor,
 		tupleDescriptor, attributeIsNullOutP)));
 }
 
-HeapScan
+HeapScanDesc
 RelationBeginHeapScan(relation, startScanAtEnd, timer, numberOfKeys, key)
 	Relation	relation;
 	Boolean		startScanAtEnd;
@@ -215,7 +215,7 @@ RelationBeginHeapScan(relation, startScanAtEnd, timer, numberOfKeys, key)
 
 void
 HeapScanRestart(scan, restartScanAtEnd, key)
-	HeapScan	scan;
+	HeapScanDesc	scan;
 	bool		restartScanAtEnd;
 	ScanKey		key;
 {
@@ -224,28 +224,28 @@ HeapScanRestart(scan, restartScanAtEnd, key)
 
 void
 HeapScanEnd(scan)
-	HeapScan	scan;
+	HeapScanDesc	scan;
 {
 	amendscan(scan);
 }
 
 void
 HeapScanMarkPosition(scan)
-	HeapScan	scan;
+	HeapScanDesc	scan;
 {
 	ammarkpos(scan);
 }
 
 void
 HeapScanRestorePosition(scan)
-	HeapScan	scan;
+	HeapScanDesc	scan;
 {
 	amrestrpos(scan);
 }
 
 HeapTuple
 HeapScanGetNextTuple(scan, backwards, bufferOutP)
-	HeapScan	scan;
+	HeapScanDesc	scan;
 	Boolean		backwards;
 	Buffer		*bufferOutP;
 {

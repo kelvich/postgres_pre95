@@ -100,7 +100,7 @@ AccessMethodNameGetObjectId(accessMethodName)
 {
 	HeapTuple	tuple;
 	Relation	relation;
-	HeapScan	scan;
+	HeapScanDesc	scan;
 	ObjectId	accessMethodObjectId;
 	Buffer		buffer;
 	ScanKeyData	key[1];
@@ -137,7 +137,7 @@ OperatorClassNameGetObjectId(operatorClassName, operatorClassRelation)
 	Relation	operatorClassRelation;
 {
 	HeapTuple	tuple;
-	HeapScan	scan;
+	HeapScanDesc	scan;
 	ObjectId	classObjectId;
 	Buffer		buffer;
 	ScanKeyData	key[1];

@@ -32,7 +32,7 @@ OperatorRemove(operatorName, firstTypeName, lastTypeName)
 	Name 	lastTypeName;             /* last type name  */
 {
 	Relation 	relation;
-	HeapScan 	scan;
+	HeapScanDesc 	scan;
 	HeapTuple 	tup;
 	ObjectId	firstTypeId = InvalidObjectId;
 	ObjectId        lastTypeId  = InvalidObjectId;
@@ -94,7 +94,7 @@ SingleOpOperatorRemove(typeOid)
 {
 	Relation 	rdesc;
 	struct skey 	key[3];
-	HeapScan 	sdesc;
+	HeapScanDesc 	sdesc;
 	HeapTuple 	tup;
 	ItemPointerData itemPointerData;
 	Buffer 		buffer;
@@ -134,7 +134,7 @@ AttributeAndRelationRemove(typeOid)
 	struct oidlist	*oidptr, *optr;
 	Relation 	rdesc;
 	struct skey	key[1];
-	HeapScan 	sdesc;
+	HeapScanDesc 	sdesc;
 	HeapTuple 	tup;
 	ItemPointerData	itemPointerData;
 	Buffer 		buffer;
@@ -192,7 +192,7 @@ TypeRemove(typeName)
 	Name      typeName;             /* type name to be removed */
 {
 	Relation 	relation;  
-	HeapScan 	scan;      
+	HeapScanDesc 	scan;      
 	HeapTuple 	tup;
 	ObjectId	typeOid;
 	ItemPointerData	itemPointerData;
@@ -251,7 +251,7 @@ ProcedureRemove(procedureName)
 	Name 	procedureName;             /* type name to be removed */
 {
 	Relation         relation;
-	HeapScan         scan;
+	HeapScanDesc         scan;
 	HeapTuple        tup;
 	Buffer           buffer;
 #ifdef USEPARGS

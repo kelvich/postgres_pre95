@@ -34,7 +34,7 @@ regprocin(proname)
 	char	*proname;
 {
 	Relation	proc;
-	HeapScan	procscan;
+	HeapScanDesc	procscan;
 	HeapTuple	proctup;
 	struct skey	key;		/* static better ??? */
 	RegProcedure	result;
@@ -90,7 +90,7 @@ regprocout(proid)
 	RegProcedure proid;
 {
 	Relation	proc;
-	HeapScan	procscan;
+	HeapScanDesc	procscan;
 	HeapTuple	proctup;
 	char		*result;
 	struct skey	key;

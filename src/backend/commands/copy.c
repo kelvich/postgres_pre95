@@ -404,7 +404,7 @@ copyWrite(rdesc, maprdesc, fp, ndoms, doms)
 {
 	register 		i;
 	AttributeTupleForm	*atts;
-	HeapScan		relscan;
+	HeapScanDesc		relscan;
 	Boolean			ioerr = B_FALSE;
 	HeapTuple		htp;
 	Buffer			bufp;		/* buffer page of tuple */
