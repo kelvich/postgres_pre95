@@ -174,15 +174,32 @@ class (Bool) public (Expr) {
 
 /*
  * Param
+ *	paramkind - specifies the kind of parameter. The possible values
+ *	for this field are specified in "params.h", and they are:
+ * 	PARAM_NAMED: The parameter has a name, i.e. something
+ *              like `$.salary' or `$.foobar'.
+ *              In this case field `paramname' must be a valid Name.
+ *
+ *	PARAM_NUM:   The parameter has only a numeric identifier,
+ *              i.e. something like `$1', `$2' etc.
+ *              The number is contained in the `parmid' field.
+ *
+ * 	PARAM_NEW:   Used in PRS2 rule, similar to PARAM_NAMED.
+ *              The `paramname' refers to the "NEW" tuple
+ *
+ *	PARAM_OLD:   Same as PARAM_NEW, but in this case we refer to
+ *              the "OLD" tuple.
+ *
  *	paramid - numeric identifier for literal-constant parameters ("$1")
- *	paramtype - attribute name for tuple-substitution parameters ("$.foo")
- *		(valid iff paramid == 0)
+ *	paramname - attribute name for tuple-substitution parameters ("$.foo")
  *	paramtype - PG_TYPE OID of the parameter's value
+ * 
  */
 
 class (Param) public (Expr) {
  /* private: */
 	inherits(Expr);
+	int			paramkind;
 	int32			paramid;
 	Name			paramname;
 	ObjectId		paramtype;
