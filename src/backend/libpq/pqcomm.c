@@ -36,7 +36,6 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <netdb.h>
-#include <netinet/in.h>
 #include <signal.h>
 
 #include "libpq/auth.h"
@@ -576,7 +575,7 @@ pq_accept()
 	return(-2);
     
     pq_getinaddr(&sin, 0, pq_getport());
-    if (bind(fd, &sin, sizeof sin))
+    if (bind(fd, (struct sockaddr *)&sin, sizeof sin))
 	return(-3);
     
     listen(fd, SOMAXCONN);
@@ -665,7 +664,7 @@ int	*fdP;
   sin.sin_family = AF_INET;
   sin.sin_port = htons(portName);
 
-  if (bind(fd, (char *)&sin, sizeof sin) < 0) {
+  if (bind(fd, (struct sockaddr *)&sin, sizeof sin) < 0) {
     strcpy(PQerrormsg,"StreamServerPort: cannot bind to port\n");
     fprintf(stderr,PQerrormsg);
     return(STATUS_ERROR);
@@ -702,7 +701,7 @@ StreamConnection(server_fd, port)
 	/* accept connection (and fill in the client (remote) address) */
 	addrlen = sizeof(struct sockaddr_in);
 	if ((port->sock = accept(server_fd,
-				 (struct sockaddr *) port->raddr,
+				 (struct sockaddr *) &port->raddr,
 				 &addrlen)) < 0) {
 		elog(WARN, "postmaster: StreamConnection: accept: %m");
 		return(STATUS_ERROR);
@@ -752,6 +751,7 @@ StreamOpen(hostName, portName, port)
 {
 	struct hostent	*hp;
 	int		laddrlen = sizeof(struct sockaddr_in);
+	extern int errno;
 
 	if (!hostName)
 		hostName = "localhost";
@@ -776,7 +776,8 @@ StreamOpen(hostName, portName, port)
 		fprintf(stderr, PQerrormsg);
 		return(STATUS_ERROR);
 	}
-	if (connect(port->sock, &port->raddr, sizeof(port->raddr)) < 0) {
+	if (connect(port->sock, (struct sockaddr *)&port->raddr,
+	    sizeof(port->raddr)) < 0) {
 		sprintf(PQerrormsg, "StreamOpen: connect: errno=%d\n",
 			errno);
 		fprintf(stderr, PQerrormsg);
