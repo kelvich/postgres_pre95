@@ -336,6 +336,14 @@ lispDisplay(lispObject,iscdr)
     fflush(stdout);
 }
 
+int
+crap(lispObject)
+	LispValue	lispObject;
+{
+    lispDisplayFp(stdout, lispObject, 0);
+    fflush(stdout);
+	return(0);
+}
 
 /* ===================== LISP INDEPENDENT ==================== */
 
@@ -862,6 +870,11 @@ zerop(foo)
 {
     if (integerp(foo))
       return((bool)(CInteger(foo) == 0));
+	else
+	{
+	  elog(WARN,"zerop called on noninteger");
+	  return(1); /* non-integer is always zero */
+	}
 }
 
 bool
@@ -966,8 +979,10 @@ sort(foo)
 {
     if (length(foo) == 1)
       return(foo);
-    else
+    else {
      elog(WARN,"unsupported function");
+	 return(foo);
+	}
 }
 
 bool
