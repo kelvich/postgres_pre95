@@ -62,12 +62,17 @@ typedef char EventType;
  *   NOTE: under the current implementation, if such an action is
  *   specified in the action part of a rule, no other action can
  *   be specified!
+ * ActionTypeReplaceNew: the action is a 'replace NEW(x=..)'
+ *   NOTE: under the current implementation, if such an action is
+ *   specified in the action part of a rule, no other action can
+ *   be specified!
  * ActionTypeOther: Any other action... (including 'retrieve into...')
  *------------------------------------------------------------------
  */
 typedef char ActionType;
 #define ActionTypeRetrieveValue		'r'
 #define ActionTypeReplaceCurrent	'u'
+#define ActionTypeReplaceNew		'U'
 #define ActionTypeOther			'o'
 #define ActionTypeInvalid		'*'
 
