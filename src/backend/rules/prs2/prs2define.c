@@ -418,15 +418,15 @@ Prs2RuleData r;
 			    fmgr(F_CHAR16IN,(char *)(r->ruleName));
     nulls[Prs2RuleNameAttributeNumber-1] = ' ';
 
-    values[Prs2RuleEventTypeAttributeNumber-1] = (char *) r->eventType;
+    values[Prs2RuleEventTypeAttributeNumber-1] = (char *) (long) r->eventType;
     nulls[Prs2RuleEventTypeAttributeNumber-1] = ' ';
 
     values[Prs2RuleEventTargetRelationAttributeNumber-1] =
-			(char *) r->eventRelationOid;
+			(char *) (long) r->eventRelationOid;
     nulls[Prs2RuleEventTargetRelationAttributeNumber-1] = ' ';
 
     values[Prs2RuleEventTargetAttributeAttributeNumber-1] = 
-			(char *) r->eventAttributeNumber;
+			(char *) (long) r->eventAttributeNumber;
     nulls[Prs2RuleEventTargetAttributeAttributeNumber-1] = ' ';
 
     values[Prs2RuleTextAttributeNumber-1] = 
@@ -545,8 +545,8 @@ List rulePlan;
 	nulls[i] = ' ';
     }
 
-    values[Prs2PlansRuleIdAttributeNumber-1] = (char *) ruleId;
-    values[Prs2PlansPlanNumberAttributeNumber-1] = (char *) planNumber;
+    values[Prs2PlansRuleIdAttributeNumber-1] = (char *) (long) ruleId;
+    values[Prs2PlansPlanNumberAttributeNumber-1] = (char *) (long) planNumber;
     values[Prs2PlansCodeAttributeNumber-1] = fmgr(F_TEXTIN,rulePlanString);
     
     heapTuple = FormHeapTuple(Prs2PlansRelationNumberOfAttributes,
@@ -1028,9 +1028,7 @@ LispValue parseTree;
 	} else {
 	    resultRelationNo = CInteger(resultRelation);
 	    resultRelationEntry = nth(resultRelationNo-1, rangeTable);
-	    strcpy(&(nameData.data[0]),
-		    CString(rt_relname(resultRelationEntry)),
-		    NAMEDATALEN);
+	    namecpy(&nameData, CString(rt_relname(resultRelationEntry)));
 	}
 	    relationName = &nameData;
     } else {
