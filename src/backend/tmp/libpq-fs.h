@@ -53,9 +53,15 @@ struct pgdirent {
 #endif
 
 struct pgstat { /* just the fields we need from stat structure */
+    int st_ino;
     int st_mode;
-    int st_size;
+    unsigned int st_size;
+    unsigned int st_sizehigh;	/* high order bits */
+/* 2^64 == 1.8 x 10^20 bytes */
     int st_uid;
+    int st_atime;
+    int st_mtime;
+    int st_ctime;
 };
 
 typedef struct Direntry_ {
@@ -67,6 +73,18 @@ typedef struct PDIR_ {
     SLList dirlist;
     Direntry *current_entry;
 } PDIR;
+
+/* Error values for p_errno */
+#define PEPERM           1               /* Not owner */
+#define PENOENT          2               /* No such file or directory */
+#define PEACCES          13              /* Permission denied */
+#define PEEXIST          17              /* File exists */
+#define PENOTDIR         20              /* Not a directory*/
+#define PEISDIR          21              /* Is a directory */
+#define PEINVAL          22              /* Invalid argument */
+#define PENAMETOOLONG    63              /* File name too long */
+#define PENOTEMPTY       66              /* Directory not empty */
+#define PEPGIO           99              /* postgres backend had problems */
 
 int p_open ARGS((char *fname , int mode ));
 int p_close ARGS((int fd ));
