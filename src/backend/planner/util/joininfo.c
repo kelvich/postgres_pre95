@@ -13,10 +13,10 @@
  *	$Header$
  */
 
-#include "internal.h"
+#include "planner/internal.h"
 #include "relation.h"
 #include "relation.a.h"
-#include "clauses.h"
+#include "planner/clauses.h"
 
 /*    
  *    	joininfo-member

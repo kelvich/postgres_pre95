@@ -16,20 +16,18 @@
  */
 
 #include "pg_lisp.h"
-#include "internal.h"
+#include "planner/internal.h"
 #include "relation.h"
 #include "relation.a.h"
 #include "plannodes.h"
 #include "plannodes.a.h"
-#include "joinpath.h"
-#include "relnode.h"
-#include "mergeutils.h"
-#include "hashutils.h"
-#include "pathnode.h"
-#include "joinutils.h"
-
-#define    OUTER   1   /* These should be moved */
-#define    INNER   0
+#include "planner/joinpath.h"
+#include "planner/relnode.h"
+#include "planner/mergeutils.h"
+#include "planner/hashutils.h"
+#include "planner/pathnode.h"
+#include "planner/joinutils.h"
+#include "planner/keys.h"
 
 extern bool _enable_hashjoin_;
 extern bool _enable_mergesort_;

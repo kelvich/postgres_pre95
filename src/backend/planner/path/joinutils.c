@@ -19,15 +19,15 @@
  */
 
 #include "pg_lisp.h"
-#include "internal.h"
+#include "planner/internal.h"
 #include "relation.h"
 #include "relation.a.h"
 #include "plannodes.h"
 #include "plannodes.a.h"
-#include "joinutils.h"
-#include "var.h"
-#include "keys.h"
-#include "tlist.h"
+#include "planner/joinutils.h"
+#include "planner/var.h"
+#include "planner/keys.h"
+#include "planner/tlist.h"
 
 
 /*     	===============

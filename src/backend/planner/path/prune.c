@@ -17,11 +17,10 @@
  *     		prune-rel-path
  */
 
+#include "pg_lisp.h"
 #include "relation.h"
-#include "pathnode.h"
-#include "prune.h"
-
-#define foreach(elt,list)     for(elt=list;elt!=LispNil;elt=CDR(elt))
+#include "planner/pathnode.h"
+#include "planner/prune.h"
 
 
 

@@ -16,11 +16,11 @@
  */
 
 #include "pg_lisp.h"
-#include "internal.h"
 #include "relation.h"
 #include "relation.a.h"
-#include "hashutils.h"
-#include "clauses.h"
+#include "planner/internal.h"
+#include "planner/hashutils.h"
+#include "planner/clauses.h"
 
 /* extern LispValue match_hashop_hashinfo(); */
 

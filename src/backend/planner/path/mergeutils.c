@@ -17,11 +17,11 @@
  */
 
 #include "pg_lisp.h"
-#include "internal.h"
+#include "planner/internal.h"
 #include "relation.h"
 #include "relation.a.h"
-#include "mergeutils.h"
-#include "clauses.h"
+#include "planner/mergeutils.h"
+#include "planner/clauses.h"
 
 
 

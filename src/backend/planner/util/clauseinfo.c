@@ -18,13 +18,13 @@
  */
 
 #include "c.h"
-#include "internal.h"
+#include "planner/internal.h"
 #include "relation.h"
 #include "relation.a.h"
-#include "clauses.h"
-#include "clauseinfo.h"
+#include "planner/clauses.h"
+#include "planner/clauseinfo.h"
 
-/* declare (localf (get_joinvar)); */
+
 
 /*    
  *    	valid-or-clause

@@ -14,11 +14,11 @@
  *     		numlevels
  */
 
-#include "internal.h"
-#include "var.h"
+#include "planner/internal.h"
+#include "planner/var.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
-#include "clauses.h"
+#include "planner/clauses.h"
 
 /*    
  *    	pull_var_clause

@@ -13,15 +13,14 @@
  */
 /* declare (localf (find_secondary_index)); */
 
-#include "internal.h"
+#include "planner/internal.h"
 #include "parse.h"
-#include "indexnode.h"
+#include "planner/indexnode.h"
 #include "plannodes.h"
 #include "relation.h"
 #include "relation.a.h"
+#include "planner/cfi.h"
 
-extern LispValue index_info(); /* XXX - #include "cfi.h" 
-				  when M.Yatabe finishes planner/sys */
 
 
 /*    

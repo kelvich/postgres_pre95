@@ -14,21 +14,22 @@
  *     		Plan query_planner();
  */
 
-#include "internal.h"
+#include "planner/internal.h"
 #include "pg_lisp.h"
 #include "parse.h"
 #include "relation.h"
 #include "relation.a.h"
 #include "plannodes.h"
 #include "plannodes.a.h"
-#include "clause.h"
-#include "sortresult.h"
-#include "tlist.h"
-#include "sortresult.h"
-#include "createplan.h"
-#include "allpaths.h"
+#include "planner/planmain.h"
+#include "planner/clause.h"
+#include "planner/sortresult.h"
+#include "planner/tlist.h"
+#include "planner/sortresult.h"
+#include "planner/createplan.h"
+#include "planner/allpaths.h"
 
-extern Result make_result();
+
 /*    
  *    	query_planner
  *    
@@ -311,6 +312,7 @@ Result
 make_result( tlist,resrellevelqual,left,right)
      List tlist;
      List resrellevelqual;
+     Plan left,right;
 {
     extern void PrintResult();
     

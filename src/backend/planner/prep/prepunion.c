@@ -18,12 +18,12 @@
  */
 
 #include "c.h"
-#include "internal.h"
+#include "planner/internal.h"
 #include "pg_lisp.h"
 #include "relation.h"
 #include "relation.a.h"
-#include "prepunion.h"
-#include "planner.h"
+#include "planner/prepunion.h"
+#include "planner/planner.h"
 #include "plannodes.h"
 #include "plannodes.a.h"
 #include "parsetree.h"

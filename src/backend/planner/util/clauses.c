@@ -30,16 +30,14 @@
  *    		get_andclauseargs
  */
 
-/* require ("nodeDefs");*/
 
-/* declare (localf (clause_head)); */
+
 #include "c.h"
-#include "clauses.h"
+#include "planner/clauses.h"
 #include "pg_lisp.h"
 #include "parse.h"
 #include "log.h"
 
-extern LispValue clause_head();
 
 
 /*    

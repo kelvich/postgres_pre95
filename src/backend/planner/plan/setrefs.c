@@ -22,23 +22,23 @@
  *     		tlist-temp-references
  */
 
-#include "internal.h"
-#include "tlist.h"
+#include "planner/internal.h"
+#include "planner/tlist.h"
 #include "plannodes.h"
 #include "plannodes.a.h"
 #include "relation.h"
 #include "relation.a.h"
 #include "pg_lisp.h"
-#include "clause.h"
-#include "clauseinfo.h"
-#include "clauses.h"
-#include "var.h"
+#include "planner/clause.h"
+#include "planner/clauseinfo.h"
+#include "planner/clauses.h"
+#include "planner/var.h"
 #include "c.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
-#include "setrefs.h"
-#include "nodeFuncs.h"
-#include "keys.h"
+#include "planner/setrefs.h"
+#include "planner/nodeFuncs.h"
+#include "planner/keys.h"
 #include "parse.h"
 
 /*     

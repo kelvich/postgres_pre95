@@ -28,13 +28,13 @@ static char *rcsid = "$Header$";
 #include "c.h"
 #include "relation.h"
 #include "relation.a.h"
-#include "internal.h"
+#include "planner/internal.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
 #include "pg_lisp.h"
-#include "var.h"
-#include "tlist.h"
-#include "clauses.h"
+#include "planner/var.h"
+#include "planner/tlist.h"
+#include "planner/clauses.h"
 #include "log.h"
 
 /* XXX - find these references */

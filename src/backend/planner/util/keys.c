@@ -19,15 +19,15 @@
  */
 
 #include "pg_lisp.h"
-#include "internal.h"
+#include "planner/internal.h"
 #include "nodes.h"
 #include "relation.h"
-#include "keys.h"
+#include "planner/keys.h"
 #include "c.h"
 #include "log.h"
-#include "tlist.h"
+#include "planner/tlist.h"
 
-/* declare (localf (equal_sortkey_pathkey)); */
+
 
 /*    
  *    	1. index key

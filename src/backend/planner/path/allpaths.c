@@ -15,13 +15,22 @@
  */
 
 #include "pg_lisp.h"
-#include "internal.h"
 #include "relation.h"
-#include "allpaths.h"
-#include "indxpath.h"
-#include "orindxpath.h"
-#include "joinrels.h"
-#include "prune.h"
+#include "planner/allpaths.h"
+#include "planner/internal.h"
+#include "planner/indxpath.h"
+#include "planner/orindxpath.h"
+#include "planner/joinrels.h"
+#include "planner/prune.h"
+
+
+/* #include "allpaths.h"
+   #include "internal.h"
+   #include "indxpath.h"
+   #include "orindxpath.h"
+   #include "joinrels.h"
+   #include "prune.h"
+ */
 
 
 

@@ -16,8 +16,8 @@
  */
 
 #include "c.h"
-#include "internal.h"
-#include "planner.h"
+#include "planner/internal.h"
+#include "planner/planner.h"
 #include "pg_lisp.h"
 #include "relation.h"
 #include "relation.a.h"
@@ -28,7 +28,7 @@
  *    
  */
 
-/* #include "cfi.h"    /* XXX should it be a .h file?  */
+#include "planner/cfi.h"   
 /*   C function interface routines */
 /* #include "pppp.h" */
 /*   POSTGRES plan pretty printer */
@@ -44,16 +44,16 @@
 
 /*     ...Query tree preprocessing
  */
-#include "prepqual.h"
+#include "planner/prepqual.h"
 
 /*   normal qualification preprocessing */
-#include "preprule.h"
+#include "planner/preprule.h"
 
 /*   for rule queries */
-#include "preptlist.h"
+#include "planner/preptlist.h"
 
 /*   normal targetlist preprocessing */
-#include "prepunion.h"
+#include "planner/prepunion.h"
 
 /*   for union (archive, inheritance, ...) queries */
 
@@ -64,21 +64,21 @@
 
 /*     ...Planner driver routines
  */
-#include "planmain.h"
+#include "planner/planmain.h"
 
 /*     ...Subplanner initialization
  */
-#include "initsplan.h"
+#include "planner/initsplan.h"
 
 /*     ...Query plan generation
  */
-#include "createplan.h"
+#include "planner/createplan.h"
 
 /*   routines to create optimal subplan */
-#include "setrefs.h"
+#include "planner/setrefs.h"
 
 /*   routines to set vars to reference other nodes */
-/* #include "sortresult.h" */
+/* #include "planner/sortresult.h" */
 
 /*   routines to manipulate sort keys */
 
@@ -86,29 +86,29 @@
  *    	SUBPLAN GENERATION
  *    
  */
-#include "allpaths.h"
+#include "planner/allpaths.h"
 
 /*   main routines to generate subplans */
-#include "indxpath.h"
+#include "planner/indxpath.h"
 
 /*   main routines to generate index paths */
-#include "orindxpath.h"
-#include "prune.h" 
+#include "planner/orindxpath.h"
+#include "planner/prune.h" 
 
 /*   routines to prune the path space */
-#include "joinpath.h"
+#include "planner/joinpath.h"
 
 /*   main routines to create join paths */
-#include "joinrels.h"
+#include "planner/joinrels.h"
 
 /*   routines to determine which relations to join */
-#include "joinutils.h"
+#include "planner/joinutils.h"
 
 /*   generic join method key/clause routines */
-#include "mergeutils.h"
+#include "planner/mergeutils.h"
 
 /*   routines to deal with merge keys and clauses */
-#include "hashutils.h"
+#include "planner/hashutils.h"
 
 /*   routines to deal with hash keys and clauses */
 
@@ -116,10 +116,10 @@
  *    	SUBPLAN SELECTION - utilities for planner, create-plan, join routines
  *    
  */
-#include "clausesel.h"
+#include "planner/clausesel.h"
 
 /*   routines to compute clause selectivities */
-#include "costsize.h"
+#include "planner/costsize.h"
 
 /*   routines to compute costs and sizes */
 
@@ -128,16 +128,16 @@
  *    
  */
 #include "relation.h"
-#include "clauseinfo.h"
-#include "indexnode.h"
-#include "joininfo.h"
-#include "keys.h"
-#include "ordering.h"
-#include "pathnode.h"
-#include "clause.h"
-#include "relnode.h"
-#include "tlist.h"
-#include "var.h"
+#include "planner/clauseinfo.h"
+#include "planner/indexnode.h"
+#include "planner/joininfo.h"
+#include "planner/keys.h"
+#include "planner/ordering.h"
+#include "planner/pathnode.h"
+#include "planner/clause.h"
+#include "planner/relnode.h"
+#include "planner/tlist.h"
+#include "planner/var.h"
 
 /*    
  *    	*** Query optimizer entry point ***

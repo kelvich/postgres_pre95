@@ -16,21 +16,20 @@
  */
 
 #include "pg_lisp.h";
-#include "internal.h";
 #include "relation.h"
 #include "relation.a.h"
-#include "indxpath.h"
-#include "clauses.h"
-#include "lsyscache.h"
-#include "clauseinfo.h"
+#include "planner/internal.h";
+#include "planner/indxpath.h"
+#include "planner/clauses.h"
+#include "planner/lsyscache.h"
+#include "planner/clauseinfo.h"
+#include "planner/cfi.h"
 
 
-/* #include "cfi.h"   - where index_selectivity is defined */
+/* #define INDEXSCAN 1
+   #define List LispValue
+ */
 
-extern LispValue index_selectivity();  /* for now  */
-
-#define INDEXSCAN 1
-#define List LispValue
 /*    
  *    	find-index-paths
  *    
@@ -495,7 +494,7 @@ index_innerjoin (rel,clausegroup_list,index)
 			       CADDR (relattvals),
 			       length (clausegroup));
 	  
-	  set_pathtype (pathnode,INDEXSCAN);
+	  set_pathtype (pathnode,T_IndexScan);
 	  set_parent (pathnode,rel);
 	  set_indexid (pathnode,get_indexid (index));
 	  set_indexqual (pathnode,clausegroup);

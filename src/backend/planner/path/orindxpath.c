@@ -15,12 +15,12 @@
  *     		create-or-index-paths
  */
 #include "pg_lisp.h"
-#include "internal.h"
+#include "planner/internal.h"
 #include "relation.h"
 #include "relation.a.h"
-#include "clauses.h"
-#include "orindxpath.h"
-#include "nodeFuncs.h"
+#include "planner/clauses.h"
+#include "planner/orindxpath.h"
+#include "planner/nodeFuncs.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
 

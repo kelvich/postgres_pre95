@@ -28,12 +28,7 @@
 #include "internal.h"
 #include "relation.h"
 #include "relation.a.h"
-#include "costsize.h"
-/*
-extern LispValue compute_targetlist_width();
-extern LispValue compute_attribute_width();
-extern LispValue page_size();
-*/
+#include "planner/costsize.h"
 
 #define _cost_weirdness_ 0
 

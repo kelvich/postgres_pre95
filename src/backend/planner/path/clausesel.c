@@ -17,12 +17,12 @@
  *     		compute_clause_selec
  */
 
-#include "internal.h"
-#include "clause.h"
 #include "pg_lisp.h"
-#include "clausesel.h"
 #include "relation.h"
 #include "relation.a.h"
+#include "planner/internal.h"
+#include "planner/clause.h"
+#include "planner/clausesel.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
 #include "parsetree.h"

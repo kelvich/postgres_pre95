@@ -14,7 +14,7 @@
  *	$Header$
  */
 
-#include "internal.h"
+#include "planner/internal.h"
 
 /*    
  *    	equal-path-path-ordering

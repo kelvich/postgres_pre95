@@ -26,20 +26,14 @@
  */
 
 #include "c.h"
-#include "internal.h"
-#include "clause.h"
-#include "var.h"
+#include "planner/internal.h"
+#include "planner/clause.h"
+#include "planner/var.h"
 #include "primnodes.a.h"
-#include "clauses.h"
+#include "planner/clauses.h"
 #include "relation.h"
 #include "relation.a.h"
 
-/* XXX - remove these phoney defns once we find the appropriate defn 
-extern get_varno();
-extern get_varattno();
-extern var_equal();
-*/
-extern bool is_clause();
 
 
 /*    

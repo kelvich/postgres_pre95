@@ -19,17 +19,15 @@
  *	$Header$
  */
 
-#include "internal.h"
+#include "planner/internal.h"
 #include "log.h"
 #include "relation.h"
 #include "relation.a.h"
-#include "pathnode.h"
-#include "clauseinfo.h"
+#include "planner/pathnode.h"
+#include "planner/clauseinfo.h"
+#include "planner/cfi.h"
 
-extern List index_selectivity(); /* #include "cfi.h" */
 
-/* declare (localf (better_path)); */
-/* declare (special (_WARN_)); */
 
 /*    	====================
  *    	MISC. PATH UTILITIES

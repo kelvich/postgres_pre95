@@ -14,11 +14,11 @@
  *     		preprocess-qualification
  */
 
-#include "clauses.h"
-#include "internal.h"
 #include "pg_lisp.h"
-#include "clause.h"
-#include "prepqual.h"
+#include "planner/clauses.h"
+#include "planner/internal.h"
+#include "planner/clause.h"
+#include "planner/prepqual.h"
 #include "lsyscache.h"
 
 

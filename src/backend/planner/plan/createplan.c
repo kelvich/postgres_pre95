@@ -14,40 +14,26 @@
  *     		create_plan
  */
 
-#include "internal.h"
+#include "planner/internal.h"
 #include "c.h"
 #include "log.h"
-#include "tlist.h"
-#include "createplan.h"
-#include "clauses.h"
-#include "clause.h"
+#include "planner/tlist.h"
+#include "planner/createplan.h"
+#include "planner/clauses.h"
+#include "planner/clause.h"
 #include "plannodes.h"
 #include "plannodes.a.h"
-#include "clauseinfo.h"
+#include "planner/clauseinfo.h"
 #include "relation.a.h"
 #include "relation.h"
-#include "setrefs.h"
+#include "planner/setrefs.h"
 #include "lsyscache.h"
 #include "execnodes.h"
 
 /* "Print out the total cost at each query processing operator"  */
+
 #define _watch_costs_  LispNil
 
-
-/*
-extern LispValue create_scan_node();
-extern LispValue create_indexscan_node();
-extern LispValue create_seqscan_node();
-extern LispValue fix_indxqual_references();
-extern LispValue create_nestloop_node();
-extern LispValue create_hashjoin_node();
-extern LispValue create_join_node();
-extern LispValue create_mergejoin_node();
-extern LispValue switch_outer();
-extern LispValue set_temp_tlist_operators();
-extern LispValue make_temp();
-*/
-extern SeqScan make_seqscan();
 
 /*    	================
  *    	GENERIC ROUTINES

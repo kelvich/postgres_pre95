@@ -16,11 +16,11 @@
  */
 
 #include "pg_lisp.h"
-#include "internal.h"
+#include "planner/internal.h"
 #include "relation.h"
 #include "relation.a.h"
-#include "joinrels.h"
-#include "joininfo.h"
+#include "planner/joinrels.h"
+#include "planner/joininfo.h"
 
 
 /*    

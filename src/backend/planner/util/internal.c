@@ -21,7 +21,7 @@
  *    
  */
 
-#include "internal.h"
+#include "planner/internal.h"
 #include "relation.h"
 #include "plannodes.h"
 #include "log.h"

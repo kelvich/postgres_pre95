@@ -11,10 +11,10 @@
  *     		rel-member
  */
 
-#include "internal.h"
-#include "relnode.h"
+#include "planner/internal.h"
+#include "planner/relnode.h"
 #include "relation.h"
-#include "plancat.h"
+#include "planner/plancat.h"
 
 extern void PrintRel();
 extern bool EqualRel();

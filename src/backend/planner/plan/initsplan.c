@@ -22,30 +22,22 @@
  *     	existing entry).
  */
 
-#include "internal.h"
+#include "planner/internal.h"
 #include "c.h"
-#include "clause.h"
+#include "planner/clause.h"
 #include "relation.h"
 #include "relation.a.h"
 #include "plannodes.h"
 #include "plannodes.a.h"
-#include "relnode.h"
-#include "joininfo.h
-#include "initsplan.h"
+#include "planner/relnode.h"
+#include "planner/joininfo.h
+#include "planner/initsplan.h"
 #include "pg_lisp.h"
 #include "lsyscache.h"
-#include "tlist.h"
+#include "planner/tlist.h"
 
-/*
-extern void *add_clause_to_rels();
-extern void *add_join_clause_info_to_rels();
-extern void *add_vars_to_rels();
-extern LispValue hashjoinop();
-extern LispValue mergesortop();
-*/
-
-extern Boolean _enable_mergesort_;
-extern Boolean _enable_hashjoin_;
+extern bool _enable_mergesort_;
+extern bool _enable_hashjoin_;
 
 /*     	============
  *     	TARGET LISTS

@@ -16,16 +16,16 @@
  *     		sort-level-result
  */
 
-#include "internal.h"
+#include "planner/internal.h"
 #include "relation.h"
 #include "relation.a.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
 #include "c.h"
 #include "pg_lisp.h"
-#include "tlist.h"
+#include "planner/tlist.h"
+#include "planner/sortresult.h"
 
-extern LispValue sort_list_car();
 
 /*    
  *    	relation-sortkeys
