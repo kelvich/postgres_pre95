@@ -15,9 +15,9 @@
 # ----------------------------------------------------------------
 TMPDIR=${TMPDIR-/tmp}
 INHFILE=$TMPDIR/inh.$$
-TAGFILE=$TREE/$OD/lib/H/tags.h
-TAGTEMP=$TREE/$OD/lib/H/tags.temp
-SLOTFILE=$TREE/$OD/lib/H/slots
+TAGFILE=tags.h
+TAGTEMP=tags.temp
+SLOTFILE=slots
 OUTFILE=inh.c
 
 # ----------------
