@@ -58,7 +58,7 @@
  *	dt
  * ----------------
  */
-typedef long	dt;
+typedef int32	dt;
 
 /* ----------------
  *	int2
@@ -120,7 +120,7 @@ typedef ObjectId RegProcedure;
  * ----------------
  */
 struct varlena {
-	long	vl_len;
+	int32	vl_len;
 	char	vl_dat[1];
 };
 
@@ -236,7 +236,7 @@ typedef NameData	*Name;
  * Port Notes:
  *  Postgres makes the following assumption about machines:
  *
- *  sizeof(Datum) == sizeof(char *) == sizeof(long) == 4
+ *  sizeof(Datum) == sizeof(long) >= sizeof(void *) >= 4
  *
  *  Postgres also assumes that
  *
@@ -255,6 +255,11 @@ typedef NameData	*Name;
 #ifndef	DatumIncluded		/* Include this file only once */
 #define DatumIncluded	1
 
+/* XXX wrong place */
+#ifdef PORTNAME_alpha
+#define	LONG64
+#endif
+
 /*
  * Identification:
  */
@@ -264,36 +269,15 @@ typedef struct AnyStruct {
 	double  largeFloat;
 } AnyStruct;
 
-typedef unsigned long Datum;
+typedef unsigned long Datum;	/* XXX sizeof(long) >= sizeof(void *) */
 typedef Datum *       DatumPtr;
-
-/*
- * We want to pad to the right on Sun computers and to the right on
- * the others.
- * 
- */
-
-#ifdef NOTDEF
-
-#define GET_1_BYTE(datum)   ((((long) (datum)) & 0xff000000) >> 24)
-#define GET_2_BYTES(datum)  ((((long) (datum)) & 0xffff0000) >> 16)
-#define GET_4_BYTES(datum)  (datum)
-#define SET_1_BYTE(value)   (((long) (value)) << 24)
-#define SET_2_BYTES(value)  (((long) (value)) << 16)
-#define SET_4_BYTES(value)  (value)
-
-#endif
-
-#if defined(sequent) || defined(mips) || defined(sun) || defined(sparc)
 
 #define GET_1_BYTE(datum)   (((Datum) (datum)) & 0x000000ff)
 #define GET_2_BYTES(datum)  (((Datum) (datum)) & 0x0000ffff)
-#define GET_4_BYTES(datum)  ((Datum) (datum))
+#define GET_4_BYTES(datum)  (((Datum) (datum)) & 0xffffffff)
 #define SET_1_BYTE(value)   (((Datum) (value)) & 0x000000ff)
 #define SET_2_BYTES(value)  (((Datum) (value)) & 0x0000ffff)
-#define SET_4_BYTES(value)  ((Datum) (value))
-
-#endif
+#define SET_4_BYTES(datum)  (((Datum) (datum)) & 0xffffffff)
 
 /*
  * DatumGetChar --
@@ -426,56 +410,88 @@ typedef Datum *       DatumPtr;
  *	Returns pointer value of a datum.
  */
 
+#ifndef LONG64
 #define DatumGetPointer(X) ((Pointer) GET_4_BYTES(X))
+#else /* LONG64 */
+#define DatumGetPointer(X) ((Pointer) X)
+#endif /* LONG64 */
 
 /*
  * PointerGetDatum --
  *	Returns datum representation for a pointer.
  */
 
+#ifndef LONG64
 #define PointerGetDatum(X) ((Datum) SET_4_BYTES(X))
+#else /* LONG64 */
+#define PointerGetDatum(X) ((Datum) X)
+#endif /* LONG64 */
 
 /*
  * DatumGetPointerPointer --
  *	Returns pointer to pointer value of a datum.
  */
 
+#ifndef LONG64
 #define DatumGetPointerPointer(X) ((Pointer *) GET_4_BYTES(X))
+#else /* LONG64 */
+#define DatumGetPointerPointer(X) ((Pointer *) X)
+#endif /* LONG64 */
 
 /*
  * PointerPointerGetDatum --
  *	Returns datum representation for a pointer to pointer.
  */
 
+#ifndef LONG64
 #define PointerPointerGetDatum(X) ((Datum) SET_4_BYTES(X))
+#else /* LONG64 */
+#define PointerPointerGetDatum(X) ((Datum) X)
+#endif /* LONG64 */
 
 /*
  * DatumGetStructPointer --
  *	Returns pointer to structure value of a datum.
  */
 
+#ifndef LONG64
 #define DatumGetStructPointer(X) ((AnyStruct *) GET_4_BYTES(X))
+#else /* LONG64 */
+#define DatumGetStructPointer(X) ((AnyStruct *) X)
+#endif /* LONG64 */
 
 /*
  * StructPointerGetDatum --
  *	Returns datum representation for a pointer to structure.
  */
 
+#ifndef LONG64
 #define StructPointerGetDatum(X) ((Datum) SET_4_BYTES(X))
+#else /* LONG64 */
+#define StructPointerGetDatum(X) ((Datum) X)
+#endif /* LONG64 */
 
 /*
  * DatumGetName --
  *	Returns name value of a datum.
  */
 
+#ifndef LONG64
 #define DatumGetName(X) ((Name) GET_4_BYTES(X))
+#else /* LONG64 */
+#define DatumGetName(X) ((Name) X)
+#endif /* LONG64 */
 
 /*
  * NameGetDatum --
  *	Returns datum representation for a name.
  */
 
+#ifndef LONG64
 #define NameGetDatum(X) ((Datum) SET_4_BYTES(X))
+#else /* LONG64 */
+#define NameGetDatum(X) ((Datum) X)
+#endif /* LONG64 */
 
 /*
  * DatumGetObjectId --
@@ -502,16 +518,16 @@ typedef Datum *       DatumPtr;
  *	TransactionId definition
  */
 
-typedef unsigned long		TransactionId;
-#define TransactionIdDataSize	sizeof(long)
+typedef uint32			TransactionId;
+#define TransactionIdDataSize	sizeof(TransactionId)
 
 #define InvalidTransactionId	0
 #define NullTransactionIdValue	0
 
-typedef unsigned long		TransactionIdValueData;
-typedef unsigned long		TransactionIdValue;
+typedef uint32			TransactionIdValueData;
+typedef uint32			TransactionIdValue;
 
-typedef unsigned short		CommandId;
+typedef uint16			CommandId;
 
 #define FirstCommandId	0
 
@@ -550,10 +566,10 @@ typedef uint32	RelativeTime;
  *		Section 8: old types being obsoleted
  * ----------------------------------------------------------------
  */
-typedef	long	XID;
-#define	CID	unsigned short
-#define	ABSTIME	long
-#define	RELTIME	long
+typedef	int32	XID;
+#define	CID	uint16
+#define	ABSTIME	uint32
+#define	RELTIME	uint32
 
 #define OID	oid
 #define	REGPROC	oid		/* for now */
