@@ -362,6 +362,40 @@ BKI_BEGIN
 #endif /* NOBTREE */
 BKI_END
 
+/*
+ *  hash table int2_ops
+ */
+DATA(insert OID = 0 (  405 421  94 1 btreesel btreenpage ));
+/*
+ *  hash table float8_ops
+ */
+DATA(insert OID = 0 (  405 423 670 1 btreesel btreenpage ));
+/*
+ *  hash table int4_ops
+ */
+DATA(insert OID = 0 (  405 426  96 1 hashsel hashnpage ));
+/*
+ *  hash table oid_ops
+ */
+DATA(insert OID = 0 (  405 427 607 1 hashsel hashnpage ));
+/*
+ *  hash table float4_ops
+ */
+DATA(insert OID = 0 (  405 428 620 1 hashsel hashnpage ));
+/*
+ *  hash table char_ops
+ */
+DATA(insert OID = 0 (  405 429 92 1 hashsel hashnpage ));
+/*
+ *  hash table char16_ops
+ */
+DATA(insert OID = 0 (  405 430 93 1 hashsel hashnpage ));
+/*
+ *  hash table text_ops
+ */
+DATA(insert OID = 0 (  405 431 98 1 hashsel hashnpage ));
+
+
 /* ----------------
  *	old definition of AccessMethodOperatorTupleForm
  * ----------------
