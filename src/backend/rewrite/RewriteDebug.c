@@ -18,6 +18,11 @@
 #include "parser/parse.h"
 #include "./RewriteSupport.h"
 
+/* to print out plans */
+
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
+
 #ifdef NOTYET
 char *
 VarOrUnionGetDesc ( varnode , rangetable )
@@ -68,7 +73,7 @@ Print_expr ( expr )
 	}
 	printf (" )");
 	break;
-      case classTag(Var):
+      case classTag(Var): 
 	lispDisplay ( get_varid(expr), 0 );
 	break;
       case classTag(Const):
@@ -88,6 +93,30 @@ Print_expr ( expr )
 	break;
       case classTag(Func):
 	lispDisplay(expr, 0);
+	break;
+      case classTag(Result):
+	printf("result :");
+	Print_expr(get_resconstantqual(expr));
+      case classTag(Append):
+	printf("append :");
+	Print_expr(get_unionplans(expr));
+	printf("\n");
+	break;
+      case classTag(SeqScan):
+	printf("seqscan : qual");
+	Print_expr(get_qpqual(expr));
+	printf("\n");
+	break;
+      case classTag(NestLoop):
+	printf("nestloop : qual");
+	Print_expr(get_qpqual(expr));
+	printf("\n");
+	printf("nestloop : righttree ");
+	Print_expr(get_righttree(expr));
+	printf("\n");
+	printf("nestloop : lefttree ");
+	Print_expr(get_lefttree(expr));
+	printf("\n");
 	break;
       default:
 	lispDisplay(expr, 0 );
