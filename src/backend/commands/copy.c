@@ -60,8 +60,6 @@ char *filename;
 
     if (from)
     {
-	mode_t oumask = umask(0);
-
         if (pipe && IsUnderPostmaster) ReceiveCopyBegin();
         if (IsUnderPostmaster)
         {
@@ -71,7 +69,6 @@ char *filename;
         {
             fp = pipe ? stdin : fopen(filename, "r");
         }
-	(void) umask(oumask);
         if (fp == NULL) 
         {
             elog(WARN, "COPY: file %s could not be open for reading", filename);
@@ -80,6 +77,8 @@ char *filename;
     }
     else
     {
+	mode_t oumask = umask((mode_t) 0);
+
         if (pipe && IsUnderPostmaster) SendCopyBegin();
         if (IsUnderPostmaster)
         {
@@ -89,6 +88,7 @@ char *filename;
         {
             fp = pipe ? stdout : fopen(filename, "w");
         }
+	(void) umask(oumask);
         if (fp == NULL) 
         {
             elog(WARN, "COPY: file %s could not be open for writing", filename);
