@@ -46,6 +46,8 @@ typedef TimeQualData	*InternalTimeQual;
 static TimeQualData	SelfTimeQualData;
 TimeQual		SelfTimeQual = (Pointer)&SelfTimeQualData;
 
+extern bool		PostgresIsInitialized;
+
 /*
  * XXX Transaction system override hacks start here
  */
@@ -571,6 +573,19 @@ bool
 HeapTupleSatisfiesNow(tuple)
 	HeapTuple	tuple;
 {
+    AbsoluteTime curtime;
+
+    /*
+     *  If the transaction system isn't yet initialized, then we assume
+     *  that transactions committed.  We only look at system catalogs
+     *  during startup, so this is less awful than it seems, but it's
+     *  still pretty awful.
+     */
+
+    if (!PostgresIsInitialized)
+	return ((bool)(TransactionIdIsValid((TransactionId)tuple->t_xmin) &&
+		       !TransactionIdIsValid((TransactionId)tuple->t_xmax)));
+
     /*
      * XXX Several evil casts are made in this routine.  Casting XID to be 
      * TransactionId works only because TransactionId->data is the first
@@ -578,18 +593,14 @@ HeapTupleSatisfiesNow(tuple)
      */
     if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
 
-#ifndef	ELOGTIME
-	/* XXX this should be removable with anything breaking */
-	/* system bootstrapping might break without this */
-	if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmin) &&
-	    CommandIdIsCurrentCommandId(tuple->t_cmin)) {
+	if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmin)
+	    && CommandIdIsCurrentCommandId(tuple->t_cmin)) {
 
 	    return (false);
 	}
-#endif	/* !defined(ELOGTIME) */
 
-	if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmin) &&
-	    !CommandIdIsCurrentCommandId(tuple->t_cmin)) {
+	if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmin)
+	    && !CommandIdIsCurrentCommandId(tuple->t_cmin)) {
 
 	    if (!TransactionIdIsValid((TransactionId)tuple->t_xmax)) {
 		return (true);
@@ -609,22 +620,44 @@ HeapTupleSatisfiesNow(tuple)
 	if (!TransactionIdDidCommit((TransactionId)tuple->t_xmin)) {
 	    return (false);
 	}
-    }
-    /* the tuple was inserted validly */
 
+	tuple->t_tmin = TransactionIdGetCommitTime(tuple->t_xmin);
+    }
+
+    curtime = GetCurrentTransactionStartTime();
+
+    if (AbsoluteTimeIsAfter(tuple->t_tmin, curtime)) {
+	elog(NOTICE, "cur xact start %ld tup commit %ld", curtime,
+		     tuple->t_tmin);
+	return (false);
+    }
+
+    /* we can see the insert */
     if (AbsoluteTimeIsReal(tuple->t_tmax)) {
-		return (false);
+	if (AbsoluteTimeIsAfter(tuple->t_tmax, curtime))
+	    return (true);
+
+	return (false);
     }
 
     if (!TransactionIdIsValid((TransactionId)tuple->t_xmax)) {
-		return (true);
+	return (true);
     }
 
     if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmax)) {
-		return (false);
+	return (false);
     }
 
-    return ((bool)!TransactionIdDidCommit((TransactionId)tuple->t_xmax));
+    if (!TransactionIdDidCommit((TransactionId)tuple->t_xmax)) {
+	return (true);
+    }
+
+    tuple->t_tmax = TransactionIdGetCommitTime(tuple->t_xmax);
+
+    if (AbsoluteTimeIsAfter(tuple->t_tmax, curtime))
+	return (true);
+
+    return (false);
 }
 
 /*
@@ -746,15 +779,11 @@ HeapTupleSatisfiesUpperUnboundedInternalTimeQual(tuple, qual)
 {
     if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
 
-#ifndef	ELOGTIME
-	/* XXX this should be removable with anything breaking */
-	/* system bootstrapping might break without this */
 	if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmin) &&
 	    CommandIdIsCurrentCommandId(tuple->t_cmin)) {
 
 	    return (false);
 	}
-#endif	/* !defined(ELOGTIME) */
 
 	if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmin) &&
 	    !CommandIdIsCurrentCommandId(tuple->t_cmin)) {
