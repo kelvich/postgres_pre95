@@ -7,9 +7,7 @@
  *
  */
 
-
-#include "c.h"
-#include "postgres.h"
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 
@@ -23,17 +21,18 @@ RcsId("$Header$");
  *  provide ("pppp");
  */
 
-#include "nodes.h"
-#include "plannodes.h"
-#include "plannodes.a.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
-#include "execnodes.h"
+#include "nodes/nodes.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
+#include "nodes/execnodes.h"
+#include "tags.h"
+
 #include "planner/internal.h"
 #include "planner/clauses.h"
 #include "planner/keys.h"
-#include "pg_lisp.h"
-#include "tags.h"
 
 extern	void	print_root();
 extern	void	print_clauses();

@@ -17,16 +17,17 @@
  *     		compute_clause_selec
  */
 
-#include "pg_lisp.h"
-#include "relation.h"
-#include "relation.a.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
+
 #include "planner/internal.h"
 #include "planner/clause.h"
 #include "planner/clausesel.h"
 #include "planner/plancat.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
-#include "parsetree.h"
+#include "parser/parsetree.h"
 
 /*     		----  ROUTINES TO SET CLAUSE SELECTIVITIES  ----   */
 

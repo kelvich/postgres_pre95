@@ -15,7 +15,7 @@
 
 #include "planner/internal.h"
 #include "planner/relnode.h"
-#include "relation.h"
+#include "nodes/relation.h"
 #include "planner/plancat.h"
 
 /* ----------------

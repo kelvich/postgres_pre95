@@ -22,10 +22,10 @@
  */
 
 #include "planner/internal.h"
-#include "relation.h"
-#include "plannodes.h"
-#include "primnodes.h"
-#include "log.h"
+#include "nodes/relation.h"
+#include "nodes/plannodes.h"
+#include "nodes/primnodes.h"
+#include "utils/log.h"
 
 /*    
  *    	---------- GLOBAL VARIABLES

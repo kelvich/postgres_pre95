@@ -14,14 +14,14 @@
  *     		preprocess-qualification
  */
 
-#include "pg_lisp.h"
+#include "nodes/pg_lisp.h"
+
 #include "planner/clauses.h"
 #include "planner/internal.h"
 #include "planner/clause.h"
 #include "planner/prepqual.h"
-#include "lsyscache.h"
 
-
+#include "utils/lsyscache.h"
 
 /*    
  *    	preprocess-qualification
