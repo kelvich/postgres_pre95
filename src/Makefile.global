@@ -153,6 +153,15 @@ MACHINE=i386
 .endif
 
 #
+# Comment out ENFORCE_ALIGNMENT if you do NOT want unaligned access to
+# multi-byte types to generate a bus error.
+#
+.if (${PORTNAME} == "ultrix4")
+ENFORCE_ALIGNMENT=
+.endif
+
+
+#
 # The default bmake rules will strip binaries while installing them.
 # This line OVERRIDES the stripping option.
 # You do NOT want to comment out or remove this line.
@@ -273,4 +282,25 @@ CFLAGS+= -DSEQUOIA
 CFLAGS+= -DSYSV_SIGNAL
 .elif (${PORTNAME} == "linux")
 CFLAGS+= -D__USE_BSD_SIGNAL
+.endif
+
+#
+# NOFIXADE disallows unaligned access.
+#	on Ultrix and OSF/1 it invokes an explicit syscall.
+#	on HP-UX it turns off certain compiler options.
+# This is defined here because a bunch of clients include tmp/c.h,
+# which is where the work is done on HP-UX.  It only affects the
+# backend on Ultrix and OSF/1.
+#
+.if defined(ENFORCE_ALIGNMENT)
+.  if (${PORTNAME} == "ultrix4" || \
+       ${PORTNAME} == "alpha" || \
+       ${PORTNAME} == "hpux")
+CFLAGS+= -DNOFIXADE
+.  endif
+.else
+.  if (${PORTNAME} == "hpux")
+CFLAGS+= +u
+LDFLAGS+= +u
+.  endif
 .endif

@@ -210,15 +210,6 @@ LDADD+= -N
 .endif
 
 #
-# this turns off unaligned access fixup.
-# (it's not a DEC builtin -- it invokes an explicit Ultrix syscall --
-# so defining this anywhere else is useless.)
-#
-.if (${PORTNAME} == "ultrix4")
-CFLAGS+= -DNOFIXADE
-.endif
-
-#
 # Install the bki files to the data directory.  We also
 # copy a version of them that has "PGUID" intact, so one
 # can change the value of the postgres userid before
@@ -288,9 +279,15 @@ depend: .depend
 #
 .SUFFIXES: .C
 .c.C:
-	${CC} -E ${CFLAGS} ${.IMPSRC} | cat -s > ${.TARGET}; \
-	indent ${.TARGET}
+	${CC} -E ${CFLAGS} ${.IMPSRC} | cat -s | cb > ${.TARGET}
 
+cppall: ${SRCS:S/.c/.C/g}
+
+#
+# To use Purify (SunOS only), define PURIFY to be the path (and options)
+# with which to invoke the Purify loader.  Only the executable needs to
+# be loaded with Purify.
+#
 .if defined(PURIFY)
 ${PROG}: ${OBJS} ${LIBC} ${DPADD}
 	${PURIFY} ${CC} ${LDFLAGS} -o ${.TARGET} ${OBJS} ${LDADD}
