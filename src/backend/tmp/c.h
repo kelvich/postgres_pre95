@@ -3,7 +3,7 @@
  *	c.h
  *
  *   DESCRIPTION
- *	Fundamental C definitions.  This is included by nearly
+ *	Fundamental C definitions.  This is included by 
  *	every .c file in postgres.
  *
  *   TABLE OF CONTENTS
@@ -30,6 +30,7 @@
  *	10)	LintCast, RevisionId, RcsId, SccsId macros
  *	11)	SymbolDecl, ExternDecl macros
  *	12)	externs
+ *	13)	system-specific hacks
  *
  *   NOTES
  *	This file reorganized as a result of eliminating wastful
@@ -961,6 +962,26 @@ ExceptionalCondition ARGS((
 extern
 String
 form ARGS(( int, ... ));
+
+/* ----------------------------------------------------------------
+ *		Section 13: system-specific hacks
+ * ----------------------------------------------------------------
+ */
+
+/* HP-UX */
+
+/*
+ * This cheesy hack turns ON unaligned-access fixup on H-P PA-RISC;
+ * the resulting object files contain code that explicitly handles
+ * realignment on reference, so it slows memory access down by a 
+ * considerable factor.  It must be used in conjunction with the +u 
+ * flag to cc.  The #pragma is included in c.h to be safe since EVERY 
+ * source file that performs unaligned access must contain the #pragma.
+ */
+#if defined(PORTNAME_hpux) && !defined(NOFIXADE)
+/* permit unaligned access (down to 16-bit shortword boundaries). */
+#pragma HP_ALIGN HPUX_WORD
+#endif /* PORTNAME_hpux && !NOFIXADE */
 
 /* ----------------
  *	end of c.h
