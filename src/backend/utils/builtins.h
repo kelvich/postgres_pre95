@@ -21,6 +21,8 @@
 
 #include "storage/itemptr.h"
 
+#include "utils/large_object.h"
+
 #ifdef FMGR_ADT
 #include "utils/geo-decls.h"
 #endif /* FMGR_ADT */
@@ -29,141 +31,73 @@
 /*
  *	Defined in adt/
  */
-extern int32		boolin();
-extern char 		*boolout();
-extern int32		charin();
-extern char		*charout();
-extern int32		cidin();
-extern char		*cidout();
-extern int32		chareq();
-extern int32		charne();
-extern int32		charlt();
-extern int32		charle();
-extern int32		chargt();
-extern int32		charge();
-extern int32		charpl();
-extern int32		charmi();
-extern int32		charmul();
-extern int32		chardiv();
+/* bool.c */
+int32 boolin ARGS((char *b ));
+char *boolout ARGS((long b ));
 
-extern char		*char16in();
-extern char		*char16out();
-extern int32		char16eq();
-extern int32		char16ne();
-extern int32		char16lt();
-extern int32		char16le();
-extern int32		char16gt();
-extern int32		char16ge();
+/* char.c */
+int32 charin ARGS((char *ch ));
+char *charout ARGS((int32 ch ));
+int32 cidin ARGS((char *s ));
+char *cidout ARGS((int32 c ));
+int32 chareq ARGS((int8 arg1 , int8 arg2 ));
+int32 charne ARGS((int8 arg1 , int8 arg2 ));
+int32 charlt ARGS((int8 arg1 , int8 arg2 ));
+int32 charle ARGS((int8 arg1 , int8 arg2 ));
+int32 chargt ARGS((int8 arg1 , int8 arg2 ));
+int32 charge ARGS((int8 arg1 , int8 arg2 ));
+int32 charpl ARGS((int8 arg1 , int8 arg2 ));
+int32 charmi ARGS((int8 arg1 , int8 arg2 ));
+int32 charmul ARGS((int8 arg1 , int8 arg2 ));
+int32 chardiv ARGS((int8 arg1 , int8 arg2 ));
+char *char16in ARGS((char *s ));
+char *char16out ARGS((char *s ));
+int32 char16eq ARGS((char *arg1 , char *arg2 ));
+int32 char16ne ARGS((char *arg1 , char *arg2 ));
+int32 char16lt ARGS((char *arg1 , char *arg2 ));
+int32 char16le ARGS((char *arg1 , char *arg2 ));
+int32 char16gt ARGS((char *arg1 , char *arg2 ));
+int32 char16ge ARGS((char *arg1 , char *arg2 ));
+char *pg_username ARGS((void));
 
-extern int32		int2eq();
-extern int32		int2lt();
-extern int32		int4eq();
-extern int32		int4lt();
-extern int32		int4ne();
-extern int32		int2ne();
-extern int32		int2gt();
-extern int32		int4gt();
-extern int32		int2le();
-extern int32		int4le();
-extern int32		int4ge();
-extern int32		int2ge();
-extern int32		int2mul();
-extern int32		int2div();
-extern int32		int4div();
-extern int32		int2mod();
-extern int32		int2pl();
-extern int32		int4pl();
-extern int32		int2mi();
-extern int32		int4mi();
-extern int32		keyfirsteq();
-extern Time		abstimein();
-extern char		*abstimeout();
-extern Time		reltimein();
-extern char		*reltimeout();
-extern Time		timepl();
-extern int32		abstimeeq();
-extern int32		abstimene();
-extern int32		abstimelt();
-extern int32		abstimegt();
-extern int32		abstimele();
-extern int32		abstimege();
-/* XXX Other time stuff goes here ??? */
-extern int32		dtin();
-extern char		*dtout();
-extern float32		float4in();
-extern char		*float4out();
-extern float32		float4abs();
-extern float32		float4um();
-extern float64		float8in();
-extern char		*float8out();
-extern float64		float8abs();
-extern float64		float8um();
-extern float32		float4pl();
-extern float32		float4mi();
-extern float32		float4mul();
-extern float32		float4inc();
-extern float32		float4larger();
-extern float32		float4smaller();
-extern float32		float4div();
-extern float64		float8pl();
-extern float64		float8mi();
-extern float64 		float8mul();
-extern float64 		float8inc();
-extern float64 		float8larger();
-extern float64 		float8smaller();
-extern float64		float8div();
-extern int32		float4eq();
-extern int32		float4ne();
-extern int32		float4lt();
-extern int32		float4le();
-extern int32		float4gt();
-extern int32		float4ge();
-extern int32		float8eq();
-extern int32		float8ne();
-extern int32		float8lt();
-extern int32		float8le();
-extern int32		float8gt();
-extern int32		float8ge();
-extern float64		ftod();
-extern float32		dtof();
-#ifdef FMGR_MATH
-extern float64		dround();
-extern float64		dtrunc();
-extern float64		dsqrt();
-extern float64		dcbrt();
-extern float64		dpow();
-extern float64		dexp();
-extern float64		dlog1();
-extern float64		float48pl();
-extern float64		float48mi();
-extern float64		float48mul();
-extern float64		float48div();
-extern float64		float84pl();
-extern float64		float84mi();
-extern float64		float84mul();
-extern float64		float84div();
-extern int32		float48eq();
-extern int32		float48ne();
-extern int32		float48lt();
-extern int32		float48le();
-extern int32		float48gt();
-extern int32		float48ge();
-extern int32		float84eq();
-extern int32		float84ne();
-extern int32		float84lt();
-extern int32		float84le();
-extern int32		float84gt();
-extern int32		float84ge();
-#endif /* FMGR_MATH */
-extern int32		int2in();
-extern char		*int2out();
-extern int16		*int28in();
-extern char		*int28out();
-extern int32		*int44in();
-extern char		*int44out();
-extern int32		int4in();
-extern char		*int4out();
-extern int32		itoi();
+/* int.c */
+int32 int2in ARGS((char *num ));
+char *int2out ARGS((int16 sh ));
+int16 *int28in ARGS((char *shs ));
+char *int28out ARGS((int16 (*shs )[]));
+int32 *int44in ARGS((char *input_string ));
+char *int44out ARGS((int32 an_array []));
+int32 int4in ARGS((char *num ));
+char *int4out ARGS((int32 l ));
+int32 itoi ARGS((int32 arg1 ));
+int32 int4eq ARGS((int32 arg1 , int32 arg2 ));
+int32 int4ne ARGS((int32 arg1 , int32 arg2 ));
+int32 int4lt ARGS((int32 arg1 , int32 arg2 ));
+int32 int4le ARGS((int32 arg1 , int32 arg2 ));
+int32 int4gt ARGS((int32 arg1 , int32 arg2 ));
+int32 int4ge ARGS((int32 arg1 , int32 arg2 ));
+int32 keyfirsteq ARGS((int16 *arg1 , int16 arg2 ));
+int32 int2eq ARGS((int16 arg1 , int16 arg2 ));
+int32 int2ne ARGS((int16 arg1 , int16 arg2 ));
+int32 int2lt ARGS((int16 arg1 , int16 arg2 ));
+int32 int2le ARGS((int16 arg1 , int16 arg2 ));
+int32 int2gt ARGS((int16 arg1 , int16 arg2 ));
+int32 int2ge ARGS((int16 arg1 , int16 arg2 ));
+int32 int4pl ARGS((int32 arg1 , int32 arg2 ));
+int32 int4mi ARGS((int32 arg1 , int32 arg2 ));
+int32 int4mul ARGS((int32 arg1 , int32 arg2 ));
+int32 int4div ARGS((int32 arg1 , int32 arg2 ));
+int32 int4inc ARGS((int32 arg ));
+int32 int2pl ARGS((int16 arg1 , int16 arg2 ));
+int32 int2mi ARGS((int16 arg1 , int16 arg2 ));
+int32 int2mul ARGS((int16 arg1 , int16 arg2 ));
+int32 int2div ARGS((int16 arg1 , int16 arg2 ));
+int32 int2inc ARGS((int16 arg ));
+int16 int2larger ARGS((int16 arg1 , int16 arg2 ));
+int16 int2smaller ARGS((int16 arg1 , int16 arg2 ));
+int32 int4larger ARGS((int32 arg1 , int32 arg2 ));
+int32 int4smaller ARGS((int32 arg1 , int32 arg2 ));
+
 extern int32		inteq();
 extern int32		intne();
 extern int32		intlt();
@@ -172,40 +106,15 @@ extern int32		intgt();
 extern int32		intge();
 extern int32		intpl();
 extern int32		intmi();
-extern int32		int4mul();
 extern int32		intdiv();
+
 #ifdef FMGR_MATH
+int32 int4mod ARGS((int32 arg1 , int32 arg2 ));
+int32 int2mod ARGS((int16 arg1 , int16 arg2 ));
+int32 int4fac ARGS((int32 arg1 ));
+int32 int2fac ARGS((int16 arg1 ));
 extern int32		intmod();
-extern int32		int4mod();
-extern int32		int4fac();
-extern int32		int2fac();
 #endif /* FMGR_MATH */
-extern ObjectId		*oid8in();
-extern char		*oid8out();
-extern int32		regprocin();
-extern char		*regprocout();
-extern float64		eqsel();
-extern float64		neqsel();
-extern float64		intltsel();
-extern float64		intgtsel();
-extern float64		eqjoinsel();
-extern float64		neqjoinsel();
-extern float64		intltjoinsel();
-extern float64		intgtjoinsel();
-extern struct varlena	*byteain();
-extern char		*byteaout();
-
-extern struct varlena	*textin();
-extern char		*textout();
-extern int32		texteq();
-extern int32		textne();
-extern int32		text_lt();
-extern int32		text_le();
-extern int32		text_gt();
-extern int32		text_ge();
-
-extern ItemPointer	tidin();
-extern char		*tidout();
 
 /*
  *  	New btree code.
@@ -249,12 +158,6 @@ extern int32		btchar16cmp();
 extern int32		bttextcmp();
 
 /*
- *  Selectivity functions for btrees in utils/adt/selfuncs.c
- */
-extern float64		btreesel();
-extern float64		btreenpage();
-
-/*
  *	RTree code.
  *	Defined in access/index-rtree/
  */
@@ -269,12 +172,6 @@ extern void		rtrestrpos();
 extern void		rtrescan();
 extern void		rtbuild();
 
-/*
- *  Selectivity functions for rtrees in utils/adt/selfuncs.c
- */
-extern float64		rtsel();
-extern float64		rtnpage();
-
 /* support routines for the rtree access method, by opclass */
 #ifdef FMGR_ADT
 extern BOX		*rt_box_union();
@@ -286,115 +183,242 @@ extern POLYGON	*rt_poly_union();
 extern POLYGON	*rt_poly_inter();
 #endif /* FMGR_ADT */
 
-/*
- *	Defined in useradt/
- *
- * XXX These shouldn't be here at all -- they shouldn't be built-in.
- */
-#ifdef FMGR_ADT
-extern POINT	*point_in();
-extern char	*point_out();
-extern LSEG	*lseg_in();
-extern char	*lseg_out();
-extern PATH	*path_in();
-extern char	*path_out();
-extern BOX	*box_in();
-extern char	*box_out();
-extern long	box_overlap();
-extern long	box_same();
-extern long	box_contain();
-extern long	box_left();
-extern long	box_overleft();
-extern long	box_overright();
-extern long	box_right();
-extern long	box_contained();
-extern long	box_ge();
-extern long	box_gt();
-extern long	box_eq();
-extern long	box_lt();
-extern long	box_le();
-extern long	point_above();
-extern long	point_left();
-extern long	point_right();
-extern long	point_below();
-extern long	point_eq();
-extern long	on_pb();
-extern long	on_ppath();
-extern POINT	*box_center();
-extern POLYGON	*poly_in();
-extern char	*poly_out();
-extern long	poly_overlap();
-extern long	poly_same();
-extern long	poly_contain();
-extern long	poly_left();
-extern long	poly_overleft();
-extern long	poly_overright();
-extern long	poly_right();
-extern long	poly_contained();
-extern float64	areasel();
-extern float64	areajoinsel();
-extern long	pointdist();
-
-extern bool	char16regexeq();
-extern bool	char16regexne();
-extern bool	textregexeq();
-extern bool	textregexne();
-#endif /* FMGR_ADT */
-
-extern bool int4notin();
-extern bool oidnotin();
-
 /* rule locks */
 extern Datum GetAttribute();
 
-/* rule stub records */
-
-extern int32 byteaGetSize();
-extern int32 byteaGetByte();
-extern struct varlena * byteaSetByte();
-extern int32 byteaGetBit();
-extern struct varlena * byteaSetBit();
-
-extern int32 userfntest();
-
-extern char *pg_username();
-
-extern char *array_in();
-extern char *array_out();
-
-extern char *filename_in();
-extern char *filename_out();
-
-extern char *lo_filein();
-extern char *lo_fileout();
-
-extern int2 smgrin();
-extern char *smgrout();
-extern bool smgreq();
-extern bool smgrne();
 
 extern int32 pqtest();
-extern int32 int2inc();
-extern int16 int2larger();
-extern int16 int2smaller();
-extern int32 int4inc();
-extern int32 int4larger();
-extern int32 int4smaller();
+
+/* arrayfuncs.c */
+char *array_in ARGS((char *string , ObjectId element_type ));
+char *array_out ARGS((char *items , ObjectId element_type ));
+
+/* date.c */
+AbsoluteTime abstimein ARGS((char *datetime ));
+char *abstimeout ARGS((AbsoluteTime datetime ));
+int32 reltimein ARGS((char *timestring ));
+char *reltimeout ARGS((int32 timevalue ));
+AbsoluteTime timepl ARGS((AbsoluteTime AbsTime_t1 , RelativeTime RelTime_t2 ));
+int32 abstimeeq ARGS((AbsoluteTime t1 , AbsoluteTime t2 ));
+int32 abstimene ARGS((AbsoluteTime t1 , AbsoluteTime t2 ));
+int32 abstimelt ARGS((int32 t1 , int32 t2 ));
+int32 abstimegt ARGS((int32 t1 , int32 t2 ));
+int32 abstimele ARGS((int32 t1 , int32 t2 ));
+int32 abstimege ARGS((int32 t1 , int32 t2 ));
+
+
+/* dt.c */
+int32 dtin ARGS((char *datetime ));
+char *dtout ARGS((int32 datetime ));
+
+/* filename.c */
+char *filename_in ARGS((char *file ));
+char *filename_out ARGS((char *s ));
+
+/* float.c */
+float32 float4in ARGS((char *num ));
+char *float4out ARGS((float32 num ));
+float64 float8in ARGS((char *num ));
+char *float8out ARGS((float64 num ));
+float32 float4abs ARGS((float32 arg1 ));
+float32 float4um ARGS((float32 arg1 ));
+float32 float4larger ARGS((float32 arg1 , float32 arg2 ));
+float32 float4smaller ARGS((float32 arg1 , float32 arg2 ));
+float64 float8abs ARGS((float64 arg1 ));
+float64 float8um ARGS((float64 arg1 ));
+float64 float8larger ARGS((float64 arg1 , float64 arg2 ));
+float64 float8smaller ARGS((float64 arg1 , float64 arg2 ));
+float32 float4pl ARGS((float32 arg1 , float32 arg2 ));
+float32 float4mi ARGS((float32 arg1 , float32 arg2 ));
+float32 float4mul ARGS((float32 arg1 , float32 arg2 ));
+float32 float4div ARGS((float32 arg1 , float32 arg2 ));
+float32 float4inc ARGS((float32 arg1 ));
+float64 float8pl ARGS((float64 arg1 , float64 arg2 ));
+float64 float8mi ARGS((float64 arg1 , float64 arg2 ));
+float64 float8mul ARGS((float64 arg1 , float64 arg2 ));
+float64 float8div ARGS((float64 arg1 , float64 arg2 ));
+float64 float8inc ARGS((float64 arg1 ));
+long float4eq ARGS((float32 arg1 , float32 arg2 ));
+long float4ne ARGS((float32 arg1 , float32 arg2 ));
+long float4lt ARGS((float32 arg1 , float32 arg2 ));
+long float4le ARGS((float32 arg1 , float32 arg2 ));
+long float4gt ARGS((float32 arg1 , float32 arg2 ));
+long float4ge ARGS((float32 arg1 , float32 arg2 ));
+long float8eq ARGS((float64 arg1 , float64 arg2 ));
+long float8ne ARGS((float64 arg1 , float64 arg2 ));
+long float8lt ARGS((float64 arg1 , float64 arg2 ));
+long float8le ARGS((float64 arg1 , float64 arg2 ));
+long float8gt ARGS((float64 arg1 , float64 arg2 ));
+long float8ge ARGS((float64 arg1 , float64 arg2 ));
+float64 ftod ARGS((float32 num ));
+float32 dtof ARGS((float64 num ));
+#ifdef FMGR_MATH
+float64 dround ARGS((float64 arg1 ));
+float64 dtrunc ARGS((float64 arg1 ));
+float64 dsqrt ARGS((float64 arg1 ));
+float64 dcbrt ARGS((float64 arg1 ));
+float64 dpow ARGS((float64 arg1 , float64 arg2 ));
+float64 dexp ARGS((float64 arg1 ));
+float64 dlog1 ARGS((float64 arg1 ));
+float64 float48pl ARGS((float32 arg1 , float64 arg2 ));
+float64 float48mi ARGS((float32 arg1 , float64 arg2 ));
+float64 float48mul ARGS((float32 arg1 , float64 arg2 ));
+float64 float48div ARGS((float32 arg1 , float64 arg2 ));
+float64 float84pl ARGS((float64 arg1 , float32 arg2 ));
+float64 float84mi ARGS((float64 arg1 , float32 arg2 ));
+float64 float84mul ARGS((float64 arg1 , float32 arg2 ));
+float64 float84div ARGS((float64 arg1 , float32 arg2 ));
+long float48eq ARGS((float32 arg1 , float64 arg2 ));
+long float48ne ARGS((float32 arg1 , float64 arg2 ));
+long float48lt ARGS((float32 arg1 , float64 arg2 ));
+long float48le ARGS((float32 arg1 , float64 arg2 ));
+long float48gt ARGS((float32 arg1 , float64 arg2 ));
+long float48ge ARGS((float32 arg1 , float64 arg2 ));
+long float84eq ARGS((float64 arg1 , float32 arg2 ));
+long float84ne ARGS((float64 arg1 , float32 arg2 ));
+long float84lt ARGS((float64 arg1 , float32 arg2 ));
+long float84le ARGS((float64 arg1 , float32 arg2 ));
+long float84gt ARGS((float64 arg1 , float32 arg2 ));
+long float84ge ARGS((float64 arg1 , float32 arg2 ));
+#endif /* FMGR_MATH */
 
 /* in utils/adt/ftype.c -- mao's stuff */
-extern ObjectId fimport();
-extern int32 fexport();
-extern int32 fabstract();
+ObjectId fimport ARGS((struct varlena *name ));
+int32 fexport ARGS((struct varlena *name , ObjectId foid ));
+int32 fabstract ARGS((struct varlena *name , ObjectId foid , int32 blksize , int32 offset , int32 size ));
 
-extern char *oidseqout();
-extern OidSeq oidseqin();
-extern bool oidseqlt();
-extern bool oidseqle();
-extern bool oidseqeq();
-extern bool oidseqge();
-extern bool oidseqgt();
-extern bool oidseqne();
-extern bool oidseqcmp();
-extern OidSeq mkoidseq();
+#ifdef FMGR_ADT
+/* geo-ops.c */
+BOX *box_in ARGS((char *str ));
+char *box_out ARGS((BOX *box ));
+long box_same ARGS((BOX *box1 , BOX *box2 ));
+long box_overlap ARGS((BOX *box1 , BOX *box2 ));
+long box_overleft ARGS((BOX *box1 , BOX *box2 ));
+long box_left ARGS((BOX *box1 , BOX *box2 ));
+long box_right ARGS((BOX *box1 , BOX *box2 ));
+long box_overright ARGS((BOX *box1 , BOX *box2 ));
+long box_contained ARGS((BOX *box1 , BOX *box2 ));
+long box_contain ARGS((BOX *box1 , BOX *box2 ));
+long box_below ARGS((BOX *box1 , BOX *box2 ));
+long box_above ARGS((BOX *box1 , BOX *box2 ));
+long box_lt ARGS((BOX *box1 , BOX *box2 ));
+long box_gt ARGS((BOX *box1 , BOX *box2 ));
+long box_eq ARGS((BOX *box1 , BOX *box2 ));
+long box_le ARGS((BOX *box1 , BOX *box2 ));
+long box_ge ARGS((BOX *box1 , BOX *box2 ));
+POINT *box_center ARGS((BOX *box ));
+PATH *path_in ARGS((char *str ));
+char *path_out ARGS((PATH *path ));
+POINT *point_in ARGS((char *str ));
+char *point_out ARGS((POINT *pt ));
+long point_left ARGS((POINT *pt1 , POINT *pt2 ));
+long point_right ARGS((POINT *pt1 , POINT *pt2 ));
+long point_above ARGS((POINT *pt1 , POINT *pt2 ));
+long point_below ARGS((POINT *pt1 , POINT *pt2 ));
+long point_eq ARGS((POINT *pt1 , POINT *pt2 ));
+long pointdist ARGS((POINT *p1 , POINT *p2 ));
+LSEG *lseg_in ARGS((char *str ));
+char *lseg_out ARGS((LSEG *ls ));
+POLYGON *poly_in ARGS((char *s ));
+char *poly_out ARGS((POLYGON *poly ));
+long poly_left ARGS((POLYGON *polya , POLYGON *polyb ));
+long poly_overleft ARGS((POLYGON *polya , POLYGON *polyb ));
+long poly_right ARGS((POLYGON *polya , POLYGON *polyb ));
+long poly_overright ARGS((POLYGON *polya , POLYGON *polyb ));
+long poly_same ARGS((POLYGON *polya , POLYGON *polyb ));
+long poly_overlap ARGS((POLYGON *polya , POLYGON *polyb ));
+long poly_contain ARGS((POLYGON *polya , POLYGON *polyb ));
+long poly_contained ARGS((POLYGON *polya , POLYGON *polyb ));
 
+/* geo-selfuncs.c */
+float64 areasel ARGS((ObjectId opid , ObjectId relid , AttributeNumber attno , char *value , int32 flag ));
+float64 areajoinsel ARGS((ObjectId opid , ObjectId relid , AttributeNumber attno , char *value , int32 flag ));
+#endif /* FMGR_ADT */
+
+/* lo_regprocs.c */
+char *lo_filein ARGS((char *filename ));
+char *lo_fileout ARGS((LargeObject *object ));
+
+/* misc.c */
+int32 userfntest ARGS((int i ));
+
+/* not_in.c */
+bool int4notin ARGS((int16 not_in_arg , char *relation_and_attr ));
+bool oidnotin ARGS((ObjectId the_oid , char *compare ));
+
+/* oid.c */
+ObjectId *oid8in ARGS((char *oidString ));
+char *oid8out ARGS((ObjectId (*oidArray )[]));
+
+/* oidseq.c */
+OidSeq oidseqin ARGS((char *o ));
+char *oidseqout ARGS((OidSeq o ));
+bool oidseqlt ARGS((OidSeq o1 , OidSeq o2 ));
+bool oidseqle ARGS((OidSeq o1 , OidSeq o2 ));
+bool oidseqeq ARGS((OidSeq o1 , OidSeq o2 ));
+bool oidseqge ARGS((OidSeq o1 , OidSeq o2 ));
+bool oidseqgt ARGS((OidSeq o1 , OidSeq o2 ));
+bool oidseqne ARGS((OidSeq o1 , OidSeq o2 ));
+bool oidseqcmp ARGS((OidSeq o1 , OidSeq o2 ));
+OidSeq mkoidseq ARGS((ObjectId v_oid , uint32 v_seq ));
+
+#ifdef FMGR_ADT
+/* regexp.c */
+bool char16regexeq ARGS((char *s , char *p ));
+bool char16regexne ARGS((char *s , char *p ));
+bool textregexeq ARGS((struct varlena *s , struct varlena *p ));
+bool textregexne ARGS((char *s , char *p ));
+#endif /* FMGR_ADT */
+
+/* regproc.c */
+int32 regprocin ARGS((char *proname ));
+char *regprocout ARGS((RegProcedure proid ));
+
+/* selfuncs.c */
+float64 eqsel ARGS((ObjectId opid , ObjectId relid , AttributeNumber attno , char *value , int32 flag ));
+float64 neqsel ARGS((ObjectId opid , ObjectId relid , AttributeNumber attno , char *value , int32 flag ));
+float64 intltsel ARGS((ObjectId opid , ObjectId relid , AttributeNumber attno , int32 value , int32 flag ));
+float64 intgtsel ARGS((ObjectId opid , ObjectId relid , AttributeNumber attno , int32 value , int32 flag ));
+float64 eqjoinsel ARGS((ObjectId opid , ObjectId relid1 , AttributeNumber attno1 , ObjectId relid2 , AttributeNumber attno2 ));
+float64 neqjoinsel ARGS((ObjectId opid , ObjectId relid1 , AttributeNumber attno1 , ObjectId relid2 , AttributeNumber attno2 ));
+float64 intltjoinsel ARGS((ObjectId opid , ObjectId relid1 , AttributeNumber attno1 , ObjectId relid2 , AttributeNumber attno2 ));
+float64 intgtjoinsel ARGS((ObjectId opid , ObjectId relid1 , AttributeNumber attno1 , ObjectId relid2 , AttributeNumber attno2 ));
+/*
+ *  Selectivity functions for btrees in utils/adt/selfuncs.c
+ */
+float64 btreesel ARGS((ObjectId operatorObjectId , ObjectId indrelid , AttributeNumber attributeNumber , char *constValue , int32 constFlag , int32 nIndexKeys , ObjectId indexrelid ));
+float64 btreenpage ARGS((ObjectId operatorObjectId , ObjectId indrelid , AttributeNumber attributeNumber , char *constValue , int32 constFlag , int32 nIndexKeys , ObjectId indexrelid ));
+/*
+ *  Selectivity functions for rtrees in utils/adt/selfuncs.c
+ */
+float64 rtsel ARGS((ObjectId operatorObjectId , ObjectId indrelid , AttributeNumber attributeNumber , char *constValue , int32 constFlag , int32 nIndexKeys , ObjectId indexrelid ));
+float64 rtnpage ARGS((ObjectId operatorObjectId , ObjectId indrelid , AttributeNumber attributeNumber , char *constValue , int32 constFlag , int32 nIndexKeys , ObjectId indexrelid ));
+
+/* smgr.c */
+int2 smgrin ARGS((char *s ));
+char *smgrout ARGS((int2 i ));
+bool smgreq ARGS((int2 a , int2 b ));
+bool smgrne ARGS((int2 a , int2 b ));
+
+/* tid.c */
+ItemPointer tidin ARGS((char *str ));
+char *tidout ARGS((ItemPointer itemPtr ));
+
+/* varlena.c */
+struct varlena *byteain ARGS((char *inputText ));
+char *byteaout ARGS((struct varlena *vlena ));
+struct varlena *textin ARGS((char *inputText ));
+char *textout ARGS((struct varlena *vlena ));
+int32 texteq ARGS((struct varlena *arg1 , struct varlena *arg2 ));
+int32 textne ARGS((struct varlena *arg1 , struct varlena *arg2 ));
+int32 text_lt ARGS((struct varlena *arg1 , struct varlena *arg2 ));
+int32 text_le ARGS((struct varlena *arg1 , struct varlena *arg2 ));
+int32 text_gt ARGS((struct varlena *arg1 , struct varlena *arg2 ));
+int32 text_ge ARGS((struct varlena *arg1 , struct varlena *arg2 ));
+int32 byteaGetSize ARGS((struct varlena *v ));
+int32 byteaGetByte ARGS((struct varlena *v , int32 n ));
+int32 byteaGetBit ARGS((struct varlena *v , int32 n ));
+struct varlena *byteaSetByte ARGS((struct varlena *v , int32 n , int32 newByte ));
+struct varlena *byteaSetBit ARGS((struct varlena *v , int32 n , int32 newBit ));
 #endif !BuiltinsIncluded
+
