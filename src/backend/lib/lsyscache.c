@@ -41,6 +41,7 @@
 #include "catalog/syscache.h"
 #include "access/att.h"
 #include "utils/rel.h"
+#include "utils/log.h"
 #include "access/attnum.h"
 
 #include "catalog/pg_amop.h"
@@ -219,6 +220,18 @@ get_opcode (opno)
       return(optup->oprcode);
     else
       return((RegProcedure)NULL);
+}
+
+NameData
+get_opname(opno)
+ObjectId opno;
+{
+    OperatorTupleForm optup = new(OperatorTupleFormD);
+
+    if (SearchSysCacheStruct(OPROID,optup,opno,0,0,0))
+       return(optup->oprname);
+    else
+       elog(WARN, "can't look up operator %d\n", opno);
 }
 
 /*    
