@@ -163,6 +163,15 @@ ENFORCE_ALIGNMENT=
 .endif
 
 #
+# If you don't have the SunPro compiler for Solaris and are using gcc
+# instead, define this.  Regular gcc does NOT work for this.  See the
+# installation instructions.
+#
+.if (${PORTNAME} == "sparc_solaris")
+#CC=solcc
+.endif
+
+#
 # The flags we give to install(1) are intended for the BSD version of
 # install(1) and not the System V version.
 #
@@ -429,6 +438,12 @@ CFLAGS+= -qchars=signed -qmaxmem=4000 -DHAVE_ANSI_CPP
 #
 # The extra -I flag is to scoop up extra BSD-emulating headers.
 #
-CFLAGS+= -munaligned-doubles -DSYSV_DIRENT -I$(POSTGRESDIR)/src/backend/port/sparc_solaris
+CFLAGS+= -DSYSV_DIRENT -I$(POSTGRESDIR)/src/backend/port/sparc_solaris
 LDADD+= -lsocket -lnsl
+.  if (${CC} != "cc")
+#
+# This is for gcc.
+#
+CFLAGS+= -munaligned-doubles
+.  endif
 .endif
