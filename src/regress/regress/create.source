@@ -277,6 +277,11 @@ append shighway (road.all) where road.name ~ "State Hwy.*"
 replace shighway (surface = "asphalt")
 \g
 
+create hasham_heap (seqno = int4, random = int4)
+\g
+copy hasham_heap from "_CWD_/../data/hash.data"
+\g
+
 /*
  * ARRAYS
  */
@@ -349,6 +354,8 @@ define index rix on road using btree (name text_ops)
 define index iix on ihighway using btree (name text_ops)
 \g
 define index six on shighway using btree (name text_ops)
+\g
+define index hasham_index on hasham_heap using hash (random int4_ops)
 \g
 
 /*

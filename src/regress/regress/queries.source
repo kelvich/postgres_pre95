@@ -531,6 +531,18 @@ retrieve (p.name, p.age) from p in person* sort by age using >
  */
 retrieve unique (p.age) from p in person* sort by age using >
 \g
+/*
+ * hash index
+ * grep 843938989 hash.data
+ */
+retrieve (hasham_heap.all) where hasham_heap.random = 843938989
+\g
+/*
+ * hash index
+ * grep 66766766 hash.data
+ */
+retrieve (hasham_heap.all) where hasham_heap.random = 66766766
+\g
 
 /*
  * replace
@@ -558,6 +570,14 @@ destroy temp
 replace p (age = p.age + 1) from p in person*
 \g
 replace p (age = p.age + 3) from p in person* where p.name = "linda"
+\g
+replace hasham_heap (random = 1) where hasham_heap.seqno = 1492
+\g
+retrieve (hasham_heap.all) where hasham_heap.random = 1
+\g
+replace hasham_heap (seqno = 20000) where hasham_heap.random = 1492795354
+\g
+retrieve (hasham_heap.all) where hasham_heap.random = 1492795354
 \g
 
 /*

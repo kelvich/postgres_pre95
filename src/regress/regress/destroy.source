@@ -105,6 +105,8 @@ remove index iix
 \g
 remove index six
 \g
+remove index hasham_index
+\g
 
 destroy onek
 \g
@@ -150,6 +152,8 @@ destroy shighway
 destroy road
 \g
 destroy city
+\g
+destroy hasham_heap
 \g
 
 /*
