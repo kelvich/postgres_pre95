@@ -142,6 +142,7 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
 		 farg, xret2);
 	if (!ObjectIdIsValid(ffn))
 	    fret = xret2;
+	xret1 = xret2; /* just as an aggtranstype value */
     } else if (!ObjectIdIsValid(xfn2)) {
 	/* transition function 1 only */
 	if (ObjectIdIsValid(farg) && (farg != xret1))
