@@ -41,8 +41,15 @@ ObjectId element_type;
     int32 nbytes;
     char *retval;
 
-    string_save = (char *) palloc(strlen(string) + 1);
-    strcpy(string_save, string);
+    string_save = (char *) palloc(strlen(string) + 3);
+	if (*string != '{')
+    {
+		sprintf(string_save, "{%s}", string);
+    }
+	else
+    {
+        strcpy(string_save, string);
+    }
 
     if (element_type_save != element_type)
     {
