@@ -27,6 +27,21 @@ char rule_buf[MAX_QUERY_LEN];
 static char attr_list[MAX_QUERY_LEN];
 
 /*
+ * problem: the version system assumes that the rules it declares will
+ *          be fired in the order of declaration, it also assumes
+ *          goh's silly instead semantics.  Unfortunately, it is a pain
+ *          to make the version system work with the new semantics.
+ *          However the whole problem can be solved, and some nice
+ *          functionality can be achieved if we get multiple action rules
+ *          to work.  So thats what I did                       -- glass
+ *
+ * Well, at least they've been working for about 20 minutes.
+ * 
+ * So any comments in this code about 1 rule per transction are false...:)
+ *
+ */
+
+/*
  *  This is needed because the rule system only allows 
  *  *1* rule to be defined per transaction.
  *
@@ -265,25 +280,23 @@ VersionDelete(vname,bname,snapshot)
 {
 
   sprintf(rule_buf,
-	  "define rewrite rule %s_delete1 is on delete to %s do  \n \
-delete %s_added where current.oid = %s_added.oid\n",
-	  vname,vname,vname,vname);
+	  "define rewrite rule %s_delete1 is on delete to %s do instead\n \
+[delete %s_added where current.oid = %s_added.oid\n \
+ append %s_del(DOID = current.oid) from _%s in %s%s \
+ where current.oid = _%s.oid] \n",
+	  vname,vname,vname,vname,vname,bname,bname,snapshot,bname);
 
   eval_as_new_xact(rule_buf); 
-/*  printf("%s\n",rule_buf); */
+#ifdef OLD_REWRITE
+   sprintf(rule_buf,
+         "define rewrite rule %s_delete2 is on delete to %s do instead \n \
+ append %s_del(DOID = current.oid) from _%s in %s%s \
+ where current.oid = _%s.oid \n",
+         vname,vname,vname,bname,bname,snapshot,bname);
 
-  sprintf(rule_buf,
-	  "define rewrite rule %s_delete2 is on delete to %s do instead \n \
-append %s_del(DOID = current.oid) from _%s in %s%s \
-where current.oid = _%s.oid \n",
-	  vname,vname,vname,bname,bname,snapshot,bname);
-
-  eval_as_new_xact(rule_buf); 
-
-/*  printf("%s\n",rule_buf);  */
-
+   eval_as_new_xact(rule_buf);
+#endif OLD_REWRITE
 }
-
 
 /*
  *  This routine defines the rules that govern the update semantics
@@ -304,15 +317,20 @@ VersionReplace(vname, bname,snapshot)
      char *snapshot;
 {
   sprintf(rule_buf,
-	  "define rewrite rule %s_replace1 is on replace to %s do \n\
-replace %s_added(%s) where current.oid = %s_added.oid \n",
-	  vname,vname,
-	  vname,attr_list,vname);
+	  "define rewrite rule %s_replace1 is on replace to %s do instead \n\
+[replace %s_added(%s) where current.oid = %s_added.oid \n\
+ append %s_del(DOID = current.oid) from _%s in %s%s \
+ where current.oid = _%s.oid\n\
+ append %s_added(%s) from _%s in %s%s \
+ where current.oid !!= \"%s_added.oid\" and current.oid = _%s.oid]\n",
+	  vname,vname,vname,attr_list,vname,
+          vname,bname,bname,snapshot,bname,
+vname,attr_list,bname,bname,snapshot,vname,bname);
 
   eval_as_new_xact(rule_buf); 
 
 /*  printf("%s\n",rule_buf); */
-
+#ifdef OLD_REWRITE
   sprintf(rule_buf,
 	  "define rewrite rule %s_replace2 is on replace to %s do \n\
 append %s_del(DOID = current.oid) from _%s in %s%s \
@@ -320,8 +338,6 @@ where current.oid = _%s.oid\n",
 	  vname,vname,vname,bname,bname,snapshot,bname);
 
   eval_as_new_xact(rule_buf); 
-
-/*  printf("%s\n",rule_buf); */
 
   sprintf(rule_buf,
 	  "define rewrite rule %s_replace3 is on replace to %s do instead\n\
@@ -331,7 +347,7 @@ _%s.oid\n",
 	  vname,vname, vname,attr_list,bname,bname,snapshot,vname,bname);
 
   eval_as_new_xact(rule_buf); 
-
+#endif OLD_REWRITE
 /*  printf("%s\n",rule_buf); */
 
 }
