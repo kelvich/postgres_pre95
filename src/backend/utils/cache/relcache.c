@@ -48,7 +48,6 @@ RcsId("$Header$");
 
 #include "rules/rlock.h"
 #include "storage/buf.h"
-#include "storage/fd.h"
 #include "tmp/miscadmin.h"
 #include "tmp/hashlib.h"
 #include "tmp/hasht.h"
@@ -68,6 +67,12 @@ RcsId("$Header$");
 extern bool	AMI_OVERRIDE;	/* XXX style */
 
 #include "utils/relcache.h"
+
+#ifdef sprite
+#include "sprite_file.h"
+#else
+#include "storage/fd.h"
+#endif /* sprite */
 
 extern HeapTuple	GetHeapTuple();	/* XXX use include file */
 
