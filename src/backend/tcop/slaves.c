@@ -61,9 +61,9 @@ static ProcGroupLocalInfo FreeProcGroupP;
 int 	*MasterProcessIdP;	/* master backend process id */
 int	*SlaveAbortFlagP;	/* flag set during a transaction abort */
 SlaveInfo	SlaveInfoP;	/* slave backend info */
-extern ProcGroupInfo	ProcGroupInfoP; /* process group info */
-					/* defined in execipc.c to make
-					   postmaster happy */
+extern ProcGroupInfo  ProcGroupInfoP; /* process group info */
+                                      /* defined in execipc.c to make
+                                         postmaster happy */
 
 TransactionState SharedTransactionState; /* current transaction info */
 
@@ -184,8 +184,7 @@ SlaveBackendsAbort()
 	I_Finished();
 	
 	SLAVE_elog(DEBUG, "Master Backend reinitializing shared memory");
-	I_SharedMemoryMutex();
-	ExecSMClean();
+	ExecSMInit();
 	
 	SLAVE_elog(DEBUG, "Master Backend signaling slaves abort");
 	V_Abort();
@@ -330,8 +329,6 @@ MoveTransactionState()
     int nbytes = sizeof(TransactionStateData);
     extern TransactionState CurrentTransactionState;
 	
-    SharedTransactionState = (TransactionState) ExecSMHighAlloc(nbytes);
-	
     bcopy(CurrentTransactionState, SharedTransactionState, nbytes);
     CurrentTransactionState = SharedTransactionState;
 }
@@ -405,11 +402,13 @@ SlaveBackendsInit()
      *  communication mechanisms.  All backends share these pointers.
      * ----------------
      */
-    MasterProcessIdP = (int*)ExecSMHighAlloc(sizeof(int));
-    SlaveAbortFlagP = (int*)ExecSMHighAlloc(sizeof(int));
-    SlaveInfoP = (SlaveInfo)ExecSMHighAlloc(nslaves * sizeof(SlaveInfoData));
-    ProcGroupInfoP = (ProcGroupInfo)ExecSMHighAlloc(nslaves *
+    MasterProcessIdP = (int*)ExecSMReserve(sizeof(int));
+    SlaveAbortFlagP = (int*)ExecSMReserve(sizeof(int));
+    SlaveInfoP = (SlaveInfo)ExecSMReserve(nslaves * sizeof(SlaveInfoData));
+    ProcGroupInfoP = (ProcGroupInfo)ExecSMReserve(nslaves *
 						    sizeof(ProcGroupInfoData));
+    SharedTransactionState = (TransactionState)ExecSMReserve(
+						  sizeof(TransactionStateData));
 
     /* ----------------
      *	move the transaction system state data into shared memory
@@ -418,6 +417,11 @@ SlaveBackendsInit()
      */
     MoveTransactionState();
     
+    /* ----------------
+     *	initialize executor shared memory
+     * ----------------
+     */
+    ExecSMInit();
     /* ----------------
      *	initialize shared memory variables
      * ----------------
@@ -604,7 +608,7 @@ getFinishedProcGroup()
 }
 
 /* -------------------------------
- *	WakeupProcGroup
+ *	wakeupProcGroup
  *
  *	wake up the processes in process group
  * -------------------------------
@@ -620,4 +624,143 @@ int groupid;
 	 p = p->next) {
       V_Start(p->pid);
      }
+}
+
+/* ------------------------------
+ * the following routines are a specialized memory allocator for 
+ * the process groups.  they only supposed to be called by the master
+ * backend.  no mutex is done.
+ * ------------------------------
+ */
+static char *CurrentSMSegmentStart;
+static char *CurrentSMSegmentEnd;
+static int CurrentSMGroupid;
+static char *CurrentSMSegmentPointer;
+
+/* --------------------------------
+ *	ProcGroupSMBeginAlloc
+ *
+ *	begins shared memory allocation for process group
+ * --------------------------------
+ */
+void
+ProcGroupSMBeginAlloc(groupid)
+int groupid;
+{
+    MemoryHeader mp;
+
+    mp = ExecGetSMSegment();
+    ProcGroupLocalInfoP[groupid].groupSMQueue = mp;
+    mp->next = NULL;
+    CurrentSMSegmentStart = mp->beginaddr;
+    CurrentSMSegmentEnd =  CurrentSMSegmentStart + mp->size;
+    CurrentSMGroupid = groupid;
+    CurrentSMSegmentPointer = CurrentSMSegmentStart;
+}
+
+/* -------------------------------
+ *	ProcGroupSMEndAlloc
+ *
+ *	ends shared memory allocation for process group
+ *	frees the leftover memory from current memory segment
+ * -------------------------------
+ */
+void
+ProcGroupSMEndAlloc()
+{
+    int usedsize;
+    MemoryHeader mp;
+
+    usedsize = CurrentSMSegmentPointer - CurrentSMSegmentStart;
+    mp = ProcGroupLocalInfoP[CurrentSMGroupid].groupSMQueue;
+    CurrentSMSegmentStart=CurrentSMSegmentPointer=CurrentSMSegmentEnd = NULL;
+    ExecSMSegmentFreeUnused(mp, usedsize);
+}
+
+/* --------------------------------
+ *	ProcGroupSMAlloc
+ *
+ *	allocate shared memory within a process group
+ *	if the current memory segment runs out, allocate a new segment
+ * ---------------------------------
+ */
+char *
+ProcGroupSMAlloc(size)
+int size;
+{
+    MemoryHeader mp;
+    char *retP;
+
+    while (CurrentSMSegmentPointer + size > CurrentSMSegmentEnd) {
+	mp = ExecGetSMSegment();
+	if (mp == NULL)
+	    elog(WARN, "out of executor shared memory, got to die.");
+	mp->next = ProcGroupLocalInfoP[CurrentSMGroupid].groupSMQueue;
+	ProcGroupLocalInfoP[CurrentSMGroupid].groupSMQueue = mp;
+	CurrentSMSegmentStart = mp->beginaddr;
+	CurrentSMSegmentEnd =  CurrentSMSegmentStart + mp->size;
+	CurrentSMSegmentPointer = CurrentSMSegmentStart;
+      }
+    retP = CurrentSMSegmentPointer;
+    CurrentSMSegmentPointer = (char*)LONGALIGN(CurrentSMSegmentPointer + size);
+    return retP;
+}
+    
+/* -------------------------------
+ *	ProcGroupSMClean
+ *
+ *	frees the shared memory allocated for a process group
+ * -------------------------------
+ */
+void
+ProcGroupSMClean(groupid)
+int groupid;
+{
+    MemoryHeader mp, nextp;
+
+    mp = ProcGroupLocalInfoP[groupid].groupSMQueue;
+    while (mp != NULL) {
+	nextp = mp->next;
+	ExecSMSegmentFree(mp);
+	mp = nextp;
+      }
+}
+
+/* -----------------------------
+ * the following routines are special functions for copying reldescs to
+ * shared memory
+ * -----------------------------
+ */
+static char *SlaveTmpRelDescMemoryP;
+
+/* -------------------------------
+ *	SlaveTmpRelDescInit
+ *
+ *	initialize shared memory preallocated for temporary relation descriptors
+ * -------------------------------
+ */
+void
+SlaveTmpRelDescInit()
+{
+    SlaveTmpRelDescMemoryP = (char*)SlaveInfoP[MyPid].resultTmpRelDesc;
+}
+
+/* -------------------------------
+ *	SlaveTmpRelDescAlloc
+ *
+ *	memory allocation for reldesc copying
+ *	Note: there is no boundary checking, so had better pre-allocate
+ *	enough memory!
+ * -------------------------------
+ */
+char *
+SlaveTmpRelDescAlloc(size)
+int size;
+{
+    char *retP;
+
+    retP = SlaveTmpRelDescMemoryP;
+    SlaveTmpRelDescMemoryP = (char*)LONGALIGN(SlaveTmpRelDescMemoryP + size);
+
+    return retP;
 }
