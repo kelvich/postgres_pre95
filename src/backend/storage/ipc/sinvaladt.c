@@ -47,6 +47,11 @@
  *	SIXidData	 /
  *	SIXid		/
  *
+ *  XXX This file really needs to be cleaned up.  We switched to using
+ *	spinlocks to protect critical sections (as opposed to using fake
+ *	relations and going through the lock manager) and some of the old
+ *	cruft was 'ifdef'ed out, while other parts (now unused) are still
+ *	compiled into the system. -mer 5/24/92
  * ----------------
  */
 #ifdef HAS_TEST_AND_SET
@@ -60,8 +65,14 @@ extern BackendId MyBackendId;
 OID 		SIDbId = 0;	    
 LRelId  	SIRelId;    	    
 OID 		SIDummyOid = InvalidObjectId;
-TransactionIdData SIXidData;	    
-TransactionId	SIXid = &SIXidData; 
+
+#ifdef _FOO_BAR_BAZ_
+/*
+ * XXX this won't work now with 4 byte xid's it should probably be torched.
+ */
+TransactionIdData	SIXidData;
+TransactionId		SIXid = &SIXidData;
+#endif
 
 /* ----------------
  *	declarations
