@@ -100,7 +100,7 @@ typedef struct
 		TupleDescriptor hdesc;	/* heap relation tuple desc */
 		TupleDescriptor idesc;	/* index relation tuple desc */
 		uint32 lowbyte;		/* low byte on the current page */
-		uint32 hibyte;		/* high byte on the current page */
+		uint32 highbyte;	/* high byte on the current page */
 		uint32 offset;		/* current seek pointer */
 		ItemPointerData htid;	/* tid of current heap tuple */
 

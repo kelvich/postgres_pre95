@@ -165,7 +165,7 @@ int flags;
     retval->ofs.i_fs.iscan = (IndexScanDesc) NULL;
     retval->ofs.i_fs.hdesc = RelationGetTupleDescriptor(r);
     retval->ofs.i_fs.idesc = RelationGetTupleDescriptor(indr);
-    retval->ofs.i_fs.offset = retval->ofs.i_fs.lowbyte = retval->ofs.i_fs.hibyte = 0;
+    retval->ofs.i_fs.offset = retval->ofs.i_fs.lowbyte = retval->ofs.i_fs.highbyte = 0;
     ItemPointerSetInvalid(&(retval->ofs.i_fs.htid));
 
     if (flags & INV_WRITE) {
@@ -221,7 +221,7 @@ inv_open(object, flags)
     retval->ofs.i_fs.iscan = (IndexScanDesc) NULL;
     retval->ofs.i_fs.hdesc = RelationGetTupleDescriptor(r);
     retval->ofs.i_fs.idesc = RelationGetTupleDescriptor(indrel);
-    retval->ofs.i_fs.offset = retval->ofs.i_fs.lowbyte = retval->ofs.i_fs.hibyte = 0;
+    retval->ofs.i_fs.offset = retval->ofs.i_fs.lowbyte = retval->ofs.i_fs.highbyte = 0;
     ItemPointerSetInvalid(&(retval->ofs.i_fs.htid));
 
     if (flags & INV_WRITE) {
@@ -345,7 +345,7 @@ inv_seek(obj_desc, offset, whence)
 
     /* try to avoid doing any work, if we can manage it */
     if (offset >= obj_desc->ofs.i_fs.lowbyte
-	&& offset <= obj_desc->ofs.i_fs.hibyte
+	&& offset <= obj_desc->ofs.i_fs.highbyte
 	&& obj_desc->ofs.i_fs.iscan != (IndexScanDesc) NULL)
 	 return (offset);
 
@@ -433,7 +433,7 @@ inv_read(obj_desc, buf, nbytes)
 	fsblock = (struct varlena *) DatumGetPointer(d);
 
 	off = obj_desc->ofs.i_fs.offset - obj_desc->ofs.i_fs.lowbyte;
-	ncopy = obj_desc->ofs.i_fs.hibyte - obj_desc->ofs.i_fs.offset + 1;
+	ncopy = obj_desc->ofs.i_fs.highbyte - obj_desc->ofs.i_fs.offset + 1;
 	if (ncopy > (nbytes - nread))
 	    ncopy = (nbytes - nread);
 	bcopy(&(fsblock->vl_dat[off]), buf, ncopy);
@@ -550,7 +550,7 @@ inv_fetchtup(obj_desc, bufP)
      *  order to find the one we're really interested in.
      */
 
-    if (obj_desc->ofs.i_fs.offset > obj_desc->ofs.i_fs.hibyte
+    if (obj_desc->ofs.i_fs.offset > obj_desc->ofs.i_fs.highbyte
 	|| obj_desc->ofs.i_fs.offset < obj_desc->ofs.i_fs.lowbyte
 	|| !ItemPointerIsValid(&(obj_desc->ofs.i_fs.htid))) {
 
@@ -608,7 +608,7 @@ inv_fetchtup(obj_desc, bufP)
     firstbyte = (lastbyte + 1 + sizeof(fsblock->vl_len)) - fsblock->vl_len;
 
     obj_desc->ofs.i_fs.lowbyte = firstbyte;
-    obj_desc->ofs.i_fs.hibyte = lastbyte;
+    obj_desc->ofs.i_fs.highbyte = lastbyte;
 
     /* done */
     return (htup);
@@ -747,7 +747,7 @@ inv_wrold(obj_desc, dbuf, nbytes, htup, buffer)
      */
 
     if (obj_desc->ofs.i_fs.offset == obj_desc->ofs.i_fs.lowbyte
-	&& obj_desc->ofs.i_fs.lowbyte + nbytes >= obj_desc->ofs.i_fs.hibyte) {
+	&& obj_desc->ofs.i_fs.lowbyte + nbytes >= obj_desc->ofs.i_fs.highbyte) {
 	WriteBuffer(buffer);
 	return (inv_wrnew(obj_desc, dbuf, nbytes));
     }
@@ -818,16 +818,16 @@ inv_wrold(obj_desc, dbuf, nbytes, htup, buffer)
     }
 
     nwritten = nbytes;
-    if (nwritten > obj_desc->ofs.i_fs.hibyte - obj_desc->ofs.i_fs.offset)
-	nwritten = obj_desc->ofs.i_fs.hibyte - obj_desc->ofs.i_fs.offset;
+    if (nwritten > obj_desc->ofs.i_fs.highbyte - obj_desc->ofs.i_fs.offset)
+	nwritten = obj_desc->ofs.i_fs.highbyte - obj_desc->ofs.i_fs.offset;
 
     bcopy(dbuf, dptr, nwritten);
     dptr += nwritten;
 
-    if (obj_desc->ofs.i_fs.offset + nwritten < obj_desc->ofs.i_fs.hibyte) {
-	loc = (obj_desc->ofs.i_fs.hibyte - obj_desc->ofs.i_fs.offset)
+    if (obj_desc->ofs.i_fs.offset + nwritten < obj_desc->ofs.i_fs.highbyte) {
+	loc = (obj_desc->ofs.i_fs.highbyte - obj_desc->ofs.i_fs.offset)
 		+ nwritten;
-	sz = obj_desc->ofs.i_fs.hibyte - (obj_desc->ofs.i_fs.lowbyte + loc);
+	sz = obj_desc->ofs.i_fs.highbyte - (obj_desc->ofs.i_fs.lowbyte + loc);
 	bcopy(dptr, &(fsblock->vl_dat[0]), sz);
     }
 
@@ -961,7 +961,7 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
 
     /* keep track of boundary of current tuple */
     obj_desc->ofs.i_fs.lowbyte = obj_desc->ofs.i_fs.offset;
-    obj_desc->ofs.i_fs.hibyte = obj_desc->ofs.i_fs.offset + nwrite - 1;
+    obj_desc->ofs.i_fs.highbyte = obj_desc->ofs.i_fs.offset + nwrite - 1;
 
     /* new tuple is filled -- return it */
     return (ntup);
@@ -977,7 +977,7 @@ inv_indextup(obj_desc, htup)
     char n[1];
 
     n[0] = ' ';
-    v[0] = Int32GetDatum(obj_desc->ofs.i_fs.hibyte);
+    v[0] = Int32GetDatum(obj_desc->ofs.i_fs.highbyte);
     itup = index_formtuple(1, obj_desc->ofs.i_fs.idesc, &v[0], &n[0]);
     bcopy(&(htup->t_ctid), &(itup->t_tid), sizeof(ItemPointerData));
     res = index_insert(obj_desc->ofs.i_fs.index_r, itup, (double *) NULL);

@@ -13,6 +13,7 @@
 #include "utils/dynamic_loader.h"
 #include "utils/log.h"
 #ifndef UFP
+#include "utils/builtins.h"
 #include "access/heapam.h"
 #include "nodes/pg_lisp.h"
 #endif /* !UFP */
@@ -37,9 +38,6 @@ static DynamicFileList *file_tail = (DynamicFileList *) NULL;
 static ObjectId procedureId_save = -1;
 static int pronargs_save;
 static func_ptr user_fn_save = (func_ptr) NULL;
-
-/* XXX can't include builtins.h on hpux - hibyte macro conflict */
-extern char *textout ARGS((struct varlena *t));
 
 func_ptr
 fmgr_dynamic(procedureId, pronargs)
