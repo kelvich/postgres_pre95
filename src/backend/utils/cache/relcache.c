@@ -140,7 +140,7 @@ typedef struct relnamecacheent {
 	    elog(FATAL, "can't insert into relation descriptor cache"); \
 	  } \
 	if (found && !IsBootstrapProcessingMode()) { \
-	    elog(NOTICE, "trying to insert a reldesc that already exists."); \
+	    /* used to give notice -- now just keep quiet */ ; \
 	  } \
 	namehentry->reldesc = RELATION; \
 	reloid = RELATION->rd_id; \
@@ -150,7 +150,7 @@ typedef struct relnamecacheent {
 	    elog(FATAL, "can't insert into relation descriptor cache"); \
 	  } \
 	if (found && !IsBootstrapProcessingMode()) { \
-	    elog(NOTICE, "trying to insert a reldesc that already exists."); \
+	    /* used to give notice -- now just keep quiet */ ; \
 	  } \
 	idhentry->reldesc = RELATION; \
     }
