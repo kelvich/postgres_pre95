@@ -319,6 +319,15 @@ FILE *fp;
                 else
                 {
                     values[i] = (Datum) (in_functions[i]) (string, elements[i]);
+		    /*
+		     * Sanity check - by reference attributes cannot return
+		     * NULL
+		     */
+		    if (!PointerIsValid(values[i]) &&
+			!(rel->rd_att.data[i]->attbyval))
+		    {
+			elog(WARN, "copy from: Bad file format");
+		    }
                 }
             }
         }
