@@ -109,8 +109,6 @@ RelationGetIndexScan(relation, scanFromEnd, numberOfKeys, key)
     if (! RelationIsValid(relation))
 	elog(WARN, "RelationGetIndexScan: relation invalid");
 
-    RelationIncrementReferenceCount(relation);
-
     scan = (IndexScanDesc)
 	palloc(sizeof *scan + (numberOfKeys - 1) * sizeof key->data[0]);
 
@@ -192,7 +190,6 @@ IndexScanEnd(scan)
     if (! IndexScanIsValid(scan))
 	elog(WARN, "IndexScanEnd: invalid scan");
 
-    RelationDecrementReferenceCount(scan->relation);
     pfree((Pointer) scan);
 }
 
