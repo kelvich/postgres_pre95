@@ -1,7 +1,13 @@
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.XA 0 "Section 2 \*- \*(UU Commands (\*(UU)" _
+.SS UNIX 6/14/90
+.XA 0 "Section 2 \*- \*(UU Commands (\*(UU)"
 .SP INFORMATION UNIX 6/14/90
+.sp 2i
+.ps 14
+.ce
+.b "SECTION 2 \*- \*(UU COMMANDS (\*(UU)"
+.sp 3
 .XA 1 "General Information"
 .uh OVERVIEW
 .lp
@@ -76,7 +82,7 @@ frontend applications connect
 with the postmaster
 which keeps tracks of any system
 errors and communication between the backend processes.
-The postmaster takes from zero to seven arguments
+The postmaster (POSTMASTER (UNIX)) takes from zero to seven arguments
 to tune its behavior.
 Supplying arguments is necessary only if you intend to run multiple sites
 or a non-default site.
