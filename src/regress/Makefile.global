@@ -3,6 +3,12 @@
 #
 CFLAGS+= -I${.CURDIR}/../../backend
 
+#
+# Insure when calling shell scripts that we set the search path
+# to find the commands from this build.
+#
+SHCMD= PATH=${BINDIR}:$$PATH sh
+
 .if ${PORTNAME} == "ultrix4"
 CFLAGS+= -G 0 -DNOFIXADE
 .endif
