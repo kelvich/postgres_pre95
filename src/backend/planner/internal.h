@@ -57,10 +57,12 @@ extern bool _query_is_archival_;       /*   archival query flag */
 extern void save_globals();
 extern void restore_globals();
 
+extern int NBuffers;
 /*
  *    	System-dependent tuning constants
  *    
  */
+
 #define _CPU_PAGE_WEIGHT_  0.065     /* CPU-to-page cost weighting factor */
 #define _MAX_BUFFERS_  16            /* NDBUFS (from ../bufmgr/internal.h) */
 #define _PAGE_SIZE_    8192          /* BLCKSZ (from ../h/bufmgr.h) */
