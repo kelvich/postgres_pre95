@@ -12,9 +12,9 @@
  *===================================================================
  */
 
-#include "c.h"
-#include "log.h"
-#include "prs2.h"
+#include "tmp/c.h"
+#include "utils/log.h"
+#include "rules/prs2.h"
 
 /*-------------------------------------------------------------------
  *
@@ -85,18 +85,18 @@ Buffer *returnedBufferP;
 		    oldTuple->t_oid,
 		    oldAttrValues,
 		    oldLocks,
-		    LockTypeRetrieveWrite,
+		    LockTypeTupleRetrieveWrite,
 		    newTuple->t_oid,
 		    newAttrValues,
 		    newLocks,
-		    LockTypeReplaceWrite,
+		    LockTypeTupleReplaceWrite,
 		    attributeArray,
 		    numberOfAttributes);
     }
 
     /*
      * Then, activate all the 'forward chaining rules'
-     * NOTE: Both old & new locks have the same "LockTypeReplaceAction"
+     * NOTE: Both old & new locks have the same "LockTypeTupleReplaceAction"
      * locks
      */
     insteadRuleFound = false;
@@ -106,16 +106,16 @@ Buffer *returnedBufferP;
 		    explainRelation,
 		    relation,
 		    attributeArray[i],
-		    LockTypeReplaceAction,
+		    LockTypeTupleReplaceAction,
 		    PRS2_OLD_TUPLE,
 		    oldTuple->t_oid,
 		    oldAttrValues,
 		    oldLocks,
-		    LockTypeRetrieveWrite,
+		    LockTypeTupleRetrieveWrite,
 		    newTuple->t_oid,
 		    newAttrValues,
 		    newLocks,
-		    LockTypeRetrieveWrite,
+		    LockTypeTupleRetrieveWrite,
 		    &insteadRuleFoundThisTime,
 		    attributeArray,
 		    numberOfAttributes);
