@@ -17,14 +17,14 @@
 [ -z "$PGDATA" ] && PGDATA=_fUnKy_DATADIR_sTuFf_
 
 
-cd $PGDATA || exit
+cd $PGDATA/files || exit
 
-if [ -f ../pg_user]; then
+if [ -f ../pg_user ]; then
 echo  "Error: it looks like you already ran initdb."
 echo  "You should first run cleardbdir if you want to reset the postgres userid."
 exit
 fi
-echo -n 'Enter username that postgres should use (default is postgres):  "
+echo -n 'Enter username that postgres should use (default is postgres):  '
 read name || exit
 case $name in
 "")	name=postgres ;;
@@ -47,7 +47,7 @@ esac
 rm -f *.bki
 for i in *.source
 do
-	dest=`echo $i | sed 's/\.real$//'`
+	dest=`echo $i | sed 's/\.source$//'`
 	sed "s/PGUID/$pguid/" < $i > $dest
 done
 echo "Done, you can now run initdb."
