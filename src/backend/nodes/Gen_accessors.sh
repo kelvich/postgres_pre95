@@ -48,15 +48,9 @@ EOF
 #	set up CTMP1
 # ----------------
 $CAT > $CTMP1 << 'EOF'
-/*
- * duplicated from tmp/c.h
- */
-#ifdef __STDC__
-#define CppConcat(a,b)	a##b
-#else
+#ifndef __STDC__
 #define CppIdentity(a)a
 #define CppConcat(a,b)CppIdentity(a)b
-#endif
 
 #define	SETACCESSOR(_nodetype_,_fieldname_,_fieldtype_)\
 _SHARP_ define \
@@ -67,7 +61,24 @@ CppConcat(set_,_fieldname_(node, value)) \
     }
 
 #define	GETACCESSOR(_nodetype_,_fieldname_,_fieldtype_)\
-_SHARP_ define CppConcat(get_,_fieldname_(node)) ((node)->_fieldname_)
+_SHARP_ define \
+CppConcat(get_,_fieldname_(node)) ((node)->_fieldname_)
+
+#else /* __STDC__ */
+
+#define	SETACCESSOR(_nodetype_,_fieldname_,_fieldtype_)\
+_SHARP_ define \
+set_##_fieldname_##(node, value) \
+    { \
+	NODEAssertArg(IsA(node,##_nodetype_)); \
+	(node)->_fieldname_ = (value); \
+    }
+
+#define	GETACCESSOR(_nodetype_,_fieldname_,_fieldtype_)\
+_SHARP_ define \
+get_##_fieldname_##(node) ((node)->_fieldname_)
+
+#endif /* __STDC__ */
 EOF
 
 # ----------------
