@@ -35,8 +35,6 @@ CATALOG(pg_rewrite) {
     char 	ev_type;
     oid 	ev_class;
     int2 	ev_attr;
-    float8	fril_lb;
-    float8	fril_ub;
     bool 	is_instead;
     text	ev_qual;	/* VARLENA */
     text 	action;		/* VARLENA */
@@ -54,15 +52,13 @@ typedef FormData_pg_rewrite *Form_pg_rewrite;
  * ----------------
  */
 #define Name_pg_rewrite			"pg_rewrite"
-#define Natts_pg_rewrite		9
+#define Natts_pg_rewrite		7
 #define Anum_pg_rewrite_rulename	1
 #define Anum_pg_rewrite_ev_type 	2
 #define Anum_pg_rewrite_ev_class	3
 #define Anum_pg_rewrite_ev_attr  	4
-#define Anum_pg_rewrite_fril_lb   	5
-#define Anum_pg_rewrite_fril_ub   	6
-#define Anum_pg_rewrite_is_instead      7
-#define Anum_pg_rewrite_ev_qual		8
-#define Anum_pg_rewrite_action	        9
+#define Anum_pg_rewrite_is_instead      5
+#define Anum_pg_rewrite_ev_qual		6
+#define Anum_pg_rewrite_action	        7
 
 #endif PgRewriteIncluded
