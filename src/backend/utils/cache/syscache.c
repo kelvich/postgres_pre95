@@ -8,19 +8,37 @@
  *	C code should call SearchSysCacheTuple -- it's slightly more efficient.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "anum.h"
-#include "cat.h"
-#include "catcache.h"
-#include "catname.h"
-#include "heapam.h"
-#include "log.h"
-#include "palloc.h"
-#include "pg_lisp.h"
-#include "htup.h"
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "catalog/catname.h"
+#include "utils/catcache.h"
+#include "utils/log.h"
+#include "utils/palloc.h"
+
+#include "nodes/pg_lisp.h"
+
+/* ----------------
+ *	hardwired attribute information comes from system catalog files.
+ * ----------------
+ */
+#include "catalog/pg_am.h"
+#include "catalog/pg_amop.h"
+#include "catalog/pg_attribute.h"
+#include "catalog/pg_index.h"
+#include "catalog/pg_inherits.h"
+#include "catalog/pg_language.h"
+#include "catalog/pg_opclass.h"
+#include "catalog/pg_operator.h"
+#include "catalog/pg_proc.h"
+#include "catalog/pg_prs2rule.h"
+#include "catalog/pg_prs2plans.h"
+#include "catalog/pg_prs2stub.h"
+#include "catalog/pg_relation.h"
+#include "catalog/pg_type.h"
 
 extern bool	AMI_OVERRIDE;	/* XXX style */
 
@@ -29,9 +47,13 @@ extern bool	AMI_OVERRIDE;	/* XXX style */
 /*#define LITTLEENDIAN		/* e.g.: VAX, i386 */
 #endif /* !PG_STANDALONE */
 
-#include "syscache.h"
+#include "catalog/syscache.h"
 
-
+/* ----------------
+ *	Warning:  cacheinfo[] below is changed, then be sure and
+ *	update the magic constants in syscache.h!
+ * ----------------
+ */
 static struct cachedesc cacheinfo[] = {
 	{ &AccessMethodOperatorRelationName,	/* AMOPOPID */
 	  2,
@@ -131,13 +153,6 @@ static struct cachedesc cacheinfo[] = {
 	    0,
 	    0},
 	  sizeof(TypeTupleFormData) - sizeof(struct varlena) },
-	{ &RulePlansRelationName,		/* RULEPLANCODE */
-	  2,
-	  { RulePlansRuleIdAttributeNumber,
-	    RulePlansPlanIdAttributeNumber,
-	    0,
-	    0 },
-	  sizeof(struct ruleplans) - sizeof(struct varlena) },
 	{ &AccessMethodRelationName,			/* AMNAME */
 	  1,
 	  { AccessMethodNameAttributeNumber,
@@ -173,6 +188,20 @@ static struct cachedesc cacheinfo[] = {
 	    0,
 	    0 },
 	  sizeof(struct prs2plans) - sizeof(struct varlena) },
+	{ &Prs2RuleRelationName,				/* RULOID */
+          1,
+	  { T_OID,
+	    0,
+	    0,
+	    0 },
+	  sizeof(struct prs2rule) },
+	{ &Prs2StubRelationName,			/* PRS2STUB */
+	  1,
+	  { Anum_pg_prs2stub_prs2relid,
+	    0,
+	    0,
+	    0 },
+	  sizeof(FormData_pg_prs2stub) - sizeof(struct varlena) }
 };
 
 static struct catcache	*SysCache[lengthof(cacheinfo)];
