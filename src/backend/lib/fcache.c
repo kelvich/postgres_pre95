@@ -17,10 +17,13 @@
 #include "catalog/pg_language.h"
 #include "catalog/pg_relation.h"
 #include "parser/parsetree.h"
+#include "utils/builtins.h"
 #include "utils/fcache.h"
 #include "utils/log.h"
+#include "utils/palloc.h"
 #include "nodes/primnodes.h"
 #include "nodes/execnodes.h"
+#include "nodes/execnodes.a.h"
 
 
 static OID
@@ -30,8 +33,10 @@ typeid_get_relid(type_id)
         HeapTuple     typeTuple;
         TypeTupleForm   type;
         OID             infunc;
-        typeTuple = SearchSysCacheTuple(TYPOID, (char *) type_id,
-                  (char *) NULL, (char *) NULL, (char *) NULL);
+        typeTuple = SearchSysCacheTuple(TYPOID,
+					(char *) ObjectIdGetDatum(type_id),
+					(char *) NULL, (char *) NULL,
+					(char *) NULL);
         type = (TypeTupleForm) GETSTRUCT(typeTuple);
         infunc = type->typrelid;
         return(infunc);
@@ -89,7 +94,7 @@ ExprContext econtext;
     Form_pg_proc     procedureStruct;
     Form_pg_type     typeStruct;
     FunctionCachePtr retval;
-    char             *tmp;
+    text	     *tmp;
     int              nargs;
 
     /* ----------------
@@ -103,8 +108,10 @@ ExprContext econtext;
     if (!use_syscache)
 	elog(WARN, "what the ????, init the fcache without the catalogs?");
 
-    procedureTuple = SearchSysCacheTuple(PROOID, (char *) foid,
-                                             NULL, NULL, NULL);
+    procedureTuple = SearchSysCacheTuple(PROOID,
+					 (char *) ObjectIdGetDatum(foid),
+					 (char *) NULL, (char *) NULL,
+					 (char *) NULL);
 
     if (!HeapTupleIsValid(procedureTuple))
 	elog(WARN,
@@ -124,10 +131,10 @@ ExprContext econtext;
      * ----------------
      */
     typeTuple = SearchSysCacheTuple(TYPOID,
-                        (procedureStruct)->prorettype,
-                        NULL,
-                        NULL,
-                        NULL);
+				    (char *)
+				    ObjectIdGetDatum(procedureStruct->prorettype),
+				    (char *) NULL, (char *) NULL,
+				    (char *) NULL);
 
     if (!HeapTupleIsValid(typeTuple))
 	elog(WARN,
@@ -175,11 +182,13 @@ ExprContext econtext;
 	HeapTuple        relationTuple;
 	TupleDescriptor  td;
 
-	retval->funcSlot = (char *)MakeTupleTableSlot(true,
-						      true,
-						      NULL,
-						      InvalidBuffer,
-						      -1);
+	retval->funcSlot =
+	    (Pointer) MakeTupleTableSlot(true,
+					 true,
+					 (TupleDescriptor) NULL,
+					 (ExecTupDescriptor) NULL,
+					 InvalidBuffer,
+					 -1);
 	relationTuple = (HeapTuple)
 		SearchSysCacheTuple(RELNAME,
 				    (char *)&typeStruct->typname,
@@ -245,7 +254,7 @@ ExprContext econtext;
      */
     if (procedureStruct->prolang == POSTQUELlanguageId)
     {
-	retval->src = (char *) textout(&(procedureStruct->prosrc));
+	retval->src = textout(&(procedureStruct->prosrc));
 	retval->bin = (char *) NULL;
     }
     else 
@@ -262,11 +271,13 @@ ExprContext econtext;
 	if (procedureStruct->proistrusted)
 	    retval->bin = (char *) NULL;
 	else {
-	    tmp = (char *)
+	    tmp = (text *)
 		SearchSysCacheGetAttribute(PROOID,
 					   Anum_pg_proc_probin,
-					   foid);
-	    retval->bin = (char *) textout(tmp);
+					   (char *) ObjectIdGetDatum(foid),
+					   (char *) NULL, (char *) NULL,
+					   (char *) NULL);
+	    retval->bin = textout(tmp);
 	}
 	retval->src = (char *) NULL;
     }
