@@ -167,14 +167,14 @@
 #define INIT_WITH_HOOKS(n,s) \
 { \
     Pointer p; \
-    result = (List) CppIdentity(ExecInit)n((n) node, estate, parent); \
-    p = (Pointer) CppIdentity(get_)s(node); \
+    result = (List) CppConcat(ExecInit, n)((n) node, estate, parent); \
+    p = (Pointer) CppConcat(get_,s)(node); \
     DO_INIT_AFTER_HOOK(p); \
 }
 
 #define PROC_WITH_HOOKS(f,n,s) \
 { \
-    Pointer p = (Pointer) CppIdentity(get_)s(node); \
+    Pointer p = (Pointer) CppConcat(get_, s)(node); \
     DO_PROC_BEFORE_HOOK(p); \
     result = (TupleTableSlot) f((n) node); \
     DO_PROC_AFTER_HOOK(p); \
@@ -182,22 +182,22 @@
 
 #define END_WITH_HOOKS(n,s) \
 { \
-    Pointer p = (Pointer) CppIdentity(get_)s(node); \
+    Pointer p = (Pointer) CppConcat(get_, s)(node); \
     DO_END_BEFORE_HOOK(p); \
-    CppIdentity(ExecEnd)n((n) node); \
+    CppConcat(ExecEnd, n)((n) node); \
     DO_END_AFTER_HOOK(p); \
 }
 
 #else /*EXEC_ASSIGNDEBUGHOOKS*/
 
 #define INIT_WITH_HOOKS(n,s) \
-    result = (List) CppIdentity(ExecInit)n((n) node, estate, parent);
+    result = (List) CppConcat(ExecInit,n)((n) node, estate, parent);
 
 #define PROC_WITH_HOOKS(f,n,s) \
     result = (TupleTableSlot) f((n) node);
 
 #define END_WITH_HOOKS(n,s) \
-    CppIdentity(ExecEnd)n((n) node);
+    CppConcat(ExecEnd, n)((n) node);
 	
 #endif /*EXEC_ASSIGNDEBUGHOOKS*/
 
