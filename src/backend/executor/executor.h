@@ -32,6 +32,7 @@
 #include "strings.h"
 #include "syscache.h"
 #include "tqual.h"
+#include "pmod.h"
 
 #include "printtup.h"
 #include "primnodes.h"
