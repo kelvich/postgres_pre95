@@ -224,7 +224,7 @@ DefineQueryRewrite ( args )
 	    CommitTransactionCommand();
 	    StartTransactionCommand();
 	}
-	prs2PutLocksInRelation(ruleId[k],locktype[k],
+	prs2PutRelationLevelLocks(ruleId[k],locktype[k],
 			       ev_relid,event_attno);
     }
 
