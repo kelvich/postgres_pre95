@@ -168,6 +168,7 @@ NullCommand(dest)
     switch (dest) {
     case RemoteInternal:
     case Remote: {
+#if 0
 	/* Do any asynchronous notification.  If front end wants to poll,
 	   it can send null queries to call this function.
 	   */
@@ -192,7 +193,7 @@ NullCommand(dest)
 	pq_flush();
 	PQcleanNotify();	/* garbage collect */
 	(void) MemoryContextSwitchTo(orig);
-
+#endif
 	/* ----------------
 	 *	tell the fe that the last of the queries has finished
 	 * ----------------
