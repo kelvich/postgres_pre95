@@ -97,3 +97,19 @@ RuleIdGetRuleParsetrees ( ruleoid )
     return (ruleparse);
 }
 
+char *
+OperOidGetName ( oproid )
+     oid oproid;
+{
+    HeapTuple oprtuple = NULL;
+    OperatorTupleForm opform = NULL;
+
+    oprtuple = SearchSysCacheTuple ( OPROID, oproid );
+    if ( oprtuple ) {
+	opform = (OperatorTupleForm)GETSTRUCT(oprtuple);
+	return ( (char *)&(opform->oprname));
+    } else {
+	return ("bogus-operator");
+    }
+    /*NOTREACHED*/
+}

@@ -4,3 +4,4 @@
 struct Prs2LocksData *RelationGetRelationLocks ARGS((struct RelationData *));
 char RelationHasLocks ARGS((struct RelationData *));
 struct _LispValue *RuleIdGetRuleParsetrees ARGS((unsigned int));
+char *OperOidGetName ARGS((ObjectId oproid));

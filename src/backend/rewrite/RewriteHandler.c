@@ -48,7 +48,7 @@ ChangeTheseVars ( varno, varattno, parser_subtree, replacement )
 	if (temp ) {
 	    if (IsA(temp,Var) &&
 		((get_varattno((Var)temp) == varattno )||
-		 (varattno == -1 )) && 
+		 (varattno == -1)) && 
 		(get_varno((Var)temp) == varno ) ) {
 		
 		CAR(i) = replacement;
@@ -563,6 +563,7 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 
 	printf ("\nNow processing :");
 	PrintRuleLock ( this_lock );
+	printf ("\n");
 
 	ruletrees = RuleIdGetRuleParsetrees ( this_lock->ruleId );
 	foreach ( j , ruletrees ) {
@@ -627,8 +628,12 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 
 	    new_queries = nappend1 ( new_queries, rule_action );
 	}
+
+    printf("\n Done processing :\n");
+    PrintRuleLock ( this_lock );
+    printf("\n");
 	
-    }
+    } /* foreach update_lock */
 
     return(new_queries);
 }
@@ -847,7 +852,10 @@ QueryRewrite ( parsetree )
     user_rangetable 		= root_rangetable(user_root);
     user_command 		= root_command_type ( user_root );
     user_rt_length 		= length ( user_rangetable );
-    
+
+    printf("\nQueryRewrite being called with :\n");
+    Print_parse ( parsetree );
+
     /*
      * only for a delete may the targetlist be NULL
      */
