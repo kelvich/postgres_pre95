@@ -15,13 +15,11 @@
 
 char
 PutRelationLocks ( rule_oid, ev_oid, ev_attno,
-		   ev_type, ac_type , ac_result, is_instead )
+		   ev_type, is_instead )
      oid rule_oid;
      oid ev_oid;
      short ev_attno;
      int ev_type;
-     int ac_type;
-     int ac_result;
      bool is_instead;
 {
     char locktype = (LockIsRewrite | LockIsActive) ;
@@ -46,7 +44,7 @@ PutRelationLocks ( rule_oid, ev_oid, ev_attno,
     if ( is_instead ) {
 	locktype |=  DoInstead;
     }
-
+#ifdef DEPRECATED
     switch ( ac_type ) {
       case      0:		/* temp support for instead nothing */
       case APPEND:
@@ -77,6 +75,7 @@ PutRelationLocks ( rule_oid, ev_oid, ev_attno,
 	/* NOTREACHED */
 	break;
     }
+#endif DEPRECATED
     return ( locktype );
 }
 
