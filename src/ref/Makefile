@@ -1,11 +1,13 @@
 #
 # $Header$
 #
-# This is a really lame Makefile, but I'm tired of dealing with it..
+# [This is a really lame Makefile, but I'm tired of dealing with it..
 #	unfortunately we have targets generated from individual files and
-#	from an ORDERED SET of files, which makes it hard to do this cleanly.
+#	from an ORDERED SET of files, which makes it hard to do this cleanly.]
 #
 .include <postgres.global.mk>
+
+.MAIN: ref
 
 MACROS=-man
 
@@ -19,7 +21,8 @@ GROFFOPTS=${MACROS} ${PRDEV}
 
 SOELIM=gsoelim
 
-PG_MAN_DIR=${.CURDIR}/man
+# POSTMANDIR from ../Makefile.global
+PG_MAN_DIR=${POSTMANDIR}
 PROG_SRC_EXT=.1src
 PROG_MAN_EXT=.1
 PROG_MAN_DIR=${PG_MAN_DIR}/man1
@@ -33,7 +36,6 @@ FILE_SRC_EXT=.5src
 FILE_MAN_EXT=.5
 FILE_MAN_DIR=${PG_MAN_DIR}/man5
 
-.MAIN: all
 
 .SUFFIXES: \
 	${PROG_SRC_EXT} ${PROG_MAN_EXT} \
@@ -135,7 +137,7 @@ SOURCES= \
 	${.CURDIR}/toc
 
 C_SOURCES= \
-	${.CURDIR}/../src/backend/lib/atoms.c
+	${.CURDIR}/../backend/lib/atoms.c
 
 KW_OBJS= \
 	keyword.nr
@@ -255,22 +257,32 @@ ref.ps: ${SOURCES} ${NR_OBJS} ${KW_OBJS} ${TR_MAC_SOURCES}
 	HERE=`pwd`; cd ${.CURDIR}; \
 	${GROFF} ${GROFFOPTS} ${TR_MAC_SOURCES} ${SOURCES} > $$HERE/${.TARGET}
 
-all: ref.cat ref.ps ${OBJS}
 
 CLEANFILES+= ${NR_OBJS} ${KW_OBJS} ref.cat ref.ps
 
-install: ${OBJS}
+ref: ref.cat ref.ps ${OBJS}
+
+install: ${OBJS} all
+	@-for i in ${PROG_MAN_DIR} ${CMD_MAN_DIR} ${LIB_MAN_DIR} ${FILE_MAN_DIR}; \
+	do \
+		if [ ! -d $$i ]; then \
+			mkdir $$i; \
+		fi; \
+	done
 	for i in ${PROG_MAN_OBJS}; do \
-		install -m 444 $$i ${PROG_MAN_DIR}; \
+		install -m 444 $$i ${PROG_MAN_DIR}/$$i; \
 	done; \
 	for i in ${CMD_MAN_OBJS}; do \
-		install -m 444 $$i ${CMD_MAN_DIR}; \
+		install -m 444 $$i ${CMD_MAN_DIR}/$$i; \
 	done; \
 	for i in ${LIB_MAN_OBJS}; do \
-		install -m 444 $$i ${LIB_MAN_DIR}; \
+		install -m 444 $$i ${LIB_MAN_DIR}/$$i; \
 	done; \
 	for i in ${FILE_MAN_OBJS}; do \
-		install -m 444 $$i ${FILE_MAN_DIR}; \
-	done;
+		install -m 444 $$i ${FILE_MAN_DIR}/$$i; \
+	done; \
+	install -m 444 ref.cat ${POSTDOCDIR}/ref.cat; \
+	install -m 444 ref.ps ${POSTDOCDIR}/ref.ps;
 
 .include <postgres.prog.mk>
+
