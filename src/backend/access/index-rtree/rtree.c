@@ -17,6 +17,7 @@
 #include "access/genam.h"
 #include "access/ftup.h"
 #include "access/rtree.h"
+#include "access/funcindex.h"
 
 RcsId("$Header$");
 
@@ -34,7 +35,7 @@ typedef struct SPLITVEC {
 } SPLITVEC;
 
 void
-rtbuild(heap, index, natts, attnum, istrat, pcount, params)
+rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
     Relation heap;
     Relation index;
     AttributeNumber natts;
@@ -42,6 +43,7 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params)
     IndexStrategy istrat;
     uint16 pcount;
     Datum *params;
+    FuncIndexInfo *finfo;
 {
     HeapScanDesc scan;
     Buffer buffer;
@@ -105,8 +107,13 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params)
 	    /*
 	    d[attoff] = HeapTupleGetAttributeValue(htup, buffer,
 	    */
-	    d[attoff] = (Datum) heap_getattr(htup, buffer,
-					     attnum[attoff], hd, &attnull);
+	    d[attoff] = GetIndexValue(htup, 
+				      hd,
+				      attoff, 
+				      attnum, 
+				      finfo, 
+				      &attnull,
+				      buffer);
 	    null[attoff] = (attnull ? 'n' : ' ');
 	}
 

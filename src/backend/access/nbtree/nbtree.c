@@ -22,11 +22,12 @@
 #include "access/sdir.h"
 #include "access/isop.h"
 #include "access/nbtree.h"
+#include "access/funcindex.h"
 
 RcsId("$Header$");
 
 void
-btbuild(heap, index, natts, attnum, istrat, pcount, params)
+btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo)
     Relation heap;
     Relation index;
     AttributeNumber natts;
@@ -34,6 +35,7 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params)
     IndexStrategy istrat;
     uint16 pcount;
     Datum *params;
+    FuncIndexInfo *finfo;
 {
     HeapScanDesc hscan;
     Buffer buffer;
@@ -86,8 +88,13 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params)
 	     */
 
 	    attoff = AttributeNumberGetAttributeOffset(i);
-	    attdata[attoff] = HeapTupleGetAttributeValue(htup, buffer,
-				    attnum[attoff], htupdesc, &attnull);
+	    attdata[attoff] = GetIndexValue(htup, 
+					    htupdesc,
+					    attoff, 
+					    attnum, 
+					    finfo, 
+					    &attnull,
+					    buffer);
 	    null[attoff] = (attnull ? 'n' : ' ');
 	}
 
