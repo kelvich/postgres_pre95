@@ -20,6 +20,9 @@
  * Note:
  *	This must be called before any exceptions occur.  I.e., call this first!
  *	This routine will not return if an error is detected.
+ *	This does not follow the usual Enable... protocol.
+ *	This should be merged more closely with the error logging and tracing
+ *	packages.
  *
  * Exceptions:
  *	none
@@ -99,6 +102,20 @@ extern	void	ExcUnCaught(/* Exception*, ExcDetail, ExcData, ExcMessage */);
 extern	void	ExcPrint(/* Exception*, ExcDetail, ExcData, ExcMessage */);
 extern	char*	ProgramName;
 
-extern	void	ExcAbort(/* Exception*, ExcDetail, ExcData, ExcMessage */);
+/*
+ * ExcAbort --
+ *	Handler for uncaught exception.
+ *
+ * Note:
+ *	Define this yourself if you don't want the default action (dump core).
+ */
+extern
+void
+ExcAbort ARGS((
+	Exception*	exceptionP,
+	ExcDetail	detail,
+	ExcData		data,
+	ExcMessage	message
+));
 
 #endif	/* !defined(ExcIncluded) */
