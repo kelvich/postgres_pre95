@@ -42,6 +42,8 @@
 #define PRS2PLANCODE	18
 #define	RULOID		19
 #define PRS2STUB	20
+#define PRS2RULEID	21
+#define PRS2EVENTREL	22
 
 /* ----------------
  *	struct cachedesc:	information needed for a call to InitSysCache()
