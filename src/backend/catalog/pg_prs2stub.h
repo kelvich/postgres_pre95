@@ -32,6 +32,8 @@
  */ 
 CATALOG(pg_prs2stub) {
     oid 	prs2relid;
+    bool	prs2islast;
+    int4	prs2no;
     stub	prs2stub;	/* VARIABLE LENGTH FIELD */
 } FormData_pg_prs2stub;
 
@@ -47,9 +49,11 @@ typedef FormData_pg_prs2stub	*Form_pg_prs2stub;
  * ----------------
  */
 #define Name_pg_prs2stub		"pg_prs2stub"
-#define Natts_pg_prs2stub		2
+#define Natts_pg_prs2stub		4
 #define Anum_pg_prs2stub_prs2relid	1
-#define Anum_pg_prs2stub_prs2stub	2
+#define Anum_pg_prs2stub_prs2islast	2
+#define Anum_pg_prs2stub_prs2no		3
+#define Anum_pg_prs2stub_prs2stub	4
 
     
 #endif PgPrs2stubIncluded
