@@ -121,6 +121,7 @@ DATA(insert OID = 701 (  float8    6  8  24 f b t 0   0 float8in float8out float
 DATA(insert OID = 702 (  abstime   6  4  20 t b t 0   0 abstimein abstimeout abstimein abstimeout - ));
 DATA(insert OID = 703 (  reltime   6  4  20 t b t 0   0 reltimein reltimeout reltimein reltimeout - ));
 DATA(insert OID = 704 (  tinterval 6 12  47 f b t 0   0 tintervalin tintervalout tintervalin tintervalout - ));
+DATA(insert OID = 705 (  unknown 6 -1  -1 f b t 0   18 textin textout textin textout - ));
     
 /* ----------------
  *	old definition of TypeTupleForm
