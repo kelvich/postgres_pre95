@@ -35,6 +35,7 @@ init_address_fixup()
      */
 }
 
+#ifdef NEED_RINT
 double 
 rint(x)
 	double x;
@@ -43,6 +44,7 @@ rint(x)
 		return((double)((long)(x-0.5)));
 	return((double)((long)(x+0.5)));
 }
+#endif /* NEED_RINT */
 
 double
 cbrt(x)
