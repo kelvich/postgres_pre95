@@ -32,6 +32,7 @@ extern Name	OperatorRelationName;
 extern Name	ProcedureArgumentRelationName;
 extern Name	ProcedureRelationName;
 extern Name	RelationRelationName;
+extern Name	RewriteRelationName;
 extern Name	ServerRelationName;
 extern Name	StatisticRelationName;
 extern Name	TimeRelationName;
