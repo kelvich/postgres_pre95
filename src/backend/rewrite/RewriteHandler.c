@@ -1,7 +1,5 @@
 /* ----------------------------------------------------------------
- * $RCSfile$
- * $Revision$
- * $State$
+ * $Header$
  * ----------------------------------------------------------------
  */
 
@@ -201,6 +199,7 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	char *result_relname =  NULL;
 	List result_rte = NULL;
 	List saved_parsetree = NULL;
+	List saved_tl, saved_qual;
 	List ev_qual = NULL;
 
 	action_info = RuleIdGetActionInfo ( this_lock->ruleId );
@@ -255,9 +254,9 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		result_relname = CString ( CAR ( result_rte ));
 		if ( strcmp ( result_relname,"*CURRENT*")) 
 		  elog(WARN,"a on-retr-do-repl rulelock with bogus result");
-		if ( ev_qual ) {
-		    saved_parsetree = lispCopy ( user_parsetree );
-		}
+		saved_parsetree = lispCopy ( user_parsetree );
+		saved_qual = parse_qualification(saved_parsetree);
+		saved_tl = parse_targetlist(saved_parsetree);
 		foreach ( k , rule_tlist ) {
 		    List tlist_entry = CAR(k);
 		    Resdom tlist_resdom = (Resdom)CAR(tlist_entry);
@@ -272,13 +271,13 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		    
 		    ChangeTheseVars ( current_varno, 
 				     attno,
-				     user_tl,
-				     tlist_expr ,
+				     saved_tl,
+				     tlist_expr,
 				     &modified );
 		    ChangeTheseVars ( current_varno, 
 				     attno,
-				     user_qual,
-				     tlist_expr ,
+				     saved_qual,
+				     tlist_expr,
 				     &modified );
 
 		} /* foreach */
@@ -315,8 +314,8 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 	    }
 
 	    if ( modified ) {
-		AddQualifications ( user_parsetree , 
-				   rule_qual ,
+		AddQualifications ( saved_parsetree , 
+				   rule_qual,
 				   0 );
 		CDR(last(user_rt)) = 
 		  CDR(CDR(rule_rangetable));
@@ -329,10 +328,10 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
 		    /* XXX - offset varnodes so that current and new
 		     * point correctly here
 		     */
-		    AddEventQualifications ( user_parsetree,
-					     ev_qual );
-		    AddNotEventQualifications ( saved_parsetree,
-					        ev_qual );
+		    AddEventQualifications ( saved_parsetree,
+					     ev_qual);
+		    AddNotEventQualifications ( user_parsetree,
+					     ev_qual);
 					     
 		    Print_parse ( saved_parsetree );
 		    additional_queries = lispCons ( saved_parsetree,
