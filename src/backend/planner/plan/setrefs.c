@@ -598,10 +598,14 @@ replace_clause_joinvar_refs (clause,outer_tlist,inner_tlist)
 					      outer_tlist,
 					      inner_tlist);
 	set_refexpr((ArrayRef)clause,temp);
-	temp = replace_clause_joinvar_refs(get_refassgnexpr((ArrayRef)clause),
-					      outer_tlist,
-					      inner_tlist);
-	set_refassgnexpr((ArrayRef)clause,temp);
+
+	/*
+	 *  no need to set refassgnexpr.  we only set that in the
+	 *  target list on replaces, and this is an array reference
+	 *  in the qualification.  if we got this far, it's 0x0 in
+	 *  the ArrayRef structure 'clause'.
+	 */
+
 	return(clause);
       }
     else if (is_funcclause (clause)) {
