@@ -234,16 +234,22 @@ dump_data(portal_name, rule_p)
 	    finish_dump();
 	    return(1);
 	    
-	  case 'E':
-	    {
-	    /* weirdness, apparently this shouldn't have happened. */
-	    static char errormsg[80];
+	case 'E':
+	{
+		/* YES - THIS CAN HAPPEN - for instance when dynamic loading fails!!! */
+
+	    char errormsg[error_msg_length];
+
 	    pq_getstr(errormsg, error_msg_length);
 	    pqdebug("%s error encountered.", errormsg);
 
-	    fprintf(stdout,"%s\n", &(id[1]));
-	    fflush(stdout);
-	    exit(1);
+		/*
+		 * use errormsg[4] because there is garbage in the first four bytes..
+		 */
+
+	    fprintf(stderr,"%s\n", & errormsg[4]);
+	    fflush(stderr);
+		return(-1);
 	}
 	default:
 	    {
