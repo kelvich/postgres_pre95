@@ -75,7 +75,7 @@ typedef int Prs2Status;
 
 #define PRS2_STATUS_TUPLE_UNCHANGED	1
 #define PRS2_STATUS_TUPLE_CHANGED	2
-#define PRS2_STATUS_STATUS_INSTEAD	3
+#define PRS2_STATUS_INSTEAD	3
 
 extern
 Prs2Status
@@ -125,7 +125,7 @@ prs2Main ARGS((
 
 /*------------------------------------------------------------------
  * prs2GetNumberOfLocks
- *    return the number of locks contained in a 'Prs2Locks' structure.
+ *    return the number of locks contained in a 'RuleLock' structure.
  */
 #define prs2GetNumberOfLocks(x)	((x)->numberOfLocks)
 
@@ -141,7 +141,7 @@ prs2Main ARGS((
  *    no locks, i.e. numberOfLocks = 0;
  */
 extern
-Prs2Locks
+RuleLock
 prs2MakeLocks ARGS((
 ));
 
@@ -152,9 +152,9 @@ prs2MakeLocks ARGS((
  *    some other. So this routine should be used with caution!
  */
 extern
-Prs2Locks
+RuleLock
 prs2AddLock ARGS((
-    Prs2Locks       oldLocks,
+    RuleLock       oldLocks,
     ObjectId	    ruleId,
     Prs2LockType    lockType,
     AttributeNumber attributeNumber,
@@ -163,25 +163,25 @@ prs2AddLock ARGS((
 
 /*------------------------------------------------------------------
  * prs2GetOneLockFromLocks
- *    Given a 'Prs2Locks' return a pointer to its Nth lock..
+ *    Given a 'RuleLock' return a pointer to its Nth lock..
  *    (the first locks is lock number 0).
  */
 extern
 Prs2OneLock
 prs2GetOneLockFromLocks ARGS((
-    Prs2Locks	locks,
+    RuleLock	locks,
     int		n
 ));
 
 /*------------------------------------------------------------------
  * prs2GetLocksFromTuple
- *    Extract the locks from a tuple. It returns a 'Prs2Locks',
+ *    Extract the locks from a tuple. It returns a 'RuleLock',
  *    (NOTE:it will never return NULL! Even if the tuple has no
- *    locks in it, it will return a 'Prs2Locks' with 'numberOfLocks'
+ *    locks in it, it will return a 'RuleLock' with 'numberOfLocks'
  *    equal to 0.
  */
 extern
-Prs2Locks
+RuleLock
 prs2GetLocksFromTuple ARGS((
     HeapTuple		tuple,
     Buffer		buffer,
@@ -199,7 +199,7 @@ prs2PutLocksInTuple ARGS((
     HeapTuple	tuple,
     Buffer	buffer,
     Relation	relation,
-    Prs2Locks	newLocks
+    RuleLock	newLocks
 ));
 
 /*------------------------------------------------------------------
@@ -209,20 +209,20 @@ prs2PutLocksInTuple ARGS((
 extern
 void
 prs2PrintLocks ARGS((
-    Prs2Locks	locks
+    RuleLock	locks
 ));
 
 /*------------------------------------------------------------------
  * prs2RemoveAllLocksOfRule
  *    remove all the locks that have a ruleId equal to the given.
- *    the old `Prs2Locks' is destroyed and should never be
+ *    the old `RuleLock' is destroyed and should never be
  *    referenced again.
  *    The new lock is returned.
  */
 extern
-Prs2Locks
+RuleLock
 prs2RemoveAllLocksOfRule ARGS((
-    Prs2Locks	oldLocks,
+    RuleLock	oldLocks,
     ObjectId	ruleId
 ));
 
@@ -231,9 +231,9 @@ prs2RemoveAllLocksOfRule ARGS((
  *    Make a copy of a prs2 lock..
  */
 extern
-Prs2Locks
+RuleLock
 prs2CopyLocks ARGS((
-    Prs2Locks	locks;
+    RuleLock	locks;
 ));
 
 /*------------------------------------------------------------------
@@ -241,20 +241,20 @@ prs2CopyLocks ARGS((
  *   Get locks from the RelationRelation
  */
 extern
-Prs2Locks
+RuleLock
 prs2GetLocksFromRelation ARGS((
     Relation relation
 ));
 
 /*------------------------------------------------------------------
  * prs2LockUnion
- *   Create the union of two Prs2Locks.
+ *   Create the union of two RuleLock.
  */
 extern
-Prs2Locks
+RuleLock
 prs2LockUnion ARGS((
-    Prs2Locks	lock1,
-    Prs2Locks	lock1
+    RuleLock	lock1,
+    RuleLock	lock1
 ));
 
 
@@ -317,16 +317,17 @@ prs2InsertRulePlanInCatalog ARGS((
 ));
 
 /*
- * prs2PutLocks
- *    Put all the appropriate locks.
- *    For the time being only relation level locking is implemented.
+ * prs2PutLocksInRelation
+ *    Put all the appropriate locks in the RelationRelation
+ *    (relation level locking...).
  */
 extern
 void
-prs2PutLocks ARGS((
-    ObjectId	ruleId,		/* the OID of the rule */
-    LispValue	eventTargetList,/* the target list specified in the event */
-    int		lockType	/* the event that triggers the rule */
+prs2PutLocksInRelation ARGS((
+    ObjectId		ruleId,		/* the OID of the rule */
+    Prs2LockType	lockType	/* the type of lock */
+    ObjectId		eventRelationOid; /* the OID of the locked relation */
+    AttributeNumber	attrNo;		/* the attribute to be locked */
 ));
 
 /*
@@ -348,10 +349,10 @@ prs2RemoveLocks ARGS((
  * The rule plans are stored in the "pg_prs2plans" relation.
  * They are a list with at least two items:
  *
- * The first item is a string giving some info for the rule.
- * Currently this can have the following values:
- *  "instead" the rule has an instead specified in its action part
- *  "not-instead" no instead specified in the action part..
+ * The first item is a list giving some info for the rule.
+ * Currently this can have the following elements:
+ * The first element is an integer, equal to 1 if the rule is an
+ * instead rule, 0 otherwise.
  *
  * The second item is the qualification of the rule.
  * This should be tested before and only if it succeeds should the
@@ -371,6 +372,8 @@ prs2RemoveLocks ARGS((
 #define prs2GetRuleInfoFromRulePlan(x)	(CAR(x))
 #define prs2GetQualFromRulePlan(x)	(CADR(x))
 #define prs2GetActionsFromRulePlan(x)	(CDR(CDR(x)))
+
+#define prs2IsRuleInsteadFromRuleInfo(x) (CInteger(CAR(x)))
 
 #define prs2GetParseTreeFromOneActionPlan(x)	(CAR(x))
 #define prs2GetPlanFromOneActionPlan(x)		(CADR(x))
@@ -427,6 +430,7 @@ typedef struct AttributeValuesData {
 } AttributeValuesData;
 
 typedef AttributeValuesData *AttributeValues;
+#define InvalidAttributeValues ((AttributeValues)NULL)
 
 /*---------------------------------------------------------------------
  * attributeValuesCreate
@@ -466,7 +470,7 @@ attributeValuesMakeNewTuple ARGS((
     HeapTuple tuple;
     Buffer buffer;
     AttributeValues attrValues;
-    Prs2Locks locks;
+    RuleLock locks;
     Relation relation;
     HeapTuple *newTupleP;
 ));
@@ -496,7 +500,7 @@ typedef struct Prs2EStateInfoData {
     Prs2Stack	prs2Stack;	/* the stack used for loop detection */
 } Prs2EStateInfoData;
 
-typedef Prs2EStateInfoData *Prs2EStateInfo;
+typedef  Prs2EStateInfoData *Prs2EStateInfo;
 
 /*
  * prs2RuleStackPush
@@ -555,19 +559,63 @@ prs2RuleStackFree ARGS((
     Prs2EStateInfo p;
 ));
 
+/*========================================================================
+ * VARIOUS ROUTINES....
+ *========================================================================
+
+/*
+ * PlanToString
+ *
+ * Given a plan (or an arbritary (?) lisp structure, transform it into a
+ * a strign which has the following two properties
+ *  a) it is readable by (some) humans
+ *  b) it can be used to recreate the original plan/lisp structure
+ *     (see routine "StringToPlan".
+ * NOTE: used to be called "plan_to_string"
+ *
+ *
+ * XXX Maybe this should be placed in another header file...
+ */
+extern
+char *
+PlanToString ARGS((
+    LispValue lispStructure
+));
 
 /*========================================================================
- * Thse routines are some 'internal' routines. 
+ * These routines are some 'internal' routines. 
  *========================================================================
  */
 
-extern void prs2CalculateOneAttribute();
-extern void prs2CalculateAttributesOfParamNodes();
+extern LispValue StringToPlanWithParams();
+extern LispValue MakeQueryDesc();
+/* XXX this causes circular dependency!
+extern EState CreateExecutorState();
+*/
+
 extern Prs2Status prs2Retrieve();
 extern Prs2Status prs2Append();
 extern Prs2Status prs2Delete();
 extern Prs2Status prs2Replace();
+extern EventType prs2FindEventTypeFromParse();
+extern ActionType prs2FindActionTypeFromParse();
+extern void Prs2PutLocks();
 
+/*
+ * These are functions in prs2plans.c
+ */
+extern LispValue prs2GetRulePlanFromCatalog();
+extern int prs2CheckQual();
+extern void prs2RunActionPlans();
+extern int prs2RunOnePlanAndGetValue();
+extern LispValue prs2RunOnePlan();
 
+/*
+ * functions in prs2bkwd.c
+ */
+extern void prs2CalculateAttributesOfParamNodes();
+extern void prs2ActivateBackwardChainingRules();
+extern void prs2ActivateForwardChainingRules();
 
 #endif Prs2Included
+
