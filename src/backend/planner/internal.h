@@ -165,8 +165,6 @@ typedef struct hash_info {
 } hashinfo;
 */
 
-extern void set_unorderedpath ARGS((Rel node; Path unorderedpath));
-extern Path get_unorderedpath ARGS((Rel node));
 extern LispValue joinmethod_clauses ARGS((joinmethod node));
 extern LispValue joinmethod_keys ARGS((joinmethod node));
 
