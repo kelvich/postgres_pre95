@@ -5,9 +5,10 @@
 
 #include "c.h"
 
+RcsId("$Header$");
+
 #include "datum.h"
 
-RcsId("$Header$");
 
 /*
  * DatumGet --
@@ -219,21 +220,21 @@ PointerPointerGetDatum(pointerPointerInP)
 	return (datum);
 }
 
-AnyStructure *
-DatumGetStructurePointer(datum)
+AnyStruct *
+DatumGetStructPointer(datum)
 	Datum	datum;
 {
-	return (DatumGet(datum, structurePointer));
+	return (DatumGet(datum, structPointer));
 }
 
 Datum
-StructurePointerGetDatum(structurePointerInP)
-	AnyStructure	*structurePointerInP;
+StructPointerGetDatum(structPointerInP)
+	AnyStruct	*structPointerInP;
 {
 	Datum	datum;
 
 	bzero(&datum, sizeof(Datum));
-	DatumSet(datum, structurePointer, structurePointerInP);
+	DatumSet(datum, structPointer, structPointerInP);
 	return (datum);
 }
 
