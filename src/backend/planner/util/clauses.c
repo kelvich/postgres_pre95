@@ -257,7 +257,9 @@ Var
 get_rightop (clause)
      LispValue clause ;
 {
-     return((Var)nth (2,clause));
+     clause = CDR(CDR(clause));
+
+     return( (Var)((clause) ? CAR(clause) : LispNil) );
 }
 /* ----Agg clause macros
 */
