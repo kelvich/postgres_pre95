@@ -4,6 +4,7 @@
  */
 
 #include "tmp/c.h"
+#include "utils/log.h"
 
 RcsId("$Header$");
 
@@ -20,8 +21,8 @@ boolin(b)
 	char	*b;
 {
 	if (b == NULL)
-		return((int32) NULL);
-	return((int32) (*b == 't'));
+		elog(WARN, "Bad input string for type bool");
+	return((int32) (*b == 't') || (*b == 'T'));
 }
 
 /*
