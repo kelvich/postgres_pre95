@@ -11,7 +11,8 @@ postmaster [ -p port ] [ -b backend_pathname ] [ -d debug_level ] &
 .uh "DESCRIPTION"
 .lp
 The postmaster manages the communication between frontends and backends,
-as well as allocating the shared buffer pool and semaphores.  The postmaster
+as well as allocating the shared buffer pool and semaphores (on machines
+without TAS).  The postmaster
 does not itself interact with the user so it should be started as a background
 process.  \fBOnly one postmaster should be run on a machine!\fR
 .sp
