@@ -152,11 +152,6 @@ read_remark(id)
 	pq_getstr(remarks, remark_length);
 	pq_getnchar(id, 0, 1);
     }
-    while(id[0] == 'E') {
-        pq_getstr(errormsg,error_msg_length);
-        fprintf(stdout,"%s \n",&errormsg[0]+4);
-        pq_getnchar(id, 0, 1);
-    }
     while(id[0] == 'N') {
         pq_getstr(errormsg,error_msg_length);
         fprintf(stdout,"%s \n",&errormsg[0]+4);
