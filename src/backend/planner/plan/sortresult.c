@@ -269,7 +269,7 @@ sort_level_result (plan,numkeys)
      LispValue xtl = LispNil;
 
      if(_query_result_relation_)
-       new_plan = (Plan)MakeSort (get_qptargetlist (plan),
+       new_plan = (Plan)make_sort (get_qptargetlist (plan),
 			     _query_result_relation_,
 			     plan,
 			     numkeys);
@@ -278,7 +278,7 @@ sort_level_result (plan,numkeys)
 						      new_tlist),
 				LispNil,
 				_TEMP_RELATION_ID_,
-				MakeSort  (get_qptargetlist (plan),
+				make_sort  (get_qptargetlist (plan),
 					   _TEMP_RELATION_ID_,
 					   plan,
 					   numkeys));
