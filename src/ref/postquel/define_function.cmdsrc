@@ -225,7 +225,7 @@ GetAttributeByName(t, "fieldname", &isnull)
 where 
 .i isnull
 is a pointer to a bool, which the function sets to \fItrue\fP if the
-field is null.  The result of this functions should be cast
+field is null.  The result of this function should be cast
 appropriately as shown in the examples below.
 .lp
 .uh "POSTQUEL FUNCTIONS"
