@@ -25,6 +25,7 @@ RcsId("$Header$");
 
 #include "access/heapam.h"
 #include "access/tqual.h"
+#include "access/tupmacs.h"
 #include "utils/exc.h"	/* for ExcAbort and <setjmp.h> */
 #include "fmgr.h"
 #include "utils/mcxt.h"
@@ -450,6 +451,9 @@ boot_openrel(name)
 	    (char *)attrtypes[i],
 	    sizeof (*attrtypes[0])
 	);
+	/* some old pg_attribute tuples might not have attisset */
+	attrtypes[i]->attisset = get_attisset(reldesc->rd_id,
+                                              attrtypes[i]->attname);
 	if (DebugMode) {
 	    struct attribute *at = attrtypes[i];
 	    printf("create attribute %d name %s len %d num %d type %d\n",
