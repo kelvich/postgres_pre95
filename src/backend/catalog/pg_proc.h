@@ -239,6 +239,7 @@ DATA(insert OID = 192 (  box_contained     6 11 f t f 2  16 foo bar ));
 DATA(insert OID = 193 (  rt_box_union      6 11 f t f 2 603 foo bar ));
 DATA(insert OID = 194 (  rt_box_inter      6 11 f t f 2 603 foo bar ));
 DATA(insert OID = 195 (  rt_box_size       6 11 f t f 1  23 foo bar ));
+DATA(insert OID = 196 (  rt_bigbox_size    6 11 f t f 1  23 foo bar ));
 DATA(insert OID = 200 (  float4in          6 11 f t f 1 700 foo bar ));
 DATA(insert OID = 201 (  float4out         6 11 f t f 1  23 foo bar ));
 DATA(insert OID = 202 (  float4mul         6 11 f t f 2 700 foo bar ));

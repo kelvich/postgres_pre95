@@ -195,6 +195,19 @@ DATA(insert OID = 0 (  402 422 498 7 rtsel rtnpage ));
 DATA(insert OID = 0 (  402 422 497 8 rtsel rtnpage ));
 
 /*
+ *  rtree bigbox_ops
+ */
+
+DATA(insert OID = 0 (  402 433 493 1 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 433 494 2 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 433 500 3 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 433 495 4 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 433 496 5 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 433 499 6 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 433 498 7 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 433 497 8 rtsel rtnpage ));
+
+/*
  *  nbtree int2_ops
  */
 

@@ -278,6 +278,7 @@ extern float64		rtnpage();
 extern BOX		*rt_box_union();
 extern BOX		*rt_box_inter();
 extern int		rt_box_size();
+extern int		rt_bigbox_size();
 #endif /* FMGR_ADT */
 
 /*
