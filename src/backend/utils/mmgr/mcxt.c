@@ -364,8 +364,14 @@ Pointer		pointer;
 		     line, file, pointer, "** not on list **");
 	   }
 	if (PallocNoisy)
-	    printf("!- f: %s l: %d p: 0x%x %s\n",
-		   file, line, pointer, context);
+	    if (d != NULL) {
+	        printf("!- f: %s l: %d p: 0x%x s: %d %s\n",
+		       d->file, d->line, pointer, d->size, context);
+	      }
+	    else {
+	        printf("!- f: %s l: %d p: 0x%x s: ? %s\n",
+		       file, line, pointer, context);
+	      }
 
 	context->method->free_p(context, pointer);
 }
@@ -425,6 +431,13 @@ MemoryContextSwitchTo(context)
  * START HERE
  *	Add routines to move memory between contexts.
  */
+
+void
+MemoryContextDump(context)
+MemoryContext context;
+{
+    context->method->dump(context);
+}
 
 /*
  * DEBUGGING
