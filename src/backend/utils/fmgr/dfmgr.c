@@ -311,7 +311,7 @@ load_file(filename)
             p = file_scanner->next;
             file_scanner->next = file_scanner->next->next;
 #ifdef USE_DLD
-	    dld_unlink_by_file(file_scanner->filename, 1 /* force */);
+	    dld_unlink_by_file(p->filename, 1 /* force */);
 #else
             zero_loaded_file(p);
 #endif
