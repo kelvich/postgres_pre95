@@ -41,17 +41,22 @@ RcsId("$Header$");
  *	supported.  In such a case, a warning is printed that the 
  *	aggregate already exists.  If such is not the case, a new tuple
  *	is created and inserted in the aggregate relation.  The fields
- *	of this tuple are aggregate name, owner id, transition function
- *	(called aggfunc1), final function (aggfunc2), internal type (return
- *	type of the transition function), and final type (return type of
- *	the final function).  All types and functions must have been defined
+ *	of this tuple are aggregate name, owner id, 2 transition functions
+ *	(called aggtransfn1 and aggtransfn2), final function (aggfinalfn),
+ *	type of data on which aggtransfn1 operates (aggbasetype), return
+ *	types of the two transition functions (aggtranstype1 and 
+ *	aggtranstype2), final return type (aggfinaltype), and initial values
+ *	for the two state transition functions (agginitval1 and agginitval2).
+ *	All types and functions must have been defined
  *	prior to defining the aggregate.
  * ---------------
  */
 int /* return status */
 AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName, 
+		aggbasetypeName, aggtransfn1typeName, aggtransfn2typeName,
 		agginitval1, agginitval2)
     Name 	aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName; 
+    Name	aggbasetypeName, aggtransfn1typeName, aggtransfn2typeName;
     String	agginitval1, agginitval2;
 {
     register		i;
@@ -63,11 +68,15 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
     ObjectId		xfn1 = InvalidObjectId;
     ObjectId		xfn2 = InvalidObjectId;
     ObjectId		ffn = InvalidObjectId;
+    ObjectId		xbase = InvalidObjectId;
     ObjectId		xret1 = InvalidObjectId;
     ObjectId		xret2 = InvalidObjectId;
     ObjectId		fret = InvalidObjectId;
     ObjectId		farg = InvalidObjectId;
+    ObjectId		fnArgs[8];
     
+    bzero(fnArgs, 8 * sizeof(ObjectId));
+
     /* sanity checks */
     if (!NameIsValid(aggName))
 	elog(WARN, "AggregateDefine: no aggregate name supplied");
@@ -76,95 +85,106 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
     if (HeapTupleIsValid(tup))
 	elog(WARN, "AggregateDefine: aggregate \"%-*s\" already exists",
 	     sizeof(NameData), aggName->data);
-    
+
+    if (!NameIsValid(aggtransfn1Name) && !NameIsValid(aggtransfn2Name))
+	elog(WARN, "AggregateDefine: aggregate must have at least one transition function");
+
     if (NameIsValid(aggtransfn1Name)) {
+	tup = SearchSysCacheTuple(TYPNAME, aggbasetypeName);
+	if(!HeapTupleIsValid(tup))
+	    elog(WARN, "AggregateDefine: Type \"%-*s\" undefined",
+		 sizeof(NameData), aggbasetypeName);
+	xbase = tup->t_oid;
+
+	tup = SearchSysCacheTuple(TYPNAME, aggtransfn1typeName);
+	if(!HeapTupleIsValid(tup))
+	    elog(WARN, "AggregateDefine: Type \"%-*s\" undefined",
+		 sizeof(NameData), aggtransfn1typeName);
+	xret1 = tup->t_oid;
+
+	fnArgs[0] = xret1;
+	fnArgs[1] = xbase;
 	tup = SearchSysCacheTuple(PRONAME, aggtransfn1Name->data,
-				  (char *) NULL, (char *) NULL,
+				  2,
+				  fnArgs,
 				  (char *) NULL);
 	if(!HeapTupleIsValid(tup))
-	    elog(WARN, "AggregateDefine: \"%-*s\" does not exist",
-		 sizeof(NameData), aggtransfn1Name->data);
+	    elog(WARN, "AggregateDefine: \"%-*s\"(\"%-*s\", \"%-*s\",) does not exist",
+		 sizeof(NameData), aggtransfn1Name->data,
+		 sizeof(NameData), aggtransfn1typeName->data,
+		 sizeof(NameData), aggbasetypeName->data);
+	if (((Form_pg_proc) GETSTRUCT(tup))->prorettype != xret1)
+	    elog(WARN, "AggregateDefine: return type of \"%-*s\" is not \"%-*s\"",
+		 sizeof(NameData), aggtransfn1Name->data,
+		 sizeof(NameData), aggtransfn1typeName->data);
 	xfn1 = tup->t_oid;
-	xret1 = ((Form_pg_proc) GETSTRUCT(tup))->prorettype;
-	if (!ObjectIdIsValid(xfn1) || !ObjectIdIsValid(xret1))
+	if (!ObjectIdIsValid(xfn1) || !ObjectIdIsValid(xret1) ||
+	    !ObjectIdIsValid(xbase))
 	    elog(WARN, "AggregateDefine: bogus function \"%-*s\"",
-		 sizeof(NameData), aggtransfn1Name->data);
+		 sizeof(NameData), aggfinalfnName->data);
     }
+
     if (NameIsValid(aggtransfn2Name)) {
+	tup = SearchSysCacheTuple(TYPNAME, aggtransfn2typeName);
+	if(!HeapTupleIsValid(tup))
+	    elog(WARN, "AggregateDefine: Type \"%-*s\" undefined",
+		 sizeof(NameData), aggtransfn2typeName);
+	xret2 = tup->t_oid;
+
+	fnArgs[0] = xret2;
+	fnArgs[1] = 0;
 	tup = SearchSysCacheTuple(PRONAME, aggtransfn2Name->data,
-				  (char *) NULL, (char *) NULL,
+				  1,
+				  fnArgs,
 				  (char *) NULL);
 	if(!HeapTupleIsValid(tup))
-	    elog(WARN, "AggregateDefine: \"%-*s\" does not exist",
-		 sizeof(NameData), aggtransfn2Name->data);
+	    elog(WARN, "AggregateDefine: \"%-*s\"(\"%-*s\") does not exist",
+		 sizeof(NameData), aggtransfn2Name->data,
+		 sizeof(NameData), aggtransfn2typeName->data);
+	if (((Form_pg_proc) GETSTRUCT(tup))->prorettype != xret2)
+	    elog(WARN, "AggregateDefine: return type of \"%-*s\" is not \"%-*s\"",
+		 sizeof(NameData), aggtransfn2Name->data,
+		 sizeof(NameData), aggtransfn2typeName->data);
 	xfn2 = tup->t_oid;
-	xret2 =  ((Form_pg_proc) GETSTRUCT(tup))->prorettype;
 	if (!ObjectIdIsValid(xfn2) || !ObjectIdIsValid(xret2))
 	    elog(WARN, "AggregateDefine: bogus function \"%-*s\"",
-		 sizeof(NameData), aggtransfn2Name->data);
+		 sizeof(NameData), aggfinalfnName->data);
     }
+
+    /* more sanity checks */
+    if (NameIsValid(aggtransfn1Name) && NameIsValid(aggtransfn2Name) &&
+	!NameIsValid(aggfinalfnName))
+	elog(WARN, "AggregateDefine: Aggregate must have final function with both transition functions");
+
+    if ((!NameIsValid(aggtransfn1Name) || !NameIsValid(aggtransfn2Name)) &&
+	NameIsValid(aggfinalfnName))
+	elog(WARN, "AggregateDefine: Aggregate cannot have final function without both transition functions");
+
     if (NameIsValid(aggfinalfnName)) {
+        fnArgs[0] = xret1;
+	fnArgs[1] = xret2;
 	tup = SearchSysCacheTuple(PRONAME, aggfinalfnName->data,
-				  (char *) NULL, (char *) NULL,
+				  2,
+				  fnArgs,
 				  (char *) NULL);
 	if(!HeapTupleIsValid(tup))
-	    elog(WARN, "AggregateDefine: \"%-*s\" does not exist",
-		 sizeof(NameData), aggfinalfnName->data);
+	    elog(WARN, "AggregateDefine: \"%-*s\"(\"%-*s\", \"%-*s\") does not exist",
+		 sizeof(NameData), aggfinalfnName->data,
+		 sizeof(NameData), aggtransfn1typeName->data,
+		 sizeof(NameData), aggtransfn2typeName->data);
 	ffn = tup->t_oid;
 	proc = (Form_pg_proc) GETSTRUCT(tup);
 	fret = proc->prorettype;
-	farg = proc->proargtypes.data[0];
-	if (!ObjectIdIsValid(ffn) ||
-	    !ObjectIdIsValid(fret) ||
-	    !ObjectIdIsValid(farg) ||
-	    proc->pronargs > 2)
+	if (!ObjectIdIsValid(ffn) || !ObjectIdIsValid(fret))
 	    elog(WARN, "AggregateDefine: bogus function \"%-*s\"",
 		 sizeof(NameData), aggfinalfnName->data);
     }
 
     /*
-     * sanity checking.
-     * - we must have at least one transition function.
-     * - if transition function 2 is defined, it must have an initial value.
-     * - if we have two transition functions, we must have a final function.
-     * - transition function return values must be equal (as well as equal
-     *   to the final function argument type if a final function is defined).
+     * If transition function 2 is defined, it must have an initial value,
+     * whereas transition function 1 does not, which allows man and min
+     * aggregates to return NULL if they are evaluated on empty sets.
      */
-    if (!ObjectIdIsValid(xfn1) && !ObjectIdIsValid(xfn2))
-	/* we already checked xrets for each xfn if it was defined */
-	elog(WARN, "AggregateDefine: no valid transition functions provided");
-    if (!ObjectIdIsValid(xfn1)) {
-	/* transition function 2 only */
-	if (ObjectIdIsValid(farg) && (farg != xret2))
-	    elog(WARN, "AggregateDefine: final function argument type (%d) != transition function 2 type (%d)",
-		 farg, xret2);
-	if (!ObjectIdIsValid(ffn))
-	    fret = xret2;
-	xret1 = xret2; /* just as an aggtranstype value */
-    } else if (!ObjectIdIsValid(xfn2)) {
-	/* transition function 1 only */
-	if (ObjectIdIsValid(farg) && (farg != xret1))
-	    elog(WARN, "AggregateDefine: final function argument type (%d) != transition function 1 type (%d)",
-		 farg, xret1);
-	if (!ObjectIdIsValid(ffn))
-	    fret = xret1;
-    } else {
-	/* both transition functions */
-#if 0
-	/*
-	 * this was in the original definition but gets in the way
-	 * of the s2k benchmark
-	 */
-	if (xret1 != xret2)
-	    elog(WARN, "AggregateDefine: transition function 1 type (%d) != transition function 2 type (%d)",
-		 xret1, xret2);
-#endif
-	if (ObjectIdIsValid(farg) && (farg != xret1))
-	    elog(WARN, "AggregateDefine: final function argument type (%d) != transition function type (%d)",
-		 farg, xret1);
-	if (!ObjectIdIsValid(ffn))
-	    elog(WARN, "AggregateDefine: must have a final function with two transition functions!");
-    }
     if (ObjectIdIsValid(xfn2) && !PointerIsValid(agginitval2))
 	elog(WARN, "AggregateDefine: transition function 2 MUST have an initial value");
     
@@ -178,12 +198,31 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
     values[Anum_pg_aggregate_aggtransfn1-1] = (char *) xfn1;
     values[Anum_pg_aggregate_aggtransfn2-1] = (char *) xfn2;
     values[Anum_pg_aggregate_aggfinalfn-1] = (char *) ffn;
-    values[Anum_pg_aggregate_aggtranstype-1] = (char *) xret1;
-    values[Anum_pg_aggregate_aggfinaltype-1] = (char *) fret;
+
+    if (!ObjectIdIsValid(xfn1)) {
+	values[Anum_pg_aggregate_aggbasetype-1] = (char *)InvalidObjectId;
+	values[Anum_pg_aggregate_aggtranstype1-1] = (char *)InvalidObjectId;
+	values[Anum_pg_aggregate_aggtranstype2-1] = (char *) xret2;
+	values[Anum_pg_aggregate_aggfinaltype-1] = (char *) xret2;
+    }
+    else if (!ObjectIdIsValid(xfn2)) {
+	values[Anum_pg_aggregate_aggbasetype-1] = (char *) xbase;
+	values[Anum_pg_aggregate_aggtranstype1-1] = (char *) xret1;
+	values[Anum_pg_aggregate_aggtranstype2-1] = (char *)InvalidObjectId;
+	values[Anum_pg_aggregate_aggfinaltype-1] = (char *) xret1;
+    }
+    else {
+	values[Anum_pg_aggregate_aggbasetype-1] = (char *) xbase;
+	values[Anum_pg_aggregate_aggtranstype1-1] = (char *) xret1;
+	values[Anum_pg_aggregate_aggtranstype2-1] = (char *) xret2;
+	values[Anum_pg_aggregate_aggfinaltype-1] = (char *) fret;
+    }
+
     if (ObjectIdIsValid(agginitval1))
 	values[Anum_pg_aggregate_agginitval1-1] = agginitval1;
     else
 	nulls[Anum_pg_aggregate_agginitval1-1] = 'n';
+
     if (ObjectIdIsValid(agginitval2))
 	values[Anum_pg_aggregate_agginitval2-1] = agginitval2;
     else
@@ -203,32 +242,43 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
 }
 
 char *
-AggNameGetInitVal(aggName, initValAttno, isNull)
+AggNameGetInitVal(aggName, xfuncno, isNull)
     char	*aggName;
-    int	initValAttno;
+    int		xfuncno;
     bool	*isNull;
 {
     HeapTuple	tup;
     Relation	aggRel;
+    int		initValAttno;
     ObjectId	transtype;
-    text		*textInitVal;
-    char		*strInitVal, *initVal;
+    text	*textInitVal;
+    char	*strInitVal, *initVal;
     extern char	*textout();
     
     Assert(PointerIsValid((Pointer) aggName));
     Assert(PointerIsValid((Pointer) isNull));
-    
+    Assert(xfuncno == 1 || xfuncno == 2);
     tup = SearchSysCacheTuple(AGGNAME, aggName, (char *) NULL,
 			      (char *) NULL, (char *) NULL);
     if (!HeapTupleIsValid(tup))
 	elog(WARN, "AggNameGetInitVal: cache lookup failed for aggregate \"%-*s\"",
 	     sizeof(NameData), aggName);
-    transtype = ((Form_pg_aggregate) GETSTRUCT(tup))->aggtranstype;
+    if (xfuncno == 1) {
+	transtype = ((Form_pg_aggregate) GETSTRUCT(tup))->aggtranstype1;
+	initValAttno = Anum_pg_aggregate_agginitval1;
+    }
+    else if (xfuncno == 2) {
+	transtype = ((Form_pg_aggregate) GETSTRUCT(tup))->aggtranstype2;
+	initValAttno = Anum_pg_aggregate_agginitval2;
+    }
     
     aggRel = heap_openr(AggregateRelationName);
     if (!RelationIsValid(aggRel))
 	elog(WARN, "AggNameGetInitVal: could not open \"%-*s\"",
 	     sizeof(NameData), AggregateRelationName->data);
+    /* 
+     * must use fastgetattr in case one or other of the init values is NULL
+     */
     textInitVal = (text *) fastgetattr(tup, initValAttno, &aggRel->rd_att,
 				       isNull);
     if (!PointerIsValid((Pointer) textInitVal))
