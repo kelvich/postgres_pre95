@@ -562,7 +562,7 @@ pq_connect(dbname,user,args,hostName,debugTty,execFile,portName)
 
     PQAsyncNotifyWaiting = 0;
     PQnotifies_init();
-    pq_regoob(pq_async_notify);
+/*    pq_regoob(pq_async_notify);*/
 
     if (status != STATUS_OK)
 	/* PacketSend already set PQerrormsg */
@@ -598,7 +598,8 @@ void pq_unregoob()
 void
 pq_async_notify() {
     char msg[20];
-    int len = sizeof(msg);
+/*    int len = sizeof(msg);*/
+    int len = 20;
 
     if (pq_recvoob(msg,&len) >= 0) {
 	/* debugging */
