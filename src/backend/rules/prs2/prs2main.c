@@ -22,8 +22,12 @@
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
 #include "nodes/execnodes.h"		/* which includes access/rulescan.h */
-#include "nodes/execnodes.h"
 #include "nodes/execnodes.a.h"
+#include "nodes/mnodes.h"
+#include "utils/mcxt.h"
+
+extern GlobalMemory CreateGlobalMemory();
+extern HeapTuple palloctup();
 
 /*------------------------------------------------------------------
  *
@@ -134,6 +138,8 @@ Buffer *returnedBufferP;
     RelationRuleInfo updateRelationRuleInfo;
     int topLevel;
     Relation explainRelation;
+    MemoryContext oldMemContext;
+    GlobalMemory prs2MemContext;
 
     if (relation == NULL) {
 	/*
@@ -150,11 +156,27 @@ Buffer *returnedBufferP;
 
     prs2EStateInfo = get_es_prs2_info(estate);
     if (prs2EStateInfo == NULL) {
+	/*
+	 * well, what do you know...
+	 * this is the first time we call the rule manager and
+	 * we are at the topmost level (i.e. no recursions
+	 * yet. Allocate memory for the stack & initialize it.
+	 */
 	prs2EStateInfo = prs2RuleStackInitialize();
-	topLevel = 1;
-    } else {
-	topLevel = 0;
+	set_es_prs2_info(estate, prs2EStateInfo);
     }
+
+    /*
+     * in order to avoid memory leaks, we will switch to another
+     * memory context, and after the dust settles we will just
+     * destroy all memory palloced but not pfreed.
+     *
+     * NOTE: this works just fine even if we have recursive calls
+     * to the executor/rule manager (even if the name of the
+     * new context is the same - it is never used...)
+     */
+    prs2MemContext = CreateGlobalMemory("*prs2Main");
+    oldMemContext = MemoryContextSwitchTo(prs2MemContext);
 
     switch (operation) {
 	case RETRIEVE:
@@ -218,9 +240,43 @@ Buffer *returnedBufferP;
 
     } /* switch */
 
-    if (topLevel) {
-	prs2RuleStackFree(prs2EStateInfo);
+    /*
+     * switch back to the old memory context
+     * and destroy all memory allocated under the prs2MemContext.
+     *
+     * NOTE: VERY IMPORTANT!
+     * If we have changed the tuple,then this new "returnedTuple"
+     * has been palloced under the 'prs2MemCOntext'.
+     * So, we have to recopy it under the other context for it
+     * to survive and live a long, happy life.
+     *
+     * Probably the right solution would be to switch temporarilly
+     * to the old context and then back to prs2MemContext when we
+     * were creating this returned tuple in the first place,
+     * but the code will become more complex and difficult to
+     * understand (while -of course- now it is a paradigm of
+     * simplicity and elegance....)
+     * Thus we could avoid this extra copy (so what, it is
+     * only a simple bcopy anyway....)
+     */
+    (void) MemoryContextSwitchTo(oldMemContext);
+    if (status == PRS2_STATUS_TUPLE_CHANGED) {
+	*returnedTupleP = palloctup(*returnedTupleP,
+				    *returnedBufferP,
+				    relation);
     }
+    GlobalMemoryDestroy(prs2MemContext);
+
+    /*
+     * XXX: do we HAVE to call prs2RuleStackFree ??
+     * I guess not really, we can just reuse the same stack
+     * over and over again...
+     */
+    /* if (topLevel) {
+     *     prs2RuleStackFree(prs2EStateInfo);
+     * }
+     */
+
     return(status);
 }
 
