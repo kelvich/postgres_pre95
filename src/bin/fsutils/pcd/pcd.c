@@ -1,8 +1,8 @@
 #ifndef lint
-static	char sccsid[] = "@(#)pwd.c 1.1 90/03/23 SMI"; /* from UCB 4.4 83/01/05 */
+static	char rcsid[] = "$Id$";
 #endif
 /*
- * pwd
+ * cd
  */
 #include <stdio.h>
 #include <sys/param.h>
@@ -10,31 +10,61 @@ static	char sccsid[] = "@(#)pwd.c 1.1 90/03/23 SMI"; /* from UCB 4.4 83/01/05 */
 
 extern char *getwd();
 extern char *getenv();
+void usage();
 
 main(argc,argv)
 char *argv[];
 int argc;
 {
 	char pathname[MAXPATHLEN + 1];
+	int pflag, dflag, ch;
 	char *dbname;
+	extern int optind;
+	extern char *optarg;
+	extern char *PQhost, *PQport;
 
-	if ((dbname = getenv("DATABASE")) == (char *) NULL) {
-	    fprintf(stderr, "no database specified in env var DATABASE\n");
-	    fflush(stderr);
-	    exit (1);
-	}
-
-	PQsetdb(dbname);
+	pflag = dflag = 0;
+	while ((ch = getopt(argc, argv, "H:P:D:p")) != EOF)
+	  switch(ch) {
+	    case 'H':
+	      PQhost = optarg;
+	      break;
+	    case 'P':
+	      PQport = optarg;
+	      break;
+	    case 'D':
+	      PQsetdb(optarg);
+	      dflag = 1;
+	      break;
+	    case 'p':
+	      pflag = 1;
+	      break;
+	    case '?':
+	    default:
+	      usage();
+	  }
 	
-	if (argc > 1 || argc == 0) {
-		fprintf(stderr,"wrong # of arguments.\nusage: %s directory\n",argv[0]);
-		exit(1);
-	} else if (argc == 1) {
-		argv[1] = "/";
+	if (!dflag) {
+	    if ((dbname = getenv("DATABASE")) == (char *) NULL) {
+		fprintf(stderr, "no database specified with -D option or in env var DATABASE\n");
+		fflush(stderr);
+		exit (1);
+	    }
+	    PQsetdb(dbname);
+	}
+	{
+	    extern int p_attr_caching;
+	    p_attr_caching = 0;
 	}
 
-	if (p_chdir(argv[1]) < 0) {
-		fprintf(stderr, "pcd: %s\n", pathname);
+	if ((argc-optind) > 1) {
+	    usage();
+	} else if ((argc-optind) == 0) {
+		argv[optind] = "/";
+	}
+	
+	if (p_chdir(argv[optind]) < 0) {
+		fprintf(stderr, "pcd: bad pathname %s\n", argv[optind]);
 		exit(1);
 	}
 	p_getwd(pathname);
@@ -42,4 +72,10 @@ int argc;
 	PQfinish();
 	exit(0);
 	/* NOTREACHED */
+}
+
+void usage()
+{
+    fprintf(stderr,"wrong # of arguments.\nusage: pcd directory\n");
+    exit(1);
 }
