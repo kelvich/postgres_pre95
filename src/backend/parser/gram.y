@@ -216,7 +216,7 @@ ClusterStmt:
 	QUERY :
 		COPY [BINARY] [NONULLS] <relname> 
 		'(' [col_name = id]* ')'  FROM/TO 
-		<filename> [USING <maprelname>
+		<filename> [USING <maprelname>]
 
 	TREE:
 		( COPY ("relname" [BINARY] [NONULLS] )
@@ -259,7 +259,7 @@ copy_dirn:
 copy_map:
 	/*EMPTY*/				{ NULLTREE }
 	| Using map_rel_name			
-		{ $$ = lispCons ($2 , LispNil ); }
+		{ $$ = $2; }
 	;
 
 copy_null:
