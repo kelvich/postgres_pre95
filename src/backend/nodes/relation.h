@@ -176,7 +176,7 @@ class (Path) public (Node) {
 	Cost		path_cost; \
 	List		p_ordering; \
 	List		keys; \
-	SortKey		sortpath; \
+	SortKey		pathsortkey; \
 	Cost		outerjoincost; \
 	Relid		joinid
 /* private: */
