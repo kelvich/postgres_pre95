@@ -37,6 +37,7 @@
 #include "tmp/libpq-fe.h"
 #include "tmp/fastpath.h"
 #include "libpq/auth.h"
+#include "tmp/postgres.h"
 #include "fmgr.h"
 #include "utils/exception.h"
 
