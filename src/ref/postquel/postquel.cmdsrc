@@ -230,8 +230,8 @@ left_unary_operator a_expr
 parameter
 functional expressions 
 aggregate expressions
-set expressions \fB(not in Version \*(PV)\fP
-class expression \fB(not in Version \*(PV)\fP
+set expressions \fB(no general implementation in Version \*(PV)\fP
+class expression \fB(no general implementation  in Version \*(PV)\fP
 .)C
 We have already discussed constants and attributes.  The two kinds of
 operator expressions indicate respectively binary and left_unary
@@ -361,7 +361,9 @@ clause).
 Therefore, of the three example queries given, only the second is
 actually supported.
 .SH "Set Expressions"
-.BR "Set expressions are not supported in Version \*(PV."
+.BR "Generalized set expressions are not supported in Version \*(PV. For
+information on sets as attributes, see the man pages for the CREATE,
+APPEND, and RETRIEVE commands."
 .PP
 A
 .IR "set expression"
@@ -384,7 +386,9 @@ employees in each department:
 Set expressions can be used in class expressions which are defined
 below.
 .SH "Class Expression"
-.BR "Class expressions are not supported in Version \*(PV."
+.BR "Generalized class expressions are not supported in Version \*(PV. For
+information on classes as attributes, see the man pages for the CREATE,
+APPEND, and RETRIEVE commands."
 .PP
 A 
 .IR "class expression"
