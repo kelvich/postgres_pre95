@@ -300,9 +300,12 @@ _bt_binsrch(rel, buf, keysz, scankey, srchtype)
      *  Since for non-leftmost pages, the zeroeth item on the page is the
      *  high key, there are two notions of emptiness.  One is if nothing
      *  appears on the page.  The other is if nothing but the high key does.
+     *  The reason we test high <= low, rather than high == low, is that
+     *  after vacuuming there may be nothing *but* the high key on a page.
+     *  In that case, given the scheme above, low = 1 and high = 0.
      */
 
-    if (PageIsEmpty(page) || (opaque->btpo_next != P_NONE && high == low))
+    if (PageIsEmpty(page) || (opaque->btpo_next != P_NONE && high <= low))
 	return (low);
 
     itupdesc = RelationGetTupleDescriptor(rel);
@@ -1080,7 +1083,10 @@ _bt_endpoint(scan, dir)
     maxoff = PageGetMaxOffsetIndex(page);
 
     if (ScanDirectionIsForward(dir)) {
-	maxoff = PageGetMaxOffsetIndex(page);
+	if (PageIsEmpty(page))
+	    maxoff = 0;
+	else
+	    maxoff = PageGetMaxOffsetIndex(page);
 	if (opaque->btpo_next == P_NONE)
 	    start = 0;
 	else
@@ -1097,15 +1103,15 @@ _bt_endpoint(scan, dir)
 	    ItemPointerSet(current, 0, blkno, 0, start + 1);
 	}
     } else if (ScanDirectionIsBackward(dir)) {
-	start = PageGetMaxOffsetIndex(page);
 	if (PageIsEmpty(page)) {
-	    ItemPointerSet(current, 0, blkno, 0, start + 1);
+	    ItemPointerSet(current, 0, blkno, 0, 1);
 	    if (!_bt_step(scan, &buf, ForwardScanDirection))
 		return ((RetrieveIndexResult) NULL);
 
 	    start = ItemPointerGetOffsetNumber(current, 0);
 	    page = BufferGetPage(buf,0);
 	} else {
+	    start = PageGetMaxOffsetIndex(page);
 	    ItemPointerSet(current, 0, blkno, 0, start + 1);
 	}
     } else {
