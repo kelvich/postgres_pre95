@@ -424,6 +424,36 @@ get_rel_name (relid)
       return((Name)NULL);
 }
 
+/*
+ * get_relstub
+ * return the stubs associated with a relation.
+ * NOTE: we return a pointer to a *copy* of the stubs.
+ */
+struct varlena *
+get_relstub (relid)
+     ObjectId relid ;
+{
+    HeapTuple tuple;
+    RelationTupleForm relp;
+    struct varlena * retval;
+    struct varlena *stub;
+
+    tuple = SearchSysCacheTuple(RELOID,relid,0,0,0);
+    if (HeapTupleIsValid(tuple)) {
+	relp = (RelationTupleForm) HeapTupleGetForm(tuple);
+	/*
+	 * skip the 4 first bytes to get the actual
+	 * varlena struct
+	 */
+	stub = (struct varlena *) PSIZESKIP( & (relp->relstub) );
+	retval = (struct varlena *)palloc(VARSIZE( stub ));
+	bcopy(stub, retval, VARSIZE( stub ));
+	return(retval);
+    } else {
+      return((struct varlena *)NULL);
+    }
+}
+
 /*    		---------- TYPE CACHE ----------
  */
 
