@@ -37,6 +37,8 @@
 #include "planner/semanopt.h"
 /* #include "planner/cfi.h" */
 
+/*#define LispRemove remove */
+
 List
 handleunion (root,rangetable, tlist, qual)
      List root, rangetable, tlist, qual;
@@ -120,6 +122,7 @@ SplitTlistQual(root,rangetable,tlist, qual)
   List qual_list = LispNil;
   List unionlist = LispNil;
   List mod_qual = LispNil;
+  List varlist = LispNil;
 
   unionlist = find_union_sets(rangetable);
 
@@ -132,7 +135,7 @@ SplitTlistQual(root,rangetable,tlist, qual)
 	tl_list = nappend1(tl_list, LispNil);
   else {
     tl_list = lispCons(tlist, LispNil);
-    foreach(i, unionlist)
+    foreach(i, unionlist)   /*  This loop effectively handles union joins */
       tl_list = SplitTlist(CAR(i),tl_list);
   }
   qual_list = lispCons(qual,LispNil);
@@ -150,7 +153,16 @@ SplitTlistQual(root,rangetable,tlist, qual)
 
   foreach(i, tl_list) {
     temp = CAR(i);
-    mod_qual = SemantOpt(root,rangetable,temp,CAR(qual_list));
+
+  /*
+   *  Varlist contains the list of varnos of relations that participate
+   *  in the current query.  It is used to detect existential clauses.
+   *  Initially, varlist contains the list of target relations (varnos).
+   *  This should only be done once for each query.
+   */
+
+    varlist = find_allvars(root,rangetable, temp, CAR(qual_list));
+    mod_qual = SemantOpt(varlist,rangetable,CAR(qual_list));
     tqlist = nappend1(tqlist,
 		      lispCons(temp, 
 			       lispCons(mod_qual,
@@ -238,6 +250,7 @@ SplitTlist (unionlist,tlists)
  *  runs through the rangetable, and forms a list of all union
  *  sets.  Routine removes the union flag from the rte after
  *  it is done processing .  
+ *  If there is > 1 union set, we are dealing with a union join.
  */
 
 List
