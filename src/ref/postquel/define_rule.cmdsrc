@@ -10,6 +10,7 @@ define rule \*(- Define a new rule
 .b "define [tuple | rewrite] rule"
 rule_name
 [as exception to rule_name_2]
+.b is
 .br
 .b on
 event
@@ -61,7 +62,7 @@ Moreover, object is either:
 .(l
 a relation name
 or
-relation.column, ...., relation.column
+relation.column
 .)l
 The FROM clause, the WHERE clause, and the
 action are respectively normal POSTQUEL 
@@ -71,24 +72,27 @@ with the following change:
 .in+6
 .ll-6
 
-NEW or CURRENT can appear instead of 
+.b new
+or
+.b current
+can appear instead of 
 a tuple variable whenever a tuple
 variable is permissible in POSTQUEL.
 .in-6
 .ll+6
 .lp
 The semantics of a rule is that at the time an individual tuple is
-accessed, updated, inserted or deleted, there is a CURRENT tuple (for
-retrieves, replaces and deletes) and a NEW tuple (for replaces and appends).
+accessed, updated, inserted or deleted, there is a current tuple (for
+retrieves, replaces and deletes) and a new tuple (for replaces and appends).
 If the event specified in the ON clause and the condition specified
 in the WHERE clause are true 
-for the CURRENT tuple,
+for the current tuple,
 then the action part of the rule is executed.  First, however, values
-from fields in the CURRENT tuple and/or the NEW tuple are substituted 
+from fields in the current tuple and/or the new tuple are substituted 
 for:
 .(l
-CURRENT.column-name
-NEW.column-name
+current.column-name
+new.column-name
 .)l
 The action part of the rule executes with same command and
 transaction identifier
@@ -98,16 +102,16 @@ A note of caution about POSTQUEL rules is in order.  If the same relation
 name or tuple variable appears in the event, where clause 
 and the action parts of a rule, they are 
 all considered different tuple variables.  
-More accurately, NEW and CURRENT are the only
+More accurately, new and current are the only
 tuple variables that are shared between these clauses.
 For example the following two rules have the
 same semantics: 
 .(l
 on replace to EMP.salary where EMP.name = "Joe"
-then do replace EMP ( ...) where ...
+do replace EMP ( ...) where ...
 
 on replace to EMP-1.salary where EMP-2.name = "Joe"
-then do replace EMP-3 ( ...) where ...
+do replace EMP-3 ( ...) where ...
 .)l
 .lp
 Each rule can have the optional tag "instead".  Without this tag the
@@ -115,12 +119,15 @@ action will be performed in addition to the user command
 when the event 
 in the condition part of the rule occurs. 
 Alternately, the action part will be done instead of the user command.
+In this later case, the action can be the keyword
+.b nothing.
 .uh EXAMPLES
+.lp
 /* Make Sam get the same salary adjustment as Joe */
 .(l
-define rule example_1
-on replace to EMP.salary where CURRENT.name = ``Joe''
-then replace EMP (salary = NEW.salary) where EMP.name = ``Sam''
+define rule example_1 is
+on replace to EMP.salary where current.name = ``Joe''
+replace EMP (salary = new.salary) where EMP.name = ``Sam''
 .)l
 At the time Joe receives a salary adjustment, the event will become
 true and Joe's current tuple and proposed new tuple are available
@@ -130,22 +137,31 @@ propagates Joe's salary on to Sam.
 .lp
 /* Make Bill get Joe's salary when it is accessed */
 .(l
-define rule example_2
-on retrieve to EMP.salary where CURRENT.name = ``Joe''
-then replace EMP (salary = CURRENT.salary) where EMP.name = ``Bill''
+define rule example_2 is
+on retrieve to EMP.salary where current.name = ``Joe''
+replace EMP (salary = current.salary) where EMP.name = ``Bill''
 .)l
 .lp
 /* Deny Joe access to the salary of employees in the shoe department */
 .(l
-define rule example_3
-on retrieve to EMP.salary where CURRENT.dept = ``shoe'' and user() = ``Joe''
-then do instead retrieve (salary = null)
+define rule example_3 is
+on retrieve to EMP.salary where current.dept = ``shoe'' and user() = ``Joe''
+do instead nothing
 .)l
-/* The following also does the same task, somewhat more obscurely */
+.lp
+/* create a view of the employees working in the toy department */
 .(l
-define rule example_4
-on retrieve to EMP.salary where CURRENT.dept = ``shoe'' and user() = ``Joe''
-then do replace CURRENT (salary = null)
+create TOYEMP(name = char16, salary = int4)
+define rule example_4 is
+on retrieve to TOYEMP
+do instead retrieve (EMP.name, EMP.salary) where EMP.dname = ``toy''
+.)l
+.lp
+/* all new employees must make 5,000 or less */
+.(l
+define rule example_5 is
+on append to EMP where new.salary > 5000
+do replace new(salary = 5000)
 .)l
 .uh "SEE ALSO"
 .lp
@@ -155,6 +171,12 @@ postquel(postquel).
 Exceptions are not implemented in Version 2
 .lp
 The object in a POSTQUEL rule cannot be an array reference and cannot have parameters.
+.lp
+The WHERE clause can not have a FROM clause.
+.lp
+Only one POSTQUEL command can be specified in the action part,
+and it can only be a
+replace, append, retrieve or delete command.
 .lp
 In 2.0, the tuple level rule system (the default) cannot handle rules
 operating on objects of type RELATION.
@@ -169,10 +191,4 @@ or
 on retrieve ....
 then do replace current ...
 .)l
-
-At present, 
-it is not currently possible to reference the tuple variable ``NEW''
-in the WHERE clause of the rule, so ``CURRENT'' is really the only
-tuple-variable shared between the event and action parts of the rule.
-
 
