@@ -113,14 +113,17 @@ array_cast(value, byval, len)
  * --------------------------------
  */
 Datum
-ExecEvalArrayRef(object, indirection, array_len, element_len, byval, isNull)
-    Datum 	object;
+ExecEvalArrayRef(arrayRef, econtext, isNull, isDone)
+    ArrayRef    arrayRef;
+    ExprContext econtext;
+    Boolean     *isNull;
+    Boolean     *isDone;
+{
     int32	array_len;
     int32	element_len;
     int32	indirection;
     bool	byval;
-    Boolean 	*isNull;
-{
+    bool	dummy;
     int 	i;
     char 	*array_scanner;
     int 	nelems;
@@ -130,84 +133,70 @@ ExecEvalArrayRef(object, indirection, array_len, element_len, byval, isNull)
     bool 	done = false;
     char 	*retval;
     
-    *isNull = 		false;
-    array_scanner = 	(char *) object;
-    execConstByVal = 	byval;
-    
+    *isNull       =	false;
+    array_scanner =	(char *)ExecEvalExpr(get_refexpr(arrayRef),
+					     econtext,
+					     isNull,
+					     isDone);
+    if (*isNull)
+	return (Datum)NULL;
     /*
-     * Postgres uses array[1..n] - change to C array syntax of array[0..n-1]
+     * Array indices *cannot* be sets and are 1 based (convert to 0 based).
      */
+    indirection = (int32)ExecEvalExpr(get_refindexpr(arrayRef),
+				      econtext,
+				      isNull,
+				      &dummy);
     indirection--;
+
+    if (*isNull)
+	return (Datum)NULL;
+
+    execConstByVal = get_refelembyval(arrayRef);
+    element_len    = get_refelemlength(arrayRef);
     
-    if (array_len < 0) {
-        nbytes = * (int32 *) array_scanner;
-        array_scanner += sizeof(int32);
+    nbytes = (* (int32 *) array_scanner) - sizeof(int32);
+    array_scanner += sizeof(int32);
 	
-        /* variable length array of variable length elts */
-        if (element_len < 0) {
-            bytes = nbytes - sizeof(int32);
-            i = 0;
-            while (bytes > 0 && !done) {
-                if (i == indirection) {
-                    retval = array_scanner;
-                    done = true;
-                }
-                bytes -= LONGALIGN(* (int32 *) array_scanner);
-                array_scanner += LONGALIGN(* (int32 *) array_scanner);
-                i++;
-            }
+    if (element_len < 0) {
+	bytes = nbytes;
+	i = 0;
+	while (bytes > 0 && !done) {
+	    if (i == indirection) {
+		retval = array_scanner;
+		done = true;
+	    }
+	    bytes -= LONGALIGN(* (int32 *) array_scanner);
+	    array_scanner += LONGALIGN(* (int32 *) array_scanner);
+	    i++;
+	}
 	    
-            if (! done) {
-                if (bytes == 0) { /* array[i] does not exist */
-                    *isNull = true;
-                    return(NULL);
-                } else { /* bytes < 0 - error */
-                    elog(WARN, "ExecEvalArrayRef: improperly formatted array");
-                }
-            }
-            execConstLen = (int) * (int32 *) retval;
-            return (Datum) retval;
+	if (! done) {
+	    if (bytes == 0) { /* array[i] does not exist */
+		*isNull = true;
+		return(NULL);
+	    } else { /* bytes < 0 - error */
+		elog(WARN, "ExecEvalArrayRef: improperly formatted array");
+	    }
+	}
+	return (Datum) retval;
 	    
-        } else {
-	    /* variable length array of fixed length elements */
-	    
-	    nbytes -= sizeof(int32);
-            offset = indirection * element_len;
-	    
-            /*
-             * off the end of the array
-             */
-            if (nbytes - offset < 1) {
-                *isNull = true;
-                return(NULL);
-            }
-	    
-            execConstLen = element_len;
-            retval = array_scanner + offset;
-	    
-            return
-		array_cast(retval, byval, element_len);
-        }
-	
     } else {
-	/* fixed length array of fixed length elements */
-	
-        if (element_len < 0) {
-	    /* fixed length array of variable length elements!???!!?! */
-            elog(WARN, "ExecEvalArrayRef: malformed array node");
-        }
-	
-        offset = element_len * indirection;
-	
-        if (array_len - offset < 1) {
+	/* array of fixed length elements */
+	    
+	offset = indirection * element_len;
+	    
+	/*
+	 * off the end of the array
+	 */
+	if (nbytes - offset < 1) {
 	    *isNull = true;
 	    return(NULL);
-        }
-	
-        execConstLen = element_len;
-        retval = array_scanner + offset;
-        return
-	    array_cast(retval, byval, element_len);
+	}
+	    
+	retval = array_scanner + offset;
+	    
+	return array_cast(retval, byval, element_len);
     }
 }
 
@@ -466,82 +455,6 @@ ExecEvalParam(expression, econtext, isNull)
  * ----------------------------------------------------------------
  */
  
-/*
- * These are no longer used and should be torched altogether.
- */
-static HeapTuple  	currentTuple;
-static TupleDescriptor 	currentExecutorDesc;
-static Buffer      	currentBuffer;
-static Relation 	currentRelation;
-
-/* ----------------
- *	ArgumentIsRelation
- *
- *	used in ExecMakeFunctionResult() to see if we need to
- *	call SetCurrentTuple().
- *
- *  This routine has been made obsolete in the "brave new world" of
- *  postgres.
- * ----------------
- */
-bool
-ArgumentIsRelation(arg)
-    List arg;
-{
-    if (arg == NULL)
-	return false;
-
-    if (listp(arg) && ExactNodeType(CAR(arg),Var))
-	return (bool)
-	    (((Var) (CAR(arg)))->vartype == RELATION);
-    
-    return false;
-}
-
-/* ----------------
- *	SetCurrentTuple
- *
- *	used in ExecMakeFunctionResult() to set the current values
- *	for calls to the GetAttribute routines
- *
- *  This routine has been made obsolete in the "brave new world" of
- *  postgres.
- * ----------------
- */
-void
-SetCurrentTuple(econtext)
-    ExprContext  econtext;
-{
-    TupleTableSlot slot;
-
-    /* ----------------
-     *	take a guess at which slot to use for the "current" tuple.
-     *  someday this will have to be smarter -cim 5/31/91
-     * ----------------
-     */
-    slot = get_ecxt_innertuple(econtext);
-    if (slot == NULL)
-	slot = get_ecxt_outertuple(econtext);
-    if (slot == NULL)
-	slot = get_ecxt_scantuple(econtext);
-    
-    /* ----------------
-     *	if we have a slot, get it's info
-     * ----------------
-     */
-    if (slot != NULL) {
-	currentExecutorDesc =   ExecSlotDescriptor((Pointer)slot);
-	currentBuffer = 	ExecSlotBuffer((Pointer)slot);
-	currentTuple =          (HeapTuple) ExecFetchTuple((Pointer) slot);
-    } else {
-	currentExecutorDesc =   NULL;
-	currentBuffer = 	InvalidBuffer;
-	currentTuple =          NULL;
-    }
-	
-    currentRelation = get_ecxt_relation(econtext);
-}
-
 /* ----------------
  *	GetAttributeByName
  *	GetAttributeByNum
@@ -582,18 +495,26 @@ GetAttributeByName(slot, attname, isNull)
 {
     AttributeNumber attrno;
     TupleDescriptor tupdesc;
+    HeapTuple       tuple;
     ObjectId relid;
     Datum retval;
+    int natts;
     int i;
 
     if (attname == (Name)NULL)
 	elog(WARN, "GetAttributeByName: Invalid attribute name");
     
+    if (TupIsNull(slot))
+    	elog(WARN, "GetAttributeByName: Invalid tuple argument");
+
     tupdesc = ExecSlotDescriptor(slot);
-    relid = tupdesc->data[0]->attrelid;
+    tuple = (HeapTuple)ExecFetchTuple(slot);
+
+    natts = tuple->t_natts;
 
     i = 0;
-    while (true)
+    attrno = InvalidAttributeNumber;
+    while (i < natts)
     {
 	/*
 	 * Given a slot we really don't know how many attributes
@@ -602,8 +523,6 @@ GetAttributeByName(slot, attname, isNull)
 	 * think of a reasonable way to do this and it is getting
 	 * late. I apologize to future post-boys and post-girls -mer
 	 */
-	if (!(tupdesc->data[i]) || relid != tupdesc->data[i]->attrelid)
-	    elog(WARN, "GetAttributeByName: attribute name not found");
 	if (strncmp(attname,
 		    &(tupdesc->data[i]->attname),
 		    sizeof(NameData)) == 0)
@@ -614,6 +533,9 @@ GetAttributeByName(slot, attname, isNull)
 	i++;
     }
 	
+    if (attrno == InvalidAttributeNumber)
+	elog(WARN, "GetAttributeByName: attribute %s not found", attname);
+
     retval = (Datum)
 	heap_getattr(ExecFetchTuple(slot),
 		     ExecSlotBuffer(slot),
@@ -842,7 +764,7 @@ ExecEvalOper(opClause, econtext, isNull)
     
     /* -----------
      *  call ExecMakeFunctionResult() with a dummy isDone that we ignore.
-     *  We don't iterate over quals.
+     *  We don't have operator whose arguments are sets.
      * -----------
      */
     return
@@ -866,7 +788,6 @@ ExecEvalFunc(funcClause, econtext, isNull, isDone)
 {
     Func	func;
     List	argList;
-    Boolean	dummyDone;
     FunctionCachePtr fcache;
     
     /* ----------------
@@ -891,12 +812,6 @@ ExecEvalFunc(funcClause, econtext, isNull, isDone)
     if (fcache == NULL) {
     	set_fcache(func, get_funcid(func));
     	fcache = get_func_fcache(func);
-    }
-
-    if (isDone == (Boolean *)NULL)
-    {
-	fcache->oneResult = true;
-	isDone = &dummyDone;
     }
 
     return
@@ -1074,6 +989,12 @@ ExecEvalExpr(expression, econtext, isNull, isDone)
    
     else if (ExactNodeType(expression,Iter))
 	retDatum = (Datum)  ExecEvalIter((Iter) expression,
+					 econtext,
+					 isNull,
+					 isDone);
+   
+    else if (ExactNodeType(expression,ArrayRef))
+	retDatum = (Datum)  ExecEvalArrayRef((ArrayRef) expression,
 					 econtext,
 					 isNull,
 					 isDone);
