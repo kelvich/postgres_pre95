@@ -418,7 +418,7 @@ InitStdio()
 	Dblog = 6;
 	Pipefd = 7;
 	
-	pinit();
+	pq_init(Portfd);
 	    
 	read(Packfd, (char *)&pack, sizeof(pack));
 	bcopy(pack.data, (char *)&Ident, sizeof(Ident));

@@ -60,33 +60,6 @@ convtypeinfo(natts, att)
 }
 
 /* ----------------------------------------------------------------
- *	
- * ----------------------------------------------------------------
- */
-/* ----------------
- *	initport
- * ----------------
- */
-initport(name, natts, attinfo)
-    char		*name;
-    int			natts;
-    struct attribute	*attinfo[];
-{
-    register int	i;
-    
-    putnchar("P", 1);
-    putint(0, 4);
-    putstr(name);
-    putnchar("T", 1);
-    putint(natts, 2);
-    for (i = 0; i < natts; ++i) {
-	putstr(attinfo[i]->attname);	/* if 16 char name oops.. */
-	putint((int) attinfo[i]->atttypid, 4);
-	putint(attinfo[i]->attlen, 2);
-    }
-}
-
-/* ----------------------------------------------------------------
  *	printtup / debugtup support
  * ----------------------------------------------------------------
  */
@@ -127,7 +100,16 @@ printtup(tuple, typeinfo)
     Boolean		isnull;
     ObjectId	typoutput;
     
-    putnchar("D", 1);
+    /* ----------------
+     *	tell the frontend to expect new tuple data
+     * ----------------
+     */
+    pq_putnchar("D", 1);
+    
+    /* ----------------
+     *	send a bitmap of which attributes are null
+     * ----------------
+     */
     j = 0;
     k = 1 << 7;
     for (i = 0; i < tuple->t_natts; ) {
@@ -136,21 +118,17 @@ printtup(tuple, typeinfo)
 	    j |= k;
 	k >>= 1;
 	if (!(i & 7)) {
-	    putint(j, 1);
+	    pq_putint(j, 1);
 	    j = 0;
 	    k = 1 << 7;
 	}
     }
     if (i & 7)
-	putint(j, 1);
+	pq_putint(j, 1);
     
-    /*	XXX no longer needed???
-     *	{
-     *     char 	*s = tuple->t_bits;
-     *    
-     *     for (i = USEDBITMAPLEN(tuple); --i >= 0; )
-     *        putc(reversebitmapchar(*s++), Pfout);
-     *  }
+    /* ----------------
+     *	send the attributes of this tuple
+     * ----------------
      */
     for (i = 0; i < tuple->t_natts; ++i) {
 	attr = heap_getattr(tuple, InvalidBuffer, i+1, typeinfo, &isnull);
@@ -158,8 +136,8 @@ printtup(tuple, typeinfo)
 	
 	if (!isnull && ObjectIdIsValid(typoutput)) {
 	    outputstr = fmgr(typoutput, attr);
-	    putint(strlen(outputstr)+4, 4);
-	    putnchar(outputstr, strlen(outputstr));
+	    pq_putint(strlen(outputstr)+4, 4);
+	    pq_putnchar(outputstr, strlen(outputstr));
 	    pfree(outputstr);
 	}
     }
@@ -228,56 +206,4 @@ debugtup(tuple, typeinfo)
     }
     printf("\t----\n");
 }
-
-/* ----------------------------------------------------------------
- *			bogus routines
- * ----------------------------------------------------------------
- */
-#ifdef BOGUSROUTINES	/* XXX no longer seem to be called */
-int
-reversebitmapchar(c)
-	int	c;
-{
-	int	i, rev, bit;
-	
-	rev = 0;
-	bit = 01;
-	for (i = 8; --i >= 0; ) {
-		rev <<= 1;
-		if (c & bit)
-			rev |= 01;
-		bit <<= 1;
-	}
-	return(rev);
-}
-
-dumptup(tuple, typeinfo)
-	HeapTuple		tuple;
-	struct attribute 	*typeinfo[];
-{
-	int		i;
-	char		*attr, *s;
-	Boolean		isnull;
-
-	putnchar("D", 1);
-	s = tuple->t_bits;
-	for (i = USEDBITMAPLEN(tuple); --i >= 0; )
-		putint(*s++, 1);
-	for (i = 1; i <= tuple->t_natts; ++i) {
-		attr = heap_getattr(tuple, InvalidBuffer, i, typeinfo, &isnull);
-		if (!isnull) {
-			/*
-			 * The following if statement should be replaced
-			 * to use the 'send' procedure of a type if such an
-			 * item exists.
-			 */
-			if (typeinfo[i-1]->attlen < 0) {
-				putint((int) VARSIZE(attr), 4);
-				putnchar(VARDATA(attr), (int) VARSIZE(attr));
-			} else
-				putnchar(attr, typeinfo[i-1]->attlen);
-		}
-	}
-}
-#endif	/* BOGUSROUTINES */
 

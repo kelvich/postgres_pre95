@@ -17,7 +17,7 @@
 
 #include "tmp/postgres.h"
 
- RcsId("$Header$");
+RcsId("$Header$");
 
 /* ----------------
  *	FILE INCLUDE ORDER GUIDELINES
@@ -32,6 +32,7 @@
  */
 #include "tcop/tcopdebug.h"
 
+#include "tcop/dest.h"
 #include "commands/command.h"
 #include "parser/parse.h"
 #include "parser/parsetree.h"
@@ -60,20 +61,24 @@
  * ----------------------------------------------------------------
  */
 List
-MakeQueryDesc(operation, parsetree, plantree, state, feature)
-    List  operation;
-    List  parsetree;
-    List  plantree;
-    List  state;
-    List  feature;
+MakeQueryDesc(operation, parsetree, plantree, state, feature, dest)
+    List  	operation;
+    List  	parsetree;
+    List  	plantree;
+    List  	state;
+    List  	feature;
+    CommandDest dest;
 {
+#define CONS lispCons   
+    
     return (List)
-	lispCons(operation,				      /* operation */
-		 lispCons(parsetree, 			      /* parse tree */
-			  lispCons(plantree, 		      /* plan */
-				   lispCons(state, 	      /* state */
-					    lispCons(feature, /* feature */
-						     LispNil)))));
+	CONS(operation,				      	/* operation */
+	     CONS(parsetree, 			      	/* parse tree */
+		  CONS(plantree, 		      	/* plan */
+		       CONS(state, 	      		/* state */
+			    CONS(feature, 		/* feature */
+				 CONS(dest, 		/* output dest */
+				      LispNil))))));
 }
 
 /* ----------------------------------------------------------------
@@ -81,15 +86,17 @@ MakeQueryDesc(operation, parsetree, plantree, state, feature)
  * ----------------------------------------------------------------
  */
 List
-CreateQueryDesc(parsetree, plantree)
-    List parsetree;
-    List plantree;
+CreateQueryDesc(parsetree, plantree, dest)
+    List 	parsetree;
+    List 	plantree;
+    CommandDest dest;
 {
     return MakeQueryDesc(CAR(CDR(CAR(parsetree))), 	/* operation */
 			 parsetree,			/* parse tree */
 			 plantree,			/* plan */
 			 LispNil,			/* state */
-			 LispNil);			/* feature */
+			 LispNil,			/* feature */
+			 dest);				/* output dest */
 }
 
 /* ----------------------------------------------------------------
@@ -202,13 +209,14 @@ CreateOperationTag(operationType)
  */
  
 void
-ProcessPortal(operation, portalName, parseTree, plan, state, attinfo)
+ProcessPortal(operation, portalName, parseTree, plan, state, attinfo, dest)
     int		operation;
     String 	portalName;
     List	parseTree;
     Plan	plan;
     EState	state;
     List	attinfo;
+    CommandDest dest;
 {
     Portal		portal;
     MemoryContext 	portalContext;
@@ -230,7 +238,7 @@ ProcessPortal(operation, portalName, parseTree, plan, state, attinfo)
     portal = BlankPortalAssignName(portalName);
 
     PortalSetQuery(portal,
-		   CreateQueryDesc(parseTree, plan),
+		   CreateQueryDesc(parseTree, plan, dest),
 		   state,
 		   PortalCleanup);
 
@@ -275,6 +283,8 @@ ProcessQueryDesc(queryDesc)
     bool	isIntoRelation;
     bool	isIntoTemp;
     String	intoName;
+    CommandDest dest;
+
     
     /* ----------------
      *	get info from the query desc
@@ -285,6 +295,7 @@ ProcessQueryDesc(queryDesc)
     
     operation = CAtom(GetOperation(queryDesc));
     tag = 	CreateOperationTag(operation);
+    dest = 	QdGetDest(queryDesc);
     
     /* ----------------
      *	initialize portal/into relation status
@@ -326,7 +337,6 @@ ProcessQueryDesc(queryDesc)
      */
     feature = lispCons(lispInteger(EXEC_START), LispNil);
 
-    
     attinfo = ExecMain(queryDesc, state, feature);
     
     /* ----------------
@@ -351,37 +361,40 @@ ProcessQueryDesc(queryDesc)
 		      parseTree,
 		      plan,
 		      state,
-		      attinfo);
+		      attinfo,
+		      dest);
 	
-	EndCommand(tag);
+	EndCommand(tag, dest);
 	return;
     }
 
     /* ----------------
      *   report the query's result type information
-     *   back to the front end..
+     *   back to the front end or to whatever destination
+     *   we're dealing with.
      *
-     *   XXX this should be cleaned up (I have no idea
-     *	     what the putxxxx functions are doing)
-     *	     -cim 9/18/89
+     *   XXX all these pq_ calls should be put into a function
+     *   and moved to dest.c   Likewise, the isIntoTemp and
+     *   isHash tests should be eliminated and the destination
+     *   of None used instead.  -cim 2/10/91
      * ----------------
      */
     if (operation == RETRIEVE) {
-	if (isIntoRelation && IsUnderPostmaster) {
-	    putnchar("P",1);
-	    putint(0,4);
-	    putstr("blank");
+	if (isIntoRelation && dest == Remote) {
+	    pq_putnchar("P", 1);
+	    pq_putint(0, 4);
+	    pq_putstr("blank");
 	} else {
 	    if (!isIntoTemp && !ExecIsHash(plan))
-	       BeginCommand("blank", attinfo);
-	   }
+		BeginCommand("blank", attinfo, dest);
+	}	
     } else {
-	if (IsUnderPostmaster) {
-	    putnchar("P",1);
-	    putint(0,4);
-	    putstr("blank");
+	if (dest == Remote) {
+	    pq_putnchar("P", 1);
+	    pq_putint(0, 4);
+	    pq_putstr("blank");
 	} else
-	    BeginCommand("blank",attinfo);
+	    BeginCommand("blank", attinfo, dest);
     }
     
     /* ----------------
@@ -450,7 +463,7 @@ ProcessQueryDesc(queryDesc)
      *	-hirohama
      * ----------------
      */
-    EndCommand(tag);
+    EndCommand(tag, dest);
 }
 
 /* ----------------------------------------------------------------
@@ -464,9 +477,10 @@ extern Fragment InitialPlanFragments();
 extern Fragment ExecuteFragments();
 
 void
-ProcessQuery(parserOutput, originalPlan)
-    List parserOutput;
-    Plan originalPlan;
+ProcessQuery(parserOutput, originalPlan, dest)
+    List 	parserOutput;
+    Plan 	originalPlan;
+    CommandDest dest;
 {
     List 	queryDesc;
     Plan 	currentPlan;
@@ -475,20 +489,18 @@ ProcessQuery(parserOutput, originalPlan)
     List	currentFragments;
     
     currentPlan = originalPlan;
-    queryDesc = CreateQueryDesc(parserOutput, currentPlan);
+    queryDesc = CreateQueryDesc(parserOutput, currentPlan, dest);
+    
     if (ParallelExecutorEnabled()) {
-       planFragments = InitialPlanFragments(originalPlan);
-       for (;;) {
-	   currentFragments = ParallelOptimize(queryDesc, planFragments);
-	   planFragments = ExecuteFragments(queryDesc, 
-					    currentFragments, 
-					    planFragments);
-	   if (planFragments == NULL)
-	      return;
-         }
-       }
-    else {
+	planFragments = InitialPlanFragments(originalPlan);
+	for (;;) {
+	    currentFragments = ParallelOptimize(queryDesc, planFragments);
+	    planFragments =    ExecuteFragments(queryDesc,
+						currentFragments, 
+						planFragments);
+	    if (planFragments == NULL)
+		return;
+	}
+    } else
 	ExecuteFragments(queryDesc, LispNil, NULL);
-	return;
-      }
 }

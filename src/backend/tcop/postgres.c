@@ -20,7 +20,6 @@
 #include <stdio.h>
 
 #include "tmp/postgres.h"
-#include "parser/parsetree.h"
 
  RcsId("$Header$");
 
@@ -35,10 +34,13 @@
  *	6) extern files come last.
  * ----------------
  */
+#include "tcop/tcopdebug.h"
+
+#include "tcop/dest.h"
+#include "parser/parsetree.h"
 #include "executor/execdebug.h"
 #include "executor/x_execstats.h"
 #include "planner/costsize.h"
-#include "tcop/tcopdebug.h"
 
 #include "storage/bufmgr.h"
 #include "utils/fmgr.h"
@@ -104,69 +106,39 @@ extern int Quiet;
  */
 
 /* ----------------
- * 	BeginCommand 
- *
- *	I don't know what this does, but I assume it has something
- *	to do with frontend initialization of queries -cim 3/15/90
+ * If we are running under the Postmaster, we cannot in general be sure that
+ * USER is set to the actual name of the user.  (After all, in theory there
+ * may be Postgres users that don't exist as Unix users on the database server
+ * machine.)  Therefore, the Postmaster sets the PG_USER environment variable
+ * so that the actual user can be determined.
  * ----------------
  */
 
-BeginCommand(pname, attinfo)
-    char *pname;
-    LispValue attinfo;
+void
+GetUserName()
 {
-    struct attribute **attrs;
-    int nattrs;
+    if (IsUnderPostmaster) {
+	PG_username = (char *) getenv("PG_USER");
+	if (PG_username == NULL)
+	    elog(FATAL, "GetUserName(): Can\'t get PG_USER environment name");
+    } else
+	PG_username = (char *) getenv("USER");
+}
 
-    nattrs = CInteger(CAR(attinfo));
-    attrs = (struct attribute **) CADR(attinfo);
+void
+get_pathname(argv)
+    char **argv;
+{
+    char buffer[256];
 
-    if (IsUnderPostmaster == true) {
-	pflush();
-	initport(pname, nattrs, attrs);
-	pflush();
+    if (argv[0][0] == '/') { /* ie, from execve in postmaster */
+	strcpy(pg_pathname, argv[0]);
     } else {
-	showatts(pname, nattrs, attrs);
+	getwd(buffer);
+	sprintf(pg_pathname, "%s/%s", buffer, argv[0]);
     }
 }
 
-/* ----------------
- * 	EndCommand 
- *
- *	I don't know what this does, but I assume it has something
- *	to do with frontend cleanup after a query is executed
- *	-cim 3/15/90
- * ----------------
- */
-
-void
-EndCommand(commandTag)
-    String  commandTag;
-{
-    if (IsUnderPostmaster) {
-	putnchar("C", 1);
-	putint(0, 4);
-	putstr(commandTag);
-	pflush();
-    }
-}
-
-/*
- * NullCommand
- * 
- * Necessary to implement the hacky FE/BE interface to handle multiple-return
- * queries.
- */
-
-void
-NullCommand()
-{
-    if (IsUnderPostmaster) {
-	putnchar("I", 1);
-	putint(0, 4);
-	pflush();
-    }
-}
 
 /* ----------------------------------------------------------------
  *	routines to obtain user input
@@ -302,16 +274,16 @@ char SocketBackend(inBuf, parseList)
      *	get input from the frontend
      * ----------------
      */
-    getpchar(qtype,0,1);
+    pq_getnchar(qtype,0,1);
     
     switch(*qtype) {
-    /* ----------------
-     *  'Q': user entered a query
-     * ----------------
-     */
+	/* ----------------
+	 *  'Q': user entered a query
+	 * ----------------
+	 */
     case 'Q':
-	pq_qid = getpint(4);
-	getpstr(inBuf, MAX_PARSE_BUFFER);
+	pq_qid = pq_getint(4);
+	pq_getstr(inBuf, MAX_PARSE_BUFFER);
 
 	if (!Quiet)
 	    printf("Received Query: \"%s\"\n", inBuf);
@@ -319,10 +291,10 @@ char SocketBackend(inBuf, parseList)
 	return('Q');
 	break;
 	
-    /* ----------------
-     *  'F':  calling user/system functions
-     * ----------------
-     */
+	/* ----------------
+	 *  'F':  calling user/system functions
+	 * ----------------
+	 */
     case 'F':	
         return('F');
         break;
@@ -365,17 +337,19 @@ char ReadCommand(inBuf)
  *	and CommitTransaction After this is called
  *	This is strictly because we do not allow for nested xactions.
  *
- *
  *	NON-OBVIOUS-RESTRICTIONS
  * 	this function _MUST_ allocate a new "parsetree" each time, 
  * 	since it may be stored in a named portal and should not 
  * 	change its value.
+ *
  * ----------------------------------------------------------------
  */
 extern int _exec_repeat_;
 
-pg_eval( query_string )
-    String	query_string;
+void
+pg_eval(query_string, dest)
+    String	query_string;	/* string to execute */
+    CommandDest dest;		/* where results should go */
 {
     LispValue parsetree_list = lispList();
     LispValue i;
@@ -387,7 +361,6 @@ pg_eval( query_string )
      * ----------------
      */
     parser(query_string, parsetree_list);
-
 
     /* ----------------
      *	(2) rewrite the queries, as necessary
@@ -440,7 +413,8 @@ pg_eval( query_string )
 	} /* if unrewritten, then rewrite */
 
     } /* foreach parsetree in the list */
-    /*
+    
+    /* ----------------
      * Fix time range quals
      * this _must_ go here, because it must take place
      * after rewrites ( if they take place )
@@ -449,8 +423,8 @@ pg_eval( query_string )
      *
      * Also, need to frob the range table entries here to plan union
      * queries for archived relations.
+     * ----------------
      */
-
     foreach ( i , parsetree_list ) {
 	List parsetree = CAR(i);
 	List l;
@@ -476,7 +450,6 @@ pg_eval( query_string )
 	plan_archive(rt);
     }
     
-
     if ( DebugPrintRewrittenParsetree == true ) {
 	List i;
 	printf("\n=================\n");
@@ -508,7 +481,8 @@ pg_eval( query_string )
 	    }
 	    ProcessUtility(LISPVALUE_INTEGER(CAR(parsetree)),
 			   CDR(parsetree),
-			   query_string);
+			   query_string,
+			   dest);
 	    
 	} else {
 	    /* ----------------
@@ -526,7 +500,7 @@ pg_eval( query_string )
 		 * ----------------
 		 */
 		char *tag = "*ABORT STATE*";
-		EndCommand(tag);
+		EndCommand(tag, dest);
 	    
 		elog(NOTICE, "(transaction aborted): %s",
 		     "queries ignored until END");
@@ -567,7 +541,7 @@ pg_eval( query_string )
 		    time(&tim);
 		    printf("\tProcessQuery() at %s\n", ctime(&tim));
 		}
-		ProcessQuery(parsetree, plan);
+		ProcessQuery(parsetree, plan, dest);
 	    }
 	    if (testFlag) ShowUsage();
 	    
@@ -625,27 +599,25 @@ PostgresMain(argc, argv)
     int			numslaves;
     int			errs = 0;
     char		*DatabaseName;
-    extern char		*DBName;	/* a global name for current database */
+
+    char		parser_input[MAX_PARSE_BUFFER];
+    int			empty_buffer = 0;	
     
     extern	int	Noversion;		/* util/version.c */
     extern	int	Quiet;
     extern	jmp_buf	Warn_restart;
     extern	int	optind;
     extern	char	*optarg;
-    int		setjmp(), chdir();
-    char	*getenv();
-    char	parser_input[MAX_PARSE_BUFFER];
-    int		empty_buffer = 0;	
-
+    extern      char	*DBName; /* a global name for current database */
+    
     /* ----------------
      * 	register signal handlers.
      * ----------------
      */
-
     signal(SIGHUP, die);
     signal(SIGINT, die);
     signal(SIGTERM, die);
-    
+
     /* ----------------
      *	parse command line arguments
      * ----------------
@@ -655,7 +627,6 @@ PostgresMain(argc, argv)
     MasterPid = getpid();
     
     while ((flag = getopt(argc, argv, "B:b:CdEM:NnOP:pQSsTf:")) != EOF)
-	
       switch (flag) {
 	  
       case 'b':
@@ -675,8 +646,11 @@ PostgresMain(argc, argv)
 	  flagC = 1;
 	  break;
 	  
+	  /* ----------------
+	   *	-debug mode
+	   * ----------------
+	   */
       case 'd':
-	  /* -debug mode */
 	  /* DebugMode = true;  */
 	  flagQ = 0;
 	  DebugPrintPlan = true;
@@ -710,17 +684,16 @@ PostgresMain(argc, argv)
 	  _enable_mergesort_ = 0;  /* don't support parallel mergesort yet */
 	  break;
 	  
-      case 'n': /* do nothing for now - no debug mode */
+      case 'n':
 	  /* ----------------
-	   *	??? -cim 5/12/90
+	   *	does nothing - obsolete this! -cim 2/10/91
 	   * ----------------
 	   */
-	  /* DebugMode = false; */
 	  break;
 
       case 'N':
 	  /* ----------------
-	   *	Don't use newline as a query delimiter
+	   *	N - Don't use newline as a query delimiter
 	   * ----------------
 	   */
 	  UseNewLine = 0;
@@ -745,12 +718,11 @@ PostgresMain(argc, argv)
 	   * ----------------
 	   */
 	  IsUnderPostmaster = true;
-	  
 	  break;
 	  
       case 'P':
 	  /* ----------------
-	   *	Use the passed file descriptor number as the port
+	   *	P - Use the passed file descriptor number as the port
 	   *    on which to communicate with the user.  This is ONLY
 	   *    useful for debugging when fired up by the postmaster.
 	   * ----------------
@@ -783,10 +755,12 @@ PostgresMain(argc, argv)
 	   */
 	  ShowStats = 1;
 	  break;
+	  
       case 'T':
           /* ----------------
-           *    Testing mode -- execute all the possible plans instead
+           *    T - Testing mode: execute all the possible plans instead
            *    of just the optimal one
+	   *
 	   *    XXX not implemented yet,  currently it will just print
 	   *    the statistics of the executor, like the -s option
 	   *	but does not include parsing and planning time.
@@ -794,9 +768,10 @@ PostgresMain(argc, argv)
            */
           testFlag = 1;
           break;
+	  
       case 'f':
           /* -----------------
-           *    to forbidden certain plans to be generated
+           *    f - forbid generation of certain plans
            * -----------------
            */
           switch (optarg[0]) {
@@ -820,14 +795,23 @@ PostgresMain(argc, argv)
           }
 	  break;
 
+	  /* ----------------
+	   *	default: bad command line option
+	   * ----------------
+	   */
       default:
 	  errs++;
       }
 
-	GetUserName();
+    /* ----------------
+     *	get user name and pathname and check command line validity
+     * ----------------
+     */
+    GetUserName();
+    get_pathname(argv);
 
     if (errs || argc - optind > 1) {
-	fputs("Usage: postgres [-C] [-M #] [-O] [-Q] [-N] [datname]\n", stderr);
+	fputs("Usage: postgres [-C] [-M #] [-O] [-Q] [-N] [datname]\n",stderr);
 	fputs("	-C   =  ??? \n", stderr);
 	fputs(" -M # =  Enable Parallel Query Execution\n", stderr);
 	fputs("          (# is number of slave backends)\n", stderr);
@@ -842,12 +826,10 @@ PostgresMain(argc, argv)
     } else if (argc - optind == 1) {
 	DBName = DatabaseName = argv[optind];
     } else if ((DBName = DatabaseName = PG_username) == NULL) {
-	fputs("amiint: failed getenv(\"USER\") and no database specified\n");
+	fputs("amiint: failed getenv(\"USER\") and no database specified\n",
+	      stderr);
 	exitpg(1);
     }
-
-    get_pathname(argv);
-
 
     Noversion = flagC;
     Quiet = flagQ;
@@ -887,7 +869,7 @@ PostgresMain(argc, argv)
 		    "Postmaster flag set, but no port number specified\n");
 	    exitpg(1);
 	}
-	pinit();
+	pq_init(Portfd);
     }
     
     /* ----------------
@@ -1035,7 +1017,10 @@ PostgresMain(argc, argv)
 		if (ShowStats)
 		    ResetUsage();
 
-		pg_eval(parser_input);
+		if (IsUnderPostmaster)
+		    pg_eval(parser_input, Remote);
+		else
+		    pg_eval(parser_input, Debug);
 
 		if (ShowStats)
 		    ShowUsage();
@@ -1061,12 +1046,12 @@ PostgresMain(argc, argv)
 	    CommitTransactionCommand();
 	} else {
 	    empty_buffer = 0;
-	    NullCommand();
+	    if (IsUnderPostmaster)
+		NullCommand(Remote);
 	}
 
     }
 }
-
 
 /*
  *  should #include <sys/time.h>, but naturally postgres has a bad decl
@@ -1172,45 +1157,4 @@ ShowUsage()
 	fprintf(stderr, "postgres usage stats:\n");
 	PrintBufferUsage();
 	DisplayTupleCount();
-}
-
-get_pathname(argv)
-	char **argv;
-{
-	char buffer[256];
-
-	if (argv[0][0] == '/') /* ie, from execve in postmaster */
-	{
-		strcpy(pg_pathname, argv[0]);
-	}
-	else
-	{
-		getwd(buffer);
-		sprintf(pg_pathname, "%s/%s", buffer, argv[0]);
-	}
-}
-
-/*
- * If we are running under the Postmaster, we cannot in general be sure that
- * USER is set to the actual name of the user.  (After all, in theory there
- * may be Postgres users that don't exist as Unix users on the database server
- * machine.)  Therefore, the Postmaster sets the PG_USER environment variable
- * so that the actual user can be determined.
- */
-
-GetUserName()
-
-{
-	if (IsUnderPostmaster)
-	{
-		PG_username = (char *) getenv("PG_USER");
-		if (PG_username == NULL)
-		{
-			elog(FATAL, "GetUserName(): Can\'t get PG_USER environment name");
-		}
-	}
-	else
-	{
-		PG_username = (char *) getenv("USER");
-	}
 }

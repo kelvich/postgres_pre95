@@ -123,12 +123,12 @@ va_dcl
 	if (Pfout != NULL && lev > DEBUG) {
 		/* notices are not exactly errors, handle it differently */
 		if (lev == NOTICE) 
-			putnchar("N", 1);
+			pq_putnchar("N", 1);
 		else
-			putnchar("E", 1);
-		putint(-101, 4);	/* should be query id */
-		putstr(line);
-		pflush();
+			pq_putnchar("E", 1);
+		pq_putint(-101, 4);	/* should be query id */
+		pq_putstr(line);
+		pq_flush();
 	}
 #endif /* !PG_STANDALONE */
 

@@ -94,6 +94,8 @@ typedef ExecSMHeaderData *ExecSMHeader;
 #define QdGetPlan(queryDesc)	     (Plan) CAR(CDR(CDR(queryDesc)))
 #define QdGetState(queryDesc)	   (EState) CAR(CDR(CDR(CDR(queryDesc))))
 #define QdGetFeature(queryDesc)      (List) CAR(CDR(CDR(CDR(CDR(queryDesc)))))
+#define QdGetDest(queryDesc) \
+    (CommandDest) CAR(CDR(CDR(CDR(CDR(CDR(queryDesc))))))
 
 #define QdSetState(queryDesc, s) \
     (CAR(CDR(CDR(CDR(queryDesc)))) = (List) s)

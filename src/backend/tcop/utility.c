@@ -33,6 +33,7 @@
  */
 #include "tcop/tcopdebug.h"
 
+#include "tcop/dest.h"
 #include "parser/parse.h"
 #include "utils/log.h"
 
@@ -56,10 +57,11 @@ if (IsAbortedTransactionBlockState()) { \
  * ----------------
  */
 void
-ProcessUtility(command, args, commandString)
+ProcessUtility(command, args, commandString, dest)
     int		command;	/* "tag" */
     LispValue	args;
     char 	*commandString;
+    CommandDest dest;
 {
     String	commandTag = NULL;
     
@@ -438,6 +440,10 @@ ProcessUtility(command, args, commandString)
 	break;
     }
     
-    EndCommand(commandTag);
+    /* ----------------
+     *	tell fe/be or whatever that we're done.
+     * ----------------
+     */
+    EndCommand(commandTag, dest);
 }
 

@@ -92,8 +92,8 @@ SendFunctionResult ( fid, retval, rettype )
     char *retdata;
 
     printf("Sending results %d, %d, %d",fid,retval,rettype);
-    putnchar("V",1);
-    putint(fid,4);
+    pq_putnchar("V",1);
+    pq_putint(fid,4);
     
     switch (rettype) {
 
@@ -103,23 +103,23 @@ SendFunctionResult ( fid, retval, rettype )
 	break;
 
       case VAR_LENGTH_RESULT:
-	retdata = internal_to_external(retval,MAX_STRING_LENGTH,0);
-	putnchar("G",1);
-	putint(rettype,4);
-	putstr(retdata);
+	retdata = internal_to_external(retval, MAX_STRING_LENGTH, 0);
+	pq_putnchar("G", 1);
+	pq_putint(rettype, 4);
+	pq_putstr(retdata);
 	break;
 
       case 1: case 2: case 4:
-	putnchar("G",1);
-	putint(rettype,4);
-	putint(retval,rettype);
+	pq_putnchar("G",1);
+	pq_putint(rettype,4);
+	pq_putint(retval, rettype);
 	break;
 
       default:
-	putnchar(retval,rettype);
+	pq_putnchar(retval, rettype);
     }
-    putnchar("0",1);
-    pflush();
+    pq_putnchar("0", 1);
+    pq_flush();
 } /* SendFunctionResult */
 
 /* 
@@ -189,15 +189,15 @@ HandleFunctionRequest()
     int  nargs;
     int  i;
 
-    xactid = getpint(4);
-    fid = getpint(4);
+    xactid = pq_getint(4);
+    fid = pq_getint(4);
 
     /* StartTransactionCommand(); */
 
     if ( fid == FUNCTION_BY_NAME ) { 
 	HeapTuple	tuple;
 
-	getpstr(function_name, MAX_FUNC_NAME_LENGTH);
+	pq_getstr(function_name, MAX_FUNC_NAME_LENGTH);
 	tuple = SearchSysCacheTuple(PRONAME, function_name);
 	if (!HeapTupleIsValid(tuple)) {
 	    elog(WARN, "Function name lookup failed for \"%s\"",
@@ -206,17 +206,17 @@ HandleFunctionRequest()
 	fid = tuple->t_oid;
     } 
 
-    rettype = getpint(4);
-    nargs = getpint(4);
+    rettype = pq_getint(4);
+    nargs = pq_getint(4);
 
     for (i = 0 ; i < nargs ; i++ ) {
 
-	arg_length[i] = getpint(4);
+	arg_length[i] = pq_getint(4);
 
 	if (arg_length[i] == VAR_LENGTH_ARG ) {
 	  char *data = palloc(MAX_STRING_LENGTH);
 
-	  getpstr(data,MAX_STRING_LENGTH);
+	  pq_getstr(data,MAX_STRING_LENGTH);
 	  arg[i] = external_to_internal(data,MAX_STRING_LENGTH,PASS_BY_REF);
 
 	} else if (arg_length[i] > 4)  {
@@ -225,7 +225,7 @@ HandleFunctionRequest()
 
 	} else {
 
-	    arg[i] = getpint ( arg_length[i]);
+	    arg[i] = pq_getint ( arg_length[i]);
 
 	}
     }
@@ -234,8 +234,8 @@ HandleFunctionRequest()
 
     if (rettype == PORTAL_RESULT) {
 	/* fake it out by putting the stuff out first */
-	putnchar("V",1);
-	putint(0,4);
+	pq_putnchar("V",1);
+	pq_putint(0,4);
     }
 
     printf("\n arguments are %d %d %d \n",fid,arg[0],arg[1]);
