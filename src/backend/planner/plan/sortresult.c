@@ -274,7 +274,7 @@ sort_level_result (plan,numkeys)
 			     plan,
 			     numkeys);
      else 
-       new_plan = (Plan)MakeSeqScan (tlist_temp_references(_TEMP_RELATION_ID_,
+       new_plan = (Plan)make_seqscan(tlist_temp_references(_TEMP_RELATION_ID_,
 						      new_tlist),
 				LispNil,
 				_TEMP_RELATION_ID_,
