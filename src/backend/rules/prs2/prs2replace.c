@@ -61,8 +61,18 @@ Buffer *returnedBufferP;
      */
     relName = & ((RelationGetRelationTupleForm(relation))->relname);
     newLocks = prs2GetLocksFromRelation(relName);
+#ifdef NO
     oldLocks = prs2GetLocksFromTuple(oldTuple, oldBuffer,
 			    RelationGetTupleDescriptor(relation));
+#else
+    /*
+     * XXX
+     * in the current implementation, "oldTuple" is the same as
+     * "rawTuple", i.e. as all locks are currently "relation level"
+     * locks, no locks are actually stored in the tuple!
+     */
+    oldLocks = prs2CopyLocks(newLocks);
+#endif
 
     /*
      * now extract from the tuple the array of the attribute values.
@@ -139,8 +149,8 @@ Buffer *returnedBufferP;
 
     prs2FreeLocks(newLocks);
     prs2FreeLocks(oldLocks);
-    attributeValuesFree(newAttrValues);
-    attributeValuesFree(oldAttrValues);
+    attributeValuesFree(newAttrValues, relation);
+    attributeValuesFree(oldAttrValues, relation);
 
     if (insteadRuleFound) {
 	return(PRS2_STATUS_INSTEAD);
