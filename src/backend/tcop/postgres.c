@@ -69,7 +69,6 @@ RcsId("$Header$");
 #endif
 
 extern int on_exitpg();
-extern void BufferManagerFlush();
 
 /* ----------------
  *	global variables
@@ -1367,7 +1366,7 @@ PostgresMain(argc, argv)
      * ----------------
      */
     if (!TransactionFlushEnabled())
-        on_exitpg(BufferManagerFlush, (caddr_t) 0);
+        on_exitpg(FlushBufferPool, (caddr_t) 0);
 
     for (;;) {
 	/* ----------------
