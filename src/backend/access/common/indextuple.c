@@ -395,13 +395,6 @@ IndexTupleGetAttributeValue(tuple, attNum, tupleDescriptor, isNullOutP)
     Boolean		*isNullOutP;
 {
     /* ----------------
-     *	sanity check
-     * ----------------
-     */
-    if (tuple == NULL)
-	elog(WARN, "IndexTupleGetAttributeValue: called with NULL tuple");
-
-    /* ----------------
      *	handle normal attributes
      * ----------------
      */
