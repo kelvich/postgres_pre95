@@ -1441,6 +1441,16 @@ opt_portal:
 		{ NULLTREE }
 	| PORTAL name 
 		{
+		    /*
+		     *  15 august 1991 -- since 3.0 postgres does locking
+		     *  right, we discovered that portals were violating
+		     *  locking protocol.  portal locks cannot span xacts.
+		     *  as a short-term fix, we installed the check here. 
+		     *				-- mao
+		     */
+		    if (!IsTransactionBlock())
+			elog(WARN, "Named portals may only be used in begin/end transaction blocks.");
+
 		    $$ = MakeList ( KW(portal), $2, -1 ); 
 		}
 	;
