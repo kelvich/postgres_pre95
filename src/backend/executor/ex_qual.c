@@ -105,6 +105,8 @@ array_cast(value, byval, len)
  *
  *     -Greg
  *
+ *  old comments:
+ *
  *    XXX this code should someday handle the case where there is
  *        an expression of the form:  a.b[ expression ] rather then
  *        just a.b[ constant ] as it does now.  99% of this can be
@@ -112,6 +114,9 @@ array_cast(value, byval, len)
  *        work in the parser. -cim 6/20/90
  * --------------------------------
  */
+
+#define MinArrayIndirection 1
+
 Datum
 ExecEvalArrayRef(arrayRef, econtext, isNull, isDone)
     ArrayRef    arrayRef;
@@ -147,10 +152,15 @@ ExecEvalArrayRef(arrayRef, econtext, isNull, isDone)
 				      econtext,
 				      isNull,
 				      &dummy);
-    indirection--;
-
     if (*isNull)
 	return (Datum)NULL;
+
+    if (indirection < MinArrayIndirection)
+    {
+	*isNull = true;
+	return (Datum)NULL;
+    }
+    indirection--;
 
     byval = execConstByVal = get_refelembyval(arrayRef);
     element_len    = get_refelemlength(arrayRef);
