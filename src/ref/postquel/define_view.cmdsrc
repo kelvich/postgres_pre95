@@ -4,7 +4,7 @@
 .XA 2 "Define View"
 .uh NAME
 .lp
-retrieve \*- retrieve instances from a class
+define view \*- construct a virtual class
 .uh SYNTAX
 .lp
 .b "define view"
