@@ -64,8 +64,7 @@
 #include "executor/externs.h"
 
 #include "parser/parse.h"	/* for RETRIEVE */
-
-extern int MyPid;
+#include "tcop/slaves.h"
 
 /* ----------------
  *	Misc stuff to move to executor.h soon -cim 6/5/90
@@ -1551,18 +1550,22 @@ partition_indexscan(numIndices, scanDescs, parallel)
 	
         Assert(delt > 0);
 	
-        newlowkey = lowKey + MyPid * delt / parallel;
-        newhighkey = lowKey + (MyPid + 1) * delt / parallel;
+        newlowkey = lowKey + SlaveInfoP[MyPid].groupPid * delt / parallel;
+        newhighkey = lowKey + (SlaveInfoP[MyPid].groupPid + 1) * delt/parallel;
 	
         lowKeyEntry.argument = Int32GetDatum(newlowkey);
 	
-        if (MyPid > 0)
+        if (SlaveInfoP[MyPid].groupPid > 0) {
            lowKeyEntry.procedure = INT4GE;
+	   fmgr_info(INT4GE, &lowKeyEntry.func, &lowKeyEntry.nargs);
+	  }
 	
         highKeyEntry.argument = Int32GetDatum(newhighkey);
 	
-        if (MyPid < parallel - 1)
+        if (SlaveInfoP[MyPid].groupPid < parallel - 1) {
            highKeyEntry.procedure = INT4LT;
+	   fmgr_info(INT4LT, &highKeyEntry.func, &highKeyEntry.nargs);
+	  }
 	
         scanDesc->keyData.data[0] = lowKeyEntry;
         scanDesc->keyData.data[1] = highKeyEntry;
