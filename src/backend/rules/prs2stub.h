@@ -41,10 +41,15 @@
 #ifndef Prs2StubIncluded
 #define Prs2StubIncluded
 
+/*--------------
+ * turn on/off debugging....
+ */
+#define STUB_DEBUG	1
 
 #include "c.h"
 #include "oid.h"
 #include "attnum.h"
+#include "prs2locks.h"
 #include "prs2.h"
 
 /*------------------------------------------------------------------------
@@ -116,8 +121,9 @@ typedef struct Prs2SimpleQualData {
     AttributeNumber attrNo;
     ObjectId operator;
     ObjectId constType;
+    bool constByVal;
     Size constLength;
-    char * constData;	/* XXX	THIS MUST BE THE LAST FIELD OF THE STRUCT */
+    Datum constData;
 } Prs2SimpleQualData;
 
 typedef Prs2SimpleQualData *Prs2SimpleQual;
@@ -128,7 +134,6 @@ typedef struct Prs2OneStubData {
     Prs2StubId stubId;
     int counter;
     int numQuals;
-    /* XXX THE FOLLOWING FIELDS MUST BE THE LAST FIELD IN THE STRUCT */
     RuleLock lock;
     Prs2SimpleQual qualification;
 } Prs2OneStubData;
@@ -144,14 +149,12 @@ typedef Prs2StubData *Prs2Stub;
 
 /*------------------------------------------------------------------------
  *		Prs2RawStub
+ *
+ * This is exactly the same as a varlena struct.
  *------------------------------------------------------------------------
  */
 
-typedef struct Prs2RawStubData {
-    long size;
-    char data[1];
-} Prs2RawStubData;
-
+typedef struct varlena Prs2RawStubData;
 typedef Prs2RawStubData *Prs2RawStub;
 
 /*------------------------------------------------------------------------
@@ -218,17 +221,6 @@ prs2DeleteOneStub ARGS((
 ));
 
 /*-------------------------
- * prs2AddRelStub:
- * add a new relation level stub record the the given relation.
- */
-extern
-void
-prs2AddRelStub ARGS((
-	Relation	relation;
-	Prs2Stub	stub;
-));
-
-/*-------------------------
  * prs2MakeStub
  * create an empty 'Prs2Stub'
  */
@@ -240,11 +232,59 @@ prs2MakeStub ARGS((
 /*-------------------------
  * prs2FreeStub:
  * free the space occupied by a 'Prs2Stub'
+ * If 'freeLocksFlag' is true then we also free the space occupied by the
+ * rule locks.
  */
 extern
 void
 prs2FreeStub ARGS((
-	Prs2Stub	stubs
+	Prs2Stub	stubs;
+	bool		freeLocksFlag
+));
+
+/*-------------------------
+ * prs2MakeSimpleQuals(n)
+ * allocate space for `n' `Prs2SimpleQualData' records.
+ */
+extern
+Prs2SimpleQual
+prs2MakeSimpleQuals ARGS((
+	int		n;
+));
+
+/*-------------------------
+ * prs2FreeSimpleQuals
+ * pfree the spcae allocated by a call to `prs2MakeSimpleQuals'
+ */
+extern
+void
+prs2FreeSimpleQuals ARGS((
+	Prs2SimpleQual	quals
+));
+
+/*-------------------------
+ * prs2MakeOneStub
+ * create an 'Prs2OneStub' record
+ */
+extern
+Prs2OneStub
+prs2MakeOneStub ARGS((
+	ObjectId	ruleId;
+	Prs2StubId	stubId;
+	int		counter;
+	int		numQuals;
+	RuleLock	lock;
+	Prs2SimpleQual	quals
+));
+
+/*-------------------------
+ * prs2FreeOneStub
+ * free the `Prs2OneStub' allocated with a call to `prs2MakeOneStub'
+ */
+extern
+void
+prs2FreeOneStub ARGS((
+	Prs2OneStub	oneStub
 ));
 
 /*-------------------------
@@ -290,4 +330,134 @@ stubin ARGS((
 ));
 
 
+/*-------------------------
+ * prs2AddRelationStub:
+ * add a new relation level stub record to the given relation.
+ */
+extern
+void
+prs2AddRelationStub ARGS((
+	Relation	relation;
+	Prs2OneStub	stub;
+));
+
+/*-------------------------
+ * prs2DeleteRelationStub:
+ * delete the given relation level stub record from the given relation.
+ */
+extern
+void
+prs2DeleteRelationStub ARGS((
+	Relation	relation;
+	Prs2OneStub	stub;
+));
+
+/*-------------------------
+ * prs2GetRelationStubs
+ * given a relation OID, find all the associated rule stubs.
+ */
+extern
+Prs2Stub
+prs2GetRelationStubs ARGS((
+	ObjectId	relOid
+));
+
+/*-------------------------
+ * prs2GetStubsFromRelationTuple:
+ * given a tuple of the Relation relation, extract the value
+ * of the stubs field.
+ */
+extern
+Prs2Stub
+prs2GetStubsFromRelationTuple ARGS((
+    	HeapTuple		tuple;
+	Buffer			buffer;
+	TupleDesccriptor	tupleDesc;
+));
+
+/*-------------------------
+ * prs2PutStubsInRelationTuple:
+ * put the given stubs to the appropriate attribute of a 
+ * Relation relation tuple.
+ * Returns the new tuple
+ */
+extern
+HeapTuple
+prs2PutStubsInRelationTuple ARGS((
+    	HeapTuple		tuple;
+	Buffer			buffer;
+	TupleDesccriptor	tupleDesc;
+	Prs2Stub		stubs;
+));
+
 #endif Prs2StubIncluded
+
+/*--------------------------
+ * prs2GetDatumSize
+ * caclulate the actual size of a constant's value
+ */
+extern
+Size
+prsGetDatumSize ARGS((
+	ObjectId	constType;
+	bool		constByVal;
+	Size		constLength;
+	Datum		constData
+));
+
+/*--------------------------
+ * prs2EqualDatum
+ * returns true if 2 datums are equal (i.e. similar byte-to-byte)
+ * NOTE: fails if a single value can have more than one representations.
+ */
+extern
+bool
+prs2EqualDatum ARGS((
+	ObjectId 	type;
+	bool		byValue;
+	Size		length;
+	Datum		datum1;
+	Datum		datum2
+));
+
+/*-------------------------
+ * prs2StubGetLocksForTuple
+ * given a collection of stub records and a tuple, find all the locks
+ * that the tuple must inherit.
+ */
+extern
+RuleLock
+prs2StubGetLocksForTuple ARGS((
+	HeapTuple	tuple,
+	Buffer		buffer,
+	TupleDescriptor	tupDesc;
+	Prs2Stub	stubs
+));
+
+/*-------------------------
+ * prs2StubTestTuple
+ * test if a tuple satisfies all the qualifications of a given
+ * stub record.
+ */
+extern
+bool
+prs2StubTestTuple ARGS((
+    HeapTuple		tuple,
+    Buffer		buffer,
+    TupleDescriptor	tupDesc,
+    Prs2OneStub		stub
+));
+
+/*-------------------------
+ * prs2SimpleQualTestTuple
+ * test if a tuple satisfies the given 'Prs2SimpleQual'
+ */
+extern
+bool
+prs2SimpleQualTestTuple ARGS((
+    HeapTuple		tuple,
+    Buffer		buffer,
+    TupleDescriptor	tupDesc,
+    Prs2SimpleQual	qual
+));
+
