@@ -153,6 +153,9 @@ DATA(insert OID = 702 (  abstime   PGUID  4  20 t b t \054 0   0 nabstimein nabs
 DATA(insert OID = 703 (  reltime   PGUID  4  20 t b t \054 0   0 reltimein reltimeout reltimein reltimeout _null_ ));
 DATA(insert OID = 704 (  tinterval PGUID 12  47 f b t \054 0   0 tintervalin tintervalout tintervalin tintervalout _null_ ));
 DATA(insert OID = 705 (  unknown PGUID -1  -1 f b t \054 0   18 textin textout textin textout _null_ ));
+
+#define UNKNOWNOID	705
+
 DATA(insert OID = 810 (  oidint2    PGUID  6  20 f b t \054 0   0 oidint2in oidint2out oidint2in oidint2out _null_ ));
 DATA(insert OID = 910 (  oidint4    PGUID  8  20 f b t \054 0   0 oidint4in oidint4out oidint4in oidint4out _null_ ));
 DATA(insert OID = 911 (  oidchar16  PGUID  20 20 f b t \054 0   0 oidchar16in oidchar16out oidchar16in oidchar16out _null_ ));
