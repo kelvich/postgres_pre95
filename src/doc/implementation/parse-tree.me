@@ -1,0 +1,592 @@
+.\"----------------------------------------------------------------------
+.\" FILE
+.\"	query-tree.t
+.\"
+.\" DESCRIPTION
+.\"	Specification for the query (parser => planner) tree
+.\"
+.\" RCS ID
+.\"	$Header$
+.\"----------------------------------------------------------------------
+.ds ar <\\(em\\(em
+.nr pp 11
+.nr sp 12
+.nr tp 12
+.nr fp 10
+.ll 6.5i
+.(l C
+.sz \n(sp
+.ft B
+QUERY TREE SPECIFICATION
+(Printed: \*(td)
+.ft R
+.)l
+.sp
+.sz \n(pp
+.sp
+This document describes the query tree as output by the parser.  The
+tree is represented internally as a LISP object, which can be displayed
+by calling the procedure \fBlispDisplay\fR(lispObject).  In addition,
+there are three backend flags that can be set to display the query
+tree at different stages of processing :
+.(l
+\fBDebugPrintParse\fR, \fBDebugPrintRewrittenParsetree\fR and
+\fBDebugPrintPlan\fR
+.)l
+All three are set when POSTGRES is run in debug mode.
+.sp
+For \fBretrieve\fR, \fBreplace\fR, \fBappend\fR and \fBdelete\fR
+commands, the parser will produce a query tree as described below.
+Other commands produce a list in which the first element is the
+command name.  The format of the rest of the tree is command-specific
+and will not be described here.
+.sp
+For notational purposes, anything appearing in italics is defined
+elsewhere in this document.
+Anything in bold face surrounded by quotes appears explicitly within a
+runtime query tree/plan as a LISP string.
+Anything appearing as a list is represented literally as a LISP list.
+[] indicates something that is optional; {} indicates 0 or more.
+.sp
+.he 'Query Tree / Query Plan Specification''%'
+.sh 1 "Query Tree Representation"
+.sp
+The parser will produce the following query tree for each query that
+requires optimization:
+.(l
+(\fIRoot TargetList Qualification\fR)
+.)l
+Each of the above three components is a list containing further information.
+.sh 2 "Root"
+.sp
+\fBRoot\fR looks like:
+.(l
+(\fINumLevels CommandType ResultRelation RangeTable Priority RuleInfo
+UniqueFlag SortClause\fR)
+.)l
+This list contains information required by the planner as well as the
+executor.
+The planner itself does not modify any of these elements,
+although some of its preprocessing routines may change portions of 
+root before it is seen by the executor.
+.sh 3 "NumLevels"
+.sp
+\fBNumLevels\fR indicates the maximum attribute nesting in a query.
+That is, it indicates the maximum number of \*(lqnested dot\*(rq
+fields found in any variable in that query.
+For example, a query without range variables such as
+.(l
+retrieve (x = 1 + 2)
+.)l
+will have \fBNumLevels\fR = 0,
+a query such as 
+.(l
+retrieve (pinhead.name) where pinhead.saying = "Yow!!!"
+.)l
+that contains normal range variables will have \fBNumLevels\fR = 1,
+a query such as 
+.(l
+retrieve (sorority.all) where sorority.members.name = "Marti"
+.)l
+will have \fBNumLevels\fR = 2,
+and so on.
+.sh 3 "CommandType"
+.sp
+\fBCommandType\fR indicates what kind of query is being executed.
+\fBCommandType\fR will be a single symbol from:
+.(l
+\fBretrieve append replace delete\fR
+.)l
+(other POSTQUEL commands are not optimized, so the planner should
+never see them).
+.sh 3 "ResultRelation"
+.sp
+\fBResultRelation\fR specifies the target relation of a 
+\*(lqretrieve\*(rq
+or the update relation for
+\*(lqappend\*(rq, \*(lqreplace\*(rq, and \*(lqdelete\*(rq.
+It may take one of three forms:
+.np
+If the query is a \*(lqretrieve\*(rq and no result relation is
+specified, then \fBResultRelation\fR is nil.
+.np
+If the query is a \*(lqretrieve into\*(rq, then \fBResultRelation\fR
+is a list containing the symbol \fBinto\fR and the result relation's
+name.
+.np
+If the query is an update, \fBResultRelation\fR will always be the
+index into the \fIrangetable\fR corresponding to the relation to be
+updated.
+.sh 3 "RangeTable"
+.sp
+\fBRangeTable\fR is a list containing a \fIrangetable entry\fR for
+each instance of a relation (i.e., range variable) in a query.  Every
+\fIrelid\fR and \fIvarno\fR within the query tree, and almost every one
+within the resulting query plan, is an integer index within the
+query's rangetable.  This index is 1-based (e.g., var nodes that refer
+to the first relation in the rangetable are given varno ``1'').
+.sp
+A rangetable entry looks like:
+.(l
+( \fIInstanceVariableName RelationName RelationOID TimeRange Flags
+RuleLocks\fR )
+.)l
+\fBInstanceVariableName\fR is the name used to identify the relation.
+It may be a class name, a surrogate for a class name, or the symbol
+new or current. \fBRelationName\fR is a string corresponding to the
+relation's catalog name, \fBRelationOID\fR is an integer corresponding
+to the OID of the RELATION relation tuple that describes the given
+relation, \fBTimeRange\fR is an internal structure that describes the
+historical time span over which this rangetable entry is valid,
+\fBFlags\fR is a list of zero or more symbols from:
+.(l
+\fBarchive inheritance union version\fR
+.)l
+that specifies special treatment from the planner, and 
+\fBRuleLocks\fR holds the rule lock information for that relation
+(since this is generated by a planner preprocessor, the parser simply
+puts nil here).
+In the case of archival, inheritance, union and version queries,
+the planner generates an \fBAPPEND\fR query plan node (see plan tree
+documentation) that contains a set of rangetable entries which must be
+substituted in turn for this rangetable entry, as well as separate
+query plans to be executed.
+.sh 3 "Priority"
+.sp
+\fBPriority\fR is simply an integer from 0..7 that indicates the
+query priority.  Only rule plans can have priorities greater than 0.
+.sh 3 "RuleInfo"
+.sp
+If the query is part of a \*(lqdefine rule\*(rq query, \fBRuleInfo\fR
+is a containing a \fIrule identifier\fR and exactly one symbol from:
+.(l
+\fBalways once never\fR
+.)l
+The rule identifier is an object identifier from the RULE relation;
+the symbol is the tag associated with the rule definition.
+For example, \fBRuleInfo\fR might look like:
+.(l
+( 387457893 always )
+.)l
+The rule identifier will be filled in by a traffic cop or planner
+preprocessor routine.  Coming out of the parser, it is just a list
+containing the integer 0. For all other queries, \fBRuleInfo\fR is
+nil. 
+.sh 3 "UniqueFlag"
+.sp
+If the query is a \*(lqretrieve\*(rq and the unique tag is present,
+this will be the symbol \fBunique\fR, otherwise it will be nil.
+.sh 3 "SortClause"
+.sp
+If the query is a \*(lqretrieve\*(rq and the sort clause or the unique
+tag is present, this is a list of three elements: the symbol
+\fBsort\fR, a list of \fBresdom\fR nodes (see below) indicating which
+attributes are to be used to perform the sort, and a list of operator
+OIDs, one for each attribute used.  If the unique tag is present, all
+attributes in the target list will be used in the sort.
+.sh 2 "TargetList"
+.sp
+A targetlist describes the structure of a tuple
+and consists of a list of (\fIresdom expr\fR) pairs, one for
+each attribute in the tuple to be constructed.
+A \fBresdom\fR (result domain) node contains information about the
+attribute, and
+an \fBexpr\fR (expression) describes how to set the value of the
+attribute.
+.sp
+The initial targetlist from the query tree describes what the final
+result tuples should look like (targetlists are also used in
+query plans to describe intermediate results such as scan projections,
+join results, and temporaries).
+In the case of the delete command, the initial targetlist is always nil.
+For the other update queries, the planner's preprocessor fills in any
+missing attributes that the user has not specified, either with
+constants corresponding to the default values of the missing
+attributes\**
+.(f
+\** If no default value exists for an attribute type, the attribute
+will have a null value.
+.)f
+(for \*(lqappend\*(rq) or with variables corresponding to
+the unchanged attributes of a tuple (for \*(lqreplace\*(rq).
+.sp
+The structure of the \fBresdom\fR node is described below;
+an \fBexpr\fR can consist of a combination of nodes:
+.(l
+\fIexpr\fR = \fIvar\fR | \fIconst\fR | \fIparam\fR | (\fIoper expr\fR
+[\fIexpr\fR]) | (\fIfunc\fR {\fIexpr\fR} | \fI arrayref\fR) 
+.)l
+.sp
+The structures of the different nodes in an expr are described
+below, but the function of the nodes may be briefly summarized as:
+.nr zz \n(ii
+.nr ii 6m
+.sp
+.ip \fIvar\fR
+Refers to some relation attribute entry which corresponds to the target
+list entry (i.e., the contents of a relation's tuple).
+.ip \fIconst\fR
+Constant values.
+.ip \fIparam\fR
+Used as parameters \(em placeholders for constants \(em within a
+query.  The planner treats them as if they are constants of unknown
+value (i.e., null constants) for optimization purposes.
+.ip \fIoper\fR
+Describes the system- or user-defined unary or binary operator that
+will be applied to the argument exprs to produce a new value.
+.ip \fIfunc\fR
+Correspond to calls to system- or user-defined functions, which
+may have zero or more arguments.
+.ip \fIarrayref\fR
+Refers to an array reference within some array.  It contains a slot
+describing how to produce the array.
+.nr ii \n(zz
+.lp
+Example:  ((\fIresdom var\fR) (\fIresdom\fR (\fIoper var var\fR)))
+.br
+is a targetlist with two attributes, where the second element involves
+a computation between two tuple attributes.
+.sh 2 "Qualification"
+.sp
+A qualification consists of restriction and join clauses which are
+evaluated before the final result is returned.
+.sp
+The qualifications produced by the parser are not normalized in any
+way.
+That is, the parsed qualification will be an arbitrary boolean
+expression:
+.(l
+\fIqualification\fR = ({\fIqual\fR})
+\fIqual\fR = \fIexpr\fR | (\*(lq\fBNOT\fR\*(rq \fIqual\fR) | (\*(lq\fBOR\fR\*(rq \fIqual \fR{\fIqual\fR}) | (\*(lq\fBAND\fR\*(rq \fIqual \fR{\fIqual\fR})
+.)l
+.sp
+The qualification supplied to the planner must be normalized in
+certain ways.\**
+.(f
+\** This normalization occurs in yet another preprocessing module.
+.)f
+A qualification must be specified in conjunctive normal form.
+Furthermore, if it is at all possible, all \*(lqnot\*(rqs are removed
+and all variables are placed on the left hand side of the clause
+operator.
+If it is not possible to remove a \*(lqnot\*(rq (perhaps because a
+negator is unavailable),
+then the \*(lqnot\*(rq must be pushed to the innermost comparison,
+e.g.,
+\*(lq(not ((a = b) and (c = d)))\*(rq
+might become
+\*(lq(not (a = b) or not (c = d))\*(rq
+if the operator \*(lq!=\*(rq does not exist for the appropriate types.
+.sp
+A qualification as seen by the planner is:
+.(l
+\fIqualification\fR = ({\fIqual\fR | \fIorqual\fR})
+\fIqual\fR = \fIexpr\fR | (\*(lq\fBNOT\fR\*(rq \fIexpr\fR)
+\fIorqual\fR = (\*(lq\fBOR\fR\*(rq \fIqual qual \fR{\fIqual\fR})
+.)l
+.sp
+Example: If a user specifies the following clause:
+.(l
+not (r.f = 1) or (r.f2 > 1 and 2 > r.f2),
+.)l
+then in conjunctive normal form with \*(lqnot\*(rqs removed
+and variables on the left hand side, we have the following equivalent clause:
+.(l
+(r.f != 1 or r.f2 > 1) and (r.f != 1 or r.f2 < 2)
+.)l
+In LISP form, it would look like:
+.(l
+((or (!= r.f 1) (> r.f2 1)) (or (!= r.f 1) (< r.f2 2)))
+.)l
+.bp
+.sh 1 "Primitive Nodes"
+.sp
+The following is a description of the primitive nodes, which are used
+in both the input query tree and the final query plan.
+.sp
+Each type of node is implemented as a defstruct vector.  To access
+slots within a node, use:
+.(l
+(get_\fIslotname node\fR)
+.)l
+where \fIslotname\fR is the desired slot name as described in this
+section and \fInode\fR is an appropriate defstruct node.
+.sp
+To set a slot field, use:
+.(l
+(set_\fIslotname node new-slot-value\fR)
+.)l
+.sp
+To create a node, use:
+.(l
+(Make\fINodename\fR {\fIslot-value-i\fR})
+.)l
+where \fINodename\fR is the name of the node with the first letter
+capitalized, and \fIslot-value-i\fR is the value for the i-th slot in
+the node.
+.sp
+Some of the slot fields in these nodes are not set by the parser.  In
+addition, \fBfjoin\fR nodes are not created by the parser at all,
+while \fBarray\fR nodes do not appear in query-trees, but they are
+included here for completeness because they are also primitive nodes.
+.sp
+.sh 2 "RESDOM"
+.ip "1)"
+\fBresno\fR - result domain number.  This is equivalent to the
+attribute number for a (temporary or result) tuple.  Just as attribute
+numbers being at 1, a \fBresno\fR of 1 denotes the first attribute in
+a targetlist.
+.ip "2)"
+\fBrestype\fR - either:
+.br
+(1) the OID corresponding to the type of the result, or
+.br
+(2) *UNION-TYPE-ID*, an identifier for a type internal to the planner
+that describes multi-dot attributes (since it cannot determine the
+final attribute type until the nesting is eliminated by the executor).
+.ip "3)"
+\fBrescomplex\fR - t if the result type is a complex (i.e. tuple) type
+.ip "4)"
+\fBreslen\fR - length of a domain element in bytes (-1 if it is
+variable length).
+.ip "5)"
+\fBresname\fR - result domain name, either user-specified or the
+corresponding name of an attribute (if applicable).
+.ip "6)"
+\fBreskey\fR - ordinality of the result domain as a sort or hash key,
+e.g.,
+0 if the domain won't be included as a sort or hash key;
+1 if the domain is the first key,
+2 if it is the second,
+and so on.
+.ip "7)"
+\fBreskeyop\fR - OID of the operator on which \fBreskey\fR will be
+sorted or hashed.
+.ip "8)"
+\fBresjunk\fR - t if the attribute is a junk attribute internal to the
+executor
+.sp
+.sh 2 "VAR"
+.ip "1)"
+\fBvarno\fR - From the parser's standpoint, \fBvarno\fR is simply the
+index into the rangetable corresponding to the relation an attribute
+belongs to.
+.sp
+For the query processor, \fBvarno\fR may take on one of three values
+depending on the attribute entry under consideration.
+.br
+(1) If \fBVAR\fR belongs to the relation currently being scanned
+(either a cataloged or temporary relation, but not a materialized
+one), \fBvarno\fR is still the \fIindex into the rangetable\fP
+corresponding to the relation being scanned.
+.br
+(2) If \fBVAR\fR is associated with some join node, varno is the
+\fIname of the temporary join relation\fP accessed.  If \fBVAR\fR
+originates from the outer join relation, \fBvarno\fR =
+\fB\*(lqOUTER\*(rq\fR.  If it originated from the inner join relation,
+\fBvarno\fR = \fB\*(lqINNER\*(rq\fR.
+.br
+(3) For \fBVAR\fRs corresponding to entries within relations that are
+materialized from a POSTQUEL field or attributes from some previous
+nesting level, \fBvarno\fR is a \fIreference pair\fP, i.e., a list
+(\fIlevelnum resno\fR), that corresponds to the attribute entry where
+either the query field or desired value can be found.  \fIlevelnum\fR
+refers to the processing level number (where \fI0\fR is the topmost),
+and \fIresno\fR refers to the result domain number within the tuple
+where the entry is stored.
+.sp
+Therefore, whether a relation should be materialized is implicit in
+the \fBvarno\fR value and information in the attribute entry
+corresponding to the query field.
+.ip "2)"
+\fBvarattno\fR - as with \fBvarno\fR, the meaning of this field
+depends on the node's position in the plan tree.
+.br
+(1) For attributes at the topmost nesting level, \fBvarattno\fR
+corresponds to the \fIattribute number\fR within a relation (or domain
+number within a tuple if this is a join tuple \(em that is, if
+\fBvarno\fR = \fB\*(lqOUTER\*(rq\fR or \fB\*(lqINNER\*(rq\fR).
+.br
+(2) If the attribute corresponds to some attribute from a previous
+nesting level, \fBvarattno\fR = \fInil\fR.
+.br
+(3) For nested attributes, the value of \fBvarattno\fR is a
+\fIstring\fR identical to the attribute name since the attribute
+number will not be known until the POSTQUEL field is materialized.
+Note that at the lowest nesting level, \fBvarattno\fR may be
+\*(lq\fBALL\fR\*(rq (again, since neither the parser nor the planner
+know what the attributes of the field's parent are \(em it must be
+determined at run-time by the query processor when the appropriate
+POSTQUEL field is retrieved).
+.ip "3)"
+\fBvartype\fR - either:
+.br
+(1) the OID of the type of the attribute referred to by \fBvarattno\fR,
+or
+.br
+(2) *UNION-TYPE-ID*
+.ip "4)"
+\fBvarid\fR - a list containing \fBvarno\fR and \fBvarattno\fR.
+.br
+(\fIThis field is internal to the planner\fR)
+.ip "5)"
+\fBvarslot\fR - cached pointer to address of expression context slot.
+.br
+(\fIThis field is internal to the executor\fR)
+.sp
+.sh 2 "OPER"
+.ip "1)"
+\fBopno\fR - PG_OPERATOR OID of the operator to which this node corresponds.
+.ip "2)"
+\fBopid\fR - PG_PROC OID of the function to which this operator is
+attached.  This will be determined in the planner.
+.ip "3)"
+\fBoprelationlevel\fR - t if an operator is a relation level operator.
+.ip "4)"
+\fBopresulttype\fR - OID of the result type of this particular
+operator.
+.ip "5)"
+\fBopsize\fR - size of the return result
+.ip "6)"
+\fBop_fcache\fR - pointer to cached information on the function to
+which the operator is attached.
+.br
+(\fIThis field is internal to the planner and executor\fR)
+.sp
+.sh 2 "CONST"
+.ip "1)"
+\fBconsttype\fR - OID of the constant's type.
+.ip "2)"
+\fBconstlen\fR - length in bytes (-1 if it is a variable-length type).
+.ip "3)"
+\fBconstvalue\fR - actual value of the constant (i.e., the internal
+representation).
+.br
+\fBconstvalue\fR is nil if the constant is null.  Objects represented
+by pointers must appear as palloc'ed LISP vectori-bytes.
+.ip "4)"
+\fBconstisnull\fR - t if the constant has the null value.
+.br
+This is set by the planner when filling in \*(lqreplace\*(rq and
+\*(lqappend\*(rq targetlist entries which are unspecified by the user.
+If the typdefault field of the \fBTYPE\fR relation is not specified,
+\fBconstisnull\fR is set to t and \fBconstvalue\fR is set to nil.
+.sp
+.sh 2 "PARAM"
+.ip "1)"
+\fBparamkind\fR - specifies the kind of parameter. The possible values
+for this field are specified in \*(lqrules/params.h\*(rq.  They are:
+.br
+\fBPARAM_NAMED\fR: The parameter has a name, i.e. something
+like `$.salary' or `$.foobar'.  In this case field `paramname' must be
+a valid Name.
+\fBPARAM_NUM\fR:   The parameter has only a numeric identifier,
+i.e. something like `$1', `$2' etc.  The number is contained in the
+`paramid' field.
+\fBPARAM_NEW\fR:   Used in an instance level rule, similar to PARAM_NAMED.
+The `paramname' and `paramid' refer to the \*(lqNEW\*(rq tuple.
+The `paramname' is the attribute name and `paramid'
+is the attribute number.
+PARAM_OLD:   Same as PARAM_NEW, but in this case we refer to
+the \*(lqOLD\*(rq tuple.
+.ip "2)"
+\fBparamid\fR - numeric identifier for literal constant parameters
+(\*(lq$1\*(rq).
+.ip "3)"
+\fBparamname\fR - attribute name for tuple substitution parameters
+(\*(lq$.foo\*(rq).
+.ip "4)"
+\fBparamtype\fR - OID of the type of the parameter
+.ip "5)"
+\fBparam_tlist\fR - a \fItargetlist\fR describing the structure of the
+parameter as if it were the target of a query.  This allows for
+projection in a param node.
+.sp
+.sh 2 "FUNC"
+.ip "1)"
+\fBfuncid\fR - OID of the function to which this node corresponds.
+.ip "2)"
+\fBfunctype\fR - OID of the type of the function's return value.
+.ip "3)"
+\fBfuncisindex\fR - can an index be used to evaluate this function?
+.br
+(\fIIn the present system only operators can be evaluated using indices\fR)
+.ip "4)"
+\fBfuncsize\fR - size of the function's return result
+.ip "5)"
+\fBfunc_fcache\fR - pointer to cached information on the function
+.ip "6)"
+\fBfunc_tlist\fR - a \fItargetlist\fR describing the function's return
+value
+.ip "7)"
+\fBfunc_planlist\fR - list of plan trees generated by planning the
+function, if it's a POSTQUEL function.
+.br
+(\fIThis field is internal to the planner and executor\fR)
+.sp
+.sh 2 "ARRAYREF"
+.sp
+.ip "1)"
+\fBrefattrlength\fR - length of array being referred to, or -1 if it's
+a variable length array
+.ip "2)"
+\fBrefelemlength\fR - length in bytes of array element
+.ip "3"
+\fBrefelemtype\fR - OID of type of array element
+.ip "4"
+\fBrefelembyval\fR - true if the element type can be passed
+by value
+.ip "5"
+\fBupperindexpr\fR - expression evaluating to upper array index
+.ip "6"
+\fBlowerindexpr\fR - expression evaluating to lower array index
+.ip "7"
+\fBrefexpr\fR - expression evaluating to the array being referred to
+.ip "8"
+\fBrefassgnexpr\fR - expression evaluating to the new value to be
+assigned to the array in a \fBREPLACE\fR query
+.sp
+.sh 2 "ARRAY"
+.sp
+An \fBARRAY\fR node describes the structure of an array type.  It
+appears in the tree for \fBCREATE\fR and \fBADD_ATTR\fR commands.
+.ip "1)"
+\fBarrayelemtype\fR - OID of type of array element
+.ip "2)"
+\fBarrayelemlength\fR - length in bytes of array element
+.ip "3)"
+\fBarrayelembyval\fR - true if the array element can be
+passed by value
+.ip "4)"
+\fBarrayndim\fR - number of dimensions of the array
+.ip "5)"
+\fBarraylow\fR - base for array indexing
+.ip "6)"
+\fBarrayhigh\fR - limit for array indexing
+.ip "7)"
+\fBarraylen\fR - length of entire array (\fInot used\fR)
+.sp
+.lp
+To create an \fBARRAY\fR node:
+.sp
+(MakeArray \fIarrayelemtype arrayelemlength arrayelembyval arrayndim
+arraylow arrayhigh arraylen\fR)
+.sp
+.sh 2 "FJOIN"
+.sp
+An \fBFJOIN\fR node describes how to flatten a target list after
+executing a join.  This node is internal to the planner and executor.
+A list will be produced containing an \fBFJOIN\fR node for each node
+included in the join.
+.ip "1)"
+\fBfj_initialized\fR - true if the node has been initialized
+for the current target list evaluation
+.ip "2)"
+\fBfj_nnodes\fR - number of nodes to flatten
+.ip "3)"
+\fBfj_innerNode\fR - one node to flatten
+.ip "4)"
+\fBfj_results\fR - the complete flattened join result
+.ip "5)"
+\fBfl_alwaysDone\fR - true if the node never produces any results, and
+therefore never needs to be reprocessed
