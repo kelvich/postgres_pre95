@@ -33,6 +33,15 @@ static	ExcProc		*ExcUnCaughtP = NULL;
  * Exported Functions
  */
 
+/*
+ * Excection handling should be supported by the language, thus there should
+ * be no need to explicitly enable exception processing.
+ *
+ * This function should probably not be called, ever.  Currently it does
+ * almost nothing.  If there is a need for this intialization and checking.
+ * then this function should be converted to the new-style Enable code and
+ * called by all the other module Enable functions.
+ */
 void
 EnableExceptionHandling(on)
 	bool	on;
