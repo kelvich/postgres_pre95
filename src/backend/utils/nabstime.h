@@ -13,19 +13,22 @@
  *
  * ----------------------------------------------------------------
  */
-typedef uint32	AbsoluteTime;
+typedef int32	AbsoluteTime;
+typedef int32	RelativeTime;
 
 typedef struct { 
 	int32	status;
-	Time	data[2];
+	AbsoluteTime	data[2];
 } TimeIntervalData;
 typedef TimeIntervalData *TimeInterval;
 
-#define EPOCH_ABSTIME 4294967294
-#define INVALID_ABSTIME 4294967295
-#define InvalidAbsoluteTime	INVALID_ABSTIME
+#define EPOCH_ABSTIME 0
+#define INVALID_ABSTIME 2147483647	/* 2^31 - 1 */
+#define CURRENT_ABSTIME 2147483646	/* 2^31 - 2 */
+#define NOEND_ABSTIME	2147483645	/* 2^31 - 3 */
+#define NOSTART_ABSTIME 2147483648	/* - 2^31 */
 
-#define InvalidTime	INVALID_ABSTIME	/* XXX this will disappear */
+#define INVALID_RELTIME 2147483647	/* 2^31 - 1 */
 
 /* ----------------
  *	time support macros (from tim.h)
@@ -33,22 +36,16 @@ typedef TimeIntervalData *TimeInterval;
  */
 
 #define AbsoluteTimeIsValid(time) \
-    ((bool) ((time) != InvalidAbsoluteTime))
+    ((bool) ((time) != INVALID_ABSTIME))
 
 #define AbsoluteTimeIsReal(time) \
-    ((bool) (((unsigned)(time)) < (unsigned)EPOCH_ABSTIME))
+    ((bool) ((time) < NOEND_ABSTIME && (time) > NOSTART_ABSTIME))
 
 #define RelativeTimeIsValid(time) \
-    ((bool) ((time) != InvalidRelativeTime))
-
-#define TimeIsValid(time) AbsoluteTimeIsValid(time)
+    ((bool) ((time) != INVALID_RELTIME))
 
 #define GetCurrentAbsoluteTime() \
-    ((Time) GetSystemTime())
-
-/* XXX remove this */
-#define GetCurrentTime() \
-    ((AbsoluteTime) GetCurrentAbsoluteTime())
+    ((AbsoluteTime) GetSystemTime())
 
 /*
  * GetSystemTime --
