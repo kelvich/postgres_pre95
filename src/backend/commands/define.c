@@ -12,6 +12,7 @@
 
 #include <strings.h>	/* XXX style */
 #include <ctype.h>
+#include <math.h>
 
 #include "tmp/postgres.h"
 
@@ -120,7 +121,10 @@ DefineCFunction(name, parameters, fileName, languageName)
     bool	canCache;
     LispValue	argList;
     LispValue	entry;
-    int32 arch_pct, disk_pct, byte_pct, perbyte_cpu, percall_cpu, outin_ratio;
+    int32 byte_pct, perbyte_cpu, percall_cpu, outin_ratio;
+    String perbyte_str, percall_str;
+    int count;
+    char *ptr;
 
     /* ----------------
      * handle "[ iscachable ]"
@@ -139,25 +143,36 @@ DefineCFunction(name, parameters, fileName, languageName)
     /*
     ** Handle new parameters for expensive functions.  To be done by Joey.
     */
-    entry = DefineListRemoveOptionalAssignment(&parameters, "arch_pct");
-    if (null(entry)) arch_pct = ARCH_PCT;
-    else arch_pct = DefineEntryGetInteger(entry);
-
-    entry = DefineListRemoveOptionalAssignment(&parameters, "disk_pct");
-    if (null(entry)) disk_pct = DISK_PCT;
-    else disk_pct = DefineEntryGetInteger(entry);
-	 
     entry = DefineListRemoveOptionalAssignment(&parameters, "byte_pct");
     if (null(entry)) byte_pct = BYTE_PCT;
     else byte_pct = DefineEntryGetInteger(entry);
 
     entry = DefineListRemoveOptionalAssignment(&parameters, "perbyte_cpu");
     if (null(entry)) perbyte_cpu = PERBYTE_CPU;
-    else perbyte_cpu = DefineEntryGetInteger(entry);
+    else 
+      {
+	  perbyte_str = DefineEntryGetString(entry);
+	  if (!sscanf(perbyte_str, "%d", &perbyte_cpu))
+	   {
+	       for (count = 0, ptr = perbyte_str; *ptr != '\0'; ptr++)
+		 if (*ptr == '!') count++;
+	       perbyte_cpu = (int) pow(10.0, (double)count);
+	   }
+      }
 
     entry = DefineListRemoveOptionalAssignment(&parameters, "percall_cpu");
     if (null(entry)) percall_cpu = PERCALL_CPU;
-    else percall_cpu = DefineEntryGetInteger(entry);
+    else 
+      {
+	  percall_str = DefineEntryGetString(entry);
+	  if (!sscanf(percall_str, "%d", &percall_cpu))
+	   {
+	       for (count = 0, ptr = percall_str; *ptr != '\0'; ptr++)
+		 if (*ptr == '!') count++;
+	       percall_cpu = (int) pow(10.0, (double)count);
+	   }
+      }
+
 
     entry = DefineListRemoveOptionalAssignment(&parameters, "outin_ratio");
     if (null(entry)) outin_ratio = OUTIN_RATIO;
@@ -202,7 +217,7 @@ DefineCFunction(name, parameters, fileName, languageName)
 		    "-",
 		    fileName,
 		    canCache,
-		    arch_pct, disk_pct, byte_pct, perbyte_cpu, percall_cpu, 
+		    byte_pct, perbyte_cpu, percall_cpu, 
 		    outin_ratio,
 		    argList);
 }
