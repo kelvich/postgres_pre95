@@ -60,8 +60,6 @@
 
 #include "tmp/miscadmin.h"
 
-#define EMULATE_UNDER_POSTMASTER
-
 /* ----------------
  *	global variables & stuff
  *	XXX clean this up! -cim 10/5/90
