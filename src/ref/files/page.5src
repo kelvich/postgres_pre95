@@ -37,7 +37,7 @@ flag will cause the relations to be
 treated as heap relations and for more information to be displayed.
 .in -0.5i
 .(b
-.so ./file/page.tr
+.so ./files/page.tr
 .ce
 \fBDiagram 1:  Sample Page Layout\fP
 .)b
