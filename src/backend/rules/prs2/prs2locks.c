@@ -24,8 +24,22 @@ void
 prs2FreeLocks(lock)
 RuleLock lock;
 {
-    if (lock != NULL)
+#ifdef PRS2_DEBUG
+    /*
+     * yes, yes, it might help discover a couple of these
+     * tedious, stupid, mean, "carefull what you pfree" memory bugs...
+     */
+    if (lock != NULL) {
+	long i, size;
+        size = prs2LockSize(lock->numberOfLocks);
+	for (i=0; i<size; i++)
+	    *( ((char *)lock) + i) = (char) 255;
+    }
+#endif PRS2_DEBUG
+
+    if (lock != NULL) {
 	pfree(lock);
+    }
 }
 
 /*-----------------------------------------------------------------------
@@ -47,7 +61,7 @@ prs2MakeLocks()
     }
 
     t->numberOfLocks = 0;
-	return(t);
+    return(t);
 }
 
 
@@ -206,19 +220,12 @@ Buffer      buffer;
 Relation    relation;
 RuleLock   newLocks;
 {
-    HeapTuple newTuple;
-    HeapTuple palloctup();
+    HeapTuple	newTuple;
+    HeapTuple	palloctup();
+    void	HeapTupleSetRuleLock();
 
     newTuple = palloctup(tuple, buffer, relation);
-    /*
-     * If there are no locks, then store a NULL!
-     * (No need to store the empty lock header...)
-     */
-    if (prs2GetNumberOfLocks(newLocks) == 0) {
-	newTuple->t_lock.l_lock = (RuleLock) NULL;
-    } else {
-	newTuple->t_lock.l_lock = newLocks;
-    }
+    HeapTupleSetRuleLock(newTuple, InvalidBuffer, newLocks);
 
     return(newTuple);
 }
