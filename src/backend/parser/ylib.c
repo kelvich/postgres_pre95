@@ -1,5 +1,3 @@
-static char *ylib_c = "$Header$";
-
 #define MAXPATHLEN 1024
 
 #include <strings.h>
@@ -17,6 +15,10 @@ static char *ylib_c = "$Header$";
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
 #include "parser/parse.h"
+#include "parser/parsetree.h"
+#include "utils/builtins.h"
+
+RcsId("$Header$");
 
 LispValue parsetree;
 
@@ -26,9 +28,7 @@ parser(str, l)
      char *str;
      LispValue l;
 {
-    LispValue yyl;
     int yyresult;
-
 
     init_io();
 /*
@@ -62,14 +62,14 @@ parser(str, l)
 	fflush(stdout);
 	CAR(l) = LispNil;
 	CDR(l) = LispNil;
-	return;
+	return(-1);
       }
       
       CAR(l) = CAR(parsetree);
       CDR(l) = CDR(parsetree);
     }
 
-    if (yyl == NULL) {
+    if (parsetree == NULL) {
 	return(-1);
     } else {
 	return(0);
@@ -360,12 +360,16 @@ ParseFunc ( funcname , fargs )
  *   useful.  This helps in preventing the planner from generating
  *   extra joins that are not needed.
  */
+
+/* XXX - not used yet
+
 List
 RemoveUnusedRangeTableEntries ( parsetree )
      List parsetree;
 {
 
 }
+*/
 
 /* 
  * FlattenRelationList
@@ -375,6 +379,11 @@ RemoveUnusedRangeTableEntries ( parsetree )
  * inheritance relations have a lispString("*")
  * in front
  */ 
+
+
+#ifdef NOTYET
+ XXX - not used yet 
+
 List
 FlattenRelationList ( rel_list )
      List rel_list;
@@ -395,6 +404,9 @@ FlattenRelationList ( rel_list )
 	}
     }
 }
+
+#endif
+
 List
 MakeFromClause ( from_list, base_rel )
      List from_list;
@@ -403,7 +415,9 @@ MakeFromClause ( from_list, base_rel )
     List i = NULL;
     List j = NULL;
     List flags = NULL;
+    List entry = NULL;
     bool IsConcatenation = false;
+    int existing_varno = 0;
 
     /* from_list will be a list of strings */
     /* base_rel will be a wierd assortment of things, 
@@ -438,20 +452,48 @@ MakeFromClause ( from_list, base_rel )
 	    }
 
 	    if ( ! null ( CADR(x))) {
+		/* set time range, if one exists */
 		CAR(flags) = CADR(x);
 	    }
 
-	    ADD_TO_RT(MakeRangeTableEntry ( CString ( CAR(x)),
-					    flags , 
-					    CString(temp)));
+	    existing_varno = RangeTablePosn ( CString( CAR(x)), LispNil );
+	    /* XXX - 2nd argument is currently ignored */
 
+	    if ( existing_varno == 0 ) {
+		/* if the base relation does not exist in the rangetable
+		 * as a virtual name, make a new rangetable entry
+		 */
+		entry = (List)MakeRangeTableEntry ( CString ( CAR(x)),
+						   flags , 
+						   CString(temp));
+	        ADD_TO_RT(entry);
+	    } else {
+		/* XXX - temporary, should append the existing flags
+		 * to the new flags or not ?
+		 */
+		List rt_entry = nth ( existing_varno-1 , p_rtable );
+		if ( IsA(CAR(rt_entry),LispStr)) {
+		    /* first time consing it */
+		    CAR(rt_entry) = lispCons ( CAR(rt_entry) , 
+					  lispCons (temp,LispNil ));
+		} else {
+		    /* subsequent consing */
+		    CAR(rt_entry) = nappend1 ( CAR(rt_entry) , temp);
+		}
+		/* in either case, if no union flag exists, 
+		 * cons one in
+		 */
+		rt_flags (rt_entry) = nappend1 ( rt_flags(rt_entry),
+						lispAtom("union"));
+	    }
 	    /* NOTE : we dont' pfree old "flags" because they are
 	     * really still present in the parsetree
 	     */
 	}
     }
-}
 
+    return ( entry );
+}
 
 Var make_relation_var(relname)
 
