@@ -11,9 +11,7 @@
  *	information from the DATA() statements.
  *
  *   IDENTIFICATION
- *      $File:$
- *	$Revision$
- *	$State$
+ *	$Header$
  * ----------------------------------------------------------------
  */
 #ifndef PgRewriteIncluded
