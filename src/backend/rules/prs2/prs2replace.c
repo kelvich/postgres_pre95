@@ -47,6 +47,7 @@ Buffer *returnedBufferP;
     RuleLock oldLocks, oldTupleLocks, explocks;
     RuleLock newLocks;
     RuleLock relLocks;
+    Prs2Stub stubs;
     Prs2OneLock oneLock;
     int i,j;
     AttributeValues oldAttrValues, newAttrValues, rawAttrValues;
@@ -77,6 +78,7 @@ Buffer *returnedBufferP;
     tupDesc = RelationGetTupleDescriptor(relation);
 
     relLocks = relationRuleInfo->relationLocks;
+    stubs = relationRuleInfo->relationStubs;
     oldTupleLocks = prs2GetLocksFromTuple(rawTuple, rawBuffer,
 			    RelationGetTupleDescriptor(relation));
     oldLocks = prs2LockUnion(oldTupleLocks, relLocks);
@@ -192,6 +194,7 @@ Buffer *returnedBufferP;
     newLocks = prs2FindLocksForNewTupleFromStubs(
 		    *returnedTupleP,
 		    *returnedBufferP,
+		    stubs,
 		    relation);
     HeapTupleSetRuleLock(*returnedTupleP, InvalidBuffer, newLocks);
 

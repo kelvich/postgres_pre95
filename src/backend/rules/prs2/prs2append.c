@@ -43,6 +43,7 @@ HeapTuple *returnedTupleP;
 Buffer *returnedBufferP;
 {
     RuleLock locks, newLocks, explocks, temp;
+    Prs2Stub stubs;
     AttributeValues attrValues;
     AttributeNumber numberOfAttributes, attrNo;
     bool insteadRuleFound;
@@ -61,6 +62,7 @@ Buffer *returnedBufferP;
     tupDesc = RelationGetTupleDescriptor(relation);
 
     locks = relationRuleInfo->relationLocks;
+    stubs = relationRuleInfo->relationStubs;
 
     /*
      * now extract from the tuple the array of the attribute values.
@@ -168,6 +170,7 @@ Buffer *returnedBufferP;
     newLocks = prs2FindLocksForNewTupleFromStubs(
 		    *returnedTupleP,
 		    *returnedBufferP,
+		    stubs,
 		    relation);
     /*
      * Check if any "export" lock should be added to the
@@ -250,13 +253,13 @@ Buffer *returnedBufferP;
  *-----------------------------------------------------------------------
  */
 RuleLock
-prs2FindLocksForNewTupleFromStubs(tuple, buffer, relation)
+prs2FindLocksForNewTupleFromStubs(tuple, buffer, stubs, relation)
 HeapTuple tuple;
 Buffer buffer;
+Prs2Stub stubs;
 Relation relation;
 {
     TupleDescriptor tdesc;
-    Prs2Stub stubs;
     Prs2OneStub thisStub;
     LispValue thisQual;
     Prs2OneLock thisLock;
@@ -265,11 +268,6 @@ Relation relation;
     RuleLock res, t;
     bool *used;
     register int i, j;
-
-    /*
-     * find the stubs for this relation.
-     */
-    stubs = prs2GetRelationStubs(RelationGetRelationId(relation));
 
     /*
      * check the trival case...
