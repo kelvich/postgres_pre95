@@ -273,6 +273,7 @@ ProcessQueryDesc(queryDesc)
     List	parseRoot;
     bool	isIntoPortal;
     bool	isIntoRelation;
+    bool	isIntoTemp;
     String	intoName;
     
     /* ----------------
@@ -291,6 +292,7 @@ ProcessQueryDesc(queryDesc)
      */
     isIntoPortal =   false;
     isIntoRelation = false;
+    isIntoTemp = false;
     
     if (operation == RETRIEVE) {
 	List	resultDesc;
@@ -303,8 +305,11 @@ ProcessQueryDesc(queryDesc)
 	    if (dest == PORTAL) {
 		isIntoPortal = true;
 		intoName = CString(CADR(resultDesc));
-	    } else if (dest == INTO || dest == INTOTEMP)
+	    } else if (dest == INTO || dest == INTOTEMP) {
 		isIntoRelation = true;
+		if (dest == INTOTEMP)
+		   isIntoTemp = true;
+	    }
 	}
     }
     
@@ -366,8 +371,10 @@ ProcessQueryDesc(queryDesc)
 	    putnchar("P",1);
 	    putint(0,4);
 	    putstr("blank");
-	} else
-	    BeginCommand("blank", attinfo);
+	} else {
+	    if (!isIntoTemp)
+	       BeginCommand("blank", attinfo);
+	   }
     } else {
 	if (IsUnderPostmaster) {
 	    putnchar("P",1);
