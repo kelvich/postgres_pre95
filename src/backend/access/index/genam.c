@@ -57,8 +57,6 @@
 #include "catalog/pg_index.h"
 #include "catalog/pg_proc.h"
 
-#include "internal.h"
-
 RcsId("$Header$");
 
 /* ----------------------------------------------------------------
@@ -124,7 +122,7 @@ RelationGetIndexScan(relation, scanFromEnd, numberOfKeys, key)
     ItemPointerSetInvalid(&scan->currentMarkData);
     ItemPointerSetInvalid(&scan->nextMarkData);
 
-    AMrescan(scan, scanFromEnd, key);
+    index_rescan(scan, scanFromEnd, key);
 
     return (scan);
 }
