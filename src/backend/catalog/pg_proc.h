@@ -160,6 +160,8 @@ DATA(insert OID =  98 (  rtnpage           6 11 f t f 7 f 109 "0" 100 0 0 100  f
 DATA(insert OID =  99 (  btreesel          6 11 f t f 7 f 109 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 100 (  btreenpage        6 11 f t f 7 f 109 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 101 (  eqsel             6 11 f t f 5 f 109 "0" 100 0 0 100  foo bar ));
+#define EqualSelectivityProcedure 101
+
 DATA(insert OID = 102 (  neqsel            6 11 f t f 5 f 109 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 103 (  intltsel          6 11 f t f 5 f 109 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 104 (  intgtsel          6 11 f t f 5 f 109 "0" 100 0 0 100  foo bar ));
