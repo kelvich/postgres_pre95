@@ -5,10 +5,11 @@
  * XXX WARNING
  *	Much of this file will change when we change our representation
  *	of transaction ids -cim 3/23/90
+ *
+ * It is time to make the switch from 5 byte to 4 byte transaction ids
+ * This file was totally reworked. -mer 5/22/92
  * ----------------------------------------------------------------
  */
-
-#include <math.h>	/* for floor ... */
 
 #include "tmp/postgres.h"
 
@@ -28,12 +29,15 @@ RcsId("$Header$");
  */
 
 extern TransactionId NullTransactionId;
+extern TransactionId DisabledTransactionId;
 extern TransactionId AmiTransactionId;
 extern TransactionId FirstTransactionId;
 
 
 /* ----------------------------------------------------------------
  * 	TransactionIdIsValid
+ *
+ *	Macro-ize me.
  * ----------------------------------------------------------------
  */
 
@@ -41,16 +45,13 @@ bool
 TransactionIdIsValid(transactionId)
 	TransactionId	transactionId;
 {
-	return ((bool)(PointerIsValid(transactionId) &&
-		(transactionId->data[4] != NullTransactionId->data[4] ||
-			transactionId->data[3] != NullTransactionId->data[3] ||
-			transactionId->data[2] != NullTransactionId->data[2] ||
-			transactionId->data[1] != NullTransactionId->data[1] ||
-			transactionId->data[0] != NullTransactionId->data[0])));		
+	return ((bool) (transactionId != NullTransactionId) );
 }
 
 /* ----------------------------------------------------------------
  *	StringFormTransactionId
+ *
+ *	Not sure if this is still needed -mer 5/22/92
  * ----------------------------------------------------------------
  */
 
@@ -58,17 +59,7 @@ TransactionId
 StringFormTransactionId(representation)
 	String	representation;
 {
-	TransactionId		transactionId;
-	TransactionIdValueData	valueData;
-
-	StringSetTransactionIdValue(representation, &valueData);
-	
-	transactionId = LintCast(TransactionId,
-		palloc(sizeof transactionId->data));
-
-	TransactionIdValueSetTransactionId(&valueData, transactionId);
-
-	return (transactionId);
+	return (atol(representation));
 }
 
 /* ----------------------------------------------------------------
@@ -80,18 +71,21 @@ String
 TransactionIdFormString(transactionId)
 	TransactionId	transactionId;
 {
-	TransactionIdValueData	valueData;
 	String			representation;
 
-	TransactionIdSetTransactionIdValue(transactionId, &valueData);
+	/* maximum 32 bit unsigned integer representation takes 10 chars */
+	representation = palloc(11);
 
-	representation = TransactionIdValueFormString(&valueData);
+	(void)sprintf(representation, "%lu", transactionId);
 
 	return (representation);
 }
 
 /* ----------------------------------------------------------------
  *	PointerStoreInvalidTransactionId
+ *
+ *	Maybe do away with Pointer types in these routines.
+ *      Macro-ize this one.
  * ----------------------------------------------------------------
  */
 
@@ -99,22 +93,22 @@ void
 PointerStoreInvalidTransactionId(destination)
 	Pointer		destination;
 {
-	MemoryCopy((String)destination, (String)NullTransactionId,
-		TransactionIdDataSize);
+	* (TransactionId *) destination = NullTransactionId;
 }
 
 /* ----------------------------------------------------------------
  *	TransactionIdStore
+ *
+ *      Macro-ize this one.
  * ----------------------------------------------------------------
  */
 
 void
 TransactionIdStore(transactionId, destination)
 	TransactionId	transactionId;
-	Pointer		destination;
+	TransactionId	*destination;
 {
-	MemoryCopy((String)destination, (String)transactionId,
-		TransactionIdDataSize);
+	*destination = transactionId;
 }
 
 /* ----------------------------------------------------------------
@@ -127,11 +121,7 @@ TransactionIdEquals(id1, id2)
 	TransactionId	id1;
 	TransactionId	id2;
 {
-	return ((bool)(id1->data[4] == id2->data[4] &&
-			id1->data[3] == id2->data[3] &&
-			id1->data[2] == id2->data[2] &&
-			id1->data[1] == id2->data[1] &&
-			id1->data[0] == id2->data[0]));
+	return ((bool) (id1 == id2));
 }
 
 /* ----------------------------------------------------------------
@@ -144,13 +134,7 @@ TransactionIdIsLessThan(id1, id2)
 	TransactionId	id1;
 	TransactionId	id2;
 {
-	TransactionIdValueData	valueData1;
-	TransactionIdValueData	valueData2;
-
-	TransactionIdSetTransactionIdValue(id1, &valueData1);
-	TransactionIdSetTransactionIdValue(id2, &valueData2);
-
-	return ((bool)((valueData2 - valueData1) > 0.7));
+	return ((bool)(id1 < id2));
 }
 
 /* ----------------------------------------------------------------
@@ -165,9 +149,9 @@ TransactionIdIsLessThan(id1, id2)
 bool
 xidgt(xid1, xid2)
 XID 	xid1, xid2;
-{	extern	int	strcmp();
+{
 
-	return( (bool) (strcmp(xid1, xid2) > 0) );
+	return( (bool) (xid1 > xid2) );
 }
 
 /* ----------------------------------------------------------------
@@ -182,9 +166,8 @@ XID 	xid1, xid2;
 bool
 xidge(xid1, xid2)
 XID 	xid1, xid2;
-{	extern	int	strcmp();
-
-	return( (bool) (strcmp(xid1, xid2) >= 0) );
+{
+	return( (bool) (xid1 >= xid2) );
 }
 
 
@@ -200,9 +183,8 @@ XID 	xid1, xid2;
 bool
 xidle(xid1, xid2)
 XID 	xid1, xid2;
-{	extern	int	strcmp();
-
-	return((bool) (strcmp(xid1, xid2) <= 0) );
+{
+	return((bool) (xid1 <= xid2) );
 }
 
 
@@ -218,9 +200,8 @@ XID 	xid1, xid2;
 bool
 xideq(xid1, xid2)
 XID 	xid1, xid2;
-{	extern	int	strcmp();
-
-	return( (bool) (strcmp(xid1, xid2) == 0) );
+{
+	return( (bool) (xid1 == xid2) );
 }
 
 
@@ -241,32 +222,33 @@ XID	xid1, xid2;
 	 * xid1 and xid2, then the distance (xid1 - xid2) has to be 1 (!!!) */
 }
 
-/* ----------------------------------------------------------------
- *	TransactionIdValueIsValid
- * ----------------------------------------------------------------
- */
-
-bool
-TransactionIdValueIsValid(value)
-	TransactionIdValue	value;
-{
-	return ((bool)(PointerIsValid(value) &&
-		*value != NullTransactionIdValue));
-}
-
+#ifdef 86_ME_SOON
 /* ----------------------------------------------------------------
  *	StringSetTransactionIdValue
+ *
+ *	Macro-ize?
  * ----------------------------------------------------------------
  */
 
 void
 StringSetTransactionIdValue(representation, value)
 	String			representation;
-	TransactionIdValue	value;
+	TransactionId		*value;
 {
-	extern double		atof();
+	*value = atoi(representation);
+}
 
-	*value = atof(representation);
+
+/* ----------------------------------------------------------------
+ *	TransactionIdValueIsValid
+ * ----------------------------------------------------------------
+ */
+
+bool
+TransactionIdValueIsValid(transactionIdValue)
+	TransactionId	transactionIdValue;
+{
+	return ((bool) (transactionIdValue != NullTransactionIdValue) );
 }
 
 /* ----------------------------------------------------------------
@@ -275,24 +257,25 @@ StringSetTransactionIdValue(representation, value)
  */
 
 String
-TransactionIdValueFormString(value)
-	TransactionIdValue	value;
+TransactionIdValueFormString(transactionId)
+	TransactionId	transactionId;
 {
 	String	representation;
 
-	/* maximum 40 bit unsigned integer representation takes 12 chars */
-	representation = palloc(13);
+	/* maximum 32 bit unsigned integer representation takes 10 chars */
+	representation = palloc(11);
 
-	(void)sprintf(representation, "%.0f", *value);
+	(void)sprintf(representation, "%d", transactionId);
 
 	return (representation);
 }
 
 /* ----------------------------------------------------------------
  *	TransactionIdValueSetTransactionId
+ *
+ *	86 this routine!!! -mer 5/22/92
  * ----------------------------------------------------------------
  */
-
 void
 TransactionIdValueSetTransactionId(idValue, id)
 	TransactionIdValue	idValue;
@@ -321,6 +304,8 @@ TransactionIdValueSetTransactionId(idValue, id)
 
 /* ----------------------------------------------------------------
  *	TransactionIdSetTransactionIdValue
+ *
+ *	86 this routine!!! -mer 5/22/92
  * ----------------------------------------------------------------
  */
 
@@ -354,6 +339,7 @@ TransactionIdSetTransactionIdValue(id, idValue)
 
 	*idValue = valueData;
 }
+#endif 86_ME_SOON
 
 /* ----------------------------------------------------------------
  *	TransactionIdIncrement
@@ -362,24 +348,13 @@ TransactionIdSetTransactionIdValue(id, idValue)
 
 void
 TransactionIdIncrement(transactionId)
-	TransactionId	transactionId;
+	TransactionId	*transactionId;
 {
-	uint8	*digitPointer;
-	int16	digitsLeft;
 
-	digitPointer = &transactionId->data[sizeof transactionId->data - 1];
-
-	for (digitsLeft = sizeof transactionId->data - 1; digitsLeft >= 0;
-			digitsLeft -= 1) {
-
-		*digitPointer = AsUint8(1 + AsUint8(*digitPointer));
-
-		if (!(AsUint8(*digitPointer) == 0)) {
-			return;
-		}
-		digitPointer -= 1;
-	}
-	elog(FATAL, "TransactionIdIncrement: exhausted XID's");
+	(*transactionId)++;
+	if (*transactionId == DisabledTransactionId)
+		elog(FATAL, "TransactionIdIncrement: exhausted XID's");
+	return;
 }
 
 /* ----------------------------------------------------------------
@@ -388,14 +363,11 @@ TransactionIdIncrement(transactionId)
  */
 void
 TransactionIdAdd(xid, value)    
-    TransactionId xid;
+    TransactionId *xid;
     int		  value;
 {
-    TransactionIdValueData xidv;
-
-    TransactionIdSetTransactionIdValue(xid, &xidv);
-    xidv += value;
-    TransactionIdValueSetTransactionId(&xidv, xid);
+    *xid += value;
+    return;
 }
 
 /* ----------------------------------------------------------------
@@ -405,12 +377,9 @@ TransactionIdAdd(xid, value)
 
 Time
 TransactionIdGetApproximateTime(transactionId)
-	TransactionId	transactionId;
+	TransactionId	*transactionId;
 {
-	TransactionIdValueData	valueData;
-
-	TransactionIdSetTransactionIdValue(transactionId, &valueData);
-
-	valueData /= TransactionsPerSecondAdjustment;
-	return((Time)valueData);
+	Time temp;
+	temp = (*transactionId) / TransactionsPerSecondAdjustment;
+	return(temp);
 }
