@@ -9,7 +9,15 @@
 # 	initial definitions
 # ----------------
 CAT=cat
-CB=cb
+if [ -x /usr/bin/cb ]
+then
+	CB=cb
+elif [ -x /usr/bin/indent -a -r /dev/stdin -a -w /dev/stdout ]
+then
+	CB="indent /dev/stdin /dev/stdout"
+else
+	CB=$CAT
+fi
 CPP=cpp
 PATH=/usr/lib:$PATH	# to find cpp if not in /usr/bin
 EGREP=egrep
