@@ -10,17 +10,20 @@
 
 #include <stdio.h>
 #include <fcntl.h>
-#ifndef CIncluded
-#include "c.h"
-#endif
-#include "log.h"
-#include "dynamic_loader.h"
-
 #include <sys/exec.h>
 #include <reloc.h>
+
+#ifdef sprite
 #include <sym.h>
+#endif
+
 #include <syms.h>
 #include <symconst.h>
+
+
+#include "tmp/c.h"
+#include "utils/log.h"
+#include "utils/dynamic_loader.h"
 
 typedef struct reloc		Reloc;
 
@@ -96,8 +99,6 @@ char *funcname;
     char *p_strs;
     char *p_end;
     func_ptr entryadr = NULL;	/* entry address of function */
-
-    elog(DEBUG, "dynamic_load %s %s\n", filename, funcname);
 
     fd = open(filename, O_RDONLY, 0);
     if (fd < 0) {
