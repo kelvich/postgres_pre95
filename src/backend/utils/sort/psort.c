@@ -89,7 +89,6 @@ struct	skey	key[];
 {
 /*	FILE		*outfile;	/* file of ordered tuples */
 
-	TRACE(X, PDEBUG4(psort, "entering with relid", oldrel->rd_att.data[0]->attrelid, "and relid", newrel->rd_att.data[0]->attrelid));
 
 	AssertArg(nkeys >= 1);
 	AssertArg(key[0].sk_attnum != 0);
@@ -106,9 +105,7 @@ struct	skey	key[];
 	initialrun(oldrel);
 /* call finalrun(newrel, mergerun()) instead */
 	endpsort(newrel, mergeruns());
-	TRACE(TR_MEMORY, PDEBUG2(psort, "memory use", SortMemory));
 	EndPortalAllocMode();
-	TRACE(X, PDEBUG(psort, "exiting"));
 	NDirectFileRead += (int)ceil((double)BytesRead / BLCKSZ);
 	NDirectFileWrite += (int)ceil((double)BytesWritten / BLCKSZ);
 }
@@ -252,7 +249,6 @@ initialrun(rdesc)
 		morepasses = 1 + (Tuples != NULL); 	/* (T != N) ? 2 : 1 */
 
 	for ( ; ; ) {
-		TRACE(TR_PSORT, PDEBUG(initialrun, "Run completed\n"));
 		tp->tp_dummy--;
 		TotalDummy--;
 		if (tp->tp_dummy < (tp + 1)->tp_dummy)
@@ -260,8 +256,6 @@ initialrun(rdesc)
 		else if (tp->tp_dummy != 0)
 			tp = Tape;
 		else {
-			TRACE(TR_PSORT,
-			      PDEBUG2(initialrun, "Completed level", Level));
 			Level++;
 			baseruns = Tape[0].tp_fib;
 			for (tp = Tape; tp - Tape < TapeRange; tp++) {
@@ -481,8 +475,7 @@ struct	tape	*dest;
 			TRACEMEM(merge);
 			GETLEN(tuplen, Tape[fromtape].tp_file);
 			if (tuplen == 0)
-				TRACE(TR_PSORT,
-				      PDEBUG2(merge, "EOF tape", fromtape));
+				      ;
 			else {
 				tup = ALLOCTUP(tuplen);
 				USEMEM(tuplen);
@@ -513,15 +506,11 @@ FILE			*file;
 		while (GETLEN(tuplen, file) && tuplen != 0) {
 			tup = ALLOCTUP(tuplen);
 			SortMemory += tuplen;
-			TRACE(TR_MEMORY,
-				PDEBUG2(endpsort, "memory use", SortMemory));
 			SETTUPLEN(tup, tuplen);
 			GETTUP(tup, tuplen, file);
 			aminsert(rdesc, tup, (double *)NULL);
 			FREE(tup);
 			SortMemory -= tuplen;
-			TRACE(TR_MEMORY,
-			      PDEBUG2(endpsort, "memory use", SortMemory));
 		}
 	for (tp = Tape + TapeRange; tp >= Tape; tp--)
 		destroytape(tp->tp_file);
