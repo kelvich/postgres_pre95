@@ -1,11 +1,11 @@
-/*
- * nodes.h --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	nodes.h
+ *
+ *   DESCRIPTION
  *	Definitions for tagged nodes.
  *
- * Identification:
- *	$Header$
- *
- * NOTES:
+ *   NOTES
  *	Why do things this way, you ask.
  *
  *	(1) Eventually this code should be transmogrified into C++ classes,
@@ -15,10 +15,18 @@
  *	As long as all inheritance declarations are put at the beginning of
  *	the structure in a consistent order this is perfectly legal (sharing
  *	of initial structure members is K&R C).
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef NodesIncluded
 #define	NodesIncluded
+
+#if defined(CLASS_CONFLICT)
+#include <math.h>		/* definition clash with class(3m) */
+#endif /* CLASS_CONFLICT */
 
 #include "tmp/c.h"
 #include "tags.h" 
