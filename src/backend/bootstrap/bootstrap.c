@@ -71,14 +71,14 @@ FILE		*source = NULL;
 static int	strtable_end = -1;    /* Tells us last occupied string space */
 static int	num_of_errs = 0;      /* Total number of errors encountered */
 
-static char *   (typestr[15]) = {
+static char *   (typestr[16]) = {
 	"bool", "bytea", "char", "char16", "dt", "int2", "int28",
 	"int4", "regproc", "text", "oid", "tid", "xid", "iid",
-	"oid8"
+	"oid8", "smgr"
 };
 
 /* functions associated with each type */
-static	long	Procid[15][7] = {
+static	long	Procid[16][7] = {
 	{ 16, 1, 0, F_BOOLIN, F_BOOLOUT, F_BOOLEQ, NULL },
 	{ 17, -1, 1, F_BYTEAIN, F_BYTEAOUT, NULL, NULL },
 	{ 18, 1, 0, F_CHARIN, F_CHAROUT, F_CHAREQ, NULL },
@@ -93,7 +93,8 @@ static	long	Procid[15][7] = {
 	{ 27, 6, 1, F_TIDIN, F_TIDOUT, NULL, NULL },
 	{ 28, 5, 1, F_XIDIN, F_XIDOUT, NULL, NULL },
 	{ 29, 1, 0, F_CIDIN, F_CIDOUT, NULL, NULL },
-	{ 30, 32, 1, F_OID8IN, F_OID8OUT, NULL, NULL }
+	{ 30, 32, 1, F_OID8IN, F_OID8OUT, NULL, NULL },
+	{210, 2, 0, F_SMGRIN, F_SMGROUT, F_SMGREQ, NULL }
 };
 
 struct	typmap {			/* a hack */

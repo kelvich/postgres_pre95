@@ -101,10 +101,10 @@ bool Typecast_ok = true;
 
 /* Keywords */
 
-%token  ALL ALWAYS AFTER AND ARCHIVE ARG ASCENDING BACKWARD BEFORE BINARY BY
-        DEMAND DESCENDING EMPTY FORWARD FROM HEAVY INTERSECT INTO
-        IN INDEX INDEXABLE INHERITS INPUTPROC IS KEY LEFTOUTER LIGHT MERGE
-        NEVER NEWVERSION NONE NONULLS NOT PNULL ON ONCE OR OUTPUTPROC
+%token  ALL ALWAYS AFTER AND ARCHIVE ARCH_LOC ARG ASCENDING BACKWARD BEFORE
+	BINARY BY DEMAND DESCENDING EMPTY FORWARD FROM HEAVY INTERSECT INTO
+        IN INDEX INDEXABLE INHERITS INPUTPROC IS KEY LEFTOUTER LIGHT LOCATION
+	MERGE NEVER NEWVERSION NONE NONULLS NOT PNULL ON ONCE OR OUTPUTPROC
         PORTAL PRIORITY QUEL RIGHTOUTER RULE SCONST SORT TO TRANSACTION
         UNION UNIQUE USING WHERE WITH FUNCTION OPERATOR P_TYPE 
 
@@ -296,11 +296,14 @@ copy_type:
 CreateStmt:
 	  CREATE relation_name '(' opt_var_defs ')' 
 	  OptKeyPhrase OptInherit OptIndexable OptArchiveType
+	  OptLocation OptArchiveLocation
 		{
 
 		     LispValue temp = LispNil;
 
-		     $9 = lispCons ( $9, LispNil);
+		     $11 = lispCons ($11, LispNil);
+		     $10 = lispCons ($10, $11);
+		     $9 = lispCons ( $9, $10);
 		     $8 = lispCons ( $8, $9 );
 		     $7 = lispCons ( $7, $8 );
 		     $6 = lispCons ( $6, $7 );
@@ -354,6 +357,28 @@ archive_type:
 	HEAVY	{ $$ = KW(heavy); }
 	| LIGHT { $$ = KW(light); }
 	| NONE  { $$ = KW(none); }
+	;
+
+OptLocation:
+	/*EMPTY*/				{ NULLTREE }
+	| LOCATION '=' Sconst
+		{
+		    int which;
+
+		    which = smgrin(LISPVALUE_STRING($3));
+		    $$ = lispCons(KW(location), lispInteger(which));
+		}
+	;
+
+OptArchiveLocation:
+	/*EMPTY*/				{ NULLTREE }
+	| ARCH_LOC '=' Sconst
+		{
+		    int which;
+
+		    which = smgrin(LISPVALUE_STRING($3));
+		    $$ = lispCons(KW(location), lispInteger(which));
+		}
 	;
 
 OptInherit:
