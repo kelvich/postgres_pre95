@@ -23,9 +23,7 @@ SRCS=	fe-dumpdata.c fe-pqexec.c fe-pqstubs.c fe-pqufs.c \
 	auth.c portal.c portalbuf.c pqcomm.c pqpacket.c pqsignal.c \
 	dynahash.c format.c hashfn.c simplelists.c
 
-.if (${PORTNAME} == "sparc")
 NOPROFILE=1
-.endif
 
 .if defined(OLD_MKDIR)
 beforeinstall:
