@@ -447,10 +447,10 @@ ParseFunc ( funcname , fargs )
 	      else		/* drop through */;
 	  }
 	 else if (complexType(first_arg_type) &&
-		  IsA(CDR(CAR(fargs)),Func) && 
+		  IsA(CADR(CAR(fargs)),Func) && 
 		  (argrelid = typeid_get_relid
 		   ((int)(argtype=funcid_get_rettype
-			  (get_funcid((Func)CDR(CAR(fargs))))))))
+			  (get_funcid((Func)CADR(CAR(fargs))))))))
 	  {
 	      /* the argument is a function returning a tuple, so funcname
 		 may be a projection */
@@ -467,11 +467,11 @@ ParseFunc ( funcname , fargs )
 		    }
 		   if (RelationIsValid(rd))
 		    {
-			funcnode = (Func)CDR(CAR(fargs));
+			funcnode = (Func)CADR(CAR(fargs));
 			set_func_tlist(funcnode,
 				       setup_tlist(funcname, argrelid));
 			return(lispCons(lispInteger(att_typeid(rd,attnum)),
-					funcnode));
+					CDR(CAR(fargs))));
 		    }
 		   else elog(WARN,
 			     "Function %s has bad returntype %d", 
