@@ -65,7 +65,11 @@ DefineIndex(heapRelationName, indexRelationName, accessMethodName,
 		elog(WARN, "DefineIndex: must specify at least one attribute");
 	}
 
-
+#ifndef PARTIAL_IND
+	if (predicate != LispNil) {
+	    elog (WARN, "partial indexes are unsupported in this version");
+	}
+#endif
 
 	/*
 	 * compute heap relation id
