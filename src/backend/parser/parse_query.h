@@ -20,3 +20,6 @@ extern bool complexType ARGS((LispValue typenode));
 
 /* defined in gram.y, used in ylib.c and gram.y */
 extern int NumLevels;
+
+/* useful macros */
+#define ISCOMPLEX(type) (typeid_get_relid((ObjectId)type) ? true : false)
