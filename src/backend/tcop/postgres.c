@@ -25,7 +25,7 @@
  */
 int		Warnings = 0;
 int		ShowTime = 0;
-bool		query_rewrite_is_enabled = false;
+static bool	EnableRewrite = true;
 
 #ifdef	EBUG
 int		ShowLock = 0;
@@ -114,7 +114,8 @@ char
 InteractiveBackend(inBuf)
     char *inBuf;
 {
-    String stuff;
+    String stuff = inBuf;
+    char c;
 
     /* ----------------
      *	display a prompt and obtain input from the user
@@ -122,25 +123,24 @@ InteractiveBackend(inBuf)
      */
 
     for (;;) {
-	char s[128];
+	char s[1024];
 	int v;
 
 	printf("> ");
-	stuff = gets(inBuf);
+
+	while ( (c = (char)getc(stdin)) != EOF ) {
+	    *stuff++ = c;
+	}
     
-	/* ----------------
-	 *  if the string is NULL then we aren't going to
-	 *  get anything more from the user so abort this transaction
-	 *  and exit.
-	 * ----------------
-	 */
-	if (! StringIsValid(stuff)) {
+	if ( stuff == inBuf ) {
 	    if (!Quiet) {
 		puts("EOF");
 	    }
 	    AbortCurrentTransaction();
 	    exitpg(0);
 	}
+
+#ifdef EXEC_DEBUGINTERACTIVE
 
 	/* ----------------
 	 *  now see if it's a debugging command...
@@ -152,7 +152,7 @@ InteractiveBackend(inBuf)
 		
 	    continue;
 	}
-
+#endif EXEC_DEBUGINTERACTIVE
 	/* ----------------
 	 *  otherwise we have a user query so process it.
 	 * ----------------
@@ -278,23 +278,87 @@ pg_eval( query_string )
      */
     parser(query_string, parsetree_list);
 
-    foreach (i, parsetree_list) {
+    foreach (i, parsetree_list ) {
 	LispValue parsetree = CAR(i);
+	List rewritten  = LispNil;
+	
+	extern Node planner();
+	extern void init_planner();
+	extern List QueryRewrite();
+
 	ValidateParse(parsetree);
+
+	/* ----------------
+	 *	if it is a utility, no need to rewrite
+	 * ----------------
+	 */
+	if (atom(CAR(parsetree))) 
+	  continue;
 	
 	/* ----------------
 	 *	display parse strings
 	 * ----------------
 	 */
-	printf("input: %s\n", query_string);
 	if (! Quiet) {
+	    printf("\ninput string is %s\n",query_string);
 	    printf("\n---- \tparser outputs :\n");
-	    lispDisplay(parsetree, 0);
+	    lispDisplay(parsetree,0);
 	    printf("\n");
 	}
 	
 	/* ----------------
-	 *   (2) process the request
+	 *   rewrite queries (retrieve, append, delete, replace)
+	 * ----------------
+	 */
+	
+	if ( unrewritten == true && EnableRewrite ) {
+	    if (!Quiet) {
+		printf("rewriting query if needed ...\n");
+		fflush(stdout);
+	    }
+	    if (( rewritten = QueryRewrite ( parsetree )) != NULL  ) {
+		CAR(i) =  CAR(rewritten);
+		CDR(last(rewritten)) = CDR(i);
+		CDR(i) = CDR(rewritten);
+		unrewritten = false;
+		continue;
+	    }
+	    
+	    unrewritten = false;	
+	    
+	} /* if unrewritten, then rewrite */
+
+    } /* foreach parsetree in the list */
+
+    {
+	List i;
+	printf("\n=================\n");
+	printf("  After Rewriting\n");
+	printf("=================\n");
+	lispDisplay(parsetree_list,0);
+    }
+
+    foreach(i,parsetree_list )   {
+	LispValue parsetree = CAR(i);
+	Node plan  	= NULL;
+
+	if (IsAbortedTransactionBlockState()) {
+	    /* ----------------
+	     *   the EndCommand() stuff is to tell the frontend
+	     *   that the command ended. -cim 6/1/90
+	     * ----------------
+	     */
+	    char *tag = "*ABORT STATE*";
+	    EndCommand(tag);
+	    
+	    elog(NOTICE, "(transaction aborted): %s",
+		 "queries ignored until END");
+	    
+	    return;
+	}
+	
+	/* ----------------
+	 *   process utility requests
 	 * ----------------
 	 */
 	if (atom(CAR(parsetree))) {
@@ -311,59 +375,10 @@ pg_eval( query_string )
 			   query_string);
 	    
 	} else {
+
+  	    
 	    /* ----------------
 	     *   process queries (retrieve, append, delete, replace)
-	     * ----------------
-	     */
-	    Node plan  	= NULL;
-	    List rewritten  = LispNil;
-	    
-	    extern Node planner();
-	    extern void init_planner();
-	    extern List QueryRewrite();
-
-	    /* ----------------
-  	     *	if we are running in a transaction which has
-  	     *  been aborted by a prior command, then we do
-  	     *  nothing until an "end" comes along and fixes things.
-  	     * ----------------
-  	     */
-  	    if (IsAbortedTransactionBlockState()) {
-  		/* ----------------
-  		 *   the EndCommand() stuff is to tell the frontend
-  		 *   that the command ended. -cim 6/1/90
-  		 * ----------------
-  		 */
-  		char *tag = "*ABORT STATE*";
-  		EndCommand(tag);
-  		
-  		elog(NOTICE, "(transaction aborted): %s",
-  		     "queries ignored until END");
-  
-  		return;
-  	    }
-  	    
-  	    /* ----------------
-	     *	first rewrite the query, if necessary
-	     * ----------------
-	     */
-	    if ( unrewritten == true && query_rewrite_is_enabled ) {
-		if (!Quiet) {
-		    printf("rewriting query if needed ...\n");
-		    fflush(stdout);
-		}
-		if (( rewritten = QueryRewrite ( parsetree )) != NULL  ) {
-		    parsetree_list = nconc ( parsetree_list , rewritten );
-		    unrewritten = false;
-		    continue;
-		}
-		
-		unrewritten = false;	
-		
-	    } /* if unrewritten, then rewrite */
-	    
-	    /* ----------------
-	     *   initialize the planner
 	     * ----------------
 	     */
 	    if (! Quiet)
@@ -397,7 +412,8 @@ pg_eval( query_string )
 		ProcessQuery(parsetree, plan);
 	    }
 	    
-	}
+	} /* if atom car */
+
     } /* foreach parsetree in parsetree_list */
 
 } /* pg_eval */
@@ -717,6 +733,9 @@ main(argc, argv)
 	    if (! Quiet)
 		printf("\tAbortCurrentTransaction() at %s\n", ctime(&tim));
 
+	    for ( i = 0 ; i < MAX_PARSE_BUFFER ; i++ ) 
+	      parser_input[i] = 0;
+
 	    AbortCurrentTransaction();
 	}
     }
@@ -772,6 +791,14 @@ main(argc, argv)
 	    printf("\tCommitTransactionCommand() at %s\n", ctime(&tim));
 	}
 	CommitTransactionCommand();
+
+	/*
+	 * clear the parse buffer
+	 */
+
+	for ( i = 0 ; i < MAX_PARSE_BUFFER ; i++) 
+	  parser_input[i] = 0;
+
 
 #ifdef TCOP_SHOWSTATS
 	/* ----------------
