@@ -1219,7 +1219,7 @@ heap_fetch(relation, timeQual, tid, b)
  * ----------------
  */
 
-RuleLock
+ObjectId
 heap_insert(relation, tup, off)
     Relation	relation;
     HeapTuple	tup;
@@ -1270,7 +1270,7 @@ heap_insert(relation, tup, off)
     if ( issystem(RelationGetRelationName(relation)) )
 	RelationUnsetLockForWrite(relation);
 
-    return(returnMe);
+    return(tup->t_oid);
 }
 
 /* ----------------
