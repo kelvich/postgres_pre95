@@ -52,6 +52,7 @@ char *ruleText;
 {
 
     Prs2RuleData ruleData;
+    List hint;
 
 #ifdef PRS2_DEBUG
     printf("PRS2: ---prs2DefineTupleRule called, with argument =");
@@ -61,6 +62,12 @@ char *ruleText;
 #endif PRS2_DEBUG
     
     /*
+     * find the rule "hint", i.e. see if the user explicitly
+     * stated what kind of lock he/she/it/ wnated to use.
+     */
+    hint = GetRuleHintFromParse(parseTree);
+    
+    /*
      * extract some rule info form the parsetree...
      */
     ruleData = prs2FindRuleData(parseTree, ruleText);
@@ -68,7 +75,7 @@ char *ruleText;
     /*
      * now put locks/stubs and update system catalogs...
      */
-    prs2AddTheNewRule(ruleData);
+    prs2AddTheNewRule(ruleData, hint);
 
 #ifdef PRS2_DEBUG
     printf("PRS2: --- DEFINE PRS2 RULE: Done.\n");

@@ -87,15 +87,20 @@ Prs2Stub prs2FindStubsThatDependOnAttribute();
  *    we are currently putting this "write" lock on, then we have also to
  *    add to this tuple the stub's lock...
  *
- * NOTE: we do not update the rules system catalogs (prs2_plans &
- * prs2_rule).
  *
+ * NOTE: If `hintFlag' is false, then we will try to use a tuple level
+ * lock, but if we believe that that is not such a good idea after all
+ * we return 'false' without doing anything (to indicate that
+ * we shopuld use a relation level lock).
+ * If 'hintFlag' is true however we go ahead & use a tuple level lock,
+ * even if this is going to be really inefficient...
  *--------------------------------------------------------------------
  */
 
 bool
-prs2DefTupleLevelLockRule(r)
+prs2DefTupleLevelLockRule(r, hintFlag)
 Prs2RuleData r;
+bool hintFlag;
 {
     LispValue actionPlans;
     LispValue constQual, planQual;
@@ -127,7 +132,7 @@ Prs2RuleData r;
      * Return 'false' to indicate that it is not a good idea to
      * use tuple level locks.
      */
-    if (null(constQual)) {
+    if (!hintFlag && null(constQual)) {
 	return(false);
     }
 
@@ -148,11 +153,25 @@ Prs2RuleData r;
     relLocks = prs2GetLocksFromRelation(RelationGetRelationName(rel));
 
     if (prs2LockWritesAttributes(relLocks, attrList, attrListSize)) {
-	/*
-	 * ooops! we have to use a relation level lock.
-	 */
-	RelationCloseHeapRelation(rel);
-	return(false);
+	if (!hintFlag) {
+	    /*
+	     * ooops! we have to use a relation level lock.
+	     */
+	    RelationCloseHeapRelation(rel);
+	    return(false);
+	} else {
+	    /*
+	     * we can't use a relation level lock, because the user
+	     * wants us to use a tuple level lock (stupid user...)
+	     * So lets do it!
+	     * However as we have to lock ALL the tuples currently in
+	     * the relation and make suer that ALL other tuples
+	     * appended to the relation will also get the lock,
+	     * we have to change the 'constQual' to 'nil' (which
+	     * always evaluates to true).
+	     */
+	    constQual = LispNil;
+	}
     }
 
     /*
@@ -219,15 +238,26 @@ Prs2RuleData r;
      * format. In order to call 'prs2StubQualTestTuple' (which in turns
      * calls the executor) we must change it to 'plan' format.
      */
-    planQual = cnfify(constQual,true);
-    fix_opids(planQual);
+    if (null(constQual)) {
+	planQual = LispNil;
+    } else {
+	planQual = cnfify(constQual,true);
+	fix_opids(planQual);
+    }
 
     while((tuple = HeapScanGetNextTuple(scanDesc, false, &buffer)) != NULL) {
 	/*
 	 * shall we put a lock to this tuple?
 	 */
 	tlocks = HeapTupleGetRuleLock(tuple, buffer);
-	if (prs2LockWritesAttributes(tlocks, attrList, attrListSize)
+	/*
+	 * NOTE: the first test (planQual==lispNil) is not really
+	 * required, because 'prs2StubQualTestTuple' will succeed
+	 * if called with a nil qual, but we do it for efficiency
+	 * (what a joke!)
+	 */
+	if (planQual == LispNil
+	   ||prs2LockWritesAttributes(tlocks, attrList, attrListSize)
 	   || prs2StubQualTestTuple(tuple, buffer, tdesc, planQual)) {
 	    /*
 	     * yes!
@@ -268,7 +298,8 @@ Prs2RuleData r;
      * OK, we are done, cleanup & return true...
      */
     RelationCloseHeapRelation(rel);
-    pfree(attrList);
+    if (attrList != NULL)
+	pfree(attrList);
     pfree(thislock);
     pfree(newLocks);
     return(true);
@@ -463,7 +494,8 @@ AttributeNumber attrno;
 	}
     }
 		    
-    pfree(attrList);
+    if (attrList != NULL)
+	pfree(attrList);
     return(res);
 
 }
@@ -541,9 +573,13 @@ int *attrListSizeP;
     /*
      * allocate memory for the array.
      */
-    a = (AttributeNumber *) palloc(n * sizeof(AttributeNumber));
-    if (a==NULL) {
-	elog(WARN, "prs2FindAttributesOfQual: Out of memory");
+    if (n>0) {
+	a = (AttributeNumber *) palloc(n * sizeof(AttributeNumber));
+	if (a==NULL) {
+	    elog(WARN, "prs2FindAttributesOfQual: Out of memory");
+	}
+    } else {
+	a = NULL;
     }
 
     /*
@@ -673,8 +709,11 @@ int nrules;
 
 	    RelationReplaceHeapTuple(rel, &(tuple->t_ctid),
 					newTuple, (double *)NULL);
+	    /* 
+	     * NOTE: I tried to 'pfree(tuple)' and 
+	     * I got an error message...
+	     */
 	    prs2FreeLocks(tlocks);
-	    pfree(tuple);
 	    pfree(newTuple);
 	}
     }
