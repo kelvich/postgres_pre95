@@ -259,12 +259,19 @@ DATA(insert OID = 673 (  "<="       6 0 b t f  701  701  16 675 674  0 0 float8l
 DATA(insert OID = 674 (  ">"      6 0 b t f  701  701  16 672 673  0 0 float8gt intltsel intltjoinsel ));
 DATA(insert OID = 675 (  ">="      6 0 b t f  701  701  16 673 672  0 0 float8ge intltsel intltjoinsel ));
 
-DATA(insert OID = 930 (  "<"       6 0 b t f  910  910  16 934 933  0 0 oidseqlt intltsel intltjoinsel ));
-DATA(insert OID = 931 (  "<="      6 0 b t f  910  910  16 933 934  0 0 oidseqle intltsel intltjoinsel ));
-DATA(insert OID = 932 (  "="       6 0 b t f  910  910  16 932 935  0 0 oidseqeq intltsel intltjoinsel ));
-DATA(insert OID = 933 (  ">="      6 0 b t f  910  910  16 931 930  0 0 oidseqge intltsel intltjoinsel ));
-DATA(insert OID = 934 (  ">"       6 0 b t f  910  910  16 930 931  0 0 oidseqgt intltsel intltjoinsel ));
-DATA(insert OID = 935 (  "!="      6 0 b t f  910  910  16 935 932  0 0 oidseqne intltsel intltjoinsel ));
+DATA(insert OID = 676 (  "<"       6 0 b t f  910  910  16 680 679  0 0 oidchar16lt intltsel intltjoinsel ));
+DATA(insert OID = 677 (  "<="      6 0 b t f  910  910  16 679 680  0 0 oidchar16le intltsel intltjoinsel ));
+DATA(insert OID = 678 (  "="       6 0 b t f  910  910  16 678 681  0 0 oidchar16eq intltsel intltjoinsel ));
+DATA(insert OID = 679 (  ">="      6 0 b t f  910  910  16 677 676  0 0 oidchar16ge intltsel intltjoinsel ));
+DATA(insert OID = 680 (  ">"       6 0 b t f  910  910  16 676 677  0 0 oidchar16gt intltsel intltjoinsel ));
+DATA(insert OID = 681 (  "!="      6 0 b t f  910  910  16 681 678  0 0 oidchar16ne intltsel intltjoinsel ));
+
+DATA(insert OID = 930 (  "<"       6 0 b t f  910  910  16 934 933  0 0 oidint4lt intltsel intltjoinsel ));
+DATA(insert OID = 931 (  "<="      6 0 b t f  910  910  16 933 934  0 0 oidint4le intltsel intltjoinsel ));
+DATA(insert OID = 932 (  "="       6 0 b t f  910  910  16 932 935  0 0 oidint4eq intltsel intltjoinsel ));
+DATA(insert OID = 933 (  ">="      6 0 b t f  910  910  16 931 930  0 0 oidint4ge intltsel intltjoinsel ));
+DATA(insert OID = 934 (  ">"       6 0 b t f  910  910  16 930 931  0 0 oidint4gt intltsel intltjoinsel ));
+DATA(insert OID = 935 (  "!="      6 0 b t f  910  910  16 935 932  0 0 oidint4ne intltsel intltjoinsel ));
 
 /* ----------------
  *	old definition of OperatorTupleForm

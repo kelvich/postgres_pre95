@@ -101,7 +101,7 @@ DATA(insert OID =  39 (  int2out           6 11 f t f 1  23 "21" 0 100 100 10 10
 DATA(insert OID =  40 (  int28in           6 11 f t f 1  22 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID =  41 (  int28out          6 11 f t f 1  23 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID =  42 (  int4in            6 11 f t f 1  23 "0" 0 100 100 10 100 100  foo bar ));
-DATA(insert OID =  43 (  int4out           6 11 f t f 1  23 "23" 0 100 100 10 100 100  foo bar ));
+DATA(insert OID =  43 (  int4out           6 11 f t f 1  19 "23" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID =  44 (  regprocin         6 11 f t f 1  24 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID =  45 (  regprocout        6 11 f t f 1  23 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID =  46 (  textin            6 11 f t f 1  25 "0" 0 100 100 10 100 100  foo bar ));
@@ -465,16 +465,33 @@ DATA(insert OID = 900 (  fimport             6 11 f t f 1  26 "25" 0 100 100 10 
 DATA(insert OID = 901 (  fexport             6 11 f t f 2  23 "25 26" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 902 (  fabstract           6 11 f t f 5  23 "25 26 23 23 23" 0 100 100 10 100 100  foo bar ));
 
-DATA(insert OID = 920 (  oidseqin	     6 11 f t f 1 910 "23" 0 100 100 10 100 100  foo bar));
-DATA(insert OID = 921 (  oidseqout	     6 11 f t f 1  19 "910" 0 100 100 10 100 100  foo bar));
-DATA(insert OID = 922 (  oidseqlt	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
-DATA(insert OID = 923 (  oidseqle	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
-DATA(insert OID = 924 (  oidseqeq	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
-DATA(insert OID = 925 (  oidseqge	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
-DATA(insert OID = 926 (  oidseqgt	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
-DATA(insert OID = 927 (  oidseqne	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
-DATA(insert OID = 928 (  oidseqcmp	     6 11 f t f 2  23 "0" 0 100 100 10 100 100  foo bar));
-DATA(insert OID = 929 (  mkoidseq	     6 11 f t f 2 910 "26 23" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 920 (  oidint4in	     6 11 f t f 1 910 "23" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 921 (  oidint4out	     6 11 f t f 1  19 "910" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 922 (  oidint4lt	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 923 (  oidint4le	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 924 (  oidint4eq	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
+
+#define OidInt4EqRegProcedure 924
+
+DATA(insert OID = 925 (  oidint4ge	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 926 (  oidint4gt	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 927 (  oidint4ne	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 928 (  oidint4cmp	     6 11 f t f 2  23 "0" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 929 (  mkoidint4	     6 11 f t f 2 910 "26 23" 0 100 100 10 100 100  foo bar));
+
+DATA(insert OID = 940 (  oidchar16in	     6 11 f t f 1 911 "23" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 941 (  oidchar16out	     6 11 f t f 1  19 "910" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 942 (  oidchar16lt	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 943 (  oidchar16le	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 944 (  oidchar16eq	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
+
+#define OidChar16EqRegProcedure 944
+
+DATA(insert OID = 945 (  oidchar16ge	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 946 (  oidchar16gt	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 947 (  oidchar16ne	     6 11 f t f 2  16 "0" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 948 (  oidchar16cmp	     6 11 f t f 2  23 "0" 0 100 100 10 100 100  foo bar));
+DATA(insert OID = 949 (  mkoidchar16	     6 11 f t f 2 911 "26 23" 0 100 100 10 100 100  foo bar));
 
 DATA(insert OID = 950 (  filetooid           6 11 f t f 1  26 "0" 0 100 100 10 100 100  foo bar ));
 DATA(insert OID = 951 (  locreatoid          6 11 f t f 1  26 "0" 0 100 100 10 100 100  foo bar ));

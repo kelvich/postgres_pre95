@@ -331,7 +331,7 @@ DATA(insert OID = 0 (  403 432 565 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  403 432 563 5 btreesel btreenpage ));
 
 /*
- *  nbtree oidseq_ops
+ *  nbtree oidint4_ops
  */
 
 DATA(insert OID = 0 (  403 435 930 1 btreesel btreenpage ));
@@ -339,6 +339,16 @@ DATA(insert OID = 0 (  403 435 931 2 btreesel btreenpage ));
 DATA(insert OID = 0 (  403 435 932 3 btreesel btreenpage ));
 DATA(insert OID = 0 (  403 435 933 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  403 435 934 5 btreesel btreenpage ));
+
+/*
+ *  nbtree oidchar16_ops
+ */
+
+DATA(insert OID = 0 (  403 436 676 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 436 677 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 436 678 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 436 679 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 436 680 5 btreesel btreenpage ));
 
 
 BKI_BEGIN
