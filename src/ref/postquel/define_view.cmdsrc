@@ -31,11 +31,11 @@ qual ]
 .uh DESCRIPTION
 .lp
 .b "Define view"
-will define a view to \*(PP.
+will define a view of a class.
 This view is not physically materialized;
 instead the rule system is used to support view processing as in [STON90].
 Specifically,
-a retrieve rule is automatically generated
+a query rewrite retrieve rule is automatically generated
 to support retrieve operations on views.
 Then,
 the user can add as many update rules as he wishes to specify the
@@ -53,11 +53,10 @@ See [STON90] for a detailed discussion of this point.
 
 /* Specify deletion semantics for toyemp */
 
-   define rule example1 
+   define rewrite rule example1 
    on delete to toyemp
    then do instead delete emp where emp.OID = current.OID
 
 .uh "SEE ALSO"
 .lp
-postquel(commands),
-create(commands).
+postquel(commands), create(commands), define rule(commands).

@@ -50,7 +50,7 @@ of
 .i classname2
 as of the time specified.
 .lp
-POSTGRES uses the rules system to ensure that 
+POSTGRES uses the query rewrite rule system to ensure that 
 .i classname1
 is differentially encoded relative
 to 
@@ -69,7 +69,7 @@ The algorithms that control versions are explained in [ONG90].
 
 create version foobar from
 .r  barfoo[ \c
-.q "January 17, 1990" ]
+.q "Jan 17 1990" ]
 .uh "SEE ALSO"
 .lp
-merge(commands).
+merge(commands), define view(commands), postquel(postquel) 
