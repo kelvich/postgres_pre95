@@ -446,8 +446,10 @@ main(argc, argv)
 #ifdef UFPDEBUG
 		fprintf(stderr, "ufp [%d]: invoking function...\n", getpid());
 #endif
-		retvalue = (Datum) (*user_fn)(args);
-
+		retvalue = (Datum) (*user_fn)(args.data[0], args.data[1], 
+					      args.data[2], args.data[3],
+					      args.data[4], args.data[5],
+					      args.data[6], args.data[7]);
 #ifdef UFPDEBUG
 		fprintf(stderr, "ufp [%d]: sending return value %d\n",
 			getpid(), retvalue);
