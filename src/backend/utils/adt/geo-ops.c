@@ -920,12 +920,12 @@ point_in(str)
 	POINT	*result;
 
 	if (str == NULL)
-		elog(WARN, "Bad point constant");
+		elog(WARN, "Bad (Null) point external representation");
 	for (i = 0, p = str; *p && i < POINTNARGS && *p != RDELIM; p++)
 		if (*p == DELIM || (*p == LDELIM && !i))
 			coord[i++] = p + 1;
 	if (i < POINTNARGS - 1)
-		elog(WARN, "Bad point constant");
+		elog(WARN, "Bad point external representation '%s'",str);
 	result = PALLOCTYPE(POINT);
 	result->x = atof(coord[0]);
 	result->y = atof(coord[1]);
