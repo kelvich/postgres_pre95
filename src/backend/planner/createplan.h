@@ -18,6 +18,7 @@ extern MergeJoin make_mergesort ARGS((LispValue tlist, LispValue qpqual, List me
 extern Hash make_hash ARGS((List tlist, ObjectId tempid, Plan inner_node, Count keycount));
 extern Agg make_agg ARGS((List tlist, ObjectId tempid, Plan lefttree, Name aggname));
 extern Sort make_sort ARGS((List tlist, ObjectId tempid, Plan inner_node, Count keycount));
+extern Material make_material ARGS((List tlist, ObjectId tempid, Plan inner_node, Count keycount));
 extern IndexScan make_indexscan ARGS((List qptlist, List qpqual, Index scanrelid, List indxid, List indxqual));
 extern Unique make_unique ARGS ((List tlist, Plan plannode));
 

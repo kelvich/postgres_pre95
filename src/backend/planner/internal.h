@@ -51,7 +51,8 @@ extern int _query_max_level_;      /*   max query nesting level */
 extern LispValue _query_range_table_;     /*   relations to be scanned */
 
 /*     internal to planner:  */
-extern LispValue _query_relation_list_;    /*   global relation list */
+extern List _base_relation_list_;    /*   base relation list */
+extern List _join_relation_list_;    /*   join relation list */
 extern bool _query_is_archival_;       /*   archival query flag */
 
 extern void save_globals();
@@ -184,6 +185,7 @@ extern LispValue TypeDefaultRetrieve();
 #define MERGESORT  24
 #define SORT       25    
 #define HASH       26
+#define MATERIAL   27
 */
 extern TLE MakeTLE();
 extern void set_joinlist();
@@ -192,3 +194,7 @@ extern void set_joinlist();
 
 #define FLOAT_EQUAL(X,Y) ((X) - (Y) < TOLERANCE)
 #define FLOAT_IS_ZERO(X) (FLOAT_EQUAL(X,0.0))
+
+extern int BushyPlanFlag;
+#define deactivate_joininfo(joininfo)	set_inactive(joininfo, true)
+#define joininfo_inactive(joininfo)	get_inactive(joininfo)
