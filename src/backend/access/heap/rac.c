@@ -3,26 +3,28 @@
  *	POSTGRES rule lock access code.
  */
 
-#include "c.h"
-
-#include "block.h"
-#include "buf.h"
-#include "bufmgr.h"
-#include "bufpage.h"
-#include "htup.h"
-#include "inval.h"
-#include "item.h"
-#include "itemid.h"
-#include "itemptr.h"
-#include "log.h"
-#include "page.h"
-#include "palloc.h"
-#include "rel.h"
-#include "rlock.h"
-
-#include "rac.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
+
+#include "access/htup.h"
+
+#include "rules/rac.h"
+#include "rules/rlock.h"
+
+#include "storage/block.h"
+#include "storage/buf.h"
+#include "storage/bufmgr.h"
+#include "storage/bufpage.h"
+#include "storage/item.h"
+#include "storage/itemid.h"
+#include "storage/itemptr.h"
+#include "storage/page.h"
+
+#include "utils/inval.h"
+#include "utils/palloc.h"
+#include "utils/rel.h"
+#include "utils/log.h"
 
 /*
  * XXX direct structure accesses should be removed
@@ -113,6 +115,31 @@ HeapTupleStoreRuleLock(tuple, buffer, lock)
 
 	page = BufferSimpleGetPage(buffer);
 
+#ifdef NOT_YET
+	/** ------------- XXX --------- SOS ------------
+	 ** Sometimes (when defining or removing a rule)
+	 ** the `ItemPointerIsValid' test calls elog(WARN...).
+	 ** The reason is that `t_lock' is a union:
+	 ** 
+         ** union {
+         **        ItemPointerData l_ltid; /* TID of the lock */
+         **        RuleLock        l_lock; /* internal lock format */
+         ** } t_lock;
+	 **
+	 ** Now, even if we set `t_lock.l_lock' to a perfectly valid pointer,
+	 ** it is possible that `ItemPointerIsValid(&tuple->t_lock.l_ltid)'
+	 ** can fail confused and abort the Xact (see the definition
+	 ** of `ItemPointerIsValid').
+	 **
+	 ** So, for the time being I decided to skip this test altogether,
+	 ** (in which case locks are not physically deleted ever from
+	 ** a page).
+	 **
+	 ** In the long run, this test can be rewritten so that it
+	 ** understands whether to test `t_lock.l_lock' or `t_lock.l_ltid'
+	 **
+	 **/
+
 	if (ItemPointerIsValid(&tuple->t_lock.l_ltid)) {
 
 		/* XXX Is the physical removal of the lock safe? */
@@ -132,6 +159,7 @@ HeapTupleStoreRuleLock(tuple, buffer, lock)
 			 */
 		}
 	}
+#endif NOT_YET
 
 	if (PageGetFreeSpace(page) >= psize(lock)) {
 
@@ -142,9 +170,11 @@ HeapTupleStoreRuleLock(tuple, buffer, lock)
 		Assert(psize(lock) < BLCKSZ);	/* XXX cannot handle this yet */
 
 		buffer = RelationGetBuffer(relation, P_NEW, L_NEW);
+#ifndef NO_BUFFERISVALID
 		if (!BufferIsValid(buffer)) {
 			elog(WARN, "HeapTupleStoreRuleLock: cannot get new buffer");
 		}
+#endif
 		BufferSimpleInitPage(buffer);
 		blockNumber = BufferGetBlockNumber(buffer);
 		offsetNumber = PageAddItem(BufferSimpleGetPage(buffer),
