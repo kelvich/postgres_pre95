@@ -61,8 +61,6 @@ ObjectIdHashBlockIndex ARGS((
 void
 InitRandom()
 {
-	extern Pointer	getenv();
-
 	if (PointerIsValid(getenv("POSTGROWS"))) {
 		DisableHeapRandomization = true;
 		RandomBlockIndexList[0] = InvalidBlockNumber;
