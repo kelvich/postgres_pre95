@@ -265,8 +265,8 @@ create_seqscan_path (rel)
     set_path_cost (pathnode,cost_seqscan (relid,
 					  get_pages (rel),get_tuples (rel)));
     /* add in expensive functions cost!  -- JMH, 7/7/92 */
-    set_path_cost(pathnode, get_path_cost(pathnode)
-		  + xfunc_get_path_cost(pathnode));
+    set_path_cost(pathnode, 
+		  (get_path_cost(pathnode) + xfunc_get_path_cost(pathnode)));
     return(pathnode);
 }
 
@@ -341,8 +341,8 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 				    get_pages (index),
 				    get_tuples(index), false));
 	/* add in expensive functions cost!  -- JMH, 7/7/92 */
-	set_path_cost(pathnode, get_path_cost(pathnode)
-		      + xfunc_get_path_cost(pathnode));
+	set_path_cost(pathnode, 
+		      (get_path_cost(pathnode) + xfunc_get_path_cost(pathnode)));
     } 
     else  {
 	/*    Compute scan cost for the case when 'index' is used with a 
@@ -376,8 +376,8 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 				    get_tuples (rel),get_pages (index),
 				    get_tuples (index), false));
 	/* add in expensive functions cost!  -- JMH, 7/7/92 */
-	set_path_cost(pathnode, get_path_cost(pathnode)
-		      + xfunc_get_path_cost(pathnode));
+	set_path_cost(pathnode, 
+		      (get_path_cost(pathnode) + xfunc_get_path_cost(pathnode)));
 
 	/*    Set selectivities of clauses used with index to 
 	      the selectivity of this index, subdividing the 
@@ -441,8 +441,8 @@ create_nestloop_path (joinrel,outer_rel,outer_path,inner_path,keys)
 					      get_width(outer_rel)),
 				   IsA(inner_path,IndexPath)));
      /* add in expensive function costs -- JMH 7/7/92 */
-     set_path_cost(pathnode, get_path_cost(pathnode)
-		   + xfunc_get_path_cost(pathnode));
+     set_path_cost(pathnode, 
+		   (get_path_cost(pathnode) + xfunc_get_path_cost(pathnode)));
      return(pathnode);
 }
 
@@ -501,8 +501,8 @@ create_mergesort_path (joinrel,outersize,innersize,outerwidth,
 						    outerwidth,
 						    innerwidth));
      /* add in expensive function costs -- JMH 7/7/92 */
-     set_path_cost(pathnode, get_path_cost(pathnode)
-		   + xfunc_get_path_cost(pathnode));
+     set_path_cost(pathnode, 
+		   (get_path_cost(pathnode) + xfunc_get_path_cost(pathnode)));
      return(pathnode);
 }
 
@@ -565,8 +565,8 @@ create_hashjoin_path (joinrel,outersize,innersize,outerwidth,
 						 outersize,innersize,
 						 outerwidth,innerwidth));
     /* add in expensive function costs -- JMH 7/7/92 */
-    set_path_cost(pathnode, get_path_cost(pathnode)
-		  + xfunc_get_path_cost(pathnode));
+    set_path_cost(pathnode, 
+		  (get_path_cost(pathnode) + xfunc_get_path_cost(pathnode)));
     return(pathnode);
 }
 
