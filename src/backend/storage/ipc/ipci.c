@@ -11,6 +11,7 @@
 #include "storage/sinval.h"
 #include "storage/ipci.h"
 #include "storage/bufmgr.h"
+#include "tcop/slaves.h"
 
 RcsId("$Header$");
 

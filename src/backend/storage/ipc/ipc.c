@@ -36,6 +36,7 @@
 #include "storage/plparam.h"
 #include "tmp/align.h"
 #include "utils/log.h"
+#include "tcop/slaves.h"
 
 int UsePrivateMemory = 0;
 
