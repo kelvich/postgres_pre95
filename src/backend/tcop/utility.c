@@ -336,7 +336,7 @@ ProcessUtility(command, args, commandString, dest)
 			    CDR(CDR(args)));   /* rest */
 	    break;
 
-#ifdef PRE-JMH
+#ifdef PRE_JMH
 	case C_FUNCTION:
 	    DefineFunction(
 			   CString(CADR(args)),	 /* function name  */
@@ -347,7 +347,7 @@ ProcessUtility(command, args, commandString, dest)
 	    DefineFunction(CDR(args));      /* everything */
 	    break;
 
-#ifdef PRE-JMH
+#ifdef PRE_JMH
 	case P_FUNCTION:
 	    DefinePFunction(CString(CADR(args)), /* function name */
 			    CString(CADDR(args)), /* relation name */
