@@ -23,12 +23,28 @@
 #include "c.h"
 #include "tags.h" 
 
+/* ----------------------------------------------------------------
+ *		    miscellanious node defines
+ * ----------------------------------------------------------------
+ */
 
+/* ----------------
+ *	NO_NODE_CHECKING, if defined, turns off the built in
+ *	argument sanity checking done within the generated
+ *	set_ and get_ accessor functions.
+ *
+ *	If not defined, then sanity checking is done.  This makes
+ *	things a bit slower but makes debugging easier..
+ * ----------------
+ */
+#undef NO_NODE_CHECKING
+
+/* ----------------
+ *	I don't know why this is here.  Most likely a hack..
+ *	-cim 6/3/90
+ * ----------------
+ */
 typedef double Cost;
-/* #define List LispValue */
-
-/* char	*malloc();
-   #define palloc malloc*/
 
 /*
  *	Set up a single-inheritance mechanism based on cpp.  Ick.
@@ -56,12 +72,12 @@ typedef unsigned int		NodeTag;
 extern TypeId			_InvalidTypeId;
 #define	TypeIdIsValid(t)	((t) < (TypeId)_InvalidTypeId)
 
-/*
- * ====
- * NODE
- * ====
+/* ----------------------------------------------------------------
+ *			Node class definition
  *
- * Fake superclass for all tagged nodes.
+ *	The Node class is the superclass for all other classes
+ *	in this inheritance system.
+ * ----------------------------------------------------------------
  */
 
 class (Node) {
@@ -73,19 +89,25 @@ class (Node) {
  /* private: */
 	NodeDefs;
  /* public: */
-#define	NodeType(_node_)	((Node)_node_)->type
-#define	NodeIsValid(_node_)	PointerIsValid((Pointer)(_node_))
 };
 
+#define	NodeType(_node_)	((Node)_node_)->type
+#define	NodeIsValid(_node_)	PointerIsValid((Pointer)(_node_))
+
+#define	IsA(_node_,_tag_)	NodeIsType((Node)(_node_), classTag(_tag_))
+#define	New_Node(_x_)		((_x_)NewNode(classSize(_x_),classTag(_x_)))
+#define CreateNode(_x_)		((_x_)NewNode(classSize(_x_),classTag(_x_)))
+
+/* ----------------------------------------------------------------
+ *		      extern declarations follow
+ * ----------------------------------------------------------------
+ */
 /*
 extern Node	NewNode ARGS((Size size, TypeId type));
 extern void	SetNodeType ARGS((Node node, TypeId tag));
 extern bool	NodeIsType ARGS((Node node, TypeId tag));
 */
 
-#define	IsA(_node_,_tag_)	NodeIsType((Node)(_node_), classTag(_tag_))
-#define	New_Node(_x_)		((_x_)NewNode(classSize(_x_),classTag(_x_)))
-#define CreateNode(_x_)		((_x_)NewNode(classSize(_x_),classTag(_x_)))
 
 /*
  * NodeTagIsValid --
