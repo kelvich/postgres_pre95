@@ -32,7 +32,7 @@ RcsId("$Header$");
 #include "catalog/pg_type.h"
 
 #undef BOOTSTRAP
-#include "y.tab.h"
+#include "bootstrap.h"
 
 /* ----------------
  *	prototypes
@@ -261,7 +261,9 @@ char *av[];
      * ----------------
      */
     /* XXX the -C version flag should be removed and combined with -O */
+#ifdef REMOVE_ME
     GetDataHome();
+#endif
     SetProcessingMode((override) ? BootstrapProcessing : InitProcessing);
     InitPostgres((String)dat);
     LockDisable(true);

@@ -16,13 +16,13 @@ static	char ami_parser_y[] =
  "$Header$";
 
 #include "access/heapam.h"
-#include "support/bkint.h"
+#include "bootstrap/bkint.h"
 #include "tmp/portal.h" 
 #include "storage/smgr.h" 
 #include "nodes/pg_lisp.h"
 
 #undef BOOTSTRAP
-#include "y.tab.h"
+#include "bootstrap.h"
 
 #define TRUE 1
 #define FALSE 0
