@@ -375,8 +375,10 @@ definition:
 
 def_elem:
 	  def_name equals def_arg
-		{ $$ = lispCons ( $1 , lispCons ($3, LispNil)); }
+		{ $$ = lispCons ( lispAtom(CString($1)) , 
+			lispCons ($3, LispNil)); }
 	| def_name
+		{ $$ = lispCons(lispAtom(CString($1)), LispNil); }
 	;
 
 def_list:
