@@ -289,8 +289,7 @@ ExpandAll(relname,this_resno)
 		char *attrname = (char *)(&rdesc->rd_att.data[i]->attname);
 		/* printf("%s\n",attrname);
 		fflush(stdout);*/
-		temp = make_var ( relname,
-				  attrname );
+		temp = make_var ( relname, attrname);
 		varnode = (Var)CDR(temp);
 		type_id = CInteger(CAR(temp));
 		type_len = tlen(get_id_type(type_id));
@@ -415,16 +414,17 @@ make_op(op,ltree,rtree)
  **********************************************************************/
 
 LispValue
-make_var ( relname, attrname )
+make_var ( relname, attrname)
      Name relname, attrname;
 {
     Var varnode;
     int vnum, attid, vartype;
-    LispValue vardotfields, vararrayindex ;
+    LispValue vardotfields;
 	Type rtype;
     Relation rd;
     extern LispValue p_rtable;
     extern int p_last_resno;
+	Index vararrayindex = 0;
 
     /* if (!Quiet) {
 	printf (" now in make_Var\n"); 
@@ -454,7 +454,6 @@ make_var ( relname, attrname )
     vartype = att_typeid ( rd , attid );
     rtype = get_id_type(vartype);
     vardotfields = LispNil;                          /* XXX - fix this */
-    vararrayindex = LispNil;                         /* XXX - fix this */
     
     varnode = MakeVar (vnum , attid ,
 		       vartype , vardotfields , vararrayindex ,
@@ -464,6 +463,55 @@ make_var ( relname, attrname )
     return ( lispCons ( lispInteger ( typeid (rtype ) ),
 		       varnode ));
 }
+
+/**********************************************************************
+ make_array_ref_var
+
+ - makes an varnode cooresponding to an array de-reference.  Makes
+ sure to find out what type the array reference is by looking at the
+ "element" field of the relation descriptor.  Otherwise it is similar
+ to make_var above.
+
+ **********************************************************************/
+
+LispValue
+make_array_ref_var( relname, attrname, vararrayindex)
+     Name relname, attrname;
+     Index vararrayindex;
+{
+    Var varnode;
+    int vnum, attid, vartype;
+    LispValue vardotfields;
+	Type rtype;
+    Relation rd;
+    extern LispValue p_rtable;
+    extern int p_last_resno;
+
+    vnum = RangeTablePosn ( relname,0,0) ;
+    if (vnum == 0) {
+	p_rtable = nappend1 (p_rtable ,
+			     MakeRangeTableEntry ( relname , 0 , relname) );
+		vnum = RangeTablePosn (relname,0,0);
+	relname = VarnoGetRelname(vnum);
+    } else {
+	relname = VarnoGetRelname( vnum );
+    }
+    
+    rd = amopenr ( relname );
+    attid = varattno (rd , attrname );
+    vartype = att_typeid ( rd , attid );
+    rtype = get_id_type(vartype);
+    vardotfields = LispNil;                          /* XXX - fix this */
+    
+    varnode = MakeVar (vnum , attid ,
+		       vartype , vardotfields , vararrayindex ,
+		       lispCons(lispInteger(vnum),
+				lispCons(lispInteger(attid),LispNil)));
+    
+    return ( lispCons ( lispInteger ( typeid (rtype ) ),
+		       varnode ));
+}
+
 
 /**********************************************************************
   SkipToFromList
@@ -624,9 +672,79 @@ make_const( value )
 	return (temp);
 	
 }
+
 LispValue
 parser_ppreserve(temp)
      char *temp;
 {
     return((LispValue)temp);
+}
+
+/*-------------------------------------------------------------------
+ *
+ * make_param
+ * Creates a Param node. This routine is called when a 'define rule'
+ * statement contains references to the 'current' and/or 'new' tuple.
+ * 
+ * paramKind:
+ *	One of the possible param kinds (PARAM_NEW, PARAM_OLD, etc)
+ * 	(see lib/H/primnodes.h)
+ * relationName:
+ * 	the name of the relation where 'attrName' belongs.
+ *	this is not stored anywhere in the Param node, but we
+ * 	need it in order to infer the type of the parameter
+ * 	and to do some checking....
+ * attrName:
+ *	the name of the attribute whose value will be substituted
+ *	(at rule activation time) in the place of this param
+ * 	node.
+ */
+LispValue
+make_param(paramKind, relationName, attrName)
+int paramKind;
+char *relationName;
+char *attrName;
+{
+    LispValue result;
+    Relation relation;
+    int attrNo;
+    ObjectId attrType;
+    Name name;
+    Param paramNode;
+
+    /*
+     * open the relation
+     */
+    relation = amopenr(relationName);
+    if (relation == NULL) {
+	elog(WARN,"make_param: can not open relation '%s'",relationName);
+    }
+    
+    /*
+     * find the attribute number and type
+     */
+    attrNo = varattno(relation, attrName);
+    attrType = att_typeid(relation, attrNo);
+
+    /*
+     * create the Param node
+     */
+    name = (Name) palloc(sizeof(NameData));
+    if (name == NULL) {
+	elog(WARN, "make_param: out of memory!\n");
+    }
+    strcpy(&(name->data[0]), attrName);
+
+    paramNode = MakeParam(paramKind,	/* paramkind */
+			(int32)0,	/* paramid - ignored */
+			name,		/* paramname */
+			attrType);	/* paramtype */
+    
+    /*
+     * form the final result (a list of the parameter type and
+     * the Param node)
+     */
+    result = lispCons(lispInteger(attrType), paramNode);
+    return(result);
+		    
 }
