@@ -429,8 +429,10 @@ AllocateVfd()
 		 * Set up the free list for the new entries
 		 */
 
-		for (i = SizeVfdCache; i < 2*SizeVfdCache; i++) 
+		for (i = SizeVfdCache; i < 2*SizeVfdCache; i++)  {
 			VfdCache[i].nextFree = i+1;
+			VfdCache[i].fd = FileClosed;
+		    }
 
 		/*
 		 * Element 0 is the first and last element of the free
