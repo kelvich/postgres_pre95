@@ -167,6 +167,10 @@ DefineFunction(nameargsexe, dest)
 	 else outin_ratio = DefineEntryGetInteger(entry);
 
      }
+    else
+     {
+	 canCache = false;
+     }
 
     /* ----------------
      * handle "[ arg is (...) ]"
