@@ -11,6 +11,7 @@
  */
 
 #include <strings.h>	/* XXX style */
+#include <ctype.h>
 
 #include "tmp/postgres.h"
 
@@ -60,77 +61,113 @@ FetchDefault ARGS((
  * --------------------------------
  */
 void
-DefineFunction(name, parameters)
-    Name	name;
-    LispValue	parameters;
+DefineFunction(nameargsexe)
+    LispValue	nameargsexe;
 {
-    String	returnTypeName;
-    String	languageName;
-    String	fileName;
-    bool	canCache;
-    LispValue	argList;
+    Name	name = (Name) CString(CAR(CAR(nameargsexe)));
+    LispValue   parameters = CDR(CAR(nameargsexe));
     LispValue	entry;
-    
+    String	languageName;
+    char        *c;
+
     /* ----------------
      * Note:
      * XXX	Checking of "name" validity (16 characters?) is needed.
      * ----------------
      */
     AssertArg(NameIsValid(name));
-    AssertArg(listp(parameters));
+
     
-    languageName = FetchDefault("language", "C");
-    
-    /* ----------------
-     * handle "file = X"
-     * ----------------
-     */
-    entry = DefineListRemoveRequiredAssignment(&parameters, "file");
-    fileName = filename_in(DefineEntryGetString(entry));
-    
+    /*
+    ** Figure out language and call routine for that language.
+    */
+
+    entry = DefineListRemoveRequiredAssignment(&parameters, "language");
+    languageName = DefineEntryGetString(entry);
+    /* Uppercase-ise the language */
+    for (c = languageName; *c != '\0'; c++)
+      *c = toupper(*c);
+
+    if (!strcmp(languageName, "POSTQUEL"))
+      {
+	  /* to be done by Adam */
+	  elog(WARN, "DefineFunction: can't handle POSTQUEL yet");
+	  /* DefinePFunction(name, relationname, CDR(CDR(nameargsexe))); */
+      }
+
+    else if (!strcmp(languageName, "C"))
+     {
+	 DefineCFunction(name, parameters, CString(CADR(nameargsexe)), 
+			 languageName);
+     }
+
+    else elog(WARN, "DefineFunction: Specified language not supported");	
+}
+
+
+/* --------------------------------
+**	DefineFunction
+** --------------------------------
+*/
+void
+DefineCFunction(name, parameters, fileName, languageName)
+     Name       name;
+     LispValue  parameters;
+     String	fileName;
+     String     languageName;
+{
+    String	returnTypeName;
+    bool	canCache;
+    LispValue	argList;
+    LispValue	entry;
+
     /* ----------------
      * handle "[ iscachable ]"
      * ----------------
      */
     entry = DefineListRemoveOptionalIndicator(&parameters, "iscachable");
     canCache = (bool)!null(entry);
-    
+	 
     /* ----------------
      * handle "returntype = X"
      * ----------------
      */
     entry = DefineListRemoveRequiredAssignment(&parameters, "returntype");
     returnTypeName = DefineEntryGetString(entry);
-    
+	 
+    /*
+    ** Handle new parameters for expensive functions.  To be done by Joey.
+    */
+	 
     /* ----------------
      * handle "[ arg is (...) ]"
      * XXX fix optional arg handling below
      * ----------------
      */
     argList = LispRemoveMatchingSymbol(&parameters, ARG);
-    
+	 
     if (!null(argList)) {
 	LispValue	rest;
-	
+	     
 	/*
 	 * first discard symbol 'arg from list
 	 */
 	argList = CDR(argList);
 	AssertArg(length(argList) > 0);
-	
+	     
 	foreach (rest, argList) {
 	    if (!lispStringp(CAR(rest))) {
 		elog(WARN, "DefineFunction: arg type = ?");
 	    }
 	}
     }
-
+	 
     /* ----------------
      *	there should be nothing more
      * ----------------
      */
     DefineListAssertEmpty(parameters);
-
+	 
     /* ----------------
      *	now have ProcedureDefine do all the work..
      * ----------------
