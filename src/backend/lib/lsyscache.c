@@ -433,17 +433,20 @@ get_rel_name (relid)
  * get_relstub
  * return the stubs associated with a relation.
  * NOTE: we return a pointer to a *copy* of the stubs.
+ * NOTE2: I have added an extra return argument: 'islastP'
  */
 struct varlena *
-get_relstub (relid)
+get_relstub (relid, no, islastP)
      ObjectId relid ;
+     int no;
+     bool *islastP;
 {
     HeapTuple tuple;
     Form_pg_prs2stub prs2stubStruct;
     struct varlena * retval;
     struct varlena * relstub;
 
-    tuple = SearchSysCacheTuple(PRS2STUB,relid,0,0,0);
+    tuple = SearchSysCacheTuple(PRS2STUB,relid,no,0,0);
 
     if (HeapTupleIsValid(tuple)) {
 	prs2stubStruct = (Form_pg_prs2stub) GETSTRUCT(tuple);
@@ -455,6 +458,10 @@ get_relstub (relid)
 	relstub = (struct varlena *) PSIZESKIP( & (prs2stubStruct->prs2stub) );
 	retval = (struct varlena *)palloc(VARSIZE( relstub ));
 	bcopy(relstub, retval, VARSIZE( relstub ));
+	if (prs2stubStruct->prs2islast)
+	    *islastP = true;
+	else
+	    *islastP = false;
 	return(retval);
     } else {
       return((struct varlena *)NULL);
