@@ -6,6 +6,7 @@
 #include <strings.h>
 #include <sys/file.h>
 #include <sys/types.h>
+#include <varargs.h>
 
 #include "tmp/postgres.h"
 #include "utils/log.h"
@@ -47,10 +48,12 @@ int enable;
 
 /*VARARGS2*/
 void
-elog(lev, fmt, p0, p1, p2, p3, p4, p5)
-int	lev;
-char	*fmt;
+elog(va_alist)
+va_dcl
 {
+	va_list ap;
+	register int	lev;
+	char		*fmt;
 	char		buf[ELOG_MAXLEN], line[ELOG_MAXLEN];
 	register char	*bp, *cp;
 	extern	int	errno, sys_nerr;
@@ -62,6 +65,9 @@ char	*fmt;
 	int		len;
 	int		i = 0;
 
+	va_start(ap);
+	lev = va_arg(ap, int);
+	fmt = va_arg(ap, char *);
 	if (lev == DEBUG && Debug_file < 0) {
 		return;
 	}
@@ -104,18 +110,22 @@ char	*fmt;
 		} else
 			*bp++ = *cp;
 	*bp = '\0';
-	sprintf(line, buf, p0, p1, p2, p3, p4, p5);
+	vsprintf(line, buf, ap);
+	va_end(ap);
 	len = strlen(strcat(line, "\n"));
-	if (Debug_file > -1) {
+	if (Debug_file > -1)
 		write(Debug_file, line, len);
-	}
 	if (lev == DEBUG || lev == NOIND)
 		return;
 
 #ifndef PG_STANDALONE
 	/* Send IPC message to the postmaster */
-	if (Pfout != NULL && lev > DEBUG && lev != NOTICE) {
-		putnchar("E", 1);
+	if (Pfout != NULL && lev > DEBUG) {
+		/* notices are not exactly errors, handle it differently */
+		if (lev == NOTICE) 
+			putnchar("N", 1);
+		else
+			putnchar("E", 1);
 		putint(-101, 4);	/* should be query id */
 		putstr(line);
 		pflush();
