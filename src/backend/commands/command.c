@@ -70,6 +70,7 @@ RcsId("$Header$");
 #include "catalog/pg_proc.h"
 #include "catalog/pg_relation.h"
 #include "catalog/pg_type.h"
+#include "catalog/indexing.h"
 
 #include "executor/execdefs.h"
 #include "executor/execdesc.h"
@@ -364,7 +365,9 @@ PerformAddAttribute(relationName, schema)
     HeapTuple		tup;
     struct	skey	key[2];	/* static better? [?] */
     ItemPointerData	oldTID;
-	int att_nvals;
+    int			att_nvals;
+    Relation		idescs[Num_pg_attr_indices];
+    bool		hasindex;
     
     if (issystem(relationName)) {
 	elog(WARN, "Add: system relation \"%s\" unchanged",
@@ -425,6 +428,15 @@ PerformAddAttribute(relationName, schema)
     }
     
     attrdesc = heap_openr(AttributeRelationName);
+
+    Assert(attrdesc);
+    Assert(RelationGetRelationTupleForm(attrdesc));
+
+    /*
+     * Open all (if any) pg_attribute indices
+     */
+    if (hasindex = RelationGetRelationTupleForm(attrdesc)->relhasindex)
+	CatalogOpenIndices(Num_pg_attr_indices, Name_pg_attr_indices, idescs);
     
     ScanKeyEntryInitialize((ScanKeyEntry)&key[0], 
 			   (bits16) NULL,
@@ -517,6 +529,11 @@ PerformAddAttribute(relationName, schema)
 	
 	RelationInsertHeapTuple(attrdesc, attributeTuple,
 				(double *)NULL);
+	if (hasindex)
+	    CatalogIndexInsert(idescs,
+			       Num_pg_attr_indices,
+			       attrdesc,
+			       attributeTuple);
 	i += 1;
     }
     
@@ -526,6 +543,8 @@ PerformAddAttribute(relationName, schema)
     heap_replace(relrdesc, &oldTID, reltup);
     pfree((char *) reltup);
     heap_close(relrdesc);
+    if (hasindex)
+	CatalogCloseIndices(Num_pg_attr_indices, idescs);
 }
 
 
