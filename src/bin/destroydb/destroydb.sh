@@ -32,6 +32,9 @@ then
 elif (test -f "MONITOR=$PG/obj*/support/monitor")
 then
 	MONITOR=$PG/obj*/support/monitor
+elif (test -n "$POSTGRESTREE")
+then
+	MONITOR=$POSTGRESTREE/obj*/support/monitor
 else
 	echo "$0: can't find the monitor program!"
 	exit 1
