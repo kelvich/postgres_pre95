@@ -1395,41 +1395,46 @@ _copyConst(from, to, alloc)
     
     from->constbyval = cached_typbyval;
     
-    /* ----------------
-     *	copying the Datum in a const node is a bit trickier
-     *  because it might be a pointer and it might also be of
-     *  variable length...
-     * ----------------
-     */
-    if (from->constbyval == true) {
+    if (!from->constisnull) {
 	/* ----------------
-	 *  passed by value so just copy the datum.
+	 *	copying the Datum in a const node is a bit trickier
+	 *  because it might be a pointer and it might also be of
+	 *  variable length...
 	 * ----------------
 	 */
-	newnode->constvalue = 	from->constvalue;
-    } else {
-	/* ----------------
-	 *  not passed by value. datum contains a pointer.
-	 * ----------------
-	 */
-	if (from->constlen != -1) {
+	if (from->constbyval == true) {
 	    /* ----------------
-	     *	fixed length structure
+	     *  passed by value so just copy the datum.
 	     * ----------------
 	     */
-	    newnode->constvalue = PointerGetDatum(COPYALLOC(from->constlen));
-	    bcopy(from->constvalue, newnode->constvalue, from->constlen);
+	    newnode->constvalue = 	from->constvalue;
 	} else {
 	    /* ----------------
-	     *	variable length structure.  here the length is stored
-	     *  in the first int pointed to by the constval.
+	     *  not passed by value. datum contains a pointer.
 	     * ----------------
 	     */
-	    int length;
-	    length = *((int *) newnode->constvalue);
-	    newnode->constvalue = PointerGetDatum(COPYALLOC(length));
-	    bcopy(from->constvalue, newnode->constvalue, length);
+	    if (from->constlen != -1) {
+		/* ----------------
+		 *	fixed length structure
+		 * ----------------
+		 */
+		newnode->constvalue = PointerGetDatum(COPYALLOC(from->constlen));
+		bcopy(from->constvalue, newnode->constvalue, from->constlen);
+	    } else {
+		/* ----------------
+		 *	variable length structure.  here the length is stored
+		 *  in the first int pointed to by the constval.
+		 * ----------------
+		 */
+		int length;
+		length = *((int *) newnode->constvalue);
+		newnode->constvalue = PointerGetDatum(COPYALLOC(length));
+		bcopy(from->constvalue, newnode->constvalue, length);
+	    }
 	}
+    }
+    else {
+	newnode->constvalue = from->constvalue;
     }
     newnode->constisnull = 	from->constisnull;
     newnode->constbyval = 	from->constbyval;
