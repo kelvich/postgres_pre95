@@ -506,7 +506,7 @@ ExceptionalCondition ARGS((
  *
  */
 
-#define NO_ASSERT_CHECKING 1
+#undef NO_ASSERT_CHECKING
 
 /*
  * Trap --
