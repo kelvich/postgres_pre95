@@ -28,5 +28,6 @@ extern bool and_clause ARGS((LispValue clause));
 extern LispValue make_andclause ARGS((LispValue andclauses));
 extern LispValue get_andclauseargs ARGS((LispValue andclause));
 extern LispValue make_clause ARGS((LispValue type, LispValue args));
+extern bool agg_clause ARGS((LispValue clause));
 
 
