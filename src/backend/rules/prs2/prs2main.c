@@ -22,12 +22,11 @@
 #include "storage/buf.h"
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
+#include "nodes/plannodes.h"
 #include "nodes/execnodes.h"		/* which includes access/rulescan.h */
 #include "nodes/execnodes.a.h"
 #include "nodes/mnodes.h"
 #include "utils/mcxt.h"
-
-extern GlobalMemory CreateGlobalMemory();
 
 /*------------------------------------------------------------------
  *
@@ -176,7 +175,7 @@ Buffer *returnedBufferP;
      * new context is the same - it is never used...)
      */
     prs2MemContext = CreateGlobalMemory("*prs2Main");
-    oldMemContext = MemoryContextSwitchTo(prs2MemContext);
+    oldMemContext = MemoryContextSwitchTo((MemoryContext)prs2MemContext);
 
     switch (operation) {
 	case RETRIEVE:

@@ -122,7 +122,8 @@ AttributeNumber attributeNumber;
 	if (Prs2RuleStackMemoryContext == NULL) {
 	    elog(WARN,"prs2RuleStackFree: Prs2RuleStackMemoryContext is NULL!");
 	}
-	oldMemContext = MemoryContextSwitchTo(Prs2RuleStackMemoryContext);
+	oldMemContext =
+	    MemoryContextSwitchTo((MemoryContext)Prs2RuleStackMemoryContext);
 	/*
 	 * allocate more room & free the old one
 	 */
@@ -228,7 +229,8 @@ prs2RuleStackInitialize()
     if (Prs2RuleStackMemoryContext == NULL) {
 	Prs2RuleStackMemoryContext = CreateGlobalMemory("*prs2RuleStack*");
     }
-    oldMemContext = MemoryContextSwitchTo(Prs2RuleStackMemoryContext);
+    oldMemContext =
+	MemoryContextSwitchTo((MemoryContext)Prs2RuleStackMemoryContext);
 
     /*
      * create the stack
@@ -268,7 +270,8 @@ Prs2EStateInfo p;
     if (Prs2RuleStackMemoryContext == NULL) {
 	elog(WARN,"prs2RuleStackFree: Prs2RuleStackMemoryContext is NULL!");
     }
-    oldMemContext = MemoryContextSwitchTo(Prs2RuleStackMemoryContext);
+    oldMemContext =
+	MemoryContextSwitchTo((MemoryContext)Prs2RuleStackMemoryContext);
 
     /*
      * free the Prs2EStateInfo

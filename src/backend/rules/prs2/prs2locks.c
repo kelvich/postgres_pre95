@@ -44,7 +44,7 @@ RuleLock lock;
     }
 #endif PRS2_DEBUG
 
-    pfree(lock);
+    pfree((Pointer)lock);
 }
 
 /*-----------------------------------------------------------------------
@@ -223,10 +223,9 @@ RuleLock locks;
  */
 
 RuleLock
-prs2GetLocksFromTuple(tuple, buffer, tupleDescriptor)
+prs2GetLocksFromTuple(tuple, buffer)
 HeapTuple tuple;
 Buffer buffer;
-TupleDescriptor tupleDescriptor;
 {
     return(HeapTupleGetRuleLock(tuple, buffer));
 }

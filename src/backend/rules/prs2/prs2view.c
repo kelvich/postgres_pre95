@@ -224,7 +224,7 @@ Relation explainRel;
 		     */
 		    tempRuleListItem = relationRuleInfo->ruleList;
 		    relationRuleInfo->ruleList = tempRuleList;
-		    pfree(tempRuleListItem);
+		    pfree((Pointer)tempRuleListItem);
 		    /*
 		     * check for 'instead' rules...
 		     */
@@ -265,7 +265,7 @@ Relation explainRel;
 		tempRuleList->next = relationRuleInfo->ruleList->next;
 		tempRuleListItem = relationRuleInfo->ruleList;
 		relationRuleInfo->ruleList = tempRuleList;
-		pfree(tempRuleListItem);
+		pfree((Pointer)tempRuleListItem);
 		break;
 	    case PRS2_RULELIST_QUERYDESC:
 		/*
@@ -306,7 +306,7 @@ Relation explainRel;
 			    lispCons(lispInteger(EXEC_END), LispNil));
 		tempRuleList = relationRuleInfo->ruleList;
 		relationRuleInfo->ruleList = relationRuleInfo->ruleList->next;
-		pfree(tempRuleList);
+		pfree((Pointer)tempRuleList);
 		break;
 	} /* switch */
     } /* while */

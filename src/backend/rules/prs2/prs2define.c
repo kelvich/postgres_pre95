@@ -55,7 +55,7 @@ char *ruleText;
 
 #ifdef PRS2_DEBUG
     printf("PRS2: ---prs2DefineTupleRule called, with argument =");
-    lispDisplay(parseTree, 0);
+    lispDisplay(parseTree);
     printf("\n");
     printf("PRS2:   ruletext = %s\n", ruleText);
 #endif PRS2_DEBUG
@@ -311,7 +311,7 @@ char *ruleText;
 	    printf("(*** UNKNOWN ***)\n");
     }
     printf("PRS2:    event target:");
-    lispDisplay(eventTarget, 0);
+    lispDisplay(eventTarget);
     printf("\n");
     printf("PRS2:    event target relation OID = %ld\n", r->eventRelationOid);
     printf("PRS2:    event target attr no = %d\n", r->eventAttributeNumber);
@@ -668,7 +668,8 @@ Prs2RuleData r;
 			    false,		/* isnull */
 			    true);		/* byval */
 	targetList = lispCons(
-			lispCons(resdom, lispCons(constant, LispNil)),
+			lispCons((LispValue)resdom,
+				 lispCons((LispValue)constant, LispNil)),
 			LispNil);
 	/*
 	 * now the root
@@ -869,7 +870,11 @@ EventType eventType;
 	    break; 	/* exit 'foreach' loop */
 
 	} else if (commandType == REPLACE &&
-		    NameIsEqual("*CURRENT*", relationName)) {
+		    /*
+		     * Dangerous cast - it just happens that NameIsEqual()
+		     * currently calls strncmp()
+		     */
+		    NameIsEqual((Name)"*CURRENT*", relationName)) {
 	    /*
 	     * this is a replace CURRENT(...)
 	     */
@@ -882,10 +887,11 @@ EventType eventType;
 		elog(WARN,
 		" a 'replace CURRENT(...)' must replace ONLY 1 attribute");
 	    }
-	    *updatedAttributeNumberP = get_resno(tl_resdom(CAR(targetList)));
+	    *updatedAttributeNumberP = 
+			get_resno((Resdom)tl_resdom(CAR(targetList)));
 	    break; 	/* exit 'foreach' loop */
 	} else if (commandType == REPLACE &&
-		    NameIsEqual("*NEW*", relationName)) {
+		    NameIsEqual((Name)"*NEW*", relationName)) {
 	    /*
 	     * this is a replace NEW(...)
 	     */
@@ -898,7 +904,8 @@ EventType eventType;
 		elog(WARN,
 		" a 'replace NEW(...)' must replace ONLY 1 attribute");
 	    }
-	    *updatedAttributeNumberP = get_resno(tl_resdom(CAR(targetList)));
+	    *updatedAttributeNumberP =
+			get_resno((Resdom)tl_resdom(CAR(targetList)));
 	    break; 	/* exit 'foreach' loop */
 	} else {
 	    actionType = ActionTypeOther;
@@ -982,8 +989,8 @@ LispValue parseTree;
      * Is this a REPLACE CURRENT command?
      */
     if (commandType!=REPLACE ||
-       (!NameIsEqual("*CURRENT*", relationName) &&
-       !NameIsEqual("*NEW*", relationName))) {
+       (!NameIsEqual((Name)"*CURRENT*", relationName) &&
+       !NameIsEqual((Name)"*NEW*", relationName))) {
 	/*
 	 * NO, this is not a REPLACE CURRENT or a REPLACE NEW command
 	 */
@@ -1007,7 +1014,7 @@ LispValue parseTree;
      * node, and change the 'resno' to 1
      */
     targetList = parse_targetlist(parseTree);
-    set_resno(tl_resdom(CAR(targetList)), (AttributeNumber)1);
+    set_resno((Resdom)tl_resdom(CAR(targetList)), (AttributeNumber)1);
 }
 
 /*-----------------------------------------------------------------
@@ -1092,7 +1099,7 @@ char *fname;
     l = StringToPlan(s1);
 
     printf("  list = \n");
-    lispDisplay(l,0);
+    lispDisplay(l);
 
     if (fp!=stdin) {
 	fclose(fp);

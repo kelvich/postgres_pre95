@@ -6,7 +6,7 @@ extern int ExecAllocTableSlot ARGS((TupleTable table));
 extern Pointer ExecGetTableSlot ARGS((TupleTable table, int slotnum));
     
 #ifndef EXEC_DEBUGSTORETUP
-extern Pointer ExecStoreTuple ARGS((Pointer tuple, Pointer slot, bool shouldFree));
+extern Pointer ExecStoreTuple ARGS((Pointer tuple, Pointer slot, Buffer buffer, bool shouldFree));
 #else    
 extern Pointer ExecStoreTupleDebug ARGS((String file, int line, Pointer tuple, Pointer slot, bool shouldFree));
 #endif EXEC_DEBUGSTORETUP
@@ -19,7 +19,7 @@ extern bool ExecSetSlotPolicy ARGS((Pointer slot, bool shouldFree));
 extern void ExecInitResultTupleSlot ARGS((EState estate, CommonState commonstate));
 extern void ExecInitScanTupleSlot ARGS((EState estate, CommonScanState commonscanstate));
 extern void ExecInitViewTupleSlot ARGS((EState estate, CommonScanState commonscanstate));
-extern void ExecInitMarkedTupleSlot ARGS((MergeJoinState merg estate, int mergestate));
+extern void ExecInitMarkedTupleSlot ARGS((EState estate, MergeJoinState merg));
 extern void ExecInitOuterTupleSlot ARGS((EState estate, HashJoinState hashstate));
 extern void ExecInitHashTupleSlot ARGS((EState estate, HashJoinState hashstate));
 extern AttributePtr ExecGetTupType ARGS((Plan node));

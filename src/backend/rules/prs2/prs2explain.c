@@ -56,7 +56,7 @@ Name relationName;
      */
     tuple = SearchSysCacheTuple(RELNAME, relationName);
     if (HeapTupleIsValid(tuple)) {
-	RelationNameDestroyHeapRelation(relationName);
+	RelationNameDestroyHeapRelation((char *)relationName);
     }
 
     /*
@@ -89,11 +89,11 @@ Name relationName;
      * as a `TupleDesc'.
      */
     relationOid = RelationNameCreateHeapRelation(
-			relationName,
+			(char *)relationName,
 			archiveMode,
 			numberOfAttributes,
 			DEFAULT_SMGR,
-			(TupleDescriptor)tupleDesc);
+			(struct attribute **)tupleDesc);
 
     if (!ObjectIdIsValid(relationOid)) {
 	elog(WARN,"Can not create relation `%s'.", relationName->data);

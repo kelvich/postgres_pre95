@@ -452,7 +452,7 @@ bool *isConstant;
 	/*
 	 * Is it a CURRENT Var node ?
 	 */
-	if (get_varno(clause) == currentVarno) {
+	if (get_varno((Var)clause) == currentVarno) {
 	    *isConstant = true;
 	    return(clause);
 	} else {

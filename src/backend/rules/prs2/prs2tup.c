@@ -296,7 +296,7 @@ bool hintFlag;
 	     * Free all new tuples/locks.
 	     */
 	    prs2FreeLocks(newtlocks);
-	    pfree(newTuple);
+	    pfree((Pointer)newTuple);
 	}
 	/*
 	 * free the `tlocks' to avoid memory leaks
@@ -332,9 +332,9 @@ bool hintFlag;
      */
     RelationCloseHeapRelation(rel);
     if (attrList != NULL)
-	pfree(attrList);
-    pfree(thislock);
-    pfree(newLocks);
+	pfree((Pointer)attrList);
+    pfree((Pointer)thislock);
+    pfree((Pointer)newLocks);
     return(true);
 }
 
@@ -528,7 +528,7 @@ AttributeNumber attrno;
     }
 		    
     if (attrList != NULL)
-	pfree(attrList);
+	pfree((Pointer)attrList);
     return(res);
 
 }
@@ -742,7 +742,7 @@ int nrules;
 
 	    RelationReplaceHeapTuple(rel, &(tuple->t_ctid),
 					newTuple, (double *)NULL);
-	    pfree(newTuple);
+	    pfree((Pointer)newTuple);
 	}
 	/*
 	 * free the `tlocks' (because `prs2GetLocksFromTuple'

@@ -106,7 +106,7 @@ TupleDescriptor innerTupleDesc;
 	    innerAttrNo,	/* varattno */
 	    type,		/* vartype */
 	    LispNil,		/* vardotfields */
-	    (Index) 0,		/* vararrayindex */
+	    LispNil,		/* vararraylist */
 	    varid,		/* varid */
 	    InvalidObjectId);	/* varelemtype */
     opr = MakeOper(
@@ -118,7 +118,10 @@ TupleDescriptor innerTupleDesc;
 	    NULL);		/* op_fcache */
     (void) replace_opid(opr);
 
-    qual = lispCons(opr, lispCons(var, lispCons(cnst, LispNil)));
+    qual = lispCons((LispValue)opr,
+		    lispCons((LispValue)var,
+			     lispCons((LispValue)cnst, LispNil)));
+
     qual = lispCons(qual, LispNil);
 
     /*
@@ -160,7 +163,7 @@ bool *newExpLocksFlag;
     *newExpLocksFlag = false;
 
     if (prs2StubQualTestTuple(tuple, buffer, tupDesc, oneStub->qualification)) {
-	oldLocks = prs2GetLocksFromTuple(tuple, buffer,tupDesc);
+	oldLocks = prs2GetLocksFromTuple(tuple, buffer);
 	newLocks = prs2LockUnion(oneStub->lock, oldLocks);
 	prs2FreeLocks(oldLocks);
 	/*

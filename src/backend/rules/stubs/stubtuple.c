@@ -22,6 +22,7 @@
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
 #include "parser/parse.h"       /* for the AND, NOT, OR */
+#include "nodes/plannodes.h"
 #include "nodes/execnodes.h"
 #include "nodes/execnodes.a.h"
 #include "nodes/primnodes.h"
@@ -115,7 +116,7 @@ LispValue qual;
     slot = (TupleTableSlot)
 	ExecGetTableSlot(tupleTable, slotnum);
     
-    (void) ExecStoreTuple(tuple, slot, false);
+    (void) ExecStoreTuple((Pointer)tuple, (Pointer)slot, buffer, false);
     (void) ExecSetSlotDescriptor(slot, tupDesc);
     (void) ExecSetSlotBuffer(slot, buffer);
     

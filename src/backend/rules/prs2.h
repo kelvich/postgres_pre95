@@ -468,7 +468,8 @@ extern bool prs2AttributeIsOfBasicType();
 extern
 void
 prs2AddTheNewRule ARGS((
-    Prs2RuleData	r
+    Prs2RuleData	r,
+    List		hint
 ));
 
 /*------------------------
@@ -686,6 +687,7 @@ attributeValuesMakeNewTuple ARGS((
     Buffer buffer,
     AttributeValues attrValues,
     RuleLock locks,
+    Prs2LockType lockType,
     Relation relation,
     HeapTuple *newTupleP
 ));

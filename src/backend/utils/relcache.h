@@ -9,6 +9,8 @@
 #ifndef	RelCacheIncluded	/* Include this file only once. */
 #define RelCacheIncluded	1
 
+#include <sys/types.h>
+
 #include "tmp/postgres.h"
 #include "utils/rel.h"
 

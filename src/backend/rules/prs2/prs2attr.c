@@ -95,7 +95,7 @@ Relation relation;
 	}
     }
 
-    pfree(a);
+    pfree((Pointer)a);
 }
 
 /*--------------------------------------------------------------------
@@ -273,7 +273,7 @@ HeapTuple *newTupleP;
 	/*
 	 * free the space occupied by the arrays
 	 */
-	pfree(replaceValue);
+	pfree((Pointer)replaceValue);
 	pfree(replaceNull);
 	pfree(replace);
     }
@@ -492,7 +492,7 @@ AttributeNumber numberOfAttributes;	/* size of 'attributeArray' */
     /*
      * free the space occupied by the arrays
      */
-    pfree(values);
+    pfree((Pointer)values);
     pfree(nulls);
 
     /*

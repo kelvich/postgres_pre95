@@ -17,6 +17,7 @@
 #include <strings.h>
 #include "utils/log.h"
 #include "utils/palloc.h"
+#include "tmp/postgres.h"
 #include "tmp/datum.h"
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
@@ -102,7 +103,7 @@ Prs2OneStub oneStub;
 {
     int i;
     for (i=0; i<stubs->numOfStubs; i++) {
-	if (prs2OneStubIsEqual(oneStub, &(stubs->stubRecords[i]))) {
+	if (prs2OneStubIsEqual(oneStub, stubs->stubRecords[i])) {
 	    /*
 	     * We've found it! Return its index
 	     */
@@ -169,7 +170,7 @@ Prs2OneStub newStub;
      * new one 'temp'.
      */
     if (oldStubs->numOfStubs > 0 && oldStubs->stubRecords != NULL)
-	pfree(oldStubs->stubRecords);
+	pfree((Pointer)oldStubs->stubRecords);
     oldStubs->stubRecords = temp;
     oldStubs->numOfStubs+= 1;
 
@@ -225,7 +226,7 @@ Prs2OneStub oldStub;
      * Don't forget to free the 'oneStub'
      */
     n = oldStubs->numOfStubs;
-    pfree(oldStubs->stubRecords[indx]);
+    pfree((Pointer)oldStubs->stubRecords[indx]);
     oldStubs->stubRecords[indx] = oldStubs->stubRecords[n-1];
     oldStubs->numOfStubs -= 1;
 
@@ -299,17 +300,17 @@ Prs2Stub relstub;
 #ifdef STUB_DEBUG
 	bzero(oneStub, sizeof(Prs2OneStubData));
 #endif STUB_DEBUG
-	pfree(oneStub);
+	pfree((Pointer)oneStub);
     }
 
     if (relstub->numOfStubs>0 && relstub->stubRecords != NULL) {
-	pfree(relstub->stubRecords);
+	pfree((Pointer)relstub->stubRecords);
     }
 
 #ifdef STUB_DEBUG
     bzero(relstub, sizeof(Prs2StubData));
 #endif STUB_DEBUG
-    pfree(relstub);
+    pfree((Pointer)relstub);
 }
 
 /*----------------------------------------------------------------------
@@ -341,7 +342,7 @@ ObjectId ruleId;
 	     */
 	    result = true;
 	    stubs->stubRecords[i] = stubs->stubRecords[stubs->numOfStubs-1];
-	    pfree(thisStub);
+	    pfree((Pointer)thisStub);
 	    stubs->numOfStubs -=1;
 	} else {
 	    /*

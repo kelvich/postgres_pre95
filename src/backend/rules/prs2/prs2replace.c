@@ -83,8 +83,7 @@ Buffer *returnedBufferP;
     if (relationRuleInfo->ignoreTupleLocks)
 	oldTupleLocks = prs2MakeLocks();
     else
-	oldTupleLocks = prs2GetLocksFromTuple(rawTuple, rawBuffer,
-			    RelationGetTupleDescriptor(relation));
+	oldTupleLocks = prs2GetLocksFromTuple(rawTuple, rawBuffer);
     oldLocks = prs2LockUnion(oldTupleLocks, relLocks);
 
     /*
