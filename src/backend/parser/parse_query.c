@@ -19,6 +19,7 @@ RcsId("$Header$");
 
 #include "access/heapam.h"
 #include "access/tqual.h"
+#include "access/tupmacs.h"
 #include "parse.h"
 #include "utils/log.h"
 #include "utils/palloc.h"
@@ -301,7 +302,7 @@ ExpandAll(relname,this_resno)
 		varnode = (Var)CDR(temp);
 		type_id = CInteger(CAR(temp));
 		type_len = (int)tlen(get_id_type(type_id));
-		attrisset = rdesc->rd_att.data[i]->attisset;
+		attrisset = get_attisset(rdesc->rd_id, attrname);
 		/* Even if the elements making up a set are complex, the
 		 * set itself is not. */
 		
