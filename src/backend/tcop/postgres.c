@@ -178,14 +178,6 @@ main(argc, argv)
     */
 
     /* ----------------
-     * 	initialize the dynamic function manager
-     * ----------------
-     */
-    if (! Quiet)
-	puts("\tDynamicLinkerInit()..");
-    DynamicLinkerInit(argv[0]);
-
-    /* ----------------
      * 	various initalization stuff
      * ----------------
      */
