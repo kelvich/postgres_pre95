@@ -21,6 +21,7 @@ RcsId("$Header$");
 #include "parser/atoms.h"
 #include "utils/palloc.h"
 #include "utils/log.h"
+#include "tmp/name.h"
 
 /*
  * 	Global declaration for LispNil.
@@ -198,6 +199,39 @@ lispInteger(integerValue)
 	newobj->cdr = LispNil;
 	return(newobj);
 }
+
+/* ----------------
+ *	lispName returns a node of type T_LispStr
+ *	but gurantees that the string is char16 aligned and filled
+ * ----------------
+ */
+LispValue
+lispName(string)
+	char	*string;
+{
+    LispValue	newobj = lispAlloc();
+    char		*newstr;
+
+    newobj->type = PGLISP_STR;
+    newobj->equalFunc = _equalLispValue;
+    newobj->printFunc = lispDisplayFp;
+    newobj->copyFunc = _copyLispStr;
+    newobj->cdr = LispNil;
+
+    if(string ) {
+	if ( strlen(string) > sizeof(NameData) ) {
+	    elog(WARN,"Name %s was longer than %d",string,sizeof(NameData));
+	    /* NOTREACHED */
+	}
+	newstr = palloc(sizeof(NameData)+1);
+	newstr = strcpy(newstr,string);
+    } else
+      newstr = (char *)NULL;
+
+    newobj->val.str = newstr;
+    return(newobj);
+}
+
 
 /* ----------------
  *	lispString returns a node of type T_LispStr
