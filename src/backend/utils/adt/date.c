@@ -13,21 +13,17 @@
  * XXX	definitions in h/tim.h may need to be rethought also.
  */
 
-/*
-#include "postgres.h"
-*/
-
-#include "c.h"
-
-#include "log.h"
-#include "tim.h"
-
-RcsId("$Header$");
-
 #include <ctype.h>
 #include <stdio.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/timeb.h>
 #include <strings.h>
+
+#include "tmp/postgres.h"
+#include "utils/log.h"
+
+RcsId("$Header$");
 
 typedef struct { 
 	int32	status;
@@ -48,7 +44,8 @@ typedef TimeIntervalData *TimeInterval;
 
 /* absolute time definitions */
 #define	TIME_NOW_STR		"now"	   /* represents time now */
-#define	TIME_EPOCH_STR		"epoch"	   /* Jan 1 00:00:00 1902 */
+#define	TIME_EPOCH_STR		"epoch"	   /* Jan 1 00:00:00 1970 GMT */
+#define TIME_EPOCH_STR_LEN	(sizeof(TIME_EPOCH_STR)-1)
 #ifndef INVALID_ABSTIME
 #define	INVALID_ABSTIME		MAX_LONG
 #endif	!INVALID_ABSTIME
@@ -63,7 +60,7 @@ typedef TimeIntervalData *TimeInterval;
 #define	INVALID_SEC		59
 #define	INVALID_YEAR		1901
 #define	MAX_ABSTIME		2145916800	/* Jan  1 00:00:00 2038 */ 
-#define	MIN_ABSTIME		(-2145916800)	/* Jan  1 00:00:00 1902 */
+#define	MIN_ABSTIME		(-2145916800)	/* Jan  1 00:00:00 1970 */
 
 /* relative time definitions */
 #define	MAX_RELTIME		2144448000
@@ -121,12 +118,16 @@ static	int	unit_max_quantity[] = {
 
 	    /* ========== USER I/O ROUTINES ========== */
 
+struct timeb *TimeDifferenceFromGMT = NULL;
+static bool TimeDiffIsInited = false;
+static char *timezonename = NULL;
 
 /*
  *	abstimein	- converts a time string to an internal format
  *			  checks syntax and range of datetime,
  *			  returns time as long integer in respect of GMT
  */
+
 AbsoluteTime	
 abstimein(datetime)
 	char	*datetime;
@@ -136,6 +137,15 @@ abstimein(datetime)
 	int		which;
 	AbsoluteTime	time;
 	struct tm	brokentime;
+
+	if ( TimeDiffIsInited == false ) {
+	    TimeDifferenceFromGMT = (struct timeb *)
+	      malloc( sizeof(struct timeb));
+	    ftime(TimeDifferenceFromGMT);
+	    timezonename = timezone ( TimeDifferenceFromGMT->timezone,
+			        TimeDifferenceFromGMT->dstflag ) ;
+	    TimeDiffIsInited = true;
+	}
 
 	which = isabstime(datetime, &brokentime);
 
@@ -151,6 +161,17 @@ abstimein(datetime)
 
 	case 1:							/* from user */
 		(void) timeinsec(&brokentime, &time);
+
+		/* user inputs in local time, we need to store things
+		 * in GMT so that moving databases across timezones
+		 * (amongst other things) behave predictably
+		 */
+
+		time = time + 
+		  (TimeDifferenceFromGMT->timezone * 60 ) -
+		    ( TimeDifferenceFromGMT->dstflag * 3600 ) ;
+		  
+		
 		break;
 
 	case 0:							/* error */
@@ -185,18 +206,45 @@ abstimeout(datetime)
 	char			*datestring, *p;
 	int			i;
 
-	datestring = (char *) palloc(30); 
-	if (datetime == INVALID_ABSTIME)
-		(void) strcpy(datestring,INVALID_ABSTIME_STR);
-	else {
-		brokentime = gmtime((long *) &datetime);
-		/* no correction of timezone and dst!!*/
-		(void) strcpy(datestring,asctime(brokentime));
-		for (i=0; i<=3; i++)		 /* skip name of day */
-			datestring=datestring++;
-		/* change new-line character "\n" at the end to NULL */
-		p = index(datestring,'\n');
-		*p = NULL;
+	if ( TimeDiffIsInited == false ) {
+	    TimeDifferenceFromGMT = (struct timeb *)
+	      malloc( sizeof(struct timeb));
+	    ftime(TimeDifferenceFromGMT);
+	    timezonename = timezone ( TimeDifferenceFromGMT->timezone,
+			        TimeDifferenceFromGMT->dstflag ) ;
+	    TimeDiffIsInited = true;
+	}
+
+	if (datetime == INVALID_ABSTIME) {
+	    datestring = (char *) palloc ( INVALID_ABSTIME_STR_LEN );
+	    (void) strcpy(datestring,INVALID_ABSTIME_STR);
+	} else if ( datetime == 0 ) {
+	    datestring = (char *)palloc ( TIME_EPOCH_STR_LEN );
+	    (void) strcpy(datestring, TIME_EPOCH_STR );
+	} else   {
+	    /* Using localtime instead of gmtime
+	     * does the correct conversion !!!
+	     */
+	    char *temp_date_string = NULL;
+
+	    brokentime = localtime((long *) &datetime);
+	    temp_date_string = asctime(brokentime);
+
+	    /* add ten to the length because we want to append
+	     * the local timezone spec which might be up to GMT+xx:xx
+	     */
+
+	    datestring = (char *)palloc ( strlen ( temp_date_string ) + 10 );
+
+	    (void) strcpy(datestring, 
+			  temp_date_string + 4 );    /* skip name of day */
+
+	    /* change new-line character "\n" at the end to timezone 
+	       followed by a null */
+	    p = index(datestring,'\n');
+	    *p = ' ';
+
+	    strcpy ( p+1 , timezonename );
 	}
 	return(datestring);
 }
@@ -758,10 +806,10 @@ intervalend(i)
  *	where
  *	Month is	`Jan', `Feb', ..., `Dec'
  *	Day is		` 1', ` 2', ..., `31'
- *	Hour is		`01', `02', ..., `24'
+ *	Hour is		`01', `02', ..., `24' (leading zero optional if < 10 )
  *	Minute is	`00', `01', ..., `59'
  *	Second is	`00', `01', ..., `59'
- *	Year is		`1902', `1903', ..., `2038'
+ *	Year is		`1970', `1971', ..., `2156'
  *
  *	OR    `Undefined AbsTime'  (see also INVALID_ABSTIME_STR)
  *
@@ -859,12 +907,16 @@ isabstime(datestring, brokentime)
 	min=0;
 	sec=0;
 	for (i=0; i<=1; i++) {
-		c = *p;
-		if (isdigit(c)) {
-			hour=hour * 10 + (c - '0');
-			p++;
-		} else
-			return(0);	/*syntax error*/
+	    c = *p;
+	    if (isdigit(c)) {
+		hour=hour * 10 + (c - '0');
+		p++;
+	    } else if ( c == ':' && hour != 0 ) {
+		/* one digit hours */
+		break;
+	    } else {
+		return(0);	/*syntax error*/
+	    }
 	}
 	c = *p;	/*if hour:min:sec option then c==':' */
 	/* else c = third digit of year */
