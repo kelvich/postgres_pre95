@@ -48,6 +48,7 @@ PutRelationLocks ( rule_oid, ev_oid, ev_attno,
     }
 
     switch ( ac_type ) {
+      case      0:		/* temp support for instead nothing */
       case APPEND:
       case DELETE:
 	locktype |= DoOther;
@@ -163,27 +164,30 @@ ThisLockWasTriggered ( varno, attnum, parse_subtree )
  * - match the list of locks, 
  */
 List
-MatchLocks ( locktype, rulelocks , current_varno , user_parsetree )
+MatchLocks ( locktype, rulelocks , varno , user_parsetree )
      Prs2LockType locktype;
      RuleLock rulelocks;
-     int current_varno;
+     int varno;
      List user_parsetree;
 {
     List real_locks 		= NULL;
+    List root;
     Prs2OneLock oneLock		= NULL;
     int nlocks			= 0;
     int i			= 0;
     List actual_result_reln	= NULL;
-
+    
     Assert ( rulelocks != NULL ); /* we get called iff there is some lock */
     Assert ( user_parsetree != NULL );
 
-    actual_result_reln = 
-      root_result_relation ( parse_root ( user_parsetree ) );
+    root = parse_root ( user_parsetree );
 
-    if (CInteger ( actual_result_reln ) != current_varno ) {
-	return ( NULL );
-    }
+    actual_result_reln =  root_result_relation (root);
+
+    if (root_command_type(root) != RETRIEVE) 
+	if (CInteger ( actual_result_reln ) != varno ) {
+	    return ( NULL );
+	}
 
     nlocks = prs2GetNumberOfLocks ( rulelocks );
 
@@ -191,7 +195,13 @@ MatchLocks ( locktype, rulelocks , current_varno , user_parsetree )
 	oneLock = prs2GetOneLockFromLocks ( rulelocks , i );
 	if ( IsActive(oneLock) && IsRewrite(oneLock) &&
 	    Event(oneLock) == locktype )  {
-	    real_locks = nappend1 ( real_locks, oneLock );
+	    if (root_command_type(root) == RETRIEVE) {
+		if ( ThisLockWasTriggered ( varno,
+					   oneLock->attributeNumber,
+					   user_parsetree ))
+		    real_locks = nappend1 ( real_locks, oneLock );
+	    }
+	    else real_locks = nappend1 ( real_locks, oneLock );
 	} /* if lock is suitable */
     } /* for all locks */
     
