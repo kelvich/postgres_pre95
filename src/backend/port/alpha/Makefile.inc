@@ -4,7 +4,7 @@
 # $Header$
 #
 
-LDADD+= -lln -lbsd
+LDADD+= -lln
 
 HEADERS+= machine.h 
 
