@@ -70,12 +70,13 @@ ExecCallFunction(fcache,args)
 	func_ptr user_fn;
 	int true_arguments;
 	char *returnValue;
+	bool  isNull;
 
 	switch (fcache->language) {
 	case INTERNALlanguageId:
 	case ClanguageId:
 	    return
-		c_lang_func_call_ptr_array(fcache->func,fcache->nargs,args);
+		c_lang_func_call_ptr_array(fcache->func,fcache->nargs,args, &isNull);
 	    break;
 	case POSTQUELlanguageId:
 	    return postquel_lang_func_call_array_fcache(fcache);
