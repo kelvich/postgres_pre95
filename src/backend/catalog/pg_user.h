@@ -77,6 +77,7 @@ DATA(insert OID = 3491 ( kemnitz 3491 t t t t ));
 DATA(insert OID = 3898 ( choi 3898 t t t t ));
 DATA(insert OID = 3918 ( glass 3918 t t t t ));
 DATA(insert OID = 4613 ( mer 4613 t t t t ));
+DATA(insert OID = 4616 ( dpassage 4616 t t t t ));
 DATA(insert OID = 5059 ( caetta 5059 t t t t ));
 DATA(insert OID = 5209 ( joey 5209 t t t t ));
 
