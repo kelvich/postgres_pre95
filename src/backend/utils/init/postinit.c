@@ -148,7 +148,7 @@ InitMyDatabaseId()
      * ----------------
      */
     if ((dbfd = open("../../pg_database", O_RDONLY, 0666)) < 0) {
-	LockingIsDisabled = true;
+	LockDisable(true);
 	return;
     }
 
@@ -222,9 +222,9 @@ done:
      * ----------------
      */
     if (ObjectIdIsValid(MyDatabaseId))
-	LockingIsDisabled = false;
+	LockDisable(false);
     else
-	LockingIsDisabled = true;
+	LockDisable(true);
 }
 
 /* ----------------
@@ -635,12 +635,12 @@ InitPostgres(name)
      * ----------------
      */
     AmiTransactionOverride(IsBootstrapProcessingMode());
-    LockingIsDisabled = true;
+    LockDisable(true);
 
     RelationInitialize();	   /* pre-allocated reldescs created here */
     InitializeTransactionSystem(); /* pg_log,etc init/crash recovery here */
     
-    LockingIsDisabled = false;
+    LockDisable(false);
 
     /* ----------------
      *	anyone knows what this does?  something having to do with
@@ -687,7 +687,7 @@ InitPostgres(name)
     if (!bootstrap)
 	SetProcessingMode(NormalProcessing);
     if (testFlag || lockingOff)
-	LockingIsDisabled = true;
+	LockDisable(true);
 }
 
 /* --------------------------------
