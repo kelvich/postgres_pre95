@@ -1,6 +1,6 @@
 #
 # The following turns on intermediate linking of big objects
-# to spped the link cycle during development.  It's on by default.
+# to speed the link cycle during development.  It's on by default.
 # You can disable it by commenting out the line in your local copy,
 # or by putting:
 #	.undef BIGOBJS
@@ -154,11 +154,11 @@ SUBOBJS= ACCESS.o BOOTSTRAP.o COMMANDS.o EXECUTOR.o main.o MISC.o NODES.o \
 .endif
 
 #
-# If you change the value of the folowing you need to "bmake clean; bmake"
+# If you change the value of the following you need to "bmake clean; bmake"
 # Only other solution is to track the dependecies, but that seems
 # unreasonable.  But if you feel inspired, I suppose you could grep -w
 # the sources for POSTGRESDIR, DATADIR, etc and make a dependency
-# below somewhere.  Wouldn't larry wall do that?
+# below somewhere (wouldn't larry wall do that ;)?
 #
 CFLAGS+=  -DPOSTGRESDIR='"${POSTGRESDIR}"' \
 	-DDATADIR='"${DATADIR}"' \
@@ -185,6 +185,17 @@ CLEANFILES+= y.output
 # TODO: include tmp/*.h and port/?/*.h files in $HEADERS
 
 
+#
+# Install the bki files to the data directory.  We also
+# copy a version of them that has "PGUID" intact, so one
+# can change the value of the postgres userid before
+# running initdb in the case of customizing the binary
+# release (i.e. fixing up PGUID w/o recompiling the system).
+# Those files are copied out as foo.source.  The program
+# newbki(1) can be run later to reset the postgres login id (but it must
+# be run before initdb is run, or after clearing the data directory
+# with cleardbdir(1)).
+#
 afterinstall: pg_id
 	install ${STRIP} -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
 		postmaster ${DESTDIR}${BINDIR}/postmaster
@@ -207,6 +218,8 @@ afterinstall: pg_id
 		sed "s/PGUID/$$PG_UID/" < $$bki > $$bki.sed ; \
 		install -c -o ${BINOWN} -g ${BINGRP} -m 444 \
 		    $$bki.sed ${DESTDIR}${DATADIR}/files/$$bki; \
+		install -c -o ${BINOWN} -g ${BINGRP} -m 444 \
+		    $$bki ${DESTDIR}${DATADIR}/files/$$bki.source; \
 	done
 
 #
