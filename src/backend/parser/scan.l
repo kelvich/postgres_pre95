@@ -76,7 +76,7 @@ other		.
 			char buf[8192];
 			scanarray(buf,sizeof(buf));
 			yylval = lispString(buf);
-			return (ARRAY);
+			return (SCONST);
 		}
 
 {character}	{
