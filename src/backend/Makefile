@@ -216,6 +216,8 @@ afterinstall: pg_id
 pg_id:	pg_id.c
 	${CC} -o pg_id ${.ALLSRC} 
 
+CLEANFILES+= pg_ig
+
 ###
 # depend target: since the backend has a bazillion source
 #	files, doing a mkdep on the whole thing is unweildly. This
@@ -267,3 +269,5 @@ ${PROG}: ${SUBOBJS}
 postmaster: postmaster.o ${OBJS}
 	${CC} ${CFLAGS} -o postmaster postmaster.o ${OBJS:S/^main.o$//} ${LDADD}
 all: postmaster
+
+CLEANFILES+= postmaster postmaster.o
