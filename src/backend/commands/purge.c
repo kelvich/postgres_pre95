@@ -45,11 +45,10 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	/* XXX check: pg_user.usecatupd permission? */
 
 	if (PointerIsValid(absoluteTimeString)) {
-		/*
-		if (!isabstime(absoluteTimeString))
-			elog(WARN, "%s: bad absolute time string %s",
+		if (!isabstime(absoluteTimeString, NULL)) {
+			elog(WARN, "%s: bad absolute time string \"%s\"",
 			     cmdname, absoluteTimeString);
-		*/
+		}
 		absoluteTime = abstimein(absoluteTimeString);
 		
 #ifdef	PURGEDEBUG
@@ -59,11 +58,10 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	}
 
 	if (PointerIsValid(relativeTimeString)) {
-		/*
-		if (!isreltime(relativeTimeString))
-			elog(WARN, "%s: bad relative time string %s",
+		if (!isreltime(relativeTimeString, NULL, NULL, NULL)) {
+			elog(WARN, "%s: bad relative time string \"%s\"",
 			     cmdname, relativeTimeString);
-		*/
+		}
 		relativeTime = reltimein(relativeTimeString);
 		
 #ifdef	PURGEDEBUG
