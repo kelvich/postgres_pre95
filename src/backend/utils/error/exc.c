@@ -9,9 +9,8 @@
 
 #include <stdio.h>	/* XXX use own I/O routines */
 
-#include "c.h"
-
-#include "exc.h"
+#include "tmp/c.h"
+#include "utils/exc.h"
 
 RcsId("$Header$");
 
