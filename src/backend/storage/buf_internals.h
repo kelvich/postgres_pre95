@@ -128,12 +128,23 @@ struct sbufdesc {
 
     NameData		sb_dbname;	/* name of db in which buf belongs */
     NameData		sb_relname;	/* name of reln */
+#ifdef mips
+    /*
+     * I padded this structure to a power of 2 (128 bytes on a MIPS) because
+     * BufferDescriptorGetBuffer is called a billion times and it does an
+     * ANSI C pointer subtraction (i.e., "x - y" -> array index of x relative
+     * to y, which is calculated using division by struct size).  Integer
+     * ".div" hits you for 35 cycles, as opposed to a 1-cycle "sra" ...
+     * this hack cut 10% off of the time to create the Wisconsin database!
+     * It eats up more shared memory, of course, but we're (allegedly)
+     * going to make some of these types bigger soon anyway... -pma 1/2/93
+     */
+    char		sb_pad[60];
+#endif /* mips */
 
 #ifdef HAS_TEST_AND_SET
-
     /* can afford a dedicated lock if test-and-set locks are available */
     slock_t	io_in_progress_lock;
-
 #endif
 };
 
