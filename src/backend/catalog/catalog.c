@@ -28,6 +28,7 @@ char	AM_R[16] = 		"pg_am";
 char	AMOP_R[16] = 		"pg_amop";
 char	AMPROC_R[16] = 		"pg_amproc";
 char	ATTRIBUTE_R[16] = 	"pg_attribute";
+char	CLASS_R[16] = 		"pg_class";
 char	DATABASE_R[16] = 	"pg_database";
 char	DEFAULTS_R[16] = 	"pg_defaults";
 char	DEMON_R[16] = 		"pg_demon";
@@ -45,7 +46,6 @@ char	PROC_R[16] = 		"pg_proc";
 char	PRS2PLANS_R[16] = 	"pg_prs2plans";
 char 	PRS2RULE_R[16] = 	"pg_prs2rule";
 char 	PRS2STUB_R[16] = 	"pg_prs2stub";
-char	RELATION_R[16] = 	"pg_relation";
 char	RULE_R[16] = 		"pg_rule";
 char	RULEPLANS_R[16] = 	"pg_ruleplans";
 char	SERVER_R[16] = 		"pg_server";
@@ -71,6 +71,7 @@ static char *SystemRelname[] = {
     AMOP_R,
     AMPROC_R,
     ATTRIBUTE_R,
+    CLASS_R,
     DATABASE_R,
     DEFAULTS_R,
     DEMON_R,
@@ -88,7 +89,6 @@ static char *SystemRelname[] = {
     PRS2PLANS_R,
     PRS2RULE_R,
     PRS2STUB_R,
-    RELATION_R,
     RULE_R,
     RULEPLANS_R,
     SERVER_R,
@@ -112,6 +112,7 @@ static	char	IsDbdb[] = {
     '\0',	    /* AMOP_R,          */
     '\0',	    /* AMPROC_R,        */
     '\0',	    /* ATTRIBUTE_R,     */
+    '\0',	    /* CLASS_R,         */
     '\001',	    /* DATABASE_R,      */
     '\001',	    /* DEFAULTS_R,      */
     '\001',	    /* DEMON_R,         */
@@ -129,7 +130,6 @@ static	char	IsDbdb[] = {
     '\0',	    /* PRS2PLANS_R,     */
     '\0',	    /* PRS2RULE_R,      */
     '\0',	    /* PRS2STUB_R,      */
-    '\0',	    /* RELATION_R,      */
     '\0',	    /* RULE_R,          */
     '\0',	    /* RULEPLANS_R,     */
     '\001',	    /* SERVER_R,        */
