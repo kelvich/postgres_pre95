@@ -18,14 +18,18 @@
  */
 
 #define	SJCACHESIZE	64		/* # groups in mag disk cache */
-#define	SJGRPSIZE	10		/* # 8k pages in a group */
-#define SJNBLKSIZE	10		/* # sizes cached in nblock cache */
+#define	SJGRPSIZE	16		/* # 8k pages in a group */
+#define SJNBLKSIZE	20		/* # sizes cached in nblock cache */
 #define SJPATHLEN	64		/* size of path to cache file */
 
 /* misc constants */
 #define	SJCACHENAME	"_sj_cache_"	/* relative to $POSTGRESHOME/data */
 #define	SJMETANAME	"_sj_meta_"	/* relative to $POSTGRESHOME/data */
 #define	SJBLOCKNAME	"_sj_nblocks_"	/* relative to $POSTGRESHOME/data */
+
+/* for allocations... */
+#define SJNEWRELN	0
+#define SJOLDRELN	1
 
 /*
  *  SJGroupDesc -- Descriptor block for a cache group.

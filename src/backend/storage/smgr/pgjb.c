@@ -264,6 +264,38 @@ pgjb_offset(plname, plid, extentsz)
 }
 
 /*
+ *  pgjb_freespc() -- Be sure there's sufficient space on the platter for
+ *		      an allocation.
+ *
+ *	If a new relation is being allocated to this platter, our policy
+ *	is that the platter must be no more than 90% full.  This permits
+ *	existing relations on the platter to grow, which provides coarse
+ *	clustering.  If this is not an allocation for a new relation,
+ *	then all that we require is that there be one extent free on the
+ *	platter.
+ */
+
+bool
+pgjb_freespc(plname, plid, alloctype)
+    char *plname;
+    ObjectId plid;
+    int alloctype;
+{
+    BlockNumber hiblock;
+    BlockNumber maxblock;
+
+    /* to find high block number, allocate a size zero extent... */
+    hiblock = pgjb_offset(plname, plid, 0);
+
+    if (alloctype == SJNEWRELN)
+	maxblock = (JB_MAX_BLOCK / 10) * 9;
+    else
+	maxblock = JB_MAX_BLOCK - SJEXTENTSZ;
+
+    return ((bool) (hiblock <= maxblock));
+}
+
+/*
  *  _pgjb_hashget() -- Find a shared memory hash table record by platter id.
  *
  *	If the requested platter id is in the shared cache, we return a

@@ -122,9 +122,11 @@ static int		_sjgetgrp();
 static void		_sjdump();
 
 /* routines declared elsewhere */
-extern HTAB	*ShmemInitHash();
-extern int	*ShmemInitStruct();
-extern Relation	RelationIdGetRelation();
+extern HTAB		*ShmemInitHash();
+extern int		*ShmemInitStruct();
+extern Relation		RelationIdGetRelation();
+extern BlockNumber	pgjb_offset();
+extern bool		pgjb_freespc();
 
 /*
  *  sjinit() -- initialize the Sony jukebox storage manager.
@@ -691,15 +693,20 @@ _sjregister(item, group)
  *	Allocation strategy is:
  *
  *	  + For the first extent of a new relation, put it on the first
- *	    platter <= 2/3 full.
+ *	    with room for a new relation.  The policy for allocating new
+ *	    relations to a platter is implemented by pgjb_freespc().
  *
  *	  + For second and subsequent extents of an existing relation:
  *
  *	    -  If there's a platter holding another extent for this
  *	       relation, and that platter has room for this extent,
- *	       allocate it there.
+ *	       allocate it there.  NOTE:  this is true in the current
+ *	       implementation, but it's a side effect of the way in which
+ *	       we scan for free space on platters (we consider platters
+ *	       in the same order every time we look).
  *
- *	    -  Otherwise, allocate the extent on any platter <= 2/3 full.
+ *	    -  Otherwise, allocate the extent on the first platter with
+ *	       space for a new extent.
  */
 
 static Form_pg_plmap
@@ -717,31 +724,55 @@ _sjchoose(item)
     Name platname;
     char *plname;
     bool isnull;
+    bool done;
+    int alloctype;
 
     /* allocate the tuple form */
     plmdata = (Form_pg_plmap) palloc(sizeof(FormData_pg_plmap));
     plname = (char *) palloc(sizeof(NameData) + 1);
 
     plat = heap_openr(Name_pg_platter);
+
+    /*
+     *  We do short-term (non-two-phase) locking on the platter relation
+     *  in order to guarantee serial allocations.
+     */
+
+    RelationSetLockForWrite(plat);
+
     platdesc = RelationGetTupleDescriptor(plat);
     platscan = heap_beginscan(plat, false, NowTimeQual, 0, NULL);
-    plattup = heap_getnext(platscan, false, &buf);
 
+    /* figure out if this is a new or an old relation allocation */
+    alloctype = (item->sjc_tag.sjct_base > 0 ? SJOLDRELN : SJNEWRELN);
+
+    /* find a qualifying tuple in pg_platter */
+    plattup = heap_getnext(platscan, false, &buf);
     if (!HeapTupleIsValid(plattup))
 	elog(WARN, "_sjchoose: no platters in pg_plmap");
 
-    /* get platter OID, name */
-    plmdata->plid = plattup->t_oid;
-    d = (Datum) heap_getattr(plattup, buf, Anum_pg_platter_plname,
-			     platdesc, &isnull);
-    platname = DatumGetName(d);
-    strncpy(plname, &(platname->data[0]), sizeof(NameData));
-    plname[sizeof(NameData)] = '\0';
+    done = false;
+    do {
+	/* get platter OID, name */
+	plmdata->plid = plattup->t_oid;
+	d = (Datum) heap_getattr(plattup, buf, Anum_pg_platter_plname,
+				 platdesc, &isnull);
+	platname = DatumGetName(d);
+	strncpy(plname, &(platname->data[0]), sizeof(NameData));
+	plname[sizeof(NameData)] = '\0';
 
-    /* done */
-    ReleaseBuffer(buf);
-    heap_endscan(platscan);
-    heap_close(plat);
+	done = pgjb_freespc(plname, plid, alloctype);
+
+	/* done with this tuple */
+	ReleaseBuffer(buf);
+
+	/* next tuple */
+	if (!done) {
+	    plattup = heap_getnext(platscan, false, &buf);
+	    if (!HeapTupleIsValid(plattup))
+		elog(WARN, "_sjchoose: no space on platters in pg_plmap");
+	}
+    } while (!done);
 
     /* init the rest of the fields */
     plmdata->pldbid = item->sjc_tag.sjct_dbid;
@@ -749,6 +780,12 @@ _sjchoose(item)
     plmdata->plblkno = item->sjc_tag.sjct_base;
     plmdata->plextentsz = SJEXTENTSZ;
     plmdata->ploffset = pgjb_offset(plname, plmdata->plid, plmdata->plextentsz);
+
+    /* no longer need an exclusive lock for the allocation */
+    RelationUnsetLockForWrite(plat);
+
+    heap_endscan(platscan);
+    heap_close(plat);
 
     /* save platter name, id, offset in item */
     bcopy(plname, &(item->sjc_plname.data[0]), sizeof(NameData));

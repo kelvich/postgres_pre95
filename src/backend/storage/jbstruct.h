@@ -29,6 +29,20 @@ extern char *jb_server_mach;		/* machine server runs on */
 #define JB_MAX_LOG_DRIVE	8	/* 8 logical drives */
 
 /*
+ *  addressible blocks:
+ *
+ *	WDM-6DA0:	0 - 2181999
+ *	WDM-6DL0:	0 - 3275999
+ *	WDM-3DA0:	0 - 1090999
+ *	WDM-3DL0:	0 - 1637999
+ *
+ *  our sony jukebox is a 6DL0.  by convention, blocks 0 - 99 are
+ *  reserved for labels.  addressing is zero-based in libjb.
+ */
+
+#define JB_MAX_BLOCK		3275899
+
+/*
  * JBLABEL declaration
  *
  * This is storage for a label block.  "system" data occupies the first
