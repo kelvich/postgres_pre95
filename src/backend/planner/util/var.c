@@ -100,8 +100,9 @@ var_equal (var1,var2,dots)
 	    return(true);
 	}
 */
-
-    } else 
+      return(true);
+    }
+	else 
       return(false);
     
 } /* var_equal */
