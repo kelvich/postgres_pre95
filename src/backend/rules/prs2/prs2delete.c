@@ -36,8 +36,9 @@
  *      PRS2MGR_TUPLE_UNCHANGED: Ok, go ahead & delete the tuple
  */
 Prs2Status
-prs2Delete(prs2EStateInfo, tuple, buffer, relation)
+prs2Delete(prs2EStateInfo, explainRelation, tuple, buffer, relation)
 Prs2EStateInfo prs2EStateInfo;
+Relation explainRelation;
 HeapTuple tuple;
 Buffer buffer;
 Relation relation;
@@ -71,6 +72,7 @@ Relation relation;
      */
     prs2ActivateForwardChainingRules(
 	    prs2EStateInfo,
+	    explainRelation,
 	    relation,
 	    InvalidAttributeNumber,
 	    LockTypeDeleteAction,
@@ -83,7 +85,9 @@ Relation relation;
 	    InvalidAttributeValues,
 	    InvalidRuleLock,
 	    LockTypeInvalid,
-	    &insteadRuleFound);
+	    &insteadRuleFound,
+	    (AttributeNumberPtr) NULL,
+	    (AttributeNumber) 0);
 
     /*
      * free allocated stuff...
