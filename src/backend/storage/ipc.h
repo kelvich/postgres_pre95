@@ -60,6 +60,8 @@ extern IpcSemaphoreId IpcSemaphoreCreate();
 extern void IpcSemaphoreKill();
 extern void IpcSemaphoreLock();
 extern void IpcSemaphoreUnlock();
+extern int IpcSemaphoreGetCount();
+extern int IpcSemaphoreGetValue();
 extern IpcMemoryId IpcMemoryCreate();
 extern IpcMemoryId IpcMemoryIdGet();
 extern char *IpcMemoryAttach();
