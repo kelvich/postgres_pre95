@@ -530,13 +530,15 @@ _bt_next(scan, dir)
     ItemPointer iptr;
     BTItem btitem;
     IndexTuple itup;
+    BTScanOpaque so;
 
     rel = scan->relation;
-    current = &(scan->currentItemData);
-    blkno = ItemPointerGetBlockNumber(current, 0);
+    so = (BTScanOpaque) scan->opaque;
 
-    /* we still hold a read lock on the buffer */
-    buf = _bt_getbuf(rel, blkno, BT_NONE);
+    /* we still have the buffer pinned and locked */
+    buf = so->btso_curbuf;
+    current = &(scan->currentItemData);
+    blkno = BufferGetBlockNumber(buf, 0);
 
     /* step one tuple in the appropriate direction */
     if (!_bt_step(scan, &buf, dir))
@@ -553,8 +555,8 @@ _bt_next(scan, dir)
 	bcopy((char *) &(itup->t_tid), (char *) iptr, sizeof(ItemPointerData));
 	res = ItemPointerFormRetrieveIndexResult(current, iptr);
 
-	/* unpin, but don't unlock, the buffer */
-	_bt_relbuf(rel, buf, BT_NONE);
+	/* remember which buffer we have pinned and locked */
+	so->btso_curbuf = buf;
     } else {
 	ItemPointerSetInvalid(current);
 	_bt_relbuf(rel, buf, BT_READ);
@@ -571,10 +573,8 @@ _bt_next(scan, dir)
  *	performing, and the tree ordering.  We return the RetrieveIndexResult
  *	of the first item in the tree that satisfies the qualification
  *	associated with the scan descriptor.  On exit, the page containing
- *	the current index tuple is read locked, but not pinned.
- *
- *	Locking interactions are critical, and you'll screw them up if you
- *	try to change this code without understanding them.
+ *	the current index tuple is read locked and pinned, and the scan's
+ *	opaque data entry is updated to include the buffer.
  */
 
 RetrieveIndexResult
@@ -597,6 +597,7 @@ _bt_first(scan, dir)
     RetrieveIndexResult res;
     RegProcedure proc;
     int result;
+    BTScanOpaque so;
     ScanKeyData skdata;
 
     /* if we just need to walk down one edge of the tree, do that */
@@ -677,8 +678,12 @@ _bt_first(scan, dir)
 	break;
 
       case BTEqualStrategyNumber:
-	if (result != 0)
+	if (result != 0) {
+	  _bt_relbuf(scan->relation, buf, BT_READ);
+	  ItemPointerSetInvalid(&(scan->currentItemData));
 	  return ((RetrieveIndexResult) NULL);
+	}
+	break;
 
       case BTGreaterEqualStrategyNumber:
 	if (result < 0) {
@@ -718,8 +723,9 @@ _bt_first(scan, dir)
 	bcopy((char *) &(itup->t_tid), (char *) iptr, sizeof(ItemPointerData));
 	res = ItemPointerFormRetrieveIndexResult(current, iptr);
 
-	/* unpin, but don't unlock, the buffer */
-	_bt_relbuf(rel, buf, BT_NONE);
+	/* remember which buffer we have pinned */
+	so = (BTScanOpaque) scan->opaque;
+	so->btso_curbuf = buf;
     } else {
 	ItemPointerSetInvalid(current);
 	_bt_relbuf(rel, buf, BT_READ);
@@ -884,7 +890,7 @@ _bt_step(scan, bufP, dir)
  *	This is unlikely, but we try to handle it correctly here anyway.
  *
  *	This routine contains the only case in which our changes to Lehman
- *	and Yao's algorithm 
+ *	and Yao's algorithm.
  *
  *	Like step, this routine leaves the scan's currentItemData in the
  *	proper state and acquires a lock and pin on *bufP.  If the twostep
@@ -1003,6 +1009,7 @@ _bt_endpoint(scan, dir)
     BlockNumber blkno;
     BTItem btitem;
     IndexTuple itup;
+    BTScanOpaque so;
     RetrieveIndexResult res;
 
     rel = scan->relation;
@@ -1097,8 +1104,9 @@ _bt_endpoint(scan, dir)
 	bcopy((char *) &(itup->t_tid), (char *) iptr, sizeof(ItemPointerData));
 	res = ItemPointerFormRetrieveIndexResult(current, iptr);
 
-	/* unpin, but don't unlock, the buffer */
-	_bt_relbuf(rel, buf, BT_NONE);
+	/* remember which buffer we have pinned */
+	so = (BTScanOpaque) scan->opaque;
+	so->btso_curbuf = buf;
     } else {
 	_bt_relbuf(rel, buf, BT_READ);
 	res = (RetrieveIndexResult) NULL;

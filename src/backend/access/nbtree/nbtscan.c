@@ -40,7 +40,7 @@ typedef struct BTScanListData {
 
 typedef BTScanListData	*BTScanList;
 
-BTScanList	BTScans = (BTScanList) NULL;
+static BTScanList	BTScans = (BTScanList) NULL;
 
 /*
  *  _bt_regscan() -- register a new scan.
@@ -112,11 +112,13 @@ _bt_scandel(scan, blkno, offind)
     Buffer buf;
     Page page;
     OffsetIndex maxoff;
+    BTScanOpaque so;
 
     if (!_bt_scantouched(scan, blkno, offind))
 	return;
 
-    buf = _bt_getbuf(scan->relation, blkno, BT_NONE);
+    so = (BTScanOpaque) scan->opaque;
+    buf = so->btso_curbuf;
     page = BufferGetPage(buf, 0);
     maxoff = PageGetMaxOffsetIndex(page);
 
@@ -124,7 +126,8 @@ _bt_scandel(scan, blkno, offind)
     if (ItemPointerIsValid(current)
 	&& ItemPointerGetBlockNumber(current) == blkno
 	&& ItemPointerGetOffsetNumber(current, 0) >= offind + 1) {
-	_bt_step(scan, BackwardScanDirection);
+	_bt_step(scan, &buf, BackwardScanDirection);
+	so->btso_curbuf = buf;
     }
 
     current = &(scan->currentMarkData);
@@ -135,12 +138,12 @@ _bt_scandel(scan, blkno, offind)
 	tmp = *current;
 	*current = scan->currentItemData;
 	scan->currentItemData = tmp;
-	_bt_step(scan, BackwardScanDirection);
+	_bt_step(scan, &buf, BackwardScanDirection);
+	so->btso_mrkbuf = buf;
 	tmp = *current;
 	*current = scan->currentItemData;
 	scan->currentItemData = tmp;
     }
-    _bt_relbuf(scan->relation, buf, BT_NONE);
 }
 
 bool
