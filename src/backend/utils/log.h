@@ -25,6 +25,8 @@
 #define SLOG	0x2000	/* put message in system log */
 #define ABORT	0x4000	/* abort process after logging */
 
+#define ELOG_MAXLEN 4096
+
 extern int	Cline;
 extern char	*Cfile;
 extern int	ElogDebugIndentLevel;
