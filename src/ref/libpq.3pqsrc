@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH INTRODUCTION LIBPQ 08/13/93
+.TH INTRODUCTION LIBPQ 02/12/94
 .XA 0 "Section 5 \(em Libpq"
 .BH "SECTION 5 \(em LIBPQ"
 .SH DESCRIPTION
@@ -536,7 +536,9 @@ PQexec(" ");
 .)C
 Then the frontend should check the variable, PQAsyncNotifyWaiting.
 When this variable is non-zero, the frontend can retrieve the
-notification data held using PQNotifies.  The frontend must call 
+notification data held using 
+.IR PQNotifies .
+The frontend must call 
 .IR PQNotifies
 in order to find out which classes the data corresponds to (i.e.,
 which notification events have been set off).  These events must then
@@ -545,8 +547,17 @@ be individually cleared by calling
 on each element of the list returned by
 .IR PQNotifies .
 .PP
+Notice that the asynchronous notification process does not itself
+transfer any data, but only a class name.  Hence the frontend and
+backend must come to agreement on the class to be used to pass
+any data prior to notification and data transfer (obviously, since 
+the frontend must specify this table name in the corresponding
+.IR listen
+command).
+.PP
 The second sample program gives an example of the use of asynchronous
-portals.
+portals in which the frontend program retrieves the entire contents
+of the result class each time it is notified.
 .TP 15n
 .BR PQNotifies
 Return the list of relations on which notification has occurred.
