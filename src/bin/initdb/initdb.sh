@@ -64,8 +64,10 @@ TEMPLATE=$FILESDIR/local1_template1.bki
 GLOBAL=$FILESDIR/global1.bki
 if [ ! -f $TEMPLATE -o ! -f $GLOBAL ]
 then
-    echo "$CMDNAME: warning: $POSTGRESTEMP files missing"
-    echo "$CMDNAME: warning: bmake install has not been run"
+    echo "$CMDNAME: error: $POSTGRESTEMP files not there"
+    echo "$CMDNAME: bmake install has not been run or you're trying to run initdb on a"
+    echo "$CMDNAME: machine that does not store the database (PGHOST doesn't work for this)"
+    exit 1
 fi
 
 if test "$verbose" -eq 1
@@ -84,14 +86,10 @@ UID=`pg_id`
 # 	create the template database if necessary
 # ----------------
 
-if test ! -d "$PGDATA"
+if test -f "$PGDATA/pg_user
 then
-	mkdir "$PGDATA"
-fi
-
-if test -d "$PGDATA"/base
-then
-	echo "$CMDNAME: $PGDATA/base exists: delete it first"
+	echo "$CMDNAME: error: it looks like initdb has already been run.  You must"
+	echo "clean out the database directory first with the cleardbdir program"
 	exit 1
 fi
 
