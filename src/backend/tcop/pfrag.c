@@ -24,6 +24,7 @@
 #include "nodes/plannodes.a.h"
 #include "executor/execmisc.h"
 #include "executor/x_execinit.h"
+#include "executor/x_hash.h"
 
  RcsId("$Header$");
 
@@ -99,11 +100,8 @@ Fragment rootFragment;
 	   parseTree = QdGetParseTree(queryDesc);
 	   finalResultRelation = parse_tree_result_relation(parseTree);
 	   if (ExecIsHash(plan))  {
-	      int nbatch;
-	      /*
-	      nbatch = ExecHashPartition(plan);
-	      hashtable = ExecHashTableCreate(plan, nbatch);
-	      set_hashjointable(plan, hashtable);  YYY */
+	      hashtable = ExecHashTableCreate(plan);
+	      set_hashtable(plan, hashtable);
 	      }
 	   else if (fragment != rootFragment || nparallel > 1) {
 	      parse_tree_result_relation(parseTree) =
@@ -158,8 +156,8 @@ Fragment rootFragment;
 	                                     lispCons(fragment, LispNil)));
 	    }
 	   if (ExecIsHash(plan)) {
-	       /* set_hashjointable(parentPlan, hashtable);  */
-	       /* YYY more info. needed. */
+	       set_hashjointable(parentPlan, hashtable);
+	       set_hashdone(parentPlan, true);
 	      }
    	   else {
 	       List unionplans = LispNil;
