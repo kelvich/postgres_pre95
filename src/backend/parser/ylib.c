@@ -243,11 +243,14 @@ parser_typecast2 ( expr, tp)
 		get_constvalue((Const)CDR(expr)));
 	break;
       case 701:/* float8 */
-	  const_string = (char *) palloc(256);
-	  string_palloced = true;
-	sprintf(const_string,"%f",
-		get_constvalue((Const)CDR(expr)));
-	break;
+	{
+	    float64 floatVal = 
+		DatumGetFloat64(get_constvalue((Const)CDR(expr)));
+	    const_string = (char *) palloc(256);
+	    string_palloced = true;
+	    sprintf(const_string,"%f", *floatVal);
+	    break;
+	}
       case 25: /* text */
 	const_string = 
 	  DatumGetPointer(
