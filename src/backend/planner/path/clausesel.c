@@ -277,14 +277,19 @@ compute_selec(clauses, or_selectivities)
 	RegProcedure oprrest = get_oprrest(opno);
 	LispValue relid = translate_relid(CAR(relattvals));
 
-	s1 = (Cost) restriction_selectivity(oprrest,
-					    opno,
-					    CInteger(relid),
-					    CInteger(CADR(relattvals)),
-					    (char *)
-					    CInteger((CADDR(relattvals))),
-					    CInteger(CADDR 
-						     (CDR(relattvals))));
+	/* if the oprrest procedure is missing for whatever reason,
+	   use a selectivity of 0.5*/
+	if (!oprrest)
+	  s1 = (Cost) (0.5);
+	else
+	  s1 = (Cost) restriction_selectivity(oprrest,
+					      opno,
+					      CInteger(relid),
+					      CInteger(CADR(relattvals)),
+					      (char *)
+					      CInteger((CADDR(relattvals))),
+					      CInteger(CADDR 
+						       (CDR(relattvals))));
     } else {
 	/*    The clause must be a join clause.  The clause 
 	 *    selectivity will be based on the relations to be 
@@ -297,12 +302,17 @@ compute_selec(clauses, or_selectivities)
 	LispValue relid1 = translate_relid(CAR(relsatts));
 	LispValue relid2 = translate_relid(CADDR(relsatts));
 	
-	s1 = (Cost) join_selectivity(oprjoin,
-				     opno,
-				     CInteger(relid1),
-				     CInteger(CADR(relsatts)),
-				     CInteger(relid2),
-				     CInteger(CADDR(CDR(relsatts))));
+	/* if the oprjoin procedure is missing for whatever reason,
+	   use a selectivity of 0.5*/
+	if (!oprjoin)
+	  s1 = (Cost) (0.5);
+	else
+	  s1 = (Cost) join_selectivity(oprjoin,
+				       opno,
+				       CInteger(relid1),
+				       CInteger(CADR(relsatts)),
+				       CInteger(relid2),
+				       CInteger(CADDR(CDR(relsatts))));
     }
     
     /*    A null clause list eliminates no tuples, so return a selectivity 
