@@ -1098,7 +1098,10 @@ bool isTupleLevel;
 		if (isTupleLevel) {
 		    lockType = LockTypeTupleRetrieveWrite;
 		} else {
-		    lockType = LockTypeRetrieveWrite;
+		    if ( actionType == ActionTypeRetrieveValue ) {
+			lockType = LockTypeRetrieveRelation;
+		    } else 
+		      lockType = LockTypeRetrieveWrite;
 		}
 		break;
 	    case EventTypeReplace:
