@@ -2158,8 +2158,7 @@ AexprConst:
 	| Sconst 			{ $$ = make_const ( $1 ) ; 
 					  Input_is_string = true; }
 	| ParamNo			{
-		$$ = lispCons(lispInteger(get_paramtype((Param)$1)),
-			      $1, -1);
+		$$ = lispCons(lispInteger(get_paramtype((Param)$1)), $1);
 	    }
 	| Pnull			 	{ $$ = LispNil; 
 					  Typecast_ok = false; }
