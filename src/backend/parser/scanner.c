@@ -50,6 +50,13 @@ int len;
 	delimiter = '\"';
 	scancon(buf, len);
 }
+scanspecial(buf, len)
+char *buf;
+int len;
+{
+	delimiter = '\`';
+	scancon(buf, len);
+}
 
 /*
  * Scan a string.  The leading delimiter (", ') has already been
