@@ -11,6 +11,7 @@
 #include "storage/bufpage.h"
 #include "storage/page.h"
 
+#include "utils/fmgr.h"
 #include "utils/log.h"
 #include "utils/rel.h"
 #include "utils/excid.h"
@@ -621,9 +622,8 @@ _nobt_compare(rel, itupdesc, page, keysz, scankey, offind)
 	datum = (Datum) fetchatt(((struct attribute **) itupdesc), tempd);
     }
 
-    result = (entry->func != (ScanKeyFunc) NULL) ?
-	    (int) (*(entry->func))(entry->argument, datum) :
-		    (int) fmgr(entry->procedure, entry->argument, datum);
+    result = (int) FMGR_PTR2(entry->func, entry->procedure,
+			     entry->argument, datum);
     return (result);
 }
 

@@ -9,6 +9,7 @@
 #include "storage/bufpage.h"
 #include "storage/page.h"
 
+#include "utils/fmgr.h"
 #include "utils/log.h"
 #include "utils/rel.h"
 #include "utils/excid.h"
@@ -487,10 +488,9 @@ _bt_compare(rel, itupdesc, page, keysz, scankey, offind)
 	attno = entry->attributeNumber;
 	datum = (Datum) IndexTupleGetAttributeValue(itup, attno,
 						    itupdesc, &null);
-	result = (entry->func != (ScanKeyFunc) NULL) ?
-		(int) (*(entry->func))(entry->argument, datum) :
-			(int) fmgr(entry->procedure, entry->argument, datum);
-	
+	result = (int) FMGR_PTR2(entry->func, entry->procedure,
+				 entry->argument, datum);
+
 	/* if the keys are unequal, return the difference */
 	if (result != 0)
 	    return (result);

@@ -36,6 +36,7 @@ RcsId("$Header$");
 #include "access/skey.h"
 #include "access/tqual.h"	/* for NowTimeQual */
 
+#include "utils/fmgr.h"
 #include "utils/log.h"
 #include "utils/rel.h"
 
@@ -243,27 +244,23 @@ StrategyTermEvaluate(term, map, left, right)
 
 	switch (operator->flags ^ entry->flags) {
 	case 0x0:
-	    result = (entry->func != (ScanKeyFunc) NULL) ?
-		    (bool) (*(entry->func)) (left, right) :
-			    (bool) fmgr(entry->procedure, left, right);
+	    result = (bool) FMGR_PTR2(entry->func, entry->procedure,
+				      left, right);
 	    break;
 	    
 	case NegateResult:
-	    result = (entry->func != (ScanKeyFunc) NULL) ?
-		    (bool) !(*(entry->func)) (left, right) :
-			    (bool) !fmgr(entry->procedure, left, right);
+	    result = (bool) !FMGR_PTR2(entry->func, entry->procedure,
+				       left, right);
 	    break;
 	    
 	case CommuteArguments:
-	    result = (entry->func != (ScanKeyFunc) NULL) ?
-		    (bool) (*(entry->func)) (right, left) :
-			    (bool) fmgr(entry->procedure, right, left);
+	    result = (bool) FMGR_PTR2(entry->func, entry->procedure,
+				      right, left);
 	    break;
 	    
 	case NegateResult | CommuteArguments:
-	    result = (entry->func != (ScanKeyFunc) NULL) ?
-		    (bool) !(*(entry->func)) (right, left) :
-			    (bool) !fmgr(entry->procedure, right, left);
+	    result = (bool) !FMGR_PTR2(entry->func, entry->procedure,
+				       right, left);
 	    break;
 
 	default:

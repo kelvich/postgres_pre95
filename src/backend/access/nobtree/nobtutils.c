@@ -11,6 +11,7 @@
 #include "storage/bufpage.h"
 #include "storage/page.h"
 
+#include "utils/fmgr.h"
 #include "utils/log.h"
 #include "utils/rel.h"
 #include "utils/excid.h"
@@ -153,11 +154,8 @@ _nobt_orderkeys(relation, numberOfKeys, key)
 	/* have we seen one of these before? */
 	if (init[j]) {
 	    /* yup, use the appropriate value */
-	    test = (cur->func != (ScanKeyFunc) NULL) ?
-		    (int) (*(cur->func))(cur->argument,
-					 xform->data[j].argument) :
-		    (int) fmgr(cur->procedure, cur->argument,
-			       xform->data[j].argument);
+	    test = (int) FMGR_PTR2(cur->func, cur->procedure,
+				   cur->argument, xform->data[j].argument);
 	    if (test)
 		xform->data[j].argument = cur->argument;
 	} else {

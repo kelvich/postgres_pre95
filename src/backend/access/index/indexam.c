@@ -509,6 +509,7 @@ GetIndexValue(tuple, hTupDesc, attOff, attrNums, fInfo, attNull, buffer)
 	Buffer buffer;
 {
     Datum returnVal;
+    Boolean	isNull;
 
     if (PointerIsValid(fInfo) && FIgetProcOid(fInfo) != InvalidObjectId)
     {
@@ -522,7 +523,8 @@ GetIndexValue(tuple, hTupDesc, attOff, attrNums, fInfo, attNull, buffer)
 	}
 	returnVal = (Datum)fmgr_array_args(FIgetProcOid(fInfo),
 					   FIgetnArgs(fInfo),
-					   attData);
+					   attData,
+					   &isNull);
 	pfree(attData);
 	*attNull = FALSE;
     }
