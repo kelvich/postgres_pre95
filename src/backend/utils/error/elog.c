@@ -23,20 +23,16 @@ EnableELog(enable)
 int enable;
 {
     static int numEnabled;
-#ifdef DOUBLECHECK
     static int fault; 
 
-    Assert(!fault);
-#endif
+    Assert(fault == 0);
 
     if (!enable && --numEnabled)
 	return;
     if (enable && numEnabled++)
 	return;
 
-#ifdef DOUBLECHECK
     ++fault;
-#endif
     if (enable) {
 	/* XXX */
 	;
@@ -44,9 +40,7 @@ int enable;
 	/* XXX */
 	;
     }
-#ifdef DOUBLECHECK
     --fault;
-#endif
 }
 
 
