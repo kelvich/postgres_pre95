@@ -45,6 +45,8 @@
 #define PRS2RULEID	21
 #define PRS2EVENTREL	22
 #define AGGNAME		23
+#define NAMEREL         24
+#define LOBJREL         25
 
 /* ----------------
  *	struct cachedesc:	information needed for a call to InitSysCache()

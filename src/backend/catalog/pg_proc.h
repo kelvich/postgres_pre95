@@ -464,6 +464,21 @@ DATA(insert OID = 927 (  oidseqne	     6 11 f t f 2  16 "0" foo bar));
 DATA(insert OID = 928 (  oidseqcmp	     6 11 f t f 2  23 "0" foo bar));
 DATA(insert OID = 929 (  mkoidseq	     6 11 f t f 2 910 "26 23" foo bar));
 
+DATA(insert OID = 950 (  filetooid           6 11 f t f 1  26 "0" foo bar ));
+DATA(insert OID = 951 (  locreatoid          6 11 f t f 1  26 "0" foo bar ));
+DATA(insert OID = 952 (  loopen              6 11 f t f 2  23 "25 23" foo bar ));
+DATA(insert OID = 953 (  loclose             6 11 f t f 1  23 "23" foo bar ));
+DATA(insert OID = 954 (  loread              6 11 f t f 2  17 "0 0" foo bar ));
+DATA(insert OID = 955 (  lowrite             6 11 f t f 2  23 "0 0" foo bar ));
+DATA(insert OID = 956 (  lolseek             6 11 f t f 3  23 "0 0 0" foo bar ));
+DATA(insert OID = 957 (  locreat             6 11 f t f 2  23 "0 0" foo bar ));
+DATA(insert OID = 958 (  lotell              6 11 f t f 1  23 "0" foo bar ));
+DATA(insert OID = 959 (  loftruncate         6 11 f t f 2  23 "0 0" foo bar ));
+DATA(insert OID = 960 (  lostat              6 11 f t f 1  17 "0" foo bar ));
+DATA(insert OID = 961 (  lorename            6 11 f t f 2  23 "0 0" foo bar ));
+DATA(insert OID = 962 (  lomkdir             6 11 f t f 2  23 "0 0" foo bar ));
+DATA(insert OID = 963 (  lormdir             6 11 f t f 1  23 "0" foo bar ));
+DATA(insert OID = 964 (  lounlink            6 11 f t f 1  23 "0" foo bar ));
 
 /* ----------------
  *	old definition of struct proc
@@ -501,5 +516,9 @@ struct	proc {
     
 #define ProcedureRelationNumberOfAttributes \
     Natts_pg_proc
-    
+
+#include "nodes/pg_lisp.h"
+/* pg_proc.c */
+void ProcedureDefine ARGS((Name procedureName , Name returnTypeName , Name languageName , char *prosrc , char *probin , Boolean canCache , List argList ));
+
 #endif PgProcIncluded

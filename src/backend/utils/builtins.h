@@ -420,5 +420,25 @@ int32 byteaGetByte ARGS((struct varlena *v , int32 n ));
 int32 byteaGetBit ARGS((struct varlena *v , int32 n ));
 struct varlena *byteaSetByte ARGS((struct varlena *v , int32 n , int32 newByte ));
 struct varlena *byteaSetBit ARGS((struct varlena *v , int32 n , int32 newBit ));
+
+     /* be-stubs.c */
+int LOopen ARGS((char *fname , int mode ));
+int LOclose ARGS((int fd ));
+struct varlena *LOread ARGS((int fd , int len ));
+int LOwrite ARGS((int fd , struct varlena *wbuf ));
+int LOlseek ARGS((int fd , int offset , int whence ));
+int LOcreat ARGS((char *path , int mode ));
+int LOtell ARGS((int fd ));
+int LOftruncate ARGS((void ));
+struct varlena *LOstat ARGS((char *path ));
+int LOmkdir ARGS((char *path , int mode ));
+int LOrmdir ARGS((char *path ));
+int LOunlink ARGS((char *path ));
+
+/* naming.c */
+oid FilenameToOID ARGS((char *fname ));
+oid LOcreatOID ARGS((char *fname , int mode ));
+int LOrename ARGS((char *path , char *newpath ));
+
 #endif !BuiltinsIncluded
 

@@ -40,7 +40,7 @@ extern void PQsetdb ARGS((char *dbname));
 extern void PQreset ARGS(());
 extern void PQfinish ARGS(());
 extern int PQFlushI ARGS((int i_count));
-extern char *PQfn ARGS((int fnid, int *result_buf, int result_len, int result_is_int, PQArgBlock *args, int nargs));
+extern char *PQfn ARGS((int fnid, int *result_buf, int result_len, int *actual_result_len, int result_type, PQArgBlock *args, int nargs));
 extern char *PQexec ARGS((char *query));
 extern Pointer palloc ARGS((Size size));
 extern void pfree ARGS((Pointer pointer));
@@ -48,3 +48,4 @@ extern void elog ARGS(());
 extern void AssertionFailed ARGS((const String assertionName, const String fileName, const int lineNumber));
 
 #endif LibpqFeIncluded
+

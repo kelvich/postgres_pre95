@@ -114,6 +114,7 @@ lo_fileout ARGS((
 
 LargeObjectDesc *
 LOCreate ARGS((
+   char *path,
    int open_mode
 ));
 
