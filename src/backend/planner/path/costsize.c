@@ -1,3 +1,4 @@
+
 /*     
  *      FILE
  *     	costsize
@@ -33,24 +34,6 @@
 #include <math.h>
 #define _cost_weirdness_ 0
 
-/*
- * CostAddCount --
- *	_cost_ += _count_;
- * CostAddCostTimesCount --
- *	_cost1_ += _cost2_ * _count_;
- * CostMultiplyCount --
- *	_cost_ *= _count_;
- *
- * Macros to circumvent Sun's brain-damaged cc.
- */
-#define	CostAddCount(_cost_, _count_) \
-	{ Cost cost = _count_; _cost_ += cost; }
-
-#define	CostAddCostTimesCount(_cost1_, _cost2_, _count_) \
-	{ Cost cost = _count_; _cost1_ += _cost2_ * cost; }
-
-#define	CostMultiplyCount(_cost_, _count_) \
-	{ Cost cost = _count_; _cost_ *= cost; }
 
 #if (!_cost_weirdness_)    /* global variable */
 #define _xprs_ 0
@@ -65,7 +48,7 @@ bool _enable_sort_ = false;
 bool _enable_hash_ = false;
 bool _enable_nestloop_ = true; /* XXX - true */
 bool _enable_mergesort_ = false;
-bool _enable_hashjoin_ = true;
+bool _enable_hashjoin_ = false;
 /* #endif */
 /*
 #ifdef _xprs_
@@ -171,16 +154,11 @@ cost_index (indexid,expected_indexpages,selec,relpages,
 	} 
     }
 
-	CostAddCount(temp, expected_indexpages);
-				/*   expected index relation pages */
-
-	CostAddCostTimesCount(temp, selec, indextuples);
-				/*   about one base relation page */
-	/*
-	 * per index tuple
-	 */
-	CostAddCostTimesCount(temp2, selec, indextuples);
-	CostAddCostTimesCount(temp2, selec, reltuples);
+    temp += expected_indexpages;      /*   expected index relation pages */
+    temp += selec * indextuples;      /*   about one base relation page */
+    /*    per index tuple */
+    temp2 += selec * indextuples;
+    temp2 += selec * reltuples;
     temp =  temp + (_CPU_PAGE_WEIGHT_ * temp2);
     return(temp);
 } /* end cost_index */
@@ -554,8 +532,8 @@ compute_joinrel_size (joinrel)
     double temp = 1.0;
     Count temp1 = 0;
 
-    CostMultiplyCount(temp, get_size(get_parent(get_outerjoinpath(joinrel))));
-    CostMultiplyCount(temp, get_size(get_parent(get_innerjoinpath(joinrel))));
+    temp = temp * get_size(get_parent(get_outerjoinpath(joinrel)));
+    temp = temp * get_size(get_parent(get_innerjoinpath(joinrel)));
     temp = temp * product_selec(get_pathclauseinfo(joinrel));  
 
     temp1 = floor(temp);
