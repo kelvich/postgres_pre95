@@ -12,6 +12,7 @@
 #include "storage/bufmgr.h"
 #include "storage/lock.h"
 #include "tcop/slaves.h"
+#include "tmp/miscadmin.h"	/* for DebugLvl */
 
 RcsId("$Header$");
 
@@ -66,6 +67,10 @@ CreateSharedMemoryAndSemaphores(key)
     size += MMShmemSize();
 #endif /* MAIN_MEMORY */
 
+    if (DebugLvl > 1) {
+	fprintf(stderr, "binding ShmemCreate(key=%x, size=%d)\n",
+		IPCKeyGetBufferMemoryKey(key), size);
+    }
     ShmemCreate(IPCKeyGetBufferMemoryKey(key), size);
     ShmemBindingTabReset();
     InitShmem(key, size);
