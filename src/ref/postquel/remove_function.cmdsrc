@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH "REMOVE FUNCTION" COMMANDS 01/23/93
+.TH "REMOVE FUNCTION" COMMANDS 03/12/94
 .XA 2 "Remove Function"
 .SH NAME
 remove function \(em remove a user-defined C function 
@@ -14,7 +14,7 @@ remove function \(em remove a user-defined C function
 will remove references to an existing C function.  To execute this
 command the user must be the owner of the function.  The input
 argument types to the function must be specified, as only the
-function with the given name and argument types will be romoved.
+function with the given name and argument types will be removed.
 .SH EXAMPLE
 .(C
 /*
