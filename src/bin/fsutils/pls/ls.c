@@ -86,25 +86,25 @@ long blocksize;			/* block size units */
 int termwidth = 80;		/* default terminal width */
 
 /* flags */
-int f_accesstime;		/* use time of last access */
-int f_column;			/* columnated format */
-int f_flags;			/* show flags associated with a file */
-int f_inode;			/* print inode */
-int f_listdir;			/* list actual directory, not contents */
-int f_listdot;			/* list files beginning with . */
-int f_longform;			/* long listing format */
-int f_newline;			/* if precede with newline */
-int f_nonprint;			/* show unprintables as ? */
-int f_nosort;			/* don't sort output */
-int f_recursive;		/* ls subdirectories also */
-int f_reversesort;		/* reverse whatever sort is used */
-int f_sectime;			/* print the real time for all files */
-int f_singlecol;		/* use single column output */
-int f_size;			/* list size in short listing */
-int f_statustime;		/* use time of last mode change */
-int f_dirname;			/* if precede with directory name */
-int f_timesort;			/* sort by time vice name */
-int f_type;			/* add type character for non-regular files */
+int f_accesstime = 0;		/* use time of last access */
+int f_column = 0;		/* columnated format */
+int f_flags = 0;		/* show flags associated with a file */
+int f_inode = 0;		/* print inode */
+int f_listdir = 0;		/* list actual directory, not contents */
+int f_listdot = 0;		/* list files beginning with . */
+int f_longform = 0;		/* long listing format */
+int f_newline = 0;		/* if precede with newline */
+int f_nonprint = 0;		/* show unprintables as ? */
+int f_nosort = 0;		/* don't sort output */
+int f_recursive = 0;		/* ls subdirectories also */
+int f_reversesort = 0;		/* reverse whatever sort is used */
+int f_sectime = 0;		/* print the real time for all files */
+int f_singlecol = 0;		/* use single column output */
+int f_size = 0;			/* list size in short listing */
+int f_statustime = 0;		/* use time of last mode change */
+int f_dirname = 0;		/* if precede with directory name */
+int f_timesort = 0;		/* sort by time vice name */
+int f_type = 0;			/* add type character for non-regular files */
 
 
 int
