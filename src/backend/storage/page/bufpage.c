@@ -345,7 +345,7 @@ PageGetMaxOffsetIndex(page)
  * ----------------
  */
 
-static
+
 struct itemIdData {
 	OffsetIndex offsetindex;
 	ItemIdData  itemiddata;
