@@ -134,15 +134,16 @@ cost_seqscan (relid,relpages,reltuples)
 /*  .. best-or-subclause-index, create_index_path, index-innerjoin  */
 Cost
 cost_index (indexid,expected_indexpages,selec,relpages,
-	    reltuples,indexpages,indextuples)
+	    reltuples,indexpages,indextuples, is_injoin)
      ObjectId indexid;
      Count expected_indexpages;
      Cost selec;
      Count relpages,indexpages,indextuples,reltuples;
+     bool is_injoin;
 {
     Cost temp = 0;
     Cost temp2 = 0;
-	if (!_enable_indexscan_)
+	if (!_enable_indexscan_ && !is_injoin)
 	    temp += _disable_cost_;
 
 	CostAddCount(temp, expected_indexpages);

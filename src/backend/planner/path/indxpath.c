@@ -581,7 +581,7 @@ index_innerjoin (rel,clausegroup_list,index)
 					get_pages (rel),
 					get_tuples (rel),
 					get_pages (index),
-					get_tuples (index)));
+					get_tuples (index), true));
 
 	 cg_list = nappend1(cg_list,pathnode);
      }

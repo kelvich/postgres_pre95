@@ -227,7 +227,7 @@ best_or_subclause_index (rel,subclause,indices)
 				get_pages (rel),
 				get_tuples (rel),
 				get_pages (index),
-				get_tuples (index));
+				get_tuples (index), false);
 	  bestrest = best_or_subclause_index (rel,subclause,CDR (indices));
 		
 	  if(null (bestrest) || (subcost < CInteger(CAR(bestrest)) )) {
