@@ -181,6 +181,61 @@ box_overlap(box1, box2)
 		(box2->yh >= box1->yh && box2->yl <= box1->yh)) );
 }
 
+/*	box_overleft	-	is the right edge of box1 to the left of
+ *				the right edge of box2?
+ *
+ *	This is "less than or equal" for the end of a time range,
+ *	when time ranges are stored as rectangles.
+ */
+long
+box_overleft(box1, box2)
+	BOX	*box1, *box2;
+{
+	return(box1->xh <= box2->xh);
+}
+
+/*	box_left	-	is box1 strictly left of box2?
+ */
+long
+box_left(box1, box2)
+	BOX	*box1, *box2;
+{
+	return(box1->xh < box2->xl);
+}
+
+/*	box_right	-	is box1 strictly right of box2?
+ */
+long
+box_right(box1, box2)
+	BOX	*box1, *box2;
+{
+	return(box1->xl > box2->xh);
+}
+
+/*	box_overright	-	is the left edge of box1 to the right of
+ *				the left edge of box2?
+ *
+ *	This is "greater than or equal" for time ranges, when time ranges
+ *	are stored as rectangles.
+ */
+long
+box_overright(box1, box2)
+	BOX	*box1, *box2;
+{
+	return(box1->xl >= box2->xl);
+}
+
+/*	box_contained	-	is box1 contained by box2?
+ */
+long
+box_contained(box1, box2)
+	BOX	*box1, *box2;
+{
+	return((box1->xh <= box2->xh && box1->xl >= box2->xl &&
+		box1->yh <= box2->yh && box1->yl >= box2->yl) ||
+	       (box2->xh <= box1->xh && box2->xl >= box1->xl &&
+		box2->yh <= box1->yh && box2->yl >= box1->yl) );
+}
 
 /*	box_contain	-	does box1 contain box2?
  */
@@ -196,18 +251,8 @@ box_contain(box1, box2)
 
 
 /*	box_positionop	-
- *		is box1 entirely {left, right, above, below } box2?
+ *		is box1 entirely {above, below } box2?
  */
-long
-box_left(box1, box2)
-	BOX	*box1, *box2;
-{ return( box1->xh <= box2->xl ); }
-
-long
-box_right(box1, box2)
-	BOX	*box1, *box2;
-{ return( box1->xl >= box2->xh ); }
-
 long
 box_below(box1, box2)
 	BOX	*box1, *box2;
@@ -426,7 +471,6 @@ box_dt(box1, box2)
 	PFREE(b);
 	return(result);
 }
-
 
 /*----------------------------------------------------------
  *  Funky operations.
