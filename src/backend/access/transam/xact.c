@@ -513,11 +513,11 @@ RecordTransactionCommit()
     
     /* ----------------
      *	flush the buffer manager pages.  Note: if we have stable
-     *  main memory this should be a no-op.
+     *  main memory, dirty shared buffers are not flushed
+     *  plai 8/7/90
      * ----------------
      */
-    if (TransactionFlushEnabled())
-	BufferManagerFlush();
+    BufferManagerFlush(!TransactionFlushEnabled());
     
     /* ----------------
      *	have the transaction access methods record the status
@@ -620,11 +620,11 @@ RecordTransactionAbort()
     
     /* ----------------
      *	flush the buffer manager pages.  Note: if we have stable
-     *  main memory this should be a no-op.
+     *  main memory, dirty shared buffers are not flushed
+     *  plai 8/7/90
      * ----------------
      */
-    if (TransactionFlushEnabled())
-	BufferManagerFlush();
+    BufferManagerFlush(!TransactionFlushEnabled());
 }
 
 /* --------------------------------
