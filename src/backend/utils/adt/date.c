@@ -775,6 +775,11 @@ isabstime(datestring, brokentime)
 	int		day, yday, monthnum, year, hour,
 			min, sec, yeardigits,leap;
 	int		timeoption, i;
+	struct tm	localTime;
+
+	if (!PointerIsValid(brokentime)) {
+		brokentime = &localTime;
+	}
 
 	p = datestring;
 	/* skip leading blanks */
@@ -1083,9 +1088,21 @@ isreltime(timestring, sign, quantity, unitnr)
 	int		i;
 	char		unit[UNITMAXLEN] ;
 	char		direction[DIRMAXLEN];
+	int		localSign;
+	int		localUnitNumber;
+	int		localQuantity;
 
-	(void) strcpy (unit, "");
-	(void) strcpy (direction, "");
+	if (!PointerIsValid(sign)) {
+		sign = &localSign;
+	}
+	if (!PointerIsValid(unitnr)) {
+		unitnr = &localUnitNumber;
+	}
+	if (!PointerIsValid(quantity)) {
+		quantity = &localQuantity;
+	}
+	unit[0] = '\0';
+	direction[0] = '\0';
 	p = timestring;
 	/* skip leading blanks */
 	while (c = *p) {
