@@ -10,7 +10,8 @@ static char rcs_id[] =
 
 #include <stdio.h>
 #include <strings.h>
-#include "geo-decls.h"
+
+#include "utils/geo-decls.h"
 
 #define LDELIM		'('
 #define RDELIM		')'
