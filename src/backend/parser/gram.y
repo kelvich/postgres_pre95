@@ -647,7 +647,7 @@ ProcedureStmt:
 		    if(is_postquel_func($3)) {
 			is_postquel_function = true;
 			pfa = postquel_func_arg($3);
-			NewOrCurrentIsReally = lispString($4);
+			NewOrCurrentIsReally = lispString((char *)$4);
 		ADD_TO_RT ( MakeRangeTableEntry ( (Name)pfa, 
 					     LispNil,
 					     (Name)"*CURRENT*" ) );
