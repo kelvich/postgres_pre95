@@ -28,9 +28,8 @@
  * 1.  Find out how much text/data space will be required.  This is done
  *     by reading the header of the ".o" to be loaded.
  *
- * 2.  Execute the "ld -A" with a valid text address (bigger than &etext,
- *     smaller than the lowest data address.  "ld -A" will do all the
- *     relocation, etc.
+ * 2.  Execute the "ld -A" with a an address equal to some memory we malloc'ed.
+ *     "ld -A" will do all the relocation, etc. for us.
  *
  * 3.  Using the output of "ld -A", read the text and data area into a valid
  *     text area.  (The DEC 3100 allows data to be read in the text area, but
@@ -56,18 +55,17 @@
 
 #include <a.out.h>
 #include <symconst.h>
+#include <mips/cachectl.h>
 
 #include "utils/dynamic_loader.h"
 
 extern char pg_pathname[];
 
-/*
- * This is initially set to the value of & etext;
- */
-
 static char *load_address = NULL;
 static char *temp_file_name = NULL;
 static char *path = "/usr/tmp/postgresXXXXXX";
+
+#define PAGE_ROUND(X) ((X) % 512 == 0 ? (X) : (X) - (X) % 512 + 512)
 
 DynamicFunctionList *
 dynamic_file_load(err, filename)
@@ -80,24 +78,14 @@ char **err, *filename;
 
 	int nread;
 	char command[256];
-	unsigned long image_size, zz;
+	unsigned long image_size, true_image_size;
 	FILE *temp_file = NULL;
 	DynamicFunctionList *retval = NULL, *load_symbols();
 	struct filehdr obj_file_struct, ld_file_struct;
 	AOUTHDR obj_aout_hdr, ld_aout_hdr;
 	struct scnhdr scn_struct;
-	int size_text, size_data, size_bss;
-	int fd;
-
-/*
- * Make sure (when compiling) that there is sufficient space for loading
- * all functions!
- */
-
-	if (load_address == NULL)
-	{
-		load_address = (char *) &etext;
-	}
+	int size_text, size_data = 0, size_bss = 0, bss_offset;
+	int i, fd;
 
 	fd = open(filename, O_RDONLY);
 
@@ -106,10 +94,18 @@ char **err, *filename;
 
 	read(fd, & scn_struct, sizeof(struct scnhdr)); /* text hdr */
 	size_text = scn_struct.s_size;
-	read(fd, & scn_struct, sizeof(struct scnhdr)); /* data hdr */
-	size_data = scn_struct.s_size;
+	if (obj_file_struct.f_nscns > 1)
+	{
+		read(fd, & scn_struct, sizeof(struct scnhdr)); /* data hdr */
+		size_data = scn_struct.s_size;
+	}
 
-	image_size = size_text + size_data;
+/*
+ * add 10000 for fudge factor to account for data areas that appear in
+ * the linking process (yes, there are such beasts!).
+ */
+
+	image_size = size_text + size_data + 10000;
 
 	fd = open(filename, O_RDONLY);
 
@@ -121,12 +117,14 @@ char **err, *filename;
 	strcpy(temp_file_name,path);
 	mktemp(temp_file_name);
 
-	sprintf(command,"ld -N  -A %s -T %lx -o %s  %s -lc -lm -ll",
+	load_address = (char *) valloc(image_size);
+
+	sprintf(command,"ld -N -A %s -T %lx -o %s  %s -lc -lm -ll",
 	    pg_pathname,
 	    load_address,
 	    temp_file_name,  filename);
 
-	if(system(command))
+	if (system(command))
 	{
 		*err = "link failed!";
 		goto finish_up;
@@ -140,41 +138,70 @@ char **err, *filename;
 	fread(&ld_file_struct, sizeof(struct filehdr), 1, temp_file);
 	fread(&ld_aout_hdr, sizeof(AOUTHDR), 1, temp_file);
 
-	if (ld_file_struct.f_nscns > 2) /* Need to read BSS segment */
+	fread(&scn_struct, sizeof(struct scnhdr), 1, temp_file); /* text hdr */
+
+/*
+ * Figure out how big the data areas (including the bss area) are,
+ * and determine where the bss area is if there is one.
+ */
+
+	true_image_size = scn_struct.s_size;
+	for (i = 1; i < ld_file_struct.f_nscns; i++)
 	{
-		fread(&scn_struct, sizeof(struct scnhdr), 1, temp_file); /* text hdr */
-		fread(&scn_struct, sizeof(struct scnhdr), 1, temp_file); /* data hdr */
-		fread(&scn_struct, sizeof(struct scnhdr), 1, temp_file); /* BSS hdr */
-		size_bss = scn_struct.s_size;
+		fread(&scn_struct, sizeof(struct scnhdr), 1, temp_file);
+		true_image_size += scn_struct.s_size;
+		if (!strcmp(scn_struct.s_name, "bss"))
+		{
+			size_bss = scn_struct.s_size;
+			bss_offset = scn_struct.s_vaddr - (int) load_address;
+		}
+	}
+
+/*
+ * Here we see if our "fudge guess" above was too small.  We do it this way
+ * because loading is so ungodly expensive, and we want to avoid having to
+ * create 3 megabyte files unnecessarily.
+ */
+
+	if (true_image_size > image_size)
+	{
+		free(load_address);
+		fclose(temp_file);
+		unlink(temp_file_name);
+		load_address = (char *) valloc(true_image_size);
+		sprintf(command,"ld -N -A %s -T %lx -o %s  %s -lc -lm -ll",
+	    		pg_pathname,
+	    		load_address,
+	    		temp_file_name,  filename);
+		system(command);
+		temp_file = fopen(temp_file_name,"r");
+		fread(&ld_file_struct, sizeof(struct filehdr), 1, temp_file);
+		fread(&ld_aout_hdr, sizeof(AOUTHDR), 1, temp_file);
 	}
 
 	fseek(temp_file, N_TXTOFF(ld_file_struct, ld_aout_hdr), 0);
 
-	fread(load_address, image_size,1,temp_file);
+	fread(load_address, true_image_size,1,temp_file);
 
 	/* zero the BSS segment */
 
 	if (size_bss != 0)
 	{
-		bzero(load_address + image_size - size_bss, size_bss);
+		bzero(bss_offset + load_address, size_bss);
 	}
 
-	retval = load_symbols(filename, load_address);
-
-	fclose(temp_file);
-	unlink(temp_file_name);
-
-	temp_file = NULL;
-
- /*
-  * Need to make sure we have enough free text addresses to load lots of
-  * files.
-  */
-
-	load_address += image_size;
+	if (cachectl(load_address, PAGE_ROUND(image_size), UNCACHEABLE))
+	{
+		*err = "dynamic_file_load: Cachectl failed!";
+	}
+	else
+	{
+		retval = load_symbols(filename, load_address);
+	}
 
 finish_up:
-	if (temp_file != NULL) fclose(temp_file);
+	fclose(temp_file);
+	unlink(temp_file_name);
 	return retval;
 }
 
