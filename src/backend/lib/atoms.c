@@ -24,6 +24,8 @@ RcsId("$Header$");
 
 ScanKeyword	ScanKeywords[] = {
 	/* name			value		*/
+	{ "ISNULL",             ISNULL          },
+	{ "NOTNULL",            NOTNULL         },
 	{ "NULL",		PNULL		},
 	{ "abort",		ABORT_TRANS	},
 	{ "addattr",		ADD_ATTR	},
