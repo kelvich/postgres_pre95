@@ -51,8 +51,59 @@ char	!\(eq	bool charne(char, char)	inequality
 	>\(eq	bool charge(char, char)	greater or equal
 	>	bool chargt(char, char)	greater than
 _
+char2	!\(eq	bool char2ne(char2, char2)	inequality
+	!~	bool char2regexne(char2, text)	T{
+A does not match regular expression B
+(\*(PG uses the libc regexp calls for this
+operation)
+T}
+	<\(eq	bool char2le(char2, char2)	less or equal
+	<	bool char2lt(char2, char2)	less than
+	\(eq	bool char2eq(char2, char2)	equality
+	>\(eq	bool char2ge(char2, char2)	greater or equal
+	>	bool char2gt(char2, char2)	greater than
+	~	bool char2regexeq(char2, text)	T{
+A matches regular expression B
+(\*(PG uses the libc regexp calls for this
+operation)
+T}
+_
+char4	!\(eq	bool char4ne(char4, char4)	inequality
+	!~	bool char4regexne(char4, text)	T{
+A does not match regular expression B
+(\*(PG uses the libc regexp calls for this
+operation)
+T}
+	<\(eq	bool char4le(char4, char4)	less or equal
+	<	bool char4lt(char4, char4)	less than
+	\(eq	bool char4eq(char4, char4)	equality
+	>\(eq	bool char4ge(char4, char4)	greater or equal
+	>	bool char4gt(char4, char4)	greater than
+	~	bool char4regexeq(char4, text)	T{
+A matches regular expression B
+(\*(PG uses the libc regexp calls for this
+operation)
+T}
+_
+char8	!\(eq	bool char8ne(char8, char8)	inequality
+	!~	bool char8regexne(char8, text)	T{
+A does not match regular expression B
+(\*(PG uses the libc regexp calls for this
+operation)
+T}
+	<\(eq	bool char8le(char8, char8)	less or equal
+	<	bool char8lt(char8, char8)	less than
+	\(eq	bool char8eq(char8, char8)	equality
+	>\(eq	bool char8ge(char8, char8)	greater or equal
+	>	bool char8gt(char8, char8)	greater than
+	~	bool char8regexeq(char8, text)	T{
+A matches regular expression B
+(\*(PG uses the libc regexp calls for this
+operation)
+T}
+_
 char16	!\(eq	bool char16ne(char16, char16)	inequality
-	!~	bool char16regexne(char16, char16)	T{
+	!~	bool char16regexne(char16, text)	T{
 A does not match regular expression B
 (\*(PG uses the libc regexp calls for this
 operation)
@@ -62,7 +113,7 @@ T}
 	\(eq	bool char16eq(char16, char16)	equality
 	>\(eq	bool char16ge(char16, char16)	greater or equal
 	>	bool char16gt(char16, char16)	greater than
-	~	bool char16regexeq(char16, char16)	T{
+	~	bool char16regexeq(char16, text)	T{
 A matches regular expression B
 (\*(PG uses the libc regexp calls for this
 operation)
