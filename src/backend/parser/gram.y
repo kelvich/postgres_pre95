@@ -680,7 +680,9 @@ RuleStmt:
 		}
 	RuleBody
 		{
-	 	    $3 = lispCons ( $3, $7 );	
+
+	 	    $3 = lispCons ( $4, $7 );
+	 	    $3 = lispCons ( $3, $4 );
 		    $2 = lispCons ( $2, $3 );	
 		    $$ = lispCons ( $1, $2 );	
 		}
@@ -766,10 +768,10 @@ TransactionStmt:
    **************************************************/
 
 ViewStmt:
-	Define VIEW name { SkipForwardToFromList(); }
+	Define VIEW name 
 	RetrieveSubStmt
 		{ 
-		    $3 = lispCons ( $3 , $5 );
+		    $3 = lispCons ( $3 , $4 );
 		    $2 = lispCons ( KW(view) , $3 );
 		    $$ = lispCons ( $1 , $2 );
 		}
@@ -990,12 +992,12 @@ ReplaceStmt:
 
 RetrieveStmt:
 	RETRIEVE 
-		{ SkipForwardToFromList(); }
 	RetrieveSubStmt
-		{ $$ = $3 ; }
+		{ $$ = $2 ; }
 	;
 
 RetrieveSubStmt:
+	  { SkipForwardToFromList(); }
 	  from_clause 
 	  opt_star result opt_unique 
 	  '(' res_target_list ')'
@@ -1007,18 +1009,18 @@ RetrieveSubStmt:
 		    LispValue command;
 
 		    StripRangeTable();
-		    if ( $2 == LispNil )
+		    if ( $3 == LispNil )
 		      command = KW(retrieve);
 		    else
 		      command = lispCons( lispInteger('*'),KW(retrieve));
 
-		    root = MakeRoot(NumLevels,command, $3, p_rtable,
-				    p_priority, p_ruleinfo,$4,$9,$6);
+		    root = MakeRoot(NumLevels,command, $4, p_rtable,
+				    p_priority, p_ruleinfo,$5,$10,$7);
 		    
 
 		    $$ = lispCons( root , LispNil );
-		    $$ = nappend1 ( $$ , $6 );	/* (eq p_target $8) */
-		    $$ = nappend1 ( $$ , $8 );	        /* (eq p_qual $10) */
+		    $$ = nappend1 ( $$ , $7 );	/* (eq p_target $8) */
+		    $$ = nappend1 ( $$ , $9 );	        /* (eq p_qual $10) */
 		}
 
  /**************************************************
