@@ -34,6 +34,9 @@ described in this section.
 	box	2-dimensional rectangle
 	bytea	variable length array of bytes	*
 	char	character	*
+	char2	array of 2 characters	*
+	char4	array of 4 characters	*
+	char8	array of 8 characters	*
 	char16	array of 16 characters	*
 	cid	command identifier type	*
 	filename	large object filename	*
