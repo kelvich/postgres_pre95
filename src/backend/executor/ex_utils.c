@@ -257,14 +257,18 @@ ExecAssignExprContext(estate, commonstate)
 {
     ExprContext    econtext;
     ParamListInfo  paraminfo;
+    List           rangeTable;
     
     paraminfo = get_es_param_list_info(estate);
+    rangeTable = get_es_range_table(estate);
+
     econtext = MakeExprContext(NULL,		/* scan tuple slot */
 			       NULL,		/* inner tuple slot */
 			       NULL,		/* outer tuple slot */
 			       NULL,		/* relation */
 			       0,		/* relid */
-			       paraminfo);	/* param list info */
+			       paraminfo,	/* param list info */
+			       rangeTable);	/* range table */
 
     set_cs_ExprContext(commonstate, econtext);
 }
