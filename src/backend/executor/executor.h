@@ -22,6 +22,15 @@
 #include "c.h"
 #include "pg_lisp.h"
 
+/* ----------------
+ * executor debugging definitions are kept in a separate file
+ * so people can customize what debugging they want to see and not
+ * have this information clobbered every time a new version of
+ * executor.h is checked in -cim 10/26/89
+ * ----------------
+ */
+#include "execdebug.h"
+
 #include "skey.h"
 #include "anum.h"
 #include "align.h"
@@ -29,7 +38,8 @@
 #include "cat.h"
 #include "catname.h"
 #include "clib.h"
-#include "execdefs.h"
+#include "executor/execdefs.h"
+#include "executor/tuptable.h"
 #include "fmgr.h"
 #include "ftup.h"
 #include "heapam.h"
@@ -53,15 +63,6 @@
 #include "plannodes.h"
 #include "execnodes.h"
 #include "parsetree.h"
-
-/* ----------------
- * executor debugging definitions are kept in a separate file
- * so people can customize what debugging they want to see and not
- * have this information clobbered every time a new version of
- * executor.h is checked in -cim 10/26/89
- * ----------------
- */
-#include "execdebug.h"
 
 /* ----------------
  * .h files made from running pgdecs over generated .c files in obj/lib/C
@@ -303,6 +304,9 @@ extern GeneralInsertIndexResult   AMinsert();
 extern GeneralRetrieveIndexResult AMgettuple();
 extern HeapTuple		  RelationGetHeapTupleByItemPointer();
 
+extern Pointer		get_cs_ResultTupleSlot();
+extern Pointer		get_css_ScanTupleSlot();
+
 extern bool		ExecIsInitialized;
 extern Const		ConstTrue;
 extern Const		ConstFalse;
@@ -314,36 +318,38 @@ extern HookNode		_debug_hooks_[];
 
 /* 
  *	public executor functions
+ *
+ *	XXX reorganize me.
  */
-#include "executor/append.h"
-#include "executor/debug.h"
-#include "executor/endnode.h"
-#include "executor/eutils.h"
-#include "executor/execam.h"
-#include "executor/execfmgr.h"
-#include "executor/execinit.h"
-#include "executor/execmain.h"
-#include "executor/execmmgr.h"
-#include "executor/execstats.h"
-#include "executor/exist.h"
+#include "executor/x_append.h"
+#include "executor/x_debug.h"
+#include "executor/x_endnode.h"
+#include "executor/x_eutils.h"
+#include "executor/x_execam.h"
+#include "executor/x_execfmgr.h"
+#include "executor/x_execinit.h"
+#include "executor/x_execmain.h"
+#include "executor/x_execmmgr.h"
+#include "executor/x_execstats.h"
+#include "executor/x_exist.h"
 #include "executor/hashjoin.h"
-#include "executor/indexscan.h"
-#include "executor/initnode.h"
-#include "executor/main.h"
-#include "executor/material.h"
-#include "executor/mergejoin.h"
-#include "executor/nestloop.h"
-#include "executor/parallel.h"
-#include "executor/procnode.h"
-#include "executor/qual.h"
+#include "executor/x_indexscan.h"
+#include "executor/x_initnode.h"
+#include "executor/x_main.h"
+#include "executor/x_material.h"
+#include "executor/x_mergejoin.h"
+#include "executor/x_nestloop.h"
+#include "executor/x_parallel.h"
+#include "executor/x_procnode.h"
+#include "executor/x_qual.h"
 #include "executor/recursive.h"
-#include "executor/result.h"
-#include "executor/scan.h"
-#include "executor/seqscan.h"
-#include "executor/sort.h"
-#include "executor/tuples.h"
-#include "executor/unique.h"
-#include "executor/xdebug.h"
+#include "executor/x_result.h"
+#include "executor/x_scan.h"
+#include "executor/x_seqscan.h"
+#include "executor/x_sort.h"
+#include "executor/x_tuples.h"
+#include "executor/x_unique.h"
+#include "executor/x_xdebug.h"
 
 /* ----------------------------------------------------------------
  *	the end
