@@ -32,8 +32,12 @@
 #include "planner/sortresult.h"
 #include "planner/tlist.h"
 #include "tcop/dest.h"
+#include "utils/log.h"
+#include "nodes/mnodes.h"
+#include "utils/mcxt.h"
 
 extern int testFlag;
+extern GlobalMemory ParserPlannerContext;
 /* ----------------
  *	Result creator declaration
  * ----------------
@@ -335,6 +339,9 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 	  Plan plan;
 	  Choose chooseplan;
 	  pathlist = get_pathlist(final_relation);
+	  /*
+	  MemoryContextSwitchTo(ParserPlannerContext);
+	  */
 	  foreach (x, pathlist) {
 	      path = (Path)CAR(x);
 	      plan = create_plan(path, original_tlist);
@@ -386,9 +393,7 @@ Plan p1, p2;
     if (p2 == NULL) return (p1 == NULL);
     if (IsA(p1,Join) && IsA(p2,Join)) {
 	return (plan_isomorphic(get_lefttree(p1), get_lefttree(p2)) &&
-	        plan_isomorphic(get_righttree(p1), get_righttree(p2))) ||
-	       (plan_isomorphic(get_lefttree(p1), get_righttree(p2)) &&
-		plan_isomorphic(get_righttree(p1), get_lefttree(p2)));
+	        plan_isomorphic(get_righttree(p1), get_righttree(p2)));
       }
     if (IsA(p1,Scan) && IsA(p2,Scan)) {
 	if (get_scanrelid(p1) == get_scanrelid(p2))
@@ -473,29 +478,25 @@ Plan p1, p2;
 	return;
     if (IsA(p1,Join) && IsA(p2,Join)) {
 	set_plan_size(p2, get_plan_size(p1));
-	if (plan_isomorphic(get_lefttree(p1), get_lefttree(p2))) {
-	    setPlanStats(get_lefttree(p1), get_lefttree(p2));
-	    setPlanStats(get_righttree(p1), get_righttree(p2));
-	  }
-	else {
-	    setPlanStats(get_lefttree(p1), get_righttree(p2));
-	    setPlanStats(get_righttree(p1), get_lefttree(p2));
-	  }
+	setPlanStats(get_lefttree(p1), get_lefttree(p2));
+	/*
+	setPlanStats(get_righttree(p1), get_righttree(p2));
+	*/
+	return;
+      }
+    if (IsA(p1,Temp) || IsA(p1,Hash) ||
+	(IsA(p1,Scan) && get_scanrelid(p1) == _TEMP_RELATION_ID_)) {
+	setPlanStats(get_lefttree(p1), p2);
+	return;
+      }
+    if (IsA(p2,Temp) || IsA(p2,Hash) ||
+	(IsA(p2,Scan) && get_scanrelid(p2) == _TEMP_RELATION_ID_)) {
+	set_plan_size(p2, get_plan_size(p1));
+	setPlanStats(p1, get_lefttree(p2));
 	return;
       }
     if (IsA(p1,Scan) && IsA(p2,Scan)) {
 	set_plan_size(p2, get_plan_size(p1));
-	if (get_scanrelid(p1) == _TEMP_RELATION_ID_)
-	    setPlanStats(get_lefttree(p1), get_lefttree(p2));
-	return;
-      }
-    if (IsA(p1,Temp)) {
-	setPlanStats(get_lefttree(p1), p2);
-	return;
-      }
-    if (IsA(p2,Temp)) {
-	set_plan_size(p2, get_plan_size(p1));
-	setPlanStats(p1, get_lefttree(p2));
 	return;
       }
     return;
@@ -550,21 +551,73 @@ List	planlist;
 
     _exec_collect_stats_ = true;
     plangroups = group_planlist(planlist);
+    ordered_planlist = LispNil;
     foreach (x, plangroups) {
 	plangroup = CAR(x);
 	nlplan = pickNestLoopPlan(plangroup);
+	if (nlplan == NULL) {
+	    elog(NOTICE, "no nestloop plan in plan group!");
+	    break;
+	  }
 	if (IsA(nlplan,Join)) {
 	    resetPlanStats(nlplan);
+	    p_plan(nlplan);
+	    ResetUsage();
 	    ProcessQuery(parsetree, nlplan, None);
-	    setPlanGroupStats(nlplan, nLispRemove(plangroup, nlplan));
+	    ShowUsage();
+	    plangroup = nLispRemove(plangroup, nlplan);
+	    setPlanGroupStats(nlplan, plangroup);
 	  }
-	else
+	else {
+	    ordered_planlist = plangroup;
 	    break;
+	  }
+	ordered_planlist = nconc(ordered_planlist, plangroup);
       }
     _exec_collect_stats_ = false;
-    ordered_planlist = LispNil;
-    foreach (x, plangroups) {
-	ordered_planlist = nconc(ordered_planlist, CAR(x));
-      }
     return ordered_planlist;
+}
+
+bool
+plan_contain_redundant_hashjoin(plan)
+Plan plan;
+{
+    Plan outerplan, innerplan;
+    int outerpages, innerpages;
+    if (plan == NULL)
+	return false;
+    if (IsA(plan,HashJoin)) {
+	outerplan = get_lefttree(get_lefttree(plan));
+	innerplan = get_righttree(plan);
+	outerpages = page_size(get_plan_size(outerplan), 
+			       get_plan_width(outerplan));
+	innerpages = page_size(get_plan_size(innerplan),
+			       get_plan_width(innerplan));
+	if (!IsA(outerplan,Join) && outerpages > innerpages)
+	    return true;
+      }
+    if (IsA(plan,Join))
+	return plan_contain_redundant_hashjoin(get_lefttree(plan)) ||
+	       plan_contain_redundant_hashjoin(get_righttree(plan));
+    if (IsA(plan,Temp) || IsA(plan,Hash) ||
+	(IsA(plan,Scan) && get_scanrelid(plan) == _TEMP_RELATION_ID_))
+	return plan_contain_redundant_hashjoin(get_lefttree(plan));
+    return false;
+}
+
+List
+pruneHashJoinPlans(planlist)
+List planlist;
+{
+    LispValue x;
+    Plan plan;
+    List retlist;
+
+    retlist = LispNil;
+    foreach (x, planlist) {
+	plan = (Plan)CAR(x);
+	if (!plan_contain_redundant_hashjoin(plan))
+	    retlist = nappend1(retlist, plan);
+      }
+    return retlist;
 }

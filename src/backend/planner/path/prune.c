@@ -142,6 +142,10 @@ MergePath path;
     List outerorder, innerorder;
     List outerkeys, innerkeys;
 
+    if (get_outersortkeys(path) || get_innersortkeys(path))
+	return true;  /* a temporary hack to reduce plan space */
+    else return false;
+
     morder = (MergeOrder)get_p_ordering(path);
     outerpath = get_outerjoinpath(path);
     outerorder = get_p_ordering(outerpath);
@@ -285,7 +289,8 @@ prune_rel_path (rel,unorderedpath)
 	     path = (Path)CAR(x);
 	     foreach (y, CDR(x)) {
 		 path1 = (Path)CAR(y);
-		 if (path_contain_rotated_mergepaths(path, path1))
+		 if (equal(path, path1) ||
+		     path_contain_rotated_mergepaths(path, path1))
 		     prunelist = nappend1(prunelist, path1);
 	       }
 	   }
