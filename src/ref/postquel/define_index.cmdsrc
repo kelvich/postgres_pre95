@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH "DEFINE INDEX" COMMANDS 02/08/94
+.TH "DEFINE INDEX" COMMANDS 03/12/94
 .XA 2 "Define Index"
 .SH NAME
 define index \(em construct a secondary index
@@ -63,15 +63,16 @@ emp.age < 30
 .)C
 then the index can be used for a query with the restriction
 .(C
-\fBwhere\fR emp.age < 25
+where emp.age < 25
 .)C
 but not for a query with the restriction
 .(C
-\fBwhere\fR emp.age < 40
+where emp.age < 40
 .)C
 and so forth.  Although partial indexes cannot be used to satisfy as wide
 a range of queries as complete indexes, they can be constructed more quickly
-and extended incrementally (see the \fBextend index\fR command).
+and extended incrementally (see 
+.IR "extend index" (commands)).
 .PP
 In the second syntax shown above, an index can be defined on the
 result of a user-defined function
@@ -235,7 +236,7 @@ Archive indices are not supported in Version \*(PV.
 There should be an access method designer's guide.
 .PP
 Indices may only be defined on a single key.  This can be hacked
-around by defining composite types and using the \*(PG support for
+around by defining special types and using the \*(PG support for
 indices on functional values of attributes.
 .PP
 The only kind of partial index predicates \*(PG Version \*(PV
