@@ -10,16 +10,17 @@ libpq \*- programmer's interface to \*(PP
 LIBPQ is the programmer's interface to Postgres.  LIBPQ is a set of
 library routines which allow queries to pass to the Postgres back-end
 and tuples returned through an IPC channel.
-.sp
+.lp
 This version of the documentation is based on the C library.  A similar
 package exists for Common Lisp.
-.sh 1 "CONTROL AND INITIALIZATION"
-.sh 2 "VARIABLES"
-.sp
+.uh CONTROL AND INITIALIZATION
+.lp
+.uh VARIABLES
+.lp
 The following five environment variables can be used to set
 up default values for an environment and to avoid hard-coding
 database names into an application program:
-.sp 1
+.lp
 .(l
 .bu
 \fBPGHOST\fR sets the default server name.
@@ -32,10 +33,11 @@ database names into an application program:
 .bu
 \fBPGOPTION\fR contains optional arguements to the POSTGRES back-end.
 .)l
-.sp
+.lp
 The following internal variables of libpq can be accessed by
 the programmer:
-.sp 1
+.lp
+.(1
 .nf
 char	*PQhost ;	/* the server on which POSTGRES back-end
 			   is running. */
@@ -57,13 +59,13 @@ int	PQxactid = 0 ;	/* Transaction ID of the current transaction */
 char	*PQinitstr = NULL; 	/* Initialization string passed to back-end */
 
 int	PQtracep = 0 ;	/* 1 to print out front-end debugging messages */
+.)1
 .fi
-.sp 1
-.sh 1  "QUERY EXECUTION FUNCTIONS"
-.sp
+.uh QUERY EXECUTION FUNCTIONS
+.lp
 The following routines control the execution of queries
 from a C program.
-
+.(l
 PQsetdb \*- Make the specified database the current database.
 
 PQsetdb ( dbname )
@@ -72,12 +74,13 @@ PQsetdb ( dbname )
 PQdb \*- Return the current database being accessed.
 
 	char*	PQdb ()
-
+.)l
+.lp
 Returns the name of the POSTGRES database
 being accessed, or NIL if no database is open.
 Only one database can be accessed at a time.  The database
 name is a string limited to 16 characters.
-
+.(1
 PQreset \*- Reset the communication port with the back-end.
 
 PQreset ()
@@ -87,18 +90,20 @@ Resets communication in case of errors.
 PQfinish \*- Close communication ports with the back-end.
 
 PQfinish ()
-
+.)1
+.lp
 Terminates communications and frees up the memory taken up
 by the libpq buffer.
-
+.(1
 PQexec \*- Submit a query to POSTGRES.  
 
 PQexec (query)
 	char	* query;
-
+.)1
+.lp
 This function returns a status indicator or an error message.
-.sh 1 "PORTAL FUNCTIONS"
-.sp
+.uh PORTAL FUNCTIONS
+.lp
 A portal is a POSTGRES buffer from which tuples can be fetched.
 Each portal has a string name (currently limited to 16 bytes).
 A portal is initialized by submitting a retrieve statement
@@ -106,7 +111,7 @@ using the PQexec function, for example:
 .(l
 \fBretrieve portal\fR foo ( EMP.all )
 .)l
-.sp
+.lp
 The programmer can then move data from the portal into LIBPQ
 by executing a \fIfetch\fR statement, e.g:
 .(l
@@ -114,19 +119,19 @@ by executing a \fIfetch\fR statement, e.g:
 
 \fBfetch all in \fIfoo\fR
 .)l
-.sp
+.lp
 If no portal name is specified in a query, the default
 portal name is the empty string, known as the "blank portal."
 All qualifying tuples in a blank portal are fetched
 immediately, without the need for the programmer to issue a
 seperate fetch command.
-.sp
+.lp
 Data fetched from a portal into LIBPQ is moved into a portal
 buffer.  Portal names are mapped to portal buffers through
 an internal table.  Each tuple in a portal buffer has
 an index number locating its position in the buffer.  In addition,
 each field in a tuple has a name and a field number.
-.sp
+.lp
 A single retrieve command can return multiple types
 of tuples.
 This can happen if a \*(PP function is executed
@@ -137,7 +142,7 @@ Consequently, the tuples in a portal are set up
 in groups.
 Tuples in the same group are guaranteed to have the
 same record format.
-.sp
+.lp
 Portals that are associated with normal user commands
 are called synchronous.
 In this case, the application program is expected
@@ -145,8 +150,7 @@ to issue a retrievel followed by one or more
 fetch commands.
 The functions that follow can now be used to
 manipulate data in the portal.
-.nf
-.na
+.(l
 PQnportals \*- Return the number of open portals.
 
 int PQnportals ( rule_p )
@@ -254,12 +258,14 @@ char * PQgetvalue ( portal, tuple_index, field_number )
 	PortalBuffer	*portal;
 	int	tuple_index;
 	int	field_number;
-
+.)1
+.lp
 All values are returned
 as string.  It is the programmer's responsibility to
 convert them to the correct type.
-.sh 1 "TRACING FUNCTIONS"
-
+.uh TRACING FUNCTIONS
+.lp
+.(1
 PQtrace \*- Enable tracing.
 
 void PQtrace ()
@@ -267,9 +273,8 @@ void PQtrace ()
 PQuntrace \*- Disable tracing.
 
 void PQuntrace ()
-.fi
-.ad
-.sh 1 "BUGS"
+.)1
+.uh BUGS
 .lp
 Only 3 portals can be open at a time.
 .lp
@@ -280,9 +285,9 @@ to kill the process.
 .lp
 The query buffer is only 8192 bytes long, and queries over that
 length will be silently truncated.
-
-.sh 1 "SAMPLE PROGRAM"
-
+.uh SAMPLE PROGRAM
+.lp
+.(1
 .nf
 /*
 /*
@@ -349,5 +354,5 @@ main ()
     /* finish execution. */
     PQfinish ();
 }
-
+.)1
 .)1
