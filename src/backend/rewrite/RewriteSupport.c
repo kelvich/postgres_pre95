@@ -9,50 +9,11 @@
  * ----------------------------------------------------------------
  */
 
-#include "rules/prs2.h"
-#include "rules/prs2locks.h"
 #include "catalog/pg_rewrite.h"
 
 #include "utils/rel.h"			/* Relation, RelationData ... */
 #include "catalog/syscache.h"		/* for SearchSysCache */
 #include "utils/builtins.h"		/* for textout */
-
-/*
- *	RelationHasLocks
- *	- returns true iff a relation has some locks on it
- */
-
-RuleLock
-RelationGetRelationLocks ( relation )
-     Relation relation;
-{
-    HeapTuple relationTuple;
-    RuleLock relationLocks;
-
-    relationTuple = SearchSysCacheTuple(RELNAME,
-		       &(RelationGetRelationTupleForm(relation)->relname),
-		       (char *) NULL,
-		       (char *) NULL,
-		       (char *) NULL);
-
-    relationLocks = prs2GetLocksFromTuple( relationTuple,
-					   InvalidBuffer,
-					   (TupleDescriptor) NULL );
-    return(relationLocks);
-}
-
-bool
-RelationHasLocks ( relation )
-     Relation relation;
-{
-    RuleLock relationLock = RelationGetRelationLocks (relation);
-
-    if ( relationLock == NULL )
-      return (false );
-    else
-      return ( true );
-    
-}
 
 /* 
  * RuleIdGetRuleParsetrees
