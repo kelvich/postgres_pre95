@@ -8,7 +8,7 @@ monitor \*- run the interactive terminal monitor
 .uh SYNOPSIS
 .lp
 .b monitor
-[-h hostname] [-p port] [-t path] [-d path] [-o options]
+[-h hostname] [-p port] [-t path] [-d path] [-q] [-o options]
 dbname
 .uh DESCRIPTION
 .lp
@@ -47,6 +47,13 @@ want the backend debugging messages to be sent to; default is /dev/null.
 \fI-d path\fR specifies the path name of the file or tty which you want
 the frontend debugging messages to be written to; the default is not
 to generate any debugging messages. 
+.sp
+\fI-q\fR specifies that the monitor should do its work quietly.
+By default,
+it prints welcome and exit messages
+and the queries it sends to the backend.
+If the \fI-q\fP flag is used,
+none of this happens.
 .sp
 \fI-o options\fR specifies additonal options for the postgres backend.
 This is only intended for use by postgres developers.
