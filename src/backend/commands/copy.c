@@ -430,6 +430,10 @@ FILE *fp;
                 nulls[i] = ' ';
             }
         }
+
+		/* pfree the rulelock thing that is allocated */
+
+		pfree(tuple->t_lock.l_lock);
         pfree(tuple);
         tuples_read++;
 
