@@ -397,6 +397,7 @@ TimeFormSnapshotTimeQual(time)
 	qual = LintCast(InternalTimeQual, palloc(sizeof *qual));
 
 	qual->start = time;
+	qual->end = InvalidAbsoluteTime;
 	qual->mode = TimeQualAt;
 
 	return ((TimeQual)qual);
@@ -411,14 +412,14 @@ TimeFormRangedTimeQual(startTime, endTime)
 
 	qual = LintCast(InternalTimeQual, palloc(sizeof *qual));
 
+	qual->start = startTime;
+	qual->end = endTime;
 	qual->mode = TimeQualEvery;
 
 	if (TimeIsValid(startTime)) {
-		qual->start = startTime;
 		qual->mode |= TimeQualNewer;
 	}
 	if (TimeIsValid(endTime)) {
-		qual->end = endTime;
 		qual->mode |= TimeQualOlder;
 	}
 
@@ -718,9 +719,8 @@ HeapTupleSatisfiesUpperUnboundedInternalTimeQual(tuple, qual)
 
 			Assert(TransactionIdIsCurrentTransactionId(tuple->t_xmax));
 
-			if (CommandIdIsCurrentCommandId(tuple->t_cmax)) {
-				return (true);
-			}
+			return ((bool)
+				!CommandIdIsCurrentCommandId(tuple->t_cmax));
 		}
 
 		if (!TransactionIdDidCommit(tuple->t_xmin)) {
