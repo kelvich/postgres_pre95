@@ -11,7 +11,7 @@ CFLAGS= -g
 #	to start building pgperl.
 #
 PERLDIR=/usr/local/devel/perl
-MUS= ${PERLDIR}/usub/mus
+MUS= perl ${PERLDIR}/usub/mus
 
 # 
 # Don't add uperl.o to OBJS or it will be removed when you do 
@@ -36,7 +36,7 @@ PROG= pgperl
 ${PROG}: ${PERLDIR}/uperl.o
 
 ${TESTOBJ}: ${PROG} testlibpq.pl
-	./${PROG} testlibpq.pl 2>&1 | tee ${.TARGET}
+	./${PROG} ${.CURDIR}/testlibpq.pl 2>&1 | tee ${.TARGET}
 
 runtest: ${TESTOBJ}
 
