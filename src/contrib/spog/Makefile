@@ -4,7 +4,10 @@
 # $Id$
 #
 # $Log$
-# Revision 1.1  1993/02/18 23:27:32  aoki
+# Revision 1.2  1993/02/20 04:40:41  aoki
+# removed installation of scripts
+#
+# Revision 1.1  1993/02/18  23:27:32  aoki
 # Initial revision
 #
 # Revision 2.3  1992/08/13  11:47:33  schoenw
@@ -29,56 +32,40 @@
 # Initial revision
 #
 
+#
+# I decided not to install the shell programs, seeing as how Juergen
+# himself doesn't recommend casual use of them ...  -- pma 2/19/93
+#
+.include <postgres.global.mk>
+
+NOMAN=
+
 # some readline libraries have xmalloc and xrealloc, some don't.
 # define NEED_XMALLOC if your readline library lacks xmalloc and xrealloc.
 # some versions of UNIX have strdup, some don't.
 # define NEED_STRDUP if your standard library lacks strdup.
-CC=cc
 CFLAGS= -O -DNEED_XMALLOC -DNEED_STRDUP #-DDEBUG
 
 # set POSTGRESTOP to the top directory of postgres (one above src/).
 POSTGRESTOP=${.CURDIR}/../../..
+BINDIR= ${POSTGRESTOP}/bin
+CFLAGS+= -I$(POSTGRESTOP)/src/backend
+LDADD+= -L$(POSTGRESTOP)/src/libpq/obj
 
-PGINC=$(POSTGRESTOP)/src/backend
-INCLUDES=-I$(PGINC)
+# this points to the include files of gnu readline.
+# comment this out if they're in a standard place (e.g., /usr/include).
+CFLAGS+= -I/usr/local/devel
 
-# let RLINC point to the include files of gnu readline.
-# comment it out if they're in a standard place (e.g., /usr/include).
-RLINC=/usr/local/devel
-.if defined(RLINC)
-INCLUDES+= -I$(RLINC)
-.endif
+# this points to the gnu readline library.
+# comment this out if it's in a standard place (e.g., /usr/local/lib).
+LDADD+= -L/usr/local/devel/readline
 
-PGLIB=$(POSTGRESTOP)/lib
-LIBS=-L$(PGLIB)
+.MAIN: ${PROG}
 
-# let RLINC point to the gnu readline library.
-# comment it out if it's in a standard place (e.g., /usr/local/lib).
-RLLIB=/usr/local/devel/readline
-.if defined(RLLIB)
-LIBS+= -L$(RLLIB)
-.endif
+PROG= spog
 
-spog: spog.o query.o command.o Makefile
-	$(CC) -o spog $(CFLAGS) spog.o query.o command.o \
-              $(LIBS) -lreadline -ltermcap -lpq
+SRCS= spog.c query.c command.c
 
-spog.o: spog.c spog.h
-	$(CC) -c $(CFLAGS) $(INCLUDES) spog.c
+LDADD+= -lpq -lreadline -ltermcap
 
-command.o: command.c spog.h
-	$(CC) -c $(CFLAGS) $(INCLUDES) command.c
-
-query.o: query.c spog.h
-	$(CC) -c $(CFLAGS) $(INCLUDES) query.c
-
-install: spog spog.1
-	cp spog $(POSTGRESTOP)/bin
-	cp spog.1 $(POSTGRESTOP)/ref/man/man1
-	cp pg_edit.sh $(POSTGRESTOP)/bin/pg_edit
-	cp pg_edit.1 $(POSTGRESTOP)/ref/man/man1
-	cp pg_info.sh $(POSTGRESTOP)/bin/pg_info
-	cp pg_info.1 $(POSTGRESTOP)/ref/man/man1
-
-clean:
-	rm -f spog *.o
+.include <postgres.prog.mk>
