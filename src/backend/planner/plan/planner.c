@@ -14,16 +14,19 @@
  *     		planner
  */
 
-#include "c.h"
+#include "tmp/c.h"
+
+#include "nodes/pg_lisp.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+
+#include "parser/parse.h"
+
 #include "planner/internal.h"
 #include "planner/planner.h"
-#include "pg_lisp.h"
-#include "relation.h"
-#include "relation.a.h"
-#include "parse.h"
 
 /*** JJJ ***/
-#include "recursion.h"
+#include "executor/recursion.h"
 extern Plan	RecursiveQueryPlan();
 /*** JJJ ***/
 
@@ -134,7 +137,7 @@ extern Existential RMakeExistential();
  *    	DATA STRUCTURE CREATION/MANIPULATION ROUTINES
  *    
  */
-#include "relation.h"
+#include "nodes/relation.h"
 #include "planner/clauseinfo.h"
 #include "planner/indexnode.h"
 #include "planner/joininfo.h"
