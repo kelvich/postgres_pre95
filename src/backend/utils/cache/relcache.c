@@ -685,6 +685,40 @@ BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 }
  
 /* --------------------------------
+ *	RelationIdCacheGetRelation
+ *
+ *	only try to get the reldesc by looking up the cache
+ *	do not go to the disk
+ *	this is for BlockPrepareFile()
+ * --------------------------------
+ */
+Relation
+RelationIdCacheGetRelation(relationId)
+ObjectId	relationId;
+{
+    Relation		rd;
+
+    rd = (Relation)
+	KeyHashTableLookup(RelationCacheHashById, relationId);
+    
+    if (!RelationIsValid(rd))
+	rd = (Relation) KeyHashTableLookup(GlobalIdCache, relationId);
+
+    if (RelationIsValid(rd)) {
+	if (rd -> rd_fd == -1) {
+	    rd -> rd_fd = relopen (&rd -> rd_rel -> relname,
+				   O_RDWR | O_CREAT, 0666);
+	    Assert (rd -> rd_fd != -1);
+	}
+	RelationIncrementReferenceCount(rd);
+	
+	RelationSetLockForDescriptorOpen(rd);
+    }
+    
+    return(rd);
+}
+
+/* --------------------------------
  *	RelationIdGetRelation
  * --------------------------------
  */
