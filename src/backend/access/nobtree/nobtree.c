@@ -50,7 +50,7 @@ nobtbuild(heap, index, natts, attnum, istrat, pcount, params)
     InsertIndexResult res;
     int ntups;
     int i;
-    NOBTItem btitem;
+    NOBTLItem btitem;
     TransactionId currxid;
     extern TransactionId GetCurrentTransactionId();
 
@@ -149,7 +149,7 @@ nobtinsert(rel, itup)
     Relation rel;
     IndexTuple itup;
 {
-    NOBTItem btitem;
+    NOBTLItem btitem;
     int nbytes_btitem;
     InsertIndexResult res;
 

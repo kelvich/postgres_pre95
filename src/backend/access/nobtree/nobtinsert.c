@@ -34,7 +34,7 @@ extern uint32	CurrentLinkToken;
 InsertIndexResult
 _nobt_doinsert(rel, btitem)
     Relation rel;
-    NOBTItem btitem;
+    NOBTLItem btitem;
 {
     ScanKey itup_scankey;
     IndexTuple itup;
@@ -45,7 +45,7 @@ _nobt_doinsert(rel, btitem)
     int natts;
     InsertIndexResult res;
 
-    itup = &(btitem->nobti_itup);
+    itup = &(btitem->nobtli_itup);
 
     /* we need a scan key to do our search, so build one */
     itup_scankey = _nobt_mkscankey(rel, itup);
@@ -71,7 +71,7 @@ _nobt_doinsert(rel, btitem)
 
     /* do the insertion */
     res = _nobt_insertonpg(rel, buf, stack, natts, itup_scankey,
-			   btitem, (NOBTItem) NULL);
+			   btitem, (NOBTIItem) NULL);
 
     /* be tidy */
     _nobt_freestack(stack);
@@ -110,22 +110,25 @@ _nobt_doinsert(rel, btitem)
  */
 
 InsertIndexResult
-_nobt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
+_nobt_insertonpg(rel, buf, stack, keysz, scankey, btvoid, afteritem)
     Relation rel;
     Buffer buf;
     NOBTStack stack;
     int keysz;
     ScanKey scankey;
-    NOBTItem btitem;
-    NOBTItem afteritem;
+    char *btvoid;
+    NOBTIItem afteritem;
 {
+    NOBTIItem btiitem;
+    NOBTLItem btlitem;
     InsertIndexResult res;
     Page page;
+    bool isleaf;
+    NOBTPageOpaque opaque;
     Buffer rbuf;
     Buffer pbuf;
     Page rpage;
     ScanKey newskey;
-    NOBTItem ritem;
     NOBTPageOpaque rpageop;
     BlockNumber rbknum, itup_blkno;
     OffsetIndex itup_off;
@@ -134,12 +137,24 @@ _nobt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
     ItemId hikey;
     InsertIndexResult newres;
     Page ppage;
-    NOBTItem lftitem;
-    NOBTItem new_item = (NOBTItem) NULL;
+    NOBTIItem lftitem, new_item;
+    NOBTIItem riitem;
+    NOBTLItem rlitem;
+    char *datump;
+    int dsize;
 
     page = BufferGetPage(buf, 0);
-    itemsz = IndexTupleDSize(btitem->nobti_itup)
-	   + (sizeof(NOBTItemData) - sizeof(IndexTupleData));
+    opaque = (NOBTPageOpaque) PageGetSpecialPointer(page);
+    if (opaque->nobtpo_flags & NOBTP_LEAF) {
+	isleaf = true;
+	btlitem = (NOBTLItem) btvoid;
+	itemsz = IndexTupleDSize(btlitem->nobtli_itup)
+	       + (sizeof(NOBTLItemData) - sizeof(IndexTupleData));
+    } else {
+	isleaf = false;
+	btiitem = (NOBTIItem) btvoid;
+	itemsz = NOBTIItemGetSize(btiitem);
+    }
 
     if (PageGetFreeSpace(page) < itemsz) {
 
@@ -152,11 +167,11 @@ _nobt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
 	/* which new page (left half or right half) gets the tuple? */
 	if (_nobt_goesonpg(rel, buf, keysz, scankey, afteritem)) {
 	    itup_off = _nobt_pgaddtup(rel, buf, keysz, scankey,
-				      itemsz, btitem, afteritem);
+				       itemsz, btvoid, afteritem);
 	    itup_blkno = BufferGetBlockNumber(buf);
 	} else {
 	    itup_off = _nobt_pgaddtup(rel, rbuf, keysz, scankey,
-				    itemsz, btitem, afteritem);
+				       itemsz, btvoid, afteritem);
 	    itup_blkno = BufferGetBlockNumber(rbuf);
 	}
 
@@ -195,32 +210,53 @@ _nobt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
 	     *  on the new right page, we actually look at its second (1) entry.
 	     */
 
-	    if (rpageop->nobtpo_next != P_NONE)
-		ritem = (NOBTItem) PageGetItem(rpage, PageGetItemId(rpage, 1));
-	    else
-		ritem = (NOBTItem) PageGetItem(rpage, PageGetItemId(rpage, 0));
+	    if (rpageop->nobtpo_next != P_NONE) {
+		if (isleaf) {
+		    rlitem = (NOBTLItem) PageGetItem(rpage,
+						     PageGetItemId(rpage, 1));
+		} else {
+		    riitem = (NOBTIItem) PageGetItem(rpage,
+						     PageGetItemId(rpage, 1));
+		}
+	    } else {
+		if (isleaf) {
+		    rlitem = (NOBTLItem) PageGetItem(rpage,
+						     PageGetItemId(rpage, 0));
+		} else {
+		    riitem = (NOBTIItem) PageGetItem(rpage,
+						     PageGetItemId(rpage, 0));
+		}
+	    }
 
 	    /* get a unique btitem for this key */
-	    new_item = _nobt_formitem(&(ritem->nobti_itup));
-
-	    ItemPointerSet(&(new_item->nobti_itup.t_tid), 0, rbknum, 0, 1);
+	    if (isleaf) {
+		datump = (char *) rlitem;
+		datump += sizeof(NOBTLItemData);
+		dsize = IndexTupleSize(&(rlitem->nobtli_itup)) - sizeof(IndexTupleData);
+	    } else {
+		datump = (char *) riitem;
+		datump += sizeof(NOBTIItemData);
+		dsize = NOBTIItemGetSize(riitem) - sizeof(NOBTIItemData);
+	    }
+	    new_item = _nobt_formiitem(rbknum, datump, dsize);
 
 	    /* find the parent buffer */
 	    pbuf = _nobt_getstackbuf(rel, stack, NOBT_WRITE);
 
 	    /* xyzzy should use standard l&y "walk right" alg here */
 	    ppage = BufferGetPage(pbuf, 0);
-	    lftitem = (NOBTItem) PageGetItem(ppage,
-				  PageGetItemId(ppage, stack->nobts_offset));
-	    lftitem->nobti_oldchild = ItemPointerGetBlockNumber(&(lftitem->nobti_itup.t_tid));
-	    ItemPointerSet(&(lftitem->nobti_itup.t_tid),
-			    0, BufferGetBlockNumber(buf), 0, 1);
+	    lftitem = (NOBTIItem) PageGetItem(ppage,
+				  	      PageGetItemId(ppage,
+						  stack->nobts_offset));
+
+	    lftitem->nobtii_oldchild = lftitem->nobtii_child;
+	    lftitem->nobtii_child = BufferGetBlockNumber(buf);
 
 	    /* don't need the children anymore */
 	    _nobt_relbuf(rel, buf, NOBT_WRITE);
 	    _nobt_relbuf(rel, rbuf, NOBT_WRITE);
 
-	    newskey = _nobt_mkscankey(rel, &(new_item->nobti_itup));
+	    newskey = _nobt_imkscankey(rel, new_item);
 	    newres = _nobt_insertonpg(rel, pbuf, stack->nobts_parent,
 				    keysz, newskey, new_item,
 				    stack->nobts_btitem);
@@ -232,7 +268,7 @@ _nobt_insertonpg(rel, buf, stack, keysz, scankey, btitem, afteritem)
 	}
     } else {
 	itup_off = _nobt_pgaddtup(rel, buf, keysz, scankey,
-				itemsz, btitem, afteritem);
+				itemsz, btvoid, afteritem);
 	itup_blkno = BufferGetBlockNumber(buf);
 
 	_nobt_relbuf(rel, buf, NOBT_WRITE);
@@ -274,7 +310,7 @@ _nobt_bsplit(rel, buf)
     NOBTPageOpaque sopaque;
     int itemsz;
     ItemId itemid;
-    NOBTItem item;
+    NOBTIItem iitem;
     int nleft, nright;
     OffsetIndex start;
     OffsetIndex maxoff;
@@ -320,8 +356,8 @@ _nobt_bsplit(rel, buf)
 	start = 1;
 	itemid = PageGetItemId(origpage, 0);
 	itemsz = ItemIdGetLength(itemid);
-	item = (NOBTItem) PageGetItem(origpage, itemid);
-	PageAddItem(rightpage, item, itemsz, nright++, LP_USED);
+	iitem = (NOBTIItem) PageGetItem(origpage, itemid);
+	PageAddItem(rightpage, iitem, itemsz, nright++, LP_USED);
     } else {
 	start = 0;
     }
@@ -332,13 +368,13 @@ _nobt_bsplit(rel, buf)
     for (i = start; i <= maxoff; i++) {
 	itemid = PageGetItemId(origpage, i);
 	itemsz = ItemIdGetLength(itemid);
-	item = (NOBTItem) PageGetItem(origpage, itemid);
+	iitem = (NOBTIItem) PageGetItem(origpage, itemid);
 
 	/* decide which page to put it on */
 	if (i < firstright)
-	    PageAddItem(leftpage, item, itemsz, nleft++, LP_USED);
+	    PageAddItem(leftpage, iitem, itemsz, nleft++, LP_USED);
 	else
-	    PageAddItem(rightpage, item, itemsz, nright++, LP_USED);
+	    PageAddItem(rightpage, iitem, itemsz, nright++, LP_USED);
     }
 
     /*
@@ -352,7 +388,7 @@ _nobt_bsplit(rel, buf)
     else
 	itemid = PageGetItemId(rightpage, 1);
     itemsz = ItemIdGetLength(itemid);
-    item = (NOBTItem) PageGetItem(rightpage, itemid);
+    iitem = (NOBTIItem) PageGetItem(rightpage, itemid);
 
     /*
      *  We left a hole for the high key on the left page; fill it.  The
@@ -363,7 +399,7 @@ _nobt_bsplit(rel, buf)
      */
 
     PageManagerModeSet(OverwritePageManagerMode);
-    PageAddItem(leftpage, item, itemsz, 1, LP_USED);
+    PageAddItem(leftpage, iitem, itemsz, 1, LP_USED);
     PageManagerModeSet(ShufflePageManagerMode);
 
     /*
@@ -432,7 +468,7 @@ _nobt_nsplit(rel, bufP)
     NOBTPageOpaque sopaque;
     int itemsz;
     ItemId itemid;
-    NOBTItem item;
+    NOBTIItem iitem;
     int nleft, nright;
     OffsetIndex start;
     OffsetIndex maxoff;
@@ -490,24 +526,18 @@ _nobt_nsplit(rel, bufP)
      *  link pointer tokens for the 'replaced' link agree.  Then set the
      *  'replaced' link for the original page.
      *
-     *  The fake peer pointer locks are for exclusive locks on links; they
-     *  conflict only with themselves.  The fake critical section calls
-     *  block concurrent processes from doing a 'commit' (and associated
-     *  sync) while we're in a critical section.
+     *  The fake critical section calls block concurrent processes from
+     *  doing a 'commit' (and associated sync) while we're in a critical
+     *  section.
      */
-
-#define PEER_LOCK(a)
-#define PEER_UNLOCK(a)
 
 #define CRIT_SEC_START
 #define CRIT_SEC_END
 
-    PEER_LOCK(oopaque->nobtpo_nobtpo_replaced);
     CRIT_SEC_START;
     oopaque->nobtpo_repltok = lopaque->nobtpo_linktok = CurrentLinkToken;
     CRIT_SEC_END;
     oopaque->nobtpo_replaced = BufferGetBlockNumber(buf);
-    PEER_UNLOCK(oopaque->nobtpo_nobtpo_replaced);
 
     /*
      *  Now a path to the new pages exists (via the replaced link from the
@@ -517,22 +547,13 @@ _nobt_nsplit(rel, bufP)
      *  values before we update them.  If they've been updated already, then
      *  we leave them as they are, since the update that changed them knew
      *  what it was doing.
-     *
-     *  5 June 91 17:00:  Mark suggests that we might be able to do away with
-     *  peer locks if we use a write lock on the old page to control access
-     *  to the peer pointers on the children.  I need to think about whether
-     *  or not this is correct, and code it up if it can work.  xyzzy.
      */
 
-    PEER_LOCK(lopaque->nobtpo_prev);
     if (lopaque->nobtpo_prev == P_NONE)
 	lopaque->nobtpo_prev = oopaque->nobtpo_prev;
-    PEER_UNLOCK(lopaque->nobtpo_prev);
 
-    PEER_LOCK(ropaque->nobtpo_next);
     if (ropaque->nobtpo_next == P_NONE)
 	ropaque->nobtpo_next = oopaque->nobtpo_next;
-    PEER_UNLOCK(ropaque->nobtpo_next);
 
     /*
      *  If the page we're splitting is not the rightmost page at its level
@@ -543,29 +564,19 @@ _nobt_nsplit(rel, bufP)
      *  We leave a blank space at the start of the line table for the left
      *  page.  We'll come back later and fill it in with the high key item
      *  we get from the right key.
-     *
-     *  Note on no-overwrite implementation:  we don't really need to do
-     *  the lock here (at least, I don't think we do), but we'll leave it
-     *  in.  Since the only way the value will be NONE is if we're splitting
-     *  the rightmost page in the index, no one will ever change it from
-     *  anything else to none in until we release the page (and someone else
-     *  re-splits it).  For this argument to work, udpates of the next value
-     *  must be atomic (it's a longword, so they should be).
      */
 
     nleft = 2;
     nright = 1;
-    PEER_LOCK(ropaque->nobtpo_next);
     if (ropaque->nobtpo_next != P_NONE) {
 	start = 1;
 	itemid = PageGetItemId(origpage, 0);
 	itemsz = ItemIdGetLength(itemid);
-	item = (NOBTItem) PageGetItem(origpage, itemid);
-	PageAddItem(rightpage, item, itemsz, nright++, LP_USED);
+	iitem = (NOBTIItem) PageGetItem(origpage, itemid);
+	PageAddItem(rightpage, iitem, itemsz, nright++, LP_USED);
     } else {
 	start = 0;
     }
-    PEER_UNLOCK(ropaque->nobtpo_next);
 
     maxoff = PageGetMaxOffsetIndex(origpage);
     llimit = PageGetFreeSpace(leftpage) / 2;
@@ -574,13 +585,13 @@ _nobt_nsplit(rel, bufP)
     for (i = start; i <= maxoff; i++) {
 	itemid = PageGetItemId(origpage, i);
 	itemsz = ItemIdGetLength(itemid);
-	item = (NOBTItem) PageGetItem(origpage, itemid);
+	iitem = (NOBTIItem) PageGetItem(origpage, itemid);
 
 	/* decide which page to put it on */
 	if (i < firstright)
-	    PageAddItem(leftpage, item, itemsz, nleft++, LP_USED);
+	    PageAddItem(leftpage, iitem, itemsz, nleft++, LP_USED);
 	else
-	    PageAddItem(rightpage, item, itemsz, nright++, LP_USED);
+	    PageAddItem(rightpage, iitem, itemsz, nright++, LP_USED);
     }
 
     /*
@@ -594,7 +605,7 @@ _nobt_nsplit(rel, bufP)
     else
 	itemid = PageGetItemId(rightpage, 1);
     itemsz = ItemIdGetLength(itemid);
-    item = (NOBTItem) PageGetItem(rightpage, itemid);
+    iitem = (NOBTIItem) PageGetItem(rightpage, itemid);
 
     /*
      *  We left a hole for the high key on the left page; fill it.  The
@@ -605,7 +616,7 @@ _nobt_nsplit(rel, bufP)
      */
 
     PageManagerModeSet(OverwritePageManagerMode);
-    PageAddItem(leftpage, item, itemsz, 1, LP_USED);
+    PageAddItem(leftpage, iitem, itemsz, 1, LP_USED);
     PageManagerModeSet(ShufflePageManagerMode);
 
     /*
@@ -641,12 +652,11 @@ _nobt_nsplit(rel, bufP)
 
     nobackup = false;
     if (ropaque->nobtpo_next != P_NONE) {
-	sbuf = _nobt_getbuf(rel, ropaque->nobtpo_next, NOBT_PREVLNK);
+	sbuf = _nobt_getbuf(rel, ropaque->nobtpo_next, NOBT_WRITE);
 	spage = BufferGetPage(sbuf, 0);
 	sopaque = (NOBTPageOpaque) PageGetSpecialPointer(spage);
-	PEER_LOCK(sopaque->nobtpo_replaced);
 	while ((repl = sopaque->nobtpo_replaced) != P_NONE) {
-	    newsbuf = _nobt_getbuf(rel, repl, NOBT_PREVLNK);
+	    newsbuf = _nobt_getbuf(rel, repl, NOBT_WRITE);
 	    newspage = BufferGetPage(sbuf, 0);
 	    newsopaque = (NOBTPageOpaque) PageGetSpecialPointer(newspage);
 
@@ -677,10 +687,8 @@ _nobt_nsplit(rel, bufP)
 		 *  Traverse the replaced link and move the lock down.
 		 */
 
-		_nobt_relbuf(rel, sbuf, NOBT_PREVLNK);
-		PEER_UNLOCK(sopaque->nobtpo_replaced);
+		_nobt_relbuf(rel, sbuf, NOBT_WRITE);
 		sopaque = newsopaque;
-		PEER_LOCK(sopaque->nobtpo_replaced);
 
 		/* still have newsbuf locked with PREVLNK */
 		sbuf = newsbuf;
@@ -692,7 +700,6 @@ _nobt_nsplit(rel, bufP)
 	 *  peer pointers correct.
 	 */
 
-	PEER_LOCK(sopaque->nobto_prev);
 	if (!nobackup)
 	    sopaque->nobtpo_oldprev = sopaque->nobtpo_prev;
 
@@ -702,20 +709,16 @@ _nobt_nsplit(rel, bufP)
 	CRIT_SEC_END;
 
 	/* write and release the old right sibling */
-	_nobt_wrtnorelbuf(rel, sbuf);
-	_nobt_relbuf(rel, sbuf, NOBT_PREVLNK);
-
-	PEER_UNLOCK(sopaque->nobtpo_replaced);
+	_nobt_wrtbuf(rel, sbuf);
     }
 
     nobackup = false;
     if (lopaque->nobtpo_prev != P_NONE) {
-	sbuf = _nobt_getbuf(rel, ropaque->nobtpo_next, NOBT_NEXTLNK);
+	sbuf = _nobt_getbuf(rel, ropaque->nobtpo_next, NOBT_WRITE);
 	spage = BufferGetPage(sbuf, 0);
 	sopaque = (NOBTPageOpaque) PageGetSpecialPointer(spage);
-	PEER_LOCK(sopaque->nobtpo_replaced);
 	while ((repl = sopaque->nobtpo_replaced) != P_NONE) {
-	    newsbuf = _nobt_getbuf(rel, repl, NOBT_NEXTLNK);
+	    newsbuf = _nobt_getbuf(rel, repl, NOBT_WRITE);
 	    newspage = BufferGetPage(sbuf, 0);
 	    newsopaque = (NOBTPageOpaque) PageGetSpecialPointer(newspage);
 
@@ -743,10 +746,8 @@ _nobt_nsplit(rel, bufP)
 		 *  Traverse the replaced link and move the lock down.
 		 */
 
-		_nobt_relbuf(rel, sbuf, NOBT_NEXTLNK);
-		PEER_UNLOCK(sopaque->nobtpo_replaced);
+		_nobt_relbuf(rel, sbuf, NOBT_WRITE);
 		sopaque = newsopaque;
-		PEER_LOCK(sopaque->nobtpo_replaced);
 		sbuf = newsbuf;
 	    }
 	}
@@ -766,10 +767,7 @@ _nobt_nsplit(rel, bufP)
 	CRIT_SEC_END;
 
 	/* write and release the old right sibling */
-	_nobt_wrtnorelbuf(rel, sbuf);
-	_nobt_relbuf(rel, sbuf, NOBT_PREVLNK);
-
-	PEER_UNLOCK(sopaque->nobtpo_replaced);
+	_nobt_wrtbuf(rel, sbuf);
     }
 
     /* split's done */
@@ -794,8 +792,11 @@ _nobt_nsplit(rel, bufP)
  *		[2 2 2 2 2 3 4]
  *	may be split as
  *		[2 2 2 2] [2 3 4].
+ *
+ *  For the no-overwrite implementation, we assume no duplicates.
  */
 
+OffsetIndex
 _nobt_findsplitloc(rel, page, start, maxoff, llimit)
     Relation rel;
     Page page;
@@ -803,71 +804,13 @@ _nobt_findsplitloc(rel, page, start, maxoff, llimit)
     OffsetIndex maxoff;
     Size llimit;
 {
-    OffsetIndex i;
-    OffsetIndex saferight;
-    ItemId nxtitemid, safeitemid;
-    NOBTItem safeitem, nxtitem;
-    IndexTuple safetup, nxttup;
-    Size nbytes;
-    TupleDescriptor itupdesc;
-    int natts;
-    int attno;
-    Datum attsafe;
-    Datum attnext;
-    Boolean null;
+    OffsetIndex maxoff;
+    OffsetIndex splitloc;
 
-    itupdesc = RelationGetTupleDescriptor(rel);
-    natts = rel->rd_rel->relnatts;
+    maxoff = PageGetMaxOffsetIndex(page);
+    splitloc = maxoff / 2;
 
-    saferight = start;
-    safeitemid = PageGetItemId(page, saferight);
-    nbytes = ItemIdGetLength(safeitemid) + sizeof(ItemIdData);
-    safeitem = (NOBTItem) PageGetItem(page, safeitemid);
-    safetup = &(safeitem->nobti_itup);
-
-    i = start + 1;
-
-    while (nbytes < llimit) {
-
-	/* check the next item on the page */
-	nxtitemid = PageGetItemId(page, i);
-	nbytes += (ItemIdGetLength(nxtitemid) + sizeof(ItemIdData));
-	nxtitem = (NOBTItem) PageGetItem(page, nxtitemid);
-	nxttup = &(nxtitem->nobti_itup);
-
-	/* test against last known safe item */
-	for (attno = 1; attno <= natts; attno++) {
-	    attsafe = (Datum) IndexTupleGetAttributeValue(safetup, attno,
-							  itupdesc, &null);
-	    attnext = (Datum) IndexTupleGetAttributeValue(nxttup, attno,
-							  itupdesc, &null);
-
-	    /*
-	     *  If the tuple we're looking at isn't equal to the last safe one
-	     *  we saw, then it's our new safe tuple.
-	     */
-
-	    if (!_nobt_invokestrat(rel, attno, NOBTEqualStrategyNumber,
-				 attsafe, attnext)) {
-		safetup = nxttup;
-		saferight = i;
-
-		/* break is for the attno for loop */
-		break;
-	    }
-	}
-	i++;
-    }
-
-    /*
-     *  If the chain of dups starts at the beginning of the page and extends
-     *  past the halfway mark, we can split it in the middle.
-     */
-
-    if (saferight == start)
-	saferight = i;
-
-    return (saferight);
+    return (splitloc);
 }
 
 /*
@@ -894,14 +837,18 @@ _nobt_newroot(rel, lbuf, rbuf)
     Buffer rbuf;
 {
     Buffer rootbuf;
-    Page lpage, rpage, rootpage;
     BlockNumber lbkno, rbkno;
+    Page lpage, rpage, rootpage;
+    NOBTPageOpaque lopaque, ropaque;
     BlockNumber rootbknum;
     NOBTPageOpaque rootopaque;
     ItemId itemid;
-    NOBTItem item;
+    NOBTIItem iitem;
+    NOBTLItem litem;
     int itemsz;
-    NOBTItem new_item;
+    NOBTIItem new_item;
+    Size dsize;
+    char *datump;
 
     /* get a new root page */
     rootbuf = _nobt_getbuf(rel, P_NEW, NOBT_WRITE);
@@ -921,26 +868,46 @@ _nobt_newroot(rel, lbuf, rbuf)
     rbkno = BufferGetBlockNumber(rbuf);
     lpage = BufferGetPage(lbuf, 0);
     rpage = BufferGetPage(rbuf, 0);
+    lopaque = (NOBTPageOpaque) PageGetSpecialPointer(lpage);
+    ropaque = (NOBTPageOpaque) PageGetSpecialPointer(rpage);
 
     /* step over the high key on the left page */
     itemid = PageGetItemId(lpage, 1);
     itemsz = ItemIdGetLength(itemid);
-    item = (NOBTItem) PageGetItem(lpage, itemid);
-    new_item = _nobt_formitem(&(item->nobti_itup));
-    ItemPointerSet(&(new_item->nobti_itup.t_tid), 0, lbkno, 0, 1);
+    if (lopaque->nobtpo_flags & NOBTP_LEAF) {
+    	litem = (NOBTLItem) PageGetItem(lpage, itemid);
+	datump = (char *) litem;
+	datump += sizeof(NOBTLItemData);
+	dsize = itemsz - sizeof(IndexTupleData);
+    } else {
+    	iitem = (NOBTIItem) PageGetItem(lpage, itemid);
+	datump = (char *) iitem;
+	datump += sizeof(NOBTIItemData);
+	dsize = itemsz - sizeof(NOBTIItemData);
+    }
+    new_item = _nobt_formiitem(lbkno, datump, dsize);
 
     /* insert the left page pointer */
-    PageAddItem(rootpage, new_item, itemsz, 1, LP_USED);
+    PageAddItem(rootpage, new_item, NOBTIItemGetSize(new_item), 1, LP_USED);
     pfree(new_item);
 
     itemid = PageGetItemId(rpage, 0);
     itemsz = ItemIdGetLength(itemid);
-    item = (NOBTItem) PageGetItem(rpage, itemid);
-    new_item = _nobt_formitem(&(item->nobti_itup));
-    ItemPointerSet(&(new_item->nobti_itup.t_tid), 0, rbkno, 0, 1);
+    if (ropaque->nobtpo_flags & NOBTP_LEAF) {
+    	litem = (NOBTLItem) PageGetItem(rpage, itemid);
+	datump = (char *) litem;
+	datump += sizeof(NOBTLItemData);
+	dsize = itemsz - sizeof(IndexTupleData);
+    } else {
+    	iitem = (NOBTIItem) PageGetItem(rpage, itemid);
+	datump = (char *) iitem;
+	datump += sizeof(NOBTIItemData);
+	dsize = itemsz - sizeof(NOBTIItemData);
+    }
+    new_item = _nobt_formiitem(rbkno, datump, dsize);
 
     /* insert the right page pointer */
-    PageAddItem(rootpage, new_item, itemsz, 2, LP_USED);
+    PageAddItem(rootpage, new_item, NOBTIItemGetSize(new_item), 2, LP_USED);
     pfree (new_item);
 
     /* write and let go of the root buffer */
@@ -963,49 +930,21 @@ _nobt_newroot(rel, lbuf, rbuf)
  */
 
 OffsetIndex
-_nobt_pgaddtup(rel, buf, keysz, itup_scankey, itemsize, btitem, afteritem)
+_nobt_pgaddtup(rel, buf, keysz, itup_scankey, itemsize, btvoid, voidafter)
     Relation rel;
     Buffer buf;
     int keysz;
     ScanKey itup_scankey;
     int itemsize;
-    NOBTItem btitem;
-    NOBTItem afteritem;
+    char *btvoid;
+    char *voidafter;
 {
-    OffsetIndex itup_off, maxoff;
-    ItemId itemid;
-    NOBTItem olditem;
     Page page;
-    NOBTPageOpaque opaque;
-    ScanKey tmpskey;
-    NOBTItem chkitem;
-    int chknbytes;
+    OffsetIndex itup_off;
 
     page = BufferGetPage(buf, 0);
-    opaque = (NOBTPageOpaque) PageGetSpecialPointer(page);
-
-    if (afteritem == (NOBTItem) NULL) {
-	itup_off = _nobt_binsrch(rel, buf, keysz, itup_scankey, NOBT_INSERTION) + 1;
-    } else {
-	chknbytes = sizeof(NOBTItemData) - sizeof(IndexTupleData);
-	tmpskey = _nobt_mkscankey(rel, &(afteritem->nobti_itup));
-	itup_off = _nobt_binsrch(rel, buf, keysz, tmpskey, NOBT_INSERTION) + 1;
-
-#ifdef notdef
-	/* this stuff is necessary to disambiguate duplicate keys */
-	for (;;) {
-	    chkitem = (NOBTItem) PageGetItem(page,
-					   PageGetItemId(page, itup_off++));
-	    if (bcmp((char *) chkitem, (char *) afteritem, chknbytes) == 0)
-		break;
-	}
-#endif /* notdef */
-
-	/* we want to be after the item */
-	itup_off++;
-    }
-
-    PageAddItem(page, btitem, itemsize, itup_off, LP_USED);
+    itup_off = _nobt_binsrch(rel, buf, keysz, itup_scankey, NOBT_INSERTION);
+    PageAddItem(page, btvoid, itemsize, itup_off + 1, LP_USED);
 
     /* write the buffer, but hold our lock */
     _nobt_wrtnorelbuf(rel, buf);
@@ -1031,17 +970,11 @@ _nobt_goesonpg(rel, buf, keysz, scankey, afteritem)
     Buffer buf;
     Size keysz;
     ScanKey scankey;
-    NOBTItem afteritem;
+    NOBTIItem afteritem;
 {
     Page page;
-    ItemId hikey;
     NOBTPageOpaque opaque;
-    ItemId itemid;
-    NOBTItem chkitem;
-    int cmpbytes;
-    OffsetIndex offind, maxoff;
-    ScanKey tmpskey;
-    bool found;
+    ItemId hikey;
 
     page = BufferGetPage(buf, 0);
 
@@ -1060,43 +993,5 @@ _nobt_goesonpg(rel, buf, keysz, scankey, afteritem)
      *  here.
      */
 
-    if (_nobt_skeycmp(rel, keysz, scankey, page, hikey, NOBTGreaterStrategyNumber))
-	return (false);
-
-    /*
-     *  If we have no adjacency information, and the item is equal to the
-     *  high key on the page (by here it is), then the item does not belong
-     *  on this page.
-     */
-
-    if (afteritem == (NOBTItem) NULL)
-	return (false);
-
-    /* damn, have to work for it.  i hate that. */
-    tmpskey = _nobt_mkscankey(rel, &(afteritem->nobti_itup));
-    maxoff = PageGetMaxOffsetIndex(page);
-    offind = _nobt_binsrch(rel, buf, keysz, tmpskey, NOBT_INSERTION);
-
-    /* only need to look at unique xid/seqno pair */
-    cmpbytes = sizeof(NOBTItemData) - sizeof(IndexTupleData);
-
-    /*
-     *  This loop will terminate quickly.  Because of the way that splits
-     *  work, if we start at some location on the page, we're guaranteed
-     *  to hit the tuple we're looking for before we get to the next key
-     *  of a different value on the page.  Lucky, huh?
-     */
-
-    found = false;
-    while (offind <= maxoff) {
-	chkitem = (NOBTItem) PageGetItem(page, PageGetItemId(page, offind));
-	if (bcmp((char *) chkitem, (char *) afteritem, cmpbytes) == 0) {
-	    found = true;
-	    break;
-	}
-	offind++;
-    }
-
-    _nobt_freeskey(tmpskey);
-    return (found);
+    return (false);
 }

@@ -17,6 +17,7 @@
 #include "access/genam.h"
 #include "access/iqual.h"
 #include "access/ftup.h"
+#include "access/tupmacs.h"
 #include "access/nobtree.h"
 
 RcsId("$Header$");
@@ -48,6 +49,34 @@ _nobt_mkscankey(rel, itup)
     return (skey);
 }
 
+ScanKey
+_nobt_imkscankey(rel, iitem)
+    Relation rel;
+    NOBTIItem iitem;
+{
+    ScanKey skey;
+    TupleDescriptor itupdesc;
+    int natts;
+    int i;
+    Pointer arg;
+    RegProcedure proc;
+    char *tempd;
+
+    natts = rel->rd_rel->relnatts;
+    itupdesc = RelationGetTupleDescriptor(rel);
+    tempd = ((char *) iitem) + sizeof(NOBTIItemData);
+
+    skey = (ScanKey) palloc(natts * sizeof(ScanKeyEntryData));
+
+    for (i = 0; i < natts; i++) {
+	arg = (Pointer) fetchatt(((struct attribute **) itupdesc), tempd);
+	proc = index_getprocid(rel, i + 1, NOBTORDER_PROC);
+	ScanKeyEntryInitialize(&(skey->data[i]), 0x0, i + 1, proc, arg);
+    }
+
+    return (skey);
+}
+
 void
 _nobt_freeskey(skey)
     ScanKey skey;
@@ -65,7 +94,7 @@ _nobt_freestack(stack)
 	ostack = stack;
 	stack = stack->nobts_parent;
 	pfree(ostack->nobts_btitem);
-	if (ostack->nobts_nxtitem != (NOBTItem) NULL)
+	if (ostack->nobts_nxtitem != (NOBTIItem) NULL)
 	    pfree(ostack->nobts_nxtitem);
 	pfree(ostack);
     }
@@ -203,11 +232,9 @@ _nobt_dump(rel)
     Page page;
     NOBTPageOpaque opaque;
     ItemId itemid;
-    NOBTItem item;
     OffsetIndex offind, maxoff, start;
     BlockNumber nxtbuf;
     TupleDescriptor itupdesc;
-    IndexTuple itup;
     Boolean isnull;
     Datum keyvalue;
     uint16 flags;
@@ -267,32 +294,58 @@ _nobt_dumptup(rel, itupdesc, page, offind)
 {
     ItemId itemid;
     Size itemsz;
-    NOBTItem btitem;
+    NOBTIItem btiitem;
+    NOBTLItem btlitem;
     IndexTuple itup;
     Size tuplen;
     ItemPointer iptr;
     BlockNumber blkno;
+    BlockNumber oldblkno;
     PageNumber pgno;
     OffsetNumber offno;
     Datum idatum;
     int16 tmpkey;
     Boolean null;
+    bool isleaf;
+    NOBTPageOpaque opaque;
+    char *tempd;
+
+    opaque = (NOBTPageOpaque) PageGetSpecialPointer(page);
+
+    if (opaque->nobtpo_flags & NOBTP_LEAF)
+	isleaf = true;
+    else
+	isleaf = false;
 
     itemid = PageGetItemId(page, offind);
     itemsz = ItemIdGetLength(itemid);
-    btitem = (NOBTItem) PageGetItem(page, itemid);
-    itup = &(btitem->nobti_itup);
-    tuplen = IndexTupleSize(itup);
-    iptr = &(itup->t_tid);
-    blkno = ItemPointerGetBlockNumber(iptr);
-    pgno = ItemPointerGetPageNumber(iptr, 0);
-    offno = ItemPointerGetOffsetNumber(iptr, 0);
+    if (isleaf) {
+	btlitem = (NOBTLItem) PageGetItem(page, itemid);
+	itup = &(btlitem->nobtli_itup);
+	tuplen = IndexTupleSize(itup);
+	iptr = &(itup->t_tid);
+	blkno = ItemPointerGetBlockNumber(iptr);
+	pgno = ItemPointerGetPageNumber(iptr, 0);
+	offno = ItemPointerGetOffsetNumber(iptr, 0);
 
-    idatum = IndexTupleGetAttributeValue(itup, 1, itupdesc, &null);
-    tmpkey = DatumGetInt16(idatum);
+	idatum = IndexTupleGetAttributeValue(itup, 1, itupdesc, &null);
+	tmpkey = DatumGetInt16(idatum);
 
-    printf("[%d/%d bytes] <%d,%d,%d> %d\n", itemsz, tuplen,
-	    blkno, pgno, offno, tmpkey);
+	printf("[%d/%d bytes] <%d,%d,%d> %d\n", itemsz, tuplen,
+		blkno, pgno, offno, tmpkey);
+    } else {
+	btiitem = (NOBTIItem) PageGetItem(page, itemid);
+	tempd = ((char *) btiitem) + sizeof(NOBTIItemData);
+	blkno = btiitem->nobtii_child;
+	oldblkno = btiitem->nobtii_oldchild;
+	tuplen = NOBTIItemGetSize(btiitem);
+
+	idatum = (Datum) fetchatt(((struct attribute **) itupdesc), tempd);
+	tmpkey = DatumGetInt16(idatum);
+
+	printf("[%d/%d bytes] child %d [%d] %d\n", itemsz, tuplen,
+		blkno, oldblkno, tmpkey);
+    }
 }
 
 bool
@@ -307,21 +360,46 @@ _nobt_checkqual(scan, itup)
 	return (true);
 }
 
-NOBTItem
+NOBTLItem
 _nobt_formitem(itup)
     IndexTuple itup;
 {
     int nbytes_btitem;
-    NOBTItem btitem;
+    NOBTLItem btitem;
     Size tuplen = IndexTupleSize(itup);
 
     /* make a copy of the index tuple with room for the sequence number */
     nbytes_btitem = tuplen +
-			(sizeof(NOBTItemData) - sizeof(IndexTupleData));
+			(sizeof(NOBTLItemData) - sizeof(IndexTupleData));
 
-    btitem = (NOBTItem) palloc(nbytes_btitem);
-    bcopy((char *) itup, (char *) &(btitem->nobti_itup), tuplen);
-    btitem->nobti_oldchild = P_NONE;
+    btitem = (NOBTLItem) palloc(nbytes_btitem);
+    bcopy((char *) itup, (char *) &(btitem->nobtli_itup), tuplen);
+
+    return (btitem);
+}
+
+NOBTIItem
+_nobt_formiitem(bkno, datump, dsize)
+    BlockNumber bkno;
+    char *datump;
+    Size dsize;
+{
+    int nbytes_btitem;
+    NOBTIItem btitem;
+    char *tempd;
+
+    /* make a copy of the index tuple with room for the sequence number */
+    nbytes_btitem = dsize + sizeof(NOBTIItemData);
+    nbytes_btitem = LONGALIGN(nbytes_btitem);
+
+    btitem = (NOBTIItem) palloc(nbytes_btitem);
+    btitem->nobtii_child = bkno;
+    btitem->nobtii_oldchild = P_NONE;
+    btitem->nobtii_info = nbytes_btitem;
+    btitem->nobtii_filler = 0;
+
+    tempd = ((char *) btitem) + sizeof(NOBTIItemData);
+    bcopy(datump, tempd, dsize);
 
     return (btitem);
 }

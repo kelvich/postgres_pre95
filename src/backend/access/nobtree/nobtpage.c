@@ -388,7 +388,7 @@ _nobt_getstackbuf(rel, stack, access)
     Page page;
     ItemId itemid;
     int nbytes;
-    NOBTItem item;
+    NOBTIItem iitem;
     NOBTPageOpaque opaque;
 
     blkno = stack->nobts_blkno;
@@ -397,24 +397,23 @@ _nobt_getstackbuf(rel, stack, access)
     opaque = (NOBTPageOpaque) PageGetSpecialPointer(page);
     maxoff = PageGetMaxOffsetIndex(page);
 
-    /* every btree entry is guaranteed unique in its NOBTItem header */
-    nbytes = sizeof(NOBTItemData) - sizeof(IndexTupleData);
+    nbytes = sizeof(NOBTIItemData);
 
     if (maxoff >= stack->nobts_offset) {
 	itemid = PageGetItemId(page, stack->nobts_offset);
-	item = (NOBTItem) PageGetItem(page, itemid);
+	iitem = (NOBTIItem) PageGetItem(page, itemid);
 
 	/* if the item is where we left it, we're done */
-	if (bcmp((char *) item, (char *) (stack->nobts_btitem), nbytes) == 0)
+	if (bcmp((char *) iitem, (char *) (stack->nobts_btitem), nbytes) == 0)
 	    return (buf);
 
 	/* if the item has just moved right on this page, we're done */
 	for (i = stack->nobts_offset + 1; i <= maxoff; i++) {
 	    itemid = PageGetItemId(page, stack->nobts_offset);
-	    item = (NOBTItem) PageGetItem(page, itemid);
+	    iitem = (NOBTIItem) PageGetItem(page, itemid);
 
 	    /* if the item is where we left it, we're done */
-	    if (bcmp((char *) item, (char *) (stack->nobts_btitem), nbytes) == 0)
+	    if (bcmp((char *) iitem, (char *) (stack->nobts_btitem), nbytes) == 0)
 		return (buf);
 	}
     }
@@ -439,8 +438,8 @@ _nobt_getstackbuf(rel, stack, access)
 	/* see if it's on this page */
 	for (offind = start; offind <= maxoff; offind++) {
 	    itemid = PageGetItemId(page, offind);
-	    item = (NOBTItem) PageGetItem(itemid);
-	    if (bcmp((char *) item, (char *) (stack->nobts_btitem), nbytes) == 0)
+	    iitem = (NOBTIItem) PageGetItem(itemid);
+	    if (bcmp((char *) iitem, (char *) (stack->nobts_btitem), nbytes) == 0)
 		return (buf);
 	}
     }
@@ -465,8 +464,6 @@ _nobt_setpagelock(rel, blkno, access)
 	RelationSetLockForReadPage(rel, 0, &iptr);
 	break;
 
-      case NOBT_PREVLNK:
-      case NOBT_NEXTLNK:
       default:
 	break;
     }
@@ -491,8 +488,6 @@ _nobt_unsetpagelock(rel, blkno, access)
 	RelationUnsetLockForReadPage(rel, 0, &iptr);
 	break;
 
-      case NOBT_PREVLNK:
-      case NOBT_NEXTLNK:
       default:
 	break;
     }

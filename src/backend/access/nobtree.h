@@ -56,7 +56,7 @@ typedef struct NOBTScanOpaqueData {
 
 typedef NOBTScanOpaqueData	*NOBTScanOpaque;
 
-#ifndef notdef
+#ifdef notdef
 /*
  *  NOBTItems are what we store in the btree.  The oldchild entry is used
  *  to store a pointer to the previous child page on internal items after
@@ -73,17 +73,19 @@ typedef struct NOBTItemData {
 typedef NOBTItemData	*NOBTItem;
 #else /* notdef */
 typedef struct NOBTIItemData {
-	uint16			nobtii_flags;
 	PageNumber		nobtii_oldchild;
 	PageNumber		nobtii_child;
 	unsigned short		nobtii_info;
+	unsigned short		nobtii_filler;	   /* must longalign key */
 	/* MORE DATA FOLLOWS AT END OF STRUCT */
 } NOBTIItemData;
 
 typedef NOBTIItemData	*NOBTIItem;
 
+#define NOBTIItemGetSize(i)	((i)->nobtii_info & 0x1FFF)
+#define NOBTIItemGetDSize(i)	((i).nobtii_info & 0x1FFF)
+
 typedef struct NOBTLItemData {
-	uint16			nobtli_flags;
 	IndexTupleData		nobtli_itup;
 	/* MORE DATA FOLLOWS AT END OF STRUCT */
 } NOBTLItemData;
@@ -108,8 +110,13 @@ typedef NOBTLItemData	*NOBTLItem;
 typedef struct NOBTStackData {
 	PageNumber		nobts_blkno;
 	OffsetIndex		nobts_offset;
+#ifdef notdef
 	NOBTItem		nobts_btitem;
 	NOBTItem		nobts_nxtitem;
+#else /* notdef */
+	NOBTIItem		nobts_btitem;
+	NOBTIItem		nobts_nxtitem;
+#endif /* notdef */
 	struct NOBTStackData	*nobts_parent;
 } NOBTStackData;
 
@@ -122,9 +129,11 @@ typedef NOBTStackData	*NOBTStack;
 
 #define	NOBT_READ	0
 #define	NOBT_WRITE	1
+#ifdef notdef
 #define	NOBT_NEXTLNK	2
 #define	NOBT_PREVLNK	3
 #define	NOBT_LINKTOK	4
+#endif /* notdef */
 
 /*
  *  Similarly, the difference between insertion and non-insertion binary
@@ -173,6 +182,7 @@ InsertIndexResult	_nobt_doinsert();
 InsertIndexResult	_nobt_insertonpg();
 OffsetIndex		_nobt_pgaddtup();
 ScanKey			_nobt_mkscankey();
+ScanKey			_nobt_imkscankey();
 NOBTStack		_nobt_search();
 NOBTStack		_nobt_searchr();
 void			_nobt_relbuf();
@@ -190,10 +200,12 @@ bool			_nobt_step();
 bool			_nobt_twostep();
 StrategyNumber		_nobt_getstrat();
 bool			_nobt_invokestrat();
-NOBTItem		_nobt_formitem();
+NOBTLItem		_nobt_formitem();
+NOBTIItem		_nobt_formiitem();
 bool			_nobt_goesonpg();
 void			_nobt_regscan();
 void			_nobt_dropscan();
 void			_nobt_adjscans();
 void			_nobt_scandel();
 bool			_nobt_scantouched();
+OffsetIndex		_nobt_findsplitloc();

@@ -18,6 +18,7 @@
 #include "access/ftup.h"
 #include "access/skey.h"
 #include "access/sdir.h"
+#include "access/tupmacs.h"
 #include "access/nobtree.h"
 
 RcsId("$Header$");
@@ -69,11 +70,9 @@ _nobt_searchr(rel, keysz, scankey, bufP, stack_in)
     BlockNumber par_blkno;
     BlockNumber blkno;
     ItemId itemid;
-    NOBTItem btitem;
-    NOBTItem item_save;
+    NOBTIItem btitem;
+    NOBTIItem item_save;
     int item_nbytes;
-    IndexTuple itup;
-    IndexTuple itup_save;
 
     page = BufferGetPage(*bufP, 0);
     opaque = (NOBTPageOpaque) PageGetSpecialPointer(page);
@@ -90,25 +89,12 @@ _nobt_searchr(rel, keysz, scankey, bufP, stack_in)
     par_blkno = BufferGetBlockNumber(*bufP);
     offind = _nobt_binsrch(rel, *bufP, keysz, scankey, NOBT_DESCENT);
     itemid = PageGetItemId(page, offind);
-    btitem = (NOBTItem) PageGetItem(page, itemid);
-    itup = &(btitem->nobti_itup);
-    blkno = ItemPointerGetBlockNumber(&(itup->t_tid));
+    btitem = (NOBTIItem) PageGetItem(page, itemid);
+    blkno = btitem->nobtii_child;
 
-    /*
-     *  We need to save the bit image of the index entry we chose in the
-     *  parent page on a stack.  In case we split the tree, we'll use this
-     *  bit image to figure out what our real parent page is, in case the
-     *  parent splits while we're working lower in the tree.  See the paper
-     *  by Lehman and Yao for how this is detected and handled.
-     *
-     *  Also, in the no-overwrite implementation, we use the keys that
-     *  bound this pointer as the link token, to verify that we've traversed
-     *  an active link in the tree.  For the no-overwrite case, we also need
-     *  the next pointer.
-     */
-
+    /* save current, next key on stack */
     item_nbytes = ItemIdGetLength(itemid);
-    item_save = (NOBTItem) palloc(item_nbytes);
+    item_save = (NOBTIItem) palloc(item_nbytes);
     bcopy((char *) btitem, (char *) item_save, item_nbytes);
     stack = (NOBTStack) palloc(sizeof(NOBTStackData));
     stack->nobts_offset = offind;
@@ -118,20 +104,20 @@ _nobt_searchr(rel, keysz, scankey, bufP, stack_in)
     /* if there's no "next" key on this page, use the high key */
     if (offind++ >= PageGetMaxOffsetIndex(page)) {
 	if (opaque->nobtpo_next == P_NONE) {
-	    stack->nobts_nxtitem = (NOBTItem) NULL;
+	    stack->nobts_nxtitem = (NOBTIItem) NULL;
 	} else {
 	    itemid = PageGetItemId(page, 0);
 	    item_nbytes = ItemIdGetLength(itemid);
-	    item_save = (NOBTItem) palloc(item_nbytes);
-	    btitem = (NOBTItem) PageGetItem(page, itemid);
+	    item_save = (NOBTIItem) palloc(item_nbytes);
+	    btitem = (NOBTIItem) PageGetItem(page, itemid);
 	    bcopy((char *) btitem, (char *) item_save, item_nbytes);
 	    stack->nobts_nxtitem = item_save;
 	}
     } else {
 	itemid = PageGetItemId(page, offind);
 	item_nbytes = ItemIdGetLength(itemid);
-	item_save = (NOBTItem) palloc(item_nbytes);
-	btitem = (NOBTItem) PageGetItem(page, itemid);
+	item_save = (NOBTIItem) palloc(item_nbytes);
+	btitem = (NOBTIItem) PageGetItem(page, itemid);
 	bcopy((char *) btitem, (char *) item_save, item_nbytes);
 	stack->nobts_nxtitem = item_save;
     }
@@ -191,15 +177,22 @@ _nobt_moveright(rel, buf, keysz, scankey, access, stack)
     BlockNumber rblkno;
     IndexTuple stktupa, chktupa;
     IndexTuple stktupb, chktupb;
-    NOBTItem chkitem;
+    NOBTIItem chkiitem;
+    NOBTLItem chklitem;
     char *stkstra, *chkstra;
     char *stkstrb, *chkstrb;
     int cmpsiza, cmpsizb;
     bool inconsistent;
+    bool isleaf;
 
     page = BufferGetPage(buf, 0);
     opaque = (NOBTPageOpaque) PageGetSpecialPointer(page);
     inconsistent = false;
+
+    if (opaque->nobtpo_flags & NOBTP_LEAF)
+	isleaf = true;
+    else
+	isleaf = false;
 
     /*
      *  For the no-overwrite implementation, here are the things that can
@@ -246,42 +239,54 @@ _nobt_moveright(rel, buf, keysz, scankey, access, stack)
 	} else if (stack == NULL) {
 	    inconsistent = true;
 	} else {
-	    stktupa = &(stack->nobts_btitem->nobti_itup);
-	    stkstra = ((char *) stktupa) + sizeof(IndexTupleData);
-	    chkitem = (NOBTItem) PageGetItem(page, PageGetItemId(page, 0));
-	    chktupa = &(chkitem->nobti_itup);
-	    chkstra = ((char *) chktupa) + sizeof(IndexTupleData);
-	    cmpsiza = IndexTupleSize(stktupa) - sizeof(IndexTupleData);
-	    if (IndexTupleSize(stktupa) != IndexTupleSize(chktupa)
-		|| bcmp(stkstra, chkstra, cmpsiza) != 0)
+	    stkstra = ((char *) stack->nobts_btitem) + sizeof(NOBTIItemData);
+	    if (isleaf) {
+		chklitem = (NOBTLItem) PageGetItem(page, PageGetItemId(page, 0));
+		chktupa = &(chklitem->nobtli_itup);
+		chkstra = ((char *) chktupa) + sizeof(IndexTupleData);
+		cmpsiza = IndexTupleSize(chktupa) - sizeof(IndexTupleData);
+	    } else {
+		chkiitem = (NOBTIItem) PageGetItem(page, PageGetItemId(page, 0));
+		chkstra = ((char *) chkiitem) + sizeof(NOBTIItemData);
+		cmpsiza = NOBTIItemGetSize(chkiitem) - sizeof(NOBTIItemData);
+	    }
+	    if (bcmp(stkstra, chkstra, cmpsiza) != 0)
 		inconsistent = true;
 	}
     } else {
-	if (stack == NULL || stack->nobts_nxtitem == (NOBTItem) NULL) {
+	if (stack == NULL || stack->nobts_nxtitem == (NOBTIItem) NULL) {
 	    inconsistent = true;
 	} else if (opaque->nobtpo_prev == P_NONE) {
 	    if (stack->nobts_offset != 0)
 		inconsistent = true;
 	} else {
 	    /* stack tuple a, check tuple a are the low key on the page */
-	    stktupa = &(stack->nobts_btitem->nobti_itup);
-	    stkstra = ((char *) stktupa) + sizeof(IndexTupleData);
-	    chkitem = (NOBTItem) PageGetItem(page, PageGetItemId(page, 1));
-	    chktupa = &(chkitem->nobti_itup);
-	    chkstra = ((char *) chktupa) + sizeof(IndexTupleData);
-	    cmpsiza = IndexTupleSize(stktupa) - sizeof(IndexTupleData);
+	    stkstra = ((char *) stack->nobts_btitem) + sizeof(NOBTIItemData);
+	    if (isleaf) {
+		chklitem = (NOBTLItem) PageGetItem(page, PageGetItemId(page, 1));
+		chktupa = &(chklitem->nobtli_itup);
+		chkstra = ((char *) chktupa) + sizeof(IndexTupleData);
+		cmpsiza = IndexTupleSize(chktupa) - sizeof(IndexTupleData);
+	    } else {
+		chkiitem = (NOBTIItem) PageGetItem(page, PageGetItemId(page, 1));
+		chkstra = ((char *) chkiitem) + sizeof(NOBTIItemData);
+		cmpsiza = NOBTIItemGetSize(chkiitem) - sizeof(NOBTIItemData);
+	    }
 
 	    /* stack tuple b, check tuple b are the high key */
-	    stktupb = &(stack->nobts_nxtitem->nobti_itup);
-	    stkstrb = ((char *) stktupb) + sizeof(IndexTupleData);
-	    chkitem = (NOBTItem) PageGetItem(page, PageGetItemId(page, 0));
-	    chktupb = &(chkitem->nobti_itup);
-	    chkstrb = ((char *) chktupb) + sizeof(IndexTupleData);
-	    cmpsizb = IndexTupleSize(stktupb) - sizeof(IndexTupleData);
+	    stkstrb = ((char *) stack->nobts_nxtitem) + sizeof(NOBTIItemData);
+	    if (isleaf) {
+		chklitem = (NOBTLItem) PageGetItem(page, PageGetItemId(page, 0));
+		chktupb = &(chklitem->nobtli_itup);
+		chkstrb = ((char *) chktupb) + sizeof(IndexTupleData);
+		cmpsizb = IndexTupleSize(chktupb) - sizeof(IndexTupleData);
+	    } else {
+		chkiitem = (NOBTIItem) PageGetItem(page, PageGetItemId(page, 0));
+		chkstrb = ((char *) chkiitem) + sizeof(NOBTIItemData);
+		cmpsizb = NOBTIItemGetSize(chkiitem) - sizeof(NOBTIItemData);
+	    }
 
-	    if (IndexTupleSize(stktupa) != IndexTupleSize(chktupa)
-		|| bcmp(stkstra, chkstra, cmpsiza) != 0
-	        || IndexTupleSize(stktupb) != IndexTupleSize(chktupb)
+	    if (bcmp(stkstra, chkstra, cmpsiza) != 0
 		|| bcmp(stkstrb, chkstrb, cmpsizb) != 0)
 		inconsistent = true;
 	}
@@ -318,35 +323,51 @@ _nobt_skeycmp(rel, keysz, scankey, page, itemid, strat)
     ItemId itemid;
     StrategyNumber strat;
 {
-    NOBTItem item;
+    NOBTIItem iitem;
+    NOBTLItem litem;
     IndexTuple indexTuple;
     TupleDescriptor tupDes;
     ScanKeyEntry entry;
     int i;
     Datum attrDatum;
     Datum keyDatum;
+    NOBTPageOpaque opaque;
     bool compare;
     bool isNull;
+    char *tempd;
 
-    item = (NOBTItem) PageGetItem(page, itemid);
-    indexTuple = &(item->nobti_itup);
+    opaque = (NOBTPageOpaque) PageGetSpecialPointer(page);
 
     tupDes = RelationGetTupleDescriptor(rel);
+    if (opaque->nobtpo_flags & NOBTP_LEAF) {
+	litem = (NOBTLItem) PageGetItem(page, itemid);
+	indexTuple = &(litem->nobtli_itup);
 
-    /* see if the comparison is true for all of the key attributes */
-    for (i=1; i <= keysz; i++) {
+	/* see if the comparison is true for all of the key attributes */
+	for (i=1; i <= keysz; i++) {
 
-	entry = &scankey->data[i-1];
-	attrDatum = IndexTupleGetAttributeValue(indexTuple,
-						entry->attributeNumber,
-						tupDes, &isNull);
+	    entry = &scankey->data[i-1];
+	    attrDatum = IndexTupleGetAttributeValue(indexTuple,
+						    entry->attributeNumber,
+						    tupDes, &isNull);
+	    keyDatum  = entry->argument;
+
+	    compare = _nobt_invokestrat(rel, i, strat, keyDatum, attrDatum);
+	    if (!compare)
+		return (false);
+	}
+    } else {
+	iitem = (NOBTIItem) PageGetItem(page, itemid);
+	tempd = ((char *) iitem) + sizeof(NOBTIItemData);
+
+	entry = &scankey->data[0];
 	keyDatum  = entry->argument;
+	attrDatum = (Datum) fetchatt(((struct attribute **) tupDes), tempd);
 
-	compare = _nobt_invokestrat(rel, i, strat, keyDatum, attrDatum);
+	compare = _nobt_invokestrat(rel, 1, strat, keyDatum, attrDatum);
 	if (!compare)
 	    return (false);
     }
-
     return (true);
 }
 
@@ -526,7 +547,8 @@ _nobt_compare(rel, itupdesc, page, keysz, scankey, offind)
     OffsetIndex offind;
 {
     Datum datum;
-    NOBTItem btitem;
+    NOBTLItem btlitem;
+    NOBTIItem btiitem;
     ItemId itemid;
     IndexTuple itup;
     NOBTPageOpaque opaque;
@@ -534,7 +556,9 @@ _nobt_compare(rel, itupdesc, page, keysz, scankey, offind)
     AttributeNumber attno;
     int result;
     int i;
+    char *tempd;
     Boolean null;
+    bool isleaf;
 
     /*
      *  If this is a leftmost internal page, and if our comparison is
@@ -543,9 +567,13 @@ _nobt_compare(rel, itupdesc, page, keysz, scankey, offind)
      */
 
     opaque = (NOBTPageOpaque) PageGetSpecialPointer(page);
-    if (!(opaque->nobtpo_flags & NOBTP_LEAF)
-	&& opaque->nobtpo_prev == P_NONE
-	&& offind == 0) {
+
+    if (opaque->nobtpo_flags & NOBTP_LEAF)
+	isleaf = true;
+    else
+	isleaf = false;
+
+    if (!isleaf && opaque->nobtpo_prev == P_NONE && offind == 0) {
 	    itemid = PageGetItemId(page, offind);
 
 	    /*
@@ -561,9 +589,6 @@ _nobt_compare(rel, itupdesc, page, keysz, scankey, offind)
 	    return (1);
     }
 
-    btitem = (NOBTItem) PageGetItem(page, PageGetItemId(page, offind));
-    itup = &(btitem->nobti_itup);
-
     /*
      *  The scan key is set up with the attribute number associated with each
      *  term in the key.  It is important that, if the index is multi-key,
@@ -574,20 +599,22 @@ _nobt_compare(rel, itupdesc, page, keysz, scankey, offind)
      *  We don't test for violation of this condition here.
      */
 
-    for (i = 1; i <= keysz; i++) {
-	entry = &(scankey->data[i - 1]);
+    entry = &(scankey->data[0]);
+
+    if (isleaf) {
+	btlitem = (NOBTLItem) PageGetItem(page, PageGetItemId(page, offind));
+	itup = &(btlitem->nobtli_itup);
 	attno = entry->attributeNumber;
 	datum = (Datum) IndexTupleGetAttributeValue(itup, attno,
 						    itupdesc, &null);
-	result = (int) (*(entry->func))(entry->argument, datum);
-
-	/* if the keys are unequal, return the difference */
-	if (result != 0)
-	    return (result);
+    } else {
+	btiitem = (NOBTIItem) PageGetItem(page, PageGetItemId(page, offind));
+	tempd = ((char *) btiitem) + sizeof(NOBTIItemData);
+	datum = (Datum) fetchatt(((struct attribute **) itupdesc), tempd);
     }
 
-    /* by here, the keys are equal */
-    return (0);
+    result = (int) (*(entry->func))(entry->argument, datum);
+    return (result);
 }
 
 /*
@@ -614,19 +641,13 @@ _nobt_next(scan, dir)
     BlockNumber blkno;
     ItemPointer current;
     ItemPointer iptr;
-    NOBTItem btitem;
+    NOBTLItem btitem;
     IndexTuple itup;
     NOBTScanOpaque so;
 
     rel = scan->relation;
     so = (NOBTScanOpaque) scan->opaque;
     current = &(scan->currentItemData);
-
-    /*
-     *  XXX 10 may 91:  somewhere there's a bug in our management of the
-     *  cached buffer for this scan.  wei discovered it.  the following
-     *  is a workaround so he can work until i figure out what's going on.
-     */
 
     if (!BufferIsValid(so->nobtso_curbuf))
 	so->nobtso_curbuf = _nobt_getbuf(rel, ItemPointerGetBlockNumber(current),
@@ -643,8 +664,8 @@ _nobt_next(scan, dir)
     /* by here, current is the tuple we want to return */
     offind = ItemPointerGetOffsetNumber(current, 0) - 1;
     page = BufferGetPage(buf, 0);
-    btitem = (NOBTItem) PageGetItem(page, PageGetItemId(page, offind));
-    itup = &btitem->nobti_itup;
+    btitem = (NOBTLItem) PageGetItem(page, PageGetItemId(page, offind));
+    itup = &btitem->nobtli_itup;
 
     if (_nobt_checkqual(scan, itup)) {
 	iptr = (ItemPointer) palloc(sizeof(ItemPointerData));
@@ -685,7 +706,7 @@ _nobt_first(scan, dir)
     Page page;
     NOBTStack stack;
     OffsetIndex offind, maxoff;
-    NOBTItem btitem;
+    NOBTLItem btitem;
     IndexTuple itup;
     ItemPointer current;
     ItemPointer iptr;
@@ -814,8 +835,8 @@ _nobt_first(scan, dir)
     /* okay, current item pointer for the scan is right */
     offind = ItemPointerGetOffsetNumber(current, 0) - 1;
     page = BufferGetPage(buf, 0);
-    btitem = (NOBTItem) PageGetItem(page, PageGetItemId(page, offind));
-    itup = &btitem->nobti_itup;
+    btitem = (NOBTLItem) PageGetItem(page, PageGetItemId(page, offind));
+    itup = &btitem->nobtli_itup;
 
     if (_nobt_checkqual(scan, itup)) {
 	iptr = (ItemPointer) palloc(sizeof(ItemPointerData));
@@ -1016,8 +1037,8 @@ _nobt_twostep(scan, bufP, dir)
     ItemPointer current;
     ItemId itemid;
     int itemsz;
-    NOBTItem btitem;
-    NOBTItem svitem;
+    NOBTLItem btitem;
+    NOBTLItem svitem;
     BlockNumber blkno;
     int nbytes;
 
@@ -1058,8 +1079,8 @@ _nobt_twostep(scan, bufP, dir)
 
     itemid = PageGetItemId(page, offind);
     itemsz = ItemIdGetLength(itemid);
-    btitem = (NOBTItem) PageGetItem(page, itemid);
-    svitem = (NOBTItem) palloc(itemsz);
+    btitem = (NOBTLItem) PageGetItem(page, itemid);
+    svitem = (NOBTLItem) palloc(itemsz);
     bcopy((char *) btitem, (char *) svitem, itemsz);
 
     if (_nobt_step(scan, bufP, dir)) {
@@ -1071,11 +1092,11 @@ _nobt_twostep(scan, bufP, dir)
     *bufP = _nobt_getbuf(scan->relation, blkno, NOBT_READ);
     page = BufferGetPage(*bufP, 0);
     maxoff = PageGetMaxOffsetIndex(page);
-    nbytes = sizeof(NOBTItemData) - sizeof(IndexTupleData);
+    nbytes = sizeof(NOBTLItemData) - sizeof(IndexTupleData);
 
     while (offind <= maxoff) {
 	itemid = PageGetItemId(page, offind);
-	btitem = (NOBTItem) PageGetItem(page, itemid);
+	btitem = (NOBTLItem) PageGetItem(page, itemid);
 	if (bcmp((char *) btitem, (char *) svitem, nbytes) == 0) {
 	    pfree (svitem);
 	    ItemPointerSet(current, 0, blkno, 0, offind + 1);
@@ -1113,7 +1134,8 @@ _nobt_endpoint(scan, dir)
     OffsetIndex offind, maxoff;
     OffsetIndex start;
     BlockNumber blkno;
-    NOBTItem btitem;
+    NOBTLItem btitem;
+    NOBTIItem btiitem;
     IndexTuple itup;
     NOBTScanOpaque so;
     RetrieveIndexResult res;
@@ -1138,10 +1160,8 @@ _nobt_endpoint(scan, dir)
 	} else
 	    offind = PageGetMaxOffsetIndex(page);
 
-	btitem = (NOBTItem) PageGetItem(page, PageGetItemId(page, offind));
-	itup = &(btitem->nobti_itup);
-
-	blkno = ItemPointerGetBlockNumber(&(itup->t_tid));
+	btiitem = (NOBTIItem) PageGetItem(page, PageGetItemId(page, offind));
+	blkno = btiitem->nobtii_child;
 
 	_nobt_relbuf(rel, buf, NOBT_READ);
 	buf = _nobt_getbuf(rel, blkno, NOBT_READ);
@@ -1201,8 +1221,8 @@ _nobt_endpoint(scan, dir)
 	elog(WARN, "Illegal scan direction %d", dir);
     }
 
-    btitem = (NOBTItem) PageGetItem(page, PageGetItemId(page, start));
-    itup = &(btitem->nobti_itup);
+    btitem = (NOBTLItem) PageGetItem(page, PageGetItemId(page, start));
+    itup = &(btitem->nobtli_itup);
 
     /* see if we picked a winner */
     if (_nobt_checkqual(scan, itup)) {
