@@ -20,54 +20,106 @@
  */
 extern MemoryContext	CurrentMemoryContext;
 
+
 /*
- * EnableMemoryContext --
- *	Enables/disables memory context module.
+ * EnableMemoryManagement --
+ *	Enables/disables memory management and global contexts.
  *
  * Note:
- *	...
+ *	This must be called before creating contexts or allocating memory.
+ *	This must be called before other contexts are created.
  *
  * Exceptions:
- *	...
+ *	BadArg if on is invalid.
+ *	BadState if on is true when enabled.
+ *	BadState if on is false when disabled.
  */
 extern
 void
-EnableMemoryContext ARGS((
+EnableMemoryManagement ARGS((
 	bool	on
 ));
 
 /*
- * CreateGlobalMemory --
- *	Returns new global memory context.
+ * EnterMemoryManagement --
+ *	Initializes the memory management module and the global context.
+ *
+ * need several classes of these?  and how does this relate to portals?
+ *
+ * ...
+ */
+
+/*
+ * MemoryContextAlloc --
+ *	Returns pointer to aligned allocated memory in the given context.
  *
  * Note:
- *	Assumes name is static.
+ *	none
  *
  * Exceptions:
- *	BadState if called when disabled.
- *	BadState if called outside TopGlobalMemory.
- *	BadArg if name is invalid.
+ *	BadState if called before InitMemoryManager.
+ *	BadArg if context is invalid or if size is 0.
+ *	BadAllocSize if size is larger than MaxAllocSize.
  */
 extern
-GlobalMemory
-CreateGlobalMemory ARGS((
-	String	name	/* XXX MemoryContextName */
+Pointer
+MemoryContextAlloc ARGS((
+	MemoryContext	context,
+	Size		size
 ));
 
 /*
- * DestroyGlobalMemory --
- *	Destroys given global memory context.
+ * MemoryContextFree --
+ *	Frees allocated memory referenced by pointer in the given context.
+ *
+ * Note:
+ *	none
  *
  * Exceptions:
- *	BadState if called when disabled.
- *	BadState if called outside TopGlobalMemory.
- *	BadArg if context is invalid GlobalMemory.
- *	BadArg if context is TopGlobalMemory.
+ *	???
+ *	BadArgumentsErr if firstTime is true for subsequent calls.
  */
 extern
 void
-GlobalMemoryDestroy ARGS((
-	GlobalMemory	context
+MemoryContextFree ARGS((
+	MemoryContext	context,
+	Pointer		pointer
+));
+
+/*
+ * MemoryContextRelloc --
+ *	Returns pointer to aligned allocated memory in the given context.
+ *
+ * Note:
+ *	none
+ *
+ * Exceptions:
+ *	???
+ *	BadArgumentsErr if firstTime is true for subsequent calls.
+ */
+extern
+Pointer
+MemoryContextRealloc ARGS((
+	MemoryContext	context,
+	Pointer		pointer,
+	Size		size
+));
+
+/*
+ * MemoryContextGetName --
+ *	Returns pointer to aligned allocated memory in the given context.
+ *
+ * Note:
+ *	none
+ *
+ * Exceptions:
+ *	???
+ *	BadArgumentsErr if firstTime is true for subsequent calls.
+ */
+extern
+String
+MemoryContextGetName ARGS((
+	MemoryContext	context
 ));
 
 /*
@@ -88,6 +140,40 @@ MemoryContextSwitchTo ARGS((
 ));
 
 /*
+ * CreateGlobalMemory --
+ *	Returns new global memory context.
+ *
+ * Note:
+ *	Assumes name is static.
+ *
+ * Exceptions:
+ *	BadState if called when disabled.
+ *	BadState if called outside TopMemoryContext (TopGlobalMemory).
+ *	BadArg if name is invalid.
+ */
+extern
+GlobalMemory
+CreateGlobalMemory ARGS((
+	String	name	/* XXX MemoryContextName */
+));
+
+/*
+ * DestroyGlobalMemory --
+ *	Destroys given global memory context.
+ *
+ * Exceptions:
+ *	BadState if called when disabled.
+ *	BadState if called outside TopMemoryContext (TopGlobalMemory).
+ *	BadArg if context is invalid GlobalMemory.
+ *	BadArg if context is TopMemoryContext (TopGlobalMemory).
+ */
+extern
+void
+GlobalMemoryDestroy ARGS((
+	GlobalMemory	context
+));
+
+/*
  * TopMemoryContext --
  *	Memory context for general global allocations.
  *
@@ -97,5 +183,20 @@ MemoryContextSwitchTo ARGS((
  *	appropriate.
  */
 extern MemoryContext	TopMemoryContext;
+
+/*
+ * MaxAllocSize --
+ *	Arbitrary limit on size of allocations.
+ *
+ * Note:
+ *	There is no guarantee that allocations smaller than MaxAllocSize
+ *	will succeed.  Allocation requests larger than MaxAllocSize will
+ *	be summarily denied.
+ *
+ *	This value should not be referenced except in one place in the code.
+ *
+ * XXX This should be defined in a file of tunable constants.
+ */
+#define MaxAllocSize	(0xfffffff)	/* 16G - 1 */
 
 #endif /* !defined(MCxtIncluded) */
