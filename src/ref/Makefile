@@ -4,10 +4,11 @@
 # This is a really lame Makefile, but I'm tired of dealing with it..
 # unfortunately we have targets generated from individual files and
 # from an ORDERED SET of files, which makes it hard to do this cleanly.
+# We also need paths in some places and not in others.
 #
-# The stupid shell scripts are just in case you DON'T have a troff/tbl but 
-# just have awf or nroff or something else that lets you print out plain man 
-# pages.
+# The stupid shell scripts are just in case you DON'T have a troff/tbl suite 
+# but just have awf or nroff or something else that lets you print out plain 
+# man pages.
 #
 .include <postgres.global.mk>
 
@@ -86,7 +87,6 @@ SOURCES= \
 	${.CURDIR}/unix/prmdir${PROG_SRC_EXT} \
 	${.CURDIR}/unix/s2kutils${PROG_SRC_EXT} \
 	${.CURDIR}/unix/shmemdoc${PROG_SRC_EXT} \
-	${.CURDIR}/unix/ugidd${PROG_SRC_EXT} \
 	${.CURDIR}/built-in${LIB_SRC_EXT} \
 	${.CURDIR}/postquel/postquel${CMD_SRC_EXT} \
 	${.CURDIR}/postquel/abort${CMD_SRC_EXT} \
@@ -196,8 +196,7 @@ PROG_MAN_OBJS= \
 	prm${PROG_MAN_EXT} \
 	prmdir${PROG_MAN_EXT} \
 	s2kutils${PROG_MAN_EXT} \
-	shmemdoc${PROG_MAN_EXT} \
-	ugidd${PROG_MAN_EXT} \
+	shmemdoc${PROG_MAN_EXT}
 
 CMD_MAN_OBJS= \
 	postquel${CMD_MAN_EXT} \
