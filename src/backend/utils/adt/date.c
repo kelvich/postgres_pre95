@@ -1,10 +1,13 @@
-/*
- * date.c --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	date.c
+ *
+ *   DESCRIPTION
  *	Functions for the built-in type "AbsoluteTime".
  *	Functions for the built-in type "RelativeTime".
  *	Functions for the built-in type "TimeInterval".
  *
- * Notes:
+ *   NOTES
  *	This code is actually (almost) unused.
  *	It needs to be integrated with Time and struct trange.
  *
@@ -13,6 +16,10 @@
  * XXX	definitions in h/tim.h may need to be rethought also.
  *
  * XXX  This code has been cleaned up some - avi 07/07/93
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #include <ctype.h>
@@ -24,12 +31,9 @@
 
 #include "tmp/postgres.h"
 #include "tmp/miscadmin.h"
+#include "utils/builtins.h"
 #include "utils/log.h"
 #include "utils/nabstime.h"
-#include "tmp/c.h"
-
-extern AbsoluteTime nabstimein ARGS((char *datetime ));	/* XXX BUILTIN */
-extern char *nabstimeout ARGS((AbsoluteTime datetime ));/* XXX BUILTIN */
 
 RcsId("$Header$");
 
