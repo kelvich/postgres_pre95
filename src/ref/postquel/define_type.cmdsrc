@@ -48,8 +48,8 @@ that the new type has the same format as the \*(PG-supplied data type,
 .BR "text".
 To indicate that a type is variable-length, set
 .IR "internal length"
-to
-.BR "-1" .
+to the keyword
+.BR "variable" .
 The external representation is similarly specified using
 .IR "external length."
 .PP
