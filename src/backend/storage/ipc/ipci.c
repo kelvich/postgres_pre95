@@ -123,7 +123,7 @@ AttachSharedMemoryAndSemaphores(key)
      *  attach the slock shared memory
      * ----------------
      */
-    AttachSLockMemory();
+    AttachSLockMemory(IPCKeyGetSLockSharedMemoryKey(key));
 #endif
     /* ----------------
      *	attach the buffer manager buffer pool (and semaphore)

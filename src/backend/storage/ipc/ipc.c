@@ -686,11 +686,14 @@ IPCKey key;
 }
 
 void
-AttachSLockMemory()
+AttachSLockMemory(key)
+IPCKey key;
 {
     char *slockM;
     if (SLockMemoryId == -1)
-	elog(FATAL, "SLockMemory not in shared memory");
+	   SLockMemoryId = IpcMemoryIdGet(key,0);
+    if (SLockMemoryId == -1)
+	   elog(FATAL, "SLockMemory not in shared memory");
     slockM = IpcMemoryAttach(SLockMemoryId);
     if (slockM == IpcMemAttachFailed)
 	elog(FATAL, "AttachSLockMemory: could not attach segment");
