@@ -1232,21 +1232,33 @@ a_expr:
 		{
 			/* check for passing non-ints */
 		        Const adt;
-			LispValue lcp;
+			Datum lcp;
 			Type tp = type(CString($1));
 			int32 len = tlen(tp);
 			char *cp = instr2 (tp, CString($3));
 
 			if (!tbyvalue(tp)) {
-			  if (len >= 0 && len != PSIZE(cp)) {
-			    char *pp;
-			    pp = palloc(len);
-			    bcopy(cp, pp, len);
-			    cp = pp;
-			  }
-			  lcp = parser_ppreserve(cp);
+			    if (len >= 0 && len != PSIZE(cp)) {
+				char *pp;
+				pp = palloc(len);
+				bcopy(cp, pp, len);
+				cp = pp;
+			    }
+			    lcp = PointerGetDatum(cp);
 			} else {
-			  lcp =  cp;
+			    switch(len) {
+			      case 1:
+				lcp = Int8GetDatum(cp);
+				break;
+			      case 2:
+				lcp = Int16GetDatum(cp);
+				break;
+			      case 4:
+				lcp = Int32GetDatum(cp);
+				break;
+			      default:
+				lcp = PointerGetDatum(cp);
+				break;
 			}
 
 			adt = MakeConst ( typeid(tp), len, lcp , 0 );
