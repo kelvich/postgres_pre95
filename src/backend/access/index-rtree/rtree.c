@@ -49,6 +49,7 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params)
     HeapTuple htup;
     IndexTuple itup;
     TupleDescriptor hd, id;
+    InsertIndexResult res;
     Datum *d;
     Boolean *null;
     int n;
@@ -120,7 +121,8 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params)
 	 *  pfree's the tuple after insertion.
 	 */
 
-	rtdoinsert(index, itup);
+	res = rtdoinsert(index, itup);
+	pfree (res);
 
 	/* do the next tuple in the heap */
 	htup = heap_getnext(scan, 0, &buffer);

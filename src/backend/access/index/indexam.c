@@ -219,6 +219,7 @@ index_insert(relation, indexTuple, offsetOutP)
     if (PointerIsValid(offsetOutP))
 	*offsetOutP = specificResult->offset;
     
+    pfree(specificResult);
     return (returnResult);
 }
 
