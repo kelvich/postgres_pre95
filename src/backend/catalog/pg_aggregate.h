@@ -101,6 +101,6 @@ DATA(insert OID = 0 ( int2min   PGUID int2smaller   - -  21  21  _null_ _null_ )
 DATA(insert OID = 0 ( float4min PGUID float4smaller - - 700  700 _null_ _null_ ));
 DATA(insert OID = 0 ( float8min PGUID float8smaller - - 701  701 _null_ _null_ ));
 
-DATA(insert OID = 0 ( count     PGUID - int4inc - 23 23 0 _null_ ));
+DATA(insert OID = 0 ( count     PGUID - int4inc - 23 23 _null_ 0 ));
 
 #endif PgAggregateIncluded
