@@ -1498,7 +1498,7 @@ ObjectId type;
 	     * casting it to int first!! -mer 8 Jan 1991
 	     */
 	    if (((int)length) <= -1) {
-		length = PSIZE(s);
+		length = VARSIZE(s);
 	    }
 	    sprintf(buf, " %d { ", length);
 	appendStringInfo(str,buf);
