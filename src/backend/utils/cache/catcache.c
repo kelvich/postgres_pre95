@@ -297,7 +297,7 @@ comphash(l, v)
     if (l == 16)
 	l = NameComputeLength((Name)v);
     else if (l < 0)
-	l = PSIZE(v);
+	l = VARSIZE(v);
 
     i = 0;
     while (l--) {
