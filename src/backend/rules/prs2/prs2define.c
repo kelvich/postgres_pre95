@@ -6,7 +6,7 @@
  *   $Header$
  *
  * DESCRIPTION:
- *   All teh routines needed to define a (tuple) PRS2 rule
+ *   All the routines needed to define a (tuple level) PRS2 rule
  */
 
 #include "c.h"
@@ -873,7 +873,18 @@ AttributeNumberPtr updatedAttributeNumberP;
 	}
 	if (commandType == RETRIEVE && null(resultRelation)) {
 	    /*
-	     * this is a retrieve (NOT a retrieve into...)
+	     * this is a "retrieve" (NOT a "retrieve into...")
+	     * action.
+	     * It can be either something like:
+	     *    ON retrieve to EMP.salary 
+	     *    WHERE ....
+	     *    DO retrieve (salary = ....) where .....
+	     *
+	     * In which case only one 'retrieve' command is allowed
+	     * in the action part of the rule, 
+	     * or it can be a view type rule:
+	     *    ON retrieve to TOYEMP
+	     *    DO retrieve (EMP.all) where EMP.dept = "toy"
 	     */
 	    actionType = ActionTypeRetrieveValue;
 	    break; 	/* exit 'foreach' loop */
@@ -946,7 +957,14 @@ ActionType actionType;
      */
     lockType = LockTypeInvalid;
 
-    if (actionType == ActionTypeRetrieveValue ||
+    if (actionType == ActionTypeRetrieveValue &&
+	eventAttributeNo == InvalidAttributeNumber) {
+	/*
+	 * this is a "view" rule....
+	 */
+	lockType = LockTypeRetrieveRelation;
+	attributeNo = InvalidAttributeNumber;
+    } else if (actionType == ActionTypeRetrieveValue ||
 	actionType == ActionTypeReplaceCurrent) {
 	/*
 	 * In this case the attribute to be locked is the updated
