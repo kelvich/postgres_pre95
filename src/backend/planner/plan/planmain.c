@@ -399,6 +399,7 @@ make_result( tlist,resrellevelqual,resconstantqual,left,right)
 {
     Result node = RMakeResult();
     
+    tlist = generate_fjoin(tlist);
     set_cost((Plan) node, 0.0);
     set_fragment((Plan) node, 0);
     set_state((Plan) node, NULL);
