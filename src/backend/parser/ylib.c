@@ -518,24 +518,25 @@ ParseFunc ( funcname , fargs )
 	 
 	 if (lispAtomp(CAR(pair)) && CAtom(CAR(pair)) == RELATION)
 	  {
-	      toid = typeid(type(CString(CDR(pair))));
-
-	      if(complexType(lispInteger(toid)))
-		/* arg is a relation, so set NumLevels */
-		if (NumLevels < 1 ) NumLevels = 1;
-
-	      relname = (Name)CString(CDR(pair));
-	      rd = heap_openr(relname);
-	      relid = RelationGetRelationId(rd);
-	      heap_close(rd);
-
 	      /* get the range table entry for the var node */
+	      relname = (Name)CString(CDR(pair));
 	      vnum = RangeTablePosn(relname, 0);
 	      if (vnum == 0) {
 		  p_rtable = nappend1(p_rtable ,
 				      MakeRangeTableEntry(relname, 0, relname));
 		  vnum = RangeTablePosn (relname, 0);
 	      }
+
+	      relname = VarnoGetRelname(RangeTablePosn(relname));
+	      toid = typeid(type(relname));
+
+	      if(complexType(lispInteger(toid)))
+		/* arg is a relation, so set NumLevels */
+		if (NumLevels < 1 ) NumLevels = 1;
+
+	      rd = heap_openr(relname);
+	      relid = RelationGetRelationId(rd);
+	      heap_close(rd);
 
 	      /*
 	       *  for func(relname), the param to the function
