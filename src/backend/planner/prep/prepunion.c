@@ -233,7 +233,7 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
 
     union_info = plan_union_query (union_relids,
 				   rt_index,rt_entry,
-				   root,tlist,qual,rangetable);
+				   root,tlist,qual,rangetable,flag);
 
     foreach(temp,union_info) {
       union_plans = nappend1(union_plans,CAR(CAR(temp)));
@@ -258,9 +258,10 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
 /*  .. plan-union-queries, plan-union-query    */
 
 LispValue
-plan_union_query (relids,rt_index,rt_entry,root,tlist,qual,rangetable)
+plan_union_query (relids,rt_index,rt_entry,root,tlist,qual,rangetable,flag)
      LispValue relids,rt_entry,root,tlist,qual,rangetable ;
      Index rt_index;
+     int flag;
 {
     LispValue i = LispNil;
     LispValue union_plans = LispNil;
@@ -281,7 +282,16 @@ plan_union_query (relids,rt_index,rt_entry,root,tlist,qual,rangetable)
 	 */
 	root_uniqueflag(new_root) = LispNil;
 	root_sortclause(new_root) = LispNil;
-	if ( listp(rt_relid(rt_entry))) 
+	if (flag == ARCHIVE) {
+	  /*
+	   * the entire union query uses the same (most recent) schema.
+	   * to do otherwise would require either ragged tuples or careful
+	   * archiving and interpretation of pg_attribute...
+	   */
+	  new_parsetree = lispCons(new_root,
+				   lispCons(new_tlist,
+					    lispCons(new_qual, LispNil)));
+	} else if ( listp(rt_relid(rt_entry))) {
 	  new_parsetree = fix_parsetree_attnums (rt_index, 
 					     /* XX temporary for inheritance */
 						 CInteger(CAR 
@@ -293,7 +303,7 @@ plan_union_query (relids,rt_index,rt_entry,root,tlist,qual,rangetable)
 								lispCons
 								(new_qual,
 								 LispNil))));
-	else 
+	} else {
 	  new_parsetree = fix_parsetree_attnums (rt_index, 
 						 CInteger(rt_relid(rt_entry)),
 						 CInteger(relid),
@@ -303,7 +313,7 @@ plan_union_query (relids,rt_index,rt_entry,root,tlist,qual,rangetable)
 							   lispCons
 							   (new_qual,
 							    LispNil))));
-
+	}
 
 	union_plans =
 	    nappend1(union_plans,
