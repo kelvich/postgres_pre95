@@ -100,6 +100,8 @@ static GlobalMemory fscxt = NULL;
 /* lo_api.c */
 void *LOCreate ARGS((char *path , int open_mode ));
 void *LOOpen ARGS((struct varlena *object , int open_mode ));
+void *XOCreate ARGS((char *path , int open_mode ));
+void *XOOpen ARGS((struct varlena *object , int open_mode ));
 void LOClose ARGS((void *obj_desc ));
 int LOUnixStat ARGS((void *obj_desc , struct pgstat *stbuf ));
 int LOSeek ARGS((void *obj_desc , int offset , int whence ));
@@ -142,6 +144,12 @@ static struct {
 	inv_seek, inv_tell, inv_stat},
     /* Unix */
     { BIG, LOCreate, LOOpen, LOClose, LORead, LOWrite,
+	LOSeek, LOTell, LOUnixStat},
+    /* External */
+    { BIG, XOCreate, XOOpen, LOClose, LORead, LOWrite,
+	LOSeek, LOTell, LOUnixStat},
+    /* Jaquith */
+    { BIG, XOCreate, XOOpen, LOClose, LORead, LOWrite,
 	LOSeek, LOTell, LOUnixStat}
 };
 
@@ -343,7 +351,8 @@ LOcreat(path,mode,objtype)
     MemoryContext currentContext;
 
     /* prevent garbage code */
-    if (objtype != Inversion && objtype != Unix)
+    if (objtype != Inversion && objtype != Unix &&
+	objtype != Jaquith && objtype != External)
 	objtype = Unix;
 
     if (fscxt == NULL) {
