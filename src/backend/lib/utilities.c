@@ -25,6 +25,7 @@
  *     		div
  */
 
+#include <math.h>
 #include "pg_lisp.h"
 #include "c.h"
 #include "log.h"
@@ -184,11 +185,11 @@ copy_seq_tree (seqtree)
 }
 
 
-base_log(foo)
-     double foo;
+double
+base_log(x,b)
+     double x,b;
 {
-    elog(NOTICE,"base_log, unsupported function returns 0");
-    return(0.0);
+    return(log(x)/log(b));
 }
 
 max(foo,bar)
