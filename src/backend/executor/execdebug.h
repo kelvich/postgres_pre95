@@ -31,6 +31,14 @@
 #undef EXEC_TUPLECOUNT
 
 /* ----------------
+ *	EXEC_ASSIGNDEBUGHOOKS controls whether or not _debug_hook_id_
+ *	will be used to assign debugging hooks to all the executor
+ *	nodes.  
+ * ----------------
+ */
+#undef EXEC_ASSIGNDEBUGHOOKS
+
+/* ----------------
  *	EXEC_CONTEXTDEBUG turns on the printing of debugging information
  *	by CXT_printf() calls regarding which memory context is the
  *	CurrentMemoryContext for palloc() calls.  
@@ -76,7 +84,7 @@
 
 /* ----------------
  *	EXEC_NESTLOOPDEBUG is a flag which turns on debugging of the
- *	nest loop node by NL_printf() in nestloop.c
+ *	nest loop node by NL_printf() and ENL_printf() in nestloop.c
  * ----------------
  */
 #undef EXEC_NESTLOOPDEBUG
@@ -127,7 +135,7 @@
 #undef EXEC_MERGEJOINPFREE
 
 /* ----------------
- *	EXEC_INTERACTIVEDEBUG is a flag which enables the
+ *	EXEC_DEBUGINTERACTIVE is a flag which enables the
  *	user to issue "DEBUG" commands from an interactive
  *	backend. 
  * ----------------
@@ -176,8 +184,11 @@
  * ----------------
  */
 #ifdef EXEC_ALLOCDEBUG
-#define ExecAlloc(routine, size)	ExecAllocDebug(routine, size)
-#define ExecFree(routine, pointer)	ExecFreeDebug(routine, pointer)
+#define ExecAlloc(routine, size) \
+    ExecAllocDebug(routine, __FILE__, __LINE__, size)
+
+#define ExecFree(routine, pointer) \
+    ExecFreeDebug(routine, __FILE__, __LINE__, pointer)
 #else
 #define ExecAlloc(routine, size)	ExecAllocNormal(size)
 #define ExecFree(routine, pointer)	ExecFreeNormal(pointer)
@@ -209,11 +220,13 @@
 #define NL_printf(s)			printf(s)
 #define NL1_printf(s, a)		printf(s, a)
 #define NL4_printf(s, a, b, c, d)	printf(s, a, b, c, d)
+#define ENL1_printf(message)		printf("ExecNestLoop: %s\n", message)
 #else
 #define NL_lispDisplay(l)		
 #define NL_printf(s)			
 #define NL1_printf(s, a)		
 #define NL4_printf(s, a, b, c, d)	
+#define ENL1_printf(message)
 #endif EXEC_NESTLOOPDEBUG
 
 /* ----------------
