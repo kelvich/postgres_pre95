@@ -60,6 +60,7 @@ get_rel(relid)
 	    set_pathlist(rel,LispNil);
 	    set_unorderedpath(rel,(PathPtr)NULL);
 	    set_cheapestpath(rel,(PathPtr)NULL);
+	    set_pruneable(rel,true);
 	    set_classlist(rel,(List)NULL);
 	    set_ordering(rel,LispNil);
 	    set_clauseinfo(rel,LispNil);
