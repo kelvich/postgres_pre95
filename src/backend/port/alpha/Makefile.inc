@@ -4,6 +4,8 @@
 # $Header$
 #
 
+CFLAGS+= -DHAVE_STRFTIME
+
 LDADD+= -lln
 
 HEADERS+= machine.h 
