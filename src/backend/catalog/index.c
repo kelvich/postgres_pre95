@@ -35,6 +35,7 @@ RcsId("$Header$");
 #include "access/skey.h"
 #include "access/tqual.h"
 #include "access/tupdesc.h"
+#include "access/funcindex.h"
 
 #include "storage/form.h"
 #include "storage/smgr.h"
@@ -50,6 +51,7 @@ RcsId("$Header$");
 #include "catalog/pg_index.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_relation.h"
+#include "catalog/pg_type.h"
 
 void	 index_build();
 
@@ -267,13 +269,74 @@ GetHeapRelationOid(heapRelationName, indexRelationName)
     return heapoid;
 }
 
+#define AFSIZE 	sizeof(AttributeTupleFormData)
+    
+TupleDescriptor
+BuildFuncTupleDesc(funcInfo)
+    FuncIndexInfo 	*funcInfo;
+{
+    HeapTuple 		tuple, SearchSysCacheTuple();
+    TupleDescriptor 	funcTupDesc;
+    ObjectId  		retType;
+    int4 		nArgs;
+
+    /*
+     * Allocate and zero a tuple descriptor.
+     */
+    funcTupDesc = (TupleDescriptor) palloc(sizeof(*funcTupDesc));
+    funcTupDesc->data[0] = (AttributeTupleForm) palloc(AFSIZE);
+    bzero(funcTupDesc->data[0], AFSIZE);
+
+    /*
+     * Lookup the function for the return type and number of args.
+     */
+    tuple = SearchSysCacheTuple(PRONAME,FIgetname(funcInfo),0,0,0);
+    if (!HeapTupleIsValid(tuple))
+	elog(WARN, "Function name %s does not exist", FIgetname(funcInfo));
+
+    retType = ((Form_pg_proc)GETSTRUCT(tuple))->prorettype;
+    nArgs = ((Form_pg_proc)GETSTRUCT(tuple))->pronargs;
+
+    /*
+     * verify arg count
+     */
+    if (nArgs != FIgetnArgs(funcInfo))
+    {
+	elog(WARN, 
+	     "Defined functional index with an incorrect number of arguments");
+    }
+
+    /*
+     * Look up the return type in pg_type for the type length.
+     */
+    tuple = SearchSysCacheTuple(TYPOID,retType,0,0,0);
+    if (!HeapTupleIsValid(tuple))
+	elog(WARN,"Function %s return type does not exist",FIgetname(funcInfo));
+
+    /*
+     * Assign some of the attributes values. Leave the rest as 0.
+     */
+    funcTupDesc->data[0]->attlen = ((Form_pg_type)GETSTRUCT(tuple))->typlen;
+    funcTupDesc->data[0]->atttypid = retType;
+    funcTupDesc->data[0]->attnum = 1;
+    funcTupDesc->data[0]->attbyval = 't';
+    funcTupDesc->data[0]->attcanindex = 'f';
+
+    /*
+     * make the attributes name the same as the functions
+     */
+    strncpy(&funcTupDesc->data[0]->attname, 
+	    FIgetname(funcInfo), 
+	    sizeof(funcTupDesc->data[0]->attname));
+
+    return (funcTupDesc);
+}
+
 /* ----------------------------------------------------------------
  *	ConstructTupleDescriptor
  * ----------------------------------------------------------------
  */
 
-#define AFSIZE 	sizeof(AttributeTupleFormData)
-    
 TupleDescriptor
 ConstructTupleDescriptor(heapoid, heapRelation, numatts, attNums)
     ObjectId		heapoid;
@@ -642,10 +705,10 @@ AppendAttributeTuples(indexRelation, numatts)
  * ----------------------------------------------------------------
  */
 void
-UpdateIndexRelation(indexoid, heapoid, indproc, natts, attNums, classOids)
+UpdateIndexRelation(indexoid, heapoid, funcInfo, natts, attNums, classOids)
     ObjectId		indexoid;
     ObjectId		heapoid;
-    ObjectId		indproc;
+    FuncIndexInfo	*funcInfo;
     AttributeNumber	natts;
     AttributeNumber	attNums[];
     ObjectId		classOids[];
@@ -661,7 +724,8 @@ UpdateIndexRelation(indexoid, heapoid, indproc, natts, attNums, classOids)
      */
     indexForm.indrelid =   heapoid;
     indexForm.indexrelid = indexoid;
-    indexForm.indproc = indproc;
+    indexForm.indproc = (PointerIsValid(funcInfo)) ?
+	FIgetProcOid(funcInfo) : InvalidObjectId;
    
     memset((char *)& indexForm.indkey[0], 0, sizeof indexForm.indkey);
     memset((char *)& indexForm.indclass[0], 0, sizeof indexForm.indclass);
@@ -673,6 +737,14 @@ UpdateIndexRelation(indexoid, heapoid, indproc, natts, attNums, classOids)
     for (i = 0; i < natts; i += 1) {
 	indexForm.indkey[i] =   attNums[i];
 	indexForm.indclass[i] = classOids[i];
+    }
+    /*
+     * If we have a functional index, add all attribute arguments
+     */
+    if (PointerIsValid(funcInfo))
+    {
+	for (i=1; i < FIgetnArgs(funcInfo); i++)
+	    indexForm.indkey[i] =   attNums[i];
     }
    
     indexForm.indisclustered = '\0';		/* XXX constant */
@@ -788,12 +860,12 @@ InitIndexStrategy(numatts, indexRelation, accessMethodObjectId)
  * ----------------------------------------------------------------
  */
 void
-index_create(heapRelationName, indexRelationName, indexProcedureName,
+index_create(heapRelationName, indexRelationName, funcInfo,
 	     accessMethodObjectId, numatts, attNums,
 	     classObjectId, parameterCount, parameter)
     Name		heapRelationName;
     Name		indexRelationName;
-    Name		indexProcedureName;
+    FuncIndexInfo	*funcInfo;
     ObjectId		accessMethodObjectId;
     AttributeNumber	numatts;
     AttributeNumber	attNums[];
@@ -841,10 +913,13 @@ index_create(heapRelationName, indexRelationName, indexProcedureName,
      *    construct new tuple descriptor
      * ----------------
      */
-    indexTupDesc = ConstructTupleDescriptor(heapoid,
-					    heapRelation,
-					    numatts,
-					    attNums);
+    if (PointerIsValid(funcInfo))
+    	indexTupDesc = BuildFuncTupleDesc(funcInfo);
+    else
+	indexTupDesc = ConstructTupleDescriptor(heapoid,
+						heapRelation,
+						numatts,
+						attNums);
 
     /* ----------------
      *	create the index relation
@@ -875,20 +950,16 @@ index_create(heapRelationName, indexRelationName, indexProcedureName,
      * ----------------
      */
 
-    if (NameIsValid(indexProcedureName))
+    if (PointerIsValid(funcInfo))
     {
 	HeapTuple proc_tup, SearchSysCacheTuple();
 	
-	proc_tup = SearchSysCacheTuple(PRONAME,indexProcedureName,0,0,0);
+	proc_tup = SearchSysCacheTuple(PRONAME,FIgetname(funcInfo),0,0,0);
 
 	if (!HeapTupleIsValid(proc_tup))
 	     elog (WARN, "function named %s does not exist",
-		   indexProcedureName);
-	indproc = proc_tup->t_oid;
-    }
-    else
-    {
-	indproc = InvalidObjectId;
+		   FIgetname(funcInfo));
+	FIgetProcOid(funcInfo) = proc_tup->t_oid;
     }
 
     /* ----------------
@@ -909,7 +980,7 @@ index_create(heapRelationName, indexRelationName, indexProcedureName,
      *    (append INDEX tuple)
      * ----------------
      */
-    UpdateIndexRelation(indexoid, heapoid, indproc,
+    UpdateIndexRelation(indexoid, heapoid, funcInfo,
 			numatts, attNums, classObjectId);
 
     /* ----------------
@@ -931,7 +1002,8 @@ index_create(heapRelationName, indexRelationName, indexProcedureName,
 		numatts,
 		attNums,
 		parameterCount,
-		parameter);
+		parameter,
+		funcInfo);
    
    heap_close(heapRelation);
    heap_close(indexRelation);
@@ -1279,13 +1351,14 @@ DefaultBuild(heapRelation, indexRelation, numberOfAttributes, attributeNumber,
 void
 index_build(heapRelation, indexRelation,
 	    numberOfAttributes, attributeNumber,
-	    parameterCount, parameter)
+	    parameterCount, parameter, funcInfo)
     Relation		heapRelation;
     Relation		indexRelation;
     AttributeNumber	numberOfAttributes;
     AttributeNumber	attributeNumber[];
     uint16		parameterCount;
     Datum		parameter[];
+    FuncIndexInfo	funcInfo;
 {
     RegProcedure	procedure;
 
@@ -1310,7 +1383,8 @@ index_build(heapRelation, indexRelation,
 		    attributeNumber,
 		    RelationGetIndexStrategy(indexRelation),
 		    parameterCount,
-		    parameter);
+		    parameter,
+		    funcInfo);
     else
 	DefaultBuild(heapRelation,
 		     indexRelation,
@@ -1318,5 +1392,6 @@ index_build(heapRelation, indexRelation,
 		     attributeNumber,
 		     RelationGetIndexStrategy(indexRelation),
 		     parameterCount,
-		     parameter);
+		     parameter,
+		     funcInfo);
 }
