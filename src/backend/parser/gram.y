@@ -573,18 +573,14 @@ opt_portal_name:
 
 IndexStmt:
 	  DEFINE opt_archive Index index_name ON relation_name
-	    Using access_method '(' index_params ')' with_clause
+	    Using access_method '(' index_params ')' with_clause where_clause
 		{
 		    /* should check that access_method is valid,
 		       etc ... but doesn't */
 
-		    $$ = lispCons($12,LispNil);
-		    $$  = lispCons($10,$$);
-		    $$  = lispCons($8,$$);
-		    $$  = lispCons($4,$$);
-		    $$  = lispCons($6,$$);
-		    $$  = lispCons(KW(index),$$);
-		    $$  = lispCons(KW(define),$$);
+		    $$ = MakeList ( $6,$4,$8,$10,$12,$13,-1 );
+		    $$ = lispCons(KW(index),$$);
+		    $$ = lispCons(KW(define),$$);
 		}
 	;
 
