@@ -15,6 +15,7 @@
  */
 
 #include <signal.h>
+#include <string.h>
 
 #include "tmp/postgres.h"
 #include "tmp/miscadmin.h"
