@@ -2360,24 +2360,28 @@ as:
 .(C
 #include <tmp/c.h>
 #include <tmp/postgres.h>
+#include <tmp/libpq-fe.h> /* for TUPLE */
 
 bool
 c_overpaid(t, limit) 
     TUPLE t;   /* the current instance of EMP */
     int4 limit;
 {
-    extern char *GetAttributeByName();
+    bool isnull = false;
     int4 salary;
 
-    salary = (int4) GetAttributeByName(t, "salary");
+    salary = (int4) GetAttributeByName(t, "salary", &isnull);
 
+    if (isnull == true)
+	return((bool) false);
     return((bool) (salary > limit));
 }
 .)C
 .cW GetAttributeByName
 is the \*(PP system function that returns attributes out of the
-current instance.  It has two arguments: the argument of type TUPLE
-passed into the function, and the name of the desired attribute.
+current instance.  It has three arguments: the argument of type TUPLE
+passed into the function, the name of the desired attribute, and a
+return parameter that describes whether the attribute is null.
 .cW GetAttributeByName
 will align data properly so you can cast its return value to the
 desired type.  For example, if you have an attribute
@@ -2390,7 +2394,7 @@ call would look like:
 .(C
 char *str;
 \&...
-str = (char *) GetAttributeByName(t, "name")
+str = (char *) GetAttributeByName(t, "name", &isnull)
 .)C
 .lp
 The following query lets \*(PP know about the
