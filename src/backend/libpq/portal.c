@@ -290,7 +290,7 @@ PQgroup(portal, tuple_index)
     GroupBuffer *group;
 
     if (tuple_index < 0 || tuple_index >= portal->no_tuples)
-	libpq_raise(PortalError, 
+	libpq_raise(&PortalError, 
 		     form((int)"tuple index %d out of bound.", tuple_index));
     
     group = portal->groups;
@@ -317,7 +317,7 @@ PQgetgroup(portal, tuple_index)
     int n = 0;
 
     if (tuple_index < 0 || tuple_index >= portal->no_tuples)
-	libpq_raise(PortalError, 
+	libpq_raise(&PortalError, 
 		     form((int)"tuple index %d out of bound.", tuple_index));
     
     group = portal->groups;
@@ -421,7 +421,7 @@ PQgetvalue(portal, tuple_index, field_number)
     TupleBlock  *tuple_ptr;
 
     if (tuple_index < 0 || tuple_index >= portal->no_tuples)
-	libpq_raise(PortalError, 
+	libpq_raise(&PortalError, 
 		    form((int)"tuple index %d out of bound.", tuple_index));
     
     group = portal->groups;

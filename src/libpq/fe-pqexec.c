@@ -102,7 +102,7 @@ read_initstr()
 {
     if ((PQdatabase == NULL) 
 	&& ((PQdatabase = getenv ("PGDATABASE")) == NULL)) 
-	libpq_raise(ProtocolError,
+	libpq_raise(&ProtocolError,
 		    form((int)"Fatal Error -- No database is specified."));
     
     if ((PQhost == NULL) && ((PQhost = getenv("PGHOST")) == NULL))
@@ -164,7 +164,7 @@ EstablishComm()
 
 	if (pq_connect(PQdatabase, getenv("USER"), PQoption, PQhost, PQtty,
 			(char *) NULL, (short)atoi(PQport) ) == -1 ) {
-	    libpq_raise(ProtocolError,
+	    libpq_raise(&ProtocolError,
 	      form((int)"Failed to connect to backend (host=%s, port=%s)",
 		   PQhost, PQport));
 	}
@@ -268,7 +268,7 @@ process_portal(rule_p)
 
 	        PQreset();
 	        sprintf(s, "Unexpected identifier in process_portal: %c", id[0]);
-	        libpq_raise(ProtocolError, form ((int)s));
+	        libpq_raise(&ProtocolError, form ((int)s));
 	    }
 	}
     }
@@ -465,7 +465,7 @@ PQfn(fnid, result_buf, result_len, actual_result_len,
                 (actual_len < 0 || actual_len > result_len)) {
 		pqdebug("RESET CALLED FROM CASE G", (char *)0);
 		PQreset();
-		libpq_raise(ProtocolError, form ((int)"Buffer Too Small: %s", id));
+		libpq_raise(&ProtocolError, form ((int)"Buffer Too Small: %s", id));
 	    }
 	    if (result_type == 1)
 	      *(int *)result_buf = pq_getint(4);
@@ -496,7 +496,7 @@ PQfn(fnid, result_buf, result_len, actual_result_len,
 	    pqdebug("RESET CALLED FROM CASE G", (char *)0);
 	    pqdebug("Protocol Error, bad form, got '%c'", (char *)id[0]);
 	    PQreset();
-	    libpq_raise(ProtocolError, form((int)"Unexpected identifier: %s", id));
+	    libpq_raise(&ProtocolError, form((int)"Unexpected identifier: %s", id));
 	    return(NULL);
 	}
     }
@@ -606,10 +606,10 @@ PQexec(query)
     	default:
 	    /* The backend violates the protocol. */
 	    if (id[0] == '?')
-	    	libpq_raise(ProtocolError, 
+	    	libpq_raise(&ProtocolError, 
 			form((int)"No response from the backend, exiting...\n"));
 	    else
-	    	libpq_raise(ProtocolError, 
+	    	libpq_raise(&ProtocolError, 
 		   form((int)"Unexpected response from the backend, exiting...\n"));
 	    exit(1);
     	}
@@ -651,10 +651,10 @@ PQendcopy()
             default:
                 /* The backend violates the protocol. */
                 if (id[0] == '?')
-                    libpq_raise(ProtocolError, 
+                    libpq_raise(&ProtocolError, 
                         form((int)"No response from the backend, exiting...\n"));
                 else
-                    libpq_raise(ProtocolError, 
+                    libpq_raise(&ProtocolError, 
                     form((int)"Unexpected response from the backend, exiting...\n"));
                 exit(1);
         }

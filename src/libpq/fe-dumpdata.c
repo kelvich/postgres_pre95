@@ -265,7 +265,7 @@ dump_data(portal_name, rule_p)
 
 		/* This should never happen. */
 		sprintf(s, "Unexpected identfier in dump_data: %c", id[0]);
-		libpq_raise(ProtocolError, form((int)s));
+		libpq_raise(&ProtocolError, form((int)s));
 	    }
 	}
 	
