@@ -192,9 +192,10 @@ Yongdong Wang,
 Kristin Wright
 and
 Andrew Yu.
-The HP-UX port is based on work done by Richard Turnbull and Sebastian
-Fernandez, and the AIX port is based on work done by Rafael Morales
-Gamboa.
+The HP-UX port is courtesy of Richard Turnbull (University of
+Liverpool) and Sebastian Fernandez (University of California at
+Berkeley).  The initial AIX port was performed by Rafael Morales
+Gamboa (ITESM Campus Morelos, Cuernavaca).
 .lp
 For version \*(PV, Marc Teitelbaum served as chief programmer and was
 responsible for overall coordination of the project.
@@ -277,7 +278,7 @@ your application.  In particular, you should read the section on \*(LP
 if you intend to build a client application around \*(PP, as this is
 not discussed at all in this manual.
 .\"---------------------------------------------------------------------------
-.sh 1 "Installing and Running \*(PP"
+.sh 1 "INSTALLING AND RUNNING \*(PP"
 .sh 2 "Installation"
 .lp
 Installation instructions for \*(PP can be found in the top level of
@@ -331,7 +332,7 @@ or
 .q "setting an environment variable"
 throughout this document.  If you did not fully understand the last
 paragraph on modifying your search path, you should consult the \*(UU
-manual pages on your user shell before going any further.
+manual pages that describe your user shell before going any further.
 .sh 2 "Starting the Postmaster"
 .lp
 Before we continue, you should understand the basic system
@@ -391,9 +392,10 @@ instructions explain some important issues with respect to where \*(PP
 places some important files, proper settings for environment
 variables, etc. that may vary from one version of \*(PP to another.
 .bu
-You should look at the Reference Manual under
+You should look at the Reference Manual under the heading
 .b postmaster
-if you wish to use non-default options.
+if you wish to use non-default options (e.g., increased security
+options, a non-standard installation directory, etc.).
 .bu
 You 
 .i must
@@ -460,7 +462,7 @@ you should immediately consult your DBA to make sure that your
 environment is properly set up.
 .)f
 .\"---------------------------------------------------------------------------
-.sh 1 "The \*(PQ Query Language"
+.sh 1 "THE \*(PQ QUERY LANGUAGE"
 .lp
 \*(PQ is the query language used for interacting with \*(PP.  Here, we
 give an overview of how to use \*(PQ to access data.  The next section
@@ -506,13 +508,12 @@ interface is discussed further in the \*(LP section of the Reference
 Manual.
 .bu
 You can use the
-.b "fast path"
+.i "fast path"
 facility, which allows you to directly execute functions stored in the
 This facility is (minimally) described in the Reference Manual under
 .q "Fast Path."
 .lp
-This manual will only discuss the first method (access through the
-terminal monitor).
+This manual will only discuss access through the terminal monitor.
 .lp
 The terminal monitor can be activated for the
 .cW foo
@@ -527,10 +528,10 @@ Welcome to the POSTGRES terminal monitor
 Go
 *
 .)C
-This prompt indicates the terminal monitor is listening to you and
-that you can type \*(PQ queries into a workspace maintained by the
+This prompt indicates that the terminal monitor is listening to you
+and that you can type \*(PQ queries into a workspace maintained by the
 terminal monitor.  White space (i.e., spaces, tabs and newlines) may
-be used freely in \*(PQ queries.  You can see the current contents of
+be used freely in \*(PQ queries.  You may view the current contents of
 the workspace by typing:
 .(C
 * \\p
@@ -1030,7 +1031,7 @@ and the default end is the current time; thus, the above time range
 can be abbreviated as
 .cW [,] .'' ``
 .\"---------------------------------------------------------------------------
-.sh 1 "User Extensions to \*(PQ"
+.sh 1 "USER EXTENSIONS TO \*(PQ"
 .lp
 Here, we will discuss user extensions to the \*(PQ query language,
 such as:
@@ -1188,11 +1189,12 @@ command for further details and examples.
 .lp
 The central concept of extending \*(PP lies in \*(PP's ability to
 .i "dynamically load"
-an object-code 
-.cW .o ) (
-file created by the user.  This allows \*(PP to call arbitrary
-user-defined functions which can be written in a standard programming
-language, such as C.  These functions can then be used:
+an object code file (e.g., a
+.cW .o
+file or shared library) created by the user.  This allows \*(PP to
+call arbitrary user-defined functions which can be written in a
+standard programming language, such as C.  These functions can then be
+used:
 .bu
 to convert between
 .i internal
@@ -1295,7 +1297,7 @@ and
 that is, it cannot contain any pointers.  The type definition
 .(C
 typedef struct {
-    POINT *center	/* NO! */
+    POINT *center   /* NO! */
     double r;
 } CIRCLE;
 .)C
@@ -2135,7 +2137,7 @@ FIX ME
 .hl
 .)l
 .\"---------------------------------------------------------------------------
-.sh 1 "The \*(PP Rule System"
+.sh 1 "THE \*(PP RULE SYSTEM"
 .lp
 The discussion in this section is intended to provide an overview of
 the \*(PP rule system and point the user at helpful references and
@@ -2180,7 +2182,7 @@ rules affect most of the instances in a class, while the
 instance-level system is best when a rule affects only a few
 instances.
 .\"---------------------------------------------------------------------------
-.sh 1 "Administering \*(PP"
+.sh 1 "ADMINISTERING \*(PP"
 .lp
 In this section, we will discuss aspects of \*(PP of interest to those
 making extensive use of \*(PP, or who are the database administrator
@@ -2341,6 +2343,8 @@ Proc. 1990 ACM-SIGMOD Conference on Management of Data,
 Atlantic City, N.J.,
 June 1990.
 .\"---------------------------------------------------------------------------
+.bp
+.lp
 .uh "APPENDIX A: User-Defined Types and Indices"
 .lp
 In this section, we will discuss how to extend \*(PP to use a
@@ -2471,22 +2475,20 @@ includes a field called
 This field records the number of support routines used by an access
 method.  For BTREEs, this number is one \(em the routine to take two
 keys and return \(mi\^1, 0, or \(pl\^1, depending on whether the first
-key is less than, equal to, or greater than the second.
-.(l C
-.hl
-FIX ME
-foo_cmp functions
-pg_amproc entry for foo_cmp
-.hl
-.)l
+key is less than, equal to, or greater than the second.\**
+.(f
+\** Strictly speaking, this routine can return a negative number (<
+0), 0, or a non-zero positive number (> 0).
+.)f
 .lp
 The
 .cW amstrategies
 entry in
 .cW pg_am
-is just the number of strategies defined for the access method in
-question.  The procedures for less than, less equal, and so on don't
-appear in
+is just the 
+.i number
+of strategies defined for the access method in question.  The
+procedures for less than, less equal, and so on don't appear in
 .cW pg_am .
 Similarly,
 .cW amsupport
@@ -2502,7 +2504,8 @@ In
 every BTREE operator class has a set of procedures, one through five,
 above.  Some existing opclasses are
 .cW int2_ops ,
-.cW int4_ops , and
+.cW int4_ops ,
+and
 .cW oid_ops .
 You need to add an instance with your opclass name (for example,
 .cW int4_abs_ops )
@@ -2529,7 +2532,7 @@ The
 for your
 .cW pg_opclass
 instance
-.i "may be different" !
+.i "may be different!"
 You should substitute your value for 17314 wherever it appears in this
 discussion.
 .lp
@@ -2559,6 +2562,8 @@ The code is
 
 #define ABS(a) a = ((a < 0) ? -a : a)
 
+/* routines to implement operators */
+
 bool int4_abs_lt(a, b) int32 a, b;
      { ABS(a); ABS(b); return (a < b); }
 
@@ -2573,10 +2578,15 @@ bool int4_abs_ge(a, b) int32 a, b;
 
 bool int4_abs_gt(a, b) int32 a, b;
      { ABS(a); ABS(b); return (a > b); }
+
+/* support (signed comparison) routine */
+
+int int4_abs_cmp(a, b) int32 a, b;
+     { ABS(a); ABS(b); return (a - b); }
 .)C
 There are a couple of important things that are happening below.
-First, note that operators for less, less equal, equal, greater equal,
-and greater for
+First, note that operators for less-than, less-than-or-equal, equal,
+greater-than-or-equal, and greater-than for
 .cW int4
 are being defined.  All of these operators are already defined for
 .cW int4
@@ -2606,9 +2616,17 @@ this problem, odd names will be used for the operators.  If you get
 this wrong, the access methods are likely to crash when you try to do
 scans.
 .lp
-The other important point is that all the functions return
+The other important point is that all the operator functions return
 .i Boolean
 values; the access methods rely on this fact.
+.lp
+The final routine in the file is the 
+.q "support routine"
+mentioned when we discussed the
+.cW amsupport
+attribute of the
+.cW pg_am
+class.  We will use this later on.  For now, ignore it.
 .(C
 * define function int4_abs_lt
       (language = "c", returntype = bool)
@@ -2827,27 +2845,80 @@ is
                   amopnpages = "btreenpage"::regproc) \\g
 .)C
 NOTE the order:
-.q less
+.q "less than"
 is 1,
-.q "less equal"
+.q "less than or equal"
 is 2,
-.q equal
+.q "equal"
 is 3,
-.q "greater equal"
+.q "greater than or equal"
 is 4,
 and
-.q greater
+.q "greater than"
 is 5.
-.(l C
-.hl
-FIX ME
-this example does not work
-(too few instances, index doesn't get used)
-.hl
-.)l
 .lp
-Okay, now it's time to test the new opclass.  First we'll create and
-populate a class:
+The last step (finally!) is registration of the 
+.q "support routine"
+previously described in our discussion of
+.cW pg_am .
+The 
+.cW oid
+of this support routine is stored in the
+.cW pg_amproc
+class, keyed by the access method
+.cW oid
+and the operator class
+.cW oid .
+First, we need to register the function in \*(PP (recall that we put
+the C code that implements this routine in the bottom of the file in
+which we implemented the operator routines):
+.(C
+* define function int4_abs_cmp
+      (language = "c", returntype = int)
+      arg is (int4, int4)
+      as "/usr/local/postgres/int4_abs.o" \\g
+
+* retrieve (p.oid, p.proname)
+      from p in pg_proc
+      where p.proname = "int4_abs_cmp" \\g
+.TS
+tab(|) allbox;
+l l.
+oid|proname
+17328|int4_abs_cmp
+.TE
+.)C
+(Again, your
+.cW oid
+number will probably be different and you should substitute the value
+you see for the value below.)  Recalling that the BTREE instance's
+.cW oid 
+is 403 and that of 
+.cW int4_abs_ops
+is 17314, we can add the new instance as follows:
+.(C
+* append pg_amproc
+	(amid = "403"::oid,        /* btree oid        */
+	 amopclaid = "17314"::oid, /* pg_opclass tuple */
+	 amproc = "17328"::oid,    /* new pg_proc oid */
+	 amprocnum = "1"::int2) \eg
+.)C
+.lp
+Okay, now it's time to test the new operator class.  First we'll
+create and populate a class\**:
+.(f
+\** In this example, we append only a few instances into the class.
+In fact, \*(PP uses a 
+.q cost-based
+query optimizer that makes the decision whether or not to use an index
+based on how much data is touched.  Since this example creates a very
+small amount of data, the example will likely not work as advertised
+\(em one would have to insert a fair amount of data before using an
+index would actually be cheaper than just scanning the underlying HEAP
+data structure.
+.q "A fair amount"
+typically means on the order of several kilobytes.
+.)f
 .(C
 * create pairs (name = char16, number = int4) \\g
 
@@ -2929,6 +3000,8 @@ answer \(em the instance for
 .cW mike
 doesn't appear, because \(mi10000 >=& 9000.
 .\"---------------------------------------------------------------------------
+.bp
+.lp
 .uh "Appendix B: Linking Dynamically-Loaded Functions"
 .lp
 After you have created and registered a user-defined function, your
@@ -2953,7 +3026,7 @@ As of Version 4.2, the \*(PP dynamic loading mechanism has been
 rewritten to use the dynamic loading mechanism provided by the
 operating system.  This approach is generally faster, more reliable
 and more portable than our previous dynamic loading mechanism.  The
-reason for this is because nearly all modern versions of \*(UU use a
+reason for this is that nearly all modern versions of \*(UU use a
 dynamic loading mechanism to implement shared libraries and must
 therefore provide a fast and reliable mechanism.  On the other hand,
 the object file must be post-processed a bit before it can be loaded
@@ -3002,7 +3075,9 @@ The \*(PP user must be able to traverse the path given to the
 command and be able to read the object file.  This is because the
 \*(PP server runs as the \*(PP user, not as the user who starts up the
 frontend process.  (Making the file or a higher-level directory
-unreadable or unexecutable by the \*(PP user is an 
+unreadable and/or unexecutable by the 
+.q postgres
+user is an 
 .i extremely
 common mistake.)
 .bu
@@ -3024,6 +3099,10 @@ ourselves and could not use true shared libraries.
 Under ULTRIX, the only restriction is that you must produce each
 object file with the option
 .cW "-G 0" .
+(Notice that that's the numeral
+.cW 0 '' ``
+and not the letter
+.cW O ''). ``
 For example,
 .(C
 	# simple ULTRIX example
@@ -3153,7 +3232,7 @@ the simple object file(s) by running the
 command that comes with \*(PP.  The following three steps should work
 for most cases:
 .(C
-	# simple AIX example
+	# simple AIX example, using Bourne shell
 	% cc -c foo.c
 	% mkldexport foo.o `pwd` > foo.exp
 	% ld -H512 -T512 -o foo.so -e _nostart \e
