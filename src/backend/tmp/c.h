@@ -20,6 +20,23 @@
  */
 #undef PALLOC_DEBUG 
 
+/* ----------------
+ *	allocation debugging stuff
+ * ----------------
+ */
+
+#ifdef PALLOC_DEBUG
+#define palloc(size)       palloc_debug(__FILE__, __LINE__, size)
+#define pfree(ptr)         pfree_debug(__FILE__, __LINE__, ptr)
+#define MemoryContextAlloc(context, size) \
+	MemoryContextAlloc_Debug(__FILE__, __LINE__, context, size)
+#define MemoryContextFree(context, ptr)  \
+	MemoryContextFree_Debug(__FILE__, __LINE__, context, ptr)
+#define AllocSetReset(set) AllocSetReset_debug(__FILE__, __LINE__, set)
+#define malloc(size)	    malloc_debug(__FILE__, __LINE__, size)
+#define free(ptr)	    free_debug(__FILE__, __LINE__, ptr)
+#endif /* PALLOC_DEBUG */
+
 /*
  * Begin COMPILER DEPENDENT section
  */
@@ -437,22 +454,33 @@ typedef signed int	Offset;
  */
 #define endof(array)	(&array[lengthof(array)])
 
+#ifdef PALLOC_DEBUG
+extern
+char *	/* as defined in /usr/lib/lint/llib-lc */
+malloc_debug ARGS((
+	String	file,
+	int 	line,
+	Size	nBytes
+));
+extern
+/* void */      /* as defined in /usr/lib/lint/llib-lc */
+free_debug ARGS((
+	String	file,
+	int	line,
+        char    *p
+));
+#else /* PALLOC_DEBUG */
 extern
 char *	/* as defined in /usr/lib/lint/llib-lc */
 malloc ARGS((
 	Size	nBytes
 ));
-
-/* ----------------
- *	allocation debugging stuff
- * ----------------
- */
-
-#ifdef PALLOC_DEBUG
-#define palloc(size)       palloc_debug(__FILE__, __LINE__, size)
-#define pfree(ptr)         pfree_debug(__FILE__, __LINE__, ptr)
-#define AllocSetReset(set) AllocSetReset_debug(__FILE__, __LINE__, set)
-#endif PALLOC_DEBUG
+extern
+/* void */      /* as defined in /usr/lib/lint/llib-lc */
+free ARGS((
+        char    *p
+));
+#endif /* PALLOC_DEBUG */
 
 /*
  * new --
@@ -468,12 +496,6 @@ malloc ARGS((
  *	Allocate a new array.
  */
 #define newv(type, n)	LintCast(type *, malloc(sizeof (type) * (n)))
-
-extern
-/* void */	/* as defined in /usr/lib/lint/llib-lc */
-free ARGS((
-	char	*p
-));
 
 /*
  * delete --
