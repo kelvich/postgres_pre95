@@ -34,10 +34,15 @@
 .include <postgres.global.mk>
 
 NOMAN=
-
 LDFLAGS= -g
+CFLAGS= -g
+CFLAGS+= -I${HEADERDIR}
+LDADD+= -L${LIBDIR}
 
-CFLAGS= -g  #-DDEBUG
+#
+# for debugging, of course.
+#
+#CFLAGS+= -DDEBUG
 
 #
 # some readline libraries have xmalloc and xrealloc, some don't.
@@ -49,23 +54,12 @@ CFLAGS+= -DNEED_XMALLOC
 # some versions of UNIX have strdup, some don't.
 # comment out this line if your standard library has strdup.
 #
+.if ${PORTNAME} == ultrix4
 CFLAGS+= -DNEED_STRDUP
+.endif
 
 #
-# set POSTGRESDIR to the top directory of postgres (one above src/).
-#	spog will be installed in BINDIR.
-#	HEADERDIR and LIBDIR should point to the install libpq.
-#
-#POSTGRESDIR=${.CURDIR}/../../..
-POSTGRESDIR= /private/devel/postgres
-BINDIR= ${POSTGRESDIR}/bin
-HEADERDIR= ${POSTGRESDIR}/include
-LIBDIR= ${POSTGRESDIR}/lib
-CFLAGS+= -I${HEADERDIR}
-LDADD+= -L${LIBDIR}
-
-#
-# these lines should point to the GNU readline library.
+# these lines should point to the GNU readline library and its headers.
 # comment them out if the GNU readline library is in a standard place.
 #
 CFLAGS+= -I/usr/sww/include

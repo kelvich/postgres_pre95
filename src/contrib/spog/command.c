@@ -3,10 +3,7 @@
  *
  * $Id$
  *
- * $Log$
- * Revision 1.1  1993/02/18 23:27:32  aoki
- * Initial revision
- *
+ * $Log: command.c,v
  * Revision 2.2  1992/08/13  11:44:48  schoenw
  * options -x and -n added, postgres v4r0 support
  *
@@ -677,7 +674,7 @@ char *arg;
 		sprintf (QUERY, "retrieve portal port (%s) where %s=\"%s\"",
 			 "pg_type.oid", "pg_type.typname", node -> name);
 		res = PQexec (QUERY);
-		if (res[0] == 'R') {
+		if (res[0] == 'R' || res[0] == 'E') {
 			free ((char *) node);
 			return;
 		}

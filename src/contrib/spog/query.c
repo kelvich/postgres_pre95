@@ -3,10 +3,7 @@
  *
  * $Id$
  *
- * $Log$
- * Revision 1.1  1993/02/18 23:29:29  aoki
- * Initial revision
- *
+ * $Log: query.c,v
  * Revision 2.2  1992/08/13  11:44:48  schoenw
  * options -x and -n added, postgres v4r0 support
  *
@@ -179,6 +176,12 @@ char *query;
 			result = PQexec(" ");
 			nqueries++;
 			break;
+		case 'E':
+			PQreset();
+			done = true;
+			fputs("spog: detected a fatal error, exiting...\n",
+			      stderr),
+			exit(2);	/* XXX */
 		case 'R':
 			PQreset();
 			done = true;
