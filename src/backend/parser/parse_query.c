@@ -120,7 +120,7 @@ MakeRangeTableEntry( relname , options , refname)
     /* Flags - zero or more from archive,inheritance,union,version */
     
     if(options & 0x01 ) /* XXX - fix this */
-      Flags = lispCons( lispAtom ("inheritance") , Flags );
+      Flags = lispCons( lispAtom ("inherits") , Flags );
     
     /* TimeRange */
     
@@ -260,7 +260,7 @@ MakeTimeRange( datestring1 , datestring2 , timecode )
 		default:
 			elog(WARN, "MakeTimeRange: internal parser error");
 	}
-	return(parser_ppreserve(trange));
+	return(lispInteger(trange));
 }
 
 LispValue 
