@@ -442,62 +442,6 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
     return ( additional_queries );
 }
 
-#ifdef OLDCODE
-
-/*
- * MatchUpdateLocks
- * - match the list of locks, 
- */
-List
-MatchUpdateLocks ( command , rulelocks , current_varno , user_parsetree )
-     int command;
-     RuleLock rulelocks;
-     int current_varno;
-     List user_parsetree;
-{
-    List real_locks 		= NULL;
-    Prs2OneLock oneLock		= NULL;
-    int nlocks			= 0;
-    int i			= 0;
-    List actual_replace_reln	= NULL;
-
-    Assert ( rulelocks != NULL ); /* we get called iff there is some lock */
-
-    if ( command != REPLACE && command != APPEND ) 
-      return ( NULL );
-
-    /*
-     * if we reach the following statement, the
-     * user_command must be a replace or append
-     * XXX - (does it matter which ???)
-     */
-
-    Assert ( user_parsetree != NULL );
-
-    actual_replace_reln = 
-      root_result_relation ( parse_root ( user_parsetree ) );
-
-    if ( CInteger ( actual_replace_reln ) != current_varno ) {
-	return ( real_locks );
-    }
-
-    nlocks = prs2GetNumberOfLocks ( rulelocks );
-    Assert (nlocks <= 16 );
-
-    for ( i = 0 ; i < nlocks ; i++ ) {
-	oneLock = prs2GetOneLockFromLocks ( rulelocks , i );
-	if ( oneLock->lockType == LockTypeReplaceAction ||
-	     oneLock->lockType == LockTypeAppendAction )  {
-	    real_locks = lispCons ( oneLock , real_locks );
-	} /* if lock is suitable */
-    } /* for all locks */
-
-    return ( real_locks );
-
-
-}
-
-#endif
 /*
  * MatchLocks
  * - match the list of locks, 
@@ -654,17 +598,6 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 	    }
 
 	    FixRangeTable ( rule_root, user_rt );
-
-#ifdef OLD_CODE
-	    /* get rid of current and new from rule rangetable */
-
-    	    root_rangetable(rule_root) = 
-		CDR(CDR(rule_rt));
-
-	    /* add the additional rt_entries */
-
-	    CDR(last(rule_rt)) = user_rt;
-#endif
 
 	    AddQualifications(rule_action, 
 			     parse_qualification(user_parsetree),
