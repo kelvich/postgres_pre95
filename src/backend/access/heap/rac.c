@@ -15,8 +15,8 @@
 #include "itemid.h"
 #include "itemptr.h"
 #include "log.h"
-#include "mmgr.h"
 #include "page.h"
+#include "palloc.h"
 #include "rel.h"
 #include "rlock.h"
 
