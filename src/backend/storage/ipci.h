@@ -61,6 +61,16 @@ typedef uint32	IPCKey;
 #define IPCKeyGetWaitIOSemaphoreKey(key) \
 	((key == PrivateIPCKey) ? key : 12 + (key))
 
+/* --------------------------
+ * NOTE: This macro must always give the highest numbered key as every backend
+ * process forked off by the postmaster will be trying to acquire a semaphore
+ * with a unique key value starting at key+13 and incrementing up.  Each
+ * backend uses the current key value then increments it by one.
+ * --------------------------
+ */
+#define IPCGetProcessSemaphoreInitKey(key) \
+	((key == PrivateIPCKey) ? key : 13 + (key))
+
 extern LockTableId	PageLockTableId;
 extern LockTableId	MultiLevelLockTableId;
 
