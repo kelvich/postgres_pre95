@@ -478,6 +478,7 @@ EndPlan(plan, estate)
     EState		estate;
 {
     RelationInfo 	resultRelationInfo;
+    List		resultRelationInfoList;
     Relation		intoRelationDesc;
    
     /* ----------------
@@ -485,6 +486,7 @@ EndPlan(plan, estate)
      * ----------------
      */
     resultRelationInfo =  get_es_result_relation_info(estate);
+    resultRelationInfoList = get_es_result_relation_info_list(estate);
     intoRelationDesc =	  get_es_into_relation_descriptor(estate);
    
     /* ----------------
@@ -504,7 +506,7 @@ EndPlan(plan, estate)
     }
         
     /* ----------------
-     *   close the result relation if necessary
+     *   close the result relations if necessary
      * ----------------
      */
     if (resultRelationInfo != NULL) {
@@ -518,6 +520,15 @@ EndPlan(plan, estate)
 	 * ----------------
 	 */
 	ExecCloseIndices(resultRelationInfo);
+    }
+
+    while (resultRelationInfoList != LispNil) {
+	Relation resultRelationDesc;
+
+	resultRelationInfo = (RelationInfo) CAR(resultRelationInfoList);
+	resultRelationDesc = get_ri_RelationDesc(resultRelationInfo);
+	heap_close(resultRelationDesc);
+	resultRelationInfoList = CDR(resultRelationInfoList);
     }
          
     /* ----------------
