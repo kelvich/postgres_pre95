@@ -1,3 +1,4 @@
+/* $Header$ */
 #include "c.h"
 #include "parse.h"
 #include "atoms.h"
