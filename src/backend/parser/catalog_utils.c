@@ -32,7 +32,7 @@ struct {
   
 static String attnum_type[SPECIALS] = {
     "tid",
-    "tid",
+    "lock",
     "oid",
     "xid",
     "iid",
