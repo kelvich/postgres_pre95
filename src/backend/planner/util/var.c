@@ -144,3 +144,13 @@ numlevels (var)
 {
     return(length (CDR ( get_varid (var))));
 }
+
+ObjectId
+var_getrelid(var)
+    Var var;
+{
+    int rt_id;
+
+    rt_id = CInteger(CAR(get_varid(var)));
+    return (ObjectId) CInteger(getrelid(rt_id, _query_range_table_));
+}
