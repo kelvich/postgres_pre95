@@ -202,7 +202,7 @@ add_clause_to_rels(clause)
 	     */
 	    if (is_funcclause(clause))
 	    {
-		set_selectivity(clauseinfo,(double)0.3333333);
+		set_selectivity(clauseinfo,(Cost)0.3333333);
 	    }
 	    else
 	    {

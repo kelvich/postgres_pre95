@@ -50,7 +50,7 @@
  *	-cim 6/3/90
  * ----------------
  */
-typedef double Cost;
+typedef float Cost;
 
 /*
  *	Set up a single-inheritance mechanism based on cpp.  Ick.
