@@ -61,8 +61,8 @@ processors (under OSF/1 1.3),
 Sun Microsystems computers based on
 .SM SPARC
 processors (under SunOS 4.1),
-Hewlett-Packard computers based on PA-RISC
-processors (under HP-UX 9.01),
+Hewlett-Packard Series 700 and 800 computers based on PA-RISC
+processors (under HP-UX 9.00 and 9.01),
 and
 International Business Machines computers based on POWER processors
 (under AIX 3.2).
@@ -136,7 +136,8 @@ Liverpool) and Sebastian Fernandez (University of California at
 Berkeley).  The initial AIX port was performed by Rafael Morales
 Gamboa (ITESM Campus Morelos, Cuernavaca).
 Carl Staelin of H-P Laboratories and Steve Miley of UCSB/CRSEO
-provided the computing resources for these ports.
+provided the computing resources that enabled us to integrate
+these ports into the \*(PG distribution.
 .PP
 Marc Teitelbaum served as chief programmer for Version \*(PV and was
 responsible for overall coordination of the project.
