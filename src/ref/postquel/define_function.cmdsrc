@@ -545,8 +545,10 @@ between function costs, but is not encouraged since such distinctions
 are difficult to estimate accurately.
 .SH "Name Space Conflicts"
 More than one function may be defined with the same name, as long as
-the arguments they take are different.  A function may also have the
-same name as an attribute.  In the case
+the arguments they take are different.  In other words, function names
+can be
+.IR overloaded .
+A function may also have the same name as an attribute.  In the case
 that there is an ambiguity between a function on a complex type and
 an attribute of the complex type, the attribute will always be used.
 .SH "RESTRICTIONS"
@@ -554,6 +556,23 @@ The name of the C function must be a legal C function name, and the
 name of the function in C code must be exactly the same as the name
 used in
 .BR "define function" .
+There is a subtle implication of this restriction: while the
+dynamic loading routines in most operating systems are more than 
+happy to allow you to load any number of shared libraries that 
+contain conflicting (identically-named) function names, they may 
+in fact botch the load in interesting ways.  For example, if you
+define a dynamically-loaded function that happens to have the
+same name as a function built into \*(PG, the DEC OSF/1 dynamic 
+loader causes \*(PG to call the function within itself rather than 
+allowing \*(PG to call your function.  Hence, if you want your
+function to be used on different architectures, we recommend that 
+you do not overload C function names.
+.PP
+There is a clever trick to get around the problem just described.
+Since there is no problem overloading \*(PQ functions, you can 
+define a set of C functions with different names and then define 
+a set of identically-named \*(PQ function wrappers that take the
+appropriate argument types and call the matching C function.
 .PP
 .IR any
 cannot be given as an argument to a \*(PQ function.
