@@ -165,8 +165,13 @@ ExecEvalArrayRef(arrayRef, econtext, isNull, isDone)
     byval = execConstByVal = get_refelembyval(arrayRef);
     element_len    = get_refelemlength(arrayRef);
     
-    nbytes = (* (int32 *) array_scanner) - sizeof(int32);
-    array_scanner += sizeof(int32);
+    if (get_refattrlength(arrayRef) < 0)
+    {
+	nbytes = (* (int32 *) array_scanner) - sizeof(int32);
+	array_scanner += sizeof(int32);
+    }
+    else
+	nbytes = get_refattrlength(arrayRef);
 	
     if (element_len < 0) {
 	bytes = nbytes;
