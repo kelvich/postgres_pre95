@@ -141,6 +141,7 @@ extern Exception MemoryError, PortalError, PostquelError, ProtocolError;
 #define remark_length 80
 #define portal_name_length 16
 
+extern    char PQerrormsg[error_msg_length];
 /*
  * External functions.
  */
