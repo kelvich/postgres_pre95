@@ -1,17 +1,33 @@
-/*
- * $Header$
+/* ----------------------------------------------------------------
+ *   FILE
+ *	archive.c
  *
- *  archive.c -- Support for planning scans on archived relations
+ *   DESCRIPTION
+ *	Support for planning scans on archived relations
+ *
+ *   INTERFACE ROUTINES
+ *	plan_archive
+ *	find_archive_rels
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
+
 #include <sys/types.h>		/* for u_int in relcache.h */
 
 #include "tmp/c.h"
+
+RcsId("$Header$");
+
 #include "utils/rel.h"
 #include "utils/log.h"
 #include "utils/relcache.h"
 #include "catalog/pg_relation.h"
 #include "nodes/pg_lisp.h"
 #include "parser/parsetree.h"
+
+#include "planner/archive.h"
 
 void
 plan_archive(rt)
