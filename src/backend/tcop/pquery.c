@@ -142,6 +142,7 @@ CreateExecutorState()
     EState		state;
     TupleCount		tuplecount;
     extern int		NBuffers;
+    long		*refcount;
 
     /* ----------------
      *	create a new executor state
@@ -193,7 +194,11 @@ CreateExecutorState()
     set_es_result_rel_ruleinfo(state, NULL);
 
     set_es_whichplan(state, -1);
-    set_es_refcount(state, (int*)palloc(NBuffers * sizeof(int)));
+
+    refcount = (long *) palloc(NBuffers * sizeof(long));
+    bzero((char *) refcount, NBuffers * sizeof(long));
+    set_es_refcount(state, (intPtr) refcount);
+
     /* ----------------
      *	return the executor state structure
      * ----------------
