@@ -151,7 +151,7 @@ GetDataHome()
 
 	if ((home = getenv("POSTGRESHOME")) == (char *) NULL &&
 	    (home = getenv("POSTHOME")) == (char *) NULL)
-		home = DATAHOME;
+		home = CppAsString(DATAHOME);
 	return(home);
 }
 
