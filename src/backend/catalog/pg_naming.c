@@ -85,8 +85,10 @@
 #include "catalog/syscache.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_naming.h"
-#include "catalog/indexing.h"
+#include "catalog/pg_lobj.h"
 #include "utils/rel.h"
+#include "utils/palloc.h"
+#include "catalog/indexing.h"
 #include "utils/log.h"
 #include "access/heapam.h"
 #include "tmp/libpq-fs.h"
@@ -116,7 +118,10 @@ oid FilenameToOID(fname)
     NameData comp;
 
     /* get root directory tuple */
-    namingTuple = SearchSysCacheTuple(NAMEREL,RootOID,RootFileName);
+    namingTuple = SearchSysCacheTuple(NAMEREL,
+				      (char *) ObjectIdGetDatum(RootOID),
+				      (char *) NameGetDatum(RootFileName),
+				      (char *) NULL, (char *) NULL);
     if (namingTuple == NULL)
 	elog(WARN, "root directory \"%s\" does not exist", RootFileName);
     namingStruct = (struct naming *) GETSTRUCT(namingTuple);
@@ -129,7 +134,10 @@ oid FilenameToOID(fname)
     while (cp != NULL) {
 	(void) namestrcpy(&comp, cp);
 	parentOID = namingStruct->ourid;
-	namingTuple = SearchSysCacheTuple(NAMEREL, parentOID, &comp);
+	namingTuple = SearchSysCacheTuple(NAMEREL,
+					  (char *) ObjectIdGetDatum(parentOID),
+					  (char *) NameGetDatum(&comp),
+					  (char *) NULL, (char *) NULL);
 
 	if (namingTuple == NULL) {
 	    /* component does not exist */
@@ -166,8 +174,8 @@ void CreateNameTuple(parentID,name,ourid)
 
     i = 0;
     values[i++] = (char *) &tmpname;
-    values[i++] = (char *) ourid;
-    values[i++] = (char *) parentID;
+    values[i++] = (char *) ObjectIdGetDatum(ourid);
+    values[i++] = (char *) ObjectIdGetDatum(parentID);
 #if NAMINGDB
     elog(NOTICE,"CreateNameTuple: parent = %d,oid = %d,name = %s",
 	 parentID,ourid,name);
@@ -218,7 +226,10 @@ oid DeleteNameTuple(parentID,name)
     int i;
     oid thisoid;
 
-    namingTuple = SearchSysCacheTuple(NAMEREL,parentID,name);
+    namingTuple = SearchSysCacheTuple(NAMEREL,
+				      (char *) ObjectIdGetDatum(parentID),
+				      (char *) NameGetDatum(name),
+				      (char *) NULL, (char *) NULL);
     if (namingTuple == NULL)
       return InvalidObjectId;
     namingDesc = heap_openr(Name_pg_naming);
@@ -250,10 +261,9 @@ oid LOcreatOID(fname,mode)
     oid return_oid;
     char *tailname;
     oid basedirOID;
-    /*void to_basename ARGS((char*,char*,char*));*/
+
     char *root = "/";
 
-/*    to_basename(fname,basename,tailname);*/
     filename_len = strlen(fname);
     filename = (char *)palloc(filename_len + 1);
     bcopy(fname, filename, filename_len);
@@ -280,7 +290,11 @@ oid LOcreatOID(fname,mode)
 	/*
 	 * get the tuple from the system cache
 	 */
-	namingTuple = SearchSysCacheTuple(NAMEREL,basedirOID,tailname);
+	namingTuple = SearchSysCacheTuple(NAMEREL,
+					  (char *)
+					  ObjectIdGetDatum(basedirOID),
+					  (char *) NameGetDatum(tailname),
+					  (char *) NULL, (char *) NULL);
 	if (namingTuple == NULL) {
 	    /* create a tuple, insert it into heap. return oid.
 	     */
