@@ -25,7 +25,7 @@ clause]
 [
 .b instead ]
 .br
-action
+[action | nothing | '[' action ... ']'
 .uh DESCRIPTION
 .lp
 .b Define
@@ -121,6 +121,12 @@ in the condition part of the rule occurs.
 Alternately, the action part will be done instead of the user command.
 In this later case, the action can be the keyword
 .b nothing.
+.lp
+When choosing between the rewrite and instance rule systems for a particular
+rule application, remember that in the rewrite system  'current' refers to a
+relation and some qualifiers whereas in the instance system it refers to an
+instance (read tuple).
+
 .uh EXAMPLES
 .lp
 /* Make Sam get the same salary adjustment as Joe */
@@ -180,8 +186,17 @@ Only one POSTQUEL command can be specified in the action part of a tuple rule
 and it can only be a
 replace, append, retrieve or delete command.
 .lp
-The rewrite rule system does support multiple action rules as long as the event
+The rewrite rule system does support multiple action rules surrouas long as the event
 is not retrieve.
 .lp
 The query rewrite rule system now supports most rule semantics, and closely
-parallels the tuple system.  
+parallels the tuple system.  It also attempts to avoid odd semantics by
+running instead rules before non-instead rules.
+
+
+
+
+
+
+
+
