@@ -652,7 +652,6 @@ ProcedureStmt:
 		    if(is_postquel_func($3)) {
 			is_postquel_function = true;
 			args = func_arg_list($3);
-			param_type_init(args);
 		    }
 		}
 
@@ -1725,9 +1724,12 @@ a_expr:
 	       else
 		{
 		    List temp = NULL;
- 		    temp =  CDR ( make_var ((Name)CString(CAR ($1)) , 
- 						 (Name)CString(CADR($1)),
- 						 CDR(CDR($1))));
+
+		    if (IsA(CAR($1),Param))
+			temp = (List)fix_param($1);
+		    else
+			temp = CDR(make_var((Name)CString(CAR($1)), 
+					    (Name)CString(CADR($1))));
 		    $$ = (LispValue)temp;
 
 		    if (CurrentWasUsed) {
@@ -1740,8 +1742,7 @@ a_expr:
 
                     if (NewWasUsed) {
 			$$ = (LispValue)MakeParam ( PARAM_NEW , 
-						   get_varattno((Var)temp), 
-						   (Name)CString(CDR($1)),
+						   get_varattno((Var)temp), (Name)CString(CDR($1)),
 						   get_vartype((Var)temp));
 			NewWasUsed = false;
 		    }
@@ -1752,17 +1753,6 @@ a_expr:
  			    $$ = lispCons ( lispInteger
  					   (get_vartype((Var)temp)),$$ );
  		    }
- 		    else if(IsA(CAR(temp),Func)) {
- 			printf("foo");
- 			$$ = lispCons(lispInteger(get_functype((Func)
- 							       CAR(temp))),
- 				      $$);
- 		    }
- 		    else if (IsA(temp,LispList) ) {
-  			$$ = lispCons ( lispInteger 
-  				          (get_vartype((Var)CADR((List)temp))),
-  				       $$ );
-  		    }
   		}
 	   }
 	| AexprConst		
@@ -2192,7 +2182,9 @@ With:			WITH		{ $$ = yylval ; } ;
 Pnull:			PNULL		{ $$ = yylval ; } ;
 
 %%
-parser_init()
+parser_init(typev, nargs)
+	ObjectId *typev;
+	int nargs;
 {
 	NumLevels = 0;
 	p_target = LispNil;
@@ -2209,6 +2201,8 @@ parser_init()
 	Input_is_string = false;
 	Input_is_integer = false;
 	Typecast_ok = true;
+
+	param_type_init(typev, nargs);
 }
 
 

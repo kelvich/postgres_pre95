@@ -31,9 +31,11 @@ LispValue parsetree;
 
 #define DB_PARSE(foo) 
 
-parser(str, l)
+parser(str, l, typev, nargs)
      char *str;
      LispValue l;
+     ObjectId *typev;
+     int nargs;
 {
     int yyresult;
 
@@ -53,7 +55,7 @@ parser(str, l)
     }
 
     {
-      parser_init();
+      parser_init(typev, nargs);
       yyresult = yyparse();
       
       clearerr(stdin);
