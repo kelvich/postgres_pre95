@@ -20,6 +20,7 @@
 #include "storage/page.h"
 
 #include "utils/log.h"
+#include "utils/palloc.h"
 #include "utils/rel.h"
 #include "utils/excid.h"
 
@@ -42,6 +43,15 @@ extern ExprContext RMakeExprContext();
 
 RcsId("$Header$");
 
+typedef struct SPLITVEC {
+    OffsetNumber	*spl_left;
+    int			spl_nleft;
+    char		*spl_ldatum;
+    OffsetNumber	*spl_right;
+    int			spl_nright;
+    char		*spl_rdatum;
+} SPLITVEC;
+
 /* automatically generated using mkproto */
 extern void rtbuild ARGS((Relation heap, Relation index, AttributeNumber natts, AttributeNumber *attnum, IndexStrategy istrat, uint16 pcount, Datum *params, FuncIndexInfo *finfo, LispValue predInfo));
 extern InsertIndexResult rtinsert ARGS((Relation r, IndexTuple itup));
@@ -57,15 +67,6 @@ extern int nospace ARGS((Page p, IndexTuple it));
 extern int freestack ARGS((RTSTACK *s));
 extern char *rtdelete ARGS((Relation r, ItemPointer tid));
 extern int _rtdump ARGS((Relation r));
-
-typedef struct SPLITVEC {
-    OffsetNumber	*spl_left;
-    int			spl_nleft;
-    char		*spl_ldatum;
-    OffsetNumber	*spl_right;
-    int			spl_nright;
-    char		*spl_rdatum;
-} SPLITVEC;
 
 void
 rtbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, predInfo)
@@ -905,6 +906,9 @@ rtdelete(r, tid)
 
 #define RTDEBUG
 #ifdef RTDEBUG
+#include "utils/geo-decls.h"
+
+extern char *box_out ARGS((BOX *box));	/* XXX builtins.h clash */
 
 _rtdump(r)
     Relation r;
@@ -943,7 +947,7 @@ _rtdump(r)
 	    itoffno = ItemPointerGetOffsetNumber(&(itup->t_tid), 0);
 	    datum = ((char *) itup);
 	    datum += sizeof(IndexTupleData);
-	    itkey = (char *) box_out(datum);
+	    itkey = (char *) box_out((BOX *) datum);
 	    printf("\t[%d] size %d heap <%d,%d,%d> key:%s\n",
 		   offind + 1, IndexTupleSize(itup), itblkno, itpgno,
 		   itoffno, itkey);
