@@ -93,6 +93,7 @@ DATA(insert OID = 0 ( nobuko 5493 t t t t ));
 DATA(insert OID = 0 ( hartzell 6676 t t t t ));
 DATA(insert OID = 0 ( devine 6724 t t t t ));
 DATA(insert OID = 0 ( boris 6396 t t t t ));
+DATA(insert OID = 0 ( sklower 354 t t t t ));
 
 BKI_BEGIN
 #endif ALLOW_PG_GROUP
