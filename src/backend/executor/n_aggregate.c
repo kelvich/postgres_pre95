@@ -325,6 +325,7 @@ ExecInitAgg(node, estate, parent)
     ExecAssignNodeBaseInfo(estate, (BaseNode) aggstate, (Plan) parent);
     ExecAssignDebugHooks((Plan) node, (BaseNode) aggstate);
 
+#define AGG_NSLOTS 2
     /*
      * tuple table initialization
      */
@@ -373,6 +374,15 @@ ExecInitAgg(node, estate, parent)
     SO1_printf("ExecInitSort: %s\n", "sort node initialized");
 
     return LispTrue;
+}
+ 
+int
+ExecCountSlotsAgg(node)
+    Plan node;
+{
+    return ExecCountSlotsNode(get_outerPlan(node)) +
+	   ExecCountSlotsNode(get_innerPlan(node)) +
+	   AGG_NSLOTS;
 }
 
 /* ------------------------

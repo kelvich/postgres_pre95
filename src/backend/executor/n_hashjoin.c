@@ -517,6 +517,7 @@ ExecInitHashJoin(node, estate, parent)
     ExecAssignDebugHooks((Plan) node, (BaseNode) hjstate);
     ExecAssignExprContext(estate, (CommonState) hjstate);
 
+#define HASHJOIN_NSLOTS 2
     /* ----------------
      *	tuple table initialization
      * ----------------
@@ -594,6 +595,15 @@ ExecInitHashJoin(node, estate, parent)
      */
     return
 	LispTrue;
+}
+ 
+int
+ExecCountSlotsHashJoin(node)
+    Plan node;
+{
+    return ExecCountSlotsNode(get_outerPlan(node)) +
+	   ExecCountSlotsNode(get_innerPlan(node)) +
+	   HASHJOIN_NSLOTS;
 }
  
 /* ----------------------------------------------------------------

@@ -454,6 +454,7 @@ ExecInitNestLoop(node, estate, parent)
     ExecAssignDebugHooks((Plan) node, (BaseNode)nlstate);
     ExecAssignExprContext(estate, (CommonState)nlstate);
 
+#define NESTLOOP_NSLOTS 1
     /* ----------------
      *	tuple table initialization
      * ----------------
@@ -485,6 +486,15 @@ ExecInitNestLoop(node, estate, parent)
     NL1_printf("ExecInitNestLoop: %s\n",
 	       "node initialized");
     return LispTrue;
+}
+ 
+int
+ExecCountSlotsNestLoop(node)
+    Plan node;
+{
+    return ExecCountSlotsNode(get_outerPlan(node)) +
+	   ExecCountSlotsNode(get_innerPlan(node)) +
+	   NESTLOOP_NSLOTS;
 }
  
 /* ----------------------------------------------------------------

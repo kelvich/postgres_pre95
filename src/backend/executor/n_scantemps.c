@@ -168,6 +168,7 @@ ExecInitScanTemps(node, estate, parent)
     scantempstate = MakeScanTempState(0,0);
     set_scantempState(node, scantempstate);
 
+#define SCANTEMP_NSLOTS 2
     /* ----------------
      *	initialize tuple slots
      * ----------------
@@ -217,6 +218,15 @@ ExecInitScanTemps(node, estate, parent)
     set_st_nplans(scantempstate, length(tempRelDescs));
 
     return LispTrue;
+}
+ 
+int
+ExecCountSlotsScanTemps(node)
+    Plan node;
+{
+    return ExecCountSlotsNode(get_outerPlan(node)) +
+	   ExecCountSlotsNode(get_innerPlan(node)) +
+	   SCANTEMP_NSLOTS;
 }
 
 /* ---------------------------------------------------------------------

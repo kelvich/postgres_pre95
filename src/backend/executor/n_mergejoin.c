@@ -1114,6 +1114,7 @@ ExecInitMergeJoin(node, estate, parent)
     ExecAssignDebugHooks((Plan) node, (BaseNode) mergestate);
     ExecAssignExprContext(estate, (CommonState) mergestate);
 
+#define MERGEJOIN_NSLOTS 2
     /* ----------------
      *	tuple table initialization
      * ----------------
@@ -1189,6 +1190,15 @@ ExecInitMergeJoin(node, estate, parent)
 	       "node initialized");
     return
 	LispTrue;
+}
+ 
+int
+ExecCountSlotsMergeJoin(node)
+    Plan node;
+{
+    return ExecCountSlotsNode(get_outerPlan(node)) +
+	   ExecCountSlotsNode(get_innerPlan(node)) +
+	   MERGEJOIN_NSLOTS;
 }
  
 /* ----------------------------------------------------------------

@@ -206,6 +206,7 @@ ExecInitHash(node, estate, parent)
     ExecAssignDebugHooks((Plan) node, (BaseNode) hashstate);
     ExecAssignExprContext(estate, (CommonState) hashstate);
     
+#define HASH_NSLOTS 1
     /* ----------------
      * initialize our result slot
      * ----------------
@@ -229,6 +230,15 @@ ExecInitHash(node, estate, parent)
 
     return
 	LispTrue;
+}
+ 
+int
+ExecCountSlotsHash(node)
+    Plan node;
+{
+    return ExecCountSlotsNode(get_outerPlan(node)) +
+	   ExecCountSlotsNode(get_innerPlan(node)) +
+	   HASH_NSLOTS;
 }
  
 /* ---------------------------------------------------------------

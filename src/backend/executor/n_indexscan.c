@@ -1117,6 +1117,7 @@ ExecInitIndexScan(node, estate, parent)
      */
     ExecAssignExprContext(estate, (CommonState) scanstate);
 
+#define INDEXSCAN_NSLOTS 3
     /* ----------------
      *	tuple table initialization
      * ----------------
@@ -1537,6 +1538,15 @@ ExecInitIndexScan(node, estate, parent)
      */
     return
 	LispTrue;
+}
+ 
+int
+ExecCountSlotsIndexScan(node)
+    Plan node;
+{
+    return ExecCountSlotsNode(get_outerPlan(node)) +
+	   ExecCountSlotsNode(get_innerPlan(node)) +
+	   INDEXSCAN_NSLOTS;
 }
 
 /* ---------------------------------------------------------

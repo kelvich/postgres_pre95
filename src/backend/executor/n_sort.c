@@ -348,6 +348,7 @@ ExecInitSort(node, estate, parent)
     ExecAssignNodeBaseInfo(estate, (BaseNode) sortstate, parent);
     ExecAssignDebugHooks((Plan) node, (BaseNode) sortstate);
     
+#define SORT_NSLOTS 1
     /* ----------------
      *	tuple table initialization
      *
@@ -422,6 +423,15 @@ ExecInitSort(node, estate, parent)
      */
     return
 	LispTrue;
+}
+ 
+int
+ExecCountSlotsSort(node)
+    Plan node;
+{
+    return ExecCountSlotsNode(get_outerPlan(node)) +
+	   ExecCountSlotsNode(get_innerPlan(node)) +
+	   SORT_NSLOTS;
 }
  
 /* ----------------------------------------------------------------

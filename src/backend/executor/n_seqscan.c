@@ -332,6 +332,7 @@ ExecInitSeqScan(node, estate, parent)
     ExecAssignDebugHooks(node, (BaseNode) scanstate);
     ExecAssignExprContext(estate, (CommonState) scanstate);
 
+#define SEQSCAN_NSLOTS 3
     /* ----------------
      *	tuple table initialization
      * ----------------
@@ -395,6 +396,15 @@ ExecInitSeqScan(node, estate, parent)
 	return
 	    returnOid;
     }
+}
+ 
+int
+ExecCountSlotsSeqScan(node)
+    Plan node;
+{
+    return ExecCountSlotsNode(get_outerPlan(node)) +
+	   ExecCountSlotsNode(get_innerPlan(node)) +
+	   SEQSCAN_NSLOTS;
 }
  
 /* ----------------------------------------------------------------

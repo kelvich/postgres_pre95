@@ -225,6 +225,12 @@ ExecInitMaterial(node, estate, parent)
      */
     ExecAssignNodeBaseInfo(estate, (BaseNode) matstate, parent);
     ExecAssignDebugHooks((Plan) node, (BaseNode) matstate);
+
+#define MATERIAL_NSLOTS 1
+    /* ----------------
+     * tuple table initialization
+     * ----------------
+     */
     ExecInitScanTupleSlot(estate, (CommonScanState)matstate);
     
     /* ----------------
@@ -284,6 +290,15 @@ ExecInitMaterial(node, estate, parent)
      */
     return
 	LispTrue;
+}
+ 
+int
+ExecCountSlotsMaterial(node)
+    Plan node;
+{
+    return ExecCountSlotsNode(get_outerPlan(node)) +
+	   ExecCountSlotsNode(get_innerPlan(node)) +
+	   MATERIAL_NSLOTS;
 }
  
 /* ----------------------------------------------------------------

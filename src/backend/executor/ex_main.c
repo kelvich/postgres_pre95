@@ -364,7 +364,9 @@ InitPlan(operation, parseTree, plan, estate)
      * ----------------
      */
     {
-	TupleTable tupleTable = ExecCreateTupleTable(40);
+	int        nSlots     = ExecCountSlotsNode(plan);
+	TupleTable tupleTable = ExecCreateTupleTable(nSlots+10);
+
 	set_es_tupleTable(estate, tupleTable);
     }
 

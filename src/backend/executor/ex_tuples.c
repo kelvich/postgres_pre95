@@ -285,15 +285,26 @@ ExecAllocTableSlot(table)
      *  have to worry about the contents of the old table.
      *  If this changes, then we will have to preserve the contents.
      *  -cim 6/23/90
+     *
+     *  Unfortunately, we *cannot* do this.  All of the nodes in
+     *  the plan that have already initialized their slots will have
+     *  pointers into _freed_ memory.  This leads to bad ends.  We
+     *  now count the number of slots we will need and create all the
+     *  slots we will need ahead of time.  The if below should never
+     *  happen now.  Give a WARN if it does.  -mer 4 Aug 1992
      * ----------------
      */
     if (table->next >= table->size) {
-	int newsize = NewTableSize(table->size);
-	
-	pfree(table->array);
-	table->array = (Pointer) palloc(newsize * TableSlotSize);
-	bzero(table->array, newsize * TableSlotSize);
-	table->size =  newsize;
+	/*
+	 * int newsize = NewTableSize(table->size);
+	 *
+	 * pfree(table->array);
+	 * table->array = (Pointer) palloc(newsize * TableSlotSize);
+	 * bzero(table->array, newsize * TableSlotSize);
+	 * table->size =  newsize;
+	 */
+	elog(NOTICE, "Plan requires more slots than are available");
+	elog(WARN, "send mail to your local executor guru to fix this");
     }
 
     /* ----------------

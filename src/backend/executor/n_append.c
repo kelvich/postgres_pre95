@@ -210,6 +210,7 @@ ExecInitAppend(node, estate, parent)
     ExecAssignNodeBaseInfo(estate, (BaseNode) unionstate, parent);
     ExecAssignDebugHooks((Plan) node, (BaseNode) unionstate);
 
+#define APPEND_NSLOTS 1
     /* ----------------
      *	append nodes still have Result slots, which hold pointers
      *  to tuples, so we have to initialize them..
@@ -295,6 +296,20 @@ ExecInitAppend(node, estate, parent)
     
     return
         result;
+}
+ 
+int
+ExecCountSlotsAppend(node)
+    Plan node;
+{
+    List plan;
+    List unionplans = get_unionplans((Append)node);
+    int  nSlots     = 0;
+
+    foreach (plan,unionplans) {
+	nSlots += ExecCountSlotsNode(CAR(plan));
+    }
+    return nSlots + APPEND_NSLOTS;
 }
  
 /* ----------------------------------------------------------------

@@ -431,6 +431,77 @@ ExecProcNode(node)
     return result;
 }
 
+int
+ExecCountSlotsNode(node)
+    Plan node;
+{
+    if (node == (Plan)NULL)
+	return 0;
+
+    switch(NodeType(node)) {
+	/* ----------------
+	 *	control nodes
+	 * ----------------
+	 */
+    case classTag(Result):
+	return ExecCountSlotsResult(node);
+	
+    case classTag(Append):
+	return ExecCountSlotsAppend(node);
+              
+	/* ----------------
+	 *	scan nodes
+	 * ----------------
+	 */
+    case classTag(SeqScan):
+	return ExecCountSlotsSeqScan(node);
+
+    case classTag(IndexScan):
+	return ExecCountSlotsIndexScan(node);
+	
+	/* ----------------
+	 *	join nodes
+	 * ----------------
+	 */
+    case classTag(NestLoop):
+	return ExecCountSlotsNestLoop(node);
+
+    case classTag(MergeJoin):
+	return ExecCountSlotsMergeJoin(node);
+	
+	/* ----------------
+	 *	materialization nodes
+	 * ----------------
+	 */
+    case classTag(Material):
+	return ExecCountSlotsMaterial(node);
+
+    case classTag(Sort):
+	return ExecCountSlotsSort(node);
+
+    case classTag(Unique):
+	return ExecCountSlotsUnique(node);
+
+    case classTag(Agg):
+	return ExecCountSlotsAgg(node);
+		
+    case classTag(Hash):
+	return ExecCountSlotsHash(node);
+	
+    case classTag(HashJoin):
+	return ExecCountSlotsHashJoin(node);
+	
+    case classTag(ScanTemps):
+	return ExecCountSlotsScanTemps(node);
+	
+    default:
+	elog(WARN, "ExecCountSlotsNode: node not yet supported: %d",
+	     NodeGetTag(node));
+	break;
+    }
+    return 0;
+}
+
 /* ----------------------------------------------------------------  
  *   	ExecEndNode
  *   

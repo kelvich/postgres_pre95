@@ -269,6 +269,7 @@ ExecInitResult(node, estate, parent)
     ExecAssignDebugHooks( node, (BaseNode) resstate);
     ExecAssignExprContext(estate, (CommonState) resstate);
 
+#define RESULT_NSLOTS 1
     /* ----------------
      *	tuple table initialization
      * ----------------
@@ -296,6 +297,15 @@ ExecInitResult(node, estate, parent)
     set_rs_Loop(resstate, 0);
     
     return LispTrue;
+}
+ 
+int
+ExecCountSlotsResult(node)
+    Plan node;
+{
+    return ExecCountSlotsNode(get_outerPlan(node)) +
+	   ExecCountSlotsNode(get_innerPlan(node)) +
+	   RESULT_NSLOTS;
 }
  
 /* ----------------------------------------------------------------

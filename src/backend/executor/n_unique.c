@@ -210,6 +210,12 @@ ExecInitUnique(node, estate, parent)
      */
     ExecAssignNodeBaseInfo(estate, (BaseNode) uniquestate, parent);
     ExecAssignDebugHooks((Plan) node, (BaseNode) uniquestate);
+
+#define UNIQUE_NSLOTS 1
+    /* ------------
+     * Tuple table initialization
+     * ------------
+     */
     ExecInitResultTupleSlot(estate, (CommonState) uniquestate);
     
     /* ----------------
@@ -233,6 +239,15 @@ ExecInitUnique(node, estate, parent)
      */
     return
 	LispTrue;
+}
+ 
+int
+ExecCountSlotsUnique(node)
+    Plan node;
+{
+    return ExecCountSlotsNode(get_outerPlan(node)) +
+	   ExecCountSlotsNode(get_innerPlan(node)) +
+	   UNIQUE_NSLOTS;
 }
  
 /* ----------------------------------------------------------------
