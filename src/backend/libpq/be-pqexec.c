@@ -27,7 +27,7 @@ RcsId ("$Header$");
 #include "tmp/fastpath.h"
 #include "tmp/simplelists.h"
 #include "tmp/libpq-be.h"
-#include "utils/exception.h"
+#include "utils/exc.h"
 #include "utils/builtins.h"
 #include "utils/log.h"
 
@@ -146,10 +146,20 @@ PQexec(query)
     if (result == NULL) {
 	char *PQE = "Enull PQexec result";
 	result = strcpy(palloc(strlen(PQE)), PQE);
-    }
-    
+      }
+
+    if (result[0] != 'P')
+      {
+	/* some successful command was executed,
+	   but it's not one where we return the portal name so
+	   here we should be sure to clear out the portal 
+	   (since the caller has no handle on it)
+	*/
+	pbuf_close(entry->name); 
+
+      }
     return result;
-}
+  }
 
 /* ----------------------------------------------------------------
  *			pqtest support
