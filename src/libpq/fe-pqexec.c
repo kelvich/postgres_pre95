@@ -452,14 +452,14 @@ process_portal(rule_p)
 	     *   -- jw, 1/7/94
 	     */	    
 	    {
-		char relname[16];
+		char relname[NAMEDATALEN+1];
 		extern int PQAsyncNotifyWaiting;
 		
 		PQAsyncNotifyWaiting = 1;
-		pq_getstr(relname,16);
-		pqdebug("%s notification encountered. (%s, %d)",
-			"Asynchronized",
-			relname, PQxactid);
+		pq_getstr(relname,NAMEDATALEN);
+		relname[NAMEDATALEN] = '\0';
+		pqdebug2("Asynchronous notification encountered. (%s, %d)",
+			 relname, PQxactid);
 		PQappendNotify(relname, PQxactid);
 	    }
 	    break;
@@ -959,14 +959,14 @@ PQexec(query)
 	    break;
     	case 'A':
 	    {
-		char relname[16];
+		char relname[NAMEDATALEN+1];
 		extern int PQAsyncNotifyWaiting;
 		
 		PQAsyncNotifyWaiting = 1;
-		pq_getstr(relname,16);
-		pqdebug("%s notification encountered. (%s, %d)",
-			"Asynchronized",
-			relname, PQxactid);
+		pq_getstr(relname,NAMEDATALEN);
+		relname[NAMEDATALEN] = '\0';
+		pqdebug2("Asynchronous notification encountered. (%s, %d)",
+			 relname, PQxactid);
 		PQappendNotify(relname, PQxactid);
 	    }
 	    break;
