@@ -863,7 +863,7 @@ RelationRegisterRelation(relation)
    
 	oldcxt = MemoryContextSwitchTo(CacheCxt);
 
-	if (oldcxt != CacheCxt) 
+	if (oldcxt != (MemoryContext)CacheCxt) 
 		elog(NOIND,"RelationRegisterRelation: WARNING: Context != CacheCxt");
 	
 	HashTableInsert(RelationCacheHashByName,relation);
