@@ -13,6 +13,9 @@ retrieve \*- retrieve instances from a class
 classname [ archive_mode ]
 |
 .b portal
+portal_name )
+|
+.b iportal
 portal_name ) ]
 .br
 [
@@ -63,7 +66,8 @@ will get all instances which satisfy the qualification,
 .i qual ,
 compute the value of each element in the target list,
 and either 
-return them to an application program through a portal
+return them to an application program through one of two different kinds
+of portals
 or store them in a new class.
 .lp
 If
@@ -99,10 +103,14 @@ is specified, then the result of the query will be
 available on the specified portal
 and will not be saved.
 If no portal name is specified, the blank portal is used by default.
-For named portals, retrieve passes data to an application
-without conversion to external format.
-For the blank portal, all data is converted
-to external format.
+For a portal specified with the 
+.b iportal
+keyword, retrieve passes data to an application without conversion to
+external format.  For a portal specified with the
+.b portal
+keyword, retrieve passes data to an application after first converting
+it to the external representation.
+For the blank portal, all data is converted to external format.
 Duplicate instances are not removed when the result is
 displayed through a portal
 unless the optional
@@ -196,3 +204,9 @@ database DBA, but a subsequent
 to the same name will fail with a cryptic error message about "BlockExtend".
 A solution to this problem is being investigated and will be released in
 Version 4.
+.lp
+.q "Retrieve iportal"
+returns data in an architecture dependent format, namely that of the
+server on which the backend is running.  A standard data format should
+be adopted, most likely XDR.  At that point, there will be no need to
+distinguish among external and internal data.
