@@ -492,20 +492,21 @@ ProcessUtility(command, args, commandString, dest)
 	    break;
 	case OPERATOR:
 	    {
-		String	type2 = NULL;
+		String	type1 = (String) NULL, type2 = (String) NULL;
 		
 #ifndef NO_SECURITY
 		/* XXX moved to remove.c */
 #endif
 		args = CADR(args);
 
-/*		if (length(args) == 3) {
- *		    type2 = CString(CADR(CDR(args)));
- *		}
- */
-		type2 = CString(CADR(CDR(args)));
-		RemoveOperator(CString(CAR(args)), CString(CADR(args)),
-			       type2);
+		if (!null(CADR(args)))
+		    type1 = CString(CADR(args));
+		if (length(args) == 3) {	/* old default - right unary */
+		    if (!null(CADR(CDR(args))))
+			type2 = CString(CADR(CDR(args)));
+		}
+
+		RemoveOperator(CString(CAR(args)), type1, type2);
 	    }
 	    break;
 	case P_TUPLE:

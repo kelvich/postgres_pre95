@@ -35,8 +35,8 @@ RemoveOperator(operatorName, typeName1, typeName2)
 	Relation 	relation;
 	HeapScanDesc 	scan;
 	HeapTuple 	tup;
-	ObjectId	typeId1;
-	ObjectId        typeId2;
+	ObjectId	typeId1 = InvalidObjectId;
+	ObjectId        typeId2 = InvalidObjectId;
 	int 		defined;
 	ItemPointerData	itemPointerData;
 	Buffer          buffer;
@@ -44,25 +44,26 @@ RemoveOperator(operatorName, typeName1, typeName2)
 	NameData	user;
 
 	Assert(NameIsValid(operatorName));
-	Assert(NameIsValid(typeName1));
+	Assert(NameIsValid(typeName1) || NameIsValid(typeName2));
 
-	typeId1 = TypeGet(typeName1, &defined);
-	if (!ObjectIdIsValid(typeId1)) {
+	if (NameIsValid(typeName1)) {
+	    typeId1 = TypeGet(typeName1, &defined);
+	    if (!ObjectIdIsValid(typeId1)) {
 		elog(WARN, "RemoveOperator: type \"%-.*s\" does not exist",
 		     sizeof(NameData), typeName1);
 		return;
+	    }
 	}
-
-	typeId2 = InvalidObjectId;
+	
 	if (NameIsValid(typeName2)) {
-		typeId2 = TypeGet(typeName2, &defined);
-		if (!ObjectIdIsValid(typeId2)) {
-			elog(WARN, "RemoveOperator: type \"%-.*s\" does not exist",
-			     sizeof(NameData), typeName2);
-			return;
-		}
+	    typeId2 = TypeGet(typeName2, &defined);
+	    if (!ObjectIdIsValid(typeId2)) {
+		elog(WARN, "RemoveOperator: type \"%-.*s\" does not exist",
+		     sizeof(NameData), typeName2);
+		return;
+	    }
 	}
-
+	
 	ScanKeyEntryInitialize(&operatorKey[0], 0x0,
 			       OperatorNameAttributeNumber,
 			       NameEqualRegProcedure,
@@ -92,15 +93,19 @@ RemoveOperator(operatorName, typeName1, typeName2)
 		ItemPointerCopy(&tup->t_ctid, &itemPointerData);
 		RelationDeleteHeapTuple(relation, &itemPointerData);
 	} else {
-		if (ObjectIdIsValid(typeId2)) {
-			elog(WARN, "RemoveOperator: operator \"%-.*s\" taking \"%-.*s\" and \"%-.*s\" does not exist",
+		if (ObjectIdIsValid(typeId1) && ObjectIdIsValid(typeId2)) {
+			elog(WARN, "RemoveOperator: binary operator \"%-.*s\" taking \"%-.*s\" and \"%-.*s\" does not exist",
 			     sizeof(NameData), operatorName,
 			     sizeof(NameData), typeName1,
 			     sizeof(NameData), typeName2);
-		} else {
-			elog(WARN, "RemoveOperator: operator \"%-.*s\" taking \"%-.*s\" does not exist",
+		} else if (ObjectIdIsValid(typeId1)) {
+			elog(WARN, "RemoveOperator: right unary operator \"%-.*s\" taking \"%-.*s\" does not exist",
 			     sizeof(NameData), operatorName,
 			     sizeof(NameData), typeName1);
+		} else {
+			elog(WARN, "RemoveOperator: left unary operator \"%-.*s\" taking \"%-.*s\" does not exist",
+			     sizeof(NameData), operatorName,
+			     sizeof(NameData), typeName2);
 		}
 	}
 	HeapScanEnd(scan);
@@ -108,6 +113,10 @@ RemoveOperator(operatorName, typeName1, typeName2)
 }
 
 #ifdef NOTYET
+/*
+ * this stuff is to support removing all reference to a type
+ * don't use it  - pma 2/1/94
+ */
 /*
  *  SingleOpOperatorRemove
  *	Removes all operators that have operands or a result of type 'typeOid'.
@@ -258,7 +267,7 @@ RemoveType(typeName)
 	if (!HeapTupleIsValid(tup)) {
 		HeapScanEnd(scan);
 		RelationCloseHeapRelation(relation);
-		elog(WARN, "RemoveOperator: type \"%-.*s\" does not exist",
+		elog(WARN, "RemoveType: type \"%-.*s\" does not exist",
 		     sizeof(NameData), typeName);
 	}
 	typeOid = tup->t_oid;
