@@ -358,4 +358,87 @@ AMfreetuple ARGS((
 	/* this needs more thought */
 ));
 
+extern
+Relation
+index_open ARGS((
+	ObjectId	relation
+));
+
+extern
+Relation
+index_openr ARGS((
+	Name		relationName
+));
+
+extern
+void
+index_close ARGS((
+	Relation	relation;
+));
+
+extern
+GeneralInsertIndexResult
+index_insert ARGS((
+	Relation	relation,
+	IndexTuple	indexTuple,
+	double		*offsetOutP	/* XXX unused */
+));
+
+extern
+void
+index_delete ARGS((
+	Relation	relation,
+	ItemPointer	indexItem
+));
+
+extern
+IndexScanDesc
+index_beginscan ARGS((
+	Relation	relation,
+	Boolean		scanFromEnd,
+	uint16		numberOfKeys,
+	ScanKey		key
+));
+
+extern
+void
+index_rescan ARGS((
+	IndexScanDesc	scan,
+	bool		scanFromEnd,
+	ScanKey		key
+));
+
+extern
+void
+index_endscan ARGS((
+	IndexScanDesc	scan
+));
+
+extern
+void
+index_markpos ARGS((
+	IndexScanDesc	scan
+));
+
+extern
+void
+index_restrpos ARGS((
+	IndexScanDesc	scan
+));
+
+extern
+RetrieveIndexResult
+index_getnext ARGS((
+	IndexScanDesc	scan,
+	ScanDirection	direction
+));
+
+extern
+RegProcedure
+index_getrprocid ARGS((
+	Relation	irel,
+	AttributeNumber	attnum,
+	uint16		procnum
+));
+
 #endif	/* !defined(GenAMIncluded) */
