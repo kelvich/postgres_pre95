@@ -248,6 +248,8 @@ main(argc, argv)
 	else
 	    InteractiveBackend(parser_input, parser_output);
 
+	ValidateParse(parser_output);
+
 	/* ----------------
 	 *	display parse strings
 	 * ----------------
