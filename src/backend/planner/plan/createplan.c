@@ -353,6 +353,9 @@ fix_indxqual_references (clause,index_path)
 
     } 
     else 
+      if(IsA (clause,Const))
+	return(clause);
+    else 
       if (is_opclause (clause) && 
 	  is_funcclause (get_leftop (clause)) && 
 	  get_funcisindex (get_function (get_leftop (clause)))) {
@@ -381,10 +384,14 @@ fix_indxqual_references (clause,index_path)
 
 	  foreach(i,clause_subclauses(type,clause)) {
 	      subclause = CAR(i);
-	      new_subclauses = nappend1(new_subclauses,
-					fix_indxqual_references(subclause,
-								index_path));
+	      if (subclause)
+		new_subclauses = nappend1(new_subclauses,
+					  fix_indxqual_references(subclause,
+								  index_path));
+
+
 	  }
+
 	  /* XXX new_subclauses should be a list of the form:
 	   * ( (var var) (var const) ...) ?
 	   */
@@ -395,13 +402,9 @@ fix_indxqual_references (clause,index_path)
 	      LispValue newclause = LispNil;
 	      LispValue newclauses = LispNil;
 
-	      new_subclauses = lispCons(new_subclauses, LispNil);
-	      foreach(i,new_subclauses) {
-		  newclause = make_clause(type,CAR(i));
-		  
-		   newclauses = nappend1(newclauses,newclause);
-	      }
-	      return(newclauses);
+	      newclause = make_clause(type,new_subclauses);
+	      return(newclause);
+
 	  } 
 	  else {
 	      return (clause);
