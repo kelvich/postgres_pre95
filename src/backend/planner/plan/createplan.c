@@ -107,7 +107,7 @@ create_plan(best_path,origtlist)
 
      set_plan_size(plan_node, size);
      set_plan_width(plan_node, width);
-     set_plan_tupperpage(plan_node, tuples/pages);
+     /* set_plan_tupperpage(plan_node, tuples/pages); XXX temporary hack */
      set_fragment(plan_node, 0);
 
      /*    Attach a SORT node to the path if a sort path is specified. */
