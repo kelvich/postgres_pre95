@@ -12,6 +12,7 @@
 
 #ifdef SONY_JUKEBOX
 
+#include <math.h>
 #include "machine.h"
 
 #include "storage/ipc.h"
@@ -1698,6 +1699,7 @@ SJShmemSize()
     int size;
     int nbuckets;
     int nsegs;
+    int tmp;
 
     /* size of cache metadata */
     size = ((SJCACHESIZE + 1) * sizeof(SJCacheItem)) + sizeof(SJCacheHeader);
@@ -1708,10 +1710,11 @@ SJShmemSize()
     /* size of hash table */
     nbuckets = 1 << (int)my_log2((SJCACHESIZE - 1) / DEF_FFACTOR + 1);
     nsegs = 1 << (int)my_log2((nbuckets - 1) / DEF_SEGSIZE + 1);
-    size += my_log2(SJCACHESIZE) + sizeof(HHDR)
-          + nsegs * DEF_SEGSIZE * sizeof(SEGMENT)
-          + (int)ceil((double)SJCACHESIZE/BUCKET_ALLOC_INCR)*BUCKET_ALLOC_INCR*
-             (sizeof(BUCKET_INDEX) + sizeof(SJHashEntry));
+    size += my_log2(SJCACHESIZE) + sizeof(HHDR);
+    size += nsegs * DEF_SEGSIZE * sizeof(SEGMENT);
+    tmp = (int)ceil((double)SJCACHESIZE/BUCKET_ALLOC_INCR);
+    size += tmp * BUCKET_ALLOC_INCR *
+            (sizeof(BUCKET_INDEX) + sizeof(SJHashEntry));
 
     /* count shared memory required for jukebox state */
     size += JBShmemSize();

@@ -10,6 +10,7 @@
 
 #ifdef MAIN_MEMORY
 
+#include <math.h>
 #include "machine.h"
 #include "storage/ipc.h"
 #include "storage/ipci.h"
@@ -554,24 +555,27 @@ MMShmemSize()
     int size;
     int nbuckets;
     int nsegs;
+    int tmp;
 
     /*
      *  first compute space occupied by the (dbid,relid,blkno) hash table
      */
 
-    size = my_log2(MMNBUFFERS) + sizeof(HHDR)
-           + nsegs * DEF_SEGSIZE * sizeof(SEGMENT)
-           + (int)ceil((double)MMNBUFFERS/BUCKET_ALLOC_INCR)*BUCKET_ALLOC_INCR*
-             (sizeof(BUCKET_INDEX) + sizeof(MMHashEntry));
+    size = my_log2(MMNBUFFERS) + sizeof(HHDR);
+    size += nsegs * DEF_SEGSIZE * sizeof(SEGMENT);
+    tmp = (int)ceil((double)MMNBUFFERS/BUCKET_ALLOC_INCR);
+    size += tmp * BUCKET_ALLOC_INCR *
+            (sizeof(BUCKET_INDEX) + sizeof(MMHashEntry));
 
     /*
      *  now do the same for the rel hash table
      */
 
-    size += my_log2(MMNRELATIONS) + sizeof(HHDR)
-          + nsegs * DEF_SEGSIZE * sizeof(SEGMENT)
-          + (int)ceil((double)MMNRELATIONS/BUCKET_ALLOC_INCR)*BUCKET_ALLOC_INCR*
-             (sizeof(BUCKET_INDEX) + sizeof(MMRelHashEntry));
+    size += my_log2(MMNRELATIONS) + sizeof(HHDR);
+    size += nsegs * DEF_SEGSIZE * sizeof(SEGMENT);
+    tmp = (int)ceil((double)MMNRELATIONS/BUCKET_ALLOC_INCR);
+    size += tmp * BUCKET_ALLOC_INCR *
+            (sizeof(BUCKET_INDEX) + sizeof(MMRelHashEntry));
 
     /*
      *  finally, add in the memory block we use directly

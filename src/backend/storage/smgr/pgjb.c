@@ -13,6 +13,7 @@
 
 RcsId("$Header$");
 
+#include <math.h>
 #include "machine.h"
 
 #include "storage/block.h"
@@ -643,14 +644,16 @@ JBShmemSize()
     int size;
     int nsegs;
     int nbuckets;
+    int tmp;
 
     /* size of hash table */
     nbuckets = 1 << my_log2((JBCACHESIZE - 1) / DEF_FFACTOR + 1);
     nsegs = 1 << my_log2((nbuckets - 1) / DEF_SEGSIZE + 1);
-    size = my_log2(JBCACHESIZE) + sizeof(HHDR)
-	   + nsegs * DEF_SEGSIZE * sizeof(SEGMENT)
-           + (int)ceil((double)JBCACHESIZE/BUCKET_ALLOC_INCR)*BUCKET_ALLOC_INCR*
-              (sizeof(BUCKET_INDEX) + sizeof(JBHashEntry));
+    size = my_log2(JBCACHESIZE) + sizeof(HHDR);
+    size += nsegs * DEF_SEGSIZE * sizeof(SEGMENT);
+    tmp = (int)ceil((double)JBCACHESIZE/BUCKET_ALLOC_INCR);
+    size += tmp * BUCKET_ALLOC_INCR *
+            (sizeof(BUCKET_INDEX) + sizeof(JBHashEntry));
 
     /* size of integer telling us how full hash table is */
     size += sizeof(*JBNEntries);
