@@ -681,7 +681,7 @@ RuleStmt:
 	RuleBody
 		{
 
-	 	    $3 = lispCons ( $4, $7 );
+	 	    $4 = lispCons ( $4, $7 );
 	 	    $3 = lispCons ( $3, $4 );
 		    $2 = lispCons ( $2, $3 );	
 		    $$ = lispCons ( $1, $2 );	
@@ -1213,7 +1213,7 @@ from_rel_name:
 	;
 
 Relation:
-	  relation_name opt_time_range star
+	  relation_name opt_time_range '*'
 		{
 		    List options = LispNil;
 
@@ -1230,7 +1230,7 @@ Relation:
 						      options,
 						      CString($1) ));
 		}
-	  | relation_name opt_time_range %PREC REDUCE
+	  | relation_name opt_time_range  
 		{
 		    List options = LispNil;
 
@@ -1520,7 +1520,8 @@ res_target_el:
 			attrtype = att_typeid(rd,resdomno);
 			attrlen = tlen(get_id_type(attrtype)); 
 			if (attrtype != type_id)
-				elog(WARN, "unequal type in tlist\n");
+			  elog(WARN, "unequal type in tlist : %s \n",
+			       CString($1));
 			if( lispAssoc( lispInteger(resdomno),p_target_resnos) 
 			   != -1 ) {
 			    elog(WARN,"two or more occurence of same attr");
