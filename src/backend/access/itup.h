@@ -348,7 +348,7 @@ ItemPointerFormRetrieveIndexResult ARGS((
 ));
 
 
-#define IndexTupleNoNulls(itup) (((IndexTuple) (itup))->t_infomask & 0x1) 
-#define IndexTupleAllFixed(itup) (((IndexTuple) (itup))->t_infomask & 0x2) 
+#define IndexTupleNoNulls(itup)  (!(((IndexTuple) (itup))->t_infomask & 0x1))
+#define IndexTupleAllFixed(itup) (!(((IndexTuple) (itup))->t_infomask & 0x2))
 
 #endif	/* !defined(ITUP_H) */
