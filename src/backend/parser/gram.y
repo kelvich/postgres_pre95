@@ -1050,7 +1050,7 @@ Relation:
 				/* no time range */
 				p_trange = LispNil;
 				trange_flag = 0;
-			} else if ( !strcmp ( CString($2), "snapshot") ) {
+/* XXX a hack */	} else if (strcmp(CString(CAR($2)), "snapshot") == 0) {
 				/* snapshot */
 				p_trange = MakeTimeRange( CDR($2), LispNil, 0);
 				trange_flag = 2;
@@ -1073,13 +1073,13 @@ opt_time_range:
 	  '[' opt_date ',' opt_date ']'
 		{ $$ = lispCons ($2,$4); }
 	| '[' date ']'
-		{ $$ = lispCons(lispString("snapshot"),$2); }
+		{ $$ = lispCons(lispString("snapshot"),$2); }	/* XXX a hack */
 	| /*EMPTY*/
 		{ NULLTREE }
 	;
 opt_date:
-	  /* no date, default to lispint 0 */
-		{ $$ = lispInteger(0); }
+	  /* no date, default to nil */
+		{ $$ = LispNil; }
 	| date
 	;
  /**********************************************************************
