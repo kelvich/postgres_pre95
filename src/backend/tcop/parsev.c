@@ -87,9 +87,64 @@ ValidateUtility(command, args)
 		 * relation and attribute manipulation
 		 */
 	case CREATE:
+	{
+		List	l;
+		List	schema;
+		
+
+		AssertArg(length(args) >= 2);
+		AssertArg(lispStringp(CAR(args)));
 		/*
-		 * XXX code here
+		 * validate parameters
 		 */
+		l = CADR(args);
+		AssertArg(listp(l) && length(l) == 4);
+		if (!lispNullp(CAR(l))) {
+			AssertArg(lispIntegerp(CAR(CAR(l))));
+			AssertArg(CInteger(CAR(CAR(l))) == KEY);
+			/*
+			 * XXX validate KEY here
+			 */
+		}
+		l = CDR(l);
+		if (!lispNullp(CAR(l))) {
+			List	inheritList;
+
+			AssertArg(lispIntegerp(CAR(CAR(l))));
+			AssertArg(CInteger(CAR(CAR(l))) == INHERITS);
+
+			inheritList = CDR(CAR(l));
+			/* duplicates? */
+		}
+		l = CDR(l);
+		if (!lispNullp(CAR(l))) {
+			AssertArg(lispIntegerp(CAR(CAR(l))));
+			AssertArg(CInteger(CAR(CAR(l))) == INDEXABLE);
+			/*
+			 * XXX validate INDEXABLE here
+			 */
+		}
+		l = CDR(l);
+		if (!lispNullp(CAR(l))) {
+			AssertArg(lispIntegerp(CAR(CAR(l))));
+			AssertArg(CInteger(CAR(CAR(l))) == ARCHIVE);
+			/*
+			 * XXX validate ARCHIVE here
+			 */
+		}
+
+		/*
+		 * validate schema
+		 */
+		schema = CDR(CDR(args));
+		AssertArg(listp(schema));
+		foreach (l, schema) {
+			AssertArg(listp(CAR(l)));
+			AssertArg(listp(CDR(CAR(l))));
+			AssertArg(lispStringp(CAR(CAR(l))));
+			AssertArg(lispStringp(CADR(CAR(l))));
+		}
+	}
 		break;
 
 	case DESTROY:
