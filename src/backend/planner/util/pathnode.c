@@ -259,7 +259,7 @@ create_seqscan_path (rel)
     set_parent (pathnode,rel);
     set_path_cost (pathnode,0.0);
     set_p_ordering (pathnode,LispNil);
-    set_sortpath (pathnode,(SortKey)NULL);
+    set_pathsortkey (pathnode,(SortKey)NULL);
     set_keys (pathnode,LispNil);
 
     relid = get_relids(rel);
@@ -303,7 +303,7 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
     set_indexid (pathnode,get_relids (index));
     set_p_ordering (pathnode,get_ordering (index));
     set_keys (pathnode,get_indexkeys (index));
-    set_sortpath(pathnode, (SortKey)NULL);
+    set_pathsortkey(pathnode, (SortKey)NULL);
     set_indexqual(pathnode, LispNil);
 
     /*    The index must have an ordering for the
@@ -409,7 +409,7 @@ create_nestloop_path (joinrel,outer_rel,outer_path,inner_path,keys)
      set_innerjoinpath (pathnode,inner_path);
      set_pathclauseinfo (pathnode,get_clauseinfo (joinrel));
      set_keys (pathnode,keys);
-     set_sortpath (pathnode,LispNil);
+     set_pathsortkey (pathnode,LispNil);
      set_joinid(pathnode,LispNil);
      set_outerjoincost(pathnode,LispNil);
      set_p_ordering(pathnode,LispNil);
@@ -456,7 +456,7 @@ create_mergesort_path (joinrel,outersize,innersize,outerwidth,
 		       innerwidth,outer_path,inner_path,keys,order,
 		       mergeclauses,outersortkeys,innersortkeys)
      Rel joinrel;
-     int outersize,innersize,outerwidth,innerwidth;
+     Count outersize,innersize,outerwidth,innerwidth;
      Path outer_path,inner_path;
      LispValue keys,order,mergeclauses,outersortkeys,innersortkeys ;
 {
@@ -523,7 +523,7 @@ create_hashjoin_path (joinrel,outersize,innersize,outerwidth,
     set_innerjoinpath (pathnode,inner_path);
     set_pathclauseinfo (pathnode,get_clauseinfo (joinrel));
     set_keys (pathnode,keys);
-    set_sortpath (pathnode,(SortKey)NULL);
+    set_pathsortkey (pathnode,(SortKey)NULL);
     set_p_ordering(pathnode,LispNil);
     set_outerjoincost(pathnode,0);
     set_joinid(pathnode,LispNil);

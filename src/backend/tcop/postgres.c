@@ -43,6 +43,7 @@ RcsId("$Header$");
 #include "executor/execdebug.h"
 #include "executor/x_execstats.h"
 #include "planner/costsize.h"
+#include "planner/planner.h"
 #include "nodes/plannodes.h"
 #include "nodes/plannodes.a.h"
 
@@ -453,7 +454,6 @@ pg_eval_dest(query_string, dest)
     List new_list = LispNil;
     List rewritten = LispNil;
     MemoryContext oldcontext;
-    extern Plan planner();
 
     if (testFlag) {
 	ParserPlannerContext = CreateGlobalMemory("ParserPlannerContext");
@@ -481,7 +481,6 @@ pg_eval_dest(query_string, dest)
     foreach (i, parsetree_list ) {
 	LispValue parsetree = CAR(i);
 	
-	extern void init_planner();
 	extern List QueryRewrite();
 
 	ValidateParse(parsetree);
