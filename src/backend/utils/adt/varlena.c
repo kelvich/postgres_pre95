@@ -1,16 +1,19 @@
 /*
  * varlena.c --
  * 	Functions for the variable-length built-in types.
+ *
+ * $Header$
  */
 
 #include <ctype.h>
 #include <strings.h>
 
 #include "tmp/postgres.h"
-
-RcsId("$Header$");
-
+#include "utils/log.h"
 #include "utils/palloc.h"
+#include "utils/builtins.h"
+
+char *palloc();
 
 	    /* ========== USER I/O ROUTINES ========== */
 
@@ -147,6 +150,7 @@ byteaout(vlena)
 	return(result);
 }
 
+
 /*
  *	textin		- converts "..." to internal representation
  */
@@ -227,7 +231,171 @@ textne(arg1, arg2)
 }
 
 
-	     /* ========== PRIVATE ROUTINES ========== */
+/*-------------------------------------------------------------
+ * byteaGetSize
+ *
+ * get the number of bytes contained in an instance of type 'bytea'
+ *-------------------------------------------------------------
+ */
+int32
+byteaGetSize(v)
+struct varlena *v;
+{
+    register int len;
 
+    len = v->vl_len - sizeof(v->vl_len);
 
-			     /* (none) */
+    return(len);
+}
+
+/*-------------------------------------------------------------
+ * byteaGetByte
+ *
+ * this routine treats "bytea" as an array of bytes.
+ * It returns the Nth byte (a number between 0 and 255) or
+ * it dies if the length of this array is less than n.
+ *-------------------------------------------------------------
+ */
+int32
+byteaGetByte(v, n)
+struct varlena *v;
+int32 n;
+{
+    int len;
+    int byte;
+
+    len = byteaGetSize(v);
+
+    if (n>=len) {
+	elog(WARN, "byteaGetByte: index (=%d) out of range [0..%d]",
+	    n,len-1);
+    }
+
+    byte = (unsigned char) (v->vl_dat[n]);
+
+    return((int32) byte);
+}
+
+/*-------------------------------------------------------------
+ * byteaGetBit
+ *
+ * This routine treats a "bytea" type like an array of bits.
+ * It returns the value of the Nth bit (0 or 1).
+ * If 'n' is out of range, it dies!
+ *
+ *-------------------------------------------------------------
+ */
+int32
+byteaGetBit(v, n)
+struct varlena *v;
+int32 n;
+{
+    int len;
+    int byteNo, bitNo;
+    int byte;
+
+    byteNo = n/8;
+    bitNo = n%8;
+
+    byte = byteaGetByte(v, byteNo);
+
+    if (byte & (1<<bitNo)) {
+	return((int32)1);
+    } else {
+	return((int32)0);
+    }
+}
+/*-------------------------------------------------------------
+ * byteaSetByte
+ *
+ * Given an instance of type 'bytea' creates a new one with
+ * the Nth byte set to the given value.
+ *
+ *-------------------------------------------------------------
+ */
+
+struct varlena *
+byteaSetByte(v, n, newByte)
+struct varlena *v;
+int32 n;
+int32 newByte;
+{
+    int len;
+    struct varlena *res;
+    int i;
+
+    len = byteaGetSize(v);
+
+    if (n>=len) {
+	elog(WARN,
+	    "byteaSetByte: index (=%d) out of range [0..%d]",
+	    n, len-1);
+    }
+
+    /*
+     * Make a copy of the original varlena.
+     */
+    res = (struct varlena *) palloc(VARSIZE(v));
+    if (res==NULL) {
+	elog(WARN, "byteaSetByte: Out of memory (%d bytes requested)",
+	    VARSIZE(v));
+    }
+    bcopy((char *)v, (char *)res, VARSIZE(v));
+    
+    /*
+     *  Now set the byte.
+     */
+    res->vl_dat[n] = newByte;
+
+    return(res);
+}
+
+/*-------------------------------------------------------------
+ * byteaSetBit
+ *
+ * Given an instance of type 'bytea' creates a new one with
+ * the Nth bit set to the given value.
+ *
+ *-------------------------------------------------------------
+ */
+
+struct varlena *
+byteaSetBit(v, n, newBit)
+struct varlena *v;
+int32 n;
+int32 newBit;
+{
+    struct varlena *res;
+    int oldByte, newByte;
+    int byteNo, bitNo;
+
+    /*
+     * sanity check!
+     */
+    if (newBit != 0 && newBit != 1) {
+	elog(WARN, "byteaSetByte: new bit must be 0 or 1");
+    }
+
+    /*
+     * get the byte where the bit we want is stored.
+     */
+    byteNo = n / 8;
+    bitNo = n % 8;
+    oldByte = byteaGetByte(v, byteNo);
+
+    /*
+     * calculate the new value for that byte
+     */
+    if (newBit == 0) {
+	newByte = oldByte & (~(1<<bitNo));
+    } else {
+	newByte = oldByte | (1<<bitNo);
+    }
+
+    /*
+     * NOTE: 'byteaSetByte' creates a copy of 'v' & sets the byte.
+     */
+    res = byteaSetByte(v, byteNo, newByte);
+
+    return(res);
+}
