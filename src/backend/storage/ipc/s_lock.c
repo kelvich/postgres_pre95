@@ -16,7 +16,8 @@
  *	}
  *
  *	If this is not done, Postgres will default to using System V
- *	semaphores (and take a large performance hit).
+ *	semaphores (and take a large performance hit -- around 40% of
+ *	its time on a DS5000/240 is spent in semop(3)...).
  *
  *   NOTES
  *	AIX has a test-and-set but the recommended interface is the cs(3)
@@ -24,6 +25,10 @@
  *	overhead) uninterruptible compare-and-set operation.  True 
  *	spinlocks might be faster but using cs(3) still speeds up the 
  *	regression test suite by about 25%.
+ *
+ *	None of the TAS code we've written is likely to work on shared-
+ *	memory multiprocessors (at least, those that require explicit
+ *	memory barriers or such, like the Alpha).
  *
  *   IDENTIFICATION
  *	$Header$
