@@ -215,6 +215,7 @@ extern void		rtreebuild();
 extern void		rtmarkpos();
 extern void		rtrestrpos();
 extern void		rtrescan();
+extern void		rtbuild();
 
 /*
  *	Functional B-tree code.

@@ -170,18 +170,20 @@ RelationGetIndexStrategy ARGS((
 ));
 
 /*
- * RelationSetIndexStrategy --
- *	Sets index strategy for a relation.
+ * RelationSetIndexSupport --
+ *	Sets index strategy and support info for a relation.
  *
  * Note:
  *	Assumes relation descriptor is a valid pointer to sufficient space.
- *	Assumes index strategy is valid.
+ *	Assumes index strategy is valid.  Assumes support is valid if non-
+ *	NULL.
  */
 extern
 void
-RelationSetIndexStrategy ARGS((
+RelationSetIndexSupport ARGS((
 	Relation	relation,
-	IndexStrategy	strategy
+	IndexStrategy	strategy,
+	RegProcedure	*support
 ));
 
 /* 
