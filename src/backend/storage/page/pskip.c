@@ -71,7 +71,7 @@ startpskip(db, relation, tid)
 	cp = (char *)dp + (*objp->op_lpp).lp_off;
 	/*
 	 *	Assumes < 700 attributes--else use (tup->t_hoff & I1MASK)
-	 * check this and the #define MAXATTS in ../h/tuple.h
+	 * check this and the #define MAXATTS in ../h/htup.h
 	 */
 	if (ItemIdIsContinuing(objp->op_lpp)) {
 		cp += TCONTPAGELEN;
