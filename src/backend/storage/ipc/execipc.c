@@ -96,7 +96,7 @@ ProcGroupInfo ProcGroupInfoP;  /* have to define it here for postmaster to
 				  be happy to link, dumb!  */
 SlaveInfo SlaveInfoP;
 int MyPid = -1;
-SlaveLocalInfoData SlaveLocalInfoD;
+SlaveLocalInfoData SlaveLocalInfoD = {1, 0, false, -1, 0, false, NULL, NULL};
 
 /* ----------------------------------------------------------------
  *			accessor functions
