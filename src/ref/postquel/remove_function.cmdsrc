@@ -7,12 +7,14 @@
 remove function \(em remove a user-defined C function 
 .SH SYNOPSIS
 .(l M
-\fBremove function\fR function_name
+\fBremove function ( \fP[ type-1  { \fB,\fP type-n } ] \fB) \fR function_name
 .)l
 .SH DESCRIPTION
 .BR "Remove function"
 will remove references to an existing C function.  To execute this
-command the user must be the owner of the function.
+command the user must be the owner of the function.  The input
+argument types to the function must be specified, as only the
+function with the given name and argument types will be romoved.
 .SH EXAMPLE
 .(C
 /*
