@@ -505,7 +505,7 @@ flatten_tlistentry (tlistentry,flat_tlist)
 	return((TLE)make_funcclause (get_function (tlistentry),
 					temp_result));
     } else {
-	return((TLE)make_clause (get_op (tlistentry),
+	return((TLE)make_opclause (get_op (tlistentry),
 				 flatten_tlistentry (get_leftop (tlistentry),
 						     flat_tlist),
 				 flatten_tlistentry (get_rightop (tlistentry),
