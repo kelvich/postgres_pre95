@@ -396,6 +396,7 @@ LispValue args;
     regproc funcid;    /* ID of function associate with node */
     Cost cost = 0;   /* running expense */
     LispValue tmpclause;
+    char *globals;
 
     if (IsA(node,Oper))
      {
@@ -436,8 +437,15 @@ LispValue args;
 	      nargs = proc->pronargs;
 	      if (nargs > 0)
 		argOidVect = funcname_get_funcargtypes(&proc->proname.data[0]);
+	      /*
+	       * save/restore globals -
+	       * 
+	       * This is a hack to make pg_plan reentrant.
+	       */
+	      globals = save_globals();
 	      planlist = (List)pg_plan(pq_src, argOidVect, nargs, 
 				       &parseTree_list, None);
+	      restore_globals(globals);
 	      if (IsA(node,Func))
 		set_func_planlist((Func)node, planlist);
 	  }
