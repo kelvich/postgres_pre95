@@ -200,7 +200,7 @@ TimeQualIsValid(qual)
 	}
 
 	if (((InternalTimeQual)qual)->mode & TimeQualOlder) {
-		if (!TimeIsValid(((InternalTimeQual)qual)->end)) {
+		if (!AbsoluteTimeIsValid(((InternalTimeQual)qual)->end)) {
 			return (false);
 		}
 		if (hasStartTime) {
@@ -380,7 +380,7 @@ TimeQualIndicatesDisableValidityChecking(qual)
 	return (false);
 }
 
-Time
+AbsoluteTime
 TimeQualGetSnapshotTime(qual)
 	TimeQual	qual;
 {
@@ -389,7 +389,7 @@ TimeQualGetSnapshotTime(qual)
 	return (((InternalTimeQual)qual)->start);
 }
 
-Time
+AbsoluteTime
 TimeQualGetStartTime(qual)
 	TimeQual	qual;
 {
@@ -398,7 +398,7 @@ TimeQualGetStartTime(qual)
 	return (((InternalTimeQual)qual)->start);
 }
 
-Time
+AbsoluteTime
 TimeQualGetEndTime(qual)
 	TimeQual	qual;
 {
@@ -413,7 +413,7 @@ TimeFormSnapshotTimeQual(time)
 {
 	InternalTimeQual	qual;
 
-	Assert(TimeIsValid(time));
+	Assert(AbsoluteTimeIsValid(time));
 
 	qual = LintCast(InternalTimeQual, palloc(sizeof *qual));
 
@@ -437,10 +437,10 @@ TimeFormRangedTimeQual(startTime, endTime)
 	qual->end = endTime;
 	qual->mode = TimeQualEvery;
 
-	if (TimeIsValid(startTime)) {
+	if (AbsoluteTimeIsValid(startTime)) {
 		qual->mode |= TimeQualNewer;
 	}
-	if (TimeIsValid(endTime)) {
+	if (AbsoluteTimeIsValid(endTime)) {
 		qual->mode |= TimeQualOlder;
 	}
 
@@ -450,11 +450,11 @@ TimeFormRangedTimeQual(startTime, endTime)
 #if 0
 TimeQual
 TimeFormDebuggingTimeQual(time)
-	Time	time;
+	AbsoluteTime	time;
 {
 	InternalTimeQual	qual;
 
-	Assert(TimeIsValid(time));
+	Assert(AbsoluteTimeIsValid(time));
 
 	qual = LintCast(InternalTimeQual, palloc(sizeof *qual));
 
