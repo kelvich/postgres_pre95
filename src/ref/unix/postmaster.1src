@@ -7,24 +7,22 @@
 postmaster \*- run the Postgres postmaster
 .uh "SYNOPSIS"
 .lp
-.b postmaster
-[port port+1 0 backendpath] &
+postmaster [ -p port ] [ -b backend_pathname ] &
 .uh "DESCRIPTION"
 .lp
 The postmaster manages the communication between frontends and backends,
 as well as allocating the shared buffer pool and semaphores.  The postmaster
 does not itself interact with the user so it should be started as a background
-process.
+process.  Only one postmaster should be run on a machine.
 .sp
 .uh "COMMAND OPTIONS"
 .lp
-\fIport\fR and \fIport+1\fR are the well known TCP/IP ports used for network 
+\fIport\fR is the well known TCP/IP port used for network 
 communication between the terminal monitor and the backend.  If you specify
-these then you must also specify them when starting the terminal monitor.  
+this then you must also specify them when starting the terminal monitor.  
 .lp
-The third argument should always be \fI0\fR.
-.lp
-\fIbackendname\fR is the full pathname of the Postgres backend you wish to use.
+\fIbackend_pathname\fR is the full pathname of the Postgres backend you
+wish to use.
 .sp
 .uh "EXAMPLES"
 .lp
@@ -32,15 +30,15 @@ The third argument should always be \fI0\fR.
 .pp
 This command will start up a postmaster on the default ports
 (4321 and 4322) which will expect to use the default path to the 
-postgres backend (~/bin/postgres).  This is the simplest way to
-start the postmaster.
+postgres backend ($POSTGRESHOME/bin/postgres) or /usr/postgres/bin/postgres.
+This is the simplest way to start the postmaster.
 .sp
 .lp
-\fBpostmaster 1234 1235 0 /usr/postgres/bin/postgres &\fR
+\fBpostmaster -p 1234 -b /a/postgres/bin/postgres &\fR
 .pp
 This command will start up a postmaster communicating through ports
 1234 and 1235, which will expect to use the backend located at
-/usr/postgres/bin/postgres.  Note: to connect to this postmaster using
+/a/postgres/bin/postgres.  Note: to connect to this postmaster using
 the terminal monitor, you would need to specify \fB-p 1234\fR on
 the command line invoking the terminal monitor.
 .sp
