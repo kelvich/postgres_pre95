@@ -643,15 +643,15 @@ void main()
             PQexec(" ");
             l = PQnotifies();
             if (l != NULL) {
-                printf("notification on relation %s\n",
+                printf("notification on relation %s\en",
 		       l->relname);
                 res = PQexec("retrieve (test1a.i)");
                 if (*res == 'E') {
-                    fprintf(stderr,"%s\nfailed",++res);
+                    fprintf(stderr,"%s\enfailed",++res);
                     goto exit_error;
                 }
                 if (*res != 'P') {
-                    fprintf(stderr,"%s\nno portal",++res);
+                    fprintf(stderr,"%s\enno portal",++res);
                 }
                 /* get tuples in relation */
                 portalbuf = PQparray(++res);
@@ -661,12 +661,12 @@ void main()
 		    nflds = PQnfieldsGroup(portalbuf,grpno);
                     if (nflds != 1) {
                         fprintf(stderr,
-			  "expected 1 attributes, got %d\n",
+			  "expected 1 attributes, got %d\en",
 			  nflds);
                         goto exit_error;
                     }
                     for (tupno = 0; tupno < ntups; tupno++) {
-                        printf("got i=%s\n",
+                        printf("got i=%s\en",
 			  PQgetvalue(portalbuf,tupno,0));
                     }
                 }
@@ -696,8 +696,8 @@ void main()
  * Do the following at the monitor:
  *
 
- create test1 (i = int4,d = float4,p = polygon) \g
- append test1 (i = 7, d=3.567,p="(1.0,2.0,3.0,4.0)"::polygon) \g
+ create test1 (i = int4,d = float4,p = polygon) \eg
+ append test1 (i = 7, d=3.567,p="(1.0,2.0,3.0,4.0)"::polygon) \eg
 
  -- Anything else you can think of. 
  * Start up this program.
@@ -720,12 +720,12 @@ void main()
     PQexec("begin");
     res = (char *)PQexec("retrieve iportal junk (test1.all)");
     if (*res == 'E') {
-	fprintf(stderr,"%s\nfailed",++res);
+	fprintf(stderr,"%s\enfailed",++res);
 	goto exit_error;
     }
     res = (char *)PQexec("fetch all in junk");
     if (*res != 'P') {
-	fprintf(stderr,"\nno portal");
+	fprintf(stderr,"\enno portal");
 	goto exit_error;
     }
     /* get tuples in relation */
@@ -734,7 +734,7 @@ void main()
     for (grpno = 0; grpno < ngroups; grpno++) {
 	ntups = PQntuplesGroup(portalbuf, grpno);
 	if ((nflds = PQnfieldsGroup(portalbuf, grpno)) != 3) {
-	    fprintf(stderr, "expected 3 attributes, got %d\n", nflds);
+	    fprintf(stderr, "expected 3 attributes, got %d\en", nflds);
 	    goto exit_error;
 	}
 	for (tupno = 0; tupno < ntups; tupno++) {
@@ -745,9 +745,9 @@ void main()
 	    bla2 = PQgetvalue(portalbuf,tupno,1);
 	    bla3 = PQgetvalue(portalbuf,tupno,2)-4;
 
-	    printf ("got i=%d(%d bytes), d=(%f)(%d bytes)|%x|%x|%x|%x\n\
- Polygon(%d bytes)\
-  %d points (%f,%f,%f,%f)\n",
+	    printf ("got i=%d(%d bytes), d=(%f)(%d bytes)|%x|%x|%x|%x\en\e
+ Polygon(%d bytes)\e
+  %d points (%f,%f,%f,%f)\en",
 		    *bla1,PQgetlength(portalbuf,tupno,0),
 		    *((float *)bla2),
 		    PQgetlength(portalbuf,tupno,1),
