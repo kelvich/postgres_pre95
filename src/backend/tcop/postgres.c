@@ -46,8 +46,6 @@
 
 extern int on_exitpg();
 extern void BufferManagerFlush();
-extern int _show_stats_after_query_;
-extern int _reset_stats_after_query_;
 
 /* ----------------
  *	global variables
@@ -996,29 +994,6 @@ PostgresMain(argc, argv)
 	    NullCommand();
 	}
 
-#ifdef TCOP_SHOWSTATS
-	/* ----------------
-	 *  display the buffer manager statistics
-	 * ----------------
-	 */
-	if (_show_stats_after_query_ > 0) {
-	    if (! Quiet)
-		PrintAndFreeBufferStatistics(GetBufferStatistics());
-	    if (_reset_stats_after_query_ > 0)
-		ResetBufferStatistics();
-	}
-	
-	/* ----------------
-	 *  display the heap access statistics
-	 * ----------------
-	 */
-	if (_show_stats_after_query_ > 0) {
-	    if (! Quiet)
-		PrintAndFreeHeapAccessStatistics(GetHeapAccessStatistics());
-	    if (_reset_stats_after_query_ > 0)
-		ResetHeapAccessStatistics();
-	}
-#endif TCOP_SHOWSTATS
     }
 }
 

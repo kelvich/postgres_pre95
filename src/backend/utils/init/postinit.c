@@ -519,9 +519,9 @@ InitPostgres(name)
      *   InitCommunication or the shared memory will be removed before
      *   BufferManagerFlush will be called, because on_exitpg() handlers are
      *   called in the reverse of the order in which they are registered.
+    BufferManagerInit();
      * ----------------
      */
-    BufferManagerInit();
     
     if (!TransactionFlushEnabled())
         on_exitpg(BufferManagerFlush, (caddr_t) 0);
