@@ -1,6 +1,6 @@
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SP CREATEDB UNIX 6/14/90
+.SP CREATEUSER UNIX 6/14/90
 .XA 1 Createuser
 .uh NAME
 .lp
@@ -45,13 +45,11 @@ destroyuser(unix),
 .uh DIAGNOSTICS
 .lp
 You are not a valid \*(PP user
-.pp
+.lp
 You do not have a users file entry, and can
 not do anything with \*(PP at all.
 .sp
 .lp
 <user> already exists
-.pp
-The user already exists.
 .lp
-You don't have permission to add users.
+The user already exists.
