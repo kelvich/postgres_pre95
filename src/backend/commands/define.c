@@ -173,7 +173,9 @@ DefinePFunction(pname,relname,qstring)
   sprintf(query_buf, "define rewrite rule %s_rule is on retrieve to %s.%s do instead %s", pname, relname, pname, qstring);
 
   /*  printf("Rule defined is: %s\n", query_buf); */
-  eval_as_new_xact (query_buf); 
+  CommitTransaction();
+  StartTransaction();
+  pg_eval (query_buf); 
 }
 
 
