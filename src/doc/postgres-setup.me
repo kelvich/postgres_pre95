@@ -76,7 +76,6 @@ Release \*(PV
 	Configuration
 	    Kernel Reconfiguration for Sparcs
 	    Kernel Reconfiguration for DEC's
-	Running the Pre-installed \*(PG System
 	Compiling and Installing \*(PG
 	Creating the Initial Database
 	Testing
@@ -162,17 +161,14 @@ included in Ultrix 4.3a.)
 .lp
 These instructions assume you have a \*(PG Version \*(PV distribution
 tape (in either 1600bpi 9-track, SCSI cartridge, or DEC TK50 cartridge
-format) or a \*(PG tar file.  This release comes with a pre-installed
-version of \*(PG ready to run for the platforms we officially support.
-This is a test to see if our users can run the pre-installed system to
-avoid compiling the sources from scratch.  Should any problems arise
-with the pre-installed system, it is recommended that the sources be
-rebuilt from scratch to rule out any compatibility problems between
-the system we compiled on here and your own.  There are two potential
-releases you may want (same source, different binaries).  The tar
-version of the Ultrix release is \f(CWpostgres-v4r1.ultrix.tar.Z\fP
-and the SPARC release is \f(CWpostgres-v4r1.sparc.tar.Z\fP available
-via anonymous ftp from \f(CWpostgres.berkeley.edu\fP.
+format) or a \*(PG tar file.  
+The previous version of \*(PG came with pre-compiled binaries for
+the SPARC and Ultrix platforms, however this release is a source
+distribution only.  The source code is available in tar format over
+the internet via anonymous ftp from the site s2k-ftp.CS.Berkeley.EDU.
+Look in the directory pub/postgres/postgres-v4r2.  The compressed tar
+file containing the complete source distribution 
+is named \f(CWpostgres-v4r2.tar.Z\fP.
 .sh 2 "Expertise"
 .lp
 Once a site is properly configured and \*(PG is installed,
@@ -204,16 +200,14 @@ procedure before compiling \*(PG.
 .lp
 To compile this release from sources requires a new version of
 make which comes from the latest BSD release.  A bootstrapping
-version of the make sources is included with this release, as is
-a precompiled binary with its configuration files.  The make program
+version of the make sources is included with this release.
+The make program
 is installed using the name \f(CWbmake\fP to avoid any conflict with
 your native make.
 .sh 3 "Disk Requirements"
 .lp
 \*(PG requires 50 megabytes of disk space,
 preferably on a single partition, to compile and install from sources.
-If you run the pre-installed system, you only need 25 megabytes to
-hold the executables and sources.
 .sh 3 "Kernel"
 .lp
 \*(PG makes use of the System V inter-process communication (shared
@@ -226,19 +220,12 @@ section on kernel configuration for details.
 .\" ----------------
 .sh 1 "Installing \*(PG"
 .lp
-There are potentially two routes you can go to install this system.
-Either you can choose to run the pre-installed system
-shipped with the release, or you can compile and install the sources
-from scratch.  In either case your kernel must be configured to
+To install the system you must load the sources into your filesystem
+and build the system from scratch.  To run the compiled programs
+your kernel may need to be configured to
 support the shared memory and semaphore operations required by
-the code.  Assuming you have run \*(PG in the past, you may already
-be properly configured to run.  Also, should you opt to run the
-pre-installed system, let us reiterate that if you run into any
-complications, it would be wise to recompile the sources from
-scratch before reporting any problems to our mailing list.  We
-are, however, interested in any feedback you may have on the
-pre-installed system.  In both cases you need to decide where to
-load the system.
+the code.  Assuming you have run \*(PG in the past, your machine may already
+be properly configured to run.  
 .\" ----------------
 .\"    Preparation
 .\" ----------------
@@ -252,26 +239,8 @@ we advise you to have your
 system administrator perform these steps.
 .sh 3 "Find a good place for \*(PG"
 .lp
-You should locate a disk partition with
+First you should locate a disk partition with
 at least 50 megabytes of free space available for \*(PG.
-If you plan to run the pre-installed system, it would be best
-if you loaded the release into the directory \f(CW/usr/local/postgres\fP,
-as that is what the release was configured for.  It is not mandatory,
-though, as the only relevent dependency is that the programs are
-setup to look for the database directory in \f(CW/usr/local/postgres/data\fP,
-but that can be changed by setting the environment variable PGDATA
-somwhere else before starting the postmaster.  Also note that you
-can install the system anywhere, and then make a symbolic link
-from \f(CW/usr/local/postgres\fP to the place you really loaded the system.
-If you are compiling the system from scratch, it doesn't matter
-where you load the system at all (as long as there is space).
-.sh 3 "Creating the \*(PG directory"
-.lp
-Once you have decided,
-create the directory to hold the release if it doesn't already exist.
-Then \fBcd\fR to this directory and type \fBpwd\fR.
-This is the full
-path of the directory you will install \*(PG in.
 For example:
 .sp
 .(l
@@ -292,6 +261,16 @@ Filesystem	kbytes	used	avail	capacity  Mounted on
 	so we decide to create the \*(PG directory there...
 
 .r
+.)l
+.sh 3 "Creating the \*(PG directory"
+.lp
+Once you have decided,
+create the directory to hold the release if it doesn't already exist.
+Then \fBcd\fR to this directory and type \fBpwd\fR.
+This is the full
+path of the directory you will install \*(PG in.
+For example:
+.(l
 # \fBcd /usr/local\fR
 # \fBmkdir postgres\fR
 # \fBcd postgres\fR
@@ -301,7 +280,7 @@ Filesystem	kbytes	used	avail	capacity  Mounted on
 .)l
 .sh 2 "Creating the \*(PG user"
 .lp
-Finally, we need to create a user called \*(PG whose
+Finally, we need to create a user called \*(lqpostgres\*(rq whose
 shell is \f(CW/bin/csh\fP.  Though not necessary, it is convenient to
 make the home directory of the \*(PG user
 the pathname where we install the system. 
@@ -327,9 +306,7 @@ Now you are ready to load
 the \*(PG files onto your system.
 To do this,
 you will need either
-a distribution tape or a \*(PG tar file (available via anonymous FTP
-from \f(CWpostgres.berkeley.edu\fP).
-.lp
+a distribution tape or a \*(PG tar file.
 If you are loading \*(PG from a tape, follow these instructions;
 if you are loading from a tar file obtained via FTP, skip to the
 section \*(lqLoading \*(PG from a Tar File.\*(rq
@@ -338,7 +315,7 @@ section \*(lqLoading \*(PG from a Tar File.\*(rq
 Login as \*(lqpostgres\*(rq and change directories to the postgres directory
 that was created.
 .lp
-3.  Run \f(CWtar\fP with the following options
+Run \f(CWtar\fP with the following options
 .(l
 % \fBtar xvf\fP \fI<tape-device>\fP
 .)l
@@ -346,8 +323,8 @@ that was created.
 where \fI<tape-device>\fP is the name for your tape device, i.e.,
 \f(CW/dev/rmt0\fP, \f(CW/dev/rst8\fP, etc.
 .lp
-The file \f(CWpostgres-v4r1.XXX.tar.Z\fP will appear in your \*(PG
-home directory, where XXX is the name of the platform.  You may need
+The file \f(CWpostgres-v4r2.tar.Z\fP will appear in your \*(PG
+home directory. You may need
 to re-wind your tape to get it out of your tape drive - see your
 system administrator for instructions.
 .lp
@@ -356,21 +333,19 @@ Proceed to the next section \*(lqLoading \*(PG from a Tar File.\*(rq
 .sh 2 "Loading \*(PG from a Tar File"
 .lp
 If you are not logged in as \f(CWpostgres\fP already, do so now.
-For the purpose of this discussion, the \*(PG tar file will be called
-\f(CWpostgres-v4r1.XXX.tar.Z\fP.
 .lp
 Uncompress the tar file.
 .(l
-% \fBuncompress postgres-v4r1.XXX.tar.Z\fP
+% \fBuncompress postgres-v4r2.tar.Z\fP
 .)l
 .lp
 A larger file should now be in the \*(PG home directory, and the
 \*(lq.Z\*(rq ending should be gone, so it is now named
-\f(CWpostgres-v4r1.XXX.tar\fP.
+\f(CWpostgres-v4r2.tar\fP.
 .lp
 Extract \*(PG from the tar file using the following command:
 .(l
-% \fBtar xvf postgres-v4r1.XXX.tar\fP
+% \fBtar xvf postgres-v4r2.tar\fP
 .)l
 .lp
 Lots of file names and such should appear on the screen.
@@ -393,13 +368,13 @@ Makefile       data           lib            obj
 At this point you have loaded the \*(PG files.  Remove the tar
 file to get back the space.
 .(l
-% \fBrm postgres-v4r1.XXX.tar\fP
+% \fBrm postgres-v4r2.tar\fP
 .)l
 .sp
 .\" ----------------
 .\"    Configuration
 .\" ----------------
-.sh 2 "Step 3 - Configuration"
+.sh 2 "Step 3 - Kernel Configuration"
 .lp
 This step requires familiarity with configuring a UNIX kernel.
 If you are unfamiliar with this procedure,
@@ -540,88 +515,11 @@ file, install the new kernel (saving a copy of the old kernel first!)
 and reboot.
 .sp
 .\" ----------------
-.\"    Running the pre-installed system
-.\" ----------------
-.sh 2 "Running the pre-installed \*(PG system"
-.lp
-Assuming you have loaded the system into \f(CW/usr/local/postgres\fP,
-there is very little else to do.  Add \f(CW/usr/local/postgres/bin\fP
-to your shell path.  If you run \f(CWcsh\fP, you would put
-.(l
-.ft CW
-set path=(/usr/local/postgres/bin $path)
-.ft
-.)l
-in the \f(CW.login\fP for the \*(lqpostgres\*(rq user.  If you run
-\f(CWsh\fP or \f(CWksh\fP, put 
-.(l
-.ft CW
-PATH=/usr/local/postgres/bin:$PATH
-export PATH
-.ft
-.)l
-in your \f(CW.profile\fP.  Then log back in so the change takes
-effect.  Now run the following command
-.(l
-% \fBnewbki\fP
-.)l
-This will reset the userid of the special \*(PG user of the database to
-have the proper value.  Even though the \f(CWnewbki\fP command allows
-you to enter a login name, you should select the default value of
-\f(CWpostgres\fP.
-.lp
-After doing this, you may wish to install the precompiled version of
-\f(CWbmake\fP into \f(CW/usr/local/bin\fP.  This will allow you to
-recompile \*(PG right away without bootstrapping \f(CWbmake\fP.  To do
-this, \f(CWcd\fP into the directory called \f(CWlocal\fP.  You will see two
-directories and a README.  Become the superuser and do the following:
-.(l
-# \fBcp bin/bmake /usr/local/bin\fP
-# \fBmkdir /usr/local/lib /usr/local/lib/mk\fP
-
-\fI(you may get an error if this directory already exists - ignore it)\fP
-
-# \fBcp lib/mk/* /usr/local/lib/mk\fP
-.)l
-.lp
-If you installed \*(PG somewhere other than
-\f(CW/usr/local/postgres\fP, everything can still work right if you
-set the environment variable PGDATA for the special \*(PG user.  Lets
-assume you installed \*(PG in the directory
-\f(CW/private/packages/postgres\fP.  If you run \f(CWcsh\fP, put the
-following in the \f(CW.login\fP for the \*(PG user
-.(l
-.ft CW
-setenv PGDATA /private/packages/postgres/data
-.ft
-.)l
-If you run \f(CWsh\fP or \f(CWksh\fP, put the following in
-\f(CW.profile\fP:
-.(l
-.ft CW
-PGDATA=/private/packages/postgres/data
-export PGDATA
-.ft
-.)l
-This will instruct the postmaster and backends to look in that
-directory for the databases.
-.lp
-You can now skip to the section called \*(lqCreating the initial
-database.\*(rq
-.sp
-.\" ----------------
 .\"    Compiling and installing postgres
 .\" ----------------
 .sh 2 "Compiling and Installing \*(PG"
 .lp
-The sources for \*(PG are all under the directory \f(CWsrc/\fP.  The
-first step is to install the new \f(CWbmake\fP program.  By the way,
-you can look at the previous section entitled \*(lqRunning the
-pre-installed system\*(rq in the paragraph about \f(CWbmake\fP, and
-just copy the pre-compiled \f(CWbmake\fP to
-\f(CW/usr/local/{bin,lib}\fP if you want and skip step (2) in this
-section.  What follows is a step by step list to compile and install
-this release from sources:
+The sources for \*(PG are all under the directory \f(CWsrc/\fP.  
 .sh 3 "Build Step 1: Customization"
 .lp
 \f(CWCd\fP into the \f(CWsrc/\fP directory and edit the file
@@ -645,7 +543,7 @@ are all valid choices.
 The top-level directory where \*(PG binaries, documentation, header
 files, libraries, and databases are installed is controlled by the
 variable POSTGRESDIR.  This variable defaults to
-\f(CW/private/devel/postgres\fP.  Whether you change this variable or
+\f(CW/usr/local/postgres\fP.  Whether you change this variable or
 not, make sure that the directory to which POSTGRESDIR refers exists
 before proceeding.
 .lp
@@ -685,7 +583,14 @@ MANOWN=         janeuser
 to prevent the \f(CWinstall\fP program from complaining.
 .sh 3 "Build Step 2: Bootstrapping \*(lqbmake\*(rq"
 .lp
-Before proceeding, make sure that the \f(CWmake\fP program in your
+Because the \f(CWbmake\fP program is normally installed into
+\f(CW/usr/local/{bin,lib}\fP and that directory is usually only
+writable by root, it will be necessary to temporarily
+become root to install \f(CWbmake\fP. If you don't have root
+privilege you can change where \f(CWbmake\fP is installed by changing
+the value of the TOOLSBINDIR and TOOLSLIBDIR options 
+in \f(CWsrc/Makefile.global\fP, otherwise you will need to su(1) to root.
+Next make sure that the \f(CWmake\fP program in your
 PATH environment variable is the system-provided \f(CWmake\fP (usually
 \f(CW/bin/make\fP) and \fBNOT\fP GNU \f(CWmake\fP.  GNU \f(CWmake\fP
 is \fBguaranteed not to work\fP.
@@ -694,12 +599,35 @@ is \fBguaranteed not to work\fP.
 .(l
 % \fB./Bootstrap\fP \fIportname\fP
 .)l
-where \fIportname\fP is the value of PORTNAME.  This should compile
+where \fIportname\fP is the value of PORTNAME (ultrix, sparc, etc).
+This should compile
 and install the \f(CWbmake\fP program and its supporting files,
 including the \*(PG-related Makefile templates.  If all went well you
 will now be able to use the new make program by typing \f(CWbmake\fP,
 assuming you have \f(CW/usr/local/bin\fP in your shell path.  You may
 have to type \f(CWrehash\fP if you run \f(CWcsh\fP.
+.sh 3 "On Ultrix only, building and installing libdl"
+.lp
+This version of \*(PG uses the dlopen() interface to implement dynamic
+function loading.  Since there is no such vendor supplied interface
+on the Ultrix platform you must build and install a version that we
+provide you with.  
+.lp
+The same previous discussion about being root also holds true here.
+However, if you cannot become root to install this library, then you
+will have to change the backend Makefile to look for this library
+where you have decided to put it using the -L loader flag.
+.lp
+To compile and install the library
+simply \f(CWCd\fP into \f(CWsrc/tools/libdl\fP and type
+.(l
+% \fBbmake all install\fP
+.)l
+This will build and install the \f(CWlibdl.a\fP library into
+TOOLSLIBDIR (/usr/local/lib by default).  If your linker/loader
+doesn't search here by default (it usually does), you may have to 
+move it to /usr/lib.  If you do move it, be sure to run ranlib(1)
+on it.
 .sh 3 "Build Step 3: Compile and Install"
 .lp
 \f(CWCd\fP back to the \f(CWsrc/\fP directory (i.e., \f(CWcd ../..\fP)
@@ -710,7 +638,7 @@ and type:
 This builds and installs the entire system.  The \f(CWMakefile\fPs
 contain directives for running all the underlying \f(CWMakefile\fPs
 in all the directories, so the whole thing should unfold and
-compile beautifully and install to the target directory.  Should
+compile beautifully and install into the target directory.  Should
 this not be the case, it would be a good idea to save the results
 of the compile in a file.  If you run \f(CWcsh\fP, you could type
 .(l
@@ -730,7 +658,7 @@ some doughnuts and coffee.
 After you have compiled \*(PG, you will need to create the
 initial database.  If you haven't already put the path to the \*(PG
 executable programs in the shell path, do the following (assuming
-\*(PG was loaded into \f(CW/usr/local/postgres\fP).
+the \*(PG programs were loaded into \f(CW/usr/local/postgres/bin\fP).
 If you run \f(CWcsh\fP, you would put
 .(l
 .ft CW
@@ -762,21 +690,25 @@ The section after \*(lqTesting\*(rq discusses this.
 .sh 2 "Step 4 - Testing"
 .lp
 We suggest you run the regression tests to make sure the release
-was installed successfully.  You must have installed the \f(CWbmake\fP
-program to run the test.  Also, you need to have the postmaster
+was installed successfully.  
+Also, you need to have the postmaster
 running to run the test, so type the following:
 .(l
 % \fBpostmaster &\fP
 .)l
 .lp
+if you haven't already.
 Next, create a new user using the \f(CWcreateuser\fP command
 (see the reference manual).  \fBDo not\fP run the regression test
-script as user \*(lqpostgres\*(rq!
+script as user \*(lqpostgres\*(rq!  If you do, certain tests will fail.
 .lp
-Change directories to \f(CWsrc/regress/regress\fP.  Type the following
-commands:
+Change directories to \f(CWsrc/regress/regress\fP.
 .(l
 % \fBcd src/regress/regress\fP
+.)l
+Type the following
+command to run the test:
+.(l
 % \fBbmake runtest\fP
 .)l
 .lp
@@ -786,12 +718,15 @@ file \f(CWobj/regress.out\fP.  You can compare this to a sample run that
 we supply in the file \f(CWsample.regress.out\fP with the following
 command:
 .(l
-% \fBdiff sample.regress.out obj/regress.out\fP
+% \fBsh checkdiff\fP
 .)l
-Unfortunately you will see many differences corresponding to
+It may take a little while to run as the regression results are
+quite large.
+There will be many differences corresponding to
 the timestamp lines and occasional lines where object id numbers (OIDs)
-are different.  We regret that we do not have a more sophisticated
-script for weeding out these innocuous differences at this time.  If
+are different.  The \f(CWcheckdiff\fP program attempts to
+weed out these innocuous differences.
+If
 you see any differences not corresponding to timestamps or OIDs,
 there may be a problem.  Have your local \*(PG expert take a look
 at it.
@@ -807,7 +742,7 @@ In practice,
 .ip \0\0\0\(bu
 the postmaster,
 .ip \0\0\0\(bu
-the terminal monitor,
+a front-end program (often the terminal monitor),
 and
 .ip \0\0\0\(bu
 the backend server.
@@ -819,9 +754,9 @@ sends commands to the postmaster which forwards commands to a backend.
 .sh 2 "The \*(PG Postmaster"
 .lp
 The postmaster is a process which manages communication between the
-user's terminal monitor and a \*(PG backend.
+a front-end program such as the terminal monitor and a \*(PG backend.
 Without a running postmaster,
-the terminal monitor will not be able to connect to a backend.
+the front-end program will not be able to connect to a backend.
 In general, the postmaster must be running for you (or others) to
 run any of the normal \*(PG commands.  Always start the postmaster when
 logged in as the special \*(lqpostgres\*(rq user, otherwise the system will
@@ -973,19 +908,19 @@ prmdir		\- inversion filesystem rmdir command
 .sh 2 "Installing LIBPQ, the \*(PG frontend library"
 .lp
 The file \f(CW.../lib/libpq.a\fP is created when you
-install the system (or on the pre-installed system).
+install the system.
 This library contains various 
 routines intended for use by frontend programs.
 You use this library if you want to execute \*(PG queries
 from a C program.  If you plan on doing software development,
-you may wish to copy this file to
+you may wish to copy this file to \f(CW/usr/local/lib\fP or
 \f(CW/usr/lib\fP so that the C compiler can reference it with
 \f(CW-lpq\fP.  If you do not, you will have to use the \f(CW-L\fP
 directive to the \f(CWcc\fP and \f(CWld\fP commands so that they can
 find \f(CWlibpq.a\fP.
 .sh 2 "Postgres header files"
 .lp
-The directory \f(CW.../include\fP contains copies of all the header
+The directory \f(CW.../include\fP contains copies of most of the header
 files that front-end applications might need.  You can compile
 a frontend program with the \f(CW-I\fP directive to \f(CWcc\fP
 as illustrated in the following example:
@@ -993,11 +928,11 @@ as illustrated in the following example:
 % \fBcc -I/usr/local/postgres/include -o\fP \fIfoo foo.c\fP \fB-lpq\fP
 .)l
 .lp
-This feature of copying just the necessary header files into
-\f(CW.../include\fP 
-was incorporated right before we produced the release and
-has not had sufficient testing.  If your frontend programs
-complain about not being able to find header files, either
+Occassionally a front-end program source might reference header files
+from the postgres source that were not copied into the include
+directory.
+If your front-end program
+complains about not being able to find header files, either
 add the missing header files to the \f(CWinclude/\fP directory and
 notify us of the problem, or just point the \f(CW-I\fP compiler
 directive directly into the source as was done in the past.  E.g.,
@@ -1009,21 +944,22 @@ your source to set the PORTNAME \(em add them prior to any
 \f(CW#include\fPs: 
 .(l
 .ft CW
-#define PORTNAME ultrix4
+#define PORTNAME_\fIPORTNAME\fP
+.ft
+.)l
+For example, if you are running on the ultrix4 port, you would put
+.(l
+.ft CW
 #define PORTNAME_ultrix4
 .ft
 .)l
-for Ultrix, or
+in your program, or if you're running the sparc port put
 .(l
 .ft CW
-#define PORTNAME sparc
 #define PORTNAME_sparc
 .ft
 .)l
-for SPARCs.
-We're sorry for any inconvenience this may cause, and fully intend
-that the \f(CWinclude/\fP directory be more rigorously tested in the
-next release. 
+in your program source.
 .sh 2 "Wisconsin Benchmark Database"
 .lp
 In \f(CW.../postgres/src/regress/bench\fP are files which are the 
@@ -1038,11 +974,14 @@ of data.  To run the benchmark, \f(CWcd\fP to that directory and type
 .sh 2 "Minimal Installation"
 .lp
 It is the intention that everything below the \f(CWsrc/\fP directory can 
-be removed, however we didn't have time to test this.  Specifically,
+be removed.
+Sometimes however, as stated earlier,
 the \f(CWinclude/\fP directory may not have all the necessary files to
 compile all the frontend programs, so you may might get burned if you
-remove the source.  But if you'd like to try it out, we'd love to know if it
-works for you.
+remove the source.  Should you really wish to remove the source to
+reclaim space you could always copy all the header files from the
+backend into the include directory (preserving the directory structure
+of course).
 .\" ----------------
 .\"    Documentation
 .\" ----------------
@@ -1061,7 +1000,9 @@ and type:
 % \fBbmake install\fP
 .)l
 in each, it will format and install the documents into the corresponding
-destination directories.
+destination directories.  In general, recreating documents from their source
+is very difficult due to differences in macro packages and formatting
+programs (in short, good luck!).
 .\" ----------------
 .\"    Miscellaneous
 .\" ----------------
@@ -1097,7 +1038,7 @@ it is impossible for us to make any
 commitment to provide support in a research environment. 
 .lp
 If you do want to talk directly to the \*(PG
-group, electronic mail is strongly preferred.
+group, electronic mail is the only method.
 We can be reached via the Internet as
 .(l
 .ft CW
@@ -1110,8 +1051,11 @@ or
 uunet!ucbvax!postgres!post_questions
 .ft
 .)l
-We can also be reached at (510) 643-6448, Monday through Friday,
-between 1 and 4 PM Pacific Time.
+Please be aware that this was the last release of \*(PG
+from the University of California, and for all practical
+purposes there is no longer a \*(PG group.  However some
+of us may still be reading mail for a while and it is likely
+that some correspondence will occur.
 .lp
 .sh 2 "Postgres Mailing List"
 .lp
