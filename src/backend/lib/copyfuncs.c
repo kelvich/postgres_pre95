@@ -500,6 +500,9 @@ CopyScanFields(from, newnode, alloc)
 
 /* ----------------
  *	CopyRelDescUsing is a function used by CopyScanTempFields.
+ *
+ *	Note: when this function changes, make sure to change the function
+ *	sizeofTmpRelDesc() in tcop/pfrag.c accordingly.
  * ----------------
  */
 Relation
