@@ -587,13 +587,13 @@ make_const( value )
 	    
 	  case PGLISP_FLOAT:
 	    {
-		/* float *dummy_float; */
-		tp = type("float4");
-		/* 
-		dummy_float = (float *)palloc(sizeof(float));
-		*dummy_float = (float)(value->val.flonum);
-		*/
-		val = Float32GetDatum(&value->val.flonum);
+		float64 dummy;
+		tp = type("float8");
+		 
+		dummy = (float64)palloc(sizeof(float64data));
+		*dummy = value->val.flonum;
+		
+		val = Float64GetDatum(dummy);
 	    }
 	    break;
 	    
