@@ -64,6 +64,7 @@
 #include "storage/ipci.h"
 #include "storage/pladt.h"
 #include "storage/sinval.h"
+#include "storage/plparam.h"
 
 #include "utils/mcxt.h"
 #include "utils/log.h"
@@ -79,6 +80,7 @@
 
 IpcMemoryId 	ExecutorMemoryId = -1;
 IpcSemaphoreId 	ExecutorSemaphoreId = -1;
+IpcSemaphoreId 	ExecutorSemaphoreId1 = -1;
 uint16 		ExecNumSem = 0;
 
 char	*ExecutorSharedMemory = NULL;
@@ -192,11 +194,21 @@ ExecImmediateReleaseSemaphore()
 {
     int i;
     int cnt;
+    int semno;
+    IpcSemaphoreId semid;
 
     for (i=0; i<ExecutorSemaphoreArraySize; i++) {
+	if (i < NMAXSEM) {
+	    semno = i;
+	    semid = ExecutorSemaphoreId;
+	  }
+	else {
+	    semno = i - NMAXSEM;
+	    semid = ExecutorSemaphoreId1;
+	  }
 	cnt = ExecutorSemaphoreLockCount[i];
 	if (cnt > 0)
-	    IpcSemaphoreSilentUnlock(ExecutorSemaphoreId, i, -cnt);
+	    IpcSemaphoreSilentUnlock(semid, semno, -cnt);
     }
 }
 
@@ -212,7 +224,18 @@ Exec_I(semno, value)
     int semno;
     int value;
 {
-    IpcSemaphoreSet(ExecutorSemaphoreId, semno, value);
+    int i;
+    IpcSemaphoreId semid;
+
+    if (semno < NMAXSEM) {
+	i = semno;
+	semid = ExecutorSemaphoreId;
+      }
+    else {
+       i = semno - NMAXSEM;
+       semid = ExecutorSemaphoreId1;
+      }
+    IpcSemaphoreSet(semid, i, value);
     ExecutorSemaphoreLockCount[semno] = 1-value;
 }
 
@@ -227,7 +250,18 @@ Exec_P(semno, nlocks)
     int semno;
     int nlocks;
 {
-    IpcSemaphoreLock(ExecutorSemaphoreId, semno, -nlocks);
+    int i;
+    IpcSemaphoreId semid;
+
+    if (semno < NMAXSEM) {
+	i = semno;
+	semid = ExecutorSemaphoreId;
+      }
+    else {
+       i = semno - NMAXSEM;
+       semid = ExecutorSemaphoreId1;
+      }
+    IpcSemaphoreLock(semid, i, -nlocks);
     ExecutorSemaphoreLockCount[semno] += nlocks;
 }
 
@@ -242,7 +276,18 @@ Exec_V(semno, nlocks)
     int semno;
     int nlocks;
 {
-    IpcSemaphoreUnlock(ExecutorSemaphoreId, semno, -nlocks);
+    int i;
+    IpcSemaphoreId semid;
+
+    if (semno < NMAXSEM) {
+	i = semno;
+	semid = ExecutorSemaphoreId;
+      }
+    else {
+       i = semno - NMAXSEM;
+       semid = ExecutorSemaphoreId1;
+      }
+    IpcSemaphoreUnlock(semid, i, -nlocks);
     ExecutorSemaphoreLockCount[semno] -= nlocks;
 }
 
@@ -424,12 +469,29 @@ ExecInitExecutorSemaphore(key)
      *  the master backend should register the on_exit procedure.
      * ----------------
      */
+    if (ExecutorSemaphoreArraySize <= NMAXSEM) {
     ExecutorSemaphoreId =
 	IpcSemaphoreCreateWithoutOnExit(key,
 					ExecutorSemaphoreArraySize,
 					IPCProtection,
 					0,
 					&status);
+	}
+    else {
+    ExecutorSemaphoreId =
+	IpcSemaphoreCreateWithoutOnExit(key,
+					NMAXSEM,
+					IPCProtection,
+					0,
+					&status);
+    ExecutorSemaphoreId1 =
+	IpcSemaphoreCreateWithoutOnExit(key,
+					ExecutorSemaphoreArraySize - NMAXSEM,
+					IPCProtection,
+					0,
+					&status);
+	}
+       
     
     /* ----------------
      *	create the semaphore lock count array.  This array keeps
@@ -475,6 +537,8 @@ ExecSemaphoreOnExit(procedure)
     void (*procedure)();
 {
     on_exitpg(procedure, ExecutorSemaphoreId);
+    if (ExecutorSemaphoreArraySize > NMAXSEM)
+        on_exitpg(procedure, ExecutorSemaphoreId1);
 }
 
 /* ----------------------------------------------------------------
