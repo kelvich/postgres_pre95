@@ -916,7 +916,7 @@ UpdateIndexPredicate(indexoid, oldPred, predicate)
 	newPred = lispCons(make_andclause(oldPred), LispNil);
 	newPred = lispCons(make_andclause(predicate), newPred);
 	newPred = make_orclause(newPred);
-	newPred = cnfify(newPred, false);
+	newPred = cnfify(newPred, true);
     }
 
     /* translate the index-predicate to string form */
