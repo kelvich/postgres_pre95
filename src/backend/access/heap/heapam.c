@@ -3,21 +3,21 @@
  *	POSTGRES heap access method code.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "att.h"
-#include "attnum.h"
-#include "htup.h"
-#include "log.h"
-#include "rel.h"
-#include "relcache.h"
-#include "relscan.h"
-#include "skey.h"
-#include "tqual.h"
+#include "access/att.h"
+#include "access/attnum.h"
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "access/relscan.h"
+#include "access/skey.h"
+#include "access/tqual.h"
 
-#include "heapam.h"
+#include "utils/rel.h"
+#include "utils/relcache.h"
+#include "utils/log.h"
 
 /*
  * XXX Note that longer function names are preferred when called
