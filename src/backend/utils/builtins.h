@@ -400,6 +400,9 @@ float64 btreenpage ARGS((ObjectId operatorObjectId , ObjectId indrelid , Attribu
 float64 rtsel ARGS((ObjectId operatorObjectId , ObjectId indrelid , AttributeNumber attributeNumber , char *constValue , int32 constFlag , int32 nIndexKeys , ObjectId indexrelid ));
 float64 rtnpage ARGS((ObjectId operatorObjectId , ObjectId indrelid , AttributeNumber attributeNumber , char *constValue , int32 constFlag , int32 nIndexKeys , ObjectId indexrelid ));
 
+/* sets.c */
+ObjectId SetDefine ARGS((char *querystr, Name typename));
+
 /* smgr.c */
 int2 smgrin ARGS((char *s ));
 char *smgrout ARGS((int2 i ));
