@@ -17,6 +17,25 @@
 # 	$Header$
 # ----------------------------------------------------------------
 
+# -----------------
+# check for options i.e. -D defines for cpp
+# -----------------
+BKIOPTS=''
+set - `getopt D: $*`
+if [ $? != 0 ]
+then
+    echo `basename $0`: Bad option
+    exit 1
+fi
+
+for opt in $*
+do
+    case $opt in
+    -D) BKIOPTS="$BKIOPTS -D$2"; shift; shift;;
+    --) shift; break;;
+    esac
+done
+
 # ----------------
 # 	collect nodefiles
 # ----------------
@@ -175,7 +194,7 @@ END {
 	}
 }
 ' | \
-/lib/cpp | \
+/lib/cpp $BKIOPTS | \
 sed -e '/^[ 	]*$/d' \
     -e 's/[ 	][ 	]*/ /g'
 
