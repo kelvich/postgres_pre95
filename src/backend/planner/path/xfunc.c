@@ -59,17 +59,12 @@ void xfunc_trypullup(rel)
     CInfo maxcinfo;         /* The CInfo to pull up, as calculated by
 			       xfunc_shouldpull() */
     JoinPath curpath;       /* current path in list */
-    Rel outerrel, innerrel;
     LispValue form_relid();
     int clausetype;
 
     foreach(y, get_pathlist(rel))
      {
 	 curpath = (JoinPath)CAR(y);
-	 
-	 /* find Rels for inner and outer operands of curpath */
-	 innerrel = get_parent((Path) get_innerjoinpath(curpath));
-	 outerrel = get_parent((Path) get_outerjoinpath(curpath));
 	 
 	 /*
 	 ** for each operand, attempt to pullup predicates until first 
@@ -78,18 +73,20 @@ void xfunc_trypullup(rel)
 	 for(ever)
 	  {
 	      /* No, the following should NOT be '=='  !! */
-	      if (clausetype = xfunc_shouldpull(get_innerjoinpath(curpath),
+	      if (clausetype = 
+		  xfunc_shouldpull((Path)get_innerjoinpath(curpath),
 				   curpath, INNER, &maxcinfo))
-		xfunc_pullup(get_innerjoinpath(curpath),
+		xfunc_pullup((Path)get_innerjoinpath(curpath),
 			     curpath, maxcinfo, INNER, clausetype);
 	      else break;
 	  }
 	 for(ever)
 	  {
 	      /* No, the following should NOT be '=='  !! */
-	      if (clausetype = xfunc_shouldpull(get_outerjoinpath(curpath), 
+	      if (clausetype = 
+		  xfunc_shouldpull((Path)get_outerjoinpath(curpath), 
 				   curpath, OUTER, &maxcinfo))
-		xfunc_pullup(get_outerjoinpath(curpath),
+		xfunc_pullup((Path)get_outerjoinpath(curpath),
 			     curpath, maxcinfo, OUTER, clausetype);
 	      else break;
 	  }
@@ -121,7 +118,6 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
     double joinselec = 0;	/* selectivity of the join predicate */
     double joincost = 0;	/* join cost + primjoinclause cost */
     int retval = XFUNC_LOCPRD;
-    int okness;
 
     clauselist = get_locclauseinfo(childpath);
 
@@ -148,7 +144,7 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
     ** local predicate 
     */
     if (length((get_parent(childpath))->relids) > 1
-	&& xfunc_num_join_clauses(childpath) > 1)
+	&& xfunc_num_join_clauses((JoinPath)childpath) > 1)
       for (tmplist = get_pathclauseinfo((JoinPath)childpath);
 	   tmplist != LispNil;
 	   tmplist = CDR(tmplist))
@@ -214,14 +210,18 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
     /* remove clause from childpath */
     if (clausetype == XFUNC_LOCPRD)
      {
-	 set_locclauseinfo(((Path)newkid = (Path)CopyObject(childpath)), 
-			   xfunc_LispRemove(cinfo, get_locclauseinfo(newkid)));
+	 newkid = (Path)CopyObject(childpath);
+	 set_locclauseinfo(newkid, 
+			   xfunc_LispRemove((LispValue)cinfo, 
+					    (List)get_locclauseinfo(newkid)));
      }
     else
      {
+	 newkid = (Path)CopyObject(childpath);
 	 set_pathclauseinfo
-	   (((JoinPath)(newkid = (Path)CopyObject(childpath))),
-	    xfunc_LispRemove(cinfo, get_pathclauseinfo((JoinPath)newkid)));
+	   ((JoinPath)newkid,
+	    xfunc_LispRemove((LispValue)cinfo, 
+			     (List)get_pathclauseinfo((JoinPath)newkid)));
      }
 
     /*
@@ -231,7 +231,7 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
     pulled_selec = compute_clause_selec(get_clause(cinfo), LispNil);
     xfunc_copyrel(get_parent(newkid), &newrel);
     set_parent(newkid, newrel);
-    set_pathlist(newrel, lispCons(newkid, LispNil));
+    set_pathlist(newrel, lispCons((LispValue)newkid, LispNil));
     set_unorderedpath(newrel, (PathPtr)newkid);
     set_cheapestpath(newrel, (PathPtr)newkid);
     set_tuples(newrel, get_tuples(get_parent(childpath)) / pulled_selec);
@@ -254,7 +254,8 @@ void xfunc_pullup(childpath, parentpath, cinfo, whichchild, clausetype)
 
     /*  add clause to parentpath, and fix up its cost. */
     set_locclauseinfo(parentpath, 
-		      lispCons(cinfo, get_locclauseinfo(parentpath)));
+		      lispCons((LispValue)cinfo, 
+			       (LispValue)get_locclauseinfo(parentpath)));
     /* put new childpath into the path tree */
     if (whichchild == INNER)
      {
@@ -297,9 +298,6 @@ double xfunc_measure(clause)
 double xfunc_expense(clause)
     LispValue clause;
 {
-    HeapTuple tupl;    /* the pg_proc tuple for each function */
-    Form_pg_proc proc; /* a data structure to hold the pg_proc tuple */
-    int width = 0;     /* byte width of the field referenced by each clause */
     double cost = 0;   /* running expense */
     LispValue tmpclause;
 
@@ -314,10 +312,10 @@ double xfunc_expense(clause)
       return(xfunc_expense(get_refexpr((ArrayRef)clause)));
     else if (fast_is_clause(clause)) 
       return(xfunc_func_expense((LispValue)get_op(clause), 
-				get_opargs(clause)));
+				(LispValue)get_opargs(clause)));
     else if (fast_is_funcclause(clause))
       return(xfunc_func_expense((LispValue)get_function(clause),
-				get_funcargs(clause)));
+				(LispValue)get_funcargs(clause)));
     else if (fast_not_clause(clause))
       return(xfunc_expense(CDR(clause)));
     else if (fast_or_clause(clause))
@@ -370,6 +368,8 @@ LispValue args;
 
     /* look up tuple in cache */
     tupl = SearchSysCacheTuple(PROOID, funcid, NULL, NULL, NULL);
+    if (!HeapTupleIsValid(tupl))
+      elog(WARN, "Cache lookup failed for procedure %d", funcid);
     proc = (Form_pg_proc) GETSTRUCT(tupl);
 
     /* 
@@ -492,7 +492,7 @@ int xfunc_width(clause)
 					 get_varattno((Var)clause),
 					 NULL, NULL );
 	      if (!HeapTupleIsValid(tupl)) {
-		  elog(WARN, "getattnvals: no attribute tuple %d %d",
+		  elog(WARN, "xfunc_width: class %d has no attribute %d",
 		       reloid, get_varattno((Var)clause));
 		  return(-1);
 	      }
@@ -515,7 +515,8 @@ int xfunc_width(clause)
 	      /* Param node projects a complex type */
 	      Assert(length(get_param_tlist((Param)clause)) == 1); /* sanity */
 	      retval = 
-		xfunc_width(get_expr((TLE)CAR(get_param_tlist((Param)clause))));
+		xfunc_width((LispValue)
+			    get_expr((TLE)CAR(get_param_tlist((Param)clause))));
 	  }
 	 else
 	  {
@@ -543,10 +544,12 @@ int xfunc_width(clause)
 	 */
 	 tupl = SearchSysCacheTuple(OPROID, get_opno((Oper)get_op(clause)),
 				    NULL, NULL, NULL);
-	 Assert(tupl);
+	 if (!HeapTupleIsValid(tupl))
+	   elog(WARN, "Cache lookup failed for procedure %d", 
+		get_opno((Oper)get_op(clause)));
 	 return(xfunc_func_width
 		((regproc)(((Form_pg_operator)(GETSTRUCT(tupl)))->oprcode), 
-		 get_opargs(clause)));
+		 (LispValue)get_opargs(clause)));
      }
     else if (fast_is_funcclause(clause))
      {
@@ -557,13 +560,14 @@ int xfunc_width(clause)
 		 of the projected attribute */
 	      Assert(length(get_func_tlist(func)) == 1);   /* sanity */
 	      retval = 
-		xfunc_width(get_expr((TLE)CAR(get_func_tlist(func))));
+		xfunc_width((LispValue)
+			    get_expr((TLE)CAR(get_func_tlist(func))));
 	      goto exit;
 	  }
 	 else
 	  {
-	      return(xfunc_func_width(get_funcid(func)),
-				      get_funcargs(clause));
+	      return(xfunc_func_width((regproc)get_funcid(func),
+				      (LispValue)get_funcargs(clause)));
 	  }
      }
     else
@@ -732,7 +736,7 @@ Path pathnode;
 int xfunc_total_path_cost(pathnode)
 JoinPath pathnode;
 {
-    int cost = xfunc_get_path_cost(pathnode);
+    int cost = xfunc_get_path_cost((Path)pathnode);
 
     Assert(IsA(pathnode,JoinPath));
     if (IsA(pathnode,MergePath))
@@ -810,8 +814,6 @@ int whichrel;       /* INNER or OUTER of joinnode */
      {
 	 int outerpages = 
 	   get_pages(get_parent((Path)get_outerjoinpath(joinnode)));
-	 int innerpages = 
-	   get_pages(get_parent((Path)get_innerjoinpath(joinnode)));
 
 	 int nrun = ceil((double)outerpages/(double)NBuffers);
 	 if (whichrel == INNER)
@@ -846,14 +848,14 @@ void xfunc_fixvars(clause, rel, varno)
      int varno;         /* whether rel is INNER or OUTER of join */
 {
     LispValue tmpclause;  /* temporary variable */
-    TL member;            /* tlist member corresponding to var */
+    TLE tle;              /* tlist member corresponding to var */
 
     if (IsA(clause,Const) || IsA(clause,Param)) return;
     else if (IsA(clause,Var))
      {
 	 /* here's the meat */
-	 member = tlistentry_member((Var)clause, get_targetlist(rel));
-	 if (member == LispNil)
+	 tle = tlistentry_member((Var)clause, get_targetlist(rel));
+	 if (tle == LispNil)
 	  {
 	      /* 
 	       ** The attribute we need is not in the target list,
@@ -865,13 +867,13 @@ void xfunc_fixvars(clause, rel, varno)
 	       ** so I just figured I'd use the ones in the clause.
 	       */
 	      add_tl_element(rel, (Var)clause, clause_relids_vars(clause));
-	      member = tlistentry_member((Var)clause, get_targetlist(rel));
+	      tle = tlistentry_member((Var)clause, get_targetlist(rel));
 	  }
 	 ((Var)clause)->varno = varno;
-	 ((Var)clause)->varattno = get_resno(get_resdom(get_entry(member)));
+	 ((Var)clause)->varattno = get_resno(get_resdom(get_entry(tle)));
      }
     else if (IsA(clause,Iter))
-      xfunc_fixvars(get_iterexpr((Iter)clause));
+      xfunc_fixvars(get_iterexpr((Iter)clause), rel, varno);
     else if (fast_is_clause(clause))
      {
 	 xfunc_fixvars(CAR(CDR(clause)), rel, varno);
@@ -1005,6 +1007,8 @@ LispValue args;
     /* lookup function and find its return type */
     Assert(RegProcedureIsValid(funcid));
     tupl = SearchSysCacheTuple(PROOID, funcid, NULL, NULL, NULL);
+    if (!HeapTupleIsValid(tupl))
+      elog(WARN, "Cache lookup failed for procedure %d", funcid);
     proc = (Form_pg_proc) GETSTRUCT(tupl);
     
     /* if function returns a tuple, get the width of that */
@@ -1020,6 +1024,8 @@ LispValue args;
 	 tupl = SearchSysCacheTuple(TYPOID,
 				    proc->prorettype,
 				    NULL, NULL, NULL);
+	 if (!HeapTupleIsValid(tupl))
+	   elog(WARN, "Cache lookup failed for type %d", proc->prorettype);
 	 type = (Form_pg_type) GETSTRUCT(tupl);
 	 /* if the type length is known, return that */
 	 if (type->typlen != -1)
