@@ -52,12 +52,14 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 			elog(WARN, "%s: bad absolute time string \"%s\"",
 			     cmdname, absoluteTimeString);
 		}
-		absoluteTime = abstimein(absoluteTimeString);
-		
+		absoluteTime = (int32) abstimein(absoluteTimeString);
+
 #ifdef	PURGEDEBUG
 		elog(DEBUG, "RelationPurge: absolute time `%s' is %d.",
 		    absoluteTimeString, absoluteTime);
 #endif	/* defined(PURGEDEBUG) */
+	} else {
+		absoluteTime = abstimein("now");
 	}
 
 	if (PointerIsValid(relativeTimeString)) {
@@ -66,7 +68,7 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 			     cmdname, relativeTimeString);
 		}
 		relativeTime = reltimein(relativeTimeString);
-		
+
 #ifdef	PURGEDEBUG
 		elog(DEBUG, "RelationPurge: relative time `%s' is %d.",
 		    relativeTimeString, relativeTime);
@@ -87,7 +89,7 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 		elog(WARN, "%s: no such relation: %s", cmdname, relationName);
 		return(0);
 	}
-	
+
 	/*
 	 * Dig around in the tuple.
 	 */
@@ -123,7 +125,7 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 			(char *) relativeTime;
 		replace[RelationPreservedAttributeNumber-1] = 'r';
 	}
-	
+
 	/*
 	 * Change the RELATION relation tuple for the given relation.
 	 */
@@ -164,7 +166,7 @@ assertConsistentTimes(absoluteTime, relativeTime, currentTime, dateTag, tuple)
 			elog(DEBUG,
 			     "%s: expiration %d before current relative %d",
 			     cmdname, absoluteTime, currentPreserved);
-		} else if (TimeIsBefore(currentTime, absoluteTime)) {
+		} else if (AbsoluteTimeIsAfter(absoluteTime, currentTime)) {
 			elog(DEBUG,
 			     "%s: expiration %d after current time %d",
 			     cmdname, absoluteTime, currentTime);
