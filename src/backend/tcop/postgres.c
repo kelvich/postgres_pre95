@@ -443,6 +443,9 @@ pg_eval( query_string )
      * after rewrites ( if they take place )
      * or even if no rewrite takes place
      * so that time quals are usable by the executor
+     *
+     * Also, need to frob the range table entries here to plan union
+     * queries for archived relations.
      */
 
     foreach ( i , parsetree_list ) {
@@ -465,6 +468,9 @@ pg_eval( query_string )
 				 CInteger(CADDR(timequal)));
 	    }
 	}
+
+	/* check for archived relations */
+	plan_archive(rt);
     }
     
 
