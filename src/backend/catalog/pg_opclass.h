@@ -68,6 +68,7 @@ DATA(insert OID = 430 (    char16_ops ));
 DATA(insert OID = 431 (    text_ops ));
 DATA(insert OID = 432 (    abstime_ops ));
 DATA(insert OID = 433 (    bigbox_ops));
+DATA(insert OID = 434 (    poly_ops));
 
 /* ----------------
  *	old definition of struct opclass
