@@ -670,10 +670,12 @@ Path pathnode;
     ** first add in the expensive local function costs.
     ** We ensure that the clauses are sorted by measure, so that we
     ** know (via selectivities) the number of tuples that will be checked
-    ** by each function.
+    ** by each function.  If we're not doing any optimization of expensive
+    ** functions, we don't sort.
     */
-    set_locclauseinfo(pathnode, lisp_qsort(get_locclauseinfo(pathnode),
-					   xfunc_cinfo_compare));
+    if (XfuncMode != XFUNC_OFF)
+      set_locclauseinfo(pathnode, lisp_qsort(get_locclauseinfo(pathnode),
+					     xfunc_cinfo_compare));
     for(tmplist = get_locclauseinfo(pathnode), selec = 1.0;
 	tmplist != LispNil;
 	tmplist = CDR(tmplist))
@@ -690,9 +692,10 @@ Path pathnode;
     */
     if (IsA(pathnode,JoinPath))
      {
-	 set_pathclauseinfo((JoinPath)pathnode, 
-			    lisp_qsort(get_pathclauseinfo((JoinPath)pathnode),
-				       xfunc_cinfo_compare));
+	 if (XfuncMode != XFUNC_OFF)
+	   set_pathclauseinfo((JoinPath)pathnode, lisp_qsort
+			      (get_pathclauseinfo((JoinPath)pathnode),
+			       xfunc_cinfo_compare));
 	 for(tmplist = get_pathclauseinfo((JoinPath)pathnode), selec = 1.0;
 	     tmplist != LispNil;
 	     tmplist = CDR(tmplist))
@@ -705,10 +708,11 @@ Path pathnode;
      }
     if (IsA(pathnode,HashPath))
      {
-	 set_path_hashclauses
-	   ((HashPath)pathnode, 
-	    lisp_qsort(get_path_hashclauses((HashPath)pathnode),
-		       xfunc_clause_compare));
+	 if (XfuncMode != XFUNC_OFF)
+	   set_path_hashclauses
+	     ((HashPath)pathnode, 
+	      lisp_qsort(get_path_hashclauses((HashPath)pathnode),
+			 xfunc_clause_compare));
 	 for(tmplist = get_path_hashclauses((HashPath)pathnode), selec = 1.0;
 	     tmplist != LispNil;
 	     tmplist = CDR(tmplist))
@@ -720,10 +724,11 @@ Path pathnode;
      }
     if (IsA(pathnode,MergePath))
      {
-	 set_path_mergeclauses
-	   ((MergePath)pathnode, 
-	    lisp_qsort(get_path_mergeclauses((MergePath)pathnode),
-		       xfunc_clause_compare));
+	 if (XfuncMode != XFUNC_OFF)
+	   set_path_mergeclauses
+	     ((MergePath)pathnode, 
+	      lisp_qsort(get_path_mergeclauses((MergePath)pathnode),
+			 xfunc_clause_compare));
 	 for(tmplist = get_path_mergeclauses((MergePath)pathnode), selec = 1.0;
 	     tmplist != LispNil;
 	     tmplist = CDR(tmplist))
