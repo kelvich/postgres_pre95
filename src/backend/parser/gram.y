@@ -17,7 +17,7 @@
 #include <ctype.h>
 
 #include "tmp/c.h"
-#include "catalog_utils.h"
+#include "parser/catalog_utils.h"	/* XXX - marc */
 #include "catalog/catname.h"
 #include "catalog/pg_log.h"
 #include "catalog/pg_magic.h"
@@ -28,7 +28,7 @@
 #include "utils/palloc.h"
 #include "nodes/pg_lisp.h"
 /* XXX ORDER DEPENDENCY */
-#include "parse_query.h"
+#include "parser/parse_query.h"		/* XXX - marc */
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
 #include "rules/params.h"
