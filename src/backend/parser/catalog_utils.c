@@ -418,9 +418,11 @@ TypeTupleForm tp;
 char *string;
 {
     OID op;
+	OID typelem;
 	
     op = tp->typinput;
-    return((char *) fmgr(op, string));
+	typelem = tp->typelem; /* XXX - used for array_in */
+    return((char *) fmgr(op, string, typelem));
 }
 
 /* Given a typename and string, returns the internal form of that string */
