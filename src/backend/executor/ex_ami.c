@@ -329,6 +329,14 @@ ExecReScan(node)
 	ExecIndexReScan((IndexScan) node);
 	return;
 
+    case classTag(Material):
+	/* the first call to ExecReScan should have no effect because
+	 * everything is initialized properly already.  the following
+	 * calls will be handled by ExecSeqReScan() because the nodes
+	 * below the Material node have already been materialized into
+	 * a temp relation.
+	 */
+	return;
     default:
 	elog(DEBUG, "ExecReScan: not a seqscan or indexscan node.");
 	return;
