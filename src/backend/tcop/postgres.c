@@ -70,7 +70,7 @@ int		ShowLock = 0;
 
 /* User info  */
 
-char		*PG_username;
+extern char	*PG_username;
 
 Relation	reldesc;		/* current relation descritor */
 char		relname[80];		/* current relation name */
