@@ -219,7 +219,7 @@ ProcessUtility(command, args, commandString, dest)
 
 		/* Free up file descriptors - going to do a read... */
 
-		closeAllVfds();
+		closeOneVfd();
 
             if (isFrom && !strcmp(fileName, "stdin"))
             {
