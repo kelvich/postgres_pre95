@@ -5,7 +5,8 @@ static char *ylib_c = "$Header$";
 #include "log.h"
 /*#include "catalog_utils.h"*/
 #include "lispdep.h"
-#include "exceptions.h"
+#include "exc.h"
+#include "excid.h"
 #include "io.h"
 
 #define DB_PARSE(foo) 
@@ -68,13 +69,13 @@ parser(str, l)
 
     ExcExcept(); {
 	if (exception.id == &SystemError) {
-	    elog(FATAL, exception.msg);
+	    elog(FATAL, exception.message);
 	} else if (exception.id == &InternalError) {
-	    elog(FATAL, exception.msg);
+	    elog(FATAL, exception.message);
 	} else if (exception.id == &CatalogFailure) {
-	    elog(WARN, exception.msg);
+	    elog(WARN, exception.message);
 	} else if (exception.id == &SemanticError) {
-	    elog(WARN, exception.msg);
+	    elog(WARN, exception.message);
 	} else {
 	    reraise();
 	}
