@@ -519,10 +519,10 @@ int16
 get_typlen (typid)
      ObjectId typid;
 {
-    TypeTupleForm typtup = new(TypeTupleFormD);
+    TypeTupleFormD typtup;
 
-    if (SearchSysCacheStruct (TYPOID,typtup,typid,0,0,0))
-      return(typtup->typlen);
+    if (SearchSysCacheStruct (TYPOID,&typtup,typid,0,0,0))
+      return(typtup.typlen);
     else
       return((int16)NULL);
 }
@@ -542,9 +542,10 @@ bool
 get_typbyval (typid)
      ObjectId typid ;
 {
-    TypeTupleForm typtup = new(TypeTupleFormD);
-    if(SearchSysCacheStruct (TYPOID,typtup,typid,0,0,0))
-      return((bool)typtup->typbyval);
+    TypeTupleFormD typtup;
+
+    if(SearchSysCacheStruct (TYPOID,&typtup,typid,0,0,0))
+      return((bool)typtup.typbyval);
     else
       return(false);
 }
