@@ -62,7 +62,7 @@ extern char     *fmgr();
 extern char	*fmgr_c();
 extern void	fmgr_info();
 extern char	*fmgr_ptr();
-extern char	*fmgr_dynamic();
+extern func_ptr	fmgr_dynamic();
 extern char	*fmgr_array_args();
 
 #define FMGR_PTR2(FP, FO, A1, A2) \
