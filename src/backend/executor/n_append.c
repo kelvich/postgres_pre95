@@ -131,6 +131,15 @@ exec_append_initialize_next(node)
 	  
 	    unionrelid = get_unionrelid(node);
 	    rt_store(unionrelid, rangeTable, rtentry);
+	    if (get_es_junkFilter_list(estate)) {
+		set_es_junkFilter(estate,
+		    (JunkFilter)nth(whichplan, get_es_junkFilter_list(estate)));
+	    }
+	    if (get_es_result_relation_info_list(estate)) {
+		set_es_result_relation_info(estate,
+		    (RelationInfo)nth(whichplan,
+				     get_es_result_relation_info_list(estate)));
+	    }
 	    set_ttc_whichplan( result_slot, whichplan );
 	}
       
@@ -174,6 +183,7 @@ ExecInitAppend(node, estate, parent)
     List        result;
     List        junkList;
     int         baseid;
+    RelationInfo es_rri = get_es_result_relation_info(estate);
     
     /* ----------------
      *  assign execution state to node and get information
@@ -218,10 +228,17 @@ ExecInitAppend(node, estate, parent)
      */
     ExecInitResultTupleSlot(estate, (CommonState) unionstate);
     
-    if (get_es_result_relation_info(estate))
+    /*
+     * If the inherits rtentry is the result relation, we have to make
+     * a result relation info list for all inheritors so we can update
+     * their indices and put the result tuples in the right place etc.
+     *
+     * e.g. replace p (age = p.age + 1) from p in person*
+     */
+    if ((es_rri != (RelationInfo)NULL) &&
+	(get_unionrelid((Append)node) == get_ri_RangeTableIndex(es_rri)))
     {
 	RelationInfo rri;
-	RelationInfo es_rri = get_es_result_relation_info(estate);
 	List         resultList = LispNil;
 	List         rtentryP;
 
@@ -267,14 +284,23 @@ ExecInitAppend(node, estate, parent)
 	
 	/* ---------------
 	 *  Each targetlist in the subplan may need its own junk filter
+	 *
+	 *  This is true only when the reln being replaced/deleted is
+	 *  the one that we're looking at the subclasses of
 	 * ---------------
 	 */
-	targetList = get_qptargetlist(initNode);
-	j = (JunkFilter) ExecInitJunkFilter(targetList);
-	junkList = nappend1(junkList, (LispValue)j);
+	if ((es_rri != (RelationInfo)NULL) &&
+	    (get_unionrelid((Append)node) == get_ri_RangeTableIndex(es_rri))) {
+
+	    targetList = get_qptargetlist(initNode);
+	    j = (JunkFilter) ExecInitJunkFilter(targetList);
+	    junkList = nappend1(junkList, (LispValue)j);
+	}
 
     }
     set_es_junkFilter_list(estate, junkList);
+    if (junkList != LispNil)
+	set_es_junkFilter(estate, (JunkFilter)CAR(junkList));
     
     /* ----------------
      *	initialize the return type from the appropriate subplan.
