@@ -373,22 +373,32 @@ V_Finished()
 void
 I_SharedMemoryMutex()
 {
+#ifndef sequent
     int value = 1;
     Exec_I(ExecutorSMSemaphore, value);
+#endif
 }
 
 void
 P_SharedMemoryMutex()
 {
+#ifdef sequent
+    ExclusiveLock(ExecutorSMSemaphore);
+#else
     int value = 1;
     Exec_P(ExecutorSMSemaphore, value);
+#endif
 }
 
 void
 V_SharedMemoryMutex()
 {
+#ifdef sequent
+    ExclusiveUnlock(ExecutorSMSemaphore);
+#else
     int value = 1;
     Exec_V(ExecutorSMSemaphore, value);
+#endif
 }
 
 /* ----------------
@@ -447,7 +457,9 @@ ExecInitExecutorSemaphore(key)
      * ----------------
      */
     ExecutorSemaphoreArraySize =
+#ifndef sequent
 	1 +			    /* 1 for shared memory meta-data access */
+#endif
 	1 +			    /* 1 for abort synchronization */
 	1 +			    /* 1 for master backend synchronization */
 	NumberSlaveBackends;        /* n for slave backend synchronization */
@@ -456,10 +468,14 @@ ExecInitExecutorSemaphore(key)
      *	calculate semaphore numbers (indexes into semaphore array)
      * ----------------
      */
-    ExecutorSMSemaphore = 0;
-    ExecutorAbortSemaphore = ExecutorSMSemaphore + 1;
+    ExecutorAbortSemaphore = 0;
     ExecutorMasterSemaphore = ExecutorAbortSemaphore + 1;
     ExecutorSlaveSemStart =   ExecutorMasterSemaphore + 1;
+#ifdef sequent
+    ExecutorSMSemaphore = CreateLock();
+#else
+    ExecutorSMSemaphore = ExecutorSlaveSemStart + 1;
+#endif
     
     /* ----------------
      *	create the executor semaphore array.  Note, we don't
