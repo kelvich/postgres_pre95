@@ -307,6 +307,39 @@ int2fac(arg1)
 	return(result);
 }
 
+int16
+int2larger(arg1, arg2)
+	int16	arg1;
+	int16	arg2;
+{
+	return ((arg1 > arg2) ? arg1 : arg2);
+}
+
+int16
+int2smaller(arg1, arg2)
+	int16	arg1;
+	int16	arg2;
+{
+	return ((arg1 > arg2) ? arg2 : arg1);
+}
+
+int32
+int4larger(arg1, arg2)
+	int32	arg1;
+	int32	arg2;
+{
+	return ((arg1 > arg2) ? arg1 : arg2);
+}
+
+int32
+int4smaller(arg1, arg2)
+	int32	arg1;
+	int32	arg2;
+{
+	return ((arg1 > arg2) ? arg2 : arg1);
+}
+
+
 #endif FMGR_MATH
 
 

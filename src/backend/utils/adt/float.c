@@ -282,6 +282,27 @@ float4um(arg1)
 	return(result);
 }
 
+float32
+float4larger(arg1, arg2)
+	float32 arg1;
+	float32 arg2;
+{
+	float32	result = (float32) palloc(sizeof(float32data));
+
+	*result = ((*arg1 > *arg2) ? *arg1 : *arg2);
+	return result;
+}
+
+float32
+float4smaller(arg1, arg2)
+	float32 arg1;
+	float32 arg2;
+{
+	float32	result = (float32) palloc(sizeof(float32data));
+
+	*result = ((*arg1 > *arg2) ? *arg2 : *arg1);
+	return result;
+}
 
 /*
  *	======================
@@ -316,6 +337,28 @@ float8um(arg1)
 	return(result);
 }
 
+float64
+float8larger(arg1, arg2)
+	float64 arg1;
+	float64 arg2;
+{
+	float64	result = (float64) palloc(sizeof(float64data));
+
+	*result = ((*arg1 > *arg2) ? *arg1 : *arg2);
+	return result;
+}
+
+float64
+float8smaller(arg1, arg2)
+	float64 arg1;
+	float64 arg2;
+{
+	float64	result = (float64) palloc(sizeof(float64data));
+
+	*result = ((*arg1 > *arg2) ? *arg2 : *arg1);
+	return result;
+}
+
 
 /*
  *	====================
@@ -328,6 +371,7 @@ float8um(arg1)
  *	float4mi	- returns a pointer to arg1 - arg2
  *	float4mul	- returns a pointer to arg1 * arg2
  *	float4div	- returns a pointer to arg1 / arg2
+ *	float4inc	- returns a poniter to arg1 + 1.0
  */
 float32 
 float4pl(arg1, arg2)
@@ -366,11 +410,20 @@ float4div(arg1, arg2)
 	return(result);
 }
 
+float32
+float4inc(arg1)
+	float32 arg1;
+{
+	*arg1 = *arg1 + (float32data)1.0;
+	return arg1;
+}
+
 /*
  *	float8pl	- returns a pointer to arg1 + arg2
  *	float8mi	- returns a pointer to arg1 - arg2
  *	float8mul	- returns a pointer to arg1 * arg2
  *	float8div	- returns a pointer to arg1 / arg2
+ *	float8inc	- returns a pointer to arg1 + 1.0
  */
 float64 
 float8pl(arg1, arg2)
@@ -407,6 +460,14 @@ float8div(arg1, arg2)
 	float64	result = (float64) palloc(sizeof(float64data));
 	*result = *arg1 / *arg2;
 	return(result);
+}
+
+float64
+float8inc(arg1)
+	float64	arg1;
+{
+	*arg1 = *arg1 + (float64data)1.0;
+	return(arg1);
 }
 
 
