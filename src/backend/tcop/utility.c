@@ -77,14 +77,44 @@ ProcessUtility(command, args)
 		break;
 	case FETCH:
 		commandTag = "FETCH";
-#if 0
-		portal_fetch(CString(CAR(args)),     	/* portal name */
-			((CInteger(CADR(args)) ==  FORWARD) ?
-				true : false ),		/* forward ? */
-			CInteger(CADDR (args)));	/* ntups to scan 
-							   -1 means "ALL" */
-		break;
+	{
+		String	portalName = NULL;
+		bool	forward;
+		int	count;
+#ifndef	PERFECTPARSER
+		AssertArg(consp(args));
+		AssertArg(consp(CDR(args)));
+		AssertArg(lispAtomp(CADR(args)));
+		AssertArg(CAtom(CADR(args)) == FORWARD || CAtom(CADR(args)) == BACKWARD);
+		AssertArg(consp(CDR(CDR(args))));
+		AssertArg(lispIntegerp(CADDR(args)) || lispAtomp(CADDR(args)));
+		AssertArg(null(CDR(CDR(CDR(args)))));
 #endif
+		if (!null(CAR(args))) {
+#ifndef	PERFECTPARSER
+			AssertArg(lispStringp(CAR(args)));
+#endif
+			portalName = CString(CAR(args));
+		}
+		forward = (bool)(CAtom(CADR(args)) == FORWARD);
+		count = 0;
+		if (lispAtomp(CADDR(args))) {
+#ifndef	PERFECTPARSER
+			AssertArg(CAtom(CADDR(args)) == ALL);
+#endif
+		} else {
+			count = CInteger(CADDR(args));
+
+			if (count < 0) {
+				elog(WARN, "Fetch: specify nonnegative count");
+			}
+			if (count == 0) {
+				break;
+			}
+		}
+		PerformPortalFetch(portalName, forward, count);
+	}
+		break;
 	case MOVE:
 		commandTag = "MOVE";
 		elog(WARN, "MOVE: unimplemented");
