@@ -79,6 +79,7 @@ find_joininfo_node (this_rel,join_relids)
 	set_jinfoclauseinfo (joininfo,LispNil);
 	set_mergesortable (joininfo,false);
 	set_hashjoinable (joininfo,false);
+	set_inactive (joininfo,false);
 	joininfo->printFunc = PrintJInfo;
 	joininfo->equalFunc = EqualJInfo;
 	set_joininfo (this_rel, lispCons (joininfo,get_joininfo (this_rel)));
