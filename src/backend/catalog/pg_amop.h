@@ -208,6 +208,19 @@ DATA(insert OID = 0 (  402 433 498 7 rtsel rtnpage ));
 DATA(insert OID = 0 (  402 433 497 8 rtsel rtnpage ));
 
 /*
+ *  rtree poly_ops (supports polygons)
+ */
+
+DATA(insert OID = 0 (  402 434 485 1 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 434 486 2 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 434 487 3 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 434 488 4 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 434 489 5 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 434 490 6 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 434 491 7 rtsel rtnpage ));
+DATA(insert OID = 0 (  402 434 492 8 rtsel rtnpage ));
+
+/*
  *  nbtree int2_ops
  */
 
