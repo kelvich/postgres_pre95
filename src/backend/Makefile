@@ -20,6 +20,13 @@ PROG= postgres
 STRIP=
 
 #
+# Build the file, "./ID", used by the "gid" (grep-for-identifier) tool
+#
+IDFILE= ID
+${IDFILE}:
+	cd ${.CURDIR}; ./makeID ${PORTNAME}
+
+#
 # This part pulls in the subdirectory partial makefiles.
 #
 .undef SRCS
