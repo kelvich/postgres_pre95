@@ -273,21 +273,6 @@ depend: .depend
 
 cppall: ${SRCS:S/.c/.C/g}
 
-#
-# Support creation of symbol export files
-#
-.if defined(MAKE_EXPORTS)
-${PROG}: ${EXPORTS}
-
-installexp: ${EXPORTS}
-	for i in ${EXPORTS}; do \
-		${INSTALL} -o ${BINOWN} -g ${BINGRP} -m 444 \
-			$$i ${DESTDIR}${LIBDIR}/$$i; \
-	done
-
-afterinstall: installexp
-.endif
-
 
 #
 # To use Purify (SunOS only), define PURIFY to be the path (and
@@ -313,6 +298,11 @@ pg_id:	pg_id.c
 CLEANFILES+= pg_id
 
 
+#
+# note:
+# any ${PROG} dependencies should go below this .include.
+# any ${PROG} creation rules (e.g., PURIFY) should go above this .include.
+#
 .include <postgres.prog.mk>
 
 
@@ -323,6 +313,22 @@ CLEANFILES+= pg_id
 CLEANFILES+= ${OBJS}
 OBJS= ${SUBOBJS}
 ${PROG}: ${SUBOBJS}
+.endif
+
+
+#
+# Support creation of symbol export files
+#
+.if defined(MAKE_EXPORTS)
+${PROG}: ${EXPORTS}
+
+installexp: ${EXPORTS}
+	for i in ${EXPORTS}; do \
+		${INSTALL} -o ${BINOWN} -g ${BINGRP} -m 444 \
+			$$i ${DESTDIR}${LIBDIR}/$$i; \
+	done
+
+afterinstall: installexp
 .endif
 
 
