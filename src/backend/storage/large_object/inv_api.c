@@ -316,7 +316,7 @@ inv_stat(obj_desc, stbuf)
     stbuf->st_uid = obj_desc->ofs.i_fs.heap_r->rd_rel->relowner;
 
     /* we have no good way of computing access times right now */
-    stbuf->st_atime = stbuf->st_mtime = stbuf->st_ctime = 0;
+    stbuf->st_atime_s = stbuf->st_mtime_s = stbuf->st_ctime_s = 0;
 
     return (0);
 }
@@ -380,7 +380,7 @@ inv_seek(obj_desc, offset, whence)
      */
 
 
-    /* right now, just assume that the operation is L_SET */
+    /* right now, just assume that the operation is SEEK_SET */
     if (obj_desc->ofs.i_fs.iscan != (IndexScanDesc) NULL) {
 	d = Int32GetDatum(offset);
 	btmovescan(obj_desc->ofs.i_fs.iscan, d);

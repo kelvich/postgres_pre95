@@ -40,8 +40,8 @@ static char sccsid[] = "@(#)cmp.c	5.7 (Berkeley) 3/1/92";
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <strings.h>
 #include <fts.h>
-#include <string.h>
 #include "tmp/libpq-fs.h"
 #include "ls.h"
 #include "extern.h"
@@ -64,40 +64,40 @@ int
 modcmp(a, b)
      FTSENT *a, *b;
 {
-    return (b->fts_statp->st_mtime - a->fts_statp->st_mtime);
+    return (b->fts_statp->st_mtime_s - a->fts_statp->st_mtime_s);
 }
 
 int
 revmodcmp(a, b)
      FTSENT *a, *b;
 {
-    return (a->fts_statp->st_mtime - b->fts_statp->st_mtime);
+    return (a->fts_statp->st_mtime_s - b->fts_statp->st_mtime_s);
 }
 
 int
 acccmp(a, b)
      FTSENT *a, *b;
 {
-    return (b->fts_statp->st_atime - a->fts_statp->st_atime);
+    return (b->fts_statp->st_atime_s - a->fts_statp->st_atime_s);
 }
 
 int
 revacccmp(a, b)
      FTSENT *a, *b;
 {
-    return (a->fts_statp->st_atime - b->fts_statp->st_atime);
+    return (a->fts_statp->st_atime_s - b->fts_statp->st_atime_s);
 }
 
 int
 statcmp(a, b)
      FTSENT *a, *b;
 {
-    return (b->fts_statp->st_ctime - a->fts_statp->st_ctime);
+    return (b->fts_statp->st_ctime_s - a->fts_statp->st_ctime_s);
 }
 
 int
 revstatcmp(a, b)
      FTSENT *a, *b;
 {
-    return (a->fts_statp->st_ctime - b->fts_statp->st_ctime);
+    return (a->fts_statp->st_ctime_s - b->fts_statp->st_ctime_s);
 }
