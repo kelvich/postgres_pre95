@@ -405,11 +405,12 @@ DATA(insert OID = 637 ( UIntersection      6 11 f t f 4 701 "0" 100 0 0 100  foo
 DATA(insert OID = 638 ( LIntersection      6 11 f t f 4 701 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 639 ( UDempster          6 11 f t f 4 701 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 640 ( LDempster          6 11 f t f 4 701 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 649 ( GetAttributeByName 6 11 f t f 3  23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 650 (  int4notin         6 11 f t f 2  16 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 651 (  oidnotin          6 11 f t f 2  16 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 652 (  int44in           6 11 f t f 1  22 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 653 (  int44out          6 11 f t f 1  23 "0" 100 0 0 100  foo bar ));
-DATA(insert OID = 654 (  GetAttribute      6 11 f t f 1  23 "0" 100 0 0 100  foo bar ));
+DATA(insert OID = 654 (  GetAttributeByNum 6 11 f t f 3  23 "0" 100 0 0 100  foo bar ));
 
 DATA(insert OID = 655 (  char16lt          6 11 f t f 2  16 "19 19" 100 0 0 100  foo bar ));
 DATA(insert OID = 656 (  char16le          6 11 f t f 2  16 "19 19" 100 0 0 100  foo bar ));
