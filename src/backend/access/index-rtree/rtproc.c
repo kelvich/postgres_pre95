@@ -52,50 +52,35 @@ rt_box_inter(a, b)
 	return (n);
 }
 
-int
+float *
 rt_box_size(a)
 	BOX *a;
 {
-	int size;
+	float *size;
 
+	size = (float *) palloc(sizeof(float));
 	if (a == (BOX *) NULL || a->xh <= a->xl || a->yh <= a->yl)
-		return (0);
-
-	size = (int) (fabs(a->xh - a->xl) * fabs(a->yh - a->yl));
+		*size = 0;
+	else
+	    *size = (float) (fabs(a->xh - a->xl) * fabs(a->yh - a->yl));
 
 	return (size);
 }
 
 /*
- *  rt_bigbox_size() -- Compute a scaled size for big boxes.
+ *  rt_bigbox_size() -- Compute a size for big boxes.
  *
- *	If the field on which rectangles lie is large, or if the rectangles
- *	themselves are large, then size computations on them can cause
- *	arithmetic overflows.  On some architectures (eg, Sequent), the
- *	overflow causes a core dump when we try to cast the double to an
- *	int.  Rather than do non-portable arithmetic exception handling,
- *	we declare an operator class "bigbox_ops" that's exactly like
- *	"box_ops", except that sizes are scaled by four orders of decimal
- *	magnitude.
+ *	In an earlier release of the system, this routine did something
+ *	different from rt_box_size.  We now use floats, rather than ints,
+ *	as the return type for the size routine, so we no longer need to
+ *	have a special return type for big boxes.
  */
 
-int
+float *
 rt_bigbox_size(a)
 	BOX *a;
 {
-	int size;
-	double xdim, ydim;
-
-	if (a == (BOX *) NULL || a->xh <= a->xl || a->yh <= a->yl)
-		return (0);
-
-	/* scale boxes by 100 in both dimensions */
-	xdim = fabs(a->xh - a->xl) / 100.0;
-	ydim = fabs(a->yh - a->yl) / 100.0;
-
-	size = (int) (xdim * ydim);
-
-	return (size);
+	return (rt_box_size(a));
 }
 
 POLYGON *
@@ -118,22 +103,24 @@ rt_poly_union(a, b)
 	return p;
 }
 
-int
+float *
 rt_poly_size(a)
 	POLYGON *a;
 {
-	int size;
+	float *size;
 	double xdim, ydim;
 
+	size = (float *) palloc(sizeof(float));
 	if (a == (POLYGON *) NULL || 
 		a->boundbox.xh <= a->boundbox.xl || 
 		a->boundbox.yh <= a->boundbox.yl)
-		return (0);
+		*size = 0;
+	else {
+		xdim = fabs(a->boundbox.xh - a->boundbox.xl);
+		ydim = fabs(a->boundbox.yh - a->boundbox.yl);
 
-	xdim = fabs(a->boundbox.xh - a->boundbox.xl) / 100.0;
-	ydim = fabs(a->boundbox.yh - a->boundbox.yl) / 100.0;
-
-	size = (int) (xdim * ydim);
+		*size = (float) (xdim * ydim);
+	}
 
 	return (size);
 }
