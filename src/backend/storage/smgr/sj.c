@@ -136,15 +136,10 @@ extern Relation	RelationIdGetRelation();
  *	data out of the cache.  Otherwise, they'll return successfully
  *	immediately after attaching the cache memory, and will let their
  *	older sibling do all the work.
- *
- *	The 'key' argument is the IPC key used in this backend (or postmaster)
- *	for initializing shared memory and semaphores.  Since we need a
- *	wait lock, we need this.
  */
 
 int
-sjinit(key)
-    IPCKey key;
+sjinit()
 {
     unsigned int metasize;
     bool metafound;
@@ -209,20 +204,6 @@ sjinit(key)
 	SpinRelease(SJCacheLock);
 	return (SM_FAIL);
     }
-
-#ifndef HAS_TEST_AND_SET
-    /*
-     *  Finally, we need the wait semaphore if this system does not support
-     *  test-and-set locks.
-     */
-
-    SJWaitSemId = IpcSemaphoreCreate(IPCKeyGetSJWaitSemaphoreKey(key),
-				     1, IPCProtection, 0, &status);
-    if (SJWaitSemId < 0) {
-	SpinRelease(SJCacheLock);
-	return (SM_FAIL);
-    }
-#endif /* ndef HAS_TEST_AND_SET */
 
     /*
      *  Okay, all our shared memory pointers are set up.  If we did not
@@ -1899,6 +1880,29 @@ _sjdump()
     }
 
     SpinRelease(SJCacheLock);
+}
+
+/*
+ *  SJInitSemaphore() -- Initialize the 'wait' semaphore for jukebox cache
+ *			 pages.
+ *
+ *	We only do this if we don't have test-and-set locks.
+ */
+
+SJInitSemaphore(key)
+    IPCKey key;
+{
+#ifndef HAS_TEST_AND_SET
+    int status;
+
+    SJWaitSemId = IpcSemaphoreCreate(IPCKeyGetSJWaitSemaphoreKey(key),
+				     1, IPCProtection, 0, &status);
+    if (SJWaitSemId < 0) {
+	elog(FATAL, "cannot create/attach jukebox semaphore");
+    }
+#else /* ndef HAS_TEST_AND_SET */
+    return;
+#endif /* ndef HAS_TEST_AND_SET */
 }
 
 #endif /* SONY_JUKEBOX */
