@@ -32,6 +32,12 @@ CFLAGS+= -Dconst= -DHAS_SYMDEF -D_BSD
 SRCS+= setenv.c
 .endif
 
+.if ( ${PORTNAME} == "aix" )
+CFLAGS+= -DHAS_AIA -D_BSD
+SRCS+= setenv.c
+LDADD+= -lbsd
+.endif
+
 #
 # ################# END OS-DEPENDENT SECTION #################
 #

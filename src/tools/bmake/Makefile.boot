@@ -29,6 +29,7 @@ CONFIGS= ${OLD_CC} ${HAS_RANLIB} ${NEED_STRINGS} ${BSD_WAIT3}
 #
 MORESRCS=strdup.c
 MOREOBJS=strdup.o
+MORELIBS=
 
 #
 # ################# END OS-DEPENDENT SECTION #################
@@ -66,7 +67,7 @@ XYZZY:
 	@echo 'make started.'
 	cc ${CFLAGS} -I. -c ${CFILES}
 	cd lst.lib; cc ${CFLAGS} -I.. -c ${LSTCFILES}
-	cc ${CFLAGS} ${OFILES} ${LSTOFILES} -o bootmake
+	cc ${CFLAGS} ${OFILES} ${LSTOFILES} ${MORELIBS} -o bootmake
 	rm -f ${OFILES} ${LSTOFILES}
 	-if test ! -d obj; \
 		then mkdir obj; fi

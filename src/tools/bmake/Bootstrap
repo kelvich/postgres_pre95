@@ -10,6 +10,18 @@ if [ -z "$1" ]; then
 	exit 1
 fi
 case $1 in
+	aix)
+		cat > $SEDFILE << 'EOF'
+s/^PORTNAME=.*/PORTNAME=aix/
+s/^OLD_CC=.*/OLD_CC=/
+s/^HAS_RANLIB=.*/HAS_RANLIB=-DHAS_AIA/
+s/^NEED_STRINGS=.*/NEED_STRINGS=/
+s/^BSD_WAIT3.*=/BSD_WAIT3=-D_BSD/
+s/^MORESRCS=.*/MORESRCS=setenv.c/
+s/^MOREOBJS=.*/MOREOBJS=setenv.o/
+s/^MORELIBS=.*/MORELIBS=-lbsd/
+EOF
+		;;
 	alpha)
 		cat > $SEDFILE << 'EOF'
 s/^PORTNAME=.*/PORTNAME=alpha/
@@ -19,6 +31,7 @@ s/^NEED_STRINGS=.*/NEED_STRINGS=/
 s/^BSD_WAIT3.*=/BSD_WAIT3=-D_BSD/
 s/^MORESRCS=.*/MORESRCS=/
 s/^MOREOBJS=.*/MOREOBJS=/
+s/^MORELIBS=.*/MORELIBS=/
 EOF
 		;;
 	hpux)
@@ -30,6 +43,7 @@ s/^NEED_STRINGS=.*/NEED_STRINGS=/
 s/^BSD_WAIT3.*=/BSD_WAIT3=-D_BSD/
 s/^MORESRCS=.*/MORESRCS=setenv.c/
 s/^MOREOBJS=.*/MOREOBJS=setenv.o/
+s/^MORELIBS=.*/MORELIBS=/
 EOF
 		;;
 	linux)
@@ -41,6 +55,7 @@ s/^NEED_STRINGS=.*/NEED_STRINGS=/
 s/^BSD_WAIT3.*=/BSD_WAIT3=-D__USE_BSD -D__USE_BSD_SIGNAL/
 s/^MORESRCS=.*/MORESRCS=/
 s/^MOREOBJS=.*/MOREOBJS=/
+s/^MORELIBS=.*/MORELIBS=/
 EOF
 		;;
 	sparc)
@@ -52,6 +67,7 @@ s/^NEED_STRINGS=.*/NEED_STRINGS=-DNEED_STRINGS/
 s/^BSD_WAIT3.*=/BSD_WAIT3=/
 s/^MORESRCS=.*/MORESRCS=strerror.c setenv.c/
 s/^MOREOBJS=.*/MOREOBJS=strerror.o setenv.o/
+s/^MORELIBS=.*/MORELIBS=/
 EOF
 		;;
 	ultrix4)
@@ -63,6 +79,7 @@ s/^NEED_STRINGS=.*/NEED_STRINGS=/
 s/^BSD_WAIT3.*=/BSD_WAIT3=/
 s/^MORESRCS=.*/MORESRCS=strdup.c/
 s/^MOREOBJS=.*/MOREOBJS=strdup.o/
+s/^MORELIBS=.*/MORELIBS=/
 EOF
 		;;
 	*)

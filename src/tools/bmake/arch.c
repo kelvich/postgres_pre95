@@ -92,8 +92,27 @@ static char sccsid[] = "@(#)arch.c	5.7 (Berkeley) 12/28/90";
 #include    <ctype.h>
 #include    <ar.h>
 #ifdef HAS_SYMDEF
+/* standard ranlib format */
 #include    <ranlib.h>
+/*
+ * This is actually broken on the mips since they use a different
+ * symdef format.  So much for "Common Archive Format"...
+ */
 #endif /* HAS_SYMDEF */
+#ifdef HAS_AIA
+/* AIX indexed archive format */
+#define	ARMAG	AIAMAG
+#define	SARMAG	SAIAMAG
+#define	ARFMAG	AIAFMAG
+#define	ar_name	_ar_name.ar_name
+#define	ar_fmag	_ar_name.ar_fmag
+#endif /* HAS_AIA */
+/*
+ * This is actually broken as well.  This will simply fail on machines
+ * that don't have the "standard" struct ar_hdr and <ar.h>.  Fortunately,
+ * most of those actually have more intelligent archives and don't need 
+ * ranlib'ing anyway.
+ */
 #ifndef RANLIBMAG
 #define RANLIBMAG	"__.SYMDEF"	/* archive file name */
 #endif
