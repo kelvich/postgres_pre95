@@ -29,6 +29,7 @@ RcsId("$Header$");
 #include "utils/hsearch.h"
 #include "utils/log.h"
 #include "utils/rel.h"
+#include "utils/memutils.h"
 
 #include "storage/jbstruct.h"
 #include "storage/jblib.h"
@@ -824,14 +825,16 @@ JBShmemSize()
     /* size of hash table */
     nbuckets = 1 << my_log2((JBCACHESIZE - 1) / DEF_FFACTOR + 1);
     nsegs = 1 << my_log2((nbuckets - 1) / DEF_SEGSIZE + 1);
-    size = my_log2(JBCACHESIZE) + sizeof(HHDR);
-    size += nsegs * DEF_SEGSIZE * sizeof(SEGMENT);
+    size = MAXALIGN(my_log2(JBCACHESIZE) * sizeof(void *));
+    size += MAXALIGN(sizeof(HHDR));
+    size += nsegs * MAXALIGN(DEF_SEGSIZE * sizeof(SEGMENT));
     tmp = (int)ceil((double)JBCACHESIZE/BUCKET_ALLOC_INCR);
     size += tmp * BUCKET_ALLOC_INCR *
-            (sizeof(BUCKET_INDEX) + sizeof(JBHashEntry));
+	(MAXALIGN(sizeof(BUCKET_INDEX)) +
+	 MAXALIGN(sizeof(JBHashEntry)));
 
     /* size of integer telling us how full hash table is */
-    size += sizeof(*JBNEntries);
+    size += MAXALIGN(sizeof(*JBNEntries));
 
     return (size);
 }

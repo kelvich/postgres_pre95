@@ -22,6 +22,7 @@
 #include "utils/hsearch.h"
 #include "utils/rel.h"
 #include "utils/log.h"
+#include "utils/memutils.h"
 
 RcsId("$Header$");
 
@@ -84,14 +85,16 @@ int
 mminit()
 {
     char *mmcacheblk;
-    int mmsize;
+    int mmsize = 0;
     bool found;
     HASHCTL info;
 
     SpinAcquire(MMCacheLock);
 
-    mmsize = (BLCKSZ * MMNBUFFERS) + sizeof(*MMCurTop) + sizeof(*MMCurRelno);
-    mmsize += (MMNBUFFERS * sizeof(MMCacheTag));
+    mmsize += MAXALIGN(BLCKSZ * MMNBUFFERS);
+    mmsize += MAXALIGN(sizeof(*MMCurTop));
+    mmsize += MAXALIGN(sizeof(*MMCurRelno));
+    mmsize += MAXALIGN((MMNBUFFERS * sizeof(MMCacheTag)));
     mmcacheblk = (char *) ShmemInitStruct("Main memory smgr", mmsize, &found);
 
     if (mmcacheblk == (char *) NULL) {
@@ -557,7 +560,7 @@ mmabort()
 int
 MMShmemSize()
 {
-    int size;
+    int size = 0;
     int nbuckets;
     int nsegs;
     int tmp;
@@ -568,29 +571,35 @@ MMShmemSize()
 
     nbuckets = 1 << (int)my_log2((MMNBUFFERS - 1) / DEF_FFACTOR + 1);
     nsegs = 1 << (int)my_log2((nbuckets - 1) / DEF_SEGSIZE + 1);
-
-    size = my_log2(MMNBUFFERS) + sizeof(HHDR);
-    size += nsegs * DEF_SEGSIZE * sizeof(SEGMENT);
+    
+    size += MAXALIGN(my_log2(MMNBUFFERS) * sizeof(void *));
+    size += MAXALIGN(sizeof(HHDR));
+    size += nsegs * MAXALIGN(DEF_SEGSIZE * sizeof(SEGMENT));
     tmp = (int)ceil((double)MMNBUFFERS/BUCKET_ALLOC_INCR);
     size += tmp * BUCKET_ALLOC_INCR *
-            (sizeof(BUCKET_INDEX) + sizeof(MMHashEntry));
+	(MAXALIGN(sizeof(BUCKET_INDEX)) +
+	 MAXALIGN(sizeof(MMHashEntry)));	/* contains hash key */
 
     /*
      *  now do the same for the rel hash table
      */
 
-    size += my_log2(MMNRELATIONS) + sizeof(HHDR);
-    size += nsegs * DEF_SEGSIZE * sizeof(SEGMENT);
+    size += MAXALIGN(my_log2(MMNRELATIONS) * sizeof(void *));
+    size += MAXALIGN(sizeof(HHDR));
+    size += nsegs * MAXALIGN(DEF_SEGSIZE * sizeof(SEGMENT));
     tmp = (int)ceil((double)MMNRELATIONS/BUCKET_ALLOC_INCR);
     size += tmp * BUCKET_ALLOC_INCR *
-            (sizeof(BUCKET_INDEX) + sizeof(MMRelHashEntry));
+	(MAXALIGN(sizeof(BUCKET_INDEX)) +
+	 MAXALIGN(sizeof(MMRelHashEntry)));	/* contains hash key */
 
     /*
      *  finally, add in the memory block we use directly
      */
 
-    size += (BLCKSZ * MMNBUFFERS) + sizeof(*MMCurTop) + sizeof(*MMCurRelno);
-    size += (MMNBUFFERS * sizeof(MMCacheTag));
+    size += MAXALIGN(BLCKSZ * MMNBUFFERS);
+    size += MAXALIGN(sizeof(*MMCurTop));
+    size += MAXALIGN(sizeof(*MMCurRelno));
+    size += MAXALIGN(MMNBUFFERS * sizeof(MMCacheTag));
 
     return (size);
 }

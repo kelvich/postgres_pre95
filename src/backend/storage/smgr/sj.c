@@ -25,6 +25,7 @@
 #include "utils/hsearch.h"
 #include "utils/rel.h"
 #include "utils/log.h"
+#include "utils/memutils.h"
 
 #include "access/htup.h"
 #include "access/relscan.h"
@@ -164,11 +165,16 @@ sjinit()
     SpinAcquire(SJCacheLock);
 
 #ifdef HAS_TEST_AND_SET
-    metasize = (SJCACHESIZE * sizeof(SJCacheItem)) + sizeof(SJCacheHeader)
-		+ (SJNBLKSIZE * sizeof(SJCacheTag));
+    metasize =
+	MAXALIGN(SJCACHESIZE * sizeof(SJCacheItem)) +
+	    MAXALIGN(sizeof(SJCacheHeader)) +
+		MAXALIGN(SJNBLKSIZE * sizeof(SJCacheTag));
 #else /* HAS_TEST_AND_SET */
-    metasize = (SJCACHESIZE * sizeof(SJCacheItem)) + sizeof(SJCacheHeader)
-		+ (SJNBLKSIZE * sizeof(SJCacheTag)) + sizeof(*SJNWaiting);
+    metasize =
+	MAXALIGN(SJCACHESIZE * sizeof(SJCacheItem)) +
+	    MAXALIGN(sizeof(SJCacheHeader)) +
+		MAXALIGN(SJNBLKSIZE * sizeof(SJCacheTag)) +
+		    MAXALIGN(sizeof(*SJNWaiting));
 #endif /* HAS_TEST_AND_SET */
     cachesave = cacheblk = (char *) ShmemInitStruct("Jukebox cache metadata",
 						    metasize, &metafound);
@@ -1987,22 +1993,27 @@ SJShmemSize()
     int tmp;
 
     /* size of cache metadata */
-    size = ((SJCACHESIZE + 1) * sizeof(SJCacheItem)) + sizeof(SJCacheHeader);
+    size =
+	MAXALIGN((SJCACHESIZE + 1) * sizeof(SJCacheItem)) +
+	    MAXALIGN(sizeof(SJCacheHeader));
+
+    /* nblock cache */
+    size += MAXALIGN(SJNBLKSIZE * sizeof(SJCacheTag));
+
 #ifndef HAS_TEST_AND_SET
-    size += sizeof(*SJNWaiting);
+    size += MAXALIGN(sizeof(*SJNWaiting));
 #endif /* ndef HAS_TEST_AND_SET */
 
     /* size of hash table */
     nbuckets = 1 << (int)my_log2((SJCACHESIZE - 1) / DEF_FFACTOR + 1);
     nsegs = 1 << (int)my_log2((nbuckets - 1) / DEF_SEGSIZE + 1);
-    size += my_log2(SJCACHESIZE) + sizeof(HHDR);
-    size += nsegs * DEF_SEGSIZE * sizeof(SEGMENT);
+    size += MAXALIGN(my_log2(SJCACHESIZE) * sizeof(void *));
+    size += MAXALIGN(sizeof(HHDR));
+    size += nsegs * MAXALIGN(DEF_SEGSIZE * sizeof(SEGMENT));
     tmp = (int)ceil((double)SJCACHESIZE/BUCKET_ALLOC_INCR);
     size += tmp * BUCKET_ALLOC_INCR *
-            (sizeof(BUCKET_INDEX) + sizeof(SJHashEntry));
-
-    /* nblock cache */
-    size += SJNBLKSIZE * sizeof(SJCacheTag);
+	(MAXALIGN(sizeof(BUCKET_INDEX)) +
+	 MAXALIGN(sizeof(SJHashEntry)));
 
     /* count shared memory required for jukebox state */
     size += JBShmemSize();

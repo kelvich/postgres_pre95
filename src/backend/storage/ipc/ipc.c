@@ -438,11 +438,7 @@ IpcSemaphoreLock(semId, sem, lock)
      * ----------------
      */
     do {
-#ifndef SINGLE_USER
 	errStatus = semop(semId, (struct sembuf **)&sops, 1);
-#else
-    errStatus = 0;
-#endif
     } while (errStatus == -1 && errno == EINTR);
     
     IpcSemaphoreLock_return = errStatus;
@@ -478,11 +474,7 @@ IpcSemaphoreSilentLock(semId, sem, lock)
     sops.sem_num = sem;
     
     IpcSemaphoreSilentLock_return =
-#ifndef SINGLE_USER
 	semop(semId, (struct sembuf **)&sops, 1);
-#else
-	0;
-#endif
 }
 
 /****************************************************************************/
@@ -519,11 +511,7 @@ IpcSemaphoreUnlock(semId, sem, lock)
      * ----------------
      */
     do {
-#ifndef SINGLE_USER
 	errStatus = semop(semId, (struct sembuf **)&sops, 1);
-#else
-	errStatus = 0;
-#endif
     } while (errStatus == -1 && errno == EINTR);
     
     IpcSemaphoreUnlock_return = errStatus;
@@ -562,11 +550,7 @@ IpcSemaphoreSilentUnlock(semId, sem, lock)
     sops.sem_num = sem;
     
     IpcSemaphoreSilentUnlock_return =
-#ifndef SINGLE_USER
 	semop(semId, (struct sembuf **)&sops, 1);
-#else
-	0;
-#endif
 }
 
 int
@@ -763,8 +747,14 @@ static SLock **FreeSLockPP;
 static int *UnusedSLockIP;
 static slock_t *SLockMemoryLock;
 static IpcMemoryId SLockMemoryId = -1;
-static int SLockMemorySize = sizeof(SLock*) + sizeof(int) + 
-			     sizeof(slock_t) + NSLOCKS*sizeof(SLock);
+struct ipcdummy {		/* to get alignment/size right */
+    SLock	*free;
+    int		unused;
+    slock_t	memlock;
+    SLock	slocks[NSLOCKS];
+};
+static int SLockMemorySize = sizeof(struct ipcdummy);
+
 void
 CreateAndInitSLockMemory(key)
 IPCKey key;
@@ -795,19 +785,20 @@ void
 AttachSLockMemory(key)
 IPCKey key;
 {
-    char *slockM;
+    struct ipcdummy *slockM;
+
     if (SLockMemoryId == -1)
 	   SLockMemoryId = IpcMemoryIdGet(key,SLockMemorySize);
     if (SLockMemoryId == -1)
 	   elog(FATAL, "SLockMemory not in shared memory");
-    slockM = IpcMemoryAttach(SLockMemoryId);
+    slockM = (struct ipcdummy *) IpcMemoryAttach(SLockMemoryId);
     if (slockM == IpcMemAttachFailed)
 	elog(FATAL, "AttachSLockMemory: could not attach segment");
-    FreeSLockPP = (SLock**)slockM;
-    UnusedSLockIP = (int*)(FreeSLockPP + 1);
-    SLockMemoryLock = (slock_t*)(UnusedSLockIP + 1);
+    FreeSLockPP = (SLock **) &(slockM->free);
+    UnusedSLockIP = (int *) &(slockM->unused);
+    SLockMemoryLock = (slock_t *) &(slockM->memlock);
     S_INIT_LOCK(SLockMemoryLock);
-    SLockArray = (SLock*)LONGALIGN((SLockMemoryLock + 1));
+    SLockArray = (SLock *) &(slockM->slocks[0]);
     return;
 }
 
