@@ -171,12 +171,9 @@ planner (parse)
     LispValue flag = LispNil;
     List plan_list = LispNil;
 
-    if ( root_ruleinfo (root) )
-      special_plans = process_rules (parse);
-    else 
-      plan_list = lispCons(lispAtom("inherits"),
-			   lispCons(lispAtom("union"),
-				    lispCons(lispAtom("archive"),LispNil)));
+    plan_list = lispCons(lispAtom("inherits"),
+		       lispCons(lispAtom("union"),
+				lispCons(lispAtom("archive"),LispNil)));
     foreach (flag,plan_list) {
 	int rt_index = first_matching_rt_entry (rangetable,CAR(flag));
 	if ( rt_index != -1 )
