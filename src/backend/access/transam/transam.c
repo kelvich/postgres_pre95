@@ -93,6 +93,11 @@ TransactionId FirstTransactionId = &FirstTransactionIdData;
  */
 int RecoveryCheckingEnableState = 0;
 
+/* ------------------
+ *	spinlock for oid generation
+ * -----------------
+ */
+extern int OidGenLockId;
 /* ----------------
  *	recovery checking accessors
  * ----------------
@@ -505,6 +510,15 @@ InitializeTransactionLog()
     logRelation = 	heap_openr(LogRelationName);
     timeRelation = 	heap_openr(TimeRelationName);
     VariableRelation = 	heap_openr(VariableRelationName);
+   /* ----------------
+    *   XXX TransactionLogUpdate requires that LogRelation
+    *	 and TimeRelation are valid so we temporarily set
+    *	 them so we can initialize things properly.
+    *	 This could be done cleaner.
+    * ----------------
+    */
+    LogRelation =  logRelation;
+    TimeRelation = timeRelation;
 
     /* ----------------
      *   if we have a virgin database, we initialize the log and time
@@ -514,17 +528,8 @@ InitializeTransactionLog()
      *   happens as a side effect of bootstrapping in varsup.c.
      * ----------------
      */
-    n = RelationGetNumberOfBlocks(logRelation);
-    if (n == 0) {
-	/* ----------------
-	 *   XXX TransactionLogUpdate requires that LogRelation
-	 *	 and TimeRelation are valid so we temporarily set
-	 *	 them so we can initialize things properly.
-	 *	 This could be done cleaner.
-	 * ----------------
-	 */
-	LogRelation =  logRelation;
-	TimeRelation = timeRelation;
+    SpinAcquire(OidGenLockId);
+    if (!TransactionIdDidCommit(AmiTransactionId)) {
 
 	/* ----------------
 	 *  SOMEDAY initialize the information stored in
@@ -533,9 +538,6 @@ InitializeTransactionLog()
 	 */
 	TransactionLogUpdate(AmiTransactionId, XID_COMMIT);
 	VariableRelationPutNextXid(FirstTransactionId);
-	
-	LogRelation =  (Relation) NULL;
-	TimeRelation = (Relation) NULL;
 	
     } else if (RecoveryCheckingEnabled()) {
 	/* ----------------
@@ -546,6 +548,9 @@ InitializeTransactionLog()
 	 */
 	TransRecover();
     }
+    LogRelation =  (Relation) NULL;
+    TimeRelation = (Relation) NULL;
+    SpinRelease(OidGenLockId);
     
     /* ----------------
      *	now re-enable the transaction system
