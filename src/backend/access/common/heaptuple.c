@@ -659,17 +659,19 @@ fastgetattr(tup, attnum, att, isnull)
 		     * the type of the attribute we're fetching, otherwise 
 		     * we might not get the right n bytes.
 		     */
-		    if (att[attnum]->attlen == sizeof(short))
-			off = SHORTALIGN(off + PSIZE(tp + off));
-		    else if (att[attnum]->attlen == sizeof(char))
-			off += PSIZE(tp + off);
-		    else
-			off += LONGALIGN(PSIZE(tp + off));
+		    off += PSIZE(tp + off);
 		    break;
 		default:
 		    off = LONGALIGN(off + att[i]->attlen);
 		    break;
 	    }
+	}
+
+	switch(att[attnum]->attlen)
+	{
+		case sizeof(char)  : break;
+		case sizeof(short) : off = SHORTALIGN(off); break;
+		default            : off = LONGALIGN(off); break;
 	}
 
 	return((char *) fetchatt(att + attnum, tp + off));
