@@ -62,8 +62,6 @@
 
 #define OutEStateExists
 
-extern void     OutEState();
-extern bool     EqualEState();
 
 /* ----------------------------------------------------------------
  *                      Executor Support Types

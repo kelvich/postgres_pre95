@@ -1,4 +1,5 @@
 /* $Header$ */
+
 extern void set_ii_NumKeyAttributes ARGS((IndexInfo node, int value));
 extern int get_ii_NumKeyAttributes ARGS((IndexInfo node));
 extern void set_ii_FuncIndexInfo ARGS((IndexInfo node, FuncIndexInfoPtr finfo));
