@@ -403,6 +403,8 @@ ObjectId ruleId;
  * prs2LockUnion
  *
  * Create the union of two locks.
+ * NOTE: we make COPIES of the locks. The two original locks
+ * are NOT modified.
  */
 RuleLock
 prs2LockUnion(lock1, lock2)
