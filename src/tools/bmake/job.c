@@ -572,9 +572,9 @@ JobFinish (job, status)
 {
     Boolean 	  done;
 
-    if ((WIFEXITED(status) &&
+    if ((WIFEXITED(status.w_status) &&
 	  (((status.w_retcode != 0) && !(job->flags & JOB_IGNERR)))) ||
-	(WIFSIGNALED(status) && (status.w_termsig != SIGCONT)))
+	(WIFSIGNALED(status.w_status) && (status.w_termsig != SIGCONT)))
     {
 	/*
 	 * If it exited non-zero and either we're doing things our
@@ -604,7 +604,7 @@ JobFinish (job, status)
 	    fclose(job->cmdFILE);
 	}
 	done = TRUE;
-    } else if (WIFEXITED(status) && status.w_retcode != 0) {
+    } else if (WIFEXITED(status.w_status) && status.w_retcode != 0) {
 	/*
 	 * Deal with ignored errors in -B mode. We need to print a message
 	 * telling of the ignored error as well as setting status.w_status
@@ -622,8 +622,8 @@ JobFinish (job, status)
     }
     
     if (done ||
-	WIFSTOPPED(status) ||
-	(WIFSIGNALED(status) && (status.w_termsig == SIGCONT)) ||
+	WIFSTOPPED(status.w_status) ||
+	(WIFSIGNALED(status.w_status) && (status.w_termsig == SIGCONT)) ||
 	DEBUG(JOB))
     {
 	FILE	  *out;
@@ -639,7 +639,7 @@ JobFinish (job, status)
 	    out = stdout;
 	}
 
-	if (WIFEXITED(status)) {
+	if (WIFEXITED(status.w_status)) {
 	    if (status.w_retcode != 0) {
 		if (usePipes && job->node != lastNode) {
 		    fprintf (out, targFmt, job->node->name);
@@ -658,7 +658,7 @@ JobFinish (job, status)
 		}
 		fprintf (out, "*** Completed successfully\n");
 	    }
-	} else if (WIFSTOPPED(status)) {
+	} else if (WIFSTOPPED(status.w_status)) {
 	    if (usePipes && job->node != lastNode) {
 		fprintf (out, targFmt, job->node->name);
 		lastNode = job->node;
@@ -1930,7 +1930,7 @@ Job_CatchChildren (block)
 	jnode = Lst_Find (jobs, (ClientData)pid, JobCmpPid);
 
 	if (jnode == NILLNODE) {
-	    if (WIFSIGNALED(status) && (status.w_termsig == SIGCONT)) {
+	    if (WIFSIGNALED(status.w_status) && (status.w_termsig == SIGCONT)) {
 		jnode = Lst_Find(stoppedJobs, (ClientData)pid, JobCmpPid);
 		if (jnode == NILLNODE) {
 		    Error("Resumed child (%d) not in table", pid);

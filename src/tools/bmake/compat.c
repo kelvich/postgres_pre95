@@ -277,9 +277,9 @@ CompatRunCommand (cmd, gn)
 	}
 	
 	if (stat > -1) {
-	    if (WIFSTOPPED(reason)) {
+	    if (WIFSTOPPED(reason.w_status)) {
 		status = reason.w_stopval;		/* stopped */
-	    } else if (WIFEXITED(reason)) {
+	    } else if (WIFEXITED(reason.w_status)) {
 		status = reason.w_retcode;		/* exited */
 		if (status != 0) {
 		    printf ("*** Error code %d", status);
@@ -290,7 +290,7 @@ CompatRunCommand (cmd, gn)
 	    } 
 
 	    
-	    if (!WIFEXITED(reason) || (status != 0)) {
+	    if (!WIFEXITED(reason.w_status) || (status != 0)) {
 		if (errCheck) {
 		    gn->made = ERROR;
 		    if (keepgoing) {
