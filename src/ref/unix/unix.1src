@@ -64,7 +64,7 @@ from
 to
 .b trusted
 as explained in
-.b "define C function"
+.b "define function <C>"
 (commands),
 and
 maintain a set of template databases
