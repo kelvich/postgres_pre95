@@ -487,6 +487,7 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
 
     Assert ( rlocks != NULL );	
     Assert ( *drop_user_query == false );
+
     /*
      * if we got here, there better be some locks on the
      * current range table entry, and drop_user_query cannot
@@ -587,6 +588,12 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
 	if ( retrieve_locks ) {
 	    printf ( "\nThese retrieve rules were triggered: \n");
 	    PrintRuleLockList ( retrieve_locks );
+	    
+	    /*
+	     * testing for event qualifications go here
+	     * n event quals generate sq(n) "user_parsetrees" ?
+	     * or n+1 parsetrees ?
+	     */
 	    additional_queries = ModifyVarNodes ( retrieve_locks,
 						 length ( user_rangetable ),
 						 current_varno,
@@ -611,9 +618,19 @@ ProcessEntry ( user_parsetree , reldesc , user_rangetable ,
     return ( additional_queries );
 }
 
-List 
+List
 QueryRewrite ( parsetree )
      List parsetree;
+{
+    extern List QRS();
+
+    return ( QRS ( parsetree , NULL ) );
+}
+
+List 
+QRS ( parsetree , already_handled )
+     List parsetree;
+     List already_handled;
 {
     List new_parsetree 		= NULL;
     List new_rewritten 		= NULL;
@@ -638,8 +655,12 @@ QueryRewrite ( parsetree )
     user_command 		= root_command_type ( user_root );
     user_rt_length 		= length ( user_rangetable );
 
+#ifdef VERBOSE
+
     printf("\nQueryRewrite being called with :\n");
     Print_parse ( parsetree );
+
+#endif
 
     /*
      * only for a delete may the targetlist be NULL
@@ -654,6 +675,7 @@ QueryRewrite ( parsetree )
 	Name this_rtname = NULL;
 	Relation this_relation = NULL;
 	RuleLock this_entry_locks = NULL;
+	ObjectId this_relid = NULL;
 
 	this_rtname = (Name)CString( CADR ( user_rtentry ));
 	    
@@ -662,6 +684,13 @@ QueryRewrite ( parsetree )
 
 	elog(NOTICE,"checking for locks on %s", this_rtname );
 	this_entry_locks = RelationGetRelationLocks ( this_relation );
+	this_relid = RelationGetRelationId ( this_relation );
+
+	if ( member ( lispInteger( this_relid ), already_handled ) )
+	  continue;
+	
+	already_handled = lispCons ( lispInteger( this_relid ),
+				     NULL );
 
 	if ( this_entry_locks != NULL ) {
 	    /* 
@@ -700,7 +729,7 @@ QueryRewrite ( parsetree )
 		    new_rewritten = NULL;
 		    
 		    if ( new_parsetree != NULL ) 
-		      new_rewritten = QueryRewrite ( new_parsetree );
+		      new_rewritten = QRS ( new_parsetree , already_handled );
 		    if ( new_rewritten == NULL ) {
 			/* if nothing in fact got changed */
 			output_parselist = 
