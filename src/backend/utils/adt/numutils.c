@@ -39,23 +39,35 @@ pg_atoi(s, size, c)
     case sizeof(int32):
 #ifdef PORTNAME_alpha
 	/* won't get ERANGE on these with 64-bit longs... */
-	if (l < -0x80000000)
-	    elog(WARN, "pg_atoi: \"%s\" causes int4 underflow", s);
-	if (l > 0x7fffffff)
-	    elog(WARN, "pg_atoi: \"%s\" causes int4 overflow", s);
+	if (l < -0x80000000) {
+	    errno = ERANGE;
+	    elog(WARN, "pg_atoi: error reading \"%s\": %m", s);
+	}
+	if (l > 0x7fffffff) {
+	    errno = ERANGE;
+	    elog(WARN, "pg_atoi: error reading \"%s\": %m", s);
+	}
 #endif /* PORTNAME_alpha */
 	break;
     case sizeof(int16):
-	if (l < -0x8000)
-	    elog(WARN, "pg_atoi: \"%s\" causes int2 underflow", s);
-	if (l > 0x7fff)
-	    elog(WARN, "pg_atoi: \"%s\" causes int2 overflow", s);
+	if (l < -0x8000) {
+	    errno = ERANGE;
+	    elog(WARN, "pg_atoi: error reading \"%s\": %m", s);
+	}
+	if (l > 0x7fff) {
+	    errno = ERANGE;
+	    elog(WARN, "pg_atoi: error reading \"%s\": %m", s);
+	}
 	break;
     case sizeof(int8):
-	if (l < -0x80)
-	    elog(WARN, "pg_atoi: \"%s\" causes int1/char underflow", s);
-	if (l > 0x7f)
-	    elog(WARN, "pg_atoi: \"%s\" causes int1/char overflow", s);
+	if (l < -0x80) {
+	    errno = ERANGE;
+	    elog(WARN, "pg_atoi: error reading \"%s\": %m", s);
+	}
+	if (l > 0x7f) {
+	    errno = ERANGE;
+	    elog(WARN, "pg_atoi: error reading \"%s\": %m", s);
+	}
 	break;
     default:
 	elog(WARN, "pg_atoi: invalid result size: %d", size);
