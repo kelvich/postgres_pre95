@@ -18,19 +18,19 @@
 #ifndef ExecNodesIncluded
 #define ExecNodesIncluded
 
-#include "recursion_a.h"        /* recursion stuff that must go first - JRB */
-#include "primnodes.h"
-#include "pg_lisp.h"
-#include "nodes.h"              /* bogus inheritance system */
-#include "params.h"             /* parameterized plan stuff... */
-#include "prs2.h"               /* for the prs2_info field of EState */
+#include "executor/recursion_a.h" /* recursion stuff that must go first - JRB */
+#include "nodes/primnodes.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/nodes.h"              /* bogus inheritance system */
+#include "rules/params.h"             /* parameterized plan stuff... */
+#include "rules/prs2.h"               /* for the prs2_info field of EState */
 
-#include "item.h"
-#include "sdir.h"
-#include "htup.h"
-#include "tim.h"
-#include "rel.h"
-#include "relscan.h"
+#include "storage/item.h"
+#include "access/sdir.h"
+#include "access/htup.h"
+#include "tmp/tim.h"
+#include "utils/rel.h"
+#include "access/relscan.h"
 #include "executor/hashjoin.h"
 #include "executor/tuptable.h"
 
@@ -210,6 +210,10 @@ class (EState) public (Node) {
       TupleTable        es_tupleTable;
 };
 
+class (ReturnState) public (Node) {
+      inherits(Node);
+      Relation resultTmpRelDesc;
+};
 
 /* ----------------
  *      Executor Type information needed by plannodes.h
@@ -556,7 +560,7 @@ class (ParallelState) public (BaseNode) {
  * See comments in rulescan.h for more details....
  * ----------
  */
-#include "rulescan.h"
+#include "access/rulescan.h"
 
 /* ----------------
  *   CommonScanState information
@@ -631,6 +635,12 @@ class (ScanState) public (CommonScanState) {
       bool                      ss_ProcOuterFlag;
       Index                     ss_OldRelId;
   /* public: */
+};
+
+class (ScanTempState) public (CommonScanState) {
+	inherits(CommonScanState);
+/* private: */
+/* public: */
 };
 
 /* ----------------

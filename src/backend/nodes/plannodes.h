@@ -21,11 +21,11 @@
 #ifndef PlanNodesIncluded
 #define	PlanNodesIncluded
 
-#include "nodes.h"		/* bogus inheritance system */
-#include "pg_lisp.h"
-#include "oid.h"
-#include "recursion_a.h"        /* recursion stuff that must go first */
-#include "primnodes.h"
+#include "nodes/nodes.h"		/* bogus inheritance system */
+#include "nodes/pg_lisp.h"
+#include "tmp/oid.h"
+#include "executor/recursion_a.h"       /* recursion stuff that must go first */
+#include "nodes/primnodes.h"
 #include "rules/prs2stub.h"
 
 /* ----------------------------------------------------------------
@@ -64,7 +64,7 @@
  *
  * ----------------------------------------------------------------
  */
-#include "execnodes.h"		/* XXX move executor types elsewhere */
+#include "nodes/execnodes.h"		/* XXX move executor types elsewhere */
 
 
 /* ----------------------------------------------------------------
@@ -109,6 +109,8 @@
 #define	PrintSortExists
 #define	PrintHashExists
 #define PrintUniqueExists
+#define PrintFragmentExists
+#define PrintScanTempExists
 
 extern void	PrintPlan();
 extern void	PrintResult();
@@ -125,11 +127,15 @@ extern void	PrintIndexScan();
 extern void	PrintTemp();
 extern void	PrintSort();
 extern void	PrintHash();
+extern void     PrintScanTemp();
+extern void     PrintFragment();
 
 /* ----------------
  *	Node Equal Function declarations
  * ----------------
  */
+#define EqualFragmentExists
+
 extern bool	EqualPlan();
 extern bool	EqualResult();
 extern bool	EqualExistential();
@@ -145,6 +151,7 @@ extern bool	EqualIndexScan();
 extern bool	EqualTemp();
 extern bool	EqualSort();
 extern bool	EqualHash();
+extern bool     EqualFragment();
 
 /* ----------------
  *	Node Copy Function declarations
@@ -166,6 +173,7 @@ extern bool	EqualHash();
 #define	CopySortExists
 #define	CopyHashExists
 #define CopyUniqueExists
+#define CopyScanTempExists
 
 extern bool	CopyPlan();
 extern bool	CopyResult();
@@ -182,6 +190,7 @@ extern bool	CopyIndexScan();
 extern bool	CopyTemp();
 extern bool	CopySort();
 extern bool	CopyHash();
+extern bool     CopyScanTemp();
 
 /* ----------------------------------------------------------------
  *			node definitions
@@ -201,12 +210,31 @@ class (Plan) public (Node) {
 	Index			fragment; \
 	int			parallel; \
 	struct EState		*state; \
+	struct ReturnState	*retstate; \
 	List			qptargetlist; \
 	List			qpqual; \
 	struct Plan		*lefttree; \
 	struct Plan		*righttree
  /* private: */
 	PlanDefs;
+ /* public: */
+};
+
+
+/* --------------
+ *  Fragment node
+ * --------------
+ */
+class (Fragment) public (Node) {
+#define FragmentDefs \
+        inherits(Node); \
+        Plan                    frag_root; \
+        Plan                    frag_parent_op; \
+        int                     frag_parallel; \
+        List                    frag_subtrees; \
+        struct Fragment         *frag_parent_frag
+ /* private: */
+        FragmentDefs;
  /* public: */
 };
 
@@ -320,6 +348,16 @@ class (SeqScan) public (Scan) {
  /* public: */
 };
 
+class (ScanTemp) public (Plan) {
+#define ScanTempDefs \
+        inherits(Plan); \
+        Relation        temprelDesc; \
+        ScanTempState   scantempState
+/* private: */
+        ScanTempDefs;
+/* public: */
+};
+
 /* ----------------
  *	index scan node
  * ----------------
@@ -352,7 +390,7 @@ class (JoinRuleInfo) public (Node) {
 	RuleLock	jri_lock;
 	ObjectId	jri_ruleid;
 	Prs2StubId	jri_stubid;
-	Prs2OneStub	jri_stub
+	Prs2OneStub	jri_stub;
  /* public: */
 };
 
