@@ -12,7 +12,7 @@
 #define fetchatt(A, T) \
  ((*(A))->attbyval ? \
   ((*(A))->attlen > sizeof(short) ? (char *) *(long *) (T) : \
-   ((*(A))->attlen < sizeof(short) ? (char *) *(T) : \
+   ((*(A))->attlen < sizeof(short) ? *(char *) (T) : \
 	(char *) * (short *) (T))) : (char *) (T))
 	
 #endif
