@@ -43,6 +43,14 @@
  */
 #include "rules/prs2locks.h"
 
+#ifdef PROTOTYPES
+/* ANSI C hack for forward declaration in prototypes */
+struct _EState;
+struct RelationRuleInfoData;
+struct Prs2StubData;
+struct Prs2OneStubData;
+#endif /* PROTOTYPES */
+
 /*------------------------------------------------------------------
  * Comment out the following line to supress debugging output
  * #define PRS2_DEBUG 1
@@ -117,6 +125,43 @@ typedef struct Prs2RuleDataData {
 
 typedef Prs2RuleDataData *Prs2RuleData;
 
+
+/*========================================================================
+ * EState Rule Info + Rule Stack
+ *
+ * This structure (which is kept inside the executor state node EState)
+ * contains some information used by the rule manager.
+ *
+ * RULE DETECTION MECHANISM:
+ * prs2Stack: A stack where enough information is ketp in order to detect
+ *	rule loops.
+ * prs2StackPointer: the next (free) stack entry
+ * prs2MaxStackSize: number of stack entries allocated. If
+ *      prs2StackPointer is >= prs2MaxStackSize the stack is full
+ *	and we have to reallocate some more memory...
+ *
+ * MISC INFO:
+ *	This would normally go down by the prs2stack.c prototypes
+ *	but we have some forward references.
+ *========================================================================
+ */
+typedef struct Prs2StackData {
+    ObjectId		ruleId;		/* OID of the rule */
+    ObjectId		tupleOid;	/* the tuple that activated the rule*/
+    AttributeNumber	attrNo;		/* the locked attribute */
+} Prs2StackData;
+
+typedef Prs2StackData *Prs2Stack;
+
+typedef struct Prs2EStateInfoData {
+    Prs2Stack	prs2Stack;	/* the stack used for loop detection */
+    int		prs2StackPointer;	/* the next free stack entry */
+    int		prs2MaxStackSize;	/* the max number of entries */
+} Prs2EStateInfoData;
+
+typedef  Prs2EStateInfoData *Prs2EStateInfo;
+
+
 /*==================================================================
  * PRS2 MAIN ROUTINES
  *
@@ -124,7 +169,6 @@ typedef Prs2RuleDataData *Prs2RuleData;
  * about!
  *==================================================================
  */
-
 
 /*====================== FILE: prs2main.c
  * prs2Main
@@ -141,7 +185,7 @@ typedef int Prs2Status;
 #define PRS2_STATUS_TUPLE_CHANGED	2
 #define PRS2_STATUS_INSTEAD	3
 
-extern Prs2Status prs2Main ARGS((EState estate, struct RelationRuleInfoData *retrieveRelationRuleInfo, int operation, int userId, Relation relation, HeapTuple oldTuple, Buffer oldBuffer, HeapTuple newTuple, Buffer newBuffer, int rawTuple, int rawBuffer, AttributeNumberPtr attributeArray, int numberOfAttributes, HeapTuple *returnedTupleP, Buffer *returnedBufferP));
+extern Prs2Status prs2Main ARGS((struct _EState *estate, struct RelationRuleInfoData *retrieveRelationRuleInfo, int operation, int userId, Relation relation, HeapTuple oldTuple, Buffer oldBuffer, HeapTuple newTuple, Buffer newBuffer, HeapTuple rawTuple, Buffer rawBuffer, AttributeNumberPtr attributeArray, int numberOfAttributes, HeapTuple *returnedTupleP, Buffer *returnedBufferP));
 extern bool prs2MustCallRuleManager ARGS((struct RelationRuleInfoData *relationRuleInfo, HeapTuple oldTuple, Buffer oldBuffer, int operation));
 
 
@@ -297,8 +341,8 @@ extern bool prs2IsATupleLevelLockRule ARGS((ObjectId ruleId, ObjectId relationId
  */
 extern bool prs2DefTupleLevelLockRule ARGS((Prs2RuleData r, bool hintFlag));
 extern RuleLock prs2FindLocksThatWeMustPut ARGS((struct Prs2StubData *stubs, RuleLock newlock, AttributeNumber attrno));
-extern struct Prs2StubData *prs2FindStubsThatDependOnAttribute ARGS((Prs2Stub stubs, AttributeNumber attrno));
-extern bool prs2DoesStubDependsOnAttribute ARGS((Prs2OneStub onestub, AttributeNumber attrno));
+extern struct Prs2StubData *prs2FindStubsThatDependOnAttribute ARGS((struct Prs2StubData *stubs, AttributeNumber attrno));
+extern bool prs2DoesStubDependsOnAttribute ARGS((struct Prs2OneStubData *onestub, AttributeNumber attrno));
 extern bool prs2LockWritesAttributes ARGS((RuleLock locks, AttributeNumber *attrList, int attrListSize));
 extern void prs2FindAttributesOfQual ARGS((LispValue qual, int varno, AttributeNumber **attrListP, int *attrListSizeP));
 extern void prs2UndefTupleLevelLockRule ARGS((ObjectId ruleId, ObjectId relationOid));
@@ -473,41 +517,6 @@ extern int attributeValuesMakeNewTuple ARGS((HeapTuple tuple, Buffer buffer, Att
 extern HeapTuple attributeValuesCombineNewAndOldTuple ARGS((AttributeValues rawAttrValues, AttributeValues newAttrValues, Relation relation, AttributeNumberPtr attributeArray, AttributeNumber numberOfAttributes));
 
 
-/*========================================================================
- * EState Rule Info + Rule Stack
- *
- * This structure (which is kept inside the executor state node EState)
- * contains some information used by the rule manager.
- *
- * RULE DETECTION MECHANISM:
- * prs2Stack: A stack where enough information is ketp in order to detect
- *	rule loops.
- * prs2StackPointer: the next (free) stack entry
- * prs2MaxStackSize: number of stack entries allocated. If
- *      prs2StackPointer is >= prs2MaxStackSize the stack is full
- *	and we have to reallocate some more memory...
- *
- * MISC INFO:
- * 
- *========================================================================
- */
-typedef struct Prs2StackData {
-    ObjectId		ruleId;		/* OID of the rule */
-    ObjectId		tupleOid;	/* the tuple that activated the rule*/
-    AttributeNumber	attrNo;		/* the locked attribute */
-} Prs2StackData;
-
-typedef Prs2StackData *Prs2Stack;
-
-typedef struct Prs2EStateInfoData {
-    Prs2Stack	prs2Stack;	/* the stack used for loop detection */
-    int		prs2StackPointer;	/* the next free stack entry */
-    int		prs2MaxStackSize;	/* the max number of entries */
-} Prs2EStateInfoData;
-
-typedef  Prs2EStateInfoData *Prs2EStateInfo;
-
-
 /*====================== FILE: prs2stack.c
  * prs2RuleStackPush
  *    Add a new entry to the rule stack. First check if there is enough
@@ -554,7 +563,7 @@ extern Prs2Status prs2Retrieve ARGS((Prs2EStateInfo prs2EStateInfo, struct Relat
 /*====================== FILE: prs2append.c
  */
 extern Prs2Status prs2Append ARGS((Prs2EStateInfo prs2EStateInfo, struct RelationRuleInfoData *relationRuleInfo, Relation explainRelation, HeapTuple tuple, Buffer buffer, Relation relation, HeapTuple *returnedTupleP, Buffer *returnedBufferP));
-extern RuleLock prs2FindLocksForNewTupleFromStubs ARGS((HeapTuple tuple, Buffer buffer, Prs2Stub stubs, Relation relation));
+extern RuleLock prs2FindLocksForNewTupleFromStubs ARGS((HeapTuple tuple, Buffer buffer, struct Prs2StubData *stubs, Relation relation));
 
 
 /*====================== FILE: prs2delete.c 
