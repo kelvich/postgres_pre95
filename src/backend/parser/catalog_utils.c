@@ -825,6 +825,11 @@ typeid_get_retinfunc(type_id)
         OID             infunc;
         typeTuple = SearchSysCacheTuple(TYPOID, (char *) type_id,
                   (char *) NULL, (char *) NULL, (char *) NULL);
+	if ( !HeapTupleIsValid ( typeTuple ))
+	    elog(WARN,
+		 "typeid_get_retinfunc: Invalid type - oid = %d",
+		 type_id);
+
         type = (TypeTupleForm) GETSTRUCT(typeTuple);
         infunc = type->typinput;
         return(infunc);
@@ -839,6 +844,9 @@ typeid_get_relid(type_id)
         OID             infunc;
         typeTuple = SearchSysCacheTuple(TYPOID, (char *) type_id,
                   (char *) NULL, (char *) NULL, (char *) NULL);
+	if ( !HeapTupleIsValid ( typeTuple ))
+	    elog(WARN, "typeid_get_relid: Invalid type - oid = %d ", type_id);
+
         type = (TypeTupleForm) GETSTRUCT(typeTuple);
         infunc = type->typrelid;
         return(infunc);
