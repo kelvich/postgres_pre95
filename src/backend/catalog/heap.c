@@ -626,13 +626,6 @@ heap_create(relname, arch, natts, smgr, tupdesc)
      */
     pg_relation_desc = amopenr(RelationRelationName);
 
-    /* ----------------
-     * Set a write lock right at the start.  This prevents upgrading
-     * the lock from read to write and deadlock when running multi-user
-     * ----------------
-     */
-    RelationSetLockForWrite(pg_relation_desc);
-
     if (RelationAlreadyExists(pg_relation_desc, relname)) {
 	amclose(pg_relation_desc);
 	elog(WARN, "amcreate: %s relation already exists", relname);
@@ -1093,12 +1086,13 @@ DeletePgTypeTuple(rdesc)
 
     /* ----------------
      *  Ok, it's safe so we delete the relation tuple
-     *  from pg_type and finish up.
+     *  from pg_type and finish up.  But first end the scan so that
+     *  we release the read lock on pg_type.  -mer 13 Aug 1991
      * ----------------
      */
+    amendscan(pg_type_scan);
     amdelete(pg_type_desc, &tup->t_ctid);
 
-    amendscan(pg_type_scan);
     amclose(pg_type_desc);
 }
 
