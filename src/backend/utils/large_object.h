@@ -84,7 +84,28 @@ LargeObject;
 
 typedef struct
 {
-	int fd; /* Postgres internal file descriptor */
+	union {
+	    struct unix_fs {
+		int fd;			/* Postgres virtual file descriptor */
+	    } u_fs;
+
+	    struct inversion_fs {
+		Relation heap_r;	/* heap relation */
+		Relation index_r;	/* index relation on seqno attribute */
+		IndexScanDesc iscan;	/* index scan we're using */
+		TupleDescriptor hdesc;	/* heap relation tuple desc */
+		uint32 lowbyte;		/* low byte on the current page */
+		uint32 hibyte;		/* high byte on the current page */
+		uint32 offset;		/* current seek pointer */
+		ItemPointerData htid;	/* tid of current heap tuple */
+
+#define IFS_RDLOCK	(1 << 0)
+#define IFS_WRLOCK	(1 << 1)
+
+		u_long flags;		/* locking info, etc */
+
+	    } i_fs;
+	} ofs;
 	LargeObject *object;
 }
 LargeObjectDesc;
