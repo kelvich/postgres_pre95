@@ -15,9 +15,11 @@
  * ----------------------------------------------------------------
  */
 
-#include <pwd.h>		/* for getpwent */
+#include <grp.h>		/* for getgrgid */
+#include <pwd.h>		/* for getpwuid */
+#include <strings.h>
 #include <sys/param.h>		/* for MAXPATHLEN */
-#include <sys/types.h>		/* for dev_t */
+#include <sys/types.h>
 #include <sys/stat.h>
 
 #include "tmp/postgres.h"
@@ -39,8 +41,7 @@
  */
 #define EnableAbortEnvVarName	"POSTGRESABORT"
 
-typedef String	EnvVarName;
-extern String getenv ARGS((EnvVarName name));
+extern	char *getenv ARGS((const char *name));	/* XXX STDLIB */
 
 /* ----------------------------------------------------------------
  *		some of the 19 ways to leave postgres
@@ -218,7 +219,6 @@ SetUserName()
 {
 	char *p;
 	struct passwd *pw;
-	extern char *getenv();	/* XXX STDLIB */
 
 	Assert(!UserName.data[0]);	/* only once */
 
@@ -227,7 +227,7 @@ SetUserName()
 		if (!(p = getenv("PG_USER")))
 			elog(FATAL, "SetUserName: PG_USER environment variable unset");
 	} else {
-		/* setuid() has not yet been done */
+		/* setuid() has not yet been done, see above comment */
 		if (!(pw = getpwuid(getuid())))
 			elog(FATAL, "SetUserName: no entry in passwd file");
 		p = pw->pw_name;
@@ -310,33 +310,90 @@ GetPGData()
 }
 
 /*
- * ValidBackend -- is "path" a valid POSTGRES executable file?
+ * ValidateBackend -- validate "path" as a POSTGRES executable file
+ *
+ * returns 0 if the file is found and no error is encountered.
+ *	  -1 if the regular file "path" does not exist or cannot be executed.
+ *	  -2 if the file is otherwise valid but cannot be read.
  */
-ValidBackend(path)
-	char	*path;
+ValidateBackend(path)
+    char	*path;
 {
-	struct stat	buf;
-	char		*p;
-	extern char	*rindex();
-	
-	/* Ensure that the file exists and is executable. */
-	
-	if (strlen(path) > MAXPGPATH ||
-	    (stat(path, &buf) < 0) ||
-	    !(buf.st_mode & S_IEXEC))
-		return(FALSE);
-	
-	/* Ensure that we are using an authorized backend */
-	
-	/*
-	 * XXX this is bogus, but it's better than nothing for now.
-	 * you used to be able to run emacs by dinking the postmaster
-	 * with the right packets.
-	 */
-	if (!(p = rindex(path, '/')) || strncmp(++p, "postgres", 8))
-		return(FALSE);
-	
-	return(TRUE);
+    struct stat		buf;
+    uid_t		euid;
+    struct group	*gp;
+    struct passwd	*pwp;
+    int			i;
+    int			is_r = 0;
+    int			is_x = 0;
+    int			in_grp = 0;
+    
+    /*
+     * Ensure that the file exists and is a regular file.
+     *
+     * XXX if you have a broken system where stat() looks at the symlink
+     *     instead of the underlying file, you lose.
+     */
+    if (strlen(path) >= MAXPGPATH ||
+	(stat(path, &buf) < 0) ||
+	!(buf.st_mode & S_IFREG)) {
+	if (DebugLvl > 1)
+	    fprintf(stderr, "ValidateBackend: \"%s\" is not a regular file\n",
+		    path);
+	return(-1);
+    }
+    
+    /*
+     * Ensure that we are using an authorized backend. 
+     *
+     * XXX I'm open to suggestions here.  I would like to enforce ownership
+     *     of backends by user "postgres" but people seem to like to run
+     *     as users other than "postgres"...
+     */
+
+    /*
+     * Ensure that the file is both executable and readable (required for
+     * dynamic loading).
+     *
+     * We use the effective uid here because the backend will not have
+     * executed setuid() by the time it calls this routine.
+     */
+    euid = geteuid();
+    if (euid == buf.st_uid) {
+	is_r = buf.st_mode & S_IRUSR;
+	is_x = buf.st_mode & S_IXUSR;
+	if (DebugLvl > 1 && !(is_r && is_x))
+	    fprintf(stderr, "ValidateBackend: \"%s\" is not user read/execute\n",
+		    path);
+	return(is_x ? (is_r ? 0 : -2) : -1);
+    }
+    if (pwp = getpwuid(euid)) {
+	if (pwp->pw_gid == buf.st_gid) {
+	    ++in_grp;
+	} else if (pwp->pw_name &&
+		   (gp = getgrgid(buf.st_gid))) {
+	    for (i = 0; gp->gr_mem[i]; ++i) {
+		if (!strcmp(gp->gr_mem[i], pwp->pw_name)) {
+		    ++in_grp;
+		    break;
+		}
+	    }
+	}
+	if (in_grp) {
+	    is_r = buf.st_mode & S_IRGRP;
+	    is_x = buf.st_mode & S_IXGRP;
+	    if (DebugLvl > 1 && !(is_r && is_x))
+		fprintf(stderr, "ValidateBackend: \"%s\" is not group read/execute\n",
+			path);
+	    return(is_x ? (is_r ? 0 : -2) : -1);
+	}
+    }
+    is_r = buf.st_mode & S_IROTH;
+    is_x = buf.st_mode & S_IXOTH;
+    if (DebugLvl > 1 && !(is_r && is_x))
+	fprintf(stderr, "ValidateBackend: \"%s\" is not other read/execute\n",
+		path);
+    return(is_x ? (is_r ? 0 : -2) : -1);
 }
 
 /*
@@ -347,100 +404,110 @@ ValidBackend(path)
  * executable file -- otherwise, we can't do dynamic loading.
  */
 FindBackend(backend, argv0)
-	char	*backend, *argv0;
+    char	*backend, *argv0;
 {
-	char		buf[MAXPATHLEN];
-	char		*p;
-	char		*path, *startp, *endp;
-	int		pathlen;
-	extern char	*index(), *rindex();
+    char	buf[MAXPATHLEN];
+    char	*p;
+    char	*path, *startp, *endp;
+    int		pathlen;
 
-	/*
-	 * for the postmaster:
-	 * First try: use the backend that's located in the same directory
-	 * as the postmaster, if it was invoked with an explicit path.
-	 * Presumably the user used an explicit path because it wasn't in
-	 * PATH, and we don't want to use incompatible executables.
-	 *
-	 * This has the neat property that it works for installed binaries,
-	 * old source trees (obj/support/post{master,gres}) and new marc
-	 * source trees (obj/post{master,gres}) because they all put the 
-	 * two binaries in the same place.
-	 *
-	 * for the backend server:
-	 * First try: if we're given some kind of path, use it (making sure
-	 * that a relative path is made absolute before returning it).
-	 */
-	if (argv0 && (p = rindex(argv0, '/')) && *++p) {
-		if (*argv0 == '/' || !getwd(buf))
-			buf[0] = '\0';
-		else
-			(void) strcat(buf, "/");
-		(void) strcat(buf, argv0);
-		if (IsPostmaster) { /* change "postmaster" to "postgres" */
-			p = rindex(buf, '/');
-			(void) strcpy(++p, "postgres");
-		}
-		if (!ValidBackend(buf)) {
-			fprintf(stderr, "FindBackend: could not find postgres using the pathname provided\n");
-			return(-1);
-		}
+    /*
+     * for the postmaster:
+     * First try: use the backend that's located in the same directory
+     * as the postmaster, if it was invoked with an explicit path.
+     * Presumably the user used an explicit path because it wasn't in
+     * PATH, and we don't want to use incompatible executables.
+     *
+     * This has the neat property that it works for installed binaries,
+     * old source trees (obj/support/post{master,gres}) and new marc
+     * source trees (obj/post{master,gres}) because they all put the 
+     * two binaries in the same place.
+     *
+     * for the backend server:
+     * First try: if we're given some kind of path, use it (making sure
+     * that a relative path is made absolute before returning it).
+     */
+    if (argv0 && (p = strrchr(argv0, '/')) && *++p) {
+	if (*argv0 == '/' || !getwd(buf))
+	    buf[0] = '\0';
+	else
+	    (void) strcat(buf, "/");
+	(void) strcat(buf, argv0);
+	if (IsPostmaster) { /* change "postmaster" to "postgres" */
+	    p = strrchr(buf, '/');
+	    (void) strcpy(++p, "postgres");
+	}
+	if (!ValidateBackend(buf)) {
+	    (void) strncpy(backend, buf, MAXPGPATH);
+	    if (DebugLvl)
+		fprintf(stderr, "FindBackend: found \"%s\" using argv[0]\n",
+			backend);
+	    return(0);
+	}
+	fprintf(stderr, "FindBackend: invalid backend \"%s\"\n",
+		buf);
+	return(-1);
+    }
+    
+    /*
+     * Second try: since no explicit path was supplied, the user must
+     * have been relying on PATH.  We'll use the same PATH.
+     */
+    if ((p = getenv("PATH")) && *p) {
+	if (DebugLvl)
+	    fprintf(stderr, "FindBackend: searching PATH ...\n");
+	pathlen = strlen(p);
+	if (!(path = malloc(pathlen + 1)))
+	    elog(FATAL, "FindBackend: malloc failed");
+	(void) strcpy(path, p);
+	for (startp = path, endp = strchr(path, ':');
+	     startp && *startp;
+	     startp = endp + 1, endp = strchr(startp, ':')) {
+	    if (startp == endp)	/* it's a "::" */
+		continue;
+	    if (endp)
+		*endp = '\0';
+	    (void) strcpy(buf, startp);
+	    (void) strcat(buf, "/postgres");
+	    switch (ValidateBackend(buf)) {
+	    case 0:		/* found ok */
 		(void) strncpy(backend, buf, MAXPGPATH);
 		if (DebugLvl)
-			fprintf(stderr, "FindBackend: found backend \"%s\" through argv[0]\n",
-				backend);
-		return(0);
-	}
-
-	/*
-	 * Second try: since no explicit path was supplied, the user must
-	 * have been relying on PATH.  We'll use the same PATH.
-	 */
-	if ((p = getenv("PATH")) && *p) {
-		pathlen = strlen(p);
-		if (!(path = malloc(pathlen + 1)))
-			elog(FATAL, "FindBackend: malloc failed");
-		(void) strcpy(path, p);
-		for (startp = path, endp = index(path, ':');
-		     startp && *startp;
-		     startp = endp + 1, endp = index(startp, ':')) {
-			if (startp == endp)	/* it's a "::" */
-				continue;
-			if (endp)
-				*endp = '\0';
-			(void) strcpy(buf, startp);
-			(void) strcat(buf, "/postgres");
-			if (ValidBackend(buf)) {
-				(void) strncpy(backend, buf, MAXPGPATH);
-				free(path);
-				if (DebugLvl)
-					fprintf(stderr, "FindBackend: found backend \"%s\" through PATH\n",
-						backend);
-				return(0);
-			}
-			if (!endp)		/* last one */
-				break;
-		}
+		    fprintf(stderr, "FindBackend: found \"%s\" using PATH\n",
+			    backend);
 		free(path);
+		return(0);
+	    case -1:		/* wasn't even a candidate, keep looking */
+		break;
+	    case -2:		/* found but disqualified */
+		fprintf(stderr, "FindBackend: could not read backend \"%s\"\n",
+			buf);
+		free(path);
+		return(-1);
+	    }
+	    if (!endp)		/* last one */
+		break;
 	}
-	
+	free(path);
+    }
+    
 #ifdef USE_ENVIRONMENT
-	/*
-	 * Desperation time: try the ol' POSTGRESHOME hack.
-	 */
-	if (p = getenv("POSTGRESHOME")) {
-		(void) strcpy(buf, p);
-		(void) strcat(buf, "/bin/postgres");
-		if (ValidBackend(buf)) {
-			(void) strncpy(backend, buf, MAXPGPATH);
-			if (DebugLvl)
-				fprintf(stderr, "FindBackend: found backend \"%s\" through POSTGRESHOME\n",
-					backend);
-			return(0);
-		}
+    /*
+     * Desperation time: try the ol' POSTGRESHOME hack.
+     */
+    if (p = getenv("POSTGRESHOME")) {
+	(void) strcpy(buf, p);
+	(void) strcat(buf, "/bin/postgres");
+	if (!ValidateBackend(buf)) {
+	    (void) strncpy(backend, buf, MAXPGPATH);
+	    if (DebugLvl)
+		fprintf(stderr, "FindBackend: found \"%s\" through POSTGRESHOME\n",
+			backend);
+	    return(0);
 	}
+    }
 #endif /* USE_ENVIRONMENT */
-
-	fprintf(stderr, "FindBackend: could not find a backend to execute...\n");
-	return(-1);
+    
+    fprintf(stderr, "FindBackend: could not find a backend to execute...\n");
+    return(-1);
 }
