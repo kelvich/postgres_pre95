@@ -1,0 +1,57 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP VACUUM COMMANDS 8/11/91
+.XA 2 Vacuum
+.uh NAME
+.lp
+vacuum \*- vacuum a database
+.uh SYNOPSIS
+.lp
+.b vacuum
+.uh DESCRIPTION
+.lp
+.b Vacuum
+is the POSTGRES
+vacuum cleaner.
+It opens every class in the database,
+moves deleted records to the archive for archived relations,
+cleans out records from aborted transactions,
+and updates statistics in the system catalogs.
+The statistics maintained include the number of tuples
+and number of pages stored in all classes.
+Running
+.b vacuum
+periodically will increase POSTGRES' speed in processing
+user queries.
+.lp
+The open database is the one that is
+vacuumed.
+This is a new Postquel command in release 3.0;
+earlier releases of POSTGRES had a separate program for vacuuming
+databases.
+That program has been replaced by the
+.b vacuum
+shell script;
+see
+.b vacuum (unix)
+for details.
+.lp
+We recommend that production databases be vacuumed nightly,
+in order to keep statistics relatively current.
+The
+.b vacuum
+query may be executed at any time,
+however.
+In particular,
+after copying a large class into POSTGRES
+or deleting a large number of records,
+it may be a good idea to issue a
+.b vacuum
+query.
+This will update the system catalogs with the
+results of all recent changes,
+and allow the POSTGRES query optimizer to make
+better choices in planning user queries.
+.uh "SEE ALSO"
+.lp
+vacuum(unix).

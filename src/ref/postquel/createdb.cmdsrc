@@ -1,0 +1,35 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP CREATEDB COMMANDS 8/11/91
+.XA 2 Createdb
+.uh NAME
+.lp
+createdb \*- create a new database
+.uh SYNOPSIS
+.lp
+.b createdb
+dbname
+.uh DESCRIPTION
+.lp
+.b Createdb
+creates a new POSTGRES database.
+The creator becomes the administrator of the new database.
+This is a new query language command as of release 3.0.
+.lp
+Since
+.b createdb
+is a Postquel command,
+it must be executed from inside an existing database.
+For this reason,
+the
+.b initdb
+program must have been run to set up the template database.
+The
+.b createdb
+shell script simply opens the template database and executes
+this query.
+.uh "SEE ALSO"
+.lp
+destroydb(commands),
+initdb(unix),
+createdb(unix).
