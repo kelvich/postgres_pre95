@@ -133,6 +133,7 @@ AbsoluteTime timenow ARGS((void ));
 RelativeTime intervalrel ARGS((TimeInterval interval ));
 int ininterval ARGS((int32 t , TimeInterval interval ));
 AbsoluteTime timemi ARGS((AbsoluteTime AbsTime_t1 , RelativeTime RelTime_t2 ));
+RelativeTime abstimemi ARGS((AbsoluteTime AbsTime_t1 , AbsoluteTime AbsTime_t2 ));
 char *tintervalout ARGS((TimeInterval interval ));
 TimeInterval tintervalin ARGS((char *intervalstr ));
 int32 intervaleq ARGS((TimeInterval i1 , TimeInterval i2 ));
@@ -481,6 +482,25 @@ timepl(AbsTime_t1,RelTime_t2)
 
 
 /*
+ *	abstimemi		- returns the value of (AbsTime_t1 - AbsTime_t2)
+ */
+RelativeTime
+abstimemi(AbsTime_t1, AbsTime_t2)
+	AbsoluteTime	AbsTime_t1;
+	AbsoluteTime	AbsTime_t2;
+{
+       RelativeTime	t;
+
+       if (InAbsTimeInterval(AbsTime_t1) && InAbsTimeInterval(AbsTime_t2)) {
+	       t = AbsTime_t1 - AbsTime_t2;
+	       if (InRelTimeInterval(t))
+		       return(t);
+       }
+       return(INVALID_RELTIME);
+}
+
+
+/*
  *	ininterval	- returns 1, iff absolute date is in the interval
  */
 int
@@ -506,7 +526,7 @@ intervalrel(interval)
 	TimeInterval	interval;
 {
 	if (interval->status == T_INTERVAL_VALID)
-		return(timemi(interval->data[1], interval->data[0]));
+		return(abstimemi(interval->data[1], interval->data[0]));
 	else
 		return(INVALID_RELTIME);
 }
@@ -604,8 +624,6 @@ int32
 intervaleq(i1, i2)
 	TimeInterval	i1, i2;
 {
-	Assert(0);	/* XXX */
-
 	if (i1->status == T_INTERVAL_INVAL || i2->status == T_INTERVAL_INVAL)
 		return(0);	/* invalid interval */
 	return((i1->data[0] == i2->data[0]) &&
@@ -621,8 +639,6 @@ intervalleneq(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {
-	Assert(0);	/* XXX */
-
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
 		return(0);
 	return ( (intervalrel(i) == t));
@@ -637,8 +653,6 @@ intervallenne(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {
-	Assert(0);	/* XXX */
-
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
 		return(0);
 	return ( (intervalrel(i) != t));
@@ -653,8 +667,6 @@ intervallenlt(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {
-	Assert(0);	/* XXX */
-
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
 		return(0);
 	return ( (intervalrel(i) < t));
@@ -669,8 +681,6 @@ intervallengt(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {
-	Assert(0);	/* XXX */
-
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
 		return(0);
 	return ( (intervalrel(i) > t));
@@ -685,8 +695,6 @@ intervallenle(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {	
-	Assert(0);	/* XXX */
-
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
 		return(0);
 	return ( (intervalrel(i) <= t));
@@ -701,8 +709,6 @@ intervallenge(i,t)
 	TimeInterval	i;
 	RelativeTime	t;
 {
-	Assert(0);	/* XXX */
-
 	if ((i->status == T_INTERVAL_INVAL) || (t == INVALID_RELTIME))
 		return(0);
 	return ( (intervalrel(i) >= t));
@@ -715,8 +721,6 @@ int32
 intervalct(i1,i2)
 	TimeInterval	i1, i2;
 {
-	Assert(0);	/* XXX */
-
 	if (i1->status == T_INTERVAL_INVAL || i2->status == T_INTERVAL_INVAL)
 		return(0);	/* invalid interval */
 	return((i1->data[0] <= i2->data[0]) &&
@@ -730,12 +734,10 @@ int32
 intervalov(i1, i2)
 	TimeInterval	i1, i2;
 {
-	Assert(0);	/* XXX */
-
 	if (i1->status == T_INTERVAL_INVAL || i2->status == T_INTERVAL_INVAL)
 		return(0);	/* invalid interval */
-	return(ininterval(i2->data[0], i1) ||
-	       ininterval(i2->data[1], i1) );
+	return(! ((i1->data[1] <= i2->data[0]) ||
+		  (i1->data[0] >= i2->data[1])));
 }
 
 /*
