@@ -1,286 +1,224 @@
 /*
- * Copyright (c) 1980 Regents of the University of California.
- * All rights reserved.  The Berkeley software License Agreement
- * specifies the terms and conditions for redistribution.
+ * Copyright (c) 1989 The Regents of the University of California.
+ * All rights reserved.
+ *
+ * This code is derived from software contributed to Berkeley by
+ * Ken Smith of The State University of New York at Buffalo.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *	This product includes software developed by the University of
+ *	California, Berkeley and its contributors.
+ * 4. Neither the name of the University nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
  */
 
 #ifndef lint
 char copyright[] =
-"@(#) Copyright (c) 1980 Regents of the University of California.\n\
+"@(#) Copyright (c) 1989 The Regents of the University of California.\n\
  All rights reserved.\n";
-#endif not lint
+#endif /* not lint */
 
-/*
- * mv file1 file2
- */
+#ifndef lint
+static char sccsid[] = "@(#)mv.c	5.11 (Berkeley) 4/3/91";
+#endif /* not lint */
+
 #include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/time.h>
-
-#include <stdio.h>
-#include <sys/dir.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <errno.h>
-#include <signal.h>
+#include <unistd.h>
+#include <stdio.h>
+/*#include <stdlib.h>*/
+#include <string.h>
+#include "pathnames.h"
 #include "tmp/libpq-fs.h"
 
-#define	DELIM	'/'
-#define MODEBITS 07777
-
-#define	ISDIR(st)	(((st).st_mode&S_IFMT) == S_IFDIR)
-#define	ISLNK(st)	(((st).st_mode&S_IFMT) == S_IFLNK)
-#define	ISREG(st)	(((st).st_mode&S_IFMT) == S_IFREG)
-#define	ISDEV(st) \
-	(((st).st_mode&S_IFMT) == S_IFCHR || \
-	 ((st).st_mode&S_IFMT) == S_IFBLK || \
-	 ((st).st_mode&S_IFMT) == S_IFIFO)
-
-char	*sprintf();
-char	*dname();
-struct	pgstat s1, s2;
-int	iflag = 0;	/* interactive mode */
-int	fflag = 0;	/* force overwriting */
-extern	int p_errno;
+int fflg, iflg;
+extern int p_errno;
 extern char *getenv();
 
 main(argc, argv)
-	register char *argv[];
+	int argc;
+	char **argv;
 {
-	register i, r;
-	register char *arg;
-	char *dest;
-	char *dbname;
+	extern char *optarg;
+	extern int optind;
+	register int baselen, exitval, len;
+	register char *p, *endp;
+	struct pgstat sb;
+	int ch;
+	int dflag = 0;
+	char path[MAXPATHLEN + 1];
+	extern char *PQhost, *PQport;
+
+	while (((ch = getopt(argc, argv, "H:P:D:-if")) != EOF))
+		switch((char)ch) {
+		case 'H':
+			PQhost = optarg;
+			break;
+		case 'P':
+			PQport = optarg;
+			break;
+		case 'D':
+			PQsetdb(optarg);
+			dflag = 1;
+			break;		    
+		case 'i':
+			iflg = 1;
+			break;
+		case 'f':
+			fflg = 1;
+			break;
+		case '-':		/* undocumented; for compatibility */
+			goto endarg;
+		case '?':
+		default:
+			usage();
+		}
+endarg:	argc -= optind;
+	argv += optind;
 
 	if (argc < 2)
-		goto usage;
+		usage();
 
-	if ((dbname = getenv("DATABASE")) == (char *) NULL) {
-	    fprintf(stderr, "no database specified in env var DATABASE\n");
-	    fflush(stderr);
-	    exit (1);
+	if (!dflag) {
+	    char *dbname;
+	    if ((dbname = getenv("DATABASE")) == (char *) NULL) {
+		fprintf(stderr, "no database specified with -D option or in env var DATABASE\n");
+		fflush(stderr);
+		exit (1);
+	    }
+	    PQsetdb(dbname);
 	}
 
-	PQsetdb(dbname);
-
-	while (argc > 1 && *argv[1] == '-') {
-		argc--;
-		arg = *++argv;
-
-		/*
-		 * all files following a null option
-		 * are considered file names
-		 */
-		if (*(arg+1) == '\0')
-			break;
-		while (*++arg != '\0') switch (*arg) {
-
-		case 'i':
-			iflag++;
-			break;
-
-		case 'f':
-			fflag++;
-			break;
-
-		default:
-			goto usage;
-		}
-	}
-	if (argc < 3)
-		goto usage;
-	dest = argv[argc-1];
-	if (p_stat(dest, &s2) >= 0 && ISDIR(s2)) {
-		r = 0;
-		for (i = 1; i < argc-1; i++)
-			r |= movewithshortname(argv[i], dest);
-		exit(r);
-	}
-	if (argc > 3)
-		goto usage;
-	r = move(argv[1], argv[2]);
-	PQfinish();
-	exit(r);
-	/*NOTREACHED*/
-usage:
-	fprintf(stderr,
-"usage: mv [-if] f1 f2 or mv [-if] f1 ... fn d1 (`fn' is a file or directory)\n");
-	return (1);
-}
-
-movewithshortname(src, dest)
-	char *src, *dest;
-{
-	register char *shortname;
-	char target[MAXPATHLEN + 1];
-
-	shortname = dname(src);
-	if (strlen(dest) + strlen(shortname) > MAXPATHLEN - 1) {
-		error("%s/%s: pathname too long", dest,
-			shortname);
-		return (1);
-	}
-	sprintf(target, "%s/%s", dest, shortname);
-	return (move(src, target));
-}
-
-move(source, target)
-	char *source, *target;
-{
-	int targetexists;
-
-	if (p_stat(source, &s1) < 0) {
-		Perror2(source, "Cannot access");
-		return (1);
-	}
 	/*
-	 * First, try to rename source to destination.
-	 * The only reason we continue on failure is if
-	 * the move is on a nondirectory and not across
-	 * file systems.
+	 * If the stat on the target fails or the target isn't a directory,
+	 * try the move.  More than 2 arguments is an error in this case.
 	 */
-	targetexists = p_stat(target, &s2) >= 0;
-	if (targetexists) {
-		if (s1.st_ino == s2.st_ino) {
-			error("%s and %s are identical", source, target);
-			return (1);
-		}
-		if (iflag && !fflag && isatty(fileno(stdin)) &&
-		    query("remove %s? ", target) == 0)
-			return (1);
-#if 0		
-		if (access(target, 2) < 0 && !fflag && isatty(fileno(stdin))) {
-			if (query("override protection %o for %s? ",
-			  s2.st_mode & MODEBITS, target) == 0)
-				return (1);
-		}
-#endif
+	if (p_stat(argv[argc - 1], &sb) || !S_ISDIR(sb.st_mode)) {
+		if (argc > 2)
+			usage();
+		exit(do_move(argv[0], argv[1]));
 	}
-	if (p_rename(source, target) >= 0)
-		return (0);
-	Perror2(p_errno == PENOENT && targetexists == 0 ? target : source,
-	        "rename");
-	return (1);
 
-#if 0
-	if (targetexists && p_unlink(target) < 0) {
-		Perror2(target, "Cannot unlink");
-		return (1);
+	/* It's a directory, move each file into it. */
+	(void)strcpy(path, argv[argc - 1]);
+	baselen = strlen(path);
+	endp = &path[baselen];
+	*endp++ = '/';
+	++baselen;
+	for (exitval = 0; --argc; ++argv) {
+		if ((p = rindex(*argv, '/')) == NULL)
+			p = *argv;
+		else
+			++p;
+		if ((baselen + (len = strlen(p))) >= MAXPATHLEN)
+			(void)fprintf(stderr,
+			    "mv: %s: destination pathname too long\n", *argv);
+		else {
+			bcopy(p, endp, len + 1);
+			exitval |= do_move(*argv, path);
+		}
 	}
-	if (ISREG(s1)) {
-		register int fi, fo, n;
-		struct timeval tv[2];
-		char buf[MAXBSIZE];
+	PQfinish();
+	exit(exitval);
+}
 
-		fi = p_open(source, 0);
-		if (fi < 0) {
-			Perror(source);
-			return (1);
-		}
+do_move(from, to)
+	char *from, *to;
+{
+	struct pgstat sb;
+	int ask, ch, exists = 0;
 
-		fo = p_creat(target, s1.st_mode & MODEBITS,Unix);
-		if (fo < 0) {
-			Perror(target);
-			p_close(fi);
-			return (1);
-		}
-
-		for (;;) {
-			n = p_read(fi, buf, sizeof buf);
-			if (n == 0) {
-				break;
-			} else if (n < 0) {
-				Perror2(source, "p_read");
-				p_close(fi);
-				p_close(fo);
-				return (1);
-			} else if (p_write(fo, buf, n) != n) {
-				Perror2(target, "p_write");
-				p_close(fi);
-				p_close(fo);
-				return (1);
-			}
-		}
-
-		p_close(fi);
-		if (p_close(fo) < 0) {
-			Perror2(target, "p_write");
-			return (1);
+	/*
+	 * Check access.  If interactive and file exists, ask user if it
+	 * should be replaced.  Otherwise if file exists but isn't writable
+	 * make sure the user wants to clobber it.
+	 */
+	if (!fflg && /*!access(to, F_OK)*/ (exists = (p_stat(to,&sb) >= 0))) {
+		ask = 0;
+		if (iflg) {
+			(void)fprintf(stderr, "overwrite %s? ", to);
+			ask = 1;
 		}
 #if 0
-		tv[0].tv_sec = s1.st_atime;
-		tv[0].tv_usec = 0;
-		tv[1].tv_sec = s1.st_mtime;
-		tv[1].tv_usec = 0;
-		(void) utimes(target, tv); 
-#endif
-		goto cleanup;
-	}
-	error("%s: unknown file type %o", source, s1.st_mode);
-	return (1);
-
-cleanup:
-	if (p_unlink(source) < 0) {
-		/*
-		 * If the unlink failed because of ENOENT we will assume
-		 * that somebody rm'ed the file before we got a chance
-		 * to do it.  So just report the failure but leave the
-		 * target there.  Also, don't remove target when target
-		 * existed previously.
-		 */
-		if (p_errno == PENOENT || targetexists)
-			Perror2(source, "Cannot unlink");
-		else  {
-			(void) p_unlink(target);
-			Perror2(source, "Cannot unlink");
+		else if (access(to, W_OK) && !stat(to, &sb)) {
+			(void)fprintf(stderr, "override mode %o on %s? ",
+			    sb.st_mode & 07777, to);
+			ask = 1;
 		}
-		return (1);
+#endif
+		if (ask) {
+			if ((ch = getchar()) != EOF && ch != '\n')
+				while (getchar() != '\n');
+			if (ch != 'y')
+				return(0);
+		}
 	}
-	return (0);
+	if (!p_rename(from, to))
+		return(0);
+        Perror2(p_errno == PENOENT && exists == 0 ? to : from,
+                "rename");
+        return (1);
+
+#if 0
+	if (errno != EXDEV) {
+		(void)fprintf(stderr,
+		    "mv: rename %s to %s: %s\n", from, to, strerror(errno));
+		return(1);
+	}
+
+	/*
+	 * If rename fails, and it's a regular file, do the copy internally;
+	 * otherwise, use cp and rm.
+	 */
+	if (p_stat(from, &sb)) {
+		(void)fprintf(stderr, "mv: %s: %s\n", from, strerror(errno));
+		return(1);
+	}
+	return(S_ISREG(sb.st_mode) ?
+	    fastcopy(from, to, &sb) : copy(from, to));
 #endif
 }
 
-/*VARARGS*/
-query(prompt, a1, a2)
-	char *a1;
-{
-	register int i, c;
-
-	fprintf(stderr, prompt, a1, a2);
-	i = c = getchar();
-	while (c != '\n' && c != EOF)
-		c = getchar();
-	return (i == 'y');
-}
-
-char *
-dname(name)
-	register char *name;
-{
-	register char *p;
-
-	p = name;
-	while (*p)
-		if (*p++ == DELIM && *p)
-			name = p;
-	return name;
-}
-
-/*VARARGS*/
-error(fmt, a1, a2)
-	char *fmt;
-{
-
-	fprintf(stderr, "mv: ");
-	fprintf(stderr, fmt, a1, a2);
-	fprintf(stderr, "\n");
-}
-
-Perror(s)
+error(s)
 	char *s;
 {
-	char buf[MAXPATHLEN + 10];
-	
-	sprintf(buf, "mv: %s", s);
-	perror(buf);
+	if (s)
+		(void)fprintf(stderr, "mv: %s: %s\n", s, strerror(errno));
+	else
+		(void)fprintf(stderr, "mv: %s\n", strerror(errno));
+}
+
+usage()
+{
+	(void)fprintf(stderr,
+"usage: mv [-H host] [-P port] [-D database] [-if] src target;\n   or: mv [-if] src1 ... srcN directory\n");
+	exit(1);
 }
 
 Perror2(s1, s2)
@@ -291,3 +229,4 @@ Perror2(s1, s2)
 	sprintf(buf, "mv: %s: %s", s1, s2);
 	perror(buf);
 }
+
