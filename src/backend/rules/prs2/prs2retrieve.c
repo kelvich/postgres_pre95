@@ -24,9 +24,11 @@
  * prs2Retrieve
  */
 Prs2Status
-prs2Retrieve(prs2EStateInfo, explainRelation, tuple, buffer, attributeArray,
+prs2Retrieve(prs2EStateInfo, scanStateRuleInfo,
+	    explainRelation, tuple, buffer, attributeArray,
 	    numberOfAttributes, relation, returnedTupleP, returnedBufferP)
 Prs2EStateInfo prs2EStateInfo;
+ScanStateRuleInfo scanStateRuleInfo;
 Relation explainRelation;
 HeapTuple tuple;
 Buffer buffer;
@@ -50,6 +52,8 @@ Buffer *returnedBufferP;
      *
      * XXX: Hmm... for the time being only use the locks
      * that are on the RelationRelation...
+     * NOTE: these locks have been put in 'scanStateRuleInfo'
+     * when the scan state was initialized .
      * XXX: note this only happens in a retrieve operation.
      * in delete/replce/append we only use the locks stored in
      * the tuple. So, this routine must put the right locks
@@ -59,8 +63,20 @@ Buffer *returnedBufferP;
     locksInTuple = prs2GetLocksFromTuple(tuple, buffer,
 				RelationGetTupleDescriptor(relation));
     */
-    relName = & ((RelationGetRelationTupleForm(relation))->relname);
-    locks = prs2GetLocksFromRelation(relName);
+    if (scanStateRuleInfo == NULL) {
+	/*
+	 * this should not happen!
+	 */
+	elog(WARN,"prs2Retrieve: scanStateRuleInfop==NULL!");
+    }
+    locks = scanStateRuleInfo->relationLocks;
+
+    /*
+     * If there are no rules, then return immediatelly...
+     */
+    if (locks == NULL) {
+	return(PRS2_STATUS_TUPLE_UNCHANGED);
+    }
 
     /*
      * now extract from the tuple the array of the attribute values.
@@ -127,7 +143,14 @@ Buffer *returnedBufferP;
 				attrValues, locks, LockTypeRetrieveWrite,
 				relation, returnedTupleP);
 
-    prs2FreeLocks(locks);
+    /*
+     * DO NOT FREE THE LOCKS! locks are (currently) part of the
+     * scan state!
+     *
+     * prs2FreeLocks(locks);
+     *
+     */
+
     attributeValuesFree(attrValues);
 
     if (insteadRuleFound) {
