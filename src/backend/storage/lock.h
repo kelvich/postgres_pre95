@@ -7,6 +7,7 @@
 #include "storage/itemptr.h"
 #include "storage/spin.h"
 #include "storage/procq.h"
+#include "storage/backendid.h"
 #include "utils/hsearch.h"
 
 extern SPINLOCK LockMgrLock;
@@ -48,6 +49,7 @@ typedef int TableId;
 
 typedef struct ltag {
   oid			relId;
+  oid			dbId;
   ItemPointerData	tupleId;
 } LOCKTAG;
 
@@ -123,8 +125,9 @@ typedef struct ltable {
  */
 
 typedef struct XIDTAG {
-  SHMEM_OFFSET                lock;
-  TransactionIdData           xid;
+  SHMEM_OFFSET		lock;
+  BackendId		backendId;
+  TransactionIdData	xid;
 } XIDTAG;
 
 typedef struct XIDLookupEnt {
@@ -177,8 +180,8 @@ typedef struct Lock {
 
 /*
 #define LOCK_PRINT(where,tag,type)\
-  elog(DEBUG, "%s: rel (%d) tid (%d,%d) type (%d)\n",where, \
-	 tag->relId,\
+  elog(DEBUG, "%s: rel (%d) dbid (%d) tid (%d,%d) type (%d)\n",where, \
+	 tag->relId, tag->dbId, \
 	 ( (tag->tupleId.blockData.data[0] >= 0) ? \
 		BlockIdGetBlockNumber(&tag->tupleId.blockData) : -1 ), \
 	 tag->tupleId.positionData, \

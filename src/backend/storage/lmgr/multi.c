@@ -25,6 +25,7 @@
 #include "storage/lock.h"
 #include "utils/rel.h"
 #include "utils/log.h"
+#include "tmp/miscadmin.h"		/* MyDatabaseId */
 #include "storage/multilev.h"
 
 
@@ -119,6 +120,7 @@ LOCKT		lockt;
    */
   bzero(&tag,sizeof(tag));
   tag.relId = RelationGetRelationId(reln);
+  tag.dbId = MyDatabaseId;
   return(MultiAcquire(MultiTableId, &tag, lockt, RELN_LEVEL));
 }
 
@@ -144,6 +146,7 @@ LOCKT		lockt;
   bzero(&tag,sizeof(tag));
 
   tag.relId = RelationGetRelationId(reln);
+  tag.dbId = MyDatabaseId;
 
   /* not locking any valid Tuple, just the page */
   tag.tupleId = *tidPtr;
@@ -177,6 +180,7 @@ LOCKT		lockt;
    * ----------------------------
    */
   tag.relId = RelationGetRelationId(reln);
+  tag.dbId = MyDatabaseId;
   BlockIdCopy( ItemPointerBlockId(&tag.tupleId), ItemPointerBlockId(tidPtr) );
   return(MultiAcquire(MultiTableId, &tag, lockt, PAGE_LEVEL));
 }
@@ -237,6 +241,7 @@ LOCKT		lockt;
    */
   bzero(tmpTag,sizeof(*tmpTag));
   tmpTag->relId = tag->relId;
+  tmpTag->dbId = tag->dbId;
 
   for (i=0;i<N_LEVELS;i++) {
     if (locks[i] != NO_LOCK) {
@@ -304,6 +309,7 @@ LOCKT		lockt;
   bzero(&tag, sizeof(LOCKTAG));
 
   tag.relId = RelationGetRelationId(reln);
+  tag.dbId = MyDatabaseId;
   BlockIdCopy( ItemPointerBlockId(&tag.tupleId), ItemPointerBlockId(tidPtr) );
 
   return (MultiRelease(MultiTableId, &tag, lockt, PAGE_LEVEL));
@@ -327,6 +333,7 @@ LOCKT		lockt;
    */
   bzero(&tag, sizeof(LOCKTAG));
   tag.relId = RelationGetRelationId(reln);
+  tag.dbId = MyDatabaseId;
 
   return (MultiRelease(MultiTableId, &tag, lockt, RELN_LEVEL));
 }
@@ -379,6 +386,8 @@ LOCKT		lockt;
    */
   bzero(tmpTag,sizeof(*tmpTag));
   tmpTag->relId = tag->relId;
+  tmpTag->dbId =  tag->dbId;
+
   for (i=(N_LEVELS-1); i>=0; i--) 
   {
     if (locks[i] != NO_LOCK) 
