@@ -67,7 +67,7 @@ bool _enable_sort_ =        true;
 bool _enable_hash_ =        false;    /* XXX just for now */
 bool _enable_nestloop_ =    true;
 bool _enable_mergesort_ =   true;
-bool _enable_hashjoin_ =    false;   /* XXX just for now */
+bool _enable_hashjoin_ =    true;
 #else /* _xprs_ */
 #define _xprs_	0
 bool _cost_weirdness_ = false;
