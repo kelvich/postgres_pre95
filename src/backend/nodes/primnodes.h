@@ -66,6 +66,7 @@
 #define	OutOperExists
 #define OutConstExists
 #define OutVarExists
+#define OutArrayExists
 
 extern void	OutResdom();
 extern void	OutExpr();
@@ -74,6 +75,7 @@ extern void	OutFunc();
 extern void	OutOper();
 extern void	OutConst();
 extern void	OutVar();
+extern void	OutArray();
 
 /* ----------------
  *	Node Equal Function declarations
@@ -86,6 +88,7 @@ extern void	OutVar();
 #define	EqualOperExists
 #define EqualConstExists
 #define EqualVarExists
+#define EqualArrayExists
 
 /* ----------------
  *	Node Copy Function declarations
@@ -98,6 +101,7 @@ extern void	OutVar();
 #define	CopyOperExists
 #define CopyConstExists
 #define CopyVarExists
+#define CopyArrayExists
 
 extern bool	CopyResdom();
 extern bool	CopyExpr();
@@ -106,6 +110,7 @@ extern bool	CopyFunc();
 extern bool	CopyOper();
 extern bool	CopyConst();
 extern bool	CopyVar();
+extern bool	CopyArray();
 
 /* ----------------------------------------------------------------
  *			node definitions
