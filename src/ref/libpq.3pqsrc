@@ -144,13 +144,13 @@ argument is the object identifier of the function to be executed.
 and
 .IR result_buf
 specify the expected size (in bytes) of the function return value and
-a buffer in which to load the return value.  (Variable-length sizes
-are specified as -1.)  The actual size of the return value will be
-loaded into
-.IR actual_result_len .
+a buffer in which to load the return value.  The actual size of the
+returned value will be loaded into the space pointed to by
+.IR actual_result_len
+if it is a valid pointer.
 .IR result_type
-should be set to 1 if the return type is a 4-byte integer and 2 in all
-other cases.
+should be set to 1 if the return type is an integer and 2 in all other
+cases.
 .IR args
 and
 .IR nargs
@@ -170,6 +170,11 @@ or \*(lqV\*(rq if the function returned nothing.
 pointer and loads
 .IR PQerrormsg
 if any error (fatal or non-fatal) occurs.
+.IP
+.IR PQfn
+returns an error if
+.IR result_buf
+is not large enough to contain the returned value.
 .(C
 char *PQfn(fnid, result_buf, result_len,
 	   actual_result_len,
@@ -207,11 +212,15 @@ for more details),
 will return the strings \*(lqDCOPY\*(rq and \*(lqBCOPY\*(rq,
 respectively.
 .IP
-The current implementation can return strings beginning with the
-characters \*(lqA\*(rq and \*(lqI\*(rq.  These indicate that the
-backend server thinks that it is processing an asynchronous portal and
-indicate a serious bug (since asynchronous portals are not implemented
-in \*(PG Version \*(PV).
+A string beginning with the character \*(lqI\*(rq indicates that the
+server has finished sending the results of a multi-query command
+(e.g., has finished processing an asynchronous portal command).
+.IP
+The protocol can return strings beginning with the character
+\*(lqA\*(rq.  However, this indicates that the backend server thinks
+that it is processing an asynchronous portal and indicates a serious
+bug (since asynchronous portals are not implemented in \*(PG Version
+\*(PV).
 .IP
 If a non-fatal error occurred during the execution of the query,
 .IR PQexec
@@ -578,7 +587,8 @@ It is like
 however, in that it converts the terminating newline into a null
 character.
 .IP
-Returns EOF at EOF, 0 if the entire line has been read, and 1 if the
+.IR PQgetline
+returns EOF at EOF, 0 if the entire line has been read, and 1 if the
 buffer is full but the terminating newline has not yet been read.
 .IP
 Notice that the application must check to see if a new line consists
@@ -591,7 +601,13 @@ that are more than
 characters long, the application must be sure to check the return
 value of 
 .IR PQgetline
-carefully.
+very carefully.
+.IP
+The code in
+.(C
+\&.../src/bin/monitor/monitor.c
+.)C
+contains routines that correctly handle the copy protocol.
 .(C
 PQgetline(string, length)
 	char *string;
