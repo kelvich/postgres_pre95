@@ -806,8 +806,8 @@ path_inter(p1, p2)
 	long	box_overlap();
 	int	i, j;
 
-	b1.xh = b1.yh = b2.xh = b2.yh = HUGE;
-	b1.xl = b1.yl = b2.xl = b2.yl = -HUGE;
+	b1.xh = b1.yh = b2.xh = b2.yh = -HUGE;
+	b1.xl = b1.yl = b2.xl = b2.yl = HUGE;
 	for (i = 0; i < p1->npts; ++i) {
 		b1.xh = MAX(p1->p[i].x, b1.xh);
 		b1.yh = MAX(p1->p[i].y, b1.yh);
