@@ -18,6 +18,12 @@
  *	Declarations for util/syscache.c.
  *
  *	SysCache identifiers.
+ *
+ *      The order of these must match the order
+ *      they are entered into the structure cacheinfo[] in syscache.c 
+ *      The best thing to do is to add yours at the END, because some
+ *      code assumes that certain caches are at certain places in this
+ *      array.
  */
 
 #define	AMOPOPID	0
@@ -52,6 +58,7 @@
 #define GRONAME		29
 #define GROSYSID	30
 #define	REWRITENAME	31
+#define PROSRC          32
 
 /* ----------------
  *	struct cachedesc:	information needed for a call to InitSysCache()
@@ -77,3 +84,8 @@ int32 SearchSysCacheStruct();
 HeapTuple SearchSysCacheTuple();
 
 #endif /* !SysCacheIncluded */
+
+
+
+
+
