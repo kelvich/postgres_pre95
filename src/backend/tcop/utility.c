@@ -216,6 +216,10 @@ ProcessUtility(command, args, commandString, dest)
 	    isFrom = (bool)(CAtom(CAAR(args)) == FROM);
 	    fileName = CString(CADR(CAR(args)));
 
+		/* Free up file descriptors - going to do a read... */
+
+		closeAllVfds();
+
             if (isFrom && !strcmp(fileName, "stdin"))
             {
                  pipe = true;

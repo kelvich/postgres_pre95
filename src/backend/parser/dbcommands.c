@@ -30,6 +30,8 @@ char *dbname;
 
     if (check_security("createdb", dbname))
     {
+		/* Free up file descriptors so we can do the system's below */
+		closeAllVfds();
         if (NStriping == 0)
         {
             path = GetDataHome();
