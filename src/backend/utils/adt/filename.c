@@ -7,9 +7,7 @@
 
 #define MAXPATHLEN 256
 
-/*
- * "$Header$"
- */
+RcsId("$Header$");
 
 char *
 filename_in(file)
@@ -96,12 +94,14 @@ char *file;
 
 char *
 filename_out(s)
-
-char *s;
-
+	char *s;
 {
-	char *ret = (char *) palloc(strlen(s));
+	char *ret;
 
-	strcpy(ret, s);
-	return(ret);
+	if (!s)
+		return((char *) NULL);
+	ret = (char *) palloc(strlen(s) + 1);
+	if (!ret)
+		elog(WARN, "filename_out: palloc failed");
+	return(strcpy(ret, s));
 }
