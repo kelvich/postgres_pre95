@@ -15,6 +15,7 @@ RcsId("$Header$");
 #include "access/heapam.h"
 #include "access/tqual.h"	/* for NowTimeQual */
 #include "catalog/catname.h"
+#include "catalog/indexing.h"
 #include "fmgr.h"
 #include "utils/log.h"
 #include "utils/nabstime.h"
@@ -46,6 +47,7 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	char			*values[Natts_pg_relation];
 	char			nulls[Natts_pg_relation];
 	char			replace[Natts_pg_relation];
+	Relation		idescs[Num_pg_class_indices];
 
 	Assert(NameIsValid(relationName));
 
@@ -137,6 +139,12 @@ RelationPurge(relationName, absoluteTimeString, relativeTimeString)
 	/* XXX What do you do with a RuleLock?? */
 	/* XXX How do you detect an insertion error?? */
 	heap_replace(relation, &newTuple->t_ctid, newTuple);
+
+	/* keep the system catalog indices current */
+	CatalogOpenIndices(Num_pg_class_indices, Name_pg_class_indices, idescs);
+	CatalogIndexInsert(idescs, Num_pg_class_indices, relation, newTuple);
+	CatalogCloseIndices(Num_pg_class_indices, idescs);
+
 	pfree(newTuple);
 	
 	heap_endscan(scan);
