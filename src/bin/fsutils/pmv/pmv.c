@@ -53,7 +53,7 @@ static char sccsid[] = "@(#)mv.c	5.11 (Berkeley) 4/3/91";
 #include <unistd.h>
 #include <stdio.h>
 /*#include <stdlib.h>*/
-#include <string.h>
+#include <strings.h>
 #include "pathnames.h"
 #include "tmp/libpq-fs.h"
 
