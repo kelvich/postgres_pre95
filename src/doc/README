@@ -44,3 +44,6 @@ File Name Conventions:
              access to GRN (a GREMLIN preprocessor for TROFF).
 
 <name>.doc - Flat ASCII files - just send directly to your line printer.
+
+<name>.ps  - Postscript files - these should be sent directly to your line
+			 printer IF it is a laser printer.
