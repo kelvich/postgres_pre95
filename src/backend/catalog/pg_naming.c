@@ -309,9 +309,9 @@ int LOisemptydir(path)
     namscan = heap_beginscan(namreln, false, NowTimeQual, 1, &skey);
 
     if (HeapTupleIsValid(htup = heap_getnext(namscan, false, (Buffer *) NULL)))
-	result = 1;
-    else
 	result = 0;
+    else
+	result = 1;
 
     /* clean up */
     heap_endscan(namscan);
