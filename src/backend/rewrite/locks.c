@@ -4,7 +4,7 @@
 
 #include "tmp/postgres.h"		/* for oid defs */
 #include "utils/log.h"			/* for elog */
-#include "parser/parse.h"		/* atom defs */
+#include "parse.h"			/* atom defs */
 #include "nodes/pg_lisp.h"		/* lisp support package */
 #include "rules/prs2locks.h"		/* prs2 lock definitions */
 #include "rules/prs2.h"			/* prs2 routine headers */

@@ -33,7 +33,7 @@
  */
 #include "tcop/tcopdebug.h"
 
-#include "parser/parse.h"
+#include "parse.h"
 #include "utils/log.h"
 
 #include "nodes/pg_lisp.h"

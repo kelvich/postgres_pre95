@@ -20,7 +20,7 @@ RcsId("$Header$");
 #include "tmp/miscadmin.h"
 #include "tmp/portal.h"
 #include "utils/catcache.h"
-#include "utils/fmgr.h"		/* for F_BOOLEQ, etc.  DANGER */
+#include "fmgr.h"		/* for F_BOOLEQ, etc.  DANGER */
 #include "utils/log.h"
 #include "utils/mcxt.h"
 #include "utils/rel.h"

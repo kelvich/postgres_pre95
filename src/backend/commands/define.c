@@ -26,8 +26,8 @@ RcsId("$Header$");
 #include "catalog/syscache.h"
 #include "manip.h"
 #include "nodes/pg_lisp.h"
-#include "parser/parse.h"	/* for ARG */
-#include "utils/fmgr.h"		/* for fmgr */
+#include "parse.h"		/* for ARG */
+#include "fmgr.h"		/* for fmgr */
 #include "utils/builtins.h"	/* prototype for textin() */
 #include "utils/log.h"
 

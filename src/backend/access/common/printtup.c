@@ -16,7 +16,7 @@ RcsId("$Header$");
 #include "access/skey.h"
 #include "storage/buf.h"
 #include "utils/memutils.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/log.h"
 
 #include "catalog/syscache.h"

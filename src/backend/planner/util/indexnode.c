@@ -15,7 +15,7 @@
 
 #include "tmp/postgres.h"
 
-#include "parser/parse.h"
+#include "parse.h"
 
 #include "nodes/plannodes.h"
 #include "nodes/relation.h"

@@ -38,7 +38,7 @@
 #include "planner/relnode.h"
 #include "planner/internal.h"
 #include "planner/costsize.h"
-#include "parser/parse.h"
+#include "parse.h"
 #include "planner/keys.h"
 #include "planner/tlist.h"
 #include "lib/lispsort.h"

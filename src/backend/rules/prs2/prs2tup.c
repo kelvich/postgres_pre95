@@ -14,7 +14,7 @@
 #include "tmp/postgres.h"
 #include "nodes/pg_lisp.h"
 #include "utils/log.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "executor/execdefs.h"	/* for the EXEC_RESULT */
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"

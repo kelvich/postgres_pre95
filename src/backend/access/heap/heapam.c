@@ -109,7 +109,7 @@ RcsId("$Header$");
 #include "tmp/miscadmin.h"
 
 #include "utils/memutils.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/inval.h"
 #include "utils/log.h"
 #include "utils/mcxt.h"

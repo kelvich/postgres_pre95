@@ -30,7 +30,7 @@
 #include "nodes/relation.h"
 #include "nodes/relation.a.h"
 
-#include "parser/parse.h"
+#include "parse.h"
 
 #include "utils/log.h"
 #include "tmp/nodeFuncs.h"

@@ -14,7 +14,7 @@ RcsId("$Header$");
 #include "access/itup.h"
 #include "access/tqual.h"
 #include "parser/parsetree.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/log.h"
 
 #include "nodes/pg_lisp.h"

@@ -24,7 +24,7 @@
 
 RcsId("$Header$");
 
-#include "parser/parse.h"
+#include "parse.h"
 #include "access/htup.h"
 #include "tmp/simplelists.h"
 #include "tmp/libpq-be.h"

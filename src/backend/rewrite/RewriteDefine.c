@@ -10,7 +10,7 @@
 #include "access/heapam.h"		/* access methods like amopenr */
 #include "utils/log.h"			/* for elog */
 #include "nodes/pg_lisp.h"		/* for Lisp support */
-#include "parser/parse.h"		/* lisp atom database */
+#include "parse.h"			/* lisp atom database */
 #include "parser/parsetree.h"		/* for parsetree manip defines */
 #include "./locks.h"			
 ObjectId LastOidProcessed = InvalidObjectId;

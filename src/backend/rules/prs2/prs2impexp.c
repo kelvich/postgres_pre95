@@ -12,7 +12,7 @@
 #include "utils/palloc.h"
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
-#include "parser/parse.h"	/* for APPEND, DELETE */
+#include "parse.h"		/* for APPEND, DELETE */
 
 /*----------------------------------------------------------------------
  * prs2FindNewExportLocksFromLocks

@@ -2,7 +2,7 @@
 #include "tmp/c.h"
 #include "nodes/pg_lisp.h"
 #include "nodes/relation.h"
-#include "parser/parse.h"
+#include "parse.h"
 
 extern LispValue clause_head ARGS((LispValue clause));
 extern LispValue clause_type ARGS((LispValue clause));

@@ -18,10 +18,10 @@
 #include "utils/log.h"
 #include "access/tupdesc.h"
 #include "access/heapam.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
-#include "parser/parse.h"       /* for the AND, NOT, OR */
+#include "parse.h"       	/* for the AND, NOT, OR */
 #include "nodes/plannodes.h"
 #include "nodes/execnodes.h"
 #include "nodes/execnodes.a.h"

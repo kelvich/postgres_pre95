@@ -39,7 +39,7 @@
 #include <math.h>
 
 #include "tmp/postgres.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/builtins.h"	/* for ftod() prototype */
 #include "utils/log.h"
 

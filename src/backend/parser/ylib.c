@@ -21,7 +21,7 @@
 #include "nodes/execnodes.a.h"
 #include "nodes/relation.h"
 #include "nodes/relation.a.h"
-#include "parser/parse.h"
+#include "parse.h"
 #include "parser/parsetree.h"
 #include "utils/builtins.h"
 #include "lib/lisplist.h"

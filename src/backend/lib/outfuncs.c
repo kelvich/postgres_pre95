@@ -22,7 +22,7 @@ RcsId("$Header$");
 #include "access/heapam.h"
 #include "access/htup.h"
 #include "catalog/syscache.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/log.h"
 
 #include "nodes/nodes.h"

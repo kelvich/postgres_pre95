@@ -20,7 +20,7 @@
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
 #include "nodes/execnodes.h"	/* which includes access/rulescan.h */
-#include "parser/parse.h"	/* for the DELETE */
+#include "parse.h"		/* for the DELETE */
 
 
 /*------------------------------------------------------------------

@@ -23,7 +23,7 @@
 #include "access/relscan.h"
 #include "access/skey.h"
 #include "utils/rel.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/log.h"
 
 #include "nodes/pg_lisp.h"
@@ -33,7 +33,7 @@
 #include "catalog/pg_proc.h"
 #include "catalog/pg_protos.h"
 #include "catalog/indexing.h"
-#include "parser/parse.h"  /* temporary */
+#include "parse.h"  		/* temporary */
 #include "tcop/dest.h"
 
 /* ----------------------------------------------------------------

@@ -43,7 +43,7 @@ RcsId("$Header$");
 #include "storage/itemptr.h"
 #include "tmp/hasht.h"
 #include "tmp/miscadmin.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/log.h"			/* XXX */
 #include "utils/mcxt.h"
 #include "utils/rel.h"

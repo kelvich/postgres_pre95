@@ -50,7 +50,7 @@
 #include "catalog/pg_proc.h"
 #include "catalog/pg_prs2stub.h"
 #include "utils/lsyscache.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 
 
 static Prs2Stub prs2SlowlyGetRelationStub();

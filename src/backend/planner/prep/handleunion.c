@@ -22,7 +22,7 @@
 #include "nodes/relation.h"
 #include "nodes/relation.a.h"
 
-#include "parser/parse.h"
+#include "parse.h"
 #include "parser/parsetree.h"
 #include "tmp/utilities.h"
 #include "utils/log.h"

@@ -33,7 +33,7 @@ RcsId("$Header$");
  */
 #include "tcop/tcopdebug.h"
 
-#include "parser/parse.h"
+#include "parse.h"
 #include "parser/parsetree.h"
 #include "utils/log.h"
 #include "utils/mcxt.h"

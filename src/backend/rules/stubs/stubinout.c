@@ -22,7 +22,7 @@
 #include <strings.h>
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
-#include "parser/parse.h"	/* for the AND, NOT, OR */
+#include "parse.h"		/* for the AND, NOT, OR */
 #include "utils/log.h"
 #include "tmp/datum.h"
 #include "nodes/primnodes.h"

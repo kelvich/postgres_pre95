@@ -15,7 +15,7 @@ RcsId("$Header$");
 #include "access/heapam.h"
 #include "access/tqual.h"	/* for NowTimeQual */
 #include "catalog/catname.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/log.h"
 #include "utils/nabstime.h"
 

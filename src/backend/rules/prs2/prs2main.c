@@ -14,7 +14,7 @@
  * ----------------------------------------------------------------
  */
 
-#include "parser/parse.h"	/* RETRIEVE et all are defined here */
+#include "parse.h"		/* RETRIEVE et all are defined here */
 #include "utils/log.h"
 #include "utils/rel.h"
 #include "access/heapam.h"

@@ -19,7 +19,7 @@ RcsId("$Header$");
 
 #include "access/heapam.h"
 #include "access/tqual.h"
-#include "parser/parse.h"
+#include "parse.h"
 #include "utils/log.h"
 #include "utils/palloc.h"
 #include "utils/rel.h" 		/* Relation stuff */

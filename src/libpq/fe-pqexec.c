@@ -34,7 +34,7 @@
 #include "tmp/simplelists.h"
 #include "tmp/libpq-fe.h"
 #include "tmp/fastpath.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/exception.h"
 
 RcsId ("$Header$");

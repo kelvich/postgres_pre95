@@ -12,7 +12,7 @@
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
 #include "parser/parsetree.h"
-#include "parser/parse.h"
+#include "parse.h"
 #include "utils/lsyscache.h"
 #include "./RewriteHandler.h"
 #include "./RewriteSupport.h"

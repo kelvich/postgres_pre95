@@ -33,7 +33,7 @@
 
 #include "access/ftup.h"
 #include "utils/log.h"
-#include "parser/parse.h"
+#include "parse.h"
 
 #include "nodes/pg_lisp.h"
 #include "nodes/primnodes.h"

@@ -23,7 +23,7 @@
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
 #include "nodes/execnodes.h"
-#include "parser/parse.h"	/* for RETRIEVE, APPEND etc. */
+#include "parse.h"		/* for RETRIEVE, APPEND etc. */
 #include "utils/palloc.h"
 
 extern EState CreateExecutorState();

@@ -17,7 +17,7 @@ RcsId("$Header$");
 
 #include "nodes/pg_lisp.h"
 #include "parser/atoms.h"
-#include "parser/parse.h"
+#include "parse.h"
 #include "utils/log.h"
 
 ScanKeyword	ScanKeywords[] = {

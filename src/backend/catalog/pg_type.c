@@ -23,7 +23,7 @@
 #include "access/relscan.h"
 #include "access/skey.h"
 #include "utils/rel.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/log.h"
 
 #include "catalog/catname.h"

@@ -20,10 +20,10 @@
 #include "access/tqual.h"	/* 'NowTimeQual' defined here.. */
 #include "access/heapam.h"	/* heap AM calls defined here */
 #include "utils/lsyscache.h"	/* get_attnum()  defined here...*/
-#include "parser/parse.h"	/* RETRIEVE, APPEND etc defined here.. */
+#include "parse.h"		/* RETRIEVE, APPEND etc defined here.. */
 #include "parser/parsetree.h"
 #include "catalog/catname.h"	/* names of various system relations */
-#include "utils/fmgr.h"	/* for F_CHAR16EQ, F_CHAR16IN etc. */
+#include "fmgr.h"		/* for F_CHAR16EQ, F_CHAR16IN etc. */
 #include "access/ftup.h"	/* for FormHeapTuple() */
 #include "utils/palloc.h"
 

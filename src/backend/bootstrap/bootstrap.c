@@ -25,7 +25,7 @@ RcsId("$Header$");
 #include "access/heapam.h"
 #include "access/tqual.h"
 #include "utils/exc.h"	/* for ExcAbort and <setjmp.h> */
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/mcxt.h"
 #include "storage/smgr.h"
 

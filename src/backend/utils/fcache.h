@@ -8,7 +8,7 @@
 #ifndef FcacheIncluded
 #define FcacheIncluded 1 /* include once only */
 
-#include "utils/fmgr.h"
+#include "fmgr.h"
 
 typedef struct
 {

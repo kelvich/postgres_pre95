@@ -14,7 +14,7 @@
 #include "nodes/pg_lisp.h"
 #include "utils/builtins.h"	/* for textout() prototype */
 #endif /* !UFP */
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/log.h"
 
 #include "port-protos.h"     /* system specific function prototypes */

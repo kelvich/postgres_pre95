@@ -20,7 +20,7 @@
 #include "nodes/relation.h"
 #include "nodes/relation.a.h"
 
-#include "parser/parse.h"
+#include "parse.h"
 
 #include "planner/internal.h"
 #include "planner/planner.h"

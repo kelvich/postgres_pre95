@@ -13,7 +13,7 @@ RcsId("$Header$");
 #include "access/relscan.h"
 #include "access/skey.h"
 #include "access/tqual.h"	/* for NowTimeQual */
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/log.h"
 
 #include "catalog/catname.h"

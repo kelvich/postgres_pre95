@@ -33,7 +33,7 @@
 
 #include "access/heapam.h"
 #include "access/htup.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/log.h"
 #include "storage/lmgr.h"
 #include "utils/palloc.h"

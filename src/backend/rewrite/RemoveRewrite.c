@@ -9,7 +9,7 @@
 #include "access/tqual.h"	/* 'NowTimeQual' defined here.. */
 #include "access/heapam.h"	/* heap AM calls defined here */
 #include "access/ftup.h"	/* for FormHeapTuple */
-#include "utils/fmgr.h"		/* for CHAR_16_EQ */
+#include "fmgr.h"		/* for CHAR_16_EQ */
 
 extern void prs2RemoveRelationLevelLocksOfRule();
 

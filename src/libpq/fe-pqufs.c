@@ -66,7 +66,7 @@
 #include "tmp/libpq.h"
 #include "tmp/libpq-fe.h"
 #include "tmp/libpq-fs.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "tmp/postgres.h"
 #include "tmp/fastpath.h"
 

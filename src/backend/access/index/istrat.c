@@ -36,7 +36,7 @@ RcsId("$Header$");
 #include "access/skey.h"
 #include "access/tqual.h"	/* for NowTimeQual */
 
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/log.h"
 #include "utils/rel.h"
 

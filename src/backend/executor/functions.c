@@ -14,7 +14,7 @@
 #include "tmp/postgres.h"
 
 #include "parser/parsetree.h"
-#include "parser/parse.h" /* for NOT used in macros in ExecEvalExpr */
+#include "parse.h" 		/* for NOT used in macros in ExecEvalExpr */
 #include "nodes/primnodes.h"
 #include "nodes/relation.h"
 #include "nodes/execnodes.h"
@@ -23,7 +23,7 @@
 #include "catalog/pg_proc.h"
 #include "tcop/pquery.h"
 #include "rules/params.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/fcache.h"
 #include "utils/log.h"
 #include "catalog/syscache.h"

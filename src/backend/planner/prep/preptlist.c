@@ -21,7 +21,7 @@
 #include "nodes/primnodes.a.h"
 #include "tags.h"
 
-#include "parser/parse.h"
+#include "parse.h"
 #include "utils/lsyscache.h"
 
 #include "planner/internal.h"

@@ -18,7 +18,7 @@ extern char pg_pathname[];
 #include <a.out.h>
 
 #include "tmp/c.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 
 /*
  * Allow extra space for "overruns" caused by the link.

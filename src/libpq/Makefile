@@ -5,7 +5,9 @@ LIB= pq
 .PATH:	${.CURDIR}/../backend/libpq \
 	${.CURDIR}/../backend/lib
 
-CFLAGS+= -I${.CURDIR}/../backend -DFRONTEND
+CFLAGS+= -DFRONTEND \
+	-I${.CURDIR}/../backend/obj \
+	-I${.CURDIR}/../backend
 
 .ifdef KRBVERS
 CFLAGS+= ${KRBFLAGS}

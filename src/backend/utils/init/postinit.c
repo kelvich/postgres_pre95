@@ -52,7 +52,7 @@
 #include "tmp/portal.h"		/* for EnablePortalManager, etc. */
 
 #include "utils/exc.h"		/* for EnableExceptionHandling, etc. */
-#include "utils/fmgr.h"		/* for EnableDynamicFunctionManager, etc. */
+#include "fmgr.h"		/* for EnableDynamicFunctionManager, etc. */
 #include "utils/log.h"
 #include "utils/mcxt.h"		/* for EnableMemoryContext, etc. */
 

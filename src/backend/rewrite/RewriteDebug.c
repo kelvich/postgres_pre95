@@ -15,7 +15,7 @@
 #include "nodes/primnodes.h"		/* Var, Const ... */
 #include "nodes/primnodes.a.h"
 #include "catalog/syscache.h"
-#include "parser/parse.h"
+#include "parse.h"
 #include "./RewriteSupport.h"
 
 /* to print out plans */

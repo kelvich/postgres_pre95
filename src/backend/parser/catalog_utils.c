@@ -16,7 +16,7 @@ RcsId("$Header$");
 #include "tmp/datum.h"
 
 #include "utils/log.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 
 #include "nodes/pg_lisp.h"
 #include "catalog/syscache.h"

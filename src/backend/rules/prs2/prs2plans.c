@@ -24,7 +24,7 @@
 #include "executor/execdefs.h"
 #include "executor/x_execmain.h"
 #include "parser/parsetree.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "tcop/dest.h"
 
 #include "catalog/pg_prs2rule.h"
