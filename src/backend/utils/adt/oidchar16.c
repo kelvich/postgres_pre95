@@ -39,10 +39,19 @@ oidchar16out(oidname)
     OidChar16 oidname;
 {
     char *outStr;
+    char *result = (char*) palloc(sizeof(char16) + 1);
 
+    if (oidname->name.data[0] != '\0')
+      {
+	strncpy(result, oidname->name.data, sizeof(char16));
+	result[sizeof(char16)]='\0';
+      }
+    else
+      result = '\0';
+	
     outStr = (char *)palloc(sizeof(OidChar16Data) + sizeof(ObjectId) + 2);
 
-    sprintf(outStr, "%d,%s", oidname->id, &oidname->name.data[0]);
+    sprintf(outStr, "%d,%s", oidname->id, result);
 
     return (outStr);
 }
