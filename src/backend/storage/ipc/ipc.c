@@ -16,19 +16,9 @@
 /* XXX - the following  dependency should be moved into the defaults.mk file */
 #ifndef	_IPC_
 #define _IPC_
-#ifndef sequent 
-
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <sys/shm.h>
-
-#else
-
-#include "/usr/att/usr/include/sys/ipc.h"
-#include "/usr/att/usr/include/sys/sem.h"
-#include "/usr/att/usr/include/sys/shm.h"
-
-#endif /* defined(sequent) */
 #endif
 
 #include "storage/ipci.h"		/* for PrivateIPCKey XXX */
@@ -37,7 +27,11 @@
 #include "utils/log.h"
 #include "tcop/slaves.h"
 
+#if PORTNAME == bsd44
+int UsePrivateMemory = 1;
+#else
 int UsePrivateMemory = 0;
+#endif
 
 #ifdef PARALLELDEBUG
 #include "executor/paralleldebug.h"
