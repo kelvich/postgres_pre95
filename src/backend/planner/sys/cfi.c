@@ -124,7 +124,7 @@ index_info (not_first,relid)
 /*  .. best-or-subclause-index, create_index_path, index-innerjoin
  */
 List
-index_selectivity (indid,classes,opnos,relid,flags,attnos,values,nkeys)
+index_selectivity (indid,classes,opnos,relid,attnos,values,flags,nkeys)
      ObjectId 	indid,relid;
      List	attnos;
      List 	values;
@@ -163,7 +163,10 @@ index_selectivity (indid,classes,opnos,relid,flags,attnos,values,nkeys)
 	}
 	i = 0;
 	foreach(value,values) {
-	    value_array[i++] = CInteger(CAR(value));
+	    if (IsA(CAR(value),LispStr))
+		value_array[i++] = (int)CString(CAR(value));
+	    else
+	        value_array[i++] = CInteger(CAR(value));
 	}
 	i = 0;
 	foreach(flag,flags) {
