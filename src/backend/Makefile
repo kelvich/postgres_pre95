@@ -1,3 +1,13 @@
+#
+# The following turns on intermediate linking of big objects
+# to spped the link cycle during development.  It's on by default.
+# You can disable it by commenting out the line in your local copy,
+# or by putting:
+#	.undef BIGOBJS
+# in the file obj/Makefile.global in your main tree.
+#
+BIGOBJS= true
+
 .include <postgres.global.mk>
 #
 # Use "bmake" (BSD 4.4 make) to run this Makefile
@@ -12,23 +22,117 @@ STRIP=
 #
 # This part pulls in the subdirectory partial makefiles.
 #
+.undef SRCS
 .include "${.CURDIR}/access/Makefile.inc"
+.if defined (BIGOBJS)
+OBJS_ACCESS:= ${SRCS:S/.c/.o/g}
+SRCS_ACCESS:= ${SRCS}
+SRCS:=
+.endif
 .include "${.CURDIR}/bootstrap/Makefile.inc"
-.include "${.CURDIR}/catalog/Makefile.inc"
+.if defined (BIGOBJS)
+OBJS_BOOTSTRAP:= ${SRCS:S/.c/.o/g}
+SRCS_BOOTSTRAP:= ${SRCS}
+SRCS:=
+.endif
 .include "${.CURDIR}/commands/Makefile.inc"
+.if defined (BIGOBJS)
+OBJS_COMMANDS:= ${SRCS:S/.c/.o/g}
+SRCS_COMMANDS:= ${SRCS}
+SRCS:=
+.endif
 .include "${.CURDIR}/executor/Makefile.inc"
+.if defined (BIGOBJS)
+OBJS_EXECUTOR:= ${SRCS:S/.c/.o/g}
+SRCS_EXECUTOR:= ${SRCS}
+SRCS:=
+.endif
+.include "${.CURDIR}/catalog/Makefile.inc"
 .include "${.CURDIR}/lib/Makefile.inc"
 .include "${.CURDIR}/libpq/Makefile.inc"
 .include "${.CURDIR}/main/Makefile.inc"
+.if defined (BIGOBJS)
+OBJS_MISC:= ${SRCS:S/.c/.o/g}
+SRCS_MISC:= ${SRCS}
+SRCS:=
+.endif
 .include "${.CURDIR}/nodes/Makefile.inc"
+.if defined (BIGOBJS)
+OBJS_NODES:= ${SRCS:S/.c/.o/g}
+SRCS_NODES:= ${SRCS}
+SRCS:=
+.endif
 .include "${.CURDIR}/parser/Makefile.inc"
+.if defined (BIGOBJS)
+OBJS_PARSER:= ${SRCS:S/.c/.o/g}
+SRCS_PARSER:= ${SRCS}
+SRCS:=
+.endif
 .include "${.CURDIR}/planner/Makefile.inc"
+.if defined (BIGOBJS)
+OBJS_PLANNER:= ${SRCS:S/.c/.o/g}
+SRCS_PLANNER:= ${SRCS}
+SRCS:=
+.endif
 .include "${.CURDIR}/port/Makefile.inc"
+.if defined (BIGOBJS)
+OBJS_PORT:= ${SRCS:S/.c/.o/g}
+SRCS_PORT:= ${SRCS}
+SRCS:=
+.endif
 .include "${.CURDIR}/rewrite/Makefile.inc"
+.if defined (BIGOBJS)
+OBJS_REWRITE:= ${SRCS:S/.c/.o/g}
+SRCS_REWRITE:= ${SRCS}
+SRCS:=
+.endif
 .include "${.CURDIR}/rules/Makefile.inc"
+.if defined (BIGOBJS)
+OBJS_RULES:= ${SRCS:S/.c/.o/g}
+SRCS_RULES:= ${SRCS}
+SRCS:=
+.endif
 .include "${.CURDIR}/storage/Makefile.inc"
+.if defined (BIGOBJS)
+OBJS_STORAGE:= ${SRCS:S/.c/.o/g}
+SRCS_STORAGE:= ${SRCS}
+SRCS:=
+.endif
 .include "${.CURDIR}/tcop/Makefile.inc"
+.if defined (BIGOBJS)
+OBJS_TCOP:= ${SRCS:S/.c/.o/g}
+SRCS_TCOP:= ${SRCS}
+SRCS:=
+.endif
 .include "${.CURDIR}/utils/Makefile.inc"
+.if defined (BIGOBJS)
+OBJS_UTILS:= ${SRCS:S/.c/.o/g}
+SRCS_UTILS:= ${SRCS}
+SRCS:=	${SRCS_ACCESS} ${SRCS_BOOTSTRAP} ${SRCS_COMMANDS} ${SRCS_EXECUTOR} \
+	${SRCS_MISC} ${SRCS_NODES} ${SRCS_PARSER} ${SRCS_PLANNER} \
+	${SRCS_PORT} ${SRCS_REWRITE} ${SRCS_RULES} ${SRCS_STORAGE} \
+	${SRCS_TCOP} ${SRCS_UTILS}
+
+PARTIAL_LINK: .USE 
+	${LD} -r -o ${.TARGET} ${.ALLSRC}
+
+ACCESS.o:	${OBJS_ACCESS} PARTIAL_LINK
+BOOTSTRAP.o:	${OBJS_BOOTSTRAP} PARTIAL_LINK
+COMMANDS.o:	${OBJS_COMMANDS} PARTIAL_LINK
+EXECUTOR.o:	${OBJS_EXECUTOR} PARTIAL_LINK
+MISC.o:		${OBJS_MISC} PARTIAL_LINK
+NODES.o:	${OBJS_NODES} PARTIAL_LINK
+PARSER.o:	${OBJS_PARSER} PARTIAL_LINK
+PLANNER.o:	${OBJS_PLANNER} PARTIAL_LINK
+PORT.o:		${OBJS_PORT} PARTIAL_LINK
+REWRITE.o:	${OBJS_REWRITE} PARTIAL_LINK
+RULES.o:	${OBJS_RULES} PARTIAL_LINK
+STORAGE.o:	${OBJS_STORAGE} PARTIAL_LINK
+TCOP.o:		${OBJS_TCOP} PARTIAL_LINK
+UTILS.o:	${OBJS_UTILS} PARTIAL_LINK
+SUBOBJS= ACCESS.o BOOTSTRAP.o COMMANDS.o EXECUTOR.o MISC.o NODES.o PARSER.o \
+	 PLANNER.o PORT.o REWRITE.o RULES.o STORAGE.o TCOP.o UTILS.o
+.endif
 
 #
 # If you change the value of the folowing you need to "bmake clean; bmake"
@@ -96,6 +200,15 @@ depend: .depend
 	indent ${.TARGET}
 
 .include <postgres.prog.mk>
+
+#
+# Support partial loading of big .o's
+#
+.if defined(BIGOBJS)
+CLEANFILES+= ${OBJS}
+OBJS= ${SUBOBJS}
+${PROG}: ${SUBOBJS}
+.endif
 
 #
 # (have to set this after the .include so target "all" gets defined)
