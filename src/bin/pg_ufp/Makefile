@@ -22,14 +22,14 @@ CFLAGS+= -DUFP
 # (minus the lex/yacc libraries).
 # Unfortunately, it must be sync'd by hand.
 #
-.if (${PORTNAME} == "ultrix4")
+.if (${PORTNAME} == "ultrix4" || ${PORTNAME} == "sparc")
 LDADD+= -ldl
+.elif (${PORTNAME} == "alpha")
+# nothing
 .elif (${PORTNAME} == "hpux")
 CFLAGS+= -W l,-E
 LDFLAGS+= -W l,-E
 LDADD+= -ldld
-.elif (${PORTNAME} == "sparc")
-LDADD+= -ldl
 .elif (${PORTNAME} == "aix")
 LDADD+= -lld
 HEADERS+= dlfcn.h
