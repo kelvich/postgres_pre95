@@ -294,7 +294,7 @@ main(argc, argv)
     int size;
 
     errs = 0;
-    portno = POSTPORT;
+    portno = atoi(POSTPORT);
     NBuffers = DEF_NBUFS;
     while ((c = getopt(argc, argv, "B:p:")) != EOF) {
 	switch (c) {

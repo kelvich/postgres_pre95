@@ -21,7 +21,6 @@ RcsId("$Header$");
 #define	DIR_IN		0
 #define	DIR_OUT		1
 #define IBUFSIZ		8092
-#define	DEF_PORT	"4321"
 
 #ifndef TRUE
 #define	TRUE	1
@@ -158,7 +157,7 @@ main(argc, argv)
 
     if (port == (char *) NULL) {
 	if ((port = getenv("PGPORT")) == (char *) NULL)
-	    port = DEF_PORT;
+	    port = POSTPORT;
     }
 
     if (dbname == (char *) NULL)
