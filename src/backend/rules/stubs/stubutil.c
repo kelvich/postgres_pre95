@@ -19,8 +19,12 @@
 #include "tmp/datum.h"
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
 
 extern char *palloc();
+extern Node CopyObject();
+static bool prs2OperandIsEqual();
 
 /*-------------------------------------------------------------------
  *
@@ -70,27 +74,13 @@ Prs2StubQual q2;
 	 * NOTE: take a look in 'datumIsEqual' for retrictions
 	 * in the datum equality test...
 	 */
-	if (q1->qual.simple.attrNo != q2->qual.simple.attrNo) {
-	    return(false);
-	}
 	if (q1->qual.simple.operator != q2->qual.simple.operator) {
 	    return(false);
 	}
-	if (q1->qual.simple.constType != q2->qual.simple.constType) {
+	if (!prs2OperandIsEqual(q1->qual.simple.left, q2->qual.simple.left)) {
 	    return(false);
 	}
-	if (q1->qual.simple.constByVal != q2->qual.simple.constByVal) {
-	    return(false);
-	}
-	if (q1->qual.simple.constLength != q2->qual.simple.constLength) {
-	    return(false);
-	}
-	if (!datumIsEqual(
-			q1->qual.simple.constType,
-			q1->qual.simple.constByVal,
-			q1->qual.simple.constLength,
-			q1->qual.simple.constData,
-			q2->qual.simple.constData)) {
+	if (!prs2OperandIsEqual(q1->qual.simple.right, q2->qual.simple.right)) {
 	    return(false);
 	}
 	/*
@@ -504,19 +494,32 @@ prs2FreeStubQual(qual)
 Prs2StubQual qual;
 {
     int i;
+    Const ccc;
 
     /*
      * first free all children nodes (if any)
      */
     if (qual->qualType == PRS2_SIMPLE_STUBQUAL) {
 	/*
-	 * should we free the bytes pointed by 'constData' too ?
-	 * I think yes!
+	 * should we free the bytes pointed by the "Const"
+	 * value (if it is a pointer ?)
 	 */
-	datumFree(qual->qual.simple.constType,
-			qual->qual.simple.constByVal,
-			qual->qual.simple.constLength,
-			qual->qual.simple.constData);
+	if (IsA(qual->qual.simple.left,Const)) {
+	    ccc = (Const)qual->qual.simple.left;
+	    datumFree(ccc->constvalue,
+			ccc->consttype,
+			ccc->constbyval,
+			ccc->constlen);
+	}
+	if (IsA(qual->qual.simple.right,Const)) {
+	    ccc = (Const)qual->qual.simple.right;
+	    datumFree(ccc->constvalue,
+			ccc->consttype,
+			ccc->constbyval,
+			ccc->constlen);
+	}
+	pfree(qual->qual.simple.left);
+	pfree(qual->qual.simple.right);
     } else if (qual->qualType == PRS2_COMPLEX_STUBQUAL) {
 	/*
 	 * free the operands
@@ -576,16 +579,9 @@ Prs2StubQual qual;
 	 */
 	res = prs2MakeStubQual();
 	res->qualType = PRS2_SIMPLE_STUBQUAL;
-	res->qual.simple.attrNo = qual->qual.simple.attrNo;
 	res->qual.simple.operator = qual->qual.simple.operator;
-	res->qual.simple.constType = qual->qual.simple.constType;
-	res->qual.simple.constByVal = qual->qual.simple.constByVal;
-	res->qual.simple.constLength = qual->qual.simple.constLength;
-	res->qual.simple.constData =
-		datumCopy( qual->qual.simple.constType,
-			qual->qual.simple.constByVal,
-			qual->qual.simple.constLength,
-			qual->qual.simple.constData);
+	res->qual.simple.left = CopyObject(qual->qual.simple.left);
+	res->qual.simple.right = CopyObject(qual->qual.simple.right);
     } else if (qual->qualType == PRS2_COMPLEX_STUBQUAL) {
 	res = prs2MakeStubQual();
 	res->qualType = PRS2_COMPLEX_STUBQUAL;
@@ -605,3 +601,53 @@ Prs2StubQual qual;
 
     return(res);
 }
+
+/*----------------------------------------------------------------------
+ * prs2OperandIsEqual
+ *
+ * returns true if the two operands of a simple stub qual are equal.
+ *----------------------------------------------------------------------
+ */
+static
+bool
+prs2OperandIsEqual(n1, n2)
+Node n1;
+Node n2;
+{
+
+    if (IsA(n1,Param) && IsA(n2,Param)) {
+	Param p1, p2;
+	p1 = (Param) n1;
+	p2 = (Param) n2;
+	if (p1->paramkind != p2->paramkind)
+	    return(false);
+	if (p1->paramtype != p2->paramtype)
+	    return(false);
+	if (!NameIsEqual(p1->paramname, p2->paramname))
+	    return(false);
+	return(true);
+    } else if (IsA(n1,Const) && IsA(n2,Const)) {
+	Const c1, c2;
+	if (c1->consttype != c2->consttype)
+	    return(false);
+	if (c1->constlen != c2->constlen)
+	    return(false);
+	if (c1->constbyval != c2->constbyval)
+	    return(false);
+	if (c1->constisnull != c2->constisnull)
+	    return(false);
+	if (!c1->constisnull) {
+	    /*
+	     * compare the datums.
+	     */
+	}
+	if (!datumIsEqual( c1->constvalue, c2->constvalue, c1->consttype, 
+			c1->constbyval, c1->constlen))
+	    return(false);
+	return(true);
+    } else {
+	return(false);
+    }
+}
+
+

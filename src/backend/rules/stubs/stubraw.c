@@ -20,12 +20,18 @@
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
 #include "tmp/datum.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
 
 char *palloc();
+Const RMakeConst();
+Param RMakeParam();
 
 /*--------- static routines local to this file ---------------*/
 static int prs2StubQualToRawStubQual();
 static Prs2StubQual prs2RawStubQualToStubQual();
+static int prs2OperandToRawOperand();
+static Node prs2RawOperandToOperand();
 
 /*-----------------------------------------------------------------------
  *
@@ -153,7 +159,7 @@ Prs2StubQual qual;
 {
     int i;
     Size size;
-    Size tempsize;
+    int tempsize;
     Prs2SimpleStubQualData *simple;
     Prs2ComplexStubQualData *complex;
 
@@ -199,54 +205,27 @@ Prs2StubQual qual;
 	/*
 	 * this is a leaf node, so the union "qual" contains a
 	 * "Prs2SimpleQualData" struct. Find its size & copy it.
-	 * First start with the fixed size part.
+	 * First start with the operator oid.
 	 */
 	simple = &(qual->qual.simple);
 	size = size +
-		sizeof(simple->attrNo) +
-		sizeof(simple->operator) +
-		sizeof(simple->constType) +
-		sizeof(simple->constByVal) +
-		sizeof(simple->constLength);
+		sizeof(simple->operator);
 	if (s!=NULL) {
-            bcopy((char *)&(simple->attrNo), s, sizeof(simple->attrNo));
-            s += sizeof(simple->attrNo);
             bcopy((char *)&(simple->operator), s, sizeof(simple->operator));
             s += sizeof(simple->operator);
-            bcopy((char *)&(simple->constType), s, sizeof(simple->constType));
-            s += sizeof(simple->constType);
-            bcopy((char *)&(simple->constByVal), s, sizeof(simple->constByVal));
-            s += sizeof(simple->constByVal);
-            bcopy((char *)&(simple->constLength),s,sizeof(simple->constLength));
-            s += sizeof(simple->constLength);
 	}
 	/*
-	 * now take care of the variable length part
-	 * (i.e. the actual value of the constant
-	 *
-	 * First copy the "real length" of the value. This is NOT
-	 * always equal to constLength, because the later can be
-	 * -1 (i.e. variable length type).
-	 *
-	 * Then copy one by one the bytes...
+	 * now the two operands.
 	 */
-	tempsize = datumGetSize(simple->constType,
-			    simple->constByVal,
-			    simple->constLength,
-			    simple->constData);
-	size += tempsize + sizeof(Size);
-	if (s!=NULL) {
-            if (simple->constByVal) {
-		bcopy((char *)&tempsize, s, sizeof(Size));
-		s += sizeof(Size);
-                bcopy((char *)&(simple->constData), s, tempsize);
-		s += tempsize;
-            } else {
-		bcopy((char *)&tempsize, s, sizeof(Size));
-		s += sizeof(Size);
-                bcopy((char *)DatumGetPointer(simple->constData), s, tempsize);
-		s += tempsize;
-            }
+	tempsize = prs2OperandToRawOperand(s, simple->left);
+	size += tempsize;
+	if (s!= NULL) {
+	    s += tempsize;
+	}
+	tempsize = prs2OperandToRawOperand(s, simple->right);
+	size += tempsize;
+	if (s!= NULL) {
+	    s += tempsize;
 	}
     } else if (qual->qualType == PRS2_NULL_STUBQUAL) {
 	/*
@@ -438,45 +417,12 @@ char **s;
 	/*
 	 * this is a leaf node, so the union "qual" contains a
 	 * "Prs2SimpleQualData" struct. Find its size & copy it.
-	 * First start with the fixed size part.
 	 */
 	simple = &(qual->qual.simple);
-	bcopy(*s, (char *)&(simple->attrNo), sizeof(simple->attrNo));
-	*s += sizeof(simple->attrNo);
 	bcopy(*s, (char *)&(simple->operator), sizeof(simple->operator));
 	*s += sizeof(simple->operator);
-	bcopy(*s, (char *)&(simple->constType), sizeof(simple->constType));
-	*s += sizeof(simple->constType);
-	bcopy(*s, (char *)&(simple->constByVal), sizeof(simple->constByVal));
-	*s += sizeof(simple->constByVal);
-	bcopy(*s, (char *)&(simple->constLength),sizeof(simple->constLength));
-	*s += sizeof(simple->constLength);
-	/*
-	 * now take care of the variable length part
-	 * (i.e. the actual value of the constant)
-	 * First exctract its "real" size (which is not always
-	 * equal to constLengt,h because teh later can be -1
-	 * to indicate a variable length type....)
-	 */
-	bcopy(*s, (char *)&(size), sizeof(Size));
-	*s += sizeof(Size);
-	if (simple->constByVal) {
-	    bcopy(*s, (char *)&(simple->constData), size);
-	    *s += size;
-	} else {
-	    if (size > 0) {
-		/*
-		 * allocate memory for the constant value
-		 */
-		ptr = palloc(size);
-		if (ptr == NULL) {
-		    elog(WARN, "Prs2RawStubQualToStubQual:Out of memory");
-		}
-	    }
-	    bcopy(*s, ptr, size);
-	    *s += size;
-	    simple->constData = PointerGetDatum(ptr);
-	}
+	simple->left = prs2RawOperandToOperand(s);
+	simple->right = prs2RawOperandToOperand(s);
     } else if (qual->qualType == PRS2_NULL_STUBQUAL) {
 	/*
 	 * Do nothing
@@ -494,3 +440,187 @@ char **s;
     return(qual);
 }
 
+/*-------------------------------------------------------------------
+ * prs2OperandToRawOperand
+ *
+ * Given an operand which must be a Param or Const node,
+ * create their "flat" representation. If pointer 's' is not NULL,
+ * copy it there, otherwise just return the size needed for 's'.
+ *-------------------------------------------------------------------
+ */
+static
+int
+prs2OperandToRawOperand(s, operand)
+char *s;
+Node operand;
+{
+
+    int size;
+    int tempsize;
+    Param param;
+    Const constant;
+
+    size = 0;
+
+    if (IsA(operand,Param)) {
+	size ++;
+	if (s!= NULL) {
+	    *s = 'p';		/* to indicate a Param node */
+	    s++;
+	}
+	param = (Param) operand;
+	if (param->paramkind != PARAM_NEW && param->paramkind != PARAM_OLD) {
+	    elog(WARN,"prs2OperandToRawOperand: param is not NEW or OLD");
+	}
+	size += sizeof(param->paramkind) +
+		    sizeof(param->paramid) +
+		    sizeof(*(param->paramname)) +
+		    sizeof(param->paramtype);
+	if (s!= NULL) {
+	    bcopy((char *)&(param->paramkind), s, sizeof(param->paramkind));
+	    s += sizeof(param->paramkind);
+	    bcopy((char *)&(param->paramid), s, sizeof(param->paramid));
+	    s += sizeof(param->paramid);
+	    bcopy((char *)(param->paramname), s, sizeof(*(param->paramname)));
+	    s += sizeof(*(param->paramname));
+	    bcopy((char *)&(param->paramtype), s, sizeof(param->paramtype));
+	    s += sizeof(param->paramtype);
+	}
+    } else if (IsA(operand,Const)) {
+	size ++;
+	if (s!= NULL) {
+	    *s = 'c';		/* to indicate a Const node */
+	    s++;
+	}
+	constant = (Const) operand;
+	/*
+	 * First copy the fixed part of the Const node
+	 */
+	size += sizeof(constant->consttype) +
+		    sizeof(constant->constlen) +
+		    sizeof(constant->constbyval) +
+		    sizeof(constant->constisnull);
+	if (s!= NULL) {
+	    bcopy((char *)&constant->consttype, s, sizeof(constant->consttype));
+	    s += sizeof(constant->consttype);
+	    bcopy((char *)&constant->constlen, s, sizeof(constant->constlen));
+	    s += sizeof(constant->constlen);
+	    bcopy((char *)&constant->constbyval, s, sizeof(constant->constbyval));
+	    s += sizeof(constant->constbyval);
+	    bcopy((char *)&constant->constisnull, s,
+				sizeof(constant->constisnull));
+	    s += sizeof(constant->constisnull);
+	}
+	/*
+	 * Now copy the datum value...
+	 */
+	tempsize = datumGetSize(constant->constvalue,
+				constant->consttype,
+				constant->constbyval,
+				constant->constlen);
+	size += tempsize + sizeof(tempsize);
+	if (s!= NULL) {
+	    if (constant->constbyval) {
+		bcopy((char *)&tempsize, s, sizeof(tempsize));
+		s += sizeof(tempsize);
+		bcopy((char *)&(constant->constvalue), s, tempsize);
+		s += tempsize;
+	    } else {
+		bcopy((char *)&tempsize, s, sizeof(tempsize));
+		s += sizeof(tempsize);
+		bcopy((char *)DatumGetPointer(constant->constvalue), s, tempsize);
+		s += tempsize;
+	    }
+	}
+    } else {
+	/*
+	 * operand is not Const or Param
+	 */
+	elog(WARN, "prs2OperandToRawOperand: operand is not Const or Param");
+    }
+
+    return(size);
+}
+
+/*---------------------------------------------------------------------
+ * prs2RawOperandToOperand
+ *
+ * This is the inverse of 'prs2OperandToRawOperand'.
+ * Given a stream of bytes (the "flat" representation of an operand)
+ * recreate the operand itself.
+ *
+ * NOTE: 's' is a pointer to a pointer.
+ *---------------------------------------------------------------------
+ */
+static
+Node
+prs2RawOperandToOperand(s)
+char **s;
+{
+    Size size;
+    char *ptr;
+    Param param;
+    Const constant;
+
+    if (**s == 'p') {
+	/*
+	 * This is a param node.
+	 */
+	*s += 1;	/* skip the 'p' */
+	param = RMakeParam();
+	bcopy(*s, (char*)&(param->paramkind), sizeof(param->paramkind));
+	*s += sizeof(param->paramkind);
+	if (param->paramkind != PARAM_NEW && param->paramkind != PARAM_OLD) {
+	    elog(WARN,"prs2RawOperandToOperand: param is not NEW or OLD");
+	}
+	bcopy(*s, (char*)&(param->paramid), sizeof(param->paramid));
+	*s += sizeof(param->paramid);
+	param->paramname = (Name) palloc(sizeof(*(param->paramname)));
+	bcopy(*s, (char*)(param->paramname), sizeof(*(param->paramname)));
+	*s += sizeof(*(param->paramname));
+	bcopy(*s, (char*)&(param->paramtype), sizeof(param->paramtype));
+	*s += sizeof(param->paramtype);
+	return((Node) param);
+    } else if (**s == 'c') {
+	/*
+	 * This is a const node
+	 */
+	*s += 1;	/* skip the 'c' */
+	constant = RMakeConst();
+	bcopy(*s, (char*)&(constant->consttype), sizeof(constant->consttype));
+	*s += sizeof(constant->consttype);
+	bcopy(*s, (char*)&(constant->constlen), sizeof(constant->constlen));
+	*s += sizeof(constant->constlen);
+	bcopy(*s, (char*)&(constant->constbyval), sizeof(constant->constbyval));
+	*s += sizeof(constant->constbyval);
+	bcopy(*s, (char*)&(constant->constisnull), sizeof(constant->constisnull));
+	*s += sizeof(constant->constisnull);
+	/*
+	 * now the variable length part...
+	 */
+	bcopy(*s, (char *)&(size), sizeof(size));
+	*s += sizeof(size);
+	if (constant->constbyval) {
+	    bcopy(*s, (char *)&(constant->constvalue), size);
+	    *s += size;
+	} else {
+	    if (size > 0) {
+		/*
+		 * allocate memory for the constant's value
+		 */
+		ptr = palloc(size);
+		if (ptr==NULL) {
+		    elog(WARN,"prs2RawOperandToOperand: out of memory!");
+		}
+		bcopy(*s, ptr, size);
+		*s += size;
+	    } else {
+		ptr = NULL;
+	    }
+	    constant->constvalue = PointerGetDatum(ptr);
+	}
+	return((Node) constant);
+    } else {
+	elog(WARN, "prs2RawOperandToOperand: This is node a Param or Const");
+    }
+}

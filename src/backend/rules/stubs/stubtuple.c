@@ -22,6 +22,8 @@
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
 #include "parser/parse.h"       /* for the AND, NOT, OR */
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
 
 /*==================== ROUTINES LOCAL TO THIS FILE ================*/
 static bool prs2SimpleQualTestTuple();
@@ -157,34 +159,63 @@ Buffer buffer;
 TupleDescriptor tupDesc;
 Prs2SimpleStubQualData simplequal;
 {
-    Datum value;
+    Datum value1, value2;
+    AttributeNumber attrno;
     Boolean isNull;
     int result;
 
-    /*
-     * extract the value from the tuple
-     */
 
-    value = HeapTupleGetAttributeValue(
-		tuple,
-		buffer,
-		simplequal.attrNo,
-		tupDesc,
-		&isNull);
-    
     /*
-     * NOTE: if the attribute is null, we assume that it does NOT
-     * pass the qualification
+     * extract the left operand
      */
-    if (isNull) {
-	return(false);
+    if (IsA(simplequal.left,Param)) {
+	value1 = HeapTupleGetAttributeValue(
+		    tuple,
+		    buffer,
+		    get_paramid((Param) simplequal.left),
+		    tupDesc,
+		    &isNull);
+	/*
+	 * NOTE: if the attribute is null, we assume that it does NOT
+	 * pass the qualification
+	 */
+	if (isNull) {
+	    return(false);
+	}
+    } else if (IsA(simplequal.left,Const)) {
+	value1 = get_constvalue((Const) simplequal.left);
+    } else {
+	elog(WARN, "prs2SimpleQualTestTuple: Operand is not param or const");
+    }
+
+    /*
+     * Now extract the right operand
+     */
+    if (IsA(simplequal.right,Param)) {
+	value2 = HeapTupleGetAttributeValue(
+		    tuple,
+		    buffer,
+		    get_paramid((Param) simplequal.left),
+		    tupDesc,
+		    &isNull);
+	/*
+	 * NOTE: if the attribute is null, we assume that it does NOT
+	 * pass the qualification
+	 */
+	if (isNull) {
+	    return(false);
+	}
+    } else if (IsA(simplequal.right,Const)) {
+	value2 = get_constvalue((Const) simplequal.right);
+    } else {
+	elog(WARN, "prs2SimpleQualTestTuple: Operand is not param or const");
     }
 
     /*
      * Now call the function manager...
      */
     
-    result = (int) fmgr(simplequal.operator, value, simplequal.constData);
+    result = (int) fmgr(simplequal.operator, value1, value2);
 
     if (result) {
 	return(true);
