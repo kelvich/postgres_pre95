@@ -770,6 +770,8 @@ Oper _readOper()
 	token = lsptok(NULL, &length);      /* get :opresulttype */
 	token = lsptok(NULL, &length);      /* now read it */
 
+	local_node->opresulttype = atoi(token);
+
 	local_node->printFunc = PrintOper;
 	local_node->equalFunc = EqualOper;
 	return(local_node);
