@@ -292,7 +292,7 @@ text_le(arg1, arg2)
 	if (len)
 		return (int32) (*a1p < *a2p);
 	else
-		return ((int32) VARSIZE(arg1) == VARSIZE(arg2));
+		return ((int32) VARSIZE(arg1) <= VARSIZE(arg2));
 }
 
 int32
