@@ -58,28 +58,10 @@ EndCommand(commandTag)
 	}
 }
 
-static
-List
-PortalMakeQueryDesc(portal, feature)
-	Portal	portal;
-	List	feature;
-{
-	LispValue	parse;
-
-	parse = PortalGetParse(portal);
-
-	return ((List)lispCons(CAR(CDR(CAR(parse))),
-		lispCons(parse,
-			lispCons(PortalGetPlan(portal),
-				lispCons(PortalGetState(portal),
-					lispCons(feature, LispNil))))));
-}
-
 void
 PortalCleanup(portal)
 	Portal	portal;
 {
-	LispValue	queryDesc;
 	LispValue	feature;
 	MemoryContext	context;
 
@@ -91,8 +73,8 @@ PortalCleanup(portal)
 	context = MemoryContextSwitchTo(
 		(MemoryContext)PortalGetHeapMemory(portal));
 	feature = lispCons(lispInteger(EXEC_END), LispNil);
-	queryDesc = PortalMakeQueryDesc(portal, feature);
-	ExecMain(queryDesc);
+
+	ExecMain(PortalGetQueryDesc(portal), PortalGetState(portal), feature);
 	/*
 	 * switch back to previous context
 	 */
@@ -106,8 +88,9 @@ PerformPortalFetch(name, forward, count)
 	Count	count;
 {
 	Portal		portal;
-	LispValue	queryDesc;
 	LispValue	feature;
+	List		queryDesc;
+	extern List	QueryDescGetTypeInfo();		/* XXX style */
 
 	if (name == NULL) {
 		elog(WARN, "PerformPortalFetch: blank portal unsupported");
@@ -127,12 +110,15 @@ PerformPortalFetch(name, forward, count)
 	}
 	feature = lispCons(feature, lispCons(lispInteger(count), LispNil));
 
-	queryDesc = PortalMakeQueryDesc(portal, feature);
-
 	/*
 	 * execute
 	 */
-	ExecMain(queryDesc);
+	queryDesc = PortalGetQueryDesc(portal);
+	BeginCommand(name, QueryDescGetTypeInfo(queryDesc));
+	ExecMain(queryDesc, PortalGetState(portal), feature);
+	/*
+	 * The "end-of-command" tag is returned by higher-level utility code
+	 */
 
 	/*
 	 * Return blank portal for now.
