@@ -64,6 +64,7 @@ struct slavelocalinfo {
     bool		paradjpending;	/* parallelism adjustment pending */
     int			paradjpage;   /* page on which to adjust parallelism */
     int			newparallel;  /* new page skip */
+    bool		isworking; /* true if the slave is working */
     HeapScanDesc	heapscandesc; /* heap scan descriptor */
     IndexScanDesc	indexscandesc; /* index scan descriptor */
 };
