@@ -275,11 +275,12 @@ int pid;
   LockReleaseAll(1,&proc->lockQueue);
 
   /* ----------------
-   * toss the wait queue
+   * get off the wait queue
    * ----------------
    */
   if (proc->links.next != INVALID_OFFSET)
     SHMQueueDelete(&(proc->links));
+  SHMQueueElemInit(&(proc->links));
 
   SpinAcquire(ProcStructLock);
 
@@ -463,9 +464,9 @@ int	errType;
 
   retProc = (PROC *) MAKE_PTR(proc->links.prev);
   SHMQueueDelete(&(proc->links));
+  SHMQueueElemInit(&(proc->links));
 
   proc->errType = errType;
-  SHMQueueElemInit(&(proc->links));
 
   IpcSemaphoreUnlock(proc->sem.semId, proc->sem.semNum, IpcExclusiveLock);
 
@@ -503,7 +504,7 @@ char *		lock;
   while ((LockResolveConflicts ((LOCKTAB *) ltable,
 				(LOCK *) lock,
 				proc->token,
-				&proc->xid,
+				proc->xid,
 				proc->pid) == STATUS_OK))
   {
     /* there was a waiting process, grant it the lock before waking it
@@ -590,6 +591,7 @@ HandleDeadLock()
    * ------------------------
    */
   SHMQueueDelete(&MyProc->links);
+  SHMQueueElemInit(&(MyProc->links));
   lock->waitProcs.size--;
 
   UnlockLockTable();
