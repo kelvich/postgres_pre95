@@ -8,6 +8,8 @@ void copy();
 extern char	*getenv();
 extern char	*PQexec();
 
+void usage();
+
 void main(argc,argv)
      int argc;       
      char *argv[];
@@ -18,16 +20,38 @@ void main(argc,argv)
     int i;
     char *res;
     char *dbname;
+    int dflag,ch;
+    extern int optind;
+    extern char *optarg;
+    extern char *PQhost, *PQport;
 
-    if ((dbname = getenv("DATABASE")) == (char *) NULL) {
-	fprintf(stderr, "no database specified in env var DATABASE\n");
-	fflush(stderr);
-	exit (1);
+    dflag = 0;
+
+	while ((ch = getopt(argc, argv, "H:P:D:")) != EOF)
+	  switch(ch) {
+	    case 'H':
+	      PQhost = optarg;
+	      break;
+	    case 'P':
+	      PQport = optarg;
+	      break;
+	    case 'D':
+	      PQsetdb(optarg);
+	      dflag = 1;
+	      break;
+	    case '?':
+	    default:
+	      usage();
+	  }
+
+    if (!dflag) {
+	if ((dbname = getenv("DATABASE")) == (char *) NULL) {
+	    usage();
+	}
+	PQsetdb(dbname);
     }
 
-    PQsetdb(dbname);
-
-    if (argc == 1)	{
+    if ((argc-optind) == 0)	{
 	copy(0,1);
 	exit(0);
     }
@@ -38,7 +62,7 @@ void main(argc,argv)
 	    copy(0,1);
 	    continue;
 	 }
-         infd = p_open(argv[i],O_RDONLY);
+         infd = p_open(argv[i],INV_READ|O_RDONLY);
 	 if (infd < 0) {
 		errs = 1;
 		continue;
@@ -49,6 +73,7 @@ void main(argc,argv)
 
     res = PQexec("end");
     PQfinish();
+    exit(0);
 }
 
 void copy(i,o)
@@ -71,4 +96,11 @@ pgcopy(i,o)
       return -1;
     else 
       return 0;
+}
+
+void usage() 
+{
+    fprintf(stderr, "no database specified with -D option or in env var DATABASE\n");
+    fflush(stderr);
+    exit (1);
 }
