@@ -14,10 +14,7 @@ RcsId("$Header$");
 #include "catalog/pg_user.h"
 #include "catalog/pg_database.h"
 
-
-extern int NStriping;
-extern char *PostgresHomes[];
-extern char *GetDataHome();
+extern char *DataDir;
 extern char *PG_username;
 extern char *DBName;
 
@@ -38,24 +35,11 @@ createdb(dbname)
     /* close virtual file descriptors so we can do system() calls */
     closeAllVfds();
 
-    if (NStriping == 0) {
-	path = GetDataHome();
-	sprintf(buf, "mkdir %s/data/base/%s", path, dbname);
-	system(buf);
-	sprintf(buf, "cp %s/data/base/template1/* %s/data/base/%s",
-                    path, path, dbname);
-	system(buf);
-    } else {
-	for (i = 0; i < NStriping; i++)
-	{
-	    path = PostgresHomes[i];
-	    sprintf(buf, "mkdir %s/data/base/%s", path, dbname);
-	    system(buf);
-	    sprintf(buf, "cp %s/data/base/template1/* %s/data/base/%s",
-		    path, path, dbname);
-	    system(buf);
-	}
-    }
+    sprintf(buf, "mkdir %s/base/%s", DataDir, dbname);
+    system(buf);
+    sprintf(buf, "cp %s/base/template1/* %s/base/%s",
+		DataDir, DataDir, dbname);
+    system(buf);
 
     sprintf(buf, "append pg_database (datname = \"%s\"::char16, \
                   datdba = \"%d\"::oid, datpath = \"%s\"::text)",
@@ -85,17 +69,8 @@ destroydb(dbname)
     stop_vacuum(dbname);
 
     /* remove the data directory */
-    if (NStriping == 0) {
-	path = GetDataHome();
-	sprintf(buf, "rm -r %s/data/base/%s", path, dbname);
-	system(buf);
-    } else {
-	for (i = 0; i < NStriping; i++) {
-	    path = PostgresHomes[i];
-	    sprintf(buf, "rm -r %s/data/base/%s", path, dbname);
-	    system(buf);
-	}
-    }
+    sprintf(buf, "rm -r %s/base/%s", DataDir, dbname);
+    system(buf);
 
     /* remove the pg_database tuple */
     sprintf(buf, "delete pg_database where pg_database.oid = \"%d\"::oid",
@@ -293,30 +268,13 @@ stop_vacuum(dbname)
     FILE *fp;
     int pid;
 
-    if (NStriping == 0) {
-	path = GetDataHome();
-	sprintf(filename, "%s/data/base/%s/%s.vacuum", path, dbname, dbname);
-	if ((fp = fopen(filename, "r")) != (FILE *) NULL) {
-	    fscanf(fp, "%d", &pid);
-	    fclose(fp);
-	    if (kill(pid, SIGKILLDAEMON1) < 0) {
-		elog(WARN, "can't kill vacuum daemon (pid %d) on %s",
-			   pid, dbname);
-	    }
-	}
-    } else {
-	for (i = 0; i < NStriping; i++) {
-	    path = PostgresHomes[i];
-	    sprintf(filename, "%s/data/base/%s/%s.vacuum",
-			 path, dbname, dbname);
-	    if ((fp = fopen(filename, "r")) != (FILE *) NULL) {
-		fscanf(fp, "%d", &pid);
-		fclose(fp);
-		if (kill(pid, SIGKILLDAEMON1) < 0) {
-		    elog(WARN, "can't kill vacuum daemon (pid %d) on %s",
-			       pid, dbname);
-		}
-	    }
+    sprintf(filename, "%s/base/%s/%s.vacuum", DataDir, dbname, dbname);
+    if ((fp = fopen(filename, "r")) != (FILE *) NULL) {
+	fscanf(fp, "%d", &pid);
+	fclose(fp);
+	if (kill(pid, SIGKILLDAEMON1) < 0) {
+	    elog(WARN, "can't kill vacuum daemon (pid %d) on %s",
+		       pid, dbname);
 	}
     }
 }

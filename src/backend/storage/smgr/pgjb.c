@@ -89,6 +89,9 @@ static HTAB		*JBPlatHash;
 
 SPINLOCK		JBSpinLock;
 
+/* globals defined elsewhere */
+extern char		*DataDir;
+
 /* routines declared here */
 extern int		pgjb_init();
 extern BlockNumber	pgjb_offset();
@@ -842,12 +845,14 @@ _pgjb_mdblockwrt(item, relblocks, buf)
     File vfd;
     int which;
     int offset;
-    char path[SJPATHLEN];
+    char *path;
 
     which = (relblocks - 1) % SJGRPSIZE;
     offset = (which * BLCKSZ) + JBBLOCKSZ;
     group = (SJGroupDesc *) buf;
-    sprintf(&(path[0]), "../%s/%s",
+
+    path = (char *) palloc(strlen(DataDir) + 2 * sizeof(NameData) + 3);
+    sprintf(path, "%s/%s/%s", DataDir,
 	    &(group->sjgd_dbname.data[0]), &(group->sjgd_relname.data[0]));
 
     if ((vfd = PathNameOpenFile(&(path[0]), O_RDWR, 0600)) < 0)

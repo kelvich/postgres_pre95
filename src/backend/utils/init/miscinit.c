@@ -286,3 +286,19 @@ GetPGHome()
 
     return (DEFAULT_PGHOME);
 }
+
+char *
+GetPGData()
+{
+    char *p;
+    char *h;
+    static char data[MAXPGPATH];
+
+    if ((p = getenv("PGDATA")) == (char *) NULL) {
+	h = GetPGHome();
+	sprintf(data, "%s/data", h);
+	p = &data[0];
+    }
+
+    return (p);
+}

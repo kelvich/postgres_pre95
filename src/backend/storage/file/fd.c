@@ -1284,6 +1284,7 @@ File file;
 
 char *PostgresHomes[NDISKS];
 char *DBName;
+extern char *DataDir;
 
 char *
 filepath(filename, stripe)
@@ -1293,24 +1294,16 @@ int stripe;
     char *buf;
     int len;
 
-    len = strlen(PostgresHomes[stripe]) + strlen("/data/base/")
-	+ strlen(DBName) + strlen(filename) + 2;
-    buf = (char*) palloc(len);
-
-    /*
-     * given absolute pathname
-     */
-
-    if (*filename != '/') 
-    {
-	sprintf(buf, "%s/data/base/%s/%s", PostgresHomes[stripe],
-		DBName, filename);
-	
-    }
-    else
-    {
+    if (*filename != '/') {
+	len = strlen(DataDir) + strlen("/base/") + strlen(DBName)
+	      + strlen(filename) + 2;
+	buf = (char*) palloc(len);
+	sprintf(buf, "%s/base/%s/%s", DataDir, DBName, filename);
+    } else {
+	len = strlen(filename) + 1;
 	strcpy(buf, filename);
     }
+
     return(buf);
 }
 

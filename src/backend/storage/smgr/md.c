@@ -25,6 +25,9 @@ RcsId("$Header$");
 static int	Nfds = 100;	/* must be same as in storage/file/fd.c */
 static char	*Md_fdvec;
 
+/* globals defined elsewhere */
+extern char		*DataDir;
+
 #define MDFD_CLEAN	(char) 0
 #define MDFD_DIRTY	(char) 1
 
@@ -358,10 +361,17 @@ mdblindwrt(dbstr, relstr, dbid, relid, blkno, buffer)
     int fd;
     long seekpos;
     int status;
-    char path[64];
+    char *path;
 
     /* construct the path to the file and open it */
-    sprintf(path, "../%s/%s", (dbid == (OID) 0 ? ".." : dbstr), relstr);
+    if (dbid == (OID) 0) {
+	path = (char *) palloc(strlen(DataDir) + sizeof(NameData) + 2);
+	sprintf(path, "%s/%s", DataDir, relstr);
+    } else {
+	path = (char *) palloc(strlen(DataDir) + 2 * sizeof(NameData) + 3);
+	sprintf(path, "%s/%s/%s", DataDir, dbstr, relstr);
+    }
+
     if ((fd = open(path, O_RDWR, 0600)) < 0)
 	return (SM_FAIL);
 
@@ -380,6 +390,8 @@ mdblindwrt(dbstr, relstr, dbid, relid, blkno, buffer)
 
     if (close(fd) < 0)
 	status = SM_FAIL;
+
+    pfree (path);
 
     return (status);
 }

@@ -246,12 +246,12 @@ ErrorFileOpen()
 {
 	int		fd;
 	char		buffer[MAXPGPATH];
-	extern char	*GetDataHome();
+	extern char	*GetPGData();
 
 	fd = fileno(stderr);
 
 	if (fcntl(fd, F_GETFD, 0) < 0) {
-		sprintf(buffer, "%s/data/pg.errors\0", GetDataHome());
+		sprintf(buffer, "%s/pg.errors\0", GetPGData());
 		fd = open(buffer, O_CREAT|O_APPEND|O_WRONLY, 0666);
 		if (fd < 0)
 			elog(FATAL, "ErrorFileOpen: open(%s) failed", buffer);
@@ -265,20 +265,14 @@ DebugFileOpen()
 {
 	int		fd;
 	char		buffer[MAXPGPATH];
-	extern char	*GetDataHome();
+	extern char	*GetPGData();
 
 	fd = fileno(stderr);
 	if (fcntl(fd, F_GETFD, 0) < 0) {
-		sprintf(buffer, "%s/data/pg.debug\0", GetDataHome());
-/*
-		elog(NOTICE, "DebugFileOpen: opening %s", buffer);
-*/
+		sprintf(buffer, "%s/pg.debug\0", GetPGData());
 		fd = open(buffer, O_CREAT|O_APPEND|O_WRONLY, 0666);
 		if (fd < 0)
 			elog(FATAL, "DebugFileOpen: open(%s) failed", buffer);
 	}
-/*
-	elog(NOTICE, "DebugFileOpen: opened %s, fd=%d", buffer, fd);
-*/
 	return(fd);
 }

@@ -97,6 +97,9 @@ static char	SJCacheBuf[SJBUFSIZE];
 
 #define GROUPNO(item)	(((char *) item) - ((char *) &(SJCache[0])))/sizeof(SJCacheItem)
 
+/* globals defined elsewhere */
+extern char		*DataDir;
+
 /* routines declared in this file */
 static void		_sjcacheinit();
 static void		_sjwait_init();
@@ -149,8 +152,7 @@ sjinit()
     bool initcache;
     char *cacheblk, *cachesave;
     int status;
-    char *pghome;
-    char path[SJPATHLEN];
+    char *path;
 
     /*
      *  First attach the shared memory block that contains the disk
@@ -234,8 +236,8 @@ sjinit()
     /* don't need exclusive access anymore */
     SpinRelease(SJCacheLock);
 
-    pghome = GetPGHome();
-    sprintf(path, "%s/data/%s", pghome, SJCACHENAME);
+    path = (char *) palloc(strlen(DataDir) + strlen(SJCACHENAME) + 2);
+    sprintf(path, "%s/%s", DataDir, SJCACHENAME);
 
     SJCacheVfd = PathNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0600);
     if (SJCacheVfd < 0) {
@@ -252,7 +254,11 @@ sjinit()
 	}
     }
 
-    sprintf(path, "%s/data/%s", pghome, SJMETANAME);
+    pfree(path);
+
+    path = (char *) palloc(strlen(DataDir) + strlen(SJMETANAME) + 2);
+    sprintf(path, "%s/%s", DataDir, SJMETANAME);
+
     SJMetaVfd = PathNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0600);
     if (SJMetaVfd < 0) {
 	SJMetaVfd = PathNameOpenFile(path, O_RDWR, 0600);
@@ -268,7 +274,11 @@ sjinit()
 	}
     }
 
-    sprintf(path, "%s/data/%s", pghome, SJBLOCKNAME);
+    pfree(path);
+
+    path = (char *) palloc(strlen(DataDir) + strlen(SJBLOCKNAME) + 2);
+    sprintf(path, "%s/%s", DataDir, SJBLOCKNAME);
+
     SJBlockVfd = PathNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0600);
     if (SJBlockVfd < 0) {
 	SJBlockVfd = PathNameOpenFile(path, O_RDWR, 0600);
@@ -283,6 +293,8 @@ sjinit()
 	    return (SM_FAIL);
 	}
     }
+
+    pfree(path);
 
     /*
      *  If it's our responsibility to initialize the shared-memory cache
@@ -575,7 +587,7 @@ sjcreate(reln)
     File vfd;
     int grpno;
     int i;
-    char path[SJPATHLEN];
+    char *path;
 
     /*
      *  If the cache is in the process of being initialized, then we need
@@ -613,14 +625,17 @@ sjcreate(reln)
     _sjregnblocks(&tag);
 
     /* last thing to do is to create the mag-disk file to hold last page */
-    if (reln->rd_rel->relisshared)
-	strcpy(path, "../");
-    else
-	path[0] = '\0';
-
-    strncpy(path, &(reln->rd_rel->relname.data[0]), sizeof(NameData));
+    if (reln->rd_rel->relisshared) {
+	path = (char *) palloc(strlen(DataDir) + sizeof(NameData) + 2);
+	sprintf(path, "%s/%.16s", DataDir, &(reln->rd_rel->relname.data[0]));
+    } else {
+	path = (char *) palloc(sizeof(NameData) + 1);
+	sprintf(path, "%.16s", &(reln->rd_rel->relname.data[0]));
+    }
 
     vfd = FileNameOpenFile(path, O_CREAT|O_RDWR|O_EXCL, 0600);
+
+    pfree(path);
 
     return (vfd);
 }

@@ -412,6 +412,7 @@ SetProcessingMode ARGS((
 #endif	/* !defined(PModIncluded) */
 
 extern char *GetPGHome ARGS((void));
+extern char *GetPGData ARGS((void));
 
 /* ----------------
  *	pusr.h

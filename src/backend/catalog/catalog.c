@@ -55,18 +55,14 @@ static char *SharedSysRelns[] = {
     VARIABLE_R,
 };
 
+extern char		*DataDir;
+
 #ifndef	MAXPATHLEN
 #define	MAXPATHLEN	80
 #endif
 
 /*
  *	relpath		- path to the relation
- *
- *	Note:  returns a static value.  Maybe should be able to handle
- *	temporary relations and arbitrary files (buffered psort temps)
- *	with proper names in addition to the other standard relation
- *	names.
- *
  *	Perhaps this should be in-line code in relopen().
  */
 
@@ -74,12 +70,11 @@ char    *
 relpath(relname)
 char    relname[];
 {
-        static  char    path[1 + 6 + 16] = "../../";
-        static  char    *appnd = path + 6;
+        char    *path;
 
         if (NameIsSharedSystemRelationName((Name)relname)) {
-                strncpy(appnd, relname, 16);
-                return(path);
+		path = (char *) palloc(strlen(DataDir) + sizeof(NameData) + 2);
+		sprintf(path, "%s/%.16s", DataDir, relname);
         }
         return(relname);
 }

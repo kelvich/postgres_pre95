@@ -69,6 +69,7 @@
     
 extern bool	override;
 extern int	Quiet;
+extern char	*DataDir;
 IPCKey		PostgresIpcKey;
 
 /*
@@ -138,6 +139,7 @@ InitMyDatabaseId()
     HeapTuple	tup;
     Page	pg;
     PageHeader	ph;
+    char	*dbfname;
     Form_pg_database	tup_db;
 
     /* ----------------
@@ -147,10 +149,13 @@ InitMyDatabaseId()
      *  InvalidObjectId as the dbid, since we're not using shared memory.
      * ----------------
      */
-    if ((dbfd = open("../../pg_database", O_RDONLY, 0666)) < 0) {
+    dbfname = (char *) palloc(strlen(DataDir) + strlen("pg_database") + 2);
+    sprintf(dbfname, "%s/pg_database", DataDir);
+    if ((dbfd = open(dbfname, O_RDONLY, 0666)) < 0) {
 	LockDisable(true);
 	return;
     }
+    pfree(dbfname);
 
     /* ----------------
      *	read and examine every page in pg_database
@@ -424,6 +429,8 @@ forcesharedmemory:
 void
 InitStdio()
 {
+    extern char *DBName;
+
     /* ----------------
      *	this appears to be a funky variable used with the IN and OUT
      *  macros for controlling the error message indent level.
@@ -439,16 +446,9 @@ InitStdio()
     Debugfile = Debug_file = DebugFileOpen();
 
     if (IsUnderPostmaster) {
-	struct	dpacket	pack;
-	    
-	/* ----------------
-	 *	why the hell are we doing this here???  -cim 
-	 * ----------------
-	 */
-	if (!ValidPgVersion(".") || !ValidPgVersion("../.."))
+	if (!ValidPgVersion(".") || !ValidPgVersion(DataDir))
 	{
-		extern char *DBName;
-	    elog(NOTICE, "InitStdio: !ValidPgVersion");
+	    elog(NOTICE, "InitStdio: Can't locate PG_VERSION for %s", DBName);
 	    if (strcmp(DBName, "template1"))
 	        elog(FATAL, "Did you run createdb on %s yet??", DBName);
 	    else

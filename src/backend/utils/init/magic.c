@@ -22,6 +22,7 @@ RcsId("$Header$");
 #include "tmp/miscadmin.h"
 
 static char	Pg_verfile[] = PG_VERFILE;
+extern char	*DataDir;
 
 /*
  * private function prototypes
@@ -47,18 +48,16 @@ DatabaseMetaGunkIsConsistent(database, path)
 {
 	int		isValid;
 	extern char	*GetDataHome();
-	char		*home = GetDataHome();
 	struct stat	statbuf;
 
-	sprintf(path, "%s/data\0", home);
-	isValid = ValidPgVersion(path);
-	sprintf(path, "%s/data/base/%s\0", home, database);
+	isValid = ValidPgVersion(DataDir);
+	sprintf(path, "%s/base/%s\0", DataDir, database);
 	isValid = ValidPgVersion(path) || isValid;
 	
 	if (stat(path, &statbuf) < 0)
 		elog(FATAL, "database %s does not exist, bailing out...",
 		     database);
-	
+
 	return(isValid);
 }
 
