@@ -563,7 +563,7 @@ opt_move_pname:
 	  or
 	purge <relname>  [after<date>][before <date>] 
 	
-		(PURGE "relname" ((BEFORE date) (AFTER date)))
+		(PURGE "relname" ((BEFORE date)(AFTER date)))
 
   **********************************************************************/
 
@@ -589,8 +589,10 @@ purge_quals:
 		{$$ = nappend1(LispNil,$2);$$=nappend1($$,$1);}
 	;
 
-before_clause:	BEFORE date	{ $$ = lispCons($1, cons($2, LispNil)); } ;
-after_clause:	AFTER date	{ $$ = lispCons($1, cons($2, LispNil)); } ;
+before_clause:	BEFORE date		{ $$ = lispCons($1,
+					   lispCons($2,LispNil)); } ;
+after_clause:	AFTER date		{ $$ = lispCons($1,
+						lispCons($2,LispNil)); } ;
 
  /**********************************************************************
 
@@ -679,12 +681,13 @@ RenameStmt :
 RuleStmt: 
 	  Define Rule name opt_priority		
 	  Is rule_tag
+		{ p_ruleinfo = lispCons(lispInteger(0),$6); p_priority = $4; }
 	  OptimizableStmt 
 		{
 		  $3 = lispCons($3,LispNil);	/* name */
 		  $2 = lispCons($2,$3);		/* rule */
 		  $$ = lispCons($1,$2); 	/* define */
-		  $$ = nappend1($$,$7 );	/* rule query */
+		  $$ = nappend1($$,$8 );	/* rule query */
 		}
 	;
 
