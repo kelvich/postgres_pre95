@@ -593,6 +593,7 @@ PerformAddAttribute(relationName, userName, schema)
 	attribute->attbyval = form->typbyval;
 	attribute->attnelems = attnelems;
 	attribute->attcacheoff = -1;
+	attribute->attisset = (bool) (form->typtype == 'c');
 	
 	RelationInsertHeapTuple(attrdesc, attributeTuple,
 				(double *)NULL);
