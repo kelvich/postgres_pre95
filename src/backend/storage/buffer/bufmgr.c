@@ -52,6 +52,9 @@ int		Num_Descriptors;
 
 BufferDesc 	*BufferDescriptors;
 BufferBlock 	BufferBlocks;
+#ifndef HAS_TEST_AND_SET
+static int	*NWaitIOBackendP;
+#endif
 
 Buffer           BufferDescriptorGetBuffer();
 
@@ -758,6 +761,7 @@ SPINLOCK spinlock;
   for (;;) {
 
     /* wait until someone releases IO lock */
+    (*NWaitIOBackendP)++;
     SpinRelease(spinlock);
     IpcSemaphoreLock(WaitIOSemId, 0, 1);
     SpinAcquire(spinlock);
@@ -772,11 +776,10 @@ SPINLOCK spinlock;
 SignalIO(buf)
 BufferDesc *buf;
 {
-  int semncnt;
   /* somebody better be waiting. */
   Assert( buf->refcount > 1);
-  semncnt = IpcSemaphoreGetValue(WaitIOSemId, 0);
-  IpcSemaphoreUnlock(WaitIOSemId, 0, semncnt);
+  IpcSemaphoreUnlock(WaitIOSemId, 0, *NWaitIOBackendP);
+  *NWaitIOBackendP = 0;
 }
 #endif /* HAS_TEST_AND_SET */
 
@@ -789,7 +792,7 @@ BufferDesc *buf;
 InitBufferPool(key)
 IPCKey key;
 {
-  Boolean foundBufs,foundDescs;
+  Boolean foundBufs,foundDescs,foundNWaitIO;
   int i;
   int status;
 
@@ -809,6 +812,13 @@ IPCKey key;
     ShmemInitStruct("Buffer Blocks",
 		    NBuffers*BLOCK_SIZE,&foundBufs);
 
+#ifndef HAS_TEST_AND_SET
+  NWaitIOBackendP = (int*)ShmemInitStruct("#Backends Waiting IO",
+					  sizeof(int),
+					  &foundNWaitIO);
+  if (!foundNWaitIO)
+      *NWaitIOBackendP = 0;
+#endif
 
   if (foundDescs || foundBufs) {
 
