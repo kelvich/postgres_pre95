@@ -100,6 +100,9 @@ DATA(insert OID = 20 (  dt         6  4  10 t b t \054 0   0 dtin dtout dtin dto
 DATA(insert OID = 21 (  int2       6  2   5 t b t \054 0   0 int2in int2out int2in int2out _null_ ));
 DATA(insert OID = 22 (  int28      6 16  50 f b t \054 0  21 int28in int28out int28in int28out _null_ ));
 DATA(insert OID = 23 (  int4       6  4  10 t b t \054 0   0 int4in int4out int4in int4out _null_ ));
+
+#define INT4OID		23
+
 DATA(insert OID = 24 (  regproc    6  4  16 t b t \054 0   0 regprocin regprocout regprocin regprocout _null_ ));
 DATA(insert OID = 25 (  text       6 -1  -1 f b t \054 0  18 textin textout textin textout _null_ ));
 DATA(insert OID = 26 (  oid        6  4  10 t b t \054 0   0 int4in int4out int4in int4out _null_ ));
