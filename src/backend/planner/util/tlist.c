@@ -175,6 +175,7 @@ create_tl_element (var,resdomno,joinlist)
     
     set_entry (tlelement,
 	       MakeTLE (MakeResdom (resdomno, get_vartype (var),
+				    ((typeid_get_relid(var)) ? true : false),
 				    get_typlen (get_vartype (var)),
 				    (Name)LispNil,
 				    (Index)0,
@@ -472,6 +473,8 @@ flatten_tlist (tlist)
 	    new_tlist = (LispValue)append1(new_tlist,
 				MakeTLE (MakeResdom(++last_resdomno,
 						    get_vartype((Var)CAR(var)),
+						    ((typeid_get_relid(var)) ? 
+						     true : false),
 						    get_typlen 
 						    (get_vartype 
 						     ((Var)CAR(var))),
