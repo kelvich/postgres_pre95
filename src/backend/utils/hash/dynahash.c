@@ -34,9 +34,12 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.8  1991/08/12 20:54:11  mao
-    make macro name unique
+    Revision 1.9  1991/09/06 12:30:29  hong
+    added a new function, hash_seq(), which sequentially scans a hash table
 
+ * Revision 1.8  91/08/12  20:54:11  mao
+ * make macro name unique
+ * 
  * Revision 1.7  1991/08/06  10:44:13  mer
  * fix compile bug
  *
@@ -612,6 +615,54 @@ Boolean	*foundPtr;
 	}
 	return (&(curr->key));
 }
+
+/*
+ * hash_seq -- sequentially search through hash table and return
+ *             all the elements one by one, return NULL on error and
+ *	       return TRUE in the end.
+ *
+ */
+int *
+hash_seq(hashp)
+HTAB		*hashp;
+{
+    static uint32 curBucket = 0;
+    static ELEMENT *curElem = NULL;
+    int segment_num;
+    int segment_ndx;
+    SEGMENT segp;
+    HHDR *hctl;
+    BUCKET_INDEX currIndex;
+    BUCKET_INDEX *prevIndexPtr;
+    char *destAddr;
+
+    if (hashp == NULL)
+	return NULL;
+
+    hctl = hashp->hctl;
+    for (; curBucket <= hctl->max_bucket; curBucket++) {
+	segment_num = curBucket >> hctl->sshift;
+	segment_ndx = curBucket & ( hctl->ssize - 1 );
+
+	segp = GET_SEG(hashp, segment_num);
+
+	if (segp == NULL)
+	    return NULL;
+	if (curElem == NULL)
+	    prevIndexPtr = &segp[segment_ndx];
+	else
+	    prevIndexPtr = &(curElem->next);
+	currIndex = *prevIndexPtr;
+	if (currIndex == INVALID_INDEX) {
+	    curElem = NULL;
+	    continue;
+	  }
+	curElem = GET_BUCKET(hashp, currIndex);
+	return(&(curElem->key));
+      }
+    return (int*)TRUE;
+}
+
 
 /********************************* UTILITIES ************************/
 static int
