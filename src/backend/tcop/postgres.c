@@ -51,7 +51,7 @@ RcsId("$Header$");
 #include "nodes/plannodes.a.h"
 
 #include "storage/bufmgr.h"
-#include "utils/fmgr.h"
+#include "fmgr.h"
 #include "utils/log.h"
 #include "utils/rel.h"
 #include "tmp/miscadmin.h"
