@@ -53,6 +53,8 @@ extern void set_es_tuplecount ARGS((EState node, TupleCount value));
 extern TupleCount get_es_tuplecount ARGS((EState node));
 extern void set_es_param_list_info ARGS((EState node, ParamListInfo value));
 extern ParamListInfo get_es_param_list_info ARGS((EState node));
+extern void set_es_prs2_info ARGS((EState node, Prs2EStateInfo value));
+extern Prs2EStateInfo get_es_prs2_info ARGS((EState node));
 extern void set_ecxt_scantuple ARGS((ExprContext node, List value));
 extern List get_ecxt_scantuple ARGS((ExprContext node));
 extern void set_ecxt_scantype ARGS((ExprContext node, AttributePtr value));
