@@ -166,6 +166,7 @@ typedef enum _LockId_ {
 #endif /* MAIN_MEMORY */
 
     PROCSTRUCTLOCKID,
+    OIDGENLOCKID,
     FIRSTFREELOCKID
 } _LockId_;
 
