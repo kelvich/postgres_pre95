@@ -8,7 +8,7 @@
 #ifndef FcacheIncluded
 #define FcacheIncluded 1 /* include once only */
 
-typedef char *  ((*func_ptr)());
+#include "utils/fmgr.h"
 
 typedef struct
 {
