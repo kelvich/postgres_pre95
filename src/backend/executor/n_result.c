@@ -78,6 +78,7 @@ ExecResult(node)
 {
     ResultState		resstate;
     TupleTableSlot	outerTupleSlot;
+    TupleTableSlot	resultSlot;
     Plan   		outerPlan;
     TupleDescriptor 	outerType;
     Buffer   		outerBuffer;
@@ -89,6 +90,7 @@ ExecResult(node)
     ExprContext		econtext;
     List		qual;
     bool		qualResult;
+    bool		isDone;
     int			resloop;
     
     /* ----------------
@@ -128,6 +130,14 @@ ExecResult(node)
 	set_resconstantqual(node, LispNil);
     }
     
+    if (get_cs_TupFromTlist((CommonState) resstate)) {
+	ProjectionInfo projInfo;
+
+	projInfo = get_cs_ProjInfo((CommonState)resstate);
+	resultSlot = ExecProject(projInfo, &isDone);
+	if (!isDone)
+	    return resultSlot;
+    }
     /* ----------------
      *  retrieve tuples from the outer plan until there are no more.
      * ----------------
@@ -201,8 +211,9 @@ ExecResult(node)
 	    ProjectionInfo projInfo;
 
 	    projInfo = get_cs_ProjInfo((CommonState)resstate);
-	    return
-		ExecProject(projInfo);
+	    resultSlot = ExecProject(projInfo, &isDone);
+	    set_cs_TupFromTlist((CommonState) resstate, !isDone);
+	    return resultSlot;
 	}
     }
 }

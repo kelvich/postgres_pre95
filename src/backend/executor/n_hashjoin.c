@@ -115,6 +115,14 @@ ExecHashJoin(node)
      */
     econtext = 		get_cs_ExprContext((CommonState) hjstate);
 
+    if (get_cs_TupFromTlist((CommonState)hjstate)) {
+	TupleTableSlot  result;
+	bool		isDone;
+
+	result = ExecProject(get_cs_ProjInfo((CommonState)hjstate), &isDone);
+	if (!isDone)
+	    return result;
+    }
     /* ----------------
      *	if this is the first call, build the hash table for inner relation
      * ----------------
@@ -361,6 +369,8 @@ ExecHashJoin(node)
 		     */
 		    if (qualResult) {
 			ProjectionInfo	projInfo;
+			TupleTableSlot  result;
+			bool            isDone;
 			
 			set_hj_CurBucket(hjstate, bucket);
 			set_hj_CurTuple(hjstate, curtuple);
@@ -369,8 +379,9 @@ ExecHashJoin(node)
 					      hjstate, outerTupleSlot);
 			
 			projInfo = get_cs_ProjInfo((CommonState) hjstate);
-			return
-			    ExecProject(projInfo);
+			result = ExecProject(projInfo, &isDone);
+			set_cs_TupFromTlist((CommonState)hjstate, !isDone);
+			return result;
 		    }
 		}
 	    }
@@ -573,6 +584,7 @@ ExecInitHashJoin(node, estate, parent)
     set_hj_OuterReadBlk(hjstate, 0);
     
     set_cs_OuterTupleSlot((CommonState) hjstate, (TupleTableSlot) NULL);
+    set_cs_TupFromTlist((CommonState) hjstate, (bool) false);
 
     /* ----------------
      *  return true

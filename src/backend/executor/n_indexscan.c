@@ -970,6 +970,7 @@ ExecUpdateIndexScanKeys(node, econtext)
     Const		scanconst;
     Datum		scanvalue;
     Boolean		isNull;
+    Boolean		isDone;
     
     /* ----------------
      *	get info from the node
@@ -1018,8 +1019,12 @@ ExecUpdateIndexScanKeys(node, econtext)
 	    scanexpr =  (run_keys[j] == RIGHT_OP) ?
 		(Node) get_rightop(clause) : (Node) get_leftop(clause) ;
 	    
+	    /* -------------
+	     *  Pass in isDone but ignore it.  We don't iterate in quals
+	     * -------------
+	     */
 	    scanvalue = (Datum)
-		ExecEvalExpr(scanexpr, econtext, &isNull);
+		ExecEvalExpr(scanexpr, econtext, &isNull, &isDone);
 	    
 	    ExecSetSkeysValue(j,	  /* index into scan_keys array */
 			      scan_keys,  /* array of scan keys */
@@ -1522,6 +1527,8 @@ ExecInitIndexScan(node, estate, parent)
        partition_indexscan(numIndices, scanDescs, SlaveLocalInfoD.nparallel);
     set_iss_ScanDescs(indexstate, scanDescs);
     
+    set_cs_TupFromTlist((CommonState)indexstate, false);
+
     /* ----------------
      *	all done.
      * ----------------

@@ -379,6 +379,8 @@ ExecInitSeqScan(node, estate, parent)
 	SlaveLocalInfoD.heapscandesc = scandesc;
       }
 
+    set_cs_TupFromTlist((CommonState) scanstate, false);
+
     /* ----------------
      * return the object id of the relation
      * (I don't think this is ever used.. -cim 10/16/89)

@@ -271,7 +271,8 @@ MergeCompare(eqQual, compareQual, econtext)
     List   eqclause;
     Const  expr_value;
     Datum  const_value;
-	Boolean isNull;
+    Boolean isNull;
+    Boolean isDone;
     
     /* ----------------
      *	if we have no compare qualification, return nil
@@ -289,11 +290,12 @@ MergeCompare(eqQual, compareQual, econtext)
     foreach (clause, compareQual) {
 	/* ----------------
 	 *   first test if our compare clause is satisified.
-	 *   if so then return true.
+	 *   if so then return true. ignore isDone, don't iterate in
+	 *   quals.
 	 * ----------------
 	 */
 	const_value = (Datum)
-	    ExecEvalExpr((Node) CAR(clause), econtext, &isNull);
+	    ExecEvalExpr((Node) CAR(clause), econtext, &isNull, &isDone);
     
 	if (ExecCTrue(DatumGetInt32(const_value)))
 	    return true;
@@ -302,10 +304,14 @@ MergeCompare(eqQual, compareQual, econtext)
 	 *   ok, the compare clause failed so we test if the keys
 	 *   are equal... if key1 != key2, we return false.
 	 *   otherwise key1 = key2 so we move on to the next pair of keys.
+	 *
+	 *   ignore isDone, don't iterate in quals.
 	 * ----------------
 	 */
-	const_value = ExecEvalExpr((Node) CAR(eqclause), econtext, &isNull);
-	
+	const_value = ExecEvalExpr((Node) CAR(eqclause),
+				   econtext,
+				   &isNull,
+				   &isDone);
     
 	if (! ExecCTrue(DatumGetInt32(const_value)))
 	    return false;
@@ -500,6 +506,16 @@ ExecMergeJoin(node)
      *	ok, everything is setup.. let's go to work
      * ----------------
      */
+    if (get_cs_TupFromTlist((CommonState)mergestate)) {
+	TupleTableSlot result;
+	ProjectionInfo projInfo;
+	bool           isDone;
+
+	projInfo = get_cs_ProjInfo((CommonState)mergestate);
+	result   = ExecProject(projInfo, &isDone);
+	if (!isDone)
+	    return result;
+    }
     for (;;) {
 	/* ----------------
 	 *  get the current state of the join and do things accordingly.
@@ -624,13 +640,16 @@ ExecMergeJoin(node)
 		 * ----------------
 		 */
 		ProjectionInfo projInfo;
+		TupleTableSlot result;
+		bool           isDone;
 		
 		MJ_printf("ExecMergeJoin: **** returning tuple ****\n");
 		
 		projInfo = get_cs_ProjInfo((CommonState) mergestate);
 		
-		return
-		    ExecProject(projInfo);
+		result = ExecProject(projInfo, &isDone);
+		set_cs_TupFromTlist((CommonState)mergestate, !isDone);
+		return result;
 	    }
 	    break;
 	    
@@ -1159,6 +1178,7 @@ ExecInitMergeJoin(node, estate, parent)
     ExecAssignResultTypeFromTL((Plan) node, (CommonState)mergestate);
     ExecAssignProjectionInfo((Plan) node, (CommonState)mergestate);
     
+    set_cs_TupFromTlist((CommonState)mergestate, false);
     /* ----------------
      *	initialization successful
      * ----------------

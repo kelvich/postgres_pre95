@@ -108,6 +108,16 @@ ExecNestLoop(node)
      *  we return a qualifying join tuple..
      * ----------------
      */
+
+    if (get_cs_TupFromTlist((CommonState)nlstate)) {
+	TupleTableSlot  result;
+	bool		isDone;
+
+	result = ExecProject(get_cs_ProjInfo((CommonState)nlstate), &isDone);
+	if (!isDone)
+	    return result;
+    }
+
     ENL1_printf("entering main loop");
     for(;;) {
 	/* ----------------
@@ -371,12 +381,15 @@ ExecNestLoop(node)
 	     * ----------------
 	     */
 	    ProjectionInfo projInfo;
+	    TupleTableSlot result;
+	    bool           isDone;
 	    
 	    ENL1_printf("qualification succeeded, projecting tuple");
 	    
 	    projInfo = get_cs_ProjInfo((CommonState)nlstate);
-	    return
-		ExecProject(projInfo);
+	    result = ExecProject(projInfo, &isDone);
+	    set_cs_TupFromTlist((CommonState)nlstate, !isDone);
+	    return result;
 	} 
 	
 	/* ----------------
@@ -467,6 +480,7 @@ ExecInitNestLoop(node, estate, parent)
      * ----------------
      */
     set_cs_OuterTupleSlot((CommonState)nlstate, NULL);
+    set_cs_TupFromTlist((CommonState)nlstate, false);
     
     NL1_printf("ExecInitNestLoop: %s\n",
 	       "node initialized");
