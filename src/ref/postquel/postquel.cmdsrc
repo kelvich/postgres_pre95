@@ -78,7 +78,8 @@ and may not be used otherwise:
 .dt
 .lp
 In addition,
-all \*(PP classes have several predefined attributes used
+all \*(PP
+classes have several predefined attributes used
 by the system.
 For a list of these,
 see the section
@@ -112,10 +113,9 @@ with a backslash, e.g., `\en'.
 Also, in order to embed quotes
 within strings, it is necessary to prefix them with `\e' .
 The same convention applies to `\e' itself.
-Because of the current limitations on tuple sizes, string constants
+Because of the limitations on instance sizes, string constants
 are currently limited to a length of a little less than 8K bytes.
-These size constraints will be removed when large-object support
-becomes stable (this is one of the goals of POSTGRES version 3).
+Larger objects may be created using the \*(PP Large Object interface.
 .uh "Integer Constants"
 .lp
 .i "Integer constants"
@@ -259,7 +259,8 @@ number is indicated, then all array elements are returned.
 Any built-in system, or user defined operator
 may be used in \*(PQ.  For the
 list of built-in and system operators consult
-.b built-in types 
+.b built-in
+types 
 (postquel) and
 b. system types
 (postquel).
@@ -282,7 +283,8 @@ left_unary_operator a_expr
 
 parameter
 functional expressions 
-aggregate expression  (not in Version 3.0)
+aggregate expressions
+set expressions
 class expression (not in Version 3.0)
 .)l
 We have already discussed constants and attributes.
@@ -322,10 +324,6 @@ For example, the following computes the square root of an employee salary.
 sqrt(emp.salary)
 .)l
 .uh "Aggregate Expression"
-.lp
-.b
-Aggregate expressions are not supported in Version 3.0.
-.r
 .lp
 An
 .i aggregate
@@ -567,7 +565,6 @@ monitor(unix).
 .lp
 The following constructs are not available in Version 3.0:
 .(l
-aggregates and aggregate expressions
 class expressions
 set expressions
 .)l
