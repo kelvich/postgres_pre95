@@ -22,6 +22,7 @@ RcsId("$Header$");
 #include "utils/log.h"
 #include "utils/palloc.h"
 #include "utils/rel.h" 		/* Relation stuff */
+#include "utils/fcache.h"
 
 #include "nodes/pg_lisp.h"
 #include "nodes/primnodes.h"
@@ -372,6 +373,8 @@ make_op(op,ltree,rtree)
 	Oper newop;
 	LispValue left,right;
 	LispValue t1;
+	FunctionCache *fcache, *init_fcache();
+	ObjectId fid;
 	
 	left = CDR(ltree);
 	right = CDR(rtree);
@@ -395,10 +398,11 @@ make_op(op,ltree,rtree)
 		temp = oper(CString(op),typeid(ltype), typeid ( rtype ));
 	}
 	opform = (OperatorTupleForm) GETSTRUCT(temp);
+
 	newop = MakeOper ( oprid(temp),    /* operator id */
 			    0 ,       	     /* operator relation level */
 			    opform->         /* operator result type */
-			    oprresult );
+			    oprresult, NULL, NULL);
 	t1 = lispCons ( newop , lispCons (left ,
 					     lispCons (right,LispNil)));
 	return ( lispCons (lispInteger ( opform->oprresult ) ,
@@ -834,3 +838,76 @@ char *attrName;
 		    
 }
 
+FunctionCache *
+init_fcache(foid)
+
+ObjectId foid;
+
+{
+	HeapTuple	procedureTuple;
+	HeapTuple	typeTuple;
+	struct proc	*procedureStruct;
+	TypeTupleForm	typeStruct;
+	FunctionCache *retval;
+	
+	/* ----------------
+	 *   get the procedure tuple corresponding to the given
+	 *   functionOid.  If this fails, returnValue has been
+	 *   pre-initialized to "null" so we just return it.
+	 * ----------------
+	 */
+	procedureTuple = SearchSysCacheTuple(PROOID,
+					     (char *) foid,
+					     NULL,
+					     NULL,
+					     NULL);
+    
+	if (!HeapTupleIsValid(procedureTuple)) {
+	    elog(WARN, "init_fcache: %s %d",
+		 "Cache lookup failed for procedure",
+		 foid);
+	}
+
+	/* ----------------
+	 *   get the return type from the procedure tuple
+	 * ----------------
+	 */
+	procedureStruct = (struct proc *) GETSTRUCT(procedureTuple);
+	
+	/* ----------------
+	 *   get the type tuple corresponding to the return type
+	 *   If this fails, returnValue has been pre-initialized
+	 *   to "null" so we just return it.
+	 * ----------------
+	 */
+	typeTuple = SearchSysCacheTuple(TYPOID,
+					(procedureStruct)->prorettype,
+					NULL,
+					NULL,
+					NULL);
+
+	if (!HeapTupleIsValid(typeTuple)) {
+	    elog(WARN, "init_fcache: %s %d",
+		 "Cache lookup failed for type",
+		 (procedureStruct)->prorettype);
+	}
+	
+	/* ----------------
+	 *   get the type length and by-value from the type tuple and
+	 *   save the information in our one element cache.
+	 * ----------------
+	 */
+	typeStruct = (TypeTupleForm) GETSTRUCT(typeTuple);
+
+    /*
+	 * This must persist throughout the duration of the query.
+	 */
+
+	retval = (FunctionCache *) palloc(sizeof(FunctionCache));
+
+	fmgr_info(foid, &(retval->func), &(retval->nargs));
+	retval->typlen = (typeStruct)->typlen;
+	retval->typbyval = (typeStruct)->typbyval ? true : false ;
+
+	return(retval);
+}
