@@ -68,6 +68,7 @@
 #define OutConstExists
 #define OutVarExists
 #define OutArrayExists
+#define OutFjoinExists
 
 /* ----------------
  *	Node Equal Function declarations
@@ -81,6 +82,7 @@
 #define EqualConstExists
 #define EqualVarExists
 #define EqualArrayExists
+#define EqualFjoinExists
 
 /* ----------------
  *	Node Copy Function declarations
@@ -94,6 +96,7 @@
 #define CopyConstExists
 #define CopyVarExists
 #define CopyArrayExists
+#define CopyFjoinExists
 
 
 /* ----------------------------------------------------------------
