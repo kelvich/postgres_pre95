@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------
  *   FILE
- *	RuleHandler.c
+ *	RewriteSupport.c
  *	
  *   NOTES
  *
@@ -9,34 +9,17 @@
  * ----------------------------------------------------------------
  */
 
-#include "tmp/postgres.h"
-#include "access/ftup.h";
-#include "access/heapam.h"		/* access methods like amopenr */
-#include "access/htup.h"
-#include "access/itup.h"		/* for T_LOCK */
-#include "parser/atoms.h"
-#include "parser/parse.h"
-#include "parser/parsetree.h"
 #include "rules/prs2.h"
 #include "rules/prs2locks.h"
-#include "utils/fmgr.h"
-#include "utils/log.h"
-#include "utils/rel.h"		/* for Relation stuff */
 
-#include "nodes/pg_lisp.h"
-#include "nodes/relation.h"
-#include "nodes/primnodes.a.h"
-    
-#include "catalog/catname.h"
-#include "catalog/syscache.h"		/* for SearchSysCache ... */
-    
-#include "catalog_utils.h"
+#include "utils/rel.h"			/* Relation, RelationData ... */
+#include "catalog/syscache.h"		/* for SearchSysCache */
+#include "utils/builtins.h"		/* for textout */
 
 /*
  *	RelationHasLocks
  *	- returns true iff a relation has some locks on it
  */
-extern RuleLock prs2GetLocksFromTuple();
 
 RuleLock
 RelationGetRelationLocks ( relation )
@@ -95,7 +78,7 @@ RuleIdGetRuleParsetrees ( ruleoid )
     ruleaction = amgetattr ( ruletuple, InvalidBuffer , 7 , 
 			    ruleTupdesc , &action_is_null ) ;
     
-    ruleaction = fmgr (F_TEXTOUT,ruleaction );
+    ruleaction = textout (ruleaction );
     ruleparse = (List)StringToPlan(ruleaction);
     
     if ( action_is_null ) {
@@ -103,7 +86,9 @@ RuleIdGetRuleParsetrees ( ruleoid )
 	return ( LispNil );
     } else {
 	foreach ( i , ruleparse ) {
+#ifdef DEBUG
 	    Print_parse ( CAR(i) );
+#endif
 	}
     }
     fflush(stdout);
