@@ -29,13 +29,15 @@
 
 RcsId("$Header$");
 
+#include <pwd.h>
 #include "catalog_utils.h"
 #include "log.h"
+#include "palloc.h"
 #include "pg_lisp.h"
+/* XXX ORDER DEPENDENCY */
+#include "parse_query.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
-#include "parse_query.h"
-#include <pwd.h>
 
 extern LispValue new_filestr();
 extern Relation amopenr();
