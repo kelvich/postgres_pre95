@@ -194,13 +194,11 @@ int enable;
   *
   */
 
-private
 void
 LruDelete ARGS((
 	FileNumber	file
 ));
 
-private
 int
 LruInsert ARGS((
 	FileNumber	file
@@ -209,7 +207,7 @@ LruInsert ARGS((
 void
 AssertLruRoom();
 
-private FileNumber
+FileNumber
 AllocateVfd();
 
 void
@@ -284,7 +282,7 @@ Insert(file)
 	VfdCache[vfdP->lruLessRecently].lruMoreRecently = file;
 }
 
-private	int
+int
 LruInsert (file)
 	FileNumber	file;
 {
@@ -360,7 +358,7 @@ AssertLruRoom()
 	}
 }
 
-private int
+int
 FileAccess(file)
 	FileNumber	file;
 {
@@ -396,7 +394,7 @@ FileAccess(file)
 	return (0);
 }
 
-private	FileNumber
+FileNumber
 AllocateVfd()
 {
 	Index	i;
@@ -716,7 +714,7 @@ fileSync (file)
  * warning if there are too few left
  */
 
-private allocatedFiles = 0;
+int allocatedFiles = 0;
 
 /*
  * Note:
