@@ -54,11 +54,22 @@ typedef struct RTSTACK {
 typedef struct RTreeScanOpaqueData {
 	struct RTSTACK	*s_stack;
 	struct RTSTACK	*s_markstk;
+	uint16		s_flags;
 	uint16		s_internalNKey;
 	ScanKeyData	s_internalKey;
 } RTreeScanOpaqueData;
 
 typedef RTreeScanOpaqueData	*RTreeScanOpaque;
+
+/*
+ *  When we're doing a scan and updating a tree at the same time, the
+ *  updates may affect the scan.  We use the flags entry of the scan's
+ *  opaque space to record our actual position in response to updates
+ *  that we can't handle simply by adjusting pointers.
+ */
+
+#define RTS_CURBEFORE	((uint16) (1 << 0))
+#define RTS_MRKBEFORE	((uint16) (1 << 1))
 
 /* root page of an rtree */
 #define P_ROOT		0
