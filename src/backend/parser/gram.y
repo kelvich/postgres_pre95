@@ -480,18 +480,18 @@ FetchStmt:
 OptFetchDirn:
 	  /*EMPTY, default is forward*/
 		{ $$ = KW(forward); }
-	| Forward
-		{ $$ = KW(forward); }
-	| Backward
+	| BACKWARD
 		{ $$ = KW(backward); }
+	| FORWARD
+		{ $$ = KW(forward); }
 	;
 
 OptFetchNum:
 	/*EMPTY, default is all*/
 		{ $$ = KW(all) ; }
-	| All
-		{ $$ = KW(all) ; }
 	| NumConst
+	| ALL
+		{ $$ = KW(all) ; }
 	;
 
 OptFetchPname:
@@ -524,13 +524,21 @@ MergeStmt:
 		( MOVE ["portalname"] <dirn> (TO <whereto> |
   **********************************************************************/
 MoveStmt:
-	  Move OptFetchDirn opt_move_where opt_move_pname
+	  Move opt_move_dirn opt_move_where opt_move_pname
 		{ 
 		    $3 = lispCons ( $3 , LispNil );
 		    $2 = lispCons ( $2 , $3 );
 		    $4 = lispCons ( $4 , $2 );
 		    $$ = lispCons ( $1 , $4 );
 		}
+	;
+
+opt_move_dirn:
+	/*EMPTY, by default forward */		{ $$ = KW(forward); }
+	| FORWARD
+		{ $$ = KW(forward); }
+	| BACKWARD
+		{ $$ = KW(backward); }
 	;
 
 opt_move_where: 
@@ -778,29 +786,38 @@ OptimizableStmt:
   **************************************************/
 
 AppendStmt:
-	  Append opt_star relation_name 
-		{ CurrentRelationPtr = amopenr(CString($3)); 
-		  ResdomNoIsAttrNo = 1; SkipForwardToFromList(); 
-		  if(RangeTablePosn(CString($3),0,0) == 0)
-		    p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-					       (CString($3),0,CString($3)));
-		}
-	  from_clause
-	  '(' res_target_list ')'
-	  where_clause
-		{
-			LispValue root;
+  	  APPEND
+                { SkipForwardToFromList(); }
+          from_clause
+          opt_star relation_name
+                {
+                   int x = 0;
+                   if((x=RangeTablePosn(CString($5),0,0)) == 0)
+                      p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
+                                           ($5,0,$5));
+                  if (x==0)
+                    x = RangeTablePosn(CString($5),0,0);
+                  CurrentRelationPtr = amopenr(VarnoGetRelname(x));
+                  if (CurrentRelationPtr == NULL)
+                        elog(WARN,"invalid relation name");
+                  ResdomNoIsAttrNo = 1;
+                }
+          '(' res_target_list ')'
+          where_clause
+                {
+                        LispValue root;
+                        int x = RangeTablePosn(CString($5),0,0);
+                        StripRangeTable();
+                        root = MakeRoot(1, KW(append), lispInteger(x),
+                                        p_rtable,
+                                        p_priority, p_ruleinfo);
+                        $$ = lispCons ( root , LispNil );
+                        $$ = nappend1 ( $$ , $8 ); /* (eq p_target $8) */
+                        $$ = nappend1 ( $$ , $10 ); /* (eq p_qual $10 */
+                        ResdomNoIsAttrNo = 0;
+                }
+        ;
 
-			StripRangeTable();
-		    	root = MakeRoot(1, KW(append), lispInteger(1), 
-					p_rtable,
-					p_priority, p_ruleinfo);
-			$$ = lispCons ( root , LispNil );
-			$$ = nappend1 ( $$ , $7 ); /* (eq p_target $5) */
-			$$ = nappend1 ( $$ , $9 ); /* (eq p_qual $8 */
-			ResdomNoIsAttrNo = 0;
-		}
-	;
 
 
  /**************************************************
@@ -812,25 +829,39 @@ AppendStmt:
   **************************************************/
    
 DeleteStmt:
-	  Delete 
-		{ SkipForwardToFromList(); }
-	  from_clause
-	  opt_star var_name  where_clause
-		{ 
-			LispValue root;
-			if(RangeTablePosn(CString($5),0,0) == 0)
-			  p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-					       (CString($5),0,CString($5)));
-			StripRangeTable();
-			root = MakeRoot(NumLevels,KW(delete),
-					lispInteger ( 1 ) ,
-					p_rtable, p_priority, p_ruleinfo);
-			$$ = lispCons ( root , LispNil );
-			/* check that var_name is in the relation */
-			$$ = nappend1 ( $$ , LispNil ); /* (eq p_target $5) */
-			$$ = nappend1 ( $$ , $6 ); /* (eq p_qual $5 */
-		}
-	;
+          DELETE
+                { SkipForwardToFromList(); }
+          from_clause
+          opt_star var_name
+                {
+                   int x = 0;
+                   if((x=RangeTablePosn(CString($5),0,0)) == 0)
+                      p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
+                                           ($5,0,$5));
+                  if (x==0)
+                    x = RangeTablePosn(CString($5),0,0);
+                  CurrentRelationPtr = amopenr(VarnoGetRelname(x));
+                  if (CurrentRelationPtr == NULL)
+                        elog(WARN,"invalid relation name");
+                  ResdomNoIsAttrNo = 1; }
+          where_clause
+                {
+                        LispValue root;
+                        int x;
+                        x= RangeTablePosn(CString($5),0,0);
+                        if (x == 0)
+                          p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
+                                               ($5,0,$5));
+                        StripRangeTable();
+                        root = MakeRoot(NumLevels,KW(delete),
+                                        lispInteger ( x ) ,
+                                        p_rtable, p_priority, p_ruleinfo);
+                        $$ = lispCons ( root , LispNil );
+                        /* check that var_name is in the relation */
+                        $$ = nappend1 ( $$ , LispNil ); /* (eq p_target $5) */
+                        $$ = nappend1 ( $$ , $7 ); /* (eq p_qual $7 */
+                }
+        ;
 
  /**************************************************
    
@@ -859,34 +890,41 @@ ExecuteStmt:
 
 ReplaceStmt:
  	REPLACE 
-		{ SkipForwardToFromList(); }
-	from_clause  
-	opt_star relation_name
-		{  
-		   int x = 0;
-		   if((x=RangeTablePosn(CString($5),0,0)) == 0)
-		      p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-					   (CString($5),0,CString($5)));
-		  if (x==0) x = 1;
-		  CurrentRelationPtr = amopenr(VarnoGetRelname(x));
-		  if (CurrentRelationPtr == NULL) 
-			elog(WARN,"invalid relation name");
-		  ResdomNoIsAttrNo = 1; }
-	'(' res_target_list ')' where_clause
-  		{
-		    LispValue root;
+                { SkipForwardToFromList(); }
+        from_clause
+        opt_star relation_name
+                {
+                   int x = 0;
+                   if((x=RangeTablePosn(CString($5),0,0)) == 0)
+                      p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
+                                           ($5,0,$5));
+                  if (x==0)
+                    x = RangeTablePosn(CString($5),0,0);
+                  CurrentRelationPtr = amopenr(CString(VarnoGetRelname(x)));
+                   printf("relation is %s\n",CString(VarnoGetRelname(x)));
+                   fflush(stdout);
+                  if (CurrentRelationPtr == NULL)
+                        elog(WARN,"invalid relation name");
+                  ResdomNoIsAttrNo = 1; }
+        '(' res_target_list ')' where_clause
+                {
+                    LispValue root;
+                    int result = RangeTablePosn(CString($5),0,0);
+                    if (result < 1)
+                      elog(WARN,"parser internal error , bogus relation");
+                    StripRangeTable();
+                    root = MakeRoot(1, KW(replace), lispInteger(result),
+                                    p_rtable,
+                                    p_priority, p_ruleinfo);
 
-		    StripRangeTable();
-		    root = MakeRoot(1, KW(replace), lispInteger(1),
-				    p_rtable,
-				    p_priority, p_ruleinfo);
+                    $$ = lispCons( root , LispNil );
+                    $$ = nappend1 ( $$ , $8 );          /* (eq p_target $6) */
+                    $$ = nappend1 ( $$ , $10 );         /* (eq p_qual $9) */
+                    ResdomNoIsAttrNo = 0;
+                }
+        ;
 
-		    $$ = lispCons( root , LispNil );
-		    $$ = nappend1 ( $$ , $8 );		/* (eq p_target $6) */
-		    $$ = nappend1 ( $$ , $10 );	        /* (eq p_qual $9) */
-		    ResdomNoIsAttrNo = 0;
-		}
-	;
+
 		 
  /************************************************************
 
@@ -1093,8 +1131,8 @@ opt_portal:
 		{ NULLTREE }
 	| Portal name 
 		{
-			$2 = lispCons($2, LispNil);
-			$$ = lispCons(KW(portal), $2);
+		    $2=lispCons($2,LispNil);
+		    $$=lispCons(KW(portal),$2);
 		}
 	;
 
@@ -1432,7 +1470,6 @@ And:			AND		{ $$ = yylval ; } ;
 Append:			APPEND		{ $$ = yylval ; } ;
 Archive:		ARCHIVE		{ $$ = yylval ; } ;
 Attachas:		ATTACH_AS	{ $$ = yylval ; } ;
-Backward:		BACKWARD	{ $$ = yylval ; } ;
 Begin:			BEGIN_TRANS	{ $$ = yylval ; } ;
 Binary:			BINARY		{ $$ = yylval ; } ;
 Close:			CLOSE		{ $$ = yylval ; } ;
@@ -1444,7 +1481,6 @@ Delete:			DELETE		{ $$ = yylval ; } ;
 Destroy:		DESTROY		{ $$ = yylval ; } ;
 End:			END_TRANS	{ $$ = yylval ; } ;
 Fetch:			FETCH		{ $$ = yylval ; } ;
-Forward:		FORWARD		{ $$ = yylval ; } ;
 Function:		FUNCTION	{ $$ = yylval ; } ;
 In:			IN		{ $$ = yylval ; } ;
 Index:			INDEX		{ $$ = yylval ; } ;
