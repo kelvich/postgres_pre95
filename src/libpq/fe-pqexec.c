@@ -65,7 +65,7 @@ char	*PQtty;			/* the tty on PQhost backend message
 				   is displayed */
 char	*PQoption;		/* the optional arguments to POSTGRES 
 				   backend */
-char 	*PQdatabase;	 	/* the POSTGRES database to access */
+char 	PQdatabase[17] = {0};	/* the POSTGRES database to access */
 int 	PQportset = 0;		/* 1 if the communication with backend
 				   is set */
 int	PQxactid = 0;		/* the transaction id of the current 
@@ -100,11 +100,19 @@ extern char *getenv();
 void
 read_initstr()
 {
-    if ((PQdatabase == NULL) 
-	&& ((PQdatabase = getenv ("PGDATABASE")) == NULL)) 
-	libpq_raise(&ProtocolError,
-		    form((int)"Fatal Error -- No database is specified."));
-    
+    char *envDB;
+
+    if (PQdatabase[0] == NULL) 
+    {
+	if ((envDB = getenv ("PGDATABASE")) == NULL)
+	    libpq_raise(&ProtocolError,
+			form((int)"Fatal Error -- No database is specified."));
+	else
+	{
+	    PQdatabase[16] = '\0';
+	    strncpy(PQdatabase, envDB, 16);
+	}
+    }
     if ((PQhost == NULL) && ((PQhost = getenv("PGHOST")) == NULL))
 	PQhost = DefaultHost;
     
@@ -330,7 +338,8 @@ PQsetdb(dbname)
     char *dbname;
 {
     PQreset();
-    PQdatabase = dbname;
+    PQdatabase[16] = '\0';
+    strncpy(PQdatabase, dbname, 16);
 }
 
 /* ----------------
