@@ -59,6 +59,7 @@
 
 #include "tmp/c.h"
 #include "fmgr.h"
+#include "utils/dynamic_loader.h"
 
 extern char pg_pathname[];
 
