@@ -7,7 +7,7 @@
 define rule \*(- Define a new rule
 .uh SYNOPSIS
 .lp
-.b "define rule"
+.b "define [tuple | rewrite] rule"
 rule_name
 [as exception to rule_name_2]
 .b on
@@ -27,6 +27,20 @@ action
 .b Define
 .b rule
 is used to define a new rule.
+There ar etwo implementations of the rules
+system, one 
+based on 
+.b query
+.b rewrite
+and the other based on 
+.b tuple-level
+processing.  In general, the tuple system is more efficient
+if there are many rules on a single table, each covering a small
+subset of the tuples.  The rewrite system is more
+efficient if large scope rules are being defined.  In the long run
+POSTGRES will automatically decide which rules system to use; in the
+meantime the user must manually choose.
+.lp
 Here, event is one of:
 .(l
 retrieve 
@@ -42,11 +56,10 @@ a relation name
 or
 relation.column, ...., relation.column
 .)l
-The FROM clause and WHERE clause
-are normal POSTQUEL clauses 
-with no additions or
-changes.  Lastly, the action portion of the DO clause 
-is a collection of POSTQUEL commands
+The FROM clause, the WHERE clause, and the
+action are respectively normal POSTQUEL 
+FROM clauses, WHERE clauses 
+and collections of POSTQUEL commands
 with the following change:
 .in+6
 .ll-6
@@ -73,6 +86,21 @@ The action part of the rule executes with same command and
 transaction identifier
 as the user command that caused activation.  
 .lp
+A note of caution about POSTQUEL rules is in order.  If the same relation
+name or tuple variable appears in the object wrespectively rt of the rule, in the where clause 
+and the action parts of a rule, they are 
+all considered different tuple variables.  More accurately, NEW and CURRENT are the only
+tuple variables that are shared between these clauses.
+For example the following two rules have the
+same semantics: 
+.(l
+on replace to EMP.salary where EMP.name = "Joe"
+then do replace EMP ( ...) where ...
+
+on replace to EMP-1.salary where EMP-2.name = "Joe"
+then do replace EMP-3 ( ...) where ...
+.)l
+.lp
 Each rule can have the optional tag "instead".  Without this tag the
 action will be performed in addition to the user command 
 when the event 
@@ -82,7 +110,7 @@ Alternately, the action part will be done instead of the user command.
 /* Make Sam get the same salary adjustment as Joe */
 .(l
 define rule example_1
-on replace to EMP.salary where EMP.name = ``Joe''
+on replace to EMP.salary where current.name = ``Joe''
 then replace EMP (salary = NEW.salary) where EMP.name = ``Sam''
 .)l
 At the time Joe receives a salary adjustment, the event will become
@@ -94,20 +122,20 @@ propagates Joe's salary on to Sam.
 /* Make Bill get Joe's salary when it is accessed */
 .(l
 define rule example_2
-on retrieve to EMP.salary where EMP.name = ``Joe''
+on retrieve to EMP.salary where current.name = ``Joe''
 then replace EMP (salary = CURRENT.salary) where EMP.name = ``Bill''
 .)l
 .lp
 /* Deny Joe access to the salary of employees in the shoe department */
 .(l
 define rule example_3
-on retrieve to EMP.salary where EMP.dept = ``shoe'' and user() = ``Joe''
+on retrieve to EMP.salary where current.dept = ``shoe'' and user() = ``Joe''
 then do instead retrieve (salary = null)
 .)l
 /* The following also does the same task, somewhat more obscurely */
 .(l
 define rule example_4
-on retrieve to EMP.salary where EMP.dept = ``shoe'' and user() = ``Joe''
+on retrieve to EMP.salary where current.dept = ``shoe'' and user() = ``Joe''
 then do replace CURRENT (salary = null)
 .)l
 .uh "SEE ALSO"
