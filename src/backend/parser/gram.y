@@ -93,7 +93,7 @@ static bool QueryIsRule = false;
         IN INDEX INDEXABLE INHERITS INPUTPROC IS KEY LEFTOUTER LIGHT MERGE
         NEVER NEWVERSION NONE NONULLS NOT PNULL ON ONCE OR OUTPUTPROC
         PORTAL PRIORITY QUEL RIGHTOUTER RULE SCONST SORT TO TRANSACTION
-        UNION UNIQUE USING WHERE WITH FUNCTION OPERATOR P_TYPE
+        UNION UNIQUE USING WHERE WITH FUNCTION OPERATOR P_TYPE 
 
 
 /* Special keywords */
@@ -103,7 +103,7 @@ static bool QueryIsRule = false;
 /* add tokens here */
 
 %token   	INHERITANCE VERSION CURRENT NEW THEN DO INSTEAD VIEW
-		REWRITE P_TUPLE
+		REWRITE P_TUPLE TYPECAST
 
 /* precedence */
 %nonassoc Op
@@ -114,7 +114,7 @@ static bool QueryIsRule = false;
 %left  	'[' ']' 
 %left	'.'
 %nonassoc  '<' '>'
-%right 	':'
+%nonassoc TYPECAST
 %nonassoc REDUCE
 
 %%
@@ -1370,12 +1370,12 @@ a_expr:
 		{ $$ = make_op (lispString(">"), $1, $3 ) ; }
 	| a_expr '=' a_expr
 		{ $$ = make_op (lispString("="), $1, $3 ) ; }
-	| a_expr ':' ':' Id 
+	| a_expr TYPECAST Id 
 		{ 
 			/* check for passing non-ints */
 		        Const adt;
 			Datum lcp;
-			Type tp = type(CString($4));
+			Type tp = type(CString($3));
 			int32 len = tlen(tp);
 			char *cp = NULL;
 			char *const_string = palloc(256);
@@ -1393,7 +1393,7 @@ a_expr:
 					sprintf(const_string,"%c",
 						get_constvalue(CDR($1)));
 					break;
-				case 700:/* float4 */
+				case 701:/* float8 */
 					sprintf(const_string,"%f",
 						get_constvalue(CDR($1)));
 					break;
@@ -1447,7 +1447,7 @@ a_expr:
 		{$$ = $2;}
 	/* XXX Or other stuff.. */
 	| a_expr Op a_expr
-		{ $$ = make_const ( $2, $1 , $3 ); }
+		{ $$ = make_op ( $2, $1 , $3 ); }
 	;
 
 attr:
