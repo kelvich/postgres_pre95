@@ -15,10 +15,11 @@
  *     		find-join-rels
  */
 
-#include "pg_lisp.h"
+#include "nodes/pg_lisp.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+
 #include "planner/internal.h"
-#include "relation.h"
-#include "relation.a.h"
 #include "planner/joinrels.h"
 #include "planner/joininfo.h"
 #include "planner/relnode.h"
@@ -328,10 +329,10 @@ new_join_tlist (tlist,other_relids,first_resdomno)
 	xtl= CAR(i);
 	join_list = get_joinlist (xtl);
 	in_final_tlist = null (join_list);
-	resdomno += 1;
 	if ( join_list ) 
 	  future_join_list = set_difference (join_list,other_relids);
 	if ( in_final_tlist || future_join_list)  {
+	    resdomno += 1;
 	    temp_node = 
 	      lispCons (create_tl_element (get_expr(get_entry (xtl)),
 					   resdomno,
@@ -416,28 +417,26 @@ new_joininfo_list (current_joininfo_list,joininfo_list,join_relids)
 	if ( new_otherrels ) {
 	    other_joininfo = 
 	      joininfo_member (new_otherrels,current_joininfo_list);
-	} 
-	
-	if (other_joininfo) {
-	    set_jinfoclauseinfo (other_joininfo,
+	    if (other_joininfo) {
+	        set_jinfoclauseinfo (other_joininfo,
 				 LispUnion(get_jinfoclauseinfo (joininfo),
 					   get_jinfoclauseinfo
 					              (other_joininfo)));
-	} 
-	else {
-	    other_joininfo = RMakeJInfo();
-
-	    set_otherrels (other_joininfo,new_otherrels);
-	    set_jinfoclauseinfo (other_joininfo,
-				 get_jinfoclauseinfo (joininfo));
-	    set_mergesortable (other_joininfo,
-			       get_mergesortable (joininfo));
-	    set_hashjoinable (other_joininfo,
-			      get_hashjoinable (joininfo));
-	    current_joininfo_list = nappend1(current_joininfo_list,
-					     other_joininfo);
-	    current_joininfo_list = nreverse(current_joininfo_list);
-	} 
+	     } 
+	     else {
+	         other_joininfo = RMakeJInfo();
+	         set_otherrels (other_joininfo,new_otherrels);
+	         set_jinfoclauseinfo (other_joininfo,
+				      get_jinfoclauseinfo (joininfo));
+	         set_mergesortable (other_joininfo,
+			            get_mergesortable (joininfo));
+	         set_hashjoinable (other_joininfo,
+			           get_hashjoinable (joininfo));
+	         current_joininfo_list = nappend1(current_joininfo_list,
+					          other_joininfo);
+	         current_joininfo_list = nreverse(current_joininfo_list);
+	      } 
+         }
     }
     return(current_joininfo_list);  /* XXX is this right  */
 }  /* function end  */
