@@ -2,7 +2,7 @@
 # sparc specific stuff
 #
 
-SRCS+= dynamic_syms.c port.c
+SRCS+= port.c
 HEADERS+= machine.h
 
 # use dynloader.c in dld if USE_DLD defined
