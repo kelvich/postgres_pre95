@@ -1186,7 +1186,7 @@ retrieve (postgres = ufp3("postgres rules ok"::text, " "::char))
  * SECURITY CRUFT
  */
 replace pg_class (relacl="{}")
-	where pg_class.relname !~ "pg_*"::char16
+	where pg_class.relname !~ "pg_*"::text
 \g
 replace pg_user (usesuper="f"::bool) where pg_user.usename = "_USER_"
 \g
