@@ -1,6 +1,26 @@
 .include <postgres.global.mk>
 
-LIBPQ= ${.CURDIR}/../../libpq/obj/libpq.a
+#
+# try locating libpq.a in the following places (bletch...)
+#
+L1= ${.CURDIR}/../../libpq/obj/libpq.a
+L2= ${.CURDIR}/../../libpq/libpq.a
+L3= ${LIBDIR}/libpq.a
+L4= ${.CURDIR}/../../../lib/libpq.a
+
+.if exists(${L1})
+LIBPQ= ${L1}
+.elif exists(${L2})
+LIBPQ= ${L2}
+.elif exists(${L3})
+LIBPQ= ${L3}
+.elif exists(${L4})
+LIBPQ= ${L4}
+.else
+.BEGIN:
+	echo 'Error: can't find where you installed libpq.a,'
+	echo 'try running "bmake all install" again.'
+.endif
 
 LDADD+= ${LIBPQ}
 PROG= iportal
