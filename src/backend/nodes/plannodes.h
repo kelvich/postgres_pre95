@@ -468,6 +468,8 @@ class (HashJoin) public (Join) {
 	List			hashclauses;
 	ObjectId		hashjoinop;
 	HashJoinState		hashjoinstate;
+	HashJoinTable		hashjointable;
+	bool			hashdone;
  /* public: */
 };
 
@@ -535,7 +537,8 @@ class (Hash) public (Plan) {
 #define HashDefs \
 	inherits(Plan); \
 	Var			hashkey; \
-	HashState		hashstate
+	HashState		hashstate; \
+	HashJoinTable		hashtable
  /* private: */
 	HashDefs;
  /* public: */

@@ -863,21 +863,24 @@ class (MergeJoinState) public (JoinState) {
   /* public: */
 };
 
+typedef File	*FileP;
+typedef char	*charP;
+
 /* ----------------
  *   HashJoinState information
  *
- *      HashTable           	xxx comment me
- *      CurBucket           	xxx comment me
- *      CurTuple            	xxx comment me
- *      hj_NBatch           	xxx comment me
- *      hj_OuterBatches     	xxx comment me
- *      hj_OuterBatchPos    	xxx comment me
- *      hj_InnerBatches     	xxx comment me
- *      hj_InnerBatchSizes  	xxx comment me
- *      hj_InnerHashKey     	xxx comment me
- *      hj_CurBatch         	xxx comment me
- *      hj_ReadPos          	xxx comment me
- *      hj_ReadBlk          	xxx comment me
+ *      hj_HashTable           	address of the hash table for the hashjoin
+ *      hj_CurBucket           	the current hash bucket that we are searching
+ *				for matches of the current outer tuple
+ *      hj_CurTuple            	the current matching inner tuple in the
+ *				current hash bucket
+ *	hj_CurOTuple		the current matching inner tuple in the
+ *				current hash overflow chain
+ *      hj_InnerHashKey     	the inner hash key in the hashjoin condition
+ *	hj_OuterBatches		file descriptors for outer batches
+ *	hj_InnerBatches		file descriptors for inner batches
+ *	hj_OuterReadPos		current read position of outer batch
+ *	hj_OuterReadBlk		current read block of outer batch
  *	hj_SavedTupleSlot	xxx comment me
  *	hj_TemporaryTupleSlot	xxx comment me
  *
@@ -897,26 +900,18 @@ class (MergeJoinState) public (JoinState) {
  * ----------------
  */
 
-typedef File    *FileP;
-typedef char    **charPP;
-typedef char    *charP;
-typedef int     *intP;
-
 class (HashJoinState) public (JoinState) {
       inherits(JoinState);
   /* private: */
       HashJoinTable     hj_HashTable;
       HashBucket        hj_CurBucket;
       HeapTuple         hj_CurTuple;
-      int               hj_NBatch;
-      FileP             hj_OuterBatches;
-      charPP            hj_OuterBatchPos;
-      FileP             hj_InnerBatches;
-      intP              hj_InnerBatchSizes;
+      OverflowTuple	hj_CurOTuple;
       Var               hj_InnerHashKey;
-      int               hj_CurBatch;
-      charP             hj_ReadPos;
-      int               hj_ReadBlk;
+      FileP		hj_OuterBatches;
+      FileP		hj_InnerBatches;
+      charP		hj_OuterReadPos;
+      int		hj_OuterReadBlk;
       Pointer   	hj_SavedTupleSlot;
       Pointer   	hj_TemporaryTupleSlot;
   /* public: */
@@ -1047,10 +1042,7 @@ class (UniqueState) public (CommonState) {
 /* ----------------
  *   HashState information
  *
- *      hashNBatch         xxx comment me
- *      hashBatches        xxx comment me
- *      hashBatchPos       xxx comment me
- *      hashBatchSizes     xxx comment me
+ *	hashBatches	   file descriptors for the batches
  *
  *   CommonState information
  *
@@ -1069,10 +1061,7 @@ class (UniqueState) public (CommonState) {
 class (HashState) public (CommonState) {
       inherits(CommonState);
   /* private: */
-      int       hashNBatch;
-      FileP     hashBatches;
-      charPP    hashBatchPos;
-      intP      hashBatchSizes;
+  FileP		hashBatches;
   /* public: */
 };
 
