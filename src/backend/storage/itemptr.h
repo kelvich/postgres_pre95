@@ -137,6 +137,7 @@ typedef ItemPointerData	*ItemPointer;
 #define ItemPointerSetInvalid(pointer) \
     Assert(PointerIsValid(pointer)); \
     (pointer)->blockData.data[0] &= 0x7fff; \
+    (pointer)->blockData.data[1] = 0; \
     (pointer)->positionData = 0
 
 /*
