@@ -177,7 +177,8 @@ double
 compute_clause_selec (clause,or_selectivities)
      LispValue clause,or_selectivities ;
 {
-    if (!is_clause (clause)) {
+/*    if (!is_clause (clause)) {  NO!!! THIS IS A BUG.  -- JMH 3/9/92 */
+      if (is_clause (clause)) {
 	/* Boolean variables get a selectivity of 1/2. */
 	return(0.5);
     } 
@@ -297,9 +298,13 @@ compute_selec (clauses,or_selectivities)
     } 
     else {
 	/* Compute selectivity of the 'or'ed subclauses. */
-	
-	  double s2 = compute_selec (CDR (clauses),CDR (or_selectivities));
-	  return (double)(s1 + s2 - s1*s2);
+	/* Added check for taking CDR(LispNil).  -- JMH 3/9/92 */
+	  double s2;
+	  if (or_selectivities != LispNil)
+	    s2 = compute_selec (CDR (clauses),CDR (or_selectivities));
+	  else
+	    s2 = compute_selec (CDR (clauses), LispNil);
+	  return (s1 + s2 - s1*s2);
       }
 } /* end compute_selec */
 
