@@ -3,6 +3,8 @@
  *
  *  archive.c -- Support for planning scans on archived relations
  */
+#include <sys/types.h>		/* for u_int in relcache.h */
+
 #include "tmp/c.h"
 #include "utils/rel.h"
 #include "utils/log.h"

@@ -96,10 +96,10 @@ SemantOpt(varlist,rangetable, qual, is_redundent,is_first)
       if (consp(get_leftop(qual)))
 	retqual = MakeTClause();
       else {
-	op = get_opno(get_op(qual));
+	op = get_opno((Oper)get_op(qual));
 	if (op == 627) {
 	  leftvarno = get_varno(get_leftop(qual));
-	  rightvarno = ConstVarno(rangetable, get_rightop(qual),&attname);
+	  rightvarno = ConstVarno(rangetable,(Const)get_rightop(qual),&attname);
 	  /*
 	   *  test for existential clauses first 
 	   */
@@ -231,7 +231,7 @@ SemantOpt2(rangetable,qual,modqual,tlist)
   if (null(qual))
     return(LispNil);
   else
-    if (is_clause(qual) && get_opno(get_op(qual)) == 558) {
+    if (is_clause(qual) && get_opno((Oper)get_op(qual)) == 558) {
       /*
        *  Now to test if they are the same relation.
        */
@@ -288,10 +288,10 @@ replace_tlist(left,right,tlist)
     tle = tl_expr(CAR(i));
 
     if (IsA(tle,Var)) {
-      if (get_varno(tle) == right) {
-	set_varno(tle,left);
-	set_varid(tle, lispCons(lispInteger(left),
-				lispCons(CADR(get_varid(tle)),
+      if (get_varno((Var)tle) == right) {
+	set_varno((Var)tle,left);
+	set_varid((Var)tle, lispCons(lispInteger(left),
+				lispCons(CADR(get_varid((Var)tle)),
 					 LispNil)) );
       }
     } else
@@ -317,17 +317,17 @@ replace_varnodes(left,right,qual)
     rightop = (List)get_rightop(qual);
 
     if (IsA(leftop,Var))
-      if (get_varno(leftop) == right) {
-	set_varno(leftop,left);
-	set_varid(leftop, lispCons(lispInteger(left),
-				   lispCons(CADR(get_varid(leftop)),
+      if (get_varno((Var)leftop) == right) {
+	set_varno((Var)leftop,left);
+	set_varid((Var)leftop, lispCons(lispInteger(left),
+				   lispCons(CADR(get_varid((Var)leftop)),
 					    LispNil)) );
       } else
 	if (IsA(rightop,Var))
-	  if (get_varno(rightop) == right) {
-	    set_varno(rightop,left);
-	    set_varid(rightop, lispCons(lispInteger(left),
-				       lispCons(CADR(get_varid(rightop)),
+	  if (get_varno((Var)rightop) == right) {
+	    set_varno((Var)rightop,left);
+	    set_varid((Var)rightop, lispCons(lispInteger(left),
+				       lispCons(CADR(get_varid((Var)rightop)),
 						LispNil)) );	    
 	  }
   }
@@ -371,8 +371,8 @@ find_allvars (root,rangetable,tlist,qual)
      *  Assume that each (non const) expr is a varnode by this time.
      */
     if (IsA(expr,Var)) {
-      if (!member(lispInteger(get_varno(expr)),varlist))
-	varlist = nappend1(varlist, lispInteger(get_varno(expr)));
+      if (!member(lispInteger(get_varno((Var)expr)),varlist))
+	varlist = nappend1(varlist, lispInteger(get_varno((Var)expr)));
     }
   }
   current_nvars = length(varlist);
@@ -409,11 +409,11 @@ update_vars(rangetable,varlist,qual)
     return(varlist);
   else 
     if (is_clause(qual)) {
-      op = get_opno(get_op(qual));
+      op = get_opno((Oper)get_op(qual));
       if (!consp(get_leftop(qual))) { /* ignore union vars at this point */
 	if (op == 627) {  /* Greg's horrendous not-in op */
 	  leftvarno = get_varno(get_leftop(qual));
-	  rightvarno = ConstVarno(rangetable,get_rightop(qual),&attname);
+	  rightvarno = ConstVarno(rangetable,(Const)get_rightop(qual),&attname);
 
 	  if (member(lispInteger(leftvarno),varlist)) {
 	    if (rightvarno != 0 && !member(lispInteger(rightvarno),varlist))
@@ -428,14 +428,16 @@ update_vars(rangetable,varlist,qual)
 	  rightop = (List)get_rightop(qual);
 	  if (IsA(leftop,Var)) {
 	    if (IsA(rightop,Var)) {
-	      if (member(lispInteger(get_varno(leftop)),varlist)) {
-		if (!member(lispInteger(get_varno(rightop)),varlist))
-		  varlist = nappend1(varlist,lispInteger(get_varno(rightop)));
+	      if (member(lispInteger(get_varno((Var)leftop)),varlist)) {
+		if (!member(lispInteger(get_varno((Var)rightop)),varlist))
+		  varlist = 
+		    nappend1(varlist,lispInteger(get_varno((Var)rightop)));
 	      }
 	      else
-		if (member(lispInteger(get_varno(rightop)),varlist))
-		  if (!member(lispInteger(get_varno(leftop)),varlist))
-		    varlist = nappend1(varlist,lispInteger(get_varno(leftop)));
+		if (member(lispInteger(get_varno((Var)rightop)),varlist))
+		  if (!member(lispInteger(get_varno((Var)leftop)),varlist))
+		    varlist = 
+		      nappend1(varlist,lispInteger(get_varno((Var)leftop)));
 	    }
 	  } /* leftop var */
 	} /*else */
@@ -516,7 +518,7 @@ MakeTClause()
   leftconst = MakeConst(23, 4, Int32GetDatum(1), 0, 1);
   rightconst = MakeConst(23, 4, Int32GetDatum(1), 0, 1);
 
-  return(make_opclause(newop,leftconst,rightconst));
+  return(make_opclause(newop,(Var)leftconst,(Var)rightconst));
   
 }
 
@@ -534,9 +536,9 @@ MakeFClause()
   int opsize = 0;
   
   newop = MakeOper(objid, InvalidObjectId, 0,rettype,opsize,NULL);
-  leftconst = MakeConst(23, 4, Int32GetDatum(1), 0);
-  rightconst = MakeConst(23, 4,Int32GetDatum(2), 0);
+  leftconst = MakeConst(23, 4, Int32GetDatum(1), 0, false);
+  rightconst = MakeConst(23, 4,Int32GetDatum(2), 0, false);
 
-  return(make_opclause(newop,leftconst,rightconst));
+  return(make_opclause(newop,(Var)leftconst,(Var)rightconst));
   
 }

@@ -181,10 +181,10 @@ index_selectivity (indid,classes,opnos,relid,attnos,values,flags,nkeys)
 	}
 
 	IndexSelectivity (indid,relid,nkeys,
-			  class_array,
-			  opno_array,
+			  (ObjectId *)class_array,
+			  (ObjectId *)opno_array,
 			  attno_array,
-			  value_array,
+			  (char **)value_array,
 			  flag_array,
 			  param);
 	

@@ -40,10 +40,10 @@ preprocess_qualification (qual,tlist)
      LispValue qual,tlist ;
 {
     LispValue cnf_qual = cnfify (qual, true);
-    LispValue existential_qual = 
-      update_clauses (lispCons (lispInteger(_query_result_relation_),
+    LispValue existential_qual =
+      update_clauses (lispCons (lispInteger((int)_query_result_relation_),
 				update_relations (tlist)),
-		      cnf_qual,_query_command_type_);
+		      cnf_qual,(LispValue)_query_command_type_);
     if ( existential_qual ) 
       return (lispCons (set_difference (cnf_qual,existential_qual),
 			lispCons(existential_qual,LispNil)));
@@ -130,9 +130,9 @@ pull_args (qual)
   else 
     if (is_clause (qual)) 
       return(make_clause (get_op (qual),
-			  lispCons(pull_args (get_leftop (qual)),
-				   lispCons(pull_args (get_rightop (qual)),
-					    LispNil))));
+		 lispCons(pull_args ((LispValue)get_leftop (qual)),
+		     lispCons(pull_args ((LispValue)get_rightop(qual)),
+			      LispNil))));
 
     else 
       if (and_clause (qual)) {
@@ -232,9 +232,9 @@ find_nots (qual)
   else 
     if (is_clause (qual)) 
       return (make_clause (get_op (qual),
-			   lispCons(find_nots (get_leftop (qual)),
-				    lispCons(find_nots (get_rightop (qual)),
-					     LispNil))));
+		  lispCons(find_nots ((LispValue)get_leftop (qual)),
+		      lispCons( find_nots ((LispValue)get_rightop (qual)),
+				LispNil))));
     else 
       if (and_clause (qual)) {
 	LispValue temp = LispNil;
@@ -294,8 +294,8 @@ push_nots (qual)
 				     get_oprelationlevel (oper),
 				     get_opresulttype (oper), NULL, NULL);
 	  op->op_fcache = (FunctionCache *) NULL;
-	  return (lispCons(op, lispCons(get_leftop (qual),
-				    lispCons(get_rightop (qual),
+	  return (lispCons((LispValue)op, lispCons((LispValue)get_leftop (qual),
+				    lispCons((LispValue)get_rightop (qual),
 					     LispNil))));
 	}
 	else 
@@ -362,9 +362,9 @@ normalize (qual)
   else 
     if (is_clause (qual)) 
       return (make_clause (get_op (qual),
-			   lispCons(normalize (get_leftop (qual)),
-				    lispCons(normalize (get_rightop (qual)),
-					     LispNil))));
+		  lispCons(normalize ((LispValue)get_leftop (qual)),
+		      lispCons( normalize ((LispValue)get_rightop (qual)),
+				LispNil))));
     else 
       if (and_clause (qual)) {
 	LispValue temp = LispNil;
@@ -502,9 +502,9 @@ qualcleanup (qual)
      else 
        if (is_clause (qual)) 
 	 return (make_clause (get_op (qual),
-			      lispCons(qualcleanup (get_leftop (qual)),
-				       lispCons(qualcleanup(get_rightop(qual)),
-						LispNil))));
+		     lispCons(qualcleanup ((LispValue)get_leftop (qual)),
+			 lispCons( qualcleanup((LispValue)get_rightop(qual)),
+				   LispNil))));
        else 
 	 if (and_clause (qual)) {
 	      LispValue temp = LispNil;
@@ -564,9 +564,9 @@ remove_ands (qual)
        return (LispNil);
      if (is_clause (qual)) 
        return (make_clause (get_op (qual),
-			    lispCons(remove_ands (get_leftop (qual)),
-				     lispCons(remove_ands(get_rightop(qual)),
-					      LispNil))));
+		   lispCons(remove_ands ((LispValue)get_leftop (qual)),
+		       lispCons(remove_ands((LispValue)get_rightop(qual)),
+				LispNil))));
      if (and_clause (qual)) {
 	 LispValue temp = LispNil;
 	 foreach (temp,get_andclauseargs(qual))

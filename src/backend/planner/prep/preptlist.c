@@ -26,9 +26,8 @@
 
 #include "planner/internal.h"
 #include "planner/preptlist.h"
+#include "planner/clause.h"
 
-
-extern LispValue number_list();  /* XXX should #include temp.h in l-lisp */
 
 /*    
  *    	preprocess-targetlist
@@ -63,9 +62,9 @@ preprocess_targetlist (tlist,command_type,result_relation,range_table)
      
      if ( integerp (relid) ) {
 	  expanded_tlist = 
-	    expand_targetlist (tlist,CInteger(relid),
+	    expand_targetlist (tlist,(ObjectId)CInteger(relid),
 			       command_type,
-			       CInteger(result_relation));
+			       (Index)CInteger(result_relation));
      } 
      else {
 	  expanded_tlist = tlist;
@@ -90,23 +89,31 @@ preprocess_targetlist (tlist,command_type,result_relation,range_table)
      */
     if (command_type == REPLACE || command_type == DELETE) {
        LispValue ctid;
-
-       ctid = lispCons(MakeResdom(length(t_list) + 1,
-                                  27,
-                                  6,
-                                  "ctid",
-                                  0,
-                                  0,
-				  1),  /* set resjunk to 1 */
-                        lispCons(MakeVar(CInteger(result_relation),
-                                          -1,
-                                          27,
-                                          LispNil,
-					  0,
-                                          lispCons(result_relation,
-                                                   lispCons(lispInteger(-1),
-                                                            LispNil)),
-                                         0), LispNil));
+       Name nameTemp = (Name)palloc(sizeof(NameData));
+       /*
+	* XXX MakeResdom doesn't palloc any space it merely
+	* assigns values and pointer to fields in the Resdom
+	* struct.  All pointers passed in must point to 'palloc'ed
+	* space or the structure will contain garbage later.
+	*/
+       strcpy(&nameTemp->data[0], "ctid");
+       ctid = lispCons((LispValue)MakeResdom(length(t_list) + 1,
+                                             27,
+                                             6,
+                                             nameTemp,
+                                             0,
+                                             0,
+				             1),  /* set resjunk to 1 */
+                        lispCons((LispValue)MakeVar(CInteger(result_relation),
+                                                    -1,
+                                                    27,
+                                                    LispNil,
+					            0,
+                                                    lispCons(result_relation,
+                                                       lispCons(lispInteger(-1),
+                                                          LispNil)),
+                                         0),
+				 LispNil));
        t_list = nappend1(t_list, ctid);
     }
     return(t_list);
@@ -138,22 +145,22 @@ preprocess_targetlist (tlist,command_type,result_relation,range_table)
 LispValue
 expand_targetlist (tlist,relid,command_type,result_relation)
      List tlist;
-     LispValue relid;
+     ObjectId relid;
      int command_type;
-     LispValue result_relation ;
+     Index result_relation ;
 {
-    int node_type = -1;
+    NodeTag node_type = -1;
     
     switch (command_type) {
       case APPEND : 
 	{ 
-	    node_type = T_Const;
+	    node_type = (NodeTag)T_Const;
 	}
 	break;
 	
        case REPLACE : 
 	 { 
-	     node_type = T_Var;
+	     node_type = (NodeTag)T_Var;
 	 }
 	break;
     } 
@@ -191,16 +198,16 @@ replace_matching_resname (new_tlist,old_tlist)
 
 	 foreach (temp,old_tlist) {
 	     old_tl = CAR(temp);
-	     if (!strcmp(get_resname (tl_resdom(old_tl)),
-			get_resname (tl_resdom(new_tl)))) {
+	     if (!strcmp(get_resname ((Resdom)tl_resdom(old_tl)),
+			get_resname ((Resdom)tl_resdom(new_tl)))) {
 		 matching_old_tl = old_tl;
 		 break;
 	     }
 	 }
 	  
 	 if(matching_old_tl) {
-	     set_resno (tl_resdom (matching_old_tl),
-			get_resno (tl_resdom (new_tl)));
+	     set_resno ((Resdom)tl_resdom (matching_old_tl),
+			get_resno ((Resdom)tl_resdom (new_tl)));
 	     t_list = nappend1(t_list,matching_old_tl);
 	 } 
 	 else {
@@ -225,7 +232,7 @@ replace_matching_resname (new_tlist,old_tlist)
 	Resdom newresno;
 
 	old_tl = CAR(temp);
-	if (get_resno(tl_resdom(old_tl)) < 0 ) {
+	if (get_resno((Resdom)tl_resdom(old_tl)) < 0 ) {
 	    newresno = (Resdom) CopyObject(tl_resdom(old_tl));
 	    set_resno(newresno, length(t_list) +1);
 	    set_resjunk(newresno, 1);
@@ -282,12 +289,19 @@ new_relation_targetlist (relid,rt_index,node_type)
 		 else 
 		   temp = typlen;
 		 
-		 temp2 = MakeConst (atttype,temp,
-				    typedefault,lispNullp(typedefault));
+		 temp2 = MakeConst (atttype,
+				    temp,
+				    (Datum)typedefault,
+				    (typedefault == (struct varlena *)NULL),
+				    /* XXX this is bullshit */
+				    false);
 		 
 		 temp3 = MakeTLE (MakeResdom (CInteger(attno),atttype,
 					      typlen,
-					      attname,0,LispNil,0),
+					      attname,
+					      0,
+					      (OperatorTupleForm)NULL,
+					      0),
 				  temp2);
 		 t_list = nappend1(t_list,temp3);
 		 break;
@@ -304,9 +318,13 @@ new_relation_targetlist (relid,rt_index,node_type)
 				 lispCons (lispInteger(rt_index),
 					   lispCons(attno,
 						    LispNil)), 0);
-		 temp_list = MakeTLE (MakeResdom (CInteger(attno),atttype,
-					      typlen,
-					      attname,0,LispNil,0),
+		 temp_list = MakeTLE (MakeResdom( CInteger(attno),
+						  atttype,
+						  typlen,
+						  attname,
+						  0,
+						  (OperatorTupleForm)NULL,
+						  0),
 				      temp_var);
 		 t_list = nappend1(t_list,temp_list);
 		 break;

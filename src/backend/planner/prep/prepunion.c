@@ -40,12 +40,6 @@
 #include "planner/prepunion.h"
 #include "planner/handleunion.h"
 
-/* ----------------
- *	Append creator declaration
- * ----------------
- */
-extern Append RMakeAppend();
-
 /*    
  *    	find-all-inheritors
  *    
@@ -199,7 +193,7 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
 	  union_plans = handleunion(root,rangetable,tlist,qual);
 	  return (make_append (union_plans,
 			       rt_index, rangetable,
-			       get_qptargetlist (CAR(union_plans))));
+			       get_qptargetlist ((Plan)CAR(union_plans))));
       }
 	break;
 	
@@ -245,7 +239,7 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
     return (make_append (union_plans,
 			 rt_index,
 			 union_rt_entries,
-			 get_qptargetlist (CAR (union_plans))));
+			 get_qptargetlist ((Plan)CAR (union_plans))));
 }
 
 
@@ -302,7 +296,7 @@ plan_union_query (relids,rt_index,rt_entry,root,tlist,qual,rangetable)
 
 
 	union_plans = nappend1(union_plans,
-			       lispCons(planner(new_parsetree),
+			       lispCons((LispValue)planner(new_parsetree),
 					 lispCons(new_rt_entry,
 						  LispNil)));
     }
@@ -341,9 +335,9 @@ new_rangetable_entry (new_relid,old_entry)
  */
     if (!strcmp(CString(CAR(new_entry)), "*CURRENT*") ||
         !strcmp(CString(CAR(new_entry)), "*NEW*"))
-      CAR(new_entry) =  lispString(get_rel_name (new_relid));
+      CAR(new_entry) =  lispString((char *)get_rel_name (new_relid));
     else
-      CADR(new_entry) =  lispString(get_rel_name (new_relid));
+      CADR(new_entry) =  lispString((char *)get_rel_name (new_relid));
 
 
     rt_relid (new_entry) = lispInteger(new_relid);
@@ -393,8 +387,9 @@ subst_rangetable (root,index,new_entry)
 
 LispValue
 fix_parsetree_attnums (rt_index,old_relid,new_relid,parsetree)
-     LispValue old_relid,new_relid,parsetree ;
      Index rt_index;
+     ObjectId old_relid,new_relid;
+     LispValue parsetree ;
 {
     LispValue i = LispNil;
     Node foo = (Node)NULL;
@@ -409,14 +404,14 @@ fix_parsetree_attnums (rt_index,old_relid,new_relid,parsetree)
 	  foo = (Node)CAR(i);
 	  if (!null(foo) && IsA(foo,Var) && 
 	       (get_varno (foo) == rt_index)) {
-	      set_varattno (foo, 
+	      set_varattno ((Var)foo, 
 			    get_attnum (new_relid,
 					get_attname(old_relid,
 						    get_varattno(foo))));
 	  } 
 	  if (!null(foo) && IsA(foo,LispList)) {
 	      foo = (Node)fix_parsetree_attnums(rt_index,old_relid,
-						new_relid,foo);
+						new_relid,(LispValue)foo);
 	  }
 	  /* vectors ? */
 	  /* all other cases are not interesting, I believe - jeff */
@@ -470,13 +465,13 @@ make_append (unionplans,rt_index,union_rt_entries, tlist)
   set_unionplans(node,unionplans);
   set_unionrelid(node,rt_index);
   set_unionrtentries(node,union_rt_entries);
-  set_cost(node,0.0);
-  set_fragment(node,0);
-  set_state(node,(EState)NULL);
-  set_qptargetlist(node,tlist);
-  set_qpqual(node,LispNil);
-  set_lefttree(node,(Plan)NULL);
-  set_righttree(node,(Plan)NULL);
+  set_cost((Plan)node,0.0);
+  set_fragment((Plan)node,0);
+  set_state((Plan)node,(EState)NULL);
+  set_qptargetlist((Plan)node,tlist);
+  set_qpqual((Plan)node,LispNil);
+  set_lefttree((Plan)node,(Plan)NULL);
+  set_righttree((Plan)node,(Plan)NULL);
 
   return(node);
 }

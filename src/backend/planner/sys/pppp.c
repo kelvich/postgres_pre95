@@ -35,18 +35,32 @@ RcsId("$Header$");
 #include "planner/internal.h"
 #include "planner/clauses.h"
 #include "planner/keys.h"
+#include "planner/prepqual.h"
 
-extern	void	print_root();
-extern	void	print_clauses();
-extern	void	print_const();
-extern	void	print_subplan();
-extern	void	print_rtentries();
-extern	void	print_tlist();
-extern	void	print_tlistentry();
-extern	void	print_allqual();
-extern	void	print_qual();
-extern	void	print_clause();
-extern	void	print_param();
+void print_parse ARGS((LispValue parse ));
+void print_root ARGS((LispValue root ));
+void print_plan ARGS((Plan plan , int levelnum ));
+char *subplan_type ARGS((int type ));
+void print_subplan ARGS((LispValue subplan , int levels ));
+void print_rtentries ARGS((LispValue rt , int levels ));
+void print_tlist ARGS((LispValue tlist , int levels ));
+void print_tlistentry ARGS((LispValue tlistentry , int level ));
+void print_allqual ARGS((LispValue quals , int levels ));
+void print_qual ARGS((LispValue qual , int levels ));
+void print_var ARGS((LispValue var ));
+void print_clause ARGS((LispValue clause , int levels ));
+void print_const ARGS((LispValue node ));
+void print_param ARGS((LispValue param ));
+void pplan ARGS((Plan plan ));
+void set_query_range_table ARGS((List parsetree ));
+void p_plan ARGS((Plan plan ));
+void p_plans ARGS((List plans ));
+char *path_type ARGS((Path path ));
+void ppath ARGS((Path path ));
+void p_path ARGS((Path path ));
+void p_paths ARGS((List paths ));
+void p_rel ARGS((Rel rel ));
+void p_rels ARGS((List rels ));
 
 /*  #ifdef opus43
  *  declare (special (_newline_))
@@ -70,7 +84,7 @@ print_parse (parse)
 	printf ("TargetList:\n");
 	print_tlist (parse_targetlist (parse),0);
 	printf ("Qualification:\n");
-	print_qual (cnfify (parse_qualification (parse)),0);
+	print_qual (cnfify (parse_qualification (parse), false),0);
 }
 
 /*  .. print_parse
@@ -81,11 +95,11 @@ print_root (root)
 {
 	printf ("NumLevels: %d\nCommandType: %d\nResultRelation: ",
 		root_numlevels(root), root_command_type(root));
-	lispDisplay(root_result_relation (root), 0);
+	lispDisplay(root_result_relation (root));
 	printf("\nRangetable:\n");
 	print_rtentries (root_rangetable (root), 0);
 	printf ("Priority: %d\nRuleInfo: ", CInteger(root_priority(root)));
-	lispDisplay(root_ruleinfo(root), 0);
+	lispDisplay(root_ruleinfo(root));
 	printf("\n");
 }
 
@@ -104,18 +118,19 @@ print_plan(plan, levelnum)
 	if (IsA(plan,Append)) {
 		INDENT(levelnum);
 		printf("Append %d\n\nInheritance Relid : %ld\n", levelnum,
-			get_unionrelid(plan));
+			get_unionrelid((Append)plan));
 
 		saved_rt = copy_seq_tree (_query_range_table_);
 
-		for (i = 0; i < (length(get_unionplans(plan))); i++){
+		for (i = 0; i < (length(get_unionplans((Append)plan))); i++){
 			INDENT(levelnum);
 			printf("Appended Plan %d\n", i);
 			_query_range_table_ =
-				fix_rangetable(_query_range_table_,
-						get_unionrelid (plan),
-						nth(i, get_unionrtentries(plan)));
-			print_plan(nth (i, get_unionplans(plan)), levelnum + 1);
+			    fix_rangetable(_query_range_table_,
+				    get_unionrelid ((Append)plan),
+				    nth(i, get_unionrtentries((Append)plan)));
+			print_plan((Plan)nth(i, get_unionplans((Append)plan)),
+				   levelnum + 1);
 		};
 
 		/* XXX need to free the munged tree */
@@ -123,22 +138,24 @@ print_plan(plan, levelnum)
 
 		INDENT(levelnum);
 		printf("Inheritance Range Table :\n");
-		print_rtentries (get_unionrtentries (plan), levelnum);
+		print_rtentries ((LispValue)get_unionrtentries((Append)plan), levelnum);
 
 	} else if (IsA(plan,Existential)) {
 		INDENT(levelnum);
 		printf("Existential %d\n", levelnum);
 
-		if (get_lefttree(plan)) {
+		if (get_lefttree((Plan)plan)) {
 			INDENT(levelnum);
 			printf("\nExistential Plan %d\n", levelnum);
-			print_plan (get_lefttree (plan), levelnum + 1);
+			print_plan (get_lefttree (plan), 
+				    levelnum + 1);
 		};
 
-		if (get_righttree(plan)) {
+		if (get_righttree((Plan)plan)) {
 			INDENT(levelnum);
 			printf("\nQuery Plan %d\n", levelnum);
-			print_plan (get_righttree (plan), levelnum + 1);
+			print_plan (get_righttree (plan),
+				    levelnum + 1);
 		};
 
 	} else if (IsA(plan,Existential)) {
@@ -147,20 +164,21 @@ print_plan(plan, levelnum)
 
 		INDENT(levelnum);
 		printf("TargetList :\n");
-		print_tlist(get_qptargetlist(plan), levelnum + 1);
+		print_tlist(get_qptargetlist((Plan)plan), levelnum + 1);
 
 		INDENT(levelnum);
 		printf("RelLevelQual :\n");
-		print_qual(get_resrellevelqual(plan), levelnum + 1);
+		print_qual(get_resrellevelqual((Result)plan), levelnum+1);
 
 		INDENT(levelnum);
 		printf("ConstantQual :\n");
-		print_qual(get_resconstantqual(plan), levelnum + 1);
+		print_qual(get_resconstantqual((Result)plan), levelnum+1);
 
 		if (get_lefttree(plan)) {
 			INDENT(levelnum);
 			printf("\nSubplan %d\n\n", levelnum);
-			print_subplan(get_lefttree(plan), levelnum + 1);
+			print_subplan((LispValue)get_lefttree(plan),
+				      levelnum + 1);
 		};
 
 		if (get_righttree(plan)) {
@@ -173,7 +191,7 @@ print_plan(plan, levelnum)
 		 */
 
 		printf("Subplan %d\n\n", levelnum);
-		print_subplan(plan, levelnum + 1);
+		print_subplan((LispValue)plan, levelnum + 1);
 	}
 }
 
@@ -206,16 +224,14 @@ print_subplan (subplan, levels)
 	LispValue subplan;
 	int levels;
 {
-	void print_var();
-
 	INDENT(levels);
 	printf("Type : %s\n", subplan_type(((Node)subplan)->type));
 	INDENT (levels);
-	printf("Cost : %f\n", get_cost(subplan));
+	printf("Cost : %f\n", get_cost((Plan)subplan));
 	INDENT (levels);
-	printf("Size : %d\n", get_plan_size(subplan));
+	printf("Size : %d\n", get_plan_size((Plan)subplan));
 	INDENT (levels);
-	printf("Width : %d\n", get_plan_width(subplan));
+	printf("Width : %d\n", get_plan_width((Plan)subplan));
 	if (IsA(subplan,Scan)) {
 		INDENT (levels);
 		printf("Relid: ");
@@ -225,49 +241,50 @@ print_subplan (subplan, levels)
 		 * if (integerp (get_scanrelid (subplan)) &&
 		 *     (_TEMP_RELATION_ID_ != get_scanrelid (subplan)))
 		 */
-		if (_TEMP_RELATION_ID_ != get_scanrelid(subplan)) {
-			printf( "%s", CString(getrelname(get_scanrelid(subplan),
-						 _query_range_table_)));
+		if (_TEMP_RELATION_ID_ != get_scanrelid((Scan)subplan)) {
+			printf( "%s",
+				CString(getrelname(get_scanrelid((Scan)subplan),
+						   _query_range_table_)));
 		} else {
-			printf("%ld", get_scanrelid (subplan));
+			printf("%ld", get_scanrelid ((Scan)subplan));
 		};
 		printf("\n");
 	};
 	if (IsA(subplan,Temp)) {
 		INDENT (levels);
-		printf("TempID: %d\n", get_tempid(subplan));
+		printf("TempID: %d\n", get_tempid((Temp)subplan));
 		INDENT (levels);
-		printf("KeyCount: %d\n", get_keycount(subplan));
+		printf("KeyCount: %d\n", get_keycount((Temp)subplan));
 		INDENT (levels);
 		printf ("TempList:\n");
-		print_tlist(get_qptargetlist(subplan), (levels + 1)); 
+		print_tlist(get_qptargetlist((Plan)subplan), (levels + 1)); 
 
 	} else if (IsA(subplan,Hash)) {
 		INDENT(levels);
 		printf("HashKey: ");
-		print_var(get_hashkey(subplan));
+		print_var((LispValue)get_hashkey((Hash)subplan));
 	} else  {
 		INDENT(levels);
 		printf("TargetList :\n");
-		print_tlist(get_qptargetlist(subplan), (levels + 1));
+		print_tlist((LispValue)get_qptargetlist((Plan)subplan), (levels + 1));
 
 		INDENT (levels);
 		printf("Qual:\n");
-		print_qual(get_qpqual(subplan), (levels + 1));
+		print_qual((LispValue)get_qpqual((Plan)subplan), (levels + 1));
 	}
 
 	if (IsA(subplan,MergeJoin)) {
 		INDENT (levels);
-		printf("MergeSortOp: %ld\n", get_mergesortop(subplan));
+		printf("MergeSortOp:%ld\n",get_mergesortop((MergeJoin)subplan));
 
 		INDENT (levels);
 		printf("MergeClauses :\n");
-		print_qual(get_mergeclauses(subplan), (levels + 1));
+		print_qual(get_mergeclauses((MergeJoin)subplan), (levels + 1));
 	}
 	if (IsA(subplan,HashJoin)) {
 		INDENT (levels);
 		printf("hashClauses :\n");
-		print_qual(get_hashclauses(subplan), (levels + 1));
+		print_qual(get_hashclauses((HashJoin)subplan), (levels + 1));
 	}
 	if (IsA(subplan,IndexScan)) {
 		/*
@@ -280,7 +297,7 @@ print_subplan (subplan, levels)
 
 		INDENT(levels);
 		printf("IndexQual:\n");
-		print_allqual(get_indxqual (subplan), (levels + 1));
+		print_allqual(get_indxqual ((IndexScan)subplan), (levels + 1));
 
 		printf ("\n");
 	};
@@ -288,18 +305,19 @@ print_subplan (subplan, levels)
 		printf("\n");
 		INDENT(levels);
 		printf("Outer Path:\n");
-		print_subplan(get_lefttree(subplan), (levels + 1));
+		print_subplan((LispValue)get_lefttree((Plan)subplan),
+			      (levels + 1));
 		printf("\n");
 		INDENT(levels);
 		printf("Inner Path:\n");
-		print_subplan(get_righttree(subplan), (levels + 1));
+		print_subplan((LispValue)get_righttree((Plan)subplan), (levels + 1));
 
-	} else if (get_lefttree(subplan)) {
+	} else if (get_lefttree((Plan)subplan)) {
 		printf ("\n");
-		if (IsA(get_lefttree(subplan),Result)) {
-			print_plan(get_lefttree(subplan), levels + 1);
+		if (IsA(get_lefttree((Plan)subplan),Result)) {
+			print_plan((Plan)get_lefttree((Plan)subplan), levels + 1);
 		} else {
-			print_subplan(get_lefttree(subplan), levels + 1);
+			print_subplan((LispValue)get_lefttree((Plan)subplan), levels + 1);
 		}
 	}
 }
@@ -319,7 +337,7 @@ print_rtentries (rt, levels)
 		rtentry = CAR(i);
 
 		INDENT (levels + 1);
-		lispDisplay(rtentry,0);
+		lispDisplay(rtentry);
 
 #ifdef NOTYET
 		/* XXX integerp becomes what? */
@@ -368,15 +386,15 @@ print_tlistentry(tlistentry, level)
 	expr = (LispValue) get_expr(tlistentry);
 
 	INDENT(level);
-	printf ("(%d ", get_resno(resdom));
+	printf ("(%d ", get_resno((Resdom)resdom));
 
-	if (get_reskey(resdom) != 0) {
+	if (get_reskey((Resdom)resdom) != 0) {
 		/*
 		 *  XXX should print the tuple form, but we just print the
 		 *  address for now.
 		 */
-		printf ("(%d 0x%lx)",
-			get_reskey(resdom), get_reskeyop(resdom));
+		printf("(%d 0x%lx)",
+		    get_reskey((Resdom)resdom),get_reskeyop((Resdom)resdom));
 	};
 	/*
 	 * if (get_resname(resdom) != (char *) NULL) {
@@ -434,12 +452,12 @@ print_var(var)
 	Index varno;
 	AttributeNumber attnum;
 	printf ("(");
-	if(_query_range_table_ && (_TEMP_RELATION_ID_ != get_varno(var)))
+	if(_query_range_table_ && (_TEMP_RELATION_ID_ != get_varno((Var)var)))
 	{
-		varno = get_varno(var);
-		attnum = get_varattno (var);
+		varno = get_varno((Var)var);
+		attnum = get_varattno ((Var)var);
 		if (varno == INNER || varno == OUTER) {
-		   List varid = get_varid(var);
+		   List varid = get_varid((Var)var);
 		   varno = CInteger(CAR(varid));
 		   attnum = CInteger(CADR(varid));
 		  }
@@ -449,7 +467,7 @@ print_var(var)
 				 _query_range_table_)), attnum));
 
 	} else {
-		printf ("%d %d", get_varno(var), get_varattno(var));
+		printf ("%d %d", get_varno((Var)var), get_varattno((Var)var));
 	}
 
 	/* XXX foreach */
@@ -508,10 +526,10 @@ print_clause(clause, levels)
 		 */
 
 		 } else {
-		 	printf("(%d ", get_opno(get_op(clause)));
-		 	print_clause(get_leftop(clause), levels);
+		 	printf("(%d ", get_opno((Oper)get_op(clause)));
+		 	print_clause((LispValue)get_leftop(clause), levels);
 		 	printf(" ");
-			print_clause(get_rightop(clause), levels);
+			print_clause((LispValue)get_rightop(clause), levels);
 			printf(") ");
 		}
 	}
@@ -540,7 +558,7 @@ void
 print_const(node)
 	LispValue node;
 {
-	if (get_constisnull(node)) {
+	if (get_constisnull((Const)node)) {
 		printf("*NULL*");
 	/*
 	 * } else if (stringp (get_constvalue (node))) {
@@ -566,7 +584,7 @@ print_param (param)
 	LispValue param;
 {
 
-	printf (" $%ld", get_paramid(param));
+	printf (" $%ld", get_paramid((Param)param));
 
 	/*
 	 * if (stringp (get_paramid (param))) {
@@ -576,8 +594,8 @@ print_param (param)
 	 * }
 	 */
 
-	 if (get_paramname(param) != (Name) NULL)
-		printf("(\"%s\")", get_paramname(param));
+	 if (get_paramname((Param)param) != (Name) NULL)
+		printf("(\"%s\")", get_paramname((Param)param));
 }
 
 void
@@ -589,8 +607,8 @@ Plan plan;
     switch (NodeType(plan)) {
     case classTag(SeqScan):
     case classTag(IndexScan):
-	if (_TEMP_RELATION_ID_ != get_scanrelid(plan)) {
-	    fprintf(stderr,  "%s", CString(getrelname(get_scanrelid(plan),
+	if (_TEMP_RELATION_ID_ != get_scanrelid((Scan)plan)) {
+	    fprintf(stderr,  "%s", CString(getrelname(get_scanrelid((Scan)plan),
 				  _query_range_table_)));
 	  }
 	else {
@@ -600,7 +618,7 @@ Plan plan;
     case classTag(ScanTemps):
 	{   LispValue x;
 	    Relation tmpreldesc;
-	    foreach (x, get_temprelDescs(plan)) {
+	    foreach (x, get_temprelDescs((ScanTemps)plan)) {
 		tmpreldesc = (Relation)CAR(x);
 		fprintf(stderr, " %s", &(tmpreldesc->rd_rel->relname));
 	      }
@@ -630,11 +648,12 @@ Plan plan;
 	   int i;
 
 	   saved_rt = copy_seq_tree(_query_range_table_);
-	   for (i=0; i<(length(get_unionplans(plan))); i++) {
-	       _query_range_table_ = fix_rangetable(_query_range_table_,
-					 get_unionrelid(plan),
-					 nth(i,get_unionrtentries(plan)));
-	       pplan(nth(i, get_unionplans(plan)));
+	   for (i=0; i<(length(get_unionplans((Append)plan))); i++) {
+	       _query_range_table_ = 
+		    fix_rangetable(_query_range_table_,
+				   get_unionrelid((Append)plan),
+				   nth(i,get_unionrtentries((Append)plan)));
+	       pplan((Plan)nth(i, get_unionplans((Append)plan)));
 	     }
 	    _query_range_table_ = saved_rt;
 	    break;
@@ -670,7 +689,7 @@ List plans;
     LispValue x;
 
     foreach (x, plans) {
-	p_plan(CAR(x));
+	p_plan((Plan)CAR(x));
       }
 }
 
@@ -696,32 +715,32 @@ Path path;
     fprintf(stderr, "(%s ", path_type(path));
     switch (NodeType(path)) {
     case classTag(HashPath):
-	ppath(get_outerjoinpath(path));
+	ppath((Path)get_outerjoinpath((JoinPath)path));
 	fprintf(stderr, " (Hash ");
-	ppath(get_innerjoinpath(path));
+	ppath(get_innerjoinpath((JoinPath)path));
 	fprintf(stderr, ")");
 	break;
     case classTag(MergePath):
-	if (get_outersortkeys(path)) {
+	if (get_outersortkeys((MergePath)path)) {
 	    fprintf(stderr, "(SeqScan (Sort ");
-	    ppath(get_outerjoinpath(path));
+	    ppath(get_outerjoinpath((JoinPath)path));
 	    fprintf(stderr, "))");
 	  }
 	else
-	    ppath(get_outerjoinpath(path));
+	    ppath(get_outerjoinpath((JoinPath)path));
 	fprintf(stderr, " ");
-	if (get_innersortkeys(path)) {
+	if (get_innersortkeys((MergePath)path)) {
 	    fprintf(stderr, "(SeqScan (Sort ");
-	    ppath(get_innerjoinpath(path));
+	    ppath(get_innerjoinpath((JoinPath)path));
 	    fprintf(stderr, "))");
 	  }
 	else
-	    ppath(get_innerjoinpath(path));
+	    ppath(get_innerjoinpath((JoinPath)path));
 	break;
     case classTag(JoinPath):
-	ppath(get_outerjoinpath(path));
+	ppath(get_outerjoinpath((JoinPath)path));
 	fprintf(stderr, " ");
-	ppath(get_innerjoinpath(path));
+	ppath(get_innerjoinpath((JoinPath)path));
 	break;
     case classTag(IndexPath):
     case classTag(Path):
@@ -752,7 +771,7 @@ List paths;
     LispValue x;
 
     foreach (x, paths) {
-	p_path(CAR(x));
+	p_path((Path)CAR(x));
       }
 }
 
@@ -777,6 +796,6 @@ List rels;
     LispValue x;
 
     foreach (x, rels) {
-	p_rel(CAR(x));
+	p_rel((Rel)CAR(x));
       }
 }

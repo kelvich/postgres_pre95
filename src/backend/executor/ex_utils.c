@@ -50,6 +50,7 @@
  */
  
 #include "executor/executor.h"
+#include "nodes/relation.h"	/* needed before including keys.h */
 #include "planner/keys.h"	/* needed for definition of INNER */
 
  RcsId("$Header$");

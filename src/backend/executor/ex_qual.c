@@ -29,6 +29,8 @@
 #include "tmp/align.h"
 #include "parser/parsetree.h"
 #include "parser/parse.h" /* for NOT used in macros in ExecEvalExpr */
+#include "nodes/primnodes.h"
+#include "nodes/relation.h"
 #include "planner/keys.h"
 #include "nodes/mnodes.h"
 #include "catalog/pg_language.h"

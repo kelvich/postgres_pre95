@@ -92,7 +92,7 @@ handleunion (root,rangetable, tlist, qual)
 					   lispCons(CADR(temp),
 						    LispNil) ));
     union_plans = nappend1(union_plans,
-			   planner(new_parsetree));
+			   (LispValue)planner(new_parsetree));
 
   }
 
@@ -335,7 +335,7 @@ split_tlexpr(clauses,varnum)
       flat_list = LispNil;
     else
       if (is_clause(clause))
-	split_tlexpr(CDR(clause));
+	split_tlexpr(CDR(clause), varnum);
       else
 	if (consp(clause) &&
 	    CAtom(CAR(clause)) == UNION) {
@@ -388,14 +388,14 @@ collect_union_sets(tlist,qual)
       flattened_ulist = collect_tlist_uset(CDR(varlist));
       foreach (x, flattened_ulist) 
 	current_union_set = nappend1(current_union_set,
-				     lispInteger(get_varno(CAR(x))) );
+				     lispInteger(get_varno((Var)CAR(x))) );
     } else
       if (consp(varlist) &&
 	  CAtom(CAR(varlist)) == UNION) {
 	flattened_ulist = flatten_union_list(CDR(varlist));
 	foreach (x, flattened_ulist) 
 	  current_union_set = nappend1(current_union_set,
-				       lispInteger(get_varno(CAR(x))) );
+				       lispInteger(get_varno((Var)CAR(x))) );
 
       }
     union_sets = nappend1(union_sets,
@@ -483,7 +483,7 @@ find_qual_union_sets(qual)
 	flattened_ulist = flatten_union_list(CDR(leftop));
 	foreach(i, flattened_ulist) 
 	  current_union_set = nappend1(current_union_set,
-				       lispInteger(get_varno(CAR(i))) );
+				       lispInteger(get_varno((Var)CAR(i))) );
 	union_sets = nappend1(union_sets,
 			      current_union_set);
       }    
@@ -492,7 +492,7 @@ find_qual_union_sets(qual)
 	flattened_ulist = flatten_union_list(CDR(rightop));
 	foreach(i, flattened_ulist) 
 	  current_union_set = nappend1(current_union_set,
-				       lispInteger(get_varno(CAR(i))) );
+				       lispInteger(get_varno((Var)CAR(i))) );
 	union_sets = nappend1(union_sets,
 			      current_union_set);
       }
@@ -687,7 +687,7 @@ find_matching_union_qual(ulist, qual)
       leftop = find_matching_union_qual(ulist,leftop);
       rightop = find_matching_union_qual(ulist,rightop);
       match_union_clause(ulist, &leftop, &rightop);
-      retqual = make_opclause(op,leftop,rightop);
+      retqual = make_opclause((Oper)op,(Var)leftop,(Var)rightop);
 
       /*
        * if the clause does not belong to the current union relation,
