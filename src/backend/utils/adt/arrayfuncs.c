@@ -198,7 +198,8 @@ ObjectId element_type;
                     else if (!scanning_string) nest_level--;
                     break;
                 default:
-                    if (*q == typdelim && nest_level == 0) done = true;
+                    if (*q == typdelim && !scanning_string && nest_level == 0)
+			done = true;
                     break;
             }
             if (!done) q++;
