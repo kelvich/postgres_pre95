@@ -25,85 +25,214 @@ RcsId("$Header$");
 
 static ObjectId	typtoout();
 
-/*
+/* ----------------
  *	convtypeinfo
  *
  *	Converts an old-style typeinfo (struct attribute array) into
  *	the new-style typeinfo (struct attribute (*) array).
  *
  *	XXX temporary, but still called by the executor.
+ * ----------------
  */
 struct attribute **
 convtypeinfo(natts, att)
-	int 			natts;
-	struct attribute	*att;
+    int 		natts;
+    struct attribute	*att;
 {
-	struct	attribute *ap, **rpp, **retatt;
-
-	rpp = retatt = (struct attribute **) 
-	    palloc(natts * sizeof(*rpp) + natts * sizeof(**rpp));
-	MemoryCopy(rpp + natts, att, natts * sizeof(**rpp));
-
-	/* ----------------
-	 *	REMOVED:
-	 *
-	 * pfree(att);	
-	 *
-	 *	executor now does the freeing.. -cim 8/8/89
-	 * ----------------
-	 */
-	ap = (struct attribute *)(rpp + natts);
-	while (--natts >= 0)
-		*rpp++ = ap++;
-	return(retatt);
+    struct	attribute *ap, **rpp, **retatt;
+    
+    rpp = retatt = (struct attribute **) 
+	palloc(natts * sizeof(*rpp) + natts * sizeof(**rpp));
+    MemoryCopy(rpp + natts, att, natts * sizeof(**rpp));
+    
+    /* ----------------
+     *	REMOVED:
+     *
+     * pfree(att);	
+     *
+     *	executor now does the freeing.. -cim 8/8/89
+     * ----------------
+     */
+    ap = (struct attribute *)(rpp + natts);
+    while (--natts >= 0)
+	*rpp++ = ap++;
+    return(retatt);
 }
 
+/* ----------------------------------------------------------------
+ *	
+ * ----------------------------------------------------------------
+ */
+/* ----------------
+ *	initport
+ * ----------------
+ */
+initport(name, natts, attinfo)
+    char		*name;
+    int			natts;
+    struct attribute	*attinfo[];
+{
+    register int	i;
+    
+    putnchar("P", 1);
+    putint(0, 4);
+    putstr(name);
+    putnchar("T", 1);
+    putint(natts, 2);
+    for (i = 0; i < natts; ++i) {
+	putstr(attinfo[i]->attname);	/* if 16 char name oops.. */
+	putint((int) attinfo[i]->atttypid, 4);
+	putint(attinfo[i]->attlen, 2);
+    }
+}
+
+/* ----------------------------------------------------------------
+ *	printtup / debugtup support
+ * ----------------------------------------------------------------
+ */
+/* ----------------
+ *	typtoout - used by printtup and debugtup
+ * ----------------
+ */
+static ObjectId
+typtoout(type)
+    ObjectId	type;
+{
+    HeapTuple	typeTuple;
+
+    typeTuple = SearchSysCacheTuple(TYPOID,
+				    (char *) type,
+				    (char *) NULL,
+				    (char *) NULL,
+				    (char *) NULL);
+
+    if (HeapTupleIsValid(typeTuple))
+	return((ObjectId)
+	       ((TypeTupleForm) GETSTRUCT(typeTuple))->typoutput);
+
+    elog(WARN, "typtoout: Cache lookup of type %d failed", type);
+    return(InvalidObjectId);
+}
+
+/* ----------------
+ *	printtup
+ * ----------------
+ */
 printtup(tuple, typeinfo)
-	HeapTuple		tuple;
-	struct attribute 	*typeinfo[];
+    HeapTuple		tuple;
+    struct attribute 	*typeinfo[];
 {
-	int		i, j, k;
-	char		*outputstr, *attr;
-	Boolean		isnull;
-	ObjectId	typoutput;
-
-	putnchar("D", 1);
-	j = 0;
-	k = 1 << 7;
-	for (i = 0; i < tuple->t_natts; ) {
-		attr = amgetattr(tuple, InvalidBuffer, ++i, typeinfo, &isnull);
-		if (!isnull)
-			j |= k;
-		k >>= 1;
-		if (!(i & 7)) {
-			putint(j, 1);
-			j = 0;
-			k = 1 << 7;
-		}
+    int		i, j, k;
+    char		*outputstr, *attr;
+    Boolean		isnull;
+    ObjectId	typoutput;
+    
+    putnchar("D", 1);
+    j = 0;
+    k = 1 << 7;
+    for (i = 0; i < tuple->t_natts; ) {
+	attr = heap_getattr(tuple, InvalidBuffer, ++i, typeinfo, &isnull);
+	if (!isnull)
+	    j |= k;
+	k >>= 1;
+	if (!(i & 7)) {
+	    putint(j, 1);
+	    j = 0;
+	    k = 1 << 7;
 	}
-	if (i & 7)
-		putint(j, 1);
+    }
+    if (i & 7)
+	putint(j, 1);
+    
+    /*	XXX no longer needed???
+     *	{
+     *     char 	*s = tuple->t_bits;
+     *    
+     *     for (i = USEDBITMAPLEN(tuple); --i >= 0; )
+     *        putc(reversebitmapchar(*s++), Pfout);
+     *  }
+     */
+    for (i = 0; i < tuple->t_natts; ++i) {
+	attr = heap_getattr(tuple, InvalidBuffer, i+1, typeinfo, &isnull);
+	typoutput = typtoout((ObjectId) typeinfo[i]->atttypid);
 	
-/*			XXX no longer needed???
-	{
-		char 	*s = tuple->t_bits;
-
-		for (i = USEDBITMAPLEN(tuple); --i >= 0; )
-			putc(reversebitmapchar(*s++), Pfout);
+	if (!isnull && ObjectIdIsValid(typoutput)) {
+	    outputstr = fmgr(typoutput, attr);
+	    putint(strlen(outputstr)+4, 4);
+	    putnchar(outputstr, strlen(outputstr));
+	    pfree(outputstr);
 	}
-*/
-	for (i = 0; i < tuple->t_natts; ++i) {
-		attr = amgetattr(tuple, InvalidBuffer, i+1, typeinfo, &isnull);
-		typoutput = typtoout((ObjectId) typeinfo[i]->atttypid);
-		if (!isnull && ObjectIdIsValid(typoutput)) {
-			outputstr = fmgr(typoutput, attr);
-			putint(strlen(outputstr)+4, 4);
-			putnchar(outputstr, strlen(outputstr));
-			pfree(outputstr);
-		}
-	}
+    }
 }
 
+/* ----------------
+ *	printatt
+ * ----------------
+ */
+void
+printatt(attributeId, attributeP, value)
+    unsigned		attributeId;
+    struct attribute	*attributeP;
+    char			*value;
+{
+    printf("\t%2d: %s%s%s%s\t(typeid = %lu, len = %d, byval = %c)\n",
+	   attributeId,
+	   attributeP->attname,
+	   value != NULL ? " = \"" : "",
+	   value != NULL ? value : "",
+	   value != NULL ? "\"" : "",
+	   attributeP->atttypid,
+	   attributeP->attlen,
+	   attributeP->attbyval ? 't' : 'f');
+}
+
+/* ----------------
+ *	showatts
+ * ----------------
+ */
+showatts(name, natts, attinfo)
+    char			*name;
+    int			natts;
+    struct attribute	*attinfo[];
+{
+    register int	i;
+    
+    puts(name);
+    for (i = 0; i < natts; ++i)
+	printatt((unsigned) i+1, attinfo[i], (char *) NULL);
+    printf("\t----\n");
+}
+
+/* ----------------
+ *	debugtup
+ * ----------------
+ */
+debugtup(tuple, typeinfo)
+    HeapTuple		tuple;
+    struct attribute 	*typeinfo[];
+{
+    register int	i;
+    char		*attr, *value;
+    Boolean		isnull;
+    ObjectId		typoutput;
+    
+    for (i = 0; i < tuple->t_natts; ++i) {
+	attr = heap_getattr(tuple, InvalidBuffer, i+1, typeinfo, &isnull);
+	typoutput = typtoout((ObjectId) typeinfo[i]->atttypid);
+	
+	if (!isnull && ObjectIdIsValid(typoutput)) {
+	    value = fmgr(typoutput, attr);
+	    printatt((unsigned) i+1, typeinfo[i], value);
+	    pfree(value);
+	}
+    }
+    printf("\t----\n");
+}
+
+/* ----------------------------------------------------------------
+ *			bogus routines
+ * ----------------------------------------------------------------
+ */
 #ifdef BOGUSROUTINES	/* XXX no longer seem to be called */
 int
 reversebitmapchar(c)
@@ -135,7 +264,7 @@ dumptup(tuple, typeinfo)
 	for (i = USEDBITMAPLEN(tuple); --i >= 0; )
 		putint(*s++, 1);
 	for (i = 1; i <= tuple->t_natts; ++i) {
-		attr = amgetattr(tuple, InvalidBuffer, i, typeinfo, &isnull);
+		attr = heap_getattr(tuple, InvalidBuffer, i, typeinfo, &isnull);
 		if (!isnull) {
 			/*
 			 * The following if statement should be replaced
@@ -152,90 +281,3 @@ dumptup(tuple, typeinfo)
 }
 #endif	/* BOGUSROUTINES */
 
-initport(name, natts, attinfo)
-	char			*name;
-	int			natts;
-	struct attribute	*attinfo[];
-{
-	register int	i;
-
-	putnchar("P", 1);
-	putint(0, 4);
-	putstr(name);
-	putnchar("T", 1);
-	putint(natts, 2);
-	for (i = 0; i < natts; ++i) {
-		putstr(attinfo[i]->attname);	/* if 16 char name oops.. */
-		putint((int) attinfo[i]->atttypid, 4);
-		putint(attinfo[i]->attlen, 2);
-	}
-}
-
-void
-printatt(attributeId, attributeP, value)
-	unsigned		attributeId;
-	struct attribute	*attributeP;
-	char			*value;
-{
-	printf("\t%2d: %s%s%s%s\t(typeid = %lu, len = %d, byval = %c)\n",
-	       attributeId,
-	       attributeP->attname,
-	       value != NULL ? " = \"" : "",
-	       value != NULL ? value : "",
-	       value != NULL ? "\"" : "",
-	       attributeP->atttypid,
-	       attributeP->attlen,
-	       attributeP->attbyval ? 't' : 'f');
-}
-
-showatts(name, natts, attinfo)
-	char			*name;
-	int			natts;
-	struct attribute	*attinfo[];
-{
-	register int	i;
-	
-	puts(name);
-	for (i = 0; i < natts; ++i)
-		printatt((unsigned) i+1, attinfo[i], (char *) NULL);
-	printf("\t----\n");
-}
-
-debugtup(tuple, typeinfo)
-	HeapTuple		tuple;
-	struct attribute 	*typeinfo[];
-{
-	register int	i;
-	char		*attr, *value;
-	Boolean		isnull;
-	ObjectId	typoutput;
-
-	for (i = 0; i < tuple->t_natts; ++i) {
-		attr = amgetattr(tuple, InvalidBuffer, i+1, typeinfo, &isnull);
-		typoutput = typtoout((ObjectId) typeinfo[i]->atttypid);
-		if (!isnull && ObjectIdIsValid(typoutput)) {
-			value = fmgr(typoutput, attr);
-			printatt((unsigned) i+1, typeinfo[i], value);
-			pfree(value);
-		}
-	}
-	printf("\t----\n");
-}
-
-static ObjectId
-typtoout(type)
-	ObjectId	type;
-{
-	HeapTuple	typeTuple;
-
-	typeTuple = SearchSysCacheTuple(TYPOID,
-					(char *) type,
-					(char *) NULL,
-					(char *) NULL,
-					(char *) NULL);
-	if (HeapTupleIsValid(typeTuple))
-		return((ObjectId)
-       ((TypeTupleForm) GETSTRUCT(typeTuple))->typoutput);
-	elog(WARN, "typtoout: Cache lookup of type %d failed", type);
-	return(InvalidObjectId);
-}
