@@ -538,7 +538,7 @@ _bt_next(scan, dir)
     /* we still have the buffer pinned and locked */
     buf = so->btso_curbuf;
     current = &(scan->currentItemData);
-    blkno = BufferGetBlockNumber(buf, 0);
+    blkno = BufferGetBlockNumber(buf);
 
     /* step one tuple in the appropriate direction */
     if (!_bt_step(scan, &buf, dir))
