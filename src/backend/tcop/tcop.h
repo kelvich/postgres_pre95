@@ -37,7 +37,6 @@
 #include "defrem.h"
 #include "exc.h"
 #include "execdefs.h"
-#include "fmgr.h"
 #include "ftup.h"
 #include "globals.h"
 #include "heapam.h"
@@ -58,6 +57,7 @@
 #include "tim.h"
 #include "tupdesc.h"
 #include "xcxt.h"
+#include "fmgr.h"
 
 #include "catalog/pg_type.h"
 #include "catalog/pg_inherits.h"
