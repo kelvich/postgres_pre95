@@ -822,10 +822,9 @@ and
 In this section we will cover \*(PQ functions; programming language
 functions will be covered below with the discussion on user-defined types.
 .lp
-Any collection of commands in the \*(PQ
-query language can be packaged together and defined as a
-function, which is assumed to return a collection of instances.
-For example, the following function
+Any collection of commands in the \*(PQ query language can be packaged
+together and defined as a function, usually returning either a set of
+instances or a set of base types.  For example, the following function
 .cW high_pay
 returns all employees in class
 .cW EMP
@@ -853,7 +852,7 @@ below.
 .\"------------------------------------
 .sh 2 "Composite Types"
 .lp
-Since \*(PQ functions return sets of instances,
+Since \*(PQ functions return instances or sets of instances,
 they are the mechanism used to assign values to composite
 types.
 For example, consider extending the
@@ -861,95 +860,30 @@ For example, consider extending the
 class with a
 .cW manager
 field.
-We can do this by simply defining a function:
+That is, for each instance of
+.cW EMP
+we want to associate another
+instance of
+.cW EMP 
+corresponding to the manager of the first instance.
+Specifically, we will
+define a \*(PQ function
+.cW manager :
 .(C
 * define function manager
-      (language = "postquel", returntype = setof EMP)
-      arg is (char16)
-      as "retrieve (EMP.all)
-              where EMP.name = DEPT.manager
-              and DEPT.name = $1" \\g
-.)C
-Here, we have added an attribute to the
-.cW EMP
-class which is of
-type
-.cW EMP ,
-i.e. it has a value which is one or more instances of
-the class
-.cW EMP .
-Specifically, the value of the
-.cW manager
-field is
-intended to be an instance of
-.cW EMP
-which is the manager of the
-indicated employee.
-Since the value of
-.cW manager
-has a record-oriented structure, we call it a
-.b "composite object" .
-.lp
-We can also define a function to associate a manager with each
-instance of
-.cW EMP .
-Specifically, we will
-define a second \*(PQ function
-.cW lookup_mgr :
-.(C
-* define function lookup_mgr
       (language = "postquel", returntype = EMP)
       arg is (EMP)
       as "retrieve (E.all) from E in EMP
               where E.name = DEPT.manager
               and DEPT.name = $1.dept" \\g
 .)C
-In this case, the function
-.cW lookup_mgr
-has an argument which is an
-instance of the class
-.cW EMP .
-Therefore, it takes a value for each
-instance of
-.cW EMP ,
-which is the result of the query with the field
-.cW EMP.dept
-filled in with its appropriate constant.
-.lp
-Consequently, the user can think of the function
-.cW lookup_mgr
-as an attribute of
-.cW EMP
-and can reference it just like any other
-attribute, with the following two exceptions.
-First, one cannot do
-direct
-.cW append s\(emthat
-is,
-.(C
-* append emp (emp.lookup_mgr.name = "Smith") \\g
-.)C
-.b won't
-work.
-Non-projected
-retrieves will also be rejected,
-i.e.:
-.(C
-* retrieve (emp.lookup_mgr) \\g
-.)C
-will result
-in a warning from the \*(PQ language parser.
-.lp
-Since
-.cW lookup_mgr
-takes a class
-as its only argument and returns a class,
-\*(PQ allows
-referencing into it with the use of the nested dot notation.
-Whenever such a function is defined over a class, a user can
-utilize the cascaded dot notation to reference into (i.e. access the fields
-of) the objects returned
-by the function.
+The function
+.cW manager
+takes an instance as its only argument, so \*(PQ allows referencing
+into it with the use of the nested dot notation.  Whenever such a
+function is defined over a class, a user can utilize the cascaded dot
+notation to reference into (i.e. access the fields of) the objects
+returned by the function.
 .lp
 The following query finds all the employees who work for
 Joe:
@@ -959,8 +893,79 @@ Joe:
 This is exactly equivalent to:
 .(C
 * retrieve (EMP.name)
-      where name(lookup_mgr(EMP)) = "Joe" \\g
+      where name(manager(EMP)) = "Joe" \\g
 .)C
+Here, we have essentially added an attribute to the
+.cW EMP
+class which is of
+type
+.cW EMP ,
+i.e. it has a value which is an instance of
+the class
+.cW EMP .
+Since the value of
+.cW manager
+has a record-oriented structure, we call it a
+.b "composite object" .
+Consequently, the user can think of the function
+.cW manager
+as an attribute of
+.cW EMP
+and can reference it just like any other
+attribute, with the following two exceptions.
+First, one cannot do
+direct
+.cW append s\(emthat
+is,
+.(C
+* append emp (emp.manager.name = "Smith") \\g
+.)C
+.b won't
+work.
+Non-projected
+retrieves will also be rejected,
+i.e.:
+.(C
+* retrieve (emp.manager) \\g
+.)C
+will result
+in a warning from the \*(PQ language parser.
+.lp
+Note that 
+.cW manager
+is defined as returning a single instance of
+.cW EMP.
+We can also write a \*(PQ function that returns sets of
+instances.  For example, consider the function
+.(C
+* define function children
+      (language = "postquel", returntype = setof KIDS)
+      arg is (EMP)
+      as "retrieve (KIDS.all)
+              where $1.name = KIDS.dad
+              or $1.name = KIDS.mom"\\g
+.)C
+The
+.cW children
+function is defined as returning a set of instances, rather than a
+single instance.  Given the query
+.(C
+* retrieve(emp.name, emp.children.name)
+.)C
+if the query in the body of the
+.cW children
+function returns many instances, the retrieve query will return all of
+them, in a "flattened" form.  If the query in the body of
+.cW manager
+returns more than one instance,
+the
+.cW manager
+function will return only one instance, arbitrarily chosen from the
+set returned by the query in the function's body.  See the \*(PP
+Reference Manual's entry on the 
+.cW "define function"
+command for further details and examples.
+
 .\"---------------------------------------------------------------------------
 .sh 1 "User Defined Types, Operators, and Programming Language Functions"
 .lp
@@ -1233,7 +1238,7 @@ files.
 Also, various platform-specific compiler options may be required to support
 \*(PP dynamic linking (for example, the DECstation ULTRIX compiler requires
 the
-.cW "-G 0" '' ``
+.cW "-G0" '' ``
 option.)
 See
 .q "define function"
@@ -1470,11 +1475,18 @@ hierarchy of classes.
 In using a function of an instance in qualifying an instance,
 \*(PP defines the
 .q "current instance"
-to be the instance being qualified at
-the moment your function is called.
-Rather than getting the instance itself
-in your function's parameter list, you will use \*(PP library routines to
-access the data in the instance as described below.
+to be the instance being qualified at the moment your function is
+called.  The instance itself will be passed in your function's
+parameter list as an opaque structure of type TUPLE, and you will use
+\*(PP library routines to access the data in the object as described
+below.\**
+.(f
+\**In \*(PP \*(PV,
+.cW TUPLE
+is defined as
+.cW "void *" .
+.)f
+.cW 
 .lp
 Suppose we want to write a function to answer the query
 .(C
@@ -1485,49 +1497,38 @@ In the query above, a reasonable
 function might be:
 .(C
 bool
-overpaid() /* note that there are no arguments */
+overpaid(t) 
+TUPLE t;   /* the current instance */
 {
-    extern Datum GetAttribute();
+    extern char *GetAttributeByName();
     short salary, seniority, performance;
 
-    salary = (short) GetAttribute("salary");
-    seniority = (short) GetAttribute("seniority");
-    performance = (short) GetAttribute("performance");
+    salary = (short) GetAttributeByName(t, "salary");
+    seniority = (short) GetAttributeByName(t, "seniority");
+    performance = (short) GetAttributeByName(t, "performance");
 
     return (salary > (seniority * performance));
 }
 .)C
-.cW GetAttribute
+.cW GetAttributeByName
 is the \*(PP system function that returns
 attributes out of the current instance.
-It has one argument
-which is the name of the desired attribute, and its return type
-is a type "Datum" which is defined as being large enough to hold
-pointer values and all integer types.\**
-.(f
-\**In \*(PP \*(PV,
-.cW Datum
-is defined as
-.cW "long int" .
-.)f
-.cW GetAttribute
-will align data properly so you can cast
-its return value to the desired type.
-For example, if you have an
-attribute
+It has two arguments: the argument of type TUPLE passed into the function,
+and the name of the desired attribute.
+.cW GetAttributeByName
+will align data properly so you can cast its return value to
+the desired type.  For example, if you have an attribute
 .cW name
 which is of the \*(PQ type
 .cW char16 ,
 the
-.cW GetAttribute
+.cW GetAttributeByName
 call would look like:
 .(C
 char *str;
 \&...
-str = (char *) GetAttribute("name")
+str = (char *) GetAttributeByName(t, "name")
 .)C
-Note that the instance argument must be the first argument when using your
-function in \*(PQ queries.
 .lp
 To let \*(PP know about the
 .cW overpaid
@@ -1536,37 +1537,26 @@ do:
 .(C
 * define function overpaid
       (language = "c", returntype = bool)
-      arg is (SET)
+      arg is (EMP)
       as "/usr/postgres/tutorial/overpaid.o" \\g
 .)C
-The special flag
-.cW SET
-in the argument list tells
-\*(PP that this function will be processing an instance.
 .lp
-Your function may only access one instance via the
-.cW GetAttribute
-call, but you can have additional base or user-defined types as arguments.
+You can have additional complex, base or user-defined types as
+arguments to the inheritable function.
 Thus,
 .(C
-* retrieve (EMP.all) where overpaid2(EMP, "bill", 8) \\g
+* retrieve (EMP.all) where overpaid2(EMP, DEPT, "bill", 8) \\g
 .)C
 could be written, and
 .cW overpaid2
 would be declared:
 .(C
 bool
-overpaid2(name, number)
+overpaid2(emp, dept, name, number)
+TUPLE emp, dept;
 char *name;
 long number;
 .)C
-Note that the arguments are
-.q shifted
-one to the left, and the
-.cW EMP
-argument
-is omitted; its values are referenced via
-.cW GetAttribute.
 .\"------------------------------------
 .sh 2 "Arrays of types"
 .lp
