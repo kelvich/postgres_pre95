@@ -54,8 +54,7 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
      char 		*prosrc;
      char               *probin;
      Boolean		canCache;
-     int32              perbyte_cpu, percall_cpu,
-                        outin_ratio;
+     int32              byte_pct, perbyte_cpu, percall_cpu, outin_ratio;
      List		argList;
      CommandDest	dest;
 {
