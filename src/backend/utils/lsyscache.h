@@ -5,6 +5,7 @@ extern bool op_class ARGS((ObjectId opid, int32 opclass));
 extern Name get_attname ARGS((ObjectId relid, AttributeNumber attnum));
 extern AttributeNumber get_attnum ARGS((ObjectId relid, Name attname));
 extern ObjectId get_atttype ARGS((ObjectId relid, AttributeNumber attnum));
+extern bool get_attisset ARGS((ObjectId relid, Name attname));
 extern RegProcedure get_opcode ARGS((ObjectId opid));
 extern NameData get_opname ARGS((ObjectId opid));
 extern LispValue op_mergesortable ARGS((ObjectId opid, ObjectId ltype, ObjectId rtype));
