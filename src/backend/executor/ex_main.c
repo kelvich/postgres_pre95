@@ -362,14 +362,14 @@ InitPlan(operation, parseTree, plan, estate)
 	    ObjectId o;
 	    HeapTuple htp;
 	    List lp;
-	    char rname[sizeof(NameData)+1];
 	    int32 ok = 1;
 	    char *opstr;
-	    extern char *PG_username; /* from postgres.c */
+	    NameData rname, user;
+	    extern void GetUserName();
 
-#define CHECK(MODE)	pg_aclcheck(rname,PG_username,MODE)
+#define CHECK(MODE)	pg_aclcheck(rname.data, user.data, MODE)
 
-	    rname[16] = '\0';
+	    GetUserName(&user);
 	    rr = integerp(resultRelation) ? CInteger(resultRelation) : 0;
 	    foreach (lp, rangeTable) {
 		    o = (ObjectId) CInteger(rt_relid(CAR(lp)));
@@ -377,8 +377,8 @@ InitPlan(operation, parseTree, plan, estate)
 					      NULL, NULL, NULL);
 		    if (!HeapTupleIsValid(htp))
 			    elog(WARN, "InitPlan: bogus RT relid: %d", o);
-		    strncpy(rname,
-			    &((Form_pg_relation) GETSTRUCT(htp))->relname,
+		    strncpy(rname.data,
+			    ((Form_pg_relation) GETSTRUCT(htp))->relname.data,
 			    sizeof(NameData));
 		    /* XXX NOTIFY?? */
 		    if (i == rr) {	/* this is the result relation */

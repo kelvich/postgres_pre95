@@ -93,10 +93,6 @@ CommandDest whereToSendOutput;
 int		ShowLock = 0;
 #endif
 
-/* User info  */
-
-extern char	*PG_username;
-
 /* in elog.c */
 bool IsEmptyQuery = false;
 
@@ -160,49 +156,6 @@ int BushyPlanFlag = 0; /* default to false -- consider only left-deep trees */
 ** Flags for expensive function optimization -- JMH 3/9/92
 */
 int XfuncMode = 0;
-
-/* ----------------------------------------------------------------
- *			support functions
- * ----------------------------------------------------------------
- */
-
-/* ----------------
- * If we are running under the Postmaster, we cannot in general be sure that
- * USER is set to the actual name of the user.  (After all, in theory there
- * may be Postgres users that don't exist as Unix users on the database server
- * machine.)  Therefore, the Postmaster sets the PG_USER environment variable
- * so that the actual user can be determined.
- * ----------------
- */
-
-void
-GetUserName()
-{
-    char *t;
-
-    if (IsUnderPostmaster)
-	{
-		t = (char *) getenv("PG_USER");
-		if (t == NULL)
-	    	elog(FATAL, "GetUserName(): Can\'t get PG_USER environment name");
-		
-	}
-    else
-	{
-		t = (char *) getenv("USER");
-	}
-
-	/*
-	 * Valid Postgres username can be at most 16
-	 * characters - leave one for null
-	 * 
-	 * DO NOT REMOVE THIS MALLOC - apparently some getenv's reuse space and
-	 * this hozed on a Sparcstation.
-	 */
-
-	PG_username = (char *) malloc(17);
-	strcpy(PG_username, t);
-}
 
 
 /* ----------------------------------------------------------------
@@ -814,7 +767,8 @@ PostgresMain(argc, argv)
 
     char		firstchar;
     char		parser_input[MAX_PARSE_BUFFER];
-    
+    Name		user;
+
     extern	int	Noversion;		/* util/version.c */
     extern	int	Quiet;
     extern	jmp_buf	Warn_restart;
@@ -1121,7 +1075,11 @@ PostgresMain(argc, argv)
      *	get user name and pathname and check command line validity
      * ----------------
      */
-    GetUserName();
+    SetUserName();
+    if (!(user = (Name) malloc(sizeof(NameData))))
+	    elog(FATAL, "%s: malloc failed on username buffer!", argv[0]);
+    GetUserName(user);
+
     if (FindBackend(pg_pathname, argv[0]) < 0)
 	    elog(FATAL, "%s: could not locate executable, bailing out...",
 		 argv[0]);
@@ -1151,7 +1109,7 @@ PostgresMain(argc, argv)
 	exitpg(1);
     } else if (argc - optind == 1) {
 	DBName = DatabaseName = argv[optind];
-    } else if ((DBName = DatabaseName = PG_username) == NULL) {
+    } else if ((DBName = DatabaseName = user->data) == NULL) {
 	fprintf(stderr, "%s: USER undefined and no database specified\n",
 	      argv[0]);
 	exitpg(1);
