@@ -34,7 +34,7 @@ RcsId("$Header$");
 #include "nodes.h"
 
 extern LispValue	string_to_plan();
-extern LispValue	plan_to_string();
+extern char		*plan_to_string();
 extern LispValue	pg_out();
 /*    
  *    	plan-save
@@ -43,18 +43,45 @@ extern LispValue	pg_out();
  *    	Public disk file interface.
  *    
  */
-LispValue
-plan_save (plan, filename)
-	LispValue plan;
-	LispValue filename;
+
+plan_save (plan, path)
+     LispValue plan;
+     char *path;
 {
-	with_open_file (ofile (filename),print (plan_to_string (plan),ofile));
+#ifdef NOTYET
+    int fd;
+    char *planstring;
+    
+    fd = fopen(path,"w+");
+    planstring = plan_to_string(plan);
+    
+    write(fd,strlen(planstring),4);
+    write(fd,planstring,strlen(planstring));
+    
+    fclose(fd);
+#endif /* NOTYET */
 }
+
 LispValue
 plan_load (filename)
 	LispValue filename;
 {
-	with_open_file (ifile (filename),string_to_plan (read (ifile)));
+#ifdef NOTYET   
+    int fd;
+    int planstring_length;
+    char *planstring;
+    LispValue plan;
+  
+    fd = fopen(path,"r+");
+
+    read(fd,&planstring_length,4);
+    planstring = malloc(planstring_length);
+    
+    read(fd,planstring,planstring_length);
+    plan = string_to_plan(planstring);
+
+    return(plan);
+#endif NOTYET
 }
 
 /*    
@@ -71,80 +98,49 @@ LispValue
 string_to_plan (string)
 	LispValue string;
 {
+#ifdef NOTYET
 	pg_in (read_from_string (string));
+#endif NOTYET
 }
 
 /*  .. plan-save
  */
-LispValue
-plan_to_string (plan)
-LispValue plan;
+char 
+*plan_to_string (plan)
+     LispValue plan;
 {
-	pg_out (plan);
-}
-
-/*    
- *    	pg-out
- *    	pg-in
- *    
- *    	Internal routines.
- */
-LispValue
-pg_out (tree)
-	LispValue tree;
-{
-	/*   ok to make write expensive -- write once, read many */
-	/* XXX - let form, maybe incorrect */
-	/*
-	 * if(member (type_of (tree),_node_types_)) {
-	 * 	strcat ("#S(",vprop (tree),
-	 * 		" ",
-	 * 		dotimes (i (vsize (tree),s),
-	 * 		s = strcat (s,pg_out (aref (tree,i)));),")");
-	 *
-	 * } else if (vectorip (tree)) {
-	 * 	vectori_to_string (tree);
-	 *
-	 * } else if (consp (tree)) {
-	 * 	strcat ("(",foreach (elt, trees) {
-	 * 		s = strcat (s,pg_out (elt));;
-	 * 		    ,")");
-	 *
-	 * 	} else {
-	 * strcat (" ",prin1_to_string (tree));
-	 */
-
-	 (*((Node)tree)->printFunc)(tree);
+#ifdef NOTYET
+    static char foo[8192];
+    
+    pg_out (plan,0,sprintf,foo);
+#endif NOTYET
 }
 
 
-/*
- *  Mao says:  this stuff must already exist elsewhere, or plans wouldn't
- *	       work at all.  Turn it off.
- */
-
-#ifdef notdef
-
-LispValue
-reader (stream,subchar,arg)
-	LispValue stream,subchar,arg ;
+pg_out (lv,iscdr,printfunc,string)
+     LispValue lv;
+     int iscdr;
+     void (*printfunc)();
+     char *string;
 {
-	declare (ignore (subchar,arg));
-	/* XXX - let form, maybe incorrect */
-	LispValue items = read_delimited_list ("#']",stream,1 /* XXX - true */);
-	make_array (length (items),element_type,/* XXX- QUOTE fixnum,*/,initial_contents,items);
-	;
-}
+#ifdef NOTYET
+    pid = getpid();
+    static char filestring[20];
+    static bool is_first_time = true;
 
-/*  (set-dispatch-macro-character  #\# #\[ #'|#[-reader|)
- *  (set-macro-character #\] (get-macro-character #\)) nil)
- *  .. pg-in, string-to-plan
- */
-/*
- *	define (pg_in,identity);
- */
+    if (is_first_time == true) 
+      sprintf(pidstring,"/tmp/plan.%d",pid);
+
+    planfd = freopen(pidstring,"w+",stdout);
+    
+    lispDisplay(lv,iscdr);
+    
+    planfd = fopen("stdout","rw",stdout);
+#endif NOTYET
+}
 
 /*   will read plans many times */
+
 /*
  *  Mao says:  don't need these anymore.  Only place that _node_types_
  *	       was used was in this file, but we now have other ways of
@@ -161,81 +157,54 @@ LispValue
 pg_in (tree)
 	LispValue tree ;
 {
-	if(consp (tree)) {
-		switch (nth (0,tree)) {
 
-		case vector:
-					    { /* XXX - let form, maybe incorrect */
-						LispValue new_vector = apply (/* XXX - hash-quote */ vector,mapcar (/* XXX - hash-quote */ pg_in,
-						    cddr (tree)));
-						vsetprop (new_vector,nth (1,tree));
-						new_vector;
-						;
-					}
-					break;
+    /* Greg gets to fill in the goodies here */
 
-				case: 
-					vectori
-					    { 
-						apply (/* XXX - hash-quote */ vectori_byte,cdr (tree));
-					}
-					break;
+}
 
-				case: 
-					list
-					    { 
-						mapcar (/* XXX - hash-quote */ pg_in,cdr (tree));
-					}
-					break;
-
-				default: /* do nothing */
-				};
-
-
-			} else if (1 /* XXX - true */) {
-				tree;
-
-			} else if ( true ) ;  
-			end-cond ;
-		}
-
-		/*    
+/*    
  *    	find-parameters
  *    
  *    	Extracts all paramids from a plan tree.
  *    
  */
-		LispValue
-		    find_parameters (planplan)
-		    LispValue plan ;
-		{
-			remove_duplicates (find_all_parameters (plan));
-		}
+LispValue
+find_parameters (plan)
+     LispValue plan ;
+{
+    return ( remove_duplicates (find_all_parameters (plan)) );
+}
 
-		/*  .. find-all-parameters, find-parameters
+
+/*  .. find-all-parameters, find-parameters
  */
-		LispValue
-		    find_all_parameters (treetree)
-		    LispValue tree ;
-		{
-			if(param_p (tree)) {
-				list (get_paramid (tree));
+LispValue
+find_all_parameters (treetree)
+     LispValue tree ;
+{
+#ifdef NOTYET
+    LispValue retval = LispNil;
 
-			} else if (consp (tree)) {
-				mapcan (/* XXX - hash-quote */ find_all_parameters,tree);
+    if(param_p (tree)) {
+	return (lispCons (get_paramid (tree), LispNil );
+    } else if (consp (tree)) {
+	foreach (i,tree) {
+	    retval = nconc ( retval, find_all_parameters(tree));
+	}
+	return(retval);
+    } else if (vectorp (tree)) {
+	LispValue plan_list = LispNil;
 
-			} else if (vectorp (tree)) {
-				/* XXX - let form, maybe incorrect */
-				LispValue plan_list = LispNil;
-				dotimes (i (vsize (tree),plan_list),plan_list = nconc (find_all_parameters (aref (tree,i)),
-				    plan_list););
-				;
+	for (i = 0 ; i < vsize (tree ) ; i ++ ) {
+	    plan_list = nconc ( find_all_parameters ( tree[i] ),
+			       plan_list );
+	}
+	return (plan_list );
+    }
+#endif
+}
 
-			} else if ( true ) ;  
-			end-cond ;
-		}
-
-		/*    
+/*    
  *    	substitute-parameters
  *    
  *    	Find param nodes in a structure and change them to constants, as
@@ -251,28 +220,34 @@ pg_in (tree)
  *    	substituted in.
  *    
  */
-		LispValue
-		    substitute_parameters (planplan,paramsparams)
-		    LispValue plan,params ;
-		{
-			if(null (plan)) {
-				nil;
+LispValue
+substitute_parameters (plan,params)
+     LispValue plan,params ;
+{
+#ifdef NOTYET
+    if( null (plan)) {
+	return(LispNil);
+    } else if (null (params)) {
+	return(plan);
+    } else {
+	LispValue param_alist;
+	
+	foreach (i,params) {
+	    LispValue param = CAR(i);
+	    
+	    lispCons (CAR(param),
+		      make_const ( CADR(param),
+				  get_typlen (CADR(param)),
+				  CADDR(param),
+				  LispNil ));
+	}
+	return ( assoc_params (plan,param_alist) );
+    }
+#endif
+}
 
-			} else if (null (params)) {
-				plan;
 
-			} else if (1 /* XXX - true */) {
-				/* XXX - let form, maybe incorrect */
-				LispValue param_alist = mapcar (/* XXX - hash-quote */ lambda (param (),cons (nth (0,param),
-				    make_const (nth (1,param),get_typlen (nth (1,param)),nth (2,param),nil))),params);
-				assoc_params (plan,param_alist);
-				;
-
-			} else if ( true ) ;  
-			end-cond ;
-		}
-
-		/*    
+/*    
  *    	assoc-params
  *    
  *    	Substitutes the const nodes generated by param-alist into the plan.
@@ -282,30 +257,38 @@ pg_in (tree)
  *    
  */
 
-		/*  .. assoc-params, substitute-parameters
+/*  .. assoc-params, substitute-parameters
  */
-		LispValue
-		    assoc_params (planplan,param_alistparam_alist)
-		    LispValue plan,param_alist ;
-		{
-			if(param_p (plan)) {
-				or (cdr (assoc (get_paramid (plan),param_alist)),plan);
+LispValue
+assoc_params (plan,param_alist)
+     LispValue plan,param_alist ;
+{
+#ifdef NOTYET
+    LispValue retval = LispNil;
 
-			} else if (consp (plan)) {
-				mapcar (/* XXX - hash-quote */ lambda (x (),assoc_params (x,param_alist)),plan);
+    if(param_p (plan)) {
+	x = CDR ( assoc (get_paramid (plan),param_alist));
+	if ( x ) 
+	  return ( x) ;
+	else 
+	  return (plan);
+    } else if (consp (plan)) {
+	foreach (i,plan) {
+	    retval = nappend1 ( retval ,assoc_params( CAR(i) , param_alist ));
+	}
+	return(retval);
+    } else if ( vectorp (plan)) {
+	LispValue vector_size = vsize (plan);
+	LispValue *newplan = malloc (sizeof( LispValue ) * vector_size );
 
-			} else if (vectorp (plan)) {
-				LispValue vector_size = vsize (plan);
-				LispValue newplan = new_vector (vector_size);
-				dotimes (i (vector_size),setf (aref (newplan,i),assoc_params (aref (plan,i),param_alist)));
-				vsetprop (newplan,vprop (plan));
-				newplan;
-				;
+	for ( i  = 0 ; i < vector_size; i++ ) {
+	    newplan[i] = assoc_params ( plan[i], param_alist);
+	}
 
-			} else if (1 /* XXX - true */) {
-				plan;
+	vsetprop (newplan,vprop (plan));
+	return (newplan);
+    }
 
-			} else if ( true ) ;  
-			end-cond ;
-		}
-#endif /* notdef */
+    return (plan);
+#endif
+}
