@@ -1,7 +1,12 @@
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
 .SS REFERENCES 6/18/90
-.XA 0 References
+.XA 0 "References"
+.sp 2i
+.ps 14
+.ce
+.b "REFERENCES"
+.sp 3
 .SE
 .lp
 The following technical reports are referred to in this document.
@@ -19,8 +24,7 @@ Rowe, L. and Stonebraker, M.,
 Proc. 1987 VLDB Conference, Brighton, England, Sept. 1987.
 .ip [SHAP86]
 Shapiro, L.,
-.q "Join Processing in Database Systems with Large
-Main Memories,"
+.q "Join Processing in Database Systems with Large Main Memories,"
 ACM-TODS, Sept. 1986.
 .ip [STON87]
 Stonebraker, M.,
