@@ -7,37 +7,44 @@
 postmaster \*- run the Postgres postmaster
 .uh "SYNOPSIS"
 .lp
-postmaster [ -p port ] [ -b backend_pathname ] &
+postmaster [ -p port ] [ -b backend_pathname ] [ -d debug_level ] &
 .uh "DESCRIPTION"
 .lp
 The postmaster manages the communication between frontends and backends,
 as well as allocating the shared buffer pool and semaphores.  The postmaster
 does not itself interact with the user so it should be started as a background
-process.  Only one postmaster should be run on a machine.
+process.  \fBOnly one postmaster should be run on a machine!\fR
 .sp
 .uh "COMMAND OPTIONS"
 .lp
 \fIport\fR is the well known TCP/IP port used for network 
-communication between the terminal monitor and the backend.  If you specify
-this then you must also specify them when starting the terminal monitor.  
+communication between a libpq application and the backend.  If you specify
+a port other than the default port then you must specify the same port when 
+starting any libpq application including the terminal monitor.  Alternatively
+you may set the environment variable PGPORT to the specified port and all
+libpq applications will use it instead of the default.
 .lp
 \fIbackend_pathname\fR is the full pathname of the Postgres backend you
 wish to use.
+.lp
+\fIdeug_level\fR determines the amount of debugging output the backend will
+produce.  Specifying any level will cause the postmaster to print out
+a few terse debugging output messages to the tty on which it was started.
 .sp
 .uh "EXAMPLES"
 .lp
 \fBpostmaster &\fR
 .lp
-This command will start up a postmaster on the default ports
-(4321 and 4322) which will expect to use the default path to the 
+This command will start up a postmaster on the default port (4321) and 
+will expect to use the default path to the 
 postgres backend ($POSTGRESHOME/bin/postgres) or /usr/postgres/bin/postgres.
-This is the simplest way to start the postmaster.
+This is the simplest and most common way to start the postmaster.
 .sp
 .lp
 \fBpostmaster -p 1234 -b /a/postgres/bin/postgres &\fR
 .lp
-This command will start up a postmaster communicating through ports
-1234 and 1235, which will expect to use the backend located at
+This command will start up a postmaster communicating through the port
+1234, and will expect to use the backend located at
 /a/postgres/bin/postgres.  Note: to connect to this postmaster using
 the terminal monitor, you would need to specify \fB-p 1234\fR on
 the command line invoking the terminal monitor.
@@ -50,6 +57,14 @@ If you see this message, you should run the \fIipcclean\fR command.
 After doing this, try starting the postmaster again.  If this still doesn't
 work, you will need to configure your kernel for shared memory and
 semaphores as described in the installation notes.
+.lp
+\fBStreamServerPort: cannot bind to port\fR
+.lp
+If you see this message, you should be certain that there is no other 
+postmaster program already running.  The easiest way to determine this is
+by the command "ps -ax | grep postmaster".  If you are sure there is no
+other postmaster running and you still get this error try specifying a
+different port using the -p option.
 .lp
 .uh "SEE ALSO"
 .lp
