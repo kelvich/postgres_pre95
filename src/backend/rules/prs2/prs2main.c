@@ -54,6 +54,18 @@
  *      of the tuple (the one that will replace oldTuple).
  *   newBuffer:
  *	the Buffer of the newTuple.
+ *   rawTuple:
+ *	this is the same as the oldTuple, but exactly as returned
+ *	but the access methods. Normally, when a tuple is retrieved,
+ *	it is passed to the rule manager and if there are some 
+ *	backward chaining rules defined on it, some of its attribute
+ * 	values will be changed. If the final operation was a replace, 
+ * 	then oldTuple will be this changed tuple, ad rawTuple will be the
+ *	tuple, as it was returned by the AM with no rule activations.
+ *	'rawTuple' is a valid tuple if the operation is REPLACE,
+ * 	and it is ignored in all other cases.
+ *   rawBuffer:
+ *	the buffer of the rawTuple.
  *   attributeArray
  *	An array of AttributeNumber. These are the attributes that
  *      are affected by the specified operation.
@@ -91,6 +103,7 @@ Prs2Status
 prs2Main(estate, operation, userId, relation,
 	    oldTuple, oldBuffer,
 	    newTuple, newBuffer,
+	    rawTuple, rawBuffer,
 	    attributeArray, numberOfAttributes,
 	    returnedTupleP, returnedBufferP)
 EState estate;
@@ -110,6 +123,7 @@ Buffer *returnedBufferP;
     Buffer localBuffer;
     Prs2EStateInfo prs2EStateInfo;
     int topLevel;
+    Relation explainRelation;
 
     if (relation == NULL) {
 	/*
@@ -122,8 +136,9 @@ Buffer *returnedBufferP;
 	returnedBufferP = &localBuffer;
     }
 
-    prs2EStateInfo = get_es_prs2_info(estate);
+    explainRelation = get_es_explain_relation(estate);
 
+    prs2EStateInfo = get_es_prs2_info(estate);
     if (prs2EStateInfo == NULL) {
 	prs2EStateInfo = prs2RuleStackInitialize();
 	topLevel = 1;
@@ -135,6 +150,7 @@ Buffer *returnedBufferP;
 	case RETRIEVE:
 	    status = prs2Retrieve(
 				prs2EStateInfo,
+				explainRelation,
 				oldTuple,
 				oldBuffer,
 				attributeArray,
@@ -146,6 +162,7 @@ Buffer *returnedBufferP;
 	case DELETE:
 	    status = prs2Delete(
 				prs2EStateInfo,
+				explainRelation,
 				oldTuple,
 				oldBuffer,
 				relation);
@@ -153,6 +170,7 @@ Buffer *returnedBufferP;
 	case APPEND:
 	    status = prs2Append(
 				prs2EStateInfo,
+				explainRelation,
 				newTuple,
 				newBuffer,
 				relation,
@@ -162,10 +180,13 @@ Buffer *returnedBufferP;
 	case REPLACE:
 	    status = prs2Replace(
 				prs2EStateInfo,
+				explainRelation,
 				oldTuple,
 				oldBuffer,
 				newTuple,
 				newBuffer,
+				rawTuple,
+				rawBuffer,
 				attributeArray,
 				numberOfAttributes,
 				relation,
