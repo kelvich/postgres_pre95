@@ -174,21 +174,23 @@ class (OrderKey) public (Node) {
     inherits(Node);
     int 	attribute_number;
     Index	array_index;
-}
+};
 
 class (JoinKey) public (Node) {
     inherits(Node);
+    inherits(Node);
     Node outer;
     Node inner;
-}
+};
 
 class (MergeOrder) public (Node) {
+    inherits(Node);
     ObjectId join_operator;
     ObjectId left_operator;
     ObjectId right_operator;
     ObjectId left_type;
     ObjectId right_type;
-}
+};
 
 /*******
  * clause info
