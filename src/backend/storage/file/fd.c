@@ -1049,9 +1049,23 @@ int stripe;
     int len;
 
     len = strlen(PostgresHomes[stripe]) + strlen("/data/base/")
-	  + strlen(DBName) + strlen(filename) + 2;
+	+ strlen(DBName) + strlen(filename) + 2;
     buf = (char*) palloc(len);
-    sprintf(buf, "%s/data/base/%s/%s", PostgresHomes[stripe], DBName, filename);
+
+    /*
+     * given absolute pathname
+     */
+
+    if (*filename != '/') 
+    {
+	sprintf(buf, "%s/data/base/%s/%s", PostgresHomes[stripe],
+		DBName, filename);
+	
+    }
+    else
+    {
+	strcpy(buf, filename);
+    }
     return(buf);
 }
 
