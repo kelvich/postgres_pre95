@@ -1188,8 +1188,45 @@ _copyConst(from, to, alloc)
      */
     newnode->consttype = 	from->consttype;
     newnode->constlen = 	from->constlen;
-    newnode->constvalue = 	from->constvalue;
+
+    /* ----------------
+     *	copying the Datum in a const node is a bit trickier
+     *  because it might be a pointer and it might also be of
+     *  variable length...
+     * ----------------
+     */
+    if (from->constbyval == true) {
+	/* ----------------
+	 *  passed by value so just copy the datum.
+	 * ----------------
+	 */
+	newnode->constvalue = 	from->constvalue;
+    } else {
+	/* ----------------
+	 *  not passed by value. datum contains a pointer.
+	 * ----------------
+	 */
+	if (from->constlen != -1) {
+	    /* ----------------
+	     *	fixed length structure
+	     * ----------------
+	     */
+	    newnode->constvalue = PointerGetDatum((*alloc)(from->constlen));
+	    bcopy(from->constvalue, newnode->constvalue, from->constlen);
+	} else {
+	    /* ----------------
+	     *	variable length structure.  here the length is stored
+	     *  in the first int pointed to by the constval.
+	     * ----------------
+	     */
+	    int length;
+	    length = *((int *) newnode->constvalue);
+	    newnode->constvalue = PointerGetDatum((*alloc)(length));
+	    bcopy(from->constvalue, newnode->constvalue, length);
+	}
+    }
     newnode->constisnull = 	from->constisnull;
+    newnode->constbyval = 	from->constbyval;
     
     (*to) = newnode;
     return true;
