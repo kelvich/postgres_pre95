@@ -40,7 +40,6 @@ static char sccsid[] = "@(#)setenv.c	5.7 (Berkeley) 6/25/92";
 #include <string.h>
 
 char *__findenv();
-#define const
 
 /*
  * setenv --
@@ -80,7 +79,8 @@ setenv(name, value, rewrite)
 		}
 		else {				/* get new space */
 			alloced = 1;		/* copy old entries into it */
-			p = malloc((size_t)(sizeof(char *) * (cnt + 2)));
+			p = (char **) malloc((size_t) (sizeof(char *) *
+						       (cnt + 2)));
 			if (!p)
 				return (-1);
 			bcopy(environ, p, cnt * sizeof(char *));
@@ -91,8 +91,8 @@ setenv(name, value, rewrite)
 	}
 	for (c = (char *)name; *c && *c != '='; ++c);	/* no `=' in name */
 	if (!(environ[offset] =			/* name + `=' + value */
-	    malloc((size_t)((int)(c - name) + l_value + 2))))
-		return (-1);
+	      (char *) malloc((size_t)((int)(c - name) + l_value + 2))))
+	    return (-1);
 	for (c = environ[offset]; (*c = *name++) && *c != '='; ++c);
 	for (*c++ = '='; *c++ = *value++;);
 	return (0);
