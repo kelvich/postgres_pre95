@@ -189,7 +189,6 @@ heap_creatr(relname, natts, smgr, att)
     /* int			issystem(); */
     File		smgrcreate();		/* XXX */
     /* OID			newoid(); */
-    extern		bcopy(), bzero();
 
     /* ----------------
      *	sanity checks
