@@ -4,9 +4,9 @@
 #	inherits.sh
 #
 #   DESCRIPTION
-#       shell script which generates tags.h and inh.c
-#	and $TREE/$OD/lib/H/slots, which is used by Gen_creator.sh
-#	later on during the node function generation process.
+#       shell script which generates src/backend/obj/{tags.h,inh.c,slots}
+#	which are used by Gen_creator.sh later on during the node function 
+#	generation process.
 #
 #   NOTES
 #
@@ -20,13 +20,21 @@ TAGTEMP=tags.temp
 SLOTFILE=slots
 OUTFILE=inh.c
 
+EGREP=egrep
+SED=sed
+CAT=cat
+CMP=cmp
+AWK=awk
+RM=rm
+MV=mv
+
 # ----------------
 # 	collect nodefiles
 # ----------------
 NODEFILES=''
 x=1
 numargs=$#
-while test $x -le $numargs ; do
+while [ $x -le $numargs ]; do
    NODEFILES="$NODEFILES $1"
    x=`expr $x + 1`
    shift
@@ -34,9 +42,12 @@ done
 
 # ----------------
 # 	generate the initial inheritance graph
+#
+#	sed is used here instead of egrep because not all egreps
+#	have a -h option (don't print out the filename)...
 # ----------------
-egrep -h '^class' $NODEFILES | \
-sed \
+$SED -e '/^class/p' -e '/^/d' $NODEFILES | \
+$SED \
  -e 's/^class (\([A-Za-z]*\))/\1/' \
  -e 's/ public (\([A-Za-z]*\))/ \1/' \
  -e 's/[ {}]*$//' > $INHFILE
@@ -44,7 +55,7 @@ sed \
 # ----------------
 #	generate tags.h from the inheritance graph
 # ----------------
-cat > $TAGTEMP << 'EOF'
+$CAT > $TAGTEMP << 'EOF'
 /* ----------------------------------------------------------------
  *   FILE
  *	tags.h
@@ -61,21 +72,21 @@ cat > $TAGTEMP << 'EOF'
  */
 
 EOF
-awk 'BEGIN { i = -1 }\
+$AWK 'BEGIN { i = -1 }\
      { printf("#define T_%s %d\n", $1, ++i) }' $INHFILE >> $TAGTEMP
 
 # ----------------
 # 	now extract slot names from node files and generate slots.temp
 # ----------------
-rm -f $SLOTFILE
-cat $NODEFILES | \
-egrep -v '(^#|^[ 	/]*\*|typedef|extern|Defs)'  | \
-sed -e 's/;//' \
+$RM -f $SLOTFILE
+$CAT $NODEFILES | \
+$EGREP -v '(^#|^[ 	/]*\*|typedef|extern|Defs)'  | \
+$SED -e 's/;//' \
     -e '/\/\*/,/\*\//D' \
     -e 's/	/ /g' \
     -e 's/  */ /g' \
     -e 's/\\//' | \
-awk '
+$AWK '
 # ----------------
 #	ORS and OFS are the output field and record separators
 #	nc is the number of "class"es we have scanned
@@ -200,7 +211,7 @@ END {
 # ----------------
 #	now generate inh.c
 # ----------------
-cat > $OUTFILE << 'EOF'
+$CAT > $OUTFILE << 'EOF'
 /* ----------------------------------------------------------------
  *   FILE
  *	inh.c
@@ -231,7 +242,7 @@ cat > $OUTFILE << 'EOF'
 EOF
 
 echo '#include' \"$TAGFILE\" >> $OUTFILE
-cat >> $OUTFILE << 'EOF'
+$CAT >> $OUTFILE << 'EOF'
 
 struct nodeinfo {
 	char	*ni_name;
@@ -242,10 +253,10 @@ struct nodeinfo {
 struct nodeinfo _NodeInfo[] = {
 EOF
 
-awk '{ if ($2 == "") { $2 = "Node" };\
+$AWK '{ if ($2 == "") { $2 = "Node" };\
        printf("	{ \"%s\", T_%s, T_%s, sizeof(struct _%s) },\n", $1, $1, $2, $1) }' \
       $INHFILE >> $OUTFILE
-cat >> $OUTFILE << 'EOF'
+$CAT >> $OUTFILE << 'EOF'
 	{ "INVALID", 0, 0, 0 }
 };
 
@@ -353,7 +364,7 @@ Dump_NodeInfo()
 }
 
 EOF
-rm -f $INHFILE
+$RM -f $INHFILE
 
 # ----------------
 #	finally, compare the new tagfile with the old.
@@ -363,14 +374,14 @@ rm -f $INHFILE
 #	are different.
 # ----------------
 if [ -r $TAGFILE ]; then 
-	if cmp -s $TAGFILE $TAGTEMP ; then 
+	if $CMP -s $TAGFILE $TAGTEMP ; then 
 		echo "tags.h unchanged";
 	else
-		mv $TAGTEMP $TAGFILE; 
+		$MV $TAGTEMP $TAGFILE; 
 		echo "tags.h has changed; remake cinterface.a";
 	fi
 else
-	mv $TAGTEMP $TAGFILE;
+	$MV $TAGTEMP $TAGFILE;
 fi
 
 # ----------------
