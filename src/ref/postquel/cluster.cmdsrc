@@ -8,15 +8,15 @@ cluster \*- give storage clustering advice to \*(PP
 .uh SYNOPSIS
 .lp
 .b cluster
-relname
+classname
 .b on
 domname [
 .b using
 operator ]
 .uh DESCRIPTION
 .lp
-This command instructs \*(PP to keep the relation specified by
-.i relname
+This command instructs \*(PP to keep the class specified by
+.i classname
 approximately sorted on
 .i domname
 using the specified operator
@@ -30,12 +30,12 @@ of type boolean.  If no operator is specified, then
 .q <
 is used by default.
 .lp
-A relation can be reclustered at any time on a different
+A class can be reclustered at any time on a different
 .i domname
 and/or with a different operator.  
 .lp
 \*(PP will try to keep the heap data structure which stores the
-tuples of this relation approximately in sorted order.  If the user
+instances of this class approximately in sorted order.  If the user
 specifies an operator which does not define a linear ordering, this
 command will produce unpredictable orderings.
 .lp
@@ -50,4 +50,4 @@ then this command will have no effect.
 .fi
 .uh BUGS
 .lp
-Cluster has no effect in Version 2.
+Cluster has no effect in Version 2.1.
