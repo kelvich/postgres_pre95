@@ -49,7 +49,6 @@
 #include "tcop/dest.h"
 
 #define ever ; 1 ;
-#define ABS(x) (((x) > 1) ? (x) : (-(x)))
 
 #ifdef sequent
 #ifndef MAXFLOAT
