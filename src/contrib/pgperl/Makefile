@@ -3,6 +3,8 @@
 #
 .include <postgres.global.mk>
 
+CFLAGS= -g
+
 #
 # PERLDIR is the perl distribution directory.
 #	you must have already built all of perl (including mus) in order
@@ -10,8 +12,6 @@
 #
 PERLDIR=/usr/local/devel/perl
 MUS= ${PERLDIR}/usub/mus
-
-CFLAGS= -g
 
 # 
 # Don't add uperl.o to OBJS or it will be removed when you do 
@@ -40,6 +40,6 @@ ${TESTOBJ}: ${PROG} testlibpq.pl
 
 runtest: ${TESTOBJ}
 
-CLEANFILES+= ${TESTOBJ}
+CLEANFILES+= ${TESTOBJ} pg-libpq.c
 
 .include <postgres.prog.mk>
