@@ -38,7 +38,7 @@ with a diagnostic message in the following format:
 .fi
 Then the \*(UU shell prompt will reappear.
 .lp
-\*(PP will place
+Createdb will place
 all new databases in a directory named \&.../data/base/dbname.
 .uh "SEE ALSO"
 .lp
