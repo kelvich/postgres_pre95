@@ -14,7 +14,8 @@ dbname
 .b Createdb
 creates a new POSTGRES database.
 The creator becomes the administrator of the new database.
-This is a new query language command as of release 3.0.
+This command was added to postquel in version 3.0 and is intended
+to be used by the createdb script.
 .lp
 .uh "SEE ALSO"
 .lp
