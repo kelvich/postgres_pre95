@@ -14,17 +14,17 @@
  *     		find-paths
  */
 
-#include "pg_lisp.h"
-#include "relation.h"
+#include <strings.h>	/* XXX style */
+
+#include "nodes/pg_lisp.h"
+#include "nodes/relation.h"
+
 #include "planner/allpaths.h"
 #include "planner/internal.h"
 #include "planner/indxpath.h"
 #include "planner/orindxpath.h"
 #include "planner/joinrels.h"
 #include "planner/prune.h"
-
-#include <strings.h>	/* XXX style */
-
 
 /* #include "allpaths.h"
    #include "internal.h"
