@@ -196,6 +196,8 @@ ProcessQuery(parser_output, plan)
 		putnchar("P",1);
 		putint(0,4);
 		putstr("blank");
+	    } else {
+		BeginCommand("blank",attinfo);
 	    }
 	}
 
