@@ -20,21 +20,20 @@
 
 #include "./RewriteSupport.h"	
 #include "./RewriteDebug.h"
-#include "./RewriteManip.h"
 #include "./RewriteHandler.h"
+#include "./RewriteManip.h"
 #include "./locks.h"
 
-extern List lispCopyList();
-extern List lispCopy();
-extern List FindUsageRTE();
-extern List MatchLocks();
-extern List RuleIdGetActionInfo();
-List FireRules();
 /*
  * Gather meta information about parsetree, and rule
  * Fix rule body and qualifier so that they can be mixed
  * with the parsetree and maintain semantic validity
  */
+
+extern List lispCopyList();
+extern List lispCopy();
+
+
 extern int DebugLvl;
 RewriteInfo *GatherRewriteMeta(parsetree, rule_action, rule_qual, rt_index, event, instead_flag)
      List parsetree,rule_action, rule_qual;
@@ -297,7 +296,7 @@ List ProcessRetrieveQuery(parsetree, rt,instead_flag,rule)
  	List new_rewritten  = NULL;
 	List result = LispNil;
 	List locks = LispNil;
-
+	List dummy_products;
 	rt_index++;
 	rt_entry_relname = (Name) CString(CADR(rt_entry));
 	rt_entry_relation = amopenr(rt_entry_relname);
@@ -308,7 +307,7 @@ List ProcessRetrieveQuery(parsetree, rt,instead_flag,rule)
 	locks = MatchLocks(EventIsRetrieve,rt_entry_locks,rt_index,parsetree);
 	if (locks == LispNil) continue;
 	result = FireRules(parsetree, rt_index, RETRIEVE,
-			   instead_flag, locks);
+			   instead_flag, locks,&dummy_products);
 	if (*instead_flag) return nappend1(LispNil, result);
 	if (result != LispNil)
 	    product_queries = append(product_queries, result);
@@ -349,7 +348,7 @@ List CopyAndAddQual(parsetree, actions, rule_qual,
 
 /*
  *  FireRules(parsetree, rt_index, relation, rt, event,
- *			 instead_flag, locks)
+ *			 instead_flag, locks,qual_products)
  *  
  *  Iterate through rule locks applying rules.  After an instead rule
  *  rule has been applied, return just new parsetree and let RewriteQuery

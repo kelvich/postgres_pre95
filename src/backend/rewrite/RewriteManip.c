@@ -42,10 +42,10 @@ OffsetVarNodes ( qual_or_tlist , offset )
 		OffsetVarNodes ( (List)this_node , offset );
 		break;
 	      case classTag(Var): {
-		  int this_varno = (int)get_varno ( this_node );
+		  int this_varno = (int)get_varno ( (Var) this_node );
 		  int new_varno = this_varno + offset;
-		  set_varno ( this_node , new_varno );
-		  CAR(get_varid ( this_node)) = 
+		  set_varno ( (Var) this_node , new_varno );
+		  CAR(get_varid ( (Var) this_node)) = 
 		    lispInteger ( new_varno );
 		  break;
 	      }
@@ -71,10 +71,10 @@ ChangeVarNodes ( qual_or_tlist , old_varno, new_varno)
 		  ChangeVarNodes ( (List)this_node , old_varno, new_varno);
 		break;
 	      case classTag(Var): {
-		  int this_varno = (int)get_varno ( this_node );
+		  int this_varno = (int)get_varno ( (Var) this_node );
 		  if (this_varno == old_varno) {
-		      set_varno (this_node, new_varno);
-		      CAR(get_varid ( this_node)) = 
+		      set_varno ((Var) this_node, new_varno);
+		      CAR(get_varid ( (Var) this_node)) = 
 			  lispInteger ( new_varno );
 		  }
 		  break;
@@ -140,8 +140,10 @@ void FixResdomTypes (user_tlist)
 	
 	Assert(IsA(entry_LHS,Resdom));
 	if (NodeType(entry_RHS) == classTag(Var)) {
-	    set_restype(entry_LHS, get_vartype(entry_RHS));
-	    set_reslen (entry_LHS, get_typlen(get_vartype(entry_RHS)));
+	    set_restype((Resdom) entry_LHS,
+			get_vartype((Var) entry_RHS));
+	    set_reslen ((Resdom) entry_LHS,
+			get_typlen(get_vartype((Var) entry_RHS)));
 	}
     }
 }
@@ -158,7 +160,7 @@ FindMatchingNew ( user_tlist , attno )
 	List entry_LHS  = CAR(one_entry);
 	
 	Assert(IsA(entry_LHS,Resdom));
-	if ( get_resno(entry_LHS) == attno ) {
+	if ( get_resno((Resdom) entry_LHS) == attno ) {
 	    return ( CDR(one_entry));
 	}
     }
@@ -200,16 +202,16 @@ List tree;
 		ResolveNew (info, targetlist,  (List)this_node);
 		break;
 	    case classTag(Var): {
-		int this_varno = (int)get_varno ( this_node );
+		int this_varno = (int)get_varno ( (Var) this_node );
 		if ((this_varno == info->new_varno) ) {
 		    n = FindMatchingNew (targetlist ,
-					 get_varattno(this_node));
+					 get_varattno((Var) this_node));
 		    if (n == LispNil) {
 			if (info->event	== REPLACE) {
 			    set_varno((Var) this_node, info->current_varno);
 			}
 			else {
-			    n = (List) make_null(get_vartype(this_node));
+			    n = (List) make_null(get_vartype((Var) this_node));
 			    CAR(i) = CAR(n);
 /*			    CDR(i) = CDR(n);*/
 			}
@@ -259,17 +261,17 @@ void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified,
 				       modified,badpostquel);
 		break;
 	    case classTag(Var): {
-		int this_varno = (int)get_varno ( this_node );
+		int this_varno = (int)get_varno ( (Var) this_node );
 		List vardots = get_vardotfields((Var) this_node);
 		char *name_to_look_for;
 		if (this_varno == rt_index &&
-		    get_varattno(this_node) == attr_num) {
+		    get_varattno((Var) this_node) == attr_num) {
 		    if (vardots != LispNil) {
 			name_to_look_for = CString(CAR(vardots));
 		    }
 		    else {
-			if (get_vartype(this_node) == 32) { /* HACK */
-			    n = (List) make_null(get_vartype(this_node));
+			if (get_vartype((Var) this_node) == 32) { /* HACK */
+			    n = (List) make_null(get_vartype((Var) this_node));
 			    CAR(i) = CAR(n);
 /*			    CDR(i) = CDR(n);*/
 			    *modified = TRUE;
@@ -285,11 +287,11 @@ void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified,
 		    }
 		    n = FindMatchingTLEntry(tl,name_to_look_for);
 		    if (n == NULL)
-			n = (List) make_null(get_vartype(this_node));
+			n = (List) make_null(get_vartype((Var) this_node));
 		    CAR(i) = CAR(n);
 /*		    CDR(i) = CDR(n);*/
 		    if (NodeType(CAR(n)) == classTag(Var) && vardots) {
-			set_vardotfields(CAR(n), lispCopy(CDR(vardots)));
+			set_vardotfields((Var) CAR(n), lispCopy(CDR(vardots)));
 		    }			
 		    *modified = TRUE;
 		}
@@ -318,7 +320,7 @@ void HandleViewRule(parsetree, rt,tl, rt_index,modified)
 		HandleViewRule((List) this_node, rt, tl, rt_index,modified);
 		break;
 	    case classTag(Var): {
-		int this_varno = (int)get_varno ( this_node );
+		int this_varno = (int)get_varno ( (Var) this_node );
 		if (this_varno == rt_index) {
 		    Var x = (Var) this_node;
 
@@ -327,7 +329,7 @@ void HandleViewRule(parsetree, rt,tl, rt_index,modified)
 			 get_attname(CInteger(getrelid(this_varno,rt)),
 				     get_varattno(x)));
  		    if (n == NULL)
-			n = (List) make_null(get_vartype(this_node));
+			n = (List) make_null(get_vartype((Var) this_node));
 		    CAR(i) = CAR(n);
 /*		    CDR(i) = CDR(n);*/
 		    *modified = TRUE;
