@@ -116,12 +116,16 @@ typedef struct BufferDesc {
     unsigned		refcount;
     char		sb_dbname[16];
     char		sb_relname[16];
-#ifdef mips
-    char		sb_pad[60];
-#endif /* mips */
 #ifdef HAS_TEST_AND_SET
     slock_t		io_in_progress_lock;
 #endif /* HAS_TEST_AND_SET */
+#if defined(PORTNAME_ultrix)
+    char		sb_pad[60];
+#endif /* PORTNAME_ultrix */
+#if defined(PORTNAME_sparc) || \
+    defined(PORTNAME_alpha)
+    char		sb_pad[56];
+#endif /* sparc || alpha */
 } BufferDesc;
 
 typedef struct SJCacheTag {
