@@ -186,13 +186,17 @@ int xfunc_shouldpull(childpath, parentpath, whichchild, maxcinfopt)
      {
 	 joinselec = compute_clause_selec(primjoinclause, LispNil);
 
-	 /* the following block of code assumes no function caching */
+	 /*
+	 ** the following block of code assumes no function caching
+	 ** Modify/Delete it when function caching gets implemented.
+	 */
 	 if (whichchild = INNER)
 	   joinselec *= 
 	     get_tuples(get_parent((Path)get_outerjoinpath(parentpath)));
 	 else
 	   joinselec *=
-	     get_tuples(get_parent((Path)get_innerjoinpath(parentpath)));
+	    get_tuples(get_parent((Path)get_innerjoinpath(parentpath)));
+	 
 
 	 joincost = xfunc_expense_per_tuple(parentpath, whichchild) 
 	   + xfunc_expense(primjoinclause);
@@ -833,10 +837,12 @@ int whichrel;       /* INNER or OUTER of joinnode */
     int outersize = get_tuples(get_parent((Path)get_outerjoinpath(joinnode)));
     int innersize = get_tuples(get_parent((Path)get_innerjoinpath(joinnode)));
 
-    /* for merge join, all you do to each tuple is the minimal CPU processing */
+    /* for merge join, assume just cost of other side */
     if (IsA(joinnode,MergePath))
      {
-	 return(_CPU_PAGE_WEIGHT_);
+	 if (whichrel == INNER)
+	   return(_CPU_PAGE_WEIGHT_ * outersize * log(outersize));
+	 else return(_CPU_PAGE_WEIGHT_ * innersize * log(innersize));
      }
     /* 
     ** For hash join, figure out the number of chunks of the outer we process
@@ -857,16 +863,12 @@ int whichrel;       /* INNER or OUTER of joinnode */
      }
     /*
     ** For nested loop, the cost for tuples is the size of the outer relation
-    ** times the cost of the inner relation divided by the number of tuples
-    ** in whichrel.
     */
     else /* nested loop join */
       if (whichrel == INNER)
-	return((Cost)
-	       (outersize * get_path_cost((Path)get_innerjoinpath(joinnode)) /
-	       innersize));
+	return((Cost)(outersize * _CPU_PAGE_WEIGHT_));
       else
-	return((Cost)(get_path_cost((Path)get_innerjoinpath(joinnode))));
+	return((Cost)(innersize * _CPU_PAGE_WEIGHT_));
 }
 
 /*
