@@ -789,7 +789,6 @@ main(argc, argv)
 	     * ----------------
 	     */
 	  case 'Q':
-	    printf ( "the first char is %d \n", (int)parser_input[0] );
 	    fflush(stdout);
 	    if ( *parser_input ==  0 ) {
 		break;
