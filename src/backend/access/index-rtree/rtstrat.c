@@ -176,7 +176,10 @@ static StrategyEvaluationData RTEvaluationData = {
  *  the leaf we search for equality.
  *
  *  This array maps leaf search operators to the internal search operators.
- *  We assume the normal ordering on operators.
+ *  We assume the normal ordering on operators:
+ *
+ *	left, left-or-overlap, overlap, right-or-overlap, right, same,
+ *	contains, contained-by
  */
 static StrategyNumber RTOperMap[RTNStrategies] = {
 	RTOverLeftStrategyNumber,
@@ -184,7 +187,7 @@ static StrategyNumber RTOperMap[RTNStrategies] = {
 	RTOverlapStrategyNumber,
 	RTOverRightStrategyNumber,
 	RTOverRightStrategyNumber,
-	RTOverlapStrategyNumber,
+	RTContainsStrategyNumber,
 	RTContainsStrategyNumber,
 	RTContainedByStrategyNumber
 };
