@@ -222,12 +222,12 @@ int entry_addr;
 
 {
 	char command[256];
-	char line[128];
+	char line[256];
 	char *tmp_file;
 	FILE *fp;
 	DynamicFunctionList *head, *scanner;
 	int entering = 1, func_addr;
-	char funcname[16];
+	char funcname[256];
 
 	/* create a temporary file name */
 	tmp_file = (char *) palloc(64);
@@ -240,7 +240,7 @@ int entry_addr;
 
 	fp = fopen(tmp_file, "r");
 
-	while (fgets(line, 127, fp) != NULL)
+	while (fgets(line, 255, fp) != NULL)
 	{
 		sscanf(line, "%lx T %s", &func_addr, funcname);
 		if (entering)
@@ -257,7 +257,7 @@ int entry_addr;
 			scanner = scanner->next;
 		}
 
-		strncpy(scanner->funcname, funcname, 16);
+		scanner->funcname= (char *)strcpy(malloc(strlen(funcname)+1),funcname);
 		scanner->func = (func_ptr) (func_addr + entry_addr);
 		scanner->next = NULL;
 	}
