@@ -93,6 +93,9 @@ then
 	exit 1
 fi
 
+# umask must disallow access to group, other for files and dirs
+umask 077
+
 mkdir $PGDATA/base $PGDATA/base/template1
 
 if test "$verbose" -eq 1
