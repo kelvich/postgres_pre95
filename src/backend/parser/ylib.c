@@ -427,10 +427,10 @@ ParseFunc ( funcname , fargs )
 	      else		/* drop through */;
 	  }
 	 else if (complexType(first_arg_type) &&
-		  IsA(CADR(CAR(fargs)),Func) && 
+		  IsA(CDR(CAR(fargs)),Iter) && 
 		  (argrelid = typeid_get_relid
 		   ((int)(argtype=funcid_get_rettype
-			  (get_funcid((Func)CADR(CAR(fargs))))))))
+			  (get_funcid((Func)(CAR(get_iterexpr((Iter)CDR(CAR(fargs)))))))))))
 	  {
 	      /* the argument is a function returning a tuple, so funcname
 		 may be a projection */
@@ -438,11 +438,11 @@ ParseFunc ( funcname , fargs )
 		  != InvalidAttributeNumber)
 	       {
 		   /* 
-		    ** build an Iter containing this func node, add a tlist to the 
-		    ** func node, and return the Iter.
+		    ** build an Iter containing this func node, add a tlist
+		    ** to the func node, and return the Iter.
 		    */
 		   rd = heap_openr(tname(get_id_type(argtype)));
-		   if (RelationIsValid(rd)) 
+		   if (RelationIsValid(rd))
 		    {
 			relid = RelationGetRelationId(rd);
 			relname = RelationGetRelationName(rd);
@@ -450,8 +450,7 @@ ParseFunc ( funcname , fargs )
 		    }
 		   if (RelationIsValid(rd))
 		    {
-			iter = (Iter)MakeIter(lispCons((LispValue)CADR(CAR(fargs))
-						       ,LispNil));
+			iter = (Iter)CDR(CAR(fargs));
 			set_func_tlist((Func)CAR(get_iterexpr(iter)), 
 				       setup_tlist(funcname, argrelid));
 			return(lispCons(lispInteger(att_typeid(rd,attnum)),iter));
@@ -557,8 +556,9 @@ ParseFunc ( funcname , fargs )
 	 x++;
      }
 
-    retval = lispCons (lispInteger(rettype) ,
-		       lispCons ( (LispValue)funcnode , fargs ));
+    iter = (Iter)MakeIter(lispCons((LispValue)funcnode , fargs ));
+    retval = lispCons (lispInteger(rettype) , (LispValue)iter);
+
     return(retval);	
 }
 
@@ -869,6 +869,7 @@ LispValue HandleNestedDots(dots)
 
     foreach (mutator_iter, CDR(CDR(dots)))
       retval = ParseFunc(CString(CAR(mutator_iter)), lispCons(retval, LispNil));
+
     return(retval);
 }
 
