@@ -40,7 +40,6 @@
  *	ProcedureDefine
  * ----------------------------------------------------------------
  */
-/*#define USEPARGS */	/* XXX */
 
 /*ARGSUSED*/
 void
@@ -68,6 +67,8 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
     ObjectId 		languageObjectId;
     ObjectId		typeObjectId;
     List x;
+    List		parsetree_list;
+    List		plan_list;
     ObjectId		typev[8];
     static char oid_string[64];
     static char temp[8];
@@ -158,9 +159,13 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
      *  just store the procedure's text in the prosrc attribute.
      */
 
-    if (strncmp(languageName, "postquel", 16) == 0)
-	(void) pg_plan(prosrc, typev, parameterCount, (LispValue *) NULL,
-		       dest);
+    if (strncmp(languageName, "postquel", 16) == 0) {
+	plan_list = (List) pg_plan(prosrc, typev, parameterCount,
+				   &parsetree_list, dest);
+
+	/* typecheck return value */
+	pg_checkretval(typeObjectId, parsetree_list);
+    }
 
     for (i = 0; i < ProcedureRelationNumberOfAttributes; ++i) {
 	nulls[i] = ' ';

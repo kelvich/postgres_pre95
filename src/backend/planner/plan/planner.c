@@ -25,6 +25,10 @@
 #include "planner/internal.h"
 #include "planner/planner.h"
 
+#include "catalog/pg_type.h"	/* for pg_checkretval() */
+
+#include "utils/log.h"
+
 /* ----------------
  *	Existential creator declaration
  * ----------------
@@ -406,4 +410,144 @@ make_existential(left,right)
     set_lefttree(node,(PlanPtr)left);
     set_righttree(node,(PlanPtr)right);
     return(node);
+}
+
+/*
+ *  pg_checkretval() -- check return value of a list of postquel parse
+ *			trees.
+ *
+ *	The return value of a postquel function is the value returned by
+ *	the final query in the function.  We do some ad-hoc define-time
+ *	type checking here to be sure that the user is returning the
+ *	type he claims.
+ */
+
+void
+pg_checkretval(rettype, parselist)
+    ObjectId rettype;
+    List parselist;
+{
+    LispValue parse;
+    LispValue tlist;
+    LispValue tle;
+    LispValue root;
+    LispValue rt;
+    LispValue rte;
+    int cmd;
+    char *typ;
+    Resdom resnode;
+    Var varnode;
+    Relation reln;
+    int i;
+    ObjectId rtrelid;
+    int varno, varattno;
+
+    /* find the final query */
+    while (CDR(parselist) != LispNil)
+	parselist = CDR(parselist);
+
+    parse = CAR(parselist);
+
+    /*
+     *  test 1:  if the last query is a utility invocation, then there
+     *  had better not be a return value declared.
+     */
+
+    if (atom(CAR(parse))) {
+	if (rettype == InvalidObjectId)
+	    return;
+	else
+	    elog(WARN, "return type mismatch in function decl: final query is a catalog utility");
+    }
+
+    /* okay, it's an ordinary query */
+    root = parse_root(parse);
+    tlist = parse_targetlist(parse);
+    rt = root_rangetable(root);
+    cmd = (int) root_command_type(root);
+
+    /*
+     *  test 2:  if the function is declared to return no value, then the
+     *  final query had better not be a retrieve.
+     */
+
+    if (rettype == InvalidObjectId) {
+	if (cmd == RETRIEVE)
+	    elog(WARN, "function declared with no return type, but final query is a retrieve");
+	else
+	    return;
+    }
+
+    /* by here, the function is declared to return some type */
+    if ((typ = (char *) get_id_type(rettype)) == (char *) NULL)
+	elog(WARN, "can't find return type %d for function\n", rettype);
+
+    /*
+     *  test 3:  if the function is declared to return a value, then the
+     *  final query had better be a retrieve.
+     */
+
+    if (cmd != RETRIEVE)
+	elog(WARN, "function declared to return type %s, but final query is not a retrieve", tname(typ));
+
+    /*
+     *  test 4:  for base type returns, the target list should have exactly
+     *  one entry, and its type should agree with what the user declared.
+     */
+
+    if (get_typrelid(typ) == InvalidObjectId) {
+	if (ExecTargetListLength(tlist) > 1)
+	    elog(WARN, "function declared to return %s returns multiple values in final retrieve", tname(typ));
+
+	resnode = (Resdom) CAR(CAR(tlist));
+	if (get_restype(resnode) != rettype)
+	    elog(WARN, "return type mismatch in function: declared to return %s, returns %s", tname(typ), tname(get_id_type(get_restype(resnode))));
+
+	/* by here, base return types match */
+	return;
+    }
+
+    /*
+     *  By here, the procedure returns a (set of) tuples.  This part of
+     *  the typechecking is a hack.  We look up the relation that is
+     *  the declared return type, and be sure that attributes 1 .. n
+     *  for that relation appear in the target list, in order, and that
+     *  no others do.  This is because .all expansion happens in the
+     *  wrong place in postgres.
+     */
+
+    reln = heap_open(get_typrelid(typ));
+
+    if (!RelationIsValid(reln))
+	elog(WARN, "cannot open relation relid %d", get_typrelid(typ));
+
+    if (ExecTargetListLength(tlist) != reln->rd_rel->relnatts)
+	elog(WARN, "function declared to return type %s does not retrieve (%s.all)", tname(typ), tname(typ));
+
+    /* expect attributes 1 .. n in order */
+    for (i = 1; i <= reln->rd_rel->relnatts; i++) {
+	tle = CAR(tlist);
+	tlist = CDR(tlist);
+	varnode = (Var) CADR(tle);
+
+	if (!IsA(varnode,Var))
+	    elog(WARN, "function declared to return type %s does not retrieve (%s.all)", tname(typ), tname(typ));
+
+	varno = get_varno(varnode);
+	varattno = get_varattno(varnode);
+
+	/* make sure atts are in ascending order */
+	if (varattno != i)
+	    elog(WARN, "function declared to return type %s does not retrieve (%s.all)", tname(typ), tname(typ));
+
+	/* get the range table entry */
+	for (rte = rt; varno > 1; varno--, rte = CDR(rte))
+	    continue;
+
+	rte = CAR(rte);
+	rtrelid = (ObjectId) CInteger(CADR(CDR(rte)));
+
+	if (rtrelid != reln->rd_id)
+	    elog(WARN, "function declared to return type %s does not retrieve (%s.all)", tname(typ), tname(typ));
+    }
 }
