@@ -49,7 +49,7 @@ C-Only Release 4.0.1
 .ce 0
 .sp
 .\" ----------------
-.tm    Document Overview
+.\"    Document Overview
 .\" ----------------
 .ds PG "\\s-2POSTGRES\\s+2
 .sh 0 "Document Overview"
@@ -106,7 +106,7 @@ C-Only Release 4.0.1
 .)l
 .bp
 .\" ----------------
-.tm    Introduction
+.\"    Introduction
 .\" ----------------
 .sh 1 "Introduction"
 .pp
@@ -128,20 +128,16 @@ any purpose whatsoever,
 and cannot guarantee to assist in fixing problems.
 This is *unsupported* software.
 .\" ----------------
-.tm    Site Requirements
+.\"    Site Requirements
 .\" ----------------
 .sh 1 "Site Requirements"
 .pp
 .sh 2 "Hardware"
 .pp
 \*(PG currently has been tested by the Postgres development team on Sun
-Microsystems 3/xx family of
-processors with SunOS 3.4, or 3.5, and 4.0, and Sparc architecture machines
-(Sparcstation and Sun 4) running SunOS 4.0 and higher.  Postgres is also
-supported on DECstations 3100's and 5000's running Ultrix 4.0 and higher.
-Tested but unsupported ports for DECstation Ultrix lower than 4.0
-are included.  These ports are unsupported for
-the following reasons: the old Ultrix dynamic loader is quite buggy.
+Microsystems Sparc architecture machines
+running SunOS 4.1 and higher.  Postgres is also
+supported on DECstations 3100's and 5000's running Ultrix 4.1 and higher.
 In order to use \*(PG,
 your machine should have at least 8 megabytes of memory
 and you will require at least 45 megabytes of disk space
@@ -154,16 +150,30 @@ See the section on compilation for details.
 .pp
 The DECstation version requires a kernel which allows 4 megabytes of
 shared memory.
-.sh 2 "Software"
 .pp
-This implementation of \*(PG is completely in C.
-The distribution contains no Lisp or C++ code.
+The original release of Ultrix 4.2 has a kernel bug that causes
+the operating system to hang when running \*(PG.  The bug is in the
+shared memory module in the kernel, and a patch is available from
+DEC which fixes the bug.  Contact your DEC representative for the
+patch.
+.sh 2 "Software"
 .sh 2 "Distribution tape"
 .pp
-These instructions assume you have a \*(PG Version 4.0.1
+These instructions assume you have a \*(PG Version 4.1
 distribution tape (in either 9 track, SCSI cartridge, or TK50 cartridge
 format)
 or a \*(PG tar file.
+This release comes with a pre-installed version of \*PG ready to run
+for the two platforms we officially support.  This is a test to see
+if our users can make use of the pre-installed system, thus avoiding having
+to compile from scratch for those in a rush to get things going.  Should
+any problems arise with the pre-installed system, it is recommended
+that the sources be rebuilt from scratch to rule out any compatability
+problems between the system we compiled on here at Berkeley and your own.  There
+are two potential releases you may want (same source, different binaries).
+The tar version of the ultrix release is "postgres-v4r1.ultrix.tar.Z"
+and the sparc release is "postgres-v4r1.sparc.tar.Z" available via
+anonymous ftp from postgres.cs.berkeley.edu.
 .sh 2 "Expertise"
 .pp
 Once a site is properly configured and \*(PG is properly installed,
@@ -174,7 +184,7 @@ may be difficult and we advise that the person installing
 \*(PG be familiar with the various system administration
 procedures.
 Also note that various
-steps require superuser authority on the system,
+steps require superuser privilege on the system,
 so we advise
 that your site's system administrator read this document also.
 .sh 2 "Configuration"
@@ -193,14 +203,12 @@ If the default on your site is to use the SunOS SysV compiler
 and libraries then you may have to make some changes to this
 procedure before compiling \*(PG.
 .pp
-One exception to this rule is that we use Sun's SysV-compatible
-.i make
-to build the system.
-This is the version of
-.i make
-that is installed in both the BSD and SysV environments on Suns,
-so this should pose no problems on these platforms.  We have no
-problems on DECstations either.
+To compile this release from sources requires a new version of
+make which comes from the latest BSD release.  A bootstrapping
+version of the make sources is included with this release, as is
+a precompiled binary with its configuration files.  The make program
+is installed using the name "bmake" to avoid any conflict with
+your native make.
 .sh 3 "Disk Partition"
 .pp
 \*(PG requires 45 megabytes of disk space,
@@ -211,32 +219,30 @@ modify the installation scripts.
 .sh 3 "Kernel"
 .pp
 \*(PG makes use of the optional System V shared memory operations
-provided by SunOS, DEC Ultrix, and Dynix,
+provided by SunOS and DEC Ultrix
 which require a properly configured kernel which is in general different
 than the factory-shipped "generic" kernel.
 See the section on kernel configuration for details.
 .\" ----------------
-.tm    Installation
+.\"    Installation
 .\" ----------------
 .sh 1 "Installing \*(PG"
 .pp
-\*(PG installation consists of the following steps:
-.ip \0\0\0\(bu
-Preparation
-.ip \0\0\0\(bu
-Loading
-.ip \0\0\0\(bu
-Configuration
-.ip \0\0\0\(bu
-Compilation
-.ip \0\0\0\(bu
-Testing
-.lp
-Each of these steps is described below.
-It is advised that you read over
-each of these steps carefully before beginning the installation.
+There are potentially two routes you can go to install this system.
+Either you can choose to run the pre-installed system
+shipped with the release, or you can compile and install the sources
+from scratch.  In either case your kernel must be configured to
+support the shared memory and semaphore operations required by
+the code.  Assuming you have run \*(PG in the past, you may already
+be properly configured to run.  Also, should you opt to run the
+pre-installed system, let us reiterate that if you run into any
+complications, it would be wise to recompile the sources from
+scratch before reporting any problems to our mailing list.  We
+are, however, interested in any feedback you may have on the
+pre-installed system.  In both cases you need to decide where to
+load the system.
 .\" ----------------
-.tm    Preparation
+.\"    Preparation
 .\" ----------------
 .sh 2 "Step 1 \- Preparation"
 .pp
@@ -249,17 +255,22 @@ system administrator perform these steps.
 .sh 3 "Find a good place for \*(PG"
 .pp
 You should locate a disk partition with
-at least 45 megabytes of free space available for \*(PG.
-If you haven't any single partition with 25 megabytes free,
-you might have to spread apart the \*(PG directories across several
-partitions,
-and glue them together with symbolic links.
+at least 50 megabytes of free space available for \*(PG.
+If you plan to run the pre-installed system, it would be best
+if you loaded the release into the directory "/usr/local/postgres",
+as that is what the release was configured for.  It is not mandatory,
+though, as the only relevent dependency is that the programs are
+setup to look for the database directory in "/usr/local/postgres/data",
+but that can be changed by setting the environment variable PGDATA
+somwhere else before starting the postmaster.  Also note that you
+can install the system anywhere, and then make a symbolic link
+from /usr/local/postgres to the place you really loaded the system.
+If you are compiling the system from scratch, it doesn't matter
+where you load the system at all (as long as there is space).
 .sh 3 "Creating the \*(PG directory"
 .pp
-Once you have located a partition with enough space,
-create a directory called
-.q postgres
-someplace on this partition.
+Once you have decided,
+create the directory to hold the release if it doesn't already exist.
 Then \fBcd\fR to this directory and type \fBpwd\fR.
 This is the full
 path of the directory you will install postgres in.
@@ -273,121 +284,96 @@ Filesystem	kbytes	used	avail	capacity  Mounted on
 /dev/xy0f	 10829	  6743	 3003	   69%      /pub.MC68020
 /dev/xy2h	110811   81181  18548	   81%      /usr3
 /dev/xy2g	221279  167405  31746	   84%      /b
-/dev/xy1g	221279  138365  60786	   69%      /public
+/dev/xy1g	221279  138365  60786	   69%      /usr/local
 /dev/xy1a	  8179	   944	 6417	   13%      /tmp
 /dev/xy0h	119999  101623	 6376	   94%      /usr.MC68020
 /dev/xy0g	156033  135499	 4930	   96%      /usr2
 /dev/rf0d	539421  465026  20452	   96%      /a
 .i
-	/public looks like a good place (it has 60 megs free) so we decide
-	to create the postgres directory there...
+	/usr/local looks like a good place (it has 60 megs free)
+	so we decide to create the postgres directory there...
 .r
-# \fBcd /public\fR
+# \fBcd /usr/local\fR
 # \fBmkdir postgres\fR
 # \fBcd postgres\fR
 # \fBpwd\fR
-/public/postgres
+/usr/local/postgres
 #
-.)l
-.sh 2 "Creating /usr/postgres"
-.pp
-\*(PG expects to be
-.i logically
-installed in a directory
-called
-.q /usr/postgres ,
-so you must create a symbolic link
-from /usr/postgres to whatever directory you created in the
-previous step.
-In our example,
-we would now type:
-.sp
-.(l
-# \fBln -s  /public/postgres  /usr/postgres\fR
 .)l
 .sh 2 "Creating the \*(lqpostgres\*(rq user"
 .pp
 Finally, we need to create a user called \*(lqpostgres\*(rq whose
-shell is /bin/csh and whose home directory is /usr/postgres.
+shell is /bin/csh.   It is not necessary, but is convenient, to
+make the home directory of the \*(lqpostgres\*(rq user to be
+the pathname where we install the system. 
+of the directory we loaded postgres
 This can be done using the "adduser" procedures particular to your
 platform and site.  See your system administration manual for details.
-.lp
-.b Note:
 .pp
-Due to a bug in this release, the "postgres" user must be user 6 (six).
-Otherwise, you may encounter problems with backends hanging, etc.
-See the 
-.b Release
-.b Notes
-(described in Section 6.2 of this document)
-for instructions on how to get around this problem
-if it causes problems at your site.  If it is not convienent for you to make
-the "postgres" user userid 6, complete the below instructions on
-.b Loading
-\*(PG,
-but read the 
-.b Release
-.b Notes
-notes on how to get around this problem
-.b before
-continuing on to the
-.b Configuration
-section.
-.pp
+The reason we make a postgres login is so that when we install the
+system and create the database directory, everything is owned by this
+postgres user.  Then, we start the postmaster when logged in
+as this postgres user, and all the backends are also started by 
+this postgres user
+and are able to access the databases.  You can probably make this work
+without creating a postgres login (note that the restriction about
+having a postgres login with uid 6 was removed a while ago), but we
+will not provide support for this (you are, as they say, "on your own").
 .\" ----------------
-.tm    Loading
+.\"    Loading
 .\" ----------------
 .sh 2 "Step 2 - Loading \*(PG"
 .pp
-After completing step 1 (Preparation),
-you should be ready to load
+Now you are ready to load
 the \*(PG files onto your system.
 To do this,
 you will need either
-a distribution tape or a \*(PG tar file.
+a distribution tape or a \*(PG tar file (available via anonymous ftp
+from postgres.cs.berkeley.edu).
 .pp
 If you are loading \*(PG from a tape, follow these instructions;
 if you are loading from a tar file obtained via FTP, skip to the
 section "Loading \*(PG from a Tar File".
 .sh 3 "Loading \*(PG from a Tape"
 .pp
-Login as postgres.
+Login as postgres and change directories to the postgres directory
+that was created.
 .pp
-3.  Run "tar" with the "extract, verbose, file" options:
+3.  Run "tar" with the following options
 .pp
 % tar xvf <tape-device>
 .sp
 where <tape-device> is the name for your tape device, i.e.,
 /dev/rmt0, /dev/rst8, etc.
 .pp
-The file "postgres-v4r0r1.tar.Z" will appear in your \*(PG home directory.
+The file "postgres-v4r1.XXX.tar.Z" will appear in your \*(PG home directory,
+where XXX is the name of the platform.
 You may need to re-wind your tape to get it out of your tape
 drive - see your system administrator for instructions.
 .pp
-Please proceed to the section "Loading \*(PG from a Tar File".
+Proceed to the next section "Loading \*(PG from a Tar File".
 .pp
 .sh 2 "Loading \*(PG from a Tar File"
 .pp
 If you are not logged in as \*(PG already, log in as \*(PG.
-Make sure your current working directory is the \*(PG home
-directory, and that the \*(PG tar file is there.
+Make sure your current working directory is the \*(PG directory
+that was created, and put the \*(PG tar file there if it is not already.
 For the purpose of this discussion, the \*(PG tar file will be called
 .pp
-postgres-v4r0r1.tar.Z
+postgres-v4r1.XXX.tar.Z
 .pp
 Uncompress the tar file.
 .pp
-% uncompress postgres-v4r0r1.tar.Z
+% uncompress postgres-v4r1.XXX.tar.Z
 .pp
 A larger file should now be in the \*(PG home directory, and the '.Z'
 ending should be gone, so it is now named
 .pp
-postgres-v4r0r1.tar
+postgres-v4r1.XXX.tar
 .pp
-Extract \*(PG from the tar file, using the "extract, verbose, file"
-options:
+Extract \*(PG from the tar file using the following command:
 .pp
-% tar xvf postgres-v4r0r1.tar
+% tar xvf postgres-v4r1.XXX.tar
 .pp
 Lots of file names and such should appear on the screen.
 This step may take several minutes.
@@ -396,15 +382,15 @@ Now do an "ls":
 .pp
 The output of the ls should look something like:
 .(l
-COPYRIGHT	bench/	demo/	newconf/	src/
-README	doc/	ref/	test/	sample/	video/
+COPYRIGHT      README         doc            local          src
+INITIAL_SETUP  bin            include        man
+Makefile       data           lib            obj
 .)l
 .pp
 At this point you have loaded the \*(PG files.
-Other directories will be created by the installation process.
 .sp
 .\" ----------------
-.tm    Configuration
+.\"    Configuration
 .\" ----------------
 .sh 2 "Step 3 - Configuration"
 .pp
@@ -434,7 +420,7 @@ you may want to consult the Man pages for \fIshmget()\fR,
 \fIshmop()\fR, \fIshmctl()\fR, etc.  Now proceed to the appropriate
 section for your machine.
 .pp
-.sh 3 "Kernel reconfiguration for Suns and Sparcs"
+.sh 3 "Kernel reconfiguration for Sparcs"
 .pp
 In order to reconfigure Sun or Sparc kernel, you will have to become root
 and add some lines to /usr/sys/conf (your kernel config file)
@@ -533,218 +519,203 @@ After adding these lines, run
 .i config
 over the configuration file,
 install the new kernel, and reboot.
+.pp
+Also, remember that Ultrix 4.2 has a kernel bug that causes the
+operating system to hang when running \*(PG.  You should apply
+the DEC supplied patch at this point if you have not already.
 .sp
 .\" ----------------
-.tm    Compiling
+.\"    Running the pre-installed system
 .\" ----------------
-.sh 2 "Configuring \*(PG"
-.pp
-This release of \*(PG
-may require some configuration.
-For performance reasons, Postgres is by default compiled with the optimizer
-enabled and internal debugging assertions disabled.  If you plan to modify
-Postgres, you may want to enable debugging (note that this will take Postgres
-up to about 50 megs from about 45 megs otherwise), and enable internal
-debugging assertions.
-.pp
-To enable compiler directives, 
-read the file ./newconf/CONFIG/README
-for instructions on what to change.
-Now to edit the configuration file,
+.sh 2 "Running the pre-installed \*(PG system"
+Assuming you have loaded the system into /usr/local/postgres, there
+is very little else to do.  Add /usr/local/postgres/bin to your
+shell path.  If you run csh, you would put
 .(l
-.sp 0.5v
-% \fBcd /usr/postgres/newconf/CONFIG\fP
-.sp 0.5v
-% \fBvi config.mk.<port>\fP
+set path=(/usr/local/postgres/bin $path)
+.)l
+in the .login for the postgres user.  Or if you run sh or ksh, put
+.(l
+PATH=/usr/local/postgres/bin:$PATH
+export PATH
+.)l
+in your .profile.  Then log back in so the change takes effect.
+Now run the following command
+.(l
+% newbki
+.)l
+This will reset the userid of special postgres user of the database to
+have the proper value.  Even though newbki allows you to enter a login
+name, you should select the default value of "postgres".  It allows a
+different name because at some point we plan to remove the restriction
+that there even exists a special user called "postgres" -- but not yet...
+.pp
+After doing this, you may wish to install the precompiled version of
+bmake into /usr/local/bin.  This will allow you to recompile \*(PG
+right away without bootstrapping bmake.  To do this, cd into the
+directory called "local".  You will see two directories and a README.
+Become the superuser and do the following:
+.(l
+# cp bin/bmake /usr/local/bin
+# mkdir /usr/local/lib /usr/local/lib/mk
+(you may get an error if this directory alreadt exists - ignore it)
+# cp lib/mk/* /usr/local/lib/mk
 .)l
 .pp
-where
-.i <port> is the following:
+If you installed postgres somewhere other than /usr/local/postgres, everything
+can still work right if you set the environment variable PGDATA for
+the special postgres login.  Lets assume you installed postgres in
+the directory "/private/packages/postgres".  If you run csh, put 
+the following in the .login for the postgres user
 .(l
-dec	\- DS3100 running Ultrix LOWER than 4.0
-ultrix4	\- DS3100, 5000, 5500, etc. running Ultrix 4.0 or higher
-sun	\- Sun 3 running SunOS 3.4 or 3.5
-sunos4	\- Sun 3 running SunOS 4.0 or higher
-sparc	\- Sparcstation or Sun 4
+setenv PGDATA /private/packages/data
 .)l
-The
-.i only
-thing we recommend changing is the
-GCFLAGS variable.  Remember the
-.b port
-.b name
-used here as it is necessary for Step 4.
-.pp
-.sh 2 "Step 4 - Compiling and Installing \*(PG"
-Now you are ready to install Postgres.  To do so,
-simply execute the following commands:
+or if you run sh or ksh, put the following in .profile
 .(l
-% \fBcd ~postgres/newconf\fR
-% \fBsetenv POSTGRESHOME ~postgres\fR
-% \fB./Make install\fR
+PGDATA=/private/packages/data
+export PGDATA
 .)l
+This will instruct the postmaster and backends to look in that
+directory for the databases.
 .pp
-.lp
-.i Make
-.i install
-will ask you for the port you wish to use.  Use the port name that you
-used in 
-.b Configuring
-\*(PG.
-You will also be asked for the name of the object tree directory;
-the default is ~postgres/obj.<port>.  (throughout the rest of this document
-obj.<port> refers to the object tree directory).  This step will take from
-about 40 minutes on Sparc II or DEC 5000 class machines to several hours
-on Sun 3's.
-The POSTGRESHOME environment variable is the home directory of the Postgres
-user.  In the course of the installation process, the Postgres
-.b bin
-and 
-.b data
-directories will be created and populated.
+You are now ready to go to the setion called "Creating the initial database".
+.sp
+.\" ----------------
+.\"    Compiling and installing postgres
+.\" ----------------
+.sh 2 "Compiling and installing \*(PG"
 .pp
-.i Make
-is a C shell script that runs
-.i make
-with Makefiles that are constructed on the fly.
-If you have problems at this point,
-it is possible that your
-.i \&.cshrc
-file does strange things \*-
-changes directories,
-sets or unsets environment variables,
-and so on.
+.sh 2 "Compiling and Installing \*(PG"
 .pp
-You should see no errors during this phase, except possibly for warnings
-(which can be ignored) when compiling the output of
-.i yacc
-and
-.i lex.
+The sources for \*(PG are all under the directory src/.  The first
+step is to install the new bmake program.  By the way, you can look at 
+the previous
+section entitled "Running the pre-installed system" in the paragraph
+about bmake, and just copy the pre-compiled bmake to /usr/local/{bin,lib}
+if you want and skip step 2) in this section.  What follows is a step by step 
+list to compile and install this release from sources:
+.pp
+- build step 1: customization -
+.pp
+Cd into the src/ directory and edit the file "Makefile.global".
+By default the PORTNAME is "ultrix4".  Change this to "sparc"
+if you are running on the sparcstation.  Also, if you do not
+want "bmake" installed into /usr/local/bin and /usr/local/lib,
+change the values of TOOLSBINDIR and TOOLSLIBDIR and make sure
+these directories exist.  Also, note it is not possible to move
+the bmake(1) library files after the bmake(1) executable is built
+since the pathname to the lib/ directory is hardcoded into the
+executable.  If you wish to move the library files elsewhere, you
+have to change TOOLSLIBDIR in the source and goto step 2) which
+makes and installs bmake(1).
+.pp
+At this point you can also change where the postgres executable
+files are installed and where it looks for the database
+directory.
+.pp
+- build step 2: bootstrapping the new bmake program -
+.pp
+Cd into src/tools/bmake and type
+.(l
+% make -f Makefile.boot
+.)l
+You may get warning messages during this bootstapping process
+about "illegal combination of pointer and integer" -- just ignore them.
+This should compile and install the "bmake" program and
+its supporting files, including the postgres related
+makefile templates.  If all went well you will now be able
+to use the new make program by typing "bmake", assuming you
+have /usr/local/bin in your shell path.  You may have to
+type "rehash" if you run csh(1), since it's too stupid to
+know new executables have been placed in its path.
+.pp
+- build step 3: compile and install the world -
+Cd back to the src/ directory (i.e. cd ../..) and type
+.(l
+% bmake install
+.)l
+This builds and installs the entire system.  The Makefiles
+contain directives for running all the underlying Makefiles
+in all the directories, so the whole thing should unfold and
+compile beautifully and install to the target directory.  Should
+this not be the case, it would be a good idea to save the results
+of the compile in a file.  If you run csh(1), you could type
+.(l
+% bmake install >& mk.log
+.)l
+and if you run ksh(1) or sh(1), type
+.(l
+% bmake install > mk.log 2>&1
+.)l
+This will save the results in the file "mk.log" so you
+can inspect it later.  This would be an ideal opportunity to get
+some donuts and coffee.
+.sp
 .sh 3 "Creating the initial database"
 .pp
-\*(PG databases are stored in the directory ~postgres/data.
-After you have compiled \*(PG,
-you will need to create the
-initial database.
-To do this,
-type 
+\*(PG databases are stored in the directory .../postgres/data.
+After you have compiled \*(PG, you will need to create the
+initial database.  If you haven't already put the path to the \*(PG
+executable programs in the shell path, do the following (assuming
+postgres was loaded into /usr/local/postgres).
+If you run csh, you would put
 .(l
-% \fBsetenv POSTGRESHOME ~postgres\fR
-% \fB~postgres/bin/postmaster &\fR
-% \fB~postgres/bin/createdb postgres\fR
-% \fBkill %~postgres/bin/postmaster\fR
+set path=(/usr/local/postgres/bin $path)
 .)l
-This will create the bootstrap template database, from which
-the database 
-.q postgres
-will be generated.  The
-.i postmaster
-program will be discussed later - however, you must have it running in order
-to run 
-.i createdb.
-If several users wish to use \*(PG,
-we advise you to create additional databases,
-one for each user.
-This can be done by running
-.i createdb
-with the username as the first argument.
-For example,
-to create a database for the user \*(lqbill\*(rq,
-type
+in the .login for the postgres user.  Or if you run sh or ksh, put
 .(l
-% \fB~postgres/bin/createdb bill\fR
+PATH=/usr/local/postgres/bin:$PATH
+export PATH
 .)l
+in your .profile.  Then log back in so the change takes effect.
+.pp
+Now you can create the initial database by running the following
+command.
+.(l
+% initdb
+.)l
+If that completes successfully, congratulations.  
+.pp
+Now, to make the system operational you must run the postmaster.
+The section after "Testing" discusses this.
 .\" ----------------
-.tm    Testing
+.\"    Testing
 .\" ----------------
 .sh 2 "Step 4 - Testing"
-.sh 3 "Testing \*(PG"
 .pp
-After compiling the \*(PG backend and support programs and
-creating the initial database,
-you should test your compilation
-with the following.
-Commands you should type appear in \fBboldface\fP.
+We suggest you run the regression tests to make sure the release
+was installed successfully.  You must have installed the bmake program
+to run the test.  Also, you need to have the postmaste running to run
+the test, so type the following:
 .(l
-\fB% ~postgres/bin/postgres\fR
-.ft CW
-	---debug info---
-	Quiet =        f
-	Noversion =    f
-	override  =    f
-	DatabaseName = [postgres]
-	----------------
-
-	**** Transaction System Active ****
-	InitPostgres()..
-
-POSTGRES backend interactive interface
-$Revision$ $Date$
-	StartTransactionCommand() at Thu Nov  2 15:43:35 1989
-.ft
-> \fBretrieve (pg_user.all)\fP
-.ft CW
- now in make_Var
-relation = pg_user, attr = usecatupd
-vnum = 1
-	...
-.ft
-	\fIlots of debugging output...\fP
-.ft CW
-
----- 	parser outputs :
-((1 retrieve nil (("pg_user" 86 0 nil nil ))0 nil )((#S(resdom :resno 1
-:restype 19 :reslen 16 :resname "usename" :reskey 0 :reskeyop 0)#S(var
-	...
-.ft
-	\fIlots more debugging output...\fP
-
-.ft CW
-	ProcessQuery() at Thu Nov  2 15:43:50 1989
-
-blank
-	 1: usename	(typeid = 19, len = 16, byval = f)
-	 2: usesysid	(typeid = 21, len = 2, byval = t)
-	 3: usecreatedb	(typeid = 16, len = 1, byval = t)
-	 4: usetrace	(typeid = 16, len = 1, byval = t)
-	 5: usesuper	(typeid = 16, len = 1, byval = t)
-	 6: usecatupd	(typeid = 16, len = 1, byval = t)
-	----
-	 1: usename = "postgres"	(typeid = 19, len = 16, byval = f)
-	 2: usesysid = "6"	(typeid = 21, len = 2, byval = t)
-	 3: usecreatedb = "t"	(typeid = 16, len = 1, byval = t)
-	 4: usetrace = "t"	(typeid = 16, len = 1, byval = t)
-	 5: usesuper = "t"	(typeid = 16, len = 1, byval = t)
-	 6: usecatupd = "t"	(typeid = 16, len = 1, byval = t)
-	----
-	 1: usename = "goh"	(typeid = 19, len = 16, byval = f)
-	 2: usesysid = "234"	(typeid = 21, len = 2, byval = t)
-	 3: usecreatedb = "t"	(typeid = 16, len = 1, byval = t)
-	 4: usetrace = "t"	(typeid = 16, len = 1, byval = t)
-	 5: usesuper = "t"	(typeid = 16, len = 1, byval = t)
-	 6: usecatupd = "t"	(typeid = 16, len = 1, byval = t)
-	----
-	 ...
-
-	CommitTransactionCommand() at Thu Nov  2 15:43:51 1989
-
-	StartTransactionCommand() at Thu Nov  2 15:43:51 1989
-.ft
-	\fIIt works!\fP
-
-\fI
-	The above response is an example of the raw output
-	generated by the backend.  Your actual output may be slightly
-	different.  Normally, you would use a
-	terminal monitor to talk to the backend instead.
-	To leave the backend, type <ctrl-D>:
-\fR
-> ^D
-%
+% postmaster %
 .)l
+.pp
+Change directories to src/regress/regress and type the following
+bmake command:
+.(l
+% cd src/regress/regress
+% bmake runtest
+.)l
+.pp
+This will run a whole slew of regression tests and might take a long
+time to run.  WHen it's done, the output of the test is in the 
+file "obj/regress.out".  You can compare this to a sample run that
+we supply in the file "sample.regress.out" with the following
+command:
+.(l
+% diff sample.regress.out obj/regress.out
+.)l
+Unfortunatly you will see many differences corresponding to
+the timestamp lines and occasional lines where object id numbers (OID's)
+are different.  We regret that we do not have a more sophisticated
+script for weeding out these innocuous differences at this time.  If
+you see any differences not corresponding to time stamps or OIDS,
+there may be a problem.  Have your local postgres expert take a look
+at it.
 .sp
 .\" ----------------
-.tm    Running
+.\"    Running
 .\" ----------------
 .sh 1 "Running \*(PG"
 .pp
@@ -759,38 +730,44 @@ and
 .ip \0\0\0\(bu
 the backend.
 .lp
-Users are expected to use the terminal monitor.
+Users are expected to use the terminal monitor for direct access
+to the database.
 The terminal monitor
 sends commands to the postmaster which forwards commands to a backend.
-If you just completed step 3,
-then you have already been introduced to the \*(PG backend,
-so we'll talk about the other two processes now.
 .sh 2 "The \*(PG Postmaster"
 .pp
 The postmaster is a process which manages communication between the
 user's terminal monitor and a \*(PG backend.
 Without a running postmaster,
 the terminal monitor will not be able to connect to a backend.
-To start the postmaster, type:
+In general, the postmaster must be running for you (or others) to
+run any of the normal postgres commands.  Always start the postmaster when
+logged in as the special "postgres" user, otherwise the system will
+not be able to access the database files. To start it, type
 .(l
-% \fBcd ~postgres/bin\fR
-% \fBsetenv POSTGRESHOME ~postgres\fR
-% \fBpostmaster &\fR
+% postmaster &
 .)l
-Here we are using the default parameters for the postmaster.  For more
-details, consult the Reference.
+Now you
+can leave the postmaster running if you wish to keep the
+database system accessable.  In general, when the postmaster
+is running, the system is running.  When it is not running,
+none of the frontend programs will work.
+.sp
 .sh 2 "The \*(PG Terminal Monitor"
 .pp
 The \*(PG terminal monitor is a front-end user interface to the
 \*(PG backend.
-To start a terminal monitor,
-type
-.(l
-% \fBmonitor <database>\fR
-.)l
 .pp
-\fIDatabase\fR is the name of the database you want to use. 
+Lets assume \fIatabase\fR is the name of the database you want to use. 
+It is an error if \fIdatabase\fR does not exist, so to create
+the database, you would type
+.(l
+createdb \fIdatabase\fR
+.)l
 Now we will run the monitor:
+.(l
+% monitor \fIdatabase\fR
+.)l
 .(l
 .ft CW
 Welcome to the C POSTGRES terminal monitor
@@ -833,6 +810,8 @@ Query sent to backend is "retrieve (u.usename, u.usesysid) from u in pg_user"
  -----------------------------
  | mao         | 1806        |
  -----------------------------
+ | marc        | 2435        |
+ -----------------------------
  | margo       | 2697        |
  -----------------------------
  | sullivan    | 1517        |
@@ -867,7 +846,7 @@ Should you wish to
 start the backend and talk to it directly (without a terminal monitor)
 you can do this by typing:
 .(l
-% \fB~postgres/bin/postgres\fR \fIdatabase\fR
+% \fBpostgres\fR \fIdatabase\fR
 .)l
 .lp
 where \fIdatabase\fR is the name of the database you wish to use.
@@ -876,7 +855,8 @@ you will be talking to the backend parser directly.
 We recommend using the terminal monitor; if you are using Postgres as a
 multiuser system, running the backend can result in locking failures
 and corrupt databases, as the Postmaster handles shared resources such
-as semaphores and shared memory.
+as semaphores and shared memory.  In general, never do this if there
+is a postmaster running.
 In addition, returned tuples are displayed more usefully
 and input is buffered better.  
 The backend is used interactively primarily during debugging.
@@ -887,209 +867,111 @@ Most of these are used internally by the system but here is a list of
 them for your information.
 .(l
 initdb		\- creates the initial template database
-createdb		\- creates new postgres databases
-createdb.sh	\- creates new postgres databases - old version
+cleardbdir	\- totally destroys the data/ directory, allowing a new initdb
+createdb	\- creates new postgres databases
+createuser	\- add a new user to the postgres system
 destroydb	\- destroys postgres databases
-ipcclean		\- frees up garbage shared memory from failed backends
+destroyuser	\- delete a user from the datasbe system
+ipcclean	\- frees up garbage shared memory from failed backends
+newbki		\- adjust userid of "postgres" in the database
 pg_version	\- make version numbers for createdb
-pg_id		\- gets user id's for createdb
-pg_uid		\- gets postgres user id for initializing the template database
+pg_id		\- gets user id's - used by various commands
 pagedoc		\- disk page doctor
-shmemdoc		\- shared memory buffer pool doctor
+shmemdoc	\- shared memory buffer pool doctor
+vacuum		\- database vacuum cleaner
+pg_copytree	\- copy te source tree (probably shouldn't be shipped)
+pcat		\- inversion filesystem cat command
+pcd		\- inversion filesystem cd command
+pls		\- inversion filesystem ls command
+pmkdir		\- inversion filesystem mkdir command
+pmv		\- inversion filesystem mv command
+ppwd		\- inversion filesystem pwd command
+prm		\- inversion filesystem rm command
+prmdir		\- inversion filesystem rmdir command
 .)l
 .sh 1 "Optional Installation"
 .sh 2 "Installing LIBPQ, the \*(PG frontend library"
 .pp
-The file ~postgres/obj.<port>/libpq.a is created when you
-compile the system.
+The file .../lib/libpq.a is created when you
+install the system (or on the pre-installed system).
 This library contains various 
 routines intended for use by frontend programs.
 You use this library if you want to execute Postgres queries
 from a C program.  If you plan on doing software development,
 you may wish to copy this file to
 /usr/lib so that the C compiler can reference it with -lpq.
-To do this,
-type:
+.sh 2 "Postgres header files"
+.pp
+The directory .../include contains copies of all the header
+files that front-end applications might need.  You can compile
+a frontend program with the -I cc directive as illustrated
+in the following example:
 .(l
-# \fBcp ~postgres/obj.<port>/libpq.a   /usr/lib\fR
+cc -I/usr/local/postgres/include -o foo foo.c -lpq
 .)l
-.sh 2 "Demo Database"
 .pp
-In ~postgres/demo are files to be included by the terminal monitor
-to set up a demo database.
-Additional files demonstrate inheritance,
-historical queries,
-abstract data types,
-and various other features
-of \*(PG.
-A description of the demo database can be found
-in ~postgres/demo/DEMO-README.
-.sh 2 "Video Demo Database"
-.pp
-In ~postgres/video are files that were used in the 1991 Postgres SIGMOD
-video.  These files demonstrate both the instance level and query rewrite
-rule systems, views, versions, and spatial queries using R-Tree indices.
-A description of the video database can be found in
-~postgres/video/VIDEO-README.
+This feature of copying just the necessary header files into
+.../include was done right before we built the release and
+has not had sufficient testing.  It your frontend programs
+complain about not being able to find header files, either
+add the missing header files to the include/ directory and
+notify us of the problem, or just point the -I compiler
+directive directly into the source as was done in the past. E.g.
+.(l
+cc -I/usr/local/postgres/src/backend -o foo foo.c -lpq
+.)l
+If you do this, you may need to add the following #define's in your
+source to set the PORTNAME - add them prior to any #includes:
+.(
+#define PORTNAME ultrix4
+#define PORTNAME_ultrix4
+.)
+for ultrix, or
+.(
+#define PORTNAME sparc
+#define PORTNAME_sparc
+.)
+We're sorry for any inconvenience this may cause, and fully intend
+that the include/ directory be more rigorously tested in the next release.
 .sh 2 "Wisconsin Benchmark Database"
 .pp
-In ~postgres/bench are files which are the queries used in the Postgres
+In .../postgres/src/regress/bench are files which are the 
+queries used in the Postgres
 version of the Wisconsin benchmark.  The Wisconsin benchmark illustrates
 "basic" relational performance using B-Tree indices on nontrivial amounts
-of data.  Instructions for running the benchmark are in
-~postgres/bench/WISC-README.
+of data.  To run the benchmark, type cd to that directory and
+type
+.(l
+bmake runtest
+.)l
 .pp
 .sh 2 "Minimal Installation"
 .pp
-The directories (in ~postgres) necessary
-for a minimal running system are:
-.(l
-bin/		the binary programs comprising \*(PG
-data/		support files and user created databases
-files/		database initialization scripts
-.)l
-When compiled using the "default" compilation options as shipped, (ie
-optimization and no debugging), these directories will take up about 5 Mbytes.
-The following directories are necessary if Postgres is to ever be recompiled.
-.(l
-newconf/	the \*(PG configuration directory
-obj.<port>/	compiled \*(PG object files
-src/		\*(PG source files
-.)l
-.pp
-When compiled using the "defaults", these directories will use about 16
-Mbytes.
-Additional Postgres directories are as follows:
-.(l
-demo/		demo database scripts
-video/		video demo database scripts
-bench/		Wisconsin benchmark database scripts
-sample/		Sample LIBPQ application
-doc/		postgres technical reports and the \*(PG Manual
-ref/		\*(PG Reference source
-.)l
-.pp
-These directories take up about 2 Mbytes, and can be reduced to about
-200 Kbytes if the Postscript files in doc and ref are deleted. 
-.pp
-We do not recommend deleting these unless absolutely necessary.
+It is the intention that everything below the src/ directory can 
+be removed, however we didn't have time to test this.  Specifically,
+the include/ directory may not have all the necessary files to
+compile all the frontend programs, so you may might get burned if you
+removed.  But if you'd like to try it out, we'd love to know if it
+works for you.... :)
 .\" ----------------
-.tm    Documentation
+.\"    Documentation
 .\" ----------------
 .sh 1 "Documentation"
-.sh 2 "Printing the Manual"
-.pp
-The \*(PG manual is now in the file
+Clear text and postscript versions of the manpages and documents
+are available in the directories man/ and doc/ at the top level.
+To recreate these documents, there are corresponding directories
+in src/{man,doc}.  They are currently configured to require groff
+and friends, but you may be able to change the makefiles to use
+other facilities if you have them (good luck!).  If you change
+directories to man/ and doc/ and type a
 .(l
-\fB~postgres/doc/manual.me\fR
-.)l
-This manual replaces the old tutorials, which are no longer distributed.  It
-is recommended that you read this manual before making extensive use of 
-\*(PG.  A Postscript version of this manual is in
-.(l
-\fB~postgres/doc/psdump/manual.ps\fR
-.)l
-.pp
-.sh 2 "Printing the Reference"
-.pp
-The Reference is the document which details the exact syntax used by
-\*(PG commands, and provides interface definitions for LIBPQ and large
-objects.  It is intended as a reference and should not be read cover to
-cover.
-.pp
-If you have a Postscript printer, you can print the Reference by
-changing directory to the 
-.(l
-\fB~postgres/ref\fR
-.)l
-directory, where you will find a Postscript file called \fBref.t\fR.
-This file can be simply sent to the printer in whatever fashion your site
-uses to print Postscript files.
-.pp
-If you do not have a Postscript printer, or you have font problems, etc.,
-the \fBref\fR directory contains a /bin/sh script called "genref".  Edit
-this script and set the appropriate parameters for printing at your site
-in this script, and then execute it by typing
-.(l
-% \fBgenref\fR
-.)l
-This script will not actually try to send the job to the printer - rather
-it will create the \fBref.t\fR output file.  You can then print the
-manual by sending this file directly to the printer with the regular printing
-commands used by your site.
-.pp
-If \fBgenref\fR fails, you may not have the \fBgrn\fR preprocessor.  This
-preprocessor for troff allows pictures drawn with the \fBgremlin\fR graphics
-editor to be printed using a "troff" command.  A script called \fBeatgrn\fR is
-provided, which will cause \fBgenref\fR to ignore \fBgrn\fR directives and
-print anyway - this will result in the reference being printed without
-illustrations.  There is only one illustration, so this should not be too
-much of a problem.
-.pp
-.sh 3 "If you do not have a Postscript printer"
-.pp
-If you do not have a Postscript printer, change the \fBpsroff\fR command in
-the \fBgenref\fR script to the
-text formatting command you use at your site, typically \fBnroff\fR,
-\fBtroff\fR, or \fBditroff\fR.
-As stated above, use the \fBeatgrn\fR script if you do not have \fBgrn\fR.
-Output suitable
-for a line-printer can be created using \fBnroff\fR.  
-.pp
-.sh 2 "Printing the Technical Reports and Tutorials"
-.pp
-Postscript versions of the Postgres technical reports, tutorials, and
-release notes are in the directory \fB~postgres/doc/psdump\fR.  Some files
-are not
-included in Postscript form and are simply regular files - read the file
-\fB~postgres/doc/README\fR for details.
-.pp
-The /bin/sh script
-\fB~postgres/doc/print\fR
-contains site-specific printing parameters, and understands the file extension
-protocol used
-in the \fBdoc\fR directory.  Once you set the site-specific parameters for
-printing in this script, you should be able to print all the files in the
-\fBdoc\fR easily, by executing
-.(l
-% \fBprint <filename>\fR
-.)l
-from the \fB~postgres/doc\fR directory.
-.pp
-Unlike the \fBgenref\fR script described above, this
-script will send the job directly to the printer.  If you do not have the
-\fBgrn\fR utility described above, you should use the \fBeatgrn\fR script here
-as well.  For technical reports which require \fBmake\fR, continue to
-the following section.
-.pp
-.sh 3 "If the directory has a makefile"
-.pp
-A couple of the technical reports use makefiles to generate their printable
-versions rather than the \fBprint\fR script.  If the subdirectory has
-a makefile, you will have
-to change the site-specific parameters in the
-makefile, run 
-.(l
-% \fBmake\fR
-.)l
-and then it will either print or create a printable file.  Note that if the
-makefile uses \fBgrn\fR and you do not have access to this utility, you can
-use the \fBeatgrn\fR script here as well.
-.sh 2 "The 4.0.1 Release Notes"
-.pp
-The Postgres 4.0.1 Release Notes are in the file
-\fB~postgres/doc/release4.0.1.me\fR.
-Before working extensively with Postgres, you should read this file to
-find new features, known bugs, and other useful information about this
-release.
-.pp
-As described above, you can print this file by typing
-.pp
-.(l
-% \fBprint ~postgres/doc/release4.0.1.me\fR
-.)l
+% bmake
+% bmake install
+.)
+in each, it will format and install the documents into the corresponding
+destination directories.
 .\" ----------------
-.tm    Miscellaneous
+.\"    Miscellaneous
 .\" ----------------
 .sh 1 "Miscellaneous"
 .sh 2 "Bug reports"
@@ -1105,12 +987,6 @@ describing as precisely as possible the command that caused
 the problem,
 instructions on how to repeat the bug,
 and a script showing the bug. 
-.sh 2 "Known Bugs List"
-.pp
-A Known Bugs List with suggested workarounds is maintained on the machine
-\fBpostgres.berkeley.edu\fR in the file \fBpub/postgres-v4r0r1.bugs\fR.  The
-Internet address of this machine is \fB128.32.149.1\fR, and if you cannot
-access Postgres, this file can be sent to you via e-mail.
 .sh 2 "Consulting"
 .pp
 This software is unsupported,
@@ -1127,7 +1003,7 @@ We can be reached via the Internet as
 or
 \0\0\0\0\0(ucbvax!postgres!post_questions)
 .)l
-We can also be reached at (415) 642-7520,
+We can also be reached at (510) 642-7520,
 Monday through Friday,
 between 1 and 4 PM Pacific Time.
 .pp
