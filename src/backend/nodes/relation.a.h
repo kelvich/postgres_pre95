@@ -105,3 +105,37 @@ extern void set_mergesortable ARGS((JInfo node, bool value));
 extern bool get_mergesortable ARGS((JInfo node)); 
 extern void set_hashjoinable ARGS((JInfo node, bool value));
 extern bool get_hashjoinable ARGS((JInfo node)); 
+
+extern Rel MakeRel ARGS(( ));
+extern TL MakeTL ARGS((TLE entry, List joinlist));
+
+extern SortKey 
+MakeSortKey ARGS((List varkeys, List sortkeys,
+				 Relid relid, List sortorder));
+
+extern Path 
+MakePath ARGS((SortKey sort pathtype, int parent,
+	       int cost, int ordering, int keys, int sortpath));
+
+extern IndexPath 
+MakeIndexPath ARGS((ObjectId indexid, List indexqual));
+
+extern JoinPath 
+MakeJoinPath ARGS((int clauseinfo, int path, int path,
+		   int outerjoincost, Relid joinid));
+
+extern MergePath 
+MakeMergePath ARGS((List mergeclauses,
+		    List outersortkeys, List innersortkeys));
+
+extern HashPath 
+MakeHashPath ARGS((List hashclauses, List outerhashkeys,
+		   List innerhashkeys));
+
+extern CInfo 
+MakeCInfo ARGS((bool not clause, Cost selectivity, int notclause,
+		List indexids, MergeOrder mergesortorder,
+		ObjectId hashjoinoperator));
+
+extern JInfo MakeJInfo ARGS((List otherrels, List clauseinfo,
+			     bool mergesortable, bool hashjoinable));
