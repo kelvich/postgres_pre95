@@ -169,6 +169,7 @@ va_dcl
 
 extern char	*PostgresHomes[];
 extern int	NStriping;
+extern int	StripingMode;
 
 char *
 GetDataHome()
@@ -193,8 +194,23 @@ GetDataHome()
 	   PostgresHomes[i++] = p;
 	   p = p1 + 1;
 	 }
-	PostgresHomes[i++] = p;
+	if (*p >= '0' && *p <= '9') {
+	    /* specify raid level */
+	    StripingMode = atoi(p);
+	  }
+	else {
+	    PostgresHomes[i++] = p;
+	  }
 	NStriping = i;
+	if (StripingMode == 1) {
+	    if (NStriping % 2 != 0)
+		elog(FATAL,"RAID Level 1 has to have an even number of disks.");
+	    NStriping /= 2;
+	  }
+	else if (StripingMode < 0 || StripingMode > 5)
+	    elog(FATAL, "We only have RAID Level 0 -- 5.");
+	else if (StripingMode > 1 && StripingMode < 5)
+	    elog(FATAL, "only RAID 0, 1 and 5 are supported.");
 	return(home);
 }
 
