@@ -553,12 +553,12 @@ sjcreate(reln)
 	}
 	return (sjcreate(reln));
     }
+    SpinRelease(SJCacheLock);
 
     /*
-     *  By here, cache is initialized and we have exclusive access to
-     *  metadata.  We are aggressively lazy, and will not allocate an
-     *  initial extent for this relation until it's actually used.  We
-     *  just register an initial block count of zero.
+     *  By here, cache is initialized.  We are aggressively lazy, and
+     *  will not allocate an initial extent for this relation until it's
+     *  actually used.  We just register an initial block count of zero.
      */
 
     if (reln->rd_rel->relisshared)
