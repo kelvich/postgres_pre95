@@ -1219,20 +1219,25 @@ res_target_list:
 res_target_el:
 	  Id equals a_expr
 		{
-		    int type_id,type_len;
+		    int type_id,type_len, attrtype, attrlen;
 		    int resdomno;
 		    Relation rd;
+		    type_id = CInteger(CAR($3));
+		    type_len = tlen(get_id_type(type_id));
+
 		    if (ResdomNoIsAttrNo) {
 			rd = CurrentRelationPtr;
 			resdomno = varattno(rd,CString($1));
+			attrtype = att_typeid(rd,resdomno);
+			attrlen = tlen(get_id_type(attrtype)); 
+			if (attrtype != type_id)
+				elog(WARN, "unequal type in tlist\n");
 		    } else {
 			resdomno = p_last_resno++;
-			type_id = CInteger(CAR($3));
-			type_len = tlen(get_id_type(type_id));
 		    }
 		    $$ = lispCons (lispMakeResdom (  resdomno,
-						   type_id, 
-						   type_len , 
+						   attrtype,
+						   attrlen , 
 						   $1, 0 , 0 ) ,
 					   lispCons (CDR($3) , LispNil) );
 		}
