@@ -15,8 +15,7 @@ RcsId("$Header$");
 char *PG_username;
 
 char *
-pg_username(dummy)
-int dummy;
+pg_username()
 {
     return(PG_username);
 }
