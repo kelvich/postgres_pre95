@@ -1,0 +1,42 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP POSTMASTER UNIX 6/14/90
+.XA 1 "The Postgres Postmaster"
+.uh NAME
+.lp
+postmaster \*- run the Postgres postmaster
+.uh SYNOPSIS
+.lp
+.b postmaster
+[-h hostname] [-p port -p port+1] [backendname]
+.uh DESCRIPTION
+.lp
+The postmaster manages the communication between frontends and backends,
+as well as allocating the shared buffer pool and semaphores.
+
+\fBCommand options:\fR
+
+.uh "-h"
+The host on which the POSTGRES backend is running; default is your local
+machine (localhost).
+.pp
+.uh "-p"
+The port used for network communication between the terminal monitor
+and the backend.  You must also use "port + 1" if you use this option.
+.pp
+.uh "backendname"
+the name of the \*PP backend you wish to use.
+.pp
+
+You may set environment variables to avoid typing the above options. 
+The corresponding environment variables are:
+
+.(l
+hostname:		PGHOST
+port:			PGPORT
+options:			PGOPTION
+.)l
+
+The postmaster requires that the environment variable
+.uh "POSTGRESHOME"
+be set.
