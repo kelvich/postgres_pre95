@@ -1,18 +1,18 @@
 /*
  * oid.c --
- * 	Functions for the built-in type "ObjectId".
+ *	Functions for the built-in type ObjectId.
  */
 
 #include "c.h"
-#include "postgres.h"
-
-#include "oid.h"
 
 RcsId("$Header$");
 
+#include "palloc.h"
+
+#include "oid.h"
+
 
 	    /* ========== USER I/O ROUTINES ========== */
-
 
 /*
  *	oid8in		- converts "num num ..." to internal form

@@ -4,10 +4,10 @@
  */
 
 #include "c.h"
-#include "postgres.h"
 
 RcsId("$Header$");
 
+#include "palloc.h"
 
 	    /* ========== USER I/O ROUTINES ========== */
 

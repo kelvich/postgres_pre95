@@ -4,12 +4,14 @@
  */
 
 #include "c.h"
-#include "postgres.h"
+
+RcsId("$Header$");
 
 #include <ctype.h>
 #include <strings.h>
 
-RcsId("$Header$");
+#include "palloc.h"
+#include "postgres.h"	/* XXX for varlena */
 
 
 	    /* ========== USER I/O ROUTINES ========== */
@@ -208,4 +210,3 @@ textne(arg1, arg2)
 
 
 			     /* (none) */
-
