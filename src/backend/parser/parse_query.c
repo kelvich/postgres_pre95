@@ -478,7 +478,7 @@ make_var ( relname, attrname )
 	fflush(stdout);
 
 	vnum = RangeTablePosn ( CString (relname),0,0) ;
-	printf("vnum = %d\n",vnum);
+	/* printf("vnum = %d\n",vnum); */
 	if (vnum == 0) {
 		p_rtable = nappend1 (p_rtable ,
 			  MakeRangeTableEntry ( relname , 0 , relname) );
