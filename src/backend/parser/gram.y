@@ -578,8 +578,8 @@ IndexStmt:
 MergeStmt:
 	MERGE relation_expr INTO relation_name
 		{ 
-		    elog(WARN, "merge is unsupported in version 3");
 		    $$ = MakeList ( $1, $2, $4, -1 );
+		    elog(WARN, "merge is unsupported in version 4");
 		}
 	;
 
@@ -1385,14 +1385,13 @@ opt_class:
 		{$$=$2;}
 	;
 
-star:
-	  '*'			
-	;
-		
-  
+/*
+ *  jimmy bell-style recursive queries aren't supported in the
+ *  current system.
+ */
+
 opt_star:
 	/*EMPTY*/		{ NULLTREE }
-	| star
   	;
 
 relation_name_list:	name_list ;
@@ -1519,7 +1518,7 @@ relation_expr:
 		    elog ( DEBUG, "now consing the union'ed relations");
 		    $$ = append ( $1, $3 );
 		}
-	| relation_name '*'
+	| relation_name '*'		  %prec '='
 		{ 
 		    /* inheiritance query */
 		    $$ = lispCons ( MakeList ( $1, LispNil, 
@@ -1649,7 +1648,6 @@ a_expr:
 		    $$ = make_array_ref(temp, $2);
 	   }
 	| AexprConst		
-	| spec  { Typecast_ok = false; }
 	| '-' a_expr %prec UMINUS
 		  { $$ = make_op(lispString("-"), LispNil, $2, 'l');
 		  Typecast_ok = false; }
@@ -1691,7 +1689,6 @@ a_expr:
 					 /* don't do it again. */ }
 	| '(' a_expr ')'
 		{$$ = $2;}
-	/* XXX Or other stuff.. */
 	| a_expr Op a_expr
 		{ $$ = make_op ( $2, $1 , $3, 'b' );
 		  Typecast_ok = false; }
@@ -1776,14 +1773,13 @@ a_expr:
 opt_indirection:
 	  '[' a_expr ']'		{
 		if (CInteger(CAR($2)) != INT4OID)
-		    elog(WARN, "array index expressions must yield type int4");
+		    elog(WARN, "array index expressions must be int4's");
 		$$ = $2;
 	    }
 	| /* EMPTY */			{ NULLTREE }
 	;
 
-expr_list:
-	|  a_expr			{ ELEMENT ; }
+expr_list: a_expr			{ ELEMENT ; }
 	|  expr_list ',' a_expr		{ INC_LIST ; }
 	;
 attr:
@@ -1975,7 +1971,6 @@ relation_name:
 
 database_name:	Id	/*$$=$1*/;
 access_method: 		Id 		/*$$=$1*/;
-adt_name:		Id		/*$$=$1*/;
 attr_name: 		Id		/*$$=$1*/;
 class: 			Id		/*$$=$1*/;
 index_name: 		Id		/*$$=$1*/;
@@ -1993,16 +1988,6 @@ copy_file_name:
  /* adt_const:		Sconst		/*$$=$1*/;
 attach_args:		Sconst		/*$$=$1*/;
 			/* XXX should be converted by fmgr? */
-spec:
-	  adt_name '[' '$' spec_tail ']'
-		{ $$ = (LispValue)MakeParam( (int)$4,(AttributeNumber)0,(Name)0,(ObjectId)0, (List) NULL ) ; }
-	;
-
-spec_tail:
-	  Iconst			/*$$ = $1*/
-	| '.' Id			{ $$ = $2 ; }
-	;
-
 AexprConst:
 	  Iconst			{ $$ = make_const ( $1 ) ; 
 					  Input_is_integer = true; }
