@@ -624,7 +624,7 @@ ParseAgg(aggname, query, tlist)
        elog(WARN, "aggregate %s does not exist", aggname);
     }
     fintype = CInteger((LispValue)SearchSysCacheGetAttribute(AGGNAME,
-		AggregateFinalTypeAttributeNumber, aggname, 0, 0, 0));
+		Anum_pg_aggregate_aggfinaltype, aggname, 0, 0, 0));
 
     if(fintype != 0 ) {
        list = (LispValue)
