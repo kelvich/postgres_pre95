@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH CREATE COMMANDS 06/13/93
+.TH CREATE COMMANDS 03/12/94
 .XA 2 Create
 .SH NAME
 create \(em create a new class
