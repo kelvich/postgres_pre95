@@ -1,5 +1,5 @@
 .\" $Header$
-.SP PAGEDOC 8 "\*(V)" "POSTGRES"
+.SP PAGEDOC UNIX 8/18/92
 .uh NAME
 .lp
 pagedoc \- \*(PP page doctor
