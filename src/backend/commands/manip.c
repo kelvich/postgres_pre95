@@ -26,11 +26,14 @@
  * ----------------------------------------------------------------
  */
 
+#include <strings.h>
+
 #include "tmp/postgres.h"
 
 RcsId("$Header$");
 
 #include "utils/log.h"
+#include "utils/palloc.h"
 #include "commands/manip.h"
 
 LispValue
@@ -133,7 +136,7 @@ DefineEntryGetName(entry)
     }
     
     string = CString(CADR(entry));
-    if (strlen(string) > NAMEDATALEN) {
+    if ((int) strlen((char *) string) > NAMEDATALEN) {
 	elog(WARN, "Define: \"%s\" is too long to be an identifier",
 	     string);
     }
