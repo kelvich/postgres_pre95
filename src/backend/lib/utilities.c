@@ -138,49 +138,57 @@ LispValue
 copy_seq_tree (seqtree)
      LispValue seqtree;
 {
-    LispValue new_seq = LispNil;
-    LispValue new_elem = LispNil;
-    LispValue i = LispNil;
+    LispValue new_seqtree;
+    LispValue elem, new_elem;
+    LispValue i;
 
-    if ( null(seqtree))
-      return(LispNil);
-    if (IsA(seqtree,LispList))
-      foreach (i,seqtree) {
-	  LispValue elem = CAR(i);
-	  if (elem != LispNil)
-	    switch(elem->type) {
-	      case PGLISP_ATOM:
-		new_elem = lispInteger(CAtom(elem));
-		NodeSetTag(new_elem,classTag(LispSymbol));
-		break;
-	      case PGLISP_DTPR:
+    /*
+     * handle the trivial case first.
+     */
+    if (null(seqtree))
+	return(LispNil);
+
+    switch(seqtree->type) {
+	case PGLISP_ATOM:
+	    new_seqtree = lispInteger(CAtom(seqtree));
+	    NodeSetTag(new_seqtree,classTag(LispSymbol));
+	    break;
+	case PGLISP_VECI:
+	    elog(WARN,"copying vectors unsupported");
+	    break;
+	case PGLISP_FLOAT:
+	    elog(WARN,"copying floats unsupported");
+	    break;
+	case PGLISP_INT:
+	    new_seqtree = lispInteger(CInteger(seqtree));
+	    break;
+	case PGLISP_STR:
+	    new_seqtree = lispString(CString(seqtree));
+	    break;
+	case PGLISP_DTPR:
+	    /*
+	     * recursivelly handle all the list elements...
+	     */
+	    new_seqtree = LispNil;
+	    foreach (i,seqtree) {
+		elem = CAR(i);
 		new_elem = copy_seq_tree(elem);
-		break;
-	      case PGLISP_VECI:
-		elog(WARN,"copying vectors unsupported");
-		break;
-	      case PGLISP_FLOAT:
-	      elog(WARN,"copying floats unsupported");
-		break;
-	      case PGLISP_INT:
-		new_elem = lispInteger(CInteger(elem));
-		break;
-	    case PGLISP_STR:
-		new_elem = lispString(CString(elem));
-		break;
-	      default:
-		new_elem = (LispValue)NewNode(NodeTagGetSize(NodeType(elem)),
-					      NodeType(elem));
-		bcopy(elem,new_elem,
-		      NodeTagGetSize(NodeType(elem)));
-		break;
+		new_seqtree = nappend1(new_seqtree,new_elem);
 	    }
-	  else 
-	    new_elem = LispNil;
-	  new_seq = nappend1(new_seq,new_elem);
-      }
-    
-    return(new_seq);
+	    break;
+	default:
+	    new_seqtree = (LispValue)NewNode(
+				NodeTagGetSize(NodeType(seqtree)),
+						NodeType(seqtree));
+	    /*
+	     * XXX!
+	     * WARNING! we'd better use the copy functions here!
+	     */
+	    bcopy(seqtree,new_seqtree, NodeTagGetSize(NodeType(seqtree)));
+	    break;
+    } /*switch*/
+
+    return(new_seqtree);
 }
 
 
