@@ -19,3 +19,5 @@ extern LispValue HandleNestedDots ARGS((List dots));
 extern LispValue setup_tlist ARGS((Func func, int attno, ObjectID typeid));
 extern bool complexType ARGS((LispValue typenode));
 
+/* defined in gram.y, used in ylib.c and gram.y */
+extern int NumLevels;
