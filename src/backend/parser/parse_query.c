@@ -30,6 +30,7 @@ RcsId("$Header$");
 #include "catalog/syscache.h"
 #include "catalog_utils.h"
 #include "parse_query.h"
+#include "utils/lsyscache.h"
 
 extern LispValue parser_ppreserve();
 extern int Quiet;
@@ -911,6 +912,65 @@ bool *newUsed;
 	    *currentUsed = true;
 	if (get_varno(v) == 2)
 	    *newUsed = true;
+    }
+}
+
+
+/*--------------------------------------------------------------------
+ *
+ * SubstituteParamForNewOrCurrent
+ *
+ * Change all the "Var" nodes corresponding to the NEW & CURRENT relation
+ * to the equivalent "Param" nodes.
+ *
+ * NOTE: this routine used to be called from the parser, but now it is
+ * called from the tuple-level rule system (when defining a rule),
+ * and it takes an extra argument (the relation oid for the
+ * NEW/CURRENT relation.
+ * 
+ *--------------------------------------------------------------------
+ */
+SubstituteParamForNewOrCurrent ( parsetree, relid )
+     List parsetree;
+     ObjectId relid;
+{
+    List i = NULL;
+    Name getAttrName();
+
+    /*
+     * sanity check...
+     */
+    if (relid==NULL) {
+	elog(WARN, "SubstituteParamForNewOrCurrent: wrong argument rel");
+    }
+
+    foreach ( i , parsetree ) {
+	List temp = CAR(i);
+	if ( temp && IsA (temp,Var) ) {
+	    Name attrname = NULL;
+	    AttributeNumber attrno;
+
+	    if ( get_varno(temp) == 1) {
+		/* replace with make_param(old) */
+		attrname = get_attname(relid, get_varattno(temp));
+		attrno = get_varattno(temp);
+		CAR(i) = (List)MakeParam (PARAM_OLD,
+				    attrno,
+				    attrname,
+				    get_vartype(temp));
+	    } 
+	    if ( get_varno(temp) == 2) {
+		/* replace with make_param(new) */
+		attrname = get_attname(relid, get_varattno(temp));
+		attrno = get_varattno(temp);
+		CAR(i) = (List)MakeParam(PARAM_NEW,
+				   attrno,
+				   attrname,
+				   get_vartype(temp) );
+	    }
+	} 
+	if (  temp && temp->type == PGLISP_DTPR ) 
+	  SubstituteParamForNewOrCurrent ( temp , relid );
     }
 }
 
