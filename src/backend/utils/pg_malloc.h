@@ -2,6 +2,9 @@
 #include "log.h"
 #include "c.h"
 
+#ifndef PG_MALLOC_H
+#define PG_MALLOC_H	"$Header$"
+
 #define MAPSIZE 72
 #define FULL 0xff
 #define BITS_IN_BYTE 8
@@ -225,3 +228,5 @@ Size
 LargestFreeObject ARGS((
 OtherMemoryPage page;
 ));
+
+#endif /* PG_MALLOC_H */
