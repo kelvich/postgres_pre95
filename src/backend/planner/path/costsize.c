@@ -23,14 +23,17 @@
  *     		compute-joinrel-size
  */
 
-#include "c.h"
+#include <math.h>
+
+#include "tmp/c.h"
+
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+
 #include "planner/internal.h"
-#include "relation.h"
-#include "relation.a.h"
 #include "planner/costsize.h"
 #include "planner/keys.h"
 #include "planner/clausesel.h"
-#include <math.h>
 
 /*
  * CostAddCount --
