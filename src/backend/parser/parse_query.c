@@ -406,6 +406,44 @@ make_op(op,ltree,rtree)
 			   
 } /* make_op */
 
+/*
+ * make_concat_var
+ * 
+ * for the relational "concatenation" operator
+ * a real relational union is too expensive since 
+ * a union b = a + b - ( a intersect b )
+ */
+
+List 
+make_concat_var ( list_of_varnos , attid , vartype, vardotfields, 
+		  vararrayindex )
+     List list_of_varnos;
+     int attid;
+     int vartype;
+     List vardotfields;
+     int vararrayindex;
+{
+    List retval = NULL;
+    List temp = NULL;
+    Var varnode;
+
+    foreach ( temp , list_of_varnos ) {
+	LispValue each_varno = CAR(temp);
+	int vnum;
+
+	vnum = CInteger(each_varno);
+	varnode = MakeVar (vnum , attid ,
+			   vartype , vardotfields , vararrayindex ,
+			   lispCons(lispInteger(vnum),
+				    lispCons(lispInteger(attid),LispNil)),
+			   0 );
+	retval = lispCons ( varnode , retval );
+    }
+    retval = lispCons ( lispAtom ( "union" ), retval );
+}
+
+    
+
 /**********************************************************************
   make_var
 
@@ -429,14 +467,9 @@ make_var ( relname, attrname)
     Relation rd;
     extern LispValue p_rtable;
     extern int p_last_resno;
+    extern List RangeTablePositions();
     Index vararrayindex = 0;
-    
-    /* if (!Quiet) {
-	printf (" now in make_Var\n"); 
-	printf ("relation = %s, attr = %s\n",relname,
-		attrname); 
-	fflush(stdout);
-    } */
+    List multi_varnos = RangeTablePositions ( relname , 0 );
 
     vnum = RangeTablePosn ( relname,0,0) ;
     /* if (!Quiet)
@@ -466,7 +499,17 @@ make_var ( relname, attrname)
 				lispCons(lispInteger(attid),LispNil)),
 		       0 );
 
-    
+    /*
+     * for now at least, attributes of concatenated relations will not have
+     * procedural fields or arrays. This can be changed later.
+     * We also assume that they have identical schemas
+     */
+
+    if ( length ( multi_varnos ) > 1 )
+      return ( lispCons ( lispInteger ( typeid (rtype)),
+			 make_concat_var ( multi_varnos , attid , vartype,
+					   LispNil, 0 )));
+
     return ( lispCons ( lispInteger ( typeid (rtype ) ),
 		       varnode ));
 }
