@@ -250,9 +250,15 @@ main(argc, argv)
 	 */
 	parser_output = lispList();
 	
-	if (IsUnderPostmaster == true)
-	    SocketBackend(parser_input, parser_output);
-	else
+	if (IsUnderPostmaster == true) {
+	  if ( SocketBackend(parser_input, parser_output) == 'F') {
+	    if (! Quiet) {
+	      time(&tim);
+	      printf("\tCommitTransactionCommand() at %s\n", ctime(&tim));
+	    }
+	    CommitTransactionCommand();
+	  }
+	} else
 	    InteractiveBackend(parser_input, parser_output);
 
 	ValidateParse(parser_output);
@@ -382,9 +388,10 @@ SocketBackend(inBuf, parseList)
 	}
 	parser(inBuf,parseList);
 	break;
-    case 'F':	/* function, not supported at the moment */
-	elog(WARN, "Socket command type 'F' not supported yet\n");
-	break;
+    case 'F':	/* calling user/system functions */
+        HandleFunctionRequest();
+        return('F');
+        break;
     default:
 	/* elog(FATAL, "Socket command type $%02x unknown\n", *qtype); */
 	elog(FATAL, "Socket command type %c unknown\n", *qtype);
