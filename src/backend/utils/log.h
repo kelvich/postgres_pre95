@@ -46,8 +46,6 @@ extern int	ElogDebugIndentLevel;
 extern
 void
 elog ARGS((
-	const int	level,
-	const String	format,
 	...
 ));
 
