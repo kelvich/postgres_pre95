@@ -950,6 +950,8 @@ _copyHashJoin(from, to, alloc)
     Node_Copy(from, newnode, alloc, hashclauses);
     newnode->hashjoinop = from->hashjoinop;
     Node_Copy(from, newnode, alloc, hashjoinstate);
+    newnode->hashjointable = from->hashjointable;
+    newnode->hashdone = from->hashdone;
     
     (*to) = newnode;
     return true;
@@ -1128,13 +1130,14 @@ _copyHash(from, to, alloc)
      */
     CopyNodeFields(from, newnode, alloc);
     CopyPlanFields(from, newnode, alloc);
-    CopyTempFields(from, newnode, alloc);
 
     /* ----------------
      *	copy remainder of node
      * ----------------
      */
+    Node_Copy(from, newnode, alloc, hashkey);
     Node_Copy(from, newnode, alloc, hashstate);
+    newnode->hashtable = from->hashtable;
     
     (*to) = newnode;
     return true;
