@@ -463,6 +463,7 @@ match_clauses_to_indexkey (rel,index,indexkey,xclass,clauses,join)
 	  return(clauseinfo);
 /*	  clist = lispCons(clauseinfo,clist); */
       }
+      return(NULL);
 /*    return(clist); */
 } /* function end */
 

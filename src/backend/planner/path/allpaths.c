@@ -85,6 +85,7 @@ find_paths (rels,nest_level,sortkeys)
 	    }
 	}
     }
+    return(NULL);
 }  /* end find_paths */
 
 /*    

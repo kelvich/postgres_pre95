@@ -298,7 +298,12 @@ int attrno;
 	elog(WARN, "Illegal attr no %d for relation %s\n",
 	    attrno, RelationGetRelationName(rd));
     }
-    
+
+    /*
+     * Shouldn't get here, but we want lint to be happy...
+     */
+
+    return(NULL);
 }
 
 /* given range variable, return id of variable */
