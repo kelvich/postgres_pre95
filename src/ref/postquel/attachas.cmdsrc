@@ -1,0 +1,34 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP ATTACHAS COMMANDS 6/14/90
+.XA 2 Attachas
+.uh NAME
+.lp
+attachas \*- reestablish communication using an exising portal
+.uh SYNOPSIS
+.lp
+.b attachas
+name
+.uh DESCRIPTION
+.lp
+This command allows application programs to use a logical name,
+.i name ,
+in interactions with \*(PP.
+Suppose the user of an application program specifies a
+collection of rules that retrieve data and that the program fails for
+some reason.
+Then, under ordinary circumstances,
+all the rules would need to be reentered when the program is restored.
+Alternatively,
+the
+.b attachas
+command
+may be used
+before defining the rules the first time.
+Then, upon restoring the program,
+the
+.b attachas
+command will reattach the user to the active rules.
+.uh BUGS
+.lp
+This command is not implemented in Version 2.

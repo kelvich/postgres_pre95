@@ -1,0 +1,34 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP CLOSE COMMANDS 6/14/90
+.XA 2 Close
+.uh NAME
+.lp
+close \*- close a portal
+.uh SYNOPSIS
+.lp
+.b close
+[ portal_name ]
+.uh DESCRIPTION
+.lp
+.b Close
+frees the resources associated with a portal,
+.i portal_name.
+After this portal is closed,
+no subsequent operations are allowed on it.
+A portal should be closed when it is no longer needed.
+If
+.i portal_name
+is not specified,
+then the blank portal is closed.
+.uh EXAMPLE
+.lp
+.nf
+/* close the portal FOO */
+   close FOO
+.fi
+.uh "SEE ALSO"
+.lp
+retrieve(commands),
+fetch(commands),
+move(commands).

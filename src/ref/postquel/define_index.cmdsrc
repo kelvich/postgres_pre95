@@ -1,0 +1,98 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP "DEFINE INDEX" COMMANDS 6/14/90
+.XA 2 "Define Index"
+.uh NAME
+.lp
+define index \*- construct a secondary index
+.uh SYNOPSIS
+.lp
+.b define
+[
+.b archive
+]
+.b index
+index-name
+.b on
+relname
+.b using
+am-name
+.b (
+attname\-1
+type_class\-1
+{ , attname\-i
+type_class\-i }
+.b )
+[
+.b "with ("
+parameter-list
+.b )
+]
+.uh DESCRIPTION
+.lp
+This command constructs an index
+called
+.i index-name.
+If the
+.b archive
+keyword is absent,
+the
+.i relname
+relation is indexed.
+In contrast,
+when
+.b archive
+is present,
+an index is created
+on the archive relation associated with the
+.i relname
+relation.
+.lp
+.i Am-name
+is the name of the access method which is used for the index.
+The key fields for the index are specified as a collection of
+attribute names and associated classes.
+A class is used to indicate the collection of
+functions and operators which the access method
+should use to manipulate the index.
+.lp
+Predefined type classes are:
+.(l
+int2_ops	float4_ops
+int4_ops	float8_ops	
+area_ops	oid_opS
+.)l
+All are defined for the normal comparison operators ( <, <=, =, >, >=).
+.lp
+New classes can be added dynamically by making an insertion in the
+pg_opclass relation in the system catalogs.
+Operators can be associated with a class by making insertions in the pg_amop relation
+in the system catalogs.
+.lp
+The
+.i parameter-list
+specifies access method specific performance parameters
+such as the fill-factor to be used
+when loading the pages of the index
+or the minimum and maximum number of
+pages to allocate.
+.lp
+Version 2 of \*(PP comes with a standard B-tree access method;
+and other access methods will be added in the near future.
+In addition, users are encouraged to
+write their own.
+To define a new access method, the functions indicated in the pg_am relation
+must be written.  Unfortunately there is no documentation to support
+an access method writer; hence he should look carefully at the source code
+for the B-tree access method included with POSTGRES. 
+.uh EXAMPLE
+.lp
+Create a btree index on the emp relation using the age attribute.
+.(b
+define index emp-index on emp using btree (age int4_ops)
+.)b
+.uh BUGS
+.lp
+Archives are not supported in Version 2.
+.lp
+There should be an access method designers guide.

@@ -1,0 +1,90 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP APPEND COMMANDS 6/14/90
+.XA 2 Append
+.uh NAME
+.lp
+append \*- append tuples to a relation
+.uh SYNOPSIS
+.lp
+.b append [\c
+.b * ]
+relname
+.b (
+att_name1
+.b =
+expression1 {
+.b ,
+.r att_name \c
+.i i
+.b =
+.r expression \c
+.i i
+}
+.b )
+[
+.b from
+from_list ] [
+.b where
+qual ]
+.uh DESCRIPTION
+.lp
+.b Append 
+adds tuples which satisfy the qualification,
+.i qual ,
+to 
+.i relname .
+.i Relname 
+must be the name of an existing relation.
+The target list 
+specifies
+the values of the fields to be appended to 
+.i relname .
+The fields may be listed in any order.
+Fields of the result relation which do not appear in the 
+target list
+(either explicitly or by default)
+are assigned default values.
+The expression for each field must be of the correct
+data type. 
+There is no automatic coercion of expressions.
+.sp
+The keyword
+.b all
+can be used when it is desired
+to append all domains of a relation to another relation.
+.sp
+The
+.q *
+indicates a transitive closure and \*(PP will run
+the command until it produces no further effect.
+.uh EXAMPLE
+.lp
+.nf
+/* Make a new employee Jones work for Smith */
+
+   append emp (newemp.name, newemp.salary, mgr = \*(lqSmith\*(rq, bdate = 1990 - newemp.age)
+   where newemp.name = \*(lqJones\*(rq
+.sp
+/* same command using the from list clause */
+
+   append emp (n.name, n.salary, mgr = \*(lqSmith\*(rq, bdate = 1990 - n.age)
+   from n in newemp
+   where n.name = \*(lqJones\*(rq
+.sp
+/* Append the newemp1 relation to newemp */
+
+   append newemp (newemp1.all)
+.fi
+.uh "SEE ALSO"
+.sp
+.in .5i
+postquel(postquel),
+retrieve(commands),
+definetype(commands).
+.uh BUGS
+.sp
+.in .5i
+The code to support
+.q *
+is very buggy.

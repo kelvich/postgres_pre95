@@ -1,0 +1,65 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP FETCH COMMANDS 6/14/90
+.XA 2 Fetch
+.uh NAME
+.lp
+fetch \*- fetch tuple(s) from a portal 
+.uh SYNOPSIS
+.lp
+.b fetch
+[ (
+.b forward
+|
+.b backward
+) ] [ ( number |
+.b all
+) ] [
+.b in
+portal_name
+]
+.uh DESCRIPTION
+.lp
+.b Fetch
+allows a user to retrieve tuples from a portal named
+.i portal_name .
+The number of tuples retrieved is specified by
+.i number .
+If the number of tuples remaining in the portal is less than
+.i number ,
+then only those available are fetched.
+Substituting the keyword
+.b all
+in place of a number will cause all remaining tuples in the portal
+to be retrieved.
+Tuples may be fetched in both
+.i forward
+and
+.i backward
+directions.
+The default direction is 
+.i forward .
+.lp
+Updating data in a portal is not supported by \*(PP,
+because mapping portal updates back to base relations is impossible
+in general as with view updates.
+Consequently, users must issue
+explicit replace commands to update data.
+.uh EXAMPLE
+.lp
+.nf
+/* Fetch all the tuples available in the portal FOO */
+   fetch all in FOO
+	
+/* Fetch 5 tuples backward in the portal FOO */
+   fetch backward 5 in FOO
+.fi
+.uh "SEE ALSO"
+.lp
+retrieve(commands),
+close(commands),
+move(commands).
+.uh BUGS
+.lp
+Currently, the smallest transaction in POSTGRES is a single
+POSTQUEL command.  It should be possible for a single fetch to be a transaction.

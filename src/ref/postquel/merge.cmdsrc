@@ -1,0 +1,64 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP MERGE COMMANDS 6/14/90
+.XA 2 Merge
+.uh NAME
+.lp
+merge \*- merge two relations
+.uh SYNOPSIS
+.lp
+.b merge
+relname1
+.b into
+relname2
+.uh DESCRIPTION
+.lp
+.b Merge
+will combine a version relation, 
+.i relname1 ,
+with its parent,
+.i relname2 .
+If 
+.i relname2 
+is a base relation, then
+this operation merges a differently encoded offset,
+.i relname1 ,
+into its parent.  On the other hand, if 
+.i relname2 
+is also a version,
+then this operation combines two differentially
+encoded offsets together into a single one.
+In either case any children of 
+.i relname1
+becomes children of
+.i relname2 .
+.lp
+It is disallowed for a version relation to
+be merged into its parent relation when the parent relation
+is also the parent of another version relation.
+.lp
+Moreover, merging in the reverse direction is also allowed.
+Specifically, merging the parent,
+.i relname1 ,
+with a version,
+.i relname2 ,
+causes
+.i relname2
+to become disassociated from its parent.
+As a side effect,
+.i relname1
+will be destroyed if is not the parent of
+some other version relation.
+.uh EXAMPLE
+.lp
+/* Combine office relation and employee relation */
+
+merge office into employee
+.uh "SEE ALSO"
+.lp
+destroy(commands),
+createversion(commands).
+.uh BUGS
+.lp
+Merge
+will not work until Version 2.1

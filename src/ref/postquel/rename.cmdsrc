@@ -1,0 +1,48 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP RENAME COMMANDS 6/14/90
+.XA 2 Rename
+.uh NAME
+.lp
+rename \*- rename a relation or an attribute in a relation
+.uh SYNOPSIS
+.lp
+.b rename
+relname1
+.b to
+relname2
+.br
+.b rename
+attname1
+.b in
+relname
+.b to
+attname2
+.uh DESCRIPTION
+.lp
+The
+.b rename
+command
+causes the name of a relation or attribute
+to change
+without changing any of the data contained in the affected relation.
+Thus, the relation or attribute will remain of the same type
+and size after this command is executed.
+.lp
+.uh EXAMPLE
+.lp
+/* change the emp relation to personnel */
+
+rename emp to personnel
+.lp
+/* change the sports attribute to hobbies */
+
+rename sports in emp to hobbies
+.uh BUGS
+.lp
+Execution of historical queries
+using relations and attributes
+whose names have changed will
+produce incorrect results in many situations.
+.lp
+Renaming of types, operators, rules, etc. should be supported also.

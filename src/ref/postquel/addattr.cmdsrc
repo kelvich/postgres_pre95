@@ -1,0 +1,62 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP ADDATTR COMMANDS 6/14/90
+.XA 2 "Addattr"
+.uh NAME
+.lp
+add \*- add attributes to a relation
+.uh SYNOPSIS
+.lp
+.b addattr
+.r relname [\c
+.b * \c
+]
+.b (
+attname1
+.b =
+type1
+{ ,
+.r attname \c
+.i i
+.b =
+.r type \c
+.i i
+}
+.b )
+.uh DESCRIPTION
+.lp
+The
+.b add
+command
+causes new attributes to be added to an existing relation,
+.i relname .
+The new attributes and their types are specified
+in the same style and with the the same restrictions as in
+.b "create" 
+(commands).
+.lp
+The new attributes will not be added to
+any relations which inherit attributes from
+.i relname ,
+unless the
+.q *
+is present.
+.lp
+The initial value of each added attribute for all tuples is
+.q "null."
+.lp
+For efficiency reasons,
+default values for added attributes
+are not placed in existing tuples of a relation.
+If default values are desired,
+a subsequent
+.b "replace"
+(commands) query should be run.
+.uh EXAMPLE
+.lp
+/* add the date of hire to the emp relation */
+.br
+add emp (hiredate = abstime)
+.uh "SEE ALSO"
+.lp
+create(commands).

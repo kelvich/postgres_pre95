@@ -1,0 +1,77 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP "CREATE VERSION" COMMANDS 6/14/90
+.XA 2 "Create Version"
+.uh NAME
+.lp
+create version \*- construct a version relation 
+.uh SYNOPSIS
+.lp
+.b "create version"
+.r relname1
+.b from
+.r relname2 [\c
+.b [
+abstime
+.b ] ]
+.uh DESCRIPTION
+.lp
+This command creates a version relation
+.i relname1
+which is related
+to its parent relation,
+.i relname2 .
+Initially,
+.i relname1
+has the same contents as relname2.
+As updates to 
+.i relname1 
+occur, however,
+the contents of
+.i relname1
+diverges from relname2.
+On the other hand, any updates to
+.i relname2
+show transparently through
+to
+.i relname1 ,
+unless the tuple in question has already been updated
+in
+.i relname1 .  
+.lp
+If the optional
+.i abstime
+clause is specified, then the version is
+constructed relative to a 
+.b snapshot
+of
+.i relname2
+as of the time specified.
+.lp
+POSTGRES uses the rules system to ensure that 
+.i relname1
+is differentially encoded relative
+to 
+.i relname2.  
+Moreover, 
+.i relname1
+is automatically constructed
+to have the same indexes as
+.i relname2 .
+It is legal to cascade versions
+arbitrarily, so a tree of versions can ultimately result.
+The algorithms that control versions are explained in [ONG90].
+.uh EXAMPLE
+.lp
+/* create a version foobar from a snapshot of barfoo as of January 17, 1990 */
+
+create version foobar from
+.r  barfoo[ \c
+.q "January 17, 1990" ]
+.uh "SEE ALSO"
+.lp
+merge(postquel).
+.uh "BUGS"
+.lp
+Create version
+will not work until Version 2.1

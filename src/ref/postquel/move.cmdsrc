@@ -1,0 +1,63 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP MOVE COMMANDS 6/14/90
+.XA 2 Move
+.uh NAME
+.lp
+move \*- move the pointer in a portal
+.uh SYNOPSIS
+.lp
+.b move
+[ (
+.b forward
+|
+.b backward
+] [ ( number |
+.b all
+|
+.b to
+( number | record_qual ) ] [
+.b in
+portal_name
+]
+.uh DESCRIPTION
+.lp
+.b Move
+allows a user to move the
+.i "tuple pointer"
+within the portal named
+.i portal_name .
+Each portal has a tuple pointer,
+which points to the previous tuple to be fetched.
+It always points to before the first tuple when the portal is first created.
+The pointer can be moved
+.i forward
+or
+.i backward .
+It can be moved to an absolute position or over a certain distance.
+An absolute position may be specified by using
+.b to;
+distance is specified by a
+number.
+.i Record_qual
+is a qualification with no tuple variables,
+aggregates,
+or set expressions
+which can be evaluated completely on a single record in the portal.
+.uh EXAMPLE
+.lp
+.nf
+/* Move backwards 5 tuples in the portal FOO */
+   move backward 5 in FOO
+	
+/* Move to the 6th tuple in the portal FOO */
+   move to 6 in FOO
+.fi
+.uh "SEE ALSO"
+.lp
+retrieve(commands),
+fetch(commands),
+close(commands).
+.uh BUGS
+.lp
+This command is unavailable in Version 2.

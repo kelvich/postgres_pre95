@@ -1,0 +1,28 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP BEGIN COMMANDS 6/14/90
+.XA 2 Begin
+.uh NAME
+.lp
+begin \*- begins a transaction
+.uh SYNOPSIS
+.sp
+.in .5i
+.b begin
+.uh DESCRIPTION
+.lp
+This command begins a user transaction which \*(PP will guarantee
+is serializable with respect to all concurrently executing transactions
+using a two-phase locking protocol.  Moreover, if the transaction
+is committed, \*(PP will ensure that all updates are done or none
+of them are done.  Hence, transactions have the standard
+.A ACID
+property.
+.lp
+Transactions are supported by page level locks which
+are escalated to the relation level if excessive page level
+locks are set.  
+.uh "SEE ALSO"
+.lp
+end(commands),
+abort(commands).

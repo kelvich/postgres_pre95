@@ -1,0 +1,56 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP DELETE COMMANDS 6/14/90
+.XA 2 Delete
+.uh NAME
+.lp
+delete \*- delete tuples from a relation
+.uh SYNOPSIS
+.lp
+.b delete [\c
+.b * ]
+tuple_variable [ 
+.b from
+from_list ] [
+.b where
+qual ]
+.uh DESCRIPTION
+.lp
+.b Delete
+removes tuples which satisfy the qualification,
+.i qual ,
+from the
+relation specified by
+.i tuple_variable .
+.i Tuple_variable
+is either a relation name or a variable assigned by
+.i from_list .
+If the qualification is absent,
+the effect is to delete all
+tuples in the relation.
+The result is a valid, but empty relation.
+.sp
+The
+.q *
+indicates a transitive closure and \*(PP
+will run the command until it produces no further effect.
+.uh EXAMPLE
+.lp
+.nf
+/* Remove all employees who make over $30,000 */
+
+   delete emp where emp.sal > 30000
+.fi
+.sp
+/* Clear the hobbies relation */
+
+   delete hobbies
+.uh "SEE ALSO"
+.lp
+destroy(postquel).
+.uh BUGS
+.sp
+.in .5i
+The code to support
+.q *
+is very buggy.

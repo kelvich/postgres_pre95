@@ -1,0 +1,114 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP CREATE COMMANDS 6/14/90
+.XA 2 Create
+.uh NAME
+.lp
+create \*- create a new relation
+.uh SYNOPSIS
+.lp
+.b create
+relname (domname = type
+{ , domname = type})
+[key (domname [[using] operator] { , domname [[using] operator])]
+[inherits (relname { , relname}]
+[archive_mode]
+.uh DESCRIPTION
+.lp
+.b Create
+will enter a new relation into the current data base.
+The relation will be 
+.q "owned"
+by the user issueing the command.
+The name of the relation is
+\fIrelname\fR
+and the domains are as specified in the list of
+\fIdomnames:\fR
+\fIdomname, domname,\fR
+etc.
+The domains are created with the type specified by
+\fItype.\fR
+.lp
+The \fIkey\fR clause is used to specify that a field or a collection
+of fields is unique.
+If no key clause is specified, \*(PP will still give every tuple
+a unique object-id
+.r ( \c
+.A OID ).
+This clause allows other fields to be additional keys.
+Moreover, the
+.q "using operator"
+part of the clause allows the user to specify what operator should
+be used for the uniqueness test.
+For example, integers are all unique if = is used for
+the check, but not if < is used instead.
+If no operator is specified, = is used by default.
+Any specified operator must be a binary operator returning a boolean.
+If there is no compatible index to allow the key clause to be
+rapidly checked, \*(PP defaults to not checking
+rather than performing an exhaustive search on each key update.
+.lp
+The
+\fIinherits\fR
+clause specifies a collection of relation names
+from which this relation automatically inherits all fields.
+If any inherited field name appears more than once,
+\*(PP reports an error.
+Moreover,
+\*(PP automatically allows the created relation to inherit
+functions on relations above it in the
+inheritance hierarchy.
+Inheritance of functions is done according to the conventions of the
+Common Lisp Object System (CLOS).
+.lp
+In addition,
+.i relname ,
+and
+.i setof
+.i relname, 
+are automatically created as a type.  Therefore, a tuple 
+and a set of tuples from the relation are automatically a type and can be used in other create statements. 
+See 
+.b introduction
+(posquel) for a further discussion of this point.
+.lp
+The relation is created as a heap with
+no initial data.
+A relation can have no more than 1600 domains,
+but this limit may be configured lower at some sites.
+A relation cannot have the same name as
+a system catalog relation.
+.lp
+The archive specification for each relation can be one of:
+.(l
+none:	no historical access is supported
+light:	historical access is allowed and optimized for light update activity
+heavy:	historical access is allowed and optimized for heavy update activity
+.)l
+For details of the optimization, see
+[STON87].
+Once the archive status is set, there is no way to change it.
+See the 
+.b purge
+(commands) command for details on specifying how much history
+is kept.
+.uh EXAMPLE
+.lp
+.nf
+/* Create relation emp with domains name, sal and bdate */
+
+   create emp (name = char16, salary = float4, bdate = abstime)
+.lp
+.nf
+/* Create relation permemp with pension information inheriting
+   all fields of emp */
+
+   create permemp (plan = char16)
+   inherits emp
+.fi
+.uh "SEE ALSO"
+.lp
+destroy(commands)
+.uh BUGS
+.lp
+Key and archive_mode are not implemented in Version 2.

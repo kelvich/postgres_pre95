@@ -1,0 +1,53 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP CLUSTER COMMANDS 6/14/90
+.XA 2 Cluster
+.uh NAME
+.lp
+cluster \*- give storage clustering advice to \*(PP
+.uh SYNOPSIS
+.lp
+.b cluster
+relname
+.b on
+domname [
+.b using
+operator ]
+.uh DESCRIPTION
+.lp
+This command instructs \*(PP to keep the relation specified by
+.i relname
+approximately sorted on
+.i domname
+using the specified operator
+to determine the sort order.
+The operator must be a binary operator
+and both operands must be of type
+.i domname
+and the operator
+must produce a result
+of type boolean.  If no operator is specified, then
+.q <
+is used by default.
+.lp
+A relation can be reclustered at any time on a different
+.i domname
+and/or with a different operator.  
+.lp
+\*(PP will try to keep the heap data structure which stores the
+tuples of this relation approximately in sorted order.  If the user
+specifies an operator which does not define a linear ordering, this
+command will produce unpredictable orderings.
+.lp
+Also, if there is no index for the clustering attribute,
+then this command will have no effect.
+.uh EXAMPLE
+.lp
+.nf
+/* cluster employees in salary order */
+.sp
+   cluster emp on salary
+.fi
+.uh BUGS
+.lp
+Cluster has no effect in Version 2.

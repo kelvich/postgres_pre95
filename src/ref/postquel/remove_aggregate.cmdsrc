@@ -1,0 +1,31 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP "REMOVE AGGREGATE" COMMANDS 6/14/90
+.XA 2 "Remove Aggregate"
+.uh NAME
+.lp
+remove aggregate \*- remove the definition of an aggregate
+.uh SYNOPSIS
+.lp
+.b "remove aggregate"
+aggname
+.uh DESCRIPTION
+.lp
+.b "Remove aggregate"
+will remove all reference to an existing aggregate definition.
+To execute this command the current user must be the
+the owner of the aggregate.
+.uh EXAMPLE
+.lp
+.nf
+/* Remove the average aggregate */
+
+   remove aggregate avg
+.fi
+.uh "SEE ALSO"
+.lp
+define aggregate(commands)
+.uh BUGS
+.lp
+Remove aggregate
+is not implemented in Version 2.

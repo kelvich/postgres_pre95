@@ -1,0 +1,55 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP REPLACE COMMANDS 6/14/90
+.XA 2 Replace
+.uh NAME
+.lp
+replace \*- replace values of domains in a relation
+.uh SYNOPSIS
+.lp
+.b replace [\c
+.b * ]
+tuple_variable
+.b (
+att_name1
+.b =
+expression1 {
+.b ,
+.r att_name \c
+.i i
+.b =
+.r expression \c
+.i i
+}
+.b )
+[
+.b from
+from_list
+] [
+.b where
+qual ]
+.uh DESCRIPTION
+.lp
+.b Replace
+changes the values of
+the domains specified in the 
+target_list 
+for all tuples which
+satisfy the qualification,
+.i qual .
+Only domains which are to be modified need appear in the
+target_list.
+.sp
+The * indicates a transitive closure and \*(PP will run
+the command until it produces no further effect.
+.uh EXAMPLE
+.lp
+.nf
+/* Give all employees who work for Smith a 10% raise */
+.sp
+   replace emp(sal = 1.1 * emp.sal) where emp.mgr = \*(lqSmith\*(rq
+.uh BUGS
+.lp
+The code to support
+.q *
+is very buggy.

@@ -1,0 +1,25 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP "REMOVE FUNCTION" COMMANDS 6/14/90
+.XA 2 "Remove Function"
+.uh NAME
+.lp
+remove function \*- remove a user defined function 
+.uh SYNOPSIS
+.lp
+.b "remove function"
+functionname
+.uh DESCRIPTION
+.lp
+.b "Remove function"
+will remove all references to an existing function.
+To execute this command the user must be the owner of the function.
+.uh EXAMPLE
+.lp
+/* The following command will remove the square root function */
+.(b
+remove function sqrt
+.)b
+.uh "SEE ALSO"
+.lp
+definefunction(commands).

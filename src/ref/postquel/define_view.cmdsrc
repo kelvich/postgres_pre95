@@ -1,0 +1,63 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP DEFINE VIEW COMMANDS 6/14/90
+.XA 2 "Define View"
+.uh NAME
+.lp
+retrieve \*- retrieve tuples from a relation
+.uh SYNTAX
+.lp
+.b "define view"
+view_name
+[ dom_name_1
+.b =
+] expression_1 {
+.b ,
+[
+dom_name_i
+.b =
+]
+.r expression_i
+}
+.b )
+.br
+\0\0\0[
+.b from
+from_list ] 
+[
+.b where
+qual ] 
+.sp
+.uh DESCRIPTION
+.lp
+.b "Define view"
+will define a relational view to \*(PP.
+This view is not physically materialized;
+instead the rule system is used to support view processing as in [STON90].
+Specifically,
+a retrieve rule is automatically generated
+to support retrieve operations on views.
+Then,
+the user can add as many update rules as he wishes to specify the
+processing of update operations to views.
+See [STON90] for a detailed discussion of this point.
+.uh EXAMPLE
+.lp
+.nf
+/* define a view consisting of toy department employees */
+
+   define view toyemp (e.name)
+   from e in emp
+   where e.dept = "toy"
+
+
+/* Specify deletion semantics for toyemp */
+
+   define rule example1 
+   on delete to toyemp
+   then do instead delete emp where emp.OID = current.OID
+
+.uh "SEE ALSO"
+.lp
+postquel(postquel),
+create(commands).

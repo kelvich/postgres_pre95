@@ -1,0 +1,60 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP DESTROY COMMANDS 6/14/90
+.XA 2 Destroy
+.uh NAME
+.lp
+destroy \*- destroy existing relations
+.uh SYNOPSIS
+.lp
+.b destroy
+relname1 { ,
+.r relname \c
+.i i
+}
+.uh DESCRIPTION
+.lp
+.b Destroy
+removes relations from the data base.
+Only its owner may destroy a relation.
+A relation may be emptied of tuples,
+but not destroyed,
+by using the
+.b delete
+statement.
+.lp
+If a relation being destroyed has secondary indices on it,
+then they will be removed first.
+The removal of just a secondary index will not affect
+the indexed relation.
+.lp
+This command may be used to destroy a version relation
+which is not a parent of some other version.
+Destroying a relation which is a parent of a
+version relation is disallowed.
+Instead, the
+.b merge
+command should be used.
+Moreover, destroying a relation whose fields are inherited by other relations
+is similarly disallowed.  An inheritance hierarchy must be destroyed from 
+leaf level to root level.
+.lp
+The destruction of relations is not reversable.
+Thus, a destroyed relation will not be recovered
+if a transaction which destroys this relation fails to commit.
+In addition,
+historical access to records in a destroyed relation is not possible.
+.uh EXAMPLE
+.lp
+/* Destroy the emp relation */
+
+destroy emp
+.lp
+/* Destroy the emp and parts relations */
+
+destroy emp, parts
+.uh "SEE ALSO"
+.lp
+delete(commands),
+removeindex(commands),
+merge(commands).

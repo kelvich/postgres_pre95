@@ -1,0 +1,119 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP "DEFINE RULE" COMMANDS 6/14/90
+.XA 2 "Define Rule"
+.uh NAME
+.lp
+define rule \*(- Define a new rule
+.uh SYNOPSIS
+.lp
+.b "define rule"
+rule_name
+[as exception to rule_name_2]
+.b on
+event
+.b to
+object [[\
+.b from
+clause]
+.b where
+clause]
+.b "then do"
+[\
+.b instead ]
+action
+.uh DESCRIPTION
+.lp
+.b Define rule
+is used to define a new rule.
+Here, event is one of:
+.(l
+retrieve 
+replace 
+delete
+append
+new (i. e. replace or append)
+old (i.e. delete or replace)
+.)l
+Moreover, object is either:
+.(l
+a relation name
+or
+relation.column, ...., relation.column
+.)l
+The FROM clause and WHERE clause
+are normal POSTQUEL clauses 
+with no additions or
+changes.  Lastly, the action portion of the DO clause 
+is a collection of POSTQUEL commands
+with the following change:
+.in+6
+.ll-6
+
+NEW or CURRENT can appear instead of 
+a tuple variable whenever a tuple
+variable is permissible in POSTQUEL.
+.in-6
+.ll+6
+.lp
+The semantics of a rule is that at the time an individual tuple is
+accessed, updated, inserted or deleted, there is a CURRENT tuple (for
+retrieves, replaces and deletes) and a NEW tuple (for replaces and appends).
+If the event and the condition specified in the ON clause are true 
+for the CURRENT tuple,
+then the action part of the rule is executed.  First, however, values
+from fields in the CURRENT tuple and/or the NEW tuple are substituted 
+for:
+.(l
+CURRENT.column-name
+NEW.column-name
+.)l
+The action part of the rule executes with same command and
+transaction identifier
+as the user command that caused activation.  
+.lp
+Each rule can have the optional tag "instead".  Without this tag the
+action will be performed in addition to the user command 
+when the event 
+in the condition part of the rule occurs. 
+Alternately, the action part will be done instead of the user command.
+.uh EXAMPLES
+/* Make Sam get the same salary adjustment as Joe */
+.(l
+define rule example_1
+on replace to EMP.salary where EMP.name = ``Joe''
+then replace EMP (salary = NEW.salary) where EMP.name = ``Sam''
+.)l
+At the time Joe receives a salary adjustment, the event will become
+true and Joe's current tuple and proposed new tuple are available
+to the execution routines.  Hence, his new salary is substituted into the 
+action part of the rule which is subsequently executed.  This 
+propagates Joe's salary on to Sam.
+.lp
+/* Make Bill get Joe's salary when it is accessed */
+.(l
+define rule example_2
+on retrieve to EMP.salary where EMP.name = ``Joe''
+then replace EMP (salary = CURRENT.salary) where EMP.name = ``Bill''
+.)l
+.lp
+/* Deny Joe access to the salary of employees in the shoe department */
+.(l
+define rule example_3
+on retrieve to EMP.salary where EMP.dept = ``shoe'' and user() = ``Joe''
+then do instead retrieve (salary = null)
+.)l
+/* The following also does the same task, somewhat more obscurely */
+.(l
+define rule example_4
+on retrieve to EMP.salary where EMP.dept = ``shoe'' and user() = ``Joe''
+then do replace CURRENT (salary = null)
+.)l
+.uh "SEE ALSO"
+.lp
+postquel(postquel).
+.uh BUGS
+.lp
+Exceptions are not implemented in Version 2
+.lp
+The object in a POSTQUEL rule cannot be an array reference and cannot have parameters.

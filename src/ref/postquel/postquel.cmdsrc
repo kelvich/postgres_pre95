@@ -1,0 +1,550 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP POSTQUEL POSTQUEL 6/14/90
+.XA 0 "Section 3 \*- \*(PQ Commands (\*(PQ)" _
+.XA 1 "General Information"
+.uh DESCRIPTION
+.lp
+The following is a description of the general syntax
+of \*(PQ.
+Individual 
+\*(PQ
+statements and commands
+are treated separately in the document;
+this section describes the syntactic classes from which the constituent
+parts of 
+\*(PQ
+statements are drawn.
+.uh Comments
+.lp
+A
+.i comment
+is an arbitrary sequence of characters
+bounded on the left by
+``/*''
+and on the right by
+``*/'', e.g:
+.(l
+/* This is a comment */
+.)l
+.uh "Names"
+.lp
+.i Names
+in \*(PQ
+are sequences of not more than 16 alphanumeric
+characters, starting with an alphabetic.
+Underscore (\^_\^) is considered
+an alphabetic.
+.uh "Keywords"
+.lp
+The following identifiers are reserved for use as
+.i keywords
+and may not be used otherwise:
+.lp
+.s3
+.ft B
+.if n .ta 5 25 45
+.if t .ta 0.5i 2.5i 4.5i
+.de xx
+\t\\$1\t\\$2\t\\$3
+.br
+..
+.xx abort addattr after
+.xx all always and
+.xx append archive arg
+.xx ascending attachas backward
+.xx before begin binary
+.xx by c cfunction
+.xx close cluster copy
+.xx create current define
+.xx delete demand descending
+.xx destroy do empty
+.xx end execute fetch
+.xx forward from function
+.xx heavy in index
+.xx indexable inherits input_proc
+.xx instead intersect into
+.xx is key leftouter
+.xx light merge move
+.xx never new none
+.xx nonulls not null
+.xx on once operator
+.xx or output_proc pfunction
+.xx portal postquel priority
+.xx purge quel relation
+.xx remove rename replace
+.xx retrieve returns rewrite
+.xx rightouter rule sort
+.xx to transaction tuple
+.xx type union unique
+.xx using version view
+.xx where with
+.ft
+.dt
+.lp
+In addition,
+\*(PP all relations have several predefined attributes used
+by the system.
+For a list of these,
+see the section
+.b Fields ,
+below.
+.lp
+.uh "Constants"
+.lp
+There are five types of
+i. constants
+for use in \*(PQ.
+They are described below.
+.uh  "Character Constants"
+.lp
+Single
+i. character constants
+may be used in \*(PQ by 
+surrounding them by single
+quotes, e.g., `n'.
+.uh "String Constants"
+.lp
+i. Strings
+in \*(PQ
+are arbitrary sequences of 
+ASCII characters bounded by
+double quotes (\*(lq \*(rq)
+Upper case alphabetics within strings
+are accepted literally.
+Non-printing characters may be embedded within strings by prepending them
+with a backslash, e.g., `\en'.
+Also, in order to embed quotes
+within strings, it is necessary to prefix them with `\e' .
+The same convention applies to `\e' itself.
+String constants are currently limited to a length of 8K bytes.
+.uh "Integer Constants"
+.lp
+i. Integer constants
+in \*(PQ are collection of ASCII digits with no decimal point.
+Legal
+values 
+range from \(mi2147483647
+to +2147483647.
+This will vary depending on the operating system and host machine.
+.uh  "Floating Point Constants"
+.lp
+i. Floating point
+constants consist of an integer part, a decimal point, and
+a fraction part or scientific notation
+of the following format:
+.(l
+{<dig>} .{<dig>} [e [+-] {<dig>}]
+.)l
+.lp
+Where <dig> is a digit.
+You must include at least one <dig> after the period and after the
+[+-] if you use those options.
+An exponent with a missing mantissa has a mantissa
+of 1 inserted.
+There may be no extra characters embedded in the string.
+Floating constants
+are taken to be double-precision quantities with a range of
+approximately
+.if n -10**38 to +10**38
+.if t \(mi10\x'-0.2v'\u\s-3\&38\s0\d to 10\u\x'-0.2v'\s-3\&38\s0\d
+and a precision of 17 decimal digits.
+This will vary depending on the operating system and host machine.
+.uh "Constants of Other Types
+.lp
+A constant of an
+i. arbitrary
+type can be entered using the notation:
+.(l
+\*(lqstring\*(rq  :: type-name
+.)l
+In this case the value inside the string is passed to the input conversion
+routine for the type called type-name. The result is a constant of the
+indicated type.
+.lpo
+.uh "Fields"
+.lp
+A 
+.i field
+is one of the following:
+.(l
+column name in a given relation
+all
+oid
+tmin
+tmax
+xmin
+xmax
+cmin
+cmax
+vtype
+.)l
+As in \*(II, 
+.i all
+is a shorthand for all normal fields in a relation, and may be used
+profitably in the target list of a retrieve statement.  
+.i Oid
+stands for the unique identifier of a tuple which is added by \*(PP to
+all records automatically. Oids are not reused and are 32 bit quantities.
+.lp
+.i "Tmin, tmax, xmin, cmin, xmax"
+and
+.i cmax
+stand respectively for the time that the record was inserted, the time
+the record was deleted, the identity of the inserting transaction, 
+the command identifier within the transaction,
+the identity of the deleting transaction and
+its associated deleting command.  For further information
+on these fields consult [STON87].  Times are represented internally
+as instances of the 
+.q "abstime"
+data type.  Transaction identifiers are
+40 bit quantities which are assigned sequentially
+starting at 1.  Command identifiers are 8 bit objects;
+hence, it is an error
+to have more than 256 \*(PQ commands within one transaction.
+.uh "Attributes"
+.lp
+An
+i. attribute
+is a construct of the form:
+.(l
+Tuple-variable{.composite_field}.field `['number`]'
+.)l
+.i Tuple-variable 
+identifies a particular relation and can be thought of
+as standing for the rows or tuples of that relation.
+A tuple variable is either a relation name, a
+surrogate for a relation defined by means of a
+.i from
+clause, or the keyword 
+.b new
+or 
+.b current.
+New and current can only appear in the action portion of a rule, while other tuple
+variables can be used in any POSTQUEL command. 
+.i Composite_field
+is a field of of one of the POSTGRES composite types indicated in the 
+.b information
+(POSTQUEL) section,
+while successive
+composite fields address columns
+in the relation(s) to which the composite field evaluates.
+Lastly, 
+.i field
+is a normal (base type) field in the relation(s) last addressed.
+If
+.i field 
+is of type array, then the optional
+.i number 
+designator indicates a specific element in the array.  If no
+number is indicated, then all array elements are returned.
+.uh "Operators"
+.lp
+Any built-in, system, or user defined operator
+may be used in \*(PQ.  For the
+list of built-in and system operators consult
+.b built-in types 
+(postquel) and
+b. system types
+(postquel).
+For a list of user defined
+operators consult your system administrator or run a query on the
+OPERATOR relation.
+Parentheses may be used for arbitrary grouping of operators.
+.uh "Expressions (a_expr)"
+.lp
+An expression is one of the following:
+.(l
+( a_expr )
+constant
+attribute
+a_expr binary_operator a_expr
+.\" a_expr right_unary_operator
+left_unary_operator a_expr
+
+parameter
+functional expressions 
+aggregate expression  (not in Version 2)
+relational expression (not in Version 2)
+.)l
+We have already discussed constants and attributes.
+The two kinds
+of operator expressions indicate respectively binary and
+left_unary expressions.
+The following sections discuss the remaining
+options.
+.uh "Parameters"
+.lp
+A 
+.i parameter
+is used to indicate a parameter in a \*(PQ command.  Typically this
+is used in \*(PQ function definition statement.
+The form of a parameter is:
+.(l
+\'$' number
+.)l
+.lp
+For example, consider the definition of a function, DEPT, as
+.(l
+define \*(PQ function DEPT (char16) returning (setof dept) as
+   retrieve (dept.all) where dept.dname = $1
+.)l
+.uh "Functional Expressions"
+.lp
+A
+i. functional expression
+is the name of a legal \*(PQ function,
+followed by its argument list enclosed in parentheses, e.g.:
+.(l 
+fn-name (a_expr{ , a_expr})
+.)l	
+For example, the following computes the square root of an employee salary.
+.(l
+sqrt(emp.salary)
+.)l
+.uh "Aggregate Expression"
+.lp
+.b
+Aggregate expressions are not supported in Version 2.
+.r
+.lp
+An
+i. aggregate expression
+represents a simple aggregate (i.e one which
+computes a single value) or an aggregate function (i.e. one which 
+computes a set
+of values).
+The syntax is the following:
+.(l
+aggregate_name `{' [unique [using] opr] a_expr [from from_list]
+[where qualification]`}'
+.)l
+Here, 
+.i aggregate_name 
+must be a previously defined aggregate.  The 
+.i from_list 
+indicates the relation to be aggregated over while
+.i qualification
+gives restrictions which must be satisfied by the tuples to be aggregated.
+Next, the a_expr gives the expression to be aggregated while
+the 
+.i unique
+tag indicates whether all values should be aggregated or just the
+unique values of a_expr.
+Two expressions, a_expr1 and a_expr2 are the same if
+a_expr1 opr a_expr2 evaluates to true.
+.lp
+In the case that all tuple variables used in the aggregate expression
+are defined in the from list, a simple aggregate has been defined.  For
+example, to sum employee salaries whose age is greater than 30, one would
+write:
+.(l
+sum {e.salary from e in emp where e.age > 30}
+.)l
+or
+.(l
+sum {emp.salary where emp.age > 30}
+.)l
+In either case, \*(PP is instructed to find 
+the tuples in the from_list which
+satisfy the qualification and then compute the aggregate of the a_expr
+indicated.  
+.lp
+On the other hand, if there are variables used in the aggregate expression that
+are not defined in the from list, e.g:
+.(l
+avg {emp.salary where emp.age = e.age}
+.)l
+then this aggregate has a value for each possible value taken on by 
+e.age.  For example, the following complete query finds the
+average salary of each possible employee age over 18:
+.(l
+retrieve (e.age, avg {emp.salary where emp.age = e.age})
+   from e in emp 
+   where e.age > 18
+.)l
+.uh "Set Expressions"
+.lp
+.b
+Set expressions are not supported in Version 2.
+.r
+.lp
+A
+i. set expression
+defines a collection of tuples from some relation
+and uses the following syntax:
+.(l
+ {target_list from from_list where qualification}
+.)l
+For example, the set of all employee names over 40 is:
+.(l
+{emp.name where emp.age > 40}
+.)l
+.fi
+In addition, it is legal to construct set expressions which
+have a tuple variable which is defined outside the scope of
+the expression.  For example, the following expression is the
+set of employees in each department:
+.(l
+{emp.name where emp.dept = dept.dname}
+.)l
+.in .5i
+Set expressions can be used in relational expressions which are now defined.
+.uh "Relational Expression"
+.lp
+.b
+Set expressions are not supported in Version 2.
+.r
+.lp
+A 
+.i relational_expression 
+is an expression of the form:
+.(l
+relation_constructor binary_relation_operator relation_constructor
+unary_relation_operator relation_constructor
+.)l
+where binary_relation_operator is one of the following:
+.(l
+union		union of two relations
+intersect	intersection of two relations
+\-		difference of two relations
+>>		left relation contains right relation
+<<		right relation contains left relation
+==		right relation equals left relation 
+.)l
+and unary_relation_operator can be:
+.in .5i
+.(l
+empty		right relation is empty
+.)l
+.fi
+A 
+.i relation_constructor 
+is either a tuple variable, 
+a relation name, the value of a procedural field or a set expression.
+.lp
+An example of a query with a relational expression is
+one to find all the departments with no employees:
+.in .5i
+.(l
+retrieve (dept.dname)
+   where empty {emp.name where emp.dept = dept.dname}
+.)l  
+.uh "Target_list"
+.lp
+A
+i. target list
+is a parenthesized, comma-separated list of one
+or more elements, each of which must be of the form:
+.(l
+[result_attname  =] a_expr
+.)l
+Here, result_attname 
+is the name of the attribute to be created (or an
+already existing attribute name in the case of update statements.)
+If result_attname is not present, then a_expr must 
+contain only one attribute name
+which is assumed to be the name of the result field.
+In Version 2 default naming is only used if the a_expr is an attribute.
+.uh "Qualification"
+.lp
+A 
+.i qualification 
+consists of any number of clauses connected
+by the logical operators:
+.(l
+and
+and not
+or
+or not
+.)l
+A clause is an a_expr that evaluates to a Boolean over a set of tuples.
+.ul
+Not
+followed by a qualification is a legal qualification.
+.uh "From List"
+.lp
+The 
+.i from
+.i list
+is a comma-separated list of 
+.i from
+.i expressions.
+.lp
+Each 
+.i from
+.i expression
+is of the form:
+.(l
+tuple_variable-1 {, tuple_variable-2} in rel_reference
+.)l
+where 
+.i rel_reference
+is of the form
+.(l
+rel_name [time_expression] [*]
+.)l
+The 
+.i from
+.i expression
+defines one or more tuple variables to range over the relation indicated
+in rel_reference.  
+Adding
+a time_expression will indicate that
+a historical relation is desired.  Additionally, one can request the tuple variable to range over all
+relations that are beneath the indicated relation in the inheritance
+hierarchy by postpending the designator `*'.
+.uh "Time Expressions"
+.lp
+A
+i. time expression
+is in one of two forms:
+.(l
+ [date]
+ [date-1, date-2]
+.)l
+The first case requires tuples that are valid
+at the indicated time.
+The second case requires tuples that are valid at some time within
+the date range specified.
+If no time expression is indicated, the
+default is \*(lqnow\*(rq.  
+.lp
+In each case,
+the date is a character string
+of the form
+.(b
+``MMM DD [HH:MM:SS] YYYY''
+.)b
+where MMM is the month (Jan \- Dec),
+DD is a legal day number in the specified month,
+HH:MM:SS is an optional time in that day (24-hour clock),
+and YYYY is the year.
+If the time of day HH:MM:SS is not specified,
+it defaults to midnight at the start of the specified day.
+In addition,
+all times are interpreted as GMT.
+.lp
+For example,
+.(b
+[``Jan 1 1990'']
+[``Mar 3 00:00:00 1940'', ``Mar 3 23:59:59 1941'']
+.)b
+are valid time specifications.
+.uh "SEE ALSO"
+.lp
+append(commands),
+delete(commands),
+execute(commands),
+replace(commands),
+retrieve(commands),
+monitor(unix).
+.uh BUGS
+.lp
+The following constructs are not available in Version 2:
+.(l
+aggregates and aggregate expressions
+relational expressions
+set expressions
+.)l

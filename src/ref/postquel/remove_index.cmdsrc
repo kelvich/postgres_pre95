@@ -1,0 +1,21 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP "REMOVE INDEX" COMMANDS 6/14/90
+.XA 2 "Remove Index"
+.uh NAME
+.lp
+remove index \*- removes an index from \*(PP
+.uh SYNOPSIS
+.lp
+.b "remove index"
+index_name
+.uh DESCRIPTION
+.lp
+This command drops an existing index from the \*(PP system.
+To execute this command you must be the owner of the index.
+.uh EXAMPLE
+.lp
+.nf
+/* The following command will remove the EMP-INDEX index */
+.sp
+remove index emp_index

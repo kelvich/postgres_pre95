@@ -1,0 +1,403 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP "BUILT-IN TYPES" POSTQUEL 6/14/90
+.XA 1 "Type Management for Built-in Types"
+.\" .XA 2 "Built-in Types" _
+.\" .XA 2 "Built-in Functions" _
+.\" .XA 2 "Built-in Operators" _
+.uh "DESCRIPTION"
+.lp
+This section describes the built-in data types and their
+associated functions and operators.  A \*(PP system 
+.b "cannot run"
+without these types, so the \*(PP system administrator
+is cautioned not to remove them.
+.sp
+.TS
+center;
+l l.
+bool	boolean
+char	character
+int2	two-byte signed integer
+int4	four-byte signed integer
+float4	single-precision floating-point number
+float8	double-precision floating-point number
+uint2	two-byte unsigned integer
+uint4	four-byte unsigned integer
+cid	command identifier type
+oid	object identifier type
+tid	tuple identifier type
+xid	transaction identifier type
+.TE
+.lp
+The following types are also required built-in types,
+but are expected to change or disappear between versions.
+.sp
+.TS
+center;
+l l.
+abstime	absolute date and time 
+bytea	variable length array of bytes
+char16	array of 16 characters
+datetime	timestamp
+int28	array of 8 int2
+oid8	array of 8 oid
+regproc	registered procedure
+reltime	relative date and time 
+text	variable length array of characters
+tinterval	time interval
+.TE
+.lp
+These types all have obvious formats except for the three time types,
+explained below:
+.uh "ABSOLUTE TIME"
+.lp
+Absolute time is specified using the following syntax:
+.(l
+Month  Day [ Hour : Minute : Second]  Year
+
+where	Month is Jan, Feb, ..., Dec
+	Day is 1, 2, ..., 31
+	Hour is 01, 02, ..., 24
+	Minute is 00, 01, ..., 59
+	Second is 00, 01, ..., 59
+	Year is 1902, 1903, ..., 2038
+.)l
+.lp
+Valid dates are, therefore, Jan 1 00:00:00 1902 to Jan 1 00:00:00 2038.
+In Version 2, times are read and written using Greenwich Mean Time.
+The special absolute time
+.q now
+is also provided as a convenience.
+Similarly,
+the special absolute time ``epoch'' means
+Jan 1 00:00:00 1902.
+.uh "RELATIVE TIME"
+.lp
+Relative time is specified with the following syntax:
+.(l
+@ Quantity Unit [Direction]
+
+where 	Quantity is `1', `2', ...
+	Unit is `second', `minute', `hour', `day', `week',
+	`month' (30-days), or `year' (365-days),
+	or PLURAL of these units.
+	Direction is `ago'
+
+ 	(\fBNote\fR: Valid relative times are less than or equal to 68 years)
+.)l
+.sp
+In addition,
+the special relative time ``Undefined RelTime'' is provided.
+.uh "TIME RANGES"
+.lp
+Time ranges are specified as:
+.(l
+[abstime, abstime]
+[ , abstime]
+[abstime, \*(lq\*(rq]
+[\*(lq\*(rq, \*(lq\*(rq]
+.)l
+where \fIabstime\fR is a time in the absolute time format.
+.q ""
+will cause the time interval to either start or end
+at the least or greatest time allowable, that is, either 
+Jan 1 00:00:00 1902 or Jan 1 00:00:00 2038, respectively.
+.\" .bp
+.uh FUNCTIONS
+.lp
+The following functions are defined on built-in types and are
+essential to the operation of \*(PP.
+.sp
+.TS
+l l l.
+_
+\fIreturn	function name
+type	and argument types	meaning\fR
+_
+bool	boolin(external)	converts argument from external to internal form
+char	charin(external)	          "
+int2	int2in(external)	          "
+int4	int4in(external)	          "
+float4	float4in(external)	          "
+float8	float8in(external)	          "
+cid	cidin(external)	          "
+oid	oidin(external)	          "
+tid	tidin(external)	          "
+xid	xidin(external)	          "
+abstime	abstimein(external)	          "
+reltime	reltimein(external)	          "
+tinterval	tintervalin(external)	          "
+bytea	byteain(external)	          "
+char16	char16in(external)	          "
+int28	int28in(external)	          "
+oid8	oid8in(external)	          "
+text	textin(external)	          "
+datetime	datetimein(external)	          "
+regproc	regprocin(external)	          "
+
+external	boolout(bool)	converts argument from internal to external form
+external	charout(char)	          "
+external	int2out(int2) 	          "
+external	int4out(int4)	          "
+external	float4out(float4) 	          "
+external	float8out(float8)	          "
+external	cidout(cid) 	          "
+external	oidout(oid) 	          "
+external	tidout(tid) 	          "
+external	xidout(xid) 	          "
+external	abstimein(abstime)	          "
+external	reltimein(reltime)	          "
+external	tintervalin(tinterval)	          "
+external	byteaout(bytea)	          "
+external	char16out(char16)	          "
+external	int28out(int28)	          "
+external	oid8out(oid8)	          "
+external	textout(text)	          "
+external	datetimeout(datetime)	          "
+external	regprocout(regproc)	          "
+
+bool	booleq(bool,bool) 	tests for equality
+bool	chareq(char,char)	          "
+bool 	int2eq(int2,int2)	          "
+bool	int4eq(int4,int4) 	          "
+bool 	float4eq(float4,float4)	          "
+bool	float8eq(float8,float8) 	          "
+bool 	cideq(cid,cid)	          "
+bool 	oideq(oid,oid)	          "
+bool 	tideq(tid,tid)	          "
+bool 	xideq(xid,xid)	          "
+bool	abstimeeq(abstime,abstime)	          "
+bool	reltimeeq(reltime,reltime)	          "
+bool	tintervaleq(tinterval,tinterval)	          "
+bool	char16eq(char16,char16)	          "
+bool	texteq(text,text)	          "
+bool	datetimeeq(datetime,datetime)	          "
+bool	regproceq(regproc,regproc)	          "
+
+bool	int2ge(int2,int2)	tests for greater than or equal to, >=
+bool	int4ge(int4,int4) 	          "
+bool	float4ge(float4,float4) 	          "
+bool	float8ge(float8,float8) 	          "
+
+bool	int2gt(int2,int2)	tests for greater than, >
+bool	int4gt(int4,int4)	          "
+bool	float4gt(float4,float4)	          "
+bool	float8gt(float8,float8)	          "
+
+bool	int2le(int2,int2)	tests for less than or equal to, <=
+bool	int4le(int4,int4)	          "
+bool	float4le(float4,float4)	          "
+bool	float8le(float8,float8)	          "
+
+bool	int2lt(int2,int2)	tests for less than, <
+bool	int4lt(int4,int4)	          "
+bool	float4lt(float4,float4)	          "
+bool	float8lt(float8,float8)	          "
+
+bool	ininterval(abstime, tinterval)	tests if time is in interval
+bool	intervalct(tinterval, tinterval)	tests for contained-in
+bool	intervalov(tinterval, tinterval)	tests for overlaps
+abstime	intervalend(tinterval)	returns ending time of time interval
+abstime	intervalstart(tinterval)	returns starting time for time interval
+datetime	timenow()	returns current time
+.TE
+.bp
+.uh OPERATORS
+.lp
+The following operators are automatically defined on the built-in types.
+In practice,
+many of the functions named below can be the same function called with
+different argument types (depending on your compiler);
+thus,
+not all of the functions are actually distinct.
+.sp
+.TS
+l l l.
+_
+\fIbinary	result 	supporting
+operator 	type 	function\fR
+_
+\= 	bool 	booleq(bool,bool) 
+\fIequality\fR		chareq(char,char)
+ 		int2eq(int2,int2)
+ 		int4eq(int4,int4) 
+ 		int24eq(int2,int4)
+ 		int42eq(int4,int2) 
+ 		float4eq(float4,float4)
+ 		float8eq(float8,float8) 
+ 		float48eq(float4,float8)
+ 		float84eq(float8,float4) 
+ 		oideq(oid,oid)
+ 		abstimeeq(abstime,abstime) 
+ 		reltimeeq(reltime,reltime)
+ 		char16eq(bool,bool) 
+ 		texteq(text,text) 
+
+!= 	bool 	int2ne(int2,int2)
+\fIinequality\fR		int4ne(int4,int4) 
+		int24ne(int2,int4)
+		int42ne(int4,int2) 
+ 		float4ne(float4,float4)
+ 		float8ne(float8,float8) 
+ 		float48ne(float4,float8)
+ 		float84ne(float8,float4) 
+		oidne(oid,oid)
+		abstimene(abstime,abstime) 
+ 		reltimene(reltime,reltime)
+
+>= 	bool	int2ge(int2,int2) 
+\fIgreater/equal\fR		int4ge(int4,int4)
+		int24ge(int2,int4)
+		int42ge(int4,int2) 
+ 		float4ge(float4,float4)
+ 		float8ge(float8,float8) 
+ 		float48ge(float4,float8)
+ 		float84ge(float8,float4) 
+		abstimege(abstime, abstime)
+		reltimege(reltime, reltime)
+
+> 	bool	int2gt(int2,int2) 
+\fIgreater\fR		int4gt(int4,int4)
+		int24gt(int2,int4)
+		int42gt(int4,int2) 
+ 		float4gt(float4,float4)
+ 		float8gt(float8,float8) 
+ 		float48gt(float4,float8)
+ 		float84gt(float8,float4) 
+		abstimegt(abstime, abstime)
+		reltimegt(reltime, reltime)
+<=	bool	int2le(int2,int2) 
+\fIless/equal\fR		int4le(int4,int4)
+		int24le(int2,int4)
+		int42le(int4,int2) 
+ 		float4le(float4,float4)
+ 		float8le(float8,float8) 
+ 		float48le(float4,float8)
+ 		float84le(float8,float4) 
+		abstimele(abstime, abstime)
+		reltimele(reltime, reltime)
+
+<	bool	int2lt(int2,int2) 
+\fIless\fR		int4lt(int4,int4)
+		int24lt(int2,int4)
+		int42lt(int4,int2) 
+ 		float4lt(float4,float4)
+ 		float8lt(float8,float8) 
+ 		float48lt(float4,float8)
+ 		float84lt(float8,float4) 
+		abstimelt(abstime, abstime) 
+		reltimelt(reltime, reltime)
+
++	int2	int2pl(int2,int2)
+\fIaddition\fR	int4	int4pl(int4,int4)
+	int4	int24pl(int2,int4)
+	int4	int42pl(int4,int2)
+	float4	float4pl(float4,float4)
+	float8	float8pl(float8,float8)
+	float8	float48pl(float4,float8)
+	float8	float84pl(float8,float4)
+	abstime	timepl(abstime,abstime)
+
+\-	int2	int2mi(int2,int2)
+\fIsubtraction\fR	int4	int4mi(int4,int4)
+	int4	int24mi(int2,int4)
+	int4	int42mi(int4,int2)
+	float4	float4mi(float4,float4)
+	float8	float8mi(float8,float8)
+	float8	float48mi(float4,float8)
+	float8	float84mi(float8,float4)
+	abstime	timemi(abstime,abstime)
+
+/	int2	int2div(int2,int2)
+\fIdivision\fR	int4	int4div(int4,int4)
+	int4	int24div(int2,int4)
+	int4	int42div(int4,int2)
+	float4	float4div(float4,float4)
+	float8	float8div(float8,float8)
+	float8	float48div(float4,float8)
+	float8	float84div(float8,float4)
+
+*	int2	int2mul(int2,int2)
+\fImultiplication\fR	int4	int4mul(int4,int4)
+	int4	int24mul(int2,int4)
+	int4	int42mul(int4,int2)
+	float4	float4mul(float4,float4)
+	float8	float8mul(float8,float8)
+	float8	float48mul(float4,float8)
+	float8	float84mul(float8,float4)
+
+%	int4	int4mod(int4,int4)
+\fImodulo\fR	int2	int2mod(int2,int2)
+		int4	int24mod(int2,int4)
+		int4	int42mod(int4,int2)
+
+^	float8	dpow(float8,float8)
+\fIpower\fR
+
+<<	bool	intervalct(tinterval, tinterval)
+\fIcontained in\fR
+
+&&	bool	intervalov(tinterval, tinterval)
+\fIoverlaps\fR
+
+#=	bool	intervalleneq(tinterval, reltime)
+#!=	bool	intervallenne(tinterval, reltime)
+#<	bool	intervallenlt(tinterval, reltime)
+#>	bool	intervallengt(tinterval, reltime)
+#<=	bool	intervallenle(tinterval, reltime)
+#>=	bool	intervallenge(tinterval, reltime)
+<?>	bool	ininterval(abstime, tinterval)
+
+\fItime comparison\fR
+
+_
+\fIunary left	result	supporting
+operators	type	procedure\fR
+_
+\- 	float4	float4um(float4)
+\fIunary minus\fR	float8	float8um(float8)   
+
+@ 	float4	float4abs(float4)
+\fIabsolute value\fR	float8	float8abs(float8)
+
+|/ 	float8	dsqrt(float8)
+\fIsquare root\fR
+
+||/ 	float8	dcbrt(float8)
+\fIcube root\fR
+
+%	float8	dround(float8)
+\fIround\fR
+
+:	float8	dexp(float8)
+\fIexponent\fR
+
+;	float8	dlog1(float8)
+\fIlog\fR
+
+|	abstime	intervalstart(tinterval)
+
+##	int2	int4toint2(int4)
+\fItypecast\fR	int4	int2toint4(int2)
+	float4	dtof(float8)
+	float8	ftod(float4)
+
+_
+\fIunary right	result	supporting
+operators	type	procedure\fR
+_
+!	int4	int4fac(int4)
+\fIfactorial\fR	int2	int2fac(int2)
+
+%	float8	dtrunc(float8)
+\fItruncate\fR
+
+|	abstime	intervalend(tinterval)
+.TE
+.uh BUGS
+.lp
+The lists of types, functions, and operators are
+accurate only for Version 2.
+The lists will be incomplete and contain extraneous
+entries in future versions of \*(PP.

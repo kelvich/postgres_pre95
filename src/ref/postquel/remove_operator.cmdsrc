@@ -1,0 +1,28 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP "REMOVE OPERATOR" COMMANDS 6/14/90
+.XA 2 "Remove Operator"
+.uh NAME
+.lp
+remove operator \*- remove an operator from the system
+.uh SYNOPSIS
+.lp
+.b "remove operator"
+opr_desc
+.uh DESCRIPTION
+.lp
+This command drops an existing operator from the database.
+To execute this command you must be the owner of the operator.
+.lp
+.i Opr_desc
+is the name of the operator to be removed followed by a
+parenthesized list of the operand types for the operator.
+.uh EXAMPLE
+.nf
+/* Remove the sqrt operator */
+
+   remove operator sqrt (int4, int4)
+.fi
+.uh "SEE ALSO"
+.lp
+define operator(commands).

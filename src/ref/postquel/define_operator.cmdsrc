@@ -1,0 +1,254 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP "DEFINE OPERATOR" COMMANDS 6/14/90
+.XA 2 "Define Operator"
+.uh NAME
+.lp
+define operator \*- define a new user operator
+.uh SYNOPSIS
+.lp
+.b "define operator"
+operator_name
+.b "( procedure ="
+proc_name
+[
+.b ", precedence ="
+number ] [
+.b ", associativity ="
+(
+.b left
+|
+.b right
+|
+.b none
+|
+.b any
+) ] [
+.b ", commutator ="
+com_op ] [
+.b ", negator ="
+neg_op ] [
+.b ", restrict ="
+res_proc ] [
+.b ", hashes"
+] [
+.b ", join ="
+join_proc ] [
+.b ", sort ="
+sor_op1 {
+.b ,
+sor_op2 } ]
+.b )
+.\" .b "arg is ("
+.\" type [
+.\" .b ,
+.\" type ]
+.\" .b )
+.uh DESCRIPTION
+.lp
+This command defines a new user operator,
+.i "operator_name" .
+The user who defines an operator becomes its owner.
+.lp
+The name of the operator,
+.i operator_name ,
+can be composed of alphabetic characters
+or symbols, but not a combination
+of the two (i.e.,
+.b A
+is valid,
+but
+.b ^A^
+is not).
+Also, the
+.i proc_name
+procedure
+must have been previously defined and must have one
+or two arguments.
+The types of the arguments for the operator 
+and the type of the
+answer are as defined by the procedure.
+.b Precedence
+refers to the order that multiple instances of the same
+operator are evaluated.
+.\" what does this number mean and what is its range?
+The next several fields are primarily for the use of the query optimizer.
+.lp
+The
+.b associativity
+value is used to indicate how an expression containing
+this operator should be evaluated when precedence
+and explicit grouping are insufficient to produce
+a complete order of evaluation.
+.b Left
+and
+.b right
+indicate that expressions containing
+the operator are to be evaluated from left to right or
+from right to left, respectively.
+.b None
+means that it is an error for
+this operator to be used without
+explicit grouping when there is ambiguity.
+And
+.b any ,
+the default,
+indicates that the optimizer may choose to evaluate
+an expression which contains this operator arbitrarily.
+.lp
+.\" that multiple instances of the 
+.\" operator must be be evaluated
+.\" For example, consider the area-intersection operator,
+.\" .q A,
+.\" and the following expression:
+.\" .(l
+.\" MYBOXES2.description A \*(lq0,0,1,1\*(rq A MYBOXES.description
+.\" .)l
+.\" .in .5i
+.\" The associativity flag indicates that
+.\" .(l
+.\" (MYBOXES2.description A \*(lq0,0,1,1\*(rq) A MYBOXES.description
+.\" .)l
+.\" .in .5i
+.\" is the same as
+.\" .(l
+.\" MYBOXES2.description A (\*(lq0,0,1,1\*(rq A MYBOXES.description).
+.\" .)l
+The commutator operator is present so that \*(PP can reverse
+the order of the operands if it wishes.
+For example, the operator area-less-than, ALT,
+would have a commutator operator, area-greater-than, AGT.
+Hence, the query optimizer could freely convert:
+.(l
+\*(lq0,0,1,1\*(rq::box ALT MYBOXES.description
+.)l
+.in .5i
+to
+.(l
+MYBOXES.description AGT \*(lq0,0,1,1\*(rq::box
+.)l
+.in .5i
+This allows the execution code to always use the latter representation
+and simplifies the query optimizer somewhat.
+.sp
+The negator operator allows the query optimizer to convert
+.(l
+not MYBOXES.description AE \*(lq0,0,1,1\*(rq::box
+.)l
+.in .5i
+to
+.(l
+MYBOXES.description NAE \*(lq0,0,1,1\*(rq::box
+.)l
+.in .5i
+.sp
+The next two specifications are present to support the query optimizer
+in performing joins.
+\*(PP can always evaluate a
+join (i.e., processing a clause with two tuple variables separated by
+an operator that returns a boolean) by iterative substitution [WONG76].  
+In addition,
+\*(PP is planning on implementing a hash-join
+algorithm along the lines of [SHAP86]; however, it must know whether this
+strategy is applicable.  For example, a hash-join algorithm is usable for
+a clause of the form:
+.(l
+MYBOXES.description AE MYBOXES2.description
+.)l
+.in .5i
+but not for a clause of the form:
+.(l
+MYBOXES.description ALT MYBOXES2.description.
+.)l
+.in .5i
+The
+.i hashes
+flag gives the needed information to the query optimizer
+concerning whether a hash join strategy is usable for the operator
+in question.  
+.sp
+Similarly, the two sort
+operators indicate to the query optimizer whether merge-sort is a
+usable join strategy
+and what operators should be used to
+sort the two operand relations.
+For the AE clause above, the optimizer must
+sort both relations using the operator, ALT.
+On the other hand, merge-sort is not usable with the clause: 
+.(l
+MYBOXES.description ALT MYBOXES2.description
+.)l
+If other join strategies are found to be practical,
+\*(PP will change
+the optimizer and run-time system to use them and 
+will require additional specification
+when an operator is defined. 
+Fortunately, the research community invents new join strategies infrequently,
+and the added generality of user-defined join strategies was not felt to
+be worth the complexity involved.
+.lp
+The last two pieces of the specification are present so the query 
+optimizer can estimate result sizes.  If a clause of the form:
+.(l
+MYBOXES.description ALT \*(lq0,0,1,1\*(rq::box
+.)l
+.in .5i
+is present in the qualification, 
+then \*(PP may have to 
+estimate the fraction of the tuples in MYBOXES
+that satisfy the clause.  The function res_proc must
+be a registered function which accepts one argument of the correct
+data type and returns a floating point number.  The query optimizer
+simply calls this function, passing the parameter \*(lq0,0,1,1\*(rq and
+multiplies the result by the relation size to get the desired expected number
+of tuples.
+.sp
+Similarly, when the operands of the operator both contain tuple variables,
+the query optimizer must estimate the size of the resulting join.
+The function join_proc will return another
+floating point number which will be multiplied by the cardinalities of the two
+relations involved to compute the desired expected result size.
+.sp
+The difference between the function
+.(l
+my-procedure-1 (MYBOXES.description, \*(lq0,0,1,1\*(rq::box)
+.)l
+.in .5i
+and the operator
+.(l
+MYBOXES.description AE \*(lq0,0,1,1\*(rq::box
+.)l
+.in .5i
+is that \*(PP attempts to optimize operators and can decide to 
+use an index to restrict the search space when operators are involved.
+However, there is no attempt to optimize functions, and they are performed
+by brute force.  Moreover, functions can have any number of arguments
+while operators are restricted to one or two.
+.sp
+.(b
+.uh EXAMPLE
+.lp
+.nf
+/* The following command defines a new operator, area-equality,
+   for the BOX data type. */
+
+define operator AE (
+	procedure = area-equal-procedure,
+	precedence = 30,
+	associativity = left,
+	commutator = AE,
+	negator = ANE,
+	restrict = area-restriction-procedure,
+	hashes,
+	join = area-join-procedure,
+	sort = ALT, ALT)
+.\"	arg is (box, box)
+.)b
+.uh "SEE ALSO"
+.lp
+remove operator(commands).
+.uh BUGS
+.lp
+Operator names cannot be composed of alphabetic
+characters in Version 2.
+Operator precedence and associativity are not implemented in Version 2.

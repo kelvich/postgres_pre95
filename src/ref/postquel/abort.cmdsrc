@@ -1,0 +1,18 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP ABORT COMMANDS 6/14/90
+.XA 2 Abort
+.uh NAME
+.lp
+abort \*- abort the current transaction
+.uh SYNOPSIS
+.lp
+.b abort
+.uh DESCRIPTION
+.lp
+This command aborts the current transaction and causes all the
+updates made by the transaction to be discarded.   
+.uh "SEE ALSO"
+.lp
+begin(commands),
+end(commands).

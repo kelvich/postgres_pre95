@@ -1,0 +1,33 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP "REMOVE RULE" COMMANDS 6/14/90
+.XA 2 "Remove Rule"
+.uh NAME
+.lp
+remove rule \- removes a current rule from POSTGRES 
+.uh SYNOPSIS
+.lp
+.b "remove rule
+rule_name
+.uh DESCRIPTION
+.lp
+This command drops the rule named rule_name
+from the POSTGRES system.
+POSTGRES will immediately cease enforcing
+it and will purge its definition from the system catalogs.
+.uh EXAMPLE
+.sp
+.in .5i
+.nf
+/* This example drops the rule example_1 */
+.sp
+   remove rule example_1
+	
+.fi
+.uh "SEE ALSO"
+.lp
+definerule (commands).
+.uh BUGS
+.lp
+Once a rule is dropped, access to historical information
+the rule has written may disappear.

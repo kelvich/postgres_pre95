@@ -1,0 +1,63 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP "DEFINE AGGREGATE" COMMANDS 6/14/90
+.XA 2 "Define Aggregate"
+.uh NAME
+.lp
+define aggregate \*- define a new aggregate
+.uh SYNOPSIS
+.lp
+.b "define aggregate"
+agg-name [
+.b as
+]
+.b (
+state-transition-function, final-calculation-function
+.b )
+.uh DESCRIPTION
+.lp
+An aggregate consists of two functions, a
+.i "state transition"
+function, T:
+.(l
+T( internal-state, next-data_item) ---> next-internal-state
+.)l
+.lp
+and a
+.b "final calculation"
+function, C:
+.(l
+C(internal-state) ---> aggregate-value
+.)l
+.lp
+These functions are required to have the following three properties:
+.np
+The output of state-transition-function and the input 
+of final-calculation-function must be the same type, S.
+.np
+The output of final-calculation-function can be of arbitrary type.
+.np
+The input to state-transition-function must include as its first 
+argument a value of type S.  The other arguments must match the 
+data types of the object being aggregated.
+.uh EXAMPLE
+.lp
+The
+.i average
+aggregate could consist of a state
+transition function which uses as its state the sum computed so far
+and the number of values seen so far.
+It might accept a new employee salary,
+increment the count, and add the new salary to
+produce the next state.  The state transition function must also
+be able to initialize correctly when passed a null current state.
+The final calculation function divides the sum by the count to produce the
+final answer.
+.lp
+/* Define an aggregate for average */
+.lp
+define aggregate avg as (add-new-value-function, divide-by-total-function)
+.uh BUGS
+.lp
+Define aggregate
+is not implemented in Version 2.

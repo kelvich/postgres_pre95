@@ -1,0 +1,36 @@
+.\" XXX standard disclaimer belongs here....
+.\" $Header$
+.SP "REMOVE TYPE" COMMANDS 6/14/90
+.XA 2 "Remove Type"
+.uh NAME
+.lp
+remove type \*- remove a user-defined type from the system catalogs
+.uh SYNOPSIS
+.lp
+.b "remove type"
+typename
+.uh DESCRIPTION
+.lp
+This command removes a user type
+from the system catalogs.
+Anyone is allowed to remove a type,
+and removal of types in use by a relation will not be refused.
+Be careful not to remove a built-in type.
+.lp
+It is the user's responsibility to remove any operators and
+functions that use a deleted type.
+.uh EXAMPLE
+.lp
+.nf
+/* remove the box type */
+
+   remove type box
+.fi
+.uh "SEE ALSO"
+.lp
+introduction(postquel),
+definetype(commands),
+removeoperator(commands).
+.uh "BUGS"
+.lp
+This command should only be available to the definer of the type.
