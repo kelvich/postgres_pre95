@@ -1051,10 +1051,17 @@ RelationIdInvalidateRelationCacheByRelationId(relationId)
  * --------------------------------
  */
 private void
-RelationFlushIndexes(relation, accessMethodId)
-    Relation	relation;
+RelationFlushIndexes(r, accessMethodId)
+    Relation	*r;
     ObjectId	accessMethodId;
 {
+    Relation relation = *r;
+
+    if (!RelationIsValid(relation)) {
+	elog(NOTICE, "inval call to RFI");
+	return;
+    }
+
     if (relation->rd_rel->relkind == 'i' &&	/* XXX style */
 	(!ObjectIdIsValid(accessMethodId) ||
 	 relation->rd_rel->relam == accessMethodId))
@@ -1070,8 +1077,21 @@ void
 RelationIdInvalidateRelationCacheByAccessMethodId(accessMethodId)
     ObjectId	accessMethodId;
 {
+# if 0
+    /*
+     *  25 aug 1992:  mao commented out the ht walk below.  it should be
+     *  doing the right thing, in theory, but flushing reldescs for index
+     *  relations apparently doesn't work.  we want to cut 4.0.1, and i
+     *  don't want to introduce new bugs.  this code never executed before,
+     *  so i'm turning it off for now.  after the release is cut, i'll
+     *  fix this up.
+     */
+
     HashTableWalk(RelationNameCache, RelationFlushIndexes,
 		  accessMethodId);
+# else
+    return;
+# endif
 }
  
 /* --------------------------------
