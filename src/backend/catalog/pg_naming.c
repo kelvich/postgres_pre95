@@ -326,7 +326,7 @@ int LOisdir(path)
      char *path;
 {
     oid oidf;
-    char ignoretype;
+    int ignoretype;
     oidf = FilenameToOID(path);
 
     if (oidf == InvalidObjectId)
