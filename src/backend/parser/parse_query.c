@@ -297,7 +297,7 @@ ExpandAll(relname,this_resno)
 
 		attrname = (char *) palloc (sizeof(NameData)+1);
 		strcpy(attrname, (char *)(&rdesc->rd_att.data[i]->attname));
-		temp = make_var ( relname, (Name) attrname ,LispNil);
+		temp = make_var ( relname, (Name) attrname);
 		varnode = (Var)CDR(temp);
 		type_id = CInteger(CAR(temp));
 		type_len = (int)tlen(get_id_type(type_id));
@@ -487,9 +487,8 @@ make_concat_var ( list_of_varnos , attid , vartype, vardotfields,
  **********************************************************************/
 
 LispValue
-make_var ( relname, attrname,dots)
+make_var ( relname, attrname)
      Name relname, attrname;
-     List dots;
 {
     Var varnode;
     int vnum, attid, vartype;
@@ -521,10 +520,8 @@ make_var ( relname, attrname,dots)
     rd = amopenr ( relname );
     relid = RelationGetRelationId(rd);
     attid =  nf_varattno(rd, (char *) attrname);
-    if (attid == InvalidAttributeNumber) {
-	amclose(rd);
-	return HandleNestedDots(vnum, relid, attrname, dots);
-    }
+    if (attid == InvalidAttributeNumber) 
+      elog(WARN, "Invalid attribute %s\n", attrname);
     vartype = att_typeid ( rd , attid );
     rtype = get_id_type(vartype);
     vardotfields = LispNil;                          /* XXX - fix this */
