@@ -55,13 +55,13 @@
 #include "utils/log.h"
 
 /*
- *  if BMTRACE is defined, we trace the last 100 buffer allocations and
+ *  if BMTRACE is defined, we trace the last 200 buffer allocations and
  *  deallocations in a circular buffer in shared memory.
  */
 #ifdef	BMTRACE
 bmtrace	*TraceBuf;
 int	*CurTraceBuf;
-#define	BMT_LIMIT	100
+#define	BMT_LIMIT	200
 #endif /* BMTRACE */
 
 int		NBuffers = NDBUFS;  /* NDBUFS defined in miscadmin.h */
@@ -373,7 +373,7 @@ bool		bufferLockHeld;
       }
     }
 #ifdef BMTRACE
-    _bm_trace(reln->rd_id, blockNum, BufferDescriptorGetBuffer(buf), BMT_ALLOC);
+    _bm_trace((reln->rd_rel->relisshared ? 0 : MyDatabaseId), reln->rd_id, blockNum, BufferDescriptorGetBuffer(buf), BMT_ALLOCFND);
 #endif BMTRACE
 
     SpinRelease(BufMgrLock);
@@ -460,7 +460,7 @@ bool		bufferLockHeld;
 #endif
 
 #ifdef BMTRACE
-  _bm_trace(reln->rd_id, blockNum, BufferDescriptorGetBuffer(buf), BMT_ALLOC);
+  _bm_trace((reln->rd_rel->relisshared ? 0 : MyDatabaseId), reln->rd_id, blockNum, BufferDescriptorGetBuffer(buf), BMT_ALLOCNOTFND);
 #endif BMTRACE
 
   SpinRelease(BufMgrLock);
@@ -1539,7 +1539,8 @@ BlockNumber blockNum;
  *  and die if there's anything fishy.
  */
 
-_bm_trace(relId, blkNo, bufNo, allocType)
+_bm_trace(dbId, relId, blkNo, bufNo, allocType)
+    long dbId;
     long relId;
     int blkNo;
     int bufNo;
@@ -1555,40 +1556,38 @@ _bm_trace(relId, blkNo, bufNo, allocType)
     start = *CurTraceBuf;
 
     if (start > 0)
-	cur = BMT_LIMIT - 1;
-    else
 	cur = start - 1;
+    else
+	cur = BMT_LIMIT - 1;
 
     for (;;) {
 	tb = &TraceBuf[cur];
-	if (tb->bmt_op == BMT_NOTUSED)
-	    break;
-
-	if (tb->bmt_buf == bufNo) {
-	    if (tb->bmt_dbid == MyDatabaseId && tb->bmt_relid == relId
-		&& tb->bmt_blkno == blkNo) {
-		break;
-	    } else {
-
-		if (tb->bmt_op == BMT_DEALLOC)
-		    break;
+	if (tb->bmt_op != BMT_NOTUSED) {
+	    if (tb->bmt_buf == bufNo) {
+		if ((tb->bmt_op == BMT_DEALLOC)
+		    || (tb->bmt_dbid == dbId && tb->bmt_relid == relId
+			&& tb->bmt_blkno == blkNo))
+		    goto okay;
 
 		/* die holding the buffer lock */
-		_bm_die(relId, blkNo, bufNo, allocType, start, cur);
+		_bm_die(dbId, relId, blkNo, bufNo, allocType, start, cur);
 	    }
 	}
 
 	if (cur == start)
-	    break;
+	    goto okay;
 
-	if (--cur < 0)
+	if (cur == 0)
 	    cur = BMT_LIMIT - 1;
+	else
+	    cur--;
     }
 
+okay:
     tb = &TraceBuf[start];
     tb->bmt_pid = mypid;
     tb->bmt_buf = bufNo;
-    tb->bmt_dbid = MyDatabaseId;
+    tb->bmt_dbid = dbId;
     tb->bmt_relid = relId;
     tb->bmt_blkno = blkNo;
     tb->bmt_op = allocType;
@@ -1598,7 +1597,8 @@ _bm_trace(relId, blkNo, bufNo, allocType)
 
 #include <signal.h>
 
-_bm_die(relId, blkNo, bufNo, allocType, start, cur)
+_bm_die(dbId, relId, blkNo, bufNo, allocType, start, cur)
+    long dbId;
     long relId;
     int blkNo;
     int bufNo;
@@ -1616,7 +1616,7 @@ _bm_die(relId, blkNo, bufNo, allocType, start, cur)
 	elog(FATAL, "buffer alloc trace error and can't open log file");
 
     fprintf(fp, "buffer alloc trace detected the following error:\n\n");
-    fprintf(fp, "\tbuffer %d being %s inconsistently with a previous %s\n\n",
+    fprintf(fp, "    buffer %d being %s inconsistently with a previous %s\n\n",
 	    bufNo, (allocType == BMT_ALLOC ? "allocated" : "deallocated"),
 	    (tb->bmt_op == BMT_ALLOC ? "allocation" : "deallocation"));
 
@@ -1626,8 +1626,8 @@ _bm_die(relId, blkNo, bufNo, allocType, start, cur)
     for (;;) {
 	tb = &TraceBuf[i];
 	if (tb->bmt_op != BMT_NOTUSED) {
-	    fprintf(fp, "    [%2d]%spid %d buf %d for <%d,%d,%d> %s%s\n",
-		    i, (i == cur ? "   ---> " : "\t"),
+	    fprintf(fp, "     [%3d]%spid %d buf %2d for <%d,%d,%d> %s\n",
+		    i, (i == cur ? " ---> " : "\t"),
 		    tb->bmt_pid, tb->bmt_buf,
 		    tb->bmt_dbid, tb->bmt_relid, tb->bmt_blkno,
 		    (tb->bmt_op == BMT_ALLOC ? "allocate" : "deallocate"));
@@ -1640,7 +1640,7 @@ _bm_die(relId, blkNo, bufNo, allocType, start, cur)
 
     fprintf(fp, "\noperation causing error:\n");
     fprintf(fp, "\tpid %d buf %d for <%d,%d,%d> %s\n",
-	    getpid(), bufNo, MyDatabaseId, relId, blkNo,
+	    getpid(), bufNo, dbId, relId, blkNo,
 	    (allocType == BMT_ALLOC ? "allocate" : "deallocate"));
 
     (void) fclose(fp);

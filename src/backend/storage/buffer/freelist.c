@@ -52,7 +52,7 @@ AddBufferToFreelist(bf)
 BufferDesc *bf;
 {
 #ifdef BMTRACE
-  _bm_trace(bf->tag.relId.relId, bf->tag.blockNum,
+  _bm_trace(bf->tag.relId.dbId, bf->tag.relId.relId, bf->tag.blockNum,
 	    BufferDescriptorGetBuffer(bf), BMT_DEALLOC);
 #endif /* BMTRACE */
   NotInQueue(bf);
