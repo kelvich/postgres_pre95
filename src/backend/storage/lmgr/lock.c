@@ -422,13 +422,6 @@ LOCKT		lockt;
     bzero((char *)result->holders,sizeof(int)*MAX_LOCKTYPES);
   }
 
-  /* -----------------
-   * nHolding tells how many have tried to acquire the lock.
-   *------------------
-   */
-  lock->nHolding++;
-  lock->holders[lockt]++;
-
   /* --------------------
    * If I'm the only one holding a lock, then there
    * cannot be a conflict.  Need to subtract one from the
@@ -436,7 +429,7 @@ LOCKT		lockt;
    * above.
    * --------------------
    */
-  if (result->nHolding == (lock->nHolding - 1))
+  if (result->nHolding == lock->nHolding)
   {
     result->holders[lockt]++;
     result->nHolding++;
@@ -445,14 +438,22 @@ LOCKT		lockt;
     return(TRUE);
   }
 
-  Assert(result->nHolding < lock->nHolding);
+  Assert(result->nHolding <= lock->nHolding);
   status = LockResolveConflicts(ltable, lock, lockt, myXid);
   if (status == STATUS_OK)
   {
     GrantLock(lock, lockt);
   }
   else if (status == STATUS_FOUND)
+  {
+    /* -----------------
+     * nHolding tells how many have tried to acquire the lock.
+     *------------------
+     */
+    lock->nHolding++;
+    lock->holders[lockt]++;
     status = WaitOnLock(ltable, tableId, lock, lockt);
+  }
 
   SpinRelease(masterLock);
 
@@ -555,7 +556,7 @@ TransactionId	xid;
    * ------------------------
    */
   bitmask = 0;
-  tmpMask = 1;
+  tmpMask = 2;
   for (i=1;i<=nLockTypes;i++, tmpMask <<= 1)
   {
     if (lock->holders[i] - myHolders[i])
@@ -794,12 +795,8 @@ GrantLock(lock, lockt)
 LOCK 	*lock;
 LOCKT	lockt;
 {
-/*  This is now done before we actually attempt to get the lock in
- *  in LockAcquire()
- *
- *  lock->nHolding++;
- *  lock->holders[lockt]++;
- */
+  lock->nHolding++;
+  lock->holders[lockt]++;
   lock->nActive++;
   lock->activeHolders[lockt]++;
   lock->mask |= BITS_ON[lockt];
@@ -1005,7 +1002,7 @@ SHM_QUEUE	*lockQueue;
       lock->nHolding -= xidLook->nHolding;
       lock->nActive -= xidLook->nHolding;
       Assert(lock->nActive >= 0);
-      for (i=0;i<nLockTypes;i++)
+      for (i=1; i<=nLockTypes; i++)
       {
 	lock->holders[i] -= xidLook->holders[i];
 	lock->activeHolders[i] -= xidLook->holders[i];
