@@ -142,17 +142,6 @@ MACHINE=i386
 #
 
 #
-# Comment out USE_DLD if you do not use the GNU DLD package for
-# dynamic loading.
-#
-#	XXX GNU DLD is currently only supported for the MIPS/Ultrix4 and
-#	    SPARC/SunOS4 ports!
-#
-.if (${PORTNAME} == "ultrix4" || ${PORTNAME} == "sparc")
-#USE_DLD=
-.endif
-
-#
 # Comment out ENFORCE_ALIGNMENT if you do NOT want unaligned access to
 # multi-byte types to generate a bus error.
 #
