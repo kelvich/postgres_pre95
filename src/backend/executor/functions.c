@@ -61,9 +61,9 @@ ProjectAttribute(TD, tlist, tup,isnullP)
 				     TD,
 				     isnullP);
     valueP = datumCopy(val,
-		       TD->data[0]->atttypid,
-		       TD->data[0]->attbyval,
-		       (Size) TD->data[0]->attlen);
+		       TD->data[attrno-1]->atttypid,
+		       TD->data[attrno-1]->attbyval,
+		       (Size) TD->data[attrno-1]->attlen);
     return valueP;
 }
 
