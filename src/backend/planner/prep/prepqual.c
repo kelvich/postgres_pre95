@@ -597,15 +597,15 @@ update_relations (tlist)
 {
      LispValue xtl = LispNil;
      LispValue var = LispNil;
-     LispValue t_list1 = LispNil;
+     LispValue t_list1 = LispNil;    /* used in mapcan  */
      LispValue t_list2 = LispNil;
 
      /* was mapCAR nested with mapcan  */
      foreach(xtl,tlist) 
-       t_list1 = nappend1(t_list1,pull_var_clause(tl_expr(xtl)));
+       t_list1 = nconc (t_list1,pull_var_clause(tl_expr(xtl)));
      foreach(var,t_list1) 
-	  t_list2 = nappend1(t_list2,get_varno(var));
-     remove_duplicates (t_list2);
+       t_list2 = nappend1(t_list2,get_varno(var));
+     return(remove_duplicates (t_list2));
 
 } /* function end  */
 
