@@ -71,6 +71,7 @@ int		NBuffers = 16;
 time_t		tim;
 bool 		override = false;
 int		EchoQuery = 0;		/* default don't echo */
+char pg_pathname[256];
 
 /* ----------------
  *	people who want to use EOF should #define DONTUSENEWLINE in
@@ -533,21 +534,44 @@ pg_eval( query_string )
     } /* foreach parsetree in parsetree_list */
 
 } /* pg_eval */
-
+    
 /* ----------------------------------------------------------------
- *	ProcessPostgresArguments
- *
- *	This routine is solely responsible for setting parameters
- *	dependent on the command line arguments.  It does no other
- *	initialization -- that kind of thing is done by the
- *	InitializePostgres() function.
+ *			postgres main loop
  * ----------------------------------------------------------------
  */
+
+/* --------------------------------
+ *	signal handler routines used in PostgresMain()
+ *
+ *	handle_warn() is used to catch kill(getpid(),1) which
+ *	occurs when elog(WARN) is called.
+ *
+ *	die() preforms an orderly cleanup via ExitPostgres()
+ * --------------------------------
+ */
+
 void
-ProcessPostgresArguments(argc, argv)
-    int	  argc;
-    char  *argv[];
+handle_warn()
 {
+    longjmp(Warn_restart,1);
+}
+
+void
+die()
+{
+    ExitPostgres(0);
+}
+
+/* --------------------------------
+ *	PostgresMain
+ * --------------------------------
+ */
+
+PostgresMain(argc, argv)
+    int	argc;
+    char	*argv[];
+{
+    register 	int	i;
     int			flagC;
     int			flagQ;
     int			flagM;
@@ -558,14 +582,26 @@ ProcessPostgresArguments(argc, argv)
     int			numslaves;
     int			errs = 0;
     char		*DatabaseName;
-    extern char		*DBName;  /* a global name for current database */
+    extern char		*DBName;	/* a global name for current database */
     
     extern	int	Noversion;		/* util/version.c */
+    extern	int	Quiet;
+    extern	jmp_buf	Warn_restart;
     extern	int	optind;
     extern	char	*optarg;
-    
-    int		setjmp();
+    int		setjmp(), chdir();
     char	*getenv();
+    char	parser_input[MAX_PARSE_BUFFER];
+    int		empty_buffer = 0;	
+    
+    /* ----------------
+     * 	register signal handlers.
+     * ----------------
+     */
+
+    signal(SIGHUP, die);
+    signal(SIGINT, die);
+    signal(SIGTERM, die);
     
     /* ----------------
      *	parse command line arguments
@@ -696,13 +732,8 @@ ProcessPostgresArguments(argc, argv)
 	  errs += 1;
       }
 
-    /* ----------------
-     *	check for errors and get the database name
-     * ----------------
-     */
     if (errs || argc - optind > 1) {
-	fputs("Usage: postgres [-C] [-M #] [-O] [-Q] [-N] [datname]\n",
-	      stderr);
+	fputs("Usage: postgres [-C] [-M #] [-O] [-Q] [-N] [datname]\n", stderr);
 	fputs("	-C   =  ??? \n", stderr);
 	fputs(" -M # =  Enable Parallel Query Execution\n", stderr);
 	fputs("          (# is number of slave backends)\n", stderr);
@@ -712,14 +743,15 @@ ProcessPostgresArguments(argc, argv)
 	fputs(" -N   =  use ^D as query delimiter\n", stderr);
 	fputs(" -E   =  echo the query entered\n", stderr);
 	exitpg(1);
-	
     } else if (argc - optind == 1) {
 	DBName = DatabaseName = argv[optind];
     } else if ((DBName = DatabaseName = getenv("USER")) == NULL) {
 	fputs("amiint: failed getenv(\"USER\") and no database specified\n");
 	exitpg(1);
     }
-    
+
+	get_pathname(argv, pg_pathname);
+
     Noversion = flagC;
     Quiet = flagQ;
     EchoQuery = flagE;
@@ -745,71 +777,9 @@ ProcessPostgresArguments(argc, argv)
     
     if (! Quiet && ! override)
 	puts("\t**** Transaction System Active ****");
-}
-/* ----------------------------------------------------------------
- *	InitializePostgres
- *
- *	This routine should only be called once (by the "master"
- *  	backend).  Put "re-initialization" type stuff someplace else!
- *  	-cim 10/3/90
- * ----------------------------------------------------------------
- */
-bool InitializePostgresCalled = false;
-
-void
-InitializePostgres(DatabaseName)
-    String    DatabaseName;	/* name of database to use */
-{
-    /* ----------------
-     *	sanity checks
-     *
-     *  Note: we can't call elog yet..
-     * ----------------
-     */
-    if (InitializePostgresCalled) {
-	fprintf(stderr, "InitializePostgresCalled more than once!\n");
-	exitpg(1);
-    } else
-	InitializePostgresCalled = true;
-
-    /* ----------------
-     *	set processing mode appropriately depending on weather or
-     *  not we want the transaction system running.  When the
-     *  transaction system is not running, all transactions are
-     *  assumed to have successfully committed and we never go to
-     *  the transaction log.
-     *
-     *  The way things seem to work: we start in InitProcessing and
-     *  change to NormalProcessing after InitPostgres() is done.  But
-     *  if we run with the wierd override flag, then it means we always
-     *  run in "BootstrapProcessing" mode.
-     *
-     * XXX the -C version flag should be removed and combined with -O
-     * ----------------
-     */
-    SetProcessingMode((override) ? BootstrapProcessing : InitProcessing);
-
-    /* ----------------
-     *	if fmgr() is called and the desired function is not
-     *  in the builtin table, then we call the desired function using
-     *  the routine registered in EnableDynamicFunctionManager().
-     *  That routine (fmgr_dynamic) is expected to dynamically
-     *  load the desired function and then call it.
-     *
-     *  dynamic loading only works after EnableDynamicFunctionManager()
-     *  is called.
-     *
-     *  XXX Why can't this go in InitPostgres?? -cim 10/5/90
-     * ----------------
-     */
-    if (! Quiet)
-	puts("\tEnableDynamicFunctionManager()..");
-    EnableDynamicFunctionManager(fmgr_dynamic);
-        	
+    
     /* ----------------
      *	initialize portal file descriptors
-     *
-     *  XXX Why can't this go in InitPostgres?? -cim 10/5/90
      * ----------------
      */
     if (IsUnderPostmaster == true) {
@@ -821,28 +791,45 @@ InitializePostgres(DatabaseName)
 	pinit();
     }
     
-    /* ****************************************************
-     *	InitPostgres()
+    /* ----------------
+     *	set processing mode appropriately depending on weather or
+     *  not we want the transaction system running.  When the
+     *  transaction system is not running, all transactions are
+     *  assumed to have successfully committed and we never go to
+     *  the transaction log.
+     * ----------------
+     */
+    /* XXX the -C version flag should be removed and combined with -O */
+    SetProcessingMode((override) ? BootstrapProcessing : InitProcessing);
+    
+    /* ----------------
+     *	if fmgr() is called and the desired function is not
+     *  in the builtin table, then we call the desired function using
+     *  the routine registered in EnableDynamicFunctionManager().
+     *  That routine (fmgr_dynamic) is expected to dynamically
+     *  load the desired function and then call it.
      *
-     *  Do all the general initialization.  Anything that can be
-     *  done more than once should go in InitPostgres().  Note:
-     *  InitPostgres is also used by the various support/ programs
-     *  so it has to be linked in with cinterface.a.  Someday this
-     *  should be fixed and then InitPostgres moved closer to here.
-     * ****************************************************
+     *  dynamic loading only works after EnableDynamicFunctionManager()
+     *  is called.
+     * ----------------
+     */
+    if (! Quiet)
+	puts("\tEnableDynamicFunctionManager()..");
+    EnableDynamicFunctionManager(fmgr_dynamic);
+    
+    /* ----------------
+     *	InitPostgres()
+     * ----------------
      */
     if (! Quiet)
 	puts("\tInitPostgres()..");
-    InitPostgres(DatabaseName);
+    InitPostgres(NULL, DatabaseName);
 
     /* ----------------
      *  Initialize the Master/Slave shared memory allocator,
      *	fork and initialize the parallel slave backends, and
      *  register the Master semaphore/shared memory cleanup
      *  procedures.
-     *
-     *  This may *NOT* happen more than once so we can't
-     *  put this in InitPostgres() -cim 10/5/90
      * ----------------
      */
     if (ParallelExecutorEnabled()) {
@@ -862,121 +849,6 @@ InitializePostgres(DatabaseName)
 	ExecSemaphoreOnExit(IPCPrivateSemaphoreKill);
 	ExecSharedMemoryOnExit(IPCPrivateMemoryKill);
     }
-}
-
-/* ----------------
- *	ShowSessionStatistics prints some information after
- *	the user's query has been processed.
- * ----------------
- */
-void
-ShowSessionStatistics()
-{
-#ifdef TCOP_SHOWSTATS
-    /* ----------------
-     *  display the buffer manager statistics
-     * ----------------
-     */
-    if (_show_stats_after_query_ > 0) {
-	if (! Quiet)
-	    PrintAndFreeBufferStatistics(GetBufferStatistics());
-	if (_reset_stats_after_query_ > 0)
-	    ResetBufferStatistics();
-    }
-	
-    /* ----------------
-     *  display the heap access statistics
-     * ----------------
-     */
-    if (_show_stats_after_query_ > 0) {
-	if (! Quiet)
-	    PrintAndFreeHeapAccessStatistics(GetHeapAccessStatistics());
-	if (_reset_stats_after_query_ > 0)
-	    ResetHeapAccessStatistics();
-    }
-#endif TCOP_SHOWSTATS
-}
-
-/* ----------------------------------------------------------------
- *			postgres main loop
- * ----------------------------------------------------------------
- */
-
-/* --------------------------------
- *	signal handler routines used in PostgresMain()
- *
- *	handle_warn() is used to catch kill(getpid(),1) which
- *	occurs when elog(WARN) is called.
- *
- *	die() preforms an orderly cleanup via ExitPostgres()
- * --------------------------------
- */
-
-void
-handle_warn()
-{
-    longjmp(Warn_restart,1);
-}
-
-void
-die()
-{
-    ExitPostgres(0);
-}
-
-/* --------------------------------
- *	PostgresMain
- * --------------------------------
- */
-
-PostgresMain(argc, argv)
-    int	argc;
-    char	*argv[];
-{
-    int		i;
-    extern	jmp_buf	Warn_restart;
-    int		setjmp();
-    char	parser_input[MAX_PARSE_BUFFER];
-    int		empty_buffer = 0;	
-    extern char	*DBName;  /* a global name for current database */
-    
-    /* ----------------
-     * 	register signal handlers.
-     * ----------------
-     */
-    signal(SIGHUP, die);
-    signal(SIGINT, die);
-    signal(SIGTERM, die);
-    
-    /* ----------------
-     * 	ProcessPostgresArguments() is responsible for setting
-     *  parameters dependent on the command line arguments.  It does
-     *  not do any other initialization
-     * ----------------
-     */
-    ProcessPostgresArguments(argc, argv);
-    
-    /* ----------------
-     *	InitializePostgres() is responsible for doing all initialization
-     *  between ProcessPostgresArguments() and the installation of
-     *  the signal handler below.  Anyone tempted to put code between
-     *  those places should put it in InitializePostgres instead!  This
-     *  currently initializes:
-     *
-     *	- portal file descriptors	-->	pinit()
-     *  - the processing mode		-->	SetProcessingMode()
-     *  - dynamic function manager	-->	EnableDynamicFunctionManager()
-     *	- stuff done by InitPostgres	-->	InitPostgres
-     *  - parallel backend stuff	-->	InitParallelBackends()
-     *
-     *	and other misc stuff.	Note: we cannot call elog() until after
-     *  InitializePostgres() because it initializes the Exception handler
-     *  stuff, among other things. -cim 10/3/90
-     * ----------------
-     */
-    if (! Quiet)
-	puts("\tInititializePostgres()..");
-    InitializePostgres(DBName);
     
     /* ----------------
      *	if an exception is encountered, processing resumes here
@@ -1004,8 +876,8 @@ PostgresMain(argc, argv)
 	    if (! Quiet)
 		printf("\tAbortCurrentTransaction() at %s\n", ctime(&tim));
 
-	    for (i = 0; i<MAX_PARSE_BUFFER; i++) 
-		parser_input[i] = 0;
+	    for ( i = 0 ; i < MAX_PARSE_BUFFER ; i++ ) 
+	      parser_input[i] = 0;
 
 	    AbortCurrentTransaction();
 	}
@@ -1019,6 +891,15 @@ PostgresMain(argc, argv)
 	puts("\nPOSTGRES backend interactive interface");
 	puts("$Revision$ $Date$");
     }
+
+    /* ----------------
+     * if stable main memory is assumed (-S flag is set), it is necessary
+     * to flush all dirty shared buffers before exit
+     * plai 8/7/90
+     * ----------------
+     */
+    if (!TransactionFlushEnabled())
+        on_exitpg(BufferManagerFlush, (caddr_t) 0);
 
     for (;;) {
 	/* ----------------
@@ -1093,10 +974,40 @@ PostgresMain(argc, argv)
 	    NullCommand();
 	}
 
+#ifdef TCOP_SHOWSTATS
 	/* ----------------
-	 *   print some statistics, if user desires.
+	 *  display the buffer manager statistics
 	 * ----------------
 	 */
-	ShowSessionStatistics();
+	if (_show_stats_after_query_ > 0) {
+	    if (! Quiet)
+		PrintAndFreeBufferStatistics(GetBufferStatistics());
+	    if (_reset_stats_after_query_ > 0)
+		ResetBufferStatistics();
+	}
+	
+	/* ----------------
+	 *  display the heap access statistics
+	 * ----------------
+	 */
+	if (_show_stats_after_query_ > 0) {
+	    if (! Quiet)
+		PrintAndFreeHeapAccessStatistics(GetHeapAccessStatistics());
+	    if (_reset_stats_after_query_ > 0)
+		ResetHeapAccessStatistics();
+	}
+#endif TCOP_SHOWSTATS
     }
+}
+
+get_pathname(argv, bufp)
+
+char **argv;
+char *bufp;
+
+{
+
+	getwd(bufp);
+	sprintf(bufp, "%s/%s", bufp, argv[0]);
+	printf("%s\n", bufp);
 }
