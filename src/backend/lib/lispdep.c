@@ -818,7 +818,7 @@ LispUnion(foo,bar)
 }
 
 LispValue
-remove (foo,bar)
+LispRemove (foo,bar)
      LispValue foo;
      List bar;
 {
