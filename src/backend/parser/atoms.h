@@ -16,5 +16,6 @@ typedef struct ScanKeyword {
 } ScanKeyword;
 
 extern ScanKeyword	*ScanKeywordLookup ();
+extern String		AtomValueGetString();
 extern ScanKeyword	ScanKeywords[];
 

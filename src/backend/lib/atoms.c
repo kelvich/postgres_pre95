@@ -20,6 +20,7 @@ RcsId("$Header$");
 #include "atoms.h"
 #include "ctype.h"
 #include "parse.h"
+#include "log.h"
 
 ScanKeyword	ScanKeywords[] = {
 	/* name			value		*/
@@ -128,3 +129,20 @@ ScanKeywordLookup(text)
 
 	return (NULL);
 }
+
+String
+AtomValueGetString ( atomval )
+     int atomval;
+{
+    ScanKeyword *low = &ScanKeywords[0];
+    ScanKeyword *high = endof(ScanKeywords) - 1;
+    int keyword_list_length = (high-low);
+    int i;
+
+    for (i=0; i < keyword_list_length  ; i++ )
+      if (ScanKeywords[i].value == atomval )
+	return(ScanKeywords[i].name);
+    
+    elog(WARN,"AtomGetString called with bogus atom # : %d", atomval );
+}
+
