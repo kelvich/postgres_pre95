@@ -7,7 +7,7 @@ static char *catalog_utils_c = "$Header$";
 #include "fmgr.h"
 #include "syscache.h"
 #include "exceptions.h"
-
+#include "catalog.h"
 
 struct {
     char *field;
@@ -241,14 +241,16 @@ varattno ( rd , a)
 }
 
 /* given range variable, return id of variable */
-RangeTablePosn ( rangevar , inherit , timerange)
+RangeTablePosn ( rangevar , options )
      char *rangevar;
-     int inherit,timerange;
+     List options;
 {
 	int index = 1;
 	extern LispValue p_rtable;
 	LispValue temp = p_rtable;
-	
+	int inherit = 0;
+	int timerange = 0;
+
 	/*printf("Looking for relation : %s\n",rangevar);
 	fflush(stdout);*/
 	/* search thru aliases
@@ -276,26 +278,8 @@ RangeTablePosn ( rangevar , inherit , timerange)
 		return(0);
 }
 
-/* Given a range variable name, reutrn associated reldesc pointer 
-Relation
-get_rgdesc(rg)
-char *rg;
-{
-    struct r_table *crt = RangeTable;
-    int index;
-
-    while (crt != NULL) {
-	if (!strcmp(rg, crt->var_name)) {
-	    return(crt->rdesc);
-	}
-	crt = crt->next;
-    }
-    index = add_rel_rt(rg);
-
-    return(get_rgdesc(rg));
-}
-*/
 /* Given a typename and value, returns the ascii form of the value */
+
 char *
 outstr(typename, value)
 char *typename;	/* Name of type of value */
@@ -342,3 +326,36 @@ char *string;
     tp = (TypeTupleForm) GETSTRUCT(type(typename));
     return(instr1(tp, string));
 }
+
+OID
+funcname_get_rettype ( function_name )
+     char *function_name;
+{
+    HeapTuple func_tuple = NULL;
+    OID funcrettype = (OID)0;
+
+    func_tuple = SearchSysCacheTuple(PRONAME,function_name,0,0,0);
+
+    if ( !HeapTupleIsValid ( func_tuple )) 
+	elog (WARN, "function named %s does not exist", function_name);
+    
+    funcrettype = (OID)
+      ((struct proc *)GETSTRUCT(func_tuple))->prorettype ;
+
+    return (funcrettype);
+}
+
+OID
+funcname_get_funcid ( function_name )
+     char *function_name;
+{
+    HeapTuple func_tuple = NULL;
+
+    func_tuple = SearchSysCacheTuple(PRONAME,function_name,0,0,0);
+
+    if ( func_tuple != NULL )
+      return ( ((struct tuple *)func_tuple)->t_oid );
+    else
+      return ( (OID) 0 );
+}
+
