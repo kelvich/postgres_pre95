@@ -18,6 +18,16 @@ SLSUFF=.so
 .SUFFIXES: ${SLSUFF}
 .o${SLSUFF}:
 	${LD} -dc -dp -Bdynamic -o ${.TARGET} ${.ALLSRC}
+.elif (${PORTNAME} == "sparc_solaris")
+.  if (${CC} == "cc")
+CFLAGS+= -K PIC
+.  else
+CFLAGS+= -fPIC
+.  endif
+SLSUFF=.so
+.SUFFIXES: ${SLSUFF}
+.o${SLSUFF}:
+	${LD} -G -Bdynamic -o ${.TARGET} ${.ALLSRC}
 .elif (${PORTNAME} == "alpha")
 SLSUFF=.so
 .SUFFIXES: ${SLSUFF}
