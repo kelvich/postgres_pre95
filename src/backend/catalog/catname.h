@@ -38,8 +38,6 @@ extern Name	OperatorRelationName;
 extern Name	ProcedureArgumentRelationName;
 extern Name	ProcedureRelationName;
 extern Name	RelationRelationName;
-extern Name	RulePlansRelationName;
-extern Name	RuleRelationName;
 extern Name	ServerRelationName;
 extern Name	StatisticRelationName;
 extern Name	TimeRelationName;
@@ -49,6 +47,7 @@ extern Name	VariableRelationName;
 extern Name	VersionRelationName;
 extern Name	Prs2RuleRelationName;
 extern Name	Prs2PlansRelationName;
+extern Name	Prs2StubRelationName;
 
 /*
  * NameIsSystemRelationName --
