@@ -204,7 +204,7 @@ get_actual_tlist (tlist)
     LispValue result = LispNil;
     
     if (null(tlist)) {
-	elog(NOTICE,"calling get_actual_tlist with empty tlist");
+	elog(DEBUG,"calling get_actual_tlist with empty tlist");
 	return(LispNil);
     }
     /* XXX - it is unclear to me what exactly get_entry 
