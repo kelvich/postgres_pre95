@@ -158,11 +158,15 @@ btbuild(heap, index, natts, attnum, istrat, pcount, params, finfo, pred)
     /*
      *  Since we just counted the tuples in the heap, we update its
      *  stats in pg_class to guarantee that the planner takes advantage
-     *  of the index we just created.
+     *  of the index we just created. Finally, only update statistics
+     *  during normal index definitions, not for indices on system catalogs
+     *  created during bootstrap processing.
      */
-
-    UpdateStats(heap, nhtups);
-    UpdateStats(index, nitups);
+    if (IsNormalProcessingMode())
+    {
+	UpdateStats(heap, nhtups);
+	UpdateStats(index, nitups);
+    }
 
     /* be tidy */
     pfree(nulls);
