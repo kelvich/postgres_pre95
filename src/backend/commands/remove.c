@@ -324,7 +324,7 @@ RemoveFunction(functionName, nargs, argNameList)
 		    sizeof(NameData));
 	    argNameList = CDR(argNameList);
 	    
-	    if (strcmp(&typename, "wildcard") == 0)
+	    if (strcmp(&typename, "any") == 0)
 		argList[i] = 0;
 	    else {
 		tup = SearchSysCacheTuple(TYPNAME, &typename, NULL, NULL, NULL);

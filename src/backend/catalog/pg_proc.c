@@ -94,9 +94,9 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
 	if (parameterCount == 8)
 	    elog(WARN, "Procedures cannot take more than 8 arguments");
 
-	if (strcmp(CString(t), "wildcard") == 0) {
+	if (strcmp(CString(t), "any") == 0) {
 	    if (strcmp(languageName, "postquel") == 0) {
-		elog(WARN, "ProcedureDefine: postquel functions cannot take type wildcard");
+		elog(WARN, "ProcedureDefine: postquel functions cannot take type \"any\"");
 	    }
 	    else
 		toid = 0;
@@ -142,9 +142,9 @@ ProcedureDefine(procedureName, returnsSet, returnTypeName, languageName,
 
     languageObjectId = tup->t_oid;
 
-    if (strcmp(returnTypeName, "wildcard") == 0) {
+    if (strcmp(returnTypeName, "any") == 0) {
 	if (strcmp(languageName, "postquel") == 0) {
-	    elog(WARN, "ProcedureDefine: postquel functions cannot return wildcard");
+	    elog(WARN, "ProcedureDefine: postquel functions cannot return type \"any\"");
 	}
 	else
 	    typeObjectId = 0;
