@@ -220,7 +220,7 @@ postquel_execute(es, fcache, args)
 
     slot = postquel_getnext(es);
 
-    if (slot == (TupleTableSlot)NULL)
+    if (slot == (TupleTableSlot)NULL || (fcache->oneResult))
     {
 	postquel_end(es);
 	es->status = F_EXEC_DONE;
