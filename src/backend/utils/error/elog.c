@@ -144,10 +144,16 @@ char	*fmt;
  *
  *	Extract the installation home directory from the environment.
  */
+
+extern char	*PostgresHomes[];
+extern int	NStriping;
+
 char *
 GetDataHome()
 {
 	char		*home;
+	char		*p, *p1;
+	int		i;
 	extern char	*getenv();
 
 	home = getenv("POSTGRESHOME");
@@ -157,6 +163,16 @@ GetDataHome()
 	if (!StringIsValid(home)) {
 		home = DATAHOME;
 	}
+	if (!StringIsValid(home)) return NULL;
+	p = home;
+	i = 0;
+	while ((p1 = index(p, ':')) != NULL) {
+	   *p1 = '\0';
+	   PostgresHomes[i++] = p;
+	   p = p1 + 1;
+	 }
+	PostgresHomes[i++] = p;
+	NStriping = i;
 	return(home);
 }
 

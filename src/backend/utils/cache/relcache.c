@@ -271,18 +271,10 @@ RelationIdGetRelation(relationId)
 	if (!RelationIsValid(rd))
 	    rd = (Relation) KeyHashTableLookup(GlobalIdCache, relationId);
 	if (RelationIsValid(rd)) {
-#ifdef _xprs_
-        if (rd -> rd_fd.fd[0] == -1) {
-#else                           /* _xprs_ */
             if (rd -> rd_fd == -1) {
-#endif                          /* _xprs_ */
                 rd -> rd_fd = relopen (&rd -> rd_rel -> relname,
                         O_RDWR | O_CREAT, 0666);
-#ifdef _xprs_
-                Assert (rd -> rd_fd.fd[0] != -1);
-#else                           /* _xprs_ */
                 Assert (rd -> rd_fd != -1);
-#endif                          /* _xprs_ */
             }
 		RelationIncrementReferenceCount(rd);
 
@@ -357,18 +349,10 @@ getreldesc(relationName)
 	} else
 		elog(NOIND,"rd = %x",rd);)
 	if (RelationIsValid(rd)) {
-#ifdef _xprs_
-            if (rd -> rd_fd.fd[0] == -1) {
-#else                           /* _xprs_ */
                 if (rd -> rd_fd == -1) {
-#endif                          /* _xprs_ */
                     rd -> rd_fd = relopen (&rd -> rd_rel -> relname,
                             O_RDWR | O_CREAT, 0666);
-#ifdef _xprs_
-                    Assert (rd -> rd_fd.fd[0] != -1);
-#else                           /* _xprs_ */
                     Assert (rd -> rd_fd != -1);
-#endif                          /* _xprs_ */
                 }
 		RelationIncrementReferenceCount(rd);
 		DO_DB(elog(NOIND,"getreldesc: found %s hashed", relationName));
@@ -376,6 +360,7 @@ getreldesc(relationName)
 
 		RelationSetLockForDescriptorOpen(rd);
 
+		rd->rd_nblocks = FileGetNumberOfBlocks(rd->rd_fd);
 		return rd;
 	}
 
@@ -448,13 +433,8 @@ BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 	fd = relopen(&((RelationTupleForm)GETSTRUCT(tuple))->relname, O_RDWR,
 		0666);
 
-#ifdef _xprs_
-            Assert (fd.fd[0] >= -1);
-            if (fd.fd[0] == -1) {
-#else                           /* _xprs_ */
                 Assert (fd >= -1);
                 if (fd == -1) {
-#endif                          /* _xprs_ */
 	    elog(NOTICE, "BuildRelation: relopen(%s): %m",
 		 &((RelationTupleForm)GETSTRUCT(tuple))->relname);
 	}
@@ -627,6 +607,7 @@ BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
 	}
 	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	relation->rd_fd = fd;
+	relation->rd_nblocks = FileGetNumberOfBlocks(fd);
 
 	DO_DB(elog(NOIND,"now at %d in %s", __LINE__, "relcache.c");)
 	RelationSetReferenceCount(relation, 1);
@@ -816,18 +797,7 @@ RelationFlushRelation(relation, onlyFlushReferenceCountZero)
 		HashTableDelete(RelationCacheHashByName,relation);
 		HashTableDelete(RelationCacheHashById,relation);
 
-#ifdef _xprs_
-{		File fd;
-		fd = RelationGetSystemPort(relation);
-		if (fd.is_sys)
-		   FileClose(fd.fd[0]);
-		else
-		   for (i=0; i<NSTRIPING; i++)
-		       FileClose(fd.fd[i]);
-}
-#else /* _xprs_ */
 		FileClose(RelationGetSystemPort(relation));
-#endif /* _xprs_ */
 
 		i = relation->rd_rel->relnatts - 1;
 		p = &relation->rd_att.data[i];
@@ -947,25 +917,9 @@ int	mode;
 	DO_DB(elog(NOIND,"relopen: %s (%s)",relationName,relpath(relationName)));
 
 	oumask = umask(0077);
-#ifdef _xprs_
-{	int i;
-	if (issystem(relationName))  { /* system relations are not striped */
-	   file.is_sys = true;
-	   file.fd[0] = FileNameOpenFile(relpath(relationName,0), flags, mode);
-	   }
-	else {
-	 file.is_sys = false;
-	 for (i=0; i<NSTRIPING; i++)
-	   file.fd[i] = FileNameOpenFile(relpath(relationName,i), flags, mode);
-	 }
-}
-	if (file.fd[0] == -1) 
-	  elog(NOTICE, "Unable too open %s (%d)", relpath(relationName,0), errno);
-#else /* _xprs_ */
 	file = FileNameOpenFile(relpath(relationName), flags, mode);
 	if (file == -1) 
 	   elog(NOTICE, "Unable too open %s (%d)", relpath(relationName), errno);
-#endif /* _xprs_ */
 	umask(oumask);
 	OUT();
 	return (file);
@@ -996,11 +950,7 @@ formrdesc(relationName, reloid, natts, att, initialReferenceCount)
 	relation = (Relation)palloc(len);
 	bzero((char *)relation, len);
 	
-#ifdef _xprs_
-	relation->rd_fd.fd[0] = -1;
-#else /* _xprs_ */
 	relation->rd_fd = -1;
-#endif /* _xprs_ */
 	
 	RelationSetReferenceCount(relation, 1);
 	
