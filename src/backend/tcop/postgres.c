@@ -283,8 +283,15 @@ char SocketBackend(inBuf, parseList)
      *	get input from the frontend
      * ----------------
      */
-    pq_getnchar(qtype,0,1);
-    
+    if (pq_getnchar(qtype,0,1) == EOF) {
+	/* ------------
+	 *  when front-end applications quits/dies
+	 * ------------
+	 */
+	AbortCurrentTransaction();
+	exitpg(0);
+    }
+
     switch(*qtype) {
 	/* ----------------
 	 *  'Q': user entered a query
