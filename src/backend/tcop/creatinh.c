@@ -175,7 +175,8 @@ DefineRelation(relname, parameters, schema)
       elog(WARN, "the relation name %s is > %d characters long", relname,
 	   sizeof(NameData));
 
-    relationName = (Name)strcpy ( palloc ( sizeof (NameData)), relname );
+    relationName = (Name)
+	strcpy (palloc(sizeof (NameData)+1), relname);
 
     /* ----------------
      * 	Handle parameters
