@@ -416,12 +416,18 @@ int
 compute_rel_size (rel)
      Rel rel ;
 {
-    Cost temp = 0;
-    Count temp1;
+    Cost temp;
+    int temp1;
 
     temp = get_tuples(rel) * product_selec(get_clauseinfo(rel)); 
-    temp1 = ceil((double)temp);
     Assert(temp >= 0);
+    if (temp >= (MAXINT - 1)) {
+	temp1 = MAXINT;
+    } else {
+	temp1 = ceil((double) temp);
+    }
+    Assert(temp1 >= 0);
+    Assert(temp1 <= MAXINT);
     return(temp1);
       
 }
