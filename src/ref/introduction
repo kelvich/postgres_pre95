@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH "INTRODUCTION" "POSTGRES" "08/17/93"
+.TH "INTRODUCTION" "POSTGRES" "03/12/94"
 .\" XXX this .XA must come after .TH initializes the macro package (like
 .\"	the page number...)
 .XA 0 "Section 1 \(em Introduction"
@@ -9,8 +9,8 @@
 .SH "OVERVIEW"
 This document is the reference manual for the \*(PG database
 management system under development at the University of California at
-Berkeley.  The \*(PG project, led by Professor Michael Stonebraker, is
-sponsored by the Defense Advanced Research Projects Agency (\c
+Berkeley.  The \*(PG project, led by Professor Michael Stonebraker, 
+has been sponsored by the Defense Advanced Research Projects Agency (\c
 .SM DARPA\c
 ),
 the Army Research Office (\c
@@ -55,25 +55,26 @@ prototype from the late 1970s.
 As distributed, \*(PG runs on Digital Equipment Corporation computers
 based on
 .SM MIPS
-R2000 and R3000 processors (under Ultrix 4.2 and 4.3),
-Digital Equipment Corporation computers based on Alpha AXP (DECchip 21064)
-processors (under OSF/1 1.3),
-Sun Microsystems computers based on
+R2000 and R3000 processors (under Ultrix 4.2A and 4.3A), Digital
+Equipment Corporation computers based on Alpha AXP (DECchip 21064)
+processors (under OSF/1 1.3), Sun Microsystems computers based on
 .SM SPARC
-processors (under SunOS 4.1),
-Hewlett-Packard Series 700 and 800 computers based on PA-RISC
-processors (under HP-UX 9.00 and 9.01),
-and
-International Business Machines computers based on POWER processors
-(under AIX 3.2).
-\*(PG users have ported previous releases of the system to many
-other architectures and operating systems.
+processors (under SunOS 4.1.3), Hewlett-Packard Model 9000 Series 700
+and 800 computers based on PA-RISC processors (under HP-UX 9.00 and
+9.01), and International Business Machines RS/6000 computers based on
+POWER processors (under AIX 3.2.5).  \*(PG users have ported previous
+releases of the system to many other architectures and operating
+systems, including
+.SM NeXTSTEP ,
+Solaris 2.2, IRIX, Intel System V Release 4, Linux and NetBSD.
 .SH "\*(PG DOCUMENTATION"
 This reference manual describes the functionality of Version \*(PV and
 contains notations where appropriate to indicate which features are
 not implemented in Version \*(PV.  Application developers should note
 that this reference contains only the specification for the low-level
-call-oriented application program interface, \*(LI.
+call-oriented application program interface, \*(LI.  A companion
+volume, the \*(PG User Manual, contains tutorial examples of the ways
+in which the system can be extended.
 .PP
 The remainder of this reference manual is structured as follows.  In
 Section 2 (UNIX), we discuss the \*(PG capabilities that are available
@@ -86,9 +87,10 @@ queries from a C program and get appropriate return information back
 to his program.  Next, Section 6 (FAST PATH) continues with a
 description of a method by which applications may execute functions in
 \*(PG with very high performance.  Section 7 (LARGE OBJECTS) describes
-the internal \*(PG interface for accessing large objects.  The
-reference concludes with Section 8 (FILES), a collection of file
-format descriptions for files used by \*(PG.
+the internal \*(PG interface for accessing large objects.  Section 8
+(SYSTEM CATALOGS) gives a brief explanation of the tables used
+internally by \*(PG.  The reference concludes with Section 9 (FILES),
+a collection of file format descriptions for files used by \*(PG.
 .SH "ACKNOWLEDGEMENTS"
 \*(PG has been constructed by a team of undergraduate, graduate, and
 staff programmers.  The contributors (in alphabetical order) consisted
@@ -113,6 +115,7 @@ Chin-heng Hong,
 Wei Hong,
 Anant Jhingran,
 Greg Kemnitz,
+Marcel Kornacker,
 Case Larsen,
 Boris Livshitz,
 Jeff Meredith,
@@ -135,10 +138,10 @@ Andrew Yu.
 The HP-UX port is courtesy of Richard Turnbull (University of
 Liverpool) and Sebastian Fernandez (University of California at
 Berkeley).  The initial AIX port was performed by Rafael Morales
-Gamboa (ITESM Campus Morelos, Cuernavaca).
-Carl Staelin of H-P Laboratories and Steve Miley of UCSB/CRSEO
-provided the computing resources that enabled us to integrate
-these ports into the \*(PG distribution.
+Gamboa (ITESM Campus Morelos, Cuernavaca).  Carl Staelin of H-P
+Laboratories and Steve Miley of UCSB/CRSEO provided the computing
+resources that enabled us to integrate these ports into the \*(PG
+distribution.
 .PP
 Marc Teitelbaum served as chief programmer for Version \*(PV and was
 responsible for overall coordination of the project.
@@ -151,6 +154,29 @@ Chandra Ghosh,
 Claire Mosher
 and
 Michael Stonebraker.
-.SH "FOOTNOTES"
-\*(UU is a trademark of
-.SM AT&T .
+.SH "LEGAL NOTICES"
+\*(PG is copyright
+.if t \(co
+1989, 1994 by the Regents of the University of California.  Permission
+to use, copy, modify, and distribute this software and its
+documentation for educational, research, and non-profit purposes and
+without fee is hereby granted, provided that the above copyright
+notice appear in all copies and that both that copyright notice and
+this permission notice appear in supporting documentation, and that
+the name of the University of California not be used in advertising or
+publicity pertaining to distribution of the software without specific,
+written prior permission.  Permission to incorporate this software
+into commercial products can be obtained from the Campus Software
+Office, 295 Evans Hall, University of California, Berkeley, Ca.,
+94720.  The University of California makes no representations about
+the suitability of this software for any purpose.  It is provided
+\*(lqas is\*(rq without express or implied warranty.
+.PP
+\*(UU is a trademark of Unix Systems Laboratories.  Sun4, SPARC, SunOS
+and Solaris are trademarks of Sun Microsystems, Inc.  DEC, DECstation,
+Alpha AXP and ULTRIX are trademarks of Digital Equipment Corp.
+PA-RISC and HP-UX are trademarks of Hewlett-Packard Co.  RS/6000,
+POWER and AIX are trademarks of International Business Machines Corp.
+OSF/1 is a trademark of the Open Systems Foundation.  NeXTSTEP is a
+trademark of NeXT Computer, Inc.  MIPS and IRIX are trademarks of
+Silicon Graphics, Inc.
