@@ -372,12 +372,12 @@ sjinit(key)
     if (!metafound || !(SJHeader->sjh_flags & (SJH_INITING|SJH_INITED))) {
 	initcache = true;
 	bzero((char *) cachesave, metasize);
+	SJHeader->sjh_flags = SJH_INITING;
 #ifdef HAS_TEST_AND_SET
 	S_LOCK(&(SJHeader->sjh_initlock));
 #else /* HAS_TEST_AND_SET */
 	IpcSemaphoreLock(SJWaitSemId, 0, 1);
 	*SJNWaiting = 1;
-	SJHeader->sjh_flags = SJH_INITING;
 #endif /* HAS_TEST_AND_SET */
     } else {
 	initcache = false;
@@ -1582,123 +1582,6 @@ _sjdump()
     }
 
     SpinRelease(SJCacheLock);
-}
-
-#else /* SONY_JUKEBOX */
-
-#include "machine.h"
-#include "storage/smgr.h"
-#include "utils/rel.h"
-
-/*
- *  If there's no sony jukebox, we just use stub routines.
- */
-
-int
-sjinit(unused)
-    int unused;
-{
-    return (SM_SUCCESS);
-}
-
-int
-sjshutdown()
-{
-    return (SM_SUCCESS);
-}
-
-int
-sjcreate(reln)
-    Relation reln;
-{
-    return (-1);
-}
-
-int
-sjunlink(reln)
-    Relation reln;
-{
-    return (SM_FAIL);
-}
-
-int
-sjextend(reln, buffer)
-    Relation reln;
-    char *buffer;
-{
-    return (SM_FAIL);
-}
-
-int
-sjopen(reln)
-    Relation reln;
-{
-    return (-1);
-}
-
-int
-sjclose(reln)
-    Relation reln;
-{
-    return (SM_FAIL);
-}
-
-int
-sjread(reln, blocknum, buffer)
-    Relation reln;
-    BlockNumber blocknum;
-    char *buffer;
-{
-    return (SM_FAIL);
-}
-
-int
-sjwrite(reln, blocknum, buffer)
-    Relation reln;
-    BlockNumber blocknum;
-    char *buffer;
-{
-    return (SM_FAIL);
-}
-
-int
-sjflush(reln, blocknum, buffer)
-    Relation reln;
-    BlockNumber blocknum;
-    char *buffer;
-{
-    return (SM_FAIL);
-}
-
-int
-sjblindwrt(dbstr, relstr, dbid, relid, blkno, buffer)
-    char *dbstr;
-    char *relstr;
-    OID dbid;
-    OID relid;
-    BlockNumber blkno;
-    char *buffer;
-{
-    return (SM_FAIL);
-}
-
-int
-sjnblocks(reln)
-    Relation reln;
-{
-    return (-1);
-}
-
-int
-sjcommit()
-{
-    return (SM_SUCCESS);
-}
-
-int
-sjabort()
-{
-    return (SM_SUCCESS);
 }
 
 #endif /* SONY_JUKEBOX */
