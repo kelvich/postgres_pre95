@@ -1,0 +1,25 @@
+.TH pgedit 1L "Jan 91" "Homebrewed"
+.SH NAME
+pgedit \- edit a postgres relation
+.SH SYNOPSIS
+.B pgedit 
+relation database
+.SH DESCRIPTION
+pgedit allows you to load the contents of a postgres relation in an editor.
+This might be useful after an addattr operation to fill up the new attribute.
+
+NOTE: THIS SHOULD NOT BE THE GENERAL TOOL FOR DATABASE UPDATES SINCE YOU CAN
+DESTROY THE INTEGRITY OF YOUR DATABASE.
+
+The format of the relation is given as follows:
+
+	:::oid:::att1:::att2:::att3 ...
+
+To change the separator you can redefine the sep variable in the pgedit
+script.
+.SH SEE ALSO
+spog(1L)
+.SH BUGS
+Lots, I think.
+.SH AUTHORS
+Juergen Schoenwaelder (schoenw@ibr.cs.tu-bs.de). 

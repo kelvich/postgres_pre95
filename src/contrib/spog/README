@@ -1,0 +1,34 @@
+This directory contains the source to spog, a simple replacement
+for the postgres monitor. spog uses the readline library written
+by the GNU people. Using spog, you can easily edit your last query
+which is very useful during the development of 'standard' queries.
+
+To install spog just edit the Makefile and type make. Set POSTGRESHOME
+to the directory where postgres lives and PORT to the machine name
+for which postgres has been compiled. RLINC should point to the
+header files of GNU's readline library (make sure that history.h
+is installed).
+
+Version 1.1 now supports postgres 4.0 and has some new stuff. You can
+now define the default format for attributes and there are two more options:
+
+     -x   Print commands as they are executed.
+     -n   Don't read the file ~/.spogrc.
+
+I found them useful for writing some scripts to get info on a postgres
+database. The pg_info script runs some queries on the system catalog
+to display all datatypes, user defined relations, indexes anmd rules.
+Improvements to this script are very welcome since I am not a system
+relations expert. NOTE: The joins needed are very very slow. A previous
+version did the join in an awk script and it was much faster :-).
+
+Another script pg_edit allows you to edit the contents of a relation
+in an editor and to store the contents back. I do not recommend to
+use it! !
+
+Send comments, improvements or bug reports to:
+
+Juergen Schoenwaelder   (schoenw@ibr.cs.tu-bs.de)
+Technische Universitaet Braunschweig, Inst. f. Betriebssysteme & Rechnerverbund
+Bueltenweg 74/75,  3300 Braunschweig, Germany, Tel. +49 531 / 391-3249
+

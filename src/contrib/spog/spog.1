@@ -1,0 +1,122 @@
+.TH spog 1L "Jan 91" "Homebrewed"
+.SH NAME
+spog \- simple postgres g?
+.SH SYNOPSIS
+.B spog
+[
+.B "-h"
+.I host
+]
+[
+.B -p
+.I port
+]
+[
+.B -c
+.I query
+]
+[
+.B -f
+.I file
+]
+[
+.B -v
+]
+[
+.B -s
+]
+[
+.B -x
+]
+[
+.B -n
+]
+db
+.SH DESCRIPTION
+spog is written as another frontend to the postgres machine. It
+uses GNU's readline and history utility. Therefore you can retrieve
+old queries, edit them and expand keywords of the postquel language.
+.SH OPTIONS
+.TP
+-h host
+Specify the host name with the postgres backend.
+.TP
+-p port
+Specify the port on which the backend listens.
+.TP
+-c query
+Submit the query to the backend and exit. This is very useful for
+writing shell scripts.
+.TP
+-f filename
+Submit the queries contained in filename. A '#' marks the rest of the
+line as a comment and a '\\' at the end of a line causes spog to
+ignore the following newline character. The filename '-' may be used
+for stdin.
+.TP
+-v
+This option gives you more verbose output.
+.TP
+-s
+If you are not interested in the tuples returned from your query
+you can use the silent option. This is only useful in combination
+with the -v option.
+.TP
+-x
+Print commands as they are executed.
+.TP
+-n
+Don't read the file ~/.spogrc.
+.SH Commands
+spog supports the postquel language of the postgres release 4.0.
+But there are additional built in commands that can be used to
+control the session, the format of the tuples retrieved and to
+give some help about the postquel language. These built in commands are:
+.TP 
+help 
+list all commands spog can understand
+.TP
+verbose [on|off]
+set verbose mode on or off
+.TP
+silent [on|off]
+set silent mode on or off
+.TP
+status
+display spogs current status
+.TP
+database dbname
+set the name of the database
+.TP
+host hostname
+set the name of the host running the backend
+.TP
+port number
+set the port number of the backend
+.TP
+shell command
+execute a shell command
+.TP
+format ( attribute name | type name | global ) "formatstring"
+set the output for the type name or for the attribute named name.
+
+	format default "%s"
+
+	format type bool " %s "
+
+	format attribute salary " $%6 "
+.TP
+separator "formatstring"
+set the separator printed between tuples.
+
+	separator "\\n"
+.SH FILES
+~/.spogrc	startup commands for spog
+~/.spog_[db]    command history for database db
+.SH SEE ALSO
+monitor(postgres)
+.SH BUGS
+Lots, I think.
+.SH AUTHORS
+Juergen Schoenwaelder (schoenw@ibr.cs.tu-bs.de). The help summary
+is from Ullrich Schoenbeck "Tommyknocker" (schoenbe@ibr.cs.tu-bs.de).
