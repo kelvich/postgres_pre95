@@ -36,13 +36,7 @@
 #include "catalog/syscache.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_proc.h"
-
-/* ----------------
- *	support functions in pg_type.c
- * ----------------
- */
-extern ObjectId	TypeGet();
-extern ObjectId	TypeShellMake();
+#include "catalog/pg_protos.h"
 
 /* ----------------------------------------------------------------
  * 	OperatorGetWithOpenRelation

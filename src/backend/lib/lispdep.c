@@ -23,19 +23,13 @@ RcsId("$Header$");
 #include "utils/log.h"
 #include "tmp/stringinfo.h"
 
-extern bool _equalLispValue();
+#include "lib/equalfuncs.h"
 
 /* ----------------
  *	_copy function extern declarations
  * ----------------
  */
-extern bool	_copyLispValue();
-extern bool	_copyLispSymbol();
-extern bool	_copyLispList();
-extern bool	_copyLispInt();
-extern bool	_copyLispFloat();
-extern bool	_copyLispVector();
-extern bool	_copyLispStr();
+#include "lib/copyfuncs.h"
 
 /*
  *	Allocation and manipulation routines.
@@ -441,7 +435,6 @@ append(list,lispObject)
 {
      LispValue  p;
      LispValue newlist, newlispObject;
-     LispValue lispCopy();
 
      if (null(list))
         return lispCopy(lispObject);
@@ -561,7 +554,7 @@ member(foo,bar)
 {
     LispValue i;
     foreach (i,bar)
-      if (equal(CAR(i),foo))
+      if (equal((Node)(CAR(i)),(Node)foo))
 	return(true);
     return(false);
 }
@@ -626,7 +619,7 @@ LispDelete(foo,bar)
     LispValue j = LispNil;
 
     foreach (i,bar) {
-	if (equal(CAR(i),foo))
+	if (equal((Node)(CAR(i)),(Node)(foo)))
 	  if (i == bar ) {
 	      /* first element */
 	      CAR(bar) = CAR(CDR(bar));
@@ -655,7 +648,7 @@ LispRemove(foo,bar)
     LispValue result = LispNil;
 
     for (temp = bar; !null(temp); temp = CDR(temp))
-      if (! equal(foo,CAR(temp)) ) {
+      if (! equal((Node)(foo),(Node)(CAR(temp))) ) {
 	  result = append1(result,CAR(temp));
       }
 	  
@@ -759,7 +752,7 @@ LispUnion(foo,bar)
 
     foreach (i,foo) {
 	foreach (j,bar) {
-	    if (! equal(CAR(i),CAR(j))) {
+	    if (! equal((Node)(CAR(i)),(Node)(CAR(j)))) {
 	      retval = nappend1(retval,CAR(i));
 	      break;
 	    }
@@ -980,7 +973,7 @@ lispOut(lispObject)
     /*
      * free the StringInfoData, but not the string itself...
      */
-    pfree(str);
+    pfree((Pointer)str);
 
     return(s);
 }

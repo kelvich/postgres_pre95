@@ -31,13 +31,8 @@
 #include "catalog/catname.h"
 #include "catalog/syscache.h"
 #include "catalog/pg_proc.h"
+#include "catalog/pg_protos.h"
 #include "parser/parse.h"  /* temporary */
-/* ----------------
- *	support functions in pg_type.c
- * ----------------
- */
-extern ObjectId	TypeGet();
-extern ObjectId	TypeShellMake();
 
 /* ----------------------------------------------------------------
  *	ProcedureDefine
@@ -129,7 +124,7 @@ ProcedureDefine(procedureName, returnTypeName, languageName, prosrc, probin,
 	if (!strcmp(CString(t), "RELATION")) {
 	    toid = RELATION;
 	}
-	else toid = TypeGet(CString(t), &defined);
+	else toid = TypeGet((Name)(CString(t)), &defined);
 	if (!ObjectIdIsValid(toid)) {
 	    elog(WARN, "ProcedureDefine: arg type '%s' is not defined",
 		 CString(t));

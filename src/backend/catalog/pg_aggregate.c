@@ -33,14 +33,7 @@
 #include "catalog/pg_type.h"
 #include "catalog/pg_aggregate.h"
 
-/* --------------------
- *  support  function in
- *  utils/adt/regproc.c --
- *  converts procname to proid.
- * -------------------
- */
-
-extern int32 regprocin();
+#include "utils/builtins.h"
 
 ObjectId
 AggregateGetWithOpenRelation(pg_aggregate_desc, aggName,
@@ -132,21 +125,21 @@ AggregateGet(aggName, int1funcName, int2funcName, finfuncName)
      * aggregates
      */
      if(NameIsValid(int1funcName)) {
-        int1funcObjectId = (ObjectId) regprocin(int1funcName);
+        int1funcObjectId = (ObjectId) regprocin((char*)int1funcName);
 	if(!ObjectIdIsValid(int1funcObjectId)) {
 	    elog(WARN, "AggregateGet: internal function %s not registered",
 						int1funcName);
 	}
      }
      if(NameIsValid(int2funcName)) {
-	int2funcObjectId = (ObjectId) regprocin(int2funcName);
+	int2funcObjectId = (ObjectId) regprocin((char*)int2funcName);
 	if(!ObjectIdIsValid(int2funcObjectId)) {
 	    elog(WARN, "AggregateGet: internal function %s not registered",
 						int2funcName);
 	}
      }
      if (NameIsValid(finfuncName)) {
-	 finfuncObjectId = (ObjectId) regprocin(finfuncName);
+	 finfuncObjectId = (ObjectId) regprocin((char*)finfuncName);
 	 if(!ObjectIdIsValid(finfuncObjectId)) {
 	     elog(WARN, "AggregateGet: final function %s not registered",
 						      finfuncName);

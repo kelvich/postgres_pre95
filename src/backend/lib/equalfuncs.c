@@ -9,12 +9,8 @@ RcsId("$Header$");
 #include "nodes/plannodes.h"
 
 #include "utils/log.h"
-
-extern bool	_equalLispValue();
-extern bool	_equalHeapTuple();
-extern bool	_equalRelation();
-extern bool	ItemPointerEquals();
-extern int	bcmp();
+#include "storage/itemptr.h"
+#include "lib/equalfuncs.h"
 
 bool
 equal(a, b)
@@ -130,7 +126,7 @@ _equalVar(a, b)
 	register Var	a;
 	register Var	b;
 {
-	if (!_equalExpr(a, b))
+	if (!_equalExpr((Expr)a, (Expr)b))
 		return (false);
 
 	if (a->varno != b->varno)
@@ -155,7 +151,7 @@ _equalArray(a, b)
 	register Array	b;
 
 {
-	if (!_equalExpr(a, b))
+	if (!_equalExpr((Expr)a, (Expr)b))
 		return (false);
 	if (a->arrayelemtype != b->arrayelemtype)
 		return (false);
@@ -177,7 +173,7 @@ _equalOper(a, b)
 	register Oper	a;
 	register Oper	b;
 {
-	if (!_equalExpr(a, b))
+	if (!_equalExpr((Expr)a, (Expr)b))
 		return (false);
 
 	if (a->opno != b->opno)
@@ -299,7 +295,8 @@ _equalCInfo(a,b)
     Assert(IsA(a,CInfo));
     Assert(IsA(b,CInfo));
     
-    if (!_equalExpr(get_clause(a),get_clause(b)))
+    if (!_equalExpr((Expr)(get_clause(a)),
+		    (Expr)(get_clause(b))))
       return(false);
     if (a->selectivity != b->selectivity)
       return(false);
@@ -311,7 +308,8 @@ _equalCInfo(a,b)
 #endif
     if(a->hashjoinoperator != b->hashjoinoperator)
       return(false);
-    return(equal(a->indexids,b->indexids));
+    return(equal((Node)(a->indexids),
+		 (Node)(b->indexids)));
 }
 
 bool
@@ -321,9 +319,11 @@ _equalJoinMethod(a,b)
     Assert(IsA(a,JoinMethod));
     Assert(IsA(b,JoinMethod));
 
-    if (!equal(a->jmkeys,b->jmkeys))
+    if (!equal((Node)(a->jmkeys),
+	       (Node)(b->jmkeys)))
       return(false);
-    if (!equal(a->clauses,b->clauses))
+    if (!equal((Node)(a->clauses),
+	       (Node)(b->clauses)))
       return(false);
     return(true);
 }
@@ -343,17 +343,21 @@ register Path a,b;
     if (a->path_cost != b->path_cost)
         return(false);
     */
-    if (!equal(a->p_ordering, b->p_ordering))
+    if (!equal((Node)(a->p_ordering), 
+	       (Node)(b->p_ordering)))
 	return(false);
-    if (!equal(a->keys, b->keys))
+    if (!equal((Node)(a->keys),
+	       (Node)(b->keys)))
 	return(false);
-    if (!equal(a->sortpath, b->sortpath))
+    if (!equal((Node)(a->sortpath),
+	       (Node)(b->sortpath)))
 	return(false);
     /*
     if (a->outerjoincost != b->outerjoincost)
 	return(false);
     */
-    if (!equal(a->joinid, b->joinid))
+    if (!equal((Node)(a->joinid),
+	       (Node)(b->joinid)))
 	return(false);
     return(true);
 }
@@ -365,11 +369,11 @@ register IndexPath a,b;
     Assert(IsA(a,IndexPath));
     Assert(IsA(b,IndexPath));
 
-    if (!_equalPath(a,b))
+    if (!_equalPath((Path)a,(Path)b))
 	return(false);
-    if (!equal(a->indexid, b->indexid))
+    if (!equal((Node)(a->indexid), (Node)(b->indexid)))
 	return(false);
-    if (!equal(a->indexqual, b->indexqual))
+    if (!equal((Node)(a->indexqual), (Node)(b->indexqual)))
 	return(false);
     return(true);
 }
@@ -381,13 +385,13 @@ register JoinPath a,b;
     Assert(IsA(a,JoinPath));
     Assert(IsA(b,JoinPath));
 
-    if (!_equalPath(a,b))
+    if (!_equalPath((Path)a,(Path)b))
 	return(false);
-    if (!equal(a->pathclauseinfo, b->pathclauseinfo))
+    if (!equal((Node)(a->pathclauseinfo), (Node)(b->pathclauseinfo)))
 	return(false);
-    if (!equal(a->outerjoinpath, b->outerjoinpath))
+    if (!equal((Node)(a->outerjoinpath), (Node)(b->outerjoinpath)))
 	return(false);
-    if (!equal(a->innerjoinpath, b->innerjoinpath))
+    if (!equal((Node)(a->innerjoinpath), (Node)(b->innerjoinpath)))
 	return(false);
     return(true);
 }
@@ -399,13 +403,13 @@ register MergePath a,b;
     Assert(IsA(a,MergePath));
     Assert(IsA(b,MergePath));
 
-    if (!_equalJoinPath(a,b))
+    if (!_equalJoinPath((JoinPath)a,(JoinPath)b))
 	return(false);
-    if (!equal(a->path_mergeclauses, b->path_mergeclauses))
+    if (!equal((Node)(a->path_mergeclauses), (Node)(b->path_mergeclauses)))
 	return(false);
-    if (!equal(a->outersortkeys, b->outersortkeys))
+    if (!equal((Node)(a->outersortkeys), (Node)(b->outersortkeys)))
 	return(false);
-    if (!equal(a->innersortkeys, b->innersortkeys))
+    if (!equal((Node)(a->innersortkeys), (Node)(b->innersortkeys)))
 	return(false);
     return(true);
 }
@@ -417,13 +421,13 @@ register HashPath a,b;
     Assert(IsA(a,HashPath));
     Assert(IsA(b,HashPath));
 
-    if (!_equalJoinPath(a,b))
+    if (!_equalJoinPath((JoinPath)a,(JoinPath)b))
 	return(false);
-    if (!equal(a->path_hashclauses, b->path_hashclauses))
+    if (!equal((Node)(a->path_hashclauses), (Node)(b->path_hashclauses)))
 	return(false);
-    if (!equal(a->outerhashkeys, b->outerhashkeys))
+    if (!equal((Node)(a->outerhashkeys), (Node)(b->outerhashkeys)))
 	return(false);
-    if (!equal(a->innerhashkeys, b->innerhashkeys))
+    if (!equal((Node)(a->innerhashkeys), (Node)(b->innerhashkeys)))
 	return(false);
     return(true);
 }
@@ -435,9 +439,9 @@ register JoinKey a,b;
     Assert(IsA(a,JoinKey));
     Assert(IsA(b,JoinKey));
 
-    if (!equal(a->outer,b->outer))
+    if (!equal((Node)(a->outer),(Node)(b->outer)))
        return(false);
-    if (!equal(a->inner,b->inner))
+    if (!equal((Node)(a->inner),(Node)(b->inner)))
        return(false);
     return(true);
 }
@@ -493,13 +497,13 @@ _equalIndexScan(a,b)
     if (a->fragment != b->fragment)
       return(false);
 
-    if (!equal(a->indxqual,b->indxqual))
+    if (!equal((Node)(a->indxqual),(Node)(b->indxqual)))
       return(false);
 
     if (a->scanrelid != b->scanrelid)
       return(false);
 
-    if (!equal(a->indxid,b->indxid))
+    if (!equal((Node)(a->indxid),(Node)(b->indxid)))
       return(false);
     return(true);
 }
@@ -510,9 +514,9 @@ _equalJInfo(a,b)
 {
     Assert(IsA(a,JInfo));
     Assert(IsA(b,JInfo));
-    if (!equal(a->otherrels,b->otherrels))
+    if (!equal((Node)(a->otherrels),(Node)(b->otherrels)))
       return(false);
-    if (!equal(a->jinfoclauseinfo,b->jinfoclauseinfo))
+    if (!equal((Node)(a->jinfoclauseinfo),(Node)(b->jinfoclauseinfo)))
       return(false);
     if (a->mergesortable != b->mergesortable)
       return(false);
@@ -729,9 +733,12 @@ register Fragment a,b;
 	return(false);
     if (a->frag_parallel != b->frag_parallel)
 	return(false);
-    if (!equal(a->frag_subtrees,b->frag_subtrees))
+    if (!equal((Node)(a->frag_subtrees),(Node)(b->frag_subtrees)))
 	return(false);
     if (a->frag_parent_frag != b->frag_parent_frag)
 	return(false);
     return(true);
 }
+
+
+

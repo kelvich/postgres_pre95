@@ -257,8 +257,8 @@ op_mergesortable (opno,ltype,rtype)
        optup->oprrsortop && 
        optup->oprleft == ltype &&
        optup->oprright == rtype) 
-      return (lispCons (optup->oprlsortop,
-	               lispCons (optup->oprrsortop,LispNil)));
+      return (lispCons ((LispValue)(optup->oprlsortop),
+	               lispCons ((LispValue)(optup->oprrsortop),LispNil)));
     else
       return(LispNil);
 }

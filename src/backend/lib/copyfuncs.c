@@ -168,14 +168,12 @@ CopyObject(from)
 {
     Node copy;
     
-#ifndef PALLOC_DEBUG    
-    extern Pointer palloc();
+#ifndef PALLOC_DEBUG
     Pointer (*f)() = palloc;
-#else    
-    extern Pointer palloc_debug();
+#else
     Pointer (*f)() = palloc_debug;
-#endif PALLOC_DEBUG    
-    
+#endif PALLOC_DEBUG
+
     if (NodeCopy(from, &copy, f) == true)
 	return copy;
     else
