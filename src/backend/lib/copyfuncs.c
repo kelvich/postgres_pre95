@@ -1284,11 +1284,11 @@ _copyVar(from, to, alloc)
     
     Node_Copy(from, newnode, alloc, vardotfields);
     
-    newnode->vararrayindex = from->vararrayindex;
+    newnode->vararraylist = from->vararraylist;
     
     Node_Copy(from, newnode, alloc, varid);    
 
-    newnode->varelemtype = from->varelemtype;
+/*     newnode->varelemtype = from->varelemtype; */
     
     (*to) = newnode;
     return true;
