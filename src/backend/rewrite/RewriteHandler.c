@@ -442,6 +442,8 @@ ModifyVarNodes( retrieve_locks , user_rt_length , current_varno ,
     return ( additional_queries );
 }
 
+#ifdef OLDCODE
+
 /*
  * MatchUpdateLocks
  * - match the list of locks, 
@@ -495,6 +497,93 @@ MatchUpdateLocks ( command , rulelocks , current_varno , user_parsetree )
 
 }
 
+#endif
+/*
+ * MatchLocks
+ * - match the list of locks, 
+ */
+List
+MatchLocks ( locktype, rulelocks , current_varno , user_parsetree )
+     Prs2LockType locktype;
+     RuleLock rulelocks;
+     int current_varno;
+     List user_parsetree;
+{
+    List real_locks 		= NULL;
+    Prs2OneLock oneLock		= NULL;
+    int nlocks			= 0;
+    int i			= 0;
+    List actual_result_reln	= NULL;
+
+    Assert ( rulelocks != NULL ); /* we get called iff there is some lock */
+    Assert ( user_parsetree != NULL );
+
+    actual_result_reln = 
+      root_result_relation ( parse_root ( user_parsetree ) );
+
+    if ( CInteger ( actual_result_reln ) != current_varno ) {
+	return ( NULL );
+    }
+
+    nlocks = prs2GetNumberOfLocks ( rulelocks );
+    Assert (nlocks <= 16 );
+
+    for ( i = 0 ; i < nlocks ; i++ ) {
+	oneLock = prs2GetOneLockFromLocks ( rulelocks , i );
+	if ( oneLock->lockType == locktype )  {
+	    real_locks = lispCons ( oneLock , real_locks );
+	} /* if lock is suitable */
+    } /* for all locks */
+    
+    return ( real_locks );
+}
+
+
+List
+MatchReplaceLocks ( rulelocks , current_varno, user_parsetree )
+     RuleLock rulelocks;
+     int current_varno;
+     List user_parsetree;
+{
+    /*
+     * currently, don't support LockTypeReplaceWrite
+     * which has some kind of on delete do replace current 
+     */
+
+    return ( MatchLocks ( LockTypeReplaceAction , 
+			  rulelocks, current_varno , user_parsetree ));
+}
+
+List
+MatchAppendLocks ( rulelocks , current_varno, user_parsetree )
+     RuleLock rulelocks;
+     int current_varno;
+     List user_parsetree;
+{
+    /*
+     * currently, don't support LockTypeAppendWrite
+     * which has some kind of on delete do replace current 
+     */
+    return ( MatchLocks ( LockTypeAppendAction , 
+			 rulelocks, current_varno , user_parsetree ));
+}
+
+List
+MatchDeleteLocks ( rulelocks , current_varno, user_parsetree )
+     RuleLock rulelocks;
+     int current_varno;
+     List user_parsetree;
+{
+    /*
+     * currently, don't support LockTypeDeleteWrite
+     * which has some kind of on delete do replace current 
+     */
+
+    return ( MatchLocks ( LockTypeDeleteAction , 
+			 rulelocks, current_varno , user_parsetree ));
+}
+
+
 /*
  * ModifyUpdateNodes
  * RETURNS:	list of additional parsetrees
@@ -545,8 +634,6 @@ ModifyUpdateNodes( update_locks , user_parsetree,
 	    switch(rule_command) {
 		case REPLACE:
 		case APPEND:
-	    	    /* ModifyUpdateTlist( rule_tlist , user_parsetree ,
-			       current_varno ); */
 		    HandleVarNodes ( rule_tlist , user_parsetree,
 				     offset_trigger, -2 );
 		    root_result_relation(rule_root) =
@@ -610,7 +697,8 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
 {
     RuleLock rlocks 		= NULL;
     List retrieve_locks 	= NULL;
-    List update_locks		= NULL;
+    List replace_locks		= NULL;
+    List append_locks		= NULL;
     List delete_locks		= NULL;
     List additional_queries 	= NULL;
     List i 			= NULL;
@@ -676,29 +764,49 @@ ProcessOneLock ( user_parsetree , reldesc , user_rangetable ,
 	break;
       case DELETE:
 	/* no targetlist, so handled differently */
-	delete_locks = MatchDeleteLocks ();
+	delete_locks = MatchDeleteLocks ( rlocks , current_varno,
+					 user_parsetree );
 
 	additional_queries = append ( additional_queries, 
 				     ModifyDeleteQueries( drop_user_query ) );
 	break;
       case APPEND:
-      case REPLACE:
-	update_locks = MatchUpdateLocks ( command , rlocks , current_varno,
-					  user_parsetree );
-	if ( update_locks ) {
+	append_locks = MatchAppendLocks ( rlocks , current_varno,
+					 user_parsetree );
+	if ( append_locks ) {
 	    List new_queries = NULL;
-	    printf ( "\nUpdate triggered the following locks:\n");
-	    PrintRuleLockList ( update_locks );
-
+	    printf ( "\nAppend triggered the following locks:\n");
+	    PrintRuleLockList ( append_locks );
+	    
 	    new_queries = 
-	      ModifyUpdateNodes( update_locks,
-				 user_parsetree,
-				 drop_user_query,
-				 current_varno);
+	      ModifyUpdateNodes( append_locks,
+				user_parsetree,
+				drop_user_query,
+				current_varno);
 
 	    additional_queries = append (additional_queries, new_queries );
 	}
 	break;
+      case REPLACE:
+	replace_locks = MatchReplaceLocks ( rlocks , current_varno,
+					    user_parsetree );
+	if ( replace_locks ) {
+	    List new_queries = NULL;
+	    printf ( "\nReplace triggered the following locks:\n");
+	    PrintRuleLockList ( replace_locks );
+	    
+	    new_queries = 
+	      ModifyUpdateNodes( replace_locks,
+				user_parsetree,
+				drop_user_query,
+				current_varno);
+
+	    additional_queries = append (additional_queries, new_queries );
+	}
+	break;
+      default:
+	  elog(FATAL,"ProcessOneLock called on non query");
+	  /* NOTREACHED */
     }
 
     /* when we get here, additional queries is either null 
@@ -828,9 +936,4 @@ ModifyDeleteQueries( drop_user_query )
     return(NULL);
 }
 
-List
-MatchDeleteLocks ( )
-{
-	return(NULL);
-}
 
