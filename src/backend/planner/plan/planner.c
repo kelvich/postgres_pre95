@@ -213,7 +213,7 @@ init_query_planner (root,tlist,qual)
      LispValue existential_qual;
 
      _query_max_level_ = root_levels (root);
-     _query_command_type_ = root_command_type (root);
+     _query_command_type_ = (int) root_command_type (root);
      _query_result_relation_ = root_result_relation (root);
      _query_range_table_ = root_rangetable (root);
      
