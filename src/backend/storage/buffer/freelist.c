@@ -78,6 +78,8 @@ BufferDesc *bf;
 PinBuffer(buf)
     BufferDesc *buf;
 {
+  long b;
+
   /* Assert (buf->refcount < 25); */
 
   if (buf->refcount == 0) {
@@ -94,10 +96,11 @@ PinBuffer(buf)
     NotInQueue(buf);
   }
 
-  if (PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1] == 0 &&
-      LastRefCount[BufferDescriptorGetBuffer(buf) - 1] == 0)
+  b = BufferDescriptorGetBuffer(buf) - 1;
+  Assert(PrivateRefCount[b] >= 0);
+  if (PrivateRefCount[b] == 0 && LastRefCount[b] == 0)
       buf->refcount++;
-  PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1]++;
+  PrivateRefCount[b]++;
 }
 
 extern int ShowPinTrace;
@@ -109,10 +112,13 @@ BufferDesc *buf;
 {
     PinBuffer(buf);
     if (ShowPinTrace) {
-	Buffer buffer;
-	buffer = BufferDescriptorGetBuffer(buf);
-	fprintf(stderr, "PIN(Pin) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
-      }
+	Buffer buffer = BufferDescriptorGetBuffer(buf);
+
+	fprintf(stderr, "PIN(Pin) %d relname = %.16s, blockNum = %d, \
+refcount = %d, file: %s, line: %d\n",
+		buffer, &(buf->sb_relname), buf->tag.blockNum,
+		PrivateRefCount[buffer - 1], file, line);
+    }
 }
 
 #undef UnpinBuffer
@@ -123,10 +129,10 @@ BufferDesc *buf;
 UnpinBuffer(buf)
     BufferDesc *buf;
 {
-  long b;
-  Assert (buf->refcount);
-  Assert (PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1]);
-  b = BufferDescriptorGetBuffer(buf) - 1;
+  long b = BufferDescriptorGetBuffer(buf) - 1;
+
+  Assert(buf->refcount);
+  Assert(PrivateRefCount[b] > 0);
   PrivateRefCount[b]--;
   if (PrivateRefCount[b] == 0 && LastRefCount[b] == 0)
       buf->refcount--;
@@ -147,10 +153,13 @@ BufferDesc *buf;
 {
     UnpinBuffer(buf);
     if (ShowPinTrace) {
-	Buffer buffer;
-	buffer = BufferDescriptorGetBuffer(buf);
-	fprintf(stderr, "UNPIN(Unpin) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
-      }
+	Buffer buffer = BufferDescriptorGetBuffer(buf);
+
+	fprintf(stderr, "UNPIN(Unpin) %d relname = %.16s, blockNum = %d, \
+refcount = %d, file: %s, line: %d\n",
+		buffer, &(buf->sb_relname), buf->tag.blockNum,
+		PrivateRefCount[buffer - 1], file, line);
+    }
 }
 
 /*

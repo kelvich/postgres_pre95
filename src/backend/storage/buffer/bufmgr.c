@@ -78,7 +78,7 @@ BufferBlock 	BufferBlocks;
 static long	*NWaitIOBackendP;
 #endif
 
-long	*PrivateRefCount;
+long	*PrivateRefCount;	/* also used in freelist.c */
 long	*LastRefCount;  /* refcounts of last ExecMain level */
 
 /*
@@ -195,12 +195,11 @@ bool
 is_userbuffer(buffer)
 Buffer buffer;
 {
-    BufferDesc *buf;
-    buf = BufferGetBufferDescriptor(buffer);
-    if (strncmp(&buf->sb_relname, "pg_", 3) == 0)
+    BufferDesc *buf = BufferGetBufferDescriptor(buffer);
+
+    if (issystem(&buf->sb_relname))
 	return false;
-    else
-	return true;
+    return true;
 }
 
 Buffer
@@ -216,8 +215,11 @@ BlockNumber blockNum;
     if (ShowPinTrace && is_userbuffer(buffer)) {
 	BufferDesc *buf;
 	buf = BufferGetBufferDescriptor(buffer);
-	fprintf(stderr, "PIN(RD) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
-      }
+	fprintf(stderr, "PIN(RD) %d relname = %.16s, blockNum = %d, \
+refcount = %d, file: %s, line: %d\n",
+		buffer, &(buf->sb_relname), buf->tag.blockNum,
+		PrivateRefCount[buffer - 1], file, line);
+    }
     return buffer;
 }
 
@@ -343,7 +345,6 @@ bool		bufferLockHeld;
   Boolean		newblock = FALSE;
   BufferDesc		oldbufdesc;
 
-
     /* create a new tag so we can lookup the buffer */
     /* assume that the relation is already open */
   if (blockNum == NEW_BLOCK) {
@@ -400,26 +401,98 @@ bool		bufferLockHeld;
 
   *foundPtr = FALSE;
 
-  /* Didn't find it in the buffer pool.  We'll have
+  /*
+   * Didn't find it in the buffer pool.  We'll have
    * to initialize a new buffer.  First, grab one from
    * the free list.  If it's dirty, flush it to disk.
-   * Remember to unlock BufMgr spinloc while doing the IOs.
+   * Remember to unlock BufMgr spinlock while doing the IOs.
    */
-  buf = GetFreeBuffer();
-  if (! buf) {
-    /* out of free buffers.  In trouble now. */
-     SpinRelease(BufMgrLock);
-     return(NULL);
-   }
+  inProgress = FALSE;
+  for (buf = (BufferDesc *) NULL; buf == (BufferDesc *) NULL; ) {
+      buf = GetFreeBuffer();
+      if (! buf) {
+	  /* out of free buffers.  In trouble now. */
+	  /* XXX actually, GetFreeBuffer already aborted us... */
+	  SpinRelease(BufMgrLock);
+	  return((BufferDesc *) NULL);
+      }
+      
+      /*
+       * There should be exactly one pin on the buffer after
+       * it is allocated -- ours.  If it had a pin it wouldn't
+       * have been on the free list.  No one else could have
+       * pinned it between GetFreeBuffer and here because we
+       * have the BufMgrLock.
+       */
+      Assert(buf->refcount == 0);
+      buf->refcount = 1;	       
+      PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1] = 1;
+      
+      if (buf->flags & BM_DIRTY) {
+	  /*
+	   * Set BM_IO_IN_PROGRESS to keep anyone from doing anything
+	   * with the contents of the buffer while we write it out.
+	   * We don't really care if they try to read it, but if they
+	   * can complete a BufferAlloc on it they can then scribble
+	   * into it, and we'd really like to avoid that while we are
+	   * flushing the buffer.  Setting this flag should block them
+	   * in WaitIO until we're done.
+	   */
+	  inProgress = TRUE;
+	  buf->flags |= BM_IO_IN_PROGRESS; 
+#ifdef HAS_TEST_AND_SET
+	  /*
+	   * All code paths that acquire this lock pin the buffer
+	   * first; since no one had it pinned (it just came off the
+	   * free list), no one else can have this lock.
+	   */
+	  Assert(!buf->io_in_progress_lock);
+	  S_LOCK(&(buf->io_in_progress_lock));
+#endif /* HAS_TEST_AND_SET */
+	  
+	  /*
+	   * Write the buffer out, being careful to release BufMgrLock
+	   * before starting the I/O.
+	   */
+	  SpinRelease(BufMgrLock);
+	  (void) BufferReplace(buf);
+	  BufferFlushCount++;
+	  SpinAcquire(BufMgrLock);
 
-   /* There should be exactly one pin on the buffer
-    * after it is allocated.  It isnt in the buffer
-    * table yet so no one but us should have a pin.
-    */
+	  /*
+	   * Somebody could have pinned the buffer while we were
+	   * doing the I/O and had given up the BufMgrLock (though
+	   * they would be waiting for us to clear the BM_IO_IN_PROGRESS
+	   * flag).  That's why this is a loop -- if so, we need to clear
+	   * the I/O flags, remove our pin and start all over again.
+	   *
+	   * People may be making buffers free at any time, so there's
+	   * no reason to think that we have an immediate disaster on
+	   * our hands.
+	   */
+	  if (buf->refcount > 1) {
+	      inProgress = FALSE;
+	      buf->flags &= ~BM_IO_IN_PROGRESS;
+#ifdef HAS_TEST_AND_SET
+	      S_UNLOCK(&(buf->io_in_progress_lock));
+#else /* !HAS_TEST_AND_SET */
+	      SignalIO(buf);
+#endif /* !HAS_TEST_AND_SET */
+	      PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1] = 0;
+	      buf->refcount--;
+	      buf = (BufferDesc *) NULL;
 
-   Assert(buf->refcount == 0);
-   buf->refcount = 1;	       
-   PrivateRefCount[BufferDescriptorGetBuffer(buf) - 1] = 1;
+	      SpinRelease(BufMgrLock);
+	      SpinAcquire(BufMgrLock);
+	  }
+      }
+  }
+
+  /*
+   * At this point we should have the sole pin on a non-dirty
+   * buffer and we may or may not already have the BM_IO_IN_PROGRESS
+   * flag set.
+   */
 
   /* 
    * Change the name of the buffer in the lookup table:
@@ -437,20 +510,16 @@ bool		bufferLockHeld;
     elog(FATAL,"buffer wasn't in the buffer table\n");
   }
 
-  /* save the old buffer descriptor */
-  oldbufdesc = *buf;
   if (buf->flags & BM_DIRTY) {
       /* must clear flag first because of wierd race 
        * condition described below.  
        */
       buf->flags &= ~BM_DIRTY;
-    }
+  }
 
   /* record the database name and relation name for this buffer */
-  strncpy((char *)&(buf->sb_relname),
-          (char *)&(reln->rd_rel->relname),
-	  sizeof (NameData));
-  strncpy((char *)&(buf->sb_dbname), MyDatabaseName, sizeof (NameData));
+  (void) namecpy(&(buf->sb_relname), &(reln->rd_rel->relname));
+  (void) namecpy(&(buf->sb_dbname), MyDatabaseName);
 
   /* remember which storage manager is responsible for it */
   buf->bufsmgr = reln->rd_rel->relsmgr;
@@ -467,14 +536,13 @@ bool		bufferLockHeld;
    * has been called simply to allocate a buffer, no
    * io will be attempted, so the flag isnt set.
    */
-  buf->flags |= BM_IO_IN_PROGRESS; 
+  if (!inProgress) {
+      buf->flags |= BM_IO_IN_PROGRESS; 
 #ifdef HAS_TEST_AND_SET
-  /* lock the io_in_progress_lock before the read so that
-   * other process will wait on it
-   */
-  Assert(!buf->io_in_progress_lock);
-  S_LOCK(&(buf->io_in_progress_lock));
-#endif
+      Assert(!buf->io_in_progress_lock);
+      S_LOCK(&(buf->io_in_progress_lock));
+#endif /* HAS_TEST_AND_SET */
+  }
 
 #ifdef BMTRACE
   _bm_trace((reln->rd_rel->relisshared ? 0 : MyDatabaseId), reln->rd_id, blockNum, BufferDescriptorGetBuffer(buf), BMT_ALLOCNOTFND);
@@ -482,11 +550,6 @@ bool		bufferLockHeld;
 
   SpinRelease(BufMgrLock);
 
-  /* XXX mao what is this? XXX */
-  if (oldbufdesc.flags & BM_DIRTY) {
-     (void) BufferReplace(&oldbufdesc);
-     BufferFlushCount++;
-  }
   return (buf);
 }
 
@@ -537,8 +600,11 @@ Buffer buffer;
     if (ShowPinTrace && is_userbuffer(buffer)) {
 	BufferDesc *buf;
 	buf = BufferGetBufferDescriptor(buffer);
-	fprintf(stderr, "UNPIN(WR) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
-      }
+	fprintf(stderr, "UNPIN(WR) %d relname = %s, blockNum = %d, \
+refcount = %d, file: %s, line: %d\n",
+		buffer, &(buf->sb_relname), buf->tag.blockNum,
+		PrivateRefCount[buffer - 1], file, line);
+    }
 }
 
 /*
@@ -723,8 +789,10 @@ BlockNumber blockNum;
     Buffer retbuf;
     if (BufferIsValid(buffer)) {
 	bufHdr = BufferGetBufferDescriptor(buffer);
+	Assert(PrivateRefCount[buffer - 1] > 0);
 	PrivateRefCount[buffer - 1]--;
-	if (PrivateRefCount[buffer - 1] == 0 && LastRefCount[buffer - 1] == 0) {
+	if (PrivateRefCount[buffer - 1] == 0 &&
+	    LastRefCount[buffer - 1] == 0) {
 	/* only release buffer if it is not pinned in previous ExecMain level */
 	    SpinAcquire(BufMgrLock);
 	    bufHdr->refcount--;
@@ -1004,12 +1072,8 @@ IPCKey key;
   WaitIOSemId = IpcSemaphoreCreate(IPCKeyGetWaitIOSemaphoreKey(key),
 				   1, IPCProtection, 0, &status);
 #endif
-  PrivateRefCount = (long *)malloc(NBuffers * sizeof(long));
-  LastRefCount = (long *)malloc(NBuffers * sizeof(long));
-  for (i = 0; i < NBuffers; i++) {
-      PrivateRefCount[i] = 0;
-      LastRefCount[i] = 0;
-    }
+  PrivateRefCount = (long *) calloc(NBuffers, sizeof(long));
+  LastRefCount = (long *) calloc(NBuffers, sizeof(long));
 }
 
 long NDirectFileRead;	/* some I/O's are direct file access.  bypass bufmgr */
@@ -1075,11 +1139,14 @@ int
 BufferPoolCheckLeak()
 {
     register int i;
-    for (i=1; i<=NBuffers; i++) {
+    void PrintBufferDescs();
+
+    for (i = 1; i <= NBuffers; i++) {
 	if (BufferIsValid(i)) {
 	    elog(NOTICE, "buffer leak detected in BufferPoolCheckLeak()");
+	    PrintBufferDescs();
 	    return(1);
-	  }
+	}
       }
     return(0);
 }
@@ -1182,7 +1249,6 @@ Buffer
 BufferDescriptorGetBuffer(descriptor)
     BufferDesc *descriptor;
 {
-    /* XXX assumes ANSI semantics for pointer subtraction */
     Buffer buffer = 1 + (descriptor - BufferDescriptors);
 
     Assert(!BAD_BUFFER_ID(buffer));
@@ -1375,17 +1441,16 @@ ObjectId dbid;
 void
 PrintBufferDescs()
 {
-    register int i;
-    BufferDesc *buf;
+    int i;
+    BufferDesc *buf = BufferDescriptors;
 
-    for (i=0; i<NBuffers; i++) {
-	buf = &(BufferDescriptors[i]);
-	printf("[%02d] (freeNext=%d, freePrev=%d, relname=%s, ",
-		i, buf->freeNext, buf->freePrev, &(buf->sb_relname));
-	printf("blockNum=%d, flags=0x%x, refcount=%d %d)\n",
-		buf->tag.blockNum, buf->flags, buf->refcount,
-		PrivateRefCount[i]);
-     }
+    for (i = 0; i < NBuffers; ++i, ++buf) {
+	elog(NOTICE, "[%02d] (freeNext=%d, freePrev=%d, relname=%.16s, \
+blockNum=%d, flags=0x%x, refcount=%d %d)",
+	     i, buf->freeNext, buf->freePrev, &(buf->sb_relname),
+	     buf->tag.blockNum, buf->flags,
+	     buf->refcount, PrivateRefCount[i]);
+    }
 }
 
 void
@@ -1401,13 +1466,16 @@ GetPageAddr(bufno)
 void
 PrintPinnedBufs()
 {
-    register int i;
-    BufferDesc *buf;
+    int i;
+    BufferDesc *buf = BufferDescriptors;
 
-    for (i=0; i<NBuffers; i++) {
-	buf = &(BufferDescriptors[i]);
+    for (i = 0; i < NBuffers; ++i, ++buf) {
 	if (PrivateRefCount[i] > 0)
-	    printf("(freeNext=%d, freePrev=%d, relname=%s, blockNum=%d, flags=0x%x, refcount=%d %d)\n", buf->freeNext, buf->freePrev, &(buf->sb_relname), buf->tag.blockNum, buf->flags, buf->refcount, PrivateRefCount[i]);
+	    elog(NOTICE, "[%02d] (freeNext=%d, freePrev=%d, relname=%.16s, \
+blockNum=%d, flags=0x%x, refcount=%d %d)\n",
+		 i, buf->freeNext, buf->freePrev, &(buf->sb_relname),
+		 buf->tag.blockNum, buf->flags,
+		 buf->refcount, PrivateRefCount[i]);
      }
 }
 
@@ -1481,6 +1549,8 @@ BufferPoolBlowaway()
 IncrBufferRefCount(buffer)
 Buffer buffer;
 {
+    Assert(!BAD_BUFFER_ID(buffer));
+    Assert(PrivateRefCount[buffer - 1] >= 0);
     PrivateRefCount[buffer - 1]++;
 }
 
@@ -1525,9 +1595,12 @@ Buffer buffer;
 {
     IncrBufferRefCount(buffer);
     if (ShowPinTrace && is_userbuffer(buffer)) {
-        BufferDesc *buf;
-        buf = BufferGetBufferDescriptor(buffer);
-        fprintf(stderr, "PIN(Incr) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
+        BufferDesc *buf = BufferGetBufferDescriptor(buffer);
+
+        fprintf(stderr, "PIN(Incr) %d relname = %.16s, blockNum = %d, \
+refcount = %d, file: %s, line: %d\n",
+		buffer, &(buf->sb_relname), buf->tag.blockNum,
+		PrivateRefCount[buffer - 1], file, line);
       }
 }
 
@@ -1538,10 +1611,13 @@ Buffer buffer;
 {
     ReleaseBuffer(buffer);
     if (ShowPinTrace && is_userbuffer(buffer)) {
-        BufferDesc *buf;
-	buf = BufferGetBufferDescriptor(buffer);
-        fprintf(stderr, "UNPIN(Rel) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
-      }
+        BufferDesc *buf = BufferGetBufferDescriptor(buffer);
+
+        fprintf(stderr, "UNPIN(Rel) %d relname = %.16s, blockNum = %d, \
+refcount = %d, file: %s, line: %d\n",
+		buffer, &(buf->sb_relname), buf->tag.blockNum,
+		PrivateRefCount[buffer - 1], file, line);
+    }
 }
 
 ReleaseAndReadBuffer_Debug(file, line, buffer, relation, blockNum)
@@ -1557,15 +1633,21 @@ BlockNumber blockNum;
     bufferValid = BufferIsValid(buffer);
     b = ReleaseAndReadBuffer(buffer, relation, blockNum);
     if (ShowPinTrace && bufferValid && is_userbuffer(buffer)) {
-	BufferDesc *buf;
-	buf = BufferGetBufferDescriptor(buffer);
-        fprintf(stderr, "UNPIN(Rel&Rd) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
-      }
+	BufferDesc *buf = BufferGetBufferDescriptor(buffer);
+
+        fprintf(stderr, "UNPIN(Rel&Rd) %d relname = %.16s, blockNum = %d, \
+refcount = %d, file: %s, line: %d\n",
+		buffer, &(buf->sb_relname), buf->tag.blockNum,
+		PrivateRefCount[buffer - 1], file, line);
+    }
     if (ShowPinTrace && is_userbuffer(buffer)) {
-	BufferDesc *buf;
-	buf = BufferGetBufferDescriptor(b);
-        fprintf(stderr, "PIN(Rel&Rd) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", b, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[b - 1], file, line);
-      }
+	BufferDesc *buf = BufferGetBufferDescriptor(b);
+
+        fprintf(stderr, "PIN(Rel&Rd) %d relname = %.16s, blockNum = %d, \
+refcount = %d, file: %s, line: %d\n",
+		b, &(buf->sb_relname), buf->tag.blockNum,
+		PrivateRefCount[b - 1], file, line);
+    }
     return b;
 }
 
@@ -1729,7 +1811,7 @@ long *refcountsave;
 	refcountsave[i] = PrivateRefCount[i];
 	LastRefCount[i] += PrivateRefCount[i];
 	PrivateRefCount[i] = 0;
-      }
+    }
 }
 
 void
@@ -1739,7 +1821,7 @@ long *refcountsave;
     int i;
     for (i=0; i<NBuffers; i++) {
 	PrivateRefCount[i] = refcountsave[i];
-	LastRefCount[i] -= PrivateRefCount[i];
+	LastRefCount[i] -= refcountsave[i];
 	refcountsave[i] = 0;
-      }
+    }
 }
