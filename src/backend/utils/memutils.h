@@ -44,6 +44,9 @@
 #define	SHORTALIGN(LEN)\
 	(((long)(LEN) + (sizeof (short) - 1)) & ~(sizeof (short) - 1))
 
+#define INTALIGN(LEN)\
+	(((long)(LEN) + (sizeof (int) - 1)) & ~(sizeof (int) -1))
+
 /*
  *	LONGALIGN(LEN)	- length (or address) aligned for longs
  */
@@ -59,9 +62,8 @@
 #endif
 #endif
 
-#define       INTALIGN(LEN)\
-	(((long)(LEN) + (sizeof (int) - 1)) & ~(sizeof (int) -1))
-
+#define MAXALIGN(LEN)\
+	(((long)(LEN) + (sizeof (double) - 1)) & ~(sizeof (double) -1))
 
 #endif _ALIGN_H_
 
