@@ -1,5 +1,5 @@
 =============== destroying old regression database... =================
-WARN:Aug 13 12:16:20:destroydb: database regression does not exist.
+WARN:Sep 27 18:29:21:destroydb: database regression does not exist.
 destroydb: database destroy failed on regression.
 =============== creating new regression database... =================
 Welcome to the POSTGRES terminal monitor
@@ -7,8 +7,8 @@ Welcome to the POSTGRES terminal monitor
 Go 
 * 
 Query sent to backend is "    define function circle_in ( language = "c", 			    returntype = circle )        arg is (any)        as "/faerie/aoki/postgres/src/regress/regress/obj/regress.o" "
-NOTICE:Aug 13 12:16:27:ProcedureDefine: type 'circle' is not yet defined
-NOTICE:Aug 13 12:16:27:ProcedureDefine: creating a shell for type 'circle'
+NOTICE:Sep 27 18:29:31:ProcedureDefine: type 'circle' is not yet defined
+NOTICE:Sep 27 18:29:31:ProcedureDefine: creating a shell for type 'circle'
 DEFINE
 Go 
 * 
@@ -225,23 +225,23 @@ APPEND 0
 Go 
 * 
 Query sent to backend is "append hobbies_r (name = "skywalking") "
-APPEND 200111
+APPEND 52066
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "advil", hobby = "posthacking") "
-APPEND 200112
+APPEND 52067
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "peet's coffee", hobby = "posthacking") "
-APPEND 200113
+APPEND 52068
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "hightops", hobby = "basketball") "
-APPEND 200114
+APPEND 52069
 Go 
 * 
 Query sent to backend is "append equipment_r (name = "guts", hobby = "skywalking") "
-APPEND 200115
+APPEND 52070
 Go 
 * 
 Query sent to backend is "copy road from "/faerie/aoki/postgres/src/regress/regress/../data/streets.data" "
@@ -268,8 +268,16 @@ Query sent to backend is "replace shighway (surface = "asphalt") "
 REPLACE
 Go 
 * 
+Query sent to backend is "create hasham_heap (seqno = int4, random = int4) "
+CREATE
+Go 
+* 
+Query sent to backend is "copy hasham_heap from "/faerie/aoki/postgres/src/regress/regress/../data/hash.data" "
+COPY
+Go 
+* 
 Query sent to backend is "   append arrtest (a[5] = "{1,2,3,4,5}", b[2][1][2] = "{{{},{1,2}}}", c = "{}",  					d = "{}", e[0:4] = "/floatarr") "
-APPEND 206296
+APPEND 68313
 Go 
 * 
 Query sent to backend is "replace arrtest (e[0] = "1.1") "
@@ -281,11 +289,11 @@ REPLACE
 Go 
 * 
 Query sent to backend is "append arrtest (a = "{11,12,23}", b[2][2][1] = "{{3,4},{4,5}}", c = "{"foobar"}",  				d = "{{"elt1", "elt2"}}", e = "{"3.4", "6.7"}") "
-APPEND 206297
+APPEND 68314
 Go 
 * 
 Query sent to backend is "append arrtest (a = "{}", b[1][2][2] = "{3,4}", c = "{foo,bar}",  				d[2][1] = "{bar,foo}") "
-APPEND 206298
+APPEND 68315
 Go 
 * 
 Query sent to backend is "create iportaltest (i = int4, d = float4, p = polygon) "
@@ -293,11 +301,11 @@ CREATE
 Go 
 * 
 Query sent to backend is "append iportaltest (i = 1, d = 3.567, p = "(3.0,4.0,1.0,2.0)"::polygon) "
-APPEND 206365
+APPEND 68382
 Go 
 * 
 Query sent to backend is "append iportaltest (i = 2, d = 89.05, p = "(4.0,3.0,2.0,1.0)"::polygon) "
-APPEND 206366
+APPEND 68383
 Go 
 * 
 Query sent to backend is " define index onek_unique1 on onek using btree(unique1 int4_ops) "
@@ -376,6 +384,10 @@ Query sent to backend is "define index six on shighway using btree (name text_op
 DEFINE
 Go 
 * 
+Query sent to backend is "define index hasham_index on hasham_heap using hash (random int4_ops) "
+DEFINE
+Go 
+* 
 Query sent to backend is " define operator ## ( arg1 = path, 		     arg2 = path, 		     procedure = path_inter, 		     commutator = ## ) "
 DEFINE
 Go 
@@ -385,15 +397,15 @@ DEFINE
 Go 
 * 
 Query sent to backend is " define view street ( road.name, 		     road.thepath, 		     cname = real_city.cname )        where real_city.outline ## road.thepath "
-APPEND 277713DEFINE
+APPEND 149742DEFINE
 Go 
 * 
 Query sent to backend is "define view iexit ( ihighway.name, 		    ihighway.thepath,  		    exit = interpt_pp(ihighway.thepath, ramp.thepath) )        where ihighway.thepath ## ramp.thepath "
-APPEND 277782DEFINE
+APPEND 149811DEFINE
 Go 
 * 
 Query sent to backend is "define view toyemp ( emp.name, 		     emp.age, 		     emp.location, 		     annualsal = 12*emp.salary ) "
-APPEND 277855DEFINE
+APPEND 149884DEFINE
 Go 
 * 
 Query sent to backend is "  define aggregate newavg (sfunc1 = int4pl, 			 basetype = int4, 			 stype1 = int4, 			 sfunc2 = int4inc, 			 stype2 = int4, 			 finalfunc = int4div, 			 initcond1 = "0", 			 initcond2 = "0") "
@@ -439,6 +451,8 @@ Query sent to backend is " retrieve ( pg_class.relname, pg_class.relhasindex ) 	
 | ihighway    | t           |
 -----------------------------
 | shighway    | t           |
+-----------------------------
+| hasham_heap | t           |
 -----------------------------
 
 Go 
@@ -2573,6 +2587,22 @@ Query sent to backend is " retrieve unique (p.age) from p in person* sort by age
 
 Go 
 * 
+Query sent to backend is " retrieve (hasham_heap.all) where hasham_heap.random = 843938989 "
+-----------------------------
+| seqno       | random      |
+-----------------------------
+| 15          | 843938989   |
+-----------------------------
+
+Go 
+* 
+Query sent to backend is " retrieve (hasham_heap.all) where hasham_heap.random = 66766766 "
+-----------------------------
+| seqno       | random      |
+-----------------------------
+
+Go 
+* 
 Query sent to backend is " replace onek (unique1 = onek.unique1 + 1) "
 REPLACE
 Go 
@@ -2590,14 +2620,14 @@ REPLACE
 Go 
 * 
 Query sent to backend is "replace temp (stringu1 = reverse_c16(o.stringu1))     from o in onek     where o.stringu1 = "JBAAAA" and 	  o.stringu1 = temp.stringu1 "
-NOTICE:Aug 13 12:35:49:Non-functional update, only first update is performed
-NOTICE:Aug 13 12:35:51:Non-functional update, only first update is performed
+NOTICE:Sep 27 18:51:09:Non-functional update, only first update is performed
+NOTICE:Sep 27 18:51:11:Non-functional update, only first update is performed
 REPLACE
 Go 
 * 
 Query sent to backend is "replace temp (stringu1 = reverse_c16(o.stringu1))     from o in onek2     where o.stringu1 = "JCAAAA" and 	  o.stringu1 = temp.stringu1 "
-NOTICE:Aug 13 12:36:14:Non-functional update, only first update is performed
-NOTICE:Aug 13 12:36:25:Non-functional update, only first update is performed
+NOTICE:Sep 27 18:51:33:Non-functional update, only first update is performed
+NOTICE:Sep 27 18:51:44:Non-functional update, only first update is performed
 REPLACE
 Go 
 * 
@@ -2611,6 +2641,32 @@ Go
 * 
 Query sent to backend is "replace p (age = p.age + 3) from p in person* where p.name = "linda" "
 REPLACE
+Go 
+* 
+Query sent to backend is "replace hasham_heap (random = 1) where hasham_heap.seqno = 1492 "
+REPLACE
+Go 
+* 
+Query sent to backend is "retrieve (hasham_heap.all) where hasham_heap.random = 1 "
+-----------------------------
+| seqno       | random      |
+-----------------------------
+| 1492        | 1           |
+-----------------------------
+
+Go 
+* 
+Query sent to backend is "replace hasham_heap (seqno = 20000) where hasham_heap.random = 1492795354 "
+REPLACE
+Go 
+* 
+Query sent to backend is "retrieve (hasham_heap.all) where hasham_heap.random = 1492795354 "
+-----------------------------
+| seqno       | random      |
+-----------------------------
+| 20000       | 1492795354  |
+-----------------------------
+
 Go 
 * 
 Query sent to backend is "         copy onek to "/faerie/aoki/postgres/src/regress/regress/obj/onek.data" "
@@ -2704,7 +2760,7 @@ RETRIEVE
 Go 
 * 
 Query sent to backend is "append xacttest (a = 777, b = 777.777) "
-APPEND 304768
+APPEND 176802
 Go 
 * 
 Query sent to backend is "end "
@@ -4297,14 +4353,14 @@ ADD
 Go 
 * 
 Query sent to backend is "append temp (a=4, 	     b="char16", 	     c="text", 	     d=4.1, 	     e=4.1, 	     f=2, 	     g="(4.1,4.1,3.1,3.1)", 	     h="now", 	     i='c', 	     j="{now, Monday Aug 24 14:43:07 1992 PDT, epoch}", 	     k=314159, 	     l="(1,0,1)", 	     m=512, 	     n="1 2 3 4 5 6 7 8", 	     p="magnetic disk", 	     q="(1.1,1.1)", 	     r="(4.1,4.1,3.1,3.1)", 	     s="(0,2,4.1,4.1,3.1,3.1)", 	     t="(4.1,4.1,3.1,3.1)", 	     u="['current' 'infinity']", 	     v="1/3", 	     w="1,char16", 	     x="{1.0,2.0,3.0,4.0}", 	     y="{1.0,2.0,3.0,4.0}", 	     z="{1,2,3,4}") "
-APPEND 305016
+APPEND 177050
 Go 
 * 
 Query sent to backend is "retrieve (temp.all) "
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 | initial     | a           | b           | c           | d           | e           | f           | g           | h           | i           | j           | k           | l           | m           | n           | o           | p           | q           | r           | s           | t           | u           | v           | w           | x           | y           | z           |
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-| (null)      | 4           | char16      | text        | 4.1         | 4.1         | 2           | (         4.1,         4.1,         3.1,         3.1)| Fri Aug 13 12:38:11 1993 PDT| c           | {Fri Aug 13 12:38:11 1993 PDT,Mon Aug 24 14:43:07 1992 PDT,epoch}| 314159      | (1,0,1)     | 512         | 1 2 3 4 5 6 7 8| (null)      | magnetic disk| (1.1,1.1)   | (4.1,4.1,3.1,3.1)| (0,2,4.1,4.1,3.1,3.1)| (4.1,4.1,3.1,3.1)| ['current' 'infinity']| 1/3         | 1,char16    | {"1","2","3","4"}| {"1","2","3","4"}| {1,2,3,4}   |
+| (null)      | 4           | char16      | text        | 4.1         | 4.1         | 2           | (         4.1,         4.1,         3.1,         3.1)| Mon Sep 27 18:54:28 1993 PDT| c           | {Mon Sep 27 18:54:28 1993 PDT,Mon Aug 24 14:43:07 1992 PDT,epoch}| 314159      | (1,0,1)     | 512         | 1 2 3 4 5 6 7 8| (null)      | magnetic disk| (1.1,1.1)   | (4.1,4.1,3.1,3.1)| (0,2,4.1,4.1,3.1,3.1)| (4.1,4.1,3.1,3.1)| ['current' 'infinity']| 1/3         | 1,char16    | {"1","2","3","4"}| {"1","2","3","4"}| {1,2,3,4}   |
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 Go 
@@ -5765,6 +5821,8 @@ Query sent to backend is "retrieve (user_relns = user_relns()) "
 ---------------
 | equipment_r |
 ---------------
+| tenk1       |
+---------------
 | person      |
 ---------------
 | emp         |
@@ -5778,8 +5836,6 @@ Query sent to backend is "retrieve (user_relns = user_relns()) "
 | dept        |
 ---------------
 | slow_emp4000|
----------------
-| tenk1       |
 ---------------
 | real_city   |
 ---------------
@@ -5808,6 +5864,8 @@ Query sent to backend is "retrieve (user_relns = user_relns()) "
 | ihighway    |
 ---------------
 | shighway    |
+---------------
+| hasham_heap |
 ---------------
 | street      |
 ---------------
@@ -5904,7 +5962,7 @@ Query sent to backend is "retrieve (arrtest.a[1:3],           arrtest.b[1:1][1:2
 Go 
 * 
 Query sent to backend is "    retrieve (forty_two = ufp0()) "
-NOTICE:Aug 13 12:39:24:ufp_start: forked UFP[18507]
+NOTICE:Sep 27 18:55:55:ufp_start: forked UFP[959]
 ---------------
 | forty_two   |
 ---------------
@@ -5953,7 +6011,7 @@ CREATE
 Go 
 * 
 Query sent to backend is " append myclass0 (a=5) "
-APPEND 305196
+APPEND 177235
 Go 
 * 
 Query sent to backend is "retrieve (myclass0.a) "
@@ -5970,11 +6028,11 @@ REPLACE
 Go 
 * 
 Query sent to backend is "append myclass0 (a=10) "
-APPEND 305197
+APPEND 177236
 Go 
 * 
 Query sent to backend is "append myclass0 (a=20) "
-APPEND 305198
+APPEND 177237
 Go 
 * 
 Query sent to backend is "replace myclass0 (a=10) where myclass0.a < 10 "
@@ -6006,7 +6064,7 @@ REPLACE
 Go 
 * 
 Query sent to backend is " append myclass0 (a=100) "
-APPEND 305207
+APPEND 177246
 Go 
 * tuple 0: got
 	 i=(4 bytes) 1,
@@ -6077,6 +6135,7 @@ dept.data1
 RCS
 dept.data
 emp.data
+hash.data
 onek.data
 person.data
 real_city.data
@@ -6089,6 +6148,7 @@ tenk.data
 /data1/RCS:
 dept.data,v
 emp.data,v
+hash.data,v
 onek.data,v
 person.data,v
 real_city.data,v
@@ -6205,333 +6265,333 @@ Welcome to the POSTGRES terminal monitor
 Go 
 * 
 Query sent to backend is "  retrieve (1) "
-WARN:Aug 13 12:43:18:parser: syntax error at or near "1"
+WARN:Sep 27 18:59:01:parser: syntax error at or near "1"
 
 
 Go 
 * 
 Query sent to backend is "  attachas nonesuch "
-WARN:Aug 13 12:43:18:parser: syntax error at or near "nonesuch"
+WARN:Sep 27 18:59:01:parser: syntax error at or near "nonesuch"
 
 
 Go 
 * 
 Query sent to backend is " notify pg_class "
-WARN:Aug 13 12:43:18:notify is turned off for 4.0.1 - see the release notes
+WARN:Sep 27 18:59:01:notify is turned off for 4.0.1 - see the release notes
 
 Go 
 * 
 Query sent to backend is "  retrieve "
-WARN:Aug 13 12:43:18:parser: syntax error at or near ""
+WARN:Sep 27 18:59:01:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " retrieve (nonesuch.all) "
-WARN:Aug 13 12:43:18:nonesuch: no such class
+WARN:Sep 27 18:59:01:nonesuch: no such class
 
 
 Go 
 * 
 Query sent to backend is "  delete "
-WARN:Aug 13 12:43:19:parser: syntax error at or near ""
+WARN:Sep 27 18:59:01:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " delete nonesuch "
-WARN:Aug 13 12:43:19:nonesuch: no such class
+WARN:Sep 27 18:59:01:nonesuch: no such class
 
 
 Go 
 * 
 Query sent to backend is "  destroy "
-WARN:Aug 13 12:43:19:parser: syntax error at or near ""
+WARN:Sep 27 18:59:02:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " destroy nonesuch "
-WARN:Aug 13 12:43:19:pg_ownercheck: class "nonesuch" not found
+WARN:Sep 27 18:59:02:pg_ownercheck: class "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is "     rename "
-WARN:Aug 13 12:43:19:parser: syntax error at or near ""
+WARN:Sep 27 18:59:02:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " rename nonesuch to newnonesuch "
-WARN:Aug 13 12:43:19:pg_ownercheck: class "nonesuch" not found
+WARN:Sep 27 18:59:02:pg_ownercheck: class "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is " rename nonesuch to stud_emp "
-WARN:Aug 13 12:43:19:pg_ownercheck: class "nonesuch" not found
+WARN:Sep 27 18:59:02:pg_ownercheck: class "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is " rename stud_emp to pg_stud_emp "
-WARN:Aug 13 12:43:19:renamerel: Illegal class name: "pg_stud_emp" -- pg_ is reserved for system catalogs
+WARN:Sep 27 18:59:02:renamerel: Illegal class name: "pg_stud_emp" -- pg_ is reserved for system catalogs
 
 Go 
 * 
 Query sent to backend is " rename stud_emp to aggtest "
-WARN:Aug 13 12:43:20:renamerel: relation "aggtest" exists
+WARN:Sep 27 18:59:02:renamerel: relation "aggtest" exists
 
 Go 
 * 
 Query sent to backend is " rename stud_emp to stud_emp "
-WARN:Aug 13 12:43:20:renamerel: relation "stud_emp" exists
+WARN:Sep 27 18:59:02:renamerel: relation "stud_emp" exists
 
 Go 
 * 
 Query sent to backend is "   rename nonesuchatt in nonesuchrel to newnonesuchatt "
-WARN:Aug 13 12:43:20:pg_ownercheck: class "nonesuchrel" not found
+WARN:Sep 27 18:59:02:pg_ownercheck: class "nonesuchrel" not found
 
 Go 
 * 
 Query sent to backend is " rename nonesuchatt in emp to newnonesuchatt "
-WARN:Aug 13 12:43:21:renameatt: attribute "nonesuchatt" nonexistent
+WARN:Sep 27 18:59:03:renameatt: attribute "nonesuchatt" nonexistent
 
 Go 
 * 
 Query sent to backend is " rename salary in emp to manager "
-WARN:Aug 13 12:43:21:renameatt: attribute "manager" exists
+WARN:Sep 27 18:59:03:renameatt: attribute "manager" exists
 
 Go 
 * 
 Query sent to backend is " rename salary in emp to oid "
-WARN:Aug 13 12:43:21:renameatt: attribute "oid" exists
+WARN:Sep 27 18:59:03:renameatt: attribute "oid" exists
 
 Go 
 * 
 Query sent to backend is "  abort "
-NOTICE:Aug 13 12:43:21:UserAbortTransactionBlock and not inprogress state
+NOTICE:Sep 27 18:59:03:UserAbortTransactionBlock and not inprogress state
 ABORT
 Go 
 * 
 Query sent to backend is " end "
-NOTICE:Aug 13 12:43:22:EndTransactionBlock and not inprogress/abort state 
+NOTICE:Sep 27 18:59:03:EndTransactionBlock and not inprogress/abort state 
 END
 Go 
 * 
 Query sent to backend is "  define aggregate newavg1 (sfunc1 = int4pl, 			  basetype = int4, 			  stype1 = int4, 			  sfunc2 = int4inc, 			  stype2 = int4,  			  initcond1 = "0", 			  initcond2 = "0") "
-WARN:Aug 13 12:43:22:AggregateDefine: Aggregate must have final function with both transition functions
+WARN:Sep 27 18:59:04:AggregateDefine: Aggregate must have final function with both transition functions
 
 Go 
 * 
 Query sent to backend is " define aggregate newavg2 (sfunc1 = int4pl, 			  basetype = int4, 			  stype1 = int4, 			  sfunc2 = int2inc, 			  stype2 = int2, 			  finalfunc = int4div, 			  initcond1 = "0", 			  initcond2 = "0") "
-WARN:Aug 13 12:43:23:AggregateDefine: "int4div"("int4", "int2") does not exist
+WARN:Sep 27 18:59:04:AggregateDefine: "int4div"("int4", "int2") does not exist
 
 Go 
 * 
 Query sent to backend is " define aggregate newavg3 (sfunc1 = int4pl, 			  basetype = int4, 			  stype1 = int4, 			  sfunc2 = int4inc, 			  stype2 = int4, 			  finalfunc = int2div, 			  initcond1 = "0", 			  initcond2 = "0") "
-WARN:Aug 13 12:43:23:AggregateDefine: "int2div"("int4", "int4") does not exist
+WARN:Sep 27 18:59:04:AggregateDefine: "int2div"("int4", "int4") does not exist
 
 Go 
 * 
 Query sent to backend is " define aggregate newcnt1 (sfunc2 = int4inc, 			  stype2 = int4) "
-WARN:Aug 13 12:43:23:AggregateDefine: transition function 2 MUST have an initial value
+WARN:Sep 27 18:59:05:AggregateDefine: transition function 2 MUST have an initial value
 
 Go 
 * 
 Query sent to backend is "  remove index "
-WARN:Aug 13 12:43:23:parser: syntax error at or near ""
+WARN:Sep 27 18:59:05:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove index 314159 "
-WARN:Aug 13 12:43:23:parser: syntax error at or near "314159"
+WARN:Sep 27 18:59:05:parser: syntax error at or near "314159"
 
 
 Go 
 * 
 Query sent to backend is " remove index nonesuch "
-WARN:Aug 13 12:43:23:pg_ownercheck: class "nonesuch" not found
+WARN:Sep 27 18:59:05:pg_ownercheck: class "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is "  remove aggregate "
-WARN:Aug 13 12:43:23:parser: syntax error at or near ""
+WARN:Sep 27 18:59:05:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove aggregate 314159 "
-WARN:Aug 13 12:43:23:parser: syntax error at or near "314159"
+WARN:Sep 27 18:59:05:parser: syntax error at or near "314159"
 
 
 Go 
 * 
 Query sent to backend is " remove aggregate nonesuch "
-WARN:Aug 13 12:43:23:RemoveAggregate: aggregate "nonesuch" does not exist
+WARN:Sep 27 18:59:05:RemoveAggregate: aggregate "nonesuch" does not exist
 
 Go 
 * 
 Query sent to backend is "  remove function () "
-WARN:Aug 13 12:43:23:parser: syntax error at or near "("
+WARN:Sep 27 18:59:05:parser: syntax error at or near "("
 
 
 Go 
 * 
 Query sent to backend is " remove function 314159() "
-WARN:Aug 13 12:43:23:parser: syntax error at or near "314159"
+WARN:Sep 27 18:59:05:parser: syntax error at or near "314159"
 
 
 Go 
 * 
 Query sent to backend is " remove function nonesuch() "
-WARN:Aug 13 12:43:23:RemoveFunction: function nonesuch() does not exist
+WARN:Sep 27 18:59:06:RemoveFunction: function nonesuch() does not exist
 
 Go 
 * 
 Query sent to backend is "  remove type "
-WARN:Aug 13 12:43:23:parser: syntax error at or near ""
+WARN:Sep 27 18:59:06:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove type 314159 "
-WARN:Aug 13 12:43:23:parser: syntax error at or near "314159"
+WARN:Sep 27 18:59:06:parser: syntax error at or near "314159"
 
 
 Go 
 * 
 Query sent to backend is " remove type nonesuch "
-WARN:Aug 13 12:43:23:pg_ownercheck: type "nonesuch" not found
+WARN:Sep 27 18:59:06:pg_ownercheck: type "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is "  remove operator "
-WARN:Aug 13 12:43:24:parser: syntax error at or near ""
+WARN:Sep 27 18:59:06:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove operator equals "
-WARN:Aug 13 12:43:24:parser: syntax error at or near "equals"
+WARN:Sep 27 18:59:06:parser: syntax error at or near "equals"
 
 
 Go 
 * 
 Query sent to backend is " remove operator === "
-WARN:Aug 13 12:43:24:parser: syntax error at or near ""
+WARN:Sep 27 18:59:06:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove operator int4, int4 "
-WARN:Aug 13 12:43:24:parser: syntax error at or near "int4"
+WARN:Sep 27 18:59:06:parser: syntax error at or near "int4"
 
 
 Go 
 * 
 Query sent to backend is " remove operator (int4, int4) "
-WARN:Aug 13 12:43:24:RemoveOperator: operator "===" taking "int4" and "int4" does not exist
+WARN:Sep 27 18:59:06:RemoveOperator: operator "===" taking "int4" and "int4" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator === () "
-WARN:Aug 13 12:43:24:parser: syntax error at or near ")"
+WARN:Sep 27 18:59:07:parser: syntax error at or near ")"
 
 
 Go 
 * 
 Query sent to backend is " remove operator === (int4) "
-WARN:Aug 13 12:43:24:RemoveOperator: operator "===" taking "int4" does not exist
+WARN:Sep 27 18:59:07:RemoveOperator: operator "===" taking "int4" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator === (int4, int4) "
-WARN:Aug 13 12:43:24:RemoveOperator: operator "===" taking "int4" and "int4" does not exist
+WARN:Sep 27 18:59:07:RemoveOperator: operator "===" taking "int4" and "int4" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator = (nonesuch) "
-WARN:Aug 13 12:43:24:RemoveOperator: type "nonesuch" does not exist
+WARN:Sep 27 18:59:07:RemoveOperator: type "nonesuch" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator = ( , int4) "
-WARN:Aug 13 12:43:24:parser: syntax error at or near ","
+WARN:Sep 27 18:59:07:parser: syntax error at or near ","
 
 
 Go 
 * 
 Query sent to backend is " remove operator = (nonesuch, int4) "
-WARN:Aug 13 12:43:24:RemoveOperator: type "nonesuch" does not exist
+WARN:Sep 27 18:59:07:RemoveOperator: type "nonesuch" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator = (int4, nonesuch) "
-WARN:Aug 13 12:43:24:RemoveOperator: type "nonesuch" does not exist
+WARN:Sep 27 18:59:07:RemoveOperator: type "nonesuch" does not exist
 
 Go 
 * 
 Query sent to backend is " remove operator = (int4, ) "
-WARN:Aug 13 12:43:24:parser: syntax error at or near ")"
+WARN:Sep 27 18:59:07:parser: syntax error at or near ")"
 
 
 Go 
 * 
 Query sent to backend is "  remove rule "
-WARN:Aug 13 12:43:24:parser: syntax error at or near ""
+WARN:Sep 27 18:59:07:parser: syntax error at or near ""
 
 
 Go 
 * 
 Query sent to backend is " remove rule 314159 "
-WARN:Aug 13 12:43:24:parser: syntax error at or near "314159"
+WARN:Sep 27 18:59:08:parser: syntax error at or near "314159"
 
 
 Go 
 * 
 Query sent to backend is " remove rule nonesuch "
-WARN:Aug 13 12:43:25:prs2GetRuleEventRel: rule "nonesuch" not found
+WARN:Sep 27 18:59:08:prs2GetRuleEventRel: rule "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is " remove tuple rule nonesuch "
-WARN:Aug 13 12:43:25:parser: syntax error at or near "tuple"
+WARN:Sep 27 18:59:08:parser: syntax error at or near "tuple"
 
 
 Go 
 * 
 Query sent to backend is " remove instance rule nonesuch "
-WARN:Aug 13 12:43:25:prs2GetRuleEventRel: rule "nonesuch" not found
+WARN:Sep 27 18:59:08:prs2GetRuleEventRel: rule "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is " remove rewrite rule nonesuch "
-WARN:Aug 13 12:43:25:RewriteGetRuleEventRel: rule "nonesuch" not found
+WARN:Sep 27 18:59:08:RewriteGetRuleEventRel: rule "nonesuch" not found
 
 Go 
 * 
 Query sent to backend is "  retrieve (myclass0.a) "
-WARN:Aug 13 12:43:26:read on "myclass0": permission denied
+WARN:Sep 27 18:59:08:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " replace myclass0 (a = 10) where myclass0.a < 15 "
-WARN:Aug 13 12:43:26:read on "myclass0": permission denied
+WARN:Sep 27 18:59:09:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " replace myclass0 (a = myclass0.a + 1) "
-WARN:Aug 13 12:43:26:read on "myclass0": permission denied
+WARN:Sep 27 18:59:09:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " delete myclass0 where myclass0.a >= 100 "
-WARN:Aug 13 12:43:27:read on "myclass0": permission denied
+WARN:Sep 27 18:59:09:read on "myclass0": permission denied
 
 Go 
 * 
 Query sent to backend is " define rule foo is on retrieve to myclass0 do instead nothing "
-WARN:Aug 13 12:43:27:define rule on "myclass0": permission denied
+WARN:Sep 27 18:59:09:define rule on "myclass0": permission denied
 
 Go 
 * Welcome to the POSTGRES terminal monitor
@@ -6682,6 +6742,10 @@ Query sent to backend is "remove index six "
 REMOVE
 Go 
 * 
+Query sent to backend is "remove index hasham_index "
+REMOVE
+Go 
+* 
 Query sent to backend is "destroy onek "
 DESTROY
 Go 
@@ -6763,6 +6827,10 @@ DESTROY
 Go 
 * 
 Query sent to backend is "destroy city "
+DESTROY
+Go 
+* 
+Query sent to backend is "destroy hasham_heap "
 DESTROY
 Go 
 * 
