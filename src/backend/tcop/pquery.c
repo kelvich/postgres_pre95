@@ -190,7 +190,7 @@ ProcessQuery(parser_output, plan)
 
 	switch(commandType) {
 	  case RETRIEVE:
-	    if (isInto) {
+	    if (isInto && IsUnderPostmaster) {
 		putnchar("P",1);
 		putint(0,4);
 		putstr("blank");
@@ -240,7 +240,7 @@ ProcessQuery(parser_output, plan)
 		MemoryContextSwitchTo((MemoryContext)
 			PortalGetHeapMemory(GetPortalByName(NULL)));
 		StartPortalAllocMode(DefaultAllocMode, 0);
-
+		EndCommand(tag);
 		return;			/* XXX see previous comment */
 	}
 
