@@ -539,7 +539,7 @@ static char *resolve_path(path)
     strcpy(thenewdir,cwdir);
     while (path && *path) {
 	if (DOT(path[0]) && DOT(path[1]) && EOP(path[2])) {
-	    char *sep = rindex(thenewdir,'/');
+	    char *sep = (char *)rindex(thenewdir,'/');
 	    if (path[2] == '/')
 	      path += 3;
 	    else
@@ -559,7 +559,7 @@ static char *resolve_path(path)
 	    continue;
 	}
 	if (path[0]) {
-	    char *comp = index(path,'/');
+	    char *comp = (char *)index(path,'/');
 	    if (comp != NULL) {
 		*comp='\0';
 		if (thenewdir[1]) /* not simply "/" */
