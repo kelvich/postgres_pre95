@@ -22,8 +22,6 @@ RcsId("$Header$");
 
 #include "utils/palloc.h"
 
-extern void bcopy();	/* XXX use header */
-
 #undef MemoryContextAlloc
 #undef MemoryContextFree
 #undef malloc
