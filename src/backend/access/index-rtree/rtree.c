@@ -139,6 +139,7 @@ rtbuild(heap, index, natts, attnum, istrat, pcount, params)
      */
 
     UpdateStats(heap, n);
+    UpdateStats(index, n);
 
     /* be tidy */
     pfree(null);
