@@ -667,8 +667,8 @@ main()
 	if (fd < 0)	/* error */
 		exit (1);
 
-	/* open the Inversion file */
-	inv_fd = p_open("/inv_file", INV_WRITE, Inversion);
+	/* create the Inversion file */
+	inv_fd = p_creat("/inv_file", INV_WRITE, Inversion);
 	if (inv_fd < 0)	/* error */
 		exit (1);
 
