@@ -1,0 +1,519 @@
+/*
+ * Interface to Postgres 2.0
+ *
+ * Tue Aug 21 14:13:40 1990  Igor Metz <metz@iam.unibe.ch>
+ *
+ * $Id$
+ * $Log$
+ * Revision 1.1  1990/10/24 20:31:11  cimarron
+ * Initial revision
+ *
+Revision 1.1  90/08/23  15:18:20  metz
+Initial revision
+
+ * 
+ */
+
+#include "tmp/libpq.h"
+
+#include "EXTERN.h"
+#include "perl.h"
+
+static enum uservars {
+  UV_PQhost,
+  UV_PQport,
+  UV_PQtty,
+  UV_PQoption,
+  UV_PQdatabase,
+  UV_PQportset,
+  UV_PQxactid,
+  UV_PQinitstr,
+  UV_PQtracep
+};
+
+static enum usersubs {
+  US_addPortal,
+  US_addGroup,
+  US_addTypes,
+  US_addTuples,
+  US_addTuple,
+  US_addValues,
+  US_addPortalEntry,
+  US_freePortalEntry,
+  US_freePortal,
+  US_portal_setup,
+  US_portal_close,
+  US_InitVacuumDemon,
+  US_PQnportals,
+  US_PQpnames,
+  US_PQparray,
+  US_PQrulep,
+  US_PQntuples,
+  US_PQngroups,
+  US_PQntuplesGroup,
+  US_PQnfieldsGroup,
+  US_PQfnumberGroup,
+  US_PQfnameGroup,
+  US_PQnfields,
+  US_PQfnumber,
+  US_PQfname,
+  US_PQftype,
+  US_PQsametype,
+  US_PQgetgroup,
+  US_PQgetvalue,
+  US_PQdb,
+  US_PQsetdb,
+  US_PQreset,
+  US_PQfinish,
+  US_PQtrace,
+  US_PQuntrace,
+  US_pqdebug,
+  US_pqdebug2,
+  US_read_initstr,
+  US_process_portal,
+  US_read_remark,
+  US_PQfn,
+  US_PQexec 
+};
+
+static
+unsigned int
+dbl2uint(d)
+     double d;
+{
+  unsigned int i = d;
+  return i;
+}
+
+static
+double
+uint2dbl(i)
+     unsigned int i;
+{
+  double d = i;
+  return d;
+}
+
+
+static int usersub();
+static int userset();
+static int userval();
+
+extern void
+init_postgres_stuff()
+{	
+  struct ufuncs uf;
+  char *filename = "libpq.c";
+
+  uf.uf_set = userset;
+  uf.uf_val = userval;
+
+#define MAGICVAR(name, ix) uf.uf_index = ix, magicname(name, &uf, sizeof uf)
+
+  /* register PG variables */
+  MAGICVAR("PQhost",		UV_PQhost);
+  MAGICVAR("PQport",		UV_PQport);
+  MAGICVAR("PQtty",		UV_PQtty);
+  MAGICVAR("PQoption",		UV_PQoption);
+  MAGICVAR("PQdatabase",	UV_PQdatabase);
+  MAGICVAR("PQportset",		UV_PQportset);
+  MAGICVAR("PQxactid",		UV_PQxactid);
+  MAGICVAR("PQinitstr",		UV_PQinitstr);
+  MAGICVAR("PQtracep",		UV_PQtracep);
+
+  /* register PG functions */
+  make_usub("InitVacuumDemon",	US_InitVacuumDemon ,	usersub, filename);
+  make_usub("PQdb",		US_PQdb,		usersub, filename);
+  make_usub("PQexec",		US_PQexec ,		usersub, filename);
+  make_usub("PQfinish",		US_PQfinish ,		usersub, filename);
+  make_usub("PQfn",		US_PQfn ,		usersub, filename);
+  make_usub("PQfname",		US_PQfname,		usersub, filename);
+  make_usub("PQfnameGroup",	US_PQfnameGroup,	usersub, filename);
+  make_usub("PQfnumber",	US_PQfnumber,		usersub, filename);
+  make_usub("PQfnumberGroup",	US_PQfnumberGroup,	usersub, filename);
+  make_usub("PQftype",		US_PQftype,		usersub, filename);
+  make_usub("PQgetgroup",	US_PQgetgroup,		usersub, filename);
+  make_usub("PQgetvalue",	US_PQgetvalue,		usersub, filename);
+  make_usub("PQnfields",	US_PQnfields,		usersub, filename);
+  make_usub("PQnfieldsGroup",	US_PQnfieldsGroup,	usersub, filename);
+  make_usub("PQngroups",	US_PQngroups,		usersub, filename);
+  make_usub("PQnportals",	US_PQnportals,		usersub, filename);
+  make_usub("PQntuples",	US_PQntuples,		usersub, filename);
+  make_usub("PQntuplesGroup",	US_PQntuplesGroup,	usersub, filename);
+  make_usub("PQparray",		US_PQparray,		usersub, filename);
+  make_usub("PQpnames",		US_PQpnames,		usersub, filename);
+  make_usub("PQreset",		US_PQreset ,		usersub, filename);
+  make_usub("PQrulep",		US_PQrulep,		usersub, filename);
+  make_usub("PQsametype",	US_PQsametype,		usersub, filename);
+  make_usub("PQsetdb",		US_PQsetdb ,		usersub, filename);
+  make_usub("PQtrace",		US_PQtrace ,		usersub, filename);
+  make_usub("PQuntrace",	US_PQuntrace ,		usersub, filename);
+  make_usub("addGroup",		US_addGroup,		usersub, filename);
+  make_usub("addPortal",	US_addPortal,		usersub, filename);
+  make_usub("addPortalEntry",	US_addPortalEntry,	usersub, filename);
+  make_usub("addTuple",		US_addTuple,		usersub, filename);
+  make_usub("addTuples",	US_addTuples,		usersub, filename);
+  make_usub("addTypes",		US_addTypes,		usersub, filename);
+  make_usub("addValues",	US_addValues,		usersub, filename);
+  make_usub("freePortal",	US_freePortal,		usersub, filename);
+  make_usub("freePortalEntry",	US_freePortalEntry,	usersub, filename);
+  make_usub("portal_close",	US_portal_close,	usersub, filename);
+  make_usub("portal_setup",	US_portal_setup,	usersub, filename);
+  make_usub("pqdebug",		US_pqdebug ,		usersub, filename);
+  make_usub("pqdebug2",		US_pqdebug2 ,		usersub, filename);
+  make_usub("process_portal",	US_process_portal ,	usersub, filename);
+  make_usub("read_initstr",	US_read_initstr ,	usersub, filename);
+  make_usub("read_remark",	US_read_remark ,	usersub, filename);
+}
+
+static int
+usersub(ix, sp, items)
+     int ix;
+     register int sp;
+     register int items;
+{
+  STR **st = stack->ary_array + sp;
+  register int i;
+  register char *tmps;
+  register STR *Str;		/* used in str_get and str_gnum macros */
+
+  switch (ix) {
+/* Allocate a new portal buffer. */
+CASE  PortalBuffer* addPortal
+END
+
+/* Add a new tuple group to the portal. */
+CASE  GroupBuffer* addGroup
+I  PortalBuffer* portal
+END
+
+/* Allocate n type blocks. */
+CASE  TypeBlock* addTypes
+I int n
+END
+
+/* Allocate a tuple block. */
+CASE  TupleBlock* addTuples
+END
+
+/* Allocate a tuple of n fields (attributes). */
+CASE  char** addTuple
+I int n
+END
+
+/* Allocate n bytes for a value. */
+CASE char* addValues
+I int n
+END
+
+/* Allocate a portal entry. */
+CASE PortalEntry* addPortalEntry
+END
+
+/* Free a portal entry in the portal table, the portal is freed separately. */
+CASE void freePortalEntry
+I int i
+END
+
+CASE void freePortal
+I  PortalBuffer* portal
+END
+
+/* Set up a portal for dumping data. */
+CASE PortalBuffer* portal_setup
+I	char* 	pname
+END
+
+/* Close a portal, remove it from the portal table and free up the space. */
+CASE void portal_close
+I char* pname
+END
+
+/* 
+ * Return the number of open portals. 
+ * If rule_p, only return asynchronized portals. 
+ */
+CASE int PQnportals
+I int rule_p
+END
+
+/* 
+ * Return all the portal names.
+ * If rule_p, only return asynchronized portals. 
+ */
+CASE void PQpnames
+I char** pnames
+I int    rule_p
+END
+
+/* Return the portal buffer given a portal name. */
+CASE PortalBuffer* PQparray
+I char* pname
+END
+
+/* Return 1 if an asynchronized portal. */
+CASE int PQrulep
+I  PortalBuffer* portal
+END
+
+/* Return the number of tuples in a portal buffer. */
+CASE int PQntuples
+I  PortalBuffer* portal
+END
+
+/* Return the number of tuple groups in a portal buffer. */
+CASE int PQngroups
+I  PortalBuffer* portal
+END
+
+/* Return the number of tuples in a tuple group. */
+CASE int PQntuplesGroup
+I  PortalBuffer* portal
+I int            group_index
+END
+
+/* Return the number of fields in a tuple group. */
+CASE int PQnfieldsGroup
+I  PortalBuffer* portal
+I int            group_index
+END
+
+/* Return the field number (index) given the group index and the field name. */
+CASE int PQfnumberGroup
+I  PortalBuffer* portal
+I int            group_index
+I char*          field_name
+END
+
+/* Return the field (attribute) name given the group index and field index. */
+CASE char* PQfnameGroup
+I PortalBuffer* portal
+I int           group_index
+I int           field_number
+END
+
+/* Return the number of fields in a tuple. */
+CASE int PQnfields
+I PortalBuffer* portal
+I int           tuple_index
+END
+
+/* Return the field index of a given field name within a tuple. */
+CASE int PQfnumber
+I PortalBuffer* portal
+I int           tuple_index
+I char*         field_name
+END
+
+/* Return the name of a field. */
+CASE char* PQfname
+I PortalBuffer* portal
+I int           tuple_index
+I int 		field_number
+END
+
+/* Return the type of a field. */
+CASE int PQftype
+I PortalBuffer* portal
+I int           tuple_index
+I int 		field_number
+END
+
+/* Return 1 if the two tuples have the same type (in the same group). */
+CASE int PQsametype
+I PortalBuffer* portal
+I int           tuple_index1
+I int           tuple_index2
+END
+
+CASE int PQgetgroup
+I PortalBuffer* portal
+I int           tuple_index
+END
+
+/* Return an attribute (field) value. */
+CASE char* PQgetvalue
+I PortalBuffer* portal
+I int           tuple_index
+I int 		field_number
+END
+
+/* Return the current database being accessed. */
+CASE char* PQdb
+END
+
+/* Make the specified database the current database. */
+CASE void PQsetdb 
+I  char* dbname
+END
+
+/* Reset the communication port with the backend. */
+CASE void PQreset 
+END
+
+/* Close communication ports with the backend. */
+CASE void PQfinish 
+END
+
+/* Trace. */
+CASE void PQtrace 
+END
+
+CASE void PQuntrace 
+END
+
+CASE void pqdebug 
+I  char* target
+I  char* msg
+END
+
+CASE void pqdebug2 
+I  char* target
+I  char* msg1
+I  char* msg2
+END
+
+/*
+ * Read in the initialization string to be passed to the POSTGRES backend.
+ * The initstr has the format of
+ *      USER,DATABASE,TTY,OPTION\n
+ * If the variables do not have values yet, read in the values from the
+ * environment variables.  If the environment variable does not have a
+ * value, use the default value.
+ */
+CASE void read_initstr 
+END
+
+/*
+ * Process protal queries.
+ * Return values are the same as PQexec().
+ */
+CASE char* process_portal 
+I  int rule_p
+END
+
+/* Read and discard remarks. */
+CASE int read_remark 
+I  char* id
+END
+
+/*
+ * Send a function call to the POSTGRES backend.
+ *
+ * fnid         : function id
+ * result_buf   : pointer to result buffer (&int if integer)
+ * result_len   : length of return value.
+ * result_is_int: If the result is an integer, this must be non-zero
+ * args         : pointer to a NULL terminated arg array.
+ *                      (length, if integer, and result-pointer)
+ * nargs        : # of arguments in args array.
+ */
+CASE char* PQfn 
+I int         fnid
+I void*       result_buf
+I int         result_len
+I int         result_is_int
+I PQArgBlock* args
+I int         nargs
+END
+
+/*
+ * Send a query to the POSTGRES backend.
+ * The return value is a string.
+ * If there is an error: return "E error-message".
+ * If tuples are fetched from the backend, return "P portal-name".
+ * If a query is executed successfully but no tuples fetched,
+ * return "C query-command".
+ */
+CASE char* PQexec 
+I  char* query
+END
+
+CASE void InitVacuumDemon 
+I  String host
+I  String database
+I  String terminal
+I  String option
+I  String port
+I  String vacuum
+END
+
+  default:
+    fatal("Unimplemented user-defined subroutine");
+  }
+  return sp;
+}
+
+static int
+userval(ix, str)
+     int ix;
+     STR *str;
+{
+  switch (ix) {
+  case UV_PQhost:
+    str_set(str, PQhost);
+    break;
+  case UV_PQport:
+    str_set(str, PQport);
+    break;
+  case UV_PQtty:
+    str_set(str, PQtty);
+    break;
+  case UV_PQoption:
+    str_set(str, PQoption);
+    break;
+  case UV_PQdatabase:
+    str_set(str, PQdatabase);
+    break;
+  case UV_PQportset:
+    str_numset(str, PQportset);
+    break;
+  case UV_PQxactid:
+    str_numset(str, PQxactid);
+    break;
+  case UV_PQinitstr:
+    str_set(str, PQinitstr);
+    break;
+  case UV_PQtracep:
+    str_numset(str, PQtracep);
+    break;
+  }
+  return 0;
+}
+
+static int
+userset(ix, str)
+     int ix;
+     STR *str;
+{
+  switch (ix) {
+  case UV_PQhost:
+    strcpy(PQhost, str_get(str));		/* hope it fits */
+    break;
+  case UV_PQport:
+    strcpy(PQport, str_get(str));		/* hope it fits */
+    break;
+  case UV_PQtty:
+    strcpy(PQtty, str_get(str));		/* hope it fits */
+    break;
+  case UV_PQoption:
+    strcpy(PQoption, str_get(str));		/* hope it fits */
+    break;
+  case UV_PQdatabase:
+    strcpy(PQdatabase, str_get(str));		/* hope it fits */
+    break;
+  case UV_PQportset:
+    PQportset = dbl2uint(str_gnum(str));
+    break;
+  case UV_PQxactid:
+    PQxactid = dbl2uint(str_gnum(str));
+    break;
+  case UV_PQinitstr:
+    strcpy(PQinitstr, str_get(str));		/* hope it fits */
+    break;
+  case UV_PQtracep:
+    PQtracep = dbl2uint(str_gnum(str));
+    break;
+  }
+  return 0;
+}

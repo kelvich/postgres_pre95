@@ -1,0 +1,46 @@
+$Id$
+
+This is version 1.0 beta of pgperl.
+
+Copyright 1990 Igor Metz
+This material may be freely distributed, provided this notice is retained.
+This material is provided as is, with no warranty expressed or implied.
+Use at your own risk.
+
+PGPERL?
+-------
+
+Pgperl is a version of Larry Wall's language perl which allows you to use
+Postgres from within perl. This has been done by using the C function
+interface of perl which calls the Postgres version 2.0 C library libpq.
+
+In order to build pgperl, you need the following stuff:
+
+ o Pgperl, available from iamsun.unibe.ch [130.92.64.10].
+ o Postgres version 2.0, available from postgres.berkeley.edu [128.32.149.1]
+   or from iamsun.unibe.ch [130.92.64.10].
+ o Perl 3.0, patchlevel 28, available from jpl-devvax.jpl.nasa.gov
+   [128.149.1.143] or from iamsun.unibe.ch [130.92.64.10].
+
+The pgperl distribution contains the following files:
+
+README		  This file.
+Makefile	  guess :-)
+pg-libpg.mus	  The 'mus' code for the Postgres - Perl Interface.
+pg-mus		  A perl script to convert pg-libpg.mus	to pg-libpg.c.
+usersub.c	  A C function which will be called by perl to initialize the
+		  Postgres - Perl Interface.
+testlibpq.pl	  A pgperl script which shows you, how you can use Postgres
+		  from within perl.
+
+Pgperl has been written on a Sun SparcStation 1 under SunOS 4.0.3. I do not
+know, how well it works on other machines.
+
+Please address bug reports to Igor Metz <metz@iam.unibe.ch>. Do not expect
+rapid responses.
+
+
+Igor Metz
+Institut fuer Informatik und angew. Mathematik, Universitaet Bern, Switzerland.
+domainNet: metz@iam.unibe.ch               Phone: (0041) 31 65 49 90
+ARPA:      metz%iam.unibe.ch@relay.cs.net  Fax:   (0041) 31 65 39 65
