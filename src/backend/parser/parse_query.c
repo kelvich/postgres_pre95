@@ -240,7 +240,10 @@ MakeRangeTableEntry( relname , options , refname)
 					    lispCons(Flags,
 						     lispCons(RuleLocks,
 							      LispNil)))));
-
+    /*
+     * close the relation we're done with it for now.
+     */
+    heap_close(relation);
     return ( lispCons ( lispString(&refname->data[0]), entry ));
 }
 
@@ -520,6 +523,10 @@ make_var ( relname, attrname)
                        lispCons(lispInteger(vnum),
                                 lispCons(lispInteger(attid),LispNil)), 0);
 
+    /*
+     * close relation we're done with it now
+     */
+    amclose(rd);
     /*
      * for now at least, attributes of concatenated relations will not have
      * procedural fields or arrays. This can be changed later.
