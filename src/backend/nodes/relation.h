@@ -64,10 +64,9 @@ typedef	List	Relid;
 
 /* hack */
 
-
 class (Rel) public (Node) {
 	inherits(Node);
-/* all relations: */
+  /* all relations: */
 	Relid	relids;
   /* catalog statistics information */
 	bool	indexed;
@@ -78,17 +77,18 @@ class (Rel) public (Node) {
   /* materialization information */
 	List	targetlist;
 	List	pathlist;
-	struct Path *unorderedpath; /* these should be Path's but recursive */
-	struct Path *cheapestpath;  /* definitions make it impossible. */
-/* used solely by indices: */
+	struct	Path *unorderedpath; 
+	struct Path 	*cheapestpath;  
+  /* used solely by indices: */
 	List	classlist;
 	List	indexkeys;
-/* used by various scans and joins: */
+  /* used by various scans and joins: */
 	List	ordering;
 	List	clauseinfo;
 	List	joininfo;
 	List	innerjoin;
 };
+#undef Path
 
 class (TLE) public (Node) {
 	inherits(Node);
@@ -118,7 +118,7 @@ class (Path) public (Node) {
 	int32		pathtype; \
 	Rel		parent; \
 	Cost		cost; \
-	List		ordering; \
+	List		p_ordering; \
 	List		keys; \
 	SortKey		sortpath
  /* private: */
@@ -138,7 +138,7 @@ class (IndexPath) public (Path) {
 class (JoinPath) public (Path) {
 	inherits(Path);
 #define JoinPathDefs \
-	List		clauseinfo; \
+	List		pathclauseinfo; \
 	struct path	*outerjoinpath; \
 	struct path	*innerjoinpath; \
 	Cost		outerjoincost; \
@@ -210,7 +210,7 @@ class (CInfo) public (Node) {
 class (JInfo) public (Node) {
 	inherits(Node);
 	List		otherrels;
-	List		clauseinfo;
+	List		jinfoclauseinfo;
 	bool		mergesortable;
 	bool		hashjoinable;
 };
