@@ -25,9 +25,17 @@
 #include "relation.h"
 #include "tags.h"
 
+#include "fmgr.h"
+#include "heapam.h"
+#include "log.h"
+#include "oid.h"
+#include "syscache.h"
+#include "tuple.h"
+
 
 extern LispValue lispRead();
 extern char *lsptok ARGS((char *string, int *length));
+extern Datum readValue();
 
 void
 _getPlan(node)
@@ -623,9 +631,12 @@ Const _readConst()
 	local_node->constlen = atoi(token);
 
 	token = lsptok(NULL, &length);      /* get :constvalue */
-	token = lsptok(NULL, &length);      /* now read it */
 
-	local_node->constvalue = Int32GetDatum(atoi(token));
+	/*
+	/* token = lsptok(NULL, &length);      /* now read it */
+	/* local_node->constvalue = Int32GetDatum(atoi(token));
+	/* */
+	local_node->constvalue = readValue(local_node->consttype);
 
 	token = lsptok(NULL, &length);      /* get :constisnull */
 	token = lsptok(NULL, &length);      /* now read it */
@@ -1784,4 +1795,73 @@ LispValue parsePlanString()
 		return_value = (LispValue) NULL;
 	}
 	return(return_value);
+}
+/*------------------------------------------------------------*/
+
+/*
+ * given a string representation of the value of the given type,
+ * create the appropriate Datum
+ */
+Datum
+readValue(type)
+ObjectId type;
+{
+    int length;
+    int tokenLength;
+    char *token;
+    Boolean byValue;
+    HeapTuple typeTuple;
+    Datum res;
+    char *s;
+    int i;
+
+    typeTuple = SearchSysCacheTuple(TYPOID,
+				    (char *) type,
+				    (char *) NULL,
+				    (char *) NULL,
+				    (char *) NULL);
+    if (!HeapTupleIsValid(typeTuple)) {
+	elog(WARN, "readValue: Cache lookup of type %d failed", type);
+    }
+
+    /*---- this is the length as storedin pg_type. But it might noy
+     * be the actual length (e.g. variable length types...
+    length	= ((ObjectId) ((TypeTupleForm)
+			GETSTRUCT(typeTuple))->typlen);
+    */
+    byValue	= ((ObjectId) ((TypeTupleForm)
+			GETSTRUCT(typeTuple))->typbyval);
+
+    /*
+     * read the actual length of teh value
+     */
+    token = lsptok(NULL, &tokenLength);
+    length = atoi(token);
+    token = lsptok(NULL, &tokenLength);	/* skip the '{' */
+
+    if (byValue) {
+	if (length > sizeof(Datum)) {
+	    elog(WARN, "readValue: byval & length = %d", length);
+	}
+	s = (char *) (&res);
+	for (i=0; i<length; i++) {
+	    token = lsptok(NULL, &tokenLength);
+	    s[i] = (char) atoi(token);
+	}
+    } else {
+	s = palloc(length);
+	Assert( s!=NULL );
+	for (i=0; i<length; i++) {
+	    token = lsptok(NULL, &tokenLength);
+	    s[i] = (char) atoi(token);
+	}
+	res = PointerGetDatum(s);
+    }
+
+    token = lsptok(NULL, &tokenLength);	/* skip the '}' */
+    if (token[0] != '}') {
+	elog(WARN, "readValue: '}' expected, length =%d", length);
+    }
+
+    return(res);
 }
