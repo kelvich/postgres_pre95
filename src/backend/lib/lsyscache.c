@@ -309,6 +309,20 @@ get_commutator (opno)
       return((ObjectId)NULL);
 }
 
+/*  .. CommuteClause()
+ */
+HeapTuple
+get_operator_tuple (opno)
+     ObjectId opno ;
+{
+    HeapTuple optup;
+
+    if((optup = SearchSysCacheTuple (OPROID,opno,0,0,0)))
+      return(optup);
+    else
+      return((HeapTuple)NULL);
+}
+
 /*    
  *    	get_negator
  *    
