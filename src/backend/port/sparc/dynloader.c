@@ -19,6 +19,7 @@ extern char pg_pathname[];
 
 #include "tmp/c.h"
 #include "fmgr.h"
+#include "utils/dynamic_loader.h"
 
 /*
  * Allow extra space for "overruns" caused by the link.
