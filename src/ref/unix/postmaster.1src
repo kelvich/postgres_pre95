@@ -64,7 +64,10 @@ If you see this message, you should be certain that there is no other
 postmaster program already running.  The easiest way to determine this is
 by the command "ps -ax | grep postmaster".  If you are sure there is no
 other postmaster running and you still get this error try specifying a
-different port using the -p option.
+different port using the -p option.  You may also get this error if you
+terminate the postmaster and immediately restart it using the same port;
+in this case, you should simply wait until the operating system closes
+the port.
 .lp
 .uh "SEE ALSO"
 .lp
