@@ -461,8 +461,6 @@ char *relname;
     Var varnode;
     int vnum, attid = 1, vartype;
     LispValue vardotfields;
-    Type rtype;
-    Relation rd;
     extern LispValue p_rtable;
     extern int p_last_resno;
     Index vararrayindex = 0;

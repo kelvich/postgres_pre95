@@ -64,8 +64,8 @@ any_ordering_op( varnode )
     Assert(! null(varnode));
 
     vartype = get_vartype(varnode);
-    order_op = oper("<",get_vartype(varnode),vartype,vartype);
-    order_opid = oprid(order_op);
+    order_op = oper("<",vartype,vartype);
+    order_opid = (OID)oprid(order_op);
 
     return(lispInteger(order_opid));
 
@@ -74,12 +74,13 @@ any_ordering_op( varnode )
 Resdom
 find_tl_elt ( varname ,tlist )
      char *varname;
+     List tlist;
 {
     LispValue i = LispNil;
 
     foreach ( i, tlist ) {
 	Resdom resnode = (Resdom)CAAR(i);
-	Var tvarnode = (Var) CADR(CAR(i));
+	/* Var tvarnode = (Var) CADR(CAR(i));*/
 	Name resname = get_resname(resnode );
 
 	if ( ! strcmp ( resname, varname ) ) {
@@ -154,7 +155,7 @@ MakeRoot(NumLevels,query_name,result,rtable,priority,ruleinfo,unique_flag,
 	    if ( ! member ( CAR(tlelt) , sort_clause_elts ) ) {
 		sort_clause_elts = nappend1 ( sort_clause_elts, CAR(tlelt)); 
 		sort_clause_ops = nappend1 ( sort_clause_ops, 
-			any_ordering_op(CADR(tlelt) ));
+			any_ordering_op((Var)CADR(tlelt) ));
 	    }
 	}    
     }
@@ -206,12 +207,11 @@ MakeRangeTableEntry( relname , options , refname)
     RelOID	= LispNil;
     Relation relation;
     extern Relation amopenr();
-    int index;
     
     /*printf("relname is : %s\n",(char *)relname); 
       fflush(stdout);*/
     
-    index = RangeTablePosn (relname,options);
+    /* index = RangeTablePosn (relname,options); */
     
     relation = amopenr( relname );
     if ( relation == NULL ) {
@@ -297,7 +297,7 @@ ExpandAll(relname,this_resno)
 		temp = make_var ( relname, attrname );
 		varnode = (Var)CDR(temp);
 		type_id = CInteger(CAR(temp));
-		type_len = tlen(get_id_type(type_id));
+		type_len = (int)tlen(get_id_type(type_id));
 		
 		resnode = MakeResdom( i + first_resno, type_id, type_len,
 					 attrname, 0, 0 );
@@ -440,6 +440,7 @@ make_concat_var ( list_of_varnos , attid , vartype, vardotfields,
 	retval = lispCons ( varnode , retval );
     }
     retval = lispCons ( lispAtom ( "union" ), retval );
+    return(retval);
 }
 
     
@@ -600,19 +601,17 @@ static int end_tlist_buf = 0;
 static char *target_list_place;
 static char *from_list_place;
 
-LispValue
 SkipForwardToFromList()
 {
         LispValue next_token;
-        int i;
         extern char *Ch;
         char *temp = Ch;
 
-        while ((next_token=(LispValue)yylex()) > 0 &&
+        while ((int)(next_token=(LispValue)yylex()) > 0 &&
                 next_token != (LispValue)FROM )
           ; /* empty while */
 
-        if (next_token <= 0 ) {
+        if ((int)next_token <= 0 ) {
                 if (!Quiet) printf("EOS, no from found\n");
                 fflush(stdout);
                 Ch = temp;
@@ -633,7 +632,7 @@ SkipBackToTlist()
 {
 	extern char yytext[];
 	extern LispValue yychar;
-	char *temp = yytext;
+        char *temp = yytext;
 	extern int yyleng;
 	int i;
 
@@ -656,13 +655,12 @@ SkipBackToTlist()
 LispValue
 SkipForwardPastFromList()
 {
-	
+return(LispNil);	
 }
 
 StripRangeTable()
 {
 	LispValue temp;
-	LispValue nrtable;
 	temp = p_rtable;
 	
 	while(! lispNullp(temp) ) {

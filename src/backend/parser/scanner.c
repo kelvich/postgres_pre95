@@ -54,7 +54,7 @@ scanspecial(buf, len)
 char *buf;
 int len;
 {
-	delimiter = '\`';
+	delimiter = '`';
 	scancon(buf, len);
 }
 
