@@ -118,7 +118,7 @@ bool Typecast_ok = true;
 %token   	INHERITANCE VERSION CURRENT NEW THEN DO INSTEAD VIEW
 		REWRITE P_TUPLE TYPECAST P_FUNCTION C_FUNCTION C_FN
 		POSTQUEL RELATION RETURNS INTOTEMP LOAD CREATEDB DESTROYDB
-		STDIN STDOUT 
+		STDIN STDOUT VACUUM
 
 /* precedence */
 %nonassoc Op
@@ -178,6 +178,7 @@ stmt :
 	| LoadStmt
 	| CreatedbStmt
 	| DestroydbStmt
+	| VacuumStmt
 	;
 
 
@@ -1003,6 +1004,18 @@ DestroydbStmt:
         DESTROYDB database_name
                 {  $$ = MakeList ( KW(destroydb), $2, -1 ); }
         ;
+
+ /**************************************************
+
+        Vacuum Stmt
+	vacuum
+
+   **************************************************/
+
+VacuumStmt:
+	VACUUM
+		{ $$ = MakeList(KW(vacuum), -1); }
+	;
 
  /**********************************************************************
   **********************************************************************

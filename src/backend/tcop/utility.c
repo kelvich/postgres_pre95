@@ -133,7 +133,7 @@ ProcessUtility(command, args, commandString, dest)
 	commandTag = "MOVE";
 	CHECK_IF_ABORTED();
 	
-	elog(NOTICE, "MOVE: curently unimplemented");
+	elog(NOTICE, "MOVE: currently unimplemented");
 	break;
 	
 	/* ********************************
@@ -462,12 +462,18 @@ ProcessUtility(command, args, commandString, dest)
 	}
 	break;
 
+    case VACUUM:
+	commandTag = "VACUUM";
+	CHECK_IF_ABORTED();
+	vacuum();
+	break;
+
 	/* ********************************
 	 *	default
 	 * ********************************
 	 */
     default:
-	elog(WARN, "ProcessUtility: command #%d unsupport", command);
+	elog(WARN, "ProcessUtility: command #%d unsupported", command);
 	break;
     }
     

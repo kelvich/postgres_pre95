@@ -115,6 +115,7 @@ ScanKeyword	ScanKeywords[] = {
 	{ "union",		UNION		},
 	{ "unique",		UNIQUE		},
 	{ "using",		USING		},
+	{ "vacuum",		VACUUM		},
 	{ "version",		NEWVERSION	},
 	{ "view",		VIEW		},
 	{ "where",		WHERE		},
