@@ -198,6 +198,7 @@ class (Plan) public (Node) {
 	Count			plan_size; \
 	Count			plan_width; \
 	Index			fragment; \
+	int			parallel; \
 	struct EState		*state; \
 	List			qptargetlist; \
 	List			qpqual; \
