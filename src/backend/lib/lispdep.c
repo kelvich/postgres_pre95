@@ -100,10 +100,12 @@ int
 CInteger(lval)
      LispValue lval;
 {
-  if(lval != NULL && lval->type == PGLISP_INT)
+    if(lval != NULL && 
+       ( lval->type == PGLISP_INT ||
+	lval->type == PGLISP_ATOM ))
       return(lval->val.fixnum);
-  elog (WARN,"error : bogus integer");
-  return(0);
+    elog (WARN,"error : bogus integer");
+    return(0);
 }
 
 LispValue
