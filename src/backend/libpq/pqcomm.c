@@ -37,6 +37,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 
+#include "tmp/pqcomm.h"
 #include "tmp/c.h"
 #include "utils/log.h"
 
@@ -280,39 +281,86 @@ pq_getinserv(sin, host, serv)
 	pq_getinaddr(sin, host, ntohs(ss->s_port));
 }
 
-/* --------------------------------
- *	pq_connect - create remote input / output connection
- * --------------------------------
+/* ----------------------------------------
+ * pq_connect  -- initiate a communication link between client and
+ *	POSTGRES backend via postmaster.
+ *
+ * RETURNS: STATUS_ERROR, if arguments are wrong or local communication
+ *	status is screwed up (can't create socket, etc).  STATUS_OK
+ *	otherwise.
+ *
+ * SIDE_EFFECTS: initiates connection.  
+ *
+ * NOTE: we don't wait for any error messages from the backend/postmaster.
+ *	That means that if the fork fails or the startup message is corrupted,
+ *	we won't find out until the first Send/Receive message cal.
+ * ----------------------------------------
  */
 int
-pq_connect(host, port)
-    char	*host, *port;
+pq_connect(dbname,user,args,hostName,portName)
+char	*dbname;
+char	*user;
+char	*args;
+char	*hostName;
+short	portName;
 {
-    struct sockaddr_in	sin;
-    int			fd, port_no;
-    
-    port_no = atoi(port);
-    
-    /* pq_getport() returns the environment variable PGPORT, default is 4321 */
-    if (!port_no) 
-	port_no = pq_getport();
-    
-    if (pq_getinaddr(&sin, host, port_no))
-	return(-1);
-    
-    fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (fd == -1) {
-	return(-1);
-    }
-    
-    if (connect(fd, &sin, sizeof sin) == -1)
-	return(-1);
-    
-    fcntl(fd,F_SETFL,0);
-    Pfout = fdopen(fd, "w");
-    Pfin = fdopen(dup(fd), "r");
-    
-    return(0);
+/*
+ * This data structure is used for the seq-packet protocol.  It
+ * describes the frontend-backend connection.
+ */
+  Connection		*MyConn = NULL;
+  Port			*SendPort = NULL; /* This is a TCP or UDP socket */
+  StartupPacket		startup;
+  int			sock;
+  Addr			addr;
+  int			status;
+
+  /*
+   * Initialize the startup packet.  Packet fields defined in comm.h
+   */
+  strncpy(startup.database,dbname,sizeof(startup.database));
+  strncpy(startup.user,user,sizeof(startup.user));
+  strncpy(startup.options,args,sizeof(startup.options));
+
+  startup.execFile[0] = NULL;	/* Don't allow front end to choose backends */
+
+  /* If no port  was suggested grab the default or PGPORT value */
+  if (!portName)
+    portName = pq_getport();
+  /*
+   * initialize connection structure.  This is really needed
+   * only for the sequenced packet protocol, but these initializations
+   * are important to the packet.c library.
+   */
+  MyConn = (Connection *) malloc(sizeof(Connection));
+  MyConn->id = INVALID_ID;
+  MyConn->seqno = INITIAL_SEQNO;
+
+  /*
+   * Open a connection to postmaster/backend.
+   */
+  status = StreamOpen(hostName,portName,&sock);
+  if (status != STATUS_OK)
+    return(STATUS_ERROR);
+
+  /*
+   * Save communication port state.
+   */
+  SendPort = (Port *) malloc(sizeof(Port));
+  SendPort->sock =  sock;
+
+  /* initialize */
+  status = PacketSend(SendPort, MyConn, 
+		      &startup, STARTUP_MSG, sizeof(startup), BLOCKING);
+
+  /* set up streams over which communic. will flow */
+  Pfout = fdopen(sock, "w");
+  Pfin = fdopen(dup(sock), "r");
+
+  if (status != STATUS_OK)
+    return(STATUS_ERROR);
+
+  return(STATUS_OK);
 }
 
 /* --------------------------------
@@ -341,4 +389,165 @@ pq_accept()
     Pfin = fdopen(dup(nfd), "r");
     
     return(0);
+}
+
+
+/*
+ * Streams -- wrapper around Unix socket system calls
+ *
+ *
+ *	Stream functions are used for vanilla TCP connection protocol.
+ */
+
+/*
+ * StreamServerPort -- open a sock stream "listening" port.
+ *
+ * This initializes the Postmaster's connection
+ *	accepting port.  
+ *
+ * ASSUME: that this doesn't need to be non-blocking because
+ *	the Postmaster uses select() to tell when the socket
+ *	is ready.
+ *
+ * RETURNS: STATUS_OK or STATUS_ERROR
+ */
+StreamServerPort(hostName,portName,fdP)
+char	*hostName;
+short	portName;
+int	*fdP;
+{
+  struct sockaddr_in	sin;
+  int			fd;
+  struct hostent	*hp;
+
+  if (! hostName)
+    hostName = "localhost";
+
+  bzero((char *)&sin, sizeof sin);
+
+  if ((hp = gethostbyname(hostName)) && hp->h_addrtype == AF_INET)
+    bcopy(hp->h_addr, (char *)&(sin.sin_addr), hp->h_length);
+  else {
+    fprintf(stderr, 
+        "StreamServerPort: cannot find hostname '%s' for stream port\n", 
+        hostName);
+    return(STATUS_ERROR);
+  }
+
+  if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    fprintf(stderr,
+	"StreamServerPort: cannot make socket descriptor for port\n");
+    return(STATUS_ERROR);
+  }
+
+  sin.sin_family = AF_INET;
+  sin.sin_port = htons(portName);
+
+  if (bind(fd, (char *)&sin, sizeof sin) < 0) {
+    fprintf(stderr,"StreamServerPort: cannot bind to port\n");
+    return(STATUS_ERROR);
+  }
+
+  listen(fd, SOMAXCONN);
+
+  /* MS: I took this code from Dillon's version.  It makes the 
+   * listening port non-blocking.  That is not necessary (and
+   * may tickle kernel bugs).
+
+   (void) fcntl(fd, F_SETFD, 1);
+   (void) fcntl(fd, F_SETFL, FNDELAY);
+   */
+
+  *fdP = fd;
+  return(STATUS_OK);
+}
+
+/*
+ * StreamConnection -- create a new connection with client using
+ *	server port.
+ *
+ * This one should be non-blocking.  The client could send us
+ * part of a message.  Would not do at all to have the server
+ * block waiting for the message to complete.  Not neccesary
+ * to return the address, but it could conceivably be used
+ * for protection checking.
+ * 
+ * RETURNS: STATUS_OK or STATUS_ERROR
+ */
+StreamConnection(server_fd,new_fdP,addrP)
+int 			server_fd;
+int			*new_fdP;
+struct sockaddr_in	*addrP;
+{
+  long 			len = sizeof (struct sockaddr_in);
+
+  if ((*new_fdP = accept(server_fd, (char *)addrP, &len)) < 0) {
+    fprintf(stderr,"StreamConnection: accept failed\n");
+    return(STATUS_ERROR);
+  }
+  /* reset to non-blocking */
+  fcntl(*new_fdP, F_SETFL, 1);	
+
+  return(STATUS_OK);
+}
+
+/* 
+ * StreamClose -- close a client/backend connection
+ */
+StreamClose(sock)
+int	sock;
+{
+  close(sock); 
+}
+
+/* ---------------------------
+ * StreamOpen -- From client, initiate a connection with the 
+ *	server (Postmaster).
+ *
+ * RETURNS: STATUS_OK or STATUS_ERROR
+ *
+ * NOTE: connection is NOT established just because this
+ *	routine exits.  Local state is ok, but we haven't
+ *	spoken to the postmaster yet.
+ *
+ * ASSUME that the client doesn't need the net address of the
+ *	server after this routine exits.
+ * ---------------------------
+ */
+StreamOpen(hostName,portName,sockP)
+char	*hostName;
+short	portName;
+int	*sockP;
+{
+  struct sockaddr_in	addr;
+  struct hostent	*hp;
+  int			sock;
+
+  if (! hostName)
+    hostName = "localhost";
+
+  bzero((char *)&addr, sizeof addr);
+
+  if ((hp = gethostbyname(hostName)) && hp->h_addrtype == AF_INET)
+    bcopy(hp->h_addr, (char *)&(addr.sin_addr), hp->h_length);
+  else {
+    fprintf(stderr,
+	"StreamPort: cannot find hostname '%s' for stream port\n",
+	hostName);
+    return(STATUS_ERROR);
+  }
+
+  if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    fprintf(stderr,"StreamPort: cannot make socket descriptor for port\n");
+    return(STATUS_ERROR);
+  }
+
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(portName);
+
+  *sockP = sock;
+  if (! connect(sock, &addr, sizeof(addr)))
+    return(STATUS_OK);
+  else
+    return(STATUS_ERROR);
 }
