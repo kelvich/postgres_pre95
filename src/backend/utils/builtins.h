@@ -363,6 +363,11 @@ extern char *array_out();
 extern char *filename_in();
 extern char *filename_out();
 
+extern int2 smgrin();
+extern char *smgrout();
+extern bool smgreq();
+extern bool smgrne();
+
 extern int32 pqtest();
 
 #endif !BuiltinsIncluded

@@ -39,9 +39,9 @@ typedef	enum {
 typedef	enum	{
 	TY_BOOL, TY_BYTEA, TY_CHAR, TY_CHAR16, TY_DT, TY_INT2, TY_INT28,
 	TY_INT4, TY_REGPROC, TY_TEXT, TY_OID, TY_TID, TY_XID, TY_IID,
-	TY_OID8
+	TY_OID8, TY_SMGR
 } TYPE;
-#define	TY_LAST	TY_OID8
+#define	TY_LAST	TY_SMGR
 
 /* ami_lexer.l */
 #define STRTABLESIZE	10000
