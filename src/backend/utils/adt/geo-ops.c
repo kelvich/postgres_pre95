@@ -323,17 +323,6 @@ box_ge(box1, box2)
  *		LISP).
  *---------------------------------------------------------*/
 
-long
-boxarea(box)
-	BOX	*box;
-{
-	double	box_ar();
-	long	result;
-
-	result = box_ar(box);
-	return(result);
-}
-
 /*	box_area	-	returns the area of the box.
  */
 double *
