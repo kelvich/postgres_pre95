@@ -201,7 +201,8 @@ ProcessUtility(command, args, commandString, dest)
 	    bool	isBinary;
 	    bool	noNulls;
 	    bool	isFrom;
-	    
+            bool        pipe;
+
 	    relationName = CString(CAAR(args));
 	    isBinary = (bool)!null(CADR(CAR(args)));
 	    noNulls = (bool)!null(CADDR(CAR(args)));
@@ -212,12 +213,26 @@ ProcessUtility(command, args, commandString, dest)
 	    
 	    isFrom = (bool)(CAtom(CAAR(args)) == FROM);
 	    fileName = CString(CADR(CAR(args)));
+
+            if (isFrom && !strcmp(fileName, "input"))
+            {
+                 pipe = true;
+            }
+            else if (!isFrom && !strcmp(fileName, "output"))
+            {
+                 pipe = true;
+            }
+            else
+            {
+                 pipe = false;
+            }
+
 	    /*
 	     * discard '(FROM/TO "filename")
 	     */
 	    args = CDR(args);
 
-		DoCopy(relationName, isBinary, isFrom, 0, fileName);
+		DoCopy(relationName, isBinary, isFrom, pipe, fileName);
 	}
 	break;
 	
