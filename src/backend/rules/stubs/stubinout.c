@@ -44,12 +44,12 @@ char *
 stubout(rawStub)
 Prs2RawStub rawStub;
 {
-    Prs2Stub stub;
+    Prs2Stub relstub;
     char *res;
 
-    stub = prs2RawStubToStub(rawStub);
-    res = prs2StubToString(stub);
-    prs2FreeStub(stub, true);
+    relstub = prs2RawStubToStub(rawStub);
+    res = prs2StubToString(relstub);
+    prs2FreeStub(relstub, true);
     return(res);
 }
 
@@ -61,12 +61,12 @@ Prs2RawStub
 stubin(s)
 char *s;
 {
-    Prs2Stub stub;
+    Prs2Stub relstub;
     Prs2RawStub rawStub;
 
-    stub = prs2StringToStub(s);
-    rawStub = prs2StubToRawStub(stub);
-    prs2FreeStub(stub, true);
+    relstub = prs2StringToStub(s);
+    rawStub = prs2StubToRawStub(relstub);
+    prs2FreeStub(relstub, true);
     return(rawStub);
 }
 /*--------------------------------------------------------------------
@@ -80,8 +80,8 @@ char *s;
  * anymore, use 'pfree()'
  */
 char *
-prs2StubToString(stub)
-Prs2Stub stub;
+prs2StubToString(relstub)
+Prs2Stub relstub;
 {
     
     char *res; 
@@ -101,13 +101,13 @@ Prs2Stub stub;
 	elog(WARN, "RuleStubToString: Out of memory!");
     }
 
-    sprintf(res, "(numOfStubs: %d", stub->numOfStubs);
+    sprintf(res, "(numOfStubs: %d", relstub->numOfStubs);
 
-    for (i=0; i<stub->numOfStubs; i++) {
+    for (i=0; i<relstub->numOfStubs; i++) {
 	/*
 	 * print the information for this stub record
 	 */
-	oneStub = &(stub->stubRecords[i]);
+	oneStub = &(relstub->stubRecords[i]);
 	sprintf(s1, " (ruleId: %ld stubId: %u count: %d nQuals: %d lock: ",
 	    oneStub->ruleId,
 	    oneStub->stubId,

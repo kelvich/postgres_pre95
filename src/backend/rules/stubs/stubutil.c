@@ -255,31 +255,31 @@ prs2MakeStub()
  * we also free the space occupied by the locks.
  */
 void
-prs2FreeStub(stub, freeLocks)
-Prs2Stub stub;
+prs2FreeStub(relstub, freeLocks)
+Prs2Stub relstub;
 bool freeLocks;
 {
     int i,j;
     Prs2OneStub oneStub;
     Prs2SimpleQual oneQual;
 
-    Assert(PointerIsValid(stub));
+    Assert(PointerIsValid(relstub));
 
-    for (i=0; i<stub->numOfStubs; i++) {
-	oneStub = & (stub->stubRecords[i]);
+    for (i=0; i<relstub->numOfStubs; i++) {
+	oneStub = & (relstub->stubRecords[i]);
 	if (freeLocks) {
 	    prs2FreeLocks(oneStub->lock);
 	}
 	prs2FreeSimpleQuals(oneStub->qualification);
     }
-    if (stub->stubRecords != NULL) {
-	pfree(stub->stubRecords);
+    if (relstub->stubRecords != NULL) {
+	pfree(relstub->stubRecords);
     }
 
 #ifdef STUB_DEBUG
-    bzero(stub, sizeof(Prs2Stub));
+    bzero(relstub, sizeof(Prs2Stub));
 #endif STUB_DEBUG
-    pfree(stub);
+    pfree(relstub);
 }
 
 /*-----------------------------------------------------------------------

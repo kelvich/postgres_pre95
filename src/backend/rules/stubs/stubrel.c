@@ -13,15 +13,14 @@
 
 #include <stdio.h>
 #include "catname.h"
-#include "rproc.h"
-#include "anum.h"
 #include "tupdesc.h"
 #include "ftup.h"
 #include "log.h"
-#include "pg_lisp.h"
-#include "lsyscache.h"
 #include "prs2.h"
 #include "prs2stub.h"
+
+#include "catalog/pg_proc.h"
+#include "catalog/pg_relation.h"
 
 /*-------------------------------------------------------------------
  * LOCAL STUFF...
@@ -37,11 +36,11 @@ static void prs2ChangeRelationStub();
  *
  */
 void
-prs2AddRelationStub(relation, stub)
+prs2AddRelationStub(relation, relstub)
 Relation relation;
-Prs2OneStub stub;
+Prs2OneStub relstub;
 {
-    prs2ChangeRelationStub(relation, stub, true);
+    prs2ChangeRelationStub(relation, relstub, true);
 }
 
 /*-------------------------------------------------------------------
@@ -51,11 +50,11 @@ Prs2OneStub stub;
  * delete the given stub from the given relation
  */
 void
-prs2DeleteRelationStub(relation, stub)
+prs2DeleteRelationStub(relation, relstub)
 Relation relation;
-Prs2OneStub stub;
+Prs2OneStub relstub;
 {
-    prs2ChangeRelationStub(relation, stub, false);
+    prs2ChangeRelationStub(relation, relstub, false);
 }
 
 /*-------------------------------------------------------------------
@@ -71,9 +70,9 @@ Prs2OneStub stub;
  */
 
 static void
-prs2ChangeRelationStub(relation, stub, addFlag)
+prs2ChangeRelationStub(relation, relstub, addFlag)
 Relation relation;
-Prs2OneStub stub;
+Prs2OneStub relstub;
 bool addFlag;
 {
 
@@ -113,9 +112,9 @@ bool addFlag;
 				RelationGetTupleDescriptor(relationRelation));
 
     if (addFlag) {
-	prs2AddOneStub(currentStubs, stub);
+	prs2AddOneStub(currentStubs, relstub);
     } else {
-	prs2DeleteOneStub(currentStubs, stub);
+	prs2DeleteOneStub(currentStubs, relstub);
     }
 
     /*
@@ -128,11 +127,9 @@ bool addFlag;
 		    currentStubs);
     
 #ifdef STUB_DEBUG
-    if (STUB_DEBUG > 3) {
-	printf("prs2ChangeRelationStub (op=%s) NEW TUPLE=\n",
-		addFlag ? "add" : "delete");
-	debugtup(newTuple, RelationGetTupleDescriptor(relationRelation));
-    }
+    printf("prs2ChangeRelationStub (op=%s) NEW TUPLE=\n",
+	    addFlag ? "add" : "delete");
+    debugtup(newTuple, RelationGetTupleDescriptor(relationRelation));
 #endif STUB_DEBUG
 
     RelationReplaceHeapTuple(relationRelation, &(tuple->t_ctid),
@@ -140,46 +137,6 @@ bool addFlag;
     
     RelationCloseHeapRelation(relationRelation);
 
-}
-
-/*======================================================================
- *
- * prs2GetRelationStubs
- *
- * given a relation OID, find all the associated rule stubs.
- *
- */
-Prs2Stub
-prs2GetRelationStubs(relOid)
-ObjectId relOid;
-{
-
-    Prs2RawStub rawStubs;
-    Prs2Stub stub;
-
-    /*
-     * find the Prs2RawStub of the relation
-     */
-    rawStubs = get_relstub(relOid);
-    if (rawStubs == NULL) {
-	elog(WARN,
-	    "prs2GetRelationStubs: cache lookup failed for relId = %ld",
-	    relOid);
-    }
-
-    /*
-     * now transform the Prs2RawStub to a Prs2Stub
-     */
-    stub = prs2RawStubToStub(rawStubs);
-
-    /*
-     * free the Prs2RawStub
-     * NOTE: we do that because get_relstub creates a COPY of
-     * the raw relation stubs found in the tuple.
-     */
-    pfree(rawStubs);
-
-    return(stub);
 }
 
 /*======================================================================
@@ -198,7 +155,7 @@ TupleDescriptor tupleDescriptor;
     Datum datum;
     Boolean isNull;
     Prs2RawStub rawStub;
-    Prs2Stub stub;
+    Prs2Stub relstub;
 
     /*
      * extract the `Prs2RawStub' from the tuple
@@ -215,12 +172,12 @@ TupleDescriptor tupleDescriptor;
 	/*
 	 * create an empty stub
 	 */
-	stub = prs2MakeStub();
-	return(stub);
+	relstub = prs2MakeStub();
+	return(relstub);
     } else {
 	rawStub = (Prs2RawStub) DatumGetPointer(datum);
-	stub = prs2RawStubToStub(rawStub);
-	return(stub);
+	relstub = prs2RawStubToStub(rawStub);
+	return(relstub);
     }
 }
 

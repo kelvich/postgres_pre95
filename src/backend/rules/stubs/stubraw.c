@@ -30,8 +30,8 @@ char *palloc();
  *
  */
 Prs2RawStub
-prs2StubToRawStub(stub)
-Prs2Stub stub;
+prs2StubToRawStub(relstub)
+Prs2Stub relstub;
 {
     long size;
     Prs2RawStub res;
@@ -44,15 +44,15 @@ Prs2Stub stub;
      * calculate the number fo bytes needed to hold
      * the raw representation of this stub record.
      */
-    size = sizeof(stub->numOfStubs);
+    size = sizeof(relstub->numOfStubs);
 
-    for (i=0; i< stub->numOfStubs; i++) {
+    for (i=0; i< relstub->numOfStubs; i++) {
 	/*
 	 * calculate the size of each individual `Prs2OneStub'
 	 * and add it ti the total size.
 	 * Start with the fixed size part of the struct.
 	 */
-	oneStub = &(stub->stubRecords[i]);
+	oneStub = &(relstub->stubRecords[i]);
 	size = size +
 		sizeof(oneStub->ruleId) +
 		sizeof(oneStub->stubId) +
@@ -109,11 +109,11 @@ Prs2Stub stub;
      */
     s = &(res->vl_dat[0]);
 
-    bcopy((char *) &(stub->numOfStubs), s, sizeof(stub->numOfStubs));
-    s += sizeof(stub->numOfStubs);
+    bcopy((char *) &(relstub->numOfStubs), s, sizeof(relstub->numOfStubs));
+    s += sizeof(relstub->numOfStubs);
 
-    for (i=0; i< stub->numOfStubs; i++) {
-	oneStub = &(stub->stubRecords[i]);
+    for (i=0; i< relstub->numOfStubs; i++) {
+	oneStub = &(relstub->stubRecords[i]);
 	/*
 	 * copy the fixed size part of the record
 	 */
@@ -129,13 +129,13 @@ Prs2Stub stub;
 	 * now copy the rule lock
 	 */
 	size = prs2LockSize(prs2GetNumberOfLocks(oneStub->lock));
-	bcopy((char *) stub->stubRecords[i].lock, s, size);
+	bcopy((char *) relstub->stubRecords[i].lock, s, size);
 	s+=size;
 	/*
 	 * finally copy each one of the
 	 * `PrsSimpleQualData'
 	 */
-	for (j=0; j<stub->stubRecords[i].numQuals; j++) {
+	for (j=0; j<relstub->stubRecords[i].numQuals; j++) {
 	    qual = &(oneStub->qualification[j]);
 	    /*
 	     * fixed part first...
@@ -185,7 +185,7 @@ Prs2Stub
 prs2RawStubToStub(rawStub)
 Prs2RawStub rawStub;
 {
-    Prs2Stub stub;
+    Prs2Stub relstub;
     Prs2OneStub oneStub;
     Prs2SimpleQual qual;
     long size;
@@ -197,8 +197,8 @@ Prs2RawStub rawStub;
     /*
      * create a new stub record
      */
-    stub = (Prs2Stub) palloc(sizeof(Prs2StubData));
-    if (stub == NULL) {
+    relstub = (Prs2Stub) palloc(sizeof(Prs2StubData));
+    if (relstub == NULL) {
 	elog(WARN, "prs2RawStubToStub: Out of memory");
     }
 
@@ -206,23 +206,23 @@ Prs2RawStub rawStub;
      * copy the number of individual stub records
      */
     data = VARDATA(rawStub);
-    bcopy(data, (char *)&(stub->numOfStubs), sizeof(stub->numOfStubs));
-    data += sizeof(stub->numOfStubs);
+    bcopy(data, (char *)&(relstub->numOfStubs), sizeof(relstub->numOfStubs));
+    data += sizeof(relstub->numOfStubs);
 
     /*
-     * allocate space for the `stub->numOfStubs' records of
+     * allocate space for the `relstub->numOfStubs' records of
      *type 'Prs2OneStubData'
      */
-    if (stub->numOfStubs > 0 ) {
-	size = stub->numOfStubs * sizeof(Prs2OneStubData);
-	stub->stubRecords = (Prs2OneStub) palloc(size);
-	if (stub->stubRecords == NULL) {
+    if (relstub->numOfStubs > 0 ) {
+	size = relstub->numOfStubs * sizeof(Prs2OneStubData);
+	relstub->stubRecords = (Prs2OneStub) palloc(size);
+	if (relstub->stubRecords == NULL) {
 	    elog(WARN, "prs2RawStubToStub: Out of memory");
 	}
     }
     
-    for (i=0; i< stub->numOfStubs; i++) {
-	oneStub = & (stub->stubRecords[i]);
+    for (i=0; i< relstub->numOfStubs; i++) {
+	oneStub = & (relstub->stubRecords[i]);
 	/*
 	 * copy the fixed part of the 'Prs2OneStub' first.
 	 */
@@ -308,5 +308,5 @@ Prs2RawStub rawStub;
     /*
      * At last! we are done...
      */
-    return(stub);
+    return(relstub);
 }
