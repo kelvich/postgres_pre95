@@ -148,7 +148,8 @@ int LOopen(fname,mode)
 }
 
 #define MAX_LOBJ_FDS 256
-static LargeObjectDesc *cookies[MAX_LOBJ_FDS];
+char  *cookies[MAX_LOBJ_FDS];
+int lotype[MAX_LOBJ_FDS];
 static int current_objaddr[MAX_LOBJ_FDS]; /* current address in LO's terms */
 static int current_objoffset[MAX_LOBJ_FDS]; /* offset in LO's terms */
 
@@ -408,15 +409,15 @@ struct varlena *LOstat(path)
      char *path;
 {
     struct varlena *ret;
-    struct stat *st;
+    struct pgstat *st;
     unsigned int nblocks, byte_offset;
     int len;
-    len = sizeof(struct stat);
+    len = sizeof(struct pgstat);
     ret = (struct varlena *) palloc(len+sizeof(int32));
     VARSIZE(ret) = len;
-    st = (struct stat *)VARDATA(ret);
+    st = (struct pgstat *)VARDATA(ret);
     bzero(st,len);	/* default values of 0 */
-#if 0
+
     if (!LOisdir(path)) {
 	/* kemnitz large objects */
 	int fd = LOopen(path,O_RDONLY);
@@ -429,9 +430,7 @@ struct varlena *LOstat(path)
 	st->st_mode = S_IFREG;
 	st->st_mode |= S_IRUSR|S_IWUSR|S_IXUSR|
 	  S_IRGRP|S_IWGRP|S_IXGRP|
-	    S_IROTH|S_IWOTH|S_IXOTH;*/
-	st->st_blksize = LARGE_OBJECT_BLOCK;
-	st->st_blocks = nblocks+ (byte_offset?1:0);
+	  S_IROTH|S_IWOTH|S_IXOTH;*/
     } else if (FilenameToOID(path) != InvalidObjectId) {
 	st->st_mode = S_IFDIR;
 	/* our directoiries don't exist in the filesystem, so give them
@@ -442,7 +441,7 @@ struct varlena *LOstat(path)
     } else {
 	VARSIZE(ret) = 5;
     }
-#endif    
+
     return ret;
 }
 
@@ -495,7 +494,7 @@ int NewLOfd(lobjCookie)
     int i;
     for (i = 0; i < MAX_LOBJ_FDS; i++) {
 	if (cookies[i] == NULL) {
-	    cookies[i] = lobjCookie;
+	    cookies[i] = (char *)lobjCookie;
 	    current_objaddr[i] = 0;
 	    current_objoffset[i] = 0;
 	    return i;

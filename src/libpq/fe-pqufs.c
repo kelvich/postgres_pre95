@@ -368,7 +368,7 @@ int p_rename(path,pathnew)
 
 int p_stat(path,statbuf)
      char *path;
-     struct stat *statbuf;
+     struct pgstat *statbuf;
 {
     int stlen;
     PQArgBlock argv[2];
@@ -378,7 +378,7 @@ int p_stat(path,statbuf)
     argv[0].len = VAR_LENGTH_ARG;
     argv[0].u.ptr = (int *)resolve_path(path);
 
-    pqret = PQfn(F_LOSTAT,(int *)statbuf,sizeof(struct stat),&stlen,2,argv,1);
+    pqret = PQfn(F_LOSTAT,(int *)statbuf,sizeof(struct pgstat),&stlen,2,argv,1);
 
     if (stlen == 5)
       return -1;
@@ -479,7 +479,7 @@ int p_closedir(dirp)
 int p_chdir(path)
      char *path;
 {
-    struct stat st;
+    struct pgstat st;
 
     if (p_stat(path,&st) < 0)
       return -1;

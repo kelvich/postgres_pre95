@@ -22,6 +22,7 @@ struct pgdirent {
 /* for stat(2) */
 #ifndef S_IRUSR /* this not defined means rest are probably not defined */
 /* file modes */
+
 #define S_IRWXU 00700           /* read, write, execute: owner */
 #define S_IRUSR 00400           /*  read permission: owner */
 #define S_IWUSR 00200           /*  write permission: owner */
@@ -36,15 +37,25 @@ struct pgdirent {
 #define S_IROTH 00004           /*  read permission: other */
 #define S_IWOTH 00002           /*  write permission: other */
 #define S_IXOTH 00001           /*  execute permission: other */
+
+#define _S_IFMT  0170000        /* type of file; sync with S_IFMT */
+#define _S_IFBLK 0060000        /* block special; sync with S_IFBLK */
+#define _S_IFCHR 0020000        /* character special sync with S_IFCHR */
+#define _S_IFDIR 0040000        /* directory; sync with S_IFDIR */
+#define _S_IFIFO 0010000        /* FIFO - named pipe; sync with S_IFIFO */
+#define _S_IFREG 0100000        /* regular; sync with S_IFREG */
+
+#define S_IFDIR _S_IFDIR
+#define S_IFREG _S_IFREG
+
+#define S_ISDIR( mode )         (((mode) & _S_IFMT) == _S_IFDIR)
+
 #endif
 
-/* Temp workaround until we make unix stuff compile under all oses */
-struct stat {
-	int st_mode;
-	int b;
-	int c;
-	int d;
-	int e;
+struct pgstat { /* just the fields we need from stat structure */
+    int st_mode;
+    int st_size;
+    int st_uid;
 };
 
 typedef struct Direntry_ {

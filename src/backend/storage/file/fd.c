@@ -30,11 +30,13 @@
 #include <sys/file.h>
 #include <sys/param.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 extern errno;
 
 #include "tmp/c.h"
 #include "machine.h"	/* for BLCKSZ */
+#include "tmp/libpq-fs.h" /* for pgstat */
 
 #ifdef PARALLELDEBUG
 #include "executor/paralleldebug.h"
@@ -1174,4 +1176,19 @@ closeOneVfd()
      }
     else
        close(tmpfd);
+}
+
+int FileStat(file,stbuf)
+     FileNumber file;
+     struct pgstat *stbuf;
+{
+    int ret;
+    struct stat ustatbuf;
+    ret = stat(file,&ustatbuf);
+    if (ret >= 0) {
+	stbuf->st_mode = ustatbuf.st_mode;
+	stbuf->st_uid = ustatbuf.st_uid;
+	stbuf->st_size = ustatbuf.st_size;
+    }
+    return ret;
 }
