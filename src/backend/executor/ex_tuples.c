@@ -903,6 +903,7 @@ ExecGetTupType(node)
 	NestLoopState  	nlstate;
 	MaterialState	matstate;
 	SortState	sortstate;
+	AggState	aggstate;
 	HashState	hashstate;
 	UniqueState	uniquestate;
 	MergeJoinState 	mergestate;
@@ -973,6 +974,12 @@ ExecGetTupType(node)
 	tupType =  		ExecSlotDescriptor(slot);
 	return tupType;
         
+    case classTag(Agg):
+	s.aggstate = 		get_aggstate(node);
+	slot = 			get_css_ScanTupleSlot(s.aggstate);
+	tupType = 		ExecSlotDescriptor(slot);
+	return tupType;
+
     case classTag(Hash):
 	s.hashstate = 		get_hashstate(node);
 	slot =			get_cs_ResultTupleSlot(s.hashstate);
