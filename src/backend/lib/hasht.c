@@ -16,9 +16,9 @@
 
 RcsId("$Header$");
 
+#include "enbl.h"
 #include "log.h"
 #include "mcxt.h"
-#include "pinit.h"	/* for BypassEnable */
 
 #include "hasht.h"
 

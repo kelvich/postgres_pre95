@@ -10,10 +10,10 @@ RcsId("$Header$");
 #include <stdio.h>	/* XXX for printf debugging */
 
 #include "aset.h"
+#include "enbl.h"
 #include "excid.h"
 #include "mnodes.h"
 #include "oset.h"
-#include "pinit.h"	/* for BypassEnable */
 #include "tags.h"	/* for classTag */
 #include "tnodes.h"
 

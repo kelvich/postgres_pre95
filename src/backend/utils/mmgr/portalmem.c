@@ -9,11 +9,11 @@ RcsId("$Header$");
 
 #include <strings.h>	/* for strlen, strncpy */
 
+#include "enbl.h"
 #include "excid.h"	/* for Unimplemented */
 #include "hasht.h"
 #include "mcxt.h"
 #include "mnodes.h"
-#include "pinit.h"	/* for BypassEnable */
 #include "tnodes.h"
 
 #include "portal.h"
