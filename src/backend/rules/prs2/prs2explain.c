@@ -68,19 +68,19 @@ Name relationName;
 
     strcpy(attrName.data, "rulename");
     strcpy(typeName.data, "char16");
-    TupleDescInitEntry(tupleDesc,1, &attrName, &typeName);
+    TupleDescInitEntry(tupleDesc,1, &attrName, &typeName, 0);
 
     strcpy(attrName.data, "depth");
     strcpy(typeName.data, "int4");
-    TupleDescInitEntry(tupleDesc,2, &attrName, &typeName);
+    TupleDescInitEntry(tupleDesc,2, &attrName, &typeName, 0);
 
     strcpy(attrName.data, "tupleoid");
     strcpy(typeName.data, "oid");
-    TupleDescInitEntry(tupleDesc,3, &attrName, &typeName);
+    TupleDescInitEntry(tupleDesc,3, &attrName, &typeName, 0);
     
     strcpy(attrName.data, "relname");
     strcpy(typeName.data, "char16");
-    TupleDescInitEntry(tupleDesc,4, &attrName, &typeName);
+    TupleDescInitEntry(tupleDesc,4, &attrName, &typeName, 0);
 
     /*
      * Create the relation.
