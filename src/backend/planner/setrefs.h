@@ -10,10 +10,10 @@ extern LispValue new_result_qual ARGS((LispValue clauses, LispValue ltlist, Lisp
 extern Expr replace_clause_resultvar_refs ARGS((List clause, List ltlist, List rtlist, int levelnum));
 extern LispValue replace_subclause_resultvar_refs ARGS((LispValue clauses, LispValue ltlist, LispValue rtlist, LispValue levelnum));
 extern Var replace_resultvar_refs ARGS((Var var, List ltlist, List rtlist, int levelnum));
-extern void *set_tlist_references ARGS((LispValue plan));
-extern void *set_join_tlist_references ARGS((Join join));
-extern void *set_tempscan_tlist_references ARGS((LispValue tempscan));
-extern void *set_temp_tlist_references ARGS((LispValue temp));
+extern void set_tlist_references ARGS((LispValue plan));
+extern void set_join_tlist_references ARGS((Join join));
+extern void set_tempscan_tlist_references ARGS((LispValue tempscan));
+extern void set_temp_tlist_references ARGS((LispValue temp));
 extern LispValue join_references ARGS((LispValue clauses, LispValue outer_tlist, LispValue inner_tlist));
 extern LispValue index_outerjoin_references ARGS((LispValue inner_indxqual, LispValue outer_tlist, LispValue inner_relid));
 extern LispValue replace_clause_joinvar_refs ARGS((LispValue clause, LispValue outer_tlist, LispValue inner_tlist));
