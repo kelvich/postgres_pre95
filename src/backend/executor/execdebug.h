@@ -127,6 +127,14 @@
 #undef EXEC_MERGEJOINPFREE
 
 /* ----------------
+ *	EXEC_INTERACTIVEDEBUG is a flag which enables the
+ *	user to issue "DEBUG" commands from an interactive
+ *	backend. 
+ * ----------------
+ */
+#undef EXEC_DEBUGINTERACTIVE
+
+/* ----------------
  *	EXEC_DEBUGVARIABLEFILE is string, which if defined will
  *	be loaded when the executor is initialized.  If this
  *	string is not defined then nothing will be loaded..
