@@ -571,7 +571,7 @@ opt_portal_name:
 
 IndexStmt:
 	  DEFINE opt_archive Index index_name ON relation_name
-	    Using access_method '(' index_list ')' with_clause
+	    Using access_method '(' index_params ')' with_clause
 		{
 		    /* should check that access_method is valid,
 		       etc ... but doesn't */
@@ -1375,10 +1375,24 @@ opt_archive:
 		{ $$ = KW(archive); }
 	;
 
+index_params:
+	  index_list				/* $$=$1 */
+	| func_index				{ ELEMENT ; }
+	;
 index_list:
 	  index_list ',' index_elem		{ INC_LIST ;  }
 	| index_elem				{ ELEMENT ; }
 	;
+
+func_index:
+	  ind_function opt_class
+		{ $$ = nappend1(LispNil,$1); nappend1($$,$2); }
+	  ;
+
+ind_function:
+	  name '(' name_list ')' 
+		{ $$ = nappend1(LispNil,$1); rplacd($$,$3); }
+	  ;
 
 index_elem:
 	  attr_name opt_class
