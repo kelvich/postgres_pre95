@@ -1,8 +1,14 @@
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.XA 0 "Section 6 \*- Files" _
+.SS FILES 6/14/90
+.XA 0 "Section 8 \*- Files"
 .SP INFORMATION FILES 6/14/90
-.XA 1 "General Information (Information)"
+.sp 2i
+.ps 14
+.ce
+.b "SECTION 8 \*- FILES"
+.sp 3
+.XA 1 "General Information (INFORMATION)"
 .uh OVERVIEW
 .lp
 This section describes
