@@ -180,7 +180,7 @@ create_tl_element (var,resdomno,joinlist)
     set_entry (tlelement,
 	       MakeTLE (MakeResdom (resdomno, get_vartype (var),
 				    get_typlen (get_vartype (var)),
-				    LispNil,0,LispNil),
+				    LispNil,0,LispNil,0),
 			var));
     set_joinlist (tlelement,joinlist);
     
@@ -448,7 +448,7 @@ flatten_tlist (tlist)
 						     (CAR(var))),
 						    LispNil,
 						    0,
-						    LispNil),
+						    LispNil,0),
 					 CAR(var)));
 	    
 	}

@@ -546,7 +546,8 @@ AttributeNumber updatedAttributeNumber;
 			    (Size) 4,
 			    &(nameData.data[0]),
 			    (Index) 0,
-			    (OperatorTupleForm) 0);
+			    (OperatorTupleForm) 0,
+			    0);
 	value = Int32GetDatum(1);
 	constant = MakeConst((ObjectId) 23,	/* type */
 			    (Size) 4,		/* size */
