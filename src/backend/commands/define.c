@@ -173,7 +173,8 @@ DefineFunction(nameargsexe, dest)
 	 canCache = false;
 
 	 /* query optimizer groks postquel, these are meaningless */
-	 byte_pct = perbyte_cpu = percall_cpu = outin_ratio =  -1;
+	 perbyte_cpu = percall_cpu = 0;
+	 byte_pct = outin_ratio = 100;
      }
 
     /* ----------------
