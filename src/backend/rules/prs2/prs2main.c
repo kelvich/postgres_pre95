@@ -87,7 +87,7 @@
  *
  */
 
-int
+Prs2Status
 prs2Main(estate, operation, userId, relation,
 	    oldTuple, oldBuffer,
 	    newTuple, newBuffer,
@@ -106,7 +106,7 @@ int numberOfAttributes;
 HeapTuple *returnedTupleP;
 Buffer *returnedBufferP;
 {
-    int status;
+    Prs2Status status;
     Buffer localBuffer;
     Prs2EStateInfo prs2EStateInfo;
     int topLevel;
@@ -143,27 +143,29 @@ Buffer *returnedBufferP;
 				returnedTupleP,
 				returnedBufferP);
 	    break;
-#ifdef NOT_YET
 	case DELETE:
 	    status = prs2Delete(
+				prs2EStateInfo,
 				oldTuple,
 				oldBuffer,
 				relation);
 	    break;
 	case APPEND:
 	    status = prs2Append(
-				oldTuple,
-				oldBuffer,
-				attributeArray,
-				numberOfAttributes,
+				prs2EStateInfo,
+				newTuple,
+				newBuffer,
 				relation,
 				returnedTupleP,
 				returnedBufferP);
 	    break;
 	case REPLACE:
 	    status = prs2Replace(
+				prs2EStateInfo,
 				oldTuple,
 				oldBuffer,
+				newTuple,
+				newBuffer,
 				attributeArray,
 				numberOfAttributes,
 				relation,
@@ -171,7 +173,6 @@ Buffer *returnedBufferP;
 				returnedBufferP);
 	    break;
 
-#endif NOT_YET
 	default:
 	    elog(WARN, "prs2main: illegal operation %d", operation);
 
