@@ -184,11 +184,7 @@ add_clause_to_rels(clause)
 	set_mergesortorder(clauseinfo,(MergeOrder)NULL);
 	set_hashjoinoperator(clauseinfo,(ObjectId)0);
 	
-	/*
-	 * XXX If we have a funtion treat it as a restriction, really
-	 *     need a true selectivity function.
-	 */
-	if((1 == length(relids)) || IsA(CAR(clause),Func)) {
+	if(1 == length(relids)) {
 	    
 	    /* There is only one relation participating in 'clause', */
 	    /* so 'clause' must be a restriction clause. */
@@ -201,11 +197,22 @@ add_clause_to_rels(clause)
 	    /* 'clause' is a join clause, since there is more than one */
 	    /*  atom in the relid list. */
 	    
-	    set_selectivity(clauseinfo,compute_clause_selec(clause,
-							      LispNil));
+	    /*
+	     * XXX If we have a func clause set selectivity to 1/3, really
+	     *     need a true selectivity function.
+	     */
+	    if (is_funcclause(clause))
+	    {
+		set_selectivity(clauseinfo,(double)0.3333333);
+	    }
+	    else
+	    {
+		set_selectivity(clauseinfo,compute_clause_selec(clause,
+								LispNil));
+	    }
 	    add_join_clause_info_to_rels(clauseinfo,relids);
 	    add_vars_to_rels(vars,relids);
-	} 
+	}
     }
 }  /* function end   */
 
