@@ -35,6 +35,9 @@ extern TimeQual	SelfTimeQual;
 #define LispSelfTimeQual	((TimeQual) 1)
 #endif	/* !defined(GOODAMI) */
 
+void setheapoverride ARGS ((bool on));
+bool heapisoverride ARGS ((void));
+
 /*
  * TimeQualIsValid --
  *	True iff time qualification is valid.
@@ -176,7 +179,7 @@ TimeQualGetEndTime ARGS((
 extern
 TimeQual
 TimeFormSnapshotTimeQual ARGS((
-	Time	time
+	AbsoluteTime	time
 ));
 
 /*
@@ -191,8 +194,8 @@ TimeFormSnapshotTimeQual ARGS((
 extern
 TimeQual
 TimeFormRangedTimeQual ARGS((
-	Time	startTime,
-	Time	endTime
+	AbsoluteTime	startTime,
+	AbsoluteTime	endTime
 ));
 
 /*

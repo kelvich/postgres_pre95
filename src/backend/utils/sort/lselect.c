@@ -231,8 +231,8 @@ FILE	*file;
  */
 
 tuplecmp(ltup, rtup)
-struct	tuple	*ltup;
-struct	tuple	*rtup;
+HeapTuple	ltup;
+HeapTuple	rtup;
 {
 	register char	*lattr, *rattr;
 	int		nkey = 0;
@@ -241,9 +241,9 @@ struct	tuple	*rtup;
 	int		result = 0;
 	Boolean		isnull;
 
-	if (ltup == (struct tuple *)NULL)
+	if (ltup == (HeapTuple)NULL)
 		return(0);
-	if (rtup == (struct tuple *)NULL)
+	if (rtup == (HeapTuple)NULL)
 		return(1);
 	while (nkey < Nkeys && !result) {
 		lattr = heap_getattr(ltup, InvalidBuffer,

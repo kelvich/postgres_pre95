@@ -106,7 +106,7 @@ unsigned char *addr;
     {
         elog(NOTICE, "Address %x was not allocated with pg_malloc", addr);
         elog(NOTICE, "Address will be freed using free()");
-        free(addr);
+        free((char *)addr);
         return;
     }
 }
@@ -136,7 +136,7 @@ pg_zero_memory()
         		if (npage->is_malloced)
         		{
             		ntrailer->next = npage->next;
-            		free(npage);
+            		free((char *)npage);
             		npage = ntrailer;
         		}
         		else
@@ -157,7 +157,7 @@ pg_zero_memory()
         if (opage->is_malloced)
         {
             otrailer->next = opage->next;
-            free(opage);
+            free((char *)opage);
             opage = otrailer;
         }
         else
@@ -176,10 +176,10 @@ pg_zero_memory()
              bpage->next != NULL; /* do nothing */ )
         {
             btrailer = bpage->next;
-            free(bpage);
+            free((char *)bpage);
             bpage=btrailer;
         }
-        free(bpage);
+        free((char *)bpage);
 
         xact_page_data.big_pages = NULL;
     }
@@ -374,7 +374,7 @@ Size size;
             addr = (unsigned char *)
                    ((long) header + sizeof(NodeMemoryHeader));
             header->debug_depth = trace_depth;
-            SetElement(scanner->page_map, scanner->offset);
+            SetElement(scanner->page_map);
             scanner->ref_count += 1;
             SetNextFreeNode(scanner, scanner->offset);
             this_page = scanner;
@@ -749,7 +749,7 @@ unsigned char *addr;
                 		if (page->ref_count == 0 && page->is_malloced == TRUE)
                 		{
                     		prev->next = page->next;
-                    		free(page);
+                    		free((char *)page);
                 		}
                 		else
                 		{
@@ -798,7 +798,7 @@ unsigned char *addr;
             {
                 if (!HeaderIsValid(header))
                 {
-                    other_memory_page_info(header);
+                    other_memory_page_info(page);
                     elog(WARN, "FreeOtherMemory - bad header at %x",header);
                 }
                 header->used = FALSE;
@@ -815,7 +815,7 @@ unsigned char *addr;
                 if (page->ref_count == 0 && page->is_malloced == TRUE)
                 {
                     prev->next = page->next;
-                    free(page);
+                    free((char *)page);
                 }
             }
             else
@@ -848,7 +848,7 @@ unsigned char *addr;
 		if (page == page_data->big_pages)
 		{
 			page_data->big_pages = page_data->big_pages->next;
-			free(page);
+			free((char *)page);
 		}
 		else
 		{
@@ -857,7 +857,7 @@ unsigned char *addr;
 				 scanner = scanner->next);
 
 			scanner->next = page->next;
-			free(page);
+			free((char *)page);
 		}
 		freed = TRUE;
 	}

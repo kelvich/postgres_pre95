@@ -241,4 +241,9 @@ extern MemoryContext	TopMemoryContext;
  */
 #define MaxAllocSize	(0xfffffff)	/* 16G - 1 */
 
+/* mcxt.c */
+void MemoryContextDump ARGS((MemoryContext context ));
+void DumpMemoryContexts ARGS((void ));
+void PrintGlobalMemory ARGS((GlobalMemory foo ));
+
 #endif /* !defined(MCxtIncluded) */

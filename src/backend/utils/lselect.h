@@ -24,9 +24,16 @@ struct	leftist {
 };
 
 extern	struct	leftist	*Tuples;
-extern	HeapTuple	gettuple();
-extern	int		puttuple();
-extern	int		dumptuples();
-extern	int		tuplecmp();
+
+struct leftist *lmerge ARGS((struct leftist *pt , struct leftist *qt ));
+HeapTuple gettuple ARGS((struct leftist **treep , short *devnum ));
+int puttuple ARGS((struct leftist **treep , HeapTuple newtuple , int devnum ));
+int dumptuples ARGS((FILE *file ));
+int tuplecmp ARGS((HeapTuple ltup , HeapTuple rtup ));
+
+#ifdef EBUG
+int checktree ARGS((struct leftist *tree ));
+int checktreer ARGS((struct leftist *tree , int level ));
+#endif EBUG
 
 #endif _LSELECT_H_

@@ -71,12 +71,12 @@ extern  int		NDirectFileWrite;
 Relation		SortRdesc;		/* current tuples in memory */
 struct	leftist		*Tuples;		/* current tuples in memory */
 
-extern	FILE		*gettape();
-extern	int		resettape();
-extern	int		destroytape();
-extern	int		initialrun();
-extern	FILE		*mergeruns();
-extern  bool		createrun();
+FILE *gettape ARGS((void ));
+int resettape ARGS((FILE *file ));
+int destroytape ARGS((FILE *file ));
+int initialrun ARGS((Relation rdesc ));
+bool createrun ARGS((HeapScanDesc sdesc , FILE *file ));
+FILE *mergeruns ARGS((void ));
 
 /*
  *	psort		- polyphase merge sort entry point
@@ -87,9 +87,6 @@ Relation	oldrel, newrel;
 int		nkeys;
 struct	skey	key[];
 {
-/*	FILE		*outfile;	/* file of ordered tuples */
-
-
 	AssertArg(nkeys >= 1);
 	AssertArg(key[0].sk_attnum != 0);
 	AssertArg(key[0].sk_opr != 0);
@@ -100,7 +97,13 @@ struct	skey	key[];
 	SortRdesc = oldrel;
 	BytesRead = 0;
 	BytesWritten = 0;
-	StartPortalAllocMode(StaticAllocMode);	/* may not be the best place */
+	/* 
+	 * may not be the best place.  
+	 *
+	 * Pass 0 for the "limit" as the argument is currently ignored.
+	 * Previously, only one arg was passed. -mer 12 Nov. 1991
+	 */
+	StartPortalAllocMode(StaticAllocMode, (Size)0);
 	initpsort();
 	initialrun(oldrel);
 /* call finalrun(newrel, mergerun()) instead */
@@ -305,8 +308,7 @@ FILE		*file;
 	struct	leftist	*nextrun;
 	Buffer	b;
 	bool		foundeor;
-	int		junk;
-	HeapTuple	tuplecopy();
+	short		junk;
 
 	lasttuple = NULL;
 	nextrun = NULL;
@@ -495,7 +497,7 @@ struct	tape	*dest;
  */
 
 endpsort(rdesc, file)
-struct	reldesc		*rdesc;
+Relation		rdesc;
 FILE			*file;
 {
 	register struct	tape	*tp;

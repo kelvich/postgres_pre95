@@ -24,6 +24,11 @@ RcsId("$Header$");
 static char	Pg_verfile[] = PG_VERFILE;
 
 /*
+ * private function prototypes
+ */
+static PathSetVersionFilePath ARGS ((char path[], char filepathbuf[]));
+
+/*
  *  Noversion moved to globals.c
  */
 

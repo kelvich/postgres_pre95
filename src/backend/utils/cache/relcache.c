@@ -114,8 +114,6 @@ SCHEMA_DEF(pg_time);
 HTAB 	*RelationNameCache;
 HTAB	*RelationIdCache;
 
-extern int	tag_hash();
-
 /* ----------------
  *	RelationBuildDescInfo exists so code can be shared
  *      between RelationIdGetRelation() and RelationNameGetRelation()
@@ -168,7 +166,8 @@ private void RelationFlushIndexes ARGS((
 	Name relname; ObjectId reloid; Boolean found; \
 	relname = &(RELATION->rd_rel->relname); \
 	namehentry = (RelNameCacheEnt*)hash_search(RelationNameCache, \
-					           relname, HASH_ENTER, \
+					           &relname->data[0], \
+						   HASH_ENTER, \
 						   &found); \
 	if (namehentry == NULL) { \
 	    elog(FATAL, "can't insert into relation descriptor cache"); \
@@ -179,7 +178,9 @@ private void RelationFlushIndexes ARGS((
 	namehentry->reldesc = RELATION; \
 	reloid = RELATION->rd_id; \
 	idhentry = (RelIdCacheEnt*)hash_search(RelationIdCache, \
-					       &reloid, HASH_ENTER, &found); \
+					       (char *)&reloid, \
+					       HASH_ENTER, \
+					       &found); \
 	if (idhentry == NULL) { \
 	    elog(FATAL, "can't insert into relation descriptor cache"); \
 	  } \
@@ -191,7 +192,7 @@ private void RelationFlushIndexes ARGS((
 #define RelationNameCacheLookup(NAME, RELATION)	\
     {   RelNameCacheEnt *hentry; Boolean found; \
 	hentry = (RelNameCacheEnt*)hash_search(RelationNameCache, \
-					       NAME, HASH_FIND, &found); \
+					       (char *)NAME,HASH_FIND,&found); \
 	if (hentry == NULL) { \
 	    elog(FATAL, "error in CACHE"); \
 	  } \
@@ -205,7 +206,7 @@ private void RelationFlushIndexes ARGS((
 #define RelationIdCacheLookup(ID, RELATION)	\
     {   RelIdCacheEnt *hentry; Boolean found; \
 	hentry = (RelIdCacheEnt*)hash_search(RelationIdCache, \
-					     &(ID), HASH_FIND, &found); \
+					     (char *)&(ID),HASH_FIND, &found); \
 	if (hentry == NULL) { \
 	    elog(FATAL, "error in CACHE"); \
 	  } \
@@ -221,7 +222,8 @@ private void RelationFlushIndexes ARGS((
 	Name relname; ObjectId reloid; Boolean found; \
 	relname = &(RELATION->rd_rel->relname); \
 	namehentry = (RelNameCacheEnt*)hash_search(RelationNameCache, \
-					           relname, HASH_REMOVE, \
+					           &relname->data[0], \
+						   HASH_REMOVE, \
 						   &found); \
 	if (namehentry == NULL) { \
 	    elog(FATAL, "can't delete from relation descriptor cache"); \
@@ -231,7 +233,8 @@ private void RelationFlushIndexes ARGS((
 	  } \
 	reloid = RELATION->rd_id; \
 	idhentry = (RelIdCacheEnt*)hash_search(RelationIdCache, \
-					       &reloid, HASH_REMOVE, &found); \
+					       (char *)&reloid, \
+					       HASH_REMOVE, &found); \
 	if (idhentry == NULL) { \
 	    elog(FATAL, "can't delete from relation descriptor cache"); \
 	  } \

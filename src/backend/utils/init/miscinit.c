@@ -243,7 +243,6 @@ char *
 GetPGHome()
 {
     char *h;
-    extern char *getenv();
 
     if ((h = getenv("POSTGRESHOME")) != (char *) NULL)
 	return (h);

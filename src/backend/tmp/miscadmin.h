@@ -172,6 +172,15 @@ GetDatabasePath ARGS((
 	void
 ));
 
+extern
+void
+SetDatabasePath ARGS((
+	String path
+));
+
+void
+SetDatabaseName ARGS((String name));
+
 /*
  * GetDatabaseName --
  *	Returns name of database.
@@ -186,7 +195,7 @@ GetDatabaseName ARGS((
 ));
 
 /*
- * InitDatabase --
+ * DoChdirAndInitDatabaseNameAndPath --
  *	Sets current directory appropriately for given path and name.
  *
  * Arguments:
@@ -207,9 +216,9 @@ GetDatabaseName ARGS((
  */
 extern
 void
-InitDatabase ARGS((
-	String	path,	/* XXX Path */
-	String	name	/* XXX Name */
+DoChdirAndInitDatabaseNameAndPath ARGS((
+	String	name,
+	String	path
 ));
 
 #endif	/* !defined(PDirIncluded) */
@@ -238,24 +247,12 @@ typedef	int16	ExitStatus;
 #define	FatalExitStatus		(127)
 /* XXX are there any other meaningful exit codes? */
 
-/*
- * BypassEnable --
- *	True iff enable/disable processing is required given on and "*countP."
- *
- * Note:
- *	As a side-effect, *countP is modified.  It should be 0 initially.
- *
- * Exceptions:
- *	BadState if called with pointer to value 0 and false.
- *	BadArg if "countP" is invalid pointer.
- *	BadArg if on is invalid.
- */
-extern
-bool
-BypassEnable ARGS((
-	Count	*enableCountInOutP,
-	bool	on
-));
+void
+InitMyDatabaseId ARGS(());
+void
+InitCommunication ARGS(());
+void
+InitStdio ARGS(());
 
 /*
  * InitPostgres --
@@ -273,7 +270,7 @@ BypassEnable ARGS((
 extern
 void
 InitPostgres ARGS((
-	String	path
+	String	name
 ));
 
 /*
@@ -316,6 +313,9 @@ void
 ExitPostgres ARGS((
 	ExitStatus	status
 ));
+
+void StatusBackendExit ARGS((int status));
+void StatusPostmasterExit ARGS((int status));
 
 /*
  * AbortPostgres --
@@ -441,7 +441,7 @@ SetProcessingMode ARGS((
 
 #endif	/* !defined(PModIncluded) */
 
-extern char *GetPGHome();
+extern char *GetPGHome ARGS((void));
 
 /* ----------------
  *	pusr.h
@@ -469,9 +469,11 @@ extern char *GetPGHome();
  */
 extern
 ObjectId
-GetUserId ARGS((
-	void
-));
+GetUserId ARGS((void));
+
+extern
+void
+SetUserId ARGS((void));
 
 /*
  * InitUser --
@@ -764,6 +766,13 @@ SystemPortSeek ARGS((
  */
 
 #endif	/* !defined(OSIncluded) */
+
+/*
+ * Prototypes for utils/init/magic.c
+ */
+int DatabaseMetaGunkIsConsistent ARGS((char database[], char path[]));
+int ValidPgVersion ARGS((char path []));
+int SetPgVersion ARGS((char path []));
 
 /* ----------------
  *	end of miscadmin.h

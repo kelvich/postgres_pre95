@@ -193,8 +193,13 @@ InitMyDatabaseId()
 	     *  to be sure that the xact that deleted this tuple actually
 	     *  committed.  only way to do this at init time is to paw over
 	     *  the log relation by hand, too.  let's be optimistic.
+	     *
+	     *  XXX This is an evil type cast.  tup->t_xmax is char[5] while
+	     *  TransactionId is struct * { char data[5] }.  It works but
+	     *  if data is ever moved and no longer the first field this 
+	     *  will be broken!! -mer 11 Nov 1991.
 	     */
-	    if (TransactionIdIsValid(tup->t_xmax))
+	    if (TransactionIdIsValid((TransactionId)tup->t_xmax))
 		continue;
 
 	    /*

@@ -46,9 +46,7 @@ AttachSharedInvalidationState ARGS((
  *	Initializes the backend state for processing.
  */
 void
-InitSharedInvalidationState ARGS((
-	IPCKey	key
-));
+InitSharedInvalidationState ARGS((void));
 
 /*
  * RegisterSharedInvalid --

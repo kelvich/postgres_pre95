@@ -444,21 +444,13 @@ typedef AllocSetData *AllocSet;
  * AllocPointerIsValid --
  *	True iff pointer is valid allocation pointer.
  */
-extern
-bool
-AllocPointerIsValid ARGS((
-	AllocPointer	pointer
-));
+#define AllocPointerIsValid(pointer) PointerIsValid(pointer)
 
 /*
  * AllocSetIsValid --
  *	True iff set is valid allocation set.
  */
-extern
-bool
-AllocSetIsValid ARGS((
-	AllocSet	set
-));
+#define AllocSetIsValid(set) PointerIsValid(set)    
 
 /*
  * AllocSetInit --
@@ -490,7 +482,7 @@ AllocSetInit ARGS((
 #ifndef PALLOC_DEBUG
 extern void AllocSetReset ARGS((AllocSet set));
 #else    
-extern void AllocSetReset_debug ARGS((AllocSet set));
+void AllocSetReset_debug ARGS((String file , int line , AllocSet set ));
 #endif PALLOC_DEBUG
 
 /*
@@ -579,6 +571,17 @@ AllocSetStep ARGS((
 	AllocSet	set,
 	void		(*function) ARGS((AllocPointer pointer))
 ));
+
+extern
+Count
+AllocSetStep ARGS((
+	AllocSet	set,
+	void		(*function) ARGS((AllocPointer pointer))
+));
+
+Count AllocSetCount ARGS((AllocSet set));
+void AllocPointerDump ARGS((AllocPointer pointer));
+void AllocSetDump ARGS((AllocSet set));
 
 #endif	/* !defined(ASetIncluded) */
 

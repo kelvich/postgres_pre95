@@ -47,4 +47,17 @@ if (1) CODE; else
 #define	TRACE(VAL, CODE)
 #endif
 
+/* psort.c */
+bool psort ARGS((
+	Relation oldrel,
+	Relation newrel,
+	int nkeys,
+	struct skey key []
+));
+int initpsort ARGS((void ));
+int resetpsort ARGS((void ));
+HeapTuple tuplecopy ARGS((HeapTuple tup , Relation rdesc , Buffer b ));
+int merge ARGS((struct tape *dest ));
+int endpsort ARGS((Relation rdesc , FILE *file ));
+
 #endif

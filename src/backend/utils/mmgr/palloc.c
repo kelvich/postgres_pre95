@@ -26,9 +26,6 @@ RcsId("$Header$");
 #undef malloc
 #undef free
 
-extern Pointer MemoryContextAlloc();
-extern void MemoryContextFree();
-
 Pointer
 palloc(size)
     Size	size;
@@ -157,7 +154,7 @@ pfree_remove(file, line, pointer)
 	if (PallocDiffTag)
 	    SLAddTail(PfreeList, &(d->Link));
 	else
-	    free(d); /* can't use pfree, see palloc_record -cim  */
+	    free((char *)d); /* can't use pfree, see palloc_record -cim  */
         if (PallocNoisy)
 	    printf("!- f: %s l: %d p: 0x%x s: %d %s\n",
 	           d->file, d->line, pointer, d->size, d->context);
@@ -280,9 +277,9 @@ SLList *list;
     while (d != NULL) {
 	d1 = d;
 	d = (PallocDebugData*)SLGetSucc(&(d->Link));
-	free(d1);
+	free((char *)d1);
       }
-    free(list);
+    free((char *)list);
 }
 
 void
@@ -383,7 +380,7 @@ print_palloc_diff_list()
 	    if (strcmp(d->file, d1->file) == 0 && d->line == d1->line &&
 		d->size == d1->size) {
 		SLRemove(&(d1->Link));
-		free(d1);
+		free((char *)d1);
 		SLRemove(&(d->Link));
 		tempd = d;
 		break;
@@ -398,7 +395,7 @@ print_palloc_diff_list()
 	 }
        d = (PallocDebugData *) SLGetSucc(&(d->Link));
        if (d1 != NULL)
-	   free(tempd);
+	   free((char *)tempd);
      }
     printf("\n!! unfreed allocs: items: %d totalsize: %d\n\n", i, total);
 }
@@ -459,7 +456,7 @@ char *p;
 	    if (PallocDiffTag)
 		SLAddTail(PfreeList, &(d->Link));
 	    else
-		free(d);
+		free((char *)d);
 	  }
 	else
 	    elog(NOTICE, "pfree_remove l:%d f:%s p:0x%x %s",

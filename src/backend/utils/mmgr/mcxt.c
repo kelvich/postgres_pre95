@@ -148,9 +148,7 @@ GlobalMemoryDump ARGS((
  */
 static
 void
-DumpGlobalMemories ARGS((
-	GlobalMemory	this
-));
+DumpGlobalMemories ARGS((void));
 
 
 /*
@@ -169,7 +167,6 @@ static MemoryContextMethodsData	GlobalContextMethodsData = {
  * Note:
  *	TopGlobalMemory is handled specially because of bootstrapping.
  */
-extern void PrintGlobalMemory();
 /* extern bool EqualGlobalMemory(); */
 
 static classObj(GlobalMemory)	TopGlobalMemoryData   = {
@@ -262,7 +259,7 @@ MemoryContextAlloc(context, size)
 	AssertArg(SizeIsValid(size));
 
 	LogTrap(!AllocSizeIsValid(size), BadAllocSize,
-		("size=%d [0x%x]", size, size));
+		((int)"size=%d [0x%x]", size, size));
 
 	return (context->method->alloc(context, size));
 }
@@ -301,7 +298,7 @@ Size size;
 	AssertArg(SizeIsValid(size));
 
 	LogTrap(!AllocSizeIsValid(size), BadAllocSize,
-		("size=%d [0x%x]", size, size));
+		((int)"size=%d [0x%x]", size, size));
 
 	p = context->method->alloc(context, size);
 	if (PallocRecord) {
@@ -357,7 +354,7 @@ Pointer		pointer;
 		if (PallocDiffTag)
 		    SLAddTail(PfreeList, &(d->Link));
 		else
-		    free(d);
+		    free((char *)d);
 	      }
 	    else
 		elog(NOTICE, "pfree_remove l:%d f:%s p:0x%x %s",
@@ -388,7 +385,7 @@ MemoryContextRealloc(context, pointer, size)
 	AssertArg(SizeIsValid(size));
 
 	LogTrap(!AllocSizeIsValid(size), BadAllocSize,
-		("size=%d [0x%x]", size, size));
+		((int)"size=%d [0x%x]", size, size));
 
 	return (context->method->realloc(context, pointer, size));
 }

@@ -248,7 +248,7 @@ static String
 PortalVariableMemoryGetName(this)
     PortalVariableMemory	this;
 {
-    return (form("%s-var", PortalVariableMemoryGetPortal(this)->name));
+    return (form((int)"%s-var", PortalVariableMemoryGetPortal(this)->name));
 }
 
 /* ----------------
@@ -330,7 +330,7 @@ static String
 PortalHeapMemoryGetName(this)
     PortalHeapMemory	this;
 {
-    return (form("%s-heap", PortalHeapMemoryGetPortal(this)->name));
+    return (form((int)"%s-heap", PortalHeapMemoryGetPortal(this)->name));
 }
 
 /* ----------------
@@ -401,7 +401,7 @@ CreateNewBlankPortal()
      * make new portal structure
      */
     portal = (Portal)
-	MemoryContextAlloc(PortalMemory, sizeof *portal);
+	MemoryContextAlloc((MemoryContext)PortalMemory, sizeof *portal);
     
     /*
      * initialize portal variable context
@@ -658,7 +658,7 @@ CreatePortal(name)
     
     /* make new portal structure */
     portal = (Portal)
-	MemoryContextAlloc(PortalMemory, sizeof *portal);
+	MemoryContextAlloc((MemoryContext)PortalMemory, sizeof *portal);
     
     /* initialize portal variable context */
     NodeSetTag((Node)&portal->variable, classTag(PortalVariableMemory));
@@ -737,7 +737,7 @@ PortalResetHeapMemory(portal)
     
     if (PointerIsValid(context->block)) {
 	/* save present context */
-	currentContext = MemoryContextSwitchTo(context);
+	currentContext = MemoryContextSwitchTo((MemoryContext)context);
 	
 	do {
 	    EndPortalAllocMode();
@@ -771,8 +771,9 @@ StartPortalAllocMode(mode, limit)
     
     /* allocate and initialize new block */
     context->block =
-	MemoryContextAlloc(PortalHeapMemoryGetVariableMemory(context),
-			   sizeof (HeapMemoryBlockData));
+	MemoryContextAlloc(
+	    (MemoryContext)PortalHeapMemoryGetVariableMemory(context),
+	    sizeof (HeapMemoryBlockData) );
     
     /* XXX careful, context->block has never been stacked => bad state */
     
@@ -796,7 +797,7 @@ EndPortalAllocMode()
     
     /* free current mode */
     AllocSetReset(&HEAPMEMBLOCK(context)->setData);
-    MemoryContextFree(PortalHeapMemoryGetVariableMemory(context),
+    MemoryContextFree((MemoryContext)PortalHeapMemoryGetVariableMemory(context),
 		      context->block);
     
     /* restore previous mode */

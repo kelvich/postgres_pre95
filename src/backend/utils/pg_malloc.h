@@ -171,22 +171,22 @@ struct nodeinfo
 
 unsigned char *
 pg_malloc ARGS((
-Size size;
+Size size
 ));
 
 unsigned char *
 GetNodeMemory ARGS((
-Size size;
+Size size
 ));
 
 unsigned char *
 GetOtherMemory ARGS((
-Size size;
+Size size
 ));
 
 unsigned char *
 GetBigMemory ARGS((
-Size size;
+Size size
 ));
 
 NodeTable *
@@ -194,7 +194,7 @@ InitializeNodeTable ARGS((void));
 
 NodeMemoryPage *
 AllocateNodePage ARGS((
-Size element_size;
+Size element_size
 ));
 
 OtherMemoryPage *
@@ -202,32 +202,46 @@ AllocateOtherPage ARGS((void));
 
 BigMemoryPage *
 AllocateBigPage ARGS((
-Size size;
+Size size
 ));
 
 bool8
 FreeNodeMemory ARGS((
-unsigned char *addr;
+unsigned char *addr
 ));
 
 bool8
 FreeOtherMemory ARGS((
-unsigned char *addr;
+unsigned char *addr
 ));
 
 bool8
 FreeBigMemory ARGS((
-unsigned char *addr;
+unsigned char *addr
 ));
 
 int
 FindFreeElement ARGS((
-unsigned char *page_map;
+unsigned char *page_map
 ));
 
 Size
 LargestFreeObject ARGS((
-OtherMemoryPage page;
+OtherMemoryPage *page
 ));
+
+int pg_free ARGS((unsigned char *addr ));
+int pg_zero_memory ARGS((void ));
+int InitMemoryPages ARGS((void ));
+int SetElement ARGS((unsigned char *page_map ));
+int SetNextFreeNode ARGS((NodeMemoryPage *page , long offset ));
+int other_memory_page_info ARGS((OtherMemoryPage *page ));
+int PushMemoryTraceLevel ARGS((void ));
+int DumpMemoryTrace ARGS((void ));
+int DumpAllTrace ARGS((void ));
+bool8 FindCorruptedAddresses ARGS((void ));
+int PopMemoryTraceLevel ARGS((void ));
+int DumpTrace ARGS((uint8 trace_depth ));
+int DecrementTraceLevel ARGS((uint8 trace_depth ));
 
 #endif /* PG_MALLOC_H */

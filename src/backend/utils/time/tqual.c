@@ -10,6 +10,7 @@
 #include "access/htup.h"
 #include "access/xcxt.h"
 #include "access/xlog.h"
+#include "access/xact.h"
 #include "utils/log.h"
 
 #include "access/tqual.h"
@@ -445,7 +446,7 @@ TimeFormRangedTimeQual(startTime, endTime)
 	return ((TimeQual)qual);
 }
 
-/* This does not make any sense
+#if 0
 TimeQual
 TimeFormDebuggingTimeQual(time)
 	Time	time;
@@ -461,7 +462,7 @@ TimeFormDebuggingTimeQual(time)
 
 	return ((TimeQual)qual);
 }
-*/
+#endif 0
 
 /*
  * Note:
@@ -524,31 +525,36 @@ bool
 HeapTupleSatisfiesItself(tuple)
 	HeapTuple	tuple;
 {
-	if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
-		if (TransactionIdIsCurrentTransactionId(tuple->t_xmin) &&
-				!TransactionIdIsValid(tuple->t_xmax)) {
+    /*
+     * XXX Several evil casts are made in this routine.  Casting XID to be 
+     * TransactionId works only because TransactionId->data is the first
+     * (and only) field of the structure.
+     */
+    if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
+	if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmin) &&
+	    !TransactionIdIsValid((TransactionId)tuple->t_xmax)) {
 			return (true);
-		}
+	}
 
-		if (!TransactionIdDidCommit(tuple->t_xmin)) {
+	if (!TransactionIdDidCommit((TransactionId)tuple->t_xmin)) {
 			return (false);
-		}
 	}
-	/* the tuple was inserted validly */
+    }
+    /* the tuple was inserted validly */
 
-	if (AbsoluteTimeIsValid(tuple->t_tmax)) {
-		return (false);
-	}
+    if (AbsoluteTimeIsValid(tuple->t_tmax)) {
+	return (false);
+    }
 
-	if (!TransactionIdIsValid(tuple->t_xmax)) {
-		return (true);
-	}
+    if (!TransactionIdIsValid((TransactionId)tuple->t_xmax)) {
+	return (true);
+    }
 
-	if (TransactionIdIsCurrentTransactionId(tuple->t_xmax)) {
-		return (false);
-	}
+    if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmax)) {
+	return (false);
+    }
 
-	return ((bool)!TransactionIdDidCommit(tuple->t_xmax));
+    return ((bool)!TransactionIdDidCommit((TransactionId)tuple->t_xmax));
 }
 
 /*
@@ -567,54 +573,60 @@ bool
 HeapTupleSatisfiesNow(tuple)
 	HeapTuple	tuple;
 {
-	if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
+    /*
+     * XXX Several evil casts are made in this routine.  Casting XID to be 
+     * TransactionId works only because TransactionId->data is the first
+     * (and only) field of the structure.
+     */
+    if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
 
 #ifndef	ELOGTIME
-		/* XXX this should be removable with anything breaking */
-		/* system bootstrapping might break without this */
-		if (TransactionIdIsCurrentTransactionId(tuple->t_xmin) &&
-				CommandIdIsCurrentCommandId(tuple->t_cmin)) {
-			return (false);
-		}
+	/* XXX this should be removable with anything breaking */
+	/* system bootstrapping might break without this */
+	if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmin) &&
+	    CommandIdIsCurrentCommandId(tuple->t_cmin)) {
+
+	    return (false);
+	}
 #endif	/* !defined(ELOGTIME) */
 
-		if (TransactionIdIsCurrentTransactionId(tuple->t_xmin) &&
-				!CommandIdIsCurrentCommandId(tuple->t_cmin)) {
+	if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmin) &&
+	    !CommandIdIsCurrentCommandId(tuple->t_cmin)) {
 
-			if (!TransactionIdIsValid(tuple->t_xmax)) {
-				return (true);
-			}
-
-			Assert(TransactionIdIsCurrentTransactionId(tuple->t_xmax));
-
-			if (CommandIdIsCurrentCommandId(tuple->t_cmax)) {
-				return (true);
-			}
-		}
-
-		/*
-		 * this call is VERY expensive - requires a log table lookup.
-		 */
-
-		if (!TransactionIdDidCommit(tuple->t_xmin)) {
-			return (false);
-		}
-	}
-	/* the tuple was inserted validly */
-
-	if (AbsoluteTimeIsValid(tuple->t_tmax)) {
-		return (false);
-	}
-
-	if (!TransactionIdIsValid(tuple->t_xmax)) {
+	    if (!TransactionIdIsValid((TransactionId)tuple->t_xmax)) {
 		return (true);
+	    }
+
+	    Assert(TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmax));
+
+	    if (CommandIdIsCurrentCommandId(tuple->t_cmax)) {
+		return (true);
+	    }
 	}
 
-	if (TransactionIdIsCurrentTransactionId(tuple->t_xmax)) {
+	/*
+	 * this call is VERY expensive - requires a log table lookup.
+	 */
+
+	if (!TransactionIdDidCommit((TransactionId)tuple->t_xmin)) {
+	    return (false);
+	}
+    }
+    /* the tuple was inserted validly */
+
+    if (AbsoluteTimeIsValid(tuple->t_tmax)) {
 		return (false);
-	}
+    }
 
-	return ((bool)!TransactionIdDidCommit(tuple->t_xmax));
+    if (!TransactionIdIsValid((TransactionId)tuple->t_xmax)) {
+		return (true);
+    }
+
+    if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmax)) {
+		return (false);
+    }
+
+    return ((bool)!TransactionIdDidCommit((TransactionId)tuple->t_xmax));
 }
 
 /*
@@ -630,34 +642,39 @@ HeapTupleSatisfiesSnapshotInternalTimeQual(tuple, qual)
 	HeapTuple		tuple;
 	InternalTimeQual	qual;
 {
-	if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
+    /*
+     * XXX Several evil casts are made in this routine.  Casting XID to be 
+     * TransactionId works only because TransactionId->data is the first
+     * (and only) field of the structure.
+     */
+    if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
 
-		if (!TransactionIdDidCommit(tuple->t_xmin)) {
-			return (false);
-		}
-
-		tuple->t_tmin = TransactionIdGetCommitTime(tuple->t_xmin);
+	if (!TransactionIdDidCommit((TransactionId)tuple->t_xmin)) {
+	    return (false);
 	}
 
-	if (TimeIsBefore(TimeQualGetSnapshotTime(qual), tuple->t_tmin)) {
-		return (false);
+	tuple->t_tmin = TransactionIdGetCommitTime(tuple->t_xmin);
+    }
+
+    if (TimeIsBefore(TimeQualGetSnapshotTime((TimeQual)qual), tuple->t_tmin)) {
+	return (false);
+    }
+    /* the tuple was inserted validly before the snapshot time */
+
+    if (!AbsoluteTimeIsValid(tuple->t_tmax)) {
+
+	if (!TransactionIdIsValid((TransactionId)tuple->t_xmax) ||
+	    !TransactionIdDidCommit((TransactionId)tuple->t_xmax)) {
+
+	    return (true);
 	}
-	/* the tuple was inserted validly before the snapshot time */
 
-	if (!AbsoluteTimeIsValid(tuple->t_tmax)) {
+	tuple->t_tmax = TransactionIdGetCommitTime(tuple->t_xmax);
+    }
 
-		if (!TransactionIdIsValid(tuple->t_xmax) ||
-				!TransactionIdDidCommit(tuple->t_xmax)) {
-
-			return (true);
-		}
-
-		tuple->t_tmax = TransactionIdGetCommitTime(tuple->t_xmax);
-	}
-
-	return ((bool)
-		AbsoluteTimeIsAfter(tuple->t_tmax,
-				    TimeQualGetSnapshotTime(qual)));
+    return ((bool)
+	AbsoluteTimeIsAfter(tuple->t_tmax,
+			    TimeQualGetSnapshotTime((TimeQual)qual)));
 }
 
 /*
@@ -673,37 +690,42 @@ HeapTupleSatisfiesUpperBoundedInternalTimeQual(tuple, qual)
 	HeapTuple		tuple;
 	InternalTimeQual	qual;
 {
-	if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
+    /*
+     * XXX Several evil casts are made in this routine.  Casting XID to be 
+     * TransactionId works only because TransactionId->data is the first
+     * (and only) field of the structure.
+     */
+    if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
 
-		if (!TransactionIdDidCommit(tuple->t_xmin)) {
-			return (false);
-		}
-
-		tuple->t_tmin = TransactionIdGetCommitTime(tuple->t_xmin);
+	if (!TransactionIdDidCommit((TransactionId)tuple->t_xmin)) {
+	    return (false);
 	}
 
-	if (TimeIsBefore(TimeQualGetEndTime(qual), tuple->t_tmin)) {
-		return (false);
+	tuple->t_tmin = TransactionIdGetCommitTime(tuple->t_xmin);
+    }
+
+    if (TimeIsBefore(TimeQualGetEndTime((TimeQual)qual), tuple->t_tmin)) {
+	return (false);
+    }
+    /* the tuple was inserted validly before the range end */
+
+    if (!AbsoluteTimeIsValid(TimeQualGetStartTime((TimeQual)qual))) {
+	return (true);
+    }
+
+    if (!AbsoluteTimeIsValid(tuple->t_tmax)) {
+
+	if (!TransactionIdIsValid((TransactionId)tuple->t_xmax) ||
+	    !TransactionIdDidCommit((TransactionId)tuple->t_xmax)) {
+
+	    return (true);
 	}
-	/* the tuple was inserted validly before the range end */
 
-	if (!AbsoluteTimeIsValid(TimeQualGetStartTime(qual))) {
-		return (true);
-	}
+	tuple->t_tmax = TransactionIdGetCommitTime(tuple->t_xmax);
+    }
 
-	if (!AbsoluteTimeIsValid(tuple->t_tmax)) {
-
-		if (!TransactionIdIsValid(tuple->t_xmax) ||
-				!TransactionIdDidCommit(tuple->t_xmax)) {
-
-			return (true);
-		}
-
-		tuple->t_tmax = TransactionIdGetCommitTime(tuple->t_xmax);
-	}
-
-	return ((bool)AbsoluteTimeIsAfter(tuple->t_tmax,
-					  TimeQualGetStartTime(qual)));
+    return ((bool)AbsoluteTimeIsAfter(tuple->t_tmax,
+				      TimeQualGetStartTime((TimeQual)qual)));
 }
 
 /*
@@ -724,59 +746,59 @@ HeapTupleSatisfiesUpperUnboundedInternalTimeQual(tuple, qual)
 	HeapTuple		tuple;
 	InternalTimeQual	qual;
 {
-	if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
+    if (!AbsoluteTimeIsValid(tuple->t_tmin)) {
 
 #ifndef	ELOGTIME
-		/* XXX this should be removable with anything breaking */
-		/* system bootstrapping might break without this */
-		if (TransactionIdIsCurrentTransactionId(tuple->t_xmin) &&
-				CommandIdIsCurrentCommandId(tuple->t_cmin)) {
-			return (false);
-		}
+	/* XXX this should be removable with anything breaking */
+	/* system bootstrapping might break without this */
+	if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmin) &&
+	    CommandIdIsCurrentCommandId(tuple->t_cmin)) {
+
+	    return (false);
+	}
 #endif	/* !defined(ELOGTIME) */
 
-		if (TransactionIdIsCurrentTransactionId(tuple->t_xmin) &&
-				!CommandIdIsCurrentCommandId(tuple->t_cmin)) {
+	if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmin) &&
+	    !CommandIdIsCurrentCommandId(tuple->t_cmin)) {
 
-			if (!TransactionIdIsValid(tuple->t_xmax)) {
-				return (true);
-			}
-
-			Assert(TransactionIdIsCurrentTransactionId(tuple->t_xmax));
-
-			return ((bool)
-				!CommandIdIsCurrentCommandId(tuple->t_cmax));
-		}
-
-		if (!TransactionIdDidCommit(tuple->t_xmin)) {
-			return (false);
-		}
-
-		tuple->t_tmin = TransactionIdGetCommitTime(tuple->t_xmin);
-	}
-	/* the tuple was inserted validly */
-
-	if (!AbsoluteTimeIsValid(TimeQualGetStartTime(qual))) {
+	    if (!TransactionIdIsValid((TransactionId)tuple->t_xmax)) {
 		return (true);
+	    }
+
+	    Assert(TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmax));
+
+	    return ((bool) !CommandIdIsCurrentCommandId(tuple->t_cmax));
 	}
 
-	if (!AbsoluteTimeIsValid(tuple->t_tmax)) {
-
-		if (!TransactionIdIsValid(tuple->t_xmax)) {
-			return (true);
-		}
-
-		if (TransactionIdIsCurrentTransactionId(tuple->t_xmax)) {
-			return (CommandIdIsCurrentCommandId(tuple->t_cmin));
-		}
-
-		if (!TransactionIdDidCommit(tuple->t_xmax)) {
-			return (true);
-		}
-
-		tuple->t_tmax = TransactionIdGetCommitTime(tuple->t_xmax);
+	if (!TransactionIdDidCommit((TransactionId)tuple->t_xmin)) {
+	    return (false);
 	}
 
-	return ((bool)AbsoluteTimeIsAfter(tuple->t_tmax,
-					  TimeQualGetStartTime(qual)));
+	tuple->t_tmin = TransactionIdGetCommitTime(tuple->t_xmin);
+    }
+    /* the tuple was inserted validly */
+
+    if (!AbsoluteTimeIsValid(TimeQualGetStartTime((TimeQual)qual))) {
+	return (true);
+    }
+
+    if (!AbsoluteTimeIsValid(tuple->t_tmax)) {
+
+	if (!TransactionIdIsValid((TransactionId)tuple->t_xmax)) {
+	    return (true);
+	}
+
+	if (TransactionIdIsCurrentTransactionId((TransactionId)tuple->t_xmax)) {
+	    return (CommandIdIsCurrentCommandId(tuple->t_cmin));
+	}
+
+	if (!TransactionIdDidCommit((TransactionId)tuple->t_xmax)) {
+	    return (true);
+	}
+
+	tuple->t_tmax = TransactionIdGetCommitTime(tuple->t_xmax);
+    }
+
+    return ((bool)AbsoluteTimeIsAfter(tuple->t_tmax,
+				      TimeQualGetStartTime((TimeQual)qual)));
 }

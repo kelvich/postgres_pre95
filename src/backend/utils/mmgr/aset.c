@@ -11,7 +11,6 @@
 
 RcsId("$Header$");
 
-#include "tmp/aset.h"
 #include "utils/excid.h"	/* for ExhaustedMemory */
 #include "utils/memutils.h"
 

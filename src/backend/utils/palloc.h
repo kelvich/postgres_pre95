@@ -38,8 +38,8 @@
 extern Pointer palloc ARGS((Size size));
 extern void    pfree  ARGS((Pointer pointer)); 
 #else
-extern Pointer palloc_debug ARGS((Size	size));
-extern void    pfree_debug  ARGS((Pointer pointer));
+Pointer palloc_debug ARGS((String file , int line , Size size ));
+void pfree_debug ARGS((String file , int line , Pointer pointer ));
 #endif PALLOC_DEBUG
 
 typedef struct PallocDebugData {
@@ -89,5 +89,31 @@ repalloc ARGS((
 	Pointer	pointer,
 	Size	size
 ));
+
+String pcontext ARGS((void ));
+void set_palloc_debug ARGS((bool noisy , bool record ));
+Pointer palloc_record ARGS((
+	String file,
+	int line,
+	Size size,
+	String context
+));
+void pfree_remove ARGS((String file , int line , Pointer pointer ));
+void pfree_record ARGS((String file , int line , Pointer pointer ));
+void dump_palloc_list ARGS((String caller , bool verbose ));
+void alloc_set_message ARGS((
+	String file,
+	int line,
+	Pointer pointer,
+	Pointer set
+));
+void free_palloc_list ARGS((SLList *list ));
+void start_palloc_list ARGS((void ));
+void print_palloc_list ARGS((void ));
+void start_palloc_diff_list ARGS((void ));
+void end_palloc_diff_list ARGS((void ));
+void print_palloc_diff_list ARGS((void ));
+char *malloc_debug ARGS((String file , int line , int size ));
+int free_debug ARGS((String file , int line , char *p ));
 
 #endif /* !defined(PAllocIncluded) */

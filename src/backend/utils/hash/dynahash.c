@@ -34,9 +34,12 @@
     RCS INFO
     $Header$
     $Log$
-    Revision 1.9  1991/09/06 12:30:29  hong
-    added a new function, hash_seq(), which sequentially scans a hash table
+    Revision 1.10  1991/11/12 20:20:29  mer
+    prototyping changes
 
+ * Revision 1.9  1991/09/06  12:30:29  hong
+ * added a new function, hash_seq(), which sequentially scans a hash table
+ *
  * Revision 1.8  91/08/12  20:54:11  mao
  * make macro name unique
  * 
@@ -100,6 +103,17 @@
  * external routines
  */
 
+/*
+ * Private function prototypes
+ */
+int *DynaHashAlloc ARGS((unsigned int size ));
+void DynaHashFree ARGS((Pointer ptr ));
+int hash_clear ARGS((HTAB *hashp ));
+uint32 call_hash ARGS((HTAB *hashp , char *k , int len ));
+SEG_OFFSET seg_alloc ARGS((HTAB *hashp ));
+int bucket_alloc ARGS((HTAB *hashp ));
+int my_log2 ARGS((int num ));
+
 /* ----------------
  * memory allocation routines
  *
@@ -125,14 +139,14 @@ DynaHashAlloc(size)
 	DynaHashCxt = CreateGlobalMemory("DynaHash");
 
     return (int *)
-	MemoryContextAlloc(DynaHashCxt, size);
+	MemoryContextAlloc((MemoryContext)DynaHashCxt, size);
 }
 
 void
 DynaHashFree(ptr)
     Pointer ptr;
 {
-    MemoryContextFree(DynaHashCxt, ptr);
+    MemoryContextFree((MemoryContext)DynaHashCxt, ptr);
 }
 
 #define MEM_ALLOC	DynaHashAlloc
@@ -143,11 +157,9 @@ DynaHashFree(ptr)
  * ----------------
  */
 
-int string_hash();
 static int expand_table();
 static int hdefault();
 static int init_htab();
-SEG_OFFSET seg_alloc();
 
 
 /*
@@ -726,13 +738,15 @@ HTAB *	hashp;
 
 	  chain = GET_BUCKET(hashp,chainIndex);
 	  nextIndex = chain->next;
-	  if ( call_hash(hashp, &(chain->key), hctl->keysize) == old_bucket ) {
+	  if ( call_hash(hashp,
+			 (char *)&(chain->key),
+			 hctl->keysize) == old_bucket ) {
 		*old = chainIndex;
 		old = &chain->next;
-	    } else {
+	  } else {
 		*newbi = chainIndex;
 		newbi = &chain->next;
-	    }
+	  }
 	    chain->next = INVALID_INDEX;
 	}
 	return (1);

@@ -8,6 +8,9 @@
 
 #ifndef HSearchIncluded
 #define HSearchIncluded
+
+#include "tmp/postgres.h"
+
 /*
  * Constants
  */
@@ -103,13 +106,25 @@ typedef struct hashctl {
 /* number of hash buckets allocated at once */
 #define BUCKET_ALLOC_INCR	(30)
 
-/* entry points */
-HTAB *hash_create();
-int *hash_search();
-int *hash_seq();
-void hash_destroy();
-void hash_stats();
-
 /* hash_search operations */
 typedef enum { HASH_FIND, HASH_ENTER, HASH_REMOVE } HASHACTION;
+
+/* entry points */
+HTAB *hash_create ARGS((int nelem , HASHCTL *info , int flags ));
+void hash_destroy ARGS((HTAB *hashp ));
+void hash_stats ARGS((char *where , HTAB *hashp ));
+int *hash_seq ARGS((HTAB *hashp ));
+int *hash_search ARGS((
+	HTAB *hashp,
+	char *keyPtr,
+	HASHACTION action,
+	Boolean *foundPtr
+));
+
+/* hash functions from hashfn.c */
+
+int string_hash ARGS((char *key, int keysize ));
+int tag_hash ARGS((int *key, int keysize ));
+int disk_hash ARGS((char *key ));
+
 #endif
