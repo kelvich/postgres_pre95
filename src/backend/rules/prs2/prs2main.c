@@ -357,3 +357,44 @@ int operation;
 
     } /* switch */
 }
+
+/*========================== SHOW STATS ==========================*/
+/*
+ * We keep the following info:
+ *
+ * rulesTested:
+ *	Number of rules tested (i.e. how many times we tested the
+ *	qualification of a rule).
+ * rulesActivated:
+ *	Number of rules that were activated, i.e. the number of rules
+ *	that had their qualification evaluated to true.
+ */
+
+
+int Prs2Stats_rulesActivated;
+int Prs2Stats_rulesTested;
+
+/*------------------------------------------------------------------
+ * ResetPrs2Stats
+ *------------------------------------------------------------------
+ */
+void
+ResetPrs2Stats()
+{
+    Prs2Stats_rulesTested = 0;
+    Prs2Stats_rulesActivated = 0;
+}
+
+
+/*------------------------------------------------------------------
+ * ShowPrs2Stats
+ *------------------------------------------------------------------
+ */
+void
+ShowPrs2Stats()
+{
+    printf("!\t%d rules_tested %d rules_activated\n",
+		Prs2Stats_rulesTested,
+		Prs2Stats_rulesActivated);
+}
+
