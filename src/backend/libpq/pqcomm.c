@@ -42,11 +42,11 @@
 #include <signal.h>
 #include <unistd.h>		/* for ttyname() */
 
-#ifdef __linux__
+#ifdef PORTNAME_linux
 #ifndef SOMAXCONN
 #define SOMAXCONN 5		/* from Linux listen(2) man page */
 #endif /* SOMAXCONN */
-#endif /* __linux__ */
+#endif /* PORTNAME_linux */
 
 #include "libpq/auth.h"
 #include "tmp/c.h"
@@ -571,7 +571,11 @@ pq_regoob(fptr)
     void (*fptr)();
 {
     int fd = fileno(Pfout);
-    fcntl(fd,F_SETOWN,getpid());
+#ifdef PORTNAME_hpux
+    ioctl(fd, FIOSSAIOOWN, getpid());
+#else /* PORTNAME_hpux */
+    fcntl(fd, F_SETOWN, getpid());
+#endif /* PORTNAME_hpux */
     (void) signal(SIGURG,fptr);
 }
 
