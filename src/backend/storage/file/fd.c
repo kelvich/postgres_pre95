@@ -1300,7 +1300,7 @@ int stripe;
 	buf = (char*) palloc(len);
 	sprintf(buf, "%s/base/%s/%s", DataDir, DBName, filename);
     } else {
-	len = strlen(filename) + 1;
+	buf = (char *) palloc(strlen(filename) + 1);
 	strcpy(buf, filename);
     }
 
