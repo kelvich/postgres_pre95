@@ -112,12 +112,12 @@ executing the commands easier.
 There is a collection of system catalogs that exist at each site.
 These include a
 .A USER
-relation 
-which contains a record for each valid \*(PP user.
-In the record is a collection of \*(PP privileges,
+class 
+which contains an instance for each valid \*(PP user.
+In the instance is a collection of \*(PP privileges,
 the most relevant of which
 is whether or not creation of \*(PP databases is allowed.
 A \*(UU user can do nothing at all with \*(PP
-until an appropriate record is installed in this system catalog relation.
+until an appropriate record is installed in this system catalog class.
 Further information on the system catalogs is available
-by running queries on the appropraiate relations.
+by running queries on the appropraiate classes.
