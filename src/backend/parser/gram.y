@@ -75,7 +75,9 @@ bool ResdomNoIsAttrNo = false;
 extern YYSTYPE parser_ppreserve();
 
 static YYSTYPE temp;
-static int NumLevels = 0;
+
+int NumLevels = 0;
+
 YYSTYPE yylval;
 
 YYSTYPE p_target,
@@ -606,19 +608,6 @@ MergeStmt:
 		}
 	;
 
-Executable:     OptimizableStmt 
-               {
-		   $$ = $1;
-		   if (!is_postquel_function)
-		       elog(WARN,
-		      "non-postquel functions don't use queries, you lose!");
- 	       }
-| SCONST
-               {
-		   $$ = $1;
-	       };
-		    
-
  /************************************************************
 	QUERY:
                 define function <fname>
@@ -651,7 +640,7 @@ ProcedureStmt:
 		    }
 		}
 
-        Executable
+        SCONST
                 {
 		    QueryIsRule = false;
 		    $$ = lispCons($6, LispNil);
