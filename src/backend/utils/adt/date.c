@@ -892,10 +892,14 @@ isabstime(datestring, brokentime)
 	sec=0;
 	for (i=0; i<=1; i++) {
 	    c = *p;
+	    hour = -1;
 	    if (isdigit(c)) {
-		hour=hour * 10 + (c - '0');
+		if (hour < 0)
+		    hour = (c - '0');
+		else
+		    hour = hour * 10 + (c - '0');
 		p++;
-	    } else if ( c == ':' && hour != 0 ) {
+	    } else if ( c == ':' && hour >= 0 ) {
 		/* one digit hours */
 		break;
 	    } else {
@@ -984,8 +988,14 @@ isabstime(datestring, brokentime)
 	brokentime->tm_year = year - TM_YEAR_BASE;
 	brokentime->tm_wday = 0;		/* not calculated! */
 	brokentime->tm_yday = yday;
-	brokentime->tm_isdst = 0;	/* daylight saving time not in effect?*/
-	/* NOT relevant in this context! */
+
+	/*
+	 *  this is just wrong.  if the specified time happens to fall
+	 *  during dst in the local time zone, we screw up printing the
+	 *  actual time.
+	 */
+	brokentime->tm_isdst = 0;
+
 	return(1);
 }
 
@@ -1048,7 +1058,7 @@ timeinsec(t, seconds)
 	year = t->tm_year + TM_YEAR_BASE;
 	mon = t->tm_mon + 1;  /* mon  1,...,12 */
 	if (year >= EPOCH_YEAR) {
-		/* collect days, maby also the Feb 29. */
+		/* collect days, maybe also the Feb 29. */
 		if (isleap(year) && mon > 2)
 			++sec;
 		for (--year; year >= EPOCH_YEAR; --year)
