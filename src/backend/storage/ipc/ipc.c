@@ -559,8 +559,9 @@ IpcSemaphoreId	semId;
 int		sem;
 {
     int semncnt;
+    union semun dummy; /* for Solaris */
 
-    semncnt = semctl(semId, sem, GETNCNT, NULL);
+    semncnt = semctl(semId, sem, GETNCNT, &dummy);
     return semncnt;
 }
 
@@ -570,8 +571,9 @@ IpcSemaphoreId	semId;
 int		sem;
 {
     int semval;
+    union semun dummy; /* for Solaris */
 
-    semval = semctl(semId, sem, GETVAL, NULL);
+    semval = semctl(semId, sem, GETVAL, &dummy);
     return semval;
 }
 
