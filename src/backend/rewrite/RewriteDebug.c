@@ -160,7 +160,7 @@ Print_parse ( parsetree )
 
     if ( result_reln ) {
 	if (IsA(result_reln,LispInt))
-	  result_reln_name = CString(CAR(nth(CInteger(result_reln)-1,rtable)));
+	  result_reln_name = CString(CADR(nth(CInteger(result_reln)-1,rtable)));
     }
     lispDisplay(CADR(parse_root(parsetree)));
     switch (root_command_type(parse_root(parsetree))) {
