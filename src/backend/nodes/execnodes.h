@@ -126,6 +126,8 @@ class (TupleCount) public (Node) {
  *	range_table			array of scan relation information
  *	qualification_tuple		tuple satisifying qualification
  *	qualification_tuple_id		tid of qualification_tuple
+ *	raw_qualification_tuple		tuple satsifying qualification
+ *					but with no rules activated.
  *	relation_relation_descriptor	as it says
  *	into_relation_descriptor	relation being retrieved "into"
  *	result_relation_information	for update queries
@@ -150,6 +152,7 @@ class (EState) public (Node) {
       List		es_range_table;
       HeapTuple		es_qualification_tuple;
       ItemPointer	es_qualification_tuple_id;
+      HeapTuple		es_raw_qualification_tuple;
       Relation		es_relation_relation_descriptor;
       Relation		es_into_relation_descriptor;
       RelationInfo	es_result_relation_info;
