@@ -460,9 +460,9 @@ _bt_setpagelock(rel, blkno, access)
     ItemPointerSet(&iptr, 0, blkno, 0, 1);
 
     if (access == BT_WRITE)
-	RelationSetLockForWritePage(rel, 0, &iptr);
+	RelationSetSingleWLockPage(rel, 0, &iptr);
     else
-	RelationSetLockForReadPage(rel, 0, &iptr);
+	RelationSetSingleRLockPage(rel, 0, &iptr);
 }
 
 _bt_unsetpagelock(rel, blkno, access)
@@ -475,9 +475,9 @@ _bt_unsetpagelock(rel, blkno, access)
     ItemPointerSet(&iptr, 0, blkno, 0, 1);
 
     if (access == BT_WRITE)
-	RelationUnsetLockForWritePage(rel, 0, &iptr);
+	RelationUnsetSingleWLockPage(rel, 0, &iptr);
     else
-	RelationUnsetLockForReadPage(rel, 0, &iptr);
+	RelationUnsetSingleRLockPage(rel, 0, &iptr);
 }
 
 void
