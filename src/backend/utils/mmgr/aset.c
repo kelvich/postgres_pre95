@@ -17,6 +17,8 @@ RcsId("$Header$");
 extern void bcopy();	/* XXX use header */
 
 #undef AllocSetReset
+#undef malloc
+#undef free
 
 /*
  * Internal type definitions
