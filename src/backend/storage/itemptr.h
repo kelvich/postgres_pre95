@@ -180,6 +180,14 @@ typedef ItemPointerData	*ItemPointer;
     ItemPointerSet(pointer, SinglePagePartition, blockNumber, \
 		   FirstPageNumber, offsetNumber)
 
+/*
+ * Macros ItemPointerGetBlockP ItemPointerGetPositionP are used to
+ * to set block and position data to invalid in the lock managaer
+ */
+#define ItemPointerBlockId(pointer) &((pointer)->blockData)
+
+#define ItemPointerPositionId(pointer) &((pointer)->positionData)
+
 /* ----------------
  *	externs
  * ----------------
