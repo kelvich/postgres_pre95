@@ -9,6 +9,8 @@
  * Also note: this whole thing is UNIX dependent.  (well 70% anyway)
  *
  *
+ *
+ *
  * NOTE: SEQUENT OS BUG: on open w/ O_CREAT if EMFILE error occurs the
  * file is *still* created in the directory.  Therefore, we must ensure
  * fd descriptors are available before calling open if O_CREAT flag is
@@ -228,7 +230,7 @@ LruDelete(file)
 
 	DO_DB(printf("DEBUG:	LruDelete %d (%s)\n",file,VfdCache[file].fileName));
 
-	Assert(file > 0);
+	Assert(file != 0);
 
 	fileP = &VfdCache[file];
 
@@ -269,7 +271,6 @@ Insert(file)
 	
 	DO_DB(printf("DEBUG:	Insert %d (%s)\n",file,VfdCache[file].fileName));
 
-	Assert(file > 0);
 	vfdP = &VfdCache[file];
 
 	vfdP->lruMoreRecently = 0;
@@ -287,7 +288,6 @@ LruInsert (file)
 
 	DO_DB(printf("DEBUG:	LruInsert %d (%s)\n",file,VfdCache[file].fileName));
 
-	Assert(file > 0);
 	vfdP = &VfdCache[file];
 
 	if (FileIsNotOpen(file)) {
@@ -365,8 +365,6 @@ FileAccess(file)
 	Vfd	*vfdP;
 
 	DO_DB(printf("DEBUG:	FileAccess  %d (%s)\n",file,VfdCache[file].fileName));
-
-	Assert(file > 0);
 
 	/*
 	 * Is the file open?  If not, close the least recently used
@@ -466,7 +464,6 @@ FreeVfd(file)
 {
 	DO_DB(printf("DEBUG:	FreeVfd: %d (%s)\n",file,VfdCache[file].fileName));
 
-	Assert(file > 0);
 	VfdCache[file].nextFree = VfdCache[0].nextFree;
 	VfdCache[0].nextFree = file;
 }
@@ -536,7 +533,6 @@ fileClose(file)
 
 	DO_DB(printf("DEBUG: FileClose: %d (%s)\n",file,VfdCache[file].fileName));
 
-	Assert(file > 0);
 	if (!FileIsNotOpen(file)) {
 
 		/*
@@ -574,7 +570,6 @@ fileUnlink(file)
 
 	DO_DB(printf("DEBUG: FileClose: %d (%s)\n",file,VfdCache[file].fileName));
 
-	Assert(file > 0);
 	if (!FileIsNotOpen(file)) {
 
 		/*
@@ -614,7 +609,6 @@ fileRead (file, buffer, amount)
 	int	returnCode;
 	DO_DB(printf("DEBUG: FileRead: %d (%s) %d 0x%x\n",file,VfdCache[file].fileName,amount,buffer));
 
-	Assert(file > 0);
 	FileAccess(file);
 	returnCode = read(VfdCache[file].fd, buffer, amount);
 
@@ -631,7 +625,6 @@ fileWrite (file, buffer, amount)
 	int	returnCode;
 	DO_DB(printf("DEBUG: FileWrite: %d (%s) %d 0x%x\n",file,VfdCache[file].fileName,amount,buffer));
 
-	Assert(file > 0);
 	FileAccess(file);
 	returnCode = write(VfdCache[file].fd, buffer, amount);
 
@@ -647,7 +640,6 @@ fileSeek (file, offset, whence)
 {
 	DO_DB(printf("DEBUG: FileSeek: %d (%s) %d %d\n",file,VfdCache[file].fileName,offset,whence));
 
-	Assert(file > 0);
 	if (FileIsNotOpen(file)) {
 
 		switch(whence) {
@@ -680,7 +672,6 @@ fileTell (file)
 	FileNumber	file;
 {
 	DO_DB(printf("DEBUG: FileTell %d (%s)\n",file,VfdCache[file].fileName));
-	Assert(file > 0);
 	return FileSeek(file, 0, L_INCR);
 }
 
@@ -689,7 +680,6 @@ fileSync (file)
 	FileNumber	file;
 {
 	int	returnCode;
-	Assert(file > 0);
 	FileAccess(file);
 	returnCode = fsync(VfdCache[file].fd);
 	return returnCode;
@@ -829,15 +819,6 @@ int fileMode;
     for (i=0; i<NStriping; i++) {
 	fname = filepath(fileName, i);
 	sfdP->vfd[i] = fileNameOpenFile(fname, fileFlags, fileMode);
-	if (sfdP->vfd[i] < 0) {
-	    /*
-	     * ooops! Open failed, return -1.
-	     */
-	    elog(DEBUG,
-		"FileNameOpenFile: Open Failed for '%s' (f:0x%x, m:0x%x)",
-		fname, fileFlags, fileMode);
-	    return((File)-1);
-	}
     }
     sfdP->curStripe = 0;
     return(sfd);
@@ -849,10 +830,6 @@ File file;
 {
     int i;
     Sfd *sfdP;
-
-    if (file < 0) {
-	elog(WARN, "FileClose: called with invalid argument (%d)", file);
-    }
 
     sfdP = &(SfdCache[file]);
     for (i=0; i<NStriping; i++)
@@ -872,9 +849,6 @@ Amount amount;
 #ifdef PARALLELDEBUG
    BeginParallelDebugInfo(PDI_FILEREAD);
 #endif
-   if (file < 0) {
-	elog(WARN, "FileRead: called with invalid argument (%d)", file);
-   }
    sfdP = &(SfdCache[file]);
    ret = fileRead(sfdP->vfd[sfdP->curStripe], buffer, amount);
    sfdP->curStripe = (sfdP->curStripe + 1) % NStriping;
@@ -892,9 +866,6 @@ Amount amount;
 {
     Sfd *sfdP;
     Amount ret;
-    if (file < 0) {
-	elog(WARN, "FileWrite: called with invalid argument (%d)", file);
-    }
     sfdP = &(SfdCache[file]);
     ret = fileWrite(sfdP->vfd[sfdP->curStripe], buffer, amount);
     sfdP->curStripe = (sfdP->curStripe + 1) % NStriping;
@@ -916,9 +887,6 @@ int whence;
     BeginParallelDebugInfo(PDI_FILESEEK);
 #endif
 
-    if (file < 0) {
-	elog(WARN, "FileSeek: called with invalid argument (%d)", file);
-    }
     sfdP = &(SfdCache[file]);
 
     switch(whence) {
@@ -991,9 +959,6 @@ long
 FileTell(file)
 File file;
 {
-   if (file < 0) {
-	elog(WARN, "FileTell: called with invalid argument (%d)", file);
-   }
    return SfdCache[file].seekPos;
 }
 
@@ -1003,11 +968,6 @@ File file;
 {
     int i, returnCode;
     Sfd *sfdP;
-
-    if (file < 0) {
-	elog(WARN, "FileSync: called with invalid argument (%d)", file);
-    }
-
     sfdP = &(SfdCache[file]);
     for (i=0; i<NStriping; i++)
        returnCode = fileSync(sfdP->vfd[i]);
@@ -1050,10 +1010,6 @@ File file;
     long len;
     BlockNumber nblks;
 
-    if (file < 0) {
-	elog(WARN,
-	    "FileGetNumberOfBlocks: called with invalid argument (%d)", file);
-    }
     len = FileSeek(file, 0L, L_XTND) - 1;
     return((BlockNumber)((len < 0) ? 0 : 1 + len / BLCKSZ));
 }
@@ -1065,9 +1021,6 @@ File file;
     int i;
     Sfd *sfdP;
 
-    if (file < 0) {
-	elog(WARN, "FileUnlink: called with invalid argument (%d)", file);
-    }
     sfdP = &(SfdCache[file]);
 
     for (i=0; i<NStriping; i++)
