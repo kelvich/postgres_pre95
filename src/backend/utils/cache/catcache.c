@@ -1,31 +1,5 @@
 
 /*
- * 
- * POSTGRES Data Base Management System
- * 
- * Copyright (c) 1988 Regents of the University of California
- * 
- * Permission to use, copy, modify, and distribute this software and its
- * documentation for educational, research, and non-profit purposes and
- * without fee is hereby granted, provided that the above copyright
- * notice appear in all copies and that both that copyright notice and
- * this permission notice appear in supporting documentation, and that
- * the name of the University of California not be used in advertising
- * or publicity pertaining to distribution of the software without
- * specific, written prior permission.  Permission to incorporate this
- * software into commercial products can be obtained from the Campus
- * Software Office, 295 Evans Hall, University of California, Berkeley,
- * Ca., 94720 provided only that the the requestor give the University
- * of California a free licence to any derived software for educational
- * and research purposes.  The University of California makes no
- * representations about the suitability of this software for any
- * purpose.  It is provided "as is" without express or implied warranty.
- * 
- */
-
-
-
-/*
  * catcache.c --
  *	System catalog cache for tuples matching a key.
  *
@@ -49,10 +23,21 @@
 
 #include "catcache.h"
 
+/*#define CACHEDEBUG*/
+/*#define CACHEDDEBUG2*/
+
 RcsId("$Header$");
 
-#define	NCCBUCK	50	/* CatCache buckets */
-#define CCSIZE	(sizeof(struct catcache) + NCCBUCK * sizeof(struct catctup))
+/*
+ *  note CCSIZE allocates 51 buckets .. one was already allocated in
+ *  the catcache structure.
+ */
+
+#define	NCCBUCK	50	/* CatCache buckets 			*/
+#define MAXTUP 30	/* Maximum # of tuples cached per cache */
+#define LIST	SimpleList
+#define NODE	SimpleNode
+#define CCSIZE	(sizeof(struct catcache) + NCCBUCK * sizeof(SimpleList))
 
 struct catcache	*Caches = NULL;
 struct context	*CacheCxt = NULL;
@@ -61,524 +46,696 @@ static int	DisableCache;
 
 /* XXX this should be replaced by catalog lookups soon */
 static long	eqproc[] = {
-	F_BOOLEQ, 0l, F_CHAREQ, F_CHAR16EQ, 0l,
-	F_INT2EQ, 0l, F_INT4EQ, 0l, F_TEXTEQ,
-	F_OIDEQ, 0l, 0l, 0l, 0l
-	};
+    F_BOOLEQ, 0l, F_CHAREQ, F_CHAR16EQ, 0l,
+    F_INT2EQ, 0l, F_INT4EQ, 0l, F_TEXTEQ,
+    F_OIDEQ, 0l, 0l, 0l, 0l
+};
+
 #define	EQPROC(SYSTEMTYPEOID)	eqproc[(SYSTEMTYPEOID)-16]
 
 /*
  * CatalogCacheComputeHashIndex --
  */
+
 static
 Index
 CatalogCacheComputeHashIndex ARGS((
 	struct catcache	*cacheInP;
 ));
 
+void CatCacheRemoveCTup();
+void CatalogCacheInitializeCache();
+
+/*
+ *  This allocates and initializes a cache for a system catalog relation.
+ *  Actually, the cache is only partially initialized to avoid opening the
+ *  relation.  The relation will be opened and the rest of the cache
+ *  structure initialized on the first access.
+ */
+
 struct catcache *
 InitSysCache(relname, nkeys, key)
-	char	*relname;
-	int	nkeys;
-	int	key[];
+char	*relname;
+int	nkeys;
+int	key[];
 {
-	struct catcache	*cp;
-	register int	i;
-	struct context	*oldcxt;
-	Relation	relation;
+    struct catcache     *cp;
+    register int        i;
+    struct context      *oldcxt;
+    /* REMOVED (DEFERED)
+     *Relation		relation;
+     */
+ 
+    /* initialize the cache system */
 
-	/* initialize the cache system */
-	if (!CacheCxt) {
-		oldcxt = newcontext();
-		CacheCxt = Curcxt;
-		CacheCxt->ct_status |= CT_PRESERVE;
-	} else {
-		oldcxt = switchcontext(CacheCxt);
+    if (!CacheCxt) {
+	oldcxt = newcontext();
+	CacheCxt = Curcxt;
+	CacheCxt->ct_status |= CT_PRESERVE;
+    } else {
+	oldcxt = switchcontext(CacheCxt);
+    }
+
+    cp = LintCast(struct catcache *, palloc(CCSIZE));
+    bzero((char *)cp, CCSIZE);
+    for (i = 0; i <= NCCBUCK; ++i)	/* each bucket is a list header */
+	SListNewList(&cp->cc_cache[i]);
+
+    SListNewList(&cp->cc_lrulist);	/* list of tuples for LRU alg.	*/
+    cp->cc_next = Caches;		/* list of caches (single link) */
+    Caches = cp;
+
+    /* REMOVED (now defering open)
+     * relation = RelationNameOpenHeapRelation(relname);
+     * cp->relationId = RelationGetRelationId(relation);
+     */
+    cp->relationId = InvalidObjectId;
+    cp->cc_relname = relname;
+
+    cp->id = InvalidCatalogCacheId;	/* XXX this should be an argument */
+    cp->cc_maxtup = MAXTUP;
+    cp->cc_nkeys = nkeys;
+    for (i = 0; i < nkeys; ++i) {
+	cp->cc_key[i] = key[i];
+	if (!key[i]) {
+	    elog(FATAL, "InitSysCache: called with 0 key[%d]", i);
 	}
-	cp = LintCast(struct catcache *, palloc(CCSIZE));
-	bzero((char *) cp, CCSIZE);
-	cp->cc_next = Caches;
-	Caches = cp;
-
-	relation = RelationNameOpenHeapRelation(relname);
-	cp->relationId = RelationGetRelationId(relation);
-
-	cp->id = InvalidCatalogCacheId;	/* XXX this should be an argument */
-	cp->cc_nkeys = nkeys;
-	for (i = 0; i < nkeys; ++i) {
-		cp->cc_key[i] = key[i];
-		if (!key[i]) {
-			elog(FATAL, "InitSysCache: called with 0 key[%d]", i);
-		}
-		if (key[i] < 0) {
-			if (key[i] != T_OID) {
-				elog(FATAL,
-				     "InitSysCache: called with %d key[%d]",
-				     key[i], i);
-			} else {
-				cp->cc_klen[i] = sizeof(OID);
-				cp->cc_skey[i].sk_attnum = key[i];
-				cp->cc_skey[i].sk_opr = F_OIDEQ;
-				continue;
-			}
-		}
-		cp->cc_klen[i] = relation->rd_att.data[key[i] - 1]->attlen;
+	if (key[i] < 0) {
+	    if (key[i] != T_OID) {
+		elog(FATAL, "InitSysCache: called with %d key[%d]", key[i], i);
+	    } else {
+		cp->cc_klen[i] = sizeof(OID);
 		cp->cc_skey[i].sk_attnum = key[i];
-		/* XXX Replace me with a catalog lookup! */
-		cp->cc_skey[i].sk_opr =
-			EQPROC(relation->rd_att.data[key[i]-1]->atttypid);
+		cp->cc_skey[i].sk_opr = F_OIDEQ;
+		continue;
+	    }
 	}
-	cp->cc_size = NCCBUCK;
-#ifdef CACHEDEBUG
-        elog(DEBUG, "InitSysCache: rid=%d id=%d nkeys=%d size=%d\n",
-		cp->relationId, cp->id, cp->cc_nkeys, cp->cc_size);
-        for (i = 0; i < nkeys; i += 1) {
-                elog(DEBUG, "InitSysCache: key=%d len=%d skey=[%d %d %d %d]\n",
-                     cp->cc_key[i], cp->cc_klen[i], 
-                     cp->cc_skey[i].sk_flags,
-                     cp->cc_skey[i].sk_attnum,
-                     cp->cc_skey[i].sk_opr,
-                     cp->cc_skey[i].sk_data);
-	}
-#endif
-	RelationCloseHeapRelation(relation);
+	/* REMOVED (DEFERED)
+	 * cp->cc_klen[i] = relation->rd_att.data[key[i] - 1]->attlen;
+	 */
+	cp->cc_skey[i].sk_attnum = key[i];
 
-	switchcontext(oldcxt);
-	return(cp);
+	/* XXX Replace me with a catalog lookup! */
+
+	/* REMOVED (DEFERED)
+	 *cp->cc_skey[i].sk_opr =
+	 *   EQPROC(relation->rd_att.data[key[i]-1]->atttypid);
+	 */
+    }
+    cp->cc_size = NCCBUCK;
+
+#ifdef CACHEDEBUG
+    elog(DEBUG, "InitSysCache: rid=%d id=%d nkeys=%d size=%d\n",
+		cp->relationId, cp->id, cp->cc_nkeys, cp->cc_size);
+    for (i = 0; i < nkeys; i += 1) {
+        elog(DEBUG, "InitSysCache: key=%d len=%d skey=[%d %d %d %d]\n",
+            cp->cc_key[i], cp->cc_klen[i], 
+            cp->cc_skey[i].sk_flags,
+            cp->cc_skey[i].sk_attnum,
+            cp->cc_skey[i].sk_opr,
+            cp->cc_skey[i].sk_data
+	);
+    }
+#endif
+    /* REMOVED (DEFERED)
+     * RelationCloseHeapRelation(relation);
+     */
+
+    switchcontext(oldcxt);
+    return(cp);
 }
 
 void
 ResetSystemCache()
 {
-	register unsigned	hash;
-	register struct catctup	*ct;
-	struct context		*oldcxt;
-	struct catctup		*hct;
-	struct catcache		*cache;
+    struct context	*oldcxt;
+    struct catcache	*cache;
 
 #ifdef	CACHEDEBUG
-	elog(DEBUG, "ResetSystemCache called");
-#endif	/* defined(CACHEDEBUG) */
+    elog(DEBUG, "ResetSystemCache called");
+#endif
 
-	if (DisableCache) {
-		elog(WARN, "ResetSystemCache: Called while cache disabled");
-		return;
+    if (DisableCache) {
+	elog(WARN, "ResetSystemCache: Called while cache disabled");
+	return;
+    }
+
+    /* initialize the cache system */
+    if (!CacheCxt) {
+	oldcxt = newcontext();
+	CacheCxt = Curcxt;
+	CacheCxt->ct_status |= CT_PRESERVE;
+    } else {
+	oldcxt = switchcontext(CacheCxt);
+    }
+
+    for (cache = Caches; PointerIsValid(cache); cache = cache->cc_next) {
+        register int hash;
+	for (hash = 0; hash < NCCBUCK; hash += 1) {
+	    LIST *list = &cache->cc_cache[hash];
+	    register CatCTup *ct, *nextct;
+
+	    for (ct = (CatCTup *)SListGetHead(list); ct; ct = nextct) {
+		nextct = (CatCTup *)SListGetSucc(&ct->ct_node);
+
+		CatCacheRemoveCTup(cache, ct);
+	        if (cache->cc_ntup == -1) 
+		    elog(WARN, "ResetSystemCache: cc_ntup<0 (software error)");
+	    }
 	}
-
-	/* initialize the cache system */
-	if (!CacheCxt) {
-		oldcxt = newcontext();
-		CacheCxt = Curcxt;
-		CacheCxt->ct_status |= CT_PRESERVE;
-	} else {
-		oldcxt = switchcontext(CacheCxt);
-	}
-
-	for (cache = Caches; PointerIsValid(cache); cache = cache->cc_next) {
-		for (hash = 0; hash < NCCBUCK; hash += 1) {
-			ct = &cache->cc_cache[hash];
-
-			while (PointerIsValid(ct) &&
-					PointerIsValid(ct->ct_tup)) {
-
-				pfree((char *) ct->ct_tup);
-
-				/* free *ct */
-				hct = ct->ct_next;
-				*ct = *hct;
-				pfree((char *)hct);
-			}
-		}
-	}
-	switchcontext(oldcxt);
+	cache->cc_ntup = 0; /* in case of WARN error above */
+    }
+#ifdef	CACHEDEBUG
+    elog(DEBUG, "end of ResetSystemCache call");
+#endif
+    switchcontext(oldcxt);
 }
+
+/*
+ *  SEARCHSYSCACHE
+ *
+ *  This call searches a system cache for a tuple, opening the relation
+ *  if necessary (the first access to a particular cache).
+ */
 
 HeapTuple
 SearchSysCache(cache, v1, v2, v3, v4)
-	register struct catcache	*cache;
-	DATUM				v1, v2, v3, v4;
+register struct catcache	*cache;
+DATUM				v1, v2, v3, v4;
 {
-	register unsigned	hash;
-	register struct catctup	*ct;
-	struct context		*oldcxt;
-	HeapTuple		ntp;
-	Buffer			buffer;
-	HeapTuple		palloctup();
-	struct catctup		*nct;
-	HeapScan		sd;
-	Relation		relation;
+    register unsigned	hash;
+    register CatCTup	*ct;
+    struct context	*oldcxt;
+    HeapTuple		ntp;
+    Buffer		buffer;
+    HeapTuple		palloctup();
+    struct catctup	*nct;
+    HeapScan		sd;
+    Relation		relation;
 
-	if (DisableCache) {
-		elog(WARN, "SearchSysCache: Called while cache disabled");
-		return((HeapTuple) NULL);
-	}
+    if (cache->relationId == InvalidObjectId)
+	CatalogCacheInitializeCache(cache, NULL);
+    if (DisableCache) {
+	elog(WARN, "SearchSysCache: Called while cache disabled");
+	return((HeapTuple) NULL);
+    }
 
-	relation = ObjectIdOpenHeapRelation(cache->relationId);
+    relation = ObjectIdOpenHeapRelation(cache->relationId);
 
 #ifdef	CACHEDEBUG
-	elog(DEBUG, "SearchSysCache(%s)", RelationGetRelationName(relation));
-#endif	/* defined(CACHEDEBUG) */
-
-	cache->cc_skey[0].sk_data = v1;
-	cache->cc_skey[1].sk_data = v2;
-	cache->cc_skey[2].sk_data = v3;
-	cache->cc_skey[3].sk_data = v4;
-
-	hash = CatalogCacheComputeHashIndex(cache);
-
-/* XXX keytest arguments */
-	for (ct = &(cache->cc_cache[hash]);
-			PointerIsValid(ct) && PointerIsValid(ct->ct_tup);
-			ct = ct->ct_next) {
-		/* HeapTupleSatisfiesTimeRange(ct->ct_tup, NowTimeRange) */
-		if (keytest(ct->ct_tup, relation, cache->cc_nkeys,
-			    cache->cc_skey))
-			break;
-#ifdef USEQCMP
-		if (qcmp(cache->cc_klen[0], v1, amgetattr(ct->ct_tup,
-				cache->cc_keys[0], &cache->cc_rdesc->rd_att)))
-			continue;
-		if (cache->cc_nkeys == 1)
-			break;
-		if (qcmp(cache->cc_klen[1], v2, amgetattr(ct->ct_tup,
-			 	cache->cc_keys[1], &cache->cc_rdesc->rd_att)))
-			continue;
-		if (cache->cc_nkeys == 2)
-			break;
-		if (qcmp(cache->cc_klen[2], v3, amgetattr(ct->ct_tup,
-				cache->cc_keys[2], &cache->cc_rdesc->rd_att)))
-			continue;
-		if (cache->cc_nkeys == 3)
-			break;
-		if (!qcmp(cache->cc_klen[3], v4, amgetattr(ct->ct_tup,
-				cache->cc_keys[3], &cache->cc_rdesc->rd_att)))
-			break;
+    elog(DEBUG, "SearchSysCache(%s)", RelationGetRelationName(relation));
 #endif
-	}
 
-	if (PointerIsValid(ct) && PointerIsValid(ct->ct_tup)) {
-		/* tuple found in cache! */
+    cache->cc_skey[0].sk_data = v1;
+    cache->cc_skey[1].sk_data = v2;
+    cache->cc_skey[2].sk_data = v3;
+    cache->cc_skey[3].sk_data = v4;
+
+    hash = CatalogCacheComputeHashIndex(cache);
+
+    /* XXX keytest arguments */
+    for (ct = (CatCTup *)SListGetHead(&cache->cc_cache[hash]); 
+	 ct;
+	 ct = (CatCTup *)SListGetSucc(&ct->ct_node)
+    ) {
+	/* HeapTupleSatisfiesTimeRange(ct->ct_tup, NowTimeRange) */
+	if (keytest(ct->ct_tup, relation, cache->cc_nkeys, cache->cc_skey))
+	    break;
+#ifdef USEQCMP
+	if (qcmp(cache->cc_klen[0], v1, amgetattr(ct->ct_tup,
+			cache->cc_keys[0], &cache->cc_rdesc->rd_att)))
+	    continue;
+	if (cache->cc_nkeys == 1)
+	    break;
+	if (qcmp(cache->cc_klen[1], v2, amgetattr(ct->ct_tup,
+		 	cache->cc_keys[1], &cache->cc_rdesc->rd_att)))
+	    continue;
+	if (cache->cc_nkeys == 2)
+	    break;
+	if (qcmp(cache->cc_klen[2], v3, amgetattr(ct->ct_tup,
+			cache->cc_keys[2], &cache->cc_rdesc->rd_att)))
+	    continue;
+	if (cache->cc_nkeys == 3)
+	    break;
+	if (!qcmp(cache->cc_klen[3], v4, amgetattr(ct->ct_tup,
+			cache->cc_keys[3], &cache->cc_rdesc->rd_att)))
+	    break;
+#endif
+    }
+    if (ct) {		/* Tuple found in cache!   */
+	SListRemove(&ct->ct_lrunode);		/* most recently used */
+	SListAddHead(&cache->cc_lrulist, &ct->ct_lrunode);
+
 #ifdef	CACHEDEBUG
-		elog(DEBUG, "SearchSysCache(%s): found in bucket %d",
-			RelationGetRelationName(relation), hash);
-#endif	/* defined(CACHEDEBUG) */
-
-		/*
-		 * XXX race condition with cache invalidation ???
-		 */
-		RelationSetLockForRead(relation);
-
-		RelationCloseHeapRelation(relation);
-
-		return (ct->ct_tup);
-	}
-
-	DisableCache = 1;
-
-	oldcxt = switchcontext(CacheCxt);
-	startmmgr(M_STATIC);
-
-#ifdef	CACHEDEBUG
-	elog(DEBUG, "SearchSysCache: performing scan (override==%d)",
-		heapisoverride());
-#endif	/* defined(CACHEDEBUG) */
-
-	sd = ambeginscan(relation, 0, NowTimeQual, cache->cc_nkeys,
-		cache->cc_skey);
-	ntp = amgetnext(sd, 0, &buffer);
-	if (HeapTupleIsValid(ntp)) {
-#ifdef	CACHEDEBUG
-		elog(DEBUG, "SearchSysCache: found tuple");
-#endif	/* defined(CACHEDEBUG) */
-
-		ntp = palloctup(ntp, buffer, relation);
-
-		ntp = LintCast(HeapTuple, savemmgr((char *) ntp));
-
-		if (RuleLockIsValid(ntp->t_lock.l_lock)) {
-			ntp->t_lock.l_lock =
-				LintCast(RuleLock,
-					 savemmgr((char *)
-						  ntp->t_lock.l_lock));
-		}
-	}
-	amendscan(sd);
-	(void)endmmgr((char *)NULL);
-
-	DisableCache = 0;
-
-	if (HeapTupleIsValid(ntp)) {
-		nct = LintCast(struct catctup *,
-			palloc(sizeof(struct catctup)));
-		*nct = cache->cc_cache[hash];
-		cache->cc_cache[hash].ct_next = nct;
-		cache->cc_cache[hash].ct_tup = ntp;
-#ifdef	CACHEDEBUG
-		elog(DEBUG, "SearchSysCache(%s): put in bucket %d",
-			RelationGetRelationName(relation), hash);
-#endif	/* defined(CACHEDEBUG) */
-	}
-
+	elog(DEBUG, "SearchSysCache(%s): found in bucket %d",
+	    RelationGetRelationName(relation), hash
+	);
+#endif
+	/*
+	 * XXX race condition with cache invalidation ???
+	 */
+	RelationSetLockForRead(relation);
 	RelationCloseHeapRelation(relation);
+	    return (ct->ct_tup);
+    }
 
-	switchcontext(oldcxt);
-	return(ntp);
+    /*
+     *	Tuple not found in cache, retrieve and add to cache
+     */
+
+
+    DisableCache = 1;
+
+    oldcxt = switchcontext(CacheCxt);
+    startmmgr(M_STATIC);
+
+#ifdef	CACHEDEBUG
+    elog(DEBUG, "SearchSysCache: performing scan (override==%d)",
+	heapisoverride()
+    );
+#endif
+
+    sd = ambeginscan(relation, 0, NowTimeQual,cache->cc_nkeys,cache->cc_skey);
+    ntp = amgetnext(sd, 0, &buffer);
+    if (HeapTupleIsValid(ntp)) {
+#ifdef	CACHEDEBUG
+	elog(DEBUG, "SearchSysCache: found tuple");
+#endif
+
+	ntp = palloctup(ntp, buffer, relation);
+	ntp = LintCast(HeapTuple, savemmgr((char *) ntp));
+
+	if (RuleLockIsValid(ntp->t_lock.l_lock)) {
+	    ntp->t_lock.l_lock = 
+	        LintCast(RuleLock, savemmgr((char *) ntp->t_lock.l_lock));
+        }
+    }
+    amendscan(sd);
+    (void)endmmgr((char *)NULL);
+
+    DisableCache = 0;
+
+    if (HeapTupleIsValid(ntp)) {
+	nct = LintCast(struct catctup *, palloc(sizeof(struct catctup)));
+	nct->ct_tup = ntp;
+	SListNewNode(nct, &nct->ct_node);
+	SListNewNode(nct, &nct->ct_lrunode);
+	SListAddHead(&cache->cc_lrulist, &nct->ct_lrunode);
+	SListAddHead(&cache->cc_cache[hash], &nct->ct_node);
+	if (++cache->cc_ntup > cache->cc_maxtup) {
+	    register CatCTup *ct;
+
+	    ct = (CatCTup *)SListGetTail(&cache->cc_lrulist);
+	    if (ct != nct) {
+#ifdef CACHEDEBUG
+ 		elog(DEBUG, "SearchSysCache(%s): Overflow, LRU removal",
+		    RelationGetRelationName(relation)
+		);
+#endif
+		CatCacheRemoveCTup(cache, ct);
+	    }
+	} 
+#ifdef CACHEDEBUG
+	elog(DEBUG, "SearchSysCache(%s): Contains %d/%d tuples",
+	    RelationGetRelationName(relation),
+	    cache->cc_ntup, cache->cc_maxtup
+	);
+#endif
+#ifdef	CACHEDEBUG
+	elog(DEBUG, "SearchSysCache(%s): put in bucket %d",
+	    RelationGetRelationName(relation), hash
+	);
+#endif
+    }
+
+    RelationCloseHeapRelation(relation);
+
+    switchcontext(oldcxt);
+    return(ntp);
 }
+
 
 #ifdef USEQCMP
 qcmp(l, a, b)
 int	l;
 char	*a, *b;
 {
-	switch (l) {
-	case 1:
-	case 2:
-	case 4:
-		return (a != b);
-	}
-	if (l < 0) {
-		if (PSIZE(a) != PSIZE(b))
-			return(1);
-		return(bcmp(a, b, PSIZE(a)));
-	}
-	return(bcmp(a, b, l));
+    switch (l) {
+    case 1:
+    case 2:
+    case 4:
+ 	return (a != b);
+    }
+    if (l < 0) {
+	if (PSIZE(a) != PSIZE(b))
+	    return(1);
+	return(bcmp(a, b, PSIZE(a)));
+    }
+    return(bcmp(a, b, l));
 }
+
 #endif
 
 comphash(l, v)
-	int		l;
-	register char	*v;
+int	l;
+register char	*v;
 {
-	register int	i;
+    register int  i;
 
-	switch (l) {
-	case 1:
-	case 2:
-	case 4:
-		return((int) v);
-	}
-	if (l == 16) {		/* XXX char16 special handling */
-		l = NameComputeLength((Name)v);
-	} else if (l < 0) {
-		l = PSIZE(v);
-	}
-	i = 0;
-	while (l--) {
-		i += *v++;
-	}
-	return(i);
+    switch (l) {
+    case 1:
+    case 2:
+    case 4:
+	return((int) v);
+    }
+    if (l == 16) {		/* XXX char16 special handling */
+  	l = NameComputeLength((Name)v);
+    } else if (l < 0) {
+	l = PSIZE(v);
+    }
+    i = 0;
+    while (l--) {
+	i += *v++;
+    }
+    return(i);
 }
+
+/*
+ *  RelationInvalidateCatalogCacheTuple()
+ *
+ *  Invalidate a tuple from a specific relation.  This call determines the
+ *  cache in question and calls CatalogCacheIdInvalidate().  It is -ok-
+ *  if the relation cannot be found, it simply means this backend has yet
+ *  to open it.
+ */
 
 void
 RelationInvalidateCatalogCacheTuple(relation, tuple, function)
-	Relation	relation;
-	HeapTuple	tuple;
-	void		(*function)();
+Relation	relation;
+HeapTuple	tuple;
+void		(*function)();
 {
-	struct catcache *ccp;
-	struct context	*oldcxt;
-	ObjectId	relationId;
+    struct catcache *ccp;
+    struct context	*oldcxt;
+    ObjectId	relationId;
 
-	Assert(RelationIsValid(relation));
-	Assert(HeapTupleIsValid(tuple));
+    Assert(RelationIsValid(relation));
+    Assert(HeapTupleIsValid(tuple));
 
 #ifdef	CACHEDEBUG
-	elog(DEBUG, "RelationInvalidateCatalogCacheTuple: called");
-#endif	/* defined(CACHEDEBUG) */
+    elog(DEBUG, "RelationInvalidateCatalogCacheTuple: called");
+#endif
 
-	/* initialize the cache system */
-	if (!CacheCxt) {
-		oldcxt = newcontext();
-		CacheCxt = Curcxt;
-		CacheCxt->ct_status |= CT_PRESERVE;
-	} else {
-		oldcxt = switchcontext(CacheCxt);
+    /* initialize the cache system */
+    if (!CacheCxt) {
+	oldcxt = newcontext();
+	CacheCxt = Curcxt;
+	CacheCxt->ct_status |= CT_PRESERVE;
+    } else {
+	oldcxt = switchcontext(CacheCxt);
+    }
+
+    relationId = RelationGetRelationId(relation);
+
+    for (ccp = Caches; ccp; ccp = ccp->cc_next) {
+	if (relationId != ccp->relationId) 
+	    continue;
+
+	/* OPT inline simplification of CatalogCacheIdInvalidate */
+	if (!PointerIsValid(function)) {
+	    function = CatalogCacheIdInvalidate;
 	}
+	(*function)(ccp->id,
+	    CatalogCacheComputeTupleHashIndex(ccp, relation, tuple),
+	    &tuple->t_ctid
+	);
 
-	relationId = RelationGetRelationId(relation);
-
-	for (ccp = Caches; ccp; ccp = ccp->cc_next) {
-
-		if (relationId != ccp->relationId) {
-			continue;
-		}
-
-		/* OPT inline simplification of CatalogCacheIdInvalidate */
-		if (!PointerIsValid(function)) {
-			function = CatalogCacheIdInvalidate;
-		}
-		(*function)(ccp->id,
-			CatalogCacheComputeTupleHashIndex(ccp, relation, tuple),
-			&tuple->t_ctid);
-
-		RelationCloseHeapRelation(relation);
-	}
-	switchcontext(oldcxt);
+	RelationCloseHeapRelation(relation);
+    }
+    switchcontext(oldcxt);
 /*	sendpm('I', "Invalidated tuple"); */
 }
 
+/*
+ *  CatalogCacheIdInvalidate()
+ *
+ *  Invalidate a tuple given a cache id.  In this case the id should always
+ *  be found (whether the cache has opened its relation or not).  Of course,
+ *  if the cache has yet to open its relation, there will be no tuples so
+ *  no problem.
+ */
+
 void
 CatalogCacheIdInvalidate(cacheId, hashIndex, pointer)
-	int		cacheId;	/* XXX */
-	Index		hashIndex;
-	ItemPointer	pointer;
+int		cacheId;	/* XXX */
+Index		hashIndex;
+ItemPointer	pointer;
 {
-	struct catcache *ccp;
-	struct catctup	*ct, *hct;
-	struct context	*oldcxt;
+    struct catcache *ccp;
+    struct catctup	*ct, *hct;
+    struct context	*oldcxt;
 
-	Assert(IndexIsValid(hashIndex) && IndexIsInBounds(hashIndex, NCCBUCK));
-	Assert(ItemPointerIsValid(pointer));
+    Assert(IndexIsValid(hashIndex) && IndexIsInBounds(hashIndex, NCCBUCK));
+    Assert(ItemPointerIsValid(pointer));
 
 #ifdef	CACHEDEBUG
-	elog(DEBUG, "CatalogCacheIdInvalidate: called");
+    elog(DEBUG, "CatalogCacheIdInvalidate: called");
 #endif	/* defined(CACHEDEBUG) */
 
 	/* initialize the cache system */
-	if (!CacheCxt) {
-		oldcxt = newcontext();
-		CacheCxt = Curcxt;
-		CacheCxt->ct_status |= CT_PRESERVE;
-	} else {
-		oldcxt = switchcontext(CacheCxt);
-	}
+    if (!CacheCxt) {
+	oldcxt = newcontext();
+	CacheCxt = Curcxt;
+	CacheCxt->ct_status |= CT_PRESERVE;
+    } else {
+	oldcxt = switchcontext(CacheCxt);
+    }
 
-	for (ccp = Caches; ccp; ccp = ccp->cc_next) {
-		if (cacheId != ccp->id) {
-			continue;
-		}
-		for (ct = &ccp->cc_cache[hashIndex]; PointerIsValid(ct) &&
-				PointerIsValid(ct->ct_tup); ct = ct->ct_next) {
-			/* HeapTupleSatisfiesTimeRange(ct->ct_tup, NowTQual) */
-			if (ItemPointerEquals(pointer, &ct->ct_tup->t_ctid)) {
-				break;
-			}
- 		}
-		if (PointerIsValid(ct) && PointerIsValid(ct->ct_tup)) {
-
-			/* found tuple to invalidate */
-			if (RuleLockIsValid(ct->ct_tup->t_lock.l_lock)) {
-				pfree((char *)ct->ct_tup->t_lock.l_lock);
-			}
-			pfree((char *) ct->ct_tup);
-
-			/* free *ct */
-			if (ct->ct_next) {
-				hct = ct->ct_next;
-				*ct = *hct;
-				pfree((char *) hct);
-			}
+    for (ccp = Caches; ccp; ccp = ccp->cc_next) {
+	if (cacheId != ccp->id) 
+    	    continue;
+	for (ct = (CatCTup *)SListGetHead(&ccp->cc_cache[hashIndex]);
+	     ct;
+	     ct = (CatCTup *)SListGetSucc(&ct->ct_node)
+	) {
+	    /* HeapTupleSatisfiesTimeRange(ct->ct_tup, NowTQual) */
+	    if (ItemPointerEquals(pointer, &ct->ct_tup->t_ctid)) 
+		break;
+ 	}
+	if (ct) {
+	    /* found tuple to invalidate */
+	    CatCacheRemoveCTup(ccp, ct);
 #ifdef	CACHEDEBUG
-			elog(DEBUG,
-				"CatalogCacheIdInvalidate: invalidated");
-#endif	/* defined(CACHEDEBUG) */
-		}
-		if (cacheId != InvalidCatalogCacheId) {
-			break;
-		}
+	    elog(DEBUG, "CatalogCacheIdInvalidate: invalidated");
+#endif
 	}
-	switchcontext(oldcxt);
-/*	sendpm('I', "Invalidated tuple"); */
+	if (cacheId != InvalidCatalogCacheId) 
+	    break;
+    }
+    switchcontext(oldcxt);
+    /*	sendpm('I', "Invalidated tuple"); */
 }
 
 Index
 CatalogCacheComputeTupleHashIndex(cacheInOutP, relation, tuple)
-	struct catcache	*cacheInOutP;
-	Relation	relation;
-	HeapTuple	tuple;
+struct catcache	*cacheInOutP;
+Relation	relation;
+HeapTuple	tuple;
 {
-	Boolean		isNull = '\0';
-	extern DATUM	fastgetattr();
+    Boolean		isNull = '\0';
+    extern DATUM	fastgetattr();
 
-	switch (cacheInOutP->cc_nkeys) {
-	case 4:
-		cacheInOutP->cc_skey[3].sk_data =
-			(cacheInOutP->cc_key[3] == T_OID) ?
-				(DATUM)tuple->t_oid : fastgetattr(tuple,
+    if (cacheInOutP->relationId == InvalidObjectId)
+	CatalogCacheInitializeCache(cacheInOutP, relation);
+
+    switch (cacheInOutP->cc_nkeys) {
+    case 4:
+	cacheInOutP->cc_skey[3].sk_data = (cacheInOutP->cc_key[3] == T_OID) ?
+	    (DATUM)tuple->t_oid : fastgetattr(tuple,
 					cacheInOutP->cc_key[3],
-					relation->rd_att.data[0],
-					&isNull);
-		Assert(!isNull);
-		/* FALLTHROUGH */
-	case 3:
-		cacheInOutP->cc_skey[2].sk_data =
-			(cacheInOutP->cc_key[2] == T_OID) ?
-				(DATUM)tuple->t_oid : fastgetattr(tuple,
+					&relation->rd_att.data[0],
+					&isNull
+				  );
+	Assert(!isNull);
+	/* FALLTHROUGH */
+    case 3:
+	cacheInOutP->cc_skey[2].sk_data = (cacheInOutP->cc_key[2] == T_OID) ?
+	    (DATUM)tuple->t_oid : fastgetattr(tuple,
 					cacheInOutP->cc_key[2],
 					&relation->rd_att.data[0],
-					&isNull);
-		Assert(!isNull);
-		/* FALLTHROUGH */
-	case 2:
-		cacheInOutP->cc_skey[1].sk_data =
-			(cacheInOutP->cc_key[1] == T_OID) ?
-				(DATUM)tuple->t_oid : fastgetattr(tuple,
+					&isNull
+				  );
+	Assert(!isNull);
+	/* FALLTHROUGH */
+    case 2:
+	cacheInOutP->cc_skey[1].sk_data = (cacheInOutP->cc_key[1] == T_OID) ?
+	    (DATUM)tuple->t_oid : fastgetattr(tuple,
 					cacheInOutP->cc_key[1],
 					&relation->rd_att.data[0],
-					&isNull);
-		Assert(!isNull);
-		/* FALLTHROUGH */
-	case 1:
-		cacheInOutP->cc_skey[0].sk_data =
-			(cacheInOutP->cc_key[0] == T_OID) ?
-				(DATUM)tuple->t_oid : fastgetattr(tuple,
+					&isNull
+				    );
+	Assert(!isNull);
+	/* FALLTHROUGH */
+    case 1:
+	cacheInOutP->cc_skey[0].sk_data = (cacheInOutP->cc_key[0] == T_OID) ?
+	    (DATUM)tuple->t_oid : fastgetattr(tuple,
 					cacheInOutP->cc_key[0],
 					&relation->rd_att.data[0],
-					&isNull);
-		Assert(!isNull);
-		break;
-	default:
-		elog(FATAL, "CCComputeTupleHashIndex: %d cc_nkeys",
-			cacheInOutP->cc_nkeys);
-		break;
-	}
-
-	return (CatalogCacheComputeHashIndex(cacheInOutP));
+					&isNull
+				  );
+	Assert(!isNull);
+	break;
+    default:
+	elog(FATAL, "CCComputeTupleHashIndex: %d cc_nkeys",
+	    cacheInOutP->cc_nkeys
+	);
+	break;
+    }
+    return (CatalogCacheComputeHashIndex(cacheInOutP));
 }
 
 static
 Index
 CatalogCacheComputeHashIndex(cacheInP)
-	struct catcache	*cacheInP;
+struct catcache	*cacheInP;
 {
-	Index	hashIndex;
+    Index	hashIndex;
 
-	hashIndex = 0x0;
+    hashIndex = 0x0;
 
-	switch (cacheInP->cc_nkeys) {
-	case 4:
-		hashIndex ^= comphash(cacheInP->cc_klen[3],
-			cacheInP->cc_skey[3].sk_data) << 9;
-		/* FALLTHROUGH */
-	case 3:
-		hashIndex ^= comphash(cacheInP->cc_klen[2],
-			cacheInP->cc_skey[2].sk_data) << 6;
-		/* FALLTHROUGH */
-	case 2:
-		hashIndex ^= comphash(cacheInP->cc_klen[1],
-			cacheInP->cc_skey[1].sk_data) << 3;
-		/* FALLTHROUGH */
-	case 1:
-		hashIndex ^= comphash(cacheInP->cc_klen[0],
-			cacheInP->cc_skey[0].sk_data);
-		break;
-	default:
-		elog(FATAL, "CCComputeHashIndex: %d cc_nkeys",
-			cacheInP->cc_nkeys);
-		break;
-	}
+    switch (cacheInP->cc_nkeys) {
+    case 4:
+	hashIndex ^= comphash(cacheInP->cc_klen[3],
+		cacheInP->cc_skey[3].sk_data) << 9;
+	/* FALLTHROUGH */
+    case 3:
+	hashIndex ^= comphash(cacheInP->cc_klen[2],
+		cacheInP->cc_skey[2].sk_data) << 6;
+	/* FALLTHROUGH */
+    case 2:
+	hashIndex ^= comphash(cacheInP->cc_klen[1],
+		cacheInP->cc_skey[1].sk_data) << 3;
+	/* FALLTHROUGH */
+    case 1:
+	hashIndex ^= comphash(cacheInP->cc_klen[0],
+		cacheInP->cc_skey[0].sk_data);
+	break;
+    default:
+	elog(FATAL, "CCComputeHashIndex: %d cc_nkeys", cacheInP->cc_nkeys);
+	break;
+    }
 
-	hashIndex %= cacheInP->cc_size;
+    hashIndex %= cacheInP->cc_size;
 
-	return (hashIndex);
+    return (hashIndex);
 }
 
 void
 CatalogCacheSetId(cacheInOutP, id)	/* XXX temporary function */
-	struct catcache	*cacheInOutP;
-	int		id;
+CatCache *cacheInOutP;
+int      id;
 {
-	Assert(id == InvalidCatalogCacheId || id >= 0);
+    Assert(id == InvalidCatalogCacheId || id >= 0);
 
-	cacheInOutP->id = id;
+    cacheInOutP->id = id;
 }
+
+/* static */
+void
+CatCacheRemoveCTup(cache, ct)
+CatCache *cache;
+CatCTup  *ct;
+{
+    SListRemove(&ct->ct_node);
+    SListRemove(&ct->ct_lrunode);
+    if (RuleLockIsValid(ct->ct_tup->t_lock.l_lock)) 
+        pfree((char *)ct->ct_tup->t_lock.l_lock);
+    pfree((char *) ct->ct_tup);
+    pfree((char *)ct);
+    --cache->cc_ntup;
+}
+
+void
+CatalogCacheInitializeCache(cache, relation)
+struct catcache *cache;
+Relation relation;
+{
+    struct context      *oldcxt;
+    short didopen = 0;
+    short i;
+
+#ifdef CACHEDDEBUG2
+    elog(DEBUG, "CatalogCacheInitializeCache: cache @%08lx", cache);
+    if (relation)
+        elog(DEBUG, "CatalogCacheInitializeCache: called w/relation(inval)");
+    else
+        elog(DEBUG, "CatalogCacheInitializeCache: called w/relname %s",
+	    cache->cc_relname
+	);
+#endif
+    if (!CacheCxt) {
+	oldcxt = newcontext();
+	CacheCxt = Curcxt;
+	CacheCxt->ct_status |= CT_PRESERVE;
+    } else {
+	oldcxt = switchcontext(CacheCxt);
+    }
+
+    /*
+     *  If no relation was passed we must open it to get access to 
+     *  its fields.  If one of the other caches has already opened
+     *  it we can use the much faster ObjectIdOpenHeapRelation() call
+     *  rather than RelationNameOpenHeapRelation() call.
+     */
+
+    if (!RelationIsValid(relation)) {
+	struct catcache *cp;
+        for (cp = Caches; cp; cp = cp->cc_next) {
+	    if (strcmp(cp->cc_relname, cache->cc_relname) == 0) {
+		if (cp->relationId != InvalidObjectId)
+		    break;
+	    }
+	}
+	if (cp) {
+#ifdef CACHEDDEBUG2
+	    elog(DEBUG, "CatalogCacheInitializeCache: fastrelopen");
+#endif
+    	    relation = ObjectIdOpenHeapRelation(cp->relationId);
+	} else {
+    	    relation = RelationNameOpenHeapRelation(cache->cc_relname);
+	}
+	didopen = 1;
+    }
+    Assert(RelationIsValid(relation));
+    cache->relationId = RelationGetRelationId(relation);
+#ifdef CACHEDDEBUG2
+    elog(DEBUG, "CatalogCacheInitializeCache: relid %d, %d keys", 
+        cache->relationId,
+        cache->cc_nkeys
+    );
+#endif
+    for (i = 0; i < cache->cc_nkeys; ++i) {
+#ifdef CACHEDDEBUG2
+        if (cache->cc_key[i] > 0) {
+            elog(DEBUG, "CatalogCacheInitializeCache: load %d/%d w/%d, %d", 
+	        i+1, cache->cc_nkeys, cache->cc_key[i],
+	        relation->rd_att.data[cache->cc_key[i] - 1]->attlen
+	    );
+	} else {
+            elog(DEBUG, "CatalogCacheInitializeCache: load %d/%d w/%d", 
+	        i+1, cache->cc_nkeys, cache->cc_key[i]
+	    );
+	}
+#endif
+	if (cache->cc_key[i] > 0) {
+	    cache->cc_klen[i] = 
+		relation->rd_att.data[cache->cc_key[i]-1]->attlen;
+	    cache->cc_skey[i].sk_opr =
+	        EQPROC(relation->rd_att.data[cache->cc_key[i]-1]->atttypid);
+	}
+    }
+    if (didopen)
+        RelationCloseHeapRelation(relation);
+    switchcontext(oldcxt);
+}
+
