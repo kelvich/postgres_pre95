@@ -2143,8 +2143,8 @@ make_targetlist_expr ( name , expr )
                 val = get_constvalue((Const)CDR(expr));
               }
               CDR(expr) = (LispValue) MakeConst(attrtype, attrlen,
-		fmgr(typeid_get_retinfunc(attrtype),val,get_typelem(attrtype)),
-                0,1 /*??? Maybe correct-- 80% chance */);
+	  (Datum)fmgr(typeid_get_retinfunc(attrtype),val,get_typelem(attrtype)),
+                false, true /*??? Maybe correct-- 80% chance */);
 	} else if((Typecast_ok) && (attrtype != type_id)){
               CDR(expr) = (LispValue) 
 			parser_typecast2 ( expr, get_id_type((long)attrtype));

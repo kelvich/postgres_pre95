@@ -404,9 +404,9 @@ make_op(op,ltree,rtree)
                         optemp = (OperatorTupleForm) GETSTRUCT(temp);
                         right = (LispValue) MakeConst(optemp->oprright,
 					tlen(get_id_type(optemp->oprright)),
-					fmgr(typeid_get_retinfunc(optemp->oprright),
+			     (Datum)fmgr(typeid_get_retinfunc(optemp->oprright),
 					     val),
-					0,1/*XXX was omitted */);
+					false, true /*XXX was omitted */);
                      } else 
 					 op_error(CString(op), typeid(ltype), typeid(rtype));
                 }

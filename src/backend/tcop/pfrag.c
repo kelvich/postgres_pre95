@@ -128,7 +128,6 @@ Plan plan;
     default:
 	return DEFPERTUPTIME;
       }
-    return 0.0;
 }
 
 #define AVGINDTUPS	5
@@ -444,13 +443,13 @@ Fragment frag;
     Fragment f;
 
     if (lispNullp(ioboundlist))
-	return lispCons(frag, LispNil);
+	return lispCons((LispValue)frag, LispNil);
     f = (Fragment)CAR(ioboundlist);
     if (get_frag_iorate(frag) > get_frag_iorate(f)) {
-	return(nconc(lispCons(frag, LispNil), ioboundlist));
+	return(nconc(lispCons((LispValue)frag, LispNil), ioboundlist));
       }
     else {
-	return(nconc(lispCons(f, LispNil), 
+	return(nconc(lispCons((LispValue)f, LispNil), 
 		     nappend1iobound(CDR(ioboundlist), frag)));
       }
 }
@@ -471,13 +470,13 @@ Fragment frag;
     Fragment f;
 
     if (lispNullp(cpuboundlist))
-	return lispCons(frag, LispNil);
+	return lispCons((LispValue)frag, LispNil);
     f = (Fragment)CAR(cpuboundlist);
     if (get_frag_iorate(frag) < get_frag_iorate(f)) {
-	return(nconc(lispCons(frag, LispNil), cpuboundlist));
+	return(nconc(lispCons((LispValue)frag, LispNil), cpuboundlist));
       }
     else {
-	return(nconc(lispCons(f, LispNil), 
+	return(nconc(lispCons((LispValue)f, LispNil), 
 		     nappend1cpubound(CDR(cpuboundlist), frag)));
       }
 }
@@ -511,10 +510,11 @@ List *ioboundlist, *cpuboundlist, *unparallelizablelist, *presetlist;
 	f = (Fragment)CAR(x);
 	p = get_frag_root(f);
 	if (!plan_is_parallelizable(p)) {
-	    *unparallelizablelist = nappend1(*unparallelizablelist, f);
+	    *unparallelizablelist = nappend1(*unparallelizablelist, 
+					     (LispValue)f);
 	  }
 	else if (!lispNullp(parse_parallel(get_frag_parsetree(f)))) {
-	    *presetlist = nappend1(*presetlist, f);
+	    *presetlist = nappend1(*presetlist, (LispValue)f);
 	  }
 	else {
 	    iorate = get_frag_iorate(f);
@@ -732,7 +732,7 @@ List fragmentlist;
       }
     if (ParallelismMode == INTRA_ONLY) {
 	f = (Fragment)CAR(readyFragmentList);
-	fireFragmentList = lispCons(f, LispNil);
+	fireFragmentList = lispCons((LispValue)f, LispNil);
 	SetParallelDegree(fireFragmentList, MaxFragParallelism(f));
 	return fireFragmentList;
       }
@@ -763,7 +763,7 @@ List fragmentlist;
 	    f = (Fragment)CAR(x);
 	    k = parse_parallel(get_frag_parsetree(f));
 	    parallel = CInteger(k);
-	    SetParallelDegree((y=lispCons(f, LispNil)), parallel);
+	    SetParallelDegree((y=lispCons((LispValue)f, LispNil)), parallel);
 	    fireFragmentList = nconc(fireFragmentList, y);
 	  }
 	SLAVE_elog(DEBUG, "executing fragments with preset parallelism.");
@@ -809,7 +809,7 @@ List fragmentlist;
 		curband = NStriping*DISKBANDWIDTH - curpar*get_frag_iorate(f1);
 		newpar = CurMaxFragParallelism(f2, curband, NumberOfFreeSlaves);
 		if (newpar == 0) return LispNil;
-		fireFragmentList = lispCons(f2, LispNil);
+		fireFragmentList = lispCons((LispValue)f2, LispNil);
 		SetParallelDegree(fireFragmentList, newpar);
 	      }
 	    else {
@@ -819,7 +819,7 @@ List fragmentlist;
 		   AdjustParallelism(pardelta,
 				     MasterSchedulingInfoD.ioBoundGroupId);
 		  }
-		fireFragmentList = lispCons(f2, LispNil);
+		fireFragmentList = lispCons((LispValue)f2, LispNil);
 		if (pardelta >= 0) {
 		    SetParallelDegree(fireFragmentList, x2);
 		  }
@@ -837,7 +837,7 @@ List fragmentlist;
 		curband = NStriping*DISKBANDWIDTH - curpar*get_frag_iorate(f2);
 		newpar = CurMaxFragParallelism(f1, curband, NumberOfFreeSlaves);
 		if (newpar == 0) return LispNil;
-		fireFragmentList = lispCons(f1, LispNil);
+		fireFragmentList = lispCons((LispValue)f1, LispNil);
 		SetParallelDegree(fireFragmentList, newpar);
 	      }
 	    else {
@@ -847,7 +847,7 @@ List fragmentlist;
 		  AdjustParallelism(pardelta,
 				    MasterSchedulingInfoD.cpuBoundGroupId);
 		  }
-		fireFragmentList = lispCons(f1, LispNil);
+		fireFragmentList = lispCons((LispValue)f1, LispNil);
 		if (pardelta >= 0) {
 		    SetParallelDegree(fireFragmentList, x1);
 		  }
@@ -858,9 +858,9 @@ List fragmentlist;
 	    MasterSchedulingInfoD.ioBoundFrag = f1;
 	  }
 	else {
-	    SetParallelDegree((y=lispCons(f1, LispNil)), x1);
+	    SetParallelDegree((y=lispCons((LispValue)f1, LispNil)), x1);
 	    fireFragmentList = nconc(fireFragmentList, y);
-	    SetParallelDegree((y=lispCons(f2, LispNil)), x2);
+	    SetParallelDegree((y=lispCons((LispValue)f2, LispNil)), x2);
 	    fireFragmentList = nconc(fireFragmentList, y);
 	    MasterSchedulingInfoD.ioBoundFrag = f1;
 	    MasterSchedulingInfoD.cpuBoundFrag = f2;
@@ -872,7 +872,7 @@ List fragmentlist;
 	 *  for cpu-bound fragments.
 	 * ------------------------------
 	 */
-	fireFragmentList = lispCons(f2, LispNil);
+	fireFragmentList = lispCons((LispValue)f2, LispNil);
 	SetParallelDegree(fireFragmentList, nfreeslaves);
 	MasterSchedulingInfoD.cpuBoundFrag = f2;
 	SLAVE1_elog(DEBUG, 
@@ -881,7 +881,7 @@ List fragmentlist;
       }
     else if (f1 != NULL && f2 == NULL) {
 	nfreeslaves = MaxFragParallelism(f1);
-	fireFragmentList = lispCons(f1, LispNil);
+	fireFragmentList = lispCons((LispValue)f1, LispNil);
 	SetParallelDegree(fireFragmentList, nfreeslaves);
 	fireFragmentList = nconc(fireFragmentList, y);
 	MasterSchedulingInfoD.ioBoundFrag = f1;
