@@ -1,7 +1,17 @@
-/*
- *  rtree.c -- interface routines for the postgres rtree indexed access
- *	   method.
+/* ----------------------------------------------------------------
+ *   FILE
+ *	rtree.c
+ *
+ *   DESCRIPTION
+ *	interface routines for the postgres rtree indexed access method.
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
+
 #include "tmp/c.h"
 #include "tmp/postgres.h"
 
@@ -32,9 +42,21 @@ extern ExprContext RMakeExprContext();
 
 RcsId("$Header$");
 
-extern InsertIndexResult    rtdoinsert();
-extern InsertIndexResult    dosplit();
-extern int	            nospace();
+/* automatically generated using mkproto */
+extern void rtbuild ARGS((Relation heap, Relation index, AttributeNumber natts, AttributeNumber *attnum, IndexStrategy istrat, uint16 pcount, Datum *params, FuncIndexInfo *finfo, LispValue predInfo));
+extern InsertIndexResult rtinsert ARGS((Relation r, IndexTuple itup));
+extern InsertIndexResult rtdoinsert ARGS((Relation r, IndexTuple itup));
+extern int rttighten ARGS((Relation r, RTSTACK *stk, char *datum, int att_size));
+extern InsertIndexResult dosplit ARGS((Relation r, Buffer buffer, RTSTACK *stack, IndexTuple itup));
+extern int rtintinsert ARGS((Relation r, RTSTACK *stk, IndexTuple ltup, IndexTuple rtup));
+extern int rtnewroot ARGS((Relation r, IndexTuple lt, IndexTuple rt));
+extern int picksplit ARGS((Relation r, Page page, SPLITVEC *v, IndexTuple itup));
+extern int RTInitBuffer ARGS((Buffer b, uint32 f));
+extern int choose ARGS((Relation r, Page p, IndexTuple it));
+extern int nospace ARGS((Page p, IndexTuple it));
+extern int freestack ARGS((RTSTACK *s));
+extern char *rtdelete ARGS((Relation r, ItemPointer tid));
+extern int _rtdump ARGS((Relation r));
 
 typedef struct SPLITVEC {
     OffsetNumber	*spl_left;
