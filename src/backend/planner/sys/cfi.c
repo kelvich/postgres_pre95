@@ -97,7 +97,8 @@ index_info (not_first,relid)
 	 * variable.  I just could not get the old statement to stop screen
 	 * wrapping and becoming unreadable.  -mer
 	 */
-	returnList = lispCons(lispInteger(indexinfo[27]), LispNil);
+	returnList = lispCons(indexinfo[28], LispNil);
+	returnList = lispCons(lispInteger(indexinfo[27]), returnList);
 	returnList = lispCons(am_ops, returnList);
 	returnList = lispCons(iord, returnList);
 	returnList = lispCons(ikey, returnList);

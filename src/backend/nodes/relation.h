@@ -200,6 +200,7 @@ class (Rel) public (Node) {
 	List	classlist;
 	List	indexkeys;
 	oid	indproc;
+	List	indpred;
   /* used by various scans and joins: */
 	List	ordering;
 	List	clauseinfo;

@@ -10,6 +10,16 @@ extern LispValue group_clauses_by_indexkey ARGS((Rel rel, Rel index, LispValue i
 
 extern CInfo match_clause_to_indexkey ARGS((Rel rel, Rel index, LispValue indexkey, LispValue xclass, CInfo clauseInfo, bool join));
 
+extern bool pred_test ARGS((List predicate, List clauseinfo_list, List joininfo_list));
+
+extern bool one_pred_test ARGS((List predicate, List clauseinfo_list));
+
+extern bool one_pred_clause_expr_test ARGS((List predicate, List clause));
+
+extern bool one_pred_clause_test ARGS((List predicate, List clause));
+
+extern bool clause_pred_clause_test ARGS((List predicate, List clause));
+
 extern LispValue indexable_joinclauses ARGS((Rel rel, Rel index, LispValue joininfo_list));
 
 extern LispValue index_innerjoin ARGS((Rel rel, LispValue clausegroup_list, Rel index));

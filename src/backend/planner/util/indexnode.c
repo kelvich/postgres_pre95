@@ -89,6 +89,7 @@ find_secondary_index (notfirst,relid)
 	set_ordering (indexnode,nth (4,indexinfo));
 	set_classlist (indexnode,nth (5,indexinfo));
 	set_indproc(indexnode, CInteger(nth(6,indexinfo)));
+	set_indpred(indexnode, nth(7,indexinfo));
 	
 	set_indexed(indexnode,false);  /* XXX should it be true instead */
 	set_size (indexnode,0);

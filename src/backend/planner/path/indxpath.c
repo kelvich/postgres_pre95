@@ -18,12 +18,17 @@
 
 #include "tmp/postgres.h"
 #include "access/att.h"
+#include "access/heapam.h"
+#include "access/ftup.h"
+#include "access/nbtree.h"
 
 #include "nodes/pg_lisp.h"
 #include "nodes/relation.h"
 #include "nodes/relation.a.h"
+#include "nodes/primnodes.a.h"
 
 #include "utils/lsyscache.h"
+#include "utils/log.h"
 
 #include "planner/internal.h"
 #include "planner/indxpath.h"
@@ -33,6 +38,15 @@
 #include "planner/costsize.h"
 #include "planner/pathnode.h"
 #include "planner/xfunc.h"
+
+#include "catalog/catname.h"
+#include "catalog/pg_amop.h"
+#include "catalog/pg_proc.h"
+
+#include "executor/x_qual.h"
+
+/* If Spyros can use a constant PRS2_BOOL_TYPEID, I can use this */
+#define BOOL_TYPEID ((ObjectId) 16)
 
 /*    
  *    	find-index-paths
@@ -84,6 +98,15 @@ find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
 	return(NULL);
 	
     index = (Rel)CAR (indices);
+
+    retval = find_index_paths (rel, CDR (indices),
+				    clauseinfo_list,
+				    joininfo_list,sortkeys);
+
+    /* If this is a partial index, return if it fails the predicate test */
+    if (index->indpred != LispNil)
+	if (!pred_test(index->indpred, clauseinfo_list, joininfo_list))
+	    return retval;
 
     /*  1. If this index has only one key, try matching it against 
      * subclauses of an 'or' clause.  The fields of the clauseinfo
@@ -174,21 +197,13 @@ find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
      *  Some sanity checks to make sure that
      *  the indexpath is valid.
      */
-    if (!null(scanpaths))
-	retval = add_index_paths(retval,scanpaths);
-    if ( !null(joinpaths) )
-	retval = add_index_paths(retval,joinpaths);
     if (!null(sortpath))
-	retval = add_index_paths(retval,sortpath);
+	retval = add_index_paths(sortpath,retval);
+    if ( !null(joinpaths) )
+	retval = add_index_paths(joinpaths,retval);
+    if (!null(scanpaths))
+	retval = add_index_paths(scanpaths,retval);
 	
-    if (!null((temp = find_index_paths (rel,
-					CDR (indices),
-					clauseinfo_list,
-					joininfo_list,sortkeys))))
-    {
-	  retval = append (retval,temp);
-    }
-
     return retval;
 
 }  /* function end */
@@ -551,8 +566,367 @@ match_clause_to_indexkey (rel,index,indexkey,xclass,clauseInfo,join)
     return(NULL);
 }
 
+/*    		----  ROUTINES TO DO PARTIAL INDEX PREDICATE TESTS  ----  */
 
-			  
+/*    
+ *    	pred_test
+ *    
+ *	Does the "predicate inclusion test" for partial indexes.
+ *
+ *	Recursively checks whether the clauses in clauseinfo_list imply
+ *	that the given predicate is true.
+ *
+ *	This routine (together with the routines it calls) iterates over
+ *	ANDs in the predicate first, then reduces the qualification
+ *	clauses down to their constituent terms, and iterates over ORs
+ *	in the predicate last.  This order is important to make the test
+ *	succeed whenever possible (assuming the predicate has been
+ *	successfully cnfify()-ed). --Nels, Jan '93
+ */
+
+bool
+pred_test (predicate_list, clauseinfo_list, joininfo_list)
+    List predicate_list, clauseinfo_list, joininfo_list;
+{
+    List pred, items, item;
+
+    /*
+     * Note: if Postgres tried to optimize queries by forming equivalence
+     * classes over equi-joined attributes (i.e., if it recognized that a
+     * qualification such as "where a.b=c.d and a.b=5" could make use of
+     * an index on c.d), then we could use that equivalence class info
+     * here with joininfo_list to do more complete tests for the usability
+     * of a partial index.  For now, the test only uses restriction
+     * clauses (those in clauseinfo_list). --Nels, Dec '92
+     */
+
+    if (predicate_list == NULL)
+	return true;	/* no predicate: the index is usable */
+    if (clauseinfo_list == NULL)
+	return false;	/* no restriction clauses: the test must fail */
+
+    foreach (pred, predicate_list) {
+	/* if any clause is not implied, the whole predicate is not implied */
+	if (and_clause(CAR(pred))) {
+	    items = (List) get_andclauseargs(CAR(pred));
+	    foreach (item, items) {
+		if (!one_pred_test(CAR(item), clauseinfo_list))
+		    return false;
+	    }
+	}
+	else if (!one_pred_test(CAR(pred), clauseinfo_list))
+	    return false;
+    }
+    return true;
+}
+
+
+/*    
+ *    	one_pred_test
+ *    
+ *	Does the "predicate inclusion test" for one conjunct of a predicate
+ *	expression.
+ */
+
+bool
+one_pred_test (predicate, clauseinfo_list)
+    List predicate, clauseinfo_list;
+{
+    CInfo clauseinfo;
+    List item;
+
+    Assert(predicate != LispNil);
+    foreach (item, clauseinfo_list) {
+	clauseinfo = (CInfo)CAR(item);
+	/* if any clause implies the predicate, return true */
+	if (one_pred_clause_expr_test(predicate, get_clause(clauseinfo)))
+	    return true;
+    }
+    return false;
+}
+
+
+/*    
+ *    	one_pred_clause_expr_test
+ *    
+ *	Does the "predicate inclusion test" for a general restriction-clause
+ *	expression.
+ */
+
+bool
+one_pred_clause_expr_test (predicate, clause)
+    List predicate, clause;
+{
+    List items, item;
+
+    if (fast_is_clause(clause))        /* CAR is Oper node */
+	return one_pred_clause_test(predicate, clause);
+    else if (fast_or_clause(clause)) {
+	items = (List) get_orclauseargs(clause);
+	foreach (item, items) {
+	    /* if any OR item doesn't imply the predicate, clause doesn't */
+	    if (!one_pred_clause_expr_test(predicate, CAR(item)))
+		return false;
+	}
+	return true;
+    }
+    else if (fast_and_clause(clause)) {
+	items = (List) get_andclauseargs(clause);
+	foreach (item, items) {
+	    /* if any AND item implies the predicate, the whole clause does */
+	    if (one_pred_clause_expr_test(predicate, CAR(item)))
+		return true;
+	}
+	return false;
+    }
+    else /* unknown clause type never implies the predicate */ 
+	return false;
+}
+
+
+/*    
+ *    	one_pred_clause_test
+ *    
+ *	Does the "predicate inclusion test" for one conjunct of a predicate
+ *	expression for a simple restriction clause.
+ */
+
+bool
+one_pred_clause_test (predicate, clause)
+    List predicate, clause;
+{
+    List items, item;
+
+    if (fast_is_clause(predicate))        /* CAR is Oper node */
+	return clause_pred_clause_test(predicate, clause);
+    else if (fast_or_clause(predicate)) {
+	items = (List) get_orclauseargs(predicate);
+	foreach (item, items) {
+	    /* if any item is implied, the whole predicate is implied */
+	    if (one_pred_clause_test(CAR(item), clause))
+		return true;
+	}
+	return false;
+    }
+    else if (fast_and_clause(predicate)) {
+	items = (List) get_andclauseargs(predicate);
+	foreach (item, items) {
+	    /* if any item is not implied, the whole predicate is not implied */
+	    if (!one_pred_clause_test(CAR(item), clause))
+		return false;
+	}
+	return true;
+    }
+    else {
+	elog(DEBUG, "Unsupported predicate type, index will not be used");
+	return false;
+    }
+}
+
+
+/*
+ * Define an "operator implication table" for btree operators ("strategies").
+ * The "strategy numbers" are:  (1) <   (2) <=   (3) =   (4) >=   (5) >
+ *
+ * The interpretation of:
+ *
+ *	test_op = BT_implic_table[given_op-1][target_op-1]
+ *
+ * where test_op, given_op and target_op are strategy numbers (from 1 to 5)
+ * of btree operators, is as follows:
+ *
+ *   If you know, for some ATTR, that "ATTR given_op CONST1" is true, and you
+ *   want to determine whether "ATTR target_op CONST2" must also be true, then
+ *   you can use "CONST1 test_op CONST2" as a test.  If this test returns true,
+ *   then the target expression must be true; if the test returns false, then
+ *   the target expression may be false.
+ *
+ * An entry where test_op==0 means the implication cannot be determined, i.e.,
+ * this test should always be considered false.
+ */
+
+StrategyNumber BT_implic_table[BTMaxStrategyNumber][BTMaxStrategyNumber] = {
+    {2, 2, 0, 0, 0},
+    {1, 2, 0, 0, 0},
+    {1, 2, 3, 4, 5},
+    {0, 0, 0, 4, 5},
+    {0, 0, 0, 4, 4}
+};
+
+
+/*    
+ *    	clause_pred_clause_test
+ *
+ *	Use operator class info to check whether clause implies predicate.
+ *    
+ *	Does the "predicate inclusion test" for a "simple clause" predicate
+ *	for a single "simple clause" restriction.  Currently, this only handles
+ *	(binary boolean) operators that are in some btree operator class.
+ *	Eventually, rtree operators could also be handled by defining an
+ *	appropriate "RT_implic_table" array.
+ */
+
+bool
+clause_pred_clause_test (predicate, clause)
+    List predicate, clause;
+{
+    Var			pred_var, clause_var;
+    Const		pred_const, clause_const;
+    ObjectId		pred_op, clause_op, test_op;
+    ObjectId		opclass_id;
+    StrategyNumber	pred_strategy, clause_strategy, test_strategy;
+    Oper		test_oper;
+    List		test_expr;
+    bool		test_result, isNull;
+    Relation		relation;
+    HeapScanDesc	scan;
+    HeapTuple		tuple;
+    ScanKeyEntryData	entry[3];
+    AccessMethodOperatorTupleForm form;
+
+    pred_var = (Var)get_leftop(predicate);
+    pred_const = (Const)get_rightop(predicate);
+    clause_var = (Var)get_leftop(clause);
+    clause_const = (Const)get_rightop(clause);
+
+    /* Check the basic form; for now, only allow the simplest case */
+    if (!IsA(CAR(clause),Oper) ||
+	!IsA(clause_var,Var) ||
+	!IsA(clause_const,Const) ||
+	!IsA(CAR(predicate),Oper) ||
+	!IsA(pred_var,Var) ||
+	!IsA(pred_const,Const)) {
+	return false;
+    }
+
+    /*
+     * The implication can't be determined unless the predicate and the clause
+     * refer to the same attribute.
+     */
+    if (get_varattno(clause_var) != get_varattno(pred_var))
+	return false;
+
+    /* Get the operators for the two clauses we're comparing */
+    pred_op = get_opno((Oper)get_op(predicate));
+    clause_op = get_opno((Oper)get_op(clause));
+
+
+    /*** 1. Find a "btree" strategy number for the pred_op ***/
+
+    /* XXX - hardcoded amopid value 403 to find "btree" operator classes */
+    ScanKeyEntryInitialize(&entry[0], 0,
+			   Anum_pg_amop_amopid,
+			   ObjectIdEqualRegProcedure,
+			   ObjectIdGetDatum(403));
+
+    ScanKeyEntryInitialize(&entry[1], 0,
+			   Anum_pg_amop_amopopr,
+			   ObjectIdEqualRegProcedure,
+			   ObjectIdGetDatum(pred_op));
+
+    relation = heap_openr(AccessMethodOperatorRelationName);
+
+    /*
+     * The following assumes that any given operator will only be in a single
+     * btree operator class.  This is true at least for all the pre-defined
+     * operator classes.  If it isn't true, then whichever operator class
+     * happens to be returned first for the given operator will be used to
+     * find the associated strategy numbers for the test. --Nels, Jan '93
+     */
+    scan = heap_beginscan(relation, false, NowTimeQual, 2, (ScanKey)entry);
+    tuple = heap_getnext(scan, false, (Buffer *)NULL);
+    if (! HeapTupleIsValid(tuple)) {
+	elog(DEBUG, "clause_pred_clause_test: unknown pred_op");
+	return false;
+    }
+    form = (AccessMethodOperatorTupleForm) HeapTupleGetForm(tuple);
+
+    /* Get the predicate operator's strategy number (1 to 5) */
+    pred_strategy = form->amopstrategy;
+
+    /* Remember which operator class this strategy number came from */
+    opclass_id = form->amopclaid;
+
+    heap_endscan(scan);
+
+
+    /*** 2. From the same opclass, find a strategy num for the clause_op ***/
+
+    ScanKeyEntryInitialize(&entry[1], 0,
+			   Anum_pg_amop_amopclaid,
+			   ObjectIdEqualRegProcedure,
+			   ObjectIdGetDatum(opclass_id));
+
+    ScanKeyEntryInitialize(&entry[2], 0,
+			   Anum_pg_amop_amopopr,
+			   ObjectIdEqualRegProcedure,
+			   ObjectIdGetDatum(clause_op));
+
+    scan = heap_beginscan(relation, false, NowTimeQual, 3, (ScanKey)entry);
+    tuple = heap_getnext(scan, false, (Buffer *)NULL);
+    if (! HeapTupleIsValid(tuple)) {
+	elog(DEBUG, "clause_pred_clause_test: unknown clause_op");
+	return false;
+    }
+    form = (AccessMethodOperatorTupleForm) HeapTupleGetForm(tuple);
+
+    /* Get the restriction clause operator's strategy number (1 to 5) */
+    clause_strategy = form->amopstrategy;
+    heap_endscan(scan);
+
+
+    /*** 3. Look up the "test" strategy number in the implication table ***/
+
+    test_strategy = BT_implic_table[clause_strategy-1][pred_strategy-1];
+    if (test_strategy == 0)
+	return false; /* the implication cannot be determined */
+
+
+    /*** 4. From the same opclass, find the operator for the test strategy ***/
+
+    ScanKeyEntryInitialize(&entry[2], 0,
+			   Anum_pg_amop_amopstrategy,
+			   Integer16EqualRegProcedure,
+			   Int16GetDatum(test_strategy));
+
+    scan = heap_beginscan(relation, false, NowTimeQual, 3, (ScanKey)entry);
+    tuple = heap_getnext(scan, false, (Buffer *)NULL);
+    if (! HeapTupleIsValid(tuple)) {
+	elog(DEBUG, "clause_pred_clause_test: unknown test_op");
+	return false;
+    }
+    form = (AccessMethodOperatorTupleForm) HeapTupleGetForm(tuple);
+
+    /* Get the test operator */
+    test_op = form->amopoprid;
+    heap_endscan(scan);
+
+
+    /*** 5. Evaluate the test ***/
+
+    test_oper = MakeOper(
+            test_op,            /* opno */
+            InvalidObjectId,    /* opid */
+            false,              /* oprelationlevel */
+            BOOL_TYPEID,        /* opresulttype */
+            0,                  /* opsize */
+            NULL);              /* op_fcache */
+    (void) replace_opid(test_oper);
+
+    test_expr = lispCons(test_oper,
+			 lispCons(lispCopy(clause_const),
+				  lispCons(lispCopy(pred_const),
+					   LispNil)));
+
+    test_result = ExecEvalExpr(test_expr, NULL, &isNull, NULL);
+    if (isNull) {
+	elog(DEBUG, "clause_pred_clause_test: null test result");
+	return false;
+    }
+    return test_result;
+}
+
+
 /*    		----  ROUTINES TO CHECK JOIN CLAUSES  ---- 	 */
 
 

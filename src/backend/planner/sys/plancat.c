@@ -111,6 +111,7 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 	Relation		indexRelation;
 	uint16			amstrategy;	/* XXX not used YET */
 	ObjectId		relam;
+	LispValue		predicate;
 	static Relation		relation = (Relation) NULL;
 	static HeapScanDesc	scan = (HeapScanDesc) NULL;
 	static ScanKeyEntryData	indexKey[1] = {
@@ -119,7 +120,8 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 
 	fmgr_info(F_OIDEQ, &indexKey[0].func, &indexKey[0].nargs);
 
-	bzero((char *) indexCatalogInfo, (unsigned) (28 * sizeof(int32)));
+	/* 29 = 27 (see above) + 1 (indproc) + 1 (indpred) */
+	bzero((char *) indexCatalogInfo, (unsigned) (29 * sizeof(int32)));
 
 	/* Find an index on the given relation */
 	if (notFirst == 0) {
@@ -153,6 +155,23 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 	
 	/* functional index ?? */
 	indexCatalogInfo[27] = index->indproc;			/* 27 */
+
+	/* partial index ?? */
+	predicate = LispNil;
+	if (VARSIZE(&index->indpred) != 0) {
+	    /*
+	     * The memory allocated here for the predicate (in lispReadString)
+	     * only needs to stay around until it's used in find_index_paths,
+	     * which is all within a command, so the automatic pfree at end
+	     * of transaction should be ok.
+	     */
+	    char *predString;
+	    LispValue lispReadString();
+	    predString = fmgr(F_TEXTOUT, &index->indpred);
+	    predicate = lispReadString(predString);
+	    pfree(predString);
+	}
+	indexCatalogInfo[28] = (int32)predicate;		/* 28 */
 
 	/* Extract info from the relation descriptor for the index */
 	indexRelation = (Relation) index_open(index->indexrelid);
