@@ -58,6 +58,7 @@
 #include "catalog/pg_index.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
+#include "catalog/pg_aggregate.h"
 
 #include "access/printtup.h"
 #include "nodes/primnodes.h"
@@ -82,6 +83,7 @@
  *
  *	XXX reorganize me.
  */
+#include "executor/aggregate.h"
 #include "executor/x_append.h"
 #include "executor/x_debug.h"
 #include "executor/x_endnode.h"
