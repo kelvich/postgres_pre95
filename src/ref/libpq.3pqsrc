@@ -365,6 +365,11 @@ PQtrace \*- Enable tracing.
 
 void PQtrace ()
 
+The routine sets the PQtracep variable to 1 which causes debug messages to
+be printed.  You should note that the
+messages will be printed to stdout by default.  If you would like different
+behavior you must set the variable FILE *debug_port to the appropriate stream.
+
 PQuntrace \*- Disable tracing.
 
 void PQuntrace ()
