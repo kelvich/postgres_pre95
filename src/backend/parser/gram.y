@@ -241,7 +241,7 @@ ClusterStmt:
 
 CopyStmt:
 	  COPY copy_type copy_null 
-	  relation_name '(' copy_list ')' copy_dirn copy_file_name copy_map
+	  relation_name copy_dirn copy_file_name copy_map
 	
 		{
 		    LispValue temp;
@@ -250,15 +250,14 @@ CopyStmt:
 		    $4 = nappend1($4,$2);
 		    $4 = nappend1($4,$3);
 		    $$ = nappend1($$,$4);
-		    $$ = nappend1($$,lispCons ($8,lispCons($9,LispNil)));
-		    if(! lispNullp($10))
-		      $10 = lispCons($10,LispNil);
-		    $$ = nappend1($$, lispCons(KW(using), $10));
+		    $$ = nappend1($$,lispCons ($5,lispCons($6,LispNil)));
+		    if(! lispNullp($7))
+		      $7 = lispCons($7,LispNil);
+		    $$ = nappend1($$, lispCons(KW(using), $7));
 		    temp = $$;
 		    while(temp != LispNil && CDR(temp) != LispNil )
 		      temp = CDR(temp);
-		    CDR(temp) = $6;
-		    /* $$ = nappend1 ($$ , $6 ); /* copy_list */
+		    CDR(temp) = LispNil;
 		}
 	;
 
@@ -283,35 +282,6 @@ copy_type:
 	/*EMPTY*/				{ NULLTREE }
 	| BINARY				{ $$ = KW(binary); }
 	;
-
-copy_list:
-	/*EMPTY*/				{ NULLTREE }
-	| copy_spec				{ ELEMENT ; }
-	| copy_list ',' copy_spec		{ INC_LIST ;  }
-	;
-
-copy_spec:
-	  col_name copy_eq copy_char
-		{ if ($3 != LispNil )
-		    $3 = lispCons ($3,LispNil);
-		  $$ = lispCons ( $1, lispCons ($2, $3 ) ); 
-
-		}
-	| Sconst				/*$$=$1*/
-	;
-
-copy_eq:
-	  /*EMPTY*/				{ NULLTREE }
-	| '=' Id				{ $$ = $2 ; }
-	;
- 
-copy_char:
-	  /*EMPTY*/				{ NULLTREE }
-	| CCONST				
-		{ char *cconst = (char *)CString($1); 
-		  $$ = lispInteger(cconst[0]) ;
-		}
- 	;
 
  /************************************************************
 	Create a relation:
