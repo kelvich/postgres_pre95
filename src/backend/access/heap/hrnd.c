@@ -1,6 +1,15 @@
-/*
- * hrnd.c --
+/* ----------------------------------------------------------------
+ *   FILE
+ *	hrnd.c
+ *
+ *   DESCRIPTION
  *	POSTGRES heap access method randomization code.
+ *
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #include "tmp/c.h"
@@ -281,7 +290,7 @@ ObjectIdHashBlockIndex(id, method)
 		index = 137 + ((id << 11) ^ (id >> 7)) + id * (method >> 1);
 		break;
 	default:
-		Assert(false);
+		Assert(0);
 		break;
 	}
 	return(index + method);
