@@ -47,13 +47,12 @@ int open_mode;
 {
     char filename[256];
     int file_oid;
-    LargeObjectDesc *retval;
+    LargeObjectDesc *retval = NULL;
     LargeObject *newobj;
     int fd;
     int obj_len, filename_len;
     oid oidf;
 
-    newobj = (LargeObject *) NewLargeObject(filename, PURE_FILE);
 
     /* Log this instance of large object into directory table. */
     if ((oidf = FilenameToOID(path)) == InvalidObjectId) {
@@ -68,6 +67,7 @@ int open_mode;
 	fd = (int) FileNameOpenFile(filename, O_CREAT | O_RDWR, 0666);
 	if (fd == -1) return(NULL);
 
+	newobj = (LargeObject *) NewLargeObject(filename, PURE_FILE);
 	retval = (LargeObjectDesc *) palloc(sizeof(LargeObjectDesc));
 
 	retval->object = newobj;
