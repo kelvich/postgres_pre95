@@ -865,12 +865,12 @@ _readArray()
 	token = lsptok(NULL, &length);    		/* eat :arraylow */
 	token = lsptok(NULL, &length);    		/* get arraylow */
 
-	local_node->arraylow = atoi(token);
+	local_node->arraylow.indx[0] = atoi(token);
 
 	token = lsptok(NULL, &length);    		/* eat :arrayhigh */
 	token = lsptok(NULL, &length);    		/* get arrayhigh */
 
-	local_node->arrayhigh = atoi(token);
+	local_node->arrayhigh.indx[0] = atoi(token);
 
 	token = lsptok(NULL, &length);    		/* eat :arraylen */
 	token = lsptok(NULL, &length);    		/* get arraylen */
@@ -917,11 +917,17 @@ _readArrayRef()
 	
 	local_node->refelembyval = (token[0] == 't') ? true : false;
 
-	token = lsptok(NULL, &length);    		/* eat :refindex */
-	local_node->refindexpr = (LispValue) lispRead(true);
+	token = lsptok(NULL, &length);    		/* eat :refupperindex */
+	local_node->refupperindexpr = (LispValue) lispRead(true);
+
+	token = lsptok(NULL, &length);    		/* eat :reflowerindex */
+	local_node->reflowerindexpr = (LispValue) lispRead(true);
 
 	token = lsptok(NULL, &length);    		/* eat :refexpr */
 	local_node->refexpr = (LispValue) lispRead(true);
+
+	token = lsptok(NULL, &length);    		/* eat :refassgnexpr */
+	local_node->refassgnexpr = (LispValue) lispRead(true);
 
 	return(local_node);
 }
