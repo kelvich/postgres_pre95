@@ -11,6 +11,7 @@
  *=======================================================================
  */
 
+#include <ctype.h>
 #include "utils/log.h"
 #include "utils/palloc.h"
 #include "rules/prs2.h"
@@ -264,6 +265,7 @@ prs2PrintLocks(locks)
 RuleLock   locks;
 {
     int i;
+    unsigned int type_int;
     int nlocks;
     Prs2OneLock oneLock;
 
@@ -279,7 +281,17 @@ RuleLock   locks;
     for (i=0; i<nlocks; i++) {
 	oneLock = prs2GetOneLockFromLocks(locks, i);
 	printf(" (rulid=%ld,", prs2OneLockGetRuleId(oneLock));
-	printf(" type=%c,", prs2OneLockGetLockType(oneLock));
+
+	/*
+	 * print the 'type' as a char only if it is a printable
+	 * character, otherwise print it as a hex number.
+	 */
+	type_int = (unsigned int) prs2OneLockGetLockType(oneLock);
+	if (type_int >= 32 && type_int < 127)
+	    printf(" type='%c'", prs2OneLockGetLockType(oneLock));
+	else
+	    printf(" type=0x%x,", type_int);
+
 	printf(" attrn=%d,", (int)prs2OneLockGetAttributeNumber(oneLock));
 	printf(" plano=%d,", (int)prs2OneLockGetPlanNumber(oneLock));
 	printf(" partial=%d/%ds)",
