@@ -476,7 +476,6 @@ InitStdio()
  */
 static bool	PostgresIsInitialized = false;
 extern int NBuffers;
-extern int *BTreeBufferPinCount;
 
 /*
  *  this global is used by wei for testing his code, but must be declared
@@ -563,12 +562,6 @@ InitPostgres(name)
     InitCommunication();
     InitStdio();
 
-    /* 
-     * have to allocate the following variable size array for the
-     * btree code.  should have been encapsulated. XXX
-     */
-    BTreeBufferPinCount = (int*)malloc((NBuffers + 1) * sizeof(int));
-    
     if (!TransactionFlushEnabled())
         on_exitpg(BufferManagerFlush, (caddr_t) 0);
 
