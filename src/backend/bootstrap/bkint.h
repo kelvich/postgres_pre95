@@ -15,7 +15,7 @@ static	char ami_h[] = "$Header$";
 #include <strings.h>
 #include <signal.h>
 #include <ctype.h>
-#include "fmgr.h"
+/* #include "fmgr.h" */
 #include "catalog.h"
 
 /* #include "postgres.h" */
