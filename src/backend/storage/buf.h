@@ -69,3 +69,13 @@ BufferIsUnknown ARGS ((
 ));
 
 #endif	/* !defined(BufIncluded) */
+
+
+/*
+ * If NO_BUFFERISVALID is defined, all error checking using BufferIsValid()
+ * are suppressed.  Decision-making using BufferIsValid is not affected.
+ * This should be set only if one is sure there will be no errors.
+ * - plai 9/10/90
+ */
+
+#undef NO_BUFFERISVALID
