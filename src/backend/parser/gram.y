@@ -1178,6 +1178,7 @@ AppendStmt:
                         $$ = nappend1 ( $$ , $8 ); /* (eq p_target $8) */
                         $$ = nappend1 ( $$ , $10 ); /* (eq p_qual $10 */
                         ResdomNoIsAttrNo = false;
+			heap_close(parser_current_rel);
                 }
         ;
 
@@ -1210,6 +1211,8 @@ DeleteStmt:
 		    parser_current_rel = heap_openr(VarnoGetRelname(x));
 		    if (parser_current_rel == NULL)
 		      elog(WARN,"invalid relation name");
+		    else
+		      heap_close(parser_current_rel);
 		    /* ResdomNoIsAttrNo = true;  */
 		}
           where_clause
@@ -1304,6 +1307,7 @@ ReplaceStmt:
                     $$ = nappend1 ( $$ , $8 );          /* (eq p_target $6) */
                     $$ = nappend1 ( $$ , $10 );         /* (eq p_qual $9) */
                     ResdomNoIsAttrNo = false;
+		    heap_close(parser_current_rel);
                 }
         ;
 
