@@ -96,7 +96,7 @@ typedef ArrayType IdList;
 /*
  * Enable ACL execution tracing and table dumps
  */
-#define ACLDEBUG_TRACE
+/*#define ACLDEBUG_TRACE*/
 
 /*
  * routines used internally (parser, etc.) 
