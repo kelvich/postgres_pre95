@@ -56,11 +56,8 @@
 
 extern int Debugfile;
 extern int Ttyfile;
-extern int Dblog;
-extern int Slog;
 extern int Portfd;
 extern int Packfd;
-extern int Slog;
 extern int Pipefd;
 extern int Noversion;		/* moved from magic.c	*/
 
