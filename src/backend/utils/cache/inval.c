@@ -13,7 +13,6 @@
 #include "storage/ipci.h"
 #include "storage/sinval.h"
 #include "utils/catcache.h"
-#include "utils/linval.h"
 #include "utils/inval.h"
 #include "utils/log.h"
 #include "utils/rel.h"
