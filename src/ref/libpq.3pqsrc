@@ -1,7 +1,12 @@
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.SS "LIBPQ" 6/14/90
+.SS LIBPQ 6/14/90
 .XA 0 "Section 5 \*- Libpq"
+.sp 2i
+.ps 14
+.ce
+.b "SECTION 5 \*- LIBPQ"
+.sp 3
 .uh NAME
 .lp
 libpq \*- programmer's interface to \*(PP
@@ -500,17 +505,17 @@ main ()
  * Do the following at the monitor:
  *
 
- create test1 (i = int4) \g
- create test1a (i = int4) \g
+ create test1 (i = int4) \eg
+ create test1a (i = int4) \eg
 
  define rule r1 is on append to test1 do
     [append test1a (i = new.i)
     notify test1a]
 
- \g
+ \eg
  * Then start up this process.
 
- append test1 (i = 10) \g
+ append test1 (i = 10) \eg
 
  * The value i=10 should be printed by this process.
  */
@@ -582,8 +587,8 @@ void main()
  * Do the following at the monitor:
  *
 
- create test1 (i = int4,d = float4) \g
- append test1 (i = 7, d=3.567) \g
+ create test1 (i = int4,d = float4) \eg
+ append test1 (i = 7, d=3.567) \eg
 
  -- Anything else you can think of. 
  * Start up this program.
