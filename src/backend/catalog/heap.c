@@ -728,19 +728,30 @@ heap_create(relname, arch, natts, smgr, tupdesc)
      *	we add a new system type corresponding to the new relation.
      * ----------------
      */
+    /* The sizes are set to oid size because it makes implementing sets MUCH
+     * easier, and no one (we hope) uses these fields to figure out
+     * how much space to allocate for the type. 
+     * An oid is the type used for a set definition.  When a user
+     * requests a set, what they actually get is the oid of a tuple in
+     * the pg_proc catalog, so the size of the "set" is the size
+     * of an oid.
+     * Similarly, byval being true makes sets much easier, and 
+     * it isn't used by anything else.
+     * Note the assumption that OIDs are the same size as int4s.
+     */
     new_type_oid = TypeDefine(relname,		/* type name */
 			      new_rel_oid,      /* relation oid */
-			      -1,		/* internal size (varlena) */
-			      -1,		/* external size (varlena) */
+			      tlen(type("oid")),	/* internal size */
+			      tlen(type("oid")),	/* external size */
 			      'c', 		/* type-type (catalog) */
 				  ',',		/* default array delimiter */
-			      "textin",		/* input procedure */
-			      "textout",	/* output procedure */
-			      "textin",		/* send procedure */
-			      "textout",	/* recieve procedure */
+			      "int4in",		/* input procedure */
+			      "int4out",	/* output procedure */
+			      "int4in",		/* send procedure */
+			      "int4out",	/* receive procedure */
 				  NULL,     /* array element type - irrelevent */
 			      "-",		/* default type value */
-			      (Boolean) 0);	/* passed by value */
+			      (Boolean) 1);	/* passed by value */
 
     /* ----------------
      *	now add tuples to pg_attribute for the attributes in
