@@ -4,7 +4,7 @@
 .XA 1 Initdb
 .uh NAME
 .lp
-initdb \*- initdb a database
+initdb \*- initalize the database templates and primary directories
 .uh SYNOPSIS
 .lp
 .b initdb 
