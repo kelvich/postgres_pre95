@@ -59,8 +59,9 @@ dump_type(types, nfields)
  * --------------------------------
  */
 void
-dump_tuple(values, nfields)
+dump_tuple(values,lengths, nfields)
     char **values;
+     int *lengths;
     int nfields;
 {
     char 	bitmap[MAXFIELDS];
@@ -90,6 +91,7 @@ dump_tuple(values, nfields)
 	    values[i] = pbuf_addValues(vlen + 1);
 	    /* Read in the value. */
 	    pq_getnchar(values[i], 0, vlen);
+	    lengths[i] = vlen;
 	    /* Put an end of string there to make life easier. */
 	    values[i][vlen] = '\0';
 	    pqdebug("%s", values[i]);
@@ -110,8 +112,9 @@ dump_tuple(values, nfields)
  * --------------------------------
  */
 void
-dump_tuple_internal(values, nfields)
+dump_tuple_internal(values, lengths, nfields)
     char **values;
+     int *lengths;
     int nfields;
 {
     char 	bitmap[MAXFIELDS];
@@ -145,6 +148,7 @@ dump_tuple_internal(values, nfields)
 	    values[i] = pbuf_addValues(vlen + 1);
 	    /* Read in the value. */
 	    pq_getnchar(values[i], 0, vlen);
+	    lengths[i] = vlen;
 	    /* Put an end of string there to make life easier. */
 	    values[i][vlen] = '\0';
 	    pqdebug("%s", values[i]);
@@ -254,9 +258,12 @@ dump_data(portal_name, rule_p)
 		
 	    /* Allocate space for a tuple. */
 	    tuples->values[tuples->tuple_index] =pbuf_addTuple(nfields);
-	    
+	    tuples->lengths[tuples->tuple_index] = pbuf_addTupleValueLengths(nfields);
+
 	    /* Dump a tuple internal format. */
-	    dump_tuple_internal(tuples->values[tuples->tuple_index], nfields);
+	    dump_tuple_internal(tuples->values[tuples->tuple_index],
+				tuples->lengths[tuples->tuple_index],
+				nfields);
 	    ntuples++;
 	    tuples->tuple_index++;
 	    break;
@@ -277,9 +284,12 @@ dump_data(portal_name, rule_p)
 		
 	    /* Allocate space for a tuple. */
 	    tuples->values[tuples->tuple_index] =pbuf_addTuple(nfields);
+	    tuples->lengths[tuples->tuple_index] = pbuf_addTupleValueLengths(nfields);
 	    
 	    /* Dump a tuple. */
-	    dump_tuple(tuples->values[tuples->tuple_index], nfields);
+	    dump_tuple(tuples->values[tuples->tuple_index],
+		       tuples->lengths[tuples->tuple_index],
+		       nfields);
 	    ntuples++;
 	    tuples->tuple_index++;
 	    break;
