@@ -307,7 +307,9 @@ inv_seek(obj_desc, offset, whence)
     obj_desc->ofs.i_fs.offset = offset;
 
     /* try to avoid doing any work, if we can manage it */
-    if (offset >= obj_desc->ofs.i_fs.lowbyte && offset <= obj_desc->ofs.i_fs.hibyte)
+    if (offset >= obj_desc->ofs.i_fs.lowbyte
+	&& offset <= obj_desc->ofs.i_fs.hibyte
+	&& obj_desc->ofs.i_fs.iscan != (IndexScanDesc) NULL)
 	 return (offset);
 
     /*
@@ -617,12 +619,12 @@ inv_wrnew(obj_desc, buf, nbytes)
     }
 
     /*
-     *  Insert a new file system block tuple, index it, and write the
-     *  class block out.
+     *  Insert a new file system block tuple, index it, and write it out.
      */
 
     ntup = inv_newtuple(obj_desc, buffer, page, buf, nwritten);
     inv_indextup(obj_desc, ntup);
+    obj_desc->ofs.i_fs.offset += nwritten;
 
     /* new tuple is inserted */
     WriteBuffer(buffer);
@@ -784,7 +786,7 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
     tupsize = sizeof(HeapTupleData) - sizeof(ntup->t_bits);
 
     /* add in olastbyte, varlena.vl_len, varlena.vl_dat */
-    tupsize = sizeof(int32) + sizeof(int32) + nwrite;
+    tupsize += (2 * sizeof(int32)) + nwrite;
     tupsize = LONGALIGN(tupsize);
 
     /*
@@ -801,6 +803,7 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
     }
 
     off = i + 1;
+    limit++;
 
     if (off > limit)
 	lower = (Offset) (((char *) (&(ph->pd_linp[off]))) - ((char *) page));
@@ -819,8 +822,7 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
     ph->pd_lower = lower;
     ph->pd_upper = upper;
 
-    attptr = ((char *) page) + upper;
-    ntup = (HeapTuple) attptr;
+    ntup = (HeapTuple) (((char *) page) + upper);
 
     /*
      *  Tuple is now allocated on the page.  Next, fill in the tuple
@@ -849,6 +851,7 @@ inv_newtuple(obj_desc, buffer, page, dbuf, nwrite)
      *  the tuple and class abstractions.
      */
 
+    attptr = ((char *) ntup) + sizeof(HeapTupleData) - sizeof(ntup->t_bits);
     *((int32 *) attptr) = obj_desc->ofs.i_fs.offset + nwrite - 1;
     attptr += sizeof(int32);
     *((int32 *) attptr) = nwrite + sizeof(int32);
