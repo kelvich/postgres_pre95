@@ -364,14 +364,14 @@ PerformAddAttribute(relationName, schema)
     HeapTuple		tup;
     struct	skey	key[2];	/* static better? [?] */
     ItemPointerData	oldTID;
-
+	int att_nvals;
     
     if (issystem(relationName)) {
 	elog(WARN, "Add: system relation \"%s\" unchanged",
 	     relationName);
 	return;
     }
-    
+
     /*
      * verify that no attributes are repeated in the list
      */
@@ -436,6 +436,7 @@ PerformAddAttribute(relationName, schema)
     attributeD.attbound = 0;		/* XXX temporary */
     attributeD.attcanindex = 0;		/* XXX need this info */
     attributeD.attproc = InvalidObjectId;	/* XXX tempoirary */
+    attributeD.attcacheoff = -1;
     
     attributeTuple = addtupleheader(AttributeRelationNumberOfAttributes,
 				    sizeof attributeD, (Pointer)&attributeD);
@@ -446,10 +447,15 @@ PerformAddAttribute(relationName, schema)
     foreach (element, schema) {
 	HeapTuple	typeTuple;
 	TypeTupleForm	form;
+	char *p, *q, r[16];
+	int attnelems;
 	
 	/*
 	 * XXX use syscache here as an optimization
 	 */
+
+	
+
 	key[1].sk_data = (DATUM)CString(CAR(CAR(element)));
 	attsdesc = heap_beginscan(attrdesc, 0, NowTimeQual, 2, key);
 	tup = heap_getnext(attsdesc, 0, (Buffer *) NULL);
@@ -464,8 +470,25 @@ PerformAddAttribute(relationName, schema)
 	}
 	heap_endscan(attsdesc);
 	
-	typeTuple = SearchSysCacheTuple(TYPNAME,
-					CString(CADR(CAR(element))));
+	/*
+	 * check to see if it is an array attribute.
+	 */
+
+	p = CString(CADR(CAR(element)));
+
+	q = index(p, '[');
+
+	if (q != NULL)
+	{
+		*q = '\0'; q++;
+		attnelems = atoi(q);
+		sprintf(r, "_%s", p);
+		p = &r[0];
+	}
+	else
+		attnelems = 1;
+
+	typeTuple = SearchSysCacheTuple(TYPNAME,p);
 	form = (TypeTupleForm)GETSTRUCT(typeTuple);
 	
 	if (!HeapTupleIsValid(typeTuple)) {
@@ -480,6 +503,8 @@ PerformAddAttribute(relationName, schema)
 	attribute->attlen = form->typlen;
 	attribute->attnum = i;
 	attribute->attbyval = form->typbyval;
+	attribute->attnelems = attnelems;
+	attribute->attcacheoff = -1;
 	
 	RelationInsertHeapTuple(attrdesc, attributeTuple,
 				(double *)NULL);
