@@ -393,7 +393,8 @@ DefineType(name, parameters)
     Name	receiveName;
     char*	defaultValue;		/* Datum */
     bool	byValue;		/* Boolean */
-	char	delimiter;
+    char	delimiter;
+    char	shadow_type[16];
     
     /* ----------------
      *	sanity checks
@@ -404,6 +405,16 @@ DefineType(name, parameters)
      */
     AssertArg(NameIsValid(name));
     AssertArg(listp(parameters));
+
+    /*
+     * Type names can only be 15 characters long, so that the shadow type
+     * can be created using the 16th character as necessary.
+     */
+
+    if (strlen(name) > 15)
+    {
+	elog(WARN, "DefineType: Names can only be 15 characters long or less");
+    }
     
     /* ----------------
      * handle "internallength = (number | variable)"
@@ -523,4 +534,25 @@ DefineType(name, parameters)
 			  elemName,		/* element type name */
 		      defaultValue,	/* default type value */
 		      byValue);		/* passed by value */
+	/*
+	 * ----------------
+	 *  When we create a true type (as opposed to a complex type)
+	 *  we need to have an shadow array entry for it in pg type as well.
+	 * ----------------
+	 */
+    sprintf(shadow_type, "_%s", name);
+
+    (void) TypeDefine(name,		/* type name */
+		      InvalidObjectId,  /* relation oid (n/a here) */
+		      -1,		/* internal size */
+		      -1,		/* external size */
+		      'b',		/* type-type (base type) */
+		      ',',		/* array element delimiter */
+		      "array_in",	/* input procedure */
+		      "array_out",	/* output procedure */
+		      "array_out",	/* send procedure */
+		      "array_in",	/* recieve procedure */
+		      name, 		/* element type name */
+		      defaultValue,	/* default type value */
+		      false);		/* never passed by value */
 }
