@@ -632,7 +632,9 @@ TransactionIdCommit(transactionId)
     if (AMI_OVERRIDE)
 	return;
     
+    SpinAcquire(OidGenLockId);
     TransactionLogUpdate(transactionId, XID_COMMIT);
+    SpinRelease(OidGenLockId);
 }
 
 void
