@@ -1404,9 +1404,12 @@ a_expr:
 	| attr '[' Iconst ']'
 		{ 
 		     Var temp = (Var)NULL;
+		     /* XXX - fix me after video demo */
 		     temp = (Var)make_var ( CString(CAR($1)),
 				       CString(CDR($1)) );
-		     $$ = (LispValue)MakeArrayRef( temp , $3 );
+		     
+		     $$ = lispCons ( lispInteger ( 23 ),
+		     		MakeArrayRef( temp , $3 );
 		}
 	| AexprConst		
 	| spec 
@@ -1439,7 +1442,7 @@ a_expr:
 	| name '(' expr_list ')'
 		{ 
 		    extern Func MakeFunc();
-		    Type funcrettype = get_id_type ( 95 );
+		    /* Type funcrettype = get_id_type ( 95 ); */
 
 		    $$ = lispCons ( lispInteger (23),
 				    MakeFunc ( 0 , 0 , false ));
@@ -1529,8 +1532,8 @@ opt_id:
 	;
 
 relation_name:
+	SpecialRuleRelation
 	Id		/*$$=$1*/
-	| SpecialRuleRelation
 	;
 
 access_method: 		Id 		/*$$=$1*/;
