@@ -589,7 +589,6 @@ make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
      * ----------------
      */
     type_struct = (TypeTupleForm) GETSTRUCT(type_tuple);
-    rtype = get_id_type((type_struct)->typelem);
     vardotfields = LispNil;                          /* XXX - fix this */
 /*    if (!(type_struct)->typbyval){ */
     if (indirect_list != LispNil){
@@ -692,6 +691,7 @@ make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
 				lispCons(lispInteger(attid),LispNil))
 		       );
     
+    rtype = get_id_type((type_struct2)->typelem);
     return ( lispCons ( lispInteger ( typeid (rtype ) ),
 		       varnode ));
 }
