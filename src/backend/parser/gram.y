@@ -1201,9 +1201,12 @@ res_target_list:
 res_target_el:
 	  Id equals a_expr
 		{
+			int type_id,type_len;
+			type_id = CInteger(CAR($3));
+			type_len = tlen(get_id_type(type_id));
 			$$ = lispCons (lispMakeResdom (  p_last_resno++ ,
-						       CInteger(CAR($3) ), 
-						       0 , $1, 0 , 0 ) ,
+						       type_id, 
+						       type_len , $1, 0 , 0 ) ,
 				       lispCons (CDR($3) , LispNil) );
 		}
 
