@@ -2,6 +2,8 @@
 # $Header$
 #
 
+.include <postgres.global.mk>
+
 #
 # C programs
 #
@@ -17,11 +19,7 @@ SUBDIR+= cleardbdir createdb createuser destroydb destroyuser \
 SUBDIR += fsutils s2kutils
 
 #
-# Removed: tree xexemon.
-# Subsumed pg_uid functionality into pg_id.  Just call pg_id with
-# a login name argument.
-#
-# Also, the postmaster had so many files in common with the backend (like 80%)
+# the postmaster had so many files in common with the backend (like 80%)
 # so i just made it a second target in the backend Makefile.
 #
 
