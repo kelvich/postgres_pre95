@@ -134,7 +134,7 @@ RcsId("$Header$");
  */
 
 static Count PortalManagerEnableCount = 0;
-#define MAX_PORTALNAME_LEN	50
+#define MAX_PORTALNAME_LEN	64	/* XXX LONGALIGNable value */
 typedef struct portalhashent {
     char portalname[MAX_PORTALNAME_LEN];
     Portal portal;
