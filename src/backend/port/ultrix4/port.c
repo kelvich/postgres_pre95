@@ -5,13 +5,6 @@
  *  A do-nothing routine?
  */
 
-#include "tmp/c.h"
-
 RcsId("$Header$");
 
-sendannounce(line)
-char *line;
-{
-
-}
-
+int i; /* to avoid "no symbol table" warning in some linkers */
