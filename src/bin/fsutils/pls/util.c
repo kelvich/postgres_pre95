@@ -105,6 +105,8 @@ strerror(eno)
 	int eno;
 {
 	static char retbuf[30];
+	extern char *sys_errlist[];
+	extern int sys_nerr;
 
 	if (eno < 0 || eno >= sys_nerr) {
 		(void) sprintf(retbuf, "Unknown error %d", eno);
