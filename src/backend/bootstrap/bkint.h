@@ -79,7 +79,6 @@ void InsertOneTuple ARGS((ObjectId objectid ));
 void InsertOneValue ARGS((ObjectId objectid , char *value , int i ));
 void InsertOneNull ARGS((int i ));
 void defineindex ARGS((char *heapName , char *indexName , char *accessMethodName, List attributeList ));
-void handletime ARGS((void ));
 void cleanup ARGS((void ));
 int gettype ARGS((char *type ));
 struct attribute *AllocateAttribute ARGS((void ));
