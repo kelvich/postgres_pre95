@@ -68,13 +68,11 @@ heap_keytest(t, tupdesc, nkeys, keys)
 	    return false;
 
 	if (keys->sk_flags & SK_COMMUTE)
-	    test = (keys->func != (ScanKeyFunc) NULL) ? 
-		    (int) (*(keys->func)) (keys->sk_data, atp) :
-			    (int) fmgr(keys->sk_opr, keys->sk_data, atp);
+	    test = (int) FMGR_PTR2(keys->func, keys->sk_opr,
+				   keys->sk_data, atp);
 	else
-	    test = (keys->func != (ScanKeyFunc) NULL) ? 
-		    (int) (*(keys->func)) (atp, keys->sk_data) :
-			    (int) fmgr(keys->sk_opr, atp, keys->sk_data);
+	    test = (int) FMGR_PTR2(keys->func, keys->sk_opr,
+				   atp, keys->sk_data);
 	
 	if (!test == !(keys->sk_flags & SK_NEGATE))
 	    return false;
