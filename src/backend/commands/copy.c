@@ -352,20 +352,20 @@ FILE *fp;
                     {
                         switch(attr[i]->attlen)
                         {
-                            case 1:
+                            case sizeof(char):
                                 values[i] = (Datum) *(unsigned char *) ptr;
-                                ptr++;
+                                ptr += sizeof(char);
                                 break;
-                            case 2:
+                            case sizeof(short):
 				ptr = (char *) SHORTALIGN(ptr);
                                 values[i] = (Datum) *(unsigned short *) ptr; 
-                                ptr += 2;
+                                ptr += sizeof(short);
                                 break;
                             case 3:
-                            case 4:
+                            case sizeof(long):
 				ptr = (char *) LONGALIGN(ptr);
                                 values[i] = (Datum) *(unsigned long *) ptr; 
-                                ptr += 4;
+                                ptr += sizeof(long);
                                 break;
                             default:
                                 elog(WARN, "COPY BINARY: impossible size!");
@@ -376,14 +376,15 @@ FILE *fp;
                     {
                         if (attr[i]->attlen < 0)
                         {
+			    ptr = (char *)LONGALIGN(ptr);
                             values[i] = (Datum) ptr;
-                            ptr = (char *)
-                                  LONGALIGN(ptr + * (unsigned long *) ptr);
+                            ptr += * (unsigned long *) ptr;
                         }
                         else
                         {
+			    ptr = (char *)LONGALIGN(ptr);
                             values[i] = (Datum) ptr;
-                            ptr = (char *) LONGALIGN(ptr) + attr[i]->attlen;
+                            ptr += attr[i]->attlen;
                         }
                     }
                 }
