@@ -1,0 +1,29 @@
+:
+#
+# hack to weed out most of the cruft from diffing 
+# sample.regress.out with obj/regress.out
+#
+HERE=`pwd | sed 's%.*/%%'`
+SAMPLE=/tmp/sample$$
+ACTUAL=/tmp/actual$$
+sed \
+-e 's/(null)/      /g' \
+-e 's/WARN:... .. ..:..:..:/WARN:/' \
+-e 's/NOTICE:... .. ..:..:..:/NOTICE:/' \
+-e 's/HERE=.*/HERE=/' \
+-e 's/.* -> //' \
+-e 's%"/.*/%"%g' \
+-e '/^$/d' \
+sample.$HERE.out > $SAMPLE
+sed \
+-e 's/(null)/      /g' \
+-e 's/WARN:... .. ..:..:..:/WARN:/' \
+-e 's/NOTICE:... .. ..:..:..:/NOTICE:/' \
+-e 's/HERE=.*/HERE=/' \
+-e 's/.* -> //' \
+-e 's%"/.*/%"%g' \
+-e '/^$/d' \
+$MAKEOBJDIR/$HERE.out > $ACTUAL
+diff $SAMPLE $ACTUAL | \
+egrep -v '( APPEND|Header:|Query sent|forked|^[0-9]|---)'
+rm -f $SAMPLE $ACTUAL
