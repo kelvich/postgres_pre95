@@ -22,6 +22,7 @@
 
 RcsId ("$Header$");
 
+#include "nodes/pg_lisp.h"
 #include "tcop/dest.h"
 #include "tmp/fastpath.h"
 #include "tmp/libpq-be.h"
