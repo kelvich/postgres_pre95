@@ -296,9 +296,9 @@ InitializeNodeTable()
 		position = NodeTableHash(size);
 		if (position >= number_of_nodes)
 		{
-			sprintf(stderr, "InitializeNodeTable - hash failed for %s",
+			fprintf(stderr, "InitializeNodeTable - hash failed for %s",
 					_NodeInfo[i].ni_name);
-			sprintf(stderr, "Non-node memory will be used.");
+			fprintf(stderr, "Non-node memory will be used.");
 		}
 		else
 		{
