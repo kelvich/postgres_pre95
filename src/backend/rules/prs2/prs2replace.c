@@ -39,7 +39,9 @@ Relation relation;
 HeapTuple *returnedTupleP;
 Buffer *returnedBufferP;
 {
-    RuleLock oldLocks, newLocks;
+    RuleLock oldLocks, oldTupleLocks;
+    RuleLock newLocks, newTupleLocks;
+    RuleLock relLocks;
     int i;
     AttributeValues oldAttrValues, newAttrValues, rawAttrValues;
     AttributeNumber attr, maxattrs;
@@ -52,27 +54,22 @@ Buffer *returnedBufferP;
     /*
      * Find the locks of the tuple.
      *
-     * XXX:
-     * The "old" tuple's lock are stored in the tuple (that
-     * happenned at a lower level of the plan, when prs2Retrieve
-     * was called as part of the scan operation.
-     * To find the locks of the "new" tuple we have to look at
-     * the RelationRelation.
+     * To find the locks of the old tuple, we have to check both
+     * for relation level locks and for tuple level locks.
+     *
+     * For the "new" tuple, we have to check the relation level locks
+     * and the locks from the rule stubs which are put in the tuple
+     * itself by the executor.
      */
     relName = & ((RelationGetRelationTupleForm(relation))->relname);
-    newLocks = prs2GetLocksFromRelation(relName);
-#ifdef NO
-    oldLocks = prs2GetLocksFromTuple(oldTuple, oldBuffer,
+
+    relLocks = prs2GetLocksFromRelation(relName);
+    newTupleLocks = prs2GetLocksFromTuple(newTuple, newBuffer,
 			    RelationGetTupleDescriptor(relation));
-#else
-    /*
-     * XXX
-     * in the current implementation, "oldTuple" is the same as
-     * "rawTuple", i.e. as all locks are currently "relation level"
-     * locks, no locks are actually stored in the tuple!
-     */
-    oldLocks = prs2CopyLocks(newLocks);
-#endif
+    oldTupleLocks = prs2GetLocksFromTuple(oldTuple, oldBuffer,
+			    RelationGetTupleDescriptor(relation));
+    oldLocks = prs2LockUnion(oldTupleLocks, relLocks);
+    newLocks = prs2LockUnion(newTupleLocks, relLocks);
 
     /*
      * now extract from the tuple the array of the attribute values.
@@ -147,6 +144,7 @@ Buffer *returnedBufferP;
 				relation,
 				attributeArray,
 				numberOfAttributes);
+    HeapTupleSetRuleLock(*returnedTupleP, InvalidBuffer, newTupleLocks);
 
     prs2FreeLocks(newLocks);
     prs2FreeLocks(oldLocks);

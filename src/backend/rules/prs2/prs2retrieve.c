@@ -50,26 +50,27 @@ Buffer *returnedBufferP;
     /*
      * Find the locks of the tuple.
      *
-     * XXX: Hmm... for the time being only use the locks
-     * that are on the RelationRelation...
-     * NOTE: these locks have been put in 'scanStateRuleInfo'
-     * when the scan state was initialized .
+     * There are 2 places to look for locks. The "tuple-level"
+     * locks are stored in the tuple, and the "relation-level"
+     * locks are stored in the PG_RELATION relation, but we
+     * have also copied them (for efficiency) in 'scanStateRuleInfo'
+     * when initializing the plan.
+     *
      * XXX: note this only happens in a retrieve operation.
      * in delete/replce/append we only use the locks stored in
      * the tuple. So, this routine must put the right locks
      * back to the tuple returned.
      */
-    /*
     locksInTuple = prs2GetLocksFromTuple(tuple, buffer,
 				RelationGetTupleDescriptor(relation));
-    */
     if (scanStateRuleInfo == NULL) {
 	/*
 	 * this should not happen!
 	 */
 	elog(WARN,"prs2Retrieve: scanStateRuleInfop==NULL!");
     }
-    locks = scanStateRuleInfo->relationLocks;
+    locksInRelation = scanStateRuleInfo->relationLocks;
+    locks = prs2LockUnion(locksInRelation, locksInTuple);
 
     /*
      * If there are no rules, then return immediatelly...
@@ -143,13 +144,7 @@ Buffer *returnedBufferP;
 				attrValues, locks, LockTypeTupleRetrieveWrite,
 				relation, returnedTupleP);
 
-    /*
-     * DO NOT FREE THE LOCKS! locks are (currently) part of the
-     * scan state!
-     *
-     * prs2FreeLocks(locks);
-     *
-     */
+    prs2FreeLocks(locks);
 
     attributeValuesFree(attrValues, relation);
 
@@ -159,6 +154,11 @@ Buffer *returnedBufferP;
 
     if (newTupleMade) {
 	*returnedBufferP = InvalidBuffer;
+	/*
+	 * The new tuple must have the same locks as the old
+	 * tuple (in case we are retrieving the "lock" attribute.
+	 */
+	HeapTupleSetRuleLock(*returnedTupleP, InvalidBuffer, locksInTuple);
 	return(PRS2_STATUS_TUPLE_CHANGED);
     } else {
 	return(PRS2_STATUS_TUPLE_UNCHANGED);
