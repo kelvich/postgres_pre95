@@ -1,5 +1,3 @@
-# No man pages for now
-NOMAN= true
 #
 # Pull in a Makefile.private in the obj directory
 #
@@ -148,6 +146,9 @@ realinstall: _PROGSUBDIR
 install: afterinstall maninstall
 afterinstall: realinstall
 realinstall: beforeinstall
+.if defined(ALLINSTALL)
+beforeinstall: all
+.endif
 .endif
 
 .if !target(lint)

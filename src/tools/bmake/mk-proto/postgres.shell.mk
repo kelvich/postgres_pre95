@@ -123,6 +123,9 @@ realinstall: _PROGSUBDIR
 install: afterinstall maninstall
 afterinstall: realinstall
 realinstall: beforeinstall
+.if defined(ALLINSTALL)
+beforeinstall: all
+.endif
 .endif
 
 .if !target(lint)

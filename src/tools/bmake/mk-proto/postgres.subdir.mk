@@ -61,6 +61,9 @@ afterinstall:
 install: afterinstall
 afterinstall: realinstall
 realinstall: beforeinstall _SUBDIRUSE
+.if defined(ALLINSTALL)
+beforeinstall: all
+.endif
 .endif
 .if !target(maninstall)
 maninstall: _SUBDIRUSE

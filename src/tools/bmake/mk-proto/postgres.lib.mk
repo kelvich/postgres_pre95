@@ -149,6 +149,12 @@ afterinstall: realinstall
 .if !defined(NOMAN)
 afterinstall: maninstall
 .endif
+#
+# If ALLINSTALL is defined, then "make install" will build targets if necessary
+#
+.if defined(ALLINSTALL)
+beforeinstall: all
+.endif
 .endif
 
 .if !target(lint)
