@@ -1,9 +1,10 @@
-/*
+/* ----------------------------------------------------------------
  * ipc.c --
  *      POSTGRES inter-process communication definitions.
  *
  * Identification:
  *      $Header$
+ * ----------------------------------------------------------------
  */
 
 #include <sys/types.h>
@@ -45,6 +46,7 @@ static int onexit_index;
  *	-cim 2/6/90
  * ----------------------------------------------------------------
  */
+int exitpg_inprogress = 0;
 
 void
 exitpg(code)
@@ -52,6 +54,21 @@ exitpg(code)
 {
     int i;
 
+    /* ----------------
+     *	if exitpg_inprocess is true, then it means that we
+     *  are being invoked from within an on_exit() handler
+     *  and so we return immediately to avoid recursion.
+     * ----------------
+     */
+    if (exitpg_inprogress)
+	return;
+
+    exitpg_inprogress = 1;
+
+    /* ----------------
+     *	call all the callbacks registered before calling exit().
+     * ----------------
+     */
     for (i = onexit_index - 1; i >= 0; --i)
 	(*onexit_list[i].function)(code, onexit_list[i].arg);
 
@@ -85,7 +102,6 @@ on_exitpg(function, arg)
 /*   IPCPrivateSemaphoreKill(status, semId)				    */
 /*									    */
 /****************************************************************************/
-static
 void
 IPCPrivateSemaphoreKill(status, semId)
     int	status;
@@ -100,7 +116,6 @@ IPCPrivateSemaphoreKill(status, semId)
 /*   IPCPrivateMemoryKill(status, shmId)				    */
 /*									    */
 /****************************************************************************/
-static
 void
 IPCPrivateMemoryKill(status, shmId)
     int	status;
@@ -181,27 +196,90 @@ IpcSemaphoreCreate(semKey, semNum, permission, semStartValue, status)
     return(semId);
 }
 
-
-/****************************************************************************/
-/*   IpcSemaphoreSet()		- sets the initial value of the semaphore   */
-/*									    */
-/****************************************************************************/
-void
-IpcSemaphoreSet(semId, value)
+/* ----------------
+ *	IpcSemaphoreCreateWithoutOnExit
+ *
+ *	this is a copy of IpcSemaphoreCreate, but it doesn't register
+ *	an on_exitpg procedure.  This is necessary for the executor
+ *	semaphores because we need a special on-exit procedure to
+ *	do the right thing depending on if the postgres process is
+ *	a master or a slave process.  In a master process, we should
+ *	kill the semaphores when we exit but in a slave process we
+ *	should release them.
+ * ----------------
+ */
+IpcSemaphoreId
+IpcSemaphoreCreateWithoutOnExit(semKey,
+				semNum,
+				permission,
+				semStartValue,
+				status)
+    IpcSemaphoreKey semKey;   		/* input patameter  */
+    int		    semNum;		/* input patameter  */
+    int		    permission;		/* input patameter  */
+    int		    semStartValue;	/* input patameter  */
+    int		    *status;		/* output parameter */
 {
     int		i;
     int		errStatus;
     int		semId;
     ushort	array[IpcMaxNumSem];
     union semun	semun;
-
-    /* **** RESUME HERE **** */
     
-    semun.array = array;
-    errStatus = semctl(semId, 0, SETALL, semun);
-    if (errStatus == -1) {
-	perror("semctl");
+    /* get a semaphore if non-existent */
+    /* check arguments	*/
+    if (semNum > IpcMaxNumSem || semNum <= 0)  {
+	*status = IpcInvalidArgument;
+	return(2);	/* returns the number of the invalid argument	*/
     }
+    
+    semId = semget(semKey, 0, 0);
+    if (semId == -1) {
+	*status = IpcSemIdNotExist;	/* there doesn't exist a semaphore */
+	semId = semget(semKey, semNum, IPC_CREAT|permission);
+	if (semId < 0) {
+	    perror("semget");
+	    exitpg(3);
+	}
+	for (i = 0; i < semNum; i++) {
+	    array[i] = semStartValue;
+	}
+	semun.array = array;
+	errStatus = semctl(semId, 0, SETALL, semun);
+	if (errStatus == -1) {
+	    perror("semctl");
+	}
+    } else {
+	/* there is a semaphore id for this key */
+	*status = IpcSemIdExist;
+    }
+    
+    return(semId);
+}
+
+
+/****************************************************************************/
+/*   IpcSemaphoreSet()		- sets the initial value of the semaphore   */
+/*									    */
+/*	note: the xxx_return variables are only used for debugging.	    */
+/****************************************************************************/
+int IpcSemaphoreSet_return;
+
+void
+IpcSemaphoreSet(semId, semno, value)
+    int		semId;
+    int		semno;
+    int		value;
+{
+    int		errStatus;
+    union semun	semun;
+
+    semun.val = value;
+    errStatus = semctl(semId, semno, SETVAL, semun);
+    IpcSemaphoreSet_return = errStatus;
+    
+    if (errStatus == -1)
+	perror("semctl");
 }
 
 /****************************************************************************/
@@ -227,9 +305,60 @@ IpcSemaphoreKill(key)
 /****************************************************************************/
 /*   IpcSemaphoreLock(semId, sem, lock)	- locks a semaphore		    */
 /*									    */
+/*	note: the xxx_return variables are only used for debugging.	    */
 /****************************************************************************/
+int IpcSemaphoreLock_return;
+
 void
 IpcSemaphoreLock(semId, sem, lock)
+    IpcSemaphoreId	semId;
+    int			sem;
+    int			lock;
+{
+    extern int		errno;
+    int			errStatus;
+    struct sembuf	sops;
+    
+    sops.sem_op = lock;
+    sops.sem_flg = 0;
+    sops.sem_num = sem;
+    
+    /* ----------------
+     *	Note: if errStatus is -1 and errno == EINTR then it means we
+     *        returned from the operation prematurely because we were
+     *	      sent a signal.  So we try and lock the semaphore again.
+     *	      I am not certain this is correct, but the semantics aren't
+     *	      clear it fixes problems with parallel abort synchronization,
+     *	      namely that after processing an abort signal, the semaphore
+     *	      call returns with -1 (and errno == EINTR) before it should.
+     *	      -cim 3/28/90
+     * ----------------
+     */
+    do {
+	errStatus = semop(semId, (struct sembuf **)&sops, 1);
+    } while (errStatus == -1 && errno == EINTR);
+    
+    IpcSemaphoreLock_return = errStatus;
+    
+    if (errStatus == -1) {
+	perror("semop");
+	exitpg(255);
+    }
+}
+
+/* ----------------
+ *	IpcSemaphoreSilentLock
+ *
+ *	This does what IpcSemaphoreLock() does but does not
+ *	produce error messages.  
+ *
+ *	note: the xxx_return variables are only used for debugging.
+ * ----------------
+ */
+int IpcSemaphoreSilentLock_return;
+
+void
+IpcSemaphoreSilentLock(semId, sem, lock)
     IpcSemaphoreId	semId;
     int			sem;
     int			lock;
@@ -241,20 +370,71 @@ IpcSemaphoreLock(semId, sem, lock)
     sops.sem_flg = 0;
     sops.sem_num = sem;
     
-    errStatus = semop(semId, (struct sembuf **)&sops, 1);
+    IpcSemaphoreSilentLock_return =
+	semop(semId, (struct sembuf **)&sops, 1);
+}
+
+/****************************************************************************/
+/*   IpcSemaphoreUnlock(semId, sem, lock)	- unlocks a semaphore	    */
+/*									    */
+/*	note: the xxx_return variables are only used for debugging.	    */
+/****************************************************************************/
+int IpcSemaphoreUnlock_return;
+    
+void
+IpcSemaphoreUnlock(semId, sem, lock)
+    IpcSemaphoreId	semId;
+    int			sem;
+    int			lock;
+{
+    extern int		errno;
+    int			errStatus;
+    struct sembuf	sops;
+    
+    sops.sem_op = -lock;
+    sops.sem_flg = 0;
+    sops.sem_num = sem;
+
+    
+    /* ----------------
+     *	Note: if errStatus is -1 and errno == EINTR then it means we
+     *        returned from the operation prematurely because we were
+     *	      sent a signal.  So we try and lock the semaphore again.
+     *	      I am not certain this is correct, but the semantics aren't
+     *	      clear it fixes problems with parallel abort synchronization,
+     *	      namely that after processing an abort signal, the semaphore
+     *	      call returns with -1 (and errno == EINTR) before it should.
+     *	      -cim 3/28/90
+     * ----------------
+     */
+    do {
+	errStatus = semop(semId, (struct sembuf **)&sops, 1);
+    } while (errStatus == -1 && errno == EINTR);
+    
+    IpcSemaphoreUnlock_return = errStatus;
+    
     if (errStatus == -1) {
 	perror("semop");
 	exitpg(255);
     }
 }
 
+/* ----------------
+ *	IpcSemaphoreSilentUnlock
+ *
+ *	This does what IpcSemaphoreUnlock() does but does not
+ *	produce error messages.  This is used in the slave backends
+ *	when they exit because it is possible that the master backend
+ *	may have died and removed the semaphore before this code gets
+ *	to execute in the slaves.
+ *
+ *	note: the xxx_return variables are only used for debugging.
+ * ----------------
+ */
+int IpcSemaphoreSilentUnlock_return;
 
-/****************************************************************************/
-/*   IpcSemaphoreUnLock(semId, sem, lock)	- unlocks a semaphore	    */
-/*									    */
-/****************************************************************************/
 void
-IpcSemaphoreUnlock(semId, sem, lock)
+IpcSemaphoreSilentUnlock(semId, sem, lock)
     IpcSemaphoreId	semId;
     int			sem;
     int			lock;
@@ -266,15 +446,9 @@ IpcSemaphoreUnlock(semId, sem, lock)
     sops.sem_flg = 0;
     sops.sem_num = sem;
     
-    errStatus = semop(semId, (struct sembuf **)&sops, 1);
-    if (errStatus == -1) {
-	perror("semop");
-	exitpg(255);
-    }
+    IpcSemaphoreSilentUnlock_return =
+	semop(semId, (struct sembuf **)&sops, 1);
 }
-
-
-
 
 /****************************************************************************/
 /*   IpcMemoryCreate(memKey)						    */
@@ -301,6 +475,32 @@ IpcMemoryCreate(memKey, size, permission)
     /* if (memKey == PrivateIPCKey) */
     on_exitpg(IPCPrivateMemoryKill, (caddr_t)shmid);
     
+    return(shmid);
+}
+
+/* ----------------
+ *	IpcMemoryCreateWithoutOnExit
+ *
+ *	Like IpcSemaphoreCreateWithoutOnExit(), this function
+ *	creates shared memory without registering an on_exit
+ *	procedure.
+ * ----------------
+ */
+IpcMemoryId
+IpcMemoryCreateWithoutOnExit(memKey, size, permission)
+    IpcMemoryKey memKey;
+    uint32	 size;
+    int		 permission;
+{
+    IpcMemoryId	 shmid;
+    int		 errStatus; 
+    
+    shmid = shmget(memKey, size, IPC_CREAT|permission); 
+    if (shmid < 0) {
+	perror("IpcMemoryCreateWithoutOnExit: shmget(, IPC_CREAT,) failed");
+	return(IpcMemCreationFailed);
+    }
+
     return(shmid);
 }
 

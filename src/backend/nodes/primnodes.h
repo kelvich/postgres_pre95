@@ -126,6 +126,7 @@ class (Var) public (Expr) {
  *	       at exit from planner: PG_FUNCTION OID for the operator
  *	oprelationlevel - true iff the operator is relation-level
  *	opresulttype - PG_TYPE OID of the operator's return value
+ *	opsize - size of return result (cached by executor)
  */
 
 class (Oper) public (Expr) {
@@ -134,6 +135,7 @@ class (Oper) public (Expr) {
 	ObjectId		opno;
 	bool			oprelationlevel;
 	ObjectId		opresulttype;
+	int			opsize;
  /* public: */
 };
 
@@ -218,6 +220,7 @@ class (Param) public (Expr) {
  *	functype - PG_TYPE OID of the function's return value
  *	funcisindex - the function can be evaluated by scanning an index
  *		(set during query optimization)
+ *	funcsize - size of return result (cached by executor)
  */
 
 class (Func) public (Expr) {
@@ -226,6 +229,7 @@ class (Func) public (Expr) {
 	ObjectId		funcid;
 	ObjectId		functype;
 	bool			funcisindex;
+	int			funcsize;
  /* public: */
 };
 

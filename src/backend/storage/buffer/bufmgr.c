@@ -230,43 +230,23 @@ PrintBufferStatistics(stats)
     printf("last_request_timestamp:     %s",
            ctime(&(stats->last_request_timestamp)));
 
+    printf("local/global_read_requests:       %6d/%6d\n",
+           stats->local_read_requests, stats->global_read_requests);
     
-    printf("global_read_requests:       %d\n",
-           stats->global_read_requests);
+    printf("local/global_write_requests:      %6d/%6d\n",
+           stats->local_write_requests, stats->global_write_requests);
     
-    printf("global_write_requests:      %d\n",
-           stats->global_write_requests);
+    printf("local/global_physical_reads:      %6d/%6d\n",
+           stats->local_physical_reads, stats->global_physical_reads);
     
-    printf("global_physical_reads:      %d\n",
-           stats->global_physical_reads);
+    printf("local/global_physical_writes:     %6d/%6d\n",
+           stats->local_physical_writes, stats->global_physical_writes);
     
-    printf("global_physical_writes:     %d\n",
-           stats->global_physical_writes);
+    printf("local/global_clean_replacements:  %6d/%6d\n",
+           stats->local_clean_replacements, stats->global_clean_replacements);
     
-    printf("global_clean_replacements:  %d\n",
-           stats->global_clean_replacements);
-    
-    printf("global_dirty_replacements:  %d\n",
-           stats->global_dirty_replacements);
-
-    
-    printf("local_read_requests:        %d\n",
-           stats->local_read_requests);
-    
-    printf("local_write_requests:       %d\n",
-           stats->local_write_requests);
-    
-    printf("local_physical_reads:       %d\n",
-           stats->local_physical_reads);
-    
-    printf("local_physical_writes:      %d\n",
-           stats->local_physical_writes);
-    
-    printf("local_clean_replacements:   %d\n",
-           stats->local_clean_replacements);
-    
-    printf("local_dirty_replacements:   %d\n",
-           stats->local_dirty_replacements);
+    printf("local/global_dirty_replacements:  %6d/%6d\n",
+           stats->local_dirty_replacements, stats->global_dirty_replacements);
 
     printf("===================================\n");
     
@@ -282,7 +262,8 @@ PrintAndFreeBufferStatistics(stats)
     BufferStatistics stats;
 {
     PrintBufferStatistics(stats);
-    pfree(stats);
+    if (stats != NULL)
+	pfree(stats);
 }
 
 

@@ -31,7 +31,7 @@
  *
  *	I_xxx()			- initialize the specified semaphore
  *	P_xxx()			- P on the specified semaphore
- *	V_xxxV()		- V on the specified semaphore
+ *	V_xxx()			- V on the specified semaphore
  *
  *	the rest of the functions are used by the ipci.c code during
  *	initialization.
@@ -89,6 +89,7 @@ int     *ExecutorSemaphoreLockCount = NULL;
 
 int     ExecutorSemaphoreArraySize;
 int    	ExecutorSMSemaphore;
+int    	ExecutorAbortSemaphore;
 int    	ExecutorMasterSemaphore;
 int    	ExecutorSlaveSemStart;
 
@@ -172,6 +173,11 @@ GetNumberSlaveBackends()
  *	are the only ones expected to call the Exec_I, etc routines.
  *	Hence if the code changed or new semaphores are needed,
  *	then this interface guideline should be kept in mind.
+ *
+ *	Note: in the following code, we always pass negative
+ *	      arguments to IpcSemaphore{Lock,Unlock}.  Positive
+ *	      values do the opposite of what the name of the
+ *	      routine would suggest.
  * ----------------------------------------------------------------
  */
 
@@ -186,16 +192,18 @@ ExecImmediateReleaseSemaphore()
 {
     int i;
     int cnt;
-    
+
     for (i=0; i<ExecutorSemaphoreArraySize; i++) {
 	cnt = ExecutorSemaphoreLockCount[i];
 	if (cnt > 0)
-	    IpcSemaphoreUnlock(ExecutorSemaphoreId, i, cnt);
+	    IpcSemaphoreSilentUnlock(ExecutorSemaphoreId, i, -cnt);
     }
 }
 
 /* --------------------------------
  *	Exec_I sets the value of the specified executor semaphore
+ *	We set the lock count to 1-value because a semaphore value
+ *	of 1 indicates no processes hold locks on that semaphore.
  * --------------------------------
  */
 
@@ -205,12 +213,12 @@ Exec_I(semno, value)
     int value;
 {
     IpcSemaphoreSet(ExecutorSemaphoreId, semno, value);
-    ExecutorSemaphoreLockCount[semno] = -value;
+    ExecutorSemaphoreLockCount[semno] = 1-value;
 }
 
 /* --------------------------------
  *	Exec_P requests a P (plaatsen) operation on the specified
- *	executor semaphore.  It places nlocks-locks at once.
+ *	executor semaphore.  It places "nlocks" locks at once.
  * --------------------------------
  */
 
@@ -225,7 +233,7 @@ Exec_P(semno, nlocks)
 
 /* --------------------------------
  *	Exec_V requests a V (vrijlaten) operation on the specified
- *	executor semaphore.  It removes nlocks-locks at once.
+ *	executor semaphore.  It removes "nlocks" locks at once.
  * --------------------------------
  */
 
@@ -240,46 +248,59 @@ Exec_V(semno, nlocks)
 
 /* --------------------------------
  *	external interface to semaphore operations
- *
- *	Note: P_Finished() places nslaves-1 locks at once so that
- *	      after nslaves execute V_Finished(), the P will be granted.
  * --------------------------------
  */
 /* ----------------
  *	the Start(n) semaphores are used to signal the slave backends
  *	to start processing.
+ *
+ *	Since I_Start sets the semaphore to 0, a process doing P_Start
+ *	will wait until after some other process executes a V_Start.
+ *
+ *	Note: we use local variables because we can tweak them in
+ *	      dbx easier...
  * ----------------
  */
 void
 I_Start(x)
     int x;
 {
-    Exec_I(x + ExecutorSlaveSemStart, 0);
+    int value = 0;
+    Exec_I(x + ExecutorSlaveSemStart, value);
 }
 
 void
 P_Start(x)
     int x;
 {
-    Exec_P(x + ExecutorSlaveSemStart, 1);
+    int value = 1;
+    Exec_P(x + ExecutorSlaveSemStart, value);
 }
 
 void
 V_Start(x)
     int x;
 {
-    Exec_V(x + ExecutorSlaveSemStart, 1);
+    int value = 1;
+    Exec_V(x + ExecutorSlaveSemStart, value);
 }
 
 /* ----------------
  *	the Finished() semaphore is used for the slaves to signal
  *	the master backend that processing is complete.
+ *
+ *	Note: P_Finished() places nslaves locks at once so that
+ *	      after nslaves execute V_Finished(), the P will be granted.
+ *
+ *	Since I_Finished sets the semaphore to 0, a process doing P_Finished
+ *	will wait until after some other process executes a V_Finished.
  * ----------------
  */
 void
 I_Finished()
 {
-    Exec_I(ExecutorMasterSemaphore, 0);
+    int value = 0;
+    Exec_I(ExecutorMasterSemaphore, value);
 }
 
 void
@@ -287,36 +308,72 @@ P_Finished()
 {
     int nslaves;
     nslaves = GetNumberSlaveBackends();
-    Exec_P(ExecutorMasterSemaphore, nslaves-1);
+    Exec_P(ExecutorMasterSemaphore, nslaves);
 }
 
 void
 V_Finished()
 {
-    Exec_V(ExecutorMasterSemaphore, 1);
+    int value = 1;
+    Exec_V(ExecutorMasterSemaphore, value);
 }
 
 /* ----------------
  *	the SharedMemoryMutex semaphore is used to restrict concurrent
  *	updates to the executor shared memory allocator meta-data.
+ *
+ *	Since I_SharedMemoryMutex sets the semaphore to 1, a process
+ *	doing P_SharedMemoryMutex will be immediately granted the semaphore.
  * ----------------
  */
 void
 I_SharedMemoryMutex()
 {
-    Exec_I(ExecutorSMSemaphore, 0);
+    int value = 1;
+    Exec_I(ExecutorSMSemaphore, value);
 }
 
 void
 P_SharedMemoryMutex()
 {
-    Exec_P(ExecutorSMSemaphore, 1);
+    int value = 1;
+    Exec_P(ExecutorSMSemaphore, value);
 }
 
 void
 V_SharedMemoryMutex()
 {
-    Exec_V(ExecutorSMSemaphore, 1);
+    int value = 1;
+    Exec_V(ExecutorSMSemaphore, value);
+}
+
+/* ----------------
+ *	the Abort semaphore is used to synchronize abort transaction
+ *	processing in the master and slave backends.
+ *
+ *	Since I_Abort sets the semaphore to 0, a process doing P_Abort
+ *	will wait until after some other process executes a V_Abort.
+ * ----------------
+ */
+void
+I_Abort()
+{
+    int value = 0;
+    Exec_I(ExecutorAbortSemaphore, value);
+}
+
+void
+P_Abort()
+{
+    int value = 1;
+    Exec_P(ExecutorAbortSemaphore, value);
+}
+
+void
+V_Abort()
+{
+    int value = 1;
+    Exec_V(ExecutorAbortSemaphore, value);
 }
 
 /* --------------------------------
@@ -326,13 +383,13 @@ V_SharedMemoryMutex()
  *	      will return the existing semaphore id.
  * --------------------------------
  */
-
+void
 ExecInitExecutorSemaphore(key)
     IPCKey key;
 {
     MemoryContext oldContext;
     int status;
-
+    
     /* ----------------
      *	make certain we are in the top memory context
      *  or else allocated stuff will go away after the
@@ -340,35 +397,41 @@ ExecInitExecutorSemaphore(key)
      * ----------------
      */
     oldContext = MemoryContextSwitchTo(TopMemoryContext);
-
+    
     /* ----------------
      *	calculate size of semaphore array
      * ----------------
      */
     ExecutorSemaphoreArraySize =
 	1 +			    /* 1 for shared memory meta-data access */
+	1 +			    /* 1 for abort synchronization */
 	1 +			    /* 1 for master backend synchronization */
 	NumberSlaveBackends;        /* n for slave backend synchronization */
-
+    
     /* ----------------
      *	calculate semaphore numbers (indexes into semaphore array)
      * ----------------
      */
     ExecutorSMSemaphore = 0;
-    ExecutorMasterSemaphore = ExecutorSMSemaphore + 1;
+    ExecutorAbortSemaphore = ExecutorSMSemaphore + 1;
+    ExecutorMasterSemaphore = ExecutorAbortSemaphore + 1;
     ExecutorSlaveSemStart =   ExecutorMasterSemaphore + 1;
-	
+    
     /* ----------------
-     *	create the executor semaphore array and initialize all
-     *  semaphores to 0.
+     *	create the executor semaphore array.  Note, we don't
+     *  want register an on_exit procedure here to kill the semaphores
+     *  because this code is executed before we fork().  We have to
+     *  register our on_exit progedure after we fork() because only
+     *  the master backend should register the on_exit procedure.
      * ----------------
      */
-    ExecutorSemaphoreId = IpcSemaphoreCreate(key,
-					     ExecutorSemaphoreArraySize,
-					     IPCProtection,
-					     0,		/* initial value */
-					     &status);
-
+    ExecutorSemaphoreId =
+	IpcSemaphoreCreateWithoutOnExit(key,
+					ExecutorSemaphoreArraySize,
+					IPCProtection,
+					0,
+					&status);
+    
     /* ----------------
      *	create the semaphore lock count array.  This array keeps
      *  track of the number of locks placed by a backend on the
@@ -378,9 +441,16 @@ ExecInitExecutorSemaphore(key)
      */
     ExecutorSemaphoreLockCount = (int *)
 	palloc(ExecutorSemaphoreArraySize * sizeof(int));
-					
+    
     /* ----------------
-     *	register a function to cleanup when we leave
+     *	register a function to cleanup when we leave.  This function
+     *  only releases semaphore locks so it should be called by all
+     *  backends when they exit.  In fact, we have to register this
+     *  on_exit procedure here, because later we register the semaphore
+     *  kill procedure.  If we registered the kill procedure BEFORE
+     *  the release procedure, then the unlock code will try to unlock
+     *  non-existant semaphores.  But this isn't a big problem because
+     *  we're about to die anyway... -cim 3/15/90
      * ----------------
      */
     on_exitpg(ExecImmediateReleaseSemaphore, (caddr_t) 0);
@@ -390,6 +460,22 @@ ExecInitExecutorSemaphore(key)
      * ----------------
      */
     (void) MemoryContextSwitchTo(oldContext);
+}
+
+/* ----------------
+ *	ExecSemaphoreOnExit
+ *
+ *	this function registers the proper on_exit procedure
+ *	for the executor semaphores.  This is called in the master
+ *	backend AFTER the slaves are fork()'ed so the cleanup
+ *	procedure will only fire in the master backend.
+ * ----------------
+ */
+void
+ExecSemaphoreOnExit(procedure)
+    void (*procedure)();
+{
+    on_exitpg(procedure, ExecutorSemaphoreId);
 }
 
 /* ----------------------------------------------------------------
@@ -414,16 +500,33 @@ ExecCreateExecutorSharedMemory(key)
     ExecutorSharedMemorySize = EXEC_SHM_SIZE;
     
     /* ----------------
-     *	create the shared memory segment
+     *	create the shared memory segment.  As with the creation
+     *  of the semaphores, we don't want to register a cleanup procedure
+     *  until after we have fork()'ed, and then we should only register
+     *  it in the Master backend.
      * ----------------
      */
-    ExecutorMemoryId = IpcMemoryCreate(key,
-				       ExecutorSharedMemorySize,
-				       EXEC_SHM_PERMISSION);
+    ExecutorMemoryId =
+	IpcMemoryCreateWithoutOnExit(key,
+				     ExecutorSharedMemorySize,
+				     EXEC_SHM_PERMISSION);
 	
     if (ExecutorMemoryId < 0)
 	elog(FATAL, "ExecCreateExecutorSharedMemory: IpcMemoryCreate failed");
+}
 
+/* --------------------------------
+ *	ExecSharedMemoryOnExit
+ *
+ *	this function registers the proper on_exit procedure
+ *	for the executor shared memory.
+ * --------------------------------
+ */
+void
+ExecSharedMemoryOnExit(procedure)
+    void (*procedure)();
+{
+    on_exitpg(procedure, ExecutorMemoryId);
 }
 
 /* --------------------------------

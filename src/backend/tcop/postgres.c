@@ -1,89 +1,49 @@
-
-/**********************************************************************
-  postgres.c
-
-  POSTGRES C Backend Interface
-  $Header$
- **********************************************************************/
-
-#include "c.h"
-
-#include <signal.h>
-#include <stdio.h>
-#include <sys/file.h>
-#include <sys/types.h>
-#include <strings.h>
-#include <ctype.h>
-
-#include "catalog.h"		/* XXX to be obsoleted */
-#include "globals.h"
-
-#include "command.h"
-#include "fmgr.h"	/* for EnableDynamicFunctionManager, fmgr_dynamic */
-#include "exc.h"
-#include "pg_lisp.h"
-#include "pinit.h"
-#include "pmod.h"
-#include "rel.h"
-#include "xcxt.h"
-#include "log.h"
-#include "execdebug.h"
-
-extern int _reset_stats_after_query_;
-extern int _show_stats_after_query_;
-
-extern void die();
-extern void handle_warn();
-
-/* XXX - I'm not sure if these should be here, but the be/fe comms work 
-   when I do - jeff, maybe someone can figure out where they should go*/
-
-RcsId("$Header$");
-
-
-/*
- * AllocateAttribute --
- *	Returns space for an attribute.
+/* ****************************************************************
+ *   FILE
+ *	postgres.c
+ *	
+ *   DESCRIPTION
+ *	POSTGRES C Backend Interface
+ *
+ *   INTERFACE ROUTINES
+ *	
+ *   NOTES
+ *	this is the "main" module of the postgres backend and
+ *	hence the main module of the "traffic cop".
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ****************************************************************
  */
-extern
-struct attribute *	/* XXX */
-	AllocateAttribute ARGS((
-	void
-));
 
+#include "tcop.h"
+ RcsId("$Header$");
+
+/* ----------------
+ *	global variables
+ * ----------------
+ */
 int		Quiet = 0;
-static	int	Warnings = 0;
-static	int	ShowTime = 0;
-static  bool	query_rewrite_is_enabled = false;
+int		Warnings = 0;
+int		ShowTime = 0;
+bool		query_rewrite_is_enabled = false;
+
 #ifdef	EBUG
-static	int	ShowLock = 0;
+int		ShowLock = 0;
 #endif
+
 int		Userid;
 Relation	reldesc;		/* current relation descritor */
 char		relname[80];		/* current relation name */
 jmp_buf		Warn_restart;
 int		NBuffers = 2;
-static	time_t	tim;
-
-bool override = false;
-
+time_t		tim;
+bool 		override = false;
 
 /* ----------------------------------------------------------------
- *	misc routines
+ *			support functions
  * ----------------------------------------------------------------
  */
-
-void
-handle_warn()
-{
-    longjmp(Warn_restart,1);
-}
-
-void
-die()
-{
-    ExitPostgres(0);
-}
 
 /* ----------------
  * 	BeginCommand 
@@ -320,8 +280,8 @@ pg_eval( query_string )
 	 *	display parse strings
 	 * ----------------
 	 */
+	printf("input: %s\n", query_string);
 	if (! Quiet) {
-	    printf("\ninput string is %s\n", query_string);
 	    printf("\n---- \tparser outputs :\n");
 	    lispDisplay(parsetree, 0);
 	    printf("\n");
@@ -410,11 +370,36 @@ pg_eval( query_string )
 
 } /* pg_eval */
     
-
-
 /* ----------------------------------------------------------------
- *	main
+ *			postgres main loop
  * ----------------------------------------------------------------
+ */
+
+/* --------------------------------
+ *	signal handler routines used in main()
+ *
+ *	handle_warn() is used to catch kill(getpid(),1) which
+ *	occurs when elog(WARN) is called.
+ *
+ *	die() preforms an orderly cleanup via ExitPostgres()
+ * --------------------------------
+ */
+
+void
+handle_warn()
+{
+    longjmp(Warn_restart,1);
+}
+
+void
+die()
+{
+    ExitPostgres(0);
+}
+
+/* --------------------------------
+ *	main
+ * --------------------------------
  */
 
 main(argc, argv)
@@ -433,19 +418,24 @@ main(argc, argv)
     
     extern	int	Noversion;		/* util/version.c */
     extern	int	Quiet;
-
     extern	jmp_buf	Warn_restart;
-
     extern	int	optind;
     extern	char	*optarg;
-
     int		setjmp(), chdir();
     char	*getenv();
-
     char	parser_input[MAX_PARSE_BUFFER];
+
     
     /* ----------------
-     *	process arguments
+     * 	register signal handlers.
+     * ----------------
+     */
+    signal(SIGHUP, die);
+    signal(SIGINT, die);
+    signal(SIGTERM, die);
+    
+    /* ----------------
+     *	parse command line arguments
      * ----------------
      */
     numslaves = 0;
@@ -522,37 +512,49 @@ main(argc, argv)
 	printf("\tDatabaseName = [%s]\n", DatabaseName);
 	puts("\t----------------\n");
     }
-
+    
     if (! Quiet && ! override)
 	puts("\t**** Transaction System Active ****");
-
-    if (IsUnderPostmaster == true && Portfd < 0) {
-	fprintf(stderr,"Postmaster flag set, but no port number specified\n");
-	exitpg(1);
-    }
-
+    
     /* ----------------
-     *	initialize portals
+     *	initialize portal file descriptors
      * ----------------
      */
-    if (IsUnderPostmaster == true)
+    if (IsUnderPostmaster == true) {
+	if (Portfd < 0) {
+	    fprintf(stderr,
+		    "Postmaster flag set, but no port number specified\n");
+	    exitpg(1);
+	}
 	pinit();
-
+    }
+    
     /* ----------------
-     * 	various initalization stuff
+     *	set processing mode appropriately depending on weather or
+     *  not we want the transaction system running.  When the
+     *  transaction system is not running, all transactions are
+     *  assumed to have successfully committed and we never go to
+     *  the transaction log.
      * ----------------
      */
-    signal(SIGHUP, die);
-    signal(SIGINT, die);
-    signal(SIGTERM, die);
-	
     /* XXX the -C version flag should be removed and combined with -O */
     SetProcessingMode((override) ? BootstrapProcessing : InitProcessing);
-
+    
+    /* ----------------
+     *	if fmgr() is called and the desired function is not
+     *  in the builtin table, then we call the desired function using
+     *  the routine registered in EnableDynamicFunctionManager().
+     *  That routine (fmgr_dynamic) is expected to dynamically
+     *  load the desired function and then call it.
+     *
+     *  dynamic loading only works after EnableDynamicFunctionManager()
+     *  is called.
+     * ----------------
+     */
     if (! Quiet)
 	puts("\tEnableDynamicFunctionManager()..");
     EnableDynamicFunctionManager(fmgr_dynamic);
-
+    
     /* ----------------
      *	InitPostgres()
      * ----------------
@@ -561,35 +563,61 @@ main(argc, argv)
 	puts("\tInitPostgres()..");
     InitPostgres(NULL, DatabaseName);
 
-    signal(SIGHUP, handle_warn);
-    
     /* ----------------
-     *	now fork and initialize the parallel slave backends
+     *  Initialize the Master/Slave shared memory allocator,
+     *	fork and initialize the parallel slave backends, and
+     *  register the Master semaphore/shared memory cleanup
+     *  procedures.
      * ----------------
      */
     if (ParallelExecutorEnabled()) {
+	extern void IPCPrivateSemaphoreKill();
+	extern void IPCPrivateMemoryKill();
+	
+	if (! Quiet)
+	    puts("\tInitializing Executor Shared Memory...");
+	ExecSMInit();
+	
 	if (! Quiet)
 	    puts("\tInitializing Slave Backends...");
 	SlaveBackendsInit();
+
+	if (! Quiet)
+	    puts("\tRegistering Master IPC Cleanup Procedures...");
+	ExecSemaphoreOnExit(IPCPrivateSemaphoreKill);
+	ExecSharedMemoryOnExit(IPCPrivateMemoryKill);
     }
-        
+    
     /* ----------------
      *	if an exception is encountered, processing resumes here
      *  so we abort the current transaction and start a new one.
+     *  This must be done after we initialize the slave backends
+     *  so that the slaves signal the master to abort the transaction
+     *  rather than calling AbortCurrentTransaction() themselves.
+     *
+     *  Note:  elog(WARN) causes a kill(getpid(),1) to occur sending
+     *         us back here.
      * ----------------
      */
+    signal(SIGHUP, handle_warn);
+    
     if (setjmp(Warn_restart) != 0) {
 	Warnings++;
-	if (! Quiet) {
-	    time(&tim);
-	    printf("\tAbortCurrentTransaction() at %s\n", ctime(&tim));
-	}
-	AbortCurrentTransaction();
+	time(&tim);
 	
-	if (ParallelExecutorEnabled())
-	    SlaveBackendsAbort();
-    }
+	if (ParallelExecutorEnabled()) {
+	    if (! Quiet)
+		printf("\tSlaveBackendsAbort() at %s\n", ctime(&tim));
 
+	    SlaveBackendsAbort();
+	} else {
+	    if (! Quiet)
+		printf("\tAbortCurrentTransaction() at %s\n", ctime(&tim));
+
+	    AbortCurrentTransaction();
+	}
+    }
+    
     /* ----------------
      *	POSTGRES main processing loop begins here
      * ----------------
@@ -642,12 +670,26 @@ main(argc, argv)
 	}
 	CommitTransactionCommand();
 
-#ifdef EXEC_SHOWBUFSTATS
+#ifdef TCOP_SHOWSTATS
+	/* ----------------
+	 *  display the buffer manager statistics
+	 * ----------------
+	 */
 	if (_show_stats_after_query_ > 0) {
 	    PrintAndFreeBufferStatistics(GetBufferStatistics());
 	    if (_reset_stats_after_query_ > 0)
 		ResetBufferStatistics();
 	}
-#endif EXEC_SHOWBUFSTATS
+	
+	/* ----------------
+	 *  display the heap access statistics
+	 * ----------------
+	 */
+	if (_show_stats_after_query_ > 0) {
+	    PrintAndFreeHeapAccessStatistics(GetHeapAccessStatistics());
+	    if (_reset_stats_after_query_ > 0)
+		ResetHeapAccessStatistics();
+	}
+#endif TCOP_SHOWSTATS
     }
 }

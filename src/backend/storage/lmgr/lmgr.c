@@ -32,7 +32,7 @@
 #include "tqual.h"
 #include "tuple.h"
 #include "xid.h"
-#include "xstate.h"
+#include "xact.h"
 
 #include "lmgr.h"
 
