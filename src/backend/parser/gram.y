@@ -1455,8 +1455,8 @@ opt_array_bounds:
 		    $$ = lispCons ($2, LispNil);
 #else
 		    char *bogus = palloc(20);
-			int retval;
-		    retval = sprintf (bogus, "[%d]", CInteger($2));
+		    int retval;
+		    retval = (int) sprintf (bogus, "[%d]", CInteger($2));
 		    $$ = (LispValue)bogus;
 #endif
 		}
@@ -1471,9 +1471,9 @@ Typename:
 		    $$ = lispCons($1,$2);
 #else
 		    char *bogus = palloc(40);
-			int retval;
+		    int retval;
 		    if ($2 != (LispValue)NULL) {
-		      retval = sprintf(bogus,"%s%s", CString($1), $2);
+		      retval = (int) sprintf(bogus,"%s%s", CString($1), $2);
 		      $$ = lispString(bogus);
 		    } else
 		      $$ = $1;
