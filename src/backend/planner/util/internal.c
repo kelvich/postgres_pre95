@@ -207,3 +207,19 @@ init_planner()
     _join_relation_list_ = LispNil;
     _query_is_archival_ = false;
 }
+
+/* The parser has VarnoGetRelname, but its global variable for the range
+   table is gone by planning time, so we need our own version  -- JMH, 7/7/92
+     ... xfunc_width
+ */
+Name
+planner_VarnoGetRelname( vnum )
+     int vnum;
+{
+    int i;
+    LispValue p_rtable = _query_range_table_;
+    LispValue temp = p_rtable;
+    for( i = 1; i < vnum ; i++) 
+		temp = CDR(temp);
+    return((Name)CString(CAR(CDR(CAR(temp)))));
+}
