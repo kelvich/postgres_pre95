@@ -1159,6 +1159,7 @@ index_elem:
 		{ $$ = nappend1(LispNil,$1); nappend1($$,$2);}
 	;
 opt_class:
+	/* empty */				{ NULLTREE ; }
 	| class
 	| With class
 		{$$=$2;}
@@ -1655,7 +1656,6 @@ string: 		Id		/*$$=$1 Sconst ?*/;
 
 date:			Sconst		/*$$=$1*/;
 file_name:		SCONST		{$$ = new_filestr($1); };
- /* adt_const:		Sconst		/*$$=$1*/;
 attach_args:		Sconst		/*$$=$1*/;
 			/* XXX should be converted by fmgr? */
 spec:
