@@ -230,8 +230,8 @@ delete %s_added where current.oid = %s_added.oid\n",
 
   sprintf(rule_buf,
 	  "define rewrite rule %s_delete2 is on delete to %s do instead \n \
-append %s_del(DOID = %s.oid) where current.oid = %s.oid \n",
-	  vname,vname,vname,bname,bname);
+append %s_del(DOID = current.oid) where current.oid = %s.oid \n",
+	  vname,vname,vname,bname);
 
   eval_as_new_xact(rule_buf); 
 
@@ -269,8 +269,8 @@ replace %s_added(%s) where current.oid = %s_added.oid \n",
 
   sprintf(rule_buf,
 	  "define rewrite rule %s_replace2 is on replace to %s do \n\
-append %s_del(DOID = %s.oid) where current.oid = %s.oid\n",
-	  vname,vname,vname,bname,bname);
+append %s_del(DOID = current.oid) where current.oid = %s.oid\n",
+	  vname,vname,vname,bname);
 
   eval_as_new_xact(rule_buf); 
 
