@@ -29,22 +29,34 @@ ${PROG}: STOP_THE_MAKEFILE
 .endif
 
 LDADD+= ${LIBPQ}
-PROG= iportal
-SRCS= iportal.c
+
+#
+# build sample apps
+#
+
+TESTPROGS= iportal aportal
+
+iportal: iportal.o
+	${CC} ${LDFLAGS} -o ${.TARGET} ${.ALLSRC} ${LDADD}
+
+aportal: aportal.o
+	${CC} ${LDFLAGS} -o ${.TARGET} ${.ALLSRC} ${LDADD}
 
 .include <postgres.prog.mk>
 
 #
 # build dynamically-loaded object files
 #
-DLOBJS= regress.o ufp1.o ufp2.o ufp3.o
+DLOBJS= regress.o ufp1.o ufp2.o ufp3.o iportal.o aportal.o
 
 #
 # ... plus test query inputs
 #
 CREATEFILES= ${DLOBJS} \
+	${TESTPROGS} \
 	create.pq queries.pq errors.pq destroy.pq \
-	fstest.sh
+	aportalcreate.pq aportalappend.pq \
+	fstest.sh aportaltest.sh
 
 #
 # ... plus exports files
@@ -81,7 +93,7 @@ ${OUTFILES}: ${CREATEFILES} ${PROG}
 #
 # prepare to run the test (including clean-up after the last run)
 #
-all: ${CREATEFILES} ${PROG}
+all: ${CREATEFILES}
 	rm -f ${OUTFILES}
 
 #
