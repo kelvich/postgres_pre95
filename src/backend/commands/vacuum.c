@@ -18,6 +18,7 @@
 #include "catalog/pg_relation.h"
 #include "catalog/pg_proc.h"
 
+#include "storage/fd.h"		/* for O_ */
 #include "storage/itemid.h"
 #include "storage/bufmgr.h"
 #include "storage/bufpage.h"

@@ -21,6 +21,8 @@ RcsId("$Header$");
 #include "utils/log.h"
 #include "tmp/miscadmin.h"
 
+#include "storage/fd.h"		/* for O_ */
+
 static char	Pg_verfile[] = PG_VERFILE;
 extern char	*DataDir;
 

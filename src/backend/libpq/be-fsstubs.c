@@ -91,6 +91,8 @@
 #include "catalog/pg_lobj.h"
 #include "catalog/pg_naming.h"
 
+#include "storage/fd.h"		/* for O_ */
+
 #include "utils/log.h"
 
 /*#define FSDB 1*/

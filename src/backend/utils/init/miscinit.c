@@ -35,6 +35,9 @@
 #include "catalog/pg_user.h"
 #include "catalog/pg_proc.h"
 #include "catalog/syscache.h"
+
+#include "storage/fd.h"		/* for O_ */
+
 /*
  * EnableAbortEnvVarName --
  *	Enables system abort iff set to a non-empty string in environment.
