@@ -19,11 +19,13 @@
  * RcsId("$Header$");
  */
 
+#include "storage/ipc.h"
+
 /*
  * sun3 (and eventually amiga)
  */
  
-#if defined(mc68020) || defined(mc68030) || defined(mc68040) || defined(m68k)
+#if (defined(sun) && ! defined(sparc)) || defined(amiga)
 
     
 S_LOCK(lock)
