@@ -1,21 +1,22 @@
-#include <unistd.h>
-#include <pwd.h>
-#include <sys/syscall.h>
+/*
+ * FILE
+ *	port.c
+ *
+ * DESCRIPTION
+ *	port-specific routines for HP-UX
+ *
+ * NOTES
+ *	this file gets around some non-POSIX calls in POSTGRES
+ *
+ * IDENTIFICATION
+ *	$Header$
+ */
 
-#if 0
-char *
-readuser()
-{
-	struct passwd *passinfo;
-	static char username[255];
-	uid_t myuid = getuid();
+#include <unistd.h>		/* for rand()/srand() prototypes */
+#include <math.h>		/* for pow() prototype */
+#include <sys/syscall.h>	/* for syscall #defines */
 
-	if ((passinfo = getpwuid(myuid)) == (struct passwd *) NULL)
-		return(NULL);
-	strcpy(username,passinfo->pw_name);
-	return(username);
-}
-#endif
+#include "tmp/c.h"
 
 double 
 rint(x)
