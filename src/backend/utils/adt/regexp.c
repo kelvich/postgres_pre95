@@ -1,28 +1,8 @@
-/* ----------------------------------------------------------------
- *   FILE
- *	regexp.c
+/*
+ *  regexp.c -- regular expression handling code.
  *
- *   DESCRIPTION
- *	regular expression handling code.
- *
- *   INTERFACE ROUTINES
- *	char16regexeq
- *	char16regexne
- *	textregexeq
- *	textregexne
- *
- *   NOTES
- *	Uses the old AT&T compile/step code.  While this is not very
- *	politically-correct (it has been removed from 4.x BSD) it is
- *	the most portable C library solution since everyone names their
- *	own regular expression routines something different (applying
- *	different standards)...
- *
- *   IDENTIFICATION
  *	$Header$
- * ----------------------------------------------------------------
  */
-
 #include "tmp/postgres.h"	/* postgres system include file */
 #include "utils/log.h"		/* for logging postgres errors */
 
@@ -37,11 +17,14 @@
 #define	ERROR(val)	elog(WARN, "regexp library reports error %d", (val));
 
 #define	EXPBUFSZ	256
-#define	PCHARLEN	16
+#define	P2CHARLEN	2
+#define	P4CHARLEN	4
+#define	P8CHARLEN	8
+#define	P16CHARLEN	16
 
-#if defined(DISABLE_XOPEN_NLS)
+#if defined(PORTNAME_alpha)
 #undef _XOPEN_SOURCE
-#endif /* DISABLE_XOPEN_NLS */
+#endif /* PORTNAME_alpha */
 #include <regexp.h>
 
 /*
@@ -52,9 +35,109 @@
  *  routines that use the regexp stuff
  */
 bool
-char16regexeq(s, p)
+char2regexeq(arg1, p)
+	uint16 arg1;
+	struct varlena *p;
+{
+	char *expbuf, *endbuf;
+	char *sterm, *pterm;
+	int result;
+	char *s = (char *) &arg1;
+
+	if (!s || !p)
+		return FALSE;
+
+	expbuf = (char *) palloc(EXPBUFSZ);
+	endbuf = expbuf + (EXPBUFSZ - 1);
+
+	/* be sure sterm is null-terminated */
+	sterm = (char *) palloc(P2CHARLEN + 1);
+	bzero(sterm, P2CHARLEN + 1);
+	strncpy(sterm, s, P2CHARLEN);
+
+	/* p is a text = varlena, not a string so we have to make 
+	 * a string from the vl_data field of the struct. */
+	
+	/* palloc the length of the text + the null character */
+	pterm = (char *) palloc(p->vl_len - sizeof(int32) + 1);
+	bcopy(p->vl_dat, pterm, p->vl_len - sizeof(int32));
+	*(pterm + p->vl_len - sizeof(int32)) = (char)NULL;
+
+	/* compile the re */
+	(void) compile(pterm, expbuf, endbuf, NULL);
+
+	/* do the regexp matching */
+	result = step(sterm, expbuf);
+
+	pfree(expbuf);
+	pfree(sterm);
+	pfree(pterm);
+
+	return ((bool) result);
+}
+
+bool
+char2regexne(arg1, p)
+	uint16 arg1;
+	struct varlena *p;
+{
+	return (!char2regexeq(arg1, p));
+}
+
+bool
+char4regexeq(arg1, p)
+	uint32 arg1;
+	struct varlena *p;
+{
+	char *expbuf, *endbuf;
+	char *sterm, *pterm;
+	int result;
+	char *s = (char *) &arg1;
+
+	if (!s || !p)
+		return FALSE;
+
+	expbuf = (char *) palloc(EXPBUFSZ);
+	endbuf = expbuf + (EXPBUFSZ - 1);
+
+	/* be sure sterm is null-terminated */
+	sterm = (char *) palloc(P4CHARLEN + 1);
+	bzero(sterm, P4CHARLEN + 1);
+	strncpy(sterm, s, P4CHARLEN);
+
+	/* p is a text = varlena, not a string so we have to make 
+	 * a string from the vl_data field of the struct. */
+	
+	/* palloc the length of the text + the null character */
+	pterm = (char *) palloc(p->vl_len - sizeof(int32) + 1);
+	bcopy(p->vl_dat, pterm, p->vl_len - sizeof(int32));
+	*(pterm + p->vl_len - sizeof(int32)) = (char)NULL;
+
+	/* compile the re */
+	(void) compile(pterm, expbuf, endbuf, NULL);
+
+	/* do the regexp matching */
+	result = step(sterm, expbuf);
+
+	pfree(expbuf);
+	pfree(sterm);
+	pfree(pterm);
+
+	return ((bool) result);
+}
+
+bool
+char4regexne(arg1, p)
+	uint32 arg1;
+	struct varlena *p;
+{
+	return (!char4regexeq(arg1, p));
+}
+
+bool
+char8regexeq(s, p)
 	char *s;
-	char *p;
+	struct varlena *p;
 {
 	char *expbuf, *endbuf;
 	char *sterm, *pterm;
@@ -66,13 +149,67 @@ char16regexeq(s, p)
 	expbuf = (char *) palloc(EXPBUFSZ);
 	endbuf = expbuf + (EXPBUFSZ - 1);
 
-	/* be sure the strings are null-terminated */
-	sterm = (char *) palloc(PCHARLEN + 1);
-	bzero(sterm, PCHARLEN + 1);
-	strncpy(sterm, s, PCHARLEN);
-	pterm = (char *) palloc(PCHARLEN + 1);
-	bzero(pterm, PCHARLEN + 1);
-	strncpy(pterm, p, PCHARLEN);
+	/* be sure sterm is null-terminated */
+	sterm = (char *) palloc(P8CHARLEN + 1);
+	bzero(sterm, P8CHARLEN + 1);
+	strncpy(sterm, s, P8CHARLEN);
+
+	/* p is a text = varlena, not a string so we have to make 
+	 * a string from the vl_data field of the struct. */
+	
+	/* palloc the length of the text + the null character */
+	pterm = (char *) palloc(p->vl_len - sizeof(int32) + 1);
+	bcopy(p->vl_dat, pterm, p->vl_len - sizeof(int32));
+	*(pterm + p->vl_len - sizeof(int32)) = (char)NULL;
+
+	/* compile the re */
+	(void) compile(pterm, expbuf, endbuf, NULL);
+
+	/* do the regexp matching */
+	result = step(sterm, expbuf);
+
+	pfree(expbuf);
+	pfree(sterm);
+	pfree(pterm);
+
+	return ((bool) result);
+}
+
+bool
+char8regexne(s, p)
+	char *s;
+	struct varlena *p;
+{
+	return (!char8regexeq(s, p));
+}
+
+bool
+char16regexeq(s, p)
+	char *s;
+	struct varlena *p;
+{
+	char *expbuf, *endbuf;
+	char *sterm, *pterm;
+	int result;
+
+	if (!s || !p)
+		return FALSE;
+
+	expbuf = (char *) palloc(EXPBUFSZ);
+	endbuf = expbuf + (EXPBUFSZ - 1);
+
+	/* be sure sterm is null-terminated */
+	sterm = (char *) palloc(P16CHARLEN + 1);
+	bzero(sterm, P16CHARLEN + 1);
+	strncpy(sterm, s, P16CHARLEN);
+
+	/* p is a text = varlena, not a string so we have to make 
+	 * a string from the vl_data field of the struct. */
+	
+	/* palloc the length of the text + the null character */
+	pterm = (char *) palloc(p->vl_len - sizeof(int32) + 1);
+	bcopy(p->vl_dat, pterm, p->vl_len - sizeof(int32));
+	*(pterm + p->vl_len - sizeof(int32)) = (char)NULL;
 
 	/* compile the re */
 	(void) compile(pterm, expbuf, endbuf, NULL);
@@ -90,7 +227,7 @@ char16regexeq(s, p)
 bool
 char16regexne(s, p)
 	char *s;
-	char *p;
+	struct varlena *p;
 {
 	return (!char16regexeq(s, p));
 }
