@@ -25,17 +25,18 @@ static char *rcsid = "$Header$";
  *     		flatten-tlist-vars
  */
 
-#include "c.h"
-#include "relation.h"
-#include "relation.a.h"
+#include "tmp/c.h"
+
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
 #include "planner/internal.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
-#include "pg_lisp.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
+#include "nodes/pg_lisp.h"
 #include "planner/var.h"
 #include "planner/tlist.h"
 #include "planner/clauses.h"
-#include "log.h"
+#include "utils/log.h"
 
 /* XXX - find these references */
 extern LispValue copy_seq_tree();
@@ -339,7 +340,7 @@ List
 new_unsorted_tlist (targetlist)
      List targetlist ;
 {
-    List new_targetlist = copy_seq_tree (targetlist);
+    List new_targetlist = (List)CopyObject (targetlist);
     List x = LispNil;
 
     foreach (x, new_targetlist) {
