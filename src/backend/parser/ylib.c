@@ -401,50 +401,6 @@ after_first_white_space( input )
     return (temp+1);
 }
 
-int 
-*int4varin( input_string )
-     char *input_string;
-{
-    int *foo = (int *)malloc(1024*sizeof(int));
-    register int i = 0;
-
-    char *temp = input_string;
-    
-    while ( sscanf(temp,"%ld", &foo[i+1]) == 1 
-	   && i < 1022 ) {
-	i = i+1;
-	temp = after_first_white_space(temp);
-    }
-    foo[0] = i;
-    return(foo);
-}
-
-char *
-int4varout ( an_array )
-     int *an_array;
-{
-    int temp = an_array[0];
-    char *output_string = NULL;
-    extern int itoa();
-    int i;
-
-    if ( temp > 0 ) {
-	char *walk;
-	output_string = (char *)malloc(16*temp); /* assume 15 digits + sign */
-	walk = output_string;
-	for ( i = 0 ; i < temp ; i++ ) {
-	    itoa(an_array[i+1],walk);
-	    printf ( "%s\n", walk );
-	    while (*++walk != '\0')
-	      ;
-	    *walk++ = ' ';
-	}
-	*--walk = '\0';
-    }
-    return(output_string);
-}
-
- 
 #define ADD_TO_RT(rt_entry)     p_rtable = nappend1(p_rtable,rt_entry) 
 List
 ParseFunc ( funcname , fargs, curr_resno )
