@@ -24,7 +24,7 @@
 
 extern char *palloc();
 extern Node CopyObject();
-static bool prs2OperandIsEqual();
+extern bool _equalLispValue();
 
 /*-------------------------------------------------------------------
  *
@@ -40,84 +40,13 @@ static bool prs2OperandIsEqual();
  */
 bool
 prs2StubQualIsEqual(q1, q2)
-Prs2StubQual q1;
-Prs2StubQual q2;
+LispValue q1;
+LispValue q2;
 {
-    int i;
-
-#ifdef STUB_DEBUG
-    /*
-     * sanity check...
-     */
-    if (q1 == NULL || q2 == NULL) {
-	elog(WARN, "prs2StubQualIsEqual: called with NULL qual");
-    }
-#endif STUB_DEBUG
-
-    /*
-     * If the types of qualification are different, then
-     * (obviously) they are not equal
-     */
-    if (q1->qualType != q2->qualType) {
+    if (_equalLispValue(q1, q2))
+	return(true);
+    else
 	return(false);
-    }
-
-    if (q1->qualType == PRS2_NULL_STUBQUAL) {
-	/*
-	 * Both quals are null, therefore they are equal
-	 */
-	return(true);
-    } else if (q1->qualType == PRS2_SIMPLE_STUBQUAL) {
-	/*
-	 * both quals are of the "simple" type.
-	 * All their fields must be equal.
-	 * NOTE: take a look in 'datumIsEqual' for retrictions
-	 * in the datum equality test...
-	 */
-	if (q1->qual.simple.operator != q2->qual.simple.operator) {
-	    return(false);
-	}
-	if (!prs2OperandIsEqual(q1->qual.simple.left, q2->qual.simple.left)) {
-	    return(false);
-	}
-	if (!prs2OperandIsEqual(q1->qual.simple.right, q2->qual.simple.right)) {
-	    return(false);
-	}
-	/*
-	 * at last, everything is equal!
-	 */
-	return(true);
-    } else if (q1->qualType == PRS2_COMPLEX_STUBQUAL) {
-	/*
-	 * OK now, don't panic, all we have to do is test
-	 * whether the boolean operators of the complex
-	 * qualifications are the same and that their
-	 * children are equal too...
-	 *
-	 * NOTE: The qualifications must be structured
-	 * in exactly the same way, e.g. the children must
-	 * appear in the same order, etc. in order to be
-	 * assumed equal. This routine does not handle isomorphic
-	 * quals correctly! (it thinks they are different!).
-	 */
-	if (q1->qual.complex.boolOper != q1->qual.complex.boolOper) {
-	    return(false);
-	}
-	if (q1->qual.complex.nOperands!= q1->qual.complex.nOperands) {
-	    return(false);
-	}
-	for (i=0; i<q1->qual.complex.nOperands; i++) {
-	    if (!prs2StubQualIsEqual(q1->qual.complex.operands[i],
-				     q2->qual.complex.operands[i])) {
-		/*
-		 * Two "children" subquals are different, therefore their
-		 * parents are assumed different too..
-		 */
-		return(false);
-	    }
-	}
-	return(true);
-    }
 }
 
 /*-------------------------------------------------------------------
@@ -293,10 +222,10 @@ Prs2OneStub oldStub;
      * 
      * Move the pointer entry of the last stub record to the one to be
      * deleted and decrement the number of stub records.
-     * Also free the stub record.
+     * Don't forget to free the 'oneStub'
      */
     n = oldStubs->numOfStubs;
-    prs2FreeOneStub(oldStubs->stubRecords[indx]);
+    pfree(oldStubs->stubRecords[indx]);
     oldStubs->stubRecords[indx] = oldStubs->stubRecords[n-1];
     oldStubs->numOfStubs -= 1;
 
@@ -325,69 +254,6 @@ prs2MakeStub()
     return(res);
 }
 
-
-/*-----------------------------------------------------------------------
- *
- * prs2FreeStub
- *
- * free all space occupied by a stub record
- *-----------------------------------------------------------------------
- */
-void
-prs2FreeStub(relstub)
-Prs2Stub relstub;
-{
-    int i,j;
-    Prs2OneStub oneStub;
-
-    Assert(PointerIsValid(relstub));
-
-    /*
-     * One by one free all the 'Prs2OneStub' structs.
-     */
-    for (i=0; i<relstub->numOfStubs; i++) {
-	oneStub = relstub->stubRecords[i];
-	prs2FreeOneStub(oneStub);
-    }
-
-    if (relstub->numOfStubs>0 && relstub->stubRecords != NULL) {
-	pfree(relstub->stubRecords);
-    }
-
-#ifdef STUB_DEBUG
-    bzero(relstub, sizeof(Prs2Stub));
-#endif STUB_DEBUG
-    pfree(relstub);
-}
-
-/*-----------------------------------------------------------------------
- *
- * prs2CopyStub
- *
- * Make a copy of the given stub.
- *
- * NOTE: We copy EVERYTHING!
- *-----------------------------------------------------------------------
- */
-Prs2Stub
-prs2CopyStub(stubs)
-Prs2Stub stubs;
-{
-    Prs2Stub res;
-    int i;
-
-    res = prs2MakeStub();
-
-    res->numOfStubs = stubs->numOfStubs;
-
-    for (i=0; i<stubs->numOfStubs; i++) {
-	res->stubRecords[i] = prs2CopyOneStub(stubs->stubRecords[i]);
-    }
-
-    return(res);
-}
-
-
 /*-----------------------------------------------------------------------
  *
  * prs2MakeOneStub
@@ -411,243 +277,37 @@ prs2MakeOneStub()
 
 /*-----------------------------------------------------------------------
  *
- * prs2FreeOneStub
+ * prs2FreeStub
  *
- * free the space allocated by a call to `prs2MakeOneStub'
- * Also free the stub's qualification.
+ * free all space occupied by a stub record
  *-----------------------------------------------------------------------
  */
 void
-prs2FreeOneStub(oneStub)
-Prs2OneStub oneStub;
+prs2FreeStub(relstub)
+Prs2Stub relstub;
 {
-    /*
-     * First free the stub qual
-     */
-    prs2FreeStubQual(oneStub->qualification);
+    int i,j;
+    Prs2OneStub oneStub;
+
+    Assert(PointerIsValid(relstub));
 
     /*
-     * then free the stub itself
+     * One by one free all the 'Prs2OneStub' structs.
      */
+    for (i=0; i<relstub->numOfStubs; i++) {
+	oneStub = relstub->stubRecords[i];
 #ifdef STUB_DEBUG
-    bzero(oneStub, sizeof(Prs2OneStub));
+	bzero(oneStub, sizeof(Prs2OneStubData));
 #endif STUB_DEBUG
-    pfree(oneStub);
-}
-
-/*-----------------------------------------------------------------------
- *
- * prs2CopyOneStub
- *
- * Make and return a copy of the given 'Prs2OneStub'.
- * NOTE: copy its qualification too...
- *-----------------------------------------------------------------------
- */
-Prs2OneStub
-prs2CopyOneStub(oneStub)
-Prs2OneStub oneStub;
-{
-    Prs2OneStub res;
-
-    res = prs2MakeOneStub();
-
-    res->ruleId = oneStub->ruleId;
-    res->stubId = oneStub->stubId;
-    res->counter = oneStub->counter;
-    res->lock = prs2CopyLocks(oneStub->lock);
-    res->qualification = prs2CopyStubQual(oneStub->qualification);
-
-    return(res);
-}
-
-/*-----------------------------------------------------------------------
- *
- * prs2MakeStubQual
- *
- * Create an empty 'Prs2StubQualData' record
- *-----------------------------------------------------------------------
- */
-Prs2StubQual
-prs2MakeStubQual()
-{
-    Prs2StubQual res;
-
-    res = (Prs2StubQual) palloc(sizeof(Prs2StubQualData));
-    if (res==NULL) {
-	elog(WARN, "prs2MakeStubQual: Out of memory!");
+	pfree(oneStub);
     }
 
-    return(res);
-}
+    if (relstub->numOfStubs>0 && relstub->stubRecords != NULL) {
+	pfree(relstub->stubRecords);
+    }
 
-/*-----------------------------------------------------------------------
- *
- * prs2FreeStubQual
- *
- * Free the space occupied by a stub's qualification.
- *
- *-----------------------------------------------------------------------
- */
-
-void
-prs2FreeStubQual(qual)
-Prs2StubQual qual;
-{
-    int i;
-    Const ccc;
-
-    /*
-     * first free all children nodes (if any)
-     */
-    if (qual->qualType == PRS2_SIMPLE_STUBQUAL) {
-	/*
-	 * should we free the bytes pointed by the "Const"
-	 * value (if it is a pointer ?)
-	 */
-	if (IsA(qual->qual.simple.left,Const)) {
-	    ccc = (Const)qual->qual.simple.left;
-	    datumFree(ccc->constvalue,
-			ccc->consttype,
-			ccc->constbyval,
-			ccc->constlen);
-	}
-	if (IsA(qual->qual.simple.right,Const)) {
-	    ccc = (Const)qual->qual.simple.right;
-	    datumFree(ccc->constvalue,
-			ccc->consttype,
-			ccc->constbyval,
-			ccc->constlen);
-	}
-	pfree(qual->qual.simple.left);
-	pfree(qual->qual.simple.right);
-    } else if (qual->qualType == PRS2_COMPLEX_STUBQUAL) {
-	/*
-	 * free the operands
-	 */
-	for (i=0; i<qual->qual.complex.nOperands; i++) {
-	    prs2FreeStubQual(qual->qual.complex.operands[i]);
-	}
-	/*
-	 * free the array of pointers to the operands
-	 */
-#ifdef STUB_DEBUg
-	bzero(qual->qual.complex.operands, PSIZE(qual->qual.complex.operands));
+#ifdef STUB_DEBUG
+    bzero(relstub, sizeof(Prs2StubData));
 #endif STUB_DEBUG
-	pfree(qual->qual.complex.operands);
-    } else if (qual->qualType == PRS2_NULL_STUBQUAL) {
-	/*
-	 * do nothing
-	 */
-    } else {
-	elog(WARN, "prs2FreeStubQual: Illegal qualType");
-    }
-    
-    /*
-     * Now free the 'qual' itself...
-     */
-#ifdef STUB_DEBUg
-    bzero(qual, sizeof(qual));
-#endif STUB_DEBUG
-    pfree(qual);
+    pfree(relstub);
 }
-
-/*-----------------------------------------------------------------------
- *
- * prs2CopyStubQual
- *
- * Make a copy of the stub's qualification.
- *
- *-----------------------------------------------------------------------
- */
-
-Prs2StubQual
-prs2CopyStubQual(qual)
-Prs2StubQual qual;
-{
-    Prs2StubQual res;
-    int i;
-    int size;
-
-    if (qual->qualType == PRS2_NULL_STUBQUAL) {
-	/*
-	 * easy!
-	 */
-	res = prs2MakeStubQual();
-	res->qualType = PRS2_NULL_STUBQUAL;
-    } else if (qual->qualType == PRS2_SIMPLE_STUBQUAL) {
-	/*
-	 */
-	res = prs2MakeStubQual();
-	res->qualType = PRS2_SIMPLE_STUBQUAL;
-	res->qual.simple.operator = qual->qual.simple.operator;
-	res->qual.simple.left = CopyObject(qual->qual.simple.left);
-	res->qual.simple.right = CopyObject(qual->qual.simple.right);
-    } else if (qual->qualType == PRS2_COMPLEX_STUBQUAL) {
-	res = prs2MakeStubQual();
-	res->qualType = PRS2_COMPLEX_STUBQUAL;
-	res->qual.complex.nOperands = qual->qual.complex.nOperands;
-	size = qual->qual.complex.nOperands * sizeof(Prs2StubQual);
-	res->qual.complex.operands = (Prs2StubQual *)palloc(size);
-	/*
-	 * Now copy the children one by one...
-	 */
-	for (i=0; i<qual->qual.complex.nOperands; i++) {
-	    res->qual.complex.operands[i] =
-			    prs2CopyStubQual(qual->qual.complex.operands[i]);
-	}
-    } else {
-	elog(WARN, "prs2FreeStubQual: Illegal qualType");
-    }
-
-    return(res);
-}
-
-/*----------------------------------------------------------------------
- * prs2OperandIsEqual
- *
- * returns true if the two operands of a simple stub qual are equal.
- *----------------------------------------------------------------------
- */
-static
-bool
-prs2OperandIsEqual(n1, n2)
-Node n1;
-Node n2;
-{
-
-    if (IsA(n1,Param) && IsA(n2,Param)) {
-	Param p1, p2;
-	p1 = (Param) n1;
-	p2 = (Param) n2;
-	if (p1->paramkind != p2->paramkind)
-	    return(false);
-	if (p1->paramtype != p2->paramtype)
-	    return(false);
-	if (!NameIsEqual(p1->paramname, p2->paramname))
-	    return(false);
-	return(true);
-    } else if (IsA(n1,Const) && IsA(n2,Const)) {
-	Const c1, c2;
-	if (c1->consttype != c2->consttype)
-	    return(false);
-	if (c1->constlen != c2->constlen)
-	    return(false);
-	if (c1->constbyval != c2->constbyval)
-	    return(false);
-	if (c1->constisnull != c2->constisnull)
-	    return(false);
-	if (!c1->constisnull) {
-	    /*
-	     * compare the datums.
-	     */
-	}
-	if (!datumIsEqual( c1->constvalue, c2->constvalue, c1->consttype, 
-			c1->constbyval, c1->constlen))
-	    return(false);
-	return(true);
-    } else {
-	return(false);
-    }
-}
-
-

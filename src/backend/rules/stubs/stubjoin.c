@@ -10,6 +10,8 @@
  */
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
 #include "nodes/plannodes.h"
 #include "nodes/plannodes.a.h"
 #include "utils/log.h"
@@ -38,7 +40,7 @@ TupleDescriptor innerTupleDesc;
     ObjectId ruleId;
     Prs2StubId stubId;
     RuleLock lock;
-    Prs2StubQual qual;
+    LispValue qual;
     AttributeNumber innerAttrNo, outerAttrNo;
     Name innerAttrName;
     ObjectId operator, type;
@@ -46,6 +48,10 @@ TupleDescriptor innerTupleDesc;
     bool byval;
     Datum value, cpvalue;
     Boolean isNull;
+    Oper opr;
+    Var var;
+    Const cnst;
+    LispValue varid;
 
 
     operator = get_jri_operator(ruleInfo);
@@ -61,7 +67,7 @@ TupleDescriptor innerTupleDesc;
     lock = get_jri_lock(ruleInfo);
 
     /*
-     * now form the 'Prs2StubQual'. This will correspond to
+     * now form the stub's qualification. This will correspond to
      * the qualification:
      *    ( <operator> <innerAttrNo> <constant> )
      * where <constant> is the value of the "outerAttrno" of the
@@ -80,27 +86,46 @@ TupleDescriptor innerTupleDesc;
 	 */
 	return((Prs2OneStub)NULL);
     }
-    qual = prs2MakeStubQual();
-    qual->qualType = PRS2_SIMPLE_STUBQUAL;
-    qual->qual.simple.operator = operator;
-    type = outerTupleDesc->data[outerAttrNo-1]->atttypid;
-    len = get_typlen(type);
-    byval = get_typbyval(type);
     /*
      * NOTE: make a "copy" of the datum (i.e. of the data pointed
      * by, if any)... Beter be safe (and slow) then sorry...
      */
+    type = outerTupleDesc->data[outerAttrNo-1]->atttypid;
+    len = get_typlen(type);
+    byval = get_typbyval(type);
     cpvalue = datumCopy(value, type, byval, len);
-    qual->qual.simple.right = (Node) MakeConst(type,	/* consttype */
-					len,		/* constlen */
-					cpvalue,	/* constvalue */
-					false,		/* constisnull */
-					byval);		/* constbyval */
-    qual->qual.simple.left = (Node) MakeParam(
-				    PARAM_OLD,
-				    (int32) 0,
-				    innerAttrName,
-				    type);
+    cnst = MakeConst(
+	    type,	/* consttype */
+	    len,	/* constlen */
+	    cpvalue,	/* constvalue */
+	    false,	/* constisnull */
+	    byval);	/* constbyval */
+
+    type = innerTupleDesc->data[innerAttrNo-1]->atttypid;
+    len = get_typlen(type);
+    byval = get_typbyval(type);
+    varid = lispCons(lispInteger(0),
+		    lispCons(lispInteger(innerAttrNo), LispNil));
+    var =  MakeVar(
+	    (Index) 0,		/* varno */
+	    innerAttrNo,	/* varattno */
+	    type,		/* vartype */
+	    LispNil,		/* vardotfields */
+	    (Index) 0,		/* vararrayindex */
+	    varid,		/* varid */
+	    InvalidObjectId);	/* varelemtype */
+    opr = MakeOper(
+	    operator,		/* opno */
+	    InvalidObjectId,	/* opid */
+	    false,		/* oprelationlevel */
+	    PRS2_BOOL_TYPEID,	/* opresulttype */
+	    0,			/* opsize */
+	    NULL);		/* op_fcache */
+    (void) replace_opid(opr);
+
+    qual = lispCons(opr, lispCons(var, lispCons(cnst, LispNil)));
+    qual = lispCons(qual, LispNil);
+
     /*
      * OK, now form the 'Prs2OneStub'
      */

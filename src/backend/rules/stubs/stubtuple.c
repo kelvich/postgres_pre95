@@ -22,12 +22,14 @@
 #include "rules/prs2.h"
 #include "rules/prs2stub.h"
 #include "parser/parse.h"       /* for the AND, NOT, OR */
+#include "nodes/execnodes.h"
+#include "nodes/execnodes.a.h"
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
+#include "executor/x_tuples.h"
+#include "executor/tuptable.h"
 
-/*==================== ROUTINES LOCAL TO THIS FILE ================*/
-static bool prs2SimpleQualTestTuple();
-
+extern ExprContext RMakeExprContext();
 
 /*--------------------------------------------------------------------
  *
@@ -80,144 +82,52 @@ prs2StubTestTuple(tuple, buffer, tupDesc, qual)
 HeapTuple tuple;
 Buffer buffer;
 TupleDescriptor tupDesc;
-Prs2StubQual qual;
+LispValue qual;
 {
-    int i;
-
-    if (qual->qualType == PRS2_NULL_STUBQUAL) {
-	/*
-	 * NULL quals are ALWAYS true!
-	 */
-	return(true);
-    } else if (qual->qualType == PRS2_SIMPLE_STUBQUAL) {
-	if (prs2SimpleQualTestTuple(tuple,buffer,tupDesc,qual->qual.simple))
-	    return(true);
-	else
-	    return(false);
-    } else if (qual->qualType == PRS2_COMPLEX_STUBQUAL) {
-	switch (qual->qual.complex.boolOper) {
-	    case AND:
-		for (i=0; i<qual->qual.complex.nOperands; i++) {
-		    if (!prs2StubTestTuple(tuple,
-			    buffer,
-			    tupDesc,
-			    qual->qual.complex.operands[i])) {
-			/*
-			 * this is an AND, so if any subqualification
-			 * is false, then the whole thing is false
-			 */
-			return(false);
-		    }
-		}
-		return(true);
-		break;
-	    case OR:
-		for (i=0; i<qual->qual.complex.nOperands; i++) {
-		    if (prs2StubTestTuple(tuple,
-			    buffer,
-			    tupDesc,
-			    qual->qual.complex.operands[i])) {
-			/*
-			 * this is an AND, so if any subqualification
-			 * is true, then the whole thing is true
-			 */
-			return(true);
-		    }
-		}
-		return(false);
-		break;
-	    case NOT:
-		if (prs2StubTestTuple(tuple,
-			buffer,
-			tupDesc,
-			qual->qual.complex.operands[0])) {
-		    return(false);
-		} else {
-		    return(true);
-		}
-		break;
-	    default:
-		elog(WARN, "prs2StubTestTuple: Illegal boolOper");
-	}
-    } else {
-	elog(WARN, "prs2StubTestTuple: Illegal qualType");
-    }
-}
-
-/*--------------------------------------------------------------------
- *
- * prs2SimpleQualTestTuple
- *
- * test if a tuple satisfies the given "simple qualification"
- *--------------------------------------------------------------------
- */
-static
-bool
-prs2SimpleQualTestTuple(tuple, buffer, tupDesc, simplequal)
-HeapTuple tuple;
-Buffer buffer;
-TupleDescriptor tupDesc;
-Prs2SimpleStubQualData simplequal;
-{
-    Datum value1, value2;
-    AttributeNumber attrno;
-    Boolean isNull;
-    int result;
-
+    ExprContext econtext;
+    bool qualResult;
+    static TupleTable tupleTable;
+    static TupleTableSlot slot;
+    static int slotnum;
+    static int firstTime = 1;
 
     /*
-     * extract the left operand
+     * Use ExecEvalQual to test for the qualification.
+     * To do that create a dummy 'ExprContext' & fill it
+     * with the appropriate info.
+     *
+     * Note also, that as 'ExecQual' expects its tuple
+     * to be in a 'tuple table slot' we have to create
+     * a dummy one. Of course instead of creating a new one & 
+     * then destroying it every time we call this routine,
+     * it is better to do it only once.
      */
-    if (IsA(simplequal.left,Param)) {
-	value1 = HeapTupleGetAttributeValue(
-		    tuple,
-		    buffer,
-		    get_paramid((Param) simplequal.left),
-		    tupDesc,
-		    &isNull);
+
+    if (firstTime) {
 	/*
-	 * NOTE: if the attribute is null, we assume that it does NOT
-	 * pass the qualification
+	 * this is the first time we call this routine.
+	 * Initialize the tuple table stuff...
 	 */
-	if (isNull) {
-	    return(false);
-	}
-    } else if (IsA(simplequal.left,Const)) {
-	value1 = get_constvalue((Const) simplequal.left);
-    } else {
-	elog(WARN, "prs2SimpleQualTestTuple: Operand is not param or const");
+	firstTime = 0;
+	tupleTable = ExecCreateTupleTable(1);
+	slotnum = ExecAllocTableSlot(tupleTable);
+	slot = (TupleTableSlot) ExecGetTableSlot(tupleTable, slotnum);
     }
 
-    /*
-     * Now extract the right operand
-     */
-    if (IsA(simplequal.right,Param)) {
-	value2 = HeapTupleGetAttributeValue(
-		    tuple,
-		    buffer,
-		    get_paramid((Param) simplequal.left),
-		    tupDesc,
-		    &isNull);
-	/*
-	 * NOTE: if the attribute is null, we assume that it does NOT
-	 * pass the qualification
-	 */
-	if (isNull) {
-	    return(false);
-	}
-    } else if (IsA(simplequal.right,Const)) {
-	value2 = get_constvalue((Const) simplequal.right);
-    } else {
-	elog(WARN, "prs2SimpleQualTestTuple: Operand is not param or const");
-    }
+    econtext = RMakeExprContext();
+    (void)ExecStoreTuple(tuple, slot, false);
+    set_ecxt_scantuple(econtext, slot);
+    set_ecxt_scantype(econtext, tupDesc);
+    set_ecxt_scan_buffer(econtext, buffer);
+    set_ecxt_innertuple(econtext, NULL);
+    set_ecxt_innertype(econtext, NULL);
+    set_ecxt_outertuple(econtext, NULL);
+    set_ecxt_outertype(econtext, NULL);
+    set_ecxt_param_list_info(econtext, NULL);
 
-    /*
-     * Now call the function manager...
-     */
-    
-    result = (int) fmgr(simplequal.operator, value1, value2);
+    qualResult = ExecQual(qual, econtext);
 
-    if (result) {
+    if (qualResult) {
 	return(true);
     } else {
 	return(false);
