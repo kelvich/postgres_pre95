@@ -13,6 +13,7 @@
 #include "utils/palloc.h"
 #include "parse_query.h"
 #include "catalog/pg_aggregate.h"
+#include "catalog/pg_type.h"
 #include "nodes/primnodes.h"
 #include "nodes/primnodes.a.h"
 #include "nodes/plannodes.h"
@@ -367,6 +368,7 @@ ParseFunc ( funcname , fargs )
     Iter iter;
     Func funcnode;
     ObjectId oid_array[8];
+    ObjectId *true_oid_array;
     OID argtype;
     Param f;
     int vnum;
@@ -375,6 +377,7 @@ ParseFunc ( funcname , fargs )
     bool retset;
     bool exists;
     extern LispValue p_rtable;
+    extern void make_arguments();
 
     if (fargs)
      {
@@ -544,16 +547,15 @@ ParseFunc ( funcname , fargs )
 	       *  whole tuple is the argument.
 	       */
 
-	      CAR(i) = (LispValue)
-		MakeVar(vnum, 0, toid,
-			lispCons(lispInteger(vnum),
-				 lispCons(lispInteger(0),LispNil)),
-			0 /* varslot */);
+	      rplacd(pair, (LispValue)MakeVar(vnum, 0, toid,
+					      lispCons(lispInteger(vnum),
+						       lispCons(lispInteger(0),
+								LispNil)),
+					      0 /* varslot */));
 	  }
 	 else
 	  {
 	      toid = CInteger(CAR(pair));
-	      CAR(i) = CDR(pair);
 	  }
 
 	 oid_array[nargs++] = toid;
@@ -563,20 +565,29 @@ ParseFunc ( funcname , fargs )
      *  func_get_detail looks up the function in the catalogs, does
      *  disambiguation for polymorphic functions, handles inheritance,
      *  and returns the funcid and type and set or singleton status of
-     *  the function's return value.  if func_get_detail returns true,
+     *  the function's return value.  it also returns the true argument
+     *  types to the function.  if func_get_detail returns true,
      *  the function exists.  otherwise, there was an error.
      */
 
     exists = func_get_detail(funcname, nargs, oid_array, &funcid,
-			     &rettype, &retset);
+			     &rettype, &retset, &true_oid_array);
     if (!exists)
 	elog(WARN, "no such attribute or function %s", funcname);
 
     /* got it */
     funcnode = MakeFunc(funcid, rettype, false, 0, LispNil, 0, NULL, LispNil, LispNil);
 
+    /* perform the necessary typecasting */
+    make_arguments(nargs, fargs, oid_array, true_oid_array);
+
+    /* remove the argtypes from fargs */
+    foreach(i, fargs) {
+	rplaca(i, CDR(CAR(i)));
+    }
+
     /*
-     *  for functons returning base types, we want to project out the
+     *  for functions returning base types, we want to project out the
      *  return value.  set up a target list to do that.  the executor
      *  will ignore these for c functions, and do the right thing for
      *  postquel functions.
@@ -893,4 +904,39 @@ setup_base_tlist(typeid)
 
     tle = (LispValue)MakeList(resnode, varnode, -1);
     return (MakeList(tle, -1));
+}
+
+/*
+** make_arguments --
+**   Given the number and types of arguments to a function, and the 
+**   actual arguments and argument types, do the necessary typecasting.
+*/
+void
+make_arguments(nargs, fargs, input_typeids, function_typeids)
+     int nargs;
+     List fargs;
+     ObjectId *input_typeids;
+     ObjectId *function_typeids;
+{
+    /*
+     * there are two ways an input typeid can differ from a function typeid :
+     * either the input type inherits the function type, so no typecasting is
+     * necessary, or the input type can be typecast into the function type.
+     * right now, we only typecast unknowns, and that is all we check for.
+     */
+
+    List current_fargs;
+    LispValue current_arg;
+    int i;
+
+    for (i=0, current_fargs = fargs;
+	 i<nargs;
+	 i++, current_fargs = CDR(current_fargs)) {
+	if (input_typeids[i] == UNKNOWNOID) {
+	    rplaca(current_fargs,
+		   lispCons(lispInteger(function_typeids[i]),
+			    parser_typecast2(CAR(current_fargs),
+					 get_id_type(function_typeids[i]))));
+	}
+    }
 }
