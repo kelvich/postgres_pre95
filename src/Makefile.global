@@ -49,8 +49,8 @@ TOOLSLIBDIR= /usr/local/lib
 # the name of the port.
 
 #  The name of the port.  Valid choices are:
-#	ultrix4	-	ultrix 4.?
-#	sparc	-	SUN sparc
+#	ultrix4	-	DEC MIPS on Ultrix 4.2 or 4.3
+#	sparc	-	SUN SPARC on SunOS 4.1.2 or 4.1.3
 #  or add your own - :)
 #
 #PORTNAME=	sparc
@@ -58,11 +58,12 @@ PORTNAME=	ultrix4
 
 #
 # POSTGRESLOGIN is the login name of the user who gets special
-# privilige over the databases.  By default it is "postgres", but
+# privileges within the database.  By default it is "postgres", but
 # you can change it to any existing login name (such as your own 
 # login if you are compiling a private version or don't have root
 # access).
-POSTGRESLOGIN= postgres
+#
+POSTGRESLOGIN=	postgres
 
 #
 # For convenience, POSTGRESDIR is where DATADIR, BINDIR, and LIBDIR 
@@ -71,9 +72,11 @@ POSTGRESLOGIN= postgres
 # different for the postgres development team and sequoia users.
 #
 POSTGRESDIR=	/private/devel/postgres
+
 #
-# Where the database lives (changeable at run time by setting PGDATA
-# in your environment)
+# DATADIR specifies where the postmaster expects to find its database.
+# This may be overridden by command line options or the PGDATA environment
+# variable.
 #
 DATADIR=	${POSTGRESDIR}/data
 
@@ -85,102 +88,97 @@ BINDIR=		${POSTGRESDIR}/bin
 
 #
 # Where libpq.a gets installed.  You must put it where your loader will
-# look for it if you wish to use the -lpq.a convention.  Otherwise you
-# can just put the absolute pathname to the libraray at the end of your
-# compile line.
+# look for it if you wish to use the -lpq convention.  Otherwise you
+# can just put the absolute pathname to the library at the end of your
+# command line.
+#
 LIBDIR=		${POSTGRESDIR}/lib
 
 #
-# Where the man pages get installed.
+# Where the man pages (suitable for use with "man") get installed.
 #
 POSTMANDIR=	${POSTGRESDIR}/man
 
 #
-# Where the formatted documents get installed.
+# Where the formatted documents (e.g., the reference manual) get installed.
 #
 POSTDOCDIR=	${POSTGRESDIR}/doc
 
 #
-# Where the header files necessary to build frontend
-# programs get installed.
+# Where the header files necessary to build frontend programs get installed.
 #
 HEADERDIR=	${POSTGRESDIR}/include
-
-#
-# If you plan to use Kerberos for authentication.
-#
-# Comment out KRBVERS if you do not use Kerberos.
-# 	Set KRBVERS to "4" for Kerberos v4, "5" for Kerberos v5.
-#	XXX Edit the default Kerberos variables below!
-#KRBVERS=	5
-
-# Comment out USE_DLD if you do not use the GNU DLD package for
-# dynamic loading.
-#USE_DLD=
 
 #
 # == END OF NORMAL CONFIGURATION SECTION ==
 #
 
-.if (${PORTNAME} != "sparc")
-MACHINE!=	machine
-.else
-MACHINE=	sun
-.endif
-STRIP=
-
 #
 # FEATURES: 
-# To disable a feature, comment out the definition
+# To disable a feature, comment out the entire definition
 # (that is, prepend '#', don't set it to "0" or "no").
 #
 
 #
-# Man pages don't live with sources this release (coming soon)
+# Comment out USE_DLD if you do not use the GNU DLD package for
+# dynamic loading.
+#
+#	XXX DLD is currently only supported for the MIPS/Ultrix4 and
+#	    SPARC/SunOS4 ports!
+#
+#USE_DLD=
+
+#
+# The default bmake rules will strip binaries while installing them.
+# You almost certainly don't want to comment out or remove this line.
+#
+STRIP=
+
+#
+# Man pages don't live with sources this release (coming soon).
+# You almost certainly don't want to comment out or remove this line.
 #
 NOMAN=
 
 #
-# If this is set, then target "install" depends on "all", which
-# makes "make install" clutzy since it makes two passes over the
-# hierarchy, once to check "all", twice to do the install - but
-# some people like this.
+# If this is set, then target "install" depends on "all".
 #
 ALLINSTALL=
 
-# comment out CDEBUG to turn off debugging and sanity-checking
+#
+# Comment out CDEBUG to turn off debugging and sanity-checking.
+#
 #	XXX on MIPS, use -g3 if you want to compile with -O
-CDEBUG=		-g
+#
+CDEBUG= -g
 
-# comment out PROFILE to disable profiling
+#
+# Comment out PROFILE to disable profiling.
+#
 #	XXX define on MIPS if you want to be able to use pixie.
 #	    note that this disables dynamic loading!
+#
 #PROFILE=
 
 #
-# Globally pass debugging flags
+# Comment out OLD_MKDIR if your mkdir has the -p flag.
 #
-.ifdef CDEBUG
-CFLAGS= ${CDEBUG}
-LDFLAGS= ${CDEBUG}
-.else
-CFLAGS= -O -DNO_ASSERT_CHECKING
+.if (${PORTNAME} == "sparc" || ${PORTNAME} == "linux")
+OLD_MKDIR=
 .endif
 
 #
-# Globally pass profiling flags
+# If you plan to use Kerberos for authentication...
 #
-.ifdef PROFILE
-CFLAGS+= ${PROFILE}
-LDFLAGS+= ${PROFILE}
-.endif
+# Comment out KRBVERS if you do not use Kerberos.
+# 	Set KRBVERS to "4" for Kerberos v4, "5" for Kerberos v5.
+#	XXX Edit the default Kerberos variables below!
+#
+#KRBVERS=	5
 
 #
-# Globally pass authentication system file locations
+# Globally pass Kerberos file locations.
 #	these are used in the postmaster and all libpq applications.
-#
-#	XXX they are also included in the backend due to modularization 
-#	    weirdness in libpq...sigh.
 #
 #	Adjust KRBINCS and KRBLIBS to reflect where you have Kerberos
 #		include files and libraries installed.
@@ -204,6 +202,22 @@ KRBLIBS+= -lkrb5 -lcrypto -lcom_err -lisode
 .endif
 
 #
+# Globally pass debugging/optimization/profiling flags based
+# on the options selected above.
+#
+.ifdef CDEBUG
+CFLAGS= ${CDEBUG}
+LDFLAGS= ${CDEBUG}
+.else
+CFLAGS= -O -DNO_ASSERT_CHECKING
+.endif
+
+.ifdef PROFILE
+CFLAGS+= ${PROFILE}
+LDFLAGS+= ${PROFILE}
+.endif
+
+#
 # Globally pass PORTNAME
 #
 CFLAGS+= -DPORTNAME=${PORTNAME} -DPORTNAME_${PORTNAME}
@@ -211,10 +225,21 @@ CFLAGS+= -DPORTNAME=${PORTNAME} -DPORTNAME_${PORTNAME}
 #
 # Globally pass the default TCP port for postmaster(1)
 #
-CFLAGS+= -DPOSTPORT=4321
+CFLAGS+= '-DPOSTPORT="4321"'
+
+#
+# == OTHER RANDOM CONFIGURATION ITEMS ==
+#
 
 #
 # Globally define SEQUOIA for development at Berkeley and other
 # Sequoia 2000 Project sites.
 #
 CFLAGS+= -DSEQUOIA
+
+#
+# Linux needs some extra compatibility help.
+#
+.if (${PORTNAME} == "linux")
+CFLAGS+= -D__USE_BSD_SIGNAL
+.endif
