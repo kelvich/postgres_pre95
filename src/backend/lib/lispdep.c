@@ -12,6 +12,7 @@
 
 #include "pg_lisp.h"
 #include "log.h"
+#include "atoms.h"
 
 /*
  * 	Global declaration for LispNil.
@@ -92,13 +93,6 @@ CInteger(lval)
   elog (WARN,"error : bogus integer");
   return(0);
 }
-
-typedef struct ScanKeyword {
-	char	*name;
-	int	value;
-} ScanKeyword;
-
-extern ScanKeyword *ScanKeywordLookup();
 
 LispValue
 lispAtom(atomName)
@@ -219,7 +213,6 @@ quote(lispObject)
  */
 #define length_of(byte_array)	(sizeof(byte_array) / sizeof((byte_array)[0]))
 
-	extern ScanKeyword ScanKeywords[];
 void 
 lispDisplay(lispObject,iscdr)
 	LispValue	lispObject;
