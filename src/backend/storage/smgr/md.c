@@ -405,7 +405,7 @@ mdcommit()
 
     for (i = 0; i < Nfds; i++) {
 	if (Md_fdvec[i] == MDFD_DIRTY) {
-	    if (FileSync(Md_fdvec[i]) < 0)
+	    if (FileSync(i) < 0)
 		return (SM_FAIL);
 
 	    Md_fdvec[i] = MDFD_CLEAN;
