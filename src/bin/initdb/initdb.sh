@@ -139,7 +139,14 @@ then
     if (test $noclean -eq 0)
     then
 	    echo "$CMDNAME: cleaning up."
-            rm -rf $PGDATA
+	    cd $PGDATA
+	    for i in *
+	    do
+		if [ $i != "files" ]
+		then
+			/bin/rm -rf $i
+		fi
+	    done
     else
 	    echo "$CMDNAME: cleanup not done (noclean mode set)."
     fi
@@ -156,7 +163,14 @@ then
     if (test $noclean -eq 0)
     then
 	    echo "$CMDNAME: cleaning up."
-            rm -rf $PGDATA
+	    cd $PGDATA
+	    for i in *
+	    do
+		if [ $i != "files" ]
+		then
+			/bin/rm -rf $i
+		fi
+	    done
     else
 	    echo "$CMDNAME: cleanup not done (noclean mode set)."
     fi
