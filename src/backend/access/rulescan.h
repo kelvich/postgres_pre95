@@ -90,6 +90,16 @@
  *	the stubs of a relation have been updated.
  *	This only happens when we run "rule plans" that update
  *	rule locks and/or rule stubs.
+ *
+ * ignoreTupleLocks: If true, then ignore all the tuple level locks
+ *	we'll find in the tuples of this relation.
+ *	This is more or less a hack for "pg_class".
+ *	Currently we store the relation level locks in the appropriate
+ *	tuple of "pg_class". But as the rule manager must not confuse
+ *	these locks with tuple level locks of rules defined on "pg_class",
+ *	we set this flag whenever the relation we scan is "pg_class".
+ *	That of course means that we can not define rules (that use tuple
+ *	level locks) on "pg_class", but that's OK....
  */
 
 #include "rules/prs2stub.h"
@@ -130,6 +140,7 @@ typedef struct RelationRuleInfoData {
     RuleLock relationLocks;
     Prs2Stub relationStubs;
     bool relationStubsHaveChanged;
+    bool ignoreTupleLocks;
 } RelationRuleInfoData;
 
 typedef RelationRuleInfoData *RelationRuleInfo;
