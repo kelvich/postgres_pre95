@@ -29,6 +29,7 @@
  **********************************************************************/
 
 #include "c.h"
+#include <strings.h>
 #include "catalog_utils.h"
 #include "log.h"
 #include "palloc.h"
@@ -43,6 +44,9 @@ extern LispValue new_filestr();
 extern LispValue parser_typecast();
 extern LispValue make_targetlist_expr();
 extern Relation amopenr();
+extern List MakeList();
+extern List FlattenRelationList();
+
 bool CurrentWasUsed = false;
 bool NewWasUsed = false;
 
@@ -74,8 +78,7 @@ YYSTYPE p_target,
         p_root,
         p_priority,
         p_ruleinfo;
-YYSTYPE	       p_trange,
-	       p_rtable,
+YYSTYPE	       p_rtable,
                p_target_resnos;
 
 static int p_numlevels,p_last_resno;
@@ -108,7 +111,8 @@ static bool QueryIsRule = false;
 /* add tokens here */
 
 %token   	INHERITANCE VERSION CURRENT NEW THEN DO INSTEAD VIEW
-		REWRITE P_TUPLE TYPECAST
+		REWRITE P_TUPLE TYPECAST P_FUNCTION C_FUNCTION C_FN
+		POSTQUEL RELATION RETURNS
 
 /* precedence */
 %nonassoc Op
@@ -141,7 +145,7 @@ query:
 
 stmt :
 	  AttributeAddStmt
-	| Attachas attach_args /* what are the args ? */
+	| ATTACH_AS attach_args /* what are the args ? */
 	| ClosePortalStmt
 	| ClusterStmt
 	| CopyStmt
@@ -152,6 +156,7 @@ stmt :
 	| IndexStmt
 	| MergeStmt
 	| MoveStmt
+	| ProcedureStmt
 	| PurgeStmt			
 	| RemoveOperatorStmt
 	| RemoveStmt
@@ -162,6 +167,7 @@ stmt :
   	| ViewStmt
 	;
 
+
  /**********************************************************************
 
 	QUERY :
@@ -171,10 +177,10 @@ stmt :
 
   **********************************************************************/
 AttributeAddStmt:
-	  Addattr '(' var_defs ')' TO relation_name
+	  ADD_ATTR '(' var_defs ')' TO relation_name
 		{
-		     $6 = lispCons( $6 , $3);
-		     $$ = lispCons( $1 , $6);
+		     $$ = lispCons( $6 , $3);
+		     $$ = lispCons( KW(addattr) , $$);
 		}
 	;
 
@@ -187,8 +193,9 @@ AttributeAddStmt:
 
    **********************************************************************/
 ClosePortalStmt:
-	  Close opt_id			
-		{ $$ = lispCons ( $1 , lispCons ( $2 , LispNil )) ; }
+	  CLOSE opt_id	
+		{  $$ = MakeList ( KW(close), $2, -1 ); }
+
 	;
 
  /**********************************************************************
@@ -200,7 +207,7 @@ ClosePortalStmt:
 
   **********************************************************************/
 ClusterStmt:
-	  Cluster Relation ON index_name OptUseOp
+	  CLUSTER Relation ON index_name OptUseOp
   		{ elog(WARN,"cluster statement unimplemented in version 2"); }
 	;
 
@@ -220,12 +227,12 @@ ClusterStmt:
   **********************************************************************/
 
 CopyStmt:
-	  Copy copy_type copy_null 
+	  COPY copy_type copy_null 
 	  relation_name '(' copy_list ')' copy_dirn file_name copy_map
 	
 		{
 		    LispValue temp;
-		    $$ = lispCons($1,LispNil);
+		    $$ = lispCons( KW(copy), LispNil);
 		    $4 = lispCons($4,LispNil);
 		    $4 = nappend1($4,$2);
 		    $4 = nappend1($4,$3);
@@ -261,7 +268,7 @@ copy_null:
 
 copy_type:
 	/*EMPTY*/				{ NULLTREE }
-	| Binary
+	| BINARY				{ $$ = KW(binary); }
 	;
 
 copy_list:
@@ -305,31 +312,30 @@ copy_char:
   ************************************************************/
 
 CreateStmt:
-	  Create relation_name '(' opt_var_defs ')' 
+	  CREATE relation_name '(' opt_var_defs ')' 
 	  OptKeyPhrase OptInherit OptIndexable OptArchiveType
 		{
-			LispValue temp = LispNil;
 
-			$9 = lispCons ( $9, LispNil);
-			$8 = lispCons ( $8, $9 );
-			$7 = lispCons ( $7, $8 );
-			$6 = lispCons ( $6, $7 );
+		     LispValue temp = LispNil;
 
-			$2 = lispCons ( $2, LispNil );
-			$$ = lispCons ( $1, $2 );
-
-			$$ = nappend1 ( $$, $6 );
-			temp = $$;
-			while (temp != LispNil && CDR(temp) != LispNil) 
-			  temp = CDR(temp);
-			CDR(temp) = $4;
-			/* $$ = nappend1 ( $$, $4 ); */
+		     $9 = lispCons ( $9, LispNil);
+		     $8 = lispCons ( $8, $9 );
+		     $7 = lispCons ( $7, $8 );
+		     $6 = lispCons ( $6, $7 );
+		     
+		     $2 = lispCons ( $2, LispNil );
+		     $$ = lispCons ( KW(create), $2 );
+		     
+		     $$ = nappend1 ( $$, $6 );
+		     temp = $$;
+		     while (temp != LispNil && CDR(temp) != LispNil) 
+		       temp = CDR(temp);
+		     CDR(temp) = $4;
+		     /* $$ = nappend1 ( $$, $4 ); */
 		}
-	| Create Version relation_name FROM Relation
+	| CREATE NEWVERSION relation_name FROM Relation
 		{
-		    $3 = lispCons( $3, LispNil);
-		    $3 = nappend1( $3, $5 );
-		    $$ = lispCons( $2, $3 );
+		    $$ = MakeList ( KW(version), $3, $5 );
 		}
 	;
 
@@ -344,7 +350,8 @@ dom_name_list:		name_list;
 
 OptArchiveType:
 	/*EMPTY*/				{ NULLTREE }
-	| Archive '=' archive_type		{$$ = lispCons ($1 , $3); }
+	| ARCHIVE '=' archive_type		
+		{ $$ = lispCons (KW(archive) , $3); }
 	;
 
 archive_type:	  
@@ -355,14 +362,19 @@ archive_type:
 
 OptInherit:
 	  /*EMPTY */				{ NULLTREE }
-	| Inherits '(' relation_name_list ')'	{ $$ = lispCons ( $1, $3 ) ; }
+	| INHERITS '(' relation_name_list ')'	
+		{ 
+		    $$ = lispCons ( KW(inherits), $3 ) ; 
+		}
 	;
 
 
 OptKeyPhrase :
 	  /* NULL */				{ NULLTREE }
-	| Key '(' key_list ')'			{ $1 = lispCons ( $1, LispNil);
-						  $$ = nappend1 ($1, $3 ); }
+	| Key '(' key_list ')'			
+		{ 
+		    $$ = MakeList ( $1, $3, -1 );
+		}
 	;
 
 key_list:
@@ -385,17 +397,23 @@ key:
 
   **********************************************************************/
 DefineStmt:
-	  Define def_type def_name definition opt_def_args
+	  Define def_type def_rest
 		{
-		   if ( $5 != LispNil ) 
-			$4 = nappend1 ($4, $5 );
-		   $3 = lispCons ($3 , $4 );
 		   $2 = lispCons ($2 , $3 ); 
 		   $$ = lispCons ($1 , $2 ); 
 		}
 	;
 
-def_type:   Function | Operator | Type	;
+def_rest:
+	  def_name definition opt_def_args
+		{
+		   if ( $3 != LispNil ) 
+			$2 = nappend1 ($2, $2 );
+		   $$ = lispCons ($1 , $2 );
+		}
+	;
+
+def_type:   Operator | Type	;
 
 def_name:  Id | Op ;
 
@@ -440,7 +458,8 @@ def_list:
   **********************************************************************/
 
 DestroyStmt:
-	  Destroy relation_name_list		{ $$ = lispCons($1,$2) ; }
+	  DESTROY relation_name_list		
+		{ $$ = lispCons( KW(destroy) ,$2) ; }
 	;
 
  /**********************************************************************
@@ -454,10 +473,7 @@ DestroyStmt:
 FetchStmt:
 	  FETCH opt_direction fetch_how_many opt_portal_name
 		{
-		    $3 = lispCons ( $3 , LispNil );
-		    $2 = lispCons ( $2 , $3 );
-		    $4 = lispCons ( $4 , $2 );
-		    $$ = lispCons ( KW(fetch) , $4 );
+		    $$ = MakeList ( KW(fetch), $4, $2, $3, -1 );
 	        }
 	;
 
@@ -479,10 +495,7 @@ fetch_how_many:
 MoveStmt:
 	  MOVE opt_direction opt_move_where opt_portal_name
 		{ 
-		    $3 = lispCons ( $3 , LispNil );
-		    $2 = lispCons ( $2 , $3 );
-		    $4 = lispCons ( $4 , $2 );
-		    $$ = lispCons ( KW(move) , $4 );
+		    $$ = MakeList ( KW(move), $4, $2, $3, -1 );
 		}
 	;
 
@@ -498,7 +511,7 @@ opt_move_where:
 	/*EMPTY*/				{ NULLTREE }
 	| NumConst				/* $$ = $1 */
 	| TO NumConst				
-		{ $$ = lispCons ( KW(to) , lispCons( $2, LispNil )); }
+		{ $$ = MakeList ( KW(to), $2, -1 ); }
 	| TO record_qual			
 		{ $$ = lispString("record quals unimplemented") ; }
 	;
@@ -528,13 +541,13 @@ IndexStmt:
 		    /* should check that access_method is valid,
 		       etc ... but doesn't */
 
-		    $12 = lispCons($12,LispNil);
-		    $10 = lispCons($10,$12);
-		    $8  = lispCons($8,$10);
-		    $4  = lispCons($4,$8);
-		    $6  = lispCons($6,$4);
-		    $3  = lispCons($3,$6);
-		    $$  = lispCons($1,$3);
+		    $$ = lispCons($12,LispNil);
+		    $$  = lispCons($10,$$);
+		    $$  = lispCons($8,$$);
+		    $$  = lispCons($4,$$);
+		    $$  = lispCons($6,$$);
+		    $$  = lispCons(KW(index),$$);
+		    $$  = lispCons(KW(define),$$);
 		}
 	;
 
@@ -551,8 +564,60 @@ MergeStmt:
 	MERGE Relation INTO relation_name
 		{ 
 		    elog(NOTICE, "merge is unsupported in version 1");
-		    $$ = lispCons($1,
-		                  lispCons($2,lispCons($4,LispNil))) ;
+		    $$ = MakeList ( $1, $2, $4, -1 );
+		}
+	;
+
+ /************************************************************
+	QUERY:
+		define c function ...
+		define postquel function <func-name> '(' rel-name ')'
+		returns <ret-type> is <postquel-optimizable-stmt>
+	TREE:
+		(define cfunction) ... XXX - document this
+
+		postquel function:
+
+		(define pfunction "func-name" "rel-name" <ret-type-oid>
+		 "postquel-optimizable-stmt")
+
+  ************************************************************/
+ 
+ProcedureStmt:
+
+	DEFINE C_FN FUNCTION def_rest
+		{
+		   $$ = lispCons (KW(cfunction) , $4 ); 
+		   $$ = lispCons ($1 , $$ ); 
+		}
+	| DEFINE POSTQUEL FUNCTION name '(' relation_name ')' 
+    	  RETURNS relation_name IS
+		{
+		   extern char *Ch;
+		   char *bogus = NULL;
+		   int x = strlen(Ch);
+
+		   QueryIsRule = true;
+		   NewOrCurrentIsReally = $6;
+		   ADD_TO_RT ( MakeRangeTableEntry ( CString($6), 
+						    LispNil,
+						    "*CURRENT*" ) );
+		   ADD_TO_RT ( MakeRangeTableEntry ( CString($6), 
+						    LispNil,
+						    "*NEW*" ));
+		   p_last_resno = 4;
+		   bogus = palloc(x+1);
+		   bogus = strcpy ( bogus, Ch );
+		   $10 = lispString(bogus);
+		}
+	  OptimizableStmt
+		{
+		   $$ = lispCons ( $10, LispNil );
+		   $$ = lispCons ( $6 , $$ );
+		   $$ = lispCons ( $4, $$ );
+		   $$ = lispCons ( KW(pfunction), $$ );
+		   $$ = lispCons ($1, $$ );
+		   QueryIsRule = false;
 		}
 	;
 
@@ -569,11 +634,11 @@ MergeStmt:
   **********************************************************************/
 
 PurgeStmt:
-	  Purge relation_name purge_quals
+	  PURGE relation_name purge_quals
 		{ 
-		  $$=nappend1(LispNil,$1); 
-		  nappend1($$,$2);
-		  nappend1($$,$3);
+		  $$ = lispCons ( $3, LispNil );
+		  $$ = lispCons ( $2, $$ );
+		  $$ = lispCons ( KW(purge), $$ );
 		}
 	;
 
@@ -581,19 +646,17 @@ purge_quals:
 	/*EMPTY*/
 		{$$=lispList();}
 	| before_clause
-		{$$=nappend1(LispNil,$1);}
+		{ $$ = lispCons ( $1, LispNil ); }
 	| after_clause
-		{$$=nappend1(LispNil,$1);}
+		{ $$ = lispCons ( $1, LispNil ); }
 	| before_clause after_clause
-		{$$=nappend1(LispNil,$1);$$=nappend1($$,$2);}
+		{ $$ = MakeList ( $1, $2 , -1 ); }
 	| after_clause before_clause
-		{$$ = nappend1(LispNil,$2);$$=nappend1($$,$1);}
+		{ $$ = MakeList ( $2, $1, -1 ); }
 	;
 
-before_clause:	BEFORE date		{ $$ = lispCons($1,
-					   lispCons($2,LispNil)); } ;
-after_clause:	AFTER date		{ $$ = lispCons($1,
-						lispCons($2,LispNil)); } ;
+before_clause:	BEFORE date		{ $$ = MakeList ( KW(before),$2,-1); }
+after_clause:	AFTER date		{ $$ = MakeList ( KW(after),$2,-1 ); }
 
  /**********************************************************************
 
@@ -611,11 +674,9 @@ after_clause:	AFTER date		{ $$ = lispCons($1,
   **********************************************************************/
 
 RemoveStmt:
-	Remove remove_type name
+	REMOVE remove_type name
 		{
-		    $3=lispCons($3,LispNil);
-		    $2=lispCons($2,$3);
-		    $$=lispCons($1,$2);
+		    $$ = MakeList ( KW(remove), $2, $3 , -1 ); 
 		}
 	;
 
@@ -623,11 +684,11 @@ remove_type:
 	  Function | Rule | Type | Index ;
 
 RemoveOperatorStmt:
-	Remove Operator Op '(' remove_operator ')'
+	REMOVE Operator Op '(' remove_operator ')'
 		{
-		    $3  = lispCons($3, $5);
-		    $2  = lispCons($2, lispCons($3, LispNil));
-		    $$  = lispCons($1, $2);
+		    $$  = lispCons($3, $5);
+		    $$  = lispCons($2, lispCons($$, LispNil));
+		    $$  = lispCons( KW(remove) , $$);
 		}
 	;
 
@@ -635,7 +696,7 @@ remove_operator:
 	  name
 		{ $$ = lispCons($1, LispNil); }
 	| name ',' name
-		{ $$ = lispCons($1, lispCons($3, LispNil)); }
+		{ $$ = MakeList ( $1, $3, -1 ); }
 	;
 
  /**********************************************************************
@@ -650,16 +711,13 @@ remove_operator:
 RenameStmt :
 	  RENAME attribute IN relation_name TO attribute
 		{ 
-		    $2 = lispCons ($2 , lispCons ($6, LispNil ));
-		    $4 = lispCons ($4 , $2);
-		    $$ = lispCons ($1 , 
-				   lispCons(lispString("ATTRIBUTE") ,$4 ));
+		    $$ = MakeList ( KW(rename), lispString("ATTRIBUTE"),
+				    $4, $2, $6, -1 );
 		}
 	| RENAME relation_name TO relation_name
                 {
-		    $2 = lispCons ($2, lispCons ($4, LispNil));
-		    $$ = lispCons ($1,
-				   lispCons (lispString ("RELATION") ,$2 ));
+		    $$ = MakeList ( KW(rename), lispString("RELATION"),
+				    $2, $4, -1 );
 		}
 	;
 
@@ -687,12 +745,20 @@ RuleStmt:
 		}
 	RuleBody
 		{
+		    $$ = nappend1 ( $8, $5 ); 
+	 	    $$ = lispCons ( $4, $$ );
+		    $$ = lispCons ( $3, $$ );
 
-		    $8 = nappend1 ( $8, $5 );
-	 	    $4 = lispCons ( $4, $8 );
-	 	    $3 = lispCons ( $3, $4 );
-		    $2 = lispCons ( $2, $3 );	
-		    $$ = lispCons ( $1, $2 );	
+		    if ( CAtom($2) == P_TUPLE ) {
+			/* XXX - do the bogus fix to get param nodes
+			         to replace varnodes that have current 
+				 in them */
+		    } else {
+		    }
+
+		    $$ = lispCons ( $2, $$ );	
+		    $$ = lispCons ( KW(define), $$ );	
+		    
 		}
 	;
 
@@ -701,102 +767,63 @@ newruleTag: P_TUPLE
 	| REWRITE 
 		{ $$ = KW(rewrite); }
 	| /* EMPTY */
-		{ $$ = KW(tuple); }
+		{ $$ = KW(rewrite); }
+	;
+
+OptStmtList:
+	  Id
+		{ 
+		  if ( ! strcmp(CString($1),"nothing") )
+			$$ = LispNil;
+		  else
+			elog(WARN,"bad rule action %s", CString($1));
+		}
+	| OptimizableStmt
+		{ $$ = lispCons ( $1, LispNil ); }
+	| '{' OptStmtBlock '}'
+        ;
+
+OptStmtBlock:
+	  OptimizableStmt 
+		{ ELEMENT ;}
+	| OptStmtBlock OptimizableStmt
+		{ INC_LIST ; }
 	;
 
 RuleBody: 
-	ON event TO event_object
+	ON event TO 
+	event_object 
 	{ 
+	    /* XXX - figure out how to add a from_clause into this
+	             rule thing properly.  Spyros/Greg's bogus
+		     fix really breaks things, so I had to axe it. */
+
 	    NewOrCurrentIsReally = $4;
+	    ADD_TO_RT ( MakeRangeTableEntry ( CString(CAR($4)), 
+					     LispNil,
+					     "*CURRENT*" ) );
+	    ADD_TO_RT ( MakeRangeTableEntry ( CString(CAR($4)), 
+					     LispNil,
+					     "*NEW*" ));
 	    QueryIsRule = true;
 	} 
-	opt_qual DO opt_instead 
-	OptimizableStmt
+	where_clause
+	DO opt_instead 
+	OptStmtList
 	{
-	    $$ = lispCons($9,LispNil);		/* action */
-	    $$ = lispCons($8,$$);		/* instead */
-	    $$ = lispCons($6,$$);		/* event-qual */
-	    $$ = lispCons($4,$$);		/* event-object */
-	    $$ = lispCons($2,$$);		/* event-type */
+	    $$ = MakeList ( $2, $4, $6, $8, $9, -1 );
+	    /* modify the rangetable entry for "current" and "new" */
 	}
 	;
 
 event_object: 
 	relation_name '.' attribute
-		{ $$ = lispCons ( $1, lispCons ( $3, LispNil)) ; }
+		{ $$ = MakeList ( $1, $3, -1 ); }
 	| relation_name
 		{ $$ = lispCons ( $1, LispNil ); }
   	;
 event:
   	RETRIEVE | REPLACE | DELETE | APPEND ;
-
-opt_qual:
-	{ 
-	    LispValue temp;
-	    /*
-	     * Save the parser state so that this qualification
-	     * creates its own range table etc.
-	     * But as it is a rule query, we allow 'current' or 'new'
-	     */
-	    SaveParserState();
-	    QueryIsRule = true;
-	    
-	}
-	opt_from_clause where_clause
-		{
-		    /*
-		     * create a parse tree correpsonding to the
-		     * query :
-		     *		retrieve (x=1)
-		     *		from <from_clause>
-		     *		where <qual>
-		     */
-		    LispValue root;
-		    LispValue targetList;
-		    LispValue targetListExpr;
-		    LispValue qual;
-
-		    StripRangeTable();
-
-		    /*
-		     * create the dummy target list "(x=1)"
-		     */
-		    targetListExpr = make_targetlist_expr(
-					    lispString("x"),
-					    make_const(lispInteger(1)));
-		    targetList = lispCons(targetListExpr, LispNil);
-
-		    /*
-		     * create the parse tree for this fake retrieve
-		     * statement
-		     */
-		    root = MakeRoot(NumLevels,
-			    KW(retrieve),
-			    LispNil,	/* result */
-			    p_rtable,
-			    p_priority,
-			    p_ruleinfo,
-			    LispNil,	/* unique */
-			    LispNil,	/* sort by */
-			    targetList);
-		    qual = $3;
-		    $$ = lispCons(root, LispNil);
-		    $$ = nappend1($$, targetList);
-		    $$ = nappend1($$, qual);
-		    /*
-		     * Now restore the parser state
-		     */
-		    RestoreParserState();
-		}
-	| /* empty */	{ NULLTREE ; }
-	;
-
-opt_from_clause:
-	FROM from_list
-		{
-		    $$ = $2;
-		}
-	| /* empty */	{ NULLTREE ; }
 
 opt_instead:
   	INSTEAD				{ $$ = lispInteger((int)true); }
@@ -846,7 +873,7 @@ ViewStmt:
 		{ 
 		    $3 = lispCons ( $3 , $4 );
 		    $2 = lispCons ( KW(view) , $3 );
-		    $$ = lispCons ( $1 , $2 );
+		    $$ = lispCons ( KW(define) , $2 );
 		}
 	;
 
@@ -1146,7 +1173,8 @@ sortby:
 
 opt_archive:
 		{ NULLTREE }
-	| Archive
+	| ARCHIVE 
+		{ $$ = KW(archive); }
 	;
 
 index_list:
@@ -1159,7 +1187,7 @@ index_elem:
 		{ $$ = nappend1(LispNil,$1); nappend1($$,$2);}
 	;
 opt_class:
-	/* empty */				{ NULLTREE ; }
+	  /* empty */				{ NULLTREE; }
 	| class
 	| With class
 		{$$=$2;}
@@ -1191,11 +1219,7 @@ name_list:
   **********************************************************************/
 with_clause:
 	/* NULL */				{ NULLTREE }
-	| With '(' param_list ')'		
-		{ 
-			$$ = lispCons( $1 , LispNil ); 
-			$$ = nappend1( $$ , $3 );
-		}
+	| With '(' param_list ')'		{ $$ = MakeList ( $1,$3,-1 ); }
 	;
 
 param_list: 		
@@ -1205,7 +1229,7 @@ param_list:
 
 param: 			
 	  Id '=' string 
-		{ $$ = lispCons ( $1 , lispCons ($3 , LispNil ));  }
+		{ $$ = MakeList ( $1, $3, -1 ); }
 	;
 
 from_clause:
@@ -1225,30 +1249,11 @@ from_list:
 	;
 
 from_val:
-	  var_list IN from_rel_name
+	  var_list IN Relation
 		{
-			/* Convert "p, p1 in proc" to 
-			   "p in proc, p1 in proc" */
-			LispValue temp,temp2,temp3;
-			LispValue frelname;
-
-			temp = p_rtable;
-			while(! lispNullp(CDR (temp))) {
-				temp = CDR(temp); 
-			}
-			frelname = CAR(CDR(CAR(temp)));
-			/*printf("from relname = %s\n",CString(frelname));
-			fflush(stdout);*/
-			CAR(CAR(temp)) = CAR($1); 
-
-			temp2 = CDR($1);
-			while(! lispNullp(temp2)) {
-				temp3 = lispCons(CAR(temp2),CDR(CAR(temp)));
-				ADD_TO_RT(temp3);
-				temp2 = CDR(temp2);
-			}
-
-		}
+		    extern List MakeFromClause ();
+		    $$ = MakeFromClause ( $1, $3 );
+		}	
 	;
 var_list:
 	  var_list ',' var_name			{ INC_LIST ;  }
@@ -1258,7 +1263,7 @@ var_list:
 where_clause:
 	/* empty - no qualifiers */
 	        { NULLTREE } 
-	| Where boolexpr
+	| WHERE boolexpr
 		{ 
 		  /*printf("now processing where_clause\n");*/
 		  fflush(stdout);
@@ -1268,10 +1273,9 @@ opt_portal:
   	/* common to retrieve, execute */
 	/*EMPTY*/
 		{ NULLTREE }
-	| Portal name 
+	| PORTAL name 
 		{
-		    $2=lispCons($2,LispNil);
-		    $$=lispCons(KW(portal),$2);
+		    $$ = MakeList ( KW(portal), $2, -1 ); 
 		}
 	;
 
@@ -1281,22 +1285,53 @@ OptUseOp:
 	| USING '>'			{ $$ = lispString(">"); }
 	;
 
-from_rel_name:
-	  Relation	
-	| '<' Iconst '>'		{ $$ = $2; } 
-	;
-
 Relation:
-	  relation_name opt_time_range '*'
+	  relation_expr
+		{
+		    $$ = FlattenRelationList ( $1 );
+		}
+	;
+relation_expr:
+	  relation_name
+  		{ 
+		    /* normal relations */
+		    $$ = $1;
+		}
+	| relation_expr '|' relation_expr %prec Op
+		{ 
+		    /* union'ed relations */
+		    elog ( NOTICE, "now consing the union'ed relations");
+		    $$ = lispCons ( $1, $3 );
+		}
+	| relation_expr '*'
+		{ 
+		    /* inheiritance query */
+		    $$ = lispCons ( lispString("*"), $1 ); 
+		}
+	| relation_expr time_range %prec UMINUS
+		{ 
+		    /* time-qualified query */
+		    $$ = lispCons ( $2, $1 ); 
+		}
+	| '(' relation_expr ')'
+		{ 
+		    elog( NOTICE, "now reducing by parentheses");
+		    $$ = $2; 
+		}
+	;
+
+ /* 
+old_Relation:
+	  relation_name time_range '*'
 		{
 		    List options = LispNil;
 
-		    /* printf("timerange flag = %d",(int)$2); */
+		    #* printf("timerange flag = %d",(int)$2); *#
 		    
-		    if ($3 != LispNil )	/* inheritance query*/
-		      options = lispCons(lispAtom("inherits"),options);
+		    if ($3 != LispNil )	#* inheritance query*#
+		      options = lispCons(KW(inherits),options);
 
-		    if ($2 != LispNil ) /* time range query */
+		    if ($2 != LispNil ) #* time range query *#
 		      options = lispCons($2, options );
 
 		    if( !RangeTablePosn(CString($1),options ))
@@ -1304,13 +1339,13 @@ Relation:
 						      options,
 						      CString($1) ));
 		}
-	  | relation_name opt_time_range  
+	  | relation_name time_range  
 		{
 		    List options = LispNil;
 
-		    /* printf("timerange flag = %d",(int)$2); */
+		    #* printf("timerange flag = %d",(int)$2); *#
 		    
-		    if ($2 != LispNil ) /* time range query */
+		    if ($2 != LispNil ) #* time range query *#
 		      options = lispCons($2, options );
 
 		    if( !RangeTablePosn(CString($1),options ))
@@ -1319,26 +1354,20 @@ Relation:
 						      CString($1) ));
 		}
 	;
+ */
 
-opt_time_range:
+time_range:
 	  '[' opt_range_start ',' opt_range_end ']'
         	{ 
 		    /* printf ("time range\n");fflush(stdout); */
 		    $$ = MakeTimeRange($2,$4,1); 
-		    p_trange = $$ ; 
 		}
 	| '[' date ']'
 		{ 
 		    /* printf("snapshot\n"); fflush(stdout); */
 		    $$ = MakeTimeRange($2,LispNil,0); 
-		    p_trange = $$ ; 
 		}
-	| /*EMPTY*/
-		{ 
-		    $$ = lispInteger(0); 
-		    p_trange = $$; 
-		}
-	;
+        ;
 
 opt_range_start:
 	  /* no date, default to nil */
@@ -1362,16 +1391,13 @@ opt_range_end:
 
 boolexpr:
 	  b_expr AND boolexpr
-		{ $$ = lispCons ( lispInteger(AND) , lispCons($1 , 
-		  lispCons($3 ,LispNil ))) ; }
+		{ $$ = MakeList ( lispInteger(AND) , $1 , $3 , -1 ); }
 	| b_expr OR boolexpr
-		{ $$ = lispCons ( lispInteger(OR) , lispCons($1 , 
-		  lispCons ( $3 , LispNil))); }
+		{ $$ = MakeList ( lispInteger(OR) , $1, $3, -1 ); }
 	| b_expr
 		{ $$ = $1;}
 	| NOT b_expr
-		{ $$ = lispCons ( lispInteger(NOT) , 
-		       lispCons ($2, LispNil  )); }
+		{ $$ = MakeList ( lispInteger(NOT) , $2, -1 ); }
 	;
 
 record_qual:
@@ -1431,7 +1457,7 @@ Typename:
 var_def: 	
 	  Id '=' Typename 
 		{ 
-		    $$ = lispCons($1,lispCons($3,LispNil));
+		    $$ = MakeList($1,$3,-1);
 		}
 	;
 
@@ -1451,28 +1477,29 @@ opt_var_defs:
 
 b_expr:	a_expr { $$ = CDR($1) ; } /* necessary to strip the addnl type info 
 				     XXX - check that it is boolean */
-
+ /*
 array_attribute:
 	  attr
 		{
-		$$ = make_var ( CString(CAR ($1)) , CString(CDR($1)), 0);
+		$$ = make_var ( CString(CAR ($1)) , CString(CADR($1)));
 		}
 	| attr '[' Iconst ']'
 		{ 
 		     Var temp = (Var)NULL;
-		     $$ = (LispValue) make_var ( CString(CAR($1), CString(CDR($1)),
-								   CInteger($3)));
+		     temp = (Var)make_var ( CString(CAR($1)),
+				       CString(CADR($1)) );
+		     $$ = (LispValue)MakeArrayRef( temp , $3 );
 		}
+		*/
 a_expr:
 	  attr
 		{
 		    Var temp = (Var)NULL;
 		    temp =  (Var)CDR ( make_var ( CString(CAR ($1)) , 
-					    CString(CDR($1)) ));
+					    CString(CADR($1)) ));
 
-		    $$ = (LispValue) temp;
+		    $$ = (LispValue)temp;
 
-		    /*
 		    if (CurrentWasUsed) {
 			$$ = (LispValue)MakeParam ( PARAM_OLD , 
 						   get_varattno((Var)temp), 
@@ -1480,7 +1507,37 @@ a_expr:
 						   get_vartype((Var)temp));
 			CurrentWasUsed = false;
 		    }
-		    */
+
+                    if (NewWasUsed) {
+			$$ = (LispValue)MakeParam ( PARAM_NEW , 
+						   get_varattno((Var)temp), 
+						   CString(CDR($1)),
+						   get_vartype((Var)temp));
+			NewWasUsed = false;
+		    }
+
+		    $$ = lispCons ( lispInteger (get_vartype((Var)temp)),
+				    $$ );
+		}
+	| attr '(' expr_list ')'
+		{ 
+		    /* for now, ignore the expression list , ie assume none 
+		     * exists
+                     */
+		    Var temp = (Var)NULL;
+		    temp =  (Var)CDR ( make_var ( CString(CAR ($1)) , 
+					    CString(CADR($1)) ));
+
+		    $$ = (LispValue)temp;
+
+		    if (CurrentWasUsed) {
+			$$ = (LispValue)MakeParam ( PARAM_OLD , 
+						   get_varattno((Var)temp), 
+						   CString(CDR($1)),
+						   get_vartype((Var)temp));
+			CurrentWasUsed = false;
+		    }
+
                     if (NewWasUsed) {
 			$$ = (LispValue)MakeParam ( PARAM_NEW , 
 						   get_varattno((Var)temp), 
@@ -1494,16 +1551,16 @@ a_expr:
 		}
 	| attr '[' Iconst ']'
 		{ 
+		     Var temp = (Var)NULL;
 		     /* XXX - fix me after video demo */
-			 LispValue tmp = (LispValue) make_array_ref_var(CString(CAR($1)),
-                                                            CString(CDR($1)),
-                                                            CInteger($3));
-
-		     $$ = tmp; 
+		     temp = (Var)make_var ( CString(CAR($1)),
+				       CString(CADR($1)) );
+		     
+		     $$ = lispCons ( lispInteger ( 23 ),
+		     		MakeArrayRef( temp , $3 ));
 		}
 	| AexprConst		
 	| spec 
-	| AexprNewOrCurrent
 	| '-' a_expr %prec UMINUS
   		{ $$ = make_op(lispString("-"),$2, LispNil); }
 	| a_expr '+' a_expr
@@ -1530,30 +1587,12 @@ a_expr:
 	/* XXX Or other stuff.. */
 	| a_expr Op a_expr
 		{ $$ = make_op ( $2, $1 , $3 ); }
+	| relation_name
+		{ $$ = lispCons ( KW(relation), $1 ); }
 	| name '(' expr_list ')'
-		{ 
-		    extern Func MakeFunc();
-		    extern OID funcname_get_rettype();
-		    extern OID funcname_get_funcid();
-		    char *funcname = CString($1);
-		    OID rettype = (OID)0;
-		    OID funcid = (OID)0;
-		    Func funcnode = (Func)NULL;
-		    LispValue i = LispNil;
-
-		    funcid = funcname_get_funcid ( funcname );
-		    rettype = funcname_get_rettype ( funcname );
-
-		    if ( funcid != (OID)0 && rettype != (OID)0 ) {
-			funcnode = MakeFunc ( funcid , rettype , false );
-		    } else
-		      elog (WARN,"function %s does not exist",funcname);
-
-		    foreach ( i , $3 ) {
-			CAR(i) = CDR(CAR(i));
-		    }
-		    $$ = lispCons (lispInteger(rettype) ,
-				   lispCons ( funcnode , $3 ));
+		{
+			extern List ParseFunc();
+			$$ = ParseFunc ( CString ( $1 ), $3 ); 
 		}
 	;
 
@@ -1569,7 +1608,11 @@ attr:
 		      ADD_TO_RT( MakeRangeTableEntry (CString($1) ,
 						      LispNil, 
 						      CString($1)));
-		    $$ = lispCons ( $1 , $3 );
+		    $$ = MakeList ( $1 , $3 , -1 );
+		}
+	| attr '.' attribute
+		{
+		    $$ = nappend1 ( $1, $3 ); 
 		}
 	;
 
@@ -1579,7 +1622,7 @@ res_target_list:
 		{ p_target = nappend1(p_target,$3); $$ = p_target;}
 	| res_target_el 			
 		{ p_target = lispCons ($1,LispNil); $$ = p_target;}
-	| relation_name '.' All
+	| relation_name '.' ALL
 		{
 			LispValue temp = p_target;
 			INC_NUM_LEVELS(1);
@@ -1592,7 +1635,7 @@ res_target_list:
 			}
 			$$ = p_target;
 		}
-	| res_target_list ',' relation_name '.' All
+	| res_target_list ',' relation_name '.' ALL
 		{
 			LispValue temp = p_target;
 			if (ResdomNoIsAttrNo == true) {
@@ -1623,13 +1666,15 @@ res_target_el:
 		      Resdom resnode;
 		      int type_id, type_len;
 
-		      temp = make_var ( CString(CAR($1)) , CString(CDR($1)), 0);
+		      temp = make_var ( CString(CAR($1)) , CString(CADR($1)));
 		      type_id = CInteger(CAR(temp));
 		      type_len = tlen(get_id_type(type_id));
 		      resnode = MakeResdom ( p_last_resno++ ,
 						type_id, type_len, 
-						CString(CDR ( $1 )) , 0 , 0 );
+						CString(CAR(last ($1) ))
+					    , 0 , 0 );
 		      varnode = CDR(temp);
+		      set_vardotfields ( varnode , CDR(CDR($1)));
 		      $$ = lispCons(resnode,lispCons(varnode,LispNil));
 		}
 	;		 
@@ -1640,7 +1685,8 @@ opt_id:
 	;
 
 relation_name:
-	Id		/*$$=$1*/
+	SpecialRuleRelation
+	| Id		/* $$ = $1 */;
 	;
 
 access_method: 		Id 		/*$$=$1*/;
@@ -1656,6 +1702,7 @@ string: 		Id		/*$$=$1 Sconst ?*/;
 
 date:			Sconst		/*$$=$1*/;
 file_name:		SCONST		{$$ = new_filestr($1); };
+ /* adt_const:		Sconst		/*$$=$1*/;
 attach_args:		Sconst		/*$$=$1*/;
 			/* XXX should be converted by fmgr? */
 spec:
@@ -1667,40 +1714,6 @@ spec_tail:
 	  Iconst			/*$$ = $1*/
 	| '.' Id			{ $$ = $2 ; }
 	;
-
-AexprNewOrCurrent:
-	  NEW '.' attribute
-		{
-		    /*
-		     * We have to check if this is
-		     * a rule. If not then this is a syntax error!
-		     */
-		    if(!QueryIsRule) {
-			yyerror("\"new\" used in non-rule query");
-		    }
-		    /*
-		     * create the param node.
-		     */
-		    $$ = make_param(PARAM_NEW,
-				CString(CAR(NewOrCurrentIsReally)),
-				CString($3));
-		}
-	| CURRENT '.' attribute
-		{
-		    /*
-		     * We have to check if this is
-		     * a rule. If not then this is a syntax error!
-		     */
-		    if(!QueryIsRule) {
-			yyerror("\"current\" used in non-rule query");
-		    }
-		    /*
-		     * create the param node.
-		     */
-		    $$ = make_param(PARAM_OLD,
-				CString(CAR(NewOrCurrentIsReally)),
-				CString($3));
-		}
 
 AexprConst:
 	  Iconst			{ $$ = make_const ( $1 ) ; }
@@ -1721,35 +1734,37 @@ Sconst:		SCONST			{ $$ = yylval; }
 Id:
 	  IDENT					
 		{ $$ = yylval; }
+SpecialRuleRelation:
+	CURRENT
+		{ 
+		    if (QueryIsRule) {
+		      $$ = lispString("*CURRENT*");
+		      /* CurrentWasUsed = true; */
+		    } else 
+		      yyerror("\"current\" used in non-rule query");
+		}
+	| NEW
+		{ 
+		    if (QueryIsRule) {
+		      $$ = lispString("*NEW*");
+		      /* NewWasUsed = true; */
+		    } else 
+		      elog(WARN,"NEW used in non-rule query"); 
+		    
+		}
 	;
 
-Addattr:		ADD_ATTR	{ $$ = yylval ; } ;
-All:			ALL		{ $$ = yylval ; } ;
-Archive:		ARCHIVE		{ $$ = yylval ; } ;
-Attachas:		ATTACH_AS	{ $$ = yylval ; } ;
-Binary:			BINARY		{ $$ = yylval ; } ;
-Close:			CLOSE		{ $$ = yylval ; } ;
-Cluster:		CLUSTER		{ $$ = yylval ; } ;
-Copy:			COPY		{ $$ = yylval ; } ;
-Create:			CREATE		{ $$ = yylval ; } ;
 Define:			DEFINE		{ $$ = yylval ; } ;
-Destroy:		DESTROY		{ $$ = yylval ; } ;
 Function:		FUNCTION	{ $$ = yylval ; } ;
 Index:			INDEX		{ $$ = yylval ; } ;
 Indexable:		INDEXABLE	{ $$ = yylval ; } ;
-Inherits:		INHERITS	{ $$ = yylval ; } ;
 Key:			KEY		{ $$ = yylval ; } ;
 Nonulls:		NONULLS		{ $$ = yylval ; } ;
 Operator:		OPERATOR	{ $$ = yylval ; } ;
-Portal:			PORTAL		{ $$ = yylval ; } ;
-Purge:			PURGE		{ $$ = yylval ; } ;
-Remove:			REMOVE		{ $$ = yylval ; } ;
 Rule:			RULE		{ $$ = yylval ; } ;
 Sort:			SORT		{ $$ = yylval ; } ;
 Type:			P_TYPE		{ $$ = yylval ; } ;
 Using:			USING		{ $$ = yylval ; } ;
-Version:		NEWVERSION	{ $$ = yylval ; } ;
-Where:			WHERE		{ $$ = yylval ; } ;
 With:			WITH		{ $$ = yylval ; } ;
 Pnull:			PNULL		{ $$ = yylval ; } ;
 
@@ -1763,7 +1778,6 @@ parser_init()
 	p_priority = lispInteger(0);
 	p_ruleinfo = LispNil;
 	p_rtable = LispNil;
-	p_trange = lispInteger(0);
 	p_last_resno = 1;
 	p_numlevels = 0;
 	p_target_resnos = LispNil;
@@ -1816,61 +1830,38 @@ make_targetlist_expr ( name , expr )
     
 }
 
-/********************************************************************
-
-    SaveParserState:
-	save the current parser state
-    RestoreParserState:
-	restore the previous parser state
+List
+MakeFromClause ( from_list, base_rel )
+     List from_list;
+     LispValue base_rel;
+{
+    /* Convert "p, p1 in proc" to 
+       "p in proc, p1 in proc" */
+    LispValue temp,temp2,temp3;
+    LispValue frelname;
     
-********************************************************************/
+    temp = p_rtable;
+    while(! lispNullp(CDR (temp))) {
+	temp = CDR(temp); 
+    }
+    
+    /* 
+     * we depend on the base_rel
+     * to be in the last element, for now
+     */
 
-static int previous_NumLevels;
-static LispValue previous_p_target;
-static LispValue previous_p_qual;
-static LispValue previous_p_root;
-static LispValue previous_p_priority;
-static LispValue previous_p_ruleinfo;
-static LispValue previous_p_rtable;
-static LispValue previous_p_trange;
-static int previous_p_last_resno;
-static int previous_p_numlevels;
-static LispValue previous_p_target_resnos;
-static bool previous_ResdomNoIsAttrNo;
-static bool previous_QueryIsRule;
+    frelname = CAR(CDR(CAR(temp)));
 
-SaveParserState()
-{
-    previous_NumLevels = NumLevels;
-    previous_p_target = p_target;
-    previous_p_qual = p_qual;
-    previous_p_root = p_root;
-    previous_p_priority = p_priority;
-    previous_p_ruleinfo = p_ruleinfo;
-    previous_p_rtable = p_rtable;
-    previous_p_trange = p_trange;
-    previous_p_last_resno = p_last_resno;
-    previous_p_numlevels = p_numlevels;
-    previous_p_target_resnos = p_target_resnos;
-    previous_ResdomNoIsAttrNo = ResdomNoIsAttrNo;
-    previous_QueryIsRule = QueryIsRule;
+    printf("from relname = %s\n",CString(frelname));
+      fflush(stdout);
 
-    parser_init;
-}
-
-RestoreParserState()
-{
-    NumLevels = previous_NumLevels;
-    p_target = previous_p_target;
-    p_qual = previous_p_qual;
-    p_root = previous_p_root;
-    p_priority = previous_p_priority;
-    p_ruleinfo = previous_p_ruleinfo;
-    p_rtable = previous_p_rtable;
-    p_trange = previous_p_trange;
-    p_last_resno = previous_p_last_resno;
-    p_numlevels = previous_p_numlevels;
-    p_target_resnos = previous_p_target_resnos;
-    ResdomNoIsAttrNo = previous_ResdomNoIsAttrNo;
-    QueryIsRule = previous_QueryIsRule;
+    CAR(CAR(temp)) = CAR(from_list); 
+    
+    temp2 = CDR(from_list);
+    while(! lispNullp(temp2)) {
+	temp3 = lispCons(CAR(temp2),CDR(CAR(temp)));
+	ADD_TO_RT(temp3);
+	temp2 = CDR(temp2);
+    }
+    
 }
