@@ -215,21 +215,17 @@ special C type, TUPLE, defined in
 $POSTGRESHOME/src/lib/H/tmp/libpq-fe.h.
 .ft
 Given a variable t of this
-type, the C function may extract attributes from the function by name,
-or by number (starting at 1), using the function calls:
+type, the C function may extract attributes from the function
+using the function call:
 .(l
 .ft C
 GetAttributeByName(t, "fieldname", &isnull)
-.ft
-\fIor\fR
-.ft C
-GetAttributeByNum(t, fieldnum, &isnull)
 .ft
 .)l
 where 
 .i isnull
 is a pointer to a bool, which the function sets to \fItrue\fP if the
-field is null.  The result of these functions should be cast
+field is null.  The result of this functions should be cast
 appropriately as shown in the examples below.
 .lp
 .uh "POSTQUEL FUNCTIONS"
