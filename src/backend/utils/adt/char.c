@@ -139,10 +139,10 @@ int32 charlt(arg1, arg2)	int8 arg1, arg2; { return(arg1 < arg2); }
 int32 charle(arg1, arg2)	int8 arg1, arg2; { return(arg1 <= arg2); }
 int32 chargt(arg1, arg2)	int8 arg1, arg2; { return(arg1 > arg2); }
 int32 charge(arg1, arg2)	int8 arg1, arg2; { return(arg1 >= arg2); }
-int32 charpl(arg1, arg2)	int8 arg1, arg2; { return(arg1 + arg2); }
-int32 charmi(arg1, arg2)	int8 arg1, arg2; { return(arg1 - arg2); }
-int32 charmul(arg1, arg2)	int8 arg1, arg2; { return(arg1 * arg2); }
-int32 chardiv(arg1, arg2)	int8 arg1, arg2; { return(arg1 / arg2); }
+int8 charpl(arg1, arg2)         int8 arg1, arg2; { return(arg1 + arg2); }
+int8 charmi(arg1, arg2)	        int8 arg1, arg2; { return(arg1 - arg2); }
+int8 charmul(arg1, arg2)	int8 arg1, arg2; { return(arg1 * arg2); }
+int8 chardiv(arg1, arg2)	int8 arg1, arg2; { return(arg1 / arg2); }
 
 int32 cideq(arg1, arg2)		int8 arg1, arg2; { return(arg1 == arg2); }
 
