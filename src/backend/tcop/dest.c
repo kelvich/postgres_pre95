@@ -83,7 +83,7 @@ void
     return donothing;
 }
 
-#define IS_APPEND_TAG(tag) (*tag == 'A')
+#define IS_APPEND_TAG(tag) (*tag == 'A' && *(tag+1) == 'P')
 
 /* ----------------
  * 	EndCommand - tell destination that no more tuples will arrive
@@ -107,7 +107,7 @@ EndCommand(commandTag, dest)
 	pq_putint(0, 4);
 	if (IS_APPEND_TAG(commandTag))
 	{
-	    sprintf(buf, "%s %d", commandTag, GetLastOid());
+	    sprintf(buf, "%s %d", commandTag, GetAppendOid());
 	    pq_putstr(buf);
 	}
 	else
@@ -242,7 +242,7 @@ BeginCommand(pname, operation, attinfo, isIntoRel, isIntoPortal, tag, dest)
 	 *	because nothing needs to be sent to the fe.
 	 * ----------------
 	 */
-        ResetLastOid();
+        ResetAppendOid();
 	if (isIntoPortal)
 	    return;
 	    
@@ -322,23 +322,42 @@ BeginCommand(pname, operation, attinfo, isIntoRel, isIntoPortal, tag, dest)
     }
 }
 
-static ObjectId LastOid;
+static ObjectId AppendOid;
 
 void
-ResetLastOid()
+ResetAppendOid()
 {
-    LastOid = InvalidObjectId;
+    AppendOid = InvalidObjectId;
 }
 
+#define MULTI_TUPLE_APPEND -1
+
 void
-UpdateLastOid(newoid)
+UpdateAppendOid(newoid)
     ObjectId newoid;
 {
-    LastOid = newoid;
+    /*
+     * First update after AppendOid was reset (at command beginning).
+     */
+    if (AppendOid == InvalidObjectId)
+	AppendOid = newoid;
+    /*
+     * Already detected a multiple tuple append, return a void oid ;)
+     */
+    else if (AppendOid == MULTI_TUPLE_APPEND)
+	return;
+    /*
+     * Oid has been assigned once before, tag this as a multiple tuple
+     * append.
+     */
+    else
+	AppendOid = MULTI_TUPLE_APPEND;
 }
 
 ObjectId
-GetLastOid()
+GetAppendOid()
 {
-    return LastOid;
+    if (AppendOid == MULTI_TUPLE_APPEND)
+	return InvalidObjectId;
+    return AppendOid;
 }
