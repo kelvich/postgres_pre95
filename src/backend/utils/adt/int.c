@@ -198,6 +198,8 @@ int32 int2le(arg1, arg2)	int16	arg1, arg2; { return(arg1 <= arg2); }
 int32 int2gt(arg1, arg2)	int16	arg1, arg2; { return(arg1 > arg2); } 
 int32 int2ge(arg1, arg2)	int16	arg1, arg2; { return(arg1 >= arg2); }
 
+int32 keyfirsteq(arg1, arg2)	int16	*arg1,arg2; { return(*arg1 == arg2); }
+
 /*
  *	int[24]pl	- returns arg1 + arg2
  *	int[24]mi	- returns arg1 - arg2
@@ -253,6 +255,8 @@ int2fac(arg1)
 }
 
 #endif FMGR_MATH
+
+
 
 
 	     /* ========== PRIVATE ROUTINES ========== */
