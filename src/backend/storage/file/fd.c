@@ -461,6 +461,21 @@ AllocateVfd()
     	return file;
 }
 
+/*
+ *  Called when we get a shared invalidation message on some relation.
+ */
+void
+FileInvalidate(file)
+    File file;
+{
+    /* avoid work if we can */
+    if (file < 0)
+	return;
+
+    if (!FileIsNotOpen(file))
+	LruDelete(file);
+}
+
 void
 FreeVfd(file)
 	FileNumber	file;
@@ -1340,7 +1355,6 @@ File file;
 	i++;
     }
 
-    /* return(ret); */
     return(s);
 
 }
