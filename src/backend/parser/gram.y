@@ -1476,22 +1476,14 @@ opt_var_defs:
   */
 
 b_expr:	a_expr { $$ = CDR($1) ; } /* necessary to strip the addnl type info 
-				     XXX - check that it is boolean */
- /*
+
+ /*				     XXX - check that it is boolean */
 array_attribute:
 	  attr
 		{
 		$$ = make_var ( CString(CAR ($1)) , CString(CADR($1) ));
 		}
-	| attr '[' Iconst ']'
-		{ 
-		     Var temp = (Var)NULL;
-		     temp = (Var) 
-		     make_array_ref_var ( CString(CAR($1)),
-		                          CString(CADR($1)),
-					  CInteger($3));
-		}
-		*/
+ */
 a_expr:
 	  attr
 		{
@@ -1550,17 +1542,15 @@ a_expr:
 		    $$ = lispCons ( lispInteger (get_vartype((Var)temp)),
 				    $$ );
 		}
+	| AexprConst		
 	| attr '[' Iconst ']'
 		{ 
 		     Var temp = (Var)NULL;
-		     /* XXX - fix me after video demo */
-		     temp = (Var)make_var ( CString(CAR($1)),
-				       CString(CADR($1)) );
-		     
-		     $$ = lispCons ( lispInteger ( 23 ),
-		     		MakeArrayRef( temp , $3 ));
+		     temp = (Var) 
+		     make_array_ref_var ( CString(CAR($1)),
+		                          CString(CADR($1)),
+					  CInteger($3));
 		}
-	| AexprConst		
 	| spec 
 	| '-' a_expr %prec UMINUS
   		{ $$ = make_op(lispString("-"),$2, LispNil); }
