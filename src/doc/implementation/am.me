@@ -21,13 +21,19 @@ delim %%
 .ip \0\0\(bu
 ..
 .de (E
-.(b
+.in +0.5i
+.sp
+.nf
+.na
 .ft C
 .ta 0.5i 1i 1.5i 2i 2.5i 3i 3.5i 4i 4.5i 5i 5.5i
 ..
 .de )E
-.ft
-.)b
+.in
+.sp
+.fi
+.ad
+.ft R
 ..
 .sh 1 "The \*(PG Access Methods"
 .pp
@@ -43,7 +49,6 @@ and
 .BU
 the \*(PG access method interface routines.
 .pp
-These topics are covered in detail in the subsections below.
 .sh 2 "The Relation Descriptor"
 .pp
 The relation descriptor,
@@ -53,8 +58,8 @@ is the in-memory data structure that describes an open relation.
 The reldesc is the argument to most of the procedures that operate
 on relations.
 Relations may be opened by name or by relation ID \*-
-either of these will uniquely identify the relation to which
-they correspond.
+either of these uniquely identifies the relation to which
+it corresponds.
 A relation's ID,
 or
 .i relid ,
@@ -91,7 +96,7 @@ this is the \*(PG virtual file descriptor (VFD) for the open
 file that stores the relation.
 On the Sony jukebox,
 this entry is meaningless,
-and is simply set to a positive value if the jukebox relation is
+and is simply set to a non-negative value if the jukebox relation is
 successfully opened.
 .pp
 The
@@ -498,7 +503,7 @@ This is not used in the current system.
 .pp
 The
 .SE relpreserved
-index is the date and time at which the relation was last vacuumed.
+entry is the date and time at which the relation was last vacuumed.
 This is used by the planner when it produces query plans for historical
 queries.
 If the historical query extends to before the time at which the relation
@@ -686,7 +691,7 @@ tuple for the type of this attribute.
 .pp
 The
 .SE attdefrel
-is used for object-oriented type management by \*(PG.
+entry is used for object-oriented type management by \*(PG.
 When a class is declared that inherits from some other class,
 the new class implicitly has all the attributes that the original
 class had.
@@ -710,10 +715,9 @@ so
 .SE attnvals
 is always zero.
 .pp
-The purpose of the
+The
 .SE atttyparg
-entry is not known;
-it is not currently used.
+entry is unused.
 .pp
 The
 .SE attlen
@@ -737,7 +741,7 @@ and
 if it is pass-by-reference.
 This entry is set by looking at the
 .SE typbyval
-entry in the
+attribute in the
 .RN pg_type
 tuple for the type of this attribute.
 .pp
@@ -749,10 +753,9 @@ if this entry can be indexed,
 and false otherwise.
 Array attributes cannot be indexed.
 .pp
-The purpose of the
+The
 .SE attproc
-entry is unknown.
-It is not used in the current system.
+entry is unused.
 .pp
 The
 .SE attnelems
@@ -844,6 +847,8 @@ Lines have been broken so that the commands fit across the page;
 the statements should be typed on a single line.
 .pp
 The strategy map is a vector of scan key entries.
+Scan keys are described in a later section.
+.\" XXX fix this section ref
 There is one entry in the vector for every operator that is supported by
 the access method.
 For example,
@@ -909,6 +914,10 @@ in heaps.
 The \*(PG heap is logically an unordered set of tuples.
 Heaps consist of zero or more 8192-byte blocks,
 each of which contains zero or more tuples.
+.pp
+Index relations store key/value pairs,
+where the key allows fast lookup on some set of attributes from a heap,
+and the value is a pointer to a tuple in the heap.
 .sh 3 "Tuple Identifiers"
 .pp
 Tuples are identified by
@@ -999,7 +1008,7 @@ typedef struct HeapTupleData {
 typedef HeapTupleData	*HeapTuple;
 .)E
 This structure includes a variable-length bitmap vector at its end,
-and is followed by the data for the user relation.
+after which the user-level attributes of the tuple appear.
 .pp
 The
 .SE t_len
@@ -1331,7 +1340,7 @@ at least for btrees,
 in the near future.
 .sh 3 "How the Relations are Managed"
 .pp
-When the user issues an update to a heap relation
+When the \*(PQ user issues an update to a heap relation
 (either inserting or deleting data),
 all of the corresponding indices are automatically updated,
 as well.
@@ -1343,7 +1352,7 @@ the attributes from the heap that form the index key.
 These data are stored in
 .RN pg_index .
 .pp
-When the user issues a query against a heap relation that requires
+When the user issues a \*(PQ query against a heap relation that requires
 the relation to be scanned,
 \*(PG checks to see whether any of the indices defined on the heap
 will permit the scan to be executed more quickly.
