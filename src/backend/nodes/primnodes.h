@@ -347,7 +347,7 @@ class (Array) public (Expr) {
  *	refelemtype	- type of the element referenced here
  *	refelemlength	- length of that type
  *	refelembyval	- can you pass this element type by value?
- *	refindex	- index into array
+ *	refindexpr	- expression that evaluates to array index
  *	refexpr		- the expression that evaluates to an array
  * ----------------
  */
