@@ -199,8 +199,8 @@ DestroyStmt:
 			if (issystem(rp->relname.data) &&
 			    (rp->relkind == 'i')) {
 			    if (!Quiet)
-				fprintf(stderr, "Destroying %.16s...\n",
-					rp->relname.data);
+				fprintf(stderr, "Destroying %.*s...\n",
+					NAMEDATALEN, rp->relname.data);
 			    index_destroy(htp->t_oid);
 			}
 		    }
@@ -308,7 +308,8 @@ RenameRelnStmt:
 RenameAttrStmt:
 	  XRENAME ATTR ident AS ident XIN ident
 		{ DO_START;
-		  renameatt(LexIDStr($7), LexIDStr($3), LexIDStr($5));
+		  renameatt(LexIDStr($7), LexIDStr($3), LexIDStr($5),
+			    (Name) NULL, 0);
 		  DO_END;
 		}
 	;
