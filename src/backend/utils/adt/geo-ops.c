@@ -1884,8 +1884,8 @@ char *s;
 	if((points = poly_pt_count(s, ',')) < 0)
 		elog(WARN, "Bad input polyon");
 
-	size = 2*sizeof(double)*points + sizeof(BOX) + 2*sizeof(int);
-	poly = (POLYGON *)PALLOC(size);
+	size = offsetof(POLYGON, pts[0]) + 2 * sizeof(double) * points;
+	poly = (POLYGON *) PALLOC(size);
 
 	if (!PointerIsValid(poly))
 		elog(WARN, "Memory allocation failed, can't input polygon");
