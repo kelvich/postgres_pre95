@@ -95,7 +95,9 @@ DefineCFunction ARGS((
 extern
 void
 RemoveFunction ARGS((
-	Name	name
+	Name		name,
+	int		nargs,
+	LispValue	argList
 ));
 
 /*
