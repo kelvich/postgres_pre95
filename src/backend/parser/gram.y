@@ -1771,6 +1771,12 @@ agg_res_target_el:
 	       temp = HandleNestedDots($1);
 
 	        type_id = CInteger(CAR(temp));
+
+		if (ISCOMPLEX(type_id))
+		    elog(WARN,
+			 "Cannot use complex type %s as atomic value in target list",
+			 tname(get_id_type(type_id)));
+
 	        type_len = tlen(get_id_type(type_id));
 	        resnode = MakeResdom ( (AttributeNumber)1,
 				     (ObjectId)type_id, ISCOMPLEX(type_id),
@@ -1848,10 +1854,17 @@ res_target_list:
 res_target_el:
 		Id '=' agg
 	{
-		 int type_id;
-		 int resdomno,  type_len;
-		 List temp = LispNil;
+	     int type_id;
+	     int resdomno,  type_len;
+	     List temp = LispNil;
+
 	     type_id = CInteger(CAR($3));
+
+	     if (ISCOMPLEX(CInteger(type_id)))
+		elog(WARN,
+		   "Cannot assign complex type to variable %s in target list",
+		   CString($1));
+
 	     type_len = tlen(get_id_type(type_id));
 	     resdomno = p_last_resno++;
 	     temp = lispCons ((LispValue)MakeResdom((AttributeNumber)resdomno,
@@ -1866,6 +1879,8 @@ res_target_el:
 
 	| Id '=' a_expr
 	  {
+		if (ISCOMPLEX(CInteger(CAR($3))))
+		    elog(WARN, "Cannot assign complex type to variable %s in target list", CString($1));
 		$$ = make_targetlist_expr ($1,$3);
 	   } 
 	| attr opt_indirection
@@ -1880,6 +1895,9 @@ res_target_el:
 		     temp = make_array_ref(temp, $2);
 
 		 type_id = CInteger(CAR(temp));
+		 if (ISCOMPLEX(type_id))
+		     elog(WARN, "Cannot use complex type %s as atomic value in target list",
+			  tname(get_id_type(type_id)));
 		 type_len = tlen(get_id_type(type_id));
 		 resnode = MakeResdom ( (AttributeNumber)p_last_resno++ ,
 					(ObjectId)type_id, ISCOMPLEX(type_id),
