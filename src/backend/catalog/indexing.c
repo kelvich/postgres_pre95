@@ -29,6 +29,7 @@
  *	pg_attribute
  *	pg_proc
  *	pg_type
+ *	pg_naming
  */
 static NameData	AttributeNameIndexData = { "pg_attnameind" };
 static NameData	AttributeNumIndexData  = { "pg_attnumind" };
@@ -36,6 +37,8 @@ static NameData	ProcedureNameIndexData = { "pg_procnameind" };
 static NameData	ProcedureOidIndexData  = { "pg_procidind" };
 static NameData	TypeNameIndexData      = { "pg_typenameind" };
 static NameData	TypeOidIndexData       = { "pg_typeidind" };
+static NameData NamingNameIndexData    = { "pg_namingind" };
+static NameData NamingParentIndexData  = { "pg_namparind" };
 
 Name	AttributeNameIndex = &AttributeNameIndexData;
 Name	AttributeNumIndex  = &AttributeNumIndexData;
@@ -43,6 +46,8 @@ Name	ProcedureNameIndex = &ProcedureNameIndexData;
 Name	ProcedureOidIndex  = &ProcedureOidIndexData;
 Name	TypeNameIndex      = &TypeNameIndexData;
 Name	TypeOidIndex       = &TypeOidIndexData;
+Name	NamingNameIndex    = &NamingNameIndexData;
+Name	NamingParentIndex  = &NamingParentIndexData;
 
 char *Name_pg_attr_indices[Num_pg_attr_indices] = {AttributeNameIndexData.data,
 						   AttributeNumIndexData.data};
@@ -50,6 +55,8 @@ char *Name_pg_proc_indices[Num_pg_proc_indices] = {ProcedureNameIndexData.data,
 						   ProcedureOidIndexData.data};
 char *Name_pg_type_indices[Num_pg_type_indices] = {TypeNameIndexData.data,
 						   TypeOidIndexData.data};
+char *Name_pg_name_indices[Num_pg_name_indices] = {NamingNameIndexData.data,
+						   NamingParentIndexData.data};
 
 /*
  * Changes (appends) to catalogs can (and does) happen at various places
@@ -64,16 +71,16 @@ CatalogOpenIndices(nIndices, names, idescs)
     Relation idescs[];
 {
     int i;
+    NameData b;
 
     for (i=0; i<nIndices; i++)
     {
-	NameData bullsh1t;
 	/*
 	 * Make AMopenr happy by giving it a Name instead of char *
 	 */
-	strncpy(&bullsh1t.data[0], names[i], 16);
+	strncpy(&b.data[0], names[i], 16);
 
-	idescs[i] = AMopenr(&bullsh1t);
+	idescs[i] = AMopenr(&b);
 	Assert(idescs[i]);
     }
 }
@@ -143,6 +150,7 @@ CatalogIndexInsert(idescs, nIndices, heapRelation, heapTuple)
 	if (pgIndexP->indproc != InvalidObjectId)
 	{
 	    FIgetnArgs(&finfo) = natts;
+	    natts = 1;
 	    FIgetProcOid(&finfo) = pgIndexP->indproc;
 	    *(FIgetname(&finfo)) = '\0';
 	    finfoP = &finfo;
@@ -159,7 +167,8 @@ CatalogIndexInsert(idescs, nIndices, heapRelation, heapTuple)
 		       nulls,
 		       finfoP);
 
-	newIndxTup = (IndexTuple)FormIndexTuple(1,indexDescriptor,&datum,nulls);
+	newIndxTup = (IndexTuple)FormIndexTuple(natts,indexDescriptor,
+						&datum,nulls);
 	Assert(newIndxTup);
 	/*
 	 * Doing this structure assignment makes me quake in my boots when I 
@@ -498,6 +507,53 @@ TypeNameIndexScan(heapRelation, typeName)
       }
 
     index_endscan(sd);
+
+    return tuple;
+}
+
+HeapTuple
+NamingNameIndexScan(heapRelation, parentid, filename)
+    Relation heapRelation;
+    ObjectId parentid;
+    char *filename;
+{
+    Relation idesc;
+    IndexScanDesc sd;
+    ScanKeyEntryData skey;
+    GeneralRetrieveIndexResult indexRes;
+    OidChar16 keyarg;
+    HeapTuple tuple;
+    Buffer buffer;
+
+    keyarg = mkoidchar16(parentid, filename);
+    ScanKeyEntryInitialize(&skey,
+			   (bits16)0x0,
+			   (AttributeNumber)1,
+			   (RegProcedure)OidChar16EqRegProcedure,
+			   (Datum)keyarg);
+
+    idesc = index_openr((Name)NamingNameIndex);
+    sd = index_beginscan(idesc, false, 1, (ScanKey)&skey);
+
+    indexRes = AMgettuple(sd, ForwardScanDirection);
+    if (GeneralRetrieveIndexResultIsValid(indexRes))
+    {
+	ItemPointer iptr;
+
+	iptr = GeneralRetrieveIndexResultGetHeapItemPointer(indexRes);
+	tuple = heap_fetch(heapRelation, NowTimeQual, iptr, &buffer);
+	pfree(indexRes);
+    }
+    else
+	tuple = (HeapTuple)NULL;
+
+    if (HeapTupleIsValid(tuple)) {
+	tuple = palloctup(tuple, buffer, heapRelation);
+	ReleaseBuffer(buffer);
+      }
+
+    index_endscan(sd);
+    pfree(keyarg);
 
     return tuple;
 }
