@@ -100,7 +100,7 @@ heap_tuple_satisfies(itemId, relation, disk_page, qual, nKeys, key)
     PageHeader disk_page;
     TimeQual	qual;
     ScanKeySize	nKeys;
-    struct skey	*key;
+    ScanKey key;
 {
     HeapTuple	tuple;
 
@@ -108,14 +108,14 @@ heap_tuple_satisfies(itemId, relation, disk_page, qual, nKeys, key)
 	ItemIdIsContinuation(itemId) || ItemIdIsLock(itemId))
 	return NULL;
 
-    tuple = (HeapTuple) PageGetItem(disk_page, itemId);
+    tuple = (HeapTuple) PageGetItem((Page) disk_page, itemId);
 
     if (relation->rd_rel->relkind == 'u'
      || HeapTupleSatisfiesTimeQual(tuple,qual))
     {
         if (key == NULL)
 	    return tuple;
-	else if (keytest(tuple, relation, nKeys, key))
+	else if (keytest(tuple, relation, nKeys, (struct skey *) key))
 	    return tuple;
     }
 
@@ -130,7 +130,8 @@ bool
 TupleUpdatedByCurXactAndCmd(t)
     HeapTuple	t;
 {
-    if (TransactionIdEquals(t->t_xmax, GetCurrentTransactionId()) &&
+    if (TransactionIdEquals((TransactionId) t->t_xmax,
+							GetCurrentTransactionId()) &&
 	t->t_cmax == (CID) GetCurrentCommandId())
 	return true;
 
