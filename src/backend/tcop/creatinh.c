@@ -14,8 +14,9 @@
  * ----------------------------------------------------------------
  */
 
-#include "tcop.h"
-#include "parse.h"		/* for NONE, LIGHT, HEAVY archive modes */
+#include "tcop/tcop.h"
+#include "parser/parse.h"	/* for NONE, LIGHT, HEAVY archive modes */
+
  RcsId("$Header$");
 
 /* ----------------

@@ -16,9 +16,11 @@
  * ****************************************************************
  */
 
-#include "tcop.h"
+#include "tcop/tcop.h"
+
 extern int on_exitpg();
 extern void BufferManagerFlush();
+
  RcsId("$Header$");
 
 /* ----------------
