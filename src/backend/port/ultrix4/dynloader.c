@@ -3,7 +3,51 @@
  *  $Header$
  */
 
-#include <pwd.h>
+
+/*
+ * New dynamic loader.
+ *
+ * How does this work?  Glad you asked :-)
+ *
+ * In the DEC dynamic loader, we have to have done the following in order
+ * for it to work:
+ *
+ * 1. Make sure that we stay near & etext (the highest base text address)
+ *    so that we do not try to jump into the data area.  The data area starts
+ *    by default at 0x1000000.
+ *
+ * 2. Make sure everything is linked with the -N option, so that "ld -A" will
+ *    do the right thing.
+ *
+ * 3. Make sure loaded objects are compiled with "-G 0"
+ *
+ * 4. Make sure loaded objects are loaded ONCE AND ONLY ONCE.
+ *
+ * The algorithm is as follows:
+ *
+ * 1.  Find out how much text/data space will be required.  This is done
+ *     by reading the header of the ".o" to be loaded.
+ *
+ * 2.  Execute the "ld -A" with a valid text address (bigger than &etext,
+ *     smaller than the lowest data address.  "ld -A" will do all the
+ *     relocation, etc.
+ *
+ * 3.  Using the output of "ld -A", read the text and data area into a valid
+ *     text area.  (The DEC 3100 allows data to be read in the text area, but
+ *     not vice versa.)
+ * 
+ * 4.  Determine which functions are defined by the object file we are loading,
+ *     and using the address we loaded the output of "ld -A" into, find the
+ *     addresses of those functions.  In object files, the symbol table (and 
+ *     the output of nm) will give the offsets for functions.  Adding the
+ *     function offset to the base text address gives the function's true
+ *     address.  (This could also be done by reading the symbol table of the
+ *     output of "ld -A", but it is so massive that this is VERY wasteful.)
+ * 
+ *     (In this case, we cheat rather hugely and use the output of nm because
+ *     the symbol table format for MIPSEL/DS3100 is not well-documented).
+ */ 
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/param.h>
@@ -17,16 +61,8 @@
 
 extern char pg_pathname[];
 
-/* 
- *
- *   ld -N -x -A SYMBOL_TABLE -o TEMPFILE FUNC -lc
- *
- *   ld -N -x -A SYMBOL_TABLE -T ADDR -o TEMPFILE FUNC -lc
- *
- */
-
 /*
- * This is initially set to the value of etext;
+ * This is initially set to the value of & etext;
  */
 
 static char *load_address = NULL;
@@ -43,15 +79,15 @@ char **err, *filename;
 	extern char *mktemp();
 
 	int nread;
+	char command[256];
 	unsigned long image_size, zz;
 	FILE *temp_file = NULL;
-	char command[256];
 	DynamicFunctionList *retval = NULL, *load_symbols();
-	int fd;
 	struct filehdr obj_file_struct, ld_file_struct;
 	AOUTHDR obj_aout_hdr, ld_aout_hdr;
 	struct scnhdr scn_struct;
 	int size_text, size_data, size_bss;
+	int fd;
 
 /*
  * Make sure (when compiling) that there is sufficient space for loading
@@ -136,7 +172,7 @@ char **err, *filename;
   */
 
 	load_address += image_size;
-			   
+
 finish_up:
 	if (temp_file != NULL) fclose(temp_file);
 	return retval;
