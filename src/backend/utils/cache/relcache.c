@@ -748,8 +748,8 @@ RelationFlushRelation(relation, onlyFlushReferenceCountZero)
 {
 	int		i;
 	Attribute	*p;
-	struct context	*oldcxt;
-
+	MemoryContext	oldcxt;
+	
 	IN();
 
 	DO_DB(elog(NOIND, "RelationFlush: %s[%d] called",
@@ -766,7 +766,7 @@ RelationFlushRelation(relation, onlyFlushReferenceCountZero)
 	if (onlyFlushReferenceCountZero == false 
 			|| RelationHasReferenceCountZero(relation)) {
 
-		oldcxt = switchcontext(CacheCxt);
+		oldcxt = MemoryContextSwitchTo(CacheCxt);
 
 		DO_DB(elog(NOIND,"RelationFlush: %s",&relation->rd_rel->relname));
 		HashTableDelete(RelationCacheHashByName,relation);
@@ -783,9 +783,9 @@ RelationFlushRelation(relation, onlyFlushReferenceCountZero)
 		pfree((char *)RelationGetRelationTupleForm(relation));
 
 		pfree((char *)relation);
+   
+                MemoryContextSwitchTo(oldcxt);
 
-		(void)switchcontext(oldcxt);
-	}
 	OUT();
 }
 		
@@ -1016,20 +1016,17 @@ CompareIdInArgumentWithIdInRelation(relation, relationId)
 void 
 RelationInitialize()
 {
-	extern struct context *CacheCxt;
-	struct context *oldcxt;
+	extern GlobalMemory	CacheCxt;
+	MemoryContext		oldcxt;
 	int		initialReferences;
 
 	IN();
 	DO_DB(elog(NOIND,"RelationInitialize"));
-	if (!CacheCxt) {	/* init the cache system */
-		oldcxt = newcontext();
-		CacheCxt = Curcxt;
-		CacheCxt->ct_status |= CT_PRESERVE;
-	} else {
-		oldcxt = switchcontext(CacheCxt);
-	}
-
+        
+	if (!CacheCxt)
+	   CacheCxt = CreateGlobalMemory("Cache");
+	oldcxt = MemoryContextSwitchTo(CacheCxt);
+   
 	RelationCacheHashByName = CreateHashTable(
 			HashByNameAsArgument, 
 			HashByNameInRelation, 
@@ -1090,7 +1087,8 @@ RelationInitialize()
 	formrdesc(TimeRelationName, 
 			timatt[0].attrelid, TIM_NATTS, timatt, 0x1fff);
 
-	switchcontext(oldcxt);
+	MemoryContextSwitchTo(oldcxt);
+
 	OUT();
 }
 
