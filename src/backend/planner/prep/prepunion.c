@@ -363,7 +363,23 @@ new_rangetable_entry (new_relid,old_entry)
 {
 
     LispValue new_entry = copy_seq_tree (old_entry);
-    rt_relname (new_entry) = lispString(get_rel_name (new_relid));
+/*
+ *  following stmt had to be changed to ensuing if stmt.
+ *
+ *   rt_relname (new_entry) = lispString(get_rel_name (new_relid));
+ *   
+ *  i know it's not a good idea to manipulate range table entry
+ *  without using macros defined in lib/H/parsetree.h, but i couldn't
+ *  think of a better way to do it.  i'll come with a better fix when
+ *  i get more familiar with the parser.   8/1/90 ron choi
+ */
+    if (!strcmp(CString(CAR(new_entry)), "*CURRENT*") ||
+        !strcmp(CString(CAR(new_entry)), "*NEW*"))
+      CAR(new_entry) =  lispString(get_rel_name (new_relid));
+    else
+      CADR(new_entry) =  lispString(get_rel_name (new_relid));
+
+
     rt_relid (new_entry) = lispInteger(new_relid);
     return(new_entry);
 }
