@@ -401,7 +401,9 @@ ExecuteFragments(queryDesc, planFragments)
      *  someday -cim 10/16/89
      * ----------------
      */
+#ifdef TUPLECOUNT	    
     DisplayTupleCount(state);
+#endif TUPLECOUNT	    
     
     /* ----------------
      *   not certain what this does.. -cim 8/29/89
