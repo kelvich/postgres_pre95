@@ -21,6 +21,7 @@
 #include <strings.h>
 
 #include "tmp/postgres.h"
+#include "tmp/miscadmin.h"
 #include "utils/log.h"
 
 RcsId("$Header$");

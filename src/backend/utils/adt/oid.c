@@ -85,10 +85,6 @@ oid8out(oidArray)
 
 	     /* ========== PRIVATE ROUTINES ========== */
 
-
-bool
-ObjectIdIsValid(objectId)
-	ObjectId	objectId;
-{
-	return ((bool) (objectId != InvalidObjectId));
-}
+/*
+ * ObjectIdIsValid moved to postgres.h -cim 4/27/91
+ */

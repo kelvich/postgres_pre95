@@ -41,11 +41,8 @@ typedef IndexStrategyData	*IndexStrategy;
  * StrategyNumberIsValid --
  *	True iff the strategy number is valid.
  */
-extern
-bool
-StrategyNumberIsValid ARGS((
-	StrategyNumber	strategyNumber
-));
+#define StrategyNumberIsValid(strategyNumber) \
+    ((bool) ((strategyNumber) != InvalidStrategy))
 
 /*
  * StrategyNumberIsInBounds --
@@ -55,32 +52,21 @@ StrategyNumberIsValid ARGS((
  *	Assumes StrategyNumber is an unsigned type.
  *	Assumes the bounded interval to be (0,max].
  */
-extern
-bool
-StrategyNumberIsInBounds ARGS((
-	StrategyNumber	strategyNumber,
-	StrategyNumber	maxStrategyNumber
-));
+#define StrategyNumberIsInBounds(strategyNumber, maxStrategyNumber) \
+    ((bool)(InvalidStrategy < (strategyNumber) && \
+	    (strategyNumber) <= (maxStrategyNumber)))
 
 /*
  * StrategyMapIsValid --
  *	True iff the index strategy mapping is valid.
  */
-extern
-bool
-StrategyMapIsValid ARGS((
-	StrategyMap	map
-));
+#define	StrategyMapIsValid(map) PointerIsValid(map)
 
 /*
  * IndexStrategyIsValid --
  *	True iff the index strategy is valid.
  */
-extern
-bool
-IndexStrategyIsValid ARGS((
-	IndexStrategy	indexStrategy
-));
+#define	IndexStrategyIsValid(s)	PointerIsValid(s)
 
 /*
  * StrategyMapGetScanKeyEntry --

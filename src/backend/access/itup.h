@@ -96,55 +96,36 @@ typedef struct RetrieveIndexResultData {
 typedef RetrieveIndexResultData	*RetrieveIndexResult;
 				/* from newgettuple() */
 
+
 /*
  * IndexTupleIsValid --
  *	True iff index tuple is valid.
  */
-extern
-bool
-IndexTupleIsValid ARGS((
-	IndexTuple	tuple
-));
+#define	IndexTupleIsValid(tuple)			PointerIsValid(tuple)
 
 /*
  * GeneralInsertIndexResultIsValid --
  *	True iff general index insertion result is valid.
  */
-extern
-bool
-GeneralInsertIndexResultIsValid ARGS((
-	GeneralInsertIndexResult	result
-));
+#define	GeneralInsertIndexResultIsValid(result)		PointerIsValid(result)
 
 /*
  * InsertIndexResultIsValid --
  *	True iff (specific) index insertion result is valid.
  */
-extern
-bool
-InsertIndexResultIsValid ARGS((
-	InsertIndexResult	result
-));
+#define	InsertIndexResultIsValid(result)		PointerIsValid(result)
 
 /*
  * GeneralRetrieveIndexResultIsValid --
  *	True iff general index retrieval result is valid.
  */
-extern
-bool
-GeneralRetrieveIndexResultIsValid ARGS((
-	GeneralRetrieveIndexResult	result
-));
+#define	GeneralRetrieveIndexResultIsValid(result)	PointerIsValid(result)
 
 /*
  * RetrieveIndexResultIsValid --
  *	True iff (specific) index retrieval result is valid.
  */
-extern
-bool
-RetrieveIndexResultIsValid ARGS((
-	RetrieveIndexResult	result
-));
+#define	RetrieveIndexResultIsValid(result)		PointerIsValid(result)
 
 /*
  * IndexTupleGetRuleLockItemPointer --

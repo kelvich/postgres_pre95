@@ -23,10 +23,6 @@ typedef Attribute		*AttributePtr;
  * AttributeIsValid
  *	True iff the attribute is valid.
  */
-extern
-bool
-AttributeIsValid ARGS((
-	Attribute	attribute
-));
+#define	AttributeIsValid(attribute) PointerIsValid(attribute)
 
 #endif	/* !defined(AttIncluded) */

@@ -29,11 +29,7 @@ typedef TupleDescD		*TupleDesc;
  * TupleDescIsValid --
  *	True iff tuple descriptor is valid.
  */
-extern
-bool
-TupleDescIsValid ARGS((
-	TupleDesc	desc
-));
+#define	TupleDescIsValid(desc) PointerIsValid(desc)
 
 /*
  * CreateTemplateTupleDesc --

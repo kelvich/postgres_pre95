@@ -19,10 +19,6 @@ typedef Pointer	Page;
  * PageIsValid --
  *	True iff page is valid.
  */
-extern
-bool
-PageIsValid ARGS((
-	Page	page
-));
+#define	PageIsValid(page) PointerIsValid(page)
 
 #endif	/* !defined(PageIncluded) */

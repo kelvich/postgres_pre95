@@ -50,6 +50,12 @@ struct PortalD {
 };
 
 /*
+ * PortalIsValid --
+ *	True iff portal is valid.
+ */
+#define	PortalIsValid(p) PointerIsValid(p)
+
+/*
  * EnablePortalManager --
  *	Enables/disables the portal management module.
  */
@@ -57,16 +63,6 @@ extern
 void
 EnablePortalManager ARGS((
 	bool	on
-));
-
-/*
- * PortalIsValid --
- *	True iff portal is valid.
- */
-extern
-bool
-PortalIsValid ARGS((
-	Portal	portal
 ));
 
 /*

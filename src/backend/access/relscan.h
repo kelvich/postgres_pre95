@@ -77,20 +77,12 @@ typedef IndexScanDesc		*IndexScanDescPtr;
  * HeapScanIsValid --
  *	True iff the heap scan is valid.
  */
-extern
-bool
-HeapScanIsValid ARGS ((
-	HeapScanDesc	scan
-));
+#define	HeapScanIsValid(scan) PointerIsValid(scan)
 
 /*
  * IndexScanIsValid --
  *	True iff the index scan is valid.
  */
-extern
-bool
-IndexScanIsValid ARGS ((
-	IndexScanDesc	scan
-));
+#define IndexScanIsValid(scan) PointerIsValid(scan)
 
 #endif	/* !defined(RelScanIncluded) */

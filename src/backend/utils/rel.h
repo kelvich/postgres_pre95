@@ -53,11 +53,7 @@ typedef char	ArchiveMode;
  * RelationIsValid --
  *	True iff relation descriptor is valid.
  */
-extern
-bool
-RelationIsValid ARGS ((
-	Relation	relation
-));
+#define	RelationIsValid(relation) PointerIsValid(relation)
 
 /*
  * RelationGetSystemPort --

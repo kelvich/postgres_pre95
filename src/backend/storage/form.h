@@ -29,10 +29,6 @@ typedef Pointer	Form;
  * FormIsValid --
  *	True iff the formated tuple attribute values is valid.
  */
-extern
-bool
-FormIsValid ARGS((
-	Form	form
-));
+#define	FormIsValid(form) PointerIsValid(form)
 
 #endif	/* !defined(FormIncluded) */

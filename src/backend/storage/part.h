@@ -18,15 +18,14 @@ typedef uint32	PagePartition;	/* subpage partition indicator */
 
 #define SinglePagePartition	0	/* partition when 1 page per block */
 
+#define InvalidPagePartition	((PagePartition) 0)
+
 /*
  * PagePartitionIsValid --
  *	True iff the page partition is valid.
  */
-extern
-bool
-PagePartitionIsValid ARGS((
-	PagePartition	partition
-));
+#define PagePartitionIsValid(partition) \
+    ((bool) ((partition) != InvalidPagePartition))
 
 /*
  * CreatePagePartition --

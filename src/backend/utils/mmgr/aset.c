@@ -11,6 +11,7 @@
 
 RcsId("$Header$");
 
+#include "tmp/aset.h"
 #include "utils/excid.h"	/* for ExhaustedMemory */
 #include "utils/memutils.h"
 
@@ -88,19 +89,12 @@ AllocPointerGetNext ARGS((
  * Public routines
  */
 
-bool
-AllocPointerIsValid(pointer)
-	AllocPointer	pointer;
-{
-	return (PointerIsValid(pointer));
-}
-
-bool
-AllocSetIsValid(set)
-	AllocSet	set;
-{
-	return (PointerIsValid(set));	/* XXX incomplete */
-}
+/* 
+ *	AllocPointerIsValid(pointer)
+ * 	AllocSetIsValid(set)    
+ *
+ *		.. are now macros in aset.h -cim 4/27/91
+ */
 
 void
 AllocSetInit(set, mode, limit)

@@ -79,13 +79,6 @@ GlobalMemoryAlloc ARGS((
 ));
 
 /*
-static bool
-MemoryContextIsValid ARGS((
-        MemoryContext context;
-));
-*/
-
-/*
  * GlobalMemoryFree --
  *	Frees allocated memory in the global context.
  *
@@ -580,12 +573,10 @@ DumpGlobalMemories()
 			&context->elemData);
 	}
 }
-bool
-MemoryContextIsValid(context)
-	MemoryContext	context;
-{
-	return((bool)IsA(context,MemoryContext));
-}
+
+/* 
+ *	MemoryContextIsValid(context) is now a macro in mnodes.h -cim 4/27/91
+ */
 
 void
 PrintGlobalMemory(foo)

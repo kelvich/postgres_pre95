@@ -21,11 +21,9 @@ typedef int8	ScanDirection;
  * ScanDirectionIsValid --
  *	True iff scan direciton is valid.
  */
-extern
-bool
-ScanDirectionIsValid ARGS((
-	ScanDirection	direction
-));
+#define ScanDirectionIsValid(direction) \
+    ((bool) (AsInt8(BackwardScanDirection) <= AsInt8(direction) && \
+	     AsInt8(direction) <= AsInt8(ForwardScanDirection)))
 
 /*
  * ScanDirectionIsBackward --
@@ -34,11 +32,8 @@ ScanDirectionIsValid ARGS((
  * Note:
  *	Assumes scan direction is valid.
  */
-extern
-bool
-ScanDirectionIsBackward ARGS((
-	ScanDirection	direction
-));
+#define ScanDirectionIsBackward(direction) \
+    ((bool) (AsInt8(direction) == AsInt8(BackwardScanDirection)))
 
 /*
  * ScanDirectionIsNoMovement --
@@ -47,11 +42,8 @@ ScanDirectionIsBackward ARGS((
  * Note:
  *	Assumes scan direction is valid.
  */
-extern
-bool
-ScanDirectionIsNoMovement ARGS((
-	ScanDirection	direction
-));
+#define ScanDirectionIsNoMovement(direction) \
+    ((bool) (AsInt8(direction) == AsInt8(NoMovementScanDirection)))
 
 /*
  * ScanDirectionIsForward --
@@ -60,10 +52,7 @@ ScanDirectionIsNoMovement ARGS((
  * Note:
  *	Assumes scan direction is valid.
  */
-extern
-bool
-ScanDirectionIsForward ARGS((
-	ScanDirection	direction
-));
+#define ScanDirectionIsForward(direction) \
+    ((bool) (AsInt8(direction) == AsInt8(ForwardScanDirection)))
 
 #endif	/* !defined(SDirIncluded) */

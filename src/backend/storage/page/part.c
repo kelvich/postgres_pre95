@@ -14,12 +14,9 @@
 
 RcsId("$Header$");
 
-bool
-PagePartitionIsValid(partition)
-	PagePartition	partition;
-{
-	return ((bool)(partition != InvalidPagePartition));
-}
+/*
+ * PagePartitionIsValid is now a macro in part.h -cim 4/27/91
+ */
 
 PagePartition
 CreatePagePartition(blockSize, pageSize)

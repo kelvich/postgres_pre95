@@ -2,8 +2,8 @@
  * $Header$
  */
 
+#include "tmp/postgres.h"		/* for oid defs */
 #include "utils/log.h"			/* for elog */
-#include "tmp/oid.h"			/* for oid defs */
 #include "./locks.h"			/* for rewrite specific lock defns */
 #include "parser/parse.h"		/* atom defs */
 #include "nodes/pg_lisp.h"		/* lisp support package */

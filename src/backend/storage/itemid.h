@@ -36,44 +36,37 @@ typedef struct ItemIdData	*ItemId;
 #define LP_ISINDEX	0x20	/* this is an internal index tuple */
 #endif
 
-/* ----------------------------------------------------------------
+/* 
  *	ItemIdGetLength
- * ----------------------------------------------------------------
  */
 
 #define ItemIdGetLength(itemId) \
    ((itemId)->lp_len)
 
-/* ----------------------------------------------------------------
+/* 
  *	ItemIdGetOffset
- * ----------------------------------------------------------------
  */
 
 #define ItemIdGetOffset(itemId) \
    ((itemId)->lp_off)
 
-/* ----------------------------------------------------------------
- *	ItemIdGetLength
- * ----------------------------------------------------------------
+/* 
+ *	ItemIdGetFlags
  */
 
 #define ItemIdGetFlags(itemId) \
    ((itemId)->lp_flags)
 
-/* ----------------------------------------------------------------
- *	entern declarations
- * ----------------------------------------------------------------
- */
-
 /*
  * ItemIdIsValid --
  *	True iff disk item identifier is valid.
  */
-extern
-bool
-ItemIdIsValid ARGS((
-	ItemId	itemId;
-));
+#define	ItemIdIsValid(itemId)	PointerIsValid(itemId)
+
+/* ----------------------------------------------------------------
+ *	entern declarations
+ * ----------------------------------------------------------------
+ */
 
 /*
  * ItemIdIsUsed --
@@ -88,6 +81,7 @@ ItemIdIsUsed ARGS((
 	ItemId	itemId;
 ));
 
+#if 0
 /*
  * ItemIdIsInsertValid --
  *	True iff disk item identifier is inserted validly.
@@ -100,6 +94,7 @@ bool
 ItemIdIsInsertValid ARGS((
 	ItemId	itemId;
 ));
+#endif
 
 /*
  * ItemIdIsContinuing --

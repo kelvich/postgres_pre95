@@ -3,7 +3,7 @@
  */
 
 #include <stdio.h>
-#include "tmp/oid.h"
+#include "tmp/postgres.h"
 
 /* #include "rules/prs2locks.h"		/* temporarily */
 #include "./locks.h"			

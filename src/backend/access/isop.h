@@ -52,11 +52,7 @@ typedef StrategyEvaluationData	*StrategyEvaluation;
  * StrategyTransformMapIsValid --
  *	Returns true iff strategy transformation map is valid.
  */
-extern
-bool
-StrategyTransformMapIsValid ARGS((
-	StrategyTransformMap	transform
-));
+#define	StrategyTransformMapIsValid(transform) PointerIsValid(transform)
 
 /*
  * StrategyOperatorIsValid --

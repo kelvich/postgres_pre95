@@ -140,13 +140,3 @@ regprocout(proid)
 
 	     /* ========== PRIVATE ROUTINES ========== */
 
-
-/*
- *	RegProcedureIsValid
- */
-bool
-RegProcedureIsValid(procedure)
-	RegProcedure	procedure;
-{
-	return (ObjectIdIsValid(procedure));
-}

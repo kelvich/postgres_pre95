@@ -301,12 +301,14 @@ compute_selec (clauses,or_selectivities)
 /*  .. compute_selec */
 
 LispValue
-translate_relid (relid)
-     ObjectId relid ;
+translate_relid(relid)
+    LispValue relid;
 {
-    if ( integerp (relid) && relid > 0 ) {
-	return (getrelid (CInteger(relid),_query_range_table_));
-    } 
-    return(lispInteger(0));
+    if (integerp(relid))
+	return
+	    getrelid(CInteger(relid),_query_range_table_);
+    
+    return
+	lispInteger(0);
 }
 

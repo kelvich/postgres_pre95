@@ -27,22 +27,15 @@ typedef uint32	LogicalPageNumber;
  * PageNumberIsValid --
  *	True iff the page number is valid.
  */
-extern
-bool
-PageNumberIsValid ARGS((
-	PageNumber	pageNumber,
-	PagePartition	pagePartition
-));
+#define PageNumberIsValid(pageNumber, partition) \
+    ((bool)((pageNumber) < PagePartitionGetPagesPerBlock(partition)))
 
 /*
  * LogicalPageNumberIsValid --
  *	True iff the logical page number is valid.
  */
-extern
-bool
-LogicalPageNumberIsValid ARGS((
-	PageNumber	pageNumber,
-	PagePartition	pagePartition
-));
+#define LogicalPageNumberIsValid(pageNumber) \
+    ((bool)((pageNumber) != InvalidLogicalPageNumber))
+
 
 #endif	/* !defined(PageNumIncluded) */

@@ -17,6 +17,18 @@
  *	Currently this file is also the home of struct varlena and
  *	some other stuff.  Some of this may change.  -cim 8/6/90
  *
+ *   TABLE OF CONTENTS
+ *	1)	simple type definitions
+ *	1a)	oid types (currently being reorganized)
+ *	2)	array types
+ *	3)	name type + support macros	\
+ *	4)	datum type + support macros	 \ being reorganized
+ *	5)	xid type + support macros	 /
+ *	6)	time types + support macros	/
+ *	7)	genbki macros used by catalog/pg_xxx.h files
+ *	8)	old types being obsoleted
+ *	9)	random SIGNBIT, PSIZE, MAXPGPATH, STATUS macros
+ *
  *   IDENTIFICATION
  *   	$Header$
  * ----------------------------------------------------------------
@@ -27,10 +39,11 @@
 
 #include "tmp/c.h"
 
-/* --------------------------------
- *	simple types
- * --------------------------------
+/* ----------------------------------------------------------------
+ *		Section 1:  simple type definitions
+ * ----------------------------------------------------------------
  */
+
 /* ----------------
  *	bool
  *
@@ -71,78 +84,36 @@ typedef float	float4;
  */
 typedef double	float8;
 
+/* ----------------------------------------------------------------
+ *		Section 1a:  oid types
+ * ----------------------------------------------------------------
+ */
 /* ----------------
  *	oid
- *
- *	(oid.h is being obsoleted -cim)
  * ----------------
  */
-/*
- * oid.h --
- *	POSTGRES object identifier definitions.
- *
- * $Header$
- */
-
-#ifndef	OIdIncluded		/* Include this file only once */
-#define OIdIncluded	1
-
 typedef uint32	oid;
 
 #define ObjectId oid
-
 #define InvalidObjectId	0
 
-/*
- * ObjectIdIsValid
- *	True iff the object identifier is valid.
- */
-extern
-bool
-ObjectIdIsValid ARGS((
-	ObjectId	objectId
-));
-
-#endif	/* !defined(OIdIncluded) */
+#define ObjectIdIsValid(objectId) \
+    ((bool) (objectId != InvalidObjectId))
 
 /* ----------------
  *	regproc
- *
- *	(regproc.h is being obsoleted)
  * ----------------
  */
 typedef oid regproc;
 
-/*
- * regproc.h --
- *	POSTGRES registered procedure definitions.
- */
+typedef ObjectId RegProcedure;
 
-#ifndef	RegProcIncluded		/* Include this file only once */
-#define RegProcIncluded	1
+#define RegProcedureIsValid(p) \
+    ObjectIdIsValid(p)
 
-/*
- * Identification:
- */
-#define REGPROC_H	"$Header$"
-
-typedef ObjectId	RegProcedure;
-
-/*
- * RegProcedureIsValid
- *	True iff the registered procedure is valid.
- */
-extern
-bool
-RegProcedureIsValid ARGS((
-	RegProcedure	proc
-));
-
-#endif	/* !defined(RegProcIncluded) */
-
-/* --------------------------------
- *	array types
- * --------------------------------
+/* ----------------------------------------------------------------
+ *		Section 2:  array types
+ * ----------------------------------------------------------------
  */
 /* ----------------
  *	struct varlena
@@ -203,88 +174,26 @@ typedef struct varlena text;
 typedef struct varlena stub;
 
 /* ----------------------------------------------------------------
- *	other system types imported from:
- *
- *	name.h		system "name" data type
- *	datum.h		attribute values
- *	xid.h		transaction ids
- *	tim.h		absolute and relative time
+ *		Section 3:  name type + support macros
  * ----------------------------------------------------------------
  */
-
 /* ----------------
- *	name.h
- * ----------------
- */
-/* 
- *   FILE
- *     	name.h
+ *	name
  *
- *   DESCRIPTION
  *     	definition of the catalog/system "name" data type.
  *	This is used by some of the access method and catalog
  *	support code.
- *
- *   NOTES
- *	Since "name" derives directly from a system type, this
- *	stuff should arguably go in postgres.h
- *
- *   IDENTIFICATION
- *   	$Header$
- * 
- */
-#ifndef NameIncluded		/* Include this file only once */
-#define	NameIncluded	1
-
-/* 
- *	definition of NameData and Name
- *	Note: char16 is a system type in postgres.h
- * 
+ * ----------------
  */
 typedef char16		NameData;
 typedef NameData	*Name;
 
-/* 
- *	Name support stuff.
- * 
- */
-#define InvalidName	((Name)NULL)
+#define InvalidName	((Name) NULL)
+#define	NameIsValid(name) PointerIsValid(name)
 
-/*
- * NameIsValid
- *	True iff the name is valid.
- */
-extern
-bool
-NameIsValid ARGS((
-	Name	name
-));
-
-/*
- * NameIsEqual
- *	True iff the names are the same.
- */
-extern
-bool
-NameIsEqual ARGS((
-	Name	name1,
-	Name	name2
-));
-
-/*
- * NameComputeLength
- *	Returns the lenght of a name.
- */
-uint32
-NameComputeLength ARGS((
-	Name	name
-));
-
-#endif	/* !defined(NameIncluded) */
-
-/* ----------------
- *	datum.h
- * ----------------
+/* ----------------------------------------------------------------
+ *	 	Section 4:  datum type + support macros
+ * ----------------------------------------------------------------
  */
 /*
  * datum.h --
@@ -552,26 +461,13 @@ typedef unsigned long Datum;
 
 #endif	/* !defined(DatumIncluded) */
 
-/* ----------------
- *	xid.h
- * ----------------
- */
-/*
- * xid.h --
- *	POSTGRES transaction identifier definitions.
- */
 
-#ifndef	XIdIncluded		/* Include this file only once */
-#define XIdIncluded	1
-
-/*
- * Identification:
+/* ----------------------------------------------------------------
+ *		Section 5: xid type + support macros
+ * ----------------------------------------------------------------
  */
-#define XID_H	"$Header$"
-
 /* 
  *	TransactionId definition
- * 
  */
 
 typedef struct TransactionIdData {
@@ -595,212 +491,19 @@ typedef uint8	CommandId;
 #define TransactionMultiplierPerByte	(1 << BitsPerByte)
 #define TransactionsPerSecondAdjustment	TransactionMultiplierPerByte	
 
-extern TransactionId	NullTransactionId;
-extern TransactionId	AmiTransactionId;
-extern TransactionId	FirstTransactionId;
-
-/* 
- * TransactionIdIsValid --
- *	True iff transaction identifier is valid.
- * 
- */
-extern
-bool
-TransactionIdIsValid ARGS((
-	TransactionId	transactionId
-));
-
-/* 
- * GetNewTransactionId --
- *	Returns a new transaction identifier.
- * 
- */
-extern
-void
-GetNewTransactionId ARGS((
-	TransactionId   xid
-));
-
-/* 
- * StringFormTransactionId --
- *	Returns transaction identifier associated with a string.
- * 
- */
-extern
-TransactionId
-StringFormTransactionId ARGS((
-	String	representation
-));
-
-/* 
- * TransactionIdValueFormString --
- *	Returns string representation for a transaction identifier.
- * 
- */
-extern
-String
-TransactionIdFormString ARGS((
-	TransactionId	transactionId
-));
-
-/* 
- * TransactionIdStore --
- *	Stores the transaction identifier in external form.
+/* ----------------------------------------------------------------
+ *		Section 6:  time types + support macros
  *
- * Note:
- *	Assumes transaction identifier is valid.
- *	Assumes destination pointer is valid.
- * 
+ *	Note: see miscadmin.h for time support macros
+ * ----------------------------------------------------------------
  */
-extern
-void
-TransactionIdStore ARGS((
-	TransactionId	transactionId,
-	Pointer		destination
-));
-
-/* 
- * PointerStoreInvalidTransactionId --
- *	Stores an invalid transaction identifier (in external form).
- *
- * Note:
- *	Assumes destination pointer is valid.
- * 
- */
-extern
-void
-PointerStoreInvalidTransactionId ARGS((
-	Pointer		destination
-));
-
-/* 
- * TransactionIdEquals --
- *	True iff transaction identifiers are equal.
- *
- * Note:
- *	Assumes transaction identifiers are valid.
- * 
- */
-extern
-bool
-TransactionIdEquals ARGS((
-	TransactionId	id1,
-	TransactionId	id2
-));
-
-/* 
- * TransactionIdIsLessThan --
- *	True iff first transaction identifier is less than the second.
- *
- * Note:
- *	Assumes transaction identifiers are valid.
- * 
- */
-extern
-bool
-TransactionIdIsLessThan ARGS((
-	TransactionId	id1,
-	TransactionId	id2
-));
-/* 
- * TransactionIdValueIsValid --
- *	True iff transaction identifier value is valid.
- * 
- */
-extern
-bool
-TransactionIdValueIsValid ARGS((
-	TransactionIdValue	value
-));
-
-/* 
- * StringGetTransactionIdValue --
- *	Returns transaction identifier value associated with a string.
- * 
- */
-extern
-void
-StringSetTransactionIdValue ARGS((
-	String			representation,
-	TransactionIdValue	value
-));
-
-/* 
- * TransactionIdValueFormString --
- *	Returns string representation for a transaction identifier value.
- * 
- */
-extern
-String
-TransactionIdValueFormString ARGS((
-	TransactionIdValue	value
-));
-
-/* 
- * TransactionIdValueSetTransactionId --
- *	Sets transaction identifier to a transaction identifier value.
- * 
- */
-extern
-void
-TransactionIdValueSetTransactionId ARGS((
-	TransactionIdValue	idValue,
-	TransactionId		id
-));
-
-/* 
- * TransactionIdSetTransactionIdValue --
- *	Sets transaction identifier value for a transaction identifier.
- * 
- */
-extern
-void
-TransactionIdSetTransactionIdValue ARGS((
-	TransactionId		id,
-	TransactionIdValue	idValue
-));
-
-/* 
- * TransactionIdIncrement --
- *	Increments transaction identifier.
- * 
- */
-extern
-void
-TransactionIdIncrement ARGS((
-	TransactionId	transactionId
-));
-
-#endif	/* !defined(XIdIncluded) */
-
-/* ----------------
- *	tim.h
- * ----------------
- */
-/*
- * tim.h --
- *	POSTGRES time definitions.
- */
-
-#ifndef	TimIncluded		/* Include this file only once */
-#define TimIncluded	1
-
-/*
- * Identification:
- */
-#define TIM_H	"$Header$"
-
-
 typedef uint32	AbsoluteTime;
-
 #define InvalidAbsoluteTime	0
 
 typedef uint32	RelativeTime;
-
 #define InvalidRelativeTime	0
 
 typedef uint32	Time;		/* XXX this will disappear */
-
 #define InvalidTime	0	/* XXX this will disappear */
 
 /*
@@ -811,65 +514,9 @@ typedef uint32	Time;		/* XXX this will disappear */
 #define INVALID_ABSTIME	2147483647
 #endif	/* !defined(INVALID_ABSTIME) */
 
-/*
- * AbsoluteTimeIsValid --
- *	True iff absolute time is valid.
- */
-extern
-bool
-AbsoluteTimeIsValid ARGS((
-	AbsoluteTime	time
-));
-
-/*
- * RelativeTimeIsValid --
- *	True iff relative time is valid.
- */
-extern
-bool
-RelativeTimeIsValid ARGS((
-	AbsoluteTime	time
-));
-
-/*
- * GetCurrentAbsoluteTime --
- *	Returns the current absolute time.
- */
-AbsoluteTime
-GetCurrentAbsoluteTime ARGS((
-	void
-));
-
-/*
- * AbsoluteTimeIsBefore --
- *	True iff an absolute time is before or the same as another.
- *
- * Note:
- *	Assumes absolute times are valid.
- */
-bool
-AbsoluteTimeIsBefore ARGS((
-	AbsoluteTime	time1,
-	AbsoluteTime	time2
-));
-
-/*
- * AbsoluteTimeIsAfter --
- *	True iff an absolute time is strictly after another.
- *
- * Note:
- *	Assumes absolute times are valid.
- */
-bool
-AbsoluteTimeIsAfter ARGS((
-	AbsoluteTime	time1,
-	AbsoluteTime	time2
-));
-
-#endif	/* !defined(TimIncluded) */
-
 /* ----------------------------------------------------------------
- *	system catalog macros used by the catalog/pg_xxx.h files
+ *		Section 7: genbki macros used by the
+ *			   catalog/pg_xxx.h files
  * ----------------------------------------------------------------
  */
 #define CATALOG(x) \
@@ -882,14 +529,14 @@ AbsoluteTimeIsAfter ARGS((
 #define BKI_END
 
 /* ----------------------------------------------------------------
- *	real old type names, may be obsoleted soon -cim 8/6/90
- * XXX These should disappear!!! -hirohama
+ *		Section 8: old types being obsoleted
  * ----------------------------------------------------------------
  */
 typedef	char	XID[5];
 #define	CID	unsigned char
 #define	ABSTIME	long
 #define	RELTIME	long
+
 #define OID	oid
 #define	REGPROC	oid		/* for now */
 
@@ -910,12 +557,17 @@ typedef	union {
 #endif
 
 
-/* ----------------
- *	random stuff
- * ----------------
+/* ----------------------------------------------------------------
+ *		Section 9:  random stuff
+ *			    SIGNBIT, PSIZE, MAXPGPATH, STATUS...
+ * ----------------------------------------------------------------
  */
-#define	SIGNBIT	(0x8000)	/* msb for int/unsigned */
-#define	CSIGNBIT	(1 << 7)	/* msb for char */
+
+/* msb for int/unsigned */
+#define	SIGNBIT	(0x8000)
+
+/* msb for char */
+#define	CSIGNBIT (1 << 7)
 
 /* ----------------
  *	PSIZE
@@ -941,6 +593,43 @@ typedef	union {
 #define STATUS_REPLACED         (-5)
 #define STATUS_NOT_DONE		(-6)
 #define STATUS_FOUND            (1)
+
+/* ----------------------------------------------------------------
+ *	externs
+ *
+ *	This should be eliminated or moved elsewhere
+ * ----------------------------------------------------------------
+ */
+extern bool NameIsEqual ARGS((Name name1, Name name2));
+extern uint32 NameComputeLength ARGS((Name name));
+
+extern bool AbsoluteTimeIsBefore ARGS((AbsoluteTime time1,AbsoluteTime time2));
+extern bool AbsoluteTimeIsAfter  ARGS((AbsoluteTime time1,AbsoluteTime time2));
+
+extern TransactionId	NullTransactionId;
+extern TransactionId	AmiTransactionId;
+extern TransactionId	FirstTransactionId;
+
+extern bool TransactionIdIsValid ARGS((TransactionId transactionId));
+extern void GetNewTransactionId ARGS((TransactionId xid));
+extern TransactionId StringFormTransactionId ARGS((String representation));
+extern String TransactionIdFormString ARGS((TransactionId transactionId));
+extern void TransactionIdStore
+    ARGS((TransactionId	transactionId, Pointer destination));
+extern void PointerStoreInvalidTransactionId ARGS((Pointer destination));
+extern bool TransactionIdEquals ARGS((TransactionId id1,TransactionId id2));
+extern bool TransactionIdIsLessThan 
+    ARGS((TransactionId	id1, TransactionId id2));
+extern bool TransactionIdValueIsValid ARGS((TransactionIdValue value));
+extern void StringSetTransactionIdValue
+    ARGS((String representation, TransactionIdValue value));
+extern String TransactionIdValueFormString ARGS((TransactionIdValue value));
+extern void TransactionIdValueSetTransactionId
+    ARGS((TransactionIdValue idValue, TransactionId id));
+extern void TransactionIdSetTransactionIdValue
+    ARGS((TransactionId id, TransactionIdValue idValue));
+extern void TransactionIdIncrement ARGS((TransactionId transactionId));
+    
 /* ----------------
  *	end of postgres.h
  * ----------------

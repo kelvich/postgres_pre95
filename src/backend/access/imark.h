@@ -20,6 +20,10 @@
  *	is especially easy to manage because such an item
  *	remains valid even after a relation restructuring.
  *
+ * XXX
+ *	None of this is implemented, so I replaced the dummy functions
+ *	with macros.  -cim 4/27/91
+ *
  * Identification:
  *	$Header$
  */
@@ -39,50 +43,37 @@ typedef Pointer	ItemMark;
  * ItemMarkIsValid --
  *	True iff the item mark is valid.
  */
-extern
-bool
-ItemMarkIsValid ARGS ((
-	ItemMark	mark
-));
+#define ItemMarkIsValid(mark) PointerIsValid(mark)
 
 /*
  * ItemMarkIsForItemPointer --
  *	True iff the item mark is associated with a disk item pointer.
  *
  * Note:
- *	Assumes the item mark is valid.
+ *	Does nothing at present. XXX
  */
-extern
-bool
-ItemMarkIsForItemPointer ARGS ((
-	ItemMark	mark
-));
+#define ItemMarkIsForItemPointer(mark) \
+    ((bool) AssertMacro(ItemMarkIsValid(mark)))
 
 /*
  * ItemMarkIsForBufferPointer --
  *	True iff the item mark is associated with a buffer memory pointer.
  *
  * Note:
- *	Assumes the item mark is valid.
+ *	Does nothing at present. XXX
  */
-extern
-bool
-ItemMarkIsForBufferPointer ARGS ((
-	ItemMark	mark
-));
+#define ItemMarkIsForBufferPointer(mark) \
+    ((bool) AssertMacro(ItemMarkIsValid(mark)))
 
 /*
  * ItemMarkIsForCopiedPointer --
  *	True iff the item mark is associated with a non-buffer memory pointer.
  *
  * Note:
- *	Assumes the item mark is valid.
+ *	Does nothing at present. XXX
  */
-extern
-bool
-ItemMarkIsForCopiedPointer ARGS ((
-	ItemMark	mark
-));
+#define ItemMarkIsForCopiedPointer(mark) \
+    ((bool) AssertMacro(ItemMarkIsValid(mark)))
 
 /*
  * ItemMarkGetItemPointer --
@@ -90,12 +81,12 @@ ItemMarkIsForCopiedPointer ARGS ((
  *
  * Note:
  *	Assumes the item mark is for a disk item pointer.
+ *	Presently just returns it's argument.  XXX
  */
-extern
-ItemPointer
-ItemMarkGetItemPointer ARGS((
-	ItemMark	mark
-));
+#define ItemMarkGetItemPointer(mark) \
+    ((ItemPointer) \
+     AssertMacro(ItemMarkIsValid(mark)) ? \
+     (ItemPointer) mark : (ItemPointer) NULL)
 
 /*
  * ItemMarkGetBuffer --
@@ -103,12 +94,11 @@ ItemMarkGetItemPointer ARGS((
  *
  * Note:
  *	Assumes the item mark is for a buffer memory pointer.
+ *	Does nothing at present.  XXX
  */
-extern
-Buffer
-ItemMarkGetBuffer ARGS((
-	ItemMark	mark
-));
+#define ItemMarkGetBuffer(mark) \
+    ((Buffer) \
+     AssertMacro(ItemMarkIsValid(mark)) ? (Buffer) 1 : (Buffer) 0)
 
 /*
  * ItemMarkGetBufferPointer --
@@ -116,12 +106,12 @@ ItemMarkGetBuffer ARGS((
  *
  * Note:
  *	Assumes the item mark is for a buffer memory pointer.
+ *	Does nothing at present.  XXX
  */
-extern
-Pointer
-ItemMarkGetPointer ARGS((
-	ItemMark	mark
-));
+#define ItemMarkGetBufferPointer(mark) \
+    ((ItemPointer) \
+     AssertMacro(ItemMarkIsValid(mark)) ? \
+     (ItemPointer) mark : (ItemPointer) NULL)
 
 /*
  * ItemMarkGetCopiedPointer --
@@ -129,22 +119,20 @@ ItemMarkGetPointer ARGS((
  *
  * Note:
  *	Assumes the item mark is for a non-buffer memory pointer.
+ *	Does nothing at present.  XXX
  */
-extern
-Pointer
-ItemMarkGetCopiedPointer ARGS((
-	ItemMark	mark
-));
+#define ItemMarkGetCopiedPointer(mark) \
+    ((ItemPointer) \
+     AssertMacro(ItemMarkIsValid(mark)) ? \
+     (ItemPointer) mark : (ItemPointer) NULL)
 
 /*
  * ItemMarkFree --
  *	Frees a item mark.
+ *	Does nothing at present.  XXX
  */
-extern
-void
-ItemMarkFree ARGS((
-	ItemMark	mark
-));
+#define ItemMarkFree(mark) \
+    Assert(ItemMarkIsValid(mark))
 
 /*
  * ItemPointerGetItemMark --
@@ -152,12 +140,12 @@ ItemMarkFree ARGS((
  *
  * Note:
  *	Assumes the disk item pointer is valid.
+ *	Does nothing at present.  XXX
  */
-extern
-ItemMark
-ItemPointerGetItemMark ARGS((
-	ItemPointer	pointer
-));
+#define ItemPointerGetItemMark(pointer) \
+    ((ItemMark) \
+     AssertMacro(ItemPointerIsValid(pointer)) ? \
+     (ItemMark) pointer : (ItemMark) NULL)
 
 /*
  * BufferGetItemMark --
@@ -166,13 +154,13 @@ ItemPointerGetItemMark ARGS((
  * Note:
  *	Assumes the buffer is valid.
  *	Assumes the pointer is valid.
+ *	Does nothing at present.  XXX
  */
-extern
-ItemMark
-BufferGetItemMark ARGS((
-	Buffer	buffer,
-	Pointer	pointer
-));
+#define BufferGetItemMark(buffer, pointer) \
+    ((ItemMark) \
+     (AssertMacro(BufferIsValid(buffer) && \
+		  PointerIsValid(pointer)) ? \
+      (ItemMark) pointer : (ItemMark) NULL))
 
 /*
  * PointerGetItemMark --
@@ -180,11 +168,11 @@ BufferGetItemMark ARGS((
  *
  * Note:
  *	Assumes the pointer is valid.
+ *	Does nothing at present.  XXX
  */
-extern
-ItemMark
-PointerGetItemMark ARGS((
-	Pointer	pointer
-));
+#define PointerGetItemMark(pointer) \
+    ((ItemMark) \
+     (AssertMacro(PointerIsValid(pointer)) ? \
+      (ItemMark) pointer : (ItemMark) NULL))
 
 #endif	/* !defined(IMarkIncluded) */

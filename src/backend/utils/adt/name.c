@@ -21,12 +21,6 @@ RcsId("$Header$");
 
 
 	     /* ========== PRIVATE ROUTINES ========== */
-bool
-NameIsValid(name)
-	Name	name;
-{
-	return ((bool) PointerIsValid(name));
-}
 
 /*
  * Note:
@@ -39,7 +33,7 @@ NameIsEqual(name1, name2)
 	Name	name1;
 	Name	name2;
 {
-	if (!PointerIsValid(name1) || !PointerIsValid(name2)) {
+	if (! PointerIsValid(name1) || ! PointerIsValid(name2)) {
 		return(false);
 	}
 	return((bool)(strncmp(name1, name2, 16) == 0));

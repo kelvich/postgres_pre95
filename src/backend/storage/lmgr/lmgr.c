@@ -202,7 +202,7 @@ RelationInitLockInfo(relation)
      *	sanity checks
      * ----------------
      */
-    Assert(RelationIsValid);
+    Assert(RelationIsValid(relation));
     Assert(ObjectIdIsValid(RelationGetRelationId(relation)));
 
     /* ----------------

@@ -38,8 +38,6 @@
  * ----------------
  */
 
-/* #undef NO_NODE_CHECKING */
-
 /*
  * We define NO_NODE_CHECKING for now because we are trying to get speed
  * out of this thing...
@@ -77,7 +75,7 @@ typedef double Cost;
 
 typedef	unsigned int		TypeId;
 typedef unsigned int		NodeTag;
-extern TypeId			_InvalidTypeId;
+
 #define	TypeIdIsValid(t)	((t) < (TypeId)_InvalidTypeId)
 
 /* ----------------------------------------------------------------
@@ -99,14 +97,13 @@ class (Node) {
  /* public: */
 };
 
+#define NullTag			((NodeTag) NULL)
 #define	NodeType(_node_)	((Node)_node_)->type
 #define	NodeIsValid(_node_)	PointerIsValid((Pointer)(_node_))
 
 #define	IsA(_node_,_tag_)	NodeIsType((Node)(_node_), classTag(_tag_))
 #define	New_Node(_x_)		((_x_)NewNode(classSize(_x_),classTag(_x_)))
 #define CreateNode(_x_)		((_x_)NewNode(classSize(_x_),classTag(_x_)))
-
-#define ExactNodeType(_node_,_tag_) (NodeType(_node_) == classTag(_tag_))
 
 /*
  * "Clause" macros for finding various nodes follow
@@ -117,22 +114,12 @@ class (Node) {
 #define fast_not_clause(_clause_) (CInteger(CAR((LispValue) _clause_)) == NOT)
 #define fast_or_clause(_clause_) (CInteger(CAR((LispValue) _clause_)) == OR)
 
-/* ----------------------------------------------------------------
- *		      extern declarations follow
- * ----------------------------------------------------------------
- */
-/*
-extern Node	NewNode ARGS((Size size, TypeId type));
-extern void	SetNodeType ARGS((Node node, TypeId tag));
-extern bool	NodeIsType ARGS((Node node, TypeId tag));
-*/
-
-
 /*
  * NodeTagIsValid --
  *      True iff node tag is valid.
  */
-extern bool NodeTagIsValid ARGS(( NodeTag tag ));
+#define NodeTagIsValid(tag) \
+    ((bool)((tag) < _InvalidTypeId))
 
 /*
  * NodeGetTag --
@@ -141,17 +128,8 @@ extern bool NodeTagIsValid ARGS(( NodeTag tag ));
  * Note:
  *	Assumes node is valid.
  */
-extern
-NodeTag
-NodeGetTag ARGS(( Node	node ));
-
-/*
- * NewNode --
- *	Returns a new node of the given size and tag.
- */
-extern
-Node
-NewNode ARGS((Size	size,NodeTag	tag ));
+#define NodeGetTag(node) \
+    ((NodeTag) (AssertMacro(NodeIsValid(node)) ? NodeType(node) : NullTag))
 
 /*
  * NodeSetTag --
@@ -161,12 +139,10 @@ NewNode ARGS((Size	size,NodeTag	tag ));
  *	Assumes node is valid pointer.
  *	Assumes tag is valid.
  */
-extern
-void
-NodeSetTag ARGS((
-	Node	node,
-	NodeTag	tag
-));
+#define NodeSetTag(node, tag) \
+    Assert(PointerIsValid(node)); \
+    Assert(NodeTagIsValid(tag)); \
+    NodeType(node) = tag
 
 /*
  * NodeHasTag --
@@ -175,10 +151,25 @@ NodeSetTag ARGS((
  * Note:
  *	See also:  NodeIsTagged.
  */
+#define NodeHasTag(node, tag) \
+    ((bool) (NodeGetTag(node) == (tag)))
+
+#define ExactNodeType(_node_,_tag_) \
+    (NodeType(_node_) == classTag(_tag_))
+
+/* ----------------------------------------------------------------
+ *		      extern declarations follow
+ * ----------------------------------------------------------------
+ */
+
+/*
+ * NewNode --
+ *	Returns a new node of the given size and tag.
+ */
 extern
-bool
-NodeHasTag ARGS((Node	node,NodeTag	tag ));
+Node
+NewNode ARGS((Size size, NodeTag tag ));
 
-
+extern TypeId _InvalidTypeId;
 
 #endif /* NodesIncluded */

@@ -73,7 +73,8 @@ BuildDescForRelation ARGS((
 
 #define private
 
-LispValuePtr	InstalledNameP = &LispNil;
+LispValue	InstalledNameValue = LispNil;
+LispValuePtr	InstalledNameP = &InstalledNameValue;
 
 /*
  * LispValuePInstallAsName --
@@ -470,7 +471,7 @@ StoreCatalogInheritance(relationId, supers)
     idList = LispNil;
     foreach (entry, supers) {
 	Datum		datum[ InheritsRelationNumberOfAttributes ];
-	char		null[ InheritsRelationNumberOfAttributes ];
+	char		nullarr[ InheritsRelationNumberOfAttributes ];
 	
 	tuple = SearchSysCacheTuple(RELNAME, CString(CAR(entry)));
 	AssertArg(HeapTupleIsValid(tuple));
@@ -484,12 +485,12 @@ StoreCatalogInheritance(relationId, supers)
 	datum[1] = ObjectIdGetDatum(tuple->t_oid);	/* inhparent */
 	datum[2] = Int16GetDatum(seqNumber);		/* inhseqno */
 	
-	null[0] = ' ';
-	null[1] = ' ';
-	null[2] = ' ';
+	nullarr[0] = ' ';
+	nullarr[1] = ' ';
+	nullarr[2] = ' ';
 	
 	tuple = FormHeapTuple(InheritsRelationNumberOfAttributes, desc,
-			      datum, null);
+			      datum, nullarr);
 	
 	(void) heap_insert(relation, tuple, NULL);
 	pfree(tuple);
@@ -584,20 +585,20 @@ StoreCatalogInheritance(relationId, supers)
     
     foreach (entry, idList) {
 	Datum	datum[ InheritancePrecidenceListRelationNumberOfAttributes ];
-	char	null[ InheritancePrecidenceListRelationNumberOfAttributes ];
+	char	nullarr[ InheritancePrecidenceListRelationNumberOfAttributes ];
 	
 	datum[0] = ObjectIdGetDatum(relationId);	/* iplrel */
 	datum[1] = ObjectIdGetDatum(CInteger(CAR(entry)));
 	/*iplinherits*/
 	datum[2] = Int16GetDatum(seqNumber);		/* iplseqno */
 	
-	null[0] = ' ';
-	null[1] = ' ';
-	null[2] = ' ';
+	nullarr[0] = ' ';
+	nullarr[1] = ' ';
+	nullarr[2] = ' ';
 	
 	tuple =
 	    FormHeapTuple( InheritancePrecidenceListRelationNumberOfAttributes,
-			  desc, datum, null);
+			  desc, datum, nullarr);
 	
 	(void) heap_insert(relation, tuple, NULL);
 	pfree(tuple);

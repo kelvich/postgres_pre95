@@ -128,21 +128,21 @@ bool addFlag;
 	     * an empty rule stub.
 	     */
 	    Datum values[Natts_pg_prs2stub];
-	    char null[Natts_pg_prs2stub];
+	    char nullarr[Natts_pg_prs2stub];
 	    int i;
 	    for (i=0; i<Natts_pg_prs2stub; i++)
-		null[i] = 'n';
+		nullarr[i] = 'n';
 	    values[Anum_pg_prs2stub_prs2relid-1] = 
 			ObjectIdGetDatum(relation->rd_id);
-	    null[Anum_pg_prs2stub_prs2relid-1] = ' ';
+	    nullarr[Anum_pg_prs2stub_prs2relid-1] = ' ';
 	    values[Anum_pg_prs2stub_prs2stub-1] = 
 		    StructPointerGetDatum(prs2StubToRawStub(prs2MakeStub()));
-	    null[Anum_pg_prs2stub_prs2stub-1] = ' ';
+	    nullarr[Anum_pg_prs2stub_prs2stub-1] = ' ';
 	    newTupleFlag = true;
 	    tuple = FormHeapTuple(Natts_pg_prs2stub,
 				RelationGetTupleDescriptor(prs2stubRelation),
 				values,
-				null);
+				nullarr);
 	}
     }
 
@@ -245,21 +245,21 @@ Prs2Stub newStubs;
 	 * an empty rule stub.
 	 */
 	Datum values[Natts_pg_prs2stub];
-	char null[Natts_pg_prs2stub];
+	char nullarr[Natts_pg_prs2stub];
 	int i;
 	for (i=0; i<Natts_pg_prs2stub; i++)
-	    null[i] = 'n';
+	    nullarr[i] = 'n';
 	values[Anum_pg_prs2stub_prs2relid-1] = 
 		    ObjectIdGetDatum(relationOid);
-	null[Anum_pg_prs2stub_prs2relid-1] = ' ';
+	nullarr[Anum_pg_prs2stub_prs2relid-1] = ' ';
 	values[Anum_pg_prs2stub_prs2stub-1] = 
 		StructPointerGetDatum(prs2StubToRawStub(prs2MakeStub()));
-	null[Anum_pg_prs2stub_prs2stub-1] = ' ';
+	nullarr[Anum_pg_prs2stub_prs2stub-1] = ' ';
 	newTupleFlag = true;
 	tuple = FormHeapTuple(Natts_pg_prs2stub,
 			    RelationGetTupleDescriptor(prs2stubRelation),
 			    values,
-			    null);
+			    nullarr);
     }
 
     /*
@@ -467,7 +467,7 @@ TupleDescriptor tupleDescriptor;
 Prs2Stub relstubs;
 {
     Datum values[Natts_pg_prs2stub];
-    char null[Natts_pg_prs2stub];
+    char nullarr[Natts_pg_prs2stub];
     int i;
     HeapTuple newTuple;
     Datum datum;
@@ -484,7 +484,7 @@ Prs2Stub relstubs;
 				i+1,
 				tupleDescriptor,
 				&isNull);
-	null[i] = isNull ? 'n' : ' ';
+	nullarr[i] = isNull ? 'n' : ' ';
     }
 
     /*
@@ -493,7 +493,7 @@ Prs2Stub relstubs;
     rawStub = prs2StubToRawStub(relstubs);
     datum = PointerGetDatum(rawStub);
     values[Anum_pg_prs2stub_prs2stub-1] = datum;
-    null[Anum_pg_prs2stub_prs2stub-1] = ' ';
+    nullarr[Anum_pg_prs2stub_prs2stub-1] = ' ';
 
     /*
      * Now form the new tuple
@@ -502,7 +502,7 @@ Prs2Stub relstubs;
 		    Natts_pg_prs2stub,
 		    tupleDescriptor,
 		    values,
-		    null);
+		    nullarr);
 
     pfree(rawStub);
     return(newTuple);

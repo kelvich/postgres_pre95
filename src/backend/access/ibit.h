@@ -25,10 +25,6 @@ typedef IndexAttributeBitMapData	*IndexAttributeBitMap;
  * IndexAttributeBitMapIsValid --
  *	True iff attribute bit map is valid.
  */
-extern
-bool
-IndexAttributeBitMapIsValid ARGS((
-	IndexAttributeBitMap	bits
-));
+#define	IndexAttributeBitMapIsValid(bits) PointerIsValid(bits)
 
 #endif	/* !defined(IBitIncluded) */

@@ -25,11 +25,8 @@ typedef uint16	AttributeOffset;
  * AttributeNumberIsValid --
  *	True iff the attribute number is valid.
  */
-extern
-bool
-AttributeNumberIsValid ARGS((
-	AttributeNumber	attributeNumber
-));
+#define AttributeNumberIsValid(attributeNumber) \
+    ((bool) ((attributeNumber) != InvalidAttributeNumber))
 
 /*
  * AttributeNumberIsForUserDefinedAttribute --

@@ -32,11 +32,8 @@ typedef ItemPointerData	*ItemPointer;
  * ItemPointerIsUserDefined --
  *	True iff the disk item pointer is in a user defined format.
  */
-extern
-bool
-ItemPointerIsUserDefined ARGS((
-	ItemPointer	pointer
-));
+#define ItemPointerIsUserDefined(pointer) \
+    ((bool) ((pointer)->blockData.data[0] & 0x8000))
 
 /*
  * ItemPointerIsValid --
@@ -45,11 +42,10 @@ ItemPointerIsUserDefined ARGS((
  * Note:
  *	Assumes that the disk item pointer is not in a user defined format.
  */
-extern
-bool
-ItemPointerIsValid ARGS((
-	ItemPointer	pointer
-));
+#define ItemPointerIsValid(pointer) \
+    ((bool) (PointerIsValid(pointer) && \
+	     (! ItemPointerIsUserDefined(pointer)) && \
+	     ((pointer)->positionData != 0)))
 
 /*
  * ItemPointerGetBlockNumber --

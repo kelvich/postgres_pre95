@@ -1,12 +1,45 @@
-/*
- * c.h --
- *	Fundamental C definitions.
+/* ----------------------------------------------------------------
+ *   FILE
+ *	c.h
  *
- * Note:
+ *   DESCRIPTION
+ *	Fundamental C definitions.  This is included by nearly
+ *	every .c file in postgres.
+ *
+ *   TABLE OF CONTENTS
+ *
+ *	When adding stuff to this file, please try and put stuff
+ *	into the relevent section, or add new sections as appropriate.
+ *
+ *    section	description
+ *    -------	------------------------------------------------
+ *	1)	palloc debugging defines
+ *	2)	bool, true, false, TRUE, FALSE
+ *	3)	__STDC__, non-ansi C definitions:
+ *		Pointer typedef, NULL
+ *		cpp magic macros
+ *		ARGS() prototype macro
+ *		type prefixes: const, signed, volatile, inline
+ *
+ *	4)	standard system types
+ *	5)	malloc, free, malloc_debug stuff, new, delete, ALLOCATE
+ *	6)	IsValid macros for system types
+ *	7)	offsetof, lengthof, endof 
+ *	8)	exception handling definitions, Assert, Trap, etc macros
+ *	9)	Min, Max, Abs macros
+ *	10)	LintCast, RevisionId, RcsId, SccsId macros
+ *	11)	SymbolDecl, ExternDecl macros
+ *	12)	externs
+ *
+ *   NOTES
+ *	This file reorganized as a result of eliminating wastful
+ *	nested IsValid calls -cim 4/27/91
+ *
  *	This file is MACHINE AND COMPILER dependent!!!  (For now.)
  *
- * Identification:
+ *   IDENTIFICATION
  *	$Header$
+ * ----------------------------------------------------------------
  */
 
 #ifndef	CIncluded		/* Include this file only once */
@@ -14,9 +47,9 @@
 
 #define C_H	"$Header$"
 
-/* ----------------
- *	these govern behaviour of palloc
- * ----------------
+/* ----------------------------------------------------------------
+ *		Section 1:  palloc debugging defines
+ * ----------------------------------------------------------------
  */
 #undef PALLOC_DEBUG 
 
@@ -24,7 +57,6 @@
  *	allocation debugging stuff
  * ----------------
  */
-
 #ifdef PALLOC_DEBUG
 #define palloc(size)       palloc_debug(__FILE__, __LINE__, size)
 #define pfree(ptr)         pfree_debug(__FILE__, __LINE__, ptr)
@@ -41,6 +73,10 @@
  * Begin COMPILER DEPENDENT section
  */
 
+/* ----------------------------------------------------------------
+ *		Section 2:  bool, true, false, TRUE, FALSE
+ * ----------------------------------------------------------------
+ */
 /*
  * bool --
  *	Boolean value, either true or false.
@@ -60,14 +96,38 @@
 
 #define TRUE	1
 #define FALSE	0
+
+/* ----------------------------------------------------------------
+ *		Section 3: __STDC__, non-ansi C definitions:
+ *
+ *		cpp magic macros
+ *		ARGS() prototype macro
+ *		Pointer typedef, NULL
+ *		type prefixes: const, signed, volatile, inline
+ * ----------------------------------------------------------------
+ */
+
+#ifdef	__STDC__ /* ANSI C */
+
+/*
+ * Pointer --
+ *	Variable holding address of any memory resident object.
+ */
+typedef void	*Pointer;
+
+#ifndef	NULL
+/*
+ * NULL --
+ *	Null pointer.
+ */
+#define NULL	((void *) 0)
+#endif	/* !defined(NULL) */
+
 /*
  * CppIdentity --
  *	C preprocessor identity macro, returns the argument.
- *	Used in non ANSI C compilers to concatenate tokens.
  */
 #define CppIdentity(x)x
-
-#ifdef	__STDC__ /* ANSI C */
 
 /*
  * CppAsString --
@@ -91,21 +151,27 @@
  */
 #define ARGS(args)	args
 
+#else	/* !defined(__STDC__) */ /* NOT ANSI C */
+
 /*
  * Pointer --
- *	Variable holding address of any memory resident object.
+ *	Variable containing address of any memory resident object.
  */
-typedef void	*Pointer;
+typedef char	*Pointer;
 
 #ifndef	NULL
 /*
  * NULL --
  *	Null pointer.
  */
-#define NULL	((void *) 0)
+#define NULL	0
 #endif	/* !defined(NULL) */
 
-#else	/* !defined(__STDC__) */ /* NOT ANSI C */
+/*
+ * CppIdentity --
+ *	C preprocessor identity macro, returns the argument.
+ */
+#define CppIdentity(x)x
 
 /*
  * CppAsString --
@@ -157,26 +223,6 @@ typedef void	*Pointer;
  */
 #define ARGS(args)	(/* args */)
 
-/*
- * offsetof --
- *	Offset of a structure/union field within that structure/union.
- */
-#define offsetof(type, field)	((long) &((type *)0)->field)
-
-/*
- * Pointer --
- *	Variable containing address of any memory resident object.
- */
-typedef char	*Pointer;
-
-#ifndef	NULL
-/*
- * NULL --
- *	Null pointer.
- */
-#define NULL	0
-#endif	/* !defined(NULL) */
-
 #endif	/* !defined(__STDC__) */ /* NOT ANSI C */
 
 
@@ -184,36 +230,11 @@ typedef char	*Pointer;
 # define inline
 #endif
 
-
-/*
- * BoolIsValid --
- *	True iff bool is valid.
+/* ----------------------------------------------------------------
+ *		Section 4:  standard system types
+ * ----------------------------------------------------------------
  */
-#define	BoolIsValid(boolean)	((boolean) == false || (boolean) == true)
 
-/*
- * PointerIsValid --
- *	True iff pointer is valid.
- */
-#define PointerIsValid(pointer)	(bool)((pointer) != NULL)
-
-/*
- * PointerIsInBounds --
- *	True iff pointer is within given bounds.
- *
- * Note:
- *	Assumes the bounded interval to be [min,max),
- *	i.e. closed on the left and open on the right.
- */
-#define PointerIsInBounds(pointer, min, max) \
-	((min) <= (pointer) && (pointer) < (max))
-
-/*
- * PointerIsAligned --
- *	True iff pointer is properly aligned to point to the given type.
- */
-#define PointerIsAligned(pointer, type)	\
-	(((long)(pointer) % (sizeof (type))) == 0)
 /*
  * End COMPILER DEPENDENT section
  */
@@ -333,28 +354,6 @@ typedef char		Address[];
 typedef unsigned int	Size;
 
 /*
- * SizeIsValid --
- *	True iff size is valid.
- *
- * Note:
- *	Assumes that Size is an unsigned type.
- *
- *	Assumes valid size to be in the interval (0,infinity).
- */
-#define SizeIsValid(size)		((size) > 0)
-
-/*
- * SizeIsInBounds --
- *	True iff size is within given bounds.
- *
- * Note:
- *	Assumes Size is an unsigned type.
- *
- *	Assumes the bounded interval to be (0,max].
- */
-#define SizeIsInBounds(size, max)	(0 < (size) && (size) <= (max))
-
-/*
  * Index --
  *	Index into any memory resident array.
  *
@@ -364,54 +363,10 @@ typedef unsigned int	Size;
 typedef unsigned int	Index;
 
 /*
- * IndexIsValid --
- *	True iff index is valid.
- *
- * Note:
- *	Assumes Index is an unsigned type.
- *
- *	Assumes valid index to be in the interval [0,infinity).
- */
-#define IndexIsValid(index)	true
-
-/*
- * IndexIsInBounds --
- *	True iff index is within given bounds.
- *
- * Note:
- *	Assumes Index is an unsigned type.
- *
- *	Assumes the bounded interval to be [0,max).
- */
-#define IndexIsInBounds(index, max)	((index) < (max))
-
-/*
  * Count --
  *	Generic counter type.
  */
 typedef unsigned int	Count;
-
-/*
- * CountIsValid --
- *	True iff count is valid
- *
- * Note:
- *	Assumes Count is an unsigned type.
- *
- *	Assumes valid counts to be in the interval [0,infinity).
- */
-#define CountIsValid(count)		true
-
-/*
- * CountIsInBounds --
- *	True iff count is within given bounds.
- *
- * Note:
- *	Assumes Count is an unsigned type.
- *
- *	Assumes the bounded interval to be [0,max).
- */
-#define CountIsInBounds(count, max)	IndexIsInBounds(count, max)
 
 /*
  * Offset --
@@ -424,36 +379,28 @@ typedef unsigned int	Count;
 typedef signed int	Offset;
 
 /*
- * OffsetIsInBounds --
- *	True iff offset is within given bounds.
+ * String --
+ *	String of characters.
+ */
+typedef char	*String;
+
+/*
+ * ReturnStatus --
+ *	Return status from POSTGRES library functions.
  *
  * Note:
- *	Assumes the bounded interval to be [0,max).
+ *	Most POSTGRES functions will not return a status.
+ *	In the future, there should be a global variable
+ *	which indicates the reason for the failure--the
+ *	identifier of an error message in the ERROR relation.
  */
-#define OffsetIsInBounds(offset, min, max) \
-	((min) <= (offset) && (offset) < (max))
+typedef int	ReturnStatus;
 
-/*
- * End COMPILER AND HARDWARE DEPENDENT section
+/* ----------------------------------------------------------------
+ *		Section 5:  malloc, free, malloc_debug stuff
+ *			    new, delete macros
+ * ----------------------------------------------------------------
  */
-
-
-/*
- * Begin COMPILER AND MACHINE INDEPENDENT section
- */
-
-/*
- * lengthof --
- *	Number of elements in an array.
- */
-#define lengthof(array)	(sizeof (array) / sizeof ((array)[0]))
-
-/*
- * endof --
- *	Address of the element one past the last in an array.
- */
-#define endof(array)	(&array[lengthof(array)])
-
 #ifdef PALLOC_DEBUG
 extern
 char *	/* as defined in /usr/lib/lint/llib-lc */
@@ -506,11 +453,123 @@ free ARGS((
  */
 #define delete(pointer)	(free((char *) (pointer)), (pointer) = NULL)
 
-/*
- * String --
- *	String of characters.
+/* 
+ * ALLOCATE() macro
  */
-typedef char	*String;
+#define ALLOCATE(foo) (foo) palloc(sizeof(struct CppConcat(_,foo)))
+
+/* ----------------------------------------------------------------
+ *		Section 6:  IsValid macros for system types
+ * ----------------------------------------------------------------
+ */
+/*
+ * BoolIsValid --
+ *	True iff bool is valid.
+ */
+#define	BoolIsValid(boolean)	((boolean) == false || (boolean) == true)
+
+#define boolIsValid(b) \
+    ((bool) ((b) == false || (b) == true))
+
+/*
+ * PointerIsValid --
+ *	True iff pointer is valid.
+ */
+#define PointerIsValid(pointer)	(bool)((Pointer)(pointer) != NULL)
+
+/*
+ * PointerIsInBounds --
+ *	True iff pointer is within given bounds.
+ *
+ * Note:
+ *	Assumes the bounded interval to be [min,max),
+ *	i.e. closed on the left and open on the right.
+ */
+#define PointerIsInBounds(pointer, min, max) \
+	((min) <= (pointer) && (pointer) < (max))
+
+/*
+ * PointerIsAligned --
+ *	True iff pointer is properly aligned to point to the given type.
+ */
+#define PointerIsAligned(pointer, type)	\
+	(((long)(pointer) % (sizeof (type))) == 0)
+
+/*
+ * SizeIsValid --
+ *	True iff size is valid.
+ *
+ * Note:
+ *	Assumes that Size is an unsigned type.
+ *
+ *	Assumes valid size to be in the interval (0,infinity).
+ */
+#define SizeIsValid(size)		((size) > 0)
+
+/*
+ * SizeIsInBounds --
+ *	True iff size is within given bounds.
+ *
+ * Note:
+ *	Assumes Size is an unsigned type.
+ *
+ *	Assumes the bounded interval to be (0,max].
+ */
+#define SizeIsInBounds(size, max)	(0 < (size) && (size) <= (max))
+
+/*
+ * IndexIsValid --
+ *	True iff index is valid.
+ *
+ * Note:
+ *	Assumes Index is an unsigned type.
+ *
+ *	Assumes valid index to be in the interval [0,infinity).
+ */
+#define IndexIsValid(index)	true
+
+/*
+ * IndexIsInBounds --
+ *	True iff index is within given bounds.
+ *
+ * Note:
+ *	Assumes Index is an unsigned type.
+ *
+ *	Assumes the bounded interval to be [0,max).
+ */
+#define IndexIsInBounds(index, max)	((index) < (max))
+
+/*
+ * CountIsValid --
+ *	True iff count is valid
+ *
+ * Note:
+ *	Assumes Count is an unsigned type.
+ *
+ *	Assumes valid counts to be in the interval [0,infinity).
+ */
+#define CountIsValid(count)		true
+
+/*
+ * CountIsInBounds --
+ *	True iff count is within given bounds.
+ *
+ * Note:
+ *	Assumes Count is an unsigned type.
+ *
+ *	Assumes the bounded interval to be [0,max).
+ */
+#define CountIsInBounds(count, max)	IndexIsInBounds(count, max)
+
+/*
+ * OffsetIsInBounds --
+ *	True iff offset is within given bounds.
+ *
+ * Note:
+ *	Assumes the bounded interval to be [0,max).
+ */
+#define OffsetIsInBounds(offset, min, max) \
+	((min) <= (offset) && (offset) < (max))
 
 /*
  * StringIsValid --
@@ -518,6 +577,58 @@ typedef char	*String;
  */
 #define	StringIsValid(string)	PointerIsValid(string)
 
+/*
+ * ReturnStatusIsValid --
+ *	True iff return status is valid.
+ *
+ * Note:
+ *	Assumes that a library function can only indicate
+ *	sucess or failure.
+ */
+#define ReturnStatusIsValid(status) \
+	((-1) <= (status) && (status) <= 0)
+
+/*
+ * ReturnStatusIsSucess --
+ *	True iff return status indicates a sucessful call.
+ */
+#define SucessfulReturnStatus(status) \
+	((status) >= 0)
+
+/*
+ * End COMPILER AND HARDWARE DEPENDENT section
+ */
+
+/*
+ * Begin COMPILER AND MACHINE INDEPENDENT section
+ */
+/* ----------------------------------------------------------------
+ *		Section 7:  offsetof, lengthof, endof
+ * ----------------------------------------------------------------
+ */
+/*
+ * offsetof --
+ *	Offset of a structure/union field within that structure/union.
+ */
+#define offsetof(type, field)	((long) &((type *)0)->field)
+
+/*
+ * lengthof --
+ *	Number of elements in an array.
+ */
+#define lengthof(array)	(sizeof (array) / sizeof ((array)[0]))
+
+/*
+ * endof --
+ *	Address of the element one past the last in an array.
+ */
+#define endof(array)	(&array[lengthof(array)])
+
+/* ----------------------------------------------------------------
+ *		Section 8:  exception handling definitions
+ *			    Assert, Trap, etc macros
+ * ----------------------------------------------------------------
+ */
 /*
  * Exception Handling definitions
  */
@@ -546,7 +657,6 @@ ExceptionalCondition ARGS((
  * - plai  9/5/90
  *
  */
-
 #undef NO_ASSERT_CHECKING
 
 /*
@@ -575,18 +685,31 @@ ExceptionalCondition ARGS((
 			(String)NULL, __FILE__, __LINE__); \
 	else
 
+/*    
+ *  TrapMacro is the same as Trap but it's intended for use in macros:
+ *
+ *	#define foo(x) (AssertM(x != 0) && bar(x))
+ *
+ *  Isn't CPP fun?
+ */
+#define TrapMacro(condition, exception) \
+    ((bool) ((! condition) || \
+	     (ExceptionalCondition(CppAsString(condition), \
+				  &(exception), \
+				  (String) NULL, __FILE__, __LINE__), \
+	      false)))
+    
 #ifdef NO_ASSERT_CHECKING
-
 #define Assert(condition)
-
+#define AssertMacro(condition)	true
 #define AssertArg(condition)
-
 #define AssertState(condition)
-
 #else
-
 #define Assert(condition) \
 	Trap(!(condition), FailedAssertion)
+
+#define AssertMacro(condition) \
+	TrapMacro(!(condition), FailedAssertion)
 
 #define AssertArg(condition) \
 	Trap(!(condition), BadArg)
@@ -595,12 +718,6 @@ ExceptionalCondition ARGS((
 	Trap(!(condition), BadState)
 
 #endif   /* NO_ASSERT_CHECKING */
-
-extern
-String
-form ARGS((
-	String	format,...
-));
 
 /*
  * LogTrap --
@@ -630,18 +747,29 @@ form ARGS((
 			form printArgs, __FILE__, __LINE__); \
 	else
 
+/*    
+ *  LogTrapMacro is the same as LogTrap but it's intended for use in macros:
+ *
+ *	#define foo(x) (LogAssertMacro(x != 0, "yow!") && bar(x))
+ */
+#define LogTrapMacro(condition, exception, printArgs) \
+    ((bool) ((! condition) || \
+	     (ExceptionalCondition(CppAsString(condition), \
+				   &(exception), \
+				   form printArgs, __FILE__, __LINE__), \
+	      false)))
+    
 #ifdef NO_ASSERT_CHECKING
-
 #define LogAssert(condition, printArgs)
-
+#define LogAssertMacro(condition, printArgs) true
 #define LogAssertArg(condition, printArgs)
-
 #define LogAssertState(condition, printArgs)
-
 #else
-
 #define LogAssert(condition, printArgs) \
 	LogTrap(!(condition), FailedAssertion, printArgs)
+
+#define LogAssertMacro(condition, printArgs) \
+	LogTrapMacro(!(condition), FailedAssertion, printArgs)
 
 #define LogAssertArg(condition, printArgs) \
 	LogTrap(!(condition), BadArg, printArgs)
@@ -651,6 +779,10 @@ form ARGS((
 
 #endif   /* NO_ASSERT_CHECKING */
 
+/* ----------------------------------------------------------------
+ *		Section 9:  Min, Max, Abs macros
+ * ----------------------------------------------------------------
+ */
 /*
  * Max --
  *	Return the maximum of two numbers.
@@ -669,6 +801,10 @@ form ARGS((
  */
 #define Abs(x)		((x) >= 0 ? (x) : -(x))
 
+/* ----------------------------------------------------------------
+ *		Section 10:  LintCast, RevisionId, RcsId, SccsId macros
+ * ----------------------------------------------------------------
+ */
 /*
  * LintCast --
  *	Coerce value to a given type, without upsetting lint.
@@ -703,8 +839,10 @@ form ARGS((
 #define RcsId(id)	RevisionId(_RcsId_, id)
 #endif
 
-#define ALLOCATE(foo) (foo)palloc(sizeof(struct CppConcat(_,foo)))
-
+/* ----------------------------------------------------------------
+ *		Section 11:  SymbolDecl, ExternDecl macros
+ * ----------------------------------------------------------------
+ */
 /*
  * SymbolDecl --
  * ExternDecl --
@@ -737,50 +875,21 @@ form ARGS((
 #define SymbolDecl(_symbol_) 
 #define ExternDecl(_external_)
 #endif
+
+/* ----------------------------------------------------------------
+ *		Section 12: externs
+ * ----------------------------------------------------------------
+ */
+
 /* ----------------
- *	stuff added from status.h
+ *	form is used by assert and the exception handling stuff
  * ----------------
  */
-/*
- * status.h --
- *	POSTGRES library function return status.
- * 	$Header$
- */
-
-#ifndef	StatusIncluded	/* Include this file only once. */
-#define StatusIncluded	1
-
-/*
- * ReturnStatus --
- *	Return status from POSTGRES library functions.
- *
- * Note:
- *	Most POSTGRES functions will not return a status.
- *	In the future, there should be a global variable
- *	which indicates the reason for the failure--the
- *	identifier of an error message in the ERROR relation.
- */
-typedef int	ReturnStatus;
-
-/*
- * ReturnStatusIsValid --
- *	True iff return status is valid.
- *
- * Note:
- *	Assumes that a library function can only indicate
- *	sucess or failure.
- */
-#define ReturnStatusIsValid(status) \
-	((-1) <= (status) && (status) <= 0)
-
-/*
- * ReturnStatusIsSucess --
- *	True iff return status indicates a sucessful call.
- */
-#define SucessfulReturnStatus(status) \
-	((status) >= 0)
-
-#endif	/* !defined(StatusIncluded) */
+extern
+String
+form ARGS((
+	String	format,...
+));
 
 /* ----------------
  *	end of c.h

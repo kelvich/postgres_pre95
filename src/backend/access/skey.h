@@ -58,31 +58,22 @@ typedef ScanKey		*ScanKeyPtr;
  * ScanKeyIsValid --
  *	True iff the scan key is valid.
  */
-extern
-bool
-ScanKeyIsValid ARGS((
-	ScanKey	key
-));
-
+#define ScanKeyIsValid(scanKeySize, key) \
+    ((bool) ((scanKeySize) == 0 || PointerIsValid(key)))
+	     
 /*
  * ScanKeyEntryIsValid --
  *	True iff the scan key entry is valid.
  */
-extern
-bool
-ScanKeyEntryIsValid ARGS((
-	ScanKeyEntry	entry
-));
+#define	ScanKeyEntryIsValid(entry) PointerIsValid(entry)
 
 /*
  * ScanKeyEntryIsLegal --
  *	True iff the scan key entry is legal.
  */
-extern
-bool
-ScanKeyEntryIsLegal ARGS((
-	ScanKeyEntry	entry
-));
+#define ScanKeyEntryIsLegal(entry) \
+    ((bool) (AssertMacro(ScanKeyEntryIsValid(entry)) && \
+	     AttributeNumberIsValid(entry->attributeNumber)))
 
 /*
  * ScanKeyEntrySetIllegal --
@@ -120,8 +111,8 @@ struct	skey {
 	int16	sk_flags;	/* flags */
 	int16	sk_attnum;	/* domain number */
 	OID	sk_opr;		/* procedure OID */
-	int (*func) ();
-	int32 nargs;
+	int 	(*func) ();
+	int32 	nargs;
 	DATUM	sk_data;	/* data to compare */
 };
 

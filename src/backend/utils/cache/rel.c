@@ -16,17 +16,9 @@ RcsId("$Header$");
 #include "utils/rel.h"
 #include "storage/fd.h"
 
-/* ----------------
- *	RelationIsValid
- * ----------------
+/* 
+ *	RelationIsValid is now a macro in rel.h -cim 4/27/91
  */
-bool
-RelationIsValid(relation)
-    Relation	relation;
-{
-    return (bool)
-	PointerIsValid(relation);
-}
 
 /* ----------------
  *	RelationGetSystemPort

@@ -13,7 +13,7 @@
 #include <strings.h>
 #include <stdio.h>
 
-#include "tmp/c.h"
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 
@@ -21,17 +21,8 @@ RcsId("$Header$");
 #include "parser/atoms.h"
 #include "utils/palloc.h"
 #include "utils/log.h"
-#include "tmp/name.h"
 #include "tmp/stringinfo.h"
 
-/*
- * 	Global declaration for LispNil.
- * 	Relies on the definition of "nil" in the LISP image.
- *	XXX Do *NOT* move this below the inclusion of c.h, or this
- *	    will break when used with Franz LISP!
- */
-
-LispValue	LispNil = (LispValue) NULL;
 extern bool _equalLispValue();
 
 /* ----------------
@@ -65,42 +56,37 @@ extern bool	_copyLispStr();
 /* ===================== PGLISP ==================== */
 
 
-lispNullp ( lval)
-     LispValue lval;
-{
-	return ( lval == LispNil );
-}
-
 char *
 CString(lstr)
      LispValue lstr;
 {
-  if(lstr->type == PGLISP_STR)
-    return(lstr->val.str);
-  else {
-      elog(WARN,"CString called on non-string\n");
-      return(NULL);
-  }
+    if (stringp(lstr))
+	return(LISPVALUE_STRING(lstr));
+    else {
+	elog(WARN,"CString called on non-string\n");
+	return(NULL);
+    }
 }
 
 int 
 CAtom(lv)
      LispValue lv;
 {
-  if (lv->type == PGLISP_ATOM)
-    return ((int)(lv->val.name));
-  else {
-      elog(WARN,"CAtom called on non-atom\n");
-      return (NULL);
-  }
+    if (atom(lv))
+	return ((int)(LISPVALUE_SYMBOL(lv)));
+    else {
+	elog(WARN,"CAtom called on non-atom\n");
+	return (NULL);
+    }
 }
 
 double
 CDouble(lval)
      LispValue lval;
 {
-    if (lval != NULL && lval->type == PGLISP_FLOAT)
-      return(lval->val.flonum);
+    if (floatp(lval))
+	return(LISPVALUE_DOUBLE(lval));
+    
     elog(WARN,"error : bougs float");
     return((double)0);
 }
@@ -108,11 +94,10 @@ int
 CInteger(lval)
      LispValue lval;
 {
-    if(lval != NULL && 
-       ( lval->type == PGLISP_INT ||
-	lval->type == PGLISP_ATOM ))
-      return(lval->val.fixnum);
-    elog (WARN,"error : bogus integer");
+    if (integerp(lval) || atom(lval))
+	return(LISPVALUE_INTEGER(lval));
+    
+    elog(WARN,"error : bogus integer");
     return(0);
 }
 
@@ -122,24 +107,25 @@ CInteger(lval)
  */
 LispValue
 lispAtom(atomName)
-	char *atomName; 
+    char *atomName; 
 {
-	LispValue	newobj = lispAlloc();
-	int 		keyword;
-	ScanKeyword	*search_result;	
+    LispValue	newobj = lispAlloc();
+    int 	keyword;
+    ScanKeyword	*search_result;	
 
-	search_result = ScanKeywordLookup(atomName);
-	Assert(search_result);
+    search_result = ScanKeywordLookup(atomName);
+    Assert(search_result);
 
-	keyword = search_result->value;
+    keyword = search_result->value;
 
-	newobj->type = PGLISP_ATOM;
-	newobj->equalFunc = _equalLispValue;
-	newobj->outFunc = _outLispValue;
-	newobj->copyFunc = _copyLispSymbol;
-	newobj->val.name = (char *)keyword;
-	newobj->cdr = LispNil;
-	return(newobj);
+    LISP_TYPE(newobj) = 		PGLISP_ATOM;
+    newobj->equalFunc = 	_equalLispValue;
+    newobj->outFunc = 		_outLispValue;
+    newobj->copyFunc = 		_copyLispSymbol;
+    LISPVALUE_SYMBOL(newobj) = 	(char *) keyword;
+    CDR(newobj) = 		LispNil;
+    
+    return(newobj);
 }
 
 /* ----------------
@@ -149,15 +135,16 @@ lispAtom(atomName)
 LispValue
 lispDottedPair()
 {
-	LispValue	newobj = lispAlloc();
+    LispValue	newobj = lispAlloc();
+    
+    LISP_TYPE(newobj) = 		PGLISP_DTPR;
+    newobj->equalFunc = 	_equalLispValue;
+    newobj->outFunc = 		_outLispValue;
+    newobj->copyFunc = 		_copyLispList;
+    CAR(newobj) = 		LispNil;
+    CDR(newobj) = 		LispNil;
 
-	newobj->type = PGLISP_DTPR;
-	newobj->equalFunc = _equalLispValue;
-	newobj->outFunc = _outLispValue;
-	newobj->copyFunc = _copyLispList;
-	newobj->val.car = LispNil;
-	newobj->cdr = LispNil;
-	return(newobj);
+    return(newobj);
 }
 
 /* ----------------
@@ -166,17 +153,18 @@ lispDottedPair()
  */
 LispValue
 lispFloat(floatValue)
-	double	floatValue;
+    double	floatValue;
 {
-	LispValue	newobj = lispAlloc();
+    LispValue	newobj = lispAlloc();
 
-	newobj->type = PGLISP_FLOAT;
-	newobj->equalFunc = _equalLispValue;
-	newobj->outFunc = _outLispValue;
-	newobj->copyFunc = _copyLispFloat;
-	newobj->val.flonum = floatValue;
-	newobj->cdr = LispNil;
-	return(newobj);
+    LISP_TYPE(newobj) = 		PGLISP_FLOAT;
+    newobj->equalFunc = 	_equalLispValue;
+    newobj->outFunc = 		_outLispValue;
+    newobj->copyFunc =		_copyLispFloat;
+    LISPVALUE_DOUBLE(newobj) = 	floatValue;
+    CDR(newobj) = 		LispNil;
+
+    return(newobj);
 }
 
 /* ----------------
@@ -185,17 +173,18 @@ lispFloat(floatValue)
  */
 LispValue
 lispInteger(integerValue)
-	int	integerValue;
+    int	integerValue;
 {
-	LispValue	newobj = lispAlloc();
+    LispValue	newobj = lispAlloc();
 
-	newobj->type = PGLISP_INT;
-	newobj->equalFunc = _equalLispValue;
-	newobj->outFunc = _outLispValue;
-	newobj->copyFunc = _copyLispInt;
-	newobj->val.fixnum = integerValue;
-	newobj->cdr = LispNil;
-	return(newobj);
+    LISP_TYPE(newobj) = 	PGLISP_INT;
+    newobj->equalFunc = 	_equalLispValue;
+    newobj->outFunc = 		_outLispValue;
+    newobj->copyFunc = 		_copyLispInt;
+    LISPVALUE_INTEGER(newobj) = integerValue;
+    CDR(newobj) = 		LispNil;
+
+    return(newobj);
 }
 
 /* ----------------
@@ -210,14 +199,14 @@ lispName(string)
     LispValue	newobj = lispAlloc();
     char		*newstr;
 
-    newobj->type = PGLISP_STR;
+    LISP_TYPE(newobj) = PGLISP_STR;
     newobj->equalFunc = _equalLispValue;
     newobj->outFunc = _outLispValue;
     newobj->copyFunc = _copyLispStr;
-    newobj->cdr = LispNil;
+    CDR(newobj) = LispNil;
 
-    if(string ) {
-	if ( strlen(string) > sizeof(NameData) ) {
+    if (string) {
+	if (strlen(string) > sizeof(NameData)) {
 	    elog(WARN,"Name %s was longer than %d",string,sizeof(NameData));
 	    /* NOTREACHED */
 	}
@@ -226,7 +215,8 @@ lispName(string)
     } else
       newstr = (char *)NULL;
 
-    newobj->val.str = newstr;
+    LISPVALUE_STRING(newobj) = newstr;
+    
     return(newobj);
 }
 
@@ -242,19 +232,19 @@ lispString(string)
     LispValue	newobj = lispAlloc();
     char		*newstr;
 
-    newobj->type = PGLISP_STR;
+    LISP_TYPE(newobj) = PGLISP_STR;
     newobj->equalFunc = _equalLispValue;
-    newobj->outFunc = _outLispValue;
-    newobj->copyFunc = _copyLispStr;
-    newobj->cdr = LispNil;
+    newobj->outFunc = 	_outLispValue;
+    newobj->copyFunc = 	_copyLispStr;
+    CDR(newobj) =	 LispNil;
 
-    if(string) {
+    if (string) {
 	newstr = (char *) palloc(strlen(string)+1);
 	newstr = strcpy(newstr,string);
     } else
       newstr = (char *)NULL;
 
-    newobj->val.str = newstr;
+    LISPVALUE_STRING(newobj) = newstr;
     return(newobj);
 }
 
@@ -264,19 +254,21 @@ lispString(string)
  */
 LispValue
 lispVectori(nBytes)
-	int	nBytes;
+    int	nBytes;
 {
-	LispValue	newobj = lispAlloc();
+    LispValue	newobj = lispAlloc();
 	
-	newobj->type = PGLISP_VECI;
-	newobj->equalFunc = _equalLispValue;
-	newobj->outFunc = _outLispValue;
-	newobj->copyFunc = _copyLispVector;
-	newobj->val.veci = (struct vectori *)
-		palloc((unsigned) (sizeof(struct vectori) + nBytes));
-	newobj->val.veci->size = nBytes;
-	newobj->cdr = LispNil;
-	return(newobj);
+    LISP_TYPE(newobj) = PGLISP_VECI;
+    newobj->equalFunc = _equalLispValue;
+    newobj->outFunc = 	_outLispValue;
+    newobj->copyFunc = 	_copyLispVector;
+    
+    LISPVALUE_VECI(newobj) = (struct vectori *)
+	palloc((unsigned) (sizeof(struct vectori) + nBytes));
+    LISPVALUE_VECTORSIZE(newobj) = nBytes;
+    CDR(newobj) = LispNil;
+
+    return(newobj);
 }
 
 LispValue
@@ -337,13 +329,14 @@ nappend1(list, lispObject)
 {
 	LispValue	p;
 	
-	if (list == LispNil) {
-		list = lispList();
-		CAR(list) = lispObject;
-		CDR(list) = LispNil;
-		return(list);
+	if (null(list)) {
+	    list = lispList();
+	    CAR(list) = lispObject;
+	    CDR(list) = LispNil;
+	    return(list);
 	}
-	for (p = list; CDR(p) != LispNil; p = CDR(p))
+	
+	for (p = list; !null(CDR(p)); p = CDR(p))
 		;
 	CDR(p) = lispList();
 	CAR(CDR(p)) = lispObject;
@@ -360,18 +353,18 @@ append1(list, lispObject)
     LispValue	p = LispNil;
     LispValue 	retval = LispNil;
 
-    if (list == LispNil) {
+    if (null(list)) {
 	retval = lispList();
 	CAR(retval) = lispObject;
 	CDR(retval) = LispNil;
 	return(retval);
     }
 
-    for (p = list; p != LispNil; p = CDR(p)) {
+    for (p = list; !null(p); p = CDR(p)) {
 	retval = nappend1(retval,CAR(p));
     }
 
-    for (p = retval; CDR(p) != LispNil; p = CDR(p))
+    for (p = retval; !null(CDR(p)); p = CDR(p))
       ;
 
     CDR(p) = lispList();
@@ -384,9 +377,9 @@ LispValue
 car(dottedPair)
 	LispValue	dottedPair;
 {
-	if (null(dottedPair)) {
-		return (LispNil);
-	}
+	if (null(dottedPair))
+	    return (LispNil);
+	
 	AssertArg(listp(dottedPair));
 	return (CAR(dottedPair));
 }
@@ -395,9 +388,9 @@ LispValue
 cdr(dottedPair)
 	LispValue	dottedPair;
 {
-	if (null(dottedPair)) {
-		return (LispNil);
-	}
+	if (null(dottedPair))
+	    return (LispNil);
+	
 	AssertArg(listp(dottedPair));
 	return (CDR(dottedPair));
 }
@@ -427,24 +420,6 @@ init_list(list, newValue)
 }
 
 
-
-/*********************************************************************
-
-  consp
-  - p74 of CLtL
-
- *********************************************************************/
- 
-bool
-consp(foo)
-     LispValue foo;
-{
-    if (foo)
-      return((bool)(foo->type == PGLISP_DTPR));
-    else
-      return(false);
-}
-
 /*
  *      More Manipulation routines
  *
@@ -468,14 +443,15 @@ append(list,lispObject)
      LispValue newlist, newlispObject;
      LispValue lispCopy();
 
-     Assert(listp (list));
-     if (list == LispNil)
-        return (lispCopy(lispObject));
+     if (null(list))
+        return lispCopy(lispObject);
+     
+     Assert(listp(list));
      
      newlist = lispCopy(list);
      newlispObject = lispCopy(lispObject);
 
-     for (p = newlist; CDR(p) != LispNil; p = CDR(p))
+     for (p = newlist; !null(CDR(p)); p = CDR(p))
        ;
      CDR(p) = newlispObject;
      return(newlist);
@@ -488,15 +464,13 @@ append(list,lispObject)
  * ----------------
  */
 
-
-
 int
-length (list)
+length(list)
      LispValue list;
 {
      LispValue temp;
      int count = 0;
-     for (temp = list; temp != LispNil; temp = CDR(temp))
+     for (temp = list; !null(temp); temp = CDR(temp))
        count += 1;
 
      return(count);
@@ -504,33 +478,23 @@ length (list)
 
 
 LispValue
-nthCdr (index, list)
+nthCdr(index, list)
      LispValue list;
      int index;
 {
     int i;
     LispValue temp = list;
     for (i= 1; i <= index; i++) {
-	if (temp != LispNil)
-	  temp = CDR (temp);
+	if (! null(temp))
+	    temp = CDR(temp);
 	else 
-	  return(LispNil);
+	    return(LispNil);
     }
     return(temp);
 }
 
-bool
-null (lispObj)
-     LispValue lispObj;
-{
-     if (lispObj == LispNil)
-       return(true);
-     else
-       return(false);
-}
-
 LispValue
-nconc (list1, list2)
+nconc(list1, list2)
      LispValue list1,list2;
 {
      LispValue temp;
@@ -542,7 +506,7 @@ nconc (list1, list2)
      if (list1 == list2)
 	elog(WARN,"trying to nconc a list to itself");
 
-     for (temp = list1;  CDR(temp) != LispNil; temp = CDR(temp))
+     for (temp = list1; !null(CDR(temp)); temp = CDR(temp))
        ;
 
      CDR(temp) = list2;
@@ -552,7 +516,7 @@ nconc (list1, list2)
 
 
 LispValue
-nreverse (list)
+nreverse(list)
      LispValue list;
 {
      LispValue temp =LispNil;
@@ -565,11 +529,11 @@ nreverse (list)
 
      Assert(IsA(list,LispList));
 
-     if (length (list) == 1)
+     if (length(list) == 1)
        return(list);
 
-     for (p = list; p != LispNil; p = CDR(p)) {
-            rlist = lispCons (CAR(p),rlist);
+     for (p = list; !null(p); p = CDR(p)) {
+            rlist = lispCons(CAR(p),rlist);
      }
 
      CAR(list) = CAR(rlist);
@@ -613,16 +577,17 @@ remove_duplicates(foo,test)
     bool there_exists_duplicate = false;
     int times = 0;
 
-    if(length(foo) == 1)
-      return(foo);
+    if (length(foo) == 1)
+	return(foo);
+    
     foreach (i,foo) {
-	if (listp (i) && !null(i)) {
+	if (listp(i)) {
 	    foreach (j,CDR(i)) {
 		if ( (* test)(CAR(i),CAR(j)) )
 		  there_exists_duplicate = true;
 	    }
-	    if ( ! there_exists_duplicate ) 
-	      result = nappend1 (result, CAR(i) );
+	    if (! there_exists_duplicate) 
+	      result = nappend1(result, CAR(i) );
 
 	    there_exists_duplicate = false;
 	}
@@ -661,7 +626,7 @@ LispDelete(foo,bar)
     LispValue j = LispNil;
 
     foreach (i,bar) {
-	if ( equal(CAR(i),foo))
+	if (equal(CAR(i),foo))
 	  if (i == bar ) {
 	      /* first element */
 	      CAR(bar) = CAR(CDR(bar));
@@ -681,12 +646,36 @@ setf(foo,bar)
     return(bar);
 }
 
-bool
-atom(foo)
+LispValue
+LispRemove(foo,bar)
      LispValue foo;
+     List bar;
 {
-    return ((bool)(foo->type == PGLISP_ATOM));
+    LispValue temp = LispNil;
+    LispValue result = LispNil;
+
+    for (temp = bar; !null(temp); temp = CDR(temp))
+      if (! equal(foo,CAR(temp)) ) {
+	  result = append1(result,CAR(temp));
+      }
+	  
+    return(result);
 }
+
+List
+nLispRemove(foo, bar)
+List foo;
+LispValue bar;
+{
+    LispValue x;
+    List result = LispNil;
+
+    foreach (x, foo)
+	if (bar != CAR(x))
+	    result = nappend1(result, CAR(x));
+    return result;
+}
+
 
 LispValue
 set_difference(foo,bar)
@@ -696,7 +685,8 @@ set_difference(foo,bar)
     LispValue result = LispNil;
 
     if(null(bar))
-      return(foo); 
+	return(foo); 
+    
     foreach (temp1,foo) {
 	if (! member(CAR(temp1),bar))
 	  result = nappend1(result,CAR(temp1));
@@ -725,7 +715,7 @@ push(foo,bar)
 {
 	LispValue tmp = lispList();
 
-	if (bar == LispNil) {
+	if (null(bar)) {
 		CAR(tmp) = foo;
 		CDR(tmp) = LispNil;
 		return(tmp);
@@ -745,7 +735,7 @@ last(foo)
      LispValue foo;
 {
     LispValue bar;
-    for (bar = foo; CDR(bar) != LispNil ; bar = CDR(bar))
+    for (bar = foo; !null(CDR(bar)); bar = CDR(bar))
       ;
     return(bar);
 }
@@ -760,15 +750,16 @@ LispUnion(foo,bar)
     
     if (null(foo))
       return(bar); /* XXX - should be copy of bar */
-    if (null (bar))
+    
+    if (null(bar))
       return(foo); /* XXX - should be copy of foo */
     
-    Assert (IsA(foo,LispList));
-    Assert (IsA(bar,LispList));
+    Assert(IsA(foo,LispList));
+    Assert(IsA(bar,LispList));
 
     foreach (i,foo) {
 	foreach (j,bar) {
-	    if (! equal (CAR(i),CAR(j))) {
+	    if (! equal(CAR(i),CAR(j))) {
 	      retval = nappend1(retval,CAR(i));
 	      break;
 	    }
@@ -779,46 +770,6 @@ LispUnion(foo,bar)
     }
 
     return(retval);
-}
-
-LispValue
-LispRemove (foo,bar)
-     LispValue foo;
-     List bar;
-{
-    LispValue temp = LispNil;
-    LispValue result = LispNil;
-
-    for (temp = bar; temp != LispNil ; temp = CDR(temp))
-      if (! equal(foo,CAR(temp)) ) {
-	  result = append1(result,CAR(temp));
-      }
-	  
-    return(result);
-}
-
-List
-nLispRemove(foo, bar)
-List foo;
-LispValue bar;
-{
-    LispValue x;
-    List result = LispNil;
-
-    foreach (x, foo)
-	if (bar != CAR(x))
-	    result = nappend1(result, CAR(x));
-    return result;
-}
-
-bool
-listp(foo)
-     LispValue foo;
-{
-    if (foo)
-      return((bool)(foo->type == PGLISP_DTPR));
-    else
-      return(true);
 }
 
 /* temporary functions */
@@ -833,33 +784,15 @@ mapcar(foo,bar)
 }
 
 bool
-integerp(foo)
-     LispValue foo;
-{
-  if (foo)
-    return((bool)(foo->type==PGLISP_INT));
-  else
-    return(false);
-}
-
-bool
 zerop(foo)
      LispValue foo;
 {
     if (integerp(foo))
 	return((bool)(CInteger(foo) == 0));
-    else
-	{
-	    elog(WARN,"zerop called on noninteger");
-	    return ((bool) 1); /* non-integer is always zero */
-	}
-}
-
-bool
-eq(foo,bar)
-    LispValue foo,bar;
-{
-    return ((bool)(foo == bar));
+    else {
+	elog(WARN,"zerop called on noninteger");
+	return ((bool) 1); /* non-integer is always zero */
+    }
 }
 
 LispValue
@@ -961,13 +894,6 @@ sort(foo)
 	}
 }
 
-bool
-stringp(foo)
-     LispValue foo;
-{
-    return((bool)(foo->type == PGLISP_STR));
-}
-
 double
 expt(foo)
      double foo;
@@ -977,24 +903,7 @@ expt(foo)
 }
 
 bool
-floatp(foo)
-     LispValue foo;
-{
-    if (foo)
-      return((bool)(foo->type == PGLISP_FLOAT));
-    else
-      return(false);
-}
-bool
-numberp(foo)
-     LispValue foo;
-{
-    return((bool)(integerp (foo) || 
-		  floatp (foo)));
-}
-
-bool
-same (foo,bar)
+same(foo,bar)
      LispValue foo;
      LispValue bar;
 {
@@ -1099,15 +1008,15 @@ LispValue	lispObject;
     char *buf2;
 
 
-    if (lispObject == LispNil) {
+    if (null(lispObject)) {
 	appendStringInfo(str, "nil ");
 	return;
     }
 
     switch(lispObject->type) {
 	case PGLISP_ATOM:
-	    buf2 = AtomValueGetString((int)(lispObject->val.name));
-	    sprintf (buf, "%s ", buf2);
+	    buf2 = AtomValueGetString((int)(LISPVALUE_SYMBOL(lispObject)));
+	    sprintf(buf, "%s ", buf2);
 	    appendStringInfo(str, buf);
 	    break;
 	case PGLISP_DTPR:
@@ -1134,7 +1043,7 @@ LispValue	lispObject;
 		     * End of list
 		     */
 		    done = 1;
-		} else if (CDR(t)->type == PGLISP_DTPR) {
+		} else if (consp(CDR(t))) {
 		    /*
 		     * there is at least another element in the list
 		     */
@@ -1152,22 +1061,22 @@ LispValue	lispObject;
 	    appendStringInfo(str, ")");
 	    break;
 	case PGLISP_FLOAT:
-	    sprintf(buf, "%g ", lispObject->val.flonum);
+	    sprintf(buf, "%g ", LISPVALUE_DOUBLE(lispObject));
 	    appendStringInfo(str, buf);
 	    break;
 	case PGLISP_INT:
-	    sprintf(buf, "%d ", lispObject->val.fixnum);
+	    sprintf(buf, "%d ", LISPVALUE_INTEGER(lispObject));
 	    appendStringInfo(str, buf);
 	    break;
 	case PGLISP_STR:
-	    sprintf(buf, "\"%s\" ", lispObject->val.str);
+	    sprintf(buf, "\"%s\" ", LISPVALUE_STRING(lispObject));
 	    appendStringInfo(str, buf);
 	    break;
 	case PGLISP_VECI:
-	    sprintf(buf, "#<%d:", lispObject->val.veci->size);
+	    sprintf(buf, "#<%d:", LISPVALUE_VECTORSIZE(lispObject));
 	    appendStringInfo(str, buf);
-	    for (i = 0; i < lispObject->val.veci->size; ++i) {
-		sprintf(buf, " %d", lispObject->val.veci->data[i]);
+	    for (i = 0; i < LISPVALUE_VECTORSIZE(lispObject); ++i) {
+		sprintf(buf, " %d", LISPVALUE_BYTEVECTOR(lispObject)[i]);
 		appendStringInfo(str, buf);
 	    }
 	    sprintf(buf, " >");

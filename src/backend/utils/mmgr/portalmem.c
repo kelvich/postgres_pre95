@@ -17,7 +17,6 @@
  *	
  *   INTERFACE ROUTINES
  *	EnablePortalManager
- *	PortalIsValid
  *	GetPortalByName
  *	BlankPortalAssignName
  *	PortalSetQuery
@@ -34,7 +33,7 @@
  *	PortalHeapMemoryGetPortal
  *	PortalVariableMemoryGetHeapMemory
  *	PortalHeapMemoryGetVariableMemory
- *	
+ *
  *   NOTES
  *	Do not confuse "Portal" with "PortalEntry" (or "PortalBuffer").
  *	When a PQexec() routine is run, the resulting tuples
@@ -515,17 +514,6 @@ EnablePortalManager(on)
     }
     
     processing = false;
-}
-
-/* ----------------
- *	PortalIsValid
- * ----------------
- */
-bool
-PortalIsValid(portal)
-    Portal	portal;
-{
-    return (PointerIsValid(portal));
 }
 
 /* ----------------

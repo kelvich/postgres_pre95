@@ -46,13 +46,3 @@ boolout(b)
 
 	     /* ========== PRIVATE ROUTINES ========== */
 
-
-/*
- *	boolIsValid
- */
-bool
-boolIsValid(b)
-	bool	b;
-{
-	return((bool) (b == false || b == true));
-}

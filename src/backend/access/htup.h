@@ -111,11 +111,7 @@ typedef HeapTupleData	*HeapTuple;
  * HeapTupleIsValid
  *	True iff the heap tuple is valid.
  */
-extern
-bool
-HeapTupleIsValid ARGS((
-	HeapTuple	tuple
-));
+#define	HeapTupleIsValid(tuple)	PointerIsValid(tuple)
 
 /*
  * HeapTupleGetForm
@@ -126,79 +122,5 @@ Form
 HeapTupleGetForm ARGS((
 	HeapTuple	tuple
 ));
-#ifdef OBSOLETE
-/* ----------------------------------------------------------------
- *			old stuff from tuple.h
- * ----------------------------------------------------------------
- */
-
-/* check these, they are likely to be more severely limited by t_hoff */
-#define	MAXIATTS 8
-#define	MINATTS	32		/* 8 * 4 */
-#ifdef	vax
-#define	MAXATTS	1584		/* 8 * 198 */
-#else
-#define	MAXATTS	1600		/* 8 * 200 */
-#endif
-
-struct	tuple	{
-	uint32		t_len;		/* length of entire tuple */
-	ItemPointerData	t_ctid;		/* current TID of this tuple */
-	char		t_locktype;	/* type of rule lock representation*/
-	union {
-		ItemPointerData	l_ltid;		/* TID of the lock */
-		RuleLock	l_lock;		/* internal lock format */
-	}		t_lock;
-	OID		t_oid;		/* OID of this tuple */
-	XID		t_xmin;		/* insert XID stamp */
-	CID		t_cmin;		/* insert CID stamp */
-	XID		t_xmax;		/* delete XID stamp */
-	CID		t_cmax;		/* delete CID stamp */
-	ItemPointerData	t_chain;	/* replaced tuple TID */
-	ItemPointerData	t_anchor;	/* anchor point TID */
-	ABSTIME		t_tmin, t_tmax;	/* time stamps */
-	uint16		t_natts;	/* number of attributes */
-	uint8		t_hoff;		/* sizeof tuple header */
-	char		t_vtype;	/* `d', `i', `r' */
-	char		t_bits[MINATTS / 8];
-					/* bit map of domains */
-};	/* MORE DATA FOLLOWS AT END OF STRUCT */
-
-struct	ituple {
-	ItemPointerData	t_ctid;		/* current TID of this tuple */
-	union {
-		ItemPointerData	l_ltid;		/* TID of the lock */
-		RuleLock	l_lock;		/* internal lock format */
-	}		t_lock;
-	ItemPointerData	t_tid;		/* reference TID to base tuple */
-	char		t_bits[MAXIATTS / 8];	/* bitmap of domains */
-};	/* MORE DATA FOLLOWS AT END OF STRUCT */
-
-typedef	union {
-	struct	tuple	tp_t;
-	struct	ituple	tp_it;
-	char		tp_ot[1];
-} TUPLE;
-
-/*	attnum codes for the internal tuple fields	*/
-
-#ifndef T_CTID
-#define	T_CTID	(-1)
-#define	T_LOCK	(-2)
-#define	T_TID	(-3)
-#endif
-#define	T_OID	(-3)
-#define	T_XMIN	(-4)
-#define	T_CMIN	(-5)
-#define	T_XMAX	(-6)
-#define	T_CMAX	(-7)
-#define	T_CHAIN	(-8)
-#define	T_ANCHOR	(-9)
-#define	T_TMIN	(-10)
-#define	T_TMAX	(-11)
-#define	T_VTYPE	(-12)
-#define	T_HLOW	(T_VTYPE - 1)
-
-#endif OBSOLETE
 
 #endif	/* !defined(HTupIncluded) */

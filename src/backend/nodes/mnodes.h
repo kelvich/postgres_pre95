@@ -115,10 +115,7 @@ class (PortalHeapMemory) public (PortalMemoryContext) {
  * MemoryContextIsValid --
  *	True iff memory context is valid.
  */
-extern
-bool
-MemoryContextIsValid ARGS((
-	MemoryContext	context
-));
+#define MemoryContextIsValid(context) \
+    ((bool) IsA(context,MemoryContext))
 
 #endif	/* !defined(MNodesIncluded) */

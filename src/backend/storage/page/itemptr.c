@@ -14,37 +14,13 @@
 
 RcsId("$Header$");
 
-bool
-ItemPointerIsUserDefined(pointer)
-	ItemPointer	pointer;
-{
-	if (!PointerIsValid(pointer)) {
-		return (false);
-	} else {
-		return ((bool)(pointer->blockData.data[0] & 0x8000)); /* XXX */
-	}
-}
-
-bool
-ItemPointerIsValid(pointer)
-	ItemPointer	pointer;
-{
-	Assert(!ItemPointerIsUserDefined(pointer));
-
-	if (!PointerIsValid(pointer)) {
-		return (false);
-	} else {
-		return ((bool)(pointer->positionData != 0));
-	}
-}
-
 BlockNumber
 ItemPointerGetBlockNumber(pointer)
 	ItemPointer	pointer;
 {
-	Assert(!ItemPointerIsUserDefined(pointer));
-
-	return (BlockIdGetBlockNumber(&pointer->blockData));
+	Assert(ItemPointerIsValid(pointer));
+	return
+	    BlockIdGetBlockNumber(&pointer->blockData);
 }
 
 PageNumber
@@ -52,9 +28,9 @@ ItemPointerGetPageNumber(pointer, partition)
 	ItemPointer	pointer;
 	PagePartition	partition;
 {
-	Assert(!ItemPointerIsUserDefined(pointer));
-
-	return (PositionIdGetPageNumber(&pointer->positionData, partition));
+	Assert(ItemPointerIsValid(pointer));
+	return
+	    PositionIdGetPageNumber(&pointer->positionData, partition);
 }
 
 OffsetNumber
@@ -62,9 +38,9 @@ ItemPointerGetOffsetNumber(pointer, partition)
 	ItemPointer	pointer;
 	PagePartition	partition;
 {
-	Assert(!ItemPointerIsUserDefined(pointer));
-
-	return (PositionIdGetOffsetNumber(&pointer->positionData, partition));
+	Assert(ItemPointerIsValid(pointer));
+	return
+	    PositionIdGetOffsetNumber(&pointer->positionData, partition);
 }
 
 OffsetIndex
@@ -72,9 +48,9 @@ ItemPointerGetOffsetIndex(pointer, partition)
 	ItemPointer	pointer;
 	PagePartition	partition;
 {
-	Assert(!ItemPointerIsUserDefined(pointer));
-
-	return (ItemPointerGetOffsetNumber(pointer, partition) - 1);
+	Assert(ItemPointerIsValid(pointer));
+	return
+	    ItemPointerGetOffsetNumber(pointer, partition) - 1;
 }
 
 void
@@ -167,7 +143,7 @@ ItemPointerGetLogicalPageNumber(pointer, partition)
 {
 	int16	pagesPerBlock;	/* XXX use a named type */
 
-	Assert(!ItemPointerIsUserDefined(pointer));
+	Assert(ItemPointerIsValid(pointer));
 
 	pagesPerBlock = PagePartitionGetPagesPerBlock(partition);
 	if (pagesPerBlock == 1) {

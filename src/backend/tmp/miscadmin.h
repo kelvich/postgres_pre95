@@ -80,7 +80,7 @@ extern bool	    IsUnderPostmaster;
 
 extern struct bcommon Ident;	/* moved from dlog */
 
-extern LastOidProcessed;	/* for query rewrite */
+extern ObjectId	    LastOidProcessed;	/* for query rewrite */
 
 #define MAX_PARSE_BUFFER 8192
 
@@ -114,6 +114,33 @@ extern LastOidProcessed;	/* for query rewrite */
 #define	NMAGIC		3
 
 #endif
+
+/* ----------------
+ *	time support macros (from tim.h)
+ * ----------------
+ */
+
+#define AbsoluteTimeIsValid(time) \
+    ((bool) ((time) != InvalidAbsoluteTime))
+
+#define RelativeTimeIsValid(time) \
+    ((bool) ((time) != InvalidRelativeTime))
+
+#define TimeIsValid(time) AbsoluteTimeIsValid(time)
+
+#define GetCurrentAbsoluteTime() \
+    ((Time) GetSystemTime())
+
+/* XXX remove this */
+#define GetCurrentTime() \
+    ((AbsoluteTime) GetCurrentAbsoluteTime())
+
+/*
+ * GetSystemTime --
+ *	Returns system time.
+ */
+#define GetSystemTime() \
+    ((SystemTime) (time(0l)))
 
 /* ----------------
  *	pdir.h
@@ -721,15 +748,6 @@ SystemPortSeek ARGS((
 	const SystemPort	port,
 	const SystemFileOffset	offset,
 	const int		whence
-));
-
-/*
- * GetSystemTime --
- *	Returns system time.
- */
-SystemTime
-GetSystemTime ARGS((
-	void
 ));
 
 /*
