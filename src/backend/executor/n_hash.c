@@ -414,6 +414,9 @@ ExecHashTableCreate(node)
     hashtable = (HashJoinTable)malloc((NBuffers+1)*BLCKSZ);
 #endif /* sequent */
 
+    if (hashtable == NULL) {
+	elog(WARN, "not enough memory for hashjoin.");
+      }
     /* ----------------
      *	initialize the hash table header
      * ----------------
