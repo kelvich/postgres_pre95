@@ -288,6 +288,7 @@ lispDisplay(lispObject,iscdr)
         int             iscdr;
 {
     lispDisplayFp(stdout, lispObject, iscdr);
+    fflush(stdout);
 }
 
 
