@@ -12,19 +12,26 @@
  **********************************************************************/
 
 #include <ctype.h>
-#include "rel.h" 		/* Relation stuff */
+
+#include "tmp/postgres.h"
+
+RcsId("$Header$");
+
+#include "access/tqual.h"
+#include "parser/parse.h"
+#include "tmp/datum.h"
+#include "tmp/tim.h"
+#include "utils/log.h"
+#include "utils/palloc.h"
+#include "utils/rel.h" 		/* Relation stuff */
+
+#include "nodes/pg_lisp.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
+
+#include "catalog/syscache.h"
 #include "catalog_utils.h"
-#include "syscache.h"
-#include "datum.h"
-#include "pg_lisp.h"
-#include "log.h"
-#include "parse.h"
 #include "parse_query.h"
-#include "primnodes.h"
-#include "primnodes.a.h"
-#include "palloc.h"
-#include "tim.h"
-#include "tqual.h"
 
 extern LispValue parser_ppreserve();
 extern int Quiet;

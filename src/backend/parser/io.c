@@ -1,8 +1,18 @@
+/* ----------------------------------------------------------------
+ *   FILE
+ *	io.c
+ *	
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
+ */
 static char *io_c = "$Header$";
 
 #include <stdio.h>
+#include "utils/log.h"
 #include "io.h"
-#include "log.h"
 
 int StringInput;
 char *TheString;

@@ -1,12 +1,25 @@
-static char *catalog_utils_c = "$Header$";
+/* ----------------------------------------------------------------
+ *   FILE
+ *	catalog_utils.c
+ *	
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
+ */
+#include "tmp/postgres.h"
 
+RcsId("$Header$");
 
-#include "catalog_utils.h"
-#include "pg_lisp.h"
-#include "log.h"
-#include "fmgr.h"
-#include "syscache.h"
+#include "utils/log.h"
+#include "utils/fmgr.h"
+
+#include "nodes/pg_lisp.h"
+#include "catalog/syscache.h"
+
 #include "exceptions.h"
+#include "catalog_utils.h"
 
 struct {
     char *field;

@@ -1,25 +1,40 @@
-#include "prs2locks.h"
-#include "prs2.h"
-#include "pg_lisp.h"
-#include "c.h"
-#include "parsetree.h"
-#include "atoms.h"
-#include "catname.h"
-#include "relation.h"
-#include "heapam.h"		/* access methods like amopenr */
-#include "log.h"
-#include "parse.h"
-#include "htup.h"
-#include "ftup.h";
-#include "fmgr.h"
-#include "datum.h"
-#include "catalog_utils.h"
-#include "rel.h"		/* for Relation stuff */
-#include "syscache.h"		/* for SearchSysCache ... */
-#include "itup.h"		/* for T_LOCK */
-#include "primnodes.a.h"
+/* ----------------------------------------------------------------
+ *   FILE
+ *	RuleHandler.c
+ *	
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
+ */
 
-/* $Header$ */
+#include "tmp/postgres.h"
+
+RcsId("$Header$");
+
+#include "access/ftup.h";
+#include "access/heapam.h"		/* access methods like amopenr */
+#include "access/htup.h"
+#include "access/itup.h"		/* for T_LOCK */
+#include "parser/atoms.h"
+#include "parser/parse.h"
+#include "parser/parsetree.h"
+#include "rules/prs2.h"
+#include "rules/prs2locks.h"
+#include "tmp/datum.h"
+#include "utils/fmgr.h"
+#include "utils/log.h"
+#include "utils/rel.h"		/* for Relation stuff */
+
+#include "nodes/pg_lisp.h"
+#include "nodes/relation.h"
+#include "nodes/primnodes.a.h"
+    
+#include "catalog/catname.h"
+#include "catalog/syscache.h"		/* for SearchSysCache ... */
+    
+#include "catalog_utils.h"
 
 extern LispValue TheseLocksWereTriggered ( /* RuleLock, LispValue */ );
 extern RuleLock RelationGetRelationLocks ();

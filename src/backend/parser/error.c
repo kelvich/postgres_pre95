@@ -1,7 +1,17 @@
+/* ----------------------------------------------------------------
+ *   FILE
+ *	error.c
+ *	
+ *   NOTES
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
+ */
 static char *error_c = "$Header$";
 
 #include <stdio.h>
-#include "log.h"
+#include "utils/log.h"
 
 /*
  * Default error handler for syntax errors.
