@@ -60,4 +60,7 @@ fetch(commands),
 close(commands).
 .uh BUGS
 .lp
-This command is unavailable in Version 2.1.
+This command is unavailable in Version 3.  The pointer may be moved using
+the
+.b fetch
+command, and ignoring its return values.
