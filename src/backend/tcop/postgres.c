@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <sys/file.h>
+#include <sys/types.h>
 #include <strings.h>
 #include <ctype.h>
 
@@ -104,8 +105,7 @@ main(argc, argv)
     char	parser_input[MAX_PARSE_BUFFER];
     List	parser_output;
 
-    bool	watch_parser =  true;
-    bool	watch_planner = true;
+    time_t	tim;
     
     /* ----------------
      *	process arguments
@@ -196,8 +196,10 @@ main(argc, argv)
 
     if (setjmp(Warn_restart) != 0) {
 	Warnings++;
-	if (! Quiet)
-	    puts("\tAbortCurrentTransaction()..");
+	if (! Quiet) {
+	    time(&tim);
+	    printf("\tAbortCurrentTransaction() at %s\n", ctime(&tim));
+	}
 	AbortCurrentTransaction();
     }
 
@@ -213,36 +215,46 @@ main(argc, argv)
 	 *   start the current transaction
 	 * ----------------
 	 */
-	if (! Quiet)
-	    puts("\tStartTransactionCommand()..");
+	if (! Quiet) {
+	    time(&tim);
+	    printf("\tStartTransactionCommand() at %s\n", ctime(&tim));
+	}
 	StartTransactionCommand();
 
 	/* ----------------
-	 *   get input from the user
+	 *	get and parse the input
 	 * ----------------
 	 */
-		/*
-		 * allocate a new "list" each time, since it is may be
-		 * stored in a named portal and should not suddenly its
-		 * contents
-		 *
-		 * I suspect that having the parser return the parse tree
-		 * given no arguments would be a cleaner interface.  Is
-		 * there any problem with doing this?
-		 *	-hirohama
-		 */
-		parser_output = lispList();
+	/*
+	 * allocate a new "list" each time, since it is may be
+	 * stored in a named portal and should not suddenly its
+	 * contents
+	 *
+	 * I suspect that having the parser return the parse tree
+	 * given no arguments would be a cleaner interface.  Is
+	 * there any problem with doing this?
+	 *	-hirohama
+	 *
+	 *    It's possible that we may do stuff to the
+	 *    input before parsing.. (i.e. preprocessing)
+	 *    In any case keeping the I/O code and the parser
+	 *    code is better because they are orthogonal functions.
+	 *    -cim 9/18/89
+	 */
+	parser_output = lispList();
+	
 	if (IsUnderPostmaster == true)
-	  SocketBackend(parser_input, parser_output);
-	else {
+	    SocketBackend(parser_input, parser_output);
+	else
 	    InteractiveBackend(parser_input, parser_output);
-	    lispDisplay(parser_output,0);
-	}
-	if (! Quiet)
-	    printf("\ninput string is %s\n",parser_input);
 
+	/* ----------------
+	 *	display parse strings
+	 * ----------------
+	 */
 	if (! Quiet) {
-	    printf("---- \tparser outputs :\n");
+	    printf("\ninput string is %s\n",parser_input);
+	    printf("\n---- \tparser outputs :\n");
 	    lispDisplay(parser_output,0);
 	    printf("\n");
 	}
@@ -256,8 +268,11 @@ main(argc, argv)
 	     *   process utility functions (create, destroy, etc..)
 	     * ----------------
 	     */
-	    if (! Quiet)
-		puts("\tProcessUtility()..");
+	    if (! Quiet) {
+		time(&tim);
+		printf("\tProcessUtility() at %s\n", ctime(&tim));
+	    }
+	    
 	    ProcessUtility(LISPVALUE_INTEGER(CAR(parser_output)),
 			   CDR(parser_output));
 	} else {
@@ -288,20 +303,26 @@ main(argc, argv)
 	     *   call the executor
 	     * ----------------
 	     */
-	    if (! Quiet)
-		puts("\tProcessQuery()..");
+	    if (! Quiet) {
+		time(&tim);
+		printf("\tProcessQuery() at %s\n", ctime(&tim));
+	    }
+	    
 	    ProcessQuery(parser_output, plan);
 	}
-
+    
 	/* ----------------
 	 *   commit the current transaction
 	 * ----------------
 	 */
-	if (! Quiet)
-	    puts("\tCommitTransactionCommand()..");
+	if (! Quiet) {
+	    time(&tim);
+	    printf("\tCommitTransactionCommand() at %s\n", ctime(&tim));
+	}
+	
 	CommitTransactionCommand();
-     }
-}	
+    }
+}
 
 /* XXX - begicommand belongs wherever endcommand is, but where
    endcommand is seems like the wrong place - jeff */

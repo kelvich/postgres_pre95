@@ -26,6 +26,8 @@ extern void set_es_qualification_tuple_id ARGS((EState node, ItemPointer value))
 extern ItemPointer get_es_qualification_tuple_id ARGS((EState node));
 extern void set_es_relation_relation_descriptor ARGS((EState node, Relation value));
 extern Relation get_es_relation_relation_descriptor ARGS((EState node));
+extern void set_es_into_relation_descriptor ARGS((EState node, Relation value));
+extern Relation get_es_into_relation_descriptor ARGS((EState node));
 extern void set_es_result_relation_info ARGS((EState node, RelationInfo value));
 extern RelationInfo get_es_result_relation_info ARGS((EState node));
 extern void set_sn_OuterTuple ARGS((StateNode node, List value));
@@ -93,7 +95,7 @@ extern List get_ex_SatState ARGS((ExistentialState node));
 extern RelationInfo MakeRelationInfo ARGS((Index ri_RangeTableIndex, Relation ri_RelationDesc, int ri_NumIndices, RelationPtr ri_IndexRelationDescs));
 extern void PrintRelationInfo ARGS((RelationInfo node));
 extern bool EqualRelationInfo ARGS((RelationInfo a, RelationInfo b));
-extern EState MakeEState ARGS((ScanDirection es_direction, abstime es_time, ObjectId es_owner, List es_locks, List es_subplan_info, Name es_error_message, List es_range_table, HeapTuple es_qualification_tuple, ItemPointer es_qualification_tuple_id, Relation es_relation_relation_descriptor, RelationInfo es_result_relation_info));
+extern EState MakeEState ARGS((ScanDirection es_direction, abstime es_time, ObjectId es_owner, List es_locks, List es_subplan_info, Name es_error_message, List es_range_table, HeapTuple es_qualification_tuple, ItemPointer es_qualification_tuple_id, Relation es_relation_relation_descriptor, Relation es_into_relation_descriptor, RelationInfo es_result_relation_info));
 extern void PrintEState ARGS((EState node));
 extern bool EqualEState ARGS((EState a, EState b));
 extern StateNode MakeStateNode ARGS((List sn_OuterTuple, AttributePtr sn_TupType, Pointer sn_TupValue, int sn_Level, AttributePtr sn_ScanType));

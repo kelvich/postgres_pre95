@@ -1,6 +1,7 @@
-/*
+/* ----------------------------------------------------------------
  * pquery.c --
  *	POSTGRES process query command code.
+ * ----------------------------------------------------------------
  */
 
 #include "c.h"
@@ -23,316 +24,456 @@ RcsId("$Header$");
 
 #include "command.h"
 
-/* static ? */
+/* ----------------------------------------------------------------
+ *	MakeQueryDesc is a utility used by ProcessQuery and
+ *	the rule manager to build a query descriptor..
+ * ----------------------------------------------------------------
+ */
 List
-MakeQueryDesc(command, parsetree, plantree, state, feature)
-	List  command;
-	List  parsetree;
-	List  plantree;
-	List  state;
-	List  feature;
+MakeQueryDesc(operation, parsetree, plantree, state, feature)
+    List  operation;
+    List  parsetree;
+    List  plantree;
+    List  state;
+    List  feature;
 {
-	return ((List)lispCons(command,
-		lispCons(parsetree,
-			lispCons(plantree,
-				lispCons(state,
-					lispCons(feature, LispNil))))));
+    return (List)
+	lispCons(operation,				      /* operation */
+		 lispCons(parsetree, 			      /* parse tree */
+			  lispCons(plantree, 		      /* plan */
+				   lispCons(state, 	      /* state */
+					    lispCons(feature, /* feature */
+						     LispNil)))));
 }
+
+/* ----------------------------------------------------------------
+ *	CreateQueryDesc is a simpler interface to MakeQueryDesc
+ * ----------------------------------------------------------------
+ */
+List
+CreateQueryDesc(parsetree, plantree)
+    List parsetree;
+    List plantree;
+{
+    return MakeQueryDesc(CAR(CDR(CAR(parsetree))), 	/* operation */
+			 parsetree,			/* parse tree */
+			 plantree,			/* plan */
+			 LispNil,			/* state */
+			 LispNil);			/* feature */
+}
+
+/* ----------------------------------------------------------------
+ *	CreateExecutorState
+ *
+ *	Note: this may someday take parameters -cim 9/18/89
+ * ----------------------------------------------------------------
+ */
+EState
+CreateExecutorState()
+{
+    EState		state;
+    
+    ScanDirection   	direction;
+    abstime         	time;
+    ObjectId        	owner;
+    List            	locks;
+    List            	subPlanInfo;
+    Name            	errorMessage;
+    List            	rangeTable;
+    HeapTuple       	qualTuple;
+    ItemPointer     	qualTupleID;
+    Relation        	relationRelationDesc;
+    RelationInfo       	resultRelationInfo;
+    
+    /* ----------------
+     *	These are just guesses.. Someone should tell me if
+     *  they are incorrect -cim 9/18/89
+     * ----------------
+     */
+    direction = 	EXEC_FRWD;
+    time = 		0;
+    owner = 		0;
+    locks = 		LispNil;
+    qualTuple =		NULL;
+    qualTupleID =	0;
+
+    /* ----------------
+     *   currently these next are initialized in InitPlan.
+     *	 For now we use dummy variables.. -cim 9/18/89
+     * ----------------
+     */
+    rangeTable = 	  	LispNil;
+    subPlanInfo = 	  	LispNil;
+    errorMessage = 	  	NULL;
+    relationRelationDesc = 	NULL;
+    resultRelationInfo =	NULL;
+
+    /* ----------------
+     *	create the Executor State structure
+     * ----------------
+     */
+    state = MakeEState(direction,
+		       time,
+		       owner,
+		       locks,
+		       subPlanInfo,
+		       errorMessage,
+		       rangeTable,
+		       qualTuple,
+		       qualTupleID,
+		       relationRelationDesc,
+		       resultRelationInfo);
+
+    return state;
+}
+
+/* ----------------------------------------------------------------
+ *	CreateOperationTag
+ *
+ *	utility to get a string representation of the
+ *	query operation.
+ * ----------------------------------------------------------------
+ */
+String
+CreateOperationTag(operationType)
+    int	operationType;
+{
+    String tag;
+    
+    switch (operationType) {
+    case RETRIEVE:
+	tag = "RETRIEVE";
+	break;
+    case APPEND:
+	tag = "APPEND";
+	break;
+    case DELETE:
+	tag = "DELETE";
+	break;
+    case EXECUTE:
+	tag = "EXECUTE";
+	break;
+    case REPLACE:
+	tag = "REPLACE";
+	break;
+    default:
+	elog(DEBUG, "CreateOperationTag: unknown operation type %d", 
+	     operationType);
+	tag = NULL;
+	break;
+    }
+    
+    return tag;
+}
+ 
+/* ----------------------------------------------------------------
+ *	ProcessPortal
+ *
+ *	Function to alleviate ProcessFragments of the code
+ *	that deals with portal query processing.
+ * ----------------------------------------------------------------
+ */
+ 
+void
+ProcessPortal(operation, portalName, parseTree, plan, state, attinfo)
+    int		operation;
+    String 	portalName;
+    List	parseTree;
+    Plan	plan;
+    EState	state;
+    List	attinfo;
+{
+    Portal		portal;
+    MemoryContext 	portalContext;
+
+    /* ----------------
+     *   report the query's result type information
+     *
+     *   XXX this should be cleaned up (I have no idea
+     *	     what the putxxxx functions are doing)
+     *	     -cim 9/18/89
+     * ----------------
+     */
+    if (operation == RETRIEVE) {
+	BeginCommand(portalName, attinfo);
+    } else {
+	if (IsUnderPostmaster) {
+	    putnchar("P",1);
+	    putint(0,4);
+	    putstr("blank");
+	} else
+	    BeginCommand("blank",attinfo);
+    }
+
+    /* ----------------
+     *   initialize the portal
+     * ----------------
+     */
+    portal = BlankPortalAssignName(portalName);
+
+    PortalSetQuery(portal,
+		   parseTree,
+		   plan,
+		   state,
+		   PortalCleanup);
+
+    /* ----------------
+     * Return blank portal for now.
+     *
+     * Otherwise, this named portal will be cleaned.
+     * Note: portals will only be supported within a BEGIN...END
+     * block in the near future.  Later, someone will fix it to
+     * do what is possible across transaction boundries. -hirohama
+     * ----------------
+     */
+
+    portalContext = (MemoryContext) PortalGetHeapMemory(GetPortalByName(NULL));
+    MemoryContextSwitchTo(portalContext);
+    
+    StartPortalAllocMode(DefaultAllocMode, 0);
+}
+
+/* ----------------------------------------------------------------
+ *	ExecuteFragments
+ *
+ *	Read the comments for ProcessQuery() below...
+ *
+ *	Since we do no parallism, planFragments is totally
+ *	ignored for now.. -cim 9/18/89
+ * ----------------------------------------------------------------
+ */
+
+Plan
+ExecuteFragments(queryDesc, planFragments)
+    List 	queryDesc;
+    Pointer 	planFragments;	/* haven't determined proper type yet */
+{
+    List 	parseTree;
+    Plan 	plan;
+    int		operation;
+    String	tag;
+    EState 	state;
+    List 	feature;
+    List 	attinfo;
+    
+    List	parseRoot;
+    bool	isIntoPortal;
+    bool	isIntoRelation;
+    String	intoName;
+    
+    /* ----------------
+     *	get info from the query desc
+     * ----------------
+     */
+    parseTree = QdGetParseTree(queryDesc);
+    plan =	QdGetPlan(queryDesc);
+    
+    operation = CAtom(GetOperation(queryDesc));
+    tag = 	CreateOperationTag(operation);
+    
+    /* ----------------
+     *	initialize portal/into relation status
+     * ----------------
+     */
+    isIntoPortal =   false;
+    isIntoRelation = false;
+    
+    if (operation == RETRIEVE) {
+	List	resultDesc;
+	int	dest;
+
+	parseRoot = parse_tree_root(parseTree);
+	resultDesc = root_result_relation(parseRoot);
+	if (!lispNullp(resultDesc)) {
+	    dest = CAtom(CAR(resultDesc));
+	    if (dest == PORTAL) {
+		isIntoPortal = true;
+		intoName = CString(CADR(resultDesc));
+	    } else if (dest == INTO)
+		isIntoRelation = true;
+	}
+    }
+    
+    /* ----------------
+     *	create a default executor state.. 
+     * ----------------
+     */
+    state = CreateExecutorState();
+    
+    /* ----------------
+     *	call ExecMain with EXEC_START to
+     *  prepare the plan for execution
+     * ----------------
+     */
+    feature = lispCons(lispInteger(EXEC_START), LispNil);
+    attinfo = ExecMain(queryDesc, state, feature);
+    
+    /* ----------------
+     *  Named portals do not do a "fetch all" initially, so now
+     *  we return since ExecMain has been called with EXEC_START
+     *  to initialize the query plan.
+     * ----------------
+     */
+    if (isIntoPortal) {
+	ProcessPortal(operation,
+		      intoName,
+		      parseTree,
+		      plan,
+		      state,
+		      attinfo);
+	EndCommand(tag);
+	return;
+    }
+
+    /* ----------------
+     *   report the query's result type information
+     *   back to the front end..
+     *
+     *   XXX this should be cleaned up (I have no idea
+     *	     what the putxxxx functions are doing)
+     *	     -cim 9/18/89
+     * ----------------
+     */
+    if (operation == RETRIEVE) {
+	if (isIntoRelation && IsUnderPostmaster) {
+	    putnchar("P",1);
+	    putint(0,4);
+	    putstr("blank");
+	} else
+	    BeginCommand("blank", attinfo);
+    } else {
+	if (IsUnderPostmaster) {
+	    putnchar("P",1);
+	    putint(0,4);
+	    putstr("blank");
+	} else
+	    BeginCommand("blank",attinfo);
+    }
+    
+    /* ----------------
+     *   Now we get to the important call to ExecMain() where we
+     *   actually run the plan..
+     *
+     *	 The trick here is we have to pass the appopriate
+     *   feature depending on if we have a postmaster or if
+     *   we are retrieving "into" a relation... This is a
+     *   poor interface preserved from the lisp days, so we
+     *   should do something better soon...
+     * ----------------
+     */
+    
+    if (isIntoRelation) {
+	/* ----------------
+	 *   creation of the into relation is now done in InitPlan()
+	 *   so we nolonger pass the relation descriptor around in
+	 *   the feature..  (it's in the EState struct now)
+	 *   -cim 9/18/89
+	 * ----------------
+	 */
+	feature = lispCons(lispInteger(EXEC_RESULT), LispNil);
+    } else if (IsUnderPostmaster) {
+	/* ----------------
+	 *   I suggest that the IsUnderPostmaster test be
+	 *   performed at a lower level in the code--at
+	 *   least inside the executor to reduce the number
+	 *   of externally visible requests. -hirohama
+	 * ----------------
+	 */
+	feature = lispCons(lispInteger(EXEC_DUMP), LispNil);
+    } else {
+	feature = lispCons(lispInteger(EXEC_DEBUG), LispNil);
+    }
+
+    (void) ExecMain(queryDesc, state, feature);
+
+    /* ----------------
+     *   final call to ExecMain.. we close down all the scans
+     *   and free allocated resources...
+     * ----------------
+     */
+
+    feature = lispCons(lispInteger(EXEC_END), LispNil);
+    (void) ExecMain(queryDesc, state, feature);
+
+    /* ----------------
+     *   not certain what this does.. -cim 8/29/89
+     *
+     * A: Notify the frontend of end of processing.
+     * Perhaps it would be cleaner for ProcessQuery
+     * and ProcessCommand to return the tag, and for
+     * the "traffic cop" to call EndCommand on it.
+     *	-hirohama
+     * ----------------
+     */
+    EndCommand(tag);
+
+    /* ----------------
+     *	Eventually we will return the transformed plan, but
+     *  for now since we do no parallism, return nil.
+     *  -cim 9/18/89
+     * ----------------
+     */
+    return NULL;
+}
+
+/* ----------------------------------------------------------------
+ *	ParallelOptimise
+ *	
+ *	this analyzes the plan in the query descriptor and determines
+ *	which fragments to execute based on available virtual
+ *	memory resources...
+ *	
+ *	Wei Hong will add functionality to this module. -cim 9/18/89
+ * ----------------------------------------------------------------
+ */
+Pointer
+ParallelOptimise(queryDesc)
+    List queryDesc;
+{
+    return NULL;
+}
+
+/* ----------------------------------------------------------------
+ *	ProcessQuery
+ *
+ *	ProcessQuery takes the output from the parser and
+ *	planner, builds a query descriptor, passes it to the
+ *	parallel optimiser which returns an array of pointers
+ *	to plan fragments.  These plan fragements are then
+ *	distributed to backends which execute the plans
+ *	in parallel.  After these backends are completed,
+ *	the plan is replaced by a new plan which contains
+ *	result nodes where the plan fragments were..  The
+ *	new plan is then processed.  The cycle ends when
+ *	the entire plan has been processed in this manner
+ *	in which case ExecuteFragments returns NULL.
+ *
+ *	At present, almost all of the above is bogus, but will
+ *	become truth when parallism is implemented.. -cim 9/18/89
+ * ----------------------------------------------------------------
+ */
 
 void
-ProcessQuery(parser_output, plan)
-	List parser_output;
-	Plan plan;
+ProcessQuery(parserOutput, originalPlan)
+    List parserOutput;
+    Plan originalPlan;
 {
-	bool		isPortal = false;
-	bool		isInto = false;
-	Relation	intoRelation;
-	List		parseRoot;
-	List		resultDesc;
+    List 	queryDesc;
+    Plan 	currentPlan;
+    Plan 	newPlan;
+    Pointer	planFragments;		/* haven't decided on type yet */
+    
+    currentPlan = originalPlan;
 
-	List 		queryDesc;
-	EState 		state;
-	List 		feature;
-	List 		attinfo;		/* returned by ExecMain */
+    for (;;) {
+	queryDesc = 	CreateQueryDesc(parserOutput, currentPlan);
+	planFragments = ParallelOptimise(queryDesc);
+	newPlan =	ExecuteFragments(queryDesc, planFragments);
 
-	int		commandType;
-	String		tag;
-	ObjectId	intoRelationId;
-	String		intoName;
-	int		numatts;
-	AttributePtr	tupleDesc;
+	if (newPlan == NULL)
+	    return;
 
-	ScanDirection   direction;
-	abstime         time;
-	ObjectId        owner;
-	List            locks;
-	List            subPlanInfo;
-	Name            errorMessage;
-	List            rangeTable;
-	HeapTuple       qualTuple;
-	ItemPointer     qualTupleID;
-	Relation        relationRelationDesc;
-	Index        	resultRelationIndex;
-	Relation        resultRelationDesc;
-
-	/* ----------------
-	 *	resolve the status of our query... are we retrieving
-	 *  into a portal, into a relation, etc.
-	 * ----------------
-	 */
-	parseRoot = parse_root(parser_output);
-
-	commandType = root_command_type(parseRoot);
-	switch (commandType) {
-	case RETRIEVE:
-		tag = "RETRIEVE";
-		break;
-	case APPEND:
-		tag = "APPEND";
-		break;
-	case DELETE:
-		tag = "DELETE";
-		break;
-	case EXECUTE:
-		tag = "EXECUTE";
-		break;
-	case REPLACE:
-		tag = "REPLACE";
-		break;
-	default:
-		elog(WARN, "ProcessQuery: unknown command type %d",
-			commandType);
-	}
-
-	if (root_command_type(parseRoot) == RETRIEVE) {
-		resultDesc = root_result_relation(parseRoot);
-		if (!null(resultDesc)) {
-			int	destination;
-			destination = CAtom(CAR(resultDesc));
-
-			switch (destination) {
-			case INTO:
-				isInto = true;
-				break;
-			case PORTAL:
-				isPortal = true;
-				break;
-			default:
-				elog(WARN, "ProcessQuery: bad result %d",
-					destination);
-			}
-			intoName = CString(CADR(resultDesc));
-		}
-	}
-
-	/* ----------------
-	 *	create the Executor State structure
-	 * ----------------
-	 */
-
-	direction = 	EXEC_FRWD;
-	time = 		0;
-	owner = 	0;
-	locks = 	LispNil;
-	qualTuple =	NULL;
-	qualTupleID =	0;
-
-	/* ----------------
-	 *   currently these next are initialized in InitPlan.  For now
-	 *   we pass dummy variables.. Eventually this should be cleaned up.
-	 *   -cim 8/5/89
-	 * ----------------
-	 */
-	rangeTable = 	  	LispNil;
-	subPlanInfo = 	  	LispNil;
-	errorMessage = 	  	NULL;
-	relationRelationDesc = 	NULL;
-	resultRelationIndex =	0;
-	resultRelationDesc =   	NULL;
-
-	state = MakeEState(direction,
-		time,
-		owner,
-		locks,
-		subPlanInfo,
-		errorMessage,
-		rangeTable,
-		qualTuple,
-		qualTupleID,
-		relationRelationDesc,
-		resultRelationIndex,
-		resultRelationDesc);
-
-	/* ----------------
-	 *	now, prepare the plan for execution by calling ExecMain()
-	 *	feature = '(start)
-	 * ----------------
-	 */
-
-	feature = lispCons(lispInteger(EXEC_START), LispNil);
-	queryDesc = MakeQueryDesc(CAR(CDR(CAR(parser_output))),	parser_output,
-		plan, state, feature);
-
-	attinfo = ExecMain(queryDesc);
-
-	/* ----------------
-	 *   extract result type information from attinfo
-	 *	 returned by ExecMain()
-	 * ----------------
-	 */
-	numatts = CInteger(CAR(attinfo));
-	tupleDesc = (AttributePtr) CADR(attinfo);
-
-	/* ----------------
-	 *   display the result of the first call to ExecMain()
-	 * ----------------
-	 */
-
-	switch(commandType) {
-	  case RETRIEVE:
-	    if (isInto && IsUnderPostmaster) {
-		putnchar("P",1);
-		putint(0,4);
-		putstr("blank");
-	    } else if (isPortal) {
-		BeginCommand(intoName,attinfo);
-	    } else {
-		BeginCommand("blank",attinfo);
-	    }
-	    break;
-	  default:
-	    if (IsUnderPostmaster) {
-		putnchar("P",1);
-		putint(0,4);
-		putstr("blank");
-	    } else {
-		BeginCommand("blank",attinfo);
-	    }
-	}
-
-	/* ----------------
-	 *   now how in the hell is this ever supposed to work?
-	 *   we have only initialized the plan..  Why do we then
-	 *   return here if isPortal?  This *CANNOT* be correct.
-	 *   but portals aren't *my* problem (yet..) -cim 8/29/89
-	 *
-	 * Response:  This is correct; ExecMain has been called to
-	 * initialize the query execution.  Named portals do not
-	 * do a "fetch all" initially.  The blank portal may
-	 * behave in the same way in the future (as an option).
-	 *	-hirohama
-	 * ----------------
-	 */
-	if (isPortal) {
-		Portal	portal;
-
-		portal = BlankPortalAssignName(intoName);
-		PortalSetQuery(portal, parser_output, plan, state,
-			PortalCleanup);
-
-		/*
-		 * Return blank portal for now.
-		 * Otherwise, this named portal will be cleaned.
-		 * Note: portals will only be supported within a BEGIN...END
-		 * block in the near future.  Later, someone will fix it to
-		 * do what is possible across transaction boundries.
-		 */
-		MemoryContextSwitchTo((MemoryContext)
-			PortalGetHeapMemory(GetPortalByName(NULL)));
-		StartPortalAllocMode(DefaultAllocMode, 0);
-		EndCommand(tag);
-		return;			/* XXX see previous comment */
-	}
-
-	/* ----------------
-	 *	if we are retrieveing into a result relation, then
-	 *  open it..  This should probably be done in InitPlan
-	 *  so I am going to move it there soon. -cim 8/29/89
-	 * ----------------
-	 */
-	if (isInto) {
-		char		archiveMode;
-		/*
-		 * Archive mode must be set at create time.  Unless this
-		 * mode information is made specifiable in POSTQUEL, users
-		 * will have to COPY, rename, etc. to change archive mode.
-		 */
-		archiveMode = 'n';
-
-		intoRelationId = RelationNameCreateHeapRelation(intoName,
-			archiveMode, numatts, tupleDesc);
-
-		setheapoverride(true);	/* XXX change "amopen" args instead */
-
-		intoRelation = ObjectIdOpenHeapRelation(intoRelationId);
-
-		setheapoverride(false);	/* XXX change "amopen" args instead */
-	}
-
-	/* ----------------
-	 *   Now we get to the important call to ExecMain() where we
-	 *   actually run the plan..
-	 * ----------------
-	 */
-
-	if (isInto) {
-		/* ----------------
-		 *  XXX hack - we are passing the relation
-		 *  descriptor as an integer.. we should either
-		 *  think of a better way to do this or come up
-		 *  with a node type suited to handle it..
-		 * ----------------
-		 */
-		feature = lispCons(lispInteger(EXEC_RESULT),
-			lispCons(lispInteger(intoRelation), LispNil));
-
-	} else if (IsUnderPostmaster) {
-		/*
-		 * I suggest that the IsUnderPostmaster test be
-		 * performed at a lower level in the code--at
-		 * least inside the executor to reduce the number
-		 * of externally visible requests. -hirohama
-		 */
-		feature = lispCons(lispInteger(EXEC_DUMP), LispNil);
-	} else {
-		feature = lispCons(lispInteger(EXEC_DEBUG), LispNil);
-	}
-
-	queryDesc = MakeQueryDesc(CAR(CDR(CAR(parser_output))), parser_output,
-		plan, state, feature);
-
-	(void)ExecMain(queryDesc);
-
-	/* ----------------
-	 *   final call to ExecMain.. we close down all the scans
-	 *   and free allocated resources...
-	 * ----------------
-	 */
-
-	feature = lispCons(lispInteger(EXEC_END), LispNil);
-	queryDesc = MakeQueryDesc(CAR(CDR(CAR(parser_output))), parser_output,
-		plan, state, feature);
-
-	(void)ExecMain(queryDesc);
-
-	/* ----------------
-	 *   close result relation
-	 *   XXX this will be moved to moved to EndPlan soon
-	 *		-cim 8/29/89
-	 * ----------------
-	 */
-	if (isInto) {
-		RelationCloseHeapRelation(intoRelation);
-	}
-
-	/* ----------------
-	 *   not certain what this does.. -cim 8/29/89
-	 * A: Notify the frontend of end of processing.
-	 * Perhaps it would be cleaner for ProcessQuery
-	 * and ProcessCommand to return the tag, and for
-	 * the "traffic cop" to call EndCommand on it.
-	 *	-hirohama
-	 * ----------------
-	 */
-	EndCommand(tag);
+	currentPlan = newPlan;
+    }
 }
+

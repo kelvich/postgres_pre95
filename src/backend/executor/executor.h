@@ -26,6 +26,7 @@
 #include "buf.h"
 #include "catalog.h"
 #include "catname.h"
+#include "heapam.h"
 #include "itup.h"
 #include "log.h"
 #include "parse.h"
@@ -194,28 +195,18 @@
 #define QdGetState(queryDesc)	   (EState) CAR(CDR(CDR(CDR(queryDesc))))
 #define QdGetFeature(queryDesc)      (List) CAR(CDR(CDR(CDR(CDR(queryDesc)))))
 
+#define QdSetState(queryDesc, s) \
+    (CAR(CDR(CDR(CDR(queryDesc)))) = (List) s)
+
+#define QdSetFeature(queryDesc, f) \
+    (CAR(CDR(CDR(CDR(CDR(queryDesc))))) = (List) f)
+
 /* ----------------
  *	query feature accessors
- *
- *	BEWARE: the query "feature" can contain different sorts
- *		of things depending on the operation.  In particular,
- *		in the case of "retrieve into", it is a list
- *
- *			('result intoRelationDesc)
- *
- *		where 'result == lispInteger(EXEC_RESULT) and
- *		      intoRelationDesc == lispInteger(relation descriptor)
- *
- *		It can also contain other stuff..
- *
- *	this is a real crappy interface.. we should fix it soon -cim 8/29/89
  * ----------------
  */
 #define QdGetCommand(queryDesc)	    	CAR(QdGetFeature(queryDesc))
 #define QdGetCount(queryDesc)  	    	CAR(CDR(QdGetFeature(queryDesc)))
-
-#define QdGetIntoRelation(queryDesc) \
-    ((Relation) CInteger(CAR(CDR(QdGetFeature(queryDesc)))))
 
 /* ----------------
  *	parse tree accessors

@@ -68,6 +68,7 @@ class (RelationInfo) public (Node) {
  *	qualification_tuple		tuple satisifying qualification
  *	qualification_tuple_id		tid of qualification_tuple
  *	relation_relation_descriptor	as it says
+ *	into_relation_descriptor	relation being retrieved "into"
  *	result_relation_information	for update queries
  * ----------------------------------------------------------------
  */
@@ -84,6 +85,7 @@ class (EState) public (Node) {
       HeapTuple		es_qualification_tuple;
       ItemPointer	es_qualification_tuple_id;
       Relation		es_relation_relation_descriptor;
+      Relation		es_into_relation_descriptor;
       RelationInfo	es_result_relation_info;
 };
 
