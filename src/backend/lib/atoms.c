@@ -12,15 +12,15 @@
  *	 search is used to locate entries.
  */
 
-#include "c.h"
+#include <ctype.h>
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "pg_lisp.h"
-#include "atoms.h"
-#include "ctype.h"
-#include "parse.h"
-#include "log.h"
+#include "nodes/pg_lisp.h"
+#include "parser/atoms.h"
+#include "parser/parse.h"
+#include "utils/log.h"
 
 ScanKeyword	ScanKeywords[] = {
 	/* name			value		*/
@@ -70,6 +70,7 @@ ScanKeyword	ScanKeywords[] = {
 	{ "instead",		INSTEAD		},
 	{ "intersect",		INTERSECT	},
 	{ "into",		INTO		},
+	{ "intotemp",           INTOTEMP        },
 	{ "is",			IS		},
 	{ "key",		KEY		},
 	{ "leftouter",		LEFTOUTER	},
@@ -97,6 +98,7 @@ ScanKeyword	ScanKeywords[] = {
 	{ "rename",		RENAME		},
 	{ "replace",		REPLACE		},
 	{ "retrieve",		RETRIEVE	},
+	{ "returns",		RETURNS		},
 	{ "rewrite",		REWRITE		},
 	{ "rightouter",		RIGHTOUTER	},
 	{ "rule",		RULE		},
