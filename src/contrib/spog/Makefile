@@ -54,7 +54,7 @@ CFLAGS+= -DNEED_XMALLOC
 # some versions of UNIX have strdup, some don't.
 # comment out this line if your standard library has strdup.
 #
-.if ${PORTNAME} == ultrix4
+.if (${PORTNAME} == "ultrix4")
 CFLAGS+= -DNEED_STRDUP
 .endif
 
