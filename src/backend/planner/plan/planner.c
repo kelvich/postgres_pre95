@@ -174,8 +174,8 @@ planner (parse)
     LispValue qual = parse_qualification (parse);
     LispValue rangetable = root_rangetable (root);
     LispValue commandType = root_command_type_atom (root);
-    LispValue uniqueflag = nth(6,root);
-    LispValue sortclause = nth(7,root);
+    LispValue uniqueflag = root_uniqueflag(root);
+    LispValue sortclause = root_sortclause(root);
     LispValue sortkeys = LispNil;
     LispValue sortops = LispNil;
     Plan special_plans = (Plan)NULL;
