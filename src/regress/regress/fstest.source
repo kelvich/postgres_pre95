@@ -1,0 +1,109 @@
+#!/bin/sh
+#
+# $Header$
+#
+[ -z "$DATABASE" ] && DATABASE=regression
+export DATABASE
+[ -z "$PGHOST" ] && PGHOST=localhost
+export PGHOST
+#
+SMGR=d
+HERE=_CWD_
+#
+
+#
+# initial cleanup
+#
+prm -rf / \
+	|| exit 1
+pls -dl / \
+	|| exit 1
+
+#
+# - simple icopy "in"
+#
+icopy in -d $DATABASE -s $SMGR -v $HERE/../data/dept.data /dept.data1 \
+	|| exit 1
+#
+# - recursive icopy "in"
+#
+icopy in -d $DATABASE -s $SMGR -R $HERE/../data /data1 \
+	|| exit 1
+#
+# - recursive icopy "in" with dotfiles
+#
+cp -f $HERE/../data/dept.data $HERE/obj/.dept.data \
+	|| exit 1
+icopy in -d $DATABASE -s $SMGR -R -a $HERE/obj /data2 \
+	|| exit 1
+icopy in -d $DATABASE -s $SMGR -v $HERE/../data/dept.data /data2/dept.data \
+	|| exit 1
+
+#
+# - absolute pls
+#
+pls -aR / \
+	|| exit 1
+#
+# - absolute pmkdir
+#
+pmkdir /data2/absolute_dir \
+	|| exit 1
+#
+# - absolute prmdir
+#
+prmdir /data2/absolute_dir \
+	|| exit 1
+#
+# - absolute pcat
+#
+pcat /data2/dept.data \
+	|| exit 1
+
+#
+# - pcd/ppwd
+#
+PFCWD=`pcd /data2 | sed -e 's/setenv PFCWD //'`; export PFCWD
+ppwd \
+	|| exit 1
+
+#
+# - relative pls
+#
+pls \
+	|| exit 1
+#
+# - relative pmkdir
+#
+pmkdir relative_dir \
+	|| exit 1
+#
+# - relative prmdir
+#
+prmdir relative_dir \
+	|| exit 1
+#
+# - relative pcat
+#
+pcat dept.data \
+	|| exit 1
+#
+# - relative prm
+#
+prm dept.data \
+	|| exit 1
+pls \
+	|| exit 1
+
+#
+# - more complex pcat
+#
+echo "foo" | pcat -H $PGHOST -D $DATABASE .dept.data - /data2/.dept.data
+
+#
+# final cleanup
+#
+prm -rf / \
+	|| exit 1
+rm -f $HERE/obj/.dept.data
+exit 0
