@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include "storage/multilev.h"
 #include "storage/lock.h"
-#include "storage/lmgr.h
+#include "storage/lmgr.h"
 #include "utils/rel.h"
 #include "utils/log.h"
 #include "tmp/miscadmin.h"		/* MyDatabaseId */
