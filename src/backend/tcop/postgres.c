@@ -136,7 +136,6 @@ InteractiveBackend(inBuf)
 	    exitpg(0);
 	}
 
-#ifdef EXEC_DEBUGINTERACTIVE
 	/* ----------------
 	 *  now see if it's a debugging command...
 	 * ----------------
@@ -147,7 +146,6 @@ InteractiveBackend(inBuf)
 		
 	    continue;
 	}
-#endif EXEC_DEBUGINTERACTIVE
 
 	/* ----------------
 	 *  otherwise we have a user query so process it.
