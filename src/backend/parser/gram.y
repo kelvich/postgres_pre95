@@ -113,19 +113,19 @@ bool Typecast_ok = true;
                 
 
 /* precedence */
-%nonassoc Op
-%right 	'='
 %left	OR
 %left	AND
 %right	NOT
+%right 	'='
+%nonassoc Op
 %nonassoc NOTNULL
 %nonassoc ISNULL
 %left  	'+' '-'
 %left  	'*' '/'
 %left	'|'		/* this is the relation union op, not logical or */
 %right  ';' ':'		/* Unary Operators      */
-%right   UMINUS
 %nonassoc  '<' '>'
+%right   UMINUS
 %left	'.'
 %left  	'[' ']' 
 %nonassoc TYPECAST
