@@ -305,6 +305,20 @@ ScanPgRelation(buildinfo)
 	heap_beginscan(pg_relation_desc, 0, NowTimeQual, 1, &key);
     pg_relation_tuple = heap_getnext(pg_relation_scan, 0, (Buffer *)NULL);
 
+    /* ----------------
+     *	close the relation
+     * ----------------
+     */
+    heap_endscan(pg_relation_scan);
+    heap_close(pg_relation_desc);
+
+    /* ----------------
+     *	return tuple
+     * ----------------
+     */
+    if (! HeapTupleIsValid(pg_relation_tuple))
+	return NULL;
+
     /* ------------------
      *  a satanic bug used to live here: pg_relation_tuple used to be
      *  returned here without having the corresponding buffer pinned.
@@ -314,20 +328,6 @@ ScanPgRelation(buildinfo)
      */
     return_tuple = (HeapTuple)palloc(pg_relation_tuple->t_len);
     bcopy(pg_relation_tuple, return_tuple, pg_relation_tuple->t_len);
-
-    /* ----------------
-     *	close the relation
-     * ----------------
-     */
-    heap_endscan(pg_relation_scan);
-    heap_close(pg_relation_desc);
-
-    /* ----------------
-     *	return tuple or NULL
-     * ----------------
-     */
-    if (! HeapTupleIsValid(pg_relation_tuple))
-	return NULL;
 
     return return_tuple;
 }
