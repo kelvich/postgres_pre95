@@ -154,7 +154,7 @@ typedef Prs2StubStatsData *Prs2StubStats;
 extern
 Prs2RawStub
 prs2StubToRawStub ARGS((
-	Prs2Stub	stub
+	Prs2Stub	relstub
 ));
 
 /*-------------------------
@@ -166,7 +166,7 @@ prs2StubToRawStub ARGS((
 extern
 Prs2RawStub *
 prs2StubToSmallRawStubs ARGS((
-	Prs2Stub	stub,
+	Prs2Stub	relstub,
 	int		maxsize,
 	int		*npieces
 ));
@@ -299,7 +299,7 @@ prs2MakeOneStub ARGS((
 extern
 char *
 prs2StubToString ARGS((
-	Prs2Stub	stub
+	Prs2Stub	relstub
 ));
 
 /*-------------------------
@@ -320,7 +320,7 @@ prs2StringToStub ARGS((
 extern
 char *
 stubout ARGS((
-	Prs2RawStub	stub
+	Prs2RawStub	relstub
 ));
 
 /*-------------------------
@@ -344,7 +344,7 @@ extern
 void
 prs2AddRelationStub ARGS((
 	Relation	relation,
-	Prs2OneStub	stub
+	Prs2OneStub	relstub
 ));
 
 /*-------------------------
@@ -355,7 +355,7 @@ extern
 void
 prs2DeleteRelationStub ARGS((
 	Relation	relation,
-	Prs2OneStub	stub
+	Prs2OneStub	relstub
 ));
 
 /*-------------------------
