@@ -92,6 +92,14 @@ DATA(insert OID = 95 (  "<"        6 0 b t f  21  21  16 520 524 0 0 int2lt intl
 DATA(insert OID = 96 (  "="        6 0 b t t  23  23  16  96 518 97 97 int4eq eqsel eqjoinsel ));
 DATA(insert OID = 97 (  "<"        6 0 b t f  23  23  16 521 525 0 0 int4lt intltsel intltjoinsel ));
 DATA(insert OID = 98 (  "="        6 0 b t t  25  25  16  98 531  0  0 texteq eqsel eqjoinsel ));
+DATA(insert OID = 485 (  "<<"      6 0 b t f 604 604  16   0   0   0   0 poly_left intltsel intltjoinsel ));
+DATA(insert OID = 486 (  "&<"      6 0 b t f 604 604  16   0   0   0   0 poly_overleft intltsel intltjoinsel ));
+DATA(insert OID = 487 (  "&>"      6 0 b t f 604 604  16   0   0   0   0 poly_overright intltsel intltjoinsel ));
+DATA(insert OID = 488 (  ">>"      6 0 b t f 604 604  16   0   0   0   0 poly_right intltsel intltjoinsel ));
+DATA(insert OID = 489 (  "@"       6 0 b t f 604 604  16   0   0   0   0 poly_contained intltsel intltjoinsel ));
+DATA(insert OID = 490 (  "~"       6 0 b t f 604 604  16   0   0   0   0 poly_contain intltsel intltjoinsel ));
+DATA(insert OID = 491 (  "~="      6 0 b t f 604 604  16   0   0   0   0 poly_same intltsel intltjoinsel ));
+DATA(insert OID = 492 (  "&&"      6 0 b t f 604 604  16   0   0   0   0 poly_overlap intltsel intltjoinsel ));
 DATA(insert OID = 493 (  "<<"      6 0 b t f 603 603  16   0   0   0   0 box_left intltsel intltjoinsel ));
 DATA(insert OID = 494 (  "&<"      6 0 b t f 603 603  16   0   0   0   0 box_overleft intltsel intltjoinsel ));
 DATA(insert OID = 495 (  "&>"      6 0 b t f 603 603  16   0   0   0   0 box_overright intltsel intltjoinsel ));
