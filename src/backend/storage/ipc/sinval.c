@@ -102,6 +102,7 @@ RegisterSharedInvalid(cacheId, hashIndex, pointer)
     Index   	hashIndex;
     ItemPointer	pointer;
 {
+#ifdef USE_SINVAL
     SharedInvalid   newInvalid;
     int	    	    status;
 
@@ -171,6 +172,7 @@ RegisterSharedInvalid(cacheId, hashIndex, pointer)
     if (status == L_ERROR) {
     	    elog(FATAL, "RegisterSharedInvalid: Could not unlock buffer segment");
     }	    	    
+#endif USE_SINVAL
 }
 /****************************************************************************/
 /*  InvalidateSharedInvalid(invalFunction, resetFunction)    	    	    */
@@ -183,6 +185,7 @@ InvalidateSharedInvalid(invalFunction, resetFunction)
     void    	(*invalFunction)();
     void    	(*resetFunction)();
 {
+#ifdef USE_SINVAL
     SharedInvalid   temporaryInvalid;
     int	    	    status;
     
@@ -215,4 +218,5 @@ InvalidateSharedInvalid(invalFunction, resetFunction)
     if (status == L_ERROR) {
     	    elog(FATAL, "InvalidateSharedInvalid: Could not unlock buffer segment");
     }
+#endif USE_SINVAL
 }
