@@ -262,4 +262,60 @@ typedef unsigned long Datum;
 
 #define ObjectIdGetDatum(X) ((Datum) SET_4_BYTES(X))
 
+/*--------------------------------------------------------
+ * SOME NOT VERY PORTABLE ROUTINES ???
+ *--------------------------------------------------------
+ *
+ * In the implementation of the next routines we assume the following:
+ *
+ * A) if a type is "byVal" then all the information is stored in the
+ * Datum itself (i.e. no pointers involved!). In this case the
+ * length of the type is always greater than zero and less than
+ * "sizeof(Datum)"
+ * B) if a type is not "byVal" and it has a fixed length, then
+ * the "Datum" always contain a pointer to a stream of bytes.
+ * The number of significant bytes are always equal to the length of thr
+ * type.
+ * C) if a type is not "byVal" and is of variable length (i.e. it has
+ * length == -1) then "Datum" always points to a "struct varlena".
+ * This varlena structure has information about the actual length of this
+ * particular instance of the type and about its value.
+ */
+
+/*---------------
+ * datumGetRealLengthAndByVal
+ * find the "real" length of a type
+ */
+extern
+void
+datumGetRealLengthAndByVal ARGS((
+    Datum	value;
+    ObjectId	type;
+    Size	*sizeP;
+    bool	*byValP;
+));
+
+/*---------------
+ * copyDatum
+ * make a copy of a datum.
+ */
+extern
+Datum
+copyDatum ARGS((
+    Datum	value,
+    ObjectId	type
+));
+
+/*---------------
+ * freeDatum
+ * free space that *might* have been palloced by "copyDatum"
+ */
+extern
+void
+freeDatum  ARGS((
+    Datum	value,
+    ObjectId	type
+));
+
+
 #endif	/* !defined(DatumIncluded) */
