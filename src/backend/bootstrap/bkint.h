@@ -51,8 +51,6 @@ typedef struct mcro {
 
 #define EMITPROMPT printf("> ")
 
-extern          int Int_yylval;
-
 /* ami_sup.c */
 
 extern Relation reldesc;
@@ -97,8 +95,3 @@ char *emalloc ARGS((unsigned size ));
 int LookUpMacro ARGS((char *xmacro ));
 void DefineMacro ARGS((int indx1 , int indx2 ));
 void printmacros ARGS((void ));
-/*
- * after sed runs on the lexer's output these funcs are defined
- */
-int Int_yywrap ARGS((void));
-int Int_yyerror ARGS((char *str));
