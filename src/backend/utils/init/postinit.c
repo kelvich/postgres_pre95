@@ -60,6 +60,8 @@
 
 #include "tmp/miscadmin.h"
 
+#define EMULATE_UNDER_POSTMASTER
+
 /* ----------------
  *	global variables & stuff
  *	XXX clean this up! -cim 10/5/90
@@ -437,7 +439,10 @@ InitStdio()
 	{
 		extern char *DBName;
 	    elog(NOTICE, "InitStdio: !ValidPgVersion");
-	    elog(FATAL, "Did you run createdb on %s yet??", DBName);
+	    if (strcmp(DBName, "template1"))
+	        elog(FATAL, "Did you run createdb on %s yet??", DBName);
+	    else
+	        elog(FATAL, "Did you run initdb yet??");
 	}
 	
 	Slog = SYSLOG_FD;
@@ -646,9 +651,18 @@ InitPostgres(name)
      *	anyone knows what this does?  something having to do with
      *  system catalog cache invalidation in the case of multiple
      *  backends, I think -cim 10/3/90
+     *  Sets up MyBackendId a unique backend identifier.
      * ----------------
      */
     InitSharedInvalidationState();
+
+    /* ----------------
+     * Set up a per backend process in shared memory.  Must be done after
+     * InitSharedInvalidationState() as it relies on MyBackendId being
+     * initialized already.  XXX -mer 11 Aug 1991
+     * ----------------
+     */
+    InitProcess(PostgresIpcKey);
 
     if (MyBackendId > MaxBackendId || MyBackendId <= 0) {
 	elog(FATAL, "cinit2: bad backend id %d (%d)",
