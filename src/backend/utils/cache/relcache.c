@@ -66,6 +66,8 @@ extern bool	AMI_OVERRIDE;	/* XXX style */
 
 RcsId("$Header$");
 
+extern HeapTuple	GetHeapTuple();	/* XXX use include file */
+
 /* #define DEBUG_RELCACHE		/* debug relcache... */
 
 #ifdef DEBUG_RELCACHE

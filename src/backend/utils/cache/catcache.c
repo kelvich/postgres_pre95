@@ -423,7 +423,8 @@ register char	*v;
 	return((int) v);
     }
     if (l == 16) {
-		if (v < &etext) {	/* XXX int16[8] special handling */
+		if (v < (char *)&etext) {
+			/* XXX int2, v, is first element of int16[8] key */
 			return((int16)v);
 		} else {		/* XXX char16 special handling */
 			l = NameComputeLength((Name)v);
