@@ -1,0 +1,75 @@
+#!/bin/sh
+#
+# $Header$
+#
+SEDFILE=/usr/tmp/Makefile.sed.$$
+CONFFILE=/usr/tmp/Makefile.config.$$
+#
+if [ -z "$1" ]; then
+	echo "Usage: $0 portname"
+	exit 1
+fi
+case $1 in
+	alpha)
+		cat > $SEDFILE << 'EOF'
+s/^PORTNAME=.*/PORTNAME=alpha/
+s/^OLD_CC=.*/OLD_CC=/
+s/^HAS_RANLIB=.*/HAS_RANLIB=/
+s/^NEED_STRINGS=.*/NEED_STRINGS=/
+s/^BSD_WAIT3.*=/BSD_WAIT3=-D_BSD/
+s/^MORESRCS=.*/MORESRCS=/
+s/^MOREOBJS=.*/MOREOBJS=/
+EOF
+		;;
+	hpux)
+		cat > $SEDFILE << 'EOF'
+s/^PORTNAME=.*/PORTNAME=hpux/
+s/^OLD_CC=.*/OLD_CC=-Dconst=/
+s/^HAS_RANLIB=.*/HAS_RANLIB=-DHAS_SYMDEF/
+s/^NEED_STRINGS=.*/NEED_STRINGS=/
+s/^BSD_WAIT3.*=/BSD_WAIT3=-D_BSD/
+s/^MORESRCS=.*/MORESRCS=setenv.c/
+s/^MOREOBJS=.*/MOREOBJS=setenv.o/
+EOF
+		;;
+	linux)
+		cat > $SEDFILE << 'EOF'
+s/^PORTNAME=.*/PORTNAME=linux/
+s/^OLD_CC=.*/OLD_CC=/
+s/^HAS_RANLIB=.*/HAS_RANLIB=/
+s/^NEED_STRINGS=.*/NEED_STRINGS=/
+s/^BSD_WAIT3.*=/BSD_WAIT3=-D__USE_BSD -D__USE_BSD_SIGNAL/
+s/^MORESRCS=.*/MORESRCS=/
+s/^MOREOBJS=.*/MOREOBJS=/
+EOF
+		;;
+	sparc)
+		cat > $SEDFILE << 'EOF'
+s/^PORTNAME=.*/PORTNAME=sparc/
+s/^OLD_CC=.*/OLD_CC=-Dvoid="char *" -Dconst= -assert nodefinitions/
+s/^HAS_RANLIB=.*/HAS_RANLIB=-DHAS_SYMDEF/
+s/^NEED_STRINGS=.*/NEED_STRINGS=-DNEED_STRINGS/
+s/^BSD_WAIT3.*=/BSD_WAIT3=/
+s/^MORESRCS=.*/MORESRCS=strerror.c setenv.c/
+s/^MOREOBJS=.*/MOREOBJS=strerror.o setenv.o/
+EOF
+		;;
+	ultrix4)
+		cat > $SEDFILE << 'EOF'
+s/^PORTNAME=.*/PORTNAME=ultrix4/
+s/^OLD_CC=.*/OLD_CC=-Dvoid="char *" -Dconst=/
+s/^HAS_RANLIB=.*/HAS_RANLIB=-DHAS_SYMDEF/
+s/^NEED_STRINGS=.*/NEED_STRINGS=/
+s/^BSD_WAIT3.*=/BSD_WAIT3=/
+s/^MORESRCS=.*/MORESRCS=strdup.c/
+s/^MOREOBJS=.*/MOREOBJS=strdup.o/
+EOF
+		;;
+	*)
+		echo "Invalid port name:" $PORTNAME
+		exit 1;
+		;;
+esac
+sed -f $SEDFILE < Makefile.boot > $CONFFILE
+rm -f $SEDFILE
+make -f $CONFFILE
