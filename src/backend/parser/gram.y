@@ -1617,6 +1617,7 @@ a_expr:
 			NewWasUsed = false;
 		    }
 		    if (IsA(temp,Var)) {
+			set_vardotfields ( temp , CDR(CDR($1)));
 			$$ = lispCons ( lispInteger (get_vartype((Var)temp)),
 				       $$ );
 		    } else if (IsA(temp,LispList) ) {
