@@ -147,7 +147,10 @@ BlockNumber	blockNum;
  *	is yet another effort to reduce the number of
  *	semops in the system.
  *
+ *  This routine locks the buffer pool before calling BufferAlloc to
+ *  avoid two semops.
  */
+
 Buffer
 ReadBufferWithBufferLock(reln,blockNum, bufferLockHeld)
 Relation 	reln;
@@ -165,8 +168,15 @@ bool		bufferLockHeld;
   /* lookup the buffer.  IO_IN_PROGRESS is set if the requested
    * block is not currently in memory.
    */
-  bufHdr = BufferAlloc(reln, blockNum, &found, bufferLockHeld);
+
+  if (!bufferLockHeld) {
+      SpinAcquire(BufMgrLock);
+  }
+
+  bufHdr = BufferAlloc(reln, blockNum, &found, true);
+
   if (! bufHdr) {
+	if (!bufferLockHeld) SpinRelease(BufMgrLock);
     return(InvalidBuffer);
   }
 
@@ -177,6 +187,7 @@ bool		bufferLockHeld;
       elog(NOTICE,"BufferAlloc: found new block in buf table");
     }
     BufferHitCount++;
+	if (!bufferLockHeld) SpinRelease(BufMgrLock);
     return(BufferDescriptorGetBuffer(bufHdr));
   }
 
@@ -191,10 +202,6 @@ bool		bufferLockHeld;
   } else {
     status = BlockRead(virtFile,bufHdr);
   }
-
-  /* lock buffer manager again to update IO IN PROGRESS */
-  if (!bufferLockHeld)
-      SpinAcquire(BufMgrLock);
 
   if (! status) {
     /* IO Failed.  cleanup the data structures and go home */
@@ -228,7 +235,7 @@ bool		bufferLockHeld;
       SpinRelease(BufMgrLock);
     
   return(BufferDescriptorGetBuffer(bufHdr));
-} 
+}
 
 /*
  * BufferAlloc -- Get a buffer from the buffer pool but dont
