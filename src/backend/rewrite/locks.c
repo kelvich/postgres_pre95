@@ -243,28 +243,3 @@ MatchDeleteLocks ( rulelocks , current_varno, user_parsetree )
 			 rulelocks, current_varno , user_parsetree ));
 }
 
-
-/*
- *	RelationHasLocks
- *	- returns true iff a relation has some locks on it
- */
-
-RuleLock
-RelationGetRelationLocks ( relation )
-     Relation relation;
-{
-    HeapTuple relationTuple;
-    RuleLock relationLocks;
-
-    relationTuple = SearchSysCacheTuple(RELNAME,
-		       &(RelationGetRelationTupleForm(relation)->relname),
-		       (char *) NULL,
-		       (char *) NULL,
-		       (char *) NULL);
-
-    relationLocks = prs2GetLocksFromTuple( relationTuple,
-					   InvalidBuffer,
-					   (TupleDescriptor) NULL );
-    return(relationLocks);
-}
-

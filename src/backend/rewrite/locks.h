@@ -39,6 +39,5 @@ struct _LispValue *MatchLocks ARGS((char, struct Prs2LocksData *, int, struct _L
 struct _LispValue *MatchReplaceLocks ARGS((struct Prs2LocksData *, int, struct _LispValue *));
 struct _LispValue *MatchAppendLocks ARGS((struct Prs2LocksData *, int, struct _LispValue *));
 struct _LispValue *MatchDeleteLocks ARGS((struct Prs2LocksData *, int, struct _LispValue *));
-struct Prs2LocksData *RelationGetRelationLocks ARGS((struct RelationData *));
 
 
