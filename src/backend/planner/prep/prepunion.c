@@ -178,117 +178,75 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
      LispValue root,tlist,qual,rangetable ;
 {
     LispValue temp_flag = LispNil;
+    LispValue rt_entry = rt_fetch (rt_index,rangetable);
+    LispValue union_relids = LispNil;
+    LispValue union_info = LispNil;
+    LispValue union_plans = LispNil;
+    LispValue union_rt_entries = LispNil;
+    LispValue temp = LispNil;
+    
     switch (flag) {
 	
-	/*    Most queries require us to iterate over a list of relids. */
-	/*    Archives are handled differently.  */
-	/*	Instead of a list of different */
-	/*    relids, we need to plan the same query  */
-	/*    twice in different modes. */
-	
-      case ARCHIVE :
-	{ /* XXX - let form, maybe incorrect */
-	    Plan primary_plan = (Plan)NULL;
-	    Plan archive_plan = (Plan)NULL;
+      case INHERITS :
+	union_relids = 
+	  find_all_inheritors (lispCons(rt_relid (rt_entry),
+					LispNil),
+			       LispNil);
+	break;
 
-	    _query_is_archival_ = false;
-	    primary_plan = init_query_planner (root,tlist,qual);
-	    _query_is_archival_ = true;
-	    archive_plan = init_query_planner (root,tlist,qual);
-	    return (make_append (lispCons(primary_plan,
-					  lispCons(archive_plan,LispNil)),
-				 rt_index,
-				 lispCons(rt_fetch (rt_index,rangetable),
-					  lispCons(rt_fetch (rt_index,
-							     rangetable),
-						   LispNil)),
-				 get_qptargetlist (primary_plan)));
-	    
-	  }
+      case UNION : {
+	Index rt_index = 0;
+	  union_plans = handleunion(root,rangetable,tlist,qual);
+	  return (make_append (union_plans,
+			       rt_index, rangetable,
+			       get_qptargetlist (CAR(union_plans))));
+      }
 	break;
 	
-      default:
-	{ 
-	    LispValue rt_entry = rt_fetch (rt_index,rangetable);
-	    LispValue union_relids = LispNil;
+      case VERSION :
+	union_relids = find_version_parents (rt_relid (rt_entry));
+	break;
+	
+      case ARCHIVE :
+	union_relids = find_archive_rels(rt_relid(rt_entry));
+	break;
 
-	    LispValue union_info = LispNil;
-	    LispValue union_plans = LispNil;
-	    LispValue union_rt_entries = LispNil;
-	    LispValue temp = LispNil;
-	    
-	    switch (flag) {
-		
-	      case INHERITS :
-		union_relids = 
-		  find_all_inheritors (lispCons(rt_relid (rt_entry),
-						LispNil),
-				       LispNil);
-		break;
+      default: 
+	/* do nothing */
+	break;
+    }
 
-	      case UNION : {
-		Index rt_index = 0;
-		  union_plans = handleunion(root,rangetable,tlist,qual);
-		  return (make_append (union_plans,
-				       rt_index, rangetable,
-				       get_qptargetlist (CAR(union_plans))));
-	      }
-		break;
-		
-	      case VERSION :
-		union_relids = 
-		  find_version_parents (rt_relid (rt_entry));
-		break;
-		
-	      default: 
-		/* do nothing */
-		break;
-	    }
-	    
-	    /*    XXX temporary for inheritance: */
-	    /*     relid is listified by the parser. */
-	    
-	    /*    	   (case flag
-	     *    		 (inheritance
-	     *    		  (setf (rt_relid (rt_fetch rt-index 
-	     *                                  rangetable))
-	     *    			(CAR (rt_relid 
-	     *                         (rt_fetch rt-index rangetable))))))
-	     */
-	    
-	    /*    Remove the flag for this relation, */
-	    /*     since we're about to handle it */
-	    /*    (do it before recursing!). */
-	    /*    XXX destructive parse tree change */
-	    /*   was setf -- is this right?  */
-	    
-	    temp_flag = lispInteger(flag);
-	    NodeSetTag(temp_flag,classTag(LispSymbol));
-	    rt_flags (rt_fetch (rt_index,rangetable)) = 
-	      LispRemove (temp_flag,
-		      rt_flags (rt_fetch (rt_index,rangetable)));
-	    
-	    /* XXX - can't find any reason to sort union-relids
-	       as paul did, so we're leaving it out for now
-	       (maybe forever) - jeff & lp */
+    /*    Remove the flag for this relation, */
+    /*     since we're about to handle it */
+    /*    (do it before recursing!). */
+    /*    XXX destructive parse tree change */
+    /*   was setf -- is this right?  */
 
-	    union_info = plan_union_query (union_relids,
-					   rt_index,rt_entry,
-					   root,tlist,qual,rangetable);
-	    
-	    foreach(temp,union_info) {
-	      union_plans = nappend1(union_plans,CAR(CAR(temp)));
-	      union_rt_entries = nappend1(union_rt_entries,
-					  CADR (CAR(temp)));
-	    }
-	    
-	    return (make_append (union_plans,
-				 rt_index,union_rt_entries,
-				 get_qptargetlist (CAR (union_plans))));
-	  }
-      }
-    
-  }   /* function end  */
+    temp_flag = lispInteger(flag);
+    NodeSetTag(temp_flag,classTag(LispSymbol));
+    rt_flags (rt_fetch (rt_index,rangetable)) = 
+      LispRemove (temp_flag,
+	      rt_flags (rt_fetch (rt_index,rangetable)));
+
+    /* XXX - can't find any reason to sort union-relids
+       as paul did, so we're leaving it out for now
+       (maybe forever) - jeff & lp */
+
+    union_info = plan_union_query (union_relids,
+				   rt_index,rt_entry,
+				   root,tlist,qual,rangetable);
+
+    foreach(temp,union_info) {
+      union_plans = nappend1(union_plans,CAR(CAR(temp)));
+      union_rt_entries = nappend1(union_rt_entries,
+				  CADR (CAR(temp)));
+    }
+
+    return (make_append (union_plans,
+			 rt_index,
+			 union_rt_entries,
+			 get_qptargetlist (CAR (union_plans))));
+}
 
 
 /*    
