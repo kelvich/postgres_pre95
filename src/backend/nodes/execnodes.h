@@ -178,6 +178,7 @@ class (TupleTableSlot) public (LispValue) {
       bool		ttc_shouldFree;
       bool		ttc_descIsNew;
       TupleDescriptor	ttc_tupleDescriptor;
+      ExecTupDescriptor ttc_execTupDescriptor;
       Buffer		ttc_buffer;
       int		ttc_whichplan;
   /* public: */
