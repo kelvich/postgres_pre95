@@ -62,6 +62,9 @@ NodeTagGetSize(tag)
       case T_Param:
 	node_size = sizeof (struct _Param);
 	break;
+      case T_Func:
+	node_size = sizeof (struct _Func);
+	break;
       default:
 	elog(NOTICE,"calling NodeTagGetSize with unknown tag");
 	node_size = 48;
