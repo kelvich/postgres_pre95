@@ -23,6 +23,7 @@ typedef struct
 	char     *src;	      /* source code of the function */
 	char     *bin;	      /* binary object code ?? */
 	char     *func_state; /* fuction_state struct for execution */
+	bool	 oneResult;   /* true we only want 1 result from the function */
 
 	bool	 hasSetArg;   /* true if func is part of a nested dot expr
 			       * whose argument is func returning a set ugh!
