@@ -103,11 +103,13 @@ find_clause_joins(outer_rel,joininfo_list)
                                                        get_rel(CAR(other_rels)),
                                                        joininfo),
                                           LispNil);
-                  else
+                  else if (BushyPlanFlag)
                      temp_node = lispCons((LispValue)init_join_rel(outer_rel,
                                                         get_rel(other_rels),
                                                          joininfo),
                                           LispNil);
+		  else
+		     temp_node = LispNil;
                 t_list = nconc(t_list,temp_node);
 
               }
