@@ -547,7 +547,7 @@ make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
      List indirect_list;  /* has indirection - e.g. arrayname[i][j][k] */ 
 {
     Var varnode;
-    int vnum, attid, typearray, typelem;
+    int vnum, attid, typearray;
     LispValue vardotfields;
     Type rtype;
     Relation rd;
@@ -589,8 +589,7 @@ make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
      * ----------------
      */
     type_struct = (TypeTupleForm) GETSTRUCT(type_tuple);
-
-    rtype = get_id_type(typelem);
+    rtype = get_id_type((type_struct)->typelem);
     vardotfields = LispNil;                          /* XXX - fix this */
 /*    if (!(type_struct)->typbyval){ */
     if (indirect_list != LispNil){
@@ -640,27 +639,30 @@ make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
 					 	 (type_struct)->typlen));
 		indirect_list = CDR(indirect_list);
       	}
-	type_struct = type_struct2;
-    	type_tuple = SearchSysCacheTuple(TYPOID,
-					 (type_struct)->typelem,
-					 NULL,
-					 NULL,
-					 NULL);
+	if ((type_struct)->typelem != InvalidObjectId)
+	{
+		type_struct = type_struct2;
+	    	type_tuple = SearchSysCacheTuple(TYPOID,
+						 (type_struct)->typelem,
+						 NULL,
+						 NULL,
+						 NULL);
    
-   	if (!HeapTupleIsValid(type_tuple)) {
-		elog(WARN, 
-		"make_array_ref_var: Cache lookup failed for type %d\n",
-		     typearray);
-		return LispNil;
-    	}
-    	type_struct2 = (TypeTupleForm) GETSTRUCT(type_tuple);
-	vararraylist = lispCons(vararraylist,
-				MakeArray ((type_struct)->typelem,
-                               		 (type_struct2)->typlen,
-                               		 (type_struct)->typbyval,
-                               		 lispInteger(CAR(indirect_list)),
-                       			 0, 
-				 	 (type_struct)->typlen));
+   		if (!HeapTupleIsValid(type_tuple)) {
+			elog(WARN, 
+			"make_array_ref_var: Cache lookup failed for type %d\n",
+			     typearray);
+			return LispNil;
+    		}
+    		type_struct2 = (TypeTupleForm) GETSTRUCT(type_tuple);
+		vararraylist = lispCons(vararraylist,
+					MakeArray ((type_struct)->typelem,
+       	                        		 (type_struct2)->typlen,
+       	                        		 (type_struct)->typbyval,
+       	                        		 lispInteger(CAR(indirect_list)),
+       	                			 0, 
+					 	 (type_struct)->typlen));
+	}
     } else{
     	type_tuple = SearchSysCacheTuple(TYPOID,
 					 (type_struct)->typelem,
