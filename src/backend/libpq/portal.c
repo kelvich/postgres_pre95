@@ -34,7 +34,7 @@
 
 #include "string.h"
 #include "libpq.h"
-#include "exception.h"
+#include "exc.h"
 
 RcsId ("$Header$");
 
