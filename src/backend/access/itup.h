@@ -315,7 +315,7 @@ extern
 GeneralInsertIndexResult
 ItemPointerFormGeneralInsertIndexResult ARGS((
 	ItemPointer	itemPointer,
-	RuleLock	lock,
+	RuleLock	lock
 ));
 
 /*
