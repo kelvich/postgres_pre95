@@ -8,7 +8,8 @@ SRCS= ufp.c dfmgr.c dynloader.c
 	${.CURDIR}/../../backend/port/${PORTNAME}
 
 CFLAGS+= -I${.CURDIR}/../../backend/port/${PORTNAME} \
-	 -I${.CURDIR}/../../backend/obj
+	 -I${.CURDIR}/../../backend/obj \
+	 -I${.CURDIR}/../../backend
 CFLAGS+= -DUFP
 CFLAGS+= -G 0
 
