@@ -272,7 +272,7 @@ _bt_binsrch(rel, buf, keysz, scankey, srchtype)
      *  appears on the page.  The other is if nothing but the high key does.
      */
 
-    if (PageIsEmpty(page) || high == low)
+    if (PageIsEmpty(page) || (opaque->btpo_next != P_NONE && high == low))
 	return (low);
 
     itupdesc = RelationGetTupleDescriptor(rel);
@@ -334,10 +334,18 @@ _bt_binsrch(rel, buf, keysz, scankey, srchtype)
 
 	    /* we want the first key >= the scan key */
 	    result = _bt_compare(rel, itupdesc, page, keysz, scankey, low);
-	    if (result < 0)
-		return (high);
-	    else
+	    if (result <= 0) {
 		return (low);
+	    } else {
+		if (low == high)
+		    return (low + 1);
+
+		result = _bt_compare(rel, itupdesc, page, keysz, scankey, high);
+		if (result <= 0)
+		    return (high);
+		else
+		    return (high + 1);
+	    }
 	}
 	/* NOTREACHED */
     }
@@ -376,14 +384,15 @@ _bt_compare(rel, itupdesc, page, keysz, scankey, offind)
     Boolean null;
 
     /*
-     *  If this is a leftmost page at some level, and if our comparison is
+     *  If this is a leftmost internal page, and if our comparison is
      *  with the first key on the page, then the item at that position is
      *  by definition less than the scan key.
      */
 
-    if (offind == 0) {
-	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
-	if (opaque->btpo_prev == P_NONE)
+    opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+    if (!(opaque->btpo_flags & BTP_LEAF)
+	&& opaque->btpo_prev == P_NONE
+	&& offind == 0) {
 	    return (1);
     }
 
