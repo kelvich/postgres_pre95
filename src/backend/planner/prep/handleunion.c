@@ -37,7 +37,7 @@
 #include "planner/semanopt.h"
 /* #include "planner/cfi.h" */
 
-/*#define LispRemove remove */
+/* #define LispRemove remove  */
 
 List
 handleunion (root,rangetable, tlist, qual)
@@ -57,14 +57,33 @@ handleunion (root,rangetable, tlist, qual)
   List tmp_uplans = LispNil;
   List firstplan = LispNil;
   List secondplan = LispNil;
+  int num_plans = 0;
 
   /*
    * SplitTlistQual returns a list of the form:
    * ((tlist1 qual1) (tlist2 qual2) ...) 
    */
 
+  /*
+   *  First remove the union flag from the rangetable entries
+   *  since we are processing them now.
+   */
+
+  foreach(i,rangetable) {
+    rt_entry = CAR(i);
+    if (member(lispAtom("union"),rt_flags(rt_entry))) {
+      rt_flags(rt_entry) = LispRemove(lispAtom("union"),
+				      rt_flags(rt_entry));
+    }
+  }
+
   tlist_qual = SplitTlistQual (root,rangetable,tlist,qual);
 
+  num_plans = length(tlist_qual);
+  printf("####################\n");
+  printf("number of plans generated: %d\n", num_plans);
+  printf("####################\n");
+  
   foreach (i, tlist_qual) {
     temp = CAR(i);
     new_parsetree = lispCons(root,lispCons(CAR(temp),
@@ -124,7 +143,14 @@ SplitTlistQual(root,rangetable,tlist, qual)
   List mod_qual = LispNil;
   List varlist = LispNil;
 
-  unionlist = find_union_sets(rangetable);
+  unionlist = collect_union_sets(tlist,qual);
+
+  printf("##########################\n");
+  printf("Union sets are: \n");
+  lispDisplay(unionlist,0);
+  printf("\n");
+  fflush(stdout);
+  printf("##########################\n");
 
   /*
    *  If query is a delete, the tlist is null.
@@ -197,6 +223,7 @@ SplitTlist (unionlist,tlists)
   List varlist = LispNil;
   Var varnode = (Var)NULL;
   List tl_list = LispNil;
+  List flatten_list = LispNil;
 
   foreach(t, tlists) {
     tlist = CAR(t);
@@ -211,7 +238,8 @@ SplitTlist (unionlist,tlists)
 	if (IsA(varlist,Const) || IsA(varlist,Var)) ;
 	else
 	  if (CAtom(CAR(varlist)) == UNION) {
-	    foreach (j, CDR(varlist)) {
+	    flatten_list = flatten_union_list(CDR(varlist));
+	    foreach (j, flatten_list) {
 	      varnode = (Var)CAR(j);
 	      /*
 	       * Find matching entry, and change the tlist to it.
@@ -244,7 +272,162 @@ SplitTlist (unionlist,tlists)
 
 }
 
+/*
+ *  collect_union_sets
+ *  runs through the tlist and qual, and forms a list of 
+ *  unions sets in the query.  
+ *  If there is > 1 union set, we are dealing with a union join.
+ */
 
+List 
+collect_union_sets(tlist,qual)
+     List tlist;
+     List qual;
+{
+  List i = LispNil;
+  List x = LispNil;
+  List j = LispNil;
+  int varno = 0;
+  List tle = LispNil;
+  List varlist = LispNil;
+  List current_union_set = LispNil;
+  List union_sets = LispNil;
+  List qual_union_sets = LispNil;
+  List flattened_ulist = LispNil;
+
+/*
+ *  First we run through the targetlist and collect all union sets
+ *  there.
+ */
+
+  foreach(i, tlist) {
+    tle = CAR(i);
+    varlist = tl_expr(tle);
+    current_union_set = LispNil;
+    if (consp(varlist) &&
+	CAtom(CAR(varlist)) == UNION) {
+      flattened_ulist = flatten_union_list(CDR(varlist));
+      foreach (x, flattened_ulist) 
+	current_union_set = nappend1(current_union_set,
+				     lispInteger(get_varno(CAR(x))) );
+
+    }
+    union_sets = nappend1(union_sets,
+			  current_union_set);
+
+  }
+  union_sets = remove_subsets(union_sets);
+
+/*
+ *  Now we run through the qualifications to collect 
+ *  union sets.
+ */
+  
+  qual_union_sets = find_qual_union_sets(qual);
+  
+  if (qual_union_sets != LispNil)
+    foreach(i, qual_union_sets)
+      union_sets = nappend1(union_sets, CAR(i));
+
+  if (length(union_sets) > 1)
+    union_sets = remove_subsets(union_sets);
+
+  return(union_sets);
+}
+
+List
+find_qual_union_sets(qual)
+     List qual;
+{
+  List leftop = LispNil;
+  List rightop = LispNil;
+  List i = LispNil;
+  List j = LispNil;
+  List union_sets = LispNil;
+  List current_union_set = LispNil;
+  List qual_uset = LispNil;
+  List flattened_ulist = LispNil;
+
+  if (null(qual))
+    return(LispNil);
+  else
+    if (is_clause(qual)) {
+      leftop = (List) get_leftop(qual);
+      rightop = (List) get_rightop(qual);
+
+      if (consp(leftop) && CAtom(CAR(leftop)) == UNION) {
+	current_union_set = LispNil;
+	flattened_ulist = flatten_union_list(CDR(leftop));
+	foreach(i, flattened_ulist) 
+	  current_union_set = nappend1(current_union_set,
+				       lispInteger(get_varno(CAR(i))) );
+	union_sets = nappend1(union_sets,
+			      current_union_set);
+      }    
+      if (consp(rightop) && CAtom(CAR(rightop)) == UNION) {
+	current_union_set = LispNil;
+	flattened_ulist = flatten_union_list(CDR(rightop));
+	foreach(i, flattened_ulist) 
+	  current_union_set = nappend1(current_union_set,
+				       lispInteger(get_varno(CAR(i))) );
+	union_sets = nappend1(union_sets,
+			      current_union_set);
+      }
+    } else
+      if (and_clause(qual)) {
+	foreach(j,get_andclauseargs(qual)) {
+	  qual_uset = find_qual_union_sets(CAR(j));
+	  if (qual_uset != LispNil) 
+	    foreach(i,qual_uset) 
+	      union_sets = nappend1(union_sets,
+				    CAR(i));
+	}
+      } else
+	if (or_clause(qual)) {
+	  foreach(j,get_orclauseargs(qual)) {
+	    qual_uset = find_qual_union_sets(CAR(j));
+	    if (qual_uset != LispNil)
+	      foreach(i,qual_uset)
+		union_sets = nappend1(union_sets,
+				      CAR(i));
+	  }
+	} else
+	  if (not_clause(qual)) {
+	    qual_uset = find_qual_union_sets(CDR(qual));
+	    if (qual_uset != LispNil)
+	      foreach(i,qual_uset)
+		union_sets = nappend1(union_sets,
+				      CAR(i));
+	  }
+
+  return(union_sets);
+
+}
+
+List
+flatten_union_list(ulist)
+     List ulist;
+{
+  List retlist = LispNil;
+  List i = LispNil;
+  List tmp_var = LispNil;
+  List tmplist = LispNil;
+
+  foreach(i,ulist) {
+    tmp_var = CAR(i);
+    if (consp(tmp_var) && CAtom(CAR(tmp_var)) == UNION)
+      tmplist = flatten_union_list(CDR(tmp_var));
+    else
+      retlist = nappend1(retlist, tmp_var);
+  }
+
+  if (tmplist)
+    foreach(i, tmplist)
+      retlist= nappend1(retlist, CAR(i));
+
+  return(retlist);
+  
+}
 /*
  *  find_union_sets
  *  runs through the rangetable, and forms a list of all union
@@ -365,14 +548,13 @@ remove_subsets(usets)
 
   foreach(i, usets) {
     uset1 = CAR(i);
-    foreach(j, CDR(usets)) {
+    foreach(j, CDR(i)) {
       uset2 = CAR(j);
       if (uset2 == LispNil)
 	break;
 
-      /*  Here, assume that there are no duplicate sets. */
 
-      if (length (uset1) > length(uset2) &&
+      if (length (uset1) >= length(uset2) &&
 	  length(uset2) != 1) {
 	foreach(k, uset2) 
 	  if (!member(CAR(k),uset1)) {
@@ -390,10 +572,10 @@ remove_subsets(usets)
 	      is_subset = 0;
 	      break;
 	    }
-
 	  if (is_subset) 
 	    CAR(i)= lispCons(lispInteger(1),LispNil);
 	}
+      is_subset = 1;
     } /* inner loop usets */
   } /* outer loop usets */
   
@@ -544,7 +726,8 @@ match_union_clause (unionlist, leftarg, rightarg)
    *  If leftarg is a union var.
    */
   if (consp(*leftarg) && CAtom(CAR(*leftarg)) == UNION) {
-    varlist = CDR(*leftarg);
+    varlist = flatten_union_list(CDR(*leftarg));
+/*    varlist = CDR(*leftarg); */
     foreach(i,varlist) {
       uvarnode = (Var)CAR(i);
       if (member(lispInteger(get_varno(uvarnode)), unionlist)) {
@@ -558,7 +741,8 @@ match_union_clause (unionlist, leftarg, rightarg)
    *  If rightarg is a union var.
    */
   if (consp(*rightarg) && CAtom(CAR(*rightarg)) == UNION) {
-    varlist = CDR(*rightarg);
+    varlist = flatten_union_list(CDR(*rightarg));
+/*    varlist = CDR(*rightarg); */
     foreach(i,varlist) {
       uvarnode = (Var)CAR(i);
       if (member(lispInteger(get_varno(uvarnode)), unionlist)) {
