@@ -10,7 +10,7 @@ RcsId("$Header$");
 #include "access/htup.h"
 
 #include "rules/rac.h"
-#include "rules/rlock.h"
+#include "rules/prs2locks.h"
 
 #include "storage/block.h"
 #include "storage/buf.h"
@@ -29,6 +29,17 @@ RcsId("$Header$");
 /*
  * XXX direct structure accesses should be removed
  */
+
+/*-------------------------------------------------------------------
+ *
+ * HeapTupleGetRuleLock
+ *
+ * A rule lock can be either an ItemPointer to the actual data in a
+ * disk page or a RuleLock, i.e. a pointer to a main memory structure.
+ * This routine always return the main memory representation (if necessary
+ * it makes the conversion)
+ *
+ */
 RuleLock
 HeapTupleGetRuleLock(tuple, buffer)
 	HeapTuple	tuple;
@@ -36,14 +47,39 @@ HeapTupleGetRuleLock(tuple, buffer)
 {
 	Assert(HeapTupleIsValid(tuple));
 
-	if (!BufferIsValid(buffer)) {
-		return (tuple->t_lock.l_lock);
-	}
+	/*
+	 * sanity check
+	 */
+        if (tuple->t_locktype != MEM_RULE_LOCK &&
+            tuple->t_locktype != DISK_RULE_LOCK) {
+            elog(WARN,"HeapTupleGetRuleLock: locktype = '%c',(%d)\n",
+                tuple->t_locktype, tuple->t_locktype);
+        }
 
+	/*
+	 * if this is a main memory lock, then return it.
+	 */
+        if (tuple->t_locktype == MEM_RULE_LOCK) {
+            return(tuple->t_lock.l_lock);
+        }
+
+	/*
+	 * no, it is a disk lock. Check if it is invalid
+	 */
 	if (!ItemPointerIsValid(&tuple->t_lock.l_ltid)) {
-
 		return (InvalidRuleLock);
 	}
+
+	/*
+	 * If this is a disk lock, then we *must* pass a valid
+	 * buffer...
+	 * Otherwise ... booooooom!
+	 */
+        if (!BufferIsValid(buffer)) {
+            elog(WARN,"HeapTupleGetRuleLock: Invalid buffer");
+        }
+
+
 {
 	BlockNumber	blockNumber;
 	Page		page;
@@ -65,40 +101,96 @@ HeapTupleGetRuleLock(tuple, buffer)
 }
 }
 
-HeapTuple
+/*------------------------------------------------------------
+ *
+ * HeapTupleSetRuleLock
+ *
+ * Set the rule lock of a tuple.
+ *
+ * NOTE: the old lock of the tuple is pfreed (if it is a main
+ *	memory pointer of course... If it is an item in a disk page
+ *	it is left intact)
+ *
+ * NOTE: No copies of the tuple or the lock are made any more (this
+ * routine used to -sometimes- make a copy of the tuple)
+ */
+void
 HeapTupleSetRuleLock(tuple, buffer, lock)
 	HeapTuple	tuple;
 	Buffer		buffer;
 	RuleLock	lock;
 {
+	RuleLock oldLock;
 	Assert(HeapTupleIsValid(tuple));
 
-	if (BufferIsValid(buffer)) {
-		HeapTuple	palloctup();
+	/*
+	 * sanity check...
+	 */
+        if (tuple->t_locktype != MEM_RULE_LOCK &&
+            tuple->t_locktype != DISK_RULE_LOCK) {
+            elog(WARN,"HeapTupleGetRuleLock: locktype = '%c',(%d)\n",
+                tuple->t_locktype, tuple->t_locktype);
+        }
 
-		tuple = palloctup(tuple, buffer, InvalidRelation);
+	if (tuple->t_locktype == MEM_RULE_LOCK) {
+	    prs2FreeLocks(tuple->t_lock.l_lock);
 	}
 
+        tuple->t_locktype = MEM_RULE_LOCK;
 	tuple->t_lock.l_lock = lock;
 
-	return (tuple);
 }
 
+/*------------------------------------------------------------
+ *
+ * HeapTupleStoreRuleLock
+ *
+ * Store a rule lock in a page.
+ * The 'tuple' has a lock which can be either a "disk" or "main memory"
+ * rule lock. In the first case we don't need to do anything because
+ * the lock is already there! In the second case, add the lock data
+ * somewhere in the disk page & update the tuple->t_lock stuff...
+ *
+ */
 void
-HeapTupleStoreRuleLock(tuple, buffer, lock)
+HeapTupleStoreRuleLock(tuple, buffer)
 	HeapTuple	tuple;
 	Buffer		buffer;
-	RuleLock	lock;
 {
 	Relation	relation;
 	Page		page;
 	BlockNumber	blockNumber;
 	OffsetNumber	offsetNumber;
+	RuleLock	lock;
 
 	Assert(HeapTupleIsValid(tuple));
 	Assert(BufferIsValid(buffer));
 
-	if (!RuleLockIsValid(lock)) {
+	/*
+	 * If it is a disk lock, then there is nothing to do...
+	 */
+	if (tuple->t_locktype == DISK_RULE_LOCK) {
+	    return;
+	}
+
+	/*
+	 * sanity check
+	 */
+        if (tuple->t_locktype != MEM_RULE_LOCK) {
+            elog(WARN,"HeapTupleGetRuleLock: locktype = '%c',(%d)\n",
+                tuple->t_locktype, tuple->t_locktype);
+        }
+
+	lock = tuple->t_lock.l_lock;
+
+	/*
+	 * if it is an empty lock, treat the trivial case..
+	 */
+        if (prs2RuleLockIsEmpty(lock)) {
+		/*
+		 * change it to an empty  disk lock 
+		 */
+                tuple->t_locktype = DISK_RULE_LOCK;
 		ItemPointerSetInvalid(&tuple->t_lock.l_ltid);
 		return;
 	}
@@ -115,51 +207,6 @@ HeapTupleStoreRuleLock(tuple, buffer, lock)
 
 	page = BufferSimpleGetPage(buffer);
 
-#ifdef NOT_YET
-	/** ------------- XXX --------- SOS ------------
-	 ** Sometimes (when defining or removing a rule)
-	 ** the `ItemPointerIsValid' test calls elog(WARN...).
-	 ** The reason is that `t_lock' is a union:
-	 ** 
-         ** union {
-         **        ItemPointerData l_ltid; /* TID of the lock */
-         **        RuleLock        l_lock; /* internal lock format */
-         ** } t_lock;
-	 **
-	 ** Now, even if we set `t_lock.l_lock' to a perfectly valid pointer,
-	 ** it is possible that `ItemPointerIsValid(&tuple->t_lock.l_ltid)'
-	 ** can fail confused and abort the Xact (see the definition
-	 ** of `ItemPointerIsValid').
-	 **
-	 ** So, for the time being I decided to skip this test altogether,
-	 ** (in which case locks are not physically deleted ever from
-	 ** a page).
-	 **
-	 ** In the long run, this test can be rewritten so that it
-	 ** understands whether to test `t_lock.l_lock' or `t_lock.l_ltid'
-	 **
-	 **/
-
-	if (ItemPointerIsValid(&tuple->t_lock.l_ltid)) {
-
-		/* XXX Is the physical removal of the lock safe? */
-
-		if (ItemPointerGetBlockNumber(&tuple->t_lock.l_ltid) ==
-				BufferGetBlockNumber(buffer)) {
-
-			PageRemoveItem(page,
-				PageGetItemId(page,
-					ItemPointerSimpleGetOffsetIndex(
-						&tuple->t_lock.l_ltid)));
-		} else {
-			;
-			/*
-			 * XXX for now, let the vacuum demon remove locks
-			 * on other pages
-			 */
-		}
-	}
-#endif NOT_YET
 
 	if (PageGetFreeSpace(page) >= psize(lock)) {
 
@@ -182,7 +229,70 @@ HeapTupleStoreRuleLock(tuple, buffer, lock)
 			LP_USED | LP_LOCK);
 		BufferPut(buffer, L_UN | L_EX | L_WRITE);
 	}
+	tuple->t_locktype = DISK_RULE_LOCK;
 	ItemPointerSimpleSet(&tuple->t_lock.l_ltid, blockNumber, offsetNumber);
 
-	RelationInvalidateHeapTuple(relation, tuple);
+	/*
+	 * And now the tricky & funny part... (not submitted to
+	 * Rec.puzzles yet...)
+	 *
+	 * Shall we free the old memory locks or not ????
+	 * "I say yes! It is safe to pfree them..." (Spyros said just before
+	 * the lights went out...)
+	 */
+	prs2FreeLocks(lock);
+
+	/*
+	 * And our last question for $200!
+	 * the following call to "RelationInvalidateHeapTuple()"
+	 * invalidates the cache...  Do we really need it ???
+	 * 
+	 * The correct answer is NO! "HeapTupleStoreRuleLock()"
+	 * in only called by "RelationPutHeapTuple()"
+	 * and "RelationPutLongHeapTuple()", which are called
+	 * by "amreplace()", "aminsert()" and company, which
+	 * invalidate the cache anyway...
+	 */
+
+	/* RelationInvalidateHeapTuple(relation, tuple); */
+
 }
+
+
+#ifdef OBSOLETE_BEYOND_BELIEF
+/*=====================================================================
+ * HeapStoreRuleLock used to be a little bit different:
+ * It was *replacing* the lock of a tuple with a new one,
+ * so it was first trying to free the disk space occupied by the first
+ * lock. This probably screws time range queries involving rules
+ * though..
+ *
+ * Anyway, there was some obscure code for "disk" rule lock removal
+ * and as probably its writer (M. Hirohama???) is far away, and
+ * nobody ever will want to duplicate his effort I decided to keep this
+ * piece of code just in case we might need it again (God forbids!)
+ *
+ * sp.
+ *=====================================================================
+ */
+
+        if (tuple->t_locktype == DISK_RULE_LOCK &&
+            ItemPointerIsValid(&tuple->t_lock.l_ltid)) {
+		/* XXX Is the physical removal of the lock safe? */
+
+		if (ItemPointerGetBlockNumber(&tuple->t_lock.l_ltid) ==
+				BufferGetBlockNumber(buffer)) {
+
+			PageRemoveItem(page,
+				PageGetItemId(page,
+					ItemPointerSimpleGetOffsetIndex(
+						&tuple->t_lock.l_ltid)));
+		} else {
+			;
+			/*
+			 * XXX for now, let the vacuum demon remove locks
+			 * on other pages
+			 */
+		}
+	}
+#endif OBSOLETE_BEYOND_BELIEF
