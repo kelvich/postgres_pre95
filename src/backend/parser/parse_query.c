@@ -416,7 +416,7 @@ int orig_typeId, true_typeId;
 	    infunc = typeid_get_retinfunc(true_typeId);
 	    result = (LispValue)MakeConst(true_typeId,
 					  tlen(true_type),
-					  (Datum)fmgr(infunc, val),
+					  (Datum)fmgr(infunc, val, get_typelem(true_typeId)),
 					  false, true, false /* not a set */);
 	}
     }
