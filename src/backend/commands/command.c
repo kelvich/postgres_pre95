@@ -76,6 +76,15 @@ RcsId("$Header$");
 #include "executor/execdefs.h"
 #include "executor/execdesc.h"
 
+#include "planner/internal.h"
+#include "planner/prepunion.h"	/* for find_all_inheritors */
+
+#ifndef NO_SECURITY
+#include "tmp/miscadmin.h"
+#include "tmp/acl.h"
+#include "catalog/syscache.h"
+#endif /* !NO_SECURITY */
+
 extern List MakeList();
 
 /* ----------------
@@ -161,7 +170,8 @@ PerformPortalFetch(name, forward, count, tag, dest)
      */
     portal = GetPortalByName(name);
     if (! PortalIsValid(portal)) {
-	elog(NOTICE, "PerformPortalFetch: %s not found", name);
+	elog(NOTICE, "PerformPortalFetch: portal \"%-.*s\" not found",
+	     NAMEDATALEN, name);
 	return;
     }
     
@@ -245,7 +255,8 @@ PerformPortalClose(name, dest)
      */
     portal = GetPortalByName(name);
     if (! PortalIsValid(portal)) {
-	elog(NOTICE, "PerformPortalClose: %s not found", name);
+	elog(NOTICE, "PerformPortalClose: portal \"%-.*s\" not found",
+	     NAMEDATALEN, name);
 	return;
     }
 
@@ -346,8 +357,9 @@ FixDomainList(domains)
  * ----------------
  */
 void
-PerformAddAttribute(relationName, schema)
+PerformAddAttribute(relationName, userName, schema)
     Name	relationName;
+    Name	userName;
     List	schema;
 {	
     List		element;
@@ -369,11 +381,74 @@ PerformAddAttribute(relationName, schema)
     Relation		idescs[Num_pg_attr_indices];
     Relation		ridescs[Num_pg_class_indices];
     bool		hasindex;
+    LispValue		first;
     
-    if (issystem(relationName)) {
-	elog(WARN, "Add: system relation \"%s\" unchanged",
-	     relationName);
-	return;
+    /*
+     * permissions checking.  this would normally be done in utility.c,
+     * but this particular routine is recursive.
+     *
+     * normally, only the owner of a class can change its schema.
+     */
+    if (NameIsSystemRelationName(relationName))
+	elog(WARN, "PerformAddAttribute: class \"%-.*s\" is a system catalog",
+	     NAMEDATALEN, relationName);
+#ifndef NO_SECURITY
+    if (!pg_ownercheck(userName->data, relationName, RELNAME))
+	elog(WARN, "PerformAddAttribute: you do not own class \"%-.*s\"",
+	     NAMEDATALEN, relationName);
+#endif
+
+    /*
+     * if the first element in the 'schema' list is a "*" then we are
+     * supposed to add this attribute to all classes that inherit from
+     * 'relationName' (as well as to 'relationName').
+     *
+     * any permissions or problems with duplicate attributes will cause
+     * the whole transaction to abort, which is what we want -- all or
+     * nothing.
+     */
+    if (schema != LispNil) {
+	first = CAR(schema);
+	if (lispStringp(first) && !strcmp(CString(first), "*")) {
+	    ObjectId myrelid, childrelid;
+	    LispValue child, children;
+	    
+	    relrdesc = heap_openr(relationName);
+	    if (!RelationIsValid(relrdesc)) {
+		elog(WARN, "PerformAddAttribute: unknown relation: \"%-.*s\"",
+		     NAMEDATALEN, relationName);
+	    }
+	    myrelid = relrdesc->rd_id;
+	    heap_close(relrdesc);
+	
+	    /* this routine is actually in the planner */
+	    children = find_all_inheritors(lispCons(lispInteger(myrelid),
+						    LispNil),
+					   LispNil);
+
+	    /*
+	     * find_all_inheritors does the recursive search of the
+	     * inheritance hierarchy, so all we have to do is process
+	     * all of the relids in the list that it returns.
+	     */
+	    schema = CDR(schema);
+	    foreach (child, children) {
+		NameData childname;
+
+		childrelid = CInteger(CAR(child));
+		if (childrelid == myrelid)
+		    continue;
+		relrdesc = heap_open(childrelid);
+		if (!RelationIsValid(relrdesc)) {
+		    elog(WARN, "PerformAddAttribute: can't find catalog entry for inheriting class with oid %d",
+			 childrelid);
+		}
+		namecpy(&childname, &(relrdesc->rd_rel->relname));
+		heap_close(relrdesc);
+
+		PerformAddAttribute(&childname, userName, schema);
+	    }
+	}
     }
 
     /*
@@ -384,7 +459,7 @@ PerformAddAttribute(relationName, schema)
 	
 	foreach (rest, CDR(element)) {
 	    if (equal((Node)CAR(CAR(element)), (Node)CAR(CAR(rest)))) {
-		elog(WARN, "Add: \"%s\" repeated",
+		elog(WARN, "PerformAddAttribute: \"%s\" repeated",
 		     CString(CAR(CAR(element))));
 	    }
 	}
@@ -397,14 +472,15 @@ PerformAddAttribute(relationName, schema)
 
     if (!PointerIsValid(reltup)) {
 	heap_close(relrdesc);
-	elog(WARN, "addattribute: relation \"%s\" not found", relationName);
+	elog(WARN, "PerformAddAttribute: relation \"%-.*s\" not found",
+	     NAMEDATALEN, relationName);
     }
     /*
      * XXX is the following check sufficient?
      */
     if (((struct relation *) GETSTRUCT(reltup))->relkind == 'i') {
-	elog(WARN, "addattribute: index relation \"%s\" not changed",
-	     relationName);
+	elog(WARN, "PerformAddAttribute: index relation \"%-.*s\" not changed",
+	     NAMEDATALEN, relationName);
 	return;
     }
 
@@ -413,7 +489,7 @@ PerformAddAttribute(relationName, schema)
     if (maxatts > MaxHeapAttributeNumber) {
 	pfree((char *) reltup);			/* XXX temp */
 	heap_close(relrdesc);			/* XXX temp */
-	elog(WARN, "addattribute: relations limited to %d attributes",
+	elog(WARN, "PerformAddAttribute: relations limited to %d attributes",
 	     MaxHeapAttributeNumber);
 	return;
     }
@@ -459,7 +535,8 @@ PerformAddAttribute(relationName, schema)
     foreach (element, schema) {
 	HeapTuple	typeTuple;
 	TypeTupleForm	form;
-	char *p, *q, r[16];
+	char *p, *q;
+	NameData r;
 	int attnelems;
 	
 	/*
@@ -476,8 +553,9 @@ PerformAddAttribute(relationName, schema)
 	    heap_endscan(attsdesc);		/* XXX temp */
 	    heap_close(attrdesc);		/* XXX temp */
 	    heap_close(relrdesc);		/* XXX temp */
-	    elog(WARN, "addattribute: attribute \"%s\" exists",
-		 key[1].sk_data);
+	    elog(WARN, "PerformAddAttribute: attribute \"%-.*s\" already exists in class \"%-.*s\"",
+		 NAMEDATALEN, key[1].sk_data,
+		 NAMEDATALEN, relationName);
 	    return;
 	}
 	heap_endscan(attsdesc);
@@ -494,8 +572,9 @@ PerformAddAttribute(relationName, schema)
 
 		array = (Array) CDR(CADR(CAR(element)));
 		attnelems = get_arrayndim(array);
-		sprintf(r, "_%s", p);
-		p = &r[0];
+		(void) namestrcpy(&r, "_");
+		(void) namestrcat(&r, p);
+		p = (char *) &r;
 	}
 	else
 		attnelems = 0;
@@ -507,10 +586,7 @@ PerformAddAttribute(relationName, schema)
 	    elog(WARN, "Add: type \"%s\" nonexistant",
 		 CString(CADR(CAR(element))));
 	}
-	/*
-	 * Note: structure assignment
-	 */
-	attribute->attname = *((Name)key[1].sk_data);
+	namecpy(&(attribute->attname), (Name) key[1].sk_data);
 	attribute->atttypid = typeTuple->t_oid;
 	attribute->attlen = form->typlen;
 	attribute->attnum = i;
