@@ -10,6 +10,9 @@
  *	the genbki.sh script reads this file and generates .bki
  *	information from the DATA() statements.
  *
+ *	XXX do NOT break up DATA() statements into multiple lines!
+ *	    the scripts are not as smart as you might think...
+ *
  *   IDENTIFICATION
  *	$Header$
  * ----------------------------------------------------------------
@@ -132,7 +135,6 @@ DATA(insert OID = 31 (  lock       PGUID -1  -1 f b t \054 0  -1 lockin lockout 
 DATA(insert OID = 32 (  SET        PGUID -1  -1 f r t \054 0  -1 textin textout textin textout _null_ ));
 DATA(insert OID = 33 (  stub       PGUID -1  -1 f b t \054 0  -1 stubin stubout stubin stubout _null_ ));
 DATA(insert OID = 210 (  smgr       PGUID 2  12 t b t \054 0  -1 smgrin smgrout smgrin smgrout _null_ ));
-DATA(insert OID = 591 (  ref 	   PGUID  8   1 f b t \054 0   0 refn refout refin refout _null_ ));
 DATA(insert OID = 600 (  point     PGUID 16  24 f b t \054 0 701 point_in point_out point_in point_out _null_ ));
 DATA(insert OID = 601 (  lseg      PGUID 32  48 f b t \054 0 600 lseg_in lseg_out lseg_in lseg_out _null_ ));
 DATA(insert OID = 602 (  path      PGUID -1  -1 f b t \054 0 600 path_in path_out path_in path_out _null_ ));
