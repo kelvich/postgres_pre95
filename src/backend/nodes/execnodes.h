@@ -216,7 +216,8 @@ class (ExprContext) public (Node) {
         TupleTableSlot ecxt_outertuple; \
         Relation       ecxt_relation; \
         Index          ecxt_relid; \
-        ParamListInfo  ecxt_param_list_info
+        ParamListInfo  ecxt_param_list_info; \
+        List           ecxt_range_table
  /* private: */
         ExprContextDefs;
  /* public: */
