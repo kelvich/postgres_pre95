@@ -387,8 +387,8 @@ HPUX_MINOR=${HPUX_VERS:E}
 CFLAGS+= +u -DHP_S500_ALIGN
 LDFLAGS+= +u
 .    elif (${HPUX_MAJOR} == "09")
-CFLAGS+= +u
-LDFLAGS+= +u
+CFLAGS+= +u4
+LDFLAGS+= +u4
 .    endif
 .  elif (${PORTNAME} == "alpha")
 CFLAGS+= -DNOPRINTADE
