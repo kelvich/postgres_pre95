@@ -20,13 +20,16 @@ static int		used[NDBUFS];
 
 
 /*
- *	push, pop
+ *	bs_push, bs_pop
+ *
+ *	bs_ stands for buffer stack; there is a routine elsewhere in the
+ *	system called push(), so these have been renamed.
  *
  *	Routines to implement a simple stack.
  */
 
 static
-push(i, s)
+bs_push(i, s)
 	int	i;
 	Stack	**s;
 {
@@ -39,7 +42,7 @@ push(i, s)
 }	
 
 static
-pop(s)
+bs_pop(s)
 	Stack	**s;
 {
 	extern	free();
@@ -121,7 +124,7 @@ BufferWriteInOrder(predb, succb)
 	}
 	
 	/* Save the successor in the predecessor's adjacency list */
-	push(after, &adjlist[before]);
+	bs_push(after, &adjlist[before]);
 	used[before] = used[after] = 1;
 	return(0);
 }
@@ -173,13 +176,13 @@ bwsort(item)
 				ret[0] = item;
 				return(ret);
 			} else
-				push(i, &zeroindeg);
+				bs_push(i, &zeroindeg);
 
 	/*
 	 * Perform the topological sort.
 	 */
 	while (zeroindeg != (Stack *) NULL) {
-		if ((i = pop(&zeroindeg)) < 0) {
+		if ((i = bs_pop(&zeroindeg)) < 0) {
 			elog(WARN, "bwsort: stack error");
 			return((Lbufdesc **) NULL);
 		}
@@ -188,7 +191,7 @@ bwsort(item)
 		for (sp = adjlist[i]; sp != (Stack *) NULL; sp = sp->next) {
 			indeg[sp->datum]--;
 			if (indeg[sp->datum] == 0)
-				push(sp->datum, &zeroindeg);
+				bs_push(sp->datum, &zeroindeg);
 		}
 	}
 
