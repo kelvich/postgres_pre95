@@ -461,6 +461,7 @@ LispValue args;
     regproc funcid;    /* ID of function associate with node */
     Cost cost = 0;   /* running expense */
     LispValue tmpclause;
+    LispValue operand;	/* one operand of an operator */
     char *globals;
 
     if (IsA(node,Oper))
@@ -526,15 +527,18 @@ LispValue args;
      }
     else			/* it's a C function */
      {
-	 /* find cost of evaluating the function's arguments */
+	 /*
+	 **  find the cost of evaluating the function's arguments
+	 **  and the width of the operands
+	 */
 	 for (tmpclause = args; tmpclause != LispNil; 
-	      tmpclause = CDR(tmpclause))
-	   cost += xfunc_local_expense(CAR(tmpclause));
+	      tmpclause = CDR(tmpclause)) {
 
-	 /* find width of operands */
-	 for (tmpclause = args; tmpclause != LispNil;
-	      tmpclause = CDR(tmpclause))
-	   width += xfunc_width(CAR(tmpclause));
+	   if ((operand = CAR(tmpclause)) != LispNil) {
+	       cost += xfunc_local_expense(operand);
+	       width += xfunc_width(operand);
+	   }
+	}
 
 	 /* 
 	 ** when stats become available, add in cost of accessing secondary
