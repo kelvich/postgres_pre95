@@ -32,8 +32,6 @@ typedef uint16	SystemPortAddress;
 #define IpcSharedLock					(-1)
 #define IpcExclusiveLock			  (-255)
 
-#define IpcMaxNumSem	50
-
 #define IpcUnknownStatus	(-1)
 #define IpcInvalidArgument	(-2)
 #define IpcSemIdExist		(-3)
