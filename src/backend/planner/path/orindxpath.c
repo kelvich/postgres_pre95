@@ -96,8 +96,7 @@ create_or_index_paths (rel,clauses)
 		    set_locclauseinfo
 		      (pathnode,
 		       set_difference(clauses,
-				      CopyObject(get_clauseinfo(rel)),
-				      LispNil));
+				      CopyObject(get_clauseinfo(rel))));
 
 		    /* add in cost for expensive functions!  -- JMH, 7/7/92 */
 		    set_path_cost((Path)pathnode, 

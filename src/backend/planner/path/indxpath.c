@@ -1048,8 +1048,7 @@ index_innerjoin (rel,clausegroup_list,index)
 	    -- JMH, 7/7/92 */
 	 set_locclauseinfo(pathnode,
 			   set_difference(CopyObject(get_clauseinfo(rel)),
-					  clausegroup,
-					  LispNil));
+					  clausegroup));
 
 	 /* add in cost for expensive functions!  -- JMH, 7/7/92 */
 	 set_path_cost((Path)pathnode, get_path_cost((Path)pathnode) + 
