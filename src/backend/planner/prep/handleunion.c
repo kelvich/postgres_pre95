@@ -37,7 +37,7 @@
 #include "planner/semanopt.h"
 /* #include "planner/cfi.h" */
 
-/*#define LispRemove remove */
+/* #define LispRemove remove  */
 
 List
 handleunion (root,rangetable, tlist, qual)
@@ -193,12 +193,14 @@ SplitTlistQual(root,rangetable,tlist, qual)
     varlist = find_allvars(root,rangetable, temp, CAR(qual_list));
     is_redundent = LispNil;
     mod_qual = SemantOpt(varlist,rangetable,CAR(qual_list),&is_redundent,1);
-    if (is_redundent != LispTrue)  
+    if (is_redundent != LispTrue) {
+      mod_qual = SemantOpt2(rangetable,mod_qual,mod_qual,temp);
       tqlist = nappend1(tqlist,
 			lispCons(temp, 
 				 lispCons(mod_qual,
 					  LispNil)));
-    qual_list = CDR(qual_list);
+    }
+  qual_list = CDR(qual_list);
   }
 
   return (tqlist);
@@ -240,28 +242,29 @@ SplitTlist (unionlist,tlists)
       foreach (x, new_tlist) {
 	tle = CAR(x);
 	varlist = tl_expr(tle);
-	if (IsA(varlist,Const) || IsA(varlist,Var)) ;
+	if (IsA(varlist,Const) || IsA(varlist,Var))
+	  flatten_list = LispNil;
 	else
-	  if (CAtom(CAR(varlist)) == UNION) {
-	    flatten_list = flatten_union_list(CDR(varlist));
-	    foreach (j, flatten_list) {
-	      varnode = (Var)CAR(j);
-	      /*
-	       * Find matching entry, and change the tlist to it.
-	       *
-	       * NOTE: Also need to handle the case when a particular
-	       *       rel. is not found in the union.  In that case, 
-	       *       we should remove the tle (i.e, (resdom var) pair).
-	       *       HOWEVER, this is not done just yet.
-	       */
-	      if (CInteger(varnum) == get_varno(varnode)) {
-		tl_expr(tle) = (List)varnode;
-		break;
+	  if (is_clause(varlist)) 
+	    split_tlexpr(CDR(varlist),varnum);
+	  else
+	    if (CAtom(CAR(varlist)) == UNION) {
+	      flatten_list = flatten_union_list(CDR(varlist));
+	      foreach (j, flatten_list) {
+		varnode = (Var)CAR(j);
+		/*
+		 * Find matching entry, and change the tlist to it.
+		 */
+
+		if (CInteger(varnum) == get_varno(varnode)) {
+		  tl_expr(tle) = (List)varnode;
+		  break;
+		}
 	      }
 	    } /* for, varlist */
-	  }
+	    
       } /* for, new_tlist*/
-    
+      
       /*
        *  At this point, the new_tlist is an orthogonal targetlist, without
        *  any union relations.
@@ -275,6 +278,47 @@ SplitTlist (unionlist,tlists)
   } /*tlists */
   return(tl_list);
 
+}
+
+/*
+ * This routine is called to split the tlist whenever
+ *  there is an expression in the targetlist.
+ * Routine returns nothing as it modifies the tlist in place.
+ */
+
+void
+split_tlexpr(clauses,varnum)
+     List clauses;
+     List varnum;
+{
+  List x = LispNil;
+  List ulist = LispNil;
+  List clause = LispNil;
+  List flat_list = LispNil;
+  Var varnode = (Var)NULL;
+  List i = LispNil;
+
+  foreach (x,clauses) {
+    clause = CAR(x);
+    if (IsA(clause,Const) || 
+	IsA(clause,Var) )
+      flat_list = LispNil;
+    else
+      if (is_clause(clause))
+	split_tlexpr(CDR(clause));
+      else
+	if (consp(clause) &&
+	    CAtom(CAR(clause)) == UNION) {
+	  flat_list = flatten_union_list(CDR(clause));
+	  foreach(i,flat_list) {
+	    varnode = (Var)CAR(i);
+	    if (CInteger(varnum) == get_varno(varnode)) {
+	      CAR(clause) = (List)varnode;
+	      break;
+	    }
+	  }
+	}
+  }
 }
 
 /*
@@ -309,14 +353,21 @@ collect_union_sets(tlist,qual)
     tle = CAR(i);
     varlist = tl_expr(tle);
     current_union_set = LispNil;
-    if (consp(varlist) &&
-	CAtom(CAR(varlist)) == UNION) {
-      flattened_ulist = flatten_union_list(CDR(varlist));
+
+    if (is_clause(varlist)) { /* if it is an expression */
+      flattened_ulist = collect_tlist_uset(CDR(varlist));
       foreach (x, flattened_ulist) 
 	current_union_set = nappend1(current_union_set,
 				     lispInteger(get_varno(CAR(x))) );
+    } else
+      if (consp(varlist) &&
+	  CAtom(CAR(varlist)) == UNION) {
+	flattened_ulist = flatten_union_list(CDR(varlist));
+	foreach (x, flattened_ulist) 
+	  current_union_set = nappend1(current_union_set,
+				       lispInteger(get_varno(CAR(x))) );
 
-    }
+      }
     union_sets = nappend1(union_sets,
 			  current_union_set);
 
@@ -340,6 +391,43 @@ collect_union_sets(tlist,qual)
   return(union_sets);
 }
 
+/*
+ *  This routine is called whenever there is a 
+ *  an expression in the targetlist.
+ *  Returns a flattened ulist if found.
+ */
+
+List collect_tlist_uset(args)
+     List args;
+{
+  List retlist = LispNil;
+  List x = LispNil;
+  List i = LispNil;
+  List current_clause = LispNil;
+  List ulist = LispNil;
+  
+  foreach (x, args) {
+    current_clause = CAR(x);
+    if (IsA(current_clause,Const))
+      retlist = LispNil;
+    else
+      if (is_clause(current_clause))
+	retlist = collect_tlist_uset(CDR(current_clause));
+      else
+	if (consp(current_clause) &&
+	    CAtom(CAR(current_clause)) == UNION) {
+	  retlist = flatten_union_list(CDR(current_clause));
+	}
+	else
+	  retlist = LispNil;   /* If it is just a varnode. */
+
+    foreach(i,retlist)
+      if (CAR(i) != LispNil)
+	ulist = nappend1(ulist,CAR(i));
+  }
+
+  return(ulist);
+}
 List
 find_qual_union_sets(qual)
      List qual;
