@@ -10,6 +10,11 @@
  *	the genbki.sh script reads this file and generates .bki
  *	information from the DATA() statements.
  *
+ *	utils/cache/relcache.c requires some hard-coded tuple descriptors
+ *	for some of the system catalogs so if the schema for any of
+ *	these changes, be sure and change the appropriate Schema_xxx
+ *	macros!  -cim 2/5/91
+ *
  *   IDENTIFICATION
  *	$Header$
  * ----------------------------------------------------------------
@@ -71,10 +76,46 @@ typedef FormData_pg_attribute	*Form_pg_attribute;
 #define Anum_pg_attribute_attcanindex	11
 #define Anum_pg_attribute_attproc	12
 
+
+/* ----------------
+ *	SCHEMA_ macros for declaring hardcoded tuple descriptors.
+ *	these are used in utils/cache/relcache.c
+ * ----------------
+ */
+#define SCHEMA_NAME(x) CppConcat(Name_,x)
+#define SCHEMA_DESC(x) CppConcat(Desc_,x)
+#define SCHEMA_NATTS(x) CppConcat(Natts_,x)
+#define SCHEMA_DEF(x) \
+    AttributeTupleFormData \
+    SCHEMA_DESC(x) [ SCHEMA_NATTS(x) ] = \
+    { \
+	CppConcat(Schema_,x) \
+    }
+
 /* ----------------
  *	initial contents of pg_attribute
  * ----------------
  */
+
+/* ----------------
+ *	pg_type schema
+ * ----------------
+ */
+#define Schema_pg_type \
+{ 71l, "typname",      19l, 71l, 0l, 0l, 16,  1, 0,   '\0', '\001', 0l }, \
+{ 71l, "typowner",     26l, 71l, 0l, 0l,  4,  2, 0, '\001', '\001', 0l }, \
+{ 71l, "typlen",       21l, 71l, 0l, 0l,  2,  3, 0, '\001', '\001', 0l }, \
+{ 71l, "typprtlen",    21l, 71l, 0l, 0l,  2,  4, 0, '\001', '\001', 0l }, \
+{ 71l, "typbyval",     16l, 71l, 0l, 0l,  1,  5, 0, '\001', '\001', 0l }, \
+{ 71l, "typisproc",    16l, 71l, 0l, 0l,  1,  6, 0, '\001', '\001', 0l }, \
+{ 71l, "typisdefined", 16l, 71l, 0l, 0l,  1,  7, 0, '\001', '\001', 0l }, \
+{ 71l, "typprocid",    26l, 71l, 0l, 0l,  4,  8, 0, '\001', '\001', 0l }, \
+{ 71l, "typelem",      26l, 71l, 0l, 0l,  4,  9, 0, '\001', '\001', 0l }, \
+{ 71l, "typinput",     24l, 71l, 0l, 0l,  4, 10, 0, '\001', '\001', 0l }, \
+{ 71l, "typoutput",    24l, 71l, 0l, 0l,  4, 11, 0, '\001', '\001', 0l }, \
+{ 71l, "typreceive",   24l, 71l, 0l, 0l,  4, 12, 0, '\001', '\001', 0l }, \
+{ 71l, "typsend",      24l, 71l, 0l, 0l,  4, 13, 0, '\001', '\001', 0l }, \
+{ 71l, "typdefault",   25l, 71l, 0l, 0l, -1, 14, 0,   '\0', '\001', 0l }
 
 DATA(insert OID = 0 (  71 typname          19 0 0 0 16   1 0 f t 0 ));
 DATA(insert OID = 0 (  71 typowner         26 0 0 0  4   2 0 t t 0 ));
@@ -102,6 +143,11 @@ DATA(insert OID = 0 (  71 anchor           27 0 0 0  6  -9 0 f t 0 ));
 DATA(insert OID = 0 (  71 tmax            702 0 0 0  4 -10 0 t t 0 ));
 DATA(insert OID = 0 (  71 tmin            702 0 0 0  4 -11 0 t t 0 ));
 DATA(insert OID = 0 (  71 vtype            18 0 0 0  1 -12 0 t t 0 ));
+
+/* ----------------
+ *	pg_database
+ * ----------------
+ */
 DATA(insert OID = 0 (  88 datname          19 0 0 0 16   1 0 f t 0 ));
 DATA(insert OID = 0 (  88 datdba           26 0 0 0  4   2 0 t t 0 ));
 DATA(insert OID = 0 (  88 datpath          25 0 0 0 -1   3 0 f t 0 ));
@@ -117,6 +163,11 @@ DATA(insert OID = 0 (  88 anchor           27 0 0 0  6  -9 0 f t 0 ));
 DATA(insert OID = 0 (  88 tmax            702 0 0 0  4 -10 0 t t 0 ));
 DATA(insert OID = 0 (  88 tmin            702 0 0 0  4 -11 0 t t 0 ));
 DATA(insert OID = 0 (  88 vtype            18 0 0 0  1 -12 0 t t 0 ));
+    
+/* ----------------
+ *	pg_demon
+ * ----------------
+ */
 DATA(insert OID = 0 (  76 demserid         26 0 0 0  4   1 0 t t 0 ));
 DATA(insert OID = 0 (  76 demname          19 0 0 0 16   2 0 f t 0 ));
 DATA(insert OID = 0 (  76 demowner         26 0 0 0  4   3 0 t t 0 ));
@@ -133,6 +184,23 @@ DATA(insert OID = 0 (  76 anchor           27 0 0 0  6  -9 0 f t 0 ));
 DATA(insert OID = 0 (  76 tmax            702 0 0 0  4 -10 0 t t 0 ));
 DATA(insert OID = 0 (  76 tmin            702 0 0 0  4 -11 0 t t 0 ));
 DATA(insert OID = 0 (  76 vtype            18 0 0 0  1 -12 0 t t 0 ));
+    
+/* ----------------
+ *	pg_proc
+ * ----------------
+ */
+#define Schema_pg_proc \
+{ 81l, "proname",       19l, 81l, 0l, 0l, 16,  1, 0,   '\0', '\001', 0l }, \
+{ 81l, "proowner",      26l, 81l, 0l, 0l,  4,  2, 0, '\001', '\001', 0l }, \
+{ 81l, "prolang",       26l, 81l, 0l, 0l,  4,  3, 0, '\001', '\001', 0l }, \
+{ 81l, "proisinh",      16l, 81l, 0l, 0l,  1,  4, 0, '\001', '\001', 0l }, \
+{ 81l, "proistrusted",  16l, 81l, 0l, 0l,  1,  5, 0, '\001', '\001', 0l }, \
+{ 81l, "proiscachable", 16l, 81l, 0l, 0l,  1,  6, 0, '\001', '\001', 0l }, \
+{ 81l, "pronargs",      21l, 81l, 0l, 0l,  2,  7, 0, '\001', '\001', 0l }, \
+{ 81l, "prorettype",    26l, 81l, 0l, 0l,  4,  8, 0, '\001', '\001', 0l }, \
+{ 81l, "prosrc",        25l, 81l, 0l, 0l, -1,  9, 0,   '\0', '\001', 0l }, \
+{ 81l, "probin",        17l, 81l, 0l, 0l, -1, 10, 0,   '\0', '\001', 0l }
+
 DATA(insert OID = 0 (  81 proname          19 0 0 0 16   1 0 f t 0 ));
 DATA(insert OID = 0 (  81 proowner         26 0 0 0  4   2 0 t t 0 ));
 DATA(insert OID = 0 (  81 prolang          26 0 0 0  4   3 0 t t 0 ));
@@ -155,6 +223,11 @@ DATA(insert OID = 0 (  81 anchor           27 0 0 0  6  -9 0 f t 0 ));
 DATA(insert OID = 0 (  81 tmax            702 0 0 0  4 -10 0 t t 0 ));
 DATA(insert OID = 0 (  81 tmin            702 0 0 0  4 -11 0 t t 0 ));
 DATA(insert OID = 0 (  81 vtype            18 0 0 0  1 -12 0 t t 0 ));
+    
+/* ----------------
+ *	pg_server
+ * ----------------
+ */
 DATA(insert OID = 0 (  82 sername          19 0 0 0 16   1 0 f t 0 ));
 DATA(insert OID = 0 (  82 serpid           21 0 0 0  2   2 0 t t 0 ));
 DATA(insert OID = 0 (  82 serport          21 0 0 0  2   3 0 t t 0 ));
@@ -170,6 +243,11 @@ DATA(insert OID = 0 (  82 anchor           27 0 0 0  6  -9 0 f t 0 ));
 DATA(insert OID = 0 (  82 tmax            702 0 0 0  4 -10 0 t t 0 ));
 DATA(insert OID = 0 (  82 tmin            702 0 0 0  4 -11 0 t t 0 ));
 DATA(insert OID = 0 (  82 vtype            18 0 0 0  1 -12 0 t t 0 ));
+    
+/* ----------------
+ *	pg_user
+ * ----------------
+ */
 DATA(insert OID = 0 (  86 usename          19 0 0 0 16   1 0 f t 0 ));
 DATA(insert OID = 0 (  86 usesysid         21 0 0 0  2   2 0 t t 0 ));
 DATA(insert OID = 0 (  86 usecreatedb      16 0 0 0  1   3 0 t t 0 ));
@@ -188,6 +266,25 @@ DATA(insert OID = 0 (  86 anchor           27 0 0 0  6  -9 0 f t 0 ));
 DATA(insert OID = 0 (  86 tmax            702 0 0 0  4 -10 0 t t 0 ));
 DATA(insert OID = 0 (  86 tmin            702 0 0 0  4 -11 0 t t 0 ));
 DATA(insert OID = 0 (  86 vtype            18 0 0 0  1 -12 0 t t 0 ));
+    
+/* ----------------
+ *	pg_attribute
+ * ----------------
+ */
+#define Schema_pg_attribute \
+{ 75l, "attrelid",    26l, 75l, 0l, 0l,  4,  1, 0, '\001', '\001', 0l }, \
+{ 75l, "attname",     19l, 75l, 0l, 0l, 16,  2, 0,   '\0', '\001', 0l }, \
+{ 75l, "atttypid",    26l, 75l, 0l, 0l,  4,  3, 0, '\001', '\001', 0l }, \
+{ 75l, "attdefrel",   26l, 75l, 0l, 0l,  4,  4, 0, '\001', '\001', 0l }, \
+{ 75l, "attnvals",    23l, 75l, 0l, 0l,  4,  5, 0, '\001', '\001', 0l }, \
+{ 75l, "atttyparg",   26l, 75l, 0l, 0l,  4,  6, 0, '\001', '\001', 0l }, \
+{ 75l, "attlen",      21l, 75l, 0l, 0l,  2,  7, 0, '\001', '\001', 0l }, \
+{ 75l, "attnum",      21l, 75l, 0l, 0l,  2,  8, 0, '\001', '\001', 0l }, \
+{ 75l, "attbound",    21l, 75l, 0l, 0l,  2,  9, 0, '\001', '\001', 0l }, \
+{ 75l, "attbyval",    16l, 75l, 0l, 0l,  1, 10, 0, '\001', '\001', 0l }, \
+{ 75l, "attcanindex", 16l, 75l, 0l, 0l,  1, 11, 0, '\001', '\001', 0l }, \
+{ 75l, "attproc",     26l, 75l, 0l, 0l,  4, 12, 0, '\001', '\001', 0l }
+    
 DATA(insert OID = 0 (  75 attrelid         26 0 0 0  4   1 0 t t 0 ));
 DATA(insert OID = 0 (  75 attname          19 0 0 0 16   2 0 f t 0 ));
 DATA(insert OID = 0 (  75 atttypid         26 0 0 0  4   3 0 t t 0 ));
@@ -212,6 +309,27 @@ DATA(insert OID = 0 (  75 anchor           27 0 0 0  6  -9 0 f t 0 ));
 DATA(insert OID = 0 (  75 tmax            702 0 0 0  4 -10 0 t t 0 ));
 DATA(insert OID = 0 (  75 tmin            702 0 0 0  4 -11 0 t t 0 ));
 DATA(insert OID = 0 (  75 vtype            18 0 0 0  1 -12 0 t t 0 ));
+    
+/* ----------------
+ *	pg_relation
+ * ----------------
+ */
+#define Schema_pg_relation \
+{ 83l, "relname",      19l, 83l, 0l, 0l, 16,  1, 0,   '\0', '\001', 0l }, \
+{ 83l, "relowner",     26l, 83l, 0l, 0l,  4,  2, 0, '\001', '\001', 0l }, \
+{ 83l, "relam",        26l, 83l, 0l, 0l,  4,  3, 0, '\001', '\001', 0l }, \
+{ 83l, "relpages",     23,  83l, 0l, 0l,  4,  4, 0, '\001', '\001', 0l }, \
+{ 83l, "reltuples",    23,  83l, 0l, 0l,  4,  5, 0, '\001', '\001', 0l }, \
+{ 83l, "relexpires",   20,  83l, 0l, 0l,  4,  6, 0, '\001', '\001', 0l }, \
+{ 83l, "relpreserved", 20,  83l, 0l, 0l,  4,  7, 0, '\001', '\001', 0l }, \
+{ 83l, "relhasindex",  16,  83l, 0l, 0l,  1,  8, 0, '\001', '\001', 0l }, \
+{ 83l, "relisshared",  16,  83l, 0l, 0l,  1,  9, 0, '\001', '\001', 0l }, \
+{ 83l, "relkind",      18,  83l, 0l, 0l,  1, 10, 0, '\001', '\001', 0l }, \
+{ 83l, "relarch",      18,  83l, 0l, 0l,  1, 11, 0, '\001', '\001', 0l }, \
+{ 83l, "relnatts",     21,  83l, 0l, 0l,  2, 12, 0, '\001', '\001', 0l }, \
+{ 83l, "relkey",       22,  83l, 0l, 0l, 16, 13, 0,   '\0', '\001', 0l }, \
+{ 83l, "relkeyop",     30,  83l, 0l, 0l, 32, 14, 0,   '\0', '\001', 0l }
+    
 DATA(insert OID = 0 (  83 relname          19 0 0 0 16   1 0 f t 0 ));
 DATA(insert OID = 0 (  83 relowner         26 0 0 0  4   2 0 t t 0 ));
 DATA(insert OID = 0 (  83 relam            26 0 0 0  4   3 0 t t 0 ));
@@ -238,6 +356,11 @@ DATA(insert OID = 0 (  83 anchor           27 0 0 0  6  -9 0 f t 0 ));
 DATA(insert OID = 0 (  83 tmax            702 0 0 0  4 -10 0 t t 0 ));
 DATA(insert OID = 0 (  83 tmin            702 0 0 0  4 -11 0 t t 0 ));
 DATA(insert OID = 0 (  83 vtype            18 0 0 0  1 -12 0 t t 0 ));
+    
+/* ----------------
+ *	pg_magic
+ * ----------------
+ */
 DATA(insert OID = 0 (  80 magname          19 0 0 0 16   1 0 f t 0 ));
 DATA(insert OID = 0 (  80 magvalue         19 0 0 0 16   2 0 f t 0 ));
 DATA(insert OID = 0 (  80 ctid             27 0 0 0  6  -1 0 f t 0 ));
@@ -252,6 +375,11 @@ DATA(insert OID = 0 (  80 anchor           27 0 0 0  6  -9 0 f t 0 ));
 DATA(insert OID = 0 (  80 tmax            702 0 0 0  4 -10 0 t t 0 ));
 DATA(insert OID = 0 (  80 tmin            702 0 0 0  4 -11 0 t t 0 ));
 DATA(insert OID = 0 (  80 vtype            18 0 0 0  1 -12 0 t t 0 ));
+    
+/* ----------------
+ *	pg_defaults
+ * ----------------
+ */
 DATA(insert OID = 0 (  89 defname          19 0 0 0 16   1 0 f t 0 ));
 DATA(insert OID = 0 (  89 defvalue         19 0 0 0 16   2 0 f t 0 ));
 DATA(insert OID = 0 (  89 ctid             27 0 0 0  6  -1 0 f t 0 ));
@@ -266,21 +394,38 @@ DATA(insert OID = 0 (  89 anchor           27 0 0 0  6  -9 0 f t 0 ));
 DATA(insert OID = 0 (  89 tmax            702 0 0 0  4 -10 0 t t 0 ));
 DATA(insert OID = 0 (  89 tmin            702 0 0 0  4 -11 0 t t 0 ));
 DATA(insert OID = 0 (  89 vtype            18 0 0 0  1 -12 0 t t 0 ));
-DATA(insert OID = 0 (  90 varname          19 0 0 0 16   1 0 f t 0 ));
-DATA(insert OID = 0 (  90 varvalue         17 0 0 0 -1   2 0 f t 0 ));
-DATA(insert OID = 0 (  90 ctid             27 0 0 0  6  -1 0 f t 0 ));
-DATA(insert OID = 0 (  90 lock             31 0 0 0 -1  -2 0 f t 0 ));
-DATA(insert OID = 0 (  90 oid              26 0 0 0  4  -3 0 t t 0 ));
-DATA(insert OID = 0 (  90 xmin             28 0 0 0  5  -4 0 f t 0 ));
-DATA(insert OID = 0 (  90 cmin             29 0 0 0  1  -5 0 t t 0 ));
-DATA(insert OID = 0 (  90 xmax             28 0 0 0  5  -6 0 f t 0 ));
-DATA(insert OID = 0 (  90 cmax             29 0 0 0  1  -7 0 t t 0 ));
-DATA(insert OID = 0 (  90 chain            27 0 0 0  6  -8 0 f t 0 ));
-DATA(insert OID = 0 (  90 anchor           27 0 0 0  6  -9 0 f t 0 ));
-DATA(insert OID = 0 (  90 tmax            702 0 0 0  4 -10 0 t t 0 ));
-DATA(insert OID = 0 (  90 tmin            702 0 0 0  4 -11 0 t t 0 ));
-DATA(insert OID = 0 (  90 vtype            18 0 0 0  1 -12 0 t t 0 ));
+    
+/* ----------------
+ *	pg_variable - this relation is modified by special purpose access
+ *	          method code.  The following is garbage but is needed
+ *		  so that the reldesc code works properly.
+ * ----------------
+ */
+#define Schema_pg_variable \
+{ 90l, "varfoo",  26l, 90l, 0l, 0l, 4, 1, 0, '\001', '\001', 0l }
+    
+DATA(insert OID = 0 (  90 varfoo           26 0 0 0  4   1 0 t t 0 ));
+    
+/* ----------------
+ *	pg_log - this relation is modified by special purpose access
+ *	          method code.  The following is garbage but is needed
+ *		  so that the reldesc code works properly.
+ * ----------------
+ */
+#define Schema_pg_log \
+{ 99l, "logfoo",  26l, 99l, 0l, 0l, 4, 1, 0, '\001', '\001', 0l }
+
 DATA(insert OID = 0 (  99 logfoo           26 0 0 0  4   1 0 t t 0 ));
+    
+/* ----------------
+ *	pg_time - this relation is modified by special purpose access
+ *	          method code.  The following is garbage but is needed
+ *		  so that the reldesc code works properly.
+ * ----------------
+ */
+#define Schema_pg_time \
+{ 100l, "timefoo",  26l, 100l, 0l, 0l, 4, 1, 0, '\001', '\001', 0l }
+
 DATA(insert OID = 0 (  100 timefoo         26 0 0 0  4   1 0 t t 0 ));
     
 /* ----------------
@@ -289,7 +434,11 @@ DATA(insert OID = 0 (  100 timefoo         26 0 0 0  4   1 0 t t 0 ));
  */
 #define DummyAttributeTupleForm \
 { 0l, "dummy", 28, 0l, 0l, 0l, 5, 1, 0, '\000', '\001', 0 }
-    
+
+/* ----------------------------------------------------------------
+ *			old stuff
+ * ----------------------------------------------------------------
+ */
 /* ----------------
  *	old definition of AttributeTupleForm
  * ----------------

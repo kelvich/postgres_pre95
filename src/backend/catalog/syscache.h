@@ -43,14 +43,16 @@
 #define	RULOID		19
 #define PRS2STUB	20
 
-/*
+/* ----------------
  *	struct cachedesc:	information needed for a call to InitSysCache()
+ * ----------------
  */
 struct cachedesc {
-	Name	*name;	/* this is Name * so that we can initialize it...grr */
-	int	nkeys;
-	int	key[4];
-	int	size;	/* sizeof(appropriate struct) */
+    Name  *name;	/* this is Name * so that we can initialize it...grr */
+    int	  nkeys;
+    int	  key[4];
+    int	  size;		/* sizeof(appropriate struct) */
+    Name  *indname;	/* name of index relation for this cache, if exists */
 };
 
 extern long		SearchSysCacheStruct();

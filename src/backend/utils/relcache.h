@@ -13,43 +13,27 @@
 #include "utils/rel.h"
 
 /*
- * RelationFree --
- *	doesn't do anything.  Ever.
+ * relation lookup routines
  */
-extern
-void
-RelationFree ARGS((
-	Relation	relation
+extern Relation
+RelationNameGetRelation ARGS((
+	Name		relationName
 ));
-
-/*
- * Relation Name Get Relation--
- *	Returns the matching relation descriptor 
- */
 extern Relation
 getreldesc ARGS((
 	Name		relationName
 ));
-
-/*
- * XXXX
- *
- * getreldesc is an obsolete name.  Use RelationNameGetRelation instead
- * in all cases.
- *
- */
-
-#define RelationNameGetRelation(name) getreldesc(name)
 
 extern Relation
 RelationIdCacheGetRelation ARGS((
 	ObjectId	relationId
 ));
 
-/*
- * Relation Id Get Relation--
- *	Returns the matching relation descriptor 
- */
+extern Relation
+RelationNameCacheGetRelation ARGS((
+	ObjectId	relationId
+));
+
 extern Relation
 RelationIdGetRelation ARGS((
 	ObjectId	relationId

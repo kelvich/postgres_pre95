@@ -1,32 +1,28 @@
 /* ----------------------------------------------------------------
- * relcache.c --
- *	POSTGRES relation descriptor cache code.
+ *   FILE
+ *	relcache.c 
+ *	
+ *   DESCRIPTION
+ *	POSTGRES relation descriptor cache code
  *
- * NOTE:	This file is in the process of being cleaned up
- *		before I add system attribute indexing.  -cim 10/2/90
+ *   INTERFACE ROUTINES
+ *	RelationInitialize		- initialize relcache
+ *	RelationIdCacheGetRelation	- get a reldesc from the cache (id)
+ *	RelationNameCacheGetRelation	- get a reldesc from the cache (name)
+ *	RelationIdGetRelation		- get a reldesc by relation id
+ *	RelationNameGetRelation		- get a reldesc by relation name
+ *	RelationClose			- close an open relation
+ *	RelationFlushRelation		- flush relation information
  *
- * OLD NOTES:
- *     This code will leak relation descriptor sctructures. XXXX.
- * It will happen whenever *GetRelation() is called without a corrosponding
- * FreeRelation().    This will happen at a minimum when a transaction
- * aborts.  To fix this, each transaction could keep a list of relation/
- * reference count pairs.
+ *   NOTES
+ *	This file is in the process of being cleaned up
+ *	before I add system attribute indexing.  -cim 1/13/91
  *
- *     It is not clear who is responcible for incrementing and decrementing
- * the reference count and when RelationFree() should be called.  I would
- * propose that there be calls: RelationAddUsage and RelationSubtractUsage
- * where AddUsage is called instead of incrementing the reference count
- * and SubtractUsage instead of decrementing it.  SubtractUsage would
- * be responcible for calling RelationFree which would become a private
- * routine.  The following files (there could be more) paly with
- * the refernece count:
- *	access/{genam,logaccess}.c
- *	spam/{spam-controll,var-access}.c
- *	util/{access,create}.c
- *
- * Note:
  *	The following code contains many undocumented hacks.  Please be
  *	careful....
+ *
+ *   IDENTIFICATION
+ *	$Header$
  * ----------------------------------------------------------------
  */
 #include <errno.h>
@@ -65,51 +61,55 @@ RcsId("$Header$");
  
 #include "catalog/catname.h"
 #include "catalog/syscache.h"
+
 #include "catalog/pg_attribute.h"
 #include "catalog/pg_index.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_relation.h"
- 
-extern bool	AMI_OVERRIDE;	/* XXX style */
- 
+#include "catalog/pg_type.h"
+
+#include "catalog/pg_variable.h"
+#include "catalog/pg_log.h"
+#include "catalog/pg_time.h"
+
 #include "utils/relcache.h"
+
 #ifdef sprite
 #include "sprite_file.h"
 #else
 #include "storage/fd.h"
 #endif /* sprite */
  
-extern HeapTuple	GetHeapTuple();	/* XXX use include file */
+/* ----------------
+ *	defines
+ * ----------------
+ */
+#define private static
+
+/* ----------------
+ *	externs
+ * ----------------
+ */
+extern bool	AMI_OVERRIDE;	/* XXX style */
  
-/* #define DEBUG_RELCACHE		/* debug relcache... */
-#ifdef DEBUG_RELCACHE
-# define DO_DB(A) A
-# define DO_NOTDB(A) /* A */
-# define private /* static */
-#else
-# define DO_DB(A) /* A */
-# define DO_NOTDB(A) A
-# define private static
-#endif
-     
-#define NO_DO_DB(A) /* A */
-#define IN()	DO_DB(ElogDebugIndentLevel++)
-#define OUT()	DO_DB(ElogDebugIndentLevel--)
+/* ----------------
+ *	hardcoded tuple descriptors.  see lib/H/catalog/pg_attribute.h
+ * ----------------
+ */
+SCHEMA_DEF(pg_relation);
+SCHEMA_DEF(pg_attribute);
+SCHEMA_DEF(pg_proc);
+SCHEMA_DEF(pg_type);
+SCHEMA_DEF(pg_variable);
+SCHEMA_DEF(pg_log);
+SCHEMA_DEF(pg_time);
  
-/* XXX using the values in h/anum.h might be better */
-#define REL_NATTS	(14)
-#define ATT_NATTS	(12)
-#define PRO_NATTS	(10)
-#define TYP_NATTS	(14)
- 
-/* these next 3 are bogus for now... */
-#define VAR_NATTS	(2)
-#define LOG_NATTS	(2)
-#define TIM_NATTS	(2)
- 
-/*
- * 	Relations are cached two ways, by name and by id, thus there are two 
- *	hash tables for referencing them. 
+/* ----------------
+ *	global variables
+ *
+ * 	Relations are cached two ways, by name and by id,
+ *	thus there are two hash tables for referencing them. 
+ * ----------------
  */
 HashTable 	RelationCacheHashByName;
 HashTable 	GlobalNameCache;
@@ -118,165 +118,27 @@ HashTable 	GlobalIdCache;
 HashTable 	PrivateRelationCacheHashByName;
 HashTable	PrivateRelationCacheHashById;
  
-/*
- *	XXX the atttyparg field is always set to 0l in the tables.
- *	This may or may not be correct.  (Depends on array semantics.)
- */
-private AttributeTupleFormData	relatt[REL_NATTS] = {
-    { 83l, "relname",      19l, 83l, 0l, 0l, 16, 1, 0, '\0', '\001', 0l },
-    { 83l, "relowner",     26l, 83l, 0l, 0l, 4, 2, 0, '\001', '\001', 0l },
-    { 83l, "relam",        26l, 83l, 0l, 0l, 4, 3, 0, '\001', '\001', 0l },
-    { 83l, "relpages",     23,  83l, 0l, 0l, 4, 4, 0, '\001', '\001', 0l },
-    { 83l, "reltuples",    23,  83l, 0l, 0l, 4, 5, 0, '\001', '\001', 0l },
-    { 83l, "relexpires",   20,  83l, 0l, 0l, 4, 6, 0, '\001', '\001', 0l },
-    { 83l, "relpreserved", 20,  83l, 0l, 0l, 4, 7, 0, '\001', '\001', 0l },
-    { 83l, "relhasindex",  16,  83l, 0l, 0l, 1, 8, 0, '\001', '\001', 0l },
-    { 83l, "relisshared",  16,  83l, 0l, 0l, 1, 9, 0, '\001', '\001', 0l },
-    { 83l, "relkind",      18,  83l, 0l, 0l, 1, 10, 0, '\001', '\001', 0l },
-    { 83l, "relarch",      18,  83l, 0l, 0l, 1, 11, 0, '\001', '\001', 0l },
-    { 83l, "relnatts",     21,  83l, 0l, 0l, 2, 12, 0, '\001', '\001', 0l },
-    { 83l, "relkey",       22,  83l, 0l, 0l, 16, 13, 0, '\0', '\001', 0l },
-/*
- *  { 83l, "relkeyop",     30,  83l, 0l, 0l, 32, 14, 0, '\0', '\001', 0l },
- *  { 83l, "rellock",     591,   0l, 0l, 0l,  8, 15, 0, '\0', '\001', 0l }
- */
-    { 83l, "relkeyop",     30,  83l, 0l, 0l, 32, 14, 0, '\0', '\001', 0l }
-};
- 
-private AttributeTupleFormData	attatt[ATT_NATTS] = {
-    { 75l, "attrelid",    26l, 75l, 0l, 0l, 4, 1, 0, '\001', '\001', 0l },
-    { 75l, "attname",     19l, 75l, 0l, 0l, 16, 2, 0, '\0', '\001', 0l },
-    { 75l, "atttypid",    26l, 75l, 0l, 0l, 4, 3, 0, '\001', '\001', 0l },
-    { 75l, "attdefrel",   26l, 75l, 0l, 0l, 4, 4, 0, '\001', '\001', 0l },
-    { 75l, "attnvals",    23l, 75l, 0l, 0l, 4, 5, 0, '\001', '\001', 0l },
-    { 75l, "atttyparg",   26l, 75l, 0l, 0l, 4, 6, 0, '\001', '\001', 0l },
-    { 75l, "attlen",      21l, 75l, 0l, 0l, 2, 7, 0, '\001', '\001', 0l },
-    { 75l, "attnum",      21l, 75l, 0l, 0l, 2, 8, 0, '\001', '\001', 0l },
-    { 75l, "attbound",    21l, 75l, 0l, 0l, 2, 9, 0, '\001', '\001', 0l },
-    { 75l, "attbyval",    16l, 75l, 0l, 0l, 1, 10, 0, '\001', '\001', 0l },
-    { 75l, "attcanindex", 16l, 75l, 0l, 0l, 1, 11, 0, '\001', '\001', 0l },
-    { 75l, "attproc",     26l, 75l, 0l, 0l, 4, 12, 0, '\001', '\001', 0l }
-};
- 
-private AttributeTupleFormData	proatt[PRO_NATTS] = {
-    { 81l, "proname",       19l, 81l, 0l, 0l, 16, 1, 0, '\0', '\001', 0l },
-    { 81l, "proowner",      26l, 81l, 0l, 0l, 4, 2, 0, '\001', '\001', 0l },
-    { 81l, "prolang",       26l, 81l, 0l, 0l, 4, 3, 0, '\001', '\001', 0l },
-    { 81l, "proisinh",      16l, 81l, 0l, 0l, 1, 4, 0, '\001', '\001', 0l },
-    { 81l, "proistrusted",  16l, 81l, 0l, 0l, 1, 5, 0, '\001', '\001', 0l },
-    { 81l, "proiscachable", 16l, 81l, 0l, 0l, 1, 6, 0, '\001', '\001', 0l },
-    { 81l, "pronargs",      21l, 81l, 0l, 0l, 2, 7, 0, '\001', '\001', 0l },
-    { 81l, "prorettype",    26l, 81l, 0l, 0l, 4, 8, 0, '\001', '\001', 0l },
-    { 81l, "prosrc",        25l, 81l, 0l, 0l, -1, 9, 0, '\0', '\001', 0l },
-    { 81l, "probin",        17l, 81l, 0l, 0l, -1, 10, 0, '\0', '\001', 0l }
-};
- 
-private AttributeTupleFormData	typatt[TYP_NATTS] = {
-    { 71l, "typname",      19l, 71l, 0l, 0l, 16, 1, 0, '\0', '\001', 0l },
-    { 71l, "typowner",     26l, 71l, 0l, 0l, 4, 2, 0, '\001', '\001', 0l },
-    { 71l, "typlen",       21l, 71l, 0l, 0l, 2, 3, 0, '\001', '\001', 0l },
-    { 71l, "typprtlen",    21l, 71l, 0l, 0l, 2, 4, 0, '\001', '\001', 0l },
-    { 71l, "typbyval",     16l, 71l, 0l, 0l, 1, 5, 0, '\001', '\001', 0l },
-    { 71l, "typisproc",    16l, 71l, 0l, 0l, 1, 6, 0, '\001', '\001', 0l },
-    { 71l, "typisdefined", 16l, 71l, 0l, 0l, 1, 7, 0, '\001', '\001', 0l },
-    { 71l, "typprocid",    26l, 71l, 0l, 0l, 4, 8, 0, '\001', '\001', 0l },
-    { 71l, "typelem",      26l, 71l, 0l, 0l, 4, 9, 0, '\001', '\001', 0l },
-    { 71l, "typinput",     24l, 71l, 0l, 0l, 4, 10, 0, '\001', '\001', 0l },
-    { 71l, "typoutput",    24l, 71l, 0l, 0l, 4, 11, 0, '\001', '\001', 0l },
-    { 71l, "typreceive",   24l, 71l, 0l, 0l, 4, 12, 0, '\001', '\001', 0l },
-    { 71l, "typsend",      24l, 71l, 0l, 0l, 4, 13, 0, '\001', '\001', 0l },
-    { 71l, "typdefault",   25l, 71l, 0l, 0l, -1, 14, 0, '\0', '\001', 0l }
-};
- 
-/* ----------------
- * XXX
- * these are bogus, the values come from the bogus entries
- * in the local.ami script
- * ----------------
- */
-private AttributeTupleFormData	varatt[VAR_NATTS] = {
-   { 90l, "varname",  19l, 90l, 0l, 0l, 16, 1, 0, 0, '\001', 0l },
-   { 90l, "varvalue", 17l, 90l, 0l, 0l, -1, 2, 0, 0, '\001', 0l },
-};
- 
-private AttributeTupleFormData	logatt[LOG_NATTS] = {
-   { 91l, "varname",  19l, 91l, 0l, 0l, 16, 1, 0, 0, '\001', 0l },
-   { 91l, "varvalue", 17l, 91l, 0l, 0l, -1, 2, 0, 0, '\001', 0l },
-};
- 
-private AttributeTupleFormData	timatt[VAR_NATTS] = {
-   { 92l, "varname",  19l, 92l, 0l, 0l, 16, 1, 0, 0, '\001', 0l },
-   { 92l, "varvalue", 17l, 92l, 0l, 0l, -1, 2, 0, 0, '\001', 0l },
-};
- 
 /* ----------------------------------------------------------------
- *			hash function support
- *
- *	XXX where are these used???
- * ----------------------------------------------------------------
- */
-/* --------------------------------
- *	HashByNameAsArgument
- * --------------------------------
- */
-private Index
-HashByNameAsArgument(collisions, hashTableSize, relationName)
-    uint16	collisions;
-    Size	hashTableSize;
-    Name	relationName;
-{
-    return
-      NameHashFunction(collisions, hashTableSize, relationName);
-}
-
-/* --------------------------------
- *	HashByNameInRelation
- * --------------------------------
- */
-private Index
-HashByNameInRelation(collisions, hashTableSize, relation)
-    uint16	collisions;
-    Size	hashTableSize;
-    Relation	relation;
-{
-    return
-      NameHashFunction(collisions, hashTableSize, &relation->rd_rel->relname);
-}
- 
-/* --------------------------------
- *	HashByIdAsArgument
- * --------------------------------
- */
-private Index
-HashByIdAsArgument(collisions, hashTableSize, relationId)
-    uint16	collisions;
-    Size	hashTableSize;
-    uint32	relationId; 
-{
-    return
-	IntegerHashFunction(collisions, hashTableSize, relationId);
-}
- 
-/* --------------------------------
- *	HashByIdInRelation
- * --------------------------------
- */
-private Index
-HashByIdInRelation(collisions, hashTableSize, relation)
-    uint16	collisions;
-    Size	hashTableSize;
-    Relation	relation;
-{
-    return
-	IntegerHashFunction(collisions, hashTableSize, relation->rd_id);
-}
- 
-/* ----------------------------------------------------------------
- *	      RelationIdGetRelation() and getreldesc()
+ *	RelationIdGetRelation() and RelationNameGetRelation()
  *			support functions
  * ----------------------------------------------------------------
  */
  
+/* ----------------
+ *	RelationBuildDescInfo exists so code can be shared
+ *      between RelationIdGetRelation() and RelationNameGetRelation()
+ * ----------------
+ */
+typedef struct RelationBuildDescInfo {
+    int infotype;		/* lookup by id or by name */
+#define INFO_RELID 1
+#define INFO_RELNAME 2
+    union {
+	ObjectId info_id;	/* relation object id */
+	Name	 info_name;	/* relation name */
+    } i;
+} RelationBuildDescInfo;
+
 /* --------------------------------
  *	relopen		- physically open a relation
  *
@@ -301,8 +163,6 @@ relopen(relationName, flags, mode)
     int		oumask;
     extern char	*relpath();
     
-    IN();
-    
     oumask = (int) umask(0077);
     
     file = FileNameOpenFile(relpath(relationName), flags, mode);
@@ -311,392 +171,545 @@ relopen(relationName, flags, mode)
     
     umask(oumask);
     
-    OUT();
-    
-    return (file);
+    return
+	file;
 }
- 
-/* --------------------------------
- * GetAttributeRelationIndexRelationId --
- * 
- * find relation id of the index of relation id's on the attribute relation
- *
- *  attempt to return the object id of an index relation of 
- *  RelationId on the AttributeRelation.
- * --------------------------------
- */
- 
-#define	UNTRIED 0
-#define FOUND	1
-#define FAILED	2
-#define	TRYING	3
-#define TRIED	4
 
-/**** xxref:
- *           BuildRelation
- ****/
-private ObjectId
-GetAttributeRelationIndexRelationId ()
+/* --------------------------------
+ *	BuildDescInfoError returns a string appropriate to
+ *	the buildinfo passed to it
+ * --------------------------------
+ */
+char *
+BuildDescInfoError(buildinfo)
+    RelationBuildDescInfo buildinfo;
 {
-    HeapTuple		tuple;
-    ObjectId		objectId;
-    
-    static int		state = UNTRIED;
-    
-    /*
-     * XXX The next line is incorrect.  It should be removed if the
-     * performance penalty is not too great or if indexes are added
-     * and dropped frequently.  A more clever hack which will produce
-     * correct behavior in a *single-user* situation is to keep a
-     * global variable which is incremented each time DEFINE INDEX
-     * is called.  Then if the state is FAILED and a index has been
-     * created since the last call to this function, then treat the
-     * state as UNTRIED.  But, this hack works incorrectly in a
-     * multiuser environment.  The correct thing to do is to have the
-     * system cache keep information about failed search and to have
-     * this information invalidated when a tuple is appended.  -hirohama
-     */
-    IN();
-    if (state == FAILED) {
-	OUT();
-	return InvalidObjectId;
+    static char errBuf[64];
+
+    bzero(errBuf, sizeof(errBuf));
+    switch(buildinfo.infotype) {
+    case INFO_RELID:
+	sprintf(errBuf, "(relation id %d)", buildinfo.i.info_id);
+	break;
+    case INFO_RELNAME:
+	sprintf(errBuf, "(relation name %s)", buildinfo.i.info_name);
+	break;
     }
-    
-    /*
-     * We don't want any infinately recusive calls to this
-     * routine because SearchSysCacheTuple does some relation
-     * descriptor lookups.  
-     */
-    state = FAILED;
-    
-    /*
-     * The syscache must be searched again in the case of FOUND state
-     * since the result may have been invalidated since the last call
-     * to this function.
-     */
-    tuple = SearchSysCacheTuple(INDRELIDKEY,
-				AttributeRelationId,
-				AttributeRelationIdAttributeNumber);
-	
-    if (!HeapTupleIsValid(tuple)) {
-	OUT();
-	state = FAILED;
-	return InvalidObjectId;
-    }
-    
-    objectId = ((IndexTupleForm) HeapTupleGetForm(tuple))-> indexrelid;
-    
-    state = FOUND;
-    OUT();
-     
-    return objectId;
+
+    return errBuf;
 }
  
 /* --------------------------------
- *	BuildRelationAttributes
+ *	ScanPgRelation
+ *
+ *	this is used by RelationBuildDesc to find a pg_relation
+ *	tuple matching either a relation name or a relation id
+ *	as specified in buildinfo.
+ *
+ *	ADD INDEXING HERE
  * --------------------------------
  */
-/**** xxref:
- *           BuildRelation
- ****/
-private inline void
-BuildRelationAttributes(attp, relation, errorName) 
-    AttributeTupleForm	attp;
-    Relation		relation;
+HeapTuple
+ScanPgRelation(buildinfo)   
+    RelationBuildDescInfo buildinfo;    
 {
-    IN();
- 
-    if (!AttributeNumberIsValid(attp->attnum))
-	elog(WARN, "getreldesc: found zero attnum %s", errorName);
-    
-    if (AttributeNumberIsForUserDefinedAttribute(attp->attnum)) {
-	
-	if (AttributeIsValid(relation->rd_att.data[attp->attnum - 1]))
-	    elog(WARN, "getreldesc: corrupted ATTRIBUTE %s",errorName);
-	relation->rd_att.data[attp->attnum - 1] = (Attribute)
-	    palloc(sizeof (RuleLock) + sizeof *relation->rd_att.data[0]);
-	
-	bcopy((char *)attp, (char *)relation->rd_att.data[attp->attnum - 1],
-	      sizeof *relation->rd_att.data[0]);
-    }
-    
-    OUT();
-}
- 
-/* --------------------------------
- *	BuildRelation
- * --------------------------------
- */
-/**** xxref:
- *           RelationIdGetRelation
- *           getreldesc
- ****/
-private Relation
-BuildRelation(rd, sd, errorName, oldcxt, tuple, NameCacheSave, IdCacheSave)
-    Relation		rd;
-    HeapScanDesc	sd;
-    String		errorName;
-    MemoryContext	oldcxt;
-    HeapTuple		tuple;
-    HashTable		NameCacheSave;
-    HashTable		IdCacheSave;
-{
-    static bool		avoidIndex = false;
-    File		fd;
-    Relation		relation;
-    int			len;
-    u_int		numatts, natts;
-    ObjectId		relid;
-    RelationTupleForm	relp;
-    AttributeTupleForm	attp;
-    ScanKeyData		key;
-    ObjectId		attrioid; /* attribute relation index relation oid */
-    
-    RelationTupleForm	relationTupleForm;
-    
-    extern		pfree();
-    
-    if (!HeapTupleIsValid(tuple)) {
-	elog(NOTICE, "BuildRelation: %s relation nonexistent", errorName);
-	amendscan(sd);
-	amclose(rd);
-	RelationCacheHashByName = NameCacheSave;
-	RelationCacheHashById = IdCacheSave;
-	MemoryContextSwitchTo(oldcxt); 
-	 
-	return (NULL);
-    }
-    
-    fd = relopen(&((RelationTupleForm) GETSTRUCT(tuple))->relname,
-		 O_RDWR, 0666);
-    
-    Assert (fd >= -1);
-    if (fd == -1) {
-	elog(NOTICE, "BuildRelation: relopen(%s): %m",
-	     &((RelationTupleForm)GETSTRUCT(tuple))->relname);
-    }
-    
-    relid = tuple->t_oid;
-    relp = (RelationTupleForm) HeapTupleGetForm(tuple);
-    numatts = natts = relp->relnatts;
+    HeapTuple	 pg_relation_tuple;
+    Relation	 pg_relation_desc;
+    HeapScanDesc pg_relation_scan;
+    ScanKeyData	 key;
     
     /* ----------------
-     *    allocate space for the relation descriptor, including
-     *    the index strategy (this is a hack)
+     *	form a scan key
+     * ----------------
+     */
+    switch (buildinfo.infotype) {
+    case INFO_RELID:
+	key.data[0].flags = 	      0;
+	key.data[0].attributeNumber = ObjectIdAttributeNumber;
+	key.data[0].procedure =       ObjectIdEqualRegProcedure;
+	key.data[0].argument = 	      ObjectIdGetDatum(buildinfo.i.info_id);
+	break;
+
+    case INFO_RELNAME:
+	key.data[0].flags = 	  	0;
+	key.data[0].attributeNumber =   RelationNameAttributeNumber;
+	key.data[0].procedure = 	Character16EqualRegProcedure;
+	key.data[0].argument = 	  	NameGetDatum(buildinfo.i.info_name);
+	break;
+
+    default:
+	elog(WARN, "ScanPgRelation: bad buildinfo");
+	return NULL;
+	break;
+    }
+    
+    /* ----------------
+     *	open pg_relation and fetch a tuple
+     * ----------------
+     */
+    pg_relation_desc =  heap_openr(RelationRelationName);
+    pg_relation_scan =
+	heap_beginscan(pg_relation_desc, 0, NowTimeQual, 1, &key);
+    pg_relation_tuple = heap_getnext(pg_relation_scan, 0, (Buffer *)NULL);
+
+    /* ----------------
+     *	close the relation
+     * ----------------
+     */
+    heap_endscan(pg_relation_scan);
+    heap_close(pg_relation_desc);
+
+    /* ----------------
+     *	return tuple or NULL
+     * ----------------
+     */
+    if (! HeapTupleIsValid(pg_relation_tuple))
+	return NULL;
+
+    return pg_relation_tuple;
+}
+
+/* ----------------
+ *	AllocateRelationDesc
+ *
+ *	This is used to allocate memory for a new relation descriptor
+ *	and initialize the rd_rel field.
+ * ----------------
+ */
+Relation
+AllocateRelationDesc(natts, relp)
+    u_int		natts;
+    RelationTupleForm	relp;
+{
+    Relation 		relation;
+    int			len;
+    RelationTupleForm   relationTupleForm;
+    
+    /* ----------------
+     *  allocate space for the relation tuple form
+     * ----------------
+     */
+    relationTupleForm = (RelationTupleForm)
+	palloc(sizeof (RuleLock) + sizeof *relation->rd_rel);
+    
+    bcopy((char *)relp, (char *)relationTupleForm, sizeof *relp);
+    
+    /* ----------------
+     *	allocate space for new relation descriptor, including
+     *  the tuple descriptor and the index strategy
      * ----------------
      */
     len = sizeof(RelationData) + 
 	((int)natts - 1) * sizeof(relation->rd_att) + /* var len struct */
 	    sizeof(IndexStrategy);
     
-    relationTupleForm = (RelationTupleForm)
-	palloc(sizeof (RuleLock) + sizeof *relation->rd_rel);
-    
-    /* should use relp->relam to create this */
-    
-    bcopy((char *)relp, (char *)relationTupleForm, sizeof *relp);
-    
-    amendscan(sd);
-    amclose(rd);
-    
-    if (!ObjectIdIsValid(relationTupleForm->relam)) {
-	relation = (Relation)palloc(len);
-	bzero((char *)relation, len);
-	relation->rd_rel = relationTupleForm;
-	 
-    } else {
-	AccessMethodTupleForm	accessMethodTupleForm;
-	 
-	/* ----------------
-	 *	ADD INDEXING HERE
-	 * ----------------
-	 */
-	rd = amopenr(AccessMethodRelationName);
-	    
-	key.data[0].flags = 0;
-	key.data[0].attributeNumber = ObjectIdAttributeNumber;
-	key.data[0].procedure = ObjectIdEqualRegProcedure;
-	key.data[0].argument = ObjectIdGetDatum(relationTupleForm->relam);
-	    
-	sd = ambeginscan(rd, 0, NowTimeQual, 1, &key);
-	    
-	tuple = amgetnext(sd, 0, (Buffer *)NULL);
-	if (!HeapTupleIsValid(tuple)) {
-	    elog(NOTICE, "BuildRelation: %s: unknown AM %d",
-		 errorName,
-		 relationTupleForm->relam);
-	    /*
-	      amendscan(sd);
-	      amclose(rd);
-	      return (NULL);
-	      */
-	    RelationCacheHashByName = NameCacheSave;
-	    RelationCacheHashById =   IdCacheSave;
-	}
-	accessMethodTupleForm = (AccessMethodTupleForm)
-	    palloc(sizeof *relation->rd_am);
-	
-	bcopy((char *)HeapTupleGetForm(tuple), accessMethodTupleForm,
-		  sizeof *accessMethodTupleForm);
-	    
-	amendscan(sd);
-	amclose(rd);
-	
-	/*
-	 * this was removed because the index strategy is now
-	 * a pointer and it alrwady has it's space allocated above..
-	 *
-	 * len += AttributeNumberGetIndexStrategySize(
-	 * 		relationTupleForm->relnatts,
-	 * 		AMStrategies(accessMethodTupleForm->amstrategies));
-	 */
-		
-	relation = (Relation)palloc(len);
-	bzero((char *)relation, len);
-	relation->rd_rel = relationTupleForm;
-	relation->rd_am = accessMethodTupleForm;
-    }
+    relation = (Relation) palloc(len);
     
     /* ----------------
-     *	ADD INDEXING HERE (correctly)
+     *	clear new reldesc and initialize relation tuple form
+     * ----------------
+     */
+    bzero((char *)relation, len);
+    relation->rd_rel = relationTupleForm;
+
+    return relation;
+}
+
+/* --------------------------------
+ *	RelationBuildTupleDesc
+ *
+ *	Form the relation's tuple descriptor from information in
+ *	the pg_attribute system catalog.
+ *
+ *	ADD INDEXING HERE
+ * --------------------------------
+ */
+void
+RelationBuildTupleDesc(buildinfo, relation, attp, natts) 
+    RelationBuildDescInfo buildinfo;    
+    Relation		  relation;
+    AttributeTupleForm	  attp;
+    u_int		  natts;
+{
+    HeapTuple    pg_attribute_tuple;
+    Relation	 pg_attribute_desc;
+    HeapScanDesc pg_attribute_scan;
+    ScanKeyData	 key;
+    int		 i;
+
+    /* ----------------
+     *	form a scan key
      * ----------------
      */
     key.data[0].flags = 	  0;
     key.data[0].attributeNumber = AttributeRelationIdAttributeNumber;
     key.data[0].procedure = 	  ObjectIdEqualRegProcedure;
-    key.data[0].argument = 	  ObjectIdGetDatum(relid);
+    key.data[0].argument = 	  ObjectIdGetDatum(relation->rd_id);
     
-    attrioid = GetAttributeRelationIndexRelationId();
+    /* ----------------
+     *	open pg_relation and begin a scan
+     * ----------------
+     */
+    pg_attribute_desc = heap_openr(AttributeRelationName);
+    pg_attribute_scan =
+	heap_beginscan(pg_attribute_desc, 0, NowTimeQual, 1, &key);
     
-    if (ObjectIdIsValid(attrioid) && !avoidIndex) {
-	/*
-	 * indexed scan of Attribute Relation 
-	 */
-	IndexScanDesc			scan;
-	GeneralRetrieveIndexResult	result;
-	Relation			attrd;
-	Relation			attrird;
-	Buffer				buffer;
+    /* ----------------
+     *	for each tuple scanned, add attribute data to relation->rd_att
+     * ----------------
+     */
+    while (pg_attribute_tuple =
+	   heap_getnext(pg_attribute_scan, 0, (Buffer *) NULL),
+	   HeapTupleIsValid(pg_attribute_tuple)) {
 	    
-	/*
-	 * avoidIndex prevents a recursive call to this code.  I think
-	 * it would recurse indefinately.  It is okay to have to
-	 * do this one scan the long way because the result will
-	 * be cached.
-	 */
-	attrd = RelationIdGetRelation(AttributeRelationId);
-	
-	avoidIndex = true;
-	attrird = RelationIdGetRelation(attrioid);
-	
-	avoidIndex = false;
-	scan = RelationGetIndexScan(attrird, 0, 1, &key);
-	    
-	for(;;) {	/* Get rid of loop?  Just use first index? */
-	    IndexTuple	indexTuple;
-		
-	    result = IndexScanGetGeneralRetrieveIndexResult(scan, 1);
-	    if (! GeneralRetrieveIndexResultIsValid(result))
-		break;
-	    
-	    /*
-	     * XXX
-	     *
-	     * the buffer should be freed.... 
-	     *
-	     * however, the buffer won't be retured and thus
-	     * wont't be freed.  (bug)
-	     */
-	    tuple = GetHeapTuple(result, attrd, &buffer);
-	    if (!HeapTupleIsValid(tuple)) 
-		    break;
-		
-	    attp = (AttributeTupleForm) HeapTupleGetForm(tuple);
-	    BuildRelationAttributes(attp, relation, errorName);
-	}
-	
-	IndexScanEnd(scan);
-	RelationFree(attrd);
-	RelationFree(attrird);
-    } else {
-	/*
-	 * sequential scan of Attribute Relation
-	 */
-	rd = amopenr(AttributeRelationName);
-	sd = ambeginscan(rd, 0, NowTimeQual, 1, &key);
-	while (tuple = amgetnext(sd, 0, (Buffer *) NULL),
-	       HeapTupleIsValid(tuple)) {
-	    
-	    attp = (AttributeTupleForm)
-		HeapTupleGetForm(tuple);
+	attp = (AttributeTupleForm)
+	    HeapTupleGetForm(pg_attribute_tuple);
 		    
-	    BuildRelationAttributes(attp, relation, errorName);
+	if (!AttributeNumberIsValid(attp->attnum))
+	    elog(WARN, "RelationBuildTupleDesc: %s bad attribute number %d",
+		 BuildDescInfoError(buildinfo), attp->attnum);
+    
+	if (AttributeNumberIsForUserDefinedAttribute(attp->attnum)) {
+	    if (AttributeIsValid(relation->rd_att.data[attp->attnum - 1]))
+		elog(WARN, "RelationBuildTupleDesc: %s bad attribute %d",
+		     BuildDescInfoError(buildinfo), attp->attnum - 1);
+	
+	    relation->rd_att.data[attp->attnum - 1] = (Attribute)
+		palloc(sizeof (RuleLock) + sizeof *relation->rd_att.data[0]);
+	
+	    bcopy((char *) attp,
+		  (char *) relation->rd_att.data[attp->attnum - 1],
+		  sizeof *relation->rd_att.data[0]);
 	}
-	amendscan(sd);
-	amclose(rd);
     }
     
-    while ((int)--natts >= 0) {
-	if (!AttributeIsValid(relation->rd_att.data[natts]))
-	    elog(NOTICE, "getreldesc: ATTRIBUTE relation corrupted %s", 
-		 errorName);
+    /* ----------------
+     *	end the scan and close the attribute relation
+     * ----------------
+     */
+    heap_endscan(pg_attribute_scan);
+    heap_close(pg_attribute_desc);
+    
+    /* ----------------
+     *	check that all attributes are valid because it's possible that
+     *  some tuples in the pg_attribute relation are missing so rd_att.data
+     *  might have zeros in it someplace.
+     * ----------------
+     */
+    for(i = --natts; i>=0; i--) {
+	if (! AttributeIsValid(relation->rd_att.data[i]))
+	    elog(WARN,
+		 "RelationBuildTupleDesc: %s attribute %d invalid", i);
     }
+}
+
+/* --------------------------------
+ *	RelationBuildDesc
+ *	
+ *	To build a relation descriptor, we have to allocate space,
+ *	open the underlying unix file and initialize the following
+ *	fields:
+ *
+ *  File		   rd_fd;	 open file descriptor
+ *  int                    rd_nblocks;   number of blocks in rel 
+ *  uint16		   rd_refcnt;	 reference count
+ *  AccessMethodTupleForm  rd_am;	 AM tuple
+ *  RelationTupleForm	   rd_rel;	 RELATION tuple
+ *  ObjectId		   rd_id;	 relations's object id 
+ *  Pointer		   lockInfo;	 ptr. to misc. info.
+ *  TupleDescriptorData	   rd_att;	 tuple desciptor
+ *
+ *	Note: rd_ismem (rel is in-memory only) is currently unused
+ *      by any part of the system.  someday this will indicate that
+ *	the relation lives only in the main-memory buffer pool
+ *	-cim 2/4/91
+ * --------------------------------
+ */
+Relation
+RelationBuildDesc(buildinfo)
+    RelationBuildDescInfo buildinfo;
+{
+    File		fd;
+    Relation		relation;
+    u_int		natts;
+    ObjectId		relid;
+    ObjectId		relam;
+    RelationTupleForm	relp;
+    AttributeTupleForm	attp;
+    ObjectId		attrioid; /* attribute relation index relation oid */
+
+    extern GlobalMemory CacheCxt;
+    MemoryContext	oldcxt;
+    
+    HeapTuple		pg_relation_tuple;
+    HashTable		NameCacheSave;
+    HashTable		IdCacheSave;
+    
+    /* ----------------
+     *	hold onto our caches
+     * ----------------
+     */
+    NameCacheSave = 		RelationCacheHashByName;
+    IdCacheSave = 		RelationCacheHashById;
+    RelationCacheHashByName =	PrivateRelationCacheHashByName;
+    RelationCacheHashById = 	PrivateRelationCacheHashById;
+    
+    oldcxt = MemoryContextSwitchTo(CacheCxt);
+
+    /* ----------------
+     *	find the tuple in pg_relation corresponding to the given relation id
+     * ----------------
+     */
+    pg_relation_tuple = ScanPgRelation(buildinfo);
+
+    /* ----------------
+     *	if no such tuple exists, report an error and return NULL
+     * ----------------
+     */
+    if (! HeapTupleIsValid(pg_relation_tuple)) {
+	elog(NOTICE, "RelationBuildDesc: %s nonexistent",
+	     BuildDescInfoError(buildinfo));
+	
+	RelationCacheHashByName = NameCacheSave;
+	RelationCacheHashById = IdCacheSave;
+	MemoryContextSwitchTo(oldcxt); 
+	 
+	return NULL;
+    }
+
+    /* ----------------
+     *	get information from the pg_relation_tuple
+     * ----------------
+     */
+    relid = pg_relation_tuple->t_oid;
+    relp = (RelationTupleForm) GETSTRUCT(pg_relation_tuple);
+    natts = relp->relnatts;
+    
+    /* ----------------
+     *	allocate storage for the relation descriptor,
+     *  initialize relation->rd_rel and get the access method id.
+     * ----------------
+     */
+    relation = AllocateRelationDesc(natts, relp);
+    relam = relation->rd_rel->relam;
+    
+    /* ----------------
+     *	initialize the relation's relation id (relation->rd_id)
+     * ----------------
+     */
+    relation->rd_id = relid;
+    
+    /* ----------------
+     *	open the file named in the pg_relation_tuple and
+     *  assign the file descriptor to rd_fd and record the
+     *  number of blocks in the relation
+     * ----------------
+     */
+    fd = relopen(&relp->relname, O_RDWR, 0666);
+    
+    Assert (fd >= -1);
+    if (fd == -1)
+	elog(NOTICE, "RelationIdBuildRelation: relopen(%s): %m",
+	     &relp->relname);
     
     relation->rd_fd = fd;
     relation->rd_nblocks = FileGetNumberOfBlocks(fd);
-    
+
+    /* ----------------
+     *	initialize relation->rd_refcnt
+     * ----------------
+     */
     RelationSetReferenceCount(relation, 1);
     
-    if (ObjectIdIsValid(relation->rd_rel->relam)) {
-	IndexStrategy strategy;
-	int stratSize;
+    /* ----------------
+     *	initialize the access method information (relation->rd_am)
+     * ----------------
+     */
+    if (ObjectIdIsValid(relam)) {
+	relation->rd_am = (AccessMethodTupleForm)
+	    AccessMethodObjectIdGetAccessMethodTupleForm(relam);
+    }
+
+    /* ----------------
+     *	initialize the tuple descriptor (relation->rd_att).
+     *  remember, rd_att is an array of attribute pointers that lives
+     *  off the end of the relation descriptor structure so space was
+     *  already allocated for it by AllocateRelationDesc.
+     * ----------------
+     */
+    RelationBuildTupleDesc(buildinfo, relation, attp, natts);
+
+    /* ----------------
+     *	initialize index strategy information for this relation
+     *  remember, the index strategy lives in the memory right after
+     *  the tuple descriptor.
+     * ----------------
+     */
+    if (ObjectIdIsValid(relam)) {
+	IndexStrategy 	strategy;
+	int 		stratSize;
+	uint16 		relamstrategies;
+
+	relamstrategies = relation->rd_am->amstrategies;
 	    
 	stratSize =
-	    AttributeNumberGetIndexStrategySize(numatts,
-						relation->rd_am->amstrategies);
+	    AttributeNumberGetIndexStrategySize(natts, relamstrategies);
 	    
 	strategy = (IndexStrategy)
 	    palloc(stratSize);
 	    
 	IndexStrategyInitialize(strategy,
-	  RelationGetTupleDescriptor(relation)->data[0]->attrelid,
-	  RelationGetRelationTupleForm(relation)->relam,
-	  AMStrategies(
-	    RelationGetAccessMethodTupleForm(relation)->amstrategies));
+				relation->rd_att.data[0]->attrelid,
+				relam,
+				AMStrategies(relamstrategies));
 
-	RelationSetIndexStrategy(relation,strategy);
+	RelationSetIndexStrategy(relation, strategy);
     }
+
+    /* ----------------
+     *	initialize the relation lock manager information
+     * ----------------
+     */
+    RelationInitLockInfo(relation); /* see lmgr.c */
     
-    relation->rd_id = relid;
-    
+    /* ----------------
+     *	insert newly created relation into proper relcaches,
+     *  restore memory context and return the new reldesc.
+     * ----------------
+     */
     RelationCacheHashByName = NameCacheSave;
     RelationCacheHashById = IdCacheSave;
     
     HashTableInsert(RelationCacheHashByName, relation);
     HashTableInsert(RelationCacheHashById, relation);
     
-    RelationInitLockInfo(relation);
-	
     MemoryContextSwitchTo(oldcxt);
-    
-    RelationInitLockInfo(relation);
     
     return relation;
 }
+
+/* --------------------------------
+ *	formrdesc
+ *
+ *	This is a special version of RelationBuildDesc()
+ *	used by RelationInitialize() in initializing the
+ *	relcache.
+ * --------------------------------
+ */
+private void
+formrdesc(relationName, reloid, natts, att, initialReferenceCount)
+    char		relationName[];
+    OID			reloid;			/* XXX unused */
+    u_int		natts;
+    AttributeTupleFormData att[];
+    int			initialReferenceCount;
+{
+    Relation	relation;
+    int		fd;
+    int		len;
+    int		i;
+    char	*relpath();
+    File	relopen();
+    Relation	publicCopy;
+    
+    /* ----------------
+     *	allocate new relation desc
+     * ----------------
+     */
+    len = sizeof *relation + ((int)natts - 1) * sizeof relation->rd_att;
+    relation = (Relation) palloc(len);
+    bzero((char *)relation, len);
+    
+    /* ----------------
+     *	don't open the unix file yet..
+     * ----------------
+     */
+    relation->rd_fd = -1;
+    
+    /* ----------------
+     *	initialize reference count
+     * ----------------
+     */
+    RelationSetReferenceCount(relation, 1);
+
+    /* ----------------
+     *	initialize relation tuple form
+     * ----------------
+     */
+    relation->rd_rel = (RelationTupleForm)
+	palloc(sizeof (RuleLock) + sizeof *relation->rd_rel);
+    
+    strncpy(&relation->rd_rel->relname, relationName, 16);
+    relation->rd_rel->relowner = InvalidObjectId;	/* XXX incorrect */
+    relation->rd_rel->relpages = 1;			/* XXX */
+    relation->rd_rel->reltuples = 1;			/* XXX */
+    relation->rd_rel->relhasindex = '\0';
+    relation->rd_rel->relkind = 'r';
+    relation->rd_rel->relarch = 'n';
+    relation->rd_rel->relnatts = (uint16) natts;
+    
+    /* ----------------
+     *	initialize tuple desc info
+     * ----------------
+     */
+    for (i = 0; i < natts; i++) {
+	relation->rd_att.data[i] = (Attribute)
+	    palloc(sizeof (RuleLock) + sizeof *relation->rd_att.data[0]);
+	
+	bzero((char *)relation->rd_att.data[i], sizeof (RuleLock) +
+	      sizeof *relation->rd_att.data[0]);
+	bcopy((char *)&att[i], (char *)relation->rd_att.data[i],
+	      sizeof *relation->rd_att.data[0]);
+    }
+    
+    /* ----------------
+     *	initialize relation id (??? should use reloid parameter instead ???)
+     * ----------------
+     */
+    relation->rd_id = relation->rd_att.data[0]->attrelid;
+    
+    /* ----------------
+     *	add new reldesc to the private relcache
+     * ----------------
+     */
+    HashTableInsert(PrivateRelationCacheHashByName, relation);
+    HashTableInsert(PrivateRelationCacheHashById, relation);
+    
+    /* ----------------
+     *	add new reldesc to the public relcache
+     * ----------------
+     */
+    if (initialReferenceCount != 0) {
+	publicCopy = (Relation)palloc(len);
+	bcopy(relation, publicCopy, len);
+	
+	RelationSetReferenceCount(publicCopy, initialReferenceCount);
+	HashTableInsert(RelationCacheHashByName, publicCopy);
+	HashTableInsert(RelationCacheHashById, publicCopy);
+	
+	RelationInitLockInfo(relation);	/* XXX unuseful here ??? */
+    }
+}
  
+
+/* ----------------------------------------------------------------
+ *		 Relation Descriptor Lookup Interface
+ * ----------------------------------------------------------------
+ */
+
 /* --------------------------------
  *	RelationIdCacheGetRelation
  *
  *	only try to get the reldesc by looking up the cache
- *	do not go to the disk
- *	this is for BlockPrepareFile()
+ *	do not go to the disk.  this is used by BlockPrepareFile()
+ *	and RelationIdGetRelation below.
  * --------------------------------
  */
 Relation
 RelationIdCacheGetRelation(relationId)
-ObjectId	relationId;
+    ObjectId	relationId;
 {
-    Relation		rd;
+    Relation	rd;
 
     rd = (Relation)
 	KeyHashTableLookup(RelationCacheHashById, relationId);
@@ -705,14 +718,48 @@ ObjectId	relationId;
 	rd = (Relation) KeyHashTableLookup(GlobalIdCache, relationId);
 
     if (RelationIsValid(rd)) {
-	if (rd -> rd_fd == -1) {
-	    rd -> rd_fd = relopen (&rd -> rd_rel -> relname,
+	if (rd->rd_fd == -1) {
+	    rd->rd_fd = relopen(&rd->rd_rel-> relname,
 				   O_RDWR | O_CREAT, 0666);
-	    Assert (rd -> rd_fd != -1);
+	    Assert(rd->rd_fd != -1);
 	}
-	RelationIncrementReferenceCount(rd);
 	
+	RelationIncrementReferenceCount(rd);
 	RelationSetLockForDescriptorOpen(rd);
+	
+	rd->rd_nblocks = FileGetNumberOfBlocks(rd->rd_fd);
+    }
+    
+    return(rd);
+}
+
+/* --------------------------------
+ *	RelationNameCacheGetRelation
+ * --------------------------------
+ */
+Relation
+RelationNameCacheGetRelation(relationName)
+    Name	relationName;
+{
+    Relation	rd;
+
+    rd = (Relation)
+	KeyHashTableLookup(RelationCacheHashByName, relationName);
+    
+    if (!RelationIsValid(rd))
+	rd = (Relation) KeyHashTableLookup(GlobalNameCache, relationName);
+
+    if (RelationIsValid(rd)) {
+	if (rd->rd_fd == -1) {
+	    rd->rd_fd = relopen(&rd->rd_rel->relname,
+				O_RDWR | O_CREAT, 0666);
+	    Assert(rd->rd_fd != -1);
+	}
+	
+	RelationIncrementReferenceCount(rd);
+	RelationSetLockForDescriptorOpen(rd);
+	
+	rd->rd_nblocks = FileGetNumberOfBlocks(rd->rd_fd);
     }
     
     return(rd);
@@ -720,167 +767,124 @@ ObjectId	relationId;
 
 /* --------------------------------
  *	RelationIdGetRelation
+ *
+ *	return a relation descriptor based on its id.
+ *	return a cached value if possible
  * --------------------------------
  */
-/**** xxref:
- *           BuildRelation
- ****/
 Relation
 RelationIdGetRelation(relationId)
     ObjectId	relationId;
 {
-    Relation		rd;
-    HeapScanDesc	sd;
-    ScanKeyData		key;
-    char 		errorName[50];
+    Relation		  rd;
+    RelationBuildDescInfo buildinfo;
     
-    extern GlobalMemory CacheCxt;
-    MemoryContext	oldcxt;
+    /* ----------------
+     *	increment access statistics
+     * ----------------
+     */
+    IncrHeapAccessStat(local_RelationIdGetRelation);
+    IncrHeapAccessStat(global_RelationIdGetRelation);
+
+    /* ----------------
+     *	first try and get a reldesc from the cache
+     * ----------------
+     */
+    rd = RelationIdCacheGetRelation(relationId);
+    if (RelationIsValid(rd))
+       return rd;
     
-    HeapTuple		tuple;
-    HashTable		NameCacheSave;
-    HashTable		IdCacheSave;
+    /* ----------------
+     *	no reldesc in the cache, so have RelationBuildDesc()
+     *  build one and add it.
+     * ----------------
+     */
+    buildinfo.infotype =  INFO_RELID;
+    buildinfo.i.info_id = relationId;
     
-    IN();
-    
-    /* if not in the current cache, check the global cache */
-    
-    rd = (Relation)
-	KeyHashTableLookup(RelationCacheHashById, relationId);
-    
-    if (!RelationIsValid(rd))
-	rd = (Relation) KeyHashTableLookup(GlobalIdCache, relationId);
-    
-    if (RelationIsValid(rd)) {
-	if (rd -> rd_fd == -1) {
-	    rd -> rd_fd = relopen (&rd -> rd_rel -> relname,
-				   O_RDWR | O_CREAT, 0666);
-	    Assert (rd -> rd_fd != -1);
-	}
-	RelationIncrementReferenceCount(rd);
-	
-	RelationSetLockForDescriptorOpen(rd);
-	
-	return rd;
-    }
-    
-    NameCacheSave = 		RelationCacheHashByName;
-    IdCacheSave = 		RelationCacheHashById;
-    RelationCacheHashByName =	PrivateRelationCacheHashByName;
-    RelationCacheHashById = 	PrivateRelationCacheHashById;
-    
-    oldcxt = MemoryContextSwitchTo(CacheCxt);
-    
-    rd = amopenr(RelationRelationName);
-    
-    key.data[0].flags = 	  0;
-    key.data[0].attributeNumber = ObjectIdAttributeNumber;
-    key.data[0].procedure = 	  ObjectIdEqualRegProcedure;
-    key.data[0].argument = 	  ObjectIdGetDatum(relationId);
-    
-    sd = ambeginscan(rd, 0, NowTimeQual, 1, &key);
-    
-    tuple = amgetnext(sd, 0, (Buffer *)NULL);
-    
-    if (!HeapTupleIsValid(tuple)) {
-	sprintf(errorName, "RelationId=%d", relationId);
-    } else {
-	sprintf(errorName, "%s (id: %d)", 
-		&((RelationTupleForm)GETSTRUCT(tuple))->relname, 
-		relationId);
-    }
-    
-    rd = BuildRelation(rd, sd, errorName, oldcxt, tuple, 
-		       NameCacheSave, IdCacheSave);
-    
-    return rd;
+    rd = RelationBuildDesc(buildinfo);
+    return
+	rd;
 }
- 
+
 /* --------------------------------
- *	getreldesc / RelationNameGetRelation
+ *	RelationNameGetRelation
  *
  *	return a relation descriptor based on its name.
  *	return a cached value if possible
  * --------------------------------
  */
- 
 Relation
-getreldesc(relationName)
+RelationNameGetRelation(relationName)
     Name		relationName;
 {
-    Relation		rd;
-    HeapScanDesc	sd;
-    ScanKeyData		key;
+    Relation		  rd;
+    RelationBuildDescInfo buildinfo;
     
-    extern GlobalMemory CacheCxt;
-    MemoryContext	oldcxt;
-    
-    HeapTuple		tuple;
-    HashTable		NameCacheSave;
-    HashTable		IdCacheSave;
-    
-    IN();
-    
-    /* if not in the current cache, check the global cache */
-    
-    rd = (Relation)
-	KeyHashTableLookup(RelationCacheHashByName,relationName);
-    
-    if (! RelationIsValid(rd))
-	rd = (Relation)
-	    KeyHashTableLookup(GlobalNameCache, relationName);
-    
-    if (RelationIsValid(rd)) {
-	if (rd -> rd_fd == -1) {
-	    rd -> rd_fd =
-		relopen (&rd->rd_rel->relname,  O_RDWR | O_CREAT, 0666);
-	    Assert (rd->rd_fd != -1);
-	}
-	
-	RelationIncrementReferenceCount(rd);
-	OUT();
-	    
-	RelationSetLockForDescriptorOpen(rd);
-	    
-	rd->rd_nblocks = FileGetNumberOfBlocks(rd->rd_fd);
-	return rd;
-    }
-    
-    NameCacheSave = 		RelationCacheHashByName;
-    IdCacheSave = 		RelationCacheHashById;
-    RelationCacheHashByName = 	PrivateRelationCacheHashByName;
-    RelationCacheHashById = 	PrivateRelationCacheHashById;
-    
-    oldcxt = MemoryContextSwitchTo(CacheCxt);
-     
     /* ----------------
-     *	ADD INDEXING HERE
+     *	increment access statistics
      * ----------------
      */
-    rd = amopenr(RelationRelationName);
+    IncrHeapAccessStat(local_RelationNameGetRelation);
+    IncrHeapAccessStat(global_RelationNameGetRelation);
+
+    /* ----------------
+     *	first try and get a reldesc from the cache
+     * ----------------
+     */
+    rd = RelationNameCacheGetRelation(relationName);
+    if (RelationIsValid(rd))
+       return rd;
     
-    key.data[0].flags = 	  0;
-    key.data[0].attributeNumber = RelationNameAttributeNumber;
-    key.data[0].procedure = 	  Character16EqualRegProcedure;
-    key.data[0].argument = 	  NameGetDatum(relationName);
+    /* ----------------
+     *	no reldesc in the cache, so have RelationBuildDesc()
+     *  build one and add it.
+     * ----------------
+     */
+    buildinfo.infotype =    INFO_RELNAME;
+    buildinfo.i.info_name = relationName;
     
-    sd = ambeginscan(rd, 0, NowTimeQual, 1, &key);
-    
-    tuple = amgetnext(sd, 0, (Buffer *)NULL);
-    
-    rd = BuildRelation(rd, sd, relationName, oldcxt, tuple,
-		       NameCacheSave, IdCacheSave);
-    
-    OUT();
-    
-    return rd;
+    rd = RelationBuildDesc(buildinfo);
+    return
+	rd;
 }
- 
+
+/* ----------------
+ *	old "getreldesc" interface.
+ * ----------------
+ */
+Relation
+getreldesc(relationName)
+    Name  relationName;
+{
+    /* ----------------
+     *	increment access statistics
+     * ----------------
+     */
+    IncrHeapAccessStat(local_getreldesc);
+    IncrHeapAccessStat(global_getreldesc);
+    
+    return (Relation)
+	RelationNameGetRelation(relationName);
+}
+
 /* ----------------------------------------------------------------
  *		cache invalidation support routines
  * ----------------------------------------------------------------
  */
  
+/* --------------------------------
+ *	RelationClose - close an open relation
+ * --------------------------------
+ */
+void
+RelationClose(relation)
+    Relation	relation;
+{
+    /* Note: no locking manipulations needed */
+    RelationDecrementReferenceCount(relation);
+}
+
 /* --------------------------------
  *	RelationFlushRelation
  * --------------------------------
@@ -897,8 +901,6 @@ RelationFlushRelation(relation, onlyFlushReferenceCountZero)
     int			i;
     Attribute		*p;
     MemoryContext	oldcxt;
-    
-    IN();
     
     if (relation->rd_refcnt > 0x1000) {	/* XXX */
 	/* this is a non-regeneratable special relation */
@@ -926,8 +928,6 @@ RelationFlushRelation(relation, onlyFlushReferenceCountZero)
 	
 	MemoryContextSwitchTo(oldcxt);
     }
-    
-    OUT();
 }
  
 /* --------------------------------
@@ -978,10 +978,8 @@ void
 RelationIdInvalidateRelationCacheByAccessMethodId(accessMethodId)
     ObjectId	accessMethodId;
 {
-    IN();
     HashTableWalk(RelationCacheHashByName, RelationFlushIndexes,
 		  accessMethodId);
-    OUT();
 }
  
 /* --------------------------------
@@ -995,23 +993,8 @@ void
 RelationCacheInvalidate(onlyFlushReferenceCountZero)
     bool onlyFlushReferenceCountZero;
 {
-    IN();
     HashTableWalk(RelationCacheHashByName, RelationFlushRelation, 
 		  onlyFlushReferenceCountZero);
-    OUT();
-}
- 
-/* --------------------------------
- *	RelationFree
- * --------------------------------
- */
-/**** xxref:
- *           BuildRelation
- ****/
-void
-RelationFree(relation)
-    Relation	relation;
-{
 }
  
 /* --------------------------------
@@ -1090,78 +1073,6 @@ RelationRegisterTempRel(temprel)
  */
  
 /* --------------------------------
- *	formrdesc
- *
- *	this is used to create relation descriptors for
- *	RelationInitialize() below.
- * --------------------------------
- */
-/**** xxref:
- *           RelationInitialize
- ****/
-private void
-formrdesc(relationName, reloid, natts, att, initialReferenceCount)
-    char		relationName[];
-    OID			reloid;			/* XXX unused */
-    u_int		natts;
-    AttributeTupleFormData att[];
-    int			initialReferenceCount;
-{
-    Relation	relation;
-    int		fd;
-    int		len;
-    int		i;
-    char	*relpath();
-    File	relopen();
-    Relation	publicCopy;
-    
-    len = sizeof *relation + ((int)natts - 1) * sizeof relation->rd_att;
-    relation = (Relation) palloc(len);
-    bzero((char *)relation, len);
-    
-    relation->rd_fd = -1;
-    
-    RelationSetReferenceCount(relation, 1);
-    
-    relation->rd_rel = (RelationTupleForm)
-	palloc(sizeof (RuleLock) + sizeof *relation->rd_rel);
-    
-    strncpy(&relation->rd_rel->relname, relationName, 16);
-    relation->rd_rel->relowner = InvalidObjectId;	/* XXX incorrect */
-    relation->rd_rel->relpages = 1;			/* XXX */
-    relation->rd_rel->reltuples = 1;		/* XXX */
-    relation->rd_rel->relhasindex = '\0';
-    relation->rd_rel->relkind = 'r';
-    relation->rd_rel->relarch = 'n';
-    relation->rd_rel->relnatts = (uint16)natts;
-    
-    for (i = 0; i < natts; i++) {
-	relation->rd_att.data[i] = (Attribute)
-	    palloc(sizeof (RuleLock) + sizeof *relation->rd_att.data[0]);
-	
-	bzero((char *)relation->rd_att.data[i], sizeof (RuleLock) +
-	      sizeof *relation->rd_att.data[0]);
-	bcopy((char *)&att[i], (char *)relation->rd_att.data[i],
-	      sizeof *relation->rd_att.data[0]);
-    }
-    
-    relation->rd_id = relation->rd_att.data[0]->attrelid;
-    HashTableInsert(PrivateRelationCacheHashByName, relation);
-    HashTableInsert(PrivateRelationCacheHashById, relation);
-    
-    if (initialReferenceCount != 0) {
-	publicCopy = (Relation)palloc(len);
-	bcopy(relation, publicCopy, len);
-	
-	RelationSetReferenceCount(publicCopy, initialReferenceCount);
-	HashTableInsert(RelationCacheHashByName, publicCopy);
-	HashTableInsert(RelationCacheHashById, publicCopy);
-	
-	RelationInitLockInfo(relation);	/* XXX unuseful here ??? */
-    }
-}
- 
-/* --------------------------------
  *	CompareNameInArgumentWithRelationNameInRelation()
  *	CompareIdInArgumentWithIdInRelation()
  *
@@ -1187,7 +1098,69 @@ CompareIdInArgumentWithIdInRelation(relation, relationId)
 }
  
 /* --------------------------------
+ *	RelationInitialize hash function support
+ * --------------------------------
+ */
+/* ----------------
+ *	HashByNameAsArgument
+ * ----------------
+ */
+private Index
+HashByNameAsArgument(collisions, hashTableSize, relationName)
+    uint16	collisions;
+    Size	hashTableSize;
+    Name	relationName;
+{
+    return
+      NameHashFunction(collisions, hashTableSize, relationName);
+}
+
+/* ----------------
+ *	HashByNameInRelation
+ * ----------------
+ */
+private Index
+HashByNameInRelation(collisions, hashTableSize, relation)
+    uint16	collisions;
+    Size	hashTableSize;
+    Relation	relation;
+{
+    return
+      NameHashFunction(collisions, hashTableSize, &relation->rd_rel->relname);
+}
+ 
+/* ----------------
+ *	HashByIdAsArgument
+ * ----------------
+ */
+private Index
+HashByIdAsArgument(collisions, hashTableSize, relationId)
+    uint16	collisions;
+    Size	hashTableSize;
+    uint32	relationId; 
+{
+    return
+	IntegerHashFunction(collisions, hashTableSize, relationId);
+}
+ 
+/* ----------------
+ *	HashByIdInRelation
+ * ----------------
+ */
+private Index
+HashByIdInRelation(collisions, hashTableSize, relation)
+    uint16	collisions;
+    Size	hashTableSize;
+    Relation	relation;
+{
+    return
+	IntegerHashFunction(collisions, hashTableSize, relation->rd_id);
+}
+ 
+/* --------------------------------
  *	RelationInitialize
+ *
+ *	This initializes the relation descriptor cache.
  * --------------------------------
  */
 void 
@@ -1196,14 +1169,20 @@ RelationInitialize()
     extern GlobalMemory		CacheCxt;
     MemoryContext		oldcxt;
     int				initialReferences;
-    
-    IN();
-    
+
+    /* ----------------
+     *	switch to cache memory context
+     * ----------------
+     */
     if (!CacheCxt)
 	CacheCxt = CreateGlobalMemory("Cache");
     
     oldcxt = MemoryContextSwitchTo(CacheCxt);
-    
+
+    /* ----------------
+     *	create global caches
+     * ----------------
+     */
     RelationCacheHashByName =
 	CreateHashTable(HashByNameAsArgument, 
 			HashByNameInRelation, 
@@ -1222,12 +1201,19 @@ RelationInitialize()
     
     GlobalIdCache = RelationCacheHashById;
     
-    /* 
-     * these should use a hash function that is perfect on them
-     * and the hash table code should have a way of telling it not
-     * to bother trying to resize 'cauase they all fit and there
-     * arn't any collisions.  Also, the hash table code could have
-     * a HashTableDisableModification call.
+    /* ----------------
+     *  create private caches
+     *
+     *  these should use a hash function that is perfect on them
+     *  and the hash table code should have a way of telling it not
+     *  to bother trying to resize 'cauase they all fit and there
+     *  arn't any collisions.  Also, the hash table code could have
+     *  a HashTableDisableModification call.
+     *
+     *  ??? What are the private caches used for? my guess is that
+     *      system catalog relations use them but I'm not sure
+     *      -cim 2/5/91
+     * ----------------
      */
     PrivateRelationCacheHashByName =
 	CreateHashTable(HashByNameAsArgument, 
@@ -1243,40 +1229,39 @@ RelationInitialize()
 			NULL,
 			30);
     
+    /* ----------------
+     * using a large positive initial reference count is a hack
+     * to prevent generation of the special descriptors
+     * ----------------
+     */
     initialReferences = 0;
-    
     if (AMI_OVERRIDE) {
-	/* a hack to prevent generation of the special descriptors */
 	initialReferences = 0x2000;
     }
     
-    formrdesc(RelationRelationName, relatt[0].attrelid, REL_NATTS, relatt,
-	      initialReferences);
-    
-    formrdesc(AttributeRelationName, attatt[0].attrelid, ATT_NATTS,	attatt,
-	      initialReferences);
-    
-    formrdesc(ProcedureRelationName, proatt[0].attrelid, PRO_NATTS,	proatt,
-	      initialReferences);
-    
-    formrdesc(TypeRelationName, typatt[0].attrelid, TYP_NATTS, typatt,
-	      initialReferences);
-    
     /* ----------------
-     * the var, log, and time relations
-     * are also cached...
+     *	initialize the cache with pre-made relation descriptors
+     *  for some of the more important system relations.  These
+     *  relations should always be in the cache.
      * ----------------
      */
-    formrdesc(VariableRelationName, 
-	      varatt[0].attrelid, VAR_NATTS, varatt, 0x1fff);
+#define INIT_RELDESC(x) \
+    formrdesc(SCHEMA_NAME(x), \
+	      SCHEMA_DESC(x)[0].attrelid, \
+	      SCHEMA_NATTS(x), \
+	      SCHEMA_DESC(x), \
+	      initialReferences);
     
-    formrdesc(LogRelationName, 
-	      logatt[0].attrelid, LOG_NATTS, logatt, 0x1fff);
+    INIT_RELDESC(pg_relation);
+    INIT_RELDESC(pg_attribute);
+    INIT_RELDESC(pg_proc);
+    INIT_RELDESC(pg_type);
     
-    formrdesc(TimeRelationName, 
-	      timatt[0].attrelid, TIM_NATTS, timatt, 0x1fff);
+    initialReferences = 0x2000;
+    
+    INIT_RELDESC(pg_variable);
+    INIT_RELDESC(pg_log);
+    INIT_RELDESC(pg_time);
     
     MemoryContextSwitchTo(oldcxt);
-    
-    OUT();
 }

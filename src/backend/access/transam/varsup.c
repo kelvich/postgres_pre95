@@ -555,8 +555,7 @@ GetNewObjectId(oid_return)
 	 * ----------------
 	 */
 	if (! RelationIsValid(VariableRelation))
-	    VariableRelation =
-		RelationNameOpenHeapRelation(VariableRelationName);
+	    VariableRelation = heap_openr(VariableRelationName);
 	
 	/* ----------------
 	 *	get a new block of prefetched object ids.

@@ -1,11 +1,31 @@
-/*
- * syscache.c --
- *	System cache management routines.
+/* ----------------------------------------------------------------
+ *   FILE
+ *	syscache.c
+ *	
+ *   DESCRIPTION
+ *	System cache management routines
  *
- * Notes:
+ *   INTERFACE ROUTINES
+ *	SearchSysCacheTuple()
+ *	SearchSysCacheStruct()
+ *	SearchSysCacheGetAttribute()
+ *	TypeDefaultRetrieve()
+ *
+ *   NOTES
+ *	These routines allow the parser/planner/executor to perform
+ *	rapid lookups on the contents of the system catalogs.  (Well,
+ *	mabey not so rapid just yet..)
+ *
+ *	see lib/catalog/syscache.h for a list of the cache id's
+ *
+ * old notes:
  *	LISP code should call SearchSysCacheStruct with preallocated space
  *	 (or SearchSysCacheGetAttribute for variable-length or system fields).
  *	C code should call SearchSysCacheTuple -- it's slightly more efficient.
+ *
+ *   IDENTIFICATION
+ *	$Header$
+ * ----------------------------------------------------------------
  */
 #include "tmp/c.h"
 
@@ -49,6 +69,9 @@ extern bool	AMI_OVERRIDE;	/* XXX style */
 /* ----------------
  *	Warning:  cacheinfo[] below is changed, then be sure and
  *	update the magic constants in syscache.h!
+ *
+ *	Note: currently all the catalog cache index names are
+ *	NULL.  This will change soon -cim 1/13/91.
  * ----------------
  */
 static struct cachedesc cacheinfo[] = {
@@ -58,147 +81,168 @@ static struct cachedesc cacheinfo[] = {
 		AccessMethodOperatorOperatorIdAttributeNumber,
 		0,
 		0 },
-	  sizeof(struct amop) },
+	  sizeof(struct amop),
+      NULL },
     { &AccessMethodOperatorRelationName,	/* AMOPSTRATEGY */
 	  3,
 	  { AccessMethodOperatorAccessMethodIdAttributeNumber,
 		AccessMethodOperatorOperatorClassIdAttributeNumber,
 		AccessMethodOperatorStrategyAttributeNumber,
 		0 },
-	  sizeof(struct amop) },
+	  sizeof(struct amop),
+      NULL },
     { &AttributeRelationName,			/* ATTNAME */
 	  2,
 	  { AttributeRelationIdAttributeNumber,
 		AttributeNameAttributeNumber,
 		0,
 		0 },
-	  sizeof(struct attribute) },
+	  sizeof(struct attribute),
+      NULL },
     { &AttributeRelationName,			/* ATTNUM */
 	  2,
 	  { AttributeRelationIdAttributeNumber,
 		AttributeNumberAttributeNumber,
 		0,
 		0 },
-	  sizeof(struct attribute) },
+	  sizeof(struct attribute),
+      NULL },
     { &IndexRelationName,			/* INDEXRELID */
 	  1,
 	  { IndexRelationIdAttributeNumber,
 		0,
 		0,
 		0 },
-	  sizeof(struct index) },
+	  sizeof(struct index),
+      NULL },
     { &LanguageRelationName,			/* LANNAME */
 	  1,
 	  { LanguageNameAttributeNumber,
 		0,
 		0,
 		0 },
-	  sizeof(struct language) - sizeof(struct varlena) },
+	  sizeof(struct language) - sizeof(struct varlena),
+      NULL },
     { &OperatorRelationName,			/* OPRNAME */
 	  4,
 	  { OperatorNameAttributeNumber,
 		OperatorLeftAttributeNumber,
 		OperatorRightAttributeNumber,
 		OperatorKindAttributeNumber },
-	  sizeof(struct operator) },
+	  sizeof(struct operator),
+      NULL },
     { &OperatorRelationName,			/* OPROID */
 	  1,
 	  { ObjectIdAttributeNumber,
 		0,
 		0,
 		0 },
-	  sizeof(struct operator) },
+	  sizeof(struct operator),
+      NULL },
     { &ProcedureRelationName,			/* PRONAME */
 	  1,
 	  { ProcedureNameAttributeNumber,
 		0,
 		0,
 		0 },
-	  sizeof(struct proc) },
+	  sizeof(struct proc),
+      NULL },
     { &ProcedureRelationName,			/* PROOID */
 	  1,
 	  { ObjectIdAttributeNumber,
 		0,
 		0,
 		0 },
-	  sizeof(struct proc) },
+	  sizeof(struct proc),
+      NULL },
     { &RelationRelationName,			/* RELNAME */
 	  1,
 	  { RelationNameAttributeNumber,
 		0,
 		0,
 		0 },
-	  sizeof(struct relation) },
+	  sizeof(struct relation),
+      NULL },
     { &RelationRelationName,			/* RELOID */
 	  1,
 	  { ObjectIdAttributeNumber,
 		0,
 		0,
 		0 },
-	  sizeof(struct relation) },
+	  sizeof(struct relation),
+      NULL },
     { &TypeRelationName,			/* TYPNAME */
 	  1,
 	  { TypeNameAttributeNumber,
 		0,
 		0,
 		0 },
-	  sizeof(TypeTupleFormData) - sizeof(struct varlena) },
+	  sizeof(TypeTupleFormData) - sizeof(struct varlena),
+      NULL },
     { &TypeRelationName,			/* TYPOID */
 	  1,
 	  { ObjectIdAttributeNumber,
 		0,
 		0,
 		0},
-	  sizeof(TypeTupleFormData) - sizeof(struct varlena) },
+	  sizeof(TypeTupleFormData) - sizeof(struct varlena),
+      NULL },
     { &AccessMethodRelationName,		/* AMNAME */
 	  1,
 	  { AccessMethodNameAttributeNumber,
 		0,
 		0,
 		0},
-	  sizeof(IndexTupleFormData) },
+	  sizeof(IndexTupleFormData),
+      NULL },
     { &OperatorClassRelationName,		/* CLANAME */
 	  1,
 	  { OperatorClassNameAttributeNumber,
 		0,
 		0,
 		0},
-	  sizeof(IndexTupleFormData) },
+	  sizeof(IndexTupleFormData),
+      NULL },
     { &IndexRelationName,			/* INDRELIDKEY */
 	  2,
 	  { IndexHeapRelationIdAttributeNumber,
 		IndexKeyAttributeNumber,
 		0,
 		0},
-	  sizeof(IndexTupleFormData) },
+	  sizeof(IndexTupleFormData),
+      NULL },
     { &InheritsRelationName,			/* INHRELID */
 	  2,
 	  { InheritsRelationIdAttributeNumber,
 		InheritsSequenceNumberAttributeNumber,
 		0,
 		0},
-	  sizeof(InheritsTupleFormD) },
+	  sizeof(InheritsTupleFormD),
+      NULL },
     { &Prs2PlansRelationName,			/* PRS2PLANCODE */
 	  2,
 	  { Prs2PlansRuleIdAttributeNumber,
 		Prs2PlansPlanNumberAttributeNumber,
 		0,
 		0 },
-	  sizeof(struct prs2plans) - sizeof(struct varlena) },
+	  sizeof(struct prs2plans) - sizeof(struct varlena),
+      NULL },
     { &RewriteRelationName,			/* RULOID */
 	  1,
 	  { ObjectIdAttributeNumber,
 		0,
 		0,
 		0 },
-	  sizeof(FormData_pg_rewrite) },
+	  sizeof(FormData_pg_rewrite),
+      NULL },
     { &Prs2StubRelationName,			/* PRS2STUB */
 	  1,
 	  { Anum_pg_prs2stub_prs2relid,
 		0,
 		0,
 		0 },
-	  sizeof(FormData_pg_prs2stub) - sizeof(struct varlena) }
+	  sizeof(FormData_pg_prs2stub) - sizeof(struct varlena),
+      NULL }
 };
  
 static struct catcache	*SysCache[lengthof(cacheinfo)];
@@ -409,7 +453,7 @@ SearchSysCacheGetAttribute(cacheId, attributeNumber, key1, key2, key3, key4)
 	return(LispNil);
     }
     
-    relation = RelationNameOpenHeapRelation(cacheName);
+    relation = heap_openr(cacheName);
     
     if (attributeNumber < 0 &&
 	attributeNumber > FirstLowInvalidHeapAttributeNumber) {
@@ -428,11 +472,11 @@ SearchSysCacheGetAttribute(cacheId, attributeNumber, key1, key2, key3, key4)
 	return(LispNil);
     }
     
-    attributeValue = amgetattr(tp,
-			       (Buffer) 0,
-			       attributeNumber,
-			       &relation->rd_att,
-			       &isNull);
+    attributeValue = heap_getattr(tp,
+				  (Buffer) 0,
+				  attributeNumber,
+				  &relation->rd_att,
+				  &isNull);
     
     if (isNull) {
 	/* actually this is a FATAL error -hirohama */
@@ -460,7 +504,7 @@ SearchSysCacheGetAttribute(cacheId, attributeNumber, key1, key2, key3, key4)
     LISP_GC_PROTECT(returnValue);
     LISP_GC_ON;
     
-    RelationCloseHeapRelation(relation);
+    heap_close(relation);
     return(returnValue);
 }
  

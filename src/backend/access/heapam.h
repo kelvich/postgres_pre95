@@ -36,20 +36,23 @@ typedef struct HeapAccessStatisticsData {
     time_t  local_reset_timestamp;	/* last time local reset was done */
     time_t  last_request_timestamp;	/* last time stats were requested */
 
-    int global_amopen;			
-    int global_amopenr;
-    int global_amclose;
-    int global_ambeginscan;
-    int global_amrescan;
-    int global_amendscan;
-    int global_amgetnext;
-    int global_amgetunique;
-    int global_aminsert;
-    int global_amdelete;
-    int global_amreplace; 
-    int global_ammarkpos; 
-    int global_amrestrpos;
+    int global_open;			
+    int global_openr;
+    int global_close;
+    int global_beginscan;
+    int global_rescan;
+    int global_endscan;
+    int global_getnext;
+    int global_fetch;
+    int global_insert;
+    int global_delete;
+    int global_replace; 
+    int global_markpos; 
+    int global_restrpos;
+    int global_BufferGetRelation;
     int global_RelationIdGetRelation;
+    int global_RelationIdGetRelation_Buf;
+    int global_RelationNameGetRelation;
     int global_ObjectIdOpenHeapRelation;
     int global_RelationNameOpenHeapRelation;
     int global_RelationCloseHeapRelation;
@@ -58,20 +61,23 @@ typedef struct HeapAccessStatisticsData {
     int global_RelationPutHeapTuple;
     int global_RelationPutLongHeapTuple;
 
-    int local_amopen;			
-    int local_amopenr;
-    int local_amclose;
-    int local_ambeginscan;
-    int local_amrescan;
-    int local_amendscan;
-    int local_amgetnext;
-    int local_amgetunique;
-    int local_aminsert;
-    int local_amdelete;
-    int local_amreplace; 
-    int local_ammarkpos; 
-    int local_amrestrpos;
+    int local_open;			
+    int local_openr;
+    int local_close;
+    int local_beginscan;
+    int local_rescan;
+    int local_endscan;
+    int local_getnext;
+    int local_fetch;
+    int local_insert;
+    int local_delete;
+    int local_replace; 
+    int local_markpos; 
+    int local_restrpos;
+    int local_BufferGetRelation;
     int local_RelationIdGetRelation;
+    int local_RelationIdGetRelation_Buf;
+    int local_RelationNameGetRelation;
     int local_ObjectIdOpenHeapRelation;
     int local_RelationNameOpenHeapRelation;
     int local_RelationCloseHeapRelation;
@@ -87,6 +93,33 @@ typedef HeapAccessStatisticsData *HeapAccessStatistics;
     (heap_access_stats == NULL ? 0 : (heap_access_stats->x)++)
 
 extern HeapAccessStatistics heap_access_stats;
+
+/* ----------------
+ *	new prototypes
+ * ----------------
+ */
+extern ObjectId 	heap_create();
+extern Relation 	heap_creatr();
+extern void		heap_destroy();
+extern Relation 	heap_open();
+extern Relation 	heap_openr();
+extern void		heap_close();
+extern HeapTuple	heap_fetch();
+extern RuleLock 	heap_insert();
+extern RuleLock 	heap_delete();
+extern RuleLock 	heap_replace();
+extern char *   	heap_getattr();
+extern HeapScanDesc 	heap_beginscan();
+extern void 		heap_rescan();
+extern void 		heap_endscan();
+extern void 		heap_markpos();
+extern void 		heap_restrpos();
+extern HeapTuple 	heap_getnext();
+
+/* ----------------
+ *	old prototypes
+ * ----------------
+ */
 
 /*
  * RelationNameCreateHeapRelation --

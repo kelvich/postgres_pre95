@@ -495,9 +495,9 @@ InitializeTransactionLog()
      *   (these are created by amiint so they are guarantted to exist)
      * ----------------
      */
-    logRelation = 	RelationNameOpenHeapRelation(LogRelationName);
-    timeRelation = 	RelationNameOpenHeapRelation(TimeRelationName);
-    VariableRelation = 	RelationNameOpenHeapRelation(VariableRelationName);
+    logRelation = 	heap_openr(LogRelationName);
+    timeRelation = 	heap_openr(TimeRelationName);
+    VariableRelation = 	heap_openr(VariableRelationName);
 
     /* ----------------
      *   if we have a virgin database, we initialize the log and time

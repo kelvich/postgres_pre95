@@ -75,10 +75,7 @@ void
 CreateTransRelation(name)
     Name name;			/* relation name */
 {
-    RelationNameCreateHeapRelation(name,
-				   'n',
-				   1,
-				   DummyTupleDescriptor);
+    heap_create(name, 'n', 1, DummyTupleDescriptor);
 }
 
 /* --------------------------------

@@ -31,7 +31,10 @@ typedef struct catctup {
 
 typedef struct catcache {
 	ObjectId	relationId;
-	char		*cc_relname;	/* relation name for defered open  */
+	ObjectId	indexId;
+	char		*cc_relname;	/* relation name for defered open */
+	char		*cc_indname;	/* index name for defered open */
+	TupleDescriptor cc_tupdesc; 	/* tuple descriptor from reldesc */
 	int		id;		/* XXX could be improved -hirohama */
 	short		cc_ntup;	/* # of tuples in this cache	*/
 	short		cc_maxtup;	/* max # of tuples allowed (LRU)*/

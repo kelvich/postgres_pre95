@@ -114,8 +114,9 @@ CatalogCacheInitializeCache(cache, relation)
     Relation relation;
 {
     MemoryContext	oldcxt;
-    short didopen = 0;
-    short i;
+    short 		didopen = 0;
+    short 		i;
+    TupleDescriptor	tupdesc;
     
     CatalogCacheInitializeCache_DEBUG1;
     
@@ -131,8 +132,7 @@ CatalogCacheInitializeCache(cache, relation)
     /* ----------------
      *  If no relation was passed we must open it to get access to 
      *  its fields.  If one of the other caches has already opened
-     *  it we can use the much faster ObjectIdOpenHeapRelation() call
-     *  rather than RelationNameOpenHeapRelation() call.
+     *  it we use heap_open() instead of heap_openr()
      * ----------------
      */
     if (! RelationIsValid(relation)) {
@@ -152,12 +152,11 @@ CatalogCacheInitializeCache(cache, relation)
 	 *  open the relation by name or by id
 	 * ----------------
 	 */
-	if (cp) {
-	    CACHE1_elog(DEBUG, "CatalogCacheInitializeCache: fastrelopen");
-    	    relation = ObjectIdOpenHeapRelation(cp->relationId);
-	} else {
-    	    relation = RelationNameOpenHeapRelation(cache->cc_relname);
-	}
+	if (cp)
+    	    relation = heap_open(cp->relationId);
+	else
+    	    relation = heap_openr(cache->cc_relname);
+	
 	didopen = 1;
     }
     
@@ -167,12 +166,16 @@ CatalogCacheInitializeCache(cache, relation)
      */
     Assert(RelationIsValid(relation));
     cache->relationId = RelationGetRelationId(relation);
+    tupdesc = cache->cc_tupdesc = RelationGetTupleDescriptor(relation);
     
     CACHE3_elog(DEBUG, "CatalogCacheInitializeCache: relid %d, %d keys", 
 		cache->relationId, cache->cc_nkeys);
     
+    /* ----------------
+     *	initialize cache's key information
+     * ----------------
+     */
     for (i = 0; i < cache->cc_nkeys; ++i) {
-	
 	CatalogCacheInitializeCache_DEBUG2;
 	
 	if (cache->cc_key[i] > 0) {
@@ -186,29 +189,39 @@ CatalogCacheInitializeCache(cache, relation)
 	     *  dereference an int2 by mistake.
 	     */
 
-	    if (relation->rd_att.data[cache->cc_key[i]-1]->atttypid == INT28OID)
+	    if (tupdesc->data[cache->cc_key[i]-1]->atttypid == INT28OID)
 		cache->cc_klen[i] = sizeof (short);
 	    else
-		cache->cc_klen[i] = 
-		    relation->rd_att.data[cache->cc_key[i]-1]->attlen;
+		cache->cc_klen[i] = tupdesc->data[cache->cc_key[i]-1]->attlen;
 
 	    cache->cc_skey[i].sk_opr =
-	        EQPROC(relation->rd_att.data[cache->cc_key[i]-1]->atttypid);
+	        EQPROC(tupdesc->data[cache->cc_key[i]-1]->atttypid);
 	    
 	    CACHE5_elog(DEBUG, "CatalogCacheInit %16s %d %d %x",
 			&relation->rd_rel->relname,
 			i,
-			relation->rd_att.data[cache->cc_key[i]-1]->attlen,
+			tupdesc->data[ cache->cc_key[i]-1 ]->attlen,
 			cache);
 	}
     }
-    
+ 
     /* ----------------
      *	close the relation if we opened it
      * ----------------
      */
     if (didopen)
-        RelationCloseHeapRelation(relation);
+        heap_close(relation);
+
+    /* ----------------
+     *	initialize index information for the cache.  this
+     *  should only be done once per cache.
+     * ----------------
+     */
+    if (cache->cc_indname != NULL && cache->indexId == InvalidObjectId) {
+	relation = (Relation) index_openr(cache->cc_indname);
+	cache->indexId = RelationGetRelationId(relation);
+	index_close(relation);
+    }
     
     /* ----------------
      *	return to the proper memory context
@@ -498,6 +511,7 @@ CatalogCacheIdInvalidate(cacheId, hashIndex, pointer)
  *		       public functions
  *
  *	ResetSystemCache
+ *	InitIndexedSysCache
  *	InitSysCache
  *  	SearchSysCache
  *  	RelationInvalidateCatalogCacheTuple
@@ -572,7 +586,7 @@ ResetSystemCache()
 }
  
 /* --------------------------------
- *	InitSysCache
+ *	InitIndexedSysCache
  *
  *  This allocates and initializes a cache for a system catalog relation.
  *  Actually, the cache is only partially initialized to avoid opening the
@@ -601,8 +615,9 @@ ResetSystemCache()
  *           SearchSysCacheTuple
  ****/
 struct catcache *
-InitSysCache(relname, nkeys, key)
+InitIndexedSysCache(relname, indname, nkeys, key)
     char	*relname;
+    char	*indname;
     int		nkeys;
     int		key[];
 {
@@ -652,7 +667,10 @@ InitSysCache(relname, nkeys, key)
      * ----------------
      */
     cp->relationId = 	InvalidObjectId;
+    cp->indexId = 	InvalidObjectId;
     cp->cc_relname = 	relname;
+    cp->cc_indname = 	indname;
+    cp->cc_tupdesc =	(TupleDescriptor) NULL;
     cp->id = 		InvalidCatalogCacheId;	/* XXX should be an argument */
     cp->cc_maxtup = 	MAXTUP;
     cp->cc_size = 	NCCBUCK;
@@ -680,7 +698,7 @@ InitSysCache(relname, nkeys, key)
 	
 	cp->cc_skey[i].sk_attnum = key[i];
     }
-    
+
     /* ----------------
      *	all done.  new cache is initialized.  print some debugging
      *  information, if appropriate.
@@ -695,7 +713,18 @@ InitSysCache(relname, nkeys, key)
     MemoryContextSwitchTo(oldcxt);
     return(cp);
 }
- 
+
+struct catcache *
+InitSysCache(relname, nkeys, key)
+    char	*relname;
+    int		nkeys;
+    int		key[];
+{
+    return
+	InitIndexedSysCache(relname, NULL, nkeys, key);
+}
+
+
 /* --------------------------------
  *  	SearchSysCache
  *
@@ -732,20 +761,7 @@ SearchSysCache(cache, v1, v2, v3, v4)
 	elog(WARN, "SearchSysCache: Called while cache disabled");
 	return((HeapTuple) NULL);
     }
-    
-    /* ----------------
-     *	open the relation associated with the cache
-     *
-     *	XXX this is inefficient! we only need the relation now 
-     *      for the schema.  We should recode things to avoid
-     *	    opening the relation unless it is really necessary.
-     *	    (like when the initial cache search fails) -cim 10/2/90
-     * ----------------
-     */
-    relation = ObjectIdOpenHeapRelation(cache->relationId);
-    CACHE2_elog(DEBUG, "SearchSysCache(%s)",
-		RelationGetRelationName(relation));
-    
+
     /* ----------------
      *	initialize the search key information
      * ----------------
@@ -774,7 +790,10 @@ SearchSysCache(cache, v1, v2, v3, v4)
 	 *  (should we be worried about time ranges? -cim 10/2/90)
 	 * ----------------
 	 */
-	if (keytest(ct->ct_tup, relation, cache->cc_nkeys, cache->cc_skey))
+	if (keytest_tupdesc(ct->ct_tup,
+			    cache->cc_tupdesc,
+			    cache->cc_nkeys,
+			    cache->cc_skey))
 	    break;
     }
     
@@ -790,11 +809,30 @@ SearchSysCache(cache, v1, v2, v3, v4)
 	CACHE3_elog(DEBUG, "SearchSysCache(%s): found in bucket %d",
 		    RelationGetRelationName(relation), hash);
 	
-	/*
+#if 0
+	/* ----------------
+	 *  by storing a pointer to the relation's tuple descriptor
+	 *  in the cache structure, we no longer need the relation
+	 *  descriptor until we have a cache miss.  This should make
+	 *  the caching routines a lot more efficient.  We're assuming
+	 *  that the system catalog schema will never change.
+	 *
+	 *  Now for the 64K question:  why are we setting a read lock
+	 *  here (and not in the code below when we have a cache miss)?
+	 *  It seems to me we don't want the read lock at all.  For example:
+	 *  if the planner does a SearchSysCacheTuple on pg_attribute and
+	 *  we lock the attribute relation as a side effect, then no
+	 *  command in this transaction will be able to affect pg_attribute.
+	 *  Won't this play hell with create, addattr, define type, etc?
+	 *  -cim 1/17/90
+	 *
+	 *  old comment:
 	 * XXX race condition with cache invalidation ???
+	 * ----------------
 	 */
 	RelationSetLockForRead(relation);
-	RelationCloseHeapRelation(relation);
+	heap_close(relation);
+#endif
 	
 	return
 	    (ct->ct_tup);
@@ -804,8 +842,18 @@ SearchSysCache(cache, v1, v2, v3, v4)
      *	Tuple was not found in cache, so we have to try and
      *  retrieve it directly from the relation.  If it's found,
      *  we add it to the cache.
-     *
-     *  First DisableCache and then switch to the cache memory context.
+     * ----------------
+     */
+    /* ----------------
+     *	open the relation associated with the cache
+     * ----------------
+     */
+    relation = heap_open(cache->relationId);
+    CACHE2_elog(DEBUG, "SearchSysCache(%s)",
+		RelationGetRelationName(relation));
+
+    /* ----------------
+     *  DisableCache and then switch to the cache memory context.
      * ----------------
      */
     DisableCache = 1;
@@ -823,18 +871,18 @@ SearchSysCache(cache, v1, v2, v3, v4)
     CACHE2_elog(DEBUG, "SearchSysCache: performing scan (override==%d)",
 		heapisoverride());
     
-    sd =  ambeginscan(relation, 0, NowTimeQual,
-		      cache->cc_nkeys, cache->cc_skey);
+    sd =  heap_beginscan(relation, 0, NowTimeQual,
+			 cache->cc_nkeys, cache->cc_skey);
     
-    ntp = amgetnext(sd, 0, &buffer);
+    ntp = heap_getnext(sd, 0, &buffer);
     
     if (HeapTupleIsValid(ntp)) {
 	CACHE1_elog(DEBUG, "SearchSysCache: found tuple");
 	ntp = palloctup(ntp, buffer, relation);
     }
     
-    amendscan(sd);
-        
+    heap_endscan(sd);
+       
     DisableCache = 0;
     
     /* ----------------
@@ -842,7 +890,6 @@ SearchSysCache(cache, v1, v2, v3, v4)
      *  the cache.
      * ----------------
      */
-    
     if (HeapTupleIsValid(ntp)) {
 	/* ----------------
 	 *  allocate a new cache tuple holder, store the pointer
@@ -887,7 +934,7 @@ SearchSysCache(cache, v1, v2, v3, v4)
      *  and return the tuple we found (or NULL)
      * ----------------
      */
-    RelationCloseHeapRelation(relation);
+    heap_close(relation);
    
     MemoryContextSwitchTo(oldcxt);
     return ntp;
@@ -953,7 +1000,8 @@ RelationInvalidateCatalogCacheTuple(relation, tuple, function)
 	(*function)(ccp->id,
 		    CatalogCacheComputeTupleHashIndex(ccp, relation, tuple),
 		    &tuple->t_ctid);
-	RelationCloseHeapRelation(relation);
+	
+	heap_close(relation);
     }
     
     /* ----------------
