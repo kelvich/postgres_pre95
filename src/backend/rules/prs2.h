@@ -116,6 +116,19 @@ typedef Prs2RuleDataData *Prs2RuleData;
 
 
 /*------------------------------------------------------------------
+ * return true if the executor must call the rule manager, or
+ * false if there is no need to do so (no rules defined).
+ */
+extern
+bool
+prs2MustCallRuleManager ARGS((
+    RelationInfo	relationInfo,
+    HeapTuple           oldTuple,
+    Buffer              oldBuffer,
+    int			operation
+));
+
+/*------------------------------------------------------------------
  * prs2Main
  * The rule manager itself! Normally this should only be called
  * from within the executor...
@@ -130,6 +143,8 @@ typedef int Prs2Status;
 extern
 Prs2Status
 prs2Main ARGS((
+    EState		estate,
+    RelationInfo	scanRelInfo,
     int                 operation,
     int                 userId,
     Relation            relation,
@@ -137,6 +152,8 @@ prs2Main ARGS((
     Buffer              oldBuffer,
     HeapTuple           newTuple,
     Buffer              newBuffer,
+    HeapTuple           rawTuple,
+    Buffer              rawBuffer,
     AttributeNumberPtr  attributeArray,
     int                 numberOfAttributes,
     HeapTuple           *returnedTupleP,
