@@ -37,7 +37,6 @@
 #include "utils/mcxt.h"
 
 extern int testFlag;
-extern GlobalMemory ParserPlannerContext;
 /* ----------------
  *	Result creator declaration
  * ----------------
@@ -328,12 +327,14 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
      LispValue flat_tlist,original_tlist,qual,level,sortkeys ;
 {
     Rel final_relation;
+    List final_relation_list;
 
      /* Initialize the targetlist and qualification, adding entries to */
      /* *query-relation-list* as relation references are found (e.g., in the */
      /*  qualification, the targetlist, etc.) */
 
-    _query_relation_list_ = LispNil;
+    _base_relation_list_ = LispNil;
+    _join_relation_list_ = LispNil;
     initialize_targetlist (flat_tlist);
     initialize_qualification (qual);
 
@@ -342,12 +343,12 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 /* Mark all the clauses and relations that can be processed using special */
 /* join methods, then do the exhaustive path search. */
 
-    initialize_join_clause_info (_query_relation_list_);
-    _query_relation_list_ = find_paths (_query_relation_list_,
+    initialize_join_clause_info (_base_relation_list_);
+    final_relation_list = find_paths (_base_relation_list_,
 					level,
 					sortkeys);
-    if (_query_relation_list_)
-      final_relation = (Rel)CAR (_query_relation_list_);
+    if (final_relation_list)
+      final_relation = (Rel)CAR (final_relation_list);
     else
       final_relation = (Rel)LispNil;
      
@@ -373,9 +374,6 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 	  Plan plan;
 	  Choose chooseplan;
 	  pathlist = get_pathlist(final_relation);
-	  /*
-	  MemoryContextSwitchTo(ParserPlannerContext);
-	  */
 	  foreach (x, pathlist) {
 	      path = (Path)CAR(x);
 	      plan = create_plan(path, original_tlist);
@@ -522,6 +520,9 @@ allNestLoop(plan)
 Plan	plan;
 {
     if (plan == NULL) return true;
+    if (IsA(plan,Temp) ||
+	(IsA(plan,Scan) && get_scanrelid(plan) == _TEMP_RELATION_ID_))
+	return allNestLoop(get_lefttree(plan));
     if (IsA(plan,NestLoop)) {
 	return allNestLoop(get_lefttree(plan)) &&
 	       allNestLoop(get_righttree(plan));
