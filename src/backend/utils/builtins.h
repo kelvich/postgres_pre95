@@ -257,4 +257,7 @@ extern long	textregexeq();
 extern long	char16regexeq();
 #endif /* FMGR_ADT */
 
+extern bool int4notin();
+extern bool oidnotin();
+
 #endif !BuiltinsIncluded
