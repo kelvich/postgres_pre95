@@ -216,10 +216,10 @@ oid8	(oid8 *)	tmp/postgres.h
 path	(PATH *)	utils/geo-decls.h
 point	(POINT *)	utils/geo-decls.h
 regproc 	regproc or REGPROC	tmp/postgres.h
-reltime 	RELTIME 	tmp/postgres.h
+reltime 	RelativeTime 	utils/nabstime.h
 text	(text *)	tmp/postgres.h
 tid	ItemPointer	storage/itemptr.h
-tinterval	TimeInterval	tmp/nabstime.h
+tinterval	TimeInterval	utils/nabstime.h
 uint2	uint16	tmp/c.h
 uint4	uint32	tmp/c.h
 xid	(XID *) 	tmp/postgres.h
@@ -454,6 +454,22 @@ Under Ultrix, all object files that \*(PG is expected to load
 dynamically must be compiled under
 .IR /bin/cc
 with the \*(lq-G 0\*(rq option turned on.
+.PP
+Under HP-UX, all object files to be loaded dynamically must be compiled 
+using the native HP-UX C compiler,
+.IR /bin/cc ,
+with both the \*(lq+z\*(rq and \*(lq+u\*(rq flags turned on.  The first
+flag turns the object file into \*(lqposition-independent\*(rq code; the 
+second flag removes some alignment restrictions that the PA-RISC 
+architecture normally enforces.  If the \*(PG header file
+.(C
+tmp/c.h
+.)C
+is not included in the source file, then the following line must 
+also be added at the top of the file:
+.(C
+#pragma HP_ALIGN HPUX_NATURAL_S500
+.)C
 .PP
 More than one function may be defined with the same name, as long as
 the arguments they take are different.  A function may also have the
