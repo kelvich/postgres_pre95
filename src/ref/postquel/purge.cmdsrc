@@ -1,6 +1,6 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
-.TH PURGE COMMANDS 01/23/93
+.TH PURGE COMMANDS 02/08/94
 .XA 2 Purge
 .SH NAME
 purge \(em discard historical data
@@ -23,6 +23,13 @@ with a purge command, instance preservation defaults to
 .PP
 The user may purge a class at any time as long as the purge date never
 decreases.  \*(PG will enforce this restriction, silently.
+.PP
+Note that the 
+.BR purge
+command does not do anything except set a parameter for system 
+operation.  Use
+.IR vacuum (commands)
+to enforce this parameter.
 .SH EXAMPLE
 .(C
 /*
@@ -37,15 +44,19 @@ purge EMP before "Jan 1 1989"
  */
 purge EMP
 .)C
+.SH "SEE ALSO"
+vacuum(commands).
 .SH "BUGS AND CAVEATS"
 Error messages are quite unhelpful.  A complaint about
 \*(lqinconsistent times\*(rq followed by several nine-digit numbers
 indicates an attempt to \*(lqback up\*(rq a purge date on a relation.
 .PP
-You cannot purge certain system catalogs (namely,
-.q pg_class ,
-.q pg_attribute ,
-.q pg_am
-and
-.q pg_amop )
-due to circularities in the system catalog code.
+You cannot purge certain system catalogs (namely, \*(lqpg_class\*(rq,
+\*(lqpg_attribute\*(rq, \*(lqpg_am\*(rq, and \*(lqpg_amop\*(rq) due 
+to circularities in the system catalog code.
+.PP
+This definition of the 
+.BR purge
+command is really only useful for non-archived relations, since 
+tuples will not be discarded from archive relations (they are 
+never vacuumed).
