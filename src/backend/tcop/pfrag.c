@@ -922,7 +922,7 @@ Plan plan;
     int size;
 
     targetList = get_qptargetlist(plan);
-    natts = length(targetList);
+    natts = ExecTargetListLength(targetList);
     /* ------------------
      * see CopyRelDescUsing() in lib/C/copyfuncs.c if you want to know
      * how size if derived.

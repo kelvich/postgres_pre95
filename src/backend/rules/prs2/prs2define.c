@@ -894,7 +894,7 @@ EventType eventType;
 	     * find the updated attribute number...
 	     */
 	    targetList = parse_targetlist(oneRuleAction);
-	    if (length(targetList) != 1) {
+	    if (ExecTargetListLength(targetList) != 1) {
 		elog(WARN,
 		" a 'replace CURRENT(...)' must replace ONLY 1 attribute");
 	    }
@@ -911,7 +911,7 @@ EventType eventType;
 	     * find the updated attribute number...
 	     */
 	    targetList = parse_targetlist(oneRuleAction);
-	    if (length(targetList) != 1) {
+	    if (ExecTargetListLength(targetList) != 1) {
 		elog(WARN,
 		" a 'replace NEW(...)' must replace ONLY 1 attribute");
 	    }
