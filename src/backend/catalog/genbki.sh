@@ -16,7 +16,7 @@
 #   IDENTIFICATION
 # 	$Header$
 # ----------------------------------------------------------------
-PATH=$PATH:/lib		# to find cpp
+PATH=$PATH:/lib:/usr/ccs/lib		# to find cpp
 BKIOPTS=''
 if [ $? != 0 ]
 then
