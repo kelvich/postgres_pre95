@@ -42,7 +42,7 @@ Buffer *returnedBufferP;
     RuleLock oldLocks, newLocks;
     int i;
     AttributeValues oldAttrValues, newAttrValues, rawAttrValues;
-    AttributeNumber attr;
+    AttributeNumber attr, maxattrs;
     int newTupleMade;
     Name relName;
     bool insteadRuleFound;
@@ -85,7 +85,8 @@ Buffer *returnedBufferP;
      * First activate all the 'late evaluation' rules, i.e.
      * all the rules that try to update the fields of the 'new' tuple
      */
-    for(attr=1; attr <= RelationGetNumberOfAttributes(relation); attr++) {
+	maxattrs = RelationGetNumberOfAttributes(relation);
+    for(attr=1; attr <= maxattrs; attr++) {
 	prs2ActivateBackwardChainingRules(
 		    prs2EStateInfo,
 		    explainRelation,
