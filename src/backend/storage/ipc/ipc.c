@@ -206,7 +206,10 @@ IPCPrivateMemoryKill(status, shmId)
     if ( UsePrivateMemory ) {
 	/* free ( IpcPrivateMem[shmId].memptr ); */
     } else {
-	shmctl(shmId, IPC_RMID, (struct shmid_ds *)NULL);
+	if (shmctl(shmId, IPC_RMID, (struct shmid_ds *) NULL) < 0) {
+	    elog(NOTICE, "IPCPrivateMemoryKill: shmctl(%d, %d, 0) failed: %m",
+		 shmId, IPC_RMID);
+	}
     } 
 }
 
@@ -682,6 +685,20 @@ IpcMemoryIdGet(memKey, size)
     return(shmid);
 }
 
+/****************************************************************************/
+/*  IpcMemoryDetach(status, shmaddr)	removes a shared memory segment	    */
+/*					from a backend address space	    */
+/*  (only called by backends running under the postmaster)		    */
+/****************************************************************************/
+void
+IpcMemoryDetach(status, shmaddr)
+    int status;
+    char *shmaddr;
+{
+    if (shmdt(shmaddr) < 0) {
+	elog(NOTICE, "IpcMemoryDetach: shmdt(0x%x): %m", shmaddr);
+    }
+}
 
 /****************************************************************************/
 /*  IpcMemoryAttach(memId)    returns the adress of shared memory	    */
@@ -697,8 +714,8 @@ IpcMemoryAttach(memId)
     char	*memAddress;
     int		errStatus;
     
-    if ( UsePrivateMemory ) {
-	memAddress = (char *)PrivateMemoryAttach ( memId , 0 , 0 );
+    if (UsePrivateMemory) {
+	memAddress = (char *) PrivateMemoryAttach(memId, 0, 0);
     } else {
 	memAddress = (char *) shmat(memId, 0, 0);
     }
@@ -709,13 +726,16 @@ IpcMemoryAttach(memId)
 	return(IpcMemAttachFailed);
     }
     
+    if (!UsePrivateMemory)
+	on_exitpg(IpcMemoryDetach, (caddr_t) memAddress);
+
     return((char *) memAddress);
 }
 
 
 /****************************************************************************/
 /*  IpcMemoryKill(memKey)    		removes a shared memory segment     */
-/*									    */
+/*  (only called by the postmaster and standalone backends)		    */
 /****************************************************************************/
 void
 IpcMemoryKill(memKey)
@@ -724,7 +744,10 @@ IpcMemoryKill(memKey)
     IpcMemoryId		shmid;
     
     if (!UsePrivateMemory && (shmid = shmget(memKey, 0, 0)) >= 0) {
-	shmctl(shmid, IPC_RMID, (struct shmid_ds *) 0);
+	if (shmctl(shmid, IPC_RMID, (struct shmid_ds *) NULL) < 0) {
+	    elog(NOTICE, "IpcMemoryKill: shmctl(%d, %d, 0) failed: %m",
+		 shmid, IPC_RMID);
+	}
     }
 } 
 
