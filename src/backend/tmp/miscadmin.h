@@ -52,7 +52,6 @@
 /*
  * Identification:
  */
-#define GLOBALS_H	"$Header$"
 
 extern int Debugfile;
 extern int Ttyfile;
@@ -94,7 +93,7 @@ extern ObjectId	    LastOidProcessed;	/* for query rewrite */
  * ----------------
  */
 #ifndef	_MAGIC_H_
-#define	_MAGIC_H_	"$Header$"
+#define	_MAGIC_H_
 
 /*
  *	magic.h		- definitions of the indexes of the magic numbers
@@ -121,13 +120,10 @@ extern ObjectId	    LastOidProcessed;	/* for query rewrite */
  *	POSTGRES directory path definitions.
  *
  * Identification:
- *	$Header$
  */
 
 #ifndef	PDirIncluded		/* Include this file only once */
 #define PDirIncluded	1
-
-#define PDIR_H	"$Header$"
 
 /*
  * GetDatabasePath --
@@ -203,9 +199,6 @@ DoChdirAndInitDatabaseNameAndPath ARGS((
  *
  * Note:
  *	XXX AddExitHandler not defined yet.
- *
- * Identification:
- *	$Header$
  */
 
 #ifndef	PInitIncluded
@@ -344,7 +337,6 @@ AbortPostgres ARGS((
 /*
  * Identification:
  */
-#define PMOD_H	"$Header$"
 
 typedef enum ProcessingMode {
 	NoProcessing,		/* "nothing" can be done */
@@ -409,6 +401,8 @@ SetProcessingMode ARGS((
 	ProcessingMode	mode
 ));
 
+extern ProcessingMode GetProcessingMode ARGS((void));
+
 #endif	/* !defined(PModIncluded) */
 
 extern char *GetPGHome ARGS((void));
@@ -421,15 +415,10 @@ extern char *GetPGData ARGS((void));
 /*
  * pusr.h --
  *	POSTGRES user permissions definitions.
- *
- * Identification:
- *	$Header$
  */
 
 #ifndef	PUsrIncluded		/* Include this file only once */
 #define PUsrIncluded	1
-
-#define PUSR_H	"$Header$"
 
 /*
  * GetUserId --
@@ -471,9 +460,6 @@ InitUser ARGS((
  *
  * Note:
  *	This file is for the Sun UNIX OPERATING SYSTEM 3.4 or 3.5 or 3.6!!!
- *
- * Identification:
- *	$Header$
  */
 
 #ifndef	UNIXIncluded		/* Include this file only once */
@@ -617,9 +603,6 @@ time ARGS((
  *
  * Note:
  *	This file is OPERATING SYSTEM dependent!!!
- *
- * Identification:
- *	$Header$
  */
 
 #ifndef	OSIncluded		/* Include this file only once */
