@@ -65,8 +65,6 @@ typedef struct mcro {
 
 #define EMITPROMPT printf("> ")
 
-char		*strcpy(), *strncpy(), *strcat(), *strncat();
-char		*sprintf();
 extern          int Int_yylval;
 
 /* ami_sup.c */
