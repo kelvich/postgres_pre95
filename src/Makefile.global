@@ -171,7 +171,12 @@ ENFORCE_ALIGNMENT=
 INSTALL=/usr/ucb/install
 .endif
 .if (${PORTNAME} == "alpha")
-INSTALL=installbsd
+INSTALL=/bin/installbsd
+.endif
+.if (${PORTNAME} == "hpux")
+# This is a script from the MIT X11 distribution.  we provide it
+# in src/tools/bsdinst if you don't already have it installed.
+INSTALL=bsdinst
 .endif
 
 #
@@ -352,6 +357,9 @@ CFLAGS+= -D__USE_BSD -D__USE_BSD_SIGNAL
 # This is defined here because a bunch of clients include tmp/c.h,
 # which is where the work is done on HP-UX.  It only affects the
 # backend on Ultrix and OSF/1.
+#
+# Don't mess with this.  It's here because it's global, not because
+# you're supposed to change anything.
 #
 .if defined(ENFORCE_ALIGNMENT)
 .  if (${PORTNAME} == "ultrix4" || \
