@@ -201,11 +201,11 @@ int LOopen(fname,mode)
 #endif
 	switch (LOprocs[objtype].bigcookie) {
 	  case SMALL_INT:
-	    lobjDesc =
+	    lobjDesc = (char *)
 	      LOprocs[objtype].LOopen((void *) *((int *)VARDATA(lobjCookie)),mode);
 	    break;
 	  case BIG: 
-	    lobjDesc = LOprocs[objtype].LOopen(lobjCookie,mode);
+	    lobjDesc = (char *) LOprocs[objtype].LOopen(lobjCookie,mode);
 	    break;
 	}
 	    
@@ -477,7 +477,7 @@ int LOcreat(path,mode,objtype)
 	}
 #endif
 
-	lobjDesc = LOprocs[objtype].LOcreate(path,mode);
+	lobjDesc = (char *) LOprocs[objtype].LOcreate(path,mode);
 
 	if (lobjDesc == NULL) {
 	    MemoryContextSwitchTo(currentContext);
