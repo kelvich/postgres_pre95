@@ -1321,8 +1321,8 @@ _readPath()
 	token = lsptok(NULL, &length);      /* get :keys */
 	local_node->keys = lispRead(true);       /* now read it */
 
-	token = lsptok(NULL, &length);      /* get :sortpath */
-	local_node->sortpath = (SortKey) lispRead(true);
+	token = lsptok(NULL, &length);      /* get :pathsortkey */
+	local_node->pathsortkey = (SortKey) lispRead(true);
 
 	return(local_node);
 }
@@ -1358,8 +1358,8 @@ _readIndexPath()
 	token = lsptok(NULL, &length);      /* get :keys */
 	local_node->keys = lispRead(true);       /* now read it */
 
-	token = lsptok(NULL, &length);      /* get :sortpath */
-	local_node->sortpath = (SortKey) lispRead(true);
+	token = lsptok(NULL, &length);      /* get :pathsortkey */
+	local_node->pathsortkey = (SortKey) lispRead(true);
 
 	token = lsptok(NULL, &length);      /* get :indexid */
 	local_node->indexid = lispRead(true);
@@ -1402,8 +1402,8 @@ _readJoinPath()
 	token = lsptok(NULL, &length);      /* get :keys */
 	local_node->keys = lispRead(true);            /* now read it */
 
-	token = lsptok(NULL, &length);      /* get :sortpath */
-	local_node->sortpath = (SortKey) lispRead(true);
+	token = lsptok(NULL, &length);      /* get :pathsortkey */
+	local_node->pathsortkey = (SortKey) lispRead(true);
 
 	token = lsptok(NULL, &length);      /* get :pathclauseinfo */
 	local_node->pathclauseinfo = lispRead(true);         /* now read it */
@@ -1471,8 +1471,8 @@ _readMergePath()
 	token = lsptok(NULL, &length);      /* get :keys */
 	local_node->keys = lispRead(true);            /* now read it */
 
-	token = lsptok(NULL, &length);      /* get :sortpath */
-	local_node->sortpath = (SortKey) lispRead(true);
+	token = lsptok(NULL, &length);      /* get :pathsortkey */
+	local_node->pathsortkey = (SortKey) lispRead(true);
 
 	token = lsptok(NULL, &length);      /* get :pathclauseinfo */
 	local_node->pathclauseinfo = lispRead(true);        /* now read it */
@@ -1548,8 +1548,8 @@ _readHashPath()
 	token = lsptok(NULL, &length);      /* get :keys */
 	local_node->keys = lispRead(true);       /* now read it */
 
-	token = lsptok(NULL, &length);      /* get :sortpath */
-	local_node->sortpath = (SortKey) lispRead(true);
+	token = lsptok(NULL, &length);      /* get :pathsortkey */
+	local_node->pathsortkey = (SortKey) lispRead(true);
 
 	token = lsptok(NULL, &length);      /* get :pathclauseinfo */
 	local_node->pathclauseinfo = lispRead(true); /* now read it */

@@ -349,8 +349,8 @@ register Path a,b;
     if (!equal((Node)(a->keys),
 	       (Node)(b->keys)))
 	return(false);
-    if (!equal((Node)(a->sortpath),
-	       (Node)(b->sortpath)))
+    if (!equal((Node)(a->pathsortkey),
+	       (Node)(b->pathsortkey)))
 	return(false);
     /*
     if (a->outerjoincost != b->outerjoincost)

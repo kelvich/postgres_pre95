@@ -14,6 +14,7 @@ RcsId("$Header$");
 #include "nodes/plannodes.h"
 #include "nodes/nodes.h"
 #include "nodes/pg_lisp.h"
+#include "nodes/relation.h"
 #include "tmp/nodeFuncs.h"
 
 #include "planner/keys.h"
@@ -138,7 +139,7 @@ varid_indexes_into_array (var)
  */
 List
 varid_array_index (var)
-     LispValue var ;
+     Var var ;
 {
     return(CAR (last_element ((LispValue)(get_varid (var)))));
 }

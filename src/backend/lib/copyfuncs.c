@@ -1656,7 +1656,7 @@ bool CopyPathFields(from, newnode, alloc)
     
     Node_Copy(from, newnode, alloc, p_ordering);
     Node_Copy(from, newnode, alloc, keys);
-    Node_Copy(from, newnode, alloc, sortpath);
+    Node_Copy(from, newnode, alloc, pathsortkey);
     
     newnode->outerjoincost = 	from->outerjoincost;
     

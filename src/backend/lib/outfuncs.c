@@ -1008,9 +1008,9 @@ _outPath(str, node)
 	appendStringInfo(str,buf);
 	_outLispValue(str, node->keys);
 
-	sprintf(buf, " :sortpath ");
+	sprintf(buf, " :pathsortkey ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, (LispValue)(node->sortpath));
+	_outLispValue(str, (LispValue)(node->pathsortkey));
 
 }
 
@@ -1046,9 +1046,9 @@ _outIndexPath(str, node)
 	appendStringInfo(str,buf);
 	_outLispValue(str, node->keys);
 
-	sprintf(buf, " :sortpath ");
+	sprintf(buf, " :pathsortkey ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, (LispValue)(node->sortpath));
+	_outLispValue(str, (LispValue)(node->pathsortkey));
 
 	sprintf(buf, " :indexid ");
 	appendStringInfo(str,buf);
@@ -1092,9 +1092,9 @@ _outJoinPath(str, node)
 	appendStringInfo(str,buf);
 	_outLispValue(str, node->keys);
 
-	sprintf(buf, " :sortpath ");
+	sprintf(buf, " :pathsortkey ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, (LispValue)(node->sortpath));
+	_outLispValue(str, (LispValue)(node->pathsortkey));
 
 	sprintf(buf, " :pathclauseinfo ");
 	appendStringInfo(str,buf);
@@ -1151,9 +1151,9 @@ _outMergePath(str, node)
 	appendStringInfo(str,buf);
 	_outLispValue(str, node->keys);
 
-	sprintf(buf, " :sortpath ");
+	sprintf(buf, " :pathsortkey ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, (LispValue)(node->sortpath));
+	_outLispValue(str, (LispValue)(node->pathsortkey));
 
 	sprintf(buf, " :pathclauseinfo ");
 	appendStringInfo(str,buf);
@@ -1222,9 +1222,9 @@ _outHashPath(str, node)
 	appendStringInfo(str,buf);
 	_outLispValue(str, node->keys);
 
-	sprintf(buf, " :sortpath ");
+	sprintf(buf, " :pathsortkey ");
 	appendStringInfo(str,buf);
-	_outLispValue(str, (LispValue)(node->sortpath));
+	_outLispValue(str, (LispValue)(node->pathsortkey));
 
 	sprintf(buf, " :pathclauseinfo ");
 	appendStringInfo(str,buf);
