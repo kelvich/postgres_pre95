@@ -419,10 +419,6 @@ pg_eval( query_string )
 	 */
 	
 	if ( unrewritten == true && EnableRewrite ) {
-	    if (!Quiet) {
-		printf("rewriting query if needed ...\n");
-		fflush(stdout);
-	    }
 	    if (( rewritten = QueryRewrite ( parsetree )) != NULL  ) {
 		CAR(i) =  CAR(rewritten);
 		CDR(last(rewritten)) = CDR(i);
@@ -647,7 +643,7 @@ PostgresMain(argc, argv)
     numslaves = 0;
     flagC = flagQ = flagM = flagS = ShowStats = flagE = 0;
     
-    while ((flag = getopt(argc, argv, "B:b:CdEMNnOP:pQSt")) != EOF)
+    while ((flag = getopt(argc, argv, "B:b:CdEMNnOP:pQSs")) != EOF)
 	
       switch (flag) {
 	  
@@ -770,7 +766,7 @@ PostgresMain(argc, argv)
 	  
       case 's':
 	  /* ----------------
-	   *    t - report usage statistics (timings) after each query
+	   *    s - report usage statistics (timings) after each query
 	   * ----------------
 	   */
 	  ShowStats = 1;
@@ -815,7 +811,7 @@ PostgresMain(argc, argv)
 	printf("\toverride  =    %c\n", override  ? 't' : 'f');
 	printf("\tstable    =    %c\n", flagS     ? 't' : 'f');
 	printf("\tparallel  =    %c\n", flagM     ? 't' : 'f');
-	printf("\ttimings   =	 %c\n", ShowStats ? 't' : 'f');
+	printf("\ttimings   =    %c\n", ShowStats ? 't' : 'f');
 	if (flagM)
 	    printf("\t# slaves  =    %d\n", numslaves);
 	
