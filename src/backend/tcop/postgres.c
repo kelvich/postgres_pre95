@@ -298,6 +298,12 @@ ProcessQuery(parser_output, plan)
      *   we have only initialized the plan..  Why do we then
      *   return here if isPortal?  This *CANNOT* be correct.
      *   but portals aren't *my* problem (yet..) -cim 8/29/89
+     *
+	 * Response:  This is correct; ExecMain has been called to
+	 * initialize the query execution.  Named portals do not
+	 * do a "fetch all" initially.  The blank portal may
+	 * behave in the same way in the future (as an option).
+	 *	-hirohama
      * ----------------
      */
     if (isPortal) {
@@ -352,6 +358,12 @@ ProcessQuery(parser_output, plan)
 				    LispNil));
 	
     } else if (IsUnderPostmaster) {
+		/*
+		 * I suggest that the IsUnderPostmaster test be
+		 * performed at a lower level in the code--at
+		 * least inside the executor to reduce the number
+		 * of externally visible requests. -hirohama
+		 */
 	feature = lispCons(lispInteger(EXEC_DUMP), LispNil);
     } else {
 	feature = lispCons(lispInteger(EXEC_DEBUG), LispNil);
@@ -392,11 +404,14 @@ ProcessQuery(parser_output, plan)
 
     /* ----------------
      *   not certain what this does.. -cim 8/29/89
+	 * A: Notify the frontend of end of processing.
+	 * Perhaps it would be cleaner for PerformQuery
+	 * and PerformCommand to return the tag, and for
+	 * the "traffic cop" to call EndCommand on it.
+	 *	-hirohama
      * ----------------
      */
-    if (IsUnderPostmaster) {
 	EndCommand(tag);
-    }
 }
 
 /* ----------------
