@@ -13,6 +13,7 @@
 
 #include "access/heapam.h"
 #include "access/genam.h"
+#include "access/iqual.h"
 #include "access/ftup.h"
 #include "access/rtree.h"
 #include "access/sdir.h"
@@ -142,7 +143,7 @@ rtnext(s, dir)
     ItemPointer ip;
 
     blk = ItemPointerGetBlockNumber(&(s->currentItemData));
-    n = ItemPointerGetOffsetNumber(&(s->currentItemData)) - 1;
+    n = ItemPointerSimpleGetOffsetNumber(&(s->currentItemData)) - 1;
 
     if (ScanDirectionIsForward(dir))
 	++n;
@@ -294,7 +295,7 @@ rtheapptr(r, itemp)
     if (ItemPointerIsValid(itemp)) {
 	b = ReadBuffer(r, ItemPointerGetBlockNumber(itemp));
 	p = BufferGetPage(b, 0);
-	n = ItemPointerGetOffsetNumber(itemp);
+	n = ItemPointerSimpleGetOffsetNumber(itemp);
 	it = (IndexTuple) PageGetItem(p, PageGetItemId(p, n - 1));
 	bcopy((char *) &(it->t_tid), (char *) ip, sizeof(ItemPointerData));
 	ReleaseBuffer(b);
