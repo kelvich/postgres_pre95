@@ -23,8 +23,9 @@
 
 #include "catcache.h"
 
-/*#define CACHEDEBUG*/
-/*#define CACHEDDEBUG2*/
+/* #define CACHEDEBUG */
+/* #define CACHEDDEBUG2 */
+/* #define CACHEDEBUG3 */
 
 RcsId("$Header$");
 
@@ -47,7 +48,7 @@ static int	DisableCache;
 /* XXX this should be replaced by catalog lookups soon */
 static long	eqproc[] = {
     F_BOOLEQ, 0l, F_CHAREQ, F_CHAR16EQ, 0l,
-    F_INT2EQ, 0l, F_INT4EQ, 0l, F_TEXTEQ,
+    F_INT2EQ, F_KEYFIRSTEQ, F_INT4EQ, 0l, F_TEXTEQ,
     F_OIDEQ, 0l, 0l, 0l, 0l
 };
 
@@ -57,7 +58,7 @@ static long	eqproc[] = {
  * CatalogCacheComputeHashIndex --
  */
 
-static
+/* static */
 Index
 CatalogCacheComputeHashIndex ARGS((
 	struct catcache	*cacheInP;
@@ -396,20 +397,37 @@ char	*a, *b;
 
 #endif
 
+/*
+ * comphash --
+ *	Compute a hash value, somehow.
+ *
+ * XXX explain algorithm here.
+ *
+ * l is length of the attribute value, v
+ * v is the attribute value ("Datum")
+ */
 comphash(l, v)
 int	l;
 register char	*v;
 {
     register int  i;
+    extern etext;		/* XXX hack here */
 
+#ifdef CACHEDEBUG3 
+    elog(DEBUG,"comphash (%d,%x)", l, v);
+#endif
     switch (l) {
     case 1:
     case 2:
     case 4:
 	return((int) v);
     }
-    if (l == 16) {		/* XXX char16 special handling */
-  	l = NameComputeLength((Name)v);
+    if (l == 16) {
+		if (v < &etext) {	/* XXX int16[8] special handling */
+			return((int16)v);
+		} else {		/* XXX char16 special handling */
+			l = NameComputeLength((Name)v);
+		}
     } else if (l < 0) {
 	l = PSIZE(v);
     }
@@ -594,7 +612,7 @@ HeapTuple	tuple;
     return (CatalogCacheComputeHashIndex(cacheInOutP));
 }
 
-static
+/* static */
 Index
 CatalogCacheComputeHashIndex(cacheInP)
 struct catcache	*cacheInP;
@@ -603,6 +621,9 @@ struct catcache	*cacheInP;
 
     hashIndex = 0x0;
 
+#ifdef CACHEDEBUG3
+    elog(DEBUG,"CatalogCacheComputeHashIndex %s %d %d %d %x",cacheInP->cc_relname,cacheInP->cc_nkeys, cacheInP->cc_klen[0], cacheInP->cc_klen[1], cacheInP);
+#endif
     switch (cacheInP->cc_nkeys) {
     case 4:
 	hashIndex ^= comphash(cacheInP->cc_klen[3],
@@ -732,6 +753,9 @@ Relation relation;
 		relation->rd_att.data[cache->cc_key[i]-1]->attlen;
 	    cache->cc_skey[i].sk_opr =
 	        EQPROC(relation->rd_att.data[cache->cc_key[i]-1]->atttypid);
+#ifdef CACHEDEBUG3
+	    elog(DEBUG,"CatalogCacheInit %16s %d %d %x",&relation->rd_rel->relname,i,relation->rd_att.data[cache->cc_key[i]-1]->attlen, cache);
+#endif
 	}
     }
     if (didopen)

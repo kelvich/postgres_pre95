@@ -152,6 +152,13 @@ static struct cachedesc cacheinfo[] = {
 	    0,
 	    0,
 	    0},
+	  sizeof(IndexTupleFormData) },
+	{ &IndexRelationName,				/* INDRELIDKEY */
+	  2,
+	  { IndexHeapRelationIdAttributeNumber,
+	    IndexKeyAttributeNumber,
+	    0,
+	    0},
 	  sizeof(IndexTupleFormData) }
 };
 
