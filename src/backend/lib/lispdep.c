@@ -424,23 +424,64 @@ append(list,lispObject)
      LispValue list, lispObject;
 {
      LispValue  p;
-     LispValue newlist = list;
+     LispValue newlist, newlispObject;
+     LispValue lispCopy();
 
      Assert(listp (list));
-     if (newlist == LispNil) {
-	 if (lispObject == LispNil)
-	   return(LispNil);
-	 else {
-	     return (lispObject);  /* XXX should copy  */
-	 }
-     }
+     if (list == LispNil)
+        return (lispCopy(lispObject));
+     
+     newlist = lispCopy(list);
+     newlispObject = lispCopy(lispObject);
+
      for (p = newlist; CDR(p) != LispNil; p = CDR(p))
        ;
-     /* CDR(p) = lispList();
-	CAR(CDR(p)) = lispObject; */
-     CDR(p) = lispObject;
+     CDR(p) = newlispObject;
      return(newlist);
 
+}
+
+/* XXX -- Only makes copies of the internal nodes, not the leaf nodes.  */
+LispValue
+lispCopy (lispObject)
+     LispValue lispObject;
+{
+     LispValue newnode;
+     if (lispObject == LispNil)
+	 return(LispNil);
+     newnode = lispAlloc();
+     newnode->type = lispObject->type;
+     newnode->printFunc = lispObject->printFunc;
+     newnode->equalFunc = lispObject->equalFunc;
+     switch (lispObject->type) {
+     case T_LispSymbol:
+	  newnode->val.name = lispObject->val.name;
+	  newnode->cdr = LispNil;
+	  break;
+     case T_LispStr:
+	  newnode->val.str = lispObject->val.str;
+	  newnode->cdr = LispNil;
+	  break;
+     case T_LispInt:
+	  newnode->val.fixnum = lispObject->val.fixnum;
+	  newnode->cdr = LispNil;
+	  break;
+     case T_LispFloat:
+	  newnode->val.flonum = lispObject->val.flonum;
+	  newnode->cdr = LispNil;
+	  break;
+     case T_LispVector:
+	  newnode->val.veci = lispObject->val.veci;
+	  newnode->cdr = LispNil;
+	  break;
+     case T_LispList:
+	  newnode->val.car = lispCopy(lispObject->val.car);
+	  newnode->cdr = lispCopy(lispObject->cdr);
+	  break;
+     default:
+	  newnode = lispObject;
+     }
+     return (newnode);
 }
 
 int
@@ -660,7 +701,21 @@ push(foo,bar)
      LispValue foo;
      List bar;
 {
-    elog(WARN,"unsupported function 'push' called");
+	LispValue tmp = lispList();
+
+	if (bar == LispNil) {
+		CAR(tmp) = foo;
+		CDR(tmp) = LispNil;
+		return(tmp);
+	}
+
+	CAR(tmp) = CAR(bar);
+	CDR(tmp) = CDR(bar);
+
+	CAR(bar) = foo;
+	CDR(bar) = tmp;
+
+	return(bar);
 }
 
 LispValue 
