@@ -32,6 +32,7 @@
 #include "tmp/c.h"
 
 #include "tmp/libpq-fe.h"
+#include "tmp/fastpath.h"
 #include "utils/exception.h"
 
 RcsId ("$Header$");
@@ -137,10 +138,16 @@ read_remark(id)
     char id[];
 {
     char remarks[remark_length];
+    char errormsg[error_msg_length];
 
     while (id[0] == 'R') {
 	pq_getstr(remarks, remark_length);
 	pq_getnchar(id, 0, 1);
+    }
+    while(id[0] == 'N') {
+        pq_getstr(errormsg,error_msg_length);
+        fprintf(stdout,"%s \n",&errormsg[0]+4);
+        pq_getnchar(id, 0, 1);
     }
 }
 
@@ -380,18 +387,23 @@ PQFlushI(i_count)
  *	fnid		: function id
  * 	result_buf      : pointer to result buffer (&int if integer)
  * 	result_len	: length of return value.
- * 	result_is_int	: If the result is an integer, this must be non-zero
+ *      actual_result_len: actual length returned. (differs from result_len for
+ *                      varlena structures.
+ *      result_type     : If the result is an integer, this must be 1,
+ *                        If result is opaque, this must be 2.
  * 	args		: pointer to a NULL terminated arg array.
  *			  (length, if integer, and result-pointer)
  * 	nargs		: # of arguments in args array.
  * ----------------
  */
 char *
-PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
+PQfn(fnid, result_buf, result_len, actual_result_len,
+     result_type, args, nargs)
     int fnid;
-    int *result_buf;	/* can't use void, dec compiler barfs */
+    int *result_buf;    /* can't use void, dec compiler barfs */
     int result_len;
-    int result_is_int;
+     int *actual_result_len;
+    int result_type;
     PQArgBlock *args;
     int nargs;
 {
@@ -415,8 +427,10 @@ PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
     for (i=0; i < nargs; ++i) { /*	len.int4 + contents	*/
 	pq_putint(args[i].len, 4);
 	if (args[i].isint)
-	    pq_putint(args[i].u.integer, 4);
-	else
+	  pq_putint(args[i].u.integer, 4);
+	else if (args[i].len == VAR_LENGTH_ARG) {
+            pq_putstr((char *)args[i].u.ptr);
+	} else
 	    pq_putnchar((char *)args[i].u.ptr, args[i].len);
     }
 
@@ -427,6 +441,12 @@ PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
     id[0] = '?';
 
     pq_getnchar(id, 0, 1);
+    if (id[0] == 'E') {
+        char buf[1024];
+        pq_getstr(buf,sizeof(buf));
+        printf ("Error: %s\n",buf);
+    }
+
     read_remark(id);
     fnid = pq_getint(4);
     pqdebug("The Identifier is: %c", (char *)id[0]);
@@ -436,35 +456,49 @@ PQfn(fnid, result_buf, result_len, result_is_int, args, nargs)
 
     if (id[0] == 'V')
 	pq_getnchar(id, 0, 1);
+    for (;;) {
+	switch (id[0]) {
+	  case 'G':		/* PQFN: simple return value	*/
+	    actual_len = pq_getint(4);
+	    pqdebug2("LENGTH act/usr %ld/%ld\n", (char*)actual_len, (char*)result_len);
+	    if ((actual_len != VAR_LENGTH_RESULT) &&
+                (actual_len < 0 || actual_len > result_len)) {
+		pqdebug("RESET CALLED FROM CASE G", (char *)0);
+		PQreset();
+		libpq_raise(ProtocolError, form ((int)"Buffer Too Small: %s", id));
+	    }
+	    if (result_type == 1)
+	      *(int *)result_buf = pq_getint(4);
+	    else if (actual_len == VAR_LENGTH_RESULT) {
+		pq_getstr((char *)result_buf,MAX_STRING_LENGTH);
+	    } else
+	      pq_getnchar((char *)result_buf, 0, actual_len);
+	    if (actual_result_len != NULL)
+	      *actual_result_len = actual_len;
+	    if ((result_type != 2) && /* not a binary result */
+		(actual_len != result_len)) /* if wouldn't overflow the buf */
+	      ((char *)result_buf)[actual_len] = 0; /* add a \0 */
+	    pq_getnchar(id, 0, 1);
+	    return("G");
 
-    switch (id[0]) {
-    case 'G':		/* PQFN: simple return value	*/
-	actual_len = pq_getint(4);
-	pqdebug2("LENGTH act/usr %ld/%ld\n", (char*)actual_len, (char*)result_len);
-	if (actual_len < 0 || actual_len > result_len) {
+	  case 'N':		/* print notice and go back to processing return values */
+	    pq_getstr(errormsg, error_msg_length);
+	    pqdebug("%s notice encountered.", errormsg);
+	    fprintf(stdout,"%s \n", errormsg);
+	    pq_getnchar(id, 0, 1);
+	    break;
+
+	  case '0':		/* PQFN: no return value	*/
+	    return("V");
+
+	    default:
+	    /* The backend violates the protocol. */
 	    pqdebug("RESET CALLED FROM CASE G", (char *)0);
+	    pqdebug("Protocol Error, bad form, got '%c'", (char *)id[0]);
 	    PQreset();
-	    libpq_raise(ProtocolError, form ((int)"Buffer Too Small: %s", id));
+	    libpq_raise(ProtocolError, form((int)"Unexpected identifier: %s", id));
+	    return(NULL);
 	}
-	if (result_is_int)
-	    *(int *)result_buf = pq_getint(4);
-	else
-	    pq_getnchar((char *)result_buf, 0, actual_len);
-	if (actual_len != result_len)	/* if wouldn't overflow the buf */
-	    ((char *)result_buf)[actual_len] = 0;	/* add a \0 */
-	pq_getnchar(id, 0, 1);
-	return("G");
-
-    case '0':		/* PQFN: no return value	*/
-	return("V");
-
-    default:
-	/* The backend violates the protocol. */
-	pqdebug("RESET CALLED FROM CASE G", (char *)0);
-	pqdebug("Protocol Error, bad form, got '%c'", (char *)id[0]);
-	PQreset();
-	libpq_raise(ProtocolError, form((int)"Unexpected identifier: %s", id));
-	return(NULL);
     }
 }
 

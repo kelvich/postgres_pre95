@@ -59,6 +59,9 @@ RcsId("$Header$");
 #include "catalog/pg_type.h"
 #include "catalog/pg_rewrite.h"
 #include "catalog/pg_aggregate.h"
+#include "catalog/pg_naming.h"
+#include "utils/large_object.h"
+#include "catalog/pg_lobj.h"
  
 extern bool	AMI_OVERRIDE;	/* XXX style */
  
@@ -267,7 +270,23 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0 },
 	   sizeof(FormData_pg_aggregate),
-       NULL }
+       NULL },    
+    { &NamingRelationName,                      /*NAMEREL */
+        2,
+        { Anum_pg_naming_parent_oid,/*NamingParentOIDAttributeNumber,*/
+            Anum_pg_naming_filename,/*NamingFilenameAttributeNumber,*/
+            0,
+            0 },
+        sizeof(FormData_pg_naming),
+        NULL },
+    { &LargeObjectAssocRelationName,           /*LOBJREL */
+        1,
+        { Anum_pg_large_object_oid,/*LargeObjectOIDAttributeNumber,*/
+            0,
+            0,
+            0 },
+        sizeof (FormData_pg_large_object),
+        NULL }
 };
  
 static struct catcache	*SysCache[lengthof(cacheinfo)];
