@@ -12,4 +12,8 @@ extern HashJoin create_hashjoin_node ARGS((Path best_path, List inner_ tlist, Li
 extern Temp make_temp ARGS((List tlist, List keys, List operators, Plan plan_node, int temptype));
 extern List set_temp_tlist_operators ARGS((List tlist, List pathkeys, List operators));
 extern SeqScan make_seqscan ARGS((List qptlist,List qpqual, Index scanrelid Plan lefttree ));
+extern NestLoop make_nestloop ARGS((List qptlist, List qpqual, Plan lefttree, Plan righttree ));
+extern HashJoin make_hashjoin ARGS((LispValue tlist, LispValue qpqual, List hashclauses, ObjectId opcode, Plan outer_node, Plan inner_node));
+extern Hash make_hash ARGS((List tlist, ObjectId tempid, Plan inner_node, Count keycount));
+extern IndexScan make_indexscan ARGS((List qptlist, List qpqual, Index scanrelid, List indxid, List indxqual));
 
