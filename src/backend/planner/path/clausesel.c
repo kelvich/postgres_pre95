@@ -30,6 +30,9 @@
 #include "planner/plancat.h"
 #include "parser/parsetree.h"
 
+#include "catalog/pg_proc.h"
+#include "catalog/pg_operator.h"
+
 /*     		----  ROUTINES TO SET CLAUSE SELECTIVITIES  ----   */
 
 
@@ -233,6 +236,27 @@ compute_selec (clauses,or_selectivities)
     else if (IsA(clause,Const))
      {
 	 s1 = ((bool)get_constvalue((Const)clause)) ? 1.0 : 0.0;
+     }
+    else if (IsA(clause,Var))
+     {
+	 ObjectId relid;
+
+	 relid = (ObjectId)
+		CInteger(translate_relid(CAR(get_varid((Var)clause))));
+	 /*
+	  * we have a bool Var.  This is exactly equivalent to the clause:
+	  *	reln.attribute = 't'
+	  * so we compute the selectivity as if that is what we have. The
+	  * magic #define constants are a hack.  I didn't want to have to
+	  * do system cache look ups to find out all of that info.
+	  */
+	 s1 = restriction_selectivity(EqualSelectivityProcedure,
+				      BooleanEqualOperator,
+				      relid,
+				      CInteger(CADR(get_varid((Var)clause))),
+				      (Datum) 't',
+				      _SELEC_CONSTANT_RIGHT_);
+
      }
     /* If s1 has already been assigned by an index, use that value. */ 
     else if (or_selectivities)
