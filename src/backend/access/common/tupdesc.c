@@ -225,8 +225,9 @@ BuildDesc(schema)
     List		p;
     List		entry;
     TupleDesc		desc;
-    Name 		attname;
-    Name 		typename;
+    String		typename;
+    NameData 		attnameData;
+    NameData 		typenameData;
     Array		arry;
     int			attdim;
     
@@ -249,28 +250,34 @@ BuildDesc(schema)
 	attnum++;
 	
 	entry = 	CAR(p);
-	attname = 	(Name) CString(CAR(entry));
-	typename = 	(Name) CString(CADR(entry));
+
+	(void) namestrcpy(&attnameData, (char *) CString(CAR(entry)));
+
+	typename = 	CString(CADR(entry));
 	arry =		(Array) CDR(CDR(entry));
 
 	if (arry != (Array) NULL) {
-	    char buf[20];
-
 	    attdim = get_arrayndim(arry);
 
 	    /* array of XXX is _XXX (inherited from release 3) */
-	    sprintf(buf, "_%s", typename);
-	    strcpy(typename, buf);
+	    namestrcpy(&typenameData, "_");
+	    namestrcat(&typenameData, (char *) typename);
+	} else {
+	    attdim = 0;
+
+	    namestrcpy(&typenameData, (char *) typename);
 	}
 
-	if (!TupleDescInitEntry(desc, attnum, attname, typename, attdim)) {
+	if (!TupleDescInitEntry(desc, attnum, &attnameData, &typenameData,
+				attdim)) {
 	    /* ----------------
 	     *	if TupleDescInitEntry() fails, it means there is
 	     *  no type in the system catalogs, so we signal an
 	     *  elog(WARN) which aborts the transaction.
 	     * ----------------
 	     */
-	    elog(WARN, "BuildDesc: no such type %s", typename);
+	    elog(WARN, "BuildDesc: no such type \"%-.*s\"",
+		 NAMEDATALEN, typename);
 	}
     }
 
@@ -302,12 +309,11 @@ BuildDescForRelation(schema, relname)
     AttributeNumber	attnum;
     List		p;
     List		entry;
-    Array		arry;
     TupleDesc		desc;
-    Name 		attname;
-    Name 		typename;
-    char		typename2[16];
-    char		*pp, *pp2;
+    String 		typename;
+    NameData		attnameData;
+    NameData		typenameData;
+    Array		arry;
     int			attdim;
 
     /* ----------------
@@ -329,29 +335,31 @@ BuildDescForRelation(schema, relname)
 	attnum++;
 	
 	entry = 	CAR(p);
-	attname = 	(Name) CString(CAR(entry));
+
+	(void) namestrcpy(&attnameData, (char *) CString(CAR(entry)));
 
 	if (IsA(CADR(entry),LispList)) {
-	    typename = (Name) CString(CAR(CADR(entry)));
+	    typename = CString(CAR(CADR(entry)));
 	    arry = (Array) CDR(CADR(entry));
 	} else {
-	    typename = (Name) CString(CADR(entry));
+	    typename = CString(CADR(entry));
 	    arry = (Array) NULL;
 	}
 
 	if (arry != (Array) NULL) {
-	    char buf[20];
-
 	    attdim = get_arrayndim(arry);
 
 	    /* array of XXX is _XXX (inherited from release 3) */
-	    sprintf(buf, "_%s", typename);
-	    strcpy(typename, buf);
-	}
-	else
+	    namestrcpy(&typenameData, "_");
+	    namestrcat(&typenameData, (char *) typename);
+	} else {
 	    attdim = 0;
 
-	if (! TupleDescInitEntry(desc, attnum, attname, typename, attdim)) {
+	    namestrcpy(&typenameData, (char *) typename);
+	}
+
+	if (! TupleDescInitEntry(desc, attnum, &attnameData, &typenameData,
+				 attdim)) {
 	    /* ----------------
 	     *	if TupleDescInitEntry() fails, it means there is
 	     *  no type in the system catalogs.  So now we check if
@@ -359,12 +367,13 @@ BuildDescForRelation(schema, relname)
 	     *  have a self reference, otherwise it's an error.
 	     * ----------------
 	     */
-	    if (!strcmp(typename, relname)) {
+	    if (!strncmp(typename, relname, NAMEDATALEN)) {
 		TupleDescMakeSelfReference(desc, attnum, relname);
-	    } else
-		elog(WARN, "DefineRelation: no such type %s", typename);
+	    } else {
+		elog(WARN, "DefineRelation: no such type \"%-.*s\"",
+		     NAMEDATALEN, typename);
+	    }
 	}
     }
     return desc;
 }
-
