@@ -4,6 +4,8 @@
 # $Header$
 #
 
+CFLAGS+= -DNEED_ISINF
+
 LDADD+= -ldl -lln
 
 #
