@@ -80,11 +80,9 @@ InsertRule ( rulname , evtype , evobj , evslot , evqual, evinstead ,
     if ( evqual == NULL )
       evqual = "nil";
     amclose(eventrel);
-#ifdef SOMETHING_WANTS_THIS_BEHAVIOR
     if (IsDefinedRewriteRule(rulname)) 
 	elog(WARN, "Attempt to insert rule '%s' failed: already exists",
 	     rulname);
-#endif SOMETHING_WANTS_THIS_BEHAVIOR
     sprintf(rulebuf,
 	    "append pg_rewrite (rulename=\"%s\",ev_type=\"%d2\"::char,\
 	    ev_class=%d::oid,ev_attr= %d::int2,\
