@@ -1,0 +1,29 @@
+#!/bin/sh
+destroydb aportaldb
+createdb aportaldb
+if [ $? -ne 0 ]; then
+	exit 1
+fi
+monitor aportaldb < aportalcreate.pq
+if [ $? -ne 0 ]; then
+	exit 1
+fi
+./aportal > aportal.out 2>&1 &
+APORTALPID=$!
+#
+# wait for startup - need to have this process listening
+#
+sleep 5
+monitor aportaldb < aportalappend.pq
+if [ $? -ne 0 ]; then
+	exit 1
+fi
+#
+# make sure message got out
+#
+sleep 5
+kill $APORTALPID
+wait $APORTALPID
+cat aportal.out
+destroydb aportaldb
+exit 0

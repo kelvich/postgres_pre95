@@ -1,0 +1,15 @@
+/*
+ * aportalcreate.source
+ *
+ * $Header$
+ */
+
+create asynctest1 (i = int4)
+\g
+create asynctest1a (i = int4)
+\g
+
+define rule r1 is on append to asynctest1 do
+  [append asynctest1a (i = new.i)
+   notify asynctest1a]
+\g

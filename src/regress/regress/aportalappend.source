@@ -1,0 +1,24 @@
+/*
+ * aportalappend.source
+ *
+ * $Header$
+ */
+
+retrieve (r.prs2name, c.relname, r.prs2text)
+    from r in pg_prs2rule, c in pg_class
+    where r.prs2name = "r1"
+      and r.prs2eventrel = c.oid
+\g
+
+/*
+ * asynctest1 and asynctest1a are created in the regular create.pq
+ * script.
+ */
+append asynctest1 (i = 10)
+\g
+
+/*
+ * should try
+ *  several in one transaction
+ *  multiple backends
+ */
