@@ -8,6 +8,19 @@
 #define INIT_TABLE_SIZE		100
 #define MAX_TABLE_SIZE 		1000
 
+/* ----------------------
+ * The following defines are used to estimate how much shared
+ * memory the lock manager is going to require.  
+ * 
+ * NBACKENDS - The number of concurrently running backends
+ * NLOCKS_PER_XACT - The number of unique locks acquired in a transaction
+ * NLOCKENTS - The maximum number of lock entries in the lock table.
+ * ----------------------
+ */
+#define NBACKENDS 50
+#define NLOCKS_PER_XACT 40
+#define NLOCKENTS NLOCKS_PER_XACT*NBACKENDS
+
 typedef int LOCK_TYPE;
 typedef int LOCKT;
 typedef int TableId;
