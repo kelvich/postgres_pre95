@@ -56,4 +56,6 @@ ${TESTOBJ}:
 
 CLEANFILES+= ${TESTOBJ}
 
+install::
+
 .include <postgres.prog.mk>
