@@ -39,7 +39,7 @@ extern ScanTemps RMakeScanTemps();
 extern Fragment RMakeFragment();
 extern Relation CopyRelDescUsing();
 
-int AdjustParallelismEnabled = 0;
+int AdjustParallelismEnabled = 1;
 
 /* ------------------------------------
  *	FingFragments
@@ -453,12 +453,15 @@ Plan plan;
 void
 AdjustParallelism()
 {
-    int i;
+    int i, j;
     int slave;
     int max_curpage;
-    int m;
+    int size;
+    int oldnproc;
+    int nfree;
     extern MasterCommunicationData *MasterDataP;
 
+    SLAVE_elog(DEBUG, "master trying to adjust degrees of parallelism");
     for (i=0; i<GetNumberSlaveBackends(); i++) {
 	/* ---------------
 	 * for now we only adjust the parallelism of the
@@ -466,25 +469,40 @@ AdjustParallelism()
 	 * more elaborate later.
 	 * ---------------
 	 */
-	if (ProcGroupInfoP[i].status == WORKING)
+	if (ProcGroupInfoP[i].status == WORKING &&
+	    get_fragment(QdGetPlan(ProcGroupInfoP[i].queryDesc)) >= 0)
 	    break;
       };
+    if (i == GetNumberSlaveBackends()) {
+	SLAVE_elog(DEBUG, "master finds no fragment to adjust parallelism to");
+	return;
+      }
+    SLAVE1_elog(DEBUG, "master sending signal to process group %d", i);
     signalProcGroup(i, SIGPARADJ);
     max_curpage = getProcGroupMaxPage(i);
+    SLAVE1_elog(DEBUG, "master gets maxpage = %d", max_curpage);
     MasterDataP->data[0] = max_curpage + 1; /* page on which to adjust par. */
-    m = ProcGroupInfoP[i].nprocess;
+    oldnproc = ProcGroupInfoP[i].nprocess;
     ProcGroupInfoP[i].nprocess += NumberOfFreeSlaves;
+    ProcGroupInfoP[i].countdown = ProcGroupInfoP[i].nprocess;
     MasterDataP->data[1] = ProcGroupInfoP[i].nprocess;
-    OneSignalM(&(MasterDataP->m1lock), m);
+    SLAVE2_elog(DEBUG,"master signals waiting slaves with adjpage=%d,newpar=%d",
+	        MasterDataP->data[0], MasterDataP->data[1]);
+    OneSignalM(&(MasterDataP->m1lock), oldnproc);
     set_frag_parallel(ProcGroupLocalInfoP[i].fragment,
 		      get_frag_parallel(ProcGroupLocalInfoP[i].fragment)+
 		      NumberOfFreeSlaves);
-    for (i=0; i<NumberOfFreeSlaves; i++) {
+    ProcGroupSMBeginAlloc(i);
+    size = sizeofTmpRelDesc(QdGetPlan(ProcGroupInfoP[i].queryDesc));
+    nfree = NumberOfFreeSlaves;
+    for (j=0; j<nfree; j++) {
 	slave = getFreeSlave();
-	SlaveInfoP[slave].isAddOnSlave = true;
-        addSlaveToProcGroup(slave, i);
+	SLAVE2_elog(DEBUG, "master adding slave %d to procgroup %d", slave, i);
+        SlaveInfoP[slave].resultTmpRelDesc = (Relation)ProcGroupSMAlloc(size);
+        addSlaveToProcGroup(slave, i, oldnproc+j);
 	V_Start(slave);
       }
+    ProcGroupSMEndAlloc(i);
 }
 
 /* ----------------------------------------------------------------
@@ -535,15 +553,6 @@ CommandDest	destination;
 	 * ------------
 	 */
         currentFragmentList = ParallelOptimize(fraglist);
-	/* ------------
-	 * if there are extra processors lying around,
-	 * dynamically adjust degrees of parallelism of
-	 * fragments that are already in process.
-	 * ------------
-	 */
-	if (lispNullp(currentFragmentList) && NumberOfFreeSlaves > 0 &&
-	    AdjustParallelismEnabled)
-	    AdjustParallelism();
 	foreach (x, currentFragmentList) {
 	   fragment = (Fragment)CAR(x);
 	   nparallel = get_frag_parallel(fragment);
@@ -565,7 +574,7 @@ CommandDest	destination;
 	      hashTableMemorySize = get_hashtablesize(plan);
 	      parse_tree_result_relation(parsetree) = LispNil;
 	      }
-	   else if (parentFragment != NULL || nparallel > 1) {
+	   else if (get_fragment(plan) >= 0) {
 	      /* ------------
 	       *  this means that this an intermediate fragment, so
 	       *  the result should be kept in some temporary relation
@@ -601,6 +610,20 @@ CommandDest	destination;
 	   ProcGroupSMEndAlloc();
 	   ProcGroupInfoP[groupid].countdown = nparallel;
 	   ProcGroupInfoP[groupid].nprocess = nparallel;
+#ifdef 	   TCOP_SLAVESYNCDEBUG
+	   {
+	       char procs[100];
+	       p = ProcGroupLocalInfoP[groupid].memberProc;
+	       sprintf(procs, "%d", p->pid);
+	       for (p = p->next; p != NULL; p = p->next)
+		   sprintf(procs+strlen(procs), ",%d", p->pid);
+	       SLAVE2_elog(DEBUG, "master to wake up procgroup %d {%s} for",
+			   groupid, procs);
+	       set_query_range_table(parsetree);
+	       pplan(plan);
+	       fprintf(stderr, "\n");
+	    }
+#endif
 	   wakeupProcGroup(groupid);
 	   set_frag_is_inprocess(fragment, true);
 	   /* ---------------
@@ -608,6 +631,16 @@ CommandDest	destination;
 	    * ---------------
 	    */
 	   parse_tree_result_relation(parsetree) = finalResultRelation;
+	 }
+
+       /* ------------
+	* if there are extra processors lying around,
+	* dynamically adjust degrees of parallelism of
+	* fragments that are already in process.
+	* ------------
+	*/
+       if (NumberOfFreeSlaves > 0 && AdjustParallelismEnabled) {
+	    AdjustParallelism();
 	 }
 
        /* ----------------
@@ -622,6 +655,7 @@ CommandDest	destination;
 	* --------------
 	*/
        groupid = getFinishedProcGroup();
+       SLAVE1_elog(DEBUG, "master woken up by process group %d", groupid);
        fragment = ProcGroupLocalInfoP[groupid].fragment;
        nparallel = get_frag_parallel(fragment);
        plan = get_frag_root(fragment);
