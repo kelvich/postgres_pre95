@@ -123,25 +123,42 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
 	    elog(WARN, "AggregateDefine: bogus function \"%-*s\"",
 		 sizeof(NameData), aggfinalfnName->data);
     }
-    
+
+    /*
+     * sanity checking.
+     * - we must have at least one transition function.
+     * - if transition function 2 is defined, it must have an initial value.
+     * - if we have two transition functions, we must have a final function.
+     * - transition function return values must be equal (as well as equal
+     *   to the final function argument type if a final function is defined).
+     */
     if (!ObjectIdIsValid(xfn1) && !ObjectIdIsValid(xfn2))
 	/* we already checked xrets for each xfn if it was defined */
 	elog(WARN, "AggregateDefine: no valid transition functions provided");
     if (!ObjectIdIsValid(xfn1)) {
+	/* transition function 2 only */
 	if (ObjectIdIsValid(farg) && (farg != xret2))
 	    elog(WARN, "AggregateDefine: final function argument type (%d) != transition function 2 type (%d)",
 		 farg, xret2);
+	if (!ObjectIdIsValid(ffn))
+	    fret = xret2;
     } else if (!ObjectIdIsValid(xfn2)) {
+	/* transition function 1 only */
 	if (ObjectIdIsValid(farg) && (farg != xret1))
 	    elog(WARN, "AggregateDefine: final function argument type (%d) != transition function 1 type (%d)",
 		 farg, xret1);
+	if (!ObjectIdIsValid(ffn))
+	    fret = xret1;
     } else {
+	/* both transition functions */
 	if (xret1 != xret2)
 	    elog(WARN, "AggregateDefine: transition function 1 type (%d) != transition function 2 type (%d)",
 		 xret1, xret2);
 	if (ObjectIdIsValid(farg) && (farg != xret1))
 	    elog(WARN, "AggregateDefine: final function argument type (%d) != transition function type (%d)",
 		 farg, xret1);
+	if (!ObjectIdIsValid(ffn))
+	    elog(WARN, "AggregateDefine: must have a final function with two transition functions!");
     }
     if (ObjectIdIsValid(xfn2) && !PointerIsValid(agginitval2))
 	elog(WARN, "AggregateDefine: transition function 2 MUST have an initial value");
@@ -158,8 +175,14 @@ AggregateDefine(aggName, aggtransfn1Name, aggtransfn2Name, aggfinalfnName,
     values[Anum_pg_aggregate_aggfinalfn-1] = (char *) ffn;
     values[Anum_pg_aggregate_aggtranstype-1] = (char *) xret1;
     values[Anum_pg_aggregate_aggfinaltype-1] = (char *) fret;
-    values[Anum_pg_aggregate_agginitval1-1] = agginitval1;
-    values[Anum_pg_aggregate_agginitval2-1] = agginitval2;
+    if (ObjectIdIsValid(agginitval1))
+	values[Anum_pg_aggregate_agginitval1-1] = agginitval1;
+    else
+	nulls[Anum_pg_aggregate_agginitval1-1] = 'n';
+    if (ObjectIdIsValid(agginitval2))
+	values[Anum_pg_aggregate_agginitval2-1] = agginitval2;
+    else
+	nulls[Anum_pg_aggregate_agginitval2-1] = 'n';
     
     if (!RelationIsValid(aggdesc = heap_openr(AggregateRelationName)))
 	elog(WARN, "AggregateDefine: could not open \"%-*s\"",
