@@ -2323,6 +2323,7 @@ retrieve (p.hobbies.equipment.name, p.hobbies.name, p.name) from p in person
 retrieve (p.hobbies.equipment.name, p.hobbies.name, p.name) from p in person*
 \g
 retrieve (user_relns = user_relns())
+    sort by user_relns
 \g
 retrieve (equip_name =
 	    name(equipment(hobby_construct("skywalking"::text, "mer"::text))))
