@@ -2184,7 +2184,15 @@ static int is_postquel_func(parameters)
     assoc_list = CDR(parameters);
     foreach (rest, assoc_list) {
 	List item = CAR(CAR(rest));
-	List value = CAR(CDR(CAR(rest)));
+	List value;
+	
+	/*
+	 * if this parameter does not have an associated value.
+	 */
+	if ( !CDR(CAR(rest)) )
+	    continue;
+	else
+	    value = CAR(CDR(CAR(rest)));
 
  	if (!stringp(item)) continue;
 	if (!strcmp(CString(item), "language")) {
@@ -2194,7 +2202,10 @@ static int is_postquel_func(parameters)
 	    name = CString(value);
 	    for (c = name; *c != '\0'; c++)
 		*c = (islower(*c) ? toupper(*c) : *c);
-	    if (!strcmp(name, "POSTQUEL")) return true;
+	    if (!strcmp(name, "POSTQUEL")) 
+		return true;
+	    else
+		return false;
 	}
     }
     return false;
