@@ -5,7 +5,7 @@
 #include "tmp/postgres.h"
 
 #include "access/htup.h"
-#include "rules/rel.h"
+#include "utils/rel.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
     
