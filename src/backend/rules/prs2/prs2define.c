@@ -136,8 +136,13 @@ char *ruleText;
      * Hm... for the time being we do NOT allow 
      *     ON RETRIEVE ... DO RETRIEVE ....
      * rules without an INSTEAD
+     * unless this is a "view" rule (i.e. something
+     * like "on retrieve to TOYEMP do retrieve...")
+     * In this case the event target object must be a
+     * relation and not a "relation.attribute"
      */
-    if (!isRuleInstead && actionType == ActionTypeRetrieveValue) {
+    if (!isRuleInstead && actionType == ActionTypeRetrieveValue &&
+	eventTargetAttributeNumber != InvalidAttributeNumber ) {
 	elog(WARN,
 	"`on retrieve ... do retrieve' tuple rules must have an `instead'");
     }
