@@ -15,7 +15,7 @@
 #       Set paths from environment or default values.
 #       The _fUnKy_..._sTuFf_ gets set when the script is installed
 #       from the default value for this build.
-#       Currently the only thing wee look for from the environment is
+#       Currently the only thing we look for from the environment is
 #       PGDATA, PGHOST, and PGPORT
 #
 # ----------------
@@ -25,6 +25,18 @@ BINDIR=_fUnKy_BINDIR_sTuFf_
 PATH=$BINDIR:$PATH
 
 CMDNAME=`basename $0`
+
+if [ -z "$USER" ]; then
+    if [ -z "$LOGNAME" ]; then
+	if [ -z "`whoami`" ]; then
+	    echo "$CMDNAME: cannot determine user name"
+	    exit 1
+	fi
+    else
+	USER=$LOGNAME
+	export USER
+    fi
+fi
 
 dbname=$USER
 

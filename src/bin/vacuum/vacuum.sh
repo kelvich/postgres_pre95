@@ -28,6 +28,18 @@ PATH=$BINDIR:$PATH
 
 CMDNAME=`basename $0`
 
+if [ -z "$USER" ]; then
+    if [ -z "$LOGNAME" ]; then
+	if [ -z "`whoami`" ]; then
+	    echo "$CMDNAME: cannot determine user name"
+	    exit 1
+	fi
+    else
+	USER=$LOGNAME
+	export USER
+    fi
+fi
+
 dbname=$USER
 
 while test -n "$1"

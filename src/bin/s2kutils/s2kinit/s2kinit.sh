@@ -3,6 +3,18 @@
 # $Header$
 #
 CMDNAME=`basename $0`
+
+if [ -z "$USER" ]; then
+    if [ -z "$LOGNAME" ]; then
+	if [ -z "`whoami`" ]; then
+	    echo "$CMDNAME: cannot determine user name"
+	    exit 1
+	fi
+    else
+	USER=$LOGNAME
+	export USER
+    fi
+fi
 #
 if [ \! "$PGREALM" ]; then
 	echo "$CMDNAME: PGREALM not set"
