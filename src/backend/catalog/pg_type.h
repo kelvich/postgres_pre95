@@ -150,7 +150,14 @@ DATA(insert OID = 602 (  path      PGUID -1  -1 f b t \054 0 600 path_in path_ou
 DATA(insert OID = 603 (  box       PGUID 32 100 f b t \073 0 600 box_in box_out box_in box_out _null_ ));
 DATA(insert OID = 604 (  polygon   PGUID -1  -1 f b t \054 0  -1 poly_in poly_out poly_in poly_out _null_ ));
 DATA(insert OID = 605 (  filename  PGUID 256 -1 f b t \054 0 18 filename_in filename_out filename_in filename_out _null_ ));
+
+#define FLOAT4OID 700
+
 DATA(insert OID = 700 (  float4    PGUID  4  12 f b t \054 0   0 float4in float4out float4in float4out _null_ ));
+
+
+#define FLOAT8OID 701
+
 DATA(insert OID = 701 (  float8    PGUID  8  24 f b t \054 0   0 float8in float8out float8in float8out _null_ ));
 DATA(insert OID = 702 (  abstime   PGUID  4  20 t b t \054 0   0 nabstimein nabstimeout nabstimein nabstimeout _null_ ));
 DATA(insert OID = 703 (  reltime   PGUID  4  20 t b t \054 0   0 reltimein reltimeout reltimein reltimeout _null_ ));
