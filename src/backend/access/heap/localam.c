@@ -82,8 +82,6 @@ local_heap_insert(relation, tup)
     Relation    relation;
     HeapTuple    tup;
 {
-    LocalRelList *p = GetRelListEntry(relation);
-
     /* ----------------
      *    increment access statistics
      * ----------------
@@ -102,7 +100,7 @@ local_heap_insert(relation, tup)
     tup->t_tmin = InvalidTime;
     tup->t_tmax = InvalidTime;
 
-    local_doinsert(p, tup);
+    local_doinsert(relation, tup);
 }
 
 /*
@@ -150,7 +148,7 @@ Relation relation;
     tail->relation = relation;
     tail->read_page = tail->write_page = NULL;
     tail->read_blocknum = tail->write_blocknum = 0;
-	tail->offset_index = 0;
+    tail->offset_index = 0;
     tail->next = NULL;
     tail->active = true;
     current = tail;
@@ -238,16 +236,25 @@ DestroyLocalRelList()
     head = current = tail = NULL;
 }
 
-local_doinsert(rel_info, tuple)
+local_doinsert(relation, tuple)
 
-LocalRelList *rel_info;
+Relation relation;
 HeapTuple tuple;
 
 {
+    LocalRelList *rel_info;
     Size len = LONGALIGN(tuple->t_len);
     OffsetIndex offsetIndex;
     ItemId      itemId;
     HeapTuple   page_tuple;
+
+    rel_info = GetRelListEntry(relation);
+
+    if (rel_info->write_page == NULL)
+    {
+        rel_info->write_page = (PageHeader) palloc(BLCKSZ);
+        PageInit(rel_info->write_page, BLCKSZ, 0);
+    }
 
     if (len > PageGetFreeSpace(rel_info->write_page))
     {
