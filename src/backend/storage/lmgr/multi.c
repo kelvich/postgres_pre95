@@ -73,7 +73,7 @@ TableId ShortTermTableId = NULL;
  * Create the lock table described by MultiConflicts and Multiprio.
  */
 
-LockTableId
+TableId
 InitMultiLevelLockm()
 {
   int tableId;
