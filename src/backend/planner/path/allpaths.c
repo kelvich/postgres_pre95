@@ -30,6 +30,7 @@
 #include "planner/indexnode.h"
 #include "planner/pathnode.h"
 #include "planner/clauses.h"
+#include "planner/xfunc.h"
 
 /*    
  *    	find-paths
@@ -54,9 +55,16 @@ find_paths(rels,nest_level,sortkeys)
 	/* Set the number of join(not nesting) levels yet to be processed. */
 	
 	int levels_left = length(rels);
-	
+
 	/* Find the base relation paths. */
 	find_rel_paths(rels,nest_level,sortkeys);
+	
+	/* sort the clauses in the base relations by expense
+	**   -- JMH 2/24/92
+	*/
+	if (XfuncMode != XFUNC_OFF)
+	  xfunc_rellist_sortprds(rels);
+
 	if( !sortkeys && (levels_left <= 1)) {
 	    /* Unsorted single relation, no more processing is required. */
 	    return(rels);   
