@@ -1468,8 +1468,8 @@ ExecInitIndexScan(node, estate, parent)
     }
     
     set_iss_RelationDescs(indexstate, relationDescs);
-    if (ParallelExecutorEnabled() && get_parallel(node) > 1)
-       partition_indexscan(numIndices, scanDescs, get_parallel(node));
+    if (ParallelExecutorEnabled() && SlaveLocalInfoD.nparallel > 1)
+       partition_indexscan(numIndices, scanDescs, SlaveLocalInfoD.nparallel);
     set_iss_ScanDescs(indexstate, scanDescs);
     
     /* ----------------

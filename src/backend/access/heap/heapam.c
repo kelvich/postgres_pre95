@@ -102,6 +102,7 @@ RcsId("$Header$");
 #include "storage/page.h"
 #include "storage/lmgr.h"
 
+#include "tcop/slaves.h"
 #include "tmp/miscadmin.h"
 
 #include "utils/memutils.h"
@@ -202,6 +203,38 @@ unpinsdesc(sdesc)
        BufferPut(sdesc->rs_nbuf, L_UNPIN);
     }
 }
+
+#define initskip(PARALLEL_OK)	((ParallelExecutorEnabled() && PARALLEL_OK)? \
+				 SlaveLocalInfoD.startpage:0)
+
+/* ------------------------------------------
+ *	nextpage
+ *
+ *	figure out the next page to scan after the current page
+ *	taking into account of possible adjustment of degrees of
+ *	parallelism
+ * ------------------------------------------
+ */
+int
+nextpage(page, dir, parallel_ok)
+int page;
+int dir;
+bool parallel_ok;
+{
+    int skip;
+
+    if (!ParallelExecutorEnabled() || !parallel_ok)
+	return((dir<0)?page-1:page+1);
+    if (SlaveLocalInfoD.paradjpending)
+	if (page >= SlaveLocalInfoD.paradjpage) {
+	    SlaveLocalInfoD.nparallel = SlaveLocalInfoD.newparallel;
+	    SlaveLocalInfoD.paradjpending = false;
+	    return(SlaveLocalInfoD.paradjpage + SlaveInfoP[MyPid].groupPid);
+	  }
+    skip = SlaveLocalInfoD.nparallel;
+    return((dir<0)?page-skip:page+skip);
+}
+
 /* ----------------
  *	heapgettup - fetch next heap tuple
  *
@@ -211,7 +244,7 @@ unpinsdesc(sdesc)
  */
 static
 HeapTuple
-heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
+heapgettup(relation, tid, dir, b, timeQual, nkeys, key, parallel_ok)
     Relation		relation;
     ItemPointer		tid;
     int			dir;
@@ -219,8 +252,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
     TimeQual		timeQual;
     uint32		nkeys;
     ScanKey		key;
-    int			pageskip;
-    int			initskip;
+    bool		parallel_ok;
 {
     ItemId		lpp;
     PageHeader		dp;
@@ -321,7 +353,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
 	    tid = NULL;
 	}
 	page = (tid == NULL) ?
-	    pages - 1 - initskip : ItemPointerGetBlockNumber(tid);
+	    pages - 1 - initskip(parallel_ok) : ItemPointerGetBlockNumber(tid);
 
 	if (page < 0) {	
 	    *b = InvalidBuffer;
@@ -347,7 +379,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
 	 * ----------------
 	 */
 	if (ItemPointerIsValid(tid) == false) {
-	    page = initskip;
+	    page = initskip(parallel_ok);
 	    lineoff = 0;
 	} else {
 	    page = ItemPointerGetBlockNumber(tid);
@@ -419,10 +451,7 @@ heapgettup(relation, tid, dir, b, timeQual, nkeys, key, pageskip, initskip)
 	    elog(WARN, "heapgettup: failed BufferPut");
 	}	
 
-	if (dir < 0)
-	    page -= pageskip;
-	else
-	    page += pageskip;
+	page = nextpage(page, dir, parallel_ok);
 
 	/* ----------------
 	 *  return NULL if we've exhausted all the pages..
@@ -750,8 +779,7 @@ heap_beginscan(relation, atend, timeQual, nkeys, key)
     sdesc->rs_tr = timeQual;
     sdesc->rs_nkeys = (short)nkeys;
 
-    sdesc->pageskip = 1;
-    sdesc->initskip = 0;
+    sdesc->rs_parallel_ok = false;
     
     return (sdesc);
 }
@@ -879,12 +907,7 @@ heap_getnext(scandesc, backw, b)
 {
     register HeapScanDesc sdesc = scandesc;
     Buffer		  localb;
-    int			  pageskip;
-    int			  initskip;
 
-    pageskip = scandesc->pageskip;
-    initskip = scandesc->initskip;
-    
     /* ----------------
      *	increment access statistics
      * ----------------
@@ -965,8 +988,7 @@ heap_getnext(scandesc, backw, b)
 			   sdesc->rs_tr,
 			   sdesc->rs_nkeys,
 			   &(sdesc->rs_key),
-			   pageskip,
-			   initskip);
+			   sdesc->rs_parallel_ok);
 	}
 
 	if (sdesc->rs_ctup == NULL && !BufferIsValid(sdesc->rs_cbuf))
@@ -1040,8 +1062,7 @@ heap_getnext(scandesc, backw, b)
 			   sdesc->rs_tr,
 			   sdesc->rs_nkeys,
 			   &sdesc->rs_key,
-			   pageskip,
-			   initskip);
+			   sdesc->rs_parallel_ok);
 	}
 
 	if (sdesc->rs_ctup == NULL && !BufferIsValid(sdesc->rs_cbuf)) {
@@ -1553,10 +1574,6 @@ void
 heap_markpos(sdesc)
     HeapScanDesc	sdesc;
 {
-    int pageskip, initskip;
-
-    pageskip = sdesc->pageskip;
-    initskip = sdesc->initskip;
 
     /* ----------------
      *	increment access statistics
@@ -1578,8 +1595,7 @@ heap_markpos(sdesc)
 		       sdesc->rs_tr,
 		       sdesc->rs_nkeys,
 		       &sdesc->rs_key,
-		       pageskip,
-		       initskip);
+		       sdesc->rs_parallel_ok);
 	
     } else if (sdesc->rs_ntup == NULL &&
 	       BufferIsUnknown(sdesc->rs_nbuf)) { /* == NONTUP */
@@ -1592,8 +1608,7 @@ heap_markpos(sdesc)
 		       sdesc->rs_tr,
 		       sdesc->rs_nkeys,
 		       &sdesc->rs_key,
-		       pageskip,
-		       initskip);
+		       sdesc->rs_parallel_ok);
 	}
 
     /* ----------------
@@ -1638,8 +1653,6 @@ void
 heap_restrpos(sdesc)
     HeapScanDesc	sdesc;
 {
-    int pageskip, initskip;
-
     /* ----------------
      *	increment access statistics
      * ----------------
@@ -1673,8 +1686,7 @@ heap_restrpos(sdesc)
 		       NowTimeQual,
 		       0,
 		       (ScanKey) NULL,
-		       pageskip,
-		       initskip);
+		       sdesc->rs_parallel_ok);
     }
 
     if (!ItemPointerIsValid(&sdesc->rs_mctid)) {
@@ -1689,8 +1701,7 @@ heap_restrpos(sdesc)
 		       NowTimeQual,
 		       0,
 		       (ScanKey) NULL,
-		       pageskip,
-		       initskip);
+		       sdesc->rs_parallel_ok);
     }
 
     if (!ItemPointerIsValid(&sdesc->rs_mntid)) {
@@ -1705,7 +1716,6 @@ heap_restrpos(sdesc)
 		       NowTimeQual,
 		       0,
 		       (ScanKey) NULL,
-		       pageskip,
-		       initskip);
+		       sdesc->rs_parallel_ok);
 	}
 }

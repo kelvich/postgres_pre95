@@ -407,7 +407,7 @@ ExecHashTableCreate(node)
        IpcMemoryKey hashtablekey;
        int	    hashtablesize;
        hashtablekey = get_hashtablekey(node);
-       hashtablesize = (NBuffers+get_parallel(node))*BLCKSZ;
+       hashtablesize = (NBuffers+SlaveLocalInfoD.nparallel)*BLCKSZ;
        shmid = IpcMemoryCreateWithoutOnExit(hashtablekey,
 				            hashtablesize,
 				            HASH_PERMISSION);
@@ -445,7 +445,7 @@ ExecHashTableCreate(node)
     hashtable->readbuf = hashtable->bottom;
     hashtable->nbatch = nbatch;
     hashtable->curbatch = 0;
-    hashtable->pcount = hashtable->nprocess = get_parallel(node);
+    hashtable->pcount = hashtable->nprocess = SlaveLocalInfoD.nparallel;
 #ifdef sequent
     S_INIT_BARRIER(&(hashtable->batchBarrier), hashtable->nprocess);
     S_INIT_LOCK(&(hashtable->tableLock));

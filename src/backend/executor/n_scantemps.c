@@ -114,8 +114,8 @@ ScanTemps node;
                                       0,
                                       NULL);
 	
-	currentScanDesc->pageskip = get_parallel(node);
-	currentScanDesc->initskip = SlaveInfoP[MyPid].groupPid;
+	currentScanDesc->rs_parallel_ok = true;
+
         set_css_currentRelation(scantempState, tempreldesc);
         set_css_currentScanDesc(scantempState, currentScanDesc);
 	set_st_whichplan(scantempState, whichplan);
@@ -215,8 +215,7 @@ ExecInitScanTemps(node, estate, parent)
 				  0,
 				  NULL);
     
-    currentScanDesc->pageskip = get_parallel(node);
-    currentScanDesc->initskip = SlaveInfoP[MyPid].groupPid;
+    currentScanDesc->rs_parallel_ok = true;
     
     /* ----------------
      *	XXX comment me

@@ -76,7 +76,6 @@ SeqNext(node)
     ScanState	 	scanstate;
     EState	 	estate;
     ScanDirection	direction;
-    int			parallel;
     TupleTableSlot	slot;
     Buffer		buffer;
     
@@ -88,16 +87,6 @@ SeqNext(node)
     scanstate =     get_scanstate(node);
     scandesc =      get_css_currentScanDesc(scanstate);
     direction =     get_es_direction(estate);
-    parallel =      get_parallel(node);
-
-    if (ParallelExecutorEnabled()) {
-	scandesc->pageskip = parallel;
-	scandesc->initskip = SlaveInfoP[MyPid].groupPid;
-      }
-    else {
-	scandesc->pageskip = 1;
-	scandesc->initskip = 0;
-      }
 
     /* ----------------
      *	get the next tuple from the access methods
@@ -341,6 +330,7 @@ ExecInitSeqScan(node, estate, parent)
     ScanState	        scanstate;
     Plan	        outerPlan;
     ObjectId		reloid;
+    HeapScanDesc	scandesc;
     
     /* ----------------
      *  assign the node's execution state
@@ -410,7 +400,12 @@ ExecInitSeqScan(node, estate, parent)
 			      scanstate,
 			      outerPlan);
 
-    
+    scandesc = get_css_currentScanDesc(scanstate);
+    if (get_parallel(node)) {
+	scandesc->rs_parallel_ok = true;
+	SlaveLocalInfoD.heapscandesc = scandesc;
+      }
+
     /* ----------------
      * return the object id of the relation
      * (I don't think this is ever used.. -cim 10/16/89)
