@@ -16,10 +16,19 @@
 
 #include "internal.h"
 #include "pg_lisp.h"
+#include "preptlist.h"
+#include "lsyscache.h"
+#include "relation.h"
+#include "relation.a.h"
+#include "primnodes.h"
+#include "primnodes.a.h"
 
+extern LispValue number_list();
+/*
 extern LispValue expand_targetlist();
 extern LispValue replace_matching_resname();
 extern LispValue new_relation_targetlist();
+*/
 
 #define CONST 1      /*  temporary stuff   */
 #define VAR 2
@@ -42,11 +51,13 @@ extern LispValue new_relation_targetlist();
 
 /*  .. init-query-planner   */
 
-LispValue
+List
 preprocess_targetlist (tlist,command_type,result_relation,range_table)
-     LispValue tlist,command_type,result_relation,range_table ;
+     LispValue command_type,result_relation;
+     List tlist;
+     List range_table ;
 {
-     LispValue expanded_tlist = LispNil;
+     List expanded_tlist = NULL;
      LispValue relid = LispNil;
      LispValue t_list = LispNil;
      LispValue temp = LispNil;
@@ -184,38 +195,38 @@ new_relation_targetlist (relid,rt_index,node_type)
 
      foreach(attno, number_list(1,(get_relnatts(relid)))) {
 	  
-	  LispValue attname = get_attname (relid,attno);
-	  LispValue atttype = get_atttype (relid,attno);
-	  LispValue typlen = get_typlen (atttype);
+	  Name attname = get_attname (relid,attno);
+	  ObjectId atttype = get_atttype (relid,attno);
+	  int16 typlen = get_typlen (atttype);
 
 
 	  switch (node_type) {
 	       
 	     case CONST:
 		 { 
-		      LispValue typedefault = get_typdefault (atttype);
+		      struct varlena *typedefault = get_typdefault (atttype);
 		      int temp ;
-		      LispValue temp2 = LispNil;
-		      LispValue temp3 = LispNil;
+		      Const temp2;
+		      TLE temp3;
 
 		      if ( null (typedefault) ) 
 			temp = 0;
 		      else 
 			temp = typlen;
 
-		      temp2 = make_const (atttype,temp,
+		      temp2 = MakeConst (atttype,temp,
 					   typedefault,Lispnull(typedefault));
 
-		      temp3 = new_tl (make_resdom (attno,atttype,
-						   typlen,attname,0,LispNil),
-				      temp2);
+		      temp3 = MakeTLE (make_resdom (attno,atttype,
+						    typlen,attname,0,LispNil),
+				       temp2);
 		      t_list = nappend1(t_list,temp3);
 		      break;
 		   } 
 	       case VAR:
 		 { 
-		      LispValue temp = LispNil;
-		      temp = make_var (rt_index,attno,atttype,
+		      Var temp;
+		      temp = MakeVar (rt_index,attno,atttype,
 				       LispNil,LispNil,
 				       list (rt_index,attno));
 		      t_list = nappend1(t_list,temp);
