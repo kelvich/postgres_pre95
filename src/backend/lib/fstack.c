@@ -3,11 +3,11 @@
  *	Fixed format stack definitions.
  */
 
-#include "c.h"
+#include "tmp/c.h"
 
 RcsId("$Header$");
 
-#include "fstack.h"
+#include "tmp/fstack.h"
 
 /*
  * Internal function definitions
