@@ -184,14 +184,18 @@ fillatt(natts, att)
 	attributeP = &att[0];
 	
 	for (i = 0; i < natts;) {
-		tuple = SearchSysCacheTuple(TYPOID, (*attributeP)->atttypid);
+		tuple = SearchSysCacheTuple(TYPOID,
+					    (*attributeP)->atttypid,
+					    (char *) NULL,
+					    (char *) NULL,
+					    (char *) NULL);
 		if (!HeapTupleIsValid(tuple)) {
 			elog(WARN, "fillatt: unknown atttypid %ld",
 			     (*attributeP)->atttypid);
 		} else {
 			typp = (TypeTupleForm) GETSTRUCT(tuple);  /* XXX */
 			(*attributeP)->attlen = typp->typlen;
-			(*attributeP)->attnum = (int16)++i;
+			(*attributeP)->attnum = (int16) ++i;
 			(*attributeP)->attbyval = typp->typbyval;
 		}
 		attributeP += 1;
