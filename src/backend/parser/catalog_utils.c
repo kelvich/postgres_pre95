@@ -223,7 +223,7 @@ int arg; /* type id */
 	init_op_cache();
     }
     */
-    if (!(tup = SearchSysCacheTuple(OPRNAME, op, 0, arg, (char *) 'r'))) {
+    if (!(tup = SearchSysCacheTuple(OPRNAME, op, arg, 0, (char *) 'r'))) {
 	elog ( WARN ,
 	      "Can't find right op: %s for type %d", op, arg );
 	return(NULL);
@@ -239,7 +239,7 @@ left_oper(op, arg)
 {
 	HeapTuple tup;
 	
-	if (!(tup = SearchSysCacheTuple(OPRNAME, op, arg, 0, (char *) 'l'))) {
+	if (!(tup = SearchSysCacheTuple(OPRNAME, op, 0, arg, (char *) 'l'))) {
 		elog (WARN ,
 			"Can't find left op: %s for type %d", op, arg);
 		return(NULL);
