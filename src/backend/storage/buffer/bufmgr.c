@@ -81,6 +81,7 @@ static int	*NWaitIOBackendP;
 Buffer           BufferDescriptorGetBuffer();
 
 int	*PrivateRefCount;
+int	ExecMainLevel = 0;  /* level of ExecMain nestings */
 
 /*
  * Data Structures:
@@ -192,6 +193,18 @@ BlockNumber	blockNum;
     return ReadBufferWithBufferLock(reln, blockNum, false);
 }
 
+bool
+is_userbuffer(buffer)
+Buffer buffer;
+{
+    BufferDesc *buf;
+    buf = BufferGetBufferDescriptor(buffer);
+    if (strncmp(&buf->sb_relname, "pg_", 3) == 0)
+	return false;
+    else
+	return true;
+}
+
 Buffer
 ReadBuffer_Debug(file, line, reln, blockNum)
 String file;
@@ -202,7 +215,7 @@ BlockNumber blockNum;
     Buffer buffer;
 
     buffer = ReadBufferWithBufferLock(reln, blockNum, false);
-    if (ShowPinTrace) {
+    if (ShowPinTrace && is_userbuffer(buffer)) {
 	BufferDesc *buf;
 	buf = BufferGetBufferDescriptor(buffer);
 	fprintf(stderr, "PIN(RD) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
@@ -519,7 +532,7 @@ int line;
 Buffer buffer;
 {
     WriteBuffer(buffer);
-    if (ShowPinTrace) {
+    if (ShowPinTrace && is_userbuffer(buffer)) {
 	BufferDesc *buf;
 	buf = BufferGetBufferDescriptor(buffer);
 	fprintf(stderr, "UNPIN(WR) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
@@ -709,7 +722,8 @@ BlockNumber blockNum;
     if (BufferIsValid(buffer)) {
 	bufHdr = BufferGetBufferDescriptor(buffer);
 	PrivateRefCount[buffer - 1]--;
-	if (PrivateRefCount[buffer - 1] == 0) {
+	if (PrivateRefCount[buffer - 1] == 0 && ExecMainLevel <= 1) {
+	    /* only release buffer in the top level of ExecMain */
 	    SpinAcquire(BufMgrLock);
 	    bufHdr->refcount--;
 	    if (bufHdr->refcount == 0) {
@@ -1042,6 +1056,7 @@ ResetBufferPool()
 	      }
 	  }
       }
+    ExecMainLevel = 0; /* reset ExecMain nesting level */
 }
 
 /* -----------------------------------------------
@@ -1473,7 +1488,8 @@ Buffer	buffer;
 
   Assert(PrivateRefCount[buffer - 1] > 0);
   PrivateRefCount[buffer - 1]--;
-  if (PrivateRefCount[buffer - 1] == 0) {
+  if (PrivateRefCount[buffer - 1] == 0 && ExecMainLevel <= 1) {
+      /* only release buffer in the top level of ExecMain */
       SpinAcquire(BufMgrLock);
       bufHdr->refcount--;
       if (bufHdr->refcount == 0) {
@@ -1494,7 +1510,7 @@ int line;
 Buffer buffer;
 {
     IncrBufferRefCount(buffer);
-    if (ShowPinTrace) {
+    if (ShowPinTrace && is_userbuffer(buffer)) {
         BufferDesc *buf;
         buf = BufferGetBufferDescriptor(buffer);
         fprintf(stderr, "PIN(Incr) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
@@ -1507,7 +1523,7 @@ int line;
 Buffer buffer;
 {
     ReleaseBuffer(buffer);
-    if (ShowPinTrace) {
+    if (ShowPinTrace && is_userbuffer(buffer)) {
         BufferDesc *buf;
 	buf = BufferGetBufferDescriptor(buffer);
         fprintf(stderr, "UNPIN(Rel) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
@@ -1526,12 +1542,12 @@ BlockNumber blockNum;
 
     bufferValid = BufferIsValid(buffer);
     b = ReleaseAndReadBuffer(buffer, relation, blockNum);
-    if (ShowPinTrace && bufferValid) {
+    if (ShowPinTrace && bufferValid && is_userbuffer(buffer)) {
 	BufferDesc *buf;
 	buf = BufferGetBufferDescriptor(buffer);
         fprintf(stderr, "UNPIN(Rel&Rd) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", buffer, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[buffer - 1], file, line);
       }
-    if (ShowPinTrace) {
+    if (ShowPinTrace && is_userbuffer(buffer)) {
 	BufferDesc *buf;
 	buf = BufferGetBufferDescriptor(b);
         fprintf(stderr, "PIN(Rel&Rd) %d relname = %s, blockNum = %d, refcount = %d, file: %s, line: %d\n", b, &(buf->sb_relname), buf->tag.blockNum, PrivateRefCount[b - 1], file, line);
@@ -1689,3 +1705,25 @@ _bm_die(dbId, relId, blkNo, bufNo, allocType, start, cur)
 }
 
 #endif /* BMTRACE */
+
+void
+BufferRefCountReset(refcountsave)
+int *refcountsave;
+{
+    int i;
+    for (i=0; i<NBuffers; i++) {
+	refcountsave[i] = PrivateRefCount[i];
+	PrivateRefCount[i] = 0;
+      }
+}
+
+void
+BufferRefCountRestore(refcountsave)
+int *refcountsave;
+{
+    int i;
+    for (i=0; i<NBuffers; i++) {
+	PrivateRefCount[i] = refcountsave[i];
+	refcountsave[i] = 0;
+      }
+}
