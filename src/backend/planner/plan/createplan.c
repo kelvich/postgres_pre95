@@ -833,7 +833,8 @@ make_seqscan(qptlist,qpqual,scanrelid,lefttree)
     set_lefttree (node, lefttree);
     set_righttree (node , (Plan) NULL);
     set_scanrelid (node , scanrelid);
-    
+    set_scanstate (node, (ScanState)NULL);
+
     node->printFunc = PrintSeqScan; 
     node->equalFunc = EqualSeqScan; 
     return(node);
@@ -860,8 +861,10 @@ make_indexscan(qptlist, qpqual, scanrelid,indxid,indxqual)
     set_scanrelid(node,scanrelid);
     set_indxid(node,indxid);
     set_indxqual(node,indxqual);
+    set_scanstate (node, (ScanState)NULL);
 
     node->printFunc = PrintIndexScan;
+    node->equalFunc = NULL;
 /*    node ->equalFunc = EqualIndexScan;   */
 
     return(node);
@@ -887,6 +890,7 @@ make_nestloop(qptlist,qpqual,lefttree,righttree)
     set_qpqual (node , qpqual);
     set_lefttree (node, lefttree);
     set_righttree (node , righttree);
+    set_nlstate (node, (NestLoopState)NULL);
 
     node->printFunc = PrintNestLoop; 
     node->equalFunc = EqualNestLoop; 
@@ -936,8 +940,9 @@ make_hash (tlist,tempid,lefttree, keycount)
     set_righttree(node,LispNil);
     set_tempid(node,tempid);
     set_keycount(node,keycount);
-    
+
     node->printFunc = PrintHash;
 /*    node->equalFunc = EqualHash;  */
+    node->equalFunc = NULL;
     return(node);
 }
