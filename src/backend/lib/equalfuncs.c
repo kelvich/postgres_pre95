@@ -1,14 +1,14 @@
-#include "c.h"
-#include "postgres.h"
-#include "log.h"
-
-#include "nodes.h"
-#include "primnodes.h"
-#include "relation.h"
-#include "execnodes.h"
-#include "plannodes.h"
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
+
+#include "nodes/nodes.h"
+#include "nodes/primnodes.h"
+#include "nodes/relation.h"
+#include "nodes/execnodes.h"
+#include "nodes/plannodes.h"
+
+#include "utils/log.h"
 
 extern bool	_equalLispValue();
 extern bool	_equalHeapTuple();
@@ -338,6 +338,98 @@ _equalJoinMethod(a,b)
 }
 
 bool
+_equalPath(a,b)
+register Path a,b;
+{
+    Assert(IsA(a,Path));
+    Assert(IsA(b,Path));
+
+    if (a->pathtype != b->pathtype)
+	return(false);
+    if (a->parent != b->parent)
+	return(false);
+    if (a->path_cost != b->path_cost)
+        return(false);
+    if (!equal(a->p_ordering, b->p_ordering))
+	return(false);
+    if (!equal(a->keys, b->keys))
+	return(false);
+    if (!equal(a->sortpath, b->sortpath))
+	return(false);
+    if (a->outerjoincost != b->outerjoincost)
+	return(false);
+    if (!equal(a->joinid, b->joinid))
+	return(false);
+    return(true);
+}
+
+bool
+_equalIndexPath(a,b)
+register IndexPath a,b;
+{
+    Assert(IsA(a,IndexPath));
+    Assert(IsA(b,IndexPath));
+
+    if (!_equalPath(a,b))
+	return(false);
+    if (!equal(a->indexid, b->indexid))
+	return(false);
+    if (!equal(a->indexqual, b->indexqual))
+	return(false);
+    return(true);
+}
+
+bool
+_equalJoinPath(a,b)
+register JoinPath a,b;
+{
+    Assert(IsA(a,JoinPath));
+    Assert(IsA(b,JoinPath));
+
+    if (!_equalPath(a,b))
+	return(false);
+    if (!equal(a->pathclauseinfo, b->pathclauseinfo))
+	return(false);
+    if (!equal(a->outerjoinpath, b->outerjoinpath))
+	return(false);
+    if (!equal(a->innerjoinpath, b->innerjoinpath))
+	return(false);
+    return(true);
+}
+
+bool
+_equalMergePath(a,b)
+register MergePath a,b;
+{
+    Assert(IsA(a,MergePath));
+    Assert(IsA(b,MergePath));
+
+    if (!_equalJoinPath(a,b))
+	return(false);
+    if (!equal(a->path_mergeclauses, b->path_mergeclauses))
+	return(false);
+    if (!equal(a->outersortkeys, b->outersortkeys))
+	return(false);
+    if (!equal(a->innersortkeys, b->innersortkeys))
+	return(false);
+    return(true);
+}
+
+bool
+_equalJoinKey(a,b)
+register JoinKey a,b;
+{
+    Assert(IsA(a,JoinKey));
+    Assert(IsA(b,JoinKey));
+
+    if (!equal(a->outer,b->outer))
+       return(false);
+    if (!equal(a->inner,b->inner))
+       return(false);
+    return(true);
+}
+
+bool
 _equalMergeOrder(a,b)
      register MergeOrder a,b;
 {
@@ -615,7 +707,21 @@ _equalLispValue(a, b)
 	return (true);
 }
 
-
-
-
-
+bool
+_equalFragment(a,b)
+register Fragment a,b;
+{
+    Assert(IsA(a,Fragment));
+    Assert(IsA(b,Fragment));
+    if (a->frag_root != b->frag_root)
+	return(false);
+    if (a->frag_parent_op != b->frag_parent_op)
+	return(false);
+    if (a->frag_parallel != b->frag_parallel)
+	return(false);
+    if (!equal(a->frag_subtrees,b->frag_subtrees))
+	return(false);
+    if (a->frag_parent_frag != b->frag_parent_frag)
+	return(false);
+    return(true);
+}
