@@ -418,6 +418,8 @@ DATA(insert OID = 763 (  smgrne		   6 11 f t f 2   16 foo bar ));
 
 DATA(insert OID = 764 (  lo_filein         6 11 f t f 1  605 foo bar ));
 DATA(insert OID = 765 (  lo_fileout        6 11 f t f 1  19 foo bar ));
+DATA(insert OID = 766 (  int4inc             6 11 f t f 1  23 foo bar ));
+DATA(insert OID = 767 (  int2inc             6 11 f t f 1  23 foo bar ));
 
 BKI_BEGIN
 #ifdef NOBTREE
