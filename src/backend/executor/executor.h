@@ -31,6 +31,7 @@
  */
 #include "execdebug.h"
 
+#include "istrat.h"
 #include "skey.h"
 #include "align.h"
 #include "buf.h"
