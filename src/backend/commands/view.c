@@ -9,6 +9,9 @@
 #include "parser/parsetree.h"
 
 /* #include "catalog_utils.h" */ 
+
+#include "./RewriteManip.h"
+
 extern Name tname();
 
 Name
@@ -136,7 +139,7 @@ my_find ( string, list )
     return(retval);
 }
 static char *retrieve_rule_template =
-"(\"_r%s\" retrieve (\"%s\") nil 1 (((1 replace 1 ((\"*CURRENT*\" \"%s\" %d 0 nil nil)(\"*NEW*\" \"%s\" %d 0 nil nil) \"rtable\" ) \"tlist\" \"qual\" )))(1 . 0 ))";
+"(\"_r%s\" retrieve (\"%s\") nil 1 (((1 replace 1 ((\"*CURRENT*\" \"%s\" %d 0 nil nil)(\"*NEW*\" \"%s\" %d 0 nil nil) \"rtable\" ) \"tlist\" \"qual\" )))(1.0 . 0.0 ))";
 
 List
 FormViewRetrieveRule ( view_name,  view_tlist, view_rt, view_qual )
@@ -152,8 +155,6 @@ FormViewRetrieveRule ( view_name,  view_tlist, view_rt, view_qual )
     List retrieve_rule_tlist	;
     List retrieve_rule_qual	;
 
-    extern List StringToPlan ();
-
     sprintf ( retrieve_rule_string ,
 	     retrieve_rule_template,
 	     view_name,
@@ -164,7 +165,7 @@ FormViewRetrieveRule ( view_name,  view_tlist, view_rt, view_qual )
 	     view_reloid
 	     );
 
-    retrieve_rule = StringToPlan ( retrieve_rule_string );
+    retrieve_rule = (List)StringToPlan ( retrieve_rule_string );
 
     retrieve_rule_rtable = my_find ( "rtable", retrieve_rule );
     CAR(retrieve_rule_rtable) = view_rt;
@@ -191,6 +192,9 @@ DefineViewRules ( view_name,  view_tlist, view_rt, view_qual )
     List replace_rule		= NULL;
     List append_rule		= NULL;
     List delete_rule		= NULL;
+
+    OffsetVarNodes ( view_tlist, 2 );
+    OffsetVarNodes ( view_qual, 2 );
 
     retrieve_rule = 
       FormViewRetrieveRule ( view_name, view_tlist , view_rt, view_qual );
