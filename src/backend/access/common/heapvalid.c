@@ -68,10 +68,10 @@ heap_keytest(t, tupdesc, nkeys, keys)
 	    return false;
 
 	if (keys->sk_flags & SK_COMMUTE)
-	    test = (int) FMGR_PTR2(keys->func, keys->sk_opr,
-				   keys->sk_data, atp);
+	    test = (long) FMGR_PTR2(keys->func, keys->sk_opr,
+				    keys->sk_data, atp);
 	else
-	    test = (int) FMGR_PTR2(keys->func, keys->sk_opr,
+	    test = (long) FMGR_PTR2(keys->func, keys->sk_opr,
 				   atp, keys->sk_data);
 	
 	if (!test == !(keys->sk_flags & SK_NEGATE))

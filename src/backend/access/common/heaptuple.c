@@ -33,8 +33,12 @@
 #include "access/itup.h"
 #include "access/tupmacs.h"
 #include "access/skey.h"
+#include "access/xlog.h"
+#include "access/xtim.h"
 #include "rules/rac.h"
+#include "storage/ipci.h"
 #include "storage/buf.h"
+#include "storage/bufmgr.h"
 #include "storage/bufpage.h"		/* for MAXTUPLEN */
 #include "storage/itempos.h"
 #include "storage/itemptr.h"
@@ -450,7 +454,7 @@ heap_getsysattr(tup, b, attnum)
 	if (!AbsoluteTimeIsBackwardCompatiblyValid(tup->t_tmin) &&
 	    TransactionIdDidCommit(tup->t_xmin))
 		tup->t_tmin = TransactionIdGetCommitTime(tup->t_xmin);
-	return ((char *)tup->t_tmin);
+	return ((char *) (long) tup->t_tmin);
     case MaxAbsoluteTimeAttributeNumber:
 	if (!AbsoluteTimeIsBackwardCompatiblyReal(tup->t_tmax))
 	{
