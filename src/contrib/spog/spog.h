@@ -4,7 +4,10 @@
  * $Id$
  *
  * $Log$
- * Revision 1.1  1993/02/16 23:32:11  aoki
+ * Revision 1.2  1993/02/18 23:29:29  aoki
+ * header
+ *
+ * Revision 1.1  1993/02/16  23:32:11  aoki
  * Initial revision
  *
  * Revision 2.2  1992/08/13  11:44:48  schoenw
@@ -22,12 +25,15 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <strings.h>
-#include <malloc.h>
 
 #define HISTSIZE 200
 #define MAXQUERYSIZE 1024
 
 #include "tmp/libpq-fe.h"
+
+#ifdef NEED_STRDUP
+extern char *strdup();
+#endif
 
 /* 
  * these variables are defined in pqexec.c and
