@@ -128,6 +128,7 @@ TupleDescInitEntry(desc, attributeNumber, attributeName, typeName)
      */
     strncpy(&(att->attname), attributeName, 16);
     att->attnum = attributeNumber;
+	att->attnelems = 0;
 
     /* ----------------
      *	search the system cache for the type tuple of the attribute
@@ -194,6 +195,7 @@ TupleDescMakeSelfReference(desc, attnum, relname)
     att->atttypid = TypeShellMake(relname);
     att->attlen   = -1;			/* for now, relation-types are */
     att->attbyval = (Boolean) 0; 	/* actually "text" internally. */
+	att->attnelems = 0;
 }
 
 /* ----------------------------------------------------------------
