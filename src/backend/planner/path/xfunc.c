@@ -486,7 +486,6 @@ LispValue args;
 	      char *pq_src;	/* text of PQ function */
 	      int nargs;	/* num args to PQ function */
 	      LispValue parseTree_list;	/* dummy variable */
-	      ObjectId *funcname_get_funcargtypes();
 
 	      /* 
 	      ** plan the function, storing it in the Func node for later 
@@ -495,7 +494,7 @@ LispValue args;
 	      pq_src = (char *) textout(&(proc->prosrc));
 	      nargs = proc->pronargs;
 	      if (nargs > 0)
-		argOidVect = funcname_get_funcargtypes(&proc->proname.data[0]);
+		argOidVect = proc->proargtypes.data;
 	      /*
 	       * save/restore globals -
 	       * 
