@@ -152,13 +152,6 @@ BlockNumber 	blockNum;
    */
   virtFile = RelationGetFile(reln);
 
-#ifdef sequent
-  /* lock the io_in_progress_lock before the read so that
-   * other process will wait on it
-   */
-  Assert(!bufHdr->io_in_progress_lock);
-  S_LOCK(&(bufHdr->io_in_progress_lock));
-#endif
   if (extend) {
     status = BlockExtend(virtFile,bufHdr);
   } else {
@@ -341,6 +334,13 @@ Boolean		*foundPtr;
    * io will be attempted, so the flag isnt set.
    */
   buf->flags |= BM_IO_IN_PROGRESS; 
+#ifdef sequent
+  /* lock the io_in_progress_lock before the read so that
+   * other process will wait on it
+   */
+  Assert(!buf->io_in_progress_lock);
+  S_LOCK(&(buf->io_in_progress_lock));
+#endif
   SpinRelease(BufMgrLock);
 
   if (oldbufdesc.flags & BM_DIRTY) {
