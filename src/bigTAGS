@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# $Header$
+#
+rm -f TAGS
+for i in backend libpq bin; do
+	find $i \( -name '*.[chy]' -o -name '*.gen' -o -name '*.lex' \) \
+		-print | xargs etags -t -a
+done
