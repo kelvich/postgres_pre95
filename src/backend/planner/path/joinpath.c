@@ -311,7 +311,7 @@ match_unsorted_outer (joinrel,outerrel,innerrel,outerpath_list,
 
      foreach(outerpath,outerpath_list) {
 	  LispValue outerpath_ordering = 
-	    get_p_ordering ((Path)Contents(outerpath));
+	    get_p_ordering ((Path)CAR(outerpath));
 
 	  if ( outerpath_ordering ) {
 	       xmergeinfo = 

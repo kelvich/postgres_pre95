@@ -48,13 +48,15 @@ set_clause_selectivities (clauseinfo_list,new_selectivity)
      LispValue clauseinfo_list; 
      Cost new_selectivity ;
 {
-     LispValue clausenode;
-     foreach (clausenode,clauseinfo_list) {
-	  if ( null (get_selectivity (clausenode)) ||
-	      new_selectivity < get_selectivity (clausenode)) {
-	       set_selectivity (clausenode,new_selectivity);
+    LispValue temp,clausenode;
+    
+    foreach (temp,clauseinfo_list) {
+	clausenode = CAR(temp);
+	if ( null (get_selectivity (clausenode)) ||
+	    new_selectivity < get_selectivity (clausenode)) {
+	    set_selectivity (clausenode,new_selectivity);
 	  }
-     }
+    }
 } /* end set_clause_selectivities */
 
 /*    
@@ -78,7 +80,7 @@ product_selec (clauseinfo_list)
 	  double temp;
 
 	  foreach(xclausenode,clauseinfo_list) {
-	       temp = get_selectivity(xclausenode);
+	       temp = get_selectivity(CAR(xclausenode));
 	       result = result * temp;
 	  }
      }
@@ -106,7 +108,7 @@ set_rest_relselec (rel_list)
 {
      LispValue rel;
      foreach (rel,rel_list) {
-	  set_rest_selec (get_clauseinfo (rel));
+	  set_rest_selec (get_clauseinfo (CAR(rel)));
      }
 }
 
@@ -126,18 +128,20 @@ void
 set_rest_selec (clauseinfo_list)
 LispValue clauseinfo_list ;
 {
-     LispValue clausenode;
-     foreach (clausenode,clauseinfo_list) {
-	  /*    Check to see if the selectivity of this clause or any 'or' */
-	  /*    subclauses (if any) haven't been set yet. */
-	  if ( valid_or_clause (clausenode) ||
-	      null (get_selectivity (clausenode))) {
-	       set_selectivity (clausenode,
-				compute_clause_selec (get_clause (clausenode),
-						      get_selectivity 
-						      (clausenode)));
-	  }
-     }
+    LispValue temp,clausenode;
+    
+    foreach (temp,clauseinfo_list) {
+	clausenode = CAR(temp);
+	/*    Check to see if the selectivity of this clause or any 'or' */
+	/*    subclauses (if any) haven't been set yet. */
+	if ( valid_or_clause (clausenode) ||
+	    null (get_selectivity (clausenode))) {
+	    set_selectivity (clausenode,
+			     compute_clause_selec (get_clause (clausenode),
+						   get_selectivity 
+						   (clausenode)));
+	}
+    }
 } /* end set_rest_selec */
 
 /*    		----  ROUTINES TO COMPUTE SELECTIVITIES  ----

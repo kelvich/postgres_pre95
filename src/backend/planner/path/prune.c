@@ -108,16 +108,25 @@ prune_joinrel (rel,other_rels)
 
 void
 prune_rel_paths (rel_list)
-LispValue rel_list ;
+     List rel_list ;
 {
-     LispValue rel = LispNil;
-     foreach (rel, rel_list) {
-	  /* XXX - let form, maybe incorrect */
-	  /* XXX Lisp find_if_not function used  */
-	  Path cheapest = 
-	    prune_rel_path (rel,find_if_not (get_ordering(get_pathlist(rel))));
-	  set_size (rel,compute_joinrel_size (cheapest));
-     }
+    LispValue temp = LispNil;
+    LispValue temp2 = LispNil;
+    LispValue temp3 = LispNil;
+    Rel rel;
+    Path cheapest;
+    
+    foreach (temp, rel_list) { 	/* XXX Lisp find_if_not function used  */
+	rel = (Rel)CAR(temp);
+	foreach (temp2,get_pathlist(rel)) {
+	    if (!get_ordering(CAR(temp2))) {
+		temp3 = CAR(temp2);
+		break;
+	    }	    
+	}
+	cheapest = prune_rel_path (rel,temp3);
+	set_size (rel,compute_joinrel_size (cheapest));
+    }
 }  /* function end  */
 
 /*    
@@ -139,14 +148,17 @@ prune_rel_path (rel,unorderedpath)
      Rel rel ;
      Path unorderedpath ;
 {
-     /* XXX - let form, maybe incorrect */
      Path cheapest = set_cheapest (rel,get_pathlist (rel));
+
      if (!(eq (unorderedpath,cheapest))) {
+
 	  set_unorderedpath (rel,LispNil);
 	  set_pathlist (rel,LispDelete(unorderedpath,get_pathlist (rel)));
-     } 
-     else {
+
+     } else {
+
 	  set_unorderedpath (rel,unorderedpath);
+
      } 
      
      return(cheapest);

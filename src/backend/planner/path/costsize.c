@@ -90,30 +90,31 @@ bool _enable_hashjoin_ = true;
 
 /*  .. cost_hash, cost_sort, create_seqscan_path  */
 
-int
+Cost
 cost_seqscan (relid,relpages,reltuples)
-     int relid, reltuples, relpages;
+     LispValue relid;
+     int reltuples, relpages;
 {
-	int temp = 0;
-	if ( _cost_weirdness_ ) {
-		if ( _enable_seqscan_ ) {
-			temp += 100;
-		} 
-		else {
-			temp += _disable_cost_;
-		} 
-	}
-	else {
-		temp += 0;
-	} 
-	if(consp (relid)) {
-		temp += _TEMP_SCAN_COST_; 	 /*   is this right??? */
+    Cost temp = 0;
+    if ( _cost_weirdness_ ) {
+	if ( _enable_seqscan_ ) {
+	    temp += 100;
 	} 
 	else {
-		temp += relpages;
-		temp += _CPU_PAGE_WEIGHT_ * reltuples;
-	}
-	return(temp);
+	    temp += _disable_cost_;
+	} 
+    }
+    else {
+	temp += 0;
+    } 
+    if(consp (relid)) {
+	temp += _TEMP_SCAN_COST_; 	 /*   is this right??? */
+    } 
+    else {
+	temp += relpages;
+	temp += _CPU_PAGE_WEIGHT_ * reltuples;
+    }
+    return(temp);
 } /* end cost_seqscan */
 
 /*    
@@ -138,33 +139,33 @@ cost_seqscan (relid,relpages,reltuples)
  */
 
 /*  .. best-or-subclause-index, create_index_path, index-innerjoin  */
-int 
+Cost
 cost_index (indexid,expected_indexpages,selec,relpages,
 	    reltuples,indexpages,indextuples)
      ObjectId indexid;
      int relpages,indexpages;
      int expected_indexpages,selec,indextuples,reltuples;
 {
-	int temp = 0;
-	int temp2 = 0;
-	if ( _cost_weirdness_ ) {
-		if ( _enable_indexscan_ ) {
-			temp += 200;
-		} 
-		else {
-			temp += _disable_cost_;
-		} 
-	}
-	else {
-		temp += 0;
+    Cost temp = 0;
+    Cost temp2 = 0;
+    if ( _cost_weirdness_ ) {
+	if ( _enable_indexscan_ ) {
+	    temp += 200;
 	} 
-	temp += expected_indexpages;      /*   expected index relation pages */
-	temp += selec * indextuples;      /*   about one base relation page */
-                                          /*    per index tuple */
-	temp2 += selec * indextuples;
-	temp2 += selec * reltuples;
-	temp =  temp + (_CPU_PAGE_WEIGHT_ * temp2);
-	return(temp);
+	else {
+	    temp += _disable_cost_;
+		} 
+    }
+    else {
+	temp += 0;
+    } 
+    temp += expected_indexpages;      /*   expected index relation pages */
+    temp += selec * indextuples;      /*   about one base relation page */
+    /*    per index tuple */
+    temp2 += selec * indextuples;
+    temp2 += selec * reltuples;
+    temp =  temp + (_CPU_PAGE_WEIGHT_ * temp2);
+    return(temp);
 } /* end cost_index */
 
 /*    
@@ -190,29 +191,29 @@ cost_index (indexid,expected_indexpages,selec,relpages,
 /*  .. cost_mergesort, match-unsorted-inner, match-unsorted-outer
  *  .. sort-relation-paths
  */
-int
+Cost
 cost_sort (keys,tuples,width,noread)
      LispValue keys,width,noread ;
      int tuples;
 {
-	int temp = 0;
-	
-	if ( _cost_weirdness_ ) {
-		if ( _enable_sort_ ) 
-		  temp += 300;
-		else
-		  temp += _disable_cost_ ;
+    Cost temp = 0;
+    
+    if ( _cost_weirdness_ ) {
+	if ( _enable_sort_ ) 
+	  temp += 300;
+	else
+	  temp += _disable_cost_ ;
 	}
-	if (tuples == 0 || null(keys) )
-	  temp += 0;
-	else {
-		int pages = page_size (tuples,width);
-		temp += pages * base_log (pages,2);
-		temp += _CPU_PAGE_WEIGHT_ * tuples *base_log (tuples,2);
-		if( !noread )
-		  temp = temp + cost_seqscan(_TEMP_RELATION_ID_,pages,tuples);
-	}
-	return(temp);
+    if (tuples == 0 || null(keys) )
+      temp += 0;
+    else {
+	int pages = page_size (tuples,width);
+	temp += pages * base_log (pages,2);
+	temp += _CPU_PAGE_WEIGHT_ * tuples *base_log (tuples,2);
+	if( !noread )
+	  temp = temp + cost_seqscan(_TEMP_RELATION_ID_,pages,tuples);
+    }
+    return(temp);
 }
 
 
@@ -237,38 +238,38 @@ cost_sort (keys,tuples,width,noread)
 
 /*  .. cost_hashjoin  */
 
-int
+Cost
 cost_hash (keys,tuples,width,which_rel)
      LispValue keys;
      int tuples, width, which_rel;  /* which_rel is a #defined const */
 {
-	int temp = 0;
-	if ( _cost_weirdness_ ) {
-		if ( _enable_hash_ ) {
-			temp += 400;
+    Cost temp = 0;
+    if ( _cost_weirdness_ ) {
+	if ( _enable_hash_ ) {
+	    temp += 400;
 		} 
-		else {
-			temp += _disable_cost_;
-		} 
-	} 
-	else 
-	  temp += 0;
-	
-	if(tuples == 0 || null(keys)) {
-		temp += 0;
-	} 
 	else {
-		/* XXX - let form, maybe incorrect */
+	    temp += _disable_cost_;
+	} 
+    } 
+    else 
+      temp += 0;
+    
+    if(tuples == 0 || null(keys)) {
+	temp += 0;
+    } 
+    else {
+	/* XXX - let form, maybe incorrect */
 		int pages = page_size (tuples,width);
 		temp += pages;	    /*   read in */
 		temp += _CPU_PAGE_WEIGHT_ * tuples;
 		if (_xprs_ && equal(OUTER,which_rel)) {	/*   write out */
-			temp += max (0,pages - _MAX_BUFFERS_);
+		    temp += max (0,pages - _MAX_BUFFERS_);
 		} 
 		else 
 		  temp +=pages;
 	}
-	return(temp);
+    return(temp);
 } /* end cost_hash */
 
 /*    
@@ -283,15 +284,15 @@ cost_hash (keys,tuples,width,which_rel)
 
 /*  .. sort-relation-paths
  */
-int 
+Cost
 cost_result (tuples,width)
      LispValue width ;
      int tuples;
 {
-	int temp =0;
-	temp = temp + page_size(tuples,width);
-	temp = temp + _CPU_PAGE_WEIGHT_ * tuples;
-	return(temp);
+    Cost temp =0;
+    temp = temp + page_size(tuples,width);
+    temp = temp + _CPU_PAGE_WEIGHT_ * tuples;
+    return(temp);
 }
 
 /*    
@@ -310,22 +311,22 @@ cost_result (tuples,width)
 
 /*  .. create_nestloop_path  */
 
-int
+Cost
 cost_nestloop (outercost,innercost,outertuples)
      int outercost,innercost,outertuples ;
 {
-	int temp =0;
-	if ( _cost_weirdness_ ) {
-		if ( _enable_nestloop_ ) 
-		  temp += 1000;
+    Cost temp =0;
+    if ( _cost_weirdness_ ) {
+	if ( _enable_nestloop_ ) 
+	  temp += 1000;
 		else 
 		  temp += _disable_cost_;
-	} 
-	else 
-	  temp += 0;
-	temp += outercost;
-	/*    XXX this is only valid for left-only trees, of course! */
-	temp += outertuples * innercost;
+    } 
+    else 
+      temp += 0;
+    temp += outercost;
+    /*    XXX this is only valid for left-only trees, of course! */
+    temp += outertuples * innercost;
 	return(temp);
 }
 
@@ -347,28 +348,28 @@ cost_nestloop (outercost,innercost,outertuples)
 
 /*  .. create_mergesort_path */
 
-int 
+Cost
 cost_mergesort (outercost,innercost,outersortkeys,innersortkeys,
 		outersize,innersize,outerwidth,innerwidth)
      LispValue outersortkeys,innersortkeys,outerwidth,innerwidth ;
      int outercost,innercost,outersize,innersize;
 {
-	int temp = 0;
-	if ( _cost_weirdness_ ) {
-		if ( _enable_mergesort_ ) 
-		  temp += 2000;
-		else
-		  temp += _disable_cost_;
-	} 
-	else 
-	  temp += 0;
+    Cost temp = 0;
+    if ( _cost_weirdness_ ) {
+	if ( _enable_mergesort_ ) 
+	  temp += 2000;
+	else
+	  temp += _disable_cost_;
+    } 
+    else 
+      temp += 0;
 	
-	temp += outercost;
-	temp += innercost;
-	temp += cost_sort(outersortkeys,outersize,outerwidth,LispNil);
-	temp += cost_sort(innersortkeys,innersize,innerwidth,LispNil);
-	temp += _CPU_PAGE_WEIGHT_ * (outersize + innersize);
-	return(temp);
+    temp += outercost;
+    temp += innercost;
+    temp += cost_sort(outersortkeys,outersize,outerwidth,LispNil);
+    temp += cost_sort(innersortkeys,innersize,innerwidth,LispNil);
+    temp += _CPU_PAGE_WEIGHT_ * (outersize + innersize);
+    return(temp);
 }
 
 /*    
@@ -389,35 +390,35 @@ cost_mergesort (outercost,innercost,outersortkeys,innersortkeys,
 
 /*  .. create_hashjoin_path */
 
-int
+Cost
 cost_hashjoin (outercost,innercost,outerkeys,innerkeys,outersize,
 	       innersize,outerwidth,innerwidth)
      LispValue outerkeys,innerkeys;
      int outersize, innersize, outerwidth, innerwidth;
      int outercost,innercost;
 {
-	int temp = 0;
+    Cost temp = 0;
 	/* XXX - let form, maybe incorrect */
-	int outerpages = page_size (outersize,outerwidth);
-	int innerpages = page_size (innersize,innerwidth);
-	if ( _cost_weirdness_ ) {
-		if ( _enable_hashjoin_ ) 
-			temp += 3000;
-		else 
-		  temp += _disable_cost_;
-	} 
-	temp += outercost;
-	temp += innercost;
-	temp += cost_hash(outerkeys,outersize,outerwidth,OUTER);
-	temp += cost_hash(innerkeys,innersize,innerwidth,INNER);
-	if (_xprs_ == 1)  /* read outer block */
-	  temp += max(0, outerpages - _MAX_BUFFERS_);
-	else
+    int outerpages = page_size (outersize,outerwidth);
+    int innerpages = page_size (innersize,innerwidth);
+    if ( _cost_weirdness_ ) {
+	if ( _enable_hashjoin_ ) 
+	  temp += 3000;
+	else 
+	  temp += _disable_cost_;
+    } 
+    temp += outercost;
+    temp += innercost;
+    temp += cost_hash(outerkeys,outersize,outerwidth,OUTER);
+    temp += cost_hash(innerkeys,innersize,innerwidth,INNER);
+    if (_xprs_ == 1)  /* read outer block */
+      temp += max(0, outerpages - _MAX_BUFFERS_);
+    else
 	  temp += outerpages;
-
-	temp += outerpages;     /* write join result */
-	return(temp);
-
+    
+    temp += outerpages;     /* write join result */
+    return(temp);
+    
 } /* end cost_hashjoin */
 
 /*    

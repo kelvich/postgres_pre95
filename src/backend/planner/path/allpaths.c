@@ -63,8 +63,8 @@ find_paths (rels,nest_level,sortkeys)
 	    LispValue rel;
 	    set_rest_relselec (rels);
 	    foreach (rel,rels) {
-		set_size (rel,compute_rel_size (rel));
-		set_width (rel,compute_rel_width (rel));
+		set_size (CAR(rel),compute_rel_size (CAR(rel)));
+		set_width (CAR(rel),compute_rel_width (CAR(rel)));
 	    }
 	    if(1 == levels_left) {
 		return(rels); 
@@ -87,7 +87,8 @@ find_paths (rels,nest_level,sortkeys)
  *    	'level' is the current attribute nesting level, where 1 is the first.
  *    	'sortkeys' contains sort result info.
  *    
- *    	Returns 'rels'.
+ *    	RETURNS:  'rels'.
+ *	MODIFIES: rels
  *    
  */
 
@@ -98,11 +99,17 @@ find_rel_paths (rels,level,sortkeys)
      LispValue rels,sortkeys ;
      int level;
 {
-     LispValue rel;
+     LispValue temp;
+     Rel rel;
+     
+     foreach (temp,rels) {
+	  LispValue sequential_scan_list;
 
-     foreach (rel,rels) {
-	  LispValue sequential_scan_list = lispCons(create_seqscan_path (rel),
-						    LispNil);
+	  rel = (Rel)CAR(temp);
+	  sequential_scan_list =
+	    lispCons(create_seqscan_path (rel),
+		     LispNil);
+
 	  if (level > 1) {
 	       set_pathlist (rel,sequential_scan_list);
 	       set_unorderedpath (rel,sequential_scan_list);
@@ -174,7 +181,7 @@ find_join_paths (outer_rels,levels_left,nest_level)
 
   prune_rel_paths (new_rels);
   foreach (rel,new_rels) {
-       set_width (rel,compute_rel_width (rel));
+       set_width (CAR(rel),compute_rel_width (CAR(rel)));
   }
   if(levels_left == 1) {
        return (new_rels);
