@@ -13,12 +13,13 @@
  *===================================================================
  */
 
-#include "c.h"
-#include "postgres.h"
-#include "syscache.h"
-#include "log.h"
-/* #include "prs2.h" */
-#include "executor.h"		/* for EState */
+#include "tmp/postgres.h"
+#include "catalog/syscache.h"
+#include "utils/log.h"
+#include "executor/executor.h"		/* for EState */
+
+#include "catalog/pg_prs2rule.h"
+#include "catalog/pg_prs2plans.h"
 
 extern EState CreateExecutorState();
 
