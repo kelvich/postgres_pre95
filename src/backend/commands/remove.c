@@ -16,15 +16,14 @@ RcsId("$Header$");
 #include "commands/defrem.h"
 #include "utils/log.h"
 
-#include "catalog/pg_operator.h"
+#include "tmp/miscadmin.h"
+
 #include "catalog/pg_aggregate.h"
+#include "catalog/pg_language.h"
+#include "catalog/pg_operator.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
-
-static String	Messages[] = {
-#define	NonexistantTypeMessage	(Messages[0])
-	"Define: type %s nonexistant",
-};
+#include "catalog/syscache.h"
 
 void
 RemoveOperator(operatorName, typeName1, typeName2)
@@ -41,13 +40,15 @@ RemoveOperator(operatorName, typeName1, typeName2)
 	ItemPointerData	itemPointerData;
 	Buffer          buffer;
 	ScanKeyEntryData	operatorKey[3];
+	NameData	user;
 
 	Assert(NameIsValid(operatorName));
 	Assert(NameIsValid(typeName1));
 
 	typeId1 = TypeGet(typeName1, &defined);
 	if (!ObjectIdIsValid(typeId1)) {
-		elog(WARN, NonexistantTypeMessage, typeName1);
+		elog(WARN, "RemoveOperator: type \"%-*s\" does not exist",
+		     sizeof(NameData), typeName1);
 		return;
 	}
 
@@ -55,7 +56,8 @@ RemoveOperator(operatorName, typeName1, typeName2)
 	if (NameIsValid(typeName2)) {
 		typeId2 = TypeGet(typeName2, &defined);
 		if (!ObjectIdIsValid(typeId2)) {
-			elog(WARN, NonexistantTypeMessage, typeName2);
+			elog(WARN, "RemoveOperator: type \"%-*s\" does not exist",
+			     sizeof(NameData), typeName2);
 			return;
 		}
 	}
@@ -80,21 +82,31 @@ RemoveOperator(operatorName, typeName1, typeName2)
 				      (ScanKey) operatorKey);
 	tup = HeapScanGetNextTuple(scan, 0, &buffer);
 	if (HeapTupleIsValid(tup)) {
+#ifndef NO_SECURITY
+		GetUserName(&user);
+		if (!pg_ownercheck(user.data, (char *) tup->t_oid, OPROID))
+			elog(WARN, "RemoveOperator: operator \"%-*s\": permission denied",
+			     sizeof(NameData), operatorName);
+#endif
 		ItemPointerCopy(&tup->t_ctid, &itemPointerData);
 		RelationDeleteHeapTuple(relation, &itemPointerData);
 	} else {
 		if (ObjectIdIsValid(typeId2)) {
-			elog(WARN, "Remove: operator %s(%s, %s) nonexistant",
-				operatorName, typeName1, typeName2);
+			elog(WARN, "RemoveOperator: operator \"%-*s\" taking \"-*%s\" and \"%-*s\" does not exist",
+			     sizeof(NameData), operatorName,
+			     sizeof(NameData), typeName1,
+			     sizeof(NameData), typeName2);
 		} else {
-			elog(WARN, "Remove: operator %s(%s) nonexistant",
-				operatorName, typeName1);
+			elog(WARN, "RemoveOperator: operator \"%-*s\" taking \"%-*s\" does not exist",
+			     sizeof(NameData), operatorName,
+			     sizeof(NameData), typeName1);
 		}
 	}
 	HeapScanEnd(scan);
 	RelationCloseHeapRelation(relation);
 }
 
+#ifdef NOTYET
 /*
  *  SingleOpOperatorRemove
  *	Removes all operators that have operands or a result of type 'typeOid'.
@@ -199,7 +211,7 @@ AttributeAndRelationRemove(typeOid)
 	heap_endscan(sdesc);
 	heap_close(rdesc);
 }
-
+#endif /* NOTYET */
 
 /*
  *  TypeRemove
@@ -221,9 +233,17 @@ RemoveType(typeName)
 	};
 	NameData arrayNameData;
 	Name arrayName = & arrayNameData;
+	NameData	user;
 
 	Assert(NameIsValid(typeName));
 	
+#ifndef NO_SECURITY
+	GetUserName(&user);
+	if (!pg_ownercheck(user.data, typeName->data, TYPNAME))
+		elog(WARN, "RemoveType: type \"%-*s\": permission denied",
+		     sizeof(NameData), typeName);
+#endif
+
 	relation = RelationNameOpenHeapRelation(TypeRelationName);
 	fmgr_info(typeKey[0].procedure, &typeKey[0].func, &typeKey[0].nargs);
 
@@ -237,7 +257,8 @@ RemoveType(typeName)
 	if (!HeapTupleIsValid(tup)) {
 		HeapScanEnd(scan);
 		RelationCloseHeapRelation(relation);
-		elog(WARN, NonexistantTypeMessage, typeName);
+		elog(WARN, "RemoveOperator: type \"%-*s\" does not exist",
+		     sizeof(NameData), typeName);
 	}
 	typeOid = tup->t_oid;
 	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
@@ -259,7 +280,8 @@ RemoveType(typeName)
 
 	if (!HeapTupleIsValid(tup))
 	{
-	    elog(WARN, "Array stub for type %s not found", typeName->data);
+	    elog(WARN, "RemoveType: type \"%-*s\": array stub not found",
+		 sizeof(NameData), typeName->data);
 	}
 	typeOid = tup->t_oid;
 	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
@@ -284,8 +306,16 @@ RemoveFunction(functionName)
 	static ScanKeyEntryData key[3] = {
 		{ 0, ProcedureNameAttributeNumber, NameEqualRegProcedure }
 	};
+	NameData	user;
 	
 	Assert(NameIsValid(functionName));
+
+#ifndef NO_SECURITY
+	GetUserName(&user);
+	if (!pg_ownercheck(user.data, (char *) functionName, PRONAME))
+		elog(WARN, "RemoveFunction: function \"%-*s\": permission denied",
+		     sizeof(NameData), functionName);
+#endif
 
 	key[0].argument = NameGetDatum(functionName);
 
@@ -298,11 +328,17 @@ RemoveFunction(functionName)
 	if (!HeapTupleIsValid(tup)) {	
 		HeapScanEnd(scan);
 		RelationCloseHeapRelation(relation);
-		elog(WARN, "Remove: function %s nonexistant", functionName);
+		elog(WARN, "RemoveFunction: function \"%-*s\" does not exist",
+		     sizeof(NameData), functionName);
 	}
 #ifdef USEPARGS
 	oid = tup->t_oid;
 #endif
+
+	if (((Form_pg_proc) GETSTRUCT(tup))->prolang == INTERNALlanguageId)
+		elog(WARN, "RemoveFunction: function \"%-*s\" is built-in",
+		     sizeof(NameData), functionName);
+
 	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
         RelationDeleteHeapTuple(relation, &itemPointerData);
 	HeapScanEnd(scan);
@@ -341,10 +377,15 @@ RemoveAggregate(aggName)
 	Buffer		buffer;
 	ItemPointerData	  itemPointerData;
 	static ScanKeyEntryData key[3] = {
-		{ 0, AggregateNameAttributeNumber, NameEqualRegProcedure }
+		{ 0, Anum_pg_aggregate_aggname, NameEqualRegProcedure }
 	};
 
 	Assert(NameIsValid(aggName));
+
+#ifndef NO_SECURITY
+	/* XXX there's no pg_aggregate.aggowner?? */
+#endif
+
 	key[0].argument = NameGetDatum(aggName);
 
 	fmgr_info(key[0].procedure, &key[0].func, &key[0].nargs);
@@ -355,7 +396,8 @@ RemoveAggregate(aggName)
 	if (!HeapTupleIsValid(tup)) {
 		HeapScanEnd(scan);
 		RelationCloseHeapRelation(relation);
-		elog(WARN, "Remove: aggregate %s nonexistant", aggName);
+		elog(WARN, "RemoveAggregate: aggregate \"%-*s\" does not exist",
+		     sizeof(NameData), aggName);
 	}
 	ItemPointerCopy(&tup->t_ctid, &itemPointerData);
 	RelationDeleteHeapTuple(relation, &itemPointerData);
@@ -363,5 +405,3 @@ RemoveAggregate(aggName)
 	RelationCloseHeapRelation(relation);
 
 }
-
-
