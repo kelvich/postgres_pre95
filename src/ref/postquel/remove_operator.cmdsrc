@@ -19,9 +19,9 @@ is the name of the operator to be removed followed by a
 parenthesized list of the operand types for the operator.
 .uh EXAMPLE
 .nf
-/* Remove the sqrt operator */
+/* Remove the power operator, a^n, for 4 byte integers */
 
-   remove operator sqrt (int4, int4)
+   remove operator ^ (int4, int4)
 .fi
 .uh "SEE ALSO"
 .lp
