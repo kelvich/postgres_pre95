@@ -484,25 +484,25 @@ get_relsatts (clause)
     isa_clause = is_clause (clause);
     if(isa_clause && var_left
        && var_right) {
-	return(lispCons (lispInteger(get_varno (left)),
-			 lispCons(lispInteger(get_varattno (left)),
-				  lispCons(lispInteger(get_varno (right)),
-					   lispCons(lispInteger
-						    (get_varattno (right)),
+	return(lispCons (lispCopy(CAR(get_varid (left))),
+			 lispCons(lispCopy(CADR(get_varid (left))),
+				  lispCons(lispCopy(CAR(get_varid (right))),
+					   lispCons(lispCopy
+						    (CADR(get_varid (right))),
 						    LispNil)))));
     } else if ( isa_clause && var_left && varexpr_right ) {
-	return(lispCons((LispValue)get_varno (left),
-			lispCons((LispValue)get_varattno (left),
+	return(lispCons(lispCopy(CAR(get_varid (left))),
+			lispCons(lispCopy(CADR(get_varid (left))),
 				 lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
 					  lispCons(lispInteger
 						   (_SELEC_VALUE_UNKNOWN_),
 						   LispNil)))));
     } else if ( isa_clause && varexpr_left && var_right) {
-	return(lispCons (lispInteger(_SELEC_VALUE_UNKNOWN_),
-			 lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
-				  lispCons((LispValue)get_varno (right),
-					   lispCons((LispValue)get_varattno(right),
-						    LispNil)))));
+	return(lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
+			lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
+				 lispCons(lispCopy(CAR(get_varid (right))),
+					  lispCons(lispCopy(CADR(get_varid(right))),
+						   LispNil)))));
     } else {
 	return(lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
 			lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
