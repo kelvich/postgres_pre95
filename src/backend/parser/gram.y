@@ -1437,6 +1437,8 @@ boolexpr:
 		{ $$ = $1;}
 	| NOT b_expr
 		{ $$ = MakeList ( lispInteger(NOT) , $2, -1 ); }
+	| '(' boolexpr ')'
+		{ $$ = $2; }
 	;
 
 record_qual:
