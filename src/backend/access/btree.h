@@ -38,6 +38,7 @@
 #include "form.h"
 #include "ftup.h"
 #include "genam.h"
+#include "globals.h"
 #include "heapam.h"
 #include "ibit.h"
 #include "imark.h"
