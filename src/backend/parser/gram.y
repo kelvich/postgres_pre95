@@ -1954,18 +1954,21 @@ SubstituteParamForNewOrCurrent ( parsetree, relid )
 	List temp = CAR(i);
 	if ( temp && IsA (temp,Var) ) {
 	    Name attrname = NULL;
+	    AttributeNumber attrno;
 
 	    if ( get_varno(temp) == 1) {
 		/* replace with make_param(old) */
 		attrname = get_attname(relid, get_varattno(temp));
+		attrno = get_attnum(relid, attrname);
 		CAR(i) = (List)MakeParam (PARAM_OLD,
-				    (int32)0,
+				    attrno,
 				    attrname,
 				    get_vartype(temp));
 	    } 
 	    if ( get_varno(temp) == 2) {
 		/* replace with make_param(new) */
 		attrname = get_attname(relid, get_varattno(temp));
+		attrno = get_attnum(relid, attrname);
 		CAR(i) = (List)MakeParam(PARAM_NEW,
 				   (int32)0,
 				   attrname,

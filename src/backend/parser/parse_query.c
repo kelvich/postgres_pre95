@@ -824,7 +824,7 @@ char *attrName;
     strcpy(&(name->data[0]), attrName);
 
     paramNode = MakeParam(paramKind,	/* paramkind */
-			(int32)0,	/* paramid - ignored */
+			attrNo,		/* paramid - i.e. attrno */
 			name,		/* paramname */
 			attrType);	/* paramtype */
     
