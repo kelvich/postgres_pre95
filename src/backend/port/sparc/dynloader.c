@@ -17,6 +17,7 @@ extern char pg_pathname[];
 
 #include <a.out.h>
 
+#include "tmp/c.h"
 #include "utils/fmgr.h"
 
 /*
