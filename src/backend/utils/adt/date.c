@@ -250,10 +250,9 @@ tintervalin(intervalstr)
 
 	interval = (TimeInterval) palloc(sizeof(TimeIntervalData));
 	error = istinterval(intervalstr, &t1, &t2);
-	if (error == 0)	/* not a valid interval NOT IMPLEMENTED */
+	if (error == 0)
 		interval->status = T_INTERVAL_INVAL;
-	if (interval->data[0] == INVALID_ABSTIME ||
-	    interval->data[1] == INVALID_ABSTIME)
+	if (t1 == INVALID_ABSTIME || t2 == INVALID_ABSTIME)
 	        interval->status = T_INTERVAL_INVAL;  /* undefined  */
 	else {
 	        i_start = ABSTIMEMIN(t1, t2);
