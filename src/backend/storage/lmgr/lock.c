@@ -818,7 +818,8 @@ SHM_QUEUE	*lockQueue;
 {
   PROC_QUEUE 	*waitQueue;
   int		done;
-  XIDLookupEnt	*xidLook,*tmp;
+  XIDLookupEnt	*xidLook = NULL;
+  XIDLookupEnt	*tmp = NULL;
   SHMEM_OFFSET 	end = MAKE_OFFSET(lockQueue);
   SPINLOCK 	masterLock;
   LOCKTAB 	*ltable;
