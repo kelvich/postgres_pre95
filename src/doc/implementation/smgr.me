@@ -1,0 +1,650 @@
+.\" $Header$
+.fo ''%''
+.EQ
+delim %%
+.EN
+.nr pp 11
+.nr tp 11
+.ps 11
+.ds PG "\\s-2POSTGRES\\s0
+.ds PQ "\\s-2POSTQUEL\\s0
+.de RN
+\\fC\\$1\\fP\\$2
+..
+.de SE
+\\fC\\$1\\fP\\$2
+..
+.de FI
+\\fC\\$1\\fP\\$2
+..
+.de BU
+.ip \0\0\(bu
+..
+.de (E
+.in +0.5i
+.sp
+.nf
+.na
+.ft C
+.ta 0.5i 1i 1.5i 2i 2.5i 3i 3.5i 4i 4.5i 5i 5.5i
+..
+.de )E
+.in
+.sp
+.fi
+.ad
+.ft R
+..
+.sh 1 "The \*(PG Storage Manager Switch"
+.pp
+The \*(PG abstraction that hides device-specific characteristics from
+the data manager is called the
+.i "storage manager switch" .
+The storage manager switch is similar
+to the
+.i cdevsw
+and
+.i bdevsw
+interfaces of \*(UX and the user-supplied backing store interface in Mach.
+This section describes the \*(PG storage manager switch in detail.
+.pp
+Hiding device characteristics from the data manager required
+that the abstract operations required on the data store be identified.
+For example,
+the interface requires
+routines for opening relations and instantiating particular
+8kByte relation blocks.
+Every device is managed by a
+.i "device manager" ,
+which knows how to implement the abstract operations on the
+particular device.
+The
+.i "storage manager"
+is the module that chooses the correct device manager
+to service a particular request.
+.pp
+Once the interfaces required of the device manager were defined,
+an appropriate structure
+(the
+.i "storage manager switch table" )
+was compiled into \*(PG.
+This structure contains an entry for all existing device managers.
+New device types are added by editing a source file,
+adding appropriate entries to the storage manager switch table,
+and recompiling \*(PG.
+.pp
+Whenever a device operation is required,
+the data manager calls the storage manager to carry it out.
+Every relation is tagged in \*(PG with the device manager
+on which it appears.
+The storage manager identifies the appropriate device and routine in
+the storage manager switch table,
+and calls the device manager to execute the routine
+on behalf of the data manager.
+.pp
+Data may be located on a particular device manager
+at the granularity of a relation.
+Physical relations may not be horizontally or vertically partitioned,
+but the \*(PG rules system
+can be used to create a partitioned logical relation.
+.sh 2 "Isolation of Device Differences"
+.pp
+New device managers are written to manage new types of devices.
+For example,
+main memory,
+magnetic disk,
+and the Sony optical disk jukebox
+are all managed by different device managers.
+To isolate the database system from the underlying devices,
+device managers are required to accept and return data
+in the format used internally by the data manager.
+This means,
+among other things,
+that data pages from user relations must be accepted and returned
+in units of 8kBytes.
+.pp
+Nevertheless,
+there is no requirement that a device manager use the internal
+representation when writing a page to persistent storage.
+Data pages may be compressed,
+broken into pieces,
+or concatenated into larger units by a device manager,
+as long as the original page can be reconstructed on demand.
+.pp
+In addition,
+device managers may implement caches managed according
+to an appropriate policy.
+This means that the new \*(PG architecture supports a multi-level cache.
+A main-memory cache of recently-used blocks is maintained in
+shared memory by the buffer manager.
+The buffer manager calls the storage manager to
+migrate pages between shared memory and persistent storage.
+A device manager may implement a separate cache for its own use,
+subject to whatever policy it likes.
+For example,
+the Sony jukebox device manager maintains a cache of
+.i extents
+(contiguous collections of user data blocks)
+on magnetic disk.
+If there is locality of reference in accesses to a Sony jukebox relation,
+then some requests may be satisfied without accessing the jukebox
+device at all.
+This cache will be described in more detail in section 4.2.
+.sh 2 "The Storage Manager Switch Interface"
+.pp
+This section defines the interface presented by the storage manager switch.
+.pp
+The storage manager switch data structure,
+.CW f_smgr ,
+contains
+.(b
+.ft C
+typedef struct f_smgr {
+    int         (*smgr_init)();         /* may be NULL */
+    int         (*smgr_shutdown)();     /* may be NULL */
+    int         (*smgr_create)();
+    int         (*smgr_unlink)();
+    int         (*smgr_extend)();
+    int         (*smgr_open)();
+    int         (*smgr_close)();
+    int         (*smgr_read)();
+    int         (*smgr_write)();
+    int         (*smgr_flush)();
+    int         (*smgr_blindwrt)();
+    int         (*smgr_nblocks)();
+    int         (*smgr_commit)();       /* may be NULL */
+    int         (*smgr_abort)();        /* may be NULL */
+    int         (*smgr_cost)();
+} f_smgr;
+.ft
+.)b
+This structure defines the interface routines
+that all device managers must define.
+When a new device type is added to \*(PG,
+this structure is filled in with function pointers appropriate to the device,
+and \*(PG is recompiled.
+The storage manager calls these routines in response
+to requests from the data manager.
+In some cases,
+the switch entry for an interface routine may be
+.CW NULL .
+This means that the corresponding operation is not defined for the
+device in question.
+Unless otherwise stated in the sections that follow,
+all interface routines return an integer status code
+indicating success or failure.
+.pp
+The following table summarizes the responsibilities
+of these interface routines.
+.TS
+center doublebox;
+c|cw(3i)
+l|l.
+\fIRoutine\fP	\fIPurpose\fP
+=
+smgr_init()	T{
+.na
+.fi
+Called at startup to allow initialization.
+T}
+_
+smgr_shutdown()	T{
+.na
+.fi
+Called at shutdown to allow graceful exit.
+T}
+_
+smgr_create(\fIr\fP)	T{
+.na
+.fi
+Create relation \fIr\fP.
+T}
+_
+smgr_unlink(\fIr\fP)	T{
+.na
+.fi
+Destroy relation \fIr\fP.
+T}
+_
+smgr_extend(\fIr\fP, \fIbuf\fP)	T{
+.na
+.fi
+Add a new block to the end of relation \fIr\fP
+and fill it with data from \fIbuf\fP.
+T}
+_
+smgr_open(\fIr\fP)	T{
+.na
+.fi
+Open relation \fIr\fP.
+The relation descriptor includes
+a pointer to the state for the open object.
+T}
+_
+smgr_close(\fIr\fP)	T{
+.na
+.fi
+Close relation \fIr\fP.
+T}
+_
+smgr_read(\fIr\fP, \fIblock\fP, \fIbuf\fP)	T{
+.na
+.fi
+Read block \fIblock\fP of relation \fIr\fP into the buffer
+pointed to by \fIbuf\fP.
+T}
+_
+smgr_write(\fIr\fP, \fIblock\fP, \fIbuf\fP)	T{
+.na
+.fi
+Write \fIbuf\fP as block \fIblock\fP of relation \fIr\fP.
+T}
+_
+smgr_flush(\fIr\fP, \fIblock\fP, \fIbuf\fP)	T{
+.na
+.fi
+Write \fIbuf\fP synchronously as block \fIblock\fP of relation \fIr\fP.
+T}
+_
+smgr_blindwrt(\fIn\s-2\dd\u\s0\fP, \fIn\s-2\dr\u\s0\fP, \fIi\s-2\dd\u\s0\fP, \fIi\s-2\dr\u\s0\fP, \fIblk\fP, \fIbuf\fP)	T{
+.na
+.fi
+Do a ``blind write'' of buffer \fIbuf\fP as block \fIblk\fP
+of the relation named \fIn\s-2\dr\u\s0\fP in the database named
+\fIn\s-2\dd\u\s0\fP.
+T}
+.sp 0.1v
+_
+smgr_nblocks(\fIr\fP)	T{
+.na
+.fi
+Return the number of blocks in relation \fIr\fP.
+T}
+_
+smgr_commit()	T{
+.na
+.fi
+Force all dirty data to stable storage.
+T}
+_
+smgr_abort()	T{
+.na
+.fi
+Changes made during this transaction may be discarded.
+T}
+.TE
+The rest of this section gives more detailed descriptions.
+.sh 3 "smgr_init"
+.pp
+The routine
+.(E
+int
+smgr_init()
+.)E
+is called when \*(PG starts up,
+and should initialize any private data used by a device manager.
+In addition,
+the first call to this routine should initialize any shared
+data.
+Typically,
+this is done by noticing whether shared data exists,
+and creating and initializing it if it does not.
+If a particular device manager requires no initialization,
+it may define this routine to be NULL.
+.sh 3 "smgr_shutdown"
+.pp
+The routine
+.(E
+int
+smgr_shutdown()
+.)E
+is analogous to
+.CW smgr_init() ,
+but is called when \*(PG exits cleanly.
+Any necessary cleanup may be done here.
+If no work is required,
+this routine may be NULL.
+.sh 3 "smgr_create"
+.pp
+The routine to create new relations on a particular device manager is
+.(E
+int
+smgr_create(reln)
+    Relation reln;
+.)E
+The
+.CW reln
+argument points to a \*(PG relation descriptor for the relation to
+be created.
+The device manager should initialize whatever storage structure
+is required for the new relation.
+For example,
+the magnetic disk device manager creates an empty file with the
+name of the relation.
+.sh 3 "smgr_unlink"
+.pp
+The routine
+.(E
+int
+smgr_unlink(reln)
+    Relation reln;
+.)E
+is called by the storage manager to destroy the relation described by
+.CW reln .
+Device managers may take whatever action is appropriate.
+For example,
+the magnetic disk device manager removes the relation's associated
+file and archive, and reclaims the disk blocks they occupy.
+Since the Sony write-once drive cannot reclaim blocks once they are used,
+the Sony jukebox device manager simply marks the relation as
+destroyed and returns.
+.sh 3 "smgr_extend"
+.pp
+When a relation must be extended with a new data block,
+the data manager calls
+.(E
+int
+smgr_extend(reln, buffer)
+    Relation reln;
+    char *buffer;
+.)E
+to do the work.
+The buffer is an 8kByte buffer in the format used by the data manager
+internally.
+The data manager assumes that 8kByte data blocks in relations are numbered
+starting from one.
+Thus
+.CW smgr_extend()
+must logically allocate a new block for the relation pointed to by
+.CW reln
+and store some representation of
+.CW buffer
+there.
+.sh 3 "smgr_open"
+.pp
+The routine
+.(E
+int
+smgr_open(reln)
+    Relation reln;
+.)E
+should open the relation pointed to by
+.CW reln
+and return a file descriptor for it.
+The notion of file descriptors is a holdover from
+the pre-storage manager switch days,
+and is no longer necessary.
+If file descriptors make no sense for a given device,
+then the associated device manager may return any non-negative value.
+A negative return value indicates an error.
+.sh 3 "smgr_close"
+.pp
+When the data manager is finished with a relation,
+it calls
+.(E
+int
+smgr_close(reln)
+    Relation reln;
+.)E
+The device manager may release resources associated with the
+relation pointed to by
+.CW reln .
+.sh 3 "smgr_read"
+.pp
+To instantiate an 8kByte data block from a relation,
+the data manager calls
+.(E
+int
+smgr_read(reln, blocknum, buffer)
+    Relation reln;
+    BlockNumber blocknum;
+    char *buffer;
+.)E
+As stated above,
+8kByte blocks in a relation are logically numbered from one.
+The storage manager must locate the block of interest
+and load its contents into
+.CW buffer .
+.sh 3 "smgr_write"
+.pp
+The routine
+.(E
+int
+smgr_write(reln, blocknum, buffer)
+    Relation reln;
+    BlockNumber blocknum;
+    char *buffer;
+.)E
+writes some representation of
+.CW buffer
+as block number
+.CW blocknum
+of the relation pointed to by
+.CW reln .
+This write may be asynchronous;
+the device manager need not guarantee
+that the buffer is flushed through to stable storage.
+Synchronous writes are handled using the
+.CW smgr_flush
+routine,
+described below.
+As long as this routine
+guarantees that the buffer has been copied somewhere safe
+for eventual writing,
+it may return successfully.
+.pp
+The buffer is an 8kByte \*(PG page in the format used
+by the data manager.
+It may be stored in any form,
+but must be reconstructed exactly when the
+.CW smgr_read
+routine is called on it.
+.sh 3 "smgr_flush"
+.pp
+This routine synchronously writes a block to stable storage.
+The \*(PG data manager almost never needs to do synchronous writes
+of single blocks.
+In some cases,
+however,
+like the write of the transaction status file that marks a transaction
+committed,
+a single block must be written synchronously.
+In this case,
+the data manager calls the device manager's
+.CW smgr_flush
+routine.
+The interface for this routine is
+.(E
+int
+smgr_flush(reln, blocknum, buffer)
+    Relation reln;
+    BlockNumber blocknum;
+    char *buffer;
+.)E
+The behavior of
+.CW smgr_flush
+is almost exactly the same as that of
+.CW smgr_write ,
+except that
+.CW smgr_flush
+must not return until
+.CW buffer
+is safely written to stable storage.
+.sh 3 "smgr_blindwrt"
+.pp
+Under normal circumstances,
+\*(PG moves dirty pages from memory to stable storage
+by calling the
+.CW smgr_write
+routine for the appropriate storage manager.
+In order to call
+.CW smgr_write ,
+the buffer manager must construct and pass a relation descriptor.
+.pp
+In certain cases,
+\*(PG is unable to construct the relation descriptor
+for a dirty buffer that must be evicted from the shared buffer cache.
+This can happen,
+for example,
+when the relation descriptor has just been created in another process,
+and has not yet been committed to the database.
+In such a case,
+\*(PG must write the buffer without constructing a relation descriptor.
+.pp
+The buffer manager can detect this case,
+and handles it using a strategy called
+.q "blind writes."
+When a blind write must be done,
+the buffer manager determines the name and object id of the database,
+the name and object id of the relation,
+and the block number of the buffer to be written.
+All of this information is stored with the buffer in the buffer cache.
+The device manager is responsible for determining,
+from this information alone,
+where the buffer must be written.
+This means,
+in general,
+that every device manager must use some subset of these
+values as a unique key for finding the proper location
+to write a data block.
+.pp
+The interface for this routine is
+.(E
+int
+smgr_blindwrt(dbname, relname, dbid, relid, blkno,
+              buffer)
+    Name dbname;
+    Name relname;
+    ObjectId dbid;
+    ObjectId relid;
+    BlockNumber blkno;
+    char *buffer;
+.)E
+.pp
+It is expected that most device managers will write data much
+more efficiently using
+.CW smgr_write
+than
+.CW smgr_blindwrt .
+.sh 3 "smgr_nblocks"
+.pp
+The routine
+.(E
+int
+smgr_nblocks(reln)
+    Relation reln;
+.)E
+should return the number of blocks stored for the relation
+pointed to by
+.CW reln .
+The number of blocks is used
+during query planning and execution.
+.pp
+Since this is a potentially expensive operation,
+the storage manager maintains a shared-memory cache of relation sizes
+recently computed by device managers.
+.sh 3 "smgr_commit"
+.pp
+When a transaction finishes,
+the data manager calls the
+.CW smgr_commit
+routine for every device manager.
+This routine must flush any pending asynchronous writes for this
+transaction to disk,
+so that all relation data is on persistent storage before
+the transaction is marked committed.
+In addition,
+the device manager can release resources or update its state
+appropriately.
+.pp
+This routine may be NULL,
+if there is no work to do for a device manager at transaction commit.
+If it is supplied,
+its interface is
+.(E
+int
+smgr_commit()
+.)E
+.pp
+There is one important issue regarding transaction commit
+that should also be mentioned.
+Much research has been done in database systems to support
+.i distribution ,
+or databases that span multiple computers in a network.
+Although \*(PG is not a distributed database system,
+it does support
+.i "data distribution"
+by means of the storage manager switch
+and device managers.
+.pp
+Data distribution means that different tables,
+or parts of tables,
+may reside on storage devices connected to different computers
+on a network.
+\*(PG does all data manipulation at a single site,
+but the data it works with may be distributed.
+The data manager will call the device manager,
+which can operate on a local device,
+or use the network to satisfy requests on a remote device.
+In fact,
+the Sony jukebox device manager works correctly whether it runs
+on the host computer to which the jukebox is connected,
+or on some other computer on the Internet.
+.pp
+At transaction commit time,
+the data manager informs each device manager that all its
+data must be on stable storage.
+Each device manager flushes any pending writes synchronously,
+and returns.
+Once all device managers have forced data to stable storage,
+the data manager synchronously records that the transaction
+has committed by writing a ten-byte record to the
+.i "transaction status file"
+on one of the storage devices.
+If the system crashes before the commit record is stored
+in the transaction status file,
+\*(PG will consider the transaction to be aborted when
+the transaction's changes are encountered later.
+.pp
+Thus the
+.CW smgr_commit
+interface supports data distribution without
+using a traditional multi-phase commit protocol ([KIM84], [SKEE81]).
+In particular,
+device managers are not notified whether a transaction actually
+commits,
+once they have forced data to stable storage.
+.sh 3 "smgr_abort"
+.pp
+If a transaction aborts,
+the data manager calls
+.CW smgr_abort
+in place of
+.CW smgr_commit .
+In this case,
+it does not matter if changes made to user relations
+during the aborted transaction are reflected on stable storage.
+Device managers may deschedule pending writes,
+as long as the writes include no data from other transactions.
+.pp
+This routine may be NULL,
+if there is no work to do for a device manager at transaction abort.
+.sh 2 "Architecture Summary"
+.pp
+The \*(PG storage manager architecture
+assigns a particular device manager to manage each device,
+or class of devices,
+available to the database system.
+A well-defined set of interface routines makes relation accesses
+device-transparent.
+.pp
+The architecture uses a
+.i "storage manager switch"
+to record the interface routines for all the device managers
+known to the system.
+.pp
+So far,
+three device managers exist:
+magnetic disk,
+a Sony WORM optical disk jukebox,
+and volatile main memory.
