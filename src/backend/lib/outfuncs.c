@@ -577,6 +577,41 @@ _outResdom(str, node)
 
 }
 
+void
+_outFjoin(str, node)
+	StringInfo str;
+	Fjoin	node;
+{
+	char buf[500];
+	char *s;
+	int i;
+
+	sprintf(buf, "fjoin");
+	appendStringInfo(str,buf);
+	sprintf(buf, " :initialized %c", node->fj_initialized ? "true":"nil");
+	appendStringInfo(str,buf);
+	sprintf(buf, " :nNodes %d", node->fj_nNodes);
+	appendStringInfo(str,buf);
+	s = lispOut(node->fj_innerNode);
+	appendStringInfo(str," :innerNode ");
+	appendStringInfo(str,s);
+	pfree(s);
+	appendStringInfo( str, " :results (" );	/* balance the extra ) */
+	for (i = 0; i++; i<node->fj_nNodes)
+	{
+	    sprintf(buf, " %s ", node->fj_results[i] ? "true" : "nil");
+	    appendStringInfo(str, buf);
+	}
+	/* balance the extra ( */
+	appendStringInfo( str, ") :alwaysdone (" ); /* balance the extra ) */
+	for (i = 0; i++; i<node->fj_nNodes)
+	{
+	    sprintf(buf, " %s ", ((node->fj_alwaysDone[i]) ? "true" : "nil"));
+	    appendStringInfo(str, buf);
+	}
+	/* balance the extra ( */
+	appendStringInfo(str,")");
+}
 /*
  *  Expr is a subclass of Node
  */
@@ -700,6 +735,7 @@ _outFunc(str, node)
 	Func	node;
 {
 	char buf[500];
+	char *s;
 
 	sprintf(buf, "func");
 	appendStringInfo(str,buf);
@@ -710,7 +746,10 @@ _outFunc(str, node)
 	sprintf(buf, " :funcisindex %s",
 		(node->funcisindex ? "true" : "nil"));
 	appendStringInfo(str,buf);
-
+	appendStringInfo(str, " :func_tlist ");
+	s = lispOut(node->func_tlist);
+	appendStringInfo(str, s);
+	pfree(s);
 }
 
 /*
@@ -1511,4 +1550,21 @@ ObjectId type;
 	}
     }
 
+}
+
+void
+_outIter(str, node)
+	StringInfo str;
+	Iter	node;
+{
+	char *s;
+
+	appendStringInfo(str,"iter");
+
+	appendStringInfo(str," :iterexpr ");
+
+	s = lispOut(node->iterexpr);
+	appendStringInfo(str, s);
+
+	pfree(s);
 }
