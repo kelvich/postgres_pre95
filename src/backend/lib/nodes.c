@@ -56,9 +56,6 @@ NodeTagGetSize(tag)
       case T_Oper:
 	node_size = sizeof(struct _Oper);
 	break;
-      case T_RuleLockNode:
-	node_size = sizeof(struct _RuleLockNode);
-	break;
       case T_Param:
 	node_size = sizeof (struct _Param);
 	break;
