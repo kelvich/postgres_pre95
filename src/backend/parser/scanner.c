@@ -194,7 +194,7 @@ int len;
 			/* *cp++ = '\\'; When _should_ this be done? XXX */
 			if (isdigit(c)) {
 				dc = 0;
-				while (dc++ < 3 && isdigit(c2)) {
+				while (dc++ < 3 && isdigit(c)) {
 					*cp++ = c;
 					c = input();
 				}
