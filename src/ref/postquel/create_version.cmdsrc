@@ -62,6 +62,7 @@ The algorithms that control versions are explained in [ONG90].
 .uh EXAMPLE
 .lp
 .ft C
+.nf
 /* create a version foobar from a snapshot of */
 /* barfoo as of January 17, 1990              */
 

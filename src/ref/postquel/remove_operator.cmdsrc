@@ -19,6 +19,7 @@ To execute this command you must be the owner of the operator.
 is the name of the operator to be removed followed by a
 parenthesized list of the operand types for the operator.
 .uh EXAMPLE
+.lp
 .nf
 .ft C
 /* Remove power operator a^n for 4 byte integers */
