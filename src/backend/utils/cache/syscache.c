@@ -13,15 +13,9 @@
  *
  *   NOTES
  *	These routines allow the parser/planner/executor to perform
- *	rapid lookups on the contents of the system catalogs.  (Well,
- *	mabey not so rapid just yet..)
+ *	rapid lookups on the contents of the system catalogs.
  *
- *	see lib/catalog/syscache.h for a list of the cache id's
- *
- * old notes:
- *	LISP code should call SearchSysCacheStruct with preallocated space
- *	 (or SearchSysCacheGetAttribute for variable-length or system fields).
- *	C code should call SearchSysCacheTuple -- it's slightly more efficient.
+ *	see catalog/syscache.h for a list of the cache id's
  *
  *   IDENTIFICATION
  *	$Header$
@@ -77,73 +71,70 @@ extern bool	AMI_OVERRIDE;	/* XXX style */
 /* ----------------
  *	Warning:  cacheinfo[] below is changed, then be sure and
  *	update the magic constants in syscache.h!
- *
- *	Note: currently all the catalog cache index names are
- *	NULL.  This will change soon -cim 1/13/91.
  * ----------------
  */
 static struct cachedesc cacheinfo[] = {
     { &AccessMethodOperatorRelationName,	/* AMOPOPID */
 	  2,
-	  { AccessMethodOperatorOperatorClassIdAttributeNumber,
-		AccessMethodOperatorOperatorIdAttributeNumber,
+	  { Anum_pg_amop_amopclaid,
+		Anum_pg_amop_amopid,
 		0,
 		0 },
-	  sizeof(struct amop),
+	  sizeof(FormData_pg_amop),
       NULL,
       NULL  },
     { &AccessMethodOperatorRelationName,	/* AMOPSTRATEGY */
 	  3,
-	  { AccessMethodOperatorAccessMethodIdAttributeNumber,
-		AccessMethodOperatorOperatorClassIdAttributeNumber,
-		AccessMethodOperatorStrategyAttributeNumber,
+	  { Anum_pg_amop_amopid,
+		Anum_pg_amop_amopclaid,
+		Anum_pg_amop_amopstrategy,
 		0 },
-	  sizeof(struct amop),
+	  sizeof(FormData_pg_amop),
       NULL,
       NULL  },
     { &AttributeRelationName,			/* ATTNAME */
 	  2,
-	  { AttributeRelationIdAttributeNumber,
-		AttributeNameAttributeNumber,
+	  { Anum_pg_attribute_attrelid,
+		Anum_pg_attribute_attname,
 		0,
 		0 },
-	  sizeof(struct attribute),
+	  sizeof(FormData_pg_attribute),
       &AttributeNameIndex,
       AttributeNameIndexScan  },
     { &AttributeRelationName,			/* ATTNUM */
 	  2,
-	  { AttributeRelationIdAttributeNumber,
-		AttributeNumberAttributeNumber,
+	  { Anum_pg_attribute_attrelid,
+		Anum_pg_attribute_attnum,
 		0,
 		0 },
-	  sizeof(struct attribute),
+	  sizeof(FormData_pg_attribute),
       &AttributeNumIndex,
       AttributeNumIndexScan  },
     { &IndexRelationName,			/* INDEXRELID */
 	  1,
-	  { IndexRelationIdAttributeNumber,
+	  { Anum_pg_index_indexrelid,
 		0,
 		0,
 		0 },
-	  sizeof(struct index),
+	  sizeof(FormData_pg_index) - sizeof(text),
       NULL,
       NULL  },
     { &LanguageRelationName,			/* LANNAME */
 	  1,
-	  { LanguageNameAttributeNumber,
+	  { Anum_pg_language_lanname,
 		0,
 		0,
 		0 },
-	  sizeof(struct language) - sizeof(struct varlena),
+	  sizeof(FormData_pg_language) - sizeof(struct varlena),
       NULL,
       NULL  },
     { &OperatorRelationName,			/* OPRNAME */
 	  4,
-	  { OperatorNameAttributeNumber,
-		OperatorLeftAttributeNumber,
-		OperatorRightAttributeNumber,
-		OperatorKindAttributeNumber },
-	  sizeof(struct operator),
+	  { Anum_pg_operator_oprname,
+		Anum_pg_operator_oprleft,
+		Anum_pg_operator_oprright,
+		Anum_pg_operator_oprkind },
+	  sizeof(FormData_pg_operator),
       NULL,
       NULL  },
     { &OperatorRelationName,			/* OPROID */
@@ -152,16 +143,16 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0,
 		0 },
-	  sizeof(struct operator),
+	  sizeof(FormData_pg_operator),
       NULL,
       NULL  },
     { &ProcedureRelationName,			/* PRONAME */
 	  1,
-	  { ProcedureNameAttributeNumber,
+	  { Anum_pg_proc_proname,
 		0,
 		0,
 		0 },
-	  sizeof(struct proc),
+	  sizeof(FormData_pg_proc) - (sizeof(text) + sizeof(bytea)),
       &ProcedureNameIndex,
       ProcedureNameIndexScan  },
     { &ProcedureRelationName,			/* PROOID */
@@ -170,16 +161,16 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0,
 		0 },
-	  sizeof(struct proc),
+	  sizeof(FormData_pg_proc) - (sizeof(text) + sizeof(bytea)),
       &ProcedureOidIndex,
       ProcedureOidIndexScan  },
     { &RelationRelationName,			/* RELNAME */
 	  1,
-	  { RelationNameAttributeNumber,
+	  { Anum_pg_relation_relname,
 		0,
 		0,
 		0 },
-	  sizeof(struct relation),
+	  sizeof(FormData_pg_relation) - sizeof(aclitem),
       &ClassNameIndex,
       ClassNameIndexScan  },
     { &RelationRelationName,			/* RELOID */
@@ -188,16 +179,16 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0,
 		0 },
-	  sizeof(struct relation),
+	  sizeof(FormData_pg_relation) - sizeof(aclitem),
       &ClassOidIndex,
       ClassOidIndexScan  },
     { &TypeRelationName,			/* TYPNAME */
 	  1,
-	  { TypeNameAttributeNumber,
+	  { Anum_pg_type_typname,
 		0,
 		0,
 		0 },
-	  sizeof(TypeTupleFormData) - sizeof(struct varlena),
+	  sizeof(FormData_pg_type) - sizeof(struct varlena),
       &TypeNameIndex,
       TypeNameIndexScan  },
     { &TypeRelationName,			/* TYPOID */
@@ -206,34 +197,34 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0,
 		0},
-	  sizeof(TypeTupleFormData) - sizeof(struct varlena),
+	  sizeof(FormData_pg_type) - sizeof(struct varlena),
       &TypeOidIndex,
       TypeOidIndexScan  },
     { &AccessMethodRelationName,		/* AMNAME */
 	  1,
-	  { AccessMethodNameAttributeNumber,
+	  { Anum_pg_am_amname,
 		0,
 		0,
 		0},
-	  sizeof(IndexTupleFormData),
+	  sizeof(FormData_pg_am),
       NULL,
       NULL  },
     { &OperatorClassRelationName,		/* CLANAME */
 	  1,
-	  { OperatorClassNameAttributeNumber,
+	  { Anum_pg_opclass_opcname,
 		0,
 		0,
 		0},
-	  sizeof(IndexTupleFormData),
+	  sizeof(FormData_pg_opclass),
       NULL,
       NULL  },
     { &IndexRelationName,			/* INDRELIDKEY */
 	  2,
-	  { IndexHeapRelationIdAttributeNumber,
-		IndexKeyAttributeNumber,
+	  { Anum_pg_index_indrelid,
+		Anum_pg_index_indkey,
 		0,
 		0},
-	  sizeof(IndexTupleFormData),
+	  sizeof(FormData_pg_index),
       NULL,
       NULL  },
     { &InheritsRelationName,			/* INHRELID */
@@ -247,11 +238,11 @@ static struct cachedesc cacheinfo[] = {
       NULL  },
     { &Prs2PlansRelationName,			/* PRS2PLANCODE */
 	  2,
-	  { Prs2PlansRuleIdAttributeNumber,
-		Prs2PlansPlanNumberAttributeNumber,
+	  { Anum_pg_prs2plans_prs2ruleid,
+		Anum_pg_prs2plans_prs2planno,
 		0,
 		0 },
-	  sizeof(struct prs2plans) - sizeof(struct varlena),
+	  sizeof(FormData_pg_prs2plans) - sizeof(struct varlena),
       NULL,
       NULL  },
     { &RewriteRelationName,			/* RULOID */
@@ -260,7 +251,7 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0,
 		0 },
-	  sizeof(FormData_pg_rewrite),
+	  sizeof(FormData_pg_rewrite) - (2 * sizeof(text)),
       NULL,
       NULL  },
     { &Prs2StubRelationName,			/* PRS2STUB */
@@ -287,22 +278,22 @@ static struct cachedesc cacheinfo[] = {
 		0,
 		0,
 		0 },
-	  sizeof(FormData_pg_prs2rule),
+	  sizeof(FormData_pg_prs2rule) - sizeof(text),
       NULL,
       NULL  },
     { &AggregateRelationName,			/*AGGNAME*/
 	  1,
-	  { AggregateNameAttributeNumber,
+	  { Anum_pg_aggregate_aggname,
 	        0,
 		0,
 		0 },
-	   sizeof(FormData_pg_aggregate),
+	   sizeof(FormData_pg_aggregate) - (2 * sizeof(text)),
        NULL,
        NULL  },    
     { &NamingRelationName,                      /*NAMEREL */
         2,
-        { Anum_pg_naming_parent_oid,/*NamingParentOIDAttributeNumber,*/
-            Anum_pg_naming_filename,/*NamingFilenameAttributeNumber,*/
+        { Anum_pg_naming_parent_oid,
+            Anum_pg_naming_filename,
             0,
             0 },
         sizeof(FormData_pg_naming),
@@ -314,7 +305,7 @@ static struct cachedesc cacheinfo[] = {
             0,
             0,
             0 },
-        sizeof (FormData_pg_large_object),
+        sizeof(FormData_pg_large_object) - sizeof(bytea),
         NULL,
 	NULL  },
     { &ListenerRelationName,                  /* LISTENREL */
@@ -350,7 +341,7 @@ static struct cachedesc cacheinfo[] = {
 			0,
 			0,
 			0 },
-	      sizeof(FormData_pg_group),
+	      sizeof(FormData_pg_group) - sizeof(int2),
 	      NULL,
 	      NULL  },
     { &GroupRelationName,           		/* GROSYSID */
@@ -359,7 +350,7 @@ static struct cachedesc cacheinfo[] = {
 			0,
 			0,
 			0 },
-	      sizeof(FormData_pg_group),
+	      sizeof(FormData_pg_group) - sizeof(int2),
 	      NULL,
 	      NULL  },
     { &RewriteRelationName,           		/* REWRITENAME */
@@ -368,7 +359,7 @@ static struct cachedesc cacheinfo[] = {
 			0,
 			0,
 			0 },
-	      sizeof(FormData_pg_group),
+	      sizeof(FormData_pg_rewrite) - (2 * sizeof(text)),
 	      NULL,
 	      NULL  }
 };
