@@ -1008,9 +1008,10 @@ ExecTypeFromTL(targetList)
     *  examine targetlist - if empty then return NULL
     * ----------------
     */
-   len = length(targetList);
-   if (len == 0)
-      return NULL;
+    len = ExecTargetListLength(targetList);
+
+    if (len == 0)
+	return NULL;
    
    /* ----------------
     *  allocate a new typeInfo
@@ -1027,19 +1028,54 @@ ExecTypeFromTL(targetList)
     */
     tlcdr = targetList;
     while (! lispNullp(tlcdr)) {
-	resdom =  (Resdom) tl_resdom(CAR(tlcdr));
-	restype = get_restype(resdom);
+	if (tl_is_resdom(CAR(tlcdr))) {
+	    resdom =  (Resdom) tl_resdom(CAR(tlcdr));
+	    restype = get_restype(resdom);
       
-	ExecSetTypeInfo((int) get_resno(resdom) - 1,	/* index */
-			(struct attribute **) typeInfo, /* addr of type info */
-			(ObjectId) restype,		/* type id */
-			(int) get_resno(resdom),	/* att num */
-			(int) get_reslen(resdom),	/* att len */
-			(char *) get_resname(resdom),	/* att name */
-			get_typbyval(restype));		/* att by val */
+	    ExecSetTypeInfo((int) get_resno(resdom) - 1,    /* index */
+			    (struct attribute **) typeInfo, /* type info addr */
+			    (ObjectId) restype,		    /* type id */
+			    (int) get_resno(resdom),	    /* att num */
+			    (int) get_reslen(resdom),	    /* att len */
+			    (char *) get_resname(resdom),   /* att name */
+			    get_typbyval(restype));	    /* att by val */
+	}
+	else {
+	    Resdom fjRes;
+	    List  fjTlistP;
+	    List  fjList = CAR(tlcdr);
+	    Fjoin fjNode = (Fjoin)tl_node(fjList);
+
+	    fjRes = (Resdom)tl_resdom(get_fj_innerNode(fjNode));
+	    ExecSetTypeInfo(
+		    (int) get_resno(fjRes) - 1,        /* index */
+		    (struct attribute **) typeInfo,    /* addr of type info */
+		    (ObjectId) restype,		       /* type id */
+		    (int) get_resno(fjRes),	       /* att num */
+		    (int) get_reslen(fjRes),	       /* att len */
+		    (char *) get_resname(fjRes),       /* att name */
+		    get_typbyval(get_restype(fjRes))); /* att by val */
+
+	    foreach(fjTlistP, CDR(fjList)) {
+		List fjTle = CAR(fjTlistP);
+
+		fjRes = (Resdom)tl_resdom(fjTle);
+		ExecSetTypeInfo(
+		      (int) get_resno(fjRes) - 1,        /* index */
+		      (struct attribute **) typeInfo,    /* addr of type info */
+		      (ObjectId) restype,		 /* type id */
+		      (int) get_resno(fjRes),	         /* att num */
+		      (int) get_reslen(fjRes),	         /* att len */
+		      (char *) get_resname(fjRes),       /* att name */
+		      get_typbyval(get_restype(fjRes))); /* att by val */
+
+	    } /* foreach */
+
+	}     /* else tl_is_resdom */
 
 	tlcdr = CDR(tlcdr);
-    }
+
+    } /* while (! lispNullp(tlcdr)) */
    
     return typeInfo;
 }
