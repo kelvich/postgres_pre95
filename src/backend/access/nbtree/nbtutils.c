@@ -281,7 +281,7 @@ _bt_dumptup(rel, itupdesc, page, offind)
     itup = &(btitem->bti_itup);
     tuplen = itup->t_size;
     iptr = &(itup->t_tid);
-    blkno = ItemPointerGetBlockNumber(iptr, 0);
+    blkno = ItemPointerGetBlockNumber(iptr);
     pgno = ItemPointerGetPageNumber(iptr, 0);
     offno = ItemPointerGetOffsetNumber(iptr, 0);
 

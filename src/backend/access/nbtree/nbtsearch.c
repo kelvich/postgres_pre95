@@ -90,7 +90,7 @@ _bt_searchr(rel, keysz, scankey, bufP, stack_in)
     itemid = PageGetItemId(page, offind);
     btitem = (BTItem) PageGetItem(page, itemid);
     itup = &(btitem->bti_itup);
-    blkno = ItemPointerGetBlockNumber(&(itup->t_tid), 0);
+    blkno = ItemPointerGetBlockNumber(&(itup->t_tid));
 
     /*
      *  We need to save the bit image of the index entry we chose in the
@@ -1035,7 +1035,7 @@ _bt_endpoint(scan, dir)
 	btitem = (BTItem) PageGetItem(page, PageGetItemId(page, offind));
 	itup = &(btitem->bti_itup);
 
-	blkno = ItemPointerGetBlockNumber(&(itup->t_tid), 0);
+	blkno = ItemPointerGetBlockNumber(&(itup->t_tid));
 
 	_bt_relbuf(rel, buf, BT_READ);
 	buf = _bt_getbuf(rel, blkno, BT_READ);
