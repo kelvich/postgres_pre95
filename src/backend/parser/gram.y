@@ -1051,12 +1051,9 @@ NotifyStmt: NOTIFY relation_name
 
 ListenStmt: LISTEN relation_name 
             {
-/*		elog(WARN,
- *		     "listen is turned off for 4.0.1 - see the release notes");
- */
 		parser_current_rel = heap_openr(CString($2));
 		if (parser_current_rel == NULL)
-		  elog(WARN,"listen: relation %s doesn't exist",$2);
+		  elog(WARN,"listen: relation %s doesn't exist",CString($2));
 		else
 		  heap_close(parser_current_rel);
 
