@@ -578,14 +578,17 @@ docopy_in(srcfname, destfname, smgrno)
 	return (-1);
     }
 
-    if ((destfd = p_creat(destfname, INV_WRITE|smgrno, Inversion)) < 0) {
-	fprintf(stderr, "Cannot create Inversion file %s\n", destfname);
+    if ((buf = (char *) malloc(IBUFSIZ)) == (char *) NULL) {
+	fprintf(stderr, "cannot allocate %d bytes for copy buffer\n", IBUFSIZ);
 	fflush(stderr);
 	return (-1);
     }
 
-    if ((buf = (char *) malloc(IBUFSIZ)) == (char *) NULL) {
-	fprintf(stderr, "cannot allocate %d bytes for copy buffer\n", IBUFSIZ);
+    /* start a transaction */
+    ibegin();
+
+    if ((destfd = p_creat(destfname, INV_WRITE|smgrno, Inversion)) < 0) {
+	fprintf(stderr, "Cannot create Inversion file %s\n", destfname);
 	fflush(stderr);
 	return (-1);
     }
@@ -629,6 +632,9 @@ docopy_in(srcfname, destfname, smgrno)
     (void) close(srcfd);
     (void) p_close(destfd);
 
+    /* commit the transaction */
+    icommit();
+
     return (0);
 }
 
@@ -643,17 +649,6 @@ docopy_out(srcfname, destfname, smgrno)
     int nread, nwrite, totread, nbytes;
     int done;
 
-    /* copy out cannot come from stdin */
-    if (strcmp(srcfname, "-") == 0)
-	usage();
-
-    if ((srcfd = p_open(srcfname, INV_READ)) < 0) {
-	fprintf(stderr, "%s: cannot open Inversion file %s\n",
-		ProgName, srcfname);
-	fflush(stderr);
-	return (-1);
-    }
-
     if ((destfd = open(destfname, O_WRONLY|O_CREAT|O_TRUNC, 0600)) < 0) {
 	fprintf(stderr, "%s: ", ProgName);
 	perror(destfname);
@@ -664,6 +659,16 @@ docopy_out(srcfname, destfname, smgrno)
 	fprintf(stderr, "cannot allocate %d bytes for copy buffer\n", IBUFSIZ);
 	fflush(stderr);
 	exit (1);
+    }
+
+    /* start a transaction */
+    ibegin();
+
+    if ((srcfd = p_open(srcfname, INV_READ)) < 0) {
+	fprintf(stderr, "%s: cannot open Inversion file %s\n",
+		ProgName, srcfname);
+	fflush(stderr);
+	return (-1);
     }
 
     done = FALSE;
@@ -704,6 +709,9 @@ docopy_out(srcfname, destfname, smgrno)
 
     (void) p_close(srcfd);
     (void) close(destfd);
+
+    /* end the transaction */
+    icommit();
 }
 
 void
