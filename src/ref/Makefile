@@ -65,6 +65,7 @@ SOURCES= \
 	${.CURDIR}/unix/createuser${PROG_SRC_EXT} \
 	${.CURDIR}/unix/destroydb${PROG_SRC_EXT} \
 	${.CURDIR}/unix/destroyuser${PROG_SRC_EXT} \
+	${.CURDIR}/unix/icopy${PROG_SRC_EXT} \
 	${.CURDIR}/unix/initdb${PROG_SRC_EXT} \
 	${.CURDIR}/unix/ipcclean${PROG_SRC_EXT} \
 	${.CURDIR}/unix/monitor${PROG_SRC_EXT} \
@@ -175,14 +176,24 @@ PROG_MAN_OBJS= \
 	createuser${PROG_MAN_EXT} \
 	destroydb${PROG_MAN_EXT} \
 	destroyuser${PROG_MAN_EXT} \
+	icopy${PROG_MAN_EXT} \
 	initdb${PROG_MAN_EXT} \
 	ipcclean${PROG_MAN_EXT} \
 	monitor${PROG_MAN_EXT} \
 	pagedoc${PROG_MAN_EXT} \
+	pcat${PROG_MAN_EXT} \
+	pcd${PROG_MAN_EXT} \
+	pls${PROG_MAN_EXT} \
+	pmkdir${PROG_MAN_EXT} \
+	pmv${PROG_MAN_EXT} \
 	postgres${PROG_MAN_EXT} \
 	postmaster${PROG_MAN_EXT} \
+	ppwd${PROG_MAN_EXT} \
+	prm${PROG_MAN_EXT} \
+	prmdir${PROG_MAN_EXT} \
 	s2kutils${PROG_MAN_EXT} \
-	shmemdoc${PROG_MAN_EXT}
+	shmemdoc${PROG_MAN_EXT} \
+	ugidd${PROG_MAN_EXT} \
 
 CMD_MAN_OBJS= \
 	postquel${CMD_MAN_EXT} \
