@@ -81,7 +81,7 @@ class (EState) public (Node) {
  *	OuterTuple	points to the current outer tuple
  *  	TupType   	attr type info of tuples from this node
  *   	TupValue   	array to store attr values for 'formtuple'
- *   	Level      	level of the left subplan
+ *   	Level      	level of the outer subplan
  *	ScanType	type of tuples in relation being scanned
  * ----------------------------------------------------------------
  */
@@ -109,7 +109,7 @@ class (StateNode) public (Node) {
  *	OuterTuple	points to the current outer tuple
  *  	TupType   	attr type info of tuples from this node
  *   	TupValue   	array to store attr values for 'formtuple'
- *   	Level      	level of the left subplan
+ *   	Level      	level of the outer subplan
  *	ScanType	type of tuples in relation being scanned
  * ----------------------------------------------------------------
  */
@@ -122,7 +122,6 @@ class (ResultState) public (StateNode) {
 /* ----------------------------------------------------------------
  *   CommonState information
  *
- *   	OuterTuple	points to the current outer tuple
  *   	PortalFlag	Set to enable portals to work.
  *	currentRelation relation being scanned
  *      currentScanDesc current scan descriptor for scan
@@ -132,7 +131,7 @@ class (ResultState) public (StateNode) {
  *	OuterTuple	points to the current outer tuple
  *  	TupType   	attr type info of tuples from this node
  *   	TupValue   	array to store attr values for 'formtuple'
- *   	Level      	level of the left subplan
+ *   	Level      	level of the outer subplan
  *	ScanType	type of tuples in relation being scanned
  * ----------------------------------------------------------------
  */
@@ -140,7 +139,6 @@ class (ResultState) public (StateNode) {
 class (CommonState) public (StateNode) {
 #define CommonStateDefs \
       inherits(StateNode); \
-      List 	   OuterTuple; \
       bool 	   PortalFlag; \
       Relation     currentRelation; \
       HeapScanDesc currentScanDesc
@@ -154,7 +152,7 @@ class (CommonState) public (StateNode) {
  *
  *   	RuleFlag	whether a rule is activated
  *   	RuleDesc	rule desc returned by Tuple Rule Mgr
- *   	ProcLeftFlag	need to process right subtree
+ *   	ProcOuterFlag	need to process outer subtree
  *   	OldRelId	need for compare for joins if result relid.
  *   	LispIndexPtr	point to index used in list of indices, if any
  *   	Skeys		Skey structures to scan index rels, if any
@@ -162,7 +160,6 @@ class (CommonState) public (StateNode) {
  *
  *   CommonState information
  *
- *   	OuterTuple	points to the current outer tuple
  *   	PortalFlag	Set to enable portals to work.
  *	currentRelation relation being scanned
  *      currentScanDesc current scan descriptor for scan
@@ -172,7 +169,7 @@ class (CommonState) public (StateNode) {
  *	OuterTuple	points to the current outer tuple
  *  	TupType   	attr type info of tuples from this node
  *   	TupValue   	array to store attr values for 'formtuple'
- *   	Level      	level of the left subplan
+ *   	Level      	level of the outer subplan
  *	ScanType	type of tuples in relation being scanned
  *
  * ----------------------------------------------------------------
@@ -194,7 +191,6 @@ class (ScanState) public (CommonState) {
 /* ----------------------------------------------------------------
  *    NestLoopState information
  *
- *   	OuterTuple	points to the current outer tuple
  *   	PortalFlag	Set to enable portals to work.
  *	currentRelation relation being scanned
  *      currentScanDesc current scan descriptor for scan
@@ -227,7 +223,6 @@ class (NestLoopState) public (CommonState) {
  *
  *   CommonState information
  *
- *   	OuterTuple	points to the current outer tuple
  *   	PortalFlag	Set to enable portals to work.
  *	currentRelation relation being scanned
  *      currentScanDesc current scan descriptor for scan
