@@ -16,7 +16,7 @@
 #   IDENTIFICATION
 # 	$Header$
 # ----------------------------------------------------------------
-
+PATH=$PATH:/lib		# to find cpp
 BKIOPTS=''
 if [ $? != 0 ]
 then
@@ -199,7 +199,7 @@ END {
 	}
 }
 ' | \
-/lib/cpp $BKIOPTS | \
+cpp $BKIOPTS | \
 sed -e '/^[ 	]*$/d' \
     -e 's/[ 	][ 	]*/ /g'
 
