@@ -10,7 +10,6 @@
 #define InvalIncluded	1
 
 #include "tmp/postgres.h"
-#include "utils/linval.h"
 #include "access/htup.h"
 #include "utils/rel.h"
 
@@ -66,14 +65,62 @@ RelationIdInvalidateHeapTuple ARGS((
 	HeapTuple	tuple
 ));
 
-InvalidationEntry InvalidationEntryAllocate ARGS((uint16 size ));
+/*
+ * The following definitions were sucked out of...
+ *
+ * linval.h --
+ *	POSTGRES local cache invalidation definitions.
+ *
+ * ...which failed to die when its functions were subsumed in inval.c.
+ */
 
-LocalInvalid LocalInvalidRegister ARGS((
-	LocalInvalid invalid,
-	InvalidationEntry entry
+typedef struct InvalidationUserData {
+	struct InvalidationUserData	*dataP[1];	/* VARIABLE LENGTH */
+} InvalidationUserData;	/* VARIABLE LENGTH STRUCTURE */
+
+typedef struct InvalidationEntryData {
+	InvalidationUserData	*nextP;
+	InvalidationUserData	userData;	/* VARIABLE LENGTH ARRAY */
+} InvalidationEntryData;	/* VARIABLE LENGTH STRUCTURE */
+
+typedef Pointer InvalidationEntry;
+
+typedef InvalidationEntry	LocalInvalid;
+
+#define EmptyLocalInvalid	NULL
+
+/*
+ * InvalididationEntryAllocate --
+ *	Allocates an invalidation entry.
+ */
+InvalidationEntry
+InvalidationEntryAllocate ARGS((
+	uint16	size
 ));
 
-void LocalInvalidInvalidate ARGS((LocalInvalid invalid , void (*function )()));
+/*
+ * LocalInvalidRegister --
+ *	Returns a new local cache invalidation state containing a new entry.
+ */
+extern
+LocalInvalid
+LocalInvalidRegister ARGS((
+	LocalInvalid		invalid,
+	InvalidationEntry	entry
+));
+
+/*
+ * LocalInvalidInvalidate --
+ *	Processes, then frees all entries in a local cache invalidation state.
+ */
+extern
+void
+LocalInvalidInvalidate ARGS((
+	LocalInvalid	invalid,
+	void		(*function)(
+		InvalidationEntry	entry
+	)
+));
 
 void getmyrelids ARGS((void ));
 
