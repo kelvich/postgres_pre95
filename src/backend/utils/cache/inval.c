@@ -12,8 +12,8 @@
 #include "storage/ipci.h"
 #include "storage/sinval.h"
 #include "utils/catcache.h"
-#include "utils/inval.h"
 #include "utils/linval.h"
+#include "utils/inval.h"
 #include "utils/log.h"
 #include "utils/rel.h"
 #include "catalog/catname.h"	/* XXX to support hacks below */
@@ -191,7 +191,7 @@ CacheIdRegisterLocalInvalid(cacheId, hashIndex, pointer)
      *	Note: Invalid is a global variable
      * ----------------
      */
-    Invalid = LocalInvalidRegister(Invalid, message);
+    Invalid = LocalInvalidRegister(Invalid, (InvalidationEntry)message);
 }
  
 /* --------------------------------
@@ -233,7 +233,7 @@ RelationIdRegisterLocalInvalid(relationId, objectId)
      *	Note: Invalid is a global variable
      * ----------------
      */
-    Invalid = LocalInvalidRegister(Invalid, message);
+    Invalid = LocalInvalidRegister(Invalid, (InvalidationEntry)message);
 }
  
 /* --------------------------------

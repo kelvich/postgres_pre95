@@ -91,7 +91,7 @@ RcsId("$Header$");
  * ----------------
  */
 extern bool	AMI_OVERRIDE;	/* XXX style */
- 
+
 /* ----------------
  *	hardcoded tuple descriptors.  see lib/H/catalog/pg_attribute.h
  * ----------------
@@ -116,6 +116,21 @@ HTAB	*RelationIdCache;
 
 extern int	tag_hash();
 
+/* ----------------
+ *	RelationBuildDescInfo exists so code can be shared
+ *      between RelationIdGetRelation() and RelationNameGetRelation()
+ * ----------------
+ */
+typedef struct RelationBuildDescInfo {
+    int infotype;		/* lookup by id or by name */
+#define INFO_RELID 1
+#define INFO_RELNAME 2
+    union {
+	ObjectId info_id;	/* relation object id */
+	Name	 info_name;	/* relation name */
+    } i;
+} RelationBuildDescInfo;
+
 typedef struct relidcacheent {
     ObjectId reloid;
     Relation reldesc;
@@ -124,6 +139,25 @@ typedef struct relnamecacheent {
     NameData relname;
     Relation reldesc;
 } RelNameCacheEnt;
+
+char *BuildDescInfoError ARGS((RelationBuildDescInfo buildinfo ));
+HeapTuple ScanPgRelation ARGS((RelationBuildDescInfo buildinfo ));
+void RelationBuildTupleDesc ARGS((
+	RelationBuildDescInfo buildinfo,
+	Relation relation,
+	AttributeTupleForm attp,
+	u_int natts
+));
+Relation RelationBuildDesc ARGS((RelationBuildDescInfo buildinfo ));
+private void formrdesc ARGS((
+	char *relationName,
+	u_int natts,
+	AttributeTupleFormData att []
+));
+private void RelationFlushIndexes ARGS((
+	Relation relation,
+	ObjectId accessMethodId
+));
  
 /* -----------------
  *	macros to manipulate name cache and id cache
@@ -212,26 +246,12 @@ typedef struct relnamecacheent {
  * ----------------------------------------------------------------
  */
  
-/* ----------------
- *	RelationBuildDescInfo exists so code can be shared
- *      between RelationIdGetRelation() and RelationNameGetRelation()
- * ----------------
- */
-typedef struct RelationBuildDescInfo {
-    int infotype;		/* lookup by id or by name */
-#define INFO_RELID 1
-#define INFO_RELNAME 2
-    union {
-	ObjectId info_id;	/* relation object id */
-	Name	 info_name;	/* relation name */
-    } i;
-} RelationBuildDescInfo;
-
 /* --------------------------------
  *	BuildDescInfoError returns a string appropriate to
  *	the buildinfo passed to it
  * --------------------------------
  */
+ 
 char *
 BuildDescInfoError(buildinfo)
     RelationBuildDescInfo buildinfo;
@@ -509,7 +529,7 @@ RelationBuildDesc(buildinfo)
     
     HeapTuple		pg_relation_tuple;
     
-    oldcxt = MemoryContextSwitchTo(CacheCxt);
+    oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
 
     /* ----------------
      *	find the tuple in pg_relation corresponding to the given relation id
@@ -959,7 +979,7 @@ RelationFlushRelation(relation, onlyFlushReferenceCountZero)
     if (!onlyFlushReferenceCountZero || 
 	RelationHasReferenceCountZero(relation)) {
 	
-	oldcxt = MemoryContextSwitchTo(CacheCxt);
+	oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
 	
 	RelationCacheDelete(relation);
 	
@@ -1058,7 +1078,7 @@ RelationRegisterRelation(relation)
     extern GlobalMemory CacheCxt;
     MemoryContext   	oldcxt;
     
-    oldcxt = MemoryContextSwitchTo(CacheCxt);
+    oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
     
     if (oldcxt != (MemoryContext)CacheCxt) 
 	elog(NOIND,"RelationRegisterRelation: WARNING: Context != CacheCxt");
@@ -1103,7 +1123,7 @@ RelationRegisterTempRel(temprel)
      *  hash table
      * ----------------------------------------
      */
-    oldcxt = MemoryContextSwitchTo(CacheCxt);
+    oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
     
     RelationRegisterRelation(temprel);
     
@@ -1133,7 +1153,7 @@ RelationInitialize()
     if (!CacheCxt)
 	CacheCxt = CreateGlobalMemory("Cache");
     
-    oldcxt = MemoryContextSwitchTo(CacheCxt);
+    oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
 
     /* ----------------
      *	create global caches

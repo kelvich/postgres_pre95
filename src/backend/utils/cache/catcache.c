@@ -16,12 +16,13 @@ RcsId("$Header$");
 #include "access/htup.h"
 #include "access/skey.h"
 #include "access/tqual.h"
+#include "storage/bufpage.h"
 #include "access/valid.h"
 #include "tmp/miscadmin.h"
 #include "tmp/portal.h"
 #include "utils/catcache.h"
 #include "utils/fmgr.h"		/* for F_BOOLEQ, etc.  DANGER */
-#include "storage/lmgr.h"
+/*#include "storage/lmgr.h"*/
 #include "utils/log.h"
 #include "utils/mcxt.h"
 #include "utils/rel.h"
@@ -128,7 +129,7 @@ CatalogCacheInitializeCache(cache, relation)
      */
     if (!CacheCxt)
        CacheCxt = CreateGlobalMemory("Cache");
-    oldcxt = MemoryContextSwitchTo(CacheCxt);
+    oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
     
     /* ----------------
      *  If no relation was passed we must open it to get access to 
@@ -469,7 +470,7 @@ CatalogCacheIdInvalidate(cacheId, hashIndex, pointer)
      */
     if (!CacheCxt)
        CacheCxt = CreateGlobalMemory("Cache");
-    oldcxt = MemoryContextSwitchTo(CacheCxt);
+    oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
     
     /* ----------------
      *	inspect every cache that could contain the tuple
@@ -554,7 +555,7 @@ ResetSystemCache()
     if (!CacheCxt)
        CacheCxt = CreateGlobalMemory("Cache");
     
-    oldcxt = MemoryContextSwitchTo(CacheCxt);
+    oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
     
     /* ----------------
      *  here we purge the contents of all the caches
@@ -638,7 +639,7 @@ InitIndexedSysCache(relname, indname, nkeys, key)
     if (!CacheCxt)
        CacheCxt = CreateGlobalMemory("Cache");
     
-    oldcxt = MemoryContextSwitchTo(CacheCxt);
+    oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
     
     /* ----------------
      *  allocate a new cache structure
@@ -695,7 +696,17 @@ InitIndexedSysCache(relname, indname, nkeys, key)
 		elog(FATAL, "InitSysCache: called with %d key[%d]", key[i], i);
 	    } else {
 		cp->cc_klen[i] = sizeof(OID);
-		ScanKeyEntryInitialize(&cp->cc_skey[i], 0, key[i], F_OIDEQ, 0);
+		/*
+		 * ScanKeyEntryData and struct skey are equivalent. It looks
+		 * like a move was made to obsolete struct skey, but it
+		 * didn't reach this file.  Someday we should clean up this
+		 * code and consolidate to ScanKeyEntry - mer 10 Nov 1991
+		 */
+		ScanKeyEntryInitialize((ScanKeyEntry)&cp->cc_skey[i], 
+				       (bits16)0,
+				       (AttributeNumber)key[i],
+				       (RegProcedure)F_OIDEQ,
+				       (Datum)0);
 		continue;
 	    }
 	}
@@ -843,7 +854,7 @@ SearchSysCache(cache, v1, v2, v3, v4)
     if (!CacheCxt)
        CacheCxt = CreateGlobalMemory("Cache");
     
-    oldcxt = MemoryContextSwitchTo(CacheCxt);
+    oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
    
     /* ----------------
      *	now preform a scan of the relation
@@ -959,7 +970,7 @@ RelationInvalidateCatalogCacheTuple(relation, tuple, function)
      */
     if (!CacheCxt)
        CacheCxt = CreateGlobalMemory("Cache");
-    oldcxt = MemoryContextSwitchTo(CacheCxt);
+    oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
     
     /* ----------------
      *	for each cache
