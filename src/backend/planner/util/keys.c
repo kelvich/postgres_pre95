@@ -18,14 +18,14 @@
  *	$Header$
  */
 
-#include "pg_lisp.h"
+#include "tmp/c.h"
+#include "nodes/pg_lisp.h"
 #include "planner/internal.h"
-#include "nodes.h"
-#include "relation.h"
-#include "relation.a.h"
+#include "nodes/nodes.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
 #include "planner/keys.h"
-#include "c.h"
-#include "log.h"
+#include "utils/log.h"
 #include "planner/tlist.h"
 
 

@@ -13,12 +13,16 @@
  */
 /* declare (localf (find_secondary_index)); */
 
+#include "tmp/postgres.h"
+
+#include "parser/parse.h"
+
+#include "nodes/plannodes.h"
+#include "nodes/relation.h"
+#include "nodes/relation.a.h"
+
 #include "planner/internal.h"
-#include "parse.h"
 #include "planner/indexnode.h"
-#include "plannodes.h"
-#include "relation.h"
-#include "relation.a.h"
 #include "planner/cfi.h"
 
 /* ----------------
