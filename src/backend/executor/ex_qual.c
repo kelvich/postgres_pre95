@@ -377,7 +377,9 @@ ExecEvalVar(variable, econtext, isNull)
      * ----------------
      */
     execTupDesc = SlotExecTupDescriptor(slot);
-    if (execTupDesc->data[attnum-1]->tag == ATTTUP)
+    if (execTupDesc != (ExecTupDescriptor)NULL &&
+	AttributeNumberIsForUserDefinedAttribute(attnum) &&
+	execTupDesc->data[attnum-1]->tag == ATTTUP)
     {
 	result = ExecExtractResult(slot, attnum, isNull);
     }
@@ -696,6 +698,8 @@ ExecEvalFuncArgs(fcache, econtext, argList, argV, argIsDone)
 	    }
 	    if (argIsNull)
 		nullVect[i] = true;
+	    else
+		nullVect[i] = false;
 	    i++;
     }
 }
@@ -715,7 +719,6 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
     List	arg;
     Datum	argv[MAXFMGRARGS];
     FunctionCachePtr fcache;
-    int 	i;
     Func	funcNode = NULL;
     Oper	operNode = NULL;
 
@@ -809,7 +812,12 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
     }
     else 
     {
+	int i;
+
 	if (isDone) *isDone = true;
+	for (i = 0; i < fcache->nargs; i++) 
+	    if (fcache->nullVect[i] == true) *isNull = true;
+
 	return (Datum)
 	    fmgr_by_ptr_array_args(fcache->func, fcache->nargs, argv, isNull);
     }
