@@ -8,6 +8,7 @@ destroydb \*- destroy an existing database
 .uh SYNOPSIS
 .lp
 .b destroydb
+[-p port] [-h hostname]
 dbname
 .uh DESCRIPTION
 .lp
@@ -29,15 +30,41 @@ To execute this command, the user must be the
 for this database.
 After the database is destroyed, a \*(UU shell prompt will reappear;
 no confirmation message will be displayed.
+.lp
+destroydb needs to connect to a running postmaster to accomplish
+its tasks.  If no postmaster is running then one must be started
+before destroydb is run.
+.uh "COMMAND OPTIONS"
+.lp
+\fI-p port\fR indicates that destroydb should attempt to connect to a
+postmaster listening to the specified port.
+.lp
+\fI-h hostname\fR indicates that destroydb should attempt to connect to a
+postmaster running on the specified host machine.
+.sp
 .uh EXAMPLE
 .lp
 /* destroy the demo database */
 .nf
 destroydb demo
 .fi
+.lp
+/* destroy the demo database using the postmaster on host eden, port 1234 */
+.nf
+destroydb -p 1234 -h eden demo
+.fi
+.uh DIAGNOSTICS
+.sp
+.lp
+\fBError: Failed to connect to backend (host=\fIxxx\fB, port=\fIxxx\fB)\fR
+.pp
+destroydb could not attach to the postmaster on the specified host and
+port.  If you see this message, check that the postmaster is running on
+the proper host and that the proper port is specified.
+.sp
 .uh FILES
 .lp
 \&.../data/base/*
 .uh "SEE ALSO"
 .lp
-createdb(unix).
+createdb(unix), postmaster(unix).
