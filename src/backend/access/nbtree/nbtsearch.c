@@ -181,7 +181,7 @@ _bt_moveright(rel, buf, keysz, scankey, access)
 	     *  key on the page have the same value), then we don't need to
 	     *  step right.
 	     */
-	    if (PageGetMaxOffsetIndex(page) > 0) {
+	    if (PageGetMaxOffsetIndex(page) > 0) {	/* XXX PageIsEmpty */
 		itemid = PageGetItemId(page, 1);
 		if (_bt_skeycmp(rel, keysz, scankey, page, itemid,
 				BTEqualStrategyNumber)) {
@@ -805,7 +805,7 @@ _bt_step(scan, bufP, dir)
 
     /* get the next tuple */
     if (ScanDirectionIsForward(dir)) {
-	if (offind < maxoff) {
+	if (!PageIsEmpty(page) && offind < maxoff) {
 	    offind++;
 	} else {
 
@@ -910,7 +910,7 @@ _bt_step(scan, bufP, dir)
 			}
 		    }
 		}
-		offind = maxoff;
+		offind = maxoff;	/* XXX PageIsEmpty? */
 	    }
 	}
     }
@@ -969,7 +969,7 @@ _bt_twostep(scan, bufP, dir)
 	start = 0;
 
     /* if we're safe, just do it */
-    if (ScanDirectionIsForward(dir) && offind < maxoff) {
+    if (ScanDirectionIsForward(dir) && offind < maxoff) { /* XXX PageIsEmpty? */
 	ItemPointerSet(current, 0, blkno, 0, offind + 2);
 	return (true);
     } else if (ScanDirectionIsBackward(dir) && offind > start) {
@@ -1104,7 +1104,7 @@ _bt_endpoint(scan, dir)
 
     if (ScanDirectionIsForward(dir)) {
 	if (PageIsEmpty(page))
-	    maxoff = 0;
+	    maxoff = 0;	/* XXX this is a valid OffsetIndex */
 	else
 	    maxoff = PageGetMaxOffsetIndex(page);
 	if (opaque->btpo_next == P_NONE)
