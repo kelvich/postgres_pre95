@@ -360,7 +360,6 @@ ParseFunc ( funcname , fargs )
     LispValue i = LispNil;
     List first_arg_type = NULL;
     Name relname, oldname;
-    extern List p_rtable;
     Relation rd;
     ObjectId relid;
     int attnum;
@@ -375,6 +374,7 @@ ParseFunc ( funcname , fargs )
     LispValue setup_base_tlist();
     bool retset;
     bool exists;
+    extern LispValue p_rtable;
 
     if (fargs)
      {
@@ -703,6 +703,7 @@ MakeFromClause ( from_list, base_rel )
     bool IsConcatenation = false;
     List existing_varnos = NULL;
     extern List RangeTablePositions();
+    extern LispValue p_rtable;
 
     /* from_list will be a list of strings */
     /* base_rel will be a wierd assortment of things, 

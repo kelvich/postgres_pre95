@@ -34,6 +34,7 @@ RcsId("$Header$");
 #include "utils/lsyscache.h"
 
 extern LispValue parser_ppreserve();
+extern LispValue p_rtable;
 extern int Quiet;
 
 static ObjectId param_type_relid;
@@ -50,7 +51,6 @@ VarnoGetRelname( vnum )
      int vnum;
 {
     int i;
-    extern LispValue p_rtable;
     LispValue temp = p_rtable;
     for( i = 1; i < vnum ; i++) 
 		temp = CDR(temp);
@@ -589,7 +589,6 @@ make_var ( relname, attrname)
     int vnum, attid, vartype;
     Type rtype;
     Relation rd;
-    extern LispValue p_rtable;
     extern int p_last_resno;
     extern List RangeTablePositions();
     List multi_varnos = RangeTablePositions ( relname , 0 );
@@ -736,8 +735,9 @@ SkipBackToTlist()
 {
 	extern char yytext[];
 	extern LispValue yychar;
-        char *temp = yytext;
 	extern int yyleng;
+        extern char *Ch;
+        char *temp = yytext;
 	int i;
 
 	/* need to put the token after the target_list back first */
