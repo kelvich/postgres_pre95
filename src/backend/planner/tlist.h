@@ -14,4 +14,5 @@ extern LispValue targetlist_resdom_numbers ARGS((LispValue targetlist));
 extern LispValue copy_vars ARGS((LispValue target, LispValue source));
 extern LispValue flatten_tlist ARGS((LispValue tlist));
 extern LispValue flatten_tlist_vars ARGS((LispValue full_tlist, LispValue flat_tlist));
+extern Resdom tlist_resdom ARGS((LispValue tlist, Resdom resnode));
 
