@@ -121,7 +121,7 @@ long *size;
 
 	load_address = (char *) valloc(image_size);
 
-	sprintf(command,"ld -x -N -A %s -T %lx -o %s  %s -lc -lm -ll",
+	sprintf(command,"ld -x -N -A %s -T %lx -o %s  %s -lc_G0 -lm_G0",
 	    pg_pathname,
 	    load_address,
 	    temp_file_name,  filename);
@@ -171,7 +171,7 @@ long *size;
 		fclose(temp_file);
 		unlink(temp_file_name);
 		load_address = (char *) valloc(true_image_size);
-		sprintf(command,"ld -x -N -A %s -T %lx -o %s  %s -lc -lm -ll",
+		sprintf(command,"ld -x -N -A %s -T %lx -o %s  %s -lc_G0 -lm_G0",
 	    		pg_pathname,
 	    		load_address,
 	    		temp_file_name,  filename);
