@@ -19,7 +19,7 @@
  * RuleIdGetActionInfo
  *
  * given a rule oid, look it up and return 
- * '(rule-event-qual rule-parsetree)
+ * '(rule-event-qual (rule-parsetree_list))
  *
  */
 

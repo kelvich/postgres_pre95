@@ -135,7 +135,7 @@ FindMatchingNew ( user_tlist , attno )
      List user_tlist;
      int attno;
 {
-    List i = NULL;
+    List i = LispNil;
     
     foreach ( i , user_tlist ) {
 	List one_entry = CAR(i);
@@ -146,14 +146,14 @@ FindMatchingNew ( user_tlist , attno )
 	    return ( CDR(one_entry));
 	}
     }
-    return ( NULL ); /* could not find a matching RHS */
+    return LispNil; /* could not find a matching RHS */
 }
 static List 
 FindMatchingTLEntry ( user_tlist , e_attname)
      List user_tlist;
      Name e_attname;
 {
-    List i = NULL;
+    List i = LispNil;
     
     foreach ( i , user_tlist ) {
 	List one_entry = CAR(i);
@@ -166,10 +166,10 @@ FindMatchingTLEntry ( user_tlist , e_attname)
 	if (!strcmp(foo, e_attname))
 	    return ( CDR(one_entry));
     }
-    return ( NULL ); /* could not find a matching RHS */
+    return LispNil ; /* could not find a matching RHS */
 }
 	
-ResolveNew(info, targetlist,tree)
+void ResolveNew(info, targetlist,tree)
 RewriteInfo *info;
 List targetlist;
 List tree;
@@ -217,16 +217,6 @@ void FixNew(info, parsetree)
 List parsetree;
 RewriteInfo *info;
 {
-    List i;
-    List tl;
-    
-/* are append's expanded yet? */
-
-/* foreach t (targetlist(rule_action))
- *     if (new.something) (i.e varnode = new)
- *     find something on target list of 'parsetree'
- *     replace new.something with it.
- */
     
     if ((info->action == DELETE) || (info->action == RETRIEVE))	return;
     ResolveNew(info,parse_targetlist(parsetree),info->rule_action);
@@ -235,7 +225,7 @@ RewriteInfo *info;
  * Handles 'on retrieve to relation.attribute
  *          do instead retrieve (attribute = expression) w/qual'
  */
-HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified)
+void HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified)
      List rt;
      List parsetree, tl;
      int  rt_index, attr_num,*modified;
@@ -278,7 +268,7 @@ HandleRIRAttributeRule(parsetree, rt,tl, rt_index, attr_num,modified)
 }
 
 
-HandleViewRule(parsetree, rt,tl, rt_index,modified)
+void HandleViewRule(parsetree, rt,tl, rt_index,modified)
      List parsetree, tl,rt;
      int  rt_index,*modified;
 {
