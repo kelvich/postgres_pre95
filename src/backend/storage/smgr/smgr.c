@@ -40,29 +40,44 @@ extern int	mdextend(), mdopen(), mdclose(), mdread();
 extern int	mdwrite(), mdflush(), mdblindwrt(), mdnblocks();
 extern int	mdcommit(), mdabort();
 
+#ifdef SONY_JUKEBOX
 extern int	sjinit(), sjshutdown(), sjcreate(), sjunlink();
 extern int	sjextend(), sjopen(), sjclose(), sjread();
 extern int	sjwrite(), sjflush(), sjblindwrt(), sjnblocks();
 extern int	sjcommit(), sjabort();
+#endif /* SONY_JUKEBOX */
 
+#ifdef MAIN_MEMORY
 extern int	mminit(), mmshutdown(), mmcreate(), mmunlink();
 extern int	mmextend(), mmopen(), mmclose(), mmread();
 extern int	mmwrite(), mmflush(), mmblindwrt(), mmnblocks();
 extern int	mmcommit(), mmabort();
+#endif /* MAIN_MEMORY */
+
+/*
+ *  The weird placement of commas in this init block is to keep the compiler
+ *  happy, regardless of what storage managers we have (or don't have).
+ */
 
 static f_smgr smgrsw[] = {
 
     /* magnetic disk */
     { mdinit, NULL, mdcreate, mdunlink, mdextend, mdopen, mdclose,
-      mdread, mdwrite, mdflush, mdblindwrt, mdnblocks, mdcommit, mdabort },
+      mdread, mdwrite, mdflush, mdblindwrt, mdnblocks, mdcommit, mdabort }
 
+#ifdef SONY_JUKEBOX
     /* sony jukebox */
-    { sjinit, sjshutdown, sjcreate, sjunlink, sjextend, sjopen, sjclose,
-      sjread, sjwrite, sjflush, sjblindwrt, sjnblocks, sjcommit, sjabort },
+    , { sjinit, sjshutdown, sjcreate, sjunlink, sjextend, sjopen, sjclose,
+        sjread, sjwrite, sjflush, sjblindwrt, sjnblocks, sjcommit, sjabort }
 
+#endif /* SONY_JUKEBOX */
+
+#ifdef MAIN_MEMORY
     /* main memory */
-    { mminit, mmshutdown, mmcreate, mmunlink, mmextend, mmopen, mmclose,
-      mmread, mmwrite, mmflush, mmblindwrt, mmnblocks, mmcommit, mmabort }
+    , { mminit, mmshutdown, mmcreate, mmunlink, mmextend, mmopen, mmclose,
+        mmread, mmwrite, mmflush, mmblindwrt, mmnblocks, mmcommit, mmabort }
+
+#endif /* MAIN_MEMORY */
 };
 
 static int NSmgr = lengthof(smgrsw);
@@ -125,7 +140,7 @@ smgrcreate(which, reln)
     int fd;
 
     if ((fd = (*(smgrsw[which].smgr_create))(reln)) < 0)
-	elog(WARN, "cannot open %16s", reln->rd_rel->relname);
+	elog(WARN, "cannot open %16s", &(reln->rd_rel->relname.data[0]));
 
     return (fd);
 }
@@ -144,7 +159,7 @@ smgrunlink(which, reln)
     int status;
 
     if ((status = (*(smgrsw[which].smgr_unlink))(reln)) == SM_FAIL)
-	elog(WARN, "cannot unlink %16s", reln->rd_rel->relname);
+	elog(WARN, "cannot unlink %16s", &(reln->rd_rel->relname.data[0]));
 
     return (status);
 }
@@ -170,7 +185,7 @@ smgrextend(which, reln, buffer)
     status = (*(smgrsw[which].smgr_extend))(reln, buffer);
 
     if (status == SM_FAIL)
-	elog(WARN, "%16s: cannot extend", reln->rd_rel->relname);
+	elog(WARN, "%16s: cannot extend", &(reln->rd_rel->relname.data[0]));
 
     return (status);
 }
@@ -190,7 +205,7 @@ smgropen(which, reln)
     int fd;
 
     if ((fd = (*(smgrsw[which].smgr_open))(reln)) < 0)
-	elog(WARN, "cannot open %16s", reln->rd_rel->relname);
+	elog(WARN, "cannot open %16s", &(reln->rd_rel->relname.data[0]));
 
     return (fd);
 }
@@ -207,7 +222,7 @@ smgrclose(which, reln)
     Relation reln;
 {
     if ((*(smgrsw[which].smgr_close))(reln) == SM_FAIL)
-	elog(WARN, "cannot close %16s", reln->rd_rel->relname);
+	elog(WARN, "cannot close %16s", &(reln->rd_rel->relname.data[0]));
 
     return (SM_SUCCESS);
 }
@@ -236,7 +251,7 @@ smgrread(which, reln, blocknum, buffer)
 
     if (status == SM_FAIL)
 	elog(WARN, "cannot read block %d of %16s",
-	     blocknum, reln->rd_rel->relname);
+	     blocknum, &(reln->rd_rel->relname.data[0]));
 
     return (status);
 }
@@ -263,7 +278,7 @@ smgrwrite(which, reln, blocknum, buffer)
 
     if (status == SM_FAIL)
 	elog(WARN, "cannot write block %d of %16s",
-	     blocknum, reln->rd_rel->relname);
+	     blocknum, &(reln->rd_rel->relname.data[0]));
 
     return (status);
 }
@@ -285,7 +300,7 @@ smgrflush(which, reln, blocknum, buffer)
 
     if (status == SM_FAIL)
 	elog(WARN, "cannot flush block %d of %16s to stable store",
-	     blocknum, reln->rd_rel->relname);
+	     blocknum, &(reln->rd_rel->relname.data[0]));
 
     return (status);
 }
@@ -355,7 +370,8 @@ smgrnblocks(which, reln)
     int nblocks;
 
     if ((nblocks = (*(smgrsw[which].smgr_nblocks))(reln)) < 0)
-	elog(WARN, "cannot count blocks for %16s", reln->rd_rel->relname);
+	elog(WARN, "cannot count blocks for %16s",
+		   &(reln->rd_rel->relname.data[0]));
 
     return (nblocks);
 }
