@@ -174,6 +174,15 @@ bool		bufferLockHeld;
 
   /* if its already in the buffer pool, we're done */
   if (found) {
+    /*
+     * This happens when a bogus buffer was returned previously and is
+     * floating around in the buffer pool.  A routine calling this would
+     * want this extended.
+     */
+    if (extend) {
+      virtFile = RelationGetFile(reln);
+      status = BlockExtend(virtFile,bufHdr);
+    }
     BufferHitCount++;
     return(BufferDescriptorGetBuffer(bufHdr));
   }
