@@ -5,11 +5,15 @@
 
 #include "tmp/simplelists.h"
 #include <sys/file.h>
+#include <sys/stat.h>
 
 /* UNIX compatibility junk.  This should be in all system''s include files,
    but this is not always the case. */
 
+#ifndef MAXNAMLEN
 #define MAXNAMLEN 255
+#endif /* MAXNAMLEN */
+
 struct pgdirent {
 	unsigned long d_ino;
 	unsigned short d_namlen;
@@ -19,10 +23,10 @@ struct pgdirent {
 /* for lseek(2) */
 #ifndef SEEK_SET
 #define SEEK_SET 0
-#endif
+#endif /* SEEK_SET */
 
 /* for stat(2) */
-#ifndef S_IRUSR /* this not defined means rest are probably not defined */
+#ifndef S_IRUSR
 /* file modes */
 
 #define S_IRWXU 00700           /* read, write, execute: owner */
@@ -47,13 +51,18 @@ struct pgdirent {
 #define _S_IFIFO 0010000        /* FIFO - named pipe; sync with S_IFIFO */
 #define _S_IFREG 0100000        /* regular; sync with S_IFREG */
 
-#undef S_IFDIR
-#undef S_IFREG
 #define S_IFDIR _S_IFDIR
 #define S_IFREG _S_IFREG
 
 #define S_ISDIR( mode )         (((mode) & _S_IFMT) == _S_IFDIR)
 
+#endif /* S_IRUSR */
+
+/*
+ * Inversion doesn't have links.
+ */
+#ifndef S_ISLNK
+#define S_ISLNK(x) 0
 #endif
 
 /*
@@ -123,4 +132,4 @@ int p_closedir ARGS((PDIR *dirp ));
 int p_chdir ARGS((char *path ));
 char *p_getwd ARGS((char *path ));
 
-#endif
+#endif /* libpq_fs_H */
