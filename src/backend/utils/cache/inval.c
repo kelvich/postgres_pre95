@@ -357,7 +357,7 @@ ResetSystemCaches()
 	message->any.catalog.hashIndex,\
 	ItemPointerGetBlockNumber(&message->any.catalog.pointerData),\
 	ItemPointerSimpleGetOffsetNumber(&message->any.catalog.pointerData))
-#define InvalidationMessageRegisterSharedInvalid_DEBUG2
+#define InvalidationMessageRegisterSharedInvalid_DEBUG2 \
     elog(DEBUG, \
 	 "InvalidationMessageRegisterSharedInvalid(r, %d, %d)", \
 	 message->any.relation.relationId, \
