@@ -1,4 +1,6 @@
 #
+# $Header$
+#
 # A Makefile.global is seen by the Makefile in the current
 # directory and any Makefiles in any subdirectories (assuming
 # they .include <postgres.global.mk>).  Also, if there is
@@ -7,7 +9,7 @@
 # setting when sharing a source tree between a number of
 # machines.  Note that since the "obj" directories themselves
 # are actually symbolic links which are stored on the serving
-# machine and visable to all sharing sites, it is not possible to
+# machine and visible to all sharing sites, it is not possible to
 # change where the "obj" directories point (without changing
 # it for everyone).  You can, however, change any of the values
 # below simply by altering your private copy of this Makefile
@@ -32,14 +34,68 @@ PORTNAME=	ultrix4
 MACHINE!=	machine
 BINDIR=		${POSTGRESDIR}/bin
 LIBDIR=		${POSTGRESDIR}/lib
-CDEBUG=		-g	# comment out to turn off debugging
+STRIP=
+
+# comment out CDEBUG to turn off debugging and sanity-checking
+#	XXX on MIPS, use -g3 if you want to compile with -O
+CDEBUG=		-g
+
+# comment out PROFILE to disable profiling
+#	XXX define on MIPS if you want to be able to use pixie.
+#	    note that this disables dynamic loading!
+#PROFILE=
+
+# Comment out KRBVERS if you do not use Kerberos.
+# 	Set KRBVERS to "4" for Kerberos v4, "5" for Kerberos v5.
+#	XXX Edit the default Kerberos variables below!
+#KRBVERS=	5
 
 #
-# Globaly pass debugging flags
+# Globally pass debugging flags
 #
+.ifdef CDEBUG
 CFLAGS= ${CDEBUG}
 LDFLAGS= ${CDEBUG}
-STRIP=
+.else
+CFLAGS= -O -DNO_ASSERT_CHECKING
+.endif
+
+#
+# Globally pass profiling flags
+#
+.ifdef PROFILE
+CFLAGS+= ${PROFILE}
+LDFLAGS+= ${PROFILE}
+.endif
+
+#
+# Globally pass authentication system file locations
+#	these are used in the postmaster and all libpq applications.
+#
+#	XXX they are also included in the backend due to modularization 
+#	    weirdness in libpq...sigh.
+#
+#	Adjust KRBINCS and KRBLIBS to reflect where you have Kerberos
+#		include files and libraries installed.
+#	PG_KRB_SRVNAM is the name under which POSTGRES is registered in
+#		the Kerberos database (KDC).
+#	PG_KRB_SRVTAB is the location of the server's keytab file.
+#
+.ifdef KRBVERS
+KRBINCS= -I/usr/athena/include
+KRBLIBS= -L/usr/athena/lib
+KRBFLAGS+= ${KRBINCS} '-DPG_KRB_SRVNAM="postgres_dbms"'
+.   if ${KRBVERS} == "4"
+KRBFLAGS+= -DKRB4
+KRBFLAGS+= '-DPG_KRB_SRVTAB="/etc/srvtab"'
+KRBLIBS+= -lkrb -ldes
+.   elif ${KRBVERS} == "5"
+KRBFLAGS+= -DKRB5
+KRBFLAGS+= '-DPG_KRB_SRVTAB="FILE:/krb5/srvtab.postgres"'
+KRBLIBS+= -lkrb5 -lcrypto -lcom_err -lisode
+.   endif
+.endif
+
 #
 # Globally pass PORTNAME
 #
