@@ -33,6 +33,7 @@
 #define LockEventIsDelete(lock) 	(Event(lock)==EventIsDelete)
 #define LockEventIsReplace(lock) 	(Event(lock)==EventIsReplace)
 
+#ifdef OLD_REWRITE
 struct _LispValue *MatchRetrieveLocks ARGS((struct Prs2LocksData *, int, struct _LispValue *));
 char ThisLockWasTriggered ARGS((int, short, struct _LispValue *));
 struct _LispValue *MatchLocks ARGS((char, struct Prs2LocksData *, int, struct _LispValue *));
@@ -40,4 +41,4 @@ struct _LispValue *MatchReplaceLocks ARGS((struct Prs2LocksData *, int, struct _
 struct _LispValue *MatchAppendLocks ARGS((struct Prs2LocksData *, int, struct _LispValue *));
 struct _LispValue *MatchDeleteLocks ARGS((struct Prs2LocksData *, int, struct _LispValue *));
 
-
+#endif OLD_REWRITE
