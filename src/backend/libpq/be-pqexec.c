@@ -138,13 +138,13 @@ PQexec(query)
     
     /* ----------------
      *	pop the portal off the portal stack and return the
-     *  result.  Note if result is null, we return E.
+     *  result.  Note if result is null, we return C.
      * ----------------
      */
     entry = (PortalEntry *) be_portalpop();
     result = entry->result;
     if (result == NULL) {
-	char *PQE = "Enull PQexec result";
+	char *PQE = "Cnull PQexec result";
 	result = strcpy(palloc(strlen(PQE)), PQE);
       }
 
