@@ -293,6 +293,7 @@ ScanPgRelation(buildinfo)
     Relation	 pg_relation_desc;
     HeapScanDesc pg_relation_scan;
     ScanKeyData	 key;
+    Buffer	 buf;
     
     /* ----------------
      *	form a scan key
@@ -326,31 +327,30 @@ ScanPgRelation(buildinfo)
     pg_relation_desc =  heap_openr(RelationRelationName);
     pg_relation_scan =
 	heap_beginscan(pg_relation_desc, 0, NowTimeQual, 1, &key);
-    pg_relation_tuple = heap_getnext(pg_relation_scan, 0, (Buffer *)NULL);
+    pg_relation_tuple = heap_getnext(pg_relation_scan, 0, &buf);
 
     /* ----------------
-     *	close the relation
+     *	get set to return tuple
      * ----------------
      */
+    if (! HeapTupleIsValid(pg_relation_tuple)) {
+	return_tuple = pg_relation_tuple;
+    } else {
+	/* ------------------
+	 *  a satanic bug used to live here: pg_relation_tuple used to be
+	 *  returned here without having the corresponding buffer pinned.
+	 *  so when the buffer gets replaced, all hell breaks loose.
+	 *  this bug is discovered and killed by wei on 9/27/91.
+	 * -------------------
+	 */
+	return_tuple = (HeapTuple)palloc(pg_relation_tuple->t_len);
+	bcopy(pg_relation_tuple, return_tuple, pg_relation_tuple->t_len);
+	ReleaseBuffer(buf);
+    }
+
+    /* all done */
     heap_endscan(pg_relation_scan);
     heap_close(pg_relation_desc);
-
-    /* ----------------
-     *	return tuple
-     * ----------------
-     */
-    if (! HeapTupleIsValid(pg_relation_tuple))
-	return NULL;
-
-    /* ------------------
-     *  a satanic bug used to live here: pg_relation_tuple used to be
-     *  returned here without having the corresponding buffer pinned.
-     *  so when the buffer gets replaced, all hell breaks loose.
-     *  this bug is discovered and killed by wei on 9/27/91.
-     * -------------------
-     */
-    return_tuple = (HeapTuple)palloc(pg_relation_tuple->t_len);
-    bcopy(pg_relation_tuple, return_tuple, pg_relation_tuple->t_len);
 
     return return_tuple;
 }
