@@ -265,13 +265,14 @@ ExecCloseR(node)
 	     *
 	     *  note: should this be using AMendscan and AMclose??
 	     *        -cim 9/10/89
+	     *  YES!! -mer 2/26/92
 	     * ----------------
 	     */
 	    if (indexScanDescs[i] != NULL)
-		amendscan(indexScanDescs[i]);
+		AMendscan(indexScanDescs[i]);
 	    
 	    if (indexRelationDescs[i] != NULL)
-		amclose(indexRelationDescs[i]);
+		AMclose(indexRelationDescs[i]);
 	}
     }
 }
