@@ -24,8 +24,8 @@
 
 typedef struct catctup {
 	HeapTuple	ct_tup;		/* A pointer to a tuple		*/
-	SimpleNode	ct_node;	/* Doubly linked list node	*/
-	SimpleNode	ct_lrunode;	/* ditto, for LRU algorithm	*/
+	SLNode		ct_node;	/* Doubly linked list node	*/
+	SLNode		ct_lrunode;	/* ditto, for LRU algorithm	*/
 } CatCTup;
 
 typedef struct catcache {
@@ -40,8 +40,8 @@ typedef struct catcache {
 	short		cc_klen[4];
 	struct skey	cc_skey[4];
 	struct catcache *cc_next;
-	SimpleList	cc_lrulist;	/* LRU list, most recent first  */
-	SimpleList	cc_cache[1];	/* Extended over NCCBUCK+1 elmnts*/
+	SLList    	cc_lrulist;	/* LRU list, most recent first  */
+	SLList    	cc_cache[1];	/* Extended over NCCBUCK+1 elmnts*/
 					/* used to be: struct catctup	*/
 } CatCache;
 
