@@ -118,11 +118,29 @@ typedef uint16 Prs2PlanNumber;
  *      DO [ instead ] retrieve .... <some other tuples> ...
  * These rules are used to implement views.
  *
+ * NOTE: as we have 2 rule systems (tuple-level & query rewrite)
+ * we use different lock types for each one of them.
+ * Otherwise it wouldn't be possible to distinguish whether a rule
+ * is a tuple-level rule or of query-rewrite flavor.
+ *
  *------------------------------------------------------------------
  */
 typedef char Prs2LockType;
 
 #define LockTypeInvalid			((Prs2LockType) '*')
+
+/*--- TUPLE LEVEL LOCK TYPES --------------------------------------*/
+#define LockTypeTupleRetrieveAction		((Prs2LockType) '1')
+#define LockTypeTupleAppendAction		((Prs2LockType) '2')
+#define LockTypeTupleDeleteAction		((Prs2LockType) '3')
+#define LockTypeTupleReplaceAction		((Prs2LockType) '4')
+#define LockTypeTupleRetrieveWrite		((Prs2LockType) '5')
+#define LockTypeTupleAppendWrite		((Prs2LockType) '6')
+#define LockTypeTupleDeleteWrite		((Prs2LockType) '7')
+#define LockTypeTupleReplaceWrite		((Prs2LockType) '8')
+#define LockTypeTupleRetrieveRelation		((Prs2LockType) '9')
+
+/*--- QUERY REWRITE LOCK TYPES ------------------------------------*/
 #define LockTypeRetrieveAction		((Prs2LockType) 'r')
 #define LockTypeAppendAction		((Prs2LockType) 'a')
 #define LockTypeDeleteAction		((Prs2LockType) 'd')
