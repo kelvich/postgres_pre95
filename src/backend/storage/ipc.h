@@ -26,6 +26,7 @@ typedef unsigned char   slock_t;
 #endif
 
 #if defined(sequent) || \
+    defined(PORTNAME_hpux) || \
     defined(PORTNAME_alpha) || \
     defined(PORTNAME_ultrix4) || \
     defined(PORTNAME_bsd44)
