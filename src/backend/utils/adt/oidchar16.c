@@ -88,7 +88,7 @@ bool
 oidchar16ge(o1, o2)
     OidChar16 o1, o2;
 {
-    return (bool) (o1->id >= o2->id || (o1->id == o2->id && 
+    return (bool) (o1->id > o2->id || (o1->id == o2->id && 
 					strncmp(&o1->name.data[0],
 						&o2->name.data[0],
 						sizeof(char16)) >= 0));
