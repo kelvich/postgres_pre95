@@ -79,21 +79,56 @@ ExecInitJunkFilter(targetList)
     cleanResno = 1;
     
     foreach (t, targetList) {
-	resdom = (Resdom) tl_resdom(CAR(t));
-	expr = tl_expr(CAR(t));
-	resjunk = get_resjunk(resdom);
-	if (resjunk == 0) {
-	    /*
-	     * make a copy of the resdom node, changing its resno.
-	     */
+	if (tl_is_resdom(CAR(t))) {
+	    resdom = (Resdom) tl_resdom(CAR(t));
+	    expr = tl_expr(CAR(t));
+	    resjunk = get_resjunk(resdom);
+	    if (resjunk == 0) {
+		/*
+		 * make a copy of the resdom node, changing its resno.
+		 */
+		cleanResdom = (Resdom) CopyObject(resdom);
+		set_resno(cleanResdom, cleanResno);
+		cleanResno ++;
+		/*
+		 * create a new target list entry
+		 */
+		tle = (List) MakeTLE(cleanResdom, expr);
+		cleanTargetList = nappend1(cleanTargetList, tle);
+	    }
+	}
+	else {
+	    List fjListP;
+	    Fjoin cleanFjoin;
+	    List cleanFjList;
+	    List fjList = CAR(t);
+	    Fjoin fjNode = (Fjoin)tl_node(fjList);
+
+	    cleanFjoin = (Fjoin)CopyObject(fjNode);
+	    cleanFjList = lispCons(cleanFjoin, LispNil);
+
+	    resdom = (Resdom) CAR(get_fj_innerNode(fjNode));
+	    expr =   CADR(get_fj_innerNode(fjNode));
 	    cleanResdom = (Resdom) CopyObject(resdom);
+	    cleanResno++;
 	    set_resno(cleanResdom, cleanResno);
-	    cleanResno ++;
-	    /*
-	     * create a new target list entry
-	     */
 	    tle = (List) MakeTLE(cleanResdom, expr);
-	    cleanTargetList = nappend1(cleanTargetList, tle);
+	    set_fj_innerNode(cleanFjoin, tle);
+
+	    foreach(fjListP, CDR(fjList)) {
+		
+	    	resdom = (Resdom) tl_resdom(CAR(fjListP));
+	    	expr = tl_expr(CAR(fjListP));
+	    	cleanResdom = (Resdom) CopyObject(resdom);
+		cleanResno++;
+	    	set_resno(cleanResdom, cleanResno);
+	    	/*
+	     	 * create a new target list entry
+	     	 */
+	    	tle = (List) MakeTLE(cleanResdom, expr);
+	    	cleanFjList = nappend1(cleanFjList, tle);
+	    }
+	    nappend1(cleanTargetList, cleanFjList);
 	}
     }
 
@@ -108,8 +143,8 @@ ExecInitJunkFilter(targetList)
     tupType = 	   (TupleDescriptor) ExecTypeFromTL(targetList);
     cleanTupType = (TupleDescriptor) ExecTypeFromTL(cleanTargetList);
     
-    len = 	  length(targetList);
-    cleanLength = length(cleanTargetList);
+    len = 	  ExecTargetListLength(targetList);
+    cleanLength = ExecTargetListLength(cleanTargetList);
 
     /* ---------------------
      * Now calculate the "map" between the original tuples attributes
@@ -126,12 +161,29 @@ ExecInitJunkFilter(targetList)
 	cleanMap = (AttributeNumberPtr) palloc(size);
 	cleanResno = 1;
 	foreach (t, targetList) {
-	    resdom = (Resdom) tl_resdom(CAR(t));
-	    expr = tl_expr(CAR(t));
-	    resjunk = get_resjunk(resdom);
-	    if (resjunk == 0) {
-		cleanMap[cleanResno-1] = get_resno(resdom);;
-		cleanResno ++;
+	    if (tl_is_resdom(CAR(t))) {
+		resdom = (Resdom) tl_resdom(CAR(t));
+		expr = tl_expr(CAR(t));
+		resjunk = get_resjunk(resdom);
+		if (resjunk == 0) {
+		    cleanMap[cleanResno-1] = get_resno(resdom);
+		    cleanResno ++;
+		}
+	    }
+	    else {
+		List fjListP;
+		List fjList = CAR(t);
+		Fjoin fjNode = (Fjoin)CAR(fjList);
+
+		resdom = (Resdom) CAR(get_fj_innerNode(fjNode));
+		cleanMap[cleanResno-1] = get_resno(resdom);
+		cleanResno++;
+
+		foreach(fjListP, CDR(fjList)) {
+		    resdom = (Resdom) tl_resdom(CAR(fjListP));
+		    cleanMap[cleanResno-1] = get_resno(resdom);
+		    cleanResno++;
+		}
 	    }
 	}
     } else {
