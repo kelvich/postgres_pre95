@@ -33,15 +33,7 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#ifdef sparc /* this is because SunOS doesn't have all the ANSI C library headers */
-#include <values.h>
-#define FLT_MIN   MINFLOAT
-#define FLT_MAX   MAXFLOAT
-#define FLT_DIG   6
-#define DBL_DIG   15
-#else
-#include <float.h>
-#endif
+#include <float.h>		/* faked on sunos4 */
 
 #include <math.h>
 
@@ -73,6 +65,13 @@ static double   rint ARGS((double x));
 #else /* NEED_RINT */
 extern double   rint ARGS((double x));
 #endif /* NEED_RINT */
+
+#ifdef NEED_ISINF
+#define isinf my_isinf
+static int	isinf ARGS((double x));
+#else /* NEED_ISINF */
+extern int	isinf ARGS((double x));
+#endif /* NEED_ISINF */
 
 	    /* ========== USER I/O ROUTINES ========== */
 
@@ -170,6 +169,10 @@ float8out(num)
 
 	if (!num)
 		return strcpy(ascii, "(null)");
+	if (isnan(*num))
+		return strcpy(ascii, "NaN");
+	if (isinf(*num))
+		return strcpy(ascii, "Infinity");
 
 	sprintf(ascii, "%.*g", DBL_DIG, *num);
 	return(ascii);
@@ -1227,10 +1230,55 @@ double
 cbrt(x)
     double x;
 {
-    int tmpsign = (x < 0.0) ? -1 : 1;
+    int isneg = (x < 0.0);
     double tmpres = pow(fabs(x), (double) 1.0 / (double) 3.0);
 
-    return(tmpsign * tmpres);
+    return(isneg ? -tmpres : tmpres);
 }
 
 #endif /* NEED_CBRT */
+
+#ifdef NEED_ISINF
+
+#if defined(PORTNAME_aix)
+static int isinf(x)
+    double x;
+{
+    int fpclass = class(x);
+    if (fpclass == FP_PLUS_INF)
+	return(1);
+    if (fpclass == FP_MINUS_INF)
+	return(-1);
+    return(0);
+}
+#endif /* PORTNAME_aix */
+
+#if defined(PORTNAME_ultrix4)
+#include <fp_class.h>
+static int isinf(x)
+    double x;
+{
+    int fpclass = fp_class_d(x);
+    if (fpclass == FP_POS_INF)
+	return(1);
+    if (fpclass == FP_NEG_INF)
+	return(-1);
+    return(0);
+}
+#endif /* PORTNAME_ultrix4 */
+
+#if defined(PORTNAME_alpha)
+#include <fp_class.h>
+static int isinf(x)
+    double x;
+{
+    int fpclass = fp_class(x);
+    if (fpclass == FP_POS_INF)
+	return(1);
+    if (fpclass == FP_NEG_INF)
+	return(-1);
+    return(0);
+}
+#endif /* PORTNAME_alpha */
+
+#endif /* NEED_ISINF */
