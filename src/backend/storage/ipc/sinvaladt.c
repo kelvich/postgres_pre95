@@ -23,7 +23,11 @@
 
 #include "storage/ipci.h"
 
-/* XXX These should *not* be used directly; fix the interface in ipc*.h. */
+/*******************************************
+
+ XXX These should *not* be used directly; fix the interface in ipc*.h. 
+ XXX Taken out, but still testing
+
 #ifndef sequent
 #include <sys/shm.h>
 #include <sys/sem.h>
@@ -31,6 +35,8 @@
 #include "/usr/att/usr/include/sys/shm.h"
 #include "/usr/att/usr/include/sys/sem.h"
 #endif
+
+*********************************************/
 
 #include "storage/ipc.h"
 #include "storage/pladt.h"
@@ -910,7 +916,6 @@ SISegmentInit(killExistingSegment, key)
 { 
     int     	    	status, segSize;
     IpcMemoryId	    	shmId;
-    struct  shmid_ds    shbuf;
     bool    	    	create;
     
     if (killExistingSegment) {
@@ -927,28 +932,6 @@ SISegmentInit(killExistingSegment, key)
             perror("SISegmentGet: failed");
             return(-1);                                     /* an error */
         }
-
-	/*************************************
-	  
-	  XXX - the following 10 lines just copy buffer info 
-	  into shbuf, and then copy it back.
-	  shbuf is then never used again, so these
-	  lines are theoretically unecessary.
-	  If things don't break, we should probably
-	  permanently remove them
-
-        status = shmctl(shmId, IPC_STAT, &shbuf);       
-        if (status < 0) {
-            perror("shmctl:stat");
-            return(-1);
-        }
-        status = shmctl(shmId, IPC_SET, &shbuf);        
-        if (status < 0) {
-            perror("shmctl:set");
-            return(-1);
-        }
-	
-	***************************************/
 
         /* Attach the shared cache invalidation  segment */
         /* sets the global variable shmInvalBuffer */
@@ -997,6 +980,12 @@ SISyncKill(key)
 void
 SIReadLock()
 {
+    
+    IpcSemaphoreLock ( SharedInvalidationSemaphore ,
+		       0 , 
+		       SI_SharedLock );
+		       
+    /**************
     int	    status;
     struct sembuf   sops;
 
@@ -1004,17 +993,30 @@ SIReadLock()
     sops.sem_flg = 0;
     sops.sem_num = 0;
 
+      XXX - remove next time round
+
     status = semop(SharedInvalidationSemaphore, (struct sembuf **)&sops, 1);
     if (status == -1) {
     	perror("semop");
     	exit(255);
     }
+
+    ***************/
 }
 
 
 void
 SIWriteLock()
 {
+
+    IpcSemaphoreLock ( SharedInvalidationSemaphore,
+		       0 ,
+		      SI_ExclusiveLock );
+    
+    /*************
+
+      XXX - remove next time round
+
     int	    status;
     struct sembuf   sops;
 
@@ -1027,12 +1029,22 @@ SIWriteLock()
     	perror("semop");
     	exitpg(255);
     }
+
+    ************/
 }
 
 
 void
 SIReadUnlock()
 {
+
+    IpcSemaphoreLock ( SharedInvalidationSemaphore,
+		       0,
+		       (- SI_SharedLock) );
+    /*************
+
+      XXX - remove next time around
+
     int	    status;
     struct sembuf   sops;
 
@@ -1045,12 +1057,19 @@ SIReadUnlock()
     	perror("semop");
     	exitpg(255);
     }
+
+    ***************/
 }
 
 
 void
 SIWriteUnlock()
 {
+
+    IpcSemaphoreLock ( SharedInvalidationSemaphore,
+		       0,
+		       ( - SI_ExclusiveLock ) );
+    /**********
     int	    status;
     struct sembuf   sops;
 
@@ -1063,6 +1082,7 @@ SIWriteUnlock()
     	perror("semop");
     	exitpg(255);
     }
+    ************/
 }
 
 
