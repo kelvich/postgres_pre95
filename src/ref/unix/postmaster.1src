@@ -14,6 +14,9 @@ n_buffers]
 .BR "-D"
 data_dir]
 [\c
+.BR "-S" \c
+]
+[\c
 .BR "-a"
 system]
 .br
@@ -25,7 +28,7 @@ backend_pathname]
 .BR "-d"
 [debug_level]]
 [\c
-.BR "-n"
+.BR "-n" \c
 ]
 .br
 [\c
@@ -35,7 +38,7 @@ backend_options]
 .BR "-p"
 port]
 [\c
-.BR "-s"
+.BR "-s" \c
 ]
 .in -5n
 .SH "DESCRIPTION"
@@ -72,6 +75,15 @@ is not set, then the directory used is
 /data.  If neither environment variable is set and this command-line
 option is not specified, the default directory that was
 set at compile-time is used.
+.TP
+.BR "-S"
+Specifies that the
+.IR "postmaster"
+process should start up in silent mode.  That is, it will disassociate
+from the user's (controlling) tty and start its own process group.
+This should not be used in combination with debugging options because
+any messages printed to standard output and standard error are 
+discarded.
 .TP
 .BR "-a" " system"
 Specifies whether or not to use the authentication system 
@@ -140,8 +152,8 @@ The
 .IR "-s" " and " "-n"
 options control the behavior of the
 .IR "postmaster"
-when a backend dies abnormally.  Neither option is intended for use in
-ordinary operation.
+when a backend dies abnormally.  \fBNeither option is intended for use in
+ordinary operation\fP.
 .IP
 The ordinary strategy for this situation is to notify all other
 backends that they must terminate and then reinitialize the shared
@@ -185,8 +197,8 @@ is to listen for connections from frontend applications.  Defaults to
 environment variable (if set).  If you specify a port other than the
 default port then all frontend application users must specify the same
 port (using command-line options or
-.SM PGPORT )
-when starting any libpq application, including the terminal monitor.
+.SM PGPORT\c
+) when starting any libpq application, including the terminal monitor.
 .SH "WARNINGS"
 If at all possible,
 .BR "do not"
@@ -268,7 +280,12 @@ using the command
 .(C
 ps -ax | grep postmaster
 .)C
-If you are sure that no other
+on BSD-based systems (the equivalent syntax is
+.(C
+ps -e | grep postmaster
+.)C
+on System V-like or POSIX-compliant systems such as HP-UX).  If you 
+are sure that no other
 .IR "postmaster"
 processes are running and you still get this error, try specifying a
 different port using the
