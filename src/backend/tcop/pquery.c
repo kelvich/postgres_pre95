@@ -15,10 +15,44 @@
  * ----------------------------------------------------------------
  */
 
-#include "tcop/tcop.h"
-#include "executor/executor.h"         /* XXX a catch-all include */
+#include "tmp/postgres.h"
 
  RcsId("$Header$");
+
+/* ----------------
+ *	FILE INCLUDE ORDER GUIDELINES
+ *
+ *	1) tcopdebug.h
+ *	2) various support files ("everything else")
+ *	3) node files
+ *	4) catalog/ files
+ *	5) execdefs.h and execmisc.h, if necessary.
+ *	6) extern files come last.
+ * ----------------
+ */
+#include "tcop/tcopdebug.h"
+
+#include "commands/command.h"
+#include "parser/parse.h"
+#include "parser/parsetree.h"
+#include "utils/log.h"
+#include "utils/mcxt.h"
+#include "tmp/miscadmin.h"
+#include "tmp/portal.h"
+
+#include "nodes/pg_lisp.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
+#include "nodes/execnodes.h"
+#include "nodes/execnodes.a.h"
+#include "nodes/mnodes.h"
+
+#include "executor/execdefs.h"
+#include "executor/execmisc.h"
+
+#include "executor/x_execmain.h"
 
 /* ----------------------------------------------------------------
  *	MakeQueryDesc is a utility used by ProcessQuery and

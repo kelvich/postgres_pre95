@@ -20,8 +20,29 @@
  * ----------------------------------------------------------------
  */
 
-#include "tcop/tcop.h"
+#include "tmp/postgres.h"
+
  RcsId("$Header$");
+
+/* ----------------
+ *	FILE INCLUDE ORDER GUIDELINES
+ *
+ *	1) tcopdebug.h
+ *	2) various support files ("everything else")
+ *	3) node files
+ *	4) catalog/ files
+ *	5) execdefs.h and execmisc.h, if necessary.
+ *	6) extern files come last.
+ * ----------------
+ */
+#include "tcop/tcopdebug.h"
+
+#include "utils/palloc.h"
+#include "utils/fmgr.h"
+#include "utils/log.h"
+
+#include "catalog/syscache.h"
+#include "catalog/pg_type.h"
 
 /* ----------------
  *	fastpath #defines

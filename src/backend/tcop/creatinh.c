@@ -14,10 +14,42 @@
  * ----------------------------------------------------------------
  */
 
-#include "tcop/tcop.h"
-#include "parser/parse.h"	/* for NONE, LIGHT, HEAVY archive modes */
+#include "tmp/postgres.h"
 
  RcsId("$Header$");
+
+/* ----------------
+ *	FILE INCLUDE ORDER GUIDELINES
+ *
+ *	1) tcopdebug.h
+ *	2) various support files ("everything else")
+ *	3) node files
+ *	4) catalog/ files
+ *	5) execdefs.h and execmisc.h, if necessary.
+ *	6) extern files come last.
+ * ----------------
+ */
+#include "tcop/tcopdebug.h"
+
+#include "access/ftup.h"
+#include "utils/log.h"
+#include "parser/parse.h"
+
+#include "nodes/pg_lisp.h"
+#include "nodes/primnodes.h"
+#include "nodes/primnodes.a.h"
+#include "nodes/plannodes.h"
+#include "nodes/plannodes.a.h"
+#include "nodes/execnodes.h"
+#include "nodes/execnodes.a.h"
+
+#include "catalog/syscache.h"
+#include "catalog/catname.h"
+#include "catalog/pg_type.h"
+#include "catalog/pg_inherits.h"
+#include "catalog/pg_ipl.h"
+
+#include "tcop/creatinh.h"
 
 /* ----------------
  *	external functions

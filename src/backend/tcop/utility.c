@@ -16,9 +16,27 @@
  * ----------------------------------------------------------------
  */
 
-#include "tcop/tcop.h"
+#include "tmp/postgres.h"
 
-RcsId("$Header$");
+ RcsId("$Header$");
+
+/* ----------------
+ *	FILE INCLUDE ORDER GUIDELINES
+ *
+ *	1) tcopdebug.h
+ *	2) various support files ("everything else")
+ *	3) node files
+ *	4) catalog/ files
+ *	5) execdefs.h and execmisc.h, if necessary.
+ *	6) extern files come last.
+ * ----------------
+ */
+#include "tcop/tcopdebug.h"
+
+#include "parser/parse.h"
+#include "utils/log.h"
+
+#include "nodes/pg_lisp.h"
 
 /* ----------------
  *	CHECK_IF_ABORTED() is used to avoid doing unnecessary

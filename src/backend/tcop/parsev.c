@@ -6,6 +6,7 @@
  *	Parser validity checking code.
  *
  *   INTERFACE ROUTINES
+ *	ValidateParse
  *
  *   NOTES
  *	Not sure why this is in the tcop directory
@@ -15,38 +16,47 @@
  * ----------------------------------------------------------------
  */
 
-#include "tcop/tcop.h"
+#include "tmp/postgres.h"
 
  RcsId("$Header$");
 
 /* ----------------
- *	ValidateParse
+ *	FILE INCLUDE ORDER GUIDELINES
+ *
+ *	1) tcopdebug.h
+ *	2) various support files ("everything else")
+ *	3) node files
+ *	4) catalog/ files
+ *	5) execdefs.h and execmisc.h, if necessary.
+ *	6) extern files come last.
+ * ----------------
+ */
+#include "tcop/tcopdebug.h"
+
+#include "parser/parse.h"
+#include "utils/log.h"
+
+#include "nodes/pg_lisp.h"
+
+/* ----------------
+ *	ValidateParsedQuery
  * ----------------
  */
 void
-ValidateParse(parse)
-	List	parse;
-{
-	AssertArg(consp(parse));
-
-	if (!lispIntegerp(CAR(parse))) {
-		ValidateParsedQuery(parse);
-	} else {
-		ValidateUtility(CInteger(CAR(parse)), CDR(parse));
-	}
-}
-
-void
 ValidateParsedQuery(parse)
-	List	parse;
+    List	parse;
 {
-	AssertArg(consp(parse) && !lispIntegerp(CAR(parse)));
+    AssertArg(consp(parse) && !lispIntegerp(CAR(parse)));
 
-	/*
-	 * XXX code here
-	 */
+    /*
+     * XXX code here
+     */
 }
 
+/* ----------------
+ *	ValidateUtility
+ * ----------------
+ */
 void
 ValidateUtility(command, args)
 	int		command;	/* "tag" */
@@ -377,5 +387,22 @@ ValidateUtility(command, args)
 		/* default */
 	default:
 		break;
+	}
+}
+
+/* ----------------
+ *	ValidateParse
+ * ----------------
+ */
+void
+ValidateParse(parse)
+	List	parse;
+{
+	AssertArg(consp(parse));
+
+	if (!lispIntegerp(CAR(parse))) {
+		ValidateParsedQuery(parse);
+	} else {
+		ValidateUtility(CInteger(CAR(parse)), CDR(parse));
 	}
 }

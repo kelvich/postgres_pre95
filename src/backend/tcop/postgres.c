@@ -15,13 +15,37 @@
  *	$Header$
  * ****************************************************************
  */
+#include <signal.h>
+#include <setjmp.h>
 
-#include "tcop/tcop.h"
+#include "tmp/postgres.h"
+
+ RcsId("$Header$");
+
+/* ----------------
+ *	FILE INCLUDE ORDER GUIDELINES
+ *
+ *	1) tcopdebug.h
+ *	2) various support files ("everything else")
+ *	3) node files
+ *	4) catalog/ files
+ *	5) execdefs.h and execmisc.h, if necessary.
+ *	6) extern files come last.
+ * ----------------
+ */
+#include "tcop/tcopdebug.h"
+
+#include "utils/fmgr.h"
+#include "utils/log.h"
+#include "utils/rel.h"
+#include "tmp/miscadmin.h"
+
+#include "nodes/pg_lisp.h"
 
 extern int on_exitpg();
 extern void BufferManagerFlush();
-
- RcsId("$Header$");
+extern int _show_stats_after_query_;
+extern int _reset_stats_after_query_;
 
 /* ----------------
  *	global variables
