@@ -102,7 +102,7 @@ typedef FormData_pg_relation	*Form_pg_relation;
 DATA(insert OID =  71 (  pg_type           6 0 0 0 0 0 f f r n 15 "magnetic disk" - - ));
 DATA(insert OID =  88 (  pg_database       6 0 0 0 0 0 f t r n 3 "magnetic disk" - - ));
 DATA(insert OID =  76 (  pg_demon          6 0 0 0 0 0 f t r n 4 "magnetic disk" - - ));
-DATA(insert OID =  81 (  pg_proc           6 0 0 0 0 0 f f r n 11 "magnetic disk" - - ));
+DATA(insert OID =  81 (  pg_proc           6 0 0 0 0 0 f f r n 16 "magnetic disk" - - ));
 DATA(insert OID =  82 (  pg_server         6 0 0 0 0 0 f t r n 3 "magnetic disk" - - ));
 DATA(insert OID =  86 (  pg_user           6 0 0 0 0 0 f t r n 6 "magnetic disk" - - ));
 DATA(insert OID =  75 (  pg_attribute      6 0 0 0 0 0 f f r n 13 "magnetic disk" - - ));
