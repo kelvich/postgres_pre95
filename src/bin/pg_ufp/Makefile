@@ -19,14 +19,20 @@ CFLAGS+= -I${.CURDIR}/../../backend/port/${PORTNAME} \
 CFLAGS+= -DUFP
 #CFLAGS+= -DUFPDEBUG -DUFPDEBUG_PROTO
 
+#
+# this is basically copied from the port/<foo>/Makefile.inc
+# and, unfortunately, must be sync'd by hand.
+#
 .if (${PORTNAME} == "ultrix4")
-CFLAGS+= -G 0
-LDFLAGS+= -N -G 0
+LDFLAGS+= -N
 LDADD+= -ldl
 .elif (${PORTNAME} == "hpux")
 CFLAGS+= -W l,-E
 LDFLAGS+= -W l,-E
 LDADD+= -ldld
+.elif (${PORTNAME} == "sparc")
+LDADD+= -ldl
+.elif (${PORTNAME} == "alpha")
 .else
 LDFLAGS+= -N
 .endif
