@@ -6,10 +6,10 @@ CFLAGS = -Dvoid="char *" \
 	-D_BSD
 
 CFILES= arch.c buf.c compat.c cond.c dir.c hash.c job.c main.c make.c \
-	parse.c str.c strdup.c suff.c targ.c var.c
+	parse.c str.c strdup.c suff.c targ.c var.c strerror.c setenv.c
 
 OFILES= arch.o buf.o compat.o cond.o dir.o hash.o job.o main.o make.o \
-	parse.o str.o strdup.o suff.o targ.o var.o
+	parse.o str.o strdup.o suff.o targ.o var.o strerror.o setenv.o
 
 LSTCFILES= lstAppend.c lstAtEnd.c lstAtFront.c lstClose.c lstConcat.c \
 	lstDatum.c lstDeQueue.c lstDestroy.c lstDupl.c lstEnQueue.c \
@@ -33,6 +33,6 @@ XYZZY:
 	cd lst.lib; cc -I.. -c ${LSTCFILES}
 	cc ${CFLAGS} ${OFILES} ${LSTOFILES} -o bootmake
 	rm -f ${OFILES} ${LSTOFILES}
-	./bootmake
-	./bootmake install
+	if test ! -d obj; then mkdir obj; fi
+	./bootmake all install
 	rm -f bootmake

@@ -13,13 +13,13 @@ CFLAGS+= -D_PATH_DEFSYSMK='"${PROTODIR}/sys.mk"'  \
 # o/s specific grot:
 #
 
-# actually, if broken ultrix compiler
-.if (${MACHINE} == "mips")
+# if void broken in compiler
+.if ( ${PORTNAME} == "ultrix4" || ${PORTNAME} == "sparc" )
 CFLAGS+= -Dvoid="char *"
 .endif
 
-# actually, if OSF
-.if (${MACHINE} == "alpha")
+# DEC OSF on alpha
+.if (${PORTNAME} == "alpha")
 CFLAGS+= -D_BSD
 .endif
 
@@ -32,11 +32,19 @@ SRCS+=	lstAppend.c lstAtEnd.c lstAtFront.c lstClose.c lstConcat.c \
 	lstInit.c lstInsert.c lstIsAtEnd.c lstIsEmpty.c lstLast.c \
 	lstMember.c lstNext.c lstOpen.c lstRemove.c lstReplace.c lstSucc.c
 SRCS+=	strdup.c
+
+.if ( ${PORTNAME} == "sparc" )
+SRCS+= strerror.c setenv.c
+.endif
+
 .PATH:	${.CURDIR}/lst.lib
 
 beforeinstall: installproto
 
 installproto::
+.if (${PORTNAME} == "sparc")
+	if test ! -d ${PROTODIR}; then mkdir ${PROTODIR}; fi
+.endif
 	for i in ${.CURDIR}/mk-proto/*.mk ; \
 	do \
 	    install -c -o ${BINOWN} -g ${BINGRP} -m 444 $$i ${PROTODIR}/`basename $$i`; \
