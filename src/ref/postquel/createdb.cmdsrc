@@ -27,4 +27,3 @@ destroydb(unix).
 .lp
 This command should NOT be executed by humans.  The createdb(unix) script
 should be used instead.
-.lp
