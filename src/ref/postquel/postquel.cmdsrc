@@ -115,14 +115,29 @@ leading white space.
 Arrays of fixed-length types may also be stored as \*(PG large objects
 (see 
 .IR introduction "(large objects))."
-The syntax for an array constant of this form is simply
+The syntax for an array constant of this form is
 .(C
-"/my/large/object"
+"large_object [-unix | -invert] [-chunk (DEFAULT | acc_pat_file)]"
 .)C
 That is, any array constant that does not begin and end in curly
 braces is assumed to be an Inversion file system filename that
 contains the appropriate array data.  The Inversion file will be
-created if it does not already exist.
+created if it does not already exist. The flag "unix" or "invert"
+is used to indiacte the type of the large object. The default type
+is "unix". An array stored in large object can be chunked to
+optimize retrievals by using the "-chunk" flag. The array can
+be chunked using a default chunk size (by using the keyword DEFAULT)
+or by using an access pattern stored in a native file
+"acc_patt_file". The access pattern is expected to be in the following
+format.
+.(C
+<n> <A_11 A_12 .. A_1d P_1> ... <A_n1 A_n2 .. A_nd P_n>
+.)C
+where n is  the number of tuples in the access pattern
+and d is the number of dimensions of the array. For each i, 
+<A_i1 A_i2 .. A_id> is the dimension of an access request on the
+array and P_i is the relative frequency of the access. 
+
 .XA 1 "Fields and Attributes"
 .SH "Fields"
 A 
