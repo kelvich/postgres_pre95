@@ -87,6 +87,29 @@ class (Expr) public (Node) {
  /* public: */
 };
 
+/*
+ * ==========
+ * ExprContext nodes
+ * ==========
+ */
+
+class (ExprContext) public (Node) {
+#define ExprContextDefs \
+	inherits(Node) \
+	List	      ecxt_scantuple; \
+	AttributePtr  ecxt_scantype; \
+	Buffer	      ecxt_scan_buffer; \
+	List	      ecxt_innertuple; \
+	AttributePtr  ecxt_innertype; \
+	Buffer	      ecxt_inner_buffer; \
+	List	      ecxt_outertuple; \
+	AttributePtr  ecxt_outertype; \
+	Buffer	      ecxt_outer_buffer; \
+	Relation      ecxt_relation; \
+	Index	      ecxt_relid
+ /* private: */
+ /* public: */
+};
 
 /*
  * Var
