@@ -1258,7 +1258,9 @@ UpdateStats(whichRel, reltuples)
     replace[Anum_pg_relation_reltuples - 1] = 'r';
     values[Anum_pg_relation_reltuples - 1] = (Datum)reltuples;
     replace[Anum_pg_relation_relhasindex - 1] = 'r';
-    values[Anum_pg_relation_relhasindex - 1] = CharGetDatum('\001');
+    values[Anum_pg_relation_relhasindex - 1] =
+	(whichRel->rd_rel->relkind == 'r') ? CharGetDatum('\001') :
+					     CharGetDatum('\000');
 
     newtup = ModifyHeapTuple(htup, buffer, pg_relation, values,
 			     nulls, replace);
@@ -1285,6 +1287,7 @@ FillDummyExprContext(econtext, slot, tupdesc, buffer)
     set_ecxt_innertuple(econtext, NULL);
     set_ecxt_outertuple(econtext, NULL);
     set_ecxt_param_list_info(econtext, NULL);
+    set_ecxt_range_table(econtext, NULL);
 
     SetSlotTupleDescriptor(slot, tupdesc);
     SetSlotBuffer(slot, buffer);
