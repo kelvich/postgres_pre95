@@ -829,6 +829,16 @@ PostgresMain(argc, argv)
 #ifdef PARALLELDEBUG
     usclk_init();
 #endif
+#ifdef sequent
+    /* -------------------
+     * increase the maximum number of file descriptors on sequent
+     * the default is only 20.
+     * the following call may not guarantee to give you 256 file descriptors
+     * usually you only get 64.
+     * ------------------
+     */
+    setdtablesize(256);
+#endif
 
     /* ----------------
      *	initialize palloc memory tracing
