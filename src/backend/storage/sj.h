@@ -20,7 +20,6 @@
 #define	SJCACHESIZE	64		/* # groups in mag disk cache */
 #define	SJGRPSIZE	16		/* # 8k pages in a group */
 #define SJNBLKSIZE	20		/* # sizes cached in nblock cache */
-#define SJPATHLEN	64		/* size of path to cache file */
 
 /* misc constants */
 #define	SJCACHENAME	"_sj_cache_"	/* relative to $POSTGRESHOME/data */
