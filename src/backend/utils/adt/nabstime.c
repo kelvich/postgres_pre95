@@ -419,15 +419,16 @@ nabstimeout(time)
     /*
      *  Dynix 3.0.17.10 and Ultrix WS 2 don't provide tm_zone.
      */
-#ifdef sequent
+#if defined(sequent) || defined(OLD_DEC)
     tzoneStr = "";
 #else
-#ifdef OLD_DEC
-    tzoneStr = "";
-#else
+#if defined(PORTNAME_hpux)
+    tzset();
+    tzoneStr = tzname[0];
+#else /* everything else */
     tzoneStr = timeValp->tm_zone;
-#endif
-#endif
+#endif /* everything else */
+#endif /* sequent || OLD_DEC */
 
     sprintf(outStr,
 	    "%s %s %d %2.2d:%2.2d:%2.2d %d %s",
