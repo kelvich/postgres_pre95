@@ -61,7 +61,7 @@ typedef struct
  * Attribute by the Postgres access methods.
  */
 
-	long lo_length;
+	int32 lo_length;
 
 /*
  * Large object storage type - described above.
