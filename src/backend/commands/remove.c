@@ -320,14 +320,22 @@ RemoveFunction(functionName, nargs, argNameList)
 
 	bzero(argList, 8 * sizeof(ObjectId));
 	for (i=0; i<nargs; i++) {
-	        strncpy(&typename, CString(CAR(argNameList)),
-			sizeof(NameData));
-		argNameList = CDR(argNameList);
+	    strncpy(&typename, CString(CAR(argNameList)),
+		    sizeof(NameData));
+	    argNameList = CDR(argNameList);
+	    
+	    if (strcmp(&typename, "wildcard") == 0)
+		argList[i] = 0;
+	    else {
 		tup = SearchSysCacheTuple(TYPNAME, &typename, NULL, NULL, NULL);
-		if (!HeapTupleIsValid(tup))
-		        elog(WARN, "RemoveFunction: type \"%-*s\" not found",
-			     sizeof(NameData), &typename);
+
+		if (!HeapTupleIsValid(tup)) {
+		    elog(WARN, "RemoveFunction: type \"%-*s\" not found",
+			 sizeof(NameData), &typename);
+		}
+
 		argList[i] = tup->t_oid;
+	    }
 	}
 
 	tup = SearchSysCacheTuple(PRONAME, functionName, nargs, argList, NULL);
