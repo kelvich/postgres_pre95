@@ -1,4 +1,5 @@
 %{
+#define YYDEBUG 1
 static char *gram_y ="$Header$";
 /**********************************************************************
   POSTGRES YACC rules/actions
@@ -700,25 +701,24 @@ OptimizableStmt:
   **************************************************/
 
 AppendStmt:
-	  Append 
-		{ ResdomNoIsAttrNo = 1; SkipForwardToFromList(); }
+	  Append opt_star relation_name 
+		{ CurrentRelationPtr = amopenr(CString($3)); 
+		  ResdomNoIsAttrNo = 1; SkipForwardToFromList(); }
 	  from_clause
-	  opt_star  relation_name 
-		{ CurrentRelationPtr = amopenr(CString($5)); }
 	  '(' res_target_list ')'
 	  where_clause
 		{
 			LispValue root;
-			if(RangeTablePosn(CString($5),0,0) == 0)
+			if(RangeTablePosn(CString($3),0,0) == 0)
 			  p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-					       ($5,0,$5));
+					       ($3,0,$3));
 			StripRangeTable();
 		    	root = MakeRoot(1, KW(append), lispInteger(1), 
 					p_rtable,
 					p_priority, p_ruleinfo);
 			$$ = lispCons ( root , LispNil );
 			$$ = nappend1 ( $$ , $8 ); /* (eq p_target $5) */
-			$$ = nappend1 ( $$ , $10 ); /* (eq p_qual $8 */
+			$$ = nappend1 ( $$ , $9 ); /* (eq p_qual $8 */
 			ResdomNoIsAttrNo = 0;
 		}
 	;
@@ -779,27 +779,31 @@ ExecuteStmt:
   **********************************************************************/
 
 ReplaceStmt:
- 	Replace 
-		{ SkipForwardToFromList(); ResdomNoIsAttrNo = 1; }
-	from_clause 
-	opt_star opt_rep_duration var_name 
-		{ CurrentRelationPtr = amopenr(CString($6)); }
+ 	Replace opt_star opt_rep_duration relation_name
+		{ if(RangeTablePosn(CString($4),0,0) == 0)
+		      p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
+					   ($4,0,$4));
+		  CurrentRelationPtr = amopenr(CString($4)); 
+		  if (CurrentRelationPtr == NULL) 
+			elog(WARN,"invalid relation name");
+		  SkipForwardToFromList(); ResdomNoIsAttrNo = 1; }
+	from_clause  
 	'(' res_target_list ')' where_clause
   		{
 		    LispValue root;
 
-		    if(RangeTablePosn(CString($6),0,0) == 0)
+		    if(RangeTablePosn(CString($4),0,0) == 0)
 		      p_rtable = nappend1 (p_rtable, MakeRangeTableEntry
-					   ($6,0,$6));
+					   ($4,0,$4));
 	
 		    StripRangeTable();
-		    root = MakeRoot(NumLevels, KW(replace), lispInteger(1),
+		    root = MakeRoot(1, KW(replace), lispInteger(1),
 				    p_rtable,
 				    p_priority, p_ruleinfo);
 
 		    $$ = lispCons( root , LispNil );
-		    $$ = nappend1 ( $$ , $9 );		/* (eq p_target $6) */
-		    $$ = nappend1 ( $$ , $11 );	        /* (eq p_qual $9) */
+		    $$ = nappend1 ( $$ , $8 );		/* (eq p_target $6) */
+		    $$ = nappend1 ( $$ , $10 );	        /* (eq p_qual $9) */
 		    ResdomNoIsAttrNo = 0;
 		}
 	;
@@ -986,7 +990,7 @@ from_val:
 
 			SkipBackToTlist();
 			yychar = -1;
-			goto yynewstate;
+			/* goto yynewstate; */
 		}
 	;
 var_list:
@@ -1232,6 +1236,7 @@ res_target_el:
 
 		    if (ResdomNoIsAttrNo) {
 			rd = CurrentRelationPtr;
+			Assert(rd != NULL);
 			resdomno = varattno(rd,CString($1));
 			attrtype = att_typeid(rd,resdomno);
 			attrlen = tlen(get_id_type(attrtype)); 
