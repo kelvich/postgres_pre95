@@ -407,5 +407,5 @@ MAKE_EXPORTS=
 # everything to compile.  :-/
 #
 .if (${PORTNAME} == "aix")
-CFLAGS+= -qchars=signed -qmaxmem=2000 -DHAVE_ANSI_CPP
+CFLAGS+= -qchars=signed -qmaxmem=4000 -DHAVE_ANSI_CPP
 .endif
