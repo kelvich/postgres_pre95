@@ -140,42 +140,6 @@ typedef struct RelationBuildDescInfo {
 } RelationBuildDescInfo;
 
 /* --------------------------------
- *	relopen		- physically open a relation
- *
- *	Note that this function should be replaced by a fd manager
- *	which interacts with the reldesc manager.  (Thus, this function
- *	may be eventually have different functionality/have a different name.
- *
- *	Perhaps relpath() code should be placed in-line here eventually.
- * --------------------------------
- */
-/**** xxref:
- *           BuildRelation
- *           formrdesc
- ****/
-File
-relopen(relationName, flags, mode)
-    char	relationName[];
-    int		flags;
-    int		mode;
-{
-    File	file;
-    int		oumask;
-    extern char	*relpath();
-    
-    oumask = (int) umask(0077);
-    
-    file = FileNameOpenFile(relpath(relationName), flags, mode);
-    if (file == -1) 
-	elog(NOTICE, "cannot open %s (%d)", relpath(relationName), errno);
-    
-    umask(oumask);
-    
-    return
-	file;
-}
-
-/* --------------------------------
  *	BuildDescInfoError returns a string appropriate to
  *	the buildinfo passed to it
  * --------------------------------
@@ -501,21 +465,6 @@ RelationBuildDesc(buildinfo)
      * ----------------
      */
     relation->rd_id = relid;
-    
-    /* ----------------
-     *	open the file named in the pg_relation_tuple and
-     *  assign the file descriptor to rd_fd and record the
-     *  number of blocks in the relation
-     * ----------------
-     */
-    fd = relopen(&relp->relname, O_RDWR, 0666);
-    
-    Assert (fd >= -1);
-    if (fd == -1)
-	elog(NOTICE, "RelationIdBuildRelation: relopen(%s): %m",
-	     &relp->relname);
-    
-    relation->rd_fd = fd;
 
     /* ----------------
      *	initialize relation->rd_refcnt
@@ -554,6 +503,20 @@ RelationBuildDesc(buildinfo)
      * ----------------
      */
     RelationInitLockInfo(relation); /* see lmgr.c */
+    
+    /* ----------------
+     *	open the relation and assign the file descriptor returned
+     *  by the storage manager code to rd_fd.
+     * ----------------
+     */
+    fd = smgropen(relp->relsmgr, relation);
+    
+    Assert (fd >= -1);
+    if (fd == -1)
+	elog(NOTICE, "RelationIdBuildRelation: smgropen(%s): %m",
+	     &relp->relname);
+    
+    relation->rd_fd = fd;
     
     /* ----------------
      *	insert newly created relation into proper relcaches,
@@ -624,7 +587,6 @@ formrdesc(relationName, reloid, natts, att, initialReferenceCount)
     int		len;
     int		i;
     char	*relpath();
-    File	relopen();
     Relation	publicCopy;
     
     /* ----------------
@@ -734,8 +696,7 @@ RelationIdCacheGetRelation(relationId)
 
     if (RelationIsValid(rd)) {
 	if (rd->rd_fd == -1) {
-	    rd->rd_fd = relopen(&rd->rd_rel-> relname,
-				   O_RDWR | O_CREAT, 0666);
+	    rd->rd_fd = smgropen(rd->rd_rel->relsmgr, rd);
 	    Assert(rd->rd_fd != -1);
 	}
 	
@@ -765,8 +726,7 @@ RelationNameCacheGetRelation(relationName)
 
     if (RelationIsValid(rd)) {
 	if (rd->rd_fd == -1) {
-	    rd->rd_fd = relopen(&rd->rd_rel->relname,
-				O_RDWR | O_CREAT, 0666);
+	    rd->rd_fd = smgropen(rd->rd_rel->relsmgr, rd);
 	    Assert(rd->rd_fd != -1);
 	}
 	
