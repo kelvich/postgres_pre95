@@ -204,13 +204,15 @@ _equalArray(a, b)
 		return (false);
 	if (a->arrayelemtype != b->arrayelemtype)
 		return (false);
-	if (a->arraylow != b->arraylow)
+	if (a->arrayndim != b->arrayndim)
 		return (false);
-	if (a->arrayhigh != b->arrayhigh)
+	if (a->arraylow.indx[0] != b->arraylow.indx[0])
+		return (false);
+	if (a->arrayhigh.indx[0] != b->arrayhigh.indx[0])
 		return (false);
 	if (a->arraylen != b->arraylen)
 		return (false);
-	return(true);
+	return(TRUE);
 }
 
 bool
@@ -229,10 +231,13 @@ _equalArrayRef(a, b)
 		return (false);
 	if (a->refelembyval != b->refelembyval)
 		return (false);
-	if (!_equalLispValue(a->refindexpr, b->refindexpr))
+	if (!_equalLispValue(a->refupperindexpr, b->refupperindexpr))
 		return (false);
-
-	return (_equalLispValue(a->refexpr, b->refexpr));
+	if (!_equalLispValue(a->reflowerindexpr, b->reflowerindexpr))
+		return (false);
+	if (!_equalLispValue(a->refexpr, b->refexpr))
+		return (false);
+	return (_equalLispValue(a->refassgnexpr, b->refassgnexpr));
 }
 
 /*
