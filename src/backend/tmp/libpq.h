@@ -41,6 +41,21 @@
 
 #include "exception.h"
 
+/*
+ * PQArgBlock --
+ *	Information (pointer to array of this structure) required
+ *	for the PQfn() call.
+ */
+
+typedef struct {
+    int len;
+    int isint;
+    union {
+        void *ptr;
+	int integer;
+    } u;
+} PQArgBlock;
+
 /* 
  * TypeBlock --
  * 	Information about an attribute.
