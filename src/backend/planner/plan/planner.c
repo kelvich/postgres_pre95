@@ -279,7 +279,7 @@ make_sortplan(tlist,sortkeys,sortops,plannode)
   List temp_tlist = LispNil;
 
   temp_tlist = set_temp_tlist_operators(new_unsorted_tlist(tlist),
-					     sortkeys,
+					     lispCons(sortkeys,LispNil),
 					     sortops);
   sortplan = (Plan) make_sort(temp_tlist,
 			      _TEMP_RELATION_ID_,
