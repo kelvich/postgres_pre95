@@ -56,18 +56,64 @@ extern void	PrintJInfo();
 extern void     PrintHInfo();
 extern void     PrintJoinMethod();
 
+/* equal funcs that exist in lib/C/equalfunc.c and aren't defined elsewhere*/
 #define EqualCInfoExists 1
-#define EqualJInfoExists 1
-#define EqualHInfoExists 1
 #define EqualJoinMethodExists 1
-#define EqualHashPathExists 1
-#define EqualIndexScanExists 1
-#define EqualMergeOrderExists 1
-#define EqualJoinPathExists 1
 #define EqualPathExists 1
 #define EqualIndexPathExists 1
-#define EqualJoinKeyExists 1
+#define EqualJoinPathExists 1
 #define EqualMergePathExists 1
+#define EqualHashPathExists 1
+#define EqualJoinKeyExists 1
+#define EqualMergeOrderExists 1
+#define EqualHInfoExists 1
+#define EqualIndexScanExists 1
+#define EqualJInfoExists 1
+#define EqualEStateExists 1
+#define EqualHeapTupleExists 1
+#define EqualRelationExists 1
+#define EqualLispValueExists 1
+
+
+/* copy funcs that exist in lib/C/copyfunc.c and aren't defined elsewhere*/
+#define CopyNodeExists 1
+#define CopyMaterialExists 1
+#define CopyRelExists 1
+#define CopySortKeyExists 1
+#define CopyPathExists 1
+#define CopyIndexPathExists 1
+#define CopyJoinPathExists 1
+#define CopyMergePathExists 1
+#define CopyHashPathExists 1
+#define CopyOrderKeyExists 1
+#define CopyJoinKeyExists 1
+#define CopyMergeOrderExists 1
+#define CopyCInfoExists 1
+#define CopyJoinMethodExists 1
+#define CopyHInfoExists 1
+#define CopyMInfoExists 1
+#define CopyJInfoExists 1
+
+/* out funcs from lib/C/outfuncs.c that aren't defined elsewhere */
+#define OutPlanInfoExists 1
+#define OutRelExists 1
+#define OutTLEExists 1
+#define OutTLExists 1
+#define OutSortKeyExists 1
+#define OutPathExists 1
+#define OutIndexPathExists 1
+#define OutJoinPathExists 1
+#define OutMergePathExists 1
+#define OutHashPathExists 1
+#define OutOrderKeyExists 1
+#define OutJoinKeyExists 1
+#define OutMergeOrderExists 1
+#define OutCInfoExists 1
+#define OutJoinMethodExists 1
+#define OutHInfoExists 1
+#define OutJInfoExists 1
+#define OutDatumExists 1
+
 
 /*
  * Relid
@@ -180,7 +226,8 @@ class (Path) public (Node) {
 	List		keys; \
 	SortKey		pathsortkey; \
 	Cost		outerjoincost; \
-	Relid		joinid
+	Relid		joinid; \
+	List            locclauseinfo
 /* private: */
 	PathDefs;
  /* public: */
