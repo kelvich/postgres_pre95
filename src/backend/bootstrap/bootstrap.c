@@ -262,6 +262,7 @@ char *av[];
     GetDataHome();
     SetProcessingMode((override) ? BootstrapProcessing : InitProcessing);
     InitPostgres(dat);
+    LockDisable(true);
     dat = Blanks;
     
     for (i = MAXATTR - 1; i >= 0; --i) {
