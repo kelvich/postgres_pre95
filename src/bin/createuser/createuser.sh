@@ -110,7 +110,7 @@ do
 	echo _fUnKy_DASH_N_sTuFf_ "Enter user's postgres ID$DEFMSG -> "_fUnKy_BACKSLASH_C_sTuFf_
 	read SYSID
 	[ -z "$SYSID" ] && SYSID=$DEFSYSID;
-	QUERY='retrieve (pg_user.usename) where pg_user.usesysid = '"\"$SYSID\""
+	QUERY='retrieve (pg_user.usename) where pg_user.usesysid = '"\"$SYSID\""'::int2'
 	RES=`$MONITOR -TN -c "$QUERY" template1`
 	if [ $? -ne 0 ]
 	then
