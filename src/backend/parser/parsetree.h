@@ -34,7 +34,11 @@
 /* .. GetIDFromRangeTbl, InitPlan, print_rtentries, print_subplan
  * .. print_var
  */
-#define rt_relname(rt_entry)          CAR(rt_entry)
+#define rt_relname(rt_entry) \
+      ((!strcmp(CString(CAR(rt_entry)),"*CURRENT*") ||\
+        !strcmp(CString(CAR(rt_entry)),"*NEW*")) ? CAR(rt_entry) : \
+        CADR(rt_entry))
+
 
 
 /* .. ExecutePlan, best-or-subclause-index, create_index_path
@@ -43,26 +47,28 @@
  * .. preprocess-targetlist, print_rtentries, print_var, relation-info
  * .. translate-relid, write-decorate
  */
-#define rt_relid(rt_entry)             CADR(rt_entry)
+#define rt_relid(rt_entry)             CADDR(rt_entry)
 
 
 /* .. ExecBeginScan, ExecCreatR, ExecOpenR, InitPlan
  * .. in-line-lambda%598040864, print_rtentries 
  */
-#define rt_time(rt_entry)              CADDR(rt_entry)
+#define rt_time(rt_entry)              CADDR(CDR(rt_entry))
+
 
 /*.. in-line-lambda%598040864 */
-#define rt_archive_time(rt_entry)      ( (CADDDR(rt_entry)) ? \
+#define rt_archive_time(rt_entry)      ( nth(5, rt_entry) ? \
 					rt_time (rt_entry) : LispNil )
 
 /* .. in-line-lambda%598040866, plan-union-queries, print_rtentries */
-#define rt_flags(rt_entry)         CADDR(CDR(rt_entry))
+#define rt_flags(rt_entry)         CADDR(CDR(CDR(rt_entry)))
+
 
 /* .. add-read-locks, exec-make-intermediate-locks, exec-set-lock
  *.. make-parameterized-plans, make-rule-locks, print_rtentries
  * .. write-decorate
  */
-#define rt_rulelocks(rt_entry)     CADDR(CDR(CDR(rt_entry)))
+#define rt_rulelocks(rt_entry)     CADDR(CDR(CDR(CDR(rt_entry))))
 
 
 /*  .. ExecCreatR, ExecOpenR, ExecutePlan, InitPlan, add-read-locks
