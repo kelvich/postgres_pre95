@@ -45,6 +45,12 @@ extern errno;
 #include "tmp/c.h"
 #include "machine.h"	/* for BLCKSZ */
 
+#ifdef PARALLELDEBUG
+#include <usclkc.h>
+int FileReadCount;
+usclk_t FileReadTime;
+#endif
+
 RcsId("$Header$");
 
 /* #define FDDEBUG /* */
@@ -830,9 +836,17 @@ Amount amount;
 {
    Sfd *sfdP;
    Amount ret;
+#ifdef PARALLELDEBUG
+   usclk_t st;
+   st = getusclk();
+   FileReadCount++;
+#endif
    sfdP = &(SfdCache[file]);
    ret = fileRead(sfdP->vfd[sfdP->curStripe], buffer, amount);
    sfdP->curStripe = (sfdP->curStripe + 1) % NStriping;
+#ifdef PARALLELDEBUG
+   FileReadTime += (getusclk() - st);
+#endif
    return(ret);
 }
 

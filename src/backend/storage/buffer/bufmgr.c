@@ -43,6 +43,11 @@
 #include "utils/hsearch.h"
 #include "utils/log.h"
 
+#ifdef PARALLELDEBUG
+#include <usclkc.h>
+usclk_t ReadBufferHitTime;
+usclk_t ReadBufferMissTime;
+#endif
 
 int		NBuffers = NDBUFS;  /* NDBUFS defined in miscadmin.h */
 int		Data_Descriptors;
@@ -116,9 +121,9 @@ SPINLOCK BufMgrLock;
 /* delayed write: TRUE on, FALSE off */
 int LateWrite = TRUE;
 
-static int ReadBufferCount;
-static int BufferHitCount;
-static int BufferFlushCount;
+int ReadBufferCount;
+int BufferHitCount;
+int BufferFlushCount;
 
 /*
  * ReadBuffer -- returns a buffer containing the requested
@@ -142,7 +147,10 @@ BlockNumber 	blockNum;
   int		extend;   /* extending the file by one block */
   int		status;
   Boolean	found;
-
+#ifdef PARALLELDEBUG
+  usclk_t       st;
+  st = getusclk();
+#endif
 
   ReadBufferCount++;
   extend = (blockNum == NEW_BLOCK);
@@ -161,6 +169,9 @@ BlockNumber 	blockNum;
       elog(NOTICE,"BufferAlloc: found new block in buf table");
     }
     BufferHitCount++;
+#ifdef PARALLELDEBUG
+    ReadBufferHitTime += getusclk() - st;
+#endif
     return(BufferDescriptorGetBuffer(bufHdr));
   }
 
@@ -209,6 +220,9 @@ BlockNumber 	blockNum;
 #endif
   SpinRelease(BufMgrLock);
     
+#ifdef PARALLELDEBUG
+  ReadBufferMissTime += getusclk() - st;
+#endif
   return(BufferDescriptorGetBuffer(bufHdr));
 } 
 
@@ -1131,8 +1145,8 @@ BufferShmemSize()
     int nbuckets;
     int nsegs;
 
-    nbuckets = 1 << log2((NBuffers - 1) / DEF_FFACTOR + 1);
-    nsegs = 1 << log2((nbuckets - 1) / DEF_SEGSIZE + 1);
+    nbuckets = 1 << (int)log2((NBuffers - 1) / DEF_FFACTOR + 1);
+    nsegs = 1 << (int)log2((nbuckets - 1) / DEF_SEGSIZE + 1);
     size =  /* size of shmem binding table */
 	    log2(BTABLE_SIZE) + sizeof(HHDR)
 	    + DEF_SEGSIZE * sizeof(SEGMENT) + BUCKET_ALLOC_INCR * 
