@@ -229,7 +229,7 @@ MakeRangeTableEntry( relname , options , refname)
       TRange = CAR(options);
     } else {
       Flags = LispNil;
-      TRange = lispInteger(0);
+      TRange = lispInteger((long) NULL);
     }
 
     /* RelOID */
@@ -375,7 +375,7 @@ MakeTimeRange( datestring1 , datestring2 , timecode )
 		default:
 			elog(WARN, "MakeTimeRange: internal parser error");
 	}
-	return(lispInteger((int)qual));
+	return(lispInteger((long) qual));
 }
 
 void

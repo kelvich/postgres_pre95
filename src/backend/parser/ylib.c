@@ -914,7 +914,7 @@ MakeFromClause ( from_list, base_rel )
 	     * relations that we didn't want them on 
 	     */
 	    
-	    flags = lispCons(lispInteger(0),LispNil);
+	    flags = lispCons(lispInteger((long) NULL),LispNil); /* time */
 	    
 	    if ( IsConcatenation == true ) {
 		flags = nappend1(flags, lispAtom("union"));
