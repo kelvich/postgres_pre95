@@ -598,9 +598,13 @@ PQfsread(fd, buf, nbytes)
 	     *  length again...).
 	     */
 
-	    actual_len = pq_getint(4);
+	    nbytes = actual_len = pq_getint(4);
+#if 0	    
+	/* fe/be does NOT transmit varlenas this way */
 	    nbytes = pq_getint(4);
 	    nbytes -= sizeof(long);	/* compensate for varlena vl->len */
+#endif
+
 	    if (nbytes > 0)
 		pq_getnchar((char *)buf, 0, nbytes);
 	    pq_getnchar(id, 0, 1);
@@ -658,8 +662,16 @@ PQfswrite(fd, buf, nbytes)
     /* now put arguments */
     pq_putint(4, 4);		/* size of fd */
     pq_putint(fd, 4);
-    pq_putint(nbytes + 4, 4);	/* size of varlena */
+/*
+* The method of transmitting varlenas is:
+* Send vl_len-4
+* Send data consisting of vl_len-4 bytes.
+*/
+    pq_putint(nbytes, 4);	/* size of varlena */
+#if 0
+	/* The fe/be protocol does NOT transmit varlenas this way */
     pq_putint(nbytes + 4, 4);	/* vl_len */
+#endif
     pq_putnchar(buf, nbytes);	/* vl_dat */
 
     pq_flush();
