@@ -563,6 +563,7 @@ UpdateRelationRelation(indexRelation)
 {
     Relation	pg_relation;
     HeapTuple	tuple;
+    ObjectId	tupleOid;
     
     pg_relation = heap_openr(RelationRelationName);
    
@@ -579,10 +580,11 @@ UpdateRelationRelation(indexRelation)
     tuple->t_oid = indexRelation->rd_id;
     heap_insert(pg_relation, tuple, (double *)NULL);
    
+    tupleOid = tuple->t_oid;
     pfree((Pointer)tuple);
     heap_close(pg_relation);
 
-    return(tuple->t_oid);
+    return(tupleOid);
 }
 
 /* ----------------------------------------------------------------
