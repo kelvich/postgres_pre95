@@ -74,6 +74,26 @@ level one prints page headers and line pointer tables,
 and level two (or higher) prints headers,
 line pointer tables,
 and tuples.
+.ip "\fBlinp\fP \fIn\fP \fIwhich\fP"
+Print line pointer table entry
+.i which
+of buffer
+.i n .
+.ip "\fBtuple\fP \fIn\fP \fItype\fP \fIwhich\fP"
+Print tuple
+.i which
+of buffer
+.i n .
+The buffer is interpreted as a page from a
+.i type
+relation,
+where
+.i type
+may be
+.i heap ,
+.i btree ,
+or
+.i rtree .
 .ip "\fBsetbase\fP \fIptr\fP"
 Set the logical base address of shared memory for
 .i shmemdoc
