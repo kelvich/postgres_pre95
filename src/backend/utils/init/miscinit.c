@@ -139,6 +139,12 @@ SetProcessingMode(mode)
     Mode = mode;
 }
 
+ProcessingMode
+GetProcessingMode()
+{
+    return (Mode);
+}
+
 /* ----------------------------------------------------------------
  *	ReinitAtFirstTransaction()
  *	InitAtFirstTransaction()
