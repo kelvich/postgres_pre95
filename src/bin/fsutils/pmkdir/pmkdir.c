@@ -19,6 +19,7 @@ static	char sccsid[] = "@(#)mkdir.c 1.1 90/03/23 SMI"; /* from UCB 5.1 4/30/85 *
  */
 #include <stdio.h>
 #include <sys/errno.h>
+#include "tmp/libpq-fs.h"
 
 int mkdir();
 int mkdirp();
@@ -30,6 +31,7 @@ main(argc, argv)
 	int pflag = 0;
 	char *cmd = argv[0];
 
+	PQsetdb(getenv("USER"));
 	argc--, argv++;
 	while (argc > 0 && **argv == '-') {
 		(*argv)++;
@@ -46,14 +48,16 @@ main(argc, argv)
 	}
 	if (argc < 1 || errors) {
 		fprintf(stderr, "usage: %s [ -p ]  directory ...\n", cmd);
+		PQfinish();
 		exit(1);
 	}
 	while (argc--)
-		if ((pflag ? mkdirp : mkdir)(*argv++, 0777) < 0) {
-			fprintf(stderr, "mkdir: ");
+		if ((pflag ? mkdirp : p_mkdir)(*argv++, 0777) < 0) {
+			fprintf(stderr, "pmkdir: ");
 			perror(*(argv-1));
 			errors++;
 		}
+	PQfinish();
 	exit(errors != 0);
 	/* NOTREACHED */
 }
@@ -68,10 +72,10 @@ mkdirp(dir, mode)
 	char *rindex();
 	extern int errno;
 
-	if (mkdir(dir, mode) == 0 || errno == EEXIST)
+	if (p_mkdir(dir, mode) == 0)
 		return (0);
-	if (errno != ENOENT)
-		return (-1);
+/*	if (errno != ENOENT)
+		return (-1); */
 	slash = rindex(dir, '/');
 	if (slash == NULL)
 		return (-1);
@@ -80,5 +84,5 @@ mkdirp(dir, mode)
 	*slash++ = '/';
 	if (err || !*slash)
 		return (err);
-	return mkdir(dir, mode);
+	return p_mkdir(dir, mode);
 }
