@@ -32,16 +32,21 @@ PORTNAME=	ultrix4
 MACHINE!=	machine
 BINDIR=		${POSTGRESDIR}/bin
 LIBDIR=		${POSTGRESDIR}/lib
+CDEBUG=		-g	# comment out to turn off debugging
+
+#
+# Globaly pass debugging flags
+#
+CFLAGS= ${CDEBUG}
+LDFLAGS= ${CDEBUG}
+STRIP=
+#
+# Globally pass PORTNAME
+#
+CFLAGS+= -DPORTNAME=${PORTNAME}
 
 # XXX - to get alpha going
-.if (${MACHINE} == "alpha")
+.if (${PORTNAME} == "alpha")
 # so free doesn't get defined (bletch)
 CFLAGS+= -Dlong=int -D_NLCTYPE_H_
 .endif
-
-#
-# globally turn on debugging
-#
-CFLAGS= -g
-LDFLAGS= -g
-STRIP=
