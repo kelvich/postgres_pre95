@@ -122,7 +122,7 @@ fi
 
 # This rm is commented out because some people want to be able to
 # install through symbolic links.  Uncomment it if it offends you.
-# rm -f $dst/$srcbase
+rm -f $dst/$srcbase
 (cd $srcdir ; $installcmd -f $dst $flags $src)
 
 if [ x$dostrip = xstrip ]
