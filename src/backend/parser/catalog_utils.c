@@ -15,7 +15,9 @@ RcsId("$Header$");
 #include "tmp/simplelists.h"
 #include "tmp/datum.h"
 
+#include "utils/builtins.h"
 #include "utils/log.h"
+#include "utils/palloc.h"
 #include "fmgr.h"
 
 #include "nodes/pg_lisp.h"
@@ -76,8 +78,6 @@ static String attnum_type[SPECIALS] = {
     "char"
   };
 
-struct tuple *SearchSysCache();
-
 #define	MAXFARGS 8		/* max # args to a c or postquel function */
 
 extern	ObjectId	**argtype_inherit();
@@ -112,7 +112,9 @@ long id;
 {
     HeapTuple tup;
 
-    if (!(tup = SearchSysCacheTuple(TYPOID, id))) {
+    if (!(tup = SearchSysCacheTuple(TYPOID, (char *) ObjectIdGetDatum(id),
+				    (char *) NULL, (char *) NULL,
+				    (char *) NULL))) {
 	elog ( WARN, "type id lookup of %d failed", id);
 	return(NULL);
     }
@@ -127,7 +129,9 @@ long id;
    HeapTuple tup;
    Form_pg_type typetuple;
 
-    if (!(tup = SearchSysCacheTuple(TYPOID, id))) {
+    if (!(tup = SearchSysCacheTuple(TYPOID, (char *) ObjectIdGetDatum(id),
+				    (char *) NULL, (char *) NULL,
+				    (char *) NULL))) {
 	elog ( WARN, "type id lookup of %d failed", id);
 	return(NULL);
     }
@@ -146,7 +150,8 @@ char *s;
 	elog ( WARN , "type(): Null type" );
     }
 
-    if (!(tup = SearchSysCacheTuple(TYPNAME, s))) {
+    if (!(tup = SearchSysCacheTuple(TYPNAME, s, (char *) NULL, (char *) NULL,
+				    (char *) NULL))) {
 	elog (WARN , "type name lookup of %s failed", s);
     }
     return((Type) tup);
@@ -279,18 +284,21 @@ CandidateList *candidates;
     opKey[0].flags = 0;
     opKey[0].attributeNumber = OperatorNameAttributeNumber;
     opKey[0].procedure = NameEqualRegProcedure;
-    fmgr_info(NameEqualRegProcedure, &opKey[0].func, &opKey[0].nargs);
+    fmgr_info(NameEqualRegProcedure, (func_ptr *) &opKey[0].func,
+	      &opKey[0].nargs);
     opKey[0].argument = NameGetDatum(opname);
 
     opKey[1].flags = 0;
     opKey[1].attributeNumber = OperatorKindAttributeNumber;
     opKey[1].procedure = CharacterEqualRegProcedure;
-    fmgr_info(CharacterEqualRegProcedure, &opKey[1].func, &opKey[1].nargs);
+    fmgr_info(CharacterEqualRegProcedure, (func_ptr *) &opKey[1].func,
+	      &opKey[1].nargs);
     opKey[1].argument = CharGetDatum('b');
 
     opKey[2].flags = 0;
     opKey[2].procedure = ObjectIdEqualRegProcedure;
-    fmgr_info(ObjectIdEqualRegProcedure, &opKey[2].func, &opKey[2].nargs);
+    fmgr_info(ObjectIdEqualRegProcedure, (func_ptr *) &opKey[2].func,
+	      &opKey[2].nargs);
 
     if (leftTypeId == UNKNOWNOID) {
         if (rightTypeId == UNKNOWNOID) {
@@ -389,36 +397,47 @@ oper(op, arg1, arg2)
 	init_op_cache();
     }
     */
-    if (!(tup = SearchSysCacheTuple(OPRNAME, op, arg1, arg2, (char *) 'b'))) {
+    if (!(tup = SearchSysCacheTuple(OPRNAME,
+				    (char *) op,
+				    (char *) ObjectIdGetDatum(arg1),
+				    (char *) ObjectIdGetDatum(arg2),
+				    (char *) Int8GetDatum('b')))) {
 	ncandidates = binary_oper_get_candidates(op, arg1, arg2, &candidates);
 	if (ncandidates == 0) {
 	    op_error(op, arg1, arg2);
 	    return(NULL);
 	}
 	else if (ncandidates == 1) {
-	    tup = SearchSysCacheTuple(OPRNAME, op, candidates->args[0],
-				      candidates->args[1], (char *) 'b');
+	    tup = SearchSysCacheTuple(OPRNAME,
+				      (char *) op,
+				      (char *) ObjectIdGetDatum(candidates->args[0]),
+				      (char *) ObjectIdGetDatum(candidates->args[1]),
+				      (char *) Int8GetDatum('b'));
 	    Assert(HeapTupleIsValid(tup));
 	}
 	else {
 	    candidates = binary_oper_select_candidate(arg1, arg2, candidates);
 	    if (candidates != NULL) {
-		tup = SearchSysCacheTuple(OPRNAME, op, candidates->args[0],
-					  candidates->args[1], (char *) 'b');
+		tup = SearchSysCacheTuple(OPRNAME,
+					  (char *) op,
+					  (char *) ObjectIdGetDatum(candidates->args[0]),
+					  (char *) ObjectIdGetDatum(candidates->args[1]),
+					  (char *) Int8GetDatum('b'));
 		Assert(HeapTupleIsValid(tup));
 	    }
 	    else {
-		char p1[16], p2[16];
-		Type tp, get_id_type();
+		NameData p1, p2;
+		Type tp;
 
 		tp = get_id_type(arg1);
-		strncpy(p1, tname(tp), 16);
+		(void) namecpy(&p1, tname(tp));
 
 		tp = get_id_type(arg2);
-		strncpy(p2, tname(tp), 16);
+		(void) namecpy(&p2, tname(tp));
 
 		elog(NOTICE, "there is more than one operator %s for types", op);
-		elog(NOTICE, "%s and %s. You will have to retype this query", p1, p2);
+		elog(NOTICE, "%.*s and %.*s. You will have to retype this query",
+		     NAMEDATALEN, &p1, NAMEDATALEN, &p2);
 		elog(WARN, "using an explicit cast");
 		
 		return(NULL);
@@ -454,9 +473,11 @@ unary_oper_get_candidates(op, typeId, candidates, rightleft)
 
     *candidates = NULL;
 
-    fmgr_info(NameEqualRegProcedure, &opKey[0].func, &opKey[0].nargs);
+    fmgr_info(NameEqualRegProcedure, (func_ptr *) &opKey[0].func,
+	      &opKey[0].nargs);
     opKey[0].argument = NameGetDatum(op);
-    fmgr_info(CharacterEqualRegProcedure, &opKey[1].func, &opKey[1].nargs);
+    fmgr_info(CharacterEqualRegProcedure, (func_ptr *) &opKey[1].func,
+	      &opKey[1].nargs);
     opKey[1].argument = CharGetDatum(rightleft);
 
     /* currently, only "unknown" can be coerced */
@@ -510,7 +531,11 @@ int arg; /* type id */
 	init_op_cache();
     }
     */
-    if (!(tup = SearchSysCacheTuple(OPRNAME, op, arg, 0, (char *) 'r'))) {
+    if (!(tup = SearchSysCacheTuple(OPRNAME,
+				    (char *) op,
+				    (char *) ObjectIdGetDatum(arg),
+				    (char *) ObjectIdGetDatum(InvalidObjectId),
+				    (char *) Int8GetDatum('r')))) {
 	ncandidates = unary_oper_get_candidates(op, arg, &candidates, 'r');
 	if (ncandidates == 0) {
 	    elog ( WARN ,
@@ -518,8 +543,11 @@ int arg; /* type id */
 	    return(NULL);
 	}
 	else if (ncandidates == 1) {
-	    tup = SearchSysCacheTuple(OPRNAME, op, candidates->args[0],
-				      0, (char *) 'r');
+	    tup = SearchSysCacheTuple(OPRNAME,
+				      (char *) op,
+				      (char *) ObjectIdGetDatum(candidates->args[0]),
+				      (char *) ObjectIdGetDatum(InvalidObjectId),
+				      (char *) Int8GetDatum('r'));
 	    Assert(HeapTupleIsValid(tup));
 	}
 	else {
@@ -547,7 +575,11 @@ int arg; /* type id */
 	init_op_cache();
     }
     */
-    if (!(tup = SearchSysCacheTuple(OPRNAME, op, 0, arg, (char *) 'l'))) {
+    if (!(tup = SearchSysCacheTuple(OPRNAME,
+				    (char *) op,
+				    (char *) ObjectIdGetDatum(InvalidObjectId),
+				    (char *) ObjectIdGetDatum(arg),
+				    (char *) Int8GetDatum('l')))) {
 	ncandidates = unary_oper_get_candidates(op, arg, &candidates, 'l');
 	if (ncandidates == 0) {
 	    elog ( WARN ,
@@ -555,8 +587,11 @@ int arg; /* type id */
 	    return(NULL);
 	}
 	else if (ncandidates == 1) {
-	    tup = SearchSysCacheTuple(OPRNAME, op, 0,
-				      candidates->args[0], (char *) 'l');
+	    tup = SearchSysCacheTuple(OPRNAME,
+				      (char *) op,
+				      (char *) ObjectIdGetDatum(InvalidObjectId),
+				      (char *) ObjectIdGetDatum(candidates->args[0]),
+				      (char *) Int8GetDatum('l'));
 	    Assert(HeapTupleIsValid(tup));
 	}
 	else {
@@ -694,7 +729,7 @@ RangeTablePosn ( rangevar , options )
 	    } else {
 		List i;
 		foreach ( i , refvalue ) {
-		    Name actual_ref = (Name)CString(CAR(i));
+		    String actual_ref = CString(CAR(i));
 		    if ( !strcmp ( actual_ref , rangevar ) &&
 			 inherit == inherit &&
 			 timerange == timerange )
@@ -737,7 +772,7 @@ RangeTablePositions ( rangevar , options )
 	} else {
 	    List i;
 	    foreach ( i , refvalue ) {
-		Name actual_ref = (Name)CString(CAR(i));
+		String actual_ref = CString(CAR(i));
 		if ( !strcmp ( actual_ref , rangevar ) &&
 		    inherit == inherit &&
 		    timerange == timerange ) {
@@ -803,7 +838,11 @@ ObjectId typearray;
 	HeapTuple type_tuple;
 	TypeTupleForm type_struct_array;
 
-	type_tuple = SearchSysCacheTuple(TYPOID, typearray, NULL, NULL, NULL);
+	type_tuple = SearchSysCacheTuple(TYPOID,
+					 (char *) ObjectIdGetDatum(typearray),
+					 (char *) NULL,
+					 (char *) NULL,
+					 (char *) NULL);
 
     if (!HeapTupleIsValid(type_tuple))
     elog(WARN, "GetArrayElementType: Cache lookup failed for type %d\n",
@@ -839,7 +878,9 @@ funcid_get_rettype ( funcid)
     HeapTuple func_tuple = NULL;
     OID funcrettype = (OID)0;
 
-    func_tuple = SearchSysCacheTuple(PROOID,funcid,0,0,0);
+    func_tuple = SearchSysCacheTuple(PROOID, (char *) ObjectIdGetDatum(funcid),
+				     (char *) NULL, (char *) NULL,
+				     (char *) NULL);
 
     if ( !HeapTupleIsValid ( func_tuple )) 
 	elog (WARN, "function  %d does not exist", funcid);
@@ -1032,7 +1073,10 @@ func_get_detail(funcname, nargs, oid_array, funcid, rettype,
      * with arguments exactly as specified - so that the normal
      * case is just as quick as before
      */
-    ftup = SearchSysCacheTuple(PRONAME, funcname, nargs, oid_array, 0);
+    ftup = SearchSysCacheTuple(PRONAME, (char *) funcname,
+			       (char *) Int32GetDatum(nargs),
+			       (char *) oid_array,
+			       (char *) NULL);
     *true_typeids = oid_array;
 
     /*
@@ -1064,8 +1108,10 @@ func_get_detail(funcname, nargs, oid_array, funcid, rettype,
 					     &current_function_typeids);
 		if (ncandidates == 1) {
 		    *true_typeids = current_function_typeids->args;
-		    ftup = SearchSysCacheTuple(PRONAME, funcname, nargs,
-					       *true_typeids, 0);
+		    ftup = SearchSysCacheTuple(PRONAME, (char *) funcname,
+					       (char *) Int32GetDatum(nargs),
+					       (char *) *true_typeids,
+					       (char *) NULL);
 		    Assert(HeapTupleIsValid(ftup));
 		}
 		else if (ncandidates > 1) {
@@ -1081,8 +1127,10 @@ func_get_detail(funcname, nargs, oid_array, funcid, rettype,
 			func_error("func_get_detail", funcname, nargs, oid_array);
 		    }
 		    else {
-			ftup = SearchSysCacheTuple(PRONAME, funcname, nargs,
-						   *true_typeids, 0);
+			ftup = SearchSysCacheTuple(PRONAME, (char *) funcname,
+						   (char *) Int32GetDatum(nargs),
+						   (char *) *true_typeids,
+						   (char *) NULL);
 			Assert(HeapTupleIsValid(ftup));
 		    }
 		}
@@ -1334,7 +1382,10 @@ funcid_get_funcargtypes ( funcid )
     HeapTuple func_tuple = NULL;
     ObjectId *oid_array = NULL;
     struct proc *foo;
-    func_tuple = SearchSysCacheTuple(PROOID,funcid,0,0,0);
+    func_tuple = SearchSysCacheTuple(PROOID,
+				     (char *) ObjectIdGetDatum(funcid),
+				     (char *) NULL, (char *) NULL,
+				     (char *) NULL);
 
     if ( !HeapTupleIsValid ( func_tuple )) 
 	elog (WARN, "function %d does not exist", funcid);
@@ -1352,8 +1403,10 @@ typeid_get_retinfunc(type_id)
         HeapTuple     typeTuple;
         TypeTupleForm   type;
         OID             infunc;
-        typeTuple = SearchSysCacheTuple(TYPOID, (char *) type_id,
-                  (char *) NULL, (char *) NULL, (char *) NULL);
+        typeTuple = SearchSysCacheTuple(TYPOID,
+					(char *) ObjectIdGetDatum(type_id),
+					(char *) NULL, (char *) NULL,
+					(char *) NULL);
 	if ( !HeapTupleIsValid ( typeTuple ))
 	    elog(WARN,
 		 "typeid_get_retinfunc: Invalid type - oid = %d",
@@ -1371,8 +1424,10 @@ typeid_get_relid(type_id)
         HeapTuple     typeTuple;
         TypeTupleForm   type;
         OID             infunc;
-        typeTuple = SearchSysCacheTuple(TYPOID, (char *) type_id,
-                  (char *) NULL, (char *) NULL, (char *) NULL);
+        typeTuple = SearchSysCacheTuple(TYPOID,
+					(char *) ObjectIdGetDatum(type_id),
+					(char *) NULL, (char *) NULL,
+					(char *) NULL);
 	if ( !HeapTupleIsValid ( typeTuple ))
 	    elog(WARN, "typeid_get_relid: Invalid type - oid = %d ", type_id);
 
@@ -1399,7 +1454,11 @@ OID type_id;
     HeapTuple     typeTuple;
     TypeTupleForm   type;
 
-	if (!(typeTuple = SearchSysCacheTuple(TYPOID, type_id, NULL, NULL, NULL))) {
+	if (!(typeTuple = SearchSysCacheTuple(TYPOID,
+					      (char *) ObjectIdGetDatum(type_id),
+					      (char *) NULL,
+					      (char *) NULL,
+					      (char *) NULL))) {
 		elog (WARN , "type id lookup of %d failed", type_id);
 	}
     type = (TypeTupleForm) GETSTRUCT(typeTuple);
@@ -1416,7 +1475,9 @@ char *typename;
     TypeTupleForm   type;
 
 
-    if (!(typeTuple = SearchSysCacheTuple(TYPNAME, typename))) {
+    if (!(typeTuple = SearchSysCacheTuple(TYPNAME, (char *) typename,
+					  (char *) NULL, (char *) NULL,
+					  (char *) NULL))) {
         elog (WARN , "type name lookup of %s failed", typename);
     }
     type = (TypeTupleForm) GETSTRUCT(typeTuple);
@@ -1436,19 +1497,21 @@ char *op;
 int arg1, arg2;
 
 {
-	Type tp, get_id_type();
-	char p1[16], p2[16];
+	Type tp;
+	NameData p1, p2;
 
 	tp = get_id_type(arg1);
-	strncpy(p1, tname(tp), 16);
+	(void) namecpy(&p1, tname(tp));
 
 	tp = get_id_type(arg2);
-	strncpy(p2, tname(tp), 16);
+	(void) namecpy(&p2, tname(tp));
 
-	elog(NOTICE, "there is no operator %s for types %s and %s", op, p1, p2);
+	elog(NOTICE, "there is no operator %s for types %.*s and %.*s",
+	     op, NAMEDATALEN, &p1, NAMEDATALEN, &p2);
 	elog(NOTICE, "You will either have to retype this query using an");
 	elog(NOTICE, "explicit cast, or you will have to define the operator");
-	elog(WARN, "%s for %s and %s using DEFINE OPERATOR", op, p1, p2);
+	elog(WARN, "%s for %.*s and %.*s using DEFINE OPERATOR", op,
+	     NAMEDATALEN, &p1, NAMEDATALEN, &p2);
 }
 
 /*
@@ -1464,7 +1527,7 @@ int nargs;
 int *argtypes;
 {	Type get_id_type();
 	char *typname;
-	char p[(16+2)*8], *ptr;
+	char p[(NAMEDATALEN+2)*MAXFMGRARGS], *ptr;
 	int i;
 
 	ptr = p;
@@ -1475,8 +1538,9 @@ int *argtypes;
 		    *ptr++ = ' ';
 	      }
 	      if (argtypes[i] != 0) {
-		    strncpy(ptr, tname(get_id_type(argtypes[i])), 16);
-		    *(ptr + 16) = '\0';
+		  (void) strncpy(ptr, tname(get_id_type(argtypes[i])),
+				 NAMEDATALEN);
+		  *(ptr + NAMEDATALEN) = '\0';
 	      }
 	      else
 		    strcpy(ptr, "any");
