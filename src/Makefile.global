@@ -13,13 +13,19 @@
 # below simply by altering your private copy of this Makefile
 # in the "obj" directory.
 #
-# Note: if you change any of these defines you should 
+# Note: if you change any of these defines you probably have to 
 #
 #	bmake clean; bmake
 #
-# since no dependecies are created for these.
+# since no dependecies are created for these. (of course you can 
+# be crafty and check what files really depend on them and just remake
+# those).
 #
 
+#
+# Remember again, the following values may be overridden in the
+# obj/Makefile.global in this directory.
+#
 POSTGRESDIR=	/private/devel/postgres
 DATADIR=	${POSTGRESDIR}/data
 PORTNAME=	ultrix4
