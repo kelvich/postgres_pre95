@@ -103,20 +103,59 @@ which is typically four bytes, may be passed by value.
 .lp
 For new base types, a user can define operators, functions and aggregates
 using the appropriate facilities described in this section.
-.uh EXAMPLE
+.uh "ARRAY TYPES"
+.lp
+Two generalized builtin functions,
+.b array_in
+and
+.b array_out
+exist for quick creation of variable length array types.  These functions
+operate on any existing Postgres type.
+.lp
+.uh "LARGE OBJECT TYPES"
+A "regular" Postgres type can only be 8K bytes in length.  If you need
+a larger type, then you will want to create a Large Object type.  The
+interface for these types is discussed at length in Section 7, the Large
+Object Backend Interface.  The length of all large object types is always
+.b variable
+meaning the internallength for large objects is always -1.
+.lp
+.uh EXAMPLES
 .lp
 .nf
-/* This command creates the box data type and then uses the type in a
-   relation definition */
+/*
+ * This command creates the box data type and then uses the type in a
+ * class definition
+ */
 
    define type box (internallength = 8,
  	input = my_procedure_1, output = my_procedure_2)
 
-   create MYBOXES (id = integer, description = box)
+   create MYBOXES (id = int4, description = box)
 
+/*
+ * This command creates a variable length array type with integer
+ * elements.
+ */
+ 
+   define type int4array
+   (input = array_in, output = array_out, internallength = -1, element = int4)
+
+   create MYARRAYS (id = int4, numbers = int4array)
+
+/*
+ * This command creates a large object type and uses it in a class
+ * definition.
+ */
+
+   define type bigobj
+   (input = lo_filein, output = lo_fileout, internallength = -1)
+
+   create BIG_OBJS (id = int4, obj = bigobj)
 
 .uh "SEE ALSO"
 .lp
 define C function(commands),
 define operator(commands),
-remove type(commands).
+remove type(commands),
+Large Object Backend Interface.
