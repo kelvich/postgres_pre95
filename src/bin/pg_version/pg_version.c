@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 int Noversion = 0;
+char *DataDir = (char *) NULL;
 
 main(argc, argv)
 
