@@ -35,6 +35,7 @@
  * ----------------
  */
 #include "tcop/tcopdebug.h"
+#include "tcop/slaves.h"
 
 #include "access/xact.h"
 #include "utils/log.h"
@@ -43,8 +44,7 @@
  *	parallel state variables
  * ----------------
  */
-bool    IsMaster;		/* true if this process is the master */
-int     SlaveId;		/* int representing the slave id */
+int     MyPid;			/* int representing the process id */
 
 int 	*MasterProcessIdP;	/* master backend process id */
 int 	*SlaveProcessIdsP;	/* array of slave backend process id's */
@@ -75,12 +75,12 @@ SendAbortSignals()
     if (IsMaster)
 	elog(DEBUG, "Master Backend sending abort signals");
     else
-	elog(DEBUG, "Slave Backend %d sending abort signals", SlaveId);
+	elog(DEBUG, "Slave Backend %d sending abort signals", MyPid);
 #endif TCOP_SLAVESYNCDEBUG    
 
     nslaves = GetNumberSlaveBackends();
     for (i=0; i<nslaves; i++)
-	if (i != SlaveId) {
+	if (i != MyPid) {
 	    p = SlaveProcessIdsP[i];
 	    if (kill(p, SIGHUP) != 0) {
 		fprintf(stderr, "signaling slave %d (pid %d): ", i, p);
@@ -111,7 +111,7 @@ int	SlaveWarnings = 0;
 void
 SlaveRestart()
 {
-    SLAVE1_elog(DEBUG, "Slave Backend %d *** SlaveRestart ***", SlaveId);
+    SLAVE1_elog(DEBUG, "Slave Backend %d *** SlaveRestart ***", MyPid);
 
     longjmp(SlaveRestartPoint, 1);
 }
@@ -194,15 +194,15 @@ SlaveBackendsAbort()
 	 * ----------------
 	 */
 	SLAVE1_elog(DEBUG, "Slave Backend %d waiting to abort..",
-		    SlaveId);
+		    MyPid);
 	P_Abort();
 
 	SLAVE1_elog(DEBUG, "Slave Backend %d processing abort..",
-		    SlaveId);
+		    MyPid);
 	SlaveAbortTransaction();
 
 	SLAVE1_elog(DEBUG, "Slave Backend %d abort finished, signaling..",
-		    SlaveId);
+		    MyPid);
 	
 	V_Abort();
 	V_Finished();
@@ -227,12 +227,12 @@ SlaveMain()
     if (setjmp(SlaveRestartPoint) != 0) {
 	SlaveWarnings++;
 	SLAVE1_elog(DEBUG, "Slave Backend %d SlaveBackendsAbort()",
-		    SlaveId);
+		    MyPid);
 	
 	SlaveBackendsAbort();
 	
 	SLAVE1_elog(DEBUG, "Slave Backend %d SlaveBackendsAbort() done",
-		    SlaveId);
+		    MyPid);
     }	
 
     signal(SIGHUP, SlaveRestart);
@@ -241,7 +241,7 @@ SlaveMain()
      *	POSTGRES slave processing loop begins here
      * ----------------
      */
-    SLAVE1_elog(DEBUG, "Slave Backend %d entering slave loop...", SlaveId);
+    SLAVE1_elog(DEBUG, "Slave Backend %d entering slave loop...", MyPid);
     
     for(;;) {
 	/* ----------------
@@ -258,33 +258,33 @@ SlaveMain()
 	 *  until signaled by the master.
 	 * ----------------
 	 */
-	SLAVE1_elog(DEBUG, "Slave Backend %d waiting...", SlaveId);
+	SLAVE1_elog(DEBUG, "Slave Backend %d waiting...", MyPid);
 	
-	P_Start(SlaveId);
+	P_Start(MyPid);
 	
-	SLAVE1_elog(DEBUG, "Slave Backend %d starting task.", SlaveId);
+	SLAVE1_elog(DEBUG, "Slave Backend %d starting task.", MyPid);
 
 	/* ----------------
 	 *  get the query descriptor to execute.
 	 * ----------------
 	 */
-	queryDesc = (List) SlaveQueryDescsP[SlaveId];
+	queryDesc = (List) SlaveQueryDescsP[MyPid];
 
 #if 0
 	/* ----------------
 	 *	for now, just test synchronization.
 	 * ----------------
 	 */
-	srandom(SlaveId);
+	srandom(MyPid);
 	{
 	    int sleeptime = 5 + (random() & 017);
 	    
 	    elog(DEBUG, "Slave Backend %d executing (ETA:%d)",
-		 SlaveId, sleeptime);
+		 MyPid, sleeptime);
 	    
 	    sleep(sleeptime);
 	    
-	    elog(DEBUG, "Slave Backend %d finished", SlaveId);
+	    elog(DEBUG, "Slave Backend %d finished", MyPid);
 	}
 #endif	
 #if 0
@@ -320,7 +320,7 @@ SlaveMain()
 	 *  should bring the finished count to 1;
 	 * ----------------
 	 */
-	SLAVE1_elog(DEBUG, "Slave Backend %d task complete.", SlaveId);
+	SLAVE1_elog(DEBUG, "Slave Backend %d task complete.", MyPid);
 	V_Finished();
     }
 }
@@ -409,19 +409,17 @@ SlaveBackendsInit()
      *	fork several slave processes and save the process id's
      * ----------------
      */
-    IsMaster = true;
-    SlaveId = -1;
+    MyPid = 0;
     
-    for (i=0; i<nslaves; i++)
+    for (i=1; i<nslaves; i++)
 	if (IsMaster) {
 	    if ((p = fork()) != 0) {
 		SlaveProcessIdsP[i] = p;
 		SlaveQueryDescsP[i] = NULL;
 	    } else {
-		IsMaster = false;
-		SlaveId = i;
+		MyPid = i;
 		
-		SLAVE1_elog(DEBUG, "Slave Backend %d alive!", SlaveId);
+		SLAVE1_elog(DEBUG, "Slave Backend %d alive!", MyPid);
 	    }
 	}
     
