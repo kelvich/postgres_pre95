@@ -118,7 +118,7 @@ bool Typecast_ok = true;
 %token   	INHERITANCE VERSION CURRENT NEW THEN DO INSTEAD VIEW
 		REWRITE P_TUPLE TYPECAST P_FUNCTION C_FUNCTION C_FN
 		POSTQUEL RELATION RETURNS INTOTEMP LOAD CREATEDB DESTROYDB
-		STDIN STDOUT
+		STDIN STDOUT /* ron */ ARRAY
 
 /* precedence */
 %nonassoc Op
@@ -1630,11 +1630,11 @@ a_expr:
 			
 		}
 	| AexprConst		
-	| attr '[' Iconst ']'
+	| attr '[' Iconst ']' optional_indirection /* ron */
 		{ 
 		     $$ = (List)make_array_ref_var ( CString(CAR($1)),
 						    CString(CADR($1)),
-						    CInteger($3));
+						    CInteger($3), $4);
 		}
 	| spec  { Typecast_ok = false; }
 	| '-' a_expr %prec UMINUS
@@ -1681,7 +1681,19 @@ a_expr:
 			extern List ParseFunc();
 			$$ = ParseFunc ( CString ( $1 ), $3 ); 
 			Typecast_ok = false; }
+/* ron */
+	|  ARRAY TYPECAST Typename
+               {
+                        extern List ParseArrayList();
+                        $$ = ParseArrayList ( $1, $3 );  
+			Typecast_ok = false; }
 	;
+/* ron */
+optional_indirection:
+	|  '[' Iconst ']'
+		{ $$ = $2;}
+	|  optional_indirection '[' Iconst ']'
+		{ $$ = lispCons($1, $3);}
 
 expr_list:
 	|  a_expr				{ ELEMENT ; }
