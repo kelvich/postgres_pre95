@@ -184,7 +184,11 @@ add_clause_to_rels(clause)
 	set_mergesortorder(clauseinfo,(MergeOrder)NULL);
 	set_hashjoinoperator(clauseinfo,(ObjectId)0);
 	
-	if(1 == length(relids)) {
+	/*
+	 * XXX If we have a funtion treat it as a restriction, really
+	 *     need a true selectivity function.
+	 */
+	if((1 == length(relids)) || IsA(CAR(clause),Func)) {
 	    
 	    /* There is only one relation participating in 'clause', */
 	    /* so 'clause' must be a restriction clause. */
