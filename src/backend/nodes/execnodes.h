@@ -688,7 +688,8 @@ class (ParallelState) public (BaseNode) {
  *      currentScanDesc    current scan descriptor for scan
  *      ruleInfo           information needed by the rule manager.
  *      ScanTupleSlot      pointer to slot in tuple table holding scan tuple
- *      ViewTupleSlot       ... holding the view tuple from the rmgr.
+ *      RawTupleSlot	   used by rule manager to hold original tuple
+ *			     before any rules are applied.
  *
  *   CommonState information
  *
@@ -711,7 +712,7 @@ class (CommonScanState) public (CommonState) {
       HeapScanDesc      css_currentScanDesc; \
       ScanStateRuleInfo css_ruleInfo; \
       Pointer           css_ScanTupleSlot; \
-      Pointer           css_ViewTupleSlot
+      Pointer           css_RawTupleSlot
   /* private: */
       CommonScanStateDefs;
   /* public: */
