@@ -15,6 +15,7 @@ static char *ylib_c = "$Header$";
 #include "parse_query.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
+#include "parse.h"
 
 LispValue parsetree;
 
@@ -296,4 +297,102 @@ int4varout ( an_array )
 	*--walk = '\0';
     }
     return(output_string);
+}
+
+#define ADD_TO_RT(rt_entry)     p_rtable = nappend1(p_rtable,rt_entry) 
+List
+ParseFunc ( funcname , fargs )
+     char *funcname;
+     List fargs;
+{
+    extern Func MakeFunc();
+    extern OID funcname_get_rettype();
+    extern OID funcname_get_funcid();
+    OID rettype = (OID)0;
+    OID funcid = (OID)0;
+    Func funcnode = (Func)NULL;
+    LispValue i = LispNil;
+    List first_arg_type = NULL;
+    char *relname = NULL;
+    extern List p_rtable;
+
+    first_arg_type = CAR(CAR(fargs));
+    relname = CString(CDR(CAR(fargs)));
+
+    if ( CAtom(first_arg_type) == RELATION ) {
+	Var newvar = NULL;
+
+	/* this is really a method */
+
+	if( RangeTablePosn ( relname ,LispNil ) == 0 )
+	  ADD_TO_RT( MakeRangeTableEntry (relname,
+					  LispNil, 
+					  relname ));
+
+	/* in the future, may have other parameters, but for now
+	   this will work */
+	return ( make_var ( relname, funcname ));
+
+    } else {
+
+	/* is really a function */
+
+	funcid = funcname_get_funcid ( funcname );
+	rettype = funcname_get_rettype ( funcname );
+	
+	if ( funcid != (OID)0 && rettype != (OID)0 ) {
+	    funcnode = MakeFunc ( funcid , rettype , false );
+	} else
+	  elog (WARN,"function %s does not exist",funcname);
+	
+	foreach ( i , fargs ) {
+	    CAR(i) = CDR(CAR(i));
+	}
+
+	return ( lispCons (lispInteger(rettype) ,
+			   lispCons ( funcnode , fargs )));
+    } /* was a function */
+	    
+}
+
+/*
+ * RemoveUnusedRangeTableEntries
+ * - removes relations from the rangetable that are no longer
+ *   useful.  This helps in preventing the planner from generating
+ *   extra joins that are not needed.
+ */
+List
+RemoveUnusedRangeTableEntries ( parsetree )
+     List parsetree;
+{
+
+}
+
+/* 
+ * FlattenRelationList
+ *
+ * at this point, time-qualified relation/relation-lists
+ * have a lispInteger in the front,
+ * inheritance relations have a lispString("*")
+ * in front
+ */ 
+List
+FlattenRelationList ( rel_list )
+     List rel_list;
+{
+    List temp = NULL;
+    List possible_rtentry = NULL;
+
+    foreach ( temp, rel_list ) {
+	possible_rtentry = CAR(temp);
+	
+	if ( consp ( possible_rtentry ) ) {
+
+	    /* can be any one of union, inheritance or timerange queries */
+	    
+	} else {
+	    /* normal entry */
+	    
+	}
+    }
 }
