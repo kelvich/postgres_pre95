@@ -1848,7 +1848,9 @@ ObjectId type;
 	    token = lsptok(NULL, &tokenLength);
 	    s[i] = (char) atoi(token);
 	}
-    } else {
+    } else if (length <= 0) {
+	s = NULL;
+    } else if (length >= 1) {
 	s = palloc(length);
 	Assert( s!=NULL );
 	for (i=0; i<length; i++) {
