@@ -32,6 +32,7 @@ typedef struct {
     int		NumProcs;	/* this + Array_* gov't by TasInit*/
     int		Array_Pid[NUMPROCS];
     int		Array_Lck[NUMPROCS];
+    char	Monitor[NUMPROCS];
 } TASStructure;
 
 #endif
