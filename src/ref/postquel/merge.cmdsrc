@@ -1,7 +1,7 @@
 .\" This is -*-nroff-*-
 .\" XXX standard disclaimer belongs here....
 .\" $Header$
-.TH MERGE COMMANDS 01/23/93
+.TH MERGE COMMANDS 02/12/94
 .XA 2 Merge
 .SH NAME
 merge \(em merge two classes
@@ -26,14 +26,13 @@ is also a version, then this operation combines two differentially
 encoded offsets together into a single one.  In either case any
 children of
 .IR classname1
-becomes children of
+become children of
 .IR classname2 .
 .PP
-It is disallowed for a version class to be merged into its parent
-class when the parent class is also the parent of another version
-class.
+A version class may not be merged into its parent class when the 
+parent class is also the parent of another version class.
 .PP
-Moreover, merging in the reverse direction is also allowed.
+However, merging in the reverse direction is allowed.
 Specifically, merging the parent,
 .IR classname1 ,
 with a version,
