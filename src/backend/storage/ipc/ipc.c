@@ -38,11 +38,7 @@
 int UsePrivateMemory = 0;
 
 #ifdef PARALLELDEBUG
-#include <usclkc.h>
-usclk_t ExclusiveLockTime;
-usclk_t SharedLockTime;
-int ExclusiveLockCount;
-int SharedLockCount;
+#include "executor/paralleldebug.h"
 #endif
 
 /* ----------------------------------------------------------------
@@ -806,9 +802,7 @@ SemId lockid;
 {
     SLock *slckP;
 #ifdef PARALLELDEBUG
-    usclk_t st;
-    st = getusclk();
-    SharedLockCount++;
+    BeginParallelDebugInfo(PDI_SHAREDLOCK);
 #endif
     slckP = &(SLockArray[lockid]);
 #ifdef LOCKDEBUG
@@ -829,7 +823,7 @@ sh_try_again:
        PRINT_LOCK(slckP);
 #endif
 #ifdef PARALLELDEBUG
-       SharedLockTime += (getusclk() - st);
+       EndParallelDebugInfo(PDI_SHAREDLOCK);
 #endif
        return;
     case SHAREDLOCK:
@@ -840,7 +834,7 @@ sh_try_again:
        PRINT_LOCK(slckP);
 #endif
 #ifdef PARALLELDEBUG
-       SharedLockTime += (getusclk() - st);
+       EndParallelDebugInfo(PDI_SHAREDLOCK);
 #endif
        return;
     case EXCLUSIVELOCK:
@@ -884,9 +878,7 @@ SemId lockid;
 {
     SLock *slckP;
 #ifdef PARALLELDEBUG
-    usclk_t st;
-    st = getusclk();
-    ExclusiveLockCount++;
+    BeginParallelDebugInfo(PDI_EXCLUSIVELOCK);
 #endif
     slckP = &(SLockArray[lockid]);
 #ifdef LOCKDEBUG
@@ -907,7 +899,7 @@ ex_try_again:
        PRINT_LOCK(slckP);
 #endif
 #ifdef PARALLELDEBUG
-	ExclusiveLockTime += (getusclk() - st);
+	EndParallelDebugInfo(PDI_EXCLUSIVELOCK);
 #endif
 	return;
     case SHAREDLOCK:

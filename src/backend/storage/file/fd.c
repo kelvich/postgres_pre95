@@ -46,9 +46,7 @@ extern errno;
 #include "machine.h"	/* for BLCKSZ */
 
 #ifdef PARALLELDEBUG
-#include <usclkc.h>
-int FileReadCount;
-usclk_t FileReadTime;
+#include "executor/paralleldebug.h"
 #endif
 
 RcsId("$Header$");
@@ -837,15 +835,13 @@ Amount amount;
    Sfd *sfdP;
    Amount ret;
 #ifdef PARALLELDEBUG
-   usclk_t st;
-   st = getusclk();
-   FileReadCount++;
+   BeginParallelDebugInfo(PDI_FILEREAD);
 #endif
    sfdP = &(SfdCache[file]);
    ret = fileRead(sfdP->vfd[sfdP->curStripe], buffer, amount);
    sfdP->curStripe = (sfdP->curStripe + 1) % NStriping;
 #ifdef PARALLELDEBUG
-   FileReadTime += (getusclk() - st);
+   EndParallelDebugInfo(PDI_FILEREAD);
 #endif
    return(ret);
 }
@@ -875,6 +871,9 @@ int whence;
     BlockNumber bnum;
     int nf;
     Sfd *sfdP;
+#ifdef PARALLELDEBUG
+    BeginParallelDebugInfo(PDI_FILESEEK);
+#endif
 
     sfdP = &(SfdCache[file]);
 
@@ -886,6 +885,9 @@ int whence;
         bnum = blknum / NStriping;
         sfdP->curStripe = nf = blknum % NStriping;
 	fileSeek(sfdP->vfd[nf], bnum * BLCKSZ + blkoff, whence);
+#ifdef PARALLELDEBUG
+	EndParallelDebugInfo(PDI_FILESEEK);
+#endif
 	return offset;
     case L_INCR:
 	sfdP->seekPos += offset;
@@ -894,6 +896,9 @@ int whence;
         bnum = blknum / NStriping;
         sfdP->curStripe = nf = blknum % NStriping;
 	fileSeek(sfdP->vfd[nf], bnum * BLCKSZ + blkoff, whence);
+#ifdef PARALLELDEBUG
+	EndParallelDebugInfo(PDI_FILESEEK);
+#endif
 	return sfdP->seekPos;
     case L_XTND:
 	{   int l=0, h=NStriping-1, m;
@@ -901,6 +906,9 @@ int whence;
 	    if (h == 0) {
 	        sfdP->curStripe = 0;
                 sfdP->seekPos = fileSeek(sfdP->vfd[0], offset, whence);
+#ifdef PARALLELDEBUG
+		EndParallelDebugInfo(PDI_FILESEEK);
+#endif
 	        return sfdP->seekPos;
 	      }
             if ((lsize = fileSeek(sfdP->vfd[l], 0l, L_XTND)) < 0) {
@@ -927,6 +935,9 @@ int whence;
 	    sfdP->curStripe = nf;
             sfdP->seekPos = hsize * NStriping + nf * BLCKSZ + offset;
 	    fileSeek(sfdP->vfd[nf], offset, whence);
+#ifdef PARALLELDEBUG
+	EndParallelDebugInfo(PDI_FILESEEK);
+#endif
 	    return sfdP->seekPos;
 	}
     }
