@@ -753,6 +753,7 @@ InsertOneTuple(objectid)
     ObjectId  objectid;
 {
     HeapTuple tuple;
+    int i;
 
     if (DebugMode) {
 	printf("InsertOneTuple oid %d, %d attrs\n", objectid, numattr);
@@ -769,6 +770,11 @@ InsertOneTuple(objectid)
 	printf("End InsertOneTuple\n", objectid);
 	fflush(stdout);
     }
+    /*
+     * Reset blanks for next tuple
+     */
+    for (i = 0; i<numattr; i++)
+	Blanks[i] = ' ';
 }
 
 /* ----------------
@@ -827,6 +833,23 @@ InsertOneValue(objectid, value, i)
 	puts("End InsertValue");
 	fflush(stdout);
     }
+}
+
+/* ----------------
+ *	InsertOneNull
+ * ----------------
+ */
+void
+InsertOneNull(i)
+    int	      i;
+{
+    if (DebugMode)
+	printf("Inserting null\n");
+    if (i < 0 || i >= MAXATTR) {
+	elog(FATAL, "i out of range (too many attrs): %d\n", i);
+    }
+    values[i] = (char *)NULL;
+    Blanks[i] = 'n';
 }
 
 /* ----------------
