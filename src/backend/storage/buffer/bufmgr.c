@@ -715,7 +715,7 @@ IPCKey key;
 void
 PrintBufferUsage()
 {
-	fprintf(stderr, "\t%d Disk Read, %d Disk Write, Buffer Hit Rate = %.2f%%\n", 
+	fprintf(stderr, "\t%d blocks read, %d blocks written, buffer hit rate = %.2f%%\n", 
 		ReadBufferCount - BufferHitCount,
 		BufferFlushCount,
 	       (float)BufferHitCount * 100.0/ReadBufferCount);
