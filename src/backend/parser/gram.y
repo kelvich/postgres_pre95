@@ -127,7 +127,7 @@ bool is_postquel_function = false;
 		REWRITE P_TUPLE TYPECAST P_FUNCTION C_FUNCTION C_FN
 		POSTQUEL RELATION RETURNS INTOTEMP LOAD CREATEDB DESTROYDB
 		STDIN STDOUT VACUUM PARALLEL AGGREGATE NOTIFY LISTEN 
-                IPORTAL
+                IPORTAL ISNULL NOTNULL
                 
 
 /* precedence */
@@ -136,6 +136,8 @@ bool is_postquel_function = false;
 %left	OR
 %left	AND
 %right	NOT
+%nonassoc NOTNULL
+%nonassoc ISNULL
 %left  	'+' '-'
 %left  	'*' '/'
 %left	'|'		/* this is the relation union op, not logical or */
@@ -1788,28 +1790,28 @@ a_expr:
 		}
 	| spec  { Typecast_ok = false; }
 	| '-' a_expr %prec UMINUS
-  		{ $$ = make_op(lispString("-"),$2, LispNil);
+		  { $$ = make_op(lispString("-"), LispNil, $2, 'l');
 		  Typecast_ok = false; }
 	| a_expr '+' a_expr
-		{ $$ = make_op (lispString("+"), $1, $3 ) ;
+		{ $$ = make_op (lispString("+"), $1, $3, 'b' ) ;
 		  Typecast_ok = false; }
 	| a_expr '-' a_expr
-		{ $$ = make_op (lispString("-"), $1, $3 ) ;
+		{ $$ = make_op (lispString("-"), $1, $3, 'b' ) ;
 		  Typecast_ok = false; }
 	| a_expr '/' a_expr
-		{ $$ = make_op (lispString("/"), $1, $3 ) ;
+		{ $$ = make_op (lispString("/"), $1, $3, 'b' ) ;
 		  Typecast_ok = false; }
 	| a_expr '*' a_expr
-		{ $$ = make_op (lispString("*"), $1, $3 ) ;
+		{ $$ = make_op (lispString("*"), $1, $3, 'b' ) ;
 		  Typecast_ok = false; }
 	| a_expr '<' a_expr
-		{ $$ = make_op (lispString("<"), $1, $3 ) ;
+		{ $$ = make_op (lispString("<"), $1, $3, 'b' ) ;
 		  Typecast_ok = false; }
 	| a_expr '>' a_expr
-		{ $$ = make_op (lispString(">"), $1, $3 ) ;
+		{ $$ = make_op (lispString(">"), $1, $3, 'b' ) ;
 		  Typecast_ok = false; }
 	| a_expr '=' a_expr
-		{ $$ = make_op (lispString("="), $1, $3 ) ;
+		{ $$ = make_op (lispString("="), $1, $3, 'b' ) ;
 		  Typecast_ok = false; }
 	| AexprConst TYPECAST Typename
 		{ 
@@ -1821,7 +1823,7 @@ a_expr:
 		{$$ = $2;}
 	/* XXX Or other stuff.. */
 	| a_expr Op a_expr
-		{ $$ = make_op ( $2, $1 , $3 );
+		{ $$ = make_op ( $2, $1 , $3, 'b' );
 		  Typecast_ok = false; }
 	| relation_name
 		{ $$ = lispCons ( KW(relation), $1 );
@@ -1838,6 +1840,20 @@ a_expr:
 			extern List ParseFunc();
 			$$ = ParseFunc ( CString ( $1 ), $3 ); 
 			Typecast_ok = false; }
+	 | a_expr ISNULL
+			 {
+				 extern List ParseFunc();
+				 yyval =  nappend1( LispNil, $1);
+				 $$ = ParseFunc( "NullValue", yyval );
+				 Typecast_ok = false; }
+	| a_expr NOTNULL
+		{
+			extern List ParseFunc();
+			 yyval =  nappend1( LispNil, $1);
+			 $$ = ParseFunc( "NonNullValue", yyval );
+			 Typecast_ok = false; }
+
+
 	;
 
 optional_indirection:
