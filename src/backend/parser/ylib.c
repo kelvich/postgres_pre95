@@ -46,7 +46,9 @@ parser(str, l)
 	bcopy(str,TheString,strlen(str)+1);
     }
 
-    ExcBegin(); {
+    /* ExcBegin(); */
+
+    {
       parser_init();
       yyresult = yyparse();
       
@@ -68,7 +70,7 @@ parser(str, l)
       CDR(l) = CDR(parsetree);
     }
 
-    ExcExcept(); {
+/*    ExcExcept(); {
 	if (exception.id == &SystemError) {
 	    elog(FATAL, exception.message);
 	} else if (exception.id == &InternalError) {
@@ -328,8 +330,6 @@ ParseFunc ( funcname , fargs )
 
     first_arg_type = CAR(CAR(fargs));
 
-#ifdef RELATIONAL_FN
-
     if ( CAtom(first_arg_type) == RELATION ) {
 	Var newvar = NULL;
 
@@ -341,12 +341,21 @@ ParseFunc ( funcname , fargs )
 					  LispNil, 
 					  relname ));
 
-	/* in the future, may have other parameters, but for now
-	   this will work */
-	return ( make_var ( relname, funcname ));
+	funcid = funcname_get_funcid ( funcname );
+	rettype = funcname_get_rettype ( funcname );
+	
+	if ( funcid != (OID)0 && rettype != (OID)0 ) {
+	    funcnode = MakeFunc ( funcid , rettype , false );
+	} else
+	  elog (WARN,"function %s does not exist",funcname);
+
+	CDR(CAR(fargs)) = make_var ( relname , funcname );
+
+	foreach ( i , fargs ) {
+	    CAR(i) = CDR(CAR(i));
+	}
 
     } else {
-#endif
 	/* is really a function */
 
 	funcid = funcname_get_funcid ( funcname );
@@ -363,9 +372,7 @@ ParseFunc ( funcname , fargs )
 
 	return ( lispCons (lispInteger(rettype) ,
 			   lispCons ( funcnode , fargs )));
-#ifdef RELATIONAL_FN
     } /* was a function */
-#endif
 	    
 }
 
@@ -410,3 +417,46 @@ FlattenRelationList ( rel_list )
 	}
     }
 }
+List
+MakeFromClause ( from_list, base_rel )
+     List from_list;
+     LispValue base_rel;
+{
+    List i = NULL;
+    List j = NULL;
+    List flags = lispCons(lispInteger(0),LispNil);
+    /* from_list will be a list of strings */
+    /* base_rel will be a wierd assortment of things, 
+       including timerange, inheritance and union relations */
+
+    elog(NOTICE, "the pseudo relations are:");
+    lispDisplay ( from_list , 0 );
+    elog(NOTICE, "the real relations are:");
+    lispDisplay ( base_rel , 0 );
+
+    foreach ( i , from_list ) {
+        List temp = CAR(i);
+    	if ( base_rel->type == PGLISP_STR ) {
+	    /* Just a normal relation */
+	    ADD_TO_RT(MakeRangeTableEntry( CString(base_rel), LispNil, 
+					   CString(temp)));
+    	} else if ( base_rel->type == PGLISP_DTPR ) {
+	        List first = CAR(base_rel);
+	        if ( first->type == PGLISP_STR ) {
+		    if ( !strcmp(CString(first),"*") ) {
+		        /* inheritance query */
+		        flags = nappend1(flags, lispAtom("inherits"));
+		    } else {
+			elog(WARN,"unioned relations not allowed in from");
+		    }
+	        } 
+                if ( first->type == PGLISP_INT ) {
+		    /* timerange query */
+		    CAR(flags) = first;
+	        } 
+ 	    ADD_TO_RT(MakeRangeTableEntry( CString(CDR(base_rel)),flags,
+					   CString(temp) ));
+    	}
+    }
+}
+
