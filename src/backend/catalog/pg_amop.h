@@ -185,6 +185,36 @@ DATA(insert OID = 0 (  403 429 634 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  403 429 633 5 btreesel btreenpage ));
 
 /*
+ *  nbtree char2_ops
+ */
+
+DATA(insert OID = 0 (  403 406 418 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 406 457 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 406 412 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 406 463 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 406 460 5 btreesel btreenpage ));
+
+/*
+ *  nbtree char4_ops
+ */
+
+DATA(insert OID = 0 (  403 407 419 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 407 458 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 407 413 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 407 464 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 407 461 5 btreesel btreenpage ));
+
+/*
+ *  nbtree char8_ops
+ */
+
+DATA(insert OID = 0 (  403 408 420 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 408 459 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 408 414 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 408 465 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  403 408 462 5 btreesel btreenpage ));
+
+/*
  *  nbtree char16_ops
  */
 
@@ -329,6 +359,36 @@ DATA(insert OID = 0 (  404 429 634 4 btreesel btreenpage ));
 DATA(insert OID = 0 (  404 429 633 5 btreesel btreenpage ));
 
 /*
+ *  nobtree char2_ops
+ */
+
+DATA(insert OID = 0 (  404 406 418 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 406 457 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 406 412 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 406 463 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 406 460 5 btreesel btreenpage ));
+
+/*
+ *  nobtree char4_ops
+ */
+
+DATA(insert OID = 0 (  404 407 419 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 407 458 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 407 413 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 407 464 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 407 461 5 btreesel btreenpage ));
+
+/*
+ *  nobtree char8_ops
+ */
+
+DATA(insert OID = 0 (  404 408 420 1 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 408 459 2 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 408 414 3 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 408 465 4 btreesel btreenpage ));
+DATA(insert OID = 0 (  404 408 462 5 btreesel btreenpage ));
+
+/*
  *  nobtree char16_ops
  */
 
@@ -386,6 +446,18 @@ DATA(insert OID = 0 (  405 428 620 1 hashsel hashnpage ));
  *  hash table char_ops
  */
 DATA(insert OID = 0 (  405 429 92 1 hashsel hashnpage ));
+/*
+ *  hash table char2_ops
+ */
+DATA(insert OID = 0 (  405 406 412 1 hashsel hashnpage ));
+/*
+ *  hash table char4_ops
+ */
+DATA(insert OID = 0 (  405 407 413 1 hashsel hashnpage ));
+/*
+ *  hash table char8_ops
+ */
+DATA(insert OID = 0 (  405 408 414 1 hashsel hashnpage ));
 /*
  *  hash table char16_ops
  */
