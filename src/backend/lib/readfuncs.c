@@ -902,6 +902,11 @@ _readArrayRef()
 	
 	local_node->refelemtype = (ObjectId) atoi(token);
 
+	token = lsptok(NULL, &length);    		/* eat :refattrlength */
+	token = lsptok(NULL, &length);    		/* get refattrlength */
+	
+	local_node->refattrlength = atoi(token);
+
 	token = lsptok(NULL, &length);    		/* eat :refelemlength */
 	token = lsptok(NULL, &length);    		/* get refelemlength */
 	
