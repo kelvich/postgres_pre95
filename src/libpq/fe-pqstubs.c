@@ -62,8 +62,12 @@ Pointer
 palloc(size)
     Size size;
 {
-    return
-	malloc(size);
+    Pointer p;
+
+    p = malloc(size);
+    bzero(p, size);
+
+    return (p);
 }
 
 void
