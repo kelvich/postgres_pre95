@@ -4,9 +4,10 @@
 # $Header$
 #
 
-CFLAGS+= -DUSE_POSIX_TIME -DNEED_ISINF
+CFLAGS+= -DUSE_POSIX_TIME -DNEED_ISINF -DNEED_RUSAGE
 
-LDADD+= -lsocket -lnsl -ll -ldl
+LDADD+= -ll -ldl
 
-SRCS+= port.c dynloader.c
+SRCS+= port.c dynloader.c tas.s
+
 HEADERS+= machine.h
