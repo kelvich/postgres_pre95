@@ -30,9 +30,12 @@ RcsId("$Header$");
 
 #include "catalog/catname.h"
 
-int Debugfile, Ttyfile;
-int Portfd;
-int Noversion = 0;
+int		Portfd;
+int		Noversion = 0;
+
+char		OutputFileName[MAXPGPATH] = "";
+
+char		*PG_username = (char *) NULL;
 
 BackendId	MyBackendId;
 BackendTag	MyBackendTag;
@@ -45,6 +48,5 @@ bool		TransactionInitWasProcessed = false;
 bool		IsUnderPostmaster = false;
 bool		IsPostmaster = false;
 
-/*struct        bcommon Ident;   moved to dlog (Obsolete 2/22/91 mer) */
-short		DebugLvl;
+short		DebugLvl = 0;
 
