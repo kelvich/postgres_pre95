@@ -1167,5 +1167,9 @@ generate_fjoin(tlist)
 	tempList = nappend1(fjoinNode, fjoinList);
 	newTlist = nappend1(newTlist, tempList);
     }
+    else if (nIters == 1)
+    {
+	nappend1(newTlist, fjoinList);
+    }
     return newTlist;
 }
