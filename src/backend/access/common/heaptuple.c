@@ -420,9 +420,24 @@ heap_getsysattr(tup, b, attnum)
     case AnchorItemPointerAttributeNumber:
 	elog(WARN, "heap_getsysattr: t_anchor does not exist!");
 	break;
+
+    /*
+     *  For tmin and tmax, we need to do some extra work.  These don't
+     *  get filled in until the vacuum cleaner runs (or we manage to flush
+     *  a page after setting the value correctly below).  If the vacuum
+     *  cleaner hasn't run yet, then the times stored in the tuple are
+     *  wrong, and we need to look up the commit time of the transaction.
+     *  We cache this value in the tuple to avoid doing the work more than
+     *  once.
+     */
+
     case MinAbsoluteTimeAttributeNumber:
+	if (tup->t_tmin == 0 && TransactionIdDidCommit(tup->t_xmin))
+		tup->t_tmin = TransactionIdGetCommitTime(tup->t_xmin);
 	return ((char *)tup->t_tmin);
     case MaxAbsoluteTimeAttributeNumber:
+	if (tup->t_tmax == 0 && TransactionIdDidCommit(tup->t_xmax))
+		tup->t_tmax = TransactionIdGetCommitTime(tup->t_xmax);
 	return ((char *)tup->t_tmax);
     case VersionTypeAttributeNumber:
 	return ((char *)tup->t_vtype);
