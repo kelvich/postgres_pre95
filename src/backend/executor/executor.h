@@ -337,6 +337,22 @@ typedef struct ExecAllocDebugData {
     SLNode 	Link;
 } ExecAllocDebugData;
 
+/* ----------------
+ *	DebugVariable is a structure holding a string
+ *	specifying the name of a debugging variable and
+ *	a pointer specifying the address of the object
+ *	holding the variable's value.  This is used only
+ *	in debug.c
+ * ----------------
+ */
+typedef struct DebugVariable {
+    String	debug_variable;
+    Pointer	debug_address;
+} DebugVariable;
+ 
+typedef DebugVariable *DebugVariablePtr;
+ 
+
 /* ----------------------------------------------------------------
  *	externs
  * ----------------------------------------------------------------
