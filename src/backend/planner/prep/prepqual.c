@@ -84,12 +84,6 @@ LispValue
 cnfify (qual)
      LispValue qual ;
 {
-/*
-    if (qual)
-      return(lispCons(qual,LispNil));
-    else
-      return(qual);
-*/
     LispValue newqual = LispNil;
 
     if ( consp (qual) ) {
@@ -126,9 +120,10 @@ pull_args (qual)
     return (LispNil);
   else 
     if (is_clause (qual)) 
-      make_clause (get_op (qual),
-		   pull_args (get_leftop (qual)),
-		   pull_args (get_rightop (qual)));
+      return(make_clause (get_op (qual),
+			  lispCons(pull_args (get_leftop (qual)),
+				   lispCons(pull_args (get_rightop (qual)),
+					    LispNil))));
 
     else 
       if (and_clause (qual)) {
@@ -228,8 +223,9 @@ find_nots (qual)
   else 
     if (is_clause (qual)) 
       return (make_clause (get_op (qual),
-			   find_nots (get_leftop (qual)),
-			   find_nots (get_rightop (qual))));
+			   lispCons(find_nots (get_leftop (qual)),
+				    lispCons(find_nots (get_rightop (qual)),
+					     LispNil))));
     else 
       if (and_clause (qual)) {
 	LispValue temp = LispNil;
@@ -271,7 +267,7 @@ LispValue
 push_nots (qual)
      LispValue qual ;
 {
-  if(null (qual)) 
+    if(null (qual)) 
     return (LispNil);
   else 
     /*    Negate an operator clause if possible: */
@@ -280,15 +276,17 @@ push_nots (qual)
     /*    down any farther). */
 
     if(is_clause (qual)) {
-      LispValue oper = get_op (qual);
-      ObjectId negator = get_negator (get_opno (oper));
-      if(negator &&  !zerop (negator)) 
-	return (make_clause (MakeOper (negator,
-					get_oprelationlevel (oper),
-					get_opresulttype (oper)),
-			     get_leftop (qual),get_rightop (qual)));
-      else 
-	return (make_notclause (qual));
+	LispValue oper = get_op (qual);
+	ObjectId negator = get_negator (get_opno (oper));
+	if(negator) 
+	  return (lispCons(MakeOper (negator,
+				     get_oprelationlevel (oper),
+				     get_opresulttype (oper)),
+			   lispCons(get_leftop (qual),
+				    lispCons(get_rightop (qual),
+					     LispNil))));
+	else 
+	  return (make_notclause (qual));
     }
     else 
       /*    Apply DeMorgan's Laws: */
@@ -351,8 +349,9 @@ normalize (qual)
   else 
     if (is_clause (qual)) 
       return (make_clause (get_op (qual),
-			   normalize (get_leftop (qual)),
-			   normalize (get_rightop (qual))));
+			   lispCons(normalize (get_leftop (qual)),
+				    lispCons(normalize (get_rightop (qual)),
+					     LispNil))));
     else 
       if (and_clause (qual)) {
 	LispValue temp = LispNil;
@@ -489,18 +488,18 @@ qualcleanup (qual)
      else 
        if (is_clause (qual)) 
 	 return (make_clause (get_op (qual),
-			      qualcleanup (get_leftop (qual)),
-			      qualcleanup (get_rightop (qual))));
+			      lispCons(qualcleanup (get_leftop (qual)),
+				       lispCons(qualcleanup(get_rightop(qual)),
+						LispNil))));
        else 
 	 if (and_clause (qual)) {
-	      /* XXX - let form, maybe incorrect */
 	      LispValue temp = LispNil;
 	      LispValue t_list = LispNil;
 	      LispValue new_and_args = LispNil;
 
 	      foreach(temp,get_andclauseargs(qual)) 
-		   t_list = nappend1(t_list,qualcleanup(CAR(temp)));
-	      new_and_args = remove_duplicates (t_list);
+		t_list = nappend1(t_list,qualcleanup(CAR(temp)));
+	      new_and_args = remove_duplicates (t_list,equal);
 
 	      if(length (new_and_args) > 1) 
 		return (make_andclause (new_and_args));
@@ -509,14 +508,13 @@ qualcleanup (qual)
 	 }
 	 else 
 	   if (or_clause (qual)) {
-		/* XXX - let form, maybe incorrect */
 		LispValue temp = LispNil;
 		LispValue t_list = LispNil;
 		LispValue new_or_args = LispNil;
 
 		foreach (temp,get_orclauseargs(qual)) 
 		  t_list = nappend1(t_list,qualcleanup(CAR(temp)));
-		new_or_args = remove_duplicates (t_list);
+		new_or_args = remove_duplicates (t_list,equal);
 
 		if(length (new_or_args) > 1) 
 		  return (make_orclause (new_or_args));
@@ -552,8 +550,9 @@ remove_ands (qual)
        return (LispNil);
      if (is_clause (qual)) 
        return (make_clause (get_op (qual),
-			    remove_ands (get_leftop (qual)),
-			    remove_ands (get_rightop (qual))));
+			    lispCons(remove_ands (get_leftop (qual)),
+				     lispCons(remove_ands(get_rightop(qual)),
+					      LispNil))));
      if (and_clause (qual)) {
 	 LispValue temp = LispNil;
 	 foreach (temp,get_andclauseargs(qual))

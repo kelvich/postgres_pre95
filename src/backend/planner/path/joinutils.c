@@ -74,32 +74,42 @@ match_pathkeys_joinkeys (pathkeys,joinkeys,joinclauses,which_subkey)
      LispValue matched_joinclauses = LispNil;
      LispValue pathkey = LispNil;
      LispValue t_list = LispNil;
+     LispValue i = LispNil;
+     int matched_joinkey_index = -1;
 
-     foreach (pathkey, pathkeys) {
-	  int matched_joinkey_index = 
-	    match_pathkey_joinkeys (pathkey,joinkeys,which_subkey);
-	  
-	  if(integerp (matched_joinkey_index) ) {
-	       LispValue xjoinkey = nth (matched_joinkey_index,joinkeys);
-	       LispValue joinclause = nth (matched_joinkey_index,joinclauses);
-	       push (xjoinkey,matched_joinkeys);
-	       push (joinclause,matched_joinclauses);
-	       joinkeys = remove (xjoinkey,joinkeys);
-		
-	  } 
-	  else {
-	       return (LispNil);
-	  } 
+     foreach (i, pathkeys) {
+	 pathkey = CAR(i);
+	 matched_joinkey_index = 
+	   match_pathkey_joinkeys (pathkey,joinkeys,which_subkey);
+	 
+	 if(matched_joinkey_index != -1 ) {
+	     LispValue xjoinkey = nth (matched_joinkey_index,joinkeys);
+	     LispValue joinclause = nth (matched_joinkey_index,joinclauses);
+
+	     /* XXX was "push" function */
+	     
+	     matched_joinkeys = nappend1(matched_joinkeys,xjoinkey);
+	     matched_joinkeys = nreverse(matched_joinkeys);
+
+	     matched_joinclauses = nappend1(matched_joinclauses,joinclause);
+	     matched_joinclauses = nreverse(matched_joinclauses);
+
+	     joinkeys = remove (xjoinkey,joinkeys);
+	     
+	 } 
+	 else {
+	     return (LispNil);
+	 } 
 		
      }
      if ( length (matched_joinkeys) == length (pathkeys) ) {
-	  t_list = lispCons (nreverse (matched_joinkeys),
-			     lispCons(nreverse (matched_joinclauses),
-				      LispNil));
+	 t_list = lispCons (nreverse (matched_joinkeys),
+			    lispCons(nreverse (matched_joinclauses),
+				     LispNil));
      } 
      return(t_list);
 
-}  /* function end  */
+ }  /* function end  */
 
 /*    
  *    	match-pathkey-joinkeys
@@ -115,18 +125,21 @@ int
 match_pathkey_joinkeys (pathkey,joinkeys,which_subkey)
      LispValue pathkey,joinkeys,which_subkey ;
 {
-     LispValue path_subkey = LispNil;
-     int temp;
-     bool flag = false;
-     foreach(path_subkey,pathkey) {
-	  if (temp = position(path_subkey,joinkeys,var_equal,
-			      extract_subkey(joinkeys, which_subkey))) {
-	       flag = true;
-	  }
-	  if (flag == true)
-	    return(temp);
-     }
-     return (-1);    /* no index found   */
+    LispValue path_subkey = LispNil;
+    int temp = 0;
+    bool flag = false;
+    LispValue i = LispNil;
+
+    foreach(i,pathkey) {
+	path_subkey = CAR(i);
+	if (temp = position(path_subkey,joinkeys,var_equal,
+			    extract_subkey(joinkeys, which_subkey))) {
+	    flag = true;
+	}
+	if (flag == true)
+	  return(temp);
+    }
+    return (-1);    /* no index found   */
 
 }  /* function end   */
 
@@ -159,22 +172,26 @@ bool
 every_func (joinkeys, pathkey, which_subkey)
      LispValue joinkeys, pathkey, which_subkey;
 {
-     LispValue xjoinkey;
+     LispValue xjoinkey = LispNil;
      LispValue temp = LispNil;
      LispValue tempkey = LispNil;
      bool found = false;
+     LispValue i = LispNil;
+     LispValue j = LispNil;
 
-     foreach (xjoinkey,joinkeys) {
-	  found = false;
-	  foreach(temp,pathkey) {
-	       tempkey = extract_subkey(xjoinkey,which_subkey);
-	       if (var_equal(tempkey,temp)) {
-		    found = true;
-		    break;
-	       }
-	  }
-	  if (found == false)
-	    return(false);
+     foreach (i,joinkeys) {
+	 xjoinkey = CAR(i);
+	 found = false;
+	 foreach(j,pathkey) {
+	     temp = CAR(j);
+	     tempkey = extract_subkey(xjoinkey,which_subkey);
+	     if (var_equal(tempkey,temp)) {
+		 found = true;
+		 break;
+	     }
+	 }
+	 if (found == false)
+	   return(false);
      }
      return(found);
 }
@@ -185,22 +202,24 @@ Path
 match_paths_joinkeys (joinkeys,ordering,paths,which_subkey)
      LispValue joinkeys,ordering,paths,which_subkey ;
 {
-     LispValue path ;
-     bool key_match ;
-     
-     foreach(path,paths) {
-	  key_match = every_func(joinkeys,
-				 get_keys (path),
-				 which_subkey);
+    Path path = (Path)NULL ;
+    bool key_match = false;
+    LispValue i = LispNil;
+ 
+    foreach(i,paths) {
+	path = (Path)CAR(i);
+	key_match = every_func(joinkeys,
+			       get_keys (path),
+			       which_subkey);
 
-	  if (equal_path_path_ordering (ordering,
-					get_ordering (path)) &&
-	      length (joinkeys) == length (get_keys (path)) &&
-	      key_match) {
-	       return((Path)path);
-	  }
-     }
-     return((Path) LispNil);
+	if (equal_path_path_ordering (ordering,
+				      get_ordering (path)) &&
+	    length (joinkeys) == length (get_keys (path)) &&
+	    key_match) {
+	    return(path);
+	}
+    }
+    return((Path) LispNil);
 }  /* function end  */
 
 
@@ -226,20 +245,23 @@ match_paths_joinkeys (joinkeys,ordering,paths,which_subkey)
  */
 LispValue
 extract_path_keys (joinkeys,tlist,which_subkey)
-     LispValue joinkeys,tlist,which_subkey ;
+     LispValue joinkeys,tlist;
+     int which_subkey ;
 {
-     LispValue xjoinkey = LispNil;
-     LispValue t_list = LispNil;
-     LispValue temp_node = LispNil;
+    JoinKey xjoinkey = (JoinKey)NULL;
+    LispValue t_list = LispNil;
+    LispValue temp_node = LispNil;
+    LispValue i = LispNil;
 
-     foreach(xjoinkey,joinkeys) {
-	  temp_node =
-	    lispCons (matching_tlvar (extract_subkey (xjoinkey,
-						      which_subkey),tlist),
-		      LispNil);
-	  t_list = nappend1(t_list,temp_node);
-     }
-     return(t_list);
+    foreach(i,joinkeys) {
+	xjoinkey = (JoinKey)CAR(i);
+	temp_node =
+	  lispCons (matching_tlvar (extract_subkey (xjoinkey,
+						    which_subkey),tlist),
+		    LispNil);
+	t_list = nappend1(t_list,temp_node);
+    }
+    return(t_list);
 } /* function end  */
 
 /*     	=====================
@@ -273,20 +295,21 @@ LispValue
 new_join_pathkeys (outer_pathkeys,join_rel_tlist,joinclauses)
      LispValue outer_pathkeys,join_rel_tlist,joinclauses ;
 {
-     LispValue outer_pathkey = LispNil;
-     LispValue t_list = LispNil;
-     LispValue temp_node = LispNil;
+    LispValue outer_pathkey = LispNil;
+    LispValue t_list = LispNil;
+    LispValue temp_node = LispNil;
+    LispValue i = LispNil;
 
-     foreach(outer_pathkey,outer_pathkeys) {
-	  
-	  temp_node = 
-	    lispCons (new_join_pathkey (outer_pathkey,
-					outer_pathkey,
-					join_rel_tlist,joinclauses),
-		      LispNil);
-	  t_list = nconc(t_list,temp_node);
-     }
-     return(t_list);
+    foreach(i,outer_pathkeys) {
+	outer_pathkey = CAR(i);
+	temp_node = 
+	  lispCons (new_join_pathkey (outer_pathkey,
+				      outer_pathkey,
+				      join_rel_tlist,joinclauses),
+		    LispNil);
+	t_list = nconc(t_list,temp_node);
+    }
+    return(t_list);
      
 }
 
@@ -315,33 +338,40 @@ LispValue
 new_join_pathkey (subkeys,considered_subkeys,join_rel_tlist,joinclauses)
      LispValue subkeys,considered_subkeys,join_rel_tlist,joinclauses ;
 {
-     LispValue t_list = LispNil;
-     LispValue subkey = LispNil;
+    LispValue t_list = LispNil;
+    LispValue subkey = LispNil;
+    LispValue i = LispNil;
+    LispValue matched_subkeys = LispNil;
+    Expr tlist_key = (Expr)NULL;
+    LispValue newly_considered_subkeys = LispNil;
 
-     foreach(subkey,subkeys) {
+    foreach(i,subkeys) {
+	subkey = CAR(i);
+	if (null(subkey))
+	  break;    /* XXX something is wrong */
+	matched_subkeys = 
+	  new_matching_subkeys (subkey,considered_subkeys,
+				join_rel_tlist,joinclauses);
+	tlist_key = matching_tlvar (subkey,join_rel_tlist);
+	newly_considered_subkeys = LispNil;
 
-	  LispValue matched_subkeys = 
-	    new_matching_subkeys (subkey,considered_subkeys,
-				  join_rel_tlist,joinclauses);
-	  Expr tlist_key = matching_tlvar (subkey,join_rel_tlist);
-	  LispValue newly_considered_subkeys = LispNil;
-
-	  if ( tlist_key ) {
-	       if (member(tlist_key,matched_subkeys))
-		 newly_considered_subkeys = lispCons(lispCons(tlist_key,
-							      matched_subkeys),
-						     LispNil);
-	  } 
-	  else {
-	       newly_considered_subkeys = matched_subkeys;
-	  } 
-	  
-	  considered_subkeys = 
-	    append (considered_subkeys,newly_considered_subkeys);
-	  t_list = nconc(t_list,newly_considered_subkeys);
-     }
-     return(t_list);
-     
+	if ( tlist_key ) {
+	    /* XXX was "adjoin" function */
+	    if (member(tlist_key,matched_subkeys))
+	      newly_considered_subkeys = lispCons(lispCons(tlist_key,
+							   matched_subkeys),
+						  LispNil);
+	} 
+	else {
+	    newly_considered_subkeys = matched_subkeys;
+	} 
+	
+	considered_subkeys = 
+	  append (considered_subkeys,newly_considered_subkeys);
+	t_list = nconc(t_list,newly_considered_subkeys);
+    }
+    return(t_list);
+    
 }  /* function end  */
 
 /*    
@@ -367,25 +397,31 @@ new_join_pathkey (subkeys,considered_subkeys,join_rel_tlist,joinclauses)
 
 LispValue
 new_matching_subkeys (subkey,considered_subkeys,join_rel_tlist,joinclauses)
-     LispValue subkey,considered_subkeys,join_rel_tlist,joinclauses ;
+     LispValue considered_subkeys,join_rel_tlist,joinclauses ;
+     Var subkey;
 {
      LispValue joinclause = LispNil;
      LispValue t_list = LispNil;
      LispValue temp = LispNil;
+     LispValue i = LispNil;
+     Expr tlist_other_var = (Expr)NULL;
 
-     foreach(joinclause,joinclauses) {
-	  Expr tlist_other_var = 
-	    matching_tlvar (other_join_clause_var (subkey,joinclause),
-			    join_rel_tlist);
+     foreach(i,joinclauses) {
+	 joinclause = CAR(i);
+	 tlist_other_var = 
+	   matching_tlvar (other_join_clause_var (subkey,joinclause),
+			   join_rel_tlist);
 
-	  if(tlist_other_var && 
-	     !(member (tlist_other_var,considered_subkeys))) {
-	       push (tlist_other_var,considered_subkeys);
-	       temp = lispCons (tlist_other_var,LispNil);
-	       t_list = nconc(t_list,temp);
-	  } 
-	  else
-	    t_list = nconc(t_list,LispNil);
+	 if(tlist_other_var && 
+	    !(member (tlist_other_var,considered_subkeys))) {
+	     /* XXX was "push" function  */
+	     considered_subkeys = nappend1(considered_subkeys,
+					   tlist_other_var);
+	     considered_subkeys = nreverse(considered_subkeys);
+
+	     temp = lispCons (tlist_other_var,LispNil);
+	     t_list = nconc(t_list,temp);
+	 } 
      }
      return(t_list);
-}  /* function end  */
+ }  /* function end  */

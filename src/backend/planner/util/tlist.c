@@ -122,7 +122,7 @@ add_tl_element (rel,var,joinlist)
      Var var;
      List joinlist ;
 {
-    Expr oldvar;
+    Expr oldvar = (Expr)NULL;
     
     oldvar = matching_tlvar (var,get_targetlist (rel));
     
@@ -131,21 +131,22 @@ add_tl_element (rel,var,joinlist)
      */
     
     if ( null( oldvar ) ) {
+	LispValue tlist = get_targetlist(rel);
 	Var newvar = MakeVar (get_varno (var),
-			       get_varattno (var),
-			       get_vartype (var),LispNil,
-			       (consider_vararrayindex(var) ?
-					      varid_array_index(var) :
-				0 ),
-			       get_varid (var));
+			      get_varattno (var),
+			      get_vartype (var),LispNil,
+			      (consider_vararrayindex(var) ?
+			       varid_array_index(var) :
+			       0 ),
+			      get_varid (var));
 
-	set_targetlist (rel,nappend1 (get_targetlist (rel),
-				create_tl_element (newvar,
-						   get_size(rel) -1,
-						   joinlist)));
+	set_targetlist (rel,nappend1 (tlist,
+				      create_tl_element (newvar,
+							 length(tlist) + 1,
+							 joinlist)));
 
     } else if (length (get_varid (oldvar)) > length (get_varid (var))) {
-
+	
 	set_vartype (oldvar,get_vartype (var));
 	set_varid (oldvar,get_varid (var));
 
@@ -169,20 +170,20 @@ add_tl_element (rel,var,joinlist)
 TL
 create_tl_element (var,resdomno,joinlist)
      Var var;
-     Resdom resdomno;
+     int resdomno;
      List joinlist;
 {
-	TL tlelement;
-	tlelement = lispList();
-
-	set_entry (tlelement,
-		   MakeTLE (MakeResdom (resdomno, get_vartype (var),
-					get_typlen (get_vartype (var)),
-					  LispNil,0,LispNil),
-			    var));
-	set_joinlist (tlelement,joinlist);
-
-	return(tlelement);
+    TL tlelement;
+    tlelement = lispList();
+    
+    set_entry (tlelement,
+	       MakeTLE (MakeResdom (resdomno, get_vartype (var),
+				    get_typlen (get_vartype (var)),
+				    LispNil,0,LispNil),
+			var));
+    set_joinlist (tlelement,joinlist);
+    
+    return(tlelement);
 }
 
 /*    
@@ -243,17 +244,25 @@ tlist_member (var,tlist,dots,key,test)
      bool (*test)();
 {
     /* declare (special (dots)); */
-/*    
+    LispValue i = LispNil;
+    TLE 	temp_tle = (TLE)NULL;
+    TLE		tl_elt = (TLE)NULL;
+
     if ( var) {
-	TLE tl_elt = (TLE)find (var,tlist,
-				key , get_expr ,
-				test, var_equal );
+	foreach (i,tlist) {
+	    temp_tle = (TLE)CAR(i);
+	    if (var_equal(var,get_expr(temp_tle))) {
+		tl_elt = temp_tle;
+		break;
+	    }
+	}
+
 	if ( consp (tl_elt) ) 
 	  return(get_resdom (tl_elt));
 	else 
 	  return((Resdom)NULL);
     }
-*/
+    
 }
 
 /*    
@@ -305,13 +314,14 @@ List
 new_unsorted_tlist (targetlist)
      List targetlist ;
 {
-	List new_targetlist = copy_seq_tree (targetlist);
-	List x = NULL;
+    List new_targetlist = copy_seq_tree (targetlist);
+    List x = LispNil;
 
-	foreach (x, new_targetlist) {
-		set_reskey (get_resdom (CAR(x)),0);
-		set_reskeyop (get_resdom (CAR(x)),LispNil);
-	}
+    foreach (x, new_targetlist) {
+	set_reskey (get_resdom (CAR(x)),0);
+	set_reskeyop (get_resdom (CAR(x)),LispNil);
+    }
+    return(new_targetlist);
 }
 
 /*    
@@ -357,7 +367,9 @@ LispValue
 copy_vars (target,source)
      LispValue target,source ;
 {
-    LispValue result, src, dest;
+    LispValue result = LispNil;
+    LispValue src = LispNil;
+    LispValue dest = LispNil;
     
     for ( src = source, dest = target; src != LispNil &&
 	 dest != LispNil; src = CDR(src), dest = CDR(dest)) {
@@ -394,24 +406,30 @@ flatten_tlist (tlist)
     LispValue temp;
     LispValue var;
 
-    return(tlist);
-/*
+
     foreach(temp,tlist) 
       tlist_vars = nconc(tlist_vars,
 			 pull_var_clause (get_expr(CAR(temp))));
     
+    /* XXX - This used to use the function push and nreverse.  */
     foreach (var,tlist_vars ) {
 	if ( !(tlist_member (CAR(var),new_tlist,1 ))) {
-	    push (MakeTLE ( MakeResdom(last_resdomno++ ,
-				       get_vartype (var),
-				       get_typlen (get_vartype (var)),
-				       LispNil,0,LispNil),var),
-		  new_tlist);
+	    new_tlist = (LispValue)append1(new_tlist,
+				MakeTLE (MakeResdom(++last_resdomno,
+						    get_vartype(CAR(var)),
+						    get_typlen 
+						    (get_vartype 
+						     (CAR(var))),
+						    LispNil,
+						    0,
+						    LispNil),
+					 CAR(var)));
+	    
 	}
     }
-    return(nreverse(new_tlist));
-*/
-
+    
+    return(new_tlist);
+    
 }
     
 /*    

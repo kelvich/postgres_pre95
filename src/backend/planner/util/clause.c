@@ -106,8 +106,8 @@ pull_relation_level_clauses (quals)
  *    
  */
 
-/*  .. add-clause-to-rels
- */
+/*  .. add-clause-to-rels   */
+
 
 LispValue
 clause_relids_vars (clause)
@@ -115,17 +115,17 @@ clause_relids_vars (clause)
 {
     LispValue vars = pull_var_clause (clause);
     LispValue retval = LispNil;
-    LispValue var_list,varno_list;
+    LispValue var_list = LispNil;
+    LispValue varno_list = LispNil;
     LispValue tvarlist = LispNil;
-    LispValue i;
+    LispValue i = LispNil;
 
     foreach (i,vars) 
-      tvarlist = nappend1(tvarlist,
-			  lispInteger(get_varno(CAR(i))));
-
-    varno_list = nreverse (remove_duplicates (tvarlist,equal));
-
+      tvarlist = nappend1(tvarlist,lispInteger(get_varno(CAR(i))));
+    
+    varno_list = nreverse(remove_duplicates (tvarlist,equal));
     var_list = nreverse (remove_duplicates (vars, var_equal));
+
     retval = lispCons (varno_list,
 		       lispCons(var_list,LispNil));
     
@@ -152,7 +152,7 @@ NumRelids (clause)
 
     foreach (i,pull_var_clause(clause)) {
 	var = (Var)CAR(i);
-	t_list = nappend1(t_list,get_varno(var));
+	t_list = nappend1(t_list,lispInteger(get_varno(var)));
     }
     t_list = remove_duplicates(t_list,equal);
 
@@ -175,28 +175,37 @@ bool
 nested_clause_p (clause)
      LispValue clause ;
 {
-	bool retval = false;
+    bool retval = false;
 
-	if(null (clause) ||single_node (clause)) {
-		/* retval = false;  by default */
-	} 
-	else if (IsA(clause,Var) && var_is_nested (clause)) {
-		retval = true;
-	} else if (or_clause (clause)) {
-		if (some ( nested_clause_p,get_orclauseargs (clause)))
-		  retval = true;
-	} else if (is_funcclause (clause)) {
-		if (some (nested_clause_p,get_funcargs (clause)))
-		  retval = true;
-	} 
-	else if (not_clause (clause)) {
-		retval = nested_clause_p (get_notclausearg (clause));
-	} 
-	else {
-	    retval = (bool)(nested_clause_p (get_leftop (clause)) ||
-			    nested_clause_p (get_rightop (clause)));
+    if(null (clause) ||single_node (clause)) {
+	/* retval = false;  by default */
+    } 
+    else if (IsA(clause,Var) && var_is_nested (clause)) {
+	retval = true;
+    } else if (or_clause (clause)) {
+	/* XXX was "some" function  */
+	LispValue i = LispNil;
+	LispValue orclause = LispNil;
+
+	foreach (i,get_orclauseargs (clause)) {
+	    orclause = CAR(i);
+	    if (nested_clause_p (orclause)) {
+	      retval = true;
+	      break;
+	  }
 	}
-	return(retval);
+    } else if (is_funcclause (clause)) {
+	if (some (nested_clause_p,get_funcargs (clause)))
+	  retval = true;
+    } 
+    else if (not_clause (clause)) {
+	retval = nested_clause_p (get_notclausearg (clause));
+    } 
+    else {
+	retval = (bool)(nested_clause_p (get_leftop (clause)) ||
+			nested_clause_p (get_rightop (clause)));
+    }
+    return(retval);
 }
 
 /*    
@@ -445,51 +454,49 @@ get_relattval (clause)
     
     if(is_clause (clause) && IsA (left,Var) && 
        !var_is_mat (left) && IsA (right,Const)) {
-      if(non_null (right)) {
-	lispCons (get_varno (left),
-		  lispCons(get_varattno (left),
-			   lispCons(get_constvalue (right),
-				    lispCons((lispInteger
-					      (_SELEC_CONSTANT_RIGHT_) ||
-					      lispInteger
-					      (_SELEC_IS_CONSTANT_)),
-					     LispNil))));
-      } else {
-	lispCons (get_varno (left),
-		  lispCons(get_varattno (left),
+	if(!null(right)) {
+	    return(lispCons (lispInteger(get_varno (left)),
+		      lispCons(lispInteger(get_varattno (left)),
+			       lispCons(lispInteger(get_constvalue (right)),
+					lispCons(lispInteger(
+						  (_SELEC_CONSTANT_RIGHT_ |
+						   _SELEC_IS_CONSTANT_)),
+						 LispNil)))));
+	} else {
+	    return(lispCons (lispInteger(get_varno (left)),
+		  lispCons(lispInteger(get_varattno (left)),
 			   lispCons(lispString(""),
 				    lispCons((lispInteger
-					      (_SELEC_CONSTANT_RIGHT_) ||
-					      lispInteger
-					      (_SELEC_NOT_CONSTANT_)),
-					     LispNil))));
-		} 
-	    } /* if (is_clause(clause . . . */ 
+					      (_SELEC_CONSTANT_RIGHT_ |
+					       _SELEC_NOT_CONSTANT_)),
+					     LispNil)))));
+	} 
+    } /* if (is_clause(clause . . . */ 
     
     else if (is_clause (clause) && IsA (right,Var) &&
 	     ! var_is_mat (right) && IsA (left,Const)) {
-	if (non_null (left)) {
-	  lispCons(get_varno (right),
-		   lispCons(get_varattno(right),
-			    lispCons(get_constvalue (left),
-				    lispCons(lispInteger(_SELEC_IS_CONSTANT_),
-					     LispNil))));
+	if (!null (left)) {
+	    return(lispCons(lispInteger(get_varno (right)),
+		   lispCons(lispInteger(get_varattno(right)),
+			    lispCons(lispInteger(get_constvalue (left)),
+				     lispCons(lispInteger(_SELEC_IS_CONSTANT_),
+					      LispNil)))));
 	} else {
-	  lispCons (get_varno (right),
-		    lispCons(get_varattno (right),
+	    return(lispCons (lispInteger(get_varno (right)),
+		    lispCons(lispInteger(get_varattno (right)),
 			     lispCons(lispString(""),
-				      lispCons(_SELEC_NOT_CONSTANT_,
-					       LispNil))));
+				      lispCons(lispInteger(_SELEC_NOT_CONSTANT_),
+					       LispNil)))));
 	} 
     } else  {
 	/*    One or more of the operands are expressions 
 	      (e.g., oper or func clauses
 	      */
-      lispCons (lispInteger(_SELEC_VALUE_UNKNOWN_),
-		lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
-			 lispCons(lispString(""),
-				  lispCons(lispInteger(_SELEC_NOT_CONSTANT_),
-					   LispNil))));
+	return(lispCons (lispInteger(_SELEC_VALUE_UNKNOWN_),
+		  lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
+			   lispCons(lispString(""),
+				    lispCons(lispInteger(_SELEC_NOT_CONSTANT_),
+					     LispNil)))));
     }		       
 }
 
@@ -505,51 +512,53 @@ get_relattval (clause)
  *    
  */
 
-/*  .. compute_selec
- */
+/*  .. compute_selec   */
+
 LispValue
 get_relsatts (clause)
      LispValue clause ;
 {
-     Var left = get_leftop (clause);
-     Var right = get_rightop (clause);
-     bool isa_clause;
-     
-     bool var_left = ( (IsA(left,Var) && !var_is_mat (left) ) ?true : false);
-     bool var_right = ( (IsA(right,Var) && !var_is_mat(right)) ? true:false);
-     bool varexpr_left = (bool)((IsA(left,Func) || IsA (left,Oper)) &&
-				pull_var_clause (left) );
-     bool varexpr_right = (bool)(( IsA(right,Func) || IsA (right,Oper)) &&
-				 pull_var_clause (right));
-
-     isa_clause = is_clause (clause);
-     if(isa_clause && var_left
-	&& var_right) {
-       lispCons (get_varno (left),
-		 lispCons(get_varattno (left),
-			  lispCons(get_varno (right),
-				   lispCons(get_varattno (right),
-					    LispNil))));
-     } else if ( isa_clause && var_left && varexpr_right ) {
-       lispCons(get_varno (left),
-		lispCons(get_varattno (left),
+    Var left = get_leftop (clause);
+    Var right = get_rightop (clause);
+    bool isa_clause = false;
+    
+    bool var_left = ( (IsA(left,Var) && !var_is_mat (left) ) ?true : false);
+    bool var_right = ( (IsA(right,Var) && !var_is_mat(right)) ? true:false);
+    bool varexpr_left = (bool)((IsA(left,Func) || IsA (left,Oper)) &&
+			       pull_var_clause (left) );
+    bool varexpr_right = (bool)(( IsA(right,Func) || IsA (right,Oper)) &&
+				pull_var_clause (right));
+    
+    isa_clause = is_clause (clause);
+    if(isa_clause && var_left
+       && var_right) {
+	return(lispCons (lispInteger(get_varno (left)),
+			 lispCons(lispInteger(get_varattno (left)),
+				  lispCons(lispInteger(get_varno (right)),
+					   lispCons(lispInteger
+						    (get_varattno (right)),
+						    LispNil)))));
+    } else if ( isa_clause && var_left && varexpr_right ) {
+	return(lispCons(get_varno (left),
+			lispCons(get_varattno (left),
+				 lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
+					  lispCons(lispInteger
+						   (_SELEC_VALUE_UNKNOWN_),
+						   LispNil)))));
+    } else if ( isa_clause && varexpr_left && var_right) {
+	return(lispCons (lispInteger(_SELEC_VALUE_UNKNOWN_),
 			 lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
-				  lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
-					   LispNil))));
-     } else if ( isa_clause && varexpr_left && var_right) {
-       lispCons (lispInteger(_SELEC_VALUE_UNKNOWN_),
-		 lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
-			  lispCons(get_varno (right),
-				   lispCons(get_varattno (right),
-					    LispNil))));
-	} else {
-	  lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
-		   lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
-			    lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
-				     lispCons(lispInteger
-					      (_SELEC_VALUE_UNKNOWN_),
-					      LispNil))));
-	}
+				  lispCons(get_varno (right),
+					   lispCons(get_varattno (right),
+						    LispNil)))));
+    } else {
+	return(lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
+			lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
+				 lispCons(lispInteger(_SELEC_VALUE_UNKNOWN_),
+					  lispCons(lispInteger
+						   (_SELEC_VALUE_UNKNOWN_),
+						   LispNil)))));
+    }
 }
 
 bool

@@ -118,10 +118,10 @@ initialize_qualification (clauses)
      LispValue clause = LispNil;
 
      foreach (clause, clauses) {
-	 if(consp(clause) && IsA(CAR(clause),Func))
+	 if(consp(CAR(clause)) && IsA(CAR(clause),Func))
 	    initialize_qualification (get_funcargs (CAR(clause)));
 	  else 
-	    if (consp(clause) && IsA(CAR(clause),Oper))
+	    if (consp(CAR(clause)) && IsA(CAR(clause),Oper))
 	      initialize_qualification (get_opargs (CAR(clause)));
 	  add_clause_to_rels (CAR(clause));
      }
@@ -146,42 +146,49 @@ add_clause_to_rels (clause)
      LispValue clause ;
 {
      
-     /* Retrieve all relids and vars contained within the clause in the form */
-     /* ((relid relid ...) (var var ...)) */
-
-     LispValue relids_vars = clause_relids_vars (clause);
-     LispValue relids = nth (0,relids_vars);
-     LispValue vars = nth (1,relids_vars);
-
-     if(nested_clause_p (clause) || 
-	relation_level_clause_p (clause)) 
-	  /* Ignore quals containing dot fields or relation level clauses, */
-	  /* but place the vars in the target list so their values can be  */
-	  /* referenced later. */
-
-	  add_vars_to_rels (vars,LispNil);
-     else {
-	  CInfo clauseinfo = CreateNode(CInfo);
-	  set_clause (clauseinfo,clause);
-	  set_notclause (clauseinfo,contains_not (clause));
-	  if(1 == length (relids)) {
-
-	       /* There is only one relation participating in 'clause', */
-	       /* so 'clause' must be a restriction clause. */
-	       /* XXX - let form, maybe incorrect */
-	       Rel rel = get_rel (CAR (relids));
-	       set_clauseinfo (rel,cons (clauseinfo,get_clauseinfo (rel)));
-	  } 
-	  else {
-	       /* 'clause' is a join clause, since there is more than one */
-	       /*  atom in the relid list. */
-
-	       set_selectivity (clauseinfo,compute_clause_selec (clause,
-								 LispNil));
-	       add_join_clause_info_to_rels (clauseinfo,relids);
-	       add_vars_to_rels (vars,relids);
-	  } 
-     }
+    /* Retrieve all relids and vars contained within the clause in the form */
+    /* ((relid relid ...) (var var ...)) */
+    
+    LispValue relids_vars = clause_relids_vars (clause);
+    LispValue relids = nth (0,relids_vars);
+    LispValue vars = nth (1,relids_vars);
+    
+    if(nested_clause_p (clause) || 
+       relation_level_clause_p (clause)) 
+      /* Ignore quals containing dot fields or relation level clauses, */
+      /* but place the vars in the target list so their values can be  */
+      /* referenced later. */
+      
+      add_vars_to_rels (vars,LispNil);
+    else {
+	CInfo clauseinfo = CreateNode(CInfo);
+	set_clause (clauseinfo,clause);
+	set_notclause (clauseinfo,contains_not (clause));
+	set_selectivity (clauseinfo,0);
+	set_indexids (clauseinfo,LispNil);
+	set_mergesortorder (clauseinfo,(MergeOrder)NULL);
+	set_hashjoinoperator (clauseinfo,LispNil);
+	clauseinfo->printFunc = PrintCInfo;
+	clauseinfo->equalFunc = EqualCInfo;
+	
+	if(1 == length (relids)) {
+	    
+	    /* There is only one relation participating in 'clause', */
+	    /* so 'clause' must be a restriction clause. */
+	    /* XXX - let form, maybe incorrect */
+	    Rel rel = get_rel (CAR (relids));
+	    set_clauseinfo (rel,cons (clauseinfo,get_clauseinfo (rel)));
+	} 
+	else {
+	    /* 'clause' is a join clause, since there is more than one */
+	    /*  atom in the relid list. */
+	    
+	    set_selectivity (clauseinfo,compute_clause_selec (clause,
+							      LispNil));
+	    add_join_clause_info_to_rels (clauseinfo,relids);
+	    add_vars_to_rels (vars,relids);
+	} 
+    }
 }  /* function end   */
 
 /*    
@@ -204,15 +211,14 @@ void
 add_join_clause_info_to_rels (clauseinfo,join_relids)
      LispValue clauseinfo,join_relids ;
 {
-     LispValue join_relid = LispNil;
-     foreach (join_relid, join_relids) {
-	  /* XXX - let form, maybe incorrect */
-	 JInfo joininfo = 
-	   find_joininfo_node (get_rel (CAR(join_relid)),
-			       remove (CAR(join_relid),join_relids));
-	  set_jinfoclauseinfo (joininfo,
-			   cons (clauseinfo,
-				 get_jinfoclauseinfo (joininfo)));
+    LispValue join_relid = LispNil;
+    foreach (join_relid, join_relids) {
+	JInfo joininfo = 
+	  find_joininfo_node (get_rel (CAR(join_relid)),
+			      remove (CAR(join_relid),join_relids));
+	set_jinfoclauseinfo (joininfo,
+			     lispCons (clauseinfo,
+				   get_jinfoclauseinfo (joininfo)));
 
      }
 } /* function end  */
@@ -242,7 +248,7 @@ add_vars_to_rels (vars,join_relids)
      List vars,join_relids ;
 {
     LispValue var = LispNil;
-    LispValue temp;
+    LispValue temp = LispNil;
     Rel rel = (Rel)NULL;
     LispValue tlistentry = LispNil;
     LispValue other_join_relids = LispNil;
@@ -251,7 +257,7 @@ add_vars_to_rels (vars,join_relids)
 	var = CAR(temp);
 	rel = get_rel (lispInteger(get_varno (var)));
 	tlistentry = tlistentry_member (var,get_targetlist (rel));
-	other_join_relids = remove (get_varno (var),
+	other_join_relids = remove (lispInteger(get_varno (var)),
 				    join_relids);
 	if(null (tlistentry))
 	  /*   add a new entry */
@@ -261,9 +267,9 @@ add_vars_to_rels (vars,join_relids)
 	      set_joinlist (tlistentry,
 			    /*   modify an existing entry */
 			    LispUnion (get_joinlist(tlistentry),
-					other_join_relids));
+				       other_join_relids));
 	  } 
-     }
+    }
 } /* function end   */
 
 /*     	========
@@ -289,34 +295,34 @@ void
 initialize_join_clause_info (rel_list)
      LispValue rel_list ;
 {
-     LispValue rel = LispNil;
-     LispValue joininfo = LispNil;
-     LispValue clauseinfo = LispNil;
-     foreach (rel, rel_list) {
-	  foreach (joininfo, get_joininfo (CAR(rel))) {
-	       foreach (clauseinfo, get_clauseinfo (joininfo)) {
-		    Expr clause = get_clause (CAR(clauseinfo));
-		    if ( join_clause_p (clause) ) {
-			 LispValue sortop = LispNil;
-			 ObjectId hashop;
+    LispValue rel = LispNil;
+    LispValue joininfo = LispNil;
+    LispValue clauseinfo = LispNil;
+    foreach (rel, rel_list) {
+	foreach (joininfo, get_joininfo (CAR(rel))) {
+	    foreach (clauseinfo, get_jinfoclauseinfo (CAR(joininfo))) {
+		Expr clause = get_clause (CAR(clauseinfo));
+		if ( join_clause_p (clause) ) {
+		    LispValue sortop = LispNil;
+		    ObjectId hashop;
 
-			 if ( _enable_mergesort_ ) 
-			   sortop = mergesortop (clause);
-			 if ( _enable_hashjoin_ ) 
-			   hashop = hashjoinop (clause);
+		    if ( _enable_mergesort_ ) 
+		      sortop = mergesortop (clause);
+		    if ( _enable_hashjoin_ ) 
+		      hashop = hashjoinop (clause);
 
-			 if ( sortop) {
-			      set_mergesortorder (CAR(clauseinfo),sortop);
-			      set_mergesortable (CAR(joininfo),true);
-			 }
-			 if ( hashop) {
-			      set_hashjoinoperator (CAR(clauseinfo),hashop);
-			      set_hashjoinable (CAR(joininfo),true);
-			 }
+		    if ( sortop) {
+			set_mergesortorder (CAR(clauseinfo),sortop);
+			set_mergesortable (CAR(joininfo),true);
 		    }
-	       }
-	  }
-     }
+		    if ( hashop) {
+			set_hashjoinoperator (CAR(clauseinfo),hashop);
+			set_hashjoinable (CAR(joininfo),true);
+		    }
+		}
+	    }
+	}
+    }
 }  /* function end   */
 
 /*    

@@ -166,31 +166,33 @@ planner (parse)
     LispValue tlist = parse_targetlist (parse);
     LispValue qual = parse_qualification (parse);
     LispValue rangetable = root_rangetable (root);
-    List special_plans;
-    LispValue flag;
-    List plan_list ;
+    List special_plans = LispNil;
+    LispValue flag = LispNil;
+    List plan_list = LispNil;
 
 /*    if ( root_ruleinfo (root) )
       special_plans = process_rules (parse);
-     else 
-       plan_list = lispCons(lispInteger(INHERITS),
-                            lispCons(lispInteger(UNION),
-			             lispCons(lispInteger(ARCHIVE),LispNil)));
-       foreach (flag,plan_list) {
-           int rt_index = first_matching_rt_entry (rangetable,flag);
-	   if ( rt_index )
-	     special_plans = (List)plan_union_queries (rt_index,
-						      flag,
-						      root,
-						      tlist,
-						      qual,rangetable);
-       }
-    if (special_plans)
-      return((Plan)CAR(special_plans));
     else 
- *   -XXX hack to make retrieve x= 1 work  */
+ * 
+ * turn rules off for now.
+ */
+      plan_list = lispCons(lispAtom("inherits"),
+			   lispCons(lispAtom("union"),
+				    lispCons(lispAtom("archive"),LispNil)));
+    foreach (flag,plan_list) {
+	int rt_index = first_matching_rt_entry (rangetable,CAR(flag));
+	if ( rt_index != -1 )
+	  special_plans = (List)plan_union_queries (rt_index,
+						    CAtom(CAR(flag)),
+						    root,
+						    tlist,
+						    qual,rangetable);
+    }
+    if (special_plans)
+      return((Plan)special_plans);
+    else 
 
-    return(init_query_planner (root,tlist,qual));
+      return(init_query_planner (root,tlist,qual));
 
     
 } /* function end  */

@@ -101,16 +101,17 @@ create_plan (best_path,origtlist)
        if (get_sortpath (best_path)) {
 	    sorted_plan_node = (Plan)make_temp(tlist,
 					 get_varkeys(get_sortpath(best_path)),
-					 get_ordering(get_sortpath(best_path)),
+					 get_p_ordering
+					         (get_sortpath(best_path)),
 					 plan_node,SORT);
 
        } 
 
      if (sorted_plan_node) {
-	  set_state (sorted_plan_node,get_path_cost (get_sortpath (best_path)));
+	  set_cost (sorted_plan_node,get_path_cost (get_sortpath (best_path)));
 	  if ( _watch_costs_) {
 	       printf("SORTED PLAN COST =");
-	       lispDisplay(get_state (sorted_plan_node),0);
+	       lispDisplay(get_cost (sorted_plan_node),0);
 	       printf("\n");
 	  }
 	  plan_node = sorted_plan_node;
@@ -195,7 +196,7 @@ create_join_node (best_path,origtlist,tlist)
      inner_node = create_plan (get_innerjoinpath (best_path),origtlist);
      inner_tlist = get_qptargetlist (inner_node);
 
-     clauses = get_actual_clauses (get_clauseinfo (best_path));
+     clauses = get_actual_clauses (get_pathclauseinfo (best_path));
      
      switch (get_pathtype (best_path)) {
 	 
@@ -258,11 +259,11 @@ create_seqscan_node (best_path,tlist,scan_clauses)
 			      scan_relid,
 			      LispNil);
     
-    set_state (scan_node,get_path_cost (best_path));
+    set_cost (scan_node,get_path_cost (best_path));
     
     if ( _watch_costs_) {
 	printf("BASE SEQSCAN COST = ");
-	lispDisplay (get_state (scan_node));
+	lispDisplay (get_cost (scan_node));
 	printf("\n");
     }
     return (scan_node);
@@ -285,13 +286,13 @@ create_indexscan_node (best_path,tlist,scan_clauses)
      List tlist;
      List scan_clauses ;
 {
-       /* Extract the (first if conjunct, only if disjunct) clause from the */
-       /* clauseinfo list. */
+    /* Extract the (first if conjunct, only if disjunct) clause from the */
+    /* clauseinfo list. */
      Expr 	index_clause = get_clause (CAR (get_indexqual (best_path)));
      List 	indxqual = LispNil;
      List 	qpqual = LispNil;
      List 	fixed_indxqual = LispNil;
-     IndexScan 	scan_node;
+     IndexScan 	scan_node = (IndexScan)NULL;
 
      /*    If an 'or' clause is to be used with this index, the indxqual */
      /*    field will contain a list of the 'or' clause arguments, e.g., the */
@@ -303,9 +304,10 @@ create_indexscan_node (best_path,tlist,scan_clauses)
 	
 	  foreach (temp,get_orclauseargs(index_clause)) 
 	    indxqual = nappend1(indxqual,lispCons (CAR(temp),LispNil));
-     } 
+      } 
      else {
-	  lispCons(get_actual_clauses (get_indexqual (best_path)),LispNil);
+	 indxqual = lispCons(get_actual_clauses (get_indexqual (best_path)),
+			     LispNil);
      } 
      /*    The qpqual field contains all restrictions except the indxqual. */
 
@@ -316,17 +318,18 @@ create_indexscan_node (best_path,tlist,scan_clauses)
        qpqual = set_difference(scan_clauses, CAR (indxqual));
      
      fixed_indxqual = fix_indxqual_references (indxqual,best_path);
-     scan_node = MakeIndexScan (tlist,
-				qpqual,
-				get_relids (get_parent (best_path)),
-				get_indexid (best_path),
-				fixed_indxqual);
+     scan_node = make_indexscan (tlist,
+				 qpqual,
+				 CInteger(CAR(get_relids 
+					      (get_parent (best_path)))),
+				 get_indexid (best_path),
+				 fixed_indxqual);
      
-     set_state (scan_node,get_path_cost (best_path));
+     set_cost (scan_node,get_path_cost (best_path));
 
      if ( _watch_costs_) {
 	  printf ("BASE INDEXSCAN COST = ");
-	  lispDisplay (get_state (scan_node));
+	  lispDisplay (get_cost (scan_node));
 	  printf("\n");
      }
      return (scan_node);
@@ -337,54 +340,73 @@ create_indexscan_node (best_path,tlist,scan_clauses)
 
 LispValue
 fix_indxqual_references (clause,index_path)
-     LispValue clause,index_path ;
+     LispValue clause;
+     Path index_path ;
 {
-     if(IsA (clause,Var) && 
-	equal(get_relids (get_parent(index_path)),
-	      get_varno (clause))) {
-	  set_varattno (clause,
-			position (get_varattno (clause),
-				  get_indexkeys (index_path)) + 1);
-	  return (clause);
+    if(IsA (clause,Var) && 
+       CInteger(CAR(get_relids (get_parent(index_path)))) ==
+       get_varno (clause)) {
+	set_varattno (clause,
+		      position (get_varattno (clause),
+				get_indexkeys(get_parent(index_path))) + 1);
+	return (clause);
 
-     } 
-     else 
-       if (is_opclause (clause) && 
-	   is_funcclause (get_leftop (clause)) && 
-	   get_funcisindex (get_function (get_leftop (clause)))) {
+    } 
+    else 
+      if (is_opclause (clause) && 
+	  is_funcclause (get_leftop (clause)) && 
+	  get_funcisindex (get_function (get_leftop (clause)))) {
 
-	    /* 	 (set_opno (get_op clause) 
-	     *   (get_funcisindex (get_function (get_leftop clause))))
-	     * 	 (make_opclause (replace_opid (get_op clause))
-	     */
-	    return (make_opclause (get_op (clause),
-				   make_var (get_relids
-					     (get_parent (index_path)),
-					     1, /* func indices have one key */
-					     get_functype 
-					     (get_function (clause)),
-					     LispNil,
-					     LispNil,
-					     LispNil),
-				   get_rightop (clause)));
+	  /* 	 (set_opno (get_op clause) 
+	   *   (get_funcisindex (get_function (get_leftop clause))))
+	   * 	 (make_opclause (replace_opid (get_op clause))
+	   */
+	  return (make_opclause (get_op (clause),
+				 MakeVar (CInteger(CAR(get_relids
+					  (get_parent (index_path)))),
+					  1, /* func indices have one key */
+					  get_functype 
+					  (get_function (clause)),
+					  LispNil,
+					  LispNil,
+					  LispNil),
+				 get_rightop (clause)));
 
-       } 
-       else {
-	    LispValue type = clause_type (clause);
-	    LispValue new_subclauses = LispNil; 
-	    LispValue subclause = LispNil;
+      } 
+      else {
+	  LispValue type = clause_type (clause);
+	  LispValue new_subclauses = LispNil; 
+	  LispValue subclause = LispNil;
+	  LispValue i = LispNil;
 
-	    foreach(subclause,clause_subclauses(type,clause))
+	  foreach(i,clause_subclauses(type,clause)) {
+	      subclause = CAR(i);
 	      new_subclauses = nappend1(new_subclauses,
 					fix_indxqual_references(subclause,
 								index_path));
-	    if ( consp (new_subclauses) ) {
-		 apply ( make_clause (type,new_subclauses));  /* XXX fix me  */
-		} 
-	    else {
-		 return (clause);
-	    } 
-       }
+	  }
+	  /* XXX new_subclauses should be a list of the form:
+	   * ( (var var) (var const) ...) ?
+	   */
+	  
+	  if ( consp (new_subclauses) ) {
+	      /* XXX was apply function  */
+	      LispValue i = LispNil;
+	      LispValue newclause = LispNil;
+	      LispValue newclauses = LispNil;
+
+	      new_subclauses = lispCons(new_subclauses, LispNil);
+	      foreach(i,new_subclauses) {
+		  newclause = make_clause(type,CAR(i));
+		  
+		   newclauses = nappend1(newclauses,newclause);
+	      }
+	      return(newclauses);
+	  } 
+	  else {
+	      return (clause);
+	  } 
+      }
 }  /* function end  */
 
 
@@ -412,7 +434,7 @@ create_nestloop_node (best_path,tlist,clauses,
      Node inner_node;
      List inner_tlist ;
 {
-    NestLoop join_node;
+    NestLoop join_node = (NestLoop)NULL;
 
     if ( IsA(inner_node,IndexScan)) {
 
@@ -444,18 +466,18 @@ create_nestloop_node (best_path,tlist,clauses,
 	    set_indxqual (inner_node,lispCons (new_inner_qual,LispNil));
 	  }
       }
-    join_node = MakeNestLoop (tlist,
+    join_node = make_nestloop (tlist,
 			       join_references (clauses,
 						outer_tlist,
 						inner_tlist),
 			       outer_node,
 			       inner_node);
 
-    set_state (join_node,get_path_cost (best_path));
+    set_cost (join_node,get_path_cost (best_path));
 
     if ( _watch_costs_) {
 	printf ("NESTLOOP COST = ");
-	lispDisplay (get_state (join_node));
+	lispDisplay (get_cost (join_node));
 	printf("\n");
     }
 
@@ -505,13 +527,13 @@ create_mergejoin_node (best_path,tlist,clauses,
 				      outer_tlist,
 				      inner_tlist));
      RegProcedure opcode = 
-       get_opcode (get_join_operator (get_ordering (best_path)));
+       get_opcode (get_join_operator (get_p_ordering (best_path)));
      
      LispValue outer_order = 
-       lispCons (get_left_operator (get_ordering (best_path)), LispNil);
+       lispCons (get_left_operator (get_p_ordering (best_path)), LispNil);
      
      LispValue inner_order = 
-       lispCons (get_right_operator (get_ordering (best_path)), LispNil);
+       lispCons (get_right_operator (get_p_ordering (best_path)), LispNil);
      
      MergeSort join_node;
      
@@ -525,7 +547,7 @@ create_mergejoin_node (best_path,tlist,clauses,
 					     outer_order,
 					     outer_node,
 					     SORT);
-	 set_state (sorted_outer_node,get_state (outer_node));
+	 set_cost (sorted_outer_node,get_cost (outer_node));
 	 outer_node = (Node)sorted_outer_node;
      }
 
@@ -535,7 +557,7 @@ create_mergejoin_node (best_path,tlist,clauses,
 						   (best_path),
 						   inner_order,
 						   inner_node,SORT);
-	  set_state (sorted_inner_node,get_state (inner_node));
+	  set_cost (sorted_inner_node,get_cost (inner_node));
 	  inner_node = (Node)sorted_inner_node;
      }
 
@@ -545,10 +567,10 @@ create_mergejoin_node (best_path,tlist,clauses,
 				opcode,
 				outer_node,
 				inner_node);
-     set_state (join_node,get_path_cost (best_path));
+     set_cost (join_node,get_path_cost (best_path));
      if ( _watch_costs_) {
 	  printf ("MERGEJOIN COST = ");
-	  lispDisplay (get_state (join_node));
+	  lispDisplay (get_cost (join_node));
 	  printf("\n");
      }
      return(join_node);
@@ -573,21 +595,24 @@ LispValue
 switch_outer (clauses)
      LispValue clauses ;
 {
-     LispValue t_list = LispNil;
-     LispValue clause = LispNil;
-     LispValue temp = LispNil;
-     foreach(clause,clauses) {
-	  if(var_is_outer (get_rightop (clause))) {
-	       temp = make_clause (get_op (clause),
-				   get_rightop (clause),
-				   get_leftop (clause));
-	       t_list = nappend1(t_list,temp);
-	  } 
-	  else 
-	    t_list = nappend1(t_list,clause);
+    LispValue t_list = LispNil;
+    LispValue clause = LispNil;
+    LispValue temp = LispNil;
+    LispValue i = LispNil;
 
-     }
-     return(t_list);
+    foreach(i,clauses) {
+	clause = CAR(i);
+	if(var_is_outer (get_rightop (clause))) {
+	    temp = make_clause (get_op (clause),
+				get_rightop (clause),
+				get_leftop (clause));
+	    t_list = nappend1(t_list,temp);
+	} 
+	else 
+	  t_list = nappend1(t_list,clause);
+	
+    } 
+    return(t_list);
 }  /* function end   */
 
 /*    
@@ -612,60 +637,60 @@ create_hashjoin_node (best_path,tlist,clauses,outer_node,outer_tlist,
      Node inner_node;
      List inner_tlist ;
 {
-     LispValue qpqual = 
-       /*    Separate the hashclauses from the other join qualification clauses
-	*    and set those clauses to contain references to lower attributes. 
-	*/
-       join_references (set_difference (clauses,
-					get_hashclauses (best_path)),
-			outer_tlist,
-			inner_tlist);
-     LispValue hashclauses = 
-       /*    Now set the references in the hashclauses and rearrange them so 
-	*    that the outer variable is always on the left. 
-	*/
-       switch_outer (join_references (get_hashclauses (best_path),
-				      outer_tlist,
-				      inner_tlist));
-     int opcode = 666;	/*   XXX BOGUS HASH FUNCTION */
-     LispValue outer_hashop = lispCons (666,LispNil); 	/*   XXX BOGUS HASH OP */
-     LispValue inner_hashop = lispCons (666,LispNil);	/* XXX BOGUS HASH OP */
-     HashJoin join_node;
+    LispValue qpqual = 
+      /*    Separate the hashclauses from the other join qualification clauses
+       *    and set those clauses to contain references to lower attributes. 
+       */
+      join_references (set_difference (clauses,
+				       get_path_hashclauses (best_path)),
+		       outer_tlist,
+		       inner_tlist);
+    LispValue hashclauses = 
+      /*    Now set the references in the hashclauses and rearrange them so 
+       *    that the outer variable is always on the left. 
+       */
+      switch_outer (join_references (get_path_hashclauses (best_path),
+				     outer_tlist,
+				     inner_tlist));
+    int opcode = 666;	/*   XXX BOGUS HASH FUNCTION */
+    LispValue outer_hashop = lispCons (666,LispNil); 	/*   XXX BOGUS HASH OP */
+    LispValue inner_hashop = lispCons (666,LispNil);	/* XXX BOGUS HASH OP */
+    HashJoin join_node;
 
-     if ( get_outerhashkeys (best_path)) {
-	 Temp hashed_outer_node = make_temp (outer_tlist,
-					     get_outerhashkeys 
-					     (best_path),
-					     outer_hashop,
-					     outer_node,
-					     T_HashJoin);
-	 set_state (hashed_outer_node,get_state (outer_node));
-	  outer_node = (Node)hashed_outer_node;
+    if ( get_outerhashkeys (best_path)) {
+	Temp hashed_outer_node = make_temp (outer_tlist,
+					    get_outerhashkeys 
+					    (best_path),
+					    outer_hashop,
+					    outer_node,
+					    T_HashJoin);
+	set_cost (hashed_outer_node,get_cost (outer_node));
+	outer_node = (Node)hashed_outer_node;
      }
-     if ( get_innerhashkeys (best_path)) {
-	  Temp hashed_inner_node = make_temp (inner_tlist,
-						   get_innerhashkeys 
-						   (best_path),
-						   inner_hashop,
-						   inner_node,
-						   T_HashJoin);
-	  set_state (hashed_inner_node,get_state (inner_node));
-	  inner_node = (Node)hashed_inner_node;
-     }
-     join_node = MakeHashJoin (tlist,
-				qpqual,
-				hashclauses,
-				opcode,
-				outer_node,
-				inner_node);
-     set_state (join_node,get_path_cost (best_path));
-     if ( _watch_costs_) {
-	  printf ("HASHJOIN COST = ");
-	  lispDisplay (get_state (join_node));
-	  printf("\n");
-     }
-     return(join_node);
-
+    if ( get_innerhashkeys (best_path)) {
+	Temp hashed_inner_node = make_temp (inner_tlist,
+					    get_innerhashkeys 
+					    (best_path),
+					    inner_hashop,
+					    inner_node,
+					    T_HashJoin);
+	set_cost (hashed_inner_node,get_cost (inner_node));
+	inner_node = (Node)hashed_inner_node;
+    }
+    join_node = make_hashjoin (tlist,
+			       qpqual,
+			       hashclauses,
+			       opcode,
+			       outer_node,
+			       inner_node);
+    set_cost (join_node,get_path_cost (best_path));
+    if ( _watch_costs_) {
+	printf ("HASHJOIN COST = ");
+	lispDisplay (get_cost (join_node));
+	printf("\n");
+    }
+    return(join_node);
+    
 } /* function end  */
 
 /*    	===================
@@ -699,14 +724,14 @@ make_temp (tlist,keys,operators,plan_node,temptype)
      int temptype ;
 {
      /*    Create a new target list for the temporary, with keys set. */
-     List temp_tlist = set_temp_tlist_operators(new_unsorted_tlist(tlist),
-						     keys,
-						     operators);
+    List temp_tlist = set_temp_tlist_operators(new_unsorted_tlist(tlist),
+					       keys,
+					       operators);
      Temp retval;
 
      switch (temptype) {
        case SORT : 
-	 retval = (Temp)MakeSeqScan(tlist,
+	 retval = (Temp)make_seqscan(tlist,
 				     LispNil,
 				     _TEMP_RELATION_ID_,
 				     MakeSort (temp_tlist,
@@ -716,10 +741,10 @@ make_temp (tlist,keys,operators,plan_node,temptype)
 	 break;
 	 
        case T_HashJoin : 
-	 retval = (Temp)MakeSeqScan(tlist,
-				 LispNil,
+	 retval = (Temp)make_seqscan(tlist,
+				     LispNil,
 				     _TEMP_RELATION_ID_,
-				     MakeHash (temp_tlist,
+				     make_hash (temp_tlist,
 						_TEMP_RELATION_ID_,
 						plan_node,
 						length (keys)));
@@ -762,22 +787,24 @@ set_temp_tlist_operators (tlist,pathkeys,operators)
      LispValue 	keys = LispNil;
      List 	ops = operators;
      int 	keyno = 1;
-     Resdom 	resdom ;
+     Resdom 	resdom = (Resdom)NULL ;
+     LispValue i = LispNil;
 
-     foreach(keys,pathkeys) {
-	  resdom = tlist_member (CAAR (keys),
-				 tlist,
-				 LispNil);
-	  if ( resdom) {
+     foreach(i,pathkeys) {
+	 keys = CAR(i);
+	 resdom = tlist_member (keys,
+				tlist,
+				LispNil);
+	 if ( resdom) {
 
-	       /* Order the resdom keys and replace the operator OID for each 
-		*    key with the regproc OID. 
-		*/
-	       set_reskey (resdom,keyno);
-	       set_reskeyop (resdom,get_opcode (CAR (ops)));
-	  }
-	  keyno += 1;
-	  ops = CDR (ops);
+	     /* Order the resdom keys and replace the operator OID for each 
+	      *    key with the regproc OID. 
+	      */
+	     set_reskey (resdom,keyno);
+	     set_reskeyop (resdom,get_opcode (CAR (ops)));
+	 }
+	 keyno += 1;
+	 ops = CDR (ops);
      }
      return(tlist);
 } /* function end  */
@@ -794,6 +821,9 @@ make_seqscan(qptlist,qpqual,scanrelid,lefttree)
     
     SeqScan node = New_Node(SeqScan);
     
+    if (!null(lefttree))
+      Assert(IsA(lefttree,Plan));
+
     set_cost ( node , 0.0 );
     set_fragment ( node, 0 );
     set_state (node, (EState)NULL);
@@ -805,5 +835,108 @@ make_seqscan(qptlist,qpqual,scanrelid,lefttree)
     
     node->printFunc = PrintSeqScan; 
     node->equalFunc = EqualSeqScan; 
+    return(node);
+}
+
+IndexScan
+make_indexscan(qptlist, qpqual, scanrelid,indxid,indxqual)
+     List qptlist,qpqual;
+     Index scanrelid;
+     List indxid, indxqual;
+
+{
+    extern bool EqualIndexScan();
+
+    IndexScan node = New_Node(IndexScan);
+
+    set_cost ( node , 0.0 );
+    set_fragment ( node, 0 );
+    set_state (node, (EState)NULL);
+    set_qptargetlist (node, qptlist);
+    set_qpqual (node , qpqual);
+    set_lefttree(node,(Plan)NULL);
+    set_righttree(node,(Plan)NULL);
+    set_scanrelid(node,scanrelid);
+    set_indxid(node,indxid);
+    set_indxqual(node,indxqual);
+
+    node->printFunc = PrintIndexScan;
+/*    node ->equalFunc = EqualIndexScan;   */
+
+    return(node);
+}
+
+
+NestLoop
+make_nestloop(qptlist,qpqual,lefttree,righttree)
+     List qptlist;
+     List qpqual;
+     Plan lefttree;
+     Plan righttree;
+{
+    extern void PrintNestLoop(); 
+    extern bool EqualNestLoop(); 
+
+    NestLoop node = CreateNode(NestLoop);
+
+    set_cost ( node , 0.0 );
+    set_fragment ( node, 0 );
+    set_state (node, (EState)NULL);
+    set_qptargetlist (node, qptlist);
+    set_qpqual (node , qpqual);
+    set_lefttree (node, lefttree);
+    set_righttree (node , righttree);
+
+    node->printFunc = PrintNestLoop; 
+    node->equalFunc = EqualNestLoop; 
+    return(node);
+
+}
+
+HashJoin
+make_hashjoin(tlist,qpqual,hashclauses,opcode,righttree,lefttree)
+     LispValue tlist, qpqual,hashclauses;
+     ObjectId opcode;
+     Plan righttree,lefttree;
+{
+    HashJoin node = CreateNode(HashJoin);
+    
+    set_cost ( node , 0.0 );
+    set_fragment ( node, 0 );
+    set_state (node, (EState)NULL);
+    set_qpqual (node,qpqual);
+    set_qptargetlist (node,tlist);
+    set_lefttree(node,lefttree);
+    set_righttree(node,righttree);
+    set_hashclauses(node,hashclauses);
+    set_hashjoinop(node,opcode);
+
+    node->printFunc = PrintHashJoin;
+    /* node->equalFunc = EqualHashJoin;  until function is defined */
+    return(node);
+
+}
+
+Hash
+make_hash (tlist,tempid,lefttree, keycount)
+     LispValue tlist;
+     Count keycount;
+     Plan lefttree;
+     ObjectId tempid;
+{
+    Hash node = CreateNode(Hash);
+
+    set_cost ( node , 0.0 );
+    set_fragment ( node, 0 );
+    set_state (node, (EState)NULL);
+    set_qpqual (node,LispNil);
+    set_qptargetlist (node,tlist);
+    set_lefttree(node,lefttree);
+    set_righttree(node,LispNil);
+    set_tempid(node,tempid);
+    set_keycount(node,keycount);
+    
+    node->printFunc = PrintHash;
+/*    node->equalFunc = EqualHash;  */
     return(node);
 }

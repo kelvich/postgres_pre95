@@ -131,7 +131,7 @@ query_planner (command_type,tlist,qual,currentlevel,maxlevel)
 	     case REPLACE : 
 	       {
 		    /* XXX - let form, maybe incorrect */
-		   SeqScan scan = MakeSeqScan (tlist,
+		   SeqScan scan = make_seqscan (tlist,
 					       LispNil,
 					       _query_result_relation_,
 					       LispNil);
@@ -267,23 +267,23 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
      /* *query-relation-list* as relation references are found (e.g., in the */
      /*  qualification, the targetlist, etc.) */
 
-	_query_relation_list_ = LispNil;
-	initialize_targetlist (flat_tlist);
-	initialize_qualification (qual);
+    _query_relation_list_ = LispNil;
+    initialize_targetlist (flat_tlist);
+    initialize_qualification (qual);
 
-
+    
 /* Find all possible scan and join paths. */
 /* Mark all the clauses and relations that can be processed using special */
 /* join methods, then do the exhaustive path search. */
 
-	initialize_join_clause_info (_query_relation_list_);
-	_query_relation_list_ = find_paths (_query_relation_list_,
-					    level,
-					    sortkeys);
-     if (_query_relation_list_)
-       final_relation = (Rel)CAR (_query_relation_list_);
-     else
-       final_relation = (Rel)LispNil;
+    initialize_join_clause_info (_query_relation_list_);
+    _query_relation_list_ = find_paths (_query_relation_list_,
+					level,
+					sortkeys);
+    if (_query_relation_list_)
+      final_relation = (Rel)CAR (_query_relation_list_);
+    else
+      final_relation = (Rel)LispNil;
      
 /*    If we want a sorted result and indices could have been used to do so, */
 /*    then explicitly sort those paths that weren't sorted by indices so we */
@@ -291,10 +291,10 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 /*  explicit one. */
 
      if ( valid_sortkeys (sortkeys)) {
-	  sort_relation_paths (get_pathlist (final_relation),
+	 sort_relation_paths (get_pathlist (final_relation),
 			       sortkeys,
-			       final_relation,
-			       compute_targetlist_width(original_tlist));
+			      final_relation,
+			      compute_targetlist_width(original_tlist));
      }
 /*    Determine the cheapest path and create a subplan corresponding to it. */
     
@@ -305,7 +305,7 @@ subplanner (flat_tlist,original_tlist,qual,level,sortkeys)
 	printf(" Warn: final relation is nil \n");
 	return(create_plan (LispNil,original_tlist));
     }
-
+    
 }  /* function end  */
 
 Result
@@ -315,14 +315,17 @@ make_result( tlist,resrellevelqual,left,right)
      Plan left,right;
 {
     extern void PrintResult();
-    
+    extern bool EqualResult();
     Result node = New_Node(Result);
     
-    set_resrellevelqual( node ,resrellevelqual); 
-    set_resconstantqual( node ,LispNil); 
+    set_cost ((Plan)node,0.0);
     set_qptargetlist ((Plan)node, tlist);
     set_lefttree((Plan)node,left);
     set_righttree((Plan)node,right);
+    set_resrellevelqual( node ,resrellevelqual); 
+    set_resconstantqual( node ,LispNil); 
+
     node->printFunc = PrintResult; 
+    node->equalFunc = EqualResult;
     return(node);
 } 

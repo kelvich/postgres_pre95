@@ -101,7 +101,7 @@ List
 joinmethod_clauses(method)
      joinmethod method;
 {
-    return(method->clauses);
+  return(method->clauses);
 }
 
 List

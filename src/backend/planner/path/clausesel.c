@@ -23,6 +23,7 @@
 #include "planner/internal.h"
 #include "planner/clause.h"
 #include "planner/clausesel.h"
+#include "planner/plancat.h"
 #include "primnodes.h"
 #include "primnodes.a.h"
 #include "parsetree.h"
@@ -74,7 +75,7 @@ double
 product_selec (clauseinfo_list)
      LispValue clauseinfo_list ;
 {
-     double result = 1;
+     double result = 1.0;
      if ( consp (clauseinfo_list) ) {
 	  LispValue xclausenode = LispNil;
 	  double temp;
@@ -84,9 +85,6 @@ product_selec (clauseinfo_list)
 	       result = result * temp;
 	  }
      }
-     else {
-	  result = 1.0;
-     } 
      return(result);
 } /* end product_selec */
 
@@ -97,7 +95,8 @@ product_selec (clauseinfo_list)
  *    	those clauses that haven't been assigned a selectivity by an index.
  *    
  *    	Returns nothing of interest.
- *    
+ *   	MODIFIES: selectivities of the various rel's clauseinfo
+ *		  slots. 
  */
 
 /*  .. find-paths    */
@@ -106,11 +105,11 @@ void
 set_rest_relselec (rel_list)
      LispValue rel_list ;
 {
-     LispValue rel;
+    LispValue rel = LispNil;
      foreach (rel,rel_list) {
-	  set_rest_selec (get_clauseinfo (CAR(rel)));
+	 set_rest_selec (get_clauseinfo (CAR(rel)));
      }
-}
+ }
 
 /*    
  *    	set_rest_selec
@@ -128,10 +127,11 @@ void
 set_rest_selec (clauseinfo_list)
 LispValue clauseinfo_list ;
 {
-    LispValue temp,clausenode;
+    LispValue temp = LispNil;
+    CInfo clausenode = (CInfo)NULL;
     
     foreach (temp,clauseinfo_list) {
-	clausenode = CAR(temp);
+	clausenode = (CInfo)CAR(temp);
 	/*    Check to see if the selectivity of this clause or any 'or' */
 	/*    subclauses (if any) haven't been set yet. */
 	if ( valid_or_clause (clausenode) ||
@@ -168,25 +168,25 @@ double
 compute_clause_selec (clause,or_selectivities)
      LispValue clause,or_selectivities ;
 {
-     if (!is_clause (clause)) {
-	  /* Boolean variables get a selectivity of 1/2. */
-	  return(0.5);
-     } 
-     else if (not_clause (clause)) {
-	  /* 'not' gets "1.0 - selectivity-of-inner-clause". */
-	  return (1.000000 - compute_selec (lispCons(get_notclausearg (clause),
-						     LispNil),
-					    or_selectivities));
-     }
-     else if (or_clause (clause)) {
-	  /* Both 'or' and 'and' clauses are evaluated as described in 
-	   *    (compute_selec). 
-	   */
-	  return (compute_selec (get_orclauseargs (clause),or_selectivities));
-     } 
-     else {
-	  return(compute_selec (lispCons(clause,LispNil),or_selectivities));
-     } 
+    if (!is_clause (clause)) {
+	/* Boolean variables get a selectivity of 1/2. */
+	return(0.5);
+    } 
+    else if (not_clause (clause)) {
+	/* 'not' gets "1.0 - selectivity-of-inner-clause". */
+	return (1.000000 - compute_selec (lispCons(get_notclausearg (clause),
+						   LispNil),
+					  or_selectivities));
+    }
+    else if (or_clause (clause)) {
+	/* Both 'or' and 'and' clauses are evaluated as described in 
+	 *    (compute_selec). 
+	 */
+	return (compute_selec (get_orclauseargs (clause),or_selectivities));
+    } 
+    else {
+	return(compute_selec (lispCons(clause,LispNil),or_selectivities));
+    } 
 }
 
 /*    
@@ -213,91 +213,96 @@ double
 compute_selec (clauses,or_selectivities)
      LispValue clauses,or_selectivities ;
 {
-     double s1;
-     LispValue clause = CAR (clauses);
-     if(null (clauses)) {
-	  s1 = 1.0;
-     } 
-     else if 
-       /* If s1 has already been assigned by an index, use that value. */
-       (or_selectivities) {
+    double s1 = 0;
+    LispValue clause = CAR (clauses);
+    if(null (clauses)) {
+	s1 = 1.0;
+    } 
+    else if 
+      /* If s1 has already been assigned by an index, use that value. */
+      (or_selectivities) {
 	    s1 = (int) CAR (or_selectivities);
-       } 
-     else if (1 == NumRelids (clause)) {
+	} 
+    else if (1 == NumRelids (clause)) {
 
-    /* ...otherwise, calculate s1 from 'clauses'. 
-     *    The clause is not a join clause, since there is 
-     *    only one relid in the clause.  The clause 
-     *    selectivity will be based on the operator 
-     *    selectivity and operand values. 
-     */
+	/* ...otherwise, calculate s1 from 'clauses'. 
+	 *    The clause is not a join clause, since there is 
+	 *    only one relid in the clause.  The clause 
+	 *    selectivity will be based on the operator 
+	 *    selectivity and operand values. 
+	 */
 
-	  LispValue relattvals = get_relattval (clause);
-	  ObjectId opno = get_opno (get_op (clause));
-	  ObjectId relid ;
-
-	  if (translate_relid (CAR(relattvals))) 
-	    relid = translate_relid(CAR(relattvals));
-	  else
-	    relid = _SELEC_VALUE_UNKNOWN_;
-       
-	  s1 = restriction_selectivity (get_oprrest (opno),opno,relid,
-					CADR (relattvals),
-					CADDR (relattvals),
-					CADDR (CDR(relattvals)));
-     }
+	LispValue relattvals = get_relattval (clause);
+	ObjectId opno = get_opno (get_op (clause));
+	LispValue relid = LispNil;
+	
+	if (translate_relid (CAR(relattvals)))
+	  relid = translate_relid(CAR(relattvals));
+	else
+	  relid = lispInteger(_SELEC_VALUE_UNKNOWN_);
+	
+	s1 = (double)restriction_selectivity (get_oprrest (opno),
+					      opno,
+					      CInteger(relid),
+					      CInteger(CADR (relattvals)),
+					      CInteger((CADDR (relattvals))),
+					      CInteger(CADDR 
+						       (CDR(relattvals))));
+    }
      else {
-       
-    /*    The clause must be a join clause.  The clause 
-     *    selectivity will be based on the relations to be 
-     *    scanned and the attributes they are to be joined 
-     *    on. 
-     */
-	  LispValue relsatts = get_relsatts (clause);
-	  ObjectId opno = get_opno (get_op (clause));
-	  ObjectId relid1 ;
-	  ObjectId relid2 ;
-
-	  if(translate_relid (CAR(relsatts)))
-	    relid1 = translate_relid(CAR(relsatts));
-	  else
-	    relid1 =  _SELEC_VALUE_UNKNOWN_;
-	  if (translate_relid (CADDR (relsatts)))
+	 
+	 /*    The clause must be a join clause.  The clause 
+	  *    selectivity will be based on the relations to be 
+	  *    scanned and the attributes they are to be joined 
+	  *    on. 
+	  */
+	 LispValue relsatts = get_relsatts (clause);
+	 ObjectId opno = get_opno (get_op (clause));
+	 LispValue relid1 = LispNil;
+	 LispValue relid2 = LispNil;
+	 
+	 if(translate_relid (CAR(relsatts)))
+	   relid1 = translate_relid(CAR(relsatts));
+	 else
+	   relid1 =  lispInteger(_SELEC_VALUE_UNKNOWN_);
+	 if (translate_relid (CADDR (relsatts)))
 	    relid2 = translate_relid(CADDR(relsatts));
-	  else
-	    relid2 =  _SELEC_VALUE_UNKNOWN_;
-	  
-	  s1 = join_selectivity (get_oprjoin (opno),opno,relid1,
-				 CADR (relsatts),
-				 relid2,
-				 CADDR (CDR (relsatts)));
+	 else
+	   relid2 =  lispInteger(_SELEC_VALUE_UNKNOWN_);
+	 
+	 s1 = (double)join_selectivity (get_oprjoin (opno),
+					opno,
+					CInteger(relid1),
+					CInteger(CADR (relsatts)),
+					CInteger(relid2),
+					CInteger(CADDR (CDR (relsatts))));
      }
-
-  /*    A null clause list eliminates no tuples, so return a selectivity 
-   *    of 1.0.  If there is only one clause, the selectivity is not 
-   *    that of an 'or' clause, but rather that of the single clause.
-   */
-
-     if(length (clauses) < 2) {
-	  return(s1);
-     } 
-     else {
-	  /* Compute selectivity of the 'or'ed subclauses. */
-
+    
+    /*    A null clause list eliminates no tuples, so return a selectivity 
+     *    of 1.0.  If there is only one clause, the selectivity is not 
+     *    that of an 'or' clause, but rather that of the single clause.
+     */
+    
+    if (length (clauses) < 2) {
+	return(s1);
+    } 
+    else {
+	/* Compute selectivity of the 'or'ed subclauses. */
+	
 	  double s2 = compute_selec (CDR (clauses),CDR (or_selectivities));
 	  return (double)(s1 + s2 - s1*s2);
-     }
+      }
 } /* end compute_selec */
 
-/*  .. compute_selec
- */
-ObjectId
+/*  .. compute_selec */
+
+LispValue
 translate_relid (relid)
      ObjectId relid ;
 {
-     if ( integerp (relid) && relid > 0 ) {
-	  return ((ObjectId)getrelid (relid,_query_range_table_));
-     } 
-     return((ObjectId)0);
+    if ( integerp (relid) && relid > 0 ) {
+	return (getrelid (CInteger(relid),_query_range_table_));
+    } 
+    return(lispInteger(0));
 }
 

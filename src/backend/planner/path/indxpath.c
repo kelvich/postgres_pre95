@@ -24,11 +24,7 @@
 #include "lsyscache.h"
 #include "planner/clauseinfo.h"
 #include "planner/cfi.h"
-
-
-/* #define INDEXSCAN 1
-   #define List LispValue
- */
+#include <math.h>
 
 /*    
  *    	find-index-paths
@@ -62,95 +58,101 @@
 
 LispValue
 find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
-     LispValue rel,indices,clauseinfo_list,joininfo_list,sortkeys ;
+     Rel rel;
+     LispValue indices,clauseinfo_list,joininfo_list,sortkeys ;
 
 {
-	LispValue scanclausegroups = LispNil;
-	LispValue scanpaths = LispNil;
-	LispValue index = LispNil;
-	LispValue joinclausegroups = LispNil;
-	LispValue joinpaths = LispNil;
-	LispValue sortpath = LispNil;
+    LispValue scanclausegroups = LispNil;
+    LispValue scanpaths = LispNil;
+    Rel	       index = (Rel)NULL;
+    LispValue joinclausegroups = LispNil;
+    LispValue joinpaths = LispNil;
+    LispValue sortpath = LispNil;
+    LispValue retval = LispNil;
+    
+    if(consp (indices)) {
 	
-	if(consp (indices)) {
-	     
-	     /*  1. If this index has only one key, try matching it against 
-	      * subclauses of an 'or' clause.  The fields of the clauseinfo
-	      * nodes are marked with lists of the matching indices no path
-	      * are actually created. 
-	      */
+	/*  1. If this index has only one key, try matching it against 
+	 * subclauses of an 'or' clause.  The fields of the clauseinfo
+	 * nodes are marked with lists of the matching indices no path
+	 * are actually created. 
+	 */
 
-	     if ( 1 == length (get_indexkeys (CAR (indices)))) {
-		  match_index_orclauses (rel,CAR (indices),
-					 CAR ( get_indexkeys 
-					      (CAR (indices))),
-					 CAR (get_classlist(CAR (indices))),
-					 clauseinfo_list);
-	     }
+	if ( 1 == length (get_indexkeys (CAR (indices)))) {
+	    match_index_orclauses (rel,CAR (indices),
+				   CAR ( get_indexkeys 
+					(CAR (indices))),
+				   CAR (get_classlist(CAR (indices))),
+				   clauseinfo_list);
+	}
+	
+	index = (Rel)CAR (indices);
+	/* 2. If the keys of this index match any of the available 
+	 * restriction clauses, then create pathnodes corresponding 
+	 * to each group of usable clauses.
+	 */
 	     
-	     index = CAR (indices);
-	     /* 2. If the keys of this index match any of the available 
-	      * restriction clauses, then create pathnodes corresponding 
-	      * to each group of usable clauses.
-	      */
+	scanclausegroups =
+	  group_clauses_by_indexkey (rel,index,get_indexkeys (index),
+				     get_classlist (index),clauseinfo_list,
+				     LispNil,LispNil);
+	scanpaths = LispNil;
+	if ( consp (scanclausegroups) ) 
+	  scanpaths = create_index_paths (rel,index,
+					  scanclausegroups,
+					  false);
 	     
-	     scanclausegroups =
-	       group_clauses_by_indexkey (rel,index,get_indexkeys (index),
-					  get_classlist (index),clauseinfo_list,
-					  LispNil,LispNil);
-	     scanpaths = LispNil;
-	     if ( consp (scanclausegroups) ) 
-	       scanpaths = create_index_paths (rel,index,
-					       scanclausegroups,
-					       LispNil);
+	/* 3. If this index can be used with any join clause, then 
+	 * create pathnodes for each group of usable clauses.  An 
+	 * index can be used with a join clause if its ordering is 
+	 * useful for a mergejoin, or if the index can possibly be 
+	 * used for scanning the inner relation of a nestloop join. 
+	 */
 	     
-	     /* 3. If this index can be used with any join clause, then 
-	      * create pathnodes for each group of usable clauses.  An 
-	      * index can be used with a join clause if its ordering is 
-	      * useful for a mergejoin, or if the index can possibly be 
-	      * used for scanning the inner relation of a nestloop join. 
-	      */
+	joinclausegroups = 
+	  indexable_joinclauses (rel,index,joininfo_list);
+	joinpaths = LispNil;
+	if ( consp (joinclausegroups) ) {
+	    LispValue new_join_paths = 
+	      create_index_paths (rel,index,joinclausegroups,
+				  true);
+	    LispValue innerjoin_paths = 
+	      index_innerjoin (rel,joinclausegroups,index);
+	    set_innerjoin (rel,nconc (get_innerjoin(rel),
+				      innerjoin_paths));
+	    joinpaths = new_join_paths;
+	}
 	     
-	     joinclausegroups = 
-	       indexable_joinclauses (rel,index,joininfo_list);
-	     joinpaths = LispNil;
-	     if ( consp (joinclausegroups) ) {
-		  LispValue new_join_paths = 
-		    create_index_paths (rel,index,joinclausegroups,
-					LispTrue);
-		  LispValue innerjoin_paths = 
-		    index_innerjoin (rel,joinclausegroups,index);
-		  set_innerjoin (rel,nconc (get_innerjoin(rel),
-					    innerjoin_paths));
-		  joinpaths = new_join_paths;
-	     }
+	/* 4. If this particular index hasn't already been used above,
+	 *   then check to see if it can be used for ordering a  
+	 *   user-specified sort.  If it can, add a pathnode for the 
+	 *   sorting scan. 
+	 */
 	     
-	     /* 4. If this particular index hasn't already been used above,
-	      *   then check to see if it can be used for ordering a  
-	      *   user-specified sort.  If it can, add a pathnode for the 
-	      *   sorting scan. 
-	      */
-	     
-	     sortpath = LispNil;
-	     if ( valid_sortkeys(sortkeys) && null(scanclausegroups) && 
-		 null(joinclausegroups) && equal(get_relid(sortkeys),
-						 get_relid (rel)) && 
-		 equal_path_path_ordering(get_ordering (sortkeys),
-					  get_ordering (index)) && 
-		 equal (get_sortkeys(sortkeys),get_indexkeys (index))) {
-		  sortpath =lispCons (create_index_path (rel,index,
-							 LispNil,
-							 LispNil),
+	sortpath = LispNil;
+	if ( valid_sortkeys(sortkeys) && null(scanclausegroups) && 
+	    null(joinclausegroups) && equal(get_relid(sortkeys),
+					    get_relid (rel)) && 
+	    equal_path_path_ordering(get_ordering (sortkeys),
+				     get_ordering (index)) && 
+	    equal (get_sortkeys(sortkeys),get_indexkeys (index))) {
+	    sortpath =lispCons (create_index_path (rel,index,
+						   LispNil,
+						   LispNil),
 				      LispNil);
-	     } 
-	     
-	     return (append (scanpaths,joinpaths,sortpath,
-			     find_index_paths (rel,
-					       CDR (indices),
-					       clauseinfo_list,
-					       joininfo_list,sortkeys)));
 	} 
-   }  /* function end */
+	     
+	retval = append (scanpaths,joinpaths);
+	retval = append (retval,sortpath);
+	retval = append (retval,
+			 find_index_paths (rel,
+					   CDR (indices),
+					   clauseinfo_list,
+					   joininfo_list,sortkeys));
+
+	return(retval);
+    } 
+}  /* function end */
 
 
 /*    		----  ROUTINES TO MATCH 'OR' CLAUSES  ----   */
@@ -182,17 +184,20 @@ void
 match_index_orclauses (rel,index,indexkey,xclass,clauseinfo_list)
 LispValue rel,index,indexkey,xclass,clauseinfo_list ;
 {
-     LispValue clauseinfo;
-     foreach (clauseinfo, clauseinfo_list) {
-	  if ( valid_or_clause (clauseinfo)) {
-	       
-	       /* Mark the 'or' clause with a list of indices which 
-		* match each of its subclauses.  The list is
-		* generated by adding 'index' to the existing
-		* list where appropriate.
-		*/
-	       
-	       set_indexids (clauseinfo,
+    CInfo clauseinfo = (CInfo)NULL;
+    LispValue i = LispNil;
+
+    foreach (i, clauseinfo_list) {
+	clauseinfo = (CInfo)CAR(i);
+	if ( valid_or_clause (clauseinfo)) {
+	    
+	    /* Mark the 'or' clause with a list of indices which 
+	     * match each of its subclauses.  The list is
+	     * generated by adding 'index' to the existing
+	     * list where appropriate.
+	     */
+	    
+	    set_indexids (clauseinfo,
 			  match_index_orclause (rel,index,indexkey,
 						xclass,
 						get_orclauseargs
@@ -233,26 +238,28 @@ match_index_orclause (rel,index,indexkey,xclass,
 		      or_clauses,other_matching_indices)
      LispValue rel,index,indexkey,xclass,or_clauses,other_matching_indices ;
 {
-     /* XXX - lisp mapCAR  -- may be wrong. */
-     LispValue clause = LispNil;
-     LispValue matched_indices  = other_matching_indices;
-     LispValue index_list = LispNil;
-     
-     foreach (clause,or_clauses) {
-	  if (is_clause (clause) && 
-	      op_class(get_opno(get_op (clause)),xclass) && 
-	      match_indexkey_operand (indexkey,
-				      get_leftop (clause),
-				      rel) &&
-	      IsA(get_rightop (clause),Const)) {
-	       index_list = nappend1(index_list,
-				     lispCons (index,matched_indices));
-	  } 
-	  else {
-	       index_list = nappend1(index_list,matched_indices);
-	  }
-     }
-     return(index_list);
+    /* XXX - lisp mapCAR  -- may be wrong. */
+    LispValue clause = LispNil;
+    LispValue matched_indices  = other_matching_indices;
+    LispValue index_list = LispNil;
+    LispValue i = LispNil;
+
+    foreach (i,or_clauses) {
+	clause = CAR(i);
+	if (is_clause (clause) && 
+	    op_class(get_opno(get_op (clause)),xclass) && 
+	    match_indexkey_operand (indexkey,
+				    get_leftop (clause),
+				    rel) &&
+	    IsA(get_rightop (clause),Const)) {
+	    index_list = nappend1(index_list,
+				  lispCons (index,matched_indices));
+	} 
+	else {
+	    index_list = nappend1(index_list,matched_indices);
+	}
+    }
+    return(index_list);
      
 }  /* function end */
 
@@ -291,59 +298,61 @@ match_index_orclause (rel,index,indexkey,xclass,
 LispValue
 group_clauses_by_indexkey (rel,index,indexkeys,classes,clauseinfo_list,
 			   matched_clauseinfo_list,join)
-     LispValue rel,index,indexkeys,classes,clauseinfo_list,
+     Rel rel,index;
+     LispValue indexkeys,classes,clauseinfo_list,
      matched_clauseinfo_list,join ;
 {
-     if ( consp (clauseinfo_list) ) {
-	  
-	  /*    If we can't find any matching clauses for the first of 
-	   *    the remaining keys, give up now. 
-	   */
-	  
-	  CInfo matched_clause = 
-	    match_clauses_to_indexkey (rel,index,
-				       CAR(indexkeys),
-				       CAR(classes),
-				       clauseinfo_list,join);
-	  if ( matched_clause ) {
-	       LispValue new_matched_clauseinfo_list =
-		 cons (matched_clause,matched_clauseinfo_list);
-	       LispValue clausegroup = LispNil;
-	       if ( CDR (indexkeys) ) {
-		    clausegroup = 
-		      group_clauses_by_indexkey (rel,index,
-						 CDR (indexkeys),
-						 CDR (classes),
+    if ( consp (clauseinfo_list) ) {
+	
+	/*    If we can't find any matching clauses for the first of 
+	 *    the remaining keys, give up now. 
+	 */
+	
+	CInfo matched_clause = 
+	  match_clauses_to_indexkey (rel,index,
+				     CAR(indexkeys),
+				     CAR(classes),
+				     clauseinfo_list,join);
+	if ( matched_clause ) {
+	    LispValue new_matched_clauseinfo_list =
+	      cons (matched_clause,matched_clauseinfo_list);
+	    LispValue clausegroup = LispNil;
+	    if ( CDR (indexkeys) && 
+		CInteger(CADR(indexkeys)) != 0) {
+		clausegroup = 
+		  group_clauses_by_indexkey (rel,index,
+					     CDR (indexkeys),
+					     CDR (classes),
 						 clauseinfo_list,
-						 new_matched_clauseinfo_list,
-						 join);
-	       } 
-	       else {
-		    clausegroup = 
-		      lispCons (new_matched_clauseinfo_list,LispNil);
-	       } 
+					     new_matched_clauseinfo_list,
+					     join);
+	    } 
+	    else {
+		clausegroup = 
+		  lispCons (new_matched_clauseinfo_list,LispNil);
+	    } 
 
-	       if ( consp (clausegroup) ) {
-		    return (nconc (clausegroup,
+	    if ( consp (clausegroup) ) {
+		return (nconc (clausegroup,
+			       
+			       /*  See if other clauses can be used for */
+			       /*  these remaining keys by ignoring the one */
+			       /*  that was just used (i.e., find all  */
+			       /*  possible solutions). */
 
-			   /*  See if other clauses can be used for */
-			   /*  these remaining keys by ignoring the one */
-			   /*  that was just used (i.e., find all  */
-			   /*  possible solutions). */
-
-				   group_clauses_by_indexkey (rel,index,
-							      indexkeys,
-							      classes,
-							      remove 
-							      (matched_clause,
-							      clauseinfo_list),
-						      matched_clauseinfo_list,
-							      join)));
-	       } 
+			       group_clauses_by_indexkey (rel,index,
+							  indexkeys,
+							  classes,
+							  remove 
+							  (matched_clause,
+							   clauseinfo_list),
+							  matched_clauseinfo_list,
+							  join)));
+	    } 
 	  }
-	  return (LispNil);
-     }
-     return (LispNil);
+	return (LispNil);
+    }
+    return (LispNil);
 }  /* function end */
 
 /*    
@@ -369,39 +378,48 @@ group_clauses_by_indexkey (rel,index,indexkeys,classes,clauseinfo_list,
  
 CInfo
 match_clauses_to_indexkey (rel,index,indexkey,xclass,clauses,join)
-     LispValue rel,index,indexkey,xclass,clauses,join ;
+     Rel rel,index;
+     LispValue indexkey,xclass,clauses,join ;
 {
-	/* XXX lisp find-if function  --- may be wrong */
-     LispValue clauseinfo = LispNil;
-     foreach(clauseinfo,clauses) {
-	  Expr clause = get_clause (clauseinfo);
-	  Var leftop = get_leftop (clause);
-	  Var rightop = get_rightop (clause);
-	  ObjectId join_op;
-	  bool temp1 ;
-	  bool temp2 ;
-	  if(null (join)) {
-	       ;
-	  } 
-	  else if (match_indexkey_operand (indexkey,rightop,rel)) {
-	       join_op = get_commutator (get_opno (get_op (clause)));
-	  } 
-	  else if (match_indexkey_operand (indexkey,leftop,rel)) {
-	       join_op = get_opno (get_op (clause));
-	  } 
+    /* XXX lisp find-if function  --- may be wrong */
+    CInfo clauseinfo = (CInfo)NULL;
+    LispValue i = LispNil;
+    Expr clause = (Expr)NULL;
+    Var leftop = (Var)NULL;
+    Var rightop = (Var)NULL;
+
+    foreach(i,clauses) {
+	ObjectId join_op = 0;
+	bool temp1 = false ;
+	bool temp2  =false;
+
+	clauseinfo = (CInfo)CAR(i);
+	clause = get_clause (clauseinfo);
+	leftop = get_leftop (clause);
+	rightop = get_rightop (clause);
+
+	if(null (join)) {
+	    ;
+	} 
+	else if (match_indexkey_operand (indexkey,rightop,rel)) {
+	    join_op = get_commutator (get_opno (get_op (clause)));
+	} 
+	else if (match_indexkey_operand (indexkey,leftop,rel)) {
+	    join_op = get_opno (get_op (clause));
+	} 
 	  
-	  temp1 = (bool) (null(join_op)    /*   (op var const) */
-			  && op_class(get_opno(get_op(clause)),xclass)
-			  && ( (qual_clause_p(clause)
-				&& equal_indexkey_var(indexkey,leftop))
-			      || function_index_clause_p(clause,rel,index)));
+	temp1 = (bool) (join_op == 0    /*   (op var const) */
+			&& op_class(get_opno(get_op(clause)),CInteger(xclass))
+			&& ( (qual_clause_p(clause)
+			      && equal_indexkey_var(indexkey,leftop))
+			    || function_index_clause_p(clause,rel,index)));
 		
-	  temp2 = (bool) (join_op && op_class(join_op,xclass) &&
-			  !zerop(join_op) && join_clause_p(clause));
+	temp2 = (bool) (join_op && op_class(join_op,CInteger(xclass)) &&
+			!zerop(join_op) && join_clause_p(clause));
 	  
-	  if (temp1 || temp2) 
-	    return((CInfo)clauseinfo);
-     }
+	if (temp1 || temp2) 
+	  return(clauseinfo);
+    }
 } /* function end */
 
 
@@ -430,25 +448,28 @@ indexable_joinclauses (rel,index,joininfo_list)
 {
 	/*  XXX Lisp Mapcan -- may be wrong  */
 
-     LispValue joininfo = LispNil;
-     LispValue cg_list = LispNil;
+    JInfo joininfo = (JInfo)NULL;
+    LispValue cg_list = LispNil;
+    LispValue i = LispNil;
+    LispValue clausegroups = LispNil;
 
-     foreach(joininfo,joininfo_list) {
-	  LispValue clausegroups = 
-	    group_clauses_by_indexkey (rel,index,
-				       get_indexkeys(index),
-				       get_classlist (index),
-				       get_clauseinfo(joininfo),
-				       LispNil,
-				       LispTrue);
+    foreach(i,joininfo_list) { 
+	joininfo = (JInfo)CAR(i);
+	clausegroups = 
+	  group_clauses_by_indexkey (rel,index,
+				     get_indexkeys(index),
+				     get_classlist (index),
+				     get_jinfoclauseinfo(joininfo),
+				     LispNil,
+				     LispTrue);
 		
-	  if ( consp (clausegroups)) {
-	       set_joinid (CAAR(clausegroups),
-			   get_otherrels(joininfo));
-	  }
-	  cg_list = nconc(cg_list,clausegroups);
-     }
-     return(cg_list);
+	if ( consp (clausegroups)) {
+	    set_joinid (CAAR(clausegroups),
+			get_otherrels(joininfo));
+	}
+	cg_list = nconc(cg_list,clausegroups);
+    }
+    return(cg_list);
 }  /* function end */
 
 /*    		----  PATH CREATION UTILITIES  ---- */
@@ -471,46 +492,56 @@ indexable_joinclauses (rel,index,joininfo_list)
 
 LispValue
 index_innerjoin (rel,clausegroup_list,index)
-     LispValue rel,clausegroup_list,index ;
-
+     Rel	rel;
+     List 	clausegroup_list;
+     Rel 	index ;
 {
      LispValue clausegroup = LispNil;
      LispValue cg_list = LispNil;
-     
-     /*  XXX MapCAR function  */
-     foreach(clausegroup,clausegroup_list) {
-	  Path pathnode = CreateNode(Path);
-	  
-	  LispValue relattvals =                
-	    get_joinvars (get_relid (rel),clausegroup);
-	  LispValue pagesel = 
-	    index_selectivity (CAR((LispValue)get_indexid (index)),
-			       get_classlist (index),
-			       get_opnos (clausegroup),
-			       getrelid (get_relid (rel),
-					 _query_range_table_),
-			       CAR (relattvals),
-			       CADR (relattvals),
-			       CADDR (relattvals),
-			       length (clausegroup));
-	  
-	  set_pathtype (pathnode,T_IndexScan);
-	  set_parent (pathnode,rel);
-	  set_indexid (pathnode,get_indexid (index));
-	  set_indexqual (pathnode,clausegroup);
-	  set_joinid (pathnode,get_joinid (CAR (clausegroup)));
-	  set_cost (pathnode,cost_index (nth (0,get_indexid (index)),
-					 floor (nth (0,pagesel)),
-					 (int)(nth (1,pagesel)),
-					 get_pages (rel),
-					 get_tuples (rel),
-					 get_pages (index),
-					 get_tuples (index)));
+     LispValue i = LispNil;
+     LispValue relattvals = LispNil;
+     List pagesel = LispNil;
+     Path pathnode = (Path)NULL;
+     Cost  	temp_selec;
+     Count	temp_pages;
 
-	  cg_list = nappend1(cg_list,pathnode);
+     foreach(i,clausegroup_list) {
+	 clausegroup = CAR(i);
+	 pathnode = CreateNode(Path);
+	 relattvals =                
+	   get_joinvars (CAR(get_relids(rel)),clausegroup);
+	 pagesel = 
+	   index_selectivity (CAR((LispValue)get_relids (index)),
+			      get_classlist (index),
+			      get_opnos (clausegroup),
+			      getrelid (get_relid (rel),
+					_query_range_table_),
+			      CAR (relattvals),
+			      CADR (relattvals),
+			      CADDR (relattvals),
+			      length (clausegroup));
+	  
+	 set_pathtype (pathnode,T_IndexScan);
+	 set_parent (pathnode,rel);
+	 set_indexid (pathnode,get_relids (index));
+	 set_indexqual (pathnode,clausegroup);
+	 set_joinid (pathnode,get_joinid (CAR (clausegroup)));
+
+	 temp_pages = (int)CDouble(CAR(pagesel));
+	 temp_selec = CDouble(CADR(pagesel));
+
+	 set_cost (pathnode,cost_index (CInteger(CAR(get_relids (index))),
+					temp_pages,
+					temp_selec,
+					get_pages (rel),
+					get_tuples (rel),
+					get_pages (index),
+					get_tuples (index)));
+
+	 cg_list = nappend1(cg_list,pathnode);
      }
      return(cg_list);
-}  /*  function end */
+ }  /*  function end */
 
 /*    
  *    	create-index-paths
@@ -532,34 +563,42 @@ index_innerjoin (rel,clausegroup_list,index)
 
 LispValue
 create_index_paths (rel,index,clausegroup_list,join)
-     LispValue rel,index,clausegroup_list,join ;
+     Rel rel, index;
+     LispValue clausegroup_list;
+     bool join;
 {
      /* XXX Mapcan  */
      LispValue clausegroup = LispNil;
      LispValue ip_list = LispNil;
      LispValue temp = LispTrue;
+     LispValue i = LispNil;
+     LispValue j = LispNil;
 
-     foreach(clausegroup,clausegroup_list) {
-	  LispValue clauseinfo = LispNil;
-	  LispValue temp_node = LispNil;
+     foreach(i,clausegroup_list) {
+	 CInfo clauseinfo = (CInfo)NULL;
+	 LispValue temp_node = LispNil;
+	 bool temp = true;
+
+	 clausegroup = CAR(i);
+
+	 foreach (j,clausegroup) {
+	     clauseinfo = (CInfo)CAR(j);
+	     if ( !(join_clause_p(get_clause(clauseinfo))
+		    && equal_path_merge_ordering
+		    ( get_ordering(index),
+		     get_mergesortorder (clauseinfo)))) {
+		 temp = false;
+	     }
+	 }
 	  
-	  foreach (clauseinfo,clausegroup) {
-	       if ( !(join_clause_p(get_clause(clauseinfo))
-		      && equal_path_merge_ordering
-		      ( get_ordering(index),
-		       get_mergesortorder (clauseinfo)))) {
-		    return(LispNil);
-	       }
-	  }
-
-	  if ( !join  || temp ) {  /* restriction, ordering scan */
-	       temp_node = 
-		 lispCons (create_index_path (rel,index,
-					      clausegroup,join),
-			   LispNil);
-	       ip_list = nconc(ip_list,temp_node);
+	 if ( !join  || temp ) {  /* restriction, ordering scan */
+	     temp_node = 
+	       lispCons (create_index_path (rel,index,
+					    clausegroup,join),
+			 LispNil);
+	     ip_list = nconc(ip_list,temp_node);
 	  } 
-     }
+      }
      return(ip_list);
 }  /* function end */
 

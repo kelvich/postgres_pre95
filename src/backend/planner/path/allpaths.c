@@ -60,7 +60,7 @@ find_paths (rels,nest_level,sortkeys)
 	
 	/* Find the base relation paths. */
 	find_rel_paths (rels,nest_level,sortkeys);
-	if ( !sortkeys && (1 == levels_left)) {
+	if ( !sortkeys && (1 >= levels_left)) {
 	    /* Unsorted single relation, no more processing is required. */
 	    return (rels);   
 	} 
@@ -75,7 +75,7 @@ find_paths (rels,nest_level,sortkeys)
 		set_size (CAR(rel),compute_rel_size (CAR(rel)));
 		set_width (CAR(rel),compute_rel_width (CAR(rel)));
 	    }
-	    if(1 == levels_left) {
+	    if(1 >= levels_left) {
 		return(rels); 
 	    } 
 	    else {
@@ -145,8 +145,9 @@ find_rel_paths (rels,level,sortkeys)
 	   * If it is not 
 	   * the cheapest path, prune it.
 	   */
-    
-	  prune_rel_path (rel,last_element (get_pathlist (rel)));
+
+	  prune_rel_path (rel,last_element (get_pathlist (rel))); 
+
      }
      return(rels);   /* it should have been destructively modified above */
 
@@ -184,11 +185,11 @@ find_join_paths (outer_rels,levels_left,nest_level)
   LispValue new_rels = find_join_rels (outer_rels);
 
   find_all_join_paths (new_rels,outer_rels,nest_level);
+
+
   new_rels = prune_joinrels (new_rels);
-
-  /* Compute cost and sizes, then go on to next level of join processing. */
-
   prune_rel_paths (new_rels);
+
   foreach (rel,new_rels) {
        set_width (CAR(rel),compute_rel_width (CAR(rel)));
   }

@@ -71,7 +71,6 @@ clause_type (clause)
     LispValue clauseor = lispInteger(OR);
     LispValue clausenot = lispInteger(NOT);
     
-    elog(WARN, "calls member");
     if ( consp (clause) ) {
 	LispValue type = clause_head (clause);
 	if ( member (type,lispCons(clauseand,
@@ -94,7 +93,6 @@ clause_args (clause)
     LispValue clauseor = lispInteger(OR);
     LispValue clausenot = lispInteger(NOT);
 
-    elog(WARN,"clause_args, uses member");
     if ( consp (clause) ) {
 	LispValue type = clause_type (clause);
 	if ( member (type,lispCons(clauseand,
@@ -107,27 +105,29 @@ clause_args (clause)
       return(LispNil);
 }
 
-/*
+
 LispValue
-make_clause (type,rest,args)
-     LispValue type,rest,args ;
+make_clause (type,args)
+     LispValue type,args ;
 {
     LispValue clauseand = lispInteger(AND);
     LispValue clauseor = lispInteger(OR);
     LispValue clausenot = lispInteger(NOT);
 
-    elog(WARN,"make_clause, uses member");
-
-    if ( member (type,lispCons(clauseand,
-			       lispCons(clauseor,
-					lispCons(clausenot,
-						 LispNil)))) ||
-	IsA (type,Func) || IsA (type,Oper))  {
-	return(lispCons (type,args));
-    } else 
+    if (null(type))
       return(args);
+    else if (IsA(type,LispInt) ) {
+	int actual = CInteger(type);
+	if (actual == AND || actual == OR || actual == NOT)
+	  return(lispCons(type,args));
+    } else if (IsA(type,Func) || IsA(type,Oper)) {
+	return(lispCons(type,args));
+
+
+    } else
+      return (args);
 } 
-*/
+
 
 /*  .. fix-indxqual-references
  */
@@ -435,8 +435,8 @@ LispValue
 make_notclause (notclause)
 LispValue notclause ;
 {
-     return(lispCons (lispInteger(NOT),
-		      lispCons(notclause,LispNil))); 
+    return(lispCons (lispInteger(NOT),
+		     lispCons(notclause,LispNil))); 
 }
 
 /*    

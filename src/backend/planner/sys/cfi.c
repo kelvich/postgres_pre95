@@ -106,14 +106,18 @@ rule_insert_catalog ()
 List
 index_info (not_first,relid)
      bool not_first;
-     int  relid ;
+     ObjectId  relid ;
 {
     int indexinfo[32];
-    int i;
-    LispValue ikey, iord, am_ops;
+    int i = 0;
+    LispValue ikey = LispNil;
+    LispValue iord = LispNil;
+    LispValue am_ops = LispNil;
+    
     /*    Retrieve information for a single index (if there is another one). */
     if(1 == IndexCatalogInformation (not_first,
-				     getrelid (relid,_query_range_table_),
+				     CInteger(getrelid(relid,
+						       _query_range_table_)),
 				     _query_is_archival_,indexinfo)) {
 	/*    First extract the index OID and the basic statistics (pages,
 	 *     tuples, and indexrelid), then collect the index keys, operators,
@@ -123,25 +127,28 @@ index_info (not_first,relid)
 	
 	/*    Keys over which we're indexing: */
 	
-	for (i = _MAX_KEYS_+3 ; i > 2; --i ) 
+	for (i = _MAX_KEYS_+2 ; i > 2; --i ) 
 	  ikey = lispCons(lispInteger(indexinfo[i]),ikey);
 	
 	/*    Operators used by the index (for ordering purposes): */
 	
-	for (i = _MAX_KEYS_+18 ; i > 10; --i ) 
+	for (i = _MAX_KEYS_+10 ; i > 10; --i ) 
 	  iord = lispCons(lispInteger(indexinfo[i]),iord);
 	
 	/*    Classes of the AM operators used by index: */
 	
-	for (i = _MAX_KEYS_+25 ; i > 18; --i ) 
+	for (i = _MAX_KEYS_+18 ; i > 18; --i ) 
 	  am_ops = lispCons(lispInteger(indexinfo[i]),iord);
 	
 	return(lispCons (lispInteger(indexinfo[0]),
-		 lispCons(lispInteger(indexinfo[1]),
-		  lispCons(lispInteger(indexinfo[2]),
-		   lispCons(lispInteger(indexinfo[3]),
-		    lispCons(ikey,lispCons(iord,lispCons(am_ops,LispNil)
-					   )))))));
+			 lispCons(lispInteger(indexinfo[1]),
+				  lispCons(lispInteger(indexinfo[2]),
+					   lispCons(ikey,
+						    lispCons(iord,
+							     lispCons
+							     (am_ops,
+							      LispNil)
+							     ))))));
     }
 }
 	       
@@ -167,28 +174,64 @@ index_info (not_first,relid)
  */
 List
 index_selectivity (indid,classes,opnos,relid,attnos,values,flags,nkeys)
-     ObjectId 	indid, classes,opnos,relid;
-     int32	attnos[];
-     char 	*values[];
-     int32	flags;
+     ObjectId 	indid,relid;
+     List	attnos;
+     List 	values;
+     List	opnos;
+     List	classes;
+     List	flags;
      int32	nkeys ;
 {
-     if(nkeys == length (classes) &&
-	nkeys == length (opnos)  &&
-	nkeys == length (attnos) &&
-	nkeys == length (values) && 
-	nkeys == length (flags)) {
+    int *class_array,*opno_array,*attno_array,*value_array,*flag_array;
+    if(nkeys == length (classes) &&
+       nkeys == length (opnos)  &&
+       nkeys == length (attnos) &&
+       nkeys == length (values) && 
+       nkeys == length (flags)) {
+	
+	float param[2];
+	int i = 0;
+	LispValue xclass,xopno,xattno,value,flag;
 
-	  float param[2];
+	class_array = (int *)palloc(nkeys*sizeof(ObjectId));
+	opno_array = (int *)palloc(nkeys*sizeof(ObjectId));
+	attno_array = (int *)palloc(nkeys*sizeof(int32));
+	value_array = (int *)palloc(nkeys*sizeof(char *));
+	flag_array = (int *)palloc(nkeys*sizeof(int32));
 
-	  IndexSelectivity (indid,relid,nkeys,
-			    classes,opnos,attnos,values,flags,param);
-	  
-	  return (lispCons(lispFloat(param[0]),
-			   lispCons(lispFloat(param[1]),LispNil)));
-     } else 
-       return(lispCons(lispFloat(0.0),
-		       lispCons(lispFloat(1.0),LispNil)));
+	foreach(xclass,classes) {
+	    class_array[i++] = CInteger(CAR(xclass));
+	}
+	i = 0;
+	foreach(xopno,opnos) {
+	    opno_array[i++] = CInteger(CAR(xopno));
+	}
+	  i = 0;
+	foreach(xattno,attnos) {
+	    attno_array[i++] = CInteger(CAR(xattno));
+	}
+	i = 0;
+	foreach(value,values) {
+	    value_array[i++] = CInteger(CAR(value));
+	}
+	i = 0;
+	foreach(flag,flags) {
+	    flag_array[i++] = CInteger(CAR(flag));
+	}
+	
+	IndexSelectivity (indid,relid,nkeys,
+			  class_array,
+			  opno_array,
+			  attno_array,
+			  value_array,
+			  flag_array,
+			  param);
+	
+	return (lispCons(lispFloat(param[0]),
+			 lispCons(lispFloat(param[1]),LispNil)));
+    } else 
+      return(lispCons(lispFloat(0.0),
+		      lispCons(lispFloat(1.0),LispNil)));
 }
 
 /*    
@@ -215,25 +258,6 @@ index_selectivity (indid,classes,opnos,relid,attnos,values,flags,nkeys)
 
 
 /*    
- *    	find-inheritance-children
- *    
- *    	Returns all relations that directly inherit from the relation
- *    	represented by 'relation-oid'.
- *
- *      Maybe we can merge the 2 functions    
- */
-
-/*  .. find-all-inheritors     */
-
-LispValue
-find_inheritance_children (relation_oid)
-     LispValue relation_oid ;
-{
-    return( CAR (InheritanceGetChildren (relation_oid,
-					 lispList())));
-}
-
-/*    
  *    	find-version-parents
  *    
  *    	Returns all relations that are base relations for the version relation
@@ -247,8 +271,8 @@ LispValue
 find_version_parents (relation_oid)
      LispValue relation_oid ;
 {
-    return( CAR (VersionGetParents (relation_oid,
-				    lispList())));
+    return( VersionGetParents (relation_oid,
+				    lispList()));
 }
 
 /*    

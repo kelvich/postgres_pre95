@@ -28,12 +28,14 @@
 #include "plannodes.a.h"
 #include "parsetree.h"
 #include "parse.h"
+#include "lsyscache.h"
+#include "utilities.h"
+#include "planner/cfi.h"
+#include "planner/plancat.h"
+#include "execnodes.h"
+#include "nodes.h"
+#include "log.h"
 
-/* XXX - remove these when we find the right files to inclde */
-extern LispValue copy_seq_tree();
-extern LispValue get_rel_name();
-
-extern List find_version_parents(); /* #include "cfi.c" */
 
 /*    
  *    	find-all-inheritors
@@ -50,32 +52,33 @@ LispValue
 find_all_inheritors (unexamined_relids,examined_relids)
      LispValue unexamined_relids,examined_relids ;
 {
-     LispValue new_inheritors = LispNil;
-     LispValue new_examined_relids = LispNil;
-     LispValue new_unexamined_relids = LispNil;
-
-     /*    Find all relations which inherit from members of */
-     /*    'unexamined-relids' and store them in 'new-inheritors'. */
-     
-     LispValue rels = LispNil;
-     LispValue newrels = LispNil;
-
+    LispValue new_inheritors = LispNil;
+    LispValue new_examined_relids = LispNil;
+    LispValue new_unexamined_relids = LispNil;
+    
+    /*    Find all relations which inherit from members of */
+    /*    'unexamined-relids' and store them in 'new-inheritors'. */
+    
+    LispValue rels = LispNil;
+    LispValue newrels = LispNil;
+    
      /* was lispDO */
-     foreach(rels,unexamined_relids) {
-	  newrels = LispUnion(find_inheritance_children (CAR (rels)),
-				   newrels);
-       }
-
-     new_examined_relids = LispUnion (examined_relids,unexamined_relids);
-     new_unexamined_relids = set_difference (new_inheritors,
-					     new_examined_relids);
-
-     if(null (new_unexamined_relids)) {
-	  return(new_examined_relids);
-     } else {
-	  return (find_all_inheritors (new_unexamined_relids,
-				       new_examined_relids));
-     }
+    foreach(rels,unexamined_relids) {
+	newrels = LispUnion(find_inheritance_children (CAR (rels)),
+			    newrels);
+    }
+    new_inheritors = newrels;
+    
+    new_examined_relids = LispUnion (examined_relids,unexamined_relids);
+    new_unexamined_relids = set_difference (new_inheritors,
+					    new_examined_relids);
+    
+    if(null (new_unexamined_relids)) {
+	return(new_examined_relids);
+    } else {
+	return (find_all_inheritors (new_unexamined_relids,
+				     new_examined_relids));
+    }
 } /* function end   */
 
 /*    		=====
@@ -109,12 +112,12 @@ int
 first_matching_rt_entry (rangetable,flag)
      LispValue rangetable,flag ;
 {
+    
 
-/* XXX - let form, maybe incorrect */
-     int count = 0;
-     int position = -1;
-     LispValue temp = LispNil;
-     Boolean first = 1;
+    int count = 0;
+    int position = -1;
+    LispValue temp = LispNil;
+    bool first = true;
 /*     XXX the bogus way to handle things (old parser)
  *    	 (position-if (case flag
  *    			    (archive
@@ -132,18 +135,18 @@ first_matching_rt_entry (rangetable,flag)
  *     XXX new spiffy way to handle things (new parser)
  */
 
-     foreach (temp,rangetable) {
-	  if (member (flag,rt_flags (temp)) && first) {
-	       position = count;
-	       first = 0;
-	  }
-	  count++;
-     }
+    foreach (temp,rangetable) {
+	if (member (flag,rt_flags (CAR(temp))) && first) {
+	    position = count;
+	    first = false;
+	}
+	count++;
+      }
+    
+    if(position != -1) 
+      position++;
      
-     if(position != -1) 
-       position++;
-     
-     return(position);
+    return(position);
 } /* function end   */
 
 
@@ -165,6 +168,7 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
      int flag;
      LispValue root,tlist,qual,rangetable ;
 {
+    LispValue temp_flag = LispNil;
     switch (flag) {
 	
 	/*    Most queries require us to iterate over a list of relids. */
@@ -175,23 +179,23 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
 	
       case ARCHIVE :
 	{ /* XXX - let form, maybe incorrect */
-	    Plan primary_plan;
-	    Plan archive_plan;
+	    Plan primary_plan = (Plan)NULL;
+	    Plan archive_plan = (Plan)NULL;
 
 	    _query_is_archival_ = false;
 	    primary_plan = init_query_planner (root,tlist,qual);
 	    _query_is_archival_ = true;
 	    archive_plan = init_query_planner (root,tlist,qual);
-	    return (MakeAppend (lispCons(primary_plan,
-					 lispCons(archive_plan,LispNil)),
-				rt_index,
-				lispCons(rt_fetch (rt_index,rangetable),
-					 lispCons(rt_fetch (rt_index,
-							    rangetable),
-						  LispNil)),
-				get_qptargetlist (primary_plan)));
+	    return (make_append (lispCons(primary_plan,
+					  lispCons(archive_plan,LispNil)),
+				 rt_index,
+				 lispCons(rt_fetch (rt_index,rangetable),
+					  lispCons(rt_fetch (rt_index,
+							     rangetable),
+						   LispNil)),
+				 get_qptargetlist (primary_plan)));
 	    
-	}
+	  }
 	break;
 	
       default:
@@ -205,12 +209,12 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
 	    LispValue temp = LispNil;
 	    
 	    switch (flag) {
-		    
-	      case INHERITANCE :
+		
+	      case INHERITS :
 		union_relids = 
-		      find_all_inheritors (lispCons(rt_relid (rt_entry),
-						    LispNil),
-					   LispNil);
+		  find_all_inheritors (lispCons(rt_relid (rt_entry),
+						LispNil),
+				       LispNil);
 		break;
 
 	      case UNION :
@@ -245,26 +249,33 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
 	    /*    XXX destructive parse tree change */
 	    /*   was setf -- is this right?  */
 	    
+	    temp_flag = lispInteger(flag);
+	    NodeSetTag(temp_flag,classTag(LispSymbol));
 	    rt_flags (rt_fetch (rt_index,rangetable)) = 
-		 remove (flag,rt_flags (rt_fetch (rt_index,rangetable)));
+	      remove (temp_flag,
+		      rt_flags (rt_fetch (rt_index,rangetable)));
 	    
-	    union_info = plan_union_query (sort (union_relids, "<"),
+	    /* XXX - can't find any reason to sort union-relids
+	       as paul did, so we're leaving it out for now
+	       (maybe forever) - jeff & lp */
+
+	    union_info = plan_union_query (union_relids,
 					   rt_index,rt_entry,
 					   root,tlist,qual,rangetable);
 	    
 	    foreach(temp,union_info) {
-		union_plans = nappend1(union_plans,CAR (temp));
-		union_rt_entries = nappend1(union_rt_entries,
-					    CADR (temp));
+	      union_plans = nappend1(union_plans,CAR(CAR(temp)));
+	      union_rt_entries = nappend1(union_rt_entries,
+					  CADR (CAR(temp)));
 	    }
 	    
-	    return (MakeAppend (union_plans,
-				rt_index,union_rt_entries,
-				get_qptargetlist (CAR (union_plans))));
-	}
-    }
+	    return (make_append (union_plans,
+				 rt_index,union_rt_entries,
+				 get_qptargetlist (CAR (union_plans))));
+	  }
+      }
     
-}   /* function end  */
+  }   /* function end  */
 
 
 /*    
@@ -278,44 +289,54 @@ plan_union_queries (rt_index,flag,root,tlist,qual,rangetable)
 
 LispValue
 plan_union_query (relids,rt_index,rt_entry,root,tlist,qual,rangetable)
-     LispValue relids,rt_index,rt_entry,root,tlist,qual,rangetable ;
+     LispValue relids,rt_entry,root,tlist,qual,rangetable ;
+     Index rt_index;
 {
-  if ( consp (relids) ) {
-    LispValue relid = CAR (relids);
-    LispValue new_rt_entry = new_rangetable_entry (relid,rt_entry);
-    LispValue new_root = subst_rangetable (root,rt_index,new_rt_entry);
-    LispValue new_parsetree = LispNil;
+    LispValue i = LispNil;
+    LispValue union_plans = LispNil;
 
-    if ( listp(rt_relid(rt_entry))) 
-      new_parsetree = fix_parsetree_attnums (rt_index, 
+    foreach (i,relids) {
+	LispValue relid = CAR (i);
+	LispValue new_rt_entry = new_rangetable_entry (CInteger(relid),
+						       rt_entry);
+	LispValue new_root = subst_rangetable (root,
+					       rt_index,
+					       new_rt_entry);
+	LispValue new_parsetree = LispNil;
+	LispValue new_tlist = copy_seq_tree(tlist);
+	LispValue new_qual = copy_seq_tree(qual);
+
+	if ( listp(rt_relid(rt_entry))) 
+	  new_parsetree = fix_parsetree_attnums (rt_index, 
 					     /* XX temporary for inheritance */
-					     CAR (rt_relid(rt_entry)),
-					     relid,
-					     lispCons(new_root,
-						      lispCons(copy_seq_tree
-							       (tlist),
-							       lispCons
-							       (copy_seq_tree
-								(qual),
-								LispNil))));
-    else 
-      new_parsetree = fix_parsetree_attnums (rt_index, 
-					     rt_relid(rt_entry),
-					     relid,
-					     lispCons(new_root,
-						      lispCons(copy_seq_tree
-							       (tlist),
-							       lispCons
-							       (copy_seq_tree
-								(qual)))));
+						 CInteger(CAR 
+							 (rt_relid(rt_entry))),
+						 CInteger(relid),
+						 lispCons(new_root,
+							  lispCons
+							       (new_tlist,
+								lispCons
+								(new_qual,
+								 LispNil))));
+	else 
+	  new_parsetree = fix_parsetree_attnums (rt_index, 
+						 CInteger(rt_relid(rt_entry)),
+						 CInteger(relid),
+						 lispCons(new_root,
+							  lispCons
+							  (new_tlist,
+							   lispCons
+							   (new_qual,
+							    LispNil))));
 
 
-    return (lispCons (lispCons (planner (new_parsetree),
-				lispCons(new_rt_entry,LispNil)),
-		  plan_union_query (CDR (relids),
-				    rt_index,rt_entry,
-				    root,tlist,qual,rangetable)));
-  }
+	union_plans = nappend1(union_plans,
+			       lispCons(planner(new_parsetree),
+					 lispCons(new_rt_entry,
+						  LispNil)));
+    }
+    return(union_plans);
+
 }  /* function end   */
 
 /*    
@@ -332,14 +353,14 @@ plan_union_query (relids,rt_index,rt_entry,root,tlist,qual,rangetable)
 
 LispValue
 new_rangetable_entry (new_relid,old_entry)
-     LispValue new_relid,old_entry ;
+     ObjectId new_relid;
+     LispValue old_entry ;
 {
-  /* XXX - let form, maybe incorrect */
-  LispValue new_entry = copy_seq_tree (old_entry);
-  /* XXX setf, may be incorrect  */
-  rt_relname (new_entry) = get_rel_name (new_relid);
-  rt_relid (new_entry) = new_relid;
-  return(new_entry);
+
+    LispValue new_entry = copy_seq_tree (old_entry);
+    rt_relname (new_entry) = lispString(get_rel_name (new_relid));
+    rt_relid (new_entry) = lispInteger(new_relid);
+    return(new_entry);
 }
 
 /*    
@@ -355,11 +376,18 @@ new_rangetable_entry (new_relid,old_entry)
 
 LispValue
 subst_rangetable (root,index,new_entry)
-     LispValue root,index,new_entry ;
+     LispValue root,new_entry ;
+     Index index;
 {
-  LispValue new_root = copy_seq_tree (root);
-  setf(rt_fetch (index,root_rangetable (new_root)),new_entry);
-  return (new_root);
+    LispValue new_root = copy_seq_tree (root);
+    LispValue temp = LispNil;
+    int i = 0;
+
+    for(temp = root_rangetable(new_root),i =1; i < index; temp =CDR(temp),i++)
+      ;
+    CAR(temp) = new_entry;
+    /*  setf(rt_fetch (index,root_rangetable (new_root)),new_entry); */
+    return (new_root);
 
 }
 
@@ -378,34 +406,36 @@ subst_rangetable (root,index,new_entry)
 
 LispValue
 fix_parsetree_attnums (rt_index,old_relid,new_relid,parsetree)
-     LispValue rt_index,old_relid,new_relid,parsetree ;
+     LispValue old_relid,new_relid,parsetree ;
+     Index rt_index;
 {
-  if (IsA (parsetree,Var) && 
-      equal (get_varno (parsetree),rt_index)) {
-    setf (get_varattno (parsetree),
-	  get_attnum (new_relid,
-		      get_attname (old_relid,
-				   get_varattno (parsetree))));
-/*  } else 
- *   if (vectorp (parsetree)) {
- *     dotimes (i (vsize (parsetree)),
- *	       setf (aref (parsetree,i),
- *		     fix_parsetree_attnums (rt_index,
- *					    old_relid,new_relid,
- *					    aref (parsetree,i))));
- *    for now --- must be removed
- */
-    } else if (listp (parsetree)) {
-      int i;
-      for (i = 0; i <= length(parsetree); i++) {
-	setf (nth (i,parsetree),
-	      fix_parsetree_attnums (rt_index,
-				     old_relid,
-				     new_relid,
-				     nth (i,parsetree)));
+    LispValue i = LispNil;
+    Node foo = (Node)NULL;
+    
+    
+    /* If old_relid == new_relid, we shouldn't have to 
+     * do anything ---- is this right??
+     */
+
+    if (old_relid != new_relid)
+      foreach(i,CDR(parsetree)) {
+	  foo = (Node)CAR(i);
+	  if (!null(foo) && IsA(foo,Var) && 
+	      equal (get_varno (foo),rt_index)) {
+	      set_varattno (foo, 
+			    get_attnum (new_relid,
+					get_attname(old_relid,
+						    get_varattno(foo))));
+	  } 
+	  if (!null(foo) && IsA(foo,LispList)) {
+	      foo = (Node)fix_parsetree_attnums(rt_index,old_relid,
+						new_relid,foo);
+	  }
+	  /* vectors ? */
+	  /* all other cases are not interesting, I believe - jeff */
       }
-    }
-  return (parsetree);
+
+    return (parsetree);
 }
 
 /*    
@@ -438,6 +468,32 @@ TL
 fix_targetlist (oringtlist, tlist)
      TL oringtlist,tlist;
 {
-  return((TL)LispNil);
+    elog(WARN,"unsupported function, fix_targetlist");
+    return((TL)tlist);
 }
 		
+
+Append
+make_append (unionplans,rt_index,union_rt_entries, tlist)
+     List unionplans,union_rt_entries,tlist;
+     Index rt_index;
+{
+
+  Append node = CreateNode(Append);
+
+  set_unionplans(node,unionplans);
+  set_unionrelid(node,rt_index);
+  set_unionrtentries(node,union_rt_entries);
+  set_cost(node,0.0);
+  set_fragment(node,0);
+  set_state(node,(EState)NULL);
+  set_qptargetlist(node,tlist);
+  set_qpqual(node,LispNil);
+  set_lefttree(node,(Plan)NULL);
+  set_righttree(node,(Plan)NULL);
+
+  node->printFunc = PrintAppend;
+/*  node->equalFunc = EqualAppend;  */
+
+  return(node);
+}

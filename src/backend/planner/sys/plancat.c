@@ -105,7 +105,7 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 	uint16			amstrategy;	/* XXX not used YET */
 	ObjectId		relam;
 	static Relation		relation = (Relation) NULL;
-	static HeapScanDesc	scan = (HeapScanDesc)NULL;
+	static HeapScan		scan = (HeapScan) NULL;
 	static ScanKeyEntryData	indexKey[1] = {
 		{ 0, IndexHeapRelationIdAttributeNumber, F_OIDEQ }
 	};
@@ -129,7 +129,7 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 	if (!HeapTupleIsValid(indexTuple)) {
 		HeapScanEnd(scan);
 		RelationCloseHeapRelation(relation);
-		scan = (HeapScanDesc)NULL;
+		scan = (HeapScan) NULL;
 		relation = (Relation) NULL;
 		return(0);
 	}
@@ -354,46 +354,48 @@ float64data
 join_selectivity (functionObjectId, operatorObjectId,
 		  relationObjectId1, attributeNumber1,
 		  relationObjectId2, attributeNumber2)
-	ObjectId	functionObjectId;
-	ObjectId	operatorObjectId;
-	ObjectId	relationObjectId1;
-	AttributeNumber	attributeNumber1;
-	ObjectId 	relationObjectId2;
-	AttributeNumber	attributeNumber2;
+     ObjectId	functionObjectId;
+     ObjectId	operatorObjectId;
+     ObjectId	relationObjectId1;
+     AttributeNumber	attributeNumber1;
+     ObjectId 	relationObjectId2;
+     AttributeNumber	attributeNumber2;
 {
-	float64	result;
-
-	result = (float64) fmgr(functionObjectId,
-				(char *) operatorObjectId,
-				(char *) relationObjectId1,
-				(char *) attributeNumber1,
-				(char *) relationObjectId2,
-				(char *) attributeNumber2);
-	if (!PointerIsValid(result))
-		elog(WARN, "JoinClauseSelectivity: bad pointer");
-	if (*result < 0.0 || *result > 1.0)
-		elog(WARN, "JoinClauseSelectivity: bad value %lf",
-		     *result);
-	return(*result);
+    float64	result = 0;
+    
+    result = (float64) fmgr(functionObjectId,
+			    (char *) operatorObjectId,
+			    (char *) relationObjectId1,
+			    (char *) attributeNumber1,
+			    (char *) relationObjectId2,
+			    (char *) attributeNumber2);
+    if (!PointerIsValid(result))
+      elog(WARN, "JoinClauseSelectivity: bad pointer");
+    if (*result < 0.0 || *result > 1.0)
+      elog(WARN, "JoinClauseSelectivity: bad value %lf",
+	   *result);
+    return(*result);
 }
 
 /*
- *	InheritanceGetChildren
+ *	find_all_inheritors
  *
  *	Returns a LISP list containing the OIDs of all relations which
  *	inherits from the relation with OID 'inhparent'.
  */
 LispValue
-InheritanceGetChildren(inhparent, list)
-     LispValue	inhparent, list;
+find_inheritance_children (inhparent)
+     LispValue	inhparent;
 {
 	HeapTuple		inheritsTuple;
 	static ScanKeyEntryData	key[1] = {
 		{ 0, InheritsParentAttributeNumber, F_OIDEQ }
 	};
 	Relation		relation;
-	HeapScanDesc		scan;
-	LispValue		lp;
+	HeapScan		scan;
+	LispValue		lp = LispNil;
+	LispValue		list = LispNil;
+
 
 	key[0].argument.objectId.value =
 	  (ObjectId) LISPVALUE_INTEGER(inhparent);
@@ -403,11 +405,9 @@ InheritanceGetChildren(inhparent, list)
 	while (HeapTupleIsValid(inheritsTuple =
 				HeapScanGetNextTuple(scan, 0,
 						     (Buffer *) NULL))) {
-	     lp = lispList();
-	     CAR(lp) = lispInteger(((InheritsTupleForm)
-				    GETSTRUCT(inheritsTuple))->inhrel);
-	     CDR(lp) = CAR(list);
-	     CAR(list) = lp;
+	     lp = lispInteger(((InheritsTupleForm)
+			       GETSTRUCT(inheritsTuple))->inhrel);
+	     list = nappend1(list,lp);
 	}
 	HeapScanEnd(scan);
 	RelationCloseHeapRelation(relation);
@@ -429,7 +429,7 @@ VersionGetParents(verrelid, list)
 		{ 0, VersionRelationIdAttributeNumber, F_OIDEQ }
 	};
 	Relation		relation;
-	HeapScanDesc		scan;
+	HeapScan		scan;
 	LispValue		lp;
 	ObjectId		verbaseid;
 

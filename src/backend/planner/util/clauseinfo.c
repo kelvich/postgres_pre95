@@ -110,20 +110,26 @@ get_relattvals (clauseinfo_list)
      LispValue result2 = LispNil;
      LispValue result3 = LispNil;
      LispValue relattvals = LispNil;
-     LispValue temp;
-
-     foreach (temp,clauseinfo_list) {
-	  relattvals = nappend1(relattvals,get_relattval (get_clause (temp)));
+     CInfo temp = (CInfo)NULL;
+     LispValue i = LispNil;
+     LispValue temp2 = LispNil;
+     
+     foreach (i,clauseinfo_list) {
+	 temp = (CInfo)CAR(i);
+	 relattvals = nappend1(relattvals,get_relattval (get_clause (temp)));
      }
 
-     foreach(temp,relattvals) {
-	  result1 = nappend1(result1,CADR(temp));
+     foreach(i,relattvals) {
+	 temp2 = CAR(i);
+	 result1 = nappend1(result1,CAR(temp2));
      }
-     foreach(temp,relattvals) {
-	  result2 = nappend1(result2,CADDR(temp));
+     foreach(i,relattvals) {
+	 temp2 = CAR(i);
+	 result2 = nappend1(result2,CADR(temp2));
      }
-     foreach(temp,relattvals) {
-	  result3 = nappend1(result3,CADDR(CDR(temp)));
+     foreach(i,relattvals) {
+	 temp2 = CAR(i);
+	 result3 = nappend1(result3,CADR(CDR(temp2)));
      }
      return(lispCons(result1,
 		     lispCons(result2,
@@ -159,7 +165,8 @@ get_joinvars (relid,clauseinfo_list)
      LispValue temp;
      
      foreach(temp,clauseinfo_list) {
-	  relattvals = nappend1(relattvals,get_joinvar(relid,temp));
+	  relattvals = nappend1(relattvals,get_joinvar(CInteger(relid),
+						       temp));
      }
      
      foreach(temp,relattvals) {
@@ -197,20 +204,22 @@ get_joinvars (relid,clauseinfo_list)
  */
 LispValue
 get_joinvar (relid,clauseinfo)
-     LispValue relid,clauseinfo ;
+     ObjectId relid;
+     CInfo clauseinfo ;
 {
-     Expr clause = get_clause (clauseinfo);
-     if( IsA (get_leftop (clause),Var) &&
-	 equal (relid,get_varno (get_leftop (clause)))) {
-	 lispCons (get_varattno (get_leftop (clause)),
-		   lispCons(lispString(""),
-			    lispCons(lispInteger(_SELEC_CONSTANT_RIGHT_),
-				     LispNil)));
+    Expr clause = get_clause (clauseinfo);
+    if( IsA (get_leftop (clause),Var) &&
+       (relid == get_varno (get_leftop (clause)))) {
+	return(lispCons (get_varattno (get_leftop (clause)),
+			  lispCons(lispString(""),
+				   lispCons(lispInteger
+					    (_SELEC_CONSTANT_RIGHT_),
+					    LispNil))));
      } else {
-	 lispCons (get_varattno (get_rightop (clause)),
-		   lispCons(lispString(""),
-			    lispCons(lispInteger(_SELEC_CONSTANT_LEFT_),
-				     LispNil)));
+	 return(lispCons (get_varattno (get_rightop (clause)),
+			  lispCons(lispString(""),
+				   lispCons(lispInteger(_SELEC_CONSTANT_LEFT_),
+					    LispNil))));
      } 
 }
 
@@ -228,11 +237,14 @@ LispValue
 get_opnos (clauseinfo_list)
      LispValue clauseinfo_list ;
 {
-     LispValue temp;
-     LispValue result = LispNil;
+    CInfo temp = (CInfo)NULL;
+    LispValue result = LispNil;
+    LispValue i = LispNil;
 
-     foreach(temp,clauseinfo_list) {
+     foreach(i,clauseinfo_list) {
+	 temp = (CInfo)CAR(i);
 	  result = nappend1(result,
 			    get_opno (get_op (get_clause (temp))));
      }
+    return(result);
 }

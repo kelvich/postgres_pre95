@@ -99,32 +99,31 @@ get_rel (relid)
 
 Rel
 rel_member (relid,rels)
-     LispValue relid;
+     LispValue relid;    /* should be an ObjectId   */
      List rels;
 {
-     Rel retval;
-     LispValue temp = LispNil;
-     LispValue temprelid = LispNil;
-     LispValue relid_list = LispNil;
-     LispValue temp2 = LispNil;
-     LispValue t_list = LispNil;
+    Rel retval = (Rel)NULL;
+    LispValue temp = LispNil;
+    LispValue temprelid = LispNil;
+    LispValue relid_list = LispNil;
+    LispValue temp2 = LispNil;
+    LispValue t_list = LispNil;
+    
+    /*    foreach (temp2,rels) {
+     *      t_list = nappend1(t_list,get_relids(CAR(temp2)));
+     *      }
+     */
+    
+    if ( consp (relid) && consp (rels)) {
+	foreach (temp,rels) {
+	    temprelid = (LispValue)get_relids(CAR(temp)); /* XXX assumes it
+							   *  is a list with
+							   *  only 1 relid
+							   */
+	    if (same(temprelid, relid))   
+	      return((Rel)(CAR(temp)));
+	}
+    } 
+    return(retval);
+}
 
-     foreach (temp2,rels) {
-       t_list = nappend1(t_list,get_relids(CAR(temp2)));
-     }
-     
-     if ( consp (relid) && consp (rels)) {
-       foreach (temp,rels) {
-	 temprelid = (LispValue)get_relids(CAR(temp)); /* XXX assumes it
-							*  is a list with
-							*  only 1 relid
-							*/
-	 if (equal(temprelid, relid))   /* XXX used to be "same" function  */
-	   return((Rel)(CAR(temp)));
-       }
-     } 
-     else {
-       retval = (Rel)NULL;
-     } 
-     return(retval);
-   }

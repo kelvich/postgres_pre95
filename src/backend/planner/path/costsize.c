@@ -30,35 +30,37 @@
 #include "relation.a.h"
 #include "planner/costsize.h"
 #include "planner/keys.h"
-
+#include "planner/clausesel.h"
+#include <math.h>
 #define _cost_weirdness_ 0
 
 
 #if (!_cost_weirdness_)    /* global variable */
-#define _xprs_ 1
+#define _xprs_ 0
 #endif
 
 int _disable_cost_ = 30000000;
 
-#ifndef _xprs_
+/* #ifndef _xprs_ */
 bool _enable_seqscan_ = true ;
 bool _enable_indexscan_ = false; 
 bool _enable_sort_ = false;
-bool _enable_hash_ = false;,
+bool _enable_hash_ = false;
 bool _enable_nestloop_ = true; /* XXX - true */
 bool _enable_mergesort_ = false;
-bool _enable_hashjoin_ = false;
-#endif
-
+bool _enable_hashjoin_ = true;
+/* #endif */
+/*
 #ifdef _xprs_
 bool _enable_seqscan_ = true;
 bool _enable_indexscan_ = true;
 bool _enable_sort_ = true;
 bool _enable_hash_ = true;
 bool _enable_nestloop_ = true;
-bool _enable_mergesort_ = true;  /*   nil in production */
+bool _enable_mergesort_ = true;
 bool _enable_hashjoin_ = true; 
 #endif
+*/
 
 /*    
  *    	cost_seqscan
@@ -137,8 +139,9 @@ Cost
 cost_index (indexid,expected_indexpages,selec,relpages,
 	    reltuples,indexpages,indextuples)
      ObjectId indexid;
-     int relpages,indexpages;
-     int expected_indexpages,selec,indextuples,reltuples;
+     Count expected_indexpages;
+     Cost selec;
+     Count relpages,indexpages,indextuples,reltuples;
 {
     Cost temp = 0;
     Cost temp2 = 0;
@@ -148,7 +151,7 @@ cost_index (indexid,expected_indexpages,selec,relpages,
 	} 
 	else {
 	    temp += _disable_cost_;
-		} 
+	} 
     }
     else {
 	temp += 0;
@@ -307,21 +310,22 @@ cost_result (tuples,width)
 
 Cost
 cost_nestloop (outercost,innercost,outertuples)
-     int outercost,innercost,outertuples ;
+     Cost outercost,innercost;
+     Count outertuples ;
 {
     Cost temp =0;
     if ( _cost_weirdness_ ) {
 	if ( _enable_nestloop_ ) 
 	  temp += 1000;
-		else 
-		  temp += _disable_cost_;
+	else 
+	  temp += _disable_cost_;
     } 
     else 
       temp += 0;
     temp += outercost;
     /*    XXX this is only valid for left-only trees, of course! */
     temp += outertuples * innercost;
-	return(temp);
+    return(temp);
 }
 
 /*    
@@ -388,11 +392,11 @@ Cost
 cost_hashjoin (outercost,innercost,outerkeys,innerkeys,outersize,
 	       innersize,outerwidth,innerwidth)
      LispValue outerkeys,innerkeys;
-     int outersize, innersize, outerwidth, innerwidth;
-     int outercost,innercost;
+     Count outersize, innersize, outerwidth, innerwidth;
+     Cost outercost,innercost;
 {
     Cost temp = 0;
-	/* XXX - let form, maybe incorrect */
+    /* XXX - let form, maybe incorrect */
     int outerpages = page_size (outersize,outerwidth);
     int innerpages = page_size (innersize,innerwidth);
     if ( _cost_weirdness_ ) {
@@ -432,11 +436,15 @@ cost_hashjoin (outercost,innercost,outerkeys,innerkeys,outersize,
 
 int
 compute_rel_size (rel)
-     LispValue rel ;
+     Rel rel ;
 {
-	int temp;
-	temp = get_tuples(rel) * product_selec(get_clauseinfo(rel));
-	return ((int)floor(temp));
+    double temp = 0;
+    Count temp1;
+
+    temp = get_tuples(rel) * product_selec(get_clauseinfo(rel)); 
+    temp1 = floor(temp);
+    return(temp1);
+      
 }
 
 /*    
@@ -452,7 +460,7 @@ compute_rel_size (rel)
 
 int
 compute_rel_width (rel)
-     LispValue rel ;
+     Rel rel ;
 {
 
      return (compute_targetlist_width(get_actual_tlist(get_targetlist (rel))));
@@ -523,12 +531,15 @@ int
 compute_joinrel_size (joinrel)
      Join joinrel ;
 {
-	int temp = 1;
-	temp = temp * get_size(get_parent(get_outerjoinpath(joinrel)));
-	temp = temp * get_size(get_parent(get_innerjoinpath(joinrel)));
-	temp = temp * product_selec(get_clauseinfo(joinrel));
-	return(floor(temp));
-	
+    double temp = 1.0;
+    Count temp1 = 0;
+
+    temp = temp * get_size(get_parent(get_outerjoinpath(joinrel)));
+    temp = temp * get_size(get_parent(get_innerjoinpath(joinrel)));
+    temp = temp * product_selec(get_pathclauseinfo(joinrel));  
+
+    temp1 = floor(temp);
+    return(temp1);
 }
 
 /*    

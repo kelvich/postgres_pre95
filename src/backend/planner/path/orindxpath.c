@@ -173,7 +173,9 @@ best_or_subclause_indices (rel,subclauses,indices,
 
 LispValue
 best_or_subclause_index (rel,subclause,indices)
-     LispValue rel,subclause,indices ;
+     Rel 	rel;
+     LispValue  subclause;
+     List	indices ;
 {
      LispValue t_list = LispNil;
 
@@ -183,7 +185,7 @@ best_or_subclause_index (rel,subclause,indices)
 	  LispValue pagesel = LispNil;
 	  Cost 		subcost;
 	  LispValue 	bestrest = LispNil;
-	  LispValue 	index = CAR (indices);
+	  Rel	 	index = (Rel)CAR (indices);
 	  AttributeNumber attno = get_varattno (get_leftop (subclause));
 	  ObjectId 	opno = get_opno (subclause);
 	  bool 		constant_on_right = non_null (get_rightop (subclause));
@@ -200,11 +202,11 @@ best_or_subclause_index (rel,subclause,indices)
 	  else {
 	       flag = _SELEC_CONSTANT_RIGHT_;
 	  } 
-	  pagesel = index_selectivity (nth (0,get_indexid (rel)),
+	  pagesel = index_selectivity (CInteger(CAR(get_relids (index))) ,
 				       get_classlist (index),
 				       lispCons (opno,LispNil),
-				       getrelid (get_relid (rel),
-						 _query_range_table_),
+				       getrelid(CInteger(CAR(get_relids(rel))),
+						_query_range_table_),
 				       lispCons (attno,LispNil),
 				       lispCons (value,LispNil),
 				       lispCons (flag,LispNil),
@@ -220,7 +222,7 @@ best_or_subclause_index (rel,subclause,indices)
 		
 	  if(null (bestrest) || (subcost < CInteger(CAR(bestrest)) )) {
 	       /* XXX - this used to be "list "(CAR(get....index),.." */
-	       t_list = lispCons (get_indexid (index),
+	       t_list = lispCons (get_relids (index),
 				  lispCons(subcost,
 					   lispCons(CADR(pagesel))));
 	  } 

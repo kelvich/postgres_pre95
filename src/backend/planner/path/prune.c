@@ -1,4 +1,3 @@
-
 /*     
  *      FILE
  *     	prune
@@ -72,24 +71,26 @@ prune_joinrel (rel,other_rels)
 {
      /*  XXX was mapcan   */
      
-     LispValue other_rel = LispNil;
+     LispValue i = LispNil;
      LispValue t_list = LispNil;
      LispValue temp_node = LispNil;
-
-     foreach(other_rel,other_rels) {
-	  if(same (get_relids (rel),get_relids (other_rel))) {
-	       set_pathlist (rel,add_pathlist (rel,
-					       get_pathlist (rel),
-					       get_pathlist (other_rel)));
-	       t_list = nconc(t_list, LispNil);  /* XXX is this right ? */
-	  } 
-	  else {
-	       temp_node = lispCons(other_rel,LispNil);
-	       t_list = nconc(t_list,temp_node);
-	  } 
+     Rel other_rel = (Rel)NULL;
+     
+     foreach(i,other_rels) {
+	 other_rel = (Rel)CAR(i);
+	 if(same (get_relids (rel),get_relids (other_rel))) {
+	     set_pathlist (rel,add_pathlist (rel,
+					     get_pathlist (rel),
+					     get_pathlist (other_rel)));
+	     t_list = nconc(t_list, LispNil);  /* XXX is this right ? */
+	 } 
+	 else {
+	     temp_node = lispCons(other_rel,LispNil);
+	     t_list = nconc(t_list,temp_node);
+	 } 
      }
      return(t_list);
-}  /* function end  */
+ }  /* function end  */
 
 /*    
  *    	prune-rel-paths
@@ -112,19 +113,22 @@ prune_rel_paths (rel_list)
     LispValue temp = LispNil;
     LispValue temp2 = LispNil;
     LispValue temp3 = LispNil;
-    Rel rel;
-    Path cheapest;
+    Rel rel = (Rel)NULL;
+    JoinPath cheapest = (JoinPath)NULL;
     
     foreach (temp, rel_list) { 	/* XXX Lisp find_if_not function used  */
 	rel = (Rel)CAR(temp);
 	foreach (temp2,get_pathlist(rel)) {
-	    if (!get_ordering(CAR(temp2))) {
+	    if (!get_p_ordering(CAR(temp2))) {
 		temp3 = CAR(temp2);
 		break;
 	    }	    
 	}
-	cheapest = prune_rel_path (rel,temp3);
-	set_size (rel,compute_joinrel_size (cheapest));
+	cheapest = (JoinPath)prune_rel_path (rel,temp3);
+	if (IsA(cheapest,JoinPath))
+	  set_size (rel,compute_joinrel_size (cheapest));
+	else
+	  printf( "WARN: non JoinPath called. \n");
     }
 }  /* function end  */
 
@@ -152,7 +156,7 @@ prune_rel_path (rel,unorderedpath)
      if (!(eq (unorderedpath,cheapest))) {
 
 	  set_unorderedpath (rel,LispNil);
-	  set_pathlist (rel,LispDelete(unorderedpath,get_pathlist (rel)));
+	  set_pathlist (rel,remove(unorderedpath,get_pathlist (rel)));
 
      } else {
 

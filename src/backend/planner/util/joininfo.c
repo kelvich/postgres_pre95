@@ -18,6 +18,7 @@
 #include "relation.a.h"
 #include "planner/clauses.h"
 
+
 /*    
  *    	joininfo-member
  *    
@@ -40,8 +41,14 @@ JInfo
 joininfo_member (join_relids,joininfo_list)
      LispValue join_relids,joininfo_list ;
 {
-     /* XXX - fix me */
-     return((JInfo)find (join_relids,joininfo_list,"same","get_other_rels"));
+    LispValue i = LispNil;
+    List other_rels = LispNil;
+    foreach (i,joininfo_list) {
+	other_rels = CAR(i);
+	if (same(join_relids,get_otherrels(other_rels)))
+	  return((JInfo)other_rels);
+    }
+    return((JInfo)NULL);
 }
 
 
@@ -68,8 +75,14 @@ find_joininfo_node (this_rel,join_relids)
 				     get_joininfo (this_rel));
     if ( joininfo == NULL ) {
 	joininfo = CreateNode (JInfo);
-	set_joininfo (this_rel, lispCons (joininfo,get_joininfo (this_rel)));
 	set_otherrels (joininfo,join_relids);
+	set_jinfoclauseinfo (joininfo,LispNil);
+	set_mergesortable (joininfo,false);
+	set_hashjoinable (joininfo,false);
+	joininfo->printFunc = PrintJInfo;
+	joininfo->equalFunc = EqualJInfo;
+	set_joininfo (this_rel, lispCons (joininfo,get_joininfo (this_rel)));
+
     }
     return(joininfo);
 }

@@ -22,6 +22,7 @@
 #include "planner/internal.h"
 #include "nodes.h"
 #include "relation.h"
+#include "relation.a.h"
 #include "planner/keys.h"
 #include "c.h"
 #include "log.h"
@@ -64,14 +65,17 @@
 
 bool
 match_indexkey_operand (indexkey,operand,rel)
-     LispValue indexkey,operand,rel ;
+     LispValue indexkey;
+     Var operand;
+     Rel rel;
+
 {
-     if (IsA (operand,Var) &&
-	 equal (get_relid (rel),get_varno (operand)) &&
-	 equal_indexkey_var (indexkey,operand))
-       return(true);
-     else
-       return(false);
+    if (IsA (operand,Var) &&
+	equal (CAR(get_relids (rel)),get_varno (operand)) &&
+	equal_indexkey_var (indexkey,operand))
+      return(true);
+    else
+      return(false);
 }
 
 /*    
@@ -87,16 +91,21 @@ match_indexkey_operand (indexkey,operand,rel)
  */
 bool
 equal_indexkey_var (index_key,var)
-LispValue index_key,var ;
+     LispValue index_key;
+     Var var ;
 {
-     if ((consp (index_key) &&
-	  equal (get_attribute_number (index_key), get_varattno (var)) &&
-	  equal (get_array_index (index_key),get_vararrayindex (var))) ||
-	 (equal (index_key,get_varattno (var)) &&
-	  null (get_vararrayindex (var))))
-       return(true);
-     else
-       return(false);
+/*    if ((consp (index_key) &&
+ *	 equal (get_attribute_number (index_key), get_varattno (var)) &&
+ *	 equal (get_array_index (index_key),get_vararrayindex (var))) ||
+ *
+ *  trun this portion off for now since vararraryindex is always nil
+ */
+
+    if (CInteger(index_key) == get_varattno (var) &&
+	null (get_vararrayindex (var)))
+      return(true);
+    else
+      return(false);
 }
 
 /*    
@@ -111,22 +120,23 @@ LispValue index_key,var ;
  */
 LispValue
 extract_subkey (joinkey,which_subkey)
-     LispValue joinkey;
+     JoinKey joinkey;
      int which_subkey ;
 {
      LispValue retval;
 
      switch (which_subkey) {
 	case OUTER: 
-	  retval = nth (0,joinkey);
-	  break;
-	case INNER: 
-	  retval = nth (1,joinkey);
-	  break;
-	default: /* do nothing */
-	  elog(DEBUG,"extract_subkey with neither INNER or OUTER");
-	  retval = LispNil;
+	 retval = (LispValue)get_outer(joinkey);
+	 break;
+       case INNER: 
+	 retval = (LispValue)get_inner(joinkey);
+	 break;
+       default: /* do nothing */
+	 elog(DEBUG,"extract_subkey with neither INNER or OUTER");
+	 retval = LispNil;
      }
+     return(retval);
 }
 
 /*    
@@ -179,22 +189,53 @@ samekeys (keys1,keys2)
  *    
  */
 
-/*  .. create_index_path
+/* used by collect_index_pathkeys .  This function is
+ * identical to matching_tlvar and tlistentry_member.
+ * They should be merged.
  */
-LispValue
+
+Expr
+matching2_tlvar(var,tlist,test)
+     LispValue tlist;
+     Var var;
+     bool (*test)();
+{
+    LispValue tlentry = LispNil;
+
+    if (var) {
+	LispValue temp = LispNil;
+	foreach (temp,tlist) {
+	    if ( (*test)(var, get_expr(get_entry(CAR(temp))))) {
+		tlentry = CAR(temp);
+		break;
+	    }
+	}
+    }
+
+    if ( tlentry ) 
+      return((Expr)get_expr (get_entry (tlentry)) );
+    else
+      return((Expr)NULL);
+}
+
+/*  .. create_index_path   */
+
+    LispValue
 collect_index_pathkeys (index_keys,tlist)
      LispValue index_keys,tlist ;
 {
-     LispValue index_key,retval = LispNil;
-
-     foreach(index_key,index_keys) {
-	  Expr mvar;
-	  mvar = matching_tlvar (CAR(index_key),tlist,equal_indexkey_var);
-	  if ( mvar ) 
-	    retval = nconc(retval,lispCons (lispCons (mvar,LispNil),
-					    LispNil));
-     }
-     return(retval);
+    LispValue index_key,retval = LispNil;
+    
+    foreach(index_key,index_keys) {
+	if (CInteger(CAR(index_key)) != 0) {
+	    Expr mvar;
+	    mvar = matching2_tlvar (CAR(index_key),tlist,equal_indexkey_var);
+	    if ( mvar ) 
+	      retval = nconc(retval,lispCons (lispCons (mvar,LispNil),
+					      LispNil));
+	}
+    }
+    return(retval);
 }
 
 /*    

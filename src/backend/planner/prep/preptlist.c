@@ -55,11 +55,13 @@ preprocess_targetlist (tlist,command_type,result_relation,range_table)
      LispValue temp = LispNil;
 
      if ( result_relation )
-	  relid = getrelid (result_relation,range_table);
+	  relid = getrelid (CInteger(result_relation),range_table);
      
      if ( integerp (relid) ) {
 	  expanded_tlist = 
-	    expand_targetlist (tlist,relid,command_type,result_relation);
+	    expand_targetlist (tlist,CInteger(relid),
+			       command_type,
+			       CInteger(result_relation));
      } 
      else {
 	  expanded_tlist = tlist;
@@ -70,10 +72,10 @@ preprocess_targetlist (tlist,command_type,result_relation,range_table)
      
      foreach (temp,expanded_tlist) {
 	  t_list = nappend1(t_list,fix_opids (CAR(temp)));
-     }
-
+      }
+     
      return(t_list);
-}  /* function end  */
+ }  /* function end  */
 
 /*     	====================
  *     	TARGETLIST EXPANSION
@@ -105,7 +107,7 @@ expand_targetlist (tlist,relid,command_type,result_relation)
      int command_type;
      LispValue result_relation ;
 {
-    int node_type;
+    int node_type = -1;
     
     switch (command_type) {
       case APPEND : 
@@ -121,16 +123,16 @@ expand_targetlist (tlist,relid,command_type,result_relation)
 	break;
     } 
     
-    if(node_type) {
-	  return (replace_matching_resname (new_relation_targetlist 
-					    (relid,
-					     result_relation,
-					     node_type),
-					    tlist));
-	  
-      } 
+    if(node_type != -1) {
+	return (replace_matching_resname (new_relation_targetlist 
+					  (relid,
+					   result_relation,
+					   node_type),
+					  tlist));
+	
+    } 
     else 
-       return (tlist);
+      return (tlist);
     
 }  /* function end   */
 
@@ -139,35 +141,39 @@ LispValue
 replace_matching_resname (new_tlist,old_tlist)
      LispValue new_tlist,old_tlist ;
 {
-     /*  lisp mapCAR    */
+    /*  lisp mapCAR    */
      LispValue new_tl = LispNil;
      LispValue temp = LispNil;
      LispValue old_tl = LispNil; 
      LispValue t_list = LispNil;
-
-     foreach (new_tl,new_tlist) {
-	  /* XXX - let form, maybe incorrect */
-	  LispValue matching_old_tl = LispNil;
+     LispValue i = LispNil;
+     LispValue matching_old_tl = LispNil;
+     LispValue j = LispNil;
      
-	  foreach (temp,old_tlist) {
-	       if (equal (get_resname (tl_resdom(old_tl))),
-			 (get_resname (tl_resdom(new_tl)))) {
-		 matching_old_tl = LispTrue;
+     foreach (i,new_tlist) {
+	 new_tl = CAR(i);
+	 matching_old_tl = LispNil;
+
+	 foreach (temp,old_tlist) {
+	     old_tl = CAR(temp);
+	     if (!strcmp(get_resname (tl_resdom(old_tl)),
+			get_resname (tl_resdom(new_tl)))) {
+		 matching_old_tl = old_tl;
 		 break;
-	    }
-	  }
+	     }
+	 }
 	  
-	  if(matching_old_tl) {
-	       set_resno (tl_resdom (matching_old_tl),
-			  get_resno (tl_resdom (new_tl)));
-	      t_list = nappend1(t_list,matching_old_tl);
-	  } 
-	  else {
-	       t_list = nappend1(t_list,new_tl);
-	  } 
+	 if(matching_old_tl) {
+	     set_resno (tl_resdom (matching_old_tl),
+			get_resno (tl_resdom (new_tl)));
+	     t_list = nappend1(t_list,matching_old_tl);
+	 } 
+	 else {
+	     t_list = nappend1(t_list,new_tl);
+	 } 
      }
      return (t_list);
-}  /* function end   */
+ }  /* function end   */
 
 /*    
  *    	new-relation-targetlist
@@ -183,59 +189,74 @@ replace_matching_resname (new_tlist,old_tlist)
 
 LispValue
 new_relation_targetlist (relid,rt_index,node_type)
-     LispValue relid,rt_index;
+     ObjectId relid;
+     Index rt_index;
      NodeTag node_type ;
 {
      LispValue attno = LispNil;
      LispValue t_list = LispNil;
+     LispValue i = LispNil;
+     Name attname = (Name)NULL;
+     ObjectId atttype = 0;
+     int16 typlen = 0;
 
-     foreach(attno, number_list(1,(get_relnatts(relid)))) {
-	  
-	  Name attname = get_attname (relid,attno);
-	  ObjectId atttype = get_atttype (relid,attno);
-	  int16 typlen = get_typlen (atttype);
+     foreach(i, number_list(1,(get_relnatts(relid)))) {
+	 attno = CAR(i);
+	 attname = get_attname (relid,CInteger(attno));
+	 atttype = get_atttype (relid,CInteger(attno));
+	 typlen = get_typlen (atttype);
 
-
-	  switch (node_type) {
+	 switch (node_type) {
 	       
-	     case T_Const:
-		 { 
-		      struct varlena *typedefault = get_typdefault (atttype);
-		      int temp ;
-		      Const temp2;
-		      TLE temp3;
+	   case T_Const:
+	     { 
+		 struct varlena *typedefault = get_typdefault (lispInteger
+							       (atttype));
+		 int temp = 0;
+		 Const temp2 = (Const)NULL;
+		 TLE temp3 = (TLE)NULL;
 
-		      if ( null (typedefault) ) 
-			temp = 0;
-		      else 
-			temp = typlen;
+		 if ( null (typedefault) ) 
+		   temp = 0;
+		 else 
+		   temp = typlen;
+		 
+		 temp2 = MakeConst (atttype,temp,
+				    typedefault,lispNullp(typedefault));
+		 
+		 temp3 = MakeTLE (MakeResdom (CInteger(attno),atttype,
+					      typlen,
+					      attname,0,LispNil),
+				  temp2);
+		 t_list = nappend1(t_list,temp3);
+		 break;
+	     } 
+	   case T_Var:
+	     { 
+		 Var temp_var = (Var)NULL;
+		 LispValue temp_list = LispNil;
 
-		      temp2 = MakeConst (atttype,temp,
-					   typedefault,lispNullp(typedefault));
-
-		      temp3 = MakeTLE (MakeResdom (attno,atttype,
-						    typlen,attname,0,LispNil),
-				       temp2);
-		      t_list = nappend1(t_list,temp3);
-		      break;
-		   } 
-	       case T_Var:
-		 { 
-		      Var temp;
-		      temp = MakeVar (rt_index,attno,atttype,
-				       LispNil,LispNil,
-				       lispCons (rt_index,
-						 lispCons(attno,LispNil)));
-		      t_list = nappend1(t_list,temp);
-		      break;
-		 }
-	       
-	     default: { /* do nothing */
-		  break;
+		 temp_var = MakeVar (rt_index,
+				 CInteger(attno),
+				 atttype,
+				 LispNil,LispNil,
+				 lispCons (lispInteger(rt_index),
+					   lispCons(attno,
+						    LispNil)));
+		 temp_list = MakeTLE (MakeResdom (CInteger(attno),atttype,
+					      typlen,
+					      attname,0,LispNil),
+				      temp_var);
+		 t_list = nappend1(t_list,temp_list);
+		 break;
 	     }
-	  }
+	       
+	   default: { /* do nothing */
+	       break;
+	   }
+	 }
      }
      return(t_list);
-} /* function end   */
+ } /* function end   */
 		  
 
