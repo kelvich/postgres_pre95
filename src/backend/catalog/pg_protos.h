@@ -18,7 +18,7 @@
 
 /* prototypes for functions in lib/catalog/pg_aggregate.c */
 ObjectId AggregateGetWithOpenRelation ARGS((Relation pg_aggregate_desc , Name aggName , ObjectId int1ObjectId , ObjectId int2ObjectId , ObjectId finObjectId ));ObjectId AggregateGet ARGS((Name aggName , Name int1funcName , Name int2funcName , Name finfuncName ));
-int AggregateDefine ARGS((Name aggName , Name xitionfunc1Name , Name xitionfunc2Name , Name finalfuncName , Name baseType, Name *xitionfunc1Type , Name *xitionfunc2Type , int initaggval , int initsecval ));
+int AggregateDefine ARGS((Name aggName , Name xitionfunc1Name , Name xitionfunc2Name , Name finalfuncName , Name baseType, Name xitionfunc1Type , Name xitionfunc2Type , int initaggval , int initsecval ));
 char *AggNameGetInitVal ARGS((char *aggName , int initValAttno , bool *isNull ));
 
 /*	prototypes for functions in lib/catalog/pg_operator.c */
