@@ -7,7 +7,7 @@ cc -Bstatic loader.c
 when this is executed by typing a.out it loads tst.o and calls it.
 
 !!!! Be sure that we close all open files up exit on the Sequent - the ld !!!!
-	 fails otherwise 
+     fails otherwise 
 
 */
 
@@ -66,6 +66,8 @@ long *size;
 
 	image_size = ld_header.a_text + ld_header.a_data + ld_header.a_bss + FUDGE;
 
+	close(fd); /* don't open it until the load is finished. */
+
 	if (!(load_address = valloc(image_size)))
 	{
 		*err = "unable to allocate memory";
@@ -111,11 +113,10 @@ long *size;
 	fseek(temp_file, N_TXTOFF(header), 0);
 	nread = fread(load_address, true_image_size,1,temp_file);
 
-	retval = load_symbols(fd, &ld_header, load_address);
+	retval = load_symbols(filename, &ld_header, load_address);
 
 	fclose(temp_file);
 	unlink(temp_file_name);
-	close(fd);
 	*address = load_address;
 	*size = image_size;
 
@@ -129,13 +130,14 @@ finish_up:
 }
 
 DynamicFunctionList *
-load_symbols(fd, hdr, entry_addr)
+load_symbols(filename, hdr, entry_addr)
 
-int fd;
+char *filename;
 struct exec *hdr;
 int entry_addr;
 
 {
+	int fd;
 	char *strings, *symb_table, *p, *q;
 	int symtab_offset, string_offset, string_size, nsyms, i;
 	struct nlist *table_entry;
@@ -144,6 +146,8 @@ int entry_addr;
 
 	symtab_offset = N_SYMOFF(*hdr);
 	string_offset = N_STROFF(*hdr);
+
+	fd = open(filename, O_RDONLY);
 
 	lseek(fd, string_offset, 0);
 	read(fd, &string_size, sizeof(string_size));
