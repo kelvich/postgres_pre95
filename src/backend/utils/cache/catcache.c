@@ -806,8 +806,12 @@ SearchSysCache(cache, v1, v2, v3, v4)
 	SLRemove(&ct->ct_lrunode);		/* most recently used */
 	SLAddHead(&cache->cc_lrulist, &ct->ct_lrunode);
 	
+#ifdef CACHEDEBUG
+	relation = heap_open(cache->relationId);
 	CACHE3_elog(DEBUG, "SearchSysCache(%s): found in bucket %d",
 		    RelationGetRelationName(relation), hash);
+	heap_close(relation);
+#endif CACHEDEBUG
 	
 #if 0
 	/* ----------------
