@@ -11,9 +11,11 @@ CFLAGS+= -I${.CURDIR}/../../backend/port/${PORTNAME} \
 	 -I${.CURDIR}/../../backend/obj \
 	 -I${.CURDIR}/../../backend
 CFLAGS+= -DUFP
-CFLAGS+= -G 0
 
+.if ${PORTNAME} == "ultrix4"
+CFLAGS+= -G 0
 LDFLAGS+= -G 0
 LDFLAGS+= -N
+.endif
 
 .include <postgres.prog.mk>
