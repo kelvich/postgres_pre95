@@ -25,9 +25,10 @@
  * prs2Append
  */
 Prs2Status
-prs2Append(prs2EStateInfo, tuple, buffer, relation,
+prs2Append(prs2EStateInfo, explainRelation, tuple, buffer, relation,
 	    returnedTupleP, returnedBufferP)
 Prs2EStateInfo prs2EStateInfo;
+Relation explainRelation;
 HeapTuple tuple;
 Buffer buffer;
 Relation relation;
@@ -69,6 +70,7 @@ Buffer *returnedBufferP;
     for (attrNo=1; attrNo <= numberOfAttributes; attrNo++) {
 	prs2ActivateBackwardChainingRules(
 		prs2EStateInfo,
+		explainRelation,
 		relation,
 		attrNo,
 		PRS2_NEW_TUPLE,
@@ -79,7 +81,9 @@ Buffer *returnedBufferP;
 		tuple->t_oid,
 		attrValues,
 		locks,
-		LockTypeAppendWrite);
+		LockTypeAppendWrite,
+		(AttributeNumberPtr) NULL,
+		(AttributeNumber) 0);
     }
 
     /*
@@ -91,6 +95,7 @@ Buffer *returnedBufferP;
      */
     prs2ActivateForwardChainingRules(
 	    prs2EStateInfo,
+	    explainRelation,
 	    relation,
 	    InvalidAttributeNumber,
 	    LockTypeAppendAction,
@@ -103,7 +108,9 @@ Buffer *returnedBufferP;
 	    attrValues,
 	    locks,
 	    LockTypeAppendWrite,
-	    &insteadRuleFound);
+	    &insteadRuleFound,
+	    (AttributeNumberPtr) NULL,
+	    (AttributeNumber) 0);
 
     /*
      * Now all the correct values for the new tuple
