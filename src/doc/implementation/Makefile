@@ -1,5 +1,5 @@
-SRC=	am.me smgr.me
-DEST=	am.ps smgr.ps
+SRC=	am.me smgr.me fmgr.me
+DEST=	am.ps smgr.ps fmgr.ps
 ROFF=	groff
 RFLAGS=	-te -me -Tps
 
@@ -10,3 +10,6 @@ am.ps: am.me
 
 smgr.ps: smgr.me
 	$(ROFF) $(RFLAGS) smgr.me > smgr.ps
+
+fmgr.ps: fmgr.me
+	$(ROFF) $(RFLAGS) fmgr.me > fmgr.ps
