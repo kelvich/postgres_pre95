@@ -36,7 +36,7 @@
 #	@(#)mkdep.sh	5.21 (Berkeley) 9/2/92
 #
 
-PATH=/bin:/usr/bin:/usr/ucb:/usr/old/bin
+PATH=/bin:/usr/bin:/usr/ucb:/usr/old/bin:$PATH
 export PATH
 
 D=.depend			# default dependency file is .depend
