@@ -11,6 +11,7 @@
 
 #include "pg_lisp.h"
 #include "nodes.h"	/* bogus inheritance system */
+#include "params.h"	/* parameterized plan stuff... */
 
 /*
  *  This #define means that we have supplied a print function for EState
@@ -88,6 +89,8 @@ class (RelationInfo) public (Node) {
  *	relation_relation_descriptor	as it says
  *	into_relation_descriptor	relation being retrieved "into"
  *	result_relation_information	for update queries
+ *	param_list_info			information needed to transform
+ *					Param nodes into Const nodes
  * ----------------------------------------------------------------
  */
 
@@ -105,7 +108,9 @@ class (EState) public (Node) {
       Relation		es_relation_relation_descriptor;
       Relation		es_into_relation_descriptor;
       RelationInfo	es_result_relation_info;
+      ParamListInfo	es_param_list_info;
 };
+
 
 /* ----------------
  *	Executor Type information needed by plannodes.h
