@@ -35,8 +35,8 @@ CATALOG(pg_prs2rule) {
     char 	prs2eventtype;
     oid 	prs2eventrel;
     int2 	prs2eventattr;
-    float4	necessary;
-    float4	sufficient;
+    float8	necessary;
+    float8	sufficient;
     text 	prs2text;	/* VARIABLE LENGTH FIELD */
 } FormData_pg_prs2rule;
 
@@ -52,12 +52,14 @@ typedef FormData_pg_prs2rule	*Form_pg_prs2rule;
  * ----------------
  */
 #define Name_pg_prs2rule		"pg_prs2rule"
-#define Natts_pg_prs2rule		5
+#define Natts_pg_prs2rule		7
 #define Anum_pg_prs2rule_prs2name	1
 #define Anum_pg_prs2rule_prs2eventtype	2
 #define Anum_pg_prs2rule_prs2eventrel	3
 #define Anum_pg_prs2rule_prs2eventattr	4
-#define Anum_pg_prs2rule_prs2text	5
+#define Anum_pg_prs2rule_necessary	5
+#define Anum_pg_prs2rule_sufficient	6
+#define Anum_pg_prs2rule_prs2text	7
 
 /* ----------------
  *	old definition of struct prs2rule
