@@ -150,6 +150,7 @@ hashchar16(key)
     uint32 h;
     int len;
  
+    h = 0;
     len = sizeof(char16);
     /* Convert string to integer */
     while (len--)
@@ -215,6 +216,7 @@ hashtext(key)
     }
     return (n);
 }	
+
 
 
 
