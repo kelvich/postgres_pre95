@@ -31,6 +31,7 @@ main(argc,argv)
 	extern int optind;
 	extern char *optarg;
 	extern char *PQhost, *PQport;
+	extern int p_errno;
 
 	dflag = 0;
 	while ((ch = getopt(argc, argv, "H:P:D:")) != EOF)
@@ -63,26 +64,23 @@ main(argc,argv)
 	    p_attr_caching = 0;
 	}
 
-	(void) PQexec("begin");
-
 	if ((argc-optind) < 1) {
 		PQfinish();
 		usage();
 	}
 
+	(void) PQexec("begin");
+
 	do {
 	    if (p_rmdir(argv[optind]) < 0) {
-		fprintf(stderr, "p_rmdir: ");
-		perror(argv[optind]);;
+		fprintf(stderr, "p_rmdir: p_errno=%d, ", p_errno);
+		perror(argv[optind]);
 		errors++;
 	    }
 	    optind++;
 	} while (optind < argc);
 
-	if (errors == 0)
-		(void) PQexec("end");
-	else
-		(void) PQexec("abort");
+	(void) PQexec("end");
 
 	PQfinish();
 
