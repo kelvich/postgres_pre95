@@ -54,7 +54,50 @@ RcsId ("$Header$");
 #include "tmp/libpq.h"
 #include "utils/exc.h"
 
-PortalEntry *portals[MAXPORTALS];
+/* PortalEntry *portals[MAXPORTALS]; */
+
+PortalEntry** portals = (PortalEntry**) NULL;
+size_t portals_array_size = 0;
+
+/* portals array memory is malloc'd instead of using MemoryContexts */
+/* since it will be used by both front and backend programs*/
+/*  GlobalMemory portals_mmcxt = (GlobalMemory) NULL;  */
+
+/* ------------------------------- 
+ * portals_realloc --
+ *    grow the size of the portals array by size
+ *
+ *    also ensures that elements are initially NULL 
+*/
+
+static void
+portals_realloc(size)
+     size_t size;
+{
+  size_t oldsize;
+  int i;
+  PortalEntry** newp;
+
+  if (size < 0)
+    libpq_raise(&PortalError, form((int)"negative size passed to portals_realloc"));
+
+  oldsize = portals_array_size;
+
+  portals_array_size += size;
+  if (portals)
+    newp= (PortalEntry**)realloc(portals, portals_array_size*sizeof(PortalEntry*));
+  else
+    newp= (PortalEntry**)malloc(portals_array_size*sizeof(PortalEntry*));
+
+  if (newp)
+    portals = newp;
+  else
+    libpq_raise(&PortalError, form((int)"Cannot alloc more memory in portals_realloc"));
+
+  for (i=oldsize;i<portals_array_size;i++)
+    portals[i]=(PortalEntry*)NULL;
+
+}
 
 /* --------------------------------
  *	pbuf_alloc - allocate memory for portal buffers
@@ -90,7 +133,11 @@ void
 pbuf_free(pointer)
     caddr_t pointer;
 {
+  if (pointer)
     pfree(pointer);
+  else
+    libpq_raise(&MemoryError, form((int)"Tried to free NULL memory pointer"));
+    
 }
 
 /* --------------------------------
@@ -174,6 +221,7 @@ pbuf_addTuples()
 	pbuf_alloc(sizeof (TupleBlock));
     
     tuples->next = NULL;
+    tuples->tuple_index = 0;
 
     return (tuples);
 }
@@ -232,8 +280,11 @@ void
 pbuf_freeEntry(i)
     int i;
 {
+  if (portals)
+    {
     pbuf_free ((caddr_t)portals[i]);
     portals[i] = NULL;
+  }
 }
 
 
@@ -271,8 +322,10 @@ pbuf_freeTuples(tuples, no_tuples, no_fields)
 	for (j = 0; j < no_fields; j++)
 	  if (tuples->values[i][j] != NULL)
 	    pbuf_free((caddr_t)tuples->values[i][j]);
-	pbuf_free((caddr_t)tuples->lengths[i]);
-	pbuf_free((caddr_t)tuples->values[i]);
+       if (tuples->lengths[i])
+         pbuf_free((caddr_t)tuples->lengths[i]);
+       if (tuples->values[i])
+         pbuf_free((caddr_t)tuples->values[i]);
     }
     
     pbuf_free((caddr_t)tuples);
@@ -323,10 +376,13 @@ pbuf_getIndex(pname)
 {
     int i;
 
-    for (i = 0; i < MAXPORTALS; i++) 
-	if (portals[i] != NULL && strcmp(portals[i]->name, pname) == 0)
+    if (portals)
+      {
+	for (i = 0; i < portals_array_size; i++) 
+	  if (portals[i] != NULL && strncmp(portals[i]->name, pname, PortalNameLength) == 0)
 	    return i;
-    
+      }
+
     return (-1);
 }
 
@@ -342,6 +398,7 @@ pbuf_setportalinfo(entry, pname)
 {
     if (entry)
 	strncpy(entry->name, pname, PortalNameLength-1);
+    entry->name[PortalNameLength-1] = '\0';
 }
 
 /* --------------------------------
@@ -354,27 +411,33 @@ pbuf_setup(pname)
 {
     int i;
 
+    if (!portals) /* the portals array has not been allocated yet */
+      {
+	/* allocate portals[] array here */
+	portals_realloc(PORTALS_INITIAL_SIZE);
+      }
+
     /* If a portal with the same name already exists, close it. */
     /* else look for an empty entry in the portal table. */
     if ((i = pbuf_getIndex(pname)) != -1) 
 	pbuf_freePortal(portals[i]->portal);
     else {
-	for (i = 0; i < MAXPORTALS; i++)
+	for (i = 0; i < portals_array_size; i++)
 	    if (portals[i] == NULL)
 		break;
-	/* If the portal table is full, signal an error. */
-	if (i >= MAXPORTALS) 
-	    libpq_raise(&PortalError, form((int)"Portal Table overflows!"));
+
+	/* If the portal table is full, enlarge it */
+	if (i >= portals_array_size) 
+	    portals_realloc(PORTALS_GROW_BY);
 	
 	portals[i] = pbuf_addEntry();
-	strncpy(portals[i]->name, pname, PortalNameLength-1);
+	strncpy(portals[i]->name, pname, PortalNameLength);
     }
     portals[i]->portal = pbuf_addPortal();
     portals[i]->portalcxt = NULL;
     portals[i]->result = NULL;
     
-    return (PortalEntry *)
-	portals[i];
+    return portals[i];
 }
 
 /* --------------------------------
@@ -432,8 +495,8 @@ pbuf_findFnumber(group, field_name)
 
     types = group->types;
 
-    for (i = 0; i < group->no_fields; i++, types++) 
-	if (strcmp(types->name, field_name) == 0)
+    for (i = 0; i < group->no_fields; i++) 
+	if (strncmp(types[i].name, field_name, NameLength) == 0)
 	    return (i);
 	
     libpq_raise(&PortalError, 
@@ -465,6 +528,6 @@ pbuf_findFname(group, field_number)
 {
      pbuf_checkFnumber(group, field_number);
      return
-	 (group->types + field_number)->name;
+	 (group->types[field_number]).name;
 }
 
