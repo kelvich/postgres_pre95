@@ -59,6 +59,8 @@ int handle_write_to_file ARGS((void ));
 int handle_help ARGS((void ));
 int stuff_buffer ARGS((char c ));
 void argsetup ARGS((int *argcP, char ***argvP));
+void handle_copy_in ARGS((void));
+void handle_copy_out ARGS((void));
 
 /*      
  *          Functions which maintain the logical query buffer in
@@ -719,63 +721,12 @@ handle_execution(query)
 	    retval = 1;
             break;
 	    
-        case 'B':
-            {
-                char s[COPYBUFSIZ];
-		
-                s[0] = ' ';
-		
-		if (!Silent)
-		    fprintf(stdout, "Copy command returns...\n");
-		
-                while (s[0] != '.')
-		    {
-			PQgetline(s, COPYBUFSIZ);
-			if (s[0] != '.') fprintf(stdout, "%s\n", s);
-		    }
-            }
-	    PQendcopy();
-	    done = 1;
+        case 'B':		/* copy to stdout */
+	    handle_copy_out();
+	    done = true;
 	    break;
-	case 'D':
-	    {
-                char s[COPYBUFSIZ];
-		char c;
-		
-                s[0] = ' ';
-		
-		
-		if (!Silent) {
-		    fprintf(stdout, "Enter info followed by a newline\n");
-		    fprintf(stdout, "End with a dot on a line by itself.\n");
-		}
-		/*
-		 * eat inevitable newline still in input buffer
-		 *
-		 * XXX the 'inevitable newline' is not always present
-		 *     for example `cat file | monitor -c "copy from stdin"
-		 */
-		
-		if ((c = getchar()) != '\n') {
-		    s[0] = c;
-		    gets(&s[1]);
-		    PQputline(s);
-		    PQputline("\n");
-		}
-		
-		fflush(stdin);
-                while (s[0] != '.') {
-		    if (!Silent)
-			fprintf(stdout, ">> ");
-		    if (gets(s) == (char *)NULL) {
-			PQputline(".\n");
-			break;
-		    }
-		    PQputline(s);
-		    PQputline("\n");
-		}
-            }
-	    PQendcopy();
+	case 'D':		/* copy from stdin */
+	    handle_copy_in();
             done = true;
 	    break;
         default:
@@ -1079,4 +1030,93 @@ argsetup(argcP, argvP)
     /* all done */
     *argvP = argv;
     *argcP = argc;
+}
+
+void
+handle_copy_out()
+{
+    bool copydone = false;
+    char copybuf[COPYBUFSIZ];
+    int ret;
+
+    if (!Silent)
+	fprintf(stdout, "Copy command returns...\n");
+    
+    while (!copydone) {
+	ret = PQgetline(copybuf, COPYBUFSIZ);
+	
+	if (copybuf[0] == '.') {
+	    copydone = true;	/* don't print this... */
+	} else {
+	    fputs(copybuf, stdout);
+	    switch (ret) {
+	    case EOF:
+		copydone = true;
+		/*FALLTHROUGH*/
+	    case 0:
+		fputc('\n', stdout);
+		break;
+	    case 1:
+		break;
+	    }
+	}
+    }
+    fflush(stdout);
+    PQendcopy();
+}
+
+void
+handle_copy_in()
+{
+    bool copydone = false;
+    bool firstload;
+    bool linedone;
+    char copybuf[COPYBUFSIZ];
+    char *s;
+    int buflen;
+    int c;
+    
+    if (!Silent) {
+	fputs("Enter info followed by a newline\n", stdout);
+	fputs("End with a dot on a line by itself.\n", stdout);
+    }
+    
+    /*
+     * eat inevitable newline still in input buffer
+     *
+     * XXX the 'inevitable newline' is not always present
+     *     for example `cat file | monitor -c "copy from stdin"'
+     */
+    fflush(stdin);
+    if ((c = getc(stdin)) != '\n' && c != EOF) {
+	(void) ungetc(c, stdin);
+    }
+    
+    while (!copydone) {			/* for each input line ... */
+	if (!Silent) {
+	    fputs(">> ", stdout);
+	    fflush(stdout);
+	}
+	firstload = true;
+	linedone = false;
+	while (!linedone) {		/* for each buffer ... */
+	    s = copybuf;
+	    buflen = COPYBUFSIZ;
+	    for (; buflen > 1 &&
+		 !(linedone = (c = getc(stdin)) == '\n' || c == EOF);
+		 --buflen) {
+		*s++ = c;
+	    }
+	    *s = '\0';
+	    PQputline(copybuf);
+	    if (firstload) {
+		if (!strcmp(copybuf, ".")) {
+		    copydone = true;
+		}
+		firstload = false;
+	    }
+	}
+	PQputline("\n");
+    }
+    PQendcopy();
 }
