@@ -400,6 +400,14 @@ InitPlan(operation, parseTree, plan, estate)
 	rtentry =	      rt_fetch(resultRelationIndex, rangeTable);
 	resultRelationOid =   CInteger(rt_relid(rtentry));
 	resultRelationDesc =  heap_open(resultRelationOid);
+
+	/* Write-lock the result relation right away: if the relation
+	   is used in a subsequent scan, we won't have to elevate the 
+	   read-lock set by heap_beginscan to a write-lock (needed by 
+	   heap_insert, heap_delete and heap_replace).
+	   This will hopefully prevent some deadlocks.  - 01/24/93 */
+	RelationSetLockForWrite(resultRelationDesc);
+
 	resultRelationInfo = MakeRelationInfo(resultRelationIndex,
 					      resultRelationDesc,
 					      0,      /* num indices */
