@@ -155,7 +155,7 @@ IndexCatalogInformation(notFirst, indrelid, isarchival, indexCatalogInfo)
 	indexCatalogInfo[27] = index->indproc;			/* 27 */
 
 	/* Extract info from the relation descriptor for the index */
-	indexRelation = ObjectIdOpenHeapRelation(index->indexrelid);
+	indexRelation = (Relation) index_open(index->indexrelid);
 #ifdef notdef
 	/* XXX should iterate through strategies -- but how?  use #1 for now */
 	amstrategy = indexRelation->rd_am->amstrategies;
