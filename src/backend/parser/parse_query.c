@@ -654,6 +654,7 @@ make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
 			return LispNil;
     		}
     		type_struct2 = (TypeTupleForm) GETSTRUCT(type_tuple);
+/*
 		vararraylist = lispCons(vararraylist,
 					MakeArray ((type_struct)->typelem,
        	                        		 (type_struct2)->typlen,
@@ -661,6 +662,7 @@ make_array_ref_var( relname, attrname, vararrayindex, indirect_list)
        	                        		 lispInteger(CAR(indirect_list)),
        	                			 0, 
 					 	 (type_struct)->typlen));
+*/
 	}
     } else{
     	type_tuple = SearchSysCacheTuple(TYPOID,
