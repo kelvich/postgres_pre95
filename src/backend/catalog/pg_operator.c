@@ -744,15 +744,15 @@ OperatorUpd(baseId, commId, negId)
 	       || !ObjectIdIsValid(t->oprnegate)) {
 
 		if (!ObjectIdIsValid(t->oprnegate)) {
-		    values[Anum_pg_operator_oprnegate] =
+		    values[Anum_pg_operator_oprnegate - 1] =
 				    (char *)ObjectIdGetDatum(baseId);
-		    replaces[ Anum_pg_operator_oprnegate ] = 'r';
+		    replaces[ Anum_pg_operator_oprnegate - 1 ] = 'r';
 		}
 
 		if (!ObjectIdIsValid(t->oprcom)) {
-		    values[Anum_pg_operator_oprcom] =
+		    values[Anum_pg_operator_oprcom - 1] =
 				    (char *)ObjectIdGetDatum(baseId);
-		    replaces[ Anum_pg_operator_oprcom ] = 'r';
+		    replaces[ Anum_pg_operator_oprcom - 1 ] = 'r';
 		}
 
 		tup = heap_modifytuple(tup,
@@ -781,8 +781,8 @@ OperatorUpd(baseId, commId, negId)
     /* if commutator and negator are different, do two updates */
     if (HeapTupleIsValid(tup) &&
        !(ObjectIdIsValid(((struct operator *) GETSTRUCT(tup))->oprcom))) {
-	values[ Anum_pg_operator_oprcom ] = (char *) ObjectIdGetDatum(baseId);
-	replaces[ Anum_pg_operator_oprcom ] = 'r';
+	values[ Anum_pg_operator_oprcom - 1] = (char *)ObjectIdGetDatum(baseId);
+	replaces[ Anum_pg_operator_oprcom - 1] = 'r';
 	tup = heap_modifytuple(tup,
 			      buffer,
 			      pg_operator_desc,
@@ -795,8 +795,8 @@ OperatorUpd(baseId, commId, negId)
 	heap_replace(pg_operator_desc, &itemPointerData, tup);
 	setheapoverride(false);
 
-	values[ Anum_pg_operator_oprcom ] = (char *) NULL;
-	replaces[ Anum_pg_operator_oprcom ] = ' ';
+	values[ Anum_pg_operator_oprcom - 1 ] = (char *) NULL;
+	replaces[ Anum_pg_operator_oprcom - 1 ] = ' ';
     }
 
     /* check and update the negator, if necessary */
@@ -811,8 +811,8 @@ OperatorUpd(baseId, commId, negId)
     tup = heap_getnext(pg_operator_scan, 0, &buffer);
     if (HeapTupleIsValid(tup) &&
        !(ObjectIdIsValid(((struct operator *) GETSTRUCT(tup))->oprnegate))) {
-	values[Anum_pg_operator_oprnegate] = (char *) ObjectIdGetDatum(baseId);
-	replaces[ Anum_pg_operator_oprnegate ] = 'r';
+	values[Anum_pg_operator_oprnegate-1] = (char *)ObjectIdGetDatum(baseId);
+	replaces[ Anum_pg_operator_oprnegate - 1 ] = 'r';
 	tup = heap_modifytuple(tup,
 			      buffer,
 			      pg_operator_desc,
