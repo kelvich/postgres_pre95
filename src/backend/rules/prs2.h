@@ -288,11 +288,12 @@ StringToRuleLock ARGS((
  *==================================================================
  */
 #define GetRuleNameFromParse(p)		(nth(2,p))
-#define GetRuleEventTypeFromParse(p)	(nth(3,p))
-#define GetRuleEventTargetFromParse(p)	(nth(4,p))
-#define GetRuleQualFromParse(p)		(nth(5,p))
-#define GetRuleInsteadFromParse(p)	(nth(6,p))
-#define GetRuleActionFromParse(p)	(nth(7,p))
+#define GetRuleEventTypeFromParse(p)	(nth(0,nth(3,p)))
+#define GetRuleEventTargetFromParse(p)	(nth(1,nth(3,p)))
+#define GetRuleQualFromParse(p)		(nth(2,nth(3,p)))
+#define GetRuleInsteadFromParse(p)	(nth(3,nth(3,p)))
+#define GetRuleActionFromParse(p)	(nth(4,nth(3,p)))
+#define GetRuleRangeTableFromParse(p)	(nth(4,p))
 
 /*------------------------------------------------------------------
  * Various routines...
