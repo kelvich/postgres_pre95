@@ -79,6 +79,7 @@ bool 		override = false;
 int		EchoQuery = 0;		/* default don't echo */
 char pg_pathname[256];
 int		testFlag = 0;
+int		MasterPid;
 
 /* ----------------
  *	people who want to use EOF should #define DONTUSENEWLINE in
@@ -651,8 +652,9 @@ PostgresMain(argc, argv)
      */
     numslaves = 0;
     flagC = flagQ = flagM = flagS = ShowStats = flagE = 0;
+    MasterPid = getpid();
     
-    while ((flag = getopt(argc, argv, "B:b:CdEMNnOP:pQSsTf:")) != EOF)
+    while ((flag = getopt(argc, argv, "B:b:CdEM:NnOP:pQSsTf:")) != EOF)
 	
       switch (flag) {
 	  
@@ -705,6 +707,7 @@ PostgresMain(argc, argv)
 	  } else
 	      errs += 1;
 	  flagM = 1;
+	  _enable_mergesort_ = 0;  /* don't support parallel mergesort yet */
 	  break;
 	  
       case 'n': /* do nothing for now - no debug mode */
