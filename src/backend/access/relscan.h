@@ -49,6 +49,7 @@ typedef HeapScanDescData *HeapScanDesc;
 
 typedef struct IndexScanDescData {
 	Relation	relation;		/* relation descriptor */
+	Pointer		opaque;			/* am-specific slot */
 	ItemPointerData	previousItemData;	/* previous index pointer */
 	ItemPointerData	currentItemData;	/* current index pointer */
 	ItemPointerData	nextItemData;		/* next index pointer */
