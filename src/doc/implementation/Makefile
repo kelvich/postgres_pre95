@@ -10,8 +10,7 @@ NROFF=nroff
 
 GROFF=groff -set
 
-#DOCOBJS= ${DOCSRCS:S/.me/.cat/g} ${DOCSRCS:S/.me/.ps/g}
-DOCOBJS= ${DOCSRCS:S/.me/.ps/g} README
+DOCOBJS= ${DOCSRCS:S/.me/.ps/g}
 
 .me.cat:
 	${GROFF} -me -Tascii ${.IMPSRC} > ${.TARGET}
@@ -30,6 +29,7 @@ install: all
 	fi
 	for i in ${DOCOBJS}; do \
 		${INSTALL} -m 444 $$i ${POSTDOCDIR}/implementation/$$i; \
-	done
+	done; \
+	${INSTALL} -c -m 444 README ${POSTDOCDIR}/implementation/README
 
 .include <postgres.prog.mk>
