@@ -40,44 +40,30 @@ char *chunkfile;
     bool reorgFlag;
     char * _array_newLO();
 
-    if (chunkfile == NULL) reorgFlag = true;
-    else reorgFlag = false;
+    if (chunkfile == NULL) 
+		reorgFlag = true;
+    else
+		reorgFlag = false;
 
     if (reorgFlag) 
-    /* create new LO for chunked file */
-    chunkfile = _array_newLO( &cfd, fileFlag );
+		/* create new LO for chunked file */
+		chunkfile = _array_newLO( &cfd, fileFlag );
     else 
-    cfd = LOopen(chunkfile, O_RDWR); 
-    if (cfd < 0) elog(WARN, "Enable to open chunk file");
+		cfd = LOopen(chunkfile, O_RDWR); 
+    if (cfd < 0)
+		elog(WARN, "Enable to open chunk file");
     strcpy (cInfo.lo_name, chunkfile);
     
     /* find chunk size */
     csize = GetChunkSize(afd, ndim, dim, baseSize, chunk);
 
     if (reorgFlag)
-    /* copy data from input file to chunked file */
-    _ConvertToChunkFile(ndim, baseSize, dim, chunk, fd, cfd);
+		/* copy data from input file to chunked file */
+		_ConvertToChunkFile(ndim, baseSize, dim, chunk, fd, cfd);
 
     initialize_info(&cInfo, ndim, dim, chunk);
     *nbytes = sizeof(CHUNK_INFO);
     return (char *) &cInfo ;
-}
-
-/*--------------------------------------------------------------------------
- * Compute number of page fetches, given chunk dimension and access pattern 
- *   -- defined as a macro because it is called a zillion times by the 
- *      program that computes chunk size
- *------------------------------------------------------------------------
- */
-#define compute_fetches(d, DIM, N, A, tc) \
-{ \
-    register int i,j, nc;\
-    for (i = 0, tc = 0; i < N; i++){\
-        for (j = 0, nc = 1; j < DIM; j++)\
-            nc *= quot_ceil(A[i][j], d[j]); \
-        nc *= A[i][DIM];\
-        tc += nc;\
-    }\
 }
 
 /*--------------------------------------------------------------------------
@@ -112,7 +98,8 @@ FILE *fd;
      */
     for (i = 0; i < ndim; i++)
         for (j = 0, dmax[i] = 1; j < N; j++)
-        if (dmax[i] < A[j][i]) dmax[i] = A[j][i];
+        if (dmax[i] < A[j][i])
+			dmax[i] = A[j][i];
     csize = _PAGE_SIZE_/baseSize;
     
     _FindBestChunk (csize, dmax, d, ndim, A, N);
@@ -131,17 +118,29 @@ _FindBestChunk (size, dmax, dbest, dim, A, N)
 int size, dim, N, dbest[], dmax[], A[MAXPAT][MAXDIM+1];
 {
     int d[MAXDIM];
-    register int i,j;
     int tc, mintc = INFTY;
 
     d[0] = 0;
     mintc = INFTY;
     while (get_next(d,dim,size, dmax)) {
-        compute_fetches(d, dim, N, A, tc);
-
+		/*
+		 * compute the number of page fetches for a given
+		 * chunk size (d[]) and access pattern (A[][])
+		 */
+		register int i,j, nc;
+		for (i = 0, tc = 0; i < N; i++){
+			for (j = 0, nc = 1; j < dim; j++)
+				nc *= quot_ceil(A[i][j], d[j]);
+		    nc *= A[i][dim];
+			tc += nc;
+       }
+	   /*
+		* tc holds the total number of page fetches
+		*/
         if (mintc >= tc) {
           mintc = tc;
-          for (j = 0; j < dim; dbest[j] = d[j], j++);
+          for (j = 0; j < dim; dbest[j] = d[j], j++)
+			  ;
         }
     }
     return(mintc);
@@ -171,9 +170,11 @@ int d[], k, C, dmax[];
 
     for (i=k-1; i >= 0; i--){
         temp = temp/d[i];
-        if (((temp*(d[i]+1)) < C) && (d[i]+1 <= dmax[i])) break;
+        if (((temp*(d[i]+1)) < C) && (d[i]+1 <= dmax[i]))
+			break;
     }
-    if (i < 0) return(0);
+    if (i < 0)
+		return(0);
 
     d[i]++;
     j = C/temp;
@@ -183,7 +184,7 @@ int d[], k, C, dmax[];
 
    for (j = k-1; j > i; j--){
        d[j] = min(temp, dmax[j]);
-        temp = max(1, temp/d[j]);
+       temp = max(1, temp/d[j]);
     }
     return(1);
 
@@ -230,8 +231,8 @@ int n, baseSize, srcfd, destfd, dim[], C[];
 
     get_prod(n, dim, PX);
     get_offset_values(n, dist, PX, C);
-    for (i = 0; i < n; dist[i] *= baseSize, i++);
-
+    for (i = 0; i < n; dist[i] *= baseSize, i++)
+		;
     do {
         read_chunk(chunk_no, C, &(a_chunk[4]), srcfd, n, baseSize, PX, dist); 
         write_chunk(a_chunk, destfd);
@@ -263,7 +264,8 @@ char a_chunk[];
     /* Read a block of dimesion C starting at co-ordinates pos */
     unit_transfer = C[n-1] * baseSize;
 
-    for (i = 0; i < n; indx[i++] = 0);
+    for (i = 0; i < n; indx[i++] = 0)
+		;
     fpOff = start_pos;
     seek_and_read(fpOff, unit_transfer, a_chunk, srcfd, L_SET);
     fpOff += unit_transfer;
@@ -308,26 +310,17 @@ int fp;
     struct varlena *v;
 
     /* Assuming only one file */
-    if ( LOlseek(fp, pos, from ) < 0) elog(WARN, "File seek error");
+    if ( LOlseek(fp, pos, from ) < 0)
+		elog(WARN, "File seek error");
     v = (struct varlena *) LOread(fp, size);
-    if (VARSIZE(v) - 4 < size) elog(WARN, "File read error");
+    if (VARSIZE(v) - 4 < size)
+		elog(WARN, "File read error");
     bcopy(VARDATA(v), buff, size);
     pfree(v);
     return(1);
 
 }
 /*----------------------------------------------------------------------------*/
-#define NEXT_TUPLE(n, curr,  span, j)                               \
-{                                                                   \
-    int i;                                                          \
-    if (!(n)) j = -1;                                               \
-    else {                                                          \
-        curr[n-1] = (curr[n-1]+1)%span[n-1];                        \
-        for (i = n-1; i*(!curr[i]); i--)                            \
-            curr[i-1] = (curr[i-1]+1)%span[i-1];                    \
-        if (i) j = i; else if (curr[0]) j = 0; else j = -1;         \
-    }                                                               \
-}
 
 /*----------------------------------------------------------------------------
  * _ReadChunkArray --
@@ -374,7 +367,8 @@ bool *isNull;
         csize *= C[i];
     }
 
-    for (i = 0; i < n; st[i] -= lb[i], endp[i] -= lb[i], i++);
+    for (i = 0; i < n; st[i] -= lb[i], endp[i] -= lb[i], i++)
+		;
     get_prod(n, C, PCHUNK);
     get_range(n, array_span, st, endp);
     get_prod(n, array_span, PA);
@@ -395,7 +389,8 @@ bool *isNull;
     if (LOlseek(fp, srcOff, L_SET) < 0) RETURN_NULL;
     
     jj = n-1;
-    for (i = 0; i < n; chunk_off[i++] = 0);
+    for (i = 0; i < n; chunk_off[i++] = 0)
+		;
     words_read = 0; temp_seek = 0;
     do {
         /* Write chunk (chunk_st) to output buffer */
@@ -407,7 +402,8 @@ bool *isNull;
         for (i = 0; i < n; range[i++] = 0);
         j = n-1; bptr *= bsize;
         if (isDestLO) { 
-            if (LOlseek(destfp, bptr, L_SET) < 0) RETURN_NULL;
+            if (LOlseek(destfp, bptr, L_SET) < 0)
+				RETURN_NULL;
         }
         else 
             destfp = baseDestFp + bptr; 
@@ -417,36 +413,66 @@ bool *isNull;
         if (dist[jj] + block_seek + temp_seek) {
             temp = (dist[jj]*csize+block_seek+temp_seek)*bsize;
             srcOff += temp;
-            if (LOlseek(fp, srcOff, L_SET) < 0) RETURN_NULL;
+            if (LOlseek(fp, srcOff, L_SET) < 0)
+				RETURN_NULL;
         }
         for (i = n-1, to_read = bsize; i >= 0; 
                 to_read *= min(C[i], array_span[i]), i--)
-            if (cdist[i] || adist[i]) break;
+            if (cdist[i] || adist[i])
+				break;
         do {
             if (cdist[j]) {
                 srcOff += (cdist[j]*bsize);
-                if (LOlseek(fp, srcOff, L_SET) < 0) RETURN_NULL;
+                if (LOlseek(fp, srcOff, L_SET) < 0)
+					RETURN_NULL;
             }
             block_seek += cdist[j];
             bptr += adist[j]*bsize;
             if (isDestLO) { 
-                if (LOlseek(destfp, bptr, L_SET) < 0) RETURN_NULL;
+                if (LOlseek(destfp, bptr, L_SET) < 0)
+					RETURN_NULL;
             }
             else 
                 destfp = baseDestFp + bptr;
             temp = _LOtransfer (&destfp, to_read, 1, &fp, 1, isDestLO);
-            if (temp < to_read) RETURN_NULL;
+            if (temp < to_read)
+				RETURN_NULL;
             srcOff += to_read;
             words_read+=to_read;
             bptr += to_read;
             block_seek += (to_read/bsize);
-            NEXT_TUPLE(i+1, range, array_span, j);
+            /* 
+             * compute next tuple in range[]
+             */
+            {
+                int x;
+                if (!(i+1)) 
+                    j = -1;
+                else {
+                    range[i] = (range[i]+1)%array_span[i];
+                    for (x = i; x*(!range[x]); x--) 
+                        range[x-1] = (range[x-1]+1)%array_span[x-1];
+                    if (x) 
+                        j = x; 
+                    else { 
+                        if (range[0]) 
+                            j = 0; 
+                        else 
+                            j = -1;
+                    }
+                }
+            }
+			/* 
+			 * end of compute next tuple -- 
+			 * j is set to -1 if tuple generation is over
+			 */
         } while (j != -1);    
 
          block_seek = csize - block_seek;    
         temp_seek = block_seek;
         jj = next_tuple(n, chunk_off, chunk_span);
-        if (jj == -1) break;
+        if (jj == -1)
+			break;
         range_st[jj] = (chunk_st[jj]+chunk_off[jj])*C[jj];
         range_end[jj] = min(range_st[jj] + C[jj]-1, endp[jj]);
         
@@ -507,7 +533,21 @@ bool *isNull;
         srcOff += (st[i]-chunk_st[i]*C[i])*PCHUNK[i];
 
     srcOff *= bsize;
-    if (LOlseek(fp, srcOff, L_SET) < 0) RETURN_NULL;
+    if (LOlseek(fp, srcOff, L_SET) < 0)
+		RETURN_NULL;
 
     return (struct varlena *) LOread(fp, bsize);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
