@@ -125,14 +125,14 @@ static struct {
     int bigcookie; 
 #define SMALL_INT 0	 /* is integer wrapped in a varlena */
 #define BIG 1  /* must be passed as varlena*/
-    void *(*LOcreate)(char *,int); /* name,mode -> runtime-cookie */
-    void *(*LOopen)(void *,int); /* persistant-cookie,mode -> runtime-cookie */
-    void (*LOclose)(void *); /* runtime-cookie */
-    int (*LOread)(void *,char *,int); /* rt-cookie,buf,length -> bytecount*/
-    int (*LOwrite)(void *,char *,int); /*rt-cookie,buf,length -> bytecount*/
-    int (*LOseek)(void *,int,int); /*rt-cookie,offset,whence -> bytecount */
-    int (*LOtell)(void *); /*rt-cookie ->bytecount*/
-    int (*LOunixstat)(void *,struct pgstat *); /* rt-cookie,stat ->errorcode*/
+    void *(*LOcreate) ARGS((char *,int)); /* name,mode -> runtime-cookie */
+    void *(*LOopen) ARGS(void *,int)); /* persistant-cookie,mode -> runtime-cookie */
+    void (*LOclose) ARGS(void *)); /* runtime-cookie */
+    int (*LOread) ARGS(void *,char *,int)); /* rt-cookie,buf,length -> bytecount*/
+    int (*LOwrite) ARGS(void *,char *,int)); /*rt-cookie,buf,length -> bytecount*/
+    int (*LOseek) ARGS(void *,int,int)); /*rt-cookie,offset,whence -> bytecount */
+    int (*LOtell) ARGS(void *)); /*rt-cookie ->bytecount*/
+    int (*LOunixstat) ARGS(void *,struct pgstat *)); /* rt-cookie,stat ->errorcode*/
 } LOprocs[] = {
     /* Inversion */
     { SMALL_INT,noactionnull, f262open, f262close, f262read, noaction,
@@ -211,7 +211,9 @@ int LOopen(fname,mode)
 	    
 	if (lobjDesc == NULL) {
 	    MemoryContextSwitchTo(currentContext);
+#if FSDB
 	    elog(NOTICE,"LOopen objtype specific open failed");
+#endif
 	    return -1;
 	}
 	fd = NewLOfd(lobjDesc,objtype);
@@ -569,7 +571,9 @@ int LOmkdir(path,mode)
     /* enter new pathname */
     oidf = LOcreatOID(path,mode);
     if (oidf == InvalidObjectId) {
+#if FSDB
 	elog(NOTICE,"LOcreatOID failed");
+#endif
 	return -1;
     } else {
 	return 0;
