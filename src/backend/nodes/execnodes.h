@@ -24,7 +24,7 @@
 #include "nodes/primnodes.h"
 #include "nodes/pg_lisp.h"
 #include "nodes/nodes.h"              /* bogus inheritance system */
-#include "nodes/execnodes.gen"	      /* to get generated accessor macros */
+#include "execnodes.gen"	      /* to get generated accessor macros */
 #include "rules/params.h"             /* parameterized plan stuff... */
 #include "rules/prs2.h"               /* for the prs2_info field of EState */
 
