@@ -20,6 +20,8 @@
 #define Prs2LocksIncluded
 
 #include "c.h"
+#include "postgres.h"
+#include "attnum.h"
 
 #define PRS2_DEBUG 1
 
@@ -30,6 +32,7 @@
 
 /*------------------------------------------------------------------
  * event types: the types of event that can cause rule activations...
+ *------------------------------------------------------------------
  */
 typedef char EventType;
 #define EventTypeRetrieve	'R'
@@ -37,6 +40,29 @@ typedef char EventType;
 #define EventTypeAppend		'A'
 #define EventTypeDelete		'D'
 #define EventTypeInvalid	'*'
+
+/*------------------------------------------------------------------
+ * Action types. These are the possible actions that can be defined
+ * in the 'do' part of a rule.
+ * Currently the actiosn suuported are:
+ * ActionTypeRetrieveValue: the action part of the rule is a
+ *   'retrieve (expression) where ....'. (a 'retrieve  into relation'
+ *   query is NOT of this type!
+ *   NOTE: under the current implementation, if such an action is
+ *   specified in the action part of a rule, no other action can
+ *   be specified!
+ * ActionTypeReplaceCurrent: the action is a 'replace CURRENT(x=..)'
+ *   NOTE: under the current implementation, if such an action is
+ *   specified in the action part of a rule, no other action can
+ *   be specified!
+ * ActionTypeOther: Any other action... (including 'retrieve into...')
+ *------------------------------------------------------------------
+ */
+typedef char ActionType;
+#define ActionTypeRetrieveValue		'r'
+#define ActionTypeReplaceCurrent	'u'
+#define ActionTypeOther			'o'
+#define ActionTypeInvalid		'*'
 
 /*------------------------------------------------------------------
  * Plan numbers for various rule plans (as stored in the system catalogs)
@@ -48,30 +74,50 @@ typedef uint16 Prs2PlanNumber;
 #define ActionPlanNumber		((Prs2PlanNumber)1)
 
 /*------------------------------------------------------------------
+ * Used to distinguish between 'old' and 'new' tuples...
+ *------------------------------------------------------------------
+ */
+#define PRS2_OLD_TUPLE 1
+#define PRS2_NEW_TUPLE 2
+
+/*------------------------------------------------------------------
  * Types of locks..
  *
- * If the event specified in the event clause of a rule (i.e. the "on ..."
- * clause) is a replace, append or delete then the corresponding lock
- * type is LockTypeOnReplace, LockTypeOnAppend or LockTypeOnDelete.
- * If we are dealing with an 'on retrieve' rule, then we distinguish
- * between 2 cases:
- *  a) either the action is a retrieves that updates the current tuple
- *  (as for example in 'on retrieve to EMP.salary do instead retrieve ...'
- *  in which case the lock type is 'LockTypeWrite' (i.e. we have
- *  a kind of backward chaining)
- *  b) or we hace something like 'on retrieve ... do append ....'
- *  in which case we use a LockTypeOnRetrieve.
+ * We distinguish between two types of rules: the 'backward' & 'forward'
+ * chaning rules. The 'backward' chaining rules are the ones that
+ * calculate a value for the current tuple, like:
+ *    on retrieve to EMP.salary where EMP.name = "mike"
+ *    do instead retrieve (salary=1000)
+ * or
+ *    on append to EMP where EMP.age<25
+ *    do replace CURRENT(salary=2000)
+ *
+ * The forward chaining rules are the ones that do some action but do not
+ * update the current tuple, like:
+ *    on replace to EMP.salary where EMP.name = "mike"
+ *    do replace EMP(salary=NEW.salary) where EMP.name = "john"
+ * or
+ *    on retrieve to EMP.age where EMP.name = "mike"
+ *    do append TEMP(username = user(), age = OLD.age)
+ *
+ * The first type of rules gets a `LockTypeXXXWrite' lock (where XXX is
+ * the event specified in the "on ..." clause and can be one of
+ * retrieve, append, delete or replace) and the forward chinign rules
+ * get locks of the form `LockTypeXXXAction'
  *
  *------------------------------------------------------------------
  */
 typedef char Prs2LockType;
 
 #define LockTypeInvalid			((Prs2LockType) '*')
-#define LockTypeOnRetrieve		((Prs2LockType) 'r')
-#define LockTypeOnAppend		((Prs2LockType) 'a')
-#define LockTypeOnDelete		((Prs2LockType) 'd')
-#define LockTypeOnReplace		((Prs2LockType) 'u')
-#define LockTypeWrite			((Prs2LockType) 'w')
+#define LockTypeRetrieveAction		((Prs2LockType) 'r')
+#define LockTypeAppendAction		((Prs2LockType) 'a')
+#define LockTypeDeleteAction		((Prs2LockType) 'd')
+#define LockTypeReplaceAction		((Prs2LockType) 'u')
+#define LockTypeRetrieveWrite		((Prs2LockType) 'R')
+#define LockTypeAppendWrite		((Prs2LockType) 'A')
+#define LockTypeDeleteWrite		((Prs2LockType) 'D')
+#define LockTypeReplaceWrite		((Prs2LockType) 'U')
 
 /*------------------------------------------------------------------
  * Every single lock (`Prs2OneLock') has the following fields:
@@ -108,9 +154,9 @@ typedef struct Prs2LocksData {
     Prs2OneLockData	locks[1];	/* XXX VARIABLE LENGTH DATA */
 } Prs2LocksData;
 
-typedef Prs2LocksData	*Prs2Locks;
+typedef Prs2LocksData	*RuleLock;
 
 
-#define InvalidPrs2Locks	((Prs2Locks) NULL);
-#define Prs2LocksIsValid(x)	PointerIsValid(x)
+#define InvalidRuleLock		((RuleLock) NULL)
+#define RuleLockIsValid(x)	PointerIsValid(x)
 #endif Prs2LocksIncluded
