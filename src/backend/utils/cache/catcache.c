@@ -816,30 +816,7 @@ SearchSysCache(cache, v1, v2, v3, v4)
 	heap_close(relation);
 #endif CACHEDEBUG
 	
-#if 0
-	/* ----------------
-	 *  by storing a pointer to the relation's tuple descriptor
-	 *  in the cache structure, we no longer need the relation
-	 *  descriptor until we have a cache miss.  This should make
-	 *  the caching routines a lot more efficient.  We're assuming
-	 *  that the system catalog schema will never change.
-	 *
-	 *  Now for the 64K question:  why are we setting a read lock
-	 *  here (and not in the code below when we have a cache miss)?
-	 *  It seems to me we don't want the read lock at all.  For example:
-	 *  if the planner does a SearchSysCacheTuple on pg_attribute and
-	 *  we lock the attribute relation as a side effect, then no
-	 *  command in this transaction will be able to affect pg_attribute.
-	 *  Won't this play hell with create, addattr, define type, etc?
-	 *  -cim 1/17/90
-	 *
-	 *  old comment:
-	 * XXX race condition with cache invalidation ???
-	 * ----------------
-	 */
-	RelationSetLockForRead(relation);
 	heap_close(relation);
-#endif
 	
 	return
 	    (ct->ct_tup);
