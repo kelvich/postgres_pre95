@@ -17,9 +17,15 @@ static	char	ami_lexer_l[] = "$Header$";
 #include "bootstrap.h"
 
 int	yylval;
-int yycolumn,yyline;
-#define NEWLINE() {yycolumn=0;yyline++;}
+int	yycolumn;
+int	yyline;
+#define NEWLINE() { yycolumn=0; yyline++; }
 
+#ifdef PORTNAME_alpha
+#define	YYTEXTCHAR	unsigned char
+#else /* PORTNAME_alpha */
+#define	YYTEXTCHAR	char
+#endif /* PORTNAME_alpha */
 %}
 
 %a 5000
@@ -35,118 +41,128 @@ arrayid	[A-Za-z0-9_]+\[{D}*\]
 %%
 
 o |
-open       	return(OPEN);
+open       	{ return(OPEN); }
 
 c |
-close		return(XCLOSE);
+close		{ return(XCLOSE); }
 
 C |
-create		return(XCREATE);
+create		{ return(XCREATE); }
 
 p |
-print		return(P_RELN);
+print		{ return(P_RELN); }
 
-in		return(XIN);
-as		return(AS);
-to		return(XTO);
-OID             return(OBJ_ID);
-bootstrap	return(BOOTSTRAP); 
-_null_		return(NULLVAL);
+in		{ return(XIN); }
+as		{ return(AS); }
+to		{ return(XTO); }
+OID             { return(OBJ_ID); }
+bootstrap	{ return(BOOTSTRAP); }
+_null_		{ return(NULLVAL); }
 
 i |
-insert		return(INSERT_TUPLE);
+insert		{ return(INSERT_TUPLE); }
 
 q |
-quit		return(QUIT);
+quit		{ return(QUIT); }
 
-\%pstr          {printstrtable();EMITPROMPT;}
+\%pstr          { printstrtable(); EMITPROMPT; }
 
-\%phash     	{printhashtable();EMITPROMPT;}
+\%phash     	{ printhashtable(); EMITPROMPT; }
 
 ".D" |
-destroy		{return(XDESTROY);}
+destroy		{ return(XDESTROY); }
 
 ".R" |
-rename		{return(XRENAME);}
-attribute	{return(ATTR);}
-relation 	{return(RELATION); }
-","     	{return(COMMA);}
-":"		{return(COLON);}
-"="		{return(EQUALS);}
-"("		{return(LPAREN);}
-")"		{return(RPAREN);}
-add		{return(ADD);}
+rename		{ return(XRENAME);}
+attribute	{ return(ATTR); }
+relation 	{ return(RELATION); }
+","     	{ return(COMMA); }
+":"		{ return(COLON); }
+"="		{ return(EQUALS); }
+"("		{ return(LPAREN); }
+")"		{ return(RPAREN); }
+add		{ return(ADD); }
 
-[\n]      	NEWLINE();
+[\n]      	{ NEWLINE(); }
 [\t]		;
 " "		; 
 
-^\#[^\n]* ; /*drop everything after "#" for comments */
+^\#[^\n]* ; /* drop everything after "#" for comments */
 
 
-"declare"	{return(XDECLARE);}
-"build"		{return(XBUILD);}
-"indices"	{return(INDICES);}
-"macro"		{return(MACRO);}
-"index"		{return(INDEX);}
-"on"		{return(ON);}
-"using"		{return(USING);}
-"display"	{return(DISPLAY);}
-"show"		{return(SHOW);}
+"declare"	{ return(XDECLARE); }
+"build"		{ return(XBUILD); }
+"indices"	{ return(INDICES); }
+"macro"		{ return(MACRO); }
+"index"		{ return(INDEX); }
+"on"		{ return(ON); }
+"using"		{ return(USING); }
+"display"	{ return(DISPLAY); }
+"show"		{ return(SHOW); }
 "$"{id}		{ 
-		  char *in, *out;
-		  for(in=out=yytext; *out = *in; out++)
-		    if(*in++ == '\\') *out = (unsigned char)MapEscape(&in);
-		  *(out+1) = '\000';
-		  yylval=LookUpMacro(&(yytext[1]));
-		  return(ID);}
-{arrayid}	{
-			char last, this, *p;
-
-			/* XXX arrays of "basetype" are always "_basetype".
-			 *     this is an evil hack inherited from rel. 3.1.
-			 * XXX array dimension is thrown away because we
-			 *     don't support fixed-dimension arrays.  again,
-			 *     sickness from 3.1.
-			 */
-			for (p = yytext, last = '_'; *p && *p != '['; ++p) {
-				this = *p;
-				*p = last;
-				last = this;
-			}
-			*p++ = last;
-			*p = '\0';
-			yylval=EnterString(yytext); return(ID);
+		    YYTEXTCHAR *in, *out;
+		    for (in = out = yytext; *out = *in; ++out)
+			if (*in++ == '\\')
+			    *out = (unsigned char) MapEscape(&in);
+		    *(out+1) = '\000';
+		    yylval = LookUpMacro(&yytext[1]);
+		    return(ID);
 		}
-{id}	 	 { 
-		  char *in, *out;
-		  for(in = out = yytext; *out = *in; out++)
-		    if(*in++ == '\\') *out = (unsigned char)MapEscape(&in);
-		   *(out+1) = '\000';
-		   yylval=EnterString(yytext); return(ID);}
-{sid}		 {
-   		  char *in;
-		  for (in = yytext + 1; *in != '\"'; ++in);
-		  *in = 0;
-		  yylval=EnterString(yytext+1); return(ID);}
+{arrayid}	{
+		    YYTEXTCHAR last, this, *p;
 
-
+		    /*
+		     * XXX arrays of "basetype" are always "_basetype".
+		     *     this is an evil hack inherited from rel. 3.1.
+		     * XXX array dimension is thrown away because we
+		     *     don't support fixed-dimension arrays.  again,
+		     *     sickness from 3.1.
+		     */
+		    for (p = yytext, last = '_'; *p && *p != '['; ++p) {
+			this = *p;
+			*p = last;
+			last = this;
+		    }
+		    *p++ = last;
+		    *p = '\0';
+		    yylval = EnterString(yytext);
+		    return(ID);
+		}
+{id}	 	{ 
+		    YYTEXTCHAR *in, *out;
+		    for (in = out = yytext; *out = *in; ++out)
+			if (*in++ == '\\')
+			    *out = (unsigned char) MapEscape(&in);
+		    *(out+1) = '\000';
+		    yylval = EnterString(yytext);
+		    return(ID);
+		}
+{sid}		{
+		    YYTEXTCHAR *in;
+		    for (in = &yytext[1]; *in != '\"'; ++in)
+			;
+		    *in = 0;
+		    yylval = EnterString(&yytext[1]);
+		    return(ID);
+		}
 
 (-)?{D}+"."{D}*({Exp})?	|
 (-)?{D}*"."{D}+({Exp})?	|
 (-)?{D}+{Exp}		{
-			 yylval=EnterString(yytext);
-			 return(FLOAT);
+			    yylval = EnterString(yytext);
+			    return(FLOAT);
 			}
 
 
 (-)?{D}+	{
-		 yylval=EnterString(yytext);
-		 return(INT);
+		    yylval = EnterString(yytext);
+		    return(INT);
 		}
 
 
-.	printf("syntax error %d : -> %s\n", yyline, yytext);
+.		{
+		    printf("syntax error %d : -> %s\n", yyline, yytext);
+		}
 
 
 
@@ -154,15 +170,14 @@ add		{return(ADD);}
 
 yywrap()
 {
-	StartTransactionCommand();
-	cleanup();
-	CommitTransactionCommand();
-	return;
+    StartTransactionCommand();
+    cleanup();
+    CommitTransactionCommand();
+    return;
 }
 
 yyerror(str)
-	char *str;
+    char *str;
 {
-	fprintf(stderr,"\tsyntax error %d : %s",yyline, str);
+    fprintf(stderr,"\tsyntax error %d : %s",yyline, str);
 }
-
