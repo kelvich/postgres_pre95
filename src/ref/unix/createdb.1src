@@ -86,7 +86,7 @@ We suggest that you run a vacuum demon on each active
 database.  That way expired tuples will be purged 
 according to the criteria set in the
 .b purge 
-(commands) command for each relation.  Also,
+command for each relation.  Also,
 this will ensure that the statistics kept in the RELATION
 relation are updated periodically.
 .lp
