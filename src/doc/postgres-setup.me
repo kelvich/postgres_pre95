@@ -592,9 +592,10 @@ simply execute the following commands:
 .i Make
 .i install
 will ask you for the port you wish to use.  Use the same port as
-in Step 2.  You will also be asked for the name of the object tree directory.
-This step will take at least an hour and may take several hours on diskless
-Sun 3's.
+in Step 2.  You will also be asked for the name of the object tree directory;
+the default is ~postgres/obj.<port>.  (throughout the rest of this document
+obj.<port> refers to the object tree directory).  This step will take at least
+an hour and may take several hours on diskless Sun 3's.
 .pp
 .i Make
 is a C shell script that runs
@@ -873,10 +874,6 @@ a program used by createdb to initialize databases.
 Included in \*(PG are a handful of support programs.
 Most of these are used internally by the system but here is a list of
 them for your information.
-.\
-.\ Keep the below indentation - this comes out correctly.
-.\
-.\
 .(l
 backend		\- used by createdb to create system relations
 createdb		\- creates new postgres databases
@@ -898,7 +895,7 @@ Periodic truncation of these files is recommended.
 .sh 1 "Optional Installation"
 .sh 2 "Installing LIBPQ, the \*(PG frontend library"
 .pp
-The file ~postgres/O/libpq.a is created when you
+The file ~postgres/obj.<port>/libpq.a is created when you
 compile the system.
 This library contains various 
 routines intended for use by frontend programs.
