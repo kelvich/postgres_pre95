@@ -26,6 +26,7 @@
 #include "planner/cfi.h"
 #include <math.h>
 #include "planner/costsize.h"
+#include "planner/pathnode.h"
 
 /*    
  *    	find-index-paths
@@ -134,7 +135,7 @@ find_index_paths (rel,indices,clauseinfo_list,joininfo_list,sortkeys)
 	if ( valid_sortkeys(sortkeys) && null(scanclausegroups) && 
 	    null(joinclausegroups) && equal(get_relid(sortkeys),
 					    get_relid (rel)) && 
-	    equal_path_path_ordering(get_ordering (sortkeys),
+	    equal_path_path_ordering(get_sortorder (sortkeys),
 				     get_ordering (index)) && 
 	    equal (get_sortkeys(sortkeys),get_indexkeys (index))) {
 	    sortpath =lispCons (create_index_path (rel,index,
@@ -574,6 +575,7 @@ create_index_paths (rel,index,clausegroup_list,join)
      LispValue temp = LispTrue;
      LispValue i = LispNil;
      LispValue j = LispNil;
+     IndexPath  temp_path;
 
      foreach(i,clausegroup_list) {
 	 CInfo clauseinfo = (CInfo)NULL;
@@ -593,10 +595,10 @@ create_index_paths (rel,index,clausegroup_list,join)
 	 }
 	  
 	 if ( !join  || temp ) {  /* restriction, ordering scan */
+	     temp_path = create_index_path (rel,index,clausegroup,join);
 	     temp_node = 
-	       lispCons (create_index_path (rel,index,
-					    clausegroup,join),
-			 LispNil);
+	       lispCons (temp_path,
+			LispNil);
 	     ip_list = nconc(ip_list,temp_node);
 	  } 
       }

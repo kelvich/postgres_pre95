@@ -126,18 +126,20 @@ match_pathkey_joinkeys (pathkey,joinkeys,which_subkey)
      LispValue pathkey,joinkeys,which_subkey ;
 {
     LispValue path_subkey = LispNil;
-    int temp = 0;
-    bool flag = false;
+    int pos;
     LispValue i = LispNil;
+    LispValue x = LispNil;
+    JoinKey jk;
 
     foreach(i,pathkey) {
 	path_subkey = CAR(i);
-	if (temp = position(path_subkey,joinkeys,var_equal,
-			    extract_subkey(joinkeys, which_subkey))) {
-	    flag = true;
+	pos = 0;
+	foreach(x,joinkeys) {
+	    jk = (JoinKey)CAR(x);
+	    if (var_equal(path_subkey,extract_subkey(jk, which_subkey)))
+		return(pos);
+	    pos++;
 	}
-	if (flag == true)
-	  return(temp);
     }
     return (-1);    /* no index found   */
 
@@ -184,6 +186,7 @@ every_func (joinkeys, pathkey, which_subkey)
 	 found = false;
 	 foreach(j,pathkey) {
 	     temp = CAR(j);
+	     if (temp == LispNil) continue;
 	     tempkey = extract_subkey(xjoinkey,which_subkey);
 	     if (var_equal(tempkey,temp)) {
 		 found = true;
@@ -213,7 +216,7 @@ match_paths_joinkeys (joinkeys,ordering,paths,which_subkey)
 			       which_subkey);
 
 	if (equal_path_path_ordering (ordering,
-				      get_ordering (path)) &&
+				      get_p_ordering (path)) &&
 	    length (joinkeys) == length (get_keys (path)) &&
 	    key_match) {
 	    return(path);
