@@ -6,7 +6,9 @@
 #include <stdio.h>
 #include <dlfcn.h>
 
-#include "port-protos.h"
+#include "fmgr.h"			/* for func_ptr */
+#include "utils/dynamic_loader.h"	/* for protos */
+#include "port-protos.h"		/* for #define'd pg_dl* */
 
 /*
  * Dynamic Loader on Alpha OSF/1.x
