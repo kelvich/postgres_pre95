@@ -1757,7 +1757,7 @@ agg_res_target_el:
 						 CString(CADR($1)));
 		   type_id = CInteger(CAR(temp));
 		   type_len = tlen(get_id_type(type_id));
-		   resnode = MakeResdom ( p_last_resno++ ,
+		   resnode = MakeResdom ( 1,
 			   type_id, type_len,
 			   CString(CAR(last ($1) ))
 			   , 0 , 0 , 0 );
