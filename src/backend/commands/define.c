@@ -239,7 +239,7 @@ DefinePFunction(pname,parameters, query_tree)
   DefineQueryRewrite(p);
 
 
-#ifdef
+#ifdef notdef
   sprintf(query_buf, "define rewrite rule %s_rule is on retrieve to %s.%s do instead %s", pname, relname, pname, qstring);
 
   /*  printf("Rule defined is: %s\n", query_buf); */
