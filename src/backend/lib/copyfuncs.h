@@ -13,10 +13,10 @@
 #define COPYFUNCSINCLUDED
 /* copyfuncs.c */
 LispValue lispCopy ARGS((LispValue lispObject ));
-bool NodeCopy ARGS((Node from , Node *toP , char *(*alloc )()));
+extern bool NodeCopy ARGS((Node from , Node *toP , char *(*alloc )()));
 Node CopyObject ARGS((Node from ));
 Node CopyObjectUsing ARGS((Node from , char *(*alloc )()));
-bool CopyNodeFields ARGS((Node from , Node newnode , char *(*alloc )()));
+extern bool CopyNodeFields ARGS((Node from , Node newnode , char *(*alloc )()));
 bool _copyNode ARGS((Node from , Node *to , char *(*alloc )()));
 bool CopyPlanFields ARGS((Plan from , Plan newnode , char *(*alloc )()));
 bool _copyPlan ARGS((Plan from , Plan *to , char *(*alloc )()));
