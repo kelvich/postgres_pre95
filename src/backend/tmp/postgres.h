@@ -549,7 +549,7 @@ typedef uint16			CommandId;
  *		Section 8: old types being obsoleted
  * ----------------------------------------------------------------
  */
-typedef	int32	XID;
+typedef	int32	PG_XID;
 #define	CID	uint16
 
 #define OID	oid
