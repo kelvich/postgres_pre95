@@ -33,7 +33,7 @@ regprocin(proname)
 	Relation	proc;
 	HeapScanDesc	procscan;
 	HeapTuple	proctup;
-	struct skey	key;		/* static better ??? */
+	ScanKeyEntryData	key;		/* static better ??? */
 	RegProcedure	result;
 	Boolean		isnull;
 
@@ -45,7 +45,11 @@ regprocin(proname)
 		     ProcedureRelationName->data);
 		return(0);
 	}
-	ScanKeyEntryInitialize(&key, 0, 1, F_CHAR16EQ, proname);
+	ScanKeyEntryInitialize(&key, 
+			       (bits16)0, 
+			       (AttributeNumber)1, 
+			       (RegProcedure)F_CHAR16EQ,
+			       (Datum)proname);
 
 	procscan = ambeginscan(proc, 0, NowTimeQual, 1, &key);
 	if (!HeapScanIsValid(procscan)) {
@@ -88,17 +92,21 @@ regprocout(proid)
 	HeapScanDesc	procscan;
 	HeapTuple	proctup;
 	char		*result;
-	struct skey	key;
+	ScanKeyEntryData	key;
 	extern		bzero();
 
-	result = palloc(16);
+	result = (char *)palloc(16);
 	proc = amopenr(ProcedureRelationName->data);
 	if (!RelationIsValid(proc)) {
 		elog(WARN, "regprocout: could not open %s",
 		     ProcedureRelationName->data);
 		return(0);
 	}
-	ScanKeyEntryInitialize(&key, 0, ObjectIdAttributeNumber, F_INT4EQ, proid);
+	ScanKeyEntryInitialize(&key,
+			       (bits16)0,
+			       (AttributeNumber)ObjectIdAttributeNumber,
+			       (RegProcedure)F_INT4EQ,
+			       (Datum)proid);
 
 	procscan = ambeginscan(proc, 0, NowTimeQual, 1, &key);
 	if (!HeapScanIsValid(procscan)) {

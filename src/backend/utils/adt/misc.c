@@ -37,6 +37,15 @@ btrestrpos(scan)
 
 #ifdef M1
 
+/* misc.c */
+int do_traverse ARGS((int depth , int part , ScanKeyData *p_skey , Attribute *p_att , Relation part_rel , Relation part_index , int dir ));
+int sixty_updates ARGS((void ));
+int lookup ARGS((void ));
+int launch_traverse ARGS((int dir ));
+int call_nullproc ARGS((ScanKeyData *p_skey , Attribute *p_att , Relation part_rel , Relation part_index ));
+int rand ARGS((int mod ));
+int nullproc ARGS((int x , int y , char *type ));
+
 int
 lookup()
 

@@ -22,6 +22,10 @@ RcsId("$Header$");
 
 	     /* ========== PRIVATE ROUTINES ========== */
 
+/* name.c */
+bool NameIsEqual ARGS((Name name1 , Name name2 ));
+uint32 NameComputeLength ARGS((Name name ));
+
 /*
  * Note:
  *	This is the same code as char16eq.

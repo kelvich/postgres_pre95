@@ -12,6 +12,7 @@
 #include "utils/log.h"
 #include "utils/palloc.h"
 #include "utils/builtins.h"
+struct varlena *shove_bytes ARGS((unsigned char *stuff , int len ));
 
 	    /* ========== USER I/O ROUTINES ========== */
 

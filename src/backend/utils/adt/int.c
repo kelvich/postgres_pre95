@@ -49,7 +49,7 @@ int2out(sh)
 	char		*result;
 	extern int	itoa();
 
-	result = palloc(7);		/* assumes sign, 5 digits, '\0' */
+	result = (char *)palloc(7);	/* assumes sign, 5 digits, '\0' */
 	itoa((int) sh, result);
 	return(result);
 }
@@ -100,12 +100,12 @@ int28out(shs)
 	extern int	itoa();
 
 	if (shs == NULL) {
-		result = palloc(2);
+		result = (char *)palloc(2);
 		result[0] = '-';
 		result[1] = '\0';
 		return(result);
 	}
-	rp = result = palloc(8 * 7);	/* assumes sign, 5 digits, ' ' */
+	rp = result = (char *)palloc(8 * 7); /* assumes sign, 5 digits, ' ' */
 	sp = *shs;
 	for (num = 8; num != 0; num--) {
 		itoa(*sp++, rp);
@@ -195,7 +195,7 @@ int4out(l)
 	char		*result;
 	extern int	ltoa();
 
-	result = palloc(12);		/* assumes sign, 10 digits, '\0' */
+	result = (char *)palloc(12);	/* assumes sign, 10 digits, '\0' */
 	ltoa((long) l, result);
 	return(result);
 }

@@ -81,7 +81,7 @@ box_out(box)
 
 	if (box == NULL)
 		return(NULL);
-	result = PALLOC(60);
+	result = (char *)PALLOC(60);
 	(void) sprintf(result, "(%g,%g,%g,%g)",
 		       box->xh, box->yh, box->xl, box->yl);
 
@@ -96,7 +96,6 @@ box_construct(x1, x2, y1, y2)
 	double	x1, x2, y1, y2;
 {
 	BOX	*result;
-	BOX	*box_fill();
 
 	result = PALLOCTYPE(BOX);
 	return( box_fill(result, x1, x2, y1, y2) );
@@ -259,8 +258,6 @@ long
 box_lt(box1, box2)
 	BOX	*box1, *box2;
 {
-	double	box_ar();
-
 	return( FPlt(box_ar(box1), box_ar(box2)) );
 }
 
@@ -268,8 +265,6 @@ long
 box_gt(box1, box2)
 	BOX	*box1, *box2;
 {
-	double	box_ar();
-
 	return( FPgt(box_ar(box1), box_ar(box2)) );
 }
 
@@ -277,8 +272,6 @@ long
 box_eq(box1, box2)
 	BOX	*box1, *box2;
 {
-	double	box_ar();
-
 	return( FPeq(box_ar(box1), box_ar(box2)) );
 }
 
@@ -286,8 +279,6 @@ long
 box_le(box1, box2)
 	BOX	*box1, *box2;
 {
-	double	box_ar();
-
 	return( FPle(box_ar(box1), box_ar(box2)) );
 }
 
@@ -295,8 +286,6 @@ long
 box_ge(box1, box2)
 	BOX	*box1, *box2;
 {
-	double	box_ar();
-
 	return( FPge(box_ar(box1), box_ar(box2)) );
 }
 
@@ -316,8 +305,7 @@ double *
 box_area(box)
 	BOX	*box;
 {
-	double	box_ln(), box_ht(),
-	*result;
+	double *result;
 
 	result = PALLOCTYPE(double);
 	*result = box_ln(box) * box_ht(box);
@@ -401,8 +389,6 @@ double
 box_ar(box)
 	BOX	*box;
 {
-	double	box_ln(), box_ht();
-
 	return( box_ln(box) * box_ht(box) );
 }
 
@@ -486,7 +472,6 @@ box_diagonal(box)
 	BOX	*box;
 {
 	POINT	p1, p2;
-	LSEG	*lseg_construct();
 
 	p1.x = box->xh;
 	p1.y = box->yh;
@@ -558,8 +543,6 @@ long
 line_intersect(l1, l2)
 	LINE	*l1, *l2;
 {
-	long	line_parallel();
-
 	return( ! line_parallel(l1, l2) );
 }
 
@@ -624,9 +607,8 @@ double * 		/* distance between l1, l2 */
 line_distance(l1, l2)
 	LINE	*l1, *l2;
 {
-	double	*dist_pl(), *result;
-	long	line_intersect(), line_vertical();
-	POINT	*point_construct(), *tmp;
+	double	*result;
+	POINT	*tmp;
 
 	result = PALLOCTYPE(double);
 	if (line_intersect(l1, l2)) {
@@ -647,9 +629,8 @@ POINT *			/* point where l1, l2 intersect (if any) */
 	line_interpt(l1, l2)
 	LINE	*l1, *l2;
 {
-	POINT	*point_construct(), *result;
+	POINT	*result;
 	double	x;
-	long	line_parallel(), line_vertical();
 
 	if (line_parallel(l1, l2))
 		return(NULL);
@@ -754,7 +735,7 @@ path_out(path)
 	}
 	*s++ = RDELIM;
 	*s = '\0';
-	result = PALLOC(strlen(buf) + 1);
+	result = (char *)PALLOC(strlen(buf) + 1);
 	(void) strcpy(result, buf);
 
 	return(result);
@@ -817,7 +798,7 @@ path_inter(p1, p2)
 	PATH	*p1, *p2;
 {
 	BOX	b1, b2;
-	LINE	*line_construct_pp(), *tmp;
+	LINE	*tmp;
 	double	a, b;
 	long	box_overlap();
 	int	i, j;
@@ -863,7 +844,7 @@ double *
 path_length(path)
 	PATH	*path;
 {
-	double	point_dt(), *result;
+	double	*result;
 	int	ct, i;
 
 	result = PALLOCTYPE(double);
@@ -880,7 +861,7 @@ double
 path_ln(path)
 	PATH	*path;
 {
-	double	point_dt(), result;
+	double	result;
 	int	ct, i;
 
 	ct = path->npts - 1;
@@ -931,7 +912,7 @@ point_out(pt)
 
 	if (pt == NULL)
 		return(NULL);
-	result = PALLOC(20);
+	result = (char *)PALLOC(20);
 	(void) sprintf(result, "(%g,%g)", pt->x, pt->y);
 	return(result);
 }
@@ -1015,7 +996,6 @@ long
 pointdist(p1, p2)
 	POINT	*p1, *p2;
 {
-	double point_dt();
 	long result;
 
 	result = point_dt(p1, p2);
@@ -1083,7 +1063,7 @@ lseg_in(str)
 	char	*coord[LSEGNARGS], *p;
 	int	i;
 	LSEG	*result;
-	extern double	atof(), point_sl();
+	extern double	atof();
 
 	if (str == NULL)
 		return(NULL);
@@ -1111,7 +1091,7 @@ lseg_out(ls)
 
 	if (ls == NULL)
 		return(NULL);
-	result = PALLOC(20);
+	result = (char *)PALLOC(20);
 	(void) sprintf(result, "(%g,%g,%g,%g)",
 		       ls->p[0].x, ls->p[0].y, ls->p[1].x, ls->p[1].y);
 	return(result);
@@ -1126,7 +1106,6 @@ lseg_construct(pt1, pt2)
 	POINT	*pt1, *pt2;
 {
 	LSEG	*result;
-	extern double	point_sl();
 
 	result = PALLOCTYPE(LSEG);
 	result->p[0].x = pt1->x;
@@ -1149,7 +1128,6 @@ lseg_intersect(l1, l2)
 {
 	LINE	*tmp;
 	double	a, b;
-	extern LINE	*line_construct_pp();
 
 	tmp = line_construct_pp(&l1->p[0], &l1->p[1]);
 	a = tmp->A * l2->p[0].x + tmp->B * l2->p[0].y + tmp->C;
@@ -1218,7 +1196,6 @@ lseg_distance(l1, l2)
 	LSEG	*l1, *l2;
 {
 	double	*d, *result;
-	extern double	*dist_ps();
 
 	result = PALLOCTYPE(double);
 	if (lseg_intersect(l1, l2)) {
@@ -1248,7 +1225,6 @@ lseg_dt(l1, l2)			/* distance between l1, l2 */
 	LSEG	*l1, *l2;
 {
 	double	*d, result;
-	extern double	*dist_ps();
 
 	if (lseg_intersect(l1, l2))
 		return(0.0);
@@ -1282,9 +1258,6 @@ lseg_interpt(l1, l2)
 {
 	POINT	*result;
 	LINE	*tmp1, *tmp2;
-	extern LINE	*line_construct_pp();
-	extern POINT	*line_interpt();
-	extern long	on_ps();
 
 	tmp1 = line_construct_pp(&l1->p[0], &l1->p[1]);
 	tmp2 = line_construct_pp(&l2->p[0], &l2->p[1]);
@@ -1336,8 +1309,8 @@ dist_ps(pt, lseg)
 	POINT	*pt;
 	LSEG	*lseg;
 {
-	POINT	*close_ps(), *tmp;
-	double	*point_distance(), *result;
+	POINT	*tmp;
+	double	*result;
 
 	tmp = close_ps(pt, lseg);
 	result = point_distance(tmp, pt);
@@ -1352,8 +1325,8 @@ dist_pb(pt, box)
 	POINT	*pt;
 	BOX	*box;
 {
-	POINT	*close_pb(), *tmp;
-	double	*point_distance(), *result;
+	POINT	*tmp;
+	double	*result;
 
 	tmp = close_pb(pt, box);
 	result = point_distance(tmp, pt);
@@ -1368,8 +1341,7 @@ dist_sl(lseg, line)
 	LSEG	*lseg;
 	LINE	*line;
 {
-	double	*dist_pl(), *result;
-	long	inter_sl();
+	double	*result;
 
 	if (inter_sl(lseg, line)) {
 		result = PALLOCTYPE(double);
@@ -1386,8 +1358,8 @@ dist_sb(lseg, box)
 	LSEG	*lseg;
 	BOX	*box;
 {
-	POINT	*close_sb(), *tmp;
-	double	*dist_pb(), *result;
+	POINT	*tmp;
+	double	*result;
 
 	tmp = close_sb(lseg, box);
 	if (tmp == NULL) {
@@ -1407,8 +1379,8 @@ dist_lb(line, box)
 	LINE	*line;
 	BOX	*box;
 {
-	POINT	*close_lb(), *tmp;
-	double	*dist_pb(), *result;
+	POINT	*tmp;
+	double	*result;
 
 	tmp = close_lb(line, box);
 	if (tmp == NULL) {
@@ -1435,9 +1407,8 @@ interpt_sl(lseg, line)
 	LSEG	*lseg;
 	LINE	*line;
 {
-	LINE	*line_construct_pp(), *tmp;
-	POINT	*line_interpt(), *p;
-	long	on_ps();
+	LINE	*tmp;
+	POINT	*p;
 
 	tmp = line_construct_pp(&lseg->p[0], &lseg->p[1]);
 	if (p = line_interpt(tmp, line))
@@ -1465,8 +1436,8 @@ close_pl(pt, line)
 	POINT	*pt;
 	LINE	*line;
 {
-	POINT	*result, *line_interpt();
-	LINE	*tmp, *line_construct_pm();
+	POINT	*result;
+	LINE	*tmp;
 	double	invm;
 
 	result = PALLOCTYPE(POINT);
@@ -1497,8 +1468,8 @@ close_ps(pt, lseg)
 	POINT	*pt;
 	LSEG	*lseg;
 {
-	POINT	*point_copy(), *interpt_sl(), *result;
-	LINE	*line_construct_pm(), *tmp;
+	POINT	*result;
+	LINE	*tmp;
 	double	invm;
 	int	xh, yh;
 
@@ -1547,8 +1518,8 @@ close_sl(lseg, line)
 	LSEG	*lseg;
 	LINE	*line;
 {
-	POINT	*interpt_sl(), *point_copy(), *result;
-	double	*dist_pl(), *d1, *d2;
+	POINT	*result;
+	double	*d1, *d2;
 
 	if (result = interpt_sl(lseg, line))
 		return(result);
@@ -1611,8 +1582,6 @@ on_ps(pt, lseg)
 	POINT	*pt;
 	LSEG	*lseg;
 {
-	double	point_dt();
-
 	return( point_dt(pt, &lseg->p[0]) + point_dt(pt, &lseg->p[1])
 	       == point_dt(&lseg->p[0], &lseg->p[1]) );
 }
@@ -1647,8 +1616,7 @@ on_ppath(pt, path)
 	inter,		/* # of times path crosses ray */
 	hi,		/* index inc of higher seg (0,1) */
 	i, n;
-	double	point_dt(), point_sl(),
-	a, b, x, 
+	double a, b, x, 
 	yh, yl, xh, xl;
 
 	if (! path->closed) {		/*-- OPEN --*/
@@ -1715,8 +1683,6 @@ on_sl(lseg, line)
 	LSEG	*lseg;
 	LINE	*line;
 {
-	long	on_pl();
-
 	return( on_pl(&lseg->p[0], line) && on_pl(&lseg->p[1], line) );
 }
 
@@ -1725,8 +1691,6 @@ on_sb(lseg, box)
 	LSEG	*lseg;
 	BOX	*box;
 {
-	long	on_pb();
-
 	return( on_pb(&lseg->p[0], box) && on_pb(&lseg->p[1], box) );
 }
 
@@ -1740,7 +1704,7 @@ inter_sl(lseg, line)
 	LSEG	*lseg;
 	LINE	*line;
 {
-	POINT	*interpt_sl(), *tmp;
+	POINT	*tmp;
 
 	if (tmp = interpt_sl(lseg, line)) {
 		PFREE(tmp);
@@ -1778,9 +1742,6 @@ inter_lb(line, box)
 	/* Maximum number of output digits printed */
 #define P_MAXDIG 8
 
-double poly_min();
-double poly_max();
-
 /*---------------------------------------------------------------------
  * Make the smallest bounding box for the given polygon.
  *---------------------------------------------------------------------*/
@@ -1792,10 +1753,10 @@ POLYGON *poly;
 	int npts;
 
 	npts = poly->npts;
-	x1 = poly_min(poly->pts, npts);
-	x2 = poly_max(poly->pts, npts);
-	y1 = poly_min(poly->pts+(npts*sizeof(double)), npts),
-	y2 = poly_max(poly->pts+(npts*sizeof(double)), npts);
+	x1 = poly_min((double *)poly->pts, npts);
+	x2 = poly_max((double *)poly->pts, npts);
+	y1 = poly_min((double *)poly->pts+(npts*sizeof(double)), npts),
+	y2 = poly_max((double *)poly->pts+(npts*sizeof(double)), npts);
 	box_fill(&(poly->boundbox), x1, x2, y1, y2); 
 }
 	

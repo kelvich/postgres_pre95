@@ -101,7 +101,7 @@ fmgr_dynamic(procedureId, pronargs)
              procedureId, ProcedureRelationName->data);
         return(NULL);
     }
-    probinstring = textout(probinattr);
+    probinstring = textout((struct varlena *)probinattr);
 
     user_fn = handle_load(probinstring, proname);
 

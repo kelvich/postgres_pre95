@@ -30,6 +30,9 @@ RcsId("$Header$");
  */
 #define FunctionalSelectivity(nIndKeys,attNum) (attNum==InvalidAttributeNumber)
 
+int32 getattnvals ARGS((ObjectId relid , AttributeNumber attnum ));
+int gethilokey ARGS((ObjectId relid , AttributeNumber attnum , ObjectId opid , char **high , char **low ));
+
 
 /*
  *	eqsel		- Selectivity of "=" for any data type.
@@ -45,7 +48,6 @@ eqsel(opid, relid, attno, value, flag)
 {
 	int32		nvals;
 	float64		result;
-	extern int32	getattnvals();
 
 	result = (float64) palloc(sizeof(float64data));
 	if (NONVALUE(attno) || NONVALUE(relid))
@@ -72,7 +74,6 @@ neqsel(opid, relid, attno, value, flag)
 	int32		flag;
 {
 	float64		result;
-	extern float64	eqsel();
 
 	result = eqsel(opid, relid, attno, value, flag);
 	*result = 1.0 - *result;
@@ -96,7 +97,6 @@ intltsel(opid, relid, attno, value, flag)
 	char		*highchar, *lowchar;
 	long		val, high, low, top, bottom;
 	extern long	atol();
-	extern		gethilokey();
 
 	result = (float64) palloc(sizeof(float64data));
 	if (NONVALUE(attno) || NONVALUE(relid))
@@ -155,7 +155,6 @@ intgtsel(opid, relid, attno, value, flag)
 {
 	float64		result;
 	int		notflag;
-	extern float64	intltsel();
 
 	if (flag & 0)
 		notflag = flag & ~SEL_RIGHT;
@@ -179,7 +178,6 @@ eqjoinsel(opid, relid1, attno1, relid2, attno2)
 {
 	float64		result;
 	int32		num1, num2, max;
-	extern int32	getattnvals();
 
 	result = (float64) palloc(sizeof(float64data));
 	if (NONVALUE(attno1) || NONVALUE(relid1) ||
@@ -209,7 +207,6 @@ neqjoinsel(opid, relid1, attno1, relid2, attno2)
 	AttributeNumber	attno2;
 {
 	float64		result;
-	extern float64	eqjoinsel();
 
 	result = eqjoinsel(opid, relid1, attno1, relid2, attno2);
 	*result = 1.0 - *result;
@@ -325,7 +322,6 @@ gethilokey(relid, attnum, opid, high, low)
 	};
 	Boolean			isnull;
 	HeapTuple		tuple;
-	extern char		*textout();
 
 	rdesc = RelationNameOpenHeapRelation(StatisticRelationName);
 	key[0].argument = ObjectIdGetDatum(relid);

@@ -17,6 +17,11 @@
 RcsId("$Header$");
 
 
+float64 leftsel ARGS((ObjectId opid , ObjectId relid , AttributeNumber attno , char *value , int32 flag ));
+float64 leftjoinsel ARGS((ObjectId opid , ObjectId relid , AttributeNumber attno , char *value , int32 flag ));
+float64 contsel ARGS((ObjectId opid , ObjectId relid , AttributeNumber attno , char *value , int32 flag ));
+float64 contjoinsel ARGS((ObjectId opid , ObjectId relid , AttributeNumber attno , char *value , int32 flag ));
+
 /*ARGSUSED*/
 float64
 areasel(opid, relid, attno, value, flag)
