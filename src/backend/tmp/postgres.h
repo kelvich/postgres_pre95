@@ -193,6 +193,19 @@ typedef struct OidInt4Data {
 typedef struct OidInt4Data	*OidInt4;
 
 /* ----------------
+ *	oidint2
+ *
+ *	this is a new system type used to define indices on two attrs.
+ * ----------------
+ */
+typedef struct OidInt2Data {
+	ObjectId	oi_oid;
+	int16		oi_int2;
+} OidInt2Data;
+
+typedef struct OidInt2Data	*OidInt2;
+
+/* ----------------
  *	oidchar16
  *
  *	this is a new system type used to define indices on two attrs.
