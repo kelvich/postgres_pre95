@@ -67,8 +67,6 @@
  *	externs
  * ----------------
  */
-extern int _reset_stats_after_query_;
-extern int _show_stats_after_query_;
 
 extern void die();
 extern void handle_warn();
