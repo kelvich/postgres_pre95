@@ -203,8 +203,6 @@ DATA(insert OID = 556 (  "-"       PGUID 0 b t f  21  23  23   0   0   0   0 int
 DATA(insert OID = 557 (  "-"       PGUID 0 b t f  23  21  23   0   0   0   0 int42mi intltsel intltjoinsel ));
 DATA(insert OID = 0   (  "-"       PGUID 0 l t f   0  23  23  0   0   0   0 int4um intltsel intltjoinsel ));
 DATA(insert OID = 0   (  "-"       PGUID 0 l t f   0  21  21  0   0   0   0 int2um intltsel intltjoinsel ));
-DATA(insert OID = 558 (  "="       PGUID 0 b t t  26  26  16 558 559   0   0 oideq intltsel intltjoinsel ));
-DATA(insert OID = 559 (  "!="      PGUID 0 b t f  26  26  16 559 558   0   0 oidne neqsel neqjoinsel ));
 DATA(insert OID = 560 (  "="       PGUID 0 b t t 702 702  16 560 561 562 562 abstimeeq eqsel eqjoinsel ));
 DATA(insert OID = 561 (  "!="      PGUID 0 b t f 702 702  16 561 560 0 0 abstimene neqsel neqjoinsel ));
 DATA(insert OID = 562 (  "<"       PGUID 0 b t f 702 702  16 563 565 0 0 abstimelt intltsel intltjoinsel ));
