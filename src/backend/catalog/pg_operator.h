@@ -10,6 +10,9 @@
  *	the genbki.sh script reads this file and generates .bki
  *	information from the DATA() statements.
  *
+ *	XXX do NOT break up DATA() statements into multiple lines!
+ *	    the scripts are not as smart as you might think...
+ *
  *   IDENTIFICATION
  *	$Header$
  * ----------------------------------------------------------------
@@ -171,7 +174,7 @@ DATA(insert OID = 557 (  "-"       PGUID 0 b t f  23  21  23   0   0   0   0 int
 DATA(insert OID = 0   (  "-"       PGUID 0 l t f   0  23  23  0   0   0   0 int4um intltsel intltjoinsel ));
 DATA(insert OID = 0   (  "-"       PGUID 0 l t f   0  21  21  0   0   0   0 int2um intltsel intltjoinsel ));
 DATA(insert OID = 558 (  "="       PGUID 0 b t t  26  26  16 558 559   0   0 oideq intltsel intltjoinsel ));
-DATA(insert OID = 559 (  "!="      PGUID 0 b t f  26  26  16 559 558   0   0 oidneq neqsel neqjoinsel ));
+DATA(insert OID = 559 (  "!="      PGUID 0 b t f  26  26  16 559 558   0   0 oidne neqsel neqjoinsel ));
 DATA(insert OID = 560 (  "="       PGUID 0 b t t 702 702  16 560 561 562 562 abstimeeq eqsel eqjoinsel ));
 DATA(insert OID = 561 (  "!="      PGUID 0 b t f 702 702  16 561 560 0 0 abstimene neqsel neqjoinsel ));
 DATA(insert OID = 562 (  "<"       PGUID 0 b t f 702 702  16 563 565 0 0 abstimelt intltsel intltjoinsel ));
@@ -217,7 +220,7 @@ DATA(insert OID = 601 (  ":"       PGUID 0 l t f   0 701 701   0   0   0   0 dex
 DATA(insert OID = 602 (  ";"       PGUID 0 l t f   0 701 701   0   0   0   0 dlog1 - - ));
 DATA(insert OID = 603 (  "|"       PGUID 0 l t f   0 704 702   0   0   0   0 intervalstart - - ));
 DATA(insert OID = 607 (  "="       PGUID 0 b t t  26  26  16 607 608  97  97 oideq eqsel eqjoinsel ));
-DATA(insert OID = 608 (  "!="      PGUID 0 b t f  26  26  16 608 607  0  0 oidneq eqsel eqjoinsel ));
+DATA(insert OID = 608 (  "!="      PGUID 0 b t f  26  26  16 608 607  0  0 oidne eqsel eqjoinsel ));
 DATA(insert OID = 609 (  "<"       PGUID 0 b t f  26  26  16 610 612  0  0 int4lt intltsel intltjoinsel ));
 DATA(insert OID = 610 (  ">"       PGUID 0 b t f  26  26  16 609 611  0  0 int4gt intgtsel intgtjoinsel ));
 DATA(insert OID = 611 (  "<="      PGUID 0 b t f  26  26  16 612 610  0  0 int4le intltsel intltjoinsel ));
@@ -232,10 +235,10 @@ DATA(insert OID = 626 (  "!!="     PGUID 0 b t f  23   19   16 0   0    0   0   
 DATA(insert OID = 627 (  "!!="     PGUID 0 b t f  26   19   16 0   0    0   0   oidnotin "-"     "-"));
 DATA(insert OID = 630 (  "!="      PGUID 0 b t f  18  18  16 630  92  0 0 charne eqsel eqjoinsel ));
     
-DATA(insert OID = 631 (  "<"       PGUID 0 b t f  18  18  16 633 634  0 0 charlt intltsel intltjoingsel ));
-DATA(insert OID = 632 (  "<="      PGUID 0 b t f  18  18  16 634 633  0 0 charle intltsel intltjoingsel ));
-DATA(insert OID = 633 (  ">"       PGUID 0 b t f  18  18  16 631 632  0 0 chargt intltsel intltjoingsel ));
-DATA(insert OID = 634 (  ">="      PGUID 0 b t f  18  18  16 632 631  0 0 charge intltsel intltjoingsel ));
+DATA(insert OID = 631 (  "<"       PGUID 0 b t f  18  18  16 633 634  0 0 charlt intltsel intltjoinsel ));
+DATA(insert OID = 632 (  "<="      PGUID 0 b t f  18  18  16 634 633  0 0 charle intltsel intltjoinsel ));
+DATA(insert OID = 633 (  ">"       PGUID 0 b t f  18  18  16 631 632  0 0 chargt intltsel intltjoinsel ));
+DATA(insert OID = 634 (  ">="      PGUID 0 b t f  18  18  16 632 631  0 0 charge intltsel intltjoinsel ));
     
 DATA(insert OID = 635 (  "+"       PGUID 0 b t f  18  18  16 0 0  0 0 charpl eqsel eqjoinsel ));
 DATA(insert OID = 636 (  "-"       PGUID 0 b t f  18  18  16 0 0  0 0 charmi eqsel eqjoinsel ));
@@ -248,7 +251,7 @@ DATA(insert OID = 641 (  "~"       PGUID 0 b t f  25  25  16 0 642  0 0 textrege
 DATA(insert OID = 642 (  "!~"      PGUID 0 b t f  25  25  16 0 641  0 0 textregexne eqsel eqjoinsel ));
 DATA(insert OID = 643 (  "!="      PGUID 0 b t f  19  19  16 93 643  0 0 char16ne eqsel eqjoinsel ));
 
-DATA(insert OID = 660 (  "<"       PGUID 0 b t f  19  19  16 662 663  0 0 char16lt intltsel inltjoinsel ));
+DATA(insert OID = 660 (  "<"       PGUID 0 b t f  19  19  16 662 663  0 0 char16lt intltsel intltjoinsel ));
 DATA(insert OID = 661 (  "<="      PGUID 0 b t f  19  19  16 663 662  0 0 char16le intltsel intltjoinsel ));
 DATA(insert OID = 662 (  ">"       PGUID 0 b t f  19  19  16 660 661  0 0 char16gt intltsel intltjoinsel ));
 DATA(insert OID = 663 (  ">="      PGUID 0 b t f  19  19  16 661 660  0 0 char16ge intltsel intltjoinsel ));
