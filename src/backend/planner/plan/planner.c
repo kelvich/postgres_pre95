@@ -149,7 +149,8 @@ extern Existential RMakeExistential();
 #include "planner/tlist.h"
 #include "planner/var.h"
 
-extern int Quiet;
+extern bool DebugPrintPlan;
+
 /*    
  *    	*** Query optimizer entry point ***
  *    
@@ -371,11 +372,11 @@ init_query_planner (root,tlist,qual)
 
      qual = preprocess_qualification (qual,tlist);
 
-     if (!Quiet) {
-     printf("after preprocessing, qual is :\n");
-     lispDisplay(qual,0);
-     printf("\n");
-     fflush(stdout);
+     if ( DebugPrintPlan ) {
+	 printf("after preprocessing, qual is :\n");
+	 lispDisplay(qual,0);
+	 printf("\n");
+	 fflush(stdout);
      }
 
      if (qual) {
