@@ -7,26 +7,23 @@
  *		an abort occurs during DisableCache.
  */
 
-#include "c.h"
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 
-#include "skey.h"
-#include "cat.h"
-#include "fmgr.h"	/* for F_BOOLEQ, etc.  DANGER */
-#include "lmgr.h"
-#include "log.h"
-#include "heapam.h"
-#include "htup.h"
-#include "mcxt.h"
-#include "name.h"
-#include "portal.h"
-#include "tqual.h"
-#include "oid.h"
-#include "os.h"		/* for etext */
-#include "rel.h"
+#include "access/heapam.h"
+#include "access/htup.h"
+#include "access/skey.h"
+#include "access/tqual.h"
 
-#include "catcache.h"
+#include "tmp/miscadmin.h"
+#include "tmp/portal.h"
+#include "utils/catcache.h"
+#include "utils/fmgr.h"		/* for F_BOOLEQ, etc.  DANGER */
+#include "utils/lmgr.h"
+#include "utils/log.h"
+#include "utils/mcxt.h"
+#include "utils/rel.h"
 
 /* #define CACHEDEBUG */
 /* #define CACHEDDEBUG2 */
