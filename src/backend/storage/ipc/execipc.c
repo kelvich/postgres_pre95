@@ -336,24 +336,26 @@ P_Finished()
 }
 
 void
-V_Finished(groupid)
+V_Finished(groupid, scounter, status)
 int groupid;
+SharedCounter *scounter;
+ProcGroupStatus status;
 {
     bool is_lastone;
 
-    if (ProcGroupInfoP[groupid].countdown <= 0) {
-	elog(WARN, "Process group countdown to negative. \n");
+    if (scounter->count <= 0) {
+	elog(WARN, "V_Finished counter negative.\n");
       }
 #ifdef sequent
-    S_LOCK(&(ProcGroupInfoP[groupid].lock));
+    S_LOCK(&(scounter->exlock));
 #else
     Assert(0); /* you are not supposed to call this routine if you are not
 		  running on sequent */
 #endif
-    ProcGroupInfoP[groupid].countdown--;
-    is_lastone = (bool)(ProcGroupInfoP[groupid].countdown == 0);
+    scounter->count--;
+    is_lastone = (bool)(scounter->count == 0);
 #ifdef sequent
-    S_UNLOCK(&(ProcGroupInfoP[groupid].lock));
+    S_UNLOCK(&(scounter->exlock));
 #endif
     if (is_lastone) {
 	/* ----------------
@@ -361,7 +363,7 @@ int groupid;
 	 * ----------------
 	 */
         int value = 1;
-	ProcGroupInfoP[groupid].status = FINISHED;
+	ProcGroupInfoP[groupid].status = status;;
         Exec_V(ExecutorMasterSemaphore, value);
       }
 }
