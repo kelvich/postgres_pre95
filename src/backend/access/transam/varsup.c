@@ -427,9 +427,17 @@ UpdateLastCommittedXid(xid)
     TransactionIdData lastid;
 
     /* ----------------
-     *	SOMEDAY obtain exclusive access to the variable relation page
+     *	SOMEDAY obtain exclusive access to the variable relation
+     *  That someday is today -mer 5 Aug 1991
+     *
+     *  Bootstrapping is the only time when VariableRelation won't
+     *  initialized, and the lock manager should be turned off at that
+     *  time anyway, but right now it isn't.  To be safe now and in the 
+     *  future I have put in the check.
      * ----------------
      */
+    if (RelationIsValid(VariableRelation))
+        RelationSetLockForRead(VariableRelation);
 
     /* ----------------
      *	get the "last committed" transaction id from
@@ -449,8 +457,11 @@ UpdateLastCommittedXid(xid)
 
     /* ----------------
      *	SOMEDAY relinquish our lock on the variable relation page
+     *  That someday is today -mer 5 Aug 1991
      * ----------------
      */
+    if (RelationIsValid(VariableRelation))
+        RelationUnsetLockForRead(VariableRelation);
 }
 
 /* ----------------------------------------------------------------
@@ -479,8 +490,16 @@ GetNewObjectIdBlock(oid_return, oid_block_size)
 
     /* ----------------
      *	SOMEDAY obtain exclusive access to the variable relation page
+     *  That someday is today -mer 5 Aug 1991
+     *
+     *  Bootstrapping is the only time when VariableRelation won't
+     *  initialized, and the lock manager should be turned off at that
+     *  time anyway, but right now it isn't.  To be safe now and in the 
+     *  future I have put in the check.
      * ----------------
      */
+    if (RelationIsValid(VariableRelation))
+        RelationSetLockForRead(VariableRelation);
 #ifdef sequent
     ExclusiveLock(OidGenLockId);
 #endif
@@ -504,11 +523,14 @@ GetNewObjectIdBlock(oid_return, oid_block_size)
 	
     /* ----------------
      *	SOMEDAY relinquish our lock on the variable relation page
+     *  That someday is today -mer 5 Aug 1991
      * ----------------
      */
 #ifdef sequent
     ExclusiveUnlock(OidGenLockId);
 #endif
+    if (RelationIsValid(VariableRelation))
+        RelationUnsetLockForRead(VariableRelation);
 }
 
 /* ----------------

@@ -457,8 +457,10 @@ TransBlockNumberGetXidStatus(relation, blockNumber, xid, failP)
 
     /* ----------------
      *	SOMEDAY place a read lock on the log relation
+     *  That someday is today 5 Aug 1991 -mer
      * ----------------
      */
+    RelationSetLockForRead(relation);
 
     /* ----------------
      *	get the page containing the transaction information
@@ -488,6 +490,8 @@ TransBlockNumberGetXidStatus(relation, blockNumber, xid, failP)
      *	SOMEDAY release our lock on the log relation
      * ----------------
      */
+    RelationUnsetLockForRead(relation);
+
     return
 	xstatus;
 }
@@ -510,8 +514,11 @@ TransBlockNumberSetXidStatus(relation, blockNumber, xid, xstatus, failP)
     
     /* ----------------
      *	SOMEDAY gain exclusive access to the log relation
+     *
+     *  That someday is today 5 Aug 1991 -mer
      * ----------------
      */
+    RelationSetLockForWrite(relation);
 
     /* ----------------
      *	get the block containing the transaction status
@@ -541,6 +548,7 @@ TransBlockNumberSetXidStatus(relation, blockNumber, xid, xstatus, failP)
      *	SOMEDAY release our lock on the log relation
      * ----------------
      */    
+    RelationUnsetLockForWrite(relation);
 }
 
 /* --------------------------------
@@ -561,8 +569,11 @@ TransBlockNumberGetCommitTime(relation, blockNumber, xid, failP)
     
     /* ----------------
      *	SOMEDAY place a read lock on the time relation
+     *
+     *  That someday is today 5 Aug. 1991 -mer
      * ----------------
      */
+    RelationSetLockForRead(relation);
     
     /* ----------------
      *	get the block containing the transaction information
@@ -592,6 +603,8 @@ TransBlockNumberGetCommitTime(relation, blockNumber, xid, failP)
      *	SOMEDAY release our lock on the time relation
      * ----------------
      */
+    RelationUnsetLockForRead(relation);
+
     if ((*failP) == false)
 	return xtime;
     else
@@ -617,8 +630,11 @@ TransBlockNumberSetCommitTime(relation, blockNumber, xid, xtime, failP)
 
     /* ----------------
      *	SOMEDAY gain exclusive access to the time relation
+     *
+     *  That someday is today 5 Aug. 1991 -mer
      * ----------------
      */
+    RelationSetLockForWrite(relation);
     
     /* ----------------
      *	get the block containing our commit time
@@ -648,6 +664,8 @@ TransBlockNumberSetCommitTime(relation, blockNumber, xid, xtime, failP)
      *	SOMEDAY release our lock on the time relation
      * ----------------
      */
+    RelationUnsetLockForWrite(relation);
+
 }
 
 /* --------------------------------
@@ -671,8 +689,15 @@ TransGetLastRecordedTransaction(relation, xid, failP)
 
     /* ----------------
      *	SOMEDAY gain exclusive access to the log relation
+     *
+     *  That someday is today 5 Aug. 1991 -mer
+     *  It looks to me like we only need to set a read lock here, despite
+     *  the above comment about exclusive access.  The block is never 
+     *  actually written into, we only check status bits.
      * ----------------
      */
+    RelationSetLockForRead(relation);
+    
     /* ----------------
      *	we assume the last block of the log contains the last
      *  recorded transaction.  If the relation is empty we return
@@ -708,5 +733,6 @@ TransGetLastRecordedTransaction(relation, xid, failP)
      *	SOMEDAY release our lock on the log relation
      * ----------------
      */
+    RelationUnsetLockForRead(relation);
 }
 
