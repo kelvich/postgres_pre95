@@ -24,6 +24,8 @@
 HTAB *SharedBufHash,*ShmemInitHash();
 int tag_hash();
 
+extern int NBuffers;
+
 /* 
  * declared for debugging only.  
  */
@@ -54,7 +56,7 @@ InitBufTable()
 
 
   SharedBufHash = (HTAB *) ShmemInitHash("Shared Buf Lookup Table",
-		  NUM_DATA_BUFS,NUM_DATA_BUFS,
+		  NBuffers,NBuffers,
 		  &info,hash_flags);
 
   if (! SharedBufHash) {

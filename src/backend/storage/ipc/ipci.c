@@ -9,8 +9,8 @@
 #include "utils/log.h"
 #include "storage/pladt.h"
 #include "storage/sinval.h"
-
 #include "storage/ipci.h"
+#include "storage/bufmgr.h"
 
 RcsId("$Header$");
 
@@ -44,6 +44,7 @@ CreateSharedMemoryAndSemaphores(key)
     IPCKey	key;
 {
     int		status;
+    int		size;
 
     /* ----------------
      *	kill the lock table stuff
@@ -64,8 +65,9 @@ CreateSharedMemoryAndSemaphores(key)
      * ----------------
      */
     CreateSpinlocks(IPCKeyGetSpinLockSemaphoreKey(key));
-    ShmemCreate(IPCKeyGetBufferMemoryKey(key), 0);
-    InitShmem(key, 0);
+    size = BufferShmemSize();
+    ShmemCreate(IPCKeyGetBufferMemoryKey(key), size);
+    InitShmem(key, size);
     InitBufferPool(key);
 
     /* ----------------
@@ -110,6 +112,7 @@ AttachSharedMemoryAndSemaphores(key)
     IPCKey	key;
 {
     int	status;
+    int size;
 
     /* ----------------
      *	create rather than attach if using private key
@@ -131,7 +134,8 @@ AttachSharedMemoryAndSemaphores(key)
      *	attach the buffer manager buffer pool (and semaphore)
      * ----------------
      */
-    InitShmem(key, 0);
+    size = BufferShmemSize();
+    InitShmem(key, size);
     InitBufferPool(key);
 
     /* ----------------
