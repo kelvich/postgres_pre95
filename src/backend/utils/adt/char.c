@@ -2,6 +2,9 @@
  * char.c --
  * 	Functions for the built-in type "char".
  * 	Functions for the built-in type "cid".
+ * 	Functions for the built-in type "char2".
+ * 	Functions for the built-in type "char4".
+ * 	Functions for the built-in type "char8".
  * 	Functions for the built-in type "char16".
  */
 
@@ -212,4 +215,366 @@ char16ge(arg1, arg2)
 	return((int32) NULL);
 
     return((int32) (strncmp(arg1, arg2, 16) >= 0));
+}
+
+
+/* ============================== char2 ============================== */
+uint16
+char2in(s)
+	char	*s;
+{
+	char	*p;
+	int      i;
+	uint16	res;
+
+	if (s == NULL)
+		return(NULL);
+
+	p = (char *) &res;
+	for (i = 0; i < 2; i++) {
+	    if (*s)
+		*p++ = *s++;
+	    else
+		*p++ = '\0';
+	}
+
+	return(res);
+}
+
+char *
+char2out(s)
+	uint16 s;
+{
+	char	*result = (char *) palloc(3);
+	char	*p;
+
+	p = (char *) &s;
+
+	strncpy(result, p, 2);
+	result[2] = '\0';
+
+	return(result);
+}
+
+int32
+char2eq(a, b)
+    uint16 a, b;
+{
+    char *arg1, *arg2;
+
+    arg1 = (char *) &a;
+    arg2 = (char *) &b;
+
+    if (*arg1 != *arg2)
+	return ((int32) NULL);
+    if (*arg1 && (*(++arg1) != *(++arg2)))
+	return ((int32) NULL);
+    return((int32) 1);
+}
+
+int32
+char2ne(a, b)
+    uint16 a, b;
+{
+    return((int32) !char2eq(a, b));
+}
+
+int32
+char2lt(a, b)
+    uint16 a, b;
+{
+    char *arg1, *arg2;
+
+    arg1 = (char *) &a;
+    arg2 = (char *) &b;
+
+    if (*arg1 < *arg2) {
+	return ((int32) 1);
+    } else if (*arg1 == *arg2) {
+	if (*arg1 != '\0' && (*(++arg1) < *(++arg2)))
+	    return ((int32) 1);
+    }
+
+    return ((int32) NULL);
+}
+
+int32
+char2le(a, b)
+    uint16 a, b;
+{
+    char *arg1, *arg2;
+
+    arg1 = (char *) &a;
+    arg2 = (char *) &b;
+
+    if (*arg1 < *arg2) {
+	return ((int32) 1);
+    } else if (*arg1 == *arg2) {
+	if (*arg1 == '\0' || (*(++arg1) <= *(++arg2)))
+	    return ((int32) 1);
+    }
+
+    return ((int32) NULL);
+}
+
+int32
+char2gt(a, b)
+    uint16 a, b;
+{
+    char *arg1, *arg2;
+
+    arg1 = (char *) &a;
+    arg2 = (char *) &b;
+
+    if (*arg1 > *arg2) {
+	return ((int32) 1);
+    } else if (*arg1 == *arg2) {
+	if (*arg2 != '\0' && (*(++arg1) > *(++arg2)))
+	    return ((int32) 1);
+    }
+
+    return ((int32) NULL);
+}
+
+int32
+char2ge(a, b)
+    uint16 a, b;
+{
+    char *arg1, *arg2;
+
+    arg1 = (char *) &a;
+    arg2 = (char *) &b;
+
+    if (*arg1 > *arg2) {
+	return ((int32) 1);
+    } else if (*arg1 == *arg2) {
+	if (*arg1 == '\0' || (*(++arg1) >= *(++arg2)))
+	    return ((int32) 1);
+    }
+
+    return ((int32) NULL);
+}
+
+int32
+char2cmp(a, b)
+    uint16 a, b;
+{
+    return (strncmp((char *) &a, (char *) &b, 2));
+}
+
+/* ============================== char8 ============================== */
+uint32
+char4in(s)
+	char	*s;
+{
+	char	*p;
+	int      i;
+	uint32	res;
+
+	if (s == NULL)
+		return(NULL);
+
+	p = (char *) &res;
+	for (i = 0; i < 4; i++) {
+	    if (*s)
+		*p++ = *s++;
+	    else
+		*p++ = '\0';
+	}
+
+	return(res);
+}
+
+char *
+char4out(s)
+	uint32 s;
+{
+	char	*result = (char *) palloc(5);
+	char	*p;
+
+	p = (char *) &s;
+
+	strncpy(result, p, 4);
+	result[4] = '\0';
+
+	return(result);
+}
+
+int32
+char4eq(a, b)
+    uint32 a, b;
+{
+    if (strncmp((char *) &a, (char *) &b, 4) == 0)
+	return((int32) 1);
+
+    return ((int32) NULL);
+}
+
+int32
+char4ne(a, b)
+    uint32 a, b;
+{
+    return((int32) !char4eq(a, b));
+}
+
+int32
+char4lt(a, b)
+    uint32 a, b;
+{
+    if (strncmp((char *) &a, (char *) &b, 4) < 0)
+	return ((int32) 1);
+    return ((int32) NULL);
+}
+
+int32
+char4le(a, b)
+    uint32 a, b;
+{
+    if (strncmp((char *) &a, (char *) &b, 4) <= 0)
+	return ((int32) 1);
+
+    return ((int32) NULL);
+}
+
+int32
+char4gt(a, b)
+    uint32 a, b;
+{
+    if (strncmp((char *) &a, (char *) &b, 4) > 0)
+	return ((int32) 1);
+
+    return ((int32) NULL);
+}
+
+int32
+char4ge(a, b)
+    uint32 a, b;
+{
+    if (strncmp((char *) &a, (char *) &b, 4) >= 0)
+	return ((int32) 1);
+
+    return ((int32) NULL);
+}
+
+int32
+char4cmp(a, b)
+    uint32 a, b;
+{
+    return (strncmp((char *) &a, (char *) &b, 4));
+}
+
+/* ============================== char8 ============================== */
+char *
+char8in(s)
+	char	*s;
+{
+	char	*result, *p;
+	int      i;
+
+	if (s == NULL)
+		return(NULL);
+
+	p = result = (char *) palloc(8);
+	for (i = 0; i < 8; i++) {
+	    if (*s)
+		*p++ = *s++;
+	    else
+		*p++ = '\0';
+	}
+
+	return(result);
+}
+
+char *
+char8out(s)
+	char	*s;
+{
+	char	*result = (char *) palloc(9);
+
+	if (s == NULL) {
+		result[0] = '-';
+		result[1] = '\0';
+	} else {
+		strncpy(result, s, 8);
+		result[8] = '\0';
+	}
+	return(result);
+}
+
+int32
+char8eq(arg1, arg2)
+    char *arg1, *arg2;
+{
+
+    if (arg1 == NULL || arg2 == NULL)
+	return((int32) NULL);
+    if (strncmp(arg1, arg2, 8) != 0)
+	return ((int32) NULL);
+    return((int32) 1);
+}
+
+int32
+char8ne(arg1, arg2)
+    char	*arg1, *arg2;
+{
+    return((int32) !char8eq(arg1, arg2));
+}
+
+int32
+char8lt(arg1, arg2)
+    char	*arg1, *arg2;
+{
+    if (arg1 == NULL || arg2 == NULL)
+	return((int32) NULL);
+
+    if (strncmp(arg1, arg2, 8) < 0)
+	return ((int32) 1);
+
+    return ((int32) NULL);
+}
+
+int32
+char8le(arg1, arg2)
+    char	*arg1, *arg2;
+{
+    if (arg1 == NULL || arg2 == NULL)
+	return((int32) NULL);
+
+    if (strncmp(arg1, arg2, 8) < 0)
+	return ((int32) 1);
+
+    return ((int32) NULL);
+}
+
+int32
+char8gt(arg1, arg2)
+    char	*arg1, *arg2;
+{
+    if (arg1 == NULL || arg2 == NULL)
+	return((int32) NULL);
+
+    if (strncmp(arg1, arg2, 8) > 0)
+	return ((int32) 1);
+
+    return ((int32) NULL);
+}
+
+int32
+char8ge(arg1, arg2)
+    char	*arg1, *arg2;
+{
+    if (arg1 == NULL || arg2 == NULL)
+	return((int32) NULL);
+
+    if (strncmp(arg1, arg2, 8) >= 0)
+	return ((int32) 1);
+
+    return ((int32) NULL);
+}
+
+int32
+char8cmp(arg1, arg2)
+    char *arg1, *arg2;
+{
+    return (strncmp(arg1, arg2, 8));
 }
