@@ -33,6 +33,7 @@
 #include "nodes/primnodes.a.h"
 #include "rules/params.h"
 #include "utils/lsyscache.h"
+#include "utils/sets.h"             /* for SetDefine() prototype */
 #include "tmp/acl.h"
 extern LispValue new_filestr();
 extern LispValue parser_typecast();
@@ -64,6 +65,8 @@ extern YYSTYPE parser_ppreserve();
 static YYSTYPE temp;
 
 int NumLevels = 0;
+
+static char saved_relname[BUFSIZ];  /* need this for complex attributes */
 
 #ifndef PORTNAME_hpux
 YYSTYPE yylval;
@@ -1709,25 +1712,34 @@ nest_array_bounds:
 	|							{ NULLTREE }
 	;
 
+typname:
+        name  {
+	    /* Is this the name of a complex type? If so, implement it
+	       as a set.
+	     */
+	    if (strcmp(saved_relname, CAR($1)) == 0) {
+		 /* This attr is the same type as the relation being defined.
+		    The classic example: create emp(name=text,mgr=emp)
+		  */
+		 $$ = lispCons(KW(setof), $1);
+	    } else if (get_typrelid(type(CAR($1))) != InvalidObjectId) {
+		 /* (Eventually add in here that the set can only contain
+		    one element.)
+		  */
+		 $$ = lispCons(KW(setof), $1);
+	    } else {
+		 $$ = $1;
+	    }
+       }
+        | SETOF name             {$$ = lispCons(KW(setof), $2);}
+        ;
+
 Typename:
-  	  name opt_array_bounds			{ $$ = lispCons($1,$2); }
+  	  typname opt_array_bounds			{ $$ = lispCons($1,$2); }
 	;
 
 var_def: 	
-	  Id '=' Typename
-		{ 
-		    ObjectId typrelid;
-
-		    /* for 4.0, attributes cannot have complex types */
-		    typrelid = get_typrelid(type(CString(CAR($3))));
-		    if (typrelid != InvalidObjectId) {
-			elog(NOTICE, "cannot create attribute of type %s",
-				     CString(CAR($3)));
-			elog(WARN, "use functions to get complex objects");
-		    }
-
-		    $$ = MakeList($1,$3,-1);
-		}
+	  Id '=' Typename         { $$ = MakeList($1,$3,-1);}
 	;
 
 var_defs:
@@ -1760,7 +1772,7 @@ a_expr:
            {
 		List temp;
 
-		temp = HandleNestedDots($1);
+		temp = HandleNestedDots($1, &p_last_resno);
 		if ($2 == LispNil)
 		    $$ = temp;
 		else
@@ -1825,25 +1837,25 @@ a_expr:
 	| name '(' ')'
 		{
 			extern List ParseFunc();
-			$$ = ParseFunc ( CString ( $1 ), LispNil );
+			$$ = ParseFunc ( CString ( $1 ), LispNil,&p_last_resno );
 			Typecast_ok = false;
 		}
 	| name '(' expr_list ')'
 		{
 			extern List ParseFunc();
-			$$ = ParseFunc ( CString ( $1 ), $3 );
+			$$ = ParseFunc ( CString ( $1 ), $3, &p_last_resno );
 			Typecast_ok = false; }
 	 | a_expr ISNULL
 			 {
 				 extern List ParseFunc();
 				 yyval =  nappend1( LispNil, $1);
-				 $$ = ParseFunc( "NullValue", yyval );
+				 $$ = ParseFunc( "NullValue", yyval, &p_last_resno );
 				 Typecast_ok = false; }
 	| a_expr NOTNULL
 		{
 			extern List ParseFunc();
 			 yyval =  nappend1( LispNil, $1);
-			 $$ = ParseFunc( "NonNullValue", yyval );
+			 $$ = ParseFunc( "NonNullValue", yyval,&p_last_resno );
 			 Typecast_ok = false;
 		}
 	| a_expr AND a_expr
@@ -1931,6 +1943,7 @@ attr:
 attrs:
         attr_name                       { $$ = lispCons($1, LispNil); }
       | attrs '.' attr_name             { $$ = nappend1($1, $3);}
+      | attrs '.' ALL                   { $$ = nappend1($1, lispName("all"));}
 
 agg_res_target_el:
        attr
@@ -1939,7 +1952,7 @@ agg_res_target_el:
 	       Resdom resnode;
 	       int type_id, type_len;
 
-	       temp = HandleNestedDots($1);
+	       temp = HandleNestedDots($1, &p_last_resno);
 
 	        type_id = CInteger(CAR(temp));
 
@@ -2050,8 +2063,9 @@ res_target_el:
 
 	| Id opt_indirection '=' a_expr
 	  {
-		if ($4 != LispNil && ISCOMPLEX(CInteger(CAR($4))))
+/*		if ($4 != LispNil && ISCOMPLEX(CInteger(CAR($4))))
 		    elog(WARN, "Cannot assign complex type to variable %s in target list", CString($1));
+*/
 		if ((parser_current_query == APPEND) && ($2 != LispNil)) {
 			char * val;
 			char *str, *save_str;
@@ -2101,15 +2115,16 @@ res_target_el:
 		 Resdom resnode;
 		 int type_id, type_len;
 
-		 temp = HandleNestedDots($1);
+		 temp = HandleNestedDots($1, &p_last_resno);
 
 		 if ($2 != LispNil)
 		     temp = make_array_ref(temp, CDR($2), CAR($2)); 
 
 		 type_id = CInteger(CAR(temp));
-		 if (ISCOMPLEX(type_id))
+/*		 if (ISCOMPLEX(type_id))
 		     elog(WARN, "Cannot use complex type %s as atomic value in target list",
 			  tname(get_id_type(type_id)));
+*/
 		 type_len = tlen(get_id_type(type_id));
 		 resnode = MakeResdom ( (AttributeNumber)p_last_resno++ ,
 					(ObjectId)type_id, ISCOMPLEX(type_id),
@@ -2129,6 +2144,10 @@ opt_id:
 
 relation_name:
 	SpecialRuleRelation
+          {
+                strcpy(saved_relname, LISPVALUE_STRING($1)); 
+                $$ = $1;
+          }
 	| Id
 	  {
 		/* disallow refs to magic system tables */
@@ -2139,6 +2158,7 @@ relation_name:
 		    elog(WARN, "%s cannot be accessed by users", CString($1));
 		else
 		    $$ = $1;
+		strcpy(saved_relname, LISPVALUE_STRING($1));
 	  }
 	;
 
@@ -2270,6 +2290,7 @@ make_targetlist_expr ( name , expr, arrayRef )
     int type_id,type_len, attrtype, attrlen;
     int resdomno;
     Relation rd;
+    bool attrisset;
 
     if(ResdomNoIsAttrNo && (expr == LispNil) && !Typecast_ok){
        /* expr is NULL, and the query is append or replace */
@@ -2280,8 +2301,9 @@ make_targetlist_expr ( name , expr, arrayRef )
        resdomno = varattno(rd,CString(name));
        attrtype = att_typeid(rd,resdomno);
        attrlen = tlen(get_id_type(attrtype));
+       attrisset = varisset(rd, CString(name));
        expr = lispCons( lispInteger(attrtype), (LispValue)
-                MakeConst((ObjectId) attrtype, (Size) attrlen, (Datum) LispNil, (bool)1, (bool) 0 /* ignored */));
+                MakeConst((ObjectId) attrtype, (Size) attrlen, (Datum) LispNil, (bool)1, (bool) 0 /* ignored */, (bool) 0));
        Input_is_string = false;
        Input_is_integer = false;
        Typecast_ok = true;
@@ -2294,8 +2316,8 @@ make_targetlist_expr ( name , expr, arrayRef )
        }
        return  ( lispCons ((LispValue)MakeResdom ((AttributeNumber)resdomno,
 				       (ObjectId) attrtype,
-				       ISCOMPLEX(attrtype),
-				       (Size)attrlen ,
+				       attrisset ? false : ISCOMPLEX(attrtype),
+	                  attrisset ? tlen(type("oid")) : (Size)  attrlen , 
 				       (Name)CString(name),
 				       (Index) 0 ,
 				       (OperatorTupleForm) 0 , 0 ) ,
@@ -2310,6 +2332,7 @@ make_targetlist_expr ( name , expr, arrayRef )
 	rd = parser_current_rel;
 	Assert(rd != NULL);
 	resdomno = varattno(rd,CString(name));
+	attrisset = varisset(rd, CString(name));
 	attrtype = att_typeid(rd,resdomno);
 	if ((arrayRef != LispNil) && (CAR(arrayRef) == LispNil))
 		attrtype = GetArrayElementType(attrtype);
@@ -2317,13 +2340,25 @@ make_targetlist_expr ( name , expr, arrayRef )
 	if(Input_is_string && Typecast_ok){
               Datum val;
               if (CInteger(CAR(expr)) == typeid(type("unknown"))){
-                val = textout((struct varlena *)get_constvalue((Const)CDR(expr)));
+                val = (Datum)textout((struct varlena *)get_constvalue((Const)CDR(expr)));
               }else{
                 val = get_constvalue((Const)CDR(expr));
               }
-              CDR(expr) = (LispValue) MakeConst(attrtype, attrlen,
+	      if (attrisset) {
+		   CDR(expr) = (LispValue) MakeConst(attrtype,
+						     attrlen,
+						     val,
+						     false,
+						     true,
+						     true /* is set */);
+	      } else {
+		   CDR(expr) = (LispValue) MakeConst(attrtype, 
+						     attrlen,
 	  (Datum)fmgr(typeid_get_retinfunc(attrtype),val,get_typelem(attrtype)),
-                false, true /*??? Maybe correct-- 80% chance */);
+						     false, 
+						     true /* Maybe correct-- 80% chance */,
+						     false /* is not a set */);
+	      }
 	} else if((Typecast_ok) && (attrtype != type_id)){
               CDR(expr) = (LispValue) 
 			parser_typecast2 ( expr, get_id_type((long)attrtype));
@@ -2335,7 +2370,7 @@ make_targetlist_expr ( name , expr, arrayRef )
         Typecast_ok = true;
 
 	if( lispAssoc( lispInteger(resdomno),p_target_resnos) != -1 ) {
-	    elog(WARN,"two or more occurence of same attr");
+	    elog(WARN,"two or more occurrences of same attr");
 	} else {
 	    p_target_resnos = lispCons( lispInteger(resdomno),
 				       p_target_resnos);
@@ -2344,7 +2379,8 @@ make_targetlist_expr ( name , expr, arrayRef )
 		LispValue target_expr;
 		target_expr = HandleNestedDots (lispCons(
 				lispString(RelationGetRelationName(rd)), 
-				lispCons(name, LispNil)));
+				lispCons(name, LispNil)),
+						&p_last_resno);
 		expr = (LispValue) make_array_set(target_expr, CDR(arrayRef), CAR(arrayRef), expr);	
 		attrtype = att_typeid(rd,resdomno);
 		attrlen = tlen(get_id_type(attrtype)); 
@@ -2354,12 +2390,19 @@ make_targetlist_expr ( name , expr, arrayRef )
 	attrtype = type_id;
 	attrlen = type_len;
     }
-    return  ( lispCons ((LispValue)MakeResdom ((AttributeNumber)resdomno,
-				    (ObjectId)  attrtype,
-				    ISCOMPLEX(attrtype),
-				    (Size)  attrlen , 
-				    (Name)  CString(name), (Index)0 ,
-				    (OperatorTupleForm)0 , 0 ) ,
-			      lispCons(CDR(expr),LispNil)) );
+
+    return  (lispCons 
+             ((LispValue)MakeResdom (
+                          (AttributeNumber)resdomno,
+			  (ObjectId)  attrtype,
+			  ISCOMPLEX(attrtype),
+			  (Size) attrlen,
+			  (Name)  CString(name), 
+                          (Index)0 ,
+			  (OperatorTupleForm)0 , 
+                          0 ),
+	       lispCons(CDR(expr),LispNil)) );
     
 }
+
+
