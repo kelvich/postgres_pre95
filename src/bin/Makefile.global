@@ -1,0 +1,10 @@
+CFLAGS+= -I${.CURDIR}/../../backend
+
+.if exists(${.CURDIR}/../../libpq/obj/libpq.a)
+LIBPQ= ${.CURDIR}/../../libpq/obj/libpq.a
+.else exists(${.CURDIR}/../../libpq/libpq.a)
+LIBPQ= ${.CURDIR}/../../libpq/libpq.a
+.endif
+
+
+LDADD= ${LIBPQ}
