@@ -273,18 +273,6 @@ depend: .depend
 
 cppall: ${SRCS:S/.c/.C/g}
 
-.include <postgres.prog.mk>
-
-#
-# Support partial loading of big .o's
-#
-.if defined(BIGOBJS)
-CLEANFILES+= ${OBJS}
-OBJS= ${SUBOBJS}
-${PROG}: ${SUBOBJS}
-.endif
-
-
 #
 # Support creation of symbol export files
 #
@@ -306,12 +294,11 @@ afterinstall: installexp
 # options) with which to invoke the Purify loader.  Only the executable
 # needs to be loaded with Purify.
 #
-# (This has to be after <postgres.prog.mk>, which unconditionally
-#  redefines the PROG target :-P)
-#
 .if defined(PURIFY)
 ${PROG}: ${OBJS} ${LIBC} ${DPADD}
 	${PURIFY} ${CC} ${LDFLAGS} -o ${.TARGET} ${OBJS} ${LDADD}
+
+CLEANFILES+= .purify* .pure .lock.*.o *_pure_*.o *.pure_*link*
 .endif
 
 
@@ -324,6 +311,19 @@ pg_id:	pg_id.c
 	${CC} ${LDFLAGS} -o ${.TARGET} ${.ALLSRC} 
 
 CLEANFILES+= pg_id
+
+
+.include <postgres.prog.mk>
+
+
+#
+# Support partial loading of big .o's
+#
+.if defined(BIGOBJS)
+CLEANFILES+= ${OBJS}
+OBJS= ${SUBOBJS}
+${PROG}: ${SUBOBJS}
+.endif
 
 
 #
