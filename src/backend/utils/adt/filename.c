@@ -89,7 +89,7 @@ filename_out(s)
 char *s;
 
 {
-	char *ret = palloc(strlen(s));
+	char *ret = (char *) palloc(strlen(s));
 
 	strcpy(ret, s);
 	return(ret);
