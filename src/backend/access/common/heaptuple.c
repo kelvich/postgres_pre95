@@ -744,6 +744,46 @@ heap_getattr(tup, b, attnum, att, isnull)
 }
 
 /* ----------------
+ *	heap_copysimple
+ *
+ *	returns a copy of an entire tuple - w/o the multiple apge
+ *      wierdness of heap_copytuple
+ * ----------------
+ */
+HeapTuple
+heap_copysimple(tuple)
+    HeapTuple	tuple;
+{
+    HeapTuple   newtup;
+
+    Assert (HeapTupleIsValid(tuple));
+
+    newtup = (HeapTuple)palloc(tuple->t_len);
+    bcopy(tuple, newtup, tuple->t_len);
+
+    /*
+     * Don't convert the rule lock to its memory representation,
+     * just copy the tid.  If we actually have a memory rule lock
+     * then we have to copy it to 'palloc'ed space via the prs2locks
+     * utilities.
+     *
+     * old comments:
+     *
+     * AAAAAAAAAAAAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaahhhhhhhhhhhhhhhhhhh!
+     * We have to copy to copy the RuleLock pointer too if it is in
+     * memory!!!!!!!!! May the Gods forgive me for the hack that is about
+     * to follow...  -mer 21:10:00 7 July 1992
+     */
+    if (tuple->t_locktype == MEM_RULE_LOCK)
+    {
+	if (RuleLockIsValid(tuple->t_lock.l_lock))
+	    newtup->t_lock.l_lock = prs2CopyLocks(tuple->t_lock.l_lock);
+	else
+	    newtup->t_lock.l_lock = InvalidRuleLock;
+    }
+    return newtup;
+}
+/* ----------------
  *	heap_copytuple
  *
  *	returns a copy of an entire tuple
@@ -834,6 +874,41 @@ heap_copytuple(tuple, buffer, relation)
      */
     return
 	newTuple;
+}
+
+/* ----------------
+ *	heap_deformtuple
+ *
+ *	the inverse of heap_formtuple (see below)
+ * ----------------
+ */
+void
+heap_deformtuple(tuple, tdesc, values, nulls)
+    HeapTuple       tuple;
+    TupleDescriptor tdesc;
+    Datum           values[];
+    char            nulls[];
+{
+    int i;
+    int natts;
+
+    Assert(HeapTupleIsValid(tuple));
+
+    natts = tuple->t_natts;
+    for (i = 0; i<natts; i++)
+    {
+	bool isnull;
+
+	values[i] = (Datum)heap_getattr(tuple,
+				 InvalidBuffer,
+				 i+1,
+				 tdesc,
+				 &isnull);
+	if (isnull)
+	    nulls[i] = 'n';
+	else
+	    nulls[i] = ' ';
+    }
 }
 
 /* ----------------
