@@ -74,6 +74,7 @@ bool		DebugPrintPlan = false;
 bool		DebugPrintParse = false;
 bool		DebugPrintRewrittenParsetree = false;
 static bool	EnableRewrite = true;
+int		ShowStats;
 CommandDest whereToSendOutput;
 
 #ifdef	EBUG
@@ -846,7 +847,6 @@ PostgresMain(argc, argv)
     int			flagQ;
     int			flagM;
     int			flagS;
-    int			ShowStats;
     int			flagE;
     int			flag;
 
