@@ -76,7 +76,7 @@ BufferTag *tagPtr;
       return(NULL);
 
   result = (LookupEnt *) 
-    hash_search(SharedBufHash,tagPtr,FIND,&found);
+    hash_search(SharedBufHash,tagPtr,HASH_FIND,&found);
 
   if (! result){
     elog(WARN,"BufTableLookup: BufferLookup table corrupted");
@@ -108,7 +108,7 @@ BufferDesc *buf;
   buf->flags |= BM_DELETED;
 
   result = (LookupEnt *)
-    hash_search(SharedBufHash,&(buf->tag),REMOVE,&found);
+    hash_search(SharedBufHash,&(buf->tag),HASH_REMOVE,&found);
 
   if (! (result && found)) {
     elog(WARN,"BufTableDelete: BufferLookup table corrupted");    
@@ -129,7 +129,7 @@ BufferDesc *buf;
   buf->flags &= ~(BM_DELETED);
 
   result = (LookupEnt *)
-    hash_search(SharedBufHash,&(buf->tag),ENTER,&found);
+    hash_search(SharedBufHash,&(buf->tag),HASH_ENTER,&found);
 
   if (! result) {
     elog(WARN,"BufTableInsert: BufferLookup table corrupted");
