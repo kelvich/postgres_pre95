@@ -26,10 +26,11 @@
 
 /* port.c */
 
-double rint ARGS((double x));
-double cbrt ARGS((double x));
-long random ARGS((void));
-void srandom ARGS((int seed));
-int getrusage ARGS((int who, struct rusage *ru));
+extern int init_address_fixup ARGS((void));
+extern double rint ARGS((double x));
+extern double cbrt ARGS((double x));
+extern long random ARGS((void));
+extern void srandom ARGS((int seed));
+extern int getrusage ARGS((int who, struct rusage *ru));
 
 #endif /* PortProtos_H */

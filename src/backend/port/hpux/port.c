@@ -1,14 +1,23 @@
 /*
- * FILE
+ *   FILE
  *	port.c
  *
- * DESCRIPTION
+ *   DESCRIPTION
  *	port-specific routines for HP-UX
  *
- * NOTES
- *	this file gets around some non-POSIX calls in POSTGRES
+ *   INTERFACE ROUTINES
+ *	init_address_fixup
+ *	rint
+ *	cbrt
+ *	random
+ *	srandom
+ *	getrusage
  *
- * IDENTIFICATION
+ *   NOTES
+ *	For the most part, this file gets around some non-POSIX calls 
+ *	in POSTGRES.
+ *
+ *   IDENTIFICATION
  *	$Header$
  */
 
@@ -17,6 +26,14 @@
 #include <sys/syscall.h>	/* for syscall #defines */
 
 #include "tmp/c.h"
+
+init_address_fixup()
+{
+    /*
+     * On PA-RISC, unaligned access fixup is handled by the compiler,
+     * not by the kernel.
+     */
+}
 
 double 
 rint(x)
