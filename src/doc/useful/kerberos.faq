@@ -1,43 +1,45 @@
 $Header$
 
-From: bjaspan@athena.mit.edu (Barry Jaspan)
+From: bjaspan@GZA.COM (Barry Jaspan)
 Newsgroups: comp.protocols.kerberos,news.answers
-Subject: Kerberos Users' Frequently Asked Questions 1.3
-Date: 9 Feb 1993 15:39:52 GMT
+Subject: Kerberos Users' Frequently Asked Questions 1.5
+Date: 1 Jul 1993 12:13:12 -0400
+Message-ID: <kerberos-faq/user_741543191@GZA.COM>
 Summary: This document answers Frequently Asked Questions about the
 	Kerberos authentication system.  Read this before you post a
 	question to comp.protocols.kerberos or kerberos@athena.mit.edu.
 
 Archive-name: kerberos-faq/user
-Version: 1.3
+Version: 1.5
 
 Kerberos Users' Frequently Asked Questions
-February 9, 1993
-Compiled by: Barry Jaspan, <bjaspan@aktis.com>
-             Aktis, Inc.
+July 1, 1993
+Compiled by: Barry Jaspan, <bjaspan@gza.com>
+             Geer Zolot Associates
 
-     Kerberos; also spelled Cerberus.  "n.  The watch dog of
+     Kerberos; also spelled Cerberus.  n.  The watch dog of
      Hades, whose duty it was to guard the entrance--against
-     whom or what does not clearly appear; .  . . is known to
-     have had three heads. . ."
+     whom or what does not clearly appear; . . . it is known
+     to have had three heads. . .
 
         -Ambrose Bierce, The Enlarged Devil's Dictionary
 
 This document answers Frequently Asked Questions about the Kerberos
 authentication system.  It is freely distributable.  Direct all
-responses and questions to bjaspan@athena.mit.edu.  Most of the
-information presented here has been collected from postings to the
+responses and questions to bjaspan@gza.com.  Most of the information
+presented here has been collected from postings to the
 comp.protocols.kerberos newsgroup (gatewayed to the mailing list
-kerberos@athena.mit.edu) and in general credit has not been given;
-complain if you feel offended.
+kerberos@athena.mit.edu).
 
-DISCLAIMER: Aktis, Inc., makes no representations about the
+DISCLAIMER: Geer Zolot Associates makes no representations about the
 suitability of this information for any purpose.  It is provided "as
 is" without express or implied warranty.  In particular, this document
 is not intended as legal advice for exporting Kerberos, DES, or any
 other encryption software.
 
-Please make suggestions and contribute any information that you can.
+Release Notes: This release contains a more thorough introduction to
+Kerberos (1.1), new information about Kerberos TELNET and FTP (2.5),
+and additional vendor-supported Kerberos ports information (2.7).
 
 Questions addressed in this release:
 	(a * indicates that no answer is currently available)
@@ -52,7 +54,7 @@ Questions addressed in this release:
 (1.5)	Are version 4 and version 5 compatible?
 (1.6)	How/why is Transarc's Kerberos different from MIT Kerberos V4?
 	Can they interoperate?
-(1.7)*	How/why is OSF DCE Kerberos different from MIT Kerberos V5?
+(1.7)*	How/why is OSF DCE Security different from MIT Kerberos V5?
 	Can they interoperate?
 (1.8)	How/why is DEC Ultrix Kerberos different from MIT Kerberos V4?
 	Can they interoperate?
@@ -93,21 +95,46 @@ Questions addressed in this release:
 (1.1)	What is Kerberos?  What is it good for?
 
 Kerberos is a network authentication system for use on physically
-insecure networks.  It allows users and principals to prove their
-identity to each other while preventing eavsdropping or replay
-attacks.  It uses DES cryptography to provide data security.  The
-following is an excerpt from [1]:
+insecure networks, based on the key distribution model presented by
+Needham and Schroeder.[3] It allows entities communicating over
+networks to prove their identity to each other while preventing
+eavsdropping or replay attacks.  It also provides for data stream
+integrity (detection of modification) and secrecy (preventing
+unauthorized reading) using cryptography systems such as DES.
 
-   Kerberos is ... based on the [key distribution] model presented by
-   Needham and Schroeder.[3] It is trusted in the sense that each of
-   its clients believes Kerberos' judgement as to the identity of each
-   of its other clients to be accurate.
+Kerberos works by providing principals (users or services) with
+/tickets/ that they can use to identify themselves to other principals
+and secret cryptographic keys for secure communication with other
+principals.[1] A ticket is a sequence of a few hundred bytes.  These
+ticket can then be embedded in virtually any other network protocol,
+thereby allowing the processes implementing that protocol to be sure
+about the identity of the principals involved.
+
+Practically speaking, Kerberos is mostly used in application-level
+protocols (ISO model level 7), such as TELNET or FTP, to provide user
+to host security.  It is also used, though less frequently, as the
+implicit authentication system of data stream (such as SOCK_STREAM) or
+RCP mechanisms (ISO model level 6).  It could also be used at a lower
+level for host to host security, in protocols like IP, UDP, or TCP
+(ISO model levels 3 and 4), although such implementations are
+currently rare, if they exist at all.
 
 It is important to realize that Kerberos is a one-trick pony.  It
-provides for mutual authentication between principals on an open
-network.  It does not provide a mechanism for authorization; that is
-left to the application.  It also does not provide password validation
-for individual workstations unless care is taken; see question 2.1.
+provides for mutual authentication and secure communication between
+principals on an open network by manufacturing secret keys for any
+requestor and providing a mechanism for these secret keys to be safely
+propaged through the network.  Kerberos does not, per se, provide for
+authorization or accounting, although applications that wish to can
+use their secret keys to perform those functions securely.  Kerberos
+also does not provide password validation for individual workstations
+unless care is taken; see question 2.1.
+
+It is also important to understand the using Kerberos on time-sharing
+machines greatly weakens its protections, since a user's tickets
+are then only as secure as the 'root' account (read: not very).
+Furthermore, dumb terminals and most X terminals do not understand the
+Kerberos protocol and as a result their cable connections remain
+insecure.
 
 (1.2)	Where can I get Kerberos version 4 or 5?
 
@@ -201,7 +228,7 @@ talk to an MIT or AFS Kerberos server and achieve correct results.
 However, it is probably best to pick one implementation and use it
 exclusively
 
-(1.7)*	How/why is OSF DCE Kerberos different from MIT Kerberos V5?
+(1.7)*	How/why is OSF DCE Security different from MIT Kerberos V5?
 	Can they interoperate?
 
 (1.8)	How/why is DEC Ultrix Kerberos different from MIT Kerberos V4?
@@ -367,15 +394,32 @@ official assignment is requested.
 
 (2.5)	Are there Kerberos versions of telnet and ftpd?
 
-A Kerberos telnet is available via anonymous ftp from ftp.uu.net, in
-/networking/telnet.91.03.25.tar.Z.  There is also a Kerberos telnet in
-the V5 distribution which is based on the 4.4BSD telnet/telnetd.
-[NOTE: Telnet has been "temporarily" removed from the V5 beta 2
-release.]
+(a) TELNET.  An experimental Telnet Authentication Option has been
+defined, and is described in RFC1416.  A separate document, RFC1411,
+describes how that option is to be used with Kerberos V4, but no RFC
+exists for its use with Kerberos V5.  These RFC's only define how
+/authentication/ is to be performed; the standard for full encryption
+is still under development.
 
-A distributable Kerberos version of ftpd does not yet appear to exist.
-There is an IETF group working on defining a secure FTP protocol, but
-they have yet to publish a specification or an implementation.
+An implementation of Kerberos V4 telnet is available via anonymous ftp
+from ftp.uu.net, in /networking/telnet.91.03.25.tar.Z, but it predates
+both of the above-mentioned RFCs and is therefore almost certainly not
+compliant with them.  A Kerberos V5 telnet implementation, based on
+the 4.4BSD telnet/telnetd, also exists but has been temporarily
+removed from the MIT V5 beta 2 release (probably because it also does
+not comply with the proposed standards).
+
+(b) FTP.  The IETF Common Authentication Technology Working Group is
+currently defining security extensions for the FTP protocol.  An
+Internet Draft describing their work, and the source code for a
+modified ftp/ftpd with the extensions, are now available via anonymous
+FTP:
+
+	thumper.bellcore.com:pub/lunt/ftp.tar.Z
+	net-dist.mit.edu:tytso/ftp-wg/ftp.tar.Z
+
+Please note that the extensions are still in the Draft stage and may
+change at any time, in incompatible ways.
 
 (2.6)	Why does rlogin print "Warning: No Kerberos tickets obtained"?
 
@@ -433,6 +477,8 @@ d       DEC (DECathena?)        John O'Hara 508/486-7402
 					johara@athena.lkg.dec.com
 e	Essex		        Vince Stasio 508/532-5511
 f 	FTP Software            Kristine Kilduff 617/246-0900 kpk@ftp.com
+g	Geer Zolot Associates	Barry Jaspan 617/374-3700 
+				info-kerberos@gza.com
 i	IBM
 m	MIT release
 o	Open Computing Security Group	Dan Webb 206/883-8721 dwebb@ocsg.com
@@ -458,40 +504,42 @@ Rumored ports by:
 
 Kerberos Ports		23 Oct 1992
 
-who		c  d  e  f  i  m  o   p  r  t  w  z  other
-Amdahl		-  -  -  -  -  -  -   -  -  -  -  4  -
-AIX 3.2	4  	-  A  -  -  d  4  tT  -  -  -  -  P  -
-Cisco		-  -  -  -  -  -  -   -  -  -  -  p  -
-Convex		-  -  -  -  -  -  -   -  -  -  -  -  4  LMSC partial port of K4
-Cray		-  -  -  -  -  -  -   -  -  -  -  4d 4  LLNL partial port of K4
-HP		-  A  -  -  -  -  hT  -  -  -  -  -  d
-Intel Sv.4	-  -  -  -  -  4  H   -  -  -  -  -  d
-Irix 4.0.3	4  -  -  -  -  -  -   -  -  -  -  -  p
-Mac 6.x		p  -  -  -  -  4  4H  -  -  -  -  -  -
-Mac 7.x		p  -  -  -  -  4  4H  -  -  -  -  -  -
-MsDos		-  -  4  4  -  4  4H  -  -  -  -  -  -
-MVS		-  -  -  -  4  -  pP  -  -  -  -  4d -
-NCR		-  -  -  -  -  -  pH  -  -  -  -  -  -
-NCSATelnetPC	-  -  -  -  -  -  t   -  -  -  -  -  -
-NCSATelnetMac	-  -  -  -  -  -  t   -  -  -  -  -  -
-NeXT		-  -  -  -  -  4  4H  -  -  -  -  -  -
-who		c  d  e  f  i  m  o   p  r  t  w  z  other
-Novell		-  -  -  -  -  -  H   -  -  -  -  d  -
-OS/2		-  -  4  -  4d -  -   -  -  -  -  4  -
-Pyramid		-  -  -  -  -  -  H   -  -  -  -  p  -
-SCO		p  -  -  -  -  -  -   -  -  -  -  -  -
-SecDynamics	-  -  -  -  -  -  tH  -  -  -  -  -  -
-Sequent		-  -  -  -  -  -  4H  -  -  -  -  -  -
-Solaris 2.0	p  -  -  -  -  -  4T  -  -  -  -  d  4 Cray has a K4 port
-SunOS 4.0.1	4  A  -  -  -  4  4T  -  -  -  -  -  -  
-SunOS 4.1	4  A  -  -  -  4  4T  -  -  -  -  -  -
-Telebit		-  -  -  -  -  -  -   -  -  -  -  4  -  
-Ultrix 4.1	4  A4 -  -  -  4  -   -  -  -  -  4  -  
-VM		-  -  -  -  4  -  -   -  -  -  -  4  -
-VMS		-  -  -  -  -  -  -   4d -  4  4  -  -
-Win3.1		-  -  -  -  -  -  tH  -  -  -  -  -  p
-Xyplex		-  -  -  -  -  -  -   -  -  -  -  4  -
-who		c  d  e  f  i  m  o   p  r  t  w  z  other
+who		c  d  e  f  g  i  m  o   p  r  t  w  z  other
+Amdahl		-  -  -  -  -  -  -  -   -  -  -  -  4  -
+AIX 3.2	4  	-  A  -  -  H  d  4  tT  -  -  -  -  P  -
+Cisco		-  -  -  -  -  -  -  -   -  -  -  -  p  -
+Convex		-  -  -  -  -  -  -  -   -  -  -  -  -  4  
+							LMSC partial port of K4
+Cray		-  -  -  -  -  -  -  -   -  -  -  -  4d 4
+							LLNL partial port of K4
+HP		-  A  -  -  H  -  -  hT  -  -  -  -  -  d
+Intel Sv.4	-  -  -  -  H  -  4  H   -  -  -  -  -  d
+Irix 4.0.3	4  -  -  -  -  -  -  -   -  -  -  -  -  p
+Mac 6.x		p  -  -  -  -  -  4  4H  -  -  -  -  -  -
+Mac 7.x		p  -  -  -  -  -  4  4H  -  -  -  -  -  -
+MsDos		-  -  4  4  -  -  4  4H  -  -  -  -  -  -
+MVS		-  -  -  -  -  4  -  pP  -  -  -  -  4d -
+NCR		-  -  -  -  -  -  -  pH  -  -  -  -  -  -
+NCSATelnetPC	-  -  -  -  -  -  -  t   -  -  -  -  -  -
+NCSATelnetMac	-  -  -  -  -  -  -  t   -  -  -  -  -  -
+NeXT		-  -  -  -  5  -  4  4H  -  -  -  -  -  -
+who		c  d  e  f  g  i  m  o   p  r  t  w  z  other
+Novell		-  -  -  -  -  -  -  H   -  -  -  -  d  -
+OS/2		-  -  4  -  H  4d -  -   -  -  -  -  4  -
+Pyramid		-  -  -  -  H  -  -  H   -  -  -  -  p  -
+SCO		p  -  -  -  -  -  -  -   -  -  -  -  -  -
+SecDynamics	-  -  -  -  -  -  -  tH  -  -  -  -  -  -
+Sequent		-  -  -  -  -  -  -  4H  -  -  -  -  -  -
+Solaris 2.0	p  -  -  -  H  -  -  4T  -  -  -  -  d  4 Cray has a K4 port
+SunOS 4.0.1	4  A  -  -  5  -  4  4T  -  -  -  -  -  -  
+SunOS 4.1	4  A  -  -  5  -  4  4T  -  -  -  -  -  -
+Telebit		-  -  -  -  -  -  -  -   -  -  -  -  4  -  
+Ultrix 4.1	4  A4 -  -  H  -  4  -   -  -  -  -  4  -  
+VM		-  -  -  -  -  4  -  -   -  -  -  -  4  -
+VMS		-  -  -  -  -  -  -  -   4d -  4  4  -  -
+Win3.1		-  -  -  -  -  -  -  tH  -  -  -  -  -  p
+Xyplex		-  -  -  -  -  -  -  -   -  -  -  -  4  -
+who		c  d  e  f  g  i  m  o   p  r  t  w  z  other
 
 Please send updates to Greg Edwards, edwardsg@iscnvx.is.lmsc.lockheed.com
 
@@ -527,7 +575,7 @@ See the bibliography at the end of this document.
 
 Archives are available via anonymous FTP from athena-dist.mit.edu in
 the directory pub/kerberos/krb-mail.  The kerberos@athena.mit.edu
-archives prensently extend up to 24 September 1992.  Some archives of
+archives prensently extend up to the end of 1992.  Some archives of
 the kerberos protocol mailing list are also available.
 
 ----------------------------------------------------------------------
@@ -565,5 +613,7 @@ Authentication System," USENIX Jan 1991.
 
 [8] C. Neumann and J. Kohl, "The Kerberos(tm) Network Authentication
 Service (V5)," April 1992.  Currently released as an Internet Draft.
---
-Barry Jaspan, bjaspan@mit.edu
+
+-- 
+Barry Jaspan, bjaspan@gza.com
+Geer Zolot Associates
