@@ -110,9 +110,7 @@ DATA(insert OID = 30 (  oid8       6 32  89 f b t \054 0  26 oid8in oid8out oid8
 DATA(insert OID = 31 (  lock       6 -1  -1 f b t \054 0  -1 lockin lockout lockin lockout - ));
 DATA(insert OID = 32 (  SET        6 -1  -1 f r t \054 0  -1 textin textout textin textout - ));
 DATA(insert OID = 33 (  stub       6 -1  -1 f b t \054 0  -1 stubin stubout stubin stubout - ));
-    
 DATA(insert OID = 591 (  ref 	   6  8   1 f b t \054 0   0 refn refout refin refout - ));
-    
 DATA(insert OID = 600 (  point     6 16  24 f b t \054 0   0 point_in point_out point_in point_out - ));
 DATA(insert OID = 601 (  lseg      6 32  48 f b t \054 0 600 lseg_in lseg_out lseg_in lseg_out - ));
 DATA(insert OID = 602 (  path      6 -1  -1 f b t \054 0 600 path_in path_out path_in path_out - ));
@@ -123,7 +121,34 @@ DATA(insert OID = 702 (  abstime   6  4  20 t b t \054 0   0 abstimein abstimeou
 DATA(insert OID = 703 (  reltime   6  4  20 t b t \054 0   0 reltimein reltimeout reltimein reltimeout - ));
 DATA(insert OID = 704 (  tinterval 6 12  47 f b t \054 0   0 tintervalin tintervalout tintervalin tintervalout - ));
 DATA(insert OID = 705 (  unknown 6 -1  -1 f b t \054 0   18 textin textout textin textout - ));
-    
+DATA(insert OID = 1000 (  _bool      6 -1  -1 f b t \054 0  16 array_in array_out array_in array_out - ));
+DATA(insert OID = 1001 (  _bytea     6 -1  -1 f b t \054 0  17 array_in array_out array_in array_out - ));
+DATA(insert OID = 1002 (  _char      6 -1  -1 f b t \054 0  18 textin textout textin textout - ));
+DATA(insert OID = 1003 (  _char16    6 -1  -1 f b t \054 0  19 array_in array_out array_in array_out - ));
+DATA(insert OID = 1004 (  _dt        6 -1  -1 f b t \054 0  20 array_in array_out array_in array_out - ));
+DATA(insert OID = 1005 (  _int2      6 -1  -1 f b t \054 0  21 array_in array_out array_in array_out - ));
+DATA(insert OID = 1006 (  _int28     6 -1  -1 f b t \054 0  22 array_in array_out array_in array_out - )); 
+DATA(insert OID = 1007 (  _int4      6 -1  -1 f b t \054 0  23 array_in array_out array_in array_out - ));  
+DATA(insert OID = 1008 (  _regproc   6 -1  -1 f b t \054 0  24 array_in array_out array_in array_out - ));  
+DATA(insert OID = 1009 (  _text      6 -1  -1 f b t \054 0  25 array_in array_out array_in array_out - ));
+DATA(insert OID = 1009 (  _oid       6 -1  -1 f b t \054 0  26 array_in array_out array_in array_out - ));
+DATA(insert OID = 1010 (  _tid       6 -1  -1 f b t \054 0  27 array_in array_out array_in array_out - ));
+DATA(insert OID = 1011 (  _xid       6 -1  -1 f b t \054 0  28 array_in array_out array_in array_out - ));
+DATA(insert OID = 1012 (  _cid       6 -1  -1 f b t \054 0  29 array_in array_out array_in array_out - ));
+DATA(insert OID = 1013 (  _oid8      6 -1  -1 f b t \054 0  30 array_in array_out array_in array_out - ));
+DATA(insert OID = 1014 (  _lock      6 -1  -1 f b t \054 0  31 array_in array_out array_in array_out - ));
+DATA(insert OID = 1015 (  _stub      6 -1  -1 f b t \054 0  33 array_in array_out array_in array_out - ));
+DATA(insert OID = 1016 (  _ref 	     6 -1  -1 f b t \054 0 591 array_in array_out array_in array_out - ));
+DATA(insert OID = 1017 (  _point     6 -1  -1 f b t \054 0 600 array_in array_out array_in array_out - ));
+DATA(insert OID = 1018 (  _lseg      6 -1  -1 f b t \054 0 601 array_in array_out array_in array_out - ));
+DATA(insert OID = 1019 (  _path      6 -1  -1 f b t \054 0 602 array_in array_out array_in array_out - ));
+DATA(insert OID = 1020 (  _box       6 -1  -1 f b t \073 0 603 array_in array_out array_in array_out - ));
+DATA(insert OID = 1021 (  _float4    6 -1  -1 f b t \054 0 700 array_in array_out array_in array_out - ));
+DATA(insert OID = 1022 (  _float8    6 -1  -1 f b t \054 0 701 array_in array_out array_in array_out - ));
+DATA(insert OID = 1023 (  _abstime   6 -1  -1 f b t \054 0 702 array_in array_out array_in array_out - ));
+DATA(insert OID = 1024 (  _reltime   6 -1  -1 f b t \054 0 703 array_in array_out array_in array_out - ));
+DATA(insert OID = 1025 (  _tinterval 6 -1  -1 f b t \054 0 704 array_in array_out array_in array_out - ));
+
 /* ----------------
  *	old definition of TypeTupleForm
  * ----------------
