@@ -343,10 +343,10 @@ DATA(insert OID = 297 (  float8gt          6 11 f t f 2 f 16 "701 701" 100 0 0 1
 DATA(insert OID = 298 (  float8ge          6 11 f t f 2 f 16 "701 701" 100 0 0 100  foo bar ));
 
 DATA(insert OID = 319 (  btreebeginscan    6 11 f t f 3 f 23 "0" 100 0 0 100  foo bar ));
-DATA(insert OID = 320 (  rtinsert          6 11 f t f 3 f 23 "0" 100 10 0 100  foo bar ));
+DATA(insert OID = 320 (  rtinsert          6 11 f t f 2 f 23 "0" 100 10 0 100  foo bar ));
 DATA(insert OID = 321 (  rtdelete          6 11 f t f 2 f 23 "0" 100 10 0 100  foo bar ));
-DATA(insert OID = 322 (  rtgettuple        6 11 f t f 6 f 23 "0" 100 10 0 100  foo bar ));
-DATA(insert OID = 323 (  rtbuild           6 11 f t f 7 f 23 "0" 100 10 0 100  foo bar ));
+DATA(insert OID = 322 (  rtgettuple        6 11 f t f 2 f 23 "0" 100 10 0 100  foo bar ));
+DATA(insert OID = 323 (  rtbuild           6 11 f t f 9 f 23 "0" 100 10 0 100  foo bar ));
 DATA(insert OID = 324 (  rtbeginscan       6 11 f t f 4 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 325 (  rtendscan         6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
 DATA(insert OID = 326 (  rtmarkpos         6 11 f t f 1 f 23 "0" 100 0 0 100  foo bar ));
