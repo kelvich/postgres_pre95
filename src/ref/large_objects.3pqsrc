@@ -2,6 +2,11 @@
 .\" $Header$
 .SS "LARGE OBJECTS" 6/14/90
 .XA 0 "Section 7 \*- Large Objects"
+.sp 2i
+.ps 14
+.ce
+.b "SECTION 7 \*- LARGE OBJECTS"
+.sp 3
 .uh NAME
 .lp
 Large Object Backend Interface \*- interface to \*(PP large objects
@@ -278,4 +283,3 @@ define type (commands)
 define function (commands)
 .lp
 load (commands)
-.lp
