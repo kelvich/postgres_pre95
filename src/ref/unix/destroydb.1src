@@ -52,7 +52,7 @@ destroydb -p 1234 -h eden demo
 .sp
 .lp
 \fBError: Failed to connect to backend (host=\fIxxx\fB, port=\fIxxx\fB)\fR
-.pp
+.lp
 destroydb could not attach to the postmaster on the specified host and
 port.  If you see this message, check that the postmaster is running on
 the proper host and that the proper port is specified.
