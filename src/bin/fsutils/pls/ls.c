@@ -75,11 +75,11 @@ char	*user_from_uid __P((u_int, int));
 
 static void	 display __P((FTSENT *, FTSENT *));
 static char	*flags_from_fid __P((u_long));
-static int	 mastercmp __P((const FTSENT **, const FTSENT **));
+static int	 mastercmp __P((FTSENT **, FTSENT **));
 static void	 traverse __P((int, char **, int));
 
 static void (*printfcn) __P((DISPLAY *));
-static int (*sortfcn) __P((const FTSENT *, const FTSENT *));
+static int (*sortfcn) __P((FTSENT *, FTSENT *));
 
 long blocksize;			/* block size units */
 int termwidth = 80;		/* default terminal width */
@@ -533,7 +533,7 @@ display(p, list)
  */
 static int
 mastercmp(a, b)
-	const FTSENT **a, **b;
+	FTSENT **a, **b;
 {
 	register int a_info, b_info;
 

@@ -42,7 +42,7 @@ int revnamecmp __P((FTSENT *, FTSENT *));
 int statcmp __P((FTSENT *, FTSENT *));
 int revstatcmp __P((FTSENT *, FTSENT *));
 
-void err __P((int, const char *, ...));
+void err __P((int, char *, ...));
 void prcopy __P((char *, char *, int));
 void printcol __P((DISPLAY *));
 void printlong __P((DISPLAY *));

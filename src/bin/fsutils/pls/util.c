@@ -77,7 +77,7 @@ usage()
 
 void
 #if __STDC__
-err(int fatal, const char *fmt, ...)
+err(int fatal, char *fmt, ...)
 #else
 err(fatal, fmt, va_alist)
 	int fatal;

@@ -50,7 +50,7 @@ static FTSENT	*fts_alloc __P((FTS *, char *, int));
 static FTSENT	*fts_build __P((FTS *, int));
 static void	 fts_lfree __P((FTSENT *));
 static void	 fts_load __P((FTS *, FTSENT *));
-static size_t	 fts_maxarglen __P((char * const *));
+static size_t	 fts_maxarglen __P((char **));
 static void	 fts_padjust __P((FTS *, char *));
 static int	 fts_palloc __P((FTS *, size_t));
 static FTSENT	*fts_sort __P((FTS *, FTSENT *, int));
@@ -961,7 +961,7 @@ fts_padjust(sp, addr)
 
 static size_t
 fts_maxarglen(argv)
-	char * const *argv;
+	char **argv;
 {
 	size_t len, max;
 
