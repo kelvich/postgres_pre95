@@ -532,10 +532,12 @@ List RewriteQuery(parsetree,instead_flag,qual_products)
     /*
      * only for a delete may the targetlist be NULL
      */
-    if ( event != DELETE ) {
-	tl = parse_targetlist(parsetree);
+    if ( event != DELETE && event != NOTIFY ) {
+ 	tl = parse_targetlist(parsetree);
  	Assert ( tl != NULL );
     }
+    if (event == NOTIFY)
+      return LispNil;
 
     result_relation = root_result_relation(parse_root(parsetree));
     if (event != RETRIEVE) {
