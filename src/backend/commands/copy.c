@@ -7,10 +7,13 @@
  *	efficiency - too many fread()s and fwrite()s
  */
 
+#include "c.h"
+
+RcsId("$Header$");
+
 #include <stdio.h>
 #include <pwd.h>
 #include <strings.h>
-#include <varargs.h>
 #include <sys/file.h>
 #include <sys/param.h>
 
@@ -22,13 +25,12 @@
 #include "log.h"
 #include "mcxt.h"
 #include "palloc.h"
+#include "pg_lisp.h"
 #include "portal.h"	/* for StartPortalAllocMode, etc. */
 #include "syscache.h"
 #include "tqual.h"
 
 #include "copy.h"
-
-RcsId("$Header$");
 
 #define	NON_NULL_ATT	(' ')
 #define	NULL_ATT	('n')
@@ -82,17 +84,16 @@ extern 			copyCleanup();
  */
 /*VARARGS*/
 Domain
-createdomains(va_alist)
-	va_dcl
+createdomains(relationName, isBinary, noNulls, isFrom, domains, domainCountOutP)
+	Name	relationName;		/* relation name */
+	bool	isBinary;		/* all-binary file format? */
+	bool	noNulls;		/* INGRES-style binary fmt */
+	bool	isFrom;			/* copy direction */
+	List	domains;
+	Count	*domainCountOutP;	/* final # of domains */
 {
-	va_list			pvar;
 	register		i;
-	char			*relname;	/* char16 relation name */
-	Boolean			isbinary;	/* all-binary file format? */
-	Boolean			nonulls;	/* INGRES-style binary fmt */
-	Boolean			isfrom;		/* copy direction */
 	int			ndoms;		/* # of argument domains */
-	int			*ndomains;	/* final # of domains */
 	Relation		rdesc;
 	AttributeNumber		relnatts;
 	TupleDescriptor		rdatt;
@@ -104,32 +105,21 @@ createdomains(va_alist)
 	AttributeNumber		attnum;
 	HeapTuple		typtup;
 	TypeTupleForm		tp;
+	List			rest;
 
-	va_start(pvar);
-	relname = va_arg(pvar, char *);
-	isbinary = va_arg(pvar, int);
-	nonulls = va_arg(pvar, int);
-	isfrom = va_arg(pvar, int);
-	ndoms = va_arg(pvar, int);
-	ndomains = va_arg(pvar, int *);
-	if (!PointerIsValid(relname) ||
-	    !BooleanIsValid(isbinary) ||
-	    !BooleanIsValid(nonulls) ||
-	    !BooleanIsValid(isfrom) ||
-	    ndoms < 0) {
-		elog(WARN, "createdomains: Bad arguments: \"%s\" %d %d %d %d",
-		     relname, ndoms, isbinary, nonulls, isfrom);
-		return((Domain) NULL);
-	}
+	/*
+	 * argument checking missing
+	 */
+	ndoms = length(domains);
 
 	/*
 	 * We need the information in a Relation structure, so open the
 	 * relation.  The relation MUST already exist.
 	 */
-	rdesc = RelationNameOpenHeapRelation(relname);
+	rdesc = RelationNameOpenHeapRelation(relationName);
 	if (!RelationIsValid(rdesc)) {
 		elog(WARN, "createdomains: Can't open relation \"%s\"",
-		     relname);
+			relationName);
 		return((Domain) NULL);
 	}
 	rdatt = RelationGetTupleDescriptor(rdesc);
@@ -148,11 +138,12 @@ createdomains(va_alist)
 	 * Allocate and initialize each domain element and attribute,
 	 * then load it with the appropriate values.
 	 */
+	rest = domains;
 	for (i = 0; i < ndoms; ++i) {
 
-		if (BooleanIsTrue(nonulls))
+		if (noNulls) {
 			DomainSetNoNulls(&doms[i]);
-
+		}
 		/*
 		 * Determine the domain name, type, and delimitor.
 		 * If a domain is defined and it exists in the relation
@@ -160,12 +151,13 @@ createdomains(va_alist)
 		 * of the attribute it names.
 		 */
 		if (att_defined) {
-			domname = va_arg(pvar, char *);
-			domtype = va_arg(pvar, char *);
-			domdelim = va_arg(pvar, int);
+			domname = CString(CAAR(rest));
+			domtype = CString(CADR(CAR(rest)));
+			domdelim = CInteger(CADDR(CAR(rest)));
 			attnum = createdomainsMatchAttName(rdatt->data,
 							   relnatts,
 							   (Name) domname);
+			rest = CDR(rest);
 		} else {
 			domname = NULL;
 			domtype = NULL;
@@ -177,7 +169,7 @@ createdomains(va_alist)
 		 * Handle dummy strings (to be written to the file).
 		 */
 		if (domtype == STRING_TYPE) {
-			if (BooleanIsTrue(isfrom)) {
+			if (isFrom) {
 				copyCleanup(rdesc, (FILE *) NULL, doms);
 				elog(WARN,
 				     "createdomains: No strings in 'from'");
@@ -214,7 +206,7 @@ createdomains(va_alist)
 		 * Deal with dummy domains.
 		 */
 		if (attnum == DUMMY_ATT) {
-			if (BooleanIsFalse(isfrom)) {
+			if (isFrom) {
 				copyCleanup(rdesc, (FILE *) NULL, doms);
 				elog(WARN,
 				     "createdomains: No dummies in 'to'");
@@ -251,9 +243,9 @@ createdomains(va_alist)
 		doms[i].attnum = attnum;
 		DomainSetAttribute(&doms[i]);
 
-		if (BooleanIsTrue(isbinary) ||
-		    !DomainIsVarLen(&doms[i]))
+		if (isBinary || !DomainIsVarLen(&doms[i])) {
 			continue;
+		}
 		if ((DomainIsDummy(&doms[i]) || DomainIsExternal(&doms[i])) &&
 		    DelimIsValid(domdelim)) {
 			DomainSetDelimited(&doms[i]);
@@ -263,8 +255,7 @@ createdomains(va_alist)
 			doms[i].delim = (i == ndoms - 1) ? '\n' : '\t';
 		}
 	}
-	va_end(pvar);
-	*ndomains = ndoms;
+	*domainCountOutP = ndoms;
 #ifdef COPYDEBUG
 	print_domains(ndoms, doms);
 #endif
