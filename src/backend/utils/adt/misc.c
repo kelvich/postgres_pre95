@@ -198,13 +198,41 @@ u_locrndread(small)
 int
 u_rndwrite(small)
 {
-    return (-1);
+    int fd;
+
+    if ((fd = LOopen(FILENAME, INV_WRITE, Inversion)) < 0) {
+	elog(WARN, "benchmark: cannot open %s", FILENAME);
+    }
+
+    if (small) {
+	CALL(rndwrite,      small,   "10 KByte random write\n");
+    } else {
+	CALL(rndwrite,      small,   "1 MByte random write\n");
+    }
+
+    LOclose(fd);
+
+    return (0);
 }
 
 int
 u_locrndwrite(small)
 {
-    return (-1);
+    int fd;
+
+    if ((fd = LOopen(FILENAME, INV_WRITE, Inversion)) < 0) {
+	elog(WARN, "benchmark: cannot open %s", FILENAME);
+    }
+
+    if (small) {
+	CALL(locrndwrite,      small,   "10 KByte random write\n");
+    } else {
+	CALL(locrndwrite,      small,   "1 MByte random write\n");
+    }
+
+    LOclose(fd);
+
+    return (0);
 }
 
 bigread(fd, small)
@@ -370,6 +398,110 @@ bigwrite(fd, small)
 	    want /= 100;
 	nwritten = 0;
 	while (nwritten < want) {
+	    nbytes = want - nwritten;
+	    if (nbytes > 8092)
+		nbytes = 8092;
+	    buf->vl_len = nbytes + sizeof(int32);
+	    nbytes = LOwrite(fd, buf);
+	    if (nbytes < 0) {
+		elog(WARN, "cannot read");
+	    } else {
+		nwritten += nbytes;
+	    }
+	}
+	myShowUsage();
+    }
+    pfree(buf);
+}
+
+rndwrite(fd, small)
+    int fd;
+    int small;
+{
+    int nbytes;
+    int nwritten;
+    int want;
+    int i;
+    int iter;
+    long off;
+    struct varlena *buf;
+    char *sbuf;
+    extern long random();
+
+    buf = (struct varlena *) palloc(8096);
+    sbuf = &(buf->vl_dat[0]);
+    for (i = 0; i < 8092; i++)
+	*sbuf++ = ' ';
+
+    srandom(getpid());
+
+    for (i = 0; i < NITERS_BIG; i++) {
+
+	want = 1024 * 1000;
+	if (small)
+	    want /= 100;
+	nwritten = 0;
+	myResetUsage();
+	while (nwritten < want) {
+	    off = random() % (40 * 1024 * 1000);
+	    off = (off / 8092) * 8092;
+	    if (LOlseek(fd, off, L_SET) != (off_t) off) {
+		elog(WARN, "bigread: cannot seek");
+	    }
+	    nbytes = want - nwritten;
+	    if (nbytes > 8092)
+		nbytes = 8092;
+	    buf->vl_len = nbytes + sizeof(int32);
+	    nbytes = LOwrite(fd, buf);
+	    if (nbytes < 0) {
+		elog(WARN, "cannot read");
+	    } else {
+		nwritten += nbytes;
+	    }
+	}
+	myShowUsage();
+    }
+    pfree(buf);
+}
+
+locrndwrite(fd, small)
+    int fd;
+    int small;
+{
+    int nbytes;
+    int nwritten;
+    int want;
+    int i;
+    int iter;
+    long off;
+    long pct;
+    struct varlena *buf;
+    char *sbuf;
+    extern long random();
+
+    buf = (struct varlena *) palloc(8096);
+    sbuf = &(buf->vl_dat[0]);
+    for (i = 0; i < 8092; i++)
+	*sbuf++ = ' ';
+
+    srandom(getpid());
+
+    for (i = 0; i < NITERS_BIG; i++) {
+
+	want = 1024 * 1000;
+	if (small)
+	    want /= 100;
+	nwritten = 0;
+	myResetUsage();
+	while (nwritten < want) {
+	    pct = random() % 10;
+	    if (off < 0 || pct > 7) {
+		off = random() % (40 * 1024 * 1000);
+		off = (off / 8092) * 8092;
+		if (LOlseek(fd, off, L_SET) != (off_t) off) {
+		    elog(WARN, "bigread: cannot seek");
+		}
+	    }
 	    nbytes = want - nwritten;
 	    if (nbytes > 8092)
 		nbytes = 8092;
