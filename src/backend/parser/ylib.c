@@ -380,32 +380,7 @@ int4varout ( an_array )
     }
     return(output_string);
 }
-/* ron */
-/* LispValue
-GetNextArrayElem(val, delim)
-Datum val;
-char delim;
-{
-	static int i = 0;
-	char current[8092], *temp;
 
-	current = (char *) val;
-
-	if  (current[i] == '\0'){
-		i = 0;
-		temp = NULL;
-		return((LispValue)temp);
-	}
-	temp = (char *) palloc(8092);
-	while ((current[i] != delim) && (current[i] != '\0'))
-		temp[i] = current[i++];
-
-	temp[i] = '\0';
-	return((LispValue)temp);
-}
-*/
-
-/* ron */
 List 
 ParseArrayList( arraylist, typename)
 LispValue arraylist; 
@@ -420,7 +395,6 @@ List typename;
         char *s;
 
 
-/*        tp = type("unknown"); /* unknown for now, will be type coerced */
 	type_tuple =  SearchSysCacheTuple(TYPNAME,
 					CString(typename),
 					NULL,
