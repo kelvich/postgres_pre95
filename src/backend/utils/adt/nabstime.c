@@ -178,7 +178,7 @@ int *tzp;
 
 	tm->tm_mday = tm->tm_mon = tm->tm_year = -1;	/* mandatory */
 	tm->tm_hour = tm->tm_min = tm->tm_sec = 0;
-	tm->tm_isdst = 0;
+	tm->tm_isdst = -1;             /* assume we don't know. */
 	dtok_numparsed = 0;
 
 	for (i = 0; i < nf; i++) {
@@ -204,9 +204,7 @@ int *tzp;
 				return -1;
 			break;
 		case DTZ:
-#if 0
 			tm->tm_isdst++;
-#endif
 			/* FALLTHROUGH */
 		case TZ:
 			*tzp = FROMVAL(tp);
