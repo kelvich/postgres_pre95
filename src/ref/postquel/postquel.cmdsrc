@@ -84,7 +84,9 @@ type can be entered using the notation:
 .)C
 In this case the value inside the string is passed to the input
 conversion routine for the type called type-name. The result is a
-constant of the indicated type.
+constant of the indicated type.  The explicit typecast may be omitted
+if there is no ambiguity as to the type the constant must be, in which
+case it is automatically coerced.
 .SH "Array constants"
 .IR "Array constants"
 are arrays of any \*(PG type, including other arrays, string
