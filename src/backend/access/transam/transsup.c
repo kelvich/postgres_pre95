@@ -24,8 +24,22 @@
  * ----------------------------------------------------------------
  */
 
-#include "transam.h"
+#include <math.h>
+
+#include "tmp/postgres.h"
+
  RcsId("$Header$");
+
+#include "machine.h"		/* in port/ directory (needed for BLCKSZ) */
+
+#include "storage/buf.h"
+#include "storage/bufmgr.h"
+
+#include "utils/rel.h"
+#include "utils/log.h"
+#include "tmp/bit.h"
+
+#include "access/transam.h"
 
 /* ----------------------------------------------------------------
  *		      general support routines
@@ -49,14 +63,13 @@ AmiTransactionOverride(flag)
  *	CreateTransRelation
  *
  *	This function does the work of creating the given specified
- *	relation using a dummy schema.  
+ *	relation using a dummy schema.  DummyAttributeTupleForm is
+ *	actually a macro in lib/H/catalog/pg_attribute.h.
  * --------------------
  */
 
-AttributeTupleFormData
-    DummyAtt1 = { 0l, "dummy", 28, 0l, 0l, 0l, 5, 1, 0, '\000', '\001' };
-AttributeTupleForm
-    DummyTupleDescriptor[ 1 ] = { &DummyAtt1 };
+AttributeTupleFormData    DummyAtt1 = DummyAttributeTupleForm;
+AttributeTupleForm	  DummyTupleDescriptor[ 1 ] = { &DummyAtt1 };
 
 void
 CreateTransRelation(name)
