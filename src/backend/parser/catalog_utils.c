@@ -228,6 +228,35 @@ varattno ( rd , a)
 	     RelationGetRelationName(rd), a );
 	return(-1);
 }
+/*-------------
+ * given an attribute number and a relation, return its relation name
+ */
+Name
+getAttrName(rd, attrno)
+Relation rd;
+int attrno;
+{
+    Name name;
+    int i;
+
+    if (attrno<0) {
+	for (i = 0; i < SPECIALS; i++) {
+		if (special_attr[i].code == attrno) {
+		    name = (Name) special_attr[i].field;
+		    return(name);
+		}
+	}
+	elog(WARN, "Illegal attr no %d for relation %s\n",
+	    attrno, RelationGetRelationName(rd));
+    } else if (attrno >=1 && attrno<= RelationGetNumberOfAttributes(rd)) {
+	name = &(rd->rd_att.data[attrno-1]->attname);
+	return(name);
+    } else {
+	elog(WARN, "Illegal attr no %d for relation %s\n",
+	    attrno, RelationGetRelationName(rd));
+    }
+    
+}
 
 /* given range variable, return id of variable */
 RangeTablePosn ( rangevar , options )
