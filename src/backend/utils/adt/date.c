@@ -871,9 +871,9 @@ isabstime(datestring, brokentime)
 	/* handle month */
 	month[0] = (islower(*p) ? toupper(*p) : *p);
 	p++;
-	month[1] = (islower(*p) ? toupper(*p) : *p);
+	month[1] = (isupper(*p) ? tolower(*p) : *p);
 	p++;
-	month[2] = (islower(*p) ? toupper(*p) : *p);
+	month[2] = (isupper(*p) ? tolower(*p) : *p);
 	p++;
 
 	/* syntax test month*/
