@@ -342,7 +342,7 @@ TransBlockGetCommitTime(tblock, transactionId)
      * ----------------
      */
     if (tblock == NULL)
-	return InvalidTime;
+	return INVALID_ABSTIME;
     
     /* ----------------
      *	calculate the index into the transaction data where
@@ -583,7 +583,7 @@ TransBlockNumberGetCommitTime(relation, blockNumber, xid, failP)
     if ((*failP) == false)
 	return xtime;
     else
-	return InvalidTime;
+	return INVALID_ABSTIME;
 
 }
 

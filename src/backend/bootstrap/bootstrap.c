@@ -1040,16 +1040,13 @@ handletime()
 	time1 = nabstimein(firstTime);
 	time2 = nabstimein(secondTime);
 	if (time1 == INVALID_ABSTIME) {
-	    time1 = InvalidTime;
 	    if (time2 == INVALID_ABSTIME) {
-		time2 = InvalidTime;
 		if (!Quiet) printf("*** range is [,].\n");
 	    } else {
 		if (!Quiet) printf("*** range is [,%d].\n", time2);
 	    }
 	} else {
 	    if (time2 == INVALID_ABSTIME) {
-		time2 = InvalidTime;
 		if (!Quiet) printf("*** range is [%d,].\n", time1);
 	    } else {
 		if (!Quiet) printf("*** range is [%d,%d].\n", time1, time2);

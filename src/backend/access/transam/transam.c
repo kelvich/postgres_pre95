@@ -287,7 +287,7 @@ TransactionIdGetCommitTime(transactionId)
      * ----------------
      */
     if (! RelationIsValid(TimeRelation))
-	return InvalidTime;
+	return INVALID_ABSTIME;
 
     /* ----------------
      *	 before going to the buffer manager, check our single
@@ -318,7 +318,7 @@ TransactionIdGetCommitTime(transactionId)
 	cachedGetCommitTime = commitTime;
 	return commitTime;
     } else
-	return InvalidTime;
+	return INVALID_ABSTIME;
 }
 
 /* ----------------------------------------------------------------
