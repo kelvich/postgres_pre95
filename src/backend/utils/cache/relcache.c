@@ -524,7 +524,7 @@ RelationBuildDesc(buildinfo)
     ObjectId		relid;
     ObjectId		relam;
     RelationTupleForm	relp;
-    AttributeTupleForm	attp;
+    AttributeTupleForm	attp = NULL;
     ObjectId		attrioid; /* attribute relation index relation oid */
 
     extern GlobalMemory CacheCxt;
@@ -822,6 +822,7 @@ RelationNameCacheGetRelation(relationName)
 
     /* make sure that the name key used for hash lookup is properly
        null-padded */
+    bzero(&name, sizeof(NameData));
     strncpy(&name, relationName, sizeof(NameData));
     RelationNameCacheLookup(&name, rd);
     
@@ -1020,7 +1021,13 @@ RelationIdInvalidateRelationCacheByRelationId(relationId)
     
     if (PointerIsValid(relation)) {
 	/* Assert(RelationIsValid(relation)); */
-	RelationFlushRelation(relation, false);
+	/*
+	 * The boolean onlyFlushReferenceCountZero in RelationFlushReln()
+	 * should be set to true when we are incrementing the command
+	 * counter and to false when we are starting a new xaction.  This
+	 * can be determined by checking the current xaction status.
+	 */
+	RelationFlushRelation(relation, CurrentXactInProgress());
     }
 }
  
