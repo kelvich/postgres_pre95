@@ -128,9 +128,7 @@
  */
 
 #include "access/xact.h"
-#include "storage/spin.h"
 
-extern SPINLOCK BufMgrLock;
  RcsId("$Header$");
 
 /* ----------------
@@ -575,12 +573,6 @@ AtCommit_Locks()
      */
     LMLockReleaseAll(PageLockTableId, xid);
     LMLockReleaseAll(MultiLevelLockTableId, xid);
-
-    /* ----------------
-     *	XXX should be in lmgr
-     * ----------------
-     */
-    SpinRelease(BufMgrLock);
 }
 
 /* --------------------------------
@@ -667,12 +659,6 @@ AtAbort_Locks()
      */
     LMLockReleaseAll(PageLockTableId, xid);
     LMLockReleaseAll(MultiLevelLockTableId, xid);
-
-    /* ----------------
-     *  XXX should be in lmgr
-     * ----------------
-     */
-    SpinRelease(BufMgrLock);
 }
 
 
