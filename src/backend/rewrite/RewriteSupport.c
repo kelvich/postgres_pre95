@@ -52,8 +52,8 @@ RuleIdGetActionInfo ( ruleoid , instead_flag)
     *instead_flag = (int) amgetattr (ruletuple, InvalidBuffer, 
 				    Anum_pg_rewrite_is_instead, 
 				    ruleTupdesc , &instead_is_null ) ;
-    ruleaction = textout (ruleaction );
-    rule_evqual_string = textout(rule_evqual_string);
+    ruleaction = textout ((struct varlena *)ruleaction );
+    rule_evqual_string = textout((struct varlena *)rule_evqual_string);
 
     ruleparse = (List)StringToPlan(ruleaction);
     rule_evqual = (List)StringToPlan(rule_evqual_string);
