@@ -255,7 +255,7 @@ int entry_addr;
 			scanner = scanner->next;
 		}
 
-		strcpy(scanner->funcname, funcname);
+		strncpy(scanner->funcname, funcname, 16);
 		scanner->func = (func_ptr) (func_addr + entry_addr);
 		scanner->next = NULL;
 	}
