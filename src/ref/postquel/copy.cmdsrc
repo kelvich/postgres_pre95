@@ -156,8 +156,8 @@ Dummy domains are any domain for which
 \fIdomname\fR
 is not an attribute in 
 \fIrelname.\fR
-They can only be used with
-\fIcopy from,\fR
+They can only be used with copy
+.b from 
 in which case they indicate that a field in a format consistent
 with
 .it
@@ -187,7 +187,7 @@ copy relationname ( ) to/from filename
 .)l
 .fi
 then
-copy
+.b copy
 automatically does a 
 .q "bulk"
 copy of all domains,
@@ -225,7 +225,7 @@ notation for copying and restoring entire relations.
 Specifying a
 map_relname
 will cause 
-copy
+.b copy
 to append
 .A OID
 mapping data to that relation.
@@ -284,7 +284,7 @@ would then change the fields appropriately.
 .lp
 append(commands),
 create(commands),
-introduction(postquel).
+introduction(commands).
 .uh BUGS
 .lp
 .A OID
