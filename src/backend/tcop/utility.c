@@ -461,20 +461,7 @@ ProcessUtility(command, args)
 			elog(WARN, "unknown REMOVE parse type %d",
 				CInteger(CAR(args)));
 		}
-		break;
-#if 0
-		/* portal retrieve */
-		/* XXX Can this be generalized to more than a single retrieve? */
-		/* Should it? */
-	case PORTAL:
-		commandTag = "PORTAL";
-		/*    check validity */
-		portal_retrieve (CAR (args),		/* portal name */
-			CADR (args),			/* command */
-			CADDR (args));
-		break;
-
-#endif
+			
 		/* default */
 	default:
 		elog(WARN, "ProcessUtility: command #%d unsupport", command);
