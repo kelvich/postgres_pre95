@@ -56,7 +56,7 @@ ProcGroupLocalInfo	ProcGroupLocalInfoP; /* process group local info */
 static ProcGroupLocalInfo FreeProcGroupP;
 extern SlaveLocalInfoData SlaveLocalInfoD;  /* defined in execipc.c */
 extern int AdjustParallelismEnabled;
-FILE *StatFp;
+FILE *StatFp = stderr;
 
 /*
  *	shared data structures
