@@ -182,8 +182,18 @@ bool		bufferLockHeld;
 
   /* if its already in the buffer pool, we're done */
   if (found) {
+
+    /*
+     * This happens when a bogus buffer was returned previously and is
+     * floating around in the buffer pool.  A routine calling this would
+     * want this extended.
+     */
+
     if (extend) {
+
       /* I don't think this is an error, but should be careful */
+      virtFile = RelationGetFile(reln);
+      status = BlockExtend(virtFile,bufHdr);
       /* elog(DEBUG,"BufferAlloc: found new block in buf table"); */
     }
     BufferHitCount++;
