@@ -97,10 +97,10 @@ Hash node;
 	elog(WARN, "ExecHash: hash table is NULL.");
     
     nbatch = hashtable->nbatch;
-    innerbatchNames = (RelativeAddr *)
-	ABSADDR(hashtable->innerbatchNames);
     
     if (nbatch > 0) {  /* if needs hash partition */
+	innerbatchNames = (RelativeAddr *) ABSADDR(hashtable->innerbatchNames);
+
 	/* --------------
 	 *  allocate space for the file descriptors of batch files
 	 *  then open the batch files in the current processes.
@@ -460,6 +460,14 @@ ExecHashTableCreate(node)
 	hashtable->innerbatchNames = RELADDR(innerbatchNames);
 	hashtable->innerbatchPos = RELADDR(innerbatchPos);
 	hashtable->innerbatchSizes = RELADDR(innerbatchSizes);
+    }
+    else {
+	hashtable->batchLock = (slock_t *)NULL;
+	hashtable->outerbatchNames = (RelativeAddr *)NULL;
+	hashtable->outerbatchPos = (RelativeAddr *)NULL;
+	hashtable->innerbatchNames = (RelativeAddr *)NULL;
+	hashtable->innerbatchPos = (RelativeAddr *)NULL;
+	hashtable->innerbatchSizes = (RelativeAddr *)NULL;
     }
 
     hashtable->batch = (RelativeAddr)LONGALIGN(hashtable->top + 
