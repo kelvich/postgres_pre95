@@ -68,15 +68,15 @@ ValidPgVersion(path)
 	int		fd;
 	char		version[4], buf[MAXPGPATH+1];
 	struct stat	statbuf;
-	u_short		my_uid = getuid();
+	u_short		my_euid = geteuid();
 	
 	PathSetVersionFilePath(path, buf);
 	
 	if (stat(buf, &statbuf) >= 0) {
-		if (statbuf.st_uid != my_uid)
+		if (statbuf.st_uid != my_euid)
 			elog(FATAL,
 			     "process userid (%d) != database owner (%d)",
-			     statbuf.st_uid, my_uid);
+			     statbuf.st_uid, my_euid);
 	} else
 		return(0);
 	
