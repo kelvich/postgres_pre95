@@ -30,6 +30,11 @@
  *
  *
  * Explanation of arguments:
+ *   estate: the EState (executor state)
+ *   scanStateRuleInfo:
+ *	If the rule manager is called as part of a 'scan'
+ *	(i.e. the operation is a 'RETRIEVE' then this contains
+ *	some useful info about the scanned relation...
  *   operation:
  *	the kind of operation performed.
  *	this can only be a RETRIEVE (everything else is ignored).
@@ -100,13 +105,14 @@
  */
 
 Prs2Status
-prs2Main(estate, operation, userId, relation,
+prs2Main(estate, scanStateRuleInfo, operation, userId, relation,
 	    oldTuple, oldBuffer,
 	    newTuple, newBuffer,
 	    rawTuple, rawBuffer,
 	    attributeArray, numberOfAttributes,
 	    returnedTupleP, returnedBufferP)
 EState estate;
+ScanStateRuleInfo scanStateRuleInfo;
 int operation;
 int userId;
 Relation relation;
@@ -150,6 +156,7 @@ Buffer *returnedBufferP;
 	case RETRIEVE:
 	    status = prs2Retrieve(
 				prs2EStateInfo,
+				scanStateRuleInfo,
 				explainRelation,
 				oldTuple,
 				oldBuffer,
