@@ -427,11 +427,12 @@ BlankPortalAssignName(name)
 }
 
 void
-PortalSetQuery(portal, parse, plan, state)
+PortalSetQuery(portal, parse, plan, state, cleanup)
 	Portal	portal;
 	List	parse;
 	Plan	plan;
 	EState	state;
+	void	(*cleanup) ARGS((Portal portal));
 {
 	AssertState(PortalManagerEnabled);
 	AssertArg(PortalIsValid(portal));
@@ -442,6 +443,7 @@ PortalSetQuery(portal, parse, plan, state)
 	portal->parse = parse;
 	portal->plan = plan;
 	portal->state = state;
+	portal->cleanup = cleanup;
 }
 
 LispValue	/* Parse */
@@ -511,6 +513,12 @@ CreatePortal(name)
 		(MemoryContext)&portal->variable, length);
 	strncpy(portal->name, name, length);
 
+	/* initialize portal query */
+	portal->parse = LispNil;
+	portal->plan = NULL;
+	portal->state = NULL;
+	portal->cleanup = NULL;
+
 	/* put portal in table */
 	HashTableInsert(PortalHashTable, (Pointer)portal);
 
@@ -534,6 +542,9 @@ PortalDestroy(portal)
 	/*
 	 * reset portal
 	 */
+	if (PointerIsValid(portal->cleanup)) {
+		(*portal->cleanup)(portal);
+	}
 	PortalResetHeapMemory(portal);
 	MemoryContextFree((MemoryContext)&portal->variable,
 		(Pointer)portal->name);
@@ -642,14 +653,14 @@ Portal
 PortalVariableMemoryGetPortal(context)
 	PortalVariableMemory	context;
 {
-	return ((Portal)((char *)context - offsetof (PortalData, variable)));
+	return ((Portal)((char *)context - offsetof (PortalD, variable)));
 }
 
 Portal
 PortalHeapMemoryGetPortal(context)
 	PortalHeapMemory	context;
 {
-	return ((Portal)((char *)context - offsetof (PortalData, heap)));
+	return ((Portal)((char *)context - offsetof (PortalD, heap)));
 }
 
 PortalHeapMemory
@@ -657,8 +668,8 @@ PortalVariableMemoryGetHeapMemory(context)
 	PortalVariableMemory	context;
 {
 	return ((PortalHeapMemory)((char *)context
-		- offsetof (PortalData, variable)
-		+ offsetof (PortalData, heap)));
+		- offsetof (PortalD, variable)
+		+ offsetof (PortalD, heap)));
 }
 
 PortalVariableMemory
@@ -666,8 +677,8 @@ PortalHeapMemoryGetVariableMemory(context)
 	PortalHeapMemory	context;
 {
 	return ((PortalVariableMemory)((char *)context
-		- offsetof (PortalData, heap)
-		+ offsetof (PortalData, variable)));
+		- offsetof (PortalD, heap)
+		+ offsetof (PortalD, variable)));
 }
 
 
@@ -710,6 +721,12 @@ CreateNewBlankPortal()
 	 * set bogus portal name
 	 */
 	portal->name = "** Blank Portal **";
+
+	/* initialize portal query */
+	portal->parse = LispNil;
+	portal->plan = NULL;
+	portal->state = NULL;
+	portal->cleanup = NULL;
 
 	/*
 	 * install blank portal
@@ -778,7 +795,6 @@ DumpPortals()
 	}
 */
 }
-
 
 
 /*
