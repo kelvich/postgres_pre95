@@ -407,7 +407,13 @@ IpcSemaphoreLock(semId, sem, lock)
     IpcSemaphoreLock_return = errStatus;
     
     if (errStatus == -1) {
-	perror("semop");
+	if (!ParallelExecutorEnabled())
+	    /*
+	     * this is a hack. currently the master backend kills the
+	     * slave backend by removing the semaphores that they are waiting
+	     * on.  does not want it to complain.
+	     */
+	    perror("semop");
 	exitpg(255);
     }
 }
