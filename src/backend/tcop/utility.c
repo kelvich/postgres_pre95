@@ -473,7 +473,9 @@ ProcessUtility(command, args, commandString, dest)
 #ifndef NO_SECURITY
 	    /* XXX moved to remove.c */
 #endif
-	    RemoveFunction(CString(CADR(args)));
+	    RemoveFunction(CString(CAR (CADR(args))),
+			   CInteger(CADR(CADR(args))),
+			   CDR(CDR(CADR(args))));
 	    break;
 	case AGGREGATE:
 #ifndef NO_SECURITY
