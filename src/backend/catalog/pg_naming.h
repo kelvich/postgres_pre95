@@ -69,7 +69,7 @@ struct naming {
 oid FilenameToOID ARGS((char *fname ));
 void CreateNameTuple ARGS((oid parentID , char *name , oid ourid ));
 oid CreateNewNameTuple ARGS((oid parentID , char *name ));
-int DeleteNameTuple ARGS((oid parentID , char *name ));
+oid DeleteNameTuple ARGS((oid parentID , char *name ));
 oid LOcreatOID ARGS((char *fname , int mode ));
 int LOunlinkOID ARGS((char *fname ));
 int LOisemptydir ARGS((char *path ));
