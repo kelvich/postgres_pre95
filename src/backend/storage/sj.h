@@ -168,20 +168,4 @@ typedef struct SJCacheItem {
 
 } SJCacheItem;
 
-/*
- *  SJNBlock -- Linked list of count of blocks in relations.
- *
- *	Computing a block count is so expensive that we cache the count
- *	in local space when we've done the work.  This is really a stupid
- *	way to do it -- we'd rather do it in shared memory and have the
- *	computed count survive transactions -- but this will work for now.
- */
-
-typedef struct SJNBlock {
-    ObjectId		sjnb_dbid;
-    ObjectId		sjnb_relid;
-    int			sjnb_nblocks;
-    struct SJNBlock	*sjnb_next;
-} SJNBlock;
-
 #endif /* SONY_JUKEBOX */
