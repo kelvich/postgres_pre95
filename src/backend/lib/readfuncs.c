@@ -845,18 +845,13 @@ _readVar()
 
 	local_node->vardotfields = lispRead(true); 	/* now read it */
 
-	token = lsptok(NULL, &length);    	       /* eat :vararrayindex */
-	token = lsptok(NULL, &length);    		/* get vararrayindex */
+	token = lsptok(NULL, &length);    	       /* eat :vararraylist */
 	
-	local_node->vararrayindex = atoi(token);
+	local_node->vararraylist = lispRead(true);	/* now read it */
 
 	token = lsptok(NULL, &length);    		/* eat :varid */
 
 	local_node->varid = lispRead(true); 		/* now read it */
-
-	token = lsptok(NULL, &length);    		/* eat :varelemtype */
-	token = lsptok(NULL, &length);
-	local_node->varelemtype = (ObjectId) atoi(token);
 
 	return(local_node);
 }

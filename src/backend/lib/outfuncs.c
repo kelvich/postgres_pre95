@@ -657,13 +657,12 @@ _outVar(str, node)
 	sprintf(buf, " :vardotfields ");
 	appendStringInfo(str,buf);
 	_outLispValue(str, node->vardotfields);
-	sprintf(buf, " :vararrayindex %d", node->vararrayindex);
+	sprintf(buf, " :vararraylist "); 
 	appendStringInfo(str,buf);
+	_outLispValue(str, node->vararraylist);
 	sprintf(buf, " :varid ");
 	appendStringInfo(str,buf);
 	_outLispValue(str, node->varid);
-	sprintf(buf, " :varelemtype %d ", node->varelemtype);
-	appendStringInfo(str,buf);
 
 }
 

@@ -111,10 +111,10 @@ var_is_array (var)
 	Var var;
 
 {
-	return((bool) (var->vararrayindex != (Index) 0));
+	return((bool) (var->vararraylist != NULL));
 }
 
-/*  .. consider_vararrayindex, nested-clause-p, new-level-tlist
+/*  .. consider_vararraylist, nested-clause-p, new-level-tlist
  *  .. relation-sortkeys, replace-nestvar-refs, var_equal
  */
 bool
@@ -127,7 +127,7 @@ var_is_nested (var)
       return(false);
 }
 
-/*  .. consider_vararrayindex, numlevels
+/*  .. consider_vararraylist, numlevels
  */
 bool
 varid_indexes_into_array (var)
