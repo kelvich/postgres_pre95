@@ -127,8 +127,29 @@ va_dcl
 	if (lev == DEBUG || lev == NOIND)
 		return;
 
+	/*
+	 *  If there's an error log file other than our channel to the
+	 *  front-end program, write to it first.  This is important
+	 *  because there's a bug in the socket code on ultrix.  If the
+	 *  front end has gone away (so the channel to it has been closed
+	 *  at the other end), then writing here can cause this backend
+	 *  to exit without warning -- that is, write() does an exit().
+	 *  In this case, our only hope of finding out what's going on
+	 *  is if Err_file was set to some disk log.  This is a major pain.
+	 */
+
+	if (Err_file > -1 && Debug_file != Err_file) {
+		if (write(Err_file, line, len) < 0) {
+			write(open("/dev/console", O_WRONLY, 0666), line, len);
+			fflush(stdout);
+			fflush(stderr);
+			exitpg(lev);
+		}
+		fsync(Err_file);
+	}
+
 #ifndef PG_STANDALONE
-	/* Send IPC message to the postmaster */
+	/* Send IPC message to the front-end program */
 	if (Pfout != NULL && lev > DEBUG) {
 		/* notices are not exactly errors, handle it differently */
 		if (lev == NOTICE) 
@@ -141,13 +162,6 @@ va_dcl
 	}
 #endif /* !PG_STANDALONE */
 
-	if (Err_file > -1 && Debug_file != Err_file)
-		if (write(Err_file, line, len) < 0) {
-			write(open("/dev/console", O_WRONLY, 0666), line, len);
-			fflush(stdout);
-			fflush(stderr);
-			exitpg(lev);
-		}
 	if (lev == WARN) {
 		ProcReleaseSpins(NULL);	/* get rid of spinlocks we hold */
 		kill(getpid(), 1);	/* abort to traffic cop */
@@ -235,18 +249,14 @@ ErrorFileOpen()
 	extern char	*GetDataHome();
 
 	fd = fileno(stderr);
+
 	if (fcntl(fd, F_GETFD, 0) < 0) {
 		sprintf(buffer, "%s/data/pg.errors\0", GetDataHome());
-/*
-		elog(NOTICE, "ErrorFileOpen: opening %s", buffer);
-*/
 		fd = open(buffer, O_CREAT|O_APPEND|O_WRONLY, 0666);
 		if (fd < 0)
 			elog(FATAL, "ErrorFileOpen: open(%s) failed", buffer);
 	}
-/*
-	elog(NOTICE, "ErrorFileOpen: opened %s, fd=%d", buffer, fd);
-*/
+
 	return(fd);
 }
 
