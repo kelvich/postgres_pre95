@@ -32,8 +32,8 @@ typedef int	RelativeAddr;
  *  hashtable, the following macro converts them to absolute address.
  * ------------------
  */
-#define ABSADDR(X)	(X < 0 ? NULL: (char*)hashtable + X)
-#define RELADDR(X)	(RelativeAddr)((char*)X - (char*)hashtable)
+#define ABSADDR(X)	((X) < 0 ? NULL: (char*)hashtable + X)
+#define RELADDR(X)	(RelativeAddr)((char*)(X) - (char*)hashtable)
 
 typedef char    **charPP;
 typedef int     *intP;
