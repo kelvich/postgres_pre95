@@ -599,6 +599,7 @@ rtintinsert(r, stk, ltup, rtup)
 	rttighten(r, stk->rts_parent, newdatum,
 		  (IndexTupleSize(ltup) - sizeof(IndexTupleData)));
 	res = dosplit(r, b, stk->rts_parent, rtup);
+	WriteBuffer(b);  /* don't forget to release buffer!  - 01/31/94 */
 	pfree (res);
     } else {
 	PageAddItem(p, (Item) rtup, IndexTupleSize(rtup),
