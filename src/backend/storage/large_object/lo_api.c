@@ -181,8 +181,63 @@ XOOpen(object, open_mode)
 
     retval = (LargeObjectDesc *) palloc(sizeof(LargeObjectDesc));
 
+    if (object->lo_nblocks)
+	(void) FileSeek(fd, object->lo_nblocks, L_SET);
     retval->ofs.u_fs.fd = fd;
     retval->object = object;
+#endif
+    return(retval);
+}
+
+int
+XOSymlink(path, realpath, offset)
+char *path, *realpath;
+unsigned int offset;
+
+{
+    int retval = -1;
+    LargeObject *newobj;
+    int fd, open_mode;
+    oid oidf;
+
+
+#ifdef EXTERNAL_LO
+    /* Log this instance of large object into directory table. */
+    if ((oidf = FilenameToOID(path)) == InvalidObjectId) {
+
+	open_mode = CheckPathAccess(realpath, (char *) 0, O_CREAT | O_RDWR);
+	if (open_mode == -1) return(-1);
+
+	fd = (int) PathNameOpenFile(realpath, open_mode, 0666);
+	if (fd == -1) {
+		/* Try once more so that we can incorpate read_only
+		   objects.  p_write() to this file descriptor will
+		   fail of course! */
+		fd = (int) PathNameOpenFile(realpath, O_RDONLY, 0666);
+		if (fd == -1) {
+			elog(WARN, "%s: couldn't open", realpath);
+			return(-1);
+		}
+	}
+	FileClose(fd);
+
+	/* enter it in system relation */
+	if ((oidf = LOpathOID(path,0)) == InvalidObjectId) {
+		elog(WARN, "%s: couldn't force path name", path);
+		return (-1);
+	}
+
+	newobj = (LargeObject *) NewLargeObject(realpath, EXTERNAL_FILE);
+
+	if (offset) {
+		newobj->lo_nblocks = offset;
+	}
+
+	/* enter cookie into table */
+	(void) LOputOIDandLargeObjDesc(oidf, External,
+				(struct varlena *) newobj);
+	retval = 0;
+    }
 #endif
     return(retval);
 }
@@ -287,10 +342,12 @@ LOStat(obj_desc, nblocks, byte_offset)
 {
     unsigned long nbytes;
     unsigned long pos, len;
+    LargeObject *object;
 
     Assert(PointerIsValid(obj_desc));
-    Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE) || (obj_desc->object->lo_storage_type == JAQUITH_FILE)));
+    object = obj_desc->object;
+    Assert(PointerIsValid(object));
+    Assert(((object->lo_storage_type == PURE_FILE) || (object->lo_storage_type == EXTERNAL_FILE) || (object->lo_storage_type == JAQUITH_FILE)));
 
     /* see where we are now */
 
@@ -299,6 +356,9 @@ LOStat(obj_desc, nblocks, byte_offset)
     /* do a seek to find number of bytes */
 
     len = FileSeek(obj_desc->ofs.u_fs.fd, 0L, L_XTND);
+
+    if (object->lo_nblocks) len -= object->lo_nblocks;
+    if (len < 0) len = 0;
 
     /* seek back to original position */
 
@@ -465,12 +525,18 @@ LOSeek(obj_desc,offset,whence)
 	int offset, whence;
 {
     int ret;
+    LargeObject *object;
 
     Assert(PointerIsValid(obj_desc));
-    Assert(PointerIsValid(obj_desc->object));
-    Assert((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE) || (obj_desc->object->lo_storage_type == JAQUITH_FILE));
+    object = obj_desc->object;
+    Assert(PointerIsValid(object));
+    Assert((object->lo_storage_type == PURE_FILE) || (object->lo_storage_type == EXTERNAL_FILE) || (object->lo_storage_type == JAQUITH_FILE));
 
+    if (object->lo_nblocks && whence == L_SET)
+	offset += object->lo_nblocks;
     ret = FileSeek(obj_desc->ofs.u_fs.fd,offset,whence);
+    if (object->lo_nblocks)
+	ret -= object->lo_nblocks;
 
     return ret;
 }
@@ -483,12 +549,16 @@ LOTell(obj_desc)
 	LargeObjectDesc *obj_desc;
 {
     int ret;
+    LargeObject *object;
 
     Assert(PointerIsValid(obj_desc));
-    Assert(PointerIsValid(obj_desc->object));
-    Assert(((obj_desc->object->lo_storage_type == PURE_FILE) || (obj_desc->object->lo_storage_type == EXTERNAL_FILE) || (obj_desc->object->lo_storage_type == JAQUITH_FILE)));
+    object = obj_desc->object;
+    Assert(PointerIsValid(object));
+    Assert(((object->lo_storage_type == PURE_FILE) || (object->lo_storage_type == EXTERNAL_FILE) || (object->lo_storage_type == JAQUITH_FILE)));
 
     ret = FileTell(obj_desc->ofs.u_fs.fd);
+    if (object->lo_nblocks)
+	ret -= object->lo_nblocks;
 
     return ret;
 }
