@@ -2104,28 +2104,6 @@ _copyJInfo(from, to, alloc)
 }
 
 /* ****************
- *	     execnodes.h routines have no copy functions
- * ****************
- */
-ReturnState
-CopyReturnStateUsing(retstate, alloc)
-    ReturnState     retstate;
-    char *  (*alloc)();
-{
-    ReturnState newnode;
-
-    COPY_NEW_TYPE(ReturnState);
-    
-    /* ----------------
-     *  copy node superclass fields
-     * ----------------
-     */
-    CopyNodeFields(retstate, newnode, alloc);
-    
-    return newnode;
-}
-
-/* ****************
  *	      mnodes.h routines have no copy functions
  * ****************
  */
