@@ -103,7 +103,7 @@ CloseStmt:
 	  XCLOSE ident %prec low
 		{
 		    DO_START;
-		    closerel($2);
+		    closerel(LexIDStr($2));
 		    DO_END;
 		}
 	| XCLOSE %prec high

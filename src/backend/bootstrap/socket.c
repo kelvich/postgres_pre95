@@ -23,7 +23,14 @@ static int OutIdx;
 
 extern int DebugMode;		/* from backendsup.c			 */
 
-void LoadSocketBuf ARGS((void));
+/*
+ * function prototypes this file only
+ */
+void SetPQSocket ARGS((int fd ));
+char GetPQChar ARGS((void ));
+int GetPQInt4 ARGS((void ));
+void GetPQStr ARGS((char *buf ));
+void LoadSocketBuf ARGS((void ));
 
 void
 SetPQSocket(fd)

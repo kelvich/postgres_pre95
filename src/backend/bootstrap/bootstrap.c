@@ -17,6 +17,7 @@
 #include <signal.h>
 
 #include "tmp/postgres.h"
+#include "tcop/tcopprot.h"
 
 RcsId("$Header$");
 
@@ -261,7 +262,7 @@ char *av[];
     /* XXX the -C version flag should be removed and combined with -O */
     GetDataHome();
     SetProcessingMode((override) ? BootstrapProcessing : InitProcessing);
-    InitPostgres(dat);
+    InitPostgres((String)dat);
     LockDisable(true);
     dat = Blanks;
     
