@@ -451,7 +451,8 @@ void xfunc_form_groups(root, bottom)
 ** xfunc_free_stream --
 **   walk down a stream and pfree it
 */
-void xfunc_free_stream(Stream root)
+void xfunc_free_stream(root)
+    Stream root;
 {
     Stream cur, next;
 
