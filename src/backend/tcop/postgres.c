@@ -21,6 +21,7 @@
 
 #include "tmp/postgres.h"
 #include "parser/parse.h"
+#include "catalog/catname.h"
 
 RcsId("$Header$");
 
@@ -1268,6 +1269,29 @@ PostgresMain(argc, argv)
     if (!TransactionFlushEnabled())
         on_exitpg(BufferManagerFlush, (caddr_t) 0);
 
+    /* ---------------
+     * This monkey business is to initialize some of the caches and then
+     * release the locks it sucks up in doing so.  We don't want to have
+     * any left over locks after cache initialization.  mer 9 Aug 1991
+     * ---------------
+     */
+    {
+	Relation rel;
+
+	StartTransactionCommand();
+
+	rel = heap_openr(RelationRelationName);
+	heap_close(rel);
+	rel = heap_openr(TypeRelationName);
+	heap_close(rel);
+	rel = heap_openr(AttributeRelationName);
+	heap_close(rel);
+	rel = heap_openr(RelationRelationName);
+	heap_close(rel);
+
+	CommitTransactionCommand();
+    }
+	
     for (;;) {
 	/* ----------------
 	 *   (1) start the current transaction
