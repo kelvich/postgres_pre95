@@ -123,7 +123,7 @@ AggregateGet(aggName, int1funcName, int2funcName, finfuncName)
  	/* sanity checks */
 
     Assert(NameIsValid(aggName));
-    Assert(NameIsValid(int1funcName) || NameIsValid(finfuncName) || \
+    Assert(NameIsValid(int1funcName) || NameIsValid(finfuncName) ||
 					NameIsValid(int2funcName));
 
     /* look up aggregate functions.  Note: functions must be defined before
