@@ -30,14 +30,8 @@ typedef void *TUPLE;
 
 extern char *GetAttributeByName ARGS ((TUPLE tuple, char *attname, char *isnull ));
 extern char *GetAttributeByNum ARGS ((TUPLE tuple, int attnum, char *isnull ));
-extern void dump_type ARGS((TypeBlock *types, int nfields));
-extern void dump_tuple ARGS((char **values, int nfields));
-extern void finish_dump ARGS(());
 extern int dump_data ARGS((char *portal_name, int rule_p));
-extern void read_initstr ARGS(());
 extern void read_remark ARGS((char id[]));
-extern char *process_portal ARGS((int rule_p));
-extern void InitVacuumDemon ARGS((String host, String database, String terminal, String option, String port, String vacuum));
 extern char *PQdb ARGS(());
 extern void PQsetdb ARGS((char *dbname));
 extern void PQreset ARGS(());
@@ -47,7 +41,7 @@ extern char *PQfn ARGS((int fnid, int *result_buf, int result_len, int *actual_r
 extern char *PQexec ARGS((char *query));
 extern Pointer palloc ARGS((Size size));
 extern void pfree ARGS((Pointer pointer));
-extern void elog ARGS(());
+extern void elog ARGS((...));
 extern void AssertionFailed ARGS((const String assertionName, const String fileName, const int lineNumber));
 
 #endif LibpqFeIncluded
