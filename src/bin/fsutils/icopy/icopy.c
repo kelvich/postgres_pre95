@@ -293,15 +293,19 @@ icopy_in(srcfname, destfname, smgrno)
     /* do it */
     while (cplist != (COPYLIST *) NULL) {
 	if (cplist->cl_isdir) {
-	    if (Verbose)
+	    if (Verbose) {
 		printf("mkdir %s\n", cplist->cl_dest);
+		fflush(stdout);
+	    }
 	    ibegin();
 	    if (p_mkdir(cplist->cl_dest) < 0)
 		errs++;
 	    icommit();
 	} else {
-	    if (Verbose)
+	    if (Verbose) {
 		printf("%s -> %s\n", cplist->cl_src, cplist->cl_dest);
+		fflush(stdout);
+	    }
 
 	    if (docopy_in(cplist->cl_src, cplist->cl_dest, smgrno) < 0)
 		errs++;
