@@ -25,15 +25,14 @@
  */
 
 #include "c.h"
-#include "internal.h"
+#include "planner/internal.h"
 #include "relation.h"
 #include "relation.a.h"
 #include "planner/costsize.h"
+#include "planner/keys.h"
 
 #define _cost_weirdness_ 0
 
-#define INNER 0
-#define OUTER 1
 
 #if (!_cost_weirdness_)    /* global variable */
 #define _xprs_ 1
