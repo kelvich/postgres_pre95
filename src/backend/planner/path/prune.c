@@ -146,6 +146,7 @@ MergePath path;
 	return true;  /* a temporary hack to reduce plan space */
     else return false;
 
+#if 0
     morder = (MergeOrder)get_p_ordering(path);
     outerpath = get_outerjoinpath(path);
     outerorder = get_p_ordering(outerpath);
@@ -174,6 +175,7 @@ MergePath path;
 	      CAR(innerkeys)))
 	return true;
     return false;
+#endif
 }
 
 bool
