@@ -614,21 +614,15 @@ SkipForwardToFromList()
                 next_token != (LispValue)FROM )
           ; /* empty while */
 
-        if ((int)next_token <= 0 ) {
-                if (!Quiet) printf("EOS, no from found\n");
-                fflush(stdout);
+        if ((int)next_token <= 0 )
                 Ch = temp;
-        }
+
         if (next_token == (LispValue) FROM ) {
-              /* printf("FROM found\n");  */
-                fflush(stdout);
                 Ch -= 4;
                 from_list_place = Ch;
                 target_list_place = temp;
         }
-
-} /* Skip */
-
+}
 
 LispValue
 SkipBackToTlist()
@@ -642,17 +636,14 @@ SkipBackToTlist()
 	/* need to put the token after the target_list back first */
 	temp = yytext;
 	if(yychar == (LispValue)WHERE) {
-		/*printf("putting the where back\n");*/
 		for (i = yyleng; i > -1 ; -- i ) {
 			unput (yytext[i]);
-			/* fputc (yytext[i],stdout); */
 		}
 	}
 
-        bcopy(Ch,from_list_place,strlen(Ch) + 1 );
+	bcopy(Ch,from_list_place,strlen(Ch) + 1 );
 	Ch = target_list_place;
-        return(LispNil);
-
+	return(LispNil);
 }
 
 LispValue
