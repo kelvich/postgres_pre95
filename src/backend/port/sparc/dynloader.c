@@ -19,7 +19,7 @@ extern char pg_pathname[];
 
 #include "tmp/c.h"
 #include "fmgr.h"
-#include "utils/dynamic_loader.h"
+#include "port-protos.h"
 
 /*
  * Allow extra space for "overruns" caused by the link.
@@ -30,12 +30,8 @@ extern char pg_pathname[];
 static char *temp_file_name = NULL;
 static char *path = "/usr/tmp/postgres";
 
-DynamicFunctionList *
-dynamic_file_load(err, filename, address, size)
-
-char **err, *filename, **address;
-long *size;
-
+void *pg_dlopen( filename, err )
+     char *filename; char **err;
 {
 	extern char *valloc();
 
@@ -44,9 +40,10 @@ long *size;
 	unsigned long image_size, true_image_size;
 	char *load_address = NULL;
 	FILE *temp_file = NULL;
-	DynamicFunctionList *retval = NULL, *load_symbols();
+	DynamicFunctionList *func_list= NULL, *load_symbols();
 	int fd;
 	char foo[10];
+	dlHandle *handle= NULL;
 
 	fd = open(filename, O_RDONLY);
 
@@ -108,12 +105,14 @@ long *size;
 	fseek(temp_file, N_TXTOFF(header), 0);
 	nread = fread(load_address, true_image_size,1,temp_file);
 
-	retval = load_symbols(filename, &ld_header, load_address);
+	func_list = load_symbols(filename, &ld_header, load_address);
 
 	fclose(temp_file);
 	unlink(temp_file_name);
-	*address = load_address;
-	*size = image_size;
+
+	handle= (dfHandle*)malloc(sizeof(dfHandle));
+	handle->func_list= func_list;
+	handle->load_address= load_address;
 
 	temp_file = NULL;
 	load_address = NULL;
@@ -121,7 +120,7 @@ long *size;
 finish_up:
 	if (temp_file != NULL) fclose(temp_file);
 	if (load_address != NULL) free(load_address);
-	return retval;
+	return (void *)handle;
 }
 
 DynamicFunctionList *
@@ -221,4 +220,41 @@ char *address, *tmp_file, *filename;
 	    	tmp_file,  filename);
 	retval = system(command);
 	return(retval);
+}
+
+func_ptr pg_dlsym( handle, funcname )
+     void *handle; char *funcname;
+{
+    dfHandle *dfhandle= (dfHandle *)handle;
+    DynamicFunctionList *func_scanner;
+
+    if (funcname==NULL)
+	return (func_ptr)NULL;
+    func_scanner= dfhandle->func_list;
+    while(func_scanner) {
+	if (!strcmp(func_scanner->funcname, funcname)) 
+	    return func_scanner->func;
+	func_scanner= func_scanner->next;
+    }
+    return (func_ptr)NULL;
+}
+
+void pg_dlclose( handle )
+     void *handle;
+{
+    dfHandle *dfhandle= (dfHandle *)handle;
+    DynamicFunctionList *func_scanner, *throw_away;
+    
+    free((char *) dfhandle->load_address);
+    func_scanner = dfhandle->func_list;
+    for (throw_away = func_scanner->next;
+	 throw_away != (DynamicFunctionList *) NULL;) {
+        throw_away = func_scanner->next;
+	free((char *) func_scanner->funcname);
+        free((char *) func_scanner);
+        func_scanner = throw_away;
+    }
+    free((char *) dfhandle->func_list);
+
+    return;
 }
