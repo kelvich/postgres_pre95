@@ -36,7 +36,6 @@ extern void lispDisplay();
 #define RIGHT_PAREN (1000000 + 1)
 #define LEFT_PAREN  (1000000 + 2)
 #define PLAN_SYM    (1000000 + 3)
-#define DOTPAIR_SYM (1000000 + 4)
 
 /*
  * LispToken returns the type of the lisp token contained in token.
@@ -102,8 +101,6 @@ int length;
               && isdigit(token[2])
 	      && length < 2)
 		retval = PGLISP_VECI;
-	else if (*token == '.' && length == 1)
-		retval = DOTPAIR_SYM;
 	return(retval);
 }
 
@@ -213,7 +210,7 @@ bool read_car_only;
 			token = lsptok(NULL, tok_len); /* get > */
 			make_dotted_pair_cell = true;
 			break;
-		case DOTPAIR_SYM:
+		case PGLISP_DTPR:
 			this_value = (LispValue) -1;
 			break;
 		default:
