@@ -387,7 +387,7 @@ TypeDefine(typeName, relationOid, internalSize, externalSize, typeType,
      */
     i = 0;
     values[i++] = (char *) typeName;
-    values[i++] = (char *) getuid();
+    values[i++] = (char *) GetUserId();
     values[i++] = (char *) internalSize;
     values[i++] = (char *) externalSize;
     values[i++] = (char *) passedByValue;
