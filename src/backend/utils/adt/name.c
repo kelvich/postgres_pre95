@@ -5,9 +5,7 @@
 
 #include <string.h>
 
-#include "c.h"
-
-#include "name.h"
+#include "tmp/postgres.h"
 
 RcsId("$Header$");
 

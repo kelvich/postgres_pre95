@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "executor.h"
+#include "executor/executor.h"
 
 /*
  * $Header$
@@ -77,11 +77,11 @@ char *relation_and_attr;
 }
 
 bool
-oidnotin(oid, compare)
-ObjectId oid;
+oidnotin(the_oid, compare)
+ObjectId the_oid;
 char *compare;
 {
-	return(int4notin(oid, compare));
+	return(int4notin(the_oid, compare));
 }
 
 /*

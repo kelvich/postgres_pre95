@@ -7,15 +7,16 @@ static	char	lselect_c[] = "$Header$";
 
 #include <strings.h>
 #include <stdio.h>
-#include <skey.h>
-#include "psort.h"
-#include "lselect.h"
 
-#include "c.h"
+#include "tmp/c.h"
 
-#include "buf.h"
-#include "htup.h"
-#include "rel.h"
+#include "storage/buf.h"
+#include "access/skey.h"
+#include "access/htup.h"
+#include "utils/rel.h"
+
+#include "utils/psort.h"
+#include "utils/lselect.h"
 
 extern	Relation	SortRdesc;		/* later static */ 
 extern	char			*fmgr();

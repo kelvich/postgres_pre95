@@ -9,12 +9,10 @@
 **
 ***********************************************************************/
 
-#include "c.h"
-#include "postgres.h"
+#include "tmp/postgres.h"
 
-#include "attnum.h"
-#include "oid.h"
-#include "geo-decls.h"
+#include "access/attnum.h"
+#include "utils/geo-decls.h"
 
 RcsId("$Header$");
 
