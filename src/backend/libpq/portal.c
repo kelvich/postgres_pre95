@@ -177,7 +177,7 @@ PQnportals(rule_p)
 {
     int i, n = 0;
     
-    for (i = 0; i < MAXPORTALS; ++i) {
+    for (i = 0; i < portals_array_size; ++i) {
 	if (portals[i] && portals[i]->portal) {
 	    if (!rule_p || portals[i]->portal->rule_p) {
 		++n;
@@ -190,11 +190,12 @@ PQnportals(rule_p)
 /* --------------------------------
  *	PQpnames - Return all the portal names
  * 	If rule_p, only return asynchronous portals. 
+ *         the caller must have allocated sufficient memory for char** pnames
  * --------------------------------
  */
 void
 PQpnames(pnames, rule_p)
-    char *pnames[MAXPORTALS];
+    char **pnames;
     int rule_p;
 {
     int i;
@@ -202,15 +203,14 @@ PQpnames(pnames, rule_p)
     if (!valid_pointer("PQpnames: invalid name buffer", pnames))
 	return;
     
-    for (i = 0; i < MAXPORTALS; ++i) {
+    for (i = 0; i < portals_array_size; ++i) {
 	if (portals[i] && portals[i]->portal) {
 	    if (!rule_p || portals[i]->portal->rule_p) {
-		(void) strcpy(pnames[i], portals[i]->name);
+		(void) strncpy(pnames[i], portals[i]->name, PortalNameLength);
 		continue;
 	    }
 	}
-	/* XXX this looks like a memory leak to me - pma 06/13/93 */
-	pnames[i] = (char *) NULL;
+	pnames[i][0] = '\0';
     }
 }
 
@@ -718,9 +718,10 @@ PQappendNotify(relname,pid)
 	SLNewList(&pqNotifyList,offsetof(PQNotifyList,Node));
     }
     nPtr = (PQNotifyList *)pbuf_alloc(sizeof(PQNotifyList));
-    strcpy(nPtr->relname,relname);
+    strncpy(nPtr->relname, relname, NAMEDATALEN);
     nPtr->be_pid = pid;
     nPtr->valid = 1;
     SLNewNode(&nPtr->Node);
     SLAddTail(&pqNotifyList,&nPtr->Node);
+
 }
