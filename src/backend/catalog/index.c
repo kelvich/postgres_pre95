@@ -486,7 +486,6 @@ UpdateRelationRelation(indexRelation)
     Relation	indexRelation;
 {
     Relation	pg_relation;
-    ObjectId	indexoid;
     HeapTuple	tuple;
     
     pg_relation = heap_openr(RelationRelationName);
@@ -494,19 +493,20 @@ UpdateRelationRelation(indexRelation)
     tuple = addtupleheader(RelationRelationNumberOfAttributes,
 			   sizeof(*indexRelation->rd_rel),
 			   (char *) indexRelation->rd_rel);
-   
+
     /* ----------------
-     *	XXX ADD INDEX TUPLES TOO
+     *  the new tuple must have the same oid as the relcache entry for the
+     *  index.  sure would be embarassing to do this sort of thing in polite
+     *  company.
      * ----------------
      */
+    tuple->t_oid = indexRelation->rd_id;
     heap_insert(pg_relation, tuple, (double *)NULL);
-   
-    indexoid = tuple->t_oid;	/* XXX use function */
    
     pfree(tuple);
     heap_close(pg_relation);
 
-    return indexoid;
+    return(tuple->t_oid);
 }
 
 /* ----------------------------------------------------------------
@@ -1065,6 +1065,15 @@ UpdateStats(whichRel, reltuples)
     char 	replace[Natts_pg_relation];
 
     /* ----------------
+     * This routine handles updates for both the heap and index relation
+     * statistics.  In order to guarantee that we're able to *see* the index
+     * relation tuple, we bump the command counter id here.  The index
+     * relation tuple was created in the current transaction.
+     * ----------------
+     */
+    CommandCounterIncrement();
+
+    /* ----------------
      * Find the RELATION relation tuple for the given relation.
      * ----------------
      */
@@ -1087,7 +1096,8 @@ UpdateStats(whichRel, reltuples)
     
     if (! HeapTupleIsValid(htup)) {
 	heap_close(pg_relation);
-	elog(WARN, "UpdateStats: no such relation: %d", whichRel->rd_id);
+	elog(NOTICE, "UpdateStats: no such relation: %d", whichRel->rd_id);
+	return;
     }
     
     /* ----------------
