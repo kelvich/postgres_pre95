@@ -44,7 +44,6 @@ ScanKeyword	ScanKeywords[] = {
 	{ "begin",		BEGIN_TRANS	},
 	{ "binary",		BINARY		},
 	{ "by",			BY		},
-	{ "c",			C_FN		},
 	{ "cfunction",		C_FUNCTION	},
 	{ "close",		CLOSE		},
 	{ "cluster",		CLUSTER		},
