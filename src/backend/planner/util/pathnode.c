@@ -21,6 +21,12 @@
 
 #include "internal.h"
 #include "log.h"
+#include "relation.h"
+#include "relation.a.h"
+#include "pathnode.h"
+#include "clauseinfo.h"
+
+extern List index_selectivity(); /* #include "cfi.h" */
 
 /* declare (localf (better_path)); */
 /* declare (special (_WARN_)); */
@@ -42,15 +48,12 @@
  */
 bool
 path_is_cheaper (path1,path2)
-     LispValue path1,path2 ;
+     Path path1,path2 ;
 {
-	LispValue cost1 = get_cost (path1);
-	LispValue cost2 = get_cost (path2);
-	if  (numberp (cost1) && numberp (cost2) &&
-	     CInteger(cost1) < CInteger(cost2))
-	  return(true);
-	else
-	  return(false);
+    Cost cost1 = get_cost (path1);
+    Cost cost2 = get_cost (path2);
+
+    return((bool)(cost1 < cost2));
 }
 
 /*    
@@ -59,23 +62,19 @@ path_is_cheaper (path1,path2)
  *    	Returns the cheaper of 'path1' and 'path2'.
  *    
  */
-LispValue
+Path
 cheaper_path (path1,path2)
-LispValue path1,path2 ;
+     Path path1,path2 ;
 {
-	if ( or (null (path1),null (path2)) ) {
-		elog (WARN,"cheaper-path: bad path");
-	} 
-	else {
-	} 
-	;
-	if ( path_is_cheaper (path1,path2) ) {
-		path1;
-	} 
-	else {
-		path2;
-	} 
-	;
+    if ( null(path1) || null (path2) ) {
+	elog (WARN,"cheaper-path: bad path");
+    } 
+    if ( path_is_cheaper (path1,path2) ) {
+	return(path1);
+    } 
+    else {
+	return(path2);
+    } 
 }
 
 /*    
@@ -93,20 +92,24 @@ LispValue path1,path2 ;
 
 /*  .. prune-rel-path, set_cheapest, sort-relation-paths
  */
-LispValue
+
+Path
 set_cheapest (parent_rel,pathlist)
-     LispValue parent_rel,pathlist ;
+     Rel parent_rel;
+     List pathlist ;
 {
-     LispValue retval;
-     LispValue cheapest_path = ( CDR (pathlist)  ?
-				set_cheapest (parent_rel,cdr (pathlist)) :
-				LispNil);
-     retval = set_cheapest_path (parent_rel,
-			( (cheapest_path && 
-			   path_is_cheaper (cheapest_path,
-					    car (pathlist))) ?
-			 cheapest_path : CAR(pathlist)));
-     return(retval);
+     Path path,cheapest_so_far;
+
+     cheapest_so_far = CreateNode(Path);
+     set_cost(cheapest_so_far,9999999.999); /* XXX - what is the max cost ? */
+
+     foreach ((LispValue)path,pathlist) {
+	 cheapest_so_far = cheaper_path(path,cheapest_so_far);
+     }
+
+     set_cheapestpath (parent_rel,cheapest_so_far);
+
+     return(cheapest_so_far);
 }
 
 /*    
@@ -158,35 +161,32 @@ LispValue parent_rel,unique_paths,new_paths ;
 /*  .. add_pathlist
  */
 bool
-lambda1(path)
-     LispValue path ;
+lambda1(path,new_path)
+     Path path,new_path;
 {
-     if(qual_path_path_ordering (get_ordering (new_path),get_ordering(path)) &&
-	samekeys (get_keys (new_path),get_keys (path)))
-       return(true);
-     else
-       return(false);
+     return (bool)(qual_path_path_ordering (get_ordering (new_path),
+				      get_ordering(path)) &&
+	     samekeys (get_keys (new_path),get_keys (path)));
 }
 
 LispValue
 better_path (new_path,unique_paths)
-     LispValue new_path,unique_paths ;
+     Path new_path;
+     List unique_paths ;
 {
      /* declare (special (new_path)); */
-     LispValue old_path;
+     Path old_path;
      LispValue retval = LispNil;
 
-     old_path = find_if (lambda1,unique_paths);
+     old_path = (Path)find_if (lambda1,unique_paths);
+
      if(null (old_path)) {
 	  retval = LispTrue;
      } 
      else if (path_is_cheaper (new_path,old_path)) {
-	  retval = old_path;
+	  retval = (LispValue)old_path;
      } 
-     else  { /*   'path' is cheaper */
-	  retval = LispNil;
-	/*   'path' isn't cheaper */
-     }
+
 }
 
 
@@ -206,17 +206,17 @@ better_path (new_path,unique_paths)
 
 /*  .. find-rel-paths
  */
-LispValue
+Path
 create_seqscan_path (rel)
      LispValue rel ;
 {
-     /* XXX - let form, maybe incorrect */
-     LispValue pathnode = create_node ("Path");
-     set_pathtype (pathnode,/* XXX- QUOTE SeqScan,*/);
-	     set_parent (pathnode,rel);
-     set_cost (pathnode,cost_seqscan (get_relid (rel),get_pages (rel),get_tuples (rel)));
-     pathnode;
-     ;
+     Path pathnode = CreateNode(Path);
+
+     /* set_pathtype (pathnode,SEQ_SCAN); */
+     set_parent (pathnode,rel);
+     set_cost (pathnode,cost_seqscan (get_relid (rel),
+				      get_pages (rel),get_tuples (rel)));
+     return(pathnode);
 }
 
 /*    
@@ -234,33 +234,39 @@ create_seqscan_path (rel)
  *    
  */
 
+
 /*  .. create-index-paths, find-index-paths
  */
-LispValue
+
+IndexPath
 create_index_path (rel,index,restriction_clauses,is_join_scan)
      LispValue rel,index,restriction_clauses,is_join_scan ;
 {
-		/* XXX - let form, maybe incorrect */
-     LispValue pathnode = create_node ("Path");
-     set_pathtype (pathnode,/* XXX- QUOTE IndexScan,*/);
+     IndexPath pathnode = CreateNode(IndexPath);
+
+     /* set_pathtype (pathnode,INDEX_SCAN);*/
+
      set_parent (pathnode,rel);
      set_indexid (pathnode,get_indexid (index));
      set_ordering (pathnode,get_ordering (index));
-     set_indexkeys (pathnode,get_indexkeys (index))
-       /*    The index must have an ordering for the path to have (ordering) keys, */
-       
-       /*    and vice versa. */
+     set_keys (pathnode,get_indexkeys (index));
+     
+     /*    The index must have an ordering for the
+	   path to have (ordering) keys, 
+	   and vice versa. */
+     
      if /*when */ ( get_ordering (pathnode)) {
-	  set_keys (pathnode,collect_index_pathkeys (get_indexkeys (index),
-						     get_tlist (rel)))
-	    /*    Check that the keys haven't 'disappeared', since they may 
-		  no longer be in the target list (i.e.,
-		  index keys that are not 
-		  relevant to the scan are not applied to the scan path node,
-		  so if no index keys were found, we can't order the path). */
-	    if /*when */ ( null (get_keys (pathnode))) {
-		 set_ordering (pathnode,nil);
-	    }
+	 set_keys (pathnode,collect_index_pathkeys (get_indexkeys (index),
+						    get_tlist (rel)));
+	   /*    Check that the keys haven't 'disappeared', since they may 
+		 no longer be in the target list (i.e.,
+		 index keys that are not 
+		 relevant to the scan are not applied to the scan path node,
+		 so if no index keys were found, we can't order the path). */
+
+	   if ( null (get_keys (pathnode))) {
+	       set_ordering (pathnode,LispNil);
+	   }
      }
      if(is_join_scan || null (restriction_clauses)) {
 	  /*    Indices used for joins or sorting result nodes don't
@@ -276,7 +282,8 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 	  /*    Compute scan cost for the case when 'index' is used with a 
 		restriction clause. */
 	  LispValue relattvals = get_relattvals (restriction_clauses);
-	  LispValue pagesel = index_selectivity (nth (0,get_indexid (index)),
+	  /* pagesel is '(Cost Cost) */
+	  List pagesel = index_selectivity (nth (0,get_indexid (index)),
 						 get_class (index),
 					   get_opnos (restriction_clauses),
 						 getrelid (get_relid (rel),
@@ -285,15 +292,16 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 						 nth (1,relattvals),
 						 nth (2,relattvals),
 						 length (restriction_clauses));
-	  LispValue clausesel = 
-	    /*   each clause gets an equal selectivity */
+	  /*   each clause gets an equal selectivity */
+	  Cost clausesel = 
 	    expt (nth (1,pagesel),div (0.000000,length (restriction_clauses)));
+
 	  set_indexqual (pathnode,restriction_clauses);
 	  set_cost (pathnode,cost_index (nth (0,get_indexid (index)),
 					 floor (nth (0,pagesel)),
 					 nth (1,pagesel),get_pages (rel),
 					 get_tuples (rel),get_pages (index),
-					 get_tuples (index)))
+					 get_tuples (index)));
 	    /*    Set selectivities of clauses used with index to 
 		  the selectivity of this index, subdividing the 
 		  selectivity equally over each of 
@@ -324,13 +332,13 @@ create_index_path (rel,index,restriction_clauses,is_join_scan)
 
 /*  .. match-unsorted-outer
  */
-LispValue
+Path
 create_nestloop_path (joinrel,outer_rel,outer_path,inner_path,keys)
      LispValue joinrel,outer_rel,outer_path,inner_path,keys ;
 {
-     /* XXX - let form, maybe incorrect */
-     LispValue pathnode = create_node ("Path");
-     set_pathtype (pathnode,/* XXX- QUOTE NestLoop,*/);
+     Path pathnode = CreateNode(Path);
+     
+     /* set_pathtype(pathnode,NEST_LOOP); */
      set_parent (pathnode,joinrel);
      set_outerpath (pathnode,outer_path);
      set_innerpath (pathnode,inner_path);
@@ -338,7 +346,7 @@ create_nestloop_path (joinrel,outer_rel,outer_path,inner_path,keys)
      set_keys (pathnode,keys);
      if /*when */ ( keys) {
 	  set_ordering (pathnode,get_ordering (outer_path));
-     };
+     }
      set_cost (pathnode,cost_nestloop (get_cost (outer_path),
 				       get_cost (inner_path),
 				       get_size (outer_rel)));
@@ -366,9 +374,10 @@ create_nestloop_path (joinrel,outer_rel,outer_path,inner_path,keys)
  *    
  */
 
-	/*  .. match-unsorted-inner, match-unsorted-outer, sort-inner-and-outer
-	 */
-LispValue
+/*  .. match-unsorted-inner, match-unsorted-outer, sort-inner-and-outer
+ */
+
+MergePath
 create_mergesort_path (joinrel,outersize,innersize,outerwidth,
 		       innerwidth,outer_path,inner_path,keys,order,
 		       mergeclauses,outersortkeys,innersortkeys)
@@ -376,9 +385,8 @@ create_mergesort_path (joinrel,outersize,innersize,outerwidth,
      outer_path,inner_path,keys,order,mergeclauses,outersortkeys,
      innersortkeys ;
 {
-		/* XXX - let form, maybe incorrect */
-     LispValue pathnode = create_node ("Path");
-     set_pathtype (pathnode,/* XXX- QUOTE MergeSort,*/);
+     MergePath pathnode = CreateNode(MergePath);
+
      set_parent (pathnode,joinrel);
      set_outerpath (pathnode,outer_path);
 		set_innerpath (pathnode,inner_path);
@@ -418,17 +426,19 @@ create_mergesort_path (joinrel,outersize,innersize,outerwidth,
  *    
  */
 
-	/*  .. hash-inner-and-outer
-	 */
-LispValue
+/*  .. hash-inner-and-outer
+ */
+
+HashPath
 create_hashjoin_path (joinrel,outersize,innersize,outerwidth,
 		      innerwidth,outer_path,inner_path,keys,operator,
 		      hashclauses,outerkeys,innerkeys)
      LispValue joinrel,outersize,innersize,outerwidth,innerwidth,
      outer_path,inner_path,keys,operator,hashclauses,outerkeys,innerkeys ;
 {
-     LispValue pathnode = create_node ("Path");
-     set_pathtype (pathnode,/* XXX- QUOTE HashJoin,*/);
+     HashPath pathnode = CreateNode(HashPath);
+
+     /* set_pathtype (pathnode,T_HashJoin); */
      set_parent (pathnode,joinrel);
      set_outerpath (pathnode,outer_path);
      set_innerpath (pathnode,inner_path);
