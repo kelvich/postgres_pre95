@@ -14,7 +14,7 @@ then
 	CB=/usr/bin/cb
 elif [ -f /usr/bin/indent -a -r /dev/stdin -a -w /dev/stdout ]
 then
-	CB="/usr/bin/ndent /dev/stdin /dev/stdout"
+	CB="/usr/bin/indent /dev/stdin /dev/stdout"
 else
 	CB=$CAT
 fi
