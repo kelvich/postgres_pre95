@@ -8,7 +8,7 @@ TAGFILE=$TREE/$OD/lib/H/tags.h
 TAGTEMP=$TREE/$OD/lib/H/tags.temp
 OUTFILE=inh.c
 NODEFILES="nodes.h plannodes.h primnodes.h \
-relation.h execnodes.h mnodes.h lnodes.h pg_lisp.h"
+relation.h execnodes.h mnodes.h pg_lisp.h"
 #
 # Generate the initial inheritance graph
 #
