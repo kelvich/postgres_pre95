@@ -69,69 +69,11 @@ parser(str, l)
     }
 }
 
-char *
-expand_file_name(file)
-char *file;
-{
-    char *str;
-    int ind;
-
-    str = (char *) palloc(MAXPATHLEN * sizeof(*str));
-    str[0] = '\0';
-    if (file[0] == '~') {
-	if (file[1] == '\0' || file[1] == '/') {
-	    /* Home directory */
-	    strcpy(str, getenv("HOME"));
-	    ind = 1;
-	} else {
-	    /* Someone else's directory */
-	    char name[16], *p;
-	    struct passwd *pw;
-	    int len;
-
-	    if ((p = (char *) index(file, '/')) == NULL) {
-		strcpy(name, file+1);
-		len = strlen(name);
-	    } else {
-		len = (p - file) - 1;
-		strncpy(name, file+1, len);
-		name[len] = '\0';
-	    }
-	    /*printf("name: %s\n");*/
-	    if ((pw = getpwnam(name)) == NULL) {
-		elog(WARN, "No such user: %s\n", name);
-		ind = 0;
-	    } else {
-		strcpy(str, pw->pw_dir);
-		ind = len + 1;
-	    }
-	}
-    } else if (file[0] == '$') {  /* $POSTGRESHOME, etc.  expand it. */
-	char name[16], environment[80], *p;
-	int len;
-	    
-	if ((p = (char *) index(file, '/')) == NULL) {
-		strcpy(environment, file+1);
-		len = strlen(environment);
-	} else {
-		len = (p - file) - 1;
-		strncpy(environment, file+1, len);
-		environment[len] = '\0';
-	}
-	strcpy(str, getenv(environment));
-	ind = len + 1;
-    } else {
-	ind = 0;
-    }
-    strcat(str, file+ind);
-    return(str);
-}
-
 LispValue
 new_filestr ( filename )
      LispValue filename;
 {
-  return (lispString (expand_file_name (CString(filename))));
+  return (lispString (filename_in (CString(filename))));
 }
 
 int
