@@ -1162,7 +1162,7 @@ heap_destroy(relname)
      *	prevent deletion of system relations
      * ----------------
      */
-    if (IsSystemRelation(rdesc) || 0 /* is not owned etc. */)
+    if (issystem(RelationGetRelationName(rdesc)) || 0 /* is not owned etc. */)
 	elog(WARN, "amdestroy: cannot destroy %s relation",
 	     &rdesc->rd_rel->relname);
 
