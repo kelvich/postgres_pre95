@@ -225,7 +225,7 @@ void Async_Notify(relname)
   INIT_NOTIFY_LIST;
   notify = (PendingNotifyNode *) malloc(sizeof(PendingNotifyNode));
   bzero(notify->relname.data, sizeof(NameData));
-  namestrcpy(notify->relname, relname);
+  namestrcpy(notify->relname.data, relname);
   SLNewNode(&notify->node);
   SLAddHead(&pendingNotifies, &notify->node);
   
