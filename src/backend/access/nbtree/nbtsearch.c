@@ -952,7 +952,7 @@ _bt_twostep(scan, bufP, dir)
     if (ScanDirectionIsForward(dir) && offind < maxoff) {
 	ItemPointerSet(current, 0, blkno, 0, offind + 2);
 	return (true);
-    } else if (ScanDirectionIsBackward(dir) && offind < start) {
+    } else if (ScanDirectionIsBackward(dir) && offind >= start) {
 	ItemPointerSet(current, 0, blkno, 0, offind);
 	return (true);
     }
