@@ -51,7 +51,7 @@ print_root (root)
 LispValue root ;
 {
 	printf ("NumLevels: %s\nCommandType: %s\nResultRelation: %s\n Rangetable:\n",
-		root_levels(root), root_command_type(root),
+		root_numlevels(root), root_command_type(root),
 		root_result_relation (root),
 	      "RangeTable:\n");
 	print_rtentries (root_rangetable (root), 0);
@@ -250,7 +250,7 @@ print_tlistentry (tlistentrytlistentry)
    LispValue resdom, exp;
 
    resdom = tl_resdom (tlistentry);
-   expr = tl_expr (tlistentry);
+   expr = get_expr (tlistentry);
    printf ("(", get_resno (resdom)," ");
 
    if /*when */ (get_reskey (resdom)) {                    /* not equal to 0 */
