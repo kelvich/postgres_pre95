@@ -10,7 +10,7 @@
 #	.undef BIGOBJS
 # in the file obj/Makefile.global in your main tree.
 #
-#BIGOBJS= true
+BIGOBJS= true
 
 .include <postgres.global.mk>
 
