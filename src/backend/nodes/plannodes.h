@@ -238,12 +238,13 @@ typedef	struct Fragment *FragmentPtr;
 class (Fragment) public (Node) {
 #define FragmentDefs \
         inherits(Node); \
-        Plan                    frag_root; \
-        Plan                    frag_parent_op; \
-        int                     frag_parallel; \
-        List                    frag_subtrees; \
-        FragmentPtr         	frag_parent_frag; \
-	List			frag_parsetree
+        Plan           	frag_root; \
+        Plan           	frag_parent_op; \
+        int            	frag_parallel; \
+        List           	frag_subtrees; \
+        FragmentPtr    	frag_parent_frag; \
+	List		frag_parsetree; \
+	bool		frag_is_inprocess
  /* private: */
         FragmentDefs;
  /* public: */

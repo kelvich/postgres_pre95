@@ -31,6 +31,8 @@ extern void set_frag_parent_frag ARGS((Fragment node, Fragment value));
 extern Fragment get_frag_parent_frag ARGS((Fragment node));
 extern void set_frag_parsetree ARGS((Fragment node, List value));
 extern List get_frag_parsetree ARGS((Fragment node));
+extern void set_frag_is_inprocess ARGS((Fragment node, bool value));
+extern bool get_frag_is_inprocess ARGS((Fragment node));
 extern void set_resrellevelqual ARGS((Result node, List value));
 extern List get_resrellevelqual ARGS((Result node));
 extern void set_resconstantqual ARGS((Result node, List value));
