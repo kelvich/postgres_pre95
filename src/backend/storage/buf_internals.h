@@ -152,7 +152,7 @@ struct sbufdesc {
 #endif /* sparc */
 #if defined(PORTNAME_alpha)
 #if defined(HAS_TEST_AND_SET)
-    char		sb_pad[44];	/* has slock_t */
+    char		sb_pad[40];	/* has slock_t */
 #else /* HAS_TEST_AND_SET */
     char		sb_pad[48];	/* no slock_t */
 #endif /* HAS_TEST_AND_SET */
