@@ -303,7 +303,7 @@ ProcessQueryDesc(queryDesc)
 	    if (dest == PORTAL) {
 		isIntoPortal = true;
 		intoName = CString(CADR(resultDesc));
-	    } else if (dest == INTO)
+	    } else if (dest == INTO || dest == INTOTEMP)
 		isIntoRelation = true;
 	}
     }
