@@ -10,6 +10,11 @@ CFLAGS+= -G 0 -DNOFIXADE
 .SUFFIXES: .source .pq
 
 .source.pq:
-	rm -f $*.pq;
-	C=`pwd`; sed -e "s:_CWD_:$$C/${.CURDIR}:g" \
-		     -e "s/_USER_/$$USER/g" < ${.CURDIR}/$*.source > $*.pq
+	rm -f $*.pq; \
+	if [ "${.CURDIR}" = ".." ]; then \
+		C="`pwd`/"; \
+	else \
+		C=""; \
+	fi; \
+	sed -e "s:_CWD_:$$C${.CURDIR}:g" \
+	    -e "s/_USER_/$$USER/g" < ${.CURDIR}/$*.source > $*.pq

@@ -12,7 +12,7 @@ SUBDIR= bench demo regress video
 runtest:
 	@for entry in demo regress video; do \
 		echo running $$entry...; \
-		cd ../$$entry; \
+		cd ${.CURDIR}/$$entry; \
 		bmake runtest; \
 	done
 	@echo To run the Wisconsin benchmark, you must kill the postmaster,
