@@ -888,9 +888,10 @@ PostgresMain(argc, argv)
     signal(SIGHUP, die);
     signal(SIGINT, die);
     signal(SIGTERM, die);
+    signal(SIGPIPE, die);
     signal(SIGUSR1, quickdie);
     /*
-     * Turn of async portals for 4.0.1
+     * Turn off async portals for 4.0.1
      */
 #if 0
     {				/* asynchronous notification */
