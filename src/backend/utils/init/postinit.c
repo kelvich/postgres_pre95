@@ -58,6 +58,8 @@
 #include "catalog/catname.h"
 #include "catalog/pg_database.h"
 
+#include "port-protos.h"
+
 static IPCKey		PostgresIpcKey;
 
 extern char *DataDir;
@@ -258,9 +260,13 @@ DoChdirAndInitDatabaseNameAndPath(name, path)
 
     /* ----------------
      *	change to the directory, or die trying.
+     *
+     *	XXX unless the path hasn't been set because we're bootstrapping.
+     *	    HP-UX doesn't like chdir("") so check for that case before
+     *	    doing anything drastic.
      * ----------------
      */
-    if (chdir(path) < 0)
+    if (*path && (chdir(path) < 0))
 	elog(FATAL, "DoChdirAndInitDatabaseNameAndPath: chdir(\"%s\"): %m",
 	     path);
 }
@@ -490,7 +496,7 @@ InitPostgres(name)
     InitStdio();
 
     if (!TransactionFlushEnabled())
-        on_exitpg(FlushBufferPool, (caddr_t) 0);
+        on_exitpg(FlushBufferPool, (caddr_t) NULL);
 
     /* ----------------
      *	check for valid "meta gunk" (??? -cim 10/5/90) and change to
@@ -617,7 +623,15 @@ InitPostgres(name)
      * ----------------
      */
     PostgresIsInitialized = true;
-	on_exitpg(DestroyLocalRelList, NULL);
+    on_exitpg(DestroyLocalRelList, (caddr_t) NULL);
+
+#ifdef PORTNAME_hpux
+    /* ----------------
+     *	arrange to clear shared library files on exit
+     * ----------------
+     */
+    on_exitpg(del_shlibs, (caddr_t) NULL);
+#endif /* PORTNAME_hpux */
 
     /* ----------------
      *  Done with "InitPostgres", now change to NormalProcessing unless
