@@ -410,3 +410,29 @@ int32		nIndexKeys;
 	*result = *temp * npage;
 	return(result);
 }
+
+float64
+rtsel(operatorObjectId, indrelid, attributeNumber,
+      constValue, constFlag, nIndexKeys, indexrelid)
+ObjectId 	operatorObjectId, indrelid, indexrelid;
+AttributeNumber attributeNumber;
+char		*constValue;
+int32		constFlag;
+int32		nIndexKeys;
+{
+	return (btreesel(operatorObjectId, indrelid, attributeNumber,
+			 constValue, constFlag, nIndexKeys, indexrelid));
+}
+
+float64
+rtnpage(operatorObjectId, indrelid, attributeNumber,
+	 constValue, constFlag, nIndexKeys, indexrelid)
+ObjectId 	operatorObjectId, indrelid, indexrelid;
+AttributeNumber attributeNumber;
+char		*constValue;
+int32		constFlag;
+int32		nIndexKeys;
+{
+	return (btreenpage(operatorObjectId, indrelid, attributeNumber,
+			   constValue, constFlag, nIndexKeys, indexrelid));
+}
