@@ -34,6 +34,10 @@ typedef struct ScanKeyEntryData {
 #define NegateResult		0x4
 #define CommuteArguments	0x8
 
+#define ScanUnmarked		0x01
+#define ScanUncheckedPrevious	0x02
+#define ScanUncheckedNext	0x04
+
 typedef ScanKeyEntryData	*ScanKeyEntry;
 
 typedef struct ScanKeyData {
