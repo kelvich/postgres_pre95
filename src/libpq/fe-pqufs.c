@@ -421,10 +421,11 @@ int p_stat(path,statbuf)
 		p_closedir(path);
 		statbuf->st_size = 32*entries;
 	    }
-	    
-	    st = (LookupStat *)hash_search(p_statHashTPtr,resolve_path(path),
+	    if (p_attr_caching) {	    
+	       st = (LookupStat *)hash_search(p_statHashTPtr,resolve_path(path),
 					   HASH_ENTER,&found);
-	    bcopy(statbuf,&st->statbuf,sizeof(struct pgstat));
+	       bcopy(statbuf,&st->statbuf,sizeof(struct pgstat));
+	    }
 	    return 0;
 	}
     }
@@ -497,8 +498,10 @@ PDIR *p_opendir(path)
 		  }
 	      }
 	    pdir->current_entry = (Direntry *)SLGetHead(&pdir->dirlist);
-	    dir = (LookupDir *)hash_search(p_dirHashTPtr,resolve_path(path),HASH_ENTER,&found);
-	    dir->dir=  pdir;
+	    if (p_attr_caching) {
+	      dir = (LookupDir *)hash_search(p_dirHashTPtr,resolve_path(path),HASH_ENTER,&found);
+	      dir->dir=  pdir;
+	    }
 	    return pdir;
 	}
     }
@@ -653,6 +656,7 @@ static Direntry *new_Direntry(name,OIDf)
     SLNewNode(&d->Node);
     d->d.d_ino = OIDf;
     strcpy(d->d.d_name,name);
+    d->d.d_namlen = strlen(name);
     return d;
 }
 /* use by all the p_* routines to map relative to absolute path */
