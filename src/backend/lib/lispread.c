@@ -446,7 +446,11 @@ Param paramNode;
     i = 0;
     while(paramList[i].kind != PARAM_INVALID) {
 	int match = false;
-	if (paramList[i].kind != get_paramkind(paramNode)) continue;
+	if (paramList[i].kind != get_paramkind(paramNode))
+	{
+	    i++;
+	    continue;
+	}
 	switch (paramList[i].kind) {
 	case PARAM_NUM:
 	    match = (paramList[i].id == get_paramid(paramNode));
