@@ -39,7 +39,12 @@
 #include <ctype.h>
 #include <math.h>
 
+#ifndef sun
+#include "log.h"
+#endif
+
 RcsId("$Header$");
+
 
 #define FORMAT 		'e'	/* use "E" output format as standard format */
 #define	MAXFLOATWIDTH 	12	/* "n.nnnnnE+nn\0" format */
@@ -526,10 +531,14 @@ float64
 dround(arg1)
 	float64	arg1;
 {
+#ifdef sun
 	float64	result = (float64) palloc(sizeof(float64data));
 
 	*result = (float64data) rint((double) *arg1);
 	return(result);
+#else
+	elog(WARN, "dround: not implemented yet for non-sun machines");
+#endif
 }
 
 
