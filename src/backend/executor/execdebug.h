@@ -62,16 +62,6 @@
 #undef EXEC_CONTEXTDEBUG
 
 /* ----------------
- *	EXEC_ALLOCDEBUG makes the ExecAlloc macro call ExecAllocDebug
- *	instead of ExecAllocNormal.  ExecAllocNormal should just call
- *	the memory manager in whatever way is needed and ExecAllocDebug
- *	should do that and keep track of what stuff is allocated and
- *	dump a status report of unallocated stuff at EndPlan() time
- * ----------------
- */
-#undef EXEC_ALLOCDEBUG
-
-/* ----------------
  *	EXEC_RETURNSIZE is a compile flag governing the
  *	behaviour of lispFmgr..  See ExecMakeFunctionResult().
  *	Undefining this avoids a problem in the system cache.
@@ -237,21 +227,6 @@ extern int     NIndexTupleInserted;
 #define CXT_printf(s)		
 #define CXT1_printf(s, a)		
 #endif EXEC_CONTEXTDEBUG
-
-/* ----------------
- *	memory allocation debugging defines
- * ----------------
- */
-#ifdef EXEC_ALLOCDEBUG
-#define ExecAlloc(routine, size) \
-    ExecAllocDebug(routine, __FILE__, __LINE__, size)
-
-#define ExecFree(routine, pointer) \
-    ExecFreeDebug(routine, __FILE__, __LINE__, pointer)
-#else
-#define ExecAlloc(routine, size)	ExecAllocNormal(size)
-#define ExecFree(routine, pointer)	ExecFreeNormal(pointer)
-#endif EXEC_ALLOCDEBUG
 
 /* ----------------
  *	eutils debugging defines
