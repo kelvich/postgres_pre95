@@ -253,19 +253,10 @@ BuildDesc(schema)
 	typename = 	(Name) CString(CADR(entry));
 	arry =		(Array) CDR(CDR(entry));
 
-	/*
-	 *  Support for arrays is extremely limited in the current
-	 *  release.  We'd like to be able to have lower bounds
-	 *  other than 1, for example, but we don't, at present.
-	 *  The only interesting number in the Array node to us
-	 *  in the current implementation is the upper bound, which
-	 *  we treat as the array dimension.
-	 */
-
 	if (arry != (Array) NULL) {
 	    char buf[20];
 
-	    attdim = get_arrayhigh(arry);
+	    attdim = get_arrayndim(arry);
 
 	    /* array of XXX is _XXX (inherited from release 3) */
 	    sprintf(buf, "_%s", typename);
@@ -348,19 +339,10 @@ BuildDescForRelation(schema, relname)
 	    arry = (Array) NULL;
 	}
 
-	/*
-	 *  Support for arrays is extremely limited in the current
-	 *  release.  We'd like to be able to have lower bounds
-	 *  other than 1, for example, but we don't, at present.
-	 *  The only interesting number in the Array node to us
-	 *  in the current implementation is the upper bound, which
-	 *  we treat as the array dimension.
-	 */
-
 	if (arry != (Array) NULL) {
 	    char buf[20];
 
-	    attdim = get_arrayhigh(arry);
+	    attdim = get_arrayndim(arry);
 
 	    /* array of XXX is _XXX (inherited from release 3) */
 	    sprintf(buf, "_%s", typename);
