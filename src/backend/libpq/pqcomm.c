@@ -131,7 +131,7 @@ pq_flush()
  *	pq_getstr - get a null terminateed string from connection
  * --------------------------------
  */
-void
+int
 pq_getstr(s, maxlen)
     char *s;
     int	 maxlen;
@@ -141,13 +141,22 @@ pq_getstr(s, maxlen)
     while (maxlen-- && (c = getc(Pfin)) != EOF && c)
 	*s++ = c;
     *s = '\0';
+
+    /* -----------------
+     *     If EOF reached let caller know
+     * -----------------
+     */
+    if (c == EOF)
+	return EOF;
+    else
+	return !EOF;
 }
 
 /* --------------------------------
  *	pq_getnchar - get n characters from connection
  * --------------------------------
  */
-void
+int
 pq_getnchar(s, off, maxlen)
     char *s;
     int	 off, maxlen;
@@ -157,6 +166,15 @@ pq_getnchar(s, off, maxlen)
     s += off;
     while (maxlen-- && (c = getc(Pfin)) != EOF)
 	*s++ = c;
+
+    /* -----------------
+     *     If EOF reached let caller know
+     * -----------------
+     */
+    if (c == EOF)
+	return EOF;
+    else
+	return !EOF;
 }
 
 /* --------------------------------
