@@ -73,18 +73,13 @@ BKI_END
 
 DATA(insert OID = 0 ( mike 799 t t t t ));
 DATA(insert OID = 0 ( mao 1806 t t t t ));
-DATA(insert OID = 0 ( glass 3918 t t t t ));
 DATA(insert OID = 0 ( hellers 1089 t t t t ));
 DATA(insert OID = 0 ( joey 5209 t t t t ));
-DATA(insert OID = 0 ( clarsen 5568 t t t t ));
 DATA(insert OID = 0 ( jolly 5443 t t t t ));
 DATA(insert OID = 0 ( sunita 6559 t t t t ));
 DATA(insert OID = 0 ( paxson 3029 t t t t ));
 DATA(insert OID = 0 ( marc 2435 t t t t ));
-DATA(insert OID = 0 ( jh 6324 t t t t ));
 DATA(insert OID = 0 ( jiangwu 6124 t t t t ));
-DATA(insert OID = 0 ( terryw 6364 t t t t ));
-DATA(insert OID = 0 ( olson 2331 t t t t ));
 DATA(insert OID = 0 ( aoki 2360 t t t t ));
 DATA(insert OID = 0 ( avi 31080 t t t t ));
 DATA(insert OID = 0 ( kristin 1123 t t t t ));
@@ -95,6 +90,7 @@ DATA(insert OID = 0 ( devine 6724 t t t t ));
 DATA(insert OID = 0 ( boris 6396 t t t t ));
 DATA(insert OID = 0 ( sklower 354 t t t t ));
 DATA(insert OID = 0 ( marcel 31113 t t t t ));
+DATA(insert OID = 0 ( ginger 3692 t t t t ));
 
 BKI_BEGIN
 #endif ALLOW_PG_GROUP
