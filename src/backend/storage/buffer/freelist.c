@@ -51,7 +51,7 @@ BufferDesc *bf;
 
   /* change bf so it points to inFrontOfNew and its successor */
   bf->freePrev = SharedFreeList->freePrev;
-  bf->freeNext = FREE_LIST_DESCRIPTOR;
+  bf->freeNext = Free_List_Descriptor;
 
   /* insert new into chain */
   BufferDescriptors[bf->freeNext].freePrev = bf->id;
@@ -120,7 +120,7 @@ GetFreeBuffer()
     is_LOCKED(BufMgrLock);
 
 
-    if (FREE_LIST_DESCRIPTOR == SharedFreeList->freeNext) {
+    if (Free_List_Descriptor == SharedFreeList->freeNext) {
 
       /* queue is empty. All buffers in the buffer pool are pinned. */
       elog(DEBUG,"out of free buffers: time to abort !\n");
@@ -149,21 +149,21 @@ GetFreeBuffer()
 InitFreeList(init)
 Boolean init;
 {
-  SharedFreeList = &(BufferDescriptors[FREE_LIST_DESCRIPTOR]);
+  SharedFreeList = &(BufferDescriptors[Free_List_Descriptor]);
 
   if (init) {
       /* we only do this once, normally the postmaster */
       SharedFreeList->data = NULL;
       SharedFreeList->flags = 0;
       SharedFreeList->flags &= ~(BM_VALID | BM_DELETED | BM_FREE);
-      SharedFreeList->id = FREE_LIST_DESCRIPTOR;
+      SharedFreeList->id = Free_List_Descriptor;
 
       /* insert it into a random spot in the circular queue */
       SharedFreeList->freeNext = BufferDescriptors[0].freeNext;
       SharedFreeList->freePrev = 0;
       BufferDescriptors[SharedFreeList->freeNext].freePrev = 
 	BufferDescriptors[SharedFreeList->freePrev].freeNext = 
-	  FREE_LIST_DESCRIPTOR;
+	  Free_List_Descriptor;
     }
 }
 

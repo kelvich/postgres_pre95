@@ -38,7 +38,15 @@
 #include "storage/ipci.h"
 #include "storage/shmem.h"
 #include "storage/spin.h"
+#include "tmp/miscadmin.h"
+#include "utils/hsearch.h"
 #include "utils/log.h"
+
+int		NBuffers = NDBUFS;  /* NDBUFS defined in miscadmin.h */
+int		Data_Descriptors;
+int		Free_List_Descriptor;
+int		Lookup_List_Descriptor;
+int		Num_Descriptors;
 
 BufferDesc 	*BufferDescriptors;
 BufferBlock 	BufferBlocks;
@@ -560,7 +568,7 @@ BufferSync()
   BufferDesc *bufHdr;
 
   for(i=0,bufHdr = BufferDescriptors;
-      i<NUM_DATA_BUFS;
+      i<NBuffers;
       i++,bufHdr++) { if (bufHdr->flags & BM_VALID) {
       if(bufHdr->flags & BM_DIRTY) {
 	bufHdr->flags &= ~BM_DIRTY;
@@ -638,7 +646,11 @@ IPCKey key;
   int i;
   int status;
 
-  /* initialize pointers into shared area.  */
+
+  Data_Descriptors = NBuffers;
+  Free_List_Descriptor = Data_Descriptors;
+  Lookup_List_Descriptor = Data_Descriptors + 1;
+  Num_Descriptors = Data_Descriptors + 1;
 
   /* find and acquire the bufmgr spinlock */
   BufMgrLock = SpinAlloc("BufferLock");
@@ -649,11 +661,11 @@ IPCKey key;
 
   BufferDescriptors = (BufferDesc *)
     ShmemInitStruct("Buffer Descriptors",
-		    NUM_DESCRIPTORS*sizeof(BufferDesc),&foundDescs);
+		    Num_Descriptors*sizeof(BufferDesc),&foundDescs);
 
   BufferBlocks = (BufferBlock)
     ShmemInitStruct("Buffer Blocks",
-		    NUM_DATA_BUFS*BLOCK_SIZE,&foundBufs);
+		    NBuffers*BLOCK_SIZE,&foundBufs);
 
 
   if (foundDescs || foundBufs) {
@@ -673,7 +685,7 @@ IPCKey key;
      * initialize free list.  Still don't know anything about
      * replacement strategy in this file.
      */
-    for (i = 0; i < DATA_DESCRIPTORS; block+=BLOCK_SIZE,buf++,i++) {
+    for (i = 0; i < Data_Descriptors; block+=BLOCK_SIZE,buf++,i++) {
       Assert(ShmemIsValid((unsigned int)block));
 
       buf->freeNext = i+1;
@@ -687,8 +699,8 @@ IPCKey key;
     }
 
     /* close the circular queue */
-    BufferDescriptors[0].freePrev = DATA_DESCRIPTORS-1;
-    BufferDescriptors[DATA_DESCRIPTORS-1].freeNext = 0;
+    BufferDescriptors[0].freePrev = Data_Descriptors-1;
+    BufferDescriptors[Data_Descriptors-1].freeNext = 0;
   }
 
   /* Init the rest of the module */
@@ -717,10 +729,10 @@ BufPrintUsage()
 
   elog(NOTICE,"Total: %x, buf pool %x, desc %x, remainder %x\n",
 	 *ShmemFreeStart,
-	 NUM_DATA_BUFS*BLOCK_SIZE,
-	 NUM_DATA_BUFS*sizeof(BufferDesc),
+	 NBuffers*BLOCK_SIZE,
+	 NBuffers*sizeof(BufferDesc),
 	 *ShmemFreeStart - 
-      (NUM_DATA_BUFS*BLOCK_SIZE+NUM_DATA_BUFS*sizeof(BufferDesc)));
+      (NBuffers*BLOCK_SIZE+NBuffers*sizeof(BufferDesc)));
 }
 
 
@@ -741,7 +753,7 @@ int StableMainMemoryFlag;
      * and carefully watch the use of the buffer pages and release them
      * at proper times. -- Wei
      */
-    for (i=1; i<=NUM_DATA_BUFS; i++) {
+    for (i=1; i<=NBuffers; i++) {
         if (BufferIsValid(i)) {
             WriteBuffer(i); 
             while(BufferIsValid(i))
@@ -770,7 +782,7 @@ BufferDescriptorIsValid(bufdesc)
     Assert(PointerIsValid(bufdesc));
     
     temp = (bufdesc-BufferDescriptors)/sizeof(BufferDesc);
-    if (temp >= 0 && temp<NUM_DATA_BUFS)
+    if (temp >= 0 && temp<NBuffers)
         return(true);
     else
         return(false);
@@ -1057,7 +1069,7 @@ Relation tempreldesc;
 {
     register int i;
 
-    for (i=0; i<NUM_DATA_BUFS; i++)
+    for (i=0; i<NBuffers; i++)
         if (BufferIsDirty(i) &&
             BufferDescriptors[i].tag.relId.relId == tempreldesc->rd_id) {
             BufferDescriptors[i].flags &= ~BM_DIRTY;
@@ -1080,8 +1092,39 @@ PrintBufferDescs()
     register int i;
     BufferDesc *buf;
 
-    for (i=0; i<NUM_DATA_BUFS; i++) {
+    for (i=0; i<NBuffers; i++) {
 	buf = &(BufferDescriptors[i]);
 	printf("(freeNext=%d, freePrev=%d, relname=%s, blockNum=%d, flags=0x%x, refcount=%d)\n", buf->freeNext, buf->freePrev, &(buf->sb_relname), buf->tag.blockNum, buf->flags, buf->refcount);
      }
 }
+
+/* -----------------------------------------------------
+ * BufferShmemSize
+ *
+ * compute the size of shared memory for the buffer pool including
+ * data pages, buffer descriptors, hash tables, etc.
+ * ----------------------------------------------------
+ */
+
+int
+BufferShmemSize()
+{
+    int size;
+
+    size =  /* size of shmem binding table */
+	    log2(BTABLE_SIZE) + sizeof(HHDR)
+	    + DEF_SEGSIZE * sizeof(SEGMENT) + BUCKET_ALLOC_INCR * 
+	    (sizeof(BUCKET_INDEX) + BTABLE_KEYSIZE + BTABLE_DATASIZE)
+ 	    /* size of buffer descriptors */
+            + (NBuffers + 1) * sizeof(BufferDesc)
+	    /* size of data pages */
+            + NBuffers * BLOCK_SIZE
+	    /* size of buffer hash table */
+            + log2(NBuffers) + sizeof(HHDR)
+	    + DEF_SEGSIZE * sizeof(SEGMENT) + BUCKET_ALLOC_INCR * 
+	    (sizeof(BUCKET_INDEX) + sizeof(BufferTag) + sizeof(Buffer))
+	    /* extra space, just to make sure there is enough  */
+            + 4096;
+    return size;
+}
+

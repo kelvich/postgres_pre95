@@ -12,11 +12,12 @@ RcsId("$Header$");
 #include "internal.h"
 
 extern char *calloc();
+extern int NBuffers;
 #define ALLOC(t, c)	(t *)calloc((unsigned)(c), sizeof(t))
 
-static Stack		*adjlist[NDBUFS];
-static BufferDesc 	*datlist[NDBUFS];
-static int		used[NDBUFS];
+static Stack		**adjlist;
+static BufferDesc 	**datlist;
+static int		*used;
 
 
 /*
@@ -72,7 +73,11 @@ bwinit()
 {
 	register int	i;
 
-	for (i = 0; i < NDBUFS; i++) {
+	adjlist = (Stack**)malloc(NBuffers * sizeof(Stack*));
+	datlist = (BufferDesc**)malloc(NBuffers * sizeof(BufferDesc*));
+	used = (int*)malloc(NBuffers * sizeof(int));
+
+	for (i = 0; i < NBuffers; i++) {
 		adjlist[i] = (Stack *) NULL;
 		datlist[i] = (BufferDesc *) NULL;
 		used[i] = 0;
@@ -100,7 +105,7 @@ BufferWriteInOrder(predb, succb)
 	}
 
 	/* Save the buffer pointers in our static array */
-	for (i = 0; i < NDBUFS; i++) {
+	for (i = 0; i < NBuffers; i++) {
 		if (datlist[i] == (BufferDesc *) NULL)
 			break;
 		if (datlist[i] == predb)
@@ -108,17 +113,17 @@ BufferWriteInOrder(predb, succb)
 		if (datlist[i] == succb)
 			after = i;
 	}
-	if (before == -1 && i < NDBUFS) {
+	if (before == -1 && i < NBuffers) {
 		datlist[i] = predb;
 		before = i++;
-	} else if (i == NDBUFS) {
+	} else if (i == NBuffers) {
 		elog(WARN, "BufferWriteInOrder: weirdness with predb");
 		return(-1);
 	}
-	if (after == -1 && i < NDBUFS) {
+	if (after == -1 && i < NBuffers) {
 		datlist[i] = succb;
 		after = i;
-	} else if (i == NDBUFS) {
+	} else if (i == NBuffers) {
 		elog(WARN, "BufferWriteInOrder: weirdness with succb");
 		return(-1);
 	}
@@ -135,7 +140,7 @@ BufferWriteInOrder(predb, succb)
  *	Determines which buffers must be written before 'item', given the
  *	partial order (DAG) created by calls to bw_before().
  *
- *	Returns an array of size NDBUFS which contains the buffer numbers
+ *	Returns an array of size NBuffers which contains the buffer numbers
  *	in the order in which they must be written (up to 'item').
  *
  *	Cannot cope with cycles.
@@ -151,17 +156,19 @@ bwsort(item)
 	int			count = 0, active_bufs = 0;
 	register Stack		*sp;
 	Stack			*zeroindeg = (Stack *) NULL;
-	int			indeg[NDBUFS];
-	static BufferDesc	*ret[NDBUFS];
+	int			*indeg;
+	static BufferDesc	**ret;
 
 
-	for (i = 0; i < NDBUFS; i++) {
+	indeg = (int*)alloca(NBuffers * sizeof(int));
+	ret = (BufferDesc**)alloca(NBuffers * sizeof(BufferDesc*));
+	for (i = 0; i < NBuffers; i++) {
 		ret[i] = (BufferDesc *) NULL;
 		indeg[i] = 0;
 	}
 
 	/* Calculate indegrees for each vertex */
-	for (i = 0; i < NDBUFS; i++)
+	for (i = 0; i < NBuffers; i++)
 		for (sp = adjlist[i]; sp != (Stack *) NULL; sp = sp->next)
 			indeg[sp->datum]++;
 
@@ -170,7 +177,7 @@ bwsort(item)
 	 * While we do this, check to see if 'item' has an indegree of 0.
 	 * 	If so, we don't have to do the topological sort.
 	 */
-	for (i = 0; i < NDBUFS; i++)
+	for (i = 0; i < NBuffers; i++)
 		if (indeg[i] == 0)
 			if (datlist[i] == item) {	/* no need to sort */
 				ret[0] = item;
@@ -196,7 +203,7 @@ bwsort(item)
 	}
 
 	/* Either 'item' is last or we have some kind of error */
-	for (i = 0; i < NDBUFS; i++)
+	for (i = 0; i < NBuffers; i++)
 		active_bufs += used[i];
 	if (count != active_bufs) {
 		elog(WARN, "bwsort: cycle in buffer ordering!");
@@ -219,16 +226,17 @@ bwremove(nitems, items)
 {
 	register Stack	*p;
 	register int	i, j;
-	int		remove[NDBUFS];
+	int		*remove;
 
-	if (nitems < 0 || nitems > NDBUFS) {
+	remove = (int*)alloca(NBuffers * sizeof(int));
+	if (nitems < 0 || nitems > NBuffers) {
 		elog(WARN, "bwremove: bad nitems %d", nitems);
 		return(-1);
 	}
 
 	/* Mark off the items in 'datlist' to remove */
 	for (i = 0; i < nitems; i++) 
-		for (j = 0; j < NDBUFS; j++)
+		for (j = 0; j < NBuffers; j++)
 			if (items[i] == datlist[j])
 				remove[j] = 1;
 	for (i = 0; i < nitems; i++)
@@ -238,7 +246,7 @@ bwremove(nitems, items)
 		}
 
 	/* Remove everything in 'adjlist' having to do with those items */
-	for (i = 0; i < NDBUFS; i++) {
+	for (i = 0; i < NBuffers; i++) {
 		if ((p = adjlist[i]) == (Stack *) NULL)
 			continue;
 		else if (p->next == (Stack *) NULL)
