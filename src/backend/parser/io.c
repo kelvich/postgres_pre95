@@ -8,7 +8,6 @@
  *	$Header$
  * ----------------------------------------------------------------
  */
-static char *io_c = "$Header$";
 
 #include <stdio.h>
 #include "utils/log.h"
