@@ -541,7 +541,7 @@ inv_fetchtup(obj_desc, bufP)
 
     } else {
 	heap_fetch(obj_desc->ofs.i_fs.heap_r, NowTimeQual,
-		   &(obj_desc->ofs.i_fs.htid, bufP));
+		   &(obj_desc->ofs.i_fs.htid), bufP);
     }
 
     /*
