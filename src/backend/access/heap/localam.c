@@ -6,6 +6,12 @@
  *  multi-user buffer pool and utilities, and is optimized for fast appends.
  *
  *  ! DO NOT USE THIS CODE FOR ANYTHING BUT TEMP OR "RETRIEVE INTO" RELATIONS !
+ *
+ *	mao says 13 oct 92:  what a crock.  the user creates a temp or
+ *	'into' relation, and we execute this code to avoid going through
+ *	the multi-user buffer pool.  the very next command will have to
+ *	fault the pages into the buffer pool in almost every case.  this
+ *	is really dumb -- all this complexity for zero benefit.
  */
 
 #include <sys/file.h>
@@ -62,18 +68,14 @@ Relation relation;
 }
 
 local_heap_destroy(relation)
-
 Relation relation;
-
 {
     LocalRelList *p = GetRelListEntry(relation);
-    FileUnlink(p->relation->rd_fd);
+    smgrunlink(relation->rd_rel->relsmgr, relation);
 }
 
 local_heap_open(relation)
-
 Relation relation;
-
 {
     MemoryContext    oldCxt;
     MemoryContext    portalContext;
@@ -126,13 +128,11 @@ local_heap_insert(relation, tup)
  */
 
 AtAbort_LocalRels()
-
 {
     DestroyLocalRelList();
 }
 
 AtCommit_LocalRels()
-
 {
     DestroyLocalRelList();
 }
@@ -143,9 +143,7 @@ AtCommit_LocalRels()
 
 LocalRelList *
 AddToRelList(relation)
-
-Relation relation;
-
+    Relation relation;
 {
     if (tail == NULL)
     {
@@ -171,9 +169,7 @@ Relation relation;
 
 LocalRelList *
 GetRelListEntry(relation)
-
-Relation relation;
-
+    Relation relation;
 {
     LocalRelList *p;
 
@@ -194,9 +190,7 @@ Relation relation;
  */
 
 DeleteRelListEntry(relation)
-
-Relation relation;
-
+    Relation relation;
 {
     LocalRelList *p;
 
@@ -209,9 +203,7 @@ Relation relation;
     p->active = false;
 
     /* don't waste excessive memory */
-
     if (p->read_page != NULL) pfree(p->read_page);
-
     if (p->write_page != NULL) pfree(p->write_page);
 
     p->read_page = p->write_page = NULL;
@@ -233,7 +225,6 @@ Relation relation;
  */
 
 DestroyLocalRelList()
-
 {
     LocalRelList *p, *q;
     for (p = head; p != NULL; p = q)
@@ -251,10 +242,8 @@ DestroyLocalRelList()
 }
 
 local_doinsert(relation, tuple)
-
-Relation relation;
-HeapTuple tuple;
-
+    Relation relation;
+    HeapTuple tuple;
 {
     LocalRelList *rel_info;
     Size len = LONGALIGN(tuple->t_len);
@@ -300,38 +289,17 @@ HeapTuple tuple;
 }
 
 WriteLocalPage(rel_info)
-
-LocalRelList *rel_info;
-
+    LocalRelList *rel_info;
 {
-    unsigned long offset;
-    int nbytes;
+    Relation r;
 
-    offset = rel_info->write_blocknum * BLCKSZ;
+    /*
+     *  Use the storage manager switch to be sure that we write to the
+     *  correct device.  We call smgrextend() instead of smgrwrite()
+     *  because we know that this routine is called only with new pages
+     *  for the temp relation.
+     */
 
-    FileSeek(rel_info->relation->rd_fd, offset, L_SET);
-
-    nbytes = FileWrite(rel_info->relation->rd_fd,
-                       (char *) rel_info->write_page,
-                       BLCKSZ);
-
-    Assert(nbytes == BLCKSZ);
-}
-
-ReadLocalPage(rel_info)
-
-LocalRelList *rel_info;
-
-{
-    unsigned long offset;
-    int nbytes;
-
-    offset = rel_info->read_blocknum * BLCKSZ;
-
-    FileSeek(rel_info->relation->rd_fd, offset, L_SET);
-
-    nbytes = FileRead(rel_info->relation->rd_fd,
-                       (char *) rel_info->read_page,
-                       BLCKSZ);
-    return(nbytes);
+    r = rel_info->relation;
+    (void) smgrextend(r->rd_rel->relsmgr, r, (char *) rel_info->write_page);
 }
