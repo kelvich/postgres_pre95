@@ -7,7 +7,7 @@
 #
 .include <postgres.global.mk>
 
-.MAIN: ref
+.MAIN: all
 
 MACROS=-man
 
@@ -260,7 +260,7 @@ ref.ps: ${SOURCES} ${NR_OBJS} ${KW_OBJS} ${TR_MAC_SOURCES}
 
 CLEANFILES+= ${NR_OBJS} ${KW_OBJS} ref.cat ref.ps
 
-ref: ref.cat ref.ps ${OBJS}
+all: ref.cat ref.ps ${OBJS}
 
 install: ${OBJS} all
 	@-for i in ${PROG_MAN_DIR} ${CMD_MAN_DIR} ${LIB_MAN_DIR} ${FILE_MAN_DIR}; \
