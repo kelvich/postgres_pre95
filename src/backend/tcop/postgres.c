@@ -82,6 +82,9 @@ int		ShowLock = 0;
 
 extern char	*PG_username;
 
+/* in elog.c */
+extern bool IsEmptyQuery;
+
 /* this global is defined in utils/init/postinit.c */
 extern int	testFlag;
 extern int	lockingOff;
@@ -250,11 +253,15 @@ InteractiveBackend(inBuf)
 	}
 
 	/* ----------------
-	 *  "end" is true when there are no more queries to process.
+	 *  "end" is true when there are no more queries to process.  The
+	 *  IsEmptyQuery global tells elog not to try to communicate with
+	 *  the front end, since it may be gone.  This is a workaround for
+	 *  a bug in Ultrix 3.x (at least).  See elog.c for details.
 	 * ----------------
 	 */
 	if (end) {
 	    if (!Quiet) puts("EOF");
+	    IsEmptyQuery = true;
 	    AbortCurrentTransaction();
 	    exitpg(0);
 	}
@@ -808,7 +815,6 @@ PostgresMain(argc, argv)
     char		*DatabaseName;
 
     char		parser_input[MAX_PARSE_BUFFER];
-    int			empty_buffer = 0;	
     
     extern	int	Noversion;		/* util/version.c */
     extern	int	Quiet;
@@ -1287,6 +1293,7 @@ PostgresMain(argc, argv)
 	     * ----------------
 	     */
 	case 'F':
+	    IsEmptyQuery = false;
 	    HandleFunctionRequest();
 	    break;
 	    
@@ -1303,12 +1310,13 @@ PostgresMain(argc, argv)
 		 *  trying to parse and execute anything..
 		 * ----------------
 		 */
-		empty_buffer = 1;
+		IsEmptyQuery = true;
 	    } else {
 		/* ----------------
 		 *  otherwise, process the input string.
 		 * ----------------
 		 */
+	        IsEmptyQuery = false;
 		if (ShowStats)
 		    ResetUsage();
 
@@ -1333,7 +1341,7 @@ PostgresMain(argc, argv)
 	 *   call pg_eval, so we don't bother to commit this transaction.
 	 * ----------------
 	 */
-	if (! empty_buffer) {
+	if (! IsEmptyQuery) {
 	    if (! Quiet) {
 		time(&tim);
 		printf("\tCommitTransactionCommand() at %s\n", ctime(&tim));
@@ -1353,7 +1361,6 @@ PostgresMain(argc, argv)
 #endif PALLOC_DEBUG
 	
 	} else {
-	    empty_buffer = 0;
 	    if (IsUnderPostmaster)
 		NullCommand(Remote);
 	}
