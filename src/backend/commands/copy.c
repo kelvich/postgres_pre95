@@ -16,7 +16,6 @@
 #include "access/relscan.h"
 #include "utils/rel.h"
 #include "utils/log.h"
-#include "utils/dynamic_loader.h"
 #include "tmp/daemon.h"
 
 /*
