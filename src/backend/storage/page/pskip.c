@@ -1,3 +1,11 @@
+
+/*
+ *  PSKIP.C
+ *
+ *  related to internal_page.h, not internal.h
+ *
+ */
+
 static char	pskip_c[] = "$Header$";
 
 #include "c.h"

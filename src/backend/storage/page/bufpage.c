@@ -48,7 +48,7 @@
 #include "part.h"
 
 #include "bufpage.h"
-#include "internal.h"
+#include "internal_page.h"
 
 RcsId("$Header$");
 
