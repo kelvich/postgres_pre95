@@ -25,6 +25,8 @@
  *	$Header$
  * ----------------------------------------------------------------
  */
+#include <strings.h>
+
 #include "tmp/c.h"
 
 #include "access/htup.h"

@@ -3,6 +3,8 @@
  *	POSTGRES heap access method input/output code.
  */
 
+#include <strings.h>
+
 #include "tmp/c.h"
 
 RcsId("$Header$");

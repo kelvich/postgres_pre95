@@ -14,6 +14,7 @@
  *	is really dumb -- all this complexity for zero benefit.
  */
 
+#include <strings.h>
 #include <sys/file.h>
 
 #include "tmp/c.h"

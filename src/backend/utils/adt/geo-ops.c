@@ -8,6 +8,7 @@ static char rcs_id[] =
 "$Header$";
 #endif
 
+#include <math.h>
 #include <stdio.h>
 #include <strings.h>
 

@@ -7,6 +7,8 @@
  *
  */
 
+#include <math.h>
+
 #include "tmp/postgres.h"
 #include "utils/builtins.h"
 
