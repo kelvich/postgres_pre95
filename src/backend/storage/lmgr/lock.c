@@ -401,7 +401,7 @@ LOCKT		lockt;
    * ------------------
    */
   bzero(&item, XID_TAGSIZE);
-  TransactionIdStore(myXid, (char *) &item.tag.xid);
+  TransactionIdStore(myXid, &item.tag.xid);
   item.tag.lock = MAKE_OFFSET(lock);
   item.tag.pid = MyPid;
 
@@ -508,7 +508,7 @@ int pid;
    * ------------------
    */
   bzero(&item, XID_TAGSIZE);
-  TransactionIdStore(xid, (char *) &item.tag.xid);
+  TransactionIdStore(xid, &item.tag.xid);
   item.tag.lock = MAKE_OFFSET(lock);
   item.tag.pid = pid;
 
@@ -734,7 +734,7 @@ LOCKT	lockt;
    */
   bzero(&item, XID_TAGSIZE);
 
-  TransactionIdStore(GetCurrentTransactionId(), (char *) &item.tag.xid);
+  TransactionIdStore(GetCurrentTransactionId(), &item.tag.xid);
   item.tag.lock = MAKE_OFFSET(lock);
   item.tag.pid = MyPid;
 

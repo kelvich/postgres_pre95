@@ -218,7 +218,7 @@ RelationInitLockInfo(relation)
     else if (processingVariable) {
 	if (IsTransactionState()) {
 	    TransactionIdStore(GetCurrentTransactionId(),
-			       (Pointer) &info->transactionIdData);
+			       &info->transactionIdData);
 	}
 	info->flags = 0x0;
 	return;		/* prevent an infinite loop--still true? */
@@ -247,12 +247,12 @@ RelationInitLockInfo(relation)
      */
     if (processingVariable)
 	TransactionIdStore(AmiTransactionId,
-			   (Pointer)&info->transactionIdData);
+			   &info->transactionIdData);
     else if (IsTransactionState()) 
 	TransactionIdStore(GetCurrentTransactionId(),
-			   (Pointer) &info->transactionIdData);
+			   &info->transactionIdData);
     else
-	PointerStoreInvalidTransactionId((Pointer) &info->transactionIdData);
+	PointerStoreInvalidTransactionId(&(info->transactionIdData));
 	
     /* ----------------
      *	initialize rest of lockinfo
@@ -556,7 +556,7 @@ RelationSetLockForTupleRead(relation, itemPointer)
      */
     curXact = GetCurrentTransactionId();
     if ((linfo->flags & ReadRelationLock) &&
-	TransactionIdEquals(curXact, &linfo->transactionIdData))
+	TransactionIdEquals(curXact, linfo->transactionIdData))
     {
 	return;
     }
@@ -566,7 +566,7 @@ RelationSetLockForTupleRead(relation, itemPointer)
      * ----------------
      */
     if (!( (linfo->flags & ReadTupleLock) &&
-           TransactionIdEquals(curXact, &linfo->transactionIdData) )) {
+           TransactionIdEquals(curXact, linfo->transactionIdData) )) {
 	
 	linfo->flags |=
 	        IntentReadRelationLock |
@@ -595,7 +595,7 @@ RelationSetLockForTupleRead(relation, itemPointer)
 		(1 + (TupleLevelLockCountMask & linfo->flags));
     }
 
-    TransactionIdStore(curXact, (Pointer) &linfo->transactionIdData);
+    TransactionIdStore(curXact, &linfo->transactionIdData);
 
     /* ----------------
      * Lock the tuple.

@@ -388,8 +388,7 @@ LOCK *		lock;
    * currently, we only need this for the ProcWakeup routines
    * -------------------
    */
-  TransactionIdStore((TransactionId) GetCurrentTransactionId(),
-		     (char *) &MyProc->xid);
+  TransactionIdStore((TransactionId) GetCurrentTransactionId(), &MyProc->xid);
 
   /* -------------------
    * assume that these two operations are atomic (because
