@@ -6,6 +6,7 @@
  *      $Header$
  */
 
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/file.h>
 #ifndef	_IPC_
@@ -196,6 +197,10 @@ int					permission;
 	shmid = shmget(memKey, size, IPC_CREAT|permission); 
 	if (shmid < 0) {
 		perror("IpcMemoryCreate: shmget(..., create, ...) failed");
+		fprintf(stderr, 
+		    "Arguments: memKey=%08lx, size=%ld, perm=0%o\n",
+		    memKey, size, permission | IPC_CREAT
+		);
 		return(IpcMemCreationFailed);
 	}
 

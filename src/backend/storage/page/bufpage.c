@@ -167,8 +167,7 @@ PageInit(page, pageSize, specialSize)
 {
 	Assert(pageSize == BLCKSZ);
 
-	Assert(pageSize >
-		specialSize + sizeof (PageHeaderData) - sizeof (ItemIdData));
+    Assert(pageSize>specialSize+sizeof(PageHeaderData)-sizeof (ItemIdData));
 
 	((PageHeader)page)->pd_lower = sizeof (PageHeaderData) - sizeof
 		(ItemIdData);
