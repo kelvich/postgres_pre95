@@ -930,7 +930,7 @@ SISyncInit(key)
     IPCKey	key;
 {
 #ifdef HAS_TEST_AND_SET
-    SharedInvalidationLockId = SINVALLOCKID;  /* a fixed lock */
+    SharedInvalidationLockId = (int)SINVALLOCKID;  /* a fixed lock */
 #else /* HAS_TEST_AND_SET */
     int status;
     SharedInvalidationSemaphore =
