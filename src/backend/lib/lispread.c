@@ -32,6 +32,8 @@ RcsId("$Header$");
 extern bool _equalLispValue();
 extern void lispDisplayFp();
 extern void lispDisplay();
+extern int16 get_typlen();
+extern bool get_typbyval();
 double atof();
 
 #define RIGHT_PAREN (1000000 + 1)
@@ -455,7 +457,7 @@ Param paramNode;
     }
 
     /*
-     * No entry exists for this parameter, therefore we msut add
+     * No entry exists for this parameter, therefore we must add
      * a  new entry at the end of the array.
      * We must first check to see if the array is big enough
      * to hold this new entry. If not, then we have to reallocate
@@ -481,11 +483,11 @@ Param paramNode;
      */
     paramList[i].kind = get_paramkind(paramNode);
     paramList[i].name = get_paramname(paramNode); /* Note: no copy! */
-    /* XXX NOTE: I think that currently the planner does not
-     * fill the 'paramtype' field...
-     */
+    paramList[i].id = get_paramid(paramNode);
     paramList[i].type = get_paramtype(paramNode);
-    
+    paramList[i].length = (Size) get_typlen(get_paramtype(paramNode));
+    paramList[i].byval = get_typbyval(get_paramtype(paramNode));
+
     /*
      * mark the next entry in paramList as invalid...
      */
