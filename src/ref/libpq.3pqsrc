@@ -369,13 +369,13 @@ char * PQgetvalue ( portal, tuple_index, field_number )
 
 .ft
 
-PQgetlen \*- Return the length of an attribute (field) value in bytes.
+PQgetlength \*- Return the length of an attribute (field) value in bytes.
 If the field is a varlena, the length of the attribute returned here
 does not include the longword size field of the varlena, e.g. it is 4
 bytes less.
 
 .ft C
-char * PQgetlen ( portal, tuple_index, field_number )
+char * PQgetlength ( portal, tuple_index, field_number )
 	PortalBuffer	*portal;
 	int	tuple_index;
 	int	field_number;
