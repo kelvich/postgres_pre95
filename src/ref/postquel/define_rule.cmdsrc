@@ -142,6 +142,14 @@ on retrieve to EMP.salary where current.name = ``Bill''
 do instead retrieve (EMP.salary) where EMP.name = ``Joe''
 .)l
 .lp
+/* Deny Joe access to the salary of employees in the shoe department */
+/* Note: ``pg_username'' returns the name of the current user */
+.(l
+define rule example_3 is
+on retrieve to EMP.salary where current.dept = ``shoe'' and pg_username() = ``Joe''
+do instead nothing
+.)l
+.lp
 /* create a view of the employees working in the toy department */
 .(l
 create TOYEMP(name = char16, salary = int4)
