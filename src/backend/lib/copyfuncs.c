@@ -1454,7 +1454,7 @@ _copyConst(from, to, alloc)
 		 * ----------------
 		 */
 		int length;
-		length = *((int *) newnode->constvalue);
+		length = *((int *) from->constvalue);
 		newnode->constvalue = PointerGetDatum(COPYALLOC(length));
 		bcopy(from->constvalue, newnode->constvalue, length);
 	    }
