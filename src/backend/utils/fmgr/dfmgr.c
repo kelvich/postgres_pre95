@@ -7,30 +7,36 @@
 #include <sys/stat.h>
 #include <stdio.h>
 
+#include "tmp/c.h"
+
+#ifndef UFP
 #include "access/heapam.h"
 #include "nodes/pg_lisp.h"
 #include "utils/builtins.h"	/* for textout() prototype */
+#endif /* !UFP */
 #include "utils/fmgr.h"
 #include "utils/log.h"
 
-#include "tmp/c.h"
 #include "port-protos.h"     /* system specific function prototypes */
 
+#ifndef UFP
 #include "catalog/catname.h"
 #include "catalog/syscache.h"
 #include "catalog/pg_proc.h"
+#endif /* !UFP */
 
 RcsId("$Header$");
 
 static DynamicFileList *file_list = NULL;
 static DynamicFileList *file_tail = NULL;
 
+#define NOT_EQUAL(A, B) (((A).st_ino != (B).inode) \
+                      || ((A).st_dev != (B).device))
+
+#ifndef UFP
 static ObjectId procedureId_save = -1;
 static int pronargs_save;
 static func_ptr user_fn_save = NULL;
-
-#define NOT_EQUAL(A, B) (((A).st_ino != (B).inode) \
-                      || ((A).st_dev != (B).device))
 
 func_ptr
 fmgr_dynamic(procedureId, pronargs)
@@ -78,10 +84,6 @@ fmgr_dynamic(procedureId, pronargs)
      * Since probin is varlena, do a amgetattr() on the procedure
      * tuple.  To do that, we need the rdesc for the procedure
      * relation, so...
-     *
-     * XXX It may not be wise to turn GC off for this long, but some LISPs 
-     *     (e.g., KCL) don't provide a way to protect C-allocated LISP
-     *     objects.
      */
 
     /* open pg_procedure */
@@ -110,6 +112,7 @@ fmgr_dynamic(procedureId, pronargs)
 
     return(user_fn);
 }
+#endif /* !UFP */
 
 func_ptr
 handle_load(filename, funcname)
@@ -131,7 +134,9 @@ char *filename, *funcname;
      *
      */
 
+#ifndef UFP
     procedureId_save = -1;
+#endif /* !UFP */
 
     /*
      * Scan the list of loaded FILES to see if the function

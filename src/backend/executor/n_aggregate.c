@@ -198,10 +198,13 @@ ExecAgg(node)
 	 */
 	if (func2) 
 	{
-	    running_comp[1] = (char *)
-		fmgr_by_ptr_array_args( functionptrarray[1],
-					nargs[1],
-					&running_comp[1], &isNull) ;
+	    running_comp[1] = (functionptrarray[1] != (func_ptr) NULL) ?
+		    (char *) fmgr_by_ptr_array_args(functionptrarray[1],
+						    nargs[1], &running_comp[1],
+						    &isNull) :
+		    (char *) fmgr_array_args(func2,
+					     nargs[1], &running_comp[1],
+					     &isNull);
 	}
     }
 	
@@ -221,10 +224,11 @@ ExecAgg(node)
 
 	args[0] = running_comp[0];
 	args[1] = theNewVal;
-	running_comp[0] = (char *) 
-	    fmgr_by_ptr_array_args( functionptrarray[0],
-				    nargs[0],
-				    &args[0], &isNull );
+	running_comp[0] = (functionptrarray[0] != (func_ptr) NULL) ?
+		(char *) fmgr_by_ptr_array_args(functionptrarray[0],
+						nargs[0], &args[0], &isNull) :
+		(char *) fmgr_array_args(func1,
+					 nargs[0], &args[0], &isNull);
 	/* ----------
 	 * We aggregated another tuple
 	 * ----------
@@ -233,10 +237,13 @@ ExecAgg(node)
 
 	if (func2) 
 	{
-	    running_comp[1] = (char *)
-		fmgr_by_ptr_array_args( functionptrarray[1],
-					nargs[1],
-					&running_comp[1], &isNull );
+	    running_comp[1] = (functionptrarray[1] != (func_ptr) NULL) ?
+		    (char *) fmgr_by_ptr_array_args(functionptrarray[1],
+						    nargs[1], &running_comp[1],
+						    &isNull) :
+		    (char *) fmgr_array_args(func2,
+					     nargs[1], &running_comp[1],
+					     &isNull);
 	}
     }
 
@@ -246,10 +253,13 @@ ExecAgg(node)
      */
     if (finalfunc && nTuplesAgged > 0)
     {
-	final_value = (char *)
-	    fmgr_by_ptr_array_args( functionptrarray[2],
-				    nargs[2],
-				    &running_comp[0], &isNull );
+	final_value = (functionptrarray[2] != (func_ptr) NULL) ?
+		(char *) fmgr_by_ptr_array_args(functionptrarray[2],
+						nargs[2],
+						&running_comp[0], &isNull) :
+		(char *) fmgr_array_args(finalfunc,
+					 nargs[2],
+					 &running_comp[0], &isNull);
     }
     else
 	final_value = running_comp[0];

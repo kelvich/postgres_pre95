@@ -841,6 +841,12 @@ ExecMakeFunctionResult(node, arguments, econtext, isNull, isDone)
 	for (i = 0; i < fcache->nargs; i++) 
 	    if (fcache->nullVect[i] == true) *isNull = true;
 
+	if (fcache->func == (func_ptr) NULL)
+		return((Datum) fmgr_array_args(fcache->foid,
+					       fcache->nargs,
+					       argv,
+					       isNull));
+
 	return (Datum)
 	    fmgr_by_ptr_array_args(fcache->func, fcache->nargs, argv, isNull);
     }

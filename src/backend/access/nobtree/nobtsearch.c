@@ -621,7 +621,9 @@ _nobt_compare(rel, itupdesc, page, keysz, scankey, offind)
 	datum = (Datum) fetchatt(((struct attribute **) itupdesc), tempd);
     }
 
-    result = (int) (*(entry->func))(entry->argument, datum);
+    result = (entry->func != (ScanKeyFunc) NULL) ?
+	    (int) (*(entry->func))(entry->argument, datum) :
+		    (int) fmgr(entry->procedure, entry->argument, datum);
     return (result);
 }
 

@@ -127,8 +127,11 @@ _bt_orderkeys(relation, numberOfKeys, key)
 	/* have we seen one of these before? */
 	if (init[j]) {
 	    /* yup, use the appropriate value */
-	    test = (int) (*(cur->func))(cur->argument,
-				        xform->data[j].argument);
+	    test = (cur->func != (ScanKeyFunc) NULL) ?
+		    (int) (*(cur->func))(cur->argument,
+					 xform->data[j].argument) :
+		    (int) fmgr(cur->procedure, cur->argument,
+			       xform->data[j].argument);
 	    if (test)
 		xform->data[j].argument = cur->argument;
 	} else {

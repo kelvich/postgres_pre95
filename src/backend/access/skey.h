@@ -19,6 +19,8 @@
 
 typedef uint16	ScanKeySize;
 
+typedef	int	((*ScanKeyFunc)());	/* pointer to function returning int */
+
 typedef struct ScanKeyEntryData {
 	bits16		flags;
 	AttributeNumber	attributeNumber;

@@ -487,8 +487,10 @@ _bt_compare(rel, itupdesc, page, keysz, scankey, offind)
 	attno = entry->attributeNumber;
 	datum = (Datum) IndexTupleGetAttributeValue(itup, attno,
 						    itupdesc, &null);
-	result = (int) (*(entry->func))(entry->argument, datum);
-
+	result = (entry->func != (ScanKeyFunc) NULL) ?
+		(int) (*(entry->func))(entry->argument, datum) :
+			(int) fmgr(entry->procedure, entry->argument, datum);
+	
 	/* if the keys are unequal, return the difference */
 	if (result != 0)
 	    return (result);

@@ -243,19 +243,27 @@ StrategyTermEvaluate(term, map, left, right)
 
 	switch (operator->flags ^ entry->flags) {
 	case 0x0:
-	    result = (bool) (*(entry->func)) (left, right);
+	    result = (entry->func != (ScanKeyFunc) NULL) ?
+		    (bool) (*(entry->func)) (left, right) :
+			    (bool) fmgr(entry->procedure, left, right);
 	    break;
 	    
 	case NegateResult:
-	    result = (bool) !(*(entry->func)) (left, right);
+	    result = (entry->func != (ScanKeyFunc) NULL) ?
+		    (bool) !(*(entry->func)) (left, right) :
+			    (bool) !fmgr(entry->procedure, left, right);
 	    break;
 	    
 	case CommuteArguments:
-	    result = (bool) (*(entry->func)) (right, left);
+	    result = (entry->func != (ScanKeyFunc) NULL) ?
+		    (bool) (*(entry->func)) (right, left) :
+			    (bool) fmgr(entry->procedure, right, left);
 	    break;
 	    
 	case NegateResult | CommuteArguments:
-	    result = (bool) !(*(entry->func)) (right, left);
+	    result = (entry->func != (ScanKeyFunc) NULL) ?
+		    (bool) !(*(entry->func)) (right, left) :
+			    (bool) !fmgr(entry->procedure, right, left);
 	    break;
 
 	default:
