@@ -86,7 +86,7 @@ static char	SJCacheBuf[SJBUFSIZE];
 #define SET_IO_LOCK(item) \
     item->sjc_gflags |= SJC_IOINPROG; \
     SpinRelease(SJCacheLock); \
-    S_LOCK(item->sjc_iolock);
+    S_LOCK(&(item->sjc_iolock));
 #else /* HAS_TEST_AND_SET */
 #define SET_IO_LOCK(item) \
     item->sjc_gflags |= SJC_IOINPROG; \
