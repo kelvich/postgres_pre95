@@ -565,7 +565,7 @@ SkipForwardToFromList()
           ; /* empty while */
 
         if (next_token <= 0 ) {
-                printf("EOS, no from found\n");
+                if (!Quiet) printf("EOS, no from found\n");
                 fflush(stdout);
                 Ch = temp;
         }
