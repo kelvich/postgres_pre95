@@ -35,10 +35,12 @@ running on the database server
 The defaults are to the local machine (localhost) and to the default port
 (4321).
 .uh "INTERACTIVE QUESTIONS"
+.lp
 Once invoked with the above options
 .b createuser
 will guide the person adding the new \*(PP user through a series of questions.
 These questions describe the security capabilities of the \*(PP user.
+The new user's \*(PP userid must be the user's Unix userid.
 .uh "SEE ALSO"
 .lp
 destroyuser(unix),
@@ -53,3 +55,7 @@ not do anything with \*(PP at all.
 <user> already exists
 .lp
 The user already exists.
+.uh BUGS
+.lp
+Postgres userid's and usernames should not have anything to do with the
+constraints of Unix.
