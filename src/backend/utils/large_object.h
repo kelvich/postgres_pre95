@@ -126,7 +126,8 @@ LOOpen ARGS((
 void
 LOStat ARGS((
     LargeObjectDesc *obj_desc,
-    unsigned int *nblocks, *byte_offset
+    unsigned int *nblocks,
+    unsigned int *byte_offset
 ));
 
 int
@@ -140,7 +141,8 @@ int
 LOBlockWrite ARGS((
     LargeObjectDesc *obj_desc,
     char *buf,
-    unsigned long n_whole_blocks, bytes_at_end
+    unsigned long n_whole_blocks,
+    unsigned long bytes_at_end
 ));
 
 unsigned long
