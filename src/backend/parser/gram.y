@@ -928,7 +928,7 @@ NotifyStmt: NOTIFY relation_name
 		
 		parser_current_rel = heap_openr(VarnoGetRelname(x));
 		if (parser_current_rel == NULL)
-		  elog(WARN,"notify: relation %s doesn't exist",$2);
+		  elog(WARN,"notify: relation %s doesn't exist",CString($2));
 		else
 		  heap_close(parser_current_rel);
 
