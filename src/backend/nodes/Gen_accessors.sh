@@ -1,4 +1,9 @@
 #! /bin/sh
+#
+#	Gen_accessors -- Create accessor functions for nodes.
+#
+#	$Header$
+#
 ####
 # initial definitions
 ####
